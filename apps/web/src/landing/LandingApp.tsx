@@ -120,7 +120,7 @@ function Residents() {
     <ul className="residents">
       {who.map((c) => (
         <li key={c.id}>
-          <img className="pixel" src={`pet/npcs/${c.stand}`} alt="" loading="lazy" />
+          <img className="pixel" src={`art/npcs/${c.stand}`} alt="" loading="lazy" />
           <b style={{ background: c.color }}>{c.name[lang]}</b>
           <span>{c.role[lang]}</span>
         </li>
@@ -135,7 +135,7 @@ function FriendsScene({ reduce }: { reduce: boolean }) {
   const a = useMemo(() => drawPet("gentle", "child", { expression: "happy" }), []);
   const b = useMemo(() => drawPet("gentle", "teen", { expression: "love" }), []);
   return (
-    <div className="friends-scene" style={{ backgroundImage: "url(pet/rooms/65_forest-hut/backgrounds/room65a.png)" }}>
+    <div className="friends-scene" style={{ backgroundImage: "url(art/rooms/65_forest-hut/backgrounds/room65a.png)" }}>
       <div className="fs-pet fs-a">
         <motion.div animate={reduce ? {} : { y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 1.6 }}>
           <Sprite canvas={a} palette={CORAL} scale={3} />
@@ -184,7 +184,7 @@ function SparDemo({ reduce }: { reduce: boolean }) {
         <span>{lang === "zh" ? `第 ${Math.min(n, result.rounds.length)} 回合` : `Round ${Math.min(n, result.rounds.length)}`}</span>
         <span className="mono">{lang === "zh" ? `回放 ${result.digest}` : `replay ${result.digest}`}</span>
       </div>
-      <div className="sd-ring" style={{ backgroundImage: "url(pet/rooms/49_clearing/backgrounds/playtest-a.png)" }}>
+      <div className="sd-ring" style={{ backgroundImage: "url(art/rooms/49_clearing/backgrounds/playtest-a.png)" }}>
         {([0, 1] as const).map((side) => (
           <div key={side} className={`sd-f sd-${side}`}>
             <i className="sd-hp">
@@ -309,7 +309,7 @@ export function LandingApp() {
           <ul className="rooms">
             {ROOMS.map(([src, en, zh]) => (
               <li key={src}>
-                <img className="pixel" src={`pet/rooms/${src}`} alt="" width={128} height={128} loading="lazy" />
+                <img className="pixel" src={`art/rooms/${src}`} alt="" width={128} height={128} loading="lazy" />
                 <span>{lang === "zh" ? zh : en}</span>
               </li>
             ))}

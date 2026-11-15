@@ -13,9 +13,9 @@ import { catTexture, glyphTexture, petTexture } from "../scene/textures";
 
 const ROOM = 128;
 const BG = {
-  day: "pet/rooms/49_clearing/backgrounds/playtest-a.png",
-  evening: "pet/rooms/49_clearing/backgrounds/playtest-b.png",
-  night: "pet/rooms/49_clearing/backgrounds/playtest-c.png",
+  day: "art/rooms/49_clearing/backgrounds/playtest-a.png",
+  evening: "art/rooms/49_clearing/backgrounds/playtest-b.png",
+  night: "art/rooms/49_clearing/backgrounds/playtest-c.png",
 } as const;
 
 export function phaseNow(): keyof typeof BG {

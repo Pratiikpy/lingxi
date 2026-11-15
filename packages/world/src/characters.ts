@@ -10,7 +10,7 @@
 export type Action = "shop" | "map" | "quests" | "mind" | "spar" | "bag" | "proof";
 
 export interface Line {
-  /** portrait file under /pet/npcs/ */
+  /** portrait file under /art/npcs/ */
   face: string;
   en: string;
   zh: string;

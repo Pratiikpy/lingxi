@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { CHARACTERS } from "../src/characters";
 import { ROOMS } from "../src/world";
 
-const ART = join(__dirname, "../../../apps/web/public/pet/npcs");
+const ART = join(__dirname, "../../../apps/web/public/art/npcs");
 
 describe("characters", () => {
   it("each stands in a real room, one per room, with unique ids", () => {

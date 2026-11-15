@@ -10,7 +10,7 @@ describe("the map", () => {
     expect(rooms.length).toBeGreaterThanOrEqual(60);
     for (const r of rooms) {
       expect(r.name.en && r.name.zh && r.desc.en && r.desc.zh).toBeTruthy();
-      expect(r.bgs.day).toMatch(/^pet\/rooms\//);
+      expect(r.bgs.day).toMatch(/^art\/rooms\//);
     }
   });
   it("every room can be reached from home", () => {

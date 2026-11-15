@@ -10,9 +10,9 @@
     20
    ],
    "bgs": {
-    "day": "pet/rooms/1_misty-river/backgrounds/original.png",
-    "evening": "pet/rooms/1_misty-river/backgrounds/original.png",
-    "night": "pet/rooms/1_misty-river/backgrounds/original.png"
+    "day": "art/rooms/1_misty-river/backgrounds/original.png",
+    "evening": "art/rooms/1_misty-river/backgrounds/original.png",
+    "night": "art/rooms/1_misty-river/backgrounds/original.png"
    },
    "drops": [
     {
@@ -35,9 +35,9 @@
     13
    ],
    "bgs": {
-    "day": "pet/rooms/2_tree-tunnel/backgrounds/playtest-a.png",
-    "evening": "pet/rooms/2_tree-tunnel/backgrounds/playtest-b.png",
-    "night": "pet/rooms/2_tree-tunnel/backgrounds/playtest-c.png"
+    "day": "art/rooms/2_tree-tunnel/backgrounds/playtest-a.png",
+    "evening": "art/rooms/2_tree-tunnel/backgrounds/playtest-b.png",
+    "night": "art/rooms/2_tree-tunnel/backgrounds/playtest-c.png"
    },
    "drops": [
     {
@@ -58,9 +58,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/3_gate/backgrounds/playtest-a.png",
-    "evening": "pet/rooms/3_gate/backgrounds/playtest-b.png",
-    "night": "pet/rooms/3_gate/backgrounds/playtest-c.png"
+    "day": "art/rooms/3_gate/backgrounds/playtest-a.png",
+    "evening": "art/rooms/3_gate/backgrounds/playtest-b.png",
+    "night": "art/rooms/3_gate/backgrounds/playtest-c.png"
    },
    "drops": [
     {
@@ -85,9 +85,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/4_junkyard/backgrounds/playtest-a.png",
-    "evening": "pet/rooms/4_junkyard/backgrounds/playtest-b.png",
-    "night": "pet/rooms/4_junkyard/backgrounds/playtest-c.png"
+    "day": "art/rooms/4_junkyard/backgrounds/playtest-a.png",
+    "evening": "art/rooms/4_junkyard/backgrounds/playtest-b.png",
+    "night": "art/rooms/4_junkyard/backgrounds/playtest-c.png"
    },
    "drops": []
   },
@@ -99,9 +99,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/5_restricted/backgrounds/playtest-a.png",
-    "evening": "pet/rooms/5_restricted/backgrounds/playtest-b.png",
-    "night": "pet/rooms/5_restricted/backgrounds/playtest-c.png"
+    "day": "art/rooms/5_restricted/backgrounds/playtest-a.png",
+    "evening": "art/rooms/5_restricted/backgrounds/playtest-b.png",
+    "night": "art/rooms/5_restricted/backgrounds/playtest-c.png"
    },
    "drops": [
     {
@@ -124,9 +124,9 @@
     28
    ],
    "bgs": {
-    "day": "pet/rooms/6_office-front/backgrounds/playtest-a.png",
-    "evening": "pet/rooms/6_office-front/backgrounds/playtest-b.png",
-    "night": "pet/rooms/6_office-front/backgrounds/playtest-c.png"
+    "day": "art/rooms/6_office-front/backgrounds/playtest-a.png",
+    "evening": "art/rooms/6_office-front/backgrounds/playtest-b.png",
+    "night": "art/rooms/6_office-front/backgrounds/playtest-c.png"
    },
    "drops": [
     {
@@ -151,9 +151,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/9_forest/backgrounds/playtest-a.png",
-    "evening": "pet/rooms/9_forest/backgrounds/playtest-b.png",
-    "night": "pet/rooms/9_forest/backgrounds/playtest-c.png"
+    "day": "art/rooms/9_forest/backgrounds/playtest-a.png",
+    "evening": "art/rooms/9_forest/backgrounds/playtest-b.png",
+    "night": "art/rooms/9_forest/backgrounds/playtest-c.png"
    },
    "drops": [
     {
@@ -178,9 +178,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/10_forest-insect/backgrounds/playtest-a.png",
-    "evening": "pet/rooms/10_forest-insect/backgrounds/playtest-b.png",
-    "night": "pet/rooms/10_forest-insect/backgrounds/playtest-c.png"
+    "day": "art/rooms/10_forest-insect/backgrounds/playtest-a.png",
+    "evening": "art/rooms/10_forest-insect/backgrounds/playtest-b.png",
+    "night": "art/rooms/10_forest-insect/backgrounds/playtest-c.png"
    },
    "drops": [
     {
@@ -208,9 +208,9 @@
     15
    ],
    "bgs": {
-    "day": "pet/rooms/11_waterfall/backgrounds/playtest-a.png",
-    "evening": "pet/rooms/11_waterfall/backgrounds/playtest-b.png",
-    "night": "pet/rooms/11_waterfall/backgrounds/playtest-c.png"
+    "day": "art/rooms/11_waterfall/backgrounds/playtest-a.png",
+    "evening": "art/rooms/11_waterfall/backgrounds/playtest-b.png",
+    "night": "art/rooms/11_waterfall/backgrounds/playtest-c.png"
    },
    "drops": []
   },
@@ -222,9 +222,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/12_junkyard-machine/backgrounds/playtest-a.png",
-    "evening": "pet/rooms/12_junkyard-machine/backgrounds/playtest-b.png",
-    "night": "pet/rooms/12_junkyard-machine/backgrounds/playtest-c.png"
+    "day": "art/rooms/12_junkyard-machine/backgrounds/playtest-a.png",
+    "evening": "art/rooms/12_junkyard-machine/backgrounds/playtest-b.png",
+    "night": "art/rooms/12_junkyard-machine/backgrounds/playtest-c.png"
    },
    "drops": [
     {
@@ -255,9 +255,9 @@
     2
    ],
    "bgs": {
-    "day": "pet/rooms/13_giftshop/backgrounds/original.png",
-    "evening": "pet/rooms/13_giftshop/backgrounds/original.png",
-    "night": "pet/rooms/13_giftshop/backgrounds/original.png"
+    "day": "art/rooms/13_giftshop/backgrounds/original.png",
+    "evening": "art/rooms/13_giftshop/backgrounds/original.png",
+    "night": "art/rooms/13_giftshop/backgrounds/original.png"
    },
    "drops": []
   },
@@ -271,9 +271,9 @@
     11
    ],
    "bgs": {
-    "day": "pet/rooms/15_temple-cave/backgrounds/room15a.png",
-    "evening": "pet/rooms/15_temple-cave/backgrounds/room15a.png",
-    "night": "pet/rooms/15_temple-cave/backgrounds/room15a.png"
+    "day": "art/rooms/15_temple-cave/backgrounds/room15a.png",
+    "evening": "art/rooms/15_temple-cave/backgrounds/room15a.png",
+    "night": "art/rooms/15_temple-cave/backgrounds/room15a.png"
    },
    "drops": [
     {
@@ -298,9 +298,9 @@
    "z": 3,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/16_techno-temple/backgrounds/room16a.png",
-    "evening": "pet/rooms/16_techno-temple/backgrounds/room16a.png",
-    "night": "pet/rooms/16_techno-temple/backgrounds/room16a.png"
+    "day": "art/rooms/16_techno-temple/backgrounds/room16a.png",
+    "evening": "art/rooms/16_techno-temple/backgrounds/room16a.png",
+    "night": "art/rooms/16_techno-temple/backgrounds/room16a.png"
    },
    "drops": [
     {
@@ -329,9 +329,9 @@
    "z": 3,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/18_cave-crossroads/backgrounds/room18a.png",
-    "evening": "pet/rooms/18_cave-crossroads/backgrounds/room18b.png",
-    "night": "pet/rooms/18_cave-crossroads/backgrounds/room18c.png"
+    "day": "art/rooms/18_cave-crossroads/backgrounds/room18a.png",
+    "evening": "art/rooms/18_cave-crossroads/backgrounds/room18b.png",
+    "night": "art/rooms/18_cave-crossroads/backgrounds/room18c.png"
    },
    "drops": [
     {
@@ -358,9 +358,9 @@
     59
    ],
    "bgs": {
-    "day": "pet/rooms/19_temple-of-the-wheel/backgrounds/room19a.png",
-    "evening": "pet/rooms/19_temple-of-the-wheel/backgrounds/room19a.png",
-    "night": "pet/rooms/19_temple-of-the-wheel/backgrounds/room19a.png"
+    "day": "art/rooms/19_temple-of-the-wheel/backgrounds/room19a.png",
+    "evening": "art/rooms/19_temple-of-the-wheel/backgrounds/room19a.png",
+    "night": "art/rooms/19_temple-of-the-wheel/backgrounds/room19a.png"
    },
    "drops": [
     {
@@ -389,9 +389,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/25_lost-skeleton/backgrounds/playtest-a.png",
-    "evening": "pet/rooms/25_lost-skeleton/backgrounds/playtest-b.png",
-    "night": "pet/rooms/25_lost-skeleton/backgrounds/playtest-c.png"
+    "day": "art/rooms/25_lost-skeleton/backgrounds/playtest-a.png",
+    "evening": "art/rooms/25_lost-skeleton/backgrounds/playtest-b.png",
+    "night": "art/rooms/25_lost-skeleton/backgrounds/playtest-c.png"
    },
    "drops": [
     {
@@ -416,9 +416,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/26_trash-strewn-graves/backgrounds/playtest-a.png",
-    "evening": "pet/rooms/26_trash-strewn-graves/backgrounds/playtest-b.png",
-    "night": "pet/rooms/26_trash-strewn-graves/backgrounds/playtest-c.png"
+    "day": "art/rooms/26_trash-strewn-graves/backgrounds/playtest-a.png",
+    "evening": "art/rooms/26_trash-strewn-graves/backgrounds/playtest-b.png",
+    "night": "art/rooms/26_trash-strewn-graves/backgrounds/playtest-c.png"
    },
    "drops": [
     {
@@ -443,9 +443,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/29_road-out-of-woods/backgrounds/playtest-a.png",
-    "evening": "pet/rooms/29_road-out-of-woods/backgrounds/playtest-b.png",
-    "night": "pet/rooms/29_road-out-of-woods/backgrounds/playtest-c.png"
+    "day": "art/rooms/29_road-out-of-woods/backgrounds/playtest-a.png",
+    "evening": "art/rooms/29_road-out-of-woods/backgrounds/playtest-b.png",
+    "night": "art/rooms/29_road-out-of-woods/backgrounds/playtest-c.png"
    },
    "drops": [
     {
@@ -470,9 +470,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/30_scrapyard-entrance/backgrounds/playtest-a.png",
-    "evening": "pet/rooms/30_scrapyard-entrance/backgrounds/playtest-b.png",
-    "night": "pet/rooms/30_scrapyard-entrance/backgrounds/playtest-c.png"
+    "day": "art/rooms/30_scrapyard-entrance/backgrounds/playtest-a.png",
+    "evening": "art/rooms/30_scrapyard-entrance/backgrounds/playtest-b.png",
+    "night": "art/rooms/30_scrapyard-entrance/backgrounds/playtest-c.png"
    },
    "drops": [
     {
@@ -497,9 +497,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/31_scrapyard-exit/backgrounds/playtest-a.png",
-    "evening": "pet/rooms/31_scrapyard-exit/backgrounds/playtest-b.png",
-    "night": "pet/rooms/31_scrapyard-exit/backgrounds/playtest-c.png"
+    "day": "art/rooms/31_scrapyard-exit/backgrounds/playtest-a.png",
+    "evening": "art/rooms/31_scrapyard-exit/backgrounds/playtest-b.png",
+    "night": "art/rooms/31_scrapyard-exit/backgrounds/playtest-c.png"
    },
    "drops": [
     {
@@ -524,9 +524,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/32_road-to-labs/backgrounds/playtest-a.png",
-    "evening": "pet/rooms/32_road-to-labs/backgrounds/playtest-b.png",
-    "night": "pet/rooms/32_road-to-labs/backgrounds/playtest-c.png"
+    "day": "art/rooms/32_road-to-labs/backgrounds/playtest-a.png",
+    "evening": "art/rooms/32_road-to-labs/backgrounds/playtest-b.png",
+    "night": "art/rooms/32_road-to-labs/backgrounds/playtest-c.png"
    },
    "drops": [
     {
@@ -547,9 +547,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/33_forest-entrance/backgrounds/playtest-a.png",
-    "evening": "pet/rooms/33_forest-entrance/backgrounds/playtest-b.png",
-    "night": "pet/rooms/33_forest-entrance/backgrounds/playtest-c.png"
+    "day": "art/rooms/33_forest-entrance/backgrounds/playtest-a.png",
+    "evening": "art/rooms/33_forest-entrance/backgrounds/playtest-b.png",
+    "night": "art/rooms/33_forest-entrance/backgrounds/playtest-c.png"
    },
    "drops": [
     {
@@ -570,9 +570,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/34_deeper-into-scrap/backgrounds/playtest-a.png",
-    "evening": "pet/rooms/34_deeper-into-scrap/backgrounds/playtest-b.png",
-    "night": "pet/rooms/34_deeper-into-scrap/backgrounds/playtest-c.png"
+    "day": "art/rooms/34_deeper-into-scrap/backgrounds/playtest-a.png",
+    "evening": "art/rooms/34_deeper-into-scrap/backgrounds/playtest-b.png",
+    "night": "art/rooms/34_deeper-into-scrap/backgrounds/playtest-c.png"
    },
    "drops": [
     {
@@ -593,9 +593,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/35_forest-road-i/backgrounds/playtest-a.png",
-    "evening": "pet/rooms/35_forest-road-i/backgrounds/playtest-b.png",
-    "night": "pet/rooms/35_forest-road-i/backgrounds/playtest-c.png"
+    "day": "art/rooms/35_forest-road-i/backgrounds/playtest-a.png",
+    "evening": "art/rooms/35_forest-road-i/backgrounds/playtest-b.png",
+    "night": "art/rooms/35_forest-road-i/backgrounds/playtest-c.png"
    },
    "drops": [
     {
@@ -620,9 +620,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/36_forest-road-ii/backgrounds/playtest-a.png",
-    "evening": "pet/rooms/36_forest-road-ii/backgrounds/playtest-b.png",
-    "night": "pet/rooms/36_forest-road-ii/backgrounds/playtest-c.png"
+    "day": "art/rooms/36_forest-road-ii/backgrounds/playtest-a.png",
+    "evening": "art/rooms/36_forest-road-ii/backgrounds/playtest-b.png",
+    "night": "art/rooms/36_forest-road-ii/backgrounds/playtest-c.png"
    },
    "drops": [
     {
@@ -647,9 +647,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/37_forest-road-iii/backgrounds/playtest-a.png",
-    "evening": "pet/rooms/37_forest-road-iii/backgrounds/playtest-b.png",
-    "night": "pet/rooms/37_forest-road-iii/backgrounds/playtest-c.png"
+    "day": "art/rooms/37_forest-road-iii/backgrounds/playtest-a.png",
+    "evening": "art/rooms/37_forest-road-iii/backgrounds/playtest-b.png",
+    "night": "art/rooms/37_forest-road-iii/backgrounds/playtest-c.png"
    },
    "drops": [
     {
@@ -670,9 +670,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/47_scrap-paths/backgrounds/playtest-a.png",
-    "evening": "pet/rooms/47_scrap-paths/backgrounds/playtest-b.png",
-    "night": "pet/rooms/47_scrap-paths/backgrounds/playtest-c.png"
+    "day": "art/rooms/47_scrap-paths/backgrounds/playtest-a.png",
+    "evening": "art/rooms/47_scrap-paths/backgrounds/playtest-b.png",
+    "night": "art/rooms/47_scrap-paths/backgrounds/playtest-c.png"
    },
    "drops": [
     {
@@ -697,9 +697,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/48_forest-road-iv/backgrounds/playtest-a.png",
-    "evening": "pet/rooms/48_forest-road-iv/backgrounds/playtest-b.png",
-    "night": "pet/rooms/48_forest-road-iv/backgrounds/playtest-c.png"
+    "day": "art/rooms/48_forest-road-iv/backgrounds/playtest-a.png",
+    "evening": "art/rooms/48_forest-road-iv/backgrounds/playtest-b.png",
+    "night": "art/rooms/48_forest-road-iv/backgrounds/playtest-c.png"
    },
    "drops": [
     {
@@ -728,9 +728,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/49_clearing/backgrounds/playtest-a.png",
-    "evening": "pet/rooms/49_clearing/backgrounds/playtest-b.png",
-    "night": "pet/rooms/49_clearing/backgrounds/playtest-c.png"
+    "day": "art/rooms/49_clearing/backgrounds/playtest-a.png",
+    "evening": "art/rooms/49_clearing/backgrounds/playtest-b.png",
+    "night": "art/rooms/49_clearing/backgrounds/playtest-c.png"
    },
    "drops": [
     {
@@ -759,9 +759,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/50_ancient_forest_entrance/backgrounds/playtest-a.png",
-    "evening": "pet/rooms/50_ancient_forest_entrance/backgrounds/playtest-b.png",
-    "night": "pet/rooms/50_ancient_forest_entrance/backgrounds/playtest-c.png"
+    "day": "art/rooms/50_ancient_forest_entrance/backgrounds/playtest-a.png",
+    "evening": "art/rooms/50_ancient_forest_entrance/backgrounds/playtest-b.png",
+    "night": "art/rooms/50_ancient_forest_entrance/backgrounds/playtest-c.png"
    },
    "drops": [
     {
@@ -782,9 +782,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/51_scrap_littered_undergrowth/backgrounds/playtest-a.png",
-    "evening": "pet/rooms/51_scrap_littered_undergrowth/backgrounds/playtest-b.png",
-    "night": "pet/rooms/51_scrap_littered_undergrowth/backgrounds/playtest-c.png"
+    "day": "art/rooms/51_scrap_littered_undergrowth/backgrounds/playtest-a.png",
+    "evening": "art/rooms/51_scrap_littered_undergrowth/backgrounds/playtest-b.png",
+    "night": "art/rooms/51_scrap_littered_undergrowth/backgrounds/playtest-c.png"
    },
    "drops": [
     {
@@ -815,9 +815,9 @@
     54
    ],
    "bgs": {
-    "day": "pet/rooms/52_airplane_crash/backgrounds/playtest-a.png",
-    "evening": "pet/rooms/52_airplane_crash/backgrounds/playtest-b.png",
-    "night": "pet/rooms/52_airplane_crash/backgrounds/playtest-c.png"
+    "day": "art/rooms/52_airplane_crash/backgrounds/playtest-a.png",
+    "evening": "art/rooms/52_airplane_crash/backgrounds/playtest-b.png",
+    "night": "art/rooms/52_airplane_crash/backgrounds/playtest-c.png"
    },
    "drops": [
     {
@@ -842,9 +842,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/53_blooming-tree/backgrounds/playtest-a.png",
-    "evening": "pet/rooms/53_blooming-tree/backgrounds/playtest-b.png",
-    "night": "pet/rooms/53_blooming-tree/backgrounds/playtest-c.png"
+    "day": "art/rooms/53_blooming-tree/backgrounds/playtest-a.png",
+    "evening": "art/rooms/53_blooming-tree/backgrounds/playtest-b.png",
+    "night": "art/rooms/53_blooming-tree/backgrounds/playtest-c.png"
    },
    "drops": [
     {
@@ -871,9 +871,9 @@
     52
    ],
    "bgs": {
-    "day": "pet/rooms/54_plane_interior/backgrounds/playtest-a.png",
-    "evening": "pet/rooms/54_plane_interior/backgrounds/playtest-b.png",
-    "night": "pet/rooms/54_plane_interior/backgrounds/playtest-c.png"
+    "day": "art/rooms/54_plane_interior/backgrounds/playtest-a.png",
+    "evening": "art/rooms/54_plane_interior/backgrounds/playtest-b.png",
+    "night": "art/rooms/54_plane_interior/backgrounds/playtest-c.png"
    },
    "drops": []
   },
@@ -885,9 +885,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/55_shady-path/backgrounds/room55a.png",
-    "evening": "pet/rooms/55_shady-path/backgrounds/room55b.png",
-    "night": "pet/rooms/55_shady-path/backgrounds/room55c.png"
+    "day": "art/rooms/55_shady-path/backgrounds/room55a.png",
+    "evening": "art/rooms/55_shady-path/backgrounds/room55b.png",
+    "night": "art/rooms/55_shady-path/backgrounds/room55c.png"
    },
    "drops": [
     {
@@ -912,9 +912,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/56_butterfly-forest/backgrounds/room56a.png",
-    "evening": "pet/rooms/56_butterfly-forest/backgrounds/room56b.png",
-    "night": "pet/rooms/56_butterfly-forest/backgrounds/room56c.png"
+    "day": "art/rooms/56_butterfly-forest/backgrounds/room56a.png",
+    "evening": "art/rooms/56_butterfly-forest/backgrounds/room56b.png",
+    "night": "art/rooms/56_butterfly-forest/backgrounds/room56c.png"
    },
    "drops": [
     {
@@ -939,9 +939,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/57_river-crossing/backgrounds/room57a.gif",
-    "evening": "pet/rooms/57_river-crossing/backgrounds/room57b.gif",
-    "night": "pet/rooms/57_river-crossing/backgrounds/room57c.gif"
+    "day": "art/rooms/57_river-crossing/backgrounds/room57a.gif",
+    "evening": "art/rooms/57_river-crossing/backgrounds/room57b.gif",
+    "night": "art/rooms/57_river-crossing/backgrounds/room57c.gif"
    },
    "drops": [
     {
@@ -966,9 +966,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/58_mouth-of-scrap/backgrounds/room58a.png",
-    "evening": "pet/rooms/58_mouth-of-scrap/backgrounds/room58b.png",
-    "night": "pet/rooms/58_mouth-of-scrap/backgrounds/room58c.png"
+    "day": "art/rooms/58_mouth-of-scrap/backgrounds/room58a.png",
+    "evening": "art/rooms/58_mouth-of-scrap/backgrounds/room58b.png",
+    "night": "art/rooms/58_mouth-of-scrap/backgrounds/room58c.png"
    },
    "drops": [
     {
@@ -995,9 +995,9 @@
     19
    ],
    "bgs": {
-    "day": "pet/rooms/59_black-pool/backgrounds/room59a.gif",
-    "evening": "pet/rooms/59_black-pool/backgrounds/room59b.gif",
-    "night": "pet/rooms/59_black-pool/backgrounds/room59c.gif"
+    "day": "art/rooms/59_black-pool/backgrounds/room59a.gif",
+    "evening": "art/rooms/59_black-pool/backgrounds/room59b.gif",
+    "night": "art/rooms/59_black-pool/backgrounds/room59c.gif"
    },
    "drops": [
     {
@@ -1022,9 +1022,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/60_scrap-trees/backgrounds/room60a.png",
-    "evening": "pet/rooms/60_scrap-trees/backgrounds/room60b.png",
-    "night": "pet/rooms/60_scrap-trees/backgrounds/room60c.png"
+    "day": "art/rooms/60_scrap-trees/backgrounds/room60a.png",
+    "evening": "art/rooms/60_scrap-trees/backgrounds/room60b.png",
+    "night": "art/rooms/60_scrap-trees/backgrounds/room60c.png"
    },
    "drops": [
     {
@@ -1053,9 +1053,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/61_decaying-forest-path/backgrounds/room61a.png",
-    "evening": "pet/rooms/61_decaying-forest-path/backgrounds/room61b.png",
-    "night": "pet/rooms/61_decaying-forest-path/backgrounds/room61c.png"
+    "day": "art/rooms/61_decaying-forest-path/backgrounds/room61a.png",
+    "evening": "art/rooms/61_decaying-forest-path/backgrounds/room61b.png",
+    "night": "art/rooms/61_decaying-forest-path/backgrounds/room61c.png"
    },
    "drops": [
     {
@@ -1080,9 +1080,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/62_centipedes/backgrounds/room62a.png",
-    "evening": "pet/rooms/62_centipedes/backgrounds/room62b.png",
-    "night": "pet/rooms/62_centipedes/backgrounds/room62c.png"
+    "day": "art/rooms/62_centipedes/backgrounds/room62a.png",
+    "evening": "art/rooms/62_centipedes/backgrounds/room62b.png",
+    "night": "art/rooms/62_centipedes/backgrounds/room62c.png"
    },
    "drops": [
     {
@@ -1107,9 +1107,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/63_deeper-forest-paths/backgrounds/room63a.png",
-    "evening": "pet/rooms/63_deeper-forest-paths/backgrounds/room63b.png",
-    "night": "pet/rooms/63_deeper-forest-paths/backgrounds/room63c.png"
+    "day": "art/rooms/63_deeper-forest-paths/backgrounds/room63a.png",
+    "evening": "art/rooms/63_deeper-forest-paths/backgrounds/room63b.png",
+    "night": "art/rooms/63_deeper-forest-paths/backgrounds/room63c.png"
    },
    "drops": [
     {
@@ -1140,9 +1140,9 @@
     65
    ],
    "bgs": {
-    "day": "pet/rooms/64_burning-room/backgrounds/room64a.gif",
-    "evening": "pet/rooms/64_burning-room/backgrounds/room64b.gif",
-    "night": "pet/rooms/64_burning-room/backgrounds/room64c.gif"
+    "day": "art/rooms/64_burning-room/backgrounds/room64a.gif",
+    "evening": "art/rooms/64_burning-room/backgrounds/room64b.gif",
+    "night": "art/rooms/64_burning-room/backgrounds/room64c.gif"
    },
    "drops": []
   },
@@ -1156,9 +1156,9 @@
     64
    ],
    "bgs": {
-    "day": "pet/rooms/65_forest-hut/backgrounds/room65a.png",
-    "evening": "pet/rooms/65_forest-hut/backgrounds/room65b.png",
-    "night": "pet/rooms/65_forest-hut/backgrounds/room65c.png"
+    "day": "art/rooms/65_forest-hut/backgrounds/room65a.png",
+    "evening": "art/rooms/65_forest-hut/backgrounds/room65b.png",
+    "night": "art/rooms/65_forest-hut/backgrounds/room65c.png"
    },
    "drops": [
     {
@@ -1183,9 +1183,9 @@
    "z": 1,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/66_trading-room/backgrounds/room66a.png",
-    "evening": "pet/rooms/66_trading-room/backgrounds/room66b.png",
-    "night": "pet/rooms/66_trading-room/backgrounds/room66c.png"
+    "day": "art/rooms/66_trading-room/backgrounds/room66a.png",
+    "evening": "art/rooms/66_trading-room/backgrounds/room66b.png",
+    "night": "art/rooms/66_trading-room/backgrounds/room66c.png"
    },
    "drops": []
   },
@@ -1197,9 +1197,9 @@
    "z": 3,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/67_boulder-tunnel/backgrounds/room67a.png",
-    "evening": "pet/rooms/67_boulder-tunnel/backgrounds/room67b.png",
-    "night": "pet/rooms/67_boulder-tunnel/backgrounds/room67b.png"
+    "day": "art/rooms/67_boulder-tunnel/backgrounds/room67a.png",
+    "evening": "art/rooms/67_boulder-tunnel/backgrounds/room67b.png",
+    "night": "art/rooms/67_boulder-tunnel/backgrounds/room67b.png"
    },
    "drops": [
     {
@@ -1224,9 +1224,9 @@
    "z": 3,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/68_slippery-pit/backgrounds/room68.png",
-    "evening": "pet/rooms/68_slippery-pit/backgrounds/room68.png",
-    "night": "pet/rooms/68_slippery-pit/backgrounds/room68.png"
+    "day": "art/rooms/68_slippery-pit/backgrounds/room68.png",
+    "evening": "art/rooms/68_slippery-pit/backgrounds/room68.png",
+    "night": "art/rooms/68_slippery-pit/backgrounds/room68.png"
    },
    "drops": [
     {
@@ -1251,9 +1251,9 @@
    "z": 3,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/69_lotus-pool/backgrounds/room69.png",
-    "evening": "pet/rooms/69_lotus-pool/backgrounds/room69.png",
-    "night": "pet/rooms/69_lotus-pool/backgrounds/room69.png"
+    "day": "art/rooms/69_lotus-pool/backgrounds/room69.png",
+    "evening": "art/rooms/69_lotus-pool/backgrounds/room69.png",
+    "night": "art/rooms/69_lotus-pool/backgrounds/room69.png"
    },
    "drops": [
     {
@@ -1282,9 +1282,9 @@
    "z": 3,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/70_still-stream/backgrounds/room70.png",
-    "evening": "pet/rooms/70_still-stream/backgrounds/room70.png",
-    "night": "pet/rooms/70_still-stream/backgrounds/room70.png"
+    "day": "art/rooms/70_still-stream/backgrounds/room70.png",
+    "evening": "art/rooms/70_still-stream/backgrounds/room70.png",
+    "night": "art/rooms/70_still-stream/backgrounds/room70.png"
    },
    "drops": [
     {
@@ -1309,9 +1309,9 @@
    "z": 3,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/71_shabby-deck/backgrounds/room71.png",
-    "evening": "pet/rooms/71_shabby-deck/backgrounds/room71.png",
-    "night": "pet/rooms/71_shabby-deck/backgrounds/room71.png"
+    "day": "art/rooms/71_shabby-deck/backgrounds/room71.png",
+    "evening": "art/rooms/71_shabby-deck/backgrounds/room71.png",
+    "night": "art/rooms/71_shabby-deck/backgrounds/room71.png"
    },
    "drops": [
     {
@@ -1338,9 +1338,9 @@
     88
    ],
    "bgs": {
-    "day": "pet/rooms/72_hatch-to-nowhere/backgrounds/room72.png",
-    "evening": "pet/rooms/72_hatch-to-nowhere/backgrounds/room72.png",
-    "night": "pet/rooms/72_hatch-to-nowhere/backgrounds/room72.png"
+    "day": "art/rooms/72_hatch-to-nowhere/backgrounds/room72.png",
+    "evening": "art/rooms/72_hatch-to-nowhere/backgrounds/room72.png",
+    "night": "art/rooms/72_hatch-to-nowhere/backgrounds/room72.png"
    },
    "drops": [
     {
@@ -1369,9 +1369,9 @@
    "z": 3,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/73_broken-tube/backgrounds/room73.png",
-    "evening": "pet/rooms/73_broken-tube/backgrounds/room73.png",
-    "night": "pet/rooms/73_broken-tube/backgrounds/room73.png"
+    "day": "art/rooms/73_broken-tube/backgrounds/room73.png",
+    "evening": "art/rooms/73_broken-tube/backgrounds/room73.png",
+    "night": "art/rooms/73_broken-tube/backgrounds/room73.png"
    },
    "drops": [
     {
@@ -1396,9 +1396,9 @@
    "z": 3,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/74_engraved-door/backgrounds/room74a.png",
-    "evening": "pet/rooms/74_engraved-door/backgrounds/room74b.png",
-    "night": "pet/rooms/74_engraved-door/backgrounds/room74b.png"
+    "day": "art/rooms/74_engraved-door/backgrounds/room74a.png",
+    "evening": "art/rooms/74_engraved-door/backgrounds/room74b.png",
+    "night": "art/rooms/74_engraved-door/backgrounds/room74b.png"
    },
    "drops": [
     {
@@ -1427,9 +1427,9 @@
    "z": 3,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/75_flood-mural/backgrounds/room75.png",
-    "evening": "pet/rooms/75_flood-mural/backgrounds/room75.png",
-    "night": "pet/rooms/75_flood-mural/backgrounds/room75.png"
+    "day": "art/rooms/75_flood-mural/backgrounds/room75.png",
+    "evening": "art/rooms/75_flood-mural/backgrounds/room75.png",
+    "night": "art/rooms/75_flood-mural/backgrounds/room75.png"
    },
    "drops": [
     {
@@ -1454,9 +1454,9 @@
    "z": 3,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/76_fungus-garden/backgrounds/room76.png",
-    "evening": "pet/rooms/76_fungus-garden/backgrounds/room76.png",
-    "night": "pet/rooms/76_fungus-garden/backgrounds/room76.png"
+    "day": "art/rooms/76_fungus-garden/backgrounds/room76.png",
+    "evening": "art/rooms/76_fungus-garden/backgrounds/room76.png",
+    "night": "art/rooms/76_fungus-garden/backgrounds/room76.png"
    },
    "drops": [
     {
@@ -1481,9 +1481,9 @@
    "z": 3,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/77_thriving-mushrooms/backgrounds/room77a.png",
-    "evening": "pet/rooms/77_thriving-mushrooms/backgrounds/room77b.png",
-    "night": "pet/rooms/77_thriving-mushrooms/backgrounds/room77b.png"
+    "day": "art/rooms/77_thriving-mushrooms/backgrounds/room77a.png",
+    "evening": "art/rooms/77_thriving-mushrooms/backgrounds/room77b.png",
+    "night": "art/rooms/77_thriving-mushrooms/backgrounds/room77b.png"
    },
    "drops": [
     {
@@ -1508,9 +1508,9 @@
    "z": 3,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/78_toadstool-platforms/backgrounds/room78.png",
-    "evening": "pet/rooms/78_toadstool-platforms/backgrounds/room78.png",
-    "night": "pet/rooms/78_toadstool-platforms/backgrounds/room78.png"
+    "day": "art/rooms/78_toadstool-platforms/backgrounds/room78.png",
+    "evening": "art/rooms/78_toadstool-platforms/backgrounds/room78.png",
+    "night": "art/rooms/78_toadstool-platforms/backgrounds/room78.png"
    },
    "drops": [
     {
@@ -1535,9 +1535,9 @@
    "z": 3,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/79_abandoned-campsite/backgrounds/room79.png",
-    "evening": "pet/rooms/79_abandoned-campsite/backgrounds/room79.png",
-    "night": "pet/rooms/79_abandoned-campsite/backgrounds/room79.png"
+    "day": "art/rooms/79_abandoned-campsite/backgrounds/room79.png",
+    "evening": "art/rooms/79_abandoned-campsite/backgrounds/room79.png",
+    "night": "art/rooms/79_abandoned-campsite/backgrounds/room79.png"
    },
    "drops": [
     {
@@ -1566,9 +1566,9 @@
    "z": 3,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/80_radiant-crystal/backgrounds/room80.png",
-    "evening": "pet/rooms/80_radiant-crystal/backgrounds/room80.png",
-    "night": "pet/rooms/80_radiant-crystal/backgrounds/room80.png"
+    "day": "art/rooms/80_radiant-crystal/backgrounds/room80.png",
+    "evening": "art/rooms/80_radiant-crystal/backgrounds/room80.png",
+    "night": "art/rooms/80_radiant-crystal/backgrounds/room80.png"
    },
    "drops": [
     {
@@ -1601,9 +1601,9 @@
    "z": 3,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/81_flower-mural/backgrounds/room81.png",
-    "evening": "pet/rooms/81_flower-mural/backgrounds/room81.png",
-    "night": "pet/rooms/81_flower-mural/backgrounds/room81.png"
+    "day": "art/rooms/81_flower-mural/backgrounds/room81.png",
+    "evening": "art/rooms/81_flower-mural/backgrounds/room81.png",
+    "night": "art/rooms/81_flower-mural/backgrounds/room81.png"
    },
    "drops": [
     {
@@ -1628,9 +1628,9 @@
    "z": 3,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/82_geometric-cliffs/backgrounds/room82.png",
-    "evening": "pet/rooms/82_geometric-cliffs/backgrounds/room82.png",
-    "night": "pet/rooms/82_geometric-cliffs/backgrounds/room82.png"
+    "day": "art/rooms/82_geometric-cliffs/backgrounds/room82.png",
+    "evening": "art/rooms/82_geometric-cliffs/backgrounds/room82.png",
+    "night": "art/rooms/82_geometric-cliffs/backgrounds/room82.png"
    },
    "drops": [
     {
@@ -1659,9 +1659,9 @@
    "z": 3,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/83_canyon-bridge/backgrounds/room83.png",
-    "evening": "pet/rooms/83_canyon-bridge/backgrounds/room83.png",
-    "night": "pet/rooms/83_canyon-bridge/backgrounds/room83.png"
+    "day": "art/rooms/83_canyon-bridge/backgrounds/room83.png",
+    "evening": "art/rooms/83_canyon-bridge/backgrounds/room83.png",
+    "night": "art/rooms/83_canyon-bridge/backgrounds/room83.png"
    },
    "drops": [
     {
@@ -1686,9 +1686,9 @@
    "z": 3,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/84_reinforced-tunnel/backgrounds/room84.png",
-    "evening": "pet/rooms/84_reinforced-tunnel/backgrounds/room84.png",
-    "night": "pet/rooms/84_reinforced-tunnel/backgrounds/room84.png"
+    "day": "art/rooms/84_reinforced-tunnel/backgrounds/room84.png",
+    "evening": "art/rooms/84_reinforced-tunnel/backgrounds/room84.png",
+    "night": "art/rooms/84_reinforced-tunnel/backgrounds/room84.png"
    },
    "drops": [
     {
@@ -1713,9 +1713,9 @@
    "z": 3,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/85_giants-palm/backgrounds/room85a.png",
-    "evening": "pet/rooms/85_giants-palm/backgrounds/room85b.png",
-    "night": "pet/rooms/85_giants-palm/backgrounds/room85b.png"
+    "day": "art/rooms/85_giants-palm/backgrounds/room85a.png",
+    "evening": "art/rooms/85_giants-palm/backgrounds/room85b.png",
+    "night": "art/rooms/85_giants-palm/backgrounds/room85b.png"
    },
    "drops": [
     {
@@ -1736,9 +1736,9 @@
    "z": 3,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/86_guardian-skull/backgrounds/room86.png",
-    "evening": "pet/rooms/86_guardian-skull/backgrounds/room86.png",
-    "night": "pet/rooms/86_guardian-skull/backgrounds/room86.png"
+    "day": "art/rooms/86_guardian-skull/backgrounds/room86.png",
+    "evening": "art/rooms/86_guardian-skull/backgrounds/room86.png",
+    "night": "art/rooms/86_guardian-skull/backgrounds/room86.png"
    },
    "drops": [
     {
@@ -1767,9 +1767,9 @@
    "z": 3,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/87_sacrarium/backgrounds/room87.png",
-    "evening": "pet/rooms/87_sacrarium/backgrounds/room87.png",
-    "night": "pet/rooms/87_sacrarium/backgrounds/room87.png"
+    "day": "art/rooms/87_sacrarium/backgrounds/room87.png",
+    "evening": "art/rooms/87_sacrarium/backgrounds/room87.png",
+    "night": "art/rooms/87_sacrarium/backgrounds/room87.png"
    },
    "drops": [
     {
@@ -1800,9 +1800,9 @@
     72
    ],
    "bgs": {
-    "day": "pet/rooms/88_treasure-hoard/backgrounds/room88.png",
-    "evening": "pet/rooms/88_treasure-hoard/backgrounds/room88.png",
-    "night": "pet/rooms/88_treasure-hoard/backgrounds/room88.png"
+    "day": "art/rooms/88_treasure-hoard/backgrounds/room88.png",
+    "evening": "art/rooms/88_treasure-hoard/backgrounds/room88.png",
+    "night": "art/rooms/88_treasure-hoard/backgrounds/room88.png"
    },
    "drops": [
     {
@@ -1827,9 +1827,9 @@
    "z": 4,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/89_trophies-of-the-hunt/backgrounds/room89a.png",
-    "evening": "pet/rooms/89_trophies-of-the-hunt/backgrounds/room89b.png",
-    "night": "pet/rooms/89_trophies-of-the-hunt/backgrounds/room89b.png"
+    "day": "art/rooms/89_trophies-of-the-hunt/backgrounds/room89a.png",
+    "evening": "art/rooms/89_trophies-of-the-hunt/backgrounds/room89b.png",
+    "night": "art/rooms/89_trophies-of-the-hunt/backgrounds/room89b.png"
    },
    "drops": [
     {
@@ -1854,9 +1854,9 @@
    "z": 4,
    "exits": [],
    "bgs": {
-    "day": "pet/rooms/90_scenic-view/backgrounds/room90.png",
-    "evening": "pet/rooms/90_scenic-view/backgrounds/room90.png",
-    "night": "pet/rooms/90_scenic-view/backgrounds/room90.png"
+    "day": "art/rooms/90_scenic-view/backgrounds/room90.png",
+    "evening": "art/rooms/90_scenic-view/backgrounds/room90.png",
+    "night": "art/rooms/90_scenic-view/backgrounds/room90.png"
    },
    "drops": [
     {
@@ -1876,679 +1876,679 @@
    "src": "Wooden Stick",
    "type": "Material",
    "rarity": "Common",
-   "art": "pet/items/wooden_stick.png"
+   "art": "art/items/wooden_stick.png"
   },
   {
    "index": 1002,
    "src": "Stone",
    "type": "Material",
    "rarity": "Common",
-   "art": "pet/items/stone.png"
+   "art": "art/items/stone.png"
   },
   {
    "index": 1003,
    "src": "Plastic Bottle",
    "type": "Material",
    "rarity": "Uncommon",
-   "art": "pet/items/plastic_bottle.png"
+   "art": "art/items/plastic_bottle.png"
   },
   {
    "index": 1004,
    "src": "Pine Cone",
    "type": "Material",
    "rarity": "Uncommon",
-   "art": "pet/items/pine_cone.png"
+   "art": "art/items/pine_cone.png"
   },
   {
    "index": 1005,
    "src": "Scrap Metal",
    "type": "Material",
    "rarity": "Common",
-   "art": "pet/items/scrap_metal.png"
+   "art": "art/items/scrap_metal.png"
   },
   {
    "index": 1006,
    "src": "Glass Jar",
    "type": "Material",
    "rarity": "Rare",
-   "art": "pet/items/glass_jar.png"
+   "art": "art/items/glass_jar.png"
   },
   {
    "index": 1007,
    "src": "Red Amber Crystal",
    "type": "Material",
    "rarity": "Epic",
-   "art": "pet/items/red_amber_crystal.png"
+   "art": "art/items/red_amber_crystal.png"
   },
   {
    "index": 1010,
    "src": "Black Poppy",
    "type": "Material",
    "rarity": "Rare",
-   "art": "pet/items/black_poppy.png"
+   "art": "art/items/black_poppy.png"
   },
   {
    "index": 1011,
    "src": "Daffodil",
    "type": "Material",
    "rarity": "Uncommon",
-   "art": "pet/items/daffodil.png"
+   "art": "art/items/daffodil.png"
   },
   {
    "index": 1012,
    "src": "Mint",
    "type": "Material",
    "rarity": "Epic",
-   "art": "pet/items/mint.png"
+   "art": "art/items/mint.png"
   },
   {
    "index": 1013,
    "src": "Sanguine Shroom",
    "type": "Material",
    "rarity": "Uncommon",
-   "art": "pet/items/sanguine_shroom.png"
+   "art": "art/items/sanguine_shroom.png"
   },
   {
    "index": 1014,
    "src": "Chalkberry",
    "type": "Material",
    "rarity": "Uncommon",
-   "art": "pet/items/chalkberry.png"
+   "art": "art/items/chalkberry.png"
   },
   {
    "index": 1015,
    "src": "Obol",
    "type": "Misc",
    "rarity": "Uncommon",
-   "art": "pet/items/obol.png"
+   "art": "art/items/obol.png"
   },
   {
    "index": 1016,
    "src": "Dried Stems",
    "type": "Material",
    "rarity": "Common",
-   "art": "pet/items/dried_stems.png"
+   "art": "art/items/dried_stems.png"
   },
   {
    "index": 1017,
    "src": "Patinated Pipe",
    "type": "Material",
    "rarity": "Common",
-   "art": "pet/items/patinated_pipe.png"
+   "art": "art/items/patinated_pipe.png"
   },
   {
    "index": 1018,
    "src": "Cigarette Butt",
    "type": "Material",
    "rarity": "Common",
-   "art": "pet/items/cigarette_butt.png"
+   "art": "art/items/cigarette_butt.png"
   },
   {
    "index": 1019,
    "src": "Otherworld Coin",
    "type": "Material",
    "rarity": "Common",
-   "art": "pet/items/otherworld_coin.png"
+   "art": "art/items/otherworld_coin.png"
   },
   {
    "index": 1020,
    "src": "Bone Chunk",
    "type": "Material",
    "rarity": "Common",
-   "art": "pet/items/bone_chunk.png"
+   "art": "art/items/bone_chunk.png"
   },
   {
    "index": 1021,
    "src": "Irradiated Root",
    "type": "Material",
    "rarity": "Rare",
-   "art": "pet/items/irradiated_root.png"
+   "art": "art/items/irradiated_root.png"
   },
   {
    "index": 1102,
    "src": "Empty Cup",
    "type": "Material",
    "rarity": "Uncommon",
-   "art": "pet/items/empty_cup.png"
+   "art": "art/items/empty_cup.png"
   },
   {
    "index": 1103,
    "src": "Microplastics",
    "type": "Material",
    "rarity": "Uncommon",
-   "art": "pet/items/microplastics.png"
+   "art": "art/items/microplastics.png"
   },
   {
    "index": 1104,
    "src": "Pine Pollen",
    "type": "Material",
    "rarity": "Uncommon",
-   "art": "pet/items/pine_pollen.png"
+   "art": "art/items/pine_pollen.png"
   },
   {
    "index": 1107,
    "src": "Powdered Red Amber",
    "type": "Material",
    "rarity": "Epic",
-   "art": "pet/items/powdered_red_amber.png"
+   "art": "art/items/powdered_red_amber.png"
   },
   {
    "index": 1110,
    "src": "Black Poppy Extract",
    "type": "Material",
    "rarity": "Rare",
-   "art": "pet/items/black_poppy_extract.png"
+   "art": "art/items/black_poppy_extract.png"
   },
   {
    "index": 1111,
    "src": "Essence of Daffodil",
    "type": "Material",
    "rarity": "Uncommon",
-   "art": "pet/items/essence_of_daffodil.png"
+   "art": "art/items/essence_of_daffodil.png"
   },
   {
    "index": 1112,
    "src": "Shredded Mint",
    "type": "Material",
    "rarity": "Epic",
-   "art": "pet/items/shredded_mint.png"
+   "art": "art/items/shredded_mint.png"
   },
   {
    "index": 1113,
    "src": "Sanguineous Powder",
    "type": "Material",
    "rarity": "Uncommon",
-   "art": "pet/items/sanguineous_powder.png"
+   "art": "art/items/sanguineous_powder.png"
   },
   {
    "index": 1114,
    "src": "Berry Chalk",
    "type": "Material",
    "rarity": "Uncommon",
-   "art": "pet/items/berry_chalk.png"
+   "art": "art/items/berry_chalk.png"
   },
   {
    "index": 1121,
    "src": "Pallid Root Extract",
    "type": "Material",
    "rarity": "Rare",
-   "art": "pet/items/pallid_root_extract.png"
+   "art": "art/items/pallid_root_extract.png"
   },
   {
    "index": 1201,
    "src": "Holy Syrup",
    "type": "Material",
    "rarity": "Rare",
-   "art": "pet/items/holy_syrup.png"
+   "art": "art/items/holy_syrup.png"
   },
   {
    "index": 1202,
    "src": "Resin Tincture",
    "type": "Material",
    "rarity": "Uncommon",
-   "art": "pet/items/resin_tincture.png"
+   "art": "art/items/resin_tincture.png"
   },
   {
    "index": 1301,
    "src": "Ashlar",
    "type": "Material",
    "rarity": "Uncommon",
-   "art": "pet/items/ashlar.png"
+   "art": "art/items/ashlar.png"
   },
   {
    "index": 1302,
    "src": "Timber",
    "type": "Material",
    "rarity": "Uncommon",
-   "art": "pet/items/timber.png"
+   "art": "art/items/timber.png"
   },
   {
    "index": 1303,
    "src": "Ingot",
    "type": "Material",
    "rarity": "Uncommon",
-   "art": "pet/items/ingot.png"
+   "art": "art/items/ingot.png"
   },
   {
    "index": 6001,
    "src": "Essence of Hearing",
    "type": "Material",
    "rarity": "Rare",
-   "art": "pet/items/essence_of_hearing.png"
+   "art": "art/items/essence_of_hearing.png"
   },
   {
    "index": 6002,
    "src": "Essence of Smell",
    "type": "Material",
    "rarity": "Rare",
-   "art": "pet/items/essence_of_smell.png"
+   "art": "art/items/essence_of_smell.png"
   },
   {
    "index": 6003,
    "src": "Essence of Sight",
    "type": "Material",
    "rarity": "Rare",
-   "art": "pet/items/essence_of_sight.png"
+   "art": "art/items/essence_of_sight.png"
   },
   {
    "index": 6004,
    "src": "Essence of Taste",
    "type": "Material",
    "rarity": "Rare",
-   "art": "pet/items/essence_of_taste.png"
+   "art": "art/items/essence_of_taste.png"
   },
   {
    "index": 6005,
    "src": "Essence of Touch",
    "type": "Material",
    "rarity": "Rare",
-   "art": "pet/items/essence_of_touch.png"
+   "art": "art/items/essence_of_touch.png"
   },
   {
    "index": 6006,
    "src": "Essence of Thought",
    "type": "Material",
    "rarity": "Rare",
-   "art": "pet/items/essence_of_thought.png"
+   "art": "art/items/essence_of_thought.png"
   },
   {
    "index": 6007,
    "src": "Pure Essence",
    "type": "Material",
    "rarity": "Epic",
-   "art": "pet/items/pure_essence.png"
+   "art": "art/items/pure_essence.png"
   },
   {
    "index": 11004,
    "src": "Pale Potion",
    "type": "Potion",
    "rarity": "Rare",
-   "art": "pet/items/pale_potion.png"
+   "art": "art/items/pale_potion.png"
   },
   {
    "index": 11011,
    "src": "Holy Dust",
    "type": "Material",
    "rarity": "Uncommon",
-   "art": "pet/items/holy_dust.png"
+   "art": "art/items/holy_dust.png"
   },
   {
    "index": 11110,
    "src": "Gaokerena Mochi",
    "type": "Food",
    "rarity": "Epic",
-   "art": "pet/items/gaokerena_mochi.png"
+   "art": "art/items/gaokerena_mochi.png"
   },
   {
    "index": 11120,
    "src": "Sunset Apple Mochi",
    "type": "Food",
    "rarity": "Epic",
-   "art": "pet/items/sunset_apple_mochi.png"
+   "art": "art/items/sunset_apple_mochi.png"
   },
   {
    "index": 11130,
-   "src": "Pet Mochi",
+   "src": "Rice Mochi",
    "type": "Food",
    "rarity": "Epic",
-   "art": "pet/items/pet_mochi.png"
+   "art": "art/items/rice_mochi.png"
   },
   {
    "index": 11140,
    "src": "Mana Mochi",
    "type": "Food",
    "rarity": "Epic",
-   "art": "pet/items/mana_mochi.png"
+   "art": "art/items/mana_mochi.png"
   },
   {
    "index": 11201,
    "src": "XP Candy (Small)",
    "type": "Food",
    "rarity": "Uncommon",
-   "art": "pet/items/xp_candy_small.png"
+   "art": "art/items/xp_candy_small.png"
   },
   {
    "index": 11202,
    "src": "XP Candy (Medium)",
    "type": "Food",
    "rarity": "Uncommon",
-   "art": "pet/items/xp_candy_medium.png"
+   "art": "art/items/xp_candy_medium.png"
   },
   {
    "index": 11203,
    "src": "XP Candy (Large)",
    "type": "Food",
    "rarity": "Uncommon",
-   "art": "pet/items/xp_candy_large.png"
+   "art": "art/items/xp_candy_large.png"
   },
   {
    "index": 11204,
    "src": "XP Candy (Huge)",
    "type": "Food",
    "rarity": "Rare",
-   "art": "pet/items/xp_candy_huge.png"
+   "art": "art/items/xp_candy_huge.png"
   },
   {
    "index": 11221,
    "src": "Full Heart Crystal",
    "type": "Food",
    "rarity": "Rare",
-   "art": "pet/items/full_heart_crystal.png"
+   "art": "art/items/full_heart_crystal.png"
   },
   {
    "index": 11222,
    "src": "Half Heart Crystal",
    "type": "Food",
    "rarity": "Uncommon",
-   "art": "pet/items/half_heart_crystal.png"
+   "art": "art/items/half_heart_crystal.png"
   },
   {
    "index": 11223,
    "src": "Great Heart Crystal",
    "type": "Food",
    "rarity": "Epic",
-   "art": "pet/items/great_heart_crystal.png"
+   "art": "art/items/great_heart_crystal.png"
   },
   {
    "index": 11226,
    "src": "Ash Pearl",
    "type": "Food",
    "rarity": "Rare",
-   "art": "pet/items/ash_pearl.png"
+   "art": "art/items/ash_pearl.png"
   },
   {
    "index": 11227,
    "src": "Fetid Egg",
    "type": "Food",
    "rarity": "Uncommon",
-   "art": "pet/items/fetid_egg.png"
+   "art": "art/items/fetid_egg.png"
   },
   {
    "index": 11233,
    "src": "Gingerbread Cookie",
    "type": "Food",
    "rarity": "Rare",
-   "art": "pet/items/gingerbread_cookie.png"
+   "art": "art/items/gingerbread_cookie.png"
   },
   {
    "index": 11301,
    "src": "Maple-Flavor Ghost Gum",
    "type": "Food",
    "rarity": "Common",
-   "art": "pet/items/maple_flavor_ghost_gum.png"
+   "art": "art/items/maple_flavor_ghost_gum.png"
   },
   {
    "index": 11302,
    "src": "Cheeseburger",
    "type": "Food",
    "rarity": "Uncommon",
-   "art": "pet/items/cheeseburger.png"
+   "art": "art/items/cheeseburger.png"
   },
   {
    "index": 11303,
    "src": "Pom-Pom Fruit Candy",
    "type": "Food",
    "rarity": "Uncommon",
-   "art": "pet/items/pom_pom_fruit_candy.png"
+   "art": "art/items/pom_pom_fruit_candy.png"
   },
   {
    "index": 11304,
    "src": "Gakki Cookie Sticks",
    "type": "Food",
    "rarity": "Uncommon",
-   "art": "pet/items/gakki_cookie_sticks.png"
+   "art": "art/items/gakki_cookie_sticks.png"
   },
   {
    "index": 11311,
    "src": "Resin",
    "type": "Food",
    "rarity": "Uncommon",
-   "art": "pet/items/resin.png"
+   "art": "art/items/resin.png"
   },
   {
    "index": 11312,
    "src": "Honeydew Scale",
    "type": "Food",
    "rarity": "Rare",
-   "art": "pet/items/honeydew_scale.png"
+   "art": "art/items/honeydew_scale.png"
   },
   {
    "index": 11313,
    "src": "Golden Apple",
    "type": "Food",
    "rarity": "Rare",
-   "art": "pet/items/golden_apple.png"
+   "art": "art/items/golden_apple.png"
   },
   {
    "index": 11314,
    "src": "Blue Pansy",
    "type": "Food",
    "rarity": "Uncommon",
-   "art": "pet/items/blue_pansy.png"
+   "art": "art/items/blue_pansy.png"
   },
   {
    "index": 11401,
    "src": "XP Potion",
    "type": "Potion",
    "rarity": "Uncommon",
-   "art": "pet/items/xp_potion.png"
+   "art": "art/items/xp_potion.png"
   },
   {
    "index": 11402,
    "src": "Greater XP Potion",
    "type": "Potion",
    "rarity": "Rare",
-   "art": "pet/items/greater_xp_potion.png"
+   "art": "art/items/greater_xp_potion.png"
   },
   {
    "index": 11403,
    "src": "Respec Potion",
    "type": "Potion",
    "rarity": "Epic",
-   "art": "pet/items/respec_potion.png"
+   "art": "art/items/respec_potion.png"
   },
   {
    "index": 11404,
    "src": "Grace Potion",
    "type": "Potion",
    "rarity": "Rare",
-   "art": "pet/items/grace_potion.png"
+   "art": "art/items/grace_potion.png"
   },
   {
    "index": 11405,
    "src": "Bless Potion",
    "type": "Potion",
    "rarity": "Uncommon",
-   "art": "pet/items/bless_potion.png"
+   "art": "art/items/bless_potion.png"
   },
   {
    "index": 11406,
    "src": "Apology Letter",
    "type": "Consumable",
    "rarity": "Uncommon",
-   "art": "pet/items/apology_letter.png"
+   "art": "art/items/apology_letter.png"
   },
   {
    "index": 11407,
    "src": "COIN Magnet",
    "type": "Consumable",
    "rarity": "Rare",
-   "art": "pet/items/coin_magnet.png"
+   "art": "art/items/coin_magnet.png"
   },
   {
    "index": 11408,
    "src": "Festival Chime",
    "type": "Consumable",
    "rarity": "Uncommon",
-   "art": "pet/items/festival_chime.png"
+   "art": "art/items/festival_chime.png"
   },
   {
    "index": 11409,
    "src": "Energy Drink",
    "type": "Consumable",
    "rarity": "Uncommon",
-   "art": "pet/items/energy_drink.png"
+   "art": "art/items/energy_drink.png"
   },
   {
    "index": 11410,
    "src": "Hostility Potion",
    "type": "Potion",
    "rarity": "Uncommon",
-   "art": "pet/items/hostility_potion.png"
+   "art": "art/items/hostility_potion.png"
   },
   {
    "index": 11411,
    "src": "Fortified XP Potion",
    "type": "Potion",
    "rarity": "Epic",
-   "art": "pet/items/fortified_xp_potion.png"
+   "art": "art/items/fortified_xp_potion.png"
   },
   {
    "index": 11412,
    "src": "Flash Talisman",
    "type": "Consumable",
    "rarity": "Rare",
-   "art": "pet/items/flash_talisman.png"
+   "art": "art/items/flash_talisman.png"
   },
   {
    "index": 11413,
    "src": "Mistletoe",
    "type": "Food",
    "rarity": "Rare",
-   "art": "pet/items/mistletoe.png"
+   "art": "art/items/mistletoe.png"
   },
   {
    "index": 11414,
    "src": "Igors Candy",
    "type": "Food",
    "rarity": "Rare",
-   "art": "pet/items/igors_candy.png"
+   "art": "art/items/igors_candy.png"
   },
   {
    "index": 11501,
    "src": "Toadstool Liquor",
    "type": "Potion",
    "rarity": "Rare",
-   "art": "pet/items/toadstool_liquor.png"
+   "art": "art/items/toadstool_liquor.png"
   },
   {
    "index": 19001,
    "src": "Spirit Glue",
    "type": "Potion",
    "rarity": "Uncommon",
-   "art": "pet/items/spirit_glue.png"
+   "art": "art/items/spirit_glue.png"
   },
   {
    "index": 19101,
    "src": "Animistic Poison",
    "type": "Potion",
    "rarity": "Rare",
-   "art": "pet/items/animistic_poison.png"
+   "art": "art/items/animistic_poison.png"
   },
   {
    "index": 19201,
    "src": "Cthonic Blight",
    "type": "Potion",
    "rarity": "Rare",
-   "art": "pet/items/cthonic_blight.png"
+   "art": "art/items/cthonic_blight.png"
   },
   {
    "index": 19301,
    "src": "Curse Tablet",
    "type": "Consumable",
    "rarity": "Epic",
-   "art": "pet/items/curse_tablet.png"
+   "art": "art/items/curse_tablet.png"
   },
   {
    "index": 21007,
    "src": "Silt-Caked Box",
    "type": "Lootbox",
    "rarity": "Uncommon",
-   "art": "pet/items/silt_caked_box.png"
+   "art": "art/items/silt_caked_box.png"
   },
   {
    "index": 21201,
    "src": "Ice Cream",
    "type": "Food",
    "rarity": "Uncommon",
-   "art": "pet/items/ice_cream.png"
+   "art": "art/items/ice_cream.png"
   },
   {
    "index": 21202,
    "src": "Better Ice Cream",
    "type": "Food",
    "rarity": "Uncommon",
-   "art": "pet/items/better_ice_cream.png"
+   "art": "art/items/better_ice_cream.png"
   },
   {
    "index": 21203,
    "src": "Best Ice Cream",
    "type": "Food",
    "rarity": "Uncommon",
-   "art": "pet/items/best_ice_cream.png"
+   "art": "art/items/best_ice_cream.png"
   },
   {
    "index": 21205,
    "src": "Rock Candyfloss",
    "type": "Consumable",
    "rarity": "Rare",
-   "art": "pet/items/rock_candyfloss.png"
+   "art": "art/items/rock_candyfloss.png"
   },
   {
    "index": 21206,
    "src": "Uninteresting Paste",
    "type": "Potion",
    "rarity": "Rare",
-   "art": "pet/items/uninteresting_paste.png"
+   "art": "art/items/uninteresting_paste.png"
   },
   {
    "index": 23102,
    "src": "Screwdriver",
    "type": "Tool",
    "rarity": "Rare",
-   "art": "pet/items/screwdriver.png"
+   "art": "art/items/screwdriver.png"
   },
   {
    "index": 100001,
    "src": "Astrolabe Disk",
    "type": "Key Item",
    "rarity": "Epic",
-   "art": "pet/items/astrolabe_disk.png"
+   "art": "art/items/astrolabe_disk.png"
   },
   {
    "index": 100002,
    "src": "Ancient Machine Part",
    "type": "Key Item",
    "rarity": "Epic",
-   "art": "pet/items/ancient_machine_part.png"
+   "art": "art/items/ancient_machine_part.png"
   },
   {
    "index": 100003,
    "src": "Disc-Shaped Map",
    "type": "Key Item",
    "rarity": "Epic",
-   "art": "pet/items/disc_shaped_map.png"
+   "art": "art/items/disc_shaped_map.png"
   },
   {
    "index": 100004,
    "src": "Aetheric Sextant",
    "type": "Key Item",
    "rarity": "Legendary",
-   "art": "pet/items/aetheric_sextant.png"
+   "art": "art/items/aetheric_sextant.png"
   },
   {
    "index": 100010,
    "src": "Dowsing Rod",
    "type": "Key Item",
    "rarity": "Epic",
-   "art": "pet/items/dowsing_rod.png"
+   "art": "art/items/dowsing_rod.png"
   },
   {
    "index": 100012,
    "src": "Igors Amulet",
    "type": "Key Item",
    "rarity": "Uncommon",
-   "art": "pet/items/igors_amulet.png"
+   "art": "art/items/igors_amulet.png"
   }
  ],
  "recipes": [

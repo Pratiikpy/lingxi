@@ -8,17 +8,17 @@ import { create } from "zustand";
 
 const KEY = "lingxi.sound";
 const FX = {
-  tap: "pet/sound/fx/interaction/click2.mp3",
-  pop: "pet/sound/fx/interaction/click.mp3",
-  chirp0: "pet/sound/fx/pet/pet0.mp3",
-  chirp1: "pet/sound/fx/pet/pet1.mp3",
-  chirp2: "pet/sound/fx/pet/pet2.mp3",
-  chirp3: "pet/sound/fx/pet/pet3.mp3",
-  success: "pet/sound/fx/interaction/success.mp3",
-  sparkle: "pet/sound/fx/interaction/scribble.mp3",
-  hatch: "pet/sound/fx/interaction/wonderegg.mp3",
-  error: "pet/sound/fx/interaction/error.mp3",
-  bell: "pet/sound/fx/interaction/bell.mp3",
+  tap: "art/sound/fx/interaction/click2.mp3",
+  pop: "art/sound/fx/interaction/click.mp3",
+  chirp0: "art/sound/fx/pet/chirp0.mp3",
+  chirp1: "art/sound/fx/pet/chirp1.mp3",
+  chirp2: "art/sound/fx/pet/chirp2.mp3",
+  chirp3: "art/sound/fx/pet/chirp3.mp3",
+  success: "art/sound/fx/interaction/success.mp3",
+  sparkle: "art/sound/fx/interaction/scribble.mp3",
+  hatch: "art/sound/fx/interaction/wonderegg.mp3",
+  error: "art/sound/fx/interaction/error.mp3",
+  bell: "art/sound/fx/interaction/bell.mp3",
 } as const;
 export type Fx = keyof typeof FX;
 

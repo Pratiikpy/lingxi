@@ -3,12 +3,12 @@
     python gen.py <folder holding the world data CSV files>
 """
 import csv, io, json, os, re, sys
-PET = sys.argv[1]
-ART = os.path.join(os.path.dirname(__file__), "..", "..", "..", "apps", "web", "public", "pet")
+SOURCE = sys.argv[1]
+ART = os.path.join(os.path.dirname(__file__), "..", "..", "..", "apps", "web", "public", "art")
 OUT = os.path.join(os.path.dirname(__file__), "..", "src", "data", "world.json")
 
 def rd(p):
-    return list(csv.DictReader(io.StringIO(open(os.path.join(PET, p), encoding="utf-8-sig").read())))
+    return list(csv.DictReader(io.StringIO(open(os.path.join(SOURCE, p), encoding="utf-8-sig").read())))
 
 room_dirs = {int(d.split("_")[0]): d for d in os.listdir(os.path.join(ART, "rooms")) if d.split("_")[0].isdigit()}
 
@@ -22,9 +22,9 @@ def backgrounds(idx):
         for k in keys:
             for f in files:
                 if re.search(k, f):
-                    return f"pet/rooms/{d}/backgrounds/{f}"
+                    return f"art/rooms/{d}/backgrounds/{f}"
         return None
-    day = pick(r"playtest-a\.png", r"room\d+a1?\.png", r"room\d+a\.png", r"original\.png", r"playtest\.png", r"room\d+\.png", r"room\d+a\.gif", r"room\d+\.gif") or (f"pet/rooms/{d}/backgrounds/{files[0]}" if files else None)
+    day = pick(r"playtest-a\.png", r"room\d+a1?\.png", r"room\d+a\.png", r"original\.png", r"playtest\.png", r"room\d+\.png", r"room\d+a\.gif", r"room\d+\.gif") or (f"art/rooms/{d}/backgrounds/{files[0]}" if files else None)
     eve = pick(r"playtest-b\.png", r"room\d+b1?\.png", r"room\d+b\.png", r"room\d+b\.gif") or day
     night = pick(r"playtest-c\.png", r"room\d+c1?\.png", r"room\d+c\.png", r"room\d+c\.gif") or eve
     return {"day": day, "evening": eve, "night": night}
@@ -37,7 +37,7 @@ def art_for(name):
     slug = re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
     for ext in (".png", ".webp"):
         if os.path.exists(os.path.join(ART, "items", slug + ext)):
-            return f"pet/items/{slug}{ext}"
+            return f"art/items/{slug}{ext}"
     return None
 
 rooms = []

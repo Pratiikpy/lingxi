@@ -250,7 +250,7 @@ export function RoomScene(props: SceneProps) {
           npc.visible = false;
           if (p.npc) {
             const want = p.npc;
-            void bgTexture(`/pet/npcs/${want}`).then((tex) => {
+            void bgTexture(`/art/npcs/${want}`).then((tex) => {
               if (shownNpc !== want || npc.destroyed) return;
               npc.texture = tex;
               npc.visible = true;
