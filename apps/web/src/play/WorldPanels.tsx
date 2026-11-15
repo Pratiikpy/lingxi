@@ -22,7 +22,7 @@ export function noticeText(nt: WorldNotice, t: ReturnType<typeof useT>, lang: "e
   if (nt.kind === "opened") return t("world.opened", { items: itemList(nt.items, lang) });
   if (nt.kind === "claimed") return t("world.claimed", { coins: nt.coins ?? 0, items: nt.items?.length ? (lang === "zh" ? `，${itemList(nt.items, lang)}` : `, ${itemList(nt.items, lang)}`) : "" });
   const k = `world.fail.${nt.reason}` as Key;
-  return ["tired", "asleep", "already", "nothingHere", "coins", "missing", "notNear"].includes(nt.reason ?? "") ? t(k) : t("world.fail.other");
+  return ["tired", "asleep", "already", "nothingHere", "coins", "missing", "notNear", "full", "owned"].includes(nt.reason ?? "") ? t(k) : t("world.fail.other");
 }
 
 export function MapPanel({ onGone }: { onGone: () => void }) {

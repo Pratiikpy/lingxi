@@ -11,6 +11,7 @@ import { chirp, play } from "../game/sound";
 import { followClock, setAmbience } from "../game/music";
 import { useReminders } from "../game/reminders";
 import { RemindersPanel } from "./Reminders";
+import { DecorBar } from "./DecorBar";
 import { BadgeShelf, BadgeToast } from "./Badges";
 import { type DayPhase, RoomScene, weatherFor } from "../scene/RoomScene";
 import { PALETTE_OF, type PetStage } from "../scene/textures";
@@ -23,7 +24,7 @@ import { useWorld } from "../game/world";
 import { useChain } from "../game/chain";
 import { liveAvailable, playerId, useLive, visitingFrom } from "../game/live";
 import { InvitePanel, SocialBar } from "./Social";
-import { type Action, CHARACTER_IN_ROOM, HOME, INDOOR_ROOMS, ROOMS, neighbours } from "@lingxi/world";
+import { type Action, CHARACTER_IN_ROOM, HOME, INDOOR_ROOMS, ROOMS, decorOf, neighbours } from "@lingxi/world";
 import { Talk } from "./Talk";
 import { GamesPanel } from "./Games";
 import { DiaryPanel } from "./Diary";
@@ -57,6 +58,13 @@ export function PlayApp() {
   const [phase, setPhase] = useState<DayPhase>(phaseNow);
   const [circuit, setCircuit] = useState(false);
   const worldRoom = useWorld((s) => s.world.room);
+  const worldFull = useWorld((s) => s.world);
+  const homeDecor = useLive((s) => s.homeDecor);
+  const placedDecor = decorOf(worldFull).placed;
+  // our home's decorations live on the server too, so friends who drop by see them
+  useEffect(() => {
+    if (liveAvailable()) useLive.getState().shareDecor(placedDecor);
+  }, [placedDecor]);
   const worldNotice = useWorld((s) => s.notice);
   const worldMove = useWorld((s) => s.move);
   const worldForage = useWorld((s) => s.forage);
@@ -125,6 +133,8 @@ export function PlayApp() {
     setNpcFace(null);
   }, [worldRoom]);
   const [visiting, setVisiting] = useState<string | null>(() => visitingFrom());
+  // decorating the home: null when not decorating, else the piece in hand ("" for none yet)
+  const [decorating, setDecorating] = useState<string | null>(null);
   const others = useLive((s) => s.members);
   const liveConnect = useLive((s) => s.connect);
   const liveMood = useLive((s) => s.mood);
@@ -283,6 +293,15 @@ export function PlayApp() {
             food={visibleMeters(pet).food}
             outdoors={!INDOOR_ROOMS.has(worldRoom)}
             covered={tab !== "home"}
+            decor={worldRoom !== HOME ? [] : !visiting ? decorOf(worldFull).placed : homeDecor?.owner === visiting ? homeDecor.placed : []}
+            decorating={decorating !== null && worldRoom === HOME && !visiting}
+            onPlace={(x, y) => {
+              if (decorating) useWorld.getState().placeDecor(decorating, x, y);
+            }}
+            onDecorTap={(id) => {
+              useWorld.getState().removeDecor(id);
+              setDecorating(id);
+            }}
             onPetTap={onPetTap}
             reduceMotion={reduce}
             bgs={room.bgs}
@@ -308,12 +327,20 @@ export function PlayApp() {
                 {t("room.shop")}
               </button>
             )}
+            {room.index === HOME && !visiting && decorating === null && (
+              <button type="button" onClick={() => (play("tap"), setDecorating(""))}>
+                {t("decor.title")}
+              </button>
+            )}
             {room.index !== HOME && neighbours(room.index).includes(HOME) && (
               <button type="button" onClick={() => worldMove(HOME)}>
                 {t("room.home")}
               </button>
             )}
           </div>
+          {decorating !== null && worldRoom === HOME && (
+            <DecorBar selected={decorating || null} onSelect={(id) => setDecorating(id ?? "")} onDone={() => setDecorating(null)} />
+          )}
           {circuit && (
             <div className="circuit-overlay">
               <BrainView pet={pet} reduceMotion={reduce} />

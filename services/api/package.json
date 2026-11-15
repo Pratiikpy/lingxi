@@ -15,6 +15,7 @@
     "@lingxi/brain": "workspace:*",
     "@lingxi/chain": "workspace:*",
     "@lingxi/game": "workspace:*",
+    "@lingxi/world": "workspace:*",
     "hono": "4.12.34",
     "viem": "2.57.7",
     "web-push": "3.6.7",

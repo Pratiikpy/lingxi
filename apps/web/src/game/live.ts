@@ -70,6 +70,10 @@ interface LiveState {
   asked: { name: string; at: number } | null;
   /** share this pet's card (its lessons, and family for a child) with the room */
   shareCard: (card: string) => void;
+  /** the decorations of the home we are in, as its owner left them */
+  homeDecor: { owner: string; placed: Array<{ id: string; x: number; y: number }> } | null;
+  /** keep our home's decorations on the server so visitors see them */
+  shareDecor: (placed: Array<{ id: string; x: number; y: number }>) => void;
   /** a family proposal another owner sent us */
   proposal: { from: string; name: string; stage: string; line: string; chain?: ChainInfo; at: number } | null;
   /** the answer to our proposal */
@@ -91,6 +95,21 @@ let retry = 0;
 let me: Me | null = null;
 let want: string | null = null;
 let lessonsCard: string | null = null;
+let decorShared: string | null = null;
+
+/** This device's key for its home's decorations; the server binds the home to it on first save. */
+function decorKey(): string {
+  const k = "lingxi.decorKey";
+  try {
+    const held = localStorage.getItem(k);
+    if (held && /^[a-f0-9]{32}$/.test(held)) return held;
+    const fresh = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
+    localStorage.setItem(k, fresh);
+    return fresh;
+  } catch {
+    return "0".repeat(32);
+  }
+}
 
 const send = (m: unknown) => {
   if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(m));
@@ -107,6 +126,7 @@ export const useLive = create<LiveState>((set, get) => {
       set({ status: "on" });
       send({ t: "hello", id: playerId(), ...me, space: want });
       if (lessonsCard) send({ t: "card", lessons: lessonsCard });
+      if (decorShared) send({ t: "decor", key: decorKey(), placed: JSON.parse(decorShared) });
     };
     sock.onmessage = (ev) => {
       let m: Record<string, unknown>;
@@ -143,6 +163,9 @@ export const useLive = create<LiveState>((set, get) => {
           set({ members, ...(m.to === playerId() || !m.to ? { incoming: { from, kind: m.kind as string, at: performance.now() } } : {}) });
           return;
         }
+        case "decor":
+          if (typeof m.owner === "string" && Array.isArray(m.placed)) set({ homeDecor: { owner: m.owner, placed: m.placed as Array<{ id: string; x: number; y: number }> } });
+          return;
         case "card":
           set({ card: { id: m.id as string, name: m.name as string, line: m.line as string, stage: m.stage as string, lessons: m.lessons as string, at: performance.now() } });
           return;
@@ -190,6 +213,13 @@ export const useLive = create<LiveState>((set, get) => {
     incoming: null,
     card: null,
     asked: null,
+    homeDecor: null,
+    shareDecor: (placed) => {
+      const next = JSON.stringify(placed);
+      if (next === decorShared) return;
+      decorShared = next;
+      send({ t: "decor", key: decorKey(), placed });
+    },
     shareCard: (card) => {
       lessonsCard = card;
       send({ t: "card", lessons: lessonsCard });

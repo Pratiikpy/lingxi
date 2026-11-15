@@ -107,6 +107,8 @@ export interface WorldState {
   seed: string;
   /** quest ids already claimed */
   claimed: string[];
+  /** decorations bought and where they stand in the home room */
+  decor?: { owned: string[]; placed: Array<{ id: string; x: number; y: number }> };
 }
 
 export function newWorld(seed: string): WorldState {

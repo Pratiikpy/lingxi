@@ -20,6 +20,7 @@ import { MAX_WORDS, teachInWords } from "./teach";
 import { RateLimiter } from "./limit";
 import { BrainRelayer } from "./relayer";
 import { LiveRooms, attachLive } from "./live";
+import { createDecorStore } from "./decor";
 import { parseCard } from "@lingxi/game";
 import { PlanSchema, createPusher, type Pusher } from "./push";
 import { VoiceRequest, createVoice } from "./voice";
@@ -278,7 +279,7 @@ if (isMain) {
   const client = key ? new Anthropic({ apiKey: key }) : null;
   const port = Number(process.env.PORT ?? 8787);
   const relayer = makeRelayer();
-  const live = new LiveRooms();
+  const live = new LiveRooms(createDecorStore(process.env.LINGXI_DECOR_STORE));
   const origins = (process.env.LINGXI_ORIGINS ?? "http://localhost:5199,http://localhost:4173").split(",");
   const app = createApp(client, undefined, relayer, undefined, live);
   if (client) withVoice(app, createVoice(client));

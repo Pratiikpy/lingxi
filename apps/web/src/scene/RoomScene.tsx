@@ -12,7 +12,8 @@ import { Application, Assets, Container, Graphics, Sprite, Text, type Texture } 
 import { AnimatedGIF } from "@pixi/gif";
 import type { Expression } from "@lingxi/art";
 import type { StarterLine } from "@lingxi/brain";
-import { BITS, type PetStage, catTexture, glowTexture, glyphTexture, petTexture, vignetteTexture } from "./textures";
+import { DECOR_BY_ID } from "@lingxi/world";
+import { BITS, type PetStage, catTexture, glowTexture, glyphTexture, petTexture, pixelTexture, vignetteTexture } from "./textures";
 
 export type DayPhase = "day" | "evening" | "night";
 
@@ -54,6 +55,12 @@ export interface SceneProps {
   outdoors: boolean;
   /** a sheet covers the room: moments wait until it can be seen */
   covered: boolean;
+  /** decorations standing in this room (the home), or none */
+  decor: Array<{ id: string; x: number; y: number }>;
+  /** decorating: a tap on the room places the chosen piece, a tap on a piece picks it up */
+  decorating: boolean;
+  onPlace: (x: number, y: number) => void;
+  onDecorTap: (id: string) => void;
   onPetTap: () => void;
   reduceMotion: boolean;
   /** the current room's backgrounds */
@@ -217,6 +224,33 @@ export function RoomScene(props: SceneProps) {
         b.visible = false;
         floor.addChild(b);
       });
+      // decorations: pieces standing behind the pet's feet go behind it, the rest in front
+      const decorBack = new Container();
+      world.addChildAt(decorBack, world.getChildIndex(cat));
+      const decorFront = new Container();
+      world.addChild(decorFront);
+      let shownDecor = "";
+      const showDecor = (list: SceneProps["decor"]) => {
+        for (const c of [...decorBack.removeChildren(), ...decorFront.removeChildren()]) c.destroy();
+        // flat pieces first, then by depth, so a rug never covers a lamp standing on it
+        for (const d of [...list].sort((a, b) => Number(!!DECOR_BY_ID[b.id]?.flat) - Number(!!DECOR_BY_ID[a.id]?.flat) || a.y - b.y)) {
+          const def = DECOR_BY_ID[d.id];
+          if (!def) continue;
+          const sp = new Sprite(pixelTexture(`decor:${d.id}`, def.rows, def.colors));
+          sp.anchor.set(0.5, 1);
+          // drawn at twice the room's pixel size so a piece sits at a believable scale beside the pet
+          sp.scale.set(2);
+          sp.x = d.x;
+          sp.y = d.y;
+          sp.eventMode = "static";
+          sp.on("pointertap", (e) => {
+            if (!latest.current.decorating) return;
+            e.stopPropagation();
+            latest.current.onDecorTap(d.id);
+          });
+          (def.flat || d.y < PET_FEET ? decorBack : decorFront).addChild(sp);
+        }
+      };
       const props = new Container();
       world.addChild(props);
       const ball = new Sprite(BITS.ball());
@@ -260,6 +294,11 @@ export function RoomScene(props: SceneProps) {
       app.stage.hitArea = app.screen;
       app.stage.on("pointermove", (e) => {
         lookX = world.toLocal(e.global).x;
+      });
+      app.stage.on("pointertap", (e) => {
+        if (!latest.current.decorating) return;
+        const at = world.toLocal(e.global);
+        latest.current.onPlace(at.x, at.y);
       });
       let feedAt = -1;
       let playAt = -1;
@@ -308,7 +347,9 @@ export function RoomScene(props: SceneProps) {
       };
 
       let hopAt = -1;
-      pet.on("pointertap", () => {
+      pet.on("pointertap", (e) => {
+        if (latest.current.decorating) return;
+        e.stopPropagation();
         latest.current.onPetTap();
         if (!latest.current.asleep && !latest.current.reduceMotion) hopAt = performance.now();
         if (!latest.current.asleep) burst("heart", 5, ["#FF7A9A", "#FFC83D"]);
@@ -329,6 +370,11 @@ export function RoomScene(props: SceneProps) {
       const tick = () => {
         const now = performance.now();
         const p = latest.current;
+        const decorKey = JSON.stringify(p.decor);
+        if (decorKey !== shownDecor) {
+          shownDecor = decorKey;
+          showDecor(p.decor);
+        }
         const wantBg = p.bgs[p.phase];
         if (wantBg !== shownBg) {
           shownBg = wantBg;

@@ -10,6 +10,7 @@
 
 import type { IncomingMessage } from "node:http";
 import { WebSocketServer, type WebSocket } from "ws";
+import type { DecorStore } from "./decor";
 
 export const CAPACITY = 24;
 const MAX_FRAME = 12_288;
@@ -69,6 +70,8 @@ export class LiveRooms {
   private readonly clients = new Set<Client>();
   private readonly spaces = new Map<string, Set<Client>>();
 
+  constructor(private readonly decor?: DecorStore) {}
+
   stats(): { online: number; spaces: number } {
     return { online: [...this.clients].filter((c) => c.space).length, spaces: this.spaces.size };
   }
@@ -111,6 +114,11 @@ export class LiveRooms {
     c.space = key;
     this.send(c, { t: "room", space: key, members: [...set].filter((o) => o !== c).map((o) => o.member) });
     this.broadcast(key, { t: "joined", member: c.member }, c);
+    // a home shows its owner's decorations to everyone who comes in
+    if (space.startsWith("home:")) {
+      const owner = space.slice(5);
+      this.send(c, { t: "decor", owner, placed: this.decor?.get(owner) ?? [] });
+    }
   }
 
   /** Token bucket: 8 messages, refilled at 2 per second. */
@@ -190,6 +198,15 @@ export class LiveRooms {
         if (!c.space || !EMOTES.has(m.kind as string)) return;
         const to = typeof m.to === "string" ? clean(m.to, 32) : undefined;
         this.broadcast(c.space, { t: "emote", id: c.member.id, kind: m.kind, ...(to ? { to } : {}) });
+        return;
+      }
+      case "decor": {
+        // only for your own home, and only with the key your device bound it to
+        if (!this.decor || !c.member.id) return;
+        const placed = this.decor.set(c.member.id, m.key, m.placed);
+        if (!placed) return this.send(c, { t: "decorRefused" });
+        const home = `home:${c.member.id}`;
+        for (const key of this.spaces.keys()) if (key === home || key.startsWith(`${home}#`)) this.broadcast(key, { t: "decor", owner: c.member.id, placed });
         return;
       }
       case "card": {

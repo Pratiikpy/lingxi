@@ -4,6 +4,7 @@
  * pet; food from the bag goes through the game rules like any care.
  */
 
+import { DECOR_BY_ID, MAX_PLACED, PLACE_AREA, buyDecor as buyDecorRule, placeDecor as placeDecorRule, removeDecor as removeDecorRule } from "@lingxi/world";
 import { useBadges } from "./badges";
 import { create } from "zustand";
 import { exert, stageOf } from "@lingxi/game";
@@ -29,12 +30,25 @@ import { play } from "./sound";
 
 const KEY = "lingxi.world.v1";
 
+/** Keep only well-formed decorations from storage: known pieces, owned, inside the room, within the cap. */
+function cleanDecor(d: unknown): WorldState["decor"] {
+  if (!d || typeof d !== "object") return undefined;
+  const raw = d as { owned?: unknown; placed?: unknown };
+  const owned = Array.isArray(raw.owned) ? [...new Set(raw.owned.filter((x): x is string => typeof x === "string" && x in DECOR_BY_ID))] : [];
+  const placed = (Array.isArray(raw.placed) ? raw.placed : [])
+    .filter((p): p is { id: string; x: number; y: number } => !!p && typeof p.id === "string" && owned.includes(p.id) && Number.isFinite(p.x) && Number.isFinite(p.y))
+    .filter((p, i, all) => all.findIndex((q) => q.id === p.id) === i)
+    .slice(0, MAX_PLACED)
+    .map((p) => ({ id: p.id, x: Math.max(PLACE_AREA.x0, Math.min(PLACE_AREA.x1, Math.round(p.x))), y: Math.max(PLACE_AREA.y0, Math.min(PLACE_AREA.y1, Math.round(p.y))) }));
+  return { owned, placed };
+}
+
 function load(): WorldState {
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const w = JSON.parse(raw) as WorldState;
-      if (w.version === 1) return { ...w, claimed: Array.isArray(w.claimed) ? w.claimed : [] };
+      if (w.version === 1) return { ...w, claimed: Array.isArray(w.claimed) ? w.claimed : [], decor: cleanDecor(w.decor) };
     }
   } catch {
     // fall through to a new world
@@ -72,6 +86,10 @@ interface WorldStore {
   claim: (id: string) => void;
   /** coins won outside the world (spars) */
   reward: (coins: number) => void;
+  /** decorations for the home room */
+  buyDecor: (id: string) => boolean;
+  placeDecor: (id: string, x: number, y: number) => void;
+  removeDecor: (id: string) => void;
   /** take items out of the bag to wrap them as a gift; false if there are not enough */
   wrap: (item: number, n: number) => boolean;
   /** put a received gift's item in the bag */
@@ -177,6 +195,35 @@ export const useWorld = create<WorldStore>((set, get) => ({
     const next = giveItem(get().world, item, n);
     save(next);
     set({ world: next });
+  },
+  buyDecor: (id) => {
+    const r = buyDecorRule(get().world, id);
+    if (!r.ok) {
+      play("error");
+      set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
+      return false;
+    }
+    save(r.world);
+    play("success");
+    set({ world: r.world });
+    return true;
+  },
+  placeDecor: (id, x, y) => {
+    const r = placeDecorRule(get().world, id, x, y);
+    if (!r.ok) {
+      play("error");
+      return set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
+    }
+    save(r.world);
+    play("pop");
+    set({ world: r.world });
+  },
+  removeDecor: (id) => {
+    const r = removeDecorRule(get().world, id);
+    if (!r.ok) return;
+    save(r.world);
+    play("tap");
+    set({ world: r.world });
   },
   reward: (coins) => {
     const w = earn(get().world, coins);
