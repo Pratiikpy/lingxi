@@ -146,3 +146,13 @@ export async function loadCircuitFromChain(pub: PublicClient, processor: Address
   }
   return load(bytes, nl.nIn, nl.nOut, (cpu, sid) => subs.get(refKey(cpu, sid)) ?? null);
 }
+
+/** One beat for many inputs at once, through Multicall3 (64 per call fits X Layer's call gas cap). */
+export async function replayMany(pub: PublicClient, d: Deployment, id: bigint, brainState: bigint, words: number[]): Promise<Array<{ next: bigint; outputs: number }>> {
+  const res = (await pub.multicall({
+    allowFailure: false,
+    batchSize: 1 << 22,
+    contracts: words.map((w) => ({ address: d.registry, abi: petRegistryAbi, functionName: "replayStep", args: [id, brainState, w] })),
+  })) as unknown as Array<readonly [bigint, number]>;
+  return res.map(([next, outputs]) => ({ next: BigInt(next), outputs: Number(outputs) }));
+}

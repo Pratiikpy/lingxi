@@ -30,6 +30,11 @@ export const explorerTx = (tx: string) => (NETWORK === "local" ? null : `https:/
 const rpc = deployment?.rpc ?? "https://rpc.xlayer.tech";
 const chain = { ...xLayer, rpcUrls: { default: { http: [rpc] } } };
 export const publicClient: PublicClient = createPublicClient({ chain, transport: http(rpc) }) as PublicClient;
+/** X Layer's official RPC endpoints, for spreading heavy read loads (the proof page's full check). */
+export const readClients: PublicClient[] =
+  NETWORK === "xlayer"
+    ? ["https://rpc.xlayer.tech", "https://xlayerrpc.okx.com"].map((u) => createPublicClient({ chain: { ...xLayer, rpcUrls: { default: { http: [u] } } }, transport: http(u) }) as PublicClient)
+    : [publicClient];
 
 interface Eip1193 {
   request(args: { method: string; params?: unknown[] }): Promise<unknown>;

@@ -7,12 +7,12 @@
  *      checkpoint committed to, and replay every beat to the memory on chain.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { type Hex } from "viem";
 import { beat, bitsToWord, hexToBytes, load, type Circuit, wordToBits, decodeSenses } from "@lingxi/brain";
-import { type ChainPet, loadCircuitFromChain, readPet, replayStep } from "@lingxi/chain";
+import { type ChainPet, loadCircuitFromChain, readPet, replayMany, replayStep } from "@lingxi/chain";
 import { chainAll, unpackState, ZERO_HASH } from "@lingxi/game";
-import { deployment, publicClient } from "../game/chain";
+import { deployment, publicClient, readClients } from "../game/chain";
 import { useLang } from "../i18n";
 import "./verify.css";
 
@@ -97,6 +97,9 @@ export function VerifyApp() {
   const [rows, setRows] = useState<Row[]>([]);
   const [running, setRunning] = useState(false);
   const [logResult, setLogResult] = useState<string | null>(null);
+  // the exhaustive check: every one of the 65,536 inputs at the pet's saved memory
+  const [all, setAll] = useState<{ done: number; bad: number; first?: string; secs?: number; stopped?: boolean } | null>(null);
+  const stopAll = useRef(false);
 
   const read = useCallback(async () => {
     setErr(null);
@@ -138,6 +141,51 @@ export function VerifyApp() {
       setRows([...out]);
     }
     setRunning(false);
+  };
+
+  const runAll = async () => {
+    if (!pet || !circuit || !deployment) return;
+    stopAll.current = false;
+    const t0 = performance.now();
+    const bits = pet.brainBits;
+    const saved = unpackState(pet.state, bits).brain;
+    const state = bitsToWord(saved);
+    const BATCH = 64;
+    let next = 0;
+    let done = 0;
+    let bad = 0;
+    let first: string | undefined;
+    setAll({ done: 0, bad: 0 });
+    // two workers per official endpoint, gently paced, so neither rate-limits the page
+    const worker = async (client: typeof publicClient) => {
+      while (next < 65536 && !stopAll.current) {
+        const from = next;
+        next += BATCH;
+        const words = Array.from({ length: Math.min(BATCH, 65536 - from) }, (_, k) => from + k);
+        let chain: Array<{ next: bigint; outputs: number }> = [];
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            chain = await replayMany(client, deployment!, pet.id, state, words);
+            await new Promise((r) => setTimeout(r, 120));
+            break;
+          } catch {
+            await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+          }
+        }
+        words.forEach((w, k) => {
+          const [ns, outs] = beat(circuit, saved, wordToBits(w, 16));
+          const c = chain[k];
+          if (!c || c.next !== bitsToWord(ns) || c.outputs !== Number(bitsToWord(outs))) {
+            bad++;
+            first ??= `0x${w.toString(16).padStart(4, "0")}`;
+          }
+        });
+        done += words.length;
+        setAll({ done, bad, ...(first ? { first } : {}) });
+      }
+    };
+    await Promise.all([0, 1, 2, 3].map((i) => worker(readClients[i % readClients.length]!)));
+    setAll({ done, bad, ...(first ? { first } : {}), secs: Math.round((performance.now() - t0) / 1000), stopped: stopAll.current });
   };
 
   const onLog = async (file: File) => {
@@ -206,12 +254,53 @@ export function VerifyApp() {
             <dd className="mono">{short(pet.logHash)}</dd>
             <dt>{t.meters}</dt>
             <dd>
-              food {u.meters.food} · joy {u.meters.joy} · energy {u.meters.energy} · clean {u.meters.clean} · xp {u.xp}
+              {lang === "zh"
+                ? `饱腹 ${u.meters.food} · 开心 ${u.meters.joy} · 精神 ${u.meters.energy} · 干净 ${u.meters.clean} · 经验 ${u.xp}`
+                : `food ${u.meters.food} · joy ${u.meters.joy} · energy ${u.meters.energy} · clean ${u.meters.clean} · xp ${u.xp}`}
             </dd>
           </dl>
           <button type="button" className="v-run" onClick={run} disabled={running || !circuit}>
             {running ? t.running : t.run}
           </button>
+          <div className="v-all">
+            <p className="v-note">
+              {lang === "zh"
+                ? "或者问遍全部：在它保存的记忆下，把 65,536 种可能的感受全部交给 X Layer 上的处理器，再逐一和开源求值器比对（约 2–3 分钟）。"
+                : "Or ask everything: at its saved memory, every one of the 65,536 possible inputs goes to the processor on X Layer and is compared with the open evaluator (about 2–3 minutes)."}
+            </p>
+            {all && !all.secs && !all.stopped ? (
+              <>
+                <div className="v-progress" role="progressbar" aria-valuemin={0} aria-valuemax={65536} aria-valuenow={all.done}>
+                  <i style={{ transform: `scaleX(${all.done / 65536})` }} />
+                </div>
+                <p className="v-note">
+                  {all.done.toLocaleString()} / 65,536 {all.bad ? (lang === "zh" ? `· ${all.bad} 处不一致` : `· ${all.bad} differ`) : ""}{" "}
+                  <button type="button" className="v-link" onClick={() => (stopAll.current = true)}>
+                    {lang === "zh" ? "停止" : "Stop"}
+                  </button>
+                </p>
+              </>
+            ) : (
+              <button type="button" className="v-run" onClick={runAll} disabled={!circuit || running}>
+                {lang === "zh" ? "问遍全部 65,536 种输入" : "Ask all 65,536 inputs"}
+              </button>
+            )}
+            {all?.secs !== undefined && (
+              <p className={all.bad === 0 && !all.stopped ? "v-ok" : "v-bad"}>
+                {all.stopped
+                  ? lang === "zh"
+                    ? `已停止：核对了 ${all.done.toLocaleString()} 种，${all.bad} 处不一致。`
+                    : `Stopped: ${all.done.toLocaleString()} checked, ${all.bad} differ.`
+                  : all.bad === 0
+                    ? lang === "zh"
+                      ? `65,536 种输入全部一致（${all.secs} 秒）。在这份记忆下，它每一个可能的念头都和链上处理器相同。`
+                      : `All 65,536 inputs match (${all.secs}s). At this memory, every thought it could possibly have is the processor's own.`
+                    : lang === "zh"
+                      ? `${all.bad} 种输入不一致，第一个是 ${all.first}。`
+                      : `${all.bad} inputs differ, the first at ${all.first}.`}
+              </p>
+            )}
+          </div>
           {rows.length > 0 && (
             <>
               <p className={ok === rows.length ? "v-ok" : "v-bad"}>{ok === rows.length ? t.allOk.replace("{n}", String(rows.length)) : t.someBad.replace("{n}", String(rows.length - ok))}</p>
