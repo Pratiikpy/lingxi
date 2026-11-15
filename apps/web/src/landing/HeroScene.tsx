@@ -137,7 +137,11 @@ export function HeroScene({ reduceMotion, phase }: { reduceMotion: boolean; phas
         const now = performance.now();
         if (!reduceMotion) {
           if (now > state.nextWander && Math.abs(state.target - state.x) < 1) {
-            state.target = 24 + Math.random() * (span - 48);
+            // wander on either side of the middle, where the headline's buttons sit
+            const side = Math.random() < 0.5 ? 0 : 1;
+            const lo = side ? span * 0.66 : 24;
+            const hi = side ? span - 24 : span * 0.34;
+            state.target = lo + Math.random() * Math.max(0, hi - lo);
             state.nextWander = now + 4000 + Math.random() * 5000;
           }
           const dx = state.target - state.x;
