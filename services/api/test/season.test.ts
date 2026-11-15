@@ -41,3 +41,45 @@ describe("weekly seasons", () => {
     expect((await app.request("/api/season/2026-47")).status).toBe(400);
   });
 });
+
+describe("champion keepsakes", () => {
+  it("go to a finished week's champion once; no wallet means none; a failure is retried, then given up", async () => {
+    let t = Date.UTC(2026, 10, 18, 12);
+    const store = createSeasonStore(undefined, () => t);
+    store.enter(pet("Ana"), "device-aaaa-1111", "0x1111111111111111111111111111111111111111");
+    store.enter(pet("Bea", "bold"), "device-bbbb-2222", "0x2222222222222222222222222222222222222222");
+    const { settleAwards } = await import("../src/season");
+    const calls: string[] = [];
+    let fail = true;
+    const give = async (_e: unknown, wallet: string) => {
+      calls.push(wallet);
+      return fail ? { ok: false as const, detail: "rpc down" } : { ok: true as const, brainId: "77", tapeTx: "0xaa", sendTx: "0xbb" };
+    };
+    await settleAwards(store, give);
+    expect(calls).toHaveLength(0); // the week is still open
+    t += 7 * 86_400_000;
+    await settleAwards(store, give);
+    await settleAwards(store, give);
+    expect(calls).toHaveLength(2);
+    expect(store.view("2026-W47")!.award).toBeUndefined();
+    fail = false;
+    await settleAwards(store, give);
+    await settleAwards(store, give);
+    expect(calls).toHaveLength(3);
+    const v = store.view("2026-W47")!;
+    expect(v.award).toMatchObject({ brainId: "77", sendTx: "0xbb", key: v.standings[0]!.key });
+    expect(JSON.stringify(v)).not.toContain("wallets");
+    expect(v.entries.some((e) => JSON.stringify(e).includes("0x2222"))).toBe(false);
+  });
+
+  it("a champion entered without a wallet gets a record but no keepsake", async () => {
+    let t = Date.UTC(2026, 10, 18, 12);
+    const store = createSeasonStore(undefined, () => t);
+    store.enter(pet("Solo"), "device-solo-0000");
+    t += 7 * 86_400_000;
+    const { settleAwards } = await import("../src/season");
+    await settleAwards(store, async () => ({ ok: true as const, brainId: "1", tapeTx: "", sendTx: "" }));
+    expect(store.view("2026-W47")!.award).toMatchObject({ name: "Solo", none: "noWallet" });
+    expect(store.enter(pet("Bad"), "device-bad-00000", "not-a-wallet")).toEqual({ ok: false, reason: "invalid" });
+  });
+});

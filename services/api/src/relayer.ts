@@ -35,7 +35,14 @@ interface Store {
   used: number;
 }
 
-export type RelayResult = { ok: true; processor: Address; brainId: string; reused: boolean } | { ok: false; reason: "invalid" | "tooBig" | "budget" | "error"; detail?: string };
+export type RelayResult = { ok: true; processor: Address; brainId: string; reused: boolean; tx?: string } | { ok: false; reason: "invalid" | "tooBig" | "budget" | "error"; detail?: string };
+
+export type KeepsakeResult = { ok: true; processor: Address; brainId: string; tapeTx: string; sendTx: string } | { ok: false; reason: "invalid" | "tooBig" | "budget" | "error"; detail?: string };
+
+const erc721TransferAbi = [
+  { type: "function", name: "transferFrom", stateMutability: "nonpayable", inputs: [{ name: "from", type: "address" }, { name: "to", type: "address" }, { name: "id", type: "uint256" }], outputs: [] },
+  { type: "function", name: "ownerOf", stateMutability: "view", inputs: [{ name: "id", type: "uint256" }], outputs: [{ type: "address" }] },
+] as const;
 
 export class BrainRelayer {
   private readonly pub;
@@ -122,6 +129,52 @@ export class BrainRelayer {
   }
 
   /**
+   * A season champion's keepsake (PRD F26): its brain taped out as a circuit of
+   * its own (never a shared, earlier copy) and the circuit sent to the winner.
+   * A child's brain REFs its two halves (taped out once and shared) through a
+   * glue circuit of its own.
+   */
+  keepsake(spec: { line: StarterLine; lessons: Rule[]; instincts?: number; family?: Family }, to: Address): Promise<KeepsakeResult> {
+    return this.serial(async () => {
+      if (!/^0x[0-9a-fA-F]{40}$/.test(to) || /^0x0{40}$/.test(to)) return { ok: false, reason: "invalid", detail: "no wallet" } as const;
+      if (spec.lessons.length > 8) return { ok: false, reason: "invalid", detail: "too many lessons" } as const;
+      let r: RelayResult;
+      try {
+        if (spec.family) {
+          const got: bigint[] = [];
+          for (const h of halvesOf(spec.family, spec.lessons)) {
+            const half = await this.tapeProgram(h);
+            if (!half.ok) return half;
+            got.push(BigInt(half.brainId));
+          }
+          const child = composeChild({ cpu: this.cfg.processor, id: got[0]! }, { cpu: this.cfg.processor, id: got[1]! });
+          r = await this.tapeBytes(child.bytes, child.elements.filter((e) => e.op === 0).length, 0, true);
+        } else {
+          const net = compileProgram(composeProgram(spec.line, spec.lessons, cleanInstincts(spec.instincts ?? 0)));
+          if (gateCount(net) > MAX_GATES) return { ok: false, reason: "tooBig" } as const;
+          r = await this.tapeBytes(netlistBytes(net), net.gates.length, net.latches.length, true);
+        }
+      } catch (e) {
+        return { ok: false, reason: "invalid", detail: (e as Error).message } as const;
+      }
+      if (!r.ok) return r;
+      try {
+        const id = BigInt(r.brainId);
+        const me = this.wallet.account.address;
+        const sim = await this.pub.simulateContract({ address: this.cfg.processor, abi: erc721TransferAbi, functionName: "transferFrom", args: [me, to, id], account: this.wallet.account });
+        const sendTx = await this.wallet.writeContract(sim.request);
+        const rc = await this.pub.waitForTransactionReceipt({ hash: sendTx });
+        if (rc.status !== "success") return { ok: false, reason: "error", detail: "transfer reverted" } as const;
+        const owner = (await this.pub.readContract({ address: this.cfg.processor, abi: erc721TransferAbi, functionName: "ownerOf", args: [id] })) as Address;
+        if (owner.toLowerCase() !== to.toLowerCase()) return { ok: false, reason: "error", detail: "the circuit did not arrive" } as const;
+        return { ok: true, processor: this.cfg.processor, brainId: r.brainId, tapeTx: r.tx ?? "", sendTx } as const;
+      } catch (e) {
+        return { ok: false, reason: "error", detail: (e as Error).message.split(NEWLINE)[0] } as const;
+      }
+    });
+  }
+
+  /**
    * Mints transistors. Processors from index 415 on take TapeOut's protocol fee in
    * BEM (approved first, mint price in OKB as value); older ones take everything in
    * OKB. Which one applies is found by simulating, never assumed.
@@ -151,10 +204,11 @@ export class BrainRelayer {
     return this.tapeBytes(netlistBytes(net), net.gates.length, net.latches.length);
   }
 
-  private async tapeBytes(bytes: Uint8Array, nands: number, latches: number): Promise<RelayResult> {
+  /** `fresh` tapes out a new circuit even when the same netlist exists, for a keepsake that is the winner's alone. */
+  private async tapeBytes(bytes: Uint8Array, nands: number, latches: number, fresh = false): Promise<RelayResult> {
     const key = createHash("sha256").update(bytes).digest("hex");
     const known = this.store.brains[key];
-    if (known) return { ok: true, processor: this.cfg.processor, brainId: known, reused: true };
+    if (known && !fresh) return { ok: true, processor: this.cfg.processor, brainId: known, reused: true };
 
     const today = new Date().toISOString().slice(0, 10);
     if (this.store.day !== today) {
@@ -184,10 +238,11 @@ export class BrainRelayer {
       const r = await this.pub.waitForTransactionReceipt({ hash: tx });
       if (r.status !== "success") return { ok: false, reason: "error", detail: "tapeout reverted" };
       const id = (result as bigint).toString();
-      this.store.brains[key] = id;
+      // a keepsake leaves our hands, so it is never offered later as a shared brain
+      if (!fresh) this.store.brains[key] = id;
       this.store.used += 1;
       this.save();
-      return { ok: true, processor: p, brainId: id, reused: false };
+      return { ok: true, processor: p, brainId: id, reused: false, tx };
     } catch (e) {
       return { ok: false, reason: "error", detail: (e as Error).message.split(NEWLINE)[0] };
     }

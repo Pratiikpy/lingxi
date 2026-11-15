@@ -10,6 +10,7 @@ import { useLang } from "../i18n";
 import { type SeasonView, enterSeason, markAwarded, mine, readSeason } from "../game/season";
 import { useBadges } from "../game/badges";
 import { play } from "../game/sound";
+import { recordOf } from "../game/chain";
 import "./season.css";
 
 const SHOWN = 10;
@@ -55,7 +56,7 @@ export function SeasonCard({ pet }: { pet: Pet }) {
   const enter = async () => {
     setBusy(true);
     setNote("");
-    const r = await enterSeason({ name: pet.name, line: pet.line, stage: stageOf(pet, Date.now()), card: petCard(pet), story: { days: dayOf(pet, Date.now()), lessons: pet.lessons.length, nature: [] } });
+    const r = await enterSeason({ name: pet.name, line: pet.line, stage: stageOf(pet, Date.now()), card: petCard(pet), story: { days: dayOf(pet, Date.now()), lessons: pet.lessons.length, nature: [] } }, recordOf(pet)?.owner);
     setBusy(false);
     if (r.ok) {
       play("success");
@@ -87,6 +88,9 @@ export function SeasonCard({ pet }: { pet: Pet }) {
   const shown = rows.slice(0, SHOWN);
   const champ = last?.closed ? last.standings[0] : undefined;
   const lastMine = last ? last.standings.find((r) => r.key === mine().keys[last.week]) : undefined;
+  const onChain = !!recordOf(pet);
+  const award = last?.award;
+  const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
   return (
     <section className="ss-card" aria-label={L("Weekly season", "每周赛季")}>
@@ -111,6 +115,11 @@ export function SeasonCard({ pet }: { pet: Pet }) {
           </button>
         )}
       </div>
+      <p className="small ss-prize">
+        {onChain
+          ? L(`The champion's brain is taped out on X Layer and the circuit sent to its owner's wallet. ${pet.name} is on X Layer, so it would go to you.`, `冠军的大脑会在 X Layer 上流片，电路送到主人的钱包。${pet.name}在 X Layer 上，赢了就会送给你。`)
+          : L(`The champion's brain is taped out on X Layer and the circuit sent to its owner's wallet. Put ${pet.name} on X Layer first if you want it to come to you.`, `冠军的大脑会在 X Layer 上流片，电路送到主人的钱包。想收到的话，先把${pet.name}放上 X Layer。`)}
+      </p>
       {note && (
         <p className="small ss-note" aria-live="polite">
           {note}
@@ -120,6 +129,23 @@ export function SeasonCard({ pet }: { pet: Pet }) {
         <p className="small ss-last">
           {L(`Last week (${last!.week}): ${champ.name} won with ${champ.points} points.`, `上周（${last!.week}）：${champ.name}以 ${champ.points} 分夺冠。`)}
           {lastMine ? L(` Your pet finished ${lastMine.rank} of ${last!.standings.length}.`, ` 你的宠物排第 ${lastMine.rank} / ${last!.standings.length}。`) : ""}
+          {award?.brainId && award.to ? (
+            <>
+              {" "}
+              {L(`Its brain was taped out on X Layer as circuit #${award.brainId} and sent to ${short(award.to)}.`, `它的大脑已在 X Layer 上流片为 #${award.brainId} 号电路，送到了 ${short(award.to)}。`)}{" "}
+              {award.sendTx && (
+                <a href={`https://www.oklink.com/xlayer/tx/${award.sendTx}`} target="_blank" rel="noopener noreferrer">
+                  {L("See it", "查看")}
+                </a>
+              )}
+            </>
+          ) : award?.none === "noWallet" ? (
+            L(" It wasn't on X Layer, so there was no wallet to send its circuit to.", " 它不在 X Layer 上，所以没有钱包可以接收它的电路。")
+          ) : award?.none === "failed" ? (
+            L(" Its circuit couldn't be sent this time.", " 这次没能把它的电路送出。")
+          ) : (
+            ""
+          )}
         </p>
       )}
       {rows.length > 0 && (

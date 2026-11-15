@@ -23,7 +23,7 @@ import { LiveRooms, attachLive } from "./live";
 import { createDecorStore } from "./decor";
 import { type SittingStore, createSittingStore } from "./sitting";
 import { type ArenaStore, createArenaStore } from "./arena";
-import { type SeasonStore, createSeasonStore } from "./season";
+import { type SeasonStore, createSeasonStore, settleAwards } from "./season";
 import { weekOf } from "@lingxi/game";
 import { parseCard } from "@lingxi/game";
 import { PlanSchema, createPusher, type Pusher } from "./push";
@@ -270,11 +270,11 @@ export function withSeason(app: Hono, store: SeasonStore, writes = new RateLimit
     if (Number(c.req.header("content-length") ?? 0) > 16_000) return c.json({ ok: false, reason: "tooBig" }, 413);
     let body;
     try {
-      body = z.object({ pet: z.unknown(), device: z.string() }).parse(await c.req.json());
+      body = z.object({ pet: z.unknown(), device: z.string(), wallet: z.string().optional() }).parse(await c.req.json());
     } catch {
       return c.json({ ok: false, reason: "invalid" }, 400);
     }
-    const r = store.enter(body.pet, body.device);
+    const r = store.enter(body.pet, body.device, body.wallet);
     // a full week is normal play: answer 200 so the page shows our own message
     return c.json(r, r.ok || r.reason === "full" ? 200 : 400);
   });
@@ -389,7 +389,27 @@ if (isMain) {
   withLibrary(app, createLibrary(process.env.LINGXI_LIBRARY_STORE));
   withSitting(app, createSittingStore(process.env.LINGXI_SIT_STORE));
   withArena(app, createArenaStore(process.env.LINGXI_ARENA_STORE));
-  withSeason(app, createSeasonStore(process.env.LINGXI_SEASON_STORE));
+  const seasons = createSeasonStore(process.env.LINGXI_SEASON_STORE);
+  withSeason(app, seasons);
+  if (relayer) {
+    // a finished week's champion gets its brain taped out and sent to its wallet (PRD F26)
+    let giving = false;
+    const giveKeepsakes = () => {
+      if (giving) return;
+      giving = true;
+      void settleAwards(seasons, async (entry, wallet) => {
+        const card = parseCard(entry.pet.card);
+        if (!card) return { ok: false, detail: "damaged card" };
+        const r = await relayer.keepsake({ line: entry.pet.line, lessons: card.lessons, instincts: card.instincts, family: card.family }, wallet as `0x${string}`);
+        if (!r.ok) process.stderr.write(`season keepsake failed: ${r.reason} ${r.detail ?? ""}\n`);
+        return r.ok ? { ok: true, brainId: r.brainId, tapeTx: r.tapeTx, sendTx: r.sendTx } : { ok: false, detail: r.detail };
+      })
+        .catch((e) => process.stderr.write(`season keepsakes: ${(e as Error).message}\n`))
+        .finally(() => (giving = false));
+    };
+    setTimeout(giveKeepsakes, 30_000);
+    setInterval(giveKeepsakes, 10 * 60_000);
+  }
   if (process.env.LINGXI_REGISTRY && process.env.LINGXI_REGISTRY_FROM) {
     const indexer = createIndexer({ rpc: process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech", registry: process.env.LINGXI_REGISTRY as `0x${string}`, fromBlock: Number(process.env.LINGXI_REGISTRY_FROM), store: process.env.LINGXI_HISTORY_STORE });
     withHistory(app, indexer);

@@ -18,7 +18,33 @@ interface Week {
   entries: SeasonEntry[];
   /** device tag → entry key, so a device updates its own entry */
   by: Record<string, string>;
+  /** entry key → the owner's wallet, for the champion's keepsake; never served */
+  wallets?: Record<string, string>;
+  award?: Award;
 }
+
+/** The champion's keepsake (PRD F26): its brain taped out on X Layer and sent to its owner. */
+export interface Award {
+  key: string;
+  name: string;
+  brainId?: string;
+  to?: string;
+  tapeTx?: string;
+  sendTx?: string;
+  /** why nothing was sent */
+  none?: "noWallet" | "failed";
+  tries: number;
+}
+
+export interface PendingAward {
+  week: string;
+  entry: SeasonEntry;
+  wallet: string | null;
+  tries: number;
+}
+
+const MAX_TRIES = 3;
+const WALLET = /^0x[0-9a-fA-F]{40}$/;
 
 export interface SeasonView {
   week: string;
@@ -27,11 +53,15 @@ export interface SeasonView {
   entries: SeasonEntry[];
   standings: Standing[];
   digest: string;
+  award?: Award;
 }
 
 export interface SeasonStore {
-  enter: (pet: unknown, device: string) => { ok: true; week: string; key: string } | { ok: false; reason: "invalid" | "full" };
+  enter: (pet: unknown, device: string, wallet?: string) => { ok: true; week: string; key: string } | { ok: false; reason: "invalid" | "full" };
   view: (week: string) => SeasonView | null;
+  /** finished weeks whose champion has no keepsake yet */
+  pending: () => PendingAward[];
+  award: (week: string, award: Award) => void;
 }
 
 const tag = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -41,7 +71,7 @@ export function createSeasonStore(file?: string, now: () => number = Date.now): 
   const cache = new Map<string, { n: number; at: number; view: SeasonView }>();
   if (file && existsSync(file)) {
     try {
-      for (const [w, v] of Object.entries(JSON.parse(readFileSync(file, "utf8")) as Record<string, Week>)) if (WEEK.test(w) && Array.isArray(v.entries)) weeks.set(w, { entries: v.entries.slice(0, MAX_ENTRIES), by: v.by ?? {} });
+      for (const [w, v] of Object.entries(JSON.parse(readFileSync(file, "utf8")) as Record<string, Week>)) if (WEEK.test(w) && Array.isArray(v.entries)) weeks.set(w, { ...v, entries: v.entries.slice(0, MAX_ENTRIES), by: v.by ?? {} });
     } catch {
       // a damaged file starts empty rather than stopping the server
     }
@@ -60,8 +90,9 @@ export function createSeasonStore(file?: string, now: () => number = Date.now): 
     for (const w of weeks.keys()) if (!keep.includes(w)) weeks.delete(w);
   };
   return {
-    enter: (pet, device) => {
+    enter: (pet, device, wallet) => {
       if (typeof device !== "string" || device.length < 8 || device.length > 64) return { ok: false, reason: "invalid" };
+      if (wallet !== undefined && (typeof wallet !== "string" || !WALLET.test(wallet))) return { ok: false, reason: "invalid" };
       const v = validSnapshot(pet, []);
       if (!v) return { ok: false, reason: "invalid" };
       const t = now();
@@ -73,7 +104,10 @@ export function createSeasonStore(file?: string, now: () => number = Date.now): 
       if (at < 0 && w.entries.length >= MAX_ENTRIES) return { ok: false, reason: "full" };
       const entry: SeasonEntry = { key, pet: v.pet, at: t };
       const entries = at < 0 ? [...w.entries, entry] : w.entries.map((e, i) => (i === at ? entry : e));
-      weeks.set(week, { entries, by: { ...w.by, [who]: key } });
+      const wallets = { ...(w.wallets ?? {}) };
+      if (wallet) wallets[key] = wallet;
+      else delete wallets[key];
+      weeks.set(week, { ...w, entries, by: { ...w.by, [who]: key }, wallets });
       cache.delete(week);
       prune();
       save();
@@ -89,11 +123,46 @@ export function createSeasonStore(file?: string, now: () => number = Date.now): 
       }
       const w = weeks.get(week) ?? { entries: [], by: {} };
       const hit = cache.get(week);
-      if (hit && hit.n === w.entries.length && hit.at === Math.max(0, ...w.entries.map((e) => e.at))) return { ...hit.view, closed: now() >= bounds.end };
+      const award = w.award && (w.award.brainId || w.award.none === "noWallet" || w.award.tries >= MAX_TRIES) ? { award: w.award } : {};
+      if (hit && hit.n === w.entries.length && hit.at === Math.max(0, ...w.entries.map((e) => e.at))) return { ...hit.view, closed: now() >= bounds.end, ...award };
       const standings = seasonStandings(week, w.entries);
-      const view: SeasonView = { week, closed: now() >= bounds.end, ends: bounds.end, entries: w.entries, standings, digest: standingsDigest(standings) };
+      const view: SeasonView = { week, closed: now() >= bounds.end, ends: bounds.end, entries: w.entries, standings, digest: standingsDigest(standings), ...award };
       cache.set(week, { n: w.entries.length, at: Math.max(0, ...w.entries.map((e) => e.at)), view });
       return view;
     },
+    pending: () => {
+      const out: PendingAward[] = [];
+      for (const [week, w] of weeks) {
+        if (!w.entries.length || now() < weekBounds(week).end) continue;
+        if (w.award && (w.award.brainId || w.award.none === "noWallet" || w.award.tries >= MAX_TRIES)) continue;
+        const top = seasonStandings(week, w.entries)[0]!;
+        const entry = w.entries.find((e) => e.key === top.key)!;
+        out.push({ week, entry, wallet: w.wallets?.[top.key] ?? null, tries: w.award?.tries ?? 0 });
+      }
+      return out;
+    },
+    award: (week, award) => {
+      const w = weeks.get(week);
+      if (!w) return;
+      weeks.set(week, { ...w, award });
+      cache.delete(week);
+      save();
+    },
   };
+}
+
+/** Gives every finished week's champion its keepsake, retrying a failed tape-out a few times. */
+export async function settleAwards(
+  store: SeasonStore,
+  give: (entry: SeasonEntry, wallet: string) => Promise<{ ok: true; brainId: string; tapeTx: string; sendTx: string } | { ok: false; detail?: string }>,
+): Promise<void> {
+  for (const p of store.pending()) {
+    const base = { key: p.entry.key, name: p.entry.pet.name, tries: p.tries + 1 };
+    if (!p.wallet) {
+      store.award(p.week, { ...base, none: "noWallet" });
+      continue;
+    }
+    const r = await give(p.entry, p.wallet);
+    store.award(p.week, r.ok ? { ...base, brainId: r.brainId, to: p.wallet, tapeTx: r.tapeTx, sendTx: r.sendTx } : { ...base, none: "failed" });
+  }
 }

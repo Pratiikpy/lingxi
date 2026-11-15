@@ -16,6 +16,8 @@ export interface SeasonView {
   entries: SeasonEntry[];
   standings: Standing[];
   digest: string;
+  /** the champion's keepsake: its brain taped out on X Layer and sent to its owner */
+  award?: { key: string; name: string; brainId?: string; to?: string; sendTx?: string; none?: "noWallet" | "failed" };
 }
 
 interface Mine {
@@ -58,9 +60,9 @@ export async function readSeason(week: string): Promise<SeasonView | null> {
   }
 }
 
-export async function enterSeason(pet: DuelPet): Promise<{ ok: true; week: string; key: string } | { ok: false; reason: string }> {
+export async function enterSeason(pet: DuelPet, wallet?: string): Promise<{ ok: true; week: string; key: string } | { ok: false; reason: string }> {
   try {
-    const r = await fetch(`${BASE}/api/season/enter`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ pet, device: deviceId() }) });
+    const r = await fetch(`${BASE}/api/season/enter`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ pet, device: deviceId(), ...(wallet ? { wallet } : {}) }) });
     const body = (await r.json()) as { ok: true; week: string; key: string } | { ok: false; reason: string };
     if (body.ok) {
       const m = mine();
