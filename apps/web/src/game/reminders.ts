@@ -65,12 +65,23 @@ const writeOn = (on: boolean) => {
   }
 };
 
-async function sendPlan(sub: PushSubscription, pet: Pet, lang: "en" | "zh"): Promise<boolean> {
+/** What was last sent, so an unchanged plan is not sent again (the pet changes every minute). */
+let lastSig = "";
+let lastSentAt = 0;
+const RESEND_MS = 6 * 3_600_000;
+
+/** A plan's identity: each need and its time to the nearest ten minutes ("due" if the pet has it now). */
+export function planSignature(needs: Array<{ kind: string; at: number }>, now: number, lang: string, name: string): string {
+  return [lang, name, ...needs.map((n) => `${n.kind}@${n.at <= now ? "due" : Math.round(n.at / 1_200_000)}`)].join("|");
+}
+
+async function sendPlan(sub: PushSubscription, pet: Pet, lang: "en" | "zh", force = false): Promise<boolean> {
   const now = Date.now();
-  const reminders = upcomingNeeds(pet, now, brainOf(pet))
-    .slice(0, 6)
-    // a need the pet already has is reminded a little later, not the instant the player looks away
-    .map((n) => ({ kind: n.kind, at: Math.max(n.at, now + 30 * 60_000) }));
+  const needs = upcomingNeeds(pet, now, brainOf(pet)).slice(0, 6);
+  const sig = planSignature(needs, now, lang, pet.name);
+  if (!force && sig === lastSig && now - lastSentAt < RESEND_MS) return true;
+  // a need the pet already has is reminded a little later, not the instant the player looks away
+  const reminders = needs.map((n) => ({ kind: n.kind, at: Math.max(n.at, now + 30 * 60_000) }));
   const json = sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } };
   const r = await fetch(`${BASE}/api/push/plan`, {
     method: "POST",
@@ -78,6 +89,10 @@ async function sendPlan(sub: PushSubscription, pet: Pet, lang: "en" | "zh"): Pro
     body: JSON.stringify({ subscription: { endpoint: json.endpoint, keys: json.keys }, lang, name: pet.name.slice(0, 24), tz: -new Date().getTimezoneOffset(), reminders }),
     signal: AbortSignal.timeout(8000),
   });
+  if (r.ok) {
+    lastSig = sig;
+    lastSentAt = now;
+  }
   return r.ok;
 }
 
@@ -91,7 +106,7 @@ export const useReminders = create<RemindState>((set, get) => ({
       const perm = await Notification.requestPermission();
       if (perm !== "granted") return set({ busy: false, error: "denied" });
       const sub = await subscription(true);
-      if (!sub || !(await sendPlan(sub, pet, lang))) throw new Error("plan");
+      if (!sub || !(await sendPlan(sub, pet, lang, true))) throw new Error("plan");
       writeOn(true);
       set({ on: true, busy: false });
     } catch {

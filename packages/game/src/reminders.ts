@@ -38,7 +38,9 @@ export function upcomingNeeds(pet: Pet, now: number, brain: Brain, horizonMs = H
   const found = new Map<NeedKind, number>();
   for (const k of needsOf(catchUp(pet, now, brain))) found.set(k, now);
   let p = catchUp(pet, now, brain);
-  for (let t = now + STEP_MS; t <= now + horizonMs && found.size < 4; t += STEP_MS) {
+  // steps fall on fixed 20-minute marks of the clock, so the same pet gives the same times however often it is asked
+  const first = Math.floor(now / STEP_MS) * STEP_MS + STEP_MS;
+  for (let t = first; t <= now + horizonMs && found.size < 4; t += STEP_MS) {
     p = catchUp(p, t, brain);
     for (const k of needsOf(p)) if (!found.has(k)) found.set(k, t);
   }

@@ -39,3 +39,14 @@ describe("reminders: when the pet will next need you", () => {
     expect(needs.filter((n) => n.at === T0 + 30 * H).map((n) => n.kind)).toEqual(expect.arrayContaining(["hungry", "sick"]));
   });
 });
+
+describe("reminders: stable plans", () => {
+  it("asking again a few minutes later gives the same times (so the game doesn't resend)", () => {
+    const pet = createPet({ name: "M", line: "gentle", now: T0, tzOffsetMin: 0, brain });
+    const a = upcomingNeeds(pet, T0 + 61_000, brain);
+    const b = upcomingNeeds(pet, T0 + 47 * 60_000, brain);
+    // only the far edge of the window may add a need; everything inside it is identical
+    expect(b.filter((n) => n.at <= T0 + 61_000 + HORIZON_MS)).toEqual(a);
+    expect(a.every((n) => n.at % (20 * 60_000) === 0)).toBe(true);
+  });
+});
