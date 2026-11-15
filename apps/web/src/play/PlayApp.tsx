@@ -8,6 +8,7 @@ import { type Partner, friendPartner, petCard, stageOf } from "@lingxi/game";
 import { useT, useLang } from "../i18n";
 import { useGame } from "../game/store";
 import { chirp, play } from "../game/sound";
+import { followClock } from "../game/music";
 import { type DayPhase, RoomScene } from "../scene/RoomScene";
 import { PALETTE_OF, type PetStage } from "../scene/textures";
 import { Hatch } from "./Hatch";
@@ -56,6 +57,7 @@ export function PlayApp() {
   const worldMove = useWorld((s) => s.move);
   const worldForage = useWorld((s) => s.forage);
   const [worldMsg, setWorldMsg] = useState<{ id: number; text: string } | null>(null);
+  useEffect(followClock, []);
   useEffect(() => {
     if (!worldNotice) return;
     const text = noticeText(worldNotice, t, lang);

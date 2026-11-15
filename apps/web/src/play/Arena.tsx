@@ -15,6 +15,7 @@ import { useSpar } from "../game/spar";
 import { useWorld } from "../game/world";
 import { HOME, ROOMS } from "@lingxi/world";
 import { play } from "../game/sound";
+import { songForHour, useMusic } from "../game/music";
 import { PALETTE_OF, type PetStage } from "../scene/textures";
 import { Sprite } from "./Sprite";
 import "./arena.css";
@@ -68,6 +69,12 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken }: { pet: Pet; cha
   const lang = useLang((s) => s.lang) as Lang;
   const [fight, setFight] = useState<{ partner: Partner; result: SparResult; cheer: boolean } | null>(null);
   const [cheer, setCheer] = useState(false);
+  const fighting = fight !== null;
+  useEffect(() => {
+    if (!fighting) return;
+    useMusic.getState().want("spar");
+    return () => useMusic.getState().want(songForHour(new Date().getHours()));
+  }, [fighting]);
   useEffect(() => {
     if (!challenge) return;
     start(challenge);
