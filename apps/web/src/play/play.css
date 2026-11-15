@@ -352,8 +352,9 @@
   font-size: 19px;
   line-height: 1.15;
 }
+/* the mind card lives beside the room on wide screens; phones read it in the Mind tab */
 .mindcard {
-  display: block;
+  display: none;
 }
 .rules {
   list-style: none;
@@ -624,8 +625,7 @@
   }
 }
 @media (max-width: 480px) {
-  .daily small,
-  .kin {
+  .daily small {
     display: none;
   }
   .round-btn {
@@ -1042,5 +1042,28 @@
   .voice {
     top: 17%;
     font-size: 14px;
+  }
+}
+
+.who .lv {
+  font-style: normal;
+}
+/* phones: the room takes the height the mind card would have used */
+@media (max-width: 919px) {
+  .app {
+    min-height: 100dvh;
+  }
+  .main {
+    grid-template-rows: minmax(0, 1fr) auto;
+    align-content: stretch;
+  }
+  .stage {
+    aspect-ratio: auto;
+    min-height: min(calc(100vw - 32px), 380px);
+  }
+}
+@media (max-width: 420px) {
+  .who .lv {
+    display: none;
   }
 }

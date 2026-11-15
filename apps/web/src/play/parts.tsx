@@ -46,7 +46,8 @@ export function TopBar({ pet, daily, face, onQuests, onPets, petCount }: { pet: 
         <div style={{ minWidth: 0 }}>
           <b>{pet.name}</b>
           <span>
-            {t(`stage.${stageOf(pet, now)}` as Key)} · {t("who.day", { n: dayOf(pet, now) })} · Lv {levelOf(pet.xp).level}
+            {t(`stage.${stageOf(pet, now)}` as Key)} · {t("who.day", { n: dayOf(pet, now) })}
+            <i className="lv"> · Lv {levelOf(pet.xp).level}</i>
           </span>
         </div>
       </div>

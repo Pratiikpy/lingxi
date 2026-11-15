@@ -23,8 +23,17 @@ export function phaseNow(): keyof typeof BG {
   return t === 0 ? "night" : t === 3 ? "evening" : "day";
 }
 
-export function HeroScene({ reduceMotion }: { reduceMotion: boolean }) {
+export type HeroPhase = keyof typeof BG;
+
+export function HeroScene({ reduceMotion, phase }: { reduceMotion: boolean; phase: HeroPhase }) {
   const host = useRef<HTMLDivElement>(null);
+  // switching day, dusk and night swaps the landscape without rebuilding the scene
+  const swap = useRef<((p: HeroPhase) => void) | null>(null);
+  const phaseRef = useRef(phase);
+  phaseRef.current = phase;
+  useEffect(() => {
+    swap.current?.(phase);
+  }, [phase]);
   useEffect(() => {
     const el = host.current;
     if (!el) return;
@@ -41,7 +50,7 @@ export function HeroScene({ reduceMotion }: { reduceMotion: boolean }) {
       }
       el.appendChild(app.canvas);
       app.canvas.classList.add("pixel");
-      const bg: Texture = await Assets.load(BG[phaseNow()]);
+      let bg: Texture = await Assets.load(BG[phaseRef.current]);
       bg.source.scaleMode = "nearest";
       if (disposed) {
         app.destroy(true, { children: true });
@@ -88,6 +97,14 @@ export function HeroScene({ reduceMotion }: { reduceMotion: boolean }) {
         ground = 121;
       };
       layout();
+      swap.current = (p) => {
+        void Assets.load(BG[p]).then((t: Texture) => {
+          if (disposed) return;
+          t.source.scaleMode = "nearest";
+          bg = t;
+          for (const c of tiles.children) (c as Sprite).texture = t;
+        });
+      };
       const ro = new ResizeObserver(layout);
       ro.observe(el);
 
@@ -145,7 +162,8 @@ export function HeroScene({ reduceMotion }: { reduceMotion: boolean }) {
         }
         const breath: 0 | 1 = reduceMotion ? 0 : Math.sin(now / 620) > 0.35 ? 1 : 0;
         pet.texture = petTexture("gentle", {
-          stage: "adult",
+          // on narrow screens the band is scaled up, so a smaller pet keeps clear of the headline
+          stage: el.clientWidth < 640 ? "child" : "adult",
           expression: state.hopAt >= 0 ? "love" : blinking ? "asleep" : walking ? "happy" : "neutral",
           breath,
           squash,
@@ -192,6 +210,7 @@ export function HeroScene({ reduceMotion }: { reduceMotion: boolean }) {
     })();
     return () => {
       disposed = true;
+      swap.current = null;
       cleanup();
       if (ready) app.destroy(true, { children: true });
     };

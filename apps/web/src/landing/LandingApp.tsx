@@ -17,7 +17,7 @@ import { BrainView } from "../play/BrainView";
 import { Chips } from "../play/parts";
 import { Sprite } from "../play/Sprite";
 import { chipsFor } from "../play/ruleText";
-import { HeroScene } from "./HeroScene";
+import { HeroScene, type HeroPhase, phaseNow } from "./HeroScene";
 import { COPY } from "./copy";
 import "../play/play.css";
 import "./landing.css";
@@ -203,6 +203,7 @@ export function LandingApp() {
   const { lang, toggle } = useLang();
   const reduce = useReducedMotion() ?? false;
   const c = COPY[lang];
+  const [phase, setPhase] = useState<HeroPhase>(phaseNow);
   const gates = useMemo(() => gateCount(compileProgram(STARTERS.gentle)), []);
   useEffect(() => {
     document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
@@ -211,7 +212,14 @@ export function LandingApp() {
   return (
     <>
       <header className="l-hero">
-        <HeroScene reduceMotion={reduce} />
+        <HeroScene reduceMotion={reduce} phase={phase} />
+        <div className="l-phase" role="radiogroup" aria-label={lang === "zh" ? "时间" : "Time of day"}>
+          {(["day", "evening", "night"] as const).map((p) => (
+            <button key={p} type="button" role="radio" aria-checked={phase === p} onClick={() => setPhase(p)}>
+              {lang === "zh" ? { day: "白天", evening: "黄昏", night: "夜晚" }[p] : { day: "Day", evening: "Dusk", night: "Night" }[p]}
+            </button>
+          ))}
+        </div>
         <nav className="l-nav">
           <a className="l-brand" href="#top" id="top">
             <span>Lingxi</span>

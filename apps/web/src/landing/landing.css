@@ -684,3 +684,49 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* a soft shade under the nav so its links read on any landscape */
+.l-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 132px;
+  z-index: 1;
+  background: linear-gradient(rgba(43, 33, 64, 0.5), rgba(43, 33, 64, 0));
+  pointer-events: none;
+}
+.l-phase {
+  position: absolute;
+  right: max(16px, calc((100% - 1120px) / 2));
+  bottom: 56px;
+  z-index: 2;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 2px solid #2b2140;
+  border-radius: 999px;
+  background: #fffdf8;
+  box-shadow: 0 3px 0 #2b2140;
+}
+.l-phase button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #2b2140;
+  font-family: var(--round);
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+}
+.l-phase button[aria-checked="true"] {
+  background: #2b2140;
+  color: #fff7e8;
+}
+@media (max-width: 860px) {
+  .l-phase {
+    right: 16px;
+    bottom: 16px;
+  }
+}
