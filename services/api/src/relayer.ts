@@ -15,9 +15,11 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { createPublicClient, createWalletClient, http, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { type Rule, type StarterLine, bytesToHex, compileProgram, gateCount, netlistBytes } from "@lingxi/brain";
+import { type Program, type Rule, type StarterLine, bytesToHex, compileProgram, composeChild, gateCount, netlistBytes } from "@lingxi/brain";
 import { processorAbi, transistorsAbi, xLayer } from "@lingxi/chain";
-import { MAX_GATES, composeProgram } from "@lingxi/game";
+import { type Family, MAX_GATES, composeProgram, halvesOf } from "@lingxi/game";
+
+const NEWLINE = /\r?\n/;
 
 export interface RelayerConfig {
   rpc: string;
@@ -59,23 +61,73 @@ export class BrainRelayer {
   }
 
   /** Serialises tape-outs so nonces never collide and the budget is exact. */
-  relay(line: StarterLine, lessons: Rule[]): Promise<RelayResult> {
-    const run = this.queue.then(() => this.doRelay(line, lessons));
+  private serial<T>(job: () => Promise<T>): Promise<T> {
+    const run = this.queue.then(job);
     this.queue = run.catch(() => undefined);
     return run;
   }
 
-  private async doRelay(line: StarterLine, lessons: Rule[]): Promise<RelayResult> {
-    if (lessons.length > 8) return { ok: false, reason: "invalid", detail: "too many lessons" };
-    let program;
-    try {
-      program = composeProgram(line, lessons);
-    } catch (e) {
-      return { ok: false, reason: "invalid", detail: (e as Error).message };
-    }
+  /** A pet's brain from its line and lessons. */
+  relay(line: StarterLine, lessons: Rule[]): Promise<RelayResult> {
+    return this.serial(async () => {
+      if (lessons.length > 8) return { ok: false, reason: "invalid", detail: "too many lessons" } as const;
+      let program: Program;
+      try {
+        program = composeProgram(line, lessons);
+      } catch (e) {
+        return { ok: false, reason: "invalid", detail: (e as Error).message } as const;
+      }
+      return this.tapeProgram(program);
+    });
+  }
+
+  /**
+   * A child's brain: LX-CHILD/1 REFs to two parent circuits plus the glue. At
+   * birth the parents are their current circuits; once the child is taught, each
+   * half (child's lessons + that parent's) is taped out first and REF'd instead.
+   */
+  relayChild(input: { parents: [string, string] } | { family: Family; lessons: Rule[] }): Promise<RelayResult> {
+    return this.serial(async () => {
+      let ids: [bigint, bigint];
+      if ("parents" in input) {
+        ids = [BigInt(input.parents[0]), BigInt(input.parents[1])];
+      } else {
+        if (input.lessons.length > 8) return { ok: false, reason: "invalid", detail: "too many lessons" } as const;
+        let halves: [Program, Program];
+        try {
+          halves = halvesOf(input.family, input.lessons);
+        } catch (e) {
+          return { ok: false, reason: "invalid", detail: (e as Error).message } as const;
+        }
+        const got: bigint[] = [];
+        for (const h of halves) {
+          const r = await this.tapeProgram(h);
+          if (!r.ok) return r;
+          got.push(BigInt(r.brainId));
+        }
+        ids = [got[0]!, got[1]!];
+      }
+      for (const id of ids) {
+        try {
+          const info = (await this.pub.readContract({ address: this.cfg.processor, abi: processorAbi, functionName: "circuitInfo", args: [id] })) as readonly [bigint, bigint, bigint, bigint];
+          if (Number(info[0]) !== 16 || Number(info[1]) !== 8) return { ok: false, reason: "invalid", detail: `circuit ${id} is not a pet brain` } as const;
+        } catch {
+          return { ok: false, reason: "invalid", detail: `no circuit ${id}` } as const;
+        }
+      }
+      const child = composeChild({ cpu: this.cfg.processor, id: ids[0] }, { cpu: this.cfg.processor, id: ids[1] });
+      const glue = child.elements.filter((e) => e.op === 0).length;
+      return this.tapeBytes(child.bytes, glue, 0);
+    });
+  }
+
+  private async tapeProgram(program: Program): Promise<RelayResult> {
     const net = compileProgram(program);
     if (gateCount(net) > MAX_GATES) return { ok: false, reason: "tooBig" };
-    const bytes = netlistBytes(net);
+    return this.tapeBytes(netlistBytes(net), net.gates.length, net.latches.length);
+  }
+
+  private async tapeBytes(bytes: Uint8Array, nands: number, latches: number): Promise<RelayResult> {
     const key = createHash("sha256").update(bytes).digest("hex");
     const known = this.store.brains[key];
     if (known) return { ok: true, processor: this.cfg.processor, brainId: known, reused: true };
@@ -92,8 +144,8 @@ export class BrainRelayer {
       const transistors = (await this.pub.readContract({ address: p, abi: processorAbi, functionName: "transistors" })) as Address;
       const me = this.wallet.account.address;
       for (const [id, need] of [
-        [0n, BigInt(net.gates.length)],
-        [1n, BigInt(net.latches.length)],
+        [0n, BigInt(nands)],
+        [1n, BigInt(latches)],
       ] as const) {
         if (need === 0n) continue;
         const have = (await this.pub.readContract({ address: transistors, abi: transistorsAbi, functionName: "balanceOf", args: [me, id] })) as bigint;
@@ -116,7 +168,7 @@ export class BrainRelayer {
       this.save();
       return { ok: true, processor: p, brainId: id, reused: false };
     } catch (e) {
-      return { ok: false, reason: "error", detail: (e as Error).message.split("\n")[0] };
+      return { ok: false, reason: "error", detail: (e as Error).message.split(NEWLINE)[0] };
     }
   }
 }

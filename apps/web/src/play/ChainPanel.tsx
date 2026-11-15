@@ -17,7 +17,7 @@ export function ChainPanel({ pet }: { pet: Pet }) {
   const mindBehind = record && (record.brainKey ?? lessonsKey([])) !== lessonsKey(pet.lessons);
   const err = error ? t(ERR[error] ?? "chain.failed") : null;
   return (
-    <div className="chainpanel">
+    <div className="chainpanel onchain">
       <p className="label">{t("chain.title")}</p>
       {record ? (
         <>
@@ -54,6 +54,8 @@ export function ChainPanel({ pet }: { pet: Pet }) {
             </a>
           )}
         </>
+      ) : pet.family ? (
+        <p className="small">{t("chain.childOff", { name: pet.name })}</p>
       ) : (
         <>
           <p className="small">{t("chain.pitch", { name: pet.name })}</p>

@@ -19,6 +19,7 @@ import { MAX_WORDS, teachInWords } from "./teach";
 import { RateLimiter } from "./limit";
 import { BrainRelayer } from "./relayer";
 import { LiveRooms, attachLive } from "./live";
+import { parseCard } from "@lingxi/game";
 
 function loadKey(): string | undefined {
   if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
@@ -82,6 +83,28 @@ export function createApp(client: Anthropic | null, limiter = new RateLimiter(6,
       return c.json({ ok: false, reason: "invalid", detail: "bad request" }, 400);
     }
     const r = await relayer.relay(body.line, body.lessons as never);
+    return c.json(r, r.ok ? 200 : r.reason === "budget" ? 429 : 200);
+  });
+
+  // a child's brain: REFs to its parents' circuits, or (once taught) to both of its halves
+  const ChildBody = z.union([z.object({ parents: z.tuple([z.string().regex(/^\d{1,20}$/), z.string().regex(/^\d{1,20}$/)]) }), z.object({ card: z.string().max(10_000) })]);
+  app.post("/api/tapeout-child", async (c) => {
+    if (!relayer) return c.json({ ok: false, reason: "error", detail: "relaying is not configured" }, 503);
+    const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
+    if (!relayLimiter.take(ip)) return c.json({ ok: false, reason: "busy" }, 429);
+    let body: z.infer<typeof ChildBody>;
+    try {
+      body = ChildBody.parse(await c.req.json());
+    } catch {
+      return c.json({ ok: false, reason: "invalid", detail: "bad request" }, 400);
+    }
+    let r;
+    if ("parents" in body) r = await relayer.relayChild({ parents: body.parents });
+    else {
+      const card = parseCard(body.card);
+      if (!card?.family) return c.json({ ok: false, reason: "invalid", detail: "not a child's card" }, 400);
+      r = await relayer.relayChild({ family: card.family, lessons: card.lessons });
+    }
     return c.json(r, r.ok ? 200 : r.reason === "budget" ? 429 : 200);
   });
 

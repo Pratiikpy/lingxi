@@ -118,12 +118,20 @@ export function familyOf(a: ParentInfo & { generation?: number }, b: ParentInfo 
 export interface PetCard {
   lessons: Rule[];
   family?: Family;
+  /** the pet's memory bits, which a child inherits */
+  memory?: number[];
 }
 
 const LINES = ["gentle", "bold", "curious"] as const;
 
-export function petCard(p: { lessons: readonly Rule[]; family?: Family }): string {
-  return JSON.stringify({ lessons: p.lessons, ...(p.family ? { family: p.family } : {}) });
+export function petCard(p: { lessons: readonly Rule[]; family?: Family; brain?: readonly number[] }): string {
+  return JSON.stringify({ lessons: p.lessons, ...(p.family ? { family: p.family } : {}), ...(p.brain ? { memory: p.brain.map((b) => (b ? 1 : 0)) } : {}) });
+}
+
+/** A newborn's memory: parent A's memory, then parent B's (as the Breeder mixes it on chain). */
+export function childMemory(nState: number, a: readonly number[], b: readonly number[] | undefined): number[] {
+  const mixed = [...a, ...(b ?? [])].map((x) => (x ? 1 : 0));
+  return mixed.length === nState ? mixed : new Array(nState).fill(0);
 }
 
 /** Reads a card from someone else. Everything is checked; anything odd means no card. */
@@ -133,8 +141,10 @@ export function parseCard(raw: string): PetCard | null {
     const v = JSON.parse(raw) as unknown;
     const lessons = (Array.isArray(v) ? v : (v as { lessons?: unknown }).lessons) as unknown;
     if (!Array.isArray(lessons) || lessons.length > 8) return null;
+    const rawMem = Array.isArray(v) ? undefined : (v as { memory?: unknown }).memory;
+    const memory = Array.isArray(rawMem) && rawMem.length <= 64 && rawMem.every((x) => x === 0 || x === 1) ? (rawMem as number[]) : undefined;
     const fam = Array.isArray(v) ? undefined : (v as { family?: unknown }).family;
-    if (fam === undefined) return { lessons: lessons as Rule[] };
+    if (fam === undefined) return { lessons: lessons as Rule[], ...(memory ? { memory } : {}) };
     const f = fam as { parents?: unknown; generation?: unknown };
     if (!Array.isArray(f.parents) || f.parents.length !== 2) return null;
     if (!Number.isInteger(f.generation) || (f.generation as number) < 1 || (f.generation as number) > 99) return null;
@@ -143,7 +153,7 @@ export function parseCard(raw: string): PetCard | null {
       if (!line || typeof p.name !== "string" || !Array.isArray(p.lessons) || p.lessons.length > 8) throw new Error("bad parent");
       return { name: p.name.slice(0, 12), line, lessons: p.lessons as Rule[] };
     }) as [ParentInfo, ParentInfo];
-    return { lessons: lessons as Rule[], family: { parents, generation: f.generation as number } };
+    return { lessons: lessons as Rule[], family: { parents, generation: f.generation as number }, ...(memory ? { memory } : {}) };
   } catch {
     return null;
   }

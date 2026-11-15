@@ -6,8 +6,11 @@
 import type { Address, Hex, PublicClient, WalletClient } from "viem";
 import { petRegistryAbi } from "./registryAbi";
 import { processorAbi } from "./tapeout";
+import { type Circuit, REF, decode, hexToBytes, load, refKey } from "@lingxi/brain";
 
 export interface Deployment {
+  /** the Breeder contract, when families are deployed */
+  breeder?: Address;
   chainId: number;
   rpc: string;
   processor: Address;
@@ -120,4 +123,21 @@ export async function setBrainOnChain(pub: PublicClient, wallet: WalletClient, d
   const r = await pub.waitForTransactionReceipt({ hash: tx });
   if (r.status !== "success") throw new Error("setBrain failed");
   return tx;
+}
+
+/**
+ * Loads a circuit straight from the chain, together with every circuit it REFs
+ * (a child's brain REFs both parents'), so it can be evaluated locally.
+ */
+export async function loadCircuitFromChain(pub: PublicClient, processor: Address, id: bigint, depth = 0): Promise<Circuit> {
+  if (depth > 4) throw new Error("circuit nests too deeply");
+  const nl = await readNetlist(pub, processor, id);
+  const bytes = hexToBytes(nl.bytes);
+  const subs = new Map<string, Circuit>();
+  for (const e of decode(bytes, nl.nIn)) {
+    if (e.op !== REF) continue;
+    const key = refKey(e.cpu, e.id);
+    if (!subs.has(key)) subs.set(key, await loadCircuitFromChain(pub, e.cpu as Address, e.id, depth + 1));
+  }
+  return load(bytes, nl.nIn, nl.nOut, (cpu, sid) => subs.get(refKey(cpu, sid)) ?? null);
 }

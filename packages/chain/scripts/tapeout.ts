@@ -3,6 +3,8 @@
  * approve the three starter brains as free hatching brains.
  *
  *   tsx scripts/tapeout.ts --rpc <url> --processor <address> [--key-file <path>] [--out <json>]
+ *   tsx scripts/tapeout.ts --breeder-only [--key-file <path>] [--out <json>]
+ *     adds the Breeder to an existing deployment (the registry owner's key)
  *
  * The key is read from a file (default tapeout/.secrets/deployer.env), never
  * from the command line. Every step reads before it writes and prints what it
@@ -25,7 +27,10 @@ const arg = (name: string, fallback?: string) => {
 };
 
 const rpc = arg("rpc", "http://127.0.0.1:8547")!;
-const processor = arg("processor") as Address | undefined;
+const here2 = here;
+const breederOnly = process.argv.includes("--breeder-only");
+const existing = breederOnly ? (JSON.parse(readFileSync(arg("out", resolve(here, "../deployments/local.json"))!, "utf8")) as Record<string, unknown>) : null;
+const processor = (arg("processor") ?? (existing?.processor as string | undefined)) as Address | undefined;
 const keyFile = arg("key-file", resolve(here, "../../../../.secrets/deployer.env"))!;
 const outFile = arg("out", resolve(here, "../deployments/local.json"))!;
 if (!processor) throw new Error("--processor is required");
@@ -42,6 +47,28 @@ const account = privateKeyToAccount(pk);
 const chain = { ...xLayer, rpcUrls: { default: { http: [rpc] } } };
 const pub = createPublicClient({ chain, transport: http(rpc) });
 const wallet = createWalletClient({ chain, transport: http(rpc), account });
+
+/** Deploys the Breeder against a registry and lets it hatch children there. */
+async function deployBreeder(registry: Address): Promise<Address> {
+  const art = JSON.parse(readFileSync(resolve(here2, "../../../contracts/out/Breeder.sol/Breeder.json"), "utf8"));
+  const reg = JSON.parse(readFileSync(resolve(here2, "../../../contracts/out/PetRegistry.sol/PetRegistry.json"), "utf8"));
+  const tx = await wallet.deployContract({ abi: art.abi, bytecode: art.bytecode.object as Hex, args: [registry] });
+  const r = await pub.waitForTransactionReceipt({ hash: tx });
+  const breeder = r.contractAddress as Address;
+  console.log(`Breeder ${breeder} tx ${tx}`);
+  const set = await wallet.writeContract({ address: registry, abi: reg.abi, functionName: "setBreeder", args: [breeder, true] });
+  const sr = await pub.waitForTransactionReceipt({ hash: set });
+  if (sr.status !== "success") throw new Error("setBreeder failed");
+  return breeder;
+}
+
+if (existing) {
+  const breeder = await deployBreeder(existing.registry as Address);
+  const outPath = arg("out", resolve(here, "../deployments/local.json"))!;
+  writeFileSync(outPath, JSON.stringify({ ...existing, breeder, breederAt: new Date().toISOString() }, null, 2));
+  console.log(`wrote ${outPath}`);
+  process.exit(0);
+}
 
 const say = (s: string) => process.stdout.write(`${s}\n`);
 
@@ -102,9 +129,10 @@ async function main() {
     if (r.status !== "success") throw new Error(`setStarterBrain ${line} failed`);
   }
   void parseEventLogs;
+  const breeder = await deployBreeder(registry);
   const end = await pub.getBalance({ address: account.address });
   say(`spent ${formatEther(start - end)} OKB in total`);
-  const out = { chainId: await pub.getChainId(), rpc, processor, registry, deployer: account.address, circuits, at: new Date().toISOString() };
+  const out = { chainId: await pub.getChainId(), rpc, processor, registry, breeder, deployer: account.address, circuits, at: new Date().toISOString() };
   writeFileSync(outFile, JSON.stringify(out, null, 2));
   say(`wrote ${outFile}`);
   void existsSync;

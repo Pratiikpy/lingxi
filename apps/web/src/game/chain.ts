@@ -10,9 +10,10 @@
 import { create } from "zustand";
 import { createPublicClient, createWalletClient, custom, http, type Hex, type PublicClient, type WalletClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { type Deployment, checkpointOnChain, hatchOnChain, readPet, setBrainOnChain, xLayer } from "@lingxi/chain";
-import { type Pet, logSegments, packState, stageOf } from "@lingxi/game";
-import { relayBrain } from "./api";
+import { type Deployment, allowPartnerOnChain, breedOnChain, checkpointOnChain, hatchOnChain, readPet, setBrainOnChain, xLayer } from "@lingxi/chain";
+import { type Pet, logSegments, packState, petCard, stageOf, unpackState } from "@lingxi/game";
+import { relayBrain, relayChild } from "./api";
+import type { ChainInfo } from "./live";
 import { useGame } from "./store";
 import localDeployment from "../../../../packages/chain/deployments/local.json";
 
@@ -72,7 +73,10 @@ export interface ChainRecord {
   logLen?: number;
 }
 
-export const lessonsKey = (lessons: unknown[]) => JSON.stringify(lessons);
+/** The first line of an error, for showing to the player. */
+const firstLine = (e: unknown): string => (e as Error).message?.split(/\r?\n/)[0] || "failed";
+
+export const lessonsKey =(lessons: unknown[]) => JSON.stringify(lessons);
 
 /** The on-chain day number now, as PetRegistry counts it. */
 export const chainDay = (r: ChainRecord, nowMs: number) => Math.floor((nowMs / 1000 - r.bornChain) / 86_400) + 1;
@@ -122,11 +126,66 @@ interface ChainState {
   forget: () => void;
   /** the record of any pet on this device */
   recordOf: (pet: Pet) => ChainRecord | null;
+  /** this pet's on-chain identity for a family request, if it lives on chain */
+  infoOf: (pet: Pet) => ChainInfo | null;
+  /** the partner's owner allows the proposer's owner to raise a child with this pet */
+  allow: (pet: Pet, partnerOwner: string) => Promise<boolean>;
+  /** hatch the newborn through the Breeder; returns the child's memory as the chain mixed it */
+  breed: (parent: Pet, partner: ChainInfo, child: Pet) => Promise<{ ok: true; memory: number[] } | { ok: false; reason: string }>;
 }
 
 export const useChain = create<ChainState>((set, get) => ({
   record: activeRecord(),
   recordOf: (pet) => records[petKey(pet)] ?? null,
+  infoOf: (pet) => {
+    const r = records[petKey(pet)];
+    const brain = r?.brains?.[r.brainKey ?? ""];
+    return r && brain && deployment?.breeder ? { petId: r.petId, owner: r.owner, brain } : null;
+  },
+  allow: async (pet, partnerOwner) => {
+    const r = records[petKey(pet)];
+    if (!deployment?.breeder || !r) return false;
+    set({ busy: "connecting", error: null });
+    try {
+      const wallet = await connectWallet();
+      set({ busy: "saving" });
+      await allowPartnerOnChain(publicClient, wallet, deployment, BigInt(r.petId), partnerOwner as Hex);
+      set({ busy: "idle" });
+      return true;
+    } catch (e) {
+      set({ busy: "idle", error: firstLine(e) });
+      return false;
+    }
+  },
+  breed: async (parent, partner, child) => {
+    const r = records[petKey(parent)];
+    const mine = r?.brains?.[r.brainKey ?? ""];
+    if (!deployment?.breeder || !r || !mine) return { ok: false, reason: "offChain" };
+    set({ busy: "taping", error: null });
+    try {
+      const relayed = await relayChild({ parents: [mine, partner.brain] });
+      if (!relayed.ok) throw new Error(relayed.reason);
+      const wallet = await connectWallet();
+      set({ busy: "hatching" });
+      const { childId, tx } = await breedOnChain(publicClient, wallet, deployment, BigInt(r.petId), BigInt(partner.petId), deployment.processor, BigInt(relayed.brainId), LINES.indexOf(child.line));
+      const onChain = await readPet(publicClient, deployment, childId);
+      store(child, {
+        petId: childId.toString(),
+        hatchTx: tx,
+        lastDay: 0,
+        owner: wallet.account!.address,
+        bornChain: onChain.born,
+        brains: { [lessonsKey([])]: relayed.brainId },
+        brainKey: lessonsKey([]),
+      });
+      set({ busy: "idle", record: activeRecord() });
+      return { ok: true, memory: unpackState(onChain.state, onChain.brainBits).brain };
+    } catch (e) {
+      const msg = firstLine(e);
+      set({ busy: "idle", error: msg });
+      return { ok: false, reason: /NotAdult/.test(msg) ? "notAdultOnChain" : /TooSoon/.test(msg) ? "tooSoon" : /NoConsent/.test(msg) ? "noConsent" : msg };
+    }
+  },
   busy: "idle",
   error: null,
   keep: async (pet) => {
@@ -160,7 +219,9 @@ export const useChain = create<ChainState>((set, get) => ({
     try {
       const wallet = await connectWallet();
       set({ busy: "saving" });
-      const day = chainDay(record, Date.now());
+      // days are counted the way PetRegistry counts them: from block time, not this computer's clock
+      const blockMs = Number((await publicClient.getBlock()).timestamp) * 1000;
+      const day = chainDay(record, blockMs);
       if (day <= record.lastDay) {
         set({ busy: "idle", error: "alreadySaved" });
         return;
@@ -183,7 +244,8 @@ export const useChain = create<ChainState>((set, get) => ({
       let brainId = record.brains?.[key];
       if (!brainId) {
         set({ busy: "taping" });
-        const r = await relayBrain({ line: pet.line, lessons: pet.lessons });
+        // a child's mind is both halves, REF'd by a new child circuit
+        const r = pet.family ? await relayChild({ card: petCard(pet) }) : await relayBrain({ line: pet.line, lessons: pet.lessons });
         if (!r.ok) throw new Error(r.reason);
         brainId = r.brainId;
       }

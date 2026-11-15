@@ -28,6 +28,18 @@ export function visitingFrom(search = location.search): string | null {
   return v && /^[a-z0-9]{12,32}$/.test(v) && v !== playerId() ? v : null;
 }
 
+/** A pet's on-chain identity shared when making a family: pet id, owner, and its current brain circuit. */
+export interface ChainInfo {
+  petId: string;
+  owner: string;
+  brain: string;
+}
+
+const asChain = (v: unknown): ChainInfo | undefined => {
+  const c = v as Partial<ChainInfo> | undefined;
+  return c && typeof c.petId === "string" && typeof c.owner === "string" && typeof c.brain === "string" ? { petId: c.petId, owner: c.owner, brain: c.brain } : undefined;
+};
+
 export interface LiveMember {
   id: string;
   name: string;
@@ -59,11 +71,11 @@ interface LiveState {
   /** share this pet's card (its lessons, and family for a child) with the room */
   shareCard: (card: string) => void;
   /** a family proposal another owner sent us */
-  proposal: { from: string; name: string; stage: string; line: string; at: number } | null;
+  proposal: { from: string; name: string; stage: string; line: string; chain?: ChainInfo; at: number } | null;
   /** the answer to our proposal */
-  answer: { from: string; name: string; yes: boolean; line?: string; stage?: string; card?: string; at: number } | null;
-  propose: (to: string) => void;
-  reply: (to: string, yes: boolean) => void;
+  answer: { from: string; name: string; yes: boolean; line?: string; stage?: string; card?: string; chain?: ChainInfo; at: number } | null;
+  propose: (to: string, chain?: ChainInfo) => void;
+  reply: (to: string, yes: boolean, chain?: ChainInfo) => void;
   clearFamily: () => void;
   ask: (id: string) => void;
   connect: (me: Me, space: string) => void;
@@ -135,7 +147,7 @@ export const useLive = create<LiveState>((set, get) => {
           set({ card: { id: m.id as string, name: m.name as string, line: m.line as string, stage: m.stage as string, lessons: m.lessons as string, at: performance.now() } });
           return;
         case "proposal":
-          set({ proposal: { from: m.from as string, name: m.name as string, stage: m.stage as string, line: m.line as string, at: performance.now() } });
+          set({ proposal: { from: m.from as string, name: m.name as string, stage: m.stage as string, line: m.line as string, ...(asChain(m.chain) ? { chain: asChain(m.chain)! } : {}), at: performance.now() } });
           return;
         case "answer":
           set({
@@ -146,6 +158,7 @@ export const useLive = create<LiveState>((set, get) => {
               ...(typeof m.line === "string" ? { line: m.line } : {}),
               ...(typeof m.stage === "string" ? { stage: m.stage } : {}),
               ...(typeof m.card === "string" ? { card: m.card } : {}),
+              ...(asChain(m.chain) ? { chain: asChain(m.chain)! } : {}),
               at: performance.now(),
             },
           });
@@ -183,9 +196,9 @@ export const useLive = create<LiveState>((set, get) => {
     },
     proposal: null,
     answer: null,
-    propose: (to) => send({ t: "propose", to }),
-    reply: (to, yes) => {
-      send({ t: "answer", to, yes });
+    propose: (to, chain) => send({ t: "propose", to, ...(chain ? { chain } : {}) }),
+    reply: (to, yes, chain) => {
+      send({ t: "answer", to, yes, ...(chain ? { chain } : {}) });
       set({ proposal: null });
     },
     clearFamily: () => set({ proposal: null, answer: null }),

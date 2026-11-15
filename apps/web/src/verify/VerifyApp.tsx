@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { type Hex } from "viem";
 import { beat, bitsToWord, hexToBytes, load, type Circuit, wordToBits, decodeSenses } from "@lingxi/brain";
-import { type ChainPet, readNetlist, readPet, replayStep } from "@lingxi/chain";
+import { type ChainPet, loadCircuitFromChain, readPet, replayStep } from "@lingxi/chain";
 import { chainAll, unpackState, ZERO_HASH } from "@lingxi/game";
 import { deployment, publicClient } from "../game/chain";
 import { useLang } from "../i18n";
@@ -106,9 +106,10 @@ export function VerifyApp() {
     try {
       const p = await readPet(publicClient, deployment, BigInt(id));
       setPet(p);
-      const nl = await readNetlist(publicClient, p.processor, p.brainId);
-      setCircuit(load(hexToBytes(nl.bytes), nl.nIn, nl.nOut));
-      setGates(nl.gates);
+      // a child's circuit REFs its parents' circuits; those are read from the chain too
+      const c = await loadCircuitFromChain(publicClient, p.processor, p.brainId);
+      setCircuit(c);
+      setGates(c.nGates);
       history.replaceState(null, "", `#${id}`);
     } catch {
       setPet(null);
@@ -152,8 +153,7 @@ export function VerifyApp() {
       for (const sg of segments) {
         if (!sg.words.length) continue;
         const id = BigInt(sg.brainId ?? pet.brainId.toString());
-        const nl = await readNetlist(publicClient, pet.processor, id);
-        const c = load(hexToBytes(nl.bytes), nl.nIn, nl.nOut);
+        const c = await loadCircuitFromChain(publicClient, pet.processor, id);
         if (st.length !== c.nState) st = st.slice(0, c.nState).concat(new Array(Math.max(0, c.nState - st.length)).fill(0));
         for (const w of sg.words) st = beat(c, st, wordToBits(w, 16))[0];
       }

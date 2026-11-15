@@ -7,10 +7,10 @@
 import { useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { drawPet } from "@lingxi/art";
-import { type Family, type ParentInfo, type Pet, BREED_COOLDOWN_DAYS, canBreed, createPet, dayOf, familyOf, mindBrain, parseCard, stageOf } from "@lingxi/game";
+import { type Family, type ParentInfo, type Pet, BREED_COOLDOWN_DAYS, canBreed, childMemory, createPet, dayOf, familyOf, mindBrain, parseCard, stageOf } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { MAX_PETS, useGame } from "../game/store";
-import { petKey } from "../game/chain";
+import { petKey, useChain } from "../game/chain";
 import { useLive } from "../game/live";
 import { play } from "../game/sound";
 import { PALETTE_OF, type PetStage } from "../scene/textures";
@@ -46,8 +46,11 @@ export function ProposalDialog({ pet }: { pet: Pet }) {
   const proposal = useLive((s) => s.proposal);
   const reply = useLive((s) => s.reply);
   const replace = useGame((s) => s.replace);
+  const [signing, setSigning] = useState(false);
   if (!proposal) return null;
   const block = familyBlock(pet, proposal.stage, lang);
+  const mine = useChain.getState().infoOf(pet);
+  const onChain = !!(mine && proposal.chain);
   return (
     <div className="fam-modal" role="dialog" aria-label={lang === "zh" ? "家人请求" : "Family request"}>
       <motion.div className="fam-card" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }}>
@@ -60,19 +63,31 @@ export function ProposalDialog({ pet }: { pet: Pet }) {
         <p className="small">
           {lang === "zh" ? `之后${pet.name}要休息 ${BREED_COOLDOWN_DAYS} 天。` : `${pet.name} will rest for ${BREED_COOLDOWN_DAYS} days afterwards.`}
         </p>
+        {onChain && (
+          <p className="small">
+            {lang === "zh" ? "两只宠物都在链上：同意时会用你的钱包签一次授权，让小宝宝在链上出生。" : "Both pets live on chain: saying yes signs one consent with your wallet so the little one is born on chain."}
+          </p>
+        )}
         {block && <p className="small warn">{block}</p>}
         <div className="row">
           <button
             type="button"
             className="btn primary"
-            disabled={!!block}
-            onClick={() => {
+            disabled={!!block || signing}
+            onClick={async () => {
+              let chain = undefined;
+              if (onChain) {
+                setSigning(true);
+                const ok = await useChain.getState().allow(pet, proposal.chain!.owner);
+                setSigning(false);
+                if (ok) chain = mine!;
+              }
               play("success");
               replace({ ...pet, lastBredDay: today(pet) });
-              reply(proposal.from, true);
+              reply(proposal.from, true, chain);
             }}
           >
-            {lang === "zh" ? "好呀" : "Yes"}
+            {signing ? (lang === "zh" ? "签名中……" : "Signing…") : lang === "zh" ? "好呀" : "Yes"}
           </button>
           <button type="button" className="btn" onClick={() => (play("tap"), reply(proposal.from, false))}>
             {lang === "zh" ? "现在不了" : "Not now"}
@@ -91,6 +106,7 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
   const adopt = useGame((s) => s.adopt);
   const replace = useGame((s) => s.replace);
   const [name, setName] = useState("");
+  const [hatching, setHatching] = useState<"idle" | "busy" | string>("idle");
   const family = useMemo<Family | null>(() => {
     if (!answer?.yes || !answer.card) return null;
     const line = LINES.find((l) => l === answer.line);
@@ -127,16 +143,24 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
   }
   const [a, b] = family.parents;
   const baby = drawPet("gentle", "baby", { expression: "sparkly" });
-  const welcome = () => {
+  const partnerChain = answer.chain;
+  const canChain = !!(partnerChain && useChain.getState().infoOf(pet));
+  const welcome = async (offChain = false) => {
     const brain = mindBrain({ line: a.line, lessons: [], family });
-    const child: Pet = {
-      ...createPet({ name: name.trim().slice(0, 12) || (lang === "zh" ? "小宝" : "Bean"), line: a.line, now: Date.now(), tzOffsetMin: -new Date().getTimezoneOffset(), brain }),
-      family,
-    };
+    const born = createPet({ name: name.trim().slice(0, 12) || (lang === "zh" ? "小宝" : "Bean"), line: a.line, now: Date.now(), tzOffsetMin: -new Date().getTimezoneOffset(), brain });
+    let child: Pet = { ...born, family, brain: childMemory(brain.nState, pet.brain, parseCard(answer.card ?? "")?.memory) };
+    if (canChain && !offChain) {
+      setHatching("busy");
+      const r = await useChain.getState().breed(pet, partnerChain!, child);
+      if (!r.ok) return setHatching(r.reason);
+      // the chain mixed the parents' memories from their last checkpoints; the chain's version wins
+      if (r.memory.length === brain.nState) child = { ...child, brain: r.memory };
+    }
     replace({ ...pet, lastBredDay: today(pet) });
     if (adopt(child)) play("success");
     clear();
   };
+  const chainError = hatching !== "idle" && hatching !== "busy" ? hatching : null;
   return (
     <div className="fam-modal" role="dialog" aria-label={lang === "zh" ? "新生的小宝宝" : "A newborn"}>
       <motion.div className="fam-card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
@@ -157,9 +181,34 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
           <span>{lang === "zh" ? "给它起个名字" : "Give it a name"}</span>
           <input value={name} maxLength={12} onChange={(e) => setName(e.target.value)} placeholder={lang === "zh" ? "小宝" : "Bean"} autoFocus />
         </label>
-        <button type="button" className="btn primary" onClick={welcome}>
-          {lang === "zh" ? "欢迎回家" : "Welcome home"}
-        </button>
+        {canChain && !chainError && (
+          <p className="small">{lang === "zh" ? "它会在链上出生：先刻好它的电路，再由繁育合约核对父母并孵化。" : "It will be born on chain: its circuit is taped out, then the Breeder checks both parents and hatches it."}</p>
+        )}
+        {chainError && (
+          <p className="small warn">
+            {chainError === "notAdultOnChain"
+              ? lang === "zh"
+                ? "链上还不知道它们已经长大：先在“宠物”里把今天存到链上。"
+                : "The chain doesn't know they've grown yet: save today on chain from the Pet sheet first."
+              : chainError === "tooSoon"
+                ? lang === "zh"
+                  ? "链上显示它们还在休息。"
+                  : "The chain says they are still resting."
+                : lang === "zh"
+                  ? `链上出生没成功（${chainError}）。`
+                  : `Being born on chain didn't work (${chainError}).`}
+          </p>
+        )}
+        <div className="row">
+          <button type="button" className="btn primary" disabled={hatching === "busy"} onClick={() => void welcome()}>
+            {hatching === "busy" ? (lang === "zh" ? "正在链上出生……" : "Being born on chain…") : chainError ? (lang === "zh" ? "再试一次" : "Try again") : lang === "zh" ? "欢迎回家" : "Welcome home"}
+          </button>
+          {chainError && (
+            <button type="button" className="btn" onClick={() => void welcome(true)}>
+              {lang === "zh" ? "先不上链，直接带回家" : "Bring it home off chain"}
+            </button>
+          )}
+        </div>
       </motion.div>
     </div>
   );

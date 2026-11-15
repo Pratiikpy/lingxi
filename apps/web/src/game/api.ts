@@ -47,3 +47,19 @@ export async function relayBrain(body: { line: string; lessons: Rule[] }): Promi
     return { ok: false, reason: "offline" };
   }
 }
+
+/** Tape out a child's brain: REFs to two parent circuits, or both halves of a taught child (its card). */
+export async function relayChild(body: { parents: [string, string] } | { card: string }): Promise<RelayResponse> {
+  if (!BASE) return { ok: false, reason: "offline" };
+  try {
+    const r = await fetch(`${BASE}/api/tapeout-child`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(300_000),
+    });
+    return (await r.json()) as RelayResponse;
+  } catch {
+    return { ok: false, reason: "offline" };
+  }
+}

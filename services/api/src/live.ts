@@ -47,6 +47,16 @@ interface Client {
 const clean = (s: unknown, max: number): string =>
   typeof s === "string" ? s.replace(/[\u0000-\u001f\u007f<>]/g, "").trim().slice(0, max) : "";
 
+/** A pet's on-chain identity, passed along so a family can be made on chain; checked for shape only. */
+function chainInfo(v: unknown): { petId: string; owner: string; brain: string } | undefined {
+  if (!v || typeof v !== "object") return undefined;
+  const c = v as Record<string, unknown>;
+  if (typeof c.petId !== "string" || !/^\d{1,20}$/.test(c.petId)) return undefined;
+  if (typeof c.owner !== "string" || !/^0x[0-9a-fA-F]{40}$/.test(c.owner)) return undefined;
+  if (typeof c.brain !== "string" || !/^\d{1,20}$/.test(c.brain)) return undefined;
+  return { petId: c.petId, owner: c.owner, brain: c.brain };
+}
+
 /** A world room ("room:65") or a home ("home:<owner id>"); anything else is refused. */
 export function validSpace(s: unknown): string | null {
   if (typeof s !== "string") return null;
@@ -199,7 +209,8 @@ export class LiveRooms {
         const target = this.peer(c, m.to);
         if (!target) return;
         target.proposals.set(c.member.id, Date.now());
-        this.send(target, { t: "proposal", from: c.member.id, name: c.member.name, stage: c.member.stage, line: c.member.line });
+        const chain = chainInfo(m.chain);
+        this.send(target, { t: "proposal", from: c.member.id, name: c.member.name, stage: c.member.stage, line: c.member.line, ...(chain ? { chain } : {}) });
         return;
       }
       case "answer": {
@@ -210,7 +221,8 @@ export class LiveRooms {
         if (at === undefined || Date.now() - at > PROPOSAL_MS) return;
         c.proposals.delete(proposer.member.id);
         const yes = m.yes === true;
-        this.send(proposer, { t: "answer", from: c.member.id, name: c.member.name, yes, ...(yes ? { line: c.member.line, stage: c.member.stage, card: c.card ?? "[]" } : {}) });
+        const chain = yes ? chainInfo(m.chain) : undefined;
+        this.send(proposer, { t: "answer", from: c.member.id, name: c.member.name, yes, ...(yes ? { line: c.member.line, stage: c.member.stage, card: c.card ?? "[]" } : {}), ...(chain ? { chain } : {}) });
         return;
       }
       case "ask": {

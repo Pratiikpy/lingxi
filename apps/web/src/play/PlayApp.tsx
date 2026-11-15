@@ -15,6 +15,7 @@ import { Actions, Meters, TabBar, ThinkStrip, ToastView, TopBar, type Tab } from
 import { EvolutionChart, MeSheetBody, MindPanel, Sheet } from "./Sheets";
 import { BagPanel, MapPanel, QuestPanel, noticeText } from "./WorldPanels";
 import { useWorld } from "../game/world";
+import { useChain } from "../game/chain";
 import { liveAvailable, playerId, useLive, visitingFrom } from "../game/live";
 import { InvitePanel, SocialBar } from "./Social";
 import { type Action, CHARACTER_IN_ROOM, HOME, ROOMS, neighbours } from "@lingxi/world";
@@ -85,7 +86,7 @@ export function PlayApp() {
   const [challenge, setChallenge] = useState<Partner | null>(null);
   useEffect(() => {
     if (pet) liveShare(petCard(pet));
-  }, [pet?.lessons, pet?.family, liveShare]);
+  }, [pet?.lessons, pet?.family, pet?.brain, liveShare]);
   useEffect(() => {
     if (!card) return;
     const partner = friendPartner(card);
@@ -306,7 +307,7 @@ export function PlayApp() {
                   setPicked(null);
                   if (block) return setWorldMsg({ id: Date.now(), text: block });
                   play("tap");
-                  livePropose(other.id);
+                  livePropose(other.id, useChain.getState().infoOf(pet) ?? undefined);
                   setWorldMsg({ id: Date.now(), text: lang === "zh" ? `问过${other.name}的主人了，等回复……` : `Asked ${other.name}'s owner. Waiting for an answer…` });
                 }}
               >
