@@ -26,6 +26,10 @@ import { type ArenaStore, createArenaStore } from "./arena";
 import { type SeasonStore, createSeasonStore, settleAwards } from "./season";
 import { weekOf } from "@lingxi/game";
 import { parseCard } from "@lingxi/game";
+import { createPublicClient, http, type PublicClient } from "viem";
+import { type Deployment, xLayer } from "@lingxi/chain";
+import { createAgentStore } from "./agents";
+import { withAgentApi } from "./agentApi";
 import { PlanSchema, createPusher, type Pusher } from "./push";
 import { VoiceRequest, createVoice } from "./voice";
 import { LibraryRule, createLibrary, type Library } from "./library";
@@ -62,7 +66,8 @@ const TeachBody = z.object({
 export function createApp(client: Anthropic | null, limiter = new RateLimiter(6, 60_000), relayer: BrainRelayer | null = null, relayLimiter = new RateLimiter(4, 3_600_000), live: LiveRooms | null = null) {
   const app = new Hono();
   const origins = (process.env.LINGXI_ORIGINS ?? "http://localhost:5199,http://localhost:4173").split(",");
-  app.use("/api/*", cors({ origin: origins, allowMethods: ["GET", "POST"], maxAge: 600 }));
+  // the agent API is open to any origin; the game's own endpoints answer only the game's pages
+  app.use("/api/*", cors({ origin: (o, c) => (c.req.path.startsWith("/api/v1") ? "*" : origins.includes(o) ? o : null), allowMethods: ["GET", "POST"], allowHeaders: ["Authorization", "Content-Type"], maxAge: 600 }));
 
   app.get("/api/health", (c) => c.json({ ok: true, teach: client !== null, voice: client !== null, relay: relayer !== null, live: live !== null }));
   app.get("/api/live/stats", (c) => c.json(live ? live.stats() : { online: 0, spaces: 0 }));
@@ -391,6 +396,19 @@ if (isMain) {
   withArena(app, createArenaStore(process.env.LINGXI_ARENA_STORE));
   const seasons = createSeasonStore(process.env.LINGXI_SEASON_STORE);
   withSeason(app, seasons);
+  {
+    // the open agent API reads pets from the deployment the game runs on
+    const rpc = process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech";
+    let chain: { pub: PublicClient; deployment: Deployment } | undefined;
+    try {
+      const file = process.env.LINGXI_DEPLOYMENT ?? resolve(dirname(fileURLToPath(import.meta.url)), "../../../packages/chain/deployments/xlayer.json");
+      const deployment = JSON.parse(readFileSync(file, "utf8")) as Deployment;
+      chain = { pub: createPublicClient({ chain: { ...xLayer, rpcUrls: { default: { http: [rpc] } } }, transport: http(rpc) }) as PublicClient, deployment };
+    } catch (e) {
+      process.stderr.write(`agent API without chain reads: ${(e as Error).message}\n`);
+    }
+    withAgentApi(app, { agents: createAgentStore(process.env.LINGXI_AGENT_STORE), seasons, ...(chain ? { chain } : {}) });
+  }
   if (relayer) {
     // a finished week's champion gets its brain taped out and sent to its wallet (PRD F26)
     let giving = false;

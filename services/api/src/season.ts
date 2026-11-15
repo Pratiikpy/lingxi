@@ -57,11 +57,13 @@ export interface SeasonView {
 }
 
 export interface SeasonStore {
-  enter: (pet: unknown, device: string, wallet?: string) => { ok: true; week: string; key: string } | { ok: false; reason: "invalid" | "full" };
+  enter: (pet: unknown, device: string, wallet?: string, agent?: string) => { ok: true; week: string; key: string } | { ok: false; reason: "invalid" | "full" };
   view: (week: string) => SeasonView | null;
   /** finished weeks whose champion has no keepsake yet */
   pending: () => PendingAward[];
   award: (week: string, award: Award) => void;
+  /** every week kept, oldest first */
+  weeks: () => string[];
 }
 
 const tag = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -90,7 +92,7 @@ export function createSeasonStore(file?: string, now: () => number = Date.now): 
     for (const w of weeks.keys()) if (!keep.includes(w)) weeks.delete(w);
   };
   return {
-    enter: (pet, device, wallet) => {
+    enter: (pet, device, wallet, agent) => {
       if (typeof device !== "string" || device.length < 8 || device.length > 64) return { ok: false, reason: "invalid" };
       if (wallet !== undefined && (typeof wallet !== "string" || !WALLET.test(wallet))) return { ok: false, reason: "invalid" };
       const v = validSnapshot(pet, []);
@@ -102,7 +104,7 @@ export function createSeasonStore(file?: string, now: () => number = Date.now): 
       const key = w.by[who] ?? tag(`lingxi-season:${week}:${who}`).slice(0, 12);
       const at = w.entries.findIndex((e) => e.key === key);
       if (at < 0 && w.entries.length >= MAX_ENTRIES) return { ok: false, reason: "full" };
-      const entry: SeasonEntry = { key, pet: v.pet, at: t };
+      const entry: SeasonEntry = { key, pet: v.pet, at: t, ...(agent ? { agent } : {}) };
       const entries = at < 0 ? [...w.entries, entry] : w.entries.map((e, i) => (i === at ? entry : e));
       const wallets = { ...(w.wallets ?? {}) };
       if (wallet) wallets[key] = wallet;
@@ -141,6 +143,7 @@ export function createSeasonStore(file?: string, now: () => number = Date.now): 
       }
       return out;
     },
+    weeks: () => [...weeks.keys()].sort(),
     award: (week, award) => {
       const w = weeks.get(week);
       if (!w) return;

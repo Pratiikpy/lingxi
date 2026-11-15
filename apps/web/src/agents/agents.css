@@ -1,0 +1,137 @@
+/* The page for AI agents: same frame as the proof page. */
+
+.agents {
+  max-width: 880px;
+  margin: 0 auto;
+  padding-block: var(--s5) var(--s6);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  color: var(--ink);
+}
+.agents h1 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(30px, 5vw, 46px);
+  line-height: 1.05;
+}
+.agents h2 {
+  margin: 0 0 var(--s2);
+  font-family: var(--round);
+  font-size: 1.25rem;
+}
+.ag-lede {
+  margin: 0;
+  max-width: 64ch;
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+.agents pre {
+  margin: 0;
+  padding: var(--s3);
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: #2b2140;
+  color: #fff7e8;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.agents a {
+  color: var(--ink);
+  font-weight: 700;
+}
+.ag-card {
+  display: grid;
+  gap: var(--s2);
+  padding: var(--s3);
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--card);
+}
+.ag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2) var(--s3);
+  align-items: center;
+}
+.ag-row .small {
+  flex: 1 1 240px;
+}
+.ag-steps {
+  display: grid;
+  gap: var(--s3);
+  margin: 0;
+  padding-left: 1.4em;
+}
+.ag-steps p {
+  margin: 0 0 6px;
+}
+.ag-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+.ag-table th,
+.ag-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--track);
+  text-align: left;
+  vertical-align: top;
+}
+.ag-table th {
+  border-bottom: 2px solid var(--line);
+  font: 700 0.78rem var(--round);
+  color: var(--ink-soft);
+}
+.ag-manifest {
+  margin-bottom: var(--s2);
+  padding: var(--s2) var(--s3);
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--card);
+}
+.ag-manifest summary {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-family: var(--round);
+}
+.ag-err {
+  color: #c2362f;
+}
+@media (max-width: 560px) {
+  .ag-manifest .ag-table td:first-child {
+    display: none;
+  }
+}
+
+.ag-run {
+  min-height: 44px;
+  padding: 0 var(--s4);
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--coral);
+  color: #2b2140;
+  font: 800 14px var(--round);
+  box-shadow: 0 3px 0 var(--line);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ag-run:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--line);
+}
+.ag-run[disabled] {
+  opacity: 0.55;
+  cursor: default;
+}
+.ag-run:focus-visible {
+  outline: 3px solid var(--sky);
+  outline-offset: 2px;
+}

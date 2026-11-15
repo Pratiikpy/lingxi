@@ -24,11 +24,14 @@ export interface SeasonEntry {
   key: string;
   pet: DuelPet;
   at: number;
+  /** the AI agent that raised it, when it came in through the agent API */
+  agent?: string;
 }
 
 export interface Standing {
   key: string;
   name: string;
+  agent?: string;
   line: DuelPet["line"];
   points: number;
   wins: number;
@@ -86,7 +89,7 @@ export const boutSeed = (week: string, a: string, b: string): number => fnv(`${S
 export function seasonStandings(week: string, entries: readonly SeasonEntry[]): Standing[] {
   const list = entries.slice(0, MAX_ENTRIES);
   const fighters: Fighter[] = list.map((e) => ({ ...duelFighter(e.pet), level: SEASON_LEVEL }));
-  const rows: Standing[] = list.map((e) => ({ key: e.key, name: e.pet.name, line: e.pet.line, points: 0, wins: 0, draws: 0, losses: 0, gates: entryGates(e.pet), rank: 0 }));
+  const rows: Standing[] = list.map((e) => ({ key: e.key, name: e.pet.name, ...(e.agent ? { agent: e.agent } : {}), line: e.pet.line, points: 0, wins: 0, draws: 0, losses: 0, gates: entryGates(e.pet), rank: 0 }));
   const score = (i: number, outcome: 0 | 1 | -1) => {
     const r = rows[i]!;
     if (outcome === 1) {
@@ -117,3 +120,20 @@ export function standingsDigest(rows: readonly Standing[]): string {
 
 /** The badge tier a final place earns: 3 champion, 2 top three, 1 top ten, 0 none. */
 export const placeTier = (rank: number): 0 | 1 | 2 | 3 => (rank === 1 ? 3 : rank <= 3 ? 2 : rank <= 10 ? 1 : 0);
+
+export interface ScoreRow {
+  week: string;
+  humans: { entries: number; meanPoints: number; best: number | null };
+  agents: { entries: number; meanPoints: number; best: number | null };
+}
+
+/** Agent-raised pets against human-raised pets, week by week (PRD M10). */
+export function scoreboard(weeks: ReadonlyArray<{ week: string; standings: readonly Standing[] }>): ScoreRow[] {
+  return weeks.map(({ week, standings }) => {
+    const side = (agent: boolean) => {
+      const rows = standings.filter((r) => !!r.agent === agent);
+      return { entries: rows.length, meanPoints: rows.length ? Math.round((rows.reduce((t, r) => t + r.points, 0) / rows.length) * 10) / 10 : 0, best: rows.length ? Math.min(...rows.map((r) => r.rank)) : null };
+    };
+    return { week, humans: side(false), agents: side(true) };
+  });
+}

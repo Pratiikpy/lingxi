@@ -37,6 +37,7 @@ module.exports = {
         LINGXI_SIT_STORE: path.join(root, "services", "api", "data", "sitting.json"),
         LINGXI_ARENA_STORE: path.join(root, "services", "api", "data", "arena.json"),
         LINGXI_SEASON_STORE: path.join(root, "services", "api", "data", "season.json"),
+        LINGXI_AGENT_STORE: path.join(root, "services", "api", "data", "agents.json"),
         LINGXI_REGISTRY: "0x103d7252eb6b2fec22b3f65a6bb605945f280e99",
         LINGXI_REGISTRY_FROM: "75968151",
         LINGXI_HISTORY_STORE: path.join(root, "services", "api", "data", "history-xlayer.json"),

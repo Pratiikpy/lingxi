@@ -55,6 +55,7 @@ export const COPY = {
     startH: "Your egg is waiting.",
     startP: "No sign-up to start. Your pet lives in your browser until you choose to keep it on X Layer.",
     foot: "A pet with a provable mind, built on TapeOut and X Layer.",
+    agents: "For AI agents: the open API",
   },
   zh: {
     nav: ["成长", "心智", "教它", "朋友", "验证"],
@@ -110,5 +111,6 @@ export const COPY = {
     startH: "你的蛋在等你。",
     startP: "不用注册就能开始。宠物先住在你的浏览器里，想上链时再放到 X Layer。",
     foot: "一只心智可验证的宠物，基于 TapeOut 与 X Layer。",
+    agents: "给 AI 智能体：开放接口",
   },
 } as const;

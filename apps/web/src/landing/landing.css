@@ -756,3 +756,7 @@
   max-width: 100%;
   object-fit: contain;
 }
+.l-foot-link {
+  color: var(--ink);
+  font-weight: 800;
+}

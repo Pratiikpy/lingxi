@@ -394,6 +394,9 @@ export function LandingApp() {
       <footer className="l-foot">
         <span>Lingxi · 灵犀</span>
         <span>{c.foot}</span>
+        <a className="l-foot-link" href="agents.html">
+          {c.agents}
+        </a>
       </footer>
     </>
   );
