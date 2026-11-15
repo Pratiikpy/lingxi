@@ -22,6 +22,9 @@ importers:
       '@lingxi/brain':
         specifier: workspace:*
         version: link:../../packages/brain
+      '@lingxi/chain':
+        specifier: workspace:*
+        version: link:../../packages/chain
       '@lingxi/game':
         specifier: workspace:*
         version: link:../../packages/game
@@ -37,6 +40,9 @@ importers:
       react-dom:
         specifier: 19.1.0
         version: 19.1.0(react@19.1.0)
+      viem:
+        specifier: 2.57.7
+        version: 2.57.7(typescript@5.9.3)(zod@4.1.13)
       zustand:
         specifier: 5.0.5
         version: 5.0.5(@types/react@19.1.6)(react@19.1.0)
@@ -101,6 +107,9 @@ importers:
       '@lingxi/brain':
         specifier: workspace:*
         version: link:../brain
+      '@lingxi/game':
+        specifier: workspace:*
+        version: link:../game
       viem:
         specifier: 2.57.7
         version: 2.57.7(typescript@5.9.3)(zod@4.1.13)

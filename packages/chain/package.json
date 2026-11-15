@@ -6,10 +6,12 @@
   "exports": { ".": "./src/index.ts" },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "tapeout": "tsx scripts/tapeout.ts"
   },
   "dependencies": {
     "@lingxi/brain": "workspace:*",
+    "@lingxi/game": "workspace:*",
     "viem": "2.57.7"
   },
   "devDependencies": {

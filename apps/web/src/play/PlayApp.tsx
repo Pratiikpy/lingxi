@@ -15,6 +15,7 @@ import { Actions, Meters, TabBar, ThinkStrip, ToastView, TopBar, type Tab } from
 import { EvolutionChart, FoodList, MeSheetBody, MindPanel, Sheet } from "./Sheets";
 import { TeachPanel } from "./Teach";
 import { BrainView } from "./BrainView";
+import { ChainPanel } from "./ChainPanel";
 import { Icon } from "./icons";
 import { Sprite } from "./Sprite";
 import "./play.css";
@@ -181,6 +182,8 @@ export function PlayApp() {
         <MeSheetBody pet={pet} />
         <hr className="divider" />
         <EvolutionChart pet={pet} />
+        <hr className="divider" />
+        <ChainPanel pet={pet} />
       </Sheet>
     </div>
   );

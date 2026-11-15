@@ -51,7 +51,7 @@ function save(p: Pet | null): void {
 
 export interface Toast {
   id: number;
-  note: CareResult["note"] | "tooTired" | "asleepTap" | "learned";
+  note: CareResult["note"] | "tooTired" | "asleepTap" | "learned" | "saved";
 }
 
 export interface Daily {

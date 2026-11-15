@@ -1,0 +1,171 @@
+.verify {
+  max-width: 880px;
+  margin: 0 auto;
+  padding-block: var(--s5) var(--s6);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+}
+.v-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.v-brand {
+  font-family: var(--round);
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--ink);
+  text-decoration: none;
+}
+.v-lang {
+  min-width: 44px;
+  min-height: 44px;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  background: var(--card);
+  font-family: var(--round);
+  font-weight: 800;
+  cursor: pointer;
+}
+.verify h1 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(30px, 5vw, 46px);
+  line-height: 1.05;
+  text-wrap: balance;
+}
+.v-lede {
+  margin: 0;
+  color: var(--ink-soft);
+  max-width: 62ch;
+}
+.v-form {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex-wrap: wrap;
+}
+.v-form label {
+  font-family: var(--display);
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.v-form input {
+  width: 120px;
+  min-height: 46px;
+  padding: 0 var(--s3);
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--card);
+  color: var(--ink);
+  font-family: var(--round);
+  font-weight: 800;
+  font-size: 18px;
+  text-align: center;
+}
+.v-form button,
+.v-run {
+  min-height: 46px;
+  padding: 0 var(--s4);
+  border: 2px solid #2b2140;
+  border-radius: var(--r-pill);
+  background: var(--coral);
+  color: #2b2140;
+  font-family: var(--round);
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #2b2140;
+}
+.v-run[disabled] {
+  opacity: 0.6;
+}
+.v-card {
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--card);
+  padding: var(--s4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  box-shadow: var(--lift-hi);
+}
+.v-card dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px 16px;
+}
+.v-card dt {
+  font-family: var(--display);
+  font-size: 12.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.v-card dd {
+  margin: 0;
+  font-family: var(--round);
+  font-weight: 700;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.mono {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+}
+.v-table {
+  overflow-x: auto;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+}
+.v-table table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+.v-table th,
+.v-table td {
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--track);
+  white-space: nowrap;
+}
+.v-table th {
+  font-family: var(--round);
+  background: var(--tint);
+}
+.v-ok {
+  color: #2f8a55;
+  font-weight: 800;
+  margin: 0;
+}
+.v-bad,
+.v-err {
+  color: #d1442e;
+  font-weight: 800;
+  margin: 0;
+}
+.v-log {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 2px dashed var(--track);
+  padding-top: var(--s3);
+}
+.v-sub {
+  margin: 0;
+  font-family: var(--round);
+  font-weight: 800;
+  font-size: 17px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .v-ok {
+    color: #7fdca6;
+  }
+}

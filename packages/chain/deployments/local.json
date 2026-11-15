@@ -1,0 +1,30 @@
+{
+  "chainId": 196,
+  "rpc": "http://127.0.0.1:8547",
+  "processor": "0xE0EF4FffD869cBD24b2F83E6d2d83109937E05ff",
+  "registry": "0x767ede75c3fbb97a2138c1c67ead5b6b6a15fcba",
+  "deployer": "0x702f7A44B1F08763E50fDFd5bF8B8c354B7A7797",
+  "circuits": {
+    "gentle": {
+      "id": "26",
+      "tx": "0x02b45dbf5efef61193d166b7592abf89b9db7eb3de49a85276c9afd6d099f790",
+      "gates": 296
+    },
+    "bold": {
+      "id": "27",
+      "tx": "0x99f6f908c94a539c59c89b62a081d1f5a86682f367cabc0b678ed44eb86d8839",
+      "gates": 233
+    },
+    "curious": {
+      "id": "28",
+      "tx": "0x53732935a1800ed083846863c3005c533f89169287229ef4094dd875361a5752",
+      "gates": 248
+    },
+    "evolution": {
+      "id": "29",
+      "tx": "0x38cab3b245fbc0169dfa7006ca64621ab641393449be3b2320b1eafbc9785cd8",
+      "gates": 58
+    }
+  },
+  "at": "2026-11-15T06:36:47.680Z"
+}
