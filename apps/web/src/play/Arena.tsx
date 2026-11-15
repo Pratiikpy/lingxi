@@ -16,6 +16,9 @@ import { linkPrefix } from "../game/links";
 import { useDaily } from "../game/daily";
 import { programFor, useGame } from "../game/store";
 import { Chips } from "./parts";
+import { type Profile, fighterOf, flySource, readCircuit, useAdopted } from "../game/adopt";
+import { deployment } from "../game/chain";
+import type { OutsideCircuit } from "@lingxi/chain";
 import { MOVE_NAMES as MOVE_LABEL, WANT_COLORS, chipsFor, decidingChips } from "./ruleText";
 import { useLang } from "../i18n";
 import { useSpar } from "../game/spar";
@@ -77,7 +80,7 @@ function why(key: CoachNote["key"], name: string, other: string, lang: Lang): st
   return (lang === "zh" ? zh : en)[key];
 }
 
-type FightState = { partner: Partner; result: SparResult; cheer: boolean; opponent?: Fighter; duel?: { challenge: Challenge; reply: DuelPet }; daily?: boolean };
+type FightState = { partner: Partner; result: SparResult; cheer: boolean; opponent?: Fighter; duel?: { challenge: Challenge; reply: DuelPet }; daily?: boolean; /** the adopted brain the pet fought with, if not its own */ instinct?: string };
 
 /** The pet as it travels in a challenge link: its whole mind, its body, and a few true facts. */
 export function duelPetOf(pet: Pet): DuelPet {
@@ -135,7 +138,7 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [duel]);
   if (running) return <RunView pet={pet} onClose={() => setRunning(false)} />;
-  if (fight) return <FightView key={fight.result.seed} pet={pet} self={{ name: pet.name, line: pet.line, stage: drawn(stageOf(pet, Date.now())) }} {...fight} onDone={() => setFight(null)} onRematch={() => start(fight.partner, undefined, fight.partner.look === "fly" ? fight.opponent : undefined)} />;
+  if (fight) return <FightView key={fight.result.seed} pet={pet} self={{ name: pet.name, line: pet.line, stage: drawn(stageOf(pet, Date.now())) }} {...fight} onDone={() => setFight(null)} onRematch={() => start(fight.partner, undefined, fight.opponent)} />;
 
   const makeLink = async () => {
     const id = Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => b.toString(16).padStart(2, "0")).join("");
@@ -152,13 +155,16 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken
 
   function start(partner: Partner, daily?: { seed: number }, opponent?: Fighter) {
     const stage = stageOf(pet, Date.now());
-    const me = fighterOfMind(pet.name, { line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts }, levelOf(stage), pet.brain);
+    const own = fighterOfMind(pet.name, { line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts }, levelOf(stage), pet.brain);
+    // the daily challenge is the same fight for everyone, so it is always fought with the pet's own mind
+    const adopted = useAdopted.getState().byPet[String(pet.bornAt)];
+    const me = !daily && adopted?.on ? fighterOf(adopted, pet.name, levelOf(stage)) : own;
     const them = opponent ?? fighterOfPartner(partner);
     // practice spars roll a private seed; the daily challenge uses the day's block, with no cheering, so it is the same for everyone
     const seed = daily ? daily.seed : crypto.getRandomValues(new Uint32Array(1))[0]!;
     const cheering = daily ? false : cheer;
     play("tap");
-    setFight({ partner, result: spar(me, them, seed, () => [cheering, false]), cheer: cheering, ...(opponent ? { opponent } : {}), ...(daily ? { daily: true } : {}) });
+    setFight({ partner, result: spar(me, them, seed, () => [cheering, false]), cheer: cheering, ...(opponent ? { opponent } : {}), ...(daily ? { daily: true } : {}), ...(me !== own && adopted ? { instinct: adopted.name } : {}) });
   }
 
   return (
@@ -196,7 +202,7 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken
         ))}
       </ul>
       <DesignedPartners onPick={(p) => start(p)} />
-      <FlyBrains onFight={(partner, opponent) => start(partner, undefined, opponent)} />
+      <FlyBrains pet={pet} onFight={(partner, opponent) => start(partner, undefined, opponent)} />
     </div>
   );
 }
@@ -262,13 +268,14 @@ function DesignedPartners({ onPick }: { onPick: (p: Partner) => void }) {
 }
 
 /** A1b: brains written for TapeFly's brawl, run as the same NAND circuits TapeFly compiles. */
-function FlyBrains({ onFight }: { onFight: (partner: Partner, opponent: Fighter) => void }) {
+function FlyBrains({ pet, onFight }: { pet: Pet; onFight: (partner: Partner, opponent: Fighter) => void }) {
   const lang = useLang((s) => s.lang) as Lang;
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
   const [text, setText] = useState("");
   const [err, setErr] = useState("");
   const art = useMemo(() => drawFly(), []);
   const asPartner = (id: string, name: string, blurb: { en: string; zh: string }): Partner => ({ id: `fly:${id}`, name: { en: name, zh: name }, look: "fly", line: "curious", stage: "baby", level: 1, blurb, program: STARTERS.curious });
+  const adopt = useAdopted((s) => s.adopt);
   const fightRival = (r: FlyRival) => onFight(asPartner(r.id, r.name, { en: r.chips.join(" → "), zh: r.chips.join(" → ") }), flyFighter(r.name, programOfChips(r.chips), 1));
   const fightLink = () => {
     try {
@@ -318,15 +325,171 @@ function FlyBrains({ onFight }: { onFight: (partner: Partner, opponent: Fighter)
         <button type="submit" className="btn" disabled={!text.trim()}>
           {L("Spar it", "切磋")}
         </button>
+        <button
+          type="button"
+          className="btn"
+          disabled={!text.trim()}
+          onClick={() => {
+            try {
+              const program = parseFlyBrain(text);
+              setErr("");
+              let from = L("a player on TapeFly", "TapeFly 上的一位玩家");
+              try {
+                if (/^https?:/i.test(text.trim())) from = new URL(text.trim()).host;
+              } catch {
+                // not a link: a p1. code or chips
+              }
+              adopt(pet.bornAt, { name: L("TapeFly brain", "TapeFly 大脑"), author: from, profile: "DUEL-12x3/1", gates: flyFighter("x", program).gates, source: flySource(program) });
+              play("success");
+            } catch {
+              play("error");
+              setErr(L("That isn't a TapeFly brain. Paste a brawl link with program= or chips=, a p1. code, or chips like block,bite.", "这不是 TapeFly 的大脑。请粘贴带 program= 或 chips= 的大乱斗链接、p1. 开头的代码，或像 block,bite 这样的芯片列表。"));
+            }
+          }}
+        >
+          {L("Adopt it", "收养")}
+        </button>
       </form>
       {err && (
         <p className="small sp-warn" role="alert">
           {err}
         </p>
       )}
+      <ChainBrain pet={pet} onFight={onFight} />
+      <AdoptedCard pet={pet} />
     </section>
   );
 }
+
+const DEFAULT_PROCESSOR = (deployment?.processor as string | undefined) ?? "";
+const READ_ERR: Record<string, { en: string; zh: string }> = {
+  notProcessor: { en: "That address isn't a TapeOut processor registered on X Layer.", zh: "这个地址不是 X Layer 上注册的 TapeOut 处理器。" },
+  noCircuit: { en: "No circuit with that number on that processor.", zh: "这个处理器上没有这个编号的电路。" },
+  tooDeep: { en: "That circuit nests other circuits too deeply to carry.", zh: "这个电路一层套一层，太深了，带不动。" },
+  tooBig: { en: "That circuit is too big for a pet to carry on a phone.", zh: "这个电路太大了，宠物在手机上带不动。" },
+  illFormed: { en: "That circuit's bytes don't read as a TapeOut netlist.", zh: "这个电路的字节读不成 TapeOut 网表。" },
+  pins: { en: "Its pins don't fit a fight: it needs TapeFly's 12 in and 3 out, or a pet's 16 in and 8 out.", zh: "它的引脚接不上切磋：需要 TapeFly 的 12 进 3 出，或宠物的 16 进 8 出。" },
+  offline: { en: "X Layer can't be reached right now; try again in a moment.", zh: "暂时连不上 X Layer，请稍后再试。" },
+};
+
+const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+
+/** Z7: any circuit on X Layer by processor and number, as a sparring partner or an adopted instinct. */
+function ChainBrain({ pet, onFight }: { pet: Pet; onFight: (partner: Partner, opponent: Fighter) => void }) {
+  const lang = useLang((s) => s.lang) as Lang;
+  const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
+  const adopt = useAdopted((s) => s.adopt);
+  const [processor, setProcessor] = useState(DEFAULT_PROCESSOR);
+  const [id, setId] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [got, setGot] = useState<{ circuit: OutsideCircuit; profile: Profile } | null>(null);
+  const [err, setErr] = useState("");
+  const name = (c: OutsideCircuit) => L(`Circuit #${c.id}`, `#${c.id} 号电路`);
+  const asPartner = (c: OutsideCircuit): Partner => ({ id: `chain:${c.processor}:${c.id}`, name: { en: `Circuit #${c.id}`, zh: `#${c.id} 号电路` }, line: "curious", stage: "adult", level: 1, blurb: { en: "", zh: "" }, program: STARTERS.curious });
+  const sourceOf = (c: OutsideCircuit) => ({ kind: "chain" as const, processor: c.processor, id: c.id, parts: c.parts });
+  return (
+    <div className="sp-chain">
+      <p className="label">{L("A circuit on X Layer", "X Layer 上的电路")}</p>
+      <p className="small">
+        {L(
+          "Any brain taped out on a TapeOut processor whose pins fit a fight: TapeFly's brawl format, or a pet's. Its maker is credited.",
+          "任何在 TapeOut 处理器上流片、引脚接得上切磋的大脑：TapeFly 的大乱斗格式，或宠物的格式。会注明作者。",
+        )}
+      </p>
+      <form
+        className="sp-chain-form"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setBusy(true);
+          setErr("");
+          setGot(null);
+          const r = await readCircuit(processor.trim(), id.trim());
+          setBusy(false);
+          if (r.ok) setGot({ circuit: r.circuit, profile: r.profile });
+          else {
+            play("error");
+            setErr(READ_ERR[r.reason]![lang]);
+          }
+        }}
+      >
+        <input value={processor} onChange={(e) => setProcessor(e.target.value)} placeholder="0x…" aria-label={L("Processor address", "处理器地址")} spellCheck={false} />
+        <input value={id} onChange={(e) => setId(e.target.value.replace(/\D/g, ""))} placeholder={L("circuit #", "电路编号")} inputMode="numeric" aria-label={L("Circuit number", "电路编号")} />
+        <button type="submit" className="btn" disabled={busy || !id || !processor}>
+          {busy ? L("Reading…", "读取中……") : L("Read it", "读取")}
+        </button>
+      </form>
+      {err && (
+        <p className="small sp-warn" role="alert">
+          {err}
+        </p>
+      )}
+      {got && (
+        <div className="sp-chain-got">
+          <p className="small">
+            <b>{name(got.circuit)}</b> · {got.profile === "DUEL-12x3/1" ? L("TapeFly brawl pins", "TapeFly 大乱斗引脚") : L("pet pins", "宠物引脚")} · {L(`${got.circuit.gates} gates`, `${got.circuit.gates} 个门`)}
+            {got.circuit.nState ? L(` · ${got.circuit.nState} memory bits`, ` · ${got.circuit.nState} 位记忆`) : ""}
+            {got.circuit.parts.length > 1 ? L(` · uses ${got.circuit.parts.length - 1} other circuits`, ` · 引用了 ${got.circuit.parts.length - 1} 个别的电路`) : ""}
+            <br />
+            {L("Made by ", "作者 ")}
+            {got.circuit.owner ? short(got.circuit.owner) : L("unknown", "未知")}
+          </p>
+          <div className="row">
+            <button type="button" className="btn primary" onClick={() => onFight(asPartner(got.circuit), fighterOf({ source: sourceOf(got.circuit), profile: got.profile }, name(got.circuit), 1))}>
+              {L("Spar against it", "和它切磋")}
+            </button>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                adopt(pet.bornAt, { name: name(got.circuit), author: got.circuit.owner, profile: got.profile, gates: got.circuit.gates, source: sourceOf(got.circuit) });
+                play("success");
+              }}
+            >
+              {L(`Adopt as ${pet.name}'s fighting instinct`, `收养为${pet.name}的战斗本能`)}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** The adopted instinct, with its credit, a switch, and a way to let it go. */
+function AdoptedCard({ pet }: { pet: Pet }) {
+  const lang = useLang((s) => s.lang) as Lang;
+  const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
+  const a = useAdopted((s) => s.byPet[String(pet.bornAt)]);
+  const setOn = useAdopted((s) => s.setOn);
+  const drop = useAdopted((s) => s.drop);
+  if (!a) return null;
+  const by = /^0x[0-9a-fA-F]{40}$/.test(a.author) ? short(a.author) : a.author;
+  return (
+    <div className="sp-adopted" role="status">
+      <p className="small">
+        <b>{L(`${pet.name}'s fighting instinct: ${a.name}`, `${pet.name}的战斗本能：${a.name}`)}</b>
+        <br />
+        {L(`Made by ${by}`, `作者 ${by}`)}
+        {a.source.kind === "chain" ? L(` · circuit #${a.source.id} on ${short(a.source.processor)}`, ` · ${short(a.source.processor)} 上的 #${a.source.id} 号电路`) : ""} · {L(`${a.gates} gates`, `${a.gates} 个门`)}
+      </p>
+      <p className="small">
+        {L(
+          `While it is on, ${pet.name} fights practice spars with this brain. The daily challenge, seasons and duel links always use ${pet.name}'s own mind, so anyone can replay them.`,
+          `打开时，${pet.name}在练习切磋里用这个大脑。每日挑战、赛季和链接切磋一直用${pet.name}自己的心智，这样谁都能重放。`,
+        )}
+      </p>
+      <div className="row">
+        <label className="sp-cheer">
+          <input type="checkbox" checked={a.on} onChange={(e) => (play("tap"), setOn(pet.bornAt, e.target.checked))} />
+          <span>{L("Use it in practice spars", "在练习切磋里使用")}</span>
+        </label>
+        <button type="button" className="btn" onClick={() => (play("tap"), drop(pet.bornAt))}>
+          {L("Let it go", "放下它")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 
 function PartnerCard({ partner, index, lang, onPick }: { partner: Partner; index: number; lang: Lang; onPick: () => void }) {
   const record = useSpar((s) => s.records[partner.id]);
@@ -364,6 +527,7 @@ export function FightView({
   duel,
   daily = false,
   replay = false,
+  instinct,
   onDone,
   onRematch,
 }: FightState & { pet?: Pet; self: { name: string; line: Pet["line"]; stage: PetStage }; replay?: boolean; onDone: () => void; onRematch: () => void }) {
@@ -394,6 +558,8 @@ export function FightView({
   useEffect(() => {
     if (!finished || settled.current || replay) return;
     settled.current = true;
+    // a win by an adopted brain is the brain's, not the pet's: no record, badge or coins
+    if (instinct) return;
     const outcome = result.winner === 0 ? "w" : result.winner === 1 ? "l" : "d";
     const first = useSpar.getState().note(partner.id, outcome);
     if (daily) {
@@ -408,7 +574,7 @@ export function FightView({
       setReward(coins);
       play("success");
     }
-  }, [finished, result, partner.id]);
+  }, [finished, result, partner.id, instinct]);
 
   const face = (side: 0 | 1): Expression => {
     if (finished) return result.winner === side ? "proud" : result.winner === -1 ? "happy" : "sad";
@@ -434,6 +600,7 @@ export function FightView({
       <div className="sp-head">
         <span>{lang === "zh" ? `第 ${Math.max(1, shown)} / 16 回合` : `Round ${Math.max(1, shown)} of 16`}</span>
         {cheer && <span className="sp-cheering">{lang === "zh" ? "你在加油" : "You're cheering"}</span>}
+        {instinct && <span className="sp-cheering">{lang === "zh" ? `本能：${instinct}` : `Instinct: ${instinct}`}</span>}
         {!finished && (
           <button type="button" className="link" onClick={() => setShown(result.rounds.length)}>
             {lang === "zh" ? "跳到结果" : "Skip to result"}
@@ -479,12 +646,12 @@ export function FightView({
               : "Not better than your best today. Teach it something and try again."}
         </p>
       )}
-      {finished && (replay || !pet ? <ReplayResult self={self} partner={partner} result={result} onDone={onDone} /> : <Result pet={pet} partner={partner} result={result} reward={reward} opponent={opponent} duel={duel} cheer={cheer} onDone={onDone} onRematch={onRematch} />)}
+      {finished && (replay || !pet ? <ReplayResult self={self} partner={partner} result={result} onDone={onDone} /> : <Result pet={pet} partner={partner} result={result} reward={reward} opponent={opponent} duel={duel} cheer={cheer} instinct={instinct} onDone={onDone} onRematch={onRematch} />)}
     </div>
   );
 }
 
-function Result({ pet, partner, result, reward, opponent, duel, cheer, onDone, onRematch }: { pet: Pet; partner: Partner; result: SparResult; reward: number; opponent?: Fighter; duel?: FightState["duel"]; cheer: boolean; onDone: () => void; onRematch: () => void }) {
+function Result({ pet, partner, result, reward, opponent, duel, cheer, instinct, onDone, onRematch }: { pet: Pet; partner: Partner; result: SparResult; reward: number; opponent?: Fighter; duel?: FightState["duel"]; cheer: boolean; instinct?: string; onDone: () => void; onRematch: () => void }) {
   const [backLink, setBackLink] = useState("");
   const lang = useLang((s) => s.lang) as Lang;
   const learn = useGame((s) => s.learn);
@@ -522,6 +689,13 @@ function Result({ pet, partner, result, reward, opponent, duel, cheer, onDone, o
       <h3>{title}</h3>
       {partner.id.startsWith("friend:") && <p className="small">{lang === "zh" ? "和朋友的友谊赛，不发金币。" : "A friendly match with a friend's pet: no coins."}</p>}
       {reward > 0 && <p className="sp-coins">{lang === "zh" ? `+${reward} 金币` : `+${reward} coins`}</p>}
+      {instinct && (
+        <p className="small">
+          {lang === "zh"
+            ? `${pet.name}这一场用的是收养的本能「${instinct}」，所以不计战绩、不发金币。教练的建议是针对它自己的心智的，收养的大脑不会因为上课而改变。`
+            : `${pet.name} fought this one with its adopted instinct, ${instinct}, so it doesn't count toward its record or earn coins. The coach's advice is for its own mind; lessons don't change an adopted brain.`}
+        </p>
+      )}
       {result.winner !== 0 && (
         <div className="sp-coach">
           <p className="label">{lang === "zh" ? "教练说" : "Coach says"}</p>
@@ -605,8 +779,9 @@ function Result({ pet, partner, result, reward, opponent, duel, cheer, onDone, o
       <p className="small sp-fp">
         {lang === "zh" ? `回放指纹 ${result.digest} · 种子 ${result.seed}` : `Replay ${result.digest} · seed ${result.seed}`}
       </p>
-      <SparChainCheck pet={asFought.current} partner={partner} opponent={opponent} result={result} cheer={cheer} />
-      <FightRewind pet={asFought.current} result={result} />
+      {/* both replay the pet's own mind, which did not fight this one */}
+      {!instinct && <SparChainCheck pet={asFought.current} partner={partner} opponent={opponent} result={result} cheer={cheer} />}
+      {!instinct && <FightRewind pet={asFought.current} result={result} />}
     </motion.div>
   );
 }

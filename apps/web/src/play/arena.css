@@ -558,3 +558,87 @@
   color: var(--ink-soft);
   font-weight: 700;
 }
+.sp-chain,
+.sp-adopted {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 2px dashed var(--track);
+}
+.sp-chain p,
+.sp-adopted p {
+  margin: 0;
+}
+.sp-chain-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 7.5em auto;
+  gap: 6px;
+}
+.sp-chain-form input {
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--card);
+  color: var(--ink);
+  font: 600 0.85rem var(--round);
+}
+.sp-chain-form input:focus-visible {
+  outline: 3px solid var(--sky);
+}
+.sp-chain-got {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--card);
+}
+.sp-adopted {
+  padding: 10px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--card);
+  box-shadow: inset 4px 0 0 var(--coral);
+}
+@media (max-width: 480px) {
+  .sp-chain-form {
+    grid-template-columns: minmax(0, 1fr) 6em;
+  }
+  .sp-chain-form .btn {
+    grid-column: 1 / -1;
+  }
+}
+/* the TapeFly panel keeps its light look in both themes, so everything inside reads from light tokens */
+.sp-fly {
+  --ink: var(--plum);
+  --ink-soft: #5b4e73;
+  --card: #fffdf8;
+  --line: var(--plum);
+  --track: #d9d1e6;
+  min-width: 0;
+}
+.sp-fly .btn {
+  background: #fffdf8;
+  color: var(--plum);
+  border-color: var(--plum);
+}
+.sp-fly .btn.primary {
+  background: var(--coral);
+  color: #2b2140;
+}
+.sp-fly-link {
+  flex-wrap: wrap;
+}
+.sp-fly-link input {
+  flex: 1 1 100%;
+}
+.sp-fly-link .btn {
+  flex: 1 1 0;
+}
+.sp-chain-got .row,
+.sp-adopted .row {
+  flex-wrap: wrap;
+}
