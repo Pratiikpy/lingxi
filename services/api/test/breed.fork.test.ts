@@ -15,6 +15,8 @@ import { STARTERS, compileProgram, fastBrain, stateBits } from "@lingxi/brain";
 import { allowPartnerOnChain, breedOnChain, checkpointOnChain, hatchOnChain, readPet, replayStep, setBrainOnChain, type Deployment, xLayer } from "@lingxi/chain";
 import { createPet, familyOf, mindBrain, packState } from "@lingxi/game";
 import { BrainRelayer } from "../src/relayer";
+import { createIndexer } from "../src/indexer";
+import { buildTree } from "../src/tree";
 
 const RPC = process.env.FORK_RPC;
 const RELAY_KEY_FILE = process.env.RELAY_KEY_FILE;
@@ -38,6 +40,7 @@ describe.skipIf(!RPC || !RELAY_KEY_FILE)("a family, proven on an X Layer fork", 
       const p = STARTERS[line];
       return { fast: fastBrain(compileProgram(p)), nState: stateBits(p), program: p };
     };
+    const startBlock = Number(await pub.getBlockNumber());
     const t0 = Number((await pub.getBlock()).timestamp) * 1000;
     const petA = createPet({ name: "Mochi", line: "gentle", now: t0, tzOffsetMin: 0, brain: brainOf("gentle") });
     const petB = createPet({ name: "Tofu", line: "bold", now: t0, tzOffsetMin: 0, brain: brainOf("bold") });
@@ -107,6 +110,16 @@ describe.skipIf(!RPC || !RELAY_KEY_FILE)("a family, proven on an X Layer fork", 
       expect(step.outputs).toBe(out);
       st2 = step.next;
     }
+
+    // the tree of life reads this family from the chain's events
+    const indexer = createIndexer({ rpc: RPC!, registry: d.registry as Address, fromBlock: startBlock, client: pub as never, paceMs: 0 });
+    await indexer.catchUp();
+    const tree = buildTree(indexer.pets());
+    const node = (id: bigint) => tree.pets.find((p) => p.id === id.toString())!;
+    expect(node(childId)).toMatchObject({ parents: [a.toString(), b.toString()], generation: 1, ancestors: [a.toString(), b.toString()] });
+    expect(node(childId).designers).toEqual([alice!.account!.address.toLowerCase(), bob!.account!.address.toLowerCase()]);
+    expect(node(a).children).toContain(childId.toString());
+    expect(node(a).generation).toBe(0);
 
     // and both parents now rest
     await expect(breedOnChain(pub, alice!, d, a, b, d.processor as Address, BigInt(child.brainId), 0)).rejects.toThrow(/TooSoon|reverted/);
