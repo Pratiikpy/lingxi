@@ -8,7 +8,7 @@ import { CuteState } from "./CuteState";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import type { Rule } from "@lingxi/brain";
-import { LESSON_CAPACITY, PET_SCHOOL, type Pet, brainSize, checkLesson, lessonCost, stageOf } from "@lingxi/game";
+import { LESSON_CAPACITY, PET_SCHOOL, type Pet, type Trap, brainSize, checkLesson, lessonCost, levelOpen, schoolReport, stageOf, trapsAfter } from "@lingxi/game";
 import { useLang, useT, type Key } from "../i18n";
 import { teachInWords, teachingAvailable } from "../game/api";
 import { type LibraryLesson, libraryAvailable, listLessons, reportLesson, shareLesson, usedLesson } from "../game/library";
@@ -47,8 +47,10 @@ function Proposal({ pet, rule, reply, source, onDone }: { pet: Pet; rule: Rule; 
   const learn = useGame((s) => s.learn);
   const [err, setErr] = useState<string | null>(null);
   const [share, setShare] = useState(false);
-  const confirm = () => {
-    const r = learn(rule);
+  const onTopTraps = trapsAfter(specOf(pet), [rule, ...pet.lessons]);
+  const belowIsClean = onTopTraps.length > 0 && pet.lessons.length > 0 && trapsAfter(specOf(pet), [...pet.lessons, rule]).length === 0;
+  const confirm = (at: "top" | "bottom" = "top") => {
+    const r = learn(rule, at);
     if (r.ok) {
       play("success");
       if (source.kind === "library") void usedLesson(source.key);
@@ -65,6 +67,7 @@ function Proposal({ pet, rule, reply, source, onDone }: { pet: Pet; rule: Rule; 
       <p className="small">{t(source.kind === "school" ? "teach.becameSchool" : source.kind === "library" ? "teach.becameLibrary" : "teach.became")}</p>
       <RulePreview pet={pet} rule={rule} />
       <CostLine pet={pet} rule={rule} />
+      <TrapNote pet={pet} traps={onTopTraps} />
       {err && <p className="err" role="alert">{err}</p>}
       {source.kind === "own" && libraryAvailable() && (
         <label className="share-opt">
@@ -73,7 +76,12 @@ function Proposal({ pet, rule, reply, source, onDone }: { pet: Pet; rule: Rule; 
         </label>
       )}
       <div className="row">
-        <button type="button" className="btn primary" onClick={confirm}>
+        {belowIsClean && (
+          <button type="button" className="btn primary" onClick={() => confirm("bottom")}>
+            {t("teach.confirmBelow")}
+          </button>
+        )}
+        <button type="button" className={`btn${belowIsClean ? "" : " primary"}`} onClick={() => confirm()}>
           {t("teach.confirm")}
         </button>
         <button type="button" className="btn" onClick={onDone}>
@@ -119,13 +127,125 @@ function GateMeter({ pet }: { pet: Pet }) {
   );
 }
 
+/** A lesson order that takes stars from another lesson, said plainly with the rule that gets in the way (PRD F7). */
+function TrapNote({ pet, traps }: { pet: Pet; traps: Trap[] }) {
+  const t = useT();
+  const { lang } = useLang();
+  if (!traps.length) return null;
+  const p = mindParts(pet)[0]!.program;
+  return (
+    <div className="trap" role="alert">
+      <p>{t("teach.trap", { n: traps.length })}</p>
+      <ul>
+        {traps.slice(0, 3).map((tr, i) => {
+          const c = chipsFor(p, tr.blocker, lang);
+          const school = PET_SCHOOL.find((l) => l.id === tr.victim)!;
+          return (
+            <li key={i}>
+              <span className="rule-preview">
+                <Chips when={c.when} then={c.then} want={c.want} />
+              </span>
+              <span>{t("teach.trapWhy", { goal: tr.goal.say[lang], lesson: school.say[lang] })}</span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+/** Pet School as eight levels with three goals each, scored by running the pet's own brain (PRD F8). */
+function SchoolLevels({ pet, canLearn, onPropose }: { pet: Pet; canLearn: boolean; onPropose: (rule: Rule) => void }) {
+  const t = useT();
+  const { lang } = useLang();
+  const report = useMemo(() => schoolReport(specOf(pet)), [pet.lessons, pet.family, pet.instincts, pet.line]);
+  const total = report.reduce((n, r) => n + r.stars, 0);
+  return (
+    <section className="levels" aria-label={t("teach.school")}>
+      <div className="teach-head">
+        <p className="label">{t("teach.school")}</p>
+        <span className="cap">{t("teach.stars", { n: total, max: report.length * 3 })}</span>
+      </div>
+      {!pet.lessons.length && <p className="coach-tip">{t("teach.coach1", { name: pet.name })}</p>}
+      <ol>
+        {report.map((lv, i) => {
+          const lesson = PET_SCHOOL[i]!;
+          const open = levelOpen(report, i);
+          return (
+            <li key={lv.id} className={`level${lv.learned ? " done" : ""}${open ? "" : " level-shut"}`}>
+              <button
+                type="button"
+                className="level-head"
+                disabled={lv.learned || !open || !canLearn}
+                onClick={() => (play("tap"), onPropose(lesson.rule))}
+                aria-label={`${t("teach.level", { n: i + 1 })}: ${lesson.say[lang]}`}
+              >
+                <span className="level-n">{i + 1}</span>
+                <span className="level-say">“{lesson.say[lang]}”</span>
+                <span className="level-stars" aria-label={t("teach.starsOf", { n: lv.stars })}>
+                  {open ? [0, 1, 2].map((k) => <i key={k} className={k < lv.stars ? "on" : ""}>★</i>) : <Icon name="lock" size={14} />}
+                </span>
+              </button>
+              {lv.learned && (
+                <ul className="goals">
+                  {lv.goals.map((g, k) => (
+                    <li key={k} className={g.met ? "met" : "missed"}>
+                      <b aria-hidden="true">{g.met ? "✓" : "✗"}</b> {g.goal.say[lang]}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
+}
+
 function Learned({ pet }: { pet: Pet }) {
   const t = useT();
   const { lang } = useLang();
-  const arrange = useGame((s) => s.arrange);
+  const doArrange = useGame((s) => s.arrange);
+  const [pending, setPending] = useState<{ index: number; move: "up" | "down"; traps: Trap[] } | null>(null);
+  const arrange = (index: number, move: "up" | "down" | "forget") => {
+    if (move === "forget") return doArrange(index, move);
+    const next = pet.lessons.slice();
+    const j = move === "up" ? index - 1 : index + 1;
+    [next[index], next[j]] = [next[j]!, next[index]!];
+    const traps = trapsAfter(specOf(pet), next);
+    if (traps.length) {
+      play("error");
+      setPending({ index, move, traps });
+      return;
+    }
+    setPending(null);
+    doArrange(index, move);
+  };
   const p = mindParts(pet)[0]!.program;
   if (!pet.lessons.length) return <CuteState who={{ pet, expression: "shy" }} text={t("teach.none")} />;
   return (
+    <>
+    {pending && (
+      <div className="trap-confirm">
+        <TrapNote pet={pet} traps={pending.traps} />
+        <div className="row">
+          <button type="button" className="btn" onClick={() => setPending(null)}>
+            {t("teach.keepOrder")}
+          </button>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => {
+              doArrange(pending.index, pending.move);
+              setPending(null);
+            }}
+          >
+            {t("teach.moveAnyway")}
+          </button>
+        </div>
+      </div>
+    )}
     <ol className="learned">
       {pet.lessons.map((r, i) => {
         const c = chipsFor(p, r, lang);
@@ -149,6 +269,7 @@ function Learned({ pet }: { pet: Pet }) {
         );
       })}
     </ol>
+    </>
   );
 }
 
@@ -340,6 +461,7 @@ export function TeachPanel({ pet }: { pet: Pet }) {
       </div>
       <GateMeter pet={pet} />
       <Learned pet={pet} />
+      <SchoolLevels pet={pet} canLearn={!full && !proposal} onPropose={(rule) => propose(rule, undefined, { kind: "school" })} />
       <AnimatePresence mode="wait">
         {proposal ? (
           <Proposal key="p" pet={pet} rule={proposal.rule} source={proposal.source} {...(proposal.reply ? { reply: proposal.reply } : {})} onDone={() => setProposal(null)} />
@@ -347,14 +469,6 @@ export function TeachPanel({ pet }: { pet: Pet }) {
           <p key="f" className="small">{t("teach.full", { name: pet.name })}</p>
         ) : (
           <motion.div key="choose" className="teach-choose" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <p className="label">{t("teach.school")}</p>
-            <div className="school">
-              {PET_SCHOOL.filter((l) => !pet.lessons.some((x) => x.label === l.rule.label)).map((l) => (
-                <button key={l.id} type="button" className="say" onClick={() => (play("tap"), propose(l.rule, undefined, { kind: "school" }))}>
-                  “{l.say[lang]}”
-                </button>
-              ))}
-            </div>
             <Library pet={pet} onPropose={(l) => propose(l.rule, undefined, { kind: "library", key: l.key })} />
             <p className="label">{t("teach.words")}</p>
             <Words pet={pet} onPropose={propose} />

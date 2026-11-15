@@ -353,3 +353,123 @@
 .cost.over {
   color: #b33a2a;
 }
+.levels {
+  display: grid;
+  gap: var(--s2);
+}
+.levels ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.level-head {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 6px 10px;
+  border: 2px dashed var(--line);
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--t-std) var(--ease), transform var(--t-micro) var(--ease);
+}
+.level-head:hover:not(:disabled) {
+  background: var(--band);
+}
+.level-head:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.level-head:disabled {
+  cursor: default;
+}
+.level.done .level-head {
+  border-style: solid;
+  background: var(--card);
+}
+.level.level-shut .level-head {
+  opacity: 0.5;
+}
+.level-n {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--band);
+  font-family: var(--display);
+  font-size: 13px;
+}
+.level-say {
+  font-family: var(--round);
+  font-weight: 700;
+  font-size: 14px;
+}
+.level-stars {
+  display: flex;
+  gap: 1px;
+  font-size: 16px;
+  color: #d9d1e6;
+}
+.level-stars i {
+  font-style: normal;
+}
+.level-stars i.on {
+  color: #ffc83d;
+  text-shadow: 0 1px 0 #2b2140;
+}
+.goals {
+  list-style: none;
+  margin: 4px 0 2px 34px;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+  font-size: 12.5px;
+}
+.goals .met b {
+  color: #2f8a4c;
+}
+.goals .missed {
+  color: #b33a2a;
+}
+.coach-tip {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--r-sm);
+  background: #fff3c9;
+  font-size: 13px;
+}
+.trap {
+  padding: 8px 12px;
+  border: 2px solid #e8a33a;
+  border-radius: var(--r-sm);
+  background: #fff6e2;
+  font-size: 13px;
+}
+.trap p {
+  margin: 0 0 4px;
+  font-weight: 800;
+}
+.trap ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+.trap li {
+  display: grid;
+  gap: 2px;
+}
+.trap-confirm {
+  display: grid;
+  gap: var(--s2);
+  margin-bottom: var(--s2);
+}

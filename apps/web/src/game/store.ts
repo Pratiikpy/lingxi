@@ -149,7 +149,8 @@ interface GameState {
   wakeUp: () => void;
   say: (note: Toast["note"]) => void;
   /** add a lesson; returns why not when refused */
-  learn: (rule: Rule) => { ok: true } | { ok: false; reason: string; detail: string };
+  /** teach a lesson; it goes on top (asked first) unless placed at the bottom */
+  learn: (rule: Rule, at?: "top" | "bottom") => { ok: true } | { ok: false; reason: string; detail: string };
   arrange: (index: number, move: "up" | "down" | "forget") => void;
 }
 
@@ -253,12 +254,13 @@ export const useGame = create<GameState>((set, get) => ({
     }
   },
   say: (note) => set({ toast: { id: ++toastId, note } }),
-  learn: (rule) => {
+  learn: (rule, at = "top") => {
     const { pet } = get();
     if (!pet) return { ok: false, reason: "invalid", detail: "no pet" };
     const caught = catchUp(pet, Date.now(), brainOf(pet));
     const r = teachRule(caught, rule, Date.now());
     if (!r.ok) return { ok: false, reason: r.reason, detail: r.detail };
+    if (at === "bottom") for (let i = 0; i < r.pet.lessons.length - 1; i++) r.pet = arrangeLessons(r.pet, i, "down");
     // one live beat with "talk" on the pins, so the new mind answers at once
     const after = care(r.pet, { kind: "talk" }, Date.now(), brainOf(r.pet)).pet;
     save(after);
