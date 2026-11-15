@@ -11,6 +11,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import Anthropic from "@anthropic-ai/sdk";
 import { serve } from "@hono/node-server";
+import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { z } from "zod";
@@ -140,6 +141,27 @@ function makeRelayer(): BrainRelayer | null {
   });
 }
 
+/**
+ * Serves the built site from the same origin as the API, with safe headers: the
+ * landing page at /, the game at /play.html, the proof page at /verify.html.
+ */
+export function withSite(app: Hono, root: string): Hono {
+  app.use("*", async (c, next) => {
+    await next();
+    c.header("X-Content-Type-Options", "nosniff");
+    c.header("Referrer-Policy", "strict-origin-when-cross-origin");
+    c.header("X-Frame-Options", "SAMEORIGIN");
+    c.header("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  });
+  app.use("/assets/*", async (c, next) => {
+    await next();
+    // hashed file names: safe to cache for a year
+    c.header("Cache-Control", "public, max-age=31536000, immutable");
+  });
+  app.use("/*", serveStatic({ root, rewriteRequestPath: (p) => (p === "/" ? "/index.html" : p) }));
+  return app;
+}
+
 const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
   const key = loadKey();
@@ -148,7 +170,9 @@ if (isMain) {
   const relayer = makeRelayer();
   const live = new LiveRooms();
   const origins = (process.env.LINGXI_ORIGINS ?? "http://localhost:5199,http://localhost:4173").split(",");
-  const server = serve({ fetch: createApp(client, undefined, relayer, undefined, live).fetch, port });
+  const app = createApp(client, undefined, relayer, undefined, live);
+  if (process.env.LINGXI_STATIC) withSite(app, process.env.LINGXI_STATIC);
+  const server = serve({ fetch: app.fetch, port });
   attachLive(server as never, live, origins);
   process.stdout.write(`lingxi api on :${port} (teaching ${client ? "on" : "off: no key"}, relaying ${relayer ? "on" : "off"})\n`);
 }
