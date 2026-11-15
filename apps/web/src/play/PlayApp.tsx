@@ -6,7 +6,7 @@ import { useReducedMotion } from "motion/react";
 import { boundingBox, drawPet } from "@lingxi/art";
 import { STARTERS, timeOfDay } from "@lingxi/brain";
 import { type Challenge, type Partner, friendPartner, petCard, stageOf, visibleMeters } from "@lingxi/game";
-import { useT, useLang } from "../i18n";
+import { type Key, useT, useLang } from "../i18n";
 import { useGame } from "../game/store";
 import { chirp, play } from "../game/sound";
 import { followClock, setAmbience } from "../game/music";
@@ -31,6 +31,7 @@ import { GamesPanel } from "./Games";
 import { DiaryPanel } from "./Diary";
 import { RewindPanel } from "./Rewind";
 import { DuelArrival } from "./Duel";
+import { type Gated, OPENS_ON, isOpen, useReveal } from "../game/reveal";
 import { GiftArrival, SendGiftPanel } from "./Gift";
 import { PacketArrival, RedPacketPanel } from "./RedPacket";
 import { FamilyTree, NewbornDialog, PetsPanel, ProposalDialog, familyBlock } from "./Family";
@@ -136,6 +137,8 @@ export function PlayApp() {
     setNpcFace(null);
   }, [worldRoom]);
   const [visiting, setVisiting] = useState<string | null>(() => visitingFrom());
+  const revealAll = useReveal((s) => s.all);
+  const [lockedAsk, setLockedAsk] = useState<Gated | null>(null);
   // decorating the home: null when not decorating, else the piece in hand ("" for none yet)
   const [decorating, setDecorating] = useState<string | null>(null);
   const others = useLive((s) => s.members);
@@ -275,8 +278,14 @@ export function PlayApp() {
     play("tap");
     act(pet.asleep ? { kind: "wake" } : { kind: "lightsOff" });
   };
-  const pick = (next: Tab) => {
+  const lockedTabs = (["mind", "map", "bag", "spar"] as const).filter((x) => !isOpen(x, pet, revealAll));
+  /** `force` opens a tab even before its day, for flows the player chose (accepting a friend's challenge) */
+  const pick = (next: Tab, force = false) => {
     play("tap");
+    if (!force && (lockedTabs as readonly string[]).includes(next)) {
+      setLockedAsk(next as Gated);
+      return;
+    }
     setTab(next === tab ? "home" : next);
   };
 
@@ -433,7 +442,32 @@ export function PlayApp() {
           </section>
         </div>
       </div>
-      <TabBar current={tab} onPick={pick} />
+      <TabBar current={tab} onPick={pick} locked={lockedTabs} />
+      {lockedAsk && (
+        <div className="fam-modal" role="dialog" aria-modal="true" aria-label={t("reveal.title")}>
+          <div className="fam-card reveal-card">
+            <p>{t(`reveal.${lockedAsk}` as Key, { name: pet.name, day: OPENS_ON[lockedAsk] })}</p>
+            <p className="small">{t("reveal.why")}</p>
+            <div className="row">
+              <button type="button" className="btn" onClick={() => setLockedAsk(null)}>
+                {t("reveal.wait")}
+              </button>
+              <button
+                type="button"
+                className="btn primary"
+                onClick={() => {
+                  useReveal.getState().openAll();
+                  const want = lockedAsk;
+                  setLockedAsk(null);
+                  setTab(want);
+                }}
+              >
+                {t("reveal.openAll")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <ProposalDialog pet={pet} />
       <GiftArrival />
       <PacketArrival />
@@ -442,7 +476,7 @@ export function PlayApp() {
         petName={pet.name}
         onAccept={(c) => {
           setDuel(c);
-          pick("spar");
+          pick("spar", true);
         }}
       />
       <NewbornDialog pet={pet} />

@@ -188,14 +188,19 @@ const TABS: ReadonlyArray<[Tab, IconName, Key]> = [
   ["me", "pet", "tab.me"],
 ];
 
-export function TabBar({ current, onPick }: { current: Tab; onPick: (t: Tab) => void }) {
+export function TabBar({ current, onPick, locked = [] }: { current: Tab; onPick: (t: Tab) => void; locked?: readonly Tab[] }) {
   const t = useT();
   return (
     <nav className="tabs" aria-label="Main">
       {TABS.map(([id, icon, label]) => (
-        <button key={id} type="button" className="tab" aria-current={current === id ? "page" : undefined} onClick={() => onPick(id)}>
+        <button key={id} type="button" className={`tab${locked.includes(id) ? " tab-locked" : ""}`} aria-current={current === id ? "page" : undefined} onClick={() => onPick(id)}>
           <Icon name={icon} size={22} />
           {t(label)}
+          {locked.includes(id) && (
+            <span className="tab-lock" aria-label={t("reveal.locked")}>
+              <Icon name="lock" size={10} />
+            </span>
+          )}
         </button>
       ))}
     </nav>

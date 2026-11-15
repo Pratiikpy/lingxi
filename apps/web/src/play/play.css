@@ -1128,3 +1128,30 @@
 .st-steps .now {
   font-weight: 800;
 }
+.tab {
+  position: relative;
+}
+.tab-locked {
+  opacity: 0.6;
+}
+.tab-lock {
+  position: absolute;
+  top: 2px;
+  right: calc(50% - 25px);
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+}
+.reveal-card {
+  max-width: 380px;
+  display: grid;
+  gap: var(--s2);
+  text-align: center;
+}
+.reveal-card .row {
+  justify-content: center;
+}
