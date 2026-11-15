@@ -11,3 +11,4 @@ export * from "./coach";
 export * from "./family";
 export * from "./gift";
 export * from "./games";
+export * from "./diary";

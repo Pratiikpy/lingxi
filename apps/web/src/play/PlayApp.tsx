@@ -21,6 +21,7 @@ import { InvitePanel, SocialBar } from "./Social";
 import { type Action, CHARACTER_IN_ROOM, HOME, ROOMS, neighbours } from "@lingxi/world";
 import { Talk } from "./Talk";
 import { GamesPanel } from "./Games";
+import { DiaryPanel } from "./Diary";
 import { GiftArrival, SendGiftPanel } from "./Gift";
 import { PacketArrival, RedPacketPanel } from "./RedPacket";
 import { FamilyTree, NewbornDialog, PetsPanel, ProposalDialog, familyBlock } from "./Family";
@@ -379,6 +380,8 @@ export function PlayApp() {
 
       <Sheet open={tab === "me"} title={t("me.title", { name: pet.name })} onClose={close}>
         <MeSheetBody pet={pet} />
+        <hr className="divider" />
+        <DiaryPanel pet={pet} />
         <hr className="divider" />
         <EvolutionChart pet={pet} />
         <hr className="divider" />

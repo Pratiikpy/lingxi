@@ -950,3 +950,16 @@
   color: #c2410c;
   font-weight: 700;
 }
+
+.diary-lines {
+  margin: 0;
+  padding: 0 0 0 18px;
+  display: grid;
+  gap: 6px;
+  font-family: var(--round);
+  font-weight: 600;
+  line-height: 1.45;
+}
+.diary-lines li::marker {
+  color: #ff7a6b;
+}
