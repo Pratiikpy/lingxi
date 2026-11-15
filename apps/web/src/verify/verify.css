@@ -257,3 +257,57 @@
   opacity: 0;
   cursor: pointer;
 }
+
+.v-history {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+.v-family {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 0;
+}
+.v-petlink {
+  margin-left: 4px;
+  padding: 1px 8px;
+  border: 2px solid #2b2140;
+  border-radius: 999px;
+  background: #fffdf8;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.v-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 14px;
+  border-left: 2px dashed color-mix(in srgb, #2b2140 30%, transparent);
+  display: grid;
+  gap: 10px;
+}
+.v-timeline li {
+  position: relative;
+  display: grid;
+  gap: 2px;
+}
+.v-timeline li::before {
+  content: "";
+  position: absolute;
+  left: -21px;
+  top: 5px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid #2b2140;
+  border-radius: 50%;
+  background: var(--coral, #ff7a59);
+}
+.v-when {
+  font-size: 12px;
+  color: var(--ink-soft, #6b5f7a);
+}
+.v-timeline a {
+  font-size: 12px;
+  width: fit-content;
+}

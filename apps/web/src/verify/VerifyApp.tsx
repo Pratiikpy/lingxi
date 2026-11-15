@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type Hex } from "viem";
 import { beat, bitsToWord, hexToBytes, load, type Circuit, wordToBits, decodeSenses } from "@lingxi/brain";
+import { PetHistory } from "./History";
 import { type ChainPet, canvasOfSvg, gameSprite, loadCircuitFromChain, lookOf, readMetadata, readPet, replayMany, replayStep } from "@lingxi/chain";
 import { chainAll, unpackState, ZERO_HASH } from "@lingxi/game";
 import { deployment, publicClient, readClients } from "../game/chain";
@@ -149,6 +150,25 @@ export function VerifyApp() {
     // read once on open; later reads are explicit
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // following a family link (or editing the address) opens that pet
+  const [follow, setFollow] = useState(false);
+  useEffect(() => {
+    const on = () => {
+      const h = location.hash.replace("#", "");
+      if (/^\d{1,10}$/.test(h)) {
+        setId(h);
+        setFollow(true);
+      }
+    };
+    addEventListener("hashchange", on);
+    return () => removeEventListener("hashchange", on);
+  }, []);
+  useEffect(() => {
+    if (!follow) return;
+    setFollow(false);
+    void read();
+  }, [follow, read]);
 
   const run = async () => {
     if (!pet || !circuit || !deployment) return;
@@ -376,6 +396,14 @@ export function VerifyApp() {
               </div>
             </>
           )}
+          <PetHistory
+            id={pet.id.toString()}
+            brainBits={pet.brainBits}
+            lang={lang}
+            onOpen={(other) => {
+              location.hash = other;
+            }}
+          />
           <div className="v-log">
             <p className="v-sub">{t.logTitle}</p>
             <p className="v-lede">{t.logHelp}</p>
