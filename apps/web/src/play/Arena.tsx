@@ -64,10 +64,17 @@ function why(key: CoachNote["key"], name: string, other: string, lang: Lang): st
   return (lang === "zh" ? zh : en)[key];
 }
 
-export function ArenaPanel({ pet }: { pet: Pet }) {
+export function ArenaPanel({ pet, challenge, onChallengeTaken }: { pet: Pet; challenge?: Partner | null; onChallengeTaken?: () => void }) {
   const lang = useLang((s) => s.lang) as Lang;
   const [fight, setFight] = useState<{ partner: Partner; result: SparResult; cheer: boolean } | null>(null);
   const [cheer, setCheer] = useState(false);
+  useEffect(() => {
+    if (!challenge) return;
+    start(challenge);
+    onChallengeTaken?.();
+    // a new challenge starts one fight
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [challenge]);
   if (fight) return <FightView key={fight.result.seed} pet={pet} {...fight} onDone={() => setFight(null)} onRematch={() => start(fight.partner)} />;
 
   function start(partner: Partner) {
@@ -154,7 +161,7 @@ function FightView({ pet, partner, result, cheer, onDone, onRematch }: { pet: Pe
     settled.current = true;
     const outcome = result.winner === 0 ? "w" : result.winner === 1 ? "l" : "d";
     const first = useSpar.getState().note(partner.id, outcome);
-    if (outcome === "w") {
+    if (outcome === "w" && !partner.id.startsWith("friend:")) {
       const coins = WIN_COINS + (first ? FIRST_WIN_COINS : 0);
       useWorld.getState().reward(coins);
       setReward(coins);
@@ -251,6 +258,7 @@ function Result({ pet, partner, result, reward, onDone, onRematch }: { pet: Pet;
   return (
     <motion.div className="sp-result" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
       <h3>{title}</h3>
+      {partner.id.startsWith("friend:") && <p className="small">{lang === "zh" ? "和朋友的友谊赛，不发金币。" : "A friendly match with a friend's pet: no coins."}</p>}
       {reward > 0 && <p className="sp-coins">{lang === "zh" ? `+${reward} 金币` : `+${reward} coins`}</p>}
       {result.winner !== 0 && (
         <div className="sp-coach">

@@ -12,7 +12,9 @@ import type { IncomingMessage } from "node:http";
 import { WebSocketServer, type WebSocket } from "ws";
 
 export const CAPACITY = 24;
-const MAX_FRAME = 1024;
+const MAX_FRAME = 4096;
+const CARD_MAX = 3500;
+const CARD_RULES = 8;
 const SAY_MAX = 60;
 const NAME_MAX = 12;
 const LINES = new Set(["gentle", "bold", "curious"]);
@@ -32,6 +34,8 @@ export interface Member {
 interface Client {
   ws: WebSocket;
   member: Member;
+  /** the pet's taught lessons as JSON, shared so friends can spar against its real brain */
+  card: string | null;
   space: string | null;
   tokens: number;
   last: number;
@@ -107,7 +111,7 @@ export class LiveRooms {
   }
 
   handle(ws: WebSocket): void {
-    const c: Client = { ws, member: { id: "", name: "", line: "gentle", stage: "baby", mood: 1, x: 64 }, space: null, tokens: 8, last: Date.now() };
+    const c: Client = { ws, card: null, member: { id: "", name: "", line: "gentle", stage: "baby", mood: 1, x: 64 }, space: null, tokens: 8, last: Date.now() };
     this.clients.add(c);
     ws.on("message", (raw, isBinary) => {
       if (isBinary) return;
@@ -167,6 +171,25 @@ export class LiveRooms {
         if (!c.space || !EMOTES.has(m.kind as string)) return;
         const to = typeof m.to === "string" ? clean(m.to, 32) : undefined;
         this.broadcast(c.space, { t: "emote", id: c.member.id, kind: m.kind, ...(to ? { to } : {}) });
+        return;
+      }
+      case "card": {
+        if (typeof m.lessons !== "string" || m.lessons.length > CARD_MAX) return;
+        try {
+          const rules = JSON.parse(m.lessons) as unknown;
+          if (!Array.isArray(rules) || rules.length > CARD_RULES) return;
+        } catch {
+          return;
+        }
+        c.card = m.lessons;
+        return;
+      }
+      case "ask": {
+        if (!c.space || typeof m.to !== "string") return;
+        const target = [...(this.spaces.get(c.space) ?? [])].find((o) => o.member.id === m.to && o !== c);
+        if (!target) return;
+        this.send(c, { t: "card", id: target.member.id, name: target.member.name, line: target.member.line, stage: target.member.stage, lessons: target.card ?? "[]" });
+        this.send(target, { t: "asked", from: c.member.id, name: c.member.name });
         return;
       }
       case "say": {

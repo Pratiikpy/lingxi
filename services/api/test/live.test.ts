@@ -98,6 +98,31 @@ describe("live rooms", () => {
     for (const p of peers) p.ws.close();
   });
 
+  it("shares a pet's lessons only with someone in the same room who asks", async () => {
+    const a = await connect();
+    const b = await connect();
+    const c = await connect();
+    hello(a, "carda01", "room:30", "Mochi");
+    await a.next("room");
+    hello(b, "cardb02", "room:30", "Tofu");
+    await b.next("room");
+    await a.next("joined");
+    hello(c, "cardc03", "room:31", "Far");
+    await c.next("room");
+    const lessons = JSON.stringify([{ when: { event: [3] }, then: { want: 5, mood: 1 } }]);
+    a.ws.send(JSON.stringify({ t: "card", lessons }));
+    a.ws.send(JSON.stringify({ t: "card", lessons: "x".repeat(4000) }));
+    await new Promise((r) => setTimeout(r, 100));
+    b.ws.send(JSON.stringify({ t: "ask", to: "carda01" }));
+    const card = await b.next("card");
+    expect(card.lessons).toBe(lessons);
+    expect(card.line).toBe("gentle");
+    expect((await a.next("asked")).name).toBe("Tofu");
+    c.ws.send(JSON.stringify({ t: "ask", to: "carda01" }));
+    await expect(c.next("card", 400)).rejects.toThrow();
+    for (const p of [a, b, c]) p.ws.close();
+  });
+
   it("drops a flood of messages from one client", async () => {
     const a = await connect();
     const b = await connect();

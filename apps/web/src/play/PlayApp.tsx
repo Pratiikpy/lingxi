@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { boundingBox, drawPet } from "@lingxi/art";
 import { STARTERS, timeOfDay } from "@lingxi/brain";
-import { stageOf } from "@lingxi/game";
+import { type Partner, friendPartner, stageOf } from "@lingxi/game";
 import { useT, useLang } from "../i18n";
 import { useGame } from "../game/store";
 import { chirp, play } from "../game/sound";
@@ -66,6 +66,31 @@ export function PlayApp() {
   const liveMood = useLive((s) => s.mood);
   const liveEmote = useLive((s) => s.emote);
   const incoming = useLive((s) => s.incoming);
+  const liveShare = useLive((s) => s.shareLessons);
+  const liveAsk = useLive((s) => s.ask);
+  const card = useLive((s) => s.card);
+  const asked = useLive((s) => s.asked);
+  const [picked, setPicked] = useState<string | null>(null);
+  const [challenge, setChallenge] = useState<Partner | null>(null);
+  useEffect(() => {
+    if (pet) liveShare(pet.lessons);
+  }, [pet?.lessons, liveShare]);
+  useEffect(() => {
+    if (!card) return;
+    const partner = friendPartner(card);
+    if (!partner) {
+      setWorldMsg({ id: Math.round(card.at), text: lang === "zh" ? "没法和这只宠物切磋" : "Can't spar with that pet" });
+      return;
+    }
+    setChallenge(partner);
+    setTab("spar");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [card]);
+  useEffect(() => {
+    if (!asked) return;
+    setWorldMsg({ id: Math.round(asked.at), text: lang === "zh" ? `${asked.name}和${useGame.getState().pet?.name ?? ""}切磋了一场` : `${asked.name} sparred with ${useGame.getState().pet?.name ?? "your pet"}` });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [asked]);
   const space = worldRoom === HOME ? `home:${visiting ?? playerId()}` : `room:${worldRoom}`;
   useEffect(() => {
     if (worldRoom !== HOME && visiting) {
@@ -188,7 +213,7 @@ export function PlayApp() {
             reduceMotion={reduce}
             bgs={room.bgs}
             others={Object.values(others)}
-            onOtherTap={(id) => (play("pop"), liveEmote("heart", id))}
+            onOtherTap={(id) => (play("tap"), setPicked(id))}
           />
           <div className="room-pill">
             <b>{visiting && worldRoom === HOME ? (lang === "zh" ? "朋友家" : "A friend's home") : room.name[lang]}</b>
@@ -232,6 +257,20 @@ export function PlayApp() {
               </motion.div>
             )}
           </AnimatePresence>
+          {picked && others[picked] && (
+            <div className="visitor-card" role="dialog" aria-label={others[picked]!.name}>
+              <b>{others[picked]!.name}</b>
+              <button type="button" className="btn" onClick={() => (play("pop"), liveEmote("heart", picked), setPicked(null))}>
+                <Icon name="heart" size={16} /> {lang === "zh" ? "送心" : "Heart"}
+              </button>
+              <button type="button" className="btn primary" onClick={() => (play("tap"), liveAsk(picked), setPicked(null))}>
+                <Icon name="paw" size={16} /> {lang === "zh" ? "切磋" : "Spar"}
+              </button>
+              <button type="button" className="icon-x" aria-label={lang === "zh" ? "关闭" : "Close"} onClick={() => setPicked(null)}>
+                <Icon name="close" size={14} />
+              </button>
+            </div>
+          )}
           {Object.keys(others).length > 0 ? <SocialBar count={Object.keys(others).length} /> : <ThinkStrip pet={pet} />}
         </section>
         <div className="side">
@@ -270,7 +309,7 @@ export function PlayApp() {
       </Sheet>
 
       <Sheet open={tab === "spar"} title={lang === "zh" ? "切磋" : "Spar"} onClose={close}>
-        <ArenaPanel pet={pet} />
+        <ArenaPanel pet={pet} challenge={challenge} onChallengeTaken={() => setChallenge(null)} />
       </Sheet>
 
       <Sheet open={tab === "me"} title={t("me.title", { name: pet.name })} onClose={close}>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { STARTERS, compileProgram, fastBrain, stateBits } from "@lingxi/brain";
-import { PARTNERS } from "../src/partners";
+import { PARTNERS, friendPartner } from "../src/partners";
 import { ROUNDS, spar, type Fighter } from "../src/spar";
 import { coach } from "../src/coach";
 import { composeProgram } from "../src/lessons";
@@ -58,5 +58,15 @@ describe("spars", () => {
     const taught = fighter("Mochi", composeProgram("gentle", [note.lesson!.rule]));
     const after = spar(taught, partner("pip"), lost!.seed);
     expect(after.digest).not.toBe(lost!.digest);
+  });
+
+  it("builds a friend partner only from a valid card", () => {
+    const ok = friendPartner({ id: "abc", name: "Tofu", line: "bold", stage: "teen", lessons: JSON.stringify([{ when: { event: [3] }, then: { want: 5, mood: 1 } }]) });
+    expect(ok).not.toBeNull();
+    expect(ok!.program.rules[0]!.then.want).toBe(5);
+    expect(ok?.level).toBe(1);
+    expect(friendPartner({ id: "abc", name: "x", line: "evil", stage: "teen", lessons: "[]" })).toBeNull();
+    expect(friendPartner({ id: "abc", name: "x", line: "bold", stage: "teen", lessons: "not json" })).toBeNull();
+    expect(friendPartner({ id: "abc", name: "x", line: "bold", stage: "teen", lessons: JSON.stringify([{ when: { nonsense: [9] }, then: { want: 99 } }]) })).toBeNull();
   });
 });

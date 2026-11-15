@@ -194,7 +194,7 @@
 .toast {
   position: absolute;
   left: 50%;
-  top: 12px;
+  top: 62px;
   max-width: calc(100% - 24px);
   padding: 8px 16px;
   border-radius: var(--r-pill);
@@ -870,4 +870,42 @@
   color: var(--ink);
   font-family: ui-monospace, Menlo, Consolas, monospace;
   font-size: 12.5px;
+}
+
+.visitor-card {
+  position: absolute;
+  left: 50%;
+  bottom: 112px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 8px 14px;
+  border: 2px solid #2b2140;
+  border-radius: 16px;
+  background: #fffdf8;
+  color: #2b2140;
+  box-shadow: 0 4px 0 #2b2140;
+  z-index: 6;
+  white-space: nowrap;
+}
+.visitor-card b {
+  font-family: var(--display);
+  margin-right: 4px;
+}
+.visitor-card .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.icon-x {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #2b2140;
+  cursor: pointer;
 }

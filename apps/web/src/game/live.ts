@@ -52,6 +52,12 @@ interface LiveState {
   members: Record<string, LiveMember>;
   /** last emote others sent to us, for the scene */
   incoming: { from: string; kind: string; at: number } | null;
+  /** a friend's pet card we asked for, to spar against */
+  card: { id: string; name: string; line: string; stage: string; lessons: string; at: number } | null;
+  /** someone just sparred against our pet */
+  asked: { name: string; at: number } | null;
+  shareLessons: (lessons: unknown[]) => void;
+  ask: (id: string) => void;
   connect: (me: Me, space: string) => void;
   go: (space: string) => void;
   pos: (x: number) => void;
@@ -64,6 +70,7 @@ let ws: WebSocket | null = null;
 let retry = 0;
 let me: Me | null = null;
 let want: string | null = null;
+let lessonsCard: string | null = null;
 
 const send = (m: unknown) => {
   if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(m));
@@ -79,6 +86,7 @@ export const useLive = create<LiveState>((set, get) => {
       retry = 0;
       set({ status: "on" });
       send({ t: "hello", id: playerId(), ...me, space: want });
+      if (lessonsCard) send({ t: "card", lessons: lessonsCard });
     };
     sock.onmessage = (ev) => {
       let m: Record<string, unknown>;
@@ -115,6 +123,12 @@ export const useLive = create<LiveState>((set, get) => {
           set({ members, ...(m.to === playerId() || !m.to ? { incoming: { from, kind: m.kind as string, at: performance.now() } } : {}) });
           return;
         }
+        case "card":
+          set({ card: { id: m.id as string, name: m.name as string, line: m.line as string, stage: m.stage as string, lessons: m.lessons as string, at: performance.now() } });
+          return;
+        case "asked":
+          set({ asked: { name: m.name as string, at: performance.now() } });
+          return;
         case "say": {
           const x = members[m.id as string];
           if (!x) return;
@@ -137,6 +151,13 @@ export const useLive = create<LiveState>((set, get) => {
     space: null,
     members: {},
     incoming: null,
+    card: null,
+    asked: null,
+    shareLessons: (lessons) => {
+      lessonsCard = JSON.stringify(lessons);
+      send({ t: "card", lessons: lessonsCard });
+    },
+    ask: (id) => send({ t: "ask", to: id }),
     connect: (who, space) => {
       me = who;
       want = space;

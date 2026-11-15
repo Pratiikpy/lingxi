@@ -4,7 +4,8 @@
  * (see spar.ts). Each teaches something by beating you a particular way.
  */
 
-import { type Program, validateProgram } from "@lingxi/brain";
+import { type Program, type Rule, compileProgram, gateCount, validateProgram } from "@lingxi/brain";
+import { MAX_GATES, composeProgram } from "./lessons";
 
 export interface Partner {
   id: string;
@@ -74,3 +75,35 @@ export const PARTNERS: readonly Partner[] = [
     ),
   },
 ];
+
+const STAGES = ["baby", "child", "teen", "adult"] as const;
+
+/**
+ * A friend's pet as a sparring partner, from the card shared in a live room.
+ * Everything in the card is untrusted: the lessons must validate as a program
+ * and compile within the brain's size budget, or there is no spar.
+ */
+export function friendPartner(card: { id: string; name: string; line: string; stage: string; lessons: string }): Partner | null {
+  const line = (["gentle", "bold", "curious"] as const).find((l) => l === card.line);
+  if (!line || typeof card.lessons !== "string" || card.lessons.length > 3500) return null;
+  try {
+    const rules = JSON.parse(card.lessons) as unknown;
+    if (!Array.isArray(rules) || rules.length > 8) return null;
+    const program = composeProgram(line, rules as Rule[]);
+    if (gateCount(compileProgram(program)) > MAX_GATES) return null;
+    const grown = card.stage === "elder" ? "adult" : card.stage;
+    const stage = STAGES.find((s) => s === grown) ?? "baby";
+    const name = card.name.slice(0, 12) || "Friend";
+    return {
+      id: `friend:${card.id}`,
+      name: { en: name, zh: name },
+      line,
+      stage,
+      level: card.stage === "elder" ? 2 : stage === "teen" || stage === "adult" ? 1 : 0,
+      blurb: { en: `${name}'s real brain, with everything it has been taught.`, zh: `${name}真实的大脑，带着它学过的一切。` },
+      program,
+    };
+  } catch {
+    return null;
+  }
+}
