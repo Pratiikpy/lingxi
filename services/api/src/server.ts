@@ -18,6 +18,7 @@ import { STARTERS } from "@lingxi/brain";
 import { MAX_WORDS, teachInWords } from "./teach";
 import { RateLimiter } from "./limit";
 import { BrainRelayer } from "./relayer";
+import { LiveRooms, attachLive } from "./live";
 
 function loadKey(): string | undefined {
   if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
@@ -47,12 +48,13 @@ const TeachBody = z.object({
   lessons: z.array(RuleSchema).max(8),
 });
 
-export function createApp(client: Anthropic | null, limiter = new RateLimiter(6, 60_000), relayer: BrainRelayer | null = null, relayLimiter = new RateLimiter(4, 3_600_000)) {
+export function createApp(client: Anthropic | null, limiter = new RateLimiter(6, 60_000), relayer: BrainRelayer | null = null, relayLimiter = new RateLimiter(4, 3_600_000), live: LiveRooms | null = null) {
   const app = new Hono();
   const origins = (process.env.LINGXI_ORIGINS ?? "http://localhost:5199,http://localhost:4173").split(",");
   app.use("/api/*", cors({ origin: origins, allowMethods: ["GET", "POST"], maxAge: 600 }));
 
-  app.get("/api/health", (c) => c.json({ ok: true, teach: client !== null, relay: relayer !== null }));
+  app.get("/api/health", (c) => c.json({ ok: true, teach: client !== null, relay: relayer !== null, live: live !== null }));
+  app.get("/api/live/stats", (c) => c.json(live ? live.stats() : { online: 0, spaces: 0 }));
 
   app.post("/api/teach", async (c) => {
     if (!client) return c.json({ ok: false, reason: "error", detail: "teaching is not configured" }, 503);
@@ -121,6 +123,9 @@ if (isMain) {
   const client = key ? new Anthropic({ apiKey: key }) : null;
   const port = Number(process.env.PORT ?? 8787);
   const relayer = makeRelayer();
-  serve({ fetch: createApp(client, undefined, relayer).fetch, port });
+  const live = new LiveRooms();
+  const origins = (process.env.LINGXI_ORIGINS ?? "http://localhost:5199,http://localhost:4173").split(",");
+  const server = serve({ fetch: createApp(client, undefined, relayer, undefined, live).fetch, port });
+  attachLive(server as never, live, origins);
   process.stdout.write(`lingxi api on :${port} (teaching ${client ? "on" : "off: no key"}, relaying ${relayer ? "on" : "off"})\n`);
 }

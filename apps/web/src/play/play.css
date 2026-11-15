@@ -807,3 +807,67 @@
   font: inherit;
   color: inherit;
 }
+
+.social {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 14px;
+  background: rgba(255, 253, 248, 0.93);
+  border: 2px solid #2b2140;
+  color: #2b2140;
+}
+.social em {
+  font-style: normal;
+  font-family: var(--display);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: #5b4e73;
+  white-space: nowrap;
+}
+.emote {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 2px solid #2b2140;
+  border-radius: 50%;
+  background: #fffdf8;
+  color: #2b2140;
+  font-size: 15px;
+  cursor: pointer;
+  transition: transform var(--t-micro) var(--ease);
+}
+.emote:active {
+  transform: scale(0.9);
+}
+.social input {
+  flex: 1;
+  min-width: 0;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 2px solid #2b2140;
+  border-radius: var(--r-pill);
+  background: #fffdf8;
+  color: #2b2140;
+  font-family: var(--round);
+  font-weight: 700;
+}
+.invite {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--card);
+  color: var(--ink);
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+}

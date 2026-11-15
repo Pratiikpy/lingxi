@@ -15,6 +15,8 @@ import { Actions, Meters, TabBar, ThinkStrip, ToastView, TopBar, type Tab } from
 import { EvolutionChart, MeSheetBody, MindPanel, Sheet } from "./Sheets";
 import { BagPanel, MapPanel, QuestPanel, noticeText } from "./WorldPanels";
 import { useWorld } from "../game/world";
+import { liveAvailable, playerId, useLive, visitingFrom } from "../game/live";
+import { InvitePanel, SocialBar } from "./Social";
 import { HOME, ROOMS, neighbours } from "@lingxi/world";
 import { AnimatePresence, motion } from "motion/react";
 import { TeachPanel } from "./Teach";
@@ -57,6 +59,44 @@ export function PlayApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [worldNotice]);
   const room = ROOMS[worldRoom] ?? ROOMS[HOME]!;
+  const [visiting, setVisiting] = useState<string | null>(() => visitingFrom());
+  const others = useLive((s) => s.members);
+  const liveConnect = useLive((s) => s.connect);
+  const liveMood = useLive((s) => s.mood);
+  const liveEmote = useLive((s) => s.emote);
+  const incoming = useLive((s) => s.incoming);
+  const space = worldRoom === HOME ? `home:${visiting ?? playerId()}` : `room:${worldRoom}`;
+  useEffect(() => {
+    if (worldRoom !== HOME && visiting) {
+      setVisiting(null);
+      history.replaceState(null, "", location.pathname);
+    }
+  }, [worldRoom, visiting]);
+  useEffect(() => {
+    const p = useGame.getState().pet;
+    if (!p || !liveAvailable()) return;
+    liveConnect({ name: p.name, line: p.line, stage: stageOf(p, Date.now()), mood: p.last.mood }, space);
+  }, [space, liveConnect, pet?.name]);
+  useEffect(() => {
+    if (pet) liveMood(pet.last.mood);
+  }, [pet?.last.mood, liveMood]);
+  useEffect(() => {
+    if (!incoming) return;
+    const who = others[incoming.from]?.name ?? "";
+    const verbs: Record<string, [string, string]> = {
+      wave: ["waved at you", "向你挥手"],
+      heart: ["sent you a heart", "送你一颗心"],
+      laugh: ["is laughing", "笑了"],
+      dance: ["is dancing", "在跳舞"],
+      sleepy: ["is sleepy", "困了"],
+      gift: ["has a gift for you", "有礼物给你"],
+    };
+    const v = verbs[incoming.kind];
+    if (!v || !who) return;
+    setWorldMsg({ id: Math.round(incoming.at), text: lang === "zh" ? `${who}${v[1]}` : `${who} ${v[0]}` });
+    // only react to a new incoming emote
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incoming]);
 
   useEffect(() => {
     document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
@@ -146,9 +186,11 @@ export function PlayApp() {
             onPetTap={onPetTap}
             reduceMotion={reduce}
             bgs={room.bgs}
+            others={Object.values(others)}
+            onOtherTap={(id) => (play("pop"), liveEmote("heart", id))}
           />
           <div className="room-pill">
-            <b>{room.name[lang]}</b>
+            <b>{visiting && worldRoom === HOME ? (lang === "zh" ? "朋友家" : "A friend's home") : room.name[lang]}</b>
             {room.drops.length > 0 && (
               <button type="button" onClick={() => (play("tap"), worldForage())}>
                 {t("room.look")}
@@ -189,7 +231,7 @@ export function PlayApp() {
               </motion.div>
             )}
           </AnimatePresence>
-          <ThinkStrip pet={pet} />
+          {Object.keys(others).length > 0 ? <SocialBar count={Object.keys(others).length} /> : <ThinkStrip pet={pet} />}
         </section>
         <div className="side">
           <Meters pet={pet} />
@@ -230,6 +272,8 @@ export function PlayApp() {
         <MeSheetBody pet={pet} />
         <hr className="divider" />
         <EvolutionChart pet={pet} />
+        <hr className="divider" />
+        <InvitePanel />
         <hr className="divider" />
         <ChainPanel pet={pet} />
       </Sheet>

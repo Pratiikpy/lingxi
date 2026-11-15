@@ -50,7 +50,7 @@ describe("the endpoint", () => {
   it("says teaching is off without a key, and validates bodies", async () => {
     const app = createApp(null);
     const h = await app.request("/api/health");
-    expect(await h.json()).toEqual({ ok: true, teach: false, relay: false });
+    expect(await h.json()).toEqual({ ok: true, teach: false, relay: false, live: false });
     const t = await app.request("/api/teach", { method: "POST", body: "{}", headers: { "content-type": "application/json" } });
     expect(t.status).toBe(503);
   });

@@ -8,7 +8,7 @@
  */
 
 import { useEffect, useRef } from "react";
-import { Application, Assets, Container, Sprite, type Texture } from "pixi.js";
+import { Application, Assets, Container, Graphics, Sprite, Text, type Texture } from "pixi.js";
 import type { Expression } from "@lingxi/art";
 import type { StarterLine } from "@lingxi/brain";
 import { type PetStage, catTexture, glyphTexture, petTexture } from "./textures";
@@ -28,6 +28,17 @@ export interface SceneProps {
   reduceMotion: boolean;
   /** the current room's backgrounds */
   bgs: { day: string; evening: string; night: string };
+  /** other players' pets here right now */
+  others: Array<{ id: string; name: string; line: string; stage: string; mood: number; emote?: { kind: string; at: number }; say?: { text: string; at: number } }>;
+  onOtherTap: (id: string) => void;
+}
+
+/** A stable spot on the floor for a visitor, from their id. */
+function spotFor(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  const lanes = [26, 42, 86, 102, 34, 94, 18, 110];
+  return lanes[h % lanes.length]!;
 }
 
 const ROOM = 128;
@@ -118,6 +129,19 @@ export function RoomScene(props: SceneProps) {
       world.addChild(pet);
       const fx = new Container();
       world.addChild(fx);
+      // visitors' name tags and speech live in screen space so text stays crisp
+      const ui = new Container();
+      app.stage.addChild(ui);
+      interface Visitor {
+        sprite: Sprite;
+        tag: Text;
+        bubble: Text;
+        bubbleBg: Graphics;
+        x: number;
+        target: number;
+        lastEmote: number;
+      }
+      const visitors = new Map<string, Visitor>();
 
       let scale = 1;
       const layout = () => {
@@ -243,6 +267,84 @@ export function RoomScene(props: SceneProps) {
         cat.scale.x = catState.dir;
         cat.x = Math.round(catState.x);
         cat.y = CAT_FEET;
+
+        // other players' pets
+        const others = p.others;
+        const seen = new Set<string>();
+        for (const o of others) {
+          seen.add(o.id);
+          let v = visitors.get(o.id);
+          if (!v) {
+            const sprite = new Sprite();
+            sprite.anchor.set(0.5, 1);
+            sprite.eventMode = "static";
+            sprite.cursor = "pointer";
+            sprite.on("pointertap", () => latest.current.onOtherTap(o.id));
+            world.addChildAt(sprite, world.getChildIndex(pet));
+            const tag = new Text({ text: o.name, style: { fontFamily: "Baloo 2 Variable, sans-serif", fontWeight: "800", fontSize: 12, fill: "#2B2140", stroke: { color: "#FFF7E8", width: 4 } } });
+            tag.anchor.set(0.5, 1);
+            const bubble = new Text({ text: "", style: { fontFamily: "Baloo 2 Variable, sans-serif", fontWeight: "700", fontSize: 13, fill: "#2B2140", wordWrap: true, wordWrapWidth: 150, align: "center" } });
+            bubble.anchor.set(0.5, 1);
+            const bubbleBg = new Graphics();
+            ui.addChild(tag, bubbleBg, bubble);
+            const home = spotFor(o.id);
+            v = { sprite, tag, bubble, bubbleBg, x: home, target: home, lastEmote: 0 };
+            visitors.set(o.id, v);
+          }
+          if (!p.reduceMotion && Math.random() < 0.004) v.target = Math.max(14, Math.min(114, spotFor(o.id) + (Math.random() * 24 - 12)));
+          if (Math.abs(v.target - v.x) > 0.5) v.x += Math.sign(v.target - v.x) * 0.15;
+          const stageName = o.stage === "elder" ? "adult" : o.stage;
+          const expr = o.mood === 3 ? "sparkly" : o.mood === 2 ? "happy" : o.mood === 0 ? "sulk" : "neutral";
+          v.sprite.texture = petTexture((["gentle", "bold", "curious"].includes(o.line) ? o.line : "gentle") as SceneProps["line"], {
+            stage: (["baby", "child", "teen", "adult"].includes(stageName) ? stageName : "baby") as PetStage,
+            expression: (o.emote && now - o.emote.at < 2000 ? (o.emote.kind === "heart" ? "love" : "happy") : expr) as Expression,
+            breath: p.reduceMotion ? 0 : Math.sin(now / 640 + v.x) > 0.35 ? 1 : 0,
+            squash: 0,
+            lit: false,
+          });
+          v.sprite.scale.x = v.target < v.x ? -1 : 1;
+          v.sprite.x = Math.round(v.x);
+          v.sprite.y = PET_FEET + 2;
+          if (o.emote && o.emote.at !== v.lastEmote) {
+            v.lastEmote = o.emote.at;
+            const kind = o.emote.kind === "heart" || o.emote.kind === "gift" ? "heart" : o.emote.kind === "laugh" || o.emote.kind === "dance" ? "note" : "spark";
+            for (let i = 0; i < 4; i++) {
+              const sp = new Sprite(glyphTexture(kind, i % 2 ? "#FFC83D" : "#FF7A9A"));
+              sp.anchor.set(0.5);
+              sp.x = v.x + (Math.random() * 12 - 6);
+              sp.y = PET_FEET - 26;
+              fx.addChild(sp);
+              particles.push({ s: sp, vx: (Math.random() - 0.5) * 0.25, vy: -0.32, life: 1 });
+            }
+          }
+          // the drawn pet is shorter than its 48-pixel canvas; place the tag just above its head
+          const height = { baby: 15, child: 22, teen: 28, adult: 34 }[stageName as "baby"] ?? 20;
+          const headPt = world.toGlobal({ x: v.x, y: PET_FEET + 2 - height - 2 });
+          const top = headPt.y - scale * 10;
+          const cx = headPt.x;
+          v.tag.position.set(cx, top + scale * 10);
+          const talking = o.say && now - o.say.at < 5000;
+          v.bubble.text = talking ? o.say!.text : "";
+          v.bubble.position.set(cx, top + scale * 10 - 18);
+          v.bubbleBg.clear();
+          if (talking) {
+            const b = v.bubble.getLocalBounds();
+            const w = b.width + 16;
+            const h = b.height + 10;
+            const x0 = cx - w / 2;
+            const y0 = top + scale * 10 - 18 - b.height - 5;
+            v.bubbleBg.roundRect(x0, y0, w, h, 10).fill({ color: 0xfffdf8 }).stroke({ color: 0x2b2140, width: 2 });
+            v.bubbleBg.moveTo(cx - 5, y0 + h).lineTo(cx, y0 + h + 6).lineTo(cx + 5, y0 + h).fill({ color: 0xfffdf8 });
+          }
+        }
+        for (const [id, v] of visitors) {
+          if (seen.has(id)) continue;
+          v.sprite.destroy();
+          v.tag.destroy();
+          v.bubble.destroy();
+          v.bubbleBg.destroy();
+          visitors.delete(id);
+        }
 
         for (let i = particles.length - 1; i >= 0; i--) {
           const q = particles[i]!;
