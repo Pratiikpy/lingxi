@@ -1155,3 +1155,33 @@
 .reveal-card .row {
   justify-content: center;
 }
+.welcome-card {
+  max-width: 420px;
+  display: grid;
+  gap: var(--s2);
+}
+.welcome-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+}
+.welcome-list b {
+  font-variant-numeric: tabular-nums;
+  margin-right: 4px;
+}
+.welcome-list span {
+  color: var(--ink-soft);
+}
+.welcome-find {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  background: #fff3c9;
+  font-weight: 700;
+}

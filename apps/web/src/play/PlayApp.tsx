@@ -31,6 +31,7 @@ import { GamesPanel } from "./Games";
 import { DiaryPanel } from "./Diary";
 import { RewindPanel } from "./Rewind";
 import { DuelArrival } from "./Duel";
+import { WelcomeBack } from "./Welcome";
 import { type Gated, OPENS_ON, isOpen, useReveal } from "../game/reveal";
 import { GiftArrival, SendGiftPanel } from "./Gift";
 import { PacketArrival, RedPacketPanel } from "./RedPacket";
@@ -480,6 +481,7 @@ export function PlayApp() {
         }}
       />
       <NewbornDialog pet={pet} />
+      <WelcomeBack pet={pet} />
 
       <Sheet open={tab === "bag"} title={t("bag.title")} onClose={close}>
         <BagPanel onFed={close} />

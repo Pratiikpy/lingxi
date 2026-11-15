@@ -16,13 +16,20 @@ function foodArt(c: Care, art?: string): string | undefined {
 const STAGE_RANK: Record<string, number> = { baby: 1, child: 2, teen: 3, adult: 4, elder: 4 };
 import { create } from "zustand";
 import { type Program, type Rule, STARTERS, compileProgram, fastBrain, stateBits } from "@lingxi/brain";
-import { FOODS, type Brain, type Care, type CareResult, type Pet, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, liveBeat, mindBrain, settleForm, stageOf, teach as teachRule } from "@lingxi/game";
+import { FOODS, type Brain, type Care, type CareResult, type Pet, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, liveBeat, mindBrain, settleForm, stageOf, teach as teachRule, awayEvent, awaySeed, beatOf } from "@lingxi/game";
 import type { StarterLine } from "@lingxi/brain";
 
 const OLD_KEY = "lingxi.pet.v1";
 const SAVE_KEY = "lingxi.pets.v2";
 /** the most pets one player keeps on this device */
 export const MAX_PETS = 8;
+
+/** An absence: which pet, and the beats it spanned. */
+export interface Away {
+  petKey: string;
+  from: number;
+  to: number;
+}
 
 const brains = new Map<string, Brain>();
 /** The pet's whole program: what it was taught, then the instincts it hatched with, then its egg line's starter rules. */
@@ -146,6 +153,9 @@ interface GameState {
   /** a care action; `art` is the picture of the food or item used, for the room to show */
   act: (c: Care, art?: string) => void;
   tick: () => void;
+  /** the last absence long enough to tell about, until the player has seen it */
+  away: Away | null;
+  clearAway: () => void;
   wakeUp: () => void;
   say: (note: Toast["note"]) => void;
   /** add a lesson; returns why not when refused */
@@ -157,27 +167,47 @@ interface GameState {
 const todayKey = () => new Date().toDateString();
 const freshDaily = (): Daily => ({ day: todayKey(), fed: false, played: false, cleaned: false, petted: false });
 
+/** At least this long away (minutes) before the pet has a "while you were away" to tell. */
+const AWAY_STORY_BEATS = 60;
+
+/**
+ * Bring a pet up to now after time away: every missed minute runs through its
+ * brain, with the small surprises of an absence (see @lingxi/game away.ts).
+ */
+function returnTo(p: Pet): { pet: Pet; away: Away | null } {
+  const now = Date.now();
+  const from = p.beat;
+  const seed = awaySeed(p);
+  const pet = settleForm(catchUp(p, now, brainOf(p), (b) => awayEvent(seed, b)), now);
+  const to = beatOf(now);
+  return { pet, away: to - from >= AWAY_STORY_BEATS ? { petKey: String(p.bornAt), from, to } : null };
+}
+
+let firstAway: Away | null = null;
 function initialPet(): Pet | null {
   const p = roster.pets[roster.active];
   if (!p) return null;
-  const caught = settleForm(catchUp(p, Date.now(), brainOf(p)), Date.now());
-  save(caught);
-  return caught;
+  const r = returnTo(p);
+  firstAway = r.away;
+  save(r.pet);
+  return r.pet;
 }
 
 let toastId = 0;
 
 export const useGame = create<GameState>((set, get) => ({
   pet: initialPet(),
+  away: firstAway,
+  clearAway: () => set({ away: null }),
   pets: roster.pets,
   active: roster.active,
   switchTo: (index) => {
     const target = roster.pets[index];
     if (!target || index === roster.active) return;
     roster = { ...roster, active: index };
-    const caught = settleForm(catchUp(target, Date.now(), brainOf(target)), Date.now());
-    save(caught);
-    set({ pet: caught, pets: roster.pets, active: index, lastCare: null });
+    const r = returnTo(target);
+    save(r.pet);
+    set({ pet: r.pet, pets: roster.pets, active: index, lastCare: null, away: r.away });
   },
   adopt: (child) => {
     if (roster.pets.length >= MAX_PETS) return false;
@@ -237,6 +267,8 @@ export const useGame = create<GameState>((set, get) => ({
   tick: () => {
     const { pet } = get();
     if (!pet) return;
+    // a tab left hidden for a while comes back like any return, surprises included
+    if (beatOf(Date.now()) - pet.beat > 10) return get().wakeUp();
     const next = settleForm(liveBeat(pet, Date.now(), brainOf(pet)), Date.now());
     if (next !== pet) {
       if (stageOf(next, Date.now()) !== stageOf(pet, Date.now() - 60_000)) useBadges.getState().note("stage", STAGE_RANK[stageOf(next, Date.now())] ?? 0);
@@ -247,10 +279,10 @@ export const useGame = create<GameState>((set, get) => ({
   wakeUp: () => {
     const { pet } = get();
     if (!pet) return;
-    const caught = settleForm(catchUp(pet, Date.now(), brainOf(pet)), Date.now());
-    if (caught !== pet) {
-      save(caught);
-      set({ pet: caught, pets: roster.pets });
+    const r = returnTo(pet);
+    if (r.pet !== pet) {
+      save(r.pet);
+      set({ pet: r.pet, pets: roster.pets, ...(r.away ? { away: r.away } : {}) });
     }
   },
   say: (note) => set({ toast: { id: ++toastId, note } }),
