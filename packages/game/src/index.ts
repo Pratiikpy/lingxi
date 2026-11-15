@@ -12,3 +12,4 @@ export * from "./family";
 export * from "./gift";
 export * from "./games";
 export * from "./diary";
+export * from "./reminders";

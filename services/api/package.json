@@ -17,11 +17,13 @@
     "@lingxi/game": "workspace:*",
     "hono": "4.12.34",
     "viem": "2.57.7",
+    "web-push": "3.6.7",
     "ws": "8.18.3",
     "zod": "4.1.13"
   },
   "devDependencies": {
     "@types/node": "22.15.30",
+    "@types/web-push": "3.6.4",
     "@types/ws": "8.18.1",
     "tsx": "4.20.3",
     "typescript": "5.9.3",

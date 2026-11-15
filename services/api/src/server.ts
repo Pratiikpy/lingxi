@@ -21,6 +21,7 @@ import { RateLimiter } from "./limit";
 import { BrainRelayer } from "./relayer";
 import { LiveRooms, attachLive } from "./live";
 import { parseCard } from "@lingxi/game";
+import { PlanSchema, createPusher, type Pusher } from "./push";
 
 function loadKey(): string | undefined {
   if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
@@ -162,6 +163,48 @@ export function withSite(app: Hono, root: string): Hono {
   return app;
 }
 
+/** Reminder routes: the public key to subscribe with, a plan of upcoming reminders, and stop. */
+export function withPush(app: Hono, pusher: Pusher, limiter = new RateLimiter(30, 3_600_000)): Hono {
+  app.get("/api/push/key", (c) => c.json({ key: pusher.publicKey }));
+  app.post("/api/push/plan", async (c) => {
+    const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
+    if (!limiter.take(ip)) return c.json({ ok: false, reason: "busy" }, 429);
+    if (Number(c.req.header("content-length") ?? 0) > 4096) return c.json({ ok: false, reason: "invalid" }, 413);
+    let body;
+    try {
+      body = PlanSchema.parse(await c.req.json());
+    } catch {
+      return c.json({ ok: false, reason: "invalid" }, 400);
+    }
+    const r = pusher.plan(body, Date.now());
+    return c.json(r, r.ok ? 200 : 400);
+  });
+  app.post("/api/push/stop", async (c) => {
+    let endpoint: string;
+    try {
+      endpoint = z.object({ endpoint: z.string().max(800) }).parse(await c.req.json()).endpoint;
+    } catch {
+      return c.json({ ok: false, reason: "invalid" }, 400);
+    }
+    return c.json({ ok: true, stopped: pusher.stop(endpoint) });
+  });
+  return app;
+}
+
+/** Reminders, when a key file (VAPID_PUBLIC / VAPID_PRIVATE / VAPID_SUBJECT) is configured. */
+function makePusher(): Pusher | null {
+  const file = process.env.LINGXI_PUSH_KEY_FILE;
+  if (!file) return null;
+  const env = Object.fromEntries(
+    readFileSync(file, "utf8")
+      .split(/\r?\n/)
+      .filter((l) => l.includes("="))
+      .map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).trim()]),
+  );
+  if (!env.VAPID_PUBLIC || !env.VAPID_PRIVATE) return null;
+  return createPusher({ publicKey: env.VAPID_PUBLIC, privateKey: env.VAPID_PRIVATE, subject: env.VAPID_SUBJECT ?? "https://lingxi.knole.me", store: process.env.LINGXI_PUSH_STORE });
+}
+
 const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
   const key = loadKey();
@@ -171,8 +214,13 @@ if (isMain) {
   const live = new LiveRooms();
   const origins = (process.env.LINGXI_ORIGINS ?? "http://localhost:5199,http://localhost:4173").split(",");
   const app = createApp(client, undefined, relayer, undefined, live);
+  const pusher = makePusher();
+  if (pusher) {
+    withPush(app, pusher);
+    setInterval(() => void pusher.tick(Date.now()), 60_000);
+  }
   if (process.env.LINGXI_STATIC) withSite(app, process.env.LINGXI_STATIC);
   const server = serve({ fetch: app.fetch, port });
   attachLive(server as never, live, origins);
-  process.stdout.write(`lingxi api on :${port} (teaching ${client ? "on" : "off: no key"}, relaying ${relayer ? "on" : "off"})\n`);
+  process.stdout.write(`lingxi api on :${port} (teaching ${client ? "on" : "off: no key"}, relaying ${relayer ? "on" : "off"}, reminders ${pusher ? "on" : "off"})\n`);
 }

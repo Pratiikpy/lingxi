@@ -30,6 +30,8 @@ module.exports = {
         LINGXI_RPC: "https://rpc.xlayer.tech",
         LINGXI_BRAIN_STORE: path.join(root, "services", "api", "data", "brains-xlayer.json"),
         LINGXI_RELAY_PER_DAY: "100",
+        LINGXI_PUSH_KEY_FILE: path.join(secrets, "push.env"),
+        LINGXI_PUSH_STORE: path.join(root, "services", "api", "data", "push-subscriptions.json"),
       },
       max_memory_restart: "600M",
       restart_delay: 3000,

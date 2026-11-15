@@ -1,0 +1,14 @@
+{
+  "name": "Lingxi · 灵犀",
+  "short_name": "Lingxi",
+  "description": "A pet whose mind is a real circuit on X Layer.",
+  "start_url": "play.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#FFF7E8",
+  "theme_color": "#FFF7E8",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

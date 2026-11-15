@@ -9,6 +9,8 @@ import { useT, useLang } from "../i18n";
 import { useGame } from "../game/store";
 import { chirp, play } from "../game/sound";
 import { followClock } from "../game/music";
+import { useReminders } from "../game/reminders";
+import { RemindersPanel } from "./Reminders";
 import { type DayPhase, RoomScene } from "../scene/RoomScene";
 import { PALETTE_OF, type PetStage } from "../scene/textures";
 import { Hatch } from "./Hatch";
@@ -58,6 +60,26 @@ export function PlayApp() {
   const worldForage = useWorld((s) => s.forage);
   const [worldMsg, setWorldMsg] = useState<{ id: number; text: string } | null>(null);
   useEffect(followClock, []);
+  // reminders follow the pet: a fresh plan shortly after each change, and at once when the player leaves
+  useEffect(() => {
+    const send = () => {
+      const p = useGame.getState().pet;
+      if (p) void useReminders.getState().replan(p, useLang.getState().lang as "en" | "zh");
+    };
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const unsub = useGame.subscribe((s, prev) => {
+      if (s.pet === prev.pet) return;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(send, 20_000);
+    });
+    const onHide = () => document.hidden && send();
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      unsub();
+      if (timer) clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onHide);
+    };
+  }, []);
   // auto-save: when a new chain day starts, save it through the device key, never through a wallet pop-up
   const autoOn = useChain((s) => Boolean(s.record?.autoUntil));
   useEffect(() => {
@@ -406,6 +428,8 @@ export function PlayApp() {
         <SendGiftPanel pet={pet} />
         <hr className="divider" />
         <RedPacketPanel pet={pet} />
+        <hr className="divider" />
+        <RemindersPanel pet={pet} />
         <hr className="divider" />
         <ChainPanel pet={pet} />
       </Sheet>

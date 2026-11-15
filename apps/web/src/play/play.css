@@ -1000,3 +1000,6 @@
 .keeping .row .btn {
   justify-self: start;
 }
+.reminders > .btn {
+  align-self: flex-start;
+}
