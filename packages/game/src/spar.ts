@@ -20,6 +20,16 @@
  *   explore → dodge     · sulk → guard           · cuddle → charm (weaken)
  *   share → gift (both heal a little)            · idle → tap (a light swipe)
  * Mood adds power: grumpy −1, calm 0, happy +1, excited +2.
+ *
+ * A fighter can instead carry a TapeFly-format brain (profile DUEL-12x3/1, see
+ * @lingxi/brain tapefly.ts). It reads the same fight through that profile's 12
+ * pins: dist is always 3 (a spar is fought in reach), foe is 1 when the other
+ * guarded, 2 when it pounced, 3 when it left an opening (rested or snacked),
+ * else 0; myhp, foehp and energy are the usual buckets with 0 = low; prev is its
+ * own last move as press, back, circle or guard. Its answer becomes a move, and
+ * as in TapeFly only a bite does damage: bite → pounce; press (walking in, open
+ * and catching its breath) → rest; back and circle → dodge; guard → guard; at a
+ * calm mood.
  */
 
 import { type FastBrain, encodeSenses } from "@lingxi/brain";
@@ -38,6 +48,8 @@ const MOVE_AS_ACTION: Record<Move, number> = { tap: 0, snack: 1, pounce: 2, rest
 export interface Fighter {
   name: string;
   brain: FastBrain;
+  /** the pin profile its brain reads; absent = a Lingxi pet brain */
+  profile?: "DUEL-12x3/1";
   /** LATCH memory at the start of the spar (copied, never changed) */
   memory: readonly number[];
   /** small stat edges from growth: 0..3 */
@@ -87,6 +99,20 @@ function xorshift(seed: number): () => number {
   };
 }
 
+const AS_DUEL_PREV: Record<Move, number> = { tap: 0, pounce: 0, charm: 0, gift: 0, rest: 0, snack: 1, dodge: 2, guard: 3 };
+
+/** The fight on a TapeFly-format brain's 12 pins (DUEL-12x3/1). */
+export function duelWord(me: Side, them: Side, round: number): number {
+  const foe = them.last === "guard" ? 1 : them.last === "pounce" ? 2 : round > 0 && (them.last === "rest" || them.last === "snack") ? 3 : 0;
+  return 3 | (foe << 2) | (bucketUp(me.hp, MAX_HP) << 4) | (bucketUp(them.hp, MAX_HP) << 6) | (bucketUp(me.stamina, MAX_STAMINA) << 8) | (AS_DUEL_PREV[me.last] << 10);
+}
+
+/** A DUEL-12x3/1 answer as a move and mood, in the pet brain's output layout (want | mood << 3). */
+export function duelAnswer(out: number): number {
+  const want = (out & 4) !== 0 ? 2 : [3, 4, 4, 5][out & 3]!;
+  return want | (1 << 3);
+}
+
 function word(me: Side, them: Side, round: number, cheering: boolean, hitHard: boolean): number {
   const phase = round < 3 ? 1 : round < ROUNDS - 4 ? 2 : 3;
   const opening = them.last === "rest" || them.last === "snack";
@@ -121,12 +147,15 @@ export function spar(a: Fighter, b: Fighter, seed: number, cheer: (round: number
   let hitHard: [boolean, boolean] = [false, false];
   for (let n = 0; n < ROUNDS; n++) {
     const cheering = cheer(n);
-    const words: [number, number] = [word(sides[0], sides[1], n, cheering[0], hitHard[0]), word(sides[1], sides[0], n, cheering[1], hitHard[1])];
+    const words: [number, number] = [0, 1].map((i) => {
+      const [me, them] = i === 0 ? [sides[0], sides[1]] : [sides[1], sides[0]];
+      return fighters[i]!.profile === "DUEL-12x3/1" ? duelWord(me, them, n) : word(me, them, n, cheering[i]!, hitHard[i]!);
+    }) as [number, number];
     const outs = [0, 1].map((i) => {
       const st = Uint8Array.from(sides[i]!.memory);
       const out = fighters[i]!.brain.step(st, words[i]!);
       sides[i]!.memory = Array.from(st);
-      return out;
+      return fighters[i]!.profile === "DUEL-12x3/1" ? duelAnswer(out) : out;
     });
     let moves = outs.map((o) => MOVES[o & 7]!) as [Move, Move];
     // a pet with no stamina can only rest or tap; now and then an eager pounce slips to a tap

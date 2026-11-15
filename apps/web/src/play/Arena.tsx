@@ -8,9 +8,9 @@
 import { useBadges } from "../game/badges";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { type PixelCanvas, boundingBox, drawPet, type Expression } from "@lingxi/art";
-import { STARTERS } from "@lingxi/brain";
-import { type Challenge, type CoachNote, type DuelPet, type Fighter, MAX_HP, MOVES, type Move, PARTNERS, type Partner, type Pet, type SparResult, TRAITS, coach, dayOf, duel as runDuel, duelFighter, encodeChallenge, encodeResult, fighterOfMind, fighterOfPartner, halvesOf, petCard, rewindFight, ruleSource, spar, stageOf } from "@lingxi/game";
+import { FLY, type Palette, type PixelCanvas, boundingBox, drawFly, drawPet, type Expression } from "@lingxi/art";
+import { STARTERS, programOfChips } from "@lingxi/brain";
+import { type Challenge, type CoachNote, type DuelPet, type Fighter, MAX_HP, MOVES, type Move, PARTNERS, type Partner, type Pet, type SparResult, TRAITS, coach, dayOf, duel as runDuel, duelFighter, encodeChallenge, encodeResult, fighterOfMind, fighterOfPartner, halvesOf, petCard, rewindFight, ruleSource, spar, stageOf, FLY_RIVALS, type FlyRival, FlyLinkError, flyFighter, parseFlyBrain } from "@lingxi/game";
 import { linkPrefix } from "../game/links";
 import { useDaily } from "../game/daily";
 import { programFor, useGame } from "../game/store";
@@ -49,10 +49,10 @@ const levelOf = (stage: string) => (stage === "elder" ? 2 : stage === "teen" || 
 const drawn = (s: string): PetStage => (s === "elder" ? "adult" : (s as PetStage));
 
 /** A pet sprite cropped to what is drawn, so small pets are not lost in empty canvas. */
-function PetArt({ canvas, line, scale, label }: { canvas: PixelCanvas; line: keyof typeof PALETTE_OF; scale: number; label?: string }) {
+function PetArt({ canvas, line, palette, scale, label }: { canvas: PixelCanvas; line: keyof typeof PALETTE_OF; palette?: Palette; scale: number; label?: string }) {
   const b = boundingBox(canvas);
   const crop = { x: Math.max(0, b.x - 1), y: Math.max(0, b.y - 1), w: Math.min(canvas.w - Math.max(0, b.x - 1), b.w + 2), h: Math.min(canvas.h - Math.max(0, b.y - 1), b.h + 2) };
-  return <Sprite canvas={canvas} palette={PALETTE_OF[line]} scale={scale} crop={crop} label={label} />;
+  return <Sprite canvas={canvas} palette={palette ?? PALETTE_OF[line]} scale={scale} crop={crop} label={label} />;
 }
 
 function why(key: CoachNote["key"], name: string, other: string, lang: Lang): string {
@@ -133,7 +133,7 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [duel]);
   if (running) return <RunView pet={pet} onClose={() => setRunning(false)} />;
-  if (fight) return <FightView key={fight.result.seed} pet={pet} self={{ name: pet.name, line: pet.line, stage: drawn(stageOf(pet, Date.now())) }} {...fight} onDone={() => setFight(null)} onRematch={() => start(fight.partner)} />;
+  if (fight) return <FightView key={fight.result.seed} pet={pet} self={{ name: pet.name, line: pet.line, stage: drawn(stageOf(pet, Date.now())) }} {...fight} onDone={() => setFight(null)} onRematch={() => start(fight.partner, undefined, fight.partner.look === "fly" ? fight.opponent : undefined)} />;
 
   const makeLink = async () => {
     const id = Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => b.toString(16).padStart(2, "0")).join("");
@@ -148,15 +148,15 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken
     }
   };
 
-  function start(partner: Partner, daily?: { seed: number }) {
+  function start(partner: Partner, daily?: { seed: number }, opponent?: Fighter) {
     const stage = stageOf(pet, Date.now());
     const me = fighterOfMind(pet.name, { line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts }, levelOf(stage), pet.brain);
-    const them = fighterOfPartner(partner);
+    const them = opponent ?? fighterOfPartner(partner);
     // practice spars roll a private seed; the daily challenge uses the day's block, with no cheering, so it is the same for everyone
     const seed = daily ? daily.seed : crypto.getRandomValues(new Uint32Array(1))[0]!;
     const cheering = daily ? false : cheer;
     play("tap");
-    setFight({ partner, result: spar(me, them, seed, () => [cheering, false]), cheer: cheering, ...(daily ? { daily: true } : {}) });
+    setFight({ partner, result: spar(me, them, seed, () => [cheering, false]), cheer: cheering, ...(opponent ? { opponent } : {}), ...(daily ? { daily: true } : {}) });
   }
 
   return (
@@ -192,7 +192,75 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken
           <PartnerCard key={p.id} partner={p} index={i} lang={lang} onPick={() => start(p)} />
         ))}
       </ul>
+      <FlyBrains onFight={(partner, opponent) => start(partner, undefined, opponent)} />
     </div>
+  );
+}
+
+/** A1b: brains written for TapeFly's brawl, run as the same NAND circuits TapeFly compiles. */
+function FlyBrains({ onFight }: { onFight: (partner: Partner, opponent: Fighter) => void }) {
+  const lang = useLang((s) => s.lang) as Lang;
+  const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
+  const [text, setText] = useState("");
+  const [err, setErr] = useState("");
+  const art = useMemo(() => drawFly(), []);
+  const asPartner = (id: string, name: string, blurb: { en: string; zh: string }): Partner => ({ id: `fly:${id}`, name: { en: name, zh: name }, look: "fly", line: "curious", stage: "baby", level: 1, blurb, program: STARTERS.curious });
+  const fightRival = (r: FlyRival) => onFight(asPartner(r.id, r.name, { en: r.chips.join(" → "), zh: r.chips.join(" → ") }), flyFighter(r.name, programOfChips(r.chips), 1));
+  const fightLink = () => {
+    try {
+      const program = parseFlyBrain(text);
+      setErr("");
+      onFight(asPartner("link", L("TapeFly brain", "TapeFly 大脑"), { en: "", zh: "" }), flyFighter(L("TapeFly brain", "TapeFly 大脑"), program, 1));
+    } catch (e) {
+      play("error");
+      setErr(e instanceof FlyLinkError ? L("That isn't a TapeFly brain. Paste a brawl link with program= or chips=, a p1. code, or chips like block,bite.", "这不是 TapeFly 的大脑。请粘贴带 program= 或 chips= 的大乱斗链接、p1. 开头的代码，或像 block,bite 这样的芯片列表。") : String(e));
+    }
+  };
+  return (
+    <section className="sp-fly" aria-label={L("TapeFly brains", "TapeFly 大脑")}>
+      <div className="sp-fly-head">
+        <span className="sp-portrait">
+          <PetArt canvas={art} line="curious" palette={FLY} scale={2} />
+        </span>
+        <div>
+          <p className="label">{L("Brains from TapeFly · DUEL-12x3/1", "来自 TapeFly 的大脑 · DUEL-12x3/1")}</p>
+          <p className="small">
+            {L(
+              "TapeFly's brawl is another game built on TapeOut. Its fly brains are 12-in, 3-out NAND circuits; here they are compiled exactly as TapeFly compiles them and fight your pet through the same interface.",
+              "TapeFly 的大乱斗是另一款建在 TapeOut 上的游戏。它的果蝇大脑是 12 进 3 出的 NAND 电路；这里按 TapeFly 一模一样的方式编译，并通过同一个接口和你的宠物切磋。",
+            )}
+          </p>
+        </div>
+      </div>
+      <ul className="sp-fly-ladder">
+        {FLY_RIVALS.map((r) => (
+          <li key={r.id}>
+            <button type="button" className="sp-fly-rival" onClick={() => fightRival(r)}>
+              <b>{r.name}</b>
+              <span className="small">{r.chips.length === 1 ? r.chips[0] : `${r.chips.length} ${L("chips", "张芯片")}`}</span>
+              <span className="small sp-fly-gates">{L(`${flyFighter(r.name, programOfChips(r.chips)).gates} gates`, `${flyFighter(r.name, programOfChips(r.chips)).gates} 个门`)}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <form
+        className="sp-fly-link"
+        onSubmit={(e) => {
+          e.preventDefault();
+          fightLink();
+        }}
+      >
+        <input value={text} onChange={(e) => setText(e.target.value)} placeholder={L("Paste a TapeFly brawl link or p1. code", "粘贴 TapeFly 大乱斗链接或 p1. 代码")} aria-label={L("TapeFly brain link", "TapeFly 大脑链接")} />
+        <button type="submit" className="btn" disabled={!text.trim()}>
+          {L("Spar it", "切磋")}
+        </button>
+      </form>
+      {err && (
+        <p className="small sp-warn" role="alert">
+          {err}
+        </p>
+      )}
+    </section>
   );
 }
 
@@ -288,7 +356,10 @@ export function FightView({
     return round.moods[side]! >= 2 ? "sparkly" : round.moods[side] === 0 ? "sulk" : "neutral";
   };
   const mine = useMemo(() => drawPet(self.line, stage, { expression: face(0), ...(pet?.form && !replay ? { form: pet.form } : {}) }), [self.line, stage, shown, finished, pet?.form, replay]);
-  const theirs = useMemo(() => drawPet(partner.line, partner.stage, { expression: face(1) }), [partner.line, partner.stage, shown, finished]);
+  const theirs = useMemo(
+    () => (partner.look === "fly" ? drawFly({ flap: !!round && round.moves[1] === "pounce", hurt: face(1) === "startled" || face(1) === "sad" }) : drawPet(partner.line, partner.stage, { expression: face(1) })),
+    [partner.look, partner.line, partner.stage, shown, finished],
+  );
 
   return (
     <div className="sp-fight">
@@ -316,7 +387,7 @@ export function FightView({
               animate={round && round.hits[1 - side]! > 0 && !reduce ? { x: [0, side === 0 ? -6 : 6, 0, side === 0 ? -3 : 3, 0] } : round && round.moves[side] === "pounce" && !reduce ? { x: [0, side === 0 ? 14 : -14, 0] } : {}}
               transition={{ duration: 0.38 }}
             >
-              <PetArt canvas={side === 0 ? mine : theirs} line={side === 0 ? self.line : partner.line} scale={4} />
+              <PetArt canvas={side === 0 ? mine : theirs} line={side === 0 ? self.line : partner.line} palette={side === 1 && partner.look === "fly" ? FLY : undefined} scale={4} />
             </motion.div>
             <AnimatePresence>
               {round && round.hits[1 - side]! > 0 && (

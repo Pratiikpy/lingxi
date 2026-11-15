@@ -110,7 +110,7 @@ Teach-by-words needs an Anthropic API key in the server's environment. The brain
 Lingxi stands on other people's work, and is grateful for it.
 
 - **the source game** by Asphodel (github.com/Asphodel-OS/the source game-open). The world's art comes from the source game, used and adapted with the maker's permission: the rooms and the map, the residents' portraits, the item sprites, the interface sound effects, and parts of the world data. Lingxi's pets, words, rules and music are our own.
-- **TapeFly** (github.com/tapefly/tapefly), MIT License, Copyright (c) 2026 Richard. Our circuit compiler started from TapeFly's netlist compiler, and our gate-depth layout follows its approach.
+- **TapeFly** (github.com/tapefly/tapefly), MIT License, Copyright (c) 2026 Richard. Our circuit compiler started from TapeFly's netlist compiler, and our gate-depth layout follows its approach. The TapeFly-format brains in `packages/brain/src/tapefly.ts` (the program format, its `p1.` link code and the compiler) are adapted from TapeFly's `sim/program.ts` and `sim/compile.ts`; the brawl chips and ladder rivals are the rules TapeFly publishes at tapefly.xyz/api/v1/brawl, read under its DUEL-12x3/1 interface draft.
 - **Aavegotchi** (github.com/aavegotchi/aavegotchi-contracts), MIT License, Copyright (c) 2020 Aavegotchi. Kinship that fades lazily over time follows its `kinship()` pattern.
 - **TapeOut Protocol** TAPs (github.com/TapeOutProtocol/TAPs), CC0 1.0. The TAP-02 netlist format and processor interface.
 - **OpenZeppelin Contracts** (MIT) and **forge-std** (MIT / Apache-2.0).

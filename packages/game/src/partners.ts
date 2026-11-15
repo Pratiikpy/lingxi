@@ -12,6 +12,8 @@ import type { Family } from "./pet";
 export interface Partner {
   id: string;
   name: { en: string; zh: string };
+  /** drawn as a fruit fly: a brain brought in from TapeFly's brawl */
+  look?: "fly";
   line: "gentle" | "bold" | "curious";
   stage: "baby" | "child" | "teen" | "adult";
   level: number;
