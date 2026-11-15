@@ -26,6 +26,7 @@ import { PALETTE_OF, type PetStage } from "../scene/textures";
 import { Sprite } from "./Sprite";
 import "./arena.css";
 import "./rewind.css";
+import { RunCard, RunView } from "./ArenaRun";
 
 type Lang = "en" | "zh";
 const MOVE_NAMES: Record<Move, [string, string]> = {
@@ -106,7 +107,8 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken
   const [fight, setFight] = useState<FightState | null>(null);
   const [link, setLink] = useState("");
   const [cheer, setCheer] = useState(false);
-  const fighting = fight !== null;
+  const [running, setRunning] = useState(false);
+  const fighting = fight !== null || running;
   useEffect(() => {
     if (!fighting) return;
     useMusic.getState().want("spar");
@@ -128,6 +130,7 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken
     onDuelTaken?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [duel]);
+  if (running) return <RunView pet={pet} onClose={() => setRunning(false)} />;
   if (fight) return <FightView key={fight.result.seed} pet={pet} self={{ name: pet.name, line: pet.line, stage: drawn(stageOf(pet, Date.now())) }} {...fight} onDone={() => setFight(null)} onRematch={() => start(fight.partner)} />;
 
   const makeLink = async () => {
@@ -180,6 +183,7 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken
           </>
         )}
       </div>
+      <RunCard onOpen={() => setRunning(true)} />
       <DailyCard pet={pet} onStart={(partner, seed) => start(partner, { seed })} />
       <ul className="sp-partners">
         {PARTNERS.map((p, i) => (

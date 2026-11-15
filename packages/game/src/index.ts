@@ -23,3 +23,6 @@ export * from "./away";
 export * from "./names";
 export * from "./sitting";
 export * from "./kin";
+export * from "./team";
+export * from "./companions";
+export * from "./arenarun";

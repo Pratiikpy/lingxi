@@ -79,3 +79,14 @@ export const SHELL: Palette = {
   x: "#FF7A59",
   X: "#E8604A",
 };
+
+/* Companion palettes: the arena's helpers wear their own colours so they never read as your pet. */
+
+/** Mint companions. */
+export const MINT: Palette = { ...shared, O: "#1F5A47", o: "#2F8A6A", D: "#3FA27E", d: "#5CC39A", m: "#7FDCB4", l: "#A6EBCD", h: "#E2FBF0", b: "#FF8FAE", x: "#FFC83D", X: "#E0A21F" };
+/** Lilac companions. */
+export const LILAC: Palette = { ...shared, O: "#4A2F70", o: "#6E4AA0", D: "#8763BC", d: "#A27FD6", m: "#BC9EEB", l: "#D4BFF5", h: "#F3EBFF", b: "#FF8FAE", x: "#7FCB8E", X: "#4E9E6A" };
+/** Peach companions. */
+export const PEACH: Palette = { ...shared, O: "#7A4A2E", o: "#B5774F", D: "#D9936A", d: "#F0AE84", m: "#FFC7A2", l: "#FFDCC4", h: "#FFF3EA", b: "#FF6F8E", x: "#7FB7F0", X: "#3F7FC4" };
+/** Night companions. */
+export const NIGHT: Palette = { ...shared, O: "#141A33", o: "#2A3460", D: "#3A4880", d: "#4E5FA0", m: "#6B7CC0", l: "#93A1DB", h: "#D7DDF7", b: "#FF8FAE", x: "#FFC83D", X: "#E0A21F", t: "#9BE8FF" };
