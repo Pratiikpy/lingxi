@@ -8,9 +8,10 @@
  */
 
 import { create } from "zustand";
-import { createPublicClient, createWalletClient, custom, http, type Hex, type PublicClient, type WalletClient } from "viem";
+import { createPublicClient, createWalletClient, custom, http, isAddress, type Hex, type PublicClient, type WalletClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { type Deployment, allowPartnerOnChain, breedOnChain, checkpointOnChain, hatchOnChain, readPet, setBrainOnChain, xLayer } from "@lingxi/chain";
+import { type Deployment, allowPartnerOnChain, breedOnChain, checkpointOnChain, hatchOnChain, readKeeping, readPet, setBrainOnChain, setSitterOnChain, xLayer } from "@lingxi/chain";
+import { AUTO_DAYS, AUTO_FUND, AUTO_LOW, sessionAccount, sessionWallet } from "./session";
 import { type Pet, logSegments, packState, petCard, stageOf, unpackState } from "@lingxi/game";
 import { relayBrain, relayChild } from "./api";
 import type { ChainInfo } from "./live";
@@ -27,7 +28,8 @@ const DEPLOYMENTS: Record<string, Deployment | undefined> = { local: localDeploy
 export const deployment: Deployment | undefined = DEPLOYMENTS[NETWORK];
 export const explorerTx = (tx: string) => (NETWORK === "local" ? null : `https://www.oklink.com/xlayer/tx/${tx}`);
 
-const rpc = deployment?.rpc ?? "https://rpc.xlayer.tech";
+// VITE_RPC points a test build at a local fork of X Layer; production builds leave it unset
+const rpc = (import.meta.env.VITE_RPC as string | undefined) ?? deployment?.rpc ?? "https://rpc.xlayer.tech";
 const chain = { ...xLayer, rpcUrls: { default: { http: [rpc] } } };
 export const publicClient: PublicClient = createPublicClient({ chain, transport: http(rpc) }) as PublicClient;
 /** X Layer's official RPC endpoints, for spreading heavy read loads (the proof page's full check). */
@@ -77,6 +79,16 @@ export interface ChainRecord {
   brainKey?: string;
   /** how many logged words the last checkpoint covers */
   logLen?: number;
+  /** auto-save: this device's key sits the pet on chain until then (seconds) */
+  autoUntil?: number;
+  /** a friend sits the pet on chain until then (seconds) */
+  sitter?: { who: string; until: number };
+}
+
+/** Whether auto-save is on now, ending soon, or off. */
+export function autoStatus(r: ChainRecord | null, nowMs: number): "on" | "ending" | "off" {
+  if (!r?.autoUntil || r.autoUntil * 1000 <= nowMs) return "off";
+  return r.autoUntil * 1000 - nowMs < 3 * 86_400_000 ? "ending" : "on";
 }
 
 /** The first line of an error, for showing to the player. */
@@ -123,10 +135,17 @@ const activeRecord = () => {
 
 interface ChainState {
   record: ChainRecord | null;
-  busy: "idle" | "connecting" | "hatching" | "saving" | "taping";
+  busy: "idle" | "connecting" | "hatching" | "saving" | "taping" | "auto";
   error: string | null;
   keep: (pet: Pet) => Promise<void>;
-  saveToday: (pet: Pet, onSaved: () => void) => Promise<void>;
+  /** save today; with `quiet`, only through the auto-save key and never opening the wallet */
+  saveToday: (pet: Pet, onSaved: () => void, quiet?: boolean) => Promise<void>;
+  /** turn auto-save on (one approval and one small gas top-up) or renew it */
+  enableAuto: (pet: Pet) => Promise<void>;
+  /** turn auto-save or a friend's sitting off */
+  endSitting: (pet: Pet) => Promise<void>;
+  /** let a friend's wallet keep the pet's daily saves for a number of days */
+  sitWith: (pet: Pet, who: string, days: number) => Promise<boolean>;
   updateMind: (pet: Pet) => Promise<void>;
   exportLog: (pet: Pet) => string | null;
   forget: () => void;
@@ -138,6 +157,29 @@ interface ChainState {
   allow: (pet: Pet, partnerOwner: string) => Promise<boolean>;
   /** hatch the newborn through the Breeder; returns the child's memory as the chain mixed it */
   breed: (parent: Pet, partner: ChainInfo, child: Pet) => Promise<{ ok: true; memory: number[] } | { ok: false; reason: string }>;
+}
+
+/**
+ * The auto-save key's wallet when it may save this pet right now (sitting on
+ * chain, not expired, enough gas), else null. A sitting replaced on chain (a
+ * friend now sits the pet) turns auto-save off on this device.
+ */
+async function autoWallet(pet: Pet, record: ChainRecord): Promise<WalletClient | null> {
+  if (!deployment || autoStatus(record, Date.now()) === "off") return null;
+  const key = sessionAccount().address;
+  const [k, balance] = await Promise.all([readKeeping(publicClient, deployment, BigInt(record.petId), key), publicClient.getBalance({ address: key })]);
+  if (!k.keeper) {
+    store(pet, { ...record, autoUntil: undefined });
+    useChain.setState({ record: activeRecord() });
+    return null;
+  }
+  if (balance < AUTO_LOW) return null;
+  return sessionWallet(chain, rpc);
+}
+
+/** Whether the auto-save key is running low on gas. */
+export async function autoGasLow(): Promise<boolean> {
+  return (await publicClient.getBalance({ address: sessionAccount().address })) < AUTO_LOW;
 }
 
 export const useChain = create<ChainState>((set, get) => ({
@@ -218,27 +260,94 @@ export const useChain = create<ChainState>((set, get) => ({
       set({ busy: "idle", error: (e as Error).message.split("\n")[0] ?? "failed" });
     }
   },
-  saveToday: async (pet, onSaved) => {
+  saveToday: async (pet, onSaved, quiet = false) => {
+    const record = records[petKey(pet)];
+    if (!deployment || !record || get().busy !== "idle") return;
+    set({ busy: quiet ? "auto" : "connecting", error: null });
+    try {
+      const auto = await autoWallet(pet, record);
+      if (!auto && quiet) return set({ busy: "idle" });
+      const wallet = auto ?? (await connectWallet());
+      set({ busy: quiet ? "auto" : "saving" });
+      // days are counted the way PetRegistry counts them: from block time, not this computer's clock
+      const blockMs = Number((await publicClient.getBlock()).timestamp) * 1000;
+      const day = chainDay(record, blockMs);
+      if (day <= record.lastDay) {
+        set({ busy: "idle", error: quiet ? null : "alreadySaved" });
+        return;
+      }
+      const tx = await checkpointOnChain(publicClient, wallet, deployment, BigInt(record.petId), day, packState(pet, stageOf(pet, Date.now())), pet.logHash as Hex);
+      const next = { ...(records[petKey(pet)] ?? record), lastDay: day, lastTx: tx, logLen: pet.pendingLog.length };
+      store(pet, next);
+      set({ record: activeRecord(), busy: "idle" });
+      onSaved();
+    } catch (e) {
+      set({ busy: "idle", error: quiet ? null : firstLine(e) });
+    }
+  },
+  enableAuto: async (pet) => {
     const record = records[petKey(pet)];
     if (!deployment || !record) return;
     set({ busy: "connecting", error: null });
     try {
       const wallet = await connectWallet();
       set({ busy: "saving" });
-      // days are counted the way PetRegistry counts them: from block time, not this computer's clock
-      const blockMs = Number((await publicClient.getBlock()).timestamp) * 1000;
-      const day = chainDay(record, blockMs);
-      if (day <= record.lastDay) {
-        set({ busy: "idle", error: "alreadySaved" });
-        return;
+      const key = sessionAccount().address;
+      const now = Number((await publicClient.getBlock()).timestamp);
+      // a little under the contract's 30-day limit, so the block that includes it is never past it
+      const until = now + AUTO_DAYS * 86_400 - 600;
+      await setSitterOnChain(publicClient, wallet, deployment, BigInt(record.petId), key, BigInt(until));
+      const balance = await publicClient.getBalance({ address: key });
+      if (balance < AUTO_FUND / 2n) {
+        const tx = await wallet.sendTransaction({ to: key, value: AUTO_FUND - balance, account: wallet.account!, chain });
+        await publicClient.waitForTransactionReceipt({ hash: tx });
       }
-      const tx = await checkpointOnChain(publicClient, wallet, deployment, BigInt(record.petId), day, packState(pet, stageOf(pet, Date.now())), pet.logHash as Hex);
-      const next = { ...record, lastDay: day, lastTx: tx, logLen: pet.pendingLog.length };
-      store(pet, next);
+      store(pet, { ...record, autoUntil: until, sitter: undefined });
       set({ record: activeRecord(), busy: "idle" });
-      onSaved();
     } catch (e) {
-      set({ busy: "idle", error: (e as Error).message.split("\n")[0] ?? "failed" });
+      set({ busy: "idle", error: firstLine(e) });
+    }
+  },
+  endSitting: async (pet) => {
+    const record = records[petKey(pet)];
+    if (!deployment || !record) return;
+    set({ busy: "connecting", error: null });
+    try {
+      const wallet = await connectWallet();
+      set({ busy: "saving" });
+      await setSitterOnChain(publicClient, wallet, deployment, BigInt(record.petId), "0x0000000000000000000000000000000000000000", 0n);
+      store(pet, { ...record, autoUntil: undefined, sitter: undefined });
+      set({ record: activeRecord(), busy: "idle" });
+    } catch (e) {
+      set({ busy: "idle", error: firstLine(e) });
+    }
+  },
+  sitWith: async (pet, who, days) => {
+    const record = records[petKey(pet)];
+    if (!deployment || !record) return false;
+    if (!isAddress(who)) {
+      set({ error: "badAddress" });
+      return false;
+    }
+    if (!(days >= 1 && days <= 30)) {
+      set({ error: "badDays" });
+      return false;
+    }
+    set({ busy: "connecting", error: null });
+    try {
+      const wallet = await connectWallet();
+      if (who.toLowerCase() === wallet.account!.address.toLowerCase()) throw new Error("selfSitter");
+      set({ busy: "saving" });
+      const now = Number((await publicClient.getBlock()).timestamp);
+      const until = now + Math.round(days) * 86_400 - 600;
+      await setSitterOnChain(publicClient, wallet, deployment, BigInt(record.petId), who as Hex, BigInt(until));
+      store(pet, { ...record, autoUntil: undefined, sitter: { who, until } });
+      set({ record: activeRecord(), busy: "idle" });
+      return true;
+    } catch (e) {
+      const msg = firstLine(e);
+      set({ busy: "idle", error: msg === "selfSitter" ? "selfSitter" : msg });
+      return false;
     }
   },
   updateMind: async (pet) => {

@@ -1,19 +1,36 @@
-/** The pet's on-chain twin: hatch it, save each day, and open the proof page. */
+/** The pet's on-chain twin: hatch it, save each day (by hand or automatically), let a friend sit it, and open the proof page. */
 
+import { useEffect, useState } from "react";
 import type { Pet } from "@lingxi/game";
-import { useT, type Key } from "../i18n";
-import { deployment, explorerTx, lessonsKey, useChain } from "../game/chain";
+import { useLang, useT, type Key } from "../i18n";
+import { autoGasLow, autoStatus, deployment, explorerTx, lessonsKey, useChain } from "../game/chain";
 import { play } from "../game/sound";
 import { useGame } from "../game/store";
 
-const ERR: Record<string, Key> = { noWallet: "chain.noWallet", noAccount: "chain.noWallet", alreadySaved: "chain.alreadySaved" };
+const ERR: Record<string, Key> = { noWallet: "chain.noWallet", noAccount: "chain.noWallet", alreadySaved: "chain.alreadySaved", badAddress: "sit.badAddress", badDays: "sit.badDays", selfSitter: "sit.self" };
+
+const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+const dateOf = (sec: number, lang: string) => new Date(sec * 1000).toLocaleDateString(lang === "zh" ? "zh-CN" : "en", { month: "short", day: "numeric" });
 
 export function ChainPanel({ pet }: { pet: Pet }) {
   const t = useT();
-  const { record, busy, error, keep, saveToday, updateMind, exportLog } = useChain();
+  const lang = useLang((s) => s.lang);
+  const { record, busy, error, keep, saveToday, updateMind, exportLog, enableAuto, endSitting, sitWith } = useChain();
   const say = useGame((s) => s.say);
+  const [friend, setFriend] = useState("");
+  const [days, setDays] = useState(3);
+  const [lowGas, setLowGas] = useState(false);
+  const auto = autoStatus(record, Date.now());
+  useEffect(() => {
+    if (auto === "off") return;
+    let live = true;
+    autoGasLow().then((low) => live && setLowGas(low), () => {});
+    return () => {
+      live = false;
+    };
+  }, [auto, record?.lastTx]);
   if (!deployment) return null;
-  const busyText = busy === "connecting" ? t("chain.connecting") : busy === "hatching" ? t("chain.hatching") : busy === "saving" ? t("chain.saving") : busy === "taping" ? t("chain.taping") : null;
+  const busyText = busy === "connecting" ? t("chain.connecting") : busy === "hatching" ? t("chain.hatching") : busy === "saving" ? t("chain.saving") : busy === "taping" ? t("chain.taping") : busy === "auto" ? t("auto.saving") : null;
   const mindBehind = record && (record.brainKey ?? lessonsKey([])) !== lessonsKey(pet.lessons);
   const err = error ? t(ERR[error] ?? "chain.failed") : null;
   return (
@@ -39,6 +56,74 @@ export function ChainPanel({ pet }: { pet: Pet }) {
             >
               {t("chain.download")}
             </a>
+          </div>
+          <div className="keeping">
+            <p className="label">{t("auto.title")}</p>
+            {auto === "off" ? (
+              <>
+                <p className="small">{t("auto.pitch", { name: pet.name })}</p>
+                <button type="button" className="btn primary" disabled={busy !== "idle"} onClick={() => (play("tap"), enableAuto(pet))}>
+                  {t("auto.on")}
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="small">{t(auto === "ending" ? "auto.ending" : "auto.until", { date: dateOf(record.autoUntil!, lang) })}</p>
+                {lowGas && <p className="err">{t("auto.lowGas")}</p>}
+                <div className="row">
+                  {(auto === "ending" || lowGas) && (
+                    <button type="button" className="btn primary" disabled={busy !== "idle"} onClick={() => (play("tap"), enableAuto(pet))}>
+                      {t("auto.renew")}
+                    </button>
+                  )}
+                  <button type="button" className="btn" disabled={busy !== "idle"} onClick={() => (play("tap"), endSitting(pet))}>
+                    {t("auto.off")}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+          <div className="keeping">
+            <p className="label">{t("sit.title")}</p>
+            {record.sitter && record.sitter.until * 1000 > Date.now() ? (
+              <>
+                <p className="small">{t("sit.now", { who: short(record.sitter.who), date: dateOf(record.sitter.until, lang) })}</p>
+                <button type="button" className="btn" disabled={busy !== "idle"} onClick={() => (play("tap"), endSitting(pet))}>
+                  {t("sit.end")}
+                </button>
+              </>
+            ) : (
+              <form
+                className="sit-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  play("tap");
+                  void sitWith(pet, friend.trim(), days).then((ok) => ok && (setFriend(""), play("success")));
+                }}
+              >
+                <p className="small">{t("sit.pitch", { name: pet.name })}</p>
+                <label className="sr" htmlFor="sit-who">
+                  {t("sit.who")}
+                </label>
+                <input id="sit-who" className="input mono" placeholder="0x…" value={friend} onChange={(e) => setFriend(e.target.value)} autoComplete="off" spellCheck={false} />
+                <div className="row">
+                  <label className="small" htmlFor="sit-days">
+                    {t("sit.days")}
+                  </label>
+                  <select id="sit-days" className="input" value={days} onChange={(e) => setDays(Number(e.target.value))}>
+                    {[1, 3, 7, 14, 30].map((d) => (
+                      <option key={d} value={d}>
+                        {t("sit.dayN", { n: d })}
+                      </option>
+                    ))}
+                  </select>
+                  <button type="submit" className="btn primary" disabled={busy !== "idle" || !friend.trim()}>
+                    {t("sit.go")}
+                  </button>
+                </div>
+                {auto !== "off" && <p className="small">{t("sit.pausesAuto")}</p>}
+              </form>
+            )}
           </div>
           {mindBehind && (
             <div className="mind-behind">

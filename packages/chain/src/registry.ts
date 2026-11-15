@@ -114,6 +114,26 @@ export async function checkpointOnChain(pub: PublicClient, wallet: WalletClient,
   return tx;
 }
 
+/** Let `who` keep the pet (write checkpoints) until `until` (seconds); owner only, at most 30 days. */
+export async function setSitterOnChain(pub: PublicClient, wallet: WalletClient, d: Deployment, petId: bigint, who: Address, until: bigint): Promise<Hex> {
+  const account = wallet.account;
+  if (!account) throw new Error("wallet has no account");
+  const { request } = await pub.simulateContract({ address: d.registry, abi: petRegistryAbi, functionName: "setSitter", args: [petId, who, until], account });
+  const tx = await wallet.writeContract(request);
+  const r = await pub.waitForTransactionReceipt({ hash: tx });
+  if (r.status !== "success") throw new Error("setSitter failed");
+  return tx;
+}
+
+/** Who sits the pet and until when (seconds), and whether `who` may write its checkpoints right now. */
+export async function readKeeping(pub: PublicClient, d: Deployment, petId: bigint, who: Address): Promise<{ sitter: Address; until: number; keeper: boolean }> {
+  const [s, keeper] = await Promise.all([
+    pub.readContract({ address: d.registry, abi: petRegistryAbi, functionName: "sitters", args: [petId] }) as Promise<readonly [Address, bigint, Address]>,
+    pub.readContract({ address: d.registry, abi: petRegistryAbi, functionName: "isKeeper", args: [petId, who] }) as Promise<boolean>,
+  ]);
+  return { sitter: s[0], until: Number(s[1]), keeper };
+}
+
 export async function setBrainOnChain(pub: PublicClient, wallet: WalletClient, d: Deployment, petId: bigint, processor: Address, brainId: bigint): Promise<Hex> {
   const account = wallet.account;
   if (!account) throw new Error("wallet has no account");

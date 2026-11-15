@@ -58,6 +58,18 @@ export function PlayApp() {
   const worldForage = useWorld((s) => s.forage);
   const [worldMsg, setWorldMsg] = useState<{ id: number; text: string } | null>(null);
   useEffect(followClock, []);
+  // auto-save: when a new chain day starts, save it through the device key, never through a wallet pop-up
+  const autoOn = useChain((s) => Boolean(s.record?.autoUntil));
+  useEffect(() => {
+    if (!autoOn) return;
+    const run = () => {
+      const p = useGame.getState().pet;
+      if (p) void useChain.getState().saveToday(p, () => useGame.getState().say("saved"), true);
+    };
+    run();
+    const id = setInterval(run, 10 * 60_000);
+    return () => clearInterval(id);
+  }, [autoOn]);
   useEffect(() => {
     if (!worldNotice) return;
     const text = noticeText(worldNotice, t, lang);

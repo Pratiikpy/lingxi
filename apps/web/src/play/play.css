@@ -964,3 +964,39 @@
 .diary-lines li::marker {
   color: #ff7a6b;
 }
+.keeping {
+  display: grid;
+  gap: var(--s2);
+  padding-top: var(--s3);
+  border-top: 2px dashed color-mix(in srgb, var(--line) 25%, transparent);
+}
+.sit-form {
+  display: grid;
+  gap: var(--s2);
+}
+.sit-form .row {
+  align-items: center;
+}
+.chainpanel .input {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+}
+.chainpanel .input.mono {
+  width: 100%;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 13px;
+}
+.chainpanel .input:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent, #ff7a6b) 60%, transparent);
+  outline-offset: 1px;
+}
+.keeping > .btn,
+.keeping .row .btn {
+  justify-self: start;
+}
