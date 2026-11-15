@@ -16,6 +16,7 @@ import { play } from "../game/sound";
 import { mindParts, useGame } from "../game/store";
 import { Icon } from "./icons";
 import { Chips } from "./parts";
+import { Sandbox } from "./Sandbox";
 import { MOOD_NAMES, VALUE_NAMES, WANT_NAMES, chipsFor } from "./ruleText";
 import "./teach.css";
 
@@ -462,6 +463,7 @@ export function TeachPanel({ pet }: { pet: Pet }) {
       <GateMeter pet={pet} />
       <Learned pet={pet} />
       <SchoolLevels pet={pet} canLearn={!full && !proposal} onPropose={(rule) => propose(rule, undefined, { kind: "school" })} />
+      <Sandbox pet={pet} trying={proposal?.rule ?? null} />
       <AnimatePresence mode="wait">
         {proposal ? (
           <Proposal key="p" pet={pet} rule={proposal.rule} source={proposal.source} {...(proposal.reply ? { reply: proposal.reply } : {})} onDone={() => setProposal(null)} />

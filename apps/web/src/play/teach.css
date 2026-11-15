@@ -473,3 +473,50 @@
   gap: var(--s2);
   margin-bottom: var(--s2);
 }
+.sandbox {
+  border: 2px dashed var(--line);
+  border-radius: var(--r-md);
+  padding: 8px 12px;
+}
+.sandbox summary {
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 14px;
+}
+.sb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+  margin: 10px 0;
+}
+.sb-grid label {
+  display: grid;
+  gap: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+.sb-grid select {
+  min-height: 34px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+}
+.sb-answers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+.sb-answer {
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  background: var(--band);
+}
+.sb-answer .label {
+  margin: 0;
+}
