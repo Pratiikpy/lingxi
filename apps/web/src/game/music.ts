@@ -312,3 +312,105 @@ export function followClock(): () => void {
   const id = setInterval(tick, 60_000);
   return () => clearInterval(id);
 }
+
+/* ── room ambience: birds by day, crickets at night, rain on rainy days ─────── */
+
+export type Ambience = "birds" | "crickets" | "rain" | "quiet";
+
+let ambienceTimer: ReturnType<typeof setInterval> | null = null;
+let rainNode: { src: AudioBufferSourceNode; gain: GainNode } | null = null;
+let ambienceNow: Ambience = "quiet";
+
+function stopAmbience(): void {
+  if (ambienceTimer) clearInterval(ambienceTimer);
+  ambienceTimer = null;
+  if (rainNode && live) {
+    const r = rainNode;
+    r.gain.gain.setTargetAtTime(0, live.currentTime, 0.4);
+    setTimeout(() => r.src.stop(), 1500);
+  }
+  rainNode = null;
+}
+
+/** A bird's two-note call: a quick upward sweep, then a softer echo. */
+function birdCall(c: AudioContext, at: number): void {
+  const base = 2200 + Math.random() * 1400;
+  for (const [delay, vol] of [
+    [0, 0.018],
+    [0.16, 0.011],
+  ] as const) {
+    const o = c.createOscillator();
+    o.type = "sine";
+    o.frequency.setValueAtTime(base, at + delay);
+    o.frequency.exponentialRampToValueAtTime(base * 1.45, at + delay + 0.08);
+    const g = c.createGain();
+    g.gain.setValueAtTime(0, at + delay);
+    g.gain.linearRampToValueAtTime(vol, at + delay + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + delay + 0.11);
+    o.connect(g).connect(c.destination);
+    o.start(at + delay);
+    o.stop(at + delay + 0.13);
+  }
+}
+
+/** A cricket's trill: a few fast pulses of a high tone. */
+function cricket(c: AudioContext, at: number): void {
+  const f = 4200 + Math.random() * 500;
+  for (let i = 0; i < 4; i++) {
+    const t = at + i * 0.045;
+    const o = c.createOscillator();
+    o.type = "sine";
+    o.frequency.value = f;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.006, t + 0.008);
+    g.gain.linearRampToValueAtTime(0, t + 0.03);
+    o.connect(g).connect(c.destination);
+    o.start(t);
+    o.stop(t + 0.035);
+  }
+}
+
+function startAmbience(kind: Ambience): void {
+  stopAmbience();
+  if (kind === "quiet") return;
+  const c = setup();
+  void c.resume();
+  if (kind === "rain") {
+    // soft rain: two seconds of noise, looped, through a low-pass filter
+    const buf = c.createBuffer(1, c.sampleRate * 2, c.sampleRate);
+    const d = buf.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < d.length; i++) {
+      last = (last + (Math.random() * 2 - 1) * 0.08) * 0.985;
+      d[i] = last * 3 + (Math.random() < 0.0009 ? (Math.random() - 0.5) * 0.6 : 0);
+    }
+    const src = c.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    const lp = c.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.value = 1800;
+    const gain = c.createGain();
+    gain.gain.value = 0;
+    gain.gain.setTargetAtTime(0.05, c.currentTime, 1.2);
+    src.connect(lp).connect(gain).connect(c.destination);
+    src.start();
+    rainNode = { src, gain };
+    return;
+  }
+  ambienceTimer = setInterval(() => {
+    if (Math.random() < (kind === "birds" ? 0.18 : 0.35)) (kind === "birds" ? birdCall : cricket)(c, c.currentTime + Math.random() * 0.4);
+  }, 1000);
+}
+
+/** The game says what the room sounds like; it plays only while sound is on and the tab is seen. */
+export function setAmbience(kind: Ambience): void {
+  ambienceNow = kind;
+  if (useSound.getState().on && !document.hidden) startAmbience(kind);
+  else stopAmbience();
+}
+
+useSound.subscribe((s) => (s.on ? startAmbience(ambienceNow) : stopAmbience()));
+document.addEventListener("visibilitychange", () => (document.hidden ? stopAmbience() : useSound.getState().on && startAmbience(ambienceNow)));
+

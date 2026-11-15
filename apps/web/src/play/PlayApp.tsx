@@ -8,11 +8,11 @@ import { type Partner, friendPartner, petCard, stageOf, visibleMeters } from "@l
 import { useT, useLang } from "../i18n";
 import { useGame } from "../game/store";
 import { chirp, play } from "../game/sound";
-import { followClock } from "../game/music";
+import { followClock, setAmbience } from "../game/music";
 import { useReminders } from "../game/reminders";
 import { RemindersPanel } from "./Reminders";
 import { BadgeShelf, BadgeToast } from "./Badges";
-import { type DayPhase, RoomScene } from "../scene/RoomScene";
+import { type DayPhase, RoomScene, weatherFor } from "../scene/RoomScene";
 import { PALETTE_OF, type PetStage } from "../scene/textures";
 import { Hatch } from "./Hatch";
 import { Actions, Meters, TabBar, ThinkStrip, ToastView, TopBar, VoiceBubble, type Tab } from "./parts";
@@ -111,6 +111,12 @@ export function PlayApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [worldNotice]);
   const room = ROOMS[worldRoom] ?? ROOMS[HOME]!;
+  // what the room sounds like: rain outdoors on a rainy day, else birds by day and crickets at night
+  const outdoors = !INDOOR_ROOMS.has(worldRoom);
+  useEffect(() => {
+    setAmbience(outdoors && weatherFor(new Date()) === "rain" ? "rain" : !outdoors ? "quiet" : phase === "night" ? "crickets" : phase === "day" ? "birds" : "quiet");
+    return () => setAmbience("quiet");
+  }, [outdoors, phase]);
   const who = CHARACTER_IN_ROOM[worldRoom] ?? null;
   const [talking, setTalking] = useState(false);
   const [npcFace, setNpcFace] = useState<string | null>(null);
