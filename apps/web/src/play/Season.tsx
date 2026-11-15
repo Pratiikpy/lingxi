@@ -11,6 +11,7 @@ import { type SeasonView, enterSeason, markAwarded, mine, readSeason } from "../
 import { useBadges } from "../game/badges";
 import { play } from "../game/sound";
 import { recordOf } from "../game/chain";
+import { useWorld } from "../game/world";
 import "./season.css";
 
 const SHOWN = 10;
@@ -45,6 +46,8 @@ export function SeasonCard({ pet }: { pet: Pet }) {
       const row = l.standings.find((r) => r.key === key);
       const tier = row ? placeTier(row.rank) : 0;
       if (tier) useBadges.getState().note("seasonPlace", tier);
+      // the champion's keepsake outfit (F26)
+      if (tier === 3) useWorld.getState().giveLaurel();
       markAwarded(l.week);
     }
   }, [week]);

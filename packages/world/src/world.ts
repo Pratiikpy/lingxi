@@ -132,6 +132,8 @@ export interface WorldState {
   trip?: { to: string; leftAt: number; backAt: number };
   recipes?: number[];
   trips?: number;
+  /** outfit pieces owned, and what each pet wears (see wardrobe.ts) */
+  wardrobe?: { owned: string[]; worn: Record<string, Partial<Record<"head" | "face" | "held", string>>> };
   /** the Mushroom Garden's plots (see garden.ts) */
   garden?: { plots: Array<{ crop: string; at: number; compost: boolean } | null>; harvested: number };
   /** decorations bought and where they stand in the home room */

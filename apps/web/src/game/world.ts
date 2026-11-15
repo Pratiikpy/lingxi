@@ -4,7 +4,7 @@
  * pet; food from the bag goes through the game rules like any care.
  */
 
-import { DECOR_BY_ID, MAX_PLACED, PLACE_AREA, buyDecor as buyDecorRule, placeDecor as placeDecorRule, removeDecor as removeDecorRule, COMPOST, compostFromClean, harvest as harvestRule, plant as plantRule, startWalk as startWalkRule, stepWalk as stepWalkRule, endWalk as endWalkRule, startTrip as startTripRule, endTrip as endTripRule } from "@lingxi/world";
+import { DECOR_BY_ID, MAX_PLACED, PLACE_AREA, buyDecor as buyDecorRule, placeDecor as placeDecorRule, removeDecor as removeDecorRule, COMPOST, compostFromClean, harvest as harvestRule, plant as plantRule, startWalk as startWalkRule, stepWalk as stepWalkRule, endWalk as endWalkRule, startTrip as startTripRule, endTrip as endTripRule, make as makeRule, buyPiece as buyPieceRule, wear as wearRule, giveLaurel as giveLaurelRule } from "@lingxi/world";
 import { useBadges } from "./badges";
 import { create } from "zustand";
 import { exert, stageOf } from "@lingxi/game";
@@ -67,7 +67,7 @@ function save(w: WorldState): void {
 
 export interface WorldNotice {
   id: number;
-  kind: "moved" | "found" | "bought" | "made" | "claimed" | "fail" | "opened" | "planted" | "harvested" | "compost";
+  kind: "moved" | "found" | "bought" | "made" | "claimed" | "fail" | "opened" | "planted" | "harvested" | "compost" | "sewn" | "built";
   text?: string;
   items?: Array<{ item: number; n: number }>;
   reason?: string;
@@ -98,6 +98,11 @@ interface WorldStore {
   plant: (plot: number, crop: string, compost: boolean) => void;
   harvest: (plot: number) => void;
   compost: (cleanBefore: number) => void;
+  /** the wardrobe (S4, W6, M3) */
+  make: (kind: "outfit" | "furniture", id: string) => void;
+  buyPiece: (id: string) => void;
+  wear: (petKey: string, slot: "head" | "face" | "held", id: string | null) => void;
+  giveLaurel: () => void;
   /** walks and trips (W4, W5) */
   startWalk: (sensor: boolean) => void;
   addSteps: (n: number) => void;
@@ -226,6 +231,39 @@ export const useWorld = create<WorldStore>((set, get) => ({
     if (!r.made) return;
     save(r.world);
     set({ world: r.world, notice: { id: ++n, kind: "compost", items: [{ item: COMPOST, n: 1 }] } });
+  },
+  make: (kind, id) => {
+    const r = makeRule(get().world, kind, id);
+    if (!r.ok) {
+      play("error");
+      return set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
+    }
+    save(r.world);
+    play("success");
+    set({ world: r.world, notice: { id: ++n, kind: kind === "outfit" ? "sewn" : "built", text: id } });
+  },
+  buyPiece: (id) => {
+    const r = buyPieceRule(get().world, id);
+    if (!r.ok) {
+      play("error");
+      return set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
+    }
+    save(r.world);
+    play("pop");
+    set({ world: r.world, notice: { id: ++n, kind: "sewn", text: id } });
+  },
+  wear: (petKey, slot, id) => {
+    const r = wearRule(get().world, petKey, slot, id);
+    if (!r.ok) return set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
+    save(r.world);
+    play("pop");
+    set({ world: r.world });
+  },
+  giveLaurel: () => {
+    const next = giveLaurelRule(get().world);
+    if (next === get().world) return;
+    save(next);
+    set({ world: next, notice: { id: ++n, kind: "sewn", text: "laurel" } });
   },
   lastOuting: null,
   startWalk: (sensor) => {

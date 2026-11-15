@@ -6,3 +6,4 @@ export * from "./characters";
 export * from "./decor";
 export * from "./garden";
 export * from "./outings";
+export * from "./wardrobe";

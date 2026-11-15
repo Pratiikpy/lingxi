@@ -16,7 +16,10 @@ import {
   SUNNY,
   drawCat,
   drawPet,
+  type Outfit,
+  paintOverlay,
   toRgba,
+  wearOverlay,
 } from "@lingxi/art";
 import type { StarterLine } from "@lingxi/brain";
 
@@ -24,7 +27,7 @@ const cache = new Map<string, Texture>();
 
 export const PALETTE_OF: Record<StarterLine, Palette> = { gentle: CORAL, bold: SUNNY, curious: SKY };
 
-function canvasTexture(key: string, c: PixelCanvas, pal: Palette): Texture {
+function canvasTexture(key: string, c: PixelCanvas, pal: Palette, paint?: (rgba: Uint8ClampedArray) => void): Texture {
   const hit = cache.get(key);
   if (hit) return hit;
   const el = document.createElement("canvas");
@@ -32,7 +35,9 @@ function canvasTexture(key: string, c: PixelCanvas, pal: Palette): Texture {
   el.height = c.h;
   const ctx = el.getContext("2d")!;
   const img = ctx.createImageData(c.w, c.h);
-  img.data.set(toRgba(c, pal, 1));
+  const rgba = toRgba(c, pal, 1);
+  paint?.(rgba);
+  img.data.set(rgba);
   ctx.putImageData(img, 0, 0);
   const t = Texture.from(el);
   t.source.scaleMode = "nearest";
@@ -50,11 +55,16 @@ export interface PetFrame {
   lit: boolean;
   /** the adult form, when grown */
   form?: Form;
+  /** what it wears (cosmetic) */
+  outfit?: Outfit;
 }
 
 export function petTexture(line: StarterLine, f: PetFrame): Texture {
-  const key = `pet:${line}:${f.stage}:${f.expression}:${f.breath}:${f.squash}:${f.lit ? 1 : 0}:${f.form ?? ""}`;
-  return canvasTexture(key, drawPet(line, f.stage, f), PALETTE_OF[line]);
+  const o = f.outfit ?? {};
+  const key = `pet:${line}:${f.stage}:${f.expression}:${f.breath}:${f.squash}:${f.lit ? 1 : 0}:${f.form ?? ""}:${o.head ?? ""}:${o.face ?? ""}:${o.held ?? ""}`;
+  const c = drawPet(line, f.stage, f);
+  const worn = o.head || o.face || o.held;
+  return canvasTexture(key, c, PALETTE_OF[line], worn ? (rgba) => paintOverlay(rgba, c.w, wearOverlay(c, line, f.stage, o, f.squash, f.form)) : undefined);
 }
 
 export function catTexture(pose: CatPose): Texture {

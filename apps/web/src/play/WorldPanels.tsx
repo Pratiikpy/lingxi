@@ -3,7 +3,8 @@
 import { CuteState } from "./CuteState";
 import { useMemo, useState } from "react";
 import { stageOf } from "@lingxi/game";
-import { HOME, ITEM, QUESTS, RECIPES, ROOMS, has, knownTravelRecipes, neighbours, questState } from "@lingxi/world";
+import { CORNER_SHOP, DECOR_BY_ID, HOME, ITEM, MAKE_RECIPES, PIECE_PRICES, QUESTS, RECIPES, ROOMS, has, knownTravelRecipes, neighbours, ownedPieces, questState } from "@lingxi/world";
+import { WEARABLE } from "@lingxi/art";
 import { useLang, useT, type Key } from "../i18n";
 import { useChain } from "../game/chain";
 import { useGame } from "../game/store";
@@ -24,9 +25,11 @@ export function noticeText(nt: WorldNotice, t: ReturnType<typeof useT>, lang: "e
   if (nt.kind === "planted") return t("world.planted");
   if (nt.kind === "harvested") return t("world.harvested", { items: itemList(nt.items, lang) });
   if (nt.kind === "compost") return t("world.compost");
+  if (nt.kind === "sewn") return lang === "zh" ? `新衣服：${WEARABLE[nt.text ?? ""]?.name.zh ?? ""}。去宠物页穿上吧。` : `New outfit: ${WEARABLE[nt.text ?? ""]?.name.en ?? ""}. Put it on from the pet page.`;
+  if (nt.kind === "built") return lang === "zh" ? `做好了${DECOR_BY_ID[nt.text ?? ""]?.name.zh ?? ""}，可以摆在家里了。` : `Built a ${DECOR_BY_ID[nt.text ?? ""]?.name.en.toLowerCase() ?? ""} for the home.`;
   if (nt.kind === "claimed") return t("world.claimed", { coins: nt.coins ?? 0, items: nt.items?.length ? (lang === "zh" ? `，${itemList(nt.items, lang)}` : `, ${itemList(nt.items, lang)}`) : "" });
   const k = `world.fail.${nt.reason}` as Key;
-  return ["tired", "asleep", "already", "nothingHere", "coins", "missing", "notNear", "full", "owned", "notHere", "noSeed", "noCompost", "notRipe", "taken", "walking", "travelling", "notBack"].includes(nt.reason ?? "") ? t(k) : t("world.fail.other");
+  return ["tired", "asleep", "already", "nothingHere", "coins", "missing", "notNear", "full", "owned", "notHere", "noSeed", "noCompost", "notRipe", "taken", "walking", "travelling", "notBack", "notSold", "notOwned", "wrongSlot"].includes(nt.reason ?? "") ? t(k) : t("world.fail.other");
 }
 
 export function MapPanel({ onGone }: { onGone: () => void }) {
@@ -91,7 +94,8 @@ export function MapPanel({ onGone }: { onGone: () => void }) {
 export function BagPanel({ onFed }: { onFed: () => void }) {
   const t = useT();
   const { lang } = useLang();
-  const { world, use, craft, buy, openBox } = useWorld();
+  const { world, use, craft, buy, openBox, make, buyPiece } = useWorld();
+  const owned = ownedPieces(world);
   const room = ROOMS[world.room]!;
   const entries = Object.entries(world.bag)
     .map(([k, v]) => ({ item: ITEM[Number(k)], n: v }))
@@ -179,6 +183,47 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
           </ul>
         </section>
       )}
+      {world.room === CORNER_SHOP && (
+        <section>
+          <p className="label">{lang === "zh" ? "衣服" : "Outfits"}</p>
+          <ul className="bag-list">
+            {Object.entries(PIECE_PRICES).map(([id, price]) => (
+              <li key={id} className="bag-item">
+                <div className="bag-text">
+                  <b>{WEARABLE[id]!.name[lang]}</b>
+                  <span>{lang === "zh" ? "只是好看，不影响玩法。" : "Looks only; it never changes how your pet plays."}</span>
+                </div>
+                <button type="button" className="btn primary" disabled={owned.includes(id) || world.coins < price} onClick={() => buyPiece(id)}>
+                  {owned.includes(id) ? (lang === "zh" ? "已拥有" : "Owned") : `${t("bag.buy")} · ${price}`}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      <section>
+        <p className="label">{lang === "zh" ? "缝衣服 · 做家具" : "Sew and build"}</p>
+        <ul className="bag-list">
+          {MAKE_RECIPES.map((r) => {
+            const done = r.kind === "outfit" ? owned.includes(r.id) : (world.decor?.owned ?? []).includes(r.id);
+            const can = r.ins.every((x) => has(world, x.item, x.amount));
+            const name = r.kind === "outfit" ? WEARABLE[r.id]!.name[lang] : DECOR_BY_ID[r.id]!.name[lang];
+            return (
+              <li key={`${r.kind}:${r.id}`} className={`bag-item${can || done ? "" : " is-dim"}`}>
+                <div className="bag-text">
+                  <b>
+                    {name} <em>{r.kind === "outfit" ? (lang === "zh" ? "衣服" : "outfit") : lang === "zh" ? "家具" : "furniture"}</em>
+                  </b>
+                  <span>{r.ins.map((x) => `${ITEM[x.item]!.name[lang]} ×${x.amount} (${world.bag[x.item] ?? 0})`).join(" + ")}</span>
+                </div>
+                <button type="button" className="btn primary" disabled={done || !can} onClick={() => make(r.kind, r.id)}>
+                  {done ? (lang === "zh" ? "已有" : "Have it") : r.kind === "outfit" ? (lang === "zh" ? "缝" : "Sew") : lang === "zh" ? "做" : "Build"}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
       <section>
         <p className="label">{t("bag.workbench")}</p>
         {makeable.length ? (

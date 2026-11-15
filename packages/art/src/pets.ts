@@ -43,7 +43,7 @@ export const FORMS = ["puff", "blossom", "dumpling", "scholar", "moonpetal"] as 
 export type Form = (typeof FORMS)[number];
 
 /** Where each line's features sit on its adult body (hand-placed). */
-const ANCHORS: Record<"gentle" | "bold" | "curious", { ear: [number, number]; hat: [number, number]; moon: [number, number]; pleat: [number, number] }> = {
+export const ANCHORS: Record<"gentle" | "bold" | "curious", { ear: [number, number]; hat: [number, number]; moon: [number, number]; pleat: [number, number] }> = {
   gentle: { ear: [15, 23], hat: [20, 12], moon: [38, 9], pleat: [21, 21] },
   bold: { ear: [10, 27], hat: [31, 17], moon: [6, 8], pleat: [20, 24] },
   curious: { ear: [17, 22], hat: [20, 13], moon: [40, 9], pleat: [21, 21] },

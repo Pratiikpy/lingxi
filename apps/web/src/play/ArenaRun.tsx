@@ -7,7 +7,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { LILAC, MINT, NIGHT, PEACH, type Palette, drawPet, type Expression } from "@lingxi/art";
+import { LILAC, MINT, NIGHT, PEACH, type OverlayPixel, type Outfit, type Palette, drawPet, type Expression, wearOverlay } from "@lingxi/art";
+import { outfitOf } from "@lingxi/world";
 import {
   COMPANION,
   MAX_COMPANIONS,
@@ -71,10 +72,10 @@ const PET_HP = 100;
 const ARENA_PET_LEVEL = 1;
 const ROUND_MS = 760;
 
-function Art({ canvas, palette, scale, label }: { canvas: PixelCanvas; palette: Palette; scale: number; label?: string }) {
+function Art({ canvas, palette, scale, label, overlay }: { canvas: PixelCanvas; palette: Palette; scale: number; label?: string; overlay?: readonly OverlayPixel[] }) {
   const b = boundingBox(canvas);
   const crop = { x: Math.max(0, b.x - 1), y: Math.max(0, b.y - 1), w: Math.min(canvas.w - Math.max(0, b.x - 1), b.w + 2), h: Math.min(canvas.h - Math.max(0, b.y - 1), b.h + 2) };
-  return <Sprite canvas={canvas} palette={palette} scale={scale} crop={crop} label={label} />;
+  return <Sprite canvas={canvas} palette={palette} scale={scale} crop={crop} label={label} overlay={overlay} />;
 }
 
 function CompanionArt({ id, scale, face = "happy", label }: { id: string; scale: number; face?: Expression; label?: string }) {
@@ -86,8 +87,11 @@ function CompanionArt({ id, scale, face = "happy", label }: { id: string; scale:
 function PetArt({ pet, scale, face = "happy" }: { pet: Pet; scale: number; face?: Expression }) {
   const stage = stageOf(pet, Date.now());
   const drawn = stage === "elder" ? "adult" : stage;
+  const world = useWorld((s) => s.world);
+  const worn = outfitOf(world, String(pet.bornAt)) as Outfit;
   const canvas = useMemo(() => drawPet(pet.line, drawn as "baby", { expression: face, ...(pet.form ? { form: pet.form } : {}) }), [pet.line, drawn, face, pet.form]);
-  return <Art canvas={canvas} palette={PALETTE_OF[pet.line]} scale={scale} label={pet.name} />;
+  const overlay = useMemo(() => (worn.head || worn.face || worn.held ? wearOverlay(canvas, pet.line, drawn as "baby", worn, 0, pet.form) : undefined), [canvas, pet.line, drawn, worn.head, worn.face, worn.held, pet.form]);
+  return <Art canvas={canvas} palette={PALETTE_OF[pet.line]} scale={scale} label={pet.name} overlay={overlay} />;
 }
 
 const companionUnit = (id: string, i: number, edge = 0): TeamUnit => {

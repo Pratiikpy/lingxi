@@ -44,6 +44,8 @@ export interface SceneProps {
   asleep: boolean;
   /** away on a trip: the room stands empty of it */
   absent?: boolean;
+  /** what it wears (cosmetic) */
+  outfit?: import("@lingxi/art").Outfit;
   /** ill from neglect: dizzy face and little green swirls */
   sick: boolean;
   want: number;
@@ -460,7 +462,7 @@ export function RoomScene(props: SceneProps) {
           }
         }
         const breath: 0 | 1 = p.reduceMotion ? 0 : Math.sin(now / (p.asleep ? 900 : 620)) > 0.35 ? 1 : 0;
-        pet.texture = petTexture(p.line, { stage: p.stage, expression: e, breath, squash, lit, ...(p.form ? { form: p.form } : {}) });
+        pet.texture = petTexture(p.line, { stage: p.stage, expression: e, breath, squash, lit, ...(p.form ? { form: p.form } : {}), ...(p.outfit ? { outfit: p.outfit } : {}) });
         pet.x = PET_X;
         pet.y = PET_FEET - lift;
         pet.visible = !p.absent;

@@ -43,8 +43,9 @@ import { ArenaPanel } from "./Arena";
 import { BrainView } from "./BrainView";
 import { ChainPanel } from "./ChainPanel";
 import { HomePanel } from "./Home";
+import { WardrobePanel } from "./Wardrobe";
 import { Outings } from "./Outings";
-import { DESTINATION } from "@lingxi/world";
+import { DESTINATION, outfitOf } from "@lingxi/world";
 import { Icon } from "./icons";
 import { Sprite } from "./Sprite";
 import "./play.css";
@@ -339,6 +340,7 @@ export function PlayApp() {
             {...(pet.form ? { form: pet.form } : {})}
             asleep={pet.asleep}
             absent={travelling}
+            outfit={outfitOf(worldFull, String(pet.bornAt))}
             sick={!!pet.sick}
             want={pet.last.want}
             mood={pet.last.mood}
@@ -587,6 +589,8 @@ export function PlayApp() {
 
       <BadgeToast />
       <Sheet open={tab === "me"} title={t("me.title", { name: pet.name })} onClose={close}>
+        <WardrobePanel pet={pet} />
+        <hr className="divider" />
         <MeSheetBody pet={pet} />
         <hr className="divider" />
         <DiaryPanel pet={pet} />

@@ -8,7 +8,8 @@
 import { useBadges } from "../game/badges";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { FLY, type Palette, type PixelCanvas, boundingBox, drawFly, drawPet, type Expression } from "@lingxi/art";
+import { FLY, type OverlayPixel, type Palette, type PixelCanvas, boundingBox, drawFly, drawPet, type Expression, type Outfit, wearOverlay } from "@lingxi/art";
+import { outfitOf } from "@lingxi/world";
 import { STARTERS, programOfChips } from "@lingxi/brain";
 import { type Challenge, type CoachNote, type DuelPet, type Fighter, MAX_HP, MOVES, type Move, PARTNERS, type Partner, type Pet, type SparResult, TRAITS, coach, dayOf, duel as runDuel, duelFighter, encodeChallenge, encodeResult, fighterOfMind, fighterOfPartner, halvesOf, petCard, rewindFight, ruleSource, spar, stageOf, FLY_RIVALS, type FlyRival, FlyLinkError, flyFighter, parseFlyBrain } from "@lingxi/game";
 import { linkPrefix } from "../game/links";
@@ -50,10 +51,10 @@ const levelOf = (stage: string) => (stage === "elder" ? 2 : stage === "teen" || 
 const drawn = (s: string): PetStage => (s === "elder" ? "adult" : (s as PetStage));
 
 /** A pet sprite cropped to what is drawn, so small pets are not lost in empty canvas. */
-function PetArt({ canvas, line, palette, scale, label }: { canvas: PixelCanvas; line: keyof typeof PALETTE_OF; palette?: Palette; scale: number; label?: string }) {
+function PetArt({ canvas, line, palette, scale, label, overlay }: { canvas: PixelCanvas; line: keyof typeof PALETTE_OF; palette?: Palette; scale: number; label?: string; overlay?: readonly OverlayPixel[] }) {
   const b = boundingBox(canvas);
   const crop = { x: Math.max(0, b.x - 1), y: Math.max(0, b.y - 1), w: Math.min(canvas.w - Math.max(0, b.x - 1), b.w + 2), h: Math.min(canvas.h - Math.max(0, b.y - 1), b.h + 2) };
-  return <Sprite canvas={canvas} palette={palette ?? PALETTE_OF[line]} scale={scale} crop={crop} label={label} />;
+  return <Sprite canvas={canvas} palette={palette ?? PALETTE_OF[line]} scale={scale} crop={crop} label={label} overlay={overlay} />;
 }
 
 function why(key: CoachNote["key"], name: string, other: string, lang: Lang): string {
@@ -358,6 +359,10 @@ export function FightView({
     return round.moods[side]! >= 2 ? "sparkly" : round.moods[side] === 0 ? "sulk" : "neutral";
   };
   const mine = useMemo(() => drawPet(self.line, stage, { expression: face(0), ...(pet?.form && !replay ? { form: pet.form } : {}) }), [self.line, stage, shown, finished, pet?.form, replay]);
+  // our own pet fights in its outfit (looks only)
+  const world = useWorld((s) => s.world);
+  const worn = pet && !replay ? (outfitOf(world, String(pet.bornAt)) as Outfit) : {};
+  const mineWorn = useMemo(() => (worn.head || worn.face || worn.held ? wearOverlay(mine, self.line, stage, worn, 0, pet?.form) : undefined), [mine, self.line, stage, worn.head, worn.face, worn.held, pet?.form]);
   const theirs = useMemo(
     () => (partner.look === "fly" ? drawFly({ flap: !!round && round.moves[1] === "pounce", hurt: face(1) === "startled" || face(1) === "sad" }) : drawPet(partner.line, partner.stage, { expression: face(1) })),
     [partner.look, partner.line, partner.stage, shown, finished],
@@ -389,7 +394,7 @@ export function FightView({
               animate={round && round.hits[1 - side]! > 0 && !reduce ? { x: [0, side === 0 ? -6 : 6, 0, side === 0 ? -3 : 3, 0] } : round && round.moves[side] === "pounce" && !reduce ? { x: [0, side === 0 ? 14 : -14, 0] } : {}}
               transition={{ duration: 0.38 }}
             >
-              <PetArt canvas={side === 0 ? mine : theirs} line={side === 0 ? self.line : partner.line} palette={side === 1 && partner.look === "fly" ? FLY : undefined} scale={4} />
+              <PetArt canvas={side === 0 ? mine : theirs} line={side === 0 ? self.line : partner.line} palette={side === 1 && partner.look === "fly" ? FLY : undefined} scale={4} overlay={side === 0 ? mineWorn : undefined} />
             </motion.div>
             <AnimatePresence>
               {round && round.hits[1 - side]! > 0 && (
