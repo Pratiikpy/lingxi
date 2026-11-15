@@ -796,3 +796,14 @@
   font-size: 13px;
   color: var(--ink-soft);
 }
+
+.world-toast {
+  top: auto;
+  bottom: 66px;
+  background: var(--sky);
+}
+.pill {
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}

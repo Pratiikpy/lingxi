@@ -27,7 +27,7 @@ export function Chips({ when, then }: { when: string[]; then: string }) {
   );
 }
 
-export function TopBar({ pet, daily, face }: { pet: Pet; daily: Daily; face: React.ReactNode }) {
+export function TopBar({ pet, daily, face, onQuests }: { pet: Pet; daily: Daily; face: React.ReactNode; onQuests: () => void }) {
   const t = useT();
   const toggleLang = useLang((s) => s.toggle);
   const sound = useSound();
@@ -46,7 +46,7 @@ export function TopBar({ pet, daily, face }: { pet: Pet; daily: Daily; face: Rea
         </div>
       </div>
       <div className="top-right">
-        <div className="pill">
+        <button type="button" className="pill" onClick={onQuests} aria-label={t("quest.title")}>
           <div className="kin" aria-label={t("me.friendship")}>
             <Icon name="heart" size={16} />
             <span>{pet.counts.pet + pet.counts.feed}</span>
@@ -57,7 +57,7 @@ export function TopBar({ pet, daily, face }: { pet: Pet; daily: Daily; face: Rea
             ))}
             <small>{t("daily.label")}</small>
           </div>
-        </div>
+        </button>
         <button type="button" className="round-btn" onClick={sound.toggle} aria-label={sound.on ? t("sound.on") : t("sound.off")} aria-pressed={sound.on}>
           <Icon name={sound.on ? "sound" : "mute"} size={20} />
         </button>
@@ -151,12 +151,12 @@ export function ToastView({ toast, name }: { toast: Toast | null; name: string }
   );
 }
 
-export type Tab = "home" | "care" | "mind" | "spar" | "me";
+export type Tab = "home" | "map" | "bag" | "mind" | "me" | "quests";
 const TABS: ReadonlyArray<[Tab, IconName, Key]> = [
   ["home", "home", "tab.home"],
-  ["care", "heart", "tab.care"],
+  ["map", "map", "tab.map"],
+  ["bag", "bag", "tab.bag"],
   ["mind", "mind", "tab.mind"],
-  ["spar", "star", "tab.spar"],
   ["me", "pet", "tab.me"],
 ];
 

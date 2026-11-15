@@ -17,6 +17,7 @@
     "@lingxi/brain": "workspace:*",
     "@lingxi/chain": "workspace:*",
     "@lingxi/game": "workspace:*",
+    "@lingxi/world": "workspace:*",
     "motion": "12.16.0",
     "viem": "2.57.7",
     "pixi.js": "8.10.0",

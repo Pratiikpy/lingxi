@@ -1,0 +1,229 @@
+.map {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+.map-levels {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.map-grid {
+  display: grid;
+  gap: 4px;
+}
+.tile {
+  position: relative;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--band);
+  cursor: default;
+  min-width: 0;
+}
+.tile img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+.tile.fog {
+  border-style: dashed;
+  background: var(--track);
+  display: grid;
+  place-items: center;
+  color: var(--ink-soft);
+  font-family: var(--display);
+  font-size: 14px;
+}
+.tile:not(.here):not(.near) img {
+  filter: saturate(0.5) brightness(0.85);
+}
+.tile.near {
+  cursor: pointer;
+  box-shadow: 0 0 0 2px var(--sunny);
+  transition: transform var(--t-micro) var(--ease);
+}
+.tile.near:hover {
+  transform: translateY(-2px);
+}
+.tile.near:active {
+  transform: scale(0.95);
+}
+.tile.here {
+  box-shadow: 0 0 0 3px var(--coral);
+}
+.tile .dot {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--coral);
+  border: 2px solid #fff7e8;
+}
+.map-here {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--band);
+}
+.map-here b {
+  font-family: var(--round);
+  font-weight: 800;
+  font-size: 17px;
+}
+.map-here span {
+  font-size: 13.5px;
+  color: var(--ink-soft);
+}
+.bag {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+}
+.bag section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+.bag .label {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.coins {
+  margin: 0;
+  align-self: flex-start;
+  padding: 4px 12px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--sunny);
+  color: #2b2140;
+  font-family: var(--round);
+  font-weight: 800;
+}
+.bag-list,
+.quests {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bag-item,
+.quest {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--card);
+}
+.quest {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.quest.ready {
+  background: var(--band);
+}
+.quest.claimed {
+  opacity: 0.6;
+}
+.quest .bar {
+  margin-top: 6px;
+}
+.quest-state {
+  font-family: var(--round);
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.bag-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.bag-text b {
+  font-family: var(--round);
+  font-weight: 800;
+  font-size: 15px;
+}
+.bag-text b em {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+.bag-text span {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  line-height: 1.35;
+}
+.bag-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 6px;
+}
+.bag-grid li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 6px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--card);
+  text-align: center;
+  font-family: var(--round);
+  font-weight: 700;
+  font-size: 12px;
+  min-width: 0;
+}
+.room-pill {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  max-width: calc(100% - 80px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.room-pill b {
+  padding: 6px 12px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 253, 248, 0.93);
+  border: 2px solid #2b2140;
+  color: #2b2140;
+  font-family: var(--round);
+  font-weight: 800;
+  font-size: 13px;
+}
+.room-pill button {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  border: 2px solid #2b2140;
+  background: var(--sunny);
+  color: #2b2140;
+  font-family: var(--round);
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+}

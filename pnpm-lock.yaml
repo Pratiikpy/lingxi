@@ -28,6 +28,9 @@ importers:
       '@lingxi/game':
         specifier: workspace:*
         version: link:../../packages/game
+      '@lingxi/world':
+        specifier: workspace:*
+        version: link:../../packages/world
       motion:
         specifier: 12.16.0
         version: 12.16.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -135,6 +138,22 @@ importers:
       '@lingxi/brain':
         specifier: workspace:*
         version: link:../brain
+      '@noble/hashes':
+        specifier: 1.8.0
+        version: 1.8.0
+    devDependencies:
+      '@types/node':
+        specifier: 22.15.30
+        version: 22.15.30
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 3.2.4
+        version: 3.2.4(@types/node@22.15.30)(tsx@4.20.3)
+
+  packages/world:
+    dependencies:
       '@noble/hashes':
         specifier: 1.8.0
         version: 1.8.0

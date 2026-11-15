@@ -12,7 +12,11 @@ import { type DayPhase, RoomScene } from "../scene/RoomScene";
 import { PALETTE_OF, type PetStage } from "../scene/textures";
 import { Hatch } from "./Hatch";
 import { Actions, Meters, TabBar, ThinkStrip, ToastView, TopBar, type Tab } from "./parts";
-import { EvolutionChart, FoodList, MeSheetBody, MindPanel, Sheet } from "./Sheets";
+import { EvolutionChart, MeSheetBody, MindPanel, Sheet } from "./Sheets";
+import { BagPanel, MapPanel, QuestPanel, noticeText } from "./WorldPanels";
+import { useWorld } from "../game/world";
+import { HOME, ROOMS, neighbours } from "@lingxi/world";
+import { AnimatePresence, motion } from "motion/react";
 import { TeachPanel } from "./Teach";
 import { BrainView } from "./BrainView";
 import { ChainPanel } from "./ChainPanel";
@@ -37,6 +41,22 @@ export function PlayApp() {
   const [tab, setTab] = useState<Tab>("home");
   const [phase, setPhase] = useState<DayPhase>(phaseNow);
   const [circuit, setCircuit] = useState(false);
+  const worldRoom = useWorld((s) => s.world.room);
+  const worldNotice = useWorld((s) => s.notice);
+  const worldMove = useWorld((s) => s.move);
+  const worldForage = useWorld((s) => s.forage);
+  const [worldMsg, setWorldMsg] = useState<{ id: number; text: string } | null>(null);
+  useEffect(() => {
+    if (!worldNotice) return;
+    const text = noticeText(worldNotice, t, lang);
+    if (!text) return;
+    setWorldMsg({ id: worldNotice.id, text });
+    const id = setTimeout(() => setWorldMsg(null), 2800);
+    return () => clearTimeout(id);
+    // the notice id changes on every event; t and lang only matter at that moment
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [worldNotice]);
+  const room = ROOMS[worldRoom] ?? ROOMS[HOME]!;
 
   useEffect(() => {
     document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
@@ -93,11 +113,6 @@ export function PlayApp() {
     );
   }
 
-  const feed = (food: string) => {
-    close();
-    play("pop");
-    act({ kind: "feed", food });
-  };
   const playBall = () => {
     play("pop");
     act({ kind: "play" });
@@ -117,7 +132,7 @@ export function PlayApp() {
 
   return (
     <div className="app">
-      <TopBar pet={pet} daily={daily} face={face && <FaceSprite canvas={face} line={pet.line} />} />
+      <TopBar pet={pet} daily={daily} face={face && <FaceSprite canvas={face} line={pet.line} />} onQuests={() => pick("quests")} />
       <div className="main">
         <section className="stage" aria-label={pet.name}>
           <RoomScene
@@ -130,7 +145,26 @@ export function PlayApp() {
             lastCare={lastCare}
             onPetTap={onPetTap}
             reduceMotion={reduce}
+            bgs={room.bgs}
           />
+          <div className="room-pill">
+            <b>{room.name[lang]}</b>
+            {room.drops.length > 0 && (
+              <button type="button" onClick={() => (play("tap"), worldForage())}>
+                {t("room.look")}
+              </button>
+            )}
+            {room.shop.length > 0 && (
+              <button type="button" onClick={() => pick("bag")}>
+                {t("room.shop")}
+              </button>
+            )}
+            {room.index !== HOME && neighbours(room.index).includes(HOME) && (
+              <button type="button" onClick={() => worldMove(HOME)}>
+                {t("room.home")}
+              </button>
+            )}
+          </div>
           {circuit && (
             <div className="circuit-overlay">
               <BrainView pet={pet} reduceMotion={reduce} />
@@ -140,11 +174,26 @@ export function PlayApp() {
             <Icon name="mind" size={22} />
           </button>
           <ToastView toast={toast} name={pet.name} />
+          <AnimatePresence>
+            {worldMsg && (
+              <motion.div
+                key={worldMsg.id}
+                className="toast world-toast"
+                role="status"
+                initial={{ opacity: 0, y: -12, x: "-50%" }}
+                animate={{ opacity: 1, y: 0, x: "-50%" }}
+                exit={{ opacity: 0, y: -8, x: "-50%" }}
+                transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+              >
+                {worldMsg.text}
+              </motion.div>
+            )}
+          </AnimatePresence>
           <ThinkStrip pet={pet} />
         </section>
         <div className="side">
           <Meters pet={pet} />
-          <Actions pet={pet} onFeed={() => pick("care")} onPlay={playBall} onClean={clean} onSleep={sleep} />
+          <Actions pet={pet} onFeed={() => pick("bag")} onPlay={playBall} onClean={clean} onSleep={sleep} />
           <section className="card mindcard" aria-label={t("mind.title", { name: pet.name })}>
             <div className="cardbar" aria-hidden="true">
               <i />
@@ -161,8 +210,14 @@ export function PlayApp() {
       </div>
       <TabBar current={tab} onPick={pick} />
 
-      <Sheet open={tab === "care"} title={t("care.title", { name: pet.name })} onClose={close}>
-        <FoodList pet={pet} onPick={feed} />
+      <Sheet open={tab === "bag"} title={t("bag.title")} onClose={close}>
+        <BagPanel onFed={close} />
+      </Sheet>
+      <Sheet open={tab === "map"} title={t("map.title")} onClose={close}>
+        <MapPanel onGone={close} />
+      </Sheet>
+      <Sheet open={tab === "quests"} title={t("quest.title")} onClose={close}>
+        <QuestPanel />
       </Sheet>
       <Sheet open={tab === "mind"} title={t("teach.title", { name: pet.name })} onClose={close}>
         <TeachPanel pet={pet} />
@@ -170,14 +225,7 @@ export function PlayApp() {
         <p className="small">{t("mind.title", { name: pet.name })}</p>
         <MindPanel pet={pet} />
       </Sheet>
-      <Sheet open={tab === "spar"} title={t("spar.title")} onClose={close}>
-        <p className="small">{t("spar.locked", { name: pet.name })}</p>
-        <div className="locked" aria-hidden="true">
-          <div className="slot">???</div>
-          <div className="slot">???</div>
-          <div className="slot">???</div>
-        </div>
-      </Sheet>
+
       <Sheet open={tab === "me"} title={t("me.title", { name: pet.name })} onClose={close}>
         <MeSheetBody pet={pet} />
         <hr className="divider" />

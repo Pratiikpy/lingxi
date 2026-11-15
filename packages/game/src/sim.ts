@@ -16,7 +16,7 @@
  */
 
 import { type FastBrain, type Program, encodeSenses, hungerBucket, bucket, runBeat, timeOfDay } from "@lingxi/brain";
-import { type FoodItem, foodById } from "./items";
+import { foodById } from "./items";
 import { chainLog, ZERO_HASH } from "./log";
 import {
   BEAT_MS,
@@ -183,8 +183,20 @@ export function catchUp(p0: Pet, now: number, brain: Brain, eventAt: (beat: numb
   return p;
 }
 
+/** What an item does when used on the pet (visible meter units). */
+export interface ItemEffect {
+  food?: number;
+  joy?: number;
+  energy?: number;
+  clean?: number;
+  xp?: number;
+  diet?: "sweet" | "fruit" | "savory" | "grain";
+  wake?: boolean;
+}
+
 export type Care =
-  | { kind: "feed"; food: string }
+  | { kind: "feed"; food: string | ItemEffect }
+  | { kind: "use"; item: ItemEffect }
   | { kind: "play" }
   | { kind: "clean" }
   | { kind: "lightsOff" }
@@ -196,7 +208,7 @@ export type Care =
 export interface CareResult {
   pet: Pet;
   /** what the owner sees happen, for the diary and the screen */
-  note: "ate" | "overfed" | "woke" | "played" | "tooTired" | "cleaned" | "sleeping" | "awake" | "petted" | "healed" | "listened" | "hibernationEnded";
+  note: "ate" | "overfed" | "woke" | "played" | "tooTired" | "cleaned" | "sleeping" | "awake" | "petted" | "healed" | "listened" | "hibernationEnded" | "used";
 }
 
 /**
@@ -207,8 +219,9 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
   const p = cloneForEdit(catchUp(p0, now, brain));
   let action: number = ACTION.none;
   let note: CareResult["note"] = "listened";
+  const wakes = c.kind === "use" && c.item.wake === true;
   if (p.hibernating) {
-    if (c.kind === "feed" || c.kind === "pet" || c.kind === "wake") {
+    if (c.kind === "feed" || c.kind === "pet" || c.kind === "wake" || wakes) {
       p.hibernating = false;
       p.asleep = false;
       p.starvingBeats = 0;
@@ -219,11 +232,13 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
   }
   switch (c.kind) {
     case "feed": {
-      const f: FoodItem = foodById(c.food);
+      const f: ItemEffect = typeof c.food === "string" ? foodById(c.food) : c.food;
       const wasFull = toVisible(p.meters.food) >= 900;
-      p.meters.food = addVisible(p.meters.food, f.food);
-      p.meters.joy = addVisible(p.meters.joy, wasFull ? -40 : f.joy);
-      p.diet[f.diet] = Math.min(63, p.diet[f.diet] + 1);
+      p.meters.food = addVisible(p.meters.food, f.food ?? 0);
+      p.meters.joy = addVisible(p.meters.joy, wasFull ? -40 : (f.joy ?? 0));
+      if (f.energy) p.meters.energy = addVisible(p.meters.energy, f.energy);
+      if (f.xp) p.xp = Math.min(0xffff, p.xp + f.xp);
+      if (f.diet) p.diet[f.diet] = Math.min(63, p.diet[f.diet] + 1);
       p.counts.feed = Math.min(255, p.counts.feed + 1);
       if (p.asleep) {
         p.asleep = false;
@@ -268,6 +283,18 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
       note = "petted";
       action = ACTION.pet;
       break;
+    case "use": {
+      const u = c.item;
+      if (u.food) p.meters.food = addVisible(p.meters.food, u.food);
+      if (u.joy) p.meters.joy = addVisible(p.meters.joy, u.joy);
+      if (u.energy) p.meters.energy = addVisible(p.meters.energy, u.energy);
+      if (u.clean) p.meters.clean = addVisible(p.meters.clean, u.clean);
+      if (u.xp) p.xp = Math.min(0xffff, p.xp + u.xp);
+      if (u.wake) p.asleep = false;
+      note = "used";
+      action = ACTION.medicine;
+      break;
+    }
     case "medicine":
       p.meters.energy = addVisible(p.meters.energy, 100);
       note = "healed";
@@ -290,5 +317,12 @@ export function liveBeat(p0: Pet, now: number, brain: Brain, event = EVENT.none)
   p.beat = target;
   decay(p);
   if (!p.hibernating) think(p, brain, target, ACTION.none, event, true);
+  return p;
+}
+
+/** Walking and searching tire the pet: energy spent, no beat logged. */
+export function exert(p0: Pet, energy: number, now: number, brain: Brain): Pet {
+  const p = cloneForEdit(catchUp(p0, now, brain));
+  p.meters.energy = clampMeter(p.meters.energy - Math.max(0, energy) * SUB);
   return p;
 }

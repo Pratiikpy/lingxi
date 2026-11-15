@@ -120,7 +120,7 @@ export const useGame = create<GameState>((set, get) => ({
     set({
       pet: r.pet,
       daily: d,
-      lastCare: { kind: c.kind, at: performance.now(), ...(c.kind === "feed" ? { food: c.food } : {}) },
+      lastCare: { kind: c.kind === "use" ? "feed" : c.kind, at: performance.now() },
       toast: { id: ++toastId, note: r.note },
     });
   },

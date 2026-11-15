@@ -26,14 +26,20 @@ export interface SceneProps {
   lastCare: { kind: string; at: number } | null;
   onPetTap: () => void;
   reduceMotion: boolean;
+  /** the current room's backgrounds */
+  bgs: { day: string; evening: string; night: string };
 }
 
 const ROOM = 128;
-const BG: Record<DayPhase, string> = {
-  day: "pet/rooms/65_forest-hut/backgrounds/room65a.png",
-  evening: "pet/rooms/65_forest-hut/backgrounds/room65b.png",
-  night: "pet/rooms/65_forest-hut/backgrounds/room65c.png",
-};
+const bgCache = new Map<string, Texture>();
+async function bgTexture(url: string): Promise<Texture> {
+  const hit = bgCache.get(url);
+  if (hit) return hit;
+  const t: Texture = await Assets.load(url);
+  t.source.scaleMode = "nearest";
+  bgCache.set(url, t);
+  return t;
+}
 const PET_X = 64;
 const PET_FEET = 104;
 const CAT_FEET = 96;
@@ -87,12 +93,7 @@ export function RoomScene(props: SceneProps) {
       app.canvas.classList.add("pixel");
       app.canvas.style.display = "block";
 
-      const bgTextures: Record<DayPhase, Texture> = {
-        day: await Assets.load(BG.day),
-        evening: await Assets.load(BG.evening),
-        night: await Assets.load(BG.night),
-      };
-      for (const t of Object.values(bgTextures)) t.source.scaleMode = "nearest";
+      const first = await bgTexture(latest.current.bgs[latest.current.phase]);
       if (disposed) {
         app.destroy(true, { children: true });
         return;
@@ -100,7 +101,7 @@ export function RoomScene(props: SceneProps) {
 
       const world = new Container();
       app.stage.addChild(world);
-      const room = new Sprite(bgTextures[latest.current.phase]);
+      const room = new Sprite(first);
       world.addChild(room);
       const shadeLayer = new Container();
       world.addChild(shadeLayer);
@@ -161,14 +162,17 @@ export function RoomScene(props: SceneProps) {
 
       let lastCareAt = -1;
       let blinkAt = performance.now() + 1500;
-      let phase = latest.current.phase;
+      let shownBg = latest.current.bgs[latest.current.phase];
 
       const tick = () => {
         const now = performance.now();
         const p = latest.current;
-        if (p.phase !== phase) {
-          phase = p.phase;
-          room.texture = bgTextures[phase];
+        const wantBg = p.bgs[p.phase];
+        if (wantBg !== shownBg) {
+          shownBg = wantBg;
+          void bgTexture(wantBg).then((tex) => {
+            if (shownBg === wantBg && !room.destroyed) room.texture = tex;
+          });
         }
         if (p.lastCare && p.lastCare.at !== lastCareAt) {
           lastCareAt = p.lastCare.at;

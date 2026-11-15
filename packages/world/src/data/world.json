@@ -1,0 +1,3433 @@
+{
+ "rooms": [
+  {
+   "index": 1,
+   "src": "Misty Riverside",
+   "srcDesc": "The air is quiet and the trees grow thick overhead. In each direction the murky river disappears into mist and darkness.",
+   "x": 3,
+   "y": 1,
+   "z": 1,
+   "exits": [
+    20
+   ],
+   "bgs": {
+    "day": "pet/rooms/1_misty-river/backgrounds/original.png",
+    "evening": "pet/rooms/1_misty-river/backgrounds/original.png",
+    "night": "pet/rooms/1_misty-river/backgrounds/original.png"
+   },
+   "drops": [
+    {
+     "item": 1002,
+     "weight": 9
+    },
+    {
+     "item": 1003,
+     "weight": 7
+    }
+   ]
+  },
+  {
+   "index": 2,
+   "src": "Tunnel of Trees",
+   "srcDesc": "A gate marks the boundary between the forest and the plains. The incongruous “SHOP” door has a cool glow.",
+   "x": 3,
+   "y": 3,
+   "z": 1,
+   "exits": [
+    13
+   ],
+   "bgs": {
+    "day": "pet/rooms/2_tree-tunnel/backgrounds/playtest-a.png",
+    "evening": "pet/rooms/2_tree-tunnel/backgrounds/playtest-b.png",
+    "night": "pet/rooms/2_tree-tunnel/backgrounds/playtest-c.png"
+   },
+   "drops": [
+    {
+     "item": 1001,
+     "weight": 9
+    },
+    {
+     "item": 1002,
+     "weight": 9
+    }
+   ]
+  },
+  {
+   "index": 3,
+   "src": "Torii Gate",
+   "srcDesc": "The Torii gate standing here radiates an aura of spiritual significance. Piles of scrap and garbage rise like mountains on the horizon.",
+   "x": 3,
+   "y": 4,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/3_gate/backgrounds/playtest-a.png",
+    "evening": "pet/rooms/3_gate/backgrounds/playtest-b.png",
+    "night": "pet/rooms/3_gate/backgrounds/playtest-c.png"
+   },
+   "drops": [
+    {
+     "item": 1001,
+     "weight": 9
+    },
+    {
+     "item": 1002,
+     "weight": 9
+    },
+    {
+     "item": 11011,
+     "weight": 4
+    }
+   ]
+  },
+  {
+   "index": 4,
+   "src": "Vending Machine",
+   "srcDesc": "A vending machine stands deep in the scrap, well stocked and operating despite the remote location and cut power cord.",
+   "x": 3,
+   "y": 6,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/4_junkyard/backgrounds/playtest-a.png",
+    "evening": "pet/rooms/4_junkyard/backgrounds/playtest-b.png",
+    "night": "pet/rooms/4_junkyard/backgrounds/playtest-c.png"
+   },
+   "drops": []
+  },
+  {
+   "index": 5,
+   "src": "Restricted Area",
+   "srcDesc": "A restricted area, but no one is watching. Follow this road lined with cherry trees to reach an office complex.",
+   "x": 3,
+   "y": 9,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/5_restricted/backgrounds/playtest-a.png",
+    "evening": "pet/rooms/5_restricted/backgrounds/playtest-b.png",
+    "night": "pet/rooms/5_restricted/backgrounds/playtest-c.png"
+   },
+   "drops": [
+    {
+     "item": 1001,
+     "weight": 9
+    },
+    {
+     "item": 1002,
+     "weight": 9
+    }
+   ]
+  },
+  {
+   "index": 6,
+   "src": "Labs Entrance",
+   "srcDesc": "The exterior of this building was designed to resemble a shrine almost as much as an office.",
+   "x": 4,
+   "y": 10,
+   "z": 1,
+   "exits": [
+    28
+   ],
+   "bgs": {
+    "day": "pet/rooms/6_office-front/backgrounds/playtest-a.png",
+    "evening": "pet/rooms/6_office-front/backgrounds/playtest-b.png",
+    "night": "pet/rooms/6_office-front/backgrounds/playtest-c.png"
+   },
+   "drops": [
+    {
+     "item": 1002,
+     "weight": 9
+    },
+    {
+     "item": 1003,
+     "weight": 6
+    },
+    {
+     "item": 11313,
+     "weight": 4
+    }
+   ]
+  },
+  {
+   "index": 9,
+   "src": "Forest: Old Growth",
+   "srcDesc": "You step into the forest and seem to enter a primordial age. The buzz of giant insects overwhelms your hearing.",
+   "x": 5,
+   "y": 8,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/9_forest/backgrounds/playtest-a.png",
+    "evening": "pet/rooms/9_forest/backgrounds/playtest-b.png",
+    "night": "pet/rooms/9_forest/backgrounds/playtest-c.png"
+   },
+   "drops": [
+    {
+     "item": 1001,
+     "weight": 9
+    },
+    {
+     "item": 1004,
+     "weight": 7
+    },
+    {
+     "item": 1010,
+     "weight": 3
+    }
+   ]
+  },
+  {
+   "index": 10,
+   "src": "Forest: Insect Node",
+   "srcDesc": "The buzzing is loudest here. This mound draws insects of all types toward it. They writhe together in a trance.",
+   "x": 5,
+   "y": 5,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/10_forest-insect/backgrounds/playtest-a.png",
+    "evening": "pet/rooms/10_forest-insect/backgrounds/playtest-b.png",
+    "night": "pet/rooms/10_forest-insect/backgrounds/playtest-c.png"
+   },
+   "drops": [
+    {
+     "item": 1001,
+     "weight": 9
+    },
+    {
+     "item": 1004,
+     "weight": 7
+    },
+    {
+     "item": 11011,
+     "weight": 4
+    }
+   ]
+  },
+  {
+   "index": 11,
+   "src": "Temple by the Waterfall",
+   "srcDesc": "A humble shrine lends this waterfall basin a peaceful aura, but the air has an unpleasant aroma like dirty laundry.",
+   "x": 6,
+   "y": 11,
+   "z": 1,
+   "exits": [
+    24,
+    15
+   ],
+   "bgs": {
+    "day": "pet/rooms/11_waterfall/backgrounds/playtest-a.png",
+    "evening": "pet/rooms/11_waterfall/backgrounds/playtest-b.png",
+    "night": "pet/rooms/11_waterfall/backgrounds/playtest-c.png"
+   },
+   "drops": []
+  },
+  {
+   "index": 12,
+   "src": "Scrap Confluence",
+   "srcDesc": "A collection of strange and hard to identify objects buried deep in the scrapyard. It could be dangerous to get close.",
+   "x": 1,
+   "y": 6,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/12_junkyard-machine/backgrounds/playtest-a.png",
+    "evening": "pet/rooms/12_junkyard-machine/backgrounds/playtest-b.png",
+    "night": "pet/rooms/12_junkyard-machine/backgrounds/playtest-c.png"
+   },
+   "drops": [
+    {
+     "item": 1005,
+     "weight": 9
+    },
+    {
+     "item": 11302,
+     "weight": 8
+    },
+    {
+     "item": 11011,
+     "weight": 6
+    },
+    {
+     "item": 23102,
+     "weight": 2
+    }
+   ]
+  },
+  {
+   "index": 13,
+   "src": "Convenience Store",
+   "srcDesc": "The glowing blue door seems to lead to a convenience store. Where is this? That “Exit” sign might let you leave.",
+   "x": 4,
+   "y": 3,
+   "z": 2,
+   "exits": [
+    2
+   ],
+   "bgs": {
+    "day": "pet/rooms/13_giftshop/backgrounds/original.png",
+    "evening": "pet/rooms/13_giftshop/backgrounds/original.png",
+    "night": "pet/rooms/13_giftshop/backgrounds/original.png"
+   },
+   "drops": []
+  },
+  {
+   "index": 15,
+   "src": "Temple Cave",
+   "srcDesc": "A cave behind the waterfall. Friendly statues line a path to the back of the cave, away from ancient-looking temple ruins.",
+   "x": 5,
+   "y": 7,
+   "z": 3,
+   "exits": [
+    11
+   ],
+   "bgs": {
+    "day": "pet/rooms/15_temple-cave/backgrounds/room15a.png",
+    "evening": "pet/rooms/15_temple-cave/backgrounds/room15a.png",
+    "night": "pet/rooms/15_temple-cave/backgrounds/room15a.png"
+   },
+   "drops": [
+    {
+     "item": 1017,
+     "weight": 9
+    },
+    {
+     "item": 1018,
+     "weight": 9
+    },
+    {
+     "item": 11302,
+     "weight": 2
+    }
+   ]
+  },
+  {
+   "index": 16,
+   "src": "Techno Temple",
+   "srcDesc": "Inside the ruined temple. This place might have been traditional once, but now it sparks and rumbles with technology.",
+   "x": 6,
+   "y": 7,
+   "z": 3,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/16_techno-temple/backgrounds/room16a.png",
+    "evening": "pet/rooms/16_techno-temple/backgrounds/room16a.png",
+    "night": "pet/rooms/16_techno-temple/backgrounds/room16a.png"
+   },
+   "drops": [
+    {
+     "item": 1017,
+     "weight": 9
+    },
+    {
+     "item": 11302,
+     "weight": 2
+    },
+    {
+     "item": 1004,
+     "weight": 2
+    },
+    {
+     "item": 6001,
+     "weight": 1
+    }
+   ]
+  },
+  {
+   "index": 18,
+   "src": "Cave Crossroads",
+   "srcDesc": "Deep in the cave the path branches. The bioluminescent fungi make it nearly as bright as day. You can hear bells in the air.",
+   "x": 5,
+   "y": 6,
+   "z": 3,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/18_cave-crossroads/backgrounds/room18a.png",
+    "evening": "pet/rooms/18_cave-crossroads/backgrounds/room18b.png",
+    "night": "pet/rooms/18_cave-crossroads/backgrounds/room18c.png"
+   },
+   "drops": [
+    {
+     "item": 1016,
+     "weight": 9
+    },
+    {
+     "item": 1013,
+     "weight": 2
+    },
+    {
+     "item": 11312,
+     "weight": 1
+    }
+   ]
+  },
+  {
+   "index": 19,
+   "src": "Temple of the Wheel",
+   "srcDesc": "Half eroded stone and mossy growth, half gleaming metal and glowing crystal. Whether temple or technology, it unsettles you.",
+   "x": 2,
+   "y": 4,
+   "z": 3,
+   "exits": [
+    59
+   ],
+   "bgs": {
+    "day": "pet/rooms/19_temple-of-the-wheel/backgrounds/room19a.png",
+    "evening": "pet/rooms/19_temple-of-the-wheel/backgrounds/room19a.png",
+    "night": "pet/rooms/19_temple-of-the-wheel/backgrounds/room19a.png"
+   },
+   "drops": [
+    {
+     "item": 1018,
+     "weight": 9
+    },
+    {
+     "item": 1017,
+     "weight": 9
+    },
+    {
+     "item": 1011,
+     "weight": 2
+    },
+    {
+     "item": 1012,
+     "weight": 1
+    }
+   ]
+  },
+  {
+   "index": 25,
+   "src": "Lost Skeleton",
+   "srcDesc": "A crumbling human skeleton lies prone on the ground. It looks to have been decomposing for decades.",
+   "x": 6,
+   "y": 9,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/25_lost-skeleton/backgrounds/playtest-a.png",
+    "evening": "pet/rooms/25_lost-skeleton/backgrounds/playtest-b.png",
+    "night": "pet/rooms/25_lost-skeleton/backgrounds/playtest-c.png"
+   },
+   "drops": [
+    {
+     "item": 1001,
+     "weight": 8
+    },
+    {
+     "item": 1004,
+     "weight": 6
+    },
+    {
+     "item": 1014,
+     "weight": 6
+    }
+   ]
+  },
+  {
+   "index": 26,
+   "src": "Trash-Strewn Graves",
+   "srcDesc": "Ancient gravestones emerge from the thinning piles of trash at the farthest edge of the scrapyard.",
+   "x": 2,
+   "y": 8,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/26_trash-strewn-graves/backgrounds/playtest-a.png",
+    "evening": "pet/rooms/26_trash-strewn-graves/backgrounds/playtest-b.png",
+    "night": "pet/rooms/26_trash-strewn-graves/backgrounds/playtest-c.png"
+   },
+   "drops": [
+    {
+     "item": 1002,
+     "weight": 9
+    },
+    {
+     "item": 1003,
+     "weight": 7
+    },
+    {
+     "item": 11302,
+     "weight": 6
+    }
+   ]
+  },
+  {
+   "index": 29,
+   "src": "Misty Forest Path",
+   "srcDesc": "Dense mist and canopy blocks the sky. It would be impossible to navigate in this forest of illusion. Just follow the path.",
+   "x": 3,
+   "y": 2,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/29_road-out-of-woods/backgrounds/playtest-a.png",
+    "evening": "pet/rooms/29_road-out-of-woods/backgrounds/playtest-b.png",
+    "night": "pet/rooms/29_road-out-of-woods/backgrounds/playtest-c.png"
+   },
+   "drops": [
+    {
+     "item": 1001,
+     "weight": 8
+    },
+    {
+     "item": 1002,
+     "weight": 8
+    },
+    {
+     "item": 11311,
+     "weight": 7
+    }
+   ]
+  },
+  {
+   "index": 30,
+   "src": "Scrapyard Entrance",
+   "srcDesc": "The detritus ahead stands in dark mountain peaks. A path has been dug for you through the towering piles of garbage.",
+   "x": 3,
+   "y": 5,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/30_scrapyard-entrance/backgrounds/playtest-a.png",
+    "evening": "pet/rooms/30_scrapyard-entrance/backgrounds/playtest-b.png",
+    "night": "pet/rooms/30_scrapyard-entrance/backgrounds/playtest-c.png"
+   },
+   "drops": [
+    {
+     "item": 1002,
+     "weight": 9
+    },
+    {
+     "item": 1005,
+     "weight": 7
+    },
+    {
+     "item": 11302,
+     "weight": 6
+    }
+   ]
+  },
+  {
+   "index": 31,
+   "src": "Scrapyard Exit",
+   "srcDesc": "A literal and metaphorical fork in the road. Nature, man’s work and its leftovers.",
+   "x": 3,
+   "y": 8,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/31_scrapyard-exit/backgrounds/playtest-a.png",
+    "evening": "pet/rooms/31_scrapyard-exit/backgrounds/playtest-b.png",
+    "night": "pet/rooms/31_scrapyard-exit/backgrounds/playtest-c.png"
+   },
+   "drops": [
+    {
+     "item": 1002,
+     "weight": 9
+    },
+    {
+     "item": 1005,
+     "weight": 7
+    },
+    {
+     "item": 11302,
+     "weight": 6
+    }
+   ]
+  },
+  {
+   "index": 32,
+   "src": "Road To Labs",
+   "srcDesc": "A paved road curled between green hills. The blacktop cracks as the world around it grows.",
+   "x": 3,
+   "y": 10,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/32_road-to-labs/backgrounds/playtest-a.png",
+    "evening": "pet/rooms/32_road-to-labs/backgrounds/playtest-b.png",
+    "night": "pet/rooms/32_road-to-labs/backgrounds/playtest-c.png"
+   },
+   "drops": [
+    {
+     "item": 1001,
+     "weight": 9
+    },
+    {
+     "item": 1002,
+     "weight": 9
+    }
+   ]
+  },
+  {
+   "index": 33,
+   "src": "Forest Entrance",
+   "srcDesc": "The forest canopy blots out the sky above. An eerie silence overwhelms the expected sounds of life.",
+   "x": 4,
+   "y": 8,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/33_forest-entrance/backgrounds/playtest-a.png",
+    "evening": "pet/rooms/33_forest-entrance/backgrounds/playtest-b.png",
+    "night": "pet/rooms/33_forest-entrance/backgrounds/playtest-c.png"
+   },
+   "drops": [
+    {
+     "item": 1001,
+     "weight": 9
+    },
+    {
+     "item": 1004,
+     "weight": 6
+    }
+   ]
+  },
+  {
+   "index": 34,
+   "src": "Deeper Into Scrap",
+   "srcDesc": "Deeper into the scrapyard down a narrow path. After every turn, the mountains of trash grow taller and more precarious.",
+   "x": 2,
+   "y": 6,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/34_deeper-into-scrap/backgrounds/playtest-a.png",
+    "evening": "pet/rooms/34_deeper-into-scrap/backgrounds/playtest-b.png",
+    "night": "pet/rooms/34_deeper-into-scrap/backgrounds/playtest-c.png"
+   },
+   "drops": [
+    {
+     "item": 1005,
+     "weight": 9
+    },
+    {
+     "item": 11302,
+     "weight": 7
+    }
+   ]
+  },
+  {
+   "index": 35,
+   "src": "Elder Path",
+   "srcDesc": "The forest grows so thick that the road is barely visible at times. The air is still, but the trees sway and twist in the darkness.",
+   "x": 5,
+   "y": 6,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/35_forest-road-i/backgrounds/playtest-a.png",
+    "evening": "pet/rooms/35_forest-road-i/backgrounds/playtest-b.png",
+    "night": "pet/rooms/35_forest-road-i/backgrounds/playtest-c.png"
+   },
+   "drops": [
+    {
+     "item": 1001,
+     "weight": 9
+    },
+    {
+     "item": 1004,
+     "weight": 6
+    },
+    {
+     "item": 1010,
+     "weight": 2
+    }
+   ]
+  },
+  {
+   "index": 36,
+   "src": "Parting Path",
+   "srcDesc": "It seems as if the trees are parting to clear a path ahead, then shuffling back together.",
+   "x": 5,
+   "y": 9,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/36_forest-road-ii/backgrounds/playtest-a.png",
+    "evening": "pet/rooms/36_forest-road-ii/backgrounds/playtest-b.png",
+    "night": "pet/rooms/36_forest-road-ii/backgrounds/playtest-c.png"
+   },
+   "drops": [
+    {
+     "item": 1001,
+     "weight": 9
+    },
+    {
+     "item": 11311,
+     "weight": 7
+    },
+    {
+     "item": 1010,
+     "weight": 2
+    }
+   ]
+  },
+  {
+   "index": 37,
+   "src": "Hollow Path",
+   "srcDesc": "The mist is thinner here and the sky can be seen through holes in the canopy.",
+   "x": 6,
+   "y": 10,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/37_forest-road-iii/backgrounds/playtest-a.png",
+    "evening": "pet/rooms/37_forest-road-iii/backgrounds/playtest-b.png",
+    "night": "pet/rooms/37_forest-road-iii/backgrounds/playtest-c.png"
+   },
+   "drops": [
+    {
+     "item": 1001,
+     "weight": 9
+    },
+    {
+     "item": 1004,
+     "weight": 6
+    }
+   ]
+  },
+  {
+   "index": 47,
+   "src": "Scrap Paths",
+   "srcDesc": "The mountains of trash look more like hills, but the forest is no longer visible on the horizon.",
+   "x": 3,
+   "y": 7,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/47_scrap-paths/backgrounds/playtest-a.png",
+    "evening": "pet/rooms/47_scrap-paths/backgrounds/playtest-b.png",
+    "night": "pet/rooms/47_scrap-paths/backgrounds/playtest-c.png"
+   },
+   "drops": [
+    {
+     "item": 1002,
+     "weight": 9
+    },
+    {
+     "item": 1005,
+     "weight": 7
+    },
+    {
+     "item": 11302,
+     "weight": 6
+    }
+   ]
+  },
+  {
+   "index": 48,
+   "src": "Murky Forest Path",
+   "srcDesc": "The forest is dark and impenetrable. Thick tree trunks stretch high above.",
+   "x": 5,
+   "y": 7,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/48_forest-road-iv/backgrounds/playtest-a.png",
+    "evening": "pet/rooms/48_forest-road-iv/backgrounds/playtest-b.png",
+    "night": "pet/rooms/48_forest-road-iv/backgrounds/playtest-c.png"
+   },
+   "drops": [
+    {
+     "item": 1001,
+     "weight": 9
+    },
+    {
+     "item": 11311,
+     "weight": 7
+    },
+    {
+     "item": 11312,
+     "weight": 5
+    },
+    {
+     "item": 1010,
+     "weight": 2
+    }
+   ]
+  },
+  {
+   "index": 49,
+   "src": "Clearing",
+   "srcDesc": "A secluded clearing, away from both the illusory mists of the labyrinthine forest and the towering trash maze of the scrapyard.",
+   "x": 7,
+   "y": 9,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/49_clearing/backgrounds/playtest-a.png",
+    "evening": "pet/rooms/49_clearing/backgrounds/playtest-b.png",
+    "night": "pet/rooms/49_clearing/backgrounds/playtest-c.png"
+   },
+   "drops": [
+    {
+     "item": 1001,
+     "weight": 9
+    },
+    {
+     "item": 1002,
+     "weight": 9
+    },
+    {
+     "item": 11302,
+     "weight": 6
+    },
+    {
+     "item": 1012,
+     "weight": 4
+    }
+   ]
+  },
+  {
+   "index": 50,
+   "src": "Ancient Forest Entrance",
+   "srcDesc": "The undergrowth here is very thick; there’s only a few paths to follow through the trees…. The forest here feels packed, almost a jungle.",
+   "x": 6,
+   "y": 5,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/50_ancient_forest_entrance/backgrounds/playtest-a.png",
+    "evening": "pet/rooms/50_ancient_forest_entrance/backgrounds/playtest-b.png",
+    "night": "pet/rooms/50_ancient_forest_entrance/backgrounds/playtest-c.png"
+   },
+   "drops": [
+    {
+     "item": 1002,
+     "weight": 9
+    },
+    {
+     "item": 1013,
+     "weight": 7
+    }
+   ]
+  },
+  {
+   "index": 51,
+   "src": "Scrap-Littered Undergrowth",
+   "srcDesc": "There are fragments of scrap metal littered around the forest here.",
+   "x": 7,
+   "y": 5,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/51_scrap_littered_undergrowth/backgrounds/playtest-a.png",
+    "evening": "pet/rooms/51_scrap_littered_undergrowth/backgrounds/playtest-b.png",
+    "night": "pet/rooms/51_scrap_littered_undergrowth/backgrounds/playtest-c.png"
+   },
+   "drops": [
+    {
+     "item": 1005,
+     "weight": 9
+    },
+    {
+     "item": 1003,
+     "weight": 8
+    },
+    {
+     "item": 11302,
+     "weight": 6
+    },
+    {
+     "item": 1004,
+     "weight": 4
+    }
+   ]
+  },
+  {
+   "index": 52,
+   "src": "Airplane Crash",
+   "srcDesc": "The wreckage of a plane is resting here, deep in the forest.",
+   "x": 8,
+   "y": 5,
+   "z": 1,
+   "exits": [
+    54
+   ],
+   "bgs": {
+    "day": "pet/rooms/52_airplane_crash/backgrounds/playtest-a.png",
+    "evening": "pet/rooms/52_airplane_crash/backgrounds/playtest-b.png",
+    "night": "pet/rooms/52_airplane_crash/backgrounds/playtest-c.png"
+   },
+   "drops": [
+    {
+     "item": 1003,
+     "weight": 9
+    },
+    {
+     "item": 1005,
+     "weight": 9
+    },
+    {
+     "item": 1006,
+     "weight": 6
+    }
+   ]
+  },
+  {
+   "index": 53,
+   "src": "Blooming Tree",
+   "srcDesc": "This tree has been….. struck by lightning, perhaps?",
+   "x": 7,
+   "y": 4,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/53_blooming-tree/backgrounds/playtest-a.png",
+    "evening": "pet/rooms/53_blooming-tree/backgrounds/playtest-b.png",
+    "night": "pet/rooms/53_blooming-tree/backgrounds/playtest-c.png"
+   },
+   "drops": [
+    {
+     "item": 1001,
+     "weight": 9
+    },
+    {
+     "item": 1004,
+     "weight": 7
+    },
+    {
+     "item": 1007,
+     "weight": 3
+    }
+   ]
+  },
+  {
+   "index": 54,
+   "src": "Plane Interior",
+   "srcDesc": "The air inside this airplane is…. sterile. Something’s wrong here.",
+   "x": 8,
+   "y": 5,
+   "z": 2,
+   "exits": [
+    52
+   ],
+   "bgs": {
+    "day": "pet/rooms/54_plane_interior/backgrounds/playtest-a.png",
+    "evening": "pet/rooms/54_plane_interior/backgrounds/playtest-b.png",
+    "night": "pet/rooms/54_plane_interior/backgrounds/playtest-c.png"
+   },
+   "drops": []
+  },
+  {
+   "index": 55,
+   "src": "Shady Path",
+   "srcDesc": "The path runs along the edge of the forest for a little while. It’s quiet here.",
+   "x": 4,
+   "y": 3,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/55_shady-path/backgrounds/room55a.png",
+    "evening": "pet/rooms/55_shady-path/backgrounds/room55b.png",
+    "night": "pet/rooms/55_shady-path/backgrounds/room55c.png"
+   },
+   "drops": [
+    {
+     "item": 1001,
+     "weight": 9
+    },
+    {
+     "item": 1002,
+     "weight": 9
+    },
+    {
+     "item": 1011,
+     "weight": 8
+    }
+   ]
+  },
+  {
+   "index": 56,
+   "src": "Butterfly Forest",
+   "srcDesc": "The forest here grows thicker once more. The blue butterflies seem particularly common in this place.",
+   "x": 5,
+   "y": 3,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/56_butterfly-forest/backgrounds/room56a.png",
+    "evening": "pet/rooms/56_butterfly-forest/backgrounds/room56b.png",
+    "night": "pet/rooms/56_butterfly-forest/backgrounds/room56c.png"
+   },
+   "drops": [
+    {
+     "item": 1001,
+     "weight": 8
+    },
+    {
+     "item": 1002,
+     "weight": 8
+    },
+    {
+     "item": 11311,
+     "weight": 7
+    }
+   ]
+  },
+  {
+   "index": 57,
+   "src": "River Crossing",
+   "srcDesc": "This seems like a natural spot to try to cross the river… and indeed, there was once a bridge…",
+   "x": 6,
+   "y": 3,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/57_river-crossing/backgrounds/room57a.gif",
+    "evening": "pet/rooms/57_river-crossing/backgrounds/room57b.gif",
+    "night": "pet/rooms/57_river-crossing/backgrounds/room57c.gif"
+   },
+   "drops": [
+    {
+     "item": 1001,
+     "weight": 9
+    },
+    {
+     "item": 1002,
+     "weight": 9
+    },
+    {
+     "item": 1004,
+     "weight": 6
+    }
+   ]
+  },
+  {
+   "index": 58,
+   "src": "Mouth of Scrap",
+   "srcDesc": "This path through the junkyard is hard to spot. Towering piles of scrap obscure the entrance.",
+   "x": 1,
+   "y": 5,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/58_mouth-of-scrap/backgrounds/room58a.png",
+    "evening": "pet/rooms/58_mouth-of-scrap/backgrounds/room58b.png",
+    "night": "pet/rooms/58_mouth-of-scrap/backgrounds/room58c.png"
+   },
+   "drops": [
+    {
+     "item": 1002,
+     "weight": 9
+    },
+    {
+     "item": 1005,
+     "weight": 7
+    },
+    {
+     "item": 11302,
+     "weight": 6
+    }
+   ]
+  },
+  {
+   "index": 59,
+   "src": "Black Pool",
+   "srcDesc": "Six huge stone towers loom over a pool of black ooze. An eerie feeling is in the air.",
+   "x": 1,
+   "y": 4,
+   "z": 1,
+   "exits": [
+    19
+   ],
+   "bgs": {
+    "day": "pet/rooms/59_black-pool/backgrounds/room59a.gif",
+    "evening": "pet/rooms/59_black-pool/backgrounds/room59b.gif",
+    "night": "pet/rooms/59_black-pool/backgrounds/room59c.gif"
+   },
+   "drops": [
+    {
+     "item": 1017,
+     "weight": 9
+    },
+    {
+     "item": 1018,
+     "weight": 9
+    },
+    {
+     "item": 11313,
+     "weight": 4
+    }
+   ]
+  },
+  {
+   "index": 60,
+   "src": "Scrap Trees",
+   "srcDesc": "A clearing on the border between the forest and scrapyard. You see a shovel and a notebook lying on the grass, each bisected down the middle. The cuts are perfectly clean.",
+   "x": 5,
+   "y": 1,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/60_scrap-trees/backgrounds/room60a.png",
+    "evening": "pet/rooms/60_scrap-trees/backgrounds/room60b.png",
+    "night": "pet/rooms/60_scrap-trees/backgrounds/room60c.png"
+   },
+   "drops": [
+    {
+     "item": 1005,
+     "weight": 9
+    },
+    {
+     "item": 1011,
+     "weight": 7
+    },
+    {
+     "item": 1013,
+     "weight": 5
+    },
+    {
+     "item": 23102,
+     "weight": 2
+    }
+   ]
+  },
+  {
+   "index": 61,
+   "src": "Musty Forest Path",
+   "srcDesc": "Dead stumps and knotted trees tell you the forest here is in declining health. Giant centipedes march back and forth; a living trail that leads deeper into the woods.",
+   "x": 7,
+   "y": 1,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/61_decaying-forest-path/backgrounds/room61a.png",
+    "evening": "pet/rooms/61_decaying-forest-path/backgrounds/room61b.png",
+    "night": "pet/rooms/61_decaying-forest-path/backgrounds/room61c.png"
+   },
+   "drops": [
+    {
+     "item": 1001,
+     "weight": 9
+    },
+    {
+     "item": 1004,
+     "weight": 4
+    },
+    {
+     "item": 11011,
+     "weight": 4
+    }
+   ]
+  },
+  {
+   "index": 62,
+   "src": "Centipedes",
+   "srcDesc": "A dark hollow beneath a dying tree choked with polypore fungi. Mushrooms coat every tree in this part of the forest. The centipedes seem to like this place.",
+   "x": 8,
+   "y": 1,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/62_centipedes/backgrounds/room62a.png",
+    "evening": "pet/rooms/62_centipedes/backgrounds/room62b.png",
+    "night": "pet/rooms/62_centipedes/backgrounds/room62c.png"
+   },
+   "drops": [
+    {
+     "item": 1002,
+     "weight": 9
+    },
+    {
+     "item": 11311,
+     "weight": 8
+    },
+    {
+     "item": 1012,
+     "weight": 3
+    }
+   ]
+  },
+  {
+   "index": 63,
+   "src": "Deeper Forest Path",
+   "srcDesc": "A stretch of forest road with light canopy and open sky. Wildflowers grow just off the path.",
+   "x": 6,
+   "y": 2,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/63_deeper-forest-paths/backgrounds/room63a.png",
+    "evening": "pet/rooms/63_deeper-forest-paths/backgrounds/room63b.png",
+    "night": "pet/rooms/63_deeper-forest-paths/backgrounds/room63c.png"
+   },
+   "drops": [
+    {
+     "item": 1002,
+     "weight": 9
+    },
+    {
+     "item": 1011,
+     "weight": 7
+    },
+    {
+     "item": 1004,
+     "weight": 4
+    },
+    {
+     "item": 1010,
+     "weight": 2
+    }
+   ]
+  },
+  {
+   "index": 64,
+   "src": "Burning Room",
+   "srcDesc": "In the center of the hut, a large cauldron bubbles over a low fire. Dried flowers and herbs hang overhead, and jars with suspicious labels sit on a shelf in the back.\n\nA young woman in green stirs the cauldron, humming to the fire as if it could hear her. A frog has taken the warmest spot on the floor.",
+   "x": 5,
+   "y": 5,
+   "z": 2,
+   "exits": [
+    65
+   ],
+   "bgs": {
+    "day": "pet/rooms/64_burning-room/backgrounds/room64a.gif",
+    "evening": "pet/rooms/64_burning-room/backgrounds/room64b.gif",
+    "night": "pet/rooms/64_burning-room/backgrounds/room64c.gif"
+   },
+   "drops": []
+  },
+  {
+   "index": 65,
+   "src": "Forest Hut",
+   "srcDesc": "Smoke rises from a small reed hut that sits tucked behind boulders in a secluded part of the forest. The door is open.",
+   "x": 6,
+   "y": 1,
+   "z": 1,
+   "exits": [
+    64
+   ],
+   "bgs": {
+    "day": "pet/rooms/65_forest-hut/backgrounds/room65a.png",
+    "evening": "pet/rooms/65_forest-hut/backgrounds/room65b.png",
+    "night": "pet/rooms/65_forest-hut/backgrounds/room65c.png"
+   },
+   "drops": [
+    {
+     "item": 1003,
+     "weight": 9
+    },
+    {
+     "item": 1001,
+     "weight": 9
+    },
+    {
+     "item": 11302,
+     "weight": 7
+    }
+   ]
+  },
+  {
+   "index": 66,
+   "src": "Marketplace",
+   "srcDesc": "A strange machine adorned with Asphodel flowers sits here, deep in the forest. What could it be for?",
+   "x": 2,
+   "y": 2,
+   "z": 1,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/66_trading-room/backgrounds/room66a.png",
+    "evening": "pet/rooms/66_trading-room/backgrounds/room66b.png",
+    "night": "pet/rooms/66_trading-room/backgrounds/room66c.png"
+   },
+   "drops": []
+  },
+  {
+   "index": 67,
+   "src": "Boulder Tunnel",
+   "srcDesc": "The air is humid and salty. Stalagmites and stalactites crust over ancient stone construction. The tunnel ahead is blocked by what seems to be a roof collapse.",
+   "x": 4,
+   "y": 6,
+   "z": 3,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/67_boulder-tunnel/backgrounds/room67a.png",
+    "evening": "pet/rooms/67_boulder-tunnel/backgrounds/room67b.png",
+    "night": "pet/rooms/67_boulder-tunnel/backgrounds/room67b.png"
+   },
+   "drops": [
+    {
+     "item": 1020,
+     "weight": 9
+    },
+    {
+     "item": 1018,
+     "weight": 9
+    },
+    {
+     "item": 11314,
+     "weight": 2
+    }
+   ]
+  },
+  {
+   "index": 68,
+   "src": "Slippery Pit",
+   "srcDesc": "These ladders prove you’re not the first to explore this cave.",
+   "x": 3,
+   "y": 6,
+   "z": 3,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/68_slippery-pit/backgrounds/room68.png",
+    "evening": "pet/rooms/68_slippery-pit/backgrounds/room68.png",
+    "night": "pet/rooms/68_slippery-pit/backgrounds/room68.png"
+   },
+   "drops": [
+    {
+     "item": 1020,
+     "weight": 9
+    },
+    {
+     "item": 1018,
+     "weight": 9
+    },
+    {
+     "item": 11314,
+     "weight": 2
+    }
+   ]
+  },
+  {
+   "index": 69,
+   "src": "Lotus Pool",
+   "srcDesc": "Unsteady lights glimmer just outside your vision like will-o’-the-wisps. You can see a cluster of small craters filled with water. A colorful lotus flower grows in the largest pool.",
+   "x": 3,
+   "y": 7,
+   "z": 3,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/69_lotus-pool/backgrounds/room69.png",
+    "evening": "pet/rooms/69_lotus-pool/backgrounds/room69.png",
+    "night": "pet/rooms/69_lotus-pool/backgrounds/room69.png"
+   },
+   "drops": [
+    {
+     "item": 1018,
+     "weight": 9
+    },
+    {
+     "item": 1016,
+     "weight": 9
+    },
+    {
+     "item": 1014,
+     "weight": 2
+    },
+    {
+     "item": 6002,
+     "weight": 1
+    }
+   ]
+  },
+  {
+   "index": 70,
+   "src": "Still Stream",
+   "srcDesc": "An arcing tunnel filled with still and shallow water. The air is salty and has a faint taste of metal.",
+   "x": 2,
+   "y": 7,
+   "z": 3,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/70_still-stream/backgrounds/room70.png",
+    "evening": "pet/rooms/70_still-stream/backgrounds/room70.png",
+    "night": "pet/rooms/70_still-stream/backgrounds/room70.png"
+   },
+   "drops": [
+    {
+     "item": 1020,
+     "weight": 9
+    },
+    {
+     "item": 1017,
+     "weight": 9
+    },
+    {
+     "item": 11314,
+     "weight": 2
+    }
+   ]
+  },
+  {
+   "index": 71,
+   "src": "Shabby Deck",
+   "srcDesc": "An observation deck above a pool of still water. Albino centipedes scurry away from a pile of bones as you enter. A grappling hook has been attached to the deck through a broken window.",
+   "x": 1,
+   "y": 7,
+   "z": 3,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/71_shabby-deck/backgrounds/room71.png",
+    "evening": "pet/rooms/71_shabby-deck/backgrounds/room71.png",
+    "night": "pet/rooms/71_shabby-deck/backgrounds/room71.png"
+   },
+   "drops": [
+    {
+     "item": 1018,
+     "weight": 9
+    },
+    {
+     "item": 1017,
+     "weight": 9
+    },
+    {
+     "item": 11312,
+     "weight": 2
+    }
+   ]
+  },
+  {
+   "index": 72,
+   "src": "Hatch to Nowhere",
+   "srcDesc": "This facility seems ransacked as well as timeworn. A reinforced door is ajar, a tunnel up into the room above is broken, machinery has wires ripped out, a sticky ooze seeps from the vents, and spiderwebs fill the corners. The red light in the ceiling is dead, but it would flash a warning if there were any power.",
+   "x": 1,
+   "y": 6,
+   "z": 3,
+   "exits": [
+    88
+   ],
+   "bgs": {
+    "day": "pet/rooms/72_hatch-to-nowhere/backgrounds/room72.png",
+    "evening": "pet/rooms/72_hatch-to-nowhere/backgrounds/room72.png",
+    "night": "pet/rooms/72_hatch-to-nowhere/backgrounds/room72.png"
+   },
+   "drops": [
+    {
+     "item": 1016,
+     "weight": 9
+    },
+    {
+     "item": 1017,
+     "weight": 9
+    },
+    {
+     "item": 1013,
+     "weight": 2
+    },
+    {
+     "item": 6005,
+     "weight": 1
+    }
+   ]
+  },
+  {
+   "index": 73,
+   "src": "Broken Tube",
+   "srcDesc": "Some kind of observation and testing environment. Readings indicate everything in this facility is ancient; even older than the graveyard under the scrap. Must be a bug.",
+   "x": 1,
+   "y": 5,
+   "z": 3,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/73_broken-tube/backgrounds/room73.png",
+    "evening": "pet/rooms/73_broken-tube/backgrounds/room73.png",
+    "night": "pet/rooms/73_broken-tube/backgrounds/room73.png"
+   },
+   "drops": [
+    {
+     "item": 1018,
+     "weight": 9
+    },
+    {
+     "item": 1017,
+     "weight": 9
+    },
+    {
+     "item": 23102,
+     "weight": 1
+    }
+   ]
+  },
+  {
+   "index": 74,
+   "src": "Engraved Door",
+   "srcDesc": "The narrow room is flanked by high walls cut from black crystal. Gargantuan stone stairs lead to an ornate engraved door. No matter how hard you and your pet try, you won’t get it open without more help.",
+   "x": 2,
+   "y": 5,
+   "z": 3,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/74_engraved-door/backgrounds/room74a.png",
+    "evening": "pet/rooms/74_engraved-door/backgrounds/room74b.png",
+    "night": "pet/rooms/74_engraved-door/backgrounds/room74b.png"
+   },
+   "drops": [
+    {
+     "item": 1018,
+     "weight": 9
+    },
+    {
+     "item": 1020,
+     "weight": 9
+    },
+    {
+     "item": 11313,
+     "weight": 1
+    },
+    {
+     "item": 11011,
+     "weight": 1
+    }
+   ]
+  },
+  {
+   "index": 75,
+   "src": "Flood Mural",
+   "srcDesc": "A flat steel wall with a high-tech door cuts through an otherwise natural cave room. The door is splintered into pieces and the frame is broken. There’s a large mural painted across the curved rear wall.",
+   "x": 3,
+   "y": 5,
+   "z": 3,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/75_flood-mural/backgrounds/room75.png",
+    "evening": "pet/rooms/75_flood-mural/backgrounds/room75.png",
+    "night": "pet/rooms/75_flood-mural/backgrounds/room75.png"
+   },
+   "drops": [
+    {
+     "item": 1020,
+     "weight": 9
+    },
+    {
+     "item": 1014,
+     "weight": 2
+    },
+    {
+     "item": 21205,
+     "weight": 1
+    }
+   ]
+  },
+  {
+   "index": 76,
+   "src": "Fungus Garden",
+   "srcDesc": "Two types of colorful fungus are cultivated here along the path. Seems like a garden.",
+   "x": 5,
+   "y": 5,
+   "z": 3,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/76_fungus-garden/backgrounds/room76.png",
+    "evening": "pet/rooms/76_fungus-garden/backgrounds/room76.png",
+    "night": "pet/rooms/76_fungus-garden/backgrounds/room76.png"
+   },
+   "drops": [
+    {
+     "item": 1016,
+     "weight": 9
+    },
+    {
+     "item": 1013,
+     "weight": 2
+    },
+    {
+     "item": 6004,
+     "weight": 1
+    }
+   ]
+  },
+  {
+   "index": 77,
+   "src": "Thriving Mushrooms",
+   "srcDesc": "This fork in the road is flanked with fast-growing fungi. The mushrooms are slightly luminescent, and have steel-hard stalks. Exits to the north and east are blocked by the fungi.",
+   "x": 5,
+   "y": 4,
+   "z": 3,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/77_thriving-mushrooms/backgrounds/room77a.png",
+    "evening": "pet/rooms/77_thriving-mushrooms/backgrounds/room77b.png",
+    "night": "pet/rooms/77_thriving-mushrooms/backgrounds/room77b.png"
+   },
+   "drops": [
+    {
+     "item": 1016,
+     "weight": 9
+    },
+    {
+     "item": 1020,
+     "weight": 9
+    },
+    {
+     "item": 11312,
+     "weight": 2
+    }
+   ]
+  },
+  {
+   "index": 78,
+   "src": "Toadstool Platforms",
+   "srcDesc": "The stony mushrooms here have grown to a truly gargantuan size. The air is dry. A rope ladder hangs down from a cliff high above.",
+   "x": 5,
+   "y": 3,
+   "z": 3,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/78_toadstool-platforms/backgrounds/room78.png",
+    "evening": "pet/rooms/78_toadstool-platforms/backgrounds/room78.png",
+    "night": "pet/rooms/78_toadstool-platforms/backgrounds/room78.png"
+   },
+   "drops": [
+    {
+     "item": 1016,
+     "weight": 9
+    },
+    {
+     "item": 1018,
+     "weight": 9
+    },
+    {
+     "item": 11302,
+     "weight": 2
+    }
+   ]
+  },
+  {
+   "index": 79,
+   "src": "Abandoned Campsite",
+   "srcDesc": "An abandoned campsite. There’s a charcoal drawing of a strange fish-like creature on one wall.",
+   "x": 5,
+   "y": 2,
+   "z": 3,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/79_abandoned-campsite/backgrounds/room79.png",
+    "evening": "pet/rooms/79_abandoned-campsite/backgrounds/room79.png",
+    "night": "pet/rooms/79_abandoned-campsite/backgrounds/room79.png"
+   },
+   "drops": [
+    {
+     "item": 1018,
+     "weight": 9
+    },
+    {
+     "item": 1016,
+     "weight": 9
+    },
+    {
+     "item": 11314,
+     "weight": 2
+    },
+    {
+     "item": 1013,
+     "weight": 2
+    }
+   ]
+  },
+  {
+   "index": 80,
+   "src": "Radiant Crystal",
+   "srcDesc": "A blue crystal that radiates with a soft glow illuminating the cave. Roots grasp tightly around the crystal, supporting it against the ceiling.",
+   "x": 6,
+   "y": 2,
+   "z": 3,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/80_radiant-crystal/backgrounds/room80.png",
+    "evening": "pet/rooms/80_radiant-crystal/backgrounds/room80.png",
+    "night": "pet/rooms/80_radiant-crystal/backgrounds/room80.png"
+   },
+   "drops": [
+    {
+     "item": 1016,
+     "weight": 9
+    },
+    {
+     "item": 1017,
+     "weight": 9
+    },
+    {
+     "item": 1014,
+     "weight": 2
+    },
+    {
+     "item": 11313,
+     "weight": 1
+    },
+    {
+     "item": 1021,
+     "weight": 1
+    }
+   ]
+  },
+  {
+   "index": 81,
+   "src": "Flower Mural",
+   "srcDesc": "Someone has burned a pile of books to make charcoal soot, then used a brush to draw a flower on the wall.",
+   "x": 7,
+   "y": 2,
+   "z": 3,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/81_flower-mural/backgrounds/room81.png",
+    "evening": "pet/rooms/81_flower-mural/backgrounds/room81.png",
+    "night": "pet/rooms/81_flower-mural/backgrounds/room81.png"
+   },
+   "drops": [
+    {
+     "item": 1020,
+     "weight": 9
+    },
+    {
+     "item": 1018,
+     "weight": 9
+    },
+    {
+     "item": 11314,
+     "weight": 2
+    }
+   ]
+  },
+  {
+   "index": 82,
+   "src": "Geometric Cliffs",
+   "srcDesc": "Sheer cliffs of jagged, geometric rock. The room is dark, but illuminated by a lantern glowing blue.",
+   "x": 7,
+   "y": 3,
+   "z": 3,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/82_geometric-cliffs/backgrounds/room82.png",
+    "evening": "pet/rooms/82_geometric-cliffs/backgrounds/room82.png",
+    "night": "pet/rooms/82_geometric-cliffs/backgrounds/room82.png"
+   },
+   "drops": [
+    {
+     "item": 1020,
+     "weight": 9
+    },
+    {
+     "item": 1018,
+     "weight": 9
+    },
+    {
+     "item": 21205,
+     "weight": 2
+    },
+    {
+     "item": 6003,
+     "weight": 1
+    }
+   ]
+  },
+  {
+   "index": 83,
+   "src": "Canyon Bridge",
+   "srcDesc": "A rickety bridge over a dark canyon. There is an exit visible to the west, across the bridge and up an overlook. Close by, a long ladder allows descent into the dark.",
+   "x": 7,
+   "y": 4,
+   "z": 3,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/83_canyon-bridge/backgrounds/room83.png",
+    "evening": "pet/rooms/83_canyon-bridge/backgrounds/room83.png",
+    "night": "pet/rooms/83_canyon-bridge/backgrounds/room83.png"
+   },
+   "drops": [
+    {
+     "item": 1020,
+     "weight": 9
+    },
+    {
+     "item": 1017,
+     "weight": 9
+    },
+    {
+     "item": 11314,
+     "weight": 2
+    }
+   ]
+  },
+  {
+   "index": 84,
+   "src": "Reinforced Tunnel",
+   "srcDesc": "A mined and reinforced tunnel. There’s a note posted on the wall and a single book tucked behind a pole. Fast-growing luminous mushrooms peek through from the room to the west.",
+   "x": 6,
+   "y": 4,
+   "z": 3,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/84_reinforced-tunnel/backgrounds/room84.png",
+    "evening": "pet/rooms/84_reinforced-tunnel/backgrounds/room84.png",
+    "night": "pet/rooms/84_reinforced-tunnel/backgrounds/room84.png"
+   },
+   "drops": [
+    {
+     "item": 1016,
+     "weight": 9
+    },
+    {
+     "item": 1018,
+     "weight": 9
+    },
+    {
+     "item": 11302,
+     "weight": 2
+    }
+   ]
+  },
+  {
+   "index": 85,
+   "src": "Giant’s Palm",
+   "srcDesc": "The dark bottom of the canyon. A cave mouth is blocked by what appears to be a giant skeletal hand. The hand is fixed in place by some force and cannot be easily moved.",
+   "x": 7,
+   "y": 5,
+   "z": 3,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/85_giants-palm/backgrounds/room85a.png",
+    "evening": "pet/rooms/85_giants-palm/backgrounds/room85b.png",
+    "night": "pet/rooms/85_giants-palm/backgrounds/room85b.png"
+   },
+   "drops": [
+    {
+     "item": 1020,
+     "weight": 9
+    },
+    {
+     "item": 11314,
+     "weight": 2
+    }
+   ]
+  },
+  {
+   "index": 86,
+   "src": "Guardian Skull",
+   "srcDesc": "A giant’s skull is embedded into one wall and has roots growing through it. The rest of the giant’s spine and ribcage is used to line a large pit in the ground.",
+   "x": 8,
+   "y": 5,
+   "z": 3,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/86_guardian-skull/backgrounds/room86.png",
+    "evening": "pet/rooms/86_guardian-skull/backgrounds/room86.png",
+    "night": "pet/rooms/86_guardian-skull/backgrounds/room86.png"
+   },
+   "drops": [
+    {
+     "item": 1020,
+     "weight": 9
+    },
+    {
+     "item": 11312,
+     "weight": 2
+    },
+    {
+     "item": 6006,
+     "weight": 1
+    },
+    {
+     "item": 1007,
+     "weight": 1
+    }
+   ]
+  },
+  {
+   "index": 87,
+   "src": "Sacrarium",
+   "srcDesc": "A flooded and ruined temple built around the spine and pelvis of a giant skeleton. Black liquid floods the pit. The temple columns have crumbled.",
+   "x": 8,
+   "y": 6,
+   "z": 3,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/87_sacrarium/backgrounds/room87.png",
+    "evening": "pet/rooms/87_sacrarium/backgrounds/room87.png",
+    "night": "pet/rooms/87_sacrarium/backgrounds/room87.png"
+   },
+   "drops": [
+    {
+     "item": 1020,
+     "weight": 9
+    },
+    {
+     "item": 1014,
+     "weight": 2
+    },
+    {
+     "item": 21205,
+     "weight": 1
+    },
+    {
+     "item": 11011,
+     "weight": 1
+    }
+   ]
+  },
+  {
+   "index": 88,
+   "src": "Treasure Hoard",
+   "srcDesc": "You find yourself in a medieval castle built from glassy purple bricks. In front of you is a large hoard of glittering treasure. You’re rich! But who uses gold in this economy?",
+   "x": 3,
+   "y": 1,
+   "z": 4,
+   "exits": [
+    72
+   ],
+   "bgs": {
+    "day": "pet/rooms/88_treasure-hoard/backgrounds/room88.png",
+    "evening": "pet/rooms/88_treasure-hoard/backgrounds/room88.png",
+    "night": "pet/rooms/88_treasure-hoard/backgrounds/room88.png"
+   },
+   "drops": [
+    {
+     "item": 1019,
+     "weight": 9
+    },
+    {
+     "item": 11313,
+     "weight": 2
+    },
+    {
+     "item": 1006,
+     "weight": 1
+    }
+   ]
+  },
+  {
+   "index": 89,
+   "src": "Trophies of the Hunt",
+   "srcDesc": "Stuffed trophies of strange creatures rest on pedestals and sit mounted on walls all across this side of the room.",
+   "x": 2,
+   "y": 1,
+   "z": 4,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/89_trophies-of-the-hunt/backgrounds/room89a.png",
+    "evening": "pet/rooms/89_trophies-of-the-hunt/backgrounds/room89b.png",
+    "night": "pet/rooms/89_trophies-of-the-hunt/backgrounds/room89b.png"
+   },
+   "drops": [
+    {
+     "item": 1019,
+     "weight": 9
+    },
+    {
+     "item": 11011,
+     "weight": 1
+    },
+    {
+     "item": 19301,
+     "weight": 1
+    }
+   ]
+  },
+  {
+   "index": 90,
+   "src": "Scenic View",
+   "srcDesc": "You can see this castle is on an island of some kind. The tower you’re standing in is impossibly high in the air. Dragons fly through the clouds below.",
+   "x": 1,
+   "y": 1,
+   "z": 4,
+   "exits": [],
+   "bgs": {
+    "day": "pet/rooms/90_scenic-view/backgrounds/room90.png",
+    "evening": "pet/rooms/90_scenic-view/backgrounds/room90.png",
+    "night": "pet/rooms/90_scenic-view/backgrounds/room90.png"
+   },
+   "drops": [
+    {
+     "item": 1019,
+     "weight": 9
+    },
+    {
+     "item": 11311,
+     "weight": 2
+    }
+   ]
+  }
+ ],
+ "items": [
+  {
+   "index": 1001,
+   "src": "Wooden Stick",
+   "type": "Material",
+   "rarity": "Common",
+   "srcDesc": "Wood in its unprocessed form. Grows on trees.",
+   "art": "pet/items/wooden_stick.png"
+  },
+  {
+   "index": 1002,
+   "src": "Stone",
+   "type": "Material",
+   "rarity": "Common",
+   "srcDesc": "It’s just a stone. Can be used to get Stone.",
+   "art": "pet/items/stone.png"
+  },
+  {
+   "index": 1003,
+   "src": "Plastic Bottle",
+   "type": "Material",
+   "rarity": "Uncommon",
+   "srcDesc": "Can be reprocessed into valuable raw Microplastics.",
+   "art": "pet/items/plastic_bottle.png"
+  },
+  {
+   "index": 1004,
+   "src": "Pine Cone",
+   "type": "Material",
+   "rarity": "Uncommon",
+   "srcDesc": "It’s a pine cone.\n\nSlightly sacred.",
+   "art": "pet/items/pine_cone.png"
+  },
+  {
+   "index": 1005,
+   "src": "Scrap Metal",
+   "type": "Material",
+   "rarity": "Common",
+   "srcDesc": "A small chunk of scrap metal. Maybe useful if processed.",
+   "art": "pet/items/scrap_metal.png"
+  },
+  {
+   "index": 1006,
+   "src": "Glass Jar",
+   "type": "Material",
+   "rarity": "Rare",
+   "srcDesc": "A somehow-unbroken jar of clear glass.",
+   "art": "pet/items/glass_jar.png"
+  },
+  {
+   "index": 1007,
+   "src": "Red Amber Crystal",
+   "type": "Material",
+   "rarity": "Epic",
+   "srcDesc": "A crystal of pure red amber, formed deep in the forest.",
+   "art": "pet/items/red_amber_crystal.png"
+  },
+  {
+   "index": 1010,
+   "src": "Black Poppy",
+   "type": "Material",
+   "rarity": "Rare",
+   "srcDesc": "You can’t tell whether it’s a very dark purple or actually black. A rare flower.",
+   "art": "pet/items/black_poppy.png"
+  },
+  {
+   "index": 1011,
+   "src": "Daffodil",
+   "type": "Material",
+   "rarity": "Uncommon",
+   "srcDesc": "A reflection of fallen Narcissus… Has its own uses and applications.",
+   "art": "pet/items/daffodil.png"
+  },
+  {
+   "index": 1012,
+   "src": "Mint",
+   "type": "Material",
+   "rarity": "Epic",
+   "srcDesc": "A herb with many applications. Not often found here….",
+   "art": "pet/items/mint.png"
+  },
+  {
+   "index": 1013,
+   "src": "Sanguine Shroom",
+   "type": "Material",
+   "rarity": "Uncommon",
+   "srcDesc": "A mushroom that bruises and bleeds like flesh. Some believe that they feed on decaying spirits.",
+   "art": "pet/items/sanguine_shroom.png"
+  },
+  {
+   "index": 1014,
+   "src": "Chalkberry",
+   "type": "Material",
+   "rarity": "Uncommon",
+   "srcDesc": "A dry and bitter berry coated with chalky white fungus. The berry itself is inedible; useless except as a medium for a unique wild yeast.",
+   "art": "pet/items/chalkberry.png"
+  },
+  {
+   "index": 1015,
+   "src": "Obol",
+   "type": "Misc",
+   "rarity": "Uncommon",
+   "srcDesc": "An ancient coin. Despite a worn and dull finish, it still glitters in the light. Valuable to certain individuals.",
+   "art": "pet/items/obol.png"
+  },
+  {
+   "index": 1016,
+   "src": "Dried Stems",
+   "type": "Material",
+   "rarity": "Common",
+   "srcDesc": "Long-stemmed mushrooms dried in a small bundle. Although this mushroom has no known medicinal, culinary, or recreational use, it may be a functional building material.",
+   "art": "pet/items/dried_stems.png"
+  },
+  {
+   "index": 1017,
+   "src": "Patinated Pipe",
+   "type": "Material",
+   "rarity": "Common",
+   "srcDesc": "These verdigris-coated pipes jut from the cave walls with no connection to any apparent plumbing system. Their presence defies conventional explanation.",
+   "art": "pet/items/patinated_pipe.png"
+  },
+  {
+   "index": 1018,
+   "src": "Cigarette Butt",
+   "type": "Material",
+   "rarity": "Common",
+   "srcDesc": "Even something as small and disposable as a cigarette can be tied to a memory and be given a spiritual essence. You can break this down into Microplastics.",
+   "art": "pet/items/cigarette_butt.png"
+  },
+  {
+   "index": 1019,
+   "src": "Otherworld Coin",
+   "type": "Material",
+   "rarity": "Common",
+   "srcDesc": "The woman on the face of this coin has long pointed ears like a caracal. The language inscribed is incomprehensible. Unless you find a collector, this coin is only valuable as scrap.",
+   "art": "pet/items/otherworld_coin.png"
+  },
+  {
+   "index": 1020,
+   "src": "Bone Chunk",
+   "type": "Material",
+   "rarity": "Common",
+   "srcDesc": "Petrified bone in the form of a large stony chunk. If this fragment came from the skeleton of an animal, it must have been the size of a whale.",
+   "art": "pet/items/bone_chunk.png"
+  },
+  {
+   "index": 1021,
+   "src": "Irradiated Root",
+   "type": "Material",
+   "rarity": "Rare",
+   "srcDesc": "A dried root found wrapped around a glowing crystal. The tips have turned blue and taken on a waxen texture.",
+   "art": "pet/items/irradiated_root.png"
+  },
+  {
+   "index": 1102,
+   "src": "Empty Cup",
+   "type": "Material",
+   "rarity": "Uncommon",
+   "srcDesc": "A small reusable cup crafted from stone. Useful for drinking potions or other beverages.",
+   "art": "pet/items/empty_cup.png"
+  },
+  {
+   "index": 1103,
+   "src": "Microplastics",
+   "type": "Material",
+   "rarity": "Uncommon",
+   "srcDesc": "Fine translucent powder. A promising new substance in hexerei.",
+   "art": "pet/items/microplastics.png"
+  },
+  {
+   "index": 1104,
+   "src": "Pine Pollen",
+   "type": "Material",
+   "rarity": "Uncommon",
+   "srcDesc": "Some people think this is very good for you.",
+   "art": "pet/items/pine_pollen.png"
+  },
+  {
+   "index": 1107,
+   "src": "Powdered Red Amber",
+   "type": "Material",
+   "rarity": "Epic",
+   "srcDesc": "Fine powder made from crushing a red amber crystal. Can be used to sand and polish metals.",
+   "art": "pet/items/powdered_red_amber.png"
+  },
+  {
+   "index": 1110,
+   "src": "Black Poppy Extract",
+   "type": "Material",
+   "rarity": "Rare",
+   "srcDesc": "Useful alkaloids in a sticky black goo. One of the most ancient ingredients.",
+   "art": "pet/items/black_poppy_extract.png"
+  },
+  {
+   "index": 1111,
+   "src": "Essence of Daffodil",
+   "type": "Material",
+   "rarity": "Uncommon",
+   "srcDesc": "Poisonous to living things, but useful when making medicines and potions.",
+   "art": "pet/items/essence_of_daffodil.png"
+  },
+  {
+   "index": 1112,
+   "src": "Shredded Mint",
+   "type": "Material",
+   "rarity": "Epic",
+   "srcDesc": "Makes a cooling and relaxing tea. Also used in various magical applications.",
+   "art": "pet/items/shredded_mint.png"
+  },
+  {
+   "index": 1113,
+   "src": "Sanguineous Powder",
+   "type": "Material",
+   "rarity": "Uncommon",
+   "srcDesc": "A dark, reddish powder that resembles dried blood, or maybe just coffee. Edible, but can also be used as an ink or dye.",
+   "art": "pet/items/sanguineous_powder.png"
+  },
+  {
+   "index": 1114,
+   "src": "Berry Chalk",
+   "type": "Material",
+   "rarity": "Uncommon",
+   "srcDesc": "A chalky fungus scraped from a rare berry. Can ferment certain materials to produce a rejuvenating beverage.",
+   "art": "pet/items/berry_chalk.png"
+  },
+  {
+   "index": 1121,
+   "src": "Pallid Root Extract",
+   "type": "Material",
+   "rarity": "Rare",
+   "srcDesc": "The waxen paste extracted from an Irradiated Root. The jar has a pale gleam even in the deepest darkness.",
+   "art": "pet/items/pallid_root_extract.png"
+  },
+  {
+   "index": 1201,
+   "src": "Holy Syrup",
+   "type": "Material",
+   "rarity": "Rare",
+   "srcDesc": "Holy Dust diluted into a quantity of water. Forms a thin syrup that can be measured out for crafting.",
+   "art": "pet/items/holy_syrup.png"
+  },
+  {
+   "index": 1202,
+   "src": "Resin Tincture",
+   "type": "Material",
+   "rarity": "Uncommon",
+   "srcDesc": "A sweet, spicy syrup made from the natural resin found in the trees of the source game World. Useful for a number of recipes.",
+   "art": "pet/items/resin_tincture.png"
+  },
+  {
+   "index": 1301,
+   "src": "Ashlar",
+   "type": "Material",
+   "rarity": "Uncommon",
+   "srcDesc": "A heavy block of unpolished and imperfect stone. Symbolic of unrefined potential. Masters can craft this into something useful.",
+   "art": "pet/items/ashlar.png"
+  },
+  {
+   "index": 1302,
+   "src": "Timber",
+   "type": "Material",
+   "rarity": "Uncommon",
+   "srcDesc": "Laminated timber made from thin strips of material that have been pressed and glued together. It can be cut into useful planks after a large mass has been shaped and dried.",
+   "art": "pet/items/timber.png"
+  },
+  {
+   "index": 1303,
+   "src": "Ingot",
+   "type": "Material",
+   "rarity": "Uncommon",
+   "srcDesc": "A rough ingot of greenish metal. Soft enough to shape with force and heat and strong enough to hold an edge. Only .888 percent pure, so be careful when you work.",
+   "art": "pet/items/ingot.png"
+  },
+  {
+   "index": 6001,
+   "src": "Essence of Hearing",
+   "type": "Material",
+   "rarity": "Rare",
+   "srcDesc": "One of the six essences. A coil of roaring blue flame.",
+   "art": "pet/items/essence_of_hearing.png"
+  },
+  {
+   "index": 6002,
+   "src": "Essence of Smell",
+   "type": "Material",
+   "rarity": "Rare",
+   "srcDesc": "One of the six essences. A skyfish in a perfumed cloud.",
+   "art": "pet/items/essence_of_smell.png"
+  },
+  {
+   "index": 6003,
+   "src": "Essence of Sight",
+   "type": "Material",
+   "rarity": "Rare",
+   "srcDesc": "One of the six essences. A weeping orb of sludge.",
+   "art": "pet/items/essence_of_sight.png"
+  },
+  {
+   "index": 6004,
+   "src": "Essence of Taste",
+   "type": "Material",
+   "rarity": "Rare",
+   "srcDesc": "One of the six essences. A stone flower bud.",
+   "art": "pet/items/essence_of_taste.png"
+  },
+  {
+   "index": 6005,
+   "src": "Essence of Touch",
+   "type": "Material",
+   "rarity": "Rare",
+   "srcDesc": "One of the six essences. A hole in space with grasping tentacles.",
+   "art": "pet/items/essence_of_touch.png"
+  },
+  {
+   "index": 6006,
+   "src": "Essence of Thought",
+   "type": "Material",
+   "rarity": "Rare",
+   "srcDesc": "One of the six essences. A leafless tree with a reflective surface.",
+   "art": "pet/items/essence_of_thought.png"
+  },
+  {
+   "index": 6007,
+   "src": "Pure Essence",
+   "type": "Material",
+   "rarity": "Epic",
+   "srcDesc": "The combined six essences. A ball of pure sensation.",
+   "art": "pet/items/pure_essence.png"
+  },
+  {
+   "index": 11004,
+   "src": "Pale Potion",
+   "type": "Potion",
+   "rarity": "Rare",
+   "srcDesc": "A unique potion that can draw a Pet back from beyond. The bottle glows blue with a wan phosphorescence.",
+   "art": "pet/items/pale_potion.png"
+  },
+  {
+   "index": 11011,
+   "src": "Holy Dust",
+   "type": "Material",
+   "rarity": "Uncommon",
+   "srcDesc": "This sacred dust can be used to rename the source game… At the proper place.",
+   "art": "pet/items/holy_dust.png"
+  },
+  {
+   "index": 11110,
+   "src": "Gaokerena Mochi",
+   "type": "Food",
+   "rarity": "Epic",
+   "srcDesc": "A glossy purple mochi. It's filled with a green and fibrous root paste confection made with milk. Permanently adds +10 to a the source game’s Health.",
+   "art": "pet/items/gaokerena_mochi.png"
+  },
+  {
+   "index": 11120,
+   "src": "Sunset Apple Mochi",
+   "type": "Food",
+   "rarity": "Epic",
+   "srcDesc": "A deep red and orange mochi. It's filled with a golden apple jam that has a warm, heavenly flavor. Permanently adds +1 to a the source game’s Power.",
+   "art": "pet/items/sunset_apple_mochi.png"
+  },
+  {
+   "index": 11130,
+   "src": "Pet Mochi",
+   "type": "Food",
+   "rarity": "Epic",
+   "srcDesc": "A deep blue mochi with a butterfly stamp. It's filled with soft, white curds that resemble a fresh cheese. Permanently adds +1 to a the source game’s Violence.",
+   "art": "pet/items/pet_mochi.png"
+  },
+  {
+   "index": 11140,
+   "src": "Mana Mochi",
+   "type": "Food",
+   "rarity": "Epic",
+   "srcDesc": "A sky blue mochi. It's filled with small white grains that burst with a honey-sweet flavor. Permanently adds +1 to a the source game’s Harmony.",
+   "art": "pet/items/mana_mochi.png"
+  },
+  {
+   "index": 11201,
+   "src": "XP Candy (Small)",
+   "type": "Food",
+   "rarity": "Uncommon",
+   "srcDesc": "Feed this to a the source game to give them a little bit of experience.",
+   "art": "pet/items/xp_candy_small.png"
+  },
+  {
+   "index": 11202,
+   "src": "XP Candy (Medium)",
+   "type": "Food",
+   "rarity": "Uncommon",
+   "srcDesc": "Provides a decent amount of XP when fed to a Pet.",
+   "art": "pet/items/xp_candy_medium.png"
+  },
+  {
+   "index": 11203,
+   "src": "XP Candy (Large)",
+   "type": "Food",
+   "rarity": "Uncommon",
+   "srcDesc": "This gives a lot of XP when fed to a the source game.",
+   "art": "pet/items/xp_candy_large.png"
+  },
+  {
+   "index": 11204,
+   "src": "XP Candy (Huge)",
+   "type": "Food",
+   "rarity": "Rare",
+   "srcDesc": "This is far larger than any XP Candy you’ve seen before. Gives a huge amount of XP when fed to a the source game.",
+   "art": "pet/items/xp_candy_huge.png"
+  },
+  {
+   "index": 11221,
+   "src": "Full Heart Crystal",
+   "type": "Food",
+   "rarity": "Rare",
+   "srcDesc": "It pulses with warmth. Give this to your Pet to grant it a large amount of XP.",
+   "art": "pet/items/full_heart_crystal.png"
+  },
+  {
+   "index": 11222,
+   "src": "Half Heart Crystal",
+   "type": "Food",
+   "rarity": "Uncommon",
+   "srcDesc": "It feels slightly warm in your hand. Give this to your Pet to grant it a moderate amount of XP.",
+   "art": "pet/items/half_heart_crystal.png"
+  },
+  {
+   "index": 11223,
+   "src": "Great Heart Crystal",
+   "type": "Food",
+   "rarity": "Epic",
+   "srcDesc": "The crystal beats like a real heart. It radiates with heat enough to warm your surroundings. Give this to your pet to grant it a very large amount of XP.",
+   "art": "pet/items/great_heart_crystal.png"
+  },
+  {
+   "index": 11226,
+   "src": "Ash Pearl",
+   "type": "Food",
+   "rarity": "Rare",
+   "srcDesc": "The Wonder Egg was filled with soot and ash, but also a large blue pearl. Give this pearl to your Pet to grant it a temporary +1 to Harmony and Violence. If your Pet is liquidated, the pearl breaks and the power is lost.",
+   "art": "pet/items/ash_pearl.png"
+  },
+  {
+   "index": 11227,
+   "src": "Fetid Egg",
+   "type": "Food",
+   "rarity": "Uncommon",
+   "srcDesc": "This egg seems fresh, and refuses to spoil even out of the shell. Still, it reeks of sulfur. Your Pet can eat this to restore HP.",
+   "art": "pet/items/fetid_egg.png"
+  },
+  {
+   "index": 11233,
+   "src": "Gingerbread Cookie",
+   "type": "Food",
+   "rarity": "Rare",
+   "srcDesc": "A gingerbread cookie... feed this to a the source game for some extra experience.",
+   "art": "pet/items/gingerbread_cookie.png"
+  },
+  {
+   "index": 11301,
+   "src": "Maple-Flavor Ghost Gum",
+   "type": "Food",
+   "rarity": "Common",
+   "srcDesc": "The most basic form of food available in this world - restores 25 Health to a the source game.",
+   "art": "pet/items/maple_flavor_ghost_gum.png"
+  },
+  {
+   "index": 11302,
+   "src": "Cheeseburger",
+   "type": "Food",
+   "rarity": "Uncommon",
+   "srcDesc": "These burgers, still in their original wrapping, are occasionally found in the scrapyard. Apparently the source game love them.",
+   "art": "pet/items/cheeseburger.png"
+  },
+  {
+   "index": 11303,
+   "src": "Pom-Pom Fruit Candy",
+   "type": "Food",
+   "rarity": "Uncommon",
+   "srcDesc": "These fruit candies contain a huge amount of energy. Restores 50 Health to a the source game.",
+   "art": "pet/items/pom_pom_fruit_candy.png"
+  },
+  {
+   "index": 11304,
+   "src": "Gakki Cookie Sticks",
+   "type": "Food",
+   "rarity": "Uncommon",
+   "srcDesc": "Heavy duty rations by a Pet’s standards.. Restores 100 Health to a the source game.",
+   "art": "pet/items/gakki_cookie_sticks.png"
+  },
+  {
+   "index": 11311,
+   "src": "Resin",
+   "type": "Food",
+   "rarity": "Uncommon",
+   "srcDesc": "Sticky sap with a flavor like spiced honey. An energizing snack by itself, but also useful in a number of recipes.",
+   "art": "pet/items/resin.png"
+  },
+  {
+   "index": 11312,
+   "src": "Honeydew Scale",
+   "type": "Food",
+   "rarity": "Rare",
+   "srcDesc": "A sweet confection that appears on mushrooms and bones. Close inspection reveals this candy is actually the honeydew of a scale insect.",
+   "art": "pet/items/honeydew_scale.png"
+  },
+  {
+   "index": 11313,
+   "src": "Golden Apple",
+   "type": "Food",
+   "rarity": "Rare",
+   "srcDesc": "Sweet golden apples on a dry silver branch. Said to be a divine gift, they are extremely rare. They’re more often found in places without trees.",
+   "art": "pet/items/golden_apple.png"
+  },
+  {
+   "index": 11314,
+   "src": "Blue Pansy",
+   "type": "Food",
+   "rarity": "Uncommon",
+   "srcDesc": "A deep blue flower with a shape reminiscent of the blue butterflies common across the the source game World. It has a crisp, sweet, and refreshing flavor.",
+   "art": "pet/items/blue_pansy.png"
+  },
+  {
+   "index": 11401,
+   "src": "XP Potion",
+   "type": "Potion",
+   "rarity": "Uncommon",
+   "srcDesc": "Give to a Pet to increase their XP by 1000.",
+   "art": "pet/items/xp_potion.png"
+  },
+  {
+   "index": 11402,
+   "src": "Greater XP Potion",
+   "type": "Potion",
+   "rarity": "Rare",
+   "srcDesc": "Give to a Pet to increase their XP by 15000.",
+   "art": "pet/items/greater_xp_potion.png"
+  },
+  {
+   "index": 11403,
+   "src": "Respec Potion",
+   "type": "Potion",
+   "rarity": "Epic",
+   "srcDesc": "Give to a Pet to reset their skill points.",
+   "art": "pet/items/respec_potion.png"
+  },
+  {
+   "index": 11404,
+   "src": "Grace Potion",
+   "type": "Potion",
+   "rarity": "Rare",
+   "srcDesc": "Give to a Pet to decrease loss of health during the next Harvest by 25%.",
+   "art": "pet/items/grace_potion.png"
+  },
+  {
+   "index": 11405,
+   "src": "Bless Potion",
+   "type": "Potion",
+   "rarity": "Uncommon",
+   "srcDesc": "Give to a Pet to increase the COIN gained from the next Harvest by 25%.",
+   "art": "pet/items/bless_potion.png"
+  },
+  {
+   "index": 11406,
+   "src": "Apology Letter",
+   "type": "Consumable",
+   "rarity": "Uncommon",
+   "srcDesc": "A letter written by a Pet with sincere remorse for its actions. Lowers Recoil when liquidating other Pet.",
+   "art": "pet/items/apology_letter.png"
+  },
+  {
+   "index": 11407,
+   "src": "COIN Magnet",
+   "type": "Consumable",
+   "rarity": "Rare",
+   "srcDesc": "This shiny purple rock attracts grains of COIN. It dramatically increases the proportion of COIN a pet retains when it’s liquidated.",
+   "art": "pet/items/coin_magnet.png"
+  },
+  {
+   "index": 11408,
+   "src": "Festival Chime",
+   "type": "Consumable",
+   "rarity": "Uncommon",
+   "srcDesc": "Magical bells that gradually increase Harvest Intensity over the next long-term harvest. Your Pet will ring this chime until it breaks.",
+   "art": "pet/items/festival_chime.png"
+  },
+  {
+   "index": 11409,
+   "src": "Energy Drink",
+   "type": "Consumable",
+   "rarity": "Uncommon",
+   "srcDesc": "A lightly fermented beverage that grants a burst of spiritual energy. Dramatically reduces Cooldown Shift for a pet’s next action.",
+   "art": "pet/items/energy_drink.png"
+  },
+  {
+   "index": 11410,
+   "src": "Hostility Potion",
+   "type": "Potion",
+   "rarity": "Uncommon",
+   "srcDesc": "Most the source game find this bitter potion unpleasant, but some thrive on it. Expands a Pet’s Attack Threshold Shift by a small percentage.",
+   "art": "pet/items/hostility_potion.png"
+  },
+  {
+   "index": 11411,
+   "src": "Fortified XP Potion",
+   "type": "Potion",
+   "rarity": "Epic",
+   "srcDesc": "A deep-green potion with a grainy texture and dense mouthfeel. Fortified with rare red amber and the essences of old memories.",
+   "art": "pet/items/fortified_xp_potion.png"
+  },
+  {
+   "index": 11412,
+   "src": "Flash Talisman",
+   "type": "Consumable",
+   "rarity": "Rare",
+   "srcDesc": "A magical talisman that burns easily. Using this on a Pet intensifies their overall sensitivity to Types, buffing their advantages on liquidations but nerfing their advantages on defense.",
+   "art": "pet/items/flash_talisman.png"
+  },
+  {
+   "index": 11413,
+   "src": "Mistletoe",
+   "type": "Food",
+   "rarity": "Rare",
+   "srcDesc": "Sacred, at this time of year..... can be used on Pet to Bless them!",
+   "art": "pet/items/mistletoe.png"
+  },
+  {
+   "index": 11414,
+   "src": "Igors Candy",
+   "type": "Food",
+   "rarity": "Rare",
+   "srcDesc": "Wrapped in wax paper with a date printed on it: 10/31/98. Give to a Pet to increase the COIN gained from the next Harvest by 50%.",
+   "art": "pet/items/igors_candy.png"
+  },
+  {
+   "index": 11501,
+   "src": "Toadstool Liquor",
+   "type": "Potion",
+   "rarity": "Rare",
+   "srcDesc": "Liquor distilled from a mash made from mushrooms and black poppy. An underworld favorite.",
+   "art": "pet/items/toadstool_liquor.png"
+  },
+  {
+   "index": 19001,
+   "src": "Spirit Glue",
+   "type": "Potion",
+   "rarity": "Uncommon",
+   "srcDesc": "This glue even sticks to intangible things. Can be used to add additional Cooldown to an enemy Pet and temporarily lock it down to a Node.",
+   "art": "pet/items/spirit_glue.png"
+  },
+  {
+   "index": 19101,
+   "src": "Animistic Poison",
+   "type": "Potion",
+   "rarity": "Rare",
+   "srcDesc": "Dangerous to both living and nonliving beings. When used on the source game, it causes them to lose HP at a faster rate while Harvesting.",
+   "art": "pet/items/animistic_poison.png"
+  },
+  {
+   "index": 19201,
+   "src": "Cthonic Blight",
+   "type": "Potion",
+   "rarity": "Rare",
+   "srcDesc": "Highly corrosive. Can be used to clear barriers of plant or fungal matter. It can also be used on a the source game to lower its defenses. The Blight is particularly dangerous to Normal-type Pet.",
+   "art": "pet/items/cthonic_blight.png"
+  },
+  {
+   "index": 19301,
+   "src": "Curse Tablet",
+   "type": "Consumable",
+   "rarity": "Epic",
+   "srcDesc": "Also called a Defixio or Katadesmos. This ancient tablet is inscribed with a curse of weakness. Although it was meant for a long-dead human, Pet can use it on their own kind.",
+   "art": "pet/items/curse_tablet.png"
+  },
+  {
+   "index": 21007,
+   "src": "Silt-Caked Box",
+   "type": "Lootbox",
+   "rarity": "Uncommon",
+   "srcDesc": "Dredged from the bottom of the basin, packed with silt from the collapsing caves. Most of what washes down here is junk. Most.",
+   "art": "pet/items/silt_caked_box.png"
+  },
+  {
+   "index": 21201,
+   "src": "Ice Cream",
+   "type": "Food",
+   "rarity": "Uncommon",
+   "srcDesc": "Restorative ice-cream. Food for you, personally. Restores a little bit of your stamina.",
+   "art": "pet/items/ice_cream.png"
+  },
+  {
+   "index": 21202,
+   "src": "Better Ice Cream",
+   "type": "Food",
+   "rarity": "Uncommon",
+   "srcDesc": "A slightly larger and higher-quality ice-cream. What is this made of? Restores a medium amount of stamina.",
+   "art": "pet/items/better_ice_cream.png"
+  },
+  {
+   "index": 21203,
+   "src": "Best Ice Cream",
+   "type": "Food",
+   "rarity": "Uncommon",
+   "srcDesc": "A huge, lavishly decorated ice-cream. It doesn’t seem to be melting at all… Restores a lot of stamina.",
+   "art": "pet/items/best_ice_cream.png"
+  },
+  {
+   "index": 21205,
+   "src": "Rock Candyfloss",
+   "type": "Consumable",
+   "rarity": "Rare",
+   "srcDesc": "This rare crystal formation is soft to the touch, sweet, and edible. You can consume it to restore a large amount of Stamina.",
+   "art": "pet/items/rock_candyfloss.png"
+  },
+  {
+   "index": 21206,
+   "src": "Uninteresting Paste",
+   "type": "Potion",
+   "rarity": "Rare",
+   "srcDesc": "A matte-black paste in a plastic jar. A secret incense recipe created by Praline that allows individuals without bodies to smoke tobacco.",
+   "art": "pet/items/uninteresting_paste.png"
+  },
+  {
+   "index": 23102,
+   "src": "Screwdriver",
+   "type": "Tool",
+   "rarity": "Rare",
+   "srcDesc": "For driving screws. May be of practical use….",
+   "art": "pet/items/screwdriver.png"
+  },
+  {
+   "index": 100001,
+   "src": "Astrolabe Disk",
+   "type": "Key Item",
+   "rarity": "Epic",
+   "srcDesc": "A golden disk. It resembles the tympan of an astrolabe, but the engraving doesn’t look right.",
+   "art": "pet/items/astrolabe_disk.png"
+  },
+  {
+   "index": 100002,
+   "src": "Ancient Machine Part",
+   "type": "Key Item",
+   "rarity": "Epic",
+   "srcDesc": "A durable part of some kind of high-tech machinery. It has wear and corrosion like it’s been exposed to the elements for thousands of years.",
+   "art": "pet/items/ancient_machine_part.png"
+  },
+  {
+   "index": 100003,
+   "src": "Disc-Shaped Map",
+   "type": "Key Item",
+   "rarity": "Epic",
+   "srcDesc": "A golden disk inlaid with other metals. It resembles an overhead map of a temple complex. Seems to depict roads, pyramids, and other structures.",
+   "art": "pet/items/disc_shaped_map.png"
+  },
+  {
+   "index": 100004,
+   "src": "Aetheric Sextant",
+   "type": "Key Item",
+   "rarity": "Legendary",
+   "srcDesc": "Capable of divining some things beyond the perception of mortals.",
+   "art": "pet/items/aetheric_sextant.png"
+  },
+  {
+   "index": 100010,
+   "src": "Dowsing Rod",
+   "type": "Key Item",
+   "rarity": "Epic",
+   "srcDesc": "The crystal in the caves radiates a strange power. Praline alleges that this item can sense traces of that power.",
+   "art": "pet/items/dowsing_rod.png"
+  },
+  {
+   "index": 100012,
+   "src": "Igors Amulet",
+   "type": "Key Item",
+   "rarity": "Uncommon",
+   "srcDesc": "A crude sigil of sticks and stone, held together with resin. An old forum post swears it summons something in the Butterfly Forest.",
+   "art": "pet/items/igors_amulet.png"
+  }
+ ],
+ "recipes": [
+  {
+   "index": 1,
+   "src": "Brew XP Potion",
+   "out": 11401,
+   "outAmount": 1,
+   "ins": [
+    {
+     "item": 1003,
+     "amount": 1
+    },
+    {
+     "item": 1104,
+     "amount": 1000
+    }
+   ],
+   "stamina": 20
+  },
+  {
+   "index": 2,
+   "src": "Brew Greater XP Potion",
+   "out": 11402,
+   "outAmount": 1,
+   "ins": [
+    {
+     "item": 1006,
+     "amount": 1
+    },
+    {
+     "item": 1104,
+     "amount": 15000
+    }
+   ],
+   "stamina": 50
+  },
+  {
+   "index": 3,
+   "src": "Brew Respec Potion",
+   "out": 11403,
+   "outAmount": 1,
+   "ins": [
+    {
+     "item": 1003,
+     "amount": 1
+    },
+    {
+     "item": 1112,
+     "amount": 500
+    }
+   ],
+   "stamina": 50
+  },
+  {
+   "index": 4,
+   "src": "Brew Grace Potion",
+   "out": 11404,
+   "outAmount": 1,
+   "ins": [
+    {
+     "item": 1003,
+     "amount": 1
+    },
+    {
+     "item": 1111,
+     "amount": 100
+    },
+    {
+     "item": 1110,
+     "amount": 50
+    }
+   ],
+   "stamina": 25
+  },
+  {
+   "index": 5,
+   "src": "Brew Bless Potion",
+   "out": 11405,
+   "outAmount": 1,
+   "ins": [
+    {
+     "item": 1003,
+     "amount": 1
+    },
+    {
+     "item": 1111,
+     "amount": 100
+    }
+   ],
+   "stamina": 15
+  },
+  {
+   "index": 6,
+   "src": "Extract Pine Pollen",
+   "out": 1104,
+   "outAmount": 500,
+   "ins": [
+    {
+     "item": 1004,
+     "amount": 1
+    }
+   ],
+   "stamina": 10
+  },
+  {
+   "index": 7,
+   "src": "Extract Microplastics",
+   "out": 1103,
+   "outAmount": 500,
+   "ins": [
+    {
+     "item": 1003,
+     "amount": 1
+    }
+   ],
+   "stamina": 30
+  },
+  {
+   "index": 8,
+   "src": "Extract Daffodil",
+   "out": 1111,
+   "outAmount": 500,
+   "ins": [
+    {
+     "item": 1011,
+     "amount": 1
+    }
+   ],
+   "stamina": 10
+  },
+  {
+   "index": 9,
+   "src": "Extract Mint",
+   "out": 1112,
+   "outAmount": 500,
+   "ins": [
+    {
+     "item": 1012,
+     "amount": 1
+    }
+   ],
+   "stamina": 20
+  },
+  {
+   "index": 10,
+   "src": "Extract Black Poppy",
+   "out": 1110,
+   "outAmount": 500,
+   "ins": [
+    {
+     "item": 1010,
+     "amount": 1
+    }
+   ],
+   "stamina": 20
+  },
+  {
+   "index": 11,
+   "src": "Assemble Aetheric Sextant",
+   "out": 100004,
+   "outAmount": 1,
+   "ins": [
+    {
+     "item": 100003,
+     "amount": 1
+    },
+    {
+     "item": 100001,
+     "amount": 1
+    },
+    {
+     "item": 100002,
+     "amount": 1
+    }
+   ],
+   "stamina": 100
+  },
+  {
+   "index": 12,
+   "src": "Grind Berry Chalk",
+   "out": 1114,
+   "outAmount": 500,
+   "ins": [
+    {
+     "item": 1014,
+     "amount": 1
+    }
+   ],
+   "stamina": 10
+  },
+  {
+   "index": 13,
+   "src": "Crush Red Amber",
+   "out": 1107,
+   "outAmount": 500,
+   "ins": [
+    {
+     "item": 1007,
+     "amount": 1
+    }
+   ],
+   "stamina": 20
+  },
+  {
+   "index": 14,
+   "src": "Mix Holy Syrup",
+   "out": 1201,
+   "outAmount": 500,
+   "ins": [
+    {
+     "item": 11011,
+     "amount": 1
+    }
+   ],
+   "stamina": 20
+  },
+  {
+   "index": 15,
+   "src": "Process Resin",
+   "out": 1202,
+   "outAmount": 500,
+   "ins": [
+    {
+     "item": 11311,
+     "amount": 1
+    }
+   ],
+   "stamina": 10
+  },
+  {
+   "index": 16,
+   "src": "Extract Powder",
+   "out": 1113,
+   "outAmount": 500,
+   "ins": [
+    {
+     "item": 1013,
+     "amount": 1
+    }
+   ],
+   "stamina": 10
+  },
+  {
+   "index": 17,
+   "src": "Chisel Cup",
+   "out": 1102,
+   "outAmount": 1,
+   "ins": [
+    {
+     "item": 1002,
+     "amount": 1
+    }
+   ],
+   "stamina": 25
+  },
+  {
+   "index": 18,
+   "src": "Brew Hostility Potion",
+   "out": 11410,
+   "outAmount": 1,
+   "ins": [
+    {
+     "item": 1102,
+     "amount": 1
+    },
+    {
+     "item": 1113,
+     "amount": 250
+    },
+    {
+     "item": 1104,
+     "amount": 250
+    }
+   ],
+   "stamina": 20
+  },
+  {
+   "index": 19,
+   "src": "Brew Energy Drink",
+   "out": 11409,
+   "outAmount": 1,
+   "ins": [
+    {
+     "item": 1005,
+     "amount": 5
+    },
+    {
+     "item": 1114,
+     "amount": 500
+    },
+    {
+     "item": 1202,
+     "amount": 500
+    }
+   ],
+   "stamina": 50
+  },
+  {
+   "index": 20,
+   "src": "Write Apology Letter",
+   "out": 11406,
+   "outAmount": 1,
+   "ins": [
+    {
+     "item": 1001,
+     "amount": 5
+    },
+    {
+     "item": 1113,
+     "amount": 150
+    },
+    {
+     "item": 1202,
+     "amount": 150
+    }
+   ],
+   "stamina": 20
+  },
+  {
+   "index": 21,
+   "src": "Craft Festival Chime",
+   "out": 11408,
+   "outAmount": 1,
+   "ins": [
+    {
+     "item": 1005,
+     "amount": 3
+    },
+    {
+     "item": 1201,
+     "amount": 250
+    }
+   ],
+   "stamina": 25
+  },
+  {
+   "index": 22,
+   "src": "Craft COIN Magnet",
+   "out": 11407,
+   "outAmount": 1,
+   "ins": [
+    {
+     "item": 1002,
+     "amount": 1
+    },
+    {
+     "item": 1107,
+     "amount": 50
+    },
+    {
+     "item": 1201,
+     "amount": 100
+    }
+   ],
+   "stamina": 25
+  },
+  {
+   "index": 23,
+   "src": "Craft Spirit Glue",
+   "out": 19001,
+   "outAmount": 1,
+   "ins": [
+    {
+     "item": 1003,
+     "amount": 1
+    },
+    {
+     "item": 1103,
+     "amount": 250
+    },
+    {
+     "item": 1114,
+     "amount": 250
+    }
+   ],
+   "stamina": 20
+  },
+  {
+   "index": 24,
+   "src": "Craft Animistic Poison",
+   "out": 19101,
+   "outAmount": 1,
+   "ins": [
+    {
+     "item": 1202,
+     "amount": 100
+    },
+    {
+     "item": 11314,
+     "amount": 1
+    },
+    {
+     "item": 1113,
+     "amount": 100
+    }
+   ],
+   "stamina": 20
+  },
+  {
+   "index": 25,
+   "src": "Craft Cthonic Blight",
+   "out": 19201,
+   "outAmount": 1,
+   "ins": [
+    {
+     "item": 1201,
+     "amount": 100
+    },
+    {
+     "item": 11312,
+     "amount": 1
+    },
+    {
+     "item": 11227,
+     "amount": 1
+    }
+   ],
+   "stamina": 25
+  },
+  {
+   "index": 26,
+   "src": "Craft Flash Talisman",
+   "out": 11412,
+   "outAmount": 5,
+   "ins": [
+    {
+     "item": 1016,
+     "amount": 5
+    },
+    {
+     "item": 6005,
+     "amount": 1
+    },
+    {
+     "item": 1103,
+     "amount": 500
+    }
+   ],
+   "stamina": 50
+  },
+  {
+   "index": 28,
+   "src": "Craft Toadstool Liquor",
+   "out": 11501,
+   "outAmount": 1,
+   "ins": [
+    {
+     "item": 1113,
+     "amount": 2500
+    },
+    {
+     "item": 1110,
+     "amount": 250
+    },
+    {
+     "item": 1114,
+     "amount": 250
+    }
+   ],
+   "stamina": 50
+  },
+  {
+   "index": 29,
+   "src": "Craft Fortified XP Potion",
+   "out": 11411,
+   "outAmount": 1,
+   "ins": [
+    {
+     "item": 11402,
+     "amount": 1
+    },
+    {
+     "item": 1107,
+     "amount": 300
+    },
+    {
+     "item": 6006,
+     "amount": 1
+    }
+   ],
+   "stamina": 75
+  },
+  {
+   "index": 30,
+   "src": "Craft Pure Essence",
+   "out": 6007,
+   "outAmount": 1,
+   "ins": [
+    {
+     "item": 6001,
+     "amount": 1
+    },
+    {
+     "item": 6005,
+     "amount": 1
+    },
+    {
+     "item": 6003,
+     "amount": 1
+    },
+    {
+     "item": 6002,
+     "amount": 1
+    },
+    {
+     "item": 6004,
+     "amount": 1
+    },
+    {
+     "item": 6006,
+     "amount": 1
+    }
+   ],
+   "stamina": 75
+  },
+  {
+   "index": 31,
+   "src": "Craft Timber with Stems",
+   "out": 1302,
+   "outAmount": 1,
+   "ins": [
+    {
+     "item": 1016,
+     "amount": 100
+    }
+   ],
+   "stamina": 50
+  },
+  {
+   "index": 32,
+   "src": "Craft Ingot with Pipes",
+   "out": 1303,
+   "outAmount": 1,
+   "ins": [
+    {
+     "item": 1017,
+     "amount": 100
+    }
+   ],
+   "stamina": 50
+  },
+  {
+   "index": 33,
+   "src": "Craft Ashlar with Bone",
+   "out": 1301,
+   "outAmount": 1,
+   "ins": [
+    {
+     "item": 1020,
+     "amount": 100
+    }
+   ],
+   "stamina": 50
+  },
+  {
+   "index": 34,
+   "src": "Craft Timber with Stick",
+   "out": 1302,
+   "outAmount": 1,
+   "ins": [
+    {
+     "item": 1001,
+     "amount": 100
+    }
+   ],
+   "stamina": 50
+  },
+  {
+   "index": 35,
+   "src": "Craft Ingot with Scrap",
+   "out": 1303,
+   "outAmount": 1,
+   "ins": [
+    {
+     "item": 1005,
+     "amount": 100
+    }
+   ],
+   "stamina": 50
+  },
+  {
+   "index": 36,
+   "src": "Craft Ashlar with Stone",
+   "out": 1301,
+   "outAmount": 1,
+   "ins": [
+    {
+     "item": 1002,
+     "amount": 100
+    }
+   ],
+   "stamina": 50
+  },
+  {
+   "index": 37,
+   "src": "Craft Uninteresting Paste",
+   "out": 21206,
+   "outAmount": 1,
+   "ins": [
+    {
+     "item": 1018,
+     "amount": 20
+    },
+    {
+     "item": 6004,
+     "amount": 1
+    }
+   ],
+   "stamina": 50
+  },
+  {
+   "index": 38,
+   "src": "Extract Microplastics From Cigs",
+   "out": 1103,
+   "outAmount": 250,
+   "ins": [
+    {
+     "item": 1018,
+     "amount": 1
+    }
+   ],
+   "stamina": 15
+  },
+  {
+   "index": 39,
+   "src": "Extract Irradiated Root",
+   "out": 1121,
+   "outAmount": 500,
+   "ins": [
+    {
+     "item": 1021,
+     "amount": 1
+    }
+   ],
+   "stamina": 30
+  },
+  {
+   "index": 40,
+   "src": "Craft Pale Potion",
+   "out": 11004,
+   "outAmount": 1,
+   "ins": [
+    {
+     "item": 1003,
+     "amount": 1
+    },
+    {
+     "item": 1121,
+     "amount": 200
+    },
+    {
+     "item": 1112,
+     "amount": 100
+    }
+   ],
+   "stamina": 50
+  },
+  {
+   "index": 41,
+   "src": "Assemble Dowsing Rod",
+   "out": 100010,
+   "outAmount": 1,
+   "ins": [
+    {
+     "item": 1021,
+     "amount": 1
+    },
+    {
+     "item": 1303,
+     "amount": 1
+    },
+    {
+     "item": 6003,
+     "amount": 1
+    }
+   ],
+   "stamina": 100
+  },
+  {
+   "index": 42,
+   "src": "Craft Igors Amulet",
+   "out": 100012,
+   "outAmount": 1,
+   "ins": [
+    {
+     "item": 1001,
+     "amount": 3
+    },
+    {
+     "item": 1002,
+     "amount": 2
+    },
+    {
+     "item": 11311,
+     "amount": 1
+    }
+   ],
+   "stamina": 15
+  },
+  {
+   "index": 10002,
+   "src": "Offer an Obol",
+   "out": 21007,
+   "outAmount": 1,
+   "ins": [
+    {
+     "item": 1015,
+     "amount": 1
+    }
+   ],
+   "stamina": 0
+  }
+ ]
+}

@@ -139,3 +139,20 @@ describe("explaining a live beat", () => {
     expect(r.pet.last.want).toBe(expected.out & 7);
   });
 });
+
+describe("items from the world", () => {
+  it("feeding an item effect fills meters, adds xp and diet", () => {
+    const r = care(newPet(), { kind: "feed", food: { food: 300, joy: 20, xp: 15, diet: "grain" } }, T0, gentle);
+    expect(r.pet.diet.grain).toBe(1);
+    expect(r.pet.xp).toBeGreaterThanOrEqual(15);
+  });
+  it("using a tonic wakes a hibernating pet and records the medicine action", () => {
+    const sleeping = catchUp(newPet(), T0 + 30 * DAY_MS, gentle);
+    expect(sleeping.hibernating).toBe(true);
+    const r = care(sleeping, { kind: "use", item: { energy: 400, wake: true } }, T0 + 30 * DAY_MS, gentle);
+    expect(r.note).toBe("hibernationEnded");
+    const r2 = care(newPet(), { kind: "use", item: { joy: 200 } }, T0, gentle);
+    expect(r2.note).toBe("used");
+    expect(decodeSenses(r2.pet.pendingLog.at(-1)!).action).toBe(ACTION.medicine);
+  });
+});
