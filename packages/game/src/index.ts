@@ -32,3 +32,4 @@ export * from "./visitors";
 export * from "./friendship";
 export * from "./designer";
 export * from "./designedPartners";
+export * from "./jobs";

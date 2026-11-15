@@ -612,7 +612,7 @@ export function PlayApp() {
       </Sheet>
 
       <Sheet open={tab === "games"} title={lang === "zh" ? "一起玩" : "Play together"} onClose={close}>
-        <GamesPanel pet={pet} onDone={close} />
+        <GamesPanel pet={pet} onDone={close} onSchool={() => pick("mind")} />
       </Sheet>
 
       <Sheet open={tab === "pets"} title={lang === "zh" ? "你的宠物" : "Your pets"} onClose={close}>

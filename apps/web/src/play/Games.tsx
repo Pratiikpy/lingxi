@@ -10,6 +10,7 @@ import { drawPet } from "@lingxi/art";
 import { type GameId, type Pet, SEASONAL, afterSwaps, nextPattern, seasonOf, shuffles, stageOf, starsFor, toVisible } from "@lingxi/game";
 import { HOME, ITEM, ROOMS } from "@lingxi/world";
 import { useWorld } from "../game/world";
+import { LifePanel } from "./Jobs";
 import { useLang } from "../i18n";
 import { useGame } from "../game/store";
 import { play } from "../game/sound";
@@ -22,7 +23,7 @@ type Lang = "en" | "zh";
 const drawn = (s: string): PetStage => (s === "elder" ? "adult" : (s as PetStage));
 const TREATS = [11301, 11302, 11303, 11304, 11313].filter((id) => ITEM[id]);
 
-export function GamesPanel({ pet, onDone }: { pet: Pet; onDone: () => void }) {
+export function GamesPanel({ pet, onDone, onSchool }: { pet: Pet; onDone: () => void; onSchool: () => void }) {
   const lang = useLang((s) => s.lang) as Lang;
   const act = useGame((s) => s.act);
   const [game, setGame] = useState<GameId | null>(null);
@@ -65,6 +66,7 @@ export function GamesPanel({ pet, onDone }: { pet: Pet; onDone: () => void }) {
   ];
   return (
     <div className="games">
+      <LifePanel pet={pet} onSchool={onSchool} blocked={block} />
       {result && (
         <div className="game-result" role="status">
           <span className="stars" aria-label={`${result.stars}/3`}>
