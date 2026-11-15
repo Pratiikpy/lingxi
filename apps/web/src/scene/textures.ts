@@ -139,3 +139,46 @@ export const BITS = {
       { o: INK, w: "#FFFDF8" },
     ),
 };
+
+/** A soft round glow (white at the centre, clear at the edge), tinted where it is used. */
+export function glowTexture(): Texture {
+  const k = "glow";
+  const hit = cache.get(k);
+  if (hit) return hit;
+  const n = 64;
+  const el = document.createElement("canvas");
+  el.width = n;
+  el.height = n;
+  const ctx = el.getContext("2d")!;
+  const g = ctx.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2);
+  g.addColorStop(0, "rgba(255,255,255,1)");
+  g.addColorStop(0.45, "rgba(255,255,255,0.45)");
+  g.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, n, n);
+  const t = Texture.from(el);
+  t.source.scaleMode = "linear";
+  cache.set(k, t);
+  return t;
+}
+
+/** Darker corners, clear middle: framing light for the room. */
+export function vignetteTexture(): Texture {
+  const k = "vignette";
+  const hit = cache.get(k);
+  if (hit) return hit;
+  const n = 128;
+  const el = document.createElement("canvas");
+  el.width = n;
+  el.height = n;
+  const ctx = el.getContext("2d")!;
+  const g = ctx.createRadialGradient(n / 2, n * 0.55, n * 0.3, n / 2, n * 0.55, n * 0.78);
+  g.addColorStop(0, "rgba(27,22,48,0)");
+  g.addColorStop(1, "rgba(27,22,48,1)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, n, n);
+  const t = Texture.from(el);
+  t.source.scaleMode = "linear";
+  cache.set(k, t);
+  return t;
+}

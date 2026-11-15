@@ -12,7 +12,7 @@ import { Application, Assets, Container, Graphics, Sprite, Text, type Texture } 
 import { AnimatedGIF } from "@pixi/gif";
 import type { Expression } from "@lingxi/art";
 import type { StarterLine } from "@lingxi/brain";
-import { BITS, type PetStage, catTexture, glyphTexture, petTexture } from "./textures";
+import { BITS, type PetStage, catTexture, glowTexture, glyphTexture, petTexture, vignetteTexture } from "./textures";
 
 export type DayPhase = "day" | "evening" | "night";
 
@@ -242,6 +242,16 @@ export function RoomScene(props: SceneProps) {
       world.addChild(fx);
       const sky = new Container();
       world.addChild(sky);
+      // light: a warm pool around the pet at dusk and night, soft corners always
+      const glow = new Sprite(glowTexture());
+      glow.anchor.set(0.5);
+      glow.blendMode = "add";
+      glow.alpha = 0;
+      world.addChildAt(glow, world.getChildIndex(floor));
+      const vignette = new Sprite(vignetteTexture());
+      vignette.width = ROOM;
+      vignette.height = ROOM;
+      world.addChild(vignette);
       const drifts: Drift[] = [];
       const weather = weatherFor(new Date());
       // the pet turns toward where you point
@@ -489,6 +499,17 @@ export function RoomScene(props: SceneProps) {
           b.texture = BITS.bunny(!p.reduceMotion && Math.floor(now / 2300 + i * 3) % 6 === 0);
           b.y = PET_FEET + 3 + (!p.reduceMotion && Math.sin(now / 480 + i * 2) > 0.4 ? -1 : 0);
         });
+
+        // the light breathes a little; it is warm and gold in the evening, cool and low at night
+        const lightAlpha = p.phase === "night" ? 0.22 : p.phase === "evening" ? 0.18 : 0;
+        glow.alpha += (lightAlpha * (p.reduceMotion ? 1 : 0.92 + 0.08 * Math.sin(now / 900)) - glow.alpha) * 0.08;
+        glow.tint = p.phase === "night" ? 0xffb85c : 0xffa45a;
+        glow.x = PET_X;
+        glow.y = PET_FEET - 14;
+        glow.width = glow.height = 80;
+        vignette.alpha = p.phase === "night" ? 0.42 : p.phase === "evening" ? 0.3 : 0.16;
+        // depth: the drifting motes and weather lean a pixel toward the pointer, ahead of the still room
+        if (!p.reduceMotion) sky.x = Math.round(Math.max(-1, Math.min(1, (lookX - PET_X) / 40)) * 2);
 
         // motes in the light, fireflies at night, and today's weather outdoors
         if (!p.reduceMotion) {
