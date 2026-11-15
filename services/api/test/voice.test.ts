@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { cleanLine, createVoice, voiceKey, voicePrompt, VoiceRequest } from "../src/voice";
+import { Hono } from "hono";
+import { withVoice } from "../src/server";
+import { RateLimiter } from "../src/limit";
 
 const req = (over: Partial<VoiceRequest> = {}): VoiceRequest =>
   VoiceRequest.parse({ name: "Mochi", lang: "en", stage: "baby", line: "gentle", decision: "ask for food", because: ["very hungry"], meters: { food: 100, joy: 500, energy: 800, clean: 800 }, sick: false, asleep: false, ...over });
@@ -65,9 +68,6 @@ describe("the pet's voice", () => {
 
 describe("voice route failures stay quiet in the browser", () => {
   it("answers 200 with ok:false when busy or when the model fails", async () => {
-    const { Hono } = await import("hono");
-    const { withVoice } = await import("../src/server");
-    const { RateLimiter } = await import("../src/limit");
     const app = withVoice(new Hono(), (async () => ({ ok: false, reason: "error" })) as never, new RateLimiter(1, 600_000));
     const body = JSON.stringify(req());
     const first = await app.request("/api/voice", { method: "POST", body, headers: { "content-type": "application/json" } });
