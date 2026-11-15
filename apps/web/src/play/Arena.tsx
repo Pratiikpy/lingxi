@@ -87,7 +87,7 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken }: { pet: Pet; cha
 
   function start(partner: Partner) {
     const stage = stageOf(pet, Date.now());
-    const me = fighterOfMind(pet.name, { line: pet.line, lessons: pet.lessons, family: pet.family }, levelOf(stage), pet.brain);
+    const me = fighterOfMind(pet.name, { line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts }, levelOf(stage), pet.brain);
     const them = fighterOfPartner(partner);
     const seed = crypto.getRandomValues(new Uint32Array(1))[0]!;
     play("tap");
@@ -257,6 +257,7 @@ function Result({ pet, partner, result, reward, onDone, onRematch }: { pet: Pet;
           level: levelOf(stage),
           memory: pet.brain,
           family: pet.family,
+          instincts: pet.instincts,
           opponent: fighterOfPartner(partner),
         }),
       );

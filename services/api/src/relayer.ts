@@ -17,7 +17,7 @@ import { createPublicClient, createWalletClient, erc20Abi, http, type Address, t
 import { privateKeyToAccount } from "viem/accounts";
 import { type Program, type Rule, type StarterLine, bytesToHex, compileProgram, composeChild, gateCount, netlistBytes } from "@lingxi/brain";
 import { FACTORY, processorAbi, transistorsAbi, xLayer } from "@lingxi/chain";
-import { type Family, MAX_GATES, composeProgram, halvesOf } from "@lingxi/game";
+import { type Family, MAX_GATES, cleanInstincts, composeProgram, halvesOf } from "@lingxi/game";
 
 const NEWLINE = /\r?\n/;
 
@@ -67,13 +67,13 @@ export class BrainRelayer {
     return run;
   }
 
-  /** A pet's brain from its line and lessons. */
-  relay(line: StarterLine, lessons: Rule[]): Promise<RelayResult> {
+  /** A pet's brain from its line, lessons and instinct switches. */
+  relay(line: StarterLine, lessons: Rule[], instincts = 0): Promise<RelayResult> {
     return this.serial(async () => {
       if (lessons.length > 8) return { ok: false, reason: "invalid", detail: "too many lessons" } as const;
       let program: Program;
       try {
-        program = composeProgram(line, lessons);
+        program = composeProgram(line, lessons, cleanInstincts(instincts));
       } catch (e) {
         return { ok: false, reason: "invalid", detail: (e as Error).message } as const;
       }

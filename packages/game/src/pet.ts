@@ -92,6 +92,8 @@ export interface PetState {
   brain: number[];
   /** rules the owner taught, highest priority first */
   lessons: Rule[];
+  /** the four instinct switches chosen at hatching (1 brave · 2 greedy · 4 curious · 8 calm); fixed for life */
+  instincts?: number;
   traits: Record<Trait, number>;
   xp: number;
   counts: { feed: number; play: number; clean: number; pet: number; lessons: number };
@@ -140,6 +142,8 @@ export interface ParentInfo {
   name: string;
   line: "gentle" | "bold" | "curious";
   lessons: import("@lingxi/brain").Rule[];
+  /** the parent's instinct switches, which live on in its half of the child's mind */
+  instincts?: number;
   /** on-chain pet id and owner, when the parent lived on chain */
   petId?: number;
   owner?: string;

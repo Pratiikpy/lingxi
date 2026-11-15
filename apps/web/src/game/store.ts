@@ -25,15 +25,15 @@ const SAVE_KEY = "lingxi.pets.v2";
 export const MAX_PETS = 8;
 
 const brains = new Map<string, Brain>();
-/** The pet's whole program: what it was taught, then its instincts. */
-export function programFor(line: StarterLine, lessons: readonly Rule[] = []): Program {
-  return lessons.length ? composeProgram(line, lessons) : STARTERS[line];
+/** The pet's whole program: what it was taught, then the instincts it hatched with, then its egg line's starter rules. */
+export function programFor(line: StarterLine, lessons: readonly Rule[] = [], instincts = 0): Program {
+  return lessons.length || instincts ? composeProgram(line, lessons, instincts) : STARTERS[line];
 }
-export function brainFor(line: StarterLine, lessons: readonly Rule[] = []): Brain {
-  const key = line + JSON.stringify(lessons);
+export function brainFor(line: StarterLine, lessons: readonly Rule[] = [], instincts = 0): Brain {
+  const key = line + instincts + JSON.stringify(lessons);
   let b = brains.get(key);
   if (!b) {
-    const p = programFor(line, lessons);
+    const p = programFor(line, lessons, instincts);
     b = { fast: fastBrain(compileProgram(p)), nState: stateBits(p), program: p };
     brains.set(key, b);
   }
@@ -49,7 +49,7 @@ export interface MindPart {
 
 /** A pet's mind as the screens show it: one program, or a child's day half and night half. */
 export function mindParts(pet: Pet): MindPart[] {
-  if (!pet.family) return [{ program: programFor(pet.line, pet.lessons), offset: 0 }];
+  if (!pet.family) return [{ program: programFor(pet.line, pet.lessons, pet.instincts), offset: 0 }];
   const [a, b] = halvesOf(pet.family, pet.lessons);
   return [
     { program: a, offset: 0, from: { name: pet.family.parents[0].name, when: "day" } },
@@ -64,7 +64,7 @@ export function decidingPart(pet: Pet): MindPart {
 }
 
 /** Any pet's brain, including a child built from two parents. */
-export const brainOf = (p: Pet): Brain => (p.family ? mindBrain({ line: p.line, lessons: p.lessons ?? [], family: p.family }) : brainFor(p.line, p.lessons ?? []));
+export const brainOf = (p: Pet): Brain => (p.family ? mindBrain({ line: p.line, lessons: p.lessons ?? [], family: p.family }) : brainFor(p.line, p.lessons ?? [], p.instincts ?? 0));
 
 interface Roster {
   active: number;
@@ -142,7 +142,7 @@ interface GameState {
   /** last care for the scene to animate */
   lastCare: { kind: Care["kind"] | "pet" | "learn"; at: number; food?: string } | null;
   daily: Daily;
-  hatch: (line: StarterLine, name: string) => void;
+  hatch: (line: StarterLine, name: string, instincts?: number) => void;
   /** a care action; `art` is the picture of the food or item used, for the room to show */
   act: (c: Care, art?: string) => void;
   tick: () => void;
@@ -194,13 +194,14 @@ export const useGame = create<GameState>((set, get) => ({
   toast: null,
   lastCare: null,
   daily: freshDaily(),
-  hatch: (line, name) => {
+  hatch: (line, name, instincts = 0) => {
     const pet = createPet({
       name: name.trim().slice(0, 12) || "Mochi",
       line,
       now: Date.now(),
       tzOffsetMin: -new Date().getTimezoneOffset(),
-      brain: brainFor(line),
+      brain: brainFor(line, [], instincts),
+      instincts,
     });
     save(pet);
     useBadges.getState().note("pets");

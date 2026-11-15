@@ -62,7 +62,8 @@ export function decodeGift(code: string): Gift {
     if (!line || !Array.isArray(egg.lessons) || egg.lessons.length > 8) throw new GiftError("the egg is damaged");
     let gates: number;
     try {
-      gates = gateCount(compileProgram(composeProgram(line, egg.lessons as Rule[])));
+      // whoever hatches it picks its instincts then, so the egg must fit with all four switched on
+      gates = gateCount(compileProgram(composeProgram(line, egg.lessons as Rule[], 15)));
     } catch {
       throw new GiftError("the egg's mind does not fit together");
     }

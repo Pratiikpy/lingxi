@@ -59,11 +59,12 @@ export interface NewPet {
   now: number;
   tzOffsetMin: number;
   brain: Brain;
+  instincts?: number;
 }
 
 export type Pet = PetState & { tzOffsetMin: number };
 
-export function createPet({ name, line, now, tzOffsetMin, brain }: NewPet): Pet {
+export function createPet({ name, line, now, tzOffsetMin, brain, instincts }: NewPet): Pet {
   const full = (v: number) => v * SUB;
   return {
     version: 1,
@@ -77,6 +78,7 @@ export function createPet({ name, line, now, tzOffsetMin, brain }: NewPet): Pet 
     starvingBeats: 0,
     brain: new Array(brain.nState).fill(0),
     lessons: [],
+    ...(instincts ? { instincts } : {}),
     traits: Object.fromEntries(TRAITS.map((t) => [t, 0])) as Pet["traits"],
     xp: 0,
     counts: { feed: 0, play: 0, clean: 0, pet: 0, lessons: 0 },

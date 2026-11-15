@@ -3,8 +3,8 @@
 import { useEffect, useRef } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { type MindPart, mindParts } from "../game/store";
-import { DIETS, FOODS, FORMS, FORM_NAMES, TRAITS, type Pet, beatOf, dayOf, evolutionInputs, evolve, kinshipNow, levelOf, stageOf } from "@lingxi/game";
-import { useLang, useT } from "../i18n";
+import { DIETS, FOODS, FORMS, FORM_NAMES, TRAITS, type Pet, beatOf, dayOf, evolutionInputs, evolve, instinctsOf, kinshipNow, levelOf, stageOf } from "@lingxi/game";
+import { useLang, useT, type Key } from "../i18n";
 import { Icon } from "./icons";
 import { Chips } from "./parts";
 import { chipsFor, MOOD_NAMES } from "./ruleText";
@@ -123,6 +123,7 @@ function MindPartView({ pet, part, firing }: { pet: Pet; part: MindPart; firing:
           const c = chipsFor(p, r, lang);
           return (
             <li key={i} className={firing && pet.last.rule === i ? "fire" : ""}>
+              {r.label?.startsWith("instinct: ") && <span className="instinct-tag">{t("mind.instinct")}</span>}
               <Chips when={c.when} then={c.then} />
             </li>
           );
@@ -178,6 +179,8 @@ export function MeSheetBody({ pet }: { pet: Pet }) {
     <dl className="rows">
       <dt>{t("me.nature")}</dt>
       <dd>{nature}</dd>
+      <dt>{t("hatch.instincts")}</dt>
+      <dd>{instinctsOf(pet.instincts).map((k) => t(`instinct.${k}` as Key)).join(lang === "zh" ? "、" : ", ") || t("me.noInstincts")}</dd>
       <dt>{lang === "zh" ? "等级" : "Level"}</dt>
       <dd>
         <span className="lv">

@@ -21,6 +21,8 @@ export interface Partner {
   family?: Family;
   /** a friend's own taught lessons (needed with family to rebuild both halves) */
   lessons?: Rule[];
+  /** a friend's instinct switches */
+  instincts?: number;
 }
 
 const P = (rules: unknown[], otherwise: { want: number; mood: number }) => validateProgram({ version: "LX-PET/1", memory: [], rules, otherwise });
@@ -94,7 +96,7 @@ export function friendPartner(card: { id: string; name: string; line: string; st
   const parsed = parseCard(card.lessons);
   if (!line || !parsed) return null;
   try {
-    const program = composeProgram(line, parsed.lessons);
+    const program = composeProgram(line, parsed.lessons, parsed.instincts);
     const minds = parsed.family ? halvesOf(parsed.family, parsed.lessons) : [program];
     for (const m of minds) if (gateCount(compileProgram(m)) > MAX_GATES) return null;
     const grown = card.stage === "elder" ? "adult" : card.stage;
@@ -109,6 +111,7 @@ export function friendPartner(card: { id: string; name: string; line: string; st
       blurb: { en: `${name}'s real brain, with everything it has been taught.`, zh: `${name}真实的大脑，带着它学过的一切。` },
       program,
       lessons: parsed.lessons,
+      ...(parsed.instincts ? { instincts: parsed.instincts } : {}),
       ...(parsed.family ? { family: parsed.family } : {}),
     };
   } catch {

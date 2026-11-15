@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { SHELL, drawEgg, drawPet } from "@lingxi/art";
 import type { StarterLine } from "@lingxi/brain";
+import { INSTINCTS, type Instinct, instinctBits } from "@lingxi/game";
 import { useLang, useT, type Key } from "../i18n";
 import { play } from "../game/sound";
 import { PALETTE_OF } from "../scene/textures";
@@ -16,13 +17,18 @@ const NAMES = {
   zh: ["团子", "豆腐", "麻薯", "小圆", "桃桃", "汤圆", "布丁", "糖糖", "饺子", "芝麻"],
 };
 
-export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string) => void }) {
+export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string, instincts: number) => void }) {
   const t = useT();
   const { lang } = useLang();
   const reduce = useReducedMotion();
   const [line, setLine] = useState<StarterLine>("gentle");
   const [name, setName] = useState(() => NAMES[lang][Math.floor(Math.random() * NAMES[lang].length)]!);
   const [cracking, setCracking] = useState(-1);
+  const [instincts, setInstincts] = useState<Instinct[]>([]);
+  const toggle = (k: Instinct) => {
+    play("tap");
+    setInstincts((on) => (on.includes(k) ? on.filter((x) => x !== k) : [...on, k]));
+  };
   const eggs = useMemo(
     () =>
       LINES.map((l) => ({
@@ -40,8 +46,9 @@ export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string) 
   };
   const hatch = () => {
     play("hatch");
+    const bits = instinctBits(instincts);
     if (reduce) {
-      onHatch(line, name);
+      onHatch(line, name, bits);
       return;
     }
     let k = 0;
@@ -50,7 +57,7 @@ export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string) 
       k += 1;
       if (k > 4) {
         clearInterval(id);
-        onHatch(line, name);
+        onHatch(line, name, bits);
       } else setCracking(k);
     }, 420);
   };
@@ -86,6 +93,19 @@ export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string) 
               </button>
             ))}
           </div>
+          <fieldset className="instincts">
+            <legend>{t("hatch.instincts")}</legend>
+            <p>{t("hatch.instincts.sub")}</p>
+            <div className="instinct-grid">
+              {INSTINCTS.map((k) => (
+                <button key={k} type="button" role="switch" aria-checked={instincts.includes(k)} className="instinct" onClick={() => toggle(k)}>
+                  <span className="instinct-knob" aria-hidden="true" />
+                  <b>{t(`instinct.${k}` as Key)}</b>
+                  <small>{t(`instinct.${k}.desc` as Key)}</small>
+                </button>
+              ))}
+            </div>
+          </fieldset>
           <div className="name-row">
             <label htmlFor="pet-name">{t("hatch.name")}</label>
             <div className="name-field">

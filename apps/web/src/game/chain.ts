@@ -363,7 +363,7 @@ export const useChain = create<ChainState>((set, get) => ({
       if (!brainId) {
         set({ busy: "taping" });
         // a child's mind is both halves, REF'd by a new child circuit
-        const r = pet.family ? await relayChild({ card: petCard(pet) }) : await relayBrain({ line: pet.line, lessons: pet.lessons });
+        const r = pet.family ? await relayChild({ card: petCard(pet) }) : await relayBrain({ line: pet.line, lessons: pet.lessons, ...(pet.instincts ? { instincts: pet.instincts } : {}) });
         if (!r.ok) throw new Error(r.reason);
         brainId = r.brainId;
       }

@@ -40,7 +40,7 @@ export function familyBlock(pet: Pet, partnerStage: string, lang: Lang): string 
   return lang === "zh" ? `上次之后要休息 ${BREED_COOLDOWN_DAYS} 天。` : `Pets rest ${BREED_COOLDOWN_DAYS} days after having a little one.`;
 }
 
-const asParent = (p: Pet): ParentInfo & { generation: number } => ({ name: p.name, line: p.line, lessons: p.lessons, key: petKey(p), generation: p.family?.generation ?? 0 });
+const asParent = (p: Pet): ParentInfo & { generation: number } => ({ name: p.name, line: p.line, lessons: p.lessons, ...(p.instincts ? { instincts: p.instincts } : {}), key: petKey(p), generation: p.family?.generation ?? 0 });
 
 /** Someone asked us: raise a little one together? */
 export function ProposalDialog({ pet }: { pet: Pet }) {
@@ -116,7 +116,7 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
     const card = parseCard(answer.card);
     if (!line || !card) return null;
     try {
-      return familyOf(asParent(pet), { name: answer.name, line, lessons: card.lessons, generation: card.family?.generation ?? 0 });
+      return familyOf(asParent(pet), { name: answer.name, line, lessons: card.lessons, ...(card.instincts ? { instincts: card.instincts } : {}), generation: card.family?.generation ?? 0 });
     } catch {
       return null;
     }

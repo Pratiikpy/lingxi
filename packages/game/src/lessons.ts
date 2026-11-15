@@ -28,9 +28,31 @@ export const MAX_GATES = 500;
 /** How many lessons a pet can hold at each stage; capacity grows as it grows. */
 export const LESSON_CAPACITY: Record<Exclude<Stage, "egg">, number> = { baby: 1, child: 2, teen: 4, adult: 6, elder: 8 };
 
-export function composeProgram(line: StarterLine, lessons: readonly Rule[]): Program {
+/* ── Instincts: four switches chosen at hatching, fixed for life ─────────────
+ * Each switch that is on adds one rule to the circuit, below everything the
+ * owner teaches and above the egg line's starter rules, so it colours the pet's
+ * temperament without overriding a lesson. Stored as four bits:
+ *   1 brave · 2 greedy · 4 curious · 8 calm
+ */
+
+export const INSTINCTS = ["brave", "greedy", "curious", "calm"] as const;
+export type Instinct = (typeof INSTINCTS)[number];
+
+export const INSTINCT_RULES: Record<Instinct, Rule> = {
+  brave: { label: "instinct: brave", when: { event: [3] }, then: { want: 4, mood: 2, nudge: 1 } },
+  greedy: { label: "instinct: greedy", when: { hunger: [1, 2], action: [0] }, then: { want: 1, mood: 1, nudge: 3 } },
+  curious: { label: "instinct: curious", when: { event: [2] }, then: { want: 4, mood: 2, nudge: 2 } },
+  calm: { label: "instinct: calm", when: { clean: [0] }, then: { want: 0, mood: 1, nudge: 4 } },
+};
+
+export const instinctBits = (on: readonly Instinct[]): number => on.reduce((b, k) => b | (1 << INSTINCTS.indexOf(k)), 0);
+export const instinctsOf = (bits = 0): Instinct[] => INSTINCTS.filter((_, i) => (bits >> i) & 1);
+/** A stored value read back safely: anything that is not 0-15 means no instincts. */
+export const cleanInstincts = (v: unknown): number => (Number.isInteger(v) && (v as number) >= 0 && (v as number) <= 15 ? (v as number) : 0);
+
+export function composeProgram(line: StarterLine, lessons: readonly Rule[], instincts = 0): Program {
   const base = STARTERS[line];
-  return validateProgram({ ...base, rules: [...lessons, ...base.rules] });
+  return validateProgram({ ...base, rules: [...lessons, ...instinctsOf(instincts).map((k) => INSTINCT_RULES[k]), ...base.rules] });
 }
 
 export type LessonCheck =
@@ -39,14 +61,14 @@ export type LessonCheck =
 
 const sameRule = (a: Rule, b: Rule) => JSON.stringify([a.when, a.then]) === JSON.stringify([b.when, b.then]);
 
-export function checkLesson(line: StarterLine, stage: Exclude<Stage, "egg">, lessons: readonly Rule[], candidate: Rule): LessonCheck {
+export function checkLesson(line: StarterLine, stage: Exclude<Stage, "egg">, lessons: readonly Rule[], candidate: Rule, instincts = 0): LessonCheck {
   if (lessons.length >= LESSON_CAPACITY[stage]) {
     return { ok: false, reason: "full", detail: `a ${stage} can hold ${LESSON_CAPACITY[stage]} lessons` };
   }
   if (lessons.some((l) => sameRule(l, candidate))) return { ok: false, reason: "duplicate", detail: "already learned" };
   let program: Program;
   try {
-    program = composeProgram(line, [candidate, ...lessons]);
+    program = composeProgram(line, [candidate, ...lessons], instincts);
   } catch (e) {
     return { ok: false, reason: "invalid", detail: (e as Error).message };
   }
@@ -109,7 +131,7 @@ export const PET_SCHOOL: readonly SchoolLesson[] = [
 /** Teach the pet a rule. Returns the new pet, or why the lesson was refused. */
 export function teach(p: Pet, rule: Rule, now: number): { ok: true; pet: Pet; gates: number } | Extract<LessonCheck, { ok: false }> {
   const stage = stageOf(p, now);
-  const r = checkMindLesson({ line: p.line, lessons: p.lessons, family: p.family }, stage, rule);
+  const r = checkMindLesson({ line: p.line, lessons: p.lessons, family: p.family, instincts: p.instincts }, stage, rule);
   if (!r.ok) return r;
   return {
     ok: true,

@@ -21,7 +21,7 @@ export function DiaryPanel({ pet }: { pet: Pet }) {
   const room = useWorld((s) => s.world.room);
   const backdrop = (ROOMS[room] ?? ROOMS[HOME]!).bgs.day;
   // the replay depends only on the log and the brains it ran on
-  const lines = useMemo(() => diaryOf(pet, (lessons) => mindBrain({ line: pet.line, lessons, family: pet.family })), [pet.pendingLog.length, pet.segments, pet.family, pet.line]);
+  const lines = useMemo(() => diaryOf(pet, (lessons) => mindBrain({ line: pet.line, lessons, family: pet.family, instincts: pet.instincts })), [pet.pendingLog.length, pet.segments, pet.family, pet.line, pet.instincts]);
   const date = new Date().toLocaleDateString(lang === "zh" ? "zh-CN" : "en-GB", { month: "long", day: "numeric", weekday: "long" });
 
   const share = async () => {

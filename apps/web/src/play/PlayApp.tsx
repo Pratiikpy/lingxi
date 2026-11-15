@@ -249,8 +249,8 @@ export function PlayApp() {
     return (
       <>
         <Hatch
-          onHatch={(line, name) => {
-            hatch(line, name);
+          onHatch={(line, name, instincts) => {
+            hatch(line, name, instincts);
             play("success");
           }}
         />

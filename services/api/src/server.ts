@@ -77,7 +77,7 @@ export function createApp(client: Anthropic | null, limiter = new RateLimiter(6,
     return c.json(result, result.ok ? 200 : result.reason === "busy" ? 429 : 200);
   });
 
-  const RelayBody = z.object({ line: TeachBody.shape.line, lessons: z.array(RuleSchema).max(8) });
+  const RelayBody = z.object({ line: TeachBody.shape.line, lessons: z.array(RuleSchema).max(8), instincts: z.number().int().min(0).max(15).optional() });
   app.post("/api/tapeout", async (c) => {
     if (!relayer) return c.json({ ok: false, reason: "error", detail: "relaying is not configured" }, 503);
     const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
@@ -88,7 +88,7 @@ export function createApp(client: Anthropic | null, limiter = new RateLimiter(6,
     } catch {
       return c.json({ ok: false, reason: "invalid", detail: "bad request" }, 400);
     }
-    const r = await relayer.relay(body.line, body.lessons as never);
+    const r = await relayer.relay(body.line, body.lessons as never, body.instincts ?? 0);
     return c.json(r, r.ok ? 200 : r.reason === "budget" ? 429 : 200);
   });
 
