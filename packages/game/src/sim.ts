@@ -133,13 +133,14 @@ const addVisible = (internal: number, visible: number) => clampMeter(internal + 
 function think(p: Pet, brain: Brain, beat: number, action: number, event: number, owner: boolean): void {
   const word = inputWord(p, beat, action, event, owner);
   const rule = owner && brain.program ? runBeat(brain.program, p.brain, word).rule : -1;
+  const before = p.brain.slice();
   const st = Uint8Array.from(p.brain);
   const out = brain.fast.step(st, word);
   p.brain = Array.from(st);
   const want = out & 7;
   const mood = (out >> 3) & 3;
   const nudge = (out >> 5) & 7;
-  p.last = { want, mood, nudge, rule, word };
+  p.last = { want, mood, nudge, rule, word, before };
   p.logHash = chainLog(p.logHash, word);
   p.pendingLog.push(word);
 

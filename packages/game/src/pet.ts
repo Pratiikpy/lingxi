@@ -73,7 +73,7 @@ export interface PetState {
   /** input words since the last checkpoint */
   pendingLog: number[];
   /** last brain answer, for the screen */
-  last: { want: number; mood: number; nudge: number; rule: number; word: number };
+  last: { want: number; mood: number; nudge: number; rule: number; word: number; before?: number[] };
 }
 
 export const toVisible = (internal: number): number => Math.floor(internal / SUB);

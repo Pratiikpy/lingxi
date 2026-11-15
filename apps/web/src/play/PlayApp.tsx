@@ -12,8 +12,10 @@ import { type DayPhase, RoomScene } from "../scene/RoomScene";
 import { PALETTE_OF, type PetStage } from "../scene/textures";
 import { Hatch } from "./Hatch";
 import { Actions, Meters, TabBar, ThinkStrip, ToastView, TopBar, type Tab } from "./parts";
-import { FoodList, MeSheetBody, MindPanel, Sheet } from "./Sheets";
+import { EvolutionChart, FoodList, MeSheetBody, MindPanel, Sheet } from "./Sheets";
 import { TeachPanel } from "./Teach";
+import { BrainView } from "./BrainView";
+import { Icon } from "./icons";
 import { Sprite } from "./Sprite";
 import "./play.css";
 
@@ -33,6 +35,7 @@ export function PlayApp() {
   const reduce = useReducedMotion() ?? false;
   const [tab, setTab] = useState<Tab>("home");
   const [phase, setPhase] = useState<DayPhase>(phaseNow);
+  const [circuit, setCircuit] = useState(false);
 
   useEffect(() => {
     document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
@@ -127,6 +130,14 @@ export function PlayApp() {
             onPetTap={onPetTap}
             reduceMotion={reduce}
           />
+          {circuit && (
+            <div className="circuit-overlay">
+              <BrainView pet={pet} reduceMotion={reduce} />
+            </div>
+          )}
+          <button type="button" className="circuit-btn" aria-pressed={circuit} aria-label={lang === "zh" ? "看它的电路" : "See its circuit"} onClick={() => (play("tap"), setCircuit((v) => !v))}>
+            <Icon name="mind" size={22} />
+          </button>
           <ToastView toast={toast} name={pet.name} />
           <ThinkStrip pet={pet} />
         </section>
@@ -168,6 +179,8 @@ export function PlayApp() {
       </Sheet>
       <Sheet open={tab === "me"} title={t("me.title", { name: pet.name })} onClose={close}>
         <MeSheetBody pet={pet} />
+        <hr className="divider" />
+        <EvolutionChart pet={pet} />
       </Sheet>
     </div>
   );

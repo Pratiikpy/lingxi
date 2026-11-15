@@ -654,3 +654,105 @@
   margin: var(--s2) 0;
   width: 100%;
 }
+
+.brainview {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.brainview canvas {
+  width: 100%;
+  height: 260px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--page);
+  display: block;
+}
+.brainview figcaption {
+  font-family: var(--round);
+  font-weight: 700;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+.circuit-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #2b2140;
+  border-radius: 50%;
+  background: rgba(255, 253, 248, 0.93);
+  color: #2b2140;
+  cursor: pointer;
+  transition: transform var(--t-micro) var(--ease);
+}
+.circuit-btn:active {
+  transform: scale(0.94);
+}
+.circuit-btn[aria-pressed="true"] {
+  background: var(--sunny);
+}
+.circuit-overlay {
+  position: absolute;
+  inset: 0;
+  padding: 60px 12px 64px;
+  background: rgba(27, 22, 48, 0.9);
+  display: flex;
+  flex-direction: column;
+}
+.circuit-overlay .brainview canvas {
+  flex: 1;
+  height: 100%;
+  background: transparent;
+  border-color: rgba(255, 243, 226, 0.5);
+  --ink: #fff3e2;
+  --ink-soft: #c9beea;
+}
+.circuit-overlay .brainview {
+  height: 100%;
+}
+.circuit-overlay .brainview figcaption {
+  color: #c9beea;
+}
+
+.evo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+.evo-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--s2);
+}
+.evo-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 2px dashed var(--line);
+  border-radius: var(--r-sm);
+  min-width: 0;
+}
+.evo-list li.on {
+  border-style: solid;
+  background: var(--band);
+}
+.evo-list b {
+  font-family: var(--round);
+  font-weight: 800;
+  font-size: 15px;
+}
+.evo-list span {
+  font-size: 12px;
+  color: var(--ink-soft);
+  line-height: 1.35;
+}

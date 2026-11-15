@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { programFor } from "../game/store";
-import { DIETS, FOODS, TRAITS, type Pet, dayOf } from "@lingxi/game";
+import { DIETS, FOODS, FORMS, FORM_NAMES, TRAITS, type Pet, dayOf, evolutionInputs, evolve, stageOf } from "@lingxi/game";
 import { useLang, useT } from "../i18n";
 import { Icon } from "./icons";
 import { Chips } from "./parts";
@@ -159,5 +159,34 @@ export function MeSheetBody({ pet }: { pet: Pet }) {
       <dt>{t("think.label")}</dt>
       <dd>{MOOD_NAMES[lang][pet.last.mood]}</dd>
     </dl>
+  );
+}
+
+export function EvolutionChart({ pet }: { pet: Pet }) {
+  const { lang } = useLang();
+  const now = Date.now();
+  const grown = ["adult", "elder"].includes(stageOf(pet, now));
+  const e = evolve(evolutionInputs(pet, now));
+  return (
+    <div className="evo">
+      <p className="small">
+        {grown
+          ? lang === "zh"
+            ? `${pet.name}长成了「${FORM_NAMES[e.form].zh}」。`
+            : `${pet.name} grew into a ${FORM_NAMES[e.form].en}.`
+          : lang === "zh"
+            ? `照现在这样，${pet.name}会长成「${FORM_NAMES[e.form].zh}」。到第 8 天揭晓。`
+            : `Raised like this, ${pet.name} will grow into a ${FORM_NAMES[e.form].en}. Revealed on day 8.`}
+      </p>
+      <ul className="evo-list">
+        {FORMS.map((f) => (
+          <li key={f} className={f === e.form ? "on" : ""}>
+            <b>{grown || f === e.form ? FORM_NAMES[f][lang] : "???"}</b>
+            <span>{FORM_NAMES[f].how[lang]}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="small">{lang === "zh" ? "这张进化表本身就是一个公开电路，谁都能验证。" : "This chart is itself a public circuit anyone can verify."}</p>
+    </div>
   );
 }
