@@ -17,6 +17,7 @@ import { mindParts, useGame } from "../game/store";
 import { Icon } from "./icons";
 import { Chips } from "./parts";
 import { Sandbox } from "./Sandbox";
+import { OwnedInstinctPanel } from "./OwnedInstinct";
 import { MOOD_NAMES, VALUE_NAMES, WANT_NAMES, chipsFor } from "./ruleText";
 import "./teach.css";
 
@@ -93,7 +94,7 @@ function Proposal({ pet, rule, reply, source, onDone }: { pet: Pet; rule: Rule; 
   );
 }
 
-const specOf = (pet: Pet) => ({ line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts });
+const specOf = (pet: Pet) => ({ line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts, outside: pet.outside });
 
 /** What a lesson costs in gates, and what sharing logic saves (PRD F6). */
 function CostLine({ pet, rule }: { pet: Pet; rule: Rule }) {
@@ -488,6 +489,7 @@ export function TeachPanel({ pet }: { pet: Pet }) {
           </motion.div>
         )}
       </AnimatePresence>
+      <OwnedInstinctPanel pet={pet} />
     </div>
   );
 }

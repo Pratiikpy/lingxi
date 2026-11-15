@@ -62,7 +62,7 @@ export interface AgentPetView {
 export type AgentRefusal = "invalid" | "unknown" | "full" | "tooMany";
 
 const hash = (token: string) => createHash("sha256").update(`lingxi-agent:${token}`).digest("hex");
-const brainOf = (p: Pet) => mindBrain({ line: p.line, lessons: p.lessons, family: p.family, instincts: p.instincts });
+const brainOf = (p: Pet) => mindBrain({ line: p.line, lessons: p.lessons, family: p.family, instincts: p.instincts, outside: p.outside });
 
 export function viewOf(k: Kept, now: number): AgentPetView {
   const p = k.pet;

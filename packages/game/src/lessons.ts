@@ -9,6 +9,7 @@
  * size budget. Nothing reaches the pet until it passes.
  */
 
+import type { OutsideInstinct } from "./pet";
 import {
   type Program,
   type Rule,
@@ -131,7 +132,7 @@ export const PET_SCHOOL: readonly SchoolLesson[] = [
 /** Teach the pet a rule. Returns the new pet, or why the lesson was refused. */
 export function teach(p: Pet, rule: Rule, now: number): { ok: true; pet: Pet; gates: number } | Extract<LessonCheck, { ok: false }> {
   const stage = stageOf(p, now);
-  const r = checkMindLesson({ line: p.line, lessons: p.lessons, family: p.family, instincts: p.instincts }, stage, rule);
+  const r = checkMindLesson({ line: p.line, lessons: p.lessons, family: p.family, instincts: p.instincts, outside: p.outside }, stage, rule);
   if (!r.ok) return r;
   return {
     ok: true,
@@ -158,13 +159,14 @@ export function withSegment(p: Pet): Pet {
   const segs = p.segments?.slice() ?? [{ from: 0, lessons: [] }];
   const from = p.pendingLog.length;
   const last = segs[segs.length - 1]!;
-  if (last.from === from) segs[segs.length - 1] = { from, lessons: p.lessons.slice() };
-  else segs.push({ from, lessons: p.lessons.slice() });
+  const seg = { from, lessons: p.lessons.slice(), ...(p.outside ? { outside: p.outside } : {}) };
+  if (last.from === from) segs[segs.length - 1] = seg;
+  else segs.push(seg);
   return { ...p, segments: segs };
 }
 
 /** The log cut into the brain each stretch ran on. */
-export function logSegments(p: Pet): Array<{ lessons: Rule[]; words: number[] }> {
+export function logSegments(p: Pet): Array<{ lessons: Rule[]; outside?: OutsideInstinct; words: number[] }> {
   const segs = p.segments ?? [{ from: 0, lessons: [] }];
-  return segs.map((s, i) => ({ lessons: s.lessons, words: p.pendingLog.slice(s.from, segs[i + 1]?.from ?? p.pendingLog.length) }));
+  return segs.map((s, i) => ({ lessons: s.lessons, ...(s.outside ? { outside: s.outside } : {}), words: p.pendingLog.slice(s.from, segs[i + 1]?.from ?? p.pendingLog.length) }));
 }

@@ -25,6 +25,8 @@ export interface Partner {
   lessons?: Rule[];
   /** a friend's instinct switches */
   instincts?: number;
+  /** a friend's owned circuit, taught as an everyday instinct */
+  outside?: import("./pet").OutsideInstinct;
 }
 
 const P = (rules: unknown[], otherwise: { want: number; mood: number }) => validateProgram({ version: "LX-PET/1", memory: [], rules, otherwise });
@@ -115,6 +117,7 @@ export function friendPartner(card: { id: string; name: string; line: string; st
       lessons: parsed.lessons,
       ...(parsed.instincts ? { instincts: parsed.instincts } : {}),
       ...(parsed.family ? { family: parsed.family } : {}),
+      ...(parsed.outside ? { outside: parsed.outside } : {}),
     };
   } catch {
     return null;

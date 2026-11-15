@@ -6,6 +6,7 @@
  * day gives a short diary.
  */
 
+import type { OutsideInstinct } from "./pet";
 import { decodeSenses } from "@lingxi/brain";
 import type { Rule } from "@lingxi/brain";
 import { ACTION, type Brain, type Pet, WANT } from "./sim";
@@ -44,7 +45,7 @@ const TIME_HOUR = [1, 8, 14, 20]; // night, morning, day, evening → a represen
  * Today's diary: the last `beats` logged words (one per minute), replayed from
  * the start of the log so the memory is exactly what it was.
  */
-export function diaryOf(pet: Pet, brainFor: (lessons: Rule[]) => Brain, beats = 24 * 60): DiaryLine[] {
+export function diaryOf(pet: Pet, brainFor: (lessons: Rule[], outside?: OutsideInstinct) => Brain, beats = 24 * 60): DiaryLine[] {
   const segs = logSegments(pet);
   const total = segs.reduce((n, s) => n + s.words.length, 0);
   const from = Math.max(0, total - beats);
@@ -59,7 +60,7 @@ export function diaryOf(pet: Pet, brainFor: (lessons: Rule[]) => Brain, beats = 
   let sulkBest = 0;
   let sulkWhy: DiaryLine["why"] = undefined;
   for (const seg of segs) {
-    const brain = brainFor(seg.lessons);
+    const brain = brainFor(seg.lessons, seg.outside);
     if (!mem || mem.length !== brain.nState) mem = new Uint8Array(brain.nState);
     for (const w of seg.words) {
       const out = brain.fast.step(mem, w);

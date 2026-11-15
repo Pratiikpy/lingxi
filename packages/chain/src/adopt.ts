@@ -8,7 +8,9 @@
  */
 
 import type { Address, PublicClient } from "viem";
-import { type Circuit, decode, load, refKey } from "@lingxi/brain";
+import { type Circuit, type CircuitPart, circuitFromParts, decode, refKey } from "@lingxi/brain";
+
+export { type CircuitPart, circuitFromParts } from "@lingxi/brain";
 import { FACTORY, factoryAbi, processorAbi } from "./tapeout";
 
 /** The most a pet will carry: enough for any brain in the game, small enough for a phone. */
@@ -16,14 +18,6 @@ export const ADOPT_MAX_GATES = 20_000;
 /** How deep REFs are followed, and how many circuits one brain may pull in. */
 export const ADOPT_MAX_DEPTH = 4;
 export const ADOPT_MAX_PARTS = 24;
-
-export interface CircuitPart {
-  processor: string;
-  id: string;
-  nIn: number;
-  nOut: number;
-  hex: string;
-}
 
 export interface OutsideCircuit {
   processor: string;
@@ -45,26 +39,6 @@ export class AdoptError extends Error {
 
 const toHex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
 const fromHex = (h: string) => Uint8Array.from((h.replace(/^0x/, "").match(/../g) ?? []).map((x) => parseInt(x, 16)));
-
-/** Rebuild a circuit from the parts kept with it, with no network. */
-export function circuitFromParts(parts: readonly CircuitPart[]): Circuit {
-  const byKey = new Map(parts.map((p) => [refKey(p.processor, BigInt(p.id)), p]));
-  const built = new Map<string, Circuit>();
-  const build = (p: CircuitPart, depth: number): Circuit => {
-    const key = refKey(p.processor, BigInt(p.id));
-    const done = built.get(key);
-    if (done) return done;
-    if (depth > ADOPT_MAX_DEPTH) throw new AdoptError("tooDeep");
-    const c = load(fromHex(p.hex), p.nIn, p.nOut, (cpu, id) => {
-      const sub = byKey.get(refKey(cpu, id));
-      return sub ? build(sub, depth + 1) : null;
-    });
-    built.set(key, c);
-    return c;
-  };
-  if (!parts[0]) throw new AdoptError("noCircuit");
-  return build(parts[0], 0);
-}
 
 /** Read a circuit and everything it REFs from the chain. */
 export async function readOutsideCircuit(pub: PublicClient, processor: Address, id: bigint): Promise<OutsideCircuit> {
@@ -110,8 +84,8 @@ export async function readOutsideCircuit(pub: PublicClient, processor: Address, 
   let circuit: Circuit;
   try {
     circuit = circuitFromParts(parts);
-  } catch (e) {
-    throw e instanceof AdoptError ? e : new AdoptError("illFormed");
+  } catch {
+    throw new AdoptError("illFormed");
   }
   if (circuit.nGates > ADOPT_MAX_GATES) throw new AdoptError("tooBig");
   const owner = (await pub.readContract({ address: processor, abi: processorAbi, functionName: "ownerOf", args: [id] }).catch(() => "")) as string;

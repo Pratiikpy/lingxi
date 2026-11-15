@@ -11,3 +11,4 @@ export * from "./seal";
 export * from "./verilog";
 export * from "./tapefly";
 export * from "./manifests";
+export * from "./parts";

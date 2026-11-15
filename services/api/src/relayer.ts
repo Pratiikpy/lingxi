@@ -15,8 +15,8 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { createPublicClient, createWalletClient, erc20Abi, http, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { type Program, type Rule, type StarterLine, bytesToHex, compileProgram, composeChild, gateCount, netlistBytes } from "@lingxi/brain";
-import { FACTORY, processorAbi, transistorsAbi, xLayer } from "@lingxi/chain";
+import { type Program, type Rule, type StarterLine, bytesToHex, compileProgram, composeChild, composeInstinct, gateCount, netlistBytes } from "@lingxi/brain";
+import { FACTORY, factoryAbi, processorAbi, transistorsAbi, xLayer } from "@lingxi/chain";
 import { type Family, MAX_GATES, cleanInstincts, composeProgram, halvesOf } from "@lingxi/game";
 
 const NEWLINE = /\r?\n/;
@@ -129,6 +129,35 @@ export class BrainRelayer {
   }
 
   /**
+   * An owned circuit taught as an everyday instinct (PRD X1): LX-INSTINCT/1 REFs
+   * the pet's own brain circuit (on Lingxi's processor) and the owned circuit (on
+   * any processor TapeOut's factory registered), plus the glue. Both must be pet
+   * brains (16 in, 8 out) and their memory together must fit the registry's 64 bits.
+   */
+  relayInstinct(input: { own: string; processor: Address; id: string }): Promise<RelayResult> {
+    return this.serial(async () => {
+      const read = async (cpu: Address, id: bigint) => (await this.pub.readContract({ address: cpu, abi: processorAbi, functionName: "circuitInfo", args: [id] })) as readonly [bigint, bigint, bigint, bigint];
+      let state = 0;
+      try {
+        if (!(await this.pub.readContract({ address: FACTORY, abi: factoryAbi, functionName: "isCPU", args: [input.processor] }))) return { ok: false, reason: "invalid", detail: "not a TapeOut processor" } as const;
+        for (const [cpu, id] of [
+          [this.cfg.processor, BigInt(input.own)],
+          [input.processor, BigInt(input.id)],
+        ] as const) {
+          const info = await read(cpu, id);
+          if (Number(info[0]) !== 16 || Number(info[1]) !== 8) return { ok: false, reason: "invalid", detail: `circuit ${id} is not a pet brain` } as const;
+          state += Number(info[2]);
+        }
+      } catch {
+        return { ok: false, reason: "invalid", detail: "no such circuit" } as const;
+      }
+      if (state > 64) return { ok: false, reason: "tooBig", detail: `${state} memory bits` } as const;
+      const c = composeInstinct({ cpu: this.cfg.processor, id: BigInt(input.own) }, { cpu: input.processor, id: BigInt(input.id) });
+      return this.tapeBytes(c.bytes, c.elements.filter((e) => e.op === 0).length, 0);
+    });
+  }
+
+  /**
    * A season champion's keepsake (PRD F26): its brain taped out as a circuit of
    * its own (never a shared, earlier copy) and the circuit sent to the winner.
    * A child's brain REFs its two halves (taped out once and shared) through a
@@ -196,6 +225,11 @@ export class BrainRelayer {
     await this.pub.waitForTransactionReceipt({ hash: await this.wallet.writeContract(ap.request) });
     const sim = await this.pub.simulateContract({ address: transistors, abi: transistorsAbi, functionName: "mint", args: [id, amount], value: price * amount, account });
     await this.pub.waitForTransactionReceipt({ hash: await this.wallet.writeContract(sim.request) });
+  }
+
+  /** Any valid pet-language program as its own circuit (within the gate budget), shared when the same netlist exists. */
+  relayProgram(program: Program): Promise<RelayResult> {
+    return this.serial(() => this.tapeProgram(program));
   }
 
   private async tapeProgram(program: Program): Promise<RelayResult> {

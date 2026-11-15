@@ -126,6 +126,21 @@ export function createApp(client: Anthropic | null, limiter = new RateLimiter(6,
     return c.json(r);
   });
 
+  // X1: an owned circuit as an everyday instinct, REF'd beside the pet's own brain
+  const InstinctBody = z.object({ own: z.string().regex(/^\d{1,20}$/), processor: z.string().regex(/^0x[0-9a-fA-F]{40}$/), id: z.string().regex(/^\d{1,20}$/) });
+  app.post("/api/tapeout-instinct", async (c) => {
+    if (!relayer) return c.json({ ok: false, reason: "error", detail: "relaying is not configured" }, 503);
+    const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
+    if (!relayLimiter.take(ip)) return busy(c);
+    let body: z.infer<typeof InstinctBody>;
+    try {
+      body = InstinctBody.parse(await c.req.json());
+    } catch {
+      return c.json({ ok: false, reason: "invalid", detail: "bad request" }, 400);
+    }
+    return c.json(await relayer.relayInstinct({ own: body.own, processor: body.processor as `0x${string}`, id: body.id }));
+  });
+
   return app;
 }
 

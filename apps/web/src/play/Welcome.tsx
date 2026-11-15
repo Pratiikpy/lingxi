@@ -52,7 +52,7 @@ export function WelcomeBack({ pet }: { pet: Pet }) {
 
   const story = useMemo(() => {
     if (!mine) return null;
-    const frames = rewind(pet, (l) => (pet.family ? { halves: halvesOf(pet.family, l) } : { program: programFor(pet.line, l, pet.instincts ?? 0) }), mine.to - mine.from + 1);
+    const frames = rewind(pet, (l, outside) => ({ ...(pet.family ? { halves: halvesOf(pet.family, l) } : { program: programFor(pet.line, l, pet.instincts ?? 0) }), ...(outside ? { outside } : {}) }), mine.to - mine.from + 1);
     const window = frames.filter((f) => f.at !== null && f.at >= mine.from * 60_000 && f.at <= mine.to * 60_000);
     const events = window.filter((f) => f.senses.event !== 0).slice(-5);
     const napped = window.some((f) => f.want === 3);

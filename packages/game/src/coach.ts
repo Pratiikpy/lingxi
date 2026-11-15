@@ -7,7 +7,7 @@
 
 import { type Rule, compileProgram, fastBrain, stateBits } from "@lingxi/brain";
 import type { StarterLine } from "@lingxi/brain";
-import type { Stage } from "./pet";
+import type { OutsideInstinct, Stage } from "./pet";
 import { checkMindLesson, mindBrain } from "./family";
 import type { Family } from "./pet";
 import { type Fighter, type SparResult, spar } from "./spar";
@@ -61,14 +61,14 @@ export interface CoachNote {
 }
 
 /** A fighter from any pet's mind, single or a child of two parents. */
-export function fighterOfMind(name: string, spec: { line: StarterLine; lessons: readonly Rule[]; family?: Family; instincts?: number }, level: number, memory?: readonly number[]): Fighter {
+export function fighterOfMind(name: string, spec: { line: StarterLine; lessons: readonly Rule[]; family?: Family; instincts?: number; outside?: OutsideInstinct }, level: number, memory?: readonly number[]): Fighter {
   const b = mindBrain(spec);
   return { name, brain: b.fast, memory: memory ? [...memory] : new Array(b.nState).fill(0), level };
 }
 
 /** The fighter for a sparring partner: its program, or both halves of a friend's child. */
-export function fighterOfPartner(p: { name: { en: string }; line: StarterLine; level: number; program: import("@lingxi/brain").Program; family?: Family; lessons?: Rule[]; instincts?: number }): Fighter {
-  return p.family ? fighterOfMind(p.name.en, { line: p.line, lessons: p.lessons ?? [], family: p.family, instincts: p.instincts }, p.level) : fighterFrom(p.name.en, p.program, p.level);
+export function fighterOfPartner(p: { name: { en: string }; line: StarterLine; level: number; program: import("@lingxi/brain").Program; family?: Family; lessons?: Rule[]; instincts?: number; outside?: OutsideInstinct }): Fighter {
+  return p.family || p.outside ? fighterOfMind(p.name.en, { line: p.line, lessons: p.lessons ?? [], family: p.family, instincts: p.instincts, outside: p.outside }, p.level) : fighterFrom(p.name.en, p.program, p.level);
 }
 
 export function fighterFrom(name: string, program: import("@lingxi/brain").Program, level: number, memory?: readonly number[]): Fighter {
@@ -108,13 +108,14 @@ export function coach(input: {
   level: number;
   memory?: readonly number[];
   family?: Family;
+  outside?: OutsideInstinct;
   instincts?: number;
   opponent: Fighter;
 }): CoachNote {
   const { result, side, line, stage, lessons, level, opponent } = input;
   const seed = result.seed;
   if (result.winner === side) return { key: "wellDone", before: 0, after: 0 };
-  const spec = { line, lessons, family: input.family, instincts: input.instincts };
+  const spec = { line, lessons, family: input.family, instincts: input.instincts, outside: input.outside };
   const now = fighterOfMind("me", spec, level, input.memory);
   const before = winsAgainst(now, opponent, seed);
   let best: { lesson: FightLesson; wins: number } | null = null;

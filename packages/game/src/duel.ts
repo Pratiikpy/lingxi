@@ -125,7 +125,7 @@ const levelOfStage = (s: Stage) => (s === "elder" ? 2 : s === "teen" || s === "a
 export function duelFighter(p: DuelPet): Fighter {
   const card = parseCard(p.card);
   if (!card) throw new DuelError("the pet's mind is damaged");
-  const spec = { line: p.line, lessons: card.lessons, family: card.family, instincts: card.instincts };
+  const spec = { line: p.line, lessons: card.lessons, family: card.family, instincts: card.instincts, outside: card.outside };
   const nState = mindBrain(spec).nState;
   return fighterOfMind(p.name, spec, levelOfStage(p.stage), card.memory?.length === nState ? card.memory : undefined);
 }

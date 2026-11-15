@@ -9,7 +9,7 @@ import { useLang, useT, type Key } from "../i18n";
 import { useSound } from "../game/sound";
 import type { Daily, Toast } from "../game/store";
 import { Icon, type IconName } from "./icons";
-import { WANT_COLORS, decidingChips } from "./ruleText";
+import { WANT_COLORS, decidingChips, WANT_NAMES } from "./ruleText";
 
 export function Chips({ when, then, want }: { when: string[]; then: string; want?: number }) {
   const { lang } = useLang();
@@ -135,7 +135,7 @@ export function Actions({ pet, absent = false, onFeed, onPlay, onClean, onSleep,
 export function ThinkStrip({ pet }: { pet: Pet }) {
   const t = useT();
   const { lang } = useLang();
-  const c = decidingChips(decidingPart(pet).program, pet.last.rule, lang);
+  const c = pet.last.instinct ? (lang === "zh" ? { when: ["它学会的本能电路想做点什么"], then: WANT_NAMES.zh[pet.last.want] ?? "", want: pet.last.want } : { when: ["its taught instinct circuit wanted something"], then: WANT_NAMES.en[pet.last.want] ?? "", want: pet.last.want }) : decidingChips(decidingPart(pet).program, pet.last.rule, lang);
   return (
     <div className="think" aria-live="off">
       <em>{t("think.label")}</em>

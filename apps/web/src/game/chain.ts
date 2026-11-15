@@ -15,7 +15,7 @@ import { type Deployment, type TapeQuote, type TapeStep, allowPartnerOnChain, br
 import { compileProgram, netlistBytes } from "@lingxi/brain";
 import { AUTO_DAYS, AUTO_FUND, AUTO_LOW, sessionAccount, sessionWallet } from "./session";
 import { type Pet, logSegments, packState, petCard, stageOf, unpackState } from "@lingxi/game";
-import { relayAvailable, relayBrain, relayChild } from "./api";
+import { relayAvailable, relayBrain, relayChild, relayInstinct } from "./api";
 import type { ChainInfo } from "./live";
 import { programFor, useGame } from "./store";
 import localDeployment from "../../../../packages/chain/deployments/local.json";
@@ -101,7 +101,9 @@ const firstLine = (e: unknown): string => (e as Error).message?.split(/\r?\n/)[0
  * Which taped-out brain a mind needs, by what it was taught and the instincts it
  * hatched with (pets without instincts keep the key they always had).
  */
-export const mindKey = (lessons: unknown[], instincts = 0) => (instincts ? JSON.stringify({ lessons, instincts }) : JSON.stringify(lessons));
+/** The key a mind's circuit is remembered by: its lessons, its instinct switches, and an owned instinct circuit. */
+export const mindKey = (lessons: unknown[], instincts = 0, outside?: { processor: string; id: string }) =>
+  outside ? JSON.stringify({ lessons, instincts, outside: `${outside.processor}:${outside.id}` }) : instincts ? JSON.stringify({ lessons, instincts }) : JSON.stringify(lessons);
 
 /** The on-chain day number now, as PetRegistry counts it. */
 export const chainDay = (r: ChainRecord, nowMs: number) => Math.floor((nowMs / 1000 - r.bornChain) / 86_400) + 1;
@@ -419,14 +421,26 @@ export const useChain = create<ChainState>((set, get) => ({
     if (!deployment || !record) return;
     set({ busy: "connecting", error: null });
     try {
-      const key = mindKey(pet.lessons, pet.instincts);
+      const key = mindKey(pet.lessons, pet.instincts, pet.outside);
       let brainId = record.brains?.[key];
       if (!brainId) {
         set({ busy: "taping" });
         // a child's mind is both halves, REF'd by a new child circuit
-        const r = pet.family ? await relayChild({ card: petCard(pet) }) : await relayBrain({ line: pet.line, lessons: pet.lessons, ...(pet.instincts ? { instincts: pet.instincts } : {}) });
-        if (!r.ok) throw new Error(r.reason);
-        brainId = r.brainId;
+        const { outside: _o, ...plain } = pet;
+        const ownKey = mindKey(pet.lessons, pet.instincts);
+        let ownId = record.brains?.[ownKey];
+        if (!ownId) {
+          const r = pet.family ? await relayChild({ card: petCard(plain) }) : await relayBrain({ line: pet.line, lessons: pet.lessons, ...(pet.instincts ? { instincts: pet.instincts } : {}) });
+          if (!r.ok) throw new Error(r.reason);
+          ownId = r.brainId;
+        }
+        brainId = ownId;
+        // an owned instinct: a circuit that REFs the pet's own brain and the owned one
+        if (pet.outside) {
+          const r = await relayInstinct({ own: ownId, processor: pet.outside.processor, id: pet.outside.id });
+          if (!r.ok) throw new Error(r.reason);
+          brainId = r.brainId;
+        }
       }
       const wallet = await connectWallet();
       set({ busy: "saving" });
@@ -444,7 +458,7 @@ export const useChain = create<ChainState>((set, get) => ({
     // the log exactly as the last checkpoint committed it
     const n = record.logLen ?? 0;
     const segments = logSegments({ ...pet, pendingLog: pet.pendingLog.slice(0, n) })
-      .map((s) => ({ brainId: record.brains?.[mindKey(s.lessons, pet.instincts)] ?? null, words: s.words }))
+      .map((s) => ({ brainId: record.brains?.[mindKey(s.lessons, pet.instincts, s.outside)] ?? null, words: s.words }))
       .filter((s) => s.words.length > 0);
     return JSON.stringify({ petId: record.petId, words: pet.pendingLog.slice(0, n), segments });
   },

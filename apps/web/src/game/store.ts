@@ -16,7 +16,7 @@ function foodArt(c: Care, art?: string): string | undefined {
 const STAGE_RANK: Record<string, number> = { baby: 1, child: 2, teen: 3, adult: 4, elder: 4 };
 import { create } from "zustand";
 import { type Program, type Rule, STARTERS, compileProgram, fastBrain, stateBits } from "@lingxi/brain";
-import { FOODS, type Brain, type Care, type CareResult, type Pet, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, liveBeat, mindBrain, settleForm, stageOf, teach as teachRule, awayEvent, awaySeed, beatOf } from "@lingxi/game";
+import { FOODS, type Brain, type Care, type CareResult, type Pet, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, liveBeat, mindBrain, settleForm, stageOf, teach as teachRule, awayEvent, awaySeed, beatOf, instinctBrain, MAX_MIND_STATE, type OutsideInstinct, withSegment } from "@lingxi/game";
 import type { StarterLine } from "@lingxi/brain";
 
 const OLD_KEY = "lingxi.pet.v1";
@@ -71,7 +71,7 @@ export function decidingPart(pet: Pet): MindPart {
 }
 
 /** Any pet's brain, including a child built from two parents. */
-export const brainOf = (p: Pet): Brain => (p.family ? mindBrain({ line: p.line, lessons: p.lessons ?? [], family: p.family }) : brainFor(p.line, p.lessons ?? [], p.instincts ?? 0));
+export const brainOf = (p: Pet): Brain => (p.family || p.outside ? mindBrain({ line: p.line, lessons: p.lessons ?? [], family: p.family, instincts: p.instincts, outside: p.outside }) : brainFor(p.line, p.lessons ?? [], p.instincts ?? 0));
 
 interface Roster {
   active: number;
@@ -166,6 +166,9 @@ interface GameState {
   /** teach a lesson; it goes on top (asked first) unless placed at the bottom */
   learn: (rule: Rule, at?: "top" | "bottom") => { ok: true } | { ok: false; reason: string; detail: string };
   arrange: (index: number, move: "up" | "down" | "forget") => void;
+  /** X1: teach an owned circuit as an everyday instinct (ownership is checked by the caller), or forget it */
+  teachInstinct: (o: OutsideInstinct) => { ok: true } | { ok: false; reason: "notYours" | "badCircuit" | "tooBig" };
+  forgetInstinct: () => void;
 }
 
 const todayKey = () => new Date().toDateString();
@@ -330,6 +333,32 @@ export const useGame = create<GameState>((set, get) => ({
     const { pet } = get();
     if (!pet) return;
     const next = arrangeLessons(pet, index, move);
+    save(next);
+    set({ pet: next, pets: roster.pets });
+  },
+  teachInstinct: (o) => {
+    const { pet } = get();
+    if (!pet) return { ok: false, reason: "badCircuit" };
+    if (pet.away || pet.sitting) return { ok: false, reason: "notYours" };
+    const inst = instinctBrain(o);
+    if (!inst) return { ok: false, reason: "badCircuit" };
+    const caught = catchUp(pet, Date.now(), brainOf(pet));
+    const own = brainOf({ ...caught, outside: undefined }).nState;
+    if (own + inst.nState > MAX_MIND_STATE) return { ok: false, reason: "tooBig" };
+    // the pet's own memory stays; the instinct's starts empty after it
+    const taught = withSegment({ ...caught, outside: o, brain: [...caught.brain.slice(0, own), ...new Array(inst.nState).fill(0)] });
+    const after = care(taught, { kind: "talk" }, Date.now(), brainOf(taught)).pet;
+    save(after);
+    set({ pet: after, pets: roster.pets, lastCare: { kind: "learn", at: performance.now() }, toast: { id: ++toastId, note: "learned" } });
+    return { ok: true };
+  },
+  forgetInstinct: () => {
+    const { pet } = get();
+    if (!pet?.outside || pet.away || pet.sitting) return;
+    const caught = catchUp(pet, Date.now(), brainOf(pet));
+    const { outside: _gone, ...rest } = caught;
+    const own = brainOf(rest as Pet).nState;
+    const next = withSegment({ ...(rest as Pet), brain: caught.brain.slice(0, own) });
     save(next);
     set({ pet: next, pets: roster.pets });
   },

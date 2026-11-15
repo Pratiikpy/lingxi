@@ -80,3 +80,35 @@ export function composeChild(a: RefTarget, b: RefTarget): ChildCircuit {
   for (const s of inv) g.not(s);
   return { bytes: encode(g.els), elements: g.els, nIn: N_IN, nOut: N_OUT };
 }
+
+export const INSTINCT_VERSION = "LX-INSTINCT/1";
+
+/**
+ * An owned circuit as an everyday instinct (PRD X1): a new circuit that REFs the
+ * pet's own brain and the instinct circuit, both reading the same 16 pins, each
+ * keeping its memory as a block of the state (the pet's own first). The glue is
+ * one plain rule anyone can check: when the instinct wants anything but idle, its
+ * whole answer (want, mood, nudge) is the pet's; otherwise the pet's own brain
+ * answers. Layout as composeChild: 18..25 own outputs, 26..33 the instinct's.
+ */
+export function composeInstinct(own: RefTarget, instinct: RefTarget): ChildCircuit {
+  const inputs = Array.from({ length: N_IN }, (_, i) => 2 + i);
+  const ownOut = 2 + N_IN;
+  const instOut = ownOut + N_OUT;
+  const head: Element[] = [
+    { op: REF, ins: inputs, cpu: own.cpu.toLowerCase(), id: own.id, nOut: N_OUT, firstOut: ownOut },
+    { op: REF, ins: inputs, cpu: instinct.cpu.toLowerCase(), id: instinct.id, nOut: N_OUT, firstOut: instOut },
+  ];
+  const g = new Glue(head, instOut + N_OUT);
+  // the instinct speaks when its want (outputs 0..2) is not idle (000)
+  const [w0, w1, w2] = [instOut, instOut + 1, instOut + 2];
+  const either = g.nand(g.not(w0), g.not(w1)); // w0 OR w1
+  const neither = g.not(either);
+  const speaks = g.nand(neither, g.not(w2)); // w0 OR w1 OR w2
+  const quiet = g.not(speaks);
+  const outs: number[] = [];
+  for (let k = 0; k < N_OUT; k++) outs.push(g.mux(speaks, instOut + k, ownOut + k, quiet));
+  const inv = outs.map((s) => g.not(s));
+  for (const s of inv) g.not(s);
+  return { bytes: encode(g.els), elements: g.els, nIn: N_IN, nOut: N_OUT };
+}

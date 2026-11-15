@@ -1736,3 +1736,45 @@
   background: var(--coral);
   transition: width 1s linear;
 }
+.owned-instinct {
+  display: grid;
+  gap: 8px;
+}
+.owned-instinct > .btn {
+  justify-self: start;
+}
+.owned-current {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  box-shadow: inset 4px 0 0 var(--coral);
+}
+.owned-current p {
+  margin: 0;
+}
+.owned-current .btn {
+  justify-self: start;
+}
+.owned-form {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.owned-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.owned-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--card);
+}

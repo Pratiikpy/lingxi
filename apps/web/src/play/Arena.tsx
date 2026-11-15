@@ -155,7 +155,7 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken
 
   function start(partner: Partner, daily?: { seed: number }, opponent?: Fighter) {
     const stage = stageOf(pet, Date.now());
-    const own = fighterOfMind(pet.name, { line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts }, levelOf(stage), pet.brain);
+    const own = fighterOfMind(pet.name, { line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts, outside: pet.outside }, levelOf(stage), pet.brain);
     // the daily challenge is the same fight for everyone, so it is always fought with the pet's own mind
     const adopted = useAdopted.getState().byPet[String(pet.bornAt)];
     const me = !daily && adopted?.on ? fighterOf(adopted, pet.name, levelOf(stage)) : own;
@@ -676,6 +676,7 @@ function Result({ pet, partner, result, reward, opponent, duel, cheer, instinct,
           memory: pet.brain,
           family: pet.family,
           instincts: pet.instincts,
+          outside: pet.outside,
           opponent: opponent ?? fighterOfPartner(partner),
         }),
       );
@@ -793,7 +794,7 @@ function SparChainCheck({ pet, partner, opponent, result, cheer }: { pet: Pet; p
       pet={pet}
       rounds={result.rounds.length}
       run={(petId, onProgress) => {
-        const me = fighterOfMind(pet.name, { line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts }, levelOf(stageOf(pet, Date.now())), pet.brain);
+        const me = fighterOfMind(pet.name, { line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts, outside: pet.outside }, levelOf(stageOf(pet, Date.now())), pet.brain);
         return checkSparOnChain({ petId, me, them: () => opponent ?? fighterOfPartner(partner), result, cheer, onProgress });
       }}
     />
@@ -805,6 +806,7 @@ const RULE_SOURCE: Record<ReturnType<typeof ruleSource>, { en: string; zh: strin
   instinct: { en: "from an instinct it hatched with", zh: "来自它天生的本能" },
   born: { en: "from how its egg line is born", zh: "来自它这一系生来就会的" },
   default: { en: "nothing matched, so its default move", zh: "没有条件符合，按默认出招" },
+  outside: { en: "from the instinct circuit it was taught", zh: "来自它学会的本能电路" },
 };
 
 /** F11 for spars: scrub the rounds and see which rule of its own brain picked each move. */
@@ -813,7 +815,7 @@ function FightRewind({ pet, result }: { pet: Pet; result: SparResult }) {
   const why = useMemo(
     () =>
       rewindFight(
-        pet.family ? { halves: halvesOf(pet.family, pet.lessons) } : { program: programFor(pet.line, pet.lessons, pet.instincts ?? 0) },
+        { ...(pet.family ? { halves: halvesOf(pet.family, pet.lessons) } : { program: programFor(pet.line, pet.lessons, pet.instincts ?? 0) }), ...(pet.outside ? { outside: pet.outside } : {}) },
         pet.brain,
         result.rounds.map((r) => r.words[0]),
       ),
@@ -823,7 +825,7 @@ function FightRewind({ pet, result }: { pet: Pet; result: SparResult }) {
   if (!why.length) return null;
   const w = why[Math.min(k, why.length - 1)]!;
   const round = result.rounds[Math.min(k, why.length - 1)]!;
-  const chips = decidingChips(w.program, w.rule, lang, true);
+  const chips = w.outside ? (lang === "zh" ? { when: ["它学会的本能电路想出招"], then: MOVE_LABEL.zh[w.want] ?? "", want: w.want } : { when: ["its taught instinct circuit wanted a move"], then: MOVE_LABEL.en[w.want] ?? "", want: w.want }) : decidingChips(w.program, w.rule, lang, true);
   const chosen = MOVES[w.want]!;
   const changed = round.moves[0] !== chosen;
   return (

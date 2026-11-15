@@ -64,5 +64,16 @@ export async function relayChild(body: { parents: [string, string] } | { card: s
   }
 }
 
+/** X1: tape out the circuit that puts an owned instinct beside the pet's own brain. */
+export async function relayInstinct(body: { own: string; processor: string; id: string }): Promise<RelayResponse> {
+  if (!BASE) return { ok: false, reason: "offline" };
+  try {
+    const r = await fetch(`${BASE}/api/tapeout-instinct`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(300_000) });
+    return (await r.json()) as RelayResponse;
+  } catch {
+    return { ok: false, reason: "offline" };
+  }
+}
+
 /** Whether this build has a server that can tape out brains for free (the on-chain build has none). */
 export const relayAvailable = (): boolean => BASE !== "";

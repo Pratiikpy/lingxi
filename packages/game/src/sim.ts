@@ -51,6 +51,8 @@ export interface Brain {
   program?: Program;
   /** for a child: the day half (parent A) and night half (parent B) its circuit is built from */
   halves?: [Program, Program];
+  /** an owned instinct circuit, its memory starting at bit `from`; when it wants anything, it answers */
+  instinct?: { fast: FastBrain; from: number };
 }
 
 export interface NewPet {
@@ -168,7 +170,7 @@ function think(p: Pet, brain: Brain, beat: number, action: number, event: number
   const word = inputWord(p, beat, action, event, owner);
   let rule = -1;
   let half: 0 | 1 | undefined;
-  if (owner && brain.program) rule = runBeat(brain.program, p.brain, word).rule;
+  if (owner && brain.program) rule = runBeat(brain.program, p.brain.slice(0, stateBits(brain.program)), word).rule;
   else if (owner && brain.halves) {
     // the child's want comes from parent A's half by morning and day, B's by evening and night
     const time = (word >> inputField("time").lo) & 3;
@@ -183,7 +185,9 @@ function think(p: Pet, brain: Brain, beat: number, action: number, event: number
   const want = out & 7;
   const mood = (out >> 3) & 3;
   const nudge = (out >> 5) & 7;
-  p.last = { want, mood, nudge, rule, word, before, ...(half !== undefined ? { half } : {}) };
+  // when the owned instinct answered, no rule of the pet's own decided
+  const instinctSpoke = owner && brain.instinct ? (brain.instinct.fast.step(Uint8Array.from(before.slice(brain.instinct.from)), word) & 7) !== 0 : false;
+  p.last = { want, mood, nudge, rule: instinctSpoke ? -1 : rule, word, before, ...(half !== undefined ? { half } : {}), ...(instinctSpoke ? { instinct: true as const } : {}) };
   p.logHash = chainLog(p.logHash, word);
   if (p.logBeat === undefined || beat !== p.logBeat + 1) p.logMarks = [...(p.logMarks ?? []), [p.pendingLog.length, beat]];
   p.logBeat = beat;

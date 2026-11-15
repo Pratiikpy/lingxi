@@ -11,7 +11,7 @@
 
 import { compileProgram, gateCount } from "@lingxi/brain";
 import { type DuelPet, duelFighter } from "./duel";
-import { halvesOf, mindBrain, parseCard } from "./family";
+import { halvesOf, instinctBrain, mindBrain, parseCard } from "./family";
 import { type Fighter, spar } from "./spar";
 
 export const SEASON_VERSION = "LX-SEASON/1";
@@ -68,10 +68,12 @@ export const previousWeek = (week: string): string => weekOf(weekBounds(week).st
 export function entryGates(pet: DuelPet): number {
   const card = parseCard(pet.card);
   if (!card) throw new Error("damaged card");
-  const b = mindBrain({ line: pet.line, lessons: card.lessons, family: card.family, instincts: card.instincts });
-  if (b.program) return gateCount(compileProgram(b.program));
-  const [pa, pb] = card.family ? halvesOf(card.family, card.lessons) : [b.halves![0], b.halves![1]];
-  return gateCount(compileProgram(pa)) + gateCount(compileProgram(pb));
+  // the pet's own brain, then an owned instinct's gates on top
+  const own = mindBrain({ line: pet.line, lessons: card.lessons, family: card.family, instincts: card.instincts });
+  const extra = card.outside ? (instinctBrain(card.outside)?.gates ?? 0) : 0;
+  if (own.program) return gateCount(compileProgram(own.program)) + extra;
+  const [pa, pb] = card.family ? halvesOf(card.family, card.lessons) : [own.halves![0], own.halves![1]];
+  return gateCount(compileProgram(pa)) + gateCount(compileProgram(pb)) + extra;
 }
 
 function fnv(s: string): number {

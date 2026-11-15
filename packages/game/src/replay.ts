@@ -8,13 +8,15 @@
  * names the rule that fired.
  */
 
+import type { OutsideInstinct } from "./pet";
+import { instinctBrain } from "./family";
 import { type Program, type Rule, STARTERS, type Senses, decodeSenses, fastBrain, compileProgram, inputField, runBeat, stateBits } from "@lingxi/brain";
 import { logSegments } from "./lessons";
 import { BEAT_MS } from "./pet";
 import { ACTION, EVENT, type Pet, WANT } from "./sim";
 
 /** One brain the log ran on: a single program, or a child's two halves. */
-export type Mind = { program: Program } | { halves: [Program, Program] };
+export type Mind = ({ program: Program } | { halves: [Program, Program] }) & { outside?: OutsideInstinct };
 
 export interface Frame {
   /** position in the whole log */
@@ -33,6 +35,8 @@ export interface Frame {
   program: Program;
   /** memory bits as they were going into this moment */
   memory: number[];
+  /** the owned instinct circuit answered this moment, not a rule */
+  outside?: true;
 }
 
 const TIME = inputField("time");
@@ -54,7 +58,7 @@ export function beatsOfLog(p: Pick<Pet, "pendingLog" | "logMarks">): Array<numbe
  * first (back 0 is the latest day, 1440 the day before). `mindFor` returns the
  * brain the pet had for a stretch of lessons (the same one the game ran).
  */
-export function rewind(pet: Pet, mindFor: (lessons: Rule[]) => Mind, count = 24 * 60, back = 0): Frame[] {
+export function rewind(pet: Pet, mindFor: (lessons: Rule[], outside?: OutsideInstinct) => Mind, count = 24 * 60, back = 0): Frame[] {
   const segs = logSegments(pet);
   const beats = beatsOfLog(pet);
   const total = Math.max(0, pet.pendingLog.length - back);
@@ -63,12 +67,22 @@ export function rewind(pet: Pet, mindFor: (lessons: Rule[]) => Mind, count = 24 
   let mem: number[] | null = null;
   let i = 0;
   for (const seg of segs) {
-    const mind = mindFor(seg.lessons);
+    const mind = mindFor(seg.lessons, seg.outside);
     const programs = "program" in mind ? [mind.program] : mind.halves;
     const sizes = programs.map(stateBits);
-    const nState = sizes.reduce((a, b) => a + b, 0);
+    const own = sizes.reduce((a, b) => a + b, 0);
+    // an owned instinct keeps its memory after the pet's own
+    const inst = mind.outside ? instinctBrain(mind.outside) : null;
+    const nState = own + (inst?.nState ?? 0);
     if (!mem || mem.length !== nState) mem = new Array(nState).fill(0);
     const fast = programs.map((p) => fastBrain(compileProgram(p)));
+    const stepInstinct = (word: number): number => {
+      if (!inst) return 0;
+      const st = Uint8Array.from(mem!.slice(own));
+      const out = inst.fast.step(st, word);
+      for (let b = 0; b < st.length; b++) mem![own + b] = st[b]!;
+      return out;
+    };
     for (const word of seg.words) {
       const index = i++;
       if (index >= total) break;
@@ -81,9 +95,11 @@ export function rewind(pet: Pet, mindFor: (lessons: Rule[]) => Mind, count = 24 
           for (let b = 0; b < st.length; b++) mem![off + b] = st[b]!;
           off += sizes[k]!;
         });
+        stepInstinct(word);
         continue;
       }
       const before = mem.slice();
+      const io = stepInstinct(word);
       const parts = programs.map((p, k) => {
         const off = sizes.slice(0, k).reduce((a, b) => a + b, 0);
         return { k, off, r: runBeat(p, mem!.slice(off, off + sizes[k]!), word) };
@@ -99,11 +115,10 @@ export function rewind(pet: Pet, mindFor: (lessons: Rule[]) => Mind, count = 24 
         index,
         at: beats[index] === null || beats[index] === undefined ? null : beats[index]! * BEAT_MS,
         senses: decodeSenses(word),
-        want: deciding.r.out & 7,
-        mood: (outA >> 3) & 3,
-        nudge: (outB >> 5) & 7,
+        ...(io & 7
+          ? { want: io & 7, mood: (io >> 3) & 3, nudge: (io >> 5) & 7, rule: -1, outside: true as const }
+          : { want: deciding.r.out & 7, mood: (outA >> 3) & 3, nudge: (outB >> 5) & 7, rule: deciding.r.rule }),
         ...(programs.length === 2 ? { half } : {}),
-        rule: deciding.r.rule,
         program: programs[half]!,
         memory: before,
       });
@@ -155,7 +170,8 @@ export function momentText(f: Frame, lang: "en" | "zh"): string {
 const BORN = new Set(Object.values(STARTERS).flatMap((p) => p.rules.map((r) => JSON.stringify([r.when, r.then]))));
 
 /** Where the rule that decided came from: something taught, an instinct, what its egg line is born with, or nothing matched. */
-export function ruleSource(f: Pick<Frame, "rule" | "program">): "taught" | "instinct" | "born" | "default" {
+export function ruleSource(f: Pick<Frame, "rule" | "program"> & { outside?: true }): "taught" | "instinct" | "born" | "default" | "outside" {
+  if (f.outside) return "outside";
   const r = f.rule >= 0 ? f.program.rules[f.rule] : undefined;
   if (!r) return "default";
   if (r.label?.startsWith("instinct: ")) return "instinct";
@@ -168,12 +184,20 @@ export function ruleSource(f: Pick<Frame, "rule" | "program">): "taught" | "inst
  * move. A child's day half leads the opening and middle, its night half the late
  * rounds (a spar never reaches night), exactly as the child circuit mixes them.
  */
-export function rewindFight(mind: Mind, memory: readonly number[], words: readonly number[]): Array<{ rule: number; program: Program; want: number; half?: 0 | 1 }> {
+export function rewindFight(mind: Mind, memory: readonly number[], words: readonly number[]): Array<{ rule: number; program: Program; want: number; half?: 0 | 1; outside?: true }> {
   const programs = "program" in mind ? [mind.program] : mind.halves;
   const sizes = programs.map(stateBits);
-  const total = sizes.reduce((a, b) => a + b, 0);
+  const own = sizes.reduce((a, b) => a + b, 0);
+  const inst = mind.outside ? instinctBrain(mind.outside) : null;
+  const total = own + (inst?.nState ?? 0);
   let mem = memory.length === total ? memory.slice() : new Array(total).fill(0);
   return words.map((word) => {
+    let io = 0;
+    if (inst) {
+      const st = Uint8Array.from(mem.slice(own));
+      io = inst.fast.step(st, word);
+      mem = [...mem.slice(0, own), ...st];
+    }
     const parts = programs.map((p, k) => {
       const off = sizes.slice(0, k).reduce((a, b) => a + b, 0);
       return { off, r: runBeat(p, mem.slice(off, off + sizes[k]!), word) };
@@ -184,6 +208,7 @@ export function rewindFight(mind: Mind, memory: readonly number[], words: readon
     const time = (word >> TIME.lo) & 3;
     const half: 0 | 1 = programs.length === 1 ? 0 : time === 1 || time === 2 ? 0 : 1;
     const d = parts[half]!;
+    if (io & 7) return { rule: -1, program: programs[half]!, want: io & 7, outside: true as const, ...(programs.length === 2 ? { half } : {}) };
     return { rule: d.r.rule, program: programs[half]!, want: d.r.out & 7, ...(programs.length === 2 ? { half } : {}) };
   });
 }

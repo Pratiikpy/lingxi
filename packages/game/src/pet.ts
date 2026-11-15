@@ -100,6 +100,8 @@ export interface PetState {
   form?: "puff" | "blossom" | "dumpling" | "scholar" | "moonpetal";
   /** the four instinct switches chosen at hatching (1 brave · 2 greedy · 4 curious · 8 calm); fixed for life */
   instincts?: number;
+  /** an owned circuit taught as an everyday instinct: when it wants anything but idle, it answers */
+  outside?: OutsideInstinct;
   traits: Record<Trait, number>;
   xp: number;
   counts: { feed: number; play: number; clean: number; pet: number; lessons: number };
@@ -117,11 +119,11 @@ export interface PetState {
   /** the beat of the last logged word */
   logBeat?: number;
   /** which lessons the brain had from each point of the log on: segment i covers words from[i]..from[i+1]-1 */
-  segments?: Array<{ from: number; lessons: import("@lingxi/brain").Rule[] }>;
+  segments?: Array<{ from: number; lessons: import("@lingxi/brain").Rule[]; outside?: OutsideInstinct }>;
   /** set for a pet born of two parents: its mind is built from both of theirs */
   family?: Family;
   /** last brain answer, for the screen */
-  last: { want: number; mood: number; nudge: number; rule: number; word: number; before?: number[]; half?: 0 | 1 };
+  last: { want: number; mood: number; nudge: number; rule: number; word: number; before?: number[]; half?: 0 | 1; instinct?: true };
   /** day number (since birth) this pet last had a child */
   lastBredDay?: number;
 }
@@ -163,6 +165,18 @@ export interface ParentInfo {
   owner?: string;
   /** the parent's birth time when it lives on this device, to link the family tree */
   key?: string;
+}
+
+/**
+ * An owned circuit taught as an everyday instinct (PRD X1): kept as the bytes it
+ * was taped out with (and every circuit it REFs), so the mind rebuilds offline.
+ */
+export interface OutsideInstinct {
+  processor: string;
+  id: string;
+  /** the wallet that owned the circuit when it was taught */
+  owner: string;
+  parts: Array<{ processor: string; id: string; nIn: number; nOut: number; hex: string }>;
 }
 
 export interface Family {

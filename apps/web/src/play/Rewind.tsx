@@ -22,6 +22,7 @@ const SOURCE: Record<ReturnType<typeof ruleSource>, { en: string; zh: string }> 
   instinct: { en: "an instinct it hatched with", zh: "它天生的本能" },
   born: { en: "how its egg line is born", zh: "它这一系生来就会的" },
   default: { en: "nothing matched, so its default", zh: "没有条件符合，按它的默认" },
+  outside: { en: "the instinct circuit it was taught", zh: "它学会的本能电路" },
 };
 
 const MEMORY_NAMES: Record<string, { en: string; zh: string }> = {
@@ -65,7 +66,7 @@ export function RewindPanel({ pet }: { pet: Pet }) {
   const [day, setDay] = useState(0);
   const days = Math.max(1, Math.ceil(pet.pendingLog.length / DAY));
   const frames = useMemo(
-    () => rewind(pet, (lessons) => (pet.family ? { halves: halvesOf(pet.family, lessons) } : { program: programFor(pet.line, lessons, pet.instincts ?? 0) }), DAY, day * DAY),
+    () => rewind(pet, (lessons, outside) => ({ ...(pet.family ? { halves: halvesOf(pet.family, lessons) } : { program: programFor(pet.line, lessons, pet.instincts ?? 0) }), ...(outside ? { outside } : {}) }), DAY, day * DAY),
     // the replay depends only on the log and the brains it ran on
     [pet.pendingLog.length, pet.segments, pet.family, pet.line, pet.instincts, pet.logMarks, day],
   );
@@ -84,7 +85,7 @@ export function RewindPanel({ pet }: { pet: Pet }) {
   if (!frames.length) return null;
   const k = Math.min(at ?? frames.length - 1, frames.length - 1);
   const f = frames[k]!;
-  const chips = decidingChips(f.program, f.rule, lang);
+  const chips = f.outside ? (lang === "zh" ? { when: ["它学会的本能电路想做点什么"], then: WANT_NAMES.zh[f.want] ?? "", want: f.want } : { when: ["its taught instinct circuit wanted something"], then: WANT_NAMES.en[f.want] ?? "", want: f.want }) : decidingChips(f.program, f.rule, lang);
   const jump = (dir: -1 | 1) => {
     const next = dir < 0 ? [...moments].reverse().find((m) => m < k) : moments.find((m) => m > k);
     if (next === undefined) return;

@@ -34,7 +34,7 @@ export function ChainPanel({ pet }: { pet: Pet }) {
   }, [auto, record?.lastTx]);
   if (!deployment) return null;
   const busyText = busy === "connecting" ? t("chain.connecting") : busy === "hatching" ? t("chain.hatching") : busy === "saving" ? t("chain.saving") : busy === "taping" ? t("chain.taping") : busy === "auto" ? t("auto.saving") : null;
-  const mindBehind = record && (record.brainKey ?? mindKey([])) !== mindKey(pet.lessons, pet.instincts);
+  const mindBehind = record && (record.brainKey ?? mindKey([])) !== mindKey(pet.lessons, pet.instincts, pet.outside);
   const err = error ? t(ERR[error] ?? "chain.failed") : null;
   // a friend's pet: the sitter may save its day (PetRegistry lets the named sitter), and nothing else here
   if (pet.sitting || pet.away)
