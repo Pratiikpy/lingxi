@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { compileProgram, fastBrain, stateBits } from "@lingxi/brain";
 import { BEAT_MS } from "../src/pet";
-import { care, catchUp, createPet } from "../src/sim";
+import { type Pet, care, catchUp, createPet } from "../src/sim";
 import { PET_SCHOOL, composeProgram, teach } from "../src/lessons";
 import { familyOf, halvesOf, mindBrain } from "../src/family";
 import { beatsOfLog, momentText, momentsOf, rewind } from "../src/replay";
@@ -74,7 +74,7 @@ describe("rewind", () => {
   it("a child's rewind uses the day half by day and the night half by night, ending at its live state", () => {
     const fam = familyOf({ name: "A", line: "gentle", lessons: [], instincts: 1 }, { name: "B", line: "bold", lessons: [] });
     const brain = mindBrain({ line: "gentle", lessons: [], family: fam });
-    let pet = { ...createPet({ name: "Bean", line: "gentle", now: T0, tzOffsetMin: 480, brain }), family: fam };
+    let pet: Pet = { ...createPet({ name: "Bean", line: "gentle", now: T0, tzOffsetMin: 480, brain }), family: fam };
     pet = catchUp(pet, T0 + 20 * H, brain);
     pet = care(pet, { kind: "pet" }, T0 + 20 * H, brain).pet;
     const frames = rewind(pet, (l) => ({ halves: halvesOf(fam, l) }));

@@ -9,7 +9,9 @@ import { useBadges } from "../game/badges";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { type PixelCanvas, boundingBox, drawPet, type Expression } from "@lingxi/art";
-import { type CoachNote, MAX_HP, MOVES, type Move, PARTNERS, type Partner, type Pet, type SparResult, coach, fighterOfMind, fighterOfPartner, halvesOf, rewindFight, ruleSource, spar, stageOf } from "@lingxi/game";
+import { STARTERS } from "@lingxi/brain";
+import { type Challenge, type CoachNote, type DuelPet, type Fighter, MAX_HP, MOVES, type Move, PARTNERS, type Partner, type Pet, type SparResult, TRAITS, coach, dayOf, duel as runDuel, duelFighter, encodeChallenge, encodeResult, fighterOfMind, fighterOfPartner, halvesOf, petCard, rewindFight, ruleSource, spar, stageOf } from "@lingxi/game";
+import { linkPrefix } from "../game/links";
 import { programFor, useGame } from "../game/store";
 import { Chips } from "./parts";
 import { MOVE_NAMES as MOVE_LABEL, WANT_COLORS, decidingChips } from "./ruleText";
@@ -69,9 +71,39 @@ function why(key: CoachNote["key"], name: string, other: string, lang: Lang): st
   return (lang === "zh" ? zh : en)[key];
 }
 
-export function ArenaPanel({ pet, challenge, onChallengeTaken }: { pet: Pet; challenge?: Partner | null; onChallengeTaken?: () => void }) {
+type FightState = { partner: Partner; result: SparResult; cheer: boolean; opponent?: Fighter; duel?: { challenge: Challenge; reply: DuelPet } };
+
+/** The pet as it travels in a challenge link: its whole mind, its body, and a few true facts. */
+export function duelPetOf(pet: Pet): DuelPet {
+  const stage = stageOf(pet, Date.now());
+  const nature = [...TRAITS].filter((t) => pet.traits[t] > 0).sort((a, b) => pet.traits[b] - pet.traits[a]).slice(0, 2);
+  return {
+    name: pet.name,
+    line: pet.line,
+    stage,
+    card: petCard(pet),
+    story: { days: dayOf(pet, Date.now()), lessons: pet.lessons.length, nature },
+  };
+}
+
+/** A challenger from a link, shaped as a sparring partner for the fight screen. */
+export function partnerOfDuel(c: Challenge): Partner {
+  const p = c.from;
+  return {
+    id: `friend:duel:${c.id}`,
+    name: { en: p.name, zh: p.name },
+    line: p.line,
+    stage: drawn(p.stage),
+    level: p.stage === "elder" ? 2 : p.stage === "teen" || p.stage === "adult" ? 1 : 0,
+    blurb: { en: "", zh: "" },
+    program: STARTERS[p.line],
+  };
+}
+
+export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken }: { pet: Pet; challenge?: Partner | null; onChallengeTaken?: () => void; duel?: Challenge | null; onDuelTaken?: () => void }) {
   const lang = useLang((s) => s.lang) as Lang;
-  const [fight, setFight] = useState<{ partner: Partner; result: SparResult; cheer: boolean } | null>(null);
+  const [fight, setFight] = useState<FightState | null>(null);
+  const [link, setLink] = useState("");
   const [cheer, setCheer] = useState(false);
   const fighting = fight !== null;
   useEffect(() => {
@@ -86,7 +118,29 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken }: { pet: Pet; cha
     // a new challenge starts one fight
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [challenge]);
-  if (fight) return <FightView key={fight.result.seed} pet={pet} {...fight} onDone={() => setFight(null)} onRematch={() => start(fight.partner)} />;
+  useEffect(() => {
+    if (!duel) return;
+    // a challenge from a link: our pet answers with its own brain, on the challenge's fixed seed
+    const reply = duelPetOf(pet);
+    play("tap");
+    setFight({ partner: partnerOfDuel(duel), result: runDuel(duel, reply), cheer: false, opponent: duelFighter(duel.from), duel: { challenge: duel, reply } });
+    onDuelTaken?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [duel]);
+  if (fight) return <FightView key={fight.result.seed} pet={pet} self={{ name: pet.name, line: pet.line, stage: drawn(stageOf(pet, Date.now())) }} {...fight} onDone={() => setFight(null)} onRematch={() => start(fight.partner)} />;
+
+  const makeLink = async () => {
+    const id = Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => b.toString(16).padStart(2, "0")).join("");
+    const url = `${linkPrefix("play.html")}duel=${encodeChallenge({ id, from: duelPetOf(pet), at: Date.now() })}`;
+    setLink(url);
+    play("success");
+    try {
+      if (navigator.share) await navigator.share({ title: lang === "zh" ? `${pet.name}向你发起切磋` : `${pet.name} challenges your pet`, url });
+      else await navigator.clipboard.writeText(url);
+    } catch {
+      // the share sheet was dismissed; the link stays on screen to copy
+    }
+  };
 
   function start(partner: Partner) {
     const stage = stageOf(pet, Date.now());
@@ -108,6 +162,21 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken }: { pet: Pet; cha
         <input type="checkbox" checked={cheer} onChange={(e) => setCheer(e.target.checked)} />
         <span>{lang === "zh" ? "在场边为它加油（它会感觉到你在身边）" : "Cheer from the side (it feels you're there)"}</span>
       </label>
+      <div className="sp-duel">
+        <button type="button" className="btn primary" onClick={makeLink}>
+          {lang === "zh" ? "用链接向朋友发起切磋" : "Challenge a friend by link"}
+        </button>
+        {link && (
+          <>
+            <input className="sp-link" readOnly value={link} onFocus={(e) => e.currentTarget.select()} aria-label={lang === "zh" ? "切磋链接" : "Challenge link"} />
+            <p className="small">
+              {lang === "zh"
+                ? `链接里带着${pet.name}现在的大脑和故事。朋友用自己的宠物应战，结果谁都能重放验证。`
+                : `The link carries ${pet.name}'s brain and story as they are now. Your friend answers with their own pet, and anyone can replay the result.`}
+            </p>
+          </>
+        )}
+      </div>
       <ul className="sp-partners">
         {PARTNERS.map((p, i) => (
           <PartnerCard key={p.id} partner={p} index={i} lang={lang} onPick={() => start(p)} />
@@ -143,14 +212,25 @@ function PartnerCard({ partner, index, lang, onPick }: { partner: Partner; index
   );
 }
 
-function FightView({ pet, partner, result, cheer, onDone, onRematch }: { pet: Pet; partner: Partner; result: SparResult; cheer: boolean; onDone: () => void; onRematch: () => void }) {
+export function FightView({
+  pet,
+  self,
+  partner,
+  result,
+  cheer,
+  opponent,
+  duel,
+  replay = false,
+  onDone,
+  onRematch,
+}: FightState & { pet?: Pet; self: { name: string; line: Pet["line"]; stage: PetStage }; replay?: boolean; onDone: () => void; onRematch: () => void }) {
   const lang = useLang((s) => s.lang) as Lang;
   const reduce = useReducedMotion() ?? false;
   const [shown, setShown] = useState(0);
   const finished = shown >= result.rounds.length;
   const round = shown > 0 ? result.rounds[shown - 1]! : null;
   const hp: [number, number] = round ? round.hp : [MAX_HP, MAX_HP];
-  const stage = drawn(stageOf(pet, Date.now()));
+  const stage = self.stage;
   const otherName = partner.name[lang];
   const roomIndex = useWorld((s) => s.world.room);
   const backdrop = (ROOMS[roomIndex] ?? ROOMS[HOME]!).bgs.day;
@@ -168,7 +248,7 @@ function FightView({ pet, partner, result, cheer, onDone, onRematch }: { pet: Pe
   const settled = useRef(false);
   const [reward, setReward] = useState(0);
   useEffect(() => {
-    if (!finished || settled.current) return;
+    if (!finished || settled.current || replay) return;
     settled.current = true;
     const outcome = result.winner === 0 ? "w" : result.winner === 1 ? "l" : "d";
     const first = useSpar.getState().note(partner.id, outcome);
@@ -190,7 +270,7 @@ function FightView({ pet, partner, result, cheer, onDone, onRematch }: { pet: Pe
     if (round.moves[side] === "charm" || round.moves[side] === "gift") return "love";
     return round.moods[side]! >= 2 ? "sparkly" : round.moods[side] === 0 ? "sulk" : "neutral";
   };
-  const mine = useMemo(() => drawPet(pet.line, stage, { expression: face(0) }), [pet.line, stage, shown, finished]);
+  const mine = useMemo(() => drawPet(self.line, stage, { expression: face(0) }), [self.line, stage, shown, finished]);
   const theirs = useMemo(() => drawPet(partner.line, partner.stage, { expression: face(1) }), [partner.line, partner.stage, shown, finished]);
 
   return (
@@ -208,7 +288,7 @@ function FightView({ pet, partner, result, cheer, onDone, onRematch }: { pet: Pe
         {([0, 1] as const).map((side) => (
           <div key={side} className={`sp-fighter side-${side}`}>
             <div className="sp-bar">
-              <b>{side === 0 ? pet.name : otherName}</b>
+              <b>{side === 0 ? self.name : otherName}</b>
               <span className="sp-hp" role="meter" aria-valuemin={0} aria-valuemax={MAX_HP} aria-valuenow={hp[side]} aria-label={lang === "zh" ? "体力" : "health"}>
                 <i style={{ transform: `scaleX(${hp[side] / MAX_HP})` }} />
               </span>
@@ -219,7 +299,7 @@ function FightView({ pet, partner, result, cheer, onDone, onRematch }: { pet: Pe
               animate={round && round.hits[1 - side]! > 0 && !reduce ? { x: [0, side === 0 ? -6 : 6, 0, side === 0 ? -3 : 3, 0] } : round && round.moves[side] === "pounce" && !reduce ? { x: [0, side === 0 ? 14 : -14, 0] } : {}}
               transition={{ duration: 0.38 }}
             >
-              <PetArt canvas={side === 0 ? mine : theirs} line={side === 0 ? pet.line : partner.line} scale={4} />
+              <PetArt canvas={side === 0 ? mine : theirs} line={side === 0 ? self.line : partner.line} scale={4} />
             </motion.div>
             <AnimatePresence>
               {round && round.hits[1 - side]! > 0 && (
@@ -232,12 +312,13 @@ function FightView({ pet, partner, result, cheer, onDone, onRematch }: { pet: Pe
           </div>
         ))}
       </div>
-      {finished && <Result pet={pet} partner={partner} result={result} reward={reward} onDone={onDone} onRematch={onRematch} />}
+      {finished && (replay || !pet ? <ReplayResult self={self} partner={partner} result={result} onDone={onDone} /> : <Result pet={pet} partner={partner} result={result} reward={reward} opponent={opponent} duel={duel} onDone={onDone} onRematch={onRematch} />)}
     </div>
   );
 }
 
-function Result({ pet, partner, result, reward, onDone, onRematch }: { pet: Pet; partner: Partner; result: SparResult; reward: number; onDone: () => void; onRematch: () => void }) {
+function Result({ pet, partner, result, reward, opponent, duel, onDone, onRematch }: { pet: Pet; partner: Partner; result: SparResult; reward: number; opponent?: Fighter; duel?: FightState["duel"]; onDone: () => void; onRematch: () => void }) {
+  const [backLink, setBackLink] = useState("");
   const lang = useLang((s) => s.lang) as Lang;
   const learn = useGame((s) => s.learn);
   const [note, setNote] = useState<CoachNote | null>(null);
@@ -261,7 +342,7 @@ function Result({ pet, partner, result, reward, onDone, onRematch }: { pet: Pet;
           memory: pet.brain,
           family: pet.family,
           instincts: pet.instincts,
-          opponent: fighterOfPartner(partner),
+          opponent: opponent ?? fighterOfPartner(partner),
         }),
       );
     }, 60);
@@ -322,10 +403,34 @@ function Result({ pet, partner, result, reward, onDone, onRematch }: { pet: Pet;
           )}
         </div>
       )}
+      {duel && (
+        <div className="sp-duel">
+          <button
+            type="button"
+            className="btn primary"
+            onClick={async () => {
+              const url = `${linkPrefix("play.html")}duelr=${encodeResult(duel)}`;
+              setBackLink(url);
+              play("success");
+              try {
+                if (navigator.share) await navigator.share({ title: lang === "zh" ? "切磋结果" : "Our spar", url });
+                else await navigator.clipboard.writeText(url);
+              } catch {
+                // dismissed; the link stays on screen
+              }
+            }}
+          >
+            {lang === "zh" ? `把结果发回给${partner.name.zh}的主人` : `Send the result back to ${partner.name.en}'s owner`}
+          </button>
+          {backLink && <input className="sp-link" readOnly value={backLink} onFocus={(e) => e.currentTarget.select()} aria-label={lang === "zh" ? "结果链接" : "Result link"} />}
+        </div>
+      )}
       <div className="row">
-        <button type="button" className="btn primary" onClick={onRematch}>
-          {lang === "zh" ? "再来一场" : "Rematch"}
-        </button>
+        {!duel && (
+          <button type="button" className="btn primary" onClick={onRematch}>
+            {lang === "zh" ? "再来一场" : "Rematch"}
+          </button>
+        )}
         <button type="button" className="btn" onClick={onDone}>
           {lang === "zh" ? "换个对手" : "Other partners"}
         </button>
@@ -399,5 +504,27 @@ function FightRewind({ pet, result }: { pet: Pet; result: SparResult }) {
         </div>
       </div>
     </div>
+  );
+}
+
+/** The end of a replayed fight (from a result link): who won, and the fingerprint anyone can check. */
+function ReplayResult({ self, partner, result, onDone }: { self: { name: string }; partner: Partner; result: SparResult; onDone: () => void }) {
+  const lang = useLang((s) => s.lang) as Lang;
+  const title = result.winner === 0 ? (lang === "zh" ? `${self.name}赢了` : `${self.name} won`) : result.winner === 1 ? (lang === "zh" ? `${partner.name.zh}赢了` : `${partner.name.en} won`) : lang === "zh" ? "平手" : "A draw";
+  return (
+    <motion.div className="sp-result" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+      <h3>{title}</h3>
+      <p className="small">
+        {lang === "zh"
+          ? "这场切磋是在你的浏览器里，用链接里两只宠物的大脑重新算出来的。指纹一样，就是同一场。"
+          : "This spar was just recomputed in your browser from both pets' brains in the link. The same fingerprint means the same fight."}
+      </p>
+      <p className="small sp-fp">{lang === "zh" ? `回放指纹 ${result.digest} · 种子 ${result.seed}` : `Replay ${result.digest} · seed ${result.seed}`}</p>
+      <div className="row">
+        <button type="button" className="btn" onClick={onDone}>
+          {lang === "zh" ? "关闭" : "Close"}
+        </button>
+      </div>
+    </motion.div>
   );
 }

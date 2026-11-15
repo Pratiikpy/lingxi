@@ -20,7 +20,7 @@ export function linkPrefix(page: Page): string {
 
 /** On the landing page: follow a `#go=` link to its page. Returns true when it is leaving. */
 export function followGoLink(): boolean {
-  const m = /^#go=([a-z]+\.html)(?:~([\w.=%~-]{0,6000}))?$/.exec(location.hash);
+  const m = /^#go=([a-z]+\.html)(?:~([\w.=%~-]{0,12500}))?$/.exec(location.hash);
   if (!m || !(PAGES as readonly string[]).includes(m[1]!)) return false;
   location.replace(`${m[1]}${m[2] ? `#${m[2]}` : ""}`);
   return true;

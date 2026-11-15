@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { boundingBox, drawPet } from "@lingxi/art";
 import { STARTERS, timeOfDay } from "@lingxi/brain";
-import { type Partner, friendPartner, petCard, stageOf, visibleMeters } from "@lingxi/game";
+import { type Challenge, type Partner, friendPartner, petCard, stageOf, visibleMeters } from "@lingxi/game";
 import { useT, useLang } from "../i18n";
 import { useGame } from "../game/store";
 import { chirp, play } from "../game/sound";
@@ -29,6 +29,7 @@ import { Talk } from "./Talk";
 import { GamesPanel } from "./Games";
 import { DiaryPanel } from "./Diary";
 import { RewindPanel } from "./Rewind";
+import { DuelArrival } from "./Duel";
 import { GiftArrival, SendGiftPanel } from "./Gift";
 import { PacketArrival, RedPacketPanel } from "./RedPacket";
 import { FamilyTree, NewbornDialog, PetsPanel, ProposalDialog, familyBlock } from "./Family";
@@ -149,6 +150,7 @@ export function PlayApp() {
   const asked = useLive((s) => s.asked);
   const [picked, setPicked] = useState<string | null>(null);
   const [challenge, setChallenge] = useState<Partner | null>(null);
+  const [duel, setDuel] = useState<Challenge | null>(null);
   useEffect(() => {
     if (pet) liveShare(petCard(pet));
   }, [pet?.lessons, pet?.family, pet?.brain, liveShare]);
@@ -257,6 +259,7 @@ export function PlayApp() {
         />
         <GiftArrival />
         <PacketArrival />
+        <DuelArrival hasPet={false} />
       </>
     );
   }
@@ -432,6 +435,14 @@ export function PlayApp() {
       <ProposalDialog pet={pet} />
       <GiftArrival />
       <PacketArrival />
+      <DuelArrival
+        hasPet
+        petName={pet.name}
+        onAccept={(c) => {
+          setDuel(c);
+          pick("spar");
+        }}
+      />
       <NewbornDialog pet={pet} />
 
       <Sheet open={tab === "bag"} title={t("bag.title")} onClose={close}>
@@ -451,7 +462,7 @@ export function PlayApp() {
       </Sheet>
 
       <Sheet open={tab === "spar"} title={lang === "zh" ? "切磋" : "Spar"} onClose={close}>
-        <ArenaPanel pet={pet} challenge={challenge} onChallengeTaken={() => setChallenge(null)} />
+        <ArenaPanel pet={pet} challenge={challenge} onChallengeTaken={() => setChallenge(null)} duel={duel} onDuelTaken={() => setDuel(null)} />
       </Sheet>
 
       <Sheet open={tab === "games"} title={lang === "zh" ? "一起玩" : "Play together"} onClose={close}>
