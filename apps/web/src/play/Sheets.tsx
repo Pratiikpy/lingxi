@@ -124,7 +124,7 @@ function MindPartView({ pet, part, firing }: { pet: Pet; part: MindPart; firing:
           return (
             <li key={i} className={firing && pet.last.rule === i ? "fire" : ""}>
               {r.label?.startsWith("instinct: ") && <span className="instinct-tag">{t("mind.instinct")}</span>}
-              <Chips when={c.when} then={c.then} />
+              <Chips when={c.when} then={c.then} want={c.want} />
             </li>
           );
         })}

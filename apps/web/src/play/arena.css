@@ -265,3 +265,45 @@
     min-height: 120px;
   }
 }
+.sp-why {
+  display: grid;
+  gap: var(--s2);
+  margin-top: var(--s3);
+  text-align: left;
+}
+.sp-why .label {
+  margin: 0;
+}
+.sp-why-rounds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.sp-why-rounds button {
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  color: #2b2140;
+  font-family: var(--round);
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+  transition: transform var(--t-micro) var(--ease);
+}
+.sp-why-rounds button[aria-checked="true"] {
+  border-color: #2b2140;
+  box-shadow: 0 0 0 2px #2b2140;
+  transform: translateY(-2px);
+}
+.sp-why .rw-rule {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+.sp-why .rw-rule small {
+  flex-basis: 100%;
+  font-size: 12px;
+  color: var(--ink-soft);
+}

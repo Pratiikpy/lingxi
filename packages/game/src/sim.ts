@@ -185,6 +185,8 @@ function think(p: Pet, brain: Brain, beat: number, action: number, event: number
   const nudge = (out >> 5) & 7;
   p.last = { want, mood, nudge, rule, word, before, ...(half !== undefined ? { half } : {}) };
   p.logHash = chainLog(p.logHash, word);
+  if (p.logBeat === undefined || beat !== p.logBeat + 1) p.logMarks = [...(p.logMarks ?? []), [p.pendingLog.length, beat]];
+  p.logBeat = beat;
   p.pendingLog.push(word);
 
   const energy = toVisible(p.meters.energy);

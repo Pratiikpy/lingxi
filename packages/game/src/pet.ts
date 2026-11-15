@@ -102,6 +102,14 @@ export interface PetState {
   logHash: string;
   /** every input word since hatching, in order (the log the checkpoints commit to) */
   pendingLog: number[];
+  /**
+   * When each logged word happened, kept sparsely: [log index, beat] wherever the
+   * log stops being one word per consecutive beat (a care action inside a beat, a
+   * gap while asleep for good or away too long). Absent for pets from before it.
+   */
+  logMarks?: Array<[number, number]>;
+  /** the beat of the last logged word */
+  logBeat?: number;
   /** which lessons the brain had from each point of the log on: segment i covers words from[i]..from[i+1]-1 */
   segments?: Array<{ from: number; lessons: import("@lingxi/brain").Rule[] }>;
   /** set for a pet born of two parents: its mind is built from both of theirs */

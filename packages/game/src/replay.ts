@@ -1,0 +1,187 @@
+/**
+ * Rewind (PRD F11): scrub back through the pet's day and see, moment by moment,
+ * what it sensed, which rule of its own circuit fired, what it decided and what it
+ * remembered. Nothing is reconstructed by guesswork: the logged input words are
+ * replayed through the brain the pet had at the time, from the very start of the
+ * log, so memory is exactly what it was. The fast compiled brain carries memory up
+ * to the window; inside it the rule reader (proven equal to the circuit) also
+ * names the rule that fired.
+ */
+
+import { type Program, type Rule, STARTERS, type Senses, decodeSenses, fastBrain, compileProgram, inputField, runBeat, stateBits } from "@lingxi/brain";
+import { logSegments } from "./lessons";
+import { BEAT_MS } from "./pet";
+import { ACTION, EVENT, type Pet, WANT } from "./sim";
+
+/** One brain the log ran on: a single program, or a child's two halves. */
+export type Mind = { program: Program } | { halves: [Program, Program] };
+
+export interface Frame {
+  /** position in the whole log */
+  index: number;
+  /** when it happened (ms since 1970), or null for words logged before times were kept */
+  at: number | null;
+  senses: Senses;
+  want: number;
+  mood: number;
+  nudge: number;
+  /** which half of a child decided (0 by day, 1 by night) */
+  half?: 0 | 1;
+  /** the rule that fired, by position in the deciding program, or -1 for its "otherwise" */
+  rule: number;
+  /** the deciding program, so the screen can show the rule in words */
+  program: Program;
+  /** memory bits as they were going into this moment */
+  memory: number[];
+}
+
+const TIME = inputField("time");
+
+/** The beat of every log word that has one, from the sparse marks. */
+export function beatsOfLog(p: Pick<Pet, "pendingLog" | "logMarks">): Array<number | null> {
+  const out: Array<number | null> = new Array(p.pendingLog.length).fill(null);
+  const marks = p.logMarks ?? [];
+  for (let m = 0; m < marks.length; m++) {
+    const [from, beat] = marks[m]!;
+    const to = marks[m + 1]?.[0] ?? p.pendingLog.length;
+    for (let i = from; i < to; i++) out[i] = beat + (i - from);
+  }
+  return out;
+}
+
+/**
+ * The last `count` moments of the log, oldest first. `mindFor` returns the brain
+ * the pet had for a stretch of lessons (the same one the game ran).
+ */
+export function rewind(pet: Pet, mindFor: (lessons: Rule[]) => Mind, count = 24 * 60): Frame[] {
+  const segs = logSegments(pet);
+  const beats = beatsOfLog(pet);
+  const total = pet.pendingLog.length;
+  const from = Math.max(0, total - count);
+  const frames: Frame[] = [];
+  let mem: number[] | null = null;
+  let i = 0;
+  for (const seg of segs) {
+    const mind = mindFor(seg.lessons);
+    const programs = "program" in mind ? [mind.program] : mind.halves;
+    const sizes = programs.map(stateBits);
+    const nState = sizes.reduce((a, b) => a + b, 0);
+    if (!mem || mem.length !== nState) mem = new Array(nState).fill(0);
+    const fast = programs.map((p) => fastBrain(compileProgram(p)));
+    for (const word of seg.words) {
+      const index = i++;
+      if (index < from) {
+        // carry memory forward quickly; each half keeps its own bits
+        let off = 0;
+        programs.forEach((_, k) => {
+          const st = Uint8Array.from(mem!.slice(off, off + sizes[k]!));
+          fast[k]!.step(st, word);
+          for (let b = 0; b < st.length; b++) mem![off + b] = st[b]!;
+          off += sizes[k]!;
+        });
+        continue;
+      }
+      const before = mem.slice();
+      const parts = programs.map((p, k) => {
+        const off = sizes.slice(0, k).reduce((a, b) => a + b, 0);
+        return { k, off, r: runBeat(p, mem!.slice(off, off + sizes[k]!), word) };
+      });
+      for (const part of parts) part.r.state.forEach((v, b) => (mem![part.off + b] = v));
+      const time = (word >> TIME.lo) & 3;
+      // a child: want from A by morning and day, B by evening and night; mood from A; nudge from B
+      const half: 0 | 1 = programs.length === 1 ? 0 : time === 1 || time === 2 ? 0 : 1;
+      const deciding = parts[half]!;
+      const outA = parts[0]!.r.out;
+      const outB = parts[programs.length - 1]!.r.out;
+      frames.push({
+        index,
+        at: beats[index] === null || beats[index] === undefined ? null : beats[index]! * BEAT_MS,
+        senses: decodeSenses(word),
+        want: deciding.r.out & 7,
+        mood: (outA >> 3) & 3,
+        nudge: (outB >> 5) & 7,
+        ...(programs.length === 2 ? { half } : {}),
+        rule: deciding.r.rule,
+        program: programs[half]!,
+        memory: before,
+      });
+    }
+  }
+  return frames;
+}
+
+/** The moments worth jumping to: anything the owner did, anything that happened, and every change of mind. */
+export function momentsOf(frames: readonly Frame[]): number[] {
+  const out: number[] = [];
+  for (let k = 0; k < frames.length; k++) {
+    const f = frames[k]!;
+    const prev = frames[k - 1];
+    if (f.senses.action !== ACTION.none || f.senses.event !== EVENT.none || !prev || prev.want !== f.want) out.push(k);
+  }
+  return out;
+}
+
+export type MomentKey = keyof typeof WANT;
+const WANT_KEY = Object.fromEntries(Object.entries(WANT).map(([k, v]) => [v, k])) as Record<number, MomentKey>;
+
+/** The pet's own line about a moment, in its voice. */
+export function momentText(f: Frame, lang: "en" | "zh"): string {
+  const key = WANT_KEY[f.want] ?? "idle";
+  const en: Record<MomentKey, string> = {
+    idle: "I just sat and thought for a bit.",
+    eat: "I wanted something to eat.",
+    play: "I wanted to play!",
+    sleep: "I wanted to sleep.",
+    explore: "I went off to look around.",
+    sulk: "I sulked.",
+    cuddle: "I came over for a cuddle.",
+    share: "I wanted to share with a friend.",
+  };
+  const zh: Record<MomentKey, string> = {
+    idle: "我坐着想了一会儿。",
+    eat: "我想吃点东西。",
+    play: "我想玩！",
+    sleep: "我想睡觉。",
+    explore: "我出去看看。",
+    sulk: "我闹别扭了。",
+    cuddle: "我过来撒娇。",
+    share: "我想和朋友分享。",
+  };
+  return (lang === "zh" ? zh : en)[key];
+}
+
+const BORN = new Set(Object.values(STARTERS).flatMap((p) => p.rules.map((r) => JSON.stringify([r.when, r.then]))));
+
+/** Where the rule that decided came from: something taught, an instinct, what its egg line is born with, or nothing matched. */
+export function ruleSource(f: Pick<Frame, "rule" | "program">): "taught" | "instinct" | "born" | "default" {
+  const r = f.rule >= 0 ? f.program.rules[f.rule] : undefined;
+  if (!r) return "default";
+  if (r.label?.startsWith("instinct: ")) return "instinct";
+  return BORN.has(JSON.stringify([r.when, r.then])) ? "born" : "taught";
+}
+
+/**
+ * Why a pet fought the way it did: each round's word replayed through the same
+ * mind from the memory it entered the spar with, naming the rule that chose the
+ * move. A child's day half leads the opening and middle, its night half the late
+ * rounds (a spar never reaches night), exactly as the child circuit mixes them.
+ */
+export function rewindFight(mind: Mind, memory: readonly number[], words: readonly number[]): Array<{ rule: number; program: Program; want: number; half?: 0 | 1 }> {
+  const programs = "program" in mind ? [mind.program] : mind.halves;
+  const sizes = programs.map(stateBits);
+  const total = sizes.reduce((a, b) => a + b, 0);
+  let mem = memory.length === total ? memory.slice() : new Array(total).fill(0);
+  return words.map((word) => {
+    const parts = programs.map((p, k) => {
+      const off = sizes.slice(0, k).reduce((a, b) => a + b, 0);
+      return { off, r: runBeat(p, mem.slice(off, off + sizes[k]!), word) };
+    });
+    const next = mem.slice();
+    for (const part of parts) part.r.state.forEach((v, b) => (next[part.off + b] = v));
+    mem = next;
+    const time = (word >> TIME.lo) & 3;
+    const half: 0 | 1 = programs.length === 1 ? 0 : time === 1 || time === 2 ? 0 : 1;
+    const d = parts[half]!;
+    return { rule: d.r.rule, program: programs[half]!, want: d.r.out & 7, ...(programs.length === 2 ? { half } : {}) };
+  });
+}

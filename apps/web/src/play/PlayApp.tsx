@@ -28,6 +28,7 @@ import { type Action, CHARACTER_IN_ROOM, HOME, INDOOR_ROOMS, ROOMS, decorOf, nei
 import { Talk } from "./Talk";
 import { GamesPanel } from "./Games";
 import { DiaryPanel } from "./Diary";
+import { RewindPanel } from "./Rewind";
 import { GiftArrival, SendGiftPanel } from "./Gift";
 import { PacketArrival, RedPacketPanel } from "./RedPacket";
 import { FamilyTree, NewbornDialog, PetsPanel, ProposalDialog, familyBlock } from "./Family";
@@ -407,7 +408,7 @@ export function PlayApp() {
               </button>
             </div>
           )}
-          {!talking && <VoiceBubble />}
+          {!talking && !circuit && <VoiceBubble />}
           {talking ? null : Object.keys(others).length > 0 ? <SocialBar count={Object.keys(others).length} /> : <ThinkStrip pet={pet} />}
         </section>
         <div className="side">
@@ -466,6 +467,8 @@ export function PlayApp() {
         <MeSheetBody pet={pet} />
         <hr className="divider" />
         <DiaryPanel pet={pet} />
+        <hr className="divider" />
+        <RewindPanel pet={pet} />
         <hr className="divider" />
         <EvolutionChart pet={pet} />
         <hr className="divider" />

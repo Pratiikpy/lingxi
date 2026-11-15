@@ -9,9 +9,9 @@ import { useLang, useT, type Key } from "../i18n";
 import { useSound } from "../game/sound";
 import type { Daily, Toast } from "../game/store";
 import { Icon, type IconName } from "./icons";
-import { decidingChips } from "./ruleText";
+import { WANT_COLORS, decidingChips } from "./ruleText";
 
-export function Chips({ when, then }: { when: string[]; then: string }) {
+export function Chips({ when, then, want }: { when: string[]; then: string; want?: number }) {
   const { lang } = useLang();
   const and = lang === "zh" ? "且" : "and";
   const so = lang === "zh" ? "就" : "then";
@@ -24,7 +24,9 @@ export function Chips({ when, then }: { when: string[]; then: string }) {
         </span>
       ))}
       <span className="op">{so}</span>
-      <span className="chip out">{then}</span>
+      <span className="chip out" style={want !== undefined ? { background: WANT_COLORS[want] } : undefined}>
+        {then}
+      </span>
     </>
   );
 }
@@ -131,7 +133,7 @@ export function ThinkStrip({ pet }: { pet: Pet }) {
   return (
     <div className="think" aria-live="off">
       <em>{t("think.label")}</em>
-      <Chips when={c.when} then={c.then} />
+      <Chips when={c.when} then={c.then} want={c.want} />
     </div>
   );
 }

@@ -9,9 +9,11 @@ import { useBadges } from "../game/badges";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { type PixelCanvas, boundingBox, drawPet, type Expression } from "@lingxi/art";
-import { type CoachNote, MAX_HP, type Move, PARTNERS, type Partner, type Pet, type SparResult, coach, fighterOfMind, fighterOfPartner, spar, stageOf } from "@lingxi/game";
+import { type CoachNote, MAX_HP, MOVES, type Move, PARTNERS, type Partner, type Pet, type SparResult, coach, fighterOfMind, fighterOfPartner, halvesOf, rewindFight, ruleSource, spar, stageOf } from "@lingxi/game";
+import { programFor, useGame } from "../game/store";
+import { Chips } from "./parts";
+import { MOVE_NAMES as MOVE_LABEL, WANT_COLORS, decidingChips } from "./ruleText";
 import { useLang } from "../i18n";
-import { useGame } from "../game/store";
 import { useSpar } from "../game/spar";
 import { useWorld } from "../game/world";
 import { HOME, ROOMS } from "@lingxi/world";
@@ -20,6 +22,7 @@ import { songForHour, useMusic } from "../game/music";
 import { PALETTE_OF, type PetStage } from "../scene/textures";
 import { Sprite } from "./Sprite";
 import "./arena.css";
+import "./rewind.css";
 
 type Lang = "en" | "zh";
 const MOVE_NAMES: Record<Move, [string, string]> = {
@@ -330,6 +333,71 @@ function Result({ pet, partner, result, reward, onDone, onRematch }: { pet: Pet;
       <p className="small sp-fp">
         {lang === "zh" ? `回放指纹 ${result.digest} · 种子 ${result.seed}` : `Replay ${result.digest} · seed ${result.seed}`}
       </p>
+      <FightRewind pet={asFought.current} result={result} />
     </motion.div>
+  );
+}
+
+const RULE_SOURCE: Record<ReturnType<typeof ruleSource>, { en: string; zh: string }> = {
+  taught: { en: "from something you taught it", zh: "来自你教它的" },
+  instinct: { en: "from an instinct it hatched with", zh: "来自它天生的本能" },
+  born: { en: "from how its egg line is born", zh: "来自它这一系生来就会的" },
+  default: { en: "nothing matched, so its default move", zh: "没有条件符合，按默认出招" },
+};
+
+/** F11 for spars: scrub the rounds and see which rule of its own brain picked each move. */
+function FightRewind({ pet, result }: { pet: Pet; result: SparResult }) {
+  const lang = useLang((s) => s.lang) as Lang;
+  const why = useMemo(
+    () =>
+      rewindFight(
+        pet.family ? { halves: halvesOf(pet.family, pet.lessons) } : { program: programFor(pet.line, pet.lessons, pet.instincts ?? 0) },
+        pet.brain,
+        result.rounds.map((r) => r.words[0]),
+      ),
+    [pet, result],
+  );
+  const [k, setK] = useState(0);
+  if (!why.length) return null;
+  const w = why[Math.min(k, why.length - 1)]!;
+  const round = result.rounds[Math.min(k, why.length - 1)]!;
+  const chips = decidingChips(w.program, w.rule, lang, true);
+  const chosen = MOVES[w.want]!;
+  const changed = round.moves[0] !== chosen;
+  return (
+    <div className="sp-why">
+      <p className="label">{lang === "zh" ? `回看：${pet.name}每一招为什么这么出` : `Rewind: why ${pet.name} made each move`}</p>
+      <div className="sp-why-rounds" role="radiogroup" aria-label={lang === "zh" ? "回合" : "Rounds"}>
+        {result.rounds.map((r, i) => (
+          <button
+            key={i}
+            type="button"
+            role="radio"
+            aria-checked={i === k}
+            aria-label={`${lang === "zh" ? "第" : "Round "}${i + 1}${lang === "zh" ? "回合" : ""}`}
+            style={{ background: WANT_COLORS[why[i]!.want] }}
+            onClick={() => (play("tap"), setK(i))}
+          >
+            {i + 1}
+          </button>
+        ))}
+      </div>
+      <div className="rw-card">
+        <p className="rw-say" style={{ borderColor: WANT_COLORS[w.want] }}>
+          {lang === "zh" ? `第 ${k + 1} 回合：${MOVE_LABEL.zh[MOVES.indexOf(round.moves[0])]}` : `Round ${k + 1}: ${MOVE_LABEL.en[MOVES.indexOf(round.moves[0])]}`}
+          {changed && (
+            <span>
+              {lang === "zh"
+                ? `它的大脑选了${MOVE_LABEL.zh[w.want]}，但${round.moves[0] === "rest" ? "没力气了，只能休息" : "扑空了，变成轻拍"}。`
+                : `Its brain chose ${MOVE_LABEL.en[w.want]}, but ${round.moves[0] === "rest" ? "it had no stamina left, so it rested" : "the pounce slipped into a tap"}.`}
+            </span>
+          )}
+        </p>
+        <div className="rw-rule">
+          <Chips when={chips.when} then={chips.then} want={chips.want} />
+          <small>{RULE_SOURCE[ruleSource(w)][lang]}</small>
+        </div>
+      </div>
+    </div>
   );
 }

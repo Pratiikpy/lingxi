@@ -23,6 +23,26 @@ export const VALUE_NAMES: Record<string, Names> = {
   owner: { en: ["you're away", "you're here"], zh: ["你不在", "你在身边"] },
 };
 
+/** The same pins as they read during a spar (see @lingxi/game spar.ts). */
+export const FIGHT_VALUE_NAMES: Record<string, Names> = {
+  hunger: { en: ["full health", "hurt", "badly hurt", "nearly out"], zh: ["体力满满", "受了伤", "伤得不轻", "快撑不住"] },
+  joy: { en: ["losing ground", "even", "ahead", "on a roll"], zh: ["处于下风", "势均力敌", "占了上风", "势如破竹"] },
+  energy: { en: ["no stamina", "low stamina", "some stamina", "fresh"], zh: ["没力气了", "力气不多", "还有力气", "精力充沛"] },
+  clean: { en: ["foe nearly out", "foe hurt", "foe steady", "foe healthy"], zh: ["对手快不行了", "对手受了伤", "对手还稳", "对手很健康"] },
+  time: { en: ["night", "opening", "middle", "late"], zh: ["夜里", "开局", "中盘", "尾声"] },
+  action: {
+    en: ["foe swiped", "foe snacked", "foe pounced", "foe bathed", "foe lights off", "foe charmed", "foe medicine", "foe gave a gift"],
+    zh: ["对手轻拍", "对手吃零食", "对手扑击", "对手洗澡", "对手关灯", "对手卖萌", "对手吃药", "对手送礼"],
+  },
+  event: { en: ["nothing new", "foe was friendly", "foe left an opening", "just hit hard"], zh: ["没什么变化", "对手很友好", "对手露出破绽", "刚被重击"] },
+  owner: { en: ["no cheering", "you're cheering"], zh: ["没人加油", "你在加油"] },
+};
+
+export const MOVE_NAMES: Names = {
+  en: ["tap", "snack", "pounce", "rest", "dodge", "guard", "charm", "gift"],
+  zh: ["轻拍", "吃零食", "扑击", "休息", "闪避", "防守", "卖萌", "送礼"],
+};
+
 const MEMORY_NAMES: Record<string, { en: string; zh: string }> = {
   trust: { en: "trust", zh: "信任" },
   likesToys: { en: "likes toys", zh: "喜欢玩具" },
@@ -39,7 +59,15 @@ export const MOOD_NAMES: Names = { en: ["grumpy", "calm", "happy", "excited"], z
 export interface RuleChips {
   when: string[];
   then: string;
+  /** the behaviour chosen, which picks its colour (see WANT_COLORS) */
+  want: number;
 }
+
+/**
+ * One colour per behaviour, used wherever a decision appears: the mind, the
+ * thinking strip, teaching, the rewind. Soft enough to carry dark ink text.
+ */
+export const WANT_COLORS = ["#D9D1E6", "#FFB38A", "#FFD45E", "#A9BEF2", "#9BDDA6", "#C9A6DD", "#FFB3C7", "#8ED8D2"] as const;
 
 function memoryChip(p: Program, name: string, values: number[], lang: Lang): string {
   const m = p.memory.find((x) => x.name === name);
@@ -51,9 +79,9 @@ function memoryChip(p: Program, name: string, values: number[], lang: Lang): str
   return lo === hi ? `${label} ${lo}` : `${label} ${lo}–${hi}`;
 }
 
-export function chipsFor(p: Program, r: Rule | { when: Record<string, number[]>; then: Out }, lang: Lang): RuleChips {
+export function chipsFor(p: Program, r: Rule | { when: Record<string, number[]>; then: Out }, lang: Lang, fight = false): RuleChips {
   const when = Object.entries(r.when).map(([k, values]) => {
-    const names = VALUE_NAMES[k];
+    const names = (fight ? FIGHT_VALUE_NAMES : VALUE_NAMES)[k];
     if (names) {
       const all = names[lang];
       if (values.length === all.length - 1 && all.length > 2) {
@@ -64,14 +92,14 @@ export function chipsFor(p: Program, r: Rule | { when: Record<string, number[]>;
     }
     return memoryChip(p, k, values, lang);
   });
-  return { when, then: WANT_NAMES[lang][r.then.want] ?? "" };
+  return { when, then: (fight ? MOVE_NAMES : WANT_NAMES)[lang][r.then.want] ?? "", want: r.then.want };
 }
 
 /** The rule that decided the last beat, or the program's default. */
-export function decidingChips(p: Program, ruleIndex: number, lang: Lang): RuleChips {
+export function decidingChips(p: Program, ruleIndex: number, lang: Lang, fight = false): RuleChips {
   const r = ruleIndex >= 0 ? p.rules[ruleIndex] : undefined;
-  if (r) return chipsFor(p, r, lang);
-  return { when: [lang === "zh" ? "没有特别的事" : "nothing special"], then: WANT_NAMES[lang][p.otherwise.want] ?? "" };
+  if (r) return chipsFor(p, r, lang, fight);
+  return { when: [lang === "zh" ? "没有特别的事" : "nothing special"], then: (fight ? MOVE_NAMES : WANT_NAMES)[lang][p.otherwise.want] ?? "", want: p.otherwise.want };
 }
 
 export const FIELD_COUNT = INPUT_FIELDS.length;

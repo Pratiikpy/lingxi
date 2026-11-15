@@ -70,7 +70,7 @@ function MindDemo({ reduce }: { reduce: boolean }) {
       <BrainView pet={pet} reduceMotion={reduce} />
       <div className="think-line" aria-live="off">
         <em>{lang === "zh" ? "刚刚在想" : "just thought"}</em>
-        {chips ? <Chips when={chips.when} then={chips.then} /> : <span className="chip">{lang === "zh" ? "发呆" : "rest"}</span>}
+        {chips ? <Chips when={chips.when} then={chips.then} want={chips.want} /> : <span className="chip">{lang === "zh" ? "发呆" : "rest"}</span>}
       </div>
     </div>
   );
@@ -106,7 +106,7 @@ function TeachDemo({ reduce }: { reduce: boolean }) {
         <i className="caret" aria-hidden="true" />
       </div>
       <motion.div className="rule-out" animate={{ opacity: done ? 1 : 0.25, y: done ? 0 : 4 }} transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}>
-        <Chips when={chips.when} then={chips.then} />
+        <Chips when={chips.when} then={chips.then} want={chips.want} />
       </motion.div>
     </div>
   );

@@ -14,3 +14,4 @@ export * from "./games";
 export * from "./diary";
 export * from "./reminders";
 export * from "./badges";
+export * from "./replay";

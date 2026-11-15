@@ -34,7 +34,7 @@ function RulePreview({ pet, rule }: { pet: Pet; rule: Rule }) {
   const c = chipsFor(mindParts(pet)[0]!.program, rule, lang);
   return (
     <div className="rule-preview">
-      <Chips when={c.when} then={c.then} />
+      <Chips when={c.when} then={c.then} want={c.want} />
     </div>
   );
 }
@@ -96,7 +96,7 @@ function Learned({ pet }: { pet: Pet }) {
         return (
           <li key={`${r.label}-${i}`}>
             <div className="rule-preview">
-              <Chips when={c.when} then={c.then} />
+              <Chips when={c.when} then={c.then} want={c.want} />
             </div>
             <div className="mini">
               <button type="button" aria-label={t("teach.up")} disabled={i === 0} onClick={() => arrange(i, "up")}>
@@ -260,7 +260,7 @@ function Library({ pet, onPropose }: { pet: Pet; onPropose: (l: LibraryLesson) =
               <li key={l.key}>
                 <button type="button" className="lib-rule" onClick={() => (play("tap"), onPropose(l))}>
                   <span className="lib-chips">
-                    <Chips when={c.when} then={c.then} />
+                    <Chips when={c.when} then={c.then} want={c.want} />
                   </span>
                   <span className="lib-meta">{t("library.meta", { n: l.uses, by: l.by })}</span>
                 </button>

@@ -11,7 +11,7 @@ import { INPUT_FIELDS, compileProgram, gateCount, layout, netDepth, traceBeat } 
 import type { Pet } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { decidingPart } from "../game/store";
-import { MOOD_NAMES, WANT_NAMES } from "./ruleText";
+import { MOOD_NAMES, WANT_COLORS, WANT_NAMES } from "./ruleText";
 
 const FIELD_ZH: Record<string, string> = { hunger: "饥饿", joy: "心情", energy: "精神", clean: "清洁", time: "时间", action: "动作", event: "事件", owner: "主人" };
 
@@ -127,6 +127,15 @@ export function BrainView({ pet, reduceMotion }: { pet: Pet; reduceMotion: boole
         ctx.fillStyle = soft;
         ctx.fillText(name, x, y - 7);
         ctx.fillStyle = ink;
+        if (front >= cols && value && name === groups[0]![0]) {
+          // the decision wears its behaviour colour, as it does everywhere else
+          const w = ctx.measureText(value).width;
+          ctx.fillStyle = WANT_COLORS[out & 7]!;
+          ctx.beginPath();
+          ctx.roundRect(x - 4, y, w + 8, 15, 7);
+          ctx.fill();
+          ctx.fillStyle = "#2b2140";
+        }
         if (front >= cols) ctx.fillText(value, x, y + 7);
       }
       if (front < cols) raf = requestAnimationFrame(draw);
