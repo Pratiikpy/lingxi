@@ -22,3 +22,4 @@ export * from "./daily";
 export * from "./away";
 export * from "./names";
 export * from "./sitting";
+export * from "./kin";

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { boundingBox, drawPet } from "@lingxi/art";
 import { STARTERS, timeOfDay } from "@lingxi/brain";
-import { type Challenge, type Partner, friendPartner, petCard, stageOf, visibleMeters } from "@lingxi/game";
+import { type Challenge, type Partner, visitorsNow, friendPartner, petCard, stageOf, visibleMeters } from "@lingxi/game";
 import { type Key, useT, useLang } from "../i18n";
 import { useGame } from "../game/store";
 import { chirp, play } from "../game/sound";
@@ -54,6 +54,10 @@ function phaseNow(): DayPhase {
 function drawnStage(s: string): PetStage {
   return s === "elder" ? "adult" : (s as PetStage);
 }
+
+/** When each visiting relative said hello this hour, so the greeting shows once on arrival. */
+const KIN_HELLO: Record<string, number> = {};
+const KIN_SEEN = new Set<string>();
 
 export function PlayApp() {
   const { pet, toast, daily, lastCare, hatch, act, tick, wakeUp, say } = useGame();
@@ -144,6 +148,8 @@ export function PlayApp() {
   // decorating the home: null when not decorating, else the piece in hand ("" for none yet)
   const [decorating, setDecorating] = useState<string | null>(null);
   const others = useLive((s) => s.members);
+  const roster = useGame((s) => s.pets);
+  const [hourNow, setHourNow] = useState(() => Math.floor(Date.now() / 3_600_000));
   const liveConnect = useLive((s) => s.connect);
   const liveMood = useLive((s) => s.mood);
   const liveEmote = useLive((s) => s.emote);
@@ -218,6 +224,7 @@ export function PlayApp() {
     const id = setInterval(() => {
       tick();
       setPhase(phaseNow());
+      setHourNow(Math.floor(Date.now() / 3_600_000));
     }, 5_000);
     const onVis = () => {
       if (!document.hidden) {
@@ -254,6 +261,16 @@ export function PlayApp() {
   const stage = pet ? drawnStage(stageOf(pet, Date.now())) : "baby";
   const face = useMemo(() => (pet ? drawPet(pet.line, stage, { expression: "happy", ...(pet.form ? { form: pet.form } : {}) }) : null), [pet?.line, stage, pet?.form]);
 
+  // say so when a relative arrives (once per visit); the visitors themselves are drawn in the room
+  const kinArrivals = pet && worldRoom === HOME && !visiting ? visitorsNow(pet, roster, hourNow).map((k) => k.pet.name).join(", ") : "";
+  useEffect(() => {
+    if (!kinArrivals || !pet) return;
+    const seen = `${hourNow}:${pet.bornAt}:${kinArrivals}`;
+    if (KIN_SEEN.has(seen)) return;
+    KIN_SEEN.add(seen);
+    setWorldMsg({ id: Date.now(), text: lang === "zh" ? `${kinArrivals}来看${pet.name}了。` : `${kinArrivals} dropped by to see ${pet.name}.` });
+  }, [kinArrivals]);
+
   if (!pet) {
     return (
       <>
@@ -283,6 +300,21 @@ export function PlayApp() {
   };
   const lockedTabs = (["mind", "map", "bag", "spar"] as const).filter((x) => !isOpen(x, pet, revealAll));
   /** `force` opens a tab even before its day, for flows the player chose (accepting a friend's challenge) */
+  // relatives on this device drop by the home now and then (PRD G3)
+  const KIN_WORD = { parent: { en: "parent", zh: "爸爸妈妈" }, child: { en: "little one", zh: "孩子" }, sibling: { en: "sibling", zh: "兄弟姐妹" } } as const;
+  const kinVisitors =
+    worldRoom === HOME && !visiting
+      ? visitorsNow(pet, roster, hourNow).map((k, i) => ({
+          id: `kin:${k.pet.bornAt}`,
+          name: k.pet.name,
+          line: k.pet.line,
+          stage: stageOf(k.pet, Date.now()),
+          mood: 2,
+          who: lang === "zh" ? `${pet.name}的${KIN_WORD[k.kin].zh}，从你的宠物里过来串门。` : `${pet.name}'s ${KIN_WORD[k.kin].en}, dropping by from your other pets.`,
+          // a hello when they arrive this hour
+          say: { text: lang === "zh" ? `来看看${pet.name}！` : `Came to see ${pet.name}!`, at: (KIN_HELLO[`${hourNow}:${k.pet.bornAt}`] ??= performance.now() + i * 400) },
+        }))
+      : [];
   const pick = (next: Tab, force = false) => {
     play("tap");
     if (!force && (lockedTabs as readonly string[]).includes(next)) {
@@ -323,7 +355,7 @@ export function PlayApp() {
             onPetTap={onPetTap}
             reduceMotion={reduce}
             bgs={room.bgs}
-            others={Object.values(others)}
+            others={[...Object.values(others), ...kinVisitors]}
             onOtherTap={(id) => (play("tap"), setPicked(id))}
             npc={who ? (talking && npcFace ? npcFace : who.stand) : null}
             onNpcTap={() => (play("tap"), setPicked(null), setTalking(true))}
@@ -396,6 +428,30 @@ export function PlayApp() {
                 else pick(a === "shop" ? "bag" : a);
               }}
             />
+          )}
+          {picked?.startsWith("kin:") && kinVisitors.find((k) => k.id === picked) && (
+            <div className="visitor-card" role="dialog" aria-label={kinVisitors.find((k) => k.id === picked)!.name}>
+              <b>{kinVisitors.find((k) => k.id === picked)!.name}</b>
+              <span className="small">{kinVisitors.find((k) => k.id === picked)!.who}</span>
+              <button
+                type="button"
+                className="btn primary"
+                onClick={() => {
+                  const id = Number(picked.slice(4));
+                  const index = roster.findIndex((x) => x.bornAt === id);
+                  setPicked(null);
+                  if (index >= 0) {
+                    play("tap");
+                    useGame.getState().switchTo(index);
+                  }
+                }}
+              >
+                {lang === "zh" ? "换成它" : "Switch to it"}
+              </button>
+              <button type="button" className="icon-x" aria-label={lang === "zh" ? "关闭" : "Close"} onClick={() => setPicked(null)}>
+                <Icon name="close" size={14} />
+              </button>
+            </div>
           )}
           {picked && others[picked] && (
             <div className="visitor-card" role="dialog" aria-label={others[picked]!.name}>

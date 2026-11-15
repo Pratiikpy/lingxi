@@ -184,6 +184,8 @@ export function RoomScene(props: SceneProps) {
       app.stage.addChild(world);
       const bgLayer = new Container();
       world.addChild(bgLayer);
+      // purely visual layers never take taps; only the pet, the cat, the resident, visitors and placed pieces do
+      bgLayer.eventMode = "none";
       let room: Sprite = first;
       bgLayer.addChild(room);
       const showBg = (next: Sprite) => {
@@ -195,6 +197,7 @@ export function RoomScene(props: SceneProps) {
       };
       const shadeLayer = new Container();
       world.addChild(shadeLayer);
+      shadeLayer.eventMode = "none";
       // the room's character stands to the right, behind the pets, at the world's own pixel scale
       const npc = new Sprite();
       npc.anchor.set(0.5, 1);
@@ -219,6 +222,7 @@ export function RoomScene(props: SceneProps) {
       // the "hungry" thought in front of the pet; drifting motes and weather over everything
       const floor = new Container();
       world.addChildAt(floor, world.getChildIndex(cat));
+      floor.eventMode = "none";
       const bunnies = [new Sprite(BITS.bunny(false)), new Sprite(BITS.bunny(false))];
       bunnies.forEach((b, i) => {
         b.anchor.set(0.5, 1);
@@ -255,6 +259,7 @@ export function RoomScene(props: SceneProps) {
       };
       const props = new Container();
       world.addChild(props);
+      props.eventMode = "none";
       const ball = new Sprite(BITS.ball());
       ball.anchor.set(0.5);
       ball.visible = false;
@@ -278,13 +283,18 @@ export function RoomScene(props: SceneProps) {
       world.addChild(fx);
       const sky = new Container();
       world.addChild(sky);
+      fx.eventMode = "none";
+      sky.eventMode = "none";
       // light: a warm pool around the pet at dusk and night, soft corners always
       const glow = new Sprite(glowTexture());
+      // light only: it must never catch a tap meant for the pet, the cat or a visitor
+      glow.eventMode = "none";
       glow.anchor.set(0.5);
       glow.blendMode = "add";
       glow.alpha = 0;
       world.addChildAt(glow, world.getChildIndex(floor));
       const vignette = new Sprite(vignetteTexture());
+      vignette.eventMode = "none";
       vignette.width = ROOM;
       vignette.height = ROOM;
       world.addChild(vignette);
@@ -311,6 +321,7 @@ export function RoomScene(props: SceneProps) {
       // visitors' name tags and speech live in screen space so text stays crisp
       const ui = new Container();
       app.stage.addChild(ui);
+      ui.eventMode = "none";
       interface Visitor {
         sprite: Sprite;
         tag: Text;
