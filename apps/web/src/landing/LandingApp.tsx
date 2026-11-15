@@ -1,15 +1,16 @@
 /**
  * The Lingxi landing page. Every section shows the real thing: real sprites,
  * the pet's real compiled circuit, real Pet School lessons, real rooms and real
- * measured numbers. Sections for features not built yet are left out rather
- * than mocked.
+ * measured numbers, and the spar is the real engine. Ten parts: hero, growth,
+ * mind, teaching, world and residents, friends, spars, proof, start, footer.
  */
 
 import { useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { CORAL, SHELL, drawEgg, drawPet } from "@lingxi/art";
 import { STARTERS, compileProgram, gateCount } from "@lingxi/brain";
-import { PET_SCHOOL, createPet, care } from "@lingxi/game";
+import { PARTNERS, PET_SCHOOL, createPet, care, fighterFrom, spar } from "@lingxi/game";
+import { CHARACTERS } from "@lingxi/world";
 import { useLang } from "../i18n";
 import { brainFor } from "../game/store";
 import { BrainView } from "../play/BrainView";
@@ -111,6 +112,93 @@ function TeachDemo({ reduce }: { reduce: boolean }) {
   );
 }
 
+/** The residents, with their own portraits and roles. */
+function Residents() {
+  const { lang } = useLang();
+  const who = CHARACTERS.filter((c) => ["wick", "praline", "twain", "jab", "why", "yonder"].includes(c.id));
+  return (
+    <ul className="residents">
+      {who.map((c) => (
+        <li key={c.id}>
+          <img className="pixel" src={`pet/npcs/${c.stand}`} alt="" loading="lazy" />
+          <b style={{ background: c.color }}>{c.name[lang]}</b>
+          <span>{c.role[lang]}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Two pets sharing a room live, with a wave, a heart and a gift in flight. */
+function FriendsScene({ reduce }: { reduce: boolean }) {
+  const { lang } = useLang();
+  const a = useMemo(() => drawPet("gentle", "child", { expression: "happy" }), []);
+  const b = useMemo(() => drawPet("gentle", "teen", { expression: "love" }), []);
+  return (
+    <div className="friends-scene" style={{ backgroundImage: "url(pet/rooms/65_forest-hut/backgrounds/room65a.png)" }}>
+      <div className="fs-pet fs-a">
+        <motion.div animate={reduce ? {} : { y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 1.6 }}>
+          <Sprite canvas={a} palette={CORAL} scale={3} />
+        </motion.div>
+        <b>Mochi</b>
+      </div>
+      <div className="fs-pet fs-b">
+        <span className="fs-bubble">{lang === "zh" ? "嗨！" : "hi!"}</span>
+        <Sprite canvas={b} palette={{ ...CORAL, m: "#FFC83D", d: "#C98A00", l: "#FFE39A" }} scale={3} />
+        <b>Tofu</b>
+      </div>
+      {!reduce &&
+        [0, 1, 2].map((i) => (
+          <motion.span key={i} className="fs-heart" initial={{ opacity: 0, y: 0 }} animate={{ opacity: [0, 1, 0], y: -60 }} transition={{ repeat: Infinity, duration: 2.4, delay: i * 0.8 }} aria-hidden="true">
+            ♥
+          </motion.span>
+        ))}
+    </div>
+  );
+}
+
+/** A real spar, replayed round by round: the gentle starter against Pip. */
+function SparDemo({ reduce }: { reduce: boolean }) {
+  const { lang } = useLang();
+  const result = useMemo(() => {
+    const pip = PARTNERS.find((p) => p.id === "pip")!;
+    for (let seed = 1; seed < 200; seed++) {
+      const r = spar(fighterFrom("Mochi", STARTERS.gentle, 0), fighterFrom("Pip", pip.program, pip.level), seed);
+      if (r.rounds.length >= 8) return r;
+    }
+    return spar(fighterFrom("Mochi", STARTERS.gentle, 0), fighterFrom("Pip", pip.program, pip.level), 1);
+  }, []);
+  const [n, setN] = useState(reduce ? result.rounds.length : 1);
+  useEffect(() => {
+    if (reduce) return;
+    const id = setInterval(() => setN((k) => (k >= result.rounds.length + 3 ? 1 : k + 1)), 900);
+    return () => clearInterval(id);
+  }, [reduce, result.rounds.length]);
+  const r = result.rounds[Math.min(n, result.rounds.length) - 1]!;
+  const MOVES: Record<string, [string, string]> = { tap: ["tap", "轻拍"], snack: ["snack", "吃点心"], pounce: ["pounce!", "猛扑！"], rest: ["rest", "歇一歇"], dodge: ["dodge", "闪开"], guard: ["guard", "防守"], charm: ["charm", "撒娇"], gift: ["gift", "送礼"] };
+  const pa = useMemo(() => drawPet("gentle", "child", { expression: "happy" }), []);
+  const pb = useMemo(() => drawPet("gentle", "child", { expression: "proud" }), []);
+  return (
+    <div className="spar-demo">
+      <div className="sd-head">
+        <span>{lang === "zh" ? `第 ${Math.min(n, result.rounds.length)} 回合` : `Round ${Math.min(n, result.rounds.length)}`}</span>
+        <span className="mono">{lang === "zh" ? `回放 ${result.digest}` : `replay ${result.digest}`}</span>
+      </div>
+      <div className="sd-ring" style={{ backgroundImage: "url(pet/rooms/49_clearing/backgrounds/playtest-a.png)" }}>
+        {([0, 1] as const).map((side) => (
+          <div key={side} className={`sd-f sd-${side}`}>
+            <i className="sd-hp">
+              <i style={{ transform: `scaleX(${r.hp[side] / 100})` }} />
+            </i>
+            <Sprite canvas={side === 0 ? pa : pb} palette={side === 0 ? CORAL : { ...CORAL, m: "#FFC83D", d: "#C98A00", l: "#FFE39A" }} scale={2.5} />
+            <span className="sd-move">{MOVES[r.moves[side]]![lang === "zh" ? 1 : 0]}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function LandingApp() {
   const { lang, toggle } = useLang();
   const reduce = useReducedMotion() ?? false;
@@ -133,7 +221,8 @@ export function LandingApp() {
             <a href="#grow">{c.nav[0]}</a>
             <a href="#mind">{c.nav[1]}</a>
             <a href="#teach">{c.nav[2]}</a>
-            <a href="#proof">{c.nav[3]}</a>
+            <a href="#friends">{c.nav[3]}</a>
+            <a href="#proof">{c.nav[4]}</a>
           </div>
           <div className="l-right">
             <button type="button" className="round-btn" onClick={toggle}>
@@ -225,6 +314,43 @@ export function LandingApp() {
               </li>
             ))}
           </ul>
+          <p className="l-label l-sub">{c.residents}</p>
+          <Residents />
+        </section>
+
+        <section id="friends" className="l-sec l-split" aria-labelledby="friends-h">
+          <div className="l-text">
+            <p className="l-label">{c.friendsLabel}</p>
+            <h2 id="friends-h">{c.friendsH}</h2>
+            <p className="l-p">{c.friendsP}</p>
+            <ul className="l-cards">
+              {c.friendsCards.map(([h, d]) => (
+                <li key={h}>
+                  <b>{h}</b>
+                  <span>{d}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <FriendsScene reduce={reduce} />
+        </section>
+
+        <section id="spars" className="l-sec l-split l-flip" aria-labelledby="spars-h">
+          <div className="l-text">
+            <p className="l-label">{c.sparLabel}</p>
+            <h2 id="spars-h">{c.sparH}</h2>
+            <p className="l-p">{c.sparP}</p>
+            <p className="l-coach">{c.sparCoach}</p>
+          </div>
+          <div className="l-window">
+            <div className="cardbar" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+              spar.replay
+            </div>
+            <SparDemo reduce={reduce} />
+          </div>
         </section>
 
         <section id="proof" className="l-sec l-proof" aria-labelledby="proof-h">
@@ -239,7 +365,7 @@ export function LandingApp() {
               </li>
             ))}
           </ol>
-          <a className="l-cta ghost" href="verify.html">
+          <a className="l-cta ghost" href="verify.html#1">
             {c.proofCta}
           </a>
         </section>
