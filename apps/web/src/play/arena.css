@@ -380,3 +380,40 @@
     grid-column: 1 / -1;
   }
 }
+.sp-chain {
+  display: grid;
+  gap: 6px;
+  padding: var(--s3);
+  border: 2px dashed var(--line);
+  border-radius: var(--r-md);
+  text-align: left;
+}
+.sp-chain .label,
+.sp-chain .small {
+  margin: 0;
+}
+.sp-chain .btn {
+  justify-self: start;
+}
+.sp-chain-out {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+}
+.sp-chain-out li {
+  padding-left: 1.4em;
+  text-indent: -1.4em;
+}
+.sp-chain-out li.ok::before {
+  content: "✓ ";
+  color: #2e8b57;
+  font-weight: 800;
+}
+.sp-chain-out li.bad::before {
+  content: "✗ ";
+  color: #d9433b;
+  font-weight: 800;
+}

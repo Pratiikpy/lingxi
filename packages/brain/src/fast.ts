@@ -6,6 +6,7 @@
  */
 
 import type { PetNetlist } from "./compile";
+import { type Circuit, beat, bitsToWord, wordToBits } from "./tap02";
 
 export interface FastBrain {
   readonly nIn: number;
@@ -43,6 +44,24 @@ export function fastBrain(n: PetNetlist): FastBrain {
       let out = 0;
       for (let k = 0; k < n.nOut; k++) out |= sig[firstOut + k]! << k;
       return out;
+    },
+  };
+}
+
+/**
+ * A FastBrain over a circuit loaded from TAP-02 bytes (for example, read back
+ * from the chain), so a battle can be re-run with the brain exactly as it was
+ * taped out rather than as this device compiled it.
+ */
+export function circuitBrain(c: Circuit): FastBrain {
+  return {
+    nIn: c.nIn,
+    nOut: c.nOut,
+    nState: c.nState,
+    step(state, inputWord) {
+      const [next, outs] = beat(c, Array.from(state), wordToBits(inputWord, c.nIn));
+      next.forEach((b, i) => (state[i] = b));
+      return Number(bitsToWord(outs));
     },
   };
 }
