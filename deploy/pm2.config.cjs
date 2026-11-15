@@ -32,6 +32,7 @@ module.exports = {
         LINGXI_RELAY_PER_DAY: "100",
         LINGXI_PUSH_KEY_FILE: path.join(secrets, "push.env"),
         LINGXI_PUSH_STORE: path.join(root, "services", "api", "data", "push-subscriptions.json"),
+        LINGXI_LIBRARY_STORE: path.join(root, "services", "api", "data", "lesson-library.json"),
       },
       max_memory_restart: "600M",
       restart_delay: 3000,

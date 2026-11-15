@@ -23,6 +23,7 @@ import { LiveRooms, attachLive } from "./live";
 import { parseCard } from "@lingxi/game";
 import { PlanSchema, createPusher, type Pusher } from "./push";
 import { VoiceRequest, createVoice } from "./voice";
+import { LibraryRule, createLibrary, type Library } from "./library";
 
 function loadKey(): string | undefined {
   if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
@@ -182,6 +183,40 @@ export function withVoice(app: Hono, voice: ReturnType<typeof createVoice>, limi
   return app;
 }
 
+/** The lesson library: shared lessons, most learned first, with the pet that taught each first. */
+export function withLibrary(app: Hono, library: Library, writes = new RateLimiter(60, 3_600_000)): Hono {
+  const who = (c: { req: { header: (n: string) => string | undefined } }) => c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
+  const Key = z.object({ key: z.string().regex(/^[0-9a-f]{24}$/) });
+  app.get("/api/lessons", (c) => {
+    c.header("Cache-Control", "public, max-age=30");
+    return c.json({ ok: true, lessons: library.list(40) });
+  });
+  app.post("/api/lessons/share", async (c) => {
+    if (!writes.take(who(c))) return c.json({ ok: false, reason: "busy" }, 429);
+    let body;
+    try {
+      body = z.object({ rule: LibraryRule, by: z.string().max(40) }).parse(await c.req.json());
+    } catch {
+      return c.json({ ok: false, reason: "invalid" }, 400);
+    }
+    const r = library.share(body.rule as never, body.by, who(c), Date.now());
+    return c.json(r, r.ok ? 200 : 400);
+  });
+  for (const action of ["use", "report"] as const) {
+    app.post(`/api/lessons/${action}`, async (c) => {
+      if (!writes.take(who(c))) return c.json({ ok: false, reason: "busy" }, 429);
+      let body;
+      try {
+        body = Key.parse(await c.req.json());
+      } catch {
+        return c.json({ ok: false, reason: "invalid" }, 400);
+      }
+      return c.json({ ok: library[action](body.key, who(c)) });
+    });
+  }
+  return app;
+}
+
 /** Reminder routes: the public key to subscribe with, a plan of upcoming reminders, and stop. */
 export function withPush(app: Hono, pusher: Pusher, limiter = new RateLimiter(30, 3_600_000)): Hono {
   app.get("/api/push/key", (c) => c.json({ key: pusher.publicKey }));
@@ -234,6 +269,7 @@ if (isMain) {
   const origins = (process.env.LINGXI_ORIGINS ?? "http://localhost:5199,http://localhost:4173").split(",");
   const app = createApp(client, undefined, relayer, undefined, live);
   if (client) withVoice(app, createVoice(client));
+  withLibrary(app, createLibrary(process.env.LINGXI_LIBRARY_STORE));
   const pusher = makePusher();
   if (pusher) {
     withPush(app, pusher);

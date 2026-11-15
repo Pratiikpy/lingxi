@@ -256,3 +256,65 @@
     content: "...";
   }
 }
+
+.library {
+  display: grid;
+  gap: 8px;
+}
+.lib-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.lib-list li {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+.lib-rule {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.lib-rule:hover {
+  background: color-mix(in srgb, #ffe39a 25%, var(--card));
+}
+.lib-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.lib-meta {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.lib-report {
+  flex: none;
+  width: 32px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.share-opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}

@@ -10,6 +10,7 @@ import type { Rule } from "@lingxi/brain";
 import { LESSON_CAPACITY, PET_SCHOOL, type Pet, checkLesson, stageOf } from "@lingxi/game";
 import { useLang, useT, type Key } from "../i18n";
 import { teachInWords, teachingAvailable } from "../game/api";
+import { type LibraryLesson, libraryAvailable, listLessons, reportLesson, shareLesson, usedLesson } from "../game/library";
 import { play } from "../game/sound";
 import { mindParts, useGame } from "../game/store";
 import { Icon } from "./icons";
@@ -37,14 +38,20 @@ function RulePreview({ pet, rule }: { pet: Pet; rule: Rule }) {
   );
 }
 
-function Proposal({ pet, rule, reply, onDone }: { pet: Pet; rule: Rule; reply?: string; onDone: () => void }) {
+/** Where a proposed lesson came from: Pet School, the library (by key), or the owner's own words or blocks. */
+type Source = { kind: "school" } | { kind: "library"; key: string } | { kind: "own" };
+
+function Proposal({ pet, rule, reply, source, onDone }: { pet: Pet; rule: Rule; reply?: string; source: Source; onDone: () => void }) {
   const t = useT();
   const learn = useGame((s) => s.learn);
   const [err, setErr] = useState<string | null>(null);
+  const [share, setShare] = useState(false);
   const confirm = () => {
     const r = learn(rule);
     if (r.ok) {
       play("success");
+      if (source.kind === "library") void usedLesson(source.key);
+      if (source.kind === "own" && share) void shareLesson(rule, pet.name);
       onDone();
     } else {
       play("error");
@@ -57,6 +64,12 @@ function Proposal({ pet, rule, reply, onDone }: { pet: Pet; rule: Rule; reply?: 
       <p className="small">{t("teach.became")}</p>
       <RulePreview pet={pet} rule={rule} />
       {err && <p className="err" role="alert">{err}</p>}
+      {source.kind === "own" && libraryAvailable() && (
+        <label className="share-opt">
+          <input type="checkbox" checked={share} onChange={(e) => setShare(e.target.checked)} />
+          {t("library.shareOpt", { name: pet.name })}
+        </label>
+      )}
       <div className="row">
         <button type="button" className="btn primary" onClick={confirm}>
           {t("teach.confirm")}
@@ -213,16 +226,74 @@ function Builder({ pet, onPropose }: { pet: Pet; onPropose: (rule: Rule) => void
   );
 }
 
+/** Lessons other players shared, most learned first; ones this pet already knows are left out. */
+function Library({ pet, onPropose }: { pet: Pet; onPropose: (l: LibraryLesson) => void }) {
+  const t = useT();
+  const { lang } = useLang();
+  const [lessons, setLessons] = useState<LibraryLesson[] | null>(null);
+  const [reported, setReported] = useState<string[]>([]);
+  useEffect(() => {
+    if (!libraryAvailable()) return;
+    let live = true;
+    void listLessons().then((l) => live && setLessons(l));
+    return () => {
+      live = false;
+    };
+  }, []);
+  if (!libraryAvailable()) return null;
+  const program = mindParts(pet)[0]!.program;
+  const known = (r: Rule) => pet.lessons.some((x) => JSON.stringify(x.when) === JSON.stringify(r.when) && JSON.stringify(x.then) === JSON.stringify(r.then));
+  const shown = (lessons ?? []).filter((l) => !known(l.rule) && !reported.includes(l.key)).slice(0, 8);
+  return (
+    <div className="library">
+      <p className="label">{t("library.title")}</p>
+      {lessons === null ? (
+        <p className="small thinking-dots">{t("library.loading")}</p>
+      ) : shown.length === 0 ? (
+        <p className="small">{t("library.empty")}</p>
+      ) : (
+        <ul className="lib-list">
+          {shown.map((l) => {
+            const c = chipsFor(program, l.rule, lang);
+            return (
+              <li key={l.key}>
+                <button type="button" className="lib-rule" onClick={() => (play("tap"), onPropose(l))}>
+                  <span className="lib-chips">
+                    <Chips when={c.when} then={c.then} />
+                  </span>
+                  <span className="lib-meta">{t("library.meta", { n: l.uses, by: l.by })}</span>
+                </button>
+                <button
+                  type="button"
+                  className="lib-report"
+                  aria-label={t("library.report")}
+                  title={t("library.report")}
+                  onClick={() => {
+                    void reportLesson(l.key);
+                    setReported((r) => [...r, l.key]);
+                  }}
+                >
+                  <Icon name="close" size={12} />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export function TeachPanel({ pet }: { pet: Pet }) {
   const t = useT();
   const { lang } = useLang();
-  const [proposal, setProposal] = useState<{ rule: Rule; reply?: string } | null>(null);
+  const [proposal, setProposal] = useState<{ rule: Rule; reply?: string; source: Source } | null>(null);
   const stage = stageOf(pet, Date.now());
   const max = LESSON_CAPACITY[stage];
   const full = pet.lessons.length >= max;
-  const propose = (rule: Rule, reply?: string) => {
+  const propose = (rule: Rule, reply?: string, source: Source = { kind: "own" }) => {
     const check = checkLesson(pet.line, stage, pet.lessons, rule);
-    setProposal({ rule: check.ok ? check.program.rules[0]! : rule, ...(reply ? { reply } : {}) });
+    setProposal({ rule: check.ok ? check.program.rules[0]! : rule, source, ...(reply ? { reply } : {}) });
   };
   return (
     <div className="teach">
@@ -233,7 +304,7 @@ export function TeachPanel({ pet }: { pet: Pet }) {
       <Learned pet={pet} />
       <AnimatePresence mode="wait">
         {proposal ? (
-          <Proposal key="p" pet={pet} rule={proposal.rule} {...(proposal.reply ? { reply: proposal.reply } : {})} onDone={() => setProposal(null)} />
+          <Proposal key="p" pet={pet} rule={proposal.rule} source={proposal.source} {...(proposal.reply ? { reply: proposal.reply } : {})} onDone={() => setProposal(null)} />
         ) : full ? (
           <p key="f" className="small">{t("teach.full", { name: pet.name })}</p>
         ) : (
@@ -241,11 +312,12 @@ export function TeachPanel({ pet }: { pet: Pet }) {
             <p className="label">{t("teach.school")}</p>
             <div className="school">
               {PET_SCHOOL.filter((l) => !pet.lessons.some((x) => x.label === l.rule.label)).map((l) => (
-                <button key={l.id} type="button" className="say" onClick={() => (play("tap"), propose(l.rule))}>
+                <button key={l.id} type="button" className="say" onClick={() => (play("tap"), propose(l.rule, undefined, { kind: "school" }))}>
                   “{l.say[lang]}”
                 </button>
               ))}
             </div>
+            <Library pet={pet} onPropose={(l) => propose(l.rule, undefined, { kind: "library", key: l.key })} />
             <p className="label">{t("teach.words")}</p>
             <Words pet={pet} onPropose={propose} />
             <details className="build">
