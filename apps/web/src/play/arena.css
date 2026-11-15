@@ -345,6 +345,7 @@
   overflow: auto;
 }
 .sp-daily {
+  color: #2b2140;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;

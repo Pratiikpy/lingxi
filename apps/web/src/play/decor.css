@@ -61,10 +61,12 @@
   transform: scale(0.95);
 }
 .decor-piece.on {
+  color: #2b2140;
   background: #ffe39a;
   box-shadow: 0 0 0 3px #ff7a59;
 }
 .decor-piece.shop {
+  color: #2b2140;
   background: #f4eefb;
 }
 .decor-piece span {

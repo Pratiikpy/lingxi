@@ -45,6 +45,7 @@ import { ChainPanel } from "./ChainPanel";
 import { HomePanel } from "./Home";
 import { WardrobePanel } from "./Wardrobe";
 import { MailboxPanel } from "./Mailbox";
+import { AlbumPanel } from "./Album";
 import { unreadCount, useMail } from "../game/mail";
 import { Outings } from "./Outings";
 import { DESTINATION, outfitOf } from "@lingxi/world";
@@ -600,6 +601,8 @@ export function PlayApp() {
       <BadgeToast />
       <Sheet open={tab === "me"} title={t("me.title", { name: pet.name })} onClose={close}>
         <WardrobePanel pet={pet} />
+        <hr className="divider" />
+        <AlbumPanel />
         <hr className="divider" />
         <MeSheetBody pet={pet} />
         <hr className="divider" />

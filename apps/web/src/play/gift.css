@@ -60,6 +60,7 @@
   cursor: pointer;
 }
 .gift-item.on {
+  color: #2b2140;
   background: #ffe39a;
   box-shadow: 0 0 0 3px #ffc83d;
 }

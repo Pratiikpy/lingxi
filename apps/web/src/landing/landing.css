@@ -499,6 +499,7 @@
   gap: var(--s3);
 }
 .residents li {
+  color: #2b2140;
   display: grid;
   justify-items: center;
   align-content: end;
@@ -696,6 +697,7 @@
   pointer-events: none;
 }
 .l-phase {
+  color: #2b2140;
   position: absolute;
   right: max(16px, calc((100% - 1120px) / 2));
   bottom: 56px;

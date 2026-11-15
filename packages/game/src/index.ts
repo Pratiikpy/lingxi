@@ -28,3 +28,4 @@ export * from "./companions";
 export * from "./arenarun";
 export * from "./tapeflyRivals";
 export * from "./season";
+export * from "./visitors";

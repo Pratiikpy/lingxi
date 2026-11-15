@@ -440,6 +440,7 @@
   color: #b33a2a;
 }
 .coach-tip {
+  color: #2b2140;
   margin: 0;
   padding: 8px 12px;
   border-radius: var(--r-sm);
@@ -447,6 +448,7 @@
   font-size: 13px;
 }
 .trap {
+  color: #2b2140;
   padding: 8px 12px;
   border: 2px solid #e8a33a;
   border-radius: var(--r-sm);

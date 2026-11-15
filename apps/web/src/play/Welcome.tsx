@@ -8,7 +8,8 @@
 import { useEffect, useMemo, useRef } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { HOME, ITEM, ROOMS } from "@lingxi/world";
-import { type Frame, type Pet, awayFind, awaySeed, halvesOf, momentText, rewind } from "@lingxi/game";
+import { type Frame, type Pet, awayFind, awaySeed, halvesOf, momentText, rewind, visitorsDuring } from "@lingxi/game";
+import { VisitorArt, useAlbum } from "./Album";
 import { useLang } from "../i18n";
 import { programFor, useGame } from "../game/store";
 import { useWorld } from "../game/world";
@@ -60,6 +61,12 @@ export function WelcomeBack({ pet }: { pet: Pet }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
   const find = useMemo(() => (mine ? awayFind(awaySeed(pet), mine.from, mine.to, ROOMS[HOME]?.drops ?? []) : null), [key]);
+  // the travelling pets who came by, for the album (M9)
+  const visits = useMemo(() => (mine ? visitorsDuring(awaySeed(pet), mine.from, mine.to) : []), [key]);
+  const addVisits = useAlbum((s) => s.add);
+  useEffect(() => {
+    if (mine && visits.length) addVisits(key, visits);
+  }, [key]);
 
   const given = useRef(false);
   useEffect(() => {
@@ -76,6 +83,22 @@ export function WelcomeBack({ pet }: { pet: Pet }) {
     <div className="fam-modal" role="dialog" aria-modal="true" aria-label={lang === "zh" ? "你不在的时候" : "While you were away"}>
       <motion.div className="fam-card welcome-card" initial={reduce ? false : { y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: "spring", stiffness: 320, damping: 26 }}>
         <p className="label">{lang === "zh" ? `你不在的这 ${hours} 小时` : `While you were away · ${hours} ${hours === 1 ? "hour" : "hours"}`}</p>
+        {visits.length > 0 && (
+          <div className="welcome-visitors">
+            <p className="small">{lang === "zh" ? "来串门的：" : "Who came by:"}</p>
+            <ul>
+              {[...new Map(visits.map((v) => [v.visitor.id, v.visitor])).values()].slice(0, 4).map((v) => (
+                <li key={v.id}>
+                  <VisitorArt v={v} scale={2} />
+                  <span>
+                    {v.name[lang]}
+                    {visits.filter((x) => x.visitor.id === v.id).length > 1 ? ` ×${visits.filter((x) => x.visitor.id === v.id).length}` : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {story.events.length ? (
           <ul className="welcome-list">
             {story.events.map((f) => (
