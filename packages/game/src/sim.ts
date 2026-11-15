@@ -238,7 +238,7 @@ export interface ItemEffect {
 export type Care =
   | { kind: "feed"; food: string | ItemEffect }
   | { kind: "use"; item: ItemEffect }
-  | { kind: "play" }
+  | { kind: "play"; stars?: number }
   | { kind: "clean" }
   | { kind: "lightsOff" }
   | { kind: "wake" }
@@ -300,9 +300,12 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
         break;
       }
       p.asleep = false;
-      p.meters.joy = addVisible(p.meters.joy, 220);
+      // a mini-game played well (up to 3 stars) cheers it up more and teaches it more
+      const stars = Math.max(0, Math.min(3, Math.floor(c.stars ?? 0)));
+      p.meters.joy = addVisible(p.meters.joy, 220 + 60 * stars);
       p.meters.energy = addVisible(p.meters.energy, -80);
       p.meters.food = addVisible(p.meters.food, -40);
+      p.xp = Math.min(0xffff, p.xp + 2 * stars);
       p.counts.play = Math.min(255, p.counts.play + 1);
       note = "played";
       action = ACTION.play;

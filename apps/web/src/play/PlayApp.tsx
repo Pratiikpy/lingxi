@@ -20,6 +20,7 @@ import { liveAvailable, playerId, useLive, visitingFrom } from "../game/live";
 import { InvitePanel, SocialBar } from "./Social";
 import { type Action, CHARACTER_IN_ROOM, HOME, ROOMS, neighbours } from "@lingxi/world";
 import { Talk } from "./Talk";
+import { GamesPanel } from "./Games";
 import { GiftArrival, SendGiftPanel } from "./Gift";
 import { PacketArrival, RedPacketPanel } from "./RedPacket";
 import { FamilyTree, NewbornDialog, PetsPanel, ProposalDialog, familyBlock } from "./Family";
@@ -197,10 +198,8 @@ export function PlayApp() {
     );
   }
 
-  const playBall = () => {
-    play("pop");
-    act({ kind: "play" });
-  };
+  // Play opens the three mini-games
+  const playBall = () => pick("games");
   const clean = () => {
     play("sparkle");
     act({ kind: "clean" });
@@ -368,6 +367,10 @@ export function PlayApp() {
 
       <Sheet open={tab === "spar"} title={lang === "zh" ? "切磋" : "Spar"} onClose={close}>
         <ArenaPanel pet={pet} challenge={challenge} onChallengeTaken={() => setChallenge(null)} />
+      </Sheet>
+
+      <Sheet open={tab === "games"} title={lang === "zh" ? "一起玩" : "Play together"} onClose={close}>
+        <GamesPanel pet={pet} onDone={close} />
       </Sheet>
 
       <Sheet open={tab === "pets"} title={lang === "zh" ? "你的宠物" : "Your pets"} onClose={close}>

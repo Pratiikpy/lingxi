@@ -106,6 +106,8 @@
 .round-btn {
   width: 44px;
   height: 44px;
+  flex: none;
+  white-space: nowrap;
   display: grid;
   place-items: center;
   border: 2px solid var(--line);

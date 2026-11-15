@@ -10,3 +10,4 @@ export * from "./partners";
 export * from "./coach";
 export * from "./family";
 export * from "./gift";
+export * from "./games";
