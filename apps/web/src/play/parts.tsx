@@ -107,11 +107,11 @@ export function Meters({ pet }: { pet: Pet }) {
   );
 }
 
-export function Actions({ pet, onFeed, onPlay, onClean, onSleep, onMedicine }: { pet: Pet; onFeed: () => void; onPlay: () => void; onClean: () => void; onSleep: () => void; onMedicine: () => void }) {
+export function Actions({ pet, absent = false, onFeed, onPlay, onClean, onSleep, onMedicine }: { pet: Pet; absent?: boolean; onFeed: () => void; onPlay: () => void; onClean: () => void; onSleep: () => void; onMedicine: () => void }) {
   const t = useT();
   const m = visibleMeters(pet);
-  // a pet staying with a friend is cared for there, not here
-  const away = !!pet.away;
+  // a pet staying with a friend is cared for there, and a pet on a trip is not home
+  const away = !!pet.away || absent;
   const btn = (icon: IconName, label: string, on: () => void, hint: boolean, disabled = false) => (
     <button type="button" className={`act${hint && !away ? " hint" : ""}`} onClick={on} disabled={disabled || away}>
       <Icon name={icon} size={24} />

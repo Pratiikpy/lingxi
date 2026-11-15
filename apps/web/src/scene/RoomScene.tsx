@@ -42,6 +42,8 @@ export interface SceneProps {
   /** the adult form care and diet chose */
   form?: import("@lingxi/art").Form;
   asleep: boolean;
+  /** away on a trip: the room stands empty of it */
+  absent?: boolean;
   /** ill from neglect: dizzy face and little green swirls */
   sick: boolean;
   want: number;
@@ -461,6 +463,7 @@ export function RoomScene(props: SceneProps) {
         pet.texture = petTexture(p.line, { stage: p.stage, expression: e, breath, squash, lit, ...(p.form ? { form: p.form } : {}) });
         pet.x = PET_X;
         pet.y = PET_FEET - lift;
+        pet.visible = !p.absent;
         if (!p.covered) {
           if (feedWaiting >= 0) {
             if (now - feedWaiting < 30_000) feedAt = now;

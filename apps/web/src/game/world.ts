@@ -4,7 +4,7 @@
  * pet; food from the bag goes through the game rules like any care.
  */
 
-import { DECOR_BY_ID, MAX_PLACED, PLACE_AREA, buyDecor as buyDecorRule, placeDecor as placeDecorRule, removeDecor as removeDecorRule, COMPOST, compostFromClean, harvest as harvestRule, plant as plantRule } from "@lingxi/world";
+import { DECOR_BY_ID, MAX_PLACED, PLACE_AREA, buyDecor as buyDecorRule, placeDecor as placeDecorRule, removeDecor as removeDecorRule, COMPOST, compostFromClean, harvest as harvestRule, plant as plantRule, startWalk as startWalkRule, stepWalk as stepWalkRule, endWalk as endWalkRule, startTrip as startTripRule, endTrip as endTripRule } from "@lingxi/world";
 import { useBadges } from "./badges";
 import { create } from "zustand";
 import { exert, stageOf } from "@lingxi/game";
@@ -98,6 +98,14 @@ interface WorldStore {
   plant: (plot: number, crop: string, compost: boolean) => void;
   harvest: (plot: number) => void;
   compost: (cleanBefore: number) => void;
+  /** walks and trips (W4, W5) */
+  startWalk: (sensor: boolean) => void;
+  addSteps: (n: number) => void;
+  endWalk: () => void;
+  startTrip: (to: string) => void;
+  endTrip: () => void;
+  /** what the last walk or trip came to, for the card that welcomes the pet back */
+  lastOuting: { kind: "walk"; steps: number; minutes: number; found: Array<{ item: number; n: number }>; capped: boolean } | { kind: "trip"; to: string; found: Array<{ item: number; n: number }>; learned: number | null } | null;
 }
 
 let n = 0;
@@ -218,6 +226,40 @@ export const useWorld = create<WorldStore>((set, get) => ({
     if (!r.made) return;
     save(r.world);
     set({ world: r.world, notice: { id: ++n, kind: "compost", items: [{ item: COMPOST, n: 1 }] } });
+  },
+  lastOuting: null,
+  startWalk: (sensor) => {
+    const r = startWalkRule(get().world, Date.now(), sensor);
+    if (!r.ok) return set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
+    save(r.world);
+    set({ world: r.world, lastOuting: null });
+  },
+  addSteps: (steps) => {
+    const r = stepWalkRule(get().world, steps, Date.now());
+    if (!r.ok) return;
+    save(r.world);
+    if (r.found.length) play("pop");
+    set({ world: r.world });
+  },
+  endWalk: () => {
+    const r = endWalkRule(get().world, Date.now());
+    if (!r.ok) return;
+    save(r.world);
+    set({ world: r.world, lastOuting: { kind: "walk", steps: r.steps, minutes: r.minutes, found: r.finds, capped: r.capped } });
+    // a walk together is play: joy for the pet, and it tires
+    if (r.minutes >= 5) useGame.getState().act({ kind: "play" });
+  },
+  startTrip: (to) => {
+    const r = startTripRule(get().world, to, Date.now());
+    if (!r.ok) return set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
+    save(r.world);
+    set({ world: r.world, lastOuting: null });
+  },
+  endTrip: () => {
+    const r = endTripRule(get().world, Date.now());
+    if (!r.ok) return set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
+    save(r.world);
+    set({ world: r.world, lastOuting: { kind: "trip", to: r.to, found: r.found, learned: r.learned } });
   },
   receive: (item, n) => {
     if (!ITEM[item]) return;

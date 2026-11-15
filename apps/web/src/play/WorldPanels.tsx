@@ -3,7 +3,7 @@
 import { CuteState } from "./CuteState";
 import { useMemo, useState } from "react";
 import { stageOf } from "@lingxi/game";
-import { HOME, ITEM, QUESTS, RECIPES, ROOMS, has, neighbours, questState } from "@lingxi/world";
+import { HOME, ITEM, QUESTS, RECIPES, ROOMS, has, knownTravelRecipes, neighbours, questState } from "@lingxi/world";
 import { useLang, useT, type Key } from "../i18n";
 import { useChain } from "../game/chain";
 import { useGame } from "../game/store";
@@ -26,7 +26,7 @@ export function noticeText(nt: WorldNotice, t: ReturnType<typeof useT>, lang: "e
   if (nt.kind === "compost") return t("world.compost");
   if (nt.kind === "claimed") return t("world.claimed", { coins: nt.coins ?? 0, items: nt.items?.length ? (lang === "zh" ? `，${itemList(nt.items, lang)}` : `, ${itemList(nt.items, lang)}`) : "" });
   const k = `world.fail.${nt.reason}` as Key;
-  return ["tired", "asleep", "already", "nothingHere", "coins", "missing", "notNear", "full", "owned", "notHere", "noSeed", "noCompost", "notRipe", "taken"].includes(nt.reason ?? "") ? t(k) : t("world.fail.other");
+  return ["tired", "asleep", "already", "nothingHere", "coins", "missing", "notNear", "full", "owned", "notHere", "noSeed", "noCompost", "notRipe", "taken", "walking", "travelling", "notBack"].includes(nt.reason ?? "") ? t(k) : t("world.fail.other");
 }
 
 export function MapPanel({ onGone }: { onGone: () => void }) {
@@ -99,7 +99,7 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
   const food = entries.filter((e) => e.item.kind === "food");
   const drinks = entries.filter((e) => e.item.kind === "drink" || e.item.kind === "box" || (e.item.kind === "treasure" && e.item.use));
   const stuff = entries.filter((e) => !food.includes(e) && !drinks.includes(e));
-  const makeable = RECIPES.filter((r) => r.ins.every((x) => has(world, x.item, x.amount)));
+  const makeable = [...RECIPES, ...knownTravelRecipes(world)].filter((r) => r.ins.every((x) => has(world, x.item, x.amount)));
   const Row = ({ e, action, onAct }: { e: (typeof entries)[number]; action?: string; onAct?: () => void }) => (
     <li className="bag-item">
       <img className="pixel" src={e.item.art} alt="" width={40} height={40} />

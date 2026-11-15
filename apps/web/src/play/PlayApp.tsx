@@ -43,6 +43,8 @@ import { ArenaPanel } from "./Arena";
 import { BrainView } from "./BrainView";
 import { ChainPanel } from "./ChainPanel";
 import { HomePanel } from "./Home";
+import { Outings } from "./Outings";
+import { DESTINATION } from "@lingxi/world";
 import { Icon } from "./icons";
 import { Sprite } from "./Sprite";
 import "./play.css";
@@ -70,6 +72,7 @@ export function PlayApp() {
   const [circuit, setCircuit] = useState(false);
   const worldRoom = useWorld((s) => s.world.room);
   const worldFull = useWorld((s) => s.world);
+  const travelling = !!worldFull.trip;
   const homeDecor = useLive((s) => s.homeDecor);
   const placedDecor = decorOf(worldFull).placed;
   // our home's decorations live on the server too, so friends who drop by see them
@@ -335,6 +338,7 @@ export function PlayApp() {
             stage={stage}
             {...(pet.form ? { form: pet.form } : {})}
             asleep={pet.asleep}
+            absent={travelling}
             sick={!!pet.sick}
             want={pet.last.want}
             mood={pet.last.mood}
@@ -402,6 +406,14 @@ export function PlayApp() {
           </button>
           <ToastView toast={toast} name={pet.name} />
           {pet.away && <AwayCard pet={pet} />}
+          {travelling && worldFull.trip && (
+            <div className="trip-note" role="status">
+              <p>{lang === "zh" ? `${pet.name}出门旅行了，在${DESTINATION[worldFull.trip.to]?.name.zh ?? ""}。` : `${pet.name} is away at ${DESTINATION[worldFull.trip.to]?.name.en.toLowerCase() ?? ""}.`}</p>
+              <button type="button" className="btn" onClick={() => pick("map")}>
+                {lang === "zh" ? "看看它什么时候回来" : "See when it's back"}
+              </button>
+            </div>
+          )}
           <AnimatePresence>
             {worldMsg && (
               <motion.div
@@ -488,7 +500,7 @@ export function PlayApp() {
         </section>
         <div className="side">
           <Meters pet={pet} />
-          <Actions pet={pet} onFeed={() => pick("bag")} onPlay={playBall} onClean={clean} onSleep={sleep} onMedicine={() => (play("sparkle"), act({ kind: "medicine" }))} />
+          <Actions pet={pet} absent={travelling} onFeed={() => pick("bag")} onPlay={playBall} onClean={clean} onSleep={sleep} onMedicine={() => (play("sparkle"), act({ kind: "medicine" }))} />
           <section className="card mindcard" aria-label={t("mind.title", { name: pet.name })}>
             <div className="cardbar" aria-hidden="true">
               <i />
@@ -548,6 +560,7 @@ export function PlayApp() {
         <BagPanel onFed={close} />
       </Sheet>
       <Sheet open={tab === "map"} title={t("map.title")} onClose={close}>
+        <Outings pet={pet} />
         <MapPanel onGone={close} />
       </Sheet>
       <Sheet open={tab === "quests"} title={t("quest.title")} onClose={close}>

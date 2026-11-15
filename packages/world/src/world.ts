@@ -87,6 +87,13 @@ export const RECIPES: Recipe[] = (data.recipes as Array<{ index: number; out: nu
   .filter((r) => RECIPE_NAMES[r.index] && ITEM[r.out] && r.ins.every((x) => ITEM[x.item]))
   .map((r) => ({ index: r.index, name: RECIPE_NAMES[r.index]!, out: r.out, outAmount: Math.max(1, r.outAmount), ins: r.ins.map((x) => ({ item: x.item, amount: scale(x.amount) })) }));
 
+/** Recipes only a trip teaches: the garden's harvest turned into mochi. */
+export const TRAVEL_RECIPES: readonly Recipe[] = [
+  { index: 20001, name: { en: "Pound Rice Mochi", zh: "捣米麻薯" }, out: 11130, outAmount: 2, ins: [{ item: 7201, amount: 2 }, { item: 11312, amount: 1 }] },
+  { index: 20002, name: { en: "Fold Apple Jam Mochi", zh: "包苹果酱麻薯" }, out: 11120, outAmount: 2, ins: [{ item: 11313, amount: 2 }, { item: 7201, amount: 1 }] },
+  { index: 20003, name: { en: "Roll Honey Mochi", zh: "滚蜂蜜麻薯" }, out: 11140, outAmount: 2, ins: [{ item: 11312, amount: 2 }, { item: 7201, amount: 1 }] },
+];
+
 export function neighbours(index: number): number[] {
   const r = ROOMS[index];
   if (!r) return [];
@@ -117,6 +124,14 @@ export interface WorldState {
   seed: string;
   /** quest ids already claimed */
   claimed: string[];
+  /** a walk in progress, and how many walks today brought finds (see outings.ts) */
+  walk?: { startedAt: number; steps: number; sensor: boolean; finds: Array<{ item: number; n: number }> };
+  walksDay?: number;
+  walksToday?: number;
+  /** the pet away on a trip, travel recipes it has brought back, and trips taken */
+  trip?: { to: string; leftAt: number; backAt: number };
+  recipes?: number[];
+  trips?: number;
   /** the Mushroom Garden's plots (see garden.ts) */
   garden?: { plots: Array<{ crop: string; at: number; compost: boolean } | null>; harvested: number };
   /** decorations bought and where they stand in the home room */
@@ -209,7 +224,8 @@ export function buy(w: WorldState, item: number): WorldResult {
 }
 
 export function craft(w: WorldState, recipeIndex: number): WorldResult<{ made: number }> {
-  const r = RECIPES.find((x) => x.index === recipeIndex);
+  // a travel recipe works only once a trip has brought it home
+  const r = RECIPES.find((x) => x.index === recipeIndex) ?? TRAVEL_RECIPES.find((x) => x.index === recipeIndex && (w.recipes ?? []).includes(x.index));
   if (!r) return { ok: false, reason: "noRecipe" };
   if (!r.ins.every((x) => has(w, x.item, x.amount))) return { ok: false, reason: "missing" };
   let bag = w.bag;
