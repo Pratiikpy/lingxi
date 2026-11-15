@@ -16,7 +16,7 @@ function foodArt(c: Care, art?: string): string | undefined {
 const STAGE_RANK: Record<string, number> = { baby: 1, child: 2, teen: 3, adult: 4, elder: 4 };
 import { create } from "zustand";
 import { type Program, type Rule, STARTERS, compileProgram, fastBrain, stateBits } from "@lingxi/brain";
-import { FOODS, type Brain, type Care, type CareResult, type Pet, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, liveBeat, mindBrain, stageOf, teach as teachRule } from "@lingxi/game";
+import { FOODS, type Brain, type Care, type CareResult, type Pet, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, liveBeat, mindBrain, settleForm, stageOf, teach as teachRule } from "@lingxi/game";
 import type { StarterLine } from "@lingxi/brain";
 
 const OLD_KEY = "lingxi.pet.v1";
@@ -160,7 +160,7 @@ const freshDaily = (): Daily => ({ day: todayKey(), fed: false, played: false, c
 function initialPet(): Pet | null {
   const p = roster.pets[roster.active];
   if (!p) return null;
-  const caught = catchUp(p, Date.now(), brainOf(p));
+  const caught = settleForm(catchUp(p, Date.now(), brainOf(p)), Date.now());
   save(caught);
   return caught;
 }
@@ -175,7 +175,7 @@ export const useGame = create<GameState>((set, get) => ({
     const target = roster.pets[index];
     if (!target || index === roster.active) return;
     roster = { ...roster, active: index };
-    const caught = catchUp(target, Date.now(), brainOf(target));
+    const caught = settleForm(catchUp(target, Date.now(), brainOf(target)), Date.now());
     save(caught);
     set({ pet: caught, pets: roster.pets, active: index, lastCare: null });
   },
@@ -237,7 +237,7 @@ export const useGame = create<GameState>((set, get) => ({
   tick: () => {
     const { pet } = get();
     if (!pet) return;
-    const next = liveBeat(pet, Date.now(), brainOf(pet));
+    const next = settleForm(liveBeat(pet, Date.now(), brainOf(pet)), Date.now());
     if (next !== pet) {
       if (stageOf(next, Date.now()) !== stageOf(pet, Date.now() - 60_000)) useBadges.getState().note("stage", STAGE_RANK[stageOf(next, Date.now())] ?? 0);
       save(next);
@@ -247,7 +247,7 @@ export const useGame = create<GameState>((set, get) => ({
   wakeUp: () => {
     const { pet } = get();
     if (!pet) return;
-    const caught = catchUp(pet, Date.now(), brainOf(pet));
+    const caught = settleForm(catchUp(pet, Date.now(), brainOf(pet)), Date.now());
     if (caught !== pet) {
       save(caught);
       set({ pet: caught, pets: roster.pets });

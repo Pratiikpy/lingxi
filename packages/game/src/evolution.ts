@@ -17,7 +17,7 @@
  */
 
 import { type Program, compileProgram, encodeSenses, fastBrain, runBeat, validateProgram } from "@lingxi/brain";
-import { DIETS, TRAITS, dayOf } from "./pet";
+import { DIETS, TRAITS, dayOf, stageOf } from "./pet";
 import type { Pet } from "./sim";
 
 export const EVOLUTION: Program = validateProgram({
@@ -82,4 +82,16 @@ export function evolve(i: EvolutionInputs): { form: Form; rare: boolean; rule: n
   const out = circuit.step(new Uint8Array(0), word);
   const rule = runBeat(EVOLUTION, [], word).rule;
   return { form: FORMS[out & 7] ?? "puff", rare: ((out >> 3) & 3) === 1, rule };
+}
+
+/**
+ * Fix the adult form the first time the pet is seen grown up. Evolution happens
+ * once: what the circuit reads that day decides the body for good, so a later
+ * change of diet or a dip in trust never makes it flicker between forms.
+ */
+export function settleForm(p: Pet, now: number): Pet {
+  if (p.form) return p;
+  const s = stageOf(p, now);
+  if (s !== "adult" && s !== "elder") return p;
+  return { ...p, form: evolve(evolutionInputs(p, now)).form };
 }

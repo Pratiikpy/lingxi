@@ -1078,3 +1078,8 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+.evo-art {
+  display: grid;
+  place-items: center;
+  height: 64px;
+}

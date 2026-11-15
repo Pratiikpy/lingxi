@@ -39,6 +39,8 @@ const HEAD = { baby: 15, child: 22, teen: 28, adult: 34 } as const;
 export interface SceneProps {
   line: StarterLine;
   stage: PetStage;
+  /** the adult form care and diet chose */
+  form?: import("@lingxi/art").Form;
   asleep: boolean;
   /** ill from neglect: dizzy face and little green swirls */
   sick: boolean;
@@ -445,7 +447,7 @@ export function RoomScene(props: SceneProps) {
           }
         }
         const breath: 0 | 1 = p.reduceMotion ? 0 : Math.sin(now / (p.asleep ? 900 : 620)) > 0.35 ? 1 : 0;
-        pet.texture = petTexture(p.line, { stage: p.stage, expression: e, breath, squash, lit });
+        pet.texture = petTexture(p.line, { stage: p.stage, expression: e, breath, squash, lit, ...(p.form ? { form: p.form } : {}) });
         pet.x = PET_X;
         pet.y = PET_FEET - lift;
         if (!p.covered) {

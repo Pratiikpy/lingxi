@@ -92,6 +92,8 @@ export interface PetState {
   brain: number[];
   /** rules the owner taught, highest priority first */
   lessons: Rule[];
+  /** the adult form, decided once by the evolution circuit on the day it grows up */
+  form?: "puff" | "blossom" | "dumpling" | "scholar" | "moonpetal";
   /** the four instinct switches chosen at hatching (1 brave · 2 greedy · 4 curious · 8 calm); fixed for life */
   instincts?: number;
   traits: Record<Trait, number>;

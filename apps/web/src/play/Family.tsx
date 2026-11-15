@@ -252,7 +252,7 @@ export function PetsPanel({ onPicked }: { onPicked: () => void }) {
                 onPicked();
               }}
             >
-              <Sprite canvas={drawPet(p.line, drawn(stage), { expression: p.asleep ? "asleep" : "happy" })} palette={PALETTE_OF[p.line]} scale={1.5} />
+              <Sprite canvas={drawPet(p.line, drawn(stage), { expression: p.asleep ? "asleep" : "happy", ...(p.form ? { form: p.form } : {}) })} palette={PALETTE_OF[p.line]} scale={1.5} />
               <span>
                 <b>{p.name}</b>
                 <small>

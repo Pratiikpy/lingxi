@@ -32,3 +32,18 @@ describe("evolution circuit", () => {
     expect(evolutionWord({ diet: 3, care: 0, trust: 0, lessons: 0, trait: 7 })).toBe(3 | (7 << 10));
   });
 });
+
+describe("the adult form is decided once", () => {
+  it("is fixed on the first look at a grown pet and never changes after", async () => {
+    const { settleForm, evolve, evolutionInputs } = await import("../src/evolution");
+    const { createPet } = await import("../src/sim");
+    const { mindBrain } = await import("../src/family");
+    const T0 = Date.UTC(2026, 0, 1);
+    const young = createPet({ name: "M", line: "gentle", now: T0, tzOffsetMin: 0, brain: mindBrain({ line: "gentle", lessons: [] }) });
+    expect(settleForm(young, T0 + 86_400_000).form).toBeUndefined();
+    const grown = settleForm({ ...young, diet: { sweet: 0, fruit: 50, savory: 0, grain: 0 }, traits: { ...young.traits, gentle: 9 } }, T0 + 12 * 86_400_000);
+    expect(grown.form).toBe(evolve(evolutionInputs(grown, T0 + 12 * 86_400_000)).form);
+    const changed = settleForm({ ...grown, diet: { sweet: 0, fruit: 0, savory: 500, grain: 0 }, traits: { ...grown.traits, playful: 99 } }, T0 + 20 * 86_400_000);
+    expect(changed.form).toBe(grown.form);
+  });
+});

@@ -247,7 +247,7 @@ export function PlayApp() {
   }, [act, say]);
 
   const stage = pet ? drawnStage(stageOf(pet, Date.now())) : "baby";
-  const face = useMemo(() => (pet ? drawPet(pet.line, stage, { expression: "happy" }) : null), [pet?.line, stage]);
+  const face = useMemo(() => (pet ? drawPet(pet.line, stage, { expression: "happy", ...(pet.form ? { form: pet.form } : {}) }) : null), [pet?.line, stage, pet?.form]);
 
   if (!pet) {
     return (
@@ -288,6 +288,7 @@ export function PlayApp() {
           <RoomScene
             line={pet.line}
             stage={stage}
+            {...(pet.form ? { form: pet.form } : {})}
             asleep={pet.asleep}
             sick={!!pet.sick}
             want={pet.last.want}

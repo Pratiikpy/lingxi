@@ -1,6 +1,9 @@
 /** Bottom sheets and the pet's mind panel. */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import { type Palette, ROLES, drawPet } from "@lingxi/art";
+import { PALETTE_OF } from "../scene/textures";
+import { Sprite } from "./Sprite";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { type MindPart, mindParts } from "../game/store";
 import { DIETS, FOODS, FORMS, FORM_NAMES, TRAITS, type Pet, beatOf, dayOf, evolutionInputs, evolve, instinctsOf, kinshipNow, levelOf, stageOf } from "@lingxi/game";
@@ -233,11 +236,26 @@ export function MeSheetBody({ pet }: { pet: Pet }) {
   );
 }
 
+/** Every colour of a secret form painted one soft lavender, so only its outline shows. */
+const SILHOUETTE = Object.fromEntries(ROLES.filter((r) => r !== ".").map((r) => [r, r === "s" ? "#2B214022" : "#CFC6DA"])) as Palette;
+
+/** A form's adult body, or its silhouette while it is still a secret. */
+function FormSprite({ line, form, shown }: { line: Pet["line"]; form: (typeof FORMS)[number]; shown: boolean }) {
+  const art = useMemo(() => drawPet(line, "adult", { form, expression: shown ? "happy" : "neutral" }), [line, form, shown]);
+  const palette = useMemo(() => (shown ? PALETTE_OF[line] : SILHOUETTE), [line, shown]);
+  return (
+    <span className="evo-art" aria-hidden="true">
+      <Sprite canvas={art} palette={palette} scale={1.5} />
+    </span>
+  );
+}
+
 export function EvolutionChart({ pet }: { pet: Pet }) {
   const { lang } = useLang();
   const now = Date.now();
   const grown = ["adult", "elder"].includes(stageOf(pet, now));
-  const e = evolve(evolutionInputs(pet, now));
+  // once grown the form is fixed; before that, the chart shows where today's care is heading
+  const e = pet.form ? { form: pet.form } : evolve(evolutionInputs(pet, now));
   return (
     <div className="evo">
       <p className="small">
@@ -252,6 +270,7 @@ export function EvolutionChart({ pet }: { pet: Pet }) {
       <ul className="evo-list">
         {FORMS.map((f) => (
           <li key={f} className={f === e.form ? "on" : ""}>
+            <FormSprite line={pet.line} form={f} shown={grown || f === e.form} />
             <b>{grown || f === e.form ? FORM_NAMES[f][lang] : "???"}</b>
             <span>{FORM_NAMES[f].how[lang]}</span>
           </li>

@@ -281,7 +281,7 @@ export function FightView({
     if (round.moves[side] === "charm" || round.moves[side] === "gift") return "love";
     return round.moods[side]! >= 2 ? "sparkly" : round.moods[side] === 0 ? "sulk" : "neutral";
   };
-  const mine = useMemo(() => drawPet(self.line, stage, { expression: face(0) }), [self.line, stage, shown, finished]);
+  const mine = useMemo(() => drawPet(self.line, stage, { expression: face(0), ...(pet?.form && !replay ? { form: pet.form } : {}) }), [self.line, stage, shown, finished, pet?.form, replay]);
   const theirs = useMemo(() => drawPet(partner.line, partner.stage, { expression: face(1) }), [partner.line, partner.stage, shown, finished]);
 
   return (

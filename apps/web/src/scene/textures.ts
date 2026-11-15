@@ -9,6 +9,7 @@ import {
   CORAL,
   type CatPose,
   type Expression,
+  type Form,
   type Palette,
   type PixelCanvas,
   SKY,
@@ -47,10 +48,12 @@ export interface PetFrame {
   breath: 0 | 1;
   squash: -1 | 0 | 1;
   lit: boolean;
+  /** the adult form, when grown */
+  form?: Form;
 }
 
 export function petTexture(line: StarterLine, f: PetFrame): Texture {
-  const key = `pet:${line}:${f.stage}:${f.expression}:${f.breath}:${f.squash}:${f.lit ? 1 : 0}`;
+  const key = `pet:${line}:${f.stage}:${f.expression}:${f.breath}:${f.squash}:${f.lit ? 1 : 0}:${f.form ?? ""}`;
   return canvasTexture(key, drawPet(line, f.stage, f), PALETTE_OF[line]);
 }
 

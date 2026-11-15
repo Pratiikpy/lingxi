@@ -26,7 +26,28 @@ export interface PoseOptions {
   squash?: -1 | 0 | 1;
   /** circuit trace lit */
   lit?: boolean;
+  /** the adult form care and diet chose (adults only; see @lingxi/game evolution) */
+  form?: Form;
 }
+
+/**
+ * Adult forms. Care and diet decide which one a pet grows into, and the body
+ * shows it: every line keeps its own shape and gains the form's features.
+ *   puff       the line's own adult, unchanged
+ *   blossom    a flower tucked by the ear, soft pink cheeks of petals at the feet
+ *   dumpling   rounder and heavier, a pale belly and pleats on the crown
+ *   scholar    a little square cap with a tassel
+ *   moonpetal  (rare) a crescent moon and starlight, the trace always lit
+ */
+export const FORMS = ["puff", "blossom", "dumpling", "scholar", "moonpetal"] as const;
+export type Form = (typeof FORMS)[number];
+
+/** Where each line's features sit on its adult body (hand-placed). */
+const ANCHORS: Record<"gentle" | "bold" | "curious", { ear: [number, number]; hat: [number, number]; moon: [number, number]; pleat: [number, number] }> = {
+  gentle: { ear: [15, 23], hat: [20, 12], moon: [38, 9], pleat: [21, 21] },
+  bold: { ear: [10, 27], hat: [31, 17], moon: [6, 8], pleat: [20, 24] },
+  curious: { ear: [17, 22], hat: [20, 13], moon: [40, 9], pleat: [21, 21] },
+};
 
 interface BodySpec {
   face: { x: number; y: number; size: "L" | "S" };
@@ -334,15 +355,46 @@ function drawTrace(c: PixelCanvas, cx: number, y: number, halfW: number, lit: bo
 export function drawBody(line: Line, stage: Exclude<Stage, "egg">, opt: PoseOptions = {}): PixelCanvas {
   const spec = LINES[line][stage];
   const pose = { breath: opt.breath ?? 0, squash: opt.squash ?? 0 } as const;
+  const form = stage === "adult" ? (opt.form ?? "puff") : "puff";
   const c = new PixelCanvas(SIZE, SIZE);
-  groundShadow(c, 24, GROUND, spec.shadow);
+  groundShadow(c, 24, GROUND, spec.shadow + (form === "dumpling" ? 2 : 0));
   const m = new Mask(SIZE, SIZE);
   spec.draw(m, pose);
+  // a dumpling settles lower and wider
+  if (form === "dumpling") m.ellipse(24, 36.5 + pose.squash * 0.5, 16.5 + pose.squash, 8.5 - pose.squash * 0.5);
   paintBody(c, m, { shade: stage === "baby" ? 1 : stage === "child" ? 2 : 3, light: stage === "baby" ? 1 : 2, deep: stage === "adult" || stage === "teen" });
   cleanOutline(c);
   spec.finish?.(c, pose);
-  if (spec.trace) drawTrace(c, 24, spec.trace.y + (pose.breath ? -1 : 0), spec.trace.half, opt.lit ?? false);
+  const lit = (opt.lit ?? false) || form === "moonpetal";
+  if (spec.trace) drawTrace(c, 24, spec.trace.y + (pose.breath ? -1 : 0), spec.trace.half, lit);
+  if (form !== "puff") formFeatures(c, line, form, pose.breath);
   return c;
+}
+
+function formFeatures(c: PixelCanvas, line: Line, form: Form, breath: 0 | 1): void {
+  const a = ANCHORS[line];
+  const b = breath ? -1 : 0;
+  if (form === "blossom") {
+    // a four-petal flower by the ear, and petals fallen at the feet
+    c.stamp([".pp.pp.", "pwp.pwp", ".pptpp.", "..ttt..", ".pptpp.", "pwp.pwp", ".pp.pp."], a.ear[0] - 3, a.ear[1] - 3 + b);
+    c.stamp(["pp.", "pwp", ".p."], 11, 42);
+    c.stamp([".pp", "pwp", ".p."], 34, 42);
+  } else if (form === "dumpling") {
+    // a pale round belly and pleats where the dough gathers
+    c.stamp(["..hhhhh..", ".hhhhhhh.", "hhhhhhhhh", ".hhhhhhh."], 20, 38);
+    c.stamp(["O.O.O.O", ".O.O.O."], a.pleat[0] - 1, a.pleat[1] + b);
+  } else if (form === "scholar") {
+    // a square cap with a tassel
+    c.stamp(["....e....", "..eeeeee.", "eeeeeeeee", "..eeeee.t", "..eeeee.t", "........t"], a.hat[0], a.hat[1] + b);
+  } else if (form === "moonpetal") {
+    // a crescent moon, starlight, and petals drifting by
+    c.stamp(["..ttt", ".tt..", "tt...", "tt...", "tt...", ".tt..", "..ttt"], a.moon[0], a.moon[1] + b);
+    c.stamp([".w.", "www", ".w."], a.moon[0] + 5, a.moon[1] - 2 + b);
+    c.set(a.moon[0] + 6, a.moon[1] + 6 + b, "w");
+    c.set(a.moon[0] - 2, a.moon[1] + 9 + b, "w");
+    c.stamp(["pp", ".p"], 9, 30 + b);
+    c.stamp(["pp", "p."], 37, 34 + b);
+  }
 }
 
 /** Which face set a stage uses and where its centre sits. */
