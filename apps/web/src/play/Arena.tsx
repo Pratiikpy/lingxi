@@ -11,12 +11,12 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { FLY, type OverlayPixel, type Palette, type PixelCanvas, boundingBox, drawFly, drawPet, type Expression, type Outfit, wearOverlay } from "@lingxi/art";
 import { outfitOf } from "@lingxi/world";
 import { STARTERS, programOfChips } from "@lingxi/brain";
-import { type Challenge, type CoachNote, type DuelPet, type Fighter, MAX_HP, MOVES, type Move, PARTNERS, type Partner, type Pet, type SparResult, TRAITS, coach, dayOf, duel as runDuel, duelFighter, encodeChallenge, encodeResult, fighterOfMind, fighterOfPartner, halvesOf, petCard, rewindFight, ruleSource, spar, stageOf, FLY_RIVALS, type FlyRival, FlyLinkError, flyFighter, parseFlyBrain } from "@lingxi/game";
+import { DESIGNED_PARTNERS, composeProgram, type Challenge, type CoachNote, type DuelPet, type Fighter, MAX_HP, MOVES, type Move, PARTNERS, type Partner, type Pet, type SparResult, TRAITS, coach, dayOf, duel as runDuel, duelFighter, encodeChallenge, encodeResult, fighterOfMind, fighterOfPartner, halvesOf, petCard, rewindFight, ruleSource, spar, stageOf, FLY_RIVALS, type FlyRival, FlyLinkError, flyFighter, parseFlyBrain } from "@lingxi/game";
 import { linkPrefix } from "../game/links";
 import { useDaily } from "../game/daily";
 import { programFor, useGame } from "../game/store";
 import { Chips } from "./parts";
-import { MOVE_NAMES as MOVE_LABEL, WANT_COLORS, decidingChips } from "./ruleText";
+import { MOVE_NAMES as MOVE_LABEL, WANT_COLORS, chipsFor, decidingChips } from "./ruleText";
 import { useLang } from "../i18n";
 import { useSpar } from "../game/spar";
 import { useWorld } from "../game/world";
@@ -195,8 +195,69 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken
           <PartnerCard key={p.id} partner={p} index={i} lang={lang} onPick={() => start(p)} />
         ))}
       </ul>
+      <DesignedPartners onPick={(p) => start(p)} />
       <FlyBrains onFight={(partner, opponent) => start(partner, undefined, opponent)} />
     </div>
+  );
+}
+
+const STAGE_INDEX: Record<string, number> = { baby: 0, child: 1, teen: 2, adult: 3 };
+const LINE_ZH: Record<string, string> = { gentle: "温柔", bold: "勇敢", curious: "好奇" };
+
+/** F27: partners whose brains were evolved by search, one per stage, each shown with how it was made and a way to beat it. */
+function DesignedPartners({ onPick }: { onPick: (p: Partner) => void }) {
+  const lang = useLang((s) => s.lang) as Lang;
+  const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
+  const [hint, setHint] = useState<string | null>(null);
+  return (
+    <section className="sp-designed" aria-label={L("Designed by search", "由搜索设计")}>
+      <p className="label">{L("Designed by search", "由搜索设计")}</p>
+      <p className="small">
+        {L(
+          "These brains were not written by hand. A search evolved each one against the partners above, the three starter brains and the earlier designs, inside the gate budget a pet of that stage has. One was kept only if a pet of that stage can be taught to beat it.",
+          "这些大脑不是手写的。搜索让每一个在上面的陪练、三种初始大脑和之前设计出的对手之间不断进化，并且不超过同阶段宠物的门数预算。只有同阶段的宠物能学会打败它的，才会被留下。",
+        )}
+      </p>
+      <ul className="sp-partners">
+        {DESIGNED_PARTNERS.map((p) => {
+          const d = p.design;
+          const open = hint === p.id;
+          return (
+            <li key={p.id} className="sp-designed-item">
+              <PartnerCard partner={p} index={STAGE_INDEX[p.stage] ?? 0} lang={lang} onPick={() => onPick(p)} />
+              <p className="small sp-designed-facts">
+                {L(
+                  `${d.gates} gates · ${d.generations} generations · won ${Math.round(d.test * 100)}% of its test fights`,
+                  `${d.gates} 个门 · 进化 ${d.generations} 代 · 测试对局胜率 ${Math.round(d.test * 100)}%`,
+                )}{" "}
+                <button type="button" className="sp-hint-btn" aria-expanded={open} onClick={() => (play("tap"), setHint(open ? null : p.id))}>
+                  {open ? L("Hide the way to beat it", "收起打败它的方法") : L("A way to beat it", "打败它的方法")}
+                </button>
+              </p>
+              {open && (
+                <div className="sp-hint">
+                  <p className="small">
+                    {L(
+                      `A ${d.counter.line} pet taught ${d.counter.lessons.length === 1 ? "this lesson" : `these ${d.counter.lessons.length} lessons`} won ${Math.round(d.counter.wins * 100)}% of its fights against ${p.name.en}:`,
+                      `学了${d.counter.lessons.length === 1 ? "这一课" : `这 ${d.counter.lessons.length} 课`}的${LINE_ZH[d.counter.line]}宠物，和${p.name.zh}对打赢了 ${Math.round(d.counter.wins * 100)}%：`,
+                    )}
+                  </p>
+                  {d.counter.lessons.map((r, i) => {
+                    const c = chipsFor(composeProgram(d.counter.line, d.counter.lessons), r, lang, true);
+                    return (
+                      <div key={i} className="sp-hint-lesson">
+                        <span className="small">{L(`Lesson ${i + 1}`, `第 ${i + 1} 课`)}</span>
+                        <Chips when={c.when} then={c.then} want={c.want} />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 

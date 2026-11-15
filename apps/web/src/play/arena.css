@@ -511,3 +511,50 @@
   color: var(--plum);
   opacity: 0.5;
 }
+.sp-designed {
+  display: grid;
+  gap: 8px;
+}
+.sp-designed-item {
+  display: grid;
+  gap: 4px;
+}
+.sp-designed-facts {
+  margin: 0 4px;
+  color: var(--ink-soft);
+}
+.sp-hint-btn {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--card);
+  color: var(--ink);
+  font: 700 0.75rem var(--round);
+  cursor: pointer;
+}
+.sp-hint-btn:focus-visible {
+  outline: 3px solid var(--sky);
+}
+.sp-hint {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 2px dashed var(--line);
+  border-radius: var(--r-sm);
+}
+.sp-hint p {
+  margin: 0;
+}
+.sp-hint-lesson {
+  display: grid;
+  gap: 4px;
+}
+.sp-hint-lesson + .sp-hint-lesson {
+  padding-top: 6px;
+  border-top: 2px dashed var(--track);
+}
+.sp-hint-lesson > .small {
+  color: var(--ink-soft);
+  font-weight: 700;
+}

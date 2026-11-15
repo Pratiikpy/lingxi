@@ -30,3 +30,5 @@ export * from "./tapeflyRivals";
 export * from "./season";
 export * from "./visitors";
 export * from "./friendship";
+export * from "./designer";
+export * from "./designedPartners";
