@@ -15,6 +15,7 @@ import {
   claim as claimQuest,
   craft as craftRecipe,
   earn,
+  give as giveItem,
   forage as forageHere,
   move as moveTo,
   newWorld,
@@ -70,6 +71,10 @@ interface WorldStore {
   claim: (id: string) => void;
   /** coins won outside the world (spars) */
   reward: (coins: number) => void;
+  /** take items out of the bag to wrap them as a gift; false if there are not enough */
+  wrap: (item: number, n: number) => boolean;
+  /** put a received gift's item in the bag */
+  receive: (item: number, n: number) => void;
 }
 
 let n = 0;
@@ -156,6 +161,20 @@ export const useWorld = create<WorldStore>((set, get) => ({
     save(r.world);
     play("success");
     set({ world: r.world, notice: { id: ++n, kind: "opened", items: r.found } });
+  },
+  wrap: (item, n) => {
+    const w = get().world;
+    if ((w.bag[item] ?? 0) < n) return false;
+    const next = giveItem(w, item, -n);
+    save(next);
+    set({ world: next });
+    return true;
+  },
+  receive: (item, n) => {
+    if (!ITEM[item]) return;
+    const next = giveItem(get().world, item, n);
+    save(next);
+    set({ world: next });
   },
   reward: (coins) => {
     const w = earn(get().world, coins);

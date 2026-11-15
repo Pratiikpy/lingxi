@@ -10,14 +10,14 @@ import { type Program, ProgramError, validateProgram } from "./program";
 const PREFIX = "lx1.";
 export const MAX_CODE_LENGTH = 12_000;
 
-function b64urlEncode(s: string): string {
+export function b64urlEncode(s: string): string {
   const bytes = new TextEncoder().encode(s);
   let bin = "";
   for (const b of bytes) bin += String.fromCharCode(b);
   return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-function b64urlDecode(s: string): string {
+export function b64urlDecode(s: string): string {
   if (!/^[A-Za-z0-9_-]*$/.test(s)) throw new ProgramError("link is not valid base64url");
   const b64 = s.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((s.length + 3) % 4);
   const bin = atob(b64);

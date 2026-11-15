@@ -20,6 +20,7 @@ import { liveAvailable, playerId, useLive, visitingFrom } from "../game/live";
 import { InvitePanel, SocialBar } from "./Social";
 import { type Action, CHARACTER_IN_ROOM, HOME, ROOMS, neighbours } from "@lingxi/world";
 import { Talk } from "./Talk";
+import { GiftArrival, SendGiftPanel } from "./Gift";
 import { FamilyTree, NewbornDialog, PetsPanel, ProposalDialog, familyBlock } from "./Family";
 import { AnimatePresence, motion } from "motion/react";
 import { TeachPanel } from "./Teach";
@@ -182,12 +183,15 @@ export function PlayApp() {
 
   if (!pet) {
     return (
-      <Hatch
-        onHatch={(line, name) => {
-          hatch(line, name);
-          play("success");
-        }}
-      />
+      <>
+        <Hatch
+          onHatch={(line, name) => {
+            hatch(line, name);
+            play("success");
+          }}
+        />
+        <GiftArrival />
+      </>
     );
   }
 
@@ -339,6 +343,7 @@ export function PlayApp() {
       </div>
       <TabBar current={tab} onPick={pick} />
       <ProposalDialog pet={pet} />
+      <GiftArrival />
       <NewbornDialog pet={pet} />
 
       <Sheet open={tab === "bag"} title={t("bag.title")} onClose={close}>
@@ -373,6 +378,8 @@ export function PlayApp() {
         <FamilyTree pet={pet} />
         <hr className="divider" />
         <InvitePanel />
+        <hr className="divider" />
+        <SendGiftPanel pet={pet} />
         <hr className="divider" />
         <ChainPanel pet={pet} />
       </Sheet>
