@@ -20,6 +20,7 @@ import { InvitePanel, SocialBar } from "./Social";
 import { HOME, ROOMS, neighbours } from "@lingxi/world";
 import { AnimatePresence, motion } from "motion/react";
 import { TeachPanel } from "./Teach";
+import { ArenaPanel } from "./Arena";
 import { BrainView } from "./BrainView";
 import { ChainPanel } from "./ChainPanel";
 import { Icon } from "./icons";
@@ -266,6 +267,10 @@ export function PlayApp() {
         <hr className="divider" />
         <p className="small">{t("mind.title", { name: pet.name })}</p>
         <MindPanel pet={pet} />
+      </Sheet>
+
+      <Sheet open={tab === "spar"} title={lang === "zh" ? "切磋" : "Spar"} onClose={close}>
+        <ArenaPanel pet={pet} />
       </Sheet>
 
       <Sheet open={tab === "me"} title={t("me.title", { name: pet.name })} onClose={close}>

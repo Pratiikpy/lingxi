@@ -5,3 +5,6 @@ export * from "./sim";
 export * from "./pack";
 export * from "./lessons";
 export * from "./evolution";
+export * from "./spar";
+export * from "./partners";
+export * from "./coach";

@@ -14,6 +14,7 @@ import {
   buy as buyItem,
   claim as claimQuest,
   craft as craftRecipe,
+  earn,
   forage as forageHere,
   move as moveTo,
   newWorld,
@@ -67,6 +68,8 @@ interface WorldStore {
   use: (item: number) => void;
   openBox: () => void;
   claim: (id: string) => void;
+  /** coins won outside the world (spars) */
+  reward: (coins: number) => void;
 }
 
 let n = 0;
@@ -159,6 +162,11 @@ export const useWorld = create<WorldStore>((set, get) => ({
     save(r.world);
     play("success");
     set({ world: r.world, notice: { id: ++n, kind: "opened", items: r.found } });
+  },
+  reward: (coins) => {
+    const w = earn(get().world, coins);
+    save(w);
+    set({ world: w });
   },
   claim: (id) => {
     const p = useGame.getState().pet;

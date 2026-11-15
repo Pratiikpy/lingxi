@@ -151,12 +151,13 @@ export function ToastView({ toast, name }: { toast: Toast | null; name: string }
   );
 }
 
-export type Tab = "home" | "map" | "bag" | "mind" | "me" | "quests";
+export type Tab = "home" | "map" | "bag" | "mind" | "spar" | "me" | "quests";
 const TABS: ReadonlyArray<[Tab, IconName, Key]> = [
   ["home", "home", "tab.home"],
   ["map", "map", "tab.map"],
   ["bag", "bag", "tab.bag"],
   ["mind", "mind", "tab.mind"],
+  ["spar", "paw", "tab.spar"],
   ["me", "pet", "tab.me"],
 ];
 
