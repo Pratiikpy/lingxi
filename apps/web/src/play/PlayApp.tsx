@@ -49,6 +49,7 @@ import { AlbumPanel } from "./Album";
 import { FriendsPanel } from "./Friends";
 import { HoldersPanel } from "./Holders";
 import { StudioPanel } from "./Studio";
+import { Lazy } from "./Lazy";
 import { FashionMarketPanel } from "./FashionMarket";
 import { RIG_HOME_BGS, useHoldings } from "../game/holders";
 import { bondName, bondsOf, friendKey, useFriends } from "../game/friends";
@@ -629,35 +630,35 @@ export function PlayApp() {
       <Sheet open={tab === "me"} title={t("me.title", { name: pet.name })} onClose={close}>
         <WardrobePanel pet={pet} />
         <hr className="divider" />
-        <StudioPanel pet={pet} />
+        <Lazy><StudioPanel pet={pet} /></Lazy>
         <hr className="divider" />
-        <FashionMarketPanel pet={pet} />
+        <Lazy><FashionMarketPanel pet={pet} /></Lazy>
         <hr className="divider" />
-        <FriendsPanel pet={pet} />
+        <Lazy><FriendsPanel pet={pet} /></Lazy>
         <hr className="divider" />
-        <HoldersPanel />
+        <Lazy><HoldersPanel /></Lazy>
         <hr className="divider" />
-        <AlbumPanel />
+        <Lazy><AlbumPanel /></Lazy>
         <hr className="divider" />
-        <MeSheetBody pet={pet} />
+        <Lazy><MeSheetBody pet={pet} /></Lazy>
         <hr className="divider" />
-        <DiaryPanel pet={pet} />
+        <Lazy><DiaryPanel pet={pet} /></Lazy>
         <hr className="divider" />
-        <RewindPanel pet={pet} />
+        <Lazy><RewindPanel pet={pet} /></Lazy>
         <hr className="divider" />
-        <EvolutionChart pet={pet} />
+        <Lazy><EvolutionChart pet={pet} /></Lazy>
         <hr className="divider" />
-        <FamilyTree pet={pet} />
+        <Lazy><FamilyTree pet={pet} /></Lazy>
         <hr className="divider" />
-        <InvitePanel />
+        <Lazy><InvitePanel /></Lazy>
         <hr className="divider" />
-        <SitPanel pet={pet} />
+        <Lazy><SitPanel pet={pet} /></Lazy>
         <hr className="divider" />
-        <OnChainNote lang={lang} />
+        <Lazy><OnChainNote lang={lang} /></Lazy>
         <hr className="divider" />
-        <SendGiftPanel pet={pet} />
+        <Lazy><SendGiftPanel pet={pet} /></Lazy>
         <hr className="divider" />
-        <RedPacketPanel pet={pet} />
+        <Lazy><RedPacketPanel pet={pet} /></Lazy>
         <hr className="divider" />
         <BadgeShelf />
         <hr className="divider" />
