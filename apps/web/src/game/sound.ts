@@ -4,6 +4,7 @@
  * only play audio after the visitor interacts); the choice is remembered.
  */
 
+import { telegramHaptic } from "./telegram";
 import { create } from "zustand";
 
 const KEY = "lingxi.sound";
@@ -52,6 +53,7 @@ export const useSound = create<SoundState>((set, get) => ({
 }));
 
 export function play(fx: Fx, volume = 0.5): void {
+  telegramHaptic(fx);
   if (!useSound.getState().on) return;
   let a = pool.get(fx);
   if (!a) {

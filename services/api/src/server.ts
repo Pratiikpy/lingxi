@@ -37,6 +37,7 @@ import { LibraryRule, createLibrary, type Library } from "./library";
 import { createIndexer, type Indexer } from "./indexer";
 import { buildTree } from "./tree";
 import { type DiaryStore, createDiaryStore } from "./diaries";
+import { MAX_MOVE_CHARS, type MoveStore, createMoveStore } from "./move";
 import { petLookAbi as lookAbi } from "@lingxi/chain";
 
 function loadKey(): string | undefined {
@@ -417,6 +418,33 @@ export function withDiaries(app: Hono, store: DiaryStore, logHashOf: (id: string
   return app;
 }
 
+/** Moving pets between Telegram and a browser: a one-time code, claimed once within minutes. */
+export function withMove(app: Hono, store: MoveStore, limiter = new RateLimiter(20, 60 * 60_000)): Hono {
+  const ipOf = (c: { req: { header: (n: string) => string | undefined } }) => c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
+  app.post("/api/move", async (c) => {
+    if (!limiter.take(ipOf(c))) return c.json({ ok: false, reason: "busy" }, 429);
+    if (Number(c.req.header("content-length") ?? 0) > MAX_MOVE_CHARS * 2) return c.json({ ok: false, reason: "tooBig" }, 413);
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ ok: false, reason: "invalid" }, 400);
+    }
+    const r = store.put((body as { save?: unknown })?.save);
+    return c.json(r, r.ok ? 200 : r.reason === "invalid" ? 400 : r.reason === "tooBig" ? 413 : 503);
+  });
+  app.post("/api/move/:code/claim", (c) => {
+    if (!limiter.take(ipOf(c))) return c.json({ ok: false, reason: "busy" }, 429);
+    const code = c.req.param("code");
+    if (!/^[A-Za-z0-9_-]{22}$/.test(code)) return c.json({ ok: false, reason: "invalid" }, 400);
+    const save = store.take(code);
+    c.header("Cache-Control", "no-store");
+    // a used or expired code is an answer, not an error: the page explains it
+    return c.json(save ? { ok: true, save } : { ok: false, reason: "gone" });
+  });
+  return app;
+}
+
 /** Reminder routes: the public key to subscribe with, a plan of upcoming reminders, and stop. */
 export function withPush(app: Hono, pusher: Pusher, limiter = new RateLimiter(30, 3_600_000)): Hono {
   app.get("/api/push/key", (c) => c.json({ key: pusher.publicKey }));
@@ -492,6 +520,7 @@ if (isMain) {
       process.stderr.write(`agent API without chain reads: ${(e as Error).message}\n`);
     }
     withAgentApi(app, { agents: createAgentStore(process.env.LINGXI_AGENT_STORE), seasons, ...(chain ? { chain } : {}) });
+    withMove(app, createMoveStore());
     if (chain) withDiaries(app, createDiaryStore(process.env.LINGXI_DIARY_DIR), async (id) => (await readPet(chain!.pub, chain!.deployment, BigInt(id))).logHash);
   }
   if (relayer) {

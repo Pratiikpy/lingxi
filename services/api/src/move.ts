@@ -1,0 +1,59 @@
+/**
+ * Moving pets between Telegram and a browser (PRD S11). Telegram's in-app view has
+ * no wallet, and each place keeps its own storage, so a player moves their pets:
+ * one side hands its save to the server and gets a one-time code, the other side
+ * opens with that code and takes it. A code works once and only for a few minutes,
+ * and nothing is kept after it is claimed or expires.
+ */
+
+import { randomBytes } from "node:crypto";
+import { z } from "zod";
+
+/** How long a move waits to be claimed. */
+export const MOVE_TTL_MS = 15 * 60_000;
+/** The largest save one move may carry (characters across all its entries). */
+export const MAX_MOVE_CHARS = 3_000_000;
+const MAX_HELD = 500;
+/** All waiting moves together never hold more than this (characters), whatever their count. */
+export const MAX_HELD_CHARS = 150_000_000;
+
+const KEY = /^lingxi\.[a-z0-9_.-]{1,40}$/i;
+export const MoveSave = z.record(z.string().regex(KEY), z.string().max(MAX_MOVE_CHARS)).refine((r) => Object.keys(r).length > 0 && Object.keys(r).length <= 64, "entries");
+export type MoveSave = z.infer<typeof MoveSave>;
+
+export function createMoveStore(now: () => number = Date.now) {
+  const held = new Map<string, { save: MoveSave; until: number; size: number }>();
+  let heldChars = 0;
+  const drop = (k: string) => {
+    const v = held.get(k);
+    if (v) heldChars -= v.size;
+    held.delete(k);
+  };
+  const sweep = () => {
+    const t = now();
+    for (const [k, v] of held) if (v.until <= t) drop(k);
+  };
+  return {
+    put(raw: unknown): { ok: true; code: string; expiresAt: number } | { ok: false; reason: "invalid" | "tooBig" | "busy" } {
+      const parsed = MoveSave.safeParse(raw);
+      if (!parsed.success) return { ok: false, reason: "invalid" };
+      const size = Object.entries(parsed.data).reduce((n, [k, v]) => n + k.length + v.length, 0);
+      if (size > MAX_MOVE_CHARS) return { ok: false, reason: "tooBig" };
+      sweep();
+      if (held.size >= MAX_HELD || heldChars + size > MAX_HELD_CHARS) return { ok: false, reason: "busy" };
+      const code = randomBytes(16).toString("base64url");
+      const until = now() + MOVE_TTL_MS;
+      held.set(code, { save: parsed.data, until, size });
+      heldChars += size;
+      return { ok: true, code, expiresAt: until };
+    },
+    /** Hands the save over once; a second claim, or a late one, finds nothing. */
+    take(code: string): MoveSave | null {
+      sweep();
+      const v = held.get(code);
+      drop(code);
+      return v ? v.save : null;
+    },
+  };
+}
+export type MoveStore = ReturnType<typeof createMoveStore>;

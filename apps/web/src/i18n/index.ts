@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { type Key, en, zh } from "./strings";
+import { telegramLang } from "../game/telegram";
 
 export type Lang = "en" | "zh";
 const KEY = "lingxi.lang";
@@ -11,6 +12,8 @@ function initialLang(): Lang {
   } catch {
     // storage blocked: fall through to the browser's language
   }
+  const tg = telegramLang();
+  if (tg) return tg;
   return typeof navigator !== "undefined" && navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en";
 }
 

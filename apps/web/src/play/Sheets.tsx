@@ -12,6 +12,9 @@ import { Icon } from "./icons";
 import { Chips } from "./parts";
 import { chipsFor, MOOD_NAMES } from "./ruleText";
 
+/** Open sheets, newest last: Escape closes only the one on top when two are stacked. */
+const openSheets: object[] = [];
+
 export function Sheet({ open, title, onClose, children }: { open: boolean; title: string; onClose: () => void; children: React.ReactNode }) {
   const t = useT();
   const reduce = useReducedMotion();
@@ -20,9 +23,12 @@ export function Sheet({ open, title, onClose, children }: { open: boolean; title
     if (!open) return;
     const prev = document.activeElement as HTMLElement | null;
     closeRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const me = {};
+    openSheets.push(me);
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && openSheets[openSheets.length - 1] === me && onClose();
     window.addEventListener("keydown", onKey);
     return () => {
+      openSheets.splice(openSheets.indexOf(me), 1);
       window.removeEventListener("keydown", onKey);
       prev?.focus?.();
     };

@@ -50,6 +50,9 @@ import { FriendsPanel } from "./Friends";
 import { HoldersPanel } from "./Holders";
 import { StudioPanel } from "./Studio";
 import { needsOf, showNeeds } from "../game/badge";
+import { telegramBack } from "../game/telegram";
+import { useMove } from "../game/move";
+import { MoveNotes, MoveSheet, TelegramCard } from "./Move";
 import { Lazy } from "./Lazy";
 import { FashionMarketPanel } from "./FashionMarket";
 import { RIG_HOME_BGS, useHoldings } from "../game/holders";
@@ -312,6 +315,11 @@ export function PlayApp() {
     setWorldMsg({ id: Date.now(), text: lang === "zh" ? `${kinArrivals}来看${pet.name}了。` : `${kinArrivals} dropped by to see ${pet.name}.` });
   }, [kinArrivals]);
 
+  // S11: inside Telegram, its back button closes whichever sheet is open
+  const moveAsk = useMove((s) => s.ask);
+  useEffect(() => {
+    telegramBack(moveAsk ? () => useMove.getState().closeOffer() : tab === "home" ? null : () => setTab("home"));
+  }, [tab, moveAsk]);
   // Y1: the app icon shows how many things the pet needs (hooks stay above the hatch screen's early return)
   useEffect(() => {
     showNeeds(pet);
@@ -642,6 +650,7 @@ export function PlayApp() {
 
       <BadgeToast />
       <Sheet open={tab === "me"} title={t("me.title", { name: pet.name })} onClose={close}>
+        <TelegramCard />
         <WardrobePanel pet={pet} />
         <hr className="divider" />
         <Lazy><StudioPanel pet={pet} /></Lazy>
@@ -682,6 +691,8 @@ export function PlayApp() {
         <hr className="divider" />
         <HomePanel pet={pet} />
       </Sheet>
+      <MoveSheet />
+      <MoveNotes />
     </div>
   );
 }

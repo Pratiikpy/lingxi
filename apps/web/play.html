@@ -8,6 +8,15 @@
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
     <link rel="manifest" href="manifest.webmanifest" />
     <title>Lingxi · 灵犀</title>
+    <script>
+      // Telegram's Mini App script, fetched only when Telegram opened this page; it must run before the game's scripts
+      (function () {
+        try {
+          if (/tgWebApp/.test(location.hash + location.search) || sessionStorage.getItem("__telegram__initParams"))
+            document.write('<script src="https://telegram.org/js/telegram-web-app.js?65"><\/script>');
+        } catch (e) {}
+      })();
+    </script>
     <meta name="description" content="Raise a little mind. A pet whose brain is a real circuit on X Layer." />
   </head>
   <body>

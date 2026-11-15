@@ -2048,3 +2048,58 @@
 .publish-diary > .btn {
   justify-self: start;
 }
+
+/* S11: Telegram Mini App */
+.move-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  background: var(--card);
+  color: var(--ink);
+}
+.move-card p {
+  margin: 0;
+  line-height: 1.5;
+}
+.move-card .row,
+.move-note .row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.move-card > .btn {
+  justify-self: start;
+}
+.move-facts {
+  margin: 0;
+  padding-left: 1.2em;
+  line-height: 1.6;
+  font-size: 14px;
+}
+.move-note {
+  position: fixed;
+  z-index: 60;
+  top: calc(72px + var(--tg-content-safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(440px, calc(100% - 32px));
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: var(--lift);
+}
+.move-note p {
+  margin: 0;
+  line-height: 1.5;
+}
+/* Telegram reports its own safe areas; a webview's env() can read zero */
+.in-telegram .tabs {
+  bottom: max(8px, env(safe-area-inset-bottom, 0px), var(--tg-safe-area-inset-bottom, 0px));
+}

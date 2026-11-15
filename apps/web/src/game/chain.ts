@@ -7,6 +7,7 @@
  * (VITE_DEV_KEY); it is never part of a production build.
  */
 
+import { walletNeeded } from "./move";
 import { useBadges } from "./badges";
 import { create } from "zustand";
 import { createPublicClient, createWalletClient, custom, http, isAddress, type Hex, type PublicClient, type WalletClient } from "viem";
@@ -54,7 +55,11 @@ export async function connectWallet(): Promise<WalletClient> {
   const devKey = import.meta.env.DEV ? (import.meta.env.VITE_DEV_KEY as Hex | undefined) : undefined;
   if (devKey) return createWalletClient({ chain, transport: http(rpc), account: privateKeyToAccount(devKey) });
   const provider = injected();
-  if (!provider) throw new Error("noWallet");
+  if (!provider) {
+    // inside Telegram there is never a wallet: offer to carry the pets to the browser
+    walletNeeded();
+    throw new Error("noWallet");
+  }
   const [address] = (await provider.request({ method: "eth_requestAccounts" })) as Hex[];
   if (!address) throw new Error("noAccount");
   try {
