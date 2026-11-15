@@ -2039,3 +2039,12 @@
 .studio-cell {
   background: #fffdf8;
 }
+
+.publish-diary {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+.publish-diary > .btn {
+  justify-self: start;
+}

@@ -11,10 +11,12 @@ import { OnChainNote } from "../OnChainNote";
 import { ProofTable } from "./ProofTable";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type Hex } from "viem";
-import { beat, bitsToWord, hexToBytes, load, type Circuit, wordToBits, decodeSenses } from "@lingxi/brain";
+import { beat, bitsToWord, circuitBrain, hexToBytes, load, type Circuit, wordToBits, decodeSenses } from "@lingxi/brain";
 import { PetHistory } from "./History";
 import { type ChainPet, canvasOfSvg, gameSprite, loadCircuitFromChain, lookOf, readMetadata, readPet, replayMany, replayStep } from "@lingxi/chain";
-import { chainAll, unpackState, ZERO_HASH } from "@lingxi/game";
+import { type DiaryLine, chainAll, diaryOfStretches, diaryText, unpackState, ZERO_HASH } from "@lingxi/game";
+
+const DIARY_API = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
 import { deployment, publicClient, readClients } from "../game/chain";
 import { useLang } from "../i18n";
 import "./verify.css";
@@ -235,13 +237,25 @@ export function VerifyApp() {
   };
 
   const onLog = async (file: File) => {
-    if (!pet || !circuit) return;
     try {
-      const j = JSON.parse(await file.text()) as { words: number[]; segments?: Array<{ brainId: string | null; words: number[] }> };
+      await replayLog(JSON.parse(await file.text()));
+    } catch {
+      setLogResult(t.logBadHash);
+    }
+  };
+
+  /** Replays a log against the brains read from the chain; returns the stretches when it matches the saved state. */
+  const replayLog = async (j: { words: number[]; segments?: Array<{ brainId: string | null; words: number[] }> }): Promise<Array<{ brain: { fast: ReturnType<typeof circuitBrain>; nState: number }; words: number[] }> | null> => {
+    if (!pet || !circuit) return null;
+    try {
       const clean = (ws: number[]) => ws.filter((w) => Number.isInteger(w) && w >= 0 && w < 65536);
       const segments = j.segments?.length ? j.segments.map((sg) => ({ brainId: sg.brainId, words: clean(sg.words) })) : [{ brainId: pet.brainId.toString(), words: clean(j.words) }];
       const words = segments.flatMap((sg) => sg.words);
-      if (chainAll(ZERO_HASH, words).toLowerCase() !== pet.logHash.toLowerCase()) return setLogResult(t.logBadHash);
+      if (chainAll(ZERO_HASH, words).toLowerCase() !== pet.logHash.toLowerCase()) {
+        setLogResult(t.logBadHash);
+        return null;
+      }
+      const stretches: Array<{ brain: { fast: ReturnType<typeof circuitBrain>; nState: number }; words: number[] }> = [];
       // each stretch of the log runs on the brain it was recorded with, read from the processor
       let st = new Array<number>(pet.brainBits).fill(0);
       for (const sg of segments) {
@@ -250,14 +264,46 @@ export function VerifyApp() {
         const c = await loadCircuitFromChain(publicClient, pet.processor, id);
         if (st.length !== c.nState) st = st.slice(0, c.nState).concat(new Array(Math.max(0, c.nState - st.length)).fill(0));
         for (const w of sg.words) st = beat(c, st, wordToBits(w, 16))[0];
+        stretches.push({ brain: { fast: circuitBrain(c), nState: c.nState }, words: sg.words });
       }
       const saved = unpackState(pet.state, pet.brainBits).brain;
       const beats = lang === "zh" ? String(words.length) : `${words.length} ${words.length === 1 ? "beat" : "beats"}`;
-      setLogResult(st.join("") === saved.join("") ? t.logOk.replace("{n}", beats) : t.logBadState);
+      const same = st.join("") === saved.join("");
+      setLogResult(same ? t.logOk.replace("{n}", beats) : t.logBadState);
+      return same ? stretches : null;
     } catch {
       setLogResult(t.logBadHash);
+      return null;
     }
   };
+
+  // Z1: the diary its owner published, checked here against the chain before a word of it is shown
+  const [diary, setDiary] = useState<DiaryLine[] | null>(null);
+  const [diaryState, setDiaryState] = useState<"none" | "checking" | "ok" | "bad">("none");
+  useEffect(() => {
+    setDiary(null);
+    setDiaryState("none");
+    if (!pet || !circuit || !DIARY_API) return;
+    let live = true;
+    void (async () => {
+      try {
+        const r = (await (await fetch(`${DIARY_API}/api/pets/${pet.id}/log`)).json()) as { ok: boolean; log?: { words: number[]; segments: Array<{ brainId: string | null; words: number[] }> } };
+        if (!live || !r.ok || !r.log) return;
+        setDiaryState("checking");
+        const stretches = await replayLog(r.log);
+        if (!live) return;
+        if (!stretches) return setDiaryState("bad");
+        setDiary(diaryOfStretches(stretches.map((x) => ({ brain: { fast: x.brain.fast as never, nState: x.brain.nState }, words: x.words }))));
+        setDiaryState("ok");
+      } catch {
+        // no published diary: nothing to show
+      }
+    })();
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pet?.id, pet?.logHash, circuit]);
 
   const ok = rows.filter((r) => r.chain.next === r.local.next && r.chain.outputs === r.local.outputs).length;
   const u = pet ? unpackState(pet.state, pet.brainBits) : null;
@@ -397,6 +443,23 @@ export function VerifyApp() {
                 </table>
               </div>
             </>
+          )}
+          {diaryState !== "none" && (
+            <div className="v-diary">
+              <p className="v-sub">{lang === "zh" ? "它的日记" : "Its diary"}</p>
+              {diaryState === "checking" && <p className="v-note">{lang === "zh" ? "正在对照链上核对它的日记……" : "Checking its diary against the chain…"}</p>}
+              {diaryState === "bad" && <p className="v-bad">{lang === "zh" ? "发布的日记和链上保存的对不上，所以不显示。" : "The published diary doesn't match what is saved on chain, so it isn't shown."}</p>}
+              {diaryState === "ok" && diary && (
+                <>
+                  <p className="v-note">{lang === "zh" ? "最近一天，从链上读回的大脑重放每一刻得来，并与链上保存的状态一致。" : "Its latest day, replayed moment by moment through the brains read from the chain, and matching the state saved on chain."}</p>
+                  <ul>
+                    {diary.map((l, i) => (
+                      <li key={i}>{diaryText(l, lang)}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
           )}
           <PetHistory
             id={pet.id.toString()}

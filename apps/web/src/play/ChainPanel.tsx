@@ -83,6 +83,7 @@ export function ChainPanel({ pet }: { pet: Pet }) {
               {t("chain.download")}
             </a>
           </div>
+          <PublishDiary pet={pet} petId={record.petId} log={exportLog(pet)} />
           <NameClaim pet={pet} record={record} />
           <div className="keeping">
             <p className="label">{t("auto.title")}</p>
@@ -183,6 +184,57 @@ export function ChainPanel({ pet }: { pet: Pet }) {
       )}
       {busyText && <p className="small thinking-dots" aria-live="polite">{busyText}</p>}
       {err && <p className="err" role="alert">{err}</p>}
+    </div>
+  );
+}
+
+const DIARY_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
+
+/** Z1: put the diary on the pet's public page. The server keeps it only if it matches the log hash saved on chain. */
+function PublishDiary({ pet, petId, log }: { pet: Pet; petId: string; log: string | null }) {
+  const lang = useLang((s) => s.lang) as "en" | "zh";
+  const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  if (!DIARY_BASE || !log) return null;
+  const words = (JSON.parse(log) as { words: number[] }).words.length;
+  return (
+    <div className="publish-diary">
+      <p className="small">
+        {L(
+          `Put ${pet.name}'s diary on its public page, so anyone can read what its saved days were like. It is accepted only if it matches the log fingerprint saved on X Layer.`,
+          `把${pet.name}的日记放到它的公开页面上，谁都能读到它保存过的日子。只有和 X Layer 上保存的日志指纹一致才会被接受。`,
+        )}
+      </p>
+      <button
+        type="button"
+        className="btn"
+        disabled={busy || !words}
+        onClick={async () => {
+          setBusy(true);
+          setNote("");
+          try {
+            const r = await fetch(`${DIARY_BASE}/api/pets/${petId}/log`, { method: "POST", headers: { "content-type": "application/json" }, body: log, signal: AbortSignal.timeout(20000) });
+            const j = (await r.json()) as { ok: boolean; beats?: number; reason?: string };
+            play(j.ok ? "success" : "error");
+            setNote(
+              j.ok
+                ? L(`Published: ${j.beats} moments, checked against the chain. Its page shows them now.`, `已发布：${j.beats} 个时刻，已对照链上核对。它的页面现在会显示。`)
+                : j.reason === "mismatch"
+                  ? L("It doesn't match what is saved on chain yet. Save today first, then publish.", "和链上保存的还对不上。请先保存今天，再发布。")
+                  : j.reason === "older"
+                    ? L("A longer diary is already on its page.", "它的页面上已经有更长的日记了。")
+                    : L("That didn't go through. Try again later.", "没有成功，请稍后再试。"),
+            );
+          } catch {
+            setNote(L("That didn't go through. Try again later.", "没有成功，请稍后再试。"));
+          }
+          setBusy(false);
+        }}
+      >
+        {busy ? L("Publishing…", "发布中……") : L("Publish its diary", "发布日记")}
+      </button>
+      {note && <p className="small" role="status">{note}</p>}
     </div>
   );
 }

@@ -46,7 +46,14 @@ const TIME_HOUR = [1, 8, 14, 20]; // night, morning, day, evening → a represen
  * the start of the log so the memory is exactly what it was.
  */
 export function diaryOf(pet: Pet, brainFor: (lessons: Rule[], outside?: OutsideInstinct) => Brain, beats = 24 * 60): DiaryLine[] {
-  const segs = logSegments(pet);
+  return diaryOfStretches(logSegments(pet).map((s) => ({ brain: brainFor(s.lessons, s.outside), words: s.words })), beats);
+}
+
+/**
+ * The same diary from stretches of a log, each with the brain it ran on (for
+ * example brains read from the chain, for a pet's public page).
+ */
+export function diaryOfStretches(segs: ReadonlyArray<{ brain: Brain; words: readonly number[] }>, beats = 24 * 60): DiaryLine[] {
   const total = segs.reduce((n, s) => n + s.words.length, 0);
   const from = Math.max(0, total - beats);
   let mem: Uint8Array | null = null;
@@ -60,7 +67,7 @@ export function diaryOf(pet: Pet, brainFor: (lessons: Rule[], outside?: OutsideI
   let sulkBest = 0;
   let sulkWhy: DiaryLine["why"] = undefined;
   for (const seg of segs) {
-    const brain = brainFor(seg.lessons, seg.outside);
+    const brain = seg.brain;
     if (!mem || mem.length !== brain.nState) mem = new Uint8Array(brain.nState);
     for (const w of seg.words) {
       const out = brain.fast.step(mem, w);
@@ -112,7 +119,7 @@ export function diaryOf(pet: Pet, brainFor: (lessons: Rule[], outside?: OutsideI
   return lines;
 }
 
-function sumBefore(segs: Array<{ words: number[] }>, idx: number): number {
+function sumBefore(segs: ReadonlyArray<{ words: readonly number[] }>, idx: number): number {
   let n = 0;
   for (let k = 0; k < idx; k++) n += segs[k]!.words.length;
   return n;

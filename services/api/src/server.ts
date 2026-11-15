@@ -27,7 +27,7 @@ import { type SeasonStore, createSeasonStore, settleAwards } from "./season";
 import { weekOf } from "@lingxi/game";
 import { parseCard } from "@lingxi/game";
 import { createPublicClient, http, type PublicClient } from "viem";
-import { type Deployment, xLayer } from "@lingxi/chain";
+import { type Deployment, readPet, xLayer } from "@lingxi/chain";
 import { createAgentStore } from "./agents";
 import { withAgentApi } from "./agentApi";
 import { type Letter, currentLetters, loadLetters } from "./mail";
@@ -36,6 +36,7 @@ import { VoiceRequest, createVoice } from "./voice";
 import { LibraryRule, createLibrary, type Library } from "./library";
 import { createIndexer, type Indexer } from "./indexer";
 import { buildTree } from "./tree";
+import { type DiaryStore, createDiaryStore } from "./diaries";
 import { petLookAbi as lookAbi } from "@lingxi/chain";
 
 function loadKey(): string | undefined {
@@ -70,7 +71,7 @@ export function createApp(client: Anthropic | null, limiter = new RateLimiter(6,
   const app = new Hono();
   const origins = (process.env.LINGXI_ORIGINS ?? "http://localhost:5199,http://localhost:4173").split(",");
   // the agent API is open to any origin; the game's own endpoints answer only the game's pages
-  app.use("/api/*", cors({ origin: (o, c) => (c.req.path.startsWith("/api/v1") ? "*" : origins.includes(o) ? o : null), allowMethods: ["GET", "POST"], allowHeaders: ["Authorization", "Content-Type"], maxAge: 600 }));
+  app.use("/api/*", cors({ origin: (o, c) => (c.req.path.startsWith("/api/v1") || (c.req.method === "GET" && /^\/api\/pets\/\d+\/log$/.test(c.req.path)) ? "*" : origins.includes(o) ? o : null), allowMethods: ["GET", "POST"], allowHeaders: ["Authorization", "Content-Type"], maxAge: 600 }));
 
   app.get("/api/health", (c) => c.json({ ok: true, teach: client !== null, voice: client !== null, relay: relayer !== null, live: live !== null }));
   app.get("/api/live/stats", (c) => c.json(live ? live.stats() : { online: 0, spaces: 0 }));
@@ -386,6 +387,36 @@ export function withTree(app: Hono, indexer: Pick<Indexer, "pets" | "head">, nam
   return app;
 }
 
+/**
+ * Public diaries: owners publish the log their pet's checkpoint committed to; it is kept only if it
+ * hashes to the log hash on chain, and anyone may read it (read-only, any origin).
+ */
+export function withDiaries(app: Hono, store: DiaryStore, logHashOf: (id: string) => Promise<string | null>): Hono {
+  const limiter = new RateLimiter(20, 60 * 60_000);
+  app.get("/api/pets/:id/log", (c) => {
+    const id = c.req.param("id");
+    if (!/^\d{1,12}$/.test(id)) return c.json({ ok: false, reason: "invalid" }, 400);
+    const log = store.get(id);
+    c.header("Cache-Control", "public, max-age=30");
+    return log ? c.json({ ok: true, log }) : c.json({ ok: false, reason: "none" });
+  });
+  app.post("/api/pets/:id/log", async (c) => {
+    const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
+    if (!limiter.take(ip)) return c.json({ ok: false, reason: "busy" }, 429);
+    const id = c.req.param("id");
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ ok: false, reason: "invalid" }, 400);
+    }
+    if ((body as { petId?: unknown })?.petId !== id) return c.json({ ok: false, reason: "invalid" }, 400);
+    const r = store.publish(body, await logHashOf(id).catch(() => null));
+    return c.json(r, r.ok ? 200 : r.reason === "invalid" ? 400 : 409);
+  });
+  return app;
+}
+
 /** Reminder routes: the public key to subscribe with, a plan of upcoming reminders, and stop. */
 export function withPush(app: Hono, pusher: Pusher, limiter = new RateLimiter(30, 3_600_000)): Hono {
   app.get("/api/push/key", (c) => c.json({ key: pusher.publicKey }));
@@ -461,6 +492,7 @@ if (isMain) {
       process.stderr.write(`agent API without chain reads: ${(e as Error).message}\n`);
     }
     withAgentApi(app, { agents: createAgentStore(process.env.LINGXI_AGENT_STORE), seasons, ...(chain ? { chain } : {}) });
+    if (chain) withDiaries(app, createDiaryStore(process.env.LINGXI_DIARY_DIR), async (id) => (await readPet(chain!.pub, chain!.deployment, BigInt(id))).logHash);
   }
   if (relayer) {
     // a finished week's champion gets its brain taped out and sent to its wallet (PRD F26)
