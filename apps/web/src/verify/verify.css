@@ -314,3 +314,32 @@
 .v-note-wrap {
   margin-top: 24px;
 }
+.v-proof-table {
+  margin-top: 24px;
+}
+.v-proof-table h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 20px;
+}
+.v-table-wrap {
+  overflow-x: auto;
+}
+.v-proof-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.v-proof-table th,
+.v-proof-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  white-space: nowrap;
+}
+.v-proof-table th {
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}

@@ -8,6 +8,7 @@
  */
 
 import { OnChainNote } from "../OnChainNote";
+import { ProofTable } from "./ProofTable";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type Hex } from "viem";
 import { beat, bitsToWord, hexToBytes, load, type Circuit, wordToBits, decodeSenses } from "@lingxi/brain";
@@ -428,6 +429,7 @@ export function VerifyApp() {
           </div>
         </section>
       )}
+      <ProofTable lang={lang} />
       <div className="v-note-wrap">
         <OnChainNote lang={lang} />
       </div>
