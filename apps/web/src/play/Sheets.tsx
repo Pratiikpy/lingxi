@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { type MindPart, mindParts } from "../game/store";
-import { DIETS, FOODS, FORMS, FORM_NAMES, TRAITS, type Pet, dayOf, evolutionInputs, evolve, stageOf } from "@lingxi/game";
+import { DIETS, FOODS, FORMS, FORM_NAMES, TRAITS, type Pet, beatOf, dayOf, evolutionInputs, evolve, kinshipNow, levelOf, stageOf } from "@lingxi/game";
 import { useLang, useT } from "../i18n";
 import { Icon } from "./icons";
 import { Chips } from "./parts";
@@ -160,21 +160,66 @@ export function MeSheetBody({ pet }: { pet: Pet }) {
   const nature = pet.traits[top[0]!] === 0 ? t(`line.${pet.line}`) : top.filter((x) => pet.traits[x] > 0).map((x) => TRAIT_NAMES[x]![lang]).join(lang === "zh" ? "、" : ", ");
   const fav = [...DIETS].sort((a, b) => pet.diet[b] - pet.diet[a])[0]!;
   const favFood = FOODS.find((f) => f.diet === fav);
-  const friendship = Math.min(10, Math.floor((pet.counts.pet + pet.counts.feed + pet.counts.play) / 6));
+  const kin = kinshipNow(pet, beatOf(Date.now()));
+  const friendship = Math.min(10, kin);
+  const lv = levelOf(pet.xp);
+  const MISS: Record<string, [string, string]> = {
+    food: ["got very hungry", "饿坏了"],
+    joy: ["felt lonely", "觉得孤单"],
+    clean: ["got very dirty", "脏兮兮的"],
+    energy: ["ran out of energy", "累坏了"],
+    sick: ["fell ill", "生病了"],
+  };
+  const ago = (beat: number) => {
+    const h = Math.max(0, Math.round((beatOf(Date.now()) - beat) / 60));
+    return h < 1 ? (lang === "zh" ? "刚才" : "just now") : h < 48 ? (lang === "zh" ? `${h} 小时前` : `${h} h ago`) : lang === "zh" ? `${Math.round(h / 24)} 天前` : `${Math.round(h / 24)} days ago`;
+  };
   return (
     <dl className="rows">
       <dt>{t("me.nature")}</dt>
       <dd>{nature}</dd>
+      <dt>{lang === "zh" ? "等级" : "Level"}</dt>
+      <dd>
+        <span className="lv">
+          {lang === "zh" ? `${lv.level} 级` : `Lv ${lv.level}`}
+          <i className="lv-bar" role="meter" aria-valuemin={0} aria-valuemax={lv.need} aria-valuenow={lv.into}>
+            <i style={{ transform: `scaleX(${lv.into / lv.need})` }} />
+          </i>
+        </span>
+      </dd>
       <dt>{t("me.friendship")}</dt>
       <dd>
-        <div className="hearts" role="img" aria-label={`${friendship}/10`}>
+        <div className="hearts" role="img" aria-label={`${kin}`}>
           {Array.from({ length: 10 }, (_, i) => (
             <span key={i} className={i < friendship ? "f" : ""}>
               <Icon name="heart" size={14} />
             </span>
           ))}
         </div>
+        {kin > 10 ? ` ${kin}` : ""}
+        <span className="small"> {lang === "zh" ? "· 每 12 小时摸一次 +1，一整天不摸会慢慢变淡" : "· +1 for a pat every 12 hours; fades after a day without"}</span>
       </dd>
+      {pet.sick && (
+        <>
+          <dt>{lang === "zh" ? "身体" : "Health"}</dt>
+          <dd className="warn">{lang === "zh" ? "生病了，给它吃点药吧" : "Ill. A dose of medicine will help."}</dd>
+        </>
+      )}
+      {(pet.missed?.length ?? 0) > 0 && (
+        <>
+          <dt>{lang === "zh" ? "照顾小记" : "Care notes"}</dt>
+          <dd>
+            <ul className="care-notes">
+              {pet.missed!.slice(-4).reverse().map((m, i) => (
+                <li key={i}>
+                  {lang === "zh" ? `${pet.name}${MISS[m.kind]![1]}` : `${pet.name} ${MISS[m.kind]![0]}`} <span className="small">· {ago(m.beat)}</span>
+                </li>
+              ))}
+            </ul>
+            <span className="small">{lang === "zh" ? "没关系，宠物不会因此离开你。" : "No harm done: pets never leave over this."}</span>
+          </dd>
+        </>
+      )}
       <dt>{t("me.together")}</dt>
       <dd>{t("me.days", { n: dayOf(pet, Date.now()) })}</dd>
       <dt>{t("me.diet")}</dt>

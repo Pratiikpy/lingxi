@@ -20,6 +20,8 @@ export interface SceneProps {
   line: StarterLine;
   stage: PetStage;
   asleep: boolean;
+  /** ill from neglect: dizzy face and little green swirls */
+  sick: boolean;
   want: number;
   mood: number;
   phase: DayPhase;
@@ -84,6 +86,7 @@ interface Particle {
 function expressionFor(p: SceneProps, now: number, blinking: boolean): { e: Expression; lit: boolean } {
   const care = p.lastCare && now - p.lastCare.at < 2600 ? p.lastCare.kind : null;
   if (p.asleep) return { e: "asleep", lit: false };
+  if (p.sick && !care) return { e: "dizzy", lit: false };
   if (care === "feed") return { e: Math.floor(now / 220) % 2 ? "munch" : "munchShut", lit: true };
   if (care === "pet") return { e: "love", lit: true };
   if (care === "clean") return { e: now - p.lastCare!.at < 900 ? "sneeze" : "happy", lit: true };
@@ -259,6 +262,8 @@ export function RoomScene(props: SceneProps) {
           // a one-pixel breath so the character never looks pasted on
           npc.y = PET_FEET + 6 + (!p.reduceMotion && Math.sin(now / 760) > 0.55 ? 1 : 0);
         }
+        // a poorly pet gives off a little green swirl now and then
+        if (p.sick && !p.asleep && !p.reduceMotion && Math.random() < 0.012) burst("spark", 1, ["#7BD389", "#5FB46F"]);
         if (p.lastCare && p.lastCare.at !== lastCareAt) {
           lastCareAt = p.lastCare.at;
           if (p.lastCare.kind === "feed") burst("heart", 3, ["#FF7A9A"]);

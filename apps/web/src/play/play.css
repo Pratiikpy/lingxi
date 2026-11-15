@@ -916,3 +916,35 @@
   font-size: 13px;
   color: var(--ink-soft);
 }
+
+.lv {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--display);
+}
+.lv-bar {
+  display: inline-block;
+  width: 90px;
+  height: 8px;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.lv-bar i {
+  display: block;
+  height: 100%;
+  background: #ffc83d;
+  transform-origin: left;
+}
+.care-notes {
+  margin: 0 0 4px;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 2px;
+}
+.rows dd.warn {
+  color: #c2410c;
+  font-weight: 700;
+}

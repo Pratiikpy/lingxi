@@ -11,11 +11,14 @@
  *   bit  154      hibernating
  *   bits 155-194  counts: feed, play, clean, pet, lessons (8 bits each)
  *   bits 195-218  diet: sweet, fruit, savory, grain (6 bits each)
- *   bits 219-255  reserved, zero
+ *   bit  219      sick
+ *   bits 220-225  care mistakes (0..63)
+ *   bits 226-233  kinship (0..255)
+ *   bits 234-255  reserved, zero
  */
 
 import { DIETS, METERS, SUB, TRAITS, type Stage, toVisible } from "./pet";
-import type { Pet } from "./sim";
+import { type Pet, kinshipNow } from "./sim";
 import type { StarterLine } from "@lingxi/brain";
 
 const LINES: readonly StarterLine[] = ["gentle", "bold", "curious"];
@@ -52,6 +55,9 @@ export function packState(p: Pet, stage: Stage): bigint {
   DIETS.forEach((d, i) => {
     w = put(w, 195 + 6 * i, 6, p.diet[d]);
   });
+  w = put(w, 219, 1, p.sick ? 1 : 0);
+  w = put(w, 220, 6, Math.min(63, p.mistakes ?? 0));
+  w = put(w, 226, 8, Math.min(255, kinshipNow(p, p.beat)));
   return w;
 }
 
@@ -64,6 +70,9 @@ export interface UnpackedState {
   asleep: boolean;
   line: StarterLine;
   hibernating: boolean;
+  sick: boolean;
+  mistakes: number;
+  kinship: number;
   counts: Record<(typeof COUNTS)[number], number>;
   diet: Record<(typeof DIETS)[number], number>;
 }
@@ -80,6 +89,9 @@ export function unpackState(w: bigint, brainBits: number): UnpackedState {
     asleep: get(w, 151, 1) === 1,
     line: LINES[get(w, 152, 2)] ?? "gentle",
     hibernating: get(w, 154, 1) === 1,
+    sick: get(w, 219, 1) === 1,
+    mistakes: get(w, 220, 6),
+    kinship: get(w, 226, 8),
     counts: Object.fromEntries(COUNTS.map((c, i) => [c, get(w, 155 + 8 * i, 8)])) as UnpackedState["counts"],
     diet: Object.fromEntries(DIETS.map((d, i) => [d, get(w, 195 + 6 * i, 6)])) as UnpackedState["diet"],
   };

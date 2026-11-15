@@ -27,6 +27,23 @@ export const SLEEP_GAIN_PER_HOUR = 90;
 export const HIBERNATE_AFTER = 24 * 60;
 /** The longest absence replayed beat by beat; anything longer is replayed as this many beats. */
 export const MAX_CATCH_UP = 3 * 24 * 60;
+/** beats of neglect (food or cleanliness at zero) before the pet falls ill */
+export const SICK_AFTER = 6 * 60;
+/** kinship: petting counts once per 12 hours; a full day unpetted costs one */
+export const KINSHIP_EVERY = 12 * 60;
+export const KINSHIP_DECAY = 24 * 60;
+export const KINSHIP_MAX = 255;
+
+/** Level from XP: level n needs 25·n·(n+1)/2 XP in total, so each level is harder to reach. */
+export function levelOf(xp: number): { level: number; into: number; need: number } {
+  let level = 1;
+  while (25 * (level * (level + 1)) / 2 <= xp) level++;
+  const start = (25 * ((level - 1) * level)) / 2;
+  const end = (25 * (level * (level + 1))) / 2;
+  return { level, into: xp - start, need: end - start };
+}
+
+export type CareMiss = "food" | "joy" | "clean" | "energy" | "sick";
 
 export const TRAITS = ["brave", "curious", "greedy", "calm", "playful", "gentle", "shy"] as const;
 export type Trait = (typeof TRAITS)[number];
@@ -60,6 +77,17 @@ export interface PetState {
   hibernating: boolean;
   /** consecutive beats with an empty food meter */
   starvingBeats: number;
+  /** ill from neglect; medicine cures it */
+  sick?: boolean;
+  /** consecutive beats with food or cleanliness at zero */
+  dirtyBeats?: number;
+  /** care mistakes so far (a meter running out, falling ill), shown kindly, never punished */
+  mistakes?: number;
+  /** the latest few, for the screen */
+  missed?: Array<{ kind: CareMiss; beat: number }>;
+  /** Aavegotchi-style kinship and the beat it was last earned */
+  kinship?: number;
+  kinBeat?: number;
   /** LATCH memory of the brain, one bit per entry */
   brain: number[];
   /** rules the owner taught, highest priority first */

@@ -22,6 +22,11 @@ import {
   BEAT_MS,
   DECAY_PER_HOUR,
   HIBERNATE_AFTER,
+  KINSHIP_DECAY,
+  KINSHIP_EVERY,
+  KINSHIP_MAX,
+  SICK_AFTER,
+  type CareMiss,
   MAX_CATCH_UP,
   METER_MAX,
   SLEEP_GAIN_PER_HOUR,
@@ -94,6 +99,7 @@ function cloneForEdit(p: Pet): Pet {
     diet: { ...p.diet },
     pendingLog: p.pendingLog.slice(),
     last: { ...p.last },
+    ...(p.missed ? { missed: p.missed.slice() } : {}),
   };
 }
 
@@ -116,12 +122,36 @@ export function inputWord(p: Pet, beat: number, action: number, event: number, o
   });
 }
 
-function decay(p: Pet): void {
+/**
+ * Kinship read lazily (Aavegotchi's `kinship()` pattern): one point fades for every
+ * full day since it was last earned, computed from timestamps, never by a timer.
+ */
+export function kinshipNow(p: Pick<Pet, "kinship" | "kinBeat">, beat: number): number {
+  if (p.kinBeat === undefined) return p.kinship ?? 0;
+  return Math.max(0, (p.kinship ?? 0) - Math.floor(Math.max(0, beat - p.kinBeat) / KINSHIP_DECAY));
+}
+
+/** A care mistake: counted and remembered for the screen, never punished beyond the moment. */
+function miss(p: Pet, kind: CareMiss, beat: number): void {
+  p.mistakes = Math.min(63, (p.mistakes ?? 0) + 1);
+  p.missed = [...(p.missed ?? []), { kind, beat }].slice(-8);
+}
+
+function decay(p: Pet, beat = p.beat): void {
   if (p.hibernating) return;
+  const was = { food: p.meters.food, joy: p.meters.joy, clean: p.meters.clean, energy: p.meters.energy };
+  const ill = p.sick ? 2 : 1;
   p.meters.food = clampMeter(p.meters.food - DECAY_PER_HOUR.food);
-  p.meters.joy = clampMeter(p.meters.joy - DECAY_PER_HOUR.joy);
+  p.meters.joy = clampMeter(p.meters.joy - DECAY_PER_HOUR.joy * ill);
   p.meters.clean = clampMeter(p.meters.clean - DECAY_PER_HOUR.clean);
-  p.meters.energy = clampMeter(p.meters.energy + (p.asleep ? SLEEP_GAIN_PER_HOUR : -DECAY_PER_HOUR.energy));
+  p.meters.energy = clampMeter(p.meters.energy + (p.asleep ? SLEEP_GAIN_PER_HOUR : -DECAY_PER_HOUR.energy * ill));
+  for (const k of ["food", "joy", "clean", "energy"] as const) if (was[k] > 0 && p.meters[k] === 0) miss(p, k, beat);
+  // neglect: an empty food bowl or a filthy pet, six hours running, makes it ill
+  p.dirtyBeats = p.meters.clean === 0 || p.meters.food === 0 ? (p.dirtyBeats ?? 0) + 1 : 0;
+  if (!p.sick && p.dirtyBeats >= SICK_AFTER) {
+    p.sick = true;
+    miss(p, "sick", beat);
+  }
   p.starvingBeats = p.meters.food === 0 ? p.starvingBeats + 1 : 0;
   if (p.starvingBeats >= HIBERNATE_AFTER) {
     p.hibernating = true;
@@ -187,7 +217,7 @@ export function catchUp(p0: Pet, now: number, brain: Brain, eventAt: (beat: numb
   let b = p.beat + skipped;
   while (b < target) {
     b += 1;
-    decay(p);
+    decay(p, b);
     if (!p.hibernating) think(p, brain, b, ACTION.none, eventAt(b), false);
   }
   p.beat = target;
@@ -219,7 +249,7 @@ export type Care =
 export interface CareResult {
   pet: Pet;
   /** what the owner sees happen, for the diary and the screen */
-  note: "ate" | "overfed" | "woke" | "played" | "tooTired" | "cleaned" | "sleeping" | "awake" | "petted" | "healed" | "listened" | "hibernationEnded" | "used";
+  note: "ate" | "overfed" | "woke" | "played" | "tooTired" | "tooSick" | "cleaned" | "sleeping" | "awake" | "petted" | "healed" | "notSick" | "listened" | "hibernationEnded" | "used";
 }
 
 /**
@@ -259,6 +289,11 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
       break;
     }
     case "play": {
+      if (p.sick) {
+        note = "tooSick";
+        action = ACTION.play;
+        break;
+      }
       if (toVisible(p.meters.energy) < 120) {
         note = "tooTired";
         action = ACTION.play;
@@ -291,6 +326,11 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
     case "pet":
       p.meters.joy = addVisible(p.meters.joy, 40);
       p.counts.pet = Math.min(255, p.counts.pet + 1);
+      // kinship grows at most once every 12 hours (after any fading is settled)
+      if (p.kinBeat === undefined || p.beat - p.kinBeat >= KINSHIP_EVERY) {
+        p.kinship = Math.min(KINSHIP_MAX, kinshipNow(p, p.beat) + 1);
+        p.kinBeat = p.beat;
+      }
       note = "petted";
       action = ACTION.pet;
       break;
@@ -307,8 +347,12 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
       break;
     }
     case "medicine":
-      p.meters.energy = addVisible(p.meters.energy, 100);
-      note = "healed";
+      if (p.sick) {
+        p.sick = false;
+        p.dirtyBeats = 0;
+        p.meters.energy = addVisible(p.meters.energy, 100);
+        note = "healed";
+      } else note = "notSick";
       action = ACTION.medicine;
       break;
     case "talk":
@@ -326,7 +370,7 @@ export function liveBeat(p0: Pet, now: number, brain: Brain, event = EVENT.none)
   if (target <= p0.beat) return p0;
   const p = cloneForEdit(catchUp(p0, now - BEAT_MS, brain));
   p.beat = target;
-  decay(p);
+  decay(p, target);
   if (!p.hibernating) think(p, brain, target, ACTION.none, event, true);
   return p;
 }

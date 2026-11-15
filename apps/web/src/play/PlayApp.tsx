@@ -223,6 +223,7 @@ export function PlayApp() {
             line={pet.line}
             stage={stage}
             asleep={pet.asleep}
+            sick={!!pet.sick}
             want={pet.last.want}
             mood={pet.last.mood}
             phase={phase}
@@ -328,7 +329,7 @@ export function PlayApp() {
         </section>
         <div className="side">
           <Meters pet={pet} />
-          <Actions pet={pet} onFeed={() => pick("bag")} onPlay={playBall} onClean={clean} onSleep={sleep} />
+          <Actions pet={pet} onFeed={() => pick("bag")} onPlay={playBall} onClean={clean} onSleep={sleep} onMedicine={() => (play("sparkle"), act({ kind: "medicine" }))} />
           <section className="card mindcard" aria-label={t("mind.title", { name: pet.name })}>
             <div className="cardbar" aria-hidden="true">
               <i />

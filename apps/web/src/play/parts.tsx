@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { decidingPart } from "../game/store";
-import { type Pet, dayOf, stageOf, visibleMeters } from "@lingxi/game";
+import { type Pet, beatOf, dayOf, kinshipNow, levelOf, stageOf, visibleMeters } from "@lingxi/game";
 import { useLang, useT, type Key } from "../i18n";
 import { useSound } from "../game/sound";
 import type { Daily, Toast } from "../game/store";
@@ -44,7 +44,7 @@ export function TopBar({ pet, daily, face, onQuests, onPets, petCount }: { pet: 
         <div style={{ minWidth: 0 }}>
           <b>{pet.name}</b>
           <span>
-            {t(`stage.${stageOf(pet, now)}` as Key)} · {t("who.day", { n: dayOf(pet, now) })}
+            {t(`stage.${stageOf(pet, now)}` as Key)} · {t("who.day", { n: dayOf(pet, now) })} · Lv {levelOf(pet.xp).level}
           </span>
         </div>
       </div>
@@ -52,7 +52,7 @@ export function TopBar({ pet, daily, face, onQuests, onPets, petCount }: { pet: 
         <button type="button" className="pill" onClick={onQuests} aria-label={t("quest.title")}>
           <div className="kin" aria-label={t("me.friendship")}>
             <Icon name="heart" size={16} />
-            <span>{pet.counts.pet + pet.counts.feed}</span>
+            <span>{kinshipNow(pet, beatOf(now))}</span>
           </div>
           <div className="daily" role="img" aria-label={t("daily.aria", { n })}>
             {done.map((d, i) => (
@@ -102,7 +102,7 @@ export function Meters({ pet }: { pet: Pet }) {
   );
 }
 
-export function Actions({ pet, onFeed, onPlay, onClean, onSleep }: { pet: Pet; onFeed: () => void; onPlay: () => void; onClean: () => void; onSleep: () => void }) {
+export function Actions({ pet, onFeed, onPlay, onClean, onSleep, onMedicine }: { pet: Pet; onFeed: () => void; onPlay: () => void; onClean: () => void; onSleep: () => void; onMedicine: () => void }) {
   const t = useT();
   const m = visibleMeters(pet);
   const btn = (icon: IconName, label: string, on: () => void, hint: boolean, disabled = false) => (
@@ -114,7 +114,7 @@ export function Actions({ pet, onFeed, onPlay, onClean, onSleep }: { pet: Pet; o
   return (
     <div className="actions">
       {btn("bowl", t("act.feed"), onFeed, m.food < 350 && !pet.asleep)}
-      {btn("ball", t("act.play"), onPlay, false, pet.asleep)}
+      {pet.sick ? btn("pill", t("act.medicine"), onMedicine, true) : btn("ball", t("act.play"), onPlay, false, pet.asleep)}
       {btn("sparkle", t("act.clean"), onClean, m.clean < 250 && !pet.asleep, pet.asleep)}
       {btn(pet.asleep ? "sun" : "moon", pet.asleep ? t("act.wake") : t("act.sleep"), onSleep, m.energy < 250 && !pet.asleep)}
     </div>
