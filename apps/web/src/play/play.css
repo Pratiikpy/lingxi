@@ -1778,3 +1778,41 @@
   border-radius: var(--r-sm);
   background: var(--card);
 }
+
+.holders {
+  display: grid;
+  gap: 8px;
+}
+.holder-marks {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.holder-mark {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 2px dashed var(--line);
+  border-radius: var(--r-sm);
+  color: var(--ink-soft);
+}
+.holder-mark b {
+  display: block;
+  font-family: var(--round);
+  color: var(--ink);
+}
+.holder-mark .small {
+  font-size: 0.72rem;
+}
+.holder-mark.is-on {
+  border-style: solid;
+  background: var(--card);
+  box-shadow: inset 4px 0 0 #ffc83d;
+}
+.holder-mark.is-on svg {
+  color: #e0a93a;
+}

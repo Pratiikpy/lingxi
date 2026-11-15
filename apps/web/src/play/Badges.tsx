@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { BADGES, type Badge, type Metric, progressOf, tierOf } from "@lingxi/game";
+import { useHoldings } from "../game/holders";
 import { useLang } from "../i18n";
 import { useBadges } from "../game/badges";
 import { Icon, type IconName } from "./icons";
@@ -40,6 +41,7 @@ export function BadgeShelf() {
   const l = lang as "en" | "zh";
   const ledger = useBadges((s) => s.ledger);
   const earned = BADGES.filter((b) => tierOf(b, ledger) > 0).length;
+  const held = useHoldings((h) => h.held);
   return (
     <div className="badges">
       <div className="badges-head">
@@ -68,6 +70,18 @@ export function BadgeShelf() {
             </li>
           );
         })}
+        {/* X2: holder marks for BEM and FAB, shown once a wallet holding them was checked */}
+        {(["bem", "fab"] as const)
+          .filter((k) => held?.[k])
+          .map((k) => (
+            <li key={k} className="badge t3 holder-badge" title={k.toUpperCase()}>
+              <span className="medal" aria-hidden="true">
+                <Icon name="star" size={20} />
+              </span>
+              <b>{l === "zh" ? `${k.toUpperCase()} 持有人` : `${k.toUpperCase()} holder`}</b>
+              <span className="tier">{l === "zh" ? "持有人标记" : "holder mark"}</span>
+            </li>
+          ))}
       </ul>
     </div>
   );

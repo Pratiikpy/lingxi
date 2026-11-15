@@ -4,6 +4,10 @@ import { OnChainNote } from "../OnChainNote";
 import { useMemo, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { SHELL, drawEgg, drawPet } from "@lingxi/art";
+import { useHoldings } from "../game/holders";
+
+/** The gilded shell a TapeCode Test1 holder's eggs wear. */
+const GILDED = { O: "#7A4E1A", o: "#B07A2A", D: "#E0A93A", d: "#F5C85A", m: "#FFE39A" };
 import type { StarterLine } from "@lingxi/brain";
 import { compileProgram, netlistBytes } from "@lingxi/brain";
 import { INSTINCTS, type Instinct, composeProgram, instinctBits, nameFromBrain } from "@lingxi/game";
@@ -33,15 +37,17 @@ export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string, 
     play("tap");
     setInstincts((on) => (on.includes(k) ? on.filter((x) => x !== k) : [...on, k]));
   };
+  const test1 = useHoldings((h) => h.held?.test1 === true);
   const eggs = useMemo(
     () =>
       LINES.map((l) => ({
         l,
-        pal: { ...SHELL, x: PALETTE_OF[l].m, X: PALETTE_OF[l].d },
+        // X2: a TapeCode Test1 holder's eggs come in a gilded shell (cosmetic only)
+        pal: test1 ? { ...SHELL, ...GILDED, x: PALETTE_OF[l].m, X: PALETTE_OF[l].d } : { ...SHELL, x: PALETTE_OF[l].m, X: PALETTE_OF[l].d },
         idle: drawEgg("coral", 0),
         cracks: [0, 1, 2, 3].map((k) => drawEgg("coral", 0, k)),
       })),
-    [],
+    [test1],
   );
   const shuffle = () => {
     setTyped(null);

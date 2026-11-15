@@ -47,6 +47,8 @@ import { WardrobePanel } from "./Wardrobe";
 import { MailboxPanel } from "./Mailbox";
 import { AlbumPanel } from "./Album";
 import { FriendsPanel } from "./Friends";
+import { HoldersPanel } from "./Holders";
+import { RIG_HOME_BGS, useHoldings } from "../game/holders";
 import { bondName, bondsOf, friendKey, useFriends } from "../game/friends";
 import { unreadCount, useMail } from "../game/mail";
 import { Outings } from "./Outings";
@@ -144,6 +146,8 @@ export function PlayApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [worldNotice]);
   const room = ROOMS[worldRoom] ?? ROOMS[HOME]!;
+  // X2: a rig holder's own home wears the rig-bay skin (a friend's home keeps its own look)
+  const rigSkin = useHoldings((s) => !!s.held?.rig && s.skinOn);
   // what the room sounds like: rain outdoors on a rainy day, else birds by day and crickets at night
   const outdoors = !INDOOR_ROOMS.has(worldRoom);
   useEffect(() => {
@@ -389,7 +393,7 @@ export function PlayApp() {
             }}
             onPetTap={onPetTap}
             reduceMotion={reduce}
-            bgs={room.bgs}
+            bgs={worldRoom === HOME && rigSkin && !visiting ? RIG_HOME_BGS : room.bgs}
             others={[...Object.values(others), ...kinVisitors]}
             onOtherTap={(id) => (play("tap"), setPicked(id))}
             npc={who ? (talking && npcFace ? npcFace : who.stand) : null}
@@ -624,6 +628,8 @@ export function PlayApp() {
         <WardrobePanel pet={pet} />
         <hr className="divider" />
         <FriendsPanel pet={pet} />
+        <hr className="divider" />
+        <HoldersPanel />
         <hr className="divider" />
         <AlbumPanel />
         <hr className="divider" />
