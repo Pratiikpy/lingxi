@@ -35,6 +35,8 @@ import { PlanSchema, createPusher, type Pusher } from "./push";
 import { VoiceRequest, createVoice } from "./voice";
 import { LibraryRule, createLibrary, type Library } from "./library";
 import { createIndexer, type Indexer } from "./indexer";
+import { buildTree } from "./tree";
+import { petLookAbi as lookAbi } from "@lingxi/chain";
 
 function loadKey(): string | undefined {
   if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
@@ -349,6 +351,26 @@ export function withHistory(app: Hono, indexer: Indexer): Hono {
   return app;
 }
 
+/**
+ * The tree of life: every pet on chain with its generation, ancestors and the
+ * owners who raised them. Names come from PetLook and are remembered for ten minutes.
+ */
+export function withTree(app: Hono, indexer: Pick<Indexer, "pets" | "head">, nameOf?: (id: string) => Promise<string>): Hono {
+  const names = new Map<string, { name: string; at: number }>();
+  const NAME_TTL = 10 * 60_000;
+  app.get("/api/tree", async (c) => {
+    const pets = indexer.pets();
+    if (nameOf) {
+      const stale = pets.filter((p) => (names.get(p.id)?.at ?? 0) < Date.now() - NAME_TTL).slice(0, 50);
+      await Promise.all(stale.map(async (p) => names.set(p.id, { name: await nameOf(p.id).catch(() => names.get(p.id)?.name ?? ""), at: Date.now() })));
+    }
+    const tree = buildTree(pets.map((p) => ({ ...p, ...(names.get(p.id)?.name ? { name: names.get(p.id)!.name } : {}) })));
+    c.header("Cache-Control", "public, max-age=30");
+    return c.json({ ok: true, indexedTo: indexer.head(), ...tree });
+  });
+  return app;
+}
+
 /** Reminder routes: the public key to subscribe with, a plan of upcoming reminders, and stop. */
 export function withPush(app: Hono, pusher: Pusher, limiter = new RateLimiter(30, 3_600_000)): Hono {
   app.get("/api/push/key", (c) => c.json({ key: pusher.publicKey }));
@@ -447,6 +469,9 @@ if (isMain) {
   if (process.env.LINGXI_REGISTRY && process.env.LINGXI_REGISTRY_FROM) {
     const indexer = createIndexer({ rpc: process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech", registry: process.env.LINGXI_REGISTRY as `0x${string}`, fromBlock: Number(process.env.LINGXI_REGISTRY_FROM), store: process.env.LINGXI_HISTORY_STORE });
     withHistory(app, indexer);
+    const look = process.env.LINGXI_LOOK as `0x${string}` | undefined;
+    const lookClient = createPublicClient({ transport: http(process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech", { timeout: 10_000 }) });
+    withTree(app, indexer, look ? async (id) => String(await lookClient.readContract({ address: look, abi: lookAbi, functionName: "nameOf", args: [BigInt(id)] })) : undefined);
     const loop = () => indexer.catchUp().catch(() => 0).finally(() => setTimeout(loop, 15_000));
     loop();
   }

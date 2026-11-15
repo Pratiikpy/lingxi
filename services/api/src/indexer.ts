@@ -17,14 +17,18 @@ const EVENTS = [
 ] as const;
 
 export interface PetHistory {
-  hatched?: { block: number; tx: string; line: number; brainId: string; state: string };
+  hatched?: { block: number; tx: string; line: number; brainId: string; state: string; to?: string };
   parents?: [string, string];
   children: string[];
   saves: Array<{ day: number; state: string; logHash: string; block: number; tx: string }>;
   brains: Array<{ brainId: string; bits: number; block: number; tx: string }>;
 }
 
+/** Bumped when the stored shape gains a field that only a fresh read can fill. */
+const STORE_VERSION = 2;
+
 interface Stored {
+  v?: number;
   next: number;
   pets: Record<string, PetHistory>;
   /** block → timestamp (seconds), for blocks that carry events */
@@ -38,10 +42,12 @@ export function createIndexer(opts: { rpc: string; registry: Address; fromBlock:
   const pub = opts.client ?? (createPublicClient({ transport: http(opts.rpc, { timeout: 20_000, retryCount: 0 }) }) as PublicClient);
   // the two official X Layer nodes take turns, halving the load on each
   const pubs: PublicClient[] = opts.client ? [opts.client] : [opts.rpc, ...(opts.rpc === "https://rpc.xlayer.tech" ? ["https://xlayerrpc.okx.com"] : [])].map((u) => createPublicClient({ transport: http(u, { timeout: 20_000, retryCount: 0 }) }) as PublicClient);
-  let data: Stored = { next: opts.fromBlock, pets: {}, times: {} };
+  let data: Stored = { v: STORE_VERSION, next: opts.fromBlock, pets: {}, times: {} };
   if (opts.store && existsSync(opts.store)) {
     try {
-      data = JSON.parse(readFileSync(opts.store, "utf8")) as Stored;
+      const held = JSON.parse(readFileSync(opts.store, "utf8")) as Stored;
+      // an older file lacks fields (who each pet was hatched for): read the chain again
+      if (held.v === STORE_VERSION) data = held;
     } catch {
       // a damaged file starts again from the deploy block
     }
@@ -85,7 +91,7 @@ export function createIndexer(opts: { rpc: string; registry: Address; fromBlock:
           const tx = l.transactionHash!;
           const a = l.args as Record<string, bigint | number | string>;
           const id = String(a.petId);
-          if (l.eventName === "Hatched") pet(id).hatched = { block, tx, line: Number(a.line), brainId: String(a.brainId), state: String(a.state) };
+          if (l.eventName === "Hatched") pet(id).hatched = { block, tx, line: Number(a.line), brainId: String(a.brainId), state: String(a.state), to: String(a.to) };
           else if (l.eventName === "Bred") {
             pet(id).parents = [String(a.parentA), String(a.parentB)];
             for (const p of [String(a.parentA), String(a.parentB)]) if (!pet(p).children.includes(id)) pet(p).children.push(id);
@@ -107,6 +113,12 @@ export function createIndexer(opts: { rpc: string; registry: Address; fromBlock:
   return {
     catchUp,
     head: () => data.next - 1,
+    /** Every pet hatched or bred, for the tree of life. */
+    pets(): Array<{ id: string; line: number; owner: string | null; parents: [string, string] | null; children: string[]; block: number; tx: string; at: number }> {
+      return Object.entries(data.pets)
+        .filter(([, h]) => h.hatched)
+        .map(([id, h]) => ({ id, line: h.hatched!.line, owner: h.hatched!.to ?? null, parents: h.parents ?? null, children: [...h.children], block: h.hatched!.block, tx: h.hatched!.tx, at: data.times[h.hatched!.block] ?? 0 }));
+    },
     history(id: string): (PetHistory & { at: Record<string, number> }) | null {
       const h = data.pets[id];
       if (!h) return null;

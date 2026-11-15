@@ -8,7 +8,7 @@ export default defineConfig({
   build: {
     target: "es2022",
     rollupOptions: {
-      input: { index: resolve(__dirname, "index.html"), play: resolve(__dirname, "play.html"), verify: resolve(__dirname, "verify.html"), agents: resolve(__dirname, "agents.html") },
+      input: { index: resolve(__dirname, "index.html"), play: resolve(__dirname, "play.html"), verify: resolve(__dirname, "verify.html"), agents: resolve(__dirname, "agents.html"), tree: resolve(__dirname, "tree.html") },
     },
   },
   server: { port: 5199 },

@@ -397,6 +397,9 @@ export function LandingApp() {
         <a className="l-foot-link" href="agents.html">
           {c.agents}
         </a>
+        <a className="l-foot-link" href="tree.html">
+          {c.tree}
+        </a>
       </footer>
     </>
   );
