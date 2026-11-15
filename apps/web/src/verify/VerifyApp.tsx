@@ -7,6 +7,7 @@
  *      checkpoint committed to, and replay every beat to the memory on chain.
  */
 
+import { OnChainNote } from "../OnChainNote";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type Hex } from "viem";
 import { beat, bitsToWord, hexToBytes, load, type Circuit, wordToBits, decodeSenses } from "@lingxi/brain";
@@ -427,6 +428,9 @@ export function VerifyApp() {
           </div>
         </section>
       )}
+      <div className="v-note-wrap">
+        <OnChainNote lang={lang} />
+      </div>
     </main>
   );
 }

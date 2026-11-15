@@ -730,3 +730,7 @@
     bottom: 16px;
   }
 }
+.l-note {
+  padding: 0 16px 40px;
+  color: #2b2140;
+}

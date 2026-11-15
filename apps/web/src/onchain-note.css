@@ -1,0 +1,27 @@
+.onchain-note {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 10px 14px;
+  border: 2px dashed currentColor;
+  border-radius: 14px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  opacity: 0.92;
+}
+.onchain-note summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+.onchain-note h4 {
+  margin: 10px 0 2px;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.onchain-note ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.onchain-note p {
+  margin: 8px 0 0;
+}

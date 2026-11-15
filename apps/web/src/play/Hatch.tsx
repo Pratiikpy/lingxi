@@ -1,5 +1,6 @@
 /** First run: pick one of three eggs, name it, watch it hatch. */
 
+import { OnChainNote } from "../OnChainNote";
 import { useMemo, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { SHELL, drawEgg, drawPet } from "@lingxi/art";
@@ -120,6 +121,7 @@ export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string, 
           </button>
         </>
       )}
+      {cracking < 0 && <OnChainNote lang={lang as "en" | "zh"} />}
     </main>
   );
 }

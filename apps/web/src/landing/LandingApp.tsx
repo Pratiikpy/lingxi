@@ -5,6 +5,7 @@
  * mind, teaching, world and residents, friends, spars, proof, start, footer.
  */
 
+import { OnChainNote } from "../OnChainNote";
 import { useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { CORAL, SHELL, SKY, SUNNY, drawEgg, drawPet } from "@lingxi/art";
@@ -387,6 +388,9 @@ export function LandingApp() {
         </section>
       </main>
 
+      <section className="l-note">
+        <OnChainNote lang={lang} />
+      </section>
       <footer className="l-foot">
         <span>Lingxi · 灵犀</span>
         <span>{c.foot}</span>

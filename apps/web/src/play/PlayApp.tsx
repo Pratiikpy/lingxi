@@ -1,5 +1,6 @@
 /** The game: hatch on first visit, then the pet's room with care, mind, spar and profile. */
 
+import { OnChainNote } from "../OnChainNote";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { boundingBox, drawPet } from "@lingxi/art";
@@ -486,6 +487,8 @@ export function PlayApp() {
         <FamilyTree pet={pet} />
         <hr className="divider" />
         <InvitePanel />
+        <hr className="divider" />
+        <OnChainNote lang={lang} />
         <hr className="divider" />
         <SendGiftPanel pet={pet} />
         <hr className="divider" />
