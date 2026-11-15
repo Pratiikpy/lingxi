@@ -48,6 +48,8 @@ import { MailboxPanel } from "./Mailbox";
 import { AlbumPanel } from "./Album";
 import { FriendsPanel } from "./Friends";
 import { HoldersPanel } from "./Holders";
+import { StudioPanel } from "./Studio";
+import { FashionMarketPanel } from "./FashionMarket";
 import { RIG_HOME_BGS, useHoldings } from "../game/holders";
 import { bondName, bondsOf, friendKey, useFriends } from "../game/friends";
 import { unreadCount, useMail } from "../game/mail";
@@ -626,6 +628,10 @@ export function PlayApp() {
       <BadgeToast />
       <Sheet open={tab === "me"} title={t("me.title", { name: pet.name })} onClose={close}>
         <WardrobePanel pet={pet} />
+        <hr className="divider" />
+        <StudioPanel pet={pet} />
+        <hr className="divider" />
+        <FashionMarketPanel pet={pet} />
         <hr className="divider" />
         <FriendsPanel pet={pet} />
         <hr className="divider" />

@@ -131,6 +131,14 @@ export const WEARABLES: readonly Wearable[] = [
 
 export const WEARABLE: Readonly<Record<string, Wearable>> = Object.fromEntries(WEARABLES.map((w) => [w.id, w]));
 
+/** Player-made pieces (designs.ts), registered at run time beside Lingxi's own. */
+const custom = new Map<string, Wearable>();
+export function registerWearables(list: readonly Wearable[]): void {
+  for (const w of list) custom.set(w.id, w);
+}
+/** Any wearable by id: Lingxi's own, or a registered player design. */
+export const wearableOf = (id: string): Wearable | undefined => WEARABLE[id] ?? custom.get(id);
+
 export type Outfit = Partial<Record<Slot, string>>;
 
 /** Sets: wearing every piece of one gives a title and a little sparkle (cosmetic, PRD M3). */
@@ -143,7 +151,7 @@ export const SETS: Readonly<Record<string, { name: { en: string; zh: string }; t
 
 /** The set a full outfit completes, if any: one piece in each slot, all from the same set. */
 export function completeSet(outfit: Outfit): string | null {
-  const sets = SLOTS.map((s) => (outfit[s] ? WEARABLE[outfit[s]!]?.set : undefined));
+  const sets = SLOTS.map((s) => (outfit[s] ? wearableOf(outfit[s]!)?.set : undefined));
   if (sets.some((x) => !x)) return null;
   return sets.every((x) => x === sets[0]) && SETS[sets[0]!] ? sets[0]! : null;
 }
@@ -212,7 +220,7 @@ export function wearOverlay(canvas: PixelCanvas, line: Line, stage: Exclude<Stag
   const face = faceAnchor(line, stage, squash);
   const faceRows = (face.size === "L" ? FACES_L : FACES_S).neutral.length;
   const eyeTop = face.y - Math.floor(faceRows / 2);
-  const held = outfit.held ? WEARABLE[outfit.held] : undefined;
+  const held = outfit.held ? wearableOf(outfit.held) : undefined;
   if (held) {
     const y = Math.min(canvas.h - 3, eyeTop + faceRows + 2);
     // held beside the body, never over it
@@ -220,13 +228,13 @@ export function wearOverlay(canvas: PixelCanvas, line: Line, stage: Exclude<Stag
     const right = Math.min(canvas.w - w, rightEdge(canvas, y) + 1);
     put(held.rows, held.colors, right, y - held.rows.length + 2);
   }
-  const head = outfit.head ? WEARABLE[outfit.head] : undefined;
+  const head = outfit.head ? wearableOf(outfit.head) : undefined;
   if (head) {
     const t = topOfHead(canvas);
     const w = Math.max(...head.rows.map((r) => r.length));
     put(head.rows, head.colors, Math.round(t.x - w / 2), t.y + 2 - head.rows.length);
   }
-  const fw = outfit.face ? WEARABLE[outfit.face] : undefined;
+  const fw = outfit.face ? wearableOf(outfit.face) : undefined;
   if (fw) {
     const rows = face.size === "S" && fw.rowsSmall ? fw.rowsSmall : fw.rows;
     const w = Math.max(...rows.map((r) => r.length));

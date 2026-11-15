@@ -36,5 +36,7 @@
       "gates": 251
     }
   },
-  "at": "2026-11-15T15:52:25.142Z"
+  "at": "2026-11-15T15:52:25.142Z",
+  "outfitMarket": "0x3698bb6f3dc360bcc0208064e67c3fe7fa1c3af4",
+  "outfitMarketBlock": 75988918
 }

@@ -7,6 +7,8 @@
 import { DECOR_BY_ID, MAX_PLACED, PLACE_AREA, buyDecor as buyDecorRule, placeDecor as placeDecorRule, removeDecor as removeDecorRule, COMPOST, compostFromClean, harvest as harvestRule, plant as plantRule, startWalk as startWalkRule, stepWalk as stepWalkRule, endWalk as endWalkRule, startTrip as startTripRule, endTrip as endTripRule, make as makeRule, buyPiece as buyPieceRule, wear as wearRule, giveLaurel as giveLaurelRule } from "@lingxi/world";
 import { useBadges } from "./badges";
 import { create } from "zustand";
+import { wearableOf } from "@lingxi/art";
+import { useDesigns } from "./designs";
 import { exert, stageOf } from "@lingxi/game";
 import {
   FORAGE_ENERGY,
@@ -253,6 +255,8 @@ export const useWorld = create<WorldStore>((set, get) => ({
     set({ world: r.world, notice: { id: ++n, kind: "sewn", text: id } });
   },
   wear: (petKey, slot, id) => {
+    // a player-made piece must be one this player may wear, in the slot it was drawn for
+    if (id && /^[uc]:/.test(id) && (!useDesigns.getState().canWear(id) || wearableOf(id)?.slot !== slot)) return;
     const r = wearRule(get().world, petKey, slot, id);
     if (!r.ok) return set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
     save(r.world);

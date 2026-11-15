@@ -14,6 +14,8 @@ export interface Deployment {
   breeder?: Address;
   /** red packet escrow and its seal circuit id, when deployed */
   redPacket?: Address;
+  /** the fashion market (OutfitMarket) */
+  outfitMarket?: Address;
   seal?: string;
   /** the on-chain picture and names contract (PetLook), when deployed */
   look?: Address;

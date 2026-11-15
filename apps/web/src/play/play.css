@@ -1816,3 +1816,226 @@
 .holder-mark.is-on svg {
   color: #e0a93a;
 }
+
+.studio,
+.fashion {
+  display: grid;
+  gap: 8px;
+}
+.studio-slots,
+.studio-inks,
+.studio-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.studio-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+.studio-grid {
+  display: grid;
+  gap: 1px;
+  padding: 1px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--track);
+  touch-action: none;
+  max-width: 340px;
+}
+.studio-cell {
+  aspect-ratio: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: var(--card);
+  cursor: crosshair;
+}
+.studio-cell:focus-visible {
+  outline: 2px solid var(--sky);
+  outline-offset: -2px;
+}
+.studio-preview {
+  display: grid;
+  place-items: center;
+  min-width: 110px;
+  min-height: 110px;
+  border-radius: var(--r-sm);
+  background: #fff3c9;
+}
+.studio-ink {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  min-width: 44px;
+  height: 44px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--card);
+  cursor: pointer;
+}
+.studio-ink.is-on {
+  box-shadow: 0 0 0 3px var(--sky);
+}
+.studio-ink > input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  cursor: pointer;
+}
+.studio-ink > span {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--line);
+  border-radius: 4px;
+  pointer-events: none;
+}
+.studio-ink.erase > span {
+  width: auto;
+  height: auto;
+  padding: 0 6px;
+  border: 0;
+  font: 700 0.75rem var(--round);
+}
+.studio-ink > input[type="color"] {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  cursor: pointer;
+}
+.studio-swatch {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 2px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.studio-row,
+.studio-terms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: end;
+}
+.studio-row input,
+.studio-terms input,
+.fashion-resell input {
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--card);
+  color: var(--ink);
+  font: 600 0.9rem var(--round);
+}
+.studio-row input {
+  flex: 1 1 160px;
+}
+.studio-terms label {
+  display: grid;
+  gap: 4px;
+  flex: 1 1 140px;
+  font: 700 0.75rem var(--round);
+}
+.studio-publish summary {
+  cursor: pointer;
+  font: 800 0.9rem var(--round);
+}
+.studio-publish[open] {
+  display: grid;
+  gap: 8px;
+}
+.fashion-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fashion-card {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 4px;
+  padding: 8px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--card);
+  text-align: center;
+}
+.fashion-card .small {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+}
+.fashion-have {
+  font-weight: 800;
+  color: var(--ink) !important;
+}
+.fashion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+}
+.fashion-resell {
+  display: grid;
+  grid-template-columns: 3.5em 1fr auto;
+  gap: 4px;
+  width: 100%;
+}
+.fashion-listings {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fashion-listings li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--card);
+}
+.fashion-owed {
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  background: #fff3c9;
+  color: #2b2140;
+  font-weight: 700;
+}
+@media (max-width: 420px) {
+  .studio-main {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+}
+/* on phones the studio stacks; the grid keeps its full width instead of shrinking to its empty cells */
+@media (max-width: 420px) {
+  .studio-grid {
+    width: 100%;
+    justify-self: stretch;
+  }
+}
+/* the drawing surface stays light in both themes, so dark inks show as they will on the pet */
+.studio-grid {
+  background: #d9d1e6;
+}
+.studio-cell {
+  background: #fffdf8;
+}

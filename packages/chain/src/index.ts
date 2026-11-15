@@ -10,3 +10,5 @@ export * from "./lookAbi";
 export * from "./selftape";
 export * from "./home";
 export * from "./adopt";
+export * from "./outfitMarketAbi";
+export * from "./outfits";

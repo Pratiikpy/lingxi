@@ -4,7 +4,8 @@
  */
 
 import { useMemo } from "react";
-import { SETS, SLOTS, WEARABLE, boundingBox, drawPet, type Outfit, wearOverlay } from "@lingxi/art";
+import { SETS, SLOTS, boundingBox, drawPet, type Outfit, wearOverlay, wearableOf } from "@lingxi/art";
+import { useDesigns } from "../game/designs";
 import { type Pet, stageOf } from "@lingxi/game";
 import { outfitOf, ownedPieces, setOf } from "@lingxi/world";
 import { useLang } from "../i18n";
@@ -18,19 +19,23 @@ const SLOT_NAME: Record<(typeof SLOTS)[number], { en: string; zh: string }> = { 
 export function useWornArt(pet: Pet, expression: "happy" | "neutral" | "sparkly" = "happy") {
   const world = useWorld((s) => s.world);
   const outfit = outfitOf(world, String(pet.bornAt));
+  const version = useDesigns((s) => s.version);
   const stage = stageOf(pet, Date.now());
   const drawn = (stage === "elder" ? "adult" : stage) as "baby" | "child" | "teen" | "adult";
   return useMemo(() => {
     const canvas = drawPet(pet.line, drawn, { expression, ...(pet.form ? { form: pet.form } : {}) });
     return { canvas, overlay: wearOverlay(canvas, pet.line, drawn, outfit as Outfit, 0, pet.form), outfit };
-  }, [pet.line, drawn, pet.form, expression, outfit.head, outfit.face, outfit.held]);
+  }, [pet.line, drawn, pet.form, expression, outfit.head, outfit.face, outfit.held, version]);
 }
 
 export function WardrobePanel({ pet }: { pet: Pet }) {
   const lang = useLang((s) => s.lang) as "en" | "zh";
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
   const { world, wear } = useWorld();
-  const owned = ownedPieces(world);
+  const local = useDesigns((s) => s.local);
+  const held = useDesigns((s) => s.held);
+  // Lingxi's pieces, then pieces drawn here, then market copies this wallet holds
+  const owned = [...ownedPieces(world), ...local.map((l) => l.id), ...Object.keys(held).map((id) => `c:${id}`)];
   const key = String(pet.bornAt);
   const { canvas, overlay, outfit } = useWornArt(pet);
   const set = setOf(outfit);
@@ -62,7 +67,7 @@ export function WardrobePanel({ pet }: { pet: Pet }) {
       </div>
       {owned.length > 0 &&
         SLOTS.map((slot) => {
-          const mine = owned.filter((id) => WEARABLE[id]?.slot === slot);
+          const mine = owned.filter((id) => wearableOf(id)?.slot === slot);
           if (!mine.length) return null;
           return (
             <div key={slot} className="wd-slot" role="radiogroup" aria-label={SLOT_NAME[slot][lang]}>
@@ -72,7 +77,7 @@ export function WardrobePanel({ pet }: { pet: Pet }) {
               </button>
               {mine.map((id) => (
                 <button key={id} type="button" role="radio" aria-checked={outfit[slot] === id} className={`wd-chip${outfit[slot] === id ? " is-on" : ""}`} onClick={() => wear(key, slot, id)}>
-                  {WEARABLE[id]!.name[lang]}
+                  {wearableOf(id)!.name[lang]}
                 </button>
               ))}
             </div>

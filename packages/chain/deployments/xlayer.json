@@ -37,5 +37,7 @@
     }
   },
   "at": "2026-11-15T10:06:29.079Z",
-  "look": "0x0642a802967260714d4efec05fef701b17d31b75"
+  "look": "0x0642a802967260714d4efec05fef701b17d31b75",
+  "outfitMarket": "0xb9f6b18edd21933582ec69fb1e718d9629e684cd",
+  "outfitMarketBlock": 76011196
 }

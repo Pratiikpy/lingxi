@@ -99,7 +99,8 @@ export function buyPiece(w: WorldState, id: string): WorldResult {
 /** Puts a piece on (or, with null, takes the slot's piece off) for one pet. */
 export function wear(w: WorldState, petKey: string, slot: WearSlot, id: string | null): WorldResult {
   const wd = wardrobe(w);
-  if (id !== null) {
+  // a player-made piece ("u:" drawn on this device, "c:" a market copy) is checked by the game, which knows the designs
+  if (id !== null && !/^[uc]:[0-9a-z]{1,20}$/.test(id)) {
     const p = PIECES[id];
     if (!p || p.slot !== slot) return { ok: false, reason: "wrongSlot" };
     if (!wd.owned.includes(id)) return { ok: false, reason: "notOwned" };
