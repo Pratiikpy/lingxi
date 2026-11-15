@@ -344,3 +344,7 @@
   text-transform: uppercase;
   color: var(--ink-soft);
 }
+/* long addresses in notes break instead of running out of the card */
+.v-proof-table .v-note {
+  overflow-wrap: anywhere;
+}

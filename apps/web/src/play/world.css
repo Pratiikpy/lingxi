@@ -470,3 +470,8 @@
   color: #2b2140;
   border-color: #2b2140;
 }
+
+/* rows with no item picture (shop outfits, workbench recipes) give the text the room */
+.bag-item.no-art {
+  grid-template-columns: minmax(0, 1fr) auto;
+}

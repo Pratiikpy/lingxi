@@ -188,7 +188,7 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
           <p className="label">{lang === "zh" ? "衣服" : "Outfits"}</p>
           <ul className="bag-list">
             {Object.entries(PIECE_PRICES).map(([id, price]) => (
-              <li key={id} className="bag-item">
+              <li key={id} className="bag-item no-art">
                 <div className="bag-text">
                   <b>{WEARABLE[id]!.name[lang]}</b>
                   <span>{lang === "zh" ? "只是好看，不影响玩法。" : "Looks only; it never changes how your pet plays."}</span>
@@ -209,7 +209,7 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
             const can = r.ins.every((x) => has(world, x.item, x.amount));
             const name = r.kind === "outfit" ? WEARABLE[r.id]!.name[lang] : DECOR_BY_ID[r.id]!.name[lang];
             return (
-              <li key={`${r.kind}:${r.id}`} className={`bag-item${can || done ? "" : " is-dim"}`}>
+              <li key={`${r.kind}:${r.id}`} className={`bag-item no-art${can || done ? "" : " is-dim"}`}>
                 <div className="bag-text">
                   <b>
                     {name} <em>{r.kind === "outfit" ? (lang === "zh" ? "衣服" : "outfit") : lang === "zh" ? "家具" : "furniture"}</em>
