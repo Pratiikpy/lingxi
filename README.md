@@ -113,6 +113,7 @@ Lingxi stands on other people's work, and is grateful for it.
 - **TapeFly** (github.com/tapefly/tapefly), MIT License, Copyright (c) 2026 Richard. Our circuit compiler started from TapeFly's netlist compiler, and our gate-depth layout follows its approach. The TapeFly-format brains in `packages/brain/src/tapefly.ts` (the program format, its `p1.` link code and the compiler) are adapted from TapeFly's `sim/program.ts` and `sim/compile.ts`; the brawl chips and ladder rivals are the rules TapeFly publishes at tapefly.xyz/api/v1/brawl, read under its DUEL-12x3/1 interface draft.
 - **Aavegotchi** (github.com/aavegotchi/aavegotchi-contracts), MIT License, Copyright (c) 2020 Aavegotchi. Kinship that fades lazily over time follows its `kinship()` pattern.
 - **TapeOut Protocol** TAPs (github.com/TapeOutProtocol/TAPs), CC0 1.0. The TAP-02 netlist format and processor interface.
+- **TapeKit** (github.com/TapeOutProtocol/TapeKit), MIT License, Copyright (c) 2026 TapeOutProtocol. `packages/send` is TapeKit's TapeSend module (`send/module/src`: keys, sealed payloads, message content) with its test vectors; pet homes use TapeKit's container opener, and letters its DeWEB hub on X Layer.
 - **OpenZeppelin Contracts** (MIT) and **forge-std** (MIT / Apache-2.0).
 - **Pixelify Sans** and **Baloo 2** fonts (SIL Open Font License 1.1), via Fontsource.
 - **PixiJS**, **viem**, **React**, **Hono**, **Motion**, **zustand** and **Vite** (all MIT).

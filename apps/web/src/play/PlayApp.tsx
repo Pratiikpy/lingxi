@@ -42,6 +42,7 @@ import { TeachPanel } from "./Teach";
 import { ArenaPanel } from "./Arena";
 import { BrainView } from "./BrainView";
 import { ChainPanel } from "./ChainPanel";
+import { HomePanel } from "./Home";
 import { Icon } from "./icons";
 import { Sprite } from "./Sprite";
 import "./play.css";
@@ -598,6 +599,8 @@ export function PlayApp() {
         <RemindersPanel pet={pet} />
         <hr className="divider" />
         <ChainPanel pet={pet} />
+        <hr className="divider" />
+        <HomePanel pet={pet} />
       </Sheet>
     </div>
   );

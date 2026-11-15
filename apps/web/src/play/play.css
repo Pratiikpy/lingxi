@@ -1212,3 +1212,18 @@
   align-items: center;
   gap: 8px;
 }
+.home-keep {
+  display: flex;
+  gap: var(--s2);
+}
+.home-keep input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+}
