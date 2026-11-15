@@ -1,0 +1,40 @@
+{
+  "chainId": 196,
+  "rpc": "https://rpc.xlayer.tech",
+  "processor": "0xf70d324Da8C1C4Cb0dE3FF147E53E7E9db543c4e",
+  "transistors": "0x92DFda52386386Be40EFd7becB545139372C7139",
+  "registry": "0x103d7252eb6b2fec22b3f65a6bb605945f280e99",
+  "breeder": "0x5e5bbb798c5a2afc89f431debabaa0b889f77dd1",
+  "redPacket": "0x7acceb7ab1cff102fe2660f511e88d42010e806b",
+  "seal": "5",
+  "redPacketBlock": 75968151,
+  "deployer": "0xA551feD6f2Ab35d509A71B74D5E9F38742E0aaD8",
+  "circuits": {
+    "gentle": {
+      "id": "1",
+      "tx": "0x82ae06e471e7dc909bb26ae96cedb42537a59662c11343d830f75f3bf7665513",
+      "gates": 296
+    },
+    "bold": {
+      "id": "2",
+      "tx": "0xc779e53f81b6c035beb3a70cf5cf09c6b4c989b647dcb7a4b68b6c6e78b4c88d",
+      "gates": 233
+    },
+    "curious": {
+      "id": "3",
+      "tx": "0x5ee1ea941f6442f0f0010564689f6f06ef889ad2f5efa875c47dc85cdf3b12cf",
+      "gates": 248
+    },
+    "evolution": {
+      "id": "4",
+      "tx": "0xdd18a767bf93b330c46a5d9f2860ccb5641284031150c7274be56113a7cc1471",
+      "gates": 58
+    },
+    "seal": {
+      "id": "5",
+      "tx": "0x594f7fb8632746e2cdfe0a5dd3ee80fcead5adccc49ad134f78f9b9f0e0a4075",
+      "gates": 251
+    }
+  },
+  "at": "2026-11-15T10:06:29.079Z"
+}

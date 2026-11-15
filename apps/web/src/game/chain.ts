@@ -16,13 +16,14 @@ import { relayBrain, relayChild } from "./api";
 import type { ChainInfo } from "./live";
 import { useGame } from "./store";
 import localDeployment from "../../../../packages/chain/deployments/local.json";
+import xlayerDeployment from "../../../../packages/chain/deployments/xlayer.json";
 
 const OLD_KEY = "lingxi.chain.v1";
 const CHAIN_KEY = "lingxi.chain.v2";
 const LINES = ["gentle", "bold", "curious"] as const;
 
 const NETWORK = (import.meta.env.VITE_CHAIN as string | undefined) ?? (import.meta.env.DEV ? "local" : "xlayer");
-const DEPLOYMENTS: Record<string, Deployment | undefined> = { local: localDeployment as unknown as Deployment };
+const DEPLOYMENTS: Record<string, Deployment | undefined> = { local: localDeployment as unknown as Deployment, xlayer: xlayerDeployment as unknown as Deployment };
 export const deployment: Deployment | undefined = DEPLOYMENTS[NETWORK];
 export const explorerTx = (tx: string) => (NETWORK === "local" ? null : `https://www.oklink.com/xlayer/tx/${tx}`);
 
