@@ -107,7 +107,7 @@ export const usePackets = create<PacketStore>((set, get) => ({
         lucky: o.lucky,
         petOwnersOnly: o.petOwnersOnly,
       });
-      const link = `${o.origin}#packet=${encodePacketLink({ id: id.toString(), key: pk.slice(2), from: o.from, letter: o.letter })}`;
+      const link = `${o.origin}packet=${encodePacketLink({ id: id.toString(), key: pk.slice(2), from: o.from, letter: o.letter })}`;
       const sent = [{ id: id.toString(), link, total: o.amount, count: o.count, at: Date.now() }, ...get().sent].slice(0, 50);
       try {
         localStorage.setItem(SENT_KEY, JSON.stringify(sent));

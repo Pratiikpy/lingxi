@@ -24,6 +24,7 @@ import { parseCard } from "@lingxi/game";
 import { PlanSchema, createPusher, type Pusher } from "./push";
 import { VoiceRequest, createVoice } from "./voice";
 import { LibraryRule, createLibrary, type Library } from "./library";
+import { createIndexer, type Indexer } from "./indexer";
 
 function loadKey(): string | undefined {
   if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
@@ -217,6 +218,18 @@ export function withLibrary(app: Hono, library: Library, writes = new RateLimite
   return app;
 }
 
+/** A pet's history from the chain's events: hatching, daily saves, brain changes, family. */
+export function withHistory(app: Hono, indexer: Indexer): Hono {
+  app.get("/api/pets/:id/history", (c) => {
+    const id = c.req.param("id");
+    if (!/^\d{1,12}$/.test(id)) return c.json({ ok: false, reason: "invalid" }, 400);
+    c.header("Cache-Control", "public, max-age=20");
+    const h = indexer.history(id);
+    return h ? c.json({ ok: true, indexedTo: indexer.head(), ...h }) : c.json({ ok: false, reason: "unknown", indexedTo: indexer.head() }, 404);
+  });
+  return app;
+}
+
 /** Reminder routes: the public key to subscribe with, a plan of upcoming reminders, and stop. */
 export function withPush(app: Hono, pusher: Pusher, limiter = new RateLimiter(30, 3_600_000)): Hono {
   app.get("/api/push/key", (c) => c.json({ key: pusher.publicKey }));
@@ -270,6 +283,12 @@ if (isMain) {
   const app = createApp(client, undefined, relayer, undefined, live);
   if (client) withVoice(app, createVoice(client));
   withLibrary(app, createLibrary(process.env.LINGXI_LIBRARY_STORE));
+  if (process.env.LINGXI_REGISTRY && process.env.LINGXI_REGISTRY_FROM) {
+    const indexer = createIndexer({ rpc: process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech", registry: process.env.LINGXI_REGISTRY as `0x${string}`, fromBlock: Number(process.env.LINGXI_REGISTRY_FROM), store: process.env.LINGXI_HISTORY_STORE });
+    withHistory(app, indexer);
+    const loop = () => indexer.catchUp().catch(() => 0).finally(() => setTimeout(loop, 15_000));
+    loop();
+  }
   const pusher = makePusher();
   if (pusher) {
     withPush(app, pusher);

@@ -32,6 +32,8 @@ const sitesAbi = parseAbi([
   "function fileInfo(address container, string path) view returns (uint32 size, string contentType, bytes32 sha256Hash, uint40 updatedAt, uint256 chunkCount)",
   "function fallbackPath(address container) view returns (string)",
   "function pathCount(address container) view returns (uint256)",
+  "function pathsRange(address container, uint256 from, uint256 n) view returns (string[])",
+  "function removeFile(address container, string path)",
 ]);
 const domainsAbi = parseAbi(["function bind(string name, address container, uint256 months) payable", "function monthlyFee() view returns (uint256)", "function isLive(string name, address container) view returns (bool)"]);
 const factoryIdx = parseAbi(["function cpuCount() view returns (uint256)", "function cpuAt(uint256 i) view returns (address)"]);
@@ -145,6 +147,15 @@ for (const f of manifest.files) {
   if (uploaded % 25 === 0) console.log(`  ${uploaded} uploaded, ${skipped} already there`);
 }
 console.log(`files: ${uploaded} uploaded, ${skipped} already there`);
+
+// files from an earlier build that this one no longer has (old hashed bundles) come off the site
+const wanted = new Set(manifest.files.map((f) => f.path));
+const total = Number((await pub.readContract({ address: SITES, abi: sitesAbi, functionName: "pathCount", args: [container] })) as bigint);
+const onChain: string[] = [];
+for (let from = 0; from < total; from += 200) onChain.push(...((await pub.readContract({ address: SITES, abi: sitesAbi, functionName: "pathsRange", args: [container, BigInt(from), 200n] })) as string[]));
+const stale = onChain.filter((p) => !wanted.has(p));
+for (const p of stale) await send(`remove ${p}`, { address: SITES, abi: sitesAbi, functionName: "removeFile", args: [container, p], account, chain });
+if (stale.length) console.log(`removed ${stale.length} files the build no longer has`);
 
 if (((await pub.readContract({ address: SITES, abi: sitesAbi, functionName: "fallbackPath", args: [container] })) as string) !== "index.html") {
   console.log(`fallback index.html: ${await send("setFallback", { address: SITES, abi: sitesAbi, functionName: "setFallback", args: [container, "index.html"], account, chain })}`);

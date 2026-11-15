@@ -4,6 +4,7 @@
  * decided by the LX-SEAL/1 circuit on TapeOut, and anyone can re-run it.
  */
 
+import { linkPrefix } from "../game/links";
 import { useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { drawPet } from "@lingxi/art";
@@ -122,7 +123,7 @@ export function RedPacketPanel({ pet }: { pet: Pet }) {
             disabled={!valid || tooMuch || !!busy}
             onClick={async () => {
               play("tap");
-              const l = await send({ amount, count, lucky, petOwnersOnly: petsOnly, days, from: { name: pet.name, line: pet.line }, letter: letter.trim(), origin: `${location.origin}${location.pathname}` });
+              const l = await send({ amount, count, lucky, petOwnersOnly: petsOnly, days, from: { name: pet.name, line: pet.line }, letter: letter.trim(), origin: linkPrefix("play.html") });
               if (l) {
                 play("success");
                 setLink(l);

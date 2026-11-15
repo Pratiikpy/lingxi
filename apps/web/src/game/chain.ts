@@ -30,7 +30,8 @@ export const deployment: Deployment | undefined = DEPLOYMENTS[NETWORK];
 export const explorerTx = (tx: string) => (NETWORK === "local" ? null : `https://www.oklink.com/xlayer/tx/${tx}`);
 
 // VITE_RPC points a test build at a local fork of X Layer; production builds leave it unset
-const rpc = (import.meta.env.VITE_RPC as string | undefined) ?? deployment?.rpc ?? "https://rpc.xlayer.tech";
+// (an empty value counts as unset, as the on-chain build passes it)
+const rpc = (import.meta.env.VITE_RPC as string | undefined) || deployment?.rpc || "https://rpc.xlayer.tech";
 const chain = { ...xLayer, rpcUrls: { default: { http: [rpc] } } };
 export const publicClient: PublicClient = createPublicClient({ chain, transport: http(rpc) }) as PublicClient;
 /** X Layer's official RPC endpoints, for spreading heavy read loads (the proof page's full check). */

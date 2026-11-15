@@ -4,6 +4,7 @@
  * reads the letter and hatches the egg, with no wallet and no sign-up.
  */
 
+import { linkPrefix } from "../game/links";
 import { useBadges } from "../game/badges";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
@@ -64,7 +65,7 @@ export function SendGiftPanel({ pet }: { pet: Pet }) {
       ...(item !== null ? { item: { id: item, n: 1 } } : {}),
       at: Date.now(),
     };
-    setLink(`${location.origin}${location.pathname}#gift=${encodeGift(gift)}`);
+    setLink(`${linkPrefix("play.html")}gift=${encodeGift(gift)}`);
     useBadges.getState().note("gifts");
     setItem(null);
     play("success");
