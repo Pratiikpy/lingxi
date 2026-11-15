@@ -38,6 +38,9 @@ contract Breeder {
     error TooSoon(uint256 petId);
     error NotAdult(uint256 petId);
     error NotAChildOf(uint256 parentA, uint256 parentB);
+    /// A pet born of two parents cannot have children: its mind is already two minds,
+    /// and composing it again would leave its inner ancestors with no say at all.
+    error NotFirstGeneration(uint256 petId);
 
     constructor(PetRegistry registry_) {
         registry = registry_;
@@ -77,6 +80,7 @@ contract Breeder {
     }
 
     function _checkReady(uint256 id, PetRegistry.Pet memory p) private view {
+        if (p.parentA != 0) revert NotFirstGeneration(id);
         if (block.timestamp < uint256(lastBred[id]) + COOLDOWN && lastBred[id] != 0) revert TooSoon(id);
         if (((p.state >> 148) & 7) < ADULT_STAGE) revert NotAdult(id);
     }

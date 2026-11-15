@@ -34,10 +34,9 @@ describe("families", () => {
     }
   });
 
-  it("generations count up and minds that do not fit are refused", () => {
+  it("children are generation 1, and a child cannot become a parent", () => {
     expect(family.generation).toBe(1);
-    const grand = familyOf({ name: "Kid", line: "gentle", lessons: [], generation: 1 } as never, { name: "Other", line: "curious", lessons: [] });
-    expect(grand.generation).toBe(2);
+    expect(() => familyOf({ name: "Kid", line: "gentle", lessons: [], generation: 1 }, { name: "Other", line: "curious", lessons: [] })).toThrow("secondGeneration");
   });
 
   it("teaching a child checks both halves and changes both", () => {
@@ -56,6 +55,8 @@ describe("families", () => {
     expect(canBreed({ stage: "teen" }, { stage: "adult" }, 10)).toMatchObject({ reason: "notAdult" });
     expect(canBreed({ stage: "adult", lastBredDay: 9 }, { stage: "adult" }, 10)).toMatchObject({ reason: "tooSoon" });
     expect(canBreed({ stage: "adult", lastBredDay: 7 }, { stage: "adult" }, 10)).toEqual({ ok: true });
+    expect(canBreed({ stage: "adult", generation: 1 }, { stage: "adult" }, 10)).toMatchObject({ reason: "secondGeneration" });
+    expect(canBreed({ stage: "adult" }, { stage: "elder", generation: 1 }, 10)).toMatchObject({ reason: "secondGeneration" });
   });
 
   it("starter brains still match the plain compiler", () => {

@@ -412,6 +412,17 @@ export const breederAbi = [
  },
  {
   "type": "error",
+  "name": "NotFirstGeneration",
+  "inputs": [
+   {
+    "name": "petId",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ]
+ },
+ {
+  "type": "error",
   "name": "NotYours",
   "inputs": []
  },

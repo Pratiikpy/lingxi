@@ -59,6 +59,14 @@ async function deployBreeder(registry: Address): Promise<Address> {
   const set = await wallet.writeContract({ address: registry, abi: reg.abi, functionName: "setBreeder", args: [breeder, true] });
   const sr = await pub.waitForTransactionReceipt({ hash: set });
   if (sr.status !== "success") throw new Error("setBreeder failed");
+  // a replaced Breeder loses its right to hatch children
+  const old = existing?.breeder as Address | undefined;
+  if (old && old.toLowerCase() !== breeder.toLowerCase()) {
+    const off = await wallet.writeContract({ address: registry, abi: reg.abi, functionName: "setBreeder", args: [old, false] });
+    const or = await pub.waitForTransactionReceipt({ hash: off });
+    if (or.status !== "success") throw new Error("retiring the old Breeder failed");
+    console.log(`retired Breeder ${old}`);
+  }
   return breeder;
 }
 

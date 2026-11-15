@@ -26,7 +26,7 @@ const today = (p: Pet) => dayOf(p, Date.now());
 /** Why this pet cannot start a family right now, or null if it can. */
 export function familyBlock(pet: Pet, partnerStage: string, lang: Lang): string | null {
   const r = canBreed(
-    { stage: stageOf(pet, Date.now()), ...(pet.lastBredDay !== undefined ? { lastBredDay: pet.lastBredDay } : {}) },
+    { stage: stageOf(pet, Date.now()), generation: pet.family?.generation ?? 0, ...(pet.lastBredDay !== undefined ? { lastBredDay: pet.lastBredDay } : {}) },
     { stage: (["baby", "child", "teen", "adult", "elder"].includes(partnerStage) ? partnerStage : "baby") as "baby" },
     today(pet),
   );
@@ -34,6 +34,8 @@ export function familyBlock(pet: Pet, partnerStage: string, lang: Lang): string 
     if (useGame.getState().pets.length >= MAX_PETS) return lang === "zh" ? `你已经有 ${MAX_PETS} 只宠物了。` : `You already look after ${MAX_PETS} pets.`;
     return null;
   }
+  if (r.reason === "secondGeneration")
+    return lang === "zh" ? `${pet.name}是两只宠物的孩子，它的心智已经由两颗心智织成，不能再养小宝宝了。` : `${pet.name} was born of two parents. Its mind is already two minds woven together, so it can't have little ones of its own.`;
   if (r.reason === "notAdult") return lang === "zh" ? "两只宠物都要长大成年，才能一起养小宝宝。" : "Both pets need to be grown up before they can raise a little one.";
   return lang === "zh" ? `上次之后要休息 ${BREED_COOLDOWN_DAYS} 天。` : `Pets rest ${BREED_COOLDOWN_DAYS} days after having a little one.`;
 }
@@ -107,6 +109,7 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
   const replace = useGame((s) => s.replace);
   const [name, setName] = useState("");
   const [hatching, setHatching] = useState<"idle" | "busy" | string>("idle");
+  const partnerIsChild = useMemo(() => !!(answer?.card && parseCard(answer.card)?.family), [answer]);
   const family = useMemo<Family | null>(() => {
     if (!answer?.yes || !answer.card) return null;
     const line = LINES.find((l) => l === answer.line);
@@ -130,9 +133,13 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
               ? lang === "zh"
                 ? `${answer.name}的主人说现在还不行。`
                 : `${answer.name}'s owner said not now.`
-              : lang === "zh"
-                ? "它们的心智没法拼在一起。"
-                : "Their minds could not be put together."}
+              : partnerIsChild
+                ? lang === "zh"
+                  ? `${answer.name}是两只宠物的孩子，不能再养小宝宝。`
+                  : `${answer.name} was born of two parents, so it can't have little ones of its own.`
+                : lang === "zh"
+                  ? "它们的心智没法拼在一起。"
+                  : "Their minds could not be put together."}
           </p>
           <button type="button" className="btn" onClick={clear}>
             {lang === "zh" ? "好的" : "OK"}
@@ -290,7 +297,11 @@ export function FamilyTree({ pet }: { pet: Pet }) {
         </p>
       )}
       <p className="small">
-        {rest > 0
+        {pet.family
+          ? lang === "zh"
+            ? "它的心智由父母两颗心智织成，所以它自己不会再有小宝宝。"
+            : "Its mind is woven from both parents', so it won't have little ones of its own."
+          : rest > 0
           ? lang === "zh"
             ? `还要休息 ${rest} 天才能再养小宝宝。`
             : `Resting for ${rest} more day${rest === 1 ? "" : "s"} before another little one.`

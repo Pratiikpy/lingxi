@@ -162,4 +162,19 @@ contract BreederForkTest is Test {
         vm.expectRevert(Breeder.SamePet.selector);
         breeder.breed(petA, petA, address(PROC), child, 0);
     }
+
+    function test_childrenCannotHaveChildren() public {
+        uint64 child = _child(brainA, brainB, fx.readBytes(".glue"));
+        vm.prank(alice);
+        uint256 kid = breeder.breed(petA, petB, address(PROC), child, 0);
+        // a child is refused as a parent, on either side, before anything else is checked
+        vm.warp(block.timestamp + 3 days + 1);
+        uint256 other = reg.hatch(alice, 0, address(PROC), brainA, ADULT);
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSelector(Breeder.NotFirstGeneration.selector, kid));
+        breeder.breed(kid, other, address(PROC), child, 0);
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSelector(Breeder.NotFirstGeneration.selector, kid));
+        breeder.breed(other, kid, address(PROC), child, 0);
+    }
 }

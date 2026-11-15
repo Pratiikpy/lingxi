@@ -88,8 +88,20 @@ export function checkMindLesson(spec: MindSpec, stage: Exclude<Stage, "egg">, ca
   return { ok: true, gates };
 }
 
-/** Whether two parents can have a child: both grown, different pets, rested since last time, minds that fit. */
-export function canBreed(a: { stage: Exclude<Stage, "egg">; lastBredDay?: number }, b: { stage: Exclude<Stage, "egg">; lastBredDay?: number }, today: number): { ok: true } | { ok: false; reason: "notAdult" | "tooSoon" } {
+interface BreedSide {
+  stage: Exclude<Stage, "egg">;
+  lastBredDay?: number;
+  /** 0 for a hatched pet; a pet born of two parents cannot have children (see Breeder.NotFirstGeneration) */
+  generation?: number;
+}
+
+/**
+ * Whether two parents can have a child: both hatched from eggs (a child's mind is
+ * already two minds, and composing it again would silence its inner ancestors),
+ * both grown, and rested since last time.
+ */
+export function canBreed(a: BreedSide, b: BreedSide, today: number): { ok: true } | { ok: false; reason: "notAdult" | "tooSoon" | "secondGeneration" } {
+  if ((a.generation ?? 0) > 0 || (b.generation ?? 0) > 0) return { ok: false, reason: "secondGeneration" };
   const grown = (s: string) => s === "adult" || s === "elder";
   if (!grown(a.stage) || !grown(b.stage)) return { ok: false, reason: "notAdult" };
   for (const p of [a, b]) if (p.lastBredDay !== undefined && today - p.lastBredDay < BREED_COOLDOWN_DAYS) return { ok: false, reason: "tooSoon" };
@@ -98,6 +110,7 @@ export function canBreed(a: { stage: Exclude<Stage, "egg">; lastBredDay?: number
 
 /** A child's family record from its two parents (A first: A shapes its days and moods, B its nights and habits). */
 export function familyOf(a: ParentInfo & { generation?: number }, b: ParentInfo & { generation?: number }): Family {
+  if ((a.generation ?? 0) > 0 || (b.generation ?? 0) > 0) throw new Error("secondGeneration");
   const strip = ({ name, line, lessons, petId, owner, key }: ParentInfo): ParentInfo => ({
     name: name.slice(0, 12),
     line,
@@ -106,7 +119,7 @@ export function familyOf(a: ParentInfo & { generation?: number }, b: ParentInfo 
     ...(owner ? { owner } : {}),
     ...(key ? { key } : {}),
   });
-  const family: Family = { parents: [strip(a), strip(b)], generation: Math.max(a.generation ?? 0, b.generation ?? 0) + 1 };
+  const family: Family = { parents: [strip(a), strip(b)], generation: 1 };
   // both halves must build and fit, or there is no child
   const [pa, pb] = halvesOf(family, []);
   for (const p of [pa, pb]) if (gateCount(compileProgram(p)) > MAX_GATES) throw new Error("a parent's mind is too big to pass on");
