@@ -3,6 +3,8 @@ pragma solidity ^0.8.24;
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 import {ITapeOutProcessor, ITapeOutFactory} from "./interfaces/ITapeOut.sol";
 
 interface IPetRenderer {
@@ -53,6 +55,11 @@ contract PetRegistry is ERC721, Ownable2Step {
     mapping(address => mapping(uint256 => bool)) public starterBrain;
     /// contracts allowed to hatch pets with a stated lineage (breeding, gifts)
     mapping(address => bool) public breeders;
+    /// how many times each pet has changed hands (lets others tie a permission to one ownership)
+    mapping(uint256 => uint256) public transferCount;
+    /// a pet must be this old on chain, with this many saved days, to count as "settled"
+    uint256 public constant SETTLED_AGE = 3 days;
+    uint32 public constant SETTLED_DAYS = 3;
 
     event Hatched(uint256 indexed petId, address indexed to, uint8 line, address processor, uint64 brainId, uint256 state);
     event Bred(uint256 indexed petId, uint128 indexed parentA, uint128 indexed parentB);
@@ -247,9 +254,46 @@ contract PetRegistry is ERC721, Ownable2Step {
         return _pets[petId];
     }
 
+    /// @notice A pet that has lived on chain at least three days and saved at least its
+    /// third day: what "pet owners only" red packets accept. It raises the cost of
+    /// farming pets for packets; it does not make a pet a proof of personhood.
+    function isSettled(uint256 petId) external view returns (bool) {
+        Pet storage p = _pets[petId];
+        return p.born != 0 && p.day >= SETTLED_DAYS && block.timestamp >= uint256(p.born) + SETTLED_AGE;
+    }
+
+    /// @notice Metadata from the renderer; until one is set, plain JSON with the pet's
+    /// facts, so wallets and marketplaces never see a revert.
     function tokenURI(uint256 petId) public view override returns (string memory) {
         _requireOwned(petId);
-        return renderer.tokenURI(petId);
+        if (address(renderer) != address(0)) return renderer.tokenURI(petId);
+        Pet storage p = _pets[petId];
+        string memory json = string.concat(
+            "{\"name\":\"Lingxi Pet #",
+            Strings.toString(petId),
+            "\",\"description\":\"A pet whose mind is a TapeOut circuit with LATCH memory on X Layer.\",\"attributes\":[{\"trait_type\":\"line\",\"value\":",
+            Strings.toString(p.line),
+            "},{\"trait_type\":\"brain circuit\",\"value\":",
+            Strings.toString(p.brainId),
+            "},{\"trait_type\":\"days saved\",\"value\":",
+            Strings.toString(p.day),
+            "},{\"trait_type\":\"generation\",\"value\":",
+            p.parentA == 0 ? "0" : "1",
+            "}]}"
+        );
+        return string.concat("data:application/json;base64,", Base64.encode(bytes(json)));
+    }
+
+    /// A sitting ends whenever the pet changes hands, and is not revived if it comes back.
+    function _update(address to, uint256 tokenId, address auth) internal override returns (address from) {
+        from = super._update(to, tokenId, auth);
+        if (from != address(0) && from != to) {
+            transferCount[tokenId] += 1;
+            if (sitters[tokenId].who != address(0)) {
+                delete sitters[tokenId];
+                emit SitterSet(tokenId, address(0), 0);
+            }
+        }
     }
 
     /* ── internals ─────────────────────────────────────────────────────── */

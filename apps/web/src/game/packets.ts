@@ -8,7 +8,7 @@
 import { create } from "zustand";
 import { type Address, type Hex, formatUnits, parseUnits } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { XLAYER_USDT, claimPacket, createPacket, pendingOf, readClaims, readPacket, refundPacket, revealPacket, signClaim, tokenBalance } from "@lingxi/chain";
+import { XLAYER_USDT, claimPacket, collectPacket, createPacket, owedOf, pendingOf, readClaims, readPacket, refundPacket, revealPacket, signClaim, tokenBalance } from "@lingxi/chain";
 import { b64urlDecode, b64urlEncode } from "@lingxi/brain";
 import { connectWallet, deployment, publicClient } from "./chain";
 
@@ -71,8 +71,12 @@ interface PacketStore {
   balance: () => Promise<bigint | null>;
   send: (o: { amount: string; count: number; lucky: boolean; petOwnersOnly: boolean; days: number; from: PacketLink["from"]; letter: string; origin: string }) => Promise<string | null>;
   /** claim (and reveal if lucky); returns the amount received */
-  open: (link: PacketLink, onStage: (s: "signing" | "claiming" | "luck" | "revealing") => void) => Promise<{ ok: true; amount: bigint; best: boolean } | { ok: false; reason: string }>;
+  /** claim (and reveal if lucky); `petId` is the opener's settled pet on chain, for pet-owners-only packets */
+  open: (link: PacketLink, onStage: (s: "signing" | "claiming" | "luck" | "revealing") => void, petId?: string) => Promise<{ ok: true; amount: bigint; best: boolean } | { ok: false; reason: string }>;
   refund: (id: string) => Promise<boolean>;
+  /** a lucky packet's top-up waiting for this wallet once every share is open */
+  owed: (id: string) => Promise<bigint>;
+  collect: (id: string) => Promise<bigint | null>;
 }
 
 export const usePackets = create<PacketStore>((set, get) => ({
@@ -117,7 +121,7 @@ export const usePackets = create<PacketStore>((set, get) => ({
       return null;
     }
   },
-  open: async (link, onStage) => {
+  open: async (link, onStage, petId) => {
     if (!deployment?.redPacket) return { ok: false, reason: "notDeployed" };
     try {
       const wallet = await connectWallet();
@@ -129,7 +133,7 @@ export const usePackets = create<PacketStore>((set, get) => ({
         onStage("signing");
         const sig = await signClaim(publicClient, deployment, `0x${link.key}` as Hex, id, me);
         onStage("claiming");
-        const r = await claimPacket(publicClient, wallet, deployment, id, sig);
+        const r = await claimPacket(publicClient, wallet, deployment, id, sig, petId ? BigInt(petId) : 0n);
         if (!r.reserved) return { ok: true, amount: r.amount, best: false };
         block = r.block;
       } else block = already.atBlock;
@@ -147,8 +151,26 @@ export const usePackets = create<PacketStore>((set, get) => ({
     } catch (e) {
       // the contract's error name sits further down viem's message than the first line
       const msg = (e as Error).message ?? "";
-      const reason = /AllClaimed/.test(msg) ? "allClaimed" : /AlreadyClaimed/.test(msg) ? "already" : /Expired/.test(msg) ? "expired" : /SealSaysNo/.test(msg) ? "petsOnly" : /BadKey/.test(msg) ? "badKey" : /noWallet/.test(msg) ? "noWallet" : firstLine(e);
+      const reason = /AllClaimed/.test(msg) ? "allClaimed" : /AlreadyClaimed/.test(msg) ? "already" : /Expired/.test(msg) ? "expired" : /SealSaysNo|NotYourPet/.test(msg) ? "petsOnly" : /PetUsed/.test(msg) ? "petUsed" : /BadKey/.test(msg) ? "badKey" : /noWallet/.test(msg) ? "noWallet" : firstLine(e);
       return { ok: false, reason };
+    }
+  },
+  owed: async (id) => {
+    if (!deployment?.redPacket) return 0n;
+    try {
+      const w = await connectWallet();
+      return await owedOf(publicClient, deployment, BigInt(id), w.account!.address);
+    } catch {
+      return 0n;
+    }
+  },
+  collect: async (id) => {
+    if (!deployment?.redPacket) return null;
+    try {
+      const w = await connectWallet();
+      return (await collectPacket(publicClient, w, deployment, BigInt(id))).amount;
+    } catch {
+      return null;
     }
   },
   refund: async (id) => {

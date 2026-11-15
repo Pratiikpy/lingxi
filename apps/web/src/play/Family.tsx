@@ -195,8 +195,8 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
           <p className="small warn">
             {chainError === "notAdultOnChain"
               ? lang === "zh"
-                ? "链上还不知道它们已经长大：先在“宠物”里把今天存到链上。"
-                : "The chain doesn't know they've grown yet: save today on chain from the Pet sheet first."
+                ? "在链上，两只宠物都要上链满 7 天才算长大。"
+                : "On chain, both pets must have lived there for 7 days to count as grown."
               : chainError === "tooSoon"
                 ? lang === "zh"
                   ? "链上显示它们还在休息。"

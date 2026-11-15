@@ -13,10 +13,10 @@
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { createPublicClient, createWalletClient, http, type Address, type Hex } from "viem";
+import { createPublicClient, createWalletClient, erc20Abi, http, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { type Program, type Rule, type StarterLine, bytesToHex, compileProgram, composeChild, gateCount, netlistBytes } from "@lingxi/brain";
-import { processorAbi, transistorsAbi, xLayer } from "@lingxi/chain";
+import { FACTORY, processorAbi, transistorsAbi, xLayer } from "@lingxi/chain";
 import { type Family, MAX_GATES, composeProgram, halvesOf } from "@lingxi/game";
 
 const NEWLINE = /\r?\n/;
@@ -121,6 +121,30 @@ export class BrainRelayer {
     });
   }
 
+  /**
+   * Mints transistors. Processors from index 415 on take TapeOut's protocol fee in
+   * BEM (approved first, mint price in OKB as value); older ones take everything in
+   * OKB. Which one applies is found by simulating, never assumed.
+   */
+  private async mint(transistors: Address, id: bigint, amount: bigint): Promise<void> {
+    const price = (await this.pub.readContract({ address: transistors, abi: transistorsAbi, functionName: "mintPrice" })) as bigint;
+    const fee = (await this.pub.readContract({ address: transistors, abi: transistorsAbi, functionName: "protocolFee" })) as bigint;
+    const account = this.wallet.account;
+    try {
+      const sim = await this.pub.simulateContract({ address: transistors, abi: transistorsAbi, functionName: "mint", args: [id, amount], value: price * amount + fee, account });
+      const tx = await this.wallet.writeContract(sim.request);
+      await this.pub.waitForTransactionReceipt({ hash: tx });
+      return;
+    } catch {
+      // not an OKB-fee processor: pay the protocol fee in BEM
+    }
+    const bem = (await this.pub.readContract({ address: FACTORY, abi: [{ type: "function", name: "bem", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] }] as const, functionName: "bem" })) as Address;
+    const ap = await this.pub.simulateContract({ address: bem, abi: erc20Abi, functionName: "approve", args: [transistors, fee], account });
+    await this.pub.waitForTransactionReceipt({ hash: await this.wallet.writeContract(ap.request) });
+    const sim = await this.pub.simulateContract({ address: transistors, abi: transistorsAbi, functionName: "mint", args: [id, amount], value: price * amount, account });
+    await this.pub.waitForTransactionReceipt({ hash: await this.wallet.writeContract(sim.request) });
+  }
+
   private async tapeProgram(program: Program): Promise<RelayResult> {
     const net = compileProgram(program);
     if (gateCount(net) > MAX_GATES) return { ok: false, reason: "tooBig" };
@@ -150,11 +174,8 @@ export class BrainRelayer {
         if (need === 0n) continue;
         const have = (await this.pub.readContract({ address: transistors, abi: transistorsAbi, functionName: "balanceOf", args: [me, id] })) as bigint;
         if (have >= need) continue;
-        const price = (await this.pub.readContract({ address: transistors, abi: transistorsAbi, functionName: "mintPrice" })) as bigint;
-        const fee = (await this.pub.readContract({ address: transistors, abi: transistorsAbi, functionName: "protocolFee" })) as bigint;
         const amount = need - have;
-        const tx = await this.wallet.writeContract({ address: transistors, abi: transistorsAbi, functionName: "mint", args: [id, amount], value: price * amount + fee });
-        await this.pub.waitForTransactionReceipt({ hash: tx });
+        await this.mint(transistors, id, amount);
       }
       const fee = (await this.pub.readContract({ address: p, abi: processorAbi, functionName: "TAPEOUT_FEE" })) as bigint;
       const hex = bytesToHex(bytes) as Hex;

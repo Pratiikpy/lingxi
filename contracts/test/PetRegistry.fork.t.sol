@@ -187,6 +187,43 @@ contract PetRegistryForkTest is Test {
         vm.prank(carol);
         vm.expectRevert(PetRegistry.NotKeeper.selector);
         reg.checkpoint(petId, 1, 1, bytes32(0));
+        // and the sitting does not come back if the pet returns to alice
+        vm.prank(bob);
+        reg.transferFrom(bob, alice, petId);
+        assertFalse(reg.isKeeper(petId, carol));
+    }
+
+    function test_settledPetsAndMetadataWithoutARenderer() public {
+        uint64 id = _tapeout("gentle");
+        vm.prank(owner);
+        reg.setStarterBrain(address(PROC), id, true);
+        uint256 petId = reg.hatch(alice, 0, address(PROC), id, 0);
+        assertFalse(reg.isSettled(petId), "a fresh hatch is not settled");
+        vm.warp(block.timestamp + 3 days);
+        assertFalse(reg.isSettled(petId), "old enough but nothing saved");
+        vm.prank(alice);
+        reg.checkpoint(petId, 2, 0, bytes32(0));
+        assertFalse(reg.isSettled(petId), "only two days saved");
+        vm.warp(block.timestamp + 1 days);
+        vm.prank(alice);
+        reg.checkpoint(petId, 4, 0, bytes32(0));
+        assertTrue(reg.isSettled(petId));
+        string memory uri = reg.tokenURI(petId);
+        assertEq(bytes(uri).length > 60, true);
+        assertEq(_startsWith(uri, "data:application/json;base64,"), true);
+        // each change of hands is counted
+        assertEq(reg.transferCount(petId), 0);
+        vm.prank(alice);
+        reg.transferFrom(alice, bob, petId);
+        assertEq(reg.transferCount(petId), 1);
+    }
+
+    function _startsWith(string memory s, string memory pre) internal pure returns (bool) {
+        bytes memory a = bytes(s);
+        bytes memory b = bytes(pre);
+        if (a.length < b.length) return false;
+        for (uint256 i = 0; i < b.length; i++) if (a[i] != b[i]) return false;
+        return true;
     }
 
     function test_newBrainKeepsSharedMemory() public {

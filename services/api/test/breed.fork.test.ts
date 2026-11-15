@@ -21,7 +21,9 @@ const RELAY_KEY_FILE = process.env.RELAY_KEY_FILE;
 
 describe.skipIf(!RPC || !RELAY_KEY_FILE)("a family, proven on an X Layer fork", () => {
   it("consent, child circuit, Breeder checks, and the child thinks as both parents", async () => {
-    const d = JSON.parse(readFileSync(new URL("../../../packages/chain/deployments/local.json", import.meta.url), "utf8")) as Deployment;
+    // the deployment under test: the dev fork by default, or a rehearsal of the mainnet deploy
+    const file = process.env.DEPLOYMENT_FILE ?? new URL("../../../packages/chain/deployments/local.json", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+    const d = JSON.parse(readFileSync(file, "utf8")) as Deployment;
     expect(d.breeder).toBeTruthy();
     const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
     const pub = createPublicClient({ chain, transport: http(RPC) });

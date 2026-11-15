@@ -1,0 +1,40 @@
+{
+  "chainId": 196,
+  "rpc": "http://127.0.0.1:8550",
+  "processor": "0xf70d324Da8C1C4Cb0dE3FF147E53E7E9db543c4e",
+  "transistors": "0x92DFda52386386Be40EFd7becB545139372C7139",
+  "registry": "0x103d7252eb6b2fec22b3f65a6bb605945f280e99",
+  "breeder": "0x5e5bbb798c5a2afc89f431debabaa0b889f77dd1",
+  "redPacket": "0x7acceb7ab1cff102fe2660f511e88d42010e806b",
+  "seal": "5",
+  "redPacketBlock": 75967992,
+  "deployer": "0xA551feD6f2Ab35d509A71B74D5E9F38742E0aaD8",
+  "circuits": {
+    "gentle": {
+      "id": "1",
+      "tx": "0xe5a3ba0e8cc35d1d5e699b936354080740ec7e44e8578c6e746b78297811634b",
+      "gates": 296
+    },
+    "bold": {
+      "id": "2",
+      "tx": "0x2ec87cb6fe9980f98818acda649f5f43202f7a02d9f5d29b18a127b744758e73",
+      "gates": 233
+    },
+    "curious": {
+      "id": "3",
+      "tx": "0x6429d3fd89e7b5e2183b465b419728c7262720667ed4e74fbea2874194f1c03d",
+      "gates": 248
+    },
+    "evolution": {
+      "id": "4",
+      "tx": "0x9c9b6dcdd4cf7ec1fb77d2b7081f7344d3ffce1fd7f2da396e56dcb7ea9f5cfb",
+      "gates": 58
+    },
+    "seal": {
+      "id": "5",
+      "tx": "0xc10a3f4bd37a19bffbc171722ef46e472ff72ccc0db87734cb37038f0215c45a",
+      "gates": 251
+    }
+  },
+  "at": "2026-11-15T10:03:54.852Z"
+}

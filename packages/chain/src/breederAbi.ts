@@ -13,7 +13,7 @@ export const breederAbi = [
  },
  {
   "type": "function",
-  "name": "ADULT_STAGE",
+  "name": "ADULT_AGE",
   "inputs": [],
   "outputs": [
    {
@@ -117,6 +117,30 @@ export const breederAbi = [
   "name": "consent",
   "inputs": [
    {
+    "name": "petId",
+    "type": "uint256",
+    "internalType": "uint256"
+   },
+   {
+    "name": "partnerOwner",
+    "type": "address",
+    "internalType": "address"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "",
+    "type": "bool",
+    "internalType": "bool"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "consentBy",
+  "inputs": [
+   {
     "name": "",
     "type": "uint256",
     "internalType": "uint256"
@@ -129,9 +153,14 @@ export const breederAbi = [
   ],
   "outputs": [
    {
-    "name": "",
-    "type": "bool",
-    "internalType": "bool"
+    "name": "by",
+    "type": "address",
+    "internalType": "address"
+   },
+   {
+    "name": "ownership",
+    "type": "uint256",
+    "internalType": "uint256"
    }
   ],
   "stateMutability": "view"
@@ -377,6 +406,17 @@ export const breederAbi = [
    }
   ],
   "anonymous": false
+ },
+ {
+  "type": "error",
+  "name": "ComposedBrain",
+  "inputs": [
+   {
+    "name": "petId",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ]
  },
  {
   "type": "error",

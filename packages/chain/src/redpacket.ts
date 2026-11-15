@@ -23,6 +23,7 @@ export interface PacketView {
   token: Address;
   remaining: bigint;
   floor: bigint;
+  extra: bigint;
 }
 
 export interface ClaimView {
@@ -84,9 +85,10 @@ export async function signClaim(pub: PublicClient, d: Deployment, keyPk: Hex, id
   return privateKeyToAccount(keyPk).sign({ hash: digest });
 }
 
-export async function claimPacket(pub: PublicClient, wallet: WalletClient, d: Deployment, id: bigint, sig: Hex): Promise<{ amount: bigint; reserved: boolean; tx: Hex; block: bigint }> {
+/** Claim a share; `petId` is the claimer's settled pet for a pet-owners-only packet (0 otherwise). */
+export async function claimPacket(pub: PublicClient, wallet: WalletClient, d: Deployment, id: bigint, sig: Hex, petId = 0n): Promise<{ amount: bigint; reserved: boolean; tx: Hex; block: bigint }> {
   const account = acct(wallet);
-  const { request } = await pub.simulateContract({ address: need(d), abi: redPacketAbi, functionName: "claim", args: [id, sig], account });
+  const { request } = await pub.simulateContract({ address: need(d), abi: redPacketAbi, functionName: "claim", args: [id, sig, petId], account });
   const tx = await wallet.writeContract(request);
   const r = await pub.waitForTransactionReceipt({ hash: tx });
   if (r.status !== "success") throw new Error("claim failed");
@@ -131,6 +133,20 @@ export async function readClaims(pub: PublicClient, d: Deployment, id: bigint): 
 }
 
 export async function pendingOf(pub: PublicClient, d: Deployment, id: bigint, who: Address): Promise<{ atBlock: bigint; index: number } | null> {
-  const [atBlock, index] = (await pub.readContract({ address: need(d), abi: redPacketAbi, functionName: "pending", args: [id, who] })) as readonly [bigint, number];
+  const [atBlock, index] = (await pub.readContract({ address: need(d), abi: redPacketAbi, functionName: "pending", args: [id, who] })) as readonly [bigint, number, boolean];
   return atBlock === 0n ? null : { atBlock, index: Number(index) };
+}
+
+/** A top-up owed to `who` once every share of a lucky packet is open (0 if none). */
+export async function owedOf(pub: PublicClient, d: Deployment, id: bigint, who: Address): Promise<bigint> {
+  return (await pub.readContract({ address: need(d), abi: redPacketAbi, functionName: "owed", args: [id, who] })) as bigint;
+}
+
+export async function collectPacket(pub: PublicClient, wallet: WalletClient, d: Deployment, id: bigint): Promise<{ amount: bigint; tx: Hex }> {
+  const account = acct(wallet);
+  const { request, result } = await pub.simulateContract({ address: need(d), abi: redPacketAbi, functionName: "collect", args: [id], account });
+  const tx = await wallet.writeContract(request);
+  const r = await pub.waitForTransactionReceipt({ hash: tx });
+  if (r.status !== "success") throw new Error("collect failed");
+  return { amount: result as bigint, tx };
 }

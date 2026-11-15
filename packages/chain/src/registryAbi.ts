@@ -70,6 +70,32 @@ export const petRegistryAbi = [
  },
  {
   "type": "function",
+  "name": "SETTLED_AGE",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "SETTLED_DAYS",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint32",
+    "internalType": "uint32"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
   "name": "acceptOwnership",
   "inputs": [],
   "outputs": [],
@@ -340,6 +366,25 @@ export const petRegistryAbi = [
     "name": "who",
     "type": "address",
     "internalType": "address"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "",
+    "type": "bool",
+    "internalType": "bool"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "isSettled",
+  "inputs": [
+   {
+    "name": "petId",
+    "type": "uint256",
+    "internalType": "uint256"
    }
   ],
   "outputs": [
@@ -821,6 +866,25 @@ export const petRegistryAbi = [
     "name": "",
     "type": "string",
     "internalType": "string"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "transferCount",
+  "inputs": [
+   {
+    "name": "",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256",
+    "internalType": "uint256"
    }
   ],
   "stateMutability": "view"

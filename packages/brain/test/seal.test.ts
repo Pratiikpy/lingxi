@@ -37,3 +37,12 @@ describe("LX-SEAL/1", () => {
     expect(sum / 256).toBeLessThan(9);
   });
 });
+
+describe("LX-SEAL/1 eligibility", () => {
+  it("whether a claim is allowed never depends on the luck seed", () => {
+    for (let w = 0; w < 65536; w += 1) {
+      const noSeed = w & ~(0xff << 4);
+      expect(sealReference(w) & 1).toBe(sealReference(noSeed) & 1);
+    }
+  });
+});

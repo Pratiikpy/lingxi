@@ -78,7 +78,7 @@ async function deployRedPacket(registry: Address): Promise<{ redPacket: Address;
   const seal = compileSeal();
   const r = await tapeOut("seal LX-SEAL/1", netlistBytes(seal), 16, 8, seal.gates.length, 0);
   const art = JSON.parse(readFileSync(resolve(here2, "../../../contracts/out/RedPacket.sol/RedPacket.json"), "utf8"));
-  const tx = await wallet.deployContract({ abi: art.abi, bytecode: art.bytecode.object as Hex, args: [processor!, r.id, registry] });
+  const tx = await wallet.deployContract({ abi: art.abi, bytecode: art.bytecode.object as Hex, args: [processor!, r.id, registry, account.address, ["0x1E4a5963aBFD975d8c9021ce480b42188849D41d", "0x779Ded0c9e1022225f8E0630b35a9b54bE713736"]] });
   const dr = await pub.waitForTransactionReceipt({ hash: tx });
   console.log(`RedPacket ${dr.contractAddress} (seal #${r.id}) tx ${tx}`);
   return { redPacket: dr.contractAddress as Address, seal: r.id.toString() };

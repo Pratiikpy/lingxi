@@ -11,7 +11,8 @@ import type { Pet } from "@lingxi/game";
 import { type ClaimView, type PacketView } from "@lingxi/chain";
 import { useLang } from "../i18n";
 import { type PacketLink, decodePacketLink, packetsAvailable, readClaims, readPacket, usdt, usePackets } from "../game/packets";
-import { deployment, publicClient } from "../game/chain";
+import { deployment, publicClient, useChain } from "../game/chain";
+import { useGame } from "../game/store";
 import { play } from "../game/sound";
 import { PALETTE_OF } from "../scene/textures";
 import { Sprite } from "./Sprite";
@@ -106,7 +107,7 @@ export function RedPacketPanel({ pet }: { pet: Pet }) {
           </div>
           <label className="gift-check">
             <input type="checkbox" checked={petsOnly} onChange={(e) => setPetsOnly(e.target.checked)} />
-            <span>{lang === "zh" ? "只有在链上养着灵犀宠物的人才能领" : "Only people with a Lingxi pet on chain can open it"}</span>
+            <span>{lang === "zh" ? "只有养着链上满 3 天、存过 3 天的灵犀宠物的人才能领（能挡住随手刷号，挡不住有心人）" : "Only owners of a Lingxi pet that has lived on chain 3 days and saved 3 days (stops casual farming, not a determined farmer)"}</span>
           </label>
           <label className="gift-letter">
             <span className="small">{lang === "zh" ? "祝福语" : "A message"}</span>
@@ -185,6 +186,9 @@ export function PacketArrival() {
   const lang = useLang((s) => s.lang) as Lang;
   const reduce = useReducedMotion() ?? false;
   const open = usePackets((s) => s.open);
+  const owedFn = usePackets((s) => s.owed);
+  const collectFn = usePackets((s) => s.collect);
+  const [owed, setOwed] = useState<bigint>(0n);
   const [link, setLink] = useState<PacketLink | null>(null);
   const [view, setView] = useState<PacketView | null>(null);
   const [claims, setClaims] = useState<ClaimView[]>([]);
@@ -203,6 +207,7 @@ export function PacketArrival() {
       setResult(null);
       void readPacket(publicClient, deployment!, BigInt(l.id)).then(setView, () => setReason("unknown"));
       void readClaims(publicClient, deployment!, BigInt(l.id)).then(setClaims, () => undefined);
+      void owedFn(l.id).then(setOwed);
     };
     read();
     // a link opened in a tab that already shows the game only changes the hash
@@ -222,7 +227,8 @@ export function PacketArrival() {
     allClaimed: ["Every share has been opened.", "红包已经被领完了。"],
     already: ["You've already opened this one.", "你已经领过这个红包了。"],
     expired: ["This red packet has expired.", "这个红包已经过期了。"],
-    petsOnly: ["Only people with a Lingxi pet on chain can open this one.", "只有在链上养着灵犀宠物的人才能领这个红包。"],
+    petsOnly: ["Only owners of a settled Lingxi pet can open this one: the pet on screen must have lived on chain for 3 days and saved its third day.", "只有养着“安顿好”的灵犀宠物的人才能领：当前宠物要在链上满 3 天，并且存过第 3 天。"],
+    petUsed: ["This pet has already opened this red packet.", "这只宠物已经领过这个红包了。"],
     badKey: ["This link's key doesn't match the packet.", "这个链接的钥匙和红包对不上。"],
     noWallet: ["Opening a share needs a wallet (OKX Wallet or any browser wallet).", "领红包需要一个钱包（OKX 钱包或任意浏览器钱包）。"],
   };
@@ -266,13 +272,17 @@ export function PacketArrival() {
                 disabled={stage !== "idle" || !view || left === 0 || expired}
                 onClick={async () => {
                   play("pop");
-                  const r = await open(link, setStage);
+                  // a pet-owners-only packet is opened with the pet on screen, if it lives on chain
+                  const active = useGame.getState().pet;
+                  const rec = active ? useChain.getState().recordOf(active) : null;
+                  const r = await open(link, setStage, rec?.petId);
                   if (r.ok) {
                     play("success");
                     setResult({ amount: r.amount, best: r.best });
                     setStage("done");
                     void readClaims(publicClient, deployment!, BigInt(link.id)).then(setClaims);
                     void readPacket(publicClient, deployment!, BigInt(link.id)).then(setView);
+                    void owedFn(link.id).then(setOwed);
                   } else {
                     play("error");
                     setReason(r.reason);
@@ -308,6 +318,25 @@ export function PacketArrival() {
                               ? "开红包"
                               : "Open it"}
               </button>
+            )}
+            {owed > 0n && (
+              <button
+                type="button"
+                className="btn primary rp-open"
+                onClick={async () => {
+                  const got = await collectFn(link.id);
+                  if (got !== null) {
+                    play("success");
+                    setOwed(0n);
+                    setResult((r) => ({ amount: (r?.amount ?? 0n) + got, best: r?.best ?? false }));
+                  }
+                }}
+              >
+                {lang === "zh" ? `大家都领完了：再收 ${usdt(owed)} USDT` : `Everyone has opened: collect ${usdt(owed)} USDT more`}
+              </button>
+            )}
+            {view?.lucky && result && owed === 0n && view.paid < view.count && (
+              <p className="small">{lang === "zh" ? "等所有人都领完，剩下的奖池会按手气再分一次，到时回来收。" : "When everyone has opened, the rest of the pool is shared out by luck; come back to collect it."}</p>
             )}
             {claims.length > 0 && (
               <details className="rp-claims">

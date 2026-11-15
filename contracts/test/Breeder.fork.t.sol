@@ -85,6 +85,8 @@ contract BreederForkTest is Test {
         vm.stopPrank();
         petA = reg.hatch(alice, 0, address(PROC), brainA, ADULT | 0xA5);
         petB = reg.hatch(alice, 1, address(PROC), brainB, ADULT | 0x3C);
+        // grown up by on-chain age
+        vm.warp(block.timestamp + 7 days);
     }
 
     function test_childBrainTapesOutStepsAndBreeds() public {
@@ -143,11 +145,15 @@ contract BreederForkTest is Test {
         breeder.breed(baby, petB, address(PROC), child, 0);
 
         uint256 bobsPet = reg.hatch(bob, 1, address(PROC), brainB, ADULT);
+        // stage bits written by the client do not make a pet adult; age on chain does
         vm.prank(alice);
         vm.expectRevert(Breeder.NoConsent.selector);
         breeder.breed(petA, bobsPet, address(PROC), child, 0);
         vm.prank(bob);
         breeder.allowPartner(bobsPet, alice, true);
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSelector(Breeder.NotAdult.selector, bobsPet));
+        breeder.breed(petA, bobsPet, address(PROC), child, 0);
 
         vm.prank(alice);
         breeder.breed(petA, petB, address(PROC), child, 0);
@@ -170,11 +176,52 @@ contract BreederForkTest is Test {
         // a child is refused as a parent, on either side, before anything else is checked
         vm.warp(block.timestamp + 3 days + 1);
         uint256 other = reg.hatch(alice, 0, address(PROC), brainA, ADULT);
+        vm.warp(block.timestamp + 7 days);
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSelector(Breeder.NotFirstGeneration.selector, kid));
         breeder.breed(kid, other, address(PROC), child, 0);
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSelector(Breeder.NotFirstGeneration.selector, kid));
         breeder.breed(other, kid, address(PROC), child, 0);
+    }
+
+    function test_consentFollowsTheOwnerAndIsUsedOnce() public {
+        uint256 bobsPet = reg.hatch(bob, 1, address(PROC), brainB, 0);
+        vm.warp(block.timestamp + 7 days + 1);
+        uint64 child = _child(brainA, brainB, fx.readBytes(".glue"));
+        vm.prank(bob);
+        breeder.allowPartner(bobsPet, alice, true);
+        assertTrue(breeder.consent(bobsPet, alice));
+        // bob sells the pet: his consent no longer speaks for the new owner
+        address carol = makeAddr("carol");
+        vm.prank(bob);
+        reg.transferFrom(bob, carol, bobsPet);
+        assertFalse(breeder.consent(bobsPet, alice));
+        vm.prank(alice);
+        vm.expectRevert(Breeder.NoConsent.selector);
+        breeder.breed(petA, bobsPet, address(PROC), child, 0);
+        // even if carol sells the pet back to bob, bob's old consent does not come back
+        vm.prank(carol);
+        reg.transferFrom(carol, bob, bobsPet);
+        assertFalse(breeder.consent(bobsPet, alice));
+        vm.prank(bob);
+        reg.transferFrom(bob, carol, bobsPet);
+        // carol agrees once; one child uses it up
+        vm.prank(carol);
+        breeder.allowPartner(bobsPet, alice, true);
+        vm.prank(alice);
+        breeder.breed(petA, bobsPet, address(PROC), child, 0);
+        assertFalse(breeder.consent(bobsPet, alice));
+    }
+
+    function test_aParentWithAComposedBrainIsRefused() public {
+        // petA switches to a composed (child-shaped) circuit; it may not become a parent with it
+        uint64 composed = _child(brainA, brainB, fx.readBytes(".glue"));
+        vm.prank(alice);
+        reg.setBrain(petA, address(PROC), composed);
+        uint64 child = _child(composed, brainB, fx.readBytes(".glue"));
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSelector(Breeder.ComposedBrain.selector, petA));
+        breeder.breed(petA, petB, address(PROC), child, 0);
     }
 }
