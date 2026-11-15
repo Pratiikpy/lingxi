@@ -2,29 +2,29 @@
   "chainId": 196,
   "rpc": "http://127.0.0.1:8547",
   "processor": "0xE0EF4FffD869cBD24b2F83E6d2d83109937E05ff",
-  "registry": "0x767ede75c3fbb97a2138c1c67ead5b6b6a15fcba",
+  "registry": "0x5007808d97ebac0ee779f6906c1a882741f4a5b1",
   "deployer": "0x702f7A44B1F08763E50fDFd5bF8B8c354B7A7797",
   "circuits": {
     "gentle": {
-      "id": "26",
-      "tx": "0x02b45dbf5efef61193d166b7592abf89b9db7eb3de49a85276c9afd6d099f790",
+      "id": "30",
+      "tx": "0xffe86b91efc6fb3bf057f22b18166481098e239c0f7d29fe124eaa29a9165f14",
       "gates": 296
     },
     "bold": {
-      "id": "27",
-      "tx": "0x99f6f908c94a539c59c89b62a081d1f5a86682f367cabc0b678ed44eb86d8839",
+      "id": "31",
+      "tx": "0x7536b96c8ebc648802cd68b4429484085e61b4a6b1838aad7cda40bfc189a078",
       "gates": 233
     },
     "curious": {
-      "id": "28",
-      "tx": "0x53732935a1800ed083846863c3005c533f89169287229ef4094dd875361a5752",
+      "id": "32",
+      "tx": "0x7f25eb2d9212b0a5b89fa30d12584dfd8383d8653bd827752f625fd22c0074e2",
       "gates": 248
     },
     "evolution": {
-      "id": "29",
-      "tx": "0x38cab3b245fbc0169dfa7006ca64621ab641393449be3b2320b1eafbc9785cd8",
+      "id": "33",
+      "tx": "0x130de89c226054ca0bf8cce04ac6c4cb7a65ca59d7c562e31801d7166b48310f",
       "gates": 58
     }
   },
-  "at": "2026-11-15T06:36:47.680Z"
+  "at": "2026-11-15T07:20:13.832Z"
 }

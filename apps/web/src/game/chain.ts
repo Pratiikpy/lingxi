@@ -10,8 +10,9 @@
 import { create } from "zustand";
 import { createPublicClient, createWalletClient, custom, http, type Hex, type PublicClient, type WalletClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { type Deployment, checkpointOnChain, hatchOnChain, readPet, xLayer } from "@lingxi/chain";
-import { type Pet, packState, stageOf } from "@lingxi/game";
+import { type Deployment, checkpointOnChain, hatchOnChain, readPet, setBrainOnChain, xLayer } from "@lingxi/chain";
+import { type Pet, logSegments, packState, stageOf } from "@lingxi/game";
+import { relayBrain } from "./api";
 import localDeployment from "../../../../packages/chain/deployments/local.json";
 
 const CHAIN_KEY = "lingxi.chain.v1";
@@ -61,7 +62,15 @@ export interface ChainRecord {
   owner: string;
   /** block timestamp (seconds) of the on-chain hatch; checkpoint days count from it */
   bornChain: number;
+  /** lessons key → circuit id of every brain this pet has run on chain */
+  brains?: Record<string, string>;
+  /** lessons key of the brain the pet runs on chain now */
+  brainKey?: string;
+  /** how many logged words the last checkpoint covers */
+  logLen?: number;
 }
+
+export const lessonsKey = (lessons: unknown[]) => JSON.stringify(lessons);
 
 /** The on-chain day number now, as PetRegistry counts it. */
 export const chainDay = (r: ChainRecord, nowMs: number) => Math.floor((nowMs / 1000 - r.bornChain) / 86_400) + 1;
@@ -77,10 +86,12 @@ function loadRecord(): ChainRecord | null {
 
 interface ChainState {
   record: ChainRecord | null;
-  busy: "idle" | "connecting" | "hatching" | "saving";
+  busy: "idle" | "connecting" | "hatching" | "saving" | "taping";
   error: string | null;
   keep: (pet: Pet) => Promise<void>;
   saveToday: (pet: Pet, onSaved: () => void) => Promise<void>;
+  updateMind: (pet: Pet) => Promise<void>;
+  exportLog: (pet: Pet) => string | null;
   forget: () => void;
 }
 
@@ -97,7 +108,15 @@ export const useChain = create<ChainState>((set, get) => ({
       const line = LINES.indexOf(pet.line);
       const { petId, tx } = await hatchOnChain(publicClient, wallet, deployment, line, pet.line, packState(pet, stageOf(pet, Date.now())));
       const onChain = await readPet(publicClient, deployment, petId);
-      const record: ChainRecord = { petId: petId.toString(), hatchTx: tx, lastDay: 0, owner: wallet.account!.address, bornChain: onChain.born };
+      const record: ChainRecord = {
+        petId: petId.toString(),
+        hatchTx: tx,
+        lastDay: 0,
+        owner: wallet.account!.address,
+        bornChain: onChain.born,
+        brains: { [lessonsKey([])]: deployment.circuits[pet.line]!.id },
+        brainKey: lessonsKey([]),
+      };
       localStorage.setItem(CHAIN_KEY, JSON.stringify(record));
       set({ record, busy: "idle" });
     } catch (e) {
@@ -117,13 +136,46 @@ export const useChain = create<ChainState>((set, get) => ({
         return;
       }
       const tx = await checkpointOnChain(publicClient, wallet, deployment, BigInt(record.petId), day, packState(pet, stageOf(pet, Date.now())), pet.logHash as Hex);
-      const next = { ...record, lastDay: day, lastTx: tx };
+      const next = { ...record, lastDay: day, lastTx: tx, logLen: pet.pendingLog.length };
       localStorage.setItem(CHAIN_KEY, JSON.stringify(next));
       set({ record: next, busy: "idle" });
       onSaved();
     } catch (e) {
       set({ busy: "idle", error: (e as Error).message.split("\n")[0] ?? "failed" });
     }
+  },
+  updateMind: async (pet) => {
+    const { record } = get();
+    if (!deployment || !record) return;
+    set({ busy: "connecting", error: null });
+    try {
+      const key = lessonsKey(pet.lessons);
+      let brainId = record.brains?.[key];
+      if (!brainId) {
+        set({ busy: "taping" });
+        const r = await relayBrain({ line: pet.line, lessons: pet.lessons });
+        if (!r.ok) throw new Error(r.reason);
+        brainId = r.brainId;
+      }
+      const wallet = await connectWallet();
+      set({ busy: "saving" });
+      await setBrainOnChain(publicClient, wallet, deployment, BigInt(record.petId), deployment.processor, BigInt(brainId));
+      const next = { ...record, brains: { ...(record.brains ?? {}), [key]: brainId }, brainKey: key };
+      localStorage.setItem(CHAIN_KEY, JSON.stringify(next));
+      set({ record: next, busy: "idle" });
+    } catch (e) {
+      set({ busy: "idle", error: (e as Error).message.split("\n")[0] ?? "failed" });
+    }
+  },
+  exportLog: (pet) => {
+    const { record } = get();
+    if (!record) return null;
+    // the log exactly as the last checkpoint committed it
+    const n = record.logLen ?? 0;
+    const segments = logSegments({ ...pet, pendingLog: pet.pendingLog.slice(0, n) })
+      .map((s) => ({ brainId: record.brains?.[lessonsKey(s.lessons)] ?? null, words: s.words }))
+      .filter((s) => s.words.length > 0);
+    return JSON.stringify({ petId: record.petId, words: pet.pendingLog.slice(0, n), segments });
   },
   forget: () => {
     localStorage.removeItem(CHAIN_KEY);

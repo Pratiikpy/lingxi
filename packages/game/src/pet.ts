@@ -70,8 +70,10 @@ export interface PetState {
   diet: Record<Diet, number>;
   /** keccak hash chain of every input word since hatching */
   logHash: string;
-  /** input words since the last checkpoint */
+  /** every input word since hatching, in order (the log the checkpoints commit to) */
   pendingLog: number[];
+  /** which lessons the brain had from each point of the log on: segment i covers words from[i]..from[i+1]-1 */
+  segments?: Array<{ from: number; lessons: import("@lingxi/brain").Rule[] }>;
   /** last brain answer, for the screen */
   last: { want: number; mood: number; nudge: number; rule: number; word: number; before?: number[] };
 }

@@ -142,11 +142,21 @@ export function VerifyApp() {
   const onLog = async (file: File) => {
     if (!pet || !circuit) return;
     try {
-      const j = JSON.parse(await file.text()) as { words: number[] };
-      const words = j.words.filter((w) => Number.isInteger(w) && w >= 0 && w < 65536);
+      const j = JSON.parse(await file.text()) as { words: number[]; segments?: Array<{ brainId: string | null; words: number[] }> };
+      const clean = (ws: number[]) => ws.filter((w) => Number.isInteger(w) && w >= 0 && w < 65536);
+      const segments = j.segments?.length ? j.segments.map((sg) => ({ brainId: sg.brainId, words: clean(sg.words) })) : [{ brainId: pet.brainId.toString(), words: clean(j.words) }];
+      const words = segments.flatMap((sg) => sg.words);
       if (chainAll(ZERO_HASH, words).toLowerCase() !== pet.logHash.toLowerCase()) return setLogResult(t.logBadHash);
+      // each stretch of the log runs on the brain it was recorded with, read from the processor
       let st = new Array<number>(pet.brainBits).fill(0);
-      for (const w of words) st = beat(circuit, st, wordToBits(w, 16))[0];
+      for (const sg of segments) {
+        if (!sg.words.length) continue;
+        const id = BigInt(sg.brainId ?? pet.brainId.toString());
+        const nl = await readNetlist(publicClient, pet.processor, id);
+        const c = load(hexToBytes(nl.bytes), nl.nIn, nl.nOut);
+        if (st.length !== c.nState) st = st.slice(0, c.nState).concat(new Array(Math.max(0, c.nState - st.length)).fill(0));
+        for (const w of sg.words) st = beat(c, st, wordToBits(w, 16))[0];
+      }
       const saved = unpackState(pet.state, pet.brainBits).brain;
       const beats = lang === "zh" ? String(words.length) : `${words.length} ${words.length === 1 ? "beat" : "beats"}`;
       setLogResult(st.join("") === saved.join("") ? t.logOk.replace("{n}", beats) : t.logBadState);

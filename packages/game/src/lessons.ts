@@ -113,7 +113,7 @@ export function teach(p: Pet, rule: Rule, now: number): { ok: true; pet: Pet; ga
   return {
     ok: true,
     gates: r.gates,
-    pet: { ...p, lessons: [rule, ...p.lessons], counts: { ...p.counts, lessons: Math.min(255, p.counts.lessons + 1) } },
+    pet: withSegment({ ...p, lessons: [rule, ...p.lessons], counts: { ...p.counts, lessons: Math.min(255, p.counts.lessons + 1) } }),
   };
 }
 
@@ -127,5 +127,21 @@ export function arrangeLessons(p: Pet, index: number, move: "up" | "down" | "for
     if (j < 0 || j >= ls.length) return p;
     [ls[index], ls[j]] = [ls[j]!, ls[index]!];
   }
-  return { ...p, lessons: ls };
+  return withSegment({ ...p, lessons: ls });
+}
+
+/** Record that the brain changes here, so a log spanning lessons can be replayed brain by brain. */
+export function withSegment(p: Pet): Pet {
+  const segs = p.segments?.slice() ?? [{ from: 0, lessons: [] }];
+  const from = p.pendingLog.length;
+  const last = segs[segs.length - 1]!;
+  if (last.from === from) segs[segs.length - 1] = { from, lessons: p.lessons.slice() };
+  else segs.push({ from, lessons: p.lessons.slice() });
+  return { ...p, segments: segs };
+}
+
+/** The log cut into the brain each stretch ran on. */
+export function logSegments(p: Pet): Array<{ lessons: Rule[]; words: number[] }> {
+  const segs = p.segments ?? [{ from: 0, lessons: [] }];
+  return segs.map((s, i) => ({ lessons: s.lessons, words: p.pendingLog.slice(s.from, segs[i + 1]?.from ?? p.pendingLog.length) }));
 }

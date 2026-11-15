@@ -40,6 +40,7 @@ contract PetRegistry is ERC721, Ownable2Step {
     struct Sitter {
         address who;
         uint64 until;
+        address grantedBy; // the owner who granted it; a sitter never outlives a transfer
     }
 
     ITapeOutFactory public immutable factory;
@@ -60,7 +61,7 @@ contract PetRegistry is ERC721, Ownable2Step {
     event SitterSet(uint256 indexed petId, address indexed sitter, uint64 until);
     event StarterBrainSet(address indexed processor, uint256 indexed brainId, bool approved);
     event BreederSet(address indexed breeder, bool allowed);
-    event RendererSet(address renderer);
+    event RendererSet(address indexed renderer);
 
     error NotKeeper();
     error NotStarter();
@@ -72,6 +73,7 @@ contract PetRegistry is ERC721, Ownable2Step {
     error DayNotAfter(uint32 last, uint32 day);
     error DayInFuture(uint32 day, uint32 today);
     error BadOutput(uint256 len);
+    error SittingTooLong();
 
     constructor(ITapeOutFactory factory_, address owner_) ERC721("Lingxi Pet", "LINGXI") Ownable(owner_) {
         factory = factory_;
@@ -159,7 +161,7 @@ contract PetRegistry is ERC721, Ownable2Step {
         if (o == address(0)) return false;
         if (who == o || isApprovedForAll(o, who) || getApproved(petId) == who) return true;
         Sitter memory s = sitters[petId];
-        return s.who == who && block.timestamp <= s.until;
+        return s.who == who && s.grantedBy == o && block.timestamp <= s.until;
     }
 
     modifier onlyKeeper(uint256 petId) {
@@ -194,10 +196,14 @@ contract PetRegistry is ERC721, Ownable2Step {
         emit BrainChanged(petId, processor, brainId, bits);
     }
 
-    /// @notice Let a friend look after the pet until a given time. Ownership never moves.
+    uint256 public constant MAX_SITTING = 30 days;
+
+    /// @notice Let a friend look after the pet until a given time (at most 30 days ahead).
+    /// Ownership never moves, and the sitting ends if the pet changes hands.
     function setSitter(uint256 petId, address who, uint64 until) external {
         if (_ownerOf(petId) != msg.sender) revert NotKeeper();
-        sitters[petId] = Sitter(who, until);
+        if (until > block.timestamp + MAX_SITTING) revert SittingTooLong();
+        sitters[petId] = Sitter(who, until, msg.sender);
         emit SitterSet(petId, who, until);
     }
 

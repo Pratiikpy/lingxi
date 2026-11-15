@@ -2,7 +2,7 @@
 
 import type { Pet } from "@lingxi/game";
 import { useT, type Key } from "../i18n";
-import { deployment, explorerTx, useChain } from "../game/chain";
+import { deployment, explorerTx, lessonsKey, useChain } from "../game/chain";
 import { play } from "../game/sound";
 import { useGame } from "../game/store";
 
@@ -10,10 +10,11 @@ const ERR: Record<string, Key> = { noWallet: "chain.noWallet", noAccount: "chain
 
 export function ChainPanel({ pet }: { pet: Pet }) {
   const t = useT();
-  const { record, busy, error, keep, saveToday } = useChain();
+  const { record, busy, error, keep, saveToday, updateMind, exportLog } = useChain();
   const say = useGame((s) => s.say);
   if (!deployment) return null;
-  const busyText = busy === "connecting" ? t("chain.connecting") : busy === "hatching" ? t("chain.hatching") : busy === "saving" ? t("chain.saving") : null;
+  const busyText = busy === "connecting" ? t("chain.connecting") : busy === "hatching" ? t("chain.hatching") : busy === "saving" ? t("chain.saving") : busy === "taping" ? t("chain.taping") : null;
+  const mindBehind = record && (record.brainKey ?? lessonsKey([])) !== lessonsKey(pet.lessons);
   const err = error ? t(ERR[error] ?? "chain.failed") : null;
   return (
     <div className="chainpanel">
@@ -34,11 +35,19 @@ export function ChainPanel({ pet }: { pet: Pet }) {
             <a
               className="btn"
               download={`lingxi-pet-${record.petId}-log.json`}
-              href={URL.createObjectURL(new Blob([JSON.stringify({ petId: record.petId, words: pet.pendingLog, logHash: pet.logHash })], { type: "application/json" }))}
+              href={URL.createObjectURL(new Blob([exportLog(pet) ?? "{}"], { type: "application/json" }))}
             >
               {t("chain.download")}
             </a>
           </div>
+          {mindBehind && (
+            <div className="mind-behind">
+              <p className="small">{t("chain.mindBehind", { name: pet.name })}</p>
+              <button type="button" className="btn primary" disabled={busy !== "idle"} onClick={() => (play("tap"), updateMind(pet))}>
+                {t("chain.updateMind")}
+              </button>
+            </div>
+          )}
           {record.lastTx && explorerTx(record.lastTx) && (
             <a className="small" href={explorerTx(record.lastTx)!} target="_blank" rel="noopener noreferrer">
               {t("chain.tx")}

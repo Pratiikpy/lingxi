@@ -105,3 +105,19 @@ export async function checkpointOnChain(pub: PublicClient, wallet: WalletClient,
   if (r.status !== "success") throw new Error("checkpoint failed");
   return tx;
 }
+
+export async function setBrainOnChain(pub: PublicClient, wallet: WalletClient, d: Deployment, petId: bigint, processor: Address, brainId: bigint): Promise<Hex> {
+  const account = wallet.account;
+  if (!account) throw new Error("wallet has no account");
+  const { request } = await pub.simulateContract({
+    address: d.registry,
+    abi: petRegistryAbi,
+    functionName: "setBrain",
+    args: [petId, processor, brainId],
+    account,
+  });
+  const tx = await wallet.writeContract(request);
+  const r = await pub.waitForTransactionReceipt({ hash: tx });
+  if (r.status !== "success") throw new Error("setBrain failed");
+  return tx;
+}

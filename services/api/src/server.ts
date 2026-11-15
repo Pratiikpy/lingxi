@@ -17,6 +17,7 @@ import { z } from "zod";
 import { STARTERS } from "@lingxi/brain";
 import { MAX_WORDS, teachInWords } from "./teach";
 import { RateLimiter } from "./limit";
+import { BrainRelayer } from "./relayer";
 
 function loadKey(): string | undefined {
   if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
@@ -46,12 +47,12 @@ const TeachBody = z.object({
   lessons: z.array(RuleSchema).max(8),
 });
 
-export function createApp(client: Anthropic | null, limiter = new RateLimiter(6, 60_000)) {
+export function createApp(client: Anthropic | null, limiter = new RateLimiter(6, 60_000), relayer: BrainRelayer | null = null, relayLimiter = new RateLimiter(4, 3_600_000)) {
   const app = new Hono();
   const origins = (process.env.LINGXI_ORIGINS ?? "http://localhost:5199,http://localhost:4173").split(",");
   app.use("/api/*", cors({ origin: origins, allowMethods: ["GET", "POST"], maxAge: 600 }));
 
-  app.get("/api/health", (c) => c.json({ ok: true, teach: client !== null }));
+  app.get("/api/health", (c) => c.json({ ok: true, teach: client !== null, relay: relayer !== null }));
 
   app.post("/api/teach", async (c) => {
     if (!client) return c.json({ ok: false, reason: "error", detail: "teaching is not configured" }, 503);
@@ -67,7 +68,51 @@ export function createApp(client: Anthropic | null, limiter = new RateLimiter(6,
     return c.json(result, result.ok ? 200 : result.reason === "busy" ? 429 : 200);
   });
 
+  const RelayBody = z.object({ line: TeachBody.shape.line, lessons: z.array(RuleSchema).max(8) });
+  app.post("/api/tapeout", async (c) => {
+    if (!relayer) return c.json({ ok: false, reason: "error", detail: "relaying is not configured" }, 503);
+    const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
+    if (!relayLimiter.take(ip)) return c.json({ ok: false, reason: "busy" }, 429);
+    let body: z.infer<typeof RelayBody>;
+    try {
+      body = RelayBody.parse(await c.req.json());
+    } catch {
+      return c.json({ ok: false, reason: "invalid", detail: "bad request" }, 400);
+    }
+    const r = await relayer.relay(body.line, body.lessons as never);
+    return c.json(r, r.ok ? 200 : r.reason === "budget" ? 429 : 200);
+  });
+
   return app;
+}
+
+function readEnvFile(path: string | undefined): Record<string, string> {
+  if (!path) return {};
+  try {
+    return Object.fromEntries(
+      readFileSync(path, "utf8")
+        .split(/\r?\n/)
+        .filter((l) => l.includes("="))
+        .map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).trim()]),
+    );
+  } catch {
+    return {};
+  }
+}
+
+function makeRelayer(): BrainRelayer | null {
+  const env = readEnvFile(process.env.LINGXI_RELAYER_KEY_FILE);
+  const key = (env.DEPLOYER_PRIVATE_KEY ?? env.K) as `0x${string}` | undefined;
+  const processor = process.env.LINGXI_PROCESSOR as `0x${string}` | undefined;
+  if (!key || !processor) return null;
+  const here = dirname(fileURLToPath(import.meta.url));
+  return new BrainRelayer({
+    rpc: process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech",
+    processor,
+    key,
+    storeFile: process.env.LINGXI_BRAIN_STORE ?? resolve(here, "../data/brains.json"),
+    maxPerDay: Number(process.env.LINGXI_RELAY_PER_DAY ?? 200),
+  });
 }
 
 const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
@@ -75,6 +120,7 @@ if (isMain) {
   const key = loadKey();
   const client = key ? new Anthropic({ apiKey: key }) : null;
   const port = Number(process.env.PORT ?? 8787);
-  serve({ fetch: createApp(client).fetch, port });
-  process.stdout.write(`lingxi api on :${port} (teaching ${client ? "on" : "off: no key"})\n`);
+  const relayer = makeRelayer();
+  serve({ fetch: createApp(client, undefined, relayer).fetch, port });
+  process.stdout.write(`lingxi api on :${port} (teaching ${client ? "on" : "off: no key"}, relaying ${relayer ? "on" : "off"})\n`);
 }

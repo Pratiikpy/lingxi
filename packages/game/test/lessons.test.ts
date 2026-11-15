@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { STARTERS, compileProgram, fastBrain, gateCount, stateBits } from "@lingxi/brain";
 import { DAY_MS } from "../src/pet";
 import { createPet } from "../src/sim";
-import { LESSON_CAPACITY, MAX_GATES, PET_SCHOOL, arrangeLessons, checkLesson, composeProgram, teach } from "../src/lessons";
+import { LESSON_CAPACITY, MAX_GATES, PET_SCHOOL, arrangeLessons, checkLesson, composeProgram, logSegments, teach } from "../src/lessons";
+import { catchUp } from "../src/sim";
+import { runBeat } from "@lingxi/brain";
 
 const T0 = Date.UTC(2026, 10, 16, 2);
 const brain = { fast: fastBrain(compileProgram(STARTERS.gentle)), nState: stateBits(STARTERS.gentle) };
@@ -66,5 +68,28 @@ describe("teaching", () => {
     expect(swapped.lessons[0]).toEqual(p.lessons[1]);
     expect(arrangeLessons(p, 0, "forget").lessons).toHaveLength(1);
     expect(p.lessons).toHaveLength(2);
+  });
+});
+
+describe("a log that spans lessons", () => {
+  it("replays brain by brain to the pet's memory", () => {
+    let p = pet();
+    p = catchUp(p, T0 + 3 * DAY_MS, brain);
+    const r = teach(p, PET_SCHOOL[0]!.rule, T0 + 3 * DAY_MS);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    p = r.pet;
+    const taught = composeProgram("gentle", p.lessons);
+    const b2 = { fast: fastBrain(compileProgram(taught)), nState: stateBits(taught), program: taught };
+    p = catchUp(p, T0 + 3 * DAY_MS + 4 * 3_600_000, b2);
+    const segs = logSegments(p);
+    expect(segs).toHaveLength(2);
+    expect(segs[0]!.words.length + segs[1]!.words.length).toBe(p.pendingLog.length);
+    let state = new Array(stateBits(taught)).fill(0);
+    for (const s of segs) {
+      const prog = composeProgram("gentle", s.lessons);
+      for (const w of s.words) state = runBeat(prog, state, w).state;
+    }
+    expect(state).toEqual(p.brain);
   });
 });

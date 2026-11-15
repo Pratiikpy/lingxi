@@ -31,6 +31,19 @@ export const petRegistryAbi = [
  },
  {
   "type": "function",
+  "name": "MAX_SITTING",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
   "name": "N_IN",
   "inputs": [],
   "outputs": [
@@ -728,6 +741,11 @@ export const petRegistryAbi = [
     "name": "until",
     "type": "uint64",
     "internalType": "uint64"
+   },
+   {
+    "name": "grantedBy",
+    "type": "address",
+    "internalType": "address"
    }
   ],
   "stateMutability": "view"
@@ -1126,7 +1144,7 @@ export const petRegistryAbi = [
    {
     "name": "renderer",
     "type": "address",
-    "indexed": false,
+    "indexed": true,
     "internalType": "address"
    }
   ],
@@ -1411,6 +1429,11 @@ export const petRegistryAbi = [
     "internalType": "address"
    }
   ]
+ },
+ {
+  "type": "error",
+  "name": "SittingTooLong",
+  "inputs": []
  },
  {
   "type": "error",

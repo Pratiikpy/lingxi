@@ -170,6 +170,25 @@ contract PetRegistryForkTest is Test {
         assertEq(reg.ownerOf(petId), alice);
     }
 
+    function test_sitterLosesAccessWhenThePetChangesHands_andSittingIsCapped() public {
+        uint64 id = _tapeout("gentle");
+        vm.prank(owner);
+        reg.setStarterBrain(address(PROC), id, true);
+        uint256 petId = reg.hatch(alice, 0, address(PROC), id, 0);
+        vm.prank(alice);
+        vm.expectRevert(PetRegistry.SittingTooLong.selector);
+        reg.setSitter(petId, carol, uint64(block.timestamp + 31 days));
+        vm.prank(alice);
+        reg.setSitter(petId, carol, uint64(block.timestamp + 10 days));
+        assertTrue(reg.isKeeper(petId, carol));
+        vm.prank(alice);
+        reg.transferFrom(alice, bob, petId);
+        assertFalse(reg.isKeeper(petId, carol));
+        vm.prank(carol);
+        vm.expectRevert(PetRegistry.NotKeeper.selector);
+        reg.checkpoint(petId, 1, 1, bytes32(0));
+    }
+
     function test_newBrainKeepsSharedMemory() public {
         uint64 a = _tapeout("gentle");
         uint64 b = _tapeout("bold");

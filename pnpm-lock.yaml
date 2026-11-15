@@ -157,12 +157,18 @@ importers:
       '@lingxi/brain':
         specifier: workspace:*
         version: link:../../packages/brain
+      '@lingxi/chain':
+        specifier: workspace:*
+        version: link:../../packages/chain
       '@lingxi/game':
         specifier: workspace:*
         version: link:../../packages/game
       hono:
         specifier: 4.12.34
         version: 4.12.34
+      viem:
+        specifier: 2.57.7
+        version: 2.57.7(typescript@5.9.3)(zod@4.1.13)
       zod:
         specifier: 4.1.13
         version: 4.1.13
