@@ -6,7 +6,23 @@ settings:
 
 importers:
 
-  .: {}
+  .:
+    devDependencies:
+      '@lingxi/brain':
+        specifier: workspace:*
+        version: link:packages/brain
+      '@lingxi/chain':
+        specifier: workspace:*
+        version: link:packages/chain
+      '@lingxi/game':
+        specifier: workspace:*
+        version: link:packages/game
+      tsx:
+        specifier: 4.20.3
+        version: 4.20.3
+      viem:
+        specifier: 2.57.7
+        version: 2.57.7(typescript@5.9.3)(zod@4.1.13)
 
   apps/web:
     dependencies:
