@@ -620,8 +620,13 @@
   }
 }
 @media (max-width: 480px) {
-  .daily small {
+  .daily small,
+  .kin {
     display: none;
+  }
+  .round-btn {
+    width: 40px;
+    height: 40px;
   }
   .pill {
     gap: var(--s2);
@@ -641,4 +646,11 @@
   .daily small {
     display: none;
   }
+}
+
+.divider {
+  border: 0;
+  border-top: 2px dashed var(--track);
+  margin: var(--s2) 0;
+  width: 100%;
 }

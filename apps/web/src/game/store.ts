@@ -5,21 +5,28 @@
  */
 
 import { create } from "zustand";
-import { STARTERS, type StarterLine, compileProgram, fastBrain, stateBits } from "@lingxi/brain";
-import { type Brain, type Care, type CareResult, type Pet, care, catchUp, createPet, liveBeat } from "@lingxi/game";
+import { type Program, type Rule, STARTERS, compileProgram, fastBrain, stateBits } from "@lingxi/brain";
+import { type Brain, type Care, type CareResult, type Pet, arrangeLessons, care, catchUp, composeProgram, createPet, liveBeat, teach as teachRule } from "@lingxi/game";
+import type { StarterLine } from "@lingxi/brain";
 
 const SAVE_KEY = "lingxi.pet.v1";
 
-const brains = new Map<StarterLine, Brain>();
-export function brainFor(line: StarterLine): Brain {
-  let b = brains.get(line);
+const brains = new Map<string, Brain>();
+/** The pet's whole program: what it was taught, then its instincts. */
+export function programFor(line: StarterLine, lessons: readonly Rule[] = []): Program {
+  return lessons.length ? composeProgram(line, lessons) : STARTERS[line];
+}
+export function brainFor(line: StarterLine, lessons: readonly Rule[] = []): Brain {
+  const key = line + JSON.stringify(lessons);
+  let b = brains.get(key);
   if (!b) {
-    const p = STARTERS[line];
+    const p = programFor(line, lessons);
     b = { fast: fastBrain(compileProgram(p)), nState: stateBits(p), program: p };
-    brains.set(line, b);
+    brains.set(key, b);
   }
   return b;
 }
+const brainOf = (p: Pet) => brainFor(p.line, p.lessons ?? []);
 
 function load(): Pet | null {
   try {
@@ -27,7 +34,7 @@ function load(): Pet | null {
     if (!raw) return null;
     const p = JSON.parse(raw) as Pet;
     if (p.version !== 1 || !STARTERS[p.line]) return null;
-    return p;
+    return { ...p, lessons: Array.isArray(p.lessons) ? p.lessons : [] };
   } catch {
     return null;
   }
@@ -44,7 +51,7 @@ function save(p: Pet | null): void {
 
 export interface Toast {
   id: number;
-  note: CareResult["note"] | "tooTired" | "asleepTap";
+  note: CareResult["note"] | "tooTired" | "asleepTap" | "learned";
 }
 
 export interface Daily {
@@ -59,13 +66,16 @@ interface GameState {
   pet: Pet | null;
   toast: Toast | null;
   /** last care for the scene to animate */
-  lastCare: { kind: Care["kind"] | "pet"; at: number; food?: string } | null;
+  lastCare: { kind: Care["kind"] | "pet" | "learn"; at: number; food?: string } | null;
   daily: Daily;
   hatch: (line: StarterLine, name: string) => void;
   act: (c: Care) => void;
   tick: () => void;
   wakeUp: () => void;
   say: (note: Toast["note"]) => void;
+  /** add a lesson; returns why not when refused */
+  learn: (rule: Rule) => { ok: true } | { ok: false; reason: string; detail: string };
+  arrange: (index: number, move: "up" | "down" | "forget") => void;
 }
 
 const todayKey = () => new Date().toDateString();
@@ -74,7 +84,7 @@ const freshDaily = (): Daily => ({ day: todayKey(), fed: false, played: false, c
 function initialPet(): Pet | null {
   const p = load();
   if (!p) return null;
-  const caught = catchUp(p, Date.now(), brainFor(p.line));
+  const caught = catchUp(p, Date.now(), brainOf(p));
   save(caught);
   return caught;
 }
@@ -100,7 +110,7 @@ export const useGame = create<GameState>((set, get) => ({
   act: (c) => {
     const { pet } = get();
     if (!pet) return;
-    const r = care(pet, c, Date.now(), brainFor(pet.line));
+    const r = care(pet, c, Date.now(), brainOf(pet));
     save(r.pet);
     const d = get().daily.day === todayKey() ? { ...get().daily } : freshDaily();
     if (c.kind === "feed" && r.note !== "overfed") d.fed = true;
@@ -117,7 +127,7 @@ export const useGame = create<GameState>((set, get) => ({
   tick: () => {
     const { pet } = get();
     if (!pet) return;
-    const next = liveBeat(pet, Date.now(), brainFor(pet.line));
+    const next = liveBeat(pet, Date.now(), brainOf(pet));
     if (next !== pet) {
       save(next);
       set({ pet: next });
@@ -126,11 +136,30 @@ export const useGame = create<GameState>((set, get) => ({
   wakeUp: () => {
     const { pet } = get();
     if (!pet) return;
-    const caught = catchUp(pet, Date.now(), brainFor(pet.line));
+    const caught = catchUp(pet, Date.now(), brainOf(pet));
     if (caught !== pet) {
       save(caught);
       set({ pet: caught });
     }
   },
   say: (note) => set({ toast: { id: ++toastId, note } }),
+  learn: (rule) => {
+    const { pet } = get();
+    if (!pet) return { ok: false, reason: "invalid", detail: "no pet" };
+    const caught = catchUp(pet, Date.now(), brainOf(pet));
+    const r = teachRule(caught, rule, Date.now());
+    if (!r.ok) return { ok: false, reason: r.reason, detail: r.detail };
+    // one live beat with "talk" on the pins, so the new mind answers at once
+    const after = care(r.pet, { kind: "talk" }, Date.now(), brainOf(r.pet)).pet;
+    save(after);
+    set({ pet: after, lastCare: { kind: "learn", at: performance.now() }, toast: { id: ++toastId, note: "learned" } });
+    return { ok: true };
+  },
+  arrange: (index, move) => {
+    const { pet } = get();
+    if (!pet) return;
+    const next = arrangeLessons(pet, index, move);
+    save(next);
+    set({ pet: next });
+  },
 }));

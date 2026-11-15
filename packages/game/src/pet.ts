@@ -9,7 +9,7 @@
  * beat; the visible value is 0..1000.
  */
 
-import type { StarterLine } from "@lingxi/brain";
+import type { Rule, StarterLine } from "@lingxi/brain";
 
 export const BEAT_MS = 60_000;
 export const DAY_MS = 86_400_000;
@@ -62,6 +62,8 @@ export interface PetState {
   starvingBeats: number;
   /** LATCH memory of the brain, one bit per entry */
   brain: number[];
+  /** rules the owner taught, highest priority first */
+  lessons: Rule[];
   traits: Record<Trait, number>;
   xp: number;
   counts: { feed: number; play: number; clean: number; pet: number; lessons: number };

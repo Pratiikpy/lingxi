@@ -1,7 +1,7 @@
 /** The pieces of the game screen: top bar, meters, care buttons, thinking strip, tabs. */
 
 import { AnimatePresence, motion } from "motion/react";
-import { STARTERS } from "@lingxi/brain";
+import { programFor } from "../game/store";
 import { type Pet, dayOf, stageOf, visibleMeters } from "@lingxi/game";
 import { useLang, useT, type Key } from "../i18n";
 import { useSound } from "../game/sound";
@@ -121,7 +121,7 @@ export function Actions({ pet, onFeed, onPlay, onClean, onSleep }: { pet: Pet; o
 export function ThinkStrip({ pet }: { pet: Pet }) {
   const t = useT();
   const { lang } = useLang();
-  const c = decidingChips(STARTERS[pet.line], pet.last.rule, lang);
+  const c = decidingChips(programFor(pet.line, pet.lessons), pet.last.rule, lang);
   return (
     <div className="think" aria-live="off">
       <em>{t("think.label")}</em>

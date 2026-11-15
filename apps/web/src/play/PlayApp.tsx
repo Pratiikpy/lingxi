@@ -13,6 +13,7 @@ import { PALETTE_OF, type PetStage } from "../scene/textures";
 import { Hatch } from "./Hatch";
 import { Actions, Meters, TabBar, ThinkStrip, ToastView, TopBar, type Tab } from "./parts";
 import { FoodList, MeSheetBody, MindPanel, Sheet } from "./Sheets";
+import { TeachPanel } from "./Teach";
 import { Sprite } from "./Sprite";
 import "./play.css";
 
@@ -151,7 +152,10 @@ export function PlayApp() {
       <Sheet open={tab === "care"} title={t("care.title", { name: pet.name })} onClose={close}>
         <FoodList pet={pet} onPick={feed} />
       </Sheet>
-      <Sheet open={tab === "mind"} title={t("mind.title", { name: pet.name })} onClose={close}>
+      <Sheet open={tab === "mind"} title={t("teach.title", { name: pet.name })} onClose={close}>
+        <TeachPanel pet={pet} />
+        <hr className="divider" />
+        <p className="small">{t("mind.title", { name: pet.name })}</p>
         <MindPanel pet={pet} />
       </Sheet>
       <Sheet open={tab === "spar"} title={t("spar.title")} onClose={close}>

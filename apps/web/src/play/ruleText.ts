@@ -9,7 +9,7 @@ import type { Lang } from "../i18n";
 
 type Names = { en: readonly string[]; zh: readonly string[] };
 
-const VALUE_NAMES: Record<string, Names> = {
+export const VALUE_NAMES: Record<string, Names> = {
   hunger: { en: ["full", "peckish", "hungry", "starving"], zh: ["饱饱的", "有点饿", "饿了", "饿坏了"] },
   joy: { en: ["sad", "low", "happy", "joyful"], zh: ["难过", "闷闷的", "开心", "超开心"] },
   energy: { en: ["exhausted", "tired", "fine", "rested"], zh: ["累瘫了", "有点累", "还好", "精神足"] },
@@ -54,7 +54,14 @@ function memoryChip(p: Program, name: string, values: number[], lang: Lang): str
 export function chipsFor(p: Program, r: Rule | { when: Record<string, number[]>; then: Out }, lang: Lang): RuleChips {
   const when = Object.entries(r.when).map(([k, values]) => {
     const names = VALUE_NAMES[k];
-    if (names) return values.map((v) => names[lang][v] ?? String(v)).join(lang === "zh" ? "/" : " or ");
+    if (names) {
+      const all = names[lang];
+      if (values.length === all.length - 1 && all.length > 2) {
+        const missing = all.findIndex((_, i) => !values.includes(i));
+        return lang === "zh" ? `不${all[missing]}` : `not ${all[missing]}`;
+      }
+      return values.map((v) => all[v] ?? String(v)).join(lang === "zh" ? "/" : " or ");
+    }
     return memoryChip(p, k, values, lang);
   });
   return { when, then: WANT_NAMES[lang][r.then.want] ?? "" };

@@ -1,0 +1,80 @@
+/**
+ * Lingxi's own small server (web build only): teaching in plain words now;
+ * presence, chat and the indexer join it later. The DeWEB build never calls it.
+ *
+ * The Claude key is read from tapeout/.secrets/anthropic.env (or the
+ * ANTHROPIC_API_KEY environment variable) and never leaves this process.
+ */
+
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import Anthropic from "@anthropic-ai/sdk";
+import { serve } from "@hono/node-server";
+import { Hono } from "hono";
+import { cors } from "hono/cors";
+import { z } from "zod";
+import { STARTERS } from "@lingxi/brain";
+import { MAX_WORDS, teachInWords } from "./teach";
+import { RateLimiter } from "./limit";
+
+function loadKey(): string | undefined {
+  if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
+  const here = dirname(fileURLToPath(import.meta.url));
+  const file = process.env.LINGXI_SECRETS ?? resolve(here, "../../../../.secrets/anthropic.env");
+  try {
+    const line = readFileSync(file, "utf8")
+      .split(/\r?\n/)
+      .find((l) => l.startsWith("ANTHROPIC_API_KEY="));
+    return line?.slice("ANTHROPIC_API_KEY=".length).trim();
+  } catch {
+    return undefined;
+  }
+}
+
+const RuleSchema = z.object({
+  when: z.record(z.string(), z.array(z.number().int().min(0).max(15)).max(16)),
+  then: z.object({ want: z.number().int(), mood: z.number().int(), nudge: z.number().int().optional() }),
+  label: z.string().max(60).optional(),
+});
+
+const TeachBody = z.object({
+  words: z.string().min(1).max(MAX_WORDS),
+  name: z.string().max(40).optional(),
+  line: z.enum(Object.keys(STARTERS) as [keyof typeof STARTERS, ...Array<keyof typeof STARTERS>]),
+  stage: z.enum(["baby", "child", "teen", "adult", "elder"]),
+  lessons: z.array(RuleSchema).max(8),
+});
+
+export function createApp(client: Anthropic | null, limiter = new RateLimiter(6, 60_000)) {
+  const app = new Hono();
+  const origins = (process.env.LINGXI_ORIGINS ?? "http://localhost:5199,http://localhost:4173").split(",");
+  app.use("/api/*", cors({ origin: origins, allowMethods: ["GET", "POST"], maxAge: 600 }));
+
+  app.get("/api/health", (c) => c.json({ ok: true, teach: client !== null }));
+
+  app.post("/api/teach", async (c) => {
+    if (!client) return c.json({ ok: false, reason: "error", detail: "teaching is not configured" }, 503);
+    const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
+    if (!limiter.take(ip)) return c.json({ ok: false, reason: "busy" }, 429);
+    let body: z.infer<typeof TeachBody>;
+    try {
+      body = TeachBody.parse(await c.req.json());
+    } catch {
+      return c.json({ ok: false, reason: "invalid", detail: "bad request" }, 400);
+    }
+    const result = await teachInWords(client, body as never);
+    return c.json(result, result.ok ? 200 : result.reason === "busy" ? 429 : 200);
+  });
+
+  return app;
+}
+
+const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isMain) {
+  const key = loadKey();
+  const client = key ? new Anthropic({ apiKey: key }) : null;
+  const port = Number(process.env.PORT ?? 8787);
+  serve({ fetch: createApp(client).fetch, port });
+  process.stdout.write(`lingxi api on :${port} (teaching ${client ? "on" : "off: no key"})\n`);
+}

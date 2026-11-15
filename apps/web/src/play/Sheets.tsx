@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { STARTERS } from "@lingxi/brain";
+import { programFor } from "../game/store";
 import { DIETS, FOODS, TRAITS, type Pet, dayOf } from "@lingxi/game";
 import { useLang, useT } from "../i18n";
 import { Icon } from "./icons";
@@ -81,7 +81,7 @@ export function FoodList({ pet, onPick }: { pet: Pet; onPick: (id: string) => vo
 export function MindPanel({ pet }: { pet: Pet }) {
   const t = useT();
   const { lang } = useLang();
-  const p = STARTERS[pet.line];
+  const p = programFor(pet.line, pet.lessons);
   let bit = 0;
   const memory = p.memory.map((m) => {
     const bits = m.kind === "flag" ? 1 : m.bits;
