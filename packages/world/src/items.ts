@@ -1,5 +1,5 @@
 /**
- * Lingxi's items: the source game's item art with Lingxi's own names, words and
+ * Lingxi's items: pixel item art with Lingxi's own names, words and
  * effects. Items not listed here (dark or farming-only ones) do not exist in
  * Lingxi. Effects are in visible meter units (0..1000).
  */
@@ -111,7 +111,7 @@ export const ITEMS: Record<number, ItemDef> = {
   100012: I("Twig Charm", "树枝护身符", "A little charm of stick, pebble and honey.", "用树枝、小石子和树蜜做的小护身符。", "treasure"),
 };
 
-/** Recipes Lingxi keeps, by the source game recipe index, with Lingxi names. */
+/** Recipes Lingxi keeps, by recipe index, with Lingxi names. */
 export const RECIPE_NAMES: Record<number, { en: string; zh: string }> = {
   1: { en: "Brew Study Tea", zh: "泡学习茶" },
   2: { en: "Brew Scholar's Tea", zh: "泡学者茶" },

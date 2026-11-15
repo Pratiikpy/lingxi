@@ -1,6 +1,6 @@
 /**
  * Lingxi's names and words for every room, in English and Chinese. The art and
- * the map come from the source game's world; the place each room is in Lingxi, and
+ * the map are the world's; the place each room is in Lingxi, and
  * how it feels to wander there with your pet, is written here.
  */
 

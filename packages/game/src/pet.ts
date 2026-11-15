@@ -85,7 +85,7 @@ export interface PetState {
   mistakes?: number;
   /** the latest few, for the screen */
   missed?: Array<{ kind: CareMiss; beat: number }>;
-  /** Aavegotchi-style kinship and the beat it was last earned */
+  /** kinship and the beat it was last earned */
   kinship?: number;
   kinBeat?: number;
   /** LATCH memory of the brain, one bit per entry */

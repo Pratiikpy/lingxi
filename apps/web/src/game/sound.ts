@@ -1,6 +1,6 @@
 /**
- * Interface sound. the source game's effects for clicks, chirps and successes; our
- * own music comes later. Sound starts off and turns on with one tap (browsers
+ * Interface sound effects for clicks, chirps and successes (the music is in
+ * music.ts). Sound starts off and turns on with one tap (browsers
  * only play audio after the visitor interacts); the choice is remembered.
  */
 

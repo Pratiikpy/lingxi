@@ -1,6 +1,6 @@
 /**
  * Lingxi pet bodies, drawn on a 48×48 canvas with the feet resting on row 45.
- * Proportions follow the source game's pets (about 36 pixels wide when grown, a
+ * Proportions: about 36 pixels wide when grown, a
  * one-pixel outline in a darker hue of the body, two shade steps, a small
  * highlight), with Sunrise Pet's round face and the circuit-trace mark.
  *

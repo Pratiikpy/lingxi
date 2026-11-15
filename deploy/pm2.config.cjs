@@ -6,9 +6,11 @@
  *   pm2 start deploy/pm2.config.cjs && pm2 save
  */
 
+const os = require("node:os");
 const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
+const tunnelConfig = process.env.LINGXI_TUNNEL_CONFIG ?? path.join(os.homedir(), ".cloudflared", "lingxi.yml");
 const secrets = path.resolve(root, "..", ".secrets");
 
 module.exports = {
@@ -35,7 +37,7 @@ module.exports = {
     {
       name: "lingxi-tunnel",
       script: "C:\\Program Files (x86)\\cloudflared\\cloudflared.exe",
-      args: "--config %USERPROFILE%\\.cloudflared\\lingxi.yml tunnel run lingxi",
+      args: ["--config", tunnelConfig, "tunnel", "run", "lingxi"],
       interpreter: "none",
       restart_delay: 5000,
     },

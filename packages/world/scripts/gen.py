@@ -1,7 +1,10 @@
-"""Builds src/data/world.json from the source game's world data and the room art on disk."""
+"""Builds src/data/world.json from the source world data and the room art on disk.
+
+    python gen.py <folder holding the world data CSV files>
+"""
 import csv, io, json, os, re, sys
-PET = r"<the source world data>"
-ART = r"<repo>\apps\web\public\pet"
+PET = sys.argv[1]
+ART = os.path.join(os.path.dirname(__file__), "..", "..", "..", "apps", "web", "public", "pet")
 OUT = os.path.join(os.path.dirname(__file__), "..", "src", "data", "world.json")
 
 def rd(p):

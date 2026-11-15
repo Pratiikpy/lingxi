@@ -1,5 +1,5 @@
 /**
- * The people of the world. Their portraits come from the source game; who they are in
+ * The people of the world. Who they are in
  * Lingxi, and everything they say, is written here in English and Chinese.
  *
  * A conversation is a greeting, then a choice of topics. Each topic is a few
@@ -27,7 +27,7 @@ export interface Character {
   name: { en: string; zh: string };
   role: { en: string; zh: string };
   room: number;
-  /** name-tag colour, from the source game's palette for the same character */
+  /** name-tag colour, matched to the portrait */
   color: string;
   /** standing portrait shown in the room */
   stand: string;

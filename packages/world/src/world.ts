@@ -70,7 +70,7 @@ export const ROOMS: Record<number, Room> = Object.fromEntries(
 
 const EXITS: Array<[number, number]> = (data.rooms as Array<{ index: number; exits: number[] }>).flatMap((r) => r.exits.map((e) => [r.index, e] as [number, number]));
 
-/** Small numbers for Lingxi: the source game's bulk amounts (hundreds of pollen) become a handful. */
+/** Small numbers for Lingxi: bulk amounts (hundreds of pollen) become a handful. */
 const scale = (n: number) => (n > 10 ? 3 : n);
 
 export const RECIPES: Recipe[] = (data.recipes as Array<{ index: number; out: number; outAmount: number; ins: Array<{ item: number; amount: number }> }>)

@@ -1,7 +1,6 @@
 /**
  * The visible brain: every signal of one beat, and a layout of the gates by
  * logic depth, so the app can draw the circuit lighting up as the pet thinks.
- * Depth layout follows TapeFly's sim/netlist.ts gateDepth (MIT).
  */
 
 import type { PetNetlist } from "./compile";

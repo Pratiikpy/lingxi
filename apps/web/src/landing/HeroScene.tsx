@@ -1,5 +1,5 @@
 /**
- * The landing page's living hero: a the source game landscape scaled by a whole
+ * The landing page's living hero: a pixel landscape scaled by a whole
  * number to cover the band (day, evening or night by the visitor's clock), a
  * Lingxi pet that wanders, hops when tapped and walks to where you tap, and the
  * resident cat on the front edge. Pauses when the tab is hidden; still when the

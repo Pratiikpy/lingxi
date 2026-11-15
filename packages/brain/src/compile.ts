@@ -13,8 +13,7 @@
  * priority is built three ways (a chain, prefix trees, and per-bit multiplexers)
  * and the circuit with the lowest TapeOut cost A×d³ is kept.
  *
- * Adapted from TapeFly's sim/compile.ts (MIT), extended with memory: field
- * comparators over any width, LATCH state, and next-state logic synthesised
+ * Memory support: field comparators over any width, LATCH state, and next-state logic synthesised
  * from each memory field's truth table.
  */
 

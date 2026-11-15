@@ -1,5 +1,5 @@
 /**
- * The pet's room, drawn with PixiJS. the source game's 128×128 room art is scaled by
+ * The pet's room, drawn with PixiJS. The 128×128 room art is scaled by
  * a whole number to fill the box (crisp, never blurred); the pet stands on the
  * floor and lives on its own; a resident cat wanders the front edge.
  *
@@ -58,7 +58,7 @@ async function bgTexture(url: string): Promise<Texture> {
   return t;
 }
 const gifCache = new Map<string, Promise<ArrayBuffer>>();
-/** A room background: a still image, or an animated GIF (three of the source game's rooms move). */
+/** A room background: a still image, or an animated GIF (three rooms move). */
 async function makeBg(url: string, still: boolean): Promise<Sprite> {
   if (!url.endsWith(".gif")) return new Sprite(await bgTexture(url));
   let buf = gifCache.get(url);

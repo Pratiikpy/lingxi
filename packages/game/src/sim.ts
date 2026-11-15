@@ -123,7 +123,7 @@ export function inputWord(p: Pet, beat: number, action: number, event: number, o
 }
 
 /**
- * Kinship read lazily (Aavegotchi's `kinship()` pattern): one point fades for every
+ * Kinship read lazily: one point fades for every
  * full day since it was last earned, computed from timestamps, never by a timer.
  */
 export function kinshipNow(p: Pick<Pet, "kinship" | "kinBeat">, beat: number): number {

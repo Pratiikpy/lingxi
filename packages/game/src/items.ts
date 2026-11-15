@@ -8,7 +8,7 @@ import type { Diet } from "./pet";
 export interface FoodItem {
   id: string;
   name: { en: string; zh: string };
-  /** item art, the source game's 24×24 pixel sprites */
+  /** item art, 24×24 pixel sprites */
   art: string;
   food: number;
   joy: number;
