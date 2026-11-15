@@ -21,6 +21,7 @@ import { InvitePanel, SocialBar } from "./Social";
 import { type Action, CHARACTER_IN_ROOM, HOME, ROOMS, neighbours } from "@lingxi/world";
 import { Talk } from "./Talk";
 import { GiftArrival, SendGiftPanel } from "./Gift";
+import { PacketArrival, RedPacketPanel } from "./RedPacket";
 import { FamilyTree, NewbornDialog, PetsPanel, ProposalDialog, familyBlock } from "./Family";
 import { AnimatePresence, motion } from "motion/react";
 import { TeachPanel } from "./Teach";
@@ -191,6 +192,7 @@ export function PlayApp() {
           }}
         />
         <GiftArrival />
+        <PacketArrival />
       </>
     );
   }
@@ -344,6 +346,7 @@ export function PlayApp() {
       <TabBar current={tab} onPick={pick} />
       <ProposalDialog pet={pet} />
       <GiftArrival />
+      <PacketArrival />
       <NewbornDialog pet={pet} />
 
       <Sheet open={tab === "bag"} title={t("bag.title")} onClose={close}>
@@ -380,6 +383,8 @@ export function PlayApp() {
         <InvitePanel />
         <hr className="divider" />
         <SendGiftPanel pet={pet} />
+        <hr className="divider" />
+        <RedPacketPanel pet={pet} />
         <hr className="divider" />
         <ChainPanel pet={pet} />
       </Sheet>

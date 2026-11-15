@@ -160,14 +160,21 @@ export function GiftArrival() {
   const [name, setName] = useState("");
 
   useEffect(() => {
-    const m = location.hash.match(/^#gift=(lxg1\.[A-Za-z0-9_-]+)$/);
-    if (!m) return;
-    try {
-      const gift = decodeGift(m[1]!);
-      setState({ gift, seen: openedIds().includes(gift.id) });
-    } catch (e) {
-      setState({ error: (e as Error).message });
-    }
+    const read = () => {
+      const m = location.hash.match(/^#gift=(lxg1\.[A-Za-z0-9_-]+)$/);
+      if (!m) return;
+      try {
+        const gift = decodeGift(m[1]!);
+        setStep("arrive");
+        setState({ gift, seen: openedIds().includes(gift.id) });
+      } catch (e) {
+        setState({ error: (e as Error).message });
+      }
+    };
+    read();
+    // a link opened in a tab that already shows the game only changes the hash
+    window.addEventListener("hashchange", read);
+    return () => window.removeEventListener("hashchange", read);
   }, []);
   useEffect(() => {
     if (step !== "arrive" || !state || "error" in state) return;

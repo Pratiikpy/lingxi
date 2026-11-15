@@ -31,5 +31,6 @@
   "breederAt": "2026-11-15T08:58:19.408Z",
   "redPacket": "0xc2e41e3209973fe6b7f2b2dec015137c521e18cd",
   "seal": "45",
-  "redPacketAt": "2026-11-15T09:11:21.613Z"
+  "redPacketAt": "2026-11-15T09:11:21.613Z",
+  "redPacketBlock": 75953010
 }

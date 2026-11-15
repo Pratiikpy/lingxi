@@ -39,7 +39,7 @@ function injected(): Eip1193 | null {
   return w.okxwallet ?? w.ethereum ?? null;
 }
 
-async function connectWallet(): Promise<WalletClient> {
+export async function connectWallet(): Promise<WalletClient> {
   const devKey = import.meta.env.DEV ? (import.meta.env.VITE_DEV_KEY as Hex | undefined) : undefined;
   if (devKey) return createWalletClient({ chain, transport: http(rpc), account: privateKeyToAccount(devKey) });
   const provider = injected();

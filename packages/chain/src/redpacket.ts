@@ -1,0 +1,136 @@
+/**
+ * Red packets on chain: fund one (approve + create), claim a share with the
+ * link key's signature, reveal a lucky share two blocks later, refund after
+ * expiry, and read a packet with its claims.
+ */
+
+import { type Address, type Hex, type PublicClient, type WalletClient, erc20Abi, parseEventLogs } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { redPacketAbi } from "./redPacketAbi";
+import type { Deployment } from "./registry";
+
+/** USDT on X Layer (6 decimals). */
+export const XLAYER_USDT: Address = "0x1E4a5963aBFD975d8c9021ce480b42188849D41d";
+
+export interface PacketView {
+  sender: Address;
+  expiry: number;
+  count: number;
+  claimed: number;
+  paid: number;
+  lucky: boolean;
+  petOwnersOnly: boolean;
+  token: Address;
+  remaining: bigint;
+  floor: bigint;
+}
+
+export interface ClaimView {
+  claimer: Address;
+  amount: bigint;
+  index: number;
+  sealInput: number;
+  sealOutput: number;
+  tx: Hex;
+}
+
+const need = (d: Deployment) => {
+  if (!d.redPacket) throw new Error("no red packets in this deployment");
+  return d.redPacket;
+};
+const acct = (w: WalletClient) => {
+  if (!w.account) throw new Error("wallet has no account");
+  return w.account;
+};
+
+export async function tokenBalance(pub: PublicClient, token: Address, who: Address): Promise<bigint> {
+  return (await pub.readContract({ address: token, abi: erc20Abi, functionName: "balanceOf", args: [who] })) as bigint;
+}
+
+export async function createPacket(
+  pub: PublicClient,
+  wallet: WalletClient,
+  d: Deployment,
+  o: { token: Address; total: bigint; count: number; lifetimeSec: number; key: Address; lucky: boolean; petOwnersOnly: boolean },
+): Promise<{ id: bigint; tx: Hex }> {
+  const rp = need(d);
+  const account = acct(wallet);
+  const allowance = (await pub.readContract({ address: o.token, abi: erc20Abi, functionName: "allowance", args: [account.address, rp] })) as bigint;
+  if (allowance < o.total) {
+    const { request } = await pub.simulateContract({ address: o.token, abi: erc20Abi, functionName: "approve", args: [rp, o.total], account });
+    const atx = await wallet.writeContract(request);
+    const ar = await pub.waitForTransactionReceipt({ hash: atx });
+    if (ar.status !== "success") throw new Error("approve failed");
+  }
+  const { request } = await pub.simulateContract({
+    address: rp,
+    abi: redPacketAbi,
+    functionName: "create",
+    args: [o.token, o.total, o.count, 0n, BigInt(o.lifetimeSec), o.key, o.lucky, o.petOwnersOnly],
+    account,
+  });
+  const tx = await wallet.writeContract(request);
+  const r = await pub.waitForTransactionReceipt({ hash: tx });
+  if (r.status !== "success") throw new Error("create failed");
+  const ev = parseEventLogs({ abi: redPacketAbi, logs: r.logs, eventName: "Created" })[0];
+  if (!ev) throw new Error("no Created event");
+  return { id: ev.args.id, tx };
+}
+
+/** The link key signs the claimer's address; the signature is useless to anyone else. */
+export async function signClaim(pub: PublicClient, d: Deployment, keyPk: Hex, id: bigint, claimer: Address): Promise<Hex> {
+  const digest = (await pub.readContract({ address: need(d), abi: redPacketAbi, functionName: "claimDigest", args: [id, claimer] })) as Hex;
+  // claimDigest is already the eth-signed-message hash; sign it raw
+  return privateKeyToAccount(keyPk).sign({ hash: digest });
+}
+
+export async function claimPacket(pub: PublicClient, wallet: WalletClient, d: Deployment, id: bigint, sig: Hex): Promise<{ amount: bigint; reserved: boolean; tx: Hex; block: bigint }> {
+  const account = acct(wallet);
+  const { request } = await pub.simulateContract({ address: need(d), abi: redPacketAbi, functionName: "claim", args: [id, sig], account });
+  const tx = await wallet.writeContract(request);
+  const r = await pub.waitForTransactionReceipt({ hash: tx });
+  if (r.status !== "success") throw new Error("claim failed");
+  const paid = parseEventLogs({ abi: redPacketAbi, logs: r.logs, eventName: "Claimed" })[0];
+  return { amount: paid ? paid.args.amount : 0n, reserved: !paid, tx, block: r.blockNumber };
+}
+
+export async function revealPacket(pub: PublicClient, wallet: WalletClient, d: Deployment, id: bigint): Promise<{ amount: bigint; tx: Hex }> {
+  const account = acct(wallet);
+  const { request } = await pub.simulateContract({ address: need(d), abi: redPacketAbi, functionName: "reveal", args: [id], account });
+  const tx = await wallet.writeContract(request);
+  const r = await pub.waitForTransactionReceipt({ hash: tx });
+  if (r.status !== "success") throw new Error("reveal failed");
+  const paid = parseEventLogs({ abi: redPacketAbi, logs: r.logs, eventName: "Claimed" })[0];
+  return { amount: paid ? paid.args.amount : 0n, tx };
+}
+
+export async function refundPacket(pub: PublicClient, wallet: WalletClient, d: Deployment, id: bigint): Promise<Hex> {
+  const account = acct(wallet);
+  const { request } = await pub.simulateContract({ address: need(d), abi: redPacketAbi, functionName: "refund", args: [id], account });
+  const tx = await wallet.writeContract(request);
+  const r = await pub.waitForTransactionReceipt({ hash: tx });
+  if (r.status !== "success") throw new Error("refund failed");
+  return tx;
+}
+
+export async function readPacket(pub: PublicClient, d: Deployment, id: bigint): Promise<PacketView> {
+  const p = (await pub.readContract({ address: need(d), abi: redPacketAbi, functionName: "packet", args: [id] })) as unknown as PacketView & { expiry: bigint };
+  return { ...p, expiry: Number(p.expiry), count: Number(p.count), claimed: Number(p.claimed), paid: Number(p.paid) };
+}
+
+export async function readClaims(pub: PublicClient, d: Deployment, id: bigint): Promise<ClaimView[]> {
+  const logs = await pub.getContractEvents({ address: need(d), abi: redPacketAbi, eventName: "Claimed", args: { id }, fromBlock: d.redPacketBlock ? BigInt(d.redPacketBlock) : "earliest" });
+  return logs.map((l) => ({
+    claimer: l.args.claimer as Address,
+    amount: l.args.amount as bigint,
+    index: Number(l.args.index),
+    sealInput: Number(l.args.sealInput),
+    sealOutput: Number(l.args.sealOutput),
+    tx: l.transactionHash as Hex,
+  }));
+}
+
+export async function pendingOf(pub: PublicClient, d: Deployment, id: bigint, who: Address): Promise<{ atBlock: bigint; index: number } | null> {
+  const [atBlock, index] = (await pub.readContract({ address: need(d), abi: redPacketAbi, functionName: "pending", args: [id, who] })) as readonly [bigint, number];
+  return atBlock === 0n ? null : { atBlock, index: Number(index) };
+}

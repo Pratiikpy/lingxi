@@ -11,6 +11,11 @@ import { type Circuit, REF, decode, hexToBytes, load, refKey } from "@lingxi/bra
 export interface Deployment {
   /** the Breeder contract, when families are deployed */
   breeder?: Address;
+  /** red packet escrow and its seal circuit id, when deployed */
+  redPacket?: Address;
+  seal?: string;
+  /** block the escrow was deployed at, to read its events from */
+  redPacketBlock?: number;
   chainId: number;
   rpc: string;
   processor: Address;
