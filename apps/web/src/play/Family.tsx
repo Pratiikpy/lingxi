@@ -7,11 +7,12 @@
 import { useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { drawPet } from "@lingxi/art";
-import { type Family, type ParentInfo, type Pet, BREED_COOLDOWN_DAYS, canBreed, childMemory, createPet, dayOf, familyOf, mindBrain, parseCard, stageOf } from "@lingxi/game";
+import { type Family, type ParentInfo, type Pet, BOND_LEVELS, BREED_COOLDOWN_DAYS, FAMILY_BOND_LEVEL, bondLevel, canBreed, childMemory, createPet, dayOf, familyOf, mindBrain, parseCard, stageOf } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { MAX_PETS, useGame } from "../game/store";
 import { petKey, useChain } from "../game/chain";
 import { useLive } from "../game/live";
+import { bondName, bondsOf, friendKey, useFriends } from "../game/friends";
 import { play } from "../game/sound";
 import { PALETTE_OF, type PetStage } from "../scene/textures";
 import { Sprite } from "./Sprite";
@@ -42,6 +43,16 @@ export function familyBlock(pet: Pet, partnerStage: string, lang: Lang): string 
   return lang === "zh" ? `上次之后要休息 ${BREED_COOLDOWN_DAYS} 天。` : `Pets rest ${BREED_COOLDOWN_DAYS} days after having a little one.`;
 }
 
+/** Why two pets are not yet close enough for a family, or null when they are best friends. */
+export function bondBlock(pet: Pet, points: number, other: string, lang: Lang): string | null {
+  const level = bondLevel(points);
+  if (level >= FAMILY_BOND_LEVEL) return null;
+  const need = BOND_LEVELS[FAMILY_BOND_LEVEL]! - points;
+  return lang === "zh"
+    ? `${pet.name}和${other}要先成为${bondName(FAMILY_BOND_LEVEL, "zh")}（现在是${bondName(level, "zh")}，还差 ${need} 点）。多在一起玩、送心、切磋吧。`
+    : `${pet.name} and ${other} need to be ${bondName(FAMILY_BOND_LEVEL, "en").toLowerCase()} first (now ${bondName(level, "en").toLowerCase()}, ${need} to go). Spend time together, send hearts, spar.`;
+}
+
 const asParent = (p: Pet): ParentInfo & { generation: number } => ({ name: p.name, line: p.line, lessons: p.lessons, ...(p.instincts ? { instincts: p.instincts } : {}), key: petKey(p), generation: p.family?.generation ?? 0 });
 
 /** Someone asked us: raise a little one together? */
@@ -52,7 +63,8 @@ export function ProposalDialog({ pet }: { pet: Pet }) {
   const replace = useGame((s) => s.replace);
   const [signing, setSigning] = useState(false);
   if (!proposal) return null;
-  const block = familyBlock(pet, proposal.stage, lang);
+  const bonds = bondsOf(useFriends.getState().all, pet.bornAt);
+  const block = familyBlock(pet, proposal.stage, lang) ?? bondBlock(pet, bonds[friendKey(proposal.from, proposal.name)]?.points ?? 0, proposal.name, lang);
   const mine = useChain.getState().infoOf(pet);
   const onChain = !!(mine && proposal.chain);
   return (

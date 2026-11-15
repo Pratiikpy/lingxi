@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { boundingBox, drawPet } from "@lingxi/art";
 import { STARTERS, timeOfDay } from "@lingxi/brain";
-import { type Challenge, type Partner, visitorsNow, friendPartner, petCard, stageOf, visibleMeters } from "@lingxi/game";
+import { type Challenge, type Partner, visitorsNow, friendPartner, petCard, stageOf, visibleMeters, bondLevel } from "@lingxi/game";
 import { type Key, useT, useLang } from "../i18n";
 import { useGame } from "../game/store";
 import { chirp, play } from "../game/sound";
@@ -36,7 +36,7 @@ import { AwayCard, SitArrival, SitPanel } from "./Sitting";
 import { type Gated, OPENS_ON, isOpen, useReveal } from "../game/reveal";
 import { GiftArrival, SendGiftPanel } from "./Gift";
 import { PacketArrival, RedPacketPanel } from "./RedPacket";
-import { FamilyTree, NewbornDialog, PetsPanel, ProposalDialog, familyBlock } from "./Family";
+import { FamilyTree, NewbornDialog, PetsPanel, ProposalDialog, bondBlock, familyBlock } from "./Family";
 import { AnimatePresence, motion } from "motion/react";
 import { TeachPanel } from "./Teach";
 import { ArenaPanel } from "./Arena";
@@ -46,6 +46,8 @@ import { HomePanel } from "./Home";
 import { WardrobePanel } from "./Wardrobe";
 import { MailboxPanel } from "./Mailbox";
 import { AlbumPanel } from "./Album";
+import { FriendsPanel } from "./Friends";
+import { bondName, bondsOf, friendKey, useFriends } from "../game/friends";
 import { unreadCount, useMail } from "../game/mail";
 import { Outings } from "./Outings";
 import { DESTINATION, outfitOf } from "@lingxi/world";
@@ -170,6 +172,22 @@ export function PlayApp() {
   const liveShare = useLive((s) => s.shareCard);
   const liveAsk = useLive((s) => s.ask);
   const livePropose = useLive((s) => s.propose);
+  const meet = useFriends((s) => s.meet);
+  const friendsAll = useFriends((s) => s.all);
+  const levelUp = useFriends((s) => s.levelUp);
+  useEffect(() => {
+    if (!levelUp) return;
+    play("success");
+    setWorldMsg({ id: levelUp.at, text: lang === "zh" ? `${useGame.getState().pet?.name ?? ""}和${levelUp.name}成了${bondName(levelUp.level, "zh")}！` : `${useGame.getState().pet?.name ?? "Your pet"} and ${levelUp.name} are now ${bondName(levelUp.level, "en").toLowerCase()}!` });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [levelUp]);
+  // ten minutes in the same room together is a moment shared with each pet there
+  useEffect(() => {
+    const id = setInterval(() => {
+      for (const m of Object.values(useLive.getState().members)) meet(m.id, { name: m.name, line: m.line }, "together");
+    }, 10 * 60_000);
+    return () => clearInterval(id);
+  }, [meet]);
   const petCount = useGame((s) => s.pets.length);
   const card = useLive((s) => s.card);
   const asked = useLive((s) => s.asked);
@@ -223,6 +241,8 @@ export function PlayApp() {
     };
     const v = verbs[incoming.kind];
     if (!v || !who) return;
+    const from = others[incoming.from];
+    if (from) meet(from.id, { name: from.name, line: from.line }, incoming.kind === "heart" ? "heart" : incoming.kind === "gift" ? "gift" : "wave");
     setWorldMsg({ id: Math.round(incoming.at), text: lang === "zh" ? `${who}${v[1]}` : `${who} ${v[0]}` });
     // only react to a new incoming emote
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -479,10 +499,11 @@ export function PlayApp() {
           {picked && others[picked] && (
             <div className="visitor-card" role="dialog" aria-label={others[picked]!.name}>
               <b>{others[picked]!.name}</b>
-              <button type="button" className="btn" onClick={() => (play("pop"), liveEmote("heart", picked), setPicked(null))}>
+              <span className="small visitor-bond">{bondName(bondLevel(bondsOf(friendsAll, pet.bornAt)[friendKey(picked, others[picked]!.name)]?.points ?? 0), lang)}</span>
+              <button type="button" className="btn" onClick={() => (play("pop"), liveEmote("heart", picked), meet(picked, { name: others[picked]!.name, line: others[picked]!.line }, "heart"), setPicked(null))}>
                 <Icon name="heart" size={16} /> {lang === "zh" ? "送心" : "Heart"}
               </button>
-              <button type="button" className="btn primary" onClick={() => (play("tap"), liveAsk(picked), setPicked(null))}>
+              <button type="button" className="btn primary" onClick={() => (play("tap"), liveAsk(picked), meet(picked, { name: others[picked]!.name, line: others[picked]!.line }, "spar"), setPicked(null))}>
                 <Icon name="paw" size={16} /> {lang === "zh" ? "切磋" : "Spar"}
               </button>
               <button
@@ -490,7 +511,7 @@ export function PlayApp() {
                 className="btn"
                 onClick={() => {
                   const other = others[picked]!;
-                  const block = familyBlock(pet, other.stage, lang);
+                  const block = familyBlock(pet, other.stage, lang) ?? bondBlock(pet, bondsOf(friendsAll, pet.bornAt)[friendKey(other.id, other.name)]?.points ?? 0, other.name, lang);
                   setPicked(null);
                   if (block) return setWorldMsg({ id: Date.now(), text: block });
                   play("tap");
@@ -601,6 +622,8 @@ export function PlayApp() {
       <BadgeToast />
       <Sheet open={tab === "me"} title={t("me.title", { name: pet.name })} onClose={close}>
         <WardrobePanel pet={pet} />
+        <hr className="divider" />
+        <FriendsPanel pet={pet} />
         <hr className="divider" />
         <AlbumPanel />
         <hr className="divider" />

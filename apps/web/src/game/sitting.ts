@@ -9,6 +9,8 @@
  * log hash must match too.
  */
 
+import { playerId } from "./live";
+import { useFriends } from "./friends";
 import { type Pet, type SitPack, ZERO_HASH, chainAll, checkReturn } from "@lingxi/game";
 import { readPet } from "@lingxi/chain";
 import { linkPrefix } from "./links";
@@ -26,6 +28,8 @@ async function keyHash(key: string): Promise<string> {
 /** What travels home with the pet: the pet, and how far its on-chain saves reached while away. */
 interface Homecoming {
   pet: Pet;
+  /** the friend who looked after it, and their own pet, for the friendship */
+  sitter?: { id: string; name: string; line: string };
   chain?: { lastDay: number; logLen: number } | null;
 }
 
@@ -40,6 +44,7 @@ export async function sendToSitter(pet: Pet, days: number): Promise<string> {
     chain: record ? { petId: record.petId, owner: record.owner, bornChain: record.bornChain, brains: record.brains, brainKey: record.brainKey, lastDay: record.lastDay } : null,
     sitter: record?.sitter && record.sitter.until * 1000 > Date.now() ? record.sitter.who : null,
     until,
+    host: playerId(),
   };
   const r = await fetch(`${BASE}/api/sit`, {
     method: "POST",
@@ -89,6 +94,8 @@ export async function checkHome(pet: Pet): Promise<"waiting" | "home" | "refused
     }
   }
   useGame.getState().replace(returned as Pet);
+  const s = back.sitter;
+  if (s && typeof s.id === "string" && typeof s.name === "string" && typeof s.line === "string" && s.name.length <= 40) useFriends.getState().meet(s.id.slice(0, 64), { name: s.name, line: s.line }, "stay");
   return "home";
 }
 
@@ -117,6 +124,8 @@ export async function collect(code: string): Promise<SitPack | null> {
 export function takeIn(pack: SitPack, code: string, key: string): boolean {
   const { away: _away, ...pet } = pack.pet;
   const guest: Pet = { ...(pet as Pet), sitting: { code, key, until: pack.until, owner: pack.chain?.owner ?? null, name: pack.pet.name } };
+  // the stay counts for this player's own pet and the owner's pet, before the guest is taken in
+  if (typeof pack.host === "string" && pack.host.length <= 64) useFriends.getState().meet(pack.host, { name: pack.pet.name, line: pack.pet.line }, "stay");
   if (!useGame.getState().guest(guest)) return false;
   if (pack.chain) setRecordOf(guest, { petId: pack.chain.petId, hatchTx: "", lastDay: pack.chain.lastDay, owner: pack.chain.owner, bornChain: pack.chain.bornChain, brains: pack.chain.brains, brainKey: pack.chain.brainKey });
   return true;
@@ -130,7 +139,8 @@ export async function sendHome(given: Pet): Promise<boolean> {
   if (!pet.sitting) return false;
   const record = recordOf(pet);
   const { sitting, ...home } = pet;
-  const body: Homecoming = { pet: home as Pet, chain: record && record.logLen !== undefined ? { lastDay: record.lastDay, logLen: record.logLen } : null };
+  const own = useGame.getState().pets.find((p) => !p.sitting);
+  const body: Homecoming = { pet: home as Pet, chain: record && record.logLen !== undefined ? { lastDay: record.lastDay, logLen: record.logLen } : null, ...(own ? { sitter: { id: playerId(), name: own.name, line: own.line } } : {}) };
   const r = await fetch(`${BASE}/api/sit/${sitting.code}/home`, {
     method: "POST",
     headers: { "content-type": "application/json" },

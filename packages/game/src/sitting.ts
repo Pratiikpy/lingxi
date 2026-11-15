@@ -33,6 +33,8 @@ export interface SitPack {
   sitter: string | null;
   /** when the sitting ends (ms) */
   until: number;
+  /** the owner's player id, so the stay counts toward the pets' friendship */
+  host?: string;
 }
 
 export type ReturnCheck = { ok: true } | { ok: false; reason: "notSame" | "taught" | "logRewritten" | "hashMismatch" | "brainMismatch" | "timeBackwards" | "badState" };

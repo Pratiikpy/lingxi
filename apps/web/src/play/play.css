@@ -1483,3 +1483,61 @@
   gap: 2px;
   font: 700 0.75rem var(--round);
 }
+
+.friend-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.friend {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--card);
+}
+.friend > :first-child {
+  justify-self: center;
+}
+.friend-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.friend-text b {
+  font-family: var(--round);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.friend-text .small,
+.friend-seen {
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+}
+.friend-bar {
+  display: block;
+  height: 8px;
+  border: 2px solid var(--line);
+  border-radius: 6px;
+  background: var(--track);
+  overflow: hidden;
+}
+.friend-bar i {
+  display: block;
+  height: 100%;
+  background: var(--heart);
+  transition: width var(--t-std) var(--ease);
+}
+.friend.level-3,
+.friend.level-4 {
+  box-shadow: inset 4px 0 0 var(--heart);
+}
+.visitor-bond {
+  color: var(--ink-soft);
+}
