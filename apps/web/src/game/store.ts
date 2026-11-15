@@ -4,9 +4,13 @@
  * the same pet and starts writing daily checkpoints on chain.
  */
 
+import { CARE_METRIC, useBadges } from "./badges";
+
+/** Stage as the "Growing up" badge counts it: child 2, teen 3, adult 4. */
+const STAGE_RANK: Record<string, number> = { baby: 1, child: 2, teen: 3, adult: 4, elder: 4 };
 import { create } from "zustand";
 import { type Program, type Rule, STARTERS, compileProgram, fastBrain, stateBits } from "@lingxi/brain";
-import { type Brain, type Care, type CareResult, type Pet, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, liveBeat, mindBrain, teach as teachRule } from "@lingxi/game";
+import { type Brain, type Care, type CareResult, type Pet, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, liveBeat, mindBrain, stageOf, teach as teachRule } from "@lingxi/game";
 import type { StarterLine } from "@lingxi/brain";
 
 const OLD_KEY = "lingxi.pet.v1";
@@ -171,6 +175,8 @@ export const useGame = create<GameState>((set, get) => ({
     if (roster.pets.length >= MAX_PETS) return false;
     roster = { active: roster.pets.length, pets: [...roster.pets, child] };
     persist();
+    useBadges.getState().note("pets");
+    useBadges.getState().note("children");
     set({ pet: child, pets: roster.pets, active: roster.active, lastCare: null });
     return true;
   },
@@ -190,6 +196,7 @@ export const useGame = create<GameState>((set, get) => ({
       brain: brainFor(line),
     });
     save(pet);
+    useBadges.getState().note("pets");
     set({ pet, pets: roster.pets, daily: freshDaily() });
   },
   act: (c) => {
@@ -197,6 +204,14 @@ export const useGame = create<GameState>((set, get) => ({
     if (!pet) return;
     const r = care(pet, c, Date.now(), brainOf(pet));
     save(r.pet);
+    const metric = CARE_METRIC[r.note];
+    if (metric) {
+      const b = useBadges.getState();
+      b.note("care");
+      b.note(metric);
+      b.note("kinship", kinshipNow(r.pet, r.pet.beat));
+      b.note("stage", STAGE_RANK[stageOf(r.pet, Date.now())] ?? 0);
+    }
     const d = get().daily.day === todayKey() ? { ...get().daily } : freshDaily();
     if (c.kind === "feed" && r.note !== "overfed") d.fed = true;
     if (c.kind === "play" && r.note === "played") d.played = true;
@@ -215,6 +230,7 @@ export const useGame = create<GameState>((set, get) => ({
     if (!pet) return;
     const next = liveBeat(pet, Date.now(), brainOf(pet));
     if (next !== pet) {
+      if (stageOf(next, Date.now()) !== stageOf(pet, Date.now() - 60_000)) useBadges.getState().note("stage", STAGE_RANK[stageOf(next, Date.now())] ?? 0);
       save(next);
       set({ pet: next, pets: roster.pets });
     }
@@ -239,6 +255,7 @@ export const useGame = create<GameState>((set, get) => ({
     const after = care(r.pet, { kind: "talk" }, Date.now(), brainOf(r.pet)).pet;
     save(after);
     set({ pet: after, pets: roster.pets, lastCare: { kind: "learn", at: performance.now() }, toast: { id: ++toastId, note: "learned" } });
+    useBadges.getState().note("lessons");
     return { ok: true };
   },
   arrange: (index, move) => {

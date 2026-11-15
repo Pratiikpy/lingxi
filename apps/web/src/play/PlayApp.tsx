@@ -11,6 +11,7 @@ import { chirp, play } from "../game/sound";
 import { followClock } from "../game/music";
 import { useReminders } from "../game/reminders";
 import { RemindersPanel } from "./Reminders";
+import { BadgeShelf, BadgeToast } from "./Badges";
 import { type DayPhase, RoomScene } from "../scene/RoomScene";
 import { PALETTE_OF, type PetStage } from "../scene/textures";
 import { Hatch } from "./Hatch";
@@ -423,6 +424,7 @@ export function PlayApp() {
         <PetsPanel onPicked={close} />
       </Sheet>
 
+      <BadgeToast />
       <Sheet open={tab === "me"} title={t("me.title", { name: pet.name })} onClose={close}>
         <MeSheetBody pet={pet} />
         <hr className="divider" />
@@ -437,6 +439,8 @@ export function PlayApp() {
         <SendGiftPanel pet={pet} />
         <hr className="divider" />
         <RedPacketPanel pet={pet} />
+        <hr className="divider" />
+        <BadgeShelf />
         <hr className="divider" />
         <RemindersPanel pet={pet} />
         <hr className="divider" />

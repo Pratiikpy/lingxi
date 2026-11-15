@@ -7,6 +7,7 @@
  * (VITE_DEV_KEY); it is never part of a production build.
  */
 
+import { useBadges } from "./badges";
 import { create } from "zustand";
 import { createPublicClient, createWalletClient, custom, http, isAddress, type Hex, type PublicClient, type WalletClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -280,6 +281,7 @@ export const useChain = create<ChainState>((set, get) => ({
       const next = { ...(records[petKey(pet)] ?? record), lastDay: day, lastTx: tx, logLen: pet.pendingLog.length };
       store(pet, next);
       set({ record: activeRecord(), busy: "idle" });
+      useBadges.getState().note("chainDays");
       onSaved();
     } catch (e) {
       set({ busy: "idle", error: quiet ? null : firstLine(e) });

@@ -4,6 +4,7 @@
  * reads the letter and hatches the egg, with no wallet and no sign-up.
  */
 
+import { useBadges } from "../game/badges";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { drawEgg, drawPet } from "@lingxi/art";
@@ -64,6 +65,7 @@ export function SendGiftPanel({ pet }: { pet: Pet }) {
       at: Date.now(),
     };
     setLink(`${location.origin}${location.pathname}#gift=${encodeGift(gift)}`);
+    useBadges.getState().note("gifts");
     setItem(null);
     play("success");
   };

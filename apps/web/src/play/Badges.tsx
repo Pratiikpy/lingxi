@@ -1,0 +1,112 @@
+/** Care badges: the shelf in the Pet sheet, and a small celebration when a tier is earned. */
+
+import { useEffect } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { BADGES, type Badge, type Metric, progressOf, tierOf } from "@lingxi/game";
+import { useLang } from "../i18n";
+import { useBadges } from "../game/badges";
+import { Icon, type IconName } from "./icons";
+import "./badges.css";
+
+const ICON: Record<Metric, IconName> = {
+  care: "heart",
+  feed: "bowl",
+  play: "ball",
+  clean: "sparkle",
+  petting: "hand",
+  medicine: "pill",
+  lessons: "note",
+  stage: "star",
+  pets: "pet",
+  children: "paw",
+  sparWins: "star",
+  gifts: "gift",
+  rooms: "map",
+  chainDays: "mind",
+  kinship: "heart",
+};
+const TIER = { en: ["", "Bronze", "Silver", "Gold"], zh: ["", "铜", "银", "金"] } as const;
+const STAGE = { en: ["", "baby", "a child", "a teen", "an adult"], zh: ["", "宝宝", "幼年", "少年", "成年"] } as const;
+
+function howText(b: Badge, n: number, lang: "en" | "zh"): string {
+  const shown = b.metric === "stage" ? STAGE[lang][n] ?? String(n) : String(n);
+  return b.how[lang].replace("{n}", shown);
+}
+
+export function BadgeShelf() {
+  const { lang } = useLang();
+  const l = lang as "en" | "zh";
+  const ledger = useBadges((s) => s.ledger);
+  const earned = BADGES.filter((b) => tierOf(b, ledger) > 0).length;
+  return (
+    <div className="badges">
+      <div className="badges-head">
+        <p className="label">{l === "zh" ? "照料徽章" : "Care badges"}</p>
+        <span className="small">{l === "zh" ? `已得 ${earned} / ${BADGES.length}，所有宠物一起累计` : `${earned} of ${BADGES.length}, counted across all your pets`}</span>
+      </div>
+      <ul className="badge-grid">
+        {BADGES.map((b) => {
+          const tier = tierOf(b, ledger);
+          const p = progressOf(b, ledger);
+          return (
+            <li key={b.id} className={`badge t${tier}`} title={p.next !== null ? howText(b, p.next, l) : b.name[l]}>
+              <span className="medal" aria-hidden="true">
+                <Icon name={ICON[b.metric]} size={20} />
+              </span>
+              <b>{b.name[l]}</b>
+              <span className="tier">{tier ? TIER[l][tier] : l === "zh" ? "未获得" : "not yet"}</span>
+              {p.next !== null && (
+                <>
+                  <i className="bar" aria-hidden="true">
+                    <i style={{ transform: `scaleX(${p.fraction})` }} />
+                  </i>
+                  <span className="next">{howText(b, p.next, l)}</span>
+                </>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+export function BadgeToast() {
+  const { lang } = useLang();
+  const l = lang as "en" | "zh";
+  const fresh = useBadges((s) => s.fresh);
+  const dismiss = useBadges((s) => s.dismiss);
+  const top = fresh[0];
+  useEffect(() => {
+    if (!top) return;
+    const t = setTimeout(() => dismiss(top.id), 3600);
+    return () => clearTimeout(t);
+  }, [top, dismiss]);
+  return (
+    <AnimatePresence>
+      {top && (
+        <motion.button
+          type="button"
+          key={top.id}
+          className={`badge-toast t${top.tier}`}
+          onClick={() => dismiss(top.id)}
+          initial={{ opacity: 0, y: 16, scale: 0.9 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 8 }}
+          transition={{ type: "spring", stiffness: 420, damping: 26 }}
+          role="status"
+        >
+          <span className="medal" aria-hidden="true">
+            <Icon name={ICON[top.badge.metric]} size={22} />
+          </span>
+          <span>
+            <small>{l === "zh" ? "新徽章" : "New badge"}</small>
+            <b>
+              {top.badge.name[l]} · {TIER[l][top.tier]}
+            </b>
+          </span>
+        </motion.button>
+      )}
+    </AnimatePresence>
+  );
+}

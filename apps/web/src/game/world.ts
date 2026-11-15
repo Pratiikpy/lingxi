@@ -4,6 +4,7 @@
  * pet; food from the bag goes through the game rules like any care.
  */
 
+import { useBadges } from "./badges";
 import { create } from "zustand";
 import { exert, stageOf } from "@lingxi/game";
 import {
@@ -107,6 +108,7 @@ export const useWorld = create<WorldStore>((set, get) => ({
     }
     tirePet(MOVE_ENERGY);
     save(r.world);
+    useBadges.getState().visit(to);
     play("tap");
     set({ world: r.world, notice: { id: ++n, kind: "moved", coins: r.coins } });
     return true;

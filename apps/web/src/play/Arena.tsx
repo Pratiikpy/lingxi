@@ -5,6 +5,7 @@
  * that actually wins more.
  */
 
+import { useBadges } from "../game/badges";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { type PixelCanvas, boundingBox, drawPet, type Expression } from "@lingxi/art";
@@ -168,6 +169,7 @@ function FightView({ pet, partner, result, cheer, onDone, onRematch }: { pet: Pe
     settled.current = true;
     const outcome = result.winner === 0 ? "w" : result.winner === 1 ? "l" : "d";
     const first = useSpar.getState().note(partner.id, outcome);
+    if (outcome === "w") useBadges.getState().note("sparWins");
     if (outcome === "w" && !partner.id.startsWith("friend:")) {
       const coins = WIN_COINS + (first ? FIRST_WIN_COINS : 0);
       useWorld.getState().reward(coins);
