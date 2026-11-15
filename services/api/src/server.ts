@@ -30,6 +30,7 @@ import { createPublicClient, http, type PublicClient } from "viem";
 import { type Deployment, xLayer } from "@lingxi/chain";
 import { createAgentStore } from "./agents";
 import { withAgentApi } from "./agentApi";
+import { type Letter, currentLetters, loadLetters } from "./mail";
 import { PlanSchema, createPusher, type Pusher } from "./push";
 import { VoiceRequest, createVoice } from "./voice";
 import { LibraryRule, createLibrary, type Library } from "./library";
@@ -294,6 +295,15 @@ export function withSeason(app: Hono, store: SeasonStore, writes = new RateLimit
   return app;
 }
 
+/** In-game mail: the letters current now, newest first. */
+export function withMail(app: Hono, letters: () => readonly Letter[], now: () => number = Date.now): Hono {
+  app.get("/api/mail", (c) => {
+    c.header("Cache-Control", "public, max-age=300");
+    return c.json({ ok: true, letters: currentLetters(letters(), now()) });
+  });
+  return app;
+}
+
 export function withLibrary(app: Hono, library: Library, writes = new RateLimiter(60, 3_600_000)): Hono {
   const who = (c: { req: { header: (n: string) => string | undefined } }) => c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
   const Key = z.object({ key: z.string().regex(/^[0-9a-f]{24}$/) });
@@ -394,6 +404,12 @@ if (isMain) {
   withLibrary(app, createLibrary(process.env.LINGXI_LIBRARY_STORE));
   withSitting(app, createSittingStore(process.env.LINGXI_SIT_STORE));
   withArena(app, createArenaStore(process.env.LINGXI_ARENA_STORE));
+  {
+    // letters ship with the server; a redeploy brings new ones
+    const file = process.env.LINGXI_MAIL_FILE ?? resolve(dirname(fileURLToPath(import.meta.url)), "../mail/letters.json");
+    const letters = loadLetters(file);
+    withMail(app, () => letters);
+  }
   const seasons = createSeasonStore(process.env.LINGXI_SEASON_STORE);
   withSeason(app, seasons);
   {

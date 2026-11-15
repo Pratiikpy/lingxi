@@ -44,6 +44,8 @@ import { BrainView } from "./BrainView";
 import { ChainPanel } from "./ChainPanel";
 import { HomePanel } from "./Home";
 import { WardrobePanel } from "./Wardrobe";
+import { MailboxPanel } from "./Mailbox";
+import { unreadCount, useMail } from "../game/mail";
 import { Outings } from "./Outings";
 import { DESTINATION, outfitOf } from "@lingxi/world";
 import { Icon } from "./icons";
@@ -74,6 +76,11 @@ export function PlayApp() {
   const worldRoom = useWorld((s) => s.world.room);
   const worldFull = useWorld((s) => s.world);
   const travelling = !!worldFull.trip;
+  const mailState = useMail();
+  const unread = unreadCount(mailState);
+  useEffect(() => {
+    if (!mailState.loaded) void mailState.fetch();
+  }, [mailState.loaded, mailState.fetch]);
   const homeDecor = useLive((s) => s.homeDecor);
   const placedDecor = decorOf(worldFull).placed;
   // our home's decorations live on the server too, so friends who drop by see them
@@ -331,7 +338,7 @@ export function PlayApp() {
 
   return (
     <div className="app">
-      <TopBar pet={pet} daily={daily} face={face && <FaceSprite canvas={face} line={pet.line} />} onQuests={() => pick("quests")} onPets={() => pick("pets")} petCount={petCount} />
+      <TopBar pet={pet} daily={daily} face={face && <FaceSprite canvas={face} line={pet.line} />} onQuests={() => pick("quests")} onPets={() => pick("pets")} petCount={petCount} onMail={() => pick("mail")} unread={unread} />
       <div className="main">
         <section className="stage" aria-label={pet.name}>
           <RoomScene
@@ -560,6 +567,9 @@ export function PlayApp() {
 
       <Sheet open={tab === "bag"} title={t("bag.title")} onClose={close}>
         <BagPanel onFed={close} />
+      </Sheet>
+      <Sheet open={tab === "mail"} title={lang === "zh" ? "邮件" : "Mail"} onClose={close}>
+        <MailboxPanel />
       </Sheet>
       <Sheet open={tab === "map"} title={t("map.title")} onClose={close}>
         <Outings pet={pet} />

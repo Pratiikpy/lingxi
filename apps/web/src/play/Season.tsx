@@ -12,6 +12,9 @@ import { useBadges } from "../game/badges";
 import { play } from "../game/sound";
 import { recordOf } from "../game/chain";
 import { useWorld } from "../game/world";
+import { useMail } from "../game/mail";
+
+const ordinal = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
 import "./season.css";
 
 const SHOWN = 10;
@@ -46,6 +49,19 @@ export function SeasonCard({ pet }: { pet: Pet }) {
       const row = l.standings.find((r) => r.key === key);
       const tier = row ? placeTier(row.rank) : 0;
       if (tier) useBadges.getState().note("seasonPlace", tier);
+      if (row) {
+        const award = l.award;
+        const sent = tier === 3 && award?.brainId && award.to;
+        useMail.getState().write({
+          id: `season-${l.week}`,
+          at: l.ends,
+          subject: { en: `Season ${l.week}: ${row.rank === 1 ? "champion!" : `${ordinal(row.rank)} of ${l.standings.length}`}`, zh: `${l.week} 赛季：${row.rank === 1 ? "冠军！" : `第 ${row.rank} 名，共 ${l.standings.length} 只`}` },
+          body: {
+            en: `${row.name} finished ${ordinal(row.rank)} with ${row.points} points (${row.wins} wins, ${row.draws} draws, ${row.losses} losses).${tier ? " A Season star badge is yours." : ""}${tier === 3 ? " The champion's laurel is in your wardrobe." : ""}${sent ? ` Its brain was taped out as circuit #${award!.brainId} and sent to ${award!.to!.slice(0, 6)}…${award!.to!.slice(-4)}.` : ""}`,
+            zh: `${row.name}以 ${row.points} 分排第 ${row.rank}（${row.wins} 胜 ${row.draws} 平 ${row.losses} 负）。${tier ? "你获得了赛季之星徽章。" : ""}${tier === 3 ? "冠军桂冠已放进你的衣橱。" : ""}${sent ? `它的大脑已流片为 #${award!.brainId} 号电路，送到了 ${award!.to!.slice(0, 6)}…${award!.to!.slice(-4)}。` : ""}`,
+          },
+        });
+      }
       // the champion's keepsake outfit (F26)
       if (tier === 3) useWorld.getState().giveLaurel();
       markAwarded(l.week);

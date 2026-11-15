@@ -31,7 +31,7 @@ export function Chips({ when, then, want }: { when: string[]; then: string; want
   );
 }
 
-export function TopBar({ pet, daily, face, onQuests, onPets, petCount }: { pet: Pet; daily: Daily; face: React.ReactNode; onQuests: () => void; onPets: () => void; petCount: number }) {
+export function TopBar({ pet, daily, face, onQuests, onPets, petCount, onMail, unread = 0 }: { pet: Pet; daily: Daily; face: React.ReactNode; onQuests: () => void; onPets: () => void; petCount: number; onMail: () => void; unread?: number }) {
   const t = useT();
   const toggleLang = useLang((s) => s.toggle);
   const sound = useSound();
@@ -65,6 +65,10 @@ export function TopBar({ pet, daily, face, onQuests, onPets, petCount }: { pet: 
             ))}
             <small>{t("daily.label")}</small>
           </div>
+        </button>
+        <button type="button" className="round-btn mail-btn" onClick={onMail} aria-label={unread ? (t("lang") === "EN" ? `邮件，${unread} 封未读` : `Mail, ${unread} unread`) : t("lang") === "EN" ? "邮件" : "Mail"}>
+          <Icon name="mail" size={20} />
+          {unread > 0 && <i className="mail-badge">{unread}</i>}
         </button>
         <button type="button" className="round-btn" onClick={sound.toggle} aria-label={sound.on ? t("sound.on") : t("sound.off")} aria-pressed={sound.on}>
           <Icon name={sound.on ? "sound" : "mute"} size={20} />
@@ -180,7 +184,7 @@ export function ToastView({ toast, name }: { toast: Toast | null; name: string }
   );
 }
 
-export type Tab = "home" | "map" | "bag" | "mind" | "spar" | "me" | "quests" | "pets" | "games";
+export type Tab = "home" | "map" | "bag" | "mind" | "spar" | "me" | "quests" | "pets" | "games" | "mail";
 const TABS: ReadonlyArray<[Tab, IconName, Key]> = [
   ["home", "home", "tab.home"],
   ["map", "map", "tab.map"],
