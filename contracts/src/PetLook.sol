@@ -11,10 +11,12 @@ import {IPetRenderer, PetRegistry} from "./PetRegistry.sol";
 /// stage, the circuit trace (lit when it is glowing with joy) and one of sixteen
 /// hand-drawn faces chosen from its meters, all assembled from pixel layers stored
 /// here. Owners can also give a pet a name that no other pet holds.
-/// @dev Layers are lists of 4-byte runs: x, y, length, colour role (1..16). Layer keys:
-/// 0 egg, 1..4 body per stage (baby..adult), 11..14 lit-trace pixels per stage,
-/// 100..115 small faces, 116..131 large faces. Face positions: 16 (left, top) pairs per
-/// stage. Art can be corrected until the owner freezes it; after that this contract's art
+/// @dev Layers are lists of 4-byte runs: x, y, length, colour role (1..16). Each egg line
+/// (0 gentle, 1 bold, 2 curious) has its own bodies; a "slot" is 10 * (line + 1) + stage
+/// for stages 1..4 (baby..adult) and 0 for the egg, which every line shares. Layer keys:
+/// 0 egg, 100 + slot body, 200 + slot lit-trace pixels, 1000..1015 small faces and
+/// 1016..1031 large faces (shared by all lines). Face positions (16 left/top pairs), face
+/// size and frame are kept per slot. Palettes: 0..2 pets by line, 3..5 eggs by line. Art can be corrected until the owner freezes it; after that this contract's art
 /// never changes (the registry's owner can still point the registry at another renderer).
 contract PetLook is IPetRenderer, Ownable2Step {
     using Strings for uint256;
@@ -75,19 +77,26 @@ contract PetLook is IPetRenderer, Ownable2Step {
         }
     }
 
-    function setFaces(uint256 stage, bool large, bytes calldata at) external onlyOwner artOpen {
-        if (stage < 1 || stage > 4 || at.length != 32) revert BadLayer();
-        faceAt[stage] = at;
-        largeFace[stage] = large;
+    function _validSlot(uint256 slot, bool eggAllowed) private pure returns (bool) {
+        if (slot == 0) return eggAllowed;
+        uint256 line = slot / 10;
+        uint256 stage = slot % 10;
+        return line >= 1 && line <= 3 && stage >= 1 && stage <= 4;
     }
 
-    function setFrame(uint256 stage, uint8 x, uint8 y, uint8 size) external onlyOwner artOpen {
-        if (stage > 4 || size < 16 || uint256(x) + size > 48 || uint256(y) + size > 48) revert BadLayer();
-        frame[stage] = abi.encodePacked(x, y, size);
+    function setFaces(uint256 slot, bool large, bytes calldata at) external onlyOwner artOpen {
+        if (!_validSlot(slot, false) || at.length != 32) revert BadLayer();
+        faceAt[slot] = at;
+        largeFace[slot] = large;
+    }
+
+    function setFrame(uint256 slot, uint8 x, uint8 y, uint8 size) external onlyOwner artOpen {
+        if (!_validSlot(slot, true) || size < 16 || uint256(x) + size > 48 || uint256(y) + size > 48) revert BadLayer();
+        frame[slot] = abi.encodePacked(x, y, size);
     }
 
     function setPalette(uint256 id, bytes calldata colours) external onlyOwner artOpen {
-        if (id > 1 || colours.length != 64) revert BadLayer();
+        if (id > 5 || colours.length != 64) revert BadLayer();
         palette[id] = colours;
     }
 
@@ -95,17 +104,17 @@ contract PetLook is IPetRenderer, Ownable2Step {
     /// Every picture must be complete first: egg and four bodies, face positions and the
     /// sixteen faces of each stage's set, and both palettes.
     function freezeArt() external onlyOwner {
-        for (uint256 s = 0; s <= 4; ++s) {
-            if (layer[s].length == 0) revert ArtIncomplete();
-        }
-        for (uint256 s = 1; s <= 4; ++s) {
-            if (faceAt[s].length != 32) revert ArtIncomplete();
-            uint256 base = largeFace[s] ? 116 : 100;
-            for (uint256 f; f < 16; ++f) {
-                if (layer[base + f].length == 0) revert ArtIncomplete();
+        if (layer[0].length == 0) revert ArtIncomplete();
+        for (uint256 line = 0; line < 3; ++line) {
+            if (palette[line].length != 64 || palette[3 + line].length != 64) revert ArtIncomplete();
+            for (uint256 st = 1; st <= 4; ++st) {
+                uint256 slot = 10 * (line + 1) + st;
+                if (layer[100 + slot].length == 0 || faceAt[slot].length != 32) revert ArtIncomplete();
             }
         }
-        if (palette[0].length != 64 || palette[1].length != 64) revert ArtIncomplete();
+        for (uint256 f; f < 32; ++f) {
+            if (layer[1000 + f].length == 0) revert ArtIncomplete();
+        }
         artFrozen = true;
         emit ArtFrozen();
     }
@@ -214,34 +223,41 @@ contract PetLook is IPetRenderer, Ownable2Step {
 
     /* ── the picture ───────────────────────────────────────────────────── */
 
-    /// @notice Stage (0 egg .. 4 adult), face (index into the sixteen expressions) and
-    /// whether the trace glows, from a saved state word.
-    function lookOf(uint256 state) public pure returns (uint256 stage, uint256 face, bool lit) {
+    /// @notice Egg line (0 gentle, 1 bold, 2 curious), stage (0 egg .. 4 adult), face
+    /// (index into the sixteen expressions) and whether the trace glows, from a state word.
+    function lookOf(uint256 state) public pure returns (uint256 line, uint256 stage, uint256 face, bool lit) {
+        line = (state >> 152) & 3;
+        if (line > 2) line = 0;
         stage = (state >> 148) & 7;
         if (stage > 4) stage = 4; // elders wear the adult picture
+        (face, lit) = _mood(state);
+    }
+
+    function _mood(uint256 state) private pure returns (uint256 face, bool lit) {
         uint256 food = (state >> 64) & 1023;
         uint256 joy = (state >> 74) & 1023;
         uint256 energy = (state >> 84) & 1023;
         // indices follow EXPRESSIONS in packages/art/src/faces.ts
-        if ((state >> 151) & 1 == 1) return (stage, 14, false); // asleep
-        if ((state >> 219) & 1 == 1) return (stage, 12, false); // dizzy (ill)
-        if (food < 200) return (stage, 13, false); // sad
-        if (energy < 200) return (stage, 4, false); // sleepy
-        if (joy >= 750) return (stage, 2, true); // sparkly, trace lit
-        if (joy >= 500) return (stage, 1, false); // happy
-        if (joy < 200) return (stage, 3, false); // sulk
-        return (stage, 0, false); // neutral
+        if ((state >> 151) & 1 == 1) return (14, false); // asleep
+        if ((state >> 219) & 1 == 1) return (12, false); // dizzy (ill)
+        if (food < 200) return (13, false); // sad
+        if (energy < 200) return (4, false); // sleepy
+        if (joy >= 750) return (2, true); // sparkly, trace lit
+        if (joy >= 500) return (1, false); // happy
+        if (joy < 200) return (3, false); // sulk
+        return (0, false); // neutral
     }
 
     /// @notice The pet's picture for a state word, as an SVG document.
     function svgOf(uint256 state) public view returns (string memory) {
-        (uint256 stage, uint256 face, bool lit) = lookOf(state);
-        bytes memory body = layer[stage];
-        bytes memory litRuns = (stage > 0 && lit) ? layer[10 + stage] : bytes("");
-        (bytes memory faceRuns, uint256 fx, uint256 fy) = _face(stage, face);
+        (uint256 line, uint256 stage, uint256 face, bool lit) = lookOf(state);
+        uint256 slot = stage == 0 ? 0 : 10 * (line + 1) + stage;
+        bytes memory body = layer[stage == 0 ? 0 : 100 + slot];
+        bytes memory litRuns = (stage > 0 && lit) ? layer[200 + slot] : bytes("");
+        (bytes memory faceRuns, uint256 fx, uint256 fy) = _face(slot, face);
         Writer memory w = Writer(new bytes(800 + ((body.length + litRuns.length + faceRuns.length) / 4) * 64), 0);
         _put(w, '<svg xmlns="http://www.w3.org/2000/svg" viewBox="');
-        bytes memory f = frame[stage];
+        bytes memory f = frame[slot];
         if (f.length == 3) {
             _num(w, uint8(f[0]));
             _put(w, " ");
@@ -254,7 +270,7 @@ contract PetLook is IPetRenderer, Ownable2Step {
             _put(w, "0 0 48 48");
         }
         _put(w, '" shape-rendering="crispEdges"><style>');
-        _style(w, palette[stage == 0 ? 1 : 0]);
+        _style(w, palette[stage == 0 ? 3 + line : line]);
         _put(w, '</style><rect width="48" height="48" fill="#FFF7E8"/>');
         _runs(w, body, 0, 0);
         _runs(w, litRuns, 0, 0);
@@ -263,10 +279,10 @@ contract PetLook is IPetRenderer, Ownable2Step {
         return _done(w);
     }
 
-    function _face(uint256 stage, uint256 face) private view returns (bytes memory runs, uint256 fx, uint256 fy) {
-        if (stage == 0) return (runs, 0, 0);
-        runs = layer[(largeFace[stage] ? 116 : 100) + face];
-        bytes memory at = faceAt[stage];
+    function _face(uint256 slot, uint256 face) private view returns (bytes memory runs, uint256 fx, uint256 fy) {
+        if (slot == 0) return (runs, 0, 0);
+        runs = layer[(largeFace[slot] ? 1016 : 1000) + face];
+        bytes memory at = faceAt[slot];
         if (at.length == 32) {
             fx = uint8(at[face * 2]);
             fy = uint8(at[face * 2 + 1]);

@@ -7,7 +7,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { CORAL, SHELL, drawEgg, drawPet } from "@lingxi/art";
+import { CORAL, SHELL, SKY, SUNNY, drawEgg, drawPet } from "@lingxi/art";
 import { STARTERS, compileProgram, gateCount } from "@lingxi/brain";
 import { PARTNERS, PET_SCHOOL, createPet, care, fighterFrom, spar } from "@lingxi/game";
 import { CHARACTERS } from "@lingxi/world";
@@ -133,7 +133,7 @@ function Residents() {
 function FriendsScene({ reduce }: { reduce: boolean }) {
   const { lang } = useLang();
   const a = useMemo(() => drawPet("gentle", "child", { expression: "happy" }), []);
-  const b = useMemo(() => drawPet("gentle", "teen", { expression: "love" }), []);
+  const b = useMemo(() => drawPet("bold", "teen", { expression: "love" }), []);
   return (
     <div className="friends-scene" style={{ backgroundImage: "url(art/rooms/65_forest-hut/backgrounds/room65a.png)" }}>
       <div className="fs-pet fs-a">
@@ -144,7 +144,7 @@ function FriendsScene({ reduce }: { reduce: boolean }) {
       </div>
       <div className="fs-pet fs-b">
         <span className="fs-bubble">{lang === "zh" ? "嗨！" : "hi!"}</span>
-        <Sprite canvas={b} palette={{ ...CORAL, m: "#FFC83D", d: "#C98A00", l: "#FFE39A" }} scale={3} />
+        <Sprite canvas={b} palette={SUNNY} scale={3} />
         <b>Tofu</b>
       </div>
       {!reduce &&
@@ -177,7 +177,7 @@ function SparDemo({ reduce }: { reduce: boolean }) {
   const r = result.rounds[Math.min(n, result.rounds.length) - 1]!;
   const MOVES: Record<string, [string, string]> = { tap: ["tap", "轻拍"], snack: ["snack", "吃点心"], pounce: ["pounce!", "猛扑！"], rest: ["rest", "歇一歇"], dodge: ["dodge", "闪开"], guard: ["guard", "防守"], charm: ["charm", "撒娇"], gift: ["gift", "送礼"] };
   const pa = useMemo(() => drawPet("gentle", "child", { expression: "happy" }), []);
-  const pb = useMemo(() => drawPet("gentle", "child", { expression: "proud" }), []);
+  const pb = useMemo(() => drawPet("curious", "child", { expression: "proud" }), []);
   return (
     <div className="spar-demo">
       <div className="sd-head">
@@ -190,7 +190,7 @@ function SparDemo({ reduce }: { reduce: boolean }) {
             <i className="sd-hp">
               <i style={{ transform: `scaleX(${r.hp[side] / 100})` }} />
             </i>
-            <Sprite canvas={side === 0 ? pa : pb} palette={side === 0 ? CORAL : { ...CORAL, m: "#FFC83D", d: "#C98A00", l: "#FFE39A" }} scale={2.5} />
+            <Sprite canvas={side === 0 ? pa : pb} palette={side === 0 ? CORAL : SKY} scale={2.5} />
             <span className="sd-move">{MOVES[r.moves[side]]![lang === "zh" ? 1 : 0]}</span>
           </div>
         ))}

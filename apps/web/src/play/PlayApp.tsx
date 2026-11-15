@@ -227,7 +227,7 @@ export function PlayApp() {
   }, [act, say]);
 
   const stage = pet ? drawnStage(stageOf(pet, Date.now())) : "baby";
-  const face = useMemo(() => (pet ? drawPet("gentle", stage, { expression: "happy" }) : null), [pet?.line, stage]);
+  const face = useMemo(() => (pet ? drawPet(pet.line, stage, { expression: "happy" }) : null), [pet?.line, stage]);
 
   if (!pet) {
     return (

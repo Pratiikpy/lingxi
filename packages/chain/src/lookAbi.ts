@@ -157,6 +157,11 @@ export const petLookAbi = [
     ],
     "outputs": [
       {
+        "name": "line",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
         "name": "stage",
         "type": "uint256",
         "internalType": "uint256"
@@ -295,7 +300,7 @@ export const petLookAbi = [
     "name": "setFaces",
     "inputs": [
       {
-        "name": "stage",
+        "name": "slot",
         "type": "uint256",
         "internalType": "uint256"
       },
@@ -318,7 +323,7 @@ export const petLookAbi = [
     "name": "setFrame",
     "inputs": [
       {
-        "name": "stage",
+        "name": "slot",
         "type": "uint256",
         "internalType": "uint256"
       },

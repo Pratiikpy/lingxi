@@ -149,7 +149,7 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
     );
   }
   const [a, b] = family.parents;
-  const baby = drawPet("gentle", "baby", { expression: "sparkly" });
+  const baby = drawPet(a.line as Line, "baby", { expression: "sparkly" });
   const partnerChain = answer.chain;
   const canChain = !!(partnerChain && useChain.getState().infoOf(pet));
   const welcome = async (offChain = false) => {
@@ -222,7 +222,7 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
 }
 
 function ParentChip({ parent, when, lang }: { parent: ParentInfo; when: "day" | "night"; lang: Lang }) {
-  const art = useMemo(() => drawPet("gentle", "adult", { expression: "happy" }), []);
+  const art = useMemo(() => drawPet(parent.line as Line, "adult", { expression: "happy" }), [parent.line]);
   return (
     <div className="fam-parent">
       <Sprite canvas={art} palette={PALETTE_OF[parent.line as Line]} scale={1.5} />
@@ -252,7 +252,7 @@ export function PetsPanel({ onPicked }: { onPicked: () => void }) {
                 onPicked();
               }}
             >
-              <Sprite canvas={drawPet("gentle", drawn(stage), { expression: p.asleep ? "asleep" : "happy" })} palette={PALETTE_OF[p.line]} scale={1.5} />
+              <Sprite canvas={drawPet(p.line, drawn(stage), { expression: p.asleep ? "asleep" : "happy" })} palette={PALETTE_OF[p.line]} scale={1.5} />
               <span>
                 <b>{p.name}</b>
                 <small>

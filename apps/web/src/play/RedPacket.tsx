@@ -215,7 +215,7 @@ export function PacketArrival() {
     window.addEventListener("hashchange", read);
     return () => window.removeEventListener("hashchange", read);
   }, []);
-  const carrier = useMemo(() => drawPet("gentle", "child", { expression: "proud" }), []);
+  const carrier = useMemo(() => drawPet(link?.from.line ?? "gentle", "child", { expression: "proud" }), [link?.from.line]);
   if (!link && !reason) return null;
   const close = () => {
     history.replaceState(null, "", location.pathname + location.search);

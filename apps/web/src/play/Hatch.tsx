@@ -69,7 +69,7 @@ export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string) 
             </motion.div>
           ) : (
             <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 380, damping: 18 }}>
-              <Sprite canvas={drawPet("gentle", "baby", { expression: "sparkly" })} palette={PALETTE_OF[line]} scale={5} label={name} />
+              <Sprite canvas={drawPet(line, "baby", { expression: "sparkly" })} palette={PALETTE_OF[line]} scale={5} label={name} />
             </motion.div>
           )}
         </div>

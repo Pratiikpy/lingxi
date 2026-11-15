@@ -189,7 +189,7 @@ export function GiftArrival() {
     history.replaceState(null, "", location.pathname + location.search);
     setState(null);
   };
-  const carrier = useMemo(() => (state && "gift" in state ? drawPet("gentle", drawn(state.gift.from.stage), { expression: "sparkly" }) : null), [state]);
+  const carrier = useMemo(() => (state && "gift" in state ? drawPet(state.gift.from.line, drawn(state.gift.from.stage), { expression: "sparkly" }) : null), [state]);
   if (!state) return null;
   if ("error" in state) {
     return (
@@ -262,7 +262,7 @@ export function GiftArrival() {
           )}
           {step === "name" && (
             <motion.div key="name" className="gift-body" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <Sprite canvas={drawPet("gentle", "baby", { expression: "sparkly" })} palette={PALETTE_OF[gift.egg!.line]} scale={3} />
+              <Sprite canvas={drawPet(gift.egg!.line, "baby", { expression: "sparkly" })} palette={PALETTE_OF[gift.egg!.line]} scale={3} />
               <p className="small">
                 {gift.egg!.lessons.length
                   ? lang === "zh"

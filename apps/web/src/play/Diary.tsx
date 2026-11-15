@@ -93,7 +93,7 @@ async function card(pet: Pet, lines: string[], date: string, lang: Lang, backdro
   g.lineWidth = 8;
   g.stroke();
   // the pet, pixel-crisp
-  const art = drawPet("gentle", drawn(stageOf(pet, Date.now())), { expression: "happy" });
+  const art = drawPet(pet.line, drawn(stageOf(pet, Date.now())), { expression: "happy" });
   const img = new ImageData(new Uint8ClampedArray(toRgba(art, PALETTE_OF[pet.line], 1)), art.w, art.h);
   const tmp = document.createElement("canvas");
   tmp.width = art.w;

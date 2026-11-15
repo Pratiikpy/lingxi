@@ -147,7 +147,174 @@ const MOCHI: Record<Exclude<Stage, "egg">, BodySpec> = {
   },
 };
 
-export const LINES = { gentle: MOCHI } as const;
+/* ── the bold line (Hoshi): stocky, a star crest that grows into a horn, a bolt tail ── */
+
+const HOSHI: Record<Exclude<Stage, "egg">, BodySpec> = {
+  baby: {
+    face: { x: 24, y: 39, size: "S" },
+    shadow: 8,
+    draw: (m, o) => {
+      m.ellipse(24, 39 + o.squash * 0.5, 8.5 - o.breath * 0.5 + o.squash * 0.6, 6.2 + o.breath * 0.5 - o.squash * 0.6);
+      // a three-point tuft on the crown
+      m.stamp(["#.#.#", "#####"], 22, 31);
+    },
+    finish: (c) => {
+      c.stamp(["x.x.x", "xxxxx"], 22, 31);
+      c.stamp(["hh", "h."], 19, 35);
+    },
+  },
+  child: {
+    face: { x: 24, y: 38, size: "S" },
+    shadow: 10,
+    draw: (m, o) => {
+      m.ellipse(24, 37 + o.squash * 0.5, 11 - o.breath * 0.5 + o.squash * 0.7, 8 + o.breath * 0.5 - o.squash * 0.7);
+      // round little ears
+      m.ellipse(16.5, 30, 2.6, 2.6);
+      m.ellipse(31.5, 30, 2.6, 2.6);
+      // the crest: a small star
+      m.stamp(["..#..", ".###.", "#####", ".#.#."], 22, 27);
+      m.ellipse(19.5, 44, 2.8, 1.6);
+      m.ellipse(28.5, 44, 2.8, 1.6);
+    },
+    finish: (c) => {
+      c.stamp(["..x..", ".xxx.", "xxxxX", ".X.X."], 22, 27);
+      c.set(16, 30, "b");
+      c.set(31, 30, "b");
+      c.stamp(["hhh", "hh."], 16, 32);
+    },
+  },
+  teen: {
+    face: { x: 24, y: 36, size: "L" },
+    trace: { y: 29, half: 4 },
+    shadow: 12,
+    draw: (m, o) => {
+      m.ellipse(24, 35 + o.squash * 0.5, 13 - o.breath * 0.5 + o.squash * 0.8, 9.5 + o.breath * 0.5 - o.squash * 0.8);
+      m.ellipse(14.5, 27, 3, 3);
+      m.ellipse(33.5, 27, 3, 3);
+      // the star crest, taller
+      m.stamp(["...#...", "..###..", "#######", ".#####.", ".##.##."], 21, 22);
+      m.ellipse(18, 44, 3.3, 1.8);
+      m.ellipse(30, 44, 3.3, 1.8);
+      // a bolt for a tail
+      m.stamp(["...##", "..##.", ".####", "..##.", ".##.."], 35, 33);
+    },
+    finish: (c) => {
+      c.stamp(["...x...", "..xxx..", "xxxxxxX", ".xxxxX.", ".xX.XX."], 21, 22);
+      c.stamp(["bb", "bb"], 14, 26);
+      c.stamp(["bb", "bb"], 33, 26);
+      c.stamp(["hhh", "hh.", "h.."], 14, 30);
+      // a light chest patch
+      c.stamp([".lll.", "lllll", ".lll."], 22, 41);
+    },
+  },
+  adult: {
+    face: { x: 24, y: 34, size: "L" },
+    trace: { y: 26, half: 5 },
+    shadow: 14,
+    draw: (m, o) => {
+      // broad and solid, standing square
+      m.ellipse(24, 33 + o.squash * 0.5, 15 - o.breath * 0.5 + o.squash, 11.5 + o.breath * 0.5 - o.squash);
+      m.ellipse(12, 24, 3.4, 3.4);
+      m.ellipse(36, 24, 3.4, 3.4);
+      // the star horn
+      m.stamp(["....#....", "...###...", "..#####..", "#########", ".#######.", "..##.##..", ".##...##."], 20, 16);
+      m.ellipse(17.5, 44.3, 3.8, 1.8);
+      m.ellipse(30.5, 44.3, 3.8, 1.8);
+      m.stamp(["...###", "..###.", ".#####", "..###.", ".###..", ".##..."], 37, 30);
+    },
+    finish: (c) => {
+      c.stamp(["....x....", "...xxx...", "..xxxxx..", "xxxxxxxxX", ".xxxxxxX.", "..xX.XX..", ".xX...XX."], 20, 16);
+      c.stamp([".bb", "bbb", "bb."], 11, 23);
+      c.stamp(["bb.", "bbb", ".bb"], 35, 23);
+      c.stamp(["hhh", "hh.", "h.."], 13, 27);
+      c.stamp(["..lll..", ".lllll.", "lllllll", ".lllll."], 21, 39);
+    },
+  },
+};
+
+/* ── the curious line (Sora): long ears that keep growing, a sprout antenna, a fluffy tail ── */
+
+const SORA: Record<Exclude<Stage, "egg">, BodySpec> = {
+  baby: {
+    face: { x: 24, y: 39, size: "S" },
+    shadow: 8,
+    draw: (m, o) => {
+      m.ellipse(24, 39 + o.squash * 0.5, 7.5 - o.breath * 0.5 + o.squash * 0.6, 6.5 + o.breath * 0.5 - o.squash * 0.6);
+      // two soft ears, flopping outward
+      m.ellipse(17.5, 34, 2, 3.4);
+      m.ellipse(30.5, 34, 2, 3.4);
+    },
+    finish: (c) => {
+      c.stamp(["b", "b"], 17, 33);
+      c.stamp(["b", "b"], 30, 33);
+      c.stamp(["hh", "h."], 20, 35);
+    },
+  },
+  child: {
+    face: { x: 24, y: 38, size: "S" },
+    shadow: 9,
+    draw: (m, o) => {
+      m.ellipse(24, 37 + o.squash * 0.5, 9.5 - o.breath * 0.5 + o.squash * 0.7, 8.5 + o.breath * 0.5 - o.squash * 0.7);
+      // ears stand up now, leaning a little apart
+      m.polygon([[17, 31], [15.5, 20], [19, 19.5], [21, 30]]);
+      m.polygon([[31, 31], [32.5, 20], [29, 19.5], [27, 30]]);
+      m.ellipse(20, 44.2, 2.4, 1.6);
+      m.ellipse(28, 44.2, 2.4, 1.6);
+    },
+    finish: (c) => {
+      c.stamp(["b", "b", "b", "b"], 17, 22);
+      c.stamp(["b", "b", "b", "b"], 30, 22);
+      c.stamp(["hhh", "hh."], 18, 32);
+    },
+  },
+  teen: {
+    face: { x: 24, y: 36, size: "L" },
+    trace: { y: 29, half: 4 },
+    shadow: 11,
+    draw: (m, o) => {
+      m.ellipse(24, 35 + o.squash * 0.5, 11.5 - o.breath * 0.5 + o.squash * 0.8, 10 + o.breath * 0.5 - o.squash * 0.8);
+      m.polygon([[15.5, 28], [13, 13], [17.5, 12.5], [20.5, 27]]);
+      m.polygon([[32.5, 28], [35, 13], [30.5, 12.5], [27.5, 27]]);
+      m.ellipse(19, 44.2, 2.8, 1.7);
+      m.ellipse(29, 44.2, 2.8, 1.7);
+      // a fluffy tail on the left
+      m.ellipse(13.5, 41.5, 2.6, 2.2);
+    },
+    finish: (c) => {
+      c.stamp([".b", "bb", "bb", "bb", "b."], 15, 15);
+      c.stamp(["b.", "bb", "bb", "bb", ".b"], 31, 15);
+      c.stamp(["hhh", "hh.", "h.."], 16, 28);
+      c.stamp(["ll", "l."], 12, 40);
+    },
+  },
+  adult: {
+    face: { x: 24, y: 34, size: "L" },
+    trace: { y: 26, half: 5 },
+    shadow: 13,
+    draw: (m, o) => {
+      m.ellipse(24, 33 + o.squash * 0.5, 13 - o.breath * 0.5 + o.squash, 12.5 + o.breath * 0.5 - o.squash);
+      // tall ears, tips turned out
+      m.polygon([[14, 25], [10.5, 7], [15.5, 6], [20, 22]]);
+      m.polygon([[34, 25], [37.5, 7], [32.5, 6], [28, 22]]);
+      m.ellipse(18.5, 44.3, 3, 1.7);
+      m.ellipse(29.5, 44.3, 3, 1.7);
+      m.ellipse(11.5, 40.5, 3.2, 2.8);
+    },
+    finish: (c) => {
+      c.stamp([".b", "bb", "bb", "bb", "bb", "b."], 13, 9);
+      c.stamp(["b.", "bb", "bb", "bb", "bb", ".b"], 34, 9);
+      // ear tips in the accent colour
+      c.stamp(["xx", "x."], 11, 6);
+      c.stamp(["xx", ".x"], 35, 6);
+      // a little sprout antenna between the ears
+      c.stamp(["x.x", ".O.", ".O."], 23, 18);
+      c.stamp(["hhh", "hh.", "h.."], 14, 25);
+      c.stamp(["ll", "l."], 10, 39);
+    },
+  },
+};
+
+export const LINES = { gentle: MOCHI, bold: HOSHI, curious: SORA } as const;
 export type Line = keyof typeof LINES;
 
 function drawTrace(c: PixelCanvas, cx: number, y: number, halfW: number, lit: boolean): void {

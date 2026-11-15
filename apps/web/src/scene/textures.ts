@@ -51,8 +51,7 @@ export interface PetFrame {
 
 export function petTexture(line: StarterLine, f: PetFrame): Texture {
   const key = `pet:${line}:${f.stage}:${f.expression}:${f.breath}:${f.squash}:${f.lit ? 1 : 0}`;
-  // Only the gentle line is drawn so far; the others reuse its silhouette in their own colours.
-  return canvasTexture(key, drawPet("gentle", f.stage, f), PALETTE_OF[line]);
+  return canvasTexture(key, drawPet(line, f.stage, f), PALETTE_OF[line]);
 }
 
 export function catTexture(pose: CatPose): Texture {

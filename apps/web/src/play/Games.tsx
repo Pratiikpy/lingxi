@@ -118,7 +118,7 @@ function CatchGame({ pet, onEnd }: { pet: Pet; onEnd: (score: number) => void })
   const [score, setScore] = useState(0);
   const [left, setLeft] = useState(20);
   const st = useRef({ x: 50, drops: [] as Drop[], score: 0, next: 0, id: 0, start: 0, ended: false });
-  const art = useMemo(() => drawPet("gentle", drawn(stageOf(pet, Date.now())), { expression: "happy" }), [pet]);
+  const art = useMemo(() => drawPet(pet.line, drawn(stageOf(pet, Date.now())), { expression: "happy" }), [pet]);
   const room = useWorld((s) => s.world.room);
   const backdrop = (ROOMS[room] ?? ROOMS[HOME]!).bgs.day;
 
@@ -294,7 +294,7 @@ function SeekGame({ pet, season, onEnd }: { pet: Pet; season: keyof typeof SEASO
   const [phase, setPhase] = useState<"peek" | "mix" | "pick" | "reveal">("peek");
   const [hidden] = useState(() => (seed.current >>> 3) % 3);
   const [picked, setPicked] = useState<number | null>(null);
-  const art = useMemo(() => drawPet("gentle", drawn(stageOf(pet, Date.now())), { expression: "sparkly" }), [pet]);
+  const art = useMemo(() => drawPet(pet.line, drawn(stageOf(pet, Date.now())), { expression: "sparkly" }), [pet]);
   const swaps = useMemo(() => shuffles(round, seed.current + round * 7919), [round]);
   const [c1, c2] = SPOT_COLOURS[season]!;
 

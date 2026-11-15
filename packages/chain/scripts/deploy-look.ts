@@ -13,8 +13,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createPublicClient, createWalletClient, formatEther, http, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { CORAL, SHELL } from "@lingxi/art";
-import { buildLayers, canvasOfSvg, gameSprite, installCalls, lookOf } from "../src/look";
+import { buildLayers, canvasOfSvg, gameSprite, installCalls, lookOf, lookPalettes } from "../src/look";
 import { petRegistryAbi } from "../src/registryAbi";
 import type { Deployment } from "../src/registry";
 import { xLayer } from "../src/tapeout";
@@ -62,20 +61,20 @@ const send = async (functionName: string, args: unknown[]) => {
 const read = (functionName: string, args: unknown[]) => pub.readContract({ address: look, abi: art.abi, functionName: functionName as never, args: args as never });
 
 const built = buildLayers();
-const calls = installCalls(built, CORAL, SHELL);
+const calls = installCalls(built, lookPalettes().pets, lookPalettes().eggs);
 for (const b of calls.batches) say(`  layers ${b.keys.join(",")}: ${await send("setLayers", [b.keys, b.data])}`);
-for (const f of calls.faces) say(`  faces for stage ${f.stage}: ${await send("setFaces", [f.stage, f.large, f.at])}`);
+for (const f of calls.faces) say(`  faces for stage ${f.slot}: ${await send("setFaces", [f.slot, f.large, f.at])}`);
 for (const [i, p] of calls.palettes.entries()) say(`  palette ${i}: ${await send("setPalette", [BigInt(i), p])}`);
-for (const f of calls.frames) say(`  frame for stage ${f.stage} (${f.x},${f.y} ${f.size}): ${await send("setFrame", [f.stage, f.x, f.y, f.size])}`);
+for (const f of calls.frames) say(`  frame for stage ${f.slot} (${f.x},${f.y} ${f.size}): ${await send("setFrame", [f.slot, f.x, f.y, f.size])}`);
 
 // read everything back
 for (const l of built.layers) if (((await read("layer", [BigInt(l.key)])) as string).toLowerCase() !== l.data.toLowerCase()) throw new Error(`layer ${l.key} differs`);
-for (const f of calls.faces) if (((await read("faceAt", [f.stage])) as string).toLowerCase() !== f.at.toLowerCase()) throw new Error(`faces ${f.stage} differ`);
-for (const f of calls.frames) if (((await read("frame", [f.stage])) as string).toLowerCase() !== `0x${[f.x, f.y, f.size].map((n) => n.toString(16).padStart(2, "0")).join("")}`) throw new Error(`frame ${f.stage} differs`);
+for (const f of calls.faces) if (((await read("faceAt", [f.slot])) as string).toLowerCase() !== f.at.toLowerCase()) throw new Error(`faces ${f.slot} differ`);
+for (const f of calls.frames) if (((await read("frame", [f.slot])) as string).toLowerCase() !== `0x${[f.x, f.y, f.size].map((n) => n.toString(16).padStart(2, "0")).join("")}`) throw new Error(`frame ${f.slot} differs`);
 const pet1 = (await pub.readContract({ address: d.registry, abi: petRegistryAbi, functionName: "pet", args: [1n] })) as { state: bigint };
 const drawn = canvasOfSvg((await read("svgOf", [pet1.state])) as string);
 if (JSON.stringify(drawn.px) !== JSON.stringify(gameSprite(lookOf(pet1.state)).px)) throw new Error("pet #1's on-chain picture differs from the game");
-say(`read back: ${built.layers.length} layers, 4 face sets, 5 frames, 2 palettes; pet #1 drawn exactly (${JSON.stringify(lookOf(pet1.state))})`);
+say(`read back: ${built.layers.length} layers, ${calls.faces.length} face sets, ${calls.frames.length} frames, ${calls.palettes.length} palettes; pet #1 drawn exactly (${JSON.stringify(lookOf(pet1.state))})`);
 
 const sr = await wallet.writeContract({ address: d.registry, abi: petRegistryAbi, functionName: "setRenderer", args: [look] });
 if ((await pub.waitForTransactionReceipt({ hash: sr })).status !== "success") throw new Error("setRenderer failed");

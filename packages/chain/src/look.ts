@@ -2,19 +2,22 @@
  * The pet's on-chain picture (PetLook): the game's own pixel art cut into layers
  * small enough to store on X Layer, and the rules for putting them together.
  *
- * Layers (each a list of horizontal runs: x, y, length, colour role; 4 bytes per run):
- *   body 0      the egg
- *   body 1..4   baby, child, teen, adult without a face (trace unlit)
- *   lit  1..4   the pixels that change when the circuit trace lights up
- *   face 0..15  small faces (babies, children), 16..31 large faces (teens, adults),
- *               drawn at the stage's face offset
+ * Layers (each a list of horizontal runs: x, y, length, colour role; 4 bytes per run).
+ * Each egg line (0 gentle, 1 bold, 2 curious) has its own bodies; a slot is
+ * 10 * (line + 1) + stage for stages 1..4 and 0 for the egg, which all lines share:
+ *   0            the egg
+ *   100 + slot   the body without a face (trace unlit)
+ *   200 + slot   the pixels that change when the circuit trace lights up
+ *   1000..1031   16 small faces then 16 large faces, shared by every line
+ * Face positions, face size and the frame are kept per slot; palettes 0..2 colour
+ * the pets by line and 3..5 the eggs.
  *
  * `lookOf` chooses the stage, face and trace from the saved 256-bit state, exactly
  * as PetLook.sol does; `composeLook` builds the same picture in TypeScript so a test
  * can compare the contract's drawing with the game's sprite pixel by pixel.
  */
 
-import { EXPRESSIONS, FACES_L, FACES_S, ROLES, PixelCanvas, boundingBox, drawBody, drawEgg, drawPet, faceAnchor, type Expression, type Role } from "@lingxi/art";
+import { CORAL, EXPRESSIONS, FACES_L, FACES_S, ROLES, SHELL, SKY, SUNNY, PixelCanvas, boundingBox, drawBody, drawEgg, drawPet, faceAnchor, type Expression, type Role } from "@lingxi/art";
 
 export const LOOK_STAGES = ["egg", "baby", "child", "teen", "adult"] as const;
 type PetStage = Exclude<(typeof LOOK_STAGES)[number], "egg">;
@@ -65,13 +68,16 @@ function stampRuns(rows: readonly string[]): number[] {
   return out;
 }
 
+export const LOOK_LINES = ["gentle", "bold", "curious"] as const;
+export type LookLine = (typeof LOOK_LINES)[number];
+
 export interface LookLayers {
   /** key → bytes; keys as PetLook stores them */
   layers: Array<{ key: number; data: `0x${string}`; runs: number }>;
-  /** per pet stage 1..4: which face set, and each face's top-left (faces differ in size) */
-  anchors: Array<{ stage: number; large: boolean; at: Array<[number, number]> }>;
-  /** per stage 0..4: the square of the canvas the picture shows */
-  frames: Array<{ stage: number; x: number; y: number; size: number }>;
+  /** per slot: which face set, and each face's top-left (faces differ in size) */
+  anchors: Array<{ slot: number; large: boolean; at: Array<[number, number]> }>;
+  /** per slot (0 = the egg): the square of the canvas the picture shows */
+  frames: Array<{ slot: number; x: number; y: number; size: number }>;
 }
 
 /** A square around the sprite, a little roomier than the pet, ground near the bottom; growth still shows. */
@@ -83,31 +89,37 @@ export function frameFor(c: PixelCanvas): { x: number; y: number; size: number }
   return { x, y, size };
 }
 
-export const BODY = (stage: number) => stage;
-export const LIT = (stage: number) => 10 + stage;
-export const FACE = (large: boolean, expr: number) => 100 + (large ? 16 : 0) + expr;
+export const SLOT = (line: number, stage: number) => (stage === 0 ? 0 : 10 * (line + 1) + stage);
+export const BODY = (line: number, stage: number) => (stage === 0 ? 0 : 100 + SLOT(line, stage));
+export const LIT = (line: number, stage: number) => 200 + SLOT(line, stage);
+export const FACE = (large: boolean, expr: number) => 1000 + (large ? 16 : 0) + expr;
 
 export function buildLayers(): LookLayers {
   const layers: LookLayers["layers"] = [];
-  const add = (key: number, runs: number[]) => layers.push({ key, data: hex(runs), runs: runs.length / 4 });
+  const add = (key: number, runs: number[]) => {
+    if (runs.length) layers.push({ key, data: hex(runs), runs: runs.length / 4 });
+  };
   const egg = drawEgg("coral");
-  add(BODY(0), runsOf((x, y) => egg.get(x, y)));
+  add(BODY(0, 0), runsOf((x, y) => egg.get(x, y)));
   const anchors: LookLayers["anchors"] = [];
-  PET_STAGES.forEach((stage, i) => {
-    const s = i + 1;
-    const body = drawBody("gentle", stage, { lit: false });
-    const lit = drawBody("gentle", stage, { lit: true });
-    add(BODY(s), runsOf((x, y) => body.get(x, y)));
-    add(LIT(s), runsOf((x, y) => (lit.get(x, y) !== body.get(x, y) ? lit.get(x, y) : null)));
-    const a = faceAnchor("gentle", stage);
-    const set = a.size === "L" ? FACES_L : FACES_S;
-    // stampCentered's own placement, face by face
-    const at = EXPRESSIONS.map((e): [number, number] => [Math.round(a.x - Math.max(...set[e].map((r) => r.length)) / 2), Math.round(a.y - set[e].length / 2)]);
-    if (at.some(([x, y]) => x < 0 || y < 0 || x > 47 || y > 47)) throw new Error("face outside the canvas");
-    anchors.push({ stage: s, large: a.size === "L", at });
+  const frames: LookLayers["frames"] = [{ slot: 0, ...frameFor(egg) }];
+  LOOK_LINES.forEach((line, l) => {
+    PET_STAGES.forEach((stage, i) => {
+      const s = i + 1;
+      const body = drawBody(line, stage, { lit: false });
+      const lit = drawBody(line, stage, { lit: true });
+      add(BODY(l, s), runsOf((x, y) => body.get(x, y)));
+      add(LIT(l, s), runsOf((x, y) => (lit.get(x, y) !== body.get(x, y) ? lit.get(x, y) : null)));
+      const a = faceAnchor(line, stage);
+      const set = a.size === "L" ? FACES_L : FACES_S;
+      // stampCentered's own placement, face by face
+      const at = EXPRESSIONS.map((e): [number, number] => [Math.round(a.x - Math.max(...set[e].map((r) => r.length)) / 2), Math.round(a.y - set[e].length / 2)]);
+      if (at.some(([x, y]) => x < 0 || y < 0 || x > 47 || y > 47)) throw new Error("face outside the canvas");
+      anchors.push({ slot: SLOT(l, s), large: a.size === "L", at });
+      frames.push({ slot: SLOT(l, s), ...frameFor(drawPet(line, stage, { expression: "sparkly", lit: true })) });
+    });
   });
   for (const large of [false, true]) EXPRESSIONS.forEach((e, i) => add(FACE(large, i), stampRuns((large ? FACES_L : FACES_S)[e])));
-  const frames = [drawEgg("coral"), ...PET_STAGES.map((st) => drawPet("gentle", st, { expression: "sparkly", lit: true }))].map((c, stage) => ({ stage, ...frameFor(c) }));
   return { layers, anchors, frames };
 }
 
@@ -116,39 +128,44 @@ export function buildLayers(): LookLayers {
 const bits = (w: bigint, at: number, n: number) => Number((w >> BigInt(at)) & ((1n << BigInt(n)) - 1n));
 
 export interface Look {
+  line: number;
   stage: number;
   expression: Expression;
   lit: boolean;
 }
 
 export function lookOf(state: bigint): Look {
+  const storedLine = bits(state, 152, 2);
+  const line = storedLine > 2 ? 0 : storedLine;
   const stored = bits(state, 148, 3);
   const stage = stored >= 4 ? 4 : stored; // elders wear the adult picture for now
   const food = bits(state, 64, 10);
   const joy = bits(state, 74, 10);
   const energy = bits(state, 84, 10);
-  if (bits(state, 151, 1)) return { stage, expression: "asleep", lit: false };
-  if (bits(state, 219, 1)) return { stage, expression: "dizzy", lit: false };
-  if (food < 200) return { stage, expression: "sad", lit: false };
-  if (energy < 200) return { stage, expression: "sleepy", lit: false };
-  if (joy >= 750) return { stage, expression: "sparkly", lit: true };
-  if (joy >= 500) return { stage, expression: "happy", lit: false };
-  if (joy < 200) return { stage, expression: "sulk", lit: false };
-  return { stage, expression: "neutral", lit: false };
+  const look = (expression: Expression, lit = false): Look => ({ line, stage, expression, lit });
+  if (bits(state, 151, 1)) return look("asleep");
+  if (bits(state, 219, 1)) return look("dizzy");
+  if (food < 200) return look("sad");
+  if (energy < 200) return look("sleepy");
+  if (joy >= 750) return look("sparkly", true);
+  if (joy >= 500) return look("happy");
+  if (joy < 200) return look("sulk");
+  return look("neutral");
 }
 
 /** The picture PetLook draws for a look, as a pixel canvas (for checking the contract). */
 export function composeLook(look: Look, built: LookLayers = buildLayers()): PixelCanvas {
   const c = new PixelCanvas(SIZE, SIZE);
   const paint = (key: number, dx = 0, dy = 0) => {
-    const l = built.layers.find((x) => x.key === key)!;
+    const l = built.layers.find((x) => x.key === key);
+    if (!l) return;
     const b = l.data.slice(2).match(/../g)?.map((h) => parseInt(h, 16)) ?? [];
     for (let i = 0; i < b.length; i += 4) for (let k = 0; k < b[i + 2]!; k++) c.set(b[i]! + k + dx, b[i + 1]! + dy, ROLES[b[i + 3]!]!);
   };
-  paint(BODY(look.stage));
+  paint(BODY(look.line, look.stage));
   if (look.stage === 0) return c;
-  if (look.lit) paint(LIT(look.stage));
-  const a = built.anchors.find((x) => x.stage === look.stage)!;
+  if (look.lit) paint(LIT(look.line, look.stage));
+  const a = built.anchors.find((x) => x.slot === SLOT(look.line, look.stage))!;
   const e = EXPRESSIONS.indexOf(look.expression);
   paint(FACE(a.large, e), a.at[e]![0], a.at[e]![1]);
   return c;
@@ -156,7 +173,7 @@ export function composeLook(look: Look, built: LookLayers = buildLayers()): Pixe
 
 /** The game's own sprite for a look, for comparison. */
 export function gameSprite(look: Look): PixelCanvas {
-  return look.stage === 0 ? drawEgg("coral") : drawPet("gentle", PET_STAGES[look.stage - 1]!, { expression: look.expression, lit: look.lit });
+  return look.stage === 0 ? drawEgg("coral") : drawPet(LOOK_LINES[look.line]!, PET_STAGES[look.stage - 1]!, { expression: look.expression, lit: look.lit });
 }
 
 /* ── installing the art ───────────────────────────────────────────────────── */
@@ -174,7 +191,14 @@ export function paletteBytes(pal: Partial<Record<Role, string>>): `0x${string}` 
 }
 
 /** The calls that install the art on a PetLook: layer batches, face positions, palettes. */
-export function installCalls(built: LookLayers, petPalette: Partial<Record<Role, string>>, eggPalette: Partial<Record<Role, string>>) {
+/** The game's palettes in PetLook's order: pets by line, then eggs by line (shell with the line's spots). */
+export function lookPalettes() {
+  const pets = [CORAL, SUNNY, SKY];
+  return { pets, eggs: pets.map((p) => ({ ...SHELL, x: p.m, X: p.d })) };
+}
+
+/** The calls that install the art: layer batches, face positions, frames, and six palettes (pets by line, then eggs by line). */
+export function installCalls(built: LookLayers, petPalettes: ReadonlyArray<Partial<Record<Role, string>>>, eggPalettes: ReadonlyArray<Partial<Record<Role, string>>>) {
   const batches: Array<{ keys: bigint[]; data: `0x${string}`[] }> = [];
   let cur: { keys: bigint[]; data: `0x${string}`[] } = { keys: [], data: [] };
   let size = 0;
@@ -190,9 +214,9 @@ export function installCalls(built: LookLayers, petPalette: Partial<Record<Role,
     size += n;
   }
   if (cur.keys.length) batches.push(cur);
-  const faces = built.anchors.map((a) => ({ stage: BigInt(a.stage), large: a.large, at: hex(a.at.flat()) }));
-  const frames = built.frames.map((f) => ({ stage: BigInt(f.stage), x: f.x, y: f.y, size: f.size }));
-  return { batches, faces, frames, palettes: [paletteBytes(petPalette), paletteBytes(eggPalette)] as const };
+  const faces = built.anchors.map((a) => ({ slot: BigInt(a.slot), large: a.large, at: hex(a.at.flat()) }));
+  const frames = built.frames.map((f) => ({ slot: BigInt(f.slot), x: f.x, y: f.y, size: f.size }));
+  return { batches, faces, frames, palettes: [...petPalettes, ...eggPalettes].map(paletteBytes) };
 }
 
 /** Reads an SVG drawn by PetLook back into colour roles, for checking it against the game. */

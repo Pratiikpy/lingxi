@@ -11,8 +11,8 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { createPublicClient, createWalletClient, http, type Address, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { CORAL, EXPRESSIONS, SHELL } from "@lingxi/art";
-import { buildLayers, canvasOfSvg, gameSprite, installCalls, lookOf } from "../src/look";
+import { EXPRESSIONS } from "@lingxi/art";
+import { buildLayers, canvasOfSvg, gameSprite, installCalls, lookOf, lookPalettes } from "../src/look";
 import { petRegistryAbi } from "../src/registryAbi";
 import { xLayer } from "../src/tapeout";
 
@@ -22,8 +22,8 @@ const REGISTRY = "0x103d7252eb6b2fec22b3f65a6bb605945f280e99" as Address;
 const art = JSON.parse(readFileSync(resolve(here, "../../../contracts/out/PetLook.sol/PetLook.json"), "utf8")) as { abi: never[]; bytecode: { object: Hex } };
 
 /** A state word that the contract's look rules turn into exactly this stage, face and trace. */
-function stateFor(stage: number, expression: (typeof EXPRESSIONS)[number]): bigint | null {
-  const m = (food: number, joy: number, energy: number) => (BigInt(food) << 64n) | (BigInt(joy) << 74n) | (BigInt(energy) << 84n) | (BigInt(stage) << 148n);
+function stateFor(stage: number, expression: (typeof EXPRESSIONS)[number], line = 0): bigint | null {
+  const m = (food: number, joy: number, energy: number) => (BigInt(food) << 64n) | (BigInt(joy) << 74n) | (BigInt(energy) << 84n) | (BigInt(stage) << 148n) | (BigInt(line) << 152n);
   const byFace: Partial<Record<(typeof EXPRESSIONS)[number], bigint>> = {
     neutral: m(800, 400, 900),
     happy: m(800, 600, 900),
@@ -57,36 +57,39 @@ describe.skipIf(!RPC)("PetLook on X Layer's registry", () => {
     const read = (functionName: string, args: unknown[]) => pub.readContract({ address: look, abi: art.abi, functionName: functionName as never, args: args as never });
 
     const built = buildLayers();
-    const calls = installCalls(built, CORAL, SHELL);
+    const calls = installCalls(built, lookPalettes().pets, lookPalettes().eggs);
     // freezing before the art is complete is refused
     await expect(wallet.writeContract({ address: look, abi: art.abi, functionName: "freezeArt" as never, args: [] as never })).rejects.toThrow(/ArtIncomplete/);
     // an oversized layer is refused (more than 400 runs)
     await expect(wallet.writeContract({ address: look, abi: art.abi, functionName: "setLayers" as never, args: [[0n], [`0x${"00000105".repeat(401)}`]] as never })).rejects.toThrow(/BadLayer/);
     let gas = 0n;
     for (const b of calls.batches) gas += (await write("setLayers", [b.keys, b.data])).gasUsed;
-    for (const f of calls.faces) gas += (await write("setFaces", [f.stage, f.large, f.at])).gasUsed;
+    for (const f of calls.faces) gas += (await write("setFaces", [f.slot, f.large, f.at])).gasUsed;
     for (const [i, p] of calls.palettes.entries()) gas += (await write("setPalette", [BigInt(i), p])).gasUsed;
-    for (const f of calls.frames) gas += (await write("setFrame", [f.stage, f.x, f.y, f.size])).gasUsed;
+    for (const f of calls.frames) gas += (await write("setFrame", [f.slot, f.x, f.y, f.size])).gasUsed;
     console.log(`art installed in ${calls.batches.length + calls.faces.length + 2} transactions, ${gas} gas`);
 
     // every face the look rules can reach, at every stage, drawn by the contract
     let checked = 0;
-    for (let stage = 0; stage <= 4; stage++)
-      for (const e of EXPRESSIONS) {
-        const state = stateFor(stage, e);
-        if (state === null || (stage === 0 && e !== "neutral")) continue;
-        const want = lookOf(state);
-        const svg = (await read("svgOf", [state])) as string;
-        expect(canvasOfSvg(svg).px, `${stage} ${e}`).toEqual(gameSprite(want).px);
-        expect(svg).toContain(stage === 0 ? `.c5{fill:#FFF7E8}` : `.c5{fill:#FF7A59}`);
-        expect(svg).toContain(`.c16{fill:#2B2140;fill-opacity:.20}`); // the ground shadow, 20% ink
-        const fr = built.frames[stage]!;
-        expect(svg).toContain(`viewBox="${fr.x} ${fr.y} ${fr.size} ${fr.size}"`);
-        checked++;
-      }
-    expect(checked).toBe(1 + 4 * 8);
-    const [s, f, lit] = (await read("lookOf", [stateFor(3, "sparkly")!])) as [bigint, bigint, boolean];
-    expect([Number(s), EXPRESSIONS[Number(f)], lit]).toEqual([3, "sparkly", true]);
+    const MAIN = ["#FF7A59", "#FFC83D", "#7FC0F2"]; // each line's main colour (CORAL, SUNNY, SKY)
+    for (let line = 0; line < 3; line++)
+      for (let stage = 0; stage <= 4; stage++)
+        for (const e of EXPRESSIONS) {
+          const state = stateFor(stage, e, line);
+          if (state === null || (stage === 0 && e !== "neutral")) continue;
+          const want = lookOf(state);
+          const svg = (await read("svgOf", [state])) as string;
+          expect(canvasOfSvg(svg).px, `${line} ${stage} ${e}`).toEqual(gameSprite(want).px);
+          expect(svg).toContain(stage === 0 ? `.c5{fill:#FFF7E8}` : `.c5{fill:${MAIN[line]}}`);
+          if (stage === 0) expect(svg).toContain(`.c14{fill:${MAIN[line]}}`); // the egg's spots in the line's colour
+          expect(svg).toContain(`.c16{fill:#2B2140;fill-opacity:.20}`); // the ground shadow, 20% ink
+          const fr = built.frames.find((x) => x.slot === (stage === 0 ? 0 : 10 * (line + 1) + stage))!;
+          expect(svg).toContain(`viewBox="${fr.x} ${fr.y} ${fr.size} ${fr.size}"`);
+          checked++;
+        }
+    expect(checked).toBe(3 * (1 + 4 * 8));
+    const [l, s, f, lit] = (await read("lookOf", [stateFor(3, "sparkly", 2)!])) as [bigint, bigint, bigint, boolean];
+    expect([Number(l), Number(s), EXPRESSIONS[Number(f)], lit]).toEqual([2, 3, "sparkly", true]);
 
     // names
     const petOwner = (await pub.readContract({ address: REGISTRY, abi: petRegistryAbi, functionName: "ownerOf", args: [1n] })) as Address;

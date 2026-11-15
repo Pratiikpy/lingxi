@@ -116,7 +116,7 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken }: { pet: Pet; cha
 
 function PartnerCard({ partner, index, lang, onPick }: { partner: Partner; index: number; lang: Lang; onPick: () => void }) {
   const record = useSpar((s) => s.records[partner.id]);
-  const canvas = useMemo(() => drawPet("gentle", partner.stage, { expression: index === 0 ? "sleepy" : index === 3 ? "proud" : "happy" }), [partner.stage, index]);
+  const canvas = useMemo(() => drawPet(partner.line, partner.stage, { expression: index === 0 ? "sleepy" : index === 3 ? "proud" : "happy" }), [partner.line, partner.stage, index]);
   const stars = index + 1;
   return (
     <li>
@@ -187,8 +187,8 @@ function FightView({ pet, partner, result, cheer, onDone, onRematch }: { pet: Pe
     if (round.moves[side] === "charm" || round.moves[side] === "gift") return "love";
     return round.moods[side]! >= 2 ? "sparkly" : round.moods[side] === 0 ? "sulk" : "neutral";
   };
-  const mine = useMemo(() => drawPet("gentle", stage, { expression: face(0) }), [stage, shown, finished]);
-  const theirs = useMemo(() => drawPet("gentle", partner.stage, { expression: face(1) }), [partner.stage, shown, finished]);
+  const mine = useMemo(() => drawPet(pet.line, stage, { expression: face(0) }), [pet.line, stage, shown, finished]);
+  const theirs = useMemo(() => drawPet(partner.line, partner.stage, { expression: face(1) }), [partner.line, partner.stage, shown, finished]);
 
   return (
     <div className="sp-fight">
