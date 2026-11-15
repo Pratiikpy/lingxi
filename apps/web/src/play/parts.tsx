@@ -1,6 +1,8 @@
 /** The pieces of the game screen: top bar, meters, care buttons, thinking strip, tabs. */
 
+import { useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import { useVoice } from "../game/voice";
 import { decidingPart } from "../game/store";
 import { type Pet, beatOf, dayOf, kinshipNow, levelOf, stageOf, visibleMeters } from "@lingxi/game";
 import { useLang, useT, type Key } from "../i18n";
@@ -130,6 +132,25 @@ export function ThinkStrip({ pet }: { pet: Pet }) {
       <em>{t("think.label")}</em>
       <Chips when={c.when} then={c.then} />
     </div>
+  );
+}
+
+/** The pet's own words for what its circuit just decided; fades after a few seconds. */
+export function VoiceBubble() {
+  const { line, id, hush } = useVoice();
+  useEffect(() => {
+    if (!line) return;
+    const t = setTimeout(hush, 6500);
+    return () => clearTimeout(t);
+  }, [id, line, hush]);
+  return (
+    <AnimatePresence>
+      {line && (
+        <motion.p key={id} className="voice" role="status" initial={{ opacity: 0, y: 6, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}>
+          {line}
+        </motion.p>
+      )}
+    </AnimatePresence>
   );
 }
 

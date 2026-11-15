@@ -22,6 +22,7 @@ import { BrainRelayer } from "./relayer";
 import { LiveRooms, attachLive } from "./live";
 import { parseCard } from "@lingxi/game";
 import { PlanSchema, createPusher, type Pusher } from "./push";
+import { VoiceRequest, createVoice } from "./voice";
 
 function loadKey(): string | undefined {
   if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
@@ -56,7 +57,7 @@ export function createApp(client: Anthropic | null, limiter = new RateLimiter(6,
   const origins = (process.env.LINGXI_ORIGINS ?? "http://localhost:5199,http://localhost:4173").split(",");
   app.use("/api/*", cors({ origin: origins, allowMethods: ["GET", "POST"], maxAge: 600 }));
 
-  app.get("/api/health", (c) => c.json({ ok: true, teach: client !== null, relay: relayer !== null, live: live !== null }));
+  app.get("/api/health", (c) => c.json({ ok: true, teach: client !== null, voice: client !== null, relay: relayer !== null, live: live !== null }));
   app.get("/api/live/stats", (c) => c.json(live ? live.stats() : { online: 0, spaces: 0 }));
 
   app.post("/api/teach", async (c) => {
@@ -163,6 +164,24 @@ export function withSite(app: Hono, root: string): Hono {
   return app;
 }
 
+/** The pet's voice: one line for what its circuit decided (cached per situation). */
+export function withVoice(app: Hono, voice: ReturnType<typeof createVoice>, limiter = new RateLimiter(40, 600_000)): Hono {
+  app.post("/api/voice", async (c) => {
+    const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
+    if (!limiter.take(ip)) return c.json({ ok: false, reason: "busy" }, 429);
+    if (Number(c.req.header("content-length") ?? 0) > 2048) return c.json({ ok: false, reason: "invalid" }, 413);
+    let body;
+    try {
+      body = VoiceRequest.parse(await c.req.json());
+    } catch {
+      return c.json({ ok: false, reason: "invalid" }, 400);
+    }
+    const r = await voice(body);
+    return c.json(r, r.ok ? 200 : r.reason === "busy" ? 429 : 502);
+  });
+  return app;
+}
+
 /** Reminder routes: the public key to subscribe with, a plan of upcoming reminders, and stop. */
 export function withPush(app: Hono, pusher: Pusher, limiter = new RateLimiter(30, 3_600_000)): Hono {
   app.get("/api/push/key", (c) => c.json({ key: pusher.publicKey }));
@@ -214,6 +233,7 @@ if (isMain) {
   const live = new LiveRooms();
   const origins = (process.env.LINGXI_ORIGINS ?? "http://localhost:5199,http://localhost:4173").split(",");
   const app = createApp(client, undefined, relayer, undefined, live);
+  if (client) withVoice(app, createVoice(client));
   const pusher = makePusher();
   if (pusher) {
     withPush(app, pusher);

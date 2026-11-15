@@ -14,7 +14,8 @@ import { RemindersPanel } from "./Reminders";
 import { type DayPhase, RoomScene } from "../scene/RoomScene";
 import { PALETTE_OF, type PetStage } from "../scene/textures";
 import { Hatch } from "./Hatch";
-import { Actions, Meters, TabBar, ThinkStrip, ToastView, TopBar, type Tab } from "./parts";
+import { Actions, Meters, TabBar, ThinkStrip, ToastView, TopBar, VoiceBubble, type Tab } from "./parts";
+import { useVoice } from "../game/voice";
 import { EvolutionChart, MeSheetBody, MindPanel, Sheet } from "./Sheets";
 import { BagPanel, MapPanel, QuestPanel, noticeText } from "./WorldPanels";
 import { useWorld } from "../game/world";
@@ -60,6 +61,12 @@ export function PlayApp() {
   const worldForage = useWorld((s) => s.forage);
   const [worldMsg, setWorldMsg] = useState<{ id: number; text: string } | null>(null);
   useEffect(followClock, []);
+  // the pet says something when its circuit makes a new decision
+  const decision = pet ? `${pet.last.rule}|${pet.asleep}|${Boolean(pet.sick)}` : "";
+  useEffect(() => {
+    const p = useGame.getState().pet;
+    if (p && decision) void useVoice.getState().speak(p, useLang.getState().lang as "en" | "zh");
+  }, [decision]);
   // reminders follow the pet: a fresh plan shortly after each change, and at once when the player leaves
   useEffect(() => {
     const send = () => {
@@ -215,6 +222,7 @@ export function PlayApp() {
     }
     chirp();
     act({ kind: "pet" });
+    void useVoice.getState().speak(p, useLang.getState().lang as "en" | "zh", true);
   }, [act, say]);
 
   const stage = pet ? drawnStage(stageOf(pet, Date.now())) : "baby";
@@ -361,6 +369,7 @@ export function PlayApp() {
               </button>
             </div>
           )}
+          {!talking && <VoiceBubble />}
           {talking ? null : Object.keys(others).length > 0 ? <SocialBar count={Object.keys(others).length} /> : <ThinkStrip pet={pet} />}
         </section>
         <div className="side">
