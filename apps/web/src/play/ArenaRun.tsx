@@ -65,8 +65,9 @@ const MOVE: Record<Move, [string, string]> = {
   gift: ["Gift", "送礼"],
 };
 const PET_HP = 100;
+/** every pet fights at the same level in the arena: lessons and line-up decide, not age, and a claimed age gains nothing */
+const ARENA_PET_LEVEL = 1;
 const ROUND_MS = 760;
-const levelOf = (stage: string) => (stage === "elder" ? 2 : stage === "teen" || stage === "adult" ? 1 : 0);
 
 function Art({ canvas, palette, scale, label }: { canvas: PixelCanvas; palette: Palette; scale: number; label?: string }) {
   const b = boundingBox(canvas);
@@ -94,8 +95,8 @@ const companionUnit = (id: string, i: number, edge = 0): TeamUnit => {
 };
 
 function petUnit(pet: Pet): TeamUnit {
-  const f = fighterOfMind(pet.name, { line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts }, levelOf(stageOf(pet, Date.now())), pet.brain);
-  return { id: "pet", name: pet.name, brain: f.brain, memory: f.memory, hp: PET_HP, level: f.level };
+  const f = fighterOfMind(pet.name, { line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts }, ARENA_PET_LEVEL, pet.brain);
+  return { id: "pet", name: pet.name, brain: f.brain, memory: f.memory, hp: PET_HP, level: ARENA_PET_LEVEL };
 }
 
 function RivalArt({ pet, scale, face = "happy" }: { pet: DuelPet; scale: number; face?: Expression }) {
@@ -111,7 +112,7 @@ function linePet(pet: Pet): DuelPet {
 
 function rivalUnit(p: DuelPet): TeamUnit {
   const f = duelFighter(p);
-  return { id: "rival", name: p.name, brain: f.brain, memory: f.memory, hp: PET_HP, level: f.level };
+  return { id: "rival", name: p.name, brain: f.brain, memory: f.memory, hp: PET_HP, level: ARENA_PET_LEVEL };
 }
 
 /** The entry card on the arena screen. */
