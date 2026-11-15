@@ -5,6 +5,8 @@
  *   tsx scripts/tapeout.ts --rpc <url> --processor <address> [--key-file <path>] [--out <json>]
  *   tsx scripts/tapeout.ts --breeder-only [--key-file <path>] [--out <json>]
  *     adds the Breeder to an existing deployment (the registry owner's key)
+ *   tsx scripts/tapeout.ts --redpacket-only [--key-file <path>] [--out <json>]
+ *     tapes out the LX-SEAL/1 circuit and deploys the red packet escrow
  *
  * The key is read from a file (default tapeout/.secrets/deployer.env), never
  * from the command line. Every step reads before it writes and prints what it
@@ -16,7 +18,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createPublicClient, createWalletClient, formatEther, http, parseEventLogs, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { STARTERS, bytesToHex, compileProgram, gateCount, netlistBytes } from "@lingxi/brain";
+import { STARTERS, bytesToHex, compileProgram, compileSeal, gateCount, netlistBytes } from "@lingxi/brain";
 import { EVOLUTION } from "@lingxi/game";
 import { FACTORY, factoryAbi, processorAbi, transistorsAbi, xLayer } from "../src/tapeout";
 
@@ -29,7 +31,8 @@ const arg = (name: string, fallback?: string) => {
 const rpc = arg("rpc", "http://127.0.0.1:8547")!;
 const here2 = here;
 const breederOnly = process.argv.includes("--breeder-only");
-const existing = breederOnly ? (JSON.parse(readFileSync(arg("out", resolve(here, "../deployments/local.json"))!, "utf8")) as Record<string, unknown>) : null;
+const redPacketOnly = process.argv.includes("--redpacket-only");
+const existing = breederOnly || redPacketOnly ? (JSON.parse(readFileSync(arg("out", resolve(here, "../deployments/local.json"))!, "utf8")) as Record<string, unknown>) : null;
 const processor = (arg("processor") ?? (existing?.processor as string | undefined)) as Address | undefined;
 const keyFile = arg("key-file", resolve(here, "../../../../.secrets/deployer.env"))!;
 const outFile = arg("out", resolve(here, "../deployments/local.json"))!;
@@ -70,6 +73,25 @@ async function deployBreeder(registry: Address): Promise<Address> {
   return breeder;
 }
 
+/** Tapes out the seal circuit and deploys the red packet escrow reading it. */
+async function deployRedPacket(registry: Address): Promise<{ redPacket: Address; seal: string }> {
+  const seal = compileSeal();
+  const r = await tapeOut("seal LX-SEAL/1", netlistBytes(seal), 16, 8, seal.gates.length, 0);
+  const art = JSON.parse(readFileSync(resolve(here2, "../../../contracts/out/RedPacket.sol/RedPacket.json"), "utf8"));
+  const tx = await wallet.deployContract({ abi: art.abi, bytecode: art.bytecode.object as Hex, args: [processor!, r.id, registry] });
+  const dr = await pub.waitForTransactionReceipt({ hash: tx });
+  console.log(`RedPacket ${dr.contractAddress} (seal #${r.id}) tx ${tx}`);
+  return { redPacket: dr.contractAddress as Address, seal: r.id.toString() };
+}
+
+if (existing && redPacketOnly) {
+  const out = await deployRedPacket(existing.registry as Address);
+  const outPath = arg("out", resolve(here, "../deployments/local.json"))!;
+  writeFileSync(outPath, JSON.stringify({ ...existing, ...out, redPacketAt: new Date().toISOString() }, null, 2));
+  console.log(`wrote ${outPath}`);
+  process.exit(0);
+}
+
 if (existing) {
   const breeder = await deployBreeder(existing.registry as Address);
   const outPath = arg("out", resolve(here, "../deployments/local.json"))!;
@@ -78,7 +100,9 @@ if (existing) {
   process.exit(0);
 }
 
-const say = (s: string) => process.stdout.write(`${s}\n`);
+function say(s: string): void {
+  process.stdout.write(`${s}\n`);
+}
 
 async function mintIfShort(transistors: Address, id: bigint, need: bigint) {
   const have = (await pub.readContract({ address: transistors, abi: transistorsAbi, functionName: "balanceOf", args: [account.address, id] })) as bigint;
@@ -138,9 +162,10 @@ async function main() {
   }
   void parseEventLogs;
   const breeder = await deployBreeder(registry);
+  const packets = await deployRedPacket(registry);
   const end = await pub.getBalance({ address: account.address });
   say(`spent ${formatEther(start - end)} OKB in total`);
-  const out = { chainId: await pub.getChainId(), rpc, processor, registry, breeder, deployer: account.address, circuits, at: new Date().toISOString() };
+  const out = { chainId: await pub.getChainId(), rpc, processor, registry, breeder, ...packets, deployer: account.address, circuits, at: new Date().toISOString() };
   writeFileSync(outFile, JSON.stringify(out, null, 2));
   say(`wrote ${outFile}`);
   void existsSync;

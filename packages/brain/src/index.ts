@@ -7,3 +7,4 @@ export * from "./trace";
 export * from "./codec";
 export * from "./starters";
 export * from "./compose";
+export * from "./seal";

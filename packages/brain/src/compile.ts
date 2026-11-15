@@ -316,6 +316,41 @@ function finish(B: Builder, bits: number[], dSignals: number[], version: string)
   return { version, nIn: B.nIn, nOut: N_OUT, latches, gates: out };
 }
 
+/* ── other circuits (seals) ─────────────────────────────────────────────── */
+
+/** The gate-building calls a hand-written circuit may use. */
+export interface CircuitBuilder {
+  input(i: number): number;
+  nand(a: number, b: number): number;
+  not(a: number): number;
+  and(a: number, b: number): number;
+  or(a: number, b: number): number;
+  mux(sel: number, hi: number, lo: number): number;
+  /** any function of the given signals from its truth table (bit k of the index = signal k) */
+  fn(vars: readonly number[], table: readonly number[]): number;
+  readonly zero: number;
+  readonly one: number;
+}
+
+/** A stateless circuit with nIn inputs and 8 outputs, built gate by gate; the outputs are the last 8 gates. */
+export function buildCircuit(nIn: number, version: string, make: (b: CircuitBuilder) => number[]): PetNetlist {
+  const B = new Builder(nIn, 0);
+  const api: CircuitBuilder = {
+    input: (i) => B.input(i),
+    nand: (a, b) => B.nand(a, b),
+    not: (a) => B.not(a),
+    and: (a, b) => B.and(a, b),
+    or: (a, b) => B.or(a, b),
+    mux: (s, h, l) => B.mux(s, h, l),
+    fn: (v, t) => B.fn(v, t),
+    zero: C0,
+    one: C1,
+  };
+  const bits = make(api);
+  if (bits.length !== N_OUT) throw new Error(`a circuit must give ${N_OUT} outputs`);
+  return finish(B, bits, [], version);
+}
+
 /* ── measures ────────────────────────────────────────────────────────────── */
 
 /** Logic depth of the deepest gate; LATCH outputs count as depth 0. */
