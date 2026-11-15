@@ -1,7 +1,7 @@
 /** The game: hatch on first visit, then the pet's room with care, mind, spar and profile. */
 
 import { OnChainNote } from "../OnChainNote";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { boundingBox, drawPet } from "@lingxi/art";
 import { STARTERS, timeOfDay } from "@lingxi/brain";
@@ -49,6 +49,7 @@ import { AlbumPanel } from "./Album";
 import { FriendsPanel } from "./Friends";
 import { HoldersPanel } from "./Holders";
 import { StudioPanel } from "./Studio";
+import { needsOf, showNeeds } from "../game/badge";
 import { Lazy } from "./Lazy";
 import { FashionMarketPanel } from "./FashionMarket";
 import { RIG_HOME_BGS, useHoldings } from "../game/holders";
@@ -311,6 +312,19 @@ export function PlayApp() {
     setWorldMsg({ id: Date.now(), text: lang === "zh" ? `${kinArrivals}来看${pet.name}了。` : `${kinArrivals} dropped by to see ${pet.name}.` });
   }, [kinArrivals]);
 
+  // Y1: the app icon shows how many things the pet needs (hooks stay above the hatch screen's early return)
+  useEffect(() => {
+    showNeeds(pet);
+  }, [pet ? needsOf(pet).join() : ""]);
+  // a home-screen shortcut (Feed, Play, Teach) opens straight onto that screen once there is a pet
+  const shortcutDone = useRef(false);
+  useEffect(() => {
+    if (!pet || shortcutDone.current) return;
+    shortcutDone.current = true;
+    const go = new URLSearchParams(location.search).get("do");
+    const to: Tab | null = go === "feed" ? "bag" : go === "play" ? "games" : go === "teach" ? "mind" : null;
+    if (to) setTab(to);
+  }, [pet]);
   if (!pet) {
     return (
       <>

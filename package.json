@@ -5,7 +5,8 @@
   "scripts": {
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
-    "judge:check": "tsx scripts/judge-check.mts"
+    "judge:check": "tsx scripts/judge-check.mts",
+    "lint": "pnpm --filter @lingxi/web lint"
   },
   "devDependencies": {
     "@lingxi/art": "workspace:*",

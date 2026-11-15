@@ -11,6 +11,8 @@ self.addEventListener("push", (e) => {
   }
   const title = typeof data.title === "string" ? data.title.slice(0, 80) : "Lingxi";
   const body = typeof data.body === "string" ? data.body.slice(0, 200) : "";
+  // the installed app's icon also shows that the pet wants you (Y1)
+  if (self.navigator && self.navigator.setAppBadge) self.navigator.setAppBadge(1).catch(() => {});
   e.waitUntil(
     self.registration.showNotification(title, {
       body,
