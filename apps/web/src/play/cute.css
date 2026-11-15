@@ -1,0 +1,36 @@
+.cute-state {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 2px dashed color-mix(in srgb, var(--line) 35%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, #ffe3ea 35%, var(--card));
+}
+.cute-state .small {
+  margin: 0;
+}
+.cute-art {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 56px;
+}
+.cute-state.busy .cute-art {
+  animation: cute-bob 1.4s ease-in-out infinite;
+}
+@keyframes cute-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cute-state.busy .cute-art {
+    animation: none;
+  }
+}

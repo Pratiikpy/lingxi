@@ -1,5 +1,6 @@
 /** The map, the bag (food, drinks, materials, workbench, shop) and the quest list. */
 
+import { CuteState } from "./CuteState";
 import { useMemo, useState } from "react";
 import { stageOf } from "@lingxi/game";
 import { HOME, ITEM, QUESTS, RECIPES, ROOMS, has, neighbours, questState } from "@lingxi/world";
@@ -145,7 +146,7 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
             ))}
           </ul>
         ) : (
-          <p className="small">{t("bag.empty")}</p>
+          <CuteState who={{ cat: "groom" }} text={t("bag.empty")} />
         )}
       </section>
       {drinks.length > 0 && (

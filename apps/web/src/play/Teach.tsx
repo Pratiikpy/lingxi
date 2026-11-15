@@ -4,6 +4,7 @@
  * the pet until the owner confirms, and the game rules check it again then.
  */
 
+import { CuteState } from "./CuteState";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import type { Rule } from "@lingxi/brain";
@@ -87,7 +88,7 @@ function Learned({ pet }: { pet: Pet }) {
   const { lang } = useLang();
   const arrange = useGame((s) => s.arrange);
   const p = mindParts(pet)[0]!.program;
-  if (!pet.lessons.length) return <p className="small">{t("teach.none")}</p>;
+  if (!pet.lessons.length) return <CuteState who={{ pet, expression: "shy" }} text={t("teach.none")} />;
   return (
     <ol className="learned">
       {pet.lessons.map((r, i) => {
@@ -129,7 +130,7 @@ function Words({ pet, onPropose }: { pet: Pet; onPropose: (rule: Rule, reply: st
       live = false;
     };
   }, []);
-  if (available === false) return <p className="small">{t("teach.offline")}</p>;
+  if (available === false) return <CuteState who={{ cat: "nap" }} text={t("teach.offline")} />;
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!words.trim() || busy) return;
@@ -248,9 +249,9 @@ function Library({ pet, onPropose }: { pet: Pet; onPropose: (l: LibraryLesson) =
     <div className="library">
       <p className="label">{t("library.title")}</p>
       {lessons === null ? (
-        <p className="small thinking-dots">{t("library.loading")}</p>
+        <CuteState who={{ cat: "look" }} text={t("library.loading")} busy />
       ) : shown.length === 0 ? (
-        <p className="small">{t("library.empty")}</p>
+        <CuteState who={{ cat: "nap" }} text={t("library.empty")} />
       ) : (
         <ul className="lib-list">
           {shown.map((l) => {
