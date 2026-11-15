@@ -7,7 +7,7 @@
  * and written to the hub, where only the two homes can read them.
  */
 
-import { type Address, type Hex, type PublicClient, type WalletClient, getAddress, keccak256, parseAbi, toHex } from "viem";
+import { type Address, type Hex, type PublicClient, type WalletClient, encodeFunctionData, getAddress, keccak256, parseAbi, toHex } from "viem";
 import { decodeContent, deriveKeyPair, encodeContent, hexToBytes, keyDerivationText, openPayload, seal } from "@lingxi/send";
 
 export const OPENER: Address = "0x536adD8F30f03b69f6fbF29d425A816A0dC50106";
@@ -227,4 +227,64 @@ export async function hubAccepts(pub: PublicClient, processor: Address): Promise
   const pinned = (await pub.readContract({ address: impl, abi: parseAbi(["function circuitCodehash() view returns (bytes32)"]), functionName: "circuitCodehash" })) as Hex;
   const code = await pub.getCode({ address: processor });
   return !!code && keccak256(code) === pinned;
+}
+
+const outfitAbi = parseAbi(["function safeTransferFrom(address from, address to, uint256 id, uint256 value, bytes data)", "function balanceOf(address who, uint256 id) view returns (uint256)"]);
+const accountAbi = parseAbi(["function execute(address to, uint256 value, bytes data, uint8 operation) payable returns (bytes)"]);
+/** TapeOut's container reverts `ProtocolFeeTooLow(paid, required)` when `execute` is sent without its fee. */
+const FEE_TOO_LOW = "0xafd49700";
+
+/**
+ * What one `execute` from the home costs: TapeOut takes a fee in the native coin on every call a container
+ * makes. It is read by simulating a call with no fee and taking the amount the container asks for.
+ */
+export async function homeCallFee(pub: PublicClient, home: Home): Promise<bigint> {
+  const data = encodeFunctionData({ abi: accountAbi, functionName: "execute", args: [home.holder, 0n, "0x", 0] });
+  try {
+    await pub.call({ to: home.container, data, account: home.holder, value: 0n });
+    return 0n;
+  } catch (e) {
+    // the revert data sits on the innermost error viem wraps (RawContractError.data)
+    let raw = "";
+    for (let err: unknown = e; err && !raw; err = (err as { cause?: unknown }).cause) {
+      const d = (err as { data?: unknown }).data;
+      const hex = typeof d === "string" ? d : typeof (d as { data?: unknown })?.data === "string" ? (d as { data: string }).data : "";
+      if (hex.toLowerCase().startsWith(FEE_TOO_LOW)) raw = hex;
+    }
+    const m = new RegExp(`^${FEE_TOO_LOW}([0-9a-f]{64})([0-9a-f]{64})`, "i").exec(raw);
+    if (!m) throw new HomeError("damaged", "the home did not say what a call costs");
+    return BigInt(`0x${m[2]}`);
+  }
+}
+
+/** Puts an outfit the owner holds (one copy) into the pet's home; it stays wearable from there. */
+export async function keepOutfitAtHome(pub: PublicClient, wallet: WalletClient, market: Address, id: bigint, home: Home): Promise<Hex> {
+  if (!home.opened) throw new HomeError("notOpened", "open the home first");
+  const me = wallet.account!.address;
+  const held = (await pub.readContract({ address: market, abi: outfitAbi, functionName: "balanceOf", args: [me, id] })) as bigint;
+  if (held === 0n) throw new HomeError("notHolder", "you do not hold a copy of that outfit");
+  const before = (await pub.readContract({ address: market, abi: outfitAbi, functionName: "balanceOf", args: [home.container, id] })) as bigint;
+  const sim = await pub.simulateContract({ address: market, abi: outfitAbi, functionName: "safeTransferFrom", args: [me, home.container, id, 1n, "0x"], account: wallet.account! });
+  const tx = await wallet.writeContract(sim.request);
+  await pub.waitForTransactionReceipt({ hash: tx });
+  const after = (await pub.readContract({ address: market, abi: outfitAbi, functionName: "balanceOf", args: [home.container, id] })) as bigint;
+  if (after !== before + 1n) throw new HomeError("damaged", "the outfit did not arrive");
+  return tx;
+}
+
+/** Takes one copy of an outfit back out of the home to the deed's holder, paying TapeOut's call fee. */
+export async function takeOutfitFromHome(pub: PublicClient, wallet: WalletClient, market: Address, id: bigint, home: Home): Promise<Hex> {
+  const me = wallet.account!.address;
+  if (home.holder.toLowerCase() !== me.toLowerCase()) throw new HomeError("notHolder", "only the deed's holder speaks for the home");
+  const inside = (await pub.readContract({ address: market, abi: outfitAbi, functionName: "balanceOf", args: [home.container, id] })) as bigint;
+  if (inside === 0n) throw new HomeError("notHolder", "that outfit is not in the home");
+  const before = (await pub.readContract({ address: market, abi: outfitAbi, functionName: "balanceOf", args: [me, id] })) as bigint;
+  const fee = await homeCallFee(pub, home);
+  const move = encodeFunctionData({ abi: outfitAbi, functionName: "safeTransferFrom", args: [home.container, me, id, 1n, "0x"] });
+  const sim = await pub.simulateContract({ address: home.container, abi: accountAbi, functionName: "execute", args: [market, 0n, move, 0], value: fee, account: wallet.account! });
+  const tx = await wallet.writeContract(sim.request);
+  await pub.waitForTransactionReceipt({ hash: tx });
+  const after = (await pub.readContract({ address: market, abi: outfitAbi, functionName: "balanceOf", args: [me, id] })) as bigint;
+  if (after !== before + 1n) throw new HomeError("damaged", "the outfit did not come back");
+  return tx;
 }

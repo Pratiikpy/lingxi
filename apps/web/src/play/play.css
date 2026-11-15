@@ -2103,3 +2103,35 @@
 .in-telegram .tabs {
   bottom: max(8px, env(safe-area-inset-bottom, 0px), var(--tg-safe-area-inset-bottom, 0px));
 }
+
+.home-page {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0;
+}
+.home-page > .btn {
+  justify-self: start;
+}
+
+.home-outfits {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0;
+}
+.home-outfits > .btn {
+  justify-self: start;
+}
+.home-outfit-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.home-outfit-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+}

@@ -34,8 +34,9 @@ export function WardrobePanel({ pet }: { pet: Pet }) {
   const { world, wear } = useWorld();
   const local = useDesigns((s) => s.local);
   const held = useDesigns((s) => s.held);
-  // Lingxi's pieces, then pieces drawn here, then market copies this wallet holds
-  const owned = [...ownedPieces(world), ...local.map((l) => l.id), ...Object.keys(held).map((id) => `c:${id}`)];
+  const atHome = useDesigns((s) => s.atHome);
+  // Lingxi's pieces, then pieces drawn here, then market copies this wallet holds or keeps in the pet's home
+  const owned = [...ownedPieces(world), ...local.map((l) => l.id), ...[...new Set([...Object.keys(held), ...Object.keys(atHome)])].map((id) => `c:${id}`)];
   const key = String(pet.bornAt);
   const { canvas, overlay, outfit } = useWornArt(pet);
   const set = setOf(outfit);

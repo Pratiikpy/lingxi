@@ -11,8 +11,11 @@ import { createPublicClient, createWalletClient, encodeAbiParameters, erc20Abi, 
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { STARTERS, compileProgram, netlistBytes } from "@lingxi/brain";
 import { quoteTapeout, tapeOutYourself } from "../src/selftape";
-import { HomeError, checkHub, hubAccepts, mailKey, moveIntoHome, openHome, openMailbox, openingFee, readHome, readLetters, sendLetter } from "../src/home";
+import { HomeError, homeCallFee, keepOutfitAtHome, takeOutfitFromHome, checkHub, hubAccepts, mailKey, moveIntoHome, openHome, openMailbox, openingFee, readHome, readLetters, sendLetter } from "../src/home";
 import { xLayer } from "../src/tapeout";
+import { encodeDesign } from "@lingxi/art";
+import { publishDesign } from "../src/outfits";
+import { homePageHtml, homeSiteName, processorIndex, publishHomePage, readHomePage } from "../src/homepage";
 
 const RPC = process.env.FORK_RPC;
 const LINGXI: Address = "0xf70d324Da8C1C4Cb0dE3FF147E53E7E9db543c4e";
@@ -113,5 +116,52 @@ describe.skipIf(!RPC)("pet homes and letters, on an X Layer fork", () => {
     // a letter to a home without a mailbox is refused before any transaction
     const empty = { ...rex!.home, mailbox: false };
     await expect(sendLetter(pub as never, wallets[0]!, mochi!.home, empty, { body: "hi" }, mochi!.key)).rejects.toMatchObject({ code: "theirNoKey" });
+  });
+
+  it("an open home gets a page of its own on DeWEB, written only by the deed's holder", { timeout: 400_000 }, async () => {
+    if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(RPC!)) throw new Error("fork tests run only against a local node");
+    const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
+    const pub = createPublicClient({ chain, transport: http(RPC) });
+    const [owner, stranger] = [0, 1].map(() => createWalletClient({ chain, transport: http(RPC), account: privateKeyToAccount(generatePrivateKey()) }));
+    const home = await homeFor(pub, owner!, stranger!, LINGXI, "bold");
+    const index = await processorIndex(pub as never, LINGXI, 419);
+    expect(index).toBe(419);
+    const name = homeSiteName(home.circuit, index);
+    const html = homePageHtml({ petId: 1n, name: "Bruno", registry: "0x103d7252eb6b2fec22b3f65a6bb605945f280e99", rpc: RPC!, proofUrl: "https://lingxi.knole.me/verify.html#1", siteName: name });
+    expect(await readHomePage(pub as never, home.container, name, html)).toEqual({ published: false, live: false, current: false });
+    await pub.request({ method: "anvil_setBalance" as never, params: [stranger!.account!.address, numberToHex(parseEther("1"))] as never });
+    await expect(publishHomePage(pub as never, stranger!, home.container, name, html)).rejects.toThrow();
+    const txs = await publishHomePage(pub as never, owner!, home.container, name, html);
+    expect(txs.length).toBeGreaterThanOrEqual(3);
+    expect(await readHomePage(pub as never, home.container, name, html)).toEqual({ published: true, live: true, current: true });
+    // publishing again replaces the page and leaves the name live
+    const html2 = html.replace("Bruno", "Bruno II");
+    await publishHomePage(pub as never, owner!, home.container, name, html2);
+    expect(await readHomePage(pub as never, home.container, name, html2)).toEqual({ published: true, live: true, current: true });
+  });
+
+  it("outfits can be kept at home and taken back by the deed's holder, paying TapeOut's call fee", { timeout: 400_000 }, async () => {
+    if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(RPC!)) throw new Error("fork tests run only against a local node");
+    const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
+    const pub = createPublicClient({ chain, transport: http(RPC) });
+    const [owner, stranger] = [0, 1].map(() => createWalletClient({ chain, transport: http(RPC), account: privateKeyToAccount(generatePrivateKey()) }));
+    const home = await homeFor(pub, owner!, stranger!, LINGXI, "gentle");
+    const market: Address = "0xb9f6b18edd21933582ec69fb1e718d9629e684cd";
+    const d = { chainId: 196, rpc: RPC!, processor: LINGXI, registry: "0x103d7252eb6b2fec22b3f65a6bb605945f280e99", circuits: {}, outfitMarket: market } as never;
+    const { id } = await publishDesign(pub as never, owner!, d, { pixels: encodeDesign({ slot: "held", cells: [[1, 2], [2, 1]], colours: ["#2b2140", "#ffc83d"] }), name: "Home hat", price: parseEther("0.001"), maxSupply: 5, royaltyBps: 0 });
+    const bal = (who: Address) => pub.readContract({ address: market, abi: [{ type: "function", name: "balanceOf", stateMutability: "view", inputs: [{ name: "a", type: "address" }, { name: "i", type: "uint256" }], outputs: [{ type: "uint256" }] }] as const, functionName: "balanceOf", args: [who, id] });
+    await expect(keepOutfitAtHome(pub as never, stranger!, market, id, home)).rejects.toMatchObject({ code: "notHolder" });
+    await keepOutfitAtHome(pub as never, owner!, market, id, home);
+    expect(await bal(home.container)).toBe(1n);
+    expect(await bal(owner!.account!.address)).toBe(0n);
+    const fee = await homeCallFee(pub as never, home);
+    expect(fee).toBeGreaterThan(0n);
+    await pub.request({ method: "anvil_setBalance" as never, params: [stranger!.account!.address, numberToHex(parseEther("1"))] as never });
+    await expect(takeOutfitFromHome(pub as never, stranger!, market, id, home)).rejects.toMatchObject({ code: "notHolder" });
+    const okb = await pub.getBalance({ address: owner!.account!.address });
+    await takeOutfitFromHome(pub as never, owner!, market, id, home);
+    expect(await bal(owner!.account!.address)).toBe(1n);
+    expect(await bal(home.container)).toBe(0n);
+    expect(okb - (await pub.getBalance({ address: owner!.account!.address }))).toBeGreaterThanOrEqual(fee);
   });
 });

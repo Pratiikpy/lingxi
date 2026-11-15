@@ -12,3 +12,4 @@ export * from "./home";
 export * from "./adopt";
 export * from "./outfitMarketAbi";
 export * from "./outfits";
+export * from "./homepage";

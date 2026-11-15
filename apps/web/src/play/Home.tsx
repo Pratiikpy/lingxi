@@ -9,11 +9,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { formatEther } from "viem";
-import { type Home, HomeError, hubAccepts, moveIntoHome, openHome, openingFee, readHome } from "@lingxi/chain";
+import { type Home, HomeError, homeCallFee, keepOutfitAtHome, takeOutfitFromHome, homePageHtml, homeSiteName, homeSiteUrl, hubAccepts, moveIntoHome, nameFee, openHome, openingFee, processorIndex, publishHomePage, readHome, readHomePage, readMetadata } from "@lingxi/chain";
 import { type Pet, stageOf } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { connectWallet, deployment, publicClient, recordOf, useChain } from "../game/chain";
 import { play } from "../game/sound";
+import { useDesigns } from "../game/designs";
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
@@ -140,12 +141,165 @@ export function HomePanel({ pet }: { pet: Pet }) {
               {L("Keep it at home", "放进家里")}
             </button>
           </form>
+          <HomePage pet={pet} home={home!} petId={record.petId} />
+          <HomeOutfits pet={pet} home={home!} />
           <p className="small">
             {letters
               ? L("Letters between homes are coming next.", "家与家之间的信件即将开放。")
               : L("Letters between homes go through TapeSend, whose hub does not yet accept circuits from Lingxi's processor. They open here as soon as it does.", "家与家之间的信件走 TapeSend，它的中枢目前还不接受灵犀处理器上的电路。一旦接受，这里就会开放。")}
           </p>
         </>
+      )}
+      {note && (
+        <p className="small" aria-live="polite">
+          {note}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** Z4: a page of its own, published into the home and named `<circuit>.2.<processor>.tape` on DeWEB. */
+function HomePage({ pet, home, petId }: { pet: Pet; home: Home; petId: string }) {
+  const lang = useLang((s) => s.lang);
+  const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
+  const [site, setSite] = useState<{ index: number; live: boolean; published: boolean; fee: bigint } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState("");
+  const read = useCallback(async () => {
+    if (!deployment) return;
+    try {
+      const index = await processorIndex(publicClient, deployment.processor, deployment.processorIndex);
+      const [s, fee] = await Promise.all([readHomePage(publicClient, home.container, homeSiteName(home.circuit, index)), nameFee(publicClient)]);
+      setSite({ index, live: s.live, published: s.published, fee });
+    } catch {
+      setSite(null);
+    }
+  }, [home.container, home.circuit]);
+  useEffect(() => {
+    void read();
+  }, [read]);
+  if (!site || !deployment) return null;
+  const name = homeSiteName(home.circuit, site.index);
+  const url = homeSiteUrl(home.circuit, site.index);
+  const publish = async () => {
+    setBusy(true);
+    setNote("");
+    try {
+      const wallet = await connectWallet();
+      const meta = await readMetadata(publicClient, deployment!, BigInt(petId)).catch(() => null);
+      const html = homePageHtml({
+        petId: BigInt(petId),
+        name: meta?.name || pet.name,
+        ...(meta?.image ? { image: meta.image } : {}),
+        registry: deployment!.registry,
+        rpc: deployment!.rpc,
+        proofUrl: `https://lingxi.knole.me/verify.html#${petId}`,
+        siteName: name,
+      });
+      await publishHomePage(publicClient, wallet, home.container, name, html);
+      play("success");
+      setNote(L(`${pet.name}'s page is live at ${name}.`, `${pet.name}的页面已上线：${name}。`));
+      await read();
+    } catch (e) {
+      play("error");
+      setNote((e as Error).message === "noWallet" ? L("No wallet found in this browser.", "这个浏览器里没有钱包。") : L("That didn't go through. Only the deed's holder can write the home's page; try again.", "没有成功。只有房契持有人能写这个家的页面，请再试一次。"));
+    }
+    setBusy(false);
+  };
+  return (
+    <div className="home-page">
+      <p className="small">
+        {site.published && site.live ? (
+          <>
+            {L(`${pet.name} has its own address on DeWEB:`, `${pet.name}在 DeWEB 上有自己的地址：`)}{" "}
+            <a href={url} target="_blank" rel="noopener noreferrer">
+              {name}
+            </a>
+          </>
+        ) : (
+          L(
+            `Give ${pet.name} a page of its own at ${name}: its picture, name and live numbers from X Layer, served from its home. ${site.fee > 0n ? `The name costs ${formatEther(site.fee)} OKB for ten years, plus` : "The name is free; you pay only"} network gas for a few writes.`,
+            `给${pet.name}一个自己的页面，地址 ${name}：放着它的样子、名字和从 X Layer 实时读取的数字，就存在它的家里。${site.fee > 0n ? `名字十年 ${formatEther(site.fee)} OKB，另加` : "名字免费，只需要"}几笔写入的网络手续费。`,
+          )
+        )}
+      </p>
+      <button type="button" className="btn" disabled={busy} onClick={() => void publish()}>
+        {busy ? L("Publishing…", "发布中……") : site.published ? L("Update its page", "更新它的页面") : L("Publish its page", "发布它的页面")}
+      </button>
+      {note && (
+        <p className="small" aria-live="polite">
+          {note}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** Z4: outfits kept in the home stay wearable; taking one back is a call from the home, which TapeOut charges for. */
+function HomeOutfits({ pet, home }: { pet: Pet; home: Home }) {
+  const lang = useLang((s) => s.lang);
+  const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
+  const { market, held, atHome, wallet, setHome, refresh } = useDesigns();
+  const [fee, setFee] = useState<bigint | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [note, setNote] = useState("");
+  useEffect(() => {
+    setHome(home.container);
+    void homeCallFee(publicClient, home).then(setFee, () => setFee(null));
+    return () => setHome(null);
+  }, [home, setHome]);
+  if (!deployment?.outfitMarket) return null;
+  const mine = market.filter((m) => (held[m.id.toString()] ?? 0) > 0 || (atHome[m.id.toString()] ?? 0) > 0);
+  const act = async (id: bigint, out: boolean) => {
+    setBusy(id.toString());
+    setNote("");
+    try {
+      const w = await connectWallet();
+      if (out) await takeOutfitFromHome(publicClient, w, deployment!.outfitMarket!, id, home);
+      else await keepOutfitAtHome(publicClient, w, deployment!.outfitMarket!, id, home);
+      play("success");
+      await refresh(w.account!.address);
+    } catch (e) {
+      play("error");
+      setNote(e instanceof HomeError && e.code === "notHolder" ? L("Only the deed's holder can move outfits in and out.", "只有房契持有人能把衣服放进去或拿出来。") : L("That didn't go through. Try again.", "没有成功，请再试一次。"));
+    }
+    setBusy(null);
+  };
+  return (
+    <div className="home-outfits">
+      <p className="small">
+        {L(`Outfits kept in ${pet.name}'s home stay wearable. Putting one in costs only gas; taking one out is a call from the home, which TapeOut charges ${fee !== null ? formatEther(fee) : "…"} OKB for, plus gas.`, `放在${pet.name}家里的衣服照样能穿。放进去只要网络手续费；拿出来是从家里发起的一笔调用，TapeOut 收 ${fee !== null ? formatEther(fee) : "…"} OKB，另加手续费。`)}
+      </p>
+      {!wallet ? (
+        <button type="button" className="btn" onClick={() => void connectWallet().then((w) => refresh(w.account!.address), () => setNote(L("No wallet found in this browser.", "这个浏览器里没有钱包。")))}>
+          {L("Show my outfits", "看看我的衣服")}
+        </button>
+      ) : mine.length === 0 ? (
+        <p className="small">{L("You don't hold any outfits from the fashion market yet.", "你还没有时装市场里的衣服。")}</p>
+      ) : (
+        <ul className="home-outfit-list">
+          {mine.map((m) => {
+            const k = m.id.toString();
+            return (
+              <li key={k}>
+                <span>
+                  {m.name} <span className="small">{L(`${held[k] ?? 0} with you · ${atHome[k] ?? 0} at home`, `身上 ${held[k] ?? 0} · 家里 ${atHome[k] ?? 0}`)}</span>
+                </span>
+                {(held[k] ?? 0) > 0 && (
+                  <button type="button" className="btn" disabled={busy !== null} onClick={() => void act(m.id, false)}>
+                    {busy === k ? "…" : L("Keep at home", "放进家里")}
+                  </button>
+                )}
+                {(atHome[k] ?? 0) > 0 && (
+                  <button type="button" className="btn" disabled={busy !== null} onClick={() => void act(m.id, true)}>
+                    {busy === k ? "…" : L("Take back", "拿回来")}
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
       )}
       {note && (
         <p className="small" aria-live="polite">

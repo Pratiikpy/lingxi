@@ -24,6 +24,8 @@ export interface Deployment {
   chainId: number;
   rpc: string;
   processor: Address;
+  /** the processor's number in TapeOut's factory (names its DeWEB sites); checked on use */
+  processorIndex?: number;
   registry: Address;
   circuits: Record<string, { id: string; tx: string; gates: number }>;
 }

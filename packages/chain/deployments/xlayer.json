@@ -2,6 +2,7 @@
   "chainId": 196,
   "rpc": "https://rpc.xlayer.tech",
   "processor": "0xf70d324Da8C1C4Cb0dE3FF147E53E7E9db543c4e",
+  "processorIndex": 419,
   "transistors": "0x92DFda52386386Be40EFd7becB545139372C7139",
   "registry": "0x103d7252eb6b2fec22b3f65a6bb605945f280e99",
   "breeder": "0x5e5bbb798c5a2afc89f431debabaa0b889f77dd1",

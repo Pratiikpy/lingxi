@@ -51,6 +51,11 @@ interface DesignsStore {
   listings: OutfitListing[];
   /** copies the connected wallet holds, by market id */
   held: Record<string, number>;
+  /** copies kept in the active pet's home (its TapeOut container), by market id; still wearable */
+  atHome: Record<string, number>;
+  /** that home's container, once it is open */
+  home: string | null;
+  setHome: (container: string | null) => void;
   wallet: string | null;
   loading: boolean;
   error: string | null;
@@ -94,6 +99,13 @@ export const useDesigns = create<DesignsStore>((set, get) => {
     market: [],
     listings: [],
     held: {},
+    atHome: {},
+    home: null,
+    setHome: (container) => {
+      if (container === get().home) return;
+      set({ home: container, atHome: {} });
+      void get().refresh();
+    },
     wallet: null,
     loading: false,
     error: null,
@@ -112,20 +124,24 @@ export const useDesigns = create<DesignsStore>((set, get) => {
       try {
         const [market, listings] = await Promise.all([readDesigns(publicClient, deployment), readListings(publicClient, deployment)]);
         const who = wallet ?? get().wallet;
-        const counts = who ? await copiesHeld(publicClient, deployment, who as Address, market.map((m) => m.id)) : [];
+        const ids = market.map((m) => m.id);
+        const home = get().home;
+        const [counts, homeCounts] = await Promise.all([who ? copiesHeld(publicClient, deployment, who as Address, ids) : [], home ? copiesHeld(publicClient, deployment, home as Address, ids) : []]);
         const held: Record<string, number> = {};
+        const atHome: Record<string, number> = {};
         market.forEach((m, i) => {
           if ((counts[i] ?? 0n) > 0n) held[m.id.toString()] = Number(counts[i]);
+          if ((homeCounts[i] ?? 0n) > 0n) atHome[m.id.toString()] = Number(homeCounts[i]);
         });
         register(get().local, market);
-        set({ market, listings, held, wallet: who ?? null, loading: false, version: get().version + 1 });
+        set({ market, listings, held, atHome, wallet: who ?? null, loading: false, version: get().version + 1 });
       } catch (e) {
         set({ loading: false, error: (e as Error).message.split("\n")[0] ?? "error" });
       }
     },
     canWear: (id) => {
       if (id.startsWith("u:")) return get().local.some((l) => l.id === id);
-      if (id.startsWith("c:")) return (get().held[id.slice(2)] ?? 0) > 0;
+      if (id.startsWith("c:")) return (get().held[id.slice(2)] ?? 0) + (get().atHome[id.slice(2)] ?? 0) > 0;
       return false;
     },
   };
