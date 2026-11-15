@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      '@lingxi/art':
+        specifier: workspace:*
+        version: link:packages/art
       '@lingxi/brain':
         specifier: workspace:*
         version: link:packages/brain
@@ -129,6 +132,9 @@ importers:
 
   packages/chain:
     dependencies:
+      '@lingxi/art':
+        specifier: workspace:*
+        version: link:../art
       '@lingxi/brain':
         specifier: workspace:*
         version: link:../brain

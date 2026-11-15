@@ -203,3 +203,57 @@
   cursor: pointer;
   min-height: 32px;
 }
+
+.v-picture {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin: 0 0 16px;
+}
+.v-picture img {
+  flex: none;
+  border: 2px solid var(--line, #2b2140);
+  border-radius: 14px;
+  image-rendering: pixelated;
+  background: #fff7e8;
+}
+.v-picture figcaption {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.v-picture b {
+  font-size: 18px;
+}
+@media (max-width: 480px) {
+  .v-picture img {
+    width: 96px;
+    height: 96px;
+  }
+}
+
+.v-file {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.v-pick {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  padding: 0 20px;
+  cursor: pointer;
+}
+.v-pick:focus-within {
+  outline: 3px solid color-mix(in srgb, #ff7a59 60%, transparent);
+  outline-offset: 2px;
+}
+.v-file-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}

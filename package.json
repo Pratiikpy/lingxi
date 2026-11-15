@@ -8,6 +8,7 @@
     "judge:check": "tsx scripts/judge-check.mts"
   },
   "devDependencies": {
+    "@lingxi/art": "workspace:*",
     "@lingxi/brain": "workspace:*",
     "@lingxi/game": "workspace:*",
     "@lingxi/chain": "workspace:*",

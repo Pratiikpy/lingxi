@@ -15,7 +15,7 @@ import { readFileSync } from "node:fs";
 import { createPublicClient, http, type Address, type Hex } from "viem";
 import { STARTERS, beat, bitsToWord, compileProgram, compileSeal, hexToBytes, load, netlistBytes, sealReference, wordToBits } from "@lingxi/brain";
 import { EVOLUTION, chainLog, unpackState } from "@lingxi/game";
-import { FACTORY, factoryAbi, processorAbi, readPet, replayMany, xLayer, type Deployment } from "@lingxi/chain";
+import { FACTORY, canvasOfSvg, factoryAbi, gameSprite, lookOf, processorAbi, readMetadata, readPet, replayMany, xLayer, type Deployment } from "@lingxi/chain";
 
 const d = JSON.parse(readFileSync(new URL("../packages/chain/deployments/xlayer.json", import.meta.url), "utf8")) as Deployment & { circuits: Record<string, { id: string }> };
 const pubs = ["https://rpc.xlayer.tech", "https://xlayerrpc.okx.com"].map((u) => createPublicClient({ chain: { ...xLayer, rpcUrls: { default: { http: [u] } } }, transport: http(u) }));
@@ -54,6 +54,11 @@ const gentle = load(expected.gentle!, 16, 8);
 let mem = new Array<number>(pet.brainBits).fill(0);
 for (const w of log.words) mem = beat(gentle, mem, wordToBits(w, 16))[0];
 ok(JSON.stringify(mem) === JSON.stringify(unpackState(pet.state, pet.brainBits).brain), "pet #1: replaying the log gives exactly the memory saved on chain");
+
+// the picture the registry serves is drawn on chain by PetLook, and it is the game's own art for the saved state
+const meta = await readMetadata(pub, d, 1n);
+const svg = meta.image?.startsWith("data:image/svg+xml;base64,") ? Buffer.from(meta.image.slice(26), "base64").toString("utf8") : "";
+ok(svg.length > 0 && JSON.stringify(canvasOfSvg(svg).px) === JSON.stringify(gameSprite(lookOf(pet.state)).px), `pet #1's picture (tokenURI, drawn by PetLook ${d.look}) equals the game's sprite for its saved state, pixel for pixel`);
 
 // every input, through the chain, in batches of 64 spread over both official endpoints
 async function everyInput(label: string, ask: (client: (typeof pubs)[number], words: number[]) => Promise<number[]>, expect: (w: number) => number) {

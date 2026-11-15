@@ -5,6 +5,7 @@ import type { Pet } from "@lingxi/game";
 import { useLang, useT, type Key } from "../i18n";
 import { autoGasLow, autoStatus, deployment, explorerTx, lessonsKey, useChain } from "../game/chain";
 import { play } from "../game/sound";
+import { NameClaim } from "./NameClaim";
 import { useGame } from "../game/store";
 
 const ERR: Record<string, Key> = { noWallet: "chain.noWallet", noAccount: "chain.noWallet", alreadySaved: "chain.alreadySaved", badAddress: "sit.badAddress", badDays: "sit.badDays", selfSitter: "sit.self" };
@@ -57,6 +58,7 @@ export function ChainPanel({ pet }: { pet: Pet }) {
               {t("chain.download")}
             </a>
           </div>
+          <NameClaim pet={pet} record={record} />
           <div className="keeping">
             <p className="label">{t("auto.title")}</p>
             {auto === "off" ? (

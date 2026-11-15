@@ -3,7 +3,8 @@
  * any viem wallet client (an injected wallet, Privy, or a local key in tests).
  */
 
-import type { Address, Hex, PublicClient, WalletClient } from "viem";
+import { keccak256, type Address, type Hex, type PublicClient, type WalletClient } from "viem";
+import { petLookAbi } from "./lookAbi";
 import { petRegistryAbi } from "./registryAbi";
 import { processorAbi } from "./tapeout";
 import { type Circuit, REF, decode, hexToBytes, load, refKey } from "@lingxi/brain";
@@ -14,6 +15,8 @@ export interface Deployment {
   /** red packet escrow and its seal circuit id, when deployed */
   redPacket?: Address;
   seal?: string;
+  /** the on-chain picture and names contract (PetLook), when deployed */
+  look?: Address;
   /** block the escrow was deployed at, to read its events from */
   redPacketBlock?: number;
   chainId: number;
@@ -175,4 +178,34 @@ export async function replayMany(pub: PublicClient, d: Deployment, id: bigint, b
     contracts: words.map((w) => ({ address: d.registry, abi: petRegistryAbi, functionName: "replayStep", args: [id, brainState, w] })),
   })) as unknown as Array<readonly [bigint, number]>;
   return res.map(([next, outputs]) => ({ next: BigInt(next), outputs: Number(outputs) }));
+}
+
+/** The pet's name on chain ("" if none) and which pet, if any, holds a given name (case-insensitive for ASCII). */
+export async function readName(pub: PublicClient, d: Deployment, petId: bigint): Promise<string> {
+  if (!d.look) return "";
+  return (await pub.readContract({ address: d.look, abi: petLookAbi, functionName: "nameOf", args: [petId] })) as string;
+}
+
+export async function nameHolderOf(pub: PublicClient, d: Deployment, name: string): Promise<bigint | null> {
+  if (!d.look) return null;
+  const low = new TextEncoder().encode(name).map((c) => (c >= 0x41 && c <= 0x5a ? c + 32 : c));
+  const h = (await pub.readContract({ address: d.look, abi: petLookAbi, functionName: "nameHolder", args: [keccak256(low)] })) as bigint;
+  return h === 0n ? null : h - 1n;
+}
+
+export async function setNameOnChain(pub: PublicClient, wallet: WalletClient, d: Deployment, petId: bigint, name: string): Promise<Hex> {
+  if (!d.look) throw new Error("names are not deployed");
+  const account = wallet.account;
+  if (!account) throw new Error("wallet has no account");
+  const { request } = await pub.simulateContract({ address: d.look, abi: petLookAbi, functionName: "setName", args: [petId, name], account });
+  const tx = await wallet.writeContract(request);
+  if ((await pub.waitForTransactionReceipt({ hash: tx })).status !== "success") throw new Error("setName failed");
+  return tx;
+}
+
+/** The pet's ERC-721 metadata as the registry serves it (the picture is drawn on chain once PetLook is the renderer). */
+export async function readMetadata(pub: PublicClient, d: Deployment, petId: bigint): Promise<{ name: string; image?: string; attributes?: Array<{ trait_type: string; value: unknown }> }> {
+  const uri = (await pub.readContract({ address: d.registry, abi: petRegistryAbi, functionName: "tokenURI", args: [petId] })) as string;
+  const b64 = uri.slice(uri.indexOf(",") + 1);
+  return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))));
 }

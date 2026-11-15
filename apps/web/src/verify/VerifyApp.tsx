@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type Hex } from "viem";
 import { beat, bitsToWord, hexToBytes, load, type Circuit, wordToBits, decodeSenses } from "@lingxi/brain";
-import { type ChainPet, loadCircuitFromChain, readPet, replayMany, replayStep } from "@lingxi/chain";
+import { type ChainPet, canvasOfSvg, gameSprite, loadCircuitFromChain, lookOf, readMetadata, readPet, replayMany, replayStep } from "@lingxi/chain";
 import { chainAll, unpackState, ZERO_HASH } from "@lingxi/game";
 import { deployment, publicClient, readClients } from "../game/chain";
 import { useLang } from "../i18n";
@@ -43,11 +43,18 @@ const T = {
     allOk: "All {n} thoughts match: the processor on X Layer and the open evaluator give identical memory and outputs.",
     someBad: "{n} thoughts differ. Report this; it should never happen.",
     logTitle: "Check a day's log",
+    logPick: "Choose a log file",
+    logNone: "No file chosen",
     logHelp: "Drop the log file the game exports (Pet → Download log). We recompute its hash chain and replay every beat.",
     logOk: "The log's hash equals the one on chain, and replaying its {n} gives exactly the saved memory.",
     logBadHash: "This log does not hash to the value on chain.",
     logBadState: "The hash matches, but the replay ends at a different memory than the one saved.",
     notFound: "No pet with that number.",
+    picture: "Its picture, drawn on chain",
+    pictureNote: "PetLook draws this from the pet's saved state: its stage, its mood and whether its circuit glows. This page only shows what the chain returns.",
+    pictureSame: "Pixel for pixel the game's own art for this state.",
+    pictureDiff: "This picture differs from the game's art for this state.",
+    named: "Name on chain",
     notDeployed: "This build is not connected to a deployment.",
     want: "want",
     inputs: "inputs",
@@ -72,11 +79,18 @@ const T = {
     allOk: "{n} 个念头全部一致：X Layer 上的处理器和开源求值器给出完全相同的记忆和输出。",
     someBad: "有 {n} 个念头不一致。请报告，这不应该发生。",
     logTitle: "核对某一天的日志",
+    logPick: "选择日志文件",
+    logNone: "还没有选择文件",
     logHelp: "拖入游戏导出的日志文件（宠物 → 下载日志）。我们会重算哈希链并重放每一拍。",
     logOk: "日志哈希与链上一致，重放 {n} 拍后得到的记忆与保存的完全相同。",
     logBadHash: "这份日志的哈希和链上的不一致。",
     logBadState: "哈希一致，但重放后的记忆与保存的不同。",
     notFound: "没有这个编号的宠物。",
+    picture: "它的样子，由链上绘制",
+    pictureNote: "PetLook 根据宠物保存的状态画出这张图：成长阶段、心情，以及电路有没有亮。本页只是显示链上返回的结果。",
+    pictureSame: "与游戏里这个状态的画面逐像素一致。",
+    pictureDiff: "这张图和游戏里这个状态的画面不一致。",
+    named: "链上名字",
     notDeployed: "这个版本没有连接到部署。",
     want: "想要",
     inputs: "输入",
@@ -97,9 +111,12 @@ export function VerifyApp() {
   const [rows, setRows] = useState<Row[]>([]);
   const [running, setRunning] = useState(false);
   const [logResult, setLogResult] = useState<string | null>(null);
+  const [logName, setLogName] = useState<string | null>(null);
   // the exhaustive check: every one of the 65,536 inputs at the pet's saved memory
   const [all, setAll] = useState<{ done: number; bad: number; first?: string; secs?: number; stopped?: boolean } | null>(null);
   const stopAll = useRef(false);
+  // the picture and name the registry serves for this pet, drawn by PetLook
+  const [meta, setMeta] = useState<{ name: string; image?: string; same?: boolean } | null>(null);
 
   const read = useCallback(async () => {
     setErr(null);
@@ -109,6 +126,13 @@ export function VerifyApp() {
     try {
       const p = await readPet(publicClient, deployment, BigInt(id));
       setPet(p);
+      setMeta(null);
+      void readMetadata(publicClient, deployment, BigInt(id))
+        .then((m) => {
+          const svg = m.image?.startsWith("data:image/svg+xml;base64,") ? atob(m.image.slice(26)) : null;
+          setMeta({ name: m.name, image: m.image, same: svg ? JSON.stringify(canvasOfSvg(svg).px) === JSON.stringify(gameSprite(lookOf(p.state)).px) : undefined });
+        })
+        .catch(() => setMeta(null));
       // a child's circuit REFs its parents' circuits; those are read from the chain too
       const c = await loadCircuitFromChain(publicClient, p.processor, p.brainId);
       setCircuit(c);
@@ -241,6 +265,16 @@ export function VerifyApp() {
       {err && <p className="v-err">{err}</p>}
       {pet && u && (
         <section className="v-card" aria-label={t.brain}>
+          {meta?.image && (
+            <figure className="v-picture">
+              <img src={meta.image} alt={meta.name} width={144} height={144} />
+              <figcaption>
+                <b>{meta.name}</b>
+                <span className="v-note">{t.pictureNote}</span>
+                {meta.same !== undefined && <span className={meta.same ? "v-ok" : "v-bad"}>{meta.same ? t.pictureSame : t.pictureDiff}</span>}
+              </figcaption>
+            </figure>
+          )}
           <dl>
             <dt>{t.owner}</dt>
             <dd className="mono">{short(pet.owner)}</dd>
@@ -345,7 +379,22 @@ export function VerifyApp() {
           <div className="v-log">
             <p className="v-sub">{t.logTitle}</p>
             <p className="v-lede">{t.logHelp}</p>
-            <input type="file" accept="application/json" onChange={(e) => e.target.files?.[0] && onLog(e.target.files[0])} />
+            <div className="v-file">
+              <label className="v-run v-pick">
+                {t.logPick}
+                <input
+                  type="file"
+                  accept="application/json"
+                  className="v-file-input"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    setLogName(f?.name ?? null);
+                    if (f) void onLog(f);
+                  }}
+                />
+              </label>
+              <span className="v-note mono">{logName ?? t.logNone}</span>
+            </div>
             {logResult && <p className={logResult === t.logBadHash || logResult === t.logBadState ? "v-bad" : "v-ok"}>{logResult}</p>}
           </div>
         </section>

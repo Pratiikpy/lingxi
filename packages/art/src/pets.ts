@@ -163,7 +163,8 @@ function drawTrace(c: PixelCanvas, cx: number, y: number, halfW: number, lit: bo
   }
 }
 
-export function drawPet(line: Line, stage: Exclude<Stage, "egg">, opt: PoseOptions = {}): PixelCanvas {
+/** The pet without its face: what the on-chain picture uses as the body layer. */
+export function drawBody(line: Line, stage: Exclude<Stage, "egg">, opt: PoseOptions = {}): PixelCanvas {
   const spec = LINES[line][stage];
   const pose = { breath: opt.breath ?? 0, squash: opt.squash ?? 0 } as const;
   const c = new PixelCanvas(SIZE, SIZE);
@@ -174,7 +175,18 @@ export function drawPet(line: Line, stage: Exclude<Stage, "egg">, opt: PoseOptio
   cleanOutline(c);
   spec.finish?.(c, pose);
   if (spec.trace) drawTrace(c, 24, spec.trace.y + (pose.breath ? -1 : 0), spec.trace.half, opt.lit ?? false);
-  const face = spec.face.size === "L" ? FACES_L : FACES_S;
-  c.stampCentered(face[opt.expression ?? "neutral"], spec.face.x, spec.face.y + half(pose.squash));
+  return c;
+}
+
+/** Which face set a stage uses and where its centre sits. */
+export function faceAnchor(line: Line, stage: Exclude<Stage, "egg">, squash = 0): { size: "L" | "S"; x: number; y: number } {
+  const f = LINES[line][stage].face;
+  return { size: f.size, x: f.x, y: f.y + half(squash) };
+}
+
+export function drawPet(line: Line, stage: Exclude<Stage, "egg">, opt: PoseOptions = {}): PixelCanvas {
+  const c = drawBody(line, stage, opt);
+  const a = faceAnchor(line, stage, opt.squash ?? 0);
+  c.stampCentered((a.size === "L" ? FACES_L : FACES_S)[opt.expression ?? "neutral"], a.x, a.y);
   return c;
 }

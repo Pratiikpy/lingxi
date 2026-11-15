@@ -10,6 +10,7 @@
     "tapeout": "tsx scripts/tapeout.ts"
   },
   "dependencies": {
+    "@lingxi/art": "workspace:*",
     "@lingxi/brain": "workspace:*",
     "@lingxi/game": "workspace:*",
     "viem": "2.57.7"
