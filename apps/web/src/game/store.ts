@@ -6,11 +6,17 @@
 
 import { CARE_METRIC, useBadges } from "./badges";
 
+/** The picture of what was eaten: the item's own art, or the starter food's. */
+function foodArt(c: Care, art?: string): string | undefined {
+  if (art) return art;
+  return c.kind === "feed" && typeof c.food === "string" ? FOODS.find((f) => f.id === c.food)?.art : undefined;
+}
+
 /** Stage as the "Growing up" badge counts it: child 2, teen 3, adult 4. */
 const STAGE_RANK: Record<string, number> = { baby: 1, child: 2, teen: 3, adult: 4, elder: 4 };
 import { create } from "zustand";
 import { type Program, type Rule, STARTERS, compileProgram, fastBrain, stateBits } from "@lingxi/brain";
-import { type Brain, type Care, type CareResult, type Pet, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, liveBeat, mindBrain, stageOf, teach as teachRule } from "@lingxi/game";
+import { FOODS, type Brain, type Care, type CareResult, type Pet, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, liveBeat, mindBrain, stageOf, teach as teachRule } from "@lingxi/game";
 import type { StarterLine } from "@lingxi/brain";
 
 const OLD_KEY = "lingxi.pet.v1";
@@ -137,7 +143,8 @@ interface GameState {
   lastCare: { kind: Care["kind"] | "pet" | "learn"; at: number; food?: string } | null;
   daily: Daily;
   hatch: (line: StarterLine, name: string) => void;
-  act: (c: Care) => void;
+  /** a care action; `art` is the picture of the food or item used, for the room to show */
+  act: (c: Care, art?: string) => void;
   tick: () => void;
   wakeUp: () => void;
   say: (note: Toast["note"]) => void;
@@ -199,7 +206,7 @@ export const useGame = create<GameState>((set, get) => ({
     useBadges.getState().note("pets");
     set({ pet, pets: roster.pets, daily: freshDaily() });
   },
-  act: (c) => {
+  act: (c, art) => {
     const { pet } = get();
     if (!pet) return;
     const r = care(pet, c, Date.now(), brainOf(pet));
@@ -221,7 +228,7 @@ export const useGame = create<GameState>((set, get) => ({
       pet: r.pet,
       pets: roster.pets,
       daily: d,
-      lastCare: { kind: c.kind === "use" ? "feed" : c.kind, at: performance.now() },
+      lastCare: { kind: c.kind === "use" ? "feed" : c.kind, at: performance.now(), ...(foodArt(c, art) ? { food: foodArt(c, art)! } : {}) },
       toast: { id: ++toastId, note: r.note },
     });
   },

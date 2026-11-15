@@ -12,9 +12,28 @@ import { Application, Assets, Container, Graphics, Sprite, Text, type Texture } 
 import { AnimatedGIF } from "@pixi/gif";
 import type { Expression } from "@lingxi/art";
 import type { StarterLine } from "@lingxi/brain";
-import { type PetStage, catTexture, glyphTexture, petTexture } from "./textures";
+import { BITS, type PetStage, catTexture, glyphTexture, petTexture } from "./textures";
 
 export type DayPhase = "day" | "evening" | "night";
+
+export type Weather = "clear" | "rain" | "snow" | "petals" | "leaves";
+
+/** Today's weather: the same all day for everyone in the same season, changing day to day. */
+export function weatherFor(date: Date): Weather {
+  const day = date.getFullYear() * 400 + date.getMonth() * 32 + date.getDate();
+  let h = day * 2654435761;
+  h = (h ^ (h >>> 15)) >>> 0;
+  const r = (h % 1000) / 1000;
+  const m = date.getMonth();
+  const season = m >= 2 && m <= 4 ? "spring" : m >= 5 && m <= 7 ? "summer" : m >= 8 && m <= 10 ? "autumn" : "winter";
+  if (season === "winter") return r < 0.45 ? "snow" : "clear";
+  if (season === "spring") return r < 0.4 ? "petals" : r < 0.6 ? "rain" : "clear";
+  if (season === "autumn") return r < 0.4 ? "leaves" : r < 0.6 ? "rain" : "clear";
+  return r < 0.25 ? "rain" : "clear";
+}
+
+/** How tall each stage stands, to put things above its head. */
+const HEAD = { baby: 15, child: 22, teen: 28, adult: 34 } as const;
 
 export interface SceneProps {
   line: StarterLine;
@@ -25,8 +44,16 @@ export interface SceneProps {
   want: number;
   mood: number;
   phase: DayPhase;
-  /** performance.now() of the last care and what it was */
-  lastCare: { kind: string; at: number } | null;
+  /** performance.now() of the last care and what it was (and the food's picture, when fed) */
+  lastCare: { kind: string; at: number; food?: string } | null;
+  /** cleanliness 0..1000: dust bunnies gather when it runs low */
+  clean: number;
+  /** fullness 0..1000: a thought of food appears when it runs low, whatever the brain decides */
+  food: number;
+  /** under the sky (weather shows) or under a roof */
+  outdoors: boolean;
+  /** a sheet covers the room: moments wait until it can be seen */
+  covered: boolean;
   onPetTap: () => void;
   reduceMotion: boolean;
   /** the current room's backgrounds */
@@ -81,6 +108,17 @@ interface Particle {
   vx: number;
   vy: number;
   life: number;
+  /** pull downward each frame (crumbs fall; hearts and notes float) */
+  g?: number;
+}
+
+/** Something drifting through the room: fireflies, pollen, rain, snow, petals. */
+interface Drift {
+  s: Sprite;
+  kind: "firefly" | "mote" | "drop" | "flake" | "petal";
+  vx: number;
+  vy: number;
+  ph: number;
 }
 
 function expressionFor(p: SceneProps, now: number, blinking: boolean): { e: Expression; lit: boolean } {
@@ -168,8 +206,57 @@ export function RoomScene(props: SceneProps) {
       pet.eventMode = "static";
       pet.cursor = "pointer";
       world.addChild(pet);
+      // living details: dust bunnies on the floor behind the cat and pet; the food, the ball and
+      // the "hungry" thought in front of the pet; drifting motes and weather over everything
+      const floor = new Container();
+      world.addChildAt(floor, world.getChildIndex(cat));
+      const bunnies = [new Sprite(BITS.bunny(false)), new Sprite(BITS.bunny(false))];
+      bunnies.forEach((b, i) => {
+        b.anchor.set(0.5, 1);
+        b.x = i ? 42 : 88;
+        b.visible = false;
+        floor.addChild(b);
+      });
+      const props = new Container();
+      world.addChild(props);
+      const ball = new Sprite(BITS.ball());
+      ball.anchor.set(0.5);
+      ball.visible = false;
+      const food = new Sprite();
+      food.anchor.set(0.5);
+      food.visible = false;
+      let foodScale = 0.4;
+      const thought = new Sprite(BITS.bubble());
+      thought.anchor.set(0.5, 1);
+      thought.visible = false;
+      const thoughtFood = new Sprite();
+      thoughtFood.anchor.set(0.5);
+      thoughtFood.visible = false;
+      props.addChild(ball, food, thought, thoughtFood);
+      void bgTexture("/art/items/rice_mochi.png").then((t) => {
+        if (thoughtFood.destroyed) return;
+        thoughtFood.texture = t;
+        thoughtFood.scale.set(10 / Math.max(t.width, t.height));
+      });
       const fx = new Container();
       world.addChild(fx);
+      const sky = new Container();
+      world.addChild(sky);
+      const drifts: Drift[] = [];
+      const weather = weatherFor(new Date());
+      // the pet turns toward where you point
+      let lookX = PET_X;
+      app.stage.eventMode = "static";
+      app.stage.hitArea = app.screen;
+      app.stage.on("pointermove", (e) => {
+        lookX = world.toLocal(e.global).x;
+      });
+      let feedAt = -1;
+      let playAt = -1;
+      // a feed or play that happened while a sheet covered the room plays when it is seen
+      let feedWaiting = -1;
+      let playWaiting = -1;
+      let lastZ = 0;
       // visitors' name tags and speech live in screen space so text stays crisp
       const ui = new Container();
       app.stage.addChild(ui);
@@ -266,11 +353,25 @@ export function RoomScene(props: SceneProps) {
         if (p.sick && !p.asleep && !p.reduceMotion && Math.random() < 0.012) burst("spark", 1, ["#7BD389", "#5FB46F"]);
         if (p.lastCare && p.lastCare.at !== lastCareAt) {
           lastCareAt = p.lastCare.at;
-          if (p.lastCare.kind === "feed") burst("heart", 3, ["#FF7A9A"]);
+          if (p.lastCare.kind === "feed") {
+            burst("heart", 3, ["#FF7A9A"]);
+            // the food arcs in from the side, then gets eaten bite by bite
+            const art = p.lastCare.food;
+            if (art && !p.reduceMotion) {
+              feedWaiting = now;
+              food.visible = false;
+              void bgTexture(art.startsWith("/") ? art : `/${art}`).then((t) => {
+                if (food.destroyed) return;
+                food.texture = t;
+                foodScale = { baby: 8, child: 10, teen: 12, adult: 13 }[latest.current.stage] / Math.max(t.width, t.height);
+                food.scale.set(foodScale);
+              });
+            }
+          }
           if (p.lastCare.kind === "clean") burst("spark", 8, ["#FFFFFF", "#FFC83D"]);
           if (p.lastCare.kind === "play") {
             burst("note", 3, ["#2F7FD6"]);
-            if (!p.reduceMotion) hopAt = now;
+            if (!p.reduceMotion) playWaiting = now;
           }
         }
         if (now > blinkAt) blinkAt = now + 2400 + Math.random() * 2400;
@@ -291,6 +392,150 @@ export function RoomScene(props: SceneProps) {
         pet.texture = petTexture(p.line, { stage: p.stage, expression: e, breath, squash, lit });
         pet.x = PET_X;
         pet.y = PET_FEET - lift;
+        if (!p.covered) {
+          if (feedWaiting >= 0) {
+            if (now - feedWaiting < 30_000) feedAt = now;
+            feedWaiting = -1;
+          }
+          if (playWaiting >= 0) {
+            if (now - playWaiting < 30_000) {
+              playAt = now;
+              hopAt = now;
+            }
+            playWaiting = -1;
+          }
+        }
+        const busyCare = (p.lastCare !== null && now - p.lastCare.at < 2600) || feedAt >= 0 || playAt >= 0;
+        const head = PET_FEET - HEAD[p.stage];
+
+        // play: a ball bounces back and forth and the pet keeps its eyes on it
+        if (playAt >= 0) {
+          const k = (now - playAt) / 2600;
+          if (k > 1) {
+            playAt = -1;
+            ball.visible = false;
+          } else {
+            const bx = PET_X + Math.sin(k * Math.PI * 3) * 26;
+            const bh = Math.abs(Math.sin(k * Math.PI * 7)) * 16 * (1 - k * 0.5);
+            ball.visible = true;
+            ball.x = Math.round(bx);
+            ball.y = Math.round(PET_FEET - 3 - bh);
+            pet.scale.x = bx < PET_X ? -1 : 1;
+            if (hopAt < 0 && Math.random() < 0.03) hopAt = now;
+          }
+        } else if (!p.asleep && !busyCare && Math.abs(lookX - PET_X) > 8) {
+          // otherwise it turns toward your pointer
+          pet.scale.x = lookX < PET_X ? -1 : 1;
+        }
+
+        // feed: the food arcs into its mouth, then shrinks bite by bite with crumbs
+        if (feedAt >= 0) {
+          const k = (now - feedAt) / 1400;
+          if (k > 1) {
+            feedAt = -1;
+            food.visible = false;
+          } else if (food.texture && food.texture.width > 1) {
+            const mx = PET_X + pet.scale.x * 3;
+            const my = PET_FEET - Math.round(HEAD[p.stage] * 0.42);
+            food.visible = true;
+            if (k < 0.4) {
+              const t = k / 0.4;
+              food.x = Math.round(mx + 30 * (1 - t));
+              food.y = Math.round(my - 34 * (1 - t) * (1 - t) - 8 * Math.sin(t * Math.PI));
+              food.alpha = 1;
+              food.scale.set(foodScale);
+            } else {
+              const bite = (k - 0.4) / 0.6;
+              food.x = mx;
+              food.y = my;
+              food.alpha = 1 - bite * 0.9;
+              food.scale.set(foodScale * (1 - bite * 0.75));
+              if (Math.random() < 0.3) {
+                const c = new Sprite(BITS.crumb(Math.random() < 0.5 ? "#FFFDF8" : "#FFC83D"));
+                c.x = mx + (Math.random() * 6 - 3);
+                c.y = my + 2;
+                fx.addChild(c);
+                particles.push({ s: c, vx: (Math.random() - 0.5) * 0.5, vy: -0.4, life: 0.8, g: 0.06 });
+              }
+            }
+          }
+        }
+
+        // hungry: a little thought of food above its head
+        const hungry = (p.want === 1 || p.food < 250) && !p.asleep && !busyCare && (p.reduceMotion || Math.floor(now / 2600) % 2 === 0);
+        thought.visible = hungry;
+        thoughtFood.visible = hungry && thoughtFood.texture.width > 1;
+        thought.x = PET_X + 14;
+        thought.y = head - 2;
+        thoughtFood.x = thought.x;
+        thoughtFood.y = thought.y - 8;
+
+        // asleep: zzz drift up; very happy: a note now and then
+        if (p.asleep && !p.reduceMotion && now - lastZ > 1100) {
+          lastZ = now;
+          const z = new Sprite(BITS.z());
+          z.anchor.set(0.5);
+          z.x = PET_X + 9;
+          z.y = head;
+          fx.addChild(z);
+          particles.push({ s: z, vx: 0.08, vy: -0.16, life: 1 });
+        }
+        if (p.mood === 3 && !p.asleep && !busyCare && !p.reduceMotion && Math.random() < 0.005) burst("note", 1, ["#2F7FD6"]);
+
+        // dust bunnies gather when it hasn't been cleaned in a while
+        bunnies[0]!.visible = p.clean < 300;
+        bunnies[1]!.visible = p.clean < 150;
+        bunnies.forEach((b, i) => {
+          b.texture = BITS.bunny(!p.reduceMotion && Math.floor(now / 2300 + i * 3) % 6 === 0);
+          b.y = PET_FEET + 3 + (!p.reduceMotion && Math.sin(now / 480 + i * 2) > 0.4 ? -1 : 0);
+        });
+
+        // motes in the light, fireflies at night, and today's weather outdoors
+        if (!p.reduceMotion) {
+          const ambient: Drift["kind"] = p.phase === "night" ? "firefly" : "mote";
+          const wanted: Array<[Drift["kind"], number]> = [[ambient, p.phase === "night" ? 7 : 4]];
+          if (p.outdoors && weather === "rain") wanted.push(["drop", 34]);
+          if (p.outdoors && weather === "snow") wanted.push(["flake", 24]);
+          if (p.outdoors && (weather === "petals" || weather === "leaves")) wanted.push(["petal", 9]);
+          for (const [kind, count] of wanted) {
+            const have = drifts.filter((d) => d.kind === kind).length;
+            if (have < count && Math.random() < 0.2) {
+              const tex =
+                kind === "firefly" ? BITS.firefly()
+                : kind === "mote" ? BITS.mote(p.phase === "evening" ? "#FFB86B" : "#FFF7D6")
+                : kind === "drop" ? BITS.drop()
+                : kind === "flake" ? BITS.flake()
+                : BITS.petal(weather === "leaves" ? (Math.random() < 0.5 ? "#E8803A" : "#C9542F") : Math.random() < 0.5 ? "#FFB3C7" : "#FFD9E2");
+              const s = new Sprite(tex);
+              s.anchor.set(0.5);
+              s.x = Math.random() * ROOM;
+              s.y = kind === "firefly" || kind === "mote" ? 40 + Math.random() * 70 : -4 - Math.random() * 30;
+              s.alpha = kind === "drop" ? 0.6 : kind === "mote" ? 0.7 : 1;
+              sky.addChild(s);
+              const d: Drift = {
+                s,
+                kind,
+                vx: kind === "drop" ? 0.45 : kind === "petal" ? 0.25 : (Math.random() - 0.5) * 0.12,
+                vy: kind === "drop" ? 2.4 : kind === "flake" ? 0.22 + Math.random() * 0.12 : kind === "petal" ? 0.3 : -0.04 - Math.random() * 0.05,
+                ph: Math.random() * 6.28,
+              };
+              drifts.push(d);
+            }
+          }
+          for (let i = drifts.length - 1; i >= 0; i--) {
+            const d = drifts[i]!;
+            d.ph += 0.03;
+            d.s.x += d.vx + (d.kind === "flake" || d.kind === "petal" ? Math.sin(d.ph) * 0.18 : d.kind === "firefly" ? Math.sin(d.ph * 0.7) * 0.15 : 0);
+            d.s.y += d.vy + (d.kind === "firefly" ? Math.cos(d.ph * 0.9) * 0.08 : 0);
+            if (d.kind === "firefly") d.s.alpha = 0.35 + 0.65 * Math.max(0, Math.sin(d.ph * 1.6));
+            const gone = d.s.y > ROOM + 4 || d.s.y < 30 || d.s.x < -6 || d.s.x > ROOM + 6;
+            const stale = !wanted.some(([k]) => k === d.kind);
+            if (gone || stale) {
+              d.s.destroy();
+              drifts.splice(i, 1);
+            }
+          }
+        }
 
         // the cat lives its own life
         if (!p.reduceMotion) {
@@ -414,6 +659,7 @@ export function RoomScene(props: SceneProps) {
 
         for (let i = particles.length - 1; i >= 0; i--) {
           const q = particles[i]!;
+          q.vy += q.g ?? 0;
           q.s.x += q.vx;
           q.s.y += q.vy;
           q.life -= 0.016;

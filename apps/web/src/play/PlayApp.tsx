@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { boundingBox, drawPet } from "@lingxi/art";
 import { STARTERS, timeOfDay } from "@lingxi/brain";
-import { type Partner, friendPartner, petCard, stageOf } from "@lingxi/game";
+import { type Partner, friendPartner, petCard, stageOf, visibleMeters } from "@lingxi/game";
 import { useT, useLang } from "../i18n";
 import { useGame } from "../game/store";
 import { chirp, play } from "../game/sound";
@@ -23,7 +23,7 @@ import { useWorld } from "../game/world";
 import { useChain } from "../game/chain";
 import { liveAvailable, playerId, useLive, visitingFrom } from "../game/live";
 import { InvitePanel, SocialBar } from "./Social";
-import { type Action, CHARACTER_IN_ROOM, HOME, ROOMS, neighbours } from "@lingxi/world";
+import { type Action, CHARACTER_IN_ROOM, HOME, INDOOR_ROOMS, ROOMS, neighbours } from "@lingxi/world";
 import { Talk } from "./Talk";
 import { GamesPanel } from "./Games";
 import { DiaryPanel } from "./Diary";
@@ -273,6 +273,10 @@ export function PlayApp() {
             mood={pet.last.mood}
             phase={phase}
             lastCare={lastCare}
+            clean={visibleMeters(pet).clean}
+            food={visibleMeters(pet).food}
+            outdoors={!INDOOR_ROOMS.has(worldRoom)}
+            covered={tab !== "home"}
             onPetTap={onPetTap}
             reduceMotion={reduce}
             bgs={room.bgs}

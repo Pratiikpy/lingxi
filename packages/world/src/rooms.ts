@@ -83,3 +83,6 @@ export const ROOM_TEXT: Record<number, RoomText> = {
   89: R("Trophy Room", "奖杯室", "Odd stuffed creatures on pedestals. Pets give them suspicious looks.", "台座上摆着奇怪的标本。宠物们看它们的眼神很怀疑。"),
   90: R("The Window", "窗边", "A tower window impossibly high above the sea, clouds drifting past below.", "高得不可思议的塔窗，脚下是大海，云从下面飘过。"),
 };
+
+/** Rooms under a roof or underground: no sky, so no rain, snow or falling petals there. */
+export const INDOOR_ROOMS: ReadonlySet<number> = new Set([13, 15, 16, 18, 19, 54, 64, 67, 68, 72, 73, 74, 75, 76, 77, 78, 80, 81, 84, 86, 87, 88, 89, 90]);

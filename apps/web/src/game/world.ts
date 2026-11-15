@@ -154,8 +154,8 @@ export const useWorld = create<WorldStore>((set, get) => ({
     save(r.world);
     set({ world: r.world });
     const act = useGame.getState().act;
-    if (def.kind === "food") act({ kind: "feed", food: r.use });
-    else act({ kind: "use", item: r.use });
+    if (def.kind === "food") act({ kind: "feed", food: r.use }, def.art);
+    else act({ kind: "use", item: r.use }, def.art);
   },
   openBox: () => {
     const r = openRiverBox(get().world, Date.now());

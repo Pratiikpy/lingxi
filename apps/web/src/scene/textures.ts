@@ -79,3 +79,63 @@ export function glyphTexture(kind: "heart" | "spark" | "note", color: string): T
   cache.set(key, t);
   return t;
 }
+
+/**
+ * Small pixel sprites for the room's living details, drawn from rows of letters:
+ * each letter is a colour from `colors`, "." is clear.
+ */
+export function pixelTexture(key: string, rows: readonly string[], colors: Record<string, string>): Texture {
+  const k = `px:${key}`;
+  const hit = cache.get(k);
+  if (hit) return hit;
+  const el = document.createElement("canvas");
+  el.width = Math.max(...rows.map((r) => r.length));
+  el.height = rows.length;
+  const ctx = el.getContext("2d")!;
+  rows.forEach((r, y) => {
+    for (let x = 0; x < r.length; x++) {
+      const c = colors[r[x]!];
+      if (!c) continue;
+      ctx.fillStyle = c;
+      ctx.fillRect(x, y, 1, 1);
+    }
+  });
+  const t = Texture.from(el);
+  t.source.scaleMode = "nearest";
+  cache.set(k, t);
+  return t;
+}
+
+const INK = "#2B2140";
+export const BITS = {
+  z: () => pixelTexture("z", ["wwww", "..w.", ".w..", "wwww"], { w: "#FFF7E8" }),
+  ball: () => pixelTexture("ball", [".ooooo.", "obbbbbo", "owwwwwo", "obbbbbo", "obbbbbo", ".ooooo."], { o: INK, b: "#2F7FD6", w: "#FFFFFF" }),
+  bunny: (blink: boolean) =>
+    pixelTexture(`bunny:${blink}`, ["..g.g.g..", ".ggggggg.", "gglgglggg", blink ? "ggggggggg" : "ggogggogg", "gggggggg.", ".ggggggg."], { g: "#8E86A6", l: "#B7B0CC", o: INK }),
+  firefly: () => pixelTexture("firefly", [".y.", "yYy", ".y."], { y: "#E8F59A", Y: "#FFFFFF" }),
+  mote: (c: string) => pixelTexture(`mote:${c}`, ["m"], { m: c }),
+  drop: () => pixelTexture("drop", ["d", "d", "D"], { d: "#BFD9F5", D: "#E8F2FF" }),
+  flake: () => pixelTexture("flake", [".f.", "fff", ".f."], { f: "#FFFFFF" }),
+  petal: (c: string) => pixelTexture(`petal:${c}`, ["p.", "pp"], { p: c }),
+  crumb: (c: string) => pixelTexture(`crumb:${c}`, ["c"], { c }),
+  bubble: () =>
+    pixelTexture(
+      "bubble",
+      [
+        "..oooooooooooo..",
+        ".owwwwwwwwwwwwo.",
+        "owwwwwwwwwwwwwwo",
+        "owwwwwwwwwwwwwwo",
+        "owwwwwwwwwwwwwwo",
+        "owwwwwwwwwwwwwwo",
+        "owwwwwwwwwwwwwwo",
+        "owwwwwwwwwwwwwwo",
+        "owwwwwwwwwwwwwwo",
+        ".owwwwwwwwwwwwo.",
+        "..oooowwoooooo..",
+        "......owo.......",
+        ".......o........",
+      ],
+      { o: INK, w: "#FFFDF8" },
+    ),
+};
