@@ -92,7 +92,8 @@
   --tier-d: #c98a00;
   position: fixed;
   left: 50%;
-  top: calc(16px + env(safe-area-inset-top));
+  /* below the header, so the pet's name and the header buttons stay visible and tappable */
+  top: calc(72px + env(safe-area-inset-top));
   z-index: 60;
   translate: -50% 0;
   display: flex;
