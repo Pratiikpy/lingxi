@@ -1,0 +1,116 @@
+/* Sunrise Pet: the Lingxi brand tokens. One colour per behaviour, one radius
+   family, one spacing scale, one motion system (28-UX-MOTION-FEEL.md §4). */
+
+:root {
+  --cream: #fff7e8;
+  --coral: #ff7a59;
+  --sky: #2f7fd6;
+  --sunny: #ffc83d;
+  --plum: #2b2140;
+  --pink: #ffe3ea;
+  --lavender: #ede4fa;
+  --mint: #5fbf86;
+  --heart: #ff7a9a;
+
+  --page: var(--cream);
+  --ink: var(--plum);
+  --ink-soft: #5b4e73;
+  --card: #fffdf8;
+  --tint: var(--lavender);
+  --band: var(--pink);
+  --line: var(--plum);
+  --track: #f1e4d2;
+  --on-accent: var(--plum);
+
+  --display: "Pixelify Sans Variable", "Baloo 2 Variable", ui-rounded, system-ui, sans-serif;
+  --round: "Baloo 2 Variable", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", ui-rounded, system-ui, sans-serif;
+  --body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --r-sm: 12px;
+  --r-md: 18px;
+  --r-lg: 24px;
+  --r-pill: 999px;
+  --lift: 0 4px 0 var(--line);
+  --lift-hi: 0 5px 0 var(--line);
+  --lift-lo: 0 1px 0 var(--line);
+
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 20px;
+  --s6: 28px;
+
+  --ease: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+  --t-micro: 160ms;
+  --t-std: 220ms;
+  --t-sheet: 420ms;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #1b1630;
+    --ink: #fff3e2;
+    --ink-soft: #c9beea;
+    --card: #231c3d;
+    --tint: #33295a;
+    --band: #2a2147;
+    --line: #fff3e2;
+    --track: #3a2f5e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --page: #1b1630;
+  --ink: #fff3e2;
+  --ink-soft: #c9beea;
+  --card: #231c3d;
+  --tint: #33295a;
+  --band: #2a2147;
+  --line: #fff3e2;
+  --track: #3a2f5e;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+button {
+  font: inherit;
+  color: inherit;
+}
+:focus-visible {
+  outline: 3px solid var(--sky);
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+.pixel {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

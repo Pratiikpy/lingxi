@@ -1,0 +1,125 @@
+<title>Mochi Art Sample</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Baloo+2:wght@600;800&family=Noto+Sans+SC:wght@400;700&display=swap">
+<style>
+/* Layout: a calm review sheet in the Mochineko style: small titled groups on cream paper in one centred column. */
+:root{--page:#FFF7E8;--ink:#2B2140;--soft:#5B4E73;--card:#FFFDF8;--line:#2B2140;--tint:#FFE3EA;--coral:#FF7A59;--room:#FFE9D6;
+--display:'Pixelify Sans','Baloo 2',system-ui,sans-serif;--round:'Baloo 2','Noto Sans SC',system-ui,sans-serif;--body:'Noto Sans SC',system-ui,sans-serif}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--page:#1B1630;--ink:#FFF3E2;--soft:#C9BEEA;--card:#231C3D;--line:#FFF3E2;--tint:#2A2147;--room:#2E2550;color-scheme:dark}}
+:root[data-theme="dark"]{--page:#1B1630;--ink:#FFF3E2;--soft:#C9BEEA;--card:#231C3D;--line:#FFF3E2;--tint:#2A2147;--room:#2E2550;color-scheme:dark}
+body{background:var(--page);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55}
+*{box-sizing:border-box}
+.wrap{max-width:980px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:36px}
+h1{margin:0;font-family:var(--display);font-size:clamp(30px,5vw,46px);line-height:1;text-wrap:balance}
+.lede{margin:8px 0 0;color:var(--soft);max-width:40em}
+.label{font-family:var(--display);font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--soft);margin:0 0 12px}
+.card{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 5px 0 var(--line)}
+canvas{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
+.strip{display:flex;align-items:flex-end;justify-content:center;gap:clamp(4px,2vw,22px);flex-wrap:wrap}
+.st{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.st span{font-family:var(--round);font-weight:800;font-size:15px}
+.st em{font-style:normal;font-size:12.5px;color:var(--soft)}
+.arrow{align-self:center;color:var(--soft)}
+.stage-wrap{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:20px;align-items:center}
+.stage{background:var(--room);border:2px solid var(--line);border-radius:18px;display:grid;place-items:center;padding:8px;cursor:pointer}
+.ctl{display:flex;flex-direction:column;gap:10px}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+button{font:inherit;font-family:var(--round);font-weight:800;font-size:14px;min-height:44px;padding:0 16px;border-radius:999px;border:2px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;box-shadow:0 3px 0 var(--line);transition:transform .16s cubic-bezier(.23,1,.32,1)}
+button:active{transform:translateY(2px) scale(.97);box-shadow:0 1px 0 var(--line)}
+button[aria-pressed="true"]{background:var(--coral);color:#2B2140}
+.faces{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:10px}
+.face{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
+.face canvas{width:100%;max-width:96px;height:auto;aspect-ratio:1}
+.face span{font-family:var(--round);font-weight:700;font-size:13px;text-align:center}
+.face em{font-style:normal;font-size:12px;color:var(--soft)}
+.note{font-size:13.5px;color:var(--soft);margin:0}
+.ask{background:var(--tint);border:2px dashed var(--line);border-radius:18px;padding:16px 18px}
+.ask b{font-family:var(--round)}
+@media (max-width:720px){.stage-wrap{grid-template-columns:minmax(0,1fr)}.faces{grid-template-columns:repeat(4,minmax(0,1fr))}.arrow{display:none}}
+@media (prefers-reduced-motion: reduce){button{transition:none}}
+</style>
+<div class="wrap">
+  <header>
+    <h1>Mochi, the gentle line</h1>
+    <p class="lede">The first of three egg lines, drawn pixel by pixel at the source game's proportions with the Sunrise Pet face. These are the real game sprites from the build, not mock-ups.</p>
+  </header>
+
+  <section aria-labelledby="l1">
+    <p class="label" id="l1">Grows with you · 成长</p>
+    <div class="card"><div class="strip" id="strip"></div></div>
+  </section>
+
+  <section aria-labelledby="l2">
+    <p class="label" id="l2">Alive on screen · 活着</p>
+    <div class="stage-wrap">
+      <div class="stage" id="stageBox" title="Tap Mochi"><canvas id="live" width="48" height="48" style="width:min(100%,384px);height:auto;aspect-ratio:1"></canvas></div>
+      <div class="ctl">
+        <div class="btns" role="group" aria-label="Life stage">
+          <button type="button" id="b-egg" data-st="egg" aria-pressed="false">Egg</button>
+          <button type="button" id="b-baby" data-st="baby" aria-pressed="false">Baby</button>
+          <button type="button" id="b-child" data-st="child" aria-pressed="false">Child</button>
+          <button type="button" id="b-teen" data-st="teen" aria-pressed="false">Teen</button>
+          <button type="button" id="b-adult" data-st="adult" aria-pressed="true">Adult</button>
+        </div>
+        <p class="note">It breathes and blinks by itself. Tap it to see a hop with the circuit line lit. On the egg, each tap cracks it a little more.</p>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="l3">
+    <p class="label" id="l3">Sixteen expressions · 表情</p>
+    <div class="card"><div class="faces" id="faces"></div></div>
+  </section>
+
+  <div class="ask">
+    <b>Prateek, is this the pet art direction?</b>
+    <p class="note" style="margin-top:6px">If yes, I draw the other two lines (Sora, curious and sky blue; Hoshi, bold and sunny yellow), the adult forms, the walk and eat animations, then the rooms. If not, tell me what to change: shape, ears, face, colours or size.</p>
+  </div>
+</div>
+<script>
+const A = __ATLAS__;
+const img = new Image();
+img.src = "data:image/png;base64," + A.png;
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const NAMES = {neutral:["calm","平静"],happy:["happy","开心"],sparkly:["sparkly","星星眼"],sulk:["sulking","闹别扭"],sleepy:["sleepy","困了"],yawn:["yawn","打哈欠"],shy:["shy","害羞"],proud:["proud","得意"],startled:["startled","吓一跳"],munch:["munching","吃东西"],munchShut:["chewing","嚼嚼"],sneeze:["sneeze","打喷嚏"],dizzy:["dizzy","晕乎乎"],sad:["sad","难过"],asleep:["asleep","睡着了"],love:["in love","喜欢你"]};
+function draw(ctx, id, dx, dy){ const p=A.index[id]; if(!p) return; ctx.drawImage(img,p[0],p[1],A.size,A.size,dx||0,dy||0,A.size,A.size); }
+function cv(id, scale){ const c=document.createElement("canvas"); c.width=c.height=A.size; c.style.width=c.style.height=(A.size*scale)+"px"; c.setAttribute("aria-hidden","true"); const x=c.getContext("2d"); x.imageSmoothingEnabled=false; draw(x,id); return c; }
+img.onload = function(){
+  const strip=document.getElementById("strip");
+  const steps=[["egg-w0","egg","pick one of three"],["baby-b0","baby","day 1"],["child-happy","child","day 3"],["teen-proud","teen","day 7"],["adult-sparkly","adult","day 14"]];
+  steps.forEach(function(s,i){
+    if(i){ const a=document.createElement("span"); a.className="arrow"; a.innerHTML='<svg width="28" height="12" viewBox="0 0 28 12" aria-hidden="true"><path d="M1 6h23M19 1l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'; strip.appendChild(a); }
+    const d=document.createElement("div"); d.className="st"; d.appendChild(cv(s[0],2.5));
+    const n=document.createElement("span"); n.textContent=s[1]; const e=document.createElement("em"); e.textContent=s[2]; d.append(n,e); strip.appendChild(d);
+  });
+  const faces=document.getElementById("faces");
+  A.expressions.forEach(function(e){ const d=document.createElement("div"); d.className="face"; d.appendChild(cv("adult-"+e,2)); const n=document.createElement("span"); n.textContent=NAMES[e][0]; const z=document.createElement("em"); z.textContent=NAMES[e][1]; d.append(n,z); faces.appendChild(d); });
+  live();
+};
+let stage="adult", hopT=-1, crack=0;
+function live(){
+  const c=document.getElementById("live"), x=c.getContext("2d"); x.imageSmoothingEnabled=false;
+  let blinkAt=1500, last=0;
+  function frame(t){
+    requestAnimationFrame(frame);
+    if(reduce && t-last<400) return; last=t;
+    x.clearRect(0,0,48,48);
+    if(stage==="egg"){
+      if(crack>0){ draw(x,"egg-crack"+Math.min(3,crack-1)); return; }
+      const idle=Math.floor(t/2600)%3===0; const w=reduce||!idle?0:[0,-1,0,1][Math.floor(t/260)%4]; draw(x,"egg-w"+w); return;
+    }
+    if(hopT>=0){
+      const k=(t-hopT)/520;
+      if(k>1){ hopT=-1; }
+      else { const id=k<.18||k>.82?stage+"-land":stage+"-hop"; const y=k<.18||k>.82?0:-Math.round(Math.sin((k-.18)/.64*Math.PI)*6); draw(x,id,0,y); return; }
+    }
+    if(t>blinkAt) blinkAt=t+2400+Math.random()*2200;
+    const blinking=t>blinkAt-140&&t<blinkAt;
+    const breath=reduce?0:(Math.sin(t/620)>.35?1:0);
+    draw(x, blinking ? stage+"-blink" : stage+"-b"+breath);
+  }
+  requestAnimationFrame(frame);
+  document.getElementById("stageBox").addEventListener("click",function(){ if(stage==="egg"){ crack=(crack+1)%5; } else if(!reduce) hopT=performance.now(); });
+  document.querySelectorAll("[data-st]").forEach(function(b){ b.addEventListener("click",function(){ stage=b.dataset.st; crack=0; document.querySelectorAll("[data-st]").forEach(function(o){ o.setAttribute("aria-pressed",o===b?"true":"false"); }); }); });
+}
+</script>
