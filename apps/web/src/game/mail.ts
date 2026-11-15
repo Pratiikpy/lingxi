@@ -65,6 +65,8 @@ export const useMail = create<MailStore>((set, get) => {
     letters: [],
     loaded: false,
     fetch: async () => {
+      // the on-chain (DeWEB) build has no server: only the letters the game writes itself
+      if (!BASE) return set({ loaded: true });
       try {
         const r = await fetch(`${BASE}/api/mail`);
         const j = (await r.json()) as { ok: boolean; letters: Letter[] };

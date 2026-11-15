@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { type Pet, dayOf, petCard, placeTier, previousWeek, seasonStandings, stageOf, standingsDigest, weekOf } from "@lingxi/game";
 import { useLang } from "../i18n";
-import { type SeasonView, enterSeason, markAwarded, mine, readSeason } from "../game/season";
+import { type SeasonView, enterSeason, markAwarded, mine, readSeason, seasonsAvailable } from "../game/season";
 import { useBadges } from "../game/badges";
 import { play } from "../game/sound";
 import { recordOf } from "../game/chain";
@@ -31,6 +31,7 @@ export function SeasonCard({ pet }: { pet: Pet }) {
   const [view, setView] = useState<SeasonView | null>(null);
   const [last, setLast] = useState<SeasonView | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const serverless = !seasonsAvailable();
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
   const [check, setCheck] = useState<{ same: boolean; digest: string } | null>(null);
@@ -119,12 +120,18 @@ export function SeasonCard({ pet }: { pet: Pet }) {
           <p className="small">
             {view
               ? L(`${view.entries.length} entered · ends in ${left(view.ends - Date.now(), lang)} · every pet fights every other, from both sides; level on points, the smaller brain ranks higher.`, `${view.entries.length} 只参赛 · ${left(view.ends - Date.now(), lang)}后结束 · 每只宠物和其他每只各打两场（左右各一）；同分时大脑更小的排前面。`)
-              : state === "error"
+              : serverless
+                ? L("Weekly seasons are run by Lingxi's server, which this on-chain copy of the game doesn't use. Enter them on lingxi.knole.me.", "每周赛季由灵犀的服务器举办，这份链上版本不使用服务器。请到 lingxi.knole.me 参赛。")
+                : state === "error"
                 ? L("The season couldn't be reached.", "暂时连不上赛季。")
                 : L("Reading this week's season…", "正在读取本周赛季……")}
           </p>
         </div>
-        {state === "error" ? (
+        {serverless ? (
+          <a className="btn" href="https://lingxi.knole.me/play.html" target="_blank" rel="noopener noreferrer">
+            {L("Open the full site", "打开完整版")}
+          </a>
+        ) : state === "error" ? (
           <button type="button" className="btn" onClick={() => void load()}>
             {L("Retry", "重试")}
           </button>

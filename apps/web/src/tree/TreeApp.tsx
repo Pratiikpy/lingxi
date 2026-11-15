@@ -76,6 +76,8 @@ export function TreeApp() {
     document.title = lang === "zh" ? "灵犀 · 生命之树" : "Lingxi · the tree of life";
   }, [lang]);
   useEffect(() => {
+    // the on-chain copy has no indexer of its own; the tree is read on the full site
+    if (!API) return setErr(true);
     fetch(`${API}/api/tree`, { cache: "no-store" })
       .then((r) => r.json())
       .then((j: TreeData & { ok: boolean }) => (j.ok ? setData(j) : setErr(true)))
@@ -114,7 +116,18 @@ export function TreeApp() {
         )}
       </p>
 
-      {err && <p className="ag-card">{L("The tree couldn't be read just now. The chain's events are still there: try again in a moment.", "暂时读不到这棵树。链上事件还在，请稍后再试。")}</p>}
+      {err && (
+        <p className="ag-card">
+          {API
+            ? L("The tree couldn't be read just now. The chain's events are still there: try again in a moment.", "暂时读不到这棵树。链上事件还在，请稍后再试。")
+            : L("The tree is read from PetRegistry's events by Lingxi's indexer, which this on-chain copy doesn't use. ", "这棵树由灵犀的索引器从 PetRegistry 的事件读出，这份链上版本不使用它。")}
+          {!API && (
+            <a href="https://lingxi.knole.me/tree.html" target="_blank" rel="noopener noreferrer">
+              {L("See it on lingxi.knole.me", "到 lingxi.knole.me 查看")}
+            </a>
+          )}
+        </p>
+      )}
       {!data && !err && <p className="ag-card tl-loading">{L("Reading the chain…", "正在读取链上记录……")}</p>}
 
       {data && (

@@ -50,7 +50,11 @@ export function markAwarded(week: string): void {
   if (!m.awarded.includes(week)) keep({ ...m, awarded: [...m.awarded, week] });
 }
 
+/** Seasons are run by Lingxi's server; the on-chain (DeWEB) build has none and never calls it. */
+export const seasonsAvailable = () => BASE !== "";
+
 export async function readSeason(week: string): Promise<SeasonView | null> {
+  if (!BASE) return null;
   try {
     const r = await fetch(`${BASE}/api/season/${week}`, { cache: "no-store" });
     const body = (await r.json()) as { ok: boolean } & SeasonView;

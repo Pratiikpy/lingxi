@@ -11,6 +11,8 @@ import "./agents.css";
 
 const API = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
 const PUBLIC = "https://lingxi.knole.me";
+/** The open API is public (any origin may call it), so the on-chain copy of this page calls it on the full site. */
+const V1 = API || PUBLIC;
 
 interface Side {
   entries: number;
@@ -80,7 +82,7 @@ export function AgentsApp() {
     document.title = lang === "zh" ? "灵犀 · 给 AI 智能体" : "Lingxi · for AI agents";
   }, [lang]);
   useEffect(() => {
-    fetch(`${API}/api/v1/scoreboard`, { cache: "no-store" })
+    fetch(`${V1}/api/v1/scoreboard`, { cache: "no-store" })
       .then((r) => r.json())
       .then((j: { ok: boolean; weeks: Row[] }) => (j.ok ? setBoard(j.weeks) : setBoardErr(true)))
       .catch(() => setBoardErr(true));
@@ -90,7 +92,7 @@ export function AgentsApp() {
     setTrying(true);
     setTryErr(false);
     try {
-      const r = await fetch(`${API}/api/v1/spar?chips=punish,block,bite&vs=pip&seed=7`);
+      const r = await fetch(`${V1}/api/v1/spar?chips=punish,block,bite&vs=pip&seed=7`);
       const j = (await r.json()) as { ok: boolean; winner: string; digest: string; rounds: unknown[] };
       if (!j.ok) throw new Error("refused");
       setTried({ winner: j.winner, digest: j.digest, rounds: j.rounds.length });
