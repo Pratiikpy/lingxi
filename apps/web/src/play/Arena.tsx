@@ -12,6 +12,7 @@ import { type PixelCanvas, boundingBox, drawPet, type Expression } from "@lingxi
 import { STARTERS } from "@lingxi/brain";
 import { type Challenge, type CoachNote, type DuelPet, type Fighter, MAX_HP, MOVES, type Move, PARTNERS, type Partner, type Pet, type SparResult, TRAITS, coach, dayOf, duel as runDuel, duelFighter, encodeChallenge, encodeResult, fighterOfMind, fighterOfPartner, halvesOf, petCard, rewindFight, ruleSource, spar, stageOf } from "@lingxi/game";
 import { linkPrefix } from "../game/links";
+import { useDaily } from "../game/daily";
 import { programFor, useGame } from "../game/store";
 import { Chips } from "./parts";
 import { MOVE_NAMES as MOVE_LABEL, WANT_COLORS, decidingChips } from "./ruleText";
@@ -71,7 +72,7 @@ function why(key: CoachNote["key"], name: string, other: string, lang: Lang): st
   return (lang === "zh" ? zh : en)[key];
 }
 
-type FightState = { partner: Partner; result: SparResult; cheer: boolean; opponent?: Fighter; duel?: { challenge: Challenge; reply: DuelPet } };
+type FightState = { partner: Partner; result: SparResult; cheer: boolean; opponent?: Fighter; duel?: { challenge: Challenge; reply: DuelPet }; daily?: boolean };
 
 /** The pet as it travels in a challenge link: its whole mind, its body, and a few true facts. */
 export function duelPetOf(pet: Pet): DuelPet {
@@ -142,13 +143,15 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken
     }
   };
 
-  function start(partner: Partner) {
+  function start(partner: Partner, daily?: { seed: number }) {
     const stage = stageOf(pet, Date.now());
     const me = fighterOfMind(pet.name, { line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts }, levelOf(stage), pet.brain);
     const them = fighterOfPartner(partner);
-    const seed = crypto.getRandomValues(new Uint32Array(1))[0]!;
+    // practice spars roll a private seed; the daily challenge uses the day's block, with no cheering, so it is the same for everyone
+    const seed = daily ? daily.seed : crypto.getRandomValues(new Uint32Array(1))[0]!;
+    const cheering = daily ? false : cheer;
     play("tap");
-    setFight({ partner, result: spar(me, them, seed, () => [cheer, false]), cheer });
+    setFight({ partner, result: spar(me, them, seed, () => [cheering, false]), cheer: cheering, ...(daily ? { daily: true } : {}) });
   }
 
   return (
@@ -177,6 +180,7 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken
           </>
         )}
       </div>
+      <DailyCard pet={pet} onStart={(partner, seed) => start(partner, { seed })} />
       <ul className="sp-partners">
         {PARTNERS.map((p, i) => (
           <PartnerCard key={p.id} partner={p} index={i} lang={lang} onPick={() => start(p)} />
@@ -220,6 +224,7 @@ export function FightView({
   cheer,
   opponent,
   duel,
+  daily = false,
   replay = false,
   onDone,
   onRematch,
@@ -247,11 +252,17 @@ export function FightView({
 
   const settled = useRef(false);
   const [reward, setReward] = useState(0);
+  const [dailyNote, setDailyNote] = useState<"best" | "same" | null>(null);
   useEffect(() => {
     if (!finished || settled.current || replay) return;
     settled.current = true;
     const outcome = result.winner === 0 ? "w" : result.winner === 1 ? "l" : "d";
     const first = useSpar.getState().note(partner.id, outcome);
+    if (daily) {
+      const margin = result.rounds.at(-1) ? result.rounds.at(-1)!.hp[0] - result.rounds.at(-1)!.hp[1] : 0;
+      const newBest = useDaily.getState().record(margin, outcome === "w");
+      setDailyNote(newBest ? "best" : "same");
+    }
     if (outcome === "w") useBadges.getState().note("sparWins");
     if (outcome === "w" && !partner.id.startsWith("friend:")) {
       const coins = WIN_COINS + (first ? FIRST_WIN_COINS : 0);
@@ -312,6 +323,17 @@ export function FightView({
           </div>
         ))}
       </div>
+      {finished && dailyNote && (
+        <p className="sp-daily-note">
+          {dailyNote === "best"
+            ? lang === "zh"
+              ? "这是你今天每日挑战的最好成绩。"
+              : "Your best in today's challenge so far."
+            : lang === "zh"
+              ? "没有超过今天的最好成绩。教它点新东西再试。"
+              : "Not better than your best today. Teach it something and try again."}
+        </p>
+      )}
       {finished && (replay || !pet ? <ReplayResult self={self} partner={partner} result={result} onDone={onDone} /> : <Result pet={pet} partner={partner} result={result} reward={reward} opponent={opponent} duel={duel} onDone={onDone} onRematch={onRematch} />)}
     </div>
   );
@@ -526,5 +548,57 @@ function ReplayResult({ self, partner, result, onDone }: { self: { name: string 
         </button>
       </div>
     </motion.div>
+  );
+}
+
+/** Today's challenge: the same partner and the same seed for everyone, the seed from X Layer (PRD F19, F22). */
+function DailyCard({ pet, onStart }: { pet: Pet; onStart: (partner: Partner, seed: number) => void }) {
+  const lang = useLang((s) => s.lang) as Lang;
+  const { status, block, seed, partnerIndex, best, load } = useDaily();
+  useEffect(() => {
+    void load();
+  }, [load]);
+  const partner = PARTNERS[partnerIndex]!;
+  const art = useMemo(() => drawPet(partner.line, partner.stage, { expression: "proud" }), [partner.line, partner.stage]);
+  return (
+    <section className="sp-daily" aria-label={lang === "zh" ? "每日挑战" : "Daily challenge"}>
+      <span className="sp-portrait">
+        <PetArt canvas={art} line={partner.line} scale={2} label={partner.name[lang]} />
+      </span>
+      <div className="sp-daily-text">
+        <p className="label">{lang === "zh" ? "今日挑战 · 所有人同一场" : "Today's challenge · the same fight for everyone"}</p>
+        <b>{lang === "zh" ? `${pet.name} 对 ${partner.name.zh}` : `${pet.name} vs ${partner.name.en}`}</b>
+        <span className="small">
+          {status === "ready" && block ? (
+            <>
+              {lang === "zh" ? "种子来自今天 X Layer 的第一个区块 " : "Seed from today's first X Layer block "}
+              <a href={`https://www.oklink.com/xlayer/block/${block.block}`} target="_blank" rel="noopener noreferrer">
+                #{block.block}
+              </a>
+            </>
+          ) : status === "error" ? (
+            lang === "zh" ? "暂时连不上 X Layer，过一会儿再试。" : "X Layer can't be reached right now; try again in a moment."
+          ) : lang === "zh" ? (
+            "正在从 X Layer 读取今天的种子……"
+          ) : (
+            "Reading today's seed from X Layer…"
+          )}
+        </span>
+        {best && (
+          <span className="small">
+            {lang === "zh" ? `今天最好：${best.won ? "赢了" : "没赢"}，血量差 ${best.margin}` : `Today's best: ${best.won ? "a win" : "not a win yet"}, health margin ${best.margin}`}
+          </span>
+        )}
+      </div>
+      {status === "error" ? (
+        <button type="button" className="btn" onClick={() => void load()}>
+          {lang === "zh" ? "重试" : "Retry"}
+        </button>
+      ) : (
+        <button type="button" className="btn primary" disabled={status !== "ready" || seed === null} onClick={() => seed !== null && onStart(partner, seed)}>
+          {lang === "zh" ? "挑战" : "Spar"}
+        </button>
+      )}
+    </section>
   );
 }

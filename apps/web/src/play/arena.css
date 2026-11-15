@@ -344,3 +344,39 @@
   max-height: 92dvh;
   overflow: auto;
 }
+.sp-daily {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s3);
+  border: 2px solid #2b2140;
+  border-radius: var(--r-md);
+  background: linear-gradient(135deg, #fff3c9, #ffe3ea);
+  box-shadow: 0 3px 0 #2b2140;
+}
+.sp-daily-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.sp-daily-text .label {
+  margin: 0;
+}
+.sp-daily-text a {
+  color: inherit;
+  font-weight: 800;
+}
+.sp-daily-note {
+  margin: var(--s2) 0 0;
+  text-align: center;
+  font-weight: 700;
+}
+@media (max-width: 420px) {
+  .sp-daily {
+    grid-template-columns: auto 1fr;
+  }
+  .sp-daily .btn {
+    grid-column: 1 / -1;
+  }
+}

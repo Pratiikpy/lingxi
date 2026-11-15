@@ -18,3 +18,4 @@ export * from "./replay";
 export * from "./duel";
 export * from "./budget";
 export * from "./school";
+export * from "./daily";
