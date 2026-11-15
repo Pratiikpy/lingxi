@@ -1083,3 +1083,48 @@
   place-items: center;
   height: 64px;
 }
+.selftape {
+  display: grid;
+  gap: var(--s2);
+  padding: var(--s3);
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--card);
+}
+.st-rows {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  font-size: 13px;
+}
+.st-rows dt {
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+.st-rows dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.st-ok {
+  color: #2f8a4c;
+  font-weight: 700;
+}
+.st-short {
+  color: #b33a2a;
+  font-weight: 700;
+}
+.st-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 3px;
+  font-size: 13px;
+}
+.st-steps .done {
+  color: #2f8a4c;
+}
+.st-steps .now {
+  font-weight: 800;
+}

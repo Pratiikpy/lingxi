@@ -1,36 +1,40 @@
 {
   "chainId": 196,
   "rpc": "http://127.0.0.1:8547",
-  "processor": "0xE0EF4FffD869cBD24b2F83E6d2d83109937E05ff",
-  "registry": "0x5007808d97ebac0ee779f6906c1a882741f4a5b1",
-  "deployer": "0x702f7A44B1F08763E50fDFd5bF8B8c354B7A7797",
+  "processor": "0x550992f2dC407BfFDd82c516C0984dc5e00B37d3",
+  "transistors": "0x2F9156799711385cf6f09d80bbaa4879F3C1403e",
+  "registry": "0xec563506fede3f2766001a63cd415cbf9297bd56",
+  "breeder": "0x0a03b86cebd2a0069dedc3afa31548ef163980a1",
+  "redPacket": "0x07fc86cd5172496e62834bfff5efc6160bcf40ec",
+  "seal": "5",
+  "redPacketBlock": 75988890,
+  "deployer": "0xA551feD6f2Ab35d509A71B74D5E9F38742E0aaD8",
   "circuits": {
     "gentle": {
-      "id": "30",
-      "tx": "0xffe86b91efc6fb3bf057f22b18166481098e239c0f7d29fe124eaa29a9165f14",
+      "id": "1",
+      "tx": "0x309b236e09318e823b6cde51fc147c1adbd5cc45b3e9f8daa38a285be924fe3a",
       "gates": 296
     },
     "bold": {
-      "id": "31",
-      "tx": "0x7536b96c8ebc648802cd68b4429484085e61b4a6b1838aad7cda40bfc189a078",
+      "id": "2",
+      "tx": "0x86c450a141d0ff119af1eeba606bdefd0328ef67c7522c9b5340138a1267e6c7",
       "gates": 233
     },
     "curious": {
-      "id": "32",
-      "tx": "0x7f25eb2d9212b0a5b89fa30d12584dfd8383d8653bd827752f625fd22c0074e2",
+      "id": "3",
+      "tx": "0xf39e81e052393efecc6026b9d3225ad8bd43c926f6297284b9ba10f37ba8fa9e",
       "gates": 248
     },
     "evolution": {
-      "id": "33",
-      "tx": "0x130de89c226054ca0bf8cce04ac6c4cb7a65ca59d7c562e31801d7166b48310f",
+      "id": "4",
+      "tx": "0xf41413ce95032171176115b4ff0fd7457be62ad9f0b675b0b3406488499bd152",
       "gates": 58
+    },
+    "seal": {
+      "id": "5",
+      "tx": "0x5384434784f2fb03a568c130d80dace88026f5fad09f2d2cc4f22ff7465f63b0",
+      "gates": 251
     }
   },
-  "at": "2026-11-15T07:20:13.832Z",
-  "breeder": "0x982b53dcce8a878ed5fb45f35f51eb3a42800618",
-  "breederAt": "2026-11-15T08:58:19.408Z",
-  "redPacket": "0xc2e41e3209973fe6b7f2b2dec015137c521e18cd",
-  "seal": "45",
-  "redPacketAt": "2026-11-15T09:11:21.613Z",
-  "redPacketBlock": 75953010
+  "at": "2026-11-15T15:52:25.142Z"
 }

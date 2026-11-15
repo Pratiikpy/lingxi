@@ -63,3 +63,6 @@ export async function relayChild(body: { parents: [string, string] } | { card: s
     return { ok: false, reason: "offline" };
   }
 }
+
+/** Whether this build has a server that can tape out brains for free (the on-chain build has none). */
+export const relayAvailable = (): boolean => BASE !== "";

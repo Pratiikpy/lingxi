@@ -11,12 +11,13 @@ import { useBadges } from "./badges";
 import { create } from "zustand";
 import { createPublicClient, createWalletClient, custom, http, isAddress, type Hex, type PublicClient, type WalletClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { type Deployment, allowPartnerOnChain, breedOnChain, checkpointOnChain, hatchOnChain, readKeeping, readPet, setBrainOnChain, setSitterOnChain, xLayer } from "@lingxi/chain";
+import { type Deployment, type TapeQuote, type TapeStep, allowPartnerOnChain, breedOnChain, checkpointOnChain, hatchOnChain, quoteTapeout, readKeeping, readPet, setBrainOnChain, setSitterOnChain, tapeOutYourself, xLayer } from "@lingxi/chain";
+import { compileProgram, netlistBytes } from "@lingxi/brain";
 import { AUTO_DAYS, AUTO_FUND, AUTO_LOW, sessionAccount, sessionWallet } from "./session";
 import { type Pet, logSegments, packState, petCard, stageOf, unpackState } from "@lingxi/game";
-import { relayBrain, relayChild } from "./api";
+import { relayAvailable, relayBrain, relayChild } from "./api";
 import type { ChainInfo } from "./live";
-import { useGame } from "./store";
+import { programFor, useGame } from "./store";
 import localDeployment from "../../../../packages/chain/deployments/local.json";
 import xlayerDeployment from "../../../../packages/chain/deployments/xlayer.json";
 
@@ -96,7 +97,11 @@ export function autoStatus(r: ChainRecord | null, nowMs: number): "on" | "ending
 /** The first line of an error, for showing to the player. */
 const firstLine = (e: unknown): string => (e as Error).message?.split(/\r?\n/)[0] || "failed";
 
-export const lessonsKey =(lessons: unknown[]) => JSON.stringify(lessons);
+/**
+ * Which taped-out brain a mind needs, by what it was taught and the instincts it
+ * hatched with (pets without instincts keep the key they always had).
+ */
+export const mindKey = (lessons: unknown[], instincts = 0) => (instincts ? JSON.stringify({ lessons, instincts }) : JSON.stringify(lessons));
 
 /** The on-chain day number now, as PetRegistry counts it. */
 export const chainDay = (r: ChainRecord, nowMs: number) => Math.floor((nowMs / 1000 - r.bornChain) / 86_400) + 1;
@@ -138,6 +143,10 @@ const activeRecord = () => {
 interface ChainState {
   record: ChainRecord | null;
   busy: "idle" | "connecting" | "hatching" | "saving" | "taping" | "auto";
+  /** what taping out this pet's current mind with the player's own wallet costs */
+  quoteSelf: (pet: Pet) => Promise<TapeQuote | null>;
+  /** tape out this pet's current mind with the player's own wallet, verify it, and move the pet onto it */
+  selfTape: (pet: Pet, q: TapeQuote, onStep: (s: TapeStep | "setBrain") => void) => Promise<boolean>;
   error: string | null;
   keep: (pet: Pet) => Promise<void>;
   /** save today; with `quiet`, only through the auto-save key and never opening the wallet */
@@ -225,8 +234,8 @@ export const useChain = create<ChainState>((set, get) => ({
         lastDay: 0,
         owner: wallet.account!.address,
         bornChain: onChain.born,
-        brains: { [lessonsKey([])]: relayed.brainId },
-        brainKey: lessonsKey([]),
+        brains: { [mindKey([])]: relayed.brainId },
+        brainKey: mindKey([]),
       });
       set({ busy: "idle", record: activeRecord() });
       return { ok: true, memory: unpackState(onChain.state, onChain.brainBits).brain };
@@ -253,10 +262,21 @@ export const useChain = create<ChainState>((set, get) => ({
         lastDay: 0,
         owner: wallet.account!.address,
         bornChain: onChain.born,
-        brains: { [lessonsKey([])]: deployment.circuits[pet.line]!.id },
-        brainKey: lessonsKey([]),
+        brains: { [mindKey([])]: deployment.circuits[pet.line]!.id },
+        brainKey: mindKey([]),
       };
       store(pet, record);
+      // the registry hatches every pet on its line's starter brain; a pet with
+      // instincts moves straight onto its own circuit before anything is saved
+      if (pet.instincts && relayAvailable()) {
+        set({ busy: "taping" });
+        const r = await relayBrain({ line: pet.line, lessons: pet.lessons, instincts: pet.instincts });
+        if (!r.ok) throw new Error(r.reason);
+        set({ busy: "saving" });
+        await setBrainOnChain(publicClient, wallet, deployment, petId, deployment.processor, BigInt(r.brainId));
+        const key = mindKey(pet.lessons, pet.instincts);
+        store(pet, { ...record, brains: { ...record.brains, [key]: r.brainId }, brainKey: key });
+      }
       set({ record: activeRecord(), busy: "idle" });
     } catch (e) {
       set({ busy: "idle", error: (e as Error).message.split("\n")[0] ?? "failed" });
@@ -353,12 +373,46 @@ export const useChain = create<ChainState>((set, get) => ({
       return false;
     }
   },
+  quoteSelf: async (pet) => {
+    if (!deployment || pet.family) return null;
+    set({ busy: "connecting", error: null });
+    try {
+      const wallet = await connectWallet();
+      const net = compileProgram(programFor(pet.line, pet.lessons, pet.instincts ?? 0));
+      const q = await quoteTapeout(publicClient, deployment.processor, wallet.account!.address, net.gates.length, net.latches.length, netlistBytes(net).length);
+      set({ busy: "idle" });
+      return q;
+    } catch (e) {
+      set({ busy: "idle", error: firstLine(e) });
+      return null;
+    }
+  },
+  selfTape: async (pet, q, onStep) => {
+    const record = records[petKey(pet)];
+    if (!deployment || !record || pet.family) return false;
+    set({ busy: "taping", error: null });
+    try {
+      const wallet = await connectWallet();
+      const bytes = netlistBytes(compileProgram(programFor(pet.line, pet.lessons, pet.instincts ?? 0)));
+      const { brainId } = await tapeOutYourself(publicClient, wallet, deployment.processor, bytes, q, onStep);
+      onStep("setBrain");
+      set({ busy: "saving" });
+      await setBrainOnChain(publicClient, wallet, deployment, BigInt(record.petId), deployment.processor, brainId);
+      const key = mindKey(pet.lessons, pet.instincts);
+      store(pet, { ...record, brains: { ...(record.brains ?? {}), [key]: brainId.toString() }, brainKey: key });
+      set({ record: activeRecord(), busy: "idle" });
+      return true;
+    } catch (e) {
+      set({ busy: "idle", error: firstLine(e) });
+      return false;
+    }
+  },
   updateMind: async (pet) => {
     const record = records[petKey(pet)];
     if (!deployment || !record) return;
     set({ busy: "connecting", error: null });
     try {
-      const key = lessonsKey(pet.lessons);
+      const key = mindKey(pet.lessons, pet.instincts);
       let brainId = record.brains?.[key];
       if (!brainId) {
         set({ busy: "taping" });
@@ -383,7 +437,7 @@ export const useChain = create<ChainState>((set, get) => ({
     // the log exactly as the last checkpoint committed it
     const n = record.logLen ?? 0;
     const segments = logSegments({ ...pet, pendingLog: pet.pendingLog.slice(0, n) })
-      .map((s) => ({ brainId: record.brains?.[lessonsKey(s.lessons)] ?? null, words: s.words }))
+      .map((s) => ({ brainId: record.brains?.[mindKey(s.lessons, pet.instincts)] ?? null, words: s.words }))
       .filter((s) => s.words.length > 0);
     return JSON.stringify({ petId: record.petId, words: pet.pendingLog.slice(0, n), segments });
   },

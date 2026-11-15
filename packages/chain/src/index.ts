@@ -7,3 +7,4 @@ export * from "./redPacketAbi";
 export * from "./redpacket";
 export * from "./look";
 export * from "./lookAbi";
+export * from "./selftape";

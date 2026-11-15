@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import type { Pet } from "@lingxi/game";
 import { useLang, useT, type Key } from "../i18n";
-import { autoGasLow, autoStatus, deployment, explorerTx, lessonsKey, useChain } from "../game/chain";
+import { autoGasLow, autoStatus, deployment, explorerTx, mindKey, useChain } from "../game/chain";
+import { relayAvailable } from "../game/api";
+import { SelfTape } from "./SelfTape";
 import { play } from "../game/sound";
 import { NameClaim } from "./NameClaim";
 import { useGame } from "../game/store";
@@ -32,7 +34,7 @@ export function ChainPanel({ pet }: { pet: Pet }) {
   }, [auto, record?.lastTx]);
   if (!deployment) return null;
   const busyText = busy === "connecting" ? t("chain.connecting") : busy === "hatching" ? t("chain.hatching") : busy === "saving" ? t("chain.saving") : busy === "taping" ? t("chain.taping") : busy === "auto" ? t("auto.saving") : null;
-  const mindBehind = record && (record.brainKey ?? lessonsKey([])) !== lessonsKey(pet.lessons);
+  const mindBehind = record && (record.brainKey ?? mindKey([])) !== mindKey(pet.lessons, pet.instincts);
   const err = error ? t(ERR[error] ?? "chain.failed") : null;
   return (
     <div className="chainpanel onchain">
@@ -130,11 +132,15 @@ export function ChainPanel({ pet }: { pet: Pet }) {
           {mindBehind && (
             <div className="mind-behind">
               <p className="small">{t("chain.mindBehind", { name: pet.name })}</p>
-              <button type="button" className="btn primary" disabled={busy !== "idle"} onClick={() => (play("tap"), updateMind(pet))}>
-                {t("chain.updateMind")}
-              </button>
+              {relayAvailable() && (
+                <button type="button" className="btn primary" disabled={busy !== "idle"} onClick={() => (play("tap"), updateMind(pet))}>
+                  {t("chain.updateMind")}
+                </button>
+              )}
             </div>
           )}
+          {/* stays mounted after it succeeds (when the mind is no longer behind) so its result can be read */}
+          {!pet.family && <SelfTape pet={pet} behind={!!mindBehind} />}
           {record.lastTx && explorerTx(record.lastTx) && (
             <a className="small" href={explorerTx(record.lastTx)!} target="_blank" rel="noopener noreferrer">
               {t("chain.tx")}
