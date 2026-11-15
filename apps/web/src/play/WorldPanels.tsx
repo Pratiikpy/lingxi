@@ -9,6 +9,7 @@ import { useChain } from "../game/chain";
 import { useGame } from "../game/store";
 import { type WorldNotice, useWorld } from "../game/world";
 import "./world.css";
+import { GardenPanel } from "./Garden";
 
 export function itemList(items: Array<{ item: number; n: number }> | undefined, lang: "en" | "zh"): string {
   return (items ?? []).map((x) => `${ITEM[x.item]?.name[lang] ?? "?"}${x.n > 1 ? ` ×${x.n}` : ""}`).join(lang === "zh" ? "、" : ", ");
@@ -20,9 +21,12 @@ export function noticeText(nt: WorldNotice, t: ReturnType<typeof useT>, lang: "e
   if (nt.kind === "bought") return t("world.bought", { items: itemList(nt.items, lang) });
   if (nt.kind === "made") return t("world.made", { items: itemList(nt.items, lang) });
   if (nt.kind === "opened") return t("world.opened", { items: itemList(nt.items, lang) });
+  if (nt.kind === "planted") return t("world.planted");
+  if (nt.kind === "harvested") return t("world.harvested", { items: itemList(nt.items, lang) });
+  if (nt.kind === "compost") return t("world.compost");
   if (nt.kind === "claimed") return t("world.claimed", { coins: nt.coins ?? 0, items: nt.items?.length ? (lang === "zh" ? `，${itemList(nt.items, lang)}` : `, ${itemList(nt.items, lang)}`) : "" });
   const k = `world.fail.${nt.reason}` as Key;
-  return ["tired", "asleep", "already", "nothingHere", "coins", "missing", "notNear", "full", "owned"].includes(nt.reason ?? "") ? t(k) : t("world.fail.other");
+  return ["tired", "asleep", "already", "nothingHere", "coins", "missing", "notNear", "full", "owned", "notHere", "noSeed", "noCompost", "notRipe", "taken"].includes(nt.reason ?? "") ? t(k) : t("world.fail.other");
 }
 
 export function MapPanel({ onGone }: { onGone: () => void }) {
@@ -115,6 +119,7 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
   return (
     <div className="bag">
       <p className="coins">{t("bag.coins", { n: world.coins })}</p>
+      <GardenPanel />
       {room.shop.length > 0 && (
         <section>
           <p className="label">{t("bag.shop")}</p>

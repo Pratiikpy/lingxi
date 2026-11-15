@@ -4,7 +4,7 @@
  * pet; food from the bag goes through the game rules like any care.
  */
 
-import { DECOR_BY_ID, MAX_PLACED, PLACE_AREA, buyDecor as buyDecorRule, placeDecor as placeDecorRule, removeDecor as removeDecorRule } from "@lingxi/world";
+import { DECOR_BY_ID, MAX_PLACED, PLACE_AREA, buyDecor as buyDecorRule, placeDecor as placeDecorRule, removeDecor as removeDecorRule, COMPOST, compostFromClean, harvest as harvestRule, plant as plantRule } from "@lingxi/world";
 import { useBadges } from "./badges";
 import { create } from "zustand";
 import { exert, stageOf } from "@lingxi/game";
@@ -67,7 +67,7 @@ function save(w: WorldState): void {
 
 export interface WorldNotice {
   id: number;
-  kind: "moved" | "found" | "bought" | "made" | "claimed" | "fail" | "opened";
+  kind: "moved" | "found" | "bought" | "made" | "claimed" | "fail" | "opened" | "planted" | "harvested" | "compost";
   text?: string;
   items?: Array<{ item: number; n: number }>;
   reason?: string;
@@ -94,6 +94,10 @@ interface WorldStore {
   wrap: (item: number, n: number) => boolean;
   /** put a received gift's item in the bag */
   receive: (item: number, n: number) => void;
+  /** the garden (W2) and compost (C4) */
+  plant: (plot: number, crop: string, compost: boolean) => void;
+  harvest: (plot: number) => void;
+  compost: (cleanBefore: number) => void;
 }
 
 let n = 0;
@@ -189,6 +193,31 @@ export const useWorld = create<WorldStore>((set, get) => ({
     save(next);
     set({ world: next });
     return true;
+  },
+  plant: (plot, crop, withCompost) => {
+    const r = plantRule(get().world, plot, crop, withCompost, Date.now());
+    if (!r.ok) {
+      play("error");
+      return set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
+    }
+    save(r.world);
+    play("pop");
+    set({ world: r.world, notice: { id: ++n, kind: "planted" } });
+  },
+  harvest: (plot) => {
+    const r = harvestRule(get().world, plot, Date.now());
+    if (!r.ok) {
+      play("error");
+      return set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
+    }
+    save(r.world);
+    set({ world: r.world, notice: { id: ++n, kind: "harvested", items: [{ item: r.item, n: r.n }] } });
+  },
+  compost: (cleanBefore) => {
+    const r = compostFromClean(get().world, cleanBefore);
+    if (!r.made) return;
+    save(r.world);
+    set({ world: r.world, notice: { id: ++n, kind: "compost", items: [{ item: COMPOST, n: 1 }] } });
   },
   receive: (item, n) => {
     if (!ITEM[item]) return;

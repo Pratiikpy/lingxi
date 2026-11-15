@@ -40,15 +40,25 @@ export interface Recipe {
 
 /** Rooms that sell things, and what. */
 const SHOPS: Record<number, number[]> = {
-  13: [11130, 11110, 11120, 11140, 11302, 11304, 11313, 21201, 21202, 21203, 11201, 11233],
+  13: [11130, 11110, 11120, 11140, 11302, 11304, 11313, 21201, 21202, 21203, 11201, 11233, 7104, 7103, 7102, 7101],
   4: [11301, 11303, 11409, 21201, 11201, 11202],
 };
 
-export const ITEM: Record<number, Item> = Object.fromEntries(
-  (data.items as Array<{ index: number; art: string }>)
-    .filter((i) => ITEMS[i.index])
-    .map((i) => [i.index, { ...ITEMS[i.index]!, index: i.index, art: i.art }]),
-);
+/** Lingxi's own items, drawn for the garden rather than taken from the world data */
+const OWN_ART: Record<number, string> = {
+  7001: "art/items/garden/compost.png",
+  7101: "art/items/garden/seed_apple.png",
+  7102: "art/items/garden/seed_rice.png",
+  7103: "art/items/garden/seed_pepper.png",
+  7104: "art/items/garden/seed_clover.png",
+  7201: "art/items/garden/rice_sheaf.png",
+  7202: "art/items/garden/garden_pepper.png",
+};
+
+export const ITEM: Record<number, Item> = Object.fromEntries([
+  ...(data.items as Array<{ index: number; art: string }>).filter((i) => ITEMS[i.index]).map((i) => [i.index, { ...ITEMS[i.index]!, index: i.index, art: i.art }]),
+  ...Object.entries(OWN_ART).map(([k, art]) => [Number(k), { ...ITEMS[Number(k)]!, index: Number(k), art }]),
+]);
 
 export const ROOMS: Record<number, Room> = Object.fromEntries(
   (data.rooms as Array<{ index: number; x: number; y: number; z: number; bgs: Room["bgs"]; drops: Array<{ item: number; weight: number }> }>)
@@ -107,6 +117,8 @@ export interface WorldState {
   seed: string;
   /** quest ids already claimed */
   claimed: string[];
+  /** the Mushroom Garden's plots (see garden.ts) */
+  garden?: { plots: Array<{ crop: string; at: number; compost: boolean } | null>; harvested: number };
   /** decorations bought and where they stand in the home room */
   decor?: { owned: string[]; placed: Array<{ id: string; x: number; y: number }> };
 }

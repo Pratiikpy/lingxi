@@ -262,8 +262,11 @@ export const useGame = create<GameState>((set, get) => ({
   act: (c, art) => {
     const { pet } = get();
     if (!pet || pet.away) return;
+    const cleanBefore = Math.floor(pet.meters.clean / 60);
     const r = care(pet, c, Date.now(), brainOf(pet));
     save(r.pet);
+    // cleaning up after a messy pet leaves compost for the garden (C4)
+    if (c.kind === "clean" && r.note === "cleaned") void import("./world").then((m) => m.useWorld.getState().compost(cleanBefore));
     const metric = CARE_METRIC[r.note];
     if (metric) {
       const b = useBadges.getState();

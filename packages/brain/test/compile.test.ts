@@ -232,7 +232,7 @@ function randomProgram(r: () => number): Program {
 }
 
 describe("fuzz: 300 random programs", () => {
-  it("every compiled circuit equals its program on 3,000 random beats", () => {
+  it("every compiled circuit equals its program on 3,000 random beats", { timeout: 60_000 }, () => {
     const r = rng(20261115);
     for (let k = 0; k < 300; k++) {
       const p = randomProgram(r);

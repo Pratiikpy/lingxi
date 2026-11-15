@@ -68,6 +68,14 @@ export const ITEMS: Record<number, ItemDef> = {
   6007: I("Heart of the Senses", "五感之心", "All six sense crystals joined into one warm, humming ball.", "六颗感官水晶合成的一颗温暖、嗡嗡作响的心。", "treasure"),
   11004: I("Moon Tonic", "月光补剂", "A glowing blue tonic that wakes a pet from the longest sleep.", "发着蓝光的补剂，能把睡得最久的宠物唤醒。", "drink", { energy: 400, wake: true }),
   11011: I("Sacred Dust", "神圣粉末", "Dust from the shrine. It feels important.", "神社里的粉末，感觉很重要。", "material"),
+  // the garden
+  7001: I("Compost", "堆肥", "What's left after a good bath, turned into rich soil. Plants grow twice as fast in it.", "好好洗完澡剩下的东西，变成了肥沃的土。植物长得快一倍。", "material"),
+  7101: I("Apple Seeds", "苹果种子", "Plant in the Mushroom Garden. A golden apple tree, in eight hours.", "种在蘑菇园里。八小时长出金苹果树。", "material", undefined, 18),
+  7102: I("Rice Seeds", "稻种", "Plant in the Mushroom Garden. Rice, in six hours.", "种在蘑菇园里。六小时长出稻子。", "material", undefined, 12),
+  7103: I("Pepper Seeds", "辣椒种子", "Plant in the Mushroom Garden. Peppers, in five hours.", "种在蘑菇园里。五小时长出辣椒。", "material", undefined, 12),
+  7104: I("Clover Seeds", "三叶草种子", "Plant in the Mushroom Garden. Honey clover, in four hours.", "种在蘑菇园里。四小时长出蜜三叶草。", "material", undefined, 10),
+  7201: I("Rice Sheaf", "稻穗", "Fresh rice from your own garden. Grain, the base of every good meal.", "自己园子里的新米。谷物是每顿好饭的底子。", "food", { food: 200, joy: 30, diet: "grain" }),
+  7202: I("Garden Pepper", "园子辣椒", "Crunchy and a little hot. Pets either love it or sneeze.", "脆脆的，有点辣。宠物要么爱死，要么打喷嚏。", "food", { food: 160, joy: 40, energy: 30, diet: "savory" }),
   // food and treats
   11110: I("Taro Mochi", "芋泥麻薯", "Purple mochi filled with sweet root paste.", "紫色麻薯，裹着甜甜的芋泥。", "food", { food: 260, joy: 60, diet: "grain" }, 40),
   11120: I("Sunset Mochi", "晚霞麻薯", "Red-gold mochi with warm apple jam inside.", "红金色的麻薯，里面是温热的苹果酱。", "food", { food: 240, joy: 80, diet: "fruit" }, 45),

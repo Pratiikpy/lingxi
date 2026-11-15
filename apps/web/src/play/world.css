@@ -227,3 +227,113 @@
   font-size: 13px;
   cursor: pointer;
 }
+
+.garden {
+  display: grid;
+  gap: var(--s2);
+  margin-bottom: var(--s3);
+}
+.garden-plots {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--s2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.garden-plot {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 4px;
+  padding: var(--s2) 4px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: linear-gradient(180deg, #e9f6dc, #f6efe0);
+  color: #2b2140;
+  text-align: center;
+}
+.garden-plot.stage-3 {
+  background: linear-gradient(180deg, #fff3c9, #f6efe0);
+  box-shadow: inset 0 0 0 2px #ffc83d;
+}
+.garden-plot b {
+  font: 800 0.8rem var(--round);
+}
+.garden-plot .small {
+  font-size: 0.7rem;
+  color: #5b4e73;
+}
+.garden-plot .btn {
+  min-height: 36px;
+  padding: 0 12px;
+}
+.garden-plot-art {
+  width: 72px;
+  height: 72px;
+  image-rendering: pixelated;
+}
+.garden-pick {
+  display: grid;
+  gap: var(--s2);
+}
+.garden-compost {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.85rem;
+}
+.garden-compost input {
+  width: 20px;
+  height: 20px;
+}
+.garden-seeds {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.garden-seed {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  min-height: 52px;
+  padding: 4px 10px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.garden-seed > span {
+  display: grid;
+}
+.garden-seed:focus-visible {
+  outline: 3px solid var(--sky);
+  outline-offset: 2px;
+}
+.garden-away {
+  margin: 0 0 var(--s2);
+  padding: 6px 10px;
+  border-radius: var(--r-sm);
+  background: var(--tint);
+}
+@media (max-width: 420px) {
+  .garden-plots {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+/* the plot cards keep their daylight colours in dark mode, so their buttons do too */
+.garden-plot .btn:not(.primary) {
+  background: #fffdf8;
+  color: #2b2140;
+  border-color: #2b2140;
+}
+.garden-plot .btn.primary {
+  color: #2b2140;
+  border-color: #2b2140;
+}
