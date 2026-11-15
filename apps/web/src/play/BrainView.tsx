@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useMemo, useRef } from "react";
-import { INPUT_FIELDS, compileProgram, gateCount, layout, netDepth, traceBeat } from "@lingxi/brain";
+import { INPUT_FIELDS, compileProgram, gateCount, layout, netDepth, netlistBytes, toVerilog, traceBeat } from "@lingxi/brain";
 import type { Pet } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { decidingPart } from "../game/store";
@@ -160,7 +160,27 @@ export function BrainView({ pet, reduceMotion }: { pet: Pet; reduceMotion: boole
         {lang === "zh"
           ? `${gates} 个门 · ${net.latches.length} 位记忆 · 深度 ${netDepth(net)}`
           : `${gates} gates · ${net.latches.length} memory bits · depth ${netDepth(net)}`}
+        <span className="bv-export">
+          <button type="button" className="link" onClick={() => download(`${fileName(pet.name)}.tapeout.bin`, netlistBytes(net), "application/octet-stream")}>
+            {lang === "zh" ? "下载 TapeOut 字节" : "TapeOut bytes"}
+          </button>
+          <button type="button" className="link" onClick={() => download(`${fileName(pet.name)}.v`, toVerilog(net, `lingxi_${fileName(pet.name)}`), "text/plain")}>
+            {lang === "zh" ? "下载 Verilog" : "Verilog"}
+          </button>
+        </span>
       </figcaption>
     </figure>
   );
+}
+
+/** A safe file and module name from the pet's name (letters, digits, underscores). */
+const fileName = (name: string) => name.normalize("NFKD").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "").toLowerCase() || "pet";
+
+function download(name: string, data: Uint8Array | string, type: string): void {
+  const blob = new Blob([typeof data === "string" ? data : new Uint8Array(data)], { type });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }

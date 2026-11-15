@@ -1185,3 +1185,8 @@
   background: #fff3c9;
   font-weight: 700;
 }
+.bv-export {
+  display: inline-flex;
+  gap: 12px;
+  margin-left: 12px;
+}
