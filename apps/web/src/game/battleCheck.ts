@@ -8,7 +8,7 @@
 
 import { bitsToWord, circuitBrain } from "@lingxi/brain";
 import { loadCircuitFromChain, readPet, replayStep } from "@lingxi/chain";
-import { type Fighter, MAX_STAMINA, MOVES, type SparResult, spar } from "@lingxi/game";
+import { type Fighter, MAX_STAMINA, MOVES, type Move, type SparResult, type TeamResult, type TeamUnit, spar, teamSpar } from "@lingxi/game";
 import { deployment, publicClient } from "./chain";
 
 export interface BattleCheck {
@@ -43,23 +43,49 @@ export async function checkSparOnChain(opts: {
   }
   const chainMe: Fighter = { ...opts.me, brain: circuitBrain(circuit), memory: opts.me.memory.slice() };
   const rerun = spar(chainMe, opts.them(), opts.result.seed, () => [opts.cheer, false]);
-  // round by round, the chain answers what the circuit wants on the senses the pet had
-  let state = bitsToWord(opts.me.memory);
+  const steps = opts.result.rounds.map((r, i) => ({ word: r.words[0], stamina: i === 0 ? MAX_STAMINA : opts.result.rounds[i - 1]!.stamina[0], made: r.moves[0] }));
+  const { confirmed, differs } = await askChain(id, opts.me.memory, steps, opts.onProgress);
+  return { petId: opts.petId, brainId: p.brainId.toString(), digest: rerun.digest, same: rerun.digest === opts.result.digest, confirmed, rounds: opts.result.rounds.length, ...(differs ? { differs } : {}) };
+}
+
+interface Step {
+  word: number;
+  /** stamina before the move */
+  stamina: number;
+  made: Move;
+}
+
+/** Round by round, the chain answers what the pet's circuit wants on the senses it had. */
+async function askChain(id: bigint, memory: readonly number[], steps: Step[], onProgress?: (done: number) => void): Promise<{ confirmed: number; differs?: number }> {
+  let state = bitsToWord(memory);
   let confirmed = 0;
   let differs: number | undefined;
-  for (let i = 0; i < opts.result.rounds.length; i++) {
-    const r = opts.result.rounds[i]!;
-    const step = await replayStep(publicClient, deployment, id, state, r.words[0]);
+  for (let i = 0; i < steps.length; i++) {
+    const s = steps[i]!;
+    const step = await replayStep(publicClient, deployment!, id, state, s.word);
     state = step.next;
     const want = MOVES[step.outputs & 7]!;
     // the game's own rules on top of the brain: a pet with no stamina left can only rest or tap, and a pounce can slip into a tap
-    const stamina = i === 0 ? MAX_STAMINA : opts.result.rounds[i - 1]!.stamina[0];
-    const allowed = stamina <= 0 && want !== "rest" && want !== "tap" ? "rest" : want;
-    const made = r.moves[0];
-    const ok = made === allowed || (allowed === "pounce" && made === "tap");
-    if (ok) confirmed++;
+    const allowed = s.stamina <= 0 && want !== "rest" && want !== "tap" ? "rest" : want;
+    if (s.made === allowed || (allowed === "pounce" && s.made === "tap")) confirmed++;
     else if (differs === undefined) differs = i + 1;
-    opts.onProgress?.(i + 1);
+    onProgress?.(i + 1);
   }
-  return { petId: opts.petId, brainId: p.brainId.toString(), digest: rerun.digest, same: rerun.digest === opts.result.digest, confirmed, rounds: opts.result.rounds.length, ...(differs ? { differs } : {}) };
+  return { confirmed, ...(differs ? { differs } : {}) };
+}
+
+/** The same check for an arena team battle: the pet leads side 0. */
+export async function checkTeamOnChain(opts: { petId: string; mine: () => TeamUnit[]; theirs: () => TeamUnit[]; result: TeamResult; onProgress?: (done: number) => void }): Promise<BattleCheck> {
+  if (!deployment) throw new Error("no deployment");
+  const id = BigInt(opts.petId);
+  const p = await readPet(publicClient, deployment, id);
+  const circuit = await loadCircuitFromChain(publicClient, p.processor, p.brainId);
+  const mine = opts.mine();
+  const pet = mine[0]!;
+  const fought = opts.result.rounds.filter((r) => r.words[0][0]! >= 0);
+  if (circuit.nState !== pet.memory.length) return { petId: opts.petId, brainId: p.brainId.toString(), digest: "", same: false, confirmed: 0, rounds: fought.length, differs: 1 };
+  const rerun = teamSpar([{ ...pet, brain: circuitBrain(circuit) }, ...mine.slice(1)], opts.theirs(), opts.result.seed);
+  const steps = fought.map((r) => ({ word: r.words[0][0]!, stamina: r.stamina[0][0]!, made: r.moves[0][0]! }));
+  const { confirmed, differs } = await askChain(id, pet.memory, steps, opts.onProgress);
+  return { petId: opts.petId, brainId: p.brainId.toString(), digest: rerun.digest, same: rerun.digest === opts.result.digest, confirmed, rounds: steps.length, ...(differs ? { differs } : {}) };
 }

@@ -47,6 +47,10 @@ export interface TeamRound {
   n: number;
   /** index of each side's front unit this round */
   fronts: [number, number];
+  /** per side, per unit: the 16-bit senses word its brain read (-1 when fainted) */
+  words: [number[], number[]];
+  /** per side, per unit: stamina before the round */
+  stamina: [number[], number[]];
   /** per side, per unit: the move (null when fainted) */
   moves: [Array<Move | null>, Array<Move | null>];
   /** per side, per unit: health after the round */
@@ -97,6 +101,8 @@ export function teamSpar(a: readonly TeamUnit[], b: readonly TeamUnit[], seed: n
     const phase = n < 3 ? 1 : n < TEAM_ROUNDS - 4 ? 2 : 3;
     const moves: [Array<Move | null>, Array<Move | null>] = [[], []];
     const moods: [number[], number[]] = [[], []];
+    const words: [number[], number[]] = [[], []];
+    const stamina: [number[], number[]] = [sides[0].map((u) => u.stamina), sides[1].map((u) => u.stamina)];
     for (const s of [0, 1] as const) {
       const o = (1 - s) as 0 | 1;
       const foe = sides[o][fronts[o]]!;
@@ -106,6 +112,7 @@ export function teamSpar(a: readonly TeamUnit[], b: readonly TeamUnit[], seed: n
         if (u.hp <= 0) {
           moves[s].push(null);
           moods[s].push(0);
+          words[s].push(-1);
           return;
         }
         const word = encodeSenses({
@@ -118,6 +125,7 @@ export function teamSpar(a: readonly TeamUnit[], b: readonly TeamUnit[], seed: n
           event: hitHard[s] && i === fronts[s] ? 3 : opening && n > 0 ? 2 : friendly ? 1 : 0,
           owner: 0,
         });
+        words[s].push(word);
         const st = Uint8Array.from(u.memory);
         const out = units[s][i]!.brain.step(st, word);
         u.memory = Array.from(st);
@@ -170,7 +178,7 @@ export function teamSpar(a: readonly TeamUnit[], b: readonly TeamUnit[], seed: n
     }
     for (const s of [0, 1] as const) momentum[s] = Math.max(-1, Math.min(2, momentum[s] + Math.sign(hits[1 - s]! - hits[s]!)));
     hitHard = [hits[0] >= 18, hits[1] >= 18];
-    rounds.push({ n, fronts, moves, hp: [sides[0].map((u) => u.hp), sides[1].map((u) => u.hp)], hits });
+    rounds.push({ n, fronts, words, stamina, moves, hp: [sides[0].map((u) => u.hp), sides[1].map((u) => u.hp)], hits });
   }
   const alive = (s: 0 | 1) => sides[s].filter((u) => u.hp > 0).length;
   const total = (s: 0 | 1) => sides[s].reduce((t, u) => t + u.hp, 0);

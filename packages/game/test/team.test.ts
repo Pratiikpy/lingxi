@@ -98,3 +98,19 @@ describe("companions", () => {
     }
   });
 });
+
+describe("team spar records", () => {
+  it("keep each unit's senses word and stamina, so any unit's moves can be re-checked from its brain alone", () => {
+    const pet = unit("pet", STARTERS.curious, 100, 1);
+    const r = teamSpar([pet, comp("sprig")], [comp("bolt"), comp("wisp")], 99);
+    const st = new Uint8Array(pet.memory.length);
+    for (const round of r.rounds) {
+      const w = round.words[0][0]!;
+      if (w < 0) break;
+      const want = ["tap", "snack", "pounce", "rest", "dodge", "guard", "charm", "gift"][pet.brain.step(st, w) & 7]!;
+      const allowed = round.stamina[0][0]! <= 0 && want !== "rest" && want !== "tap" ? "rest" : want;
+      const made = round.moves[0][0];
+      expect(made === allowed || (allowed === "pounce" && made === "tap")).toBe(true);
+    }
+  });
+});

@@ -44,6 +44,8 @@ import {
 import { useLang } from "../i18n";
 import { RUN_WIN_COINS, useRun } from "../game/arenarun";
 import { type Rival, findRival, saveLine } from "../game/arenaApi";
+import { checkTeamOnChain } from "../game/battleCheck";
+import { ChainCheck } from "./ChainCheck";
 import { useWorld } from "../game/world";
 import { useBadges } from "../game/badges";
 import { play } from "../game/sound";
@@ -164,7 +166,7 @@ export function RunView({ pet, onClose }: { pet: Pet; onClose: () => void }) {
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
   const { run, begin, step, put, finish, abandon } = useRun();
   const [note, setNote] = useState("");
-  const [battle, setBattle] = useState<{ result: TeamResult; foe: string[]; edge: number; rival?: DuelPet; before: RunState } | null>(null);
+  const [battle, setBattle] = useState<{ result: TeamResult; foe: string[]; edge: number; rival?: DuelPet; before: RunState; units: { mine: TeamUnit[]; theirs: TeamUnit[] } } | null>(null);
   const [finding, setFinding] = useState(false);
   useEffect(() => {
     if (!run) begin();
@@ -200,7 +202,7 @@ export function RunView({ pet, onClose }: { pet: Pet; onClose: () => void }) {
     if (!rival) theirs = foe.map((id, i) => companionUnit(id, i, edge));
     const mine = [petUnit(pet), ...before.team.map((id, i) => companionUnit(id, i))];
     setFinding(false);
-    setBattle({ result: teamSpar(mine, theirs, battleSeed(before)), foe, edge, ...(rival ? { rival: rival.pet } : {}), before });
+    setBattle({ result: teamSpar(mine, theirs, battleSeed(before)), foe, edge, ...(rival ? { rival: rival.pet } : {}), before, units: { mine, theirs } });
   };
 
   if (battle)
@@ -211,6 +213,7 @@ export function RunView({ pet, onClose }: { pet: Pet; onClose: () => void }) {
         foe={battle.foe}
         edge={battle.edge}
         rival={battle.rival}
+        units={battle.units}
         result={battle.result}
         round={battle.before.round}
         onDone={() => {
@@ -363,7 +366,7 @@ export function RunView({ pet, onClose }: { pet: Pet; onClose: () => void }) {
   );
 }
 
-function TeamFight({ pet, mine, foe, edge, rival, result, round, onDone }: { pet: Pet; mine: string[]; foe: string[]; edge: number; rival?: DuelPet; result: TeamResult; round: number; onDone: () => void }) {
+function TeamFight({ pet, mine, foe, edge, rival, units, result, round, onDone }: { pet: Pet; mine: string[]; foe: string[]; edge: number; rival?: DuelPet; units: { mine: TeamUnit[]; theirs: TeamUnit[] }; result: TeamResult; round: number; onDone: () => void }) {
   const lang = useLang((s) => s.lang) as Lang;
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
   const reduce = useReducedMotion() ?? false;
@@ -475,6 +478,11 @@ function TeamFight({ pet, mine, foe, edge, rival, result, round, onDone }: { pet
             </button>
           </div>
           <p className="small sp-fp">{L(`Replay ${result.digest} · seed ${result.seed}`, `回放指纹 ${result.digest} · 种子 ${result.seed}`)}</p>
+          <ChainCheck
+            pet={pet}
+            rounds={result.rounds.filter((r) => r.words[0][0]! >= 0).length}
+            run={(petId, onProgress) => checkTeamOnChain({ petId, mine: () => units.mine, theirs: () => units.theirs, result, onProgress })}
+          />
         </motion.div>
       )}
     </div>
