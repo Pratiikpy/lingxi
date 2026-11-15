@@ -9,6 +9,7 @@
 
 import { useEffect, useRef } from "react";
 import { Application, Assets, Container, Graphics, Sprite, Text, type Texture } from "pixi.js";
+import { AnimatedGIF } from "@pixi/gif";
 import type { Expression } from "@lingxi/art";
 import type { StarterLine } from "@lingxi/brain";
 import { type PetStage, catTexture, glyphTexture, petTexture } from "./textures";
@@ -31,6 +32,9 @@ export interface SceneProps {
   /** other players' pets here right now */
   others: Array<{ id: string; name: string; line: string; stage: string; mood: number; emote?: { kind: string; at: number }; say?: { text: string; at: number } }>;
   onOtherTap: (id: string) => void;
+  /** the character standing in this room (portrait file), if any */
+  npc: string | null;
+  onNpcTap: () => void;
 }
 
 /** A stable spot on the floor for a visitor, from their id. */
@@ -50,6 +54,21 @@ async function bgTexture(url: string): Promise<Texture> {
   t.source.scaleMode = "nearest";
   bgCache.set(url, t);
   return t;
+}
+const gifCache = new Map<string, Promise<ArrayBuffer>>();
+/** A room background: a still image, or an animated GIF (three of the source game's rooms move). */
+async function makeBg(url: string, still: boolean): Promise<Sprite> {
+  if (!url.endsWith(".gif")) return new Sprite(await bgTexture(url));
+  let buf = gifCache.get(url);
+  if (!buf) {
+    buf = fetch(url).then((r) => {
+      if (!r.ok) throw new Error(`background ${url}: ${r.status}`);
+      return r.arrayBuffer();
+    });
+    gifCache.set(url, buf);
+  }
+  const gif = AnimatedGIF.fromBuffer(await buf, { scaleMode: "nearest", autoPlay: !still });
+  return gif;
 }
 const PET_X = 64;
 const PET_FEET = 104;
@@ -104,18 +123,37 @@ export function RoomScene(props: SceneProps) {
       app.canvas.classList.add("pixel");
       app.canvas.style.display = "block";
 
-      const first = await bgTexture(latest.current.bgs[latest.current.phase]);
+      const first = await makeBg(latest.current.bgs[latest.current.phase], latest.current.reduceMotion);
       if (disposed) {
+        first.destroy();
         app.destroy(true, { children: true });
         return;
       }
 
       const world = new Container();
       app.stage.addChild(world);
-      const room = new Sprite(first);
-      world.addChild(room);
+      const bgLayer = new Container();
+      world.addChild(bgLayer);
+      let room: Sprite = first;
+      bgLayer.addChild(room);
+      const showBg = (next: Sprite) => {
+        const old = room;
+        room = next;
+        bgLayer.addChild(next);
+        old.removeFromParent();
+        old.destroy();
+      };
       const shadeLayer = new Container();
       world.addChild(shadeLayer);
+      // the room's character stands to the right, behind the pets, at the world's own pixel scale
+      const npc = new Sprite();
+      npc.anchor.set(0.5, 1);
+      npc.eventMode = "static";
+      npc.cursor = "pointer";
+      npc.visible = false;
+      npc.on("pointertap", () => latest.current.onNpcTap());
+      world.addChild(npc);
+      let shownNpc: string | null = null;
       // the cat's lane runs behind the pet, along the hut's doorstep
       const cat = new Sprite(catTexture("sit0"));
       cat.anchor.set(0.5, 1);
@@ -194,9 +232,32 @@ export function RoomScene(props: SceneProps) {
         const wantBg = p.bgs[p.phase];
         if (wantBg !== shownBg) {
           shownBg = wantBg;
-          void bgTexture(wantBg).then((tex) => {
-            if (shownBg === wantBg && !room.destroyed) room.texture = tex;
-          });
+          void makeBg(wantBg, p.reduceMotion).then(
+            (next) => {
+              if (shownBg === wantBg && !bgLayer.destroyed) showBg(next);
+              else next.destroy();
+            },
+            () => {
+              // a missing background keeps the last one rather than breaking the scene
+            },
+          );
+        }
+        if (p.npc !== shownNpc) {
+          shownNpc = p.npc;
+          npc.visible = false;
+          if (p.npc) {
+            const want = p.npc;
+            void bgTexture(`/pet/npcs/${want}`).then((tex) => {
+              if (shownNpc !== want || npc.destroyed) return;
+              npc.texture = tex;
+              npc.visible = true;
+            });
+          }
+        }
+        if (npc.visible) {
+          npc.x = 104;
+          // a one-pixel breath so the character never looks pasted on
+          npc.y = PET_FEET + 6 + (!p.reduceMotion && Math.sin(now / 760) > 0.55 ? 1 : 0);
         }
         if (p.lastCare && p.lastCare.at !== lastCareAt) {
           lastCareAt = p.lastCare.at;

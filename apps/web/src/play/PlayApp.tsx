@@ -17,7 +17,8 @@ import { BagPanel, MapPanel, QuestPanel, noticeText } from "./WorldPanels";
 import { useWorld } from "../game/world";
 import { liveAvailable, playerId, useLive, visitingFrom } from "../game/live";
 import { InvitePanel, SocialBar } from "./Social";
-import { HOME, ROOMS, neighbours } from "@lingxi/world";
+import { type Action, CHARACTER_IN_ROOM, HOME, ROOMS, neighbours } from "@lingxi/world";
+import { Talk } from "./Talk";
 import { AnimatePresence, motion } from "motion/react";
 import { TeachPanel } from "./Teach";
 import { ArenaPanel } from "./Arena";
@@ -60,6 +61,13 @@ export function PlayApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [worldNotice]);
   const room = ROOMS[worldRoom] ?? ROOMS[HOME]!;
+  const who = CHARACTER_IN_ROOM[worldRoom] ?? null;
+  const [talking, setTalking] = useState(false);
+  const [npcFace, setNpcFace] = useState<string | null>(null);
+  useEffect(() => {
+    setTalking(false);
+    setNpcFace(null);
+  }, [worldRoom]);
   const [visiting, setVisiting] = useState<string | null>(() => visitingFrom());
   const others = useLive((s) => s.members);
   const liveConnect = useLive((s) => s.connect);
@@ -214,9 +222,16 @@ export function PlayApp() {
             bgs={room.bgs}
             others={Object.values(others)}
             onOtherTap={(id) => (play("tap"), setPicked(id))}
+            npc={who ? (talking && npcFace ? npcFace : who.stand) : null}
+            onNpcTap={() => (play("tap"), setPicked(null), setTalking(true))}
           />
           <div className="room-pill">
             <b>{visiting && worldRoom === HOME ? (lang === "zh" ? "朋友家" : "A friend's home") : room.name[lang]}</b>
+            {who && !talking && (
+              <button type="button" onClick={() => (play("tap"), setTalking(true))}>
+                {lang === "zh" ? `和${who.name.zh}说话` : `Talk to ${who.name.en}`}
+              </button>
+            )}
             {room.drops.length > 0 && (
               <button type="button" onClick={() => (play("tap"), worldForage())}>
                 {t("room.look")}
@@ -257,6 +272,19 @@ export function PlayApp() {
               </motion.div>
             )}
           </AnimatePresence>
+          {who && talking && (
+            <Talk
+              who={who}
+              onFace={setNpcFace}
+              onClose={() => (setTalking(false), setNpcFace(null))}
+              onAction={(a: Action) => {
+                setTalking(false);
+                setNpcFace(null);
+                if (a === "proof") window.open("/verify.html", "_blank", "noopener");
+                else pick(a === "shop" ? "bag" : a);
+              }}
+            />
+          )}
           {picked && others[picked] && (
             <div className="visitor-card" role="dialog" aria-label={others[picked]!.name}>
               <b>{others[picked]!.name}</b>
@@ -271,7 +299,7 @@ export function PlayApp() {
               </button>
             </div>
           )}
-          {Object.keys(others).length > 0 ? <SocialBar count={Object.keys(others).length} /> : <ThinkStrip pet={pet} />}
+          {talking ? null : Object.keys(others).length > 0 ? <SocialBar count={Object.keys(others).length} /> : <ThinkStrip pet={pet} />}
         </section>
         <div className="side">
           <Meters pet={pet} />

@@ -1,0 +1,105 @@
+.talk {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  z-index: 7;
+  display: grid;
+  gap: 8px;
+}
+.talk-bubble {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  padding: 16px 16px 14px;
+  border: 2px solid #2b2140;
+  border-radius: 16px;
+  background: #fffdf8;
+  color: #2b2140;
+  box-shadow: 0 4px 0 #2b2140;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.talk-name {
+  position: absolute;
+  top: -14px;
+  left: 12px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 12px;
+  border: 2px solid #2b2140;
+  border-radius: 999px;
+  color: #2b2140;
+  font-family: var(--display);
+  font-size: 14px;
+}
+.talk-name small {
+  font-family: var(--round);
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.75;
+}
+.talk-text {
+  font-family: var(--round);
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.45;
+  min-height: 3em;
+}
+.talk-ghost {
+  visibility: hidden;
+}
+.talk-more {
+  position: absolute;
+  right: 14px;
+  bottom: 8px;
+  font-size: 11px;
+  animation: talk-nudge 0.9s ease-in-out infinite;
+}
+@keyframes talk-nudge {
+  50% {
+    transform: translateY(3px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .talk-more {
+    animation: none;
+  }
+}
+.talk-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.talk-choice {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 2px solid #2b2140;
+  border-radius: 999px;
+  background: #fffdf8;
+  color: #2b2140;
+  font-family: var(--round);
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: 0 3px 0 #2b2140;
+  cursor: pointer;
+  transition: transform var(--t-micro) var(--ease), box-shadow var(--t-micro) var(--ease);
+}
+.talk-choice:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #2b2140;
+}
+.talk-choice:focus-visible,
+.talk-bubble:focus-visible {
+  outline: 3px solid #ff7a6b;
+  outline-offset: 2px;
+}
+.talk-choice.go {
+  background: #ffc83d;
+}
+.talk-choice.bye {
+  background: transparent;
+  box-shadow: none;
+}

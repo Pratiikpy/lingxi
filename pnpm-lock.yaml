@@ -31,6 +31,9 @@ importers:
       '@lingxi/world':
         specifier: workspace:*
         version: link:../../packages/world
+      '@pixi/gif':
+        specifier: 3.0.1
+        version: 3.0.1(pixi.js@8.10.0)
       motion:
         specifier: 12.16.0
         version: 12.16.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -517,6 +520,11 @@ packages:
 
   '@pixi/colord@2.9.6':
     resolution: {integrity: sha512-nezytU2pw587fQstUu1AsJZDVEynjskwOL+kibwcdxsMBFqPsFFNA7xl0ii/gXuDi6M0xj3mfRJj8pBSc2jCfA==}
+
+  '@pixi/gif@3.0.1':
+    resolution: {integrity: sha512-oGl0nkbFAe1vaRLyIvGbJc3fcIrS8vF1E00cwjiV+9f1pYe072D+yijJxHsgYnXs6jdzERh+D0MqSrEag0jRzg==}
+    peerDependencies:
+      pixi.js: ^8.0.0
 
   '@rolldown/pluginutils@1.0.0-beta.11':
     resolution: {integrity: sha512-L/gAA/hyCSuzTF1ftlzUSI/IKr2POHsv1Dd78GfqkR83KMNuswWD61JxGV2L7nRwBBBSDr6R1gCkdTmoN7W4ag==}
@@ -1476,6 +1484,10 @@ snapshots:
   '@opentelemetry/api@1.10.0': {}
 
   '@pixi/colord@2.9.6': {}
+
+  '@pixi/gif@3.0.1(pixi.js@8.10.0)':
+    dependencies:
+      pixi.js: 8.10.0
 
   '@rolldown/pluginutils@1.0.0-beta.11': {}
 
