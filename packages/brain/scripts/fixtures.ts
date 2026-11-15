@@ -5,6 +5,7 @@ import { compileProgram, gateCount, netlistBytes } from "../src/compile";
 import { fastBrain } from "../src/fast";
 import { stateBits } from "../src/program";
 import { STARTERS } from "../src/starters";
+import { composeChild } from "../src/compose";
 
 let seed = 7;
 const rnd = () => ((seed = (seed * 1103515245 + 12345) >>> 0) / 4294967296);
@@ -26,5 +27,7 @@ for (const [name, p] of Object.entries(STARTERS)) {
   }
   out[name] = { netlist: bytesToHex(netlistBytes(net)), nState: n, gates: gateCount(net), beats };
 }
+const child = composeChild({ cpu: "0x" + "11".repeat(20), id: 1n }, { cpu: "0x" + "22".repeat(20), id: 2n });
+out.glue = bytesToHex(child.bytes.slice(158));
 writeFileSync(new URL("../../../contracts/test/fixtures/starters.json", import.meta.url), JSON.stringify(out, null, 1));
 console.log("wrote", Object.keys(out).join(", "));

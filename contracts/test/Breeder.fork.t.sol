@@ -1,0 +1,165 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import {Test, stdJson} from "forge-std/Test.sol";
+import {PetRegistry} from "../src/PetRegistry.sol";
+import {Breeder} from "../src/Breeder.sol";
+import {ITapeOutFactory, ITapeOutProcessor} from "../src/interfaces/ITapeOut.sol";
+
+interface IProcB {
+    function tapeout(bytes calldata nl, uint32 nIn, uint32 nOut) external payable returns (uint256);
+    function TAPEOUT_FEE() external view returns (uint256);
+    function transistors() external view returns (address);
+    function circuitInfo(uint256 id) external view returns (uint256, uint256, uint256, uint256);
+}
+
+interface ITransistorsB {
+    function mint(uint256 id, uint256 amount) external payable;
+    function mintPrice() external view returns (uint256);
+    function protocolFee() external view returns (uint256);
+}
+
+/// Check S5 on a fork of X Layer: a child circuit that REFs two parent brains tapes
+/// out, steps correctly, and is accepted by the Breeder only when it is exactly the
+/// composition of those parents.
+contract BreederForkTest is Test {
+    using stdJson for string;
+
+    ITapeOutFactory constant FACTORY = ITapeOutFactory(0x1f09DAeFA827f02CBb40967cc91b259763760761);
+    IProcB constant PROC = IProcB(0xE0EF4FffD869cBD24b2F83E6d2d83109937E05ff);
+
+    PetRegistry reg;
+    Breeder breeder;
+    string fx;
+    address owner = makeAddr("owner");
+    address alice = makeAddr("alice");
+    address bob = makeAddr("bob");
+    uint64 brainA;
+    uint64 brainB;
+    uint256 petA;
+    uint256 petB;
+    uint256 constant ADULT = uint256(4) << 148;
+
+    function onERC1155Received(address, address, uint256, uint256, bytes calldata) external pure returns (bytes4) {
+        return this.onERC1155Received.selector;
+    }
+
+    function _mint(uint256 id, uint256 n) internal {
+        if (n == 0) return;
+        ITransistorsB t = ITransistorsB(PROC.transistors());
+        t.mint{value: t.mintPrice() * n + t.protocolFee()}(id, n);
+    }
+
+    function _tapeoutStarter(string memory name) internal returns (uint64) {
+        bytes memory nl = fx.readBytes(string.concat(".", name, ".netlist"));
+        uint256 gates = fx.readUint(string.concat(".", name, ".gates"));
+        uint256 latches = fx.readUint(string.concat(".", name, ".nState"));
+        _mint(0, gates - latches);
+        _mint(1, latches);
+        return uint64(PROC.tapeout{value: PROC.TAPEOUT_FEE()}(nl, 16, 8));
+    }
+
+    function _ref(address cpu, uint64 id) internal pure returns (bytes memory r) {
+        r = abi.encodePacked(uint8(2), cpu, id, uint8(16), uint8(8));
+        for (uint256 k = 0; k < 16; k++) r = abi.encodePacked(r, uint24(2 + k));
+    }
+
+    function _child(uint64 a, uint64 b, bytes memory glue) internal returns (uint64) {
+        bytes memory nl = abi.encodePacked(_ref(address(PROC), a), _ref(address(PROC), b), glue);
+        _mint(0, glue.length / 7);
+        return uint64(PROC.tapeout{value: PROC.TAPEOUT_FEE()}(nl, 16, 8));
+    }
+
+    function setUp() public {
+        if (block.chainid != 196) vm.skip(true);
+        fx = vm.readFile("test/fixtures/starters.json");
+        vm.deal(address(this), 1_000 ether);
+        reg = new PetRegistry(FACTORY, owner);
+        breeder = new Breeder(reg);
+        brainA = _tapeoutStarter("gentle");
+        brainB = _tapeoutStarter("bold");
+        vm.startPrank(owner);
+        reg.setStarterBrain(address(PROC), brainA, true);
+        reg.setStarterBrain(address(PROC), brainB, true);
+        reg.setBreeder(address(breeder), true);
+        vm.stopPrank();
+        petA = reg.hatch(alice, 0, address(PROC), brainA, ADULT | 0xA5);
+        petB = reg.hatch(alice, 1, address(PROC), brainB, ADULT | 0x3C);
+    }
+
+    function test_childBrainTapesOutStepsAndBreeds() public {
+        uint64 child = _child(brainA, brainB, fx.readBytes(".glue"));
+        (uint256 nIn, uint256 nOut, uint256 nState,) = PROC.circuitInfo(child);
+        assertEq(nIn, 16);
+        assertEq(nOut, 8);
+        assertEq(nState, 16, "child holds both parents' memory");
+
+        vm.prank(alice);
+        uint256 kid = breeder.breed(petA, petB, address(PROC), child, 0);
+        PetRegistry.Pet memory k = reg.pet(kid);
+        assertEq(k.parentA, petA);
+        assertEq(k.parentB, petB);
+        assertEq(k.brainBits, 16);
+        assertEq(k.state, uint256(0xA5) | (uint256(0x3C) << 8), "memories carried over");
+        assertEq(reg.ownerOf(kid), alice);
+
+        // the child's thoughts are its parents' thoughts, mixed as specified
+        for (uint256 i = 0; i < 24; i++) _checkKidBeat(kid, i);
+    }
+
+    function _checkKidBeat(uint256 kid, uint256 i) internal view {
+        uint16 w = uint16(uint256(keccak256(abi.encode(i))));
+        uint64 sa = uint64(uint256(keccak256(abi.encode(i, 1))) & 0xff);
+        uint64 sb = uint64(uint256(keccak256(abi.encode(i, 2))) & 0xff);
+        (uint64 na, uint8 oa) = reg.replayStep(petA, sa, w);
+        (uint64 nb, uint8 ob) = reg.replayStep(petB, sb, w);
+        (uint64 nk, uint8 ok) = reg.replayStep(kid, sa | (sb << 8), w);
+        bool fromA = ((w >> 8) & 3) == 1 || ((w >> 8) & 3) == 2;
+        assertEq(ok, ((fromA ? oa : ob) & 7) | (oa & 0x18) | (ob & 0xE0), "child output");
+        assertEq(nk, na | (nb << 8), "child memory");
+    }
+
+    function test_rejectsAChildCircuitOfOtherParentsOrSwappedOrder() public {
+        uint64 swapped = _child(brainB, brainA, fx.readBytes(".glue"));
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSelector(Breeder.NotAChildOf.selector, petA, petB));
+        breeder.breed(petA, petB, address(PROC), swapped, 0);
+    }
+
+    function test_rejectsTamperedGlue() public {
+        bytes memory glue = fx.readBytes(".glue");
+        glue[3] = bytes1(uint8(glue[3]) ^ 1);
+        uint64 bad = _child(brainA, brainB, glue);
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSelector(Breeder.NotAChildOf.selector, petA, petB));
+        breeder.breed(petA, petB, address(PROC), bad, 0);
+    }
+
+    function test_needsAdultsConsentAndCooldown() public {
+        uint64 child = _child(brainA, brainB, fx.readBytes(".glue"));
+        uint256 baby = reg.hatch(alice, 0, address(PROC), brainA, 0);
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSelector(Breeder.NotAdult.selector, baby));
+        breeder.breed(baby, petB, address(PROC), child, 0);
+
+        uint256 bobsPet = reg.hatch(bob, 1, address(PROC), brainB, ADULT);
+        vm.prank(alice);
+        vm.expectRevert(Breeder.NoConsent.selector);
+        breeder.breed(petA, bobsPet, address(PROC), child, 0);
+        vm.prank(bob);
+        breeder.allowPartner(bobsPet, alice, true);
+
+        vm.prank(alice);
+        breeder.breed(petA, petB, address(PROC), child, 0);
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSelector(Breeder.TooSoon.selector, petA));
+        breeder.breed(petA, petB, address(PROC), child, 0);
+        vm.warp(block.timestamp + 3 days + 1);
+        vm.prank(alice);
+        breeder.breed(petA, petB, address(PROC), child, 0);
+
+        vm.prank(alice);
+        vm.expectRevert(Breeder.SamePet.selector);
+        breeder.breed(petA, petA, address(PROC), child, 0);
+    }
+}

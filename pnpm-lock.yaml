@@ -89,6 +89,9 @@ importers:
 
   packages/brain:
     devDependencies:
+      '@noble/hashes':
+        specifier: 1.8.0
+        version: 1.8.0
       '@types/node':
         specifier: 22.15.30
         version: 22.15.30
