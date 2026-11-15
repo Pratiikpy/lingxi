@@ -24,12 +24,14 @@ const ICON: Record<Metric, IconName> = {
   rooms: "map",
   chainDays: "mind",
   kinship: "heart",
+  seasonPlace: "star",
 };
 const TIER = { en: ["", "Bronze", "Silver", "Gold"], zh: ["", "铜", "银", "金"] } as const;
 const STAGE = { en: ["", "baby", "a child", "a teen", "an adult"], zh: ["", "宝宝", "幼年", "少年", "成年"] } as const;
+const PLACE = { en: ["", "in the top ten", "in the top three", "first"], zh: ["", "进入前十", "进入前三", "拿第一"] } as const;
 
 function howText(b: Badge, n: number, lang: "en" | "zh"): string {
-  const shown = b.metric === "stage" ? STAGE[lang][n] ?? String(n) : String(n);
+  const shown = b.metric === "stage" ? (STAGE[lang][n] ?? String(n)) : b.metric === "seasonPlace" ? (PLACE[lang][n] ?? String(n)) : String(n);
   return b.how[lang].replace("{n}", shown);
 }
 

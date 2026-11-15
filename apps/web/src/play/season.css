@@ -1,0 +1,95 @@
+/* Weekly seasons: the entry card and the table. */
+
+.ss-card {
+  display: grid;
+  gap: var(--s2);
+  padding: var(--s3);
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--card);
+}
+.ss-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--s3);
+  align-items: center;
+}
+.ss-head .label,
+.ss-head .small,
+.ss-note,
+.ss-last {
+  margin: 0;
+}
+.ss-last {
+  padding: 6px 10px;
+  border-radius: var(--r-sm);
+  background: var(--tint);
+}
+.ss-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9rem;
+}
+.ss-table th {
+  padding: 4px 6px;
+  border-bottom: 2px solid var(--line);
+  font: 700 0.75rem var(--round);
+  text-align: left;
+  color: var(--ink-soft);
+}
+.ss-table td {
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--track);
+}
+.ss-table td:nth-child(2) {
+  max-width: 10em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+}
+.ss-table tr.is-mine td {
+  background: var(--band);
+}
+.ss-check {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: center;
+}
+.ss-check .link {
+  min-height: 36px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: 700 0.85rem var(--round);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.ss-ok::before {
+  content: "✓ ";
+  color: #2e8b57;
+  font-weight: 800;
+}
+.ss-bad::before {
+  content: "✗ ";
+  color: #d9433b;
+  font-weight: 800;
+}
+@media (max-width: 420px) {
+  .ss-head {
+    grid-template-columns: 1fr;
+  }
+  .ss-table th:nth-child(4),
+  .ss-table td:nth-child(4) {
+    display: none;
+  }
+}
+.ss-table tr.is-mine td:first-child {
+  box-shadow: inset 4px 0 0 var(--coral);
+}
+.ss-table tr.is-mine td {
+  font-weight: 800;
+}

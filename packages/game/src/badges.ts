@@ -19,7 +19,8 @@ export type Metric =
   | "gifts"
   | "rooms"
   | "chainDays"
-  | "kinship";
+  | "kinship"
+  | "seasonPlace";
 
 export interface Badge {
   id: string;
@@ -45,11 +46,12 @@ export const BADGES: readonly Badge[] = [
   { id: "giver", metric: "gifts", tiers: [1, 5, 20], name: { en: "Gift giver", zh: "爱送礼" }, how: { en: "Send {n} gifts", zh: "送出 {n} 份礼物" } },
   { id: "explorer", metric: "rooms", tiers: [10, 35, 70], name: { en: "Explorer", zh: "探险家" }, how: { en: "Visit {n} places", zh: "走过 {n} 个地方" } },
   { id: "proven", metric: "chainDays", tiers: [1, 7, 30], name: { en: "On the record", zh: "有据可查" }, how: { en: "Save {n} days on X Layer", zh: "在 X Layer 上保存 {n} 天" } },
+  { id: "season", metric: "seasonPlace", tiers: [1, 2, 3], name: { en: "Season star", zh: "赛季之星" }, how: { en: "Finish a weekly season {n}", zh: "在每周赛季里{n}" } },
   { id: "bond", metric: "kinship", tiers: [50, 150, 250], name: { en: "Best friends", zh: "最好的朋友" }, how: { en: "Reach {n} kinship with a pet", zh: "和一只宠物的亲密度达到 {n}" } },
 ];
 
 /** Metrics that keep the best value seen (on any pet) rather than a running total. */
-export const BEST_OF: ReadonlySet<Metric> = new Set(["stage", "kinship"]);
+export const BEST_OF: ReadonlySet<Metric> = new Set(["stage", "kinship", "seasonPlace"]);
 
 export type Ledger = Partial<Record<Metric, number>> & { rooms_seen?: number[] };
 

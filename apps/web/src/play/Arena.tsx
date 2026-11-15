@@ -29,6 +29,7 @@ import "./rewind.css";
 import { RunCard, RunView } from "./ArenaRun";
 import { checkSparOnChain } from "../game/battleCheck";
 import { ChainCheck } from "./ChainCheck";
+import { SeasonCard } from "./Season";
 
 type Lang = "en" | "zh";
 const MOVE_NAMES: Record<Move, [string, string]> = {
@@ -187,6 +188,7 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken
       </div>
       <RunCard onOpen={() => setRunning(true)} />
       <DailyCard pet={pet} onStart={(partner, seed) => start(partner, { seed })} />
+      <SeasonCard pet={pet} />
       <ul className="sp-partners">
         {PARTNERS.map((p, i) => (
           <PartnerCard key={p.id} partner={p} index={i} lang={lang} onPick={() => start(p)} />

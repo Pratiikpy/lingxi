@@ -19,7 +19,7 @@ describe("sparring TapeFly-format brains", () => {
         const w = round.words[1];
         expect(w & 3).toBe(3);
         const out = runFlyProgram(p, w);
-        const want = out & 4 ? "pounce" : ANSWER[out & 3];
+        const want: string = out & 4 ? "pounce" : ANSWER[out & 3]!;
         const made = round.moves[1];
         const stamina = round.n === 0 ? 10 : res.rounds[round.n - 1]!.stamina[1];
         const allowed = stamina <= 0 && want !== "rest" && want !== "tap" ? "rest" : want;

@@ -23,6 +23,8 @@ import { LiveRooms, attachLive } from "./live";
 import { createDecorStore } from "./decor";
 import { type SittingStore, createSittingStore } from "./sitting";
 import { type ArenaStore, createArenaStore } from "./arena";
+import { type SeasonStore, createSeasonStore } from "./season";
+import { weekOf } from "@lingxi/game";
 import { parseCard } from "@lingxi/game";
 import { PlanSchema, createPusher, type Pusher } from "./push";
 import { VoiceRequest, createVoice } from "./voice";
@@ -260,6 +262,33 @@ export function withArena(app: Hono, store: ArenaStore, writes = new RateLimiter
   return app;
 }
 
+/** Weekly seasons: enter this week with one tap; read any week's entries and standings. */
+export function withSeason(app: Hono, store: SeasonStore, writes = new RateLimiter(30, 3_600_000), now: () => number = Date.now): Hono {
+  const who = (c: { req: { header: (n: string) => string | undefined } }) => c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
+  app.post("/api/season/enter", async (c) => {
+    if (!writes.take(who(c))) return busy(c);
+    if (Number(c.req.header("content-length") ?? 0) > 16_000) return c.json({ ok: false, reason: "tooBig" }, 413);
+    let body;
+    try {
+      body = z.object({ pet: z.unknown(), device: z.string() }).parse(await c.req.json());
+    } catch {
+      return c.json({ ok: false, reason: "invalid" }, 400);
+    }
+    const r = store.enter(body.pet, body.device);
+    // a full week is normal play: answer 200 so the page shows our own message
+    return c.json(r, r.ok || r.reason === "full" ? 200 : 400);
+  });
+  app.get("/api/season/:week", (c) => {
+    const week = c.req.param("week") === "current" ? weekOf(now()) : c.req.param("week");
+    const v = store.view(week);
+    if (!v) return c.json({ ok: false, reason: "invalid" }, 400);
+    // an open week changes with every entry, so it is never served from a cache
+    c.header("Cache-Control", v.closed ? "public, max-age=3600" : "no-store");
+    return c.json({ ok: true, ...v });
+  });
+  return app;
+}
+
 export function withLibrary(app: Hono, library: Library, writes = new RateLimiter(60, 3_600_000)): Hono {
   const who = (c: { req: { header: (n: string) => string | undefined } }) => c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
   const Key = z.object({ key: z.string().regex(/^[0-9a-f]{24}$/) });
@@ -360,6 +389,7 @@ if (isMain) {
   withLibrary(app, createLibrary(process.env.LINGXI_LIBRARY_STORE));
   withSitting(app, createSittingStore(process.env.LINGXI_SIT_STORE));
   withArena(app, createArenaStore(process.env.LINGXI_ARENA_STORE));
+  withSeason(app, createSeasonStore(process.env.LINGXI_SEASON_STORE));
   if (process.env.LINGXI_REGISTRY && process.env.LINGXI_REGISTRY_FROM) {
     const indexer = createIndexer({ rpc: process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech", registry: process.env.LINGXI_REGISTRY as `0x${string}`, fromBlock: Number(process.env.LINGXI_REGISTRY_FROM), store: process.env.LINGXI_HISTORY_STORE });
     withHistory(app, indexer);
