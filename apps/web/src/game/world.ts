@@ -22,7 +22,7 @@ import {
   take,
 } from "@lingxi/world";
 import { useChain } from "./chain";
-import { brainFor, useGame } from "./store";
+import { brainOf, useGame } from "./store";
 import { play } from "./sound";
 
 const KEY = "lingxi.world.v1";
@@ -82,13 +82,7 @@ function tirePet(energy: number): void {
   const g = useGame.getState();
   const p = g.pet;
   if (!p) return;
-  const next = exert(p, energy, Date.now(), brainFor(p.line, p.lessons));
-  useGame.setState({ pet: next });
-  try {
-    localStorage.setItem("lingxi.pet.v1", JSON.stringify(next));
-  } catch {
-    // in memory only
-  }
+  g.replace(exert(p, energy, Date.now(), brainOf(p)));
 }
 
 export const useWorld = create<WorldStore>((set, get) => ({

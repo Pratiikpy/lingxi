@@ -10,7 +10,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { INPUT_FIELDS, compileProgram, gateCount, layout, netDepth, traceBeat } from "@lingxi/brain";
 import type { Pet } from "@lingxi/game";
 import { useLang } from "../i18n";
-import { programFor } from "../game/store";
+import { decidingPart } from "../game/store";
 import { MOOD_NAMES, WANT_NAMES } from "./ruleText";
 
 const FIELD_ZH: Record<string, string> = { hunger: "饥饿", joy: "心情", energy: "精神", clean: "清洁", time: "时间", action: "动作", event: "事件", owner: "主人" };
@@ -18,10 +18,12 @@ const FIELD_ZH: Record<string, string> = { hunger: "饥饿", joy: "心情", ener
 export function BrainView({ pet, reduceMotion }: { pet: Pet; reduceMotion: boolean }) {
   const { lang } = useLang();
   const ref = useRef<HTMLCanvasElement>(null);
-  const program = useMemo(() => programFor(pet.line, pet.lessons), [pet.line, pet.lessons]);
+  const part = decidingPart(pet);
+  const program = part.program;
   const net = useMemo(() => compileProgram(program), [program]);
   const lay = useMemo(() => layout(net), [net]);
-  const before = pet.last.before ?? pet.brain;
+  // a child shows the half that decided this beat, with that half's own memory
+  const before = (pet.last.before ?? pet.brain).slice(part.offset, part.offset + net.latches.length);
   const trace = useMemo(() => traceBeat(net, before, pet.last.word), [net, before, pet.last.word]);
 
   useEffect(() => {

@@ -1,7 +1,7 @@
 /** The pieces of the game screen: top bar, meters, care buttons, thinking strip, tabs. */
 
 import { AnimatePresence, motion } from "motion/react";
-import { programFor } from "../game/store";
+import { decidingPart } from "../game/store";
 import { type Pet, dayOf, stageOf, visibleMeters } from "@lingxi/game";
 import { useLang, useT, type Key } from "../i18n";
 import { useSound } from "../game/sound";
@@ -27,7 +27,7 @@ export function Chips({ when, then }: { when: string[]; then: string }) {
   );
 }
 
-export function TopBar({ pet, daily, face, onQuests }: { pet: Pet; daily: Daily; face: React.ReactNode; onQuests: () => void }) {
+export function TopBar({ pet, daily, face, onQuests, onPets, petCount }: { pet: Pet; daily: Daily; face: React.ReactNode; onQuests: () => void; onPets: () => void; petCount: number }) {
   const t = useT();
   const toggleLang = useLang((s) => s.toggle);
   const sound = useSound();
@@ -37,7 +37,10 @@ export function TopBar({ pet, daily, face, onQuests }: { pet: Pet; daily: Daily;
   return (
     <header className="top">
       <div className="who">
-        <div className="who-face">{face}</div>
+        <button type="button" className="who-face who-face-btn" onClick={onPets} aria-label={petCount > 1 ? `${pet.name} · ${petCount}` : pet.name}>
+          {face}
+          {petCount > 1 && <i className="pet-count">{petCount}</i>}
+        </button>
         <div style={{ minWidth: 0 }}>
           <b>{pet.name}</b>
           <span>
@@ -121,7 +124,7 @@ export function Actions({ pet, onFeed, onPlay, onClean, onSleep }: { pet: Pet; o
 export function ThinkStrip({ pet }: { pet: Pet }) {
   const t = useT();
   const { lang } = useLang();
-  const c = decidingChips(programFor(pet.line, pet.lessons), pet.last.rule, lang);
+  const c = decidingChips(decidingPart(pet).program, pet.last.rule, lang);
   return (
     <div className="think" aria-live="off">
       <em>{t("think.label")}</em>
@@ -151,7 +154,7 @@ export function ToastView({ toast, name }: { toast: Toast | null; name: string }
   );
 }
 
-export type Tab = "home" | "map" | "bag" | "mind" | "spar" | "me" | "quests";
+export type Tab = "home" | "map" | "bag" | "mind" | "spar" | "me" | "quests" | "pets";
 const TABS: ReadonlyArray<[Tab, IconName, Key]> = [
   ["home", "home", "tab.home"],
   ["map", "map", "tab.map"],

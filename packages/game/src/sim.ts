@@ -15,7 +15,7 @@
  * replays to identical bits anywhere, including against the circuit on chain.
  */
 
-import { type FastBrain, type Program, encodeSenses, hungerBucket, bucket, runBeat, timeOfDay } from "@lingxi/brain";
+import { type FastBrain, type Program, encodeSenses, hungerBucket, bucket, inputField, runBeat, stateBits, timeOfDay } from "@lingxi/brain";
 import { foodById } from "./items";
 import { chainLog, ZERO_HASH } from "./log";
 import {
@@ -44,6 +44,8 @@ export interface Brain {
   nState: number;
   /** the program the circuit was compiled from; when present, live beats record which rule decided */
   program?: Program;
+  /** for a child: the day half (parent A) and night half (parent B) its circuit is built from */
+  halves?: [Program, Program];
 }
 
 export interface NewPet {
@@ -132,7 +134,16 @@ const addVisible = (internal: number, visible: number) => clampMeter(internal + 
 /** Run the brain on one beat and let its answer move the pet. Mutates p. */
 function think(p: Pet, brain: Brain, beat: number, action: number, event: number, owner: boolean): void {
   const word = inputWord(p, beat, action, event, owner);
-  const rule = owner && brain.program ? runBeat(brain.program, p.brain, word).rule : -1;
+  let rule = -1;
+  let half: 0 | 1 | undefined;
+  if (owner && brain.program) rule = runBeat(brain.program, p.brain, word).rule;
+  else if (owner && brain.halves) {
+    // the child's want comes from parent A's half by morning and day, B's by evening and night
+    const time = (word >> inputField("time").lo) & 3;
+    half = time === 1 || time === 2 ? 0 : 1;
+    const nA = stateBits(brain.halves[0]);
+    rule = runBeat(brain.halves[half], half === 0 ? p.brain.slice(0, nA) : p.brain.slice(nA), word).rule;
+  }
   const before = p.brain.slice();
   const st = Uint8Array.from(p.brain);
   const out = brain.fast.step(st, word);
@@ -140,7 +151,7 @@ function think(p: Pet, brain: Brain, beat: number, action: number, event: number
   const want = out & 7;
   const mood = (out >> 3) & 3;
   const nudge = (out >> 5) & 7;
-  p.last = { want, mood, nudge, rule, word, before };
+  p.last = { want, mood, nudge, rule, word, before, ...(half !== undefined ? { half } : {}) };
   p.logHash = chainLog(p.logHash, word);
   p.pendingLog.push(word);
 

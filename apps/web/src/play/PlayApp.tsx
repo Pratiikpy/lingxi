@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { boundingBox, drawPet } from "@lingxi/art";
 import { STARTERS, timeOfDay } from "@lingxi/brain";
-import { type Partner, friendPartner, stageOf } from "@lingxi/game";
+import { type Partner, friendPartner, petCard, stageOf } from "@lingxi/game";
 import { useT, useLang } from "../i18n";
 import { useGame } from "../game/store";
 import { chirp, play } from "../game/sound";
@@ -19,6 +19,7 @@ import { liveAvailable, playerId, useLive, visitingFrom } from "../game/live";
 import { InvitePanel, SocialBar } from "./Social";
 import { type Action, CHARACTER_IN_ROOM, HOME, ROOMS, neighbours } from "@lingxi/world";
 import { Talk } from "./Talk";
+import { FamilyTree, NewbornDialog, PetsPanel, ProposalDialog, familyBlock } from "./Family";
 import { AnimatePresence, motion } from "motion/react";
 import { TeachPanel } from "./Teach";
 import { ArenaPanel } from "./Arena";
@@ -74,15 +75,17 @@ export function PlayApp() {
   const liveMood = useLive((s) => s.mood);
   const liveEmote = useLive((s) => s.emote);
   const incoming = useLive((s) => s.incoming);
-  const liveShare = useLive((s) => s.shareLessons);
+  const liveShare = useLive((s) => s.shareCard);
   const liveAsk = useLive((s) => s.ask);
+  const livePropose = useLive((s) => s.propose);
+  const petCount = useGame((s) => s.pets.length);
   const card = useLive((s) => s.card);
   const asked = useLive((s) => s.asked);
   const [picked, setPicked] = useState<string | null>(null);
   const [challenge, setChallenge] = useState<Partner | null>(null);
   useEffect(() => {
-    if (pet) liveShare(pet.lessons);
-  }, [pet?.lessons, liveShare]);
+    if (pet) liveShare(petCard(pet));
+  }, [pet?.lessons, pet?.family, liveShare]);
   useEffect(() => {
     if (!card) return;
     const partner = friendPartner(card);
@@ -206,7 +209,7 @@ export function PlayApp() {
 
   return (
     <div className="app">
-      <TopBar pet={pet} daily={daily} face={face && <FaceSprite canvas={face} line={pet.line} />} onQuests={() => pick("quests")} />
+      <TopBar pet={pet} daily={daily} face={face && <FaceSprite canvas={face} line={pet.line} />} onQuests={() => pick("quests")} onPets={() => pick("pets")} petCount={petCount} />
       <div className="main">
         <section className="stage" aria-label={pet.name}>
           <RoomScene
@@ -294,6 +297,21 @@ export function PlayApp() {
               <button type="button" className="btn primary" onClick={() => (play("tap"), liveAsk(picked), setPicked(null))}>
                 <Icon name="paw" size={16} /> {lang === "zh" ? "切磋" : "Spar"}
               </button>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => {
+                  const other = others[picked]!;
+                  const block = familyBlock(pet, other.stage, lang);
+                  setPicked(null);
+                  if (block) return setWorldMsg({ id: Date.now(), text: block });
+                  play("tap");
+                  livePropose(other.id);
+                  setWorldMsg({ id: Date.now(), text: lang === "zh" ? `问过${other.name}的主人了，等回复……` : `Asked ${other.name}'s owner. Waiting for an answer…` });
+                }}
+              >
+                <Icon name="heart" size={16} /> {lang === "zh" ? "家人" : "Family"}
+              </button>
               <button type="button" className="icon-x" aria-label={lang === "zh" ? "关闭" : "Close"} onClick={() => setPicked(null)}>
                 <Icon name="close" size={14} />
               </button>
@@ -319,6 +337,8 @@ export function PlayApp() {
         </div>
       </div>
       <TabBar current={tab} onPick={pick} />
+      <ProposalDialog pet={pet} />
+      <NewbornDialog pet={pet} />
 
       <Sheet open={tab === "bag"} title={t("bag.title")} onClose={close}>
         <BagPanel onFed={close} />
@@ -340,10 +360,16 @@ export function PlayApp() {
         <ArenaPanel pet={pet} challenge={challenge} onChallengeTaken={() => setChallenge(null)} />
       </Sheet>
 
+      <Sheet open={tab === "pets"} title={lang === "zh" ? "你的宠物" : "Your pets"} onClose={close}>
+        <PetsPanel onPicked={close} />
+      </Sheet>
+
       <Sheet open={tab === "me"} title={t("me.title", { name: pet.name })} onClose={close}>
         <MeSheetBody pet={pet} />
         <hr className="divider" />
         <EvolutionChart pet={pet} />
+        <hr className="divider" />
+        <FamilyTree pet={pet} />
         <hr className="divider" />
         <InvitePanel />
         <hr className="divider" />

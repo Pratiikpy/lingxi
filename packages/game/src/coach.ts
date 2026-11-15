@@ -8,7 +8,8 @@
 import { type Rule, compileProgram, fastBrain, stateBits } from "@lingxi/brain";
 import type { StarterLine } from "@lingxi/brain";
 import type { Stage } from "./pet";
-import { checkLesson, composeProgram } from "./lessons";
+import { checkMindLesson, mindBrain } from "./family";
+import type { Family } from "./pet";
 import { type Fighter, type SparResult, spar } from "./spar";
 
 export type CoachKey = "tooPassive" | "noDefence" | "ranOut" | "noHealing" | "outmatched" | "wellDone";
@@ -59,6 +60,17 @@ export interface CoachNote {
   after: number;
 }
 
+/** A fighter from any pet's mind, single or a child of two parents. */
+export function fighterOfMind(name: string, spec: { line: StarterLine; lessons: readonly Rule[]; family?: Family }, level: number, memory?: readonly number[]): Fighter {
+  const b = mindBrain(spec);
+  return { name, brain: b.fast, memory: memory ? [...memory] : new Array(b.nState).fill(0), level };
+}
+
+/** The fighter for a sparring partner: its program, or both halves of a friend's child. */
+export function fighterOfPartner(p: { name: { en: string }; line: StarterLine; level: number; program: import("@lingxi/brain").Program; family?: Family; lessons?: Rule[] }): Fighter {
+  return p.family ? fighterOfMind(p.name.en, { line: p.line, lessons: p.lessons ?? [], family: p.family }, p.level) : fighterFrom(p.name.en, p.program, p.level);
+}
+
 export function fighterFrom(name: string, program: import("@lingxi/brain").Program, level: number, memory?: readonly number[]): Fighter {
   return { name, brain: fastBrain(compileProgram(program)), memory: memory ? [...memory] : new Array(stateBits(program)).fill(0), level };
 }
@@ -95,18 +107,20 @@ export function coach(input: {
   lessons: readonly Rule[];
   level: number;
   memory?: readonly number[];
+  family?: Family;
   opponent: Fighter;
 }): CoachNote {
   const { result, side, line, stage, lessons, level, opponent } = input;
   const seed = result.seed;
   if (result.winner === side) return { key: "wellDone", before: 0, after: 0 };
-  const now = fighterFrom("me", composeProgram(line, lessons), level, input.memory);
+  const spec = { line, lessons, family: input.family };
+  const now = fighterOfMind("me", spec, level, input.memory);
   const before = winsAgainst(now, opponent, seed);
   let best: { lesson: FightLesson; wins: number } | null = null;
   for (const l of FIGHT_LESSONS) {
-    const check = checkLesson(line, stage, lessons, l.rule);
+    const check = checkMindLesson(spec, stage, l.rule);
     if (!check.ok) continue;
-    const wins = winsAgainst(fighterFrom("me", check.program, level), opponent, seed);
+    const wins = winsAgainst(fighterOfMind("me", { ...spec, lessons: [l.rule, ...lessons] }, level), opponent, seed);
     if (wins > before && (!best || wins > best.wins)) best = { lesson: l, wins };
   }
   if (best) return { key: FIXES[best.lesson.id] ?? diagnose(result, side), lesson: best.lesson, before, after: best.wins };

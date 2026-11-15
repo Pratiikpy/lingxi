@@ -56,7 +56,15 @@ interface LiveState {
   card: { id: string; name: string; line: string; stage: string; lessons: string; at: number } | null;
   /** someone just sparred against our pet */
   asked: { name: string; at: number } | null;
-  shareLessons: (lessons: unknown[]) => void;
+  /** share this pet's card (its lessons, and family for a child) with the room */
+  shareCard: (card: string) => void;
+  /** a family proposal another owner sent us */
+  proposal: { from: string; name: string; stage: string; line: string; at: number } | null;
+  /** the answer to our proposal */
+  answer: { from: string; name: string; yes: boolean; line?: string; stage?: string; card?: string; at: number } | null;
+  propose: (to: string) => void;
+  reply: (to: string, yes: boolean) => void;
+  clearFamily: () => void;
   ask: (id: string) => void;
   connect: (me: Me, space: string) => void;
   go: (space: string) => void;
@@ -126,6 +134,22 @@ export const useLive = create<LiveState>((set, get) => {
         case "card":
           set({ card: { id: m.id as string, name: m.name as string, line: m.line as string, stage: m.stage as string, lessons: m.lessons as string, at: performance.now() } });
           return;
+        case "proposal":
+          set({ proposal: { from: m.from as string, name: m.name as string, stage: m.stage as string, line: m.line as string, at: performance.now() } });
+          return;
+        case "answer":
+          set({
+            answer: {
+              from: m.from as string,
+              name: m.name as string,
+              yes: m.yes === true,
+              ...(typeof m.line === "string" ? { line: m.line } : {}),
+              ...(typeof m.stage === "string" ? { stage: m.stage } : {}),
+              ...(typeof m.card === "string" ? { card: m.card } : {}),
+              at: performance.now(),
+            },
+          });
+          return;
         case "asked":
           set({ asked: { name: m.name as string, at: performance.now() } });
           return;
@@ -153,10 +177,18 @@ export const useLive = create<LiveState>((set, get) => {
     incoming: null,
     card: null,
     asked: null,
-    shareLessons: (lessons) => {
-      lessonsCard = JSON.stringify(lessons);
+    shareCard: (card) => {
+      lessonsCard = card;
       send({ t: "card", lessons: lessonsCard });
     },
+    proposal: null,
+    answer: null,
+    propose: (to) => send({ t: "propose", to }),
+    reply: (to, yes) => {
+      send({ t: "answer", to, yes });
+      set({ proposal: null });
+    },
+    clearFamily: () => set({ proposal: null, answer: null }),
     ask: (id) => send({ t: "ask", to: id }),
     connect: (who, space) => {
       me = who;

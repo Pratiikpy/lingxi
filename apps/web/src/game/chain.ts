@@ -13,9 +13,11 @@ import { privateKeyToAccount } from "viem/accounts";
 import { type Deployment, checkpointOnChain, hatchOnChain, readPet, setBrainOnChain, xLayer } from "@lingxi/chain";
 import { type Pet, logSegments, packState, stageOf } from "@lingxi/game";
 import { relayBrain } from "./api";
+import { useGame } from "./store";
 import localDeployment from "../../../../packages/chain/deployments/local.json";
 
-const CHAIN_KEY = "lingxi.chain.v1";
+const OLD_KEY = "lingxi.chain.v1";
+const CHAIN_KEY = "lingxi.chain.v2";
 const LINES = ["gentle", "bold", "curious"] as const;
 
 const NETWORK = (import.meta.env.VITE_CHAIN as string | undefined) ?? (import.meta.env.DEV ? "local" : "xlayer");
@@ -75,14 +77,39 @@ export const lessonsKey = (lessons: unknown[]) => JSON.stringify(lessons);
 /** The on-chain day number now, as PetRegistry counts it. */
 export const chainDay = (r: ChainRecord, nowMs: number) => Math.floor((nowMs / 1000 - r.bornChain) / 86_400) + 1;
 
-function loadRecord(): ChainRecord | null {
+/** Each pet on this device is known by its birth time; chain records are kept per pet. */
+export const petKey = (p: Pick<Pet, "bornAt">) => String(p.bornAt);
+
+function loadRecords(): Record<string, ChainRecord> {
   try {
     const r = localStorage.getItem(CHAIN_KEY);
-    return r ? (JSON.parse(r) as ChainRecord) : null;
+    if (r) return JSON.parse(r) as Record<string, ChainRecord>;
+    // from before families: the one record belonged to the first pet
+    const old = localStorage.getItem(OLD_KEY);
+    const first = useGame.getState().pets[0];
+    if (old && first) return { [petKey(first)]: JSON.parse(old) as ChainRecord };
   } catch {
-    return null;
+    // unreadable: no records rather than a crash
+  }
+  return {};
+}
+
+let records = loadRecords();
+function store(pet: Pet, rec: ChainRecord | null): void {
+  const next = { ...records };
+  if (rec) next[petKey(pet)] = rec;
+  else delete next[petKey(pet)];
+  records = next;
+  try {
+    localStorage.setItem(CHAIN_KEY, JSON.stringify(records));
+  } catch {
+    // in memory for this visit
   }
 }
+const activeRecord = () => {
+  const p = useGame.getState().pet;
+  return p ? (records[petKey(p)] ?? null) : null;
+};
 
 interface ChainState {
   record: ChainRecord | null;
@@ -93,10 +120,13 @@ interface ChainState {
   updateMind: (pet: Pet) => Promise<void>;
   exportLog: (pet: Pet) => string | null;
   forget: () => void;
+  /** the record of any pet on this device */
+  recordOf: (pet: Pet) => ChainRecord | null;
 }
 
 export const useChain = create<ChainState>((set, get) => ({
-  record: loadRecord(),
+  record: activeRecord(),
+  recordOf: (pet) => records[petKey(pet)] ?? null,
   busy: "idle",
   error: null,
   keep: async (pet) => {
@@ -117,14 +147,14 @@ export const useChain = create<ChainState>((set, get) => ({
         brains: { [lessonsKey([])]: deployment.circuits[pet.line]!.id },
         brainKey: lessonsKey([]),
       };
-      localStorage.setItem(CHAIN_KEY, JSON.stringify(record));
-      set({ record, busy: "idle" });
+      store(pet, record);
+      set({ record: activeRecord(), busy: "idle" });
     } catch (e) {
       set({ busy: "idle", error: (e as Error).message.split("\n")[0] ?? "failed" });
     }
   },
   saveToday: async (pet, onSaved) => {
-    const { record } = get();
+    const record = records[petKey(pet)];
     if (!deployment || !record) return;
     set({ busy: "connecting", error: null });
     try {
@@ -137,15 +167,15 @@ export const useChain = create<ChainState>((set, get) => ({
       }
       const tx = await checkpointOnChain(publicClient, wallet, deployment, BigInt(record.petId), day, packState(pet, stageOf(pet, Date.now())), pet.logHash as Hex);
       const next = { ...record, lastDay: day, lastTx: tx, logLen: pet.pendingLog.length };
-      localStorage.setItem(CHAIN_KEY, JSON.stringify(next));
-      set({ record: next, busy: "idle" });
+      store(pet, next);
+      set({ record: activeRecord(), busy: "idle" });
       onSaved();
     } catch (e) {
       set({ busy: "idle", error: (e as Error).message.split("\n")[0] ?? "failed" });
     }
   },
   updateMind: async (pet) => {
-    const { record } = get();
+    const record = records[petKey(pet)];
     if (!deployment || !record) return;
     set({ busy: "connecting", error: null });
     try {
@@ -161,14 +191,14 @@ export const useChain = create<ChainState>((set, get) => ({
       set({ busy: "saving" });
       await setBrainOnChain(publicClient, wallet, deployment, BigInt(record.petId), deployment.processor, BigInt(brainId));
       const next = { ...record, brains: { ...(record.brains ?? {}), [key]: brainId }, brainKey: key };
-      localStorage.setItem(CHAIN_KEY, JSON.stringify(next));
-      set({ record: next, busy: "idle" });
+      store(pet, next);
+      set({ record: activeRecord(), busy: "idle" });
     } catch (e) {
       set({ busy: "idle", error: (e as Error).message.split("\n")[0] ?? "failed" });
     }
   },
   exportLog: (pet) => {
-    const { record } = get();
+    const record = records[petKey(pet)];
     if (!record) return null;
     // the log exactly as the last checkpoint committed it
     const n = record.logLen ?? 0;
@@ -178,7 +208,13 @@ export const useChain = create<ChainState>((set, get) => ({
     return JSON.stringify({ petId: record.petId, words: pet.pendingLog.slice(0, n), segments });
   },
   forget: () => {
-    localStorage.removeItem(CHAIN_KEY);
+    const p = useGame.getState().pet;
+    if (p) store(p, null);
     set({ record: null });
   },
 }));
+
+// the record on screen follows the pet on screen
+useGame.subscribe((s, prev) => {
+  if (s.pet?.bornAt !== prev.pet?.bornAt) useChain.setState({ record: activeRecord() });
+});

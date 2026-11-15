@@ -11,7 +11,7 @@ import { LESSON_CAPACITY, PET_SCHOOL, type Pet, checkLesson, stageOf } from "@li
 import { useLang, useT, type Key } from "../i18n";
 import { teachInWords, teachingAvailable } from "../game/api";
 import { play } from "../game/sound";
-import { programFor, useGame } from "../game/store";
+import { mindParts, useGame } from "../game/store";
 import { Icon } from "./icons";
 import { Chips } from "./parts";
 import { MOOD_NAMES, VALUE_NAMES, WANT_NAMES, chipsFor } from "./ruleText";
@@ -29,7 +29,7 @@ const REASON_KEY: Record<string, Key> = {
 
 function RulePreview({ pet, rule }: { pet: Pet; rule: Rule }) {
   const { lang } = useLang();
-  const c = chipsFor(programFor(pet.line, pet.lessons), rule, lang);
+  const c = chipsFor(mindParts(pet)[0]!.program, rule, lang);
   return (
     <div className="rule-preview">
       <Chips when={c.when} then={c.then} />
@@ -73,7 +73,7 @@ function Learned({ pet }: { pet: Pet }) {
   const t = useT();
   const { lang } = useLang();
   const arrange = useGame((s) => s.arrange);
-  const p = programFor(pet.line, pet.lessons);
+  const p = mindParts(pet)[0]!.program;
   if (!pet.lessons.length) return <p className="small">{t("teach.none")}</p>;
   return (
     <ol className="learned">

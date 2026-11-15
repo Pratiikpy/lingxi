@@ -36,8 +36,10 @@ function connect(origin = "http://ok.test"): Promise<Peer> {
       new Promise<Record<string, unknown>>((res, rej) => {
         const i = inbox.findIndex((m) => m.t === t);
         if (i >= 0) return res(inbox.splice(i, 1)[0]!);
-        const timer = setTimeout(() => rej(new Error(`no ${t}`)), timeout);
-        waiters.push({ t, r: (m) => (clearTimeout(timer), res(m)) });
+        const w = { t, r: (m: Record<string, unknown>) => (clearTimeout(timer), res(m)) };
+        // a waiter that timed out must not swallow a later message
+        const timer = setTimeout(() => (waiters.splice(waiters.indexOf(w), 1), rej(new Error(`no ${t}`))), timeout);
+        waiters.push(w);
       });
     ws.on("open", () => resolve({ ws, inbox, next }));
     ws.on("error", reject);
@@ -111,7 +113,7 @@ describe("live rooms", () => {
     await c.next("room");
     const lessons = JSON.stringify([{ when: { event: [3] }, then: { want: 5, mood: 1 } }]);
     a.ws.send(JSON.stringify({ t: "card", lessons }));
-    a.ws.send(JSON.stringify({ t: "card", lessons: "x".repeat(4000) }));
+    a.ws.send(JSON.stringify({ t: "card", lessons: "x".repeat(10_500) }));
     await new Promise((r) => setTimeout(r, 100));
     b.ws.send(JSON.stringify({ t: "ask", to: "carda01" }));
     const card = await b.next("card");
@@ -121,6 +123,33 @@ describe("live rooms", () => {
     c.ws.send(JSON.stringify({ t: "ask", to: "carda01" }));
     await expect(c.next("card", 400)).rejects.toThrow();
     for (const p of [a, b, c]) p.ws.close();
+  });
+
+  it("a family proposal needs the other owner's yes, and answers cannot be forged", async () => {
+    const a = await connect();
+    const b = await connect();
+    const c = await connect();
+    hello(a, "fama001", "room:40", "Mochi");
+    await a.next("room");
+    hello(b, "famb002", "room:40", "Tofu");
+    await b.next("room");
+    hello(c, "famc003", "room:40", "Mallory");
+    await c.next("room");
+    b.ws.send(JSON.stringify({ t: "card", lessons: JSON.stringify({ lessons: [] }) }));
+    // an answer nobody asked for goes nowhere
+    c.ws.send(JSON.stringify({ t: "answer", to: "fama001", yes: true }));
+    await expect(a.next("answer", 300)).rejects.toThrow();
+    a.ws.send(JSON.stringify({ t: "propose", to: "famb002" }));
+    const p = await b.next("proposal");
+    expect(p.from).toBe("fama001");
+    b.ws.send(JSON.stringify({ t: "answer", to: "fama001", yes: true }));
+    const ans = await a.next("answer");
+    expect(ans.yes).toBe(true);
+    expect(ans.card).toBe(JSON.stringify({ lessons: [] }));
+    // a proposal can be answered only once
+    b.ws.send(JSON.stringify({ t: "answer", to: "fama001", yes: true }));
+    await expect(a.next("answer", 300)).rejects.toThrow();
+    for (const x of [a, b, c]) x.ws.close();
   });
 
   it("drops a flood of messages from one client", async () => {

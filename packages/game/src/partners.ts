@@ -6,6 +6,8 @@
 
 import { type Program, type Rule, compileProgram, gateCount, validateProgram } from "@lingxi/brain";
 import { MAX_GATES, composeProgram } from "./lessons";
+import { halvesOf, parseCard } from "./family";
+import type { Family } from "./pet";
 
 export interface Partner {
   id: string;
@@ -15,6 +17,10 @@ export interface Partner {
   level: number;
   blurb: { en: string; zh: string };
   program: Program;
+  /** a friend's pet that was born of two parents fights with both halves of its mind */
+  family?: Family;
+  /** a friend's own taught lessons (needed with family to rebuild both halves) */
+  lessons?: Rule[];
 }
 
 const P = (rules: unknown[], otherwise: { want: number; mood: number }) => validateProgram({ version: "LX-PET/1", memory: [], rules, otherwise });
@@ -85,12 +91,12 @@ const STAGES = ["baby", "child", "teen", "adult"] as const;
  */
 export function friendPartner(card: { id: string; name: string; line: string; stage: string; lessons: string }): Partner | null {
   const line = (["gentle", "bold", "curious"] as const).find((l) => l === card.line);
-  if (!line || typeof card.lessons !== "string" || card.lessons.length > 3500) return null;
+  const parsed = parseCard(card.lessons);
+  if (!line || !parsed) return null;
   try {
-    const rules = JSON.parse(card.lessons) as unknown;
-    if (!Array.isArray(rules) || rules.length > 8) return null;
-    const program = composeProgram(line, rules as Rule[]);
-    if (gateCount(compileProgram(program)) > MAX_GATES) return null;
+    const program = composeProgram(line, parsed.lessons);
+    const minds = parsed.family ? halvesOf(parsed.family, parsed.lessons) : [program];
+    for (const m of minds) if (gateCount(compileProgram(m)) > MAX_GATES) return null;
     const grown = card.stage === "elder" ? "adult" : card.stage;
     const stage = STAGES.find((s) => s === grown) ?? "baby";
     const name = card.name.slice(0, 12) || "Friend";
@@ -102,6 +108,8 @@ export function friendPartner(card: { id: string; name: string; line: string; st
       level: card.stage === "elder" ? 2 : stage === "teen" || stage === "adult" ? 1 : 0,
       blurb: { en: `${name}'s real brain, with everything it has been taught.`, zh: `${name}真实的大脑，带着它学过的一切。` },
       program,
+      lessons: parsed.lessons,
+      ...(parsed.family ? { family: parsed.family } : {}),
     };
   } catch {
     return null;

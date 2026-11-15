@@ -909,3 +909,10 @@
   color: #2b2140;
   cursor: pointer;
 }
+
+.half-head {
+  margin: 4px 0 6px;
+  font-family: var(--display);
+  font-size: 13px;
+  color: var(--ink-soft);
+}

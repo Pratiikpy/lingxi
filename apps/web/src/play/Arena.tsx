@@ -8,7 +8,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { type PixelCanvas, boundingBox, drawPet, type Expression } from "@lingxi/art";
-import { type CoachNote, MAX_HP, type Move, PARTNERS, type Partner, type Pet, type SparResult, coach, composeProgram, fighterFrom, spar, stageOf } from "@lingxi/game";
+import { type CoachNote, MAX_HP, type Move, PARTNERS, type Partner, type Pet, type SparResult, coach, fighterOfMind, fighterOfPartner, spar, stageOf } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { useGame } from "../game/store";
 import { useSpar } from "../game/spar";
@@ -79,8 +79,8 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken }: { pet: Pet; cha
 
   function start(partner: Partner) {
     const stage = stageOf(pet, Date.now());
-    const me = fighterFrom(pet.name, composeProgram(pet.line, pet.lessons), levelOf(stage), pet.brain);
-    const them = fighterFrom(partner.name[lang], partner.program, partner.level);
+    const me = fighterOfMind(pet.name, { line: pet.line, lessons: pet.lessons, family: pet.family }, levelOf(stage), pet.brain);
+    const them = fighterOfPartner(partner);
     const seed = crypto.getRandomValues(new Uint32Array(1))[0]!;
     play("tap");
     setFight({ partner, result: spar(me, them, seed, () => [cheer, false]), cheer });
@@ -247,7 +247,8 @@ function Result({ pet, partner, result, reward, onDone, onRematch }: { pet: Pet;
           lessons: pet.lessons,
           level: levelOf(stage),
           memory: pet.brain,
-          opponent: fighterFrom(partner.name.en, partner.program, partner.level),
+          family: pet.family,
+          opponent: fighterOfPartner(partner),
         }),
       );
     }, 60);

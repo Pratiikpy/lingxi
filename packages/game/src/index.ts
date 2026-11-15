@@ -8,3 +8,4 @@ export * from "./evolution";
 export * from "./spar";
 export * from "./partners";
 export * from "./coach";
+export * from "./family";

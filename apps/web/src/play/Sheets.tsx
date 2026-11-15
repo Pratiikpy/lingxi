@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { programFor } from "../game/store";
+import { type MindPart, mindParts } from "../game/store";
 import { DIETS, FOODS, FORMS, FORM_NAMES, TRAITS, type Pet, dayOf, evolutionInputs, evolve, stageOf } from "@lingxi/game";
 import { useLang, useT } from "../i18n";
 import { Icon } from "./icons";
@@ -80,9 +80,22 @@ export function FoodList({ pet, onPick }: { pet: Pet; onPick: (id: string) => vo
 
 export function MindPanel({ pet }: { pet: Pet }) {
   const t = useT();
+  const parts = mindParts(pet);
+  return (
+    <>
+      {parts.map((part, idx) => (
+        <MindPartView key={idx} pet={pet} part={part} firing={parts.length === 1 || pet.last.half === idx} />
+      ))}
+      <p className="small">{t("mind.foot")}</p>
+    </>
+  );
+}
+
+function MindPartView({ pet, part, firing }: { pet: Pet; part: MindPart; firing: boolean }) {
+  const t = useT();
   const { lang } = useLang();
-  const p = programFor(pet.line, pet.lessons);
-  let bit = 0;
+  const p = part.program;
+  let bit = part.offset;
   const memory = p.memory.map((m) => {
     const bits = m.kind === "flag" ? 1 : m.bits;
     let v = 0;
@@ -94,11 +107,22 @@ export function MindPanel({ pet }: { pet: Pet }) {
     ({ trust: { en: "trust", zh: "信任" }, likesToys: { en: "likes toys", zh: "喜欢玩具" }, scared: { en: "shaken", zh: "害怕" }, awake: { en: "awake", zh: "清醒" } })[n]?.[lang] ?? n;
   return (
     <>
+      {part.from && (
+        <p className="half-head">
+          {part.from.when === "day"
+            ? lang === "zh"
+              ? `白天和心情：像${part.from.name}`
+              : `By day, and its moods: like ${part.from.name}`
+            : lang === "zh"
+              ? `夜里和小习惯：像${part.from.name}`
+              : `By night, and its habits: like ${part.from.name}`}
+        </p>
+      )}
       <ul className="rules">
         {p.rules.map((r, i) => {
           const c = chipsFor(p, r, lang);
           return (
-            <li key={i} className={pet.last.rule === i ? "fire" : ""}>
+            <li key={i} className={firing && pet.last.rule === i ? "fire" : ""}>
               <Chips when={c.when} then={c.then} />
             </li>
           );
@@ -116,7 +140,6 @@ export function MindPanel({ pet }: { pet: Pet }) {
           ))}
         </div>
       </div>
-      <p className="small">{t("mind.foot")}</p>
     </>
   );
 }

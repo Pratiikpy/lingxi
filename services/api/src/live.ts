@@ -12,9 +12,10 @@ import type { IncomingMessage } from "node:http";
 import { WebSocketServer, type WebSocket } from "ws";
 
 export const CAPACITY = 24;
-const MAX_FRAME = 4096;
-const CARD_MAX = 3500;
+const MAX_FRAME = 12_288;
+const CARD_MAX = 10_000;
 const CARD_RULES = 8;
+const PROPOSAL_MS = 120_000;
 const SAY_MAX = 60;
 const NAME_MAX = 12;
 const LINES = new Set(["gentle", "bold", "curious"]);
@@ -36,6 +37,8 @@ interface Client {
   member: Member;
   /** the pet's taught lessons as JSON, shared so friends can spar against its real brain */
   card: string | null;
+  /** who has asked this client's owner to raise a little one together, and when */
+  proposals: Map<string, number>;
   space: string | null;
   tokens: number;
   last: number;
@@ -110,8 +113,14 @@ export class LiveRooms {
     return true;
   }
 
+  /** Another client in the same space, by member id. */
+  private peer(c: Client, id: unknown): Client | null {
+    if (!c.space || !c.member.id || typeof id !== "string") return null;
+    return [...(this.spaces.get(c.space) ?? [])].find((o) => o.member.id === id && o !== c) ?? null;
+  }
+
   handle(ws: WebSocket): void {
-    const c: Client = { ws, card: null, member: { id: "", name: "", line: "gentle", stage: "baby", mood: 1, x: 64 }, space: null, tokens: 8, last: Date.now() };
+    const c: Client = { ws, card: null, proposals: new Map(), member: { id: "", name: "", line: "gentle", stage: "baby", mood: 1, x: 64 }, space: null, tokens: 8, last: Date.now() };
     this.clients.add(c);
     ws.on("message", (raw, isBinary) => {
       if (isBinary) return;
@@ -176,12 +185,32 @@ export class LiveRooms {
       case "card": {
         if (typeof m.lessons !== "string" || m.lessons.length > CARD_MAX) return;
         try {
-          const rules = JSON.parse(m.lessons) as unknown;
+          // a pet card: its lessons, and for a child its family (parents' lessons); shape-checked here, fully validated by whoever uses it
+          const card = JSON.parse(m.lessons) as { lessons?: unknown; family?: unknown } | unknown[];
+          const rules = Array.isArray(card) ? card : card.lessons;
           if (!Array.isArray(rules) || rules.length > CARD_RULES) return;
         } catch {
           return;
         }
         c.card = m.lessons;
+        return;
+      }
+      case "propose": {
+        const target = this.peer(c, m.to);
+        if (!target) return;
+        target.proposals.set(c.member.id, Date.now());
+        this.send(target, { t: "proposal", from: c.member.id, name: c.member.name, stage: c.member.stage, line: c.member.line });
+        return;
+      }
+      case "answer": {
+        const proposer = this.peer(c, m.to);
+        if (!proposer) return;
+        const at = c.proposals.get(proposer.member.id);
+        // only an answer to a real, recent proposal goes through
+        if (at === undefined || Date.now() - at > PROPOSAL_MS) return;
+        c.proposals.delete(proposer.member.id);
+        const yes = m.yes === true;
+        this.send(proposer, { t: "answer", from: c.member.id, name: c.member.name, yes, ...(yes ? { line: c.member.line, stage: c.member.stage, card: c.card ?? "[]" } : {}) });
         return;
       }
       case "ask": {

@@ -19,6 +19,7 @@ import {
   validateProgram,
 } from "@lingxi/brain";
 import { type Stage, stageOf } from "./pet";
+import { checkMindLesson } from "./family";
 import type { Pet } from "./sim";
 
 /** The most gates a pet brain may compile to (TapeOut cost and on-chain step gas). */
@@ -108,7 +109,7 @@ export const PET_SCHOOL: readonly SchoolLesson[] = [
 /** Teach the pet a rule. Returns the new pet, or why the lesson was refused. */
 export function teach(p: Pet, rule: Rule, now: number): { ok: true; pet: Pet; gates: number } | Extract<LessonCheck, { ok: false }> {
   const stage = stageOf(p, now);
-  const r = checkLesson(p.line, stage, p.lessons, rule);
+  const r = checkMindLesson({ line: p.line, lessons: p.lessons, family: p.family }, stage, rule);
   if (!r.ok) return r;
   return {
     ok: true,

@@ -6,10 +6,13 @@
 
 import { create } from "zustand";
 import { type Program, type Rule, STARTERS, compileProgram, fastBrain, stateBits } from "@lingxi/brain";
-import { type Brain, type Care, type CareResult, type Pet, arrangeLessons, care, catchUp, composeProgram, createPet, liveBeat, teach as teachRule } from "@lingxi/game";
+import { type Brain, type Care, type CareResult, type Pet, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, liveBeat, mindBrain, teach as teachRule } from "@lingxi/game";
 import type { StarterLine } from "@lingxi/brain";
 
-const SAVE_KEY = "lingxi.pet.v1";
+const OLD_KEY = "lingxi.pet.v1";
+const SAVE_KEY = "lingxi.pets.v2";
+/** the most pets one player keeps on this device */
+export const MAX_PETS = 8;
 
 const brains = new Map<string, Brain>();
 /** The pet's whole program: what it was taught, then its instincts. */
@@ -26,27 +29,79 @@ export function brainFor(line: StarterLine, lessons: readonly Rule[] = []): Brai
   }
   return b;
 }
-const brainOf = (p: Pet) => brainFor(p.line, p.lessons ?? []);
+export interface MindPart {
+  program: Program;
+  /** where this part's memory starts in the pet's memory bits */
+  offset: number;
+  /** for a child: which parent this half comes from and when it decides */
+  from?: { name: string; when: "day" | "night" };
+}
 
-function load(): Pet | null {
+/** A pet's mind as the screens show it: one program, or a child's day half and night half. */
+export function mindParts(pet: Pet): MindPart[] {
+  if (!pet.family) return [{ program: programFor(pet.line, pet.lessons), offset: 0 }];
+  const [a, b] = halvesOf(pet.family, pet.lessons);
+  return [
+    { program: a, offset: 0, from: { name: pet.family.parents[0].name, when: "day" } },
+    { program: b, offset: stateBits(a), from: { name: pet.family.parents[1].name, when: "night" } },
+  ];
+}
+
+/** The part of the mind that made the last decision. */
+export function decidingPart(pet: Pet): MindPart {
+  const parts = mindParts(pet);
+  return parts[pet.last.half ?? 0] ?? parts[0]!;
+}
+
+/** Any pet's brain, including a child built from two parents. */
+export const brainOf = (p: Pet): Brain => (p.family ? mindBrain({ line: p.line, lessons: p.lessons ?? [], family: p.family }) : brainFor(p.line, p.lessons ?? []));
+
+interface Roster {
+  active: number;
+  pets: Pet[];
+}
+
+const valid = (p: Pet | null | undefined): p is Pet => !!p && p.version === 1 && !!STARTERS[p.line];
+const tidy = (p: Pet): Pet => ({ ...p, lessons: Array.isArray(p.lessons) ? p.lessons : [] });
+
+function loadRoster(): Roster {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) return null;
-    const p = JSON.parse(raw) as Pet;
-    if (p.version !== 1 || !STARTERS[p.line]) return null;
-    return { ...p, lessons: Array.isArray(p.lessons) ? p.lessons : [] };
+    if (raw) {
+      const r = JSON.parse(raw) as Roster;
+      const pets = (Array.isArray(r.pets) ? r.pets : []).filter(valid).map(tidy).slice(0, MAX_PETS);
+      return { active: Math.min(Math.max(0, r.active | 0), Math.max(0, pets.length - 1)), pets };
+    }
+    // a save from before families: one pet becomes the first of the roster
+    const old = localStorage.getItem(OLD_KEY);
+    if (old) {
+      const p = JSON.parse(old) as Pet;
+      if (valid(p)) return { active: 0, pets: [tidy(p)] };
+    }
   } catch {
-    return null;
+    // unreadable save: start fresh rather than crash
+  }
+  return { active: 0, pets: [] };
+}
+
+let roster: Roster = loadRoster();
+
+function persist(): void {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(roster));
+  } catch {
+    // storage full or blocked: the pets keep living in memory for this visit
   }
 }
 
+/** Saves the active pet (or adds the first one). */
 function save(p: Pet | null): void {
-  try {
-    if (p) localStorage.setItem(SAVE_KEY, JSON.stringify(p));
-    else localStorage.removeItem(SAVE_KEY);
-  } catch {
-    // storage full or blocked: the pet keeps living in memory for this visit
-  }
+  if (!p) return;
+  const pets = roster.pets.slice();
+  if (pets.length === 0) pets.push(p);
+  else pets[roster.active] = p;
+  roster = { ...roster, pets };
+  persist();
 }
 
 export interface Toast {
@@ -63,7 +118,16 @@ export interface Daily {
 }
 
 interface GameState {
+  /** the pet on screen */
   pet: Pet | null;
+  pets: Pet[];
+  active: number;
+  /** look after another of your pets */
+  switchTo: (index: number) => void;
+  /** a newborn joins the family and comes on screen */
+  adopt: (child: Pet) => boolean;
+  /** replace the active pet after something outside the store changed it (walking, breeding) */
+  replace: (p: Pet) => void;
   toast: Toast | null;
   /** last care for the scene to animate */
   lastCare: { kind: Care["kind"] | "pet" | "learn"; at: number; food?: string } | null;
@@ -82,7 +146,7 @@ const todayKey = () => new Date().toDateString();
 const freshDaily = (): Daily => ({ day: todayKey(), fed: false, played: false, cleaned: false, petted: false });
 
 function initialPet(): Pet | null {
-  const p = load();
+  const p = roster.pets[roster.active];
   if (!p) return null;
   const caught = catchUp(p, Date.now(), brainOf(p));
   save(caught);
@@ -93,6 +157,27 @@ let toastId = 0;
 
 export const useGame = create<GameState>((set, get) => ({
   pet: initialPet(),
+  pets: roster.pets,
+  active: roster.active,
+  switchTo: (index) => {
+    const target = roster.pets[index];
+    if (!target || index === roster.active) return;
+    roster = { ...roster, active: index };
+    const caught = catchUp(target, Date.now(), brainOf(target));
+    save(caught);
+    set({ pet: caught, pets: roster.pets, active: index, lastCare: null });
+  },
+  adopt: (child) => {
+    if (roster.pets.length >= MAX_PETS) return false;
+    roster = { active: roster.pets.length, pets: [...roster.pets, child] };
+    persist();
+    set({ pet: child, pets: roster.pets, active: roster.active, lastCare: null });
+    return true;
+  },
+  replace: (p) => {
+    save(p);
+    set({ pet: p, pets: roster.pets });
+  },
   toast: null,
   lastCare: null,
   daily: freshDaily(),
@@ -105,7 +190,7 @@ export const useGame = create<GameState>((set, get) => ({
       brain: brainFor(line),
     });
     save(pet);
-    set({ pet, daily: freshDaily() });
+    set({ pet, pets: roster.pets, daily: freshDaily() });
   },
   act: (c) => {
     const { pet } = get();
@@ -119,6 +204,7 @@ export const useGame = create<GameState>((set, get) => ({
     if (c.kind === "pet") d.petted = true;
     set({
       pet: r.pet,
+      pets: roster.pets,
       daily: d,
       lastCare: { kind: c.kind === "use" ? "feed" : c.kind, at: performance.now() },
       toast: { id: ++toastId, note: r.note },
@@ -130,7 +216,7 @@ export const useGame = create<GameState>((set, get) => ({
     const next = liveBeat(pet, Date.now(), brainOf(pet));
     if (next !== pet) {
       save(next);
-      set({ pet: next });
+      set({ pet: next, pets: roster.pets });
     }
   },
   wakeUp: () => {
@@ -139,7 +225,7 @@ export const useGame = create<GameState>((set, get) => ({
     const caught = catchUp(pet, Date.now(), brainOf(pet));
     if (caught !== pet) {
       save(caught);
-      set({ pet: caught });
+      set({ pet: caught, pets: roster.pets });
     }
   },
   say: (note) => set({ toast: { id: ++toastId, note } }),
@@ -152,7 +238,7 @@ export const useGame = create<GameState>((set, get) => ({
     // one live beat with "talk" on the pins, so the new mind answers at once
     const after = care(r.pet, { kind: "talk" }, Date.now(), brainOf(r.pet)).pet;
     save(after);
-    set({ pet: after, lastCare: { kind: "learn", at: performance.now() }, toast: { id: ++toastId, note: "learned" } });
+    set({ pet: after, pets: roster.pets, lastCare: { kind: "learn", at: performance.now() }, toast: { id: ++toastId, note: "learned" } });
     return { ok: true };
   },
   arrange: (index, move) => {
@@ -160,6 +246,6 @@ export const useGame = create<GameState>((set, get) => ({
     if (!pet) return;
     const next = arrangeLessons(pet, index, move);
     save(next);
-    set({ pet: next });
+    set({ pet: next, pets: roster.pets });
   },
 }));

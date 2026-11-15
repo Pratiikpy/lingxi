@@ -74,8 +74,12 @@ export interface PetState {
   pendingLog: number[];
   /** which lessons the brain had from each point of the log on: segment i covers words from[i]..from[i+1]-1 */
   segments?: Array<{ from: number; lessons: import("@lingxi/brain").Rule[] }>;
+  /** set for a pet born of two parents: its mind is built from both of theirs */
+  family?: Family;
   /** last brain answer, for the screen */
-  last: { want: number; mood: number; nudge: number; rule: number; word: number; before?: number[] };
+  last: { want: number; mood: number; nudge: number; rule: number; word: number; before?: number[]; half?: 0 | 1 };
+  /** day number (since birth) this pet last had a child */
+  lastBredDay?: number;
 }
 
 export const toVisible = (internal: number): number => Math.floor(internal / SUB);
@@ -102,3 +106,21 @@ export function stageOf(p: Pick<PetState, "bornAt">, now: number): Exclude<Stage
 }
 
 export const beatOf = (ms: number): number => Math.floor(ms / BEAT_MS);
+
+/** One parent as the child remembers it: enough to rebuild that half of its mind. */
+export interface ParentInfo {
+  name: string;
+  line: "gentle" | "bold" | "curious";
+  lessons: import("@lingxi/brain").Rule[];
+  /** on-chain pet id and owner, when the parent lived on chain */
+  petId?: number;
+  owner?: string;
+  /** the parent's birth time when it lives on this device, to link the family tree */
+  key?: string;
+}
+
+export interface Family {
+  parents: [ParentInfo, ParentInfo];
+  /** parents' generation + 1; starters are generation 0 */
+  generation: number;
+}
