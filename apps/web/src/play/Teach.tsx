@@ -5,10 +5,10 @@
  */
 
 import { CuteState } from "./CuteState";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import type { Rule } from "@lingxi/brain";
-import { LESSON_CAPACITY, PET_SCHOOL, type Pet, checkLesson, stageOf } from "@lingxi/game";
+import { LESSON_CAPACITY, PET_SCHOOL, type Pet, brainSize, checkLesson, lessonCost, stageOf } from "@lingxi/game";
 import { useLang, useT, type Key } from "../i18n";
 import { teachInWords, teachingAvailable } from "../game/api";
 import { type LibraryLesson, libraryAvailable, listLessons, reportLesson, shareLesson, usedLesson } from "../game/library";
@@ -62,8 +62,9 @@ function Proposal({ pet, rule, reply, source, onDone }: { pet: Pet; rule: Rule; 
   return (
     <motion.div className="proposal" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}>
       {reply && <p className="reply">{reply}</p>}
-      <p className="small">{t("teach.became")}</p>
+      <p className="small">{t(source.kind === "school" ? "teach.becameSchool" : source.kind === "library" ? "teach.becameLibrary" : "teach.became")}</p>
       <RulePreview pet={pet} rule={rule} />
+      <CostLine pet={pet} rule={rule} />
       {err && <p className="err" role="alert">{err}</p>}
       {source.kind === "own" && libraryAvailable() && (
         <label className="share-opt">
@@ -80,6 +81,41 @@ function Proposal({ pet, rule, reply, source, onDone }: { pet: Pet; rule: Rule; 
         </button>
       </div>
     </motion.div>
+  );
+}
+
+const specOf = (pet: Pet) => ({ line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts });
+
+/** What a lesson costs in gates, and what sharing logic saves (PRD F6). */
+function CostLine({ pet, rule }: { pet: Pet; rule: Rule }) {
+  const t = useT();
+  const c = useMemo(() => {
+    try {
+      return lessonCost(specOf(pet), rule);
+    } catch {
+      return null;
+    }
+  }, [pet.lessons, pet.family, pet.instincts, pet.line, rule]);
+  if (!c) return null;
+  return (
+    <p className={`cost${c.fits ? "" : " over"}`}>
+      {t("teach.cost", { adds: c.adds, total: c.total })}
+      {c.saved > 0 && <b> {t("teach.saved", { n: c.saved })}</b>}
+    </p>
+  );
+}
+
+/** The brain's size against its budget. */
+function GateMeter({ pet }: { pet: Pet }) {
+  const t = useT();
+  const size = useMemo(() => brainSize(specOf(pet)), [pet.lessons, pet.family, pet.instincts, pet.line]);
+  return (
+    <div className="gates" title={t("teach.gatesWhy")}>
+      <span>{t("teach.gates", { n: size.gates, max: size.max })}</span>
+      <i role="meter" aria-valuemin={0} aria-valuemax={size.max} aria-valuenow={size.gates} aria-label={t("teach.gates", { n: size.gates, max: size.max })}>
+        <i style={{ transform: `scaleX(${Math.min(1, size.gates / size.max)})` }} />
+      </i>
+    </div>
   );
 }
 
@@ -293,7 +329,7 @@ export function TeachPanel({ pet }: { pet: Pet }) {
   const max = LESSON_CAPACITY[stage];
   const full = pet.lessons.length >= max;
   const propose = (rule: Rule, reply?: string, source: Source = { kind: "own" }) => {
-    const check = checkLesson(pet.line, stage, pet.lessons, rule);
+    const check = checkLesson(pet.line, stage, pet.lessons, rule, pet.instincts);
     setProposal({ rule: check.ok ? check.program.rules[0]! : rule, source, ...(reply ? { reply } : {}) });
   };
   return (
@@ -302,6 +338,7 @@ export function TeachPanel({ pet }: { pet: Pet }) {
         <p className="label">{t("teach.learned", { name: pet.name })}</p>
         <span className="cap">{t("teach.capacity", { n: pet.lessons.length, max })}</span>
       </div>
+      <GateMeter pet={pet} />
       <Learned pet={pet} />
       <AnimatePresence mode="wait">
         {proposal ? (
