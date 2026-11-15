@@ -50,13 +50,14 @@ export function beatsOfLog(p: Pick<Pet, "pendingLog" | "logMarks">): Array<numbe
 }
 
 /**
- * The last `count` moments of the log, oldest first. `mindFor` returns the brain
- * the pet had for a stretch of lessons (the same one the game ran).
+ * `count` moments of the log ending `back` moments before its newest, oldest
+ * first (back 0 is the latest day, 1440 the day before). `mindFor` returns the
+ * brain the pet had for a stretch of lessons (the same one the game ran).
  */
-export function rewind(pet: Pet, mindFor: (lessons: Rule[]) => Mind, count = 24 * 60): Frame[] {
+export function rewind(pet: Pet, mindFor: (lessons: Rule[]) => Mind, count = 24 * 60, back = 0): Frame[] {
   const segs = logSegments(pet);
   const beats = beatsOfLog(pet);
-  const total = pet.pendingLog.length;
+  const total = Math.max(0, pet.pendingLog.length - back);
   const from = Math.max(0, total - count);
   const frames: Frame[] = [];
   let mem: number[] | null = null;
@@ -70,6 +71,7 @@ export function rewind(pet: Pet, mindFor: (lessons: Rule[]) => Mind, count = 24 
     const fast = programs.map((p) => fastBrain(compileProgram(p)));
     for (const word of seg.words) {
       const index = i++;
+      if (index >= total) break;
       if (index < from) {
         // carry memory forward quickly; each half keeps its own bits
         let off = 0;

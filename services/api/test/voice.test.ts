@@ -62,3 +62,19 @@ describe("the pet's voice", () => {
     expect(await createVoice(client)(req())).toEqual({ ok: false, reason: "error" });
   });
 });
+
+describe("voice route failures stay quiet in the browser", () => {
+  it("answers 200 with ok:false when busy or when the model fails", async () => {
+    const { Hono } = await import("hono");
+    const { withVoice } = await import("../src/server");
+    const { RateLimiter } = await import("../src/limit");
+    const app = withVoice(new Hono(), (async () => ({ ok: false, reason: "error" })) as never, new RateLimiter(1, 600_000));
+    const body = JSON.stringify(req());
+    const first = await app.request("/api/voice", { method: "POST", body, headers: { "content-type": "application/json" } });
+    expect(first.status).toBe(200);
+    expect(await first.json()).toEqual({ ok: false, reason: "error" });
+    const second = await app.request("/api/voice", { method: "POST", body, headers: { "content-type": "application/json" } });
+    expect(second.status).toBe(200);
+    expect(await second.json()).toEqual({ ok: false, reason: "busy" });
+  });
+});

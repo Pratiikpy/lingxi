@@ -119,3 +119,11 @@
   font-size: 13px;
   color: var(--ink);
 }
+.rw-days {
+  display: flex;
+  justify-content: space-between;
+}
+.rw-days .link:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

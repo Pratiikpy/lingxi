@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 import Anthropic from "@anthropic-ai/sdk";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import { cors } from "hono/cors";
 import { z } from "zod";
 import { STARTERS } from "@lingxi/brain";
@@ -66,7 +66,7 @@ export function createApp(client: Anthropic | null, limiter = new RateLimiter(6,
   app.post("/api/teach", async (c) => {
     if (!client) return c.json({ ok: false, reason: "error", detail: "teaching is not configured" }, 503);
     const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
-    if (!limiter.take(ip)) return c.json({ ok: false, reason: "busy" }, 429);
+    if (!limiter.take(ip)) return busy(c);
     let body: z.infer<typeof TeachBody>;
     try {
       body = TeachBody.parse(await c.req.json());
@@ -74,14 +74,14 @@ export function createApp(client: Anthropic | null, limiter = new RateLimiter(6,
       return c.json({ ok: false, reason: "invalid", detail: "bad request" }, 400);
     }
     const result = await teachInWords(client, body as never);
-    return c.json(result, result.ok ? 200 : result.reason === "busy" ? 429 : 200);
+    return result.ok || result.reason !== "busy" ? c.json(result) : busy(c);
   });
 
   const RelayBody = z.object({ line: TeachBody.shape.line, lessons: z.array(RuleSchema).max(8), instincts: z.number().int().min(0).max(15).optional() });
   app.post("/api/tapeout", async (c) => {
     if (!relayer) return c.json({ ok: false, reason: "error", detail: "relaying is not configured" }, 503);
     const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
-    if (!relayLimiter.take(ip)) return c.json({ ok: false, reason: "busy" }, 429);
+    if (!relayLimiter.take(ip)) return busy(c);
     let body: z.infer<typeof RelayBody>;
     try {
       body = RelayBody.parse(await c.req.json());
@@ -89,7 +89,7 @@ export function createApp(client: Anthropic | null, limiter = new RateLimiter(6,
       return c.json({ ok: false, reason: "invalid", detail: "bad request" }, 400);
     }
     const r = await relayer.relay(body.line, body.lessons as never, body.instincts ?? 0);
-    return c.json(r, r.ok ? 200 : r.reason === "budget" ? 429 : 200);
+    return c.json(r);
   });
 
   // a child's brain: REFs to its parents' circuits, or (once taught) to both of its halves
@@ -97,7 +97,7 @@ export function createApp(client: Anthropic | null, limiter = new RateLimiter(6,
   app.post("/api/tapeout-child", async (c) => {
     if (!relayer) return c.json({ ok: false, reason: "error", detail: "relaying is not configured" }, 503);
     const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
-    if (!relayLimiter.take(ip)) return c.json({ ok: false, reason: "busy" }, 429);
+    if (!relayLimiter.take(ip)) return busy(c);
     let body: z.infer<typeof ChildBody>;
     try {
       body = ChildBody.parse(await c.req.json());
@@ -111,7 +111,7 @@ export function createApp(client: Anthropic | null, limiter = new RateLimiter(6,
       if (!card?.family) return c.json({ ok: false, reason: "invalid", detail: "not a child's card" }, 400);
       r = await relayer.relayChild({ family: card.family, lessons: card.lessons });
     }
-    return c.json(r, r.ok ? 200 : r.reason === "budget" ? 429 : 200);
+    return c.json(r);
   });
 
   return app;
@@ -167,11 +167,27 @@ export function withSite(app: Hono, root: string): Hono {
   return app;
 }
 
+/**
+ * A refusal the app expects in normal play (rate limits, the daily tape-out
+ * budget, a pet the history has not reached yet) answers 200 with ok:false, so
+ * the player's browser shows our own message instead of logging a page error.
+ * Malformed requests, which our client never sends, keep their 4xx codes.
+ */
+function busy(c: Context): Response {
+  c.header("Retry-After", "60");
+  return c.json({ ok: false, reason: "busy" });
+}
+
 /** The pet's voice: one line for what its circuit decided (cached per situation). */
 export function withVoice(app: Hono, voice: ReturnType<typeof createVoice>, limiter = new RateLimiter(40, 600_000)): Hono {
   app.post("/api/voice", async (c) => {
     const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
-    if (!limiter.take(ip)) return c.json({ ok: false, reason: "busy" }, 429);
+    // a missing line is normal (the pet falls back to its own words), so busy and
+    // model hiccups answer 200 with ok:false rather than showing up as page errors
+    if (!limiter.take(ip)) {
+      c.header("Retry-After", "60");
+      return c.json({ ok: false, reason: "busy" });
+    }
     if (Number(c.req.header("content-length") ?? 0) > 2048) return c.json({ ok: false, reason: "invalid" }, 413);
     let body;
     try {
@@ -179,8 +195,7 @@ export function withVoice(app: Hono, voice: ReturnType<typeof createVoice>, limi
     } catch {
       return c.json({ ok: false, reason: "invalid" }, 400);
     }
-    const r = await voice(body);
-    return c.json(r, r.ok ? 200 : r.reason === "busy" ? 429 : 502);
+    return c.json(await voice(body));
   });
   return app;
 }
@@ -194,7 +209,7 @@ export function withLibrary(app: Hono, library: Library, writes = new RateLimite
     return c.json({ ok: true, lessons: library.list(40) });
   });
   app.post("/api/lessons/share", async (c) => {
-    if (!writes.take(who(c))) return c.json({ ok: false, reason: "busy" }, 429);
+    if (!writes.take(who(c))) return busy(c);
     let body;
     try {
       body = z.object({ rule: LibraryRule, by: z.string().max(40) }).parse(await c.req.json());
@@ -206,7 +221,7 @@ export function withLibrary(app: Hono, library: Library, writes = new RateLimite
   });
   for (const action of ["use", "report"] as const) {
     app.post(`/api/lessons/${action}`, async (c) => {
-      if (!writes.take(who(c))) return c.json({ ok: false, reason: "busy" }, 429);
+      if (!writes.take(who(c))) return busy(c);
       let body;
       try {
         body = Key.parse(await c.req.json());
@@ -226,7 +241,7 @@ export function withHistory(app: Hono, indexer: Indexer): Hono {
     if (!/^\d{1,12}$/.test(id)) return c.json({ ok: false, reason: "invalid" }, 400);
     c.header("Cache-Control", "public, max-age=20");
     const h = indexer.history(id);
-    return h ? c.json({ ok: true, indexedTo: indexer.head(), ...h }) : c.json({ ok: false, reason: "unknown", indexedTo: indexer.head() }, 404);
+    return h ? c.json({ ok: true, indexedTo: indexer.head(), ...h }) : c.json({ ok: false, reason: "unknown", indexedTo: indexer.head() });
   });
   return app;
 }
@@ -236,7 +251,7 @@ export function withPush(app: Hono, pusher: Pusher, limiter = new RateLimiter(30
   app.get("/api/push/key", (c) => c.json({ key: pusher.publicKey }));
   app.post("/api/push/plan", async (c) => {
     const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
-    if (!limiter.take(ip)) return c.json({ ok: false, reason: "busy" }, 429);
+    if (!limiter.take(ip)) return busy(c);
     if (Number(c.req.header("content-length") ?? 0) > 4096) return c.json({ ok: false, reason: "invalid" }, 413);
     let body;
     try {

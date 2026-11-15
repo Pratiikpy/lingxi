@@ -15,6 +15,7 @@ import { MOOD_NAMES, VALUE_NAMES, WANT_COLORS, WANT_NAMES, decidingChips } from 
 import "./rewind.css";
 
 type Lang = "en" | "zh";
+const DAY = 24 * 60;
 
 const SOURCE: Record<ReturnType<typeof ruleSource>, { en: string; zh: string }> = {
   taught: { en: "something you taught it", zh: "你教它的" },
@@ -60,10 +61,13 @@ function memoryOf(f: Frame, lang: Lang): string[] {
 
 export function RewindPanel({ pet }: { pet: Pet }) {
   const lang = useLang((s) => s.lang) as Lang;
+  // how many days back from the newest moment (each "day" is 24 hours of the log)
+  const [day, setDay] = useState(0);
+  const days = Math.max(1, Math.ceil(pet.pendingLog.length / DAY));
   const frames = useMemo(
-    () => rewind(pet, (lessons) => (pet.family ? { halves: halvesOf(pet.family, lessons) } : { program: programFor(pet.line, lessons, pet.instincts ?? 0) })),
+    () => rewind(pet, (lessons) => (pet.family ? { halves: halvesOf(pet.family, lessons) } : { program: programFor(pet.line, lessons, pet.instincts ?? 0) }), DAY, day * DAY),
     // the replay depends only on the log and the brains it ran on
-    [pet.pendingLog.length, pet.segments, pet.family, pet.line, pet.instincts, pet.logMarks],
+    [pet.pendingLog.length, pet.segments, pet.family, pet.line, pet.instincts, pet.logMarks, day],
   );
   const moments = useMemo(() => momentsOf(frames), [frames]);
   const [at, setAt] = useState<number | null>(null);
@@ -91,7 +95,25 @@ export function RewindPanel({ pet }: { pet: Pet }) {
 
   return (
     <div className="chainpanel rewind">
-      <p className="label">{lang === "zh" ? "倒带：今天它为什么这么做" : "Rewind: why it did what it did today"}</p>
+      <p className="label">
+        {day === 0
+          ? lang === "zh"
+            ? "倒带：最近一天它为什么这么做"
+            : "Rewind: why it did what it did, the last 24 hours"
+          : lang === "zh"
+            ? `倒带：${day} 天前`
+            : `Rewind: ${day} ${day === 1 ? "day" : "days"} earlier`}
+      </p>
+      {days > 1 && (
+        <div className="rw-days">
+          <button type="button" className="link" disabled={day >= days - 1} onClick={() => (play("tap"), setDay((d) => d + 1), setAt(null))}>
+            {lang === "zh" ? "‹ 更早一天" : "‹ Earlier day"}
+          </button>
+          <button type="button" className="link" disabled={day === 0} onClick={() => (play("tap"), setDay((d) => d - 1), setAt(null))}>
+            {lang === "zh" ? "更晚一天 ›" : "Later day ›"}
+          </button>
+        </div>
+      )}
       <div className="rw-track">
         <div className="rw-strip" style={{ backgroundImage: strip }} aria-hidden="true" />
         <input

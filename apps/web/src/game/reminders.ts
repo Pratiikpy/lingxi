@@ -89,11 +89,14 @@ async function sendPlan(sub: PushSubscription, pet: Pet, lang: "en" | "zh", forc
     body: JSON.stringify({ subscription: { endpoint: json.endpoint, keys: json.keys }, lang, name: pet.name.slice(0, 24), tz: -new Date().getTimezoneOffset(), reminders }),
     signal: AbortSignal.timeout(8000),
   });
-  if (r.ok) {
+  // a refusal (busy) comes back as ok:false in the body, not as an HTTP error
+  const j = (await r.json().catch(() => ({ ok: false }))) as { ok?: boolean };
+  const saved = r.ok && j.ok === true;
+  if (saved) {
     lastSig = sig;
     lastSentAt = now;
   }
-  return r.ok;
+  return saved;
 }
 
 export const useReminders = create<RemindState>((set, get) => ({

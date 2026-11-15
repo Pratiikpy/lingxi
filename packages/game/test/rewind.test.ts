@@ -127,3 +127,17 @@ describe("rewinding a spar", () => {
     });
   });
 });
+
+describe("earlier days", () => {
+  it("a window further back ends exactly where the next one starts", () => {
+    const { pet } = liveDay();
+    const mind = (l: never[]) => ({ program: composeProgram("gentle", l, 1) });
+    const latest = rewind(pet, mind as never, 200);
+    const before = rewind(pet, mind as never, 200, 200);
+    expect(before.at(-1)!.index + 1).toBe(latest[0]!.index);
+    // memory carries across the seam
+    const whole = rewind(pet, mind as never, 400);
+    expect(whole[200]!.memory).toEqual(latest[0]!.memory);
+    expect(rewind(pet, mind as never, 200, 1e9)).toEqual([]);
+  });
+});
