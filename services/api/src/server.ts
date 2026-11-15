@@ -21,6 +21,7 @@ import { RateLimiter } from "./limit";
 import { BrainRelayer } from "./relayer";
 import { LiveRooms, attachLive } from "./live";
 import { createDecorStore } from "./decor";
+import { type SittingStore, createSittingStore } from "./sitting";
 import { parseCard } from "@lingxi/game";
 import { PlanSchema, createPusher, type Pusher } from "./push";
 import { VoiceRequest, createVoice } from "./voice";
@@ -201,6 +202,38 @@ export function withVoice(app: Hono, voice: ReturnType<typeof createVoice>, limi
 }
 
 /** The lesson library: shared lessons, most learned first, with the pet that taught each first. */
+/** Pet-sitting packs: leave a pet for a friend, collect it, send it home (the owner's game checks the return). */
+export function withSitting(app: Hono, store: SittingStore, writes = new RateLimiter(30, 3_600_000)): Hono {
+  const who = (c: { req: { header: (n: string) => string | undefined } }) => c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
+  app.post("/api/sit", async (c) => {
+    if (!writes.take(who(c))) return busy(c);
+    if (Number(c.req.header("content-length") ?? 0) > 700_000) return c.json({ ok: false, reason: "tooBig" }, 413);
+    let body;
+    try {
+      body = z.object({ pack: z.string(), keyHash: z.string(), until: z.number() }).parse(await c.req.json());
+    } catch {
+      return c.json({ ok: false, reason: "invalid" }, 400);
+    }
+    return c.json(store.leave(body.pack, body.keyHash, body.until));
+  });
+  app.get("/api/sit/:code", (c) => {
+    const r = store.collect(c.req.param("code"));
+    return c.json(r ? { ok: true, ...r } : { ok: false, reason: "unknown" });
+  });
+  app.post("/api/sit/:code/home", async (c) => {
+    if (!writes.take(who(c))) return busy(c);
+    if (Number(c.req.header("content-length") ?? 0) > 700_000) return c.json({ ok: false, reason: "tooBig" }, 413);
+    let body;
+    try {
+      body = z.object({ key: z.string(), pet: z.string() }).parse(await c.req.json());
+    } catch {
+      return c.json({ ok: false, reason: "invalid" }, 400);
+    }
+    return c.json(store.sendHome(c.req.param("code"), body.key, body.pet) ? { ok: true } : { ok: false, reason: "refused" });
+  });
+  return app;
+}
+
 export function withLibrary(app: Hono, library: Library, writes = new RateLimiter(60, 3_600_000)): Hono {
   const who = (c: { req: { header: (n: string) => string | undefined } }) => c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
   const Key = z.object({ key: z.string().regex(/^[0-9a-f]{24}$/) });
@@ -299,6 +332,7 @@ if (isMain) {
   const app = createApp(client, undefined, relayer, undefined, live);
   if (client) withVoice(app, createVoice(client));
   withLibrary(app, createLibrary(process.env.LINGXI_LIBRARY_STORE));
+  withSitting(app, createSittingStore(process.env.LINGXI_SIT_STORE));
   if (process.env.LINGXI_REGISTRY && process.env.LINGXI_REGISTRY_FROM) {
     const indexer = createIndexer({ rpc: process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech", registry: process.env.LINGXI_REGISTRY as `0x${string}`, fromBlock: Number(process.env.LINGXI_REGISTRY_FROM), store: process.env.LINGXI_HISTORY_STORE });
     withHistory(app, indexer);

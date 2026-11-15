@@ -135,6 +135,13 @@ function store(pet: Pet, rec: ChainRecord | null): void {
     // in memory for this visit
   }
 }
+/** Any pet's chain record on this device, and setting it (pet-sitting moves records between devices). */
+export const recordOf = (pet: Pick<Pet, "bornAt">): ChainRecord | null => records[petKey(pet)] ?? null;
+export function setRecordOf(pet: Pet, rec: ChainRecord | null): void {
+  store(pet, rec);
+  useChain.setState({ record: activeRecord() });
+}
+
 const activeRecord = () => {
   const p = useGame.getState().pet;
   return p ? (records[petKey(p)] ?? null) : null;

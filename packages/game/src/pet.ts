@@ -92,6 +92,10 @@ export interface PetState {
   brain: number[];
   /** rules the owner taught, highest priority first */
   lessons: Rule[];
+  /** owner's side: the pet is staying with a friend (this copy waits, frozen, until it comes home) */
+  away?: { code: string; key: string; until: number; sitter: string | null };
+  /** friend's side: this is someone else's pet staying here; it goes home to its owner */
+  sitting?: { code: string; key: string; until: number; owner: string | null; name: string };
   /** the adult form, decided once by the evolution circuit on the day it grows up */
   form?: "puff" | "blossom" | "dumpling" | "scholar" | "moonpetal";
   /** the four instinct switches chosen at hatching (1 brave · 2 greedy · 4 curious · 8 calm); fixed for life */

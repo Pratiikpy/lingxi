@@ -145,6 +145,10 @@ interface GameState {
   adopt: (child: Pet) => boolean;
   /** replace the active pet after something outside the store changed it (walking, breeding) */
   replace: (p: Pet) => void;
+  /** a friend's pet comes to stay (pet-sitting): added to the roster without counting as a new pet of yours */
+  guest: (p: Pet) => boolean;
+  /** a pet leaves this device (a sat pet going home) */
+  release: (bornAt: number) => void;
   toast: Toast | null;
   /** last care for the scene to animate */
   lastCare: { kind: Care["kind"] | "pet" | "learn"; at: number; food?: string } | null;
@@ -175,6 +179,8 @@ const AWAY_STORY_BEATS = 60;
  * brain, with the small surprises of an absence (see @lingxi/game away.ts).
  */
 function returnTo(p: Pet): { pet: Pet; away: Away | null } {
+  // a pet staying with a friend is frozen here until it comes home
+  if (p.away) return { pet: p, away: null };
   const now = Date.now();
   const from = p.beat;
   const seed = awaySeed(p);
@@ -222,6 +228,21 @@ export const useGame = create<GameState>((set, get) => ({
     save(p);
     set({ pet: p, pets: roster.pets });
   },
+  guest: (p) => {
+    if (roster.pets.length >= MAX_PETS || roster.pets.some((x) => x.bornAt === p.bornAt)) return false;
+    roster = { active: roster.pets.length, pets: [...roster.pets, p] };
+    persist();
+    set({ pet: p, pets: roster.pets, active: roster.active, lastCare: null });
+    return true;
+  },
+  release: (bornAt) => {
+    const pets = roster.pets.filter((x) => x.bornAt !== bornAt);
+    if (pets.length === roster.pets.length) return;
+    const active = Math.min(roster.active, Math.max(0, pets.length - 1));
+    roster = { active, pets };
+    persist();
+    set({ pet: pets[active] ? returnTo(pets[active]!).pet : null, pets, active, lastCare: null });
+  },
   toast: null,
   lastCare: null,
   daily: freshDaily(),
@@ -240,7 +261,7 @@ export const useGame = create<GameState>((set, get) => ({
   },
   act: (c, art) => {
     const { pet } = get();
-    if (!pet) return;
+    if (!pet || pet.away) return;
     const r = care(pet, c, Date.now(), brainOf(pet));
     save(r.pet);
     const metric = CARE_METRIC[r.note];
@@ -266,7 +287,7 @@ export const useGame = create<GameState>((set, get) => ({
   },
   tick: () => {
     const { pet } = get();
-    if (!pet) return;
+    if (!pet || pet.away) return;
     // a tab left hidden for a while comes back like any return, surprises included
     if (beatOf(Date.now()) - pet.beat > 10) return get().wakeUp();
     const next = settleForm(liveBeat(pet, Date.now(), brainOf(pet)), Date.now());
@@ -289,6 +310,8 @@ export const useGame = create<GameState>((set, get) => ({
   learn: (rule, at = "top") => {
     const { pet } = get();
     if (!pet) return { ok: false, reason: "invalid", detail: "no pet" };
+    // a pet away cannot learn here, and a friend's pet is only taught by its owner
+    if (pet.away || pet.sitting) return { ok: false, reason: "notYours", detail: "only its owner teaches it" };
     const caught = catchUp(pet, Date.now(), brainOf(pet));
     const r = teachRule(caught, rule, Date.now());
     if (!r.ok) return { ok: false, reason: r.reason, detail: r.detail };

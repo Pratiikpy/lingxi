@@ -61,7 +61,7 @@ export function SendGiftPanel({ pet }: { pet: Pet }) {
       id: newGiftId(),
       from: { name: pet.name, line: pet.line, stage: stageOf(pet, Date.now()) },
       letter: letter.trim().slice(0, LETTER_MAX),
-      ...(egg ? { egg: { line: pet.line, lessons: pet.lessons } } : {}),
+      ...(egg && !pet.sitting ? { egg: { line: pet.line, lessons: pet.lessons } } : {}),
       ...(item !== null ? { item: { id: item, n: 1 } } : {}),
       at: Date.now(),
     };
@@ -116,8 +116,8 @@ export function SendGiftPanel({ pet }: { pet: Pet }) {
           {letter.length}/{LETTER_MAX}
         </em>
       </label>
-      <label className="gift-check">
-        <input type="checkbox" checked={egg} onChange={(e) => setEgg(e.target.checked)} />
+      <label className="gift-check" hidden={!!pet.sitting}>
+        <input type="checkbox" checked={egg && !pet.sitting} disabled={!!pet.sitting} onChange={(e) => setEgg(e.target.checked)} />
         <span>
           {pet.lessons.length === 0
             ? lang === "zh"

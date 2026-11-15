@@ -454,6 +454,13 @@ export function TeachPanel({ pet }: { pet: Pet }) {
     const check = checkLesson(pet.line, stage, pet.lessons, rule, pet.instincts);
     setProposal({ rule: check.ok ? check.program.rules[0]! : rule, source, ...(reply ? { reply } : {}) });
   };
+  if (pet.sitting || pet.away)
+    return (
+      <div className="teach">
+        <CuteState who={{ pet, expression: "shy" }} text={lang === "zh" ? `${pet.name}是朋友托你照看的，只有它的主人能教它。` : `${pet.name} is a friend's pet staying with you; only its owner teaches it.`} />
+        <Sandbox pet={pet} />
+      </div>
+    );
   return (
     <div className="teach">
       <div className="teach-head">

@@ -25,6 +25,8 @@ const today = (p: Pet) => dayOf(p, Date.now());
 
 /** Why this pet cannot start a family right now, or null if it can. */
 export function familyBlock(pet: Pet, partnerStage: string, lang: Lang): string | null {
+  // families belong to owners: a pet staying with a friend, or away at one, waits
+  if (pet.sitting || pet.away) return lang === "zh" ? `${pet.name}正在朋友家做客，回家后才能养小宝宝。` : `${pet.name} is staying away from home; little ones wait until it is back with its owner.`;
   const r = canBreed(
     { stage: stageOf(pet, Date.now()), generation: pet.family?.generation ?? 0, ...(pet.lastBredDay !== undefined ? { lastBredDay: pet.lastBredDay } : {}) },
     { stage: (["baby", "child", "teen", "adult", "elder"].includes(partnerStage) ? partnerStage : "baby") as "baby" },

@@ -1190,3 +1190,25 @@
   gap: 12px;
   margin-left: 12px;
 }
+.away-card {
+  position: absolute;
+  inset: auto 12px 12px 12px;
+  z-index: 5;
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 2px solid #2b2140;
+  border-radius: 16px;
+  background: rgba(255, 253, 248, 0.97);
+  box-shadow: 0 4px 0 #2b2140;
+}
+.away-card p {
+  margin: 0;
+}
+.away-card .row {
+  flex-wrap: wrap;
+}
+.sitpanel .row {
+  align-items: center;
+  gap: 8px;
+}

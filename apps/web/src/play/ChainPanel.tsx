@@ -36,6 +36,29 @@ export function ChainPanel({ pet }: { pet: Pet }) {
   const busyText = busy === "connecting" ? t("chain.connecting") : busy === "hatching" ? t("chain.hatching") : busy === "saving" ? t("chain.saving") : busy === "taping" ? t("chain.taping") : busy === "auto" ? t("auto.saving") : null;
   const mindBehind = record && (record.brainKey ?? mindKey([])) !== mindKey(pet.lessons, pet.instincts);
   const err = error ? t(ERR[error] ?? "chain.failed") : null;
+  // a friend's pet: the sitter may save its day (PetRegistry lets the named sitter), and nothing else here
+  if (pet.sitting || pet.away)
+    return (
+      <div className="chainpanel onchain">
+        <p className="label">{t("chain.title")}</p>
+        {record && pet.sitting ? (
+          <>
+            <div className="chain-row">
+              <b>{t("chain.id", { id: record.petId })}</b>
+              <span>{record.lastDay ? t("chain.saved", { n: record.lastDay }) : t("chain.never")}</span>
+            </div>
+            <p className="small">{lang === "zh" ? "如果主人把你的钱包设为了照看人，你可以帮它存今天的档。" : "If its owner named your wallet as its sitter on chain, you can save its day."}</p>
+            <button type="button" className="btn primary" disabled={busy !== "idle"} onClick={() => (play("tap"), saveToday(pet, () => (play("success"), say("saved"))))}>
+              {t("chain.save")}
+            </button>
+            {busyText && <p className="small">{busyText}</p>}
+            {err && <p className="small sp-warn">{err}</p>}
+          </>
+        ) : (
+          <p className="small">{pet.away ? (lang === "zh" ? "它不在家，回来后再存档。" : "It is away; saving waits until it is home.") : lang === "zh" ? "它还不在链上，这要由它的主人来做。" : "It isn't on chain yet; that is for its owner to do."}</p>
+        )}
+      </div>
+    );
   return (
     <div className="chainpanel onchain">
       <p className="label">{t("chain.title")}</p>

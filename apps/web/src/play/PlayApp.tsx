@@ -32,6 +32,7 @@ import { DiaryPanel } from "./Diary";
 import { RewindPanel } from "./Rewind";
 import { DuelArrival } from "./Duel";
 import { WelcomeBack } from "./Welcome";
+import { AwayCard, SitArrival, SitPanel } from "./Sitting";
 import { type Gated, OPENS_ON, isOpen, useReveal } from "../game/reveal";
 import { GiftArrival, SendGiftPanel } from "./Gift";
 import { PacketArrival, RedPacketPanel } from "./RedPacket";
@@ -265,6 +266,7 @@ export function PlayApp() {
         <GiftArrival />
         <PacketArrival />
         <DuelArrival hasPet={false} />
+        <SitArrival />
       </>
     );
   }
@@ -366,6 +368,7 @@ export function PlayApp() {
             <Icon name="mind" size={22} />
           </button>
           <ToastView toast={toast} name={pet.name} />
+          {pet.away && <AwayCard pet={pet} />}
           <AnimatePresence>
             {worldMsg && (
               <motion.div
@@ -482,6 +485,7 @@ export function PlayApp() {
       />
       <NewbornDialog pet={pet} />
       <WelcomeBack pet={pet} />
+      <SitArrival />
 
       <Sheet open={tab === "bag"} title={t("bag.title")} onClose={close}>
         <BagPanel onFed={close} />
@@ -524,6 +528,8 @@ export function PlayApp() {
         <FamilyTree pet={pet} />
         <hr className="divider" />
         <InvitePanel />
+        <hr className="divider" />
+        <SitPanel pet={pet} />
         <hr className="divider" />
         <OnChainNote lang={lang} />
         <hr className="divider" />
