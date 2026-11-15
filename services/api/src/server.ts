@@ -22,6 +22,7 @@ import { BrainRelayer } from "./relayer";
 import { LiveRooms, attachLive } from "./live";
 import { createDecorStore } from "./decor";
 import { type SittingStore, createSittingStore } from "./sitting";
+import { type ArenaStore, createArenaStore } from "./arena";
 import { parseCard } from "@lingxi/game";
 import { PlanSchema, createPusher, type Pusher } from "./push";
 import { VoiceRequest, createVoice } from "./voice";
@@ -234,6 +235,31 @@ export function withSitting(app: Hono, store: SittingStore, writes = new RateLim
   return app;
 }
 
+/** Arena snapshots: save the line fielded at a round; meet another player's line at the same round. */
+export function withArena(app: Hono, store: ArenaStore, writes = new RateLimiter(120, 3_600_000)): Hono {
+  const who = (c: { req: { header: (n: string) => string | undefined } }) => c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
+  app.post("/api/arena/snapshot", async (c) => {
+    if (!writes.take(who(c))) return busy(c);
+    if (Number(c.req.header("content-length") ?? 0) > 16_000) return c.json({ ok: false, reason: "tooBig" }, 413);
+    let body;
+    try {
+      body = z.object({ round: z.number().int(), pet: z.unknown(), team: z.unknown(), device: z.string() }).parse(await c.req.json());
+    } catch {
+      return c.json({ ok: false, reason: "invalid" }, 400);
+    }
+    const r = store.save(body.round, body.pet, body.team, body.device);
+    return c.json(r, r.ok ? 200 : 400);
+  });
+  app.get("/api/arena/opponent", (c) => {
+    const round = Number(c.req.query("round"));
+    const device = c.req.query("device") ?? "";
+    if (!Number.isInteger(round) || round < 0 || device.length < 8 || device.length > 64) return c.json({ ok: false, reason: "invalid" }, 400);
+    const s = store.pick(round, device);
+    return c.json(s ? { ok: true, ...s } : { ok: false, reason: "none" });
+  });
+  return app;
+}
+
 export function withLibrary(app: Hono, library: Library, writes = new RateLimiter(60, 3_600_000)): Hono {
   const who = (c: { req: { header: (n: string) => string | undefined } }) => c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
   const Key = z.object({ key: z.string().regex(/^[0-9a-f]{24}$/) });
@@ -333,6 +359,7 @@ if (isMain) {
   if (client) withVoice(app, createVoice(client));
   withLibrary(app, createLibrary(process.env.LINGXI_LIBRARY_STORE));
   withSitting(app, createSittingStore(process.env.LINGXI_SIT_STORE));
+  withArena(app, createArenaStore(process.env.LINGXI_ARENA_STORE));
   if (process.env.LINGXI_REGISTRY && process.env.LINGXI_REGISTRY_FROM) {
     const indexer = createIndexer({ rpc: process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech", registry: process.env.LINGXI_REGISTRY as `0x${string}`, fromBlock: Number(process.env.LINGXI_REGISTRY_FROM), store: process.env.LINGXI_HISTORY_STORE });
     withHistory(app, indexer);

@@ -350,3 +350,15 @@
     border-right: 2px dashed rgba(43, 33, 64, 0.25);
   }
 }
+.ar-fight .sp-head {
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+.ar-fight .sp-head .link {
+  white-space: nowrap;
+}
+.ar-foe {
+  order: 3;
+  flex-basis: 100%;
+  color: var(--ink-soft);
+}

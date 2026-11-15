@@ -21,8 +21,12 @@ import {
   type RunState,
   type TeamResult,
   type TeamUnit,
+  type DuelPet,
   battleSeed,
   buy,
+  dayOf,
+  duelFighter,
+  petCard,
   fighterFrom,
   fighterOfMind,
   ghostLevel,
@@ -39,6 +43,7 @@ import {
 } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { RUN_WIN_COINS, useRun } from "../game/arenarun";
+import { type Rival, findRival, saveLine } from "../game/arenaApi";
 import { useWorld } from "../game/world";
 import { useBadges } from "../game/badges";
 import { play } from "../game/sound";
@@ -93,6 +98,22 @@ function petUnit(pet: Pet): TeamUnit {
   return { id: "pet", name: pet.name, brain: f.brain, memory: f.memory, hp: PET_HP, level: f.level };
 }
 
+function RivalArt({ pet, scale, face = "happy" }: { pet: DuelPet; scale: number; face?: Expression }) {
+  const drawn = pet.stage === "elder" ? "adult" : pet.stage;
+  const canvas = useMemo(() => drawPet(pet.line, drawn as "baby", { expression: face }), [pet.line, drawn, face]);
+  return <Art canvas={canvas} palette={PALETTE_OF[pet.line]} scale={scale} label={pet.name} />;
+}
+
+/** the pet as it travels to the arena: its name, body and card (lessons, instincts, family, memory) */
+function linePet(pet: Pet): DuelPet {
+  return { name: pet.name, line: pet.line, stage: stageOf(pet, Date.now()), card: petCard(pet), story: { days: dayOf(pet, Date.now()), lessons: pet.lessons.length, nature: [] } };
+}
+
+function rivalUnit(p: DuelPet): TeamUnit {
+  const f = duelFighter(p);
+  return { id: "rival", name: p.name, brain: f.brain, memory: f.memory, hp: PET_HP, level: f.level };
+}
+
 /** The entry card on the arena screen. */
 export function RunCard({ onOpen }: { onOpen: () => void }) {
   const lang = useLang((s) => s.lang) as Lang;
@@ -142,7 +163,8 @@ export function RunView({ pet, onClose }: { pet: Pet; onClose: () => void }) {
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
   const { run, begin, step, put, finish, abandon } = useRun();
   const [note, setNote] = useState("");
-  const [battle, setBattle] = useState<{ result: TeamResult; foe: string[]; edge: number; before: RunState } | null>(null);
+  const [battle, setBattle] = useState<{ result: TeamResult; foe: string[]; edge: number; rival?: DuelPet; before: RunState } | null>(null);
+  const [finding, setFinding] = useState(false);
   useEffect(() => {
     if (!run) begin();
   }, [run, begin]);
@@ -155,14 +177,29 @@ export function RunView({ pet, onClose }: { pet: Pet; onClose: () => void }) {
     play(why ? "error" : sound);
   };
 
-  const fight = () => {
-    const foe = ghostTeam(run.seed, run.round);
-    const edge = ghostLevel(run.round);
-    const mine = [petUnit(pet), ...run.team.map((id, i) => companionUnit(id, i))];
-    const theirs = foe.map((id, i) => companionUnit(id, i, edge));
+  const fight = async () => {
+    if (finding) return;
     play("tap");
     setNote("");
-    setBattle({ result: teamSpar(mine, theirs, battleSeed(run)), foe, edge, before: run });
+    setFinding(true);
+    const before = run;
+    // the line goes up for later players at this round; then look for someone else's
+    saveLine(before.round, linePet(pet), before.team);
+    let rival: Rival | null = await findRival(before.round);
+    let theirs: TeamUnit[] = [];
+    if (rival) {
+      try {
+        theirs = [rivalUnit(rival.pet), ...rival.team.map((id, i) => companionUnit(id, i))];
+      } catch {
+        rival = null;
+      }
+    }
+    const foe = rival ? rival.team : ghostTeam(before.seed, before.round);
+    const edge = rival ? 0 : ghostLevel(before.round);
+    if (!rival) theirs = foe.map((id, i) => companionUnit(id, i, edge));
+    const mine = [petUnit(pet), ...before.team.map((id, i) => companionUnit(id, i))];
+    setFinding(false);
+    setBattle({ result: teamSpar(mine, theirs, battleSeed(before)), foe, edge, ...(rival ? { rival: rival.pet } : {}), before });
   };
 
   if (battle)
@@ -172,6 +209,7 @@ export function RunView({ pet, onClose }: { pet: Pet; onClose: () => void }) {
         mine={battle.before.team}
         foe={battle.foe}
         edge={battle.edge}
+        rival={battle.rival}
         result={battle.result}
         round={battle.before.round}
         onDone={() => {
@@ -313,8 +351,8 @@ export function RunView({ pet, onClose }: { pet: Pet; onClose: () => void }) {
         <button type="button" className="btn" disabled={run.coins < ROLL_COST} onClick={() => act(roll(run))}>
           {L(`Roll · ${ROLL_COST}`, `换一批 · ${ROLL_COST}`)}
         </button>
-        <button type="button" className="btn primary" onClick={fight}>
-          {L("Battle!", "开战！")}
+        <button type="button" className="btn primary" disabled={finding} onClick={() => void fight()}>
+          {finding ? L("Finding a rival…", "正在找对手……") : L("Battle!", "开战！")}
         </button>
       </div>
       <p className="small ar-note" aria-live="polite">
@@ -324,15 +362,16 @@ export function RunView({ pet, onClose }: { pet: Pet; onClose: () => void }) {
   );
 }
 
-function TeamFight({ pet, mine, foe, edge, result, round, onDone }: { pet: Pet; mine: string[]; foe: string[]; edge: number; result: TeamResult; round: number; onDone: () => void }) {
+function TeamFight({ pet, mine, foe, edge, rival, result, round, onDone }: { pet: Pet; mine: string[]; foe: string[]; edge: number; rival?: DuelPet; result: TeamResult; round: number; onDone: () => void }) {
   const lang = useLang((s) => s.lang) as Lang;
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
   const reduce = useReducedMotion() ?? false;
   const [shown, setShown] = useState(0);
   const finished = shown >= result.rounds.length;
   const r = shown > 0 ? result.rounds[shown - 1]! : null;
-  const ids: [string[], string[]] = [["pet", ...mine], foe];
-  const maxHp = (s: 0 | 1, u: number) => (s === 0 && u === 0 ? PET_HP : COMPANION[ids[s][u]!]!.hp);
+  const ids: [string[], string[]] = [["pet", ...mine], rival ? ["rival", ...foe] : foe];
+  const isPet = (s: 0 | 1, u: number) => u === 0 && (s === 0 || !!rival);
+  const maxHp = (s: 0 | 1, u: number) => (isPet(s, u) ? PET_HP : COMPANION[ids[s][u]!]!.hp);
   const hpOf = (s: 0 | 1, u: number) => (r ? r.hp[s][u]! : maxHp(s, u));
   const done = useRef(false);
   const wide = typeof window !== "undefined" && window.matchMedia("(min-width: 700px)").matches;
@@ -373,7 +412,13 @@ function TeamFight({ pet, mine, foe, edge, result, round, onDone }: { pet: Pet; 
               <i style={{ transform: `scaleX(${hpOf(s, u) / maxHp(s, u)})` }} />
             </span>
             <motion.div key={`${u}-${shown}`} animate={hit && !reduce ? { x: [0, s === 0 ? -5 : 5, 0] } : m === "pounce" && front && !reduce ? { x: [0, s === 0 ? 10 : -10, 0] } : {}} transition={{ duration: 0.32 }}>
-              {s === 0 && u === 0 ? <PetArt pet={pet} scale={front ? big : small} face={face(0, 0)} /> : <CompanionArt id={id} scale={front ? big : small} face={face(s, u)} />}
+              {s === 0 && u === 0 ? (
+                <PetArt pet={pet} scale={front ? big : small} face={face(0, 0)} />
+              ) : s === 1 && u === 0 && rival ? (
+                <RivalArt pet={rival} scale={front ? big : small} face={face(1, 0)} />
+              ) : (
+                <CompanionArt id={id} scale={front ? big : small} face={face(s, u)} />
+              )}
             </motion.div>
             <AnimatePresence>
               {hit > 0 && (
@@ -394,7 +439,9 @@ function TeamFight({ pet, mine, foe, edge, result, round, onDone }: { pet: Pet; 
     <div className="ar-fight">
       <div className="sp-head">
         <span>{L(`Battle ${round + 1} · round ${Math.max(1, shown)}`, `第 ${round + 1} 场 · 第 ${Math.max(1, shown)} 回合`)}</span>
-        {edge > 0 && <span className="small">{L(`Veteran team (+${edge})`, `老练的队伍（+${edge}）`)}</span>}
+        <span className="small ar-foe">
+          {rival ? L(`vs ${rival.name}'s team · a real player's line`, `对手：${rival.name}的队伍 · 真实玩家的阵容`) : edge > 0 ? L(`Ghost team, veterans (+${edge})`, `幽灵队伍，老练（+${edge}）`) : L("Ghost team", "幽灵队伍")}
+        </span>
         {!finished && (
           <button type="button" className="link" onClick={() => setShown(result.rounds.length)}>
             {L("Skip to result", "跳到结果")}
