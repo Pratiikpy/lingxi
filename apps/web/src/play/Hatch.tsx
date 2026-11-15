@@ -5,7 +5,8 @@ import { useMemo, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { SHELL, drawEgg, drawPet } from "@lingxi/art";
 import type { StarterLine } from "@lingxi/brain";
-import { INSTINCTS, type Instinct, instinctBits } from "@lingxi/game";
+import { compileProgram, netlistBytes } from "@lingxi/brain";
+import { INSTINCTS, type Instinct, composeProgram, instinctBits, nameFromBrain } from "@lingxi/game";
 import { useLang, useT, type Key } from "../i18n";
 import { play } from "../game/sound";
 import { PALETTE_OF } from "../scene/textures";
@@ -13,19 +14,21 @@ import { Sprite } from "./Sprite";
 import "./hatch.css";
 
 const LINES: readonly StarterLine[] = ["gentle", "bold", "curious"];
-const NAMES = {
-  en: ["Mochi", "Tofu", "Biscuit", "Pip", "Momo", "Bean", "Dumpling", "Sora", "Kiki", "Plum"],
-  zh: ["团子", "豆腐", "麻薯", "小圆", "桃桃", "汤圆", "布丁", "糖糖", "饺子", "芝麻"],
-};
 
 export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string, instincts: number) => void }) {
   const t = useT();
   const { lang } = useLang();
   const reduce = useReducedMotion();
   const [line, setLine] = useState<StarterLine>("gentle");
-  const [name, setName] = useState(() => NAMES[lang][Math.floor(Math.random() * NAMES[lang].length)]!);
+  // the suggested name is read from the chosen egg's own circuit (PRD F14); once the player types, it is theirs
+  const [draw, setDraw] = useState(0);
+  const [typed, setTyped] = useState<string | null>(null);
   const [cracking, setCracking] = useState(-1);
   const [instincts, setInstincts] = useState<Instinct[]>([]);
+  const circuit = useMemo(() => netlistBytes(compileProgram(composeProgram(line, [], instinctBits(instincts)))), [line, instincts]);
+  const suggested = useMemo(() => nameFromBrain(circuit, draw), [circuit, draw]);
+  const name = typed ?? suggested[lang === "zh" ? "zh" : "en"];
+  const setName = (v: string) => setTyped(v);
   const toggle = (k: Instinct) => {
     play("tap");
     setInstincts((on) => (on.includes(k) ? on.filter((x) => x !== k) : [...on, k]));
@@ -41,8 +44,8 @@ export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string, 
     [],
   );
   const shuffle = () => {
-    const pool = NAMES[lang].filter((n) => n !== name);
-    setName(pool[Math.floor(Math.random() * pool.length)]!);
+    setTyped(null);
+    setDraw((d) => d + 1);
     play("tap");
   };
   const hatch = () => {
@@ -109,6 +112,7 @@ export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string, 
           </fieldset>
           <div className="name-row">
             <label htmlFor="pet-name">{t("hatch.name")}</label>
+            <p className="name-from">{typed === null ? (lang === "zh" ? `从它的电路读出来的名字 · ${suggested.from}` : `Read from its circuit · ${suggested.from}`) : lang === "zh" ? "你起的名字" : "Your own name"}</p>
             <div className="name-field">
               <input id="pet-name" value={name} maxLength={12} onChange={(e) => setName(e.target.value)} autoComplete="off" spellCheck={false} />
               <button type="button" className="shuffle" onClick={shuffle}>

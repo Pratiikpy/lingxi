@@ -20,3 +20,4 @@ export * from "./budget";
 export * from "./school";
 export * from "./daily";
 export * from "./away";
+export * from "./names";
