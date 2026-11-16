@@ -13,7 +13,9 @@ describe("the wardrobe", () => {
       for (const x of r.ins) expect(ITEM[x.item]).toBeTruthy();
       expect(r.kind === "outfit" ? PIECES[r.id] : DECOR_BY_ID[r.id]).toBeTruthy();
     }
-    for (const id of Object.keys(PIECES)) if (id !== "laurel") expect(MAKE_RECIPES.some((r) => r.id === id && r.kind === "outfit")).toBe(true);
+    // every piece can be sewn, except the champion's laurel and the keepsakes the story quests give
+    for (const [id, p] of Object.entries(PIECES)) if (id !== "laurel" && p.set !== "story" && p.set !== "lane") expect(MAKE_RECIPES.some((r) => r.id === id && r.kind === "outfit"), id).toBe(true);
+    for (const [id, p] of Object.entries(PIECES)) if (p.set === "story" || p.set === "lane") expect(MAKE_RECIPES.some((r) => r.id === id), id).toBe(false);
   });
 
   it("sewing spends the materials once and the piece is owned; it cannot be sewn twice", () => {

@@ -15,7 +15,7 @@ describe("decorating the home", () => {
 
   it("places owned pieces inside the room, moves a placed piece, removes it, and caps the count", () => {
     let w = rich();
-    for (const d of DECOR) w = (buyDecor(w, d.id) as { world: typeof w }).world;
+    for (const d of DECOR.filter((x) => !x.gift)) w = (buyDecor(w, d.id) as { world: typeof w }).world;
     expect(placeDecor(newWorld("s"), "fern", 10, 10)).toEqual({ ok: false, reason: "notOwned" });
     w = (placeDecor(w, "fern", -50, 500) as { world: typeof w }).world;
     expect(decorOf(w).placed).toEqual([{ id: "fern", x: 6, y: 124 }]);
@@ -23,15 +23,20 @@ describe("decorating the home", () => {
     expect(decorOf(w).placed).toEqual([{ id: "fern", x: 60, y: 100 }]);
     w = (removeDecor(w, "fern") as { world: typeof w }).world;
     expect(decorOf(w).placed).toHaveLength(0);
-    for (const d of DECOR.slice(0, MAX_PLACED)) w = (placeDecor(w, d.id, 50, 100) as { world: typeof w }).world;
-    expect(decorOf(w).placed).toHaveLength(Math.min(MAX_PLACED, DECOR.length));
+    const sold = DECOR.filter((x) => !x.gift);
+    for (const d of sold.slice(0, MAX_PLACED)) w = (placeDecor(w, d.id, 50, 100) as { world: typeof w }).world;
+    expect(decorOf(w).placed).toHaveLength(Math.min(MAX_PLACED, sold.length));
   });
 
   it("every piece is drawn with known colours and a fair price", () => {
     for (const d of DECOR) {
       for (const row of d.rows) for (const ch of row) if (ch !== ".") expect(d.colors[ch], `${d.id} ${ch}`).toBeTruthy();
-      expect(d.price).toBeGreaterThan(0);
       expect(d.name.en && d.name.zh).toBeTruthy();
+      // the shop's pieces have a fair price; a quest keepsake is never sold
+      if (d.gift) {
+        expect(d.price).toBe(0);
+        expect(buyDecor({ ...newWorld("s"), coins: 9999 }, d.id)).toEqual({ ok: false, reason: "notSold" });
+      } else expect(d.price).toBeGreaterThan(0);
     }
   });
 });

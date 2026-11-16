@@ -27,6 +27,21 @@ export const PIECES: Readonly<Record<string, { slot: WearSlot; set: string }>> =
   flag: { slot: "held", set: "winter" },
   lantern: { slot: "held", set: "royal" },
   sunflower: { slot: "held", set: "scholar" },
+  // keepsakes from the story quests (plan 4.2): only given, never sold or sewn
+  charm: { slot: "head", set: "story" },
+  ribbon: { slot: "head", set: "story" },
+  ranger: { slot: "head", set: "story" },
+  nurse: { slot: "head", set: "story" },
+  headband: { slot: "head", set: "story" },
+  dream: { slot: "head", set: "story" },
+  goggles: { slot: "face", set: "story" },
+  net: { slot: "held", set: "story" },
+  whistle: { slot: "held", set: "story" },
+  seal: { slot: "held", set: "story" },
+  // Builders' Lane pieces a player can be given (drawn in @lingxi/art builders.ts)
+  "b:telescope": { slot: "held", set: "lane" },
+  "b:hardhat": { slot: "head", set: "lane" },
+  "b:handheld": { slot: "held", set: "lane" },
 };
 
 export interface MakeRecipe {

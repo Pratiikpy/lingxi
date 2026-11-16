@@ -47,7 +47,7 @@ export function DecorBar({ selected, onSelect, onDone }: { selected: string | nu
       </div>
       <p className="decor-hint">{t("decor.hint")}</p>
       <ul className="decor-list">
-        {DECOR.map((p) => {
+        {DECOR.filter((p) => !p.gift || d.owned.includes(p.id)).map((p) => {
           const owned = d.owned.includes(p.id);
           const placed = d.placed.some((x) => x.id === p.id);
           return (

@@ -1,14 +1,18 @@
-/** A preview of every line and stage (and the adult forms) wearing each outfit, at 4×, to out/wear.png. */
+/** A preview of every line and stage (and the adult forms) wearing each outfit, at 4×, to out/wear.png. `--story` previews the quest keepsakes instead, to out/story.png. */
 import { writeFileSync } from "node:fs";
 import { PNG } from "pngjs";
 import { CORAL, SKY, SUNNY } from "../src/palettes";
 import { toRgba } from "../src/pixel";
 import { FORMS, drawPet } from "../src/pets";
 import { type Outfit, paintOverlay, wearOverlay } from "../src/wear";
+import "../src/builders";
 
 const S = 4;
 const lines = [["gentle", CORAL], ["bold", SUNNY], ["curious", SKY]] as const;
-const outfits: Outfit[] = [{}, { head: "sunhat", face: "hearts", held: "balloon" }, { head: "beanie", held: "flag" }, { head: "crown", face: "shades", held: "lantern" }, { face: "glasses", held: "sunflower", head: "bow" }, { head: "laurel" }];
+const story = process.argv.includes("--story");
+const outfits: Outfit[] = story
+  ? [{ head: "charm", held: "net" }, { head: "ribbon", face: "goggles", held: "whistle" }, { head: "ranger", held: "seal" }, { head: "nurse" }, { head: "headband", held: "whistle" }, { head: "dream", face: "goggles", held: "net" }, { head: "b:hardhat", held: "b:telescope" }]
+  : [{}, { head: "sunhat", face: "hearts", held: "balloon" }, { head: "beanie", held: "flag" }, { head: "crown", face: "shades", held: "lantern" }, { face: "glasses", held: "sunflower", head: "bow" }, { head: "laurel" }];
 const rows: Array<[typeof lines[number], "baby" | "child" | "teen" | "adult", (typeof FORMS)[number]]> = [];
 for (const l of lines) {
   for (const st of ["baby", "child", "teen", "adult"] as const) rows.push([l, st, "puff"]);
@@ -32,5 +36,6 @@ rows.forEach(([[line, pal], stage, form], r) => {
     }
   });
 });
-writeFileSync(new URL("../out/wear.png", import.meta.url), PNG.sync.write(png));
-console.log("wrote out/wear.png", png.width, png.height);
+const out = story ? "story.png" : "wear.png";
+writeFileSync(new URL(`../out/${out}`, import.meta.url), PNG.sync.write(png));
+console.log(`wrote out/${out}`, png.width, png.height);
