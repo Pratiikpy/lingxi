@@ -116,7 +116,7 @@ export const ARC_2_TO_5: QuestDef[] = [
     title: T("Praline's secret", "糖霜的秘密"),
     opensWhen: T("Praline trusts you a little more each time you help her.", "你每帮糖霜一次，她就更信任你一点。"),
     intro: [say(M.flat, "You keep coming back. Fine. When I trust you enough, I'll tell you a recipe I don't sell.", "你总是回来。好吧。等我足够信任你，我就告诉你一个我不卖的配方。")],
-    outro: [say(M.pity, "Butterfly mochi. My grandmother's. Tell anyone and I'll raise your prices.", "蝴蝶麻糬。我外婆的。告诉别人的话，我就给你涨价。")],
+    outro: [say(M.pity, "Butterfly mochi. My grandmother's. Tell anyone and I'll raise your prices.", "蝴蝶麻薯。我外婆的。告诉别人的话，我就给你涨价。")],
     objectives: [obj(ever("TRUST_LEVEL", "praline", 3), "Reach trust level 3 with Praline", "和糖霜的信任达到 3 级")],
     rewards: [coins(30), recipe(20001)],
   }),

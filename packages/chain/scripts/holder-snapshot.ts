@@ -125,32 +125,34 @@ async function balancesOf(name: "bem" | "fab"): Promise<Map<string, bigint>> {
   return bal;
 }
 
+/** One read, tried on each endpoint in turn with growing pauses: the public endpoints refuse bursts. */
+async function withRetry<T>(what: string, read: (c: (typeof clients)[number]) => Promise<T>): Promise<T> {
+  for (let k = 0; k < 12; k++) {
+    try {
+      return await read(clients[k % clients.length]!);
+    } catch {
+      await sleep(500 * (k + 1));
+    }
+  }
+  throw new Error(`${what} kept failing`);
+}
+
 async function main() {
   const [bem, fab] = [await balancesOf("bem"), await balancesOf("fab")];
   // every rebuilt balance must equal the token's own balanceOf at the snapshot block
-  const c = clients[0]!;
   for (const [name, m] of [["bem", bem], ["fab", fab]] as const) {
     const addrs = [...m.keys()];
     for (let i = 0; i < addrs.length; i += 50) {
       const part = addrs.slice(i, i + 50);
       const got = await Promise.all(
-        part.map(async (a) => {
-          for (let k = 0; k < 10; k++) {
-            try {
-              return (await clients[k % clients.length]!.readContract({ address: TOKENS[name].address, abi: erc20Abi, functionName: "balanceOf", args: [a as Address], blockNumber: block })) as bigint;
-            } catch {
-              await sleep(500 * (k + 1));
-            }
-          }
-          throw new Error(`balanceOf ${a} kept failing`);
-        }),
+        part.map((a) => withRetry(`balanceOf ${a}`, async (c) => (await c.readContract({ address: TOKENS[name].address, abi: erc20Abi, functionName: "balanceOf", args: [a as Address], blockNumber: block })) as bigint)),
       );
       part.forEach((a, j) => {
         if (got[j] !== m.get(a)) throw new Error(`${name} balance of ${a} rebuilt as ${m.get(a)} but the token says ${got[j]}`);
       });
     }
     const sum = [...m.values()].reduce((s, v) => s + v, 0n);
-    const supply = (await c.readContract({ address: TOKENS[name].address, abi: erc20Abi, functionName: "totalSupply", blockNumber: block })) as bigint;
+    const supply = await withRetry(`${name} totalSupply`, async (c) => (await c.readContract({ address: TOKENS[name].address, abi: erc20Abi, functionName: "totalSupply", blockNumber: block })) as bigint);
     if (sum !== supply) throw new Error(`${name}: rebuilt balances sum to ${sum} but totalSupply is ${supply}`);
     console.log(`${name}: ${m.size} holders, balances sum to totalSupply ${supply}`);
   }

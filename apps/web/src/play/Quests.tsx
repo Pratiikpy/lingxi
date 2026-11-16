@@ -70,8 +70,10 @@ export function rewardText(r: Reward, lang: Lang): string | null {
     case "decor":
       return DECOR_BY_ID[r.id]?.name[lang] ?? r.id;
     case "recipe": {
+      // named by what it makes, the way the quest's own lines talk about it
       const t = TRAVEL_RECIPES.find((x) => x.index === r.index);
-      return t ? (zh ? `配方：${t.name.zh}` : `Recipe: ${t.name.en}`) : null;
+      const made = t ? ITEM[t.out]?.name : undefined;
+      return made ? (zh ? `配方：${made.zh}` : `Recipe: ${made.en}`) : null;
     }
     case "flag":
       return null; // a flag opens something in the story; the closing lines say what
@@ -286,11 +288,18 @@ export function QuestDialog() {
   const world = useWorld((s) => s.world);
   const q = open ? QUEST_BY_ID[open] : undefined;
   const [mode, setMode] = useState<"offer" | "ready" | "closing" | "active">("offer");
+  // development only: ?quest=<id>&lines=intro|outro opens any quest's dialog, to read every line in the game
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const id = new URLSearchParams(location.search).get("quest");
+    if (id && QUEST_BY_ID[id]) setOpen(id);
+  }, [setOpen]);
   const [at, setAt] = useState(0);
   useEffect(() => {
     if (!open) return;
     const st = allStatuses()[open];
-    setMode(st === "ready" ? "ready" : st === "active" ? "active" : "offer");
+    const forced = import.meta.env.DEV ? new URLSearchParams(location.search).get("lines") : null;
+    setMode(forced === "outro" ? "closing" : forced === "intro" ? "offer" : st === "ready" ? "ready" : st === "active" ? "active" : "offer");
     setAt(0);
   }, [open]);
   const progress = useMemo(() => (q && (mode === "active" || mode === "ready") ? questProgress(q, world, conditionView()) : null), [q, mode, world]);
