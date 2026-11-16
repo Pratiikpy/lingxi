@@ -113,7 +113,7 @@ export function dropQuest(w: WorldState, q: QuestDef): WorldResult {
 }
 
 /** Pay one reward into the world. Unknown pieces or decor are the sheet check's job; here they are just added. */
-function pay(w: WorldState, r: Reward): WorldState {
+export function payReward(w: WorldState, r: Reward): WorldState {
   switch (r.kind) {
     case "coins":
       return earn(w, r.n);
@@ -153,7 +153,7 @@ export function completeQuest(w: WorldState, q: QuestDef, v: ConditionView): Wor
     book = { ...book, today: { ...today, done: [...today.done, q.id] }, days: days.includes(today.day) ? days : [...days, today.day] };
   }
   let next: WorldState = { ...w, quests: book };
-  for (const r of q.rewards) next = pay(next, r);
+  for (const r of q.rewards) next = payReward(next, r);
   next = bump(next, q.kind === "story" ? "QUEST_DONE" : "DAILY_DONE", q.id);
   return { ok: true, rewards: q.rewards, world: next };
 }
@@ -227,6 +227,6 @@ export function claimWeekly(w: WorldState, gift: readonly Reward[]): WorldResult
   if (weeklyGiftsWaiting(w) < 1) return { ok: false, reason: "none" };
   const b = bookOf(w);
   let next: WorldState = { ...w, quests: { ...b, weekly: (b.weekly ?? 0) + 1 } };
-  for (const r of gift) next = pay(next, r);
+  for (const r of gift) next = payReward(next, r);
   return { ok: true, world: next };
 }

@@ -1,5 +1,5 @@
 /**
- * The quest screens (plan 4.2, 36-QUEST-LINE.md §2): the quest book (Story, Today, Milestones), a card per quest
+ * The quest screens (plan 4.2, 36-QUEST-LINE.md §2): the quest book (Story, Today, Together, Milestones), a card per quest
  * with its progress counted from when it was taken, the dialog for the pet's and Builders' Lane quests, the toast
  * when a quest opens or is ready, the pet's "!" bubble, and the ring that points at the right button during the
  * first eleven quests. Residents' quests are offered and taken back inside their talk (Talk.tsx).
@@ -13,6 +13,7 @@ import {
   CHARACTERS,
   DAILIES,
   DECOR_BY_ID,
+  GOAL_BY_ID,
   ITEM,
   ONBOARDING,
   QUEST_BY_ID,
@@ -32,6 +33,7 @@ import { useGame } from "../game/store";
 import { useWorld } from "../game/world";
 import { allStatuses, conditionView, giverRoom, handIn, putDown, takeQuest, takeWeeklyGift, useQuestUi } from "../game/quests";
 import { QuestPanel } from "./WorldPanels";
+import { TogetherPanel, togetherWaiting } from "./Goals";
 import "./quests.css";
 
 type Lang = "en" | "zh";
@@ -162,13 +164,19 @@ export function QuestCard({ q, status }: { q: QuestDef; status: QuestStatus }) {
 
 const order: QuestStatus[] = ["ready", "active", "available"];
 
-/** The quest book: Story (the 80), Today (3 dailies and the weekly gift), Milestones (the old errands). */
+/** The quest book: Story (the 80), Today (3 dailies and the weekly gift), Together (community goals), Milestones (the old errands). */
 export function QuestBook() {
   const lang = useLang((s) => s.lang) as Lang;
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
   const world = useWorld((s) => s.world);
   const pet = useGame((s) => s.pet);
-  const [tab, setTab] = useState<"story" | "today" | "milestones">("story");
+  const bookTab = useQuestUi((s) => s.bookTab);
+  const setBookTab = useQuestUi((s) => s.setBookTab);
+  const [tab, setTab] = useState<"story" | "today" | "together" | "milestones">(bookTab ?? "story");
+  // a goal's toast asks for Together; take the ask once
+  useEffect(() => {
+    if (bookTab) (setTab(bookTab), setBookTab(null));
+  }, [bookTab, setBookTab]);
   const statuses = useMemo(() => allStatuses(), [world, pet]);
   const live = STORY.filter((q) => order.includes(statuses[q.id]!)).sort((a, b) => order.indexOf(statuses[a.id]!) - order.indexOf(statuses[b.id]!));
   const arcs = Array.from({ length: 12 }, (_, i) => {
@@ -187,12 +195,14 @@ export function QuestBook() {
           [
             ["story", L("Story", "故事")],
             ["today", L("Today", "今日")],
+            ["together", L("Together", "一起")],
             ["milestones", L("Milestones", "里程碑")],
           ] as const
         ).map(([id, label]) => (
           <button key={id} type="button" role="tab" aria-selected={tab === id} className={`qb-tab${tab === id ? " on" : ""}`} onClick={() => (play("tap"), setTab(id))}>
             {label}
             {id === "story" && live.some((q) => statuses[q.id] === "ready") && <span className="qb-dot" aria-hidden="true" />}
+            {id === "together" && togetherWaiting() && <span className="qb-dot" aria-hidden="true" />}
           </button>
         ))}
       </div>
@@ -244,6 +254,7 @@ export function QuestBook() {
           <p className="small qb-note">{L(`${DAILIES.length} small things rotate, three a day: one care, one social, one explore. A new three each morning; missing a day costs nothing.`, `${DAILIES.length} 件小事轮流出现，每天三件：照顾、交朋友、探索各一件。每天早上换新的三件；错过一天也没关系。`)}</p>
         </>
       )}
+      {tab === "together" && <TogetherPanel />}
       {tab === "milestones" && <QuestPanel />}
     </div>
   );
@@ -374,9 +385,14 @@ export function QuestToast({ onOpenBook }: { onOpenBook: () => void }) {
     const id = setTimeout(dismiss, note.kind === "done" ? 5200 : 4200);
     return () => clearTimeout(id);
   }, [note, dismiss]);
-  const q = note ? QUEST_BY_ID[note.quest] : undefined;
+  const goal = note?.kind === "goal" ? GOAL_BY_ID[note.quest] : undefined;
+  const q = note && !goal ? QUEST_BY_ID[note.quest] : undefined;
   const who = q ? giverName(q, lang, pet?.name ?? "") : "";
-  const text = !note || !q
+  const text = goal
+    ? lang === "zh"
+      ? `「${goal.title.zh}」有你的一份，去「一起」里领取`
+      : `“${goal.title.en}” has something for you. Take it in Together.`
+    : !note || !q
     ? ""
     : note.kind === "new"
       ? lang === "zh"
@@ -395,7 +411,7 @@ export function QuestToast({ onOpenBook }: { onOpenBook: () => void }) {
           : `“${q.title.en}”: ${(note.rewards ?? []).map((r) => rewardText(r, lang)).filter(Boolean).join(", ")}`;
   return (
     <AnimatePresence>
-      {note && q && (
+      {note && (q || goal) && (
         <motion.button
           key={note.id}
           type="button"
@@ -405,9 +421,9 @@ export function QuestToast({ onOpenBook }: { onOpenBook: () => void }) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.2 }}
-          onClick={() => (dismiss(), onOpenBook())}
+          onClick={() => (dismiss(), goal && useQuestUi.getState().setBookTab("together"), onOpenBook())}
         >
-          <QuestIcon kind={note.kind === "new" ? "available" : "ready"} size={32} />
+          <QuestIcon kind={note.kind === "new" ? "available" : note.kind === "goal" ? "book" : "ready"} size={32} />
           {text}
         </motion.button>
       )}

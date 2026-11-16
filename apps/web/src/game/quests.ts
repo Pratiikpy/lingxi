@@ -31,6 +31,7 @@ import { bondsOf, useFriends } from "./friends";
 import { play } from "./sound";
 import { useGame } from "./store";
 import { useWorld } from "./world";
+import { goalsDone } from "./goals";
 
 const tzOffset = () => useGame.getState().pet?.tzOffsetMin ?? -new Date().getTimezoneOffset();
 
@@ -49,7 +50,7 @@ export function conditionView(now = Date.now()): ConditionView {
     timeOfDay: pet ? (timeOfDay(localHour(pet, Math.floor(now / 60_000))) as 0 | 1 | 2 | 3) : 2,
     day: localDay(now, tzOffset()),
     bondLevel: bonds.reduce((m, b) => Math.max(m, bondLevel(b.points)), 0),
-    goalsDone: [],
+    goalsDone: goalsDone(),
   };
 }
 
@@ -61,7 +62,8 @@ export const giverRoom: Readonly<Record<string, number>> = { wick: 64, praline: 
 export interface QuestNote {
   id: number;
   quest: string;
-  kind: "new" | "ready" | "done";
+  /** a quest that opened, became ready or was handed in; or a community goal with something to take (quest = goal id) */
+  kind: "new" | "ready" | "done" | "goal";
   rewards?: readonly Reward[];
 }
 
@@ -74,6 +76,9 @@ interface QuestUi {
   /** the quest whose card is open from the pet's bubble or the book */
   open: string | null;
   setOpen: (id: string | null) => void;
+  /** the book's tab to show when it next opens (a goal's toast opens Together) */
+  bookTab: "story" | "today" | "together" | "milestones" | null;
+  setBookTab: (t: QuestUi["bookTab"]) => void;
 }
 
 let noteId = 0;
@@ -91,6 +96,8 @@ export const useQuestUi = create<QuestUi>((set, get) => ({
   },
   open: null,
   setOpen: (open) => set({ open }),
+  bookTab: null,
+  setBookTab: (bookTab) => set({ bookTab }),
 }));
 
 /** Take a quest on. The giver's own rules decide where (a resident's talk, the pet's bubble, a lane card). */

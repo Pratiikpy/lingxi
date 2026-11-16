@@ -23,6 +23,7 @@
     "zod": "4.1.13"
   },
   "devDependencies": {
+    "@lingxi/art": "workspace:*",
     "@types/node": "22.15.30",
     "@types/web-push": "3.6.4",
     "@types/ws": "8.18.1",

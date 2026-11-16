@@ -153,6 +153,9 @@ importers:
       '@lingxi/send':
         specifier: workspace:*
         version: link:../send
+      '@lingxi/world':
+        specifier: workspace:*
+        version: link:../world
       '@openzeppelin/merkle-tree':
         specifier: 1.0.8
         version: 1.0.8
@@ -260,6 +263,9 @@ importers:
         specifier: 4.1.13
         version: 4.1.13
     devDependencies:
+      '@lingxi/art':
+        specifier: workspace:*
+        version: link:../../packages/art
       '@types/node':
         specifier: 22.15.30
         version: 22.15.30

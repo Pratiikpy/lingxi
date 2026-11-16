@@ -28,7 +28,9 @@
 }
 .nb-value {
   margin: 0;
-  font: 800 1.5rem/1.1 var(--display);
+  /* the rounded face: the pixel face's digits read 5 as S and 2 as 8 */
+  font: 800 1.5rem/1.1 var(--round);
+  font-variant-numeric: tabular-nums;
   text-align: right;
   color: var(--ink);
 }

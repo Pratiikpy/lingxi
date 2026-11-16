@@ -47,6 +47,7 @@ module.exports = {
         LINGXI_MARKET_OKB: "0xb9f6b18edd21933582ec69fb1e718d9629e684cd",
         LINGXI_MARKET_OKB_FROM: "76011196",
         LINGXI_SALES_STORE: path.join(root, "services", "api", "data", "sales-xlayer.json"),
+        LINGXI_GOALS_STORE: path.join(root, "services", "api", "data", "goals-xlayer.json"),
         LINGXI_MARKET_BEM: "0xa292c12b0414bbfc14994f93bcff8bd58c921e55",
         LINGXI_MARKET_BEM_FROM: "76063126",
         LINGXI_BREEDER: "0x8da8221466de12321e6ee2ea73d62aaf28bb11b0",

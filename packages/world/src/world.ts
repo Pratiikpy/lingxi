@@ -5,6 +5,7 @@
  * reloading.
  */
 
+import type { GoalClaims } from "./goals";
 import { sha256 } from "@noble/hashes/sha2";
 import { bump, bumpAll, bumpFinds } from "./tally";
 import type { QuestBook } from "./story";
@@ -165,6 +166,8 @@ export interface WorldState {
   quests?: QuestBook;
   /** trust with each resident (quest rewards; plan 4.3) */
   trust?: Record<string, number>;
+  /** community-goal rewards already taken (see goals.ts) */
+  goals?: GoalClaims;
 }
 
 export function newWorld(seed: string): WorldState {

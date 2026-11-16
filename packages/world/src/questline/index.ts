@@ -14,9 +14,12 @@ import { ARC_2_TO_5 } from "./arc02-05";
 import { ARC_6_TO_10 } from "./arc06-10";
 import { ARC_11_12 } from "./arc11-12";
 import { DAILIES, WEEKLY_GIFT } from "./dailies";
+import { GOALS } from "./goals";
+import { GOAL_METRICS, type GoalDef, TIER_PCTS } from "../goals";
 
 export { ARC_1, ONBOARDING } from "./arc01-first-days";
 export { DAILIES, WEEKLY_GIFT };
+export { GOALS, GOAL_BY_ID } from "./goals";
 
 export const STORY: readonly QuestDef[] = [...ARC_1, ...ARC_2_TO_5, ...ARC_6_TO_10, ...ARC_11_12];
 export const QUESTLINE: readonly QuestDef[] = [...STORY, ...DAILIES];
@@ -91,6 +94,44 @@ export function questLineErrors(defs: readonly QuestDef[]): string[] {
       if (p) out.push(`${at}: ${p}`);
     }
     if (q.kind === "story" && !q.rewards.length) out.push(`${at}: every story quest gives something`);
+  }
+  return out;
+}
+
+/** Problems with the community goals: the giver's words and portraits, the window, the target, the rewards. */
+export function goalErrors(defs: readonly GoalDef[]): string[] {
+  const out: string[] = [];
+  const ids = new Set<string>();
+  for (const g of defs) {
+    const at = `goal ${g.id}`;
+    if (ids.has(g.id)) out.push(`${at}: the id is used twice`);
+    ids.add(g.id);
+    if (!/^g[0-9]{1,3}$/.test(g.id)) out.push(`${at}: ids are g and a number`);
+    if (!g.title.en || !g.title.zh || !g.unit.en || !g.unit.zh) out.push(`${at}: needs its title and unit in both languages`);
+    if (!PORTRAITS.has(g.giver)) out.push(`${at}: no resident ${g.giver}`);
+    if (!g.story.length) out.push(`${at}: needs its story`);
+    g.story.forEach((l, i) => {
+      if (!l.en || !l.zh) out.push(`${at} line ${i + 1}: needs both languages`);
+      if (l.en.length > LINE_MAX.en) out.push(`${at} line ${i + 1}: English is ${l.en.length} characters (at most ${LINE_MAX.en})`);
+      if ([...l.zh].length > LINE_MAX.zh) out.push(`${at} line ${i + 1}: Chinese is ${[...l.zh].length} characters (at most ${LINE_MAX.zh})`);
+      if (PORTRAITS.has(g.giver) && (!l.face || !PORTRAITS.get(g.giver)!.has(l.face))) out.push(`${at} line ${i + 1}: ${g.giver} has no portrait ${l.face}`);
+    });
+    if (!GOAL_METRICS.includes(g.metric)) out.push(`${at}: no metric ${g.metric}`);
+    if (!(Number.isSafeInteger(g.target) && g.target >= 4)) out.push(`${at}: the target must be a whole number of at least 4, so every tier is its own step`);
+    if (!(Number.isInteger(g.start) && Number.isInteger(g.end) && g.end > g.start)) out.push(`${at}: needs a start and a later deadline`);
+    for (const p of TIER_PCTS) {
+      const rs = g.tiers[p];
+      if (!rs?.length) out.push(`${at}: tier ${p}% gives nothing`);
+      for (const r of rs ?? []) {
+        const e = rewardProblem(r);
+        if (e) out.push(`${at} tier ${p}%: ${e}`);
+      }
+    }
+    if (!g.everyone.text.en || !g.everyone.text.zh || !g.everyone.rewards.length) out.push(`${at}: the reward for everyone needs its words and something to give`);
+    for (const r of g.everyone.rewards) {
+      const e = rewardProblem(r);
+      if (e) out.push(`${at} everyone: ${e}`);
+    }
   }
   return out;
 }

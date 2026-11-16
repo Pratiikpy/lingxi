@@ -1,0 +1,312 @@
+/* Community goals (plan 4.10): the Together tab. Built from the game's own tokens, like the quest cards. */
+
+.gl-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s3);
+}
+.gl {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--card);
+  box-shadow: var(--lift-lo);
+}
+.gl-complete {
+  border-color: var(--mint);
+  box-shadow: 0 3px 0 var(--mint);
+}
+.gl-ended {
+  opacity: 0.9;
+}
+.gl-head {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px;
+}
+.gl-face {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  object-position: top;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: var(--tint);
+  image-rendering: pixelated;
+}
+.gl-head > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.gl-title {
+  font: 800 1.05rem var(--round);
+}
+.gl-from {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.gl-time {
+  font-weight: 800;
+  color: var(--ink);
+}
+.gl-complete .gl-time {
+  color: var(--mint);
+}
+.gl-ask {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--page);
+}
+.gl-ask p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* the shared total: the number large, the bar with a mark at each tier */
+.gl-meter {
+  display: grid;
+  gap: 6px;
+}
+.gl-count {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.gl-count b {
+  font: 800 1.6rem/1 var(--round);
+}
+.gl-count span {
+  font: 700 14px var(--round);
+  color: var(--ink-soft);
+}
+.gl-bar {
+  position: relative;
+  height: 16px;
+  margin: 0 7px 0 0;
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--tint);
+  overflow: visible;
+}
+.gl-bar > b {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--r-pill);
+  background: var(--sunny);
+  transform-origin: left;
+  transition: transform 0.6s var(--ease);
+}
+.gl-bar > i {
+  position: absolute;
+  top: -5px;
+  width: 12px;
+  height: 22px;
+  margin-left: -6px;
+  border: 2px solid var(--line);
+  border-radius: 6px;
+  background: var(--card);
+}
+.gl-bar > i.on {
+  background: var(--mint);
+}
+.gl-next {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+/* the four tiers, side by side on wide screens, two by two on a phone */
+.gl-tiers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+@media (max-width: 520px) {
+  .gl-tiers {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.gl-tiers > li {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 8px;
+  border: 2px dashed var(--line);
+  border-radius: var(--r-sm);
+}
+.gl-tiers > li.reached {
+  border-style: solid;
+  border-color: var(--mint);
+  background: var(--tint);
+}
+.gl-tiers > li.taken {
+  opacity: 0.75;
+}
+.gl-tier-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px;
+  font: 700 12px var(--round);
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+.gl-tier-head b {
+  font: 800 15px var(--round);
+  color: var(--ink);
+}
+.gl-tiers > li.reached .gl-tier-head span {
+  color: var(--mint);
+}
+.gl-rewards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.gl-stack {
+  margin: 0;
+  color: var(--ink-soft);
+}
+.gl-everyone {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--r-sm);
+  background: var(--band);
+  font-size: 14px;
+}
+.gl-tag {
+  padding: 1px 10px;
+  border-radius: var(--r-pill);
+  background: var(--sunny);
+  color: var(--plum);
+  font: 800 12px var(--round);
+  white-space: nowrap;
+}
+
+/* the player's own part, and the button to take what is waiting */
+.gl-mine {
+  display: grid;
+  gap: 8px;
+}
+.gl-mine b {
+  font: 800 15px var(--round);
+}
+.gl-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+.gl-actions:empty {
+  display: none;
+}
+.gl-got {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: var(--r-sm);
+  background: var(--tint);
+  font: 700 14px var(--round);
+}
+.gl-how {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+/* who helped */
+.gl-board-toggle {
+  justify-self: start;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: 800 14px var(--round);
+  cursor: pointer;
+}
+.gl-board {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.gl-board li {
+  display: grid;
+  grid-template-columns: 28px 1fr auto 44px;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.gl-board li.you {
+  background: var(--tint);
+  font-weight: 800;
+}
+.gl-rank {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  font: 800 12px var(--round);
+}
+.gl-board .p1 .gl-rank {
+  background: #ffc83d;
+  color: #2b2140;
+}
+.gl-board .p2 .gl-rank {
+  background: #d9dde6;
+  color: #2b2140;
+}
+.gl-board .p3 .gl-rank {
+  background: #e0a46a;
+  color: #2b2140;
+}
+.gl-board a {
+  color: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration: underline dotted var(--ink-soft);
+  text-underline-offset: 3px;
+}
+.gl-board a:hover,
+.gl-board a:focus-visible {
+  text-decoration-style: solid;
+}
+.gl-n,
+.gl-share {
+  text-align: right;
+  font-family: var(--round);
+  font-weight: 800;
+}
+.gl-share {
+  color: var(--ink-soft);
+}
+@media (prefers-reduced-motion: reduce) {
+  .gl-bar > b {
+    transition: none;
+  }
+}

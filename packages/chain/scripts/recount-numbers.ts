@@ -7,6 +7,10 @@
  *
  * The pet count does not trust the start block: every pet ever made emits one Hatched, so the recount must also
  * equal the registry's own nextPetId less one.
+ *
+ * The community goals (/api/goals) are recounted the same way: owners followed through the registry's Transfer
+ * events, each Checkpoint, Hatched and Bred credited to the owner at that point, each Burned on the BEM breeder and
+ * market to its payer, and only events inside a goal's window by block time.
  */
 
 import { readFileSync } from "node:fs";
@@ -14,6 +18,7 @@ import { type Address, createPublicClient, decodeEventLog, http, keccak256, pars
 import type { Deployment } from "../src/registry";
 import { XLAYER_ENDPOINTS, createPacedLogs } from "./lib/paced-logs";
 import { xLayer } from "../src/tapeout";
+import { GOALS, type GoalMetric } from "@lingxi/world";
 
 const arg = (n: string, f?: string) => {
   const i = process.argv.indexOf(`--${n}`);
@@ -35,6 +40,8 @@ const events = parseAbi([
   "event Checkpoint(uint256 indexed petId, uint32 indexed day, uint256 state, bytes32 logHash)",
   "event Minted(uint256 indexed id, address indexed buyer, uint32 quantity, uint256 paid)",
   "event Sold(uint256 indexed listingId, address indexed buyer, uint32 quantity, uint256 paid)",
+  "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)",
+  "event Burned(address indexed payer, uint256 amount)",
 ]);
 const topic = (sig: string) => keccak256(toHex(sig));
 const T = {
@@ -43,6 +50,8 @@ const T = {
   checkpoint: topic("Checkpoint(uint256,uint32,uint256,bytes32)"),
   minted: topic("Minted(uint256,address,uint32,uint256)"),
   sold: topic("Sold(uint256,address,uint32,uint256)"),
+  transfer: topic("Transfer(address,address,uint256)"),
+  burned: topic("Burned(address,uint256)"),
 };
 const views = parseAbi(["function totalBurned() view returns (uint256)", "function total() view returns (uint256)", "function nextPetId() view returns (uint256)"]);
 /** Every log of `address` from `from` to `to`, raw (no ABI filter in the query). */
@@ -111,6 +120,43 @@ async function main() {
   check("BEM burned by breeding", breeding.toString(), live.burned.breeding);
   check("BEM burned in total", (market + breeding).toString(), live.burned.total);
   if (d.holderGift) check("holder pins claimed", Number(await read(d.holderGift, "total")), live.pins ?? "absent");
+
+  // community goals, each up to the block the goals page has read to
+  const goalsPage = (await (await fetch(`${api}/api/goals`, { cache: "no-store" })).json()) as { indexedTo: number; goals: Array<{ id: string; total: number; contributors: number; top: Array<{ wallet: string; n: number }> }> };
+  const to = goalsPage.indexedTo;
+  const raw = [...(await logsOf(d.registry, registryFrom, to))];
+  const burners = [d.breederBem ? [d.breeder, (d as { breederBlock?: number }).breederBlock] : null, [d.outfitMarketV2, d.outfitMarketV2Block]].filter((x): x is [Address, number] => !!x && !!x[0] && !!x[1]);
+  for (const [a, from] of burners) raw.push(...(await logsOf(a, from, to)));
+  raw.sort((a, b) => Number(BigInt(a.blockNumber) - BigInt(b.blockNumber)) || Number(BigInt(a.logIndex) - BigInt(b.logIndex)));
+  const owners = new Map<string, string>();
+  const times = new Map<number, number>();
+  const credits: Array<{ m: GoalMetric; w: string; n: number; t: number }> = [];
+  const timeOf = async (b: number) => {
+    if (!times.has(b)) times.set(b, Number((await pub.getBlock({ blockNumber: BigInt(b) })).timestamp));
+    return times.get(b)!;
+  };
+  for (const l of raw) {
+    const b = Number(BigInt(l.blockNumber));
+    const fromRegistry = l.address.toLowerCase() === d.registry.toLowerCase();
+    const t0 = l.topics[0];
+    if (fromRegistry && t0 === T.transfer) owners.set(BigInt(l.topics[3]!).toString(), `0x${l.topics[2]!.slice(26)}`.toLowerCase());
+    else if (fromRegistry && t0 === T.hatched) credits.push({ m: "hatched", w: `0x${l.topics[2]!.slice(26)}`.toLowerCase(), n: 1, t: await timeOf(b) });
+    else if (fromRegistry && t0 === T.bred) credits.push({ m: "children", w: owners.get(BigInt(l.topics[1]!).toString())!, n: 1, t: await timeOf(b) });
+    else if (fromRegistry && t0 === T.checkpoint) credits.push({ m: "saves", w: owners.get(BigInt(l.topics[1]!).toString())!, n: 1, t: await timeOf(b) });
+    else if (!fromRegistry && t0 === T.burned) {
+      const ev = decodeEventLog({ abi: events, data: l.data, topics: l.topics });
+      const a = ev.args as { payer: Address; amount: bigint };
+      credits.push({ m: "burned", w: a.payer.toLowerCase(), n: Number(a.amount), t: await timeOf(b) });
+    }
+  }
+  for (const g of GOALS) {
+    const by = new Map<string, number>();
+    for (const c of credits) if (c.m === g.metric && c.t >= g.start && c.t < g.end) by.set(c.w, (by.get(c.w) ?? 0) + c.n);
+    const page = goalsPage.goals.find((x) => x.id === g.id);
+    check(`goal ${g.id} total`, [...by.values()].reduce((s, n) => s + n, 0), page?.total ?? "absent");
+    check(`goal ${g.id} contributors`, by.size, page?.contributors ?? "absent");
+    for (const t of page?.top ?? []) check(`goal ${g.id} ${t.wallet}`, by.get(t.wallet) ?? 0, t.n);
+  }
 
   if (diffs.length) {
     console.error(`${diffs.length} difference(s): ${diffs.join(", ")}`);

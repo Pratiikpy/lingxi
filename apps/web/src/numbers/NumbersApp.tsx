@@ -7,6 +7,7 @@
 import { useEffect, useState } from "react";
 import { formatBem } from "@lingxi/chain";
 import { formatEther } from "viem";
+import { GOALS, GOAL_METHOD, goalAmountText } from "@lingxi/world";
 import { useLang } from "../i18n";
 import "../agents/agents.css";
 import "../tree/tree.css";
@@ -40,6 +41,30 @@ type Row = { label: [string, string]; value: string; counts: [string, string]; s
 const fmt = (n: number) => n.toLocaleString("en");
 
 /** Each group, and for counts summed from events, the block they are read up to (the slowest of its sources). */
+interface GoalsBody {
+  indexedTo: number;
+  goals: Array<{ id: string; total: number; contributors: number; state: string }>;
+}
+const dateText = (sec: number, lang: Lang) => new Date(sec * 1000).toLocaleDateString(lang === "zh" ? "zh-CN" : "en", { day: "numeric", month: "short", timeZone: "UTC" });
+
+/** Community goals (plan 4.10): each goal's total against its target, counted from the same chain events. */
+function goalRows(g: GoalsBody, lang: Lang): { title: [string, string]; readTo: number; items: Row[] } {
+  return {
+    title: ["Community goals", "共同目标"],
+    readTo: g.indexedTo,
+    items: GOALS.map((d) => {
+      const r = g.goals.find((x) => x.id === d.id);
+      const when = `${dateText(d.start, lang)} – ${dateText(d.end, lang)} (UTC)`;
+      return {
+        label: [d.title.en, d.title.zh] as [string, string],
+        value: `${goalAmountText(d, r?.total ?? 0)} / ${goalAmountText(d, d.target)} ${d.unit[lang]}`,
+        counts: [`${GOAL_METHOD[d.metric].en} From ${when}; ${r?.contributors ?? 0} wallet${r?.contributors === 1 ? "" : "s"} so far.`, `${GOAL_METHOD[d.metric].zh} 时间：${when}；目前 ${r?.contributors ?? 0} 个钱包。`] as [string, string],
+        source: d.metric === "burned" ? "breeder" : "registry",
+      };
+    }),
+  };
+}
+
 function rows(n: Numbers): Array<{ title: [string, string]; readTo?: number; items: Row[] }> {
   const okb = n.outfits.okb;
   const bem = n.outfits.bem;
@@ -84,6 +109,7 @@ export function NumbersApp() {
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
   const [data, setData] = useState<Numbers | null>(null);
   const [err, setErr] = useState(false);
+  const [goals, setGoals] = useState<GoalsBody | null>(null);
 
   useEffect(() => {
     document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
@@ -96,6 +122,10 @@ export function NumbersApp() {
       .then((r) => r.json())
       .then((j: Numbers & { ok: boolean }) => (j.ok ? setData(j) : setErr(true)))
       .catch(() => setErr(true));
+    fetch(`${base}/api/goals`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j: GoalsBody & { ok: boolean }) => j.ok && setGoals(j))
+      .catch(() => undefined);
   }, []);
 
   return (
@@ -118,7 +148,7 @@ export function NumbersApp() {
       {err && <p className="ag-card">{L("The numbers couldn't be read just now. The chain still has them: try again in a moment.", "暂时读不到这些数字。链上记录还在，请稍后再试。")}</p>}
       {!data && !err && <p className="ag-card tl-loading">{L("Reading the chain…", "正在读取链上记录……")}</p>}
       {data &&
-        rows(data).map((group) => (
+        [...rows(data), ...(goals ? [goalRows(goals, lang as Lang)] : [])].map((group) => (
           <section key={group.title[0]} className="nb-group">
             <h2>{lang === "zh" ? group.title[1] : group.title[0]}</h2>
             {group.readTo !== undefined && data.head - group.readTo > BEHIND && (
