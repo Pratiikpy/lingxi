@@ -18,11 +18,9 @@ export const HOLDINGS = {
   bem: "0x60e62Efa9405d6873C5deaBD4E6CC91c25363952",
   /** FAB, Fab X's Proof-of-Design mining token, 8 decimals (fabx.tech's pod mining `token()`) */
   fab: "0x72F349B1Eee7833B26f8C81a8410775A4e231ed2",
+  /** TapeCode-Test1 (TCT1), ERC-721, 10,000 tokens; the address OKX's NFT market lists for the collection, read back on chain */
+  test1: "0x0e91460d6823c711643e650a9a4c0cc21de41614",
 } as const;
-
-/** The TapeCode Test1 NFT: no published contract address was found, so it is read only when a build names one. */
-export const TEST1_NFT = ((import.meta.env.VITE_TEST1_NFT as string | undefined) ?? "").trim();
-const test1Known = /^0x[0-9a-fA-F]{40}$/.test(TEST1_NFT);
 
 const balanceAbi = parseAbi(["function balanceOf(address) view returns (uint256)"]);
 
@@ -31,15 +29,14 @@ export interface Holdings {
   rig: boolean;
   bem: boolean;
   fab: boolean;
-  /** null when this build does not know the Test1 contract */
-  test1: boolean | null;
+  test1: boolean;
   at: number;
 }
 
 /** Read the wallet's balances; any amount above zero counts. */
 export async function readHoldings(wallet: Address): Promise<Holdings> {
   const bal = async (token: string) => ((await publicClient.readContract({ address: token as Address, abi: balanceAbi, functionName: "balanceOf", args: [wallet] })) as bigint) > 0n;
-  const [rig, bem, fab, test1] = await Promise.all([bal(HOLDINGS.rig), bal(HOLDINGS.bem), bal(HOLDINGS.fab), test1Known ? bal(TEST1_NFT) : Promise.resolve(null)]);
+  const [rig, bem, fab, test1] = await Promise.all([bal(HOLDINGS.rig), bal(HOLDINGS.bem), bal(HOLDINGS.fab), bal(HOLDINGS.test1)]);
   return { wallet: wallet.toLowerCase(), rig, bem, fab, test1, at: Date.now() };
 }
 

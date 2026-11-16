@@ -53,18 +53,13 @@ export function HoldersPanel() {
       <ul className="holder-marks">
         {MARKS.map((m) => {
           const has = held ? held[m.key] : null;
-          const unknown = m.key === "test1" && held?.test1 === null;
           return (
             <li key={m.key} className={`holder-mark${has ? " is-on" : ""}`}>
               <Icon name={m.icon} size={18} />
               <span>
                 <b>{m.name[lang]}</b>
                 <span className="small">
-                  {unknown
-                    ? L("The Test1 NFT's contract isn't published yet, so it can't be checked.", "Test1 NFT 的合约还没有公开，所以没法查。")
-                    : has
-                      ? L(`Unlocked: ${m.gives.en}`, `已解锁：${m.gives.zh}`)
-                      : L(`Gives ${m.gives.en}`, `可得：${m.gives.zh}`)}
+                  {has ? L(`Unlocked: ${m.gives.en}`, `已解锁：${m.gives.zh}`) : L(`Gives ${m.gives.en}`, `可得：${m.gives.zh}`)}
                 </span>
               </span>
             </li>
