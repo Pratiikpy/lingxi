@@ -11,6 +11,7 @@ import { INPUT_FIELDS, compileProgram, gateCount, layout, netDepth, netlistBytes
 import type { Pet } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { decidingPart } from "../game/store";
+import { noteEvent } from "../game/tally";
 import { MOOD_NAMES, WANT_COLORS, WANT_NAMES } from "./ruleText";
 
 const FIELD_ZH: Record<string, string> = { hunger: "饥饿", joy: "心情", energy: "精神", clean: "清洁", time: "时间", action: "动作", event: "事件", owner: "主人" };
@@ -18,6 +19,8 @@ const FIELD_ZH: Record<string, string> = { hunger: "饥饿", joy: "心情", ener
 export function BrainView({ pet, reduceMotion }: { pet: Pet; reduceMotion: boolean }) {
   const { lang } = useLang();
   const ref = useRef<HTMLCanvasElement>(null);
+  // the circuit view is only mounted while it is open (quests count the opening)
+  useEffect(() => noteEvent("circuit-opened"), []);
   const part = decidingPart(pet);
   const program = part.program;
   const net = useMemo(() => compileProgram(program), [program]);

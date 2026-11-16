@@ -54,7 +54,7 @@ import { PALETTE_OF } from "../scene/textures";
 import { Sprite } from "./Sprite";
 import { boundingBox, type PixelCanvas } from "@lingxi/art";
 import "./arenarun.css";
-import { noteTally } from "../game/tally";
+import { noteEvent, noteTally } from "../game/tally";
 
 type Lang = "en" | "zh";
 const PALETTE: Record<CompanionDef["look"]["palette"], Palette> = { mint: MINT, lilac: LILAC, peach: PEACH, night: NIGHT };
@@ -228,6 +228,7 @@ export function RunView({ pet, onClose }: { pet: Pet; onClose: () => void }) {
           if (end === "playing") put(next);
           else {
             finish(next, end === "won");
+            noteEvent("run-finished");
             if (end === "won") {
               useWorld.getState().reward(RUN_WIN_COINS);
               useBadges.getState().note("sparWins");

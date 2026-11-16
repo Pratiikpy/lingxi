@@ -1,20 +1,25 @@
 /**
  * The pet's events reach the player's tally (plan 4.1) through here: the game store, the chain store and the
  * spar and gift screens call `noteTally`, and the world store, which owns the tally, takes them. Events noted before
- * the world store exists wait in order, so nothing is lost at start-up.
+ * the world store exists wait in order, so nothing is lost at start-up. `total: false` records a finer key of an
+ * event already counted (CARE:feed-morning beside CARE:feed), so the type's total is not counted twice.
  */
 
-type Sink = (type: string, index: number | string, n: number) => void;
+type Opts = { total?: boolean };
+type Sink = (type: string, index: number | string, n: number, opts: Opts) => void;
 
 let sink: Sink | null = null;
-const waiting: Array<[string, number | string, number]> = [];
+const waiting: Array<[string, number | string, number, Opts]> = [];
 
-export function noteTally(type: string, index: number | string = 0, n = 1): void {
-  if (sink) sink(type, index, n);
-  else waiting.push([type, index, n]);
+export function noteTally(type: string, index: number | string = 0, n = 1, opts: Opts = {}): void {
+  if (sink) sink(type, index, n, opts);
+  else waiting.push([type, index, n, opts]);
 }
+
+/** A one-off event by name (it must be in the world package's EVENTS list). */
+export const noteEvent = (name: string): void => noteTally("EVENT", name);
 
 export function setTallySink(s: Sink): void {
   sink = s;
-  for (const [type, index, n] of waiting.splice(0)) s(type, index, n);
+  for (const [type, index, n, opts] of waiting.splice(0)) s(type, index, n, opts);
 }

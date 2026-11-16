@@ -9,6 +9,7 @@ import { CORAL, LILAC, MINT, NIGHT, PEACH, SKY, SUNNY, type Palette, boundingBox
 import { type Album, VISITORS, type Visitor, addToAlbum } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { Sprite } from "./Sprite";
+import { noteTally } from "../game/tally";
 
 const KEY = "lingxi.album.v1";
 const PALETTES: Record<Visitor["look"]["palette"], Palette> = { mint: MINT, lilac: LILAC, peach: PEACH, night: NIGHT, coral: CORAL, sunny: SUNNY, sky: SKY };
@@ -36,6 +37,7 @@ export const useAlbum = create<AlbumStore>((set, get) => ({
   add: (key, visits) => {
     if (get().counted.includes(key) || !visits.length) return;
     const next = { album: addToAlbum(get().album, visits), counted: [...get().counted, key].slice(-200) };
+    noteTally("EVENT", "visitor-met", visits.length);
     try {
       localStorage.setItem(KEY, JSON.stringify(next));
     } catch {

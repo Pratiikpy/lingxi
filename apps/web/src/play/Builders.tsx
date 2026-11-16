@@ -5,7 +5,7 @@
  * lets anyone check the step on screen against BNB Chain.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { create } from "zustand";
 import { createPublicClient, http, keccak256, parseAbi, type Hex } from "viem";
 import { MARS, MINT, type Outfit, type Palette, SILICON, SKY, SUNNY, boundingBox, drawPet, paintOverlay, toRgba, wearOverlay } from "@lingxi/art";
@@ -32,7 +32,7 @@ import {
   stageOf,
   tapboyDay,
 } from "@lingxi/game";
-import { ROOMS, outfitOf } from "@lingxi/world";
+import { ROOMS, localDay, outfitOf } from "@lingxi/world";
 import { useLang } from "../i18n";
 import { useBadges } from "../game/badges";
 import { useWorld } from "../game/world";
@@ -41,6 +41,7 @@ import { PALETTE_OF } from "../scene/textures";
 import { Chips } from "./parts";
 import { chipsFor } from "./ruleText";
 import { Sprite } from "./Sprite";
+import { noteEvent, noteTally } from "../game/tally";
 
 const PALETTES: Record<BuilderPet["look"]["palette"], Palette> = { silicon: SILICON, mars: MARS, sky: SKY, sunny: SUNNY, mint: MINT };
 const API = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
@@ -150,6 +151,13 @@ function BehemothMind({ lang }: { lang: "en" | "zh" }) {
   const { frames, loopFrom } = behemothTape();
   const [check, setCheck] = useState<"idle" | "busy" | "same" | "differs" | "offline">("idle");
   const [checked, setChecked] = useState<number | null>(null);
+  // watching the count reach 13, the biggest Fibonacci number its four lamps hold (once per visit)
+  const sawThirteen = useRef(false);
+  useEffect(() => {
+    if (f.acc !== 13 || sawThirteen.current) return;
+    sawThirteen.current = true;
+    noteEvent("lane-count");
+  }, [f.acc]);
   // say what the lamps show right now; the CPU's phase only decides the wording around it
   const said =
     m.kind === "boot"
@@ -195,6 +203,7 @@ function BehemothMind({ lang }: { lang: "en" | "zh" }) {
           const at = behemothStepNow(Date.now());
           try {
             const r = await checkOnBnb(at);
+            if (r === "same") noteEvent("lane-checked");
             setChecked(at);
             setCheck(r);
             play(r === "same" ? "success" : "error");
@@ -328,6 +337,9 @@ export function BuilderCard({ b, pet, onSpar }: { b: BuilderPet; pet: Pet; onSpa
   const party = laneParty(new Date(now));
   useEffect(() => {
     meet(b.id);
+    // every visit counts for quests, and so does each day you came by
+    noteTally("MEET", b.id);
+    noteTally("MEET_DAY", `${b.id}-${localDay(Date.now(), -new Date().getTimezoneOffset())}`, 1, { total: false });
     if (party) {
       const k = `lingxi.laneparty.${party}`;
       try {

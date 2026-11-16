@@ -16,6 +16,7 @@ import { readPet } from "@lingxi/chain";
 import { linkPrefix } from "./links";
 import { brainOf, useGame } from "./store";
 import { type ChainRecord, deployment, publicClient, recordOf, setRecordOf } from "./chain";
+import { noteEvent } from "./tally";
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
 export const sittingAvailable = () => BASE !== "";
@@ -127,6 +128,7 @@ export function takeIn(pack: SitPack, code: string, key: string): boolean {
   // the stay counts for this player's own pet and the owner's pet, before the guest is taken in
   if (typeof pack.host === "string" && pack.host.length <= 64) useFriends.getState().meet(pack.host, { name: pack.pet.name, line: pack.pet.line }, "stay");
   if (!useGame.getState().guest(guest)) return false;
+  noteEvent("pet-sat");
   if (pack.chain) setRecordOf(guest, { petId: pack.chain.petId, hatchTx: "", lastDay: pack.chain.lastDay, owner: pack.chain.owner, bornChain: pack.chain.bornChain, brains: pack.chain.brains, brainKey: pack.chain.brainKey });
   return true;
 }

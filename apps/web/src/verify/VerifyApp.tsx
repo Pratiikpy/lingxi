@@ -20,6 +20,7 @@ const DIARY_API = (import.meta.env.VITE_API_URL as string | undefined) ?? (locat
 import { deployment, publicClient, readClients } from "../game/chain";
 import { useLang } from "../i18n";
 import "./verify.css";
+import { markProofChecked } from "../game/proofMark";
 
 interface Row {
   state: bigint;
@@ -188,6 +189,7 @@ export function VerifyApp() {
       out.push({ state, word, chain, local: { next: bitsToWord(ns), outputs: Number(bitsToWord(outs)) } });
       setRows([...out]);
     }
+    if (out.every((r) => r.chain.next === r.local.next && r.chain.outputs === r.local.outputs)) markProofChecked();
     setRunning(false);
   };
 

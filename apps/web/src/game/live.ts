@@ -6,6 +6,7 @@
  */
 
 import { create } from "zustand";
+import { noteEvent } from "./tally";
 
 const LIVE_URL = (import.meta.env.VITE_LIVE_URL as string | undefined) ?? (location.hostname === "localhost" ? "ws://localhost:8787/live" : "");
 const PLAYER_KEY = "lingxi.player.v1";
@@ -143,6 +144,8 @@ export const useLive = create<LiveState>((set, get) => {
         case "joined": {
           const x = m.member as LiveMember;
           members[x.id] = x;
+          // a friend's pet arrived in our own home (quests count it)
+          if (get().space === `home:${playerId()}` && x.id !== playerId()) noteEvent("visited-by-friend");
           return set({ members });
         }
         case "left":

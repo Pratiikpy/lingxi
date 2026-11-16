@@ -6,6 +6,7 @@ import type { Action, Character, Line } from "@lingxi/world";
 import { useLang } from "../i18n";
 import { play } from "../game/sound";
 import "./talk.css";
+import { noteTally } from "../game/tally";
 
 const ACTION_LABEL: Record<Action, [string, string]> = {
   shop: ["Open the shop", "打开商店"],
@@ -26,6 +27,10 @@ export function Talk({ who, onFace, onAction, onClose }: { who: Character; onFac
   const [typed, setTyped] = useState(0);
   const [ending, setEnding] = useState(false);
   const line = queue[at] ?? null;
+  // talking to a resident counts for quests and dailies, once per conversation
+  useEffect(() => {
+    noteTally("TALK", who.id);
+  }, [who.id]);
   const text = line ? line[lang] : "";
 
   useEffect(() => {

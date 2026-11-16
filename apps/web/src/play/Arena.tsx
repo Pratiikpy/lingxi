@@ -39,7 +39,8 @@ import { RunCard, RunView } from "./ArenaRun";
 import { checkSparOnChain } from "../game/battleCheck";
 import { ChainCheck } from "./ChainCheck";
 import { SeasonCard } from "./Season";
-import { noteTally } from "../game/tally";
+import { noteEvent, noteTally } from "../game/tally";
+import { markLoss } from "../game/comfort";
 
 type Lang = "en" | "zh";
 const MOVE_NAMES: Record<Move, [string, string]> = {
@@ -582,6 +583,13 @@ export function FightView({
   const settled = useRef(false);
   const [reward, setReward] = useState(0);
   const [dailyNote, setDailyNote] = useState<"best" | "same" | null>(null);
+  // a replay watched to its end (quests count it)
+  const replaySeen = useRef(false);
+  useEffect(() => {
+    if (!finished || !replay || replaySeen.current) return;
+    replaySeen.current = true;
+    noteEvent("replay-watched");
+  }, [finished, replay]);
   useEffect(() => {
     if (!finished || settled.current || replay) return;
     settled.current = true;
@@ -595,6 +603,8 @@ export function FightView({
       setDailyNote(newBest ? "best" : "same");
     }
     noteTally("SPAR");
+    if (partner.id.startsWith("friend:") || partner.look === "behemoth") noteEvent("spar-peer");
+    if (outcome === "l") markLoss();
     if (outcome === "w") useBadges.getState().note("sparWins");
     if (outcome === "w") noteTally("SPAR_WIN");
     if (outcome === "w" && partner.look === "behemoth") useBadges.getState().note("behemothWins");

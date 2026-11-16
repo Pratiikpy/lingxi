@@ -136,6 +136,12 @@ export const visibleMeters = (p: PetState): Meters => ({
   clean: toVisible(p.meters.clean),
 });
 
+/** The pet's lowest need, 0 to METER_MAX: how close the emptiest of food, joy, energy and clean is to empty. */
+export const needsMinOf = (p: PetState): number => {
+  const m = visibleMeters(p);
+  return Math.min(m.food, m.joy, m.energy, m.clean);
+};
+
 export const clampMeter = (internal: number): number => Math.max(0, Math.min(METER_MAX * SUB, internal));
 
 export function dayOf(p: Pick<PetState, "bornAt">, now: number): number {

@@ -3,12 +3,13 @@
  * logged thoughts, and a card image to share on X, WeChat or Telegram.
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { drawPet, toRgba } from "@lingxi/art";
 import { type Pet, diaryOf, diaryText, mindBrain, stageOf } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { play } from "../game/sound";
 import { useWorld } from "../game/world";
+import { noteEvent } from "../game/tally";
 import { HOME, ROOMS } from "@lingxi/world";
 import { PALETTE_OF, type PetStage } from "../scene/textures";
 
@@ -46,8 +47,24 @@ export function DiaryPanel({ pet }: { pet: Pet }) {
     }
   };
 
+  // the diary counts as read once half of it has been on screen (quests count it)
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = box.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        noteEvent("diary-read");
+        io.disconnect();
+      },
+      { threshold: 0.5 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
   return (
-    <div className="chainpanel diary">
+    <div ref={box} className="chainpanel diary">
       <p className="label">{lang === "zh" ? `${pet.name}的日记 · ${date}` : `${pet.name}'s diary · ${date}`}</p>
       <ul className="diary-lines">
         {lines.map((l, i) => (
