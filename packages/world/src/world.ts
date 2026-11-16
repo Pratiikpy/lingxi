@@ -21,7 +21,8 @@ export interface Room extends RoomText {
   y: number;
   z: number;
   bgs: { day: string; evening: string; night: string };
-  drops: Array<{ item: number; weight: number }>;
+  /** rarity tier from the sheet (1 rare … 9 common) and the weight made from it */
+  drops: Array<{ item: number; tier: number; weight: number }>;
   shop: number[];
 }
 
@@ -60,7 +61,22 @@ export const ITEM: Record<number, Item> = Object.fromEntries([
   ...Object.entries(OWN_ART).map(([k, art]) => [Number(k), { ...ITEMS[Number(k)]!, index: Number(k), art }]),
 ]);
 
+/** A rarity tier from the world sheet becomes a weight: tier 9 is 256 times as common as tier 1, tier 0 never drops. */
+export const tierWeight = (tier: number): number => (tier >= 1 ? 2 ** (tier - 1) : 0);
+
+/** Walk the cumulative weights with a random number; one rule for looking around, walks and away finds. */
+export function pickDrop(drops: ReadonlyArray<{ item: number; weight: number }>, r: number): number {
+  const total = drops.reduce((s, d) => s + d.weight, 0);
+  let x = r % total;
+  for (const d of drops) {
+    if (x < d.weight) return d.item;
+    x -= d.weight;
+  }
+  return drops[0]!.item;
+}
+
 export const ROOMS: Record<number, Room> = Object.fromEntries(
+  // the sheet's "weight" column holds the rarity tier, not the weight
   (data.rooms as Array<{ index: number; x: number; y: number; z: number; bgs: Room["bgs"]; drops: Array<{ item: number; weight: number }> }>)
     .filter((r) => ROOM_TEXT[r.index])
     .map((r) => [
@@ -72,7 +88,7 @@ export const ROOMS: Record<number, Room> = Object.fromEntries(
         y: r.y,
         z: r.z,
         bgs: r.bgs,
-        drops: r.drops.filter((d) => ITEM[d.item]),
+        drops: r.drops.filter((d) => ITEM[d.item]).map((d) => ({ item: d.item, tier: d.weight, weight: tierWeight(d.weight) })),
         shop: SHOPS[r.index] ?? [],
       },
     ]),
@@ -195,15 +211,7 @@ export function forage(w: WorldState, now: number, petEnergy: number): WorldResu
   const hour = hourKey(now);
   if (w.foraged[w.room] === hour) return { ok: false, reason: "already" };
   if (petEnergy < FORAGE_ENERGY) return { ok: false, reason: "tired" };
-  const total = room.drops.reduce((s, d) => s + d.weight, 0);
-  const pick = (salt: number) => {
-    let r = roll(w.seed, w.room, hour, salt) % total;
-    for (const d of room.drops) {
-      if (r < d.weight) return d.item;
-      r -= d.weight;
-    }
-    return room.drops[0]!.item;
-  };
+  const pick = (salt: number) => pickDrop(room.drops, roll(w.seed, w.room, hour, salt));
   const count = 1 + (roll(w.seed, w.room, hour, 99) % 3 === 0 ? 1 : 0);
   const found: Array<{ item: number; n: number }> = [];
   for (let i = 0; i < count; i++) {

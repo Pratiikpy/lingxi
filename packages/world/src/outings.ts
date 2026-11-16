@@ -8,7 +8,7 @@
  * not change on a reload.
  */
 
-import { ITEM, ROOMS, type Recipe, TRAVEL_RECIPES, type WorldResult, type WorldState } from "./world";
+import { ITEM, ROOMS, type Recipe, TRAVEL_RECIPES, type WorldResult, type WorldState, pickDrop } from "./world";
 
 const MIN = 60_000;
 const HOUR = 60 * MIN;
@@ -44,15 +44,7 @@ function walkPool(w: WorldState): Array<{ item: number; weight: number }> {
   return [...out].map(([item, weight]) => ({ item, weight }));
 }
 
-function pick(pool: Array<{ item: number; weight: number }>, r: number): number {
-  const total = pool.reduce((t, d) => t + d.weight, 0);
-  let x = r % total;
-  for (const d of pool) {
-    if (x < d.weight) return d.item;
-    x -= d.weight;
-  }
-  return pool[0]!.item;
-}
+const pick = pickDrop;
 
 const dayKey = (now: number) => Math.floor(now / DAY);
 const walksToday = (w: WorldState, now: number) => (w.walksDay === dayKey(now) ? (w.walksToday ?? 0) : 0);
@@ -124,6 +116,7 @@ export interface Destination {
   hours: number;
   name: { en: string; zh: string };
   postcard: { en: string; zh: string };
+  /** hand-set weights for this destination (not rarity tiers) */
   drops: Array<{ item: number; weight: number }>;
   /** the recipe the pet brings back the first time it goes there */
   teaches: number;
