@@ -207,6 +207,7 @@ export function move(w: WorldState, to: number, petEnergy: number): WorldResult<
     coins,
     world: bumpAll({ ...w, room: to, visited: firstVisit ? [...w.visited, to] : w.visited, coins: w.coins + coins }, [
       ["MOVE", 0, 1],
+      ["VISIT", to, 1],
       ["COINS_EARNED", 0, coins],
     ]),
   };

@@ -29,18 +29,22 @@ export interface Condition {
   index?: number | string;
   /** the threshold (counts), or a number the yes/no fact needs (QUEST_DELAY: seconds) */
   value?: number;
+  /** ANY only: passes when one of these passes (a solo path beside a path that needs another player) */
+  of?: readonly Condition[];
 }
 
 /** Everything a condition may read, gathered by the game from the world, the active pet and the ledgers. */
 export interface ConditionView {
   world: WorldState;
   /** the active pet; null before the first egg hatches */
-  pet: { level: number; stage: StageName; onChain: boolean } | null;
+  pet: { level: number; stage: StageName; onChain: boolean; needsMin: number } | null;
   /** pets this player has raised, every one counted once */
   pets: number;
   now: number;
   /** 0 night, 1 morning, 2 day, 3 evening: the brain's own `timeOfDay` of the pet's local hour */
   timeOfDay: 0 | 1 | 2 | 3;
+  /** the player's local calendar day, "YYYY-MM-DD" */
+  day: string;
   /** the highest friendship level the active pet has with any friend's pet */
   bondLevel: number;
   /** community goals that are complete (package 4.10) */
@@ -52,7 +56,7 @@ export const STAGE_ORDER: readonly StageName[] = ["baby", "child", "teen", "adul
 export const TIMES_OF_DAY = ["night", "morning", "day", "evening"] as const;
 
 /** What an index names; "any" counters accept no index (the total) or one of that kind. */
-type IndexKind = "none" | "item" | "room" | "resident" | "quest" | "giveTo" | "time" | "word";
+type IndexKind = "none" | "item" | "room" | "resident" | "quest" | "giveTo" | "time" | "word" | "event" | "lane" | "counter";
 
 interface TypeSpec {
   kind: "count" | "bool";
@@ -65,6 +69,42 @@ interface TypeSpec {
 }
 
 const t = (type: string) => (v: ConditionView, index: number | string | undefined) => tallyOf(v.world, type, index ?? 0);
+
+/**
+ * One-off things the game reports by name (EVENT:<name>), checked against this list so a sheet cannot ask for
+ * an event nothing ever sends. Each is sent from one place in the web app, named beside it.
+ */
+export const EVENTS = [
+  "visited-by-friend", // a friend's pet came to your home (live rooms)
+  "replay-watched", // a spar replay watched to its end
+  "run-finished", // an arena run ended, won or lost
+  "spar-peer", // a spar with a friend's pet or a Builders' Lane pet
+  "comforted", // the pet patted within ten minutes of losing a spar
+  "circuit-opened", // the circuit view opened
+  "diary-read", // the diary opened
+  "proof-checked", // a saved day replayed on the proof page
+  "visitor-met", // a visiting pet met in the room
+  "pet-sat", // a friend's pet looked after
+  "lane-count", // Behemoth seen counting all the way to 13
+  "lane-checked", // a Behemoth step checked against BNB Chain
+  "child-born", // a little one welcomed
+] as const;
+const EVENT_SET = new Set<string>(EVENTS);
+
+/** The Builders' Lane residents (their ids in the game package). */
+export const LANE = ["behemoth", "mars", "tapboy", "builder", "diver"] as const;
+const LANE_SET = new Set<string>(LANE);
+
+/** Trust with a resident climbs through six levels (0 to 5) and never decays (plan 4.3). */
+export const TRUST_LEVELS = [0, 5, 15, 30, 50, 80] as const;
+export const trustLevel = (points: number): number => TRUST_LEVELS.reduce<number>((lvl, at, i) => (points >= at ? i : lvl), 0);
+
+/** Distinct keys of a counter: "FIND" counts kinds found; "MEET_DAY:tapboy" counts days Tapboy was met. */
+function distinct(v: ConditionView, index: string, extra = ""): number {
+  const [type, sub] = index.split(":");
+  const prefix = sub ? `${type}:${sub}-${extra}` : `${type}:${extra}`;
+  return Object.keys(v.world.tally ?? {}).filter((k) => k.startsWith(prefix) && k !== `${type}:0`).length;
+}
 const stageRank = (s: StageName | undefined) => (s ? STAGE_ORDER.indexOf(s) : -1);
 
 export const TYPES = {
@@ -93,6 +133,15 @@ export const TYPES = {
   SAVE: { kind: "count", index: "none", read: t("SAVE") },
   GIFT: { kind: "count", index: "none", read: t("GIFT"), source: "TRADE_EXECUTE" },
   CHOOSE: { kind: "count", index: "word", read: t("CHOOSE") },
+  VISIT: { kind: "count", index: "room", optional: true, read: t("VISIT") },
+  TOGETHER_WHEN: { kind: "count", index: "word", read: t("TOGETHER_WHEN") },
+  MOVE_WEARING: { kind: "count", index: "word", read: t("MOVE_WEARING") },
+  FED: { kind: "count", index: "word", optional: true, read: t("FED") },
+  TALK: { kind: "count", index: "resident", optional: true, read: t("TALK") },
+  MEET: { kind: "count", index: "lane", optional: true, read: t("MEET") },
+  EVENT: { kind: "count", index: "event", read: t("EVENT") },
+  DISTINCT: { kind: "count", index: "counter", read: (v, i) => distinct(v, String(i)) },
+  DISTINCT_TODAY: { kind: "count", index: "counter", read: (v, i) => distinct(v, String(i), `${v.day}-`) },
   // ── read from the state itself ──
   ITEM: { kind: "count", index: "item", read: (v, i) => v.world.bag[Number(i)] ?? 0 },
   COINS: { kind: "count", index: "none", read: (v) => v.world.coins },
@@ -101,6 +150,9 @@ export const TYPES = {
   LEVEL: { kind: "count", index: "none", read: (v) => v.pet?.level ?? 0, source: "PET_LEVEL_HIGHEST" },
   STAGE: { kind: "count", index: "none", read: (v) => stageRank(v.pet?.stage), source: "PET_LEVELS_TOTAL" },
   TRUST: { kind: "count", index: "resident", read: (v, i) => v.world.trust?.[String(i)] ?? 0, source: "REPUTATION" },
+  TRUST_LEVEL: { kind: "count", index: "resident", read: (v, i) => trustLevel(v.world.trust?.[String(i)] ?? 0) },
+  NEEDS: { kind: "count", index: "none", read: (v) => v.pet?.needsMin ?? 0 },
+  PLACED: { kind: "count", index: "none", read: (v) => v.world.decor?.placed.length ?? 0 },
   BOND: { kind: "count", index: "none", read: (v) => v.bondLevel },
   NOW: { kind: "count", index: "none", read: (v) => v.now, source: "BLOCKTIME" },
   ROOM: { kind: "bool", index: "room", read: (v, i) => v.world.room === Number(i), source: "ROOM" },
@@ -118,6 +170,8 @@ export const TYPES = {
   GOAL_DONE: { kind: "bool", index: "word", read: (v, i) => v.goalsDone.includes(String(i)), source: "COMPLETE_COMP" },
   FLAG: { kind: "bool", index: "word", read: (v, i) => (v.world.flags ?? []).includes(String(i)), source: "PET_NAME" },
   ON_CHAIN: { kind: "bool", index: "none", read: (v) => !!v.pet?.onChain },
+  // passes when any condition in `of` passes; read by progressOf itself
+  ANY: { kind: "bool", index: "none", read: () => false },
 } as const satisfies Record<string, TypeSpec>;
 
 export type ConditionType = keyof typeof TYPES;
@@ -148,7 +202,10 @@ export function readCount(c: Condition, v: ConditionView): number {
 /** Snapshots of every INC condition in a list, taken when the quest is accepted. */
 export function snapshotOf(list: readonly Condition[], v: ConditionView): Record<string, number> {
   const snap: Record<string, number> = {};
-  for (const c of list) if (handlerOf(c.logic) === "INC") snap[snapshotKey(c)] = readCount(c, v);
+  for (const c of list) {
+    if (c.type === "ANY") Object.assign(snap, snapshotOf(c.of ?? [], v));
+    else if (handlerOf(c.logic) === "INC") snap[snapshotKey(c)] = readCount(c, v);
+  }
   return snap;
 }
 
@@ -166,6 +223,11 @@ export function progressOf(c: Condition, v: ConditionView, snapshot: Readonly<Re
   if (!s) throw new Error(`unknown condition type ${c.type}`);
   const h = handlerOf(c.logic);
   const op = operatorOf(c.logic);
+  if (c.type === "ANY") {
+    const yes = (c.of ?? []).some((x) => progressOf(x, v, snapshot).met);
+    const met = op === "NOT" ? !yes : yes;
+    return { have: met ? 1 : 0, need: 1, met };
+  }
   if (h === "BOOL") {
     const yes = s.read(v, c.index, c.value) as boolean;
     const met = op === "NOT" ? !yes : yes;
@@ -219,6 +281,12 @@ function checkIndex(kind: IndexKind, index: number | string | undefined, refs: S
     }
     case "word":
       return typeof index === "string" && /^[a-z0-9-]{1,32}$/.test(index) ? null : `index must be a lower-case word`;
+    case "event":
+      return typeof index === "string" && EVENT_SET.has(index) ? null : `no event ${index}`;
+    case "lane":
+      return typeof index === "string" && LANE_SET.has(index) ? null : `no Builders' Lane resident ${index}`;
+    case "counter":
+      return typeof index === "string" && /^[A-Z_]{2,24}(:[a-z0-9-]{1,32})?$/.test(index) ? null : "index must be a counter like FIND or MEET_DAY:tapboy";
   }
 }
 
@@ -236,6 +304,10 @@ export function conditionErrors(c: Condition, refs: SheetRefs = {}): string[] {
   if (s.kind === "count" && !isWhole(c.value)) out.push(`${c.type} needs a whole value of 0 or more`);
   if (c.type === "QUEST_DELAY" && !isWhole(c.value)) out.push("QUEST_DELAY needs the delay in whole seconds");
   if (c.type === "GOAL_DONE" && refs.goals && !refs.goals.has(String(c.index))) out.push(`no goal ${c.index}`);
+  if (c.type === "ANY") {
+    if (!c.of?.length) out.push("ANY needs at least one condition in of");
+    for (const x of c.of ?? []) for (const p of conditionErrors(x, refs)) out.push(`ANY: ${p}`);
+  } else if (c.of) out.push(`${c.type} takes no of`);
   return out;
 }
 

@@ -21,7 +21,7 @@ import {
 
 const T0 = Date.UTC(2026, 10, 16, 9);
 const DAY = 86_400_000;
-const view = (world: WorldState, now = T0): ConditionView => ({ world, pet: { level: 1, stage: "baby", onChain: false }, pets: 1, now, timeOfDay: 2, bondLevel: 0, goalsDone: [] });
+const view = (world: WorldState, now = T0): ConditionView => ({ world, pet: { level: 1, stage: "baby", onChain: false, needsMin: 500 }, pets: 1, now, timeOfDay: 2, day: "2026-11-16", bondLevel: 0, goalsDone: [] });
 const T = (en: string) => ({ en, zh: en });
 const ok = <X,>(r: ({ ok: true; world: WorldState } & X) | { ok: false; reason: string }) => {
   if (!r.ok) throw new Error(r.reason);
