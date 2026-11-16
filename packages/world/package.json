@@ -3,11 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "exports": { ".": "./src/index.ts" },
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "gen": "python scripts/gen.py"
+    "gen": "python scripts/gen.py",
+    "check:sheets": "tsx scripts/check-sheets.ts"
   },
   "dependencies": {
     "@noble/hashes": "1.8.0"

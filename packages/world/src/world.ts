@@ -6,6 +6,7 @@
  */
 
 import { sha256 } from "@noble/hashes/sha2";
+import { bump, bumpAll, bumpFinds } from "./tally";
 import data from "./data/world.json";
 import { ITEMS, type ItemDef, RECIPE_NAMES } from "./items";
 import { ROOM_TEXT, type RoomText } from "./rooms";
@@ -154,6 +155,11 @@ export interface WorldState {
   garden?: { plots: Array<{ crop: string; at: number; compost: boolean } | null>; harvested: number };
   /** decorations bought and where they stand in the home room */
   decor?: { owned: string[]; placed: Array<{ id: string; x: number; y: number }> };
+  /** lifetime counters keyed TYPE:index (see tally.ts); `tallied` marks an older save already counted in once */
+  tally?: Record<string, number>;
+  tallied?: 1;
+  /** named facts that happened once (a pet named, a door opened), read by FLAG conditions */
+  flags?: string[];
 }
 
 export function newWorld(seed: string): WorldState {
@@ -168,6 +174,8 @@ export function newWorld(seed: string): WorldState {
     foragedCount: 0,
     seed,
     claimed: [],
+    tally: {},
+    tallied: 1,
   };
 }
 
@@ -192,7 +200,10 @@ export function move(w: WorldState, to: number, petEnergy: number): WorldResult<
     ok: true,
     firstVisit,
     coins,
-    world: { ...w, room: to, visited: firstVisit ? [...w.visited, to] : w.visited, coins: w.coins + coins },
+    world: bumpAll({ ...w, room: to, visited: firstVisit ? [...w.visited, to] : w.visited, coins: w.coins + coins }, [
+      ["MOVE", 0, 1],
+      ["COINS_EARNED", 0, coins],
+    ]),
   };
 }
 
@@ -222,7 +233,8 @@ export function forage(w: WorldState, now: number, petEnergy: number): WorldResu
   }
   let bag = w.bag;
   for (const f of found) bag = add(bag, f.item, f.n);
-  return { ok: true, found, world: { ...w, bag, foraged: { ...w.foraged, [w.room]: hour }, foragedCount: w.foragedCount + 1 } };
+  const next = bump({ ...w, bag, foraged: { ...w.foraged, [w.room]: hour }, foragedCount: w.foragedCount + 1 }, "FORAGE", w.room);
+  return { ok: true, found, world: bumpFinds(next, found) };
 }
 
 export function buy(w: WorldState, item: number): WorldResult {
@@ -230,7 +242,7 @@ export function buy(w: WorldState, item: number): WorldResult {
   const def = ITEM[item];
   if (!room || !def || !room.shop.includes(item) || def.price === undefined) return { ok: false, reason: "notSold" };
   if (w.coins < def.price) return { ok: false, reason: "coins" };
-  return { ok: true, world: { ...w, coins: w.coins - def.price, bag: add(w.bag, item, 1) } };
+  return { ok: true, world: bumpAll({ ...w, coins: w.coins - def.price, bag: add(w.bag, item, 1) }, [["BUY", item, 1], ["COINS_SPENT", 0, def.price]]) };
 }
 
 export function craft(w: WorldState, recipeIndex: number): WorldResult<{ made: number }> {
@@ -241,7 +253,8 @@ export function craft(w: WorldState, recipeIndex: number): WorldResult<{ made: n
   let bag = w.bag;
   for (const x of r.ins) bag = add(bag, x.item, -x.amount);
   bag = add(bag, r.out, r.outAmount);
-  return { ok: true, made: r.out, world: { ...w, bag, crafted: w.crafted + 1 } };
+  // one count per thing made at the bench, indexed by what came out (the source's CRAFT_ITEM, note A §1.3)
+  return { ok: true, made: r.out, world: bump({ ...w, bag, crafted: w.crafted + 1 }, "CRAFT", r.out) };
 }
 
 /** Take an item out of the bag to use on the pet. Returns its effect for the game rules. */
@@ -249,7 +262,7 @@ export function take(w: WorldState, item: number): WorldResult<{ use: NonNullabl
   const def = ITEM[item];
   if (!def?.use) return { ok: false, reason: "cantUse" };
   if (!has(w, item)) return { ok: false, reason: "none" };
-  return { ok: true, use: def.use, world: { ...w, bag: add(w.bag, item, -1) } };
+  return { ok: true, use: def.use, world: bump({ ...w, bag: add(w.bag, item, -1) }, "USE", item) };
 }
 
 /** Open a River Box: two or three things from the deep pools, decided by the box's own roll. */
@@ -267,10 +280,10 @@ export function openBox(w: WorldState, now: number): WorldResult<{ found: Array<
   }
   let bag = add(w.bag, 21007, -1);
   for (const f of found) bag = add(bag, f.item, f.n);
-  return { ok: true, found, world: { ...w, bag } };
+  return { ok: true, found, world: bumpFinds({ ...w, bag }, found) };
 }
 
-export const earn = (w: WorldState, coins: number): WorldState => ({ ...w, coins: w.coins + coins });
+export const earn = (w: WorldState, coins: number): WorldState => bump({ ...w, coins: w.coins + coins }, "COINS_EARNED", 0, coins);
 export const give = (w: WorldState, item: number, n = 1): WorldState => ({ ...w, bag: add(w.bag, item, n) });
 
 import { QUESTS, type QuestView, questState } from "./quests";

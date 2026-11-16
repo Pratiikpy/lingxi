@@ -6,6 +6,7 @@
  */
 
 import type { WorldResult, WorldState } from "./world";
+import { bump, bumpFinds } from "./tally";
 
 export const GARDEN_ROOM = 76;
 export const PLOTS = 4;
@@ -82,7 +83,8 @@ export function harvest(w: WorldState, plot: number, now: number): WorldResult<{
   const c = CROP[p.crop]!;
   const n = c.amount + (p.compost ? 1 : 0);
   const plots = g.map((x, i) => (i === plot ? null : x));
-  return { ok: true, item: c.yields, n, world: { ...w, bag: bagAdd(w.bag, c.yields, n), garden: { plots, harvested: (w.garden?.harvested ?? 0) + 1 } } };
+  const picked: WorldState = { ...w, bag: bagAdd(w.bag, c.yields, n), garden: { plots, harvested: (w.garden?.harvested ?? 0) + 1 } };
+  return { ok: true, item: c.yields, n, world: bumpFinds(bump(picked, "HARVEST", c.id), [{ item: c.yields, n }]) };
 }
 
 /** Cleaning a messy pet (clean meter under half) leaves one bag of compost. */

@@ -8,6 +8,7 @@
 
 import { DECOR_BY_ID } from "./decor";
 import type { WorldResult, WorldState } from "./world";
+import { bumpAll } from "./tally";
 
 export const WEAR_SLOTS = ["head", "face", "held"] as const;
 export type WearSlot = (typeof WEAR_SLOTS)[number];
@@ -77,12 +78,12 @@ export function make(w: WorldState, kind: MakeRecipe["kind"], id: string): World
   if (kind === "outfit") {
     const wd = wardrobe(w);
     if (wd.owned.includes(id)) return { ok: false, reason: "owned" };
-    return { ok: true, world: { ...w, bag, wardrobe: { ...wd, owned: [...wd.owned, id] }, crafted: w.crafted + 1 } };
+    return { ok: true, world: bumpAll({ ...w, bag, wardrobe: { ...wd, owned: [...wd.owned, id] }, crafted: w.crafted + 1 }, [["CRAFT", 0, 1], ["MAKE", id, 1]]) };
   }
   if (!DECOR_BY_ID[id]) return { ok: false, reason: "noRecipe" };
   const d = w.decor ?? { owned: [], placed: [] };
   if (d.owned.includes(id)) return { ok: false, reason: "owned" };
-  return { ok: true, world: { ...w, bag, decor: { ...d, owned: [...d.owned, id] }, crafted: w.crafted + 1 } };
+  return { ok: true, world: bumpAll({ ...w, bag, decor: { ...d, owned: [...d.owned, id] }, crafted: w.crafted + 1 }, [["CRAFT", 0, 1], ["MAKE", id, 1]]) };
 }
 
 export const CORNER_SHOP = 4;
@@ -93,7 +94,7 @@ export function buyPiece(w: WorldState, id: string): WorldResult {
   const wd = wardrobe(w);
   if (wd.owned.includes(id)) return { ok: false, reason: "owned" };
   if (w.coins < price) return { ok: false, reason: "coins" };
-  return { ok: true, world: { ...w, coins: w.coins - price, wardrobe: { ...wd, owned: [...wd.owned, id] } } };
+  return { ok: true, world: bumpAll({ ...w, coins: w.coins - price, wardrobe: { ...wd, owned: [...wd.owned, id] } }, [["BUY", 0, 1], ["COINS_SPENT", 0, price]]) };
 }
 
 /** Puts a piece on (or, with null, takes the slot's piece off) for one pet. */

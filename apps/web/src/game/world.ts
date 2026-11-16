@@ -9,7 +9,8 @@ import { useBadges } from "./badges";
 import { create } from "zustand";
 import { wearableOf } from "@lingxi/art";
 import { useDesigns } from "./designs";
-import { exert, stageOf } from "@lingxi/game";
+import { exert, localHour, stageOf } from "@lingxi/game";
+import { WANTS, timeOfDay } from "@lingxi/brain";
 import {
   FORAGE_ENERGY,
   ITEM,
@@ -25,7 +26,12 @@ import {
   newWorld,
   openBox as openRiverBox,
   take,
+  backfillTally,
+  bump,
+  giveTo as giveToRule,
+  withFlag,
 } from "@lingxi/world";
+import { setTallySink } from "./tally";
 import { useChain } from "./chain";
 import { brainOf, useGame } from "./store";
 import { play } from "./sound";
@@ -45,12 +51,26 @@ function cleanDecor(d: unknown): WorldState["decor"] {
   return { owned, placed };
 }
 
+/** Only whole, non-negative counts under well-formed keys survive a reload. */
+function cleanTally(t: unknown): Record<string, number> {
+  if (!t || typeof t !== "object") return {};
+  return Object.fromEntries(Object.entries(t as Record<string, unknown>).filter((e): e is [string, number] => /^[A-Z_]{2,24}:[\w:-]{1,40}$/.test(e[0]) && Number.isSafeInteger(e[1]) && (e[1] as number) >= 0));
+}
+
+const cleanFlags = (f: unknown): string[] => (Array.isArray(f) ? [...new Set(f.filter((x): x is string => typeof x === "string" && /^[a-z0-9-]{1,32}$/.test(x)))] : []);
+
 function load(): WorldState {
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const w = JSON.parse(raw) as WorldState;
-      if (w.version === 1) return { ...w, claimed: Array.isArray(w.claimed) ? w.claimed : [], decor: cleanDecor(w.decor) };
+      if (w.version === 1) {
+        const clean: WorldState = { ...w, claimed: Array.isArray(w.claimed) ? w.claimed : [], decor: cleanDecor(w.decor), tally: cleanTally(w.tally), flags: cleanFlags(w.flags) };
+        // an older save is counted into the tally once, from what it and the badge ledger already record
+        const counted = backfillTally(clean, useBadges.getState().ledger);
+        if (counted !== clean) save(counted);
+        return counted;
+      }
     }
   } catch {
     // fall through to a new world
@@ -111,6 +131,12 @@ interface WorldStore {
   endWalk: () => void;
   startTrip: (to: string) => void;
   endTrip: () => void;
+  /** a pet's event counted into the player's lifetime tally (plan 4.1): care, lessons, spars, saves, choices */
+  tally: (type: string, index: number | string, n: number) => void;
+  /** a named fact that happened once (FLAG conditions) */
+  flag: (name: string) => void;
+  /** hand items to a resident (quests ask for gifts) */
+  giveTo: (resident: string, item: number, n: number) => boolean;
   /** what the last walk or trip came to, for the card that welcomes the pet back */
   lastOuting: { kind: "walk"; steps: number; minutes: number; found: Array<{ item: number; n: number }>; capped: boolean } | { kind: "trip"; to: string; found: Array<{ item: number; n: number }>; learned: number | null } | null;
 }
@@ -263,6 +289,30 @@ export const useWorld = create<WorldStore>((set, get) => ({
     play("pop");
     set({ world: r.world });
   },
+  tally: (type, index, count) => {
+    const next = bump(get().world, type, index, count);
+    if (next === get().world) return;
+    save(next);
+    set({ world: next });
+  },
+  flag: (name) => {
+    const next = withFlag(get().world, name);
+    if (next === get().world) return;
+    save(next);
+    set({ world: next });
+  },
+  giveTo: (resident, item, count) => {
+    const r = giveToRule(get().world, resident, item, count);
+    if (!r.ok) {
+      play("error");
+      set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
+      return false;
+    }
+    save(r.world);
+    play("pop");
+    set({ world: r.world });
+    return true;
+  },
   giveLaurel: () => {
     const next = giveLaurelRule(get().world);
     if (next === get().world) return;
@@ -353,3 +403,26 @@ export const useWorld = create<WorldStore>((set, get) => ({
     set({ world: r.world, notice: { id: ++n, kind: "claimed", coins: r.coins, items: r.items } });
   },
 }));
+
+// the pet's events (care, lessons, spars, saves) are counted into the tally the world store owns
+setTallySink((type, index, count) => useWorld.getState().tally(type, index, count));
+
+/**
+ * Time together and the pet's own choices (plan 4.1): each live beat (one minute) the pet spends awake with the
+ * game open and in view counts as a minute TOGETHER in the current room, and as TOGETHER_NIGHT by its local night;
+ * what its brain chose that beat counts as CHOOSE:<want>. A long gap is an absence, not time together.
+ */
+useGame.subscribe((s, prev) => {
+  const p = s.pet;
+  const q = prev.pet;
+  if (!p || !q || p.bornAt !== q.bornAt || p.beat <= q.beat || p.beat - q.beat > 2) return;
+  if (p.away || p.sitting || p.asleep || p.hibernating) return;
+  if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+  const beats = p.beat - q.beat;
+  const w = useWorld.getState();
+  w.tally("TOGETHER", w.world.room, beats);
+  if (timeOfDay(localHour(p, p.beat)) === 0) w.tally("TOGETHER_NIGHT", 0, beats);
+  const want = WANTS[p.last.want];
+  if (want && want !== "idle") w.tally("CHOOSE", want, 1);
+});
+

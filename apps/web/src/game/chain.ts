@@ -23,6 +23,7 @@ import localDeployment from "../../../../packages/chain/deployments/local.json";
 import xlayerDeployment from "../../../../packages/chain/deployments/xlayer.json";
 // a rehearsal of a mainnet deploy on a local fork of X Layer (VITE_CHAIN=rehearsal, test builds only)
 import rehearsalDeployment from "../../../../packages/chain/deployments/rehearsal.json";
+import { noteTally } from "./tally";
 
 const OLD_KEY = "lingxi.chain.v1";
 const CHAIN_KEY = "lingxi.chain.v2";
@@ -345,6 +346,7 @@ export const useChain = create<ChainState>((set, get) => ({
       store(pet, next);
       set({ record: activeRecord(), busy: "idle" });
       useBadges.getState().note("chainDays");
+      noteTally("SAVE");
       onSaved();
     } catch (e) {
       set({ busy: "idle", error: quiet ? null : firstLine(e) });

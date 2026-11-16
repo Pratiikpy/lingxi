@@ -5,6 +5,7 @@
  */
 
 import type { WorldState, WorldResult } from "./world";
+import { bumpAll } from "./tally";
 
 export interface Decor {
   id: string;
@@ -127,7 +128,7 @@ export function buyDecor(w: WorldState, id: string): WorldResult {
   const s = decorOf(w);
   if (s.owned.includes(id)) return { ok: false, reason: "owned" };
   if (w.coins < d.price) return { ok: false, reason: "coins" };
-  return { ok: true, world: { ...w, coins: w.coins - d.price, decor: { ...s, owned: [...s.owned, id] } } };
+  return { ok: true, world: bumpAll({ ...w, coins: w.coins - d.price, decor: { ...s, owned: [...s.owned, id] } }, [["BUY", 0, 1], ["COINS_SPENT", 0, d.price]]) };
 }
 
 export function placeDecor(w: WorldState, id: string, x: number, y: number): WorldResult {

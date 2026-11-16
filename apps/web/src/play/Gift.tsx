@@ -19,6 +19,7 @@ import { PALETTE_OF, type PetStage } from "../scene/textures";
 import { Sprite } from "./Sprite";
 import { Icon } from "./icons";
 import "./gift.css";
+import { noteTally } from "../game/tally";
 
 type Lang = "en" | "zh";
 const OPENED_KEY = "lingxi.gifts.opened.v1";
@@ -67,6 +68,7 @@ export function SendGiftPanel({ pet }: { pet: Pet }) {
     };
     setLink(`${linkPrefix("play.html")}gift=${encodeGift(gift)}`);
     useBadges.getState().note("gifts");
+    noteTally("GIFT");
     setItem(null);
     play("success");
   };

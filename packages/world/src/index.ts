@@ -7,3 +7,7 @@ export * from "./decor";
 export * from "./garden";
 export * from "./outings";
 export * from "./wardrobe";
+export * from "./tally";
+export * from "./conditions";
+export * from "./giving";
+export * from "./sheets";

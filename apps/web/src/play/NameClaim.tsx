@@ -6,6 +6,7 @@ import { nameHolderOf, nameProblem, petRegistryAbi, readName, setNameOnChain } f
 import { type Key, useT } from "../i18n";
 import { connectWallet, deployment, publicClient, type ChainRecord } from "../game/chain";
 import { play } from "../game/sound";
+import { useWorld } from "../game/world";
 
 const PROBLEM: Record<string, Key> = { empty: "name.empty", long: "name.long", space: "name.space", chars: "name.chars" };
 
@@ -49,6 +50,7 @@ export function NameClaim({ pet, record }: { pet: Pet; record: ChainRecord }) {
       const wallet = await connectWallet();
       await setNameOnChain(publicClient, wallet, deployment!, id, name);
       setOnChain(name);
+      useWorld.getState().flag("named");
       play("success");
     } catch (e) {
       const m = (e as Error).message ?? "";

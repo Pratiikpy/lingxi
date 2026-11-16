@@ -9,6 +9,7 @@
  */
 
 import { ITEM, ROOMS, type Recipe, TRAVEL_RECIPES, type WorldResult, type WorldState, pickDrop } from "./world";
+import { bump, bumpFinds } from "./tally";
 
 const MIN = 60_000;
 const HOUR = 60 * MIN;
@@ -106,7 +107,8 @@ export function endWalk(w: WorldState, now: number): WorldResult<{ steps: number
   const capped = walksToday(w, now) >= WALKS_WITH_FINDS;
   const counts = minutes >= WALK_COUNTS_AFTER_MINUTES || walk.finds.length > 0;
   const { walk: _done, ...rest } = settled.world;
-  return { ok: true, steps: walkSteps(walk, now), minutes, finds: walk.finds, capped, world: { ...rest, bag, walksDay: day, walksToday: walksToday(w, now) + (counts ? 1 : 0) } };
+  const done: WorldState = { ...rest, bag, walksDay: day, walksToday: walksToday(w, now) + (counts ? 1 : 0) };
+  return { ok: true, steps: walkSteps(walk, now), minutes, finds: walk.finds, capped, world: bumpFinds(counts ? bump(done, "WALK") : done, walk.finds) };
 }
 
 /* ── trips ─────────────────────────────────────────────────────────────── */
@@ -200,7 +202,8 @@ export function endTrip(w: WorldState, now: number): WorldResult<{ to: string; f
   const known = w.recipes ?? [];
   const learned = known.includes(d.teaches) ? null : d.teaches;
   const { trip: _back, ...rest } = w;
-  return { ok: true, to: t.to, found, learned, world: { ...rest, bag, recipes: learned ? [...known, learned] : known, trips: (w.trips ?? 0) + 1 } };
+  const home: WorldState = { ...rest, bag, recipes: learned ? [...known, learned] : known, trips: (w.trips ?? 0) + 1 };
+  return { ok: true, to: t.to, found, learned, world: bumpFinds(bump(home, "TRIP", t.to), found) };
 }
 
 /** Travel recipes the player knows, ready for the workbench. */

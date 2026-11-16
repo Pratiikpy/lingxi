@@ -39,6 +39,7 @@ import { RunCard, RunView } from "./ArenaRun";
 import { checkSparOnChain } from "../game/battleCheck";
 import { ChainCheck } from "./ChainCheck";
 import { SeasonCard } from "./Season";
+import { noteTally } from "../game/tally";
 
 type Lang = "en" | "zh";
 const MOVE_NAMES: Record<Move, [string, string]> = {
@@ -593,7 +594,9 @@ export function FightView({
       const newBest = useDaily.getState().record(margin, outcome === "w");
       setDailyNote(newBest ? "best" : "same");
     }
+    noteTally("SPAR");
     if (outcome === "w") useBadges.getState().note("sparWins");
+    if (outcome === "w") noteTally("SPAR_WIN");
     if (outcome === "w" && partner.look === "behemoth") useBadges.getState().note("behemothWins");
     if (outcome === "w" && !partner.id.startsWith("friend:")) {
       const coins = WIN_COINS + (first ? FIRST_WIN_COINS : 0);

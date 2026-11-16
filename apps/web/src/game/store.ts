@@ -5,6 +5,7 @@
  */
 
 import { CARE_METRIC, useBadges } from "./badges";
+import { noteTally } from "./tally";
 
 /** The picture of what was eaten: the item's own art, or the starter food's. */
 function foodArt(c: Care, art?: string): string | undefined {
@@ -14,6 +15,9 @@ function foodArt(c: Care, art?: string): string | undefined {
 
 /** Stage as the "Growing up" badge counts it: child 2, teen 3, adult 4. */
 const STAGE_RANK: Record<string, number> = { baby: 1, child: 2, teen: 3, adult: 4, elder: 4 };
+
+/** What each successful care result counts as in the tally: CARE:<index>. */
+const CARE_INDEX: Partial<Record<string, string>> = { ate: "feed", woke: "feed", played: "play", cleaned: "clean", sleeping: "sleep", awake: "wake", petted: "pet", healed: "medicine", listened: "talk", used: "use" };
 import { create } from "zustand";
 import { type Program, type Rule, STARTERS, compileProgram, fastBrain, stateBits } from "@lingxi/brain";
 import { FOODS, type Brain, type Care, type CareResult, type Pet, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, liveBeat, mindBrain, settleForm, stageOf, teach as teachRule, awayEvent, awaySeed, beatOf, instinctBrain, MAX_MIND_STATE, type OutsideInstinct, withSegment } from "@lingxi/game";
@@ -270,6 +274,9 @@ export const useGame = create<GameState>((set, get) => ({
     save(r.pet);
     // cleaning up after a messy pet leaves compost for the garden (C4)
     if (c.kind === "clean" && r.note === "cleaned") void import("./world").then((m) => m.useWorld.getState().compost(cleanBefore));
+    // the tally counts what care actually did (plan 4.1); waking a pet that was not asleep did nothing
+    const careIndex = CARE_INDEX[r.note];
+    if (careIndex && !(c.kind === "wake" && !pet.asleep)) noteTally("CARE", careIndex);
     const metric = CARE_METRIC[r.note];
     if (metric) {
       const b = useBadges.getState();
@@ -327,6 +334,7 @@ export const useGame = create<GameState>((set, get) => ({
     save(after);
     set({ pet: after, pets: roster.pets, lastCare: { kind: "learn", at: performance.now() }, toast: { id: ++toastId, note: "learned" } });
     useBadges.getState().note("lessons");
+    noteTally("LESSON");
     return { ok: true };
   },
   arrange: (index, move) => {
