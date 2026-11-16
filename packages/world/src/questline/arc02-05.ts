@@ -26,9 +26,10 @@ export const ARC_2_TO_5: QuestDef[] = [
   }),
   quest(13, 2, "wick", [done("q12")], {
     title: T("Glass and string", "玻璃与线"),
-    intro: [say(A.calm, "A real lantern needs a glass jar and a good stick to hang it from.", "真正的灯笼要一个玻璃罐，还要一根结实的小棍挂起来。"), say(A.thinking, "Both turn up if you look around in the right places.", "在对的地方四处找找，两样都能找到。")],
+    intro: [say(A.calm, "A real lantern needs an old bottle to hold the light and a good stick to hang it from.", "真正的灯笼要一个旧瓶子装光，还要一根结实的小棍挂起来。"), say(A.thinking, "Both turn up if you look around in the right places.", "在对的地方四处找找，两样都能找到。")],
     outro: [say(A.happy, "Lovely. And here, a pine cone and a ruby mushroom: the rest of what a lantern needs.", "真好。再给你一颗松果和一朵红宝石蘑菇：灯笼剩下要用的都在这儿了。")],
-    objectives: [obj(from("FIND", 1006, 1), "Find a glass jar", "找到一个玻璃罐"), obj(from("FIND", 1001, 1), "Find a stick", "找到一根小棍")],
+    // the outline asked for a glass jar; since finds follow rarity tiers (plan 4.5) a jar takes most of a day to turn up, so it is an old bottle
+    objectives: [obj(from("FIND", 1003, 1), "Find an old bottle", "找到一个旧瓶子"), obj(from("FIND", 1001, 1), "Find a stick", "找到一根小棍")],
     rewards: [coins(15), item(1004), item(1013), trust("wick", 4)],
   }),
   quest(14, 2, "wick", [done("q13")], {
@@ -211,10 +212,11 @@ export const ARC_2_TO_5: QuestDef[] = [
   }),
   quest(38, 5, "bolt", [done("q37")], {
     title: T("Bits and pieces", "零零碎碎"),
-    intro: [say(R.one, "I'm building a finder. It needs a green pipe, a glow root and some scrap. Find them.", "我在做一个找东西的仪器。要一根绿管子、一根发光根和一些废铁。去找。")],
-    outro: [say(R.two, "All three. And this: a spark of sight. It's what lets the finder see.", "三样都齐了。再给你这个：视觉之火花。仪器靠它才能看见。")],
-    objectives: [obj(from("FIND", 1017, 1), "Find a green pipe", "找到一根绿管子"), obj(from("FIND", 1021, 1), "Find a glow root", "找到一根发光根"), obj(from("FIND", 1005, 1), "Find some scrap", "找到一些废铁")],
-    rewards: [coins(20), item(6003), trust("bolt", 5)],
+    intro: [say(R.one, "I'm building a finder. It needs a green pipe, some scrap and a pine cone. Find them.", "我在做一个找东西的仪器。要一根绿管子、一些废铁和一颗松果。去找。")],
+    outro: [say(R.two, "All three. And these: a glow root I dug up years ago, and a spark of sight. The finder needs both.", "三样都齐了。再给你这些：我好多年前挖到的发光根，还有视觉之火花。仪器两样都要。")],
+    // a glow root drops in one room at 0.2% (rarity tiers, plan 4.5): Bolt gives it rather than sending you to dig for weeks
+    objectives: [obj(from("FIND", 1017, 1), "Find a green pipe", "找到一根绿管子"), obj(from("FIND", 1005, 1), "Find some scrap", "找到一些废铁"), obj(from("FIND", 1004, 1), "Find a pine cone", "找到一颗松果")],
+    rewards: [coins(20), item(1021), item(6003), trust("bolt", 5)],
   }),
   quest(39, 5, "bolt", [done("q38")], {
     title: T("The finder's rod", "寻物杖"),
