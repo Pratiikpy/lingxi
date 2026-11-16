@@ -186,7 +186,9 @@ export function withSite(app: Hono, root: string): Hono {
     await next();
     c.header("X-Content-Type-Options", "nosniff");
     c.header("Referrer-Policy", "strict-origin-when-cross-origin");
-    c.header("X-Frame-Options", "SAMEORIGIN");
+    // the game runs inside Telegram Web's frame as a Mini App; every other page stays unframeable by others
+    if (c.req.path === "/play.html") c.header("Content-Security-Policy", "frame-ancestors 'self' https://web.telegram.org https://*.web.telegram.org");
+    else c.header("X-Frame-Options", "SAMEORIGIN");
     c.header("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
   });
   app.use("/assets/*", async (c, next) => {

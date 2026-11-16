@@ -38,3 +38,21 @@ describe("moving pets between Telegram and a browser", () => {
     expect(await (await app.request(`/api/move/${code}/claim`, { method: "POST" })).json()).toEqual({ ok: false, reason: "gone" });
   });
 });
+
+import { withSite } from "../src/server";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+describe("framing", () => {
+  it("lets Telegram Web frame the game and nobody frame the other pages", async () => {
+    const root = mkdtempSync(join(tmpdir(), "site-"));
+    writeFileSync(join(root, "play.html"), "<p>game</p>");
+    writeFileSync(join(root, "index.html"), "<p>home</p>");
+    const app = withSite(new Hono(), root);
+    const play = await app.request("/play.html");
+    expect(play.headers.get("content-security-policy")).toContain("https://web.telegram.org");
+    expect(play.headers.get("x-frame-options")).toBeNull();
+    const home = await app.request("/");
+    expect(home.headers.get("x-frame-options")).toBe("SAMEORIGIN");
+  });
+});

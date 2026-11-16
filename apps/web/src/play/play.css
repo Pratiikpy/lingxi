@@ -1060,7 +1060,9 @@
   }
   .stage {
     aspect-ratio: auto;
-    min-height: min(calc(100vw - 32px), 380px);
+    /* a short window (Telegram's half-height or desktop popup, a landscape phone) shrinks the room so the
+       care buttons and the tab bar still fit without scrolling */
+    min-height: max(180px, min(calc(100vw - 32px), 380px, calc(100dvh - 312px)));
   }
 }
 @media (max-width: 420px) {
