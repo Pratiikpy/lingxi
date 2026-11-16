@@ -106,7 +106,7 @@ ${image ? `<img class="pic" src="${image}" alt="${name}" width="160" height="160
 <dt data-en="Log fingerprint" data-zh="日志指纹">Log fingerprint</dt><dd id="log" class="mono">…</dd>
 </dl>
 ${proof ? `<a class="btn" href="${proof}" data-en="Check its mind on X Layer" data-zh="在 X Layer 上核对它的心智">Check its mind on X Layer</a>` : ""}
-<p class="note" data-en="This page lives in ${name}'s home on X Layer. The numbers above are read from the chain as you open it." data-zh="这个页面放在${name}在 X Layer 上的家里。上面的数字是你打开时从链上读到的。">This page lives in ${name}'s home on X Layer. The numbers above are read from the chain as you open it.</p>
+<p class="note" data-en="This page lives in ${name}'s home on X Layer. The numbers above are read from the chain as you open it." data-zh="这个页面就在${name}位于 X Layer 上的家里。上面的数字是你打开页面时从链上读到的。">This page lives in ${name}'s home on X Layer. The numbers above are read from the chain as you open it.</p>
 </main>
 <script>
 (function(){

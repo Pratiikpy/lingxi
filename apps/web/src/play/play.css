@@ -2135,3 +2135,22 @@
   gap: 8px;
   justify-content: space-between;
 }
+
+/* inline links inside sheets: the game's ink with a coral underline, not the browser's blue */
+.sheet a:not(.btn) {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--coral);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+.sheet a:not(.btn):hover {
+  color: var(--coral);
+}
+.move-note .row {
+  align-items: center;
+  justify-content: flex-end;
+}
+.move-note .row .btn.primary {
+  min-width: 88px;
+}

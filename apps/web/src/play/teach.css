@@ -421,6 +421,11 @@
 .level-stars i {
   font-style: normal;
 }
+/* a star not yet earned is an outline, so it still reads (3:1) on the light card */
+.level-stars i:not(.on) {
+  color: transparent;
+  -webkit-text-stroke: 1.2px #8a7ca3;
+}
 .level-stars i.on {
   color: #ffc83d;
   text-shadow: 0 1px 0 #2b2140;

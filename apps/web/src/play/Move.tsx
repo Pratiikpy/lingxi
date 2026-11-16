@@ -145,7 +145,7 @@ export function MoveNotes() {
         <div className="row">
           {arrived === "ok" && hasBefore && (
             <button type="button" className="btn" onClick={() => undoArrival()}>
-              {zh ? "撤销，换回原来的宠物" : "Undo, bring back the pets that were here"}
+              {zh ? "撤销，换回原来的宠物" : "Undo: bring back the earlier pets"}
             </button>
           )}
           <button type="button" className="btn primary" onClick={() => (play("tap"), dismissArrival())}>

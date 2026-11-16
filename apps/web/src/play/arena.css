@@ -73,10 +73,12 @@
   color: #f2a900;
   font-size: 12px;
   letter-spacing: 2px;
+  -webkit-text-stroke: 0.7px #7a4f00;
 }
 .sp-stars i {
   font-style: normal;
-  color: color-mix(in srgb, var(--ink) 20%, transparent);
+  color: transparent;
+  -webkit-text-stroke: 1px color-mix(in srgb, var(--ink) 55%, transparent);
 }
 .sp-blurb {
   font-size: 13px;
@@ -363,6 +365,11 @@
 }
 .sp-daily-text .label {
   margin: 0;
+}
+/* the card stays light in dark mode, so its soft text keeps the light theme's colour */
+.sp-daily .small,
+.sp-daily .label {
+  color: #5b4e73;
 }
 .sp-daily-text a {
   color: inherit;
