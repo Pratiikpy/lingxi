@@ -43,5 +43,9 @@
   "outfitMarketBlock": 76011196,
   "breederBem": true,
   "breederBlock": 76053901,
-  "breederFree": "0x5e5bbb798c5a2afc89f431debabaa0b889f77dd1"
+  "breederFree": "0x5e5bbb798c5a2afc89f431debabaa0b889f77dd1",
+  "outfitMarketV2": "0xe0721c90aafc23b9e1b696eaba069460170f1da3",
+  "outfitMarketV2Block": 76053933,
+  "holderGift": "0x2fd09681d203e1a8fe62ec50b2526e03d6e43912",
+  "holderOutfit": 1
 }
