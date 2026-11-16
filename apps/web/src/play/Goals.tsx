@@ -103,7 +103,9 @@ function GoalCard({ g }: { g: GoalDef }) {
           ))}
         </div>
         <p className="small gl-next">
-          {next === null
+          {r?.state === "upcoming"
+            ? L("Counting starts the moment it opens; nothing done before then counts.", "开始那一刻才计数，之前做的不算。")
+            : next === null
             ? L("Every tier reached. Thank you, everyone.", "每一档都达到了。谢谢大家。")
             : L(`${amountText(g, tierAt(g, next) - total)} more for the ${next}% tier.`, `再 ${amountText(g, tierAt(g, next) - total)} 就到 ${next}% 档。`)}
           {r && r.contributors > 0 ? L(` ${r.contributors} helping so far.`, ` 已有 ${r.contributors} 人出力。`) : ""}
