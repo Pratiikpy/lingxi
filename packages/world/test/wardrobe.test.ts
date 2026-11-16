@@ -50,6 +50,16 @@ describe("the wardrobe", () => {
     expect(setOf(outfitOf(w, "pet1"))).toBeNull();
   });
 
+  it("player-made pieces from this device and from both markets pass to the game's own check", () => {
+    // "u:" drawn here, "c:" the first (OKB) market, "c2:" the BEM market; the game checks ownership and slot
+    for (const id of ["u:mwj3ia1l", "c:1", "c2:1", "c2:12345"]) {
+      const r = ok(wear(rich(), "pet1", "head", id));
+      expect(outfitOf(r, "pet1").head).toBe(id);
+    }
+    // anything else must still be a known piece
+    for (const id of ["c3:1", "c2:", "x:1", "c2:../1"]) expect(wear(rich(), "pet1", "head", id)).toEqual({ ok: false, reason: "wrongSlot" });
+  });
+
   it("the laurel comes only from a season win, once", () => {
     expect(make(rich(), "outfit", "laurel")).toEqual({ ok: false, reason: "noRecipe" });
     const w = giveLaurel(giveLaurel(rich()));

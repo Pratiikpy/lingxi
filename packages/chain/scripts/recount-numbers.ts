@@ -12,6 +12,7 @@
 import { readFileSync } from "node:fs";
 import { type Address, createPublicClient, decodeEventLog, http, keccak256, parseAbi, toHex } from "viem";
 import type { Deployment } from "../src/registry";
+import { XLAYER_ENDPOINTS, createPacedLogs } from "./lib/paced-logs";
 import { xLayer } from "../src/tapeout";
 
 const arg = (n: string, f?: string) => {
@@ -22,7 +23,10 @@ const d = JSON.parse(readFileSync(arg("deployment")!, "utf8")) as Deployment & {
 /** The block the registry was deployed in on X Layer mainnet. */
 const registryFrom = Number(arg("registry-from", "75968151"));
 const api = arg("api", "https://lingxi.knole.me")!;
-const rpc = arg("rpc", "https://rpc.xlayer.tech")!;
+// --rpc names one endpoint (a local fork, say); without it the walk is spread over X Layer's public endpoints
+const rpcArg = arg("rpc");
+const rpc = rpcArg ?? "https://rpc.xlayer.tech";
+const paced = createPacedLogs(rpcArg ? [{ url: rpcArg, rate: 20, lanes: 4 }] : XLAYER_ENDPOINTS);
 const pub = createPublicClient({ chain: { ...xLayer, rpcUrls: { default: { http: [rpc] } } }, transport: http(rpc, { timeout: 30_000 }) });
 
 const events = parseAbi([
@@ -41,26 +45,8 @@ const T = {
   sold: topic("Sold(uint256,address,uint32,uint256)"),
 };
 const views = parseAbi(["function totalBurned() view returns (uint256)", "function total() view returns (uint256)", "function nextPetId() view returns (uint256)"]);
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-/** Every log of `address` from `from` to `to`, in 100-block windows, raw (no ABI filter in the query). */
-async function logsOf(address: Address, from: number, to: number) {
-  const out = [];
-  for (let a = from; a <= to; a += 100) {
-    const b = Math.min(to, a + 99);
-    for (let k = 0; ; k++) {
-      try {
-        out.push(...(await pub.request({ method: "eth_getLogs", params: [{ address, fromBlock: toHex(a), toBlock: toHex(b) }] })));
-        break;
-      } catch (e) {
-        if (k > 8) throw e;
-        await sleep(1500 * (k + 1));
-      }
-    }
-    await sleep(250);
-  }
-  return out as Array<{ topics: [`0x${string}`, ...`0x${string}`[]]; data: `0x${string}`; blockNumber: `0x${string}` }>;
-}
+/** Every log of `address` from `from` to `to`, raw (no ABI filter in the query). */
+const logsOf = (address: Address, from: number, to: number) => paced.range(address, from, to);
 
 async function main() {
   const live = (await (await fetch(`${api}/api/numbers`, { cache: "no-store" })).json()) as {

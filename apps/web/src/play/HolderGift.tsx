@@ -59,6 +59,8 @@ export function HolderGiftPanel({ pet, wallet }: { pet: Pet; wallet: string }) {
         setTerms(t);
         setClaimed(c);
         setWays(w);
+        // a pin claimed earlier, or on another device, belongs in the wardrobe too: read this wallet's pieces
+        if (c && useDesigns.getState().wallet?.toLowerCase() !== who.toLowerCase()) void refreshDesigns(who);
       } catch {
         if (live) setNote(L("The holder pin couldn't be read just now.", "暂时读不到持有人徽章。"));
       }

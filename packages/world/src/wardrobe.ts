@@ -97,10 +97,14 @@ export function buyPiece(w: WorldState, id: string): WorldResult {
 }
 
 /** Puts a piece on (or, with null, takes the slot's piece off) for one pet. */
+/** The id of a piece a player drew or bought on a market, as opposed to one of Lingxi's own pieces. */
+const PLAYER_PIECE = /^(u|c2?):[0-9a-z]{1,20}$/;
+
 export function wear(w: WorldState, petKey: string, slot: WearSlot, id: string | null): WorldResult {
   const wd = wardrobe(w);
-  // a player-made piece ("u:" drawn on this device, "c:" a market copy) is checked by the game, which knows the designs
-  if (id !== null && !/^[uc]:[0-9a-z]{1,20}$/.test(id)) {
+  // a player-made piece ("u:" drawn on this device, "c:" a copy from the OKB market, "c2:" from the BEM market) is
+  // checked by the game, which knows the designs and which copies this player holds
+  if (id !== null && !PLAYER_PIECE.test(id)) {
     const p = PIECES[id];
     if (!p || p.slot !== slot) return { ok: false, reason: "wrongSlot" };
     if (!wd.owned.includes(id)) return { ok: false, reason: "notOwned" };
