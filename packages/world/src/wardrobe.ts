@@ -39,6 +39,7 @@ export const PIECES: Readonly<Record<string, { slot: WearSlot; set: string }>> =
   whistle: { slot: "held", set: "story" },
   seal: { slot: "held", set: "story" },
   // Builders' Lane pieces a player can be given (drawn in @lingxi/art builders.ts)
+  "b:lamps13": { slot: "head", set: "lane" },
   "b:telescope": { slot: "held", set: "lane" },
   "b:hardhat": { slot: "head", set: "lane" },
   "b:handheld": { slot: "held", set: "lane" },

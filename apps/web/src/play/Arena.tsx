@@ -118,7 +118,8 @@ export function partnerOfDuel(c: Challenge): Partner {
 
 export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken }: { pet: Pet; challenge?: Partner | null; onChallengeTaken?: () => void; duel?: Challenge | null; onDuelTaken?: () => void }) {
   const lang = useLang((s) => s.lang) as Lang;
-  const [fight, setFight] = useState<FightState | null>(null);
+  // `again`: the same fight shown once more as a replay, with nothing paid or recorded a second time
+  const [fight, setFight] = useState<(FightState & { again?: boolean }) | null>(null);
   const [link, setLink] = useState("");
   const [cheer, setCheer] = useState(false);
   const [running, setRunning] = useState(false);
@@ -153,7 +154,21 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sparAsk]);
   if (running) return <RunView pet={pet} onClose={() => setRunning(false)} />;
-  if (fight) return <FightView key={fight.result.seed} pet={pet} self={{ name: pet.name, line: pet.line, stage: drawn(stageOf(pet, Date.now())) }} {...fight} onDone={() => setFight(null)} onRematch={() => start(fight.partner, undefined, fight.opponent)} />;
+  if (fight) {
+    const { again, ...shown } = fight;
+    return (
+      <FightView
+        key={`${fight.result.seed}${again ? ":again" : ""}`}
+        pet={pet}
+        self={{ name: pet.name, line: pet.line, stage: drawn(stageOf(pet, Date.now())) }}
+        {...shown}
+        replay={again}
+        onDone={() => setFight(null)}
+        onRematch={() => start(fight.partner, undefined, fight.opponent)}
+        onWatchAgain={() => setFight({ ...fight, again: true })}
+      />
+    );
+  }
 
   const makeLink = async () => {
     const id = Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => b.toString(16).padStart(2, "0")).join("");
@@ -558,7 +573,8 @@ export function FightView({
   instinct,
   onDone,
   onRematch,
-}: FightState & { pet?: Pet; self: { name: string; line: Pet["line"]; stage: PetStage }; replay?: boolean; onDone: () => void; onRematch: () => void }) {
+  onWatchAgain,
+}: FightState & { pet?: Pet; self: { name: string; line: Pet["line"]; stage: PetStage }; replay?: boolean; onDone: () => void; onRematch: () => void; onWatchAgain?: () => void }) {
   const lang = useLang((s) => s.lang) as Lang;
   const reduce = useReducedMotion() ?? false;
   const [shown, setShown] = useState(0);
@@ -691,12 +707,12 @@ export function FightView({
               : "Not better than your best today. Teach it something and try again."}
         </p>
       )}
-      {finished && (replay || !pet ? <ReplayResult self={self} partner={partner} result={result} onDone={onDone} /> : <Result pet={pet} partner={partner} result={result} reward={reward} opponent={opponent} duel={duel} cheer={cheer} instinct={instinct} onDone={onDone} onRematch={onRematch} />)}
+      {finished && (replay || !pet ? <ReplayResult self={self} partner={partner} result={result} onDone={onDone} /> : <Result pet={pet} partner={partner} result={result} reward={reward} opponent={opponent} duel={duel} cheer={cheer} instinct={instinct} onDone={onDone} onRematch={onRematch} {...(onWatchAgain ? { onWatchAgain } : {})} />)}
     </div>
   );
 }
 
-function Result({ pet, partner, result, reward, opponent, duel, cheer, instinct, onDone, onRematch }: { pet: Pet; partner: Partner; result: SparResult; reward: number; opponent?: Fighter; duel?: FightState["duel"]; cheer: boolean; instinct?: string; onDone: () => void; onRematch: () => void }) {
+function Result({ pet, partner, result, reward, opponent, duel, cheer, instinct, onDone, onRematch, onWatchAgain }: { pet: Pet; partner: Partner; result: SparResult; reward: number; opponent?: Fighter; duel?: FightState["duel"]; cheer: boolean; instinct?: string; onDone: () => void; onRematch: () => void; onWatchAgain?: () => void }) {
   const [backLink, setBackLink] = useState("");
   const lang = useLang((s) => s.lang) as Lang;
   const learn = useGame((s) => s.learn);
@@ -816,6 +832,11 @@ function Result({ pet, partner, result, reward, opponent, duel, cheer, instinct,
         {!duel && (
           <button type="button" className="btn primary" onClick={onRematch}>
             {lang === "zh" ? "再来一场" : "Rematch"}
+          </button>
+        )}
+        {onWatchAgain && (
+          <button type="button" className="btn" onClick={() => (play("tap"), onWatchAgain())}>
+            {lang === "zh" ? "再看一遍" : "Watch it again"}
           </button>
         )}
         <button type="button" className="btn" onClick={onDone}>
