@@ -16,7 +16,7 @@ import { inTelegram, openInBrowser, telegramStart } from "./telegram";
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
 /** The Telegram bot that hosts the Mini App, once it exists (for moving pets into Telegram). */
-export const TG_BOT = ((import.meta.env.VITE_TG_BOT as string | undefined) ?? "").replace(/^@/, "");
+export const TG_BOT = ((import.meta.env.VITE_TG_BOT as string | undefined) ?? "LingxiPetBot").replace(/^@/, "");
 const STAY = new Set(["lingxi.session.v1", "lingxi.device.v1", "lingxi.reminders.v1"]);
 const BEFORE = "lingxi.before-move.v1";
 const MOVED = "lingxi.moved.v1";
