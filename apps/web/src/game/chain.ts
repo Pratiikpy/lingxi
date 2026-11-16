@@ -21,13 +21,20 @@ import type { ChainInfo } from "./live";
 import { programFor, useGame } from "./store";
 import localDeployment from "../../../../packages/chain/deployments/local.json";
 import xlayerDeployment from "../../../../packages/chain/deployments/xlayer.json";
+// a rehearsal of a mainnet deploy on a local fork of X Layer (VITE_CHAIN=rehearsal, test builds only)
+import rehearsalDeployment from "../../../../packages/chain/deployments/rehearsal.json";
 
 const OLD_KEY = "lingxi.chain.v1";
 const CHAIN_KEY = "lingxi.chain.v2";
 const LINES = ["gentle", "bold", "curious"] as const;
 
 const NETWORK = (import.meta.env.VITE_CHAIN as string | undefined) ?? (import.meta.env.DEV ? "local" : "xlayer");
-const DEPLOYMENTS: Record<string, Deployment | undefined> = { local: localDeployment as unknown as Deployment, xlayer: xlayerDeployment as unknown as Deployment };
+const DEPLOYMENTS: Record<string, Deployment | undefined> = {
+  local: localDeployment as unknown as Deployment,
+  xlayer: xlayerDeployment as unknown as Deployment,
+  // the condition is a build-time constant, so a production build drops the rehearsal file entirely
+  rehearsal: import.meta.env.VITE_CHAIN === "rehearsal" ? (rehearsalDeployment as unknown as Deployment) : undefined,
+};
 export const deployment: Deployment | undefined = DEPLOYMENTS[NETWORK];
 export const explorerTx = (tx: string) => (NETWORK === "local" ? null : `https://www.oklink.com/xlayer/tx/${tx}`);
 

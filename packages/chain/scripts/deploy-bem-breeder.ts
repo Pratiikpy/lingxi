@@ -52,7 +52,8 @@ async function main() {
   const breeder = r.contractAddress!;
   const read = <T>(fn: string) => pub.readContract({ address: breeder, abi: breederV2Abi, functionName: fn as never }) as Promise<T>;
   const [reg, bem, owner, fee, max] = await Promise.all([read<Address>("registry"), read<Address>("bem"), read<Address>("owner"), read<bigint>("breedFee"), read<number>("MAX_CHILDREN")]);
-  if (reg.toLowerCase() !== d.registry.toLowerCase() || bem !== BEM || owner !== account.address || fee !== 10_000_000n || Number(max) !== 4) throw new Error("the breeder does not read back as configured");
+  const same = (x: string, y: string) => x.toLowerCase() === y.toLowerCase();
+  if (!same(reg, d.registry) || !same(bem, BEM) || !same(owner, account.address) || fee !== 10_000_000n || Number(max) !== 4) throw new Error("the breeder does not read back as configured");
 
   // the free breeder goes off first: no moment exists where both could hatch (the old one has no fee and no cap)
   const old = d.breeder;

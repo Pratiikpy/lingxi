@@ -7,6 +7,9 @@
 import { useMemo, useRef, useState } from "react";
 import { type Design, DesignError, DESIGN_FACE_MAX_W, DESIGN_MAX_H, DESIGN_MAX_W, SLOTS, type Slot, boundingBox, designWearable, drawPet, registerWearables, trimDesign, wearOverlay, encodeDesign } from "@lingxi/art";
 import { currentMarket, parseBem, publishDesign } from "@lingxi/chain";
+
+/** The BEM market's smallest price per copy (its MIN_PRICE: 0.0001 BEM). */
+const MIN_BEM_PRICE = 10_000n;
 import { type Pet, stageOf } from "@lingxi/game";
 import { parseEther } from "viem";
 import { useLang } from "../i18n";
@@ -40,6 +43,7 @@ export function StudioPanel({ pet }: { pet: Pet }) {
   const [supply, setSupply] = useState("100");
   const [royalty, setRoyalty] = useState("5");
   const [busy, setBusy] = useState(false);
+  const bemMarket = !!deployment && currentMarket(deployment)?.v === 2;
   const painting = useRef(false);
 
   const grid = cells.slice(0, DESIGN_MAX_H).map((r) => r.slice(0, width));
@@ -107,6 +111,10 @@ export function StudioPanel({ pet }: { pet: Pet }) {
     const priceUnits = market.v === 2 ? parseBem(price || "0") : /^\d+(\.\d{1,18})?$/.test(price) ? parseEther(price) : null;
     if (priceUnits === null || priceUnits <= 0n) {
       setNote(L("Enter a price above zero.", "请填一个大于零的价格。"));
+      return;
+    }
+    if (market.v === 2 && priceUnits < MIN_BEM_PRICE) {
+      setNote(L("The lowest price on the market is 0.0001 BEM.", "市场上的最低价格是 0.0001 BEM。"));
       return;
     }
     setBusy(true);
@@ -194,7 +202,7 @@ export function StudioPanel({ pet }: { pet: Pet }) {
           <summary>{L("Publish to the market", "发布到市场")}</summary>
           <div className="studio-terms">
             <label>
-              {deployment && currentMarket(deployment)?.v === 2 ? L("Price per copy (BEM)", "每份价格（BEM）") : L("Price per copy (OKB)", "每份价格（OKB）")}
+              {bemMarket ? L("Price per copy (BEM)", "每份价格（BEM）") : L("Price per copy (OKB)", "每份价格（OKB）")}
               <input inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value.replace(/[^0-9.]/g, ""))} />
             </label>
             <label>
@@ -206,7 +214,11 @@ export function StudioPanel({ pet }: { pet: Pet }) {
               <input inputMode="decimal" value={royalty} onChange={(e) => setRoyalty(e.target.value.replace(/[^0-9.]/g, ""))} />
             </label>
           </div>
-          <p className="small">{L("The market keeps 3% of every sale. Up to 10% of each resale goes to you. Your proceeds wait in the market until you collect them.", "市场从每笔交易中收取 3%。每次转卖最多 10% 归你。你的收入会留在市场里，等你来领取。")}</p>
+          <p className="small">
+            {bemMarket
+              ? L("3% of every sale is burned: it goes to BEM's dead address, and nobody keeps it. Up to 10% of each resale goes to you. Your proceeds wait in the market until you collect them.", "每笔交易的 3% 会被销毁：送进 BEM 的销毁地址，谁也拿不到。每次转卖最多 10% 归你。你的收入会留在市场里，等你来领取。")
+              : L("The market keeps 3% of every sale. Up to 10% of each resale goes to you. Your proceeds wait in the market until you collect them.", "市场从每笔交易中收取 3%。每次转卖最多 10% 归你。你的收入会留在市场里，等你来领取。")}
+          </p>
           <button type="button" className="btn primary" disabled={!drawn || busy} onClick={() => void publish()}>
             {busy ? L("Publishing…", "发布中……") : L("Publish with my wallet", "用我的钱包发布")}
           </button>

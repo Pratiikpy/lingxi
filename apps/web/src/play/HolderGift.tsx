@@ -22,6 +22,9 @@ const WAY_NAME: Record<GiftWay["label"], { en: string; zh: string }> = {
   fab: { en: "your FAB", zh: "你持有的 FAB" },
 };
 
+/** Chinese text around a phrase that may start or end in Latin letters ("FAB"): a space only where Latin meets Han. */
+const zhAround = (before: string, phrase: string, after: string) => `${before}${/^[A-Za-z0-9]/.test(phrase) ? " " : ""}${phrase}${/[A-Za-z0-9]$/.test(phrase) ? " " : ""}${after}`;
+
 export function HolderGiftPanel({ pet, wallet }: { pet: Pet; wallet: string }) {
   const lang = useLang((s) => s.lang) as Lang;
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
@@ -77,7 +80,7 @@ export function HolderGiftPanel({ pet, wallet }: { pet: Pet; wallet: string }) {
       await claimGift(publicClient, w, terms, way);
       setClaimed(true);
       await refreshDesigns(w.account!.address);
-      setNote(L(`The holder pin is yours, claimed through ${WAY_NAME[way.label].en}. Wear it from the wardrobe.`, `持有人徽章归你了（凭${WAY_NAME[way.label].zh}领取）。去衣橱里穿上它吧。`));
+      setNote(L(`The holder pin is yours, claimed through ${WAY_NAME[way.label].en}. Wear it from the wardrobe.`, `持有人徽章归你了（${zhAround("凭", WAY_NAME[way.label].zh, "领取")}）。去衣橱里穿上它吧。`));
       play("success");
     } catch (e) {
       play("error");
@@ -121,12 +124,12 @@ export function HolderGiftPanel({ pet, wallet }: { pet: Pet; wallet: string }) {
         </p>
       </div>
       {claimed ? (
-        <p className="small fashion-have">{L("You've claimed your holder pin. Wear it from the wardrobe.", "你已经领过持有人徽章了。去衣橱里穿上它吧。")}</p>
+        !note && <p className="small fashion-have">{L("You've claimed your holder pin. Wear it from the wardrobe.", "你已经领过持有人徽章了。去衣橱里穿上它吧。")}</p>
       ) : (
         <>
           {ways[0] && (
             <button type="button" className="btn primary" disabled={busy} onClick={() => (play("tap"), void claim(ways[0]!))}>
-              {busy ? L("Claiming…", "领取中……") : L(`Claim it with ${WAY_NAME[ways[0].label].en}`, `凭${WAY_NAME[ways[0].label].zh}领取`)}
+              {busy ? L("Claiming…", "领取中……") : L(`Claim it with ${WAY_NAME[ways[0].label].en}`, zhAround("凭", WAY_NAME[ways[0].label].zh, "领取"))}
             </button>
           )}
           <form

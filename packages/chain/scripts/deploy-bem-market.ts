@@ -41,6 +41,8 @@ export const HOLDER_PIN = {
 };
 
 const here = dirname(fileURLToPath(import.meta.url));
+/** Addresses compare without regard to letter case (receipts give lower case, contracts give checksums). */
+const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 const arg = (n: string, f?: string) => {
   const i = process.argv.indexOf(`--${n}`);
   return i > 0 ? process.argv[i + 1] : f;
@@ -79,7 +81,7 @@ async function main() {
   const m = { v: 2 as const, address: market };
   const read = <T>(fn: string, args: unknown[] = []) => pub.readContract({ address: market, abi: outfitMarketV2Abi, functionName: fn as never, args: args as never }) as Promise<T>;
   const [owner, bem, fee, burn] = await Promise.all([read<Address>("owner"), read<Address>("bem"), read<number>("feeBps"), read<Address>("BURN")]);
-  if (owner !== account.address || bem !== BEM || Number(fee) !== 300 || burn !== "0x000000000000000000000000000000000000dEaD") throw new Error("the market does not read back as configured");
+  if (!same(owner, account.address) || !same(bem, BEM) || Number(fee) !== 300 || !same(burn, "0x000000000000000000000000000000000000dEaD")) throw new Error("the market does not read back as configured");
 
   // 2. the pin, with no primary sale; its pixels must read back exactly
   const pin = await publishDesign(pub, wallet, m, { pixels: encodeDesign(HOLDER_PIN), name: "TapeOut chip pin", price: 0n, maxSupply: GIFTS + 1, royaltyBps: 500 });
@@ -105,7 +107,9 @@ async function main() {
     g<bigint>("bemMin"),
     g<bigint>("fabMin"),
   ]);
-  if (gm !== market || go !== pin.id || gt !== TEST1 || gri !== RIG || groot !== root || gblock !== BigInt(snap.block) || gb !== bemMin || gf !== fabMin) throw new Error("the gift does not read back as configured");
+  if (!same(gm, market) || go !== pin.id || !same(gt, TEST1) || !same(gri, RIG) || groot.toLowerCase() !== root.toLowerCase() || gblock !== BigInt(snap.block) || gb !== bemMin || gf !== fabMin) {
+    throw new Error("the gift does not read back as configured");
+  }
 
   // 4. the grant
   await wait(await wallet.writeContract({ address: market, abi: outfitMarketV2Abi, functionName: "setMinter", args: [pin.id, gift, GIFTS] }));

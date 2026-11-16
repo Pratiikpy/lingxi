@@ -27,7 +27,7 @@ import {
 import { type Pet, stageOf } from "@lingxi/game";
 import { formatEther, parseEther } from "viem";
 import { useLang } from "../i18n";
-import { connectWallet, publicClient } from "../game/chain";
+import { connectWallet, deployment, publicClient } from "../game/chain";
 import { marketAvailable, marketOf, safeDecode, useDesigns } from "../game/designs";
 import { useWorld } from "../game/world";
 import { play } from "../game/sound";
@@ -146,6 +146,7 @@ export function FashionMarketPanel({ pet }: { pet: Pet }) {
       return L(`Bought one “${nameOf(l)}” from ${short(l.seller)}.`, `从 ${short(l.seller)} 那里买了一份「${nameOf(l)}」。`);
     });
 
+  const isPin = (m: OutfitDesign) => m.market === 2 && deployment?.holderOutfit !== undefined && m.id === BigInt(deployment.holderOutfit);
   const nameOf = (l: OutfitListing) => market.find((m) => m.market === l.market && m.id === l.design)?.name ?? `#${l.design}`;
   const pieces = market.filter((m) => !m.item);
   const forSale = (m: OutfitDesign) => !m.closed && m.price > 0n && m.minted < m.maxSupply;
@@ -181,7 +182,13 @@ export function FashionMarketPanel({ pet }: { pet: Pet }) {
               <OnPet pet={pet} id={key} />
               <b>{m.name}</b>
               <span className="small">{L(`by ${short(m.creator)} · ${m.minted}/${m.maxSupply}`, `作者 ${short(m.creator)} · ${m.minted}/${m.maxSupply}`)}</span>
-              <span className="small">{open ? priceText(m.market, m.price) : L("not for sale by its creator", "作者暂不出售")}</span>
+              <span className="small">
+                {open
+                  ? priceText(m.market, m.price)
+                  : isPin(m)
+                    ? L("a free gift for TapeOut holders: claim it under Holder cosmetics", "送给 TapeOut 持有人的免费礼物：在「持有人外观」里领取")
+                    : L("not for sale by its creator", "作者暂不出售")}
+              </span>
               {mine > 0 && <span className="small fashion-have">{L(`You have ${mine}`, `你有 ${mine} 份`)}</span>}
               <div className="fashion-actions">
                 {open && (
@@ -219,6 +226,10 @@ export function FashionMarketPanel({ pet }: { pet: Pet }) {
                     const each = parsePrice(m.market, resell.price);
                     if (!each || each <= 0n) {
                       setNote(L("Enter a price above zero.", "请填一个大于零的价格。"));
+                      return;
+                    }
+                    if (m.market === 2 && each < 10_000n) {
+                      setNote(L("The lowest price on the market is 0.0001 BEM.", "市场上的最低价格是 0.0001 BEM。"));
                       return;
                     }
                     void run(`list:${key}`, async (w) => {

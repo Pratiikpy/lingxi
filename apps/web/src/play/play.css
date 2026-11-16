@@ -1825,6 +1825,9 @@
   display: grid;
   gap: 8px;
 }
+.fashion > .row {
+  align-items: center;
+}
 .studio-slots,
 .studio-inks,
 .studio-swatches {
@@ -1993,9 +1996,16 @@
 }
 .fashion-resell {
   display: grid;
-  grid-template-columns: 3.5em 1fr auto;
+  grid-template-columns: 3em minmax(0, 1fr);
   gap: 4px;
   width: 100%;
+}
+/* the price needs its room on a phone card: the button goes on its own row */
+.fashion-resell button {
+  grid-column: 1 / -1;
+}
+.fashion-resell input {
+  min-width: 0;
 }
 .fashion-resell-note {
   grid-column: 1 / -1;
