@@ -41,10 +41,6 @@ export interface ConditionView {
   now: number;
   /** 0 night, 1 morning, 2 day, 3 evening: the brain's own `timeOfDay` of the pet's local hour */
   timeOfDay: 0 | 1 | 2 | 3;
-  /** quest id → when it was handed in (ms) */
-  questsDone: Readonly<Record<string, number>>;
-  /** resident id → trust points (package 4.3) */
-  trust: Readonly<Record<string, number>>;
   /** the highest friendship level the active pet has with any friend's pet */
   bondLevel: number;
   /** community goals that are complete (package 4.10) */
@@ -104,17 +100,17 @@ export const TYPES = {
   PETS: { kind: "count", index: "none", read: (v) => v.pets, source: "PET_NUM_OWNED" },
   LEVEL: { kind: "count", index: "none", read: (v) => v.pet?.level ?? 0, source: "PET_LEVEL_HIGHEST" },
   STAGE: { kind: "count", index: "none", read: (v) => stageRank(v.pet?.stage), source: "PET_LEVELS_TOTAL" },
-  TRUST: { kind: "count", index: "resident", read: (v, i) => v.trust[String(i)] ?? 0, source: "REPUTATION" },
+  TRUST: { kind: "count", index: "resident", read: (v, i) => v.world.trust?.[String(i)] ?? 0, source: "REPUTATION" },
   BOND: { kind: "count", index: "none", read: (v) => v.bondLevel },
   NOW: { kind: "count", index: "none", read: (v) => v.now, source: "BLOCKTIME" },
   ROOM: { kind: "bool", index: "room", read: (v, i) => v.world.room === Number(i), source: "ROOM" },
   TIME_OF_DAY: { kind: "bool", index: "time", read: (v, i) => TIMES_OF_DAY[v.timeOfDay] === i, source: "PHASE" },
-  QUEST: { kind: "bool", index: "quest", read: (v, i) => v.questsDone[String(i)] !== undefined, source: "QUEST" },
+  QUEST: { kind: "bool", index: "quest", read: (v, i) => v.world.quests?.done[String(i)] !== undefined, source: "QUEST" },
   QUEST_DELAY: {
     kind: "bool",
     index: "quest",
     read: (v, i, value) => {
-      const at = v.questsDone[String(i)];
+      const at = v.world.quests?.done[String(i)];
       return at !== undefined && v.now - at > (value ?? 0) * 1000;
     },
     source: "QUEST_COMPLETED_DELAY",

@@ -57,8 +57,6 @@ const view = (world: WorldState, over: Partial<ConditionView> = {}): ConditionVi
   pets: 2,
   now: T0,
   timeOfDay: 2,
-  questsDone: {},
-  trust: {},
   bondLevel: 0,
   goalsDone: [],
   ...over,
@@ -92,7 +90,8 @@ describe("the condition engine", () => {
       ["BUY", 11130, 4], ["COINS_SPENT", 0, 120], ["COINS_EARNED", 0, 300], ["USE", 11130, 7], ["LESSON", 0, 5], ["SPAR_WIN", 0, 3],
       ["GIFT", 0, 8], ["SAVE", 0, 12], ["CARE", "feed", 21], ["CHOOSE", "share", 2],
     ] as const) w = bump(w, type, index, n);
-    const v = view(w, { questsDone: { hello: T0 - 2 * 86_400_000 }, trust: { praline: 14 }, goalsDone: ["lanterns"], bondLevel: 3, timeOfDay: 0 });
+    w = { ...w, quests: { active: {}, done: { hello: T0 - 2 * 86_400_000 } }, trust: { praline: 14 } };
+    const v = view(w, { goalsDone: ["lanterns"], bondLevel: 3, timeOfDay: 0 });
     const read = (cond: Condition) => progressOf(cond, v).have;
     expect(read(c("GIVE", "CURR_MIN", 11130, 1))).toBe(3); // ITEM_BURN
     expect(read(c("GIVE_TO", "CURR_MIN", "praline", 1))).toBe(2);

@@ -7,6 +7,7 @@
 
 import { sha256 } from "@noble/hashes/sha2";
 import { bump, bumpAll, bumpFinds } from "./tally";
+import type { QuestBook } from "./story";
 import data from "./data/world.json";
 import { ITEMS, type ItemDef, RECIPE_NAMES } from "./items";
 import { ROOM_TEXT, type RoomText } from "./rooms";
@@ -160,6 +161,10 @@ export interface WorldState {
   tallied?: 1;
   /** named facts that happened once (a pet named, a door opened), read by FLAG conditions */
   flags?: string[];
+  /** story quests and dailies (see story.ts) */
+  quests?: QuestBook;
+  /** trust with each resident (quest rewards; plan 4.3) */
+  trust?: Record<string, number>;
 }
 
 export function newWorld(seed: string): WorldState {
