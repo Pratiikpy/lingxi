@@ -303,6 +303,13 @@ export function QuestDialog() {
     setAt(0);
   }, [open]);
   const progress = useMemo(() => (q && (mode === "active" || mode === "ready") ? questProgress(q, world, conditionView()) : null), [q, mode, world]);
+  // Escape closes it, like every other dialog in the game
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(null);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, setOpen]);
   if (!q || !pet) return null;
   const lines = mode === "closing" ? q.outro : q.intro;
   const shownAt = mode === "active" || mode === "ready" ? lines.length - 1 : Math.min(at, lines.length - 1);
