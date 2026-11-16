@@ -5,7 +5,7 @@
   "processorIndex": 419,
   "transistors": "0x92DFda52386386Be40EFd7becB545139372C7139",
   "registry": "0x103d7252eb6b2fec22b3f65a6bb605945f280e99",
-  "breeder": "0x5e5bbb798c5a2afc89f431debabaa0b889f77dd1",
+  "breeder": "0x8da8221466de12321e6ee2ea73d62aaf28bb11b0",
   "redPacket": "0x7acceb7ab1cff102fe2660f511e88d42010e806b",
   "seal": "5",
   "redPacketBlock": 75968151,
@@ -40,5 +40,12 @@
   "at": "2026-11-15T10:06:29.079Z",
   "look": "0x0642a802967260714d4efec05fef701b17d31b75",
   "outfitMarket": "0xb9f6b18edd21933582ec69fb1e718d9629e684cd",
-  "outfitMarketBlock": 76011196
+  "outfitMarketBlock": 76011196,
+  "breederBem": true,
+  "breederBlock": 76063091,
+  "breederFree": "0x5e5bbb798c5a2afc89f431debabaa0b889f77dd1",
+  "outfitMarketV2": "0xa292c12b0414bbfc14994f93bcff8bd58c921e55",
+  "outfitMarketV2Block": 76063126,
+  "holderGift": "0xc216a4abb6c4c2d0b485f42219197551330b6cf4",
+  "holderOutfit": 1
 }
