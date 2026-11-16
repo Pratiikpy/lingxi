@@ -6,6 +6,7 @@
  */
 
 import type { GoalClaims } from "./goals";
+import type { FriendsState } from "./friendship";
 import { sha256 } from "@noble/hashes/sha2";
 import { bump, bumpAll, bumpFinds } from "./tally";
 import type { QuestBook } from "./story";
@@ -111,6 +112,16 @@ export const TRAVEL_RECIPES: readonly Recipe[] = [
   { index: 20001, name: { en: "Pound Rice Mochi", zh: "捣米麻薯" }, out: 11130, outAmount: 2, ins: [{ item: 7201, amount: 2 }, { item: 11312, amount: 1 }] },
   { index: 20002, name: { en: "Fold Apple Jam Mochi", zh: "包苹果酱麻薯" }, out: 11120, outAmount: 2, ins: [{ item: 11313, amount: 2 }, { item: 7201, amount: 1 }] },
   { index: 20003, name: { en: "Roll Honey Mochi", zh: "滚蜂蜜麻薯" }, out: 11140, outAmount: 2, ins: [{ item: 11312, amount: 2 }, { item: 7201, amount: 1 }] },
+  // taught by friends at trust level 3 (friends/residents.ts), each the thing their shelf would otherwise sell
+  { index: 20004, name: { en: "Stir Moon Tonic", zh: "调月光补剂" }, out: 11004, outAmount: 1, ins: [{ item: 1121, amount: 150 }, { item: 1112, amount: 100 }] },
+  { index: 20005, name: { en: "Pound Taro Mochi", zh: "捣芋泥麻薯" }, out: 11110, outAmount: 2, ins: [{ item: 7201, amount: 2 }, { item: 1201, amount: 100 }] },
+  { index: 20006, name: { en: "Steep Lucky Tea", zh: "泡好运茶" }, out: 11405, outAmount: 1, ins: [{ item: 1111, amount: 100 }, { item: 1104, amount: 100 }] },
+  { index: 20007, name: { en: "Double Wisdom Candy", zh: "炼大智慧糖" }, out: 11202, outAmount: 1, ins: [{ item: 11201, amount: 2 }, { item: 1103, amount: 100 }] },
+  { index: 20008, name: { en: "Melt a Metal Bar", zh: "熔金属条" }, out: 1303, outAmount: 1, ins: [{ item: 1005, amount: 30 }, { item: 1015, amount: 1 }] },
+  { index: 20009, name: { en: "Warm Honeydrops", zh: "捂蜜露" }, out: 11312, outAmount: 2, ins: [{ item: 11311, amount: 1 }, { item: 1011, amount: 1 }] },
+  { index: 20010, name: { en: "Brew Calm Tea", zh: "泡安神茶" }, out: 11404, outAmount: 1, ins: [{ item: 1111, amount: 100 }, { item: 1110, amount: 50 }] },
+  { index: 20011, name: { en: "Grill a Burger", zh: "烤汉堡" }, out: 11302, outAmount: 1, ins: [{ item: 7202, amount: 1 }, { item: 7201, amount: 1 }] },
+  { index: 20012, name: { en: "Spin Rock Candyfloss", zh: "转棉花岩糖" }, out: 21205, outAmount: 1, ins: [{ item: 1201, amount: 150 }, { item: 1103, amount: 50 }] },
 ];
 
 export function neighbours(index: number): number[] {
@@ -168,6 +179,8 @@ export interface WorldState {
   trust?: Record<string, number>;
   /** community-goal rewards already taken (see goals.ts) */
   goals?: GoalClaims;
+  /** friendship steps, gifts and visits (see friendship.ts) */
+  friends?: FriendsState;
 }
 
 export function newWorld(seed: string): WorldState {

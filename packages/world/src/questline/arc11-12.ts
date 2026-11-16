@@ -5,7 +5,7 @@
  */
 
 import type { QuestDef } from "../story";
-import { T, anyOf, coins, decor, done, ever, flag, from, item, obj, piece, say, story } from "./helpers";
+import { T, anyOf, coins, decor, done, ever, flag, from, item, obj, piece, say, story, trust } from "./helpers";
 
 const quest = (n: number, arc: number, giver: string, requires: Parameters<typeof story>[0]["requires"], q: Omit<Parameters<typeof story>[0], "id" | "arc" | "giver" | "requires">): QuestDef =>
   story({ id: `q${String(n).padStart(2, "0")}`, arc, giver, requires: requires ?? [], ...q });
@@ -17,35 +17,35 @@ export const ARC_11_12: QuestDef[] = [
     intro: [say(undefined, "1, 2, 3, 5, 8… Stay and watch me count all the way to 13. It's the biggest I can hold.", "1、2、3、5、8……留下来看我一直数到 13。那是我能装下的最大的数。")],
     outro: [say(undefined, "13! You saw it. Wear my lamps; they're stuck at 13 for you.", "13！你看见了。戴上我的灯吧，它们为你一直停在 13。")],
     objectives: [obj(from("EVENT", "lane-count", 1), "Watch Behemoth count to 13", "看巨兽数到 13")],
-    rewards: [coins(15), piece("b:lamps13")],
+    rewards: [coins(15), piece("b:lamps13"), trust("behemoth", 5)],
   }),
   quest(73, 11, "lane:behemoth", [done("q72")], {
     title: T("Check it yourself", "自己验"),
     intro: [say(undefined, "Don't take my word for it. Press the button and ask BNB Chain what I should say next.", "别光听我说。按那个按钮，问问 BNB Chain 我下一步该说什么。")],
     outro: [say(undefined, "Same lamps, same memory. Nobody can unplug me, and nobody can fake me either.", "一样的灯，一样的记忆。没人能拔掉我的电源，也没人能伪造我。")],
     objectives: [obj(from("EVENT", "lane-checked", 1), "Check one of Behemoth's steps on BNB Chain", "在 BNB Chain 上核对巨兽的一步")],
-    rewards: [coins(25), flag("verifier"), item(1103)],
+    rewards: [coins(25), flag("verifier"), item(1103), trust("behemoth", 6)],
   }),
   quest(74, 11, "lane:mars", [ever("MEET", "mars", 1)], {
     title: T("Did you TapeOut today?", "今天你 TapeOut 了吗"),
     intro: [say(undefined, "Did you TapeOut today? Save a day on X Layer, then come and tell me.", "今天，你 TapeOut 了吗？在 X Layer 上保存一天，然后来告诉我。")],
     outro: [say(undefined, "👀 gBEM! Here, my spare telescope. Watch the sky with me.", "👀 gBEM！给，我备用的望远镜。陪我一起看天空。")],
     objectives: [obj(from("SAVE", undefined, 1), "Save a day on X Layer", "在 X Layer 上保存一天"), obj(from("MEET", "mars", 1), "Then visit Little Mars", "然后去看小火星")],
-    rewards: [coins(25), piece("b:telescope")],
+    rewards: [coins(25), piece("b:telescope"), trust("mars", 5)],
   }),
   quest(75, 11, "lane:tapboy", [ever("MEET", "tapboy", 1)], {
     title: T("One day at a time", "一天一天来"),
     intro: [say(undefined, "GMGM! I count my days out of a thousand. Come and see me on three different days.", "GMGM！我在数一千天里的第几天。在三个不同的日子来看我。")],
     outro: [say(undefined, "Three days. Shut out the noise, focus on now. Take a handheld; it's how I study.", "三天了。摒弃杂音，专注当下。拿个掌机吧，我就是用它修炼的。")],
     objectives: [obj(from("DISTINCT", "MEET_DAY:tapboy", 3), "Visit Tapboy on 3 different days", "在 3 个不同的日子去看掌机仔")],
-    rewards: [coins(30), piece("b:handheld")],
+    rewards: [coins(30), piece("b:handheld"), trust("tapboy", 5)],
   }),
   quest(76, 11, "lane:builder", [ever("MEET", "builder", 1)], {
     title: T("It's the product", "做产品"),
     intro: [say(undefined, "Ignore the noise. Make five things at the workbench, then come back. On we go.", "别管噪音。在工作台做五样东西，然后回来。继续干。")],
     outro: [say(undefined, "It's the product, period. Builders attract builders. Here's your hard hat.", "It's the product, period. 建设者吸引建设者。这是你的安全帽。")],
     objectives: [obj(from("CRAFT", undefined, 5), "Make 5 things at the workbench", "在工作台做 5 样东西"), obj(from("MEET", "builder", 1), "Then visit Hardhat", "然后去看安全帽")],
-    rewards: [coins(35), piece("b:hardhat")],
+    rewards: [coins(35), piece("b:hardhat"), trust("builder", 5)],
   }),
 
   // ── Arc 12. Growing up (from your pet) ──

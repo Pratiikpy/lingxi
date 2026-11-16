@@ -87,16 +87,18 @@ export interface SceneProps {
   /** the character standing in this room (portrait file), if any */
   npc: string | null;
   /** over the character's head: "!" when they have a quest for you, "✓" when one is ready to hand in */
-  npcMark?: "!" | "✓" | null;
+  npcMark?: "!" | "✓" | "★" | null;
   onNpcTap: () => void;
 }
 
 /** The quest mark: a little pixel sign, "!" in gold for a quest to take, a tick in green for one to hand in. */
-const MARKS: Record<"!" | "✓", { rows: string[]; fill: string }> = {
+const MARKS: Record<"!" | "✓" | "★", { rows: string[]; fill: string }> = {
   "!": { rows: [".OOOOOOO.", "OyyyKyyyO", "OyyyKyyyO", "OyyyKyyyO", "OyyyyyyyO", "OyyyKyyyO", "OyyyyyyyO", ".OOOOOOO.", "...OyO...", "....O...."], fill: "#FFC83D" },
   "✓": { rows: [".OOOOOOO.", "OyyyyyyyO", "OyyyyyyKO", "OyKyyyKyO", "OyyKyKyyO", "OyyyKyyyO", "OyyyyyyyO", ".OOOOOOO.", "...OyO...", "....O...."], fill: "#7FD48A" },
+  // a friendship step is waiting (plan 4.3)
+  "★": { rows: [".OOOOOOO.", "OyyyKyyyO", "OyyKKKyyO", "OKKKKKKKO", "OyKKKKKyO", "OyKKyKKyO", "OyyyyyyyO", ".OOOOOOO.", "...OyO...", "....O...."], fill: "#F49AC1" },
 };
-function drawMark(g: Graphics, kind: "!" | "✓"): void {
+function drawMark(g: Graphics, kind: "!" | "✓" | "★"): void {
   const m = MARKS[kind];
   m.rows.forEach((row, y) =>
     [...row].forEach((ch, x) => {

@@ -13,4 +13,5 @@ export * from "./giving";
 export * from "./sheets";
 export * from "./story";
 export * from "./goals";
+export * from "./friendship";
 export * from "./questline";

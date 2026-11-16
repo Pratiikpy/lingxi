@@ -1,0 +1,263 @@
+/* Neighbours (plan 4.3): trust strip, gift picker, notes, the lane card's friendship and the list of fourteen. */
+
+.nb-trust {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border: 2px solid #2b2140;
+  border-radius: 999px;
+  background: #fffdf8;
+  color: #2b2140;
+  font: 700 12px var(--round);
+  font-variant-numeric: tabular-nums;
+}
+.nb-level b {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin-right: 2px;
+  border-radius: 50%;
+  background: #f49ac1;
+  color: #2b2140;
+  font: 800 11px var(--round);
+}
+.nb-bar {
+  position: relative;
+  height: 8px;
+  border: 2px solid #2b2140;
+  border-radius: 999px;
+  background: #f3ece2;
+  overflow: hidden;
+}
+.nb-bar > b {
+  position: absolute;
+  inset: 0;
+  background: #f49ac1;
+  transform-origin: left;
+  transition: transform 0.5s var(--ease);
+}
+.nb-points {
+  opacity: 0.75;
+}
+.talk .nb-trust {
+  justify-self: start;
+  min-width: min(100%, 260px);
+}
+
+.nb-note {
+  margin: 0;
+  padding: 6px 12px;
+  border: 2px solid #2b2140;
+  border-radius: 12px;
+  background: #fff1c2;
+  color: #2b2140;
+  font: 700 13px var(--round);
+}
+.nb-note.nb-love {
+  background: #ffd9ea;
+}
+.nb-note.nb-dislike,
+.nb-note.nb-fail {
+  background: #f3ece2;
+}
+.nb-note.nb-step,
+.nb-note.nb-visit {
+  background: #d9f5dc;
+}
+
+.talk-choice.step {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffe3ef;
+}
+.talk-choice.step .tq-mark {
+  background: #f49ac1;
+}
+.talk-branch {
+  flex-basis: 100%;
+  font: 700 12px var(--round);
+  color: #2b2140;
+  background: #fffdf8;
+  border-radius: 8px;
+  padding: 2px 8px;
+  justify-self: start;
+  width: fit-content;
+}
+
+/* the gift picker: the bag, best-liked first once you know */
+.nb-picker {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 2px solid #2b2140;
+  border-radius: 16px;
+  background: #fffdf8;
+  color: #2b2140;
+  box-shadow: 0 4px 0 #2b2140;
+}
+.nb-picker-head {
+  margin: 0;
+  font: 700 12px var(--round);
+  opacity: 0.8;
+}
+.nb-picker ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 6px;
+  max-height: 34vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.nb-item {
+  display: grid;
+  grid-template-columns: 24px 1fr auto auto;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 40px;
+  padding: 4px 8px;
+  border: 2px solid #2b2140;
+  border-radius: 10px;
+  background: #fffdf8;
+  color: #2b2140;
+  font: 700 13px var(--round);
+  text-align: left;
+  cursor: pointer;
+}
+/* names wrap to two lines rather than lose their end on a phone */
+.nb-item span {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  line-height: 1.2;
+}
+.nb-item small {
+  opacity: 0.6;
+}
+.nb-item.t-love {
+  background: #ffe3ef;
+}
+.nb-item.t-dislike {
+  opacity: 0.6;
+}
+.nb-taste {
+  font-style: normal;
+  font-weight: 800;
+}
+.nb-item:focus-visible {
+  outline: 3px solid #ff7a6b;
+  outline-offset: 2px;
+}
+
+/* a lane pet's friendship, on its card (the card follows the theme) */
+.nb-lane {
+  display: grid;
+  gap: 8px;
+  margin-top: var(--s2);
+}
+.nb-said {
+  margin: 0;
+  font-style: italic;
+  color: var(--ink);
+}
+.nb-topics {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.nb-topics button {
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: 800 14px var(--round);
+  cursor: pointer;
+}
+.nb-topics p {
+  margin: 0 0 4px;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+/* the list of fourteen in the Pet sheet */
+.nb-panel h3 {
+  margin: 0 0 4px;
+}
+.nb-list {
+  list-style: none;
+  margin: var(--s2) 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.nb-list li {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--card);
+}
+.nb-list li.waiting {
+  border-color: #f49ac1;
+}
+.nb-face {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  object-position: top;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  background: var(--tint);
+  image-rendering: pixelated;
+}
+.nb-lane-face {
+  display: grid;
+  place-items: center;
+  font: 800 13px var(--round);
+  color: var(--ink);
+}
+.nb-who {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+/* in the sheet the strip follows the theme (in talk it sits on the room, always light) */
+.nb-list .nb-trust,
+.nb-lane .nb-trust {
+  border-color: var(--line);
+  background: var(--card);
+  color: var(--ink);
+}
+.nb-list .nb-bar,
+.nb-lane .nb-bar {
+  border-color: var(--line);
+  background: var(--tint);
+}
+.nb-who b {
+  font: 800 15px var(--round);
+}
+.nb-star {
+  margin-left: 6px;
+  color: #d0568c;
+}
+.nb-next {
+  color: var(--ink-soft);
+}
+@media (prefers-reduced-motion: reduce) {
+  .nb-bar > b {
+    transition: none;
+  }
+}

@@ -15,11 +15,14 @@ import { ARC_6_TO_10 } from "./arc06-10";
 import { ARC_11_12 } from "./arc11-12";
 import { DAILIES, WEEKLY_GIFT } from "./dailies";
 import { GOALS } from "./goals";
+import { FRIENDS } from "../friends";
+import type { FriendSheet, Unlock } from "../friendship";
 import { GOAL_METRICS, type GoalDef, TIER_PCTS } from "../goals";
 
 export { ARC_1, ONBOARDING } from "./arc01-first-days";
 export { DAILIES, WEEKLY_GIFT };
 export { GOALS, GOAL_BY_ID } from "./goals";
+export { FRIENDS, FRIEND_BY_ID } from "../friends";
 
 export const STORY: readonly QuestDef[] = [...ARC_1, ...ARC_2_TO_5, ...ARC_6_TO_10, ...ARC_11_12];
 export const QUESTLINE: readonly QuestDef[] = [...STORY, ...DAILIES];
@@ -44,7 +47,7 @@ function rewardProblem(r: Reward): string | null {
     case "item":
       return ITEM[r.item] && Number.isInteger(r.n) && r.n > 0 ? null : `no item ${r.item}`;
     case "trust":
-      return PORTRAITS.has(r.who) && r.n > 0 ? null : `no resident ${r.who} to trust`;
+      return (PORTRAITS.has(r.who) || LANE_SET.has(r.who)) && r.n > 0 ? null : `no resident ${r.who} to trust`;
     case "flag":
       return /^[a-z0-9-]{1,32}$/.test(r.name) ? null : `flag ${r.name} must be a lower-case word`;
     case "piece":
@@ -131,6 +134,61 @@ export function goalErrors(defs: readonly GoalDef[]): string[] {
     for (const r of g.everyone.rewards) {
       const e = rewardProblem(r);
       if (e) out.push(`${at} everyone: ${e}`);
+    }
+  }
+  return out;
+}
+
+/** Problems with the friends (plan 4.3): all fourteen, six levels each with something opened, a branch at 3, and every word, face, item and reward real. */
+export function friendErrors(defs: readonly FriendSheet[]): string[] {
+  const out: string[] = [];
+  const want = [...CHARACTERS.map((c) => c.id), ...LANE].sort();
+  const have = defs.map((f) => f.id).sort();
+  if (JSON.stringify(have) !== JSON.stringify(want)) out.push(`friends: want ${want.join(", ")}, have ${have.join(", ")}`);
+  for (const f of defs) {
+    const at = `friend ${f.id}`;
+    const faces = f.kind === "resident" ? PORTRAITS.get(f.id) : null;
+    if ((f.kind === "resident") !== PORTRAITS.has(f.id)) out.push(`${at}: kind ${f.kind} does not match`);
+    const line = (where: string, l: { face?: string; en: string; zh: string }) => {
+      if (!l.en || !l.zh) out.push(`${at} ${where}: needs both languages`);
+      if (l.en.length > LINE_MAX.en) out.push(`${at} ${where}: English is ${l.en.length} characters (at most ${LINE_MAX.en})`);
+      if ([...l.zh].length > LINE_MAX.zh) out.push(`${at} ${where}: Chinese is ${[...l.zh].length} characters (at most ${LINE_MAX.zh})`);
+      if (faces && !(l.face && faces.has(l.face))) out.push(`${at} ${where}: ${f.id} has no portrait ${l.face}`);
+      if (!faces && l.face) out.push(`${at} ${where}: a lane pet speaks without a portrait`);
+    };
+    const all = [...f.likes.love, ...f.likes.like, ...f.likes.dislike];
+    for (const i of all) if (!ITEM[i]) out.push(`${at}: no item ${i} in their tastes`);
+    if (new Set(all).size !== all.length) out.push(`${at}: an item is in two tastes`);
+    if (!f.likes.love.length || !f.likes.like.length || !f.likes.dislike.length) out.push(`${at}: needs something loved, liked and disliked`);
+    for (const k of ["love", "like", "neutral", "dislike"] as const) line(`reaction ${k}`, f.reactions[k]);
+    const ids = new Set(f.steps.map((s) => s.id));
+    for (let lvl = 1; lvl <= 6; lvl++) if (!f.steps.some((s) => s.level === lvl)) out.push(`${at}: level ${lvl} opens nothing`);
+    const branch = f.steps.filter((s) => s.level === 3);
+    if (branch.length !== 2 || !branch.every((s) => s.choice && s.not?.length === 1 && branch.some((o) => o.id === s.not![0]))) out.push(`${at}: level 3 must be a branch of two steps that shut each other`);
+    for (const s of f.steps) {
+      for (const ref of [...(s.after ?? []), ...(s.not ?? [])]) if (!ids.has(ref)) out.push(`${at} ${s.id}: no step ${ref}`);
+      if (!s.title.en || !s.title.zh) out.push(`${at} ${s.id}: needs a title`);
+      if (s.choice && (!s.choice.en || !s.choice.zh)) out.push(`${at} ${s.id}: the choice needs both languages`);
+      s.lines.forEach((l, i) => line(`${s.id} line ${i + 1}`, l));
+      const u: Unlock = s.unlock;
+      if (u.kind === "topic") {
+        if (!u.topic.ask.en || !u.topic.ask.zh || !u.topic.lines.length) out.push(`${at} ${s.id}: the topic needs its question and lines`);
+        u.topic.lines.forEach((l, i) => line(`${s.id} topic line ${i + 1}`, l.face ? l : { en: l.en, zh: l.zh }));
+      } else if (u.kind === "shelf") {
+        if (!ITEM[u.item] || !(Number.isInteger(u.price) && u.price > 0)) out.push(`${at} ${s.id}: the shelf needs a real item and a price`);
+      } else if (u.kind === "recipe") {
+        if (!TRAVEL_RECIPES.some((t) => t.index === u.index)) out.push(`${at} ${s.id}: no travel recipe ${u.index}`);
+      } else {
+        if (u.kind === "visit") {
+          if (f.kind !== "resident") out.push(`${at} ${s.id}: only residents visit`);
+          u.lines.forEach((l, i) => line(`${s.id} visit line ${i + 1}`, l));
+        }
+        if (!u.rewards.length) out.push(`${at} ${s.id}: gives nothing`);
+        for (const r of u.rewards) {
+          const e = rewardProblem(r);
+          if (e) out.push(`${at} ${s.id}: ${e}`);
+        }
+      }
     }
   }
   return out;

@@ -4,10 +4,12 @@
  */
 
 import { CHARACTERS } from "./characters";
+import { LANE } from "./conditions";
 import { bump, bumpAll } from "./tally";
 import { ITEM, type WorldResult, type WorldState, has } from "./world";
 
-const RESIDENTS = new Set(CHARACTERS.map((c) => c.id));
+/** Residents, and the Builders' Lane pets, who take gifts at their card. */
+const RESIDENTS = new Set([...CHARACTERS.map((c) => c.id), ...LANE]);
 
 /** Hand `n` of an item to a resident: GIVE:item and GIVE_TO:resident and GIVE_TO:resident:item all rise by `n`. */
 export function giveTo(w: WorldState, resident: string, item: number, n = 1): WorldResult {

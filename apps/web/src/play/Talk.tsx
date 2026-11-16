@@ -6,13 +6,29 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { type Action, type Character, ITEM, type Line, QUEST_BY_ID, type QuestDef, questProgress } from "@lingxi/world";
+import {
+  type Action,
+  type Character,
+  FRIEND_BY_ID,
+  type FriendStep,
+  ITEM,
+  type Line,
+  QUEST_BY_ID,
+  type QuestDef,
+  type QuestLine,
+  openSteps,
+  questProgress,
+  shelfOf,
+  topicsOf,
+} from "@lingxi/world";
 import { useLang } from "../i18n";
 import { play } from "../game/sound";
 import "./talk.css";
 import { noteTally } from "../game/tally";
 import { allStatuses, conditionView, handIn, questsOf, takeQuest } from "../game/quests";
 import { useWorld } from "../game/world";
+import { buyFromNeighbour, giftNeighbour, meetNeighbourAtHome, takeNeighbourStep } from "../game/neighbours";
+import { GiftPicker, NeighbourNoteLine, TrustStrip } from "./Neighbours";
 
 /** What an errand still wants handed to this resident: the item, how many are still owed, and how many are in the bag. */
 function owed(q: QuestDef, who: string, world: ReturnType<typeof useWorld.getState>["world"]): Array<{ item: number; left: number; have: number }> {
@@ -35,10 +51,22 @@ const ACTION_LABEL: Record<Action, [string, string]> = {
   proof: ["See the proof", "查看证明"],
 };
 
-export function Talk({ who, onFace, onAction, onClose }: { who: Character; onFace: (face: string) => void; onAction: (a: Action) => void; onClose: () => void }) {
+export function Talk({ who, visiting = false, onFace, onAction, onClose }: { who: Character; visiting?: boolean; onFace: (face: string) => void; onAction: (a: Action) => void; onClose: () => void }) {
   const lang = useLang((s) => s.lang);
   const reduce = useReducedMotion() ?? false;
-  const [queue, setQueue] = useState<Line[]>(who.greeting);
+  const sheet = FRIEND_BY_ID[who.id];
+  const asLines = (lines: readonly QuestLine[]): Line[] => lines.map((l) => ({ face: l.face ?? who.greeting[0]!.face, en: l.en, zh: l.zh }));
+  // a resident visiting your home greets you there, and leaves their keepsake as you meet
+  const visitLines = useMemo(() => {
+    const u = sheet?.steps.find((s) => s.unlock.kind === "visit")?.unlock;
+    return u?.kind === "visit" ? u.lines : null;
+  }, [sheet]);
+  const [queue, setQueue] = useState<Line[]>(() => (visiting && visitLines ? asLines(visitLines) : who.greeting));
+  // the keepsake is left once, as you meet them (meeting twice does nothing)
+  useEffect(() => {
+    if (visiting) meetNeighbourAtHome(who.id);
+  }, [visiting, who.id]);
+  const [picking, setPicking] = useState(false);
   const [at, setAt] = useState(0);
   const [action, setAction] = useState<Action | null>(null);
   const [typed, setTyped] = useState(0);
@@ -91,7 +119,6 @@ export function Talk({ who, onFace, onAction, onClose }: { who: Character; onFac
     if (!lastLine) return setAt((n) => n + 1);
     if (ending) return onClose();
   };
-  const asLines = (lines: QuestDef["intro"]): Line[] => lines.map((l) => ({ face: l.face ?? who.greeting[0]!.face, en: l.en, zh: l.zh }));
   const hear = (q: QuestDef) => {
     play("tap");
     setQueue(asLines(q.intro));
@@ -119,9 +146,27 @@ export function Talk({ who, onFace, onAction, onClose }: { who: Character; onFac
     const after = allStatuses()[q.id];
     if (after === "ready") finish(q);
   };
+  // their own topics, then the ones trust has opened
+  const topics = useMemo(() => [...who.topics, ...(sheet ? topicsOf(world, sheet) : [])], [who.topics, sheet, world]);
+  const steps = useMemo(() => (sheet ? openSteps(world, sheet) : []), [sheet, world]);
+  const shelf = useMemo(() => (sheet ? shelfOf(world, sheet) : []), [sheet, world]);
+  const step = (s: FriendStep) => {
+    if (!takeNeighbourStep(who.id, s.id)) return;
+    setQueue(asLines(s.lines));
+    setAt(0);
+    setAction(null);
+  };
+  const gift = (item: number) => {
+    setPicking(false);
+    const r = giftNeighbour(who.id, item);
+    if (!r || !sheet) return;
+    setQueue(asLines([sheet.reactions[r.taste]]));
+    setAt(0);
+    setAction(null);
+  };
   const pickTopic = (i: number) => {
     play("tap");
-    const t = who.topics[i]!;
+    const t = topics[i]!;
     setQueue(t.lines);
     setAt(0);
     setAction(t.action ?? null);
@@ -160,7 +205,10 @@ export function Talk({ who, onFace, onAction, onClose }: { who: Character; onFac
           </button>
         </div>
       )}
-      {showChoices && !offering && (
+      {sheet && <TrustStrip who={who.id} />}
+      <NeighbourNoteLine who={who.id} />
+      {showChoices && !offering && picking && sheet && <GiftPicker sheet={sheet} onGive={gift} onBack={() => (play("tap"), setPicking(false))} />}
+      {showChoices && !offering && !picking && (
         <div className="talk-choices">
           {quests.ready.map((q) => (
             <button key={q.id} type="button" className="talk-choice quest ready" onClick={() => finish(q)}>
@@ -188,12 +236,31 @@ export function Talk({ who, onFace, onAction, onClose }: { who: Character; onFac
               {q.title[lang]}
             </button>
           ))}
+          {steps.length === 2 && steps.every((s) => s.choice) && (
+            <span className="talk-branch">{lang === "zh" ? "选一个，另一个就不能再选了：" : "Choose one; the other closes for good:"}</span>
+          )}
+          {steps.map((s) => (
+            <button key={s.id} type="button" className="talk-choice step" onClick={() => step(s)}>
+              <span className="tq-mark" aria-hidden="true">★</span>
+              {(s.choice ?? s.title)[lang]}
+            </button>
+          ))}
+          {shelf.map((o) => (
+            <button key={o.item} type="button" className="talk-choice" disabled={world.coins < o.price} onClick={() => buyFromNeighbour(who.id, o.item)}>
+              {lang === "zh" ? `买${ITEM[o.item]?.name.zh} · ${o.price} 金币` : `Buy ${ITEM[o.item]?.name.en} · ${o.price} coins`}
+            </button>
+          ))}
+          {sheet && (
+            <button type="button" className="talk-choice" onClick={() => (play("tap"), setPicking(true))}>
+              {lang === "zh" ? "送礼物" : "Give a gift"}
+            </button>
+          )}
           {action && (
             <button type="button" className="talk-choice go" onClick={() => (play("tap"), onAction(action))}>
               {ACTION_LABEL[action][lang === "zh" ? 1 : 0]}
             </button>
           )}
-          {who.topics.map((t, i) => (
+          {topics.map((t, i) => (
             <button key={i} type="button" className="talk-choice" onClick={() => pickTopic(i)}>
               {t.ask[lang]}
             </button>

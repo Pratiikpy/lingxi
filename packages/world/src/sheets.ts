@@ -5,7 +5,7 @@
  */
 
 import { type Condition, type SheetRefs, assertSheet } from "./conditions";
-import { DAILIES, GOALS, QUESTLINE, STORY, goalErrors, questLineErrors } from "./questline";
+import { DAILIES, FRIENDS, GOALS, QUESTLINE, STORY, friendErrors, goalErrors, questLineErrors } from "./questline";
 
 export interface Sheet {
   name: string;
@@ -39,6 +39,6 @@ export function checkSheets(sheets: readonly Sheet[]): void {
 /** Everything the build checks: the condition sheets, then the quest line's own rules. */
 export function checkGame(): void {
   checkSheets(SHEETS);
-  const problems = [...questLineErrors(QUESTLINE), ...goalErrors(GOALS)];
+  const problems = [...questLineErrors(QUESTLINE), ...goalErrors(GOALS), ...friendErrors(FRIENDS)];
   if (problems.length) throw new Error(`bad quest line\n${problems.join("\n")}`);
 }

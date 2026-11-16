@@ -27,7 +27,7 @@ import { useWorld } from "../game/world";
 import { useChain } from "../game/chain";
 import { liveAvailable, playerId, useLive, visitingFrom } from "../game/live";
 import { InvitePanel, SocialBar } from "./Social";
-import { type Action, CHARACTER_IN_ROOM, HOME, INDOOR_ROOMS, ROOMS, decorOf, neighbours } from "@lingxi/world";
+import { type Action, CHARACTERS, CHARACTER_IN_ROOM, FRIEND_BY_ID, HOME, INDOOR_ROOMS, ROOMS, decorOf, neighbours, openSteps, visitorOf } from "@lingxi/world";
 import { Talk } from "./Talk";
 import { GamesPanel } from "./Games";
 import { DiaryPanel } from "./Diary";
@@ -44,6 +44,7 @@ import { TeachPanel } from "./Teach";
 import { ArenaPanel } from "./Arena";
 import { BrainView } from "./BrainView";
 import { ChainPanel } from "./ChainPanel";
+import { NeighboursPanel } from "./Neighbours";
 import { HomePanel } from "./Home";
 import { WardrobePanel } from "./Wardrobe";
 import { MailboxPanel } from "./Mailbox";
@@ -165,17 +166,28 @@ export function PlayApp() {
     setAmbience(outdoors && weatherFor(new Date()) === "rain" ? "rain" : !outdoors ? "quiet" : phase === "night" ? "crickets" : phase === "day" ? "birds" : "quiet");
     return () => setAmbience("quiet");
   }, [outdoors, phase]);
-  const who = CHARACTER_IN_ROOM[worldRoom] ?? null;
   // over the resident's head: a quest to hand in, or one to offer
   const worldState = useWorld((s) => s.world);
-  const npcMark = useMemo<"!" | "✓" | null>(() => {
+  const [talking, setTalking] = useState(false);
+  // a resident who has come to visit stands in your home until you meet them (plan 4.3)
+  const visitorId = worldRoom === HOME ? visitorOf(worldState) : null;
+  const visitor = visitorId ? (CHARACTERS.find((c) => c.id === visitorId) ?? null) : null;
+  // meeting them sends them home, but not mid-sentence: they stay until the conversation ends
+  const [guest, setGuest] = useState<typeof visitor>(null);
+  useEffect(() => {
+    if (visitor) setGuest(visitor);
+    else if (!talking) setGuest(null);
+  }, [visitor, talking]);
+  const who = CHARACTER_IN_ROOM[worldRoom] ?? visitor ?? (talking && worldRoom === HOME ? guest : null);
+  const npcMark = useMemo<"!" | "✓" | "★" | null>(() => {
     if (!who) return null;
     const q = questsOf(who.id, allStatuses());
-    return q.ready.length ? "✓" : q.offer.length ? "!" : null;
+    const friend = FRIEND_BY_ID[who.id];
+    // quests first; then a visitor waiting, or a friendship step open
+    return q.ready.length ? "✓" : q.offer.length ? "!" : who === visitor || (friend && openSteps(worldState, friend).length) ? "★" : null;
     // the statuses follow the world (and the pet, read inside)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [who, worldState]);
-  const [talking, setTalking] = useState(false);
   const [npcFace, setNpcFace] = useState<string | null>(null);
   useEffect(() => {
     setTalking(false);
@@ -518,6 +530,7 @@ export function PlayApp() {
           {who && talking && (
             <Talk
               who={who}
+              visiting={!CHARACTER_IN_ROOM[worldRoom] && who.id === (visitor ?? guest)?.id}
               onFace={setNpcFace}
               onClose={() => (setTalking(false), setNpcFace(null))}
               onAction={(a: Action) => {
@@ -689,6 +702,8 @@ export function PlayApp() {
         <Lazy><FashionMarketPanel pet={pet} /></Lazy>
         <hr className="divider" />
         <Lazy><FriendsPanel pet={pet} /></Lazy>
+        <hr className="divider" />
+        <NeighboursPanel />
         <hr className="divider" />
         <Lazy><HoldersPanel pet={pet} /></Lazy>
         <hr className="divider" />

@@ -43,6 +43,7 @@ import { chipsFor } from "./ruleText";
 import { Sprite } from "./Sprite";
 import { noteEvent, noteTally } from "../game/tally";
 import { LaneQuests } from "./Quests";
+import { LaneFriendship } from "./Neighbours";
 
 const PALETTES: Record<BuilderPet["look"]["palette"], Palette> = { silicon: SILICON, mars: MARS, sky: SKY, sunny: SUNNY, mint: MINT };
 const API = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
@@ -378,6 +379,7 @@ export function BuilderCard({ b, pet, onSpar }: { b: BuilderPet; pet: Pet; onSpa
         </div>
       </div>
       <LaneQuests id={b.id} />
+      <LaneFriendship id={b.id} />
       {party && (
         <div className="lane-cake" role="img" aria-label={L("A cake with four candles", "一个插着四根蜡烛的蛋糕")}>
           {[3, 2, 1, 0].map((bit) => (
