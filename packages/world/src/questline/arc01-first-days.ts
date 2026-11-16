@@ -62,14 +62,15 @@ export const ARC_1: QuestDef[] = [
   pet(7, "q06", {
     title: T("Look closely", "仔细找找"),
     intro: [say("neutral", "Every place hides little things. Pebbles, sticks, sometimes treasure.", "每个地方都藏着小东西。小石子、小树枝，有时候还有宝贝。"), say("happy", "Press Look around wherever we stop.", "不管在哪儿停下，点“四处找找”。")],
-    outro: [say("proud", "I found it. Well, you found it. We found it. And a box from the river!", "我找到了。好吧，是你找到的。是我们找到的。还有一个河里漂来的盒子！")],
+    outro: [say("proud", "We found it! Here: two smooth pebbles, and a box from the river.", "我们找到了！给你：两颗光滑的小石子，还有一个河里漂来的盒子。")],
     objectives: [obj(from("FORAGE", undefined, 1), "Look around once", "四处找找一次")],
-    rewards: [coins(10), item(21007)],
+    // the pebbles make sure the next quest can be done at once: one pebble makes a stone cup at the workbench
+    rewards: [coins(10), item(1002, 2), item(21007)],
     hint: "look",
   }),
   pet(8, "q07", {
     title: T("Handmade", "亲手做的"),
-    intro: [say("neutral", "What if we made something? The workbench is in the bag.", "要不我们做点东西？工作台在背包里。"), say("happy", "Anything at all. Even dust counts.", "做什么都行。就算是一点粉末也算。")],
+    intro: [say("neutral", "What if we made something? The workbench is in the bag.", "要不我们做点东西？工作台在背包里。"), say("happy", "One pebble makes a stone cup. Anything counts!", "一颗小石子就能做一个石杯。做什么都算！")],
     outro: [say("sparkly", "We made a thing that wasn't there before! Here's a recipe I heard about on the wind.", "我们做出了一样原来没有的东西！这是我在风里听到的一个配方。")],
     objectives: [obj(from("CRAFT", undefined, 1), "Make one thing at the workbench", "在工作台做一样东西")],
     rewards: [coins(15), recipe(20003)],

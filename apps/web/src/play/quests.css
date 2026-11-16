@@ -222,10 +222,11 @@
 
 /* ── the toast ── */
 .quest-toast {
-  /* just above the tab bar: clear of the header, the badge toasts and an open sheet's title */
+  /* where the badge toasts appear, under the header, clear of the care buttons, the tab bar and a sheet's title;
+     when a badge toast is showing too, this one waits just below it */
   position: fixed;
   left: 50%;
-  bottom: calc(96px + env(safe-area-inset-bottom));
+  top: calc(72px + env(safe-area-inset-top));
   z-index: 61;
   translate: -50% 0;
   display: flex;
@@ -241,6 +242,9 @@
   font: 700 14px var(--round);
   text-align: left;
   cursor: pointer;
+}
+.badge-toast ~ .quest-toast {
+  top: calc(130px + env(safe-area-inset-top));
 }
 .qt-mark {
   display: grid;

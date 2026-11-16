@@ -180,6 +180,7 @@ function SchoolLevels({ pet, canLearn, onPropose }: { pet: Pet; canLearn: boolea
                 className="level-head"
                 disabled={lv.learned || !open || !canLearn}
                 onClick={() => (play("tap"), onPropose(lesson.rule))}
+                data-hint={open && !lv.learned && canLearn ? "teach" : undefined}
                 aria-label={`${t("teach.level", { n: i + 1 })}: ${lesson.say[lang]}`}
               >
                 <span className="level-n">{i + 1}</span>
@@ -379,7 +380,7 @@ function Builder({ pet, onPropose }: { pet: Pet; onPropose: (rule: Rule) => void
           </button>
         ))}
       </div>
-      <button type="button" className="btn primary" disabled={!valid} onClick={() => onPropose(rule)} data-hint="teach">
+      <button type="button" className="btn primary" disabled={!valid} onClick={() => onPropose(rule)}>
         {t("teach.preview")}
       </button>
     </div>

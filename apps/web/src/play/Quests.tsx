@@ -380,9 +380,9 @@ export function QuestToast({ onOpenBook }: { onOpenBook: () => void }) {
           type="button"
           className={`quest-toast qt-${note.kind}`}
           role="status"
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 10 }}
+          exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.2 }}
           onClick={() => (dismiss(), onOpenBook())}
         >
@@ -451,7 +451,8 @@ const HINT_TARGETS: Record<string, string[]> = {
   play: ["play"],
   sleep: ["sleep"],
   map: ["tab-map"],
-  look: ["look"],
+  // nothing to look for here (the Lantern Room): point at the map instead
+  look: ["look", "tab-map"],
   bag: ["tab-bag"],
   teach: ["teach", "tab-mind"],
   keep: ["keep", "tab-me"],
@@ -470,9 +471,12 @@ export function HintRing() {
   useEffect(() => {
     if (!hint) return setBox(null);
     const find = () => {
+      // a sheet or a dialog on top covers the game: only a target inside the top layer can be pointed at
+      const layers = Array.from(document.querySelectorAll<HTMLElement>(".sheet, .fam-modal, .talk"));
+      const top = layers.at(-1) ?? null;
       for (const t of HINT_TARGETS[hint] ?? [hint]) {
-        const el = document.querySelector<HTMLElement>(`[data-hint="${t}"]`);
-        if (el && el.offsetParent !== null) return setBox(el.getBoundingClientRect());
+        const el = Array.from(document.querySelectorAll<HTMLElement>(`[data-hint="${t}"]`)).find((x) => x.offsetParent !== null && (!top || top.contains(x)));
+        if (el) return setBox(el.getBoundingClientRect());
       }
       setBox(null);
     };
