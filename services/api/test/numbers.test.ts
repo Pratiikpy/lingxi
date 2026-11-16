@@ -70,6 +70,7 @@ describe("live numbers", () => {
     const sales = createSalesCounter({ rpc: "", markets: [{ address: OKB, fromBlock: 1_000 }, { address: BEM, fromBlock: 2_000 }], client, paceMs: 0 });
     await sales.catchUp();
     const n = await readNumbers({ pub: client, counts, petsIndexedTo: () => 2_140, sales, contracts: { registry: REG, marketOkb: OKB, marketBem: BEM, breeder: BREEDER, gift: GIFT }, explorer: "https://x" }, 1_800_000_000_000);
+    expect(n.head).toBe(2_150);
     expect(n.pets).toEqual({ hatched: 9, children: 2, daysSaved: 40, savedLast24h: 3, hatchers: 5, nextPetId: 12, indexedTo: 2_140 });
     expect(n.burned).toEqual({ market: "4200000", breeding: "10000000", total: "14200000" });
     expect(n.pins).toBe(7);

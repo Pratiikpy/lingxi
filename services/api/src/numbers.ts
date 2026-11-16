@@ -115,6 +115,8 @@ export interface NumbersDeps {
 export interface Numbers {
   ok: true;
   at: number;
+  /** the chain's latest block when read: a count whose indexedTo is far behind it is still catching up */
+  head: number;
   pets: { hatched: number; children: number; daysSaved: number; savedLast24h: number; hatchers: number; nextPetId: number; indexedTo: number };
   outfits: { okb: (MarketTotals & { indexedTo: number }) | null; bem: (MarketTotals & { indexedTo: number }) | null };
   burned: { market: string; breeding: string; total: string };
@@ -125,7 +127,8 @@ export interface Numbers {
 export async function readNumbers(d: NumbersDeps, nowMs = Date.now()): Promise<Numbers> {
   const read = async (address: Address | undefined, fn: "totalBurned" | "total" | "nextPetId"): Promise<bigint> =>
     address ? ((await d.pub.readContract({ address, abi: views, functionName: fn })) as bigint) : 0n;
-  const [nextPetId, marketBurned, breedingBurned, pins] = await Promise.all([
+  const [head, nextPetId, marketBurned, breedingBurned, pins] = await Promise.all([
+    d.pub.getBlockNumber(),
     read(d.contracts.registry, "nextPetId"),
     read(d.contracts.marketBem, "totalBurned"),
     read(d.contracts.breeder, "totalBurned"),
@@ -138,6 +141,7 @@ export async function readNumbers(d: NumbersDeps, nowMs = Date.now()): Promise<N
   return {
     ok: true,
     at: nowMs,
+    head: Number(head),
     pets: { hatched: c.hatched, children: c.children, daysSaved: c.saves, savedLast24h: c.savedSince, hatchers: c.hatchers, nextPetId: Number(nextPetId), indexedTo: d.petsIndexedTo() },
     outfits: { okb: market(d.contracts.marketOkb), bem: market(d.contracts.marketBem) },
     burned: { market: marketBurned.toString(), breeding: breedingBurned.toString(), total: (marketBurned + breedingBurned).toString() },

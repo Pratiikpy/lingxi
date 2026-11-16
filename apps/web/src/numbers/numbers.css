@@ -46,3 +46,11 @@
     text-align: left;
   }
 }
+/* a count summed from events that has not yet reached the chain's head says so above its rows */
+.nb-behind {
+  margin: 0;
+  padding: var(--s2) var(--s3);
+  border: 2px dashed var(--line);
+  border-radius: var(--r-md);
+  color: var(--ink);
+}

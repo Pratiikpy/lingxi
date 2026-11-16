@@ -20,7 +20,11 @@ interface Market {
   sales: number;
   indexedTo: number;
 }
+/** How far behind the chain's head a count may be before the page says it is still catching up (~10 minutes). */
+const BEHIND = 600;
+
 interface Numbers {
+  head: number;
   ok: true;
   at: number;
   pets: { hatched: number; children: number; daysSaved: number; savedLast24h: number; hatchers: number; nextPetId: number; indexedTo: number };
@@ -35,12 +39,14 @@ type Row = { label: [string, string]; value: string; counts: [string, string]; s
 
 const fmt = (n: number) => n.toLocaleString("en");
 
-function rows(n: Numbers): Array<{ title: [string, string]; items: Row[] }> {
+/** Each group, and for counts summed from events, the block they are read up to (the slowest of its sources). */
+function rows(n: Numbers): Array<{ title: [string, string]; readTo?: number; items: Row[] }> {
   const okb = n.outfits.okb;
   const bem = n.outfits.bem;
   return [
     {
       title: ["Pets", "宠物"],
+      readTo: n.pets.indexedTo,
       items: [
         { label: ["Pets hatched", "孵化的宠物"], value: fmt(n.pets.hatched), counts: ["Pets hatched from an egg (Hatched events without parents).", "从蛋里孵化的宠物（没有父母的 Hatched 事件）。"], source: "registry" },
         { label: ["Little ones born", "出生的小宝宝"], value: fmt(n.pets.children), counts: ["Pets born of two parents (Bred events).", "由两位父母生下的宠物（Bred 事件）。"], source: "registry" },
@@ -51,6 +57,7 @@ function rows(n: Numbers): Array<{ title: [string, string]; items: Row[] }> {
     },
     {
       title: ["Fashion", "时装"],
+      readTo: Math.min(...[n.outfits.okb, n.outfits.bem].filter((m): m is Market => !!m).map((m) => m.indexedTo), n.head),
       items: [
         ...(bem
           ? [{ label: ["Outfit copies sold for BEM", "用 BEM 卖出的衣服"] as [string, string], value: `${fmt(bem.copies)} · ${formatBem(BigInt(bem.paid))} BEM`, counts: ["Copies bought from creators and from resellers on the BEM market, and what buyers paid (Minted and Sold events).", "BEM 市场上从作者和转卖者那里买走的份数，以及买家付了多少（Minted 和 Sold 事件）。"] as [string, string], source: "marketBem" }]
@@ -114,6 +121,14 @@ export function NumbersApp() {
         rows(data).map((group) => (
           <section key={group.title[0]} className="nb-group">
             <h2>{lang === "zh" ? group.title[1] : group.title[0]}</h2>
+            {group.readTo !== undefined && data.head - group.readTo > BEHIND && (
+              <p className="small nb-behind" role="status">
+                {L(
+                  `Still reading the chain: up to block ${fmt(group.readTo)} of ${fmt(data.head)}. These counts will rise as it catches up.`,
+                  `还在读取链上记录：已读到第 ${fmt(group.readTo)} 个区块，共 ${fmt(data.head)} 个。读完之前，这些数字还会变大。`,
+                )}
+              </p>
+            )}
             <dl className="nb-rows">
               {group.items.map((r) => {
                 const src = r.source ? data.contracts[r.source] : undefined;
