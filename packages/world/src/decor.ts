@@ -18,6 +18,12 @@ export interface Decor {
   flat?: boolean;
   /** a keepsake from a story quest: never sold, only given (price is 0) */
   gift?: true;
+  /**
+   * an on-chain piece (plan 4.6): an item on X Layer, held in a wallet and tradable, never bought with coins.
+   * "shop" pieces are sold for BEM (the price is burned); "keepsake" pieces are claimed by helping finish a
+   * community goal (the goal named here).
+   */
+  chain?: { kind: "shop"; supply: number } | { kind: "keepsake"; goal: string };
 }
 
 const OUT = "#2B2140";
@@ -211,7 +217,76 @@ export const DECOR: readonly Decor[] = [
   },
 ];
 
-export const DECOR_BY_ID: Readonly<Record<string, Decor>> = Object.fromEntries(DECOR.map((d) => [d.id, d]));
+/** The on-chain pieces (plan 4.6), drawn for Lingxi: four in the BEM shop, four keepsakes of the community goals. */
+export const CHAIN_DECOR: readonly Decor[] = [
+  {
+    id: "star-lamp",
+    name: { en: "Star lamp", zh: "星星灯" },
+    price: 0,
+    chain: { kind: "shop", supply: 500 },
+    rows: ["....y....", "...yYy...", "yyyYwYyyy", ".yYwwwYy.", "..yYwYy..", ".yYy.yYy.", ".yy...yy.", "....o....", "...ooo...", "..ooooo.."],
+    colors: { y: "#FFD45E", Y: "#F2A93B", w: "#FFF6C8", o: OUT },
+  },
+  {
+    id: "circuit-rug",
+    name: { en: "Circuit rug", zh: "电路地毯" },
+    price: 0,
+    flat: true,
+    chain: { kind: "shop", supply: 500 },
+    rows: ["oooooooooooooo", "onnnnnnnnnnnno", "onggggnnggggno", "ongnngnngnngno", "ongnnggggnngno", "ongnnnnnnnngno", "onggggnnggggno", "onnnnnnnnnnnno", "oooooooooooooo"],
+    colors: { o: OUT, n: "#2E3570", g: "#7FE0C2" },
+  },
+  {
+    id: "tape-shelf",
+    name: { en: "Tape reel shelf", zh: "磁带架" },
+    price: 0,
+    chain: { kind: "shop", supply: 500 },
+    rows: ["oooooooooooo", "owwwwwwwwwwo", "owkkowkkowko", "owkrowkbowko", "owkkowkkowko", "oooooooooooo", "owwwwwwwwwwo", "owkkowkkowko", "owkyowkgowko", "owkkowkkowko", "oooooooooooo"],
+    colors: { o: OUT, w: "#C98B5A", k: "#3A3048", r: "#FF6B5A", b: "#7FB7F0", y: "#FFD45E", g: "#7FCB8E" },
+  },
+  {
+    id: "moon-window",
+    name: { en: "Moon window", zh: "月窗" },
+    price: 0,
+    chain: { kind: "shop", supply: 500 },
+    rows: ["...oooooo...", "..onnnnnno..", ".onnnnnwwno.", "onnnnnwwwwno", "onnnnnnwwwno", "onnynnnnwwno", "onnnnnnnnnno", ".onnnnynnno.", "..onnnnnno..", "...oooooo..."],
+    colors: { o: OUT, n: "#2E3570", w: "#FFF6C8", y: "#FFD45E" },
+  },
+  {
+    id: "goal-saves",
+    name: { en: "Keeper's banner", zh: "守护者之旗" },
+    price: 0,
+    chain: { kind: "keepsake", goal: "g1" },
+    rows: ["o.......", "orrrrrr.", "orrwwrr.", "orwwwwr.", "orrwwrr.", "orrrrrr.", "o.......", "o.......", "o.......", "oo......"],
+    colors: { o: OUT, r: "#FF6B5A", w: "#FFF6C8" },
+  },
+  {
+    id: "goal-hatch",
+    name: { en: "Hatchling's nest", zh: "雏鸟巢" },
+    price: 0,
+    chain: { kind: "keepsake", goal: "g2" },
+    rows: ["...ww...", "..wpww..", "..wwww..", "ottttttO", "otbtbttO", ".otttto.", "..oooo.."],
+    colors: { o: OUT, O: OUT, w: "#FFF7E8", p: "#FF9DB6", t: "#C98B5A", b: "#8C5A3A" },
+  },
+  {
+    id: "goal-family",
+    name: { en: "Family tree sapling", zh: "家族小树苗" },
+    price: 0,
+    chain: { kind: "keepsake", goal: "g3" },
+    rows: ["..gGg..", ".gGgGg.", "gGgpgGg", ".gGgGg.", "..gGg..", "...t...", "...t...", ".ooooo.", ".otttO.", "..ooo.."],
+    colors: { g: "#7FCB8E", G: "#4E9E6A", p: "#FF9DB6", t: "#8C5A3A", o: OUT, O: OUT },
+  },
+  {
+    id: "goal-ember",
+    name: { en: "Ember brazier", zh: "余烬火盆" },
+    price: 0,
+    chain: { kind: "keepsake", goal: "g4" },
+    rows: ["...r.y..", "..ryry..", ".ryyyyr.", "..ryyr..", "oooooooo", ".okkkko.", "..okko..", "..oooo.."],
+    colors: { r: "#FF6B5A", y: "#FFD45E", o: OUT, k: "#3A3048" },
+  },
+];
+
+export const DECOR_BY_ID: Readonly<Record<string, Decor>> = Object.fromEntries([...DECOR, ...CHAIN_DECOR].map((d) => [d.id, d]));
 
 /** At most this many pieces stand in the room at once. */
 export const MAX_PLACED = 12;
@@ -221,13 +296,31 @@ export const PLACE_AREA = { x0: 6, x1: 122, y0: 34, y1: 124 } as const;
 export interface DecorState {
   owned: string[];
   placed: Array<{ id: string; x: number; y: number }>;
+  /** on-chain pieces the player's wallets hold, as last read from X Layer (plan 4.6) */
+  chainHeld?: string[];
+}
+
+/** Can this piece be placed: bought or given in the game, or held on chain now. */
+export const hasDecor = (s: DecorState, id: string): boolean => s.owned.includes(id) || (s.chainHeld ?? []).includes(id);
+
+/**
+ * What the wallets hold on chain, read again: pieces sold or sent away leave the home, new ones can be placed.
+ * Only on-chain pieces are taken from this list; game pieces stay as they are.
+ */
+export function syncChainDecor(w: WorldState, held: readonly string[]): WorldState {
+  const s = decorOf(w);
+  const chainHeld = [...new Set(held.filter((id) => DECOR_BY_ID[id]?.chain))].sort();
+  const placed = s.placed.filter((p) => !DECOR_BY_ID[p.id]?.chain || chainHeld.includes(p.id));
+  const same = JSON.stringify(s.chainHeld ?? []) === JSON.stringify(chainHeld) && placed.length === s.placed.length;
+  return same ? w : { ...w, decor: { ...s, chainHeld, placed } };
 }
 
 export const decorOf = (w: WorldState): DecorState => w.decor ?? { owned: [], placed: [] };
 
 export function buyDecor(w: WorldState, id: string): WorldResult {
   const d = DECOR_BY_ID[id];
-  if (!d || d.gift) return { ok: false, reason: "notSold" };
+  // keepsakes are given, on-chain pieces are bought for BEM on chain: neither for coins
+  if (!d || d.gift || d.chain) return { ok: false, reason: "notSold" };
   const s = decorOf(w);
   if (s.owned.includes(id)) return { ok: false, reason: "owned" };
   if (w.coins < d.price) return { ok: false, reason: "coins" };
@@ -236,7 +329,7 @@ export function buyDecor(w: WorldState, id: string): WorldResult {
 
 export function placeDecor(w: WorldState, id: string, x: number, y: number): WorldResult {
   const s = decorOf(w);
-  if (!s.owned.includes(id)) return { ok: false, reason: "notOwned" };
+  if (!hasDecor(s, id)) return { ok: false, reason: "notOwned" };
   if (s.placed.length >= MAX_PLACED && !s.placed.some((p) => p.id === id)) return { ok: false, reason: "full" };
   const cx = Math.round(Math.max(PLACE_AREA.x0, Math.min(PLACE_AREA.x1, x)));
   const cy = Math.round(Math.max(PLACE_AREA.y0, Math.min(PLACE_AREA.y1, y)));

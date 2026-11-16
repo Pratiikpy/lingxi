@@ -36,6 +36,8 @@ import { VoiceRequest, createVoice } from "./voice";
 import { LibraryRule, createLibrary, type Library } from "./library";
 import { createIndexer, type Indexer } from "./indexer";
 import { createGoalLedger, withGoals } from "./goals";
+import { withVouchers } from "./voucher";
+import { privateKeyToAccount } from "viem/accounts";
 import { createSalesCounter, withNumbers } from "./numbers";
 import { buildTree } from "./tree";
 import { type DiaryStore, createDiaryStore } from "./diaries";
@@ -584,13 +586,25 @@ if (isMain) {
       counts: (since) => indexer.counts(since),
       petsIndexedTo: () => indexer.head(),
       sales,
-      contracts: { registry: process.env.LINGXI_REGISTRY as `0x${string}`, marketOkb: env("LINGXI_MARKET_OKB"), marketBem: env("LINGXI_MARKET_BEM"), breeder: env("LINGXI_BREEDER"), gift: env("LINGXI_GIFT") },
+      contracts: { registry: process.env.LINGXI_REGISTRY as `0x${string}`, marketOkb: env("LINGXI_MARKET_OKB"), marketBem: env("LINGXI_MARKET_BEM"), breeder: env("LINGXI_BREEDER"), gift: env("LINGXI_GIFT"), itemShop: env("LINGXI_ITEM_SHOP") },
       explorer: "https://www.oklink.com/xlayer",
     });
     // community goals: every contribution read from the registry and the two BEM burners
-    const burners = [env("LINGXI_BREEDER"), env("LINGXI_MARKET_BEM")].filter((a): a is `0x${string}` => !!a);
+    const burners = [env("LINGXI_BREEDER"), env("LINGXI_MARKET_BEM"), env("LINGXI_ITEM_SHOP")].filter((a): a is `0x${string}` => !!a);
     const ledger = createGoalLedger({ rpc, registry: process.env.LINGXI_REGISTRY as `0x${string}`, burners, fromBlock: Number(process.env.LINGXI_REGISTRY_FROM), store: process.env.LINGXI_GOALS_STORE });
     withGoals(app, ledger);
+    // keepsake vouchers (plan 4.6): signed only for contributors to a completed goal, with the voucher key
+    const voucherKey = readEnvFile(process.env.LINGXI_VOUCHER_KEY_FILE).VOUCHER_PRIVATE_KEY;
+    if (voucherKey) {
+      try {
+        const file = process.env.LINGXI_DEPLOYMENT ?? resolve(dirname(fileURLToPath(import.meta.url)), "../../../packages/chain/deployments/xlayer.json");
+        const deployment = JSON.parse(readFileSync(file, "utf8")) as Deployment;
+        withVouchers(app, { entries: () => ledger.entries(), signer: privateKeyToAccount(voucherKey as `0x${string}`), deployment });
+      } catch (e) {
+        process.stderr.write(`vouchers off: ${(e as Error).message}
+`);
+      }
+    }
     const goalsLoop = () => ledger.catchUp().catch(() => 0).finally(() => setTimeout(goalsLoop, 20_000));
     goalsLoop();
   }

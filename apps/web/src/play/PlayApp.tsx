@@ -62,6 +62,8 @@ import { useMove } from "../game/move";
 import { MoveNotes, MoveSheet, TelegramCard } from "./Move";
 import { Lazy } from "./Lazy";
 import { FashionMarketPanel } from "./FashionMarket";
+import { ItemShopPanel } from "./ItemShop";
+import { syncChainPieces } from "../game/chainDecor";
 import { RIG_HOME_BGS, useHoldings } from "../game/holders";
 import { bondName, bondsOf, friendKey, useFriends } from "../game/friends";
 import { unreadCount, useMail } from "../game/mail";
@@ -112,6 +114,10 @@ export function PlayApp() {
   const familiar = useWorld((s) => s.world.familiar);
   const [worldMsg, setWorldMsg] = useState<{ id: number; text: string } | null>(null);
   useEffect(followClock, []);
+  // on-chain decorations the wallets hold (plan 4.6): read on start, so a piece sold elsewhere leaves the home
+  useEffect(() => {
+    void syncChainPieces();
+  }, []);
   // the pet says something when its circuit makes a new decision
   const decision = pet ? `${pet.last.rule}|${pet.asleep}|${Boolean(pet.sick)}` : "";
   useEffect(() => {
@@ -722,6 +728,8 @@ export function PlayApp() {
         <Lazy><StudioPanel pet={pet} /></Lazy>
         <hr className="divider" />
         <Lazy><FashionMarketPanel pet={pet} /></Lazy>
+        <hr className="divider" />
+        <Lazy><ItemShopPanel /></Lazy>
         <hr className="divider" />
         <Lazy><FriendsPanel pet={pet} /></Lazy>
         <hr className="divider" />

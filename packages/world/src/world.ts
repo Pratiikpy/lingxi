@@ -221,7 +221,7 @@ export interface WorldState {
   /** the Mushroom Garden's plots (see garden.ts) */
   garden?: { plots: Array<{ crop: string; at: number; compost: boolean } | null>; harvested: number };
   /** decorations bought and where they stand in the home room */
-  decor?: { owned: string[]; placed: Array<{ id: string; x: number; y: number }> };
+  decor?: { owned: string[]; placed: Array<{ id: string; x: number; y: number }>; chainHeld?: string[] };
   /** lifetime counters keyed TYPE:index (see tally.ts); `tallied` marks an older save already counted in once */
   tally?: Record<string, number>;
   tallied?: 1;

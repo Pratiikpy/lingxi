@@ -134,5 +134,19 @@
       "tx": "0x7b79ae6fd1ffbe51d53abf8610c722cb06c19d82871178a67534829e6dd68a75",
       "gates": 87
     }
+  },
+  "itemShop": "0xaf8857c0d723e14f60d00fe46120abd0303f52cc",
+  "itemShopBlock": 76101128,
+  "voucherSigner": "0x4459Dc282c4A2114c1c4D6B7F96d8129779e2d11",
+  "itemShopTx": "0x14cb72397e93b5ed016be2a87d0e8a50256b3fe9b2523d32d03b4fe46c1e8a50",
+  "items": {
+    "star-lamp": "2",
+    "circuit-rug": "3",
+    "tape-shelf": "4",
+    "moon-window": "5",
+    "goal-saves": "6",
+    "goal-hatch": "7",
+    "goal-family": "8",
+    "goal-ember": "9"
   }
 }

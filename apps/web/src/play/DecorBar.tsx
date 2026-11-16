@@ -1,13 +1,13 @@
 /** The decorate bar over the home room: buy pieces with coins, pick one, tap the room to place it. */
 
 import { useEffect, useRef } from "react";
-import { DECOR, decorOf } from "@lingxi/world";
+import { CHAIN_DECOR, DECOR, decorOf } from "@lingxi/world";
 import { type Key, useLang, useT } from "../i18n";
 import { useWorld } from "../game/world";
 import { play } from "../game/sound";
 import "./decor.css";
 
-function DecorIcon({ rows, colors }: { rows: readonly string[]; colors: Record<string, string> }) {
+export function DecorIcon({ rows, colors }: { rows: readonly string[]; colors: Record<string, string> }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -47,8 +47,9 @@ export function DecorBar({ selected, onSelect, onDone }: { selected: string | nu
       </div>
       <p className="decor-hint">{t("decor.hint")}</p>
       <ul className="decor-list">
-        {DECOR.filter((p) => !p.gift || d.owned.includes(p.id)).map((p) => {
-          const owned = d.owned.includes(p.id);
+        {[...DECOR.filter((p) => !p.gift || d.owned.includes(p.id)), ...CHAIN_DECOR.filter((p) => (d.chainHeld ?? []).includes(p.id))].map((p) => {
+          // an on-chain piece is placed while a wallet holds it (plan 4.6); it is never bought here
+          const owned = d.owned.includes(p.id) || (!!p.chain && (d.chainHeld ?? []).includes(p.id));
           const placed = d.placed.some((x) => x.id === p.id);
           return (
             <li key={p.id}>
@@ -65,7 +66,7 @@ export function DecorBar({ selected, onSelect, onDone }: { selected: string | nu
               >
                 <DecorIcon rows={p.rows} colors={p.colors} />
                 <span>{p.name[lang as "en" | "zh"]}</span>
-                <small>{owned ? (placed ? "✓" : "") : t("decor.buy" as Key, { price: p.price })}</small>
+                <small>{owned ? (placed ? "✓" : p.chain ? "⛓" : "") : t("decor.buy" as Key, { price: p.price })}</small>
               </button>
             </li>
           );

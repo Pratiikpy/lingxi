@@ -1,0 +1,33 @@
+/* the item shop (plan 4.6): the fashion market's cards, with a decoration in place of a dressed pet */
+.itemshop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+.itemshop-card {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 4px;
+  padding: 10px 8px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--card);
+  text-align: center;
+}
+.itemshop-card .decor-icon {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 2px;
+}
+.itemshop-card .small {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+}
+.itemshop-card .fashion-resell {
+  grid-template-columns: minmax(0, 1fr) auto;
+  width: 100%;
+}

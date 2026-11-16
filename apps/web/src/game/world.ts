@@ -47,14 +47,16 @@ const KEY = "lingxi.world.v1";
 /** Keep only well-formed decorations from storage: known pieces, owned, inside the room, within the cap. */
 function cleanDecor(d: unknown): WorldState["decor"] {
   if (!d || typeof d !== "object") return undefined;
-  const raw = d as { owned?: unknown; placed?: unknown };
-  const owned = Array.isArray(raw.owned) ? [...new Set(raw.owned.filter((x): x is string => typeof x === "string" && x in DECOR_BY_ID))] : [];
+  const raw = d as { owned?: unknown; placed?: unknown; chainHeld?: unknown };
+  // on-chain pieces are never owned by the game, only held on chain (read again from X Layer on start)
+  const owned = Array.isArray(raw.owned) ? [...new Set(raw.owned.filter((x): x is string => typeof x === "string" && x in DECOR_BY_ID && !DECOR_BY_ID[x]!.chain))] : [];
+  const chainHeld = Array.isArray(raw.chainHeld) ? [...new Set(raw.chainHeld.filter((x): x is string => typeof x === "string" && !!DECOR_BY_ID[x]?.chain))] : [];
   const placed = (Array.isArray(raw.placed) ? raw.placed : [])
-    .filter((p): p is { id: string; x: number; y: number } => !!p && typeof p.id === "string" && owned.includes(p.id) && Number.isFinite(p.x) && Number.isFinite(p.y))
+    .filter((p): p is { id: string; x: number; y: number } => !!p && typeof p.id === "string" && (owned.includes(p.id) || chainHeld.includes(p.id)) && Number.isFinite(p.x) && Number.isFinite(p.y))
     .filter((p, i, all) => all.findIndex((q) => q.id === p.id) === i)
     .slice(0, MAX_PLACED)
     .map((p) => ({ id: p.id, x: Math.max(PLACE_AREA.x0, Math.min(PLACE_AREA.x1, Math.round(p.x))), y: Math.max(PLACE_AREA.y0, Math.min(PLACE_AREA.y1, Math.round(p.y))) }));
-  return { owned, placed };
+  return chainHeld.length ? { owned, placed, chainHeld } : { owned, placed };
 }
 
 /** Only whole, non-negative counts under well-formed keys survive a reload. */

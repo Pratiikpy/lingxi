@@ -24,6 +24,13 @@ export interface Deployment {
   /** the holder gift contract and the outfit it gives (a design on the BEM market) */
   holderGift?: Address;
   holderOutfit?: number;
+  /** the item shop (plan 4.6): sells on-chain items for burned BEM and redeems the game's vouchers */
+  itemShop?: Address;
+  itemShopBlock?: number;
+  /** its items: the game's piece id to the item kind's id on the BEM market */
+  items?: Record<string, string>;
+  /** the address whose signatures the shop accepts on vouchers */
+  voucherSigner?: Address;
   seal?: string;
   /** the on-chain picture and names contract (PetLook), when deployed */
   look?: Address;

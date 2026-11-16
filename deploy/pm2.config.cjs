@@ -52,6 +52,8 @@ module.exports = {
         LINGXI_MARKET_BEM_FROM: "76063126",
         LINGXI_BREEDER: "0x8da8221466de12321e6ee2ea73d62aaf28bb11b0",
         LINGXI_GIFT: "0xc216a4abb6c4c2d0b485f42219197551330b6cf4",
+        LINGXI_ITEM_SHOP: "0xaf8857c0d723e14f60d00fe46120abd0303f52cc",
+        LINGXI_VOUCHER_KEY_FILE: path.join(secrets, "voucher.env"),
       },
       max_memory_restart: "600M",
       restart_delay: 3000,

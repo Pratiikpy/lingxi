@@ -11,6 +11,7 @@ const BEM = "0x00000000000000000000000000000000000000b2" as const;
 const REG = "0x00000000000000000000000000000000000000c3" as const;
 const BREEDER = "0x00000000000000000000000000000000000000d4" as const;
 const GIFT = "0x00000000000000000000000000000000000000e5" as const;
+const SHOP = "0x0000000000000000000000000000000000000a11";
 
 /** A chain with a few sales at known blocks, and fixed contract totals. */
 function fakeChain(head: number) {
@@ -35,7 +36,7 @@ function fakeChain(head: number) {
     },
     readContract: async ({ address, functionName }: { address: string; functionName: string }) => {
       if (functionName === "nextPetId") return 12n;
-      if (functionName === "totalBurned") return address === BEM ? 4_200_000n : address === BREEDER ? 10_000_000n : 0n;
+      if (functionName === "totalBurned") return address === BEM ? 4_200_000n : address === BREEDER ? 10_000_000n : address === SHOP ? 15_000_000n : 0n;
       if (functionName === "total") return 7n;
       throw new Error("unexpected read");
     },
@@ -69,10 +70,12 @@ describe("live numbers", () => {
     const { client } = fakeChain(2_150);
     const sales = createSalesCounter({ rpc: "", markets: [{ address: OKB, fromBlock: 1_000 }, { address: BEM, fromBlock: 2_000 }], client, paceMs: 0 });
     await sales.catchUp();
-    const n = await readNumbers({ pub: client, counts, petsIndexedTo: () => 2_140, sales, contracts: { registry: REG, marketOkb: OKB, marketBem: BEM, breeder: BREEDER, gift: GIFT }, explorer: "https://x" }, 1_800_000_000_000);
+    const n = await readNumbers({ pub: client, counts, petsIndexedTo: () => 2_140, sales, contracts: { registry: REG, marketOkb: OKB, marketBem: BEM, breeder: BREEDER, gift: GIFT, itemShop: SHOP }, explorer: "https://x" }, 1_800_000_000_000);
     expect(n.head).toBe(2_150);
     expect(n.pets).toEqual({ hatched: 9, children: 2, daysSaved: 40, savedLast24h: 3, hatchers: 5, nextPetId: 12, indexedTo: 2_140 });
-    expect(n.burned).toEqual({ market: "4200000", breeding: "10000000", total: "14200000" });
+    // the item shop's whole price is burned and counts in the total (plan 4.6)
+    expect(n.burned).toEqual({ market: "4200000", breeding: "10000000", shop: "15000000", total: "29200000" });
+    expect(n.contracts.itemShop).toEqual({ address: SHOP, url: `https://x/address/${SHOP}` });
     expect(n.pins).toBe(7);
     expect(n.outfits.bem?.copies).toBe(5);
     expect(n.contracts.marketBem).toEqual({ address: BEM, url: `https://x/address/${BEM}` });

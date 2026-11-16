@@ -30,7 +30,7 @@ interface Numbers {
   at: number;
   pets: { hatched: number; children: number; daysSaved: number; savedLast24h: number; hatchers: number; nextPetId: number; indexedTo: number };
   outfits: { okb: Market | null; bem: Market | null };
-  burned: { market: string; breeding: string; total: string };
+  burned: { market: string; breeding: string; shop?: string; total: string };
   pins: number | null;
   contracts: Record<string, { address: string; url: string }>;
 }
@@ -98,7 +98,10 @@ function rows(n: Numbers): Array<{ title: [string, string]; readTo?: number; ite
       items: [
         { label: ["Burned by the market", "市场销毁"], value: `${formatBem(BigInt(n.burned.market))} BEM`, counts: ["The market's whole fee, sent to the dead address in the same transaction as each sale (the market's own total).", "市场的全部手续费，在每笔交易里直接送到销毁地址（市场合约自己的累计）。"], source: "marketBem" },
         { label: ["Burned by breeding", "生宝宝销毁"], value: `${formatBem(BigInt(n.burned.breeding))} BEM`, counts: ["Breeding fees, moved from the breeder's wallet straight to the dead address (the breeding contract's own total).", "生宝宝的费用，直接从钱包送到销毁地址（生育合约自己的累计）。"], source: "breeder" },
-        { label: ["Burned in total", "合计销毁"], value: `${formatBem(BigInt(n.burned.total))} BEM`, counts: ["The two totals above. Lingxi never keeps BEM.", "上面两项之和。灵犀从不留下 BEM。"] },
+        ...(n.burned.shop !== undefined
+          ? [{ label: ["Burned by the item shop", "道具店销毁"] as [string, string], value: `${formatBem(BigInt(n.burned.shop))} BEM`, counts: ["The whole price of every on-chain piece bought, sent to the dead address in the same transaction (the shop's own total).", "每件链上摆设的全部售价，在购买的同一笔交易里送到销毁地址（道具店合约自己的累计）。"] as [string, string], source: "itemShop" }]
+          : []),
+        { label: ["Burned in total", "合计销毁"], value: `${formatBem(BigInt(n.burned.total))} BEM`, counts: ["The totals above added together. Lingxi never keeps BEM.", "上面各项之和。灵犀从不留下 BEM。"] },
       ],
     },
   ];
