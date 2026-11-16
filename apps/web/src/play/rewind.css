@@ -86,7 +86,8 @@
   margin-top: 2px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--ink-soft);
+  /* the quote card stays light in dark mode */
+  color: #5b4e73;
 }
 .rw-rows {
   margin: 0;
@@ -106,6 +107,10 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 5px;
+}
+/* the rows sit on the theme's card, so their connectors follow the theme */
+.rw-rows .op {
+  color: var(--ink-soft);
 }
 .rw-rows .chip {
   min-height: 24px;
