@@ -1,15 +1,16 @@
 /** The map, the bag (food, drinks, materials, workbench, shop) and the quest list. */
 
-import { builderIn } from "@lingxi/game";
+import { BUILDER_PET, type BuilderId, builderIn } from "@lingxi/game";
 import { CuteState } from "./CuteState";
 import { useMemo, useState } from "react";
 import { stageOf } from "@lingxi/game";
-import { CORNER_SHOP, DECOR_BY_ID, HOME, ITEM, MAKE_RECIPES, PIECE_PRICES, QUESTS, RECIPES, ROOMS, has, knownTravelRecipes, neighbours, ownedPieces, questState } from "@lingxi/world";
+import { CORNER_SHOP, DECOR_BY_ID, HOME, ITEM, MAKE_RECIPES, PIECE_PRICES, QUESTS, RECIPES, ROOMS, STORY, has, knownTravelRecipes, neighbours, ownedPieces, questState } from "@lingxi/world";
 import { WEARABLE } from "@lingxi/art";
 import { useLang, useT, type Key } from "../i18n";
 import { useChain } from "../game/chain";
 import { useGame } from "../game/store";
 import { type WorldNotice, useWorld } from "../game/world";
+import { allStatuses, giverRoom } from "../game/quests";
 import "./world.css";
 import { GardenPanel } from "./Garden";
 
@@ -48,6 +49,19 @@ export function MapPanel({ onGone }: { onGone: () => void }) {
   const minY = Math.min(...ys);
   const cols = Math.max(...xs) - minX + 1;
   const rows = Math.max(...ys) - minY + 1;
+  // rooms where someone has a quest to give ("!") or to take back ("✓")
+  const marks = useMemo(() => {
+    const st = allStatuses();
+    const out: Record<number, "!" | "✓"> = {};
+    for (const q of STORY) {
+      const s2 = st[q.id];
+      if (s2 !== "available" && s2 !== "ready") continue;
+      const room = q.giver.startsWith("lane:") ? BUILDER_PET[q.giver.slice(5) as BuilderId]?.room : giverRoom[q.giver];
+      if (room === undefined) continue;
+      if (s2 === "ready" || !out[room]) out[room] = s2 === "ready" ? "✓" : "!";
+    }
+    return out;
+  }, [world]);
   return (
     <div className="map">
       {levels.length > 1 && (
@@ -55,6 +69,12 @@ export function MapPanel({ onGone }: { onGone: () => void }) {
           {levels.map((l) => (
             <button key={l} type="button" role="tab" aria-selected={l === z} className={`val${l === z ? " on" : ""}`} onClick={() => setZ(l)}>
               {t(`map.level.${l}` as Key)}
+              {/* a quest waits on this level: say so on its tab, so a mark on another floor is never missed */}
+              {Object.entries(marks).some(([room]) => ROOMS[Number(room)]?.z === l && (world.visited.includes(Number(room)) || near.has(Number(room)))) && (
+                <i className="map-quest inline" aria-label={lang === "zh" ? "这层有任务" : "a quest on this level"}>
+                  !
+                </i>
+              )}
             </button>
           ))}
         </div>
@@ -80,6 +100,11 @@ export function MapPanel({ onGone }: { onGone: () => void }) {
               {visited || canGo ? <img className="pixel" src={r.bgs.day} alt="" loading="lazy" /> : <span>?</span>}
               {isHere && <i className="dot" aria-hidden="true" />}
               {builderIn(r.index) && (visited || canGo) && <i className="lane-mark" title={builderIn(r.index)!.name[lang]} aria-hidden="true" />}
+              {marks[r.index] && (visited || canGo) && (
+                <i className={`map-quest${marks[r.index] === "✓" ? " ready" : ""}`} aria-label={marks[r.index] === "✓" ? (lang === "zh" ? "有任务可以交" : "a quest to hand in") : lang === "zh" ? "有新任务" : "a new quest"}>
+                  {marks[r.index]}
+                </i>
+              )}
             </button>
           );
         })}

@@ -69,7 +69,7 @@ export function ChainPanel({ pet }: { pet: Pet }) {
             <span>{record.lastDay ? t("chain.saved", { n: record.lastDay }) : t("chain.never")}</span>
           </div>
           <div className="row">
-            <button type="button" className="btn primary" disabled={busy !== "idle"} onClick={() => (play("tap"), saveToday(pet, () => (play("success"), say("saved"))))}>
+            <button type="button" className="btn primary" disabled={busy !== "idle"} onClick={() => (play("tap"), saveToday(pet, () => (play("success"), say("saved"))))} data-hint="keep">
               {t("chain.save")}
             </button>
             <a className="btn" href={`verify.html#${record.petId}`}>
@@ -177,7 +177,7 @@ export function ChainPanel({ pet }: { pet: Pet }) {
         <>
           <p className="small">{t("chain.pitch", { name: pet.name })}</p>
           <p className="small">{t("chain.cost")}</p>
-          <button type="button" className="btn primary" disabled={busy !== "idle"} onClick={() => (play("tap"), keep(pet))}>
+          <button type="button" className="btn primary" disabled={busy !== "idle"} onClick={() => (play("tap"), keep(pet))} data-hint="keep">
             {t("chain.keep", { name: pet.name })}
           </button>
         </>

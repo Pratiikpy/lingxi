@@ -139,6 +139,8 @@ interface WorldStore {
   endTrip: () => void;
   /** a pet's event counted into the player's lifetime tally (plan 4.1): care, lessons, spars, saves, choices */
   tally: (type: string, index: number | string, n: number, opts?: { total?: boolean }) => void;
+  /** replace the world with one a pure rule returned (quests use it); saved at once */
+  setWorld: (next: WorldState) => void;
   /** a named fact that happened once (FLAG conditions) */
   flag: (name: string) => void;
   /** hand items to a resident (quests ask for gifts) */
@@ -307,6 +309,11 @@ export const useWorld = create<WorldStore>((set, get) => ({
   },
   tally: (type, index, count, opts = {}) => {
     const next = bump(get().world, type, index, count, opts);
+    if (next === get().world) return;
+    save(next);
+    set({ world: next });
+  },
+  setWorld: (next) => {
     if (next === get().world) return;
     save(next);
     set({ world: next });

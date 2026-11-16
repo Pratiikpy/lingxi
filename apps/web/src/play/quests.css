@@ -1,0 +1,394 @@
+/* Quests (plan 4.2): the book, its cards, the dialog, the toast, the pet's bubble, the map and talk marks, and the
+   onboarding ring. Built from the game's own tokens so both themes follow. */
+
+/* ── the book ── */
+.questbook {
+  display: grid;
+  gap: var(--s3);
+}
+.qb-tabs {
+  display: flex;
+  gap: var(--s2);
+}
+.qb-tab {
+  position: relative;
+  flex: 1;
+  min-height: 40px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--card);
+  color: var(--ink);
+  font: 800 14px var(--round);
+  box-shadow: var(--lift-lo);
+  cursor: pointer;
+}
+.qb-tab.on {
+  background: var(--sunny);
+  color: var(--plum);
+  box-shadow: var(--lift);
+}
+.qb-dot {
+  position: absolute;
+  top: -4px;
+  right: 10px;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  background: var(--mint);
+}
+.qb-empty,
+.qb-note {
+  margin: 0;
+  color: var(--ink-soft);
+}
+.qb-h {
+  margin: var(--s2) 0 0;
+  font: 800 1rem var(--round);
+}
+.qb-arcs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.qb-arcs li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px var(--s2);
+  padding: 8px 12px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--card);
+}
+.qb-arcs li.done {
+  background: var(--tint);
+}
+.qb-arcs li .small {
+  grid-column: 1 / -1;
+  color: var(--ink-soft);
+}
+.qb-arc-name {
+  font: 700 14px var(--round);
+}
+.qb-arc-count {
+  font: 800 14px var(--display);
+}
+.qb-weekly {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding: 12px 14px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--band);
+}
+.qb-weekly > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* ── a card ── */
+.qc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s2);
+}
+.qc {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--card);
+  box-shadow: var(--lift-lo);
+}
+.qc-ready {
+  border-color: var(--mint);
+  box-shadow: 0 3px 0 var(--mint);
+}
+.qc-available {
+  border-style: dashed;
+}
+.qc-head {
+  display: grid;
+  gap: 2px;
+}
+.qc-head b {
+  font: 800 1rem var(--round);
+}
+.qc-from {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.qc-objs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.qc-objs li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 8px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.qc-objs li.met {
+  color: var(--mint);
+  font-weight: 700;
+}
+.qc-objs .bar {
+  grid-column: 1 / -1;
+}
+.qc-count {
+  font: 800 13px var(--display);
+}
+.qc-note,
+.qc-opens {
+  margin: 0;
+  color: var(--ink-soft);
+}
+.qc-rewards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.qc-rewards li {
+  padding: 2px 10px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--tint);
+  font: 700 12px var(--round);
+}
+.qc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2);
+}
+.qc-go {
+  font-weight: 700;
+  color: var(--mint);
+}
+.btn.small-btn {
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+/* ── the dialog for the pet's and Builders' Lane quests ── */
+.qd {
+  gap: 10px;
+}
+.qd-title {
+  margin: 0;
+  font: 800 1.05rem var(--round);
+}
+.qd-bubble {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px 18px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--page);
+  color: var(--ink);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.qd-name {
+  justify-self: start;
+  padding: 1px 10px;
+  border-radius: var(--r-pill);
+  background: var(--sunny);
+  color: var(--plum);
+  font: 800 13px var(--round);
+}
+.qd-text {
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* ── the toast ── */
+.quest-toast {
+  /* just above the tab bar: clear of the header, the badge toasts and an open sheet's title */
+  position: fixed;
+  left: 50%;
+  bottom: calc(96px + env(safe-area-inset-bottom));
+  z-index: 61;
+  translate: -50% 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 8px 16px 8px 8px;
+  border: 2px solid #2b2140;
+  border-radius: 999px;
+  background: #fffdf8;
+  color: #2b2140;
+  box-shadow: 0 4px 0 #2b2140;
+  font: 700 14px var(--round);
+  text-align: left;
+  cursor: pointer;
+}
+.qt-mark {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border: 2px solid #2b2140;
+  border-radius: 50%;
+  background: #ffc83d;
+  font: 800 15px var(--display);
+}
+.qt-ready .qt-mark,
+.qt-done .qt-mark {
+  background: #7fd48a;
+}
+
+/* ── the pet's own "!" ── */
+.pet-quest {
+  /* its own corner, under the circuit button: clear of the pet's speech bubble and the room's buttons */
+  position: absolute;
+  right: 14px;
+  top: 64px;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 3px solid #2b2140;
+  border-radius: 12px;
+  background: #ffc83d;
+  color: #2b2140;
+  font: 800 22px var(--display);
+  box-shadow: 0 4px 0 #2b2140;
+  cursor: pointer;
+  animation: pet-quest-bob 1.4s var(--ease) infinite;
+}
+.pet-quest.ready {
+  background: #7fd48a;
+}
+@keyframes pet-quest-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+/* ── marks on the map and in talk ── */
+.map-quest {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #2b2140;
+  border-radius: 6px;
+  background: #ffc83d;
+  color: #2b2140;
+  font: 800 12px/1 var(--display);
+  font-style: normal;
+}
+.map-quest.inline {
+  position: static;
+  display: inline-grid;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.map-quest.ready {
+  background: #7fd48a;
+}
+.talk-choice.quest {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.talk-choice.quest.offer {
+  background: #fff1c2;
+}
+.talk-choice.quest.ready {
+  background: #d9f5dc;
+}
+.talk-choice.quest:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.tq-mark {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #2b2140;
+  border-radius: 6px;
+  background: #ffc83d;
+  font: 800 12px var(--display);
+}
+.talk-choice.quest.ready .tq-mark {
+  background: #7fd48a;
+}
+.lane-quests {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.lane-quests li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  padding: 8px 12px;
+  border: 2px dashed var(--line);
+  border-radius: var(--r-sm);
+  font: 700 14px var(--round);
+}
+
+/* ── the onboarding ring ── */
+.hint-ring {
+  position: fixed;
+  z-index: 55;
+  border: 3px solid #ffc83d;
+  border-radius: 18px;
+  box-shadow: 0 0 0 3px #2b2140;
+  pointer-events: none;
+  animation: hint-pulse 1.3s var(--ease) infinite;
+}
+.hint-ring.still {
+  animation: none;
+}
+@keyframes hint-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(1.04);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pet-quest,
+  .hint-ring {
+    animation: none;
+  }
+}

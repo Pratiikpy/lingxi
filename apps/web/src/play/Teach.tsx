@@ -83,7 +83,7 @@ function Proposal({ pet, rule, reply, source, onDone }: { pet: Pet; rule: Rule; 
             {t("teach.confirmBelow")}
           </button>
         )}
-        <button type="button" className={`btn${belowIsClean ? "" : " primary"}`} onClick={() => confirm()}>
+        <button type="button" className={`btn${belowIsClean ? "" : " primary"}`} onClick={() => confirm()} data-hint="teach">
           {t("teach.confirm")}
         </button>
         <button type="button" className="btn" onClick={onDone}>
@@ -379,7 +379,7 @@ function Builder({ pet, onPropose }: { pet: Pet; onPropose: (rule: Rule) => void
           </button>
         ))}
       </div>
-      <button type="button" className="btn primary" disabled={!valid} onClick={() => onPropose(rule)}>
+      <button type="button" className="btn primary" disabled={!valid} onClick={() => onPropose(rule)} data-hint="teach">
         {t("teach.preview")}
       </button>
     </div>

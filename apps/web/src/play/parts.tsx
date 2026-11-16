@@ -116,18 +116,18 @@ export function Actions({ pet, absent = false, onFeed, onPlay, onClean, onSleep,
   const m = visibleMeters(pet);
   // a pet staying with a friend is cared for there, and a pet on a trip is not home
   const away = !!pet.away || absent;
-  const btn = (icon: IconName, label: string, on: () => void, hint: boolean, disabled = false) => (
-    <button type="button" className={`act${hint && !away ? " hint" : ""}`} onClick={on} disabled={disabled || away}>
+  const btn = (icon: IconName, label: string, on: () => void, hint: boolean, disabled = false, id?: string) => (
+    <button type="button" className={`act${hint && !away ? " hint" : ""}`} onClick={on} disabled={disabled || away} data-hint={id}>
       <Icon name={icon} size={24} />
       {label}
     </button>
   );
   return (
     <div className="actions">
-      {btn("bowl", t("act.feed"), onFeed, m.food < 350 && !pet.asleep)}
-      {pet.sick ? btn("pill", t("act.medicine"), onMedicine, true) : btn("ball", t("act.play"), onPlay, false, pet.asleep)}
-      {btn("sparkle", t("act.clean"), onClean, m.clean < 250 && !pet.asleep, pet.asleep)}
-      {btn(pet.asleep ? "sun" : "moon", pet.asleep ? t("act.wake") : t("act.sleep"), onSleep, m.energy < 250 && !pet.asleep)}
+      {btn("bowl", t("act.feed"), onFeed, m.food < 350 && !pet.asleep, false, "feed")}
+      {pet.sick ? btn("pill", t("act.medicine"), onMedicine, true, false, "medicine") : btn("ball", t("act.play"), onPlay, false, pet.asleep, "play")}
+      {btn("sparkle", t("act.clean"), onClean, m.clean < 250 && !pet.asleep, pet.asleep, "clean")}
+      {btn(pet.asleep ? "sun" : "moon", pet.asleep ? t("act.wake") : t("act.sleep"), onSleep, m.energy < 250 && !pet.asleep, false, "sleep")}
     </div>
   );
 }
@@ -199,7 +199,7 @@ export function TabBar({ current, onPick, locked = [] }: { current: Tab; onPick:
   return (
     <nav className="tabs" aria-label="Main">
       {TABS.map(([id, icon, label]) => (
-        <button key={id} type="button" className={`tab${locked.includes(id) ? " tab-locked" : ""}`} aria-current={current === id ? "page" : undefined} onClick={() => onPick(id)}>
+        <button key={id} type="button" className={`tab${locked.includes(id) ? " tab-locked" : ""}`} aria-current={current === id ? "page" : undefined} onClick={() => onPick(id)} data-hint={`tab-${id}`}>
           <Icon name={icon} size={22} />
           {t(label)}
           {locked.includes(id) && (

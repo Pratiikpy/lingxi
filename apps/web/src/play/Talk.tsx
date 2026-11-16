@@ -1,12 +1,29 @@
-/** Talking to a character: their lines type out in a bubble, then the player picks a topic. */
+/**
+ * Talking to a character: their lines type out in a bubble, then the player picks a topic. Their quests live here
+ * too (plan 4.2): an errand they want to give ("!"), one ready to take back ("✓"), and, for an errand that asks
+ * for something, a button to hand it over.
+ */
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import type { Action, Character, Line } from "@lingxi/world";
+import { type Action, type Character, ITEM, type Line, QUEST_BY_ID, type QuestDef, questProgress } from "@lingxi/world";
 import { useLang } from "../i18n";
 import { play } from "../game/sound";
 import "./talk.css";
 import { noteTally } from "../game/tally";
+import { allStatuses, conditionView, handIn, questsOf, takeQuest } from "../game/quests";
+import { useWorld } from "../game/world";
+
+/** What an errand still wants handed to this resident: the item, how many are still owed, and how many are in the bag. */
+function owed(q: QuestDef, who: string, world: ReturnType<typeof useWorld.getState>["world"]): Array<{ item: number; left: number; have: number }> {
+  const progress = questProgress(q, world, conditionView());
+  return q.objectives.flatMap((o, i) => {
+    const idx = String(o.cond.index ?? "");
+    if (o.cond.type !== "GIVE_TO" || !idx.startsWith(`${who}:`) || progress[i]?.met) return [];
+    const item = Number(idx.split(":")[1]);
+    return [{ item, left: (progress[i]?.need ?? 1) - (progress[i]?.have ?? 0), have: world.bag[item] ?? 0 }];
+  });
+}
 
 const ACTION_LABEL: Record<Action, [string, string]> = {
   shop: ["Open the shop", "打开商店"],
@@ -26,6 +43,27 @@ export function Talk({ who, onFace, onAction, onClose }: { who: Character; onFac
   const [action, setAction] = useState<Action | null>(null);
   const [typed, setTyped] = useState(0);
   const [ending, setEnding] = useState(false);
+  // an errand being offered: its lines play, then Okay / Not now
+  const [offering, setOffering] = useState<string | null>(null);
+  const world = useWorld((s) => s.world);
+  const quests = useMemo(() => questsOf(who.id, allStatuses()), [who.id, world]);
+  // a daily that asks for any small gift can be settled with any resident
+  const dailyGift = useMemo(() => {
+    const st = allStatuses();
+    return (world.quests?.today?.offered ?? []).map((id) => QUEST_BY_ID[id]!).find((q) => st[q.id] === "active" && q.objectives.some((o) => o.cond.type === "GIVE"));
+  }, [world]);
+  const spare = useMemo(() => {
+    // never offer up something an errand still asks for
+    const st = allStatuses();
+    const wanted = new Set<number>();
+    for (const q of Object.values(QUEST_BY_ID)) {
+      if (st[q.id] !== "active") continue;
+      for (const o of q.objectives) if (o.cond.type === "GIVE_TO" || o.cond.type === "GIVE" || o.cond.type === "ITEM") wanted.add(Number(String(o.cond.index ?? "").split(":").pop()));
+    }
+    const items = Object.entries(world.bag).filter(([id, n]) => n > 0 && ITEM[Number(id)]?.kind === "material" && !wanted.has(Number(id)));
+    items.sort((a, b) => b[1] - a[1]);
+    return items[0] ? Number(items[0][0]) : null;
+  }, [world]);
   const line = queue[at] ?? null;
   // talking to a resident counts for quests and dailies, once per conversation
   useEffect(() => {
@@ -52,6 +90,34 @@ export function Talk({ who, onFace, onAction, onClose }: { who: Character; onFac
     play("tap");
     if (!lastLine) return setAt((n) => n + 1);
     if (ending) return onClose();
+  };
+  const asLines = (lines: QuestDef["intro"]): Line[] => lines.map((l) => ({ face: l.face ?? who.greeting[0]!.face, en: l.en, zh: l.zh }));
+  const hear = (q: QuestDef) => {
+    play("tap");
+    setQueue(asLines(q.intro));
+    setAt(0);
+    setAction(null);
+    setOffering(q.id);
+  };
+  // after the answer the talk goes back to its choices, with the errand's last line still showing
+  const accept = (yes: boolean) => {
+    // taking it on plays its own sound
+    if (yes && offering) takeQuest(offering);
+    else play("tap");
+    setOffering(null);
+  };
+  const finish = (q: QuestDef) => {
+    if (!handIn(q.id)) return;
+    setQueue(asLines(q.outro));
+    setAt(0);
+    setAction(null);
+    setOffering(null);
+  };
+  const hand = (q: QuestDef, item: number, n: number) => {
+    if (useWorld.getState().giveTo(who.id, item, n)) play("success");
+    // handing over the last of it may finish the errand at once
+    const after = allStatuses()[q.id];
+    if (after === "ready") finish(q);
   };
   const pickTopic = (i: number) => {
     play("tap");
@@ -84,8 +150,44 @@ export function Talk({ who, onFace, onAction, onClose }: { who: Character; onFac
         </span>
         {done && (!lastLine || ending) && <span className="talk-more" aria-hidden="true">▼</span>}
       </button>
-      {showChoices && (
+      {showChoices && offering && (
         <div className="talk-choices">
+          <button type="button" className="talk-choice go" onClick={() => accept(true)}>
+            {lang === "zh" ? "好呀！" : "Okay!"}
+          </button>
+          <button type="button" className="talk-choice bye" onClick={() => accept(false)}>
+            {lang === "zh" ? "现在不了" : "Not now"}
+          </button>
+        </div>
+      )}
+      {showChoices && !offering && (
+        <div className="talk-choices">
+          {quests.ready.map((q) => (
+            <button key={q.id} type="button" className="talk-choice quest ready" onClick={() => finish(q)}>
+              <span className="tq-mark" aria-hidden="true">✓</span>
+              {lang === "zh" ? `交任务：${q.title.zh}` : `Hand in: ${q.title.en}`}
+            </button>
+          ))}
+          {quests.active.flatMap((q) =>
+            owed(q, who.id, world).map((o) => (
+              <button key={`${q.id}:${o.item}`} type="button" className="talk-choice quest" disabled={o.have < 1} onClick={() => hand(q, o.item, Math.min(o.left, o.have))}>
+                {lang === "zh"
+                  ? `交给${who.name.zh} ${Math.min(o.left, Math.max(1, o.have))} 个${ITEM[o.item]?.name.zh}（还差 ${o.left}，你有 ${o.have}）`
+                  : `Give ${Math.min(o.left, Math.max(1, o.have))} × ${ITEM[o.item]?.name.en} (${o.left} still wanted, you have ${o.have})`}
+              </button>
+            )),
+          )}
+          {dailyGift && spare !== null && (
+            <button type="button" className="talk-choice quest" onClick={() => useWorld.getState().giveTo(who.id, spare, 1) && play("success")}>
+              {lang === "zh" ? `送${who.name.zh}一个${ITEM[spare]?.name.zh}` : `Give ${who.name.en} a ${ITEM[spare]?.name.en}`}
+            </button>
+          )}
+          {quests.offer.map((q) => (
+            <button key={q.id} type="button" className="talk-choice quest offer" onClick={() => hear(q)}>
+              <span className="tq-mark" aria-hidden="true">!</span>
+              {q.title[lang]}
+            </button>
+          ))}
           {action && (
             <button type="button" className="talk-choice go" onClick={() => (play("tap"), onAction(action))}>
               {ACTION_LABEL[action][lang === "zh" ? 1 : 0]}

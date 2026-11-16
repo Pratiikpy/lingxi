@@ -20,7 +20,9 @@ import { Hatch } from "./Hatch";
 import { Actions, Meters, TabBar, ThinkStrip, ToastView, TopBar, VoiceBubble, type Tab } from "./parts";
 import { useVoice } from "../game/voice";
 import { EvolutionChart, MeSheetBody, MindPanel, Sheet } from "./Sheets";
-import { BagPanel, MapPanel, QuestPanel, noticeText } from "./WorldPanels";
+import { BagPanel, MapPanel, noticeText } from "./WorldPanels";
+import { HintRing, PetQuestBubble, QuestBook, QuestDialog, QuestToast } from "./Quests";
+import { allStatuses, questsOf } from "../game/quests";
 import { useWorld } from "../game/world";
 import { useChain } from "../game/chain";
 import { liveAvailable, playerId, useLive, visitingFrom } from "../game/live";
@@ -164,6 +166,15 @@ export function PlayApp() {
     return () => setAmbience("quiet");
   }, [outdoors, phase]);
   const who = CHARACTER_IN_ROOM[worldRoom] ?? null;
+  // over the resident's head: a quest to hand in, or one to offer
+  const worldState = useWorld((s) => s.world);
+  const npcMark = useMemo<"!" | "✓" | null>(() => {
+    if (!who) return null;
+    const q = questsOf(who.id, allStatuses());
+    return q.ready.length ? "✓" : q.offer.length ? "!" : null;
+    // the statuses follow the world (and the pet, read inside)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [who, worldState]);
   const [talking, setTalking] = useState(false);
   const [npcFace, setNpcFace] = useState<string | null>(null);
   useEffect(() => {
@@ -400,7 +411,7 @@ export function PlayApp() {
     <div className="app">
       <TopBar pet={pet} daily={daily} face={face && <FaceSprite canvas={face} line={pet.line} />} onQuests={() => pick("quests")} onPets={() => pick("pets")} petCount={petCount} onMail={() => pick("mail")} unread={unread} />
       <div className="main">
-        <section className="stage" aria-label={pet.name}>
+        <section className="stage" aria-label={pet.name} data-hint="pet">
           <RoomScene
             line={pet.line}
             stage={stage}
@@ -432,6 +443,7 @@ export function PlayApp() {
             others={[...Object.values(others), ...kinVisitors, ...(resident ? [builderInScene(resident, lang, residentSaid.current)] : [])]}
             onOtherTap={(id) => (play("tap"), setPicked(id))}
             npc={who ? (talking && npcFace ? npcFace : who.stand) : null}
+            npcMark={npcMark}
             onNpcTap={() => (play("tap"), setPicked(null), setTalking(true))}
           />
           <div className="room-pill">
@@ -447,7 +459,7 @@ export function PlayApp() {
               </button>
             )}
             {room.drops.length > 0 && (
-              <button type="button" onClick={() => (play("tap"), worldForage())}>
+              <button type="button" onClick={() => (play("tap"), worldForage())} data-hint="look">
                 {t("room.look")}
               </button>
             )}
@@ -571,6 +583,7 @@ export function PlayApp() {
             </div>
           )}
           {!talking && !circuit && <VoiceBubble />}
+          {!talking && <PetQuestBubble />}
           {talking ? null : Object.keys(others).length > 0 ? <SocialBar count={Object.keys(others).length} /> : <ThinkStrip pet={pet} />}
         </section>
         <div className="side">
@@ -642,7 +655,7 @@ export function PlayApp() {
         <MapPanel onGone={close} />
       </Sheet>
       <Sheet open={tab === "quests"} title={t("quest.title")} onClose={close}>
-        <QuestPanel />
+        <QuestBook />
       </Sheet>
       <Sheet open={tab === "mind"} title={t("teach.title", { name: pet.name })} onClose={close}>
         <TeachPanel pet={pet} />
@@ -664,6 +677,9 @@ export function PlayApp() {
       </Sheet>
 
       <BadgeToast />
+      <QuestToast onOpenBook={() => pick("quests")} />
+      <QuestDialog />
+      <HintRing />
       <Sheet open={tab === "me"} title={t("me.title", { name: pet.name })} onClose={close}>
         <TelegramCard />
         <WardrobePanel pet={pet} />

@@ -86,7 +86,24 @@ export interface SceneProps {
   onOtherTap: (id: string) => void;
   /** the character standing in this room (portrait file), if any */
   npc: string | null;
+  /** over the character's head: "!" when they have a quest for you, "✓" when one is ready to hand in */
+  npcMark?: "!" | "✓" | null;
   onNpcTap: () => void;
+}
+
+/** The quest mark: a little pixel sign, "!" in gold for a quest to take, a tick in green for one to hand in. */
+const MARKS: Record<"!" | "✓", { rows: string[]; fill: string }> = {
+  "!": { rows: [".OOOOOOO.", "OyyyKyyyO", "OyyyKyyyO", "OyyyKyyyO", "OyyyyyyyO", "OyyyKyyyO", "OyyyyyyyO", ".OOOOOOO.", "...OyO...", "....O...."], fill: "#FFC83D" },
+  "✓": { rows: [".OOOOOOO.", "OyyyyyyyO", "OyyyyyyKO", "OyKyyyKyO", "OyyKyKyyO", "OyyyKyyyO", "OyyyyyyyO", ".OOOOOOO.", "...OyO...", "....O...."], fill: "#7FD48A" },
+};
+function drawMark(g: Graphics, kind: "!" | "✓"): void {
+  const m = MARKS[kind];
+  m.rows.forEach((row, y) =>
+    [...row].forEach((ch, x) => {
+      if (ch === ".") return;
+      g.rect(x, y, 1, 1).fill(ch === "y" ? m.fill : "#2B2140");
+    }),
+  );
 }
 
 /** A stable spot on the floor for a visitor, from their id. */
@@ -224,6 +241,13 @@ export function RoomScene(props: SceneProps) {
       npc.on("pointertap", () => latest.current.onNpcTap());
       world.addChild(npc);
       let shownNpc: string | null = null;
+      // the quest mark over the character's head, drawn in pixels like everything else in the room
+      const mark = new Graphics();
+      mark.eventMode = "static";
+      mark.cursor = "pointer";
+      mark.on("pointertap", () => latest.current.onNpcTap());
+      world.addChild(mark);
+      let shownMark: string | null = null;
       // the cat's lane runs behind the pet, along the hut's doorstep
       const cat = new Sprite(catTexture("sit0"));
       cat.anchor.set(0.5, 1);
@@ -460,6 +484,18 @@ export function RoomScene(props: SceneProps) {
           npc.x = 104;
           // a one-pixel breath so the character never looks pasted on
           npc.y = PET_FEET + 6 + (!p.reduceMotion && Math.sin(now / 760) > 0.55 ? 1 : 0);
+        }
+        const wantMark = npc.visible ? (p.npcMark ?? null) : null;
+        if (wantMark !== shownMark) {
+          shownMark = wantMark;
+          mark.clear();
+          if (wantMark) drawMark(mark, wantMark);
+        }
+        if (wantMark) {
+          // over the head when there is room, otherwise just inside the top of the room beside it (tall residents)
+          const above = npc.y - npc.height - 12;
+          mark.x = above >= 2 ? npc.x - 5 : Math.max(2, Math.round(npc.x - npc.width / 4) - 9);
+          mark.y = Math.max(3, above) + (!p.reduceMotion ? Math.round(Math.sin(now / 320)) : 0);
         }
         // a poorly pet gives off a little green swirl now and then
         if (p.sick && !p.asleep && !p.reduceMotion && Math.random() < 0.012) burst("spark", 1, ["#7BD389", "#5FB46F"]);

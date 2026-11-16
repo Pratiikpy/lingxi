@@ -1,0 +1,193 @@
+/**
+ * Quests in the game (plan 4.2): the view the conditions read, gathered from the live stores; taking, handing in
+ * and dropping quests; today's dailies; and the notes that say a quest has opened or is ready to hand in. The
+ * rules themselves live in @lingxi/world (story.ts); this module only feeds them and keeps the world saved.
+ */
+
+import { create } from "zustand";
+import { timeOfDay } from "@lingxi/brain";
+import { bondLevel, levelOf, localHour, needsMinOf, stageOf } from "@lingxi/game";
+import {
+  type ConditionView,
+  DAILIES,
+  QUESTLINE,
+  QUEST_BY_ID,
+  type QuestDef,
+  type QuestStatus,
+  type Reward,
+  STORY,
+  WEEKLY_GIFT,
+  acceptQuest,
+  claimWeekly,
+  completeQuest,
+  dropQuest,
+  localDay,
+  questStatus,
+  rollDailies,
+} from "@lingxi/world";
+import { useBadges } from "./badges";
+import { useChain } from "./chain";
+import { bondsOf, useFriends } from "./friends";
+import { play } from "./sound";
+import { useGame } from "./store";
+import { useWorld } from "./world";
+
+const tzOffset = () => useGame.getState().pet?.tzOffsetMin ?? -new Date().getTimezoneOffset();
+
+/** Everything a condition reads, from the stores as they are right now. */
+export function conditionView(now = Date.now()): ConditionView {
+  const world = useWorld.getState().world;
+  const { pet, pets } = useGame.getState();
+  const ledger = useBadges.getState().ledger;
+  const stage = pet ? stageOf(pet, now) : null;
+  const bonds = pet ? Object.values(bondsOf(useFriends.getState().all, pet.bornAt)) : [];
+  return {
+    world,
+    pet: pet && stage ? { level: levelOf(pet.xp).level, stage, onChain: useChain.getState().record !== null, needsMin: needsMinOf(pet) } : null,
+    pets: Math.max(pets.length, ledger.pets ?? 0),
+    now,
+    timeOfDay: pet ? (timeOfDay(localHour(pet, Math.floor(now / 60_000))) as 0 | 1 | 2 | 3) : 2,
+    day: localDay(now, tzOffset()),
+    bondLevel: bonds.reduce((m, b) => Math.max(m, bondLevel(b.points)), 0),
+    goalsDone: [],
+  };
+}
+
+export const statusOf = (q: QuestDef, v = conditionView()): QuestStatus => questStatus(q, useWorld.getState().world, v);
+
+/** Where a giver can be found: a resident's room, Builders' Lane, or the pet itself. */
+export const giverRoom: Readonly<Record<string, number>> = { wick: 64, praline: 13, yonder: 3, bolt: 5, flit: 56, why: 59, jab: 89, twain: 19, nimbus: 53 };
+
+export interface QuestNote {
+  id: number;
+  quest: string;
+  kind: "new" | "ready" | "done";
+  rewards?: readonly Reward[];
+}
+
+interface QuestUi {
+  /** a quest that just opened, became ready, or was handed in: one toast at a time, the rest wait their turn */
+  note: QuestNote | null;
+  queue: QuestNote[];
+  push: (n: Omit<QuestNote, "id">) => void;
+  dismiss: () => void;
+  /** the quest whose card is open from the pet's bubble or the book */
+  open: string | null;
+  setOpen: (id: string | null) => void;
+}
+
+let noteId = 0;
+export const useQuestUi = create<QuestUi>((set, get) => ({
+  note: null,
+  queue: [],
+  push: (n) => {
+    const next = { ...n, id: ++noteId };
+    if (get().note) set({ queue: [...get().queue, next].slice(-4) });
+    else set({ note: next });
+  },
+  dismiss: () => {
+    const [head, ...rest] = get().queue;
+    set({ note: head ?? null, queue: rest });
+  },
+  open: null,
+  setOpen: (open) => set({ open }),
+}));
+
+/** Take a quest on. The giver's own rules decide where (a resident's talk, the pet's bubble, a lane card). */
+export function takeQuest(id: string): boolean {
+  const q = QUEST_BY_ID[id];
+  if (!q) return false;
+  const r = acceptQuest(useWorld.getState().world, q, conditionView());
+  if (!r.ok) return false;
+  useWorld.getState().setWorld(r.world);
+  play("pop");
+  return true;
+}
+
+/** Hand a ready quest in: its rewards are paid and the toast says what came. */
+export function handIn(id: string): readonly Reward[] | null {
+  const q = QUEST_BY_ID[id];
+  if (!q) return null;
+  const r = completeQuest(useWorld.getState().world, q, conditionView());
+  if (!r.ok) return null;
+  useWorld.getState().setWorld(r.world);
+  play("success");
+  useQuestUi.getState().push({ quest: id, kind: "done", rewards: r.rewards });
+  return r.rewards;
+}
+
+export function putDown(id: string): boolean {
+  const q = QUEST_BY_ID[id];
+  if (!q) return false;
+  const r = dropQuest(useWorld.getState().world, q);
+  if (!r.ok) return false;
+  useWorld.getState().setWorld(r.world);
+  return true;
+}
+
+export function takeWeeklyGift(): boolean {
+  const r = claimWeekly(useWorld.getState().world, WEEKLY_GIFT);
+  if (!r.ok) return false;
+  useWorld.getState().setWorld(r.world);
+  play("sparkle");
+  return true;
+}
+
+/** Start today's dailies the first time today is seen (and again after midnight while the game is open). */
+export function rollToday(): void {
+  if (!useGame.getState().pet) return;
+  const w = useWorld.getState().world;
+  const next = rollDailies(w, DAILIES, conditionView(), tzOffset());
+  if (next !== w) useWorld.getState().setWorld(next);
+}
+
+/** Every quest's status, for the book, the markers and the notes. */
+export function allStatuses(v = conditionView()): Record<string, QuestStatus> {
+  const w = useWorld.getState().world;
+  return Object.fromEntries(QUESTLINE.map((q) => [q.id, questStatus(q, w, v)]));
+}
+
+/** Quests a giver has for you now: ones to offer, and ones to take back. */
+export function questsOf(giver: string, statuses = allStatuses()): { offer: QuestDef[]; ready: QuestDef[]; active: QuestDef[] } {
+  const mine = STORY.filter((q) => q.giver === giver);
+  return {
+    offer: mine.filter((q) => statuses[q.id] === "available"),
+    ready: mine.filter((q) => statuses[q.id] === "ready"),
+    active: mine.filter((q) => statuses[q.id] === "active"),
+  };
+}
+
+/**
+ * Notes when a story quest opens or becomes ready. Statuses are recomputed when the world or the pet changes,
+ * at most every few hundred milliseconds, and compared with the last ones; the first look after loading only
+ * records them, so a reload never repeats old news.
+ */
+let last: Record<string, QuestStatus> | null = null;
+let timer: ReturnType<typeof setTimeout> | null = null;
+function recheck(): void {
+  timer = null;
+  if (!useGame.getState().pet) return;
+  rollToday();
+  const now = allStatuses();
+  if (last) {
+    for (const q of STORY) {
+      const was = last[q.id];
+      const is = now[q.id];
+      if (was === is) continue;
+      if (is === "available" && was === "locked") useQuestUi.getState().push({ quest: q.id, kind: "new" });
+      else if (is === "ready" && was === "active") useQuestUi.getState().push({ quest: q.id, kind: "ready" });
+    }
+  }
+  last = now;
+}
+const schedule = () => {
+  if (!timer) timer = setTimeout(recheck, 400);
+};
+useWorld.subscribe(schedule);
+useGame.subscribe(schedule);
+useChain.subscribe(schedule);
+if (typeof window !== "undefined") {
+  schedule();
+  // dailies roll over at local midnight even if the game stays open
+  setInterval(schedule, 60_000);
+}
