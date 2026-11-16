@@ -35,6 +35,10 @@ import { QuestPanel } from "./WorldPanels";
 import "./quests.css";
 
 type Lang = "en" | "zh";
+
+/** The quest icons, pixel scrolls and a laurel, as the quest log has always drawn them. */
+const ICON = { available: "art/ui/quests/quest_available.png", active: "art/ui/quests/quest_ongoing.png", ready: "art/ui/quests/main_quest.png", book: "art/ui/quests/quests.png" } as const;
+const QuestIcon = ({ kind, size = 24 }: { kind: keyof typeof ICON; size?: number }) => <img className="q-icon pixel" src={ICON[kind]} width={size} height={size} alt="" aria-hidden="true" />;
 const residentName = (id: string) => CHARACTERS.find((c) => c.id === id)?.name;
 
 /** Who gives a quest, in the reader's language. */
@@ -100,6 +104,7 @@ export function QuestCard({ q, status }: { q: QuestDef; status: QuestStatus }) {
   return (
     <li className={`qc qc-${status}`}>
       <div className="qc-head">
+        {(status === "available" || status === "active" || status === "ready") && <QuestIcon kind={status} />}
         <b>{q.title[lang]}</b>
         <span className="qc-from">{L(`From ${giverName(q, lang, pet?.name ?? "")}`, `来自${giverName(q, lang, pet?.name ?? "")}`)}{where ? ` · ${where}` : ""}</span>
       </div>
@@ -143,7 +148,7 @@ export function QuestCard({ q, status }: { q: QuestDef; status: QuestStatus }) {
           </button>
         )}
         {status === "ready" && inPerson && <span className="small qc-go">{L("Done! Go back and tell them.", "完成了！回去告诉他们吧。")}</span>}
-        {status === "active" && (
+        {status === "active" && q.kind === "story" && (
           <button type="button" className="btn ghost small-btn" onClick={() => (play("tap"), putDown(q.id))}>
             {L("Put it down", "先放下")}
           </button>
@@ -386,9 +391,7 @@ export function QuestToast({ onOpenBook }: { onOpenBook: () => void }) {
           transition={{ duration: 0.2 }}
           onClick={() => (dismiss(), onOpenBook())}
         >
-          <span className="qt-mark" aria-hidden="true">
-            {note.kind === "new" ? "!" : note.kind === "ready" ? "✓" : "★"}
-          </span>
+          <QuestIcon kind={note.kind === "new" ? "available" : "ready"} size={32} />
           {text}
         </motion.button>
       )}

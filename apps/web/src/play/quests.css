@@ -72,8 +72,10 @@
 .qb-arc-name {
   font: 700 14px var(--round);
 }
+/* counts in the rounded face: the pixel face's small digits read 2 as 8 */
 .qb-arc-count {
-  font: 800 14px var(--display);
+  font: 800 14px var(--round);
+  font-variant-numeric: tabular-nums;
 }
 .qb-weekly {
   display: flex;
@@ -117,7 +119,16 @@
 }
 .qc-head {
   display: grid;
-  gap: 2px;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 2px 8px;
+}
+.qc-head > :not(.q-icon) {
+  grid-column: 2;
+}
+.q-icon {
+  grid-row: span 2;
+  image-rendering: pixelated;
 }
 .qc-head b {
   font: 800 1rem var(--round);
@@ -148,7 +159,8 @@
   grid-column: 1 / -1;
 }
 .qc-count {
-  font: 800 13px var(--display);
+  font: 800 13px var(--round);
+  font-variant-numeric: tabular-nums;
 }
 .qc-note,
 .qc-opens {
@@ -246,22 +258,6 @@
 .badge-toast ~ .quest-toast {
   top: calc(130px + env(safe-area-inset-top));
 }
-.qt-mark {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 28px;
-  height: 28px;
-  border: 2px solid #2b2140;
-  border-radius: 50%;
-  background: #ffc83d;
-  font: 800 15px var(--display);
-}
-.qt-ready .qt-mark,
-.qt-done .qt-mark {
-  background: #7fd48a;
-}
-
 /* ── the pet's own "!" ── */
 .pet-quest {
   /* its own corner, under the circuit button: clear of the pet's speech bubble and the room's buttons */
