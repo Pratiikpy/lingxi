@@ -22,6 +22,7 @@ import { useVoice } from "../game/voice";
 import { EvolutionChart, MeSheetBody, MindPanel, Sheet } from "./Sheets";
 import { BagPanel, MapPanel, noticeText } from "./WorldPanels";
 import { HintRing, PetQuestBubble, QuestBook, QuestDialog, QuestToast } from "./Quests";
+import { RulesMark } from "./RulesMark";
 import { allStatuses, questsOf } from "../game/quests";
 import { useWorld } from "../game/world";
 import { useChain } from "../game/chain";
@@ -707,6 +708,7 @@ export function PlayApp() {
 
       <BadgeToast />
       <QuestToast onOpenBook={() => pick("quests")} />
+      <RulesMark />
       <QuestDialog />
       <HintRing />
       <Sheet open={skillsOpen} title={lang === "zh" ? `${pet.name}的技能` : `${pet.name}'s skills`} onClose={() => useSkillsUi.getState().hide()}>

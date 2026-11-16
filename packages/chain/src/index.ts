@@ -17,3 +17,4 @@ export * from "./outfits";
 export * from "./holderGiftAbi";
 export * from "./holderGift";
 export * from "./homepage";
+export * from "./rules";

@@ -11,7 +11,7 @@
  * overflows its four bits, and starts again, exactly as the chain's copy does.
  */
 
-import { type Circuit, type FastBrain, type Rule, beat, hexToBytes, load } from "@lingxi/brain";
+import { type Circuit, type FastBrain, type Rule, type RuleCircuit, beat, hexToBytes, load, ruleFromCircuit, timeOfDay } from "@lingxi/brain";
 import { BEHEMOTH_NETLIST, BEHEMOTH_PINS } from "./behemoth.generated";
 import type { Fighter } from "./spar";
 
@@ -278,9 +278,53 @@ export const builderIn = (room: number): BuilderPet | null => BUILDER_PETS.find(
 /** The lane runs along the road out of home: Hardhat first, Behemoth at the far end (65 → 63 → 57 → 56 → 55 → 2 → 29 → 66). */
 export const LANE_ORDER: readonly BuilderId[] = ["builder", "diver", "tapboy", "mars", "behemoth"];
 
-/** The line a resident says now: it changes every few minutes, the same for everyone. */
-export function builderLine(b: BuilderPet, ms: number): { en: string; zh: string } {
-  return b.lines[Math.floor(ms / 240_000) % b.lines.length]!;
+/**
+ * What a builder pet says and how it looks, as a circuit each (plan 4.11), taped out with the other rules.
+ *   in  bits 0-5  the four-minute slot of the day (the same for everyone, so a line is shared by all who visit)
+ *       bits 6-7  time of day (0 night, 1 morning, 2 day, 3 evening)
+ *       bit  8    you have met it before
+ *   out bits 0-1  mood (0-3); bits 2-4 which of its lines
+ * Each starts its lines at its own place for each time of day, so the same slot reads differently by morning and
+ * by night; the moods follow when each is most awake.
+ */
+const BUILDER_TEMPER: Readonly<Record<BuilderId, { base: number; morning: number; night: number; start: readonly [number, number, number, number] }>> = {
+  behemoth: { base: 1, morning: 0, night: 1, start: [3, 0, 1, 2] },
+  mars: { base: 2, morning: 1, night: -1, start: [5, 0, 2, 4] },
+  tapboy: { base: 2, morning: 1, night: 0, start: [4, 0, 1, 3] },
+  builder: { base: 1, morning: 0, night: 0, start: [2, 1, 0, 4] },
+  diver: { base: 1, morning: -1, night: 1, start: [1, 3, 0, 5] },
+};
+
+export function builderReference(b: BuilderPet, word: number): number {
+  const t = BUILDER_TEMPER[b.id];
+  const slot = word & 63;
+  const tod = (word >> 6) & 3;
+  const met = (word >> 8) & 1;
+  const line = (slot + t.start[tod]!) % b.lines.length;
+  const mood = Math.max(0, Math.min(3, t.base + (tod === 1 ? t.morning : 0) + (tod === 0 || tod === 3 ? t.night : 0) + met));
+  return mood | (line << 2);
+}
+
+export const builderRule = (b: BuilderPet): RuleCircuit => ({
+  name: `builder:${b.id}`,
+  about: { en: "Which of this builder pet's lines it says now, and its mood: by the four-minute slot, the time of day and whether you have met.", zh: "这只建造者宠物现在说哪句话、心情如何：取决于四分钟一格的时段、一天中的时间，以及你们是否见过。" },
+  inBits: 9,
+  reference: (w) => builderReference(b, w),
+});
+
+export const BUILDER_RULES: readonly RuleCircuit[] = BUILDER_PETS.map(builderRule);
+const builderAnswers = new Map(BUILDER_PETS.map((b, i) => [b.id, ruleFromCircuit(BUILDER_RULES[i]!)]));
+
+/** The circuit's answer for a builder pet now: its line and mood. */
+export function builderNow(b: BuilderPet, ms: number, hour: number, met: boolean): { line: { en: string; zh: string }; mood: number } {
+  const word = (Math.floor(ms / 240_000) % 64) | (timeOfDay(hour) << 6) | (met ? 256 : 0);
+  const a = builderAnswers.get(b.id)!(word);
+  return { line: b.lines[(a >> 2) & 7]!, mood: a & 3 };
+}
+
+/** The line a builder pet says now: it changes every few minutes, the same for everyone at the same hour. */
+export function builderLine(b: BuilderPet, ms: number, hour = new Date(ms).getHours(), met = false): { en: string; zh: string } {
+  return builderNow(b, ms, hour, met).line;
 }
 
 /** Tapboy counts real days out of a thousand, as its person does each morning (day 91 was 2026-11-15). */

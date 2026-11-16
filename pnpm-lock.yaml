@@ -213,6 +213,9 @@ importers:
 
   packages/world:
     dependencies:
+      '@lingxi/brain':
+        specifier: workspace:*
+        version: link:../brain
       '@noble/hashes':
         specifier: 1.8.0
         version: 1.8.0

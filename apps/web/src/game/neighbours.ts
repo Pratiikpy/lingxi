@@ -5,12 +5,27 @@
  */
 
 import { create } from "zustand";
-import { FRIEND_BY_ID, type Reward, type Taste, buyFromFriend, giveGift, localDay, meetVisitor, takeStep, type Unlock } from "@lingxi/world";
+import { FRIEND_BY_ID, type Line, type Reward, type Taste, buyFromFriend, folkViewOf, giveGift, greetingNow, localDay, meetVisitor, takeStep, type Unlock } from "@lingxi/world";
+import { SUB, localHour } from "@lingxi/game";
+import { questsOf } from "./quests";
 import { play } from "./sound";
 import { useGame } from "./store";
 import { useWorld } from "./world";
 
 const today = () => localDay(Date.now(), useGame.getState().pet?.tzOffsetMin ?? -new Date().getTimezoneOffset());
+
+/** A resident's greeting now, chosen by their circuit from the hour, trust, today's gift, the pet and their quests. */
+export function greetingFor(id: string, fallback: readonly Line[]): Line[] {
+  const pet = useGame.getState().pet;
+  const view = folkViewOf(useWorld.getState().world, id, {
+    hour: pet ? localHour(pet, Math.floor(Date.now() / 60_000)) : new Date().getHours(),
+    day: today(),
+    petHappy: !!pet && pet.meters.joy / SUB >= 600,
+    petHungry: !!pet && pet.meters.food / SUB < 300,
+    questReady: questsOf(id).ready.length > 0,
+  });
+  return greetingNow(id, view)?.lines ?? [...fallback];
+}
 
 /** The last thing that happened with a neighbour, for a short note under their words. */
 export interface NeighbourNote {

@@ -14,13 +14,37 @@
  * lesson slots), or, for four capstones, adds a rule to the circuit itself.
  */
 
-import type { Rule } from "@lingxi/brain";
+import { type Rule, type RuleCircuit, ruleFromCircuit } from "@lingxi/brain";
 
 export type Tree = "care" | "mind" | "explore" | "spar";
 export const TREES: readonly Tree[] = ["care", "mind", "explore", "spar"];
 
-/** Points a tree must hold before each tier opens (tiers 1 to 6). */
+/** Points a tree must hold before each tier opens (tiers 1 to 6): the reference of the skill-gate circuit. */
 export const TIER_GATE = [0, 5, 15, 25, 40, 55] as const;
+
+/**
+ * Skill gates as a circuit (plan 4.11), taped out with the other rules; the rules and the skills screen both read it.
+ *   in  bits 0-5  points held in the tree (0-63; a full tree holds 62)
+ *       bits 6-8  tier (1-6; 0 and 7 are no tier)
+ *   out bit  0    the tier is open; bits 1-6 points it needs (63 for no tier)
+ */
+export const SKILL_RULE: RuleCircuit = {
+  name: "skills",
+  about: { en: "Which tier of a skill tree is open for the points held in it, and how many points each tier needs.", zh: "技能树里，按已投入的点数哪一层开放，以及每层需要多少点。" },
+  inBits: 9,
+  reference: (w) => {
+    const held = w & 63;
+    const tier = (w >> 6) & 7;
+    const need = tier >= 1 && tier <= 6 ? TIER_GATE[tier - 1]! : 63;
+    return (tier >= 1 && tier <= 6 && held >= need ? 1 : 0) | (need << 1);
+  },
+};
+const gate = ruleFromCircuit(SKILL_RULE);
+const gateWord = (held: number, tier: number) => Math.max(0, Math.min(63, held)) | ((tier & 7) << 6);
+/** Points a tier needs, from the circuit. */
+export const tierNeed = (tier: number): number => (gate(gateWord(0, tier)) >> 1) & 63;
+/** Whether a tier is open for these points, from the circuit. */
+export const tierOpenFor = (held: number, tier: number): boolean => (gate(gateWord(held, tier)) & 1) === 1;
 
 export type Effect =
   // Care: per-mille of the meter's hourly decay removed, per point
@@ -226,7 +250,7 @@ export const newGrowth = (): Growth => ({ level: 1, points: 1, skills: {} });
 /* ── the trees ──────────────────────────────────────────────────────────── */
 
 export const treePoints = (g: Growth, tree: Tree): number => SKILLS.filter((s) => s.tree === tree).reduce((n, s) => n + (g.skills[s.id] ?? 0), 0);
-export const tierOpen = (g: Growth, tree: Tree, tier: number): boolean => treePoints(g, tree) >= TIER_GATE[tier - 1]!;
+export const tierOpen = (g: Growth, tree: Tree, tier: number): boolean => tierOpenFor(treePoints(g, tree), tier);
 
 export type UpgradeRefusal = "noSkill" | "maxed" | "tier" | "excluded" | "points";
 
@@ -236,7 +260,7 @@ export function upgradeRefusal(g: Growth, id: number): { reason: UpgradeRefusal;
   if (!s) return { reason: "noSkill" };
   const have = g.skills[id] ?? 0;
   if (have >= s.max) return { reason: "maxed" };
-  if (!tierOpen(g, s.tree, s.tier)) return { reason: "tier", need: TIER_GATE[s.tier - 1]!, have: treePoints(g, s.tree) };
+  if (!tierOpen(g, s.tree, s.tier)) return { reason: "tier", need: tierNeed(s.tier), have: treePoints(g, s.tree) };
   const by = s.excludes.find((x) => (g.skills[x] ?? 0) > 0);
   if (by !== undefined) return { reason: "excluded", by };
   if (g.points < 1) return { reason: "points" };
@@ -271,7 +295,7 @@ export function legalGrowth(g: Growth): boolean {
     let held = 0;
     for (let tier = 1; tier <= 6; tier++) {
       const here = SKILLS.filter((s) => s.tree === tree && s.tier === tier).reduce((n, s) => n + (g.skills[s.id] ?? 0), 0);
-      if (here > 0 && held < TIER_GATE[tier - 1]!) return false;
+      if (here > 0 && !tierOpenFor(held, tier)) return false;
       held += here;
     }
   }

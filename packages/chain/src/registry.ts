@@ -36,6 +36,8 @@ export interface Deployment {
   processorIndex?: number;
   registry: Address;
   circuits: Record<string, { id: string; tx: string; gates: number }>;
+  /** the game's rules taped out as circuits on the same processor (plan 4.11), by rule name */
+  rules?: Record<string, { id: string; tx: string; gates: number }>;
 }
 
 export interface ChainPet {

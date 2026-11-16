@@ -25,7 +25,7 @@ import {
   behemothMoment,
   behemothStepNow,
   behemothTape,
-  builderLine,
+  builderNow,
   composeProgram,
   daysSinceBehemoth,
   laneParty,
@@ -57,13 +57,15 @@ export function builderOutfit(b: BuilderPet, ms: number): Outfit {
 
 /** The resident of a room as the scene draws it. */
 export function builderInScene(b: BuilderPet, lang: "en" | "zh", saidAt: number) {
+  // its line and mood come from its own circuit (plan 4.11)
+  const now = builderNow(b, Date.now(), new Date().getHours(), useBuilders.getState().met.includes(b.id));
   return {
     id: `builder:${b.id}`,
     name: b.name[lang],
     line: b.look.line,
     stage: b.look.stage,
-    mood: 2,
-    say: { text: builderLine(b, Date.now())[lang], at: saidAt },
+    mood: now.mood,
+    say: { text: now.line[lang], at: saidAt },
     look: { palette: { key: b.look.palette, colors: PALETTES[b.look.palette] }, outfitAt: (ms: number) => builderOutfit(b, ms), x: b.spot.x, lit: b.mind.kind === "cpu" },
   };
 }
@@ -361,7 +363,7 @@ export function BuilderCard({ b, pet, onSpar }: { b: BuilderPet; pet: Pet; onSpa
     [card],
   );
   const program = b.mind.kind === "pet" ? composeProgram(b.look.line, b.mind.lessons) : null;
-  const line = builderLine(b, now);
+  const line = builderNow(b, now, new Date(now).getHours(), true).line;
   return (
     <div className="builder-card">
       {party && (

@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { create } from "zustand";
-import { type Growth, SKILLS, SKILL_BY_ID, type SkillDef, TIER_GATE, type Tree, TREES, canLevelUp, growthOf, levelCost, treePoints, upgradeRefusal } from "@lingxi/game";
+import { type Growth, SKILLS, SKILL_BY_ID, type SkillDef, type Tree, TREES, canLevelUp, growthOf, levelCost, tierNeed, tierOpen, treePoints, upgradeRefusal } from "@lingxi/game";
 import { ITEM } from "@lingxi/world";
 import { useLang } from "../i18n";
 import { play } from "../game/sound";
@@ -137,12 +137,12 @@ export function SkillsPanel() {
 
       <ol className={`sk-grid sk-t-${tree}`}>
         {[1, 2, 3, 4, 5, 6].map((tier) => {
-          const open = treePoints(g, tree) >= TIER_GATE[tier - 1]!;
+          const open = tierOpen(g, tree, tier);
           return (
             <li key={tier} className={`sk-row${open ? "" : " closed"}${tier === 3 || tier === 6 ? " caps" : ""}`}>
               <span className="sk-tier">
                 {tier}
-                {!open && <small>{L(`${TIER_GATE[tier - 1]} pts`, `${TIER_GATE[tier - 1]} 点`)}</small>}
+                {!open && <small>{L(`${tierNeed(tier)} pts`, `${tierNeed(tier)} 点`)}</small>}
               </span>
               {SKILLS.filter((x) => x.tree === tree && x.tier === tier).map((x) => (
                 <Node key={x.id} s={x} g={g} picked={pick === x.id} onPick={() => setPick(x.id)} />

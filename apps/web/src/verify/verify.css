@@ -354,3 +354,36 @@
   padding-left: 1.2em;
   line-height: 1.7;
 }
+
+/* rule circuits (plan 4.11): what each rule decides, under its name, so the check column always shows */
+.v-rule-about {
+  display: block;
+  margin-top: 2px;
+  max-width: 46ch;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-soft, inherit);
+  opacity: 0.85;
+}
+#rules td:last-child {
+  white-space: nowrap;
+}
+/* the first column wraps, so on a phone the id, gates and check stay in view */
+#rules td:first-child {
+  white-space: normal;
+  min-width: 0;
+}
+#rules .v-rule-about {
+  white-space: normal;
+}
+/* on a phone the check shows as its mark alone; the words stay for screen readers */
+@media (max-width: 600px) {
+  #rules .v-check-word {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}

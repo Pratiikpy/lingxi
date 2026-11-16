@@ -9,6 +9,7 @@
  */
 
 import { TRUST_LEVELS, trustLevel } from "./conditions";
+import { giftTrust } from "./rules";
 import { giveTo } from "./giving";
 import { type QuestLine, type Reward, type Text, payReward } from "./story";
 import type { Topic } from "./characters";
@@ -69,7 +70,8 @@ export interface FriendSheet {
 }
 
 /** Trust a gift adds, by taste; only the day's first gift to a friend adds it. */
-export const GIFT_TRUST: Readonly<Record<Taste, number>> = { love: 4, like: 2, neutral: 1, dislike: 0 };
+/** Points a first gift of the day adds, by taste, read from the trust circuit (rules.ts). */
+export const GIFT_TRUST: Readonly<Record<Taste, number>> = { love: giftTrust("love", false).points, like: giftTrust("like", false).points, neutral: giftTrust("neutral", false).points, dislike: 0 };
 
 export interface FriendsState {
   /** steps taken, per friend */
@@ -80,6 +82,8 @@ export interface FriendsState {
   known: Record<string, number[]>;
   /** residents on their way to your home, in the order they were asked; each stays until met */
   visits: string[];
+  /** the last gift offered to each friend, refused ones too: its local day and taste (their greeting reads it) */
+  lastGift?: Record<string, { day: string; taste: Taste }>;
 }
 
 export const friendsOf = (w: WorldState): FriendsState => w.friends ?? { steps: {}, gifted: {}, known: {}, visits: [] };
@@ -135,12 +139,12 @@ export function giveGift(w: WorldState, sheet: FriendSheet, item: number, day: s
   const taste = tasteOf(sheet, item);
   const f = friendsOf(w);
   const known = f.known[sheet.id] ?? [];
-  const learnt: FriendsState = { ...f, known: { ...f.known, [sheet.id]: known.includes(item) ? known : [...known, item] } };
-  if (taste === "dislike") return { ok: true, world: { ...w, friends: learnt }, taste, trust: 0 };
+  const learnt: FriendsState = { ...f, known: { ...f.known, [sheet.id]: known.includes(item) ? known : [...known, item] }, lastGift: { ...(f.lastGift ?? {}), [sheet.id]: { day, taste } } };
+  if (giftTrust(taste, false).refused) return { ok: true, world: { ...w, friends: learnt }, taste, trust: 0 };
   const given = giveTo(w, sheet.id, item, 1);
   if (!given.ok) return given;
   const counts = learnt.gifted[sheet.id] !== day;
-  const trust = counts ? GIFT_TRUST[taste] : 0;
+  const trust = giftTrust(taste, !counts).points;
   const friends: FriendsState = counts ? { ...learnt, gifted: { ...learnt.gifted, [sheet.id]: day } } : learnt;
   const world: WorldState = { ...given.world, friends, trust: trust ? { ...(given.world.trust ?? {}), [sheet.id]: trustOf(given.world, sheet.id) + trust } : given.world.trust };
   return { ok: true, world, taste, trust };

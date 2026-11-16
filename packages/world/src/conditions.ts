@@ -13,6 +13,7 @@
  * snapshot is missing never passes (theirs reads a missing snapshot as 0 and completes at once).
  */
 
+import { TRUST_POINTS, trustLevelOf } from "./rules";
 import { CHARACTERS } from "./characters";
 import { tallyOf } from "./tally";
 import { ITEM, ROOMS, type WorldState } from "./world";
@@ -96,8 +97,9 @@ export const LANE = ["behemoth", "mars", "tapboy", "builder", "diver"] as const;
 const LANE_SET = new Set<string>(LANE);
 
 /** Trust with a resident climbs through six levels (0 to 5) and never decays (plan 4.3). */
-export const TRUST_LEVELS = [0, 5, 15, 30, 50, 80] as const;
-export const trustLevel = (points: number): number => TRUST_LEVELS.reduce<number>((lvl, at, i) => (points >= at ? i : lvl), 0);
+/** Trust levels begin at these points; the level itself is read from the trust circuit (rules.ts). */
+export const TRUST_LEVELS = TRUST_POINTS;
+export const trustLevel = (points: number): number => trustLevelOf(points);
 
 /** Distinct keys of a counter: "FIND" counts kinds found; "MEET_DAY:tapboy" counts days Tapboy was met. */
 function distinct(v: ConditionView, index: string, extra = ""): number {

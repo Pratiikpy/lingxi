@@ -27,7 +27,7 @@ import "./talk.css";
 import { noteTally } from "../game/tally";
 import { allStatuses, conditionView, handIn, questsOf, takeQuest } from "../game/quests";
 import { useWorld } from "../game/world";
-import { buyFromNeighbour, giftNeighbour, meetNeighbourAtHome, takeNeighbourStep } from "../game/neighbours";
+import { buyFromNeighbour, giftNeighbour, greetingFor, meetNeighbourAtHome, takeNeighbourStep } from "../game/neighbours";
 import { GiftPicker, NeighbourNoteLine, TrustStrip } from "./Neighbours";
 
 /** What an errand still wants handed to this resident: the item, how many are still owed, and how many are in the bag. */
@@ -61,7 +61,8 @@ export function Talk({ who, visiting = false, onFace, onAction, onClose }: { who
     const u = sheet?.steps.find((s) => s.unlock.kind === "visit")?.unlock;
     return u?.kind === "visit" ? u.lines : null;
   }, [sheet]);
-  const [queue, setQueue] = useState<Line[]>(() => (visiting && visitLines ? asLines(visitLines) : who.greeting));
+  // the greeting is chosen by the resident's own circuit (plan 4.11)
+  const [queue, setQueue] = useState<Line[]>(() => (visiting && visitLines ? asLines(visitLines) : greetingFor(who.id, who.greeting)));
   // the keepsake is left once, as you meet them (meeting twice does nothing)
   useEffect(() => {
     if (visiting) meetNeighbourAtHome(who.id);

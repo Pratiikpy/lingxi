@@ -11,6 +11,7 @@ import { sha256 } from "@noble/hashes/sha2";
 import { bump, bumpAll, bumpFinds } from "./tally";
 import type { QuestBook } from "./story";
 import data from "./data/world.json";
+import { familiarStep, isRareTier, tierWeight } from "./rules";
 import { type Buff, ITEMS, type ItemDef, RECIPE_NAMES } from "./items";
 import { ROOM_TEXT, type RoomText } from "./rooms";
 
@@ -55,7 +56,7 @@ export const ROOM_SECRETS: Readonly<Record<number, number>> = {
 };
 
 /** Familiarity a look around adds: two where the pet is at home, one elsewhere. */
-export const familiarGain = (room: Room, kin: readonly Affinity[]) => (room.affinity.some((a) => kin.includes(a)) ? 2 : 1);
+export const familiarGain = (room: Room, kin: readonly Affinity[]) => familiarStep(room.affinity.some((a) => kin.includes(a)));
 
 export interface Item extends ItemDef {
   index: number;
@@ -101,7 +102,7 @@ export const ITEM: Record<number, Item> = Object.fromEntries([
 ]);
 
 /** A rarity tier from the world sheet becomes a weight: tier 9 is 256 times as common as tier 1, tier 0 never drops. */
-export const tierWeight = (tier: number): number => (tier >= 1 ? 2 ** (tier - 1) : 0);
+export { tierWeight } from "./rules";
 
 /** Walk the cumulative weights with a random number; one rule for looking around, walks and away finds. */
 export function pickDrop(drops: ReadonlyArray<{ item: number; weight: number }>, r: number): number {
@@ -291,7 +292,7 @@ export const NO_EXPLORE_MODS: ExploreMods = { moveEnergy: MOVE_ENERGY, forageEne
 /** Drop weights with rare finds (tiers 1 to 4) made more likely, in hundredths so small weights still move. */
 export function boostRare<T extends { item: number; weight: number; tier?: number }>(drops: readonly T[], pct: number): T[] {
   if (!pct) return drops.slice();
-  return drops.map((d) => ({ ...d, weight: d.weight * (d.tier !== undefined && d.tier <= 4 ? 100 + pct : 100) }));
+  return drops.map((d) => ({ ...d, weight: d.weight * (d.tier !== undefined && isRareTier(d.tier) ? 100 + pct : 100) }));
 }
 
 /** Walk to a neighbouring room. The caller spends the move's energy (mods.moveEnergy) from the pet. */
@@ -371,8 +372,9 @@ export function forage(
     if (filled) {
       points -= room.familiarSize;
       const kept = ROOM_SECRETS[w.room];
+      // its rare finds, or its rarest tier where it has no rare ones
       const rarest = Math.min(...room.drops.map((d) => d.tier));
-      const secrets = room.drops.filter((d) => d.tier <= Math.max(4, rarest));
+      const secrets = room.drops.filter((d) => isRareTier(d.tier) || d.tier === rarest);
       const firstTime = kept !== undefined && !(w.tally?.[`FIND:${kept}`] ?? 0);
       const item = firstTime ? kept : pickDrop(secrets, roll(w.seed, w.room, hour, 777));
       const f = found.find((x) => x.item === item);

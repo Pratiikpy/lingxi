@@ -15,3 +15,6 @@ export * from "./story";
 export * from "./goals";
 export * from "./friendship";
 export * from "./questline";
+export * from "./rules";
+export * from "./folk";
+export * from "./greeting";

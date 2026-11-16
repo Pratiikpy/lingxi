@@ -13,6 +13,7 @@
     "check:sheets": "tsx scripts/check-sheets.ts"
   },
   "dependencies": {
+    "@lingxi/brain": "workspace:*",
     "@noble/hashes": "1.8.0"
   },
   "devDependencies": {
