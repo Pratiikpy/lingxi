@@ -3,7 +3,7 @@
  * game rules (care, then time passing), the state and the input-log hash
  * checkpointed, and the log written out so anyone can replay it on the proof page.
  *
- *   tsx scripts/first-pet.ts --deployment <json> [--rpc <url>] [--key-file <path>] [--name Mochi] [--mainnet-yes]
+ *   tsx scripts/first-pet.ts --deployment <json> [--rpc <url>] [--key-file <path>] [--name Mochi] [--line gentle|bold|curious] [--mainnet-yes]
  */
 
 import { readFileSync, writeFileSync } from "node:fs";
@@ -36,12 +36,14 @@ const chain = { ...xLayer, rpcUrls: { default: { http: [rpc] } } };
 const pub = createPublicClient({ chain, transport: http(rpc) });
 const wallet = createWalletClient({ chain, transport: http(rpc), account });
 
-const program = STARTERS.gentle;
+const line = arg("line", "gentle") as "gentle" | "bold" | "curious";
+if (!STARTERS[line]) throw new Error(`unknown line ${line}`);
+const program = STARTERS[line];
 const brain = { fast: fastBrain(compileProgram(program)), nState: stateBits(program), program };
 const t0 = Number((await pub.getBlock()).timestamp) * 1000;
-let pet = createPet({ name: arg("name", "Mochi")!, line: "gentle", now: t0, tzOffsetMin: 480, brain });
+let pet = createPet({ name: arg("name", "Mochi")!, line, now: t0, tzOffsetMin: 480, brain });
 const born = packState(pet, "baby");
-const { petId, tx } = await hatchOnChain(pub, wallet, d, 0, "gentle", born);
+const { petId, tx } = await hatchOnChain(pub, wallet, d, ["gentle", "bold", "curious"].indexOf(line), line, born);
 console.log(`hatched pet #${petId}: ${tx}`);
 // its first hours, under the game's own rules
 pet = care(pet, { kind: "feed", food: "mochi" }, t0 + 60_000, brain).pet;
