@@ -13,6 +13,11 @@ import { outfitOf } from "@lingxi/world";
 import { STARTERS, programOfChips } from "@lingxi/brain";
 import { DESIGNED_PARTNERS, composeProgram, type Challenge, type CoachNote, type DuelPet, type Fighter, MAX_HP, MOVES, type Move, PARTNERS, type Partner, type Pet, type SparResult, TRAITS, coach, dayOf, duel as runDuel, duelFighter, encodeChallenge, encodeResult, fighterOfMind, fighterOfPartner, halvesOf, petCard, rewindFight, ruleSource, spar, stageOf, FLY_RIVALS, type FlyRival, FlyLinkError, flyFighter, parseFlyBrain } from "@lingxi/game";
 import { linkPrefix } from "../game/links";
+import { SILICON } from "@lingxi/art";
+import { BEHEMOTH_STEPS_PER_ROUND, behemothAt, behemothFighter } from "@lingxi/game";
+import { useBuilders } from "./Builders";
+
+const BEHEMOTH_PARTNER: Partner = { id: "builder:behemoth", name: { en: "Behemoth", zh: "巨兽" }, look: "behemoth", line: "gentle", stage: "adult", level: 1, blurb: { en: "", zh: "" }, program: STARTERS.gentle };
 import { useDaily } from "../game/daily";
 import { programFor, useGame } from "../game/store";
 import { Chips } from "./parts";
@@ -137,6 +142,14 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken
     onDuelTaken?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [duel]);
+  const sparAsk = useBuilders((s) => s.sparAsk);
+  useEffect(() => {
+    if (!sparAsk) return;
+    useBuilders.setState({ sparAsk: false });
+    start(BEHEMOTH_PARTNER, undefined, behemothFighter(BEHEMOTH_PARTNER.name.en));
+    // asked from Behemoth's card: one fight
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sparAsk]);
   if (running) return <RunView pet={pet} onClose={() => setRunning(false)} />;
   if (fight) return <FightView key={fight.result.seed} pet={pet} self={{ name: pet.name, line: pet.line, stage: drawn(stageOf(pet, Date.now())) }} {...fight} onDone={() => setFight(null)} onRematch={() => start(fight.partner, undefined, fight.opponent)} />;
 
@@ -196,6 +209,19 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken
       <RunCard onOpen={() => setRunning(true)} />
       <DailyCard pet={pet} onStart={(partner, seed) => start(partner, { seed })} />
       <SeasonCard pet={pet} />
+      <section className="sp-behemoth" aria-label={lang === "zh" ? "战胜巨兽" : "Beat the Behemoth"}>
+        <div>
+          <p className="label">{lang === "zh" ? "建设者小巷 · 战胜巨兽" : "Builders' Lane · Beat the Behemoth"}</p>
+          <p className="small">
+            {lang === "zh"
+              ? "巨兽不看你出什么。每一回合，创始人那台 4 位处理器走九步，累加器低三位的灯决定它的招式。每次都是同一套，所以可以教你的宠物读懂它。"
+              : "Behemoth doesn't look at the fight. Each round the founder's 4-bit CPU runs nine steps, and the three low lamps of its accumulator pick the move. It is the same every time, so your pet can be taught to read it."}
+          </p>
+        </div>
+        <button type="button" className="btn primary" onClick={() => start(BEHEMOTH_PARTNER, undefined, behemothFighter(BEHEMOTH_PARTNER.name.en))}>
+          {lang === "zh" ? "切磋" : "Spar"}
+        </button>
+      </section>
       <ul className="sp-partners">
         {PARTNERS.map((p, i) => (
           <PartnerCard key={p.id} partner={p} index={i} lang={lang} onPick={() => start(p)} />
@@ -568,6 +594,7 @@ export function FightView({
       setDailyNote(newBest ? "best" : "same");
     }
     if (outcome === "w") useBadges.getState().note("sparWins");
+    if (outcome === "w" && partner.look === "behemoth") useBadges.getState().note("behemothWins");
     if (outcome === "w" && !partner.id.startsWith("friend:")) {
       const coins = WIN_COINS + (first ? FIRST_WIN_COINS : 0);
       useWorld.getState().reward(coins);
@@ -590,6 +617,11 @@ export function FightView({
   const world = useWorld((s) => s.world);
   const worn = pet && !replay ? (outfitOf(world, String(pet.bornAt)) as Outfit) : {};
   const mineWorn = useMemo(() => (worn.head || worn.face || worn.held ? wearOverlay(mine, self.line, stage, worn, 0, pet?.form) : undefined), [mine, self.line, stage, worn.head, worn.face, worn.held, pet?.form]);
+  // Behemoth's lamps show the number its CPU holds this round
+  const theirsWorn = useMemo(
+    () => (partner.look === "behemoth" ? wearOverlay(drawPet(partner.line, partner.stage, {}), partner.line, partner.stage, { head: `b:lamps${behemothAt(shown * BEHEMOTH_STEPS_PER_ROUND).acc}` }, 0) : undefined),
+    [partner.look, partner.line, partner.stage, shown],
+  );
   const theirs = useMemo(
     () => (partner.look === "fly" ? drawFly({ flap: !!round && round.moves[1] === "pounce", hurt: face(1) === "startled" || face(1) === "sad" }) : drawPet(partner.line, partner.stage, { expression: face(1) })),
     [partner.look, partner.line, partner.stage, shown, finished],
@@ -622,7 +654,7 @@ export function FightView({
               animate={round && round.hits[1 - side]! > 0 && !reduce ? { x: [0, side === 0 ? -6 : 6, 0, side === 0 ? -3 : 3, 0] } : round && round.moves[side] === "pounce" && !reduce ? { x: [0, side === 0 ? 14 : -14, 0] } : {}}
               transition={{ duration: 0.38 }}
             >
-              <PetArt canvas={side === 0 ? mine : theirs} line={side === 0 ? self.line : partner.line} palette={side === 1 && partner.look === "fly" ? FLY : undefined} scale={4} overlay={side === 0 ? mineWorn : undefined} />
+              <PetArt canvas={side === 0 ? mine : theirs} line={side === 0 ? self.line : partner.line} palette={side === 1 && partner.look === "fly" ? FLY : side === 1 && partner.look === "behemoth" ? SILICON : undefined} scale={4} overlay={side === 0 ? mineWorn : theirsWorn} />
             </motion.div>
             <AnimatePresence>
               {round && round.hits[1 - side]! > 0 && (

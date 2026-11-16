@@ -33,3 +33,5 @@ export * from "./friendship";
 export * from "./designer";
 export * from "./designedPartners";
 export * from "./jobs";
+export * from "./builders";
+export * from "./laneProjects.generated";

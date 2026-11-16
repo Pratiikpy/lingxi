@@ -50,6 +50,8 @@ import { FriendsPanel } from "./Friends";
 import { HoldersPanel } from "./Holders";
 import { StudioPanel } from "./Studio";
 import { needsOf, showNeeds } from "../game/badge";
+import { BUILDER_PETS, builderIn } from "@lingxi/game";
+import { BuilderCard, builderInScene, useBuilders } from "./Builders";
 import { telegramBack } from "../game/telegram";
 import { useMove } from "../game/move";
 import { MoveNotes, MoveSheet, TelegramCard } from "./Move";
@@ -203,6 +205,12 @@ export function PlayApp() {
   const card = useLive((s) => s.card);
   const asked = useLive((s) => s.asked);
   const [picked, setPicked] = useState<string | null>(null);
+  const pickedBuilder = picked?.startsWith("builder:") ? (BUILDER_PETS.find((x) => `builder:${x.id}` === picked) ?? null) : null;
+  // a resident says hello when the room is entered
+  const residentSaid = useRef(0);
+  useEffect(() => {
+    residentSaid.current = performance.now() + 600;
+  }, [worldRoom]);
   const [challenge, setChallenge] = useState<Partner | null>(null);
   const [duel, setDuel] = useState<Challenge | null>(null);
   useEffect(() => {
@@ -377,6 +385,8 @@ export function PlayApp() {
           say: { text: lang === "zh" ? `来看看${pet.name}！` : `Came to see ${pet.name}!`, at: (KIN_HELLO[`${hourNow}:${k.pet.bornAt}`] ??= performance.now() + i * 400) },
         }))
       : [];
+  // R2: a builder's pet lives in this room
+  const resident = !visiting ? builderIn(worldRoom) : null;
   const pick = (next: Tab, force = false) => {
     play("tap");
     if (!force && (lockedTabs as readonly string[]).includes(next)) {
@@ -419,7 +429,7 @@ export function PlayApp() {
             onPetTap={onPetTap}
             reduceMotion={reduce}
             bgs={worldRoom === HOME && rigSkin && !visiting ? RIG_HOME_BGS : room.bgs}
-            others={[...Object.values(others), ...kinVisitors]}
+            others={[...Object.values(others), ...kinVisitors, ...(resident ? [builderInScene(resident, lang, residentSaid.current)] : [])]}
             onOtherTap={(id) => (play("tap"), setPicked(id))}
             npc={who ? (talking && npcFace ? npcFace : who.stand) : null}
             onNpcTap={() => (play("tap"), setPicked(null), setTalking(true))}
@@ -429,6 +439,11 @@ export function PlayApp() {
             {who && !talking && (
               <button type="button" onClick={() => (play("tap"), setTalking(true))}>
                 {lang === "zh" ? `和${who.name.zh}说话` : `Talk to ${who.name.en}`}
+              </button>
+            )}
+            {resident && (
+              <button type="button" onClick={() => (play("tap"), setPicked(`builder:${resident.id}`))}>
+                {lang === "zh" ? `见见${resident.name.zh}` : `Meet ${resident.name.en}`}
               </button>
             )}
             {room.drops.length > 0 && (
@@ -690,6 +705,19 @@ export function PlayApp() {
         <ChainPanel pet={pet} />
         <hr className="divider" />
         <HomePanel pet={pet} />
+      </Sheet>
+      <Sheet open={!!pickedBuilder} title={pickedBuilder ? pickedBuilder.name[lang] : ""} onClose={() => setPicked(null)}>
+        {pickedBuilder && (
+          <BuilderCard
+            b={pickedBuilder}
+            pet={pet}
+            onSpar={() => {
+              setPicked(null);
+              useBuilders.setState({ sparAsk: true });
+              pick("spar", true);
+            }}
+          />
+        )}
       </Sheet>
       <MoveSheet />
       <MoveNotes />

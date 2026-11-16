@@ -38,6 +38,8 @@ import { createIndexer, type Indexer } from "./indexer";
 import { buildTree } from "./tree";
 import { type DiaryStore, createDiaryStore } from "./diaries";
 import { MAX_MOVE_CHARS, type MoveStore, createMoveStore } from "./move";
+import { createTapeoutCounter, withLane } from "./lane";
+import { factoryReader } from "./laneReader";
 import { petLookAbi as lookAbi } from "@lingxi/chain";
 
 function loadKey(): string | undefined {
@@ -521,6 +523,13 @@ if (isMain) {
     }
     withAgentApi(app, { agents: createAgentStore(process.env.LINGXI_AGENT_STORE), seasons, ...(chain ? { chain } : {}) });
     withMove(app, createMoveStore());
+    // R2: Little Mars counts today's tape-outs across every X Layer processor
+    const lane = createTapeoutCounter(factoryReader(rpc), process.env.LINGXI_LANE_FILE);
+    withLane(app, lane);
+    const laneTick = () => void lane.tick().catch((e: Error) => process.stderr.write(`lane count: ${e.message}
+`));
+    laneTick();
+    setInterval(laneTick, 5 * 60_000);
     if (chain) withDiaries(app, createDiaryStore(process.env.LINGXI_DIARY_DIR), async (id) => (await readPet(chain!.pub, chain!.deployment, BigInt(id))).logHash);
   }
   if (relayer) {

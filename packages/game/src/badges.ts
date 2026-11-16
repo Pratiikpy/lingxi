@@ -20,7 +20,10 @@ export type Metric =
   | "rooms"
   | "chainDays"
   | "kinship"
-  | "seasonPlace";
+  | "seasonPlace"
+  | "builders"
+  | "behemothWins"
+  | "laneParty";
 
 export interface Badge {
   id: string;
@@ -47,11 +50,14 @@ export const BADGES: readonly Badge[] = [
   { id: "explorer", metric: "rooms", tiers: [10, 35, 70], name: { en: "Explorer", zh: "探险家" }, how: { en: "Visit {n} places", zh: "走过 {n} 个地方" } },
   { id: "proven", metric: "chainDays", tiers: [1, 7, 30], name: { en: "On the record", zh: "有据可查" }, how: { en: "Save {n} days on X Layer", zh: "在 X Layer 上保存 {n} 天" } },
   { id: "season", metric: "seasonPlace", tiers: [1, 2, 3], name: { en: "Season star", zh: "赛季之星" }, how: { en: "Finish a weekly season {n}", zh: "在每周赛季里{n}" } },
+  { id: "lane", metric: "builders", tiers: [1, 3, 5], name: { en: "Builders' Lane", zh: "建设者小巷" }, how: { en: "Meet {n} of the builders' pets", zh: "见到 {n} 只建设者的宠物" } },
+  { id: "behemoth", metric: "behemothWins", tiers: [1, 3, 10], name: { en: "Beat the Behemoth", zh: "战胜巨兽" }, how: { en: "Win {n} spars against Behemoth", zh: "切磋赢过巨兽 {n} 次" } },
+  { id: "party", metric: "laneParty", tiers: [1, 2, 3], name: { en: "Hundred days", zh: "百日庆" }, how: { en: "Be on the lane for {n} hundred-day parties", zh: "参加 {n} 次小巷的百日庆" } },
   { id: "bond", metric: "kinship", tiers: [50, 150, 250], name: { en: "Best friends", zh: "最好的朋友" }, how: { en: "Reach {n} kinship with a pet", zh: "和一只宠物的亲密度达到 {n}" } },
 ];
 
 /** Metrics that keep the best value seen (on any pet) rather than a running total. */
-export const BEST_OF: ReadonlySet<Metric> = new Set(["stage", "kinship", "seasonPlace"]);
+export const BEST_OF: ReadonlySet<Metric> = new Set(["stage", "kinship", "seasonPlace", "builders"]);
 
 export type Ledger = Partial<Record<Metric, number>> & { rooms_seen?: number[] };
 

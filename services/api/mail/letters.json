@@ -2,27 +2,42 @@
   {
     "id": "welcome",
     "at": 1794700800000,
-    "subject": { "en": "Welcome to Lingxi", "zh": "欢迎来到灵犀" },
+    "subject": {
+      "en": "Welcome to Lingxi",
+      "zh": "欢迎来到灵犀"
+    },
     "body": {
       "en": "Your pet's mind is a small circuit, and what you teach it becomes part of that circuit. Feed it, play with it, and teach it one thing at a time from the Mind tab. When you're ready, keep it on X Layer and anyone can check every thought it had. Look after it, and it grows into whoever you raised.",
       "zh": "你的宠物的心智是一块小电路，你教它的东西会成为电路的一部分。喂它、陪它玩，再在「心智」页一次教它一件事。准备好了，就把它存上 X Layer，任何人都能核对它的每一个念头。好好照顾它，它会长成你养大的样子。"
     },
-    "gift": { "item": 11130, "n": 2 }
+    "gift": {
+      "item": 11130,
+      "n": 2
+    }
   },
   {
     "id": "garden",
     "at": 1794740400000,
-    "subject": { "en": "The garden is open", "zh": "园子开放了" },
+    "subject": {
+      "en": "The garden is open",
+      "zh": "园子开放了"
+    },
     "body": {
       "en": "There are four plots in the Mushroom Garden. Seeds are sold at the market. A bath for a messy pet leaves compost behind: plant with it and the crop grows twice as fast, with one more to harvest. Here are some rice seeds to start.",
       "zh": "蘑菇园里有四块菜地，种子在集市有卖。给脏兮兮的宠物洗澡会留下堆肥：用它种下，作物长得快一倍，还多收一份。先送你一些稻种。"
     },
-    "gift": { "item": 7102, "n": 2 }
+    "gift": {
+      "item": 7102,
+      "n": 2
+    }
   },
   {
     "id": "outings",
     "at": 1794740400000,
-    "subject": { "en": "Walks and trips", "zh": "散步和旅行" },
+    "subject": {
+      "en": "Walks and trips",
+      "zh": "散步和旅行"
+    },
     "body": {
       "en": "From the map you can now take a 20-minute walk together. On a phone your real steps count, and your pet finds something every 400 steps on the first two walks of a day. Or send it on a trip for a few hours: it comes back with things you won't find here, and the first time, a recipe.",
       "zh": "现在可以在地图上一起散步 20 分钟。用手机时按你真实的步数算，每天前两次散步，每 400 步宠物会找到一样东西。也可以送它出门旅行几个小时：它会带回这里找不到的东西，第一次去还会学会一道菜谱。"
@@ -31,10 +46,25 @@
   {
     "id": "seasons",
     "at": 1794740400000,
-    "subject": { "en": "Weekly seasons have begun", "zh": "每周赛季开始了" },
+    "subject": {
+      "en": "Weekly seasons have begun",
+      "zh": "每周赛季开始了"
+    },
     "body": {
       "en": "Enter your pet in this week's season from the Spar tab. Every pet fights every other, from both sides, and anyone can recompute the table in their own browser. If two pets tie on points, the one with the smaller brain ranks higher. The winner's brain is taped out on X Layer and sent to its owner, with a champion's laurel to wear.",
       "zh": "在「切磋」页让你的宠物参加本周赛季。每只宠物和其他每只各打两场，任何人都能在自己的浏览器里重算这张表。同分时，大脑更小的排前面。冠军的大脑会在 X Layer 上流片并送给主人，还有一顶冠军桂冠可以戴。"
+    }
+  },
+  {
+    "id": "lane",
+    "at": 1794790770625,
+    "subject": {
+      "en": "Builders' Lane has opened",
+      "zh": "建设者小巷开放了"
+    },
+    "body": {
+      "en": "Five new pets live along the road out of your home, each a little tribute to someone who builds TapeOut. Walk out along Wildflower Road and keep going: Hardhat is first, and at the far end, past the misty path, Behemoth is waiting. Behemoth thinks with the founder's own 4-bit computer, read gate by gate from BNB Chain. Tap any of them to meet them.",
+      "zh": "从你家出发的那条路上，住进了五只新宠物，每一只都是向一位 TapeOut 建设者致敬。沿着野花小路一直往前走：第一个是安全帽，最远处、雾蒙蒙的小路尽头，巨兽在等你。巨兽用的是创始人自己那台 4 位计算机，从 BNB Chain 上一门一门读下来的。点一下它们，就能认识它们。"
     }
   }
 ]

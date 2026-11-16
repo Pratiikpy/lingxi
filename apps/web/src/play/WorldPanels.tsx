@@ -1,5 +1,6 @@
 /** The map, the bag (food, drinks, materials, workbench, shop) and the quest list. */
 
+import { builderIn } from "@lingxi/game";
 import { CuteState } from "./CuteState";
 import { useMemo, useState } from "react";
 import { stageOf } from "@lingxi/game";
@@ -78,6 +79,7 @@ export function MapPanel({ onGone }: { onGone: () => void }) {
             >
               {visited || canGo ? <img className="pixel" src={r.bgs.day} alt="" loading="lazy" /> : <span>?</span>}
               {isHere && <i className="dot" aria-hidden="true" />}
+              {builderIn(r.index) && (visited || canGo) && <i className="lane-mark" title={builderIn(r.index)!.name[lang]} aria-hidden="true" />}
             </button>
           );
         })}

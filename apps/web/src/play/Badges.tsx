@@ -26,6 +26,9 @@ const ICON: Record<Metric, IconName> = {
   chainDays: "mind",
   kinship: "heart",
   seasonPlace: "star",
+  builders: "map",
+  behemothWins: "mind",
+  laneParty: "gift",
 };
 const TIER = { en: ["", "Bronze", "Silver", "Gold"], zh: ["", "铜", "银", "金"] } as const;
 const STAGE = { en: ["", "baby", "a child", "a teen", "an adult"], zh: ["", "宝宝", "幼年", "少年", "成年"] } as const;

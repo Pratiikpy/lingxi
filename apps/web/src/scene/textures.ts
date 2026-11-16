@@ -57,14 +57,16 @@ export interface PetFrame {
   form?: Form;
   /** what it wears (cosmetic) */
   outfit?: Outfit;
+  /** drawn in other colours than its line's own (a resident or visitor) */
+  palette?: { key: string; colors: Palette };
 }
 
 export function petTexture(line: StarterLine, f: PetFrame): Texture {
   const o = f.outfit ?? {};
-  const key = `pet:${line}:${f.stage}:${f.expression}:${f.breath}:${f.squash}:${f.lit ? 1 : 0}:${f.form ?? ""}:${o.head ?? ""}:${o.face ?? ""}:${o.held ?? ""}`;
+  const key = `pet:${line}:${f.stage}:${f.expression}:${f.breath}:${f.squash}:${f.lit ? 1 : 0}:${f.form ?? ""}:${o.head ?? ""}:${o.face ?? ""}:${o.held ?? ""}:${f.palette?.key ?? ""}`;
   const c = drawPet(line, f.stage, f);
   const worn = o.head || o.face || o.held;
-  return canvasTexture(key, c, PALETTE_OF[line], worn ? (rgba) => paintOverlay(rgba, c.w, wearOverlay(c, line, f.stage, o, f.squash, f.form)) : undefined);
+  return canvasTexture(key, c, f.palette?.colors ?? PALETTE_OF[line], worn ? (rgba) => paintOverlay(rgba, c.w, wearOverlay(c, line, f.stage, o, f.squash, f.form)) : undefined);
 }
 
 export function catTexture(pose: CatPose): Texture {

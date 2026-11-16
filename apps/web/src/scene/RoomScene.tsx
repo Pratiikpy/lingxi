@@ -72,7 +72,17 @@ export interface SceneProps {
   /** the current room's backgrounds */
   bgs: { day: string; evening: string; night: string };
   /** other players' pets here right now */
-  others: Array<{ id: string; name: string; line: string; stage: string; mood: number; emote?: { kind: string; at: number }; say?: { text: string; at: number } }>;
+  others: Array<{
+    id: string;
+    name: string;
+    line: string;
+    stage: string;
+    mood: number;
+    emote?: { kind: string; at: number };
+    say?: { text: string; at: number };
+    /** a resident: its own colours and props, a fixed place to stand, and whether its trace glows */
+    look?: { palette: { key: string; colors: import("@lingxi/art").Palette }; outfitAt: (ms: number) => import("@lingxi/art").Outfit; x: number; lit?: boolean };
+  }>;
   onOtherTap: (id: string) => void;
   /** the character standing in this room (portrait file), if any */
   npc: string | null;
@@ -112,7 +122,10 @@ async function makeBg(url: string, still: boolean): Promise<Sprite> {
   const gif = AnimatedGIF.fromBuffer(await buf, { scaleMode: "nearest", autoPlay: !still });
   return gif;
 }
-const PET_X = 64;
+/** where the pet stands when nothing else shares its floor */
+const PET_HOME = 64;
+/** half the drawn width of each stage, to keep two pets apart */
+const HALF = { baby: 10, child: 12, teen: 14, adult: 18 } as const;
 const PET_FEET = 104;
 const CAT_FEET = 96;
 
@@ -304,6 +317,9 @@ export function RoomScene(props: SceneProps) {
       world.addChild(vignette);
       const drifts: Drift[] = [];
       const weather = weatherFor(new Date());
+      // where the pet stands this frame: the room's middle, or beside a resident when the visible floor is narrow
+      let PET_X = PET_HOME;
+      const residentSpot = new Map<string, number>();
       // the pet turns toward where you point
       let lookX = PET_X;
       app.stage.eventMode = "static";
@@ -387,6 +403,29 @@ export function RoomScene(props: SceneProps) {
       const tick = () => {
         const now = performance.now();
         const p = latest.current;
+        {
+          // the part of the room that shows (a phone crops the sides), in room pixels
+          const left = Math.max(0, -world.x / scale);
+          const right = Math.min(ROOM, left + el.clientWidth / scale);
+          const resident = p.others.find((o) => o.look);
+          residentSpot.clear();
+          PET_X = PET_HOME;
+          if (resident?.look) {
+            const hp = HALF[p.stage];
+            const hr = HALF[(resident.stage in HALF ? resident.stage : "adult") as keyof typeof HALF];
+            const onRight = resident.look.x >= PET_HOME;
+            const want = Math.max(left + hr + 2, Math.min(right - hr - 2, resident.look.x));
+            const gap = Math.abs(want - PET_HOME) - hp - hr;
+            if (gap >= 4) residentSpot.set(resident.id, want);
+            else {
+              // not enough floor: stand the two side by side, centred in what shows
+              const total = 2 * hp + 2 * hr + 6;
+              const start = left + Math.max(2, (right - left - total) / 2);
+              PET_X = Math.round(onRight ? start + hp : start + 2 * hr + 6 + hp);
+              residentSpot.set(resident.id, Math.round(onRight ? start + 2 * hp + 6 + hr : start + hr));
+            }
+          }
+        }
         const decorKey = JSON.stringify(p.decor);
         if (decorKey !== shownDecor) {
           shownDecor = decorKey;
@@ -683,11 +722,13 @@ export function RoomScene(props: SceneProps) {
             bubble.anchor.set(0.5, 1);
             const bubbleBg = new Graphics();
             ui.addChild(tag, bubbleBg, bubble);
-            const home = spotFor(o.id);
+            const home = o.look ? (residentSpot.get(o.id) ?? o.look.x) : spotFor(o.id);
             v = { sprite, tag, bubble, bubbleBg, x: home, target: home, lastEmote: 0 };
             visitors.set(o.id, v);
           }
-          if (!p.reduceMotion && Math.random() < 0.004) v.target = Math.max(14, Math.min(114, spotFor(o.id) + (Math.random() * 24 - 12)));
+          // a resident keeps to its spot (it may move when the view is resized); visitors wander
+          if (o.look) v.target = residentSpot.get(o.id) ?? o.look.x;
+          else if (!p.reduceMotion && Math.random() < 0.004) v.target = Math.max(14, Math.min(114, spotFor(o.id) + (Math.random() * 24 - 12)));
           if (Math.abs(v.target - v.x) > 0.5) v.x += Math.sign(v.target - v.x) * 0.15;
           const stageName = o.stage === "elder" ? "adult" : o.stage;
           const expr = o.mood === 3 ? "sparkly" : o.mood === 2 ? "happy" : o.mood === 0 ? "sulk" : "neutral";
@@ -696,7 +737,8 @@ export function RoomScene(props: SceneProps) {
             expression: (o.emote && now - o.emote.at < 2000 ? (o.emote.kind === "heart" ? "love" : "happy") : expr) as Expression,
             breath: p.reduceMotion ? 0 : Math.sin(now / 640 + v.x) > 0.35 ? 1 : 0,
             squash: 0,
-            lit: false,
+            lit: !!o.look?.lit,
+            ...(o.look ? { palette: o.look.palette, outfit: o.look.outfitAt(Date.now()) } : {}),
           });
           v.sprite.scale.x = v.target < v.x ? -1 : 1;
           v.sprite.x = Math.round(v.x);
@@ -718,19 +760,23 @@ export function RoomScene(props: SceneProps) {
           const headPt = world.toGlobal({ x: v.x, y: PET_FEET + 2 - height - 2 });
           const top = headPt.y - scale * 10;
           const cx = headPt.x;
-          v.tag.position.set(cx, top + scale * 10);
+          // keep the name and the speech bubble inside the room, whatever side the pet stands on
+          const viewW = el.clientWidth;
+          const tagW = v.tag.width;
+          v.tag.position.set(Math.max(tagW / 2 + 4, Math.min(viewW - tagW / 2 - 4, cx)), top + scale * 10);
           const talking = o.say && now - o.say.at < 5000;
           v.bubble.text = talking ? o.say!.text : "";
-          v.bubble.position.set(cx, top + scale * 10 - 18);
           v.bubbleBg.clear();
           if (talking) {
             const b = v.bubble.getLocalBounds();
             const w = b.width + 16;
             const h = b.height + 10;
-            const x0 = cx - w / 2;
-            const y0 = top + scale * 10 - 18 - b.height - 5;
+            const x0 = Math.max(6, Math.min(viewW - w - 6, cx - w / 2));
+            const tail = Math.max(x0 + 12, Math.min(x0 + w - 12, cx));
+            const y0 = top + scale * 10 - 24 - b.height - 5;
+            v.bubble.position.set(x0 + w / 2, y0 + b.height + 5);
             v.bubbleBg.roundRect(x0, y0, w, h, 10).fill({ color: 0xfffdf8 }).stroke({ color: 0x2b2140, width: 2 });
-            v.bubbleBg.moveTo(cx - 5, y0 + h).lineTo(cx, y0 + h + 6).lineTo(cx + 5, y0 + h).fill({ color: 0xfffdf8 });
+            v.bubbleBg.moveTo(tail - 5, y0 + h).lineTo(tail, y0 + h + 6).lineTo(tail + 5, y0 + h).fill({ color: 0xfffdf8 });
           }
         }
         for (const [id, v] of visitors) {
