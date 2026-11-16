@@ -55,11 +55,11 @@ export const ARC_6_TO_10: QuestDef[] = [
     rewards: [coins(15), item(11414, 3), trust("flit", 6)],
   }),
   quest(46, 6, "flit", [done("q45")], {
-    title: T("Five new things", "五样新东西"),
-    intro: [say(I, "Every forest keeps its own creatures. Find five kinds of thing you've never found before.", "每片森林都有自己的住客。找到五样你以前从没找到过的东西。")],
-    outro: [say(I, "Five. You have a watcher's eyes now. Take my old net; I have two.", "五样了。你现在有一双观察者的眼睛。拿着我的旧网吧，我有两张。")],
-    // the outline asked for five kinds of butterfly; there are no butterfly items yet, so it is five new kinds of find
-    objectives: [obj(from("DISTINCT", "FIND", 5), "Find 5 kinds of thing you've never found", "找到 5 样你从没找到过的东西")],
+    title: T("Five new places", "五个新地方"),
+    intro: [say(I, "Every forest keeps its own creatures. Look around in five places you've never looked before.", "每片森林都有自己的住客。去五个你从没找过的地方四处找找。")],
+    outro: [say(I, "Five. You have a watcher's eyes now. Take my old net; I have two.", "五个了。你现在有一双观察者的眼睛。拿着我的旧网吧，我有两张。")],
+    // new places, not new kinds: once the common finds are known, only rare ones are left, and five of those took days
+    objectives: [obj(from("DISTINCT", "FORAGE", 5), "Look around in 5 places you never have", "在 5 个从没找过的地方四处找找")],
     rewards: [coins(40), piece("net"), trust("flit", 6)],
   }),
 

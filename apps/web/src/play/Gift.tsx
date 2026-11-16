@@ -53,7 +53,10 @@ export function SendGiftPanel({ pet }: { pet: Pet }) {
   const [item, setItem] = useState<number | null>(null);
   const [link, setLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const items = Object.entries(bag).filter(([id, n]) => n > 0 && ITEM[Number(id)]);
+  // kind treats for a friend's pet come first (plan 4.5); tools stay home, they are never used up
+  const items = Object.entries(bag)
+    .filter(([id, n]) => n > 0 && ITEM[Number(id)] && ITEM[Number(id)]!.kind !== "tool")
+    .sort(([a], [b]) => Number(!!ITEM[Number(b)]!.friend) - Number(!!ITEM[Number(a)]!.friend));
   const canSend = letter.trim().length > 0 || egg || item !== null;
 
   const send = () => {
@@ -141,6 +144,7 @@ export function SendGiftPanel({ pet }: { pet: Pet }) {
                 <button key={id} type="button" className={`gift-item${on ? " on" : ""}`} aria-pressed={on} aria-label={`${def.name[lang]} ×${n}`} onClick={() => setItem(on ? null : Number(id))}>
                   <img className="pixel" src={def.art} alt="" width={32} height={32} />
                   <i>{n}</i>
+                  {def.friend && <b className="gift-treat" aria-hidden="true">♥</b>}
                 </button>
               );
             })}
@@ -210,7 +214,11 @@ export function GiftArrival() {
 
   const unwrap = () => {
     play("pop");
-    if (!seen && gift.item && def) receive(gift.item.id, gift.item.n);
+    if (!seen && gift.item && def) {
+      receive(gift.item.id, gift.item.n);
+      // a kind treat is for the pet: one is given to it the moment the gift is opened
+      if (def.friend) useWorld.getState().use(gift.item.id);
+    }
     if (gift.egg && !seen) setStep("egg");
     else {
       markOpened(gift.id);
@@ -247,6 +255,7 @@ export function GiftArrival() {
               <ul className="gift-contents">
                 {gift.egg && <li>{lang === "zh" ? `一颗蛋：${gift.from.name}的弟弟妹妹` : `An egg: a little sibling of ${gift.from.name}`}</li>}
                 {def && <li>{lang === "zh" ? `${def.name.zh} ×${gift.item!.n}` : `${def.name.en} ×${gift.item!.n}`}</li>}
+                {def?.friend && <li>{lang === "zh" ? "这是送给你宠物的小礼物，拆开时它就会收到一个。" : "A treat for your pet: it gets one the moment you open this."}</li>}
               </ul>
               {seen && <p className="small">{lang === "zh" ? "这份礼物在这台设备上已经拆过了。" : "This gift was already opened on this device."}</p>}
               <button type="button" className="btn primary" onClick={seen ? close : unwrap}>

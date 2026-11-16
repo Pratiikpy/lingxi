@@ -4,7 +4,7 @@
  * Lingxi. Effects are in visible meter units (0..1000).
  */
 
-export type ItemKind = "material" | "food" | "drink" | "treasure" | "box";
+export type ItemKind = "material" | "food" | "drink" | "treasure" | "box" | "tool";
 export type Diet = "sweet" | "fruit" | "savory" | "grain";
 
 export interface ItemDef {
@@ -15,14 +15,31 @@ export interface ItemDef {
   use?: { food?: number; joy?: number; energy?: number; clean?: number; xp?: number; diet?: Diet; wake?: boolean };
   /** shop price in coins; absent = not sold */
   price?: number;
+  /** at most this many may ever be used (the source's per-item limits) */
+  limit?: number;
+  /** a lasting effect for the next look around or spar (the source's NEXT and TEMP bonuses) */
+  buff?: Buff;
+  /** what comes back after use (the source's ITEM return, an empty cup from a potion) */
+  returns?: number;
+  /** a kind treat that can travel in a gift and be given to a friend's pet when they open it */
+  friend?: true;
 }
 
-const I = (en: string, zh: string, den: string, dzh: string, kind: ItemKind, use?: ItemDef["use"], price?: number): ItemDef => ({
+/** Bonuses held until they are spent: the next look around, the next spar. */
+export interface Buff {
+  forageExtra?: number;
+  sparPower?: number;
+  sparHp?: number;
+  sparLossCoins?: number;
+}
+
+const I = (en: string, zh: string, den: string, dzh: string, kind: ItemKind, use?: ItemDef["use"], price?: number, more: Partial<ItemDef> = {}): ItemDef => ({
   name: { en, zh },
   desc: { en: den, zh: dzh },
   kind,
   ...(use ? { use } : {}),
   ...(price !== undefined ? { price } : {}),
+  ...more,
 });
 
 export const ITEMS: Record<number, ItemDef> = {
@@ -81,8 +98,8 @@ export const ITEMS: Record<number, ItemDef> = {
   11120: I("Sunset Mochi", "晚霞麻薯", "Red-gold mochi with warm apple jam inside.", "红金色的麻薯，里面是温热的苹果酱。", "food", { food: 240, joy: 80, diet: "fruit" }, 45),
   11130: I("Butterfly Mochi", "蝴蝶麻薯", "Blue mochi stamped with a butterfly, soft and milky.", "印着蝴蝶的蓝色麻薯，软软的奶香。", "food", { food: 300, joy: 20, diet: "grain" }, 30),
   11140: I("Honey Mochi", "蜂蜜麻薯", "Sky-blue mochi with honey grains that pop.", "天蓝色的麻薯，蜂蜜米粒一咬就爆开。", "food", { food: 220, joy: 100, diet: "sweet" }, 50),
-  11201: I("Wisdom Candy", "智慧糖", "A little candy that helps your pet remember.", "能帮宠物记住东西的小糖。", "food", { food: 30, joy: 30, xp: 20, diet: "sweet" }, 25),
-  11202: I("Wisdom Candy+", "大智慧糖", "A bigger candy for bigger lessons.", "更大的糖，配更难的课。", "food", { food: 40, joy: 40, xp: 60, diet: "sweet" }, 60),
+  11201: I("Wisdom Candy", "智慧糖", "A little candy that helps your pet remember.", "能帮宠物记住东西的小糖。", "food", { food: 30, joy: 30, xp: 8, diet: "sweet" }, 25),
+  11202: I("Wisdom Candy+", "大智慧糖", "A bigger candy for bigger lessons.", "更大的糖，配更难的课。", "food", { food: 40, joy: 40, xp: 20, diet: "sweet" }, 60),
   11233: I("Gingerbread Pal", "姜饼小人", "A cookie shaped like a friend.", "做成朋友模样的饼干。", "food", { food: 140, joy: 140, diet: "sweet" }, 45),
   11301: I("Maple Gum", "枫糖口香糖", "The simplest snack there is. Chewy.", "最简单的零食，嚼嚼嚼。", "food", { food: 80, joy: 20, diet: "sweet" }, 8),
   11302: I("Burger", "汉堡", "Still in its paper. A hearty meal.", "还包着纸，分量十足的一餐。", "food", { food: 380, joy: 0, diet: "savory" }, 35),
@@ -92,8 +109,8 @@ export const ITEMS: Record<number, ItemDef> = {
   11312: I("Honeydrop", "蜜露", "A sweet bead that forms on mushrooms.", "长在蘑菇上的甜蜜小珠子。", "food", { food: 60, joy: 90, diet: "sweet" }),
   11313: I("Golden Apple", "金苹果", "A sweet golden apple from a silver branch.", "银枝上长出的甜甜的金苹果。", "food", { food: 180, joy: 60, diet: "fruit" }, 30),
   11314: I("Blue Pansy", "蓝色三色堇", "A blue flower shaped like a butterfly. Pets nibble the petals.", "像蝴蝶一样的蓝花，宠物会啃花瓣。", "food", { food: 60, joy: 80, diet: "fruit" }),
-  11221: I("Heart Crystal", "心之水晶", "It pulses with warmth. Brings you and your pet closer.", "跳动着暖意，让你和宠物更亲近。", "treasure", { joy: 300, xp: 120 }),
-  11222: I("Half Heart", "半颗心", "Slightly warm in the hand.", "握在手里微微发暖。", "treasure", { joy: 150, xp: 50 }),
+  11221: I("Heart Crystal", "心之水晶", "It pulses with warmth. Brings you and your pet closer.", "跳动着暖意，让你和宠物更亲近。", "treasure", { joy: 300, xp: 40 }),
+  11222: I("Half Heart", "半颗心", "Slightly warm in the hand.", "握在手里微微发暖。", "treasure", { joy: 150, xp: 15 }),
   21201: I("Ice Cream", "冰淇淋", "One scoop, cold and happy.", "一个球，又冰又开心。", "food", { food: 120, joy: 120, diet: "sweet" }, 25),
   21202: I("Double Scoop", "双球冰淇淋", "Two scoops. Obviously better.", "两个球，当然更好。", "food", { food: 160, joy: 180, diet: "sweet" }, 45),
   21203: I("Cherry Sundae", "樱桃圣代", "A tall sundae with a cherry on top. It never melts.", "顶着樱桃的高高圣代，永远不会化。", "food", { food: 140, joy: 260, diet: "sweet" }, 70),
@@ -101,8 +118,8 @@ export const ITEMS: Record<number, ItemDef> = {
   11413: I("Mistletoe", "槲寄生", "Special at this time of year.", "每年这个时候都特别。", "treasure", { joy: 200 }),
   11414: I("Old Candy", "老糖果", "Wrapped in wax paper, dated long ago, still perfectly fine.", "包着蜡纸，日期很久以前，却一点没坏。", "food", { food: 40, joy: 120, diet: "sweet" }),
   // drinks made at home
-  11401: I("Study Tea", "学习茶", "A cup of tea that makes lessons stick.", "一杯让功课记得更牢的茶。", "drink", { xp: 80, energy: 40 }),
-  11402: I("Scholar's Tea", "学者茶", "Strong tea for a serious student.", "给认真学生的浓茶。", "drink", { xp: 240, energy: 60 }),
+  11401: I("Study Tea", "学习茶", "A cup of tea that makes lessons stick.", "一杯让功课记得更牢的茶。", "drink", { xp: 25, energy: 40 }),
+  11402: I("Scholar's Tea", "学者茶", "Strong tea for a serious student.", "给认真学生的浓茶。", "drink", { xp: 100, energy: 60 }),
   // the respec item (plan 4.4): drunk from the bag, every skill point comes back
   11403: I("Fresh Start Tea", "重新开始茶", "Forget every skill and choose again: every point comes back.", "忘掉学过的所有技能，重新选择：每一点都会回来。", "drink"),
   11404: I("Calm Tea", "安神茶", "Mint and daffodil. Helps a tired pet rest.", "薄荷加水仙，帮累了的宠物好好休息。", "drink", { energy: 220, joy: 40 }),
@@ -110,7 +127,7 @@ export const ITEMS: Record<number, ItemDef> = {
   11406: I("Sorry Note", "道歉信", "A letter your pet writes when it has been grumpy. It means it.", "宠物闹完脾气后写的信，是真心的。", "treasure", { joy: 260 }),
   11408: I("Festival Bells", "节日铃铛", "Little bells that make every day feel like a festival.", "让每一天都像过节的小铃铛。", "treasure", { joy: 180, energy: 60 }),
   11409: I("Sparkle Soda", "气泡汽水", "Fizzy and bright. Pets do a little dance.", "冒着泡、亮晶晶。宠物会跳一小段舞。", "drink", { energy: 300, joy: 60 }, 35),
-  11411: I("Sage's Tea", "贤者茶", "The strongest tea, brewed with a spark of thought.", "加了思之树熬成的最浓的茶。", "drink", { xp: 600, energy: 100 }),
+  11411: I("Sage's Tea", "贤者茶", "The strongest tea, brewed with a spark of thought.", "加了思之树熬成的最浓的茶。", "drink", { xp: 200, energy: 100 }),
   21007: I("River Box", "河底宝箱", "A silt-caked box from the bottom of the pool. Open it and see.", "从池底捞上来的、糊满淤泥的箱子。打开看看。", "box"),
   // keys of the castle quest
   100001: I("Star Disk", "星盘", "A golden disk engraved with strange stars.", "刻着奇怪星辰的金色圆盘。", "treasure"),
@@ -119,12 +136,58 @@ export const ITEMS: Record<number, ItemDef> = {
   100004: I("Sky Sextant", "天空六分仪", "It points the way to places beyond sight.", "能指向看不见的地方。", "treasure"),
   100010: I("Dowsing Rod", "探水杖", "It twitches near hidden things.", "靠近藏起来的东西时会抖动。", "treasure"),
   100012: I("Twig Charm", "树枝护身符", "A little charm of stick, pebble and honey.", "用树枝、小石子和树蜜做的小护身符。", "treasure"),
+
+  // plan 4.5: the rest of the world's items that mean something here
+  // materials
+  1018: I("Litter Scrap", "垃圾碎屑", "Something someone dropped. The grinder turns it into sparkle dust.", "不知谁掉下的东西。研磨器能把它磨成闪粉。", "material"),
+  1020: I("Fossil Chunk", "化石块", "Stony bone from something the size of a whale. Ground down, it makes stone blocks.", "像鲸鱼那么大的东西留下的石化骨头。磨碎了能做石块。", "material"),
+  1203: I("Night Ooze", "夜之软泥", "Like clay that drinks the light. Pets stare at it for hours.", "像会吸光的黏土。宠物能盯着它看好几个小时。", "treasure", { joy: 150 }),
+  // tools: held, never used up
+  23100: I("Spice Grinder", "研磨器", "Breaks things down into powders and drops. Kept, never used up.", "把东西磨成粉和汁。会一直留着，不会用掉。", "tool", undefined, 40),
+  23101: I("Portable Burner", "便携炉", "For brews and potions anywhere. Kept, never used up.", "随时随地煮茶熬药。会一直留着，不会用掉。", "tool", undefined, 60),
+  23102: I("Screwdriver", "螺丝刀", "For chiselling and putting things together. Kept, never used up.", "凿东西、装东西都用得上。会一直留着，不会用掉。", "tool", undefined, 50),
+  // care
+  11020: I("Clearing Rinse", "净化水", "Sweet-smelling water for a ritual wash. Leaves it spotless.", "带着香味的仪式清洗水。洗完一尘不染。", "drink", { clean: 600 }),
+  11227: I("Pungent Egg", "臭鸡蛋", "Never spoils, always reeks. Very filling all the same.", "永远不坏，永远很臭。不过很顶饱。", "food", { food: 250, joy: -30, diet: "savory" }),
+  // experience (to the kept-level curve)
+  11203: I("Big Study Candy", "大学习糖", "A big candy that makes lessons stick.", "能让功课记得牢的大糖。", "food", { food: 40, xp: 25, diet: "sweet" }, 90),
+  11204: I("Giant Study Candy", "超大学习糖", "Bigger than any study candy you have seen.", "比你见过的任何学习糖都大。", "food", { food: 80, xp: 60, diet: "sweet" }, 220),
+  11223: I("Great Heart Crystal", "大心之水晶", "It beats like a real heart and warms the room.", "像真的心一样跳动，整个房间都暖了。", "treasure", { joy: 400, xp: 120 }, undefined, { limit: 3 }),
+  11211: I("Sprout Card I", "萌芽卡 I", "A pale sprout in dark soil. A little experience and energy.", "黑土里冒出一株嫩芽。一点经验和精神。", "treasure", { energy: 20, xp: 15 }),
+  11212: I("Sprout Card II", "萌芽卡 II", "A flower bud. Some experience and energy.", "一个花苞。一些经验和精神。", "treasure", { energy: 50, xp: 40 }),
+  11213: I("Sprout Card III", "萌芽卡 III", "A flower in full bloom. Plenty of experience.", "一朵盛开的花。很多经验。", "treasure", { energy: 100, xp: 90 }),
+  11214: I("Sprout Card IV", "萌芽卡 IV", "A flower spread across the card, a baby asleep at its heart.", "一朵花铺满整张卡，花心睡着一个婴儿。", "treasure", { energy: 100, xp: 180 }, undefined, { limit: 3 }),
+  // for the next look around or spar
+  11224: I("Wild Jewel", "野性宝石", "Restless. Your pet hits harder in its next spar.", "躁动不安。下一场切磋，宠物出手更重。", "treasure", undefined, undefined, { buff: { sparPower: 1 } }),
+  11225: I("Teardrop Jewel", "泪滴宝石", "Calm as still water. The next look around turns up one more thing.", "像静水一样安宁。下次四处找找，多找到一样东西。", "treasure", undefined, undefined, { buff: { forageExtra: 1 } }),
+  11226: I("Ash Pearl", "灰珍珠", "A blue pearl from a sooty egg. Steadies your pet for its next spar.", "从满是烟灰的蛋里找到的蓝珍珠。让宠物在下一场切磋更稳。", "treasure", { joy: 60 }, undefined, { buff: { sparHp: 15 } }),
+  11407: I("Coin Magnet", "金币磁石", "A purple stone that pulls in coins: even a lost spar pays.", "能吸来金币的紫色石头：下一场切磋就算输了也有金币。", "treasure", undefined, undefined, { buff: { sparLossCoins: 15 } }),
+  11410: I("Fierce Tonic", "斗志药水", "Bitter. One more power in the next spar, and the cup comes back.", "很苦。下一场切磋多 1 点力量，杯子还会还回来。", "drink", undefined, undefined, { buff: { sparPower: 1 }, returns: 1102 }),
+  11501: I("Toadstool Brew", "蘑菇酿", "Mushroom brew with a kick: more health and power in the next spar.", "带劲的蘑菇酿：下一场切磋多些体力和力量。", "drink", undefined, undefined, { buff: { sparHp: 10, sparPower: 1 } }),
+  11502: I("Ancient Honey", "古蜜", "Medicine from the old stories. Filling, and much hardier in the next spar.", "古老故事里的药。顶饱，下一场切磋也更耐打。", "food", { food: 100, diet: "sweet" }, undefined, { buff: { sparHp: 30 } }),
+  // kind treats that can travel in a gift to a friend's pet
+  11412: I("Flash Charm", "闪光护符", "A charm that sparkles when lit. Cheers up any pet, yours or a friend's.", "点着时会闪光的护符。能让任何宠物开心，你的或朋友的。", "treasure", { joy: 150 }, undefined, { friend: true }),
+  19001: I("Spirit Glue", "灵胶", "Mends a favourite toy, even an invisible one. Gives back the bottle.", "能补好心爱的玩具，连看不见的也行。瓶子会还回来。", "treasure", { joy: 80 }, undefined, { friend: true, returns: 1003 }),
+  // boxes
+  21003: I("Wonder Egg", "奇迹蛋", "A cracked egg sealed with red wax. Something surprising inside.", "一枚用红蜡封住的裂蛋。里面有惊喜。", "box"),
+  21004: I("Booster Pack", "卡包", "Open it for a Sprout Card. Sometimes a very good one.", "打开能得到一张萌芽卡。有时是很好的那张。", "box"),
+  21005: I("Mochi Box", "麻薯盒", "A little box with exactly one mochi.", "一个只装一块麻薯的小盒子。", "box"),
+  21008: I("Golden Box", "金盒子", "Five booster packs, and something rarer beneath them.", "五个卡包，下面还有更稀罕的东西。", "box"),
+  // the one source key with a use here: Bolt, who fixes things, is glad of it
+  100009: I("Switchbox Imp", "开关盒小精灵", "A wired relay box with a tiny imp inside working the switches. Bolt would find it useful.", "一个接线继电盒，里面住着一个拨开关的小精灵。螺丝会觉得它有用。", "treasure"),
 };
 
 /** Recipes Lingxi keeps, by recipe index, with Lingxi names. */
 export const RECIPE_NAMES: Record<number, { en: string; zh: string }> = {
   1: { en: "Brew Study Tea", zh: "泡学习茶" },
   2: { en: "Brew Scholar's Tea", zh: "泡学者茶" },
+  18: { en: "Brew Fierce Tonic", zh: "熬斗志药水" },
+  22: { en: "Make a Coin Magnet", zh: "做金币磁石" },
+  23: { en: "Mix Spirit Glue", zh: "调灵胶" },
+  26: { en: "Make Flash Charms", zh: "做闪光护符" },
+  28: { en: "Brew Toadstool Brew", zh: "酿蘑菇酿" },
+  33: { en: "Grind Fossil into Stone Blocks", zh: "把化石磨成石块" },
+  38: { en: "Grind Litter into Sparkle Dust", zh: "把垃圾碎屑磨成闪粉" },
   3: { en: "Brew Fresh Start Tea", zh: "泡重新开始茶" },
   4: { en: "Brew Calm Tea", zh: "泡安神茶" },
   5: { en: "Brew Lucky Tea", zh: "泡好运茶" },

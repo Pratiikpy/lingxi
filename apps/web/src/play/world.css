@@ -475,3 +475,40 @@
 .bag-item.no-art {
   grid-template-columns: minmax(0, 1fr) auto;
 }
+
+/* how well the pet knows this room (plan 4.5): a full bar shows a hidden find */
+.room-pill .familiar {
+  position: relative;
+  width: 56px;
+  height: 12px;
+  border-radius: var(--r-pill);
+  border: 2px solid #2b2140;
+  background: rgba(255, 253, 248, 0.93);
+  overflow: hidden;
+}
+.room-pill .familiar i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--sunny);
+  transition: width 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .room-pill .familiar i {
+    transition: none;
+  }
+}
+
+.bag-text .craft-cost {
+  color: var(--ink-soft);
+}
+.bag-text .craft-block {
+  color: var(--ink);
+  font-weight: 700;
+}
+.bonuses ul {
+  margin: 0;
+  padding: 0 0 0 18px;
+  display: grid;
+  gap: 4px;
+  font-size: 14px;
+}

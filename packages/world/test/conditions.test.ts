@@ -208,8 +208,8 @@ describe("every action bumps its counter", () => {
     expect(tallyOf(b.world, "BUY", item)).toBe(1);
     expect(tallyOf(b.world, "COINS_SPENT")).toBe(ITEM[item]!.price);
     const recipe = RECIPES[0]!;
-    const bag = Object.fromEntries(recipe.ins.map((x) => [x.item, x.amount]));
-    const m = ok(craft({ ...w0(), bag }, recipe.index));
+    const bag = Object.fromEntries([...recipe.ins.map((x) => [x.item, x.amount]), ...(recipe.tool !== undefined ? [[recipe.tool, 1]] : [])]);
+    const m = ok(craft({ ...w0(), bag, room: recipe.room ?? w0().room }, recipe.index));
     expect(tallyOf(m.world, "CRAFT", recipe.out)).toBe(1);
     const u = ok(take(w0(), 11130));
     expect(tallyOf(u.world, "USE", 11130)).toBe(1);

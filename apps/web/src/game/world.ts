@@ -9,7 +9,7 @@ import { useBadges } from "./badges";
 import { create } from "zustand";
 import { wearableOf } from "@lingxi/art";
 import { useDesigns } from "./designs";
-import { exert, localHour, needsMinOf, stageOf, exploreMods } from "@lingxi/game";
+import { exert, work, localHour, needsMinOf, stageOf, exploreMods } from "@lingxi/game";
 import { WANTS, timeOfDay } from "@lingxi/brain";
 import {
   ITEM,
@@ -22,7 +22,9 @@ import {
   forage as forageHere,
   move as moveTo,
   newWorld,
-  openBox as openRiverBox,
+  openBox as openBoxRule,
+  affinitiesOf,
+  spendSparBuffs,
   take,
   backfillTally,
   bump,
@@ -61,6 +63,13 @@ function cleanTally(t: unknown): Record<string, number> {
   return Object.fromEntries(Object.entries(t as Record<string, unknown>).filter((e): e is [string, number] => /^[A-Z_]{2,24}:[\w:-]{1,40}$/.test(e[0]) && Number.isSafeInteger(e[1]) && (e[1] as number) >= 0));
 }
 
+/** Bonuses and familiarity from storage: small whole numbers only, so an edited save cannot mint a huge bonus. */
+function cleanCounts<K extends string>(o: unknown, keyOk: (k: string) => boolean, max: number): Partial<Record<K, number>> | undefined {
+  if (!o || typeof o !== "object") return undefined;
+  return Object.fromEntries(Object.entries(o as Record<string, unknown>).filter((e): e is [K, number] => keyOk(e[0]) && Number.isSafeInteger(e[1]) && (e[1] as number) >= 0 && (e[1] as number) <= max)) as Partial<Record<K, number>>;
+}
+const BUFF_KEYS = ["forageExtra", "sparPower", "sparHp", "sparLossCoins"];
+
 const cleanFlags = (f: unknown): string[] => (Array.isArray(f) ? [...new Set(f.filter((x): x is string => typeof x === "string" && /^[a-z0-9-]{1,32}$/.test(x)))] : []);
 
 function load(): WorldState {
@@ -69,9 +78,19 @@ function load(): WorldState {
     if (raw) {
       const w = JSON.parse(raw) as WorldState;
       if (w.version === 1) {
-        const clean: WorldState = { ...w, claimed: Array.isArray(w.claimed) ? w.claimed : [], decor: cleanDecor(w.decor), tally: cleanTally(w.tally), flags: cleanFlags(w.flags) };
+        const clean: WorldState = {
+          ...w,
+          claimed: Array.isArray(w.claimed) ? w.claimed : [],
+          decor: cleanDecor(w.decor),
+          tally: cleanTally(w.tally),
+          flags: cleanFlags(w.flags),
+          buffs: cleanCounts(w.buffs, (k) => BUFF_KEYS.includes(k), 500),
+          familiar: cleanCounts(w.familiar, (k) => /^\d{1,4}$/.test(k), 100) as WorldState["familiar"],
+        };
+        // a save from before tools (plan 4.5) that already took the pebbles gets the screwdriver that quest now gives, once
+        const tooled = clean.claimed.includes("q07") && !(clean.flags ?? []).includes("tools-given") && !(clean.bag[23102] ?? 0) ? withFlag(giveItem(clean, 23102, 1), "tools-given") : clean;
         // an older save is counted into the tally once, from what it and the badge ledger already record
-        const counted = backfillTally(clean, useBadges.getState().ledger);
+        const counted = backfillTally(tooled, useBadges.getState().ledger);
         if (counted !== clean) save(counted);
         return counted;
       }
@@ -93,11 +112,15 @@ function save(w: WorldState): void {
 
 export interface WorldNotice {
   id: number;
-  kind: "moved" | "found" | "bought" | "made" | "claimed" | "fail" | "opened" | "planted" | "harvested" | "compost" | "sewn" | "built";
+  kind: "moved" | "found" | "bought" | "made" | "claimed" | "fail" | "opened" | "planted" | "harvested" | "compost" | "sewn" | "built" | "readied";
   text?: string;
   items?: Array<{ item: number; n: number }>;
   reason?: string;
   coins?: number;
+  /** a look around that filled the room's familiarity bar and showed its secret find */
+  secret?: boolean;
+  /** experience the pet earned at the bench */
+  xp?: number;
 }
 
 interface WorldStore {
@@ -108,7 +131,9 @@ interface WorldStore {
   buy: (item: number) => void;
   craft: (recipe: number) => void;
   use: (item: number) => void;
-  openBox: () => void;
+  openBox: (box?: number) => void;
+  /** the bonuses waiting for the next spar, spent as it starts (plan 4.5) */
+  spendSparBuffs: () => { power: number; hp: number; lossCoins: number };
   claim: (id: string) => void;
   /** coins won outside the world (spars) */
   reward: (coins: number) => void;
@@ -192,7 +217,10 @@ export const useWorld = create<WorldStore>((set, get) => ({
   },
   forage: () => {
     const mods = petMods();
-    const r = forageHere(get().world, Date.now(), petEnergy(), mods);
+    const p = useGame.getState().pet;
+    // at home where its kind lives: twice the familiarity (brave pets are at home in eerie places too)
+    const kin = p ? affinitiesOf(p.line, ((p.instincts ?? 0) & 1) === 1) : [];
+    const r = forageHere(get().world, Date.now(), petEnergy(), mods, kin);
     if (!r.ok) {
       play("error");
       return set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
@@ -200,7 +228,7 @@ export const useWorld = create<WorldStore>((set, get) => ({
     tirePet(mods.forageEnergy);
     save(r.world);
     play("success");
-    set({ world: r.world, notice: { id: ++n, kind: "found", items: r.found } });
+    set({ world: r.world, notice: { id: ++n, kind: "found", items: r.found, ...(r.familiar?.filled ? { secret: true } : {}) } });
   },
   buy: (item) => {
     const r = buyItem(get().world, item);
@@ -213,14 +241,22 @@ export const useWorld = create<WorldStore>((set, get) => ({
     set({ world: r.world, notice: { id: ++n, kind: "bought", items: [{ item, n: 1 }] } });
   },
   craft: (recipe) => {
-    const r = craftRecipe(get().world, recipe);
+    const g = useGame.getState();
+    if (g.pet?.asleep) {
+      play("error");
+      return set({ notice: { id: ++n, kind: "fail", reason: "asleep" } });
+    }
+    const r = craftRecipe(get().world, recipe, petEnergy());
     if (!r.ok) {
       play("error");
       return set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
     }
+    // the work tires the pet and teaches it (plan 4.5)
+    const p = g.pet;
+    if (p) g.replace(work(p, r.energy, r.xp, Date.now(), brainOf(p)));
     save(r.world);
     play("success");
-    set({ world: r.world, notice: { id: ++n, kind: "made", items: [{ item: r.made, n: 1 }] } });
+    set({ world: r.world, notice: { id: ++n, kind: "made", items: [{ item: r.made, n: 1 }], xp: r.xp } });
   },
   use: (item) => {
     const def = ITEM[item];
@@ -233,6 +269,11 @@ export const useWorld = create<WorldStore>((set, get) => ({
     set({ world: r.world });
     const g = useGame.getState();
     const before = g.toast?.id;
+    // a bonus-only item (a jewel, a tonic) waits for the next look around or spar; the pet itself is not touched
+    if (r.buff && !def.use) {
+      play("pop");
+      return set({ notice: { id: ++n, kind: "readied", items: [{ item, n: 1 }] } });
+    }
     if (def.kind === "food") g.act({ kind: "feed", food: r.use }, def.art);
     else g.act({ kind: "use", item: r.use }, def.art);
     // a food the pet actually ate: which one, and its food group today (for "three foods", "a balanced plate")
@@ -242,12 +283,20 @@ export const useWorld = create<WorldStore>((set, get) => ({
       if (r.use.diet) get().tally("FED_GROUP", `${localDay(Date.now(), after.pet.tzOffsetMin)}-${r.use.diet}`, 1, { total: false });
     }
   },
-  openBox: () => {
-    const r = openRiverBox(get().world, Date.now());
+  openBox: (box = 21007) => {
+    const r = openBoxRule(get().world, Date.now(), box);
     if (!r.ok) return set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
     save(r.world);
     play("success");
     set({ world: r.world, notice: { id: ++n, kind: "opened", items: r.found } });
+  },
+  spendSparBuffs: () => {
+    const r = spendSparBuffs(get().world);
+    if (r.power || r.hp || r.lossCoins) {
+      save(r.world);
+      set({ world: r.world });
+    }
+    return { power: r.power, hp: r.hp, lossCoins: r.lossCoins };
   },
   wrap: (item, n) => {
     const w = get().world;

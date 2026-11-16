@@ -417,3 +417,10 @@ export function exert(p0: Pet, energy: number, now: number, brain: Brain): Pet {
   p.meters.energy = clampMeter(p.meters.energy - Math.max(0, energy) * SUB);
   return p;
 }
+
+/** Work at the bench (plan 4.5): the recipe's energy spent and its experience earned, with the XP skills applied. */
+export function work(p0: Pet, energy: number, xp: number, now: number, brain: Brain): Pet {
+  const p = exert(p0, energy, now, brain);
+  gainXp(p, xp);
+  return p;
+}

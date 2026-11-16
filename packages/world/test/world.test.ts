@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { HOME, ITEM, MOVE_ENERGY, RECIPES, ROOMS, buy, claim, craft, forage, give, move, neighbours, newWorld, openBox, take } from "../src/world";
+import { HOME, ITEM, MOVE_ENERGY, RECIPES, ROOMS, type WorldState, buy, claim, craft, forage, give, move, neighbours, newWorld, openBox, take } from "../src/world";
 import { QUESTS, questState } from "../src/quests";
 
 const T0 = Date.UTC(2026, 10, 16, 2);
@@ -66,15 +66,41 @@ describe("shop, workbench, bag", () => {
     expect(buy({ ...w, room: HOME }, item).ok).toBe(false);
     expect(buy({ ...w, coins: 0 }, item).ok).toBe(false);
   });
-  it("every recipe can be made from ingredients that exist in Lingxi", () => {
-    expect(RECIPES.length).toBeGreaterThan(20);
+  it("every recipe works with exactly its inputs, tool, energy and room, and says what is missing otherwise (plan 4.5)", () => {
+    expect(RECIPES.length).toBeGreaterThan(30);
     for (const r of RECIPES) {
-      let w = newWorld("s");
+      const name = r.name.en;
+      // a world holding exactly the inputs and the tool, standing in the recipe's room
+      let w: WorldState = { ...newWorld("s"), bag: {}, room: r.room ?? HOME };
       for (const x of r.ins) w = give(w, x.item, x.amount);
-      const made = craft(w, r.index);
-      expect(made.ok, r.name.en).toBe(true);
-      if (made.ok) expect(made.world.bag[r.out]).toBeGreaterThanOrEqual(r.outAmount);
+      if (r.tool !== undefined) w = give(w, r.tool, 1);
+      const made = craft(w, r.index, r.energy);
+      expect(made.ok, name).toBe(true);
+      if (!made.ok) continue;
+      expect(made.world.bag[r.out], name).toBe(r.outAmount);
+      for (const x of r.ins) if (x.item !== r.out) expect(made.world.bag[x.item] ?? 0, `${name}: ${x.item} used up`).toBe(0);
+      if (r.tool !== undefined) expect(made.world.bag[r.tool], `${name}: the tool stays`).toBe(1);
+      expect([made.energy, made.xp]).toEqual([r.energy, r.xp]);
+      // work costs energy, except the offering at the shrine (no stamina in the source either)
+      if (r.room === undefined) expect(r.energy, name).toBeGreaterThan(0);
+      // each missing piece is named
+      if (r.tool !== undefined) expect(craft({ ...w, bag: { ...w.bag, [r.tool]: 0 } }, r.index, r.energy), name).toEqual({ ok: false, reason: "tool" });
+      if (r.room !== undefined) expect(craft({ ...w, room: HOME }, r.index, r.energy), name).toEqual({ ok: false, reason: "room" });
+      const first = r.ins[0]!;
+      expect(craft({ ...w, bag: { ...w.bag, [first.item]: first.amount - 1 } }, r.index, r.energy), name).toEqual({ ok: false, reason: "missing" });
+      if (r.energy > 0) expect(craft(w, r.index, r.energy - 1), name).toEqual({ ok: false, reason: "tired" });
     }
+  });
+
+  it("keeps the source's own amounts: an extraction makes 500 and a brew uses hundreds (no more squashing to 3)", () => {
+    const pollen = RECIPES.find((r) => r.out === 1104)!;
+    expect(pollen.outAmount).toBe(500);
+    const study = RECIPES.find((r) => r.out === 11401)!;
+    expect(study.ins).toEqual([{ item: 1003, amount: 1 }, { item: 1104, amount: 1000 }]);
+    expect([study.tool, study.energy, study.xp]).toEqual([23101, 60, 7]);
+    // the room-only recipe: an old coin offered at the shrine
+    const offer = RECIPES.find((r) => r.room !== undefined)!;
+    expect([offer.index, offer.room, offer.out]).toEqual([10002, 11, 21007]);
   });
   it("taking food gives its effect and removes it", () => {
     const w = newWorld("s");

@@ -165,6 +165,9 @@ class Player {
     const r = RECIPES.find((x) => x.out === out);
     if (!r) throw new Error(`no recipe makes ${out}`);
     for (const x of r.ins) this.have(x.item, x.amount);
+    // a tool is bought once and kept (plan 4.5); a room-only recipe is made in its room
+    if (r.tool !== undefined) this.have(r.tool, 1);
+    if (r.room !== undefined) this.goTo(r.room);
     this.must(craft(this.w, r.index), `craft ${ITEM[out]?.name.en}`);
   }
   sew(id: string) {
@@ -245,6 +248,13 @@ function satisfy(p: Player, c: Condition, q: QuestDef): void {
           if (i > 300) throw new Error(`${q.id}: could not find ${n} new kinds`);
           p.lookAround(rooms[i % rooms.length]!.index);
         }
+        return;
+      }
+      if (type === "FORAGE") {
+        // places never looked around in, nearest first in the room list
+        const fresh = Object.values(ROOMS).filter((r) => r.drops.length && !tallyOf(p.w, "FORAGE", r.index)).slice(0, n);
+        if (fresh.length < n) throw new Error(`${q.id}: only ${fresh.length} new places left`);
+        for (const r of fresh) p.lookAround(r.index);
         return;
       }
       if (type === "FED") return void ["11110", "11120", "11140", "11302", "11313"].forEach((f) => p.app("FED", f));

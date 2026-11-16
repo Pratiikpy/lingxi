@@ -6,7 +6,7 @@ import { play } from "../game/sound";
 import { FRESH_START_TEA, useSkillsUi } from "./Skills";
 import { useMemo, useState } from "react";
 import { stageOf } from "@lingxi/game";
-import { CORNER_SHOP, DECOR_BY_ID, HOME, ITEM, MAKE_RECIPES, PIECE_PRICES, QUESTS, RECIPES, ROOMS, STORY, has, knownTravelRecipes, neighbours, ownedPieces, questState } from "@lingxi/world";
+import { BOX_TABLES, CORNER_SHOP, DECOR_BY_ID, HOME, ITEM, MAKE_RECIPES, PIECE_PRICES, QUESTS, RECIPES, ROOMS, STORY, type Buff, type Recipe, craftBlocker, has, knownTravelRecipes, neighbours, ownedPieces, questState, usedOf } from "@lingxi/world";
 import { WEARABLE } from "@lingxi/art";
 import { useLang, useT, type Key } from "../i18n";
 import { useChain } from "../game/chain";
@@ -22,7 +22,11 @@ export function itemList(items: Array<{ item: number; n: number }> | undefined, 
 
 export function noticeText(nt: WorldNotice, t: ReturnType<typeof useT>, lang: "en" | "zh"): string | null {
   if (nt.kind === "moved") return nt.coins ? t("world.firstVisit", { n: nt.coins }) : null;
+  if (nt.kind === "found" && nt.secret)
+    return lang === "zh" ? `找到了 ${itemList(nt.items, lang)}。这里越来越熟悉了，还发现了一样藏着的东西！` : `Found ${itemList(nt.items, lang)}. This place knows you now, and showed you something hidden!`;
   if (nt.kind === "found") return t("world.found", { items: itemList(nt.items, lang) });
+  if (nt.kind === "readied") return lang === "zh" ? `${itemList(nt.items, lang)}准备好了，下次会用上。` : `${itemList(nt.items, lang)} is ready for next time.`;
+  if (nt.kind === "made" && nt.xp) return lang === "zh" ? `做好了 ${itemList(nt.items, lang)}。经验 +${nt.xp}。` : `Made ${itemList(nt.items, lang)}. +${nt.xp} experience.`;
   if (nt.kind === "bought") return t("world.bought", { items: itemList(nt.items, lang) });
   if (nt.kind === "made") return t("world.made", { items: itemList(nt.items, lang) });
   if (nt.kind === "opened") return t("world.opened", { items: itemList(nt.items, lang) });
@@ -32,6 +36,15 @@ export function noticeText(nt: WorldNotice, t: ReturnType<typeof useT>, lang: "e
   if (nt.kind === "sewn") return lang === "zh" ? `新衣服：${WEARABLE[nt.text ?? ""]?.name.zh ?? ""}。去宠物页穿上吧。` : `New outfit: ${WEARABLE[nt.text ?? ""]?.name.en ?? ""}. Put it on from the pet page.`;
   if (nt.kind === "built") return lang === "zh" ? `做好了${DECOR_BY_ID[nt.text ?? ""]?.name.zh ?? ""}，可以摆在家里了。` : `Built a ${DECOR_BY_ID[nt.text ?? ""]?.name.en.toLowerCase() ?? ""} for the home.`;
   if (nt.kind === "claimed") return t("world.claimed", { coins: nt.coins ?? 0, items: nt.items?.length ? (lang === "zh" ? `，${itemList(nt.items, lang)}` : `, ${itemList(nt.items, lang)}`) : "" });
+  const more: Record<string, [string, string]> = {
+    tool: ["You need the right tool for that. Praline's Corner Shop sells them.", "需要合适的工具。糖霜的街角小店有卖。"],
+    room: ["That can only be made in one special place.", "这个只能在一个特别的地方做。"],
+    limit: ["Your pet has had as many of those as it ever can.", "这个宠物已经用到上限了。"],
+    notABox: ["That doesn't open.", "这个打不开。"],
+    none: ["You don't have one of those.", "你没有这个。"],
+  };
+  const m = more[nt.reason ?? ""];
+  if (m) return lang === "zh" ? m[1] : m[0];
   const k = `world.fail.${nt.reason}` as Key;
   return ["tired", "asleep", "already", "nothingHere", "coins", "missing", "notNear", "full", "owned", "notHere", "noSeed", "noCompost", "notRipe", "taken", "walking", "travelling", "notBack", "notSold", "notOwned", "wrongSlot"].includes(nt.reason ?? "") ? t(k) : t("world.fail.other");
 }
@@ -130,9 +143,19 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
     .map(([k, v]) => ({ item: ITEM[Number(k)], n: v }))
     .filter((e): e is { item: NonNullable<typeof e.item>; n: number } => !!e.item);
   const food = entries.filter((e) => e.item.kind === "food");
-  const drinks = entries.filter((e) => e.item.kind === "drink" || e.item.kind === "box" || (e.item.kind === "treasure" && e.item.use));
-  const stuff = entries.filter((e) => !food.includes(e) && !drinks.includes(e));
+  const drinks = entries.filter((e) => e.item.kind === "drink" || (e.item.kind === "box" && BOX_TABLES[e.item.index]) || (e.item.kind === "treasure" && (e.item.use || e.item.buff)));
+  const tools = entries.filter((e) => e.item.kind === "tool");
+  const stuff = entries.filter((e) => !food.includes(e) && !drinks.includes(e) && !tools.includes(e));
+  // every recipe whose ingredients are in the bag, even if a tool, the place or the pet's energy still stands in the way
   const makeable = [...RECIPES, ...knownTravelRecipes(world)].filter((r) => r.ins.every((x) => has(world, x.item, x.amount)));
+  const energy = useGame((s) => (s.pet ? Math.floor(s.pet.meters.energy / 60) : 0));
+  const blockText = (r: Recipe): string | null => {
+    const b = craftBlocker(world, r, energy);
+    if (b === "tool") return lang === "zh" ? `需要${ITEM[r.tool!]!.name.zh}` : `Needs a ${ITEM[r.tool!]!.name.en}`;
+    if (b === "room") return lang === "zh" ? `只能在${ROOMS[r.room!]?.name.zh ?? "那里"}做` : `Only at the ${ROOMS[r.room!]?.name.en ?? "right place"}`;
+    if (b === "tired") return lang === "zh" ? "宠物太累了" : "Your pet is too tired";
+    return null;
+  };
   const Row = ({ e, action, onAct }: { e: (typeof entries)[number]; action?: string; onAct?: () => void }) => (
     <li className="bag-item">
       <img className="pixel" src={e.item.art} alt="" width={40} height={40} />
@@ -141,6 +164,9 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
           {e.item.name[lang]} <em>×{e.n}</em>
         </b>
         <span>{e.item.desc[lang]}</span>
+        {e.item.limit !== undefined && (
+          <span className="small">{lang === "zh" ? `已用 ${usedOf(world, e.item.index)}/${e.item.limit}` : `Used ${usedOf(world, e.item.index)} of ${e.item.limit}`}</span>
+        )}
       </div>
       {action && (
         <button type="button" className="btn" onClick={onAct}>
@@ -196,8 +222,22 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
                 // the Fresh Start Tea returns skill points: it opens the skills screen to confirm (plan 4.4)
                 <Row key={e.item.index} e={e} action={lang === "zh" ? "重新选择技能" : "Choose skills again"} onAct={() => (play("tap"), useSkillsUi.getState().show({ respec: true }))} />
               ) : (
-                <Row key={e.item.index} e={e} action={e.item.kind === "box" ? t("bag.open") : t("bag.use")} onAct={() => (e.item.kind === "box" ? openBox() : (use(e.item.index), onFed()))} />
+                <Row key={e.item.index} e={e} action={e.item.kind === "box" ? t("bag.open") : e.item.buff && !e.item.use ? (lang === "zh" ? "备好" : "Ready it") : t("bag.use")} onAct={() => (e.item.kind === "box" ? openBox(e.item.index) : (use(e.item.index), onFed()))} />
               )
+            ))}
+          </ul>
+        </section>
+      )}
+      <WaitingBonuses buffs={world.buffs} lang={lang} />
+      {tools.length > 0 && (
+        <section>
+          <p className="label">{lang === "zh" ? "工具" : "Tools"}</p>
+          <ul className="bag-grid">
+            {tools.map((e) => (
+              <li key={e.item.index} title={e.item.desc[lang]}>
+                <img className="pixel" src={e.item.art} alt="" width={40} height={40} />
+                <span>{e.item.name[lang]}</span>
+              </li>
             ))}
           </ul>
         </section>
@@ -262,24 +302,62 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
         <p className="label">{t("bag.workbench")}</p>
         {makeable.length ? (
           <ul className="bag-list">
-            {makeable.map((r) => (
-              <li key={r.index} className="bag-item">
-                <img className="pixel" src={ITEM[r.out]!.art} alt="" width={40} height={40} />
-                <div className="bag-text">
-                  <b>{r.name[lang]}</b>
-                  <span>{r.ins.map((x) => `${ITEM[x.item]!.name[lang]} ×${x.amount}`).join(" + ")}</span>
-                </div>
-                <button type="button" className="btn primary" onClick={() => craft(r.index)}>
-                  {t("bag.make")}
-                </button>
-              </li>
-            ))}
+            {makeable.map((r) => {
+              const blocked = blockText(r);
+              return (
+                <li key={r.index} className={`bag-item${blocked ? " is-dim" : ""}`}>
+                  <img className="pixel" src={ITEM[r.out]!.art} alt="" width={40} height={40} />
+                  <div className="bag-text">
+                    <b>
+                      {r.name[lang]}
+                      {r.outAmount > 1 && <em> ×{r.outAmount}</em>}
+                    </b>
+                    <span>{r.ins.map((x) => `${ITEM[x.item]!.name[lang]} ×${x.amount}`).join(" + ")}</span>
+                    <span className="small craft-cost">
+                      {[
+                        r.tool !== undefined ? (lang === "zh" ? `工具：${ITEM[r.tool]!.name.zh}` : `Tool: ${ITEM[r.tool]!.name.en}`) : null,
+                        r.energy ? (lang === "zh" ? `精神 −${r.energy}` : `Energy −${r.energy}`) : null,
+                        r.xp ? (lang === "zh" ? `经验 +${r.xp}` : `+${r.xp} XP`) : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </span>
+                    {blocked && <span className="small craft-block">{blocked}</span>}
+                  </div>
+                  <button type="button" className="btn primary" disabled={!!blocked} onClick={() => craft(r.index)}>
+                    {t("bag.make")}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <p className="small">{lang === "zh" ? "收集更多材料，就能在这里做东西。" : "Collect more things on your walks to make something here."}</p>
         )}
       </section>
     </div>
+  );
+}
+
+/** Bonuses waiting for the next look around or spar, so a readied jewel is never forgotten. */
+function WaitingBonuses({ buffs, lang }: { buffs: Buff | undefined; lang: "en" | "zh" }) {
+  const b = buffs ?? {};
+  const lines = [
+    b.forageExtra ? (lang === "zh" ? `下次四处找找多找到 ${b.forageExtra} 样` : `${b.forageExtra} more find${b.forageExtra > 1 ? "s" : ""} next time you look around`) : null,
+    b.sparPower ? (lang === "zh" ? `下一场切磋力量 +${b.sparPower}` : `+${b.sparPower} power in the next spar`) : null,
+    b.sparHp ? (lang === "zh" ? `下一场切磋体力 +${b.sparHp}` : `+${b.sparHp} health in the next spar`) : null,
+    b.sparLossCoins ? (lang === "zh" ? `下一场切磋输了也有 ${b.sparLossCoins} 金币` : `${b.sparLossCoins} coins even if the next spar is lost`) : null,
+  ].filter((x): x is string => !!x);
+  if (!lines.length) return null;
+  return (
+    <section className="bonuses" aria-label={lang === "zh" ? "备好的加成" : "Bonuses ready"}>
+      <p className="label">{lang === "zh" ? "备好的加成" : "Ready for next time"}</p>
+      <ul>
+        {lines.map((l) => (
+          <li key={l}>{l}</li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

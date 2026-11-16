@@ -132,3 +132,11 @@
   cursor: pointer;
   padding: 6px;
 }
+.gift-item .gift-treat {
+  position: absolute;
+  left: 3px;
+  top: 1px;
+  font-size: 11px;
+  line-height: 1;
+  color: #e0557a;
+}

@@ -48,6 +48,7 @@ import {
   visibleMeters,
   type Pet,
 } from "../src";
+import { work } from "../src/sim";
 import { BEAT_MS, DAY_MS, HIBERNATE_AFTER, SICK_AFTER } from "../src/pet";
 
 /** two lesson capstones in different tiers: the most extra lessons a pet can hold */
@@ -444,5 +445,16 @@ describe("skills on chain and in replay", () => {
     for (const line of ["gentle", "bold", "curious"] as const) expect(() => composeProgram(line, [...lessons, lessons[0]!, lessons[1]!], 15, { rules: skillRules(all) })).not.toThrow();
     expect(extraLessonsMax).toBe(3);
     expect(LESSON_CAPACITY.elder + 5).toBe(13);
+  });
+});
+
+describe("work at the bench (plan 4.5)", () => {
+  it("spends the recipe's energy and earns its experience, with the XP skills applied", () => {
+    const p = newPet();
+    const done = work(p, 60, 7, T0, gentle);
+    expect(p.meters.energy - done.meters.energy).toBe(60 * 60);
+    expect(done.xp - p.xp).toBe(7);
+    // nothing to spend or earn changes nothing but the clock
+    expect(work(p, 0, 0, T0, gentle).xp).toBe(p.xp);
   });
 });

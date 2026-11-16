@@ -87,7 +87,19 @@ function why(key: CoachNote["key"], name: string, other: string, lang: Lang): st
   return (lang === "zh" ? zh : en)[key];
 }
 
-type FightState = { partner: Partner; result: SparResult; cheer: boolean; opponent?: Fighter; duel?: { challenge: Challenge; reply: DuelPet }; daily?: boolean; /** the adopted brain the pet fought with, if not its own */ instinct?: string };
+type FightState = {
+  partner: Partner;
+  result: SparResult;
+  cheer: boolean;
+  opponent?: Fighter;
+  duel?: { challenge: Challenge; reply: DuelPet };
+  daily?: boolean;
+  /** the adopted brain the pet fought with, if not its own */
+  instinct?: string;
+  /** item bonuses spent on this spar (plan 4.5): coins paid even if it is lost */
+  boostCoins?: number;
+  boosted?: boolean;
+};
 
 /** The pet as it travels in a challenge link: its whole mind, its body, and a few true facts. */
 export function duelPetOf(pet: Pet): DuelPet {
@@ -193,8 +205,23 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken
     // practice spars roll a private seed; the daily challenge uses the day's block, with no cheering, so it is the same for everyone
     const seed = daily ? daily.seed : crypto.getRandomValues(new Uint32Array(1))[0]!;
     const cheering = daily ? false : cheer;
+    // bonuses readied from the bag (a Wild Jewel, a tonic) are spent on the next practice spar; never on the shared daily
+    const boost = daily ? { power: 0, hp: 0, lossCoins: 0 } : useWorld.getState().spendSparBuffs();
+    const boosted = boost.power > 0 || boost.hp > 0;
+    const fighter: Fighter = boosted
+      ? { ...me, mods: { stamina: 0, guard: 0, dodge: 0, heal: 0, ...me.mods, power: (me.mods?.power ?? 0) + boost.power, hp: (me.mods?.hp ?? 0) + boost.hp } }
+      : me;
     play("tap");
-    setFight({ partner, result: spar(me, them, seed, () => [cheering, false]), cheer: cheering, ...(opponent ? { opponent } : {}), ...(daily ? { daily: true } : {}), ...(me !== own && adopted ? { instinct: adopted.name } : {}) });
+    setFight({
+      partner,
+      result: spar(fighter, them, seed, () => [cheering, false]),
+      cheer: cheering,
+      ...(opponent ? { opponent } : {}),
+      ...(daily ? { daily: true } : {}),
+      ...(me !== own && adopted ? { instinct: adopted.name } : {}),
+      ...(boost.lossCoins ? { boostCoins: boost.lossCoins } : {}),
+      ...(boosted || boost.lossCoins ? { boosted: true } : {}),
+    });
   }
 
   return (
@@ -273,7 +300,7 @@ function DesignedPartners({ onPick }: { onPick: (p: Partner) => void }) {
           const open = hint === p.id;
           return (
             <li key={p.id} className="sp-designed-item">
-              <PartnerCard partner={p} index={STAGE_INDEX[p.stage] ?? 0} lang={lang} onPick={() => onPick(p)} />
+              <PartnerCard partner={p} index={STAGE_INDEX[p.stage] ?? 0} lang={lang} onPick={() => onPick(p)} inItem />
               <p className="small sp-designed-facts">
                 {L(
                   `${d.gates} gates · ${d.generations} generations · won ${Math.round(d.test * 100)}% of its test fights`,
@@ -534,12 +561,14 @@ function AdoptedCard({ pet }: { pet: Pet }) {
 }
 
 
-function PartnerCard({ partner, index, lang, onPick }: { partner: Partner; index: number; lang: Lang; onPick: () => void }) {
+/** A partner to pick; `inItem` when it sits inside a list item of its own (the designed partners), so no list item nests in another. */
+function PartnerCard({ partner, index, lang, onPick, inItem = false }: { partner: Partner; index: number; lang: Lang; onPick: () => void; inItem?: boolean }) {
   const record = useSpar((s) => s.records[partner.id]);
   const canvas = useMemo(() => drawPet(partner.line, partner.stage, { expression: index === 0 ? "sleepy" : index === 3 ? "proud" : "happy" }), [partner.line, partner.stage, index]);
   const stars = index + 1;
+  const Wrap = inItem ? "div" : "li";
   return (
-    <li>
+    <Wrap>
       <button type="button" className="sp-partner" onClick={onPick}>
         <span className="sp-portrait">
           <PetArt canvas={canvas} line={partner.line} scale={2} label={partner.name[lang]} />
@@ -556,7 +585,7 @@ function PartnerCard({ partner, index, lang, onPick }: { partner: Partner; index
           {record ? (lang === "zh" ? `${record.w}胜 ${record.l}负` : `${record.w}W ${record.l}L`) : lang === "zh" ? "未交手" : "new"}
         </span>
       </button>
-    </li>
+    </Wrap>
   );
 }
 
@@ -571,6 +600,8 @@ export function FightView({
   daily = false,
   replay = false,
   instinct,
+  boostCoins = 0,
+  boosted = false,
   onDone,
   onRematch,
   onWatchAgain,
@@ -632,9 +663,10 @@ export function FightView({
       setReward(coins);
       play("success");
     }
-    if (outcome === "l" && !partner.id.startsWith("friend:") && skill.lossCoins > 0) {
-      useWorld.getState().reward(skill.lossCoins);
-      setReward(skill.lossCoins);
+    const lossCoins = skill.lossCoins + boostCoins;
+    if (outcome === "l" && !partner.id.startsWith("friend:") && lossCoins > 0) {
+      useWorld.getState().reward(lossCoins);
+      setReward(lossCoins);
     }
   }, [finished, result, partner.id, instinct]);
 
@@ -668,6 +700,7 @@ export function FightView({
         <span>{lang === "zh" ? `第 ${Math.max(1, shown)} / 16 回合` : `Round ${Math.max(1, shown)} of 16`}</span>
         {cheer && <span className="sp-cheering">{lang === "zh" ? "你在加油" : "You're cheering"}</span>}
         {instinct && <span className="sp-cheering">{lang === "zh" ? `本能：${instinct}` : `Instinct: ${instinct}`}</span>}
+        {boosted && !replay && <span className="sp-cheering">{lang === "zh" ? "用上了备好的加成" : "Bonus from the bag"}</span>}
         {!finished && (
           <button type="button" className="link" onClick={() => setShown(result.rounds.length)}>
             {lang === "zh" ? "跳到结果" : "Skip to result"}

@@ -121,4 +121,5 @@ export const DAILIES: QuestDef[] = [
 ];
 
 /** The weekly gift: one for every seven days with a daily done, any seven. */
-export const WEEKLY_GIFT: readonly Reward[] = [coins(60), item(21007), item(11313)];
+// the Golden Box (plan 4.5) "for those who keep showing up": five Booster Packs and something rarer
+export const WEEKLY_GIFT: readonly Reward[] = [coins(60), item(21007), item(11313), item(21008)];

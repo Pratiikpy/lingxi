@@ -108,6 +108,7 @@ export function PlayApp() {
   const worldNotice = useWorld((s) => s.notice);
   const worldMove = useWorld((s) => s.move);
   const worldForage = useWorld((s) => s.forage);
+  const familiar = useWorld((s) => s.world.familiar);
   const [worldMsg, setWorldMsg] = useState<{ id: number; text: string } | null>(null);
   useEffect(followClock, []);
   // the pet says something when its circuit makes a new decision
@@ -476,6 +477,19 @@ export function PlayApp() {
               <button type="button" onClick={() => (play("tap"), worldForage())} data-hint="look">
                 {t("room.look")}
               </button>
+            )}
+            {room.drops.length > 0 && room.familiarSize > 0 && !visiting && (
+              <span
+                className="familiar"
+                role="meter"
+                aria-valuemin={0}
+                aria-valuemax={room.familiarSize}
+                aria-valuenow={familiar?.[room.index] ?? 0}
+                aria-label={lang === "zh" ? "对这里的熟悉程度" : "How well your pet knows this place"}
+                title={lang === "zh" ? "常来这里找找，熟悉了会发现藏着的东西" : "Look around here often: a place you know shows you hidden things"}
+              >
+                <i style={{ width: `${Math.round((100 * (familiar?.[room.index] ?? 0)) / room.familiarSize)}%` }} />
+              </span>
             )}
             {room.shop.length > 0 && (
               <button type="button" onClick={() => pick("bag")}>

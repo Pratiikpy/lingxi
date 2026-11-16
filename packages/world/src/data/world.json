@@ -23,7 +23,9 @@
      "item": 1003,
      "weight": 7
     }
-   ]
+   ],
+   "affinity": "Eerie",
+   "scavCost": 100
   },
   {
    "index": 2,
@@ -48,7 +50,9 @@
      "item": 1002,
      "weight": 9
     }
-   ]
+   ],
+   "affinity": "Normal",
+   "scavCost": 100
   },
   {
    "index": 3,
@@ -75,7 +79,9 @@
      "item": 11011,
      "weight": 4
     }
-   ]
+   ],
+   "affinity": "Normal",
+   "scavCost": 100
   },
   {
    "index": 4,
@@ -89,7 +95,9 @@
     "evening": "art/rooms/4_junkyard/backgrounds/playtest-b.png",
     "night": "art/rooms/4_junkyard/backgrounds/playtest-c.png"
    },
-   "drops": []
+   "drops": [],
+   "affinity": "",
+   "scavCost": 0
   },
   {
    "index": 5,
@@ -112,7 +120,9 @@
      "item": 1002,
      "weight": 9
     }
-   ]
+   ],
+   "affinity": "Normal",
+   "scavCost": 100
   },
   {
    "index": 6,
@@ -141,7 +151,9 @@
      "item": 11313,
      "weight": 4
     }
-   ]
+   ],
+   "affinity": "Eerie",
+   "scavCost": 300
   },
   {
    "index": 9,
@@ -168,7 +180,9 @@
      "item": 1010,
      "weight": 3
     }
-   ]
+   ],
+   "affinity": "Insect, Eerie",
+   "scavCost": 200
   },
   {
    "index": 10,
@@ -195,7 +209,9 @@
      "item": 11011,
      "weight": 4
     }
-   ]
+   ],
+   "affinity": "Insect",
+   "scavCost": 200
   },
   {
    "index": 11,
@@ -212,7 +228,9 @@
     "evening": "art/rooms/11_waterfall/backgrounds/playtest-b.png",
     "night": "art/rooms/11_waterfall/backgrounds/playtest-c.png"
    },
-   "drops": []
+   "drops": [],
+   "affinity": "",
+   "scavCost": 0
   },
   {
    "index": 12,
@@ -243,7 +261,9 @@
      "item": 23102,
      "weight": 2
     }
-   ]
+   ],
+   "affinity": "Scrap",
+   "scavCost": 500
   },
   {
    "index": 13,
@@ -259,7 +279,9 @@
     "evening": "art/rooms/13_giftshop/backgrounds/original.png",
     "night": "art/rooms/13_giftshop/backgrounds/original.png"
    },
-   "drops": []
+   "drops": [],
+   "affinity": "",
+   "scavCost": 0
   },
   {
    "index": 15,
@@ -288,7 +310,9 @@
      "item": 11302,
      "weight": 2
     }
-   ]
+   ],
+   "affinity": "Scrap",
+   "scavCost": 200
   },
   {
    "index": 16,
@@ -319,7 +343,9 @@
      "item": 6001,
      "weight": 1
     }
-   ]
+   ],
+   "affinity": "Eerie, Scrap",
+   "scavCost": 1000
   },
   {
    "index": 18,
@@ -346,7 +372,9 @@
      "item": 11312,
      "weight": 1
     }
-   ]
+   ],
+   "affinity": "Insect",
+   "scavCost": 400
   },
   {
    "index": 19,
@@ -379,7 +407,9 @@
      "item": 1012,
      "weight": 1
     }
-   ]
+   ],
+   "affinity": "Eerie, Scrap",
+   "scavCost": 600
   },
   {
    "index": 25,
@@ -406,7 +436,9 @@
      "item": 1014,
      "weight": 6
     }
-   ]
+   ],
+   "affinity": "Eerie",
+   "scavCost": 200
   },
   {
    "index": 26,
@@ -433,7 +465,9 @@
      "item": 11302,
      "weight": 6
     }
-   ]
+   ],
+   "affinity": "Eerie, Scrap",
+   "scavCost": 100
   },
   {
    "index": 29,
@@ -460,7 +494,9 @@
      "item": 11311,
      "weight": 7
     }
-   ]
+   ],
+   "affinity": "Insect",
+   "scavCost": 100
   },
   {
    "index": 30,
@@ -487,7 +523,9 @@
      "item": 11302,
      "weight": 6
     }
-   ]
+   ],
+   "affinity": "Scrap",
+   "scavCost": 100
   },
   {
    "index": 31,
@@ -514,7 +552,9 @@
      "item": 11302,
      "weight": 6
     }
-   ]
+   ],
+   "affinity": "Scrap",
+   "scavCost": 100
   },
   {
    "index": 32,
@@ -537,7 +577,9 @@
      "item": 1002,
      "weight": 9
     }
-   ]
+   ],
+   "affinity": "Normal",
+   "scavCost": 100
   },
   {
    "index": 33,
@@ -560,7 +602,9 @@
      "item": 1004,
      "weight": 6
     }
-   ]
+   ],
+   "affinity": "Normal",
+   "scavCost": 200
   },
   {
    "index": 34,
@@ -583,7 +627,9 @@
      "item": 11302,
      "weight": 7
     }
-   ]
+   ],
+   "affinity": "Scrap",
+   "scavCost": 300
   },
   {
    "index": 35,
@@ -610,7 +656,9 @@
      "item": 1010,
      "weight": 2
     }
-   ]
+   ],
+   "affinity": "Normal",
+   "scavCost": 200
   },
   {
    "index": 36,
@@ -637,7 +685,9 @@
      "item": 1010,
      "weight": 2
     }
-   ]
+   ],
+   "affinity": "Insect",
+   "scavCost": 200
   },
   {
    "index": 37,
@@ -660,7 +710,9 @@
      "item": 1004,
      "weight": 6
     }
-   ]
+   ],
+   "affinity": "Normal",
+   "scavCost": 200
   },
   {
    "index": 47,
@@ -687,7 +739,9 @@
      "item": 11302,
      "weight": 6
     }
-   ]
+   ],
+   "affinity": "Scrap",
+   "scavCost": 100
   },
   {
    "index": 48,
@@ -718,7 +772,9 @@
      "item": 1010,
      "weight": 2
     }
-   ]
+   ],
+   "affinity": "Insect",
+   "scavCost": 300
   },
   {
    "index": 49,
@@ -749,7 +805,9 @@
      "item": 1012,
      "weight": 4
     }
-   ]
+   ],
+   "affinity": "Normal",
+   "scavCost": 300
   },
   {
    "index": 50,
@@ -772,7 +830,9 @@
      "item": 1013,
      "weight": 7
     }
-   ]
+   ],
+   "affinity": "Insect",
+   "scavCost": 200
   },
   {
    "index": 51,
@@ -803,7 +863,9 @@
      "item": 1004,
      "weight": 4
     }
-   ]
+   ],
+   "affinity": "Scrap, Insect",
+   "scavCost": 300
   },
   {
    "index": 52,
@@ -832,7 +894,9 @@
      "item": 1006,
      "weight": 6
     }
-   ]
+   ],
+   "affinity": "Eerie",
+   "scavCost": 300
   },
   {
    "index": 53,
@@ -859,7 +923,9 @@
      "item": 1007,
      "weight": 3
     }
-   ]
+   ],
+   "affinity": "Eerie",
+   "scavCost": 300
   },
   {
    "index": 54,
@@ -875,7 +941,9 @@
     "evening": "art/rooms/54_plane_interior/backgrounds/playtest-b.png",
     "night": "art/rooms/54_plane_interior/backgrounds/playtest-c.png"
    },
-   "drops": []
+   "drops": [],
+   "affinity": "",
+   "scavCost": 0
   },
   {
    "index": 55,
@@ -902,7 +970,9 @@
      "item": 1011,
      "weight": 8
     }
-   ]
+   ],
+   "affinity": "Normal",
+   "scavCost": 200
   },
   {
    "index": 56,
@@ -929,7 +999,9 @@
      "item": 11311,
      "weight": 7
     }
-   ]
+   ],
+   "affinity": "Insect",
+   "scavCost": 200
   },
   {
    "index": 57,
@@ -956,7 +1028,9 @@
      "item": 1004,
      "weight": 6
     }
-   ]
+   ],
+   "affinity": "Normal",
+   "scavCost": 200
   },
   {
    "index": 58,
@@ -983,7 +1057,9 @@
      "item": 11302,
      "weight": 6
     }
-   ]
+   ],
+   "affinity": "Scrap",
+   "scavCost": 100
   },
   {
    "index": 59,
@@ -1012,7 +1088,9 @@
      "item": 11313,
      "weight": 4
     }
-   ]
+   ],
+   "affinity": "Eerie",
+   "scavCost": 200
   },
   {
    "index": 60,
@@ -1043,7 +1121,9 @@
      "item": 23102,
      "weight": 2
     }
-   ]
+   ],
+   "affinity": "Scrap",
+   "scavCost": 500
   },
   {
    "index": 61,
@@ -1070,7 +1150,9 @@
      "item": 11011,
      "weight": 4
     }
-   ]
+   ],
+   "affinity": "Normal",
+   "scavCost": 200
   },
   {
    "index": 62,
@@ -1097,7 +1179,9 @@
      "item": 1012,
      "weight": 3
     }
-   ]
+   ],
+   "affinity": "Insect",
+   "scavCost": 300
   },
   {
    "index": 63,
@@ -1128,7 +1212,9 @@
      "item": 1010,
      "weight": 2
     }
-   ]
+   ],
+   "affinity": "Normal",
+   "scavCost": 300
   },
   {
    "index": 64,
@@ -1144,7 +1230,9 @@
     "evening": "art/rooms/64_burning-room/backgrounds/room64b.gif",
     "night": "art/rooms/64_burning-room/backgrounds/room64c.gif"
    },
-   "drops": []
+   "drops": [],
+   "affinity": "",
+   "scavCost": 0
   },
   {
    "index": 65,
@@ -1173,7 +1261,9 @@
      "item": 11302,
      "weight": 7
     }
-   ]
+   ],
+   "affinity": "Eerie",
+   "scavCost": 200
   },
   {
    "index": 66,
@@ -1187,7 +1277,9 @@
     "evening": "art/rooms/66_trading-room/backgrounds/room66b.png",
     "night": "art/rooms/66_trading-room/backgrounds/room66c.png"
    },
-   "drops": []
+   "drops": [],
+   "affinity": "",
+   "scavCost": 0
   },
   {
    "index": 67,
@@ -1214,7 +1306,9 @@
      "item": 11314,
      "weight": 2
     }
-   ]
+   ],
+   "affinity": "Normal",
+   "scavCost": 400
   },
   {
    "index": 68,
@@ -1241,7 +1335,9 @@
      "item": 11314,
      "weight": 2
     }
-   ]
+   ],
+   "affinity": "Normal",
+   "scavCost": 400
   },
   {
    "index": 69,
@@ -1272,7 +1368,9 @@
      "item": 6002,
      "weight": 1
     }
-   ]
+   ],
+   "affinity": "Eerie",
+   "scavCost": 1000
   },
   {
    "index": 70,
@@ -1299,7 +1397,9 @@
      "item": 11314,
      "weight": 2
     }
-   ]
+   ],
+   "affinity": "Normal",
+   "scavCost": 200
   },
   {
    "index": 71,
@@ -1326,7 +1426,9 @@
      "item": 11312,
      "weight": 2
     }
-   ]
+   ],
+   "affinity": "Insect",
+   "scavCost": 400
   },
   {
    "index": 72,
@@ -1359,7 +1461,9 @@
      "item": 6005,
      "weight": 1
     }
-   ]
+   ],
+   "affinity": "Insect, Scrap",
+   "scavCost": 1000
   },
   {
    "index": 73,
@@ -1386,7 +1490,9 @@
      "item": 23102,
      "weight": 1
     }
-   ]
+   ],
+   "affinity": "Scrap",
+   "scavCost": 600
   },
   {
    "index": 74,
@@ -1417,7 +1523,9 @@
      "item": 11011,
      "weight": 1
     }
-   ]
+   ],
+   "affinity": "Eerie",
+   "scavCost": 400
   },
   {
    "index": 75,
@@ -1444,7 +1552,9 @@
      "item": 21205,
      "weight": 1
     }
-   ]
+   ],
+   "affinity": "Eerie",
+   "scavCost": 400
   },
   {
    "index": 76,
@@ -1471,7 +1581,9 @@
      "item": 6004,
      "weight": 1
     }
-   ]
+   ],
+   "affinity": "Insect",
+   "scavCost": 1000
   },
   {
    "index": 77,
@@ -1498,7 +1610,9 @@
      "item": 11312,
      "weight": 2
     }
-   ]
+   ],
+   "affinity": "Insect",
+   "scavCost": 200
   },
   {
    "index": 78,
@@ -1525,7 +1639,9 @@
      "item": 11302,
      "weight": 2
     }
-   ]
+   ],
+   "affinity": "Insect",
+   "scavCost": 400
   },
   {
    "index": 79,
@@ -1556,7 +1672,9 @@
      "item": 1013,
      "weight": 2
     }
-   ]
+   ],
+   "affinity": "Normal",
+   "scavCost": 200
   },
   {
    "index": 80,
@@ -1591,7 +1709,9 @@
      "item": 1021,
      "weight": 1
     }
-   ]
+   ],
+   "affinity": "Eerie",
+   "scavCost": 400
   },
   {
    "index": 81,
@@ -1618,7 +1738,9 @@
      "item": 11314,
      "weight": 2
     }
-   ]
+   ],
+   "affinity": "Normal",
+   "scavCost": 400
   },
   {
    "index": 82,
@@ -1649,7 +1771,9 @@
      "item": 6003,
      "weight": 1
     }
-   ]
+   ],
+   "affinity": "Scrap",
+   "scavCost": 1000
   },
   {
    "index": 83,
@@ -1676,7 +1800,9 @@
      "item": 11314,
      "weight": 2
     }
-   ]
+   ],
+   "affinity": "Normal",
+   "scavCost": 200
   },
   {
    "index": 84,
@@ -1703,7 +1829,9 @@
      "item": 11302,
      "weight": 2
     }
-   ]
+   ],
+   "affinity": "Scrap",
+   "scavCost": 400
   },
   {
    "index": 85,
@@ -1726,7 +1854,9 @@
      "item": 11314,
      "weight": 2
     }
-   ]
+   ],
+   "affinity": "Normal",
+   "scavCost": 400
   },
   {
    "index": 86,
@@ -1757,7 +1887,9 @@
      "item": 1007,
      "weight": 1
     }
-   ]
+   ],
+   "affinity": "Eerie, Insect",
+   "scavCost": 1000
   },
   {
    "index": 87,
@@ -1788,7 +1920,9 @@
      "item": 11011,
      "weight": 1
     }
-   ]
+   ],
+   "affinity": "Eerie",
+   "scavCost": 600
   },
   {
    "index": 88,
@@ -1817,7 +1951,9 @@
      "item": 1006,
      "weight": 1
     }
-   ]
+   ],
+   "affinity": "Scrap",
+   "scavCost": 600
   },
   {
    "index": 89,
@@ -1844,7 +1980,9 @@
      "item": 19301,
      "weight": 1
     }
-   ]
+   ],
+   "affinity": "Insect",
+   "scavCost": 600
   },
   {
    "index": 90,
@@ -1867,7 +2005,9 @@
      "item": 11311,
      "weight": 2
     }
-   ]
+   ],
+   "affinity": "Eerie",
+   "scavCost": 400
   }
  ],
  "items": [
@@ -2089,6 +2229,13 @@
    "art": "art/items/resin_tincture.png"
   },
   {
+   "index": 1203,
+   "src": "Fuliginous Ooze",
+   "type": "Material",
+   "rarity": "Legendary",
+   "art": "art/items/fuliginous_ooze.png"
+  },
+  {
    "index": 1301,
    "src": "Ashlar",
    "type": "Material",
@@ -2159,6 +2306,20 @@
    "art": "art/items/pure_essence.png"
   },
   {
+   "index": 11001,
+   "src": "Red Ribbon Gummy",
+   "type": "Consumable",
+   "rarity": "Uncommon",
+   "art": "art/items/red_ribbon_gummy.png"
+  },
+  {
+   "index": 11003,
+   "src": "Djed Pillar",
+   "type": "Consumable",
+   "rarity": "Uncommon",
+   "art": "art/items/djed_pillar.png"
+  },
+  {
    "index": 11004,
    "src": "Pale Potion",
    "type": "Potion",
@@ -2171,6 +2332,13 @@
    "type": "Material",
    "rarity": "Uncommon",
    "art": "art/items/holy_dust.png"
+  },
+  {
+   "index": 11020,
+   "src": "Cleaning Fluid",
+   "type": "Potion",
+   "rarity": "Rare",
+   "art": "art/items/cleaning_fluid.png"
   },
   {
    "index": 11110,
@@ -2229,6 +2397,34 @@
    "art": "art/items/xp_candy_huge.png"
   },
   {
+   "index": 11211,
+   "src": "“Cultivation I” Spell Card",
+   "type": "Spell Card",
+   "rarity": "Uncommon",
+   "art": "art/items/cultivation_i_spell_card.png"
+  },
+  {
+   "index": 11212,
+   "src": "“Cultivation II” Spell Card",
+   "type": "Spell Card",
+   "rarity": "Uncommon",
+   "art": "art/items/cultivation_ii_spell_card.png"
+  },
+  {
+   "index": 11213,
+   "src": "“Cultivation III” Spell Card",
+   "type": "Spell Card",
+   "rarity": "Rare",
+   "art": "art/items/cultivation_iii_spell_card.png"
+  },
+  {
+   "index": 11214,
+   "src": "“Cultivation IV” Spell Card",
+   "type": "Spell Card",
+   "rarity": "Epic",
+   "art": "art/items/cultivation_iv_spell_card.png"
+  },
+  {
    "index": 11221,
    "src": "Full Heart Crystal",
    "type": "Food",
@@ -2248,6 +2444,20 @@
    "type": "Food",
    "rarity": "Epic",
    "art": "art/items/great_heart_crystal.png"
+  },
+  {
+   "index": 11224,
+   "src": "Inverted Teardrop Jewel",
+   "type": "Consumable",
+   "rarity": "Rare",
+   "art": "art/items/inverted_teardrop_jewel.png"
+  },
+  {
+   "index": 11225,
+   "src": "Teardrop Jewel",
+   "type": "Consumable",
+   "rarity": "Rare",
+   "art": "art/items/teardrop_jewel.png"
   },
   {
    "index": 11226,
@@ -2432,6 +2642,13 @@
    "art": "art/items/toadstool_liquor.png"
   },
   {
+   "index": 11502,
+   "src": "Sarcophagus Honey",
+   "type": "Consumable",
+   "rarity": "Epic",
+   "art": "art/items/sarcophagus_honey.png"
+  },
+  {
    "index": 19001,
    "src": "Spirit Glue",
    "type": "Potion",
@@ -2460,11 +2677,46 @@
    "art": "art/items/curse_tablet.png"
   },
   {
+   "index": 21003,
+   "src": "Wonder Egg",
+   "type": "Lootbox",
+   "rarity": "Rare",
+   "art": "art/items/wonder_egg.png"
+  },
+  {
+   "index": 21004,
+   "src": "Booster Pack",
+   "type": "Lootbox",
+   "rarity": "Rare",
+   "art": "art/items/booster_pack.png"
+  },
+  {
+   "index": 21005,
+   "src": "Mochibox",
+   "type": "Lootbox",
+   "rarity": "Epic",
+   "art": "art/items/mochibox.png"
+  },
+  {
+   "index": 21006,
+   "src": "Atonement Box",
+   "type": "Lootbox",
+   "rarity": "Epic",
+   "art": "art/items/atonement_box.png"
+  },
+  {
    "index": 21007,
    "src": "Silt-Caked Box",
    "type": "Lootbox",
    "rarity": "Uncommon",
    "art": "art/items/silt_caked_box.png"
+  },
+  {
+   "index": 21008,
+   "src": "Golden Box",
+   "type": "Lootbox",
+   "rarity": "Epic",
+   "art": "art/items/golden_box.png"
   },
   {
    "index": 21201,
@@ -2502,6 +2754,27 @@
    "art": "art/items/uninteresting_paste.png"
   },
   {
+   "index": 22802,
+   "src": "Ring of Spirits",
+   "type": "Key Item",
+   "rarity": "Epic",
+   "art": "art/items/ring_of_spirits.webp"
+  },
+  {
+   "index": 23100,
+   "src": "Spice Grinder",
+   "type": "Tool",
+   "rarity": "Uncommon",
+   "art": "art/items/spice_grinder.png"
+  },
+  {
+   "index": 23101,
+   "src": "Portable Burner",
+   "type": "Tool",
+   "rarity": "Uncommon",
+   "art": "art/items/portable_burner.png"
+  },
+  {
    "index": 23102,
    "src": "Screwdriver",
    "type": "Tool",
@@ -2537,11 +2810,53 @@
    "art": "art/items/aetheric_sextant.png"
   },
   {
+   "index": 100005,
+   "src": "Pyramid Engine",
+   "type": "Key Item",
+   "rarity": "Epic",
+   "art": "art/items/pyramid_engine.png"
+  },
+  {
+   "index": 100006,
+   "src": "“KW Maps” Data Chip",
+   "type": "Key Item",
+   "rarity": "Rare",
+   "art": "art/items/kw_maps_data_chip.png"
+  },
+  {
+   "index": 100007,
+   "src": "Unmarked Data Chip",
+   "type": "Key Item",
+   "rarity": "Rare",
+   "art": "art/items/unmarked_data_chip.png"
+  },
+  {
+   "index": 100008,
+   "src": "Rock Crystal Lens",
+   "type": "Key Item",
+   "rarity": "Epic",
+   "art": "art/items/rock_crystal_lens.png"
+  },
+  {
+   "index": 100009,
+   "src": "Switchbox Imp",
+   "type": "Key Item",
+   "rarity": "Epic",
+   "art": "art/items/switchbox_imp.png"
+  },
+  {
    "index": 100010,
    "src": "Dowsing Rod",
    "type": "Key Item",
    "rarity": "Epic",
    "art": "art/items/dowsing_rod.png"
+  },
+  {
+   "index": 100011,
+   "src": "“Homecoming” Data Chip",
+   "type": "Key Item",
+   "rarity": "Epic",
+   "art": "art/items/homecoming_data_chip.png"
   },
   {
    "index": 100012,
@@ -2567,7 +2882,10 @@
      "amount": 1000
     }
    ],
-   "stamina": 20
+   "stamina": 20,
+   "xp": 50,
+   "tool": 23101,
+   "room": null
   },
   {
    "index": 2,
@@ -2584,7 +2902,10 @@
      "amount": 15000
     }
    ],
-   "stamina": 50
+   "stamina": 50,
+   "xp": 1000,
+   "tool": 23101,
+   "room": null
   },
   {
    "index": 3,
@@ -2601,7 +2922,10 @@
      "amount": 500
     }
    ],
-   "stamina": 50
+   "stamina": 50,
+   "xp": 200,
+   "tool": 23101,
+   "room": null
   },
   {
    "index": 4,
@@ -2622,7 +2946,10 @@
      "amount": 50
     }
    ],
-   "stamina": 25
+   "stamina": 25,
+   "xp": 150,
+   "tool": 23101,
+   "room": null
   },
   {
    "index": 5,
@@ -2639,7 +2966,10 @@
      "amount": 100
     }
    ],
-   "stamina": 15
+   "stamina": 15,
+   "xp": 50,
+   "tool": 23101,
+   "room": null
   },
   {
    "index": 6,
@@ -2652,7 +2982,10 @@
      "amount": 1
     }
    ],
-   "stamina": 10
+   "stamina": 10,
+   "xp": 25,
+   "tool": 23100,
+   "room": null
   },
   {
    "index": 7,
@@ -2665,7 +2998,10 @@
      "amount": 1
     }
    ],
-   "stamina": 30
+   "stamina": 30,
+   "xp": 100,
+   "tool": 23100,
+   "room": null
   },
   {
    "index": 8,
@@ -2678,7 +3014,10 @@
      "amount": 1
     }
    ],
-   "stamina": 10
+   "stamina": 10,
+   "xp": 25,
+   "tool": 23100,
+   "room": null
   },
   {
    "index": 9,
@@ -2691,7 +3030,10 @@
      "amount": 1
     }
    ],
-   "stamina": 20
+   "stamina": 20,
+   "xp": 100,
+   "tool": 23100,
+   "room": null
   },
   {
    "index": 10,
@@ -2704,7 +3046,10 @@
      "amount": 1
     }
    ],
-   "stamina": 20
+   "stamina": 20,
+   "xp": 250,
+   "tool": 23100,
+   "room": null
   },
   {
    "index": 11,
@@ -2725,7 +3070,10 @@
      "amount": 1
     }
    ],
-   "stamina": 100
+   "stamina": 100,
+   "xp": 5000,
+   "tool": null,
+   "room": null
   },
   {
    "index": 12,
@@ -2738,7 +3086,10 @@
      "amount": 1
     }
    ],
-   "stamina": 10
+   "stamina": 10,
+   "xp": 50,
+   "tool": 23100,
+   "room": null
   },
   {
    "index": 13,
@@ -2751,7 +3102,10 @@
      "amount": 1
     }
    ],
-   "stamina": 20
+   "stamina": 20,
+   "xp": 250,
+   "tool": 23100,
+   "room": null
   },
   {
    "index": 14,
@@ -2764,7 +3118,10 @@
      "amount": 1
     }
    ],
-   "stamina": 20
+   "stamina": 20,
+   "xp": 100,
+   "tool": 23101,
+   "room": null
   },
   {
    "index": 15,
@@ -2777,7 +3134,10 @@
      "amount": 1
     }
    ],
-   "stamina": 10
+   "stamina": 10,
+   "xp": 25,
+   "tool": 23101,
+   "room": null
   },
   {
    "index": 16,
@@ -2790,7 +3150,10 @@
      "amount": 1
     }
    ],
-   "stamina": 10
+   "stamina": 10,
+   "xp": 25,
+   "tool": 23100,
+   "room": null
   },
   {
    "index": 17,
@@ -2803,7 +3166,10 @@
      "amount": 1
     }
    ],
-   "stamina": 25
+   "stamina": 25,
+   "xp": 30,
+   "tool": 23102,
+   "room": null
   },
   {
    "index": 18,
@@ -2824,7 +3190,10 @@
      "amount": 250
     }
    ],
-   "stamina": 20
+   "stamina": 20,
+   "xp": 75,
+   "tool": 23101,
+   "room": null
   },
   {
    "index": 19,
@@ -2845,7 +3214,10 @@
      "amount": 500
     }
    ],
-   "stamina": 50
+   "stamina": 50,
+   "xp": 75,
+   "tool": 23101,
+   "room": null
   },
   {
    "index": 20,
@@ -2866,7 +3238,10 @@
      "amount": 150
     }
    ],
-   "stamina": 20
+   "stamina": 20,
+   "xp": 75,
+   "tool": 23100,
+   "room": null
   },
   {
    "index": 21,
@@ -2883,7 +3258,10 @@
      "amount": 250
     }
    ],
-   "stamina": 25
+   "stamina": 25,
+   "xp": 100,
+   "tool": 23102,
+   "room": null
   },
   {
    "index": 22,
@@ -2904,7 +3282,10 @@
      "amount": 100
     }
    ],
-   "stamina": 25
+   "stamina": 25,
+   "xp": 100,
+   "tool": 23102,
+   "room": null
   },
   {
    "index": 23,
@@ -2925,7 +3306,10 @@
      "amount": 250
     }
    ],
-   "stamina": 20
+   "stamina": 20,
+   "xp": 75,
+   "tool": 23101,
+   "room": null
   },
   {
    "index": 24,
@@ -2946,7 +3330,10 @@
      "amount": 100
     }
    ],
-   "stamina": 20
+   "stamina": 20,
+   "xp": 200,
+   "tool": 23101,
+   "room": null
   },
   {
    "index": 25,
@@ -2967,7 +3354,10 @@
      "amount": 1
     }
    ],
-   "stamina": 25
+   "stamina": 25,
+   "xp": 300,
+   "tool": 23101,
+   "room": null
   },
   {
    "index": 26,
@@ -2988,7 +3378,10 @@
      "amount": 500
     }
    ],
-   "stamina": 50
+   "stamina": 50,
+   "xp": 1500,
+   "tool": null,
+   "room": null
   },
   {
    "index": 28,
@@ -3009,7 +3402,10 @@
      "amount": 250
     }
    ],
-   "stamina": 50
+   "stamina": 50,
+   "xp": 1000,
+   "tool": 23101,
+   "room": null
   },
   {
    "index": 29,
@@ -3030,7 +3426,10 @@
      "amount": 1
     }
    ],
-   "stamina": 75
+   "stamina": 75,
+   "xp": 7500,
+   "tool": 23101,
+   "room": null
   },
   {
    "index": 30,
@@ -3063,7 +3462,10 @@
      "amount": 1
     }
    ],
-   "stamina": 75
+   "stamina": 75,
+   "xp": 10000,
+   "tool": null,
+   "room": null
   },
   {
    "index": 31,
@@ -3076,7 +3478,10 @@
      "amount": 100
     }
    ],
-   "stamina": 50
+   "stamina": 50,
+   "xp": 300,
+   "tool": 23101,
+   "room": null
   },
   {
    "index": 32,
@@ -3089,7 +3494,10 @@
      "amount": 100
     }
    ],
-   "stamina": 50
+   "stamina": 50,
+   "xp": 300,
+   "tool": 23101,
+   "room": null
   },
   {
    "index": 33,
@@ -3102,7 +3510,10 @@
      "amount": 100
     }
    ],
-   "stamina": 50
+   "stamina": 50,
+   "xp": 300,
+   "tool": 23100,
+   "room": null
   },
   {
    "index": 34,
@@ -3115,7 +3526,10 @@
      "amount": 100
     }
    ],
-   "stamina": 50
+   "stamina": 50,
+   "xp": 300,
+   "tool": 23101,
+   "room": null
   },
   {
    "index": 35,
@@ -3128,7 +3542,10 @@
      "amount": 100
     }
    ],
-   "stamina": 50
+   "stamina": 50,
+   "xp": 300,
+   "tool": 23101,
+   "room": null
   },
   {
    "index": 36,
@@ -3141,7 +3558,10 @@
      "amount": 100
     }
    ],
-   "stamina": 50
+   "stamina": 50,
+   "xp": 300,
+   "tool": 23100,
+   "room": null
   },
   {
    "index": 37,
@@ -3158,7 +3578,10 @@
      "amount": 1
     }
    ],
-   "stamina": 50
+   "stamina": 50,
+   "xp": 1500,
+   "tool": 23101,
+   "room": null
   },
   {
    "index": 38,
@@ -3171,7 +3594,10 @@
      "amount": 1
     }
    ],
-   "stamina": 15
+   "stamina": 15,
+   "xp": 50,
+   "tool": 23100,
+   "room": null
   },
   {
    "index": 39,
@@ -3184,7 +3610,10 @@
      "amount": 1
     }
    ],
-   "stamina": 30
+   "stamina": 30,
+   "xp": 250,
+   "tool": 23100,
+   "room": null
   },
   {
    "index": 40,
@@ -3205,7 +3634,10 @@
      "amount": 100
     }
    ],
-   "stamina": 50
+   "stamina": 50,
+   "xp": 500,
+   "tool": 23101,
+   "room": null
   },
   {
    "index": 41,
@@ -3226,7 +3658,10 @@
      "amount": 1
     }
    ],
-   "stamina": 100
+   "stamina": 100,
+   "xp": 2500,
+   "tool": null,
+   "room": null
   },
   {
    "index": 42,
@@ -3247,7 +3682,10 @@
      "amount": 1
     }
    ],
-   "stamina": 15
+   "stamina": 15,
+   "xp": 50,
+   "tool": null,
+   "room": null
   },
   {
    "index": 10002,
@@ -3260,7 +3698,203 @@
      "amount": 1
     }
    ],
-   "stamina": 0
+   "stamina": 0,
+   "xp": 0,
+   "tool": null,
+   "room": 11
   }
- ]
+ ],
+ "boxes": {
+  "21002": [],
+  "21003": [
+   {
+    "item": 11227,
+    "tier": 9
+   },
+   {
+    "item": 11222,
+    "tier": 9
+   },
+   {
+    "item": 11225,
+    "tier": 7
+   },
+   {
+    "item": 11224,
+    "tier": 7
+   },
+   {
+    "item": 11221,
+    "tier": 5
+   },
+   {
+    "item": 11226,
+    "tier": 5
+   },
+   {
+    "item": 11223,
+    "tier": 4
+   },
+   {
+    "item": 1203,
+    "tier": 2
+   }
+  ],
+  "21004": [
+   {
+    "item": 11211,
+    "tier": 6
+   },
+   {
+    "item": 11212,
+    "tier": 4
+   },
+   {
+    "item": 11213,
+    "tier": 1
+   }
+  ],
+  "21005": [
+   {
+    "item": 11120,
+    "tier": 9
+   },
+   {
+    "item": 11130,
+    "tier": 9
+   },
+   {
+    "item": 11140,
+    "tier": 9
+   },
+   {
+    "item": 11110,
+    "tier": 9
+   }
+  ],
+  "21007": [
+   {
+    "item": 1020,
+    "tier": 11
+   },
+   {
+    "item": 1016,
+    "tier": 11
+   },
+   {
+    "item": 1018,
+    "tier": 11
+   },
+   {
+    "item": 11311,
+    "tier": 11
+   },
+   {
+    "item": 11302,
+    "tier": 11
+   },
+   {
+    "item": 11312,
+    "tier": 11
+   },
+   {
+    "item": 1019,
+    "tier": 11
+   },
+   {
+    "item": 11401,
+    "tier": 9
+   },
+   {
+    "item": 11410,
+    "tier": 9
+   },
+   {
+    "item": 11313,
+    "tier": 9
+   },
+   {
+    "item": 11011,
+    "tier": 9
+   },
+   {
+    "item": 6001,
+    "tier": 6
+   },
+   {
+    "item": 6002,
+    "tier": 6
+   },
+   {
+    "item": 6003,
+    "tier": 6
+   },
+   {
+    "item": 6004,
+    "tier": 6
+   },
+   {
+    "item": 6005,
+    "tier": 6
+   },
+   {
+    "item": 21003,
+    "tier": 11
+   },
+   {
+    "item": 11020,
+    "tier": 5
+   },
+   {
+    "item": 6007,
+    "tier": 4
+   },
+   {
+    "item": 11110,
+    "tier": 2
+   },
+   {
+    "item": 11120,
+    "tier": 2
+   },
+   {
+    "item": 11130,
+    "tier": 2
+   },
+   {
+    "item": 11140,
+    "tier": 2
+   }
+  ],
+  "21008": [
+   {
+    "item": 21005,
+    "tier": 2
+   },
+   {
+    "item": 100009,
+    "tier": 2
+   },
+   {
+    "item": 1203,
+    "tier": 5
+   },
+   {
+    "item": 11502,
+    "tier": 5
+   },
+   {
+    "item": 19301,
+    "tier": 5
+   },
+   {
+    "item": 11214,
+    "tier": 5
+   },
+   {
+    "item": 1012,
+    "tier": 7
+   }
+  ]
+ }
 }

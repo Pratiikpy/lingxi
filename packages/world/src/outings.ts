@@ -107,7 +107,10 @@ export function endWalk(w: WorldState, now: number, mods: ExploreMods = NO_EXPLO
   const capped = walksToday(w, now) >= WALKS_WITH_FINDS + mods.walksWithFinds;
   const counts = minutes >= WALK_COUNTS_AFTER_MINUTES || walk.finds.length > 0;
   const { walk: _done, ...rest } = settled.world;
-  const done: WorldState = { ...rest, bag, walksDay: day, walksToday: walksToday(w, now) + (counts ? 1 : 0) };
+  // a walk with finds makes the place it set out from a little more familiar (plan 4.5); the secret shows on the next look there
+  const size = ROOMS[w.room]?.drops.length ? (ROOMS[w.room]?.familiarSize ?? 0) : 0;
+  const familiar = size && walk.finds.length ? { ...(w.familiar ?? {}), [w.room]: Math.min(size, (w.familiar?.[w.room] ?? 0) + 1) } : w.familiar;
+  const done: WorldState = { ...rest, bag, walksDay: day, walksToday: walksToday(w, now) + (counts ? 1 : 0), ...(familiar ? { familiar } : {}) };
   return { ok: true, steps: walkSteps(walk, now), minutes, finds: walk.finds, capped, world: bumpFinds(counts ? bump(done, "WALK") : done, walk.finds) };
 }
 

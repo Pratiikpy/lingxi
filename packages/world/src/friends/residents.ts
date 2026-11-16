@@ -264,7 +264,7 @@ export const RESIDENT_FRIENDS: readonly FriendSheet[] = [
   friend({
     id: "bolt",
     kind: "resident",
-    likes: { love: [1303, 1017], like: [1005, 1302, 1301], dislike: [21201] },
+    likes: { love: [1303, 1017], like: [1005, 1302, 1301, 100009], dislike: [21201] },
     reactions: {
       love: say(R.two, "A metal bar! Beep. Sorry. Happy beep. I can make three things with this.", "金属条！哔。抱歉。是开心的哔。我能用它做三样东西。"),
       like: say(R.one, "Useful. Everything's useful, but this is useful now.", "有用。什么都有用，但这个现在就有用。"),
