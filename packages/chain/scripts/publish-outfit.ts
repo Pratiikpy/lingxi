@@ -48,7 +48,8 @@ const hat = {
   ],
 };
 const price = parseEther("0.001");
-const { id, tx } = await publishDesign(pub, wallet, d, { pixels: encodeDesign(hat), name: "Hundred-day party hat", price, maxSupply: 100, royaltyBps: 500 });
-const back = await readDesign(pub, d, id);
+const v1 = { v: 1 as const, address: d.outfitMarket! };
+const { id, tx } = await publishDesign(pub, wallet, v1, { pixels: encodeDesign(hat), name: "Hundred-day party hat", price, maxSupply: 100, royaltyBps: 500 });
+const back = await readDesign(pub, v1, id);
 if (JSON.stringify(decodeDesign(Uint8Array.from(Buffer.from(back.pixels.slice(2), "hex"))).cells) !== JSON.stringify(hat.cells)) throw new Error("the design on chain differs");
 console.log(`design #${id} "${back.name}" published: ${tx}; ${formatEther(back.price)} OKB a copy, ${back.maxSupply} copies, creator ${back.creator}`);

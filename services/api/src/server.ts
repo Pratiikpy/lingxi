@@ -35,6 +35,7 @@ import { PlanSchema, createPusher, type Pusher } from "./push";
 import { VoiceRequest, createVoice } from "./voice";
 import { LibraryRule, createLibrary, type Library } from "./library";
 import { createIndexer, type Indexer } from "./indexer";
+import { createSalesCounter, withNumbers } from "./numbers";
 import { buildTree } from "./tree";
 import { type DiaryStore, createDiaryStore } from "./diaries";
 import { MAX_MOVE_CHARS, type MoveStore, createMoveStore } from "./move";
@@ -561,6 +562,24 @@ if (isMain) {
     withTree(app, indexer, look ? async (id) => String(await lookClient.readContract({ address: look, abi: lookAbi, functionName: "nameOf", args: [BigInt(id)] })) : undefined);
     const loop = () => indexer.catchUp().catch(() => 0).finally(() => setTimeout(loop, 15_000));
     loop();
+    // live numbers: the pet counts above, both markets' sales, and the contracts' own totals
+    const rpc = process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech";
+    const env = (k: string) => (process.env[k] ? (process.env[k] as `0x${string}`) : undefined);
+    const markets = [
+      { address: env("LINGXI_MARKET_OKB"), fromBlock: Number(process.env.LINGXI_MARKET_OKB_FROM ?? 0) },
+      { address: env("LINGXI_MARKET_BEM"), fromBlock: Number(process.env.LINGXI_MARKET_BEM_FROM ?? 0) },
+    ].filter((m): m is { address: `0x${string}`; fromBlock: number } => !!m.address && m.fromBlock > 0);
+    const sales = createSalesCounter({ rpc, markets, store: process.env.LINGXI_SALES_STORE });
+    const salesLoop = () => sales.catchUp().catch(() => undefined).finally(() => setTimeout(salesLoop, 20_000));
+    salesLoop();
+    withNumbers(app, {
+      pub: createPublicClient({ transport: http(rpc, { timeout: 15_000 }) }) as never,
+      counts: (since) => indexer.counts(since),
+      petsIndexedTo: () => indexer.head(),
+      sales,
+      contracts: { registry: process.env.LINGXI_REGISTRY as `0x${string}`, marketOkb: env("LINGXI_MARKET_OKB"), marketBem: env("LINGXI_MARKET_BEM"), breeder: env("LINGXI_BREEDER"), gift: env("LINGXI_GIFT") },
+      explorer: "https://www.oklink.com/xlayer",
+    });
   }
   const pusher = makePusher();
   if (pusher) {

@@ -57,6 +57,7 @@ export const COPY = {
     foot: "A pet with a provable mind, built on TapeOut and X Layer.",
     agents: "For AI agents: the open API",
     tree: "The tree of life: every pet on chain",
+    numbers: "Live numbers: pets, sales and BEM burned",
   },
   zh: {
     nav: ["成长", "心智", "教它", "朋友", "验证"],
@@ -114,5 +115,6 @@ export const COPY = {
     foot: "一只心智可验证的宠物，基于 TapeOut 与 X Layer。",
     agents: "给 AI 智能体：开放接口",
     tree: "生命之树：链上的每一只宠物",
+    numbers: "链上数字：宠物、交易和销毁的 BEM",
   },
 } as const;

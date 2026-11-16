@@ -4,13 +4,14 @@
  * and the family tree.
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { drawPet } from "@lingxi/art";
 import { type Family, type ParentInfo, type Pet, BOND_LEVELS, BREED_COOLDOWN_DAYS, FAMILY_BOND_LEVEL, bondLevel, canBreed, childMemory, createPet, dayOf, familyOf, mindBrain, parseCard, stageOf } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { MAX_PETS, useGame } from "../game/store";
-import { petKey, useChain } from "../game/chain";
+import { deployment, petKey, publicClient, useChain } from "../game/chain";
+import { breedingTerms, formatBem } from "@lingxi/chain";
 import { useLive } from "../game/live";
 import { bondName, bondsOf, friendKey, useFriends } from "../game/friends";
 import { play } from "../game/sound";
@@ -123,6 +124,16 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
   const replace = useGame((s) => s.replace);
   const [name, setName] = useState("");
   const [hatching, setHatching] = useState<"idle" | "busy" | string>("idle");
+  // the BEM breeder's fee, read once; null on the free breeder or before it is read
+  const [fee, setFee] = useState<bigint | null>(null);
+  useEffect(() => {
+    if (!deployment?.breederBem) return;
+    let live = true;
+    void breedingTerms(publicClient, deployment).then((t) => live && setFee(t?.fee ?? null), () => undefined);
+    return () => {
+      live = false;
+    };
+  }, []);
   const partnerIsChild = useMemo(() => !!(answer?.card && parseCard(answer.card)?.family), [answer]);
   const family = useMemo<Family | null>(() => {
     if (!answer?.yes || !answer.card) return null;
@@ -203,7 +214,13 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
           <input value={name} maxLength={12} onChange={(e) => setName(e.target.value)} placeholder={lang === "zh" ? "小宝" : "Bean"} autoFocus />
         </label>
         {canChain && !chainError && (
-          <p className="small">{lang === "zh" ? "它会在链上出生：先刻好它的电路，再由繁育合约核对父母并孵化。" : "It will be born on chain: its circuit is taped out, then the Breeder checks both parents and hatches it."}</p>
+          <p className="small">
+            {lang === "zh" ? "它会在链上出生：先刻好它的电路，再由繁育合约核对父母并孵化。" : "It will be born on chain: its circuit is taped out, then the Breeder checks both parents and hatches it."}
+            {fee !== null &&
+              (lang === "zh"
+                ? ` 链上出生要 ${formatBem(fee)} BEM，这笔钱会被销毁；钱包可能先请你允许取用正好这么多。`
+                : ` Being born on chain costs ${formatBem(fee)} BEM, which is burned; your wallet may first ask you to allow exactly that much.`)}
+          </p>
         )}
         {chainError && (
           <p className="small warn">
@@ -215,6 +232,14 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
                 ? lang === "zh"
                   ? "链上显示它们还在休息。"
                   : "The chain says they are still resting."
+                : chainError === "tooManyChildren"
+                  ? lang === "zh"
+                    ? "每只宠物一生最多有 4 个孩子，其中一位已经满了。"
+                    : "Each pet can have at most four little ones in its life, and one of these two already has."
+                  : chainError === "notEnoughBem"
+                    ? lang === "zh"
+                      ? `这个钱包在 X Layer 上的 BEM 不够付 ${fee !== null ? formatBem(fee) : ""} BEM 的出生费用。`
+                      : `This wallet doesn't hold the ${fee !== null ? formatBem(fee) : ""} BEM for being born on chain.`
                 : lang === "zh"
                   ? `链上出生没成功（${chainError}）。`
                   : `Being born on chain didn't work (${chainError}).`}

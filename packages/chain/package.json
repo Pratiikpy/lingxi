@@ -15,8 +15,9 @@
     "@lingxi/art": "workspace:*",
     "@lingxi/brain": "workspace:*",
     "@lingxi/game": "workspace:*",
-    "viem": "2.57.7",
-    "@lingxi/send": "workspace:*"
+    "@lingxi/send": "workspace:*",
+    "@openzeppelin/merkle-tree": "1.0.8",
+    "viem": "2.57.7"
   },
   "devDependencies": {
     "@types/node": "22.15.30",

@@ -1,40 +1,47 @@
 {
   "chainId": 196,
-  "rpc": "http://127.0.0.1:8550",
+  "rpc": "http://127.0.0.1:8580",
   "processor": "0xf70d324Da8C1C4Cb0dE3FF147E53E7E9db543c4e",
+  "processorIndex": 419,
   "transistors": "0x92DFda52386386Be40EFd7becB545139372C7139",
   "registry": "0x103d7252eb6b2fec22b3f65a6bb605945f280e99",
-  "breeder": "0x5e5bbb798c5a2afc89f431debabaa0b889f77dd1",
+  "breeder": "0x8da8221466de12321e6ee2ea73d62aaf28bb11b0",
   "redPacket": "0x7acceb7ab1cff102fe2660f511e88d42010e806b",
   "seal": "5",
-  "redPacketBlock": 75967992,
+  "redPacketBlock": 75968151,
   "deployer": "0xA551feD6f2Ab35d509A71B74D5E9F38742E0aaD8",
   "circuits": {
     "gentle": {
       "id": "1",
-      "tx": "0xe5a3ba0e8cc35d1d5e699b936354080740ec7e44e8578c6e746b78297811634b",
+      "tx": "0x82ae06e471e7dc909bb26ae96cedb42537a59662c11343d830f75f3bf7665513",
       "gates": 296
     },
     "bold": {
       "id": "2",
-      "tx": "0x2ec87cb6fe9980f98818acda649f5f43202f7a02d9f5d29b18a127b744758e73",
+      "tx": "0xc779e53f81b6c035beb3a70cf5cf09c6b4c989b647dcb7a4b68b6c6e78b4c88d",
       "gates": 233
     },
     "curious": {
       "id": "3",
-      "tx": "0x6429d3fd89e7b5e2183b465b419728c7262720667ed4e74fbea2874194f1c03d",
+      "tx": "0x5ee1ea941f6442f0f0010564689f6f06ef889ad2f5efa875c47dc85cdf3b12cf",
       "gates": 248
     },
     "evolution": {
       "id": "4",
-      "tx": "0x9c9b6dcdd4cf7ec1fb77d2b7081f7344d3ffce1fd7f2da396e56dcb7ea9f5cfb",
+      "tx": "0xdd18a767bf93b330c46a5d9f2860ccb5641284031150c7274be56113a7cc1471",
       "gates": 58
     },
     "seal": {
       "id": "5",
-      "tx": "0xc10a3f4bd37a19bffbc171722ef46e472ff72ccc0db87734cb37038f0215c45a",
+      "tx": "0x594f7fb8632746e2cdfe0a5dd3ee80fcead5adccc49ad134f78f9b9f0e0a4075",
       "gates": 251
     }
   },
-  "at": "2026-11-15T10:03:54.852Z"
+  "at": "2026-11-15T10:06:29.079Z",
+  "look": "0x0642a802967260714d4efec05fef701b17d31b75",
+  "outfitMarket": "0xb9f6b18edd21933582ec69fb1e718d9629e684cd",
+  "outfitMarketBlock": 76011196,
+  "breederBem": true,
+  "breederBlock": 76053901,
+  "breederFree": "0x5e5bbb798c5a2afc89f431debabaa0b889f77dd1"
 }

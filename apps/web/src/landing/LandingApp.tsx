@@ -400,6 +400,9 @@ export function LandingApp() {
         <a className="l-foot-link" href="tree.html">
           {c.tree}
         </a>
+        <a className="l-foot-link" href="numbers.html">
+          {c.numbers}
+        </a>
       </footer>
     </>
   );

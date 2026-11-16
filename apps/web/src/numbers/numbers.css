@@ -1,0 +1,48 @@
+/* Live numbers: the agents page frame, one card per group, each number with what it counts. */
+
+.nb-group {
+  display: grid;
+  gap: var(--s2);
+}
+.nb-group h2 {
+  margin: var(--s3) 0 0;
+  font: 800 1.2rem var(--round);
+}
+.nb-rows {
+  display: grid;
+  gap: var(--s2);
+  margin: 0;
+}
+.nb-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px var(--s3);
+  padding: var(--s2) var(--s3);
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--card);
+}
+.nb-row dt {
+  font: 800 1rem var(--round);
+  color: var(--ink);
+}
+.nb-value {
+  margin: 0;
+  font: 800 1.5rem/1.1 var(--display);
+  text-align: right;
+  color: var(--ink);
+}
+.nb-how {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+@media (max-width: 420px) {
+  .nb-row {
+    grid-template-columns: 1fr;
+  }
+  .nb-value {
+    text-align: left;
+  }
+}

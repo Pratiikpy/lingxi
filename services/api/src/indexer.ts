@@ -119,6 +119,27 @@ export function createIndexer(opts: { rpc: string; registry: Address; fromBlock:
         .filter(([, h]) => h.hatched)
         .map(([id, h]) => ({ id, line: h.hatched!.line, owner: h.hatched!.to ?? null, parents: h.parents ?? null, children: [...h.children], block: h.hatched!.block, tx: h.hatched!.tx, at: data.times[h.hatched!.block] ?? 0 }));
     },
+    /**
+     * Counts for the live-numbers page, all from PetRegistry's own events: pets hatched (from starters),
+     * children born, days saved, distinct pets saved since `sinceSec`, and distinct wallets pets were hatched for.
+     */
+    counts(sinceSec: number): { hatched: number; children: number; saves: number; savedSince: number; hatchers: number } {
+      let hatched = 0;
+      let children = 0;
+      let saves = 0;
+      let savedSince = 0;
+      const hatchers = new Set<string>();
+      for (const h of Object.values(data.pets)) {
+        if (h.hatched) {
+          if (h.parents) children++;
+          else hatched++;
+          if (h.hatched.to) hatchers.add(h.hatched.to.toLowerCase());
+        }
+        saves += h.saves.length;
+        if (h.saves.some((x) => (data.times[x.block] ?? 0) >= sinceSec)) savedSince++;
+      }
+      return { hatched, children, saves, savedSince, hatchers: hatchers.size };
+    },
     history(id: string): (PetHistory & { at: Record<string, number> }) | null {
       const h = data.pets[id];
       if (!h) return null;

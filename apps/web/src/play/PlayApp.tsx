@@ -674,7 +674,7 @@ export function PlayApp() {
         <hr className="divider" />
         <Lazy><FriendsPanel pet={pet} /></Lazy>
         <hr className="divider" />
-        <Lazy><HoldersPanel /></Lazy>
+        <Lazy><HoldersPanel pet={pet} /></Lazy>
         <hr className="divider" />
         <Lazy><AlbumPanel /></Lazy>
         <hr className="divider" />

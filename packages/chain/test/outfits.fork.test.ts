@@ -15,8 +15,9 @@ import { buyDesign, buyListing, copiesHeld, listCopies, proceedsOwed, publishDes
 const RPC = process.env.FORK_RPC;
 const file = process.env.DEPLOYMENT_FILE ?? new URL("../deployments/local.json", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const d = JSON.parse(readFileSync(file, "utf8")) as Deployment;
+const V1 = { v: 1 as const, address: d.outfitMarket! };
 
-describe.skipIf(!RPC || !d.outfitMarket)("the fashion market through the game's helpers", () => {
+describe.skipIf(!RPC || !d.outfitMarket)("the first (OKB) fashion market through the game's helpers", () => {
   it("publish, buy, resell with royalty, withdraw", async () => {
     const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
     const pub = createPublicClient({ chain, transport: http(RPC) });
@@ -26,24 +27,24 @@ describe.skipIf(!RPC || !d.outfitMarket)("the fashion market through the game's 
     const [creator, alice, bob] = [c, a, b].map((account) => createWalletClient({ chain, transport: http(RPC), account }));
 
     const drawing = { slot: "held" as const, cells: [[0, 1, 0], [1, 2, 1], [0, 3, 0], [0, 3, 0]], colours: ["#2b2140", "#ffc83d", "#7a5236"] };
-    const { id } = await publishDesign(pub, creator!, d, { pixels: encodeDesign(drawing), name: "Sun staff", price: parseEther("0.001"), maxSupply: 50, royaltyBps: 500 });
-    const onChain = await readDesign(pub, d, id);
+    const { id } = await publishDesign(pub, creator!, V1, { pixels: encodeDesign(drawing), name: "Sun staff", price: parseEther("0.001"), maxSupply: 50, royaltyBps: 500 });
+    const onChain = await readDesign(pub, V1, id);
     expect(onChain.name).toBe("Sun staff");
     expect(decodeDesign(Uint8Array.from(Buffer.from(onChain.pixels.slice(2), "hex"))).cells).toEqual(drawing.cells);
 
-    await buyDesign(pub, alice!, d, id, 2, onChain.price);
-    expect((await copiesHeld(pub, d, a!.address, [id]))[0]).toBe(2n);
-    const { listingId } = await listCopies(pub, alice!, d, id, 2, parseEther("0.004"));
-    expect((await readListings(pub, d)).some((l) => l.id === listingId)).toBe(true);
-    await buyListing(pub, bob!, d, listingId, 1, parseEther("0.004"));
-    expect((await copiesHeld(pub, d, b!.address, [id]))[0]).toBe(1n);
+    await buyDesign(pub, alice!, V1, id, 2, onChain.price);
+    expect((await copiesHeld(pub, V1, a!.address, [id]))[0]).toBe(2n);
+    const { listingId } = await listCopies(pub, alice!, V1, id, 2, parseEther("0.004"));
+    expect((await readListings(pub, V1)).some((l) => l.id === listingId)).toBe(true);
+    await buyListing(pub, bob!, V1, listingId, 1, parseEther("0.004"));
+    expect((await copiesHeld(pub, V1, b!.address, [id]))[0]).toBe(1n);
 
     // creator: 2 × 0.001 × 97% + royalty 5% of 0.004; alice: 0.004 × (100 − 3 − 5)%
-    expect(await proceedsOwed(pub, d, c!.address)).toBe(parseEther("0.00194") + parseEther("0.0002"));
-    expect(await proceedsOwed(pub, d, a!.address)).toBe(parseEther("0.00368"));
+    expect(await proceedsOwed(pub, V1, c!.address)).toBe(parseEther("0.00194") + parseEther("0.0002"));
+    expect(await proceedsOwed(pub, V1, a!.address)).toBe(parseEther("0.00368"));
     const before = await pub.getBalance({ address: a!.address });
-    await withdrawProceeds(pub, alice!, d);
-    expect(await proceedsOwed(pub, d, a!.address)).toBe(0n);
+    await withdrawProceeds(pub, alice!, V1);
+    expect(await proceedsOwed(pub, V1, a!.address)).toBe(0n);
     expect((await pub.getBalance({ address: a!.address })) > before).toBe(true);
   }, 300_000);
 });

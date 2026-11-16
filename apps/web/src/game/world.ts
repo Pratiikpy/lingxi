@@ -256,7 +256,7 @@ export const useWorld = create<WorldStore>((set, get) => ({
   },
   wear: (petKey, slot, id) => {
     // a player-made piece must be one this player may wear, in the slot it was drawn for
-    if (id && /^[uc]:/.test(id) && (!useDesigns.getState().canWear(id) || wearableOf(id)?.slot !== slot)) return;
+    if (id && /^(u|c2?):/.test(id) && (!useDesigns.getState().canWear(id) || wearableOf(id)?.slot !== slot)) return;
     const r = wearRule(get().world, petKey, slot, id);
     if (!r.ok) return set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
     save(r.world);

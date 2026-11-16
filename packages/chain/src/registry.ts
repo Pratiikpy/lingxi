@@ -12,10 +12,18 @@ import { type Circuit, REF, decode, hexToBytes, load, refKey } from "@lingxi/bra
 export interface Deployment {
   /** the Breeder contract, when families are deployed */
   breeder?: Address;
+  /** true when `breeder` is BreederV2: a BEM fee (burned), a fee cap argument, at most 4 children per pet */
+  breederBem?: boolean;
   /** red packet escrow and its seal circuit id, when deployed */
   redPacket?: Address;
-  /** the fashion market (OutfitMarket) */
+  /** the first fashion market, paid in OKB (OutfitMarket); kept for designs sold there */
   outfitMarket?: Address;
+  /** the fashion market paid in BEM, fees burned (OutfitMarketV2), and the block it was deployed at */
+  outfitMarketV2?: Address;
+  outfitMarketV2Block?: number;
+  /** the holder gift contract and the outfit it gives (a design on the BEM market) */
+  holderGift?: Address;
+  holderOutfit?: number;
   seal?: string;
   /** the on-chain picture and names contract (PetLook), when deployed */
   look?: Address;

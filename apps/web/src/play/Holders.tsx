@@ -1,11 +1,13 @@
 /** Holder cosmetics (PRD X2): connect a wallet, see what it holds, and the cosmetic things that unlocks. */
 
 import { useState } from "react";
+import type { Pet } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { connectWallet } from "../game/chain";
 import { HOLDINGS, readHoldings, useHoldings } from "../game/holders";
 import { play } from "../game/sound";
 import { Icon, type IconName } from "./icons";
+import { HolderGiftPanel } from "./HolderGift";
 
 type Lang = "en" | "zh";
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -17,7 +19,7 @@ const MARKS: Array<{ key: "rig" | "bem" | "fab" | "test1"; icon: IconName; name:
   { key: "test1", icon: "gift", name: { en: "TapeCode Test1 holder", zh: "TapeCode Test1 持有人" }, gives: { en: "a gilded egg shell when you hatch", zh: "孵化时的镀金蛋壳" } },
 ];
 
-export function HoldersPanel() {
+export function HoldersPanel({ pet }: { pet: Pet }) {
   const lang = useLang((s) => s.lang) as Lang;
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
   const { held, skinOn, set, setSkin, clear } = useHoldings();
@@ -82,6 +84,7 @@ export function HoldersPanel() {
           </button>
         )}
       </div>
+      {held && <HolderGiftPanel pet={pet} wallet={held.wallet} />}
       {held && <p className="small">{L(`Checked ${short(held.wallet)} on X Layer, ${new Date(held.at).toLocaleString("en")}.`, `已在 X Layer 上查看 ${short(held.wallet)}，${new Date(held.at).toLocaleString("zh-CN")}。`)}</p>}
       {note && (
         <p className="small sp-warn" role="alert">

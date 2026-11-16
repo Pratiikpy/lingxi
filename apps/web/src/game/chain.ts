@@ -10,9 +10,9 @@
 import { walletNeeded } from "./move";
 import { useBadges } from "./badges";
 import { create } from "zustand";
-import { createPublicClient, createWalletClient, custom, http, isAddress, type Hex, type PublicClient, type WalletClient } from "viem";
+import { createPublicClient, createWalletClient, custom, erc20Abi, http, isAddress, type Hex, type PublicClient, type WalletClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { type Deployment, type TapeQuote, type TapeStep, allowPartnerOnChain, breedOnChain, checkpointOnChain, hatchOnChain, quoteTapeout, readKeeping, readPet, setBrainOnChain, setSitterOnChain, tapeOutYourself, xLayer } from "@lingxi/chain";
+import { type Deployment, type TapeQuote, type TapeStep, allowPartnerOnChain, breedOnChain, breedingTerms, checkpointOnChain, hatchOnChain, quoteTapeout, readKeeping, readPet, setBrainOnChain, setSitterOnChain, tapeOutYourself, xLayer } from "@lingxi/chain";
 import { compileProgram, netlistBytes } from "@lingxi/brain";
 import { AUTO_DAYS, AUTO_FUND, AUTO_LOW, sessionAccount, sessionWallet } from "./session";
 import { type Pet, logSegments, packState, petCard, stageOf, unpackState } from "@lingxi/game";
@@ -234,11 +234,19 @@ export const useChain = create<ChainState>((set, get) => ({
     const r = records[petKey(parent)];
     const mine = r?.brains?.[r.brainKey ?? ""];
     if (!deployment?.breeder || !r || !mine) return { ok: false, reason: "offChain" };
-    set({ busy: "taping", error: null });
+    set({ busy: "connecting", error: null });
     try {
+      // the wallet and the fee come first: a child circuit is taped out only for a birth that can go through
+      const wallet = await connectWallet();
+      const terms = await breedingTerms(publicClient, deployment, [BigInt(r.petId), BigInt(partner.petId)]);
+      if (terms) {
+        if (terms.childrenLeft.some((n) => n <= 0)) throw new Error("TooManyChildren");
+        const held = (await publicClient.readContract({ address: terms.bem, abi: erc20Abi, functionName: "balanceOf", args: [wallet.account!.address] })) as bigint;
+        if (held < terms.fee) throw new Error("not enough BEM");
+      }
+      set({ busy: "taping" });
       const relayed = await relayChild({ parents: [mine, partner.brain] });
       if (!relayed.ok) throw new Error(relayed.reason);
-      const wallet = await connectWallet();
       set({ busy: "hatching" });
       const { childId, tx } = await breedOnChain(publicClient, wallet, deployment, BigInt(r.petId), BigInt(partner.petId), deployment.processor, BigInt(relayed.brainId), LINES.indexOf(child.line));
       const onChain = await readPet(publicClient, deployment, childId);
@@ -256,7 +264,20 @@ export const useChain = create<ChainState>((set, get) => ({
     } catch (e) {
       const msg = firstLine(e);
       set({ busy: "idle", error: msg });
-      return { ok: false, reason: /NotAdult/.test(msg) ? "notAdultOnChain" : /TooSoon/.test(msg) ? "tooSoon" : /NoConsent/.test(msg) ? "noConsent" : msg };
+      return {
+        ok: false,
+        reason: /NotAdult/.test(msg)
+          ? "notAdultOnChain"
+          : /TooSoon/.test(msg)
+            ? "tooSoon"
+            : /NoConsent/.test(msg)
+              ? "noConsent"
+              : /TooManyChildren/.test(msg)
+                ? "tooManyChildren"
+                : /not enough BEM/.test(msg)
+                  ? "notEnoughBem"
+                  : msg,
+      };
     }
   },
   busy: "idle",

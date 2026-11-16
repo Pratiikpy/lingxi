@@ -9,12 +9,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { formatEther } from "viem";
-import { type Home, HomeError, homeCallFee, keepOutfitAtHome, takeOutfitFromHome, homePageHtml, homeSiteName, homeSiteUrl, hubAccepts, moveIntoHome, nameFee, openHome, openingFee, processorIndex, publishHomePage, readHome, readHomePage, readMetadata } from "@lingxi/chain";
+import { type Home, HomeError, homeCallFee, keepOutfitAtHome, takeOutfitFromHome, homePageHtml, homeSiteName, homeSiteUrl, hubAccepts, moveIntoHome, nameFee, openHome, openingFee, processorIndex, publishHomePage, readHome, readHomePage, readMetadata, type OutfitDesign, wearKey } from "@lingxi/chain";
 import { type Pet, stageOf } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { connectWallet, deployment, publicClient, recordOf, useChain } from "../game/chain";
 import { play } from "../game/sound";
-import { useDesigns } from "../game/designs";
+import { marketAvailable, marketOf, useDesigns } from "../game/designs";
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
@@ -249,15 +249,17 @@ function HomeOutfits({ pet, home }: { pet: Pet; home: Home }) {
     void homeCallFee(publicClient, home).then(setFee, () => setFee(null));
     return () => setHome(null);
   }, [home, setHome]);
-  if (!deployment?.outfitMarket) return null;
-  const mine = market.filter((m) => (held[m.id.toString()] ?? 0) > 0 || (atHome[m.id.toString()] ?? 0) > 0);
-  const act = async (id: bigint, out: boolean) => {
-    setBusy(id.toString());
+  if (!marketAvailable()) return null;
+  const mine = market.filter((m) => !m.item && ((held[wearKey(m.market, m.id)] ?? 0) > 0 || (atHome[wearKey(m.market, m.id)] ?? 0) > 0));
+  const act = async (m: OutfitDesign, out: boolean) => {
+    const id = m.id;
+    const mk = marketOf(m.market)!;
+    setBusy(wearKey(m.market, id));
     setNote("");
     try {
       const w = await connectWallet();
-      if (out) await takeOutfitFromHome(publicClient, w, deployment!.outfitMarket!, id, home);
-      else await keepOutfitAtHome(publicClient, w, deployment!.outfitMarket!, id, home);
+      if (out) await takeOutfitFromHome(publicClient, w, mk.address, id, home);
+      else await keepOutfitAtHome(publicClient, w, mk.address, id, home);
       play("success");
       await refresh(w.account!.address);
     } catch (e) {
@@ -280,19 +282,19 @@ function HomeOutfits({ pet, home }: { pet: Pet; home: Home }) {
       ) : (
         <ul className="home-outfit-list">
           {mine.map((m) => {
-            const k = m.id.toString();
+            const k = wearKey(m.market, m.id);
             return (
               <li key={k}>
                 <span>
                   {m.name} <span className="small">{L(`${held[k] ?? 0} with you · ${atHome[k] ?? 0} at home`, `身上 ${held[k] ?? 0} · 家里 ${atHome[k] ?? 0}`)}</span>
                 </span>
                 {(held[k] ?? 0) > 0 && (
-                  <button type="button" className="btn" disabled={busy !== null} onClick={() => void act(m.id, false)}>
+                  <button type="button" className="btn" disabled={busy !== null} onClick={() => void act(m, false)}>
                     {busy === k ? "…" : L("Keep at home", "放进家里")}
                   </button>
                 )}
                 {(atHome[k] ?? 0) > 0 && (
-                  <button type="button" className="btn" disabled={busy !== null} onClick={() => void act(m.id, true)}>
+                  <button type="button" className="btn" disabled={busy !== null} onClick={() => void act(m, true)}>
                     {busy === k ? "…" : L("Take back", "拿回来")}
                   </button>
                 )}

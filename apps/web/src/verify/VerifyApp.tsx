@@ -493,6 +493,9 @@ export function VerifyApp() {
         </section>
       )}
       <ProofTable lang={lang} />
+      <p className="v-note">
+        <a href="numbers.html">{lang === "zh" ? "链上数字：宠物、交易和销毁的 BEM，全部读自合约" : "Live numbers: pets, sales and BEM burned, all read from the contracts"}</a>
+      </p>
       <div className="v-note-wrap">
         <OnChainNote lang={lang} />
       </div>

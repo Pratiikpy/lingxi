@@ -1,19 +1,22 @@
 /**
  * Player-made outfits (PRD S3) on this device and on the fashion market.
  * Designs drawn here are kept locally and can be worn at once ("u:" ids);
- * designs on the market are read from the chain ("c:" ids) and can be worn
- * by a wallet that holds a copy. All of them are registered as wearables so
+ * designs on the markets are read from the chain and can be worn by a wallet
+ * that holds a copy ("c:" ids on the first market, paid in OKB; "c2:" ids on
+ * the BEM market). All of them are registered as wearables so
  * the pet renderer places them like Lingxi's own pieces.
  */
 
 import { create } from "zustand";
 import type { Address, Hex } from "viem";
 import { type Design, decodeDesign, designWearable, encodeDesign, registerWearables } from "@lingxi/art";
-import { type OutfitDesign, type OutfitListing, copiesHeld, readDesigns, readListings } from "@lingxi/chain";
+import { type Market, type OutfitDesign, type OutfitListing, copiesHeld, marketsOf, parseWearKey, readDesigns, readListings, wearKey } from "@lingxi/chain";
 import { deployment, publicClient } from "./chain";
 
 const KEY = "lingxi.designs.v1";
-export const marketAvailable = () => !!deployment?.outfitMarket;
+export const marketAvailable = () => !!deployment && marketsOf(deployment).length > 0;
+/** The market a design or wear key belongs to, in this deployment. */
+export const marketOf = (v: 1 | 2): Market | null => (deployment ? (marketsOf(deployment).find((m) => m.v === v) ?? null) : null);
 
 export interface LocalDesign {
   id: string;
@@ -49,9 +52,9 @@ interface DesignsStore {
   local: LocalDesign[];
   market: OutfitDesign[];
   listings: OutfitListing[];
-  /** copies the connected wallet holds, by market id */
+  /** copies the connected wallet holds, by wear key ("c:5", "c2:3") */
   held: Record<string, number>;
-  /** copies kept in the active pet's home (its TapeOut container), by market id; still wearable */
+  /** copies kept in the active pet's home (its TapeOut container), by wear key; still wearable */
   atHome: Record<string, number>;
   /** that home's container, once it is open */
   home: string | null;
@@ -76,8 +79,9 @@ function register(local: LocalDesign[], market: OutfitDesign[]) {
     if (d) ws.push(designWearable(l.id, d, { en: l.name, zh: l.name }));
   }
   for (const m of market) {
+    if (m.item) continue;
     const d = safeDecode(m.pixels);
-    if (d) ws.push(designWearable(`c:${m.id}`, d, { en: m.name, zh: m.name }));
+    if (d) ws.push(designWearable(wearKey(m.market, m.id), d, { en: m.name, zh: m.name }));
   }
   registerWearables(ws);
 }
@@ -119,20 +123,29 @@ export const useDesigns = create<DesignsStore>((set, get) => {
     remove: (id) => keep(get().local.filter((l) => l.id !== id)),
     markPublished: (id, chainId) => keep(get().local.map((l) => (l.id === id ? { ...l, chainId } : l))),
     refresh: async (wallet) => {
-      if (!deployment?.outfitMarket) return;
+      const markets = deployment ? marketsOf(deployment) : [];
+      if (!markets.length) return;
       set({ loading: true, error: null });
       try {
-        const [market, listings] = await Promise.all([readDesigns(publicClient, deployment), readListings(publicClient, deployment)]);
         const who = wallet ?? get().wallet;
-        const ids = market.map((m) => m.id);
         const home = get().home;
-        const [counts, homeCounts] = await Promise.all([who ? copiesHeld(publicClient, deployment, who as Address, ids) : [], home ? copiesHeld(publicClient, deployment, home as Address, ids) : []]);
         const held: Record<string, number> = {};
         const atHome: Record<string, number> = {};
-        market.forEach((m, i) => {
-          if ((counts[i] ?? 0n) > 0n) held[m.id.toString()] = Number(counts[i]);
-          if ((homeCounts[i] ?? 0n) > 0n) atHome[m.id.toString()] = Number(homeCounts[i]);
-        });
+        const parts = await Promise.all(
+          markets.map(async (mk) => {
+            const [designs, open] = await Promise.all([readDesigns(publicClient, mk), readListings(publicClient, mk)]);
+            const ids = designs.map((m) => m.id);
+            const [counts, homeCounts] = await Promise.all([who ? copiesHeld(publicClient, mk, who as Address, ids) : [], home ? copiesHeld(publicClient, mk, home as Address, ids) : []]);
+            designs.forEach((m, i) => {
+              const k = wearKey(m.market, m.id);
+              if ((counts[i] ?? 0n) > 0n) held[k] = Number(counts[i]);
+              if ((homeCounts[i] ?? 0n) > 0n) atHome[k] = Number(homeCounts[i]);
+            });
+            return { designs, open };
+          }),
+        );
+        const market = parts.flatMap((p) => p.designs);
+        const listings = parts.flatMap((p) => p.open);
         register(get().local, market);
         set({ market, listings, held, atHome, wallet: who ?? null, loading: false, version: get().version + 1 });
       } catch (e) {
@@ -141,7 +154,7 @@ export const useDesigns = create<DesignsStore>((set, get) => {
     },
     canWear: (id) => {
       if (id.startsWith("u:")) return get().local.some((l) => l.id === id);
-      if (id.startsWith("c:")) return (get().held[id.slice(2)] ?? 0) + (get().atHome[id.slice(2)] ?? 0) > 0;
+      if (parseWearKey(id)) return (get().held[id] ?? 0) + (get().atHome[id] ?? 0) > 0;
       return false;
     },
   };

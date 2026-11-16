@@ -6,7 +6,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { type Design, DesignError, DESIGN_FACE_MAX_W, DESIGN_MAX_H, DESIGN_MAX_W, SLOTS, type Slot, boundingBox, designWearable, drawPet, registerWearables, trimDesign, wearOverlay, encodeDesign } from "@lingxi/art";
-import { publishDesign } from "@lingxi/chain";
+import { currentMarket, parseBem, publishDesign } from "@lingxi/chain";
 import { type Pet, stageOf } from "@lingxi/game";
 import { parseEther } from "viem";
 import { useLang } from "../i18n";
@@ -36,7 +36,7 @@ export function StudioPanel({ pet }: { pet: Pet }) {
   const [ink, setInk] = useState(1);
   const [name, setName] = useState("");
   const [note, setNote] = useState("");
-  const [price, setPrice] = useState("0.001");
+  const [price, setPrice] = useState("0.1");
   const [supply, setSupply] = useState("100");
   const [royalty, setRoyalty] = useState("5");
   const [busy, setBusy] = useState(false);
@@ -101,16 +101,22 @@ export function StudioPanel({ pet }: { pet: Pet }) {
 
   const publish = async () => {
     const id = keep();
-    if (!id || !deployment) return;
+    const market = deployment ? currentMarket(deployment) : null;
+    if (!id || !market) return;
+    // new pieces go to the newest market: BEM when it is deployed, OKB before that
+    const priceUnits = market.v === 2 ? parseBem(price || "0") : /^\d+(\.\d{1,18})?$/.test(price) ? parseEther(price) : null;
+    if (priceUnits === null || priceUnits <= 0n) {
+      setNote(L("Enter a price above zero.", "请填一个大于零的价格。"));
+      return;
+    }
     setBusy(true);
     try {
-      const priceWei = parseEther(price || "0");
       const max = Math.max(1, Math.min(100_000, Math.floor(Number(supply) || 1)));
       const bps = Math.max(0, Math.min(1000, Math.round((Number(royalty) || 0) * 100)));
       const w = await connectWallet();
       const local = useDesigns.getState().local.find((l) => l.id === id)!;
       const pixels = Uint8Array.from((local.hex.match(/../g) ?? []).map((x) => parseInt(x, 16)));
-      const r = await publishDesign(publicClient, w, deployment, { pixels, name: local.name, price: priceWei, maxSupply: max, royaltyBps: bps });
+      const r = await publishDesign(publicClient, w, market, { pixels, name: local.name, price: priceUnits, maxSupply: max, royaltyBps: bps });
       markPublished(id, r.id.toString());
       await refresh(w.account!.address);
       setNote(L(`Published as market piece #${r.id}. Anyone can now buy a copy.`, `已发布为市场作品 #${r.id}。现在谁都能买一份。`));
@@ -188,7 +194,7 @@ export function StudioPanel({ pet }: { pet: Pet }) {
           <summary>{L("Publish to the market", "发布到市场")}</summary>
           <div className="studio-terms">
             <label>
-              {L("Price per copy (OKB)", "每份价格（OKB）")}
+              {deployment && currentMarket(deployment)?.v === 2 ? L("Price per copy (BEM)", "每份价格（BEM）") : L("Price per copy (OKB)", "每份价格（OKB）")}
               <input inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value.replace(/[^0-9.]/g, ""))} />
             </label>
             <label>

@@ -9,16 +9,19 @@ import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { createPublicClient, createWalletClient, http, type Address, type Hex } from "viem";
+import { createPublicClient, createWalletClient, encodeAbiParameters, erc20Abi, http, keccak256, pad, toHex, type Address, type Hex, type PublicClient } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { STARTERS, compileProgram, fastBrain, stateBits } from "@lingxi/brain";
-import { allowPartnerOnChain, breedOnChain, checkpointOnChain, hatchOnChain, readPet, replayStep, setBrainOnChain, type Deployment, xLayer } from "@lingxi/chain";
+import { allowPartnerOnChain, breedOnChain, breedingTerms, checkpointOnChain, hatchOnChain, readPet, replayStep, setBrainOnChain, type Deployment, xLayer } from "@lingxi/chain";
 import { createPet, familyOf, mindBrain, packState } from "@lingxi/game";
 import { BrainRelayer } from "../src/relayer";
 import { createIndexer } from "../src/indexer";
 import { buildTree } from "../src/tree";
 
 const RPC = process.env.FORK_RPC;
+const DEAD: Address = "0x000000000000000000000000000000000000dEaD";
+const BEM: Address = "0x60e62Efa9405d6873C5deaBD4E6CC91c25363952";
+const bemOf = (pub: PublicClient, who: Address) => pub.readContract({ address: BEM, abi: erc20Abi, functionName: "balanceOf", args: [who] }) as Promise<bigint>;
 const RELAY_KEY_FILE = process.env.RELAY_KEY_FILE;
 
 describe.skipIf(!RPC || !RELAY_KEY_FILE)("a family, proven on an X Layer fork", () => {
@@ -68,7 +71,23 @@ describe.skipIf(!RPC || !RELAY_KEY_FILE)("a family, proven on an X Layer fork", 
     // a circuit that is not this couple's child is refused
     await expect(breedOnChain(pub, alice!, d, a, b, d.processor as Address, pa.brainId, 0)).rejects.toThrow(/NotAChildOf|reverted/);
 
+    // the BEM breeder: without BEM nothing is born; with it, the fee leaves the wallet and lands on the dead address
+    if (d.breederBem) {
+      await expect(breedOnChain(pub, alice!, d, a, b, d.processor as Address, BigInt(child.brainId), 0)).rejects.toThrow(/not enough BEM/);
+      const terms = (await breedingTerms(pub, d, [a, b]))!;
+      expect(terms.childrenLeft).toEqual([4, 4]);
+      // BEM keeps balances in the mapping at storage slot 5
+      const slot = keccak256(encodeAbiParameters([{ type: "address" }, { type: "uint256" }], [alice!.account!.address, 5n]));
+      await rpc("anvil_setStorageAt", [terms.bem, slot, pad(toHex(100_000_000n), { size: 32 })]);
+    }
+    const deadBefore = d.breederBem ? await bemOf(pub, DEAD) : 0n;
     const { childId } = await breedOnChain(pub, alice!, d, a, b, d.processor as Address, BigInt(child.brainId), 0);
+    if (d.breederBem) {
+      const terms = (await breedingTerms(pub, d, [a, b]))!;
+      expect((await bemOf(pub, DEAD)) - deadBefore).toBe(terms.fee);
+      expect(await bemOf(pub, alice!.account!.address)).toBe(100_000_000n - terms.fee);
+      expect(terms.childrenLeft).toEqual([3, 3]);
+    }
     const kid = await readPet(pub, d, childId);
     expect(kid.owner).toBe(alice!.account!.address);
     expect(kid.parentA).toBe(a);
