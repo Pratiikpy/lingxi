@@ -46,7 +46,8 @@ export async function prepareMove(): Promise<string> {
 }
 
 export function moveLink(to: MoveTo, code: string): string {
-  if (to === "telegram") return `https://t.me/${TG_BOT}?startapp=move_${code}`;
+  // the Mini App's direct link (BotFather short name "Play"); Telegram passes startapp to the app as its start parameter
+  if (to === "telegram") return `https://t.me/${TG_BOT}/Play?startapp=move_${code}`;
   const u = new URL("play.html", location.href);
   u.search = `?move=${code}`;
   u.hash = "";
