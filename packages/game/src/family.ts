@@ -14,7 +14,7 @@
 
 import { type FastBrain, type Program, type Rule, type StarterLine, circuitBrain, circuitFromParts, compileProgram, fastBrain, gateCount, inputField, stateBits } from "@lingxi/brain";
 import { LESSON_CAPACITY, MAX_GATES, type MindExtra, cleanInstincts, composeProgram } from "./lessons";
-import { type Growth, extraLessons, gateBudget, legalGrowth, ruleSkillIds, skillRules } from "./skills";
+import { type Growth, MAX_GATES_SKILLED, extraLessons, gateBudget, legalGrowth, ruleGrowth, ruleSkillIds, skillRules } from "./skills";
 import type { Family, OutsideInstinct, ParentInfo, Stage } from "./pet";
 import type { Brain } from "./sim";
 
@@ -24,10 +24,30 @@ const TIME = inputField("time");
 /** Each half of a child's mind: what the child was taught, then that parent's lessons and instincts. */
 export function halvesOf(family: Family, childLessons: readonly Rule[], skillRulesOfChild: readonly Rule[] = []): [Program, Program] {
   const [a, b] = family.parents;
-  // the child's own skill rules join both halves
-  const extra: MindExtra = { rules: skillRulesOfChild };
-  return [composeProgram(a.line, [...childLessons, ...a.lessons], a.instincts, extra), composeProgram(b.line, [...childLessons, ...b.lessons], b.instincts, extra)];
+  // each half is its parent's own brain (its capstone rules too, since the child's circuit REFs that brain);
+  // the child's own skill rules join both halves after them
+  const extra = (p: ParentInfo): MindExtra => {
+    const own = skillRules(ruleGrowth(p.skills ?? []));
+    return { rules: [...own, ...skillRulesOfChild.filter((r) => !own.includes(r))] };
+  };
+  return [composeProgram(a.line, [...childLessons, ...a.lessons], a.instincts, extra(a)), composeProgram(b.line, [...childLessons, ...b.lessons], b.instincts, extra(b))];
 }
+
+/**
+ * How big each half of a child's mind may grow: the child's own budget, plus exactly the gates its parent's
+ * capstone rules add (inherited rules never eat into what the child can learn), never past the most any brain holds.
+ */
+export function halfBudgets(family: Family, childGrowth: Growth | undefined): [number, number] {
+  const own = gateBudget(childGrowth);
+  const bare: Family = { ...family, parents: family.parents.map(({ skills: _s, ...p }) => p) as [ParentInfo, ParentInfo] };
+  const withRules = halvesOf(family, []);
+  const without = halvesOf(bare, []);
+  return [0, 1].map((i) => Math.min(MAX_GATES_SKILLED, own + Math.max(0, gateCount(compileProgram(withRules[i]!)) - gateCount(compileProgram(without[i]!))))) as [number, number];
+}
+
+/** Only real rule skills, once each, in the order the skill table lists them. */
+export const cleanParentSkills = (ids: unknown): number[] =>
+  Array.isArray(ids) ? ruleSkillIds(ruleGrowth(ids.filter((x): x is number => Number.isInteger(x)))) : [];
 
 /** What a pet's skills add to its mind: the capstone rules it holds. */
 export const mindExtra = (growth: Growth | undefined): MindExtra => ({ rules: skillRules(growth) });
@@ -127,9 +147,11 @@ export function checkMindLesson(spec: MindSpec, stage: Exclude<Stage, "egg">, ca
   } catch (e) {
     return { ok: false, reason: "invalid", detail: (e as Error).message };
   }
-  const gates = Math.max(...programs.map((p) => gateCount(compileProgram(p))));
-  const budget = gateBudget(spec.growth);
-  if (gates > budget) return { ok: false, reason: "tooBig", detail: `${gates} gates; the limit is ${budget}` };
+  const sizes = programs.map((p) => gateCount(compileProgram(p)));
+  const budgets = spec.family ? halfBudgets(spec.family, spec.growth) : [gateBudget(spec.growth)];
+  const over = sizes.findIndex((g, i) => g > budgets[i]!);
+  const gates = Math.max(...sizes);
+  if (over >= 0) return { ok: false, reason: "tooBig", detail: `${sizes[over]} gates; the limit is ${budgets[over]}` };
   // an owned instinct keeps its own memory beside the pet's; together they must fit the registry's 64 bits
   if (spec.outside) {
     const memory = programs.reduce((t, p) => t + stateBits(p), 0) + (instinctBrain(spec.outside)?.nState ?? 0);
@@ -161,19 +183,20 @@ export function canBreed(a: BreedSide, b: BreedSide, today: number): { ok: true 
 /** A child's family record from its two parents (A first: A shapes its days and moods, B its nights and habits). */
 export function familyOf(a: ParentInfo & { generation?: number }, b: ParentInfo & { generation?: number }): Family {
   if ((a.generation ?? 0) > 0 || (b.generation ?? 0) > 0) throw new Error("secondGeneration");
-  const strip = ({ name, line, lessons, instincts, petId, owner, key }: ParentInfo): ParentInfo => ({
+  const strip = ({ name, line, lessons, instincts, petId, owner, key, skills }: ParentInfo): ParentInfo => ({
     name: name.slice(0, 12),
     line,
     lessons: lessons.slice(0, 8),
     ...(cleanInstincts(instincts) ? { instincts: cleanInstincts(instincts) } : {}),
+    ...(cleanParentSkills(skills).length ? { skills: cleanParentSkills(skills) } : {}),
     ...(petId !== undefined ? { petId } : {}),
     ...(owner ? { owner } : {}),
     ...(key ? { key } : {}),
   });
   const family: Family = { parents: [strip(a), strip(b)], generation: 1 };
-  // both halves must build and fit a newborn's budget (a child starts with no skills), or there is no child
+  // each half is a parent's own brain, so it may be as big as any pet brain can be (a parent's skills widen it)
   const [pa, pb] = halvesOf(family, []);
-  for (const p of [pa, pb]) if (gateCount(compileProgram(p)) > MAX_GATES) throw new Error("a parent's mind is too big to pass on");
+  for (const p of [pa, pb]) if (gateCount(compileProgram(p)) > MAX_GATES_SKILLED) throw new Error("a parent's mind is too big to pass on");
   return family;
 }
 
@@ -263,7 +286,8 @@ export function parseCard(raw: string): PetCard | null {
       const line = LINES.find((l) => l === p.line);
       if (!line || typeof p.name !== "string" || !Array.isArray(p.lessons) || p.lessons.length > 8) throw new Error("bad parent");
       const pi = cleanInstincts(p.instincts);
-      return { name: p.name.slice(0, 12), line, lessons: p.lessons as Rule[], ...(pi ? { instincts: pi } : {}) };
+      const ps = cleanParentSkills(p.skills);
+      return { name: p.name.slice(0, 12), line, lessons: p.lessons as Rule[], ...(pi ? { instincts: pi } : {}), ...(ps.length ? { skills: ps } : {}) };
     }) as [ParentInfo, ParentInfo];
     return { lessons: lessons as Rule[], family: { parents, generation: f.generation as number }, ...(memory ? { memory } : {}), ...(outside ? { outside } : {}), ...(growth ? { growth } : {}) };
   } catch {

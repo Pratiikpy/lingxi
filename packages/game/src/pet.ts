@@ -177,6 +177,8 @@ export interface ParentInfo {
   owner?: string;
   /** the parent's birth time when it lives on this device, to link the family tree */
   key?: string;
+  /** the rule skills (capstones) the parent held at breeding: they are part of the brain its half REFs */
+  skills?: number[];
 }
 
 /**

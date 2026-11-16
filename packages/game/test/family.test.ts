@@ -63,3 +63,35 @@ describe("families", () => {
     expect(mindBrain({ line: "bold", lessons: [] }).nState).toBe(compileProgram(STARTERS.bold).latches.length);
   });
 });
+
+describe("a parent's capstone rules pass into its half of the child (fix found in plan 4.8)", () => {
+  // the child's on-chain brain REFs each parent's real circuit, so each half must be exactly that parent's brain
+  const rule = (ids: number[]) => ({ level: 30, points: 0, skills: Object.fromEntries(ids.map((id) => [id, 1])) });
+  it("each half compiles to the parent's own brain, capstones included", async () => {
+    const { composeProgram, mindExtra } = await import("../src/index");
+    const lessonsA = [{ label: "a", when: { hunger: [3] }, then: { want: 1, mood: 1 } }];
+    const growthA = rule([132]);
+    const family = familyOf({ name: "Ada", line: "gentle", lessons: lessonsA, skills: [132] }, { name: "Bo", line: "bold", lessons: [] });
+    expect(family.parents[0].skills).toEqual([132]);
+    const [ha, hb] = halvesOf(family, []);
+    const brainA = compileProgram(composeProgram("gentle", lessonsA, undefined, mindExtra(growthA)));
+    expect(netlistBytes(compileProgram(ha))).toEqual(netlistBytes(brainA));
+    expect(netlistBytes(compileProgram(hb))).toEqual(netlistBytes(compileProgram(composeProgram("bold", [], undefined))));
+  });
+  it("keeps only real rule skills, once each", () => {
+    const f = familyOf({ name: "Ada", line: "gentle", lessons: [], skills: [262, 132, 132, 111, 99999] }, { name: "Bo", line: "bold", lessons: [] });
+    expect(f.parents[0].skills).toEqual([132, 262]);
+  });
+});
+
+describe("a child of a parent with capstones can still learn", () => {
+  it("inherited rules do not eat the child's own gate budget", async () => {
+    const { halfBudgets, gateBudget } = await import("../src/index");
+    const fam = familyOf({ name: "Ada", line: "gentle", lessons: [], skills: [132, 162] }, { name: "Bo", line: "bold", lessons: [] });
+    const [a, b] = halfBudgets(fam, undefined);
+    expect(b).toBe(gateBudget(undefined));
+    expect(a).toBeGreaterThan(gateBudget(undefined));
+    const r = checkMindLesson({ line: "gentle", lessons: [], family: fam }, "baby", { label: "x", when: { hunger: [3] }, then: { want: 1, mood: 1 } });
+    expect(r.ok).toBe(true);
+  });
+});

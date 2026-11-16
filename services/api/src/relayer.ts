@@ -17,7 +17,7 @@ import { createPublicClient, createWalletClient, erc20Abi, http, type Address, t
 import { privateKeyToAccount } from "viem/accounts";
 import { type Program, type Rule, type StarterLine, bytesToHex, compileProgram, composeChild, composeInstinct, gateCount, netlistBytes } from "@lingxi/brain";
 import { FACTORY, factoryAbi, processorAbi, transistorsAbi, xLayer } from "@lingxi/chain";
-import { type Family, type Growth, MAX_GATES, MAX_GATES_SKILLED, MAX_LESSONS, SKILL_BY_ID, cleanInstincts, composeProgram, gateBudget, halvesOf, mindExtra, skillRules } from "@lingxi/game";
+import { type Family, type Growth, MAX_GATES, MAX_GATES_SKILLED, MAX_LESSONS, SKILL_BY_ID, cleanInstincts, composeProgram, gateBudget, halfBudgets, halvesOf, mindExtra, skillRules } from "@lingxi/game";
 
 const NEWLINE = /\r?\n/;
 
@@ -113,8 +113,10 @@ export class BrainRelayer {
           return { ok: false, reason: "invalid", detail: (e as Error).message } as const;
         }
         const got: bigint[] = [];
-        for (const h of halves) {
-          const r = await this.tapeProgram(h, gateBudget(input.growth));
+        // each half may hold its parent's inherited capstone rules on top of the child's own budget
+        const budgets = halfBudgets(input.family, input.growth);
+        for (const [i, h] of halves.entries()) {
+          const r = await this.tapeProgram(h, budgets[i]!);
           if (!r.ok) return r;
           got.push(BigInt(r.brainId));
         }

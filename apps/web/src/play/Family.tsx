@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { drawPet } from "@lingxi/art";
-import { type Family, type ParentInfo, type Pet, BOND_LEVELS, BREED_COOLDOWN_DAYS, FAMILY_BOND_LEVEL, bondLevel, canBreed, childMemory, createPet, dayOf, familyOf, mindBrain, parseCard, stageOf } from "@lingxi/game";
+import { type Family, type ParentInfo, type Pet, BOND_LEVELS, BREED_COOLDOWN_DAYS, FAMILY_BOND_LEVEL, bondLevel, canBreed, childMemory, createPet, dayOf, familyOf, mindBrain, parseCard, ruleSkillIds, stageOf } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { MAX_PETS, useGame } from "../game/store";
 import { deployment, petKey, publicClient, useChain } from "../game/chain";
@@ -54,7 +54,16 @@ export function bondBlock(pet: Pet, points: number, other: string, lang: Lang): 
     : `${pet.name} and ${other} need to be ${bondName(FAMILY_BOND_LEVEL, "en").toLowerCase()} first (now ${bondName(level, "en").toLowerCase()}, ${need} to go). Spend time together, send hearts, spar.`;
 }
 
-const asParent = (p: Pet): ParentInfo & { generation: number } => ({ name: p.name, line: p.line, lessons: p.lessons, ...(p.instincts ? { instincts: p.instincts } : {}), key: petKey(p), generation: p.family?.generation ?? 0 });
+// a parent's capstone rules are part of the brain its half of the child REFs, so they travel with it
+const asParent = (p: Pet): ParentInfo & { generation: number } => ({
+  name: p.name,
+  line: p.line,
+  lessons: p.lessons,
+  ...(p.instincts ? { instincts: p.instincts } : {}),
+  ...(ruleSkillIds(p.growth).length ? { skills: ruleSkillIds(p.growth) } : {}),
+  key: petKey(p),
+  generation: p.family?.generation ?? 0,
+});
 
 /** Someone asked us: raise a little one together? */
 export function ProposalDialog({ pet }: { pet: Pet }) {
@@ -141,7 +150,7 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
     const card = parseCard(answer.card);
     if (!line || !card) return null;
     try {
-      return familyOf(asParent(pet), { name: answer.name, line, lessons: card.lessons, ...(card.instincts ? { instincts: card.instincts } : {}), generation: card.family?.generation ?? 0 });
+      return familyOf(asParent(pet), { name: answer.name, line, lessons: card.lessons, ...(card.instincts ? { instincts: card.instincts } : {}), ...(ruleSkillIds(card.growth).length ? { skills: ruleSkillIds(card.growth) } : {}), generation: card.family?.generation ?? 0 });
     } catch {
       return null;
     }
