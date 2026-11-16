@@ -103,6 +103,8 @@ export const ITEMS: Record<number, ItemDef> = {
   // drinks made at home
   11401: I("Study Tea", "学习茶", "A cup of tea that makes lessons stick.", "一杯让功课记得更牢的茶。", "drink", { xp: 80, energy: 40 }),
   11402: I("Scholar's Tea", "学者茶", "Strong tea for a serious student.", "给认真学生的浓茶。", "drink", { xp: 240, energy: 60 }),
+  // the respec item (plan 4.4): drunk from the bag, every skill point comes back
+  11403: I("Fresh Start Tea", "重新开始茶", "Forget every skill and choose again: every point comes back.", "忘掉学过的所有技能，重新选择：每一点都会回来。", "drink"),
   11404: I("Calm Tea", "安神茶", "Mint and daffodil. Helps a tired pet rest.", "薄荷加水仙，帮累了的宠物好好休息。", "drink", { energy: 220, joy: 40 }),
   11405: I("Lucky Tea", "好运茶", "A sweet tea that brings a good mood.", "带来好心情的甜茶。", "drink", { joy: 220 }),
   11406: I("Sorry Note", "道歉信", "A letter your pet writes when it has been grumpy. It means it.", "宠物闹完脾气后写的信，是真心的。", "treasure", { joy: 260 }),
@@ -123,6 +125,7 @@ export const ITEMS: Record<number, ItemDef> = {
 export const RECIPE_NAMES: Record<number, { en: string; zh: string }> = {
   1: { en: "Brew Study Tea", zh: "泡学习茶" },
   2: { en: "Brew Scholar's Tea", zh: "泡学者茶" },
+  3: { en: "Brew Fresh Start Tea", zh: "泡重新开始茶" },
   4: { en: "Brew Calm Tea", zh: "泡安神茶" },
   5: { en: "Brew Lucky Tea", zh: "泡好运茶" },
   6: { en: "Shake out Pollen", zh: "抖松花粉" },

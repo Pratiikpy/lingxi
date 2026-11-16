@@ -39,6 +39,7 @@ import {
   toVisible,
 } from "./pet";
 import type { StarterLine } from "@lingxi/brain";
+import { boosted, decayLeft, effectOf, newGrowth } from "./skills";
 
 export const ACTION = { none: 0, feed: 1, play: 2, clean: 3, lightsOff: 4, pet: 5, medicine: 6, talk: 7 } as const;
 export const EVENT = { none: 0, friend: 1, toy: 2, scary: 3 } as const;
@@ -83,6 +84,7 @@ export function createPet({ name, line, now, tzOffsetMin, brain, instincts }: Ne
     ...(instincts ? { instincts } : {}),
     traits: Object.fromEntries(TRAITS.map((t) => [t, 0])) as Pet["traits"],
     xp: 0,
+    growth: newGrowth(),
     counts: { feed: 0, play: 0, clean: 0, pet: 0, lessons: 0 },
     diet: { sweet: 0, fruit: 0, savory: 0, grain: 0 },
     logHash: ZERO_HASH,
@@ -130,9 +132,22 @@ export function inputWord(p: Pet, beat: number, action: number, event: number, o
  * Kinship read lazily: one point fades for every
  * full day since it was last earned, computed from timestamps, never by a timer.
  */
-export function kinshipNow(p: Pick<Pet, "kinship" | "kinBeat">, beat: number): number {
+export function kinshipNow(p: Pick<Pet, "kinship" | "kinBeat" | "growth">, beat: number): number {
   if (p.kinBeat === undefined) return p.kinship ?? 0;
-  return Math.max(0, (p.kinship ?? 0) - Math.floor(Math.max(0, beat - p.kinBeat) / KINSHIP_DECAY));
+  // Kin Keeper (plan 4.4): a point fades over a longer stretch
+  const every = boosted(KINSHIP_DECAY, effectOf(p.growth, "KINSHIP_KEEP"));
+  return Math.max(0, (p.kinship ?? 0) - Math.floor(Math.max(0, beat - p.kinBeat) / every));
+}
+
+/**
+ * Experience, with the pet's XP skills (plan 4.4) applied exactly: the boost is counted in hundredths and the
+ * remainder carried, so even +3% adds up over many small gains instead of always rounding away.
+ */
+export function gainXp(p: Pet, n: number): void {
+  if (n <= 0) return;
+  const hundredths = (p.xpCarry ?? 0) + n * (100 + effectOf(p.growth, "XP_GAIN"));
+  p.xp = Math.min(0xffff, p.xp + Math.floor(hundredths / 100));
+  p.xpCarry = hundredths % 100;
 }
 
 /** A care mistake: counted and remembered for the screen, never punished beyond the moment. */
@@ -145,25 +160,30 @@ function decay(p: Pet, beat = p.beat): void {
   if (p.hibernating) return;
   const was = { food: p.meters.food, joy: p.meters.joy, clean: p.meters.clean, energy: p.meters.energy };
   const ill = p.sick ? 2 : 1;
-  p.meters.food = clampMeter(p.meters.food - DECAY_PER_HOUR.food);
-  p.meters.joy = clampMeter(p.meters.joy - DECAY_PER_HOUR.joy * ill);
-  p.meters.clean = clampMeter(p.meters.clean - DECAY_PER_HOUR.clean);
-  p.meters.energy = clampMeter(p.meters.energy + (p.asleep ? SLEEP_GAIN_PER_HOUR : -DECAY_PER_HOUR.energy * ill));
+  // the Care skills (plan 4.4) slow each meter's decay and strengthen sleep; integer maths, so a replay agrees
+  const g = p.growth;
+  const less = (m: "food" | "joy" | "clean" | "energy") => Math.floor((DECAY_PER_HOUR[m] * decayLeft(g, m)) / 1000);
+  p.meters.food = clampMeter(p.meters.food - less("food"));
+  p.meters.joy = clampMeter(p.meters.joy - less("joy") * ill);
+  p.meters.clean = clampMeter(p.meters.clean - less("clean"));
+  p.meters.energy = clampMeter(p.meters.energy + (p.asleep ? boosted(SLEEP_GAIN_PER_HOUR, effectOf(g, "SLEEP_GAIN")) : -less("energy") * ill));
   for (const k of ["food", "joy", "clean", "energy"] as const) if (was[k] > 0 && p.meters[k] === 0) miss(p, k, beat);
   // neglect: an empty food bowl or a filthy pet, six hours running, makes it ill
   p.dirtyBeats = p.meters.clean === 0 || p.meters.food === 0 ? (p.dirtyBeats ?? 0) + 1 : 0;
-  if (!p.sick && p.dirtyBeats >= SICK_AFTER) {
+  if (!p.sick && p.dirtyBeats >= boosted(SICK_AFTER, effectOf(g, "SICK_GRACE"))) {
     p.sick = true;
     miss(p, "sick", beat);
   }
   p.starvingBeats = p.meters.food === 0 ? p.starvingBeats + 1 : 0;
-  if (p.starvingBeats >= HIBERNATE_AFTER) {
+  if (p.starvingBeats >= boosted(HIBERNATE_AFTER, effectOf(g, "HIBERNATE_GRACE"))) {
     p.hibernating = true;
     p.asleep = true;
   }
 }
 
 const addVisible = (internal: number, visible: number) => clampMeter(internal + visible * SUB);
+/** A good thing made better by a percent skill; a bad one (a negative amount) is left as it is. */
+const more = (amount: number, pct: number) => (amount > 0 ? boosted(amount, pct) : amount);
 
 /** Run the brain on one beat and let its answer move the pet. Mutates p. */
 function think(p: Pet, brain: Brain, beat: number, action: number, event: number, owner: boolean): void {
@@ -210,9 +230,12 @@ function think(p: Pet, brain: Brain, beat: number, action: number, event: number
   }
   if (nudge > 0 && (action !== ACTION.none || event !== EVENT.none)) {
     const t = TRAITS[nudge - 1]!;
-    p.traits[t] = Math.min(TRAIT_MAX, p.traits[t] + 1);
+    // Deep Memory (plan 4.4): a percent more growth, carried exactly in hundredths like experience
+    const grow = (p.traitCarry ?? 0) + 100 + effectOf(p.growth, "TRAIT_GROWTH");
+    p.traits[t] = Math.min(TRAIT_MAX, p.traits[t] + Math.floor(grow / 100));
+    if (effectOf(p.growth, "TRAIT_GROWTH")) p.traitCarry = grow % 100;
   }
-  if (owner && action !== ACTION.none) p.xp = Math.min(0xffff, p.xp + 1);
+  if (owner && action !== ACTION.none) gainXp(p, 1);
 }
 
 /** Replay every beat from the pet's last beat up to `now`, the owner away. */
@@ -283,10 +306,10 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
     case "feed": {
       const f: ItemEffect = typeof c.food === "string" ? foodById(c.food) : c.food;
       const wasFull = toVisible(p.meters.food) >= 900;
-      p.meters.food = addVisible(p.meters.food, f.food ?? 0);
-      p.meters.joy = addVisible(p.meters.joy, wasFull ? -40 : (f.joy ?? 0));
+      p.meters.food = addVisible(p.meters.food, more(f.food ?? 0, effectOf(p.growth, "FOOD_ITEM")));
+      p.meters.joy = addVisible(p.meters.joy, wasFull ? -40 : more(f.joy ?? 0, effectOf(p.growth, "JOY_ITEM")));
       if (f.energy) p.meters.energy = addVisible(p.meters.energy, f.energy);
-      if (f.xp) p.xp = Math.min(0xffff, p.xp + f.xp);
+      if (f.xp) gainXp(p, f.xp);
       if (f.diet) p.diet[f.diet] = Math.min(63, p.diet[f.diet] + 1);
       p.counts.feed = Math.min(255, p.counts.feed + 1);
       if (p.asleep) {
@@ -310,10 +333,10 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
       p.asleep = false;
       // a mini-game played well (up to 3 stars) cheers it up more and teaches it more
       const stars = Math.max(0, Math.min(3, Math.floor(c.stars ?? 0)));
-      p.meters.joy = addVisible(p.meters.joy, 220 + 60 * stars);
+      p.meters.joy = addVisible(p.meters.joy, more(220 + 60 * stars, effectOf(p.growth, "JOY_ITEM")));
       p.meters.energy = addVisible(p.meters.energy, -80);
       p.meters.food = addVisible(p.meters.food, -40);
-      p.xp = Math.min(0xffff, p.xp + 2 * stars);
+      gainXp(p, 2 * stars);
       p.counts.play = Math.min(255, p.counts.play + 1);
       note = "played";
       action = ACTION.play;
@@ -321,6 +344,7 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
     }
     case "clean":
       p.meters.clean = METER_MAX * SUB;
+      if (effectOf(p.growth, "BATH_JOY")) p.meters.joy = addVisible(p.meters.joy, effectOf(p.growth, "BATH_JOY"));
       p.counts.clean = Math.min(255, p.counts.clean + 1);
       note = "cleaned";
       action = ACTION.clean;
@@ -338,7 +362,8 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
       p.meters.joy = addVisible(p.meters.joy, 40);
       p.counts.pet = Math.min(255, p.counts.pet + 1);
       // kinship grows at most once every 12 hours (after any fading is settled)
-      if (p.kinBeat === undefined || p.beat - p.kinBeat >= KINSHIP_EVERY) {
+      // Warm Memory (plan 4.4): kinship may grow sooner, never more often than every six hours
+      if (p.kinBeat === undefined || p.beat - p.kinBeat >= Math.max(360, KINSHIP_EVERY - effectOf(p.growth, "KINSHIP_SOONER"))) {
         p.kinship = Math.min(KINSHIP_MAX, kinshipNow(p, p.beat) + 1);
         p.kinBeat = p.beat;
       }
@@ -347,11 +372,11 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
       break;
     case "use": {
       const u = c.item;
-      if (u.food) p.meters.food = addVisible(p.meters.food, u.food);
-      if (u.joy) p.meters.joy = addVisible(p.meters.joy, u.joy);
+      if (u.food) p.meters.food = addVisible(p.meters.food, more(u.food, effectOf(p.growth, "FOOD_ITEM")));
+      if (u.joy) p.meters.joy = addVisible(p.meters.joy, more(u.joy, effectOf(p.growth, "JOY_ITEM")));
       if (u.energy) p.meters.energy = addVisible(p.meters.energy, u.energy);
       if (u.clean) p.meters.clean = addVisible(p.meters.clean, u.clean);
-      if (u.xp) p.xp = Math.min(0xffff, p.xp + u.xp);
+      if (u.xp) gainXp(p, u.xp);
       if (u.wake) p.asleep = false;
       note = "used";
       action = ACTION.medicine;

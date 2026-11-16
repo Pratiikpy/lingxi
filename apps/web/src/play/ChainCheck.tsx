@@ -4,6 +4,7 @@
  * asks PetRegistry.replayStep what that circuit answers in every round.
  */
 
+import { ruleSkillIds } from "@lingxi/game";
 import { useState } from "react";
 import type { Pet } from "@lingxi/game";
 import { useLang } from "../i18n";
@@ -19,7 +20,7 @@ export function ChainCheck({ pet, rounds, run }: { pet: Pet; rounds: number; run
   const rec = recordOf(pet);
   const [state, setState] = useState<{ k: "idle" } | { k: "run"; done: number } | { k: "done"; c: BattleCheck } | { k: "error" }>({ k: "idle" });
   if (!rec) return null;
-  const stale = rec.brainKey !== undefined && rec.brainKey !== mindKey(pet.lessons, pet.instincts ?? 0, pet.outside);
+  const stale = rec.brainKey !== undefined && rec.brainKey !== mindKey(pet.lessons, pet.instincts ?? 0, pet.outside, ruleSkillIds(pet.growth));
   const go = async () => {
     setState({ k: "run", done: 0 });
     try {

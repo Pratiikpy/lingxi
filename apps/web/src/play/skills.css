@@ -1,0 +1,366 @@
+/* Levels and the four skill trees (plan 4.4). Each tree has its own colour; the rest follows the theme tokens. */
+
+.skills {
+  display: grid;
+  gap: var(--s3);
+  --tree: #f49ac1;
+}
+.sk-t-care {
+  --tree: #f49ac1;
+}
+.sk-t-mind {
+  --tree: #b49cf0;
+}
+.sk-t-explore {
+  --tree: #7fd48a;
+}
+.sk-t-spar {
+  --tree: #ff9a6b;
+}
+
+/* level, points, level-up */
+.sk-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px 14px;
+  padding: 12px 14px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--card);
+  box-shadow: var(--lift-lo);
+}
+.sk-level {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.sk-level b {
+  font: 800 1.2rem var(--round);
+}
+.sk-xp {
+  position: relative;
+  height: 10px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--tint);
+  overflow: hidden;
+}
+.sk-xp i {
+  position: absolute;
+  inset: 0;
+  background: var(--sunny);
+  transform-origin: left;
+}
+.sk-points {
+  display: grid;
+  justify-items: center;
+  padding: 4px 12px;
+  border-radius: var(--r-sm);
+  background: var(--tint);
+  text-align: center;
+}
+.sk-points b {
+  font: 800 1.6rem/1 var(--round);
+}
+.sk-points span {
+  font: 700 11px var(--round);
+  color: var(--ink-soft);
+}
+.sk-up {
+  grid-column: 1 / -1;
+}
+
+/* tree tabs */
+.sk-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.sk-tab {
+  display: grid;
+  justify-items: center;
+  gap: 0;
+  min-height: 44px;
+  padding: 4px 2px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--card);
+  color: var(--ink);
+  font: 800 13px var(--round);
+  cursor: pointer;
+}
+.sk-tab small {
+  font: 700 11px var(--round);
+  color: var(--ink-soft);
+}
+.sk-tab.on {
+  background: var(--tree);
+  color: #2b2140;
+  box-shadow: var(--lift-lo);
+}
+.sk-tab.on small {
+  color: #2b2140;
+}
+.sk-says {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+/* the 6 × 3 grid */
+.sk-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.sk-row {
+  display: grid;
+  grid-template-columns: 34px repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 6px;
+  padding: 6px;
+  border-radius: var(--r-sm);
+  background: var(--tint);
+}
+.sk-row.caps {
+  background: color-mix(in srgb, var(--tree) 22%, var(--tint));
+}
+.sk-row.closed {
+  opacity: 0.55;
+}
+.sk-tier {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  font: 800 14px var(--round);
+  color: var(--ink);
+}
+.sk-tier small {
+  font: 700 10px var(--round);
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.sk-node {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 4px;
+  min-height: 78px;
+  padding: 6px 2px;
+  border: 2px solid transparent;
+  border-radius: var(--r-sm);
+  background: var(--card);
+  color: var(--ink);
+  cursor: pointer;
+}
+.sk-node.picked {
+  border-color: var(--line);
+  box-shadow: var(--lift-lo);
+}
+.sk-node:focus-visible {
+  outline: 3px solid #ff7a6b;
+  outline-offset: 2px;
+}
+/* points as a ring that fills, a capstone as a star */
+.sk-ring {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: conic-gradient(var(--tree) var(--fill), var(--tint) 0);
+  border: 2px solid var(--line);
+}
+.sk-ring b {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--card);
+  font: 800 14px var(--round);
+}
+.sk-cap .sk-ring {
+  border-radius: 10px;
+  transform: rotate(45deg);
+}
+.sk-cap .sk-ring b {
+  border-radius: 6px;
+  transform: rotate(-45deg);
+}
+.sk-name {
+  font: 700 11px/1.2 var(--round);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.sk-full .sk-ring b,
+.sk-some .sk-ring b {
+  color: #2b2140;
+}
+.sk-excluded {
+  opacity: 0.45;
+}
+.sk-locked .sk-ring {
+  border-style: dashed;
+}
+
+/* details, respec */
+.sk-detail,
+.sk-respec {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--card);
+}
+.sk-detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.sk-detail-head b {
+  font: 800 1.05rem var(--round);
+}
+.sk-count {
+  font: 800 14px var(--round);
+  font-variant-numeric: tabular-nums;
+}
+.sk-detail p {
+  margin: 0;
+}
+.sk-note {
+  color: var(--ink-soft);
+}
+.sk-why {
+  padding: 6px 10px;
+  border-radius: var(--r-sm);
+  background: var(--tint);
+  font-weight: 700;
+}
+.sk-respec {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+.sk-respec > div:first-child {
+  display: grid;
+  gap: 2px;
+}
+.sk-confirm {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  background: var(--tint);
+  font-weight: 700;
+}
+
+/* the level on the avatar's corner: small to the eye, 44px to the finger */
+.who-face-wrap {
+  position: relative;
+  flex: none;
+}
+.lv-chip {
+  position: absolute;
+  left: -6px;
+  bottom: -6px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 5px;
+  border: 2px solid #2b2140;
+  border-radius: var(--r-pill);
+  background: #fffdf8;
+  color: #2b2140;
+  font: 800 11px/1 var(--round);
+  cursor: pointer;
+}
+.lv-chip::before {
+  content: "";
+  position: absolute;
+  inset: -12px;
+}
+/* a dot when skill points are waiting */
+.who .lv-chip b,
+.lv-chip b {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid #2b2140;
+  border-radius: 50%;
+  background: #f49ac1;
+}
+.lv-chip.ready {
+  background: var(--sunny);
+  animation: lv-bob 1.2s var(--ease) infinite;
+}
+.lv-chip:focus-visible {
+  outline: 3px solid #ff7a6b;
+  outline-offset: 2px;
+}
+@keyframes lv-bob {
+  50% {
+    transform: translateY(-2px);
+  }
+}
+.lv-skills {
+  margin-left: 8px;
+}
+
+/* the level-up moment */
+.sk-moment-card {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  text-align: center;
+  overflow: hidden;
+}
+.sk-moment-level {
+  margin: 8px 0 0;
+  font: 800 2rem var(--round);
+}
+.sk-burst {
+  position: absolute;
+  top: 34px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.sk-burst i {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  margin: -4px;
+  border-radius: 2px;
+  background: var(--sunny);
+  transform: rotate(var(--a)) translateY(0);
+  animation: sk-fly 0.9s var(--ease) forwards;
+}
+.sk-burst i:nth-child(even) {
+  background: #f49ac1;
+}
+@keyframes sk-fly {
+  to {
+    transform: rotate(var(--a)) translateY(-90px);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lv-chip.ready,
+  .sk-burst i {
+    animation: none;
+  }
+}

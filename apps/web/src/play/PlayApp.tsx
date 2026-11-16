@@ -45,6 +45,7 @@ import { ArenaPanel } from "./Arena";
 import { BrainView } from "./BrainView";
 import { ChainPanel } from "./ChainPanel";
 import { NeighboursPanel } from "./Neighbours";
+import { LevelUpMoment, SkillsPanel, useSkillsUi } from "./Skills";
 import { HomePanel } from "./Home";
 import { WardrobePanel } from "./Wardrobe";
 import { MailboxPanel } from "./Mailbox";
@@ -169,6 +170,7 @@ export function PlayApp() {
   // over the resident's head: a quest to hand in, or one to offer
   const worldState = useWorld((s) => s.world);
   const [talking, setTalking] = useState(false);
+  const skillsOpen = useSkillsUi((s) => s.open);
   // a resident who has come to visit stands in your home until you meet them (plan 4.3)
   const visitorId = worldRoom === HOME ? visitorOf(worldState) : null;
   const visitor = visitorId ? (CHARACTERS.find((c) => c.id === visitorId) ?? null) : null;
@@ -693,6 +695,10 @@ export function PlayApp() {
       <QuestToast onOpenBook={() => pick("quests")} />
       <QuestDialog />
       <HintRing />
+      <Sheet open={skillsOpen} title={lang === "zh" ? `${pet.name}的技能` : `${pet.name}'s skills`} onClose={() => useSkillsUi.getState().hide()}>
+        {skillsOpen && <SkillsPanel />}
+      </Sheet>
+      <LevelUpMoment />
       <Sheet open={tab === "me"} title={t("me.title", { name: pet.name })} onClose={close}>
         <TelegramCard />
         <WardrobePanel pet={pet} />

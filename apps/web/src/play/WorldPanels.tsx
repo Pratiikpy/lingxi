@@ -2,6 +2,8 @@
 
 import { BUILDER_PET, type BuilderId, builderIn } from "@lingxi/game";
 import { CuteState } from "./CuteState";
+import { play } from "../game/sound";
+import { FRESH_START_TEA, useSkillsUi } from "./Skills";
 import { useMemo, useState } from "react";
 import { stageOf } from "@lingxi/game";
 import { CORNER_SHOP, DECOR_BY_ID, HOME, ITEM, MAKE_RECIPES, PIECE_PRICES, QUESTS, RECIPES, ROOMS, STORY, has, knownTravelRecipes, neighbours, ownedPieces, questState } from "@lingxi/world";
@@ -190,7 +192,12 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
           <p className="label">{t("bag.drinks")}</p>
           <ul className="bag-list">
             {drinks.map((e) => (
-              <Row key={e.item.index} e={e} action={e.item.kind === "box" ? t("bag.open") : t("bag.use")} onAct={() => (e.item.kind === "box" ? openBox() : (use(e.item.index), onFed()))} />
+              e.item.index === FRESH_START_TEA ? (
+                // the Fresh Start Tea returns skill points: it opens the skills screen to confirm (plan 4.4)
+                <Row key={e.item.index} e={e} action={lang === "zh" ? "重新选择技能" : "Choose skills again"} onAct={() => (play("tap"), useSkillsUi.getState().show({ respec: true }))} />
+              ) : (
+                <Row key={e.item.index} e={e} action={e.item.kind === "box" ? t("bag.open") : t("bag.use")} onAct={() => (e.item.kind === "box" ? openBox() : (use(e.item.index), onFed()))} />
+              )
             ))}
           </ul>
         </section>

@@ -5,7 +5,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { drawPet, toRgba } from "@lingxi/art";
-import { type Pet, diaryOf, diaryText, mindBrain, stageOf } from "@lingxi/game";
+import { type Pet, diaryOf, diaryText, mindBrain, stageOf, ruleGrowth } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { play } from "../game/sound";
 import { useWorld } from "../game/world";
@@ -22,7 +22,7 @@ export function DiaryPanel({ pet }: { pet: Pet }) {
   const room = useWorld((s) => s.world.room);
   const backdrop = (ROOMS[room] ?? ROOMS[HOME]!).bgs.day;
   // the replay depends only on the log and the brains it ran on
-  const lines = useMemo(() => diaryOf(pet, (lessons, outside) => mindBrain({ line: pet.line, lessons, family: pet.family, instincts: pet.instincts, outside })), [pet.pendingLog.length, pet.segments, pet.family, pet.line, pet.instincts, pet.outside]);
+  const lines = useMemo(() => diaryOf(pet, (lessons, outside, skills) => mindBrain({ line: pet.line, lessons, family: pet.family, instincts: pet.instincts, outside, growth: ruleGrowth(skills) })), [pet.pendingLog.length, pet.segments, pet.family, pet.line, pet.instincts, pet.outside]);
   const date = new Date().toLocaleDateString(lang === "zh" ? "zh-CN" : "en-GB", { month: "long", day: "numeric", weekday: "long" });
 
   const share = async () => {

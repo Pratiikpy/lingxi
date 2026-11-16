@@ -36,7 +36,7 @@ describe("sparring TapeFly-format brains", () => {
   });
 
   it("the DUEL word reports a guarding rival as a shield and a resting one as open", () => {
-    const side = (last: "guard" | "rest" | "pounce" | "tap") => ({ hp: 100, stamina: 10, weakened: 0, memory: [], last, momentum: 0 });
+    const side = (last: "guard" | "rest" | "pounce" | "tap") => ({ hp: 100, stamina: 10, maxHp: 100, maxStamina: 10, weakened: 0, memory: [], last, momentum: 0 });
     expect((duelWord(side("tap"), side("guard"), 3) >> 2) & 3).toBe(1);
     expect((duelWord(side("tap"), side("pounce"), 3) >> 2) & 3).toBe(2);
     expect((duelWord(side("tap"), side("rest"), 3) >> 2) & 3).toBe(3);

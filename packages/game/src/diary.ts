@@ -45,8 +45,8 @@ const TIME_HOUR = [1, 8, 14, 20]; // night, morning, day, evening → a represen
  * Today's diary: the last `beats` logged words (one per minute), replayed from
  * the start of the log so the memory is exactly what it was.
  */
-export function diaryOf(pet: Pet, brainFor: (lessons: Rule[], outside?: OutsideInstinct) => Brain, beats = 24 * 60): DiaryLine[] {
-  return diaryOfStretches(logSegments(pet).map((s) => ({ brain: brainFor(s.lessons, s.outside), words: s.words })), beats);
+export function diaryOf(pet: Pet, brainFor: (lessons: Rule[], outside?: OutsideInstinct, skills?: number[]) => Brain, beats = 24 * 60): DiaryLine[] {
+  return diaryOfStretches(logSegments(pet).map((s) => ({ brain: brainFor(s.lessons, s.outside, s.skills), words: s.words })), beats);
 }
 
 /**

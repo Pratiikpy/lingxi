@@ -5,8 +5,9 @@
  */
 
 import { type Program, type Rule, compileProgram, gateCount, validateProgram } from "@lingxi/brain";
-import { MAX_GATES, composeProgram } from "./lessons";
-import { halvesOf, parseCard } from "./family";
+import { composeProgram } from "./lessons";
+import { gateBudget, skillRules } from "./skills";
+import { halvesOf, mindExtra, parseCard } from "./family";
 import type { Family } from "./pet";
 
 export interface Partner {
@@ -100,9 +101,9 @@ export function friendPartner(card: { id: string; name: string; line: string; st
   const parsed = parseCard(card.lessons);
   if (!line || !parsed) return null;
   try {
-    const program = composeProgram(line, parsed.lessons, parsed.instincts);
-    const minds = parsed.family ? halvesOf(parsed.family, parsed.lessons) : [program];
-    for (const m of minds) if (gateCount(compileProgram(m)) > MAX_GATES) return null;
+    const program = composeProgram(line, parsed.lessons, parsed.instincts, mindExtra(parsed.growth));
+    const minds = parsed.family ? halvesOf(parsed.family, parsed.lessons, skillRules(parsed.growth)) : [program];
+    for (const m of minds) if (gateCount(compileProgram(m)) > gateBudget(parsed.growth)) return null;
     const grown = card.stage === "elder" ? "adult" : card.stage;
     const stage = STAGES.find((s) => s === grown) ?? "baby";
     const name = card.name.slice(0, 12) || "Friend";

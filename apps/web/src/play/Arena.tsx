@@ -11,7 +11,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { FLY, type OverlayPixel, type Palette, type PixelCanvas, boundingBox, drawFly, drawPet, type Expression, type Outfit, wearOverlay } from "@lingxi/art";
 import { outfitOf } from "@lingxi/world";
 import { STARTERS, programOfChips } from "@lingxi/brain";
-import { DESIGNED_PARTNERS, composeProgram, type Challenge, type CoachNote, type DuelPet, type Fighter, MAX_HP, MOVES, type Move, PARTNERS, type Partner, type Pet, type SparResult, TRAITS, coach, dayOf, duel as runDuel, duelFighter, encodeChallenge, encodeResult, fighterOfMind, fighterOfPartner, halvesOf, petCard, rewindFight, ruleSource, spar, stageOf, FLY_RIVALS, type FlyRival, FlyLinkError, flyFighter, parseFlyBrain } from "@lingxi/game";
+import { DESIGNED_PARTNERS, composeProgram, type Challenge, type CoachNote, type DuelPet, type Fighter, MAX_HP, MOVES, type Move, PARTNERS, type Partner, type Pet, type SparResult, TRAITS, coach, dayOf, duel as runDuel, duelFighter, encodeChallenge, encodeResult, fighterOfMind, fighterOfPartner, halvesOf, petCard, rewindFight, ruleSource, spar, stageOf, FLY_RIVALS, type FlyRival, FlyLinkError, flyFighter, parseFlyBrain, skillRules, sparMods } from "@lingxi/game";
 import { linkPrefix } from "../game/links";
 import { SILICON } from "@lingxi/art";
 import { BEHEMOTH_STEPS_PER_ROUND, behemothAt, behemothFighter } from "@lingxi/game";
@@ -185,7 +185,7 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken
 
   function start(partner: Partner, daily?: { seed: number }, opponent?: Fighter) {
     const stage = stageOf(pet, Date.now());
-    const own = fighterOfMind(pet.name, { line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts, outside: pet.outside }, levelOf(stage), pet.brain);
+    const own = fighterOfMind(pet.name, { line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts, outside: pet.outside, growth: pet.growth }, levelOf(stage), pet.brain);
     // the daily challenge is the same fight for everyone, so it is always fought with the pet's own mind
     const adopted = useAdopted.getState().byPet[String(pet.bornAt)];
     const me = !daily && adopted?.on ? fighterOf(adopted, pet.name, levelOf(stage)) : own;
@@ -624,11 +624,17 @@ export function FightView({
     if (outcome === "w") useBadges.getState().note("sparWins");
     if (outcome === "w") noteTally("SPAR_WIN");
     if (outcome === "w" && partner.look === "behemoth") useBadges.getState().note("behemothWins");
+    // Spar skills (plan 4.4): more for a win, and something even for a loss; friendly matches pay nothing, as before
+    const skill = sparMods(pet?.growth);
     if (outcome === "w" && !partner.id.startsWith("friend:")) {
-      const coins = WIN_COINS + (first ? FIRST_WIN_COINS : 0);
+      const coins = WIN_COINS + (first ? FIRST_WIN_COINS : 0) + skill.winCoins;
       useWorld.getState().reward(coins);
       setReward(coins);
       play("success");
+    }
+    if (outcome === "l" && !partner.id.startsWith("friend:") && skill.lossCoins > 0) {
+      useWorld.getState().reward(skill.lossCoins);
+      setReward(skill.lossCoins);
     }
   }, [finished, result, partner.id, instinct]);
 
@@ -860,7 +866,7 @@ function SparChainCheck({ pet, partner, opponent, result, cheer }: { pet: Pet; p
       pet={pet}
       rounds={result.rounds.length}
       run={(petId, onProgress) => {
-        const me = fighterOfMind(pet.name, { line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts, outside: pet.outside }, levelOf(stageOf(pet, Date.now())), pet.brain);
+        const me = fighterOfMind(pet.name, { line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts, outside: pet.outside, growth: pet.growth }, levelOf(stageOf(pet, Date.now())), pet.brain);
         return checkSparOnChain({ petId, me, them: () => opponent ?? fighterOfPartner(partner), result, cheer, onProgress });
       }}
     />
@@ -881,7 +887,7 @@ function FightRewind({ pet, result }: { pet: Pet; result: SparResult }) {
   const why = useMemo(
     () =>
       rewindFight(
-        { ...(pet.family ? { halves: halvesOf(pet.family, pet.lessons) } : { program: programFor(pet.line, pet.lessons, pet.instincts ?? 0) }), ...(pet.outside ? { outside: pet.outside } : {}) },
+        { ...(pet.family ? { halves: halvesOf(pet.family, pet.lessons, skillRules(pet.growth)) } : { program: programFor(pet.line, pet.lessons, pet.instincts ?? 0, pet.growth) }), ...(pet.outside ? { outside: pet.outside } : {}) },
         pet.brain,
         result.rounds.map((r) => r.words[0]),
       ),

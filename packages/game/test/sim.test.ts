@@ -116,8 +116,12 @@ describe("256-bit checkpoint", () => {
     p = care(p, { kind: "play" }, T0 + BEAT_MS, gentle).pet;
     p = catchUp(p, T0 + DAY_MS / 2, gentle);
     const w = packState(p, "baby");
-    expect(w < 1n << 219n).toBe(true);
+    // the level (plan 4.4) is the last field: bits 234-240; nothing is written above it
+    expect(w < 1n << 241n).toBe(true);
     const u = unpackState(w, p.brain.length);
+    expect(u.level).toBe(p.growth!.level);
+    // a word from before levels were kept carries 0 there and reads as level 1
+    expect(unpackState(w & ~(127n << 234n), p.brain.length).level).toBe(1);
     expect(u.brain).toEqual(p.brain);
     expect(u.meters).toEqual(visibleMeters(p));
     expect(u.traits).toEqual(p.traits);

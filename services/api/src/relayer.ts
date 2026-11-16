@@ -17,7 +17,7 @@ import { createPublicClient, createWalletClient, erc20Abi, http, type Address, t
 import { privateKeyToAccount } from "viem/accounts";
 import { type Program, type Rule, type StarterLine, bytesToHex, compileProgram, composeChild, composeInstinct, gateCount, netlistBytes } from "@lingxi/brain";
 import { FACTORY, factoryAbi, processorAbi, transistorsAbi, xLayer } from "@lingxi/chain";
-import { type Family, MAX_GATES, cleanInstincts, composeProgram, halvesOf } from "@lingxi/game";
+import { type Family, type Growth, MAX_GATES, MAX_GATES_SKILLED, MAX_LESSONS, SKILL_BY_ID, cleanInstincts, composeProgram, gateBudget, halvesOf, mindExtra, skillRules } from "@lingxi/game";
 
 const NEWLINE = /\r?\n/;
 
@@ -74,17 +74,22 @@ export class BrainRelayer {
     return run;
   }
 
-  /** A pet's brain from its line, lessons and instinct switches. */
-  relay(line: StarterLine, lessons: Rule[], instincts = 0): Promise<RelayResult> {
+  /**
+   * A pet's brain from its line, lessons, instinct switches and skills (plan 4.4): the capstone rules it holds.
+   * Only rule skills are accepted as rules, and the circuit may be no larger than any skilled pet's budget.
+   */
+  relay(line: StarterLine, lessons: Rule[], instincts = 0, skills: number[] = []): Promise<RelayResult> {
     return this.serial(async () => {
-      if (lessons.length > 8) return { ok: false, reason: "invalid", detail: "too many lessons" } as const;
+      if (lessons.length > MAX_LESSONS) return { ok: false, reason: "invalid", detail: "too many lessons" } as const;
+      const rules = [...new Set(skills)].sort((a, b) => a - b).map((id) => SKILL_BY_ID[id]?.rule);
+      if (rules.some((r) => !r)) return { ok: false, reason: "invalid", detail: "not a rule skill" } as const;
       let program: Program;
       try {
-        program = composeProgram(line, lessons, cleanInstincts(instincts));
+        program = composeProgram(line, lessons, cleanInstincts(instincts), { rules: rules as Rule[] });
       } catch (e) {
         return { ok: false, reason: "invalid", detail: (e as Error).message } as const;
       }
-      return this.tapeProgram(program);
+      return this.tapeProgram(program, MAX_GATES_SKILLED);
     });
   }
 
@@ -93,22 +98,23 @@ export class BrainRelayer {
    * birth the parents are their current circuits; once the child is taught, each
    * half (child's lessons + that parent's) is taped out first and REF'd instead.
    */
-  relayChild(input: { parents: [string, string] } | { family: Family; lessons: Rule[] }): Promise<RelayResult> {
+  relayChild(input: { parents: [string, string] } | { family: Family; lessons: Rule[]; growth?: Growth }): Promise<RelayResult> {
     return this.serial(async () => {
       let ids: [bigint, bigint];
       if ("parents" in input) {
         ids = [BigInt(input.parents[0]), BigInt(input.parents[1])];
       } else {
-        if (input.lessons.length > 8) return { ok: false, reason: "invalid", detail: "too many lessons" } as const;
+        if (input.lessons.length > MAX_LESSONS) return { ok: false, reason: "invalid", detail: "too many lessons" } as const;
         let halves: [Program, Program];
         try {
-          halves = halvesOf(input.family, input.lessons);
+          // the child's own capstone rules join both halves (plan 4.4)
+          halves = halvesOf(input.family, input.lessons, skillRules(input.growth));
         } catch (e) {
           return { ok: false, reason: "invalid", detail: (e as Error).message } as const;
         }
         const got: bigint[] = [];
         for (const h of halves) {
-          const r = await this.tapeProgram(h);
+          const r = await this.tapeProgram(h, gateBudget(input.growth));
           if (!r.ok) return r;
           got.push(BigInt(r.brainId));
         }
@@ -163,7 +169,7 @@ export class BrainRelayer {
    * A child's brain REFs its two halves (taped out once and shared) through a
    * glue circuit of its own.
    */
-  keepsake(spec: { line: StarterLine; lessons: Rule[]; instincts?: number; family?: Family }, to: Address): Promise<KeepsakeResult> {
+  keepsake(spec: { line: StarterLine; lessons: Rule[]; instincts?: number; family?: Family; growth?: Growth }, to: Address): Promise<KeepsakeResult> {
     return this.serial(async () => {
       if (!/^0x[0-9a-fA-F]{40}$/.test(to) || /^0x0{40}$/.test(to)) return { ok: false, reason: "invalid", detail: "no wallet" } as const;
       if (spec.lessons.length > 8) return { ok: false, reason: "invalid", detail: "too many lessons" } as const;
@@ -171,7 +177,7 @@ export class BrainRelayer {
       try {
         if (spec.family) {
           const got: bigint[] = [];
-          for (const h of halvesOf(spec.family, spec.lessons)) {
+          for (const h of halvesOf(spec.family, spec.lessons, skillRules(spec.growth))) {
             const half = await this.tapeProgram(h);
             if (!half.ok) return half;
             got.push(BigInt(half.brainId));
@@ -179,8 +185,8 @@ export class BrainRelayer {
           const child = composeChild({ cpu: this.cfg.processor, id: got[0]! }, { cpu: this.cfg.processor, id: got[1]! });
           r = await this.tapeBytes(child.bytes, child.elements.filter((e) => e.op === 0).length, 0, true);
         } else {
-          const net = compileProgram(composeProgram(spec.line, spec.lessons, cleanInstincts(spec.instincts ?? 0)));
-          if (gateCount(net) > MAX_GATES) return { ok: false, reason: "tooBig" } as const;
+          const net = compileProgram(composeProgram(spec.line, spec.lessons, cleanInstincts(spec.instincts ?? 0), mindExtra(spec.growth)));
+          if (gateCount(net) > gateBudget(spec.growth)) return { ok: false, reason: "tooBig" } as const;
           r = await this.tapeBytes(netlistBytes(net), net.gates.length, net.latches.length, true);
         }
       } catch (e) {
@@ -232,9 +238,9 @@ export class BrainRelayer {
     return this.serial(() => this.tapeProgram(program));
   }
 
-  private async tapeProgram(program: Program): Promise<RelayResult> {
+  private async tapeProgram(program: Program, maxGates = MAX_GATES): Promise<RelayResult> {
     const net = compileProgram(program);
-    if (gateCount(net) > MAX_GATES) return { ok: false, reason: "tooBig" };
+    if (gateCount(net) > maxGates) return { ok: false, reason: "tooBig" };
     return this.tapeBytes(netlistBytes(net), net.gates.length, net.latches.length);
   }
 

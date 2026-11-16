@@ -115,11 +115,11 @@ export const TRAVEL_RECIPES: readonly Recipe[] = [
   // taught by friends at trust level 3 (friends/residents.ts), each the thing their shelf would otherwise sell
   { index: 20004, name: { en: "Stir Moon Tonic", zh: "调月光补剂" }, out: 11004, outAmount: 1, ins: [{ item: 1121, amount: 150 }, { item: 1112, amount: 100 }] },
   { index: 20005, name: { en: "Pound Taro Mochi", zh: "捣芋泥麻薯" }, out: 11110, outAmount: 2, ins: [{ item: 7201, amount: 2 }, { item: 1201, amount: 100 }] },
-  { index: 20006, name: { en: "Steep Lucky Tea", zh: "泡好运茶" }, out: 11405, outAmount: 1, ins: [{ item: 1111, amount: 100 }, { item: 1104, amount: 100 }] },
+  { index: 20006, name: { en: "Yonder's Lucky Tea", zh: "阿远的好运茶" }, out: 11405, outAmount: 1, ins: [{ item: 1111, amount: 100 }, { item: 1104, amount: 100 }] },
   { index: 20007, name: { en: "Double Wisdom Candy", zh: "炼大智慧糖" }, out: 11202, outAmount: 1, ins: [{ item: 11201, amount: 2 }, { item: 1103, amount: 100 }] },
   { index: 20008, name: { en: "Melt a Metal Bar", zh: "熔金属条" }, out: 1303, outAmount: 1, ins: [{ item: 1005, amount: 30 }, { item: 1015, amount: 1 }] },
   { index: 20009, name: { en: "Warm Honeydrops", zh: "捂蜜露" }, out: 11312, outAmount: 2, ins: [{ item: 11311, amount: 1 }, { item: 1011, amount: 1 }] },
-  { index: 20010, name: { en: "Brew Calm Tea", zh: "泡安神茶" }, out: 11404, outAmount: 1, ins: [{ item: 1111, amount: 100 }, { item: 1110, amount: 50 }] },
+  { index: 20010, name: { en: "Nurse Why's Calm Tea", zh: "小慧的安神茶" }, out: 11404, outAmount: 1, ins: [{ item: 1111, amount: 100 }, { item: 1110, amount: 50 }] },
   { index: 20011, name: { en: "Grill a Burger", zh: "烤汉堡" }, out: 11302, outAmount: 1, ins: [{ item: 7202, amount: 1 }, { item: 7201, amount: 1 }] },
   { index: 20012, name: { en: "Spin Rock Candyfloss", zh: "转棉花岩糖" }, out: 21205, outAmount: 1, ins: [{ item: 1201, amount: 150 }, { item: 1103, amount: 50 }] },
 ];
@@ -210,13 +210,40 @@ const add = (bag: Record<number, number>, item: number, n: number): Record<numbe
 
 export const has = (w: WorldState, item: number, n = 1): boolean => (w.bag[item] ?? 0) >= n;
 
-/** Walk to a neighbouring room. The caller spends MOVE_ENERGY from the pet. */
-export function move(w: WorldState, to: number, petEnergy: number): WorldResult<{ firstVisit: boolean; coins: number }> {
+/**
+ * The world's numbers for one pet: its Explore skills (plan 4.4) change them. The game builds these from the pet's
+ * skills (@lingxi/game exploreMods); a pet with no skills gets NO_EXPLORE_MODS, which are the world's own numbers.
+ */
+export interface ExploreMods {
+  moveEnergy: number;
+  forageEnergy: number;
+  /** percent chance of a second find, added to the base one in three */
+  extraFind: number;
+  /** percent added to the weight of rare finds (tiers 1 to 4) */
+  rareBoost: number;
+  /** minutes off the hour a room waits before it can be looked around again */
+  forageWaitOff: number;
+  walksWithFinds: number;
+  stepsOff: number;
+  visitCoins: number;
+  /** percent chance of one more find on a trip */
+  tripExtra: number;
+}
+export const NO_EXPLORE_MODS: ExploreMods = { moveEnergy: MOVE_ENERGY, forageEnergy: FORAGE_ENERGY, extraFind: 0, rareBoost: 0, forageWaitOff: 0, walksWithFinds: 0, stepsOff: 0, visitCoins: 0, tripExtra: 0 };
+
+/** Drop weights with rare finds (tiers 1 to 4) made more likely, in hundredths so small weights still move. */
+export function boostRare<T extends { item: number; weight: number; tier?: number }>(drops: readonly T[], pct: number): T[] {
+  if (!pct) return drops.slice();
+  return drops.map((d) => ({ ...d, weight: d.weight * (d.tier !== undefined && d.tier <= 4 ? 100 + pct : 100) }));
+}
+
+/** Walk to a neighbouring room. The caller spends the move's energy (mods.moveEnergy) from the pet. */
+export function move(w: WorldState, to: number, petEnergy: number, mods: ExploreMods = NO_EXPLORE_MODS): WorldResult<{ firstVisit: boolean; coins: number }> {
   if (!ROOMS[to]) return { ok: false, reason: "noRoom" };
   if (!neighbours(w.room).includes(to)) return { ok: false, reason: "notNear" };
-  if (petEnergy < MOVE_ENERGY) return { ok: false, reason: "tired" };
+  if (petEnergy < mods.moveEnergy) return { ok: false, reason: "tired" };
   const firstVisit = !w.visited.includes(to);
-  const coins = firstVisit ? FIRST_VISIT_COINS : 0;
+  const coins = firstVisit ? FIRST_VISIT_COINS + mods.visitCoins : 0;
   return {
     ok: true,
     firstVisit,
@@ -230,22 +257,28 @@ export function move(w: WorldState, to: number, petEnergy: number): WorldResult<
 }
 
 const hourKey = (now: number) => Math.floor(now / 3_600_000);
+/** The look-around window: an hour, shortened by Explore skills (never under 15 minutes); keys of a shorter window never equal an hour's. */
+export const forageKey = (now: number, waitOff = 0): number => (waitOff ? -(Math.floor(now / (Math.max(15, 60 - waitOff) * 60_000)) * 100 + Math.max(15, 60 - waitOff)) : hourKey(now));
 
 function roll(seed: string, room: number, hour: number, salt: number): number {
   const h = sha256(new TextEncoder().encode(`${seed}:${room}:${hour}:${salt}`));
   return ((h[0]! << 24) | (h[1]! << 16) | (h[2]! << 8) | h[3]!) >>> 0;
 }
 
-/** Look around the current room. Once per room per hour; the caller spends FORAGE_ENERGY. */
-export function forage(w: WorldState, now: number, petEnergy: number): WorldResult<{ found: Array<{ item: number; n: number }> }> {
+/** Look around the current room. Once per room per window (an hour, less with skills); the caller spends mods.forageEnergy. */
+export function forage(w: WorldState, now: number, petEnergy: number, mods: ExploreMods = NO_EXPLORE_MODS): WorldResult<{ found: Array<{ item: number; n: number }> }> {
   const room = ROOMS[w.room];
   if (!room) return { ok: false, reason: "noRoom" };
   if (!room.drops.length) return { ok: false, reason: "nothingHere" };
-  const hour = hourKey(now);
+  const hour = forageKey(now, mods.forageWaitOff);
   if (w.foraged[w.room] === hour) return { ok: false, reason: "already" };
-  if (petEnergy < FORAGE_ENERGY) return { ok: false, reason: "tired" };
-  const pick = (salt: number) => pickDrop(room.drops, roll(w.seed, w.room, hour, salt));
-  const count = 1 + (roll(w.seed, w.room, hour, 99) % 3 === 0 ? 1 : 0);
+  if (petEnergy < mods.forageEnergy) return { ok: false, reason: "tired" };
+  const drops = boostRare(room.drops, mods.rareBoost);
+  const pick = (salt: number) => pickDrop(drops, roll(w.seed, w.room, hour, salt));
+  // a second find: the base one in three, plus the skills' percent (out of 300, so a third stays exact)
+  const r99 = roll(w.seed, w.room, hour, 99);
+  const second = mods.extraFind ? r99 % 300 < 100 + 3 * mods.extraFind : r99 % 3 === 0;
+  const count = 1 + (second ? 1 : 0);
   const found: Array<{ item: number; n: number }> = [];
   for (let i = 0; i < count; i++) {
     const item = pick(i);

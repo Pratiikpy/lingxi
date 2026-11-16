@@ -119,13 +119,19 @@ export interface PetState {
   /** the beat of the last logged word */
   logBeat?: number;
   /** which lessons the brain had from each point of the log on: segment i covers words from[i]..from[i+1]-1 */
-  segments?: Array<{ from: number; lessons: import("@lingxi/brain").Rule[]; outside?: OutsideInstinct }>;
+  segments?: Array<{ from: number; lessons: import("@lingxi/brain").Rule[]; outside?: OutsideInstinct; skills?: number[] }>;
   /** set for a pet born of two parents: its mind is built from both of theirs */
   family?: Family;
   /** last brain answer, for the screen */
   last: { want: number; mood: number; nudge: number; rule: number; word: number; before?: number[]; half?: 0 | 1; instinct?: true };
   /** day number (since birth) this pet last had a child */
   lastBredDay?: number;
+  /** level, unspent skill points and the skills held (plan 4.4); absent on pets from before levels were spent */
+  growth?: import("./skills").Growth;
+  /** hundredths of an experience point carried between gains, so a small percent boost still counts */
+  xpCarry?: number;
+  /** the same for personality growth (Deep Memory) */
+  traitCarry?: number;
 }
 
 export const toVisible = (internal: number): number => Math.floor(internal / SUB);

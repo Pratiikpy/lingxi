@@ -9,6 +9,7 @@
  * size budget. Nothing reaches the pet until it passes.
  */
 
+import { effectOf, ruleSkillIds } from "./skills";
 import type { OutsideInstinct } from "./pet";
 import {
   type Program,
@@ -21,7 +22,7 @@ import {
 } from "@lingxi/brain";
 import { type Stage, stageOf } from "./pet";
 import { checkMindLesson } from "./family";
-import type { Pet } from "./sim";
+import { type Pet, gainXp } from "./sim";
 
 /** The most gates a pet brain may compile to (TapeOut cost and on-chain step gas). */
 export const MAX_GATES = 500;
@@ -51,9 +52,14 @@ export const instinctsOf = (bits = 0): Instinct[] => INSTINCTS.filter((_, i) => 
 /** A stored value read back safely: anything that is not 0-15 means no instincts. */
 export const cleanInstincts = (v: unknown): number => (Number.isInteger(v) && (v as number) >= 0 && (v as number) <= 15 ? (v as number) : 0);
 
-export function composeProgram(line: StarterLine, lessons: readonly Rule[], instincts = 0): Program {
+/** What the pet's skills add to its mind (plan 4.4): capstone rules, below its lessons and instincts. */
+export interface MindExtra {
+  rules?: readonly Rule[];
+}
+
+export function composeProgram(line: StarterLine, lessons: readonly Rule[], instincts = 0, extra: MindExtra = {}): Program {
   const base = STARTERS[line];
-  return validateProgram({ ...base, rules: [...lessons, ...instinctsOf(instincts).map((k) => INSTINCT_RULES[k]), ...base.rules] });
+  return validateProgram({ ...base, rules: [...lessons, ...instinctsOf(instincts).map((k) => INSTINCT_RULES[k]), ...(extra.rules ?? []), ...base.rules] });
 }
 
 export type LessonCheck =
@@ -132,13 +138,13 @@ export const PET_SCHOOL: readonly SchoolLesson[] = [
 /** Teach the pet a rule. Returns the new pet, or why the lesson was refused. */
 export function teach(p: Pet, rule: Rule, now: number): { ok: true; pet: Pet; gates: number } | Extract<LessonCheck, { ok: false }> {
   const stage = stageOf(p, now);
-  const r = checkMindLesson({ line: p.line, lessons: p.lessons, family: p.family, instincts: p.instincts, outside: p.outside }, stage, rule);
+  const r = checkMindLesson({ line: p.line, lessons: p.lessons, family: p.family, instincts: p.instincts, outside: p.outside, growth: p.growth }, stage, rule);
   if (!r.ok) return r;
-  return {
-    ok: true,
-    gates: r.gates,
-    pet: withSegment({ ...p, lessons: [rule, ...p.lessons], counts: { ...p.counts, lessons: Math.min(255, p.counts.lessons + 1) } }),
-  };
+  const taught: Pet = { ...p, lessons: [rule, ...p.lessons], counts: { ...p.counts, lessons: Math.min(255, p.counts.lessons + 1) } };
+  // Mind skills: experience for each lesson taught
+  const bonus = effectOf(p.growth, "TEACH_XP");
+  if (bonus) gainXp(taught, bonus);
+  return { ok: true, gates: r.gates, pet: withSegment(taught) };
 }
 
 /** Move a lesson up or down in priority, or forget it. */
@@ -159,14 +165,15 @@ export function withSegment(p: Pet): Pet {
   const segs = p.segments?.slice() ?? [{ from: 0, lessons: [] }];
   const from = p.pendingLog.length;
   const last = segs[segs.length - 1]!;
-  const seg = { from, lessons: p.lessons.slice(), ...(p.outside ? { outside: p.outside } : {}) };
+  const skills = ruleSkillIds(p.growth);
+  const seg = { from, lessons: p.lessons.slice(), ...(p.outside ? { outside: p.outside } : {}), ...(skills.length ? { skills } : {}) };
   if (last.from === from) segs[segs.length - 1] = seg;
   else segs.push(seg);
   return { ...p, segments: segs };
 }
 
-/** The log cut into the brain each stretch ran on. */
-export function logSegments(p: Pet): Array<{ lessons: Rule[]; outside?: OutsideInstinct; words: number[] }> {
+/** The log cut into the brain each stretch ran on: its lessons, owned instinct and the capstone rule skills it held. */
+export function logSegments(p: Pet): Array<{ lessons: Rule[]; outside?: OutsideInstinct; skills?: number[]; words: number[] }> {
   const segs = p.segments ?? [{ from: 0, lessons: [] }];
-  return segs.map((s, i) => ({ lessons: s.lessons, ...(s.outside ? { outside: s.outside } : {}), words: p.pendingLog.slice(s.from, segs[i + 1]?.from ?? p.pendingLog.length) }));
+  return segs.map((s, i) => ({ lessons: s.lessons, ...(s.outside ? { outside: s.outside } : {}), ...(s.skills?.length ? { skills: s.skills } : {}), words: p.pendingLog.slice(s.from, segs[i + 1]?.from ?? p.pendingLog.length) }));
 }

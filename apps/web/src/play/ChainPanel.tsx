@@ -1,5 +1,6 @@
 /** The pet's on-chain twin: hatch it, save each day (by hand or automatically), let a friend sit it, and open the proof page. */
 
+import { ruleSkillIds } from "@lingxi/game";
 import { useEffect, useState } from "react";
 import type { Pet } from "@lingxi/game";
 import { useLang, useT, type Key } from "../i18n";
@@ -34,7 +35,7 @@ export function ChainPanel({ pet }: { pet: Pet }) {
   }, [auto, record?.lastTx]);
   if (!deployment) return null;
   const busyText = busy === "connecting" ? t("chain.connecting") : busy === "hatching" ? t("chain.hatching") : busy === "saving" ? t("chain.saving") : busy === "taping" ? t("chain.taping") : busy === "auto" ? t("auto.saving") : null;
-  const mindBehind = record && (record.brainKey ?? mindKey([])) !== mindKey(pet.lessons, pet.instincts, pet.outside);
+  const mindBehind = record && (record.brainKey ?? mindKey([])) !== mindKey(pet.lessons, pet.instincts, pet.outside, ruleSkillIds(pet.growth));
   const err = error ? t(ERR[error] ?? "chain.failed") : null;
   // a friend's pet: the sitter may save its day (PetRegistry lets the named sitter), and nothing else here
   if (pet.sitting || pet.away)

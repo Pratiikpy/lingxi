@@ -33,7 +33,7 @@ export async function teachInWords(body: { words: string; name: string; line: st
 
 export type RelayResponse = { ok: true; processor: string; brainId: string; reused: boolean } | { ok: false; reason: string; detail?: string };
 
-export async function relayBrain(body: { line: string; lessons: Rule[]; instincts?: number }): Promise<RelayResponse> {
+export async function relayBrain(body: { line: string; lessons: Rule[]; instincts?: number; skills?: number[] }): Promise<RelayResponse> {
   if (!BASE) return { ok: false, reason: "offline" };
   try {
     const r = await fetch(`${BASE}/api/tapeout`, {

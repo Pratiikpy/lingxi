@@ -4,7 +4,8 @@ import { useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useVoice } from "../game/voice";
 import { decidingPart } from "../game/store";
-import { type Pet, beatOf, dayOf, kinshipNow, levelOf, stageOf, visibleMeters } from "@lingxi/game";
+import { type Pet, beatOf, canLevelUp, dayOf, growthOf, kinshipNow, stageOf, visibleMeters } from "@lingxi/game";
+import { levelUpNow, useSkillsUi } from "./Skills";
 import { useLang, useT, type Key } from "../i18n";
 import { useSound } from "../game/sound";
 import type { Daily, Toast } from "../game/store";
@@ -41,15 +42,18 @@ export function TopBar({ pet, daily, face, onQuests, onPets, petCount, onMail, u
   return (
     <header className="top">
       <div className="who">
-        <button type="button" className="who-face who-face-btn" onClick={onPets} aria-label={petCount > 1 ? `${pet.name} · ${petCount}` : pet.name}>
-          {face}
-          {petCount > 1 && <i className="pet-count">{petCount}</i>}
-        </button>
+        <div className="who-face-wrap">
+          <button type="button" className="who-face who-face-btn" onClick={onPets} aria-label={petCount > 1 ? `${pet.name} · ${petCount}` : pet.name}>
+            {face}
+            {petCount > 1 && <i className="pet-count">{petCount}</i>}
+          </button>
+          {/* the level (plan 4.4), on the avatar: opens the skills; when XP is enough, a tap levels up */}
+          <LevelBadge pet={pet} />
+        </div>
         <div style={{ minWidth: 0 }}>
           <b>{pet.name}</b>
           <span>
             {t(`stage.${stageOf(pet, now)}` as Key)} · {t("who.day", { n: dayOf(pet, now) })}
-            <i className="lv"> · Lv {levelOf(pet.xp).level}</i>
           </span>
         </div>
       </div>
@@ -210,5 +214,18 @@ export function TabBar({ current, onPick, locked = [] }: { current: Tab; onPick:
         </button>
       ))}
     </nav>
+  );
+}
+
+/** The pet's level on its avatar: a tap opens the skills, or levels up when the XP is there. */
+function LevelBadge({ pet }: { pet: Pet }) {
+  const g = growthOf(pet);
+  const ready = canLevelUp(g, pet.xp);
+  return (
+    <button type="button" className={`lv-chip${ready ? " ready" : ""}`} onClick={() => (ready ? levelUpNow() : useSkillsUi.getState().show())} aria-label={ready ? `Lv ${g.level} · level up` : `Lv ${g.level} · skills`}>
+      {ready ? "▲" : ""}
+      {g.level}
+      {!ready && g.points > 0 && <b aria-hidden="true" />}
+    </button>
   );
 }

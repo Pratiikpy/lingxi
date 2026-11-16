@@ -13,7 +13,8 @@
  */
 
 import { type Program, type Rule, encodeSenses, runBeat, stateBits } from "@lingxi/brain";
-import { type MindSpec, halvesOf } from "./family";
+import { type MindSpec, halvesOf, mindExtra } from "./family";
+import { skillRules } from "./skills";
 import { PET_SCHOOL, composeProgram } from "./lessons";
 
 type Senses = { hunger: number; joy: number; energy: number; clean: number; time: number; action: number; event: number; owner: number };
@@ -75,8 +76,8 @@ export const SCHOOL_GOALS: Readonly<Record<string, readonly [Goal, Goal, Goal]>>
 
 /** The program that decides a situation: the pet's single mind, or the half of a child that rules that time of day. */
 function decidingProgram(spec: MindSpec, lessons: readonly Rule[], time: number): Program {
-  if (!spec.family) return composeProgram(spec.line, lessons, spec.instincts);
-  const [a, b] = halvesOf(spec.family, lessons);
+  if (!spec.family) return composeProgram(spec.line, lessons, spec.instincts, mindExtra(spec.growth));
+  const [a, b] = halvesOf(spec.family, lessons, skillRules(spec.growth));
   return time === 1 || time === 2 ? a : b;
 }
 

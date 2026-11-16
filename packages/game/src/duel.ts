@@ -10,8 +10,9 @@
 
 import { b64urlDecode, b64urlEncode, compileProgram, gateCount } from "@lingxi/brain";
 import { fighterOfMind } from "./coach";
-import { type PetCard, halvesOf, mindBrain, parseCard } from "./family";
-import { MAX_GATES, composeProgram } from "./lessons";
+import { type PetCard, halvesOf, mindBrain, mindExtra, parseCard } from "./family";
+import { composeProgram } from "./lessons";
+import { gateBudget, skillRules } from "./skills";
 import type { Fighter, SparResult } from "./spar";
 import { spar } from "./spar";
 
@@ -59,8 +60,8 @@ function readPet(v: unknown): DuelPet & { parsed: PetCard } {
   const parsed = parseCard(p.card);
   if (!parsed) throw new DuelError("the pet's mind is damaged");
   // both minds must build and fit, exactly as they would at home
-  const minds = parsed.family ? halvesOf(parsed.family, parsed.lessons) : [composeProgram(line, parsed.lessons, parsed.instincts)];
-  for (const m of minds) if (gateCount(compileProgram(m)) > MAX_GATES) throw new DuelError("the pet's mind is too big");
+  const minds = parsed.family ? halvesOf(parsed.family, parsed.lessons, skillRules(parsed.growth)) : [composeProgram(line, parsed.lessons, parsed.instincts, mindExtra(parsed.growth))];
+  for (const m of minds) if (gateCount(compileProgram(m)) > gateBudget(parsed.growth)) throw new DuelError("the pet's mind is too big");
   const st = (p.story ?? {}) as Record<string, unknown>;
   const nature = Array.isArray(st.nature) ? st.nature.slice(0, 3).map((x) => clean(x, 16)).filter(Boolean) : [];
   return {
@@ -125,7 +126,7 @@ const levelOfStage = (s: Stage) => (s === "elder" ? 2 : s === "teen" || s === "a
 export function duelFighter(p: DuelPet): Fighter {
   const card = parseCard(p.card);
   if (!card) throw new DuelError("the pet's mind is damaged");
-  const spec = { line: p.line, lessons: card.lessons, family: card.family, instincts: card.instincts, outside: card.outside };
+  const spec = { line: p.line, lessons: card.lessons, family: card.family, instincts: card.instincts, outside: card.outside, growth: card.growth };
   const nState = mindBrain(spec).nState;
   return fighterOfMind(p.name, spec, levelOfStage(p.stage), card.memory?.length === nState ? card.memory : undefined);
 }

@@ -6,7 +6,8 @@ import { PALETTE_OF } from "../scene/textures";
 import { Sprite } from "./Sprite";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { type MindPart, mindParts } from "../game/store";
-import { DIETS, FOODS, FORMS, FORM_NAMES, TRAITS, type Pet, beatOf, dayOf, evolutionInputs, evolve, instinctsOf, kinshipNow, levelOf, stageOf } from "@lingxi/game";
+import { DIETS, FOODS, FORMS, FORM_NAMES, TRAITS, type Pet, beatOf, dayOf, evolutionInputs, evolve, growthOf, instinctsOf, kinshipNow, levelCost, stageOf } from "@lingxi/game";
+import { useSkillsUi } from "./Skills";
 import { useLang, useT, type Key } from "../i18n";
 import { Icon } from "./icons";
 import { Chips } from "./parts";
@@ -172,7 +173,9 @@ export function MeSheetBody({ pet }: { pet: Pet }) {
   const favFood = FOODS.find((f) => f.diet === fav);
   const kin = kinshipNow(pet, beatOf(Date.now()));
   const friendship = Math.min(10, kin);
-  const lv = levelOf(pet.xp);
+  // the level is kept and XP is spent at each level-up (plan 4.4): the bar shows the way to the next
+  const g = growthOf(pet);
+  const lv = { level: g.level, into: Math.min(pet.xp, levelCost(g.level)), need: levelCost(g.level) };
   const MISS: Record<string, [string, string]> = {
     food: ["got very hungry", "饿坏了"],
     joy: ["felt lonely", "觉得孤单"],
@@ -197,6 +200,9 @@ export function MeSheetBody({ pet }: { pet: Pet }) {
           <i className="lv-bar" role="meter" aria-valuemin={0} aria-valuemax={lv.need} aria-valuenow={lv.into}>
             <i style={{ transform: `scaleX(${lv.into / lv.need})` }} />
           </i>
+          <button type="button" className="btn small-btn lv-skills" onClick={() => useSkillsUi.getState().show()}>
+            {lang === "zh" ? `技能${g.points ? ` · ${g.points} 点可用` : ""}` : `Skills${g.points ? ` · ${g.points} to spend` : ""}`}
+          </button>
         </span>
       </dd>
       <dt>{t("me.friendship")}</dt>

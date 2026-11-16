@@ -5,12 +5,13 @@
  * the one that wins the most. The numbers it shows are measured, not guessed.
  */
 
+import { type Growth, sparMods } from "./skills";
 import { type Rule, compileProgram, fastBrain, stateBits } from "@lingxi/brain";
 import type { StarterLine } from "@lingxi/brain";
 import type { OutsideInstinct, Stage } from "./pet";
 import { checkMindLesson, mindBrain } from "./family";
 import type { Family } from "./pet";
-import { type Fighter, type SparResult, spar } from "./spar";
+import { type Fighter, type FighterMods, type SparResult, spar } from "./spar";
 
 export type CoachKey = "tooPassive" | "noDefence" | "ranOut" | "noHealing" | "outmatched" | "wellDone";
 
@@ -61,9 +62,17 @@ export interface CoachNote {
 }
 
 /** A fighter from any pet's mind, single or a child of two parents. */
-export function fighterOfMind(name: string, spec: { line: StarterLine; lessons: readonly Rule[]; family?: Family; instincts?: number; outside?: OutsideInstinct }, level: number, memory?: readonly number[]): Fighter {
+export function fighterOfMind(name: string, spec: { line: StarterLine; lessons: readonly Rule[]; family?: Family; instincts?: number; outside?: OutsideInstinct; growth?: Growth }, level: number, memory?: readonly number[]): Fighter {
   const b = mindBrain(spec);
-  return { name, brain: b.fast, memory: memory ? [...memory] : new Array(b.nState).fill(0), level };
+  const mods = fighterMods(spec.growth);
+  return { name, brain: b.fast, memory: memory ? [...memory] : new Array(b.nState).fill(0), level, ...(mods ? { mods } : {}) };
+}
+
+/** What a pet's Spar skills bring to a fight (plan 4.4), or nothing for a pet without them, so its fights are unchanged. */
+export function fighterMods(growth: Growth | undefined): FighterMods | undefined {
+  const m = sparMods(growth);
+  const { winCoins: _w, lossCoins: _l, ...fight } = m;
+  return Object.values(fight).some((v) => v !== 0) ? fight : undefined;
 }
 
 /** The fighter for a sparring partner: its program, or both halves of a friend's child. */

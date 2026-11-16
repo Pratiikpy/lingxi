@@ -1,16 +1,17 @@
 /**
  * The brain's gate budget as something the player can see (PRD F6). A brain has
- * at most MAX_GATES NAND gates (TapeOut cost and on-chain step gas), and the
+ * at most its gate budget of NAND gates (500, more with Mind skills; TapeOut cost and on-chain step gas), and the
  * compiler shares any logic two rules have in common, so a lesson that reuses
  * what the pet already checks costs fewer gates than it would on its own.
  */
 
 import { type Program, type Rule, compileProgram, gateCount } from "@lingxi/brain";
-import { type MindSpec, halvesOf } from "./family";
-import { MAX_GATES, composeProgram } from "./lessons";
+import { type MindSpec, halvesOf, mindExtra } from "./family";
+import { composeProgram } from "./lessons";
+import { gateBudget, skillRules } from "./skills";
 
 function programsOf(spec: MindSpec, lessons: readonly Rule[]): Program[] {
-  return spec.family ? halvesOf(spec.family, lessons) : [composeProgram(spec.line, lessons, spec.instincts)];
+  return spec.family ? halvesOf(spec.family, lessons, skillRules(spec.growth)) : [composeProgram(spec.line, lessons, spec.instincts, mindExtra(spec.growth))];
 }
 
 /** Gates of the larger program (a child's two halves are separate circuits). */
@@ -22,7 +23,7 @@ export interface BrainSize {
 }
 
 export function brainSize(spec: MindSpec): BrainSize {
-  return { gates: gatesOf(programsOf(spec, spec.lessons)), max: MAX_GATES };
+  return { gates: gatesOf(programsOf(spec, spec.lessons)), max: gateBudget(spec.growth) };
 }
 
 export interface LessonCost {
@@ -43,5 +44,5 @@ export function lessonCost(spec: MindSpec, candidate: Rule): LessonCost {
   const bare = gatesOf(programsOf(spec, []));
   const alone = gatesOf(programsOf(spec, [candidate])) - bare;
   const adds = after - before;
-  return { adds, alone, saved: Math.max(0, alone - adds), total: after, fits: after <= MAX_GATES };
+  return { adds, alone, saved: Math.max(0, alone - adds), total: after, fits: after <= gateBudget(spec.growth) };
 }

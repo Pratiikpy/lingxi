@@ -102,7 +102,7 @@ const companionUnit = (id: string, i: number, edge = 0): TeamUnit => {
 };
 
 function petUnit(pet: Pet): TeamUnit {
-  const f = fighterOfMind(pet.name, { line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts, outside: pet.outside }, ARENA_PET_LEVEL, pet.brain);
+  const f = fighterOfMind(pet.name, { line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts, outside: pet.outside, growth: pet.growth }, ARENA_PET_LEVEL, pet.brain);
   return { id: "pet", name: pet.name, brain: f.brain, memory: f.memory, hp: PET_HP, level: ARENA_PET_LEVEL };
 }
 

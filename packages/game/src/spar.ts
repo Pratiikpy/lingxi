@@ -54,11 +54,28 @@ export interface Fighter {
   memory: readonly number[];
   /** small stat edges from growth: 0..3 */
   level: number;
+  /** what its Spar skills bring (plan 4.4); absent = none, and the fight is exactly as before skills */
+  mods?: FighterMods;
+}
+
+/** The Spar tree's effect on one fighter (see skills.ts sparMods; coins are paid by the game, not here). */
+export interface FighterMods {
+  power: number;
+  hp: number;
+  stamina: number;
+  /** percent of guarded damage stopped on top of the guard */
+  guard: number;
+  /** percent added to a dodge's chance */
+  dodge: number;
+  heal: number;
 }
 
 export interface Side {
   hp: number;
   stamina: number;
+  /** this fighter's own full health and stamina (more with skills) */
+  maxHp: number;
+  maxStamina: number;
   weakened: number;
   memory: number[];
   last: Move;
@@ -85,7 +102,8 @@ export interface SparResult {
 }
 
 const bucketUp = (v: number, max: number) => Math.min(3, Math.floor((v * 4) / (max + 1)));
-const healthPin = (hp: number) => 3 - bucketUp(hp, MAX_HP);
+/** health on the pins, against the fighter's own full health, so a hardier pet does not read as wounded */
+const healthPin = (hp: number, max: number) => 3 - bucketUp(hp, max);
 
 function xorshift(seed: number): () => number {
   let s = seed >>> 0 || 0x9e3779b9;
@@ -104,7 +122,7 @@ const AS_DUEL_PREV: Record<Move, number> = { tap: 0, pounce: 0, charm: 0, gift: 
 /** The fight on a TapeFly-format brain's 12 pins (DUEL-12x3/1). */
 export function duelWord(me: Side, them: Side, round: number): number {
   const foe = them.last === "guard" ? 1 : them.last === "pounce" ? 2 : round > 0 && (them.last === "rest" || them.last === "snack") ? 3 : 0;
-  return 3 | (foe << 2) | (bucketUp(me.hp, MAX_HP) << 4) | (bucketUp(them.hp, MAX_HP) << 6) | (bucketUp(me.stamina, MAX_STAMINA) << 8) | (AS_DUEL_PREV[me.last] << 10);
+  return 3 | (foe << 2) | (bucketUp(me.hp, me.maxHp) << 4) | (bucketUp(them.hp, them.maxHp) << 6) | (bucketUp(me.stamina, me.maxStamina) << 8) | (AS_DUEL_PREV[me.last] << 10);
 }
 
 /** A DUEL-12x3/1 answer as a move and mood, in the pet brain's output layout (want | mood << 3). */
@@ -118,10 +136,10 @@ function word(me: Side, them: Side, round: number, cheering: boolean, hitHard: b
   const opening = them.last === "rest" || them.last === "snack";
   const friendly = them.last === "charm" || them.last === "gift";
   return encodeSenses({
-    hunger: healthPin(me.hp),
+    hunger: healthPin(me.hp, me.maxHp),
     joy: Math.max(0, Math.min(3, me.momentum + 1)),
-    energy: bucketUp(me.stamina, MAX_STAMINA),
-    clean: bucketUp(them.hp, MAX_HP),
+    energy: bucketUp(me.stamina, me.maxStamina),
+    clean: bucketUp(them.hp, them.maxHp),
     time: phase,
     action: MOVE_AS_ACTION[them.last],
     event: hitHard ? 3 : opening && round > 0 ? 2 : friendly ? 1 : 0,
@@ -138,10 +156,12 @@ function digestOf(rounds: Round[], seed: number): string {
 
 export function spar(a: Fighter, b: Fighter, seed: number, cheer: (round: number) => [boolean, boolean] = () => [false, false]): SparResult {
   const rnd = xorshift(seed);
-  const sides: [Side, Side] = [
-    { hp: MAX_HP, stamina: MAX_STAMINA, weakened: 0, memory: a.memory.slice(), last: "tap", momentum: 0 },
-    { hp: MAX_HP, stamina: MAX_STAMINA, weakened: 0, memory: b.memory.slice(), last: "tap", momentum: 0 },
-  ];
+  const start = (f: Fighter): Side => {
+    const maxHp = MAX_HP + (f.mods?.hp ?? 0);
+    const maxStamina = MAX_STAMINA + (f.mods?.stamina ?? 0);
+    return { hp: maxHp, stamina: maxStamina, maxHp, maxStamina, weakened: 0, memory: f.memory.slice(), last: "tap", momentum: 0 };
+  };
+  const sides: [Side, Side] = [start(a), start(b)];
   const fighters: [Fighter, Fighter] = [a, b];
   const rounds: Round[] = [];
   let hitHard: [boolean, boolean] = [false, false];
@@ -162,7 +182,7 @@ export function spar(a: Fighter, b: Fighter, seed: number, cheer: (round: number
     moves = moves.map((m, i) => (sides[i]!.stamina <= 0 && m !== "rest" && m !== "tap" ? "rest" : m)) as [Move, Move];
     moves = moves.map((m) => (m === "pounce" && rnd() % 8 === 0 ? "tap" : m)) as [Move, Move];
     const moods = outs.map((o) => (o >> 3) & 3) as [number, number];
-    const power = moods.map((m, i) => m - 1 + fighters[i]!.level) as [number, number];
+    const power = moods.map((m, i) => m - 1 + fighters[i]!.level + (fighters[i]!.mods?.power ?? 0)) as [number, number];
     const hits: [number, number] = [0, 0];
     const heal: [number, number] = [0, 0];
     for (const i of [0, 1] as const) {
@@ -171,8 +191,8 @@ export function spar(a: Fighter, b: Fighter, seed: number, cheer: (round: number
       const m = moves[i];
       const cost = m === "pounce" ? 3 : m === "dodge" || m === "charm" ? 2 : m === "guard" || m === "snack" || m === "gift" ? 1 : 0;
       me.stamina = Math.max(0, me.stamina - cost);
-      if (m === "rest") me.stamina = Math.min(MAX_STAMINA, me.stamina + 4);
-      if (m === "snack") heal[i] += 12 + power[i] * 2;
+      if (m === "rest") me.stamina = Math.min(me.maxStamina, me.stamina + 4);
+      if (m === "snack") heal[i] += 12 + power[i] * 2 + (fighters[i]!.mods?.heal ?? 0);
       if (m === "gift") {
         heal[i] += 6;
         heal[j] += 6;
@@ -182,16 +202,20 @@ export function spar(a: Fighter, b: Fighter, seed: number, cheer: (round: number
         let dmg = m === "tap" ? 5 + power[i] + (rnd() % 3) : 12 + power[i] * 3 + (rnd() % 5) + (rnd() % 6 === 0 ? 8 : 0);
         if (me.weakened > 0) dmg = Math.floor(dmg / 2);
         const def = moves[j];
-        if (def === "guard") dmg = Math.floor(dmg / 3);
-        else if (def === "dodge" && rnd() % 3 !== 0) dmg = 0;
-        else if (def === "rest") dmg += 4;
+        const them = fighters[j]!.mods;
+        if (def === "guard") dmg = Math.floor((Math.floor(dmg / 3) * (100 - Math.min(90, them?.guard ?? 0))) / 100);
+        else if (def === "dodge") {
+          // the same single draw as always; Quick Feet widens what counts as a dodge
+          const r = rnd();
+          if (them?.dodge ? r % 300 >= Math.max(0, 100 - 3 * them.dodge) : r % 3 !== 0) dmg = 0;
+        } else if (def === "rest") dmg += 4;
         hits[i] = Math.max(0, dmg);
       }
     }
     for (const i of [0, 1] as const) {
       const j = (1 - i) as 0 | 1;
       sides[j].hp = Math.max(0, sides[j].hp - hits[i]);
-      sides[i].hp = Math.min(MAX_HP, sides[i].hp + heal[i]);
+      sides[i].hp = Math.min(sides[i].maxHp, sides[i].hp + heal[i]);
       sides[i].weakened = Math.max(0, sides[i].weakened - 1);
       sides[i].last = moves[i];
     }

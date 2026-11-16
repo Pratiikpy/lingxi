@@ -14,7 +14,8 @@
  *   bit  219      sick
  *   bits 220-225  care mistakes (0..63)
  *   bits 226-233  kinship (0..255)
- *   bits 234-255  reserved, zero
+ *   bits 234-240  level (plan 4.4; 0 in words from before levels were kept, read as 1)
+ *   bits 241-255  reserved, zero
  */
 
 import { DIETS, METERS, SUB, TRAITS, type Stage, toVisible } from "./pet";
@@ -58,6 +59,7 @@ export function packState(p: Pet, stage: Stage): bigint {
   w = put(w, 219, 1, p.sick ? 1 : 0);
   w = put(w, 220, 6, Math.min(63, p.mistakes ?? 0));
   w = put(w, 226, 8, Math.min(255, kinshipNow(p, p.beat)));
+  w = put(w, 234, 7, Math.min(127, p.growth?.level ?? 0));
   return w;
 }
 
@@ -73,6 +75,8 @@ export interface UnpackedState {
   sick: boolean;
   mistakes: number;
   kinship: number;
+  /** 1 or more; a word from before levels were kept carries 0 and reads as 1 */
+  level: number;
   counts: Record<(typeof COUNTS)[number], number>;
   diet: Record<(typeof DIETS)[number], number>;
 }
@@ -92,6 +96,7 @@ export function unpackState(w: bigint, brainBits: number): UnpackedState {
     sick: get(w, 219, 1) === 1,
     mistakes: get(w, 220, 6),
     kinship: get(w, 226, 8),
+    level: Math.max(1, get(w, 234, 7)),
     counts: Object.fromEntries(COUNTS.map((c, i) => [c, get(w, 155 + 8 * i, 8)])) as UnpackedState["counts"],
     diet: Object.fromEntries(DIETS.map((d, i) => [d, get(w, 195 + 6 * i, 6)])) as UnpackedState["diet"],
   };

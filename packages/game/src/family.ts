@@ -13,7 +13,8 @@
  */
 
 import { type FastBrain, type Program, type Rule, type StarterLine, circuitBrain, circuitFromParts, compileProgram, fastBrain, gateCount, inputField, stateBits } from "@lingxi/brain";
-import { LESSON_CAPACITY, MAX_GATES, cleanInstincts, composeProgram } from "./lessons";
+import { LESSON_CAPACITY, MAX_GATES, type MindExtra, cleanInstincts, composeProgram } from "./lessons";
+import { type Growth, extraLessons, gateBudget, legalGrowth, ruleSkillIds, skillRules } from "./skills";
 import type { Family, OutsideInstinct, ParentInfo, Stage } from "./pet";
 import type { Brain } from "./sim";
 
@@ -21,10 +22,15 @@ export const BREED_COOLDOWN_DAYS = 3;
 const TIME = inputField("time");
 
 /** Each half of a child's mind: what the child was taught, then that parent's lessons and instincts. */
-export function halvesOf(family: Family, childLessons: readonly Rule[]): [Program, Program] {
+export function halvesOf(family: Family, childLessons: readonly Rule[], skillRulesOfChild: readonly Rule[] = []): [Program, Program] {
   const [a, b] = family.parents;
-  return [composeProgram(a.line, [...childLessons, ...a.lessons], a.instincts), composeProgram(b.line, [...childLessons, ...b.lessons], b.instincts)];
+  // the child's own skill rules join both halves
+  const extra: MindExtra = { rules: skillRulesOfChild };
+  return [composeProgram(a.line, [...childLessons, ...a.lessons], a.instincts, extra), composeProgram(b.line, [...childLessons, ...b.lessons], b.instincts, extra)];
 }
+
+/** What a pet's skills add to its mind: the capstone rules it holds. */
+export const mindExtra = (growth: Growth | undefined): MindExtra => ({ rules: skillRules(growth) });
 
 /** The child's fast brain: both halves on the same senses, mixed the way the child circuit mixes them. */
 export function childFast(a: FastBrain, nA: number, b: FastBrain): FastBrain {
@@ -78,20 +84,22 @@ export interface MindSpec {
   instincts?: number;
   /** an owned circuit taught as an everyday instinct */
   outside?: OutsideInstinct;
+  /** levels and skills (plan 4.4): capstone rules, gate budget, memory, lesson slots */
+  growth?: Growth;
 }
 
 /** The compiled brain for any pet, single or born of two parents. */
 export function mindBrain(spec: MindSpec): Brain {
-  const key = JSON.stringify([spec.line, spec.lessons, spec.family ?? null, spec.family ? 0 : (spec.instincts ?? 0), spec.outside ? `${spec.outside.processor}:${spec.outside.id}` : null]);
+  const key = JSON.stringify([spec.line, spec.lessons, spec.family ?? null, spec.family ? 0 : (spec.instincts ?? 0), spec.outside ? `${spec.outside.processor}:${spec.outside.id}` : null, ruleSkillIds(spec.growth)]);
   const hit = cache.get(key);
   if (hit) return hit;
   let brain: Brain;
   if (spec.family) {
-    const [pa, pb] = halvesOf(spec.family, spec.lessons);
+    const [pa, pb] = halvesOf(spec.family, spec.lessons, skillRules(spec.growth));
     const nA = stateBits(pa);
     brain = { fast: childFast(fastBrain(compileProgram(pa)), nA, fastBrain(compileProgram(pb))), nState: nA + stateBits(pb), halves: [pa, pb] };
   } else {
-    const p = composeProgram(spec.line, spec.lessons, spec.instincts);
+    const p = composeProgram(spec.line, spec.lessons, spec.instincts, mindExtra(spec.growth));
     brain = { fast: fastBrain(compileProgram(p)), nState: stateBits(p), program: p };
   }
   const inst = spec.outside ? instinctBrain(spec.outside) : null;
@@ -109,17 +117,19 @@ const sameRule = (a: Rule, b: Rule) => JSON.stringify([a.when, a.then]) === JSON
 
 /** Whether a lesson fits this pet's mind; for a child, both halves must fit. */
 export function checkMindLesson(spec: MindSpec, stage: Exclude<Stage, "egg">, candidate: Rule): MindCheck {
-  if (spec.lessons.length >= LESSON_CAPACITY[stage]) return { ok: false, reason: "full", detail: `a ${stage} can hold ${LESSON_CAPACITY[stage]} lessons` };
+  const capacity = LESSON_CAPACITY[stage] + extraLessons(spec.growth);
+  if (spec.lessons.length >= capacity) return { ok: false, reason: "full", detail: `a ${stage} can hold ${capacity} lessons` };
   if (spec.lessons.some((l) => sameRule(l, candidate))) return { ok: false, reason: "duplicate", detail: "already learned" };
   const lessons = [candidate, ...spec.lessons];
   let programs: Program[];
   try {
-    programs = spec.family ? halvesOf(spec.family, lessons) : [composeProgram(spec.line, lessons, spec.instincts)];
+    programs = spec.family ? halvesOf(spec.family, lessons, skillRules(spec.growth)) : [composeProgram(spec.line, lessons, spec.instincts, mindExtra(spec.growth))];
   } catch (e) {
     return { ok: false, reason: "invalid", detail: (e as Error).message };
   }
   const gates = Math.max(...programs.map((p) => gateCount(compileProgram(p))));
-  if (gates > MAX_GATES) return { ok: false, reason: "tooBig", detail: `${gates} gates; the limit is ${MAX_GATES}` };
+  const budget = gateBudget(spec.growth);
+  if (gates > budget) return { ok: false, reason: "tooBig", detail: `${gates} gates; the limit is ${budget}` };
   // an owned instinct keeps its own memory beside the pet's; together they must fit the registry's 64 bits
   if (spec.outside) {
     const memory = programs.reduce((t, p) => t + stateBits(p), 0) + (instinctBrain(spec.outside)?.nState ?? 0);
@@ -161,7 +171,7 @@ export function familyOf(a: ParentInfo & { generation?: number }, b: ParentInfo 
     ...(key ? { key } : {}),
   });
   const family: Family = { parents: [strip(a), strip(b)], generation: 1 };
-  // both halves must build and fit, or there is no child
+  // both halves must build and fit a newborn's budget (a child starts with no skills), or there is no child
   const [pa, pb] = halvesOf(family, []);
   for (const p of [pa, pb]) if (gateCount(compileProgram(p)) > MAX_GATES) throw new Error("a parent's mind is too big to pass on");
   return family;
@@ -177,13 +187,28 @@ export interface PetCard {
   memory?: number[];
   /** an owned circuit it was taught as an everyday instinct */
   outside?: OutsideInstinct;
+  /** its level and skills (plan 4.4); a card's growth must be one the rules could have produced */
+  growth?: Growth;
 }
 
 const LINES = ["gentle", "bold", "curious"] as const;
+/** The most lessons any pet can hold: an elder's eight and five from skills (three capstone, two from ranks). */
+export const MAX_LESSONS = 13;
 
-export function petCard(p: { lessons: readonly Rule[]; family?: Family; brain?: readonly number[]; instincts?: number; outside?: OutsideInstinct }): string {
+/** Read a growth from someone else's card: dropped unless the rules could have produced it. */
+export function cleanGrowth(v: unknown): Growth | undefined {
+  const g = v as Partial<Growth> | undefined;
+  if (!g || typeof g !== "object" || !g.skills || typeof g.skills !== "object" || Array.isArray(g.skills)) return undefined;
+  const skills: Record<number, number> = {};
+  for (const [k, n] of Object.entries(g.skills as Record<string, unknown>)) if (Number.isInteger(n) && (n as number) > 0) skills[Number(k)] = n as number;
+  const out = { level: g.level as number, points: g.points as number, skills };
+  return legalGrowth(out) ? out : undefined;
+}
+
+export function petCard(p: { lessons: readonly Rule[]; family?: Family; brain?: readonly number[]; instincts?: number; outside?: OutsideInstinct; growth?: Growth }): string {
   return JSON.stringify({
     lessons: p.lessons,
+    ...(p.growth && Object.keys(p.growth.skills).length ? { growth: p.growth } : {}),
     ...(p.instincts ? { instincts: p.instincts } : {}),
     ...(p.family ? { family: p.family } : {}),
     ...(p.brain ? { memory: p.brain.map((b) => (b ? 1 : 0)) } : {}),
@@ -222,14 +247,15 @@ export function parseCard(raw: string): PetCard | null {
   try {
     const v = JSON.parse(raw) as unknown;
     const lessons = (Array.isArray(v) ? v : (v as { lessons?: unknown }).lessons) as unknown;
-    if (!Array.isArray(lessons) || lessons.length > 8) return null;
+    if (!Array.isArray(lessons) || lessons.length > MAX_LESSONS) return null;
+    const growth = Array.isArray(v) ? undefined : cleanGrowth((v as { growth?: unknown }).growth);
     const rawMem = Array.isArray(v) ? undefined : (v as { memory?: unknown }).memory;
     const memory = Array.isArray(rawMem) && rawMem.length <= 64 && rawMem.every((x) => x === 0 || x === 1) ? (rawMem as number[]) : undefined;
     const instincts = Array.isArray(v) ? 0 : cleanInstincts((v as { instincts?: unknown }).instincts);
     const fam = Array.isArray(v) ? undefined : (v as { family?: unknown }).family;
     const outside = Array.isArray(v) ? undefined : cleanOutside((v as { outside?: unknown }).outside);
     if (!Array.isArray(v) && (v as { outside?: unknown }).outside !== undefined && !outside) return null;
-    if (fam === undefined) return { lessons: lessons as Rule[], ...(instincts ? { instincts } : {}), ...(memory ? { memory } : {}), ...(outside ? { outside } : {}) };
+    if (fam === undefined) return { lessons: lessons as Rule[], ...(instincts ? { instincts } : {}), ...(memory ? { memory } : {}), ...(outside ? { outside } : {}), ...(growth ? { growth } : {}) };
     const f = fam as { parents?: unknown; generation?: unknown };
     if (!Array.isArray(f.parents) || f.parents.length !== 2) return null;
     if (!Number.isInteger(f.generation) || (f.generation as number) < 1 || (f.generation as number) > 99) return null;
@@ -239,7 +265,7 @@ export function parseCard(raw: string): PetCard | null {
       const pi = cleanInstincts(p.instincts);
       return { name: p.name.slice(0, 12), line, lessons: p.lessons as Rule[], ...(pi ? { instincts: pi } : {}) };
     }) as [ParentInfo, ParentInfo];
-    return { lessons: lessons as Rule[], family: { parents, generation: f.generation as number }, ...(memory ? { memory } : {}), ...(outside ? { outside } : {}) };
+    return { lessons: lessons as Rule[], family: { parents, generation: f.generation as number }, ...(memory ? { memory } : {}), ...(outside ? { outside } : {}), ...(growth ? { growth } : {}) };
   } catch {
     return null;
   }

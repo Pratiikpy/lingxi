@@ -8,7 +8,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { HOME, ITEM, ROOMS } from "@lingxi/world";
-import { type Frame, type Pet, awayFind, awaySeed, halvesOf, momentText, rewind, visitorsDuring } from "@lingxi/game";
+import { type Frame, type Pet, awayFind, awaySeed, halvesOf, momentText, rewind, visitorsDuring, skillRules, ruleGrowth } from "@lingxi/game";
 import { VisitorArt, useAlbum } from "./Album";
 import { useLang } from "../i18n";
 import { programFor, useGame } from "../game/store";
@@ -52,7 +52,7 @@ export function WelcomeBack({ pet }: { pet: Pet }) {
 
   const story = useMemo(() => {
     if (!mine) return null;
-    const frames = rewind(pet, (l, outside) => ({ ...(pet.family ? { halves: halvesOf(pet.family, l) } : { program: programFor(pet.line, l, pet.instincts ?? 0) }), ...(outside ? { outside } : {}) }), mine.to - mine.from + 1);
+    const frames = rewind(pet, (l, outside, skills) => ({ ...(pet.family ? { halves: halvesOf(pet.family, l, skillRules(ruleGrowth(skills))) } : { program: programFor(pet.line, l, pet.instincts ?? 0, ruleGrowth(skills)) }), ...(outside ? { outside } : {}) }), mine.to - mine.from + 1);
     const window = frames.filter((f) => f.at !== null && f.at >= mine.from * 60_000 && f.at <= mine.to * 60_000);
     const events = window.filter((f) => f.senses.event !== 0).slice(-5);
     const napped = window.some((f) => f.want === 3);

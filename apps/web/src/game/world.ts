@@ -9,12 +9,10 @@ import { useBadges } from "./badges";
 import { create } from "zustand";
 import { wearableOf } from "@lingxi/art";
 import { useDesigns } from "./designs";
-import { exert, localHour, needsMinOf, stageOf } from "@lingxi/game";
+import { exert, localHour, needsMinOf, stageOf, exploreMods } from "@lingxi/game";
 import { WANTS, timeOfDay } from "@lingxi/brain";
 import {
-  FORAGE_ENERGY,
   ITEM,
-  MOVE_ENERGY,
   type WorldState,
   buy as buyItem,
   claim as claimQuest,
@@ -145,6 +143,8 @@ interface WorldStore {
   flag: (name: string) => void;
   /** hand items to a resident (quests ask for gifts) */
   giveTo: (resident: string, item: number, n: number) => boolean;
+  /** use up items that act outside the pet's meters (the Fresh Start Tea); false when there are not enough */
+  consume: (item: number, n?: number) => boolean;
   /** what the last walk or trip came to, for the card that welcomes the pet back */
   lastOuting: { kind: "walk"; steps: number; minutes: number; found: Array<{ item: number; n: number }>; capped: boolean } | { kind: "trip"; to: string; found: Array<{ item: number; n: number }>; learned: number | null } | null;
 }
@@ -154,6 +154,8 @@ const petEnergy = () => {
   const p = useGame.getState().pet;
   return p ? Math.floor(p.meters.energy / 60) : 0;
 };
+/** The world's numbers for the pet on screen: its Explore skills change them (plan 4.4). */
+const petMods = () => exploreMods(useGame.getState().pet?.growth);
 
 function tirePet(energy: number): void {
   const g = useGame.getState();
@@ -171,13 +173,14 @@ export const useWorld = create<WorldStore>((set, get) => ({
       set({ notice: { id: ++n, kind: "fail", reason: "asleep" } });
       return false;
     }
-    const r = moveTo(get().world, to, petEnergy());
+    const mods = petMods();
+    const r = moveTo(get().world, to, petEnergy(), mods);
     if (!r.ok) {
       play("error");
       set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
       return false;
     }
-    tirePet(MOVE_ENERGY);
+    tirePet(mods.moveEnergy);
     // a walk taken wearing something ("visit three rooms carrying a lantern"); market ids keep to one word
     let moved = r.world;
     if (p) for (const piece of Object.values(outfitOf(moved, String(p.bornAt)))) if (piece) moved = bump(moved, "MOVE_WEARING", piece.replace(/:/g, "-"));
@@ -188,12 +191,13 @@ export const useWorld = create<WorldStore>((set, get) => ({
     return true;
   },
   forage: () => {
-    const r = forageHere(get().world, Date.now(), petEnergy());
+    const mods = petMods();
+    const r = forageHere(get().world, Date.now(), petEnergy(), mods);
     if (!r.ok) {
       play("error");
       return set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
     }
-    tirePet(FORAGE_ENERGY);
+    tirePet(mods.forageEnergy);
     save(r.world);
     play("success");
     set({ world: r.world, notice: { id: ++n, kind: "found", items: r.found } });
@@ -324,6 +328,16 @@ export const useWorld = create<WorldStore>((set, get) => ({
     save(next);
     set({ world: next });
   },
+  consume: (item, count = 1) => {
+    const w = get().world;
+    if ((w.bag[item] ?? 0) < count) return false;
+    const bag = { ...w.bag, [item]: w.bag[item]! - count };
+    if (bag[item]! <= 0) delete bag[item];
+    const next = { ...w, bag };
+    save(next);
+    set({ world: next });
+    return true;
+  },
   giveTo: (resident, item, count) => {
     const r = giveToRule(get().world, resident, item, count);
     if (!r.ok) {
@@ -350,14 +364,14 @@ export const useWorld = create<WorldStore>((set, get) => ({
     set({ world: r.world, lastOuting: null });
   },
   addSteps: (steps) => {
-    const r = stepWalkRule(get().world, steps, Date.now());
+    const r = stepWalkRule(get().world, steps, Date.now(), petMods());
     if (!r.ok) return;
     save(r.world);
     if (r.found.length) play("pop");
     set({ world: r.world });
   },
   endWalk: () => {
-    const r = endWalkRule(get().world, Date.now());
+    const r = endWalkRule(get().world, Date.now(), petMods());
     if (!r.ok) return;
     save(r.world);
     set({ world: r.world, lastOuting: { kind: "walk", steps: r.steps, minutes: r.minutes, found: r.finds, capped: r.capped } });
@@ -371,7 +385,7 @@ export const useWorld = create<WorldStore>((set, get) => ({
     set({ world: r.world, lastOuting: null });
   },
   endTrip: () => {
-    const r = endTripRule(get().world, Date.now());
+    const r = endTripRule(get().world, Date.now(), petMods());
     if (!r.ok) return set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
     save(r.world);
     set({ world: r.world, lastOuting: { kind: "trip", to: r.to, found: r.found, learned: r.learned } });

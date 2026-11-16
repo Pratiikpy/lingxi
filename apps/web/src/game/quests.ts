@@ -6,7 +6,7 @@
 
 import { create } from "zustand";
 import { timeOfDay } from "@lingxi/brain";
-import { bondLevel, levelOf, localHour, needsMinOf, stageOf } from "@lingxi/game";
+import { bondLevel, growthOf, localHour, needsMinOf, stageOf } from "@lingxi/game";
 import {
   type ConditionView,
   DAILIES,
@@ -44,7 +44,7 @@ export function conditionView(now = Date.now()): ConditionView {
   const bonds = pet ? Object.values(bondsOf(useFriends.getState().all, pet.bornAt)) : [];
   return {
     world,
-    pet: pet && stage ? { level: levelOf(pet.xp).level, stage, onChain: useChain.getState().record !== null, needsMin: needsMinOf(pet) } : null,
+    pet: pet && stage ? { level: growthOf(pet).level, stage, onChain: useChain.getState().record !== null, needsMin: needsMinOf(pet) } : null,
     pets: Math.max(pets.length, ledger.pets ?? 0),
     now,
     timeOfDay: pet ? (timeOfDay(localHour(pet, Math.floor(now / 60_000))) as 0 | 1 | 2 | 3) : 2,

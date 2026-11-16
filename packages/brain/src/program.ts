@@ -23,7 +23,8 @@
 import { INPUT_FIELD_NAMES, type InputField, N_IN, decodeOutput, encodeOutput, inputField } from "./pins";
 
 export const PROGRAM_VERSION = "LX-PET/1";
-export const MAX_RULES = 32;
+/** A guard on program size, not an on-chain limit (the gate budget is): room for a fully skilled elder of any line (16 starter rules, 4 instincts, 4 skill rules, 13 lessons: 37). */
+export const MAX_RULES = 40;
 export const MAX_MEMORY_BITS = 48;
 export const MAX_MEMORY_FIELDS = 16;
 

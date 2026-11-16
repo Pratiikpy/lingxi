@@ -25,7 +25,7 @@ import { type SittingStore, createSittingStore } from "./sitting";
 import { type ArenaStore, createArenaStore } from "./arena";
 import { type SeasonStore, createSeasonStore, settleAwards } from "./season";
 import { weekOf } from "@lingxi/game";
-import { parseCard } from "@lingxi/game";
+import { MAX_LESSONS, parseCard } from "@lingxi/game";
 import { createPublicClient, http, type PublicClient } from "viem";
 import { type Deployment, readPet, xLayer } from "@lingxi/chain";
 import { createAgentStore } from "./agents";
@@ -95,7 +95,13 @@ export function createApp(client: Anthropic | null, limiter = new RateLimiter(6,
     return result.ok || result.reason !== "busy" ? c.json(result) : busy(c);
   });
 
-  const RelayBody = z.object({ line: TeachBody.shape.line, lessons: z.array(RuleSchema).max(8), instincts: z.number().int().min(0).max(15).optional() });
+  const RelayBody = z.object({
+    line: TeachBody.shape.line,
+    lessons: z.array(RuleSchema).max(MAX_LESSONS),
+    instincts: z.number().int().min(0).max(15).optional(),
+    // capstone rule skills the pet holds (plan 4.4)
+    skills: z.array(z.number().int().min(100).max(999)).max(8).optional(),
+  });
   app.post("/api/tapeout", async (c) => {
     if (!relayer) return c.json({ ok: false, reason: "error", detail: "relaying is not configured" }, 503);
     const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
@@ -106,7 +112,7 @@ export function createApp(client: Anthropic | null, limiter = new RateLimiter(6,
     } catch {
       return c.json({ ok: false, reason: "invalid", detail: "bad request" }, 400);
     }
-    const r = await relayer.relay(body.line, body.lessons as never, body.instincts ?? 0);
+    const r = await relayer.relay(body.line, body.lessons as never, body.instincts ?? 0, body.skills ?? []);
     return c.json(r);
   });
 
@@ -127,7 +133,7 @@ export function createApp(client: Anthropic | null, limiter = new RateLimiter(6,
     else {
       const card = parseCard(body.card);
       if (!card?.family) return c.json({ ok: false, reason: "invalid", detail: "not a child's card" }, 400);
-      r = await relayer.relayChild({ family: card.family, lessons: card.lessons });
+      r = await relayer.relayChild({ family: card.family, lessons: card.lessons, ...(card.growth ? { growth: card.growth } : {}) });
     }
     return c.json(r);
   });
@@ -545,7 +551,7 @@ if (isMain) {
       void settleAwards(seasons, async (entry, wallet) => {
         const card = parseCard(entry.pet.card);
         if (!card) return { ok: false, detail: "damaged card" };
-        const r = await relayer.keepsake({ line: entry.pet.line, lessons: card.lessons, instincts: card.instincts, family: card.family }, wallet as `0x${string}`);
+        const r = await relayer.keepsake({ line: entry.pet.line, lessons: card.lessons, instincts: card.instincts, family: card.family, growth: card.growth }, wallet as `0x${string}`);
         if (!r.ok) process.stderr.write(`season keepsake failed: ${r.reason} ${r.detail ?? ""}\n`);
         return r.ok ? { ok: true, brainId: r.brainId, tapeTx: r.tapeTx, sendTx: r.sendTx } : { ok: false, detail: r.detail };
       })

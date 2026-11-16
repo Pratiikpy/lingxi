@@ -58,7 +58,7 @@ export function beatsOfLog(p: Pick<Pet, "pendingLog" | "logMarks">): Array<numbe
  * first (back 0 is the latest day, 1440 the day before). `mindFor` returns the
  * brain the pet had for a stretch of lessons (the same one the game ran).
  */
-export function rewind(pet: Pet, mindFor: (lessons: Rule[], outside?: OutsideInstinct) => Mind, count = 24 * 60, back = 0): Frame[] {
+export function rewind(pet: Pet, mindFor: (lessons: Rule[], outside?: OutsideInstinct, skills?: number[]) => Mind, count = 24 * 60, back = 0): Frame[] {
   const segs = logSegments(pet);
   const beats = beatsOfLog(pet);
   const total = Math.max(0, pet.pendingLog.length - back);
@@ -67,7 +67,7 @@ export function rewind(pet: Pet, mindFor: (lessons: Rule[], outside?: OutsideIns
   let mem: number[] | null = null;
   let i = 0;
   for (const seg of segs) {
-    const mind = mindFor(seg.lessons, seg.outside);
+    const mind = mindFor(seg.lessons, seg.outside, seg.skills);
     const programs = "program" in mind ? [mind.program] : mind.halves;
     const sizes = programs.map(stateBits);
     const own = sizes.reduce((a, b) => a + b, 0);

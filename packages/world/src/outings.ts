@@ -8,7 +8,7 @@
  * not change on a reload.
  */
 
-import { ITEM, ROOMS, type Recipe, TRAVEL_RECIPES, type WorldResult, type WorldState, pickDrop } from "./world";
+import { type ExploreMods, ITEM, NO_EXPLORE_MODS, ROOMS, type Recipe, TRAVEL_RECIPES, type WorldResult, type WorldState, boostRare, pickDrop } from "./world";
 import { bump, bumpFinds } from "./tally";
 
 const MIN = 60_000;
@@ -37,11 +37,11 @@ function mix(seed: string, a: number, b: number): number {
   return Math.imul(h, 0x5bd1e995) >>> 0;
 }
 
-/** what a walk can turn up: everything foraged in rooms the player has visited */
-function walkPool(w: WorldState): Array<{ item: number; weight: number }> {
+/** what a walk can turn up: everything foraged in rooms the player has visited (rare finds boosted by skills) */
+function walkPool(w: WorldState, rareBoost = 0): Array<{ item: number; weight: number }> {
   const out = new Map<number, number>();
-  for (const r of w.visited) for (const d of ROOMS[r]?.drops ?? []) out.set(d.item, (out.get(d.item) ?? 0) + d.weight);
-  if (!out.size) for (const d of ROOMS[1]?.drops ?? []) out.set(d.item, d.weight);
+  for (const r of w.visited) for (const d of boostRare(ROOMS[r]?.drops ?? [], rareBoost)) out.set(d.item, (out.get(d.item) ?? 0) + d.weight);
+  if (!out.size) for (const d of boostRare(ROOMS[1]?.drops ?? [], rareBoost)) out.set(d.item, d.weight);
   return [...out].map(([item, weight]) => ({ item, weight }));
 }
 
@@ -65,7 +65,7 @@ export function walkSteps(walk: Walk, now: number): number {
 export const walkDone = (walk: Walk, now: number): boolean => now - walk.startedAt >= WALK_MINUTES * MIN;
 
 /** Adds sensor steps (ignored without a sensor or after the walk), and collects any finds they reach. */
-export function stepWalk(w: WorldState, steps: number, now: number): WorldResult<{ found: Array<{ item: number; n: number }> }> {
+export function stepWalk(w: WorldState, steps: number, now: number, mods: ExploreMods = NO_EXPLORE_MODS): WorldResult<{ found: Array<{ item: number; n: number }> }> {
   const walk = w.walk;
   if (!walk) return { ok: false, reason: "notWalking" };
   // a step sensor cannot add more than a brisk walker manages: 3 steps a second
@@ -73,10 +73,10 @@ export function stepWalk(w: WorldState, steps: number, now: number): WorldResult
   const counted = walk.sensor ? Math.min(cap, walk.steps + Math.max(0, Math.floor(steps))) : walk.steps;
   const next = { ...walk, steps: counted };
   const total = walkSteps(next, now);
-  const earned = walksToday(w, now) < WALKS_WITH_FINDS ? Math.min(MAX_WALK_FINDS, Math.floor(total / STEPS_PER_FIND)) : 0;
+  const earned = walksToday(w, now) < WALKS_WITH_FINDS + mods.walksWithFinds ? Math.min(MAX_WALK_FINDS, Math.floor(total / Math.max(100, STEPS_PER_FIND - mods.stepsOff))) : 0;
   const have = walk.finds.reduce((t, f) => t + f.n, 0);
   const found: Array<{ item: number; n: number }> = [];
-  const pool = walkPool(w);
+  const pool = walkPool(w, mods.rareBoost);
   for (let k = have; k < earned; k++) {
     const item = pick(pool, mix(w.seed, walk.startedAt, k));
     const f = found.find((x) => x.item === item);
@@ -96,15 +96,15 @@ export function stepWalk(w: WorldState, steps: number, now: number): WorldResult
 /** a walk shorter than this, with nothing found, does not use up one of the day's walks */
 export const WALK_COUNTS_AFTER_MINUTES = 5;
 
-export function endWalk(w: WorldState, now: number): WorldResult<{ steps: number; minutes: number; finds: Array<{ item: number; n: number }>; capped: boolean }> {
-  const settled = stepWalk(w, 0, now);
+export function endWalk(w: WorldState, now: number, mods: ExploreMods = NO_EXPLORE_MODS): WorldResult<{ steps: number; minutes: number; finds: Array<{ item: number; n: number }>; capped: boolean }> {
+  const settled = stepWalk(w, 0, now, mods);
   if (!settled.ok) return settled;
   const walk = settled.world.walk!;
   let bag = settled.world.bag;
   for (const f of walk.finds) bag = { ...bag, [f.item]: (bag[f.item] ?? 0) + f.n };
   const minutes = Math.min(WALK_MINUTES, Math.round((now - walk.startedAt) / MIN));
   const day = dayKey(now);
-  const capped = walksToday(w, now) >= WALKS_WITH_FINDS;
+  const capped = walksToday(w, now) >= WALKS_WITH_FINDS + mods.walksWithFinds;
   const counts = minutes >= WALK_COUNTS_AFTER_MINUTES || walk.finds.length > 0;
   const { walk: _done, ...rest } = settled.world;
   const done: WorldState = { ...rest, bag, walksDay: day, walksToday: walksToday(w, now) + (counts ? 1 : 0) };
@@ -184,12 +184,13 @@ export function startTrip(w: WorldState, to: string, now: number): WorldResult {
 export const tripBack = (t: Trip, now: number): boolean => now >= t.backAt;
 
 /** The pet comes home: three or four finds from the place, and its recipe the first time. */
-export function endTrip(w: WorldState, now: number): WorldResult<{ to: string; found: Array<{ item: number; n: number }>; learned: number | null }> {
+export function endTrip(w: WorldState, now: number, mods: ExploreMods = NO_EXPLORE_MODS): WorldResult<{ to: string; found: Array<{ item: number; n: number }>; learned: number | null }> {
   const t = w.trip;
   if (!t) return { ok: false, reason: "notTravelling" };
   if (!tripBack(t, now)) return { ok: false, reason: "notBack" };
   const d = DESTINATION[t.to]!;
-  const count = 3 + (mix(w.seed, t.leftAt, 99) % 2);
+  // Pathfinder skills: a percent chance of one more find
+  const count = 3 + (mix(w.seed, t.leftAt, 99) % 2) + (mods.tripExtra && mix(w.seed, t.leftAt, 98) % 100 < mods.tripExtra ? 1 : 0);
   const found: Array<{ item: number; n: number }> = [];
   for (let k = 0; k < count; k++) {
     const item = pick(d.drops, mix(w.seed, t.leftAt, k));

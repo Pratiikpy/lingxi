@@ -7,7 +7,7 @@
 
 import { useMemo, useState } from "react";
 import { INPUT_FIELDS, type Program, type Rule, encodeSenses, runBeat, stateBits } from "@lingxi/brain";
-import { type Pet, halvesOf } from "@lingxi/game";
+import { type Pet, halvesOf, skillRules } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { programFor } from "../game/store";
 import { Chips } from "./parts";
@@ -66,8 +66,8 @@ export function Sandbox({ pet, trying }: { pet: Pet; trying?: Rule | null }) {
   const [mem, setMem] = useState<Record<string, number>>({ trust: 3 });
   // a child decides by day with one parent's half and by night with the other's
   const programOf = (lessons: Rule[]) => {
-    if (!pet.family) return programFor(pet.line, lessons, pet.instincts ?? 0);
-    const [a, b] = halvesOf(pet.family, lessons);
+    if (!pet.family) return programFor(pet.line, lessons, pet.instincts ?? 0, pet.growth);
+    const [a, b] = halvesOf(pet.family, lessons, skillRules(pet.growth));
     return senses.time === 1 || senses.time === 2 ? a : b;
   };
   const now = useMemo(() => programOf(pet.lessons), [pet.lessons, pet.family, pet.instincts, pet.line, senses.time]);

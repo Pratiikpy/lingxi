@@ -21,7 +21,7 @@ const STAGE_RANK: Record<string, number> = { baby: 1, child: 2, teen: 3, adult: 
 const CARE_INDEX: Partial<Record<string, string>> = { ate: "feed", woke: "feed", played: "play", cleaned: "clean", sleeping: "sleep", awake: "wake", petted: "pet", healed: "medicine", listened: "talk", used: "use" };
 import { create } from "zustand";
 import { type Program, type Rule, STARTERS, compileProgram, fastBrain, stateBits, timeOfDay } from "@lingxi/brain";
-import { FOODS, type Brain, type Care, type CareResult, type Pet, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, liveBeat, mindBrain, settleForm, stageOf, teach as teachRule, awayEvent, awaySeed, beatOf, localHour, instinctBrain, MAX_MIND_STATE, type OutsideInstinct, withSegment } from "@lingxi/game";
+import { FOODS, type Brain, type Care, type CareResult, type Growth, type Pet, type UpgradeRefusal, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, learnSkill, levelUpPet, liveBeat, mindBrain, respecPet, ruleSkillIds, settleForm, skillRules, stageOf, teach as teachRule, awayEvent, awaySeed, beatOf, localHour, instinctBrain, MAX_MIND_STATE, type OutsideInstinct, withGrowth, withSegment } from "@lingxi/game";
 import type { StarterLine } from "@lingxi/brain";
 import { takeComfort } from "./comfort";
 
@@ -38,15 +38,16 @@ export interface Away {
 }
 
 const brains = new Map<string, Brain>();
-/** The pet's whole program: what it was taught, then the instincts it hatched with, then its egg line's starter rules. */
-export function programFor(line: StarterLine, lessons: readonly Rule[] = [], instincts = 0): Program {
-  return lessons.length || instincts ? composeProgram(line, lessons, instincts) : STARTERS[line];
+/** The pet's whole program: what it was taught, the instincts it hatched with, its skill rules, then its egg line's starter rules. */
+export function programFor(line: StarterLine, lessons: readonly Rule[] = [], instincts = 0, growth?: Growth): Program {
+  const rules = skillRules(growth);
+  return lessons.length || instincts || rules.length ? composeProgram(line, lessons, instincts, { rules }) : STARTERS[line];
 }
-export function brainFor(line: StarterLine, lessons: readonly Rule[] = [], instincts = 0): Brain {
-  const key = line + instincts + JSON.stringify(lessons);
+export function brainFor(line: StarterLine, lessons: readonly Rule[] = [], instincts = 0, growth?: Growth): Brain {
+  const key = line + instincts + JSON.stringify(lessons) + ruleSkillIds(growth).join(",");
   let b = brains.get(key);
   if (!b) {
-    const p = programFor(line, lessons, instincts);
+    const p = programFor(line, lessons, instincts, growth);
     b = { fast: fastBrain(compileProgram(p)), nState: stateBits(p), program: p };
     brains.set(key, b);
   }
@@ -62,8 +63,8 @@ export interface MindPart {
 
 /** A pet's mind as the screens show it: one program, or a child's day half and night half. */
 export function mindParts(pet: Pet): MindPart[] {
-  if (!pet.family) return [{ program: programFor(pet.line, pet.lessons, pet.instincts), offset: 0 }];
-  const [a, b] = halvesOf(pet.family, pet.lessons);
+  if (!pet.family) return [{ program: programFor(pet.line, pet.lessons, pet.instincts, pet.growth), offset: 0 }];
+  const [a, b] = halvesOf(pet.family, pet.lessons, skillRules(pet.growth));
   return [
     { program: a, offset: 0, from: { name: pet.family.parents[0].name, when: "day" } },
     { program: b, offset: stateBits(a), from: { name: pet.family.parents[1].name, when: "night" } },
@@ -77,7 +78,7 @@ export function decidingPart(pet: Pet): MindPart {
 }
 
 /** Any pet's brain, including a child built from two parents. */
-export const brainOf = (p: Pet): Brain => (p.family || p.outside ? mindBrain({ line: p.line, lessons: p.lessons ?? [], family: p.family, instincts: p.instincts, outside: p.outside }) : brainFor(p.line, p.lessons ?? [], p.instincts ?? 0));
+export const brainOf = (p: Pet): Brain => (p.family || p.outside ? mindBrain({ line: p.line, lessons: p.lessons ?? [], family: p.family, instincts: p.instincts, outside: p.outside, growth: p.growth }) : brainFor(p.line, p.lessons ?? [], p.instincts ?? 0, p.growth));
 
 interface Roster {
   active: number;
@@ -85,7 +86,8 @@ interface Roster {
 }
 
 const valid = (p: Pet | null | undefined): p is Pet => !!p && p.version === 1 && !!STARTERS[p.line];
-const tidy = (p: Pet): Pet => ({ ...p, lessons: Array.isArray(p.lessons) ? p.lessons : [] });
+/** A saved pet made current: lessons always a list, and a pet from before levels were spent keeps the level it showed (plan 4.4). */
+const tidy = (p: Pet): Pet => withGrowth({ ...p, lessons: Array.isArray(p.lessons) ? p.lessons : [] });
 
 function loadRoster(): Roster {
   try {
@@ -175,6 +177,10 @@ interface GameState {
   /** X1: teach an owned circuit as an everyday instinct (ownership is checked by the caller), or forget it */
   teachInstinct: (o: OutsideInstinct) => { ok: true } | { ok: false; reason: "notYours" | "badCircuit" | "tooBig" };
   forgetInstinct: () => void;
+  /** levels and skills (plan 4.4): spend XP for a level and a point, take a skill, or forget them all */
+  levelUp: () => { ok: true; level: number } | { ok: false; reason: "xp" | "max" };
+  learnSkill: (id: number) => { ok: true } | { ok: false; reason: UpgradeRefusal };
+  respec: () => void;
 }
 
 const todayKey = () => new Date().toDateString();
@@ -375,6 +381,32 @@ export const useGame = create<GameState>((set, get) => ({
     const { outside: _gone, ...rest } = caught;
     const own = brainOf(rest as Pet).nState;
     const next = withSegment({ ...(rest as Pet), brain: caught.brain.slice(0, own) });
+    save(next);
+    set({ pet: next, pets: roster.pets });
+  },
+  levelUp: () => {
+    const pet = get().pet;
+    if (!pet) return { ok: false, reason: "xp" };
+    const r = levelUpPet(catchUp(pet, Date.now(), brainOf(pet)));
+    if (!r.ok) return r;
+    save(r.pet);
+    set({ pet: r.pet, pets: roster.pets });
+    return { ok: true, level: r.level };
+  },
+  learnSkill: (id) => {
+    const pet = get().pet;
+    if (!pet) return { ok: false, reason: "noSkill" };
+    // the pet is brought up to now on the brain it had, then the skill (which may change that brain) is taken
+    const r = learnSkill(catchUp(pet, Date.now(), brainOf(pet)), id);
+    if (!r.ok) return r;
+    save(r.pet);
+    set({ pet: r.pet, pets: roster.pets });
+    return { ok: true };
+  },
+  respec: () => {
+    const pet = get().pet;
+    if (!pet) return;
+    const next = respecPet(catchUp(pet, Date.now(), brainOf(pet)));
     save(next);
     set({ pet: next, pets: roster.pets });
   },

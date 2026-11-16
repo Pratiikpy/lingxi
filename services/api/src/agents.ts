@@ -20,7 +20,9 @@ import {
   cleanInstincts,
   createPet,
   dayOf,
-  levelOf,
+  growthOf,
+  levelUpPet,
+  withGrowth,
   mindBrain,
   petCard,
   stageOf,
@@ -62,7 +64,14 @@ export interface AgentPetView {
 export type AgentRefusal = "invalid" | "unknown" | "full" | "tooMany";
 
 const hash = (token: string) => createHash("sha256").update(`lingxi-agent:${token}`).digest("hex");
-const brainOf = (p: Pet) => mindBrain({ line: p.line, lessons: p.lessons, family: p.family, instincts: p.instincts, outside: p.outside });
+const brainOf = (p: Pet) => mindBrain({ line: p.line, lessons: p.lessons, family: p.family, instincts: p.instincts, outside: p.outside, growth: p.growth });
+
+/** An agent's pet has no skills screen: it levels up by itself as its XP allows (plan 4.4), and its points wait. */
+function grown(p0: Pet): Pet {
+  let p = withGrowth(p0);
+  for (let r = levelUpPet(p); r.ok; r = levelUpPet(p)) p = r.pet;
+  return p;
+}
 
 export function viewOf(k: Kept, now: number): AgentPetView {
   const p = k.pet;
@@ -73,7 +82,7 @@ export function viewOf(k: Kept, now: number): AgentPetView {
     agent: k.agent,
     stage: stageOf(p, now),
     day: dayOf(p, now),
-    level: levelOf(p.xp).level,
+    level: growthOf(p).level,
     meters: { food: toVisible(p.meters.food), joy: toVisible(p.meters.joy), energy: toVisible(p.meters.energy), clean: toVisible(p.meters.clean) },
     asleep: p.asleep,
     sick: !!p.sick,
@@ -126,7 +135,7 @@ export function createAgentStore(file?: string, now: () => number = Date.now): A
     const h = hash(token);
     const k = pets.get(h);
     if (!k) return null;
-    const caught = catchUp(k.pet, now(), brainOf(k.pet));
+    const caught = grown(catchUp(k.pet, now(), brainOf(k.pet)));
     const next = { ...k, pet: caught };
     touch(h, next);
     return [h, next];
@@ -162,7 +171,7 @@ export function createAgentStore(file?: string, now: () => number = Date.now): A
       } catch {
         return { ok: false, reason: "invalid" };
       }
-      const next = { ...c[1], pet: r.pet };
+      const next = { ...c[1], pet: grown(r.pet) };
       touch(c[0], next);
       return { ok: true, note: r.note, pet: viewOf(next, now()) };
     },
@@ -184,7 +193,7 @@ export function createAgentStore(file?: string, now: () => number = Date.now): A
       }
       if (!r.ok) return { ok: false, reason: r.reason, detail: r.detail };
       const after = care(r.pet, { kind: "talk" }, now(), brainOf(r.pet)).pet;
-      const next = { ...c[1], pet: after };
+      const next = { ...c[1], pet: grown(after) };
       touch(c[0], next);
       return { ok: true, pet: viewOf(next, now()) };
     },
