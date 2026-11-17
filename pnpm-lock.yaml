@@ -195,6 +195,31 @@ importers:
         specifier: 3.2.4
         version: 3.2.4(@types/debug@4.1.13)(@types/node@22.15.30)(tsx@4.20.3)
 
+  packages/handheld:
+    dependencies:
+      '@lingxi/brain':
+        specifier: workspace:*
+        version: link:../brain
+      '@lingxi/game':
+        specifier: workspace:*
+        version: link:../game
+      '@noble/hashes':
+        specifier: 1.8.0
+        version: 1.8.0
+    devDependencies:
+      '@lingxi/chain':
+        specifier: workspace:*
+        version: link:../chain
+      '@types/node':
+        specifier: 22.15.30
+        version: 22.15.30
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 3.2.4
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@22.15.30)(tsx@4.20.3)
+
   packages/send:
     dependencies:
       '@noble/ciphers':

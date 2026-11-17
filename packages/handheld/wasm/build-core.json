@@ -1,0 +1,34 @@
+{
+  "target": "core",
+  "compiler": "zig 0.17.1 (clang)",
+  "flags": [
+    "-target",
+    "wasm32-freestanding",
+    "-O2",
+    "-std=c99",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-nostdlib",
+    "-fno-builtin",
+    "-Wl,--no-entry",
+    "-Wl,-z,stack-size=262144"
+  ],
+  "module": {
+    "path": "wasm/lingxi-core.wasm",
+    "sha256": "e027a0fc2e53e7b7a78e51d4d0afa30bb7f7530fdb9e2cb0bc2cac2630a3a23e"
+  },
+  "sources": {
+    "core/keccak.c": "0143a2ebaaa7fb37c0b04f227c475d5494d9ff6fe419296a49ff2ae2988e6505",
+    "core/tap02.c": "e12fceb7bf13d5d2f9deb4d9e78d72744ca8c6682377ccfe920ace01e02c3ee2",
+    "core/pet.c": "8e867c491ae85fd05703bc823ad69915538e6b5cd496d6d1966c31eb6fea4a65",
+    "core/trip.c": "5ef0f1aeb6a300da9153b4f83bdb27a799cc7c2443dac96579db2706bbdecf68",
+    "platform/wasm_core.c": "4d3eb2c4e42678b4c8431ab14b09bbe88095f239e768275c7dbc2cf87a6f0e1e"
+  },
+  "headers": {
+    "core/lx.h": "16c24086bbaff45d7f43f6bf1066422ba1b83c8edf64eff18bcde53f83c1841b",
+    "core/tap02.h": "b21377a64830c4ec7f8d6aeec0999dfd9001ce077a50b3e1abe8711631652944",
+    "core/pet.h": "044bff34809dcad67fdf09c16896c7a0b2b2ca333a1d9b5d9e56ef857397831e",
+    "core/trip.h": "13bc4ddcbb5dee061ac0fc034239c4d8b4f7cc7ab99ce1f9bfa10e297c0363f2"
+  }
+}
