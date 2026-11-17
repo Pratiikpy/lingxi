@@ -3,6 +3,7 @@
  * it time, the wall clock in beats, whether the tab is in view, and keys; it shows the 240x135 framebuffer as is.
  */
 #include "../core/app.h"
+#include "../core/link.h"
 
 #define EXPORT(name) __attribute__((export_name(#name)))
 
@@ -53,4 +54,40 @@ EXPORT(hh_selftest) int hh_selftest(void) {
   return s->hashOk[0] | s->hashOk[1] << 1 | s->hashOk[2] << 2 | s->loadOk[0] << 3 | s->loadOk[1] << 4 | s->loadOk[2] << 5 | s->pet1HashOk << 6 |
          s->pet1MemoryOk << 7 | s->pass << 8;
 }
+/* how much of the arena the loaded brain and the self-test left in use, for sizing the device's arena */
+EXPORT(hh_arena_used) uint32_t hh_arena_used(void) { return (uint32_t)app.arena.used; }
+/* for tests: shrink the log to what is used plus `room` bytes, to reach a full log without living for weeks */
+EXPORT(hh_test_log_room) void hh_test_log_room(uint32_t room) { app.log.cap = app.log.len + room; }
+EXPORT(hh_arena_peak) uint32_t hh_arena_peak(void) { return (uint32_t)app.arena.peak; }
 EXPORT(hh_digest) void hh_digest(void) { lx_pet_digest(&app.trip.pet, out_buf); }
+
+/*
+ * The USB link, with the page standing in for the serial line: bytes the game would send go in through link_in,
+ * and what the handheld would answer collects in link_reply. The browser handheld does not need the link; the tests
+ * drive it here so the device's protocol is checked against the game's client without a device.
+ */
+static uint8_t link_in[64 * 1024];
+static uint8_t link_reply[64 * 1024];
+static uint32_t link_reply_len;
+static uint8_t link_packet[16 * 1024];
+static uint8_t link_out[48 * 1024];
+static lx_link link;
+
+static void link_write(void *ctx, const uint8_t *b, uint32_t n) {
+  (void)ctx;
+  for (uint32_t i = 0; i < n && link_reply_len < sizeof link_reply; i++) link_reply[link_reply_len++] = b[i];
+}
+EXPORT(hh_link_init) void hh_link_init(void) { lx_link_init(&link, link_packet, sizeof link_packet, link_out, sizeof link_out, link_write, 0); }
+EXPORT(hh_link_in) uint8_t *hh_link_in(void) { return link_in; }
+EXPORT(hh_link_feed) void hh_link_feed(uint32_t n, uint32_t nowMs) {
+  for (uint32_t i = 0; i < n && i < sizeof link_in; i++) lx_link_byte(&link, &app, link_in[i], nowMs);
+}
+EXPORT(hh_link_reply) uint8_t *hh_link_reply(void) { return link_reply; }
+/* how much reply is waiting; reading it empties it */
+EXPORT(hh_link_reply_take) uint32_t hh_link_reply_take(void) {
+  uint32_t n = link_reply_len;
+  link_reply_len = 0;
+  return n;
+}
+EXPORT(hh_link_wall_beat) int32_t hh_link_wall_beat(uint32_t nowMs) { return lx_link_wall_beat(&link, nowMs); }
+EXPORT(hh_link_changed) int hh_link_changed(void) { return lx_link_take_changed(&link); }

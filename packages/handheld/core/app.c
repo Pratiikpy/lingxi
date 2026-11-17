@@ -57,23 +57,12 @@ static const txt FIELD_VALUE[8][8] = {
 };
 static const int FIELD_LO[8] = {0, 2, 4, 6, 8, 10, 13, 15}, FIELD_BITS[8] = {2, 2, 2, 2, 2, 3, 2, 1};
 
-typedef struct {
-  const char *id;
-  txt name;
-} snack_name;
-static const snack_name SNACK_NAMES[] = {
-    {"mochi", T("Rice mochi", "糯米麻薯")}, {"apple", T("Golden apple", "金苹果")}, {"burger", T("Burger", "汉堡")}, {"sundae", T("Cherry sundae", "樱桃圣代")}};
-
 /* ── small helpers without libc ─────────────────────────────────────────── */
 
 static int slen(const char *s) {
   int n = 0;
   while (s[n]) n++;
   return n;
-}
-static int seq(const char *a, const char *b) {
-  while (*a && *a == *b) a++, b++;
-  return *a == *b;
 }
 /* append to a bounded buffer, always NUL-terminated */
 static void cat(char *buf, int cap, const char *s) {
@@ -283,18 +272,29 @@ lx_err lx_app_open(lx_app *a, const uint8_t *packet, uint32_t len) {
   return LX_OK;
 }
 
+/* the log is full: nothing more is lived here, so everything lived is logged and the trip can always go home */
+static int full(lx_app *a, uint8_t op) {
+  if (lx_log_fits(&a->log, op)) return 0;
+  a->hasNote = 3;
+  a->noteMs = a->nowMs;
+  return 1;
+}
+
 static void live(lx_app *a) {
+  if (full(a, LX_OP_LIVE)) return;
   lx_live(&a->trip.pet, a->trip.brain, a->scratch);
   lx_log_live(&a->log);
   a->beatsHere++;
 }
 static void away(lx_app *a, uint32_t n) {
+  if (full(a, LX_OP_AWAY)) return;
   lx_away_to(&a->trip.pet, a->trip.brain, a->scratch, a->trip.pet.beat + (int32_t)n);
   lx_log_away(&a->log, n);
   a->beatsHere += n;
 }
 static int care(lx_app *a, int kind, int arg) {
   const lx_food *food = 0;
+  if (full(a, LX_OP_CARE)) return 0;
   if (kind == LX_C_FEED) {
     if (arg >= a->trip.nSnacks || a->trip.snacks[arg].count == 0) return 0;
     a->trip.snacks[arg].count--;
@@ -484,10 +484,11 @@ static void draw_home(lx_app *a, lx_px *fb) {
   static const lx_px MC[4] = {C_CORAL, C_SUNNY, C_SKY, C_LEAF};
   for (int i = 0; i < 4; i++) meter(fb, 112, 19 + 13 * i, tr(a, METER[i]), p->meters[i], MC[i]);
   int y = 19 + 13 * 4 + 2;
-  if (a->hasNote && a->nowMs - a->noteMs < 6000) {
+  if (a->hasNote == 3 || (a->hasNote && a->nowMs - a->noteMs < 6000)) {
     /* what just happened takes the thinking line's place for a few seconds */
     char buf[200];
-    if (a->hasNote == 2) fill(buf, sizeof buf, a->lang ? "零食吃完了。带{name}回家吃吧。" : "No snacks left. Bring {name} home to eat.", a->trip.name);
+    if (a->hasNote == 3) fill(buf, sizeof buf, a->lang ? "这里记不下更多了。带{name}回家吧。" : "No room left to remember more. Bring {name} home.", a->trip.name);
+    else if (a->hasNote == 2) fill(buf, sizeof buf, a->lang ? "零食吃完了。带{name}回家吃吧。" : "No snacks left. Bring {name} home to eat.", a->trip.name);
     else fill(buf, sizeof buf, tr(a, NOTE[a->note]), a->trip.name);
     wrap(fb, 112, y, LX_W - 116, buf, C_INK, 3);
   } else {
@@ -519,9 +520,7 @@ static void draw_snacks(lx_app *a, lx_px *fb) {
     char k[2] = {(char)('1' + i), 0};
     cat(buf, sizeof buf, k);
     cat(buf, sizeof buf, "  ");
-    const char *name = s->id;
-    for (unsigned j = 0; j < sizeof SNACK_NAMES / sizeof SNACK_NAMES[0]; j++)
-      if (seq(SNACK_NAMES[j].id, s->id)) name = tr(a, SNACK_NAMES[j].name);
+    const char *name = a->lang ? s->nameZh : s->nameEn;
     cat(buf, sizeof buf, name);
     lx_text(fb, 12, y + 1, buf, s->count ? C_INK : C_SOFT, 160);
     char n[12] = "×";

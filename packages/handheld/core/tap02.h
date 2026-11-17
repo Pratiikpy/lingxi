@@ -57,6 +57,7 @@ typedef struct {
 typedef struct {
   uint8_t *base;
   size_t size, used;
+  size_t peak; /* the most ever in use at once: what a platform must provide */
 } lx_arena;
 
 void lx_arena_init(lx_arena *a, void *mem, size_t size);

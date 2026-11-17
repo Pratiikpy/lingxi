@@ -29,6 +29,7 @@ interface HH {
   hh_beat(): number;
   hh_selftest(): number;
   hh_digest(): void;
+  hh_test_log_room(room: number): void;
 }
 
 const wasm = readFileSync(`${root}/wasm/lingxi-handheld.wasm`);
@@ -122,6 +123,32 @@ describe("the handheld app", () => {
     expect(h.hh_ready()).toBe(0);
   });
 
+  it("with its log full it stops living rather than live a step it cannot log, and still comes home", async () => {
+    const h = await handheld();
+    h.hh_init(0);
+    const s = setOut();
+    put(h, s.packet);
+    h.hh_open(s.packet.length);
+    let now = 10_000;
+    let beat = s.pet.beat;
+    h.hh_tick((now += 100), (beat += 1), 1);
+    key(h, "h");
+    // room for exactly one more care: the next one is logged, every step after it is refused
+    h.hh_test_log_room(3);
+    key(h, "t");
+    const len = h.hh_log_len();
+    const at = h.hh_beat();
+    key(h, "c");
+    h.hh_tick((now += 60_000), (beat += 30), 0);
+    h.hh_tick((now += 100), (beat += 1), 1);
+    expect(h.hh_log_len()).toBe(len);
+    expect(h.hh_beat()).toBe(at);
+    const n = h.hh_close();
+    const back = new Uint8Array(h.memory.buffer, h.hh_out(), n).slice();
+    const home = bringHome(s.pet, s.tb.brain, s.snacks, back, (beat + 1) * BEAT_MS);
+    expect(home.ok).toBe(true);
+    if (home.ok) expect(petDigest(home.pet, home.words)).toBe(digest(h));
+  });
   it("resumes a trip after a reload from its packet and log, to the same bits", async () => {
     const a = await handheld();
     a.hh_init(0);

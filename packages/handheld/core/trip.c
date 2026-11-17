@@ -124,6 +124,14 @@ lx_err lx_trip_open(lx_trip *t, lx_arena *a, const uint8_t *bytes, uint32_t len)
     const uint8_t *id = rbytes(&r, idLen);
     if (id) lx_memcpy(s->id, id, idLen);
     s->id[idLen] = 0;
+    for (int k = 0; k < 2; k++) {
+      char *dst = k ? s->nameZh : s->nameEn;
+      uint8_t nl = r8(&r);
+      if (nl > LX_SNACK_NAME) return LX_BAD_VALUE;
+      const uint8_t *nm = rbytes(&r, nl);
+      if (nm) lx_memcpy(dst, nm, nl);
+      dst[nl] = 0;
+    }
   }
 
   const uint8_t *proc = rbytes(&r, 20);
@@ -155,6 +163,8 @@ lx_err lx_trip_open(lx_trip *t, lx_arena *a, const uint8_t *bytes, uint32_t len)
   if (lx_memcmp(got, t->brainHash, 32) != 0) return LX_BAD_HASH;
   lx_err err = lx_load(a, root, rootLen, nIn, nOut, t->parts, t->nParts, &t->brain);
   if (err) return err;
+  /* the parts' bytes are in the caller's packet buffer, which it may reuse: the loaded brain needs none of them */
+  for (int i = 0; i < t->nParts; i++) t->parts[i].bytes = 0;
   if (t->brain->nIn != 16 || t->brain->nOut != 8 || t->brain->nState != p->nBrain) return LX_BAD_SHAPE;
 
   p->logLength = 0;
@@ -175,6 +185,11 @@ static int put(lx_log *g, const uint8_t *b, uint32_t n) {
   lx_memcpy(g->buf + g->len, b, n);
   g->len += n;
   return 1;
+}
+
+int lx_log_fits(const lx_log *g, uint8_t op) {
+  uint32_t need = op == LX_OP_AWAY ? 5 : op == LX_OP_CARE ? 3 : (g->liveAt && g->liveRun < 0xffff) ? 0 : 3;
+  return need <= g->cap - g->len;
 }
 
 int lx_log_live(lx_log *g) {

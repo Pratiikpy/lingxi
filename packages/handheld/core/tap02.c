@@ -4,12 +4,14 @@ void lx_arena_init(lx_arena *a, void *mem, size_t size) {
   a->base = (uint8_t *)mem;
   a->size = size;
   a->used = 0;
+  a->peak = 0;
 }
 
 void *lx_alloc(lx_arena *a, size_t n) {
   size_t at = (a->used + 7) & ~(size_t)7;
   if (n > a->size || at > a->size - n) return NULL;
   a->used = at + n;
+  if (a->used > a->peak) a->peak = a->used;
   return a->base + at;
 }
 

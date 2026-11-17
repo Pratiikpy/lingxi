@@ -27,11 +27,14 @@
 #define LX_OP_AWAY 0x11  /* + u32 n: n beats with the owner away (the handheld asleep) */
 #define LX_OP_CARE 0x20  /* + u8 kind + u8 arg: arg is the snack for feeding, the stars for play, else 0 */
 
+#define LX_SNACK_NAME 31
+
 typedef struct {
   uint8_t index; /* the game's food, by its place in the ration */
   uint16_t count;
   lx_food food;
   char id[16];
+  char nameEn[LX_SNACK_NAME + 1], nameZh[LX_SNACK_NAME + 1];
 } lx_snack;
 
 typedef struct {
@@ -66,6 +69,8 @@ typedef struct {
 } lx_log;
 
 void lx_log_init(lx_log *g, uint8_t *buf, uint32_t cap);
+/* whether the log can take this op; asked before the pet is changed, so a step is never lived without being logged */
+int lx_log_fits(const lx_log *g, uint8_t op);
 int lx_log_live(lx_log *g);
 int lx_log_away(lx_log *g, uint32_t n);
 int lx_log_care(lx_log *g, uint8_t kind, uint8_t arg);

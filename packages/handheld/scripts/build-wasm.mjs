@@ -18,7 +18,7 @@ const sha = (b) => createHash("sha256").update(b).digest("hex");
 
 export const TARGETS = {
   core: { out: "wasm/lingxi-core.wasm", sources: ["core/keccak.c", "core/tap02.c", "core/pet.c", "core/trip.c", "platform/wasm_core.c"] },
-  app: { out: "wasm/lingxi-handheld.wasm", sources: ["core/keccak.c", "core/tap02.c", "core/pet.c", "core/trip.c", "core/draw.c", "core/font_data.c", "core/art_data.c", "core/selftest.c", "core/selftest_data.c", "core/app.c", "platform/wasm_app.c"] },
+  app: { out: "wasm/lingxi-handheld.wasm", sources: ["core/keccak.c", "core/tap02.c", "core/pet.c", "core/trip.c", "core/draw.c", "core/font_data.c", "core/art_data.c", "core/selftest.c", "core/selftest_data.c", "core/app.c", "core/link.c", "platform/wasm_app.c"] },
 };
 
 export const FLAGS = ["-target", "wasm32-freestanding", "-O2", "-std=c99", "-Wall", "-Wextra", "-Werror", "-nostdlib", "-fno-builtin", "-Wl,--no-entry", "-Wl,-z,stack-size=262144"];

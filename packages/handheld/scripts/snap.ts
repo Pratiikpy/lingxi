@@ -46,7 +46,7 @@ class Handheld {
     const packet = tripPacket(
       pet,
       { processor: "0xf70d324da8c1c4cb0de3ff147e53e7e9db543c4e", id: 1n, bytes: netlistBytes(n), parts: [] },
-      FOODS.slice(0, 3).map((f, i) => ({ id: f.id, count: 1 + i, effect: { food: f.food, joy: f.joy, diet: f.diet } })),
+      FOODS.slice(0, 3).map((f, i) => ({ id: f.id, count: 1 + i, effect: { food: f.food, joy: f.joy, diet: f.diet }, name: f.name })),
       { name: pet.name, line: "gentle", stage: 2, form: 0, colour: 4, lang, bornBeat: Math.floor(p.bornAt / BEAT_MS) },
     );
     new Uint8Array(this.x.memory.buffer).set(packet, this.x.hh_in());

@@ -11,12 +11,13 @@
  */
 
 import { keccak_256 } from "@noble/hashes/sha3";
-import { type Brain, type Care, type ItemEffect, type Pet, BEAT_MS, DIETS, TRAITS, care, catchUp, decayLeft, effectOf, liveBeat } from "@lingxi/game";
+import { type Brain, type Care, type CareResult, type ItemEffect, type Pet, BEAT_MS, DIETS, TRAITS, care, catchUp, decayLeft, effectOf, liveBeat } from "@lingxi/game";
 
 export const TRIP_VERSION = 1;
 export const MAX_SNACKS = 4;
 export const NAME_MAX = 48;
 export const MAX_PARTS = 32;
+export const SNACK_NAME = 31;
 
 export const OP_LIVE = 0x10;
 export const OP_AWAY = 0x11;
@@ -46,6 +47,8 @@ export interface Snack {
   id: string;
   count: number;
   effect: ItemEffect;
+  /** what the handheld calls it, in each language (at most 31 bytes of UTF-8 each) */
+  name?: { en: string; zh: string };
 }
 
 export interface TripScreen {
@@ -218,6 +221,12 @@ export function tripPacket(p: Pet, brain: TripBrain, snacks: readonly Snack[], s
     w.u8(s.effect.diet ? DIETS.indexOf(s.effect.diet) : -1);
     w.u8(id.length);
     w.raw(id);
+    for (const n of [s.name?.en ?? s.id, s.name?.zh ?? s.name?.en ?? s.id]) {
+      const b = utf8(n);
+      if (b.length > SNACK_NAME) throw new Error(`snack name too long: ${n}`);
+      w.u8(b.length);
+      w.raw(b);
+    }
   }
 
   w.raw(hexBytes(brain.processor));
@@ -314,9 +323,17 @@ function careOf(kind: number, arg: number, snacks: Snack[]): Care | null {
   }
 }
 
-/** Replay a list of trip ops from `start` with the game's own functions. Returns the pet and the snacks left. */
-export function replayOps(start: Pet, brain: Brain, ops: readonly TripOp[], snacks: readonly Snack[]): { ok: true; pet: Pet; snacks: Snack[] } | { ok: false; reason: HomeRefusal } {
+/** A care given on the handheld, as the replay gave it: what it was, whether the pet was asleep, what it did. */
+export interface ReplayedCare {
+  kind: Care["kind"];
+  wasAsleep: boolean;
+  result: CareResult;
+}
+
+/** Replay a list of trip ops from `start` with the game's own functions. Returns the pet, the snacks left and each care. */
+export function replayOps(start: Pet, brain: Brain, ops: readonly TripOp[], snacks: readonly Snack[]): { ok: true; pet: Pet; snacks: Snack[]; cares: ReplayedCare[] } | { ok: false; reason: HomeRefusal } {
   const left = snacks.map((s) => ({ ...s }));
+  const cares: ReplayedCare[] = [];
   let p = start;
   for (const o of ops) {
     if (o.op === "live") {
@@ -326,10 +343,12 @@ export function replayOps(start: Pet, brain: Brain, ops: readonly TripOp[], snac
     } else {
       const c = careOf(o.kind, o.arg, left);
       if (!c) return { ok: false, reason: "noSnack" };
-      p = care(p, c, p.beat * BEAT_MS, brain).pet;
+      const result = care(p, c, p.beat * BEAT_MS, brain);
+      cares.push({ kind: c.kind, wasAsleep: p.asleep, result });
+      p = result.pet;
     }
   }
-  return { ok: true, pet: p, snacks: left };
+  return { ok: true, pet: p, snacks: left, cares };
 }
 
 /**
@@ -342,7 +361,7 @@ export function bringHome(
   snacks: readonly Snack[],
   packet: Uint8Array,
   now: number,
-): { ok: true; pet: Pet; snacks: Snack[]; words: number } | { ok: false; reason: HomeRefusal } {
+): { ok: true; pet: Pet; snacks: Snack[]; words: number; cares: ReplayedCare[] } | { ok: false; reason: HomeRefusal } {
   const r = readReturn(packet);
   if (!r.ok) return r;
   const t = r.trip;
@@ -353,5 +372,5 @@ export function bringHome(
   if (!done.ok) return done;
   const words = done.pet.pendingLog.length - start.pendingLog.length;
   if (done.pet.beat !== t.endBeat || petDigest(done.pet, words) !== t.endDigest) return { ok: false, reason: "differs" };
-  return { ok: true, pet: done.pet, snacks: done.snacks, words };
+  return { ok: true, pet: done.pet, snacks: done.snacks, words, cares: done.cares };
 }
