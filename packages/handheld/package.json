@@ -10,7 +10,9 @@
   "scripts": {
     "build:wasm": "node scripts/build-wasm.mjs",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "chip:selftest": "node scripts/chip-selftest.mjs",
+    "chip:trip": "tsx scripts/build-chip-trip.ts"
   },
   "dependencies": {
     "@lingxi/brain": "workspace:*",

@@ -18,11 +18,12 @@ extern "C" {
 /* The emulator build: the core's boot self-test and the link's hello on the real chip's compiler and memory, printed
    on UART0. No screen, keys or flash are touched, so it runs where no device is attached. */
 #include <Arduino.h>
+#include "chip_trip.h"
 
 static uint8_t arenaMem[64 * 1024];
 static uint8_t logMem[4 * 1024];
 static uint8_t packetMem[1024];
-static uint8_t outMem[1024];
+static uint8_t outMem[4 * 1024];
 static lx_app app;
 static lx_link usbLink;
 
@@ -38,6 +39,21 @@ void setup() {
                 (unsigned long)(millis() - t0), (unsigned)app.arena.peak);
   lx_link_init(&usbLink, packetMem, sizeof packetMem, outMem, sizeof outMem, serialWrite, nullptr);
   for (const char *c = "LX?\nLXGET\n"; *c; c++) lx_link_byte(&usbLink, &app, (uint8_t)*c, millis());
+
+  /* a whole trip played from a script: the packet back must be the very bytes the WebAssembly app sends, which the
+     game's replay accepts (scripts/build-chip-trip.ts) */
+  const lx_err opened = lx_app_open(&app, CHIP_TRIP_PACKET, CHIP_TRIP_PACKET_LEN);
+  for (uint32_t i = 0; opened == LX_OK && i < CHIP_TRIP_STEPS; i++) {
+    const int32_t *st = CHIP_TRIP_SCRIPT[i];
+    lx_app_tick(&app, (uint32_t)st[0], CHIP_TRIP_BEAT + st[1], st[2]);
+    if (st[3]) lx_app_key(&app, st[3]);
+  }
+  const uint32_t n = opened == LX_OK ? lx_app_close(&app, outMem, sizeof outMem) : 0;
+  uint8_t h[32];
+  lx_keccak256(outMem, n, h);
+  int same = n == CHIP_TRIP_BACK_LEN;
+  for (int i = 0; i < 32; i++) same &= h[i] == CHIP_TRIP_BACK_KECCAK[i];
+  Serial.printf("selftest: trip opened %d, %u bytes back, %s the WebAssembly app's\n", (int)opened, (unsigned)n, same ? "identical to" : "DIFFERENT from");
   Serial.println("selftest: done");
 }
 
