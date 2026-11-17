@@ -8,7 +8,7 @@
  */
 
 const SELF_VERIFYING_GATEWAY = /^\d+-\d+-\d+\.tapekit\.org$/;
-const PAGES = ["play.html", "verify.html"] as const;
+const PAGES = ["play.html", "verify.html", "handheld.html", "numbers.html", "tree.html", "agents.html"] as const;
 type Page = (typeof PAGES)[number];
 
 const siteBase = () => `${location.origin}${location.pathname.replace(/[^/]*$/, "")}`;
