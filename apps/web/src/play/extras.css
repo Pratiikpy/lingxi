@@ -47,7 +47,8 @@
 
 .extras-swatches {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  /* plain and the eight colours: an even three by three on a phone and in the desktop sheet alike */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
   margin: 8px 0;
   padding: 0;
