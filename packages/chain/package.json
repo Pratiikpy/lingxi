@@ -9,7 +9,9 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
-    "tapeout": "tsx scripts/tapeout.ts"
+    "tapeout": "tsx scripts/tapeout.ts",
+    "recount": "tsx scripts/recount-numbers.ts --deployment deployments/xlayer.json --api https://lingxi.knole.me",
+    "publish:deweb": "tsx scripts/publish-deweb.ts --deployment deployments/xlayer.json --rpc https://xlayerrpc.okx.com --mainnet-yes"
   },
   "dependencies": {
     "@lingxi/art": "workspace:*",
