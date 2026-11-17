@@ -53,7 +53,9 @@ function load(): WorldState {
       if (w.version === 1) {
         const clean = cleanWorld(w);
         // a save from before tools (plan 4.5) that already took the pebbles gets the screwdriver that quest now gives, once
-        const tooled = clean.claimed.includes("q07") && !(clean.flags ?? []).includes("tools-given") && !(clean.bag[23102] ?? 0) ? withFlag(giveItem(clean, 23102, 1), "tools-given") : clean;
+        const screwdriver = clean.claimed.includes("q07") && !(clean.flags ?? []).includes("tools-given") && !(clean.bag[23102] ?? 0) ? withFlag(giveItem(clean, 23102, 1), "tools-given") : clean;
+        // and one that already finished Praline's apprentice quest gets the burner it now gives (2026-11-18), once
+        const tooled = screwdriver.claimed.includes("q22") && !(screwdriver.flags ?? []).includes("burner-given") && !(screwdriver.bag[23101] ?? 0) ? withFlag(giveItem(screwdriver, 23101, 1), "burner-given") : screwdriver;
         // an older save is counted into the tally once, from what it and the badge ledger already record
         const counted = backfillTally(tooled, useBadges.getState().ledger);
         if (counted !== clean) save(counted);

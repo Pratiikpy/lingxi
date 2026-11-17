@@ -2557,3 +2557,13 @@
   color: #2b2140;
   border-color: #0b0f19;
 }
+
+/* a butterfly from the Butterfly Forest's own art, kept in the album (quest 41) */
+.album-butterfly {
+  display: block;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+.album-butterfly.is-hidden {
+  filter: brightness(0) opacity(0.35);
+}
