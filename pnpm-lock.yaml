@@ -207,9 +207,15 @@ importers:
         specifier: 1.8.0
         version: 1.8.0
     devDependencies:
+      '@lingxi/art':
+        specifier: workspace:*
+        version: link:../art
       '@lingxi/chain':
         specifier: workspace:*
         version: link:../chain
+      '@lingxi/world':
+        specifier: workspace:*
+        version: link:../world
       '@types/node':
         specifier: 22.15.30
         version: 22.15.30
