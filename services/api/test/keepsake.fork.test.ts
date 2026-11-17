@@ -75,6 +75,14 @@ describe.skipIf(!RPC)("season keepsakes, on an X Layer fork", () => {
     if (!c.ok) throw new Error(`${c.reason} ${c.detail}`);
     expect(((await pub.readContract({ address: PROCESSOR, abi: ownerAbi, functionName: "ownerOf", args: [BigInt(c.brainId)] })) as Address).toLowerCase()).toBe(winner.toLowerCase());
 
+    // a grown champion whose lesson skills let it hold more than eight lessons (plan 4.4) still gets its keepsake
+    const many = [...PET_SCHOOL.map((l) => l.rule), { label: "eat when hungry", when: { hunger: [3] }, then: { want: 1, mood: 1 } }].slice(0, 9);
+    expect(many).toHaveLength(9);
+    const growth = { level: 30, points: 0, skills: { 211: 5, 221: 5, 231: 1, 233: 1, 241: 5, 261: 1 } };
+    const d = await relayer.keepsake({ line: "curious", lessons: many as never, growth }, winner);
+    if (!d.ok) throw new Error(`${d.reason} ${d.detail}`);
+    expect(((await pub.readContract({ address: PROCESSOR, abi: ownerAbi, functionName: "ownerOf", args: [BigInt(d.brainId)] })) as Address).toLowerCase()).toBe(winner.toLowerCase());
+    expect(await relayer.keepsake({ line: "curious", lessons: Array(14).fill(many[0]) as never, growth }, winner)).toMatchObject({ ok: false, reason: "invalid" });
     // no wallet, no tape-out
     expect(await relayer.keepsake({ line: "bold", lessons }, "0x0000000000000000000000000000000000000000")).toMatchObject({ ok: false, reason: "invalid" });
   });

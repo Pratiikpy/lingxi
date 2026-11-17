@@ -174,13 +174,16 @@ export class BrainRelayer {
   keepsake(spec: { line: StarterLine; lessons: Rule[]; instincts?: number; family?: Family; growth?: Growth }, to: Address): Promise<KeepsakeResult> {
     return this.serial(async () => {
       if (!/^0x[0-9a-fA-F]{40}$/.test(to) || /^0x0{40}$/.test(to)) return { ok: false, reason: "invalid", detail: "no wallet" } as const;
-      if (spec.lessons.length > 8) return { ok: false, reason: "invalid", detail: "too many lessons" } as const;
+      // the same limit as every other tape-out: lesson skills let a grown pet hold more than eight (plan 4.4)
+      if (spec.lessons.length > MAX_LESSONS) return { ok: false, reason: "invalid", detail: "too many lessons" } as const;
       let r: RelayResult;
       try {
         if (spec.family) {
           const got: bigint[] = [];
-          for (const h of halvesOf(spec.family, spec.lessons, skillRules(spec.growth))) {
-            const half = await this.tapeProgram(h);
+          // each half within its own budget, as when the child itself is taped (relayChild)
+          const budgets = halfBudgets(spec.family, spec.growth);
+          for (const [i, h] of halvesOf(spec.family, spec.lessons, skillRules(spec.growth)).entries()) {
+            const half = await this.tapeProgram(h, budgets[i]!);
             if (!half.ok) return half;
             got.push(BigInt(half.brainId));
           }

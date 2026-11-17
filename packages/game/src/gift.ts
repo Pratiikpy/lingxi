@@ -35,6 +35,29 @@ export function encodeGift(g: Gift): string {
 
 export class GiftError extends Error {}
 
+/** The most lessons an egg carries: as many as a parent passes to a child. */
+export const EGG_LESSONS = 8;
+
+/** Whether an egg's mind fits a newborn with all four instincts switched on (whoever hatches it chooses them then). */
+function eggFits(line: Line, lessons: readonly Rule[]): boolean {
+  try {
+    return gateCount(compileProgram(composeProgram(line, lessons as Rule[], 15))) <= MAX_GATES;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The egg a pet can give: a little sibling carrying the lessons it was taught, as many as an egg holds and a newborn's
+ * mind fits. A grown pet with lesson and gate skills can know more than that; the egg then carries its first lessons,
+ * so every egg sent can be opened.
+ */
+export function eggOf(line: Line, lessons: readonly Rule[]): { line: Line; lessons: Rule[] } {
+  let kept = lessons.slice(0, EGG_LESSONS) as Rule[];
+  while (kept.length && !eggFits(line, kept)) kept = kept.slice(0, -1);
+  return { line, lessons: kept };
+}
+
 /** Reads a gift from a link. Anything malformed, oversized or impossible is refused. */
 export function decodeGift(code: string): Gift {
   if (typeof code !== "string" || !code.startsWith(PREFIX)) throw new GiftError("not a Lingxi gift");
@@ -59,7 +82,7 @@ export function decodeGift(code: string): Gift {
   if (raw.egg !== undefined) {
     const egg = raw.egg as Record<string, unknown>;
     const line = LINES.find((l) => l === egg.line);
-    if (!line || !Array.isArray(egg.lessons) || egg.lessons.length > 8) throw new GiftError("the egg is damaged");
+    if (!line || !Array.isArray(egg.lessons) || egg.lessons.length > EGG_LESSONS) throw new GiftError("the egg is damaged");
     let gates: number;
     try {
       // whoever hatches it picks its instincts then, so the egg must fit with all four switched on

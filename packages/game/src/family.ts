@@ -106,6 +106,8 @@ export interface MindSpec {
   outside?: OutsideInstinct;
   /** levels and skills (plan 4.4): capstone rules, gate budget, memory, lesson slots */
   growth?: Growth;
+  /** lesson slots a quest gave the player's pets (quest 65), on top of the stage and the skills */
+  slots?: number;
 }
 
 /** The compiled brain for any pet, single or born of two parents. */
@@ -135,9 +137,17 @@ export type MindCheck =
 
 const sameRule = (a: Rule, b: Rule) => JSON.stringify([a.when, a.then]) === JSON.stringify([b.when, b.then]);
 
+/** The most lesson slots a quest can give (quest 65's reward). */
+export const QUEST_SLOTS_MAX = 1;
+
+/** How many lessons a pet can hold: its stage's slots, those its skills add, and any a quest gave. */
+export function lessonCapacity(stage: Exclude<Stage, "egg">, growth?: Growth, slots = 0): number {
+  return LESSON_CAPACITY[stage] + extraLessons(growth) + Math.min(QUEST_SLOTS_MAX, Math.max(0, Math.floor(slots) || 0));
+}
+
 /** Whether a lesson fits this pet's mind; for a child, both halves must fit. */
 export function checkMindLesson(spec: MindSpec, stage: Exclude<Stage, "egg">, candidate: Rule): MindCheck {
-  const capacity = LESSON_CAPACITY[stage] + extraLessons(spec.growth);
+  const capacity = lessonCapacity(stage, spec.growth, spec.slots);
   if (spec.lessons.length >= capacity) return { ok: false, reason: "full", detail: `a ${stage} can hold ${capacity} lessons` };
   if (spec.lessons.some((l) => sameRule(l, candidate))) return { ok: false, reason: "duplicate", detail: "already learned" };
   const lessons = [candidate, ...spec.lessons];
@@ -215,8 +225,8 @@ export interface PetCard {
 }
 
 const LINES = ["gentle", "bold", "curious"] as const;
-/** The most lessons any pet can hold: an elder's eight and five from skills (three capstone, two from ranks). */
-export const MAX_LESSONS = 13;
+/** The most lessons any pet can hold: an elder's eight, five from skills (three capstone, two from ranks) and one from quest 65. */
+export const MAX_LESSONS = 14;
 
 /** Read a growth from someone else's card: dropped unless the rules could have produced it. */
 export function cleanGrowth(v: unknown): Growth | undefined {

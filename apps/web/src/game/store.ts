@@ -5,7 +5,7 @@
  */
 
 import { CARE_METRIC, useBadges } from "./badges";
-import { noteEvent, noteTally } from "./tally";
+import { noteEvent, noteTally, questSlots } from "./tally";
 import { TIMES_OF_DAY } from "@lingxi/world";
 
 /** The picture of what was eaten: the item's own art, or the starter food's. */
@@ -360,7 +360,7 @@ export const useGame = create<GameState>((set, get) => ({
     // a pet away cannot learn here, and a friend's pet is only taught by its owner
     if (pet.away || pet.sitting) return { ok: false, reason: "notYours", detail: "only its owner teaches it" };
     const caught = catchUp(pet, Date.now(), brainOf(pet));
-    const r = teachRule(caught, rule, Date.now());
+    const r = teachRule(caught, rule, Date.now(), questSlots());
     if (!r.ok) return { ok: false, reason: r.reason, detail: r.detail };
     if (at === "bottom") for (let i = 0; i < r.pet.lessons.length - 1; i++) r.pet = arrangeLessons(r.pet, i, "down");
     // one live beat with "talk" on the pins, so the new mind answers at once

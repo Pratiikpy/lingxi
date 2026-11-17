@@ -9,7 +9,7 @@ import { useBadges } from "../game/badges";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { drawEgg, drawPet } from "@lingxi/art";
-import { type Gift, type Pet, LETTER_MAX, createPet, decodeGift, encodeGift, mindBrain, newGiftId, stageOf } from "@lingxi/game";
+import { type Gift, type Pet, LETTER_MAX, createPet, decodeGift, eggOf, encodeGift, mindBrain, newGiftId, stageOf } from "@lingxi/game";
 import { ITEM } from "@lingxi/world";
 import { useLang } from "../i18n";
 import { useGame } from "../game/store";
@@ -50,6 +50,8 @@ export function SendGiftPanel({ pet }: { pet: Pet }) {
   const wrap = useWorld((s) => s.wrap);
   const [letter, setLetter] = useState("");
   const [egg, setEgg] = useState(true);
+  // what the egg will really carry: an egg holds at most eight lessons that fit a newborn
+  const carried = useMemo(() => eggOf(pet.line, pet.lessons).lessons.length, [pet.line, pet.lessons]);
   const [item, setItem] = useState<number | null>(null);
   const [link, setLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -65,7 +67,7 @@ export function SendGiftPanel({ pet }: { pet: Pet }) {
       id: newGiftId(),
       from: { name: pet.name, line: pet.line, stage: stageOf(pet, Date.now()) },
       letter: letter.trim().slice(0, LETTER_MAX),
-      ...(egg && !pet.sitting ? { egg: { line: pet.line, lessons: pet.lessons } } : {}),
+      ...(egg && !pet.sitting ? { egg: eggOf(pet.line, pet.lessons) } : {}),
       ...(item !== null ? { item: { id: item, n: 1 } } : {}),
       at: Date.now(),
     };
@@ -124,13 +126,17 @@ export function SendGiftPanel({ pet }: { pet: Pet }) {
       <label className="gift-check" hidden={!!pet.sitting}>
         <input type="checkbox" checked={egg && !pet.sitting} disabled={!!pet.sitting} onChange={(e) => setEgg(e.target.checked)} />
         <span>
-          {pet.lessons.length === 0
+          {carried === 0
             ? lang === "zh"
               ? `放一颗蛋：${pet.name}的弟弟妹妹`
               : `Add an egg: a little sibling of ${pet.name}`
-            : lang === "zh"
-              ? `放一颗蛋：${pet.name}的弟弟妹妹，带着你教过${pet.name}的${pet.lessons.length}课`
-              : `Add an egg: a little sibling of ${pet.name}, carrying the ${pet.lessons.length} lesson${pet.lessons.length === 1 ? "" : "s"} you taught it`}
+            : carried < pet.lessons.length
+              ? lang === "zh"
+                ? `放一颗蛋：${pet.name}的弟弟妹妹，带着你教过${pet.name}的前${carried}课（一颗蛋最多装这么多）`
+                : `Add an egg: a little sibling of ${pet.name}, carrying the first ${carried} of the ${pet.lessons.length} lessons you taught it (as many as an egg holds)`
+              : lang === "zh"
+                ? `放一颗蛋：${pet.name}的弟弟妹妹，带着你教过${pet.name}的${carried}课`
+                : `Add an egg: a little sibling of ${pet.name}, carrying the ${carried} lesson${carried === 1 ? "" : "s"} you taught it`}
         </span>
       </label>
       {items.length > 0 && (

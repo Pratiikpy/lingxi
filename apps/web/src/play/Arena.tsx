@@ -39,7 +39,7 @@ import { RunCard, RunView } from "./ArenaRun";
 import { checkSparOnChain } from "../game/battleCheck";
 import { ChainCheck } from "./ChainCheck";
 import { SeasonCard } from "./Season";
-import { noteEvent, noteTally } from "../game/tally";
+import { noteEvent, noteTally, questSlots } from "../game/tally";
 import { markLoss } from "../game/comfort";
 
 type Lang = "en" | "zh";
@@ -777,6 +777,8 @@ function Result({ pet, partner, result, reward, opponent, duel, cheer, instinct,
           family: pet.family,
           instincts: pet.instincts,
           outside: pet.outside,
+          growth: pet.growth,
+          slots: questSlots(),
           opponent: opponent ?? fighterOfPartner(partner),
         }),
       );

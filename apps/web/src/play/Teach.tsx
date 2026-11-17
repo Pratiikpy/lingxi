@@ -8,12 +8,13 @@ import { CuteState } from "./CuteState";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import type { Rule } from "@lingxi/brain";
-import { LESSON_CAPACITY, PET_SCHOOL, type Pet, type Trap, brainSize, checkLesson, lessonCost, levelOpen, schoolReport, stageOf, trapsAfter } from "@lingxi/game";
+import { PET_SCHOOL, type Pet, lessonCapacity, type Trap, brainSize, checkLesson, lessonCost, levelOpen, schoolReport, stageOf, trapsAfter } from "@lingxi/game";
 import { useLang, useT, type Key } from "../i18n";
 import { teachInWords, teachingAvailable } from "../game/api";
 import { type LibraryLesson, libraryAvailable, listLessons, reportLesson, shareLesson, usedLesson } from "../game/library";
 import { play } from "../game/sound";
 import { mindParts, useGame } from "../game/store";
+import { useWorld } from "../game/world";
 import { Icon } from "./icons";
 import { Chips } from "./parts";
 import { Sandbox } from "./Sandbox";
@@ -450,7 +451,9 @@ export function TeachPanel({ pet }: { pet: Pet }) {
   const { lang } = useLang();
   const [proposal, setProposal] = useState<{ rule: Rule; reply?: string; source: Source } | null>(null);
   const stage = stageOf(pet, Date.now());
-  const max = LESSON_CAPACITY[stage];
+  // the stage's slots, those its skills add and any a quest gave: the same capacity the game checks when it teaches
+  const slots = useWorld((s) => ((s.world.flags ?? []).includes("lesson-slot") ? 1 : 0));
+  const max = lessonCapacity(stage, pet.growth, slots);
   const full = pet.lessons.length >= max;
   const propose = (rule: Rule, reply?: string, source: Source = { kind: "own" }) => {
     const check = checkLesson(pet.line, stage, pet.lessons, rule, pet.instincts);

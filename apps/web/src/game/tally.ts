@@ -19,6 +19,13 @@ export function noteTally(type: string, index: number | string = 0, n = 1, opts:
 /** A one-off event by name (it must be in the world package's EVENTS list). */
 export const noteEvent = (name: string): void => noteTally("EVENT", name);
 
+/** Lesson slots the player's quests have given (quest 65); the world store answers, the game store asks. */
+let slotSource: () => number = () => 0;
+export const setQuestSlots = (f: () => number): void => {
+  slotSource = f;
+};
+export const questSlots = (): number => slotSource();
+
 export function setTallySink(s: Sink): void {
   sink = s;
   for (const [type, index, n, opts] of waiting.splice(0)) s(type, index, n, opts);

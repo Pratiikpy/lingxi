@@ -119,12 +119,15 @@ export function coach(input: {
   family?: Family;
   outside?: OutsideInstinct;
   instincts?: number;
+  /** levels and skills, and any quest slots: the coach suggests only lessons the pet could really learn */
+  growth?: Growth;
+  slots?: number;
   opponent: Fighter;
 }): CoachNote {
   const { result, side, line, stage, lessons, level, opponent } = input;
   const seed = result.seed;
   if (result.winner === side) return { key: "wellDone", before: 0, after: 0 };
-  const spec = { line, lessons, family: input.family, instincts: input.instincts, outside: input.outside };
+  const spec = { line, lessons, family: input.family, instincts: input.instincts, outside: input.outside, growth: input.growth, slots: input.slots };
   const now = fighterOfMind("me", spec, level, input.memory);
   const before = winsAgainst(now, opponent, seed);
   let best: { lesson: FightLesson; wins: number } | null = null;

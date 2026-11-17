@@ -136,9 +136,9 @@ export const PET_SCHOOL: readonly SchoolLesson[] = [
 ];
 
 /** Teach the pet a rule. Returns the new pet, or why the lesson was refused. */
-export function teach(p: Pet, rule: Rule, now: number): { ok: true; pet: Pet; gates: number } | Extract<LessonCheck, { ok: false }> {
+export function teach(p: Pet, rule: Rule, now: number, slots = 0): { ok: true; pet: Pet; gates: number } | Extract<LessonCheck, { ok: false }> {
   const stage = stageOf(p, now);
-  const r = checkMindLesson({ line: p.line, lessons: p.lessons, family: p.family, instincts: p.instincts, outside: p.outside, growth: p.growth }, stage, rule);
+  const r = checkMindLesson({ line: p.line, lessons: p.lessons, family: p.family, instincts: p.instincts, outside: p.outside, growth: p.growth, slots }, stage, rule);
   if (!r.ok) return r;
   const taught: Pet = { ...p, lessons: [rule, ...p.lessons], counts: { ...p.counts, lessons: Math.min(255, p.counts.lessons + 1) } };
   // Mind skills: experience for each lesson taught

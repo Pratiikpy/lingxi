@@ -36,7 +36,7 @@ import {
   localDay,
   outfitOf,
 } from "@lingxi/world";
-import { setTallySink } from "./tally";
+import { setQuestSlots, setTallySink } from "./tally";
 import { cleanWorld } from "./saveClean";
 import { PROOF_KEY, takeProofChecks } from "./proofMark";
 import { useChain } from "./chain";
@@ -503,6 +503,7 @@ export const useWorld = create<WorldStore>((set, get) => ({
 
 // the pet's events (care, lessons, spars, saves) are counted into the tally the world store owns
 setTallySink((type, index, count, opts) => useWorld.getState().tally(type, index, count, opts));
+setQuestSlots(() => ((useWorld.getState().world.flags ?? []).includes("lesson-slot") ? 1 : 0));
 
 // a saved day checked on the proof page, here or in another tab (see proofMark.ts)
 const takeProof = () => {
