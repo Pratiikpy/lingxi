@@ -26,9 +26,13 @@
     "platform/wasm_core.c": "4d3eb2c4e42678b4c8431ab14b09bbe88095f239e768275c7dbc2cf87a6f0e1e"
   },
   "headers": {
-    "core/lx.h": "16c24086bbaff45d7f43f6bf1066422ba1b83c8edf64eff18bcde53f83c1841b",
+    "core/lx.h": "e346ada5576d1810aec804e67a23bba1f738b8fdc74124f1da2b7a7cc197ee94",
     "core/tap02.h": "b21377a64830c4ec7f8d6aeec0999dfd9001ce077a50b3e1abe8711631652944",
     "core/pet.h": "044bff34809dcad67fdf09c16896c7a0b2b2ca333a1d9b5d9e56ef857397831e",
-    "core/trip.h": "13bc4ddcbb5dee061ac0fc034239c4d8b4f7cc7ab99ce1f9bfa10e297c0363f2"
+    "core/trip.h": "13bc4ddcbb5dee061ac0fc034239c4d8b4f7cc7ab99ce1f9bfa10e297c0363f2",
+    "core/draw.h": "8317f8c1dfe7d850ec3b5a13bc700e44b5a7dafcdb78b8341047bfaf73a0eab5",
+    "core/art.h": "f4cd80ad77b41eac3a53c72a347a56cb424a7ba4bfd13580e45e5dfb1e54ef24",
+    "core/selftest.h": "5524f8bcbbb1036adbdf8aa645b685f886985735d5e4131904bf394453bd6841",
+    "core/app.h": "9d15b848204858c520718839010af493f1d71b033b5a2244bc4b01f94cf2cb3a"
   }
 }

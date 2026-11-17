@@ -18,6 +18,7 @@ const sha = (b) => createHash("sha256").update(b).digest("hex");
 
 export const TARGETS = {
   core: { out: "wasm/lingxi-core.wasm", sources: ["core/keccak.c", "core/tap02.c", "core/pet.c", "core/trip.c", "platform/wasm_core.c"] },
+  app: { out: "wasm/lingxi-handheld.wasm", sources: ["core/keccak.c", "core/tap02.c", "core/pet.c", "core/trip.c", "core/draw.c", "core/font_data.c", "core/art_data.c", "core/selftest.c", "core/selftest_data.c", "core/app.c", "platform/wasm_app.c"] },
 };
 
 export const FLAGS = ["-target", "wasm32-freestanding", "-O2", "-std=c99", "-Wall", "-Wextra", "-Werror", "-nostdlib", "-fno-builtin", "-Wl,--no-entry", "-Wl,-z,stack-size=262144"];
@@ -36,7 +37,7 @@ export function build(name) {
     flags: FLAGS,
     module: { path: t.out, sha256: sha(readFileSync(out)) },
     sources: Object.fromEntries(t.sources.map((s) => [s, sha(readFileSync(join(root, s)))])),
-    headers: Object.fromEntries(["core/lx.h", "core/tap02.h", "core/pet.h", "core/trip.h"].map((s) => [s, sha(readFileSync(join(root, s)))])),
+    headers: Object.fromEntries(["core/lx.h", "core/tap02.h", "core/pet.h", "core/trip.h", "core/draw.h", "core/art.h", "core/selftest.h", "core/app.h"].map((s) => [s, sha(readFileSync(join(root, s)))])),
   };
   writeFileSync(join(root, `wasm/build-${name}.json`), JSON.stringify(record, null, 2) + "\n");
   return { out: relative(root, out), record };

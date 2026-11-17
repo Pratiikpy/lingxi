@@ -20,6 +20,8 @@
     "@types/node": "22.15.30",
     "typescript": "5.9.3",
     "vitest": "3.2.4",
-    "@lingxi/chain": "workspace:*"
+    "@lingxi/chain": "workspace:*",
+    "@lingxi/art": "workspace:*",
+    "@lingxi/world": "workspace:*"
   }
 }

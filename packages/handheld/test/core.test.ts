@@ -14,10 +14,12 @@ const hex = (b: Uint8Array) => `0x${Array.from(b, (x) => x.toString(16).padStart
 const hexBytes = (h: string) => Uint8Array.from({ length: (h.length - 2) / 2 }, (_, i) => parseInt(h.slice(2 + 2 * i, 4 + 2 * i), 16));
 
 describe("the committed WebAssembly module", () => {
-  it("was built from the sources as they are now", () => {
-    const rec = JSON.parse(readFileSync(`${root}/wasm/build-core.json`, "utf8")) as { module: { path: string; sha256: string }; sources: Record<string, string>; headers: Record<string, string> };
-    expect(sha256(readFileSync(`${root}/${rec.module.path}`))).toBe(rec.module.sha256);
-    for (const [f, h] of Object.entries({ ...rec.sources, ...rec.headers })) expect(sha256(readFileSync(`${root}/${f}`)), `${f} changed since the module was built: run pnpm build:wasm`).toBe(h);
+  it("were built from the sources as they are now", () => {
+    for (const target of ["core", "app"]) {
+      const rec = JSON.parse(readFileSync(`${root}/wasm/build-${target}.json`, "utf8")) as { module: { path: string; sha256: string }; sources: Record<string, string>; headers: Record<string, string> };
+      expect(sha256(readFileSync(`${root}/${rec.module.path}`)), target).toBe(rec.module.sha256);
+      for (const [f, h] of Object.entries({ ...rec.sources, ...rec.headers })) expect(sha256(readFileSync(`${root}/${f}`)), `${f} changed since the ${target} module was built: run pnpm build:wasm`).toBe(h);
+    }
   });
 });
 

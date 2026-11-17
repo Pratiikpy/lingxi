@@ -1,0 +1,44 @@
+{
+  "target": "app",
+  "compiler": "zig 0.17.1 (clang)",
+  "flags": [
+    "-target",
+    "wasm32-freestanding",
+    "-O2",
+    "-std=c99",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-nostdlib",
+    "-fno-builtin",
+    "-Wl,--no-entry",
+    "-Wl,-z,stack-size=262144"
+  ],
+  "module": {
+    "path": "wasm/lingxi-handheld.wasm",
+    "sha256": "a8ce86a3345e16489894d40f64306d362b6a112d3b45dd8a4467c41cb2d6095e"
+  },
+  "sources": {
+    "core/keccak.c": "0143a2ebaaa7fb37c0b04f227c475d5494d9ff6fe419296a49ff2ae2988e6505",
+    "core/tap02.c": "e12fceb7bf13d5d2f9deb4d9e78d72744ca8c6682377ccfe920ace01e02c3ee2",
+    "core/pet.c": "8e867c491ae85fd05703bc823ad69915538e6b5cd496d6d1966c31eb6fea4a65",
+    "core/trip.c": "5ef0f1aeb6a300da9153b4f83bdb27a799cc7c2443dac96579db2706bbdecf68",
+    "core/draw.c": "fb6956f2f25e4aa52830f40e8ea57b3708382a4ca55142973038c4a4851d6332",
+    "core/font_data.c": "1f6086ee7c198ee3d3ca8a2bcc57f82d3d30f7798857b8a69cae5af741f64ab7",
+    "core/art_data.c": "4a61c511bf10c2526fd566dca1a205c21e85c8238bc425a3e5de125e47f142b2",
+    "core/selftest.c": "5f564e11ed4a52b775470435a03ee1777225df8866fbbff76b641b558ac00427",
+    "core/selftest_data.c": "fc01f20d2067d24d4d99005457a7be4ea8fcc0d95959f49b29cc0308dd03abdc",
+    "core/app.c": "ed5e0c461a2fa162f18ca220c1154f152cd9d28ababb520687e180e53d903cbe",
+    "platform/wasm_app.c": "cbbd05ef66266b8f5432dfc953135bbcb2093a65f2ed8a6a23bb47fe3cf08dd9"
+  },
+  "headers": {
+    "core/lx.h": "e346ada5576d1810aec804e67a23bba1f738b8fdc74124f1da2b7a7cc197ee94",
+    "core/tap02.h": "b21377a64830c4ec7f8d6aeec0999dfd9001ce077a50b3e1abe8711631652944",
+    "core/pet.h": "044bff34809dcad67fdf09c16896c7a0b2b2ca333a1d9b5d9e56ef857397831e",
+    "core/trip.h": "13bc4ddcbb5dee061ac0fc034239c4d8b4f7cc7ab99ce1f9bfa10e297c0363f2",
+    "core/draw.h": "8317f8c1dfe7d850ec3b5a13bc700e44b5a7dafcdb78b8341047bfaf73a0eab5",
+    "core/art.h": "f4cd80ad77b41eac3a53c72a347a56cb424a7ba4bfd13580e45e5dfb1e54ef24",
+    "core/selftest.h": "5524f8bcbbb1036adbdf8aa645b685f886985735d5e4131904bf394453bd6841",
+    "core/app.h": "9d15b848204858c520718839010af493f1d71b033b5a2244bc4b01f94cf2cb3a"
+  }
+}

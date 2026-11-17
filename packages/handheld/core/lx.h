@@ -5,8 +5,8 @@
  * Cardputer. Nothing here reaches outside the core: no libc beyond what lx_mem provides, no heap, no clock, no
  * screen or keys. The platform layer hands in time and keys and takes out a framebuffer and bytes.
  */
-#ifndef LX_H
-#define LX_H
+#ifndef LX_CORE_H
+#define LX_CORE_H
 
 #include <stdint.h>
 #include <stddef.h>
