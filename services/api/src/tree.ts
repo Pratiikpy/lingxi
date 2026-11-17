@@ -14,6 +14,8 @@ export interface TreePet {
   tx: string;
   at: number;
   name?: string;
+  /** its name colour on X Layer (plan 4.9), when it has one */
+  colour?: number;
 }
 
 export interface TreeNode extends TreePet {

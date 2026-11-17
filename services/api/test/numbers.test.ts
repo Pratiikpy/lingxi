@@ -12,6 +12,7 @@ const REG = "0x00000000000000000000000000000000000000c3" as const;
 const BREEDER = "0x00000000000000000000000000000000000000d4" as const;
 const GIFT = "0x00000000000000000000000000000000000000e5" as const;
 const SHOP = "0x0000000000000000000000000000000000000a11";
+const EXTRAS = "0x0000000000000000000000000000000000000e11";
 
 /** A chain with a few sales at known blocks, and fixed contract totals. */
 function fakeChain(head: number) {
@@ -34,10 +35,11 @@ function fakeChain(head: number) {
       if (Number(toBlock) - Number(fromBlock) >= 100) throw new Error("block range greater than 100 max");
       return (sales[address] ?? []).filter((s) => s.block >= Number(fromBlock) && s.block <= Number(toBlock)).map((s) => ({ args: { quantity: s.quantity, paid: s.paid }, blockNumber: BigInt(s.block) }));
     },
-    readContract: async ({ address, functionName }: { address: string; functionName: string }) => {
+    readContract: async ({ address, functionName, args }: { address: string; functionName: string; args?: readonly unknown[] }) => {
       if (functionName === "nextPetId") return 12n;
-      if (functionName === "totalBurned") return address === BEM ? 4_200_000n : address === BREEDER ? 10_000_000n : address === SHOP ? 15_000_000n : 0n;
+      if (functionName === "totalBurned") return address === BEM ? 4_200_000n : address === BREEDER ? 10_000_000n : address === SHOP ? 15_000_000n : address === EXTRAS ? 25_000_000n : 0n;
       if (functionName === "total") return 7n;
+      if (functionName === "sold" && address === EXTRAS) return [2n, 1n, 2n][Number(args?.[0])]!;
       throw new Error("unexpected read");
     },
   } as unknown as PublicClient;
@@ -70,11 +72,13 @@ describe("live numbers", () => {
     const { client } = fakeChain(2_150);
     const sales = createSalesCounter({ rpc: "", markets: [{ address: OKB, fromBlock: 1_000 }, { address: BEM, fromBlock: 2_000 }], client, paceMs: 0 });
     await sales.catchUp();
-    const n = await readNumbers({ pub: client, counts, petsIndexedTo: () => 2_140, sales, contracts: { registry: REG, marketOkb: OKB, marketBem: BEM, breeder: BREEDER, gift: GIFT, itemShop: SHOP }, explorer: "https://x" }, 1_800_000_000_000);
+    const n = await readNumbers({ pub: client, counts, petsIndexedTo: () => 2_140, sales, contracts: { registry: REG, marketOkb: OKB, marketBem: BEM, breeder: BREEDER, gift: GIFT, itemShop: SHOP, extras: EXTRAS }, explorer: "https://x" }, 1_800_000_000_000);
     expect(n.head).toBe(2_150);
     expect(n.pets).toEqual({ hatched: 9, children: 2, daysSaved: 40, savedLast24h: 3, hatchers: 5, nextPetId: 12, indexedTo: 2_140 });
-    // the item shop's whole price is burned and counts in the total (plan 4.6)
-    expect(n.burned).toEqual({ market: "4200000", breeding: "10000000", shop: "15000000", adoption: "0", total: "29200000" });
+    // the item shop's whole price is burned and counts in the total (plan 4.6), and so do the paid extras (plan 4.9)
+    expect(n.burned).toEqual({ market: "4200000", breeding: "10000000", shop: "15000000", adoption: "0", extras: "25000000", total: "54200000" });
+    expect(n.extras).toEqual({ room: 2, looks: 1, colours: 2 });
+    expect(n.contracts.extras).toEqual({ address: EXTRAS, url: `https://x/address/${EXTRAS}` });
     expect(n.contracts.itemShop).toEqual({ address: SHOP, url: `https://x/address/${SHOP}` });
     expect(n.pins).toBe(7);
     expect(n.outfits.bem?.copies).toBe(5);
@@ -88,6 +92,7 @@ describe("live numbers", () => {
     const n = await readNumbers({ pub: client, counts, petsIndexedTo: () => 1_290, sales, contracts: { registry: REG, marketOkb: OKB }, explorer: "https://x" });
     expect(n.outfits.bem).toBeNull();
     expect(n.pins).toBeNull();
+    expect(n.extras).toBeNull();
     expect(n.burned.total).toBe("0");
   });
 

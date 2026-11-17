@@ -25,7 +25,7 @@ import { HintRing, PetQuestBubble, QuestBook, QuestDialog, QuestToast } from "./
 import { RulesMark } from "./RulesMark";
 import { allStatuses, questsOf } from "../game/quests";
 import { useWorld } from "../game/world";
-import { useChain } from "../game/chain";
+import { recordOf, useChain } from "../game/chain";
 import { liveAvailable, playerId, useLive, visitingFrom } from "../game/live";
 import { InvitePanel, SocialBar } from "./Social";
 import { type Action, CHARACTERS, CHARACTER_IN_ROOM, FRIEND_BY_ID, HOME, INDOOR_ROOMS, ROOMS, decorOf, neighbours, openSteps, visitorOf } from "@lingxi/world";
@@ -63,8 +63,10 @@ import { MoveNotes, MoveSheet, TelegramCard } from "./Move";
 import { Lazy } from "./Lazy";
 import { FashionMarketPanel } from "./FashionMarket";
 import { ItemShopPanel } from "./ItemShop";
+import { ExtrasPanel } from "./Extras";
 import { AdoptionPanel, FarewellNote } from "./Adoption";
 import { syncChainPieces } from "../game/chainDecor";
+import { loadColours, syncPacks } from "../game/extras";
 import { RIG_HOME_BGS, useHoldings } from "../game/holders";
 import { bondName, bondsOf, friendKey, useFriends } from "../game/friends";
 import { unreadCount, useMail } from "../game/mail";
@@ -115,9 +117,12 @@ export function PlayApp() {
   const familiar = useWorld((s) => s.world.familiar);
   const [worldMsg, setWorldMsg] = useState<{ id: number; text: string } | null>(null);
   useEffect(followClock, []);
-  // on-chain decorations the wallets hold (plan 4.6): read on start, so a piece sold elsewhere leaves the home
+  // on-chain decorations and limited outfits the wallets hold (plans 4.6, 4.9): read on start, so a piece sold
+  // elsewhere leaves the home; then the extras packs and the name colours of the pets on this device
   useEffect(() => {
     void syncChainPieces();
+    void syncPacks();
+    void loadColours(useGame.getState().pets.map((p) => recordOf(p)?.petId ?? "").filter(Boolean));
   }, []);
   // the pet says something when its circuit makes a new decision
   const decision = pet ? `${pet.last.rule}|${pet.asleep}|${Boolean(pet.sick)}` : "";
@@ -273,11 +278,12 @@ export function PlayApp() {
       history.replaceState(null, "", location.pathname);
     }
   }, [worldRoom, visiting]);
+  const chainPetId = useChain((s) => s.record?.petId);
   useEffect(() => {
     const p = useGame.getState().pet;
     if (!p || !liveAvailable()) return;
-    liveConnect({ name: p.name, line: p.line, stage: stageOf(p, Date.now()), mood: p.last.mood }, space);
-  }, [space, liveConnect, pet?.name]);
+    liveConnect({ name: p.name, line: p.line, stage: stageOf(p, Date.now()), mood: p.last.mood, ...(chainPetId ? { petId: chainPetId } : {}) }, space);
+  }, [space, liveConnect, pet?.name, chainPetId]);
   useEffect(() => {
     if (pet) liveMood(pet.last.mood);
   }, [pet?.last.mood, liveMood]);
@@ -733,6 +739,8 @@ export function PlayApp() {
         <Lazy><FashionMarketPanel pet={pet} /></Lazy>
         <hr className="divider" />
         <Lazy><ItemShopPanel /></Lazy>
+        <hr className="divider" />
+        <Lazy><ExtrasPanel pet={pet} /></Lazy>
         <hr className="divider" />
         <Lazy><AdoptionPanel pet={pet} /></Lazy>
         <hr className="divider" />

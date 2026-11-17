@@ -1,0 +1,72 @@
+{
+ "version": 1,
+ "room": 65,
+ "coins": 30,
+ "bag": {
+  "11301": 2,
+  "11313": 2
+ },
+ "visited": [
+  65
+ ],
+ "foraged": {},
+ "crafted": 0,
+ "foragedCount": 0,
+ "seed": "5a1ca9a9ee2296b9",
+ "claimed": [],
+ "tally": {
+  "USE:0": 3,
+  "USE:11130": 3,
+  "CARE:0": 7,
+  "CARE:feed": 1,
+  "CARE:feed-morning": 1,
+  "TOGETHER:0": 1,
+  "TOGETHER:65": 1,
+  "TOGETHER_WHEN:0": 1,
+  "TOGETHER_WHEN:morning": 1,
+  "TOGETHER_WHEN:morning-65": 1,
+  "TOGETHER_WHEN:morning-inside": 1,
+  "HEALTHY_DAY:2026-11-17": 1,
+  "FED:0": 1,
+  "FED:11130": 1,
+  "FED_GROUP:2026-11-17-grain": 1,
+  "CARE:clean": 3,
+  "CARE:clean-morning": 3,
+  "CARE:pet": 3,
+  "CARE:pet-morning": 3
+ },
+ "tallied": 1,
+ "quests": {
+  "active": {
+   "d-game": {
+    "at": 1794883077106,
+    "snap": {
+     "CARE:play": 0
+    }
+   },
+   "d-friend": {
+    "at": 1794883077106,
+    "snap": {
+     "EVENT:visited-by-friend": 0,
+     "MEET:0": 0
+    }
+   },
+   "d-evening": {
+    "at": 1794883077106,
+    "snap": {
+     "TOGETHER_WHEN:evening-outside": 0
+    }
+   }
+  },
+  "done": {},
+  "today": {
+   "day": "2026-11-17",
+   "offered": [
+    "d-game",
+    "d-friend",
+    "d-evening"
+   ],
+   "done": []
+  }
+ }
+}

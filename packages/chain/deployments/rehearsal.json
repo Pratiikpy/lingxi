@@ -1,6 +1,6 @@
 {
   "chainId": 196,
-  "rpc": "http://127.0.0.1:8580",
+  "rpc": "http://127.0.0.1:8582",
   "processor": "0xf70d324Da8C1C4Cb0dE3FF147E53E7E9db543c4e",
   "processorIndex": 419,
   "transistors": "0x92DFda52386386Be40EFd7becB545139372C7139",
@@ -42,10 +42,120 @@
   "outfitMarket": "0xb9f6b18edd21933582ec69fb1e718d9629e684cd",
   "outfitMarketBlock": 76011196,
   "breederBem": true,
-  "breederBlock": 76053901,
+  "breederBlock": 76063091,
   "breederFree": "0x5e5bbb798c5a2afc89f431debabaa0b889f77dd1",
-  "outfitMarketV2": "0xe0721c90aafc23b9e1b696eaba069460170f1da3",
-  "outfitMarketV2Block": 76053933,
-  "holderGift": "0x2fd09681d203e1a8fe62ec50b2526e03d6e43912",
-  "holderOutfit": 1
+  "outfitMarketV2": "0xa292c12b0414bbfc14994f93bcff8bd58c921e55",
+  "outfitMarketV2Block": 76063126,
+  "holderGift": "0xc216a4abb6c4c2d0b485f42219197551330b6cf4",
+  "holderOutfit": 1,
+  "rules": {
+    "drop": {
+      "id": "7",
+      "tx": "0x092ca0a9eb5da25b33e4a90f8a458c228d66d6b8cf59709ca532dd1a855c9e51",
+      "gates": 42
+    },
+    "trust": {
+      "id": "8",
+      "tx": "0x456237b3eadd0f8482921b8d44afd8be81d7884b68eb9ea136931b8674f81414",
+      "gates": 63
+    },
+    "skills": {
+      "id": "9",
+      "tx": "0x3e2c5f3dff1835e754114240d8ed39d138432b96b60c4145d4e22f7140180b4c",
+      "gates": 75
+    },
+    "folk:wick": {
+      "id": "10",
+      "tx": "0x7096ffa48ef0b968785bfe5f4faeba517a3d65919b15de26b87e82950af48471",
+      "gates": 123
+    },
+    "folk:praline": {
+      "id": "11",
+      "tx": "0x68741d5814af0410acd72b8d2e942252c958cc84b8c86ae668a34f7578513444",
+      "gates": 155
+    },
+    "folk:yonder": {
+      "id": "12",
+      "tx": "0x400af1cea1f6993ceceb749868ef18cb427cfb1ca67c6d39285de16ef7ad2a40",
+      "gates": 166
+    },
+    "folk:twain": {
+      "id": "13",
+      "tx": "0x7250ec79925bf871db192f78fedaad110db2d9218da62830968ec1a1e63059ca",
+      "gates": 204
+    },
+    "folk:bolt": {
+      "id": "14",
+      "tx": "0xf431cb3058449e7c261090720a03e5d3f173f5972eafc71ac4ad0346ad280225",
+      "gates": 112
+    },
+    "folk:flit": {
+      "id": "15",
+      "tx": "0x97b8566a59e72126ea8e60362c430feb27a1d5203b8cb0df129abca23fae13bf",
+      "gates": 131
+    },
+    "folk:why": {
+      "id": "16",
+      "tx": "0x92f1baddb298c15f60abe336748e23b89963a6a7b68a076fdfa06f19b1bc349b",
+      "gates": 137
+    },
+    "folk:jab": {
+      "id": "17",
+      "tx": "0x059b34dfaf8bbce2aa1884dac3b72783e04024d49a56acdc3824866205de7f18",
+      "gates": 118
+    },
+    "folk:nimbus": {
+      "id": "18",
+      "tx": "0xb4c11bba2d5c15869d8babfcb5a83e47911de5a01c649a1b2f29a5480a32b500",
+      "gates": 207
+    },
+    "builder:behemoth": {
+      "id": "19",
+      "tx": "0x3a0473c2eaa23f5d8eba6af20c85c2081a2dd4fb53e3c251c4c5c1d2991a6f68",
+      "gates": 42
+    },
+    "builder:mars": {
+      "id": "20",
+      "tx": "0x39b2ff5fc5a502a3fa79d9ff3a0084b1fa8eec60a3a2610481f32daad97fe803",
+      "gates": 38
+    },
+    "builder:tapboy": {
+      "id": "21",
+      "tx": "0x7408589b0a15be0c14875a60d459b89e7aeebfbee3476247f3bb3f85c98b8012",
+      "gates": 70
+    },
+    "builder:builder": {
+      "id": "22",
+      "tx": "0xcd1767fdbd4678c4ab2dc518f166011d0f1d757d9bfed74e18dd4fac3a47064b",
+      "gates": 77
+    },
+    "builder:diver": {
+      "id": "23",
+      "tx": "0x7b79ae6fd1ffbe51d53abf8610c722cb06c19d82871178a67534829e6dd68a75",
+      "gates": 87
+    }
+  },
+  "itemShop": "0xaf8857c0d723e14f60d00fe46120abd0303f52cc",
+  "itemShopBlock": 76101128,
+  "voucherSigner": "0x4459Dc282c4A2114c1c4D6B7F96d8129779e2d11",
+  "itemShopTx": "0x14cb72397e93b5ed016be2a87d0e8a50256b3fe9b2523d32d03b4fe46c1e8a50",
+  "items": {
+    "star-lamp": "2",
+    "circuit-rug": "3",
+    "tape-shelf": "4",
+    "moon-window": "5",
+    "goal-saves": "6",
+    "goal-hatch": "7",
+    "goal-family": "8",
+    "goal-ember": "9",
+    "nand-crown": "10",
+    "probe-visor": "11",
+    "wafer-wand": "12"
+  },
+  "adoptionCentre": "0x58212451fcd46ff6130cff428f2f4273f4cc7596",
+  "adoptionCentreBlock": 76104110,
+  "adoptionCentreTx": "0x03698a4fd7b2ac8cdfda709416f92ea9e86dd0ef857f1752e5260eeae1903717",
+  "extras": "0x560c7dc63a45e5afe53ad156152555a5c067598d",
+  "extrasBlock": 76143443,
+  "extrasTx": "0xa012757123b0ef789463a670a5c8f5c8c6610a1c0fa9677fc415f5e8782acc6a"
 }

@@ -38,4 +38,20 @@ describe("the tree route", () => {
     expect(j.indexedTo).toBe(99);
     expect(j.pets.map((p) => [p.id, p.name ?? null, p.generation])).toEqual([["1", "Mochi", 0], ["2", null, 0], ["3", "Bean", 1]]);
   });
+
+  it("adds each pet's name colour from X Layer; a failed read leaves names plain and tries again", async () => {
+    const pets = [pet("1", "0xA"), pet("2", "0xB")];
+    let down = true;
+    let asked: string[] = [];
+    const app = withTree(new Hono(), { pets: () => pets, head: () => 9 }, undefined, async (ids) => {
+      asked = ids;
+      if (down) throw new Error("rpc");
+      return { "1": 4, "2": 0 };
+    });
+    const read = async () => ((await (await app.request("/api/tree")).json()) as { pets: Array<{ id: string; colour?: number }> }).pets.map((p) => [p.id, p.colour ?? 0]);
+    expect(await read()).toEqual([["1", 0], ["2", 0]]);
+    down = false;
+    expect(await read()).toEqual([["1", 4], ["2", 0]]);
+    expect(asked).toEqual(["1", "2"]);
+  });
 });

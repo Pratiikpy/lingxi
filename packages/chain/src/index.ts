@@ -22,3 +22,5 @@ export * from "./itemShopAbi";
 export * from "./itemShop";
 export * from "./adoptionCentreAbi";
 export * from "./adoption";
+export * from "./extrasAbi";
+export * from "./extras";

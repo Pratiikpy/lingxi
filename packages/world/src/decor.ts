@@ -288,8 +288,20 @@ export const CHAIN_DECOR: readonly Decor[] = [
 
 export const DECOR_BY_ID: Readonly<Record<string, Decor>> = Object.fromEntries([...DECOR, ...CHAIN_DECOR].map((d) => [d.id, d]));
 
-/** At most this many pieces stand in the room at once. */
+/** Pieces a home holds free. Room packs bought on X Layer (plan 4.9) add more; see `roomCapacity`. */
 export const MAX_PLACED = 12;
+/** Room space and saved looks can each be bought this many times per wallet (the Extras contract's `MAX_PACKS`). */
+export const MAX_PACKS = 3;
+/** How many more pieces each room pack adds, and the most a home can ever hold. */
+export const ROOM_PER_PACK = 4;
+export const ROOM_MAX = MAX_PLACED + ROOM_PER_PACK * MAX_PACKS;
+
+/** How many pieces this home holds: 12, plus 4 for each room pack last read from X Layer (clamped to the contract's limit). */
+export function roomCapacity(w: WorldState): number {
+  const n = w.extras?.room;
+  const packs = typeof n === "number" && Number.isInteger(n) && n > 0 ? Math.min(MAX_PACKS, n) : 0;
+  return MAX_PLACED + ROOM_PER_PACK * packs;
+}
 /** The room is 128 pixels square; pieces stand on the lower part, never under the top bar. */
 export const PLACE_AREA = { x0: 6, x1: 122, y0: 34, y1: 124 } as const;
 
@@ -330,7 +342,7 @@ export function buyDecor(w: WorldState, id: string): WorldResult {
 export function placeDecor(w: WorldState, id: string, x: number, y: number): WorldResult {
   const s = decorOf(w);
   if (!hasDecor(s, id)) return { ok: false, reason: "notOwned" };
-  if (s.placed.length >= MAX_PLACED && !s.placed.some((p) => p.id === id)) return { ok: false, reason: "full" };
+  if (s.placed.length >= roomCapacity(w) && !s.placed.some((p) => p.id === id)) return { ok: false, reason: "full" };
   const cx = Math.round(Math.max(PLACE_AREA.x0, Math.min(PLACE_AREA.x1, x)));
   const cy = Math.round(Math.max(PLACE_AREA.y0, Math.min(PLACE_AREA.y1, y)));
   // placing a piece that is already out moves it

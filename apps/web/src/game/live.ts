@@ -48,6 +48,8 @@ export interface LiveMember {
   stage: string;
   mood: number;
   x: number;
+  /** the pet's name colour (plan 4.9), sent only when the server checked a linked wallet owns the pet */
+  colour?: number;
   emote?: { kind: string; at: number };
   say?: { text: string; at: number };
 }
@@ -57,12 +59,21 @@ interface Me {
   line: string;
   stage: string;
   mood: number;
+  /** the pet's id on X Layer, so the server can show its name colour */
+  petId?: string;
 }
 
 interface LiveState {
   status: "off" | "connecting" | "on";
   space: string | null;
   members: Record<string, LiveMember>;
+  /** wallets linked to this player's home (plan 4.9); null until the server answers */
+  links: string[] | null;
+  /** the last link or unlink answer, for the panel to report */
+  linkAnswer: { ok: boolean; reason?: string; at: number } | null;
+  /** link a wallet that signed `homeLinkMessage(playerId())`, or unlink one */
+  link: (wallet: string, signature: string) => void;
+  unlink: (wallet: string) => void;
   /** last emote others sent to us, for the scene */
   incoming: { from: string; kind: string; at: number } | null;
   /** a friend's pet card we asked for, to spar against */
@@ -126,6 +137,7 @@ export const useLive = create<LiveState>((set, get) => {
       retry = 0;
       set({ status: "on" });
       send({ t: "hello", id: playerId(), ...me, space: want });
+      send({ t: "links", key: decorKey() });
       if (lessonsCard) send({ t: "card", lessons: lessonsCard });
       if (decorShared) send({ t: "decor", key: decorKey(), placed: JSON.parse(decorShared) });
     };
@@ -168,6 +180,16 @@ export const useLive = create<LiveState>((set, get) => {
         }
         case "decor":
           if (typeof m.owner === "string" && Array.isArray(m.placed)) set({ homeDecor: { owner: m.owner, placed: m.placed as Array<{ id: string; x: number; y: number }> } });
+          return;
+        case "colour": {
+          const x = members[m.id as string];
+          if (!x || !Number.isInteger(m.colour)) return;
+          members[x.id] = { ...x, colour: m.colour as number };
+          return set({ members });
+        }
+        case "linked":
+          if (m.ok === true && Array.isArray(m.wallets)) set({ links: (m.wallets as unknown[]).filter((w): w is string => typeof w === "string") });
+          set({ linkAnswer: { ok: m.ok === true, ...(typeof m.reason === "string" ? { reason: m.reason } : {}), at: performance.now() } });
           return;
         case "card":
           set({ card: { id: m.id as string, name: m.name as string, line: m.line as string, stage: m.stage as string, lessons: m.lessons as string, at: performance.now() } });
@@ -217,6 +239,10 @@ export const useLive = create<LiveState>((set, get) => {
     card: null,
     asked: null,
     homeDecor: null,
+    links: null,
+    linkAnswer: null,
+    link: (wallet, signature) => send({ t: "link", key: decorKey(), wallet, signature }),
+    unlink: (wallet) => send({ t: "unlink", key: decorKey(), wallet }),
     shareDecor: (placed) => {
       const next = JSON.stringify(placed);
       if (next === decorShared) return;
@@ -237,9 +263,12 @@ export const useLive = create<LiveState>((set, get) => {
     clearFamily: () => set({ proposal: null, answer: null }),
     ask: (id) => send({ t: "ask", to: id }),
     connect: (who, space) => {
+      const changed = !me || me.name !== who.name || me.petId !== who.petId || me.line !== who.line || me.stage !== who.stage;
       me = who;
       want = space;
       if (!ws) open();
+      // another pet on screen introduces itself again (its name, and its id for the name colour)
+      else if (changed) send({ t: "hello", id: playerId(), ...me, space });
       else send({ t: "go", space });
     },
     go: (space) => {

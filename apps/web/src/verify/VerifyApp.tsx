@@ -15,7 +15,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { type Hex } from "viem";
 import { beat, bitsToWord, circuitBrain, hexToBytes, load, type Circuit, wordToBits, decodeSenses } from "@lingxi/brain";
 import { PetHistory } from "./History";
-import { type ChainPet, canvasOfSvg, gameSprite, loadCircuitFromChain, lookOf, readMetadata, readPet, replayMany, replayStep } from "@lingxi/chain";
+import { type ChainPet, canvasOfSvg, gameSprite, loadCircuitFromChain, lookOf, nameColours, readMetadata, readPet, replayMany, replayStep } from "@lingxi/chain";
+import { Named } from "../play/Named";
 import { type DiaryLine, chainAll, diaryOfStretches, diaryText, unpackState, ZERO_HASH } from "@lingxi/game";
 
 const DIARY_API = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
@@ -120,6 +121,7 @@ export function VerifyApp() {
   const [running, setRunning] = useState(false);
   const [logResult, setLogResult] = useState<string | null>(null);
   const [logName, setLogName] = useState<string | null>(null);
+  const [colour, setColour] = useState(0);
   // the exhaustive check: every one of the 65,536 inputs at the pet's saved memory
   const [all, setAll] = useState<{ done: number; bad: number; first?: string; secs?: number; stopped?: boolean } | null>(null);
   const stopAll = useRef(false);
@@ -135,6 +137,12 @@ export function VerifyApp() {
       const p = await readPet(publicClient, deployment, BigInt(id));
       setPet(p);
       setMeta(null);
+      setColour(0);
+      // its name colour (plan 4.9), from the extras contract
+      if (deployment.extras)
+        void nameColours(publicClient, deployment, [BigInt(id)])
+          .then((c) => setColour(c[id] ?? 0))
+          .catch(() => setColour(0));
       void readMetadata(publicClient, deployment, BigInt(id))
         .then((m) => {
           const svg = m.image?.startsWith("data:image/svg+xml;base64,") ? atob(m.image.slice(26)) : null;
@@ -341,7 +349,7 @@ export function VerifyApp() {
             <figure className="v-picture">
               <img src={meta.image} alt={meta.name} width={144} height={144} />
               <figcaption>
-                <b>{meta.name}</b>
+                <Named name={meta.name} colour={colour} />
                 <span className="v-note">{t.pictureNote}</span>
                 {meta.same !== undefined && <span className={meta.same ? "v-ok" : "v-bad"}>{meta.same ? t.pictureSame : t.pictureDiff}</span>}
               </figcaption>

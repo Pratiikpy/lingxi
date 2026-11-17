@@ -30,7 +30,8 @@ interface Numbers {
   at: number;
   pets: { hatched: number; children: number; daysSaved: number; savedLast24h: number; hatchers: number; nextPetId: number; indexedTo: number };
   outfits: { okb: Market | null; bem: Market | null };
-  burned: { market: string; breeding: string; shop?: string; adoption?: string; total: string };
+  burned: { market: string; breeding: string; shop?: string; adoption?: string; extras?: string; total: string };
+  extras?: { room: number; looks: number; colours: number } | null;
   pins: number | null;
   contracts: Record<string, { address: string; url: string }>;
 }
@@ -103,6 +104,19 @@ function rows(n: Numbers): Array<{ title: [string, string]; readTo?: number; ite
           : []),
         ...(n.burned.adoption !== undefined
           ? [{ label: ["Burned by the adoption centre", "领养中心销毁"] as [string, string], value: `${formatBem(BigInt(n.burned.adoption))} BEM`, counts: ["The fee on every adoption (3% of the price), sent to the dead address by the adopter's own payment (the centre's own total).", "每次领养的手续费（价格的 3%），由领养人付款时直接送到销毁地址（领养中心合约自己的累计）。"] as [string, string], source: "adoption" }]
+          : []),
+        ...(n.burned.extras !== undefined && n.extras
+          ? [
+              {
+                label: ["Burned by extras", "小额外销毁"] as [string, string],
+                value: `${formatBem(BigInt(n.burned.extras))} BEM`,
+                counts: [
+                  `The whole price of every extra, sent to the dead address in the same transaction: ${fmt(n.extras.room)} room pack${n.extras.room === 1 ? "" : "s"}, ${fmt(n.extras.looks)} look pack${n.extras.looks === 1 ? "" : "s"} and ${fmt(n.extras.colours)} name colour${n.extras.colours === 1 ? "" : "s"} bought (the extras contract's own totals).`,
+                  `每样小额外的全部售价，在购买的同一笔交易里送到销毁地址：已买 ${fmt(n.extras.room)} 份房间空间、${fmt(n.extras.looks)} 份存搭配、${fmt(n.extras.colours)} 次名字颜色（小额外合约自己的累计）。`,
+                ] as [string, string],
+                source: "extras",
+              },
+            ]
           : []),
         { label: ["Burned in total", "合计销毁"], value: `${formatBem(BigInt(n.burned.total))} BEM`, counts: ["The totals above added together. Lingxi never keeps BEM.", "上面各项之和。灵犀从不留下 BEM。"] },
       ],

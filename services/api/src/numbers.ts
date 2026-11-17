@@ -18,6 +18,7 @@ const views = parseAbi([
   "function totalBurned() view returns (uint256)",
   "function total() view returns (uint256)",
   "function nextPetId() view returns (uint256)",
+  "function sold(uint8) view returns (uint256)",
 ]);
 
 export interface MarketTotals {
@@ -108,7 +109,7 @@ export interface NumbersDeps {
   counts: (sinceSec: number) => { hatched: number; children: number; saves: number; savedSince: number; hatchers: number };
   petsIndexedTo: () => number;
   sales: SalesCounter;
-  contracts: { registry: Address; marketOkb?: Address; marketBem?: Address; breeder?: Address; gift?: Address; itemShop?: Address; adoption?: Address };
+  contracts: { registry: Address; marketOkb?: Address; marketBem?: Address; breeder?: Address; gift?: Address; itemShop?: Address; adoption?: Address; extras?: Address };
   explorer: string;
 }
 
@@ -119,7 +120,9 @@ export interface Numbers {
   head: number;
   pets: { hatched: number; children: number; daysSaved: number; savedLast24h: number; hatchers: number; nextPetId: number; indexedTo: number };
   outfits: { okb: (MarketTotals & { indexedTo: number }) | null; bem: (MarketTotals & { indexedTo: number }) | null };
-  burned: { market: string; breeding: string; shop: string; adoption: string; total: string };
+  burned: { market: string; breeding: string; shop: string; adoption: string; extras: string; total: string };
+  /** paid extras bought (plan 4.9): room packs, look packs and name colours; null before the contract exists */
+  extras: { room: number; looks: number; colours: number } | null;
   pins: number | null;
   contracts: Record<string, { address: Address; url: string }>;
 }
@@ -127,14 +130,17 @@ export interface Numbers {
 export async function readNumbers(d: NumbersDeps, nowMs = Date.now()): Promise<Numbers> {
   const read = async (address: Address | undefined, fn: "totalBurned" | "total" | "nextPetId"): Promise<bigint> =>
     address ? ((await d.pub.readContract({ address, abi: views, functionName: fn })) as bigint) : 0n;
-  const [head, nextPetId, marketBurned, breedingBurned, shopBurned, adoptionBurned, pins] = await Promise.all([
+  const sold = (f: number) => d.pub.readContract({ address: d.contracts.extras!, abi: views, functionName: "sold", args: [f] }) as Promise<bigint>;
+  const [head, nextPetId, marketBurned, breedingBurned, shopBurned, adoptionBurned, extrasBurned, pins, extrasSold] = await Promise.all([
     d.pub.getBlockNumber(),
     read(d.contracts.registry, "nextPetId"),
     read(d.contracts.marketBem, "totalBurned"),
     read(d.contracts.breeder, "totalBurned"),
     read(d.contracts.itemShop, "totalBurned"),
     read(d.contracts.adoption, "totalBurned"),
+    read(d.contracts.extras, "totalBurned"),
     d.contracts.gift ? read(d.contracts.gift, "total") : Promise.resolve(null),
+    d.contracts.extras ? Promise.all([sold(0), sold(1), sold(2)]) : Promise.resolve(null),
   ]);
   const c = d.counts(Math.floor(nowMs / 1000) - 86_400);
   const market = (a?: Address) => (a ? { ...d.sales.totals(a), indexedTo: d.sales.head(a) } : null);
@@ -151,8 +157,10 @@ export async function readNumbers(d: NumbersDeps, nowMs = Date.now()): Promise<N
       breeding: breedingBurned.toString(),
       shop: shopBurned.toString(),
       adoption: adoptionBurned.toString(),
-      total: (marketBurned + breedingBurned + shopBurned + adoptionBurned).toString(),
+      extras: extrasBurned.toString(),
+      total: (marketBurned + breedingBurned + shopBurned + adoptionBurned + extrasBurned).toString(),
     },
+    extras: extrasSold ? { room: Number(extrasSold[0]), looks: Number(extrasSold[1]), colours: Number(extrasSold[2]) } : null,
     pins: pins === null ? null : Number(pins),
     contracts,
   };

@@ -1,12 +1,14 @@
 /**
- * The item shop (plan 4.6): decorations that live on X Layer. Four are sold for BEM, the whole price burned; four
- * are keepsakes for wallets that helped finish a community goal, claimed with a voucher our server signs. Pieces
- * held can be placed at home and resold on the BEM market. Cosmetic only.
+ * The item shop (plan 4.6, 4.9): things that live on X Layer. Four decorations and three limited outfits are sold for
+ * BEM, the whole price burned; four decorations are keepsakes for wallets that helped finish a community goal,
+ * claimed with a voucher our server signs. Pieces held can be placed at home or worn, and resold on the BEM market.
+ * Cosmetic only.
  */
 
 import { useEffect, useState } from "react";
 import { type ShopItem, buyShopItem, claimVoucher, formatBem, listCopies, marketsOf, parseBem, readShopItems, shopBurned, shopReadiness } from "@lingxi/chain";
-import { CHAIN_DECOR, DECOR_BY_ID, GOAL_BY_ID } from "@lingxi/world";
+import { WEARABLE } from "@lingxi/art";
+import { CHAIN_DECOR, CHAIN_WEAR, DECOR_BY_ID, GOAL_BY_ID, isChainWear } from "@lingxi/world";
 import { useLang } from "../i18n";
 import { connectWallet, deployment, publicClient } from "../game/chain";
 import { syncChainPieces } from "../game/chainDecor";
@@ -26,6 +28,7 @@ export function ItemShopPanel() {
   const lang = useLang((s) => s.lang) as Lang;
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
   const held = useWorld((s) => s.world.decor?.chainHeld) ?? NONE;
+  const wornHeld = useWorld((s) => s.world.wardrobe?.chainHeld) ?? NONE;
   const [items, setItems] = useState<ShopItem[] | null>(null);
   const [burned, setBurned] = useState<bigint | null>(null);
   const [wallet, setWallet] = useState<string | null>(null);
@@ -95,6 +98,8 @@ export function ItemShopPanel() {
       if (!r.enough) throw new Error("notEnoughBem");
       setStep(r.needsApproval ? L("Two steps in your wallet: first allow the shop to take exactly this much BEM, then buy.", "钱包里会有两步：先允许道具店取用正好这么多 BEM，再购买。") : L("Confirm the purchase in your wallet.", "请在钱包里确认购买。"));
       await buyShopItem(publicClient, w, deployment!, it.id, 1, it.price);
+      const wearable = WEARABLE[it.piece];
+      if (wearable && isChainWear(it.piece)) return L(`${wearable.name.en} is yours, and ${formatBem(it.price)} BEM was burned. Put it on from the wardrobe.`, `${wearable.name.zh}归你了，${formatBem(it.price)} BEM 已销毁。去衣橱穿上吧。`);
       const name = DECOR_BY_ID[it.piece]!.name;
       return L(`${name.en} is yours, and ${formatBem(it.price)} BEM was burned. Place it from Decorate at home.`, `${name.zh}归你了，${formatBem(it.price)} BEM 已销毁。回家点「布置」就能摆上。`);
     });
@@ -163,6 +168,57 @@ export function ItemShopPanel() {
                 )}
                 {have && (
                   <button type="button" className="btn" onClick={() => setResell(resell?.piece === p.id ? null : { piece: p.id, price: formatBem(it?.price ?? 5_000_000n) })}>
+                    {L("Resell", "转卖")}
+                  </button>
+                )}
+              </div>
+              {resell?.piece === p.id && (
+                <form
+                  className="fashion-resell"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    list(p.id, resell.price);
+                  }}
+                >
+                  <input inputMode="decimal" value={resell.price} onChange={(e) => setResell({ ...resell, price: e.target.value.replace(/[^0-9.]/g, "") })} aria-label={L("Price (BEM)", "价格（BEM）")} />
+                  <button type="submit" className="btn primary" disabled={busy !== null}>
+                    {L("List one", "挂出一份")}
+                  </button>
+                </form>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      <p className="label">{L("Limited outfits", "限量服饰")}</p>
+      <p className="small">
+        {L(
+          "The Tape-out set: three pieces made only here, a fixed number of each, held in your wallet and worn from the wardrobe. All three together give the title “Tape-out engineer”. The whole price is burned. Looks only.",
+          "流片套装：只在这里做的三件，每件数量固定，放在你的钱包里，在衣橱里穿。三件一起穿可得称号「流片工程师」。全部售价都会被销毁。只是好看。",
+        )}
+      </p>
+      <ul className="itemshop-grid">
+        {CHAIN_WEAR.map((p) => {
+          const wearable = WEARABLE[p.id]!;
+          const it = itemOf(p.id);
+          const have = wornHeld.includes(p.id);
+          return (
+            <li key={p.id} className="itemshop-card">
+              <DecorIcon rows={wearable.rows} colors={wearable.colors} />
+              <b>{wearable.name[lang]}</b>
+              <span className="small">
+                {it ? (it.price > 0n ? L(`${formatBem(it.price)} BEM, burned`, `${formatBem(it.price)} BEM，全部销毁`) : L("not on sale", "暂不出售")) : L("reading…", "读取中……")}
+              </span>
+              {it && <span className="small">{L(`${it.available.toString()} of ${p.supply} left`, `还剩 ${it.available.toString()}/${p.supply}`)}</span>}
+              {have && <span className="small fashion-have">{L("In your wallet · wear it from the wardrobe", "在你的钱包里 · 去衣橱穿上")}</span>}
+              <div className="fashion-actions">
+                {it && it.price > 0n && it.available > 0n && !have && (
+                  <button type="button" className="btn primary" disabled={busy !== null} onClick={() => void buy(it)}>
+                    {busy === `buy:${p.id}` ? L("Buying…", "购买中……") : L("Buy", "购买")}
+                  </button>
+                )}
+                {have && (
+                  <button type="button" className="btn" onClick={() => setResell(resell?.piece === p.id ? null : { piece: p.id, price: formatBem(it?.price ?? 10_000_000n) })}>
                     {L("Resell", "转卖")}
                   </button>
                 )}

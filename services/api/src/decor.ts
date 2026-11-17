@@ -8,7 +8,7 @@
 
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { DECOR_BY_ID, MAX_PLACED, PLACE_AREA } from "@lingxi/world";
+import { DECOR_BY_ID, PLACE_AREA, ROOM_MAX } from "@lingxi/world";
 
 export type Placed = Array<{ id: string; x: number; y: number }>;
 
@@ -19,9 +19,12 @@ const SECRET = /^[a-f0-9]{32}$/;
 
 const hash = (secret: string): string => createHash("sha256").update(`lingxi-decor:${secret}`).digest("hex");
 
-/** Known pieces only, each once, inside the room, at most MAX_PLACED; null when the shape is wrong. */
+/**
+ * Known pieces only, each once, inside the room, at most a full room (ROOM_MAX); null when the shape is wrong. What
+ * visitors see is cut down further to what the home's linked wallets allow (see homes.ts).
+ */
 export function cleanPlaced(v: unknown): Placed | null {
-  if (!Array.isArray(v) || v.length > MAX_PLACED) return null;
+  if (!Array.isArray(v) || v.length > ROOM_MAX) return null;
   const out: Placed = [];
   for (const p of v) {
     if (!p || typeof p !== "object") return null;
@@ -37,6 +40,8 @@ export interface DecorStore {
   get: (owner: string) => Placed | null;
   /** Saves an owner's decorations; false when the key does not match or the input is bad. */
   set: (owner: string, secret: unknown, placed: unknown) => Placed | false;
+  /** Whether this key is the home's: binds an unbound home to it, as the first save does. */
+  authorise: (owner: string, secret: unknown) => boolean;
 }
 
 export function createDecorStore(file?: string): DecorStore {
@@ -68,6 +73,16 @@ export function createDecorStore(file?: string): DecorStore {
   };
   return {
     get: (owner) => homes.get(owner)?.placed ?? null,
+    authorise: (owner, secret) => {
+      if (!OWNER_ID.test(owner) || typeof secret !== "string" || !SECRET.test(secret)) return false;
+      const key = hash(secret);
+      const held = homes.get(owner);
+      if (held) return held.key === key;
+      if (homes.size >= MAX_HOMES) return false;
+      homes.set(owner, { key, placed: [] });
+      save();
+      return true;
+    },
     set: (owner, secret, raw) => {
       if (!OWNER_ID.test(owner) || typeof secret !== "string" || !SECRET.test(secret)) return false;
       const placed = cleanPlaced(raw);

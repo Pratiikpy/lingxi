@@ -12,7 +12,7 @@ import { Application, Assets, Container, Graphics, Sprite, Text, type Texture } 
 import { AnimatedGIF } from "@pixi/gif";
 import type { Expression } from "@lingxi/art";
 import type { StarterLine } from "@lingxi/brain";
-import { DECOR_BY_ID } from "@lingxi/world";
+import { DECOR_BY_ID, NAME_COLOUR_BY_ID } from "@lingxi/world";
 import { BITS, type PetStage, catTexture, glowTexture, glyphTexture, petTexture, pixelTexture, vignetteTexture } from "./textures";
 
 export type DayPhase = "day" | "evening" | "night";
@@ -78,6 +78,8 @@ export interface SceneProps {
     line: string;
     stage: string;
     mood: number;
+    /** the pet's name colour (plan 4.9), when the server checked a linked wallet owns it */
+    colour?: number;
     emote?: { kind: string; at: number };
     say?: { text: string; at: number };
     /** a resident: its own colours and props, a fixed place to stand, and whether its trace glows */
@@ -807,6 +809,9 @@ export function RoomScene(props: SceneProps) {
           const cx = headPt.x;
           // keep the name and the speech bubble inside the room, whatever side the pet stands on
           const viewW = el.clientWidth;
+          // a coloured name (plan 4.9) on its cream outline uses the colour's light-theme value
+          const fill = (o.colour && NAME_COLOUR_BY_ID[o.colour]?.light) || "#2B2140";
+          if (v.tag.style.fill !== fill) v.tag.style.fill = fill;
           const tagW = v.tag.width;
           v.tag.position.set(Math.max(tagW / 2 + 4, Math.min(viewW - tagW / 2 - 4, cx)), top + scale * 10);
           const talking = o.say && now - o.say.at < 5000;

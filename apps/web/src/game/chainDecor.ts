@@ -5,7 +5,7 @@
  */
 
 import { piecesHeld } from "@lingxi/chain";
-import { syncChainDecor } from "@lingxi/world";
+import { syncChainDecor, syncChainWear } from "@lingxi/world";
 import { deployment, deviceWallets, publicClient } from "./chain";
 import { useDesigns } from "./designs";
 import { useWorld } from "./world";
@@ -16,14 +16,15 @@ export function chainWallets(extra?: string | null): `0x${string}`[] {
   return [...new Set(all)].filter((w): w is `0x${string}` => /^0x[0-9a-f]{40}$/.test(w)).slice(0, 8);
 }
 
-/** Read what the wallets hold and update the home. Quietly keeps the last reading when X Layer cannot be read. */
+/** Read what the wallets hold and update the home and the wardrobe. Quietly keeps the last reading when X Layer cannot be read. */
 export async function syncChainPieces(extra?: string | null): Promise<string[] | null> {
   if (!deployment?.itemShop || !deployment.items) return null;
   const wallets = chainWallets(extra);
   try {
     const held = wallets.length ? await piecesHeld(publicClient, deployment, wallets) : [];
     const w = useWorld.getState().world;
-    const next = syncChainDecor(w, held);
+    // decorations for the home (plan 4.6), limited outfits for the wardrobe (plan 4.9)
+    const next = syncChainWear(syncChainDecor(w, held), held);
     if (next !== w) useWorld.getState().setWorld(next);
     return held;
   } catch {

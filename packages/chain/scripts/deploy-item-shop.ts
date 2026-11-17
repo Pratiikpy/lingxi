@@ -13,7 +13,8 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { type Address, type Hex, createPublicClient, createWalletClient, formatEther, http, parseEventLogs } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { CHAIN_DECOR } from "@lingxi/world";
+import { WEARABLE } from "@lingxi/art";
+import { CHAIN_DECOR, CHAIN_WEAR } from "@lingxi/world";
 import { itemShopAbi } from "../src/itemShopAbi";
 import { outfitMarketV2Abi } from "../src/outfitMarketV2Abi";
 import type { Deployment } from "../src/registry";
@@ -21,6 +22,8 @@ import { xLayer } from "../src/tapeout";
 
 /** 0.05 BEM per shop piece (BEM has 8 decimals). */
 export const SHOP_PRICE = 5_000_000n;
+/** 0.1 BEM per limited outfit (plan 4.9 section 5). */
+export const DROP_PRICE = 10_000_000n;
 const KEEPSAKE_SUPPLY = 100_000;
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -81,18 +84,28 @@ if (!shop) {
 const signer = (await pub.readContract({ address: shop, abi: itemShopAbi, functionName: "signer" })) as Address;
 if (signer.toLowerCase() !== voucherSigner.toLowerCase()) throw new Error(`the shop's signer is ${signer}`);
 
-// 2. each piece: an item kind on the market, granted to the shop, priced if it is a shop piece
+// 2. each piece: an item kind on the market, granted to the shop, priced if it is sold. Decorations come first
+// (plan 4.6), then the limited outfits (plan 4.9).
+interface OnChainPiece {
+  id: string;
+  name: string;
+  supply: number;
+  /** BEM base units, or 0 for a keepsake that is only claimed */
+  price: bigint;
+}
+const ON_CHAIN: OnChainPiece[] = [
+  ...CHAIN_DECOR.map((p) => ({ id: p.id, name: p.name.en, supply: p.chain!.kind === "shop" ? p.chain!.supply : KEEPSAKE_SUPPLY, price: p.chain!.kind === "shop" ? SHOP_PRICE : 0n })),
+  ...CHAIN_WEAR.map((p) => ({ id: p.id, name: WEARABLE[p.id]!.name.en, supply: p.supply, price: DROP_PRICE })),
+];
 const items: Record<string, string> = { ...((JSON.parse(readFileSync(file, "utf8")) as { items?: Record<string, string> }).items ?? {}) };
-for (const piece of CHAIN_DECOR) {
-  const chainKind = piece.chain!;
-  const supply = chainKind.kind === "shop" ? chainKind.supply : KEEPSAKE_SUPPLY;
+for (const piece of ON_CHAIN) {
   if (!items[piece.id]) {
-    const { tx, r } = await send(market, outfitMarketV2Abi, "createItem", [piece.name.en, supply]);
+    const { tx, r } = await send(market, outfitMarketV2Abi, "createItem", [piece.name, piece.supply]);
     const ev = parseEventLogs({ abi: outfitMarketV2Abi, logs: r.logs, eventName: "ItemCreated" })[0] as { args: { id: bigint } } | undefined;
     if (!ev) throw new Error(`${piece.id}: no ItemCreated event`);
     items[piece.id] = ev.args.id.toString();
     save({ items });
-    say(`  ${piece.id}: item ${ev.args.id} (${supply}) tx ${tx}`);
+    say(`  ${piece.id}: item ${ev.args.id} (${piece.supply}) tx ${tx}`);
   }
   const id = BigInt(items[piece.id]!);
   const cap = (await pub.readContract({ address: market, abi: outfitMarketV2Abi, functionName: "minterCap", args: [id, shop] })) as number;
@@ -101,24 +114,24 @@ for (const piece of CHAIN_DECOR) {
     await send(market, outfitMarketV2Abi, "setMinter", [id, shop, des.maxSupply - des.minted]);
     say(`  ${piece.id}: shop may make ${des.maxSupply - des.minted}`);
   }
-  if (chainKind.kind === "shop") {
+  if (piece.price > 0n) {
     const p = (await pub.readContract({ address: shop, abi: itemShopAbi, functionName: "price", args: [id] })) as bigint;
-    if (p !== SHOP_PRICE) {
-      await send(shop, itemShopAbi, "setPrice", [id, SHOP_PRICE]);
-      say(`  ${piece.id}: priced at 0.05 BEM`);
+    if (p !== piece.price) {
+      await send(shop, itemShopAbi, "setPrice", [id, piece.price]);
+      say(`  ${piece.id}: priced at ${Number(piece.price) / 1e8} BEM`);
     }
   }
 }
 
 // 3. read everything back
-for (const piece of CHAIN_DECOR) {
+for (const piece of ON_CHAIN) {
   const id = BigInt(items[piece.id]!);
-  const [cap, price] = await Promise.all([
+  const [cap, price, des] = await Promise.all([
     pub.readContract({ address: market, abi: outfitMarketV2Abi, functionName: "minterCap", args: [id, shop] }) as Promise<number>,
     pub.readContract({ address: shop, abi: itemShopAbi, functionName: "price", args: [id] }) as Promise<bigint>,
+    pub.readContract({ address: market, abi: outfitMarketV2Abi, functionName: "design", args: [id] }) as Promise<{ maxSupply: number; item: boolean }>,
   ]);
-  const want = piece.chain!.kind === "shop" ? SHOP_PRICE : 0n;
-  if (cap === 0 || price !== want) throw new Error(`${piece.id}: read back cap ${cap}, price ${price}`);
+  if (cap === 0 || price !== piece.price || des.maxSupply !== piece.supply || !des.item) throw new Error(`${piece.id}: read back cap ${cap}, price ${price}, supply ${des.maxSupply}, item ${des.item}`);
 }
 const end = await pub.getBalance({ address: deployer.address });
-say(`done: ${CHAIN_DECOR.length} pieces; spent ${formatEther(start - end)} OKB; wrote ${file}`);
+say(`done: ${ON_CHAIN.length} pieces; spent ${formatEther(start - end)} OKB; wrote ${file}`);

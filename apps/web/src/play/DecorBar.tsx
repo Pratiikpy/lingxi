@@ -1,7 +1,7 @@
 /** The decorate bar over the home room: buy pieces with coins, pick one, tap the room to place it. */
 
 import { useEffect, useRef } from "react";
-import { CHAIN_DECOR, DECOR, decorOf } from "@lingxi/world";
+import { CHAIN_DECOR, DECOR, decorOf, roomCapacity } from "@lingxi/world";
 import { type Key, useLang, useT } from "../i18n";
 import { useWorld } from "../game/world";
 import { play } from "../game/sound";
@@ -46,6 +46,7 @@ export function DecorBar({ selected, onSelect, onDone }: { selected: string | nu
         </button>
       </div>
       <p className="decor-hint">{t("decor.hint")}</p>
+      <p className="decor-hint">{lang === "zh" ? `已摆 ${d.placed.length}/${roomCapacity(world)} 件` : `${d.placed.length} of ${roomCapacity(world)} pieces placed`}</p>
       <ul className="decor-list">
         {[...DECOR.filter((p) => !p.gift || d.owned.includes(p.id)), ...CHAIN_DECOR.filter((p) => (d.chainHeld ?? []).includes(p.id))].map((p) => {
           // an on-chain piece is placed while a wallet holds it (plan 4.6); it is never bought here

@@ -52,6 +52,7 @@ const T = {
   sold: topic("Sold(uint256,address,uint32,uint256)"),
   transfer: topic("Transfer(address,address,uint256)"),
   burned: topic("Burned(address,uint256)"),
+  bought: topic("Bought(address,uint8,uint256,uint256)"),
 };
 const views = parseAbi(["function totalBurned() view returns (uint256)", "function total() view returns (uint256)", "function nextPetId() view returns (uint256)"]);
 /** Every log of `address` from `from` to `to`, raw (no ABI filter in the query). */
@@ -61,7 +62,8 @@ async function main() {
   const live = (await (await fetch(`${api}/api/numbers`, { cache: "no-store" })).json()) as {
     pets: { hatched: number; children: number; daysSaved: number; indexedTo: number; nextPetId: number };
     outfits: { okb: { copies: number; paid: string; indexedTo: number } | null; bem: { copies: number; paid: string; indexedTo: number } | null };
-    burned: { market: string; breeding: string; shop?: string; adoption?: string; total: string };
+    burned: { market: string; breeding: string; shop?: string; adoption?: string; extras?: string; total: string };
+    extras?: { room: number; looks: number; colours: number } | null;
     pins: number | null;
   };
   const diffs: string[] = [];
@@ -135,14 +137,27 @@ async function main() {
     }
     check("BEM burned by the adoption centre (sum of its Burned events)", adoption.toString(), live.burned.adoption ?? "absent");
   }
-  check("BEM burned in total", (market + breeding + shop + adoption).toString(), live.burned.total);
+  // the paid extras: burns summed from Burned events, purchases counted from Bought events by feature
+  let extras = 0n;
+  if (d.extras && d.extrasBlock) {
+    const sold = [0, 0, 0];
+    for (const l of await logsOf(d.extras, d.extrasBlock, Number(await pub.getBlockNumber()))) {
+      if (l.topics[0] === T.burned) extras += (decodeEventLog({ abi: events, data: l.data, topics: l.topics }).args as { amount: bigint }).amount;
+      else if (l.topics[0] === T.bought) sold[Number(BigInt(l.topics[2]!))]! += 1;
+    }
+    check("BEM burned by the extras (sum of its Burned events)", extras.toString(), live.burned.extras ?? "absent");
+    check("room packs bought (Bought events)", sold[0]!, live.extras?.room ?? "absent");
+    check("look packs bought (Bought events)", sold[1]!, live.extras?.looks ?? "absent");
+    check("name colours bought (Bought events)", sold[2]!, live.extras?.colours ?? "absent");
+  }
+  check("BEM burned in total", (market + breeding + shop + adoption + extras).toString(), live.burned.total);
   if (d.holderGift) check("holder pins claimed", Number(await read(d.holderGift, "total")), live.pins ?? "absent");
 
   // community goals, each up to the block the goals page has read to
   const goalsPage = (await (await fetch(`${api}/api/goals`, { cache: "no-store" })).json()) as { indexedTo: number; goals: Array<{ id: string; total: number; contributors: number; top: Array<{ wallet: string; n: number }> }> };
   const to = goalsPage.indexedTo;
   const raw = [...(await logsOf(d.registry, registryFrom, to))];
-  const burners = [d.breederBem ? [d.breeder, (d as { breederBlock?: number }).breederBlock] : null, [d.outfitMarketV2, d.outfitMarketV2Block], [d.itemShop, d.itemShopBlock], [d.adoptionCentre, d.adoptionCentreBlock]].filter((x): x is [Address, number] => !!x && !!x[0] && !!x[1]);
+  const burners = [d.breederBem ? [d.breeder, (d as { breederBlock?: number }).breederBlock] : null, [d.outfitMarketV2, d.outfitMarketV2Block], [d.itemShop, d.itemShopBlock], [d.adoptionCentre, d.adoptionCentreBlock], [d.extras, d.extrasBlock]].filter((x): x is [Address, number] => !!x && !!x[0] && !!x[1]);
   for (const [a, from] of burners) raw.push(...(await logsOf(a, from, to)));
   raw.sort((a, b) => Number(BigInt(a.blockNumber) - BigInt(b.blockNumber)) || Number(BigInt(a.logIndex) - BigInt(b.logIndex)));
   const owners = new Map<string, string>();

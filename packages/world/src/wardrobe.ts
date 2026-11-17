@@ -43,7 +43,37 @@ export const PIECES: Readonly<Record<string, { slot: WearSlot; set: string }>> =
   "b:telescope": { slot: "held", set: "lane" },
   "b:hardhat": { slot: "head", set: "lane" },
   "b:handheld": { slot: "held", set: "lane" },
+  // limited outfits on X Layer (plan 4.9): held in a wallet, bought for BEM at the item shop, never sewn or sold for coins
+  "nand-crown": { slot: "head", set: "drop" },
+  "probe-visor": { slot: "face", set: "drop" },
+  "wafer-wand": { slot: "held", set: "drop" },
 };
+
+/** The limited outfits (plan 4.9): item kinds on the BEM market, made only by the item shop, a fixed number each. */
+export const CHAIN_WEAR: ReadonlyArray<{ id: string; supply: number }> = [
+  { id: "nand-crown", supply: 300 },
+  { id: "probe-visor", supply: 300 },
+  { id: "wafer-wand", supply: 300 },
+];
+const CHAIN_WEAR_IDS = new Set(CHAIN_WEAR.map((p) => p.id));
+export const isChainWear = (id: string): boolean => CHAIN_WEAR_IDS.has(id);
+
+/**
+ * What the wallets hold on chain, read again: limited pieces sold or sent away come off every pet that wore them,
+ * new ones can be worn. Only on-chain pieces are taken from the list.
+ */
+export function syncChainWear(w: WorldState, held: readonly string[]): WorldState {
+  const wd = wardrobe(w);
+  const chainHeld = [...new Set(held.filter(isChainWear))].sort();
+  const worn: typeof wd.worn = {};
+  let changed = JSON.stringify(wd.chainHeld ?? []) !== JSON.stringify(chainHeld);
+  for (const [pet, outfit] of Object.entries(wd.worn)) {
+    const kept = Object.fromEntries(Object.entries(outfit).filter(([, id]) => !id || !isChainWear(id) || chainHeld.includes(id)));
+    if (Object.keys(kept).length !== Object.keys(outfit).length) changed = true;
+    worn[pet] = kept;
+  }
+  return changed ? { ...w, wardrobe: { ...wd, worn, chainHeld } } : w;
+}
 
 export interface MakeRecipe {
   id: string;
@@ -124,7 +154,7 @@ export function wear(w: WorldState, petKey: string, slot: WearSlot, id: string |
   if (id !== null && !PLAYER_PIECE.test(id)) {
     const p = PIECES[id];
     if (!p || p.slot !== slot) return { ok: false, reason: "wrongSlot" };
-    if (!wd.owned.includes(id)) return { ok: false, reason: "notOwned" };
+    if (!wd.owned.includes(id) && !(isChainWear(id) && (wd.chainHeld ?? []).includes(id))) return { ok: false, reason: "notOwned" };
   }
   const current = { ...(wd.worn[petKey] ?? {}) };
   if (id === null) delete current[slot];

@@ -4,7 +4,7 @@
  * pet; food from the bag goes through the game rules like any care.
  */
 
-import { DECOR_BY_ID, MAX_PLACED, PLACE_AREA, buyDecor as buyDecorRule, placeDecor as placeDecorRule, removeDecor as removeDecorRule, COMPOST, compostFromClean, harvest as harvestRule, plant as plantRule, startWalk as startWalkRule, stepWalk as stepWalkRule, endWalk as endWalkRule, startTrip as startTripRule, endTrip as endTripRule, make as makeRule, buyPiece as buyPieceRule, wear as wearRule, giveLaurel as giveLaurelRule } from "@lingxi/world";
+import { deleteLook as deleteLookRule, renameLook as renameLookRule, saveLook as saveLookRule, wearLook as wearLookRule, buyDecor as buyDecorRule, placeDecor as placeDecorRule, removeDecor as removeDecorRule, COMPOST, compostFromClean, harvest as harvestRule, plant as plantRule, startWalk as startWalkRule, stepWalk as stepWalkRule, endWalk as endWalkRule, startTrip as startTripRule, endTrip as endTripRule, make as makeRule, buyPiece as buyPieceRule, wear as wearRule, giveLaurel as giveLaurelRule } from "@lingxi/world";
 import { useBadges } from "./badges";
 import { create } from "zustand";
 import { wearableOf } from "@lingxi/art";
@@ -37,6 +37,7 @@ import {
   outfitOf,
 } from "@lingxi/world";
 import { setTallySink } from "./tally";
+import { cleanWorld } from "./saveClean";
 import { PROOF_KEY, takeProofChecks } from "./proofMark";
 import { useChain } from "./chain";
 import { brainOf, useGame } from "./store";
@@ -44,51 +45,13 @@ import { play } from "./sound";
 
 const KEY = "lingxi.world.v1";
 
-/** Keep only well-formed decorations from storage: known pieces, owned, inside the room, within the cap. */
-function cleanDecor(d: unknown): WorldState["decor"] {
-  if (!d || typeof d !== "object") return undefined;
-  const raw = d as { owned?: unknown; placed?: unknown; chainHeld?: unknown };
-  // on-chain pieces are never owned by the game, only held on chain (read again from X Layer on start)
-  const owned = Array.isArray(raw.owned) ? [...new Set(raw.owned.filter((x): x is string => typeof x === "string" && x in DECOR_BY_ID && !DECOR_BY_ID[x]!.chain))] : [];
-  const chainHeld = Array.isArray(raw.chainHeld) ? [...new Set(raw.chainHeld.filter((x): x is string => typeof x === "string" && !!DECOR_BY_ID[x]?.chain))] : [];
-  const placed = (Array.isArray(raw.placed) ? raw.placed : [])
-    .filter((p): p is { id: string; x: number; y: number } => !!p && typeof p.id === "string" && (owned.includes(p.id) || chainHeld.includes(p.id)) && Number.isFinite(p.x) && Number.isFinite(p.y))
-    .filter((p, i, all) => all.findIndex((q) => q.id === p.id) === i)
-    .slice(0, MAX_PLACED)
-    .map((p) => ({ id: p.id, x: Math.max(PLACE_AREA.x0, Math.min(PLACE_AREA.x1, Math.round(p.x))), y: Math.max(PLACE_AREA.y0, Math.min(PLACE_AREA.y1, Math.round(p.y))) }));
-  return chainHeld.length ? { owned, placed, chainHeld } : { owned, placed };
-}
-
-/** Only whole, non-negative counts under well-formed keys survive a reload. */
-function cleanTally(t: unknown): Record<string, number> {
-  if (!t || typeof t !== "object") return {};
-  return Object.fromEntries(Object.entries(t as Record<string, unknown>).filter((e): e is [string, number] => /^[A-Z_]{2,24}:[\w:-]{1,40}$/.test(e[0]) && Number.isSafeInteger(e[1]) && (e[1] as number) >= 0));
-}
-
-/** Bonuses and familiarity from storage: small whole numbers only, so an edited save cannot mint a huge bonus. */
-function cleanCounts<K extends string>(o: unknown, keyOk: (k: string) => boolean, max: number): Partial<Record<K, number>> | undefined {
-  if (!o || typeof o !== "object") return undefined;
-  return Object.fromEntries(Object.entries(o as Record<string, unknown>).filter((e): e is [K, number] => keyOk(e[0]) && Number.isSafeInteger(e[1]) && (e[1] as number) >= 0 && (e[1] as number) <= max)) as Partial<Record<K, number>>;
-}
-const BUFF_KEYS = ["forageExtra", "sparPower", "sparHp", "sparLossCoins"];
-
-const cleanFlags = (f: unknown): string[] => (Array.isArray(f) ? [...new Set(f.filter((x): x is string => typeof x === "string" && /^[a-z0-9-]{1,32}$/.test(x)))] : []);
-
 function load(): WorldState {
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const w = JSON.parse(raw) as WorldState;
       if (w.version === 1) {
-        const clean: WorldState = {
-          ...w,
-          claimed: Array.isArray(w.claimed) ? w.claimed : [],
-          decor: cleanDecor(w.decor),
-          tally: cleanTally(w.tally),
-          flags: cleanFlags(w.flags),
-          buffs: cleanCounts(w.buffs, (k) => BUFF_KEYS.includes(k), 500),
-          familiar: cleanCounts(w.familiar, (k) => /^\d{1,4}$/.test(k), 100) as WorldState["familiar"],
-        };
+        const clean = cleanWorld(w);
         // a save from before tools (plan 4.5) that already took the pebbles gets the screwdriver that quest now gives, once
         const tooled = clean.claimed.includes("q07") && !(clean.flags ?? []).includes("tools-given") && !(clean.bag[23102] ?? 0) ? withFlag(giveItem(clean, 23102, 1), "tools-given") : clean;
         // an older save is counted into the tally once, from what it and the badge ledger already record
@@ -155,6 +118,11 @@ interface WorldStore {
   make: (kind: "outfit" | "furniture", id: string) => void;
   buyPiece: (id: string) => void;
   wear: (petKey: string, slot: "head" | "face" | "held", id: string | null) => void;
+  /** saved looks (plan 4.9): keep the outfit a pet wears, put one on, rename or delete it; false or a reason when refused */
+  saveLook: (name: string, petKey: string) => { ok: true } | { ok: false; reason: string };
+  wearLook: (petKey: string, id: string) => { ok: true; missing: string[] } | { ok: false; reason: string };
+  renameLook: (id: string, name: string) => boolean;
+  deleteLook: (id: string) => boolean;
   giveLaurel: () => void;
   /** walks and trips (W4, W5) */
   startWalk: (sensor: boolean) => void;
@@ -361,6 +329,45 @@ export const useWorld = create<WorldStore>((set, get) => ({
     save(r.world);
     play("pop");
     set({ world: r.world });
+  },
+  saveLook: (name, petKey) => {
+    const r = saveLookRule(get().world, name, outfitOf(get().world, petKey));
+    if (!r.ok) {
+      play("error");
+      return { ok: false, reason: r.reason };
+    }
+    save(r.world);
+    play("success");
+    set({ world: r.world });
+    return { ok: true };
+  },
+  wearLook: (petKey, id) => {
+    // a player-made piece goes on only when this player may wear it, in the slot it was drawn for
+    const mayWear = (piece: string, slot: string) => useDesigns.getState().canWear(piece) && wearableOf(piece)?.slot === slot;
+    const r = wearLookRule(get().world, petKey, id, mayWear);
+    if (!r.ok) {
+      play("error");
+      return { ok: false, reason: r.reason };
+    }
+    save(r.world);
+    play("pop");
+    set({ world: r.world });
+    return { ok: true, missing: r.missing };
+  },
+  renameLook: (id, name) => {
+    const r = renameLookRule(get().world, id, name);
+    if (!r.ok) return false;
+    save(r.world);
+    set({ world: r.world });
+    return true;
+  },
+  deleteLook: (id) => {
+    const r = deleteLookRule(get().world, id);
+    if (!r.ok) return false;
+    save(r.world);
+    play("tap");
+    set({ world: r.world });
+    return true;
   },
   tally: (type, index, count, opts = {}) => {
     const next = bump(get().world, type, index, count, opts);

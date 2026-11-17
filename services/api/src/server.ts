@@ -27,7 +27,8 @@ import { type SeasonStore, createSeasonStore, settleAwards } from "./season";
 import { weekOf } from "@lingxi/game";
 import { MAX_LESSONS, parseCard } from "@lingxi/game";
 import { createPublicClient, http, type PublicClient } from "viem";
-import { type Deployment, adoptionCentreAbi, petRegistryAbi, readPet, xLayer } from "@lingxi/chain";
+import { type Deployment, adoptionCentreAbi, nameColours, packsHeld, petRegistryAbi, piecesHeld, readPet, xLayer } from "@lingxi/chain";
+import { type HomeChain, createHomes } from "./homes";
 import { createAgentStore } from "./agents";
 import { withAgentApi } from "./agentApi";
 import { type Letter, currentLetters, loadLetters } from "./mail";
@@ -386,10 +387,12 @@ export function withHistory(app: Hono, indexer: Indexer): Hono {
 
 /**
  * The tree of life: every pet on chain with its generation, ancestors and the
- * owners who raised them. Names come from PetLook and are remembered for ten minutes.
+ * owners who raised them. Names come from PetLook and name colours from the
+ * extras contract (plan 4.9); both are remembered for ten minutes.
  */
-export function withTree(app: Hono, indexer: Pick<Indexer, "pets" | "head">, nameOf?: (id: string) => Promise<string>): Hono {
+export function withTree(app: Hono, indexer: Pick<Indexer, "pets" | "head">, nameOf?: (id: string) => Promise<string>, coloursOf?: (ids: string[]) => Promise<Record<string, number>>): Hono {
   const names = new Map<string, { name: string; at: number }>();
+  const colours = new Map<string, { colour: number; at: number }>();
   const NAME_TTL = 10 * 60_000;
   app.get("/api/tree", async (c) => {
     const pets = indexer.pets();
@@ -397,7 +400,20 @@ export function withTree(app: Hono, indexer: Pick<Indexer, "pets" | "head">, nam
       const stale = pets.filter((p) => (names.get(p.id)?.at ?? 0) < Date.now() - NAME_TTL).slice(0, 50);
       await Promise.all(stale.map(async (p) => names.set(p.id, { name: await nameOf(p.id).catch(() => names.get(p.id)?.name ?? ""), at: Date.now() })));
     }
-    const tree = buildTree(pets.map((p) => ({ ...p, ...(names.get(p.id)?.name ? { name: names.get(p.id)!.name } : {}) })));
+    if (coloursOf) {
+      const stale = pets.filter((p) => (colours.get(p.id)?.at ?? 0) < Date.now() - NAME_TTL).slice(0, 200).map((p) => p.id);
+      if (stale.length) {
+        const got = await coloursOf(stale).catch(() => null);
+        if (got) for (const id of stale) colours.set(id, { colour: got[id] ?? 0, at: Date.now() });
+      }
+    }
+    const tree = buildTree(
+      pets.map((p) => {
+        const name = names.get(p.id)?.name;
+        const colour = colours.get(p.id)?.colour;
+        return { ...p, ...(name ? { name } : {}), ...(colour ? { colour } : {}) };
+      }),
+    );
     c.header("Cache-Control", "public, max-age=30");
     return c.json({ ok: true, indexedTo: indexer.head(), ...tree });
   });
@@ -509,7 +525,24 @@ if (isMain) {
   const client = key ? new Anthropic({ apiKey: key }) : null;
   const port = Number(process.env.PORT ?? 8787);
   const relayer = makeRelayer();
-  const live = new LiveRooms(createDecorStore(process.env.LINGXI_DECOR_STORE));
+  // the deployment the game runs on, read once: the agent API, adoption papers and what visitors see all use it
+  const rpcMain = process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech";
+  let chainCtx: { pub: PublicClient; deployment: Deployment } | undefined;
+  try {
+    const file = process.env.LINGXI_DEPLOYMENT ?? resolve(dirname(fileURLToPath(import.meta.url)), "../../../packages/chain/deployments/xlayer.json");
+    const deployment = JSON.parse(readFileSync(file, "utf8")) as Deployment;
+    chainCtx = { pub: createPublicClient({ chain: { ...xLayer, rpcUrls: { default: { http: [rpcMain] } } }, transport: http(rpcMain) }) as PublicClient, deployment };
+  } catch (e) {
+    process.stderr.write(`no chain reads: ${(e as Error).message}\n`);
+  }
+  // homes (plan 4.9): what visitors see is what the home's linked wallets hold on X Layer
+  const homeChain: HomeChain | undefined = chainCtx && {
+    roomPacks: async (wallets) => (await packsHeld(chainCtx!.pub, chainCtx!.deployment, wallets)).room,
+    piecesHeld: (wallets) => piecesHeld(chainCtx!.pub, chainCtx!.deployment, wallets),
+    ownerOf: async (id) => (await chainCtx!.pub.readContract({ address: chainCtx!.deployment.registry, abi: petRegistryAbi, functionName: "ownerOf", args: [id] })) as `0x${string}`,
+    nameColour: async (id) => (await nameColours(chainCtx!.pub, chainCtx!.deployment, [id]))[id.toString()] ?? 0,
+  };
+  const live = new LiveRooms(createDecorStore(process.env.LINGXI_DECOR_STORE), createHomes({ ...(homeChain ? { chain: homeChain } : {}), file: process.env.LINGXI_HOMES_STORE }));
   const origins = (process.env.LINGXI_ORIGINS ?? "http://localhost:5199,http://localhost:4173").split(",");
   const app = createApp(client, undefined, relayer, undefined, live);
   if (client) withVoice(app, createVoice(client));
@@ -526,15 +559,8 @@ if (isMain) {
   withSeason(app, seasons);
   {
     // the open agent API reads pets from the deployment the game runs on
-    const rpc = process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech";
-    let chain: { pub: PublicClient; deployment: Deployment } | undefined;
-    try {
-      const file = process.env.LINGXI_DEPLOYMENT ?? resolve(dirname(fileURLToPath(import.meta.url)), "../../../packages/chain/deployments/xlayer.json");
-      const deployment = JSON.parse(readFileSync(file, "utf8")) as Deployment;
-      chain = { pub: createPublicClient({ chain: { ...xLayer, rpcUrls: { default: { http: [rpc] } } }, transport: http(rpc) }) as PublicClient, deployment };
-    } catch (e) {
-      process.stderr.write(`agent API without chain reads: ${(e as Error).message}\n`);
-    }
+    const rpc = rpcMain;
+    const chain = chainCtx;
     withAgentApi(app, { agents: createAgentStore(process.env.LINGXI_AGENT_STORE), seasons, ...(chain ? { chain } : {}) });
     // the browser's door to X Layer: same origin, so a rate-limited public RPC can never look like a blocked request
     withRpcProxy(app, { upstreams: [rpc, ...["https://xlayerrpc.okx.com", "https://rpc.xlayer.tech"].filter((u) => u !== rpc)] });
@@ -583,7 +609,12 @@ if (isMain) {
     withHistory(app, indexer);
     const look = process.env.LINGXI_LOOK as `0x${string}` | undefined;
     const lookClient = createPublicClient({ transport: http(process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech", { timeout: 10_000 }) });
-    withTree(app, indexer, look ? async (id) => String(await lookClient.readContract({ address: look, abi: lookAbi, functionName: "nameOf", args: [BigInt(id)] })) : undefined);
+    withTree(
+      app,
+      indexer,
+      look ? async (id) => String(await lookClient.readContract({ address: look, abi: lookAbi, functionName: "nameOf", args: [BigInt(id)] })) : undefined,
+      chainCtx?.deployment.extras ? (ids) => nameColours(chainCtx!.pub, chainCtx!.deployment, ids.map((x) => BigInt(x))) : undefined,
+    );
     const loop = () => indexer.catchUp().catch(() => 0).finally(() => setTimeout(loop, 15_000));
     loop();
     // live numbers: the pet counts above, both markets' sales, and the contracts' own totals
@@ -601,11 +632,11 @@ if (isMain) {
       counts: (since) => indexer.counts(since),
       petsIndexedTo: () => indexer.head(),
       sales,
-      contracts: { registry: process.env.LINGXI_REGISTRY as `0x${string}`, marketOkb: env("LINGXI_MARKET_OKB"), marketBem: env("LINGXI_MARKET_BEM"), breeder: env("LINGXI_BREEDER"), gift: env("LINGXI_GIFT"), itemShop: env("LINGXI_ITEM_SHOP"), adoption: env("LINGXI_ADOPTION") },
+      contracts: { registry: process.env.LINGXI_REGISTRY as `0x${string}`, marketOkb: env("LINGXI_MARKET_OKB"), marketBem: env("LINGXI_MARKET_BEM"), breeder: env("LINGXI_BREEDER"), gift: env("LINGXI_GIFT"), itemShop: env("LINGXI_ITEM_SHOP"), adoption: env("LINGXI_ADOPTION"), extras: env("LINGXI_EXTRAS") ?? chainCtx?.deployment.extras },
       explorer: "https://www.oklink.com/xlayer",
     });
-    // community goals: every contribution read from the registry and the two BEM burners
-    const burners = [env("LINGXI_BREEDER"), env("LINGXI_MARKET_BEM"), env("LINGXI_ITEM_SHOP"), env("LINGXI_ADOPTION")].filter((a): a is `0x${string}` => !!a);
+    // community goals: every contribution read from the registry and every BEM burner
+    const burners = [env("LINGXI_BREEDER"), env("LINGXI_MARKET_BEM"), env("LINGXI_ITEM_SHOP"), env("LINGXI_ADOPTION"), env("LINGXI_EXTRAS") ?? chainCtx?.deployment.extras].filter((a): a is `0x${string}` => !!a);
     const ledger = createGoalLedger({ rpc, registry: process.env.LINGXI_REGISTRY as `0x${string}`, burners, fromBlock: Number(process.env.LINGXI_REGISTRY_FROM), store: process.env.LINGXI_GOALS_STORE });
     withGoals(app, ledger);
     // keepsake vouchers (plan 4.6): signed only for contributors to a completed goal, with the voucher key

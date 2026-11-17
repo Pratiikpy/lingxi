@@ -10,7 +10,9 @@
 
 import type { IncomingMessage } from "node:http";
 import { WebSocketServer, type WebSocket } from "ws";
-import type { DecorStore } from "./decor";
+import type { DecorStore, Placed } from "./decor";
+import { type Homes, visible } from "./homes";
+import { MAX_PLACED } from "@lingxi/world";
 
 export const CAPACITY = 24;
 const MAX_FRAME = 12_288;
@@ -31,6 +33,8 @@ export interface Member {
   stage: string;
   mood: number;
   x: number;
+  /** the pet's name colour (plan 4.9), present only when a wallet linked to this player's home owns the pet */
+  colour?: number;
 }
 
 interface Client {
@@ -70,7 +74,23 @@ export class LiveRooms {
   private readonly clients = new Set<Client>();
   private readonly spaces = new Map<string, Set<Client>>();
 
-  constructor(private readonly decor?: DecorStore) {}
+  constructor(
+    private readonly decor?: DecorStore,
+    private readonly homes?: Homes,
+  ) {}
+
+  /** A home's pieces as a visitor sees them: what the owner placed, cut to what its linked wallets allow on X Layer. */
+  private async shown(owner: string): Promise<Placed> {
+    const placed = this.decor?.get(owner) ?? [];
+    return visible(placed, this.homes ? await this.homes.view(owner) : { capacity: MAX_PLACED, held: [] });
+  }
+
+  /** Sends a home's pieces to everyone in it (every copy of the space). */
+  private async showHome(owner: string): Promise<void> {
+    const placed = await this.shown(owner);
+    const home = `home:${owner}`;
+    for (const key of this.spaces.keys()) if (key === home || key.startsWith(`${home}#`)) this.broadcast(key, { t: "decor", owner, placed });
+  }
 
   stats(): { online: number; spaces: number } {
     return { online: [...this.clients].filter((c) => c.space).length, spaces: this.spaces.size };
@@ -114,10 +134,12 @@ export class LiveRooms {
     c.space = key;
     this.send(c, { t: "room", space: key, members: [...set].filter((o) => o !== c).map((o) => o.member) });
     this.broadcast(key, { t: "joined", member: c.member }, c);
-    // a home shows its owner's decorations to everyone who comes in
+    // a home shows its owner's decorations to everyone who comes in, as its linked wallets allow
     if (space.startsWith("home:")) {
       const owner = space.slice(5);
-      this.send(c, { t: "decor", owner, placed: this.decor?.get(owner) ?? [] });
+      void this.shown(owner).then((placed) => {
+        if (c.space?.startsWith(space)) this.send(c, { t: "decor", owner, placed });
+      });
     }
   }
 
@@ -175,6 +197,15 @@ export class LiveRooms {
         };
         const space = validSpace(m.space);
         if (space) this.join(c, space);
+        // the pet's name colour, only when a wallet linked to this player's home owns the pet on X Layer
+        if (this.homes && typeof m.petId === "string") {
+          const petId = m.petId;
+          void this.homes.colourOf(id, petId).then((colour) => {
+            if (!colour || c.member.id !== id) return;
+            c.member = { ...c.member, colour };
+            if (c.space) this.broadcast(c.space, { t: "colour", id, colour });
+          });
+        }
         return;
       }
       case "go": {
@@ -205,8 +236,26 @@ export class LiveRooms {
         if (!this.decor || !c.member.id) return;
         const placed = this.decor.set(c.member.id, m.key, m.placed);
         if (!placed) return this.send(c, { t: "decorRefused" });
-        const home = `home:${c.member.id}`;
-        for (const key of this.spaces.keys()) if (key === home || key.startsWith(`${home}#`)) this.broadcast(key, { t: "decor", owner: c.member.id, placed });
+        void this.showHome(c.member.id);
+        return;
+      }
+      case "link":
+      case "unlink": {
+        // a wallet joins or leaves this player's home: only with the home's own key, and to join, the wallet's signature
+        if (!this.homes || !this.decor || !c.member.id) return;
+        const owner = c.member.id;
+        if (!this.decor.authorise(owner, m.key)) return this.send(c, { t: "linked", ok: false, reason: "key" });
+        const done = (r: { ok: true; wallets: string[] } | { ok: false; reason: string }) => {
+          this.send(c, r.ok ? { t: "linked", ok: true, wallets: r.wallets } : { t: "linked", ok: false, reason: r.reason });
+          if (r.ok) void this.showHome(owner);
+        };
+        if (m.t === "unlink") done(this.homes.unlink(owner, m.wallet));
+        else void this.homes.link(owner, m.wallet, m.signature).then(done);
+        return;
+      }
+      case "links": {
+        if (!this.homes || !this.decor || !c.member.id || !this.decor.authorise(c.member.id, m.key)) return;
+        this.send(c, { t: "linked", ok: true, wallets: this.homes.wallets(c.member.id) });
         return;
       }
       case "card": {

@@ -216,8 +216,13 @@ export interface WorldState {
   trip?: { to: string; leftAt: number; backAt: number };
   recipes?: number[];
   trips?: number;
-  /** outfit pieces owned, and what each pet wears (see wardrobe.ts) */
-  wardrobe?: { owned: string[]; worn: Record<string, Partial<Record<"head" | "face" | "held", string>>> };
+  /** outfit pieces owned, what each pet wears, and limited pieces the wallets hold on chain (see wardrobe.ts) */
+  wardrobe?: { owned: string[]; worn: Record<string, Partial<Record<"head" | "face" | "held", string>>>; chainHeld?: string[] };
+  /** room and look packs the wallets bought on X Layer, as last read (plan 4.9, see extras.ts) */
+  extras?: { room: number; looks: number };
+  /** whole outfits kept to put on in one tap, and how many were ever saved (ids never repeat) */
+  looks?: Array<{ id: string; name: string; outfit: Partial<Record<"head" | "face" | "held", string>> }>;
+  looksMade?: number;
   /** the Mushroom Garden's plots (see garden.ts) */
   garden?: { plots: Array<{ crop: string; at: number; compost: boolean } | null>; harvested: number };
   /** decorations bought and where they stand in the home room */

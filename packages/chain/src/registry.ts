@@ -34,6 +34,9 @@ export interface Deployment {
   itemShopBlock?: number;
   /** its items: the game's piece id to the item kind's id on the BEM market */
   items?: Record<string, string>;
+  /** the paid extras (plan 4.9): room space, saved looks and name colours, every price burned */
+  extras?: Address;
+  extrasBlock?: number;
   /** the address whose signatures the shop accepts on vouchers */
   voucherSigner?: Address;
   seal?: string;

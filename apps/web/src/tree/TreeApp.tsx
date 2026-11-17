@@ -10,6 +10,7 @@ import { boundingBox, drawPet } from "@lingxi/art";
 import { useLang } from "../i18n";
 import { PALETTE_OF } from "../scene/textures";
 import { Sprite } from "../play/Sprite";
+import { Named } from "../play/Named";
 import "../agents/agents.css";
 import "./tree.css";
 
@@ -28,6 +29,7 @@ interface Node {
   tx: string;
   at: number;
   name?: string;
+  colour?: number;
   generation: number;
   ancestors: string[];
   designers: string[];
@@ -54,7 +56,7 @@ function Chip({ n, onPick, picked }: { n: Node; onPick: (id: string) => void; pi
   return (
     <button type="button" className={`tl-chip${picked ? " is-picked" : ""}`} onClick={() => onPick(n.id)} aria-pressed={picked}>
       <PetArt line={n.line} generation={n.generation} />
-      <b>{n.name || `#${n.id}`}</b>
+      <Named name={n.name || `#${n.id}`} colour={n.colour} />
       <span>
         #{n.id}
         {n.owner ? ` · ${short(n.owner)}` : ""}
@@ -173,7 +175,7 @@ export function TreeApp() {
                 <PetArt line={chosen.line} generation={chosen.generation} />
                 <div>
                   <h2>
-                    {chosen.name || `#${chosen.id}`} <span>#{chosen.id}</span>
+                    <Named as="strong" name={chosen.name || `#${chosen.id}`} colour={chosen.colour} /> <span>#{chosen.id}</span>
                   </h2>
                   <p>
                     {chosen.parents

@@ -209,6 +209,32 @@ export const WEARABLES: readonly Wearable[] = [
     rows: ["GG.......GG", "GgG.....GgG", ".GgGGGGGgG.", "..GgGyGgG..", "....OOO...."],
     colors: { O, G: "#4E9E6A", g: "#7FCB8E", y: "#FFC83D" },
   },
+  // ── limited pieces on X Layer (plan 4.9): bought for BEM at the item shop, held in a wallet ──
+  {
+    id: "nand-crown",
+    slot: "head",
+    set: "drop",
+    name: { en: "NAND crown", zh: "与非门王冠" },
+    rows: ["..O...O...O..", ".OyO.OyO.OyO.", "OyyyOyyyOyyyO", "OyryyyGyyybyO", "OYYYYYYYYYYYO", ".OOOOOOOOOOO."],
+    colors: { O, y: "#FFC83D", Y: "#E0A21F", r: "#FF5C5C", G: "#5BE08A", b: "#5BB8FF" },
+  },
+  {
+    id: "probe-visor",
+    slot: "face",
+    set: "drop",
+    name: { en: "Probe visor", zh: "探针护目镜" },
+    rows: ["OOOOOOOOOOOO", "OccWccccWccO", ".OOOOOOOOOO."],
+    rowsSmall: ["OOOOOOOOOO", "OccWccWccO", ".OOOOOOOO."],
+    colors: { O, c: "#5FD3EE", W: "#E8FBFF" },
+  },
+  {
+    id: "wafer-wand",
+    slot: "held",
+    set: "drop",
+    name: { en: "Wafer wand", zh: "晶圆魔杖" },
+    rows: [".OOO.", "OsgsO", "OgwgO", "OsgsO", ".OOO.", "..O..", "..k..", "..k..", "..k.."],
+    colors: { O, s: "#D9DEE8", g: "#9BE8FF", w: "#FFFFFF", k: "#5B4E73" },
+  },
 ];
 
 export const WEARABLE: Readonly<Record<string, Wearable>> = Object.fromEntries(WEARABLES.map((w) => [w.id, w]));
@@ -230,6 +256,7 @@ export const SETS: Readonly<Record<string, { name: { en: string; zh: string }; t
   royal: { name: { en: "Royal", zh: "皇家" }, title: { en: "Little monarch", zh: "小小君主" } },
   scholar: { name: { en: "Scholar", zh: "学者" }, title: { en: "Bookish", zh: "书卷气" } },
   story: { name: { en: "Keepsakes", zh: "纪念品" }, title: { en: "Storyteller", zh: "讲故事的人" } },
+  drop: { name: { en: "Tape-out", zh: "流片" }, title: { en: "Tape-out engineer", zh: "流片工程师" } },
 };
 
 /** The set a full outfit completes, if any: one piece in each slot, all from the same set. */

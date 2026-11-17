@@ -9,14 +9,15 @@ import type { Address } from "viem";
 import type { Deployment } from "@lingxi/chain";
 import { deployment } from "../game/chain";
 
-type Key = "registry" | "breeder" | "adoptionCentre" | "outfitMarketV2" | "itemShop" | "holderGift" | "look" | "redPacket" | "outfitMarket" | "breederFree";
+type Key = "registry" | "breeder" | "adoptionCentre" | "outfitMarketV2" | "itemShop" | "extras" | "holderGift" | "look" | "redPacket" | "outfitMarket" | "breederFree";
 
 const CONTRACTS: Array<{ key: Key; name: string; about: { en: string; zh: string } }> = [
   { key: "registry", name: "PetRegistry", about: { en: "pets, daily saves, sitters and parents", zh: "宠物、每日存档、代养和父母" } },
   { key: "breeder", name: "BreederV2", about: { en: "children of two pets; 0.1 BEM burned", zh: "两只宠物的孩子；销毁 0.1 BEM" } },
   { key: "adoptionCentre", name: "AdoptionCentre", about: { en: "young bred pets offered for adoption; 3% burned", zh: "可领养的小宝宝；销毁 3%" } },
   { key: "outfitMarketV2", name: "OutfitMarketV2", about: { en: "player outfits and on-chain items for BEM; fees burned", zh: "玩家时装和链上道具，用 BEM 买卖；手续费销毁" } },
-  { key: "itemShop", name: "ItemShop", about: { en: "decorations for BEM, the whole price burned", zh: "用 BEM 买摆设，全价销毁" } },
+  { key: "itemShop", name: "ItemShop", about: { en: "decorations and limited outfits for BEM, the whole price burned", zh: "用 BEM 买摆设和限量服饰，全价销毁" } },
+  { key: "extras", name: "Extras", about: { en: "room space, saved looks and name colours; every price burned", zh: "房间空间、存搭配和名字颜色；全价销毁" } },
   { key: "holderGift", name: "HolderGift", about: { en: "the free holder outfit, checked against balances", zh: "持有人免费外观，按链上余额核对" } },
   { key: "look", name: "PetLook", about: { en: "each pet's picture and name, drawn on chain", zh: "每只宠物的画像和名字，在链上绘制" } },
   { key: "redPacket", name: "RedPacket", about: { en: "gift packets sealed by a circuit", zh: "由电路封口的红包" } },

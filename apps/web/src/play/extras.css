@@ -1,0 +1,116 @@
+/* paid extras (plan 4.9): a name in its colour, light or dark by the theme */
+.pet-named {
+  color: var(--nc-l);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .pet-named {
+    color: var(--nc-d);
+  }
+}
+:root[data-theme="dark"] .pet-named {
+  color: var(--nc-d);
+}
+
+.extras-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin: 0 0 8px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--card);
+}
+.extras-row b {
+  display: block;
+  font-family: var(--round);
+}
+.extras-row .small {
+  margin: 2px 0 0;
+}
+.extras-packs {
+  display: inline-flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+.extras-packs i {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--line);
+  border-radius: 3px;
+  background: var(--track);
+}
+.extras-packs i.on {
+  background: var(--sunny);
+}
+
+.extras-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: 6px;
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+}
+.extras-swatch {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 4px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--card);
+  font: inherit;
+  font-family: var(--round);
+  font-weight: 800;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: transform var(--t-micro) var(--ease), box-shadow var(--t-micro) var(--ease);
+}
+.extras-swatch:active {
+  transform: translateY(1px) scale(0.97);
+}
+.extras-swatch[aria-pressed="true"] {
+  box-shadow: 0 0 0 3px var(--sunny);
+}
+.extras-swatch .dot {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  background: var(--nc-l);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .extras-swatch .dot {
+    background: var(--nc-d);
+  }
+}
+:root[data-theme="dark"] .extras-swatch .dot {
+  background: var(--nc-d);
+}
+.extras-preview {
+  margin: 4px 0 8px;
+  font-family: var(--round);
+  font-size: 1.15rem;
+}
+.extras-wallets {
+  margin: 6px 0;
+  padding: 0;
+  list-style: none;
+}
+.extras-wallets li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+  font-family: var(--round);
+}
+@media (prefers-reduced-motion: reduce) {
+  .extras-swatch {
+    transition: none;
+  }
+}
