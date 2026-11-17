@@ -200,7 +200,8 @@ export const ARC_6_TO_10: QuestDef[] = [
     title: T("One mind", "一颗心"),
     intro: [say(D.frown, "Six sparks. Put them together at the workbench and they become one heart.", "六颗火花。在工作台把它们放在一起，就会变成一颗心。")],
     outro: [say(D.laugh, "The heart of the senses. That is what you're raising, in the end. A thing that feels.", "感官之心。说到底，你养大的就是这个：一个会感受的生命。")],
-    // the outline's reward was one more lesson slot; slots grow with the skill trees in plan 4.4
+    // the outline's reward was one more lesson slot. Slots come only from levels and the skill trees (plan 4.4), and a
+    // pet's papers are checked against them on chain (adoption, plan 4.8), so a slot given here could never be verified
     objectives: [obj(from("CRAFT", 6007, 1), "Make the heart of the senses", "做出感官之心")],
     rewards: [coins(50), flag("pure-essence"), trust("twain", 6)],
   }),

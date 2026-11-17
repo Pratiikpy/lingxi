@@ -117,6 +117,8 @@ export const TYPES = {
   TOGETHER_NIGHT: { kind: "count", index: "none", read: t("TOGETHER_NIGHT"), source: "HARVEST_TIME_MOONSIDE" },
   FORAGE: { kind: "count", index: "room", optional: true, read: t("FORAGE"), source: "SCAV_CLAIM_NODE" },
   FIND: { kind: "count", index: "item", optional: true, read: t("FIND"), source: "DROPTABLE_ITEM_TOTAL" },
+  // a room's familiarity bar filled: what the room hides was found there (plan 4.5)
+  FAMILIAR: { kind: "count", index: "room", optional: true, read: t("FAMILIAR") },
   CRAFT: { kind: "count", index: "item", optional: true, read: t("CRAFT"), source: "CRAFT_ITEM" },
   MAKE: { kind: "count", index: "word", optional: true, read: t("MAKE") },
   MOVE: { kind: "count", index: "none", read: t("MOVE"), source: "MOVE" },

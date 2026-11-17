@@ -232,6 +232,20 @@ function satisfy(p: Player, c: Condition, q: QuestDef): void {
     case "FORAGE":
       for (let i = 0; i < n; i++) p.lookAround(idx === undefined ? undefined : Number(idx));
       return;
+    case "FAMILIAR": {
+      // fill the bars of the rooms that fill fastest, going round them so no hour is spent waiting in one
+      const goal = tallyOf(p.w, "FAMILIAR") + n;
+      const rooms = Object.values(ROOMS)
+        .filter((r) => r.drops.length && r.familiarSize > 0)
+        .sort((a, b) => a.familiarSize - b.familiarSize)
+        .slice(0, Math.max(n, 3))
+        .map((r) => r.index);
+      for (let i = 0; tallyOf(p.w, "FAMILIAR") < goal; i++) {
+        if (i > 300) throw new Error(`${q.id}: could not fill ${n} rooms' bars`);
+        p.lookAround(rooms[i % rooms.length]);
+      }
+      return;
+    }
     case "FIND":
       if (idx === undefined) {
         for (let got = 0; got < n; ) got += p.lookAround().reduce((t, f) => t + f.n, 0);

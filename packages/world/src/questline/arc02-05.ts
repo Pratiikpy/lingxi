@@ -93,14 +93,14 @@ export const ARC_2_TO_5: QuestDef[] = [
   quest(22, 3, "praline", [done("q21")], {
     title: T("Apprentice", "小学徒"),
     intro: [say(M.flat, "You have patient hands. Bring me a pine cone, a daffodil and a ruby mushroom.", "你的手很有耐心。给我带一颗松果、一朵水仙和一朵红宝石蘑菇。")],
-    outro: [say(M.laugh, "Good. Here: sacred dust. Nobody knows where it comes from. Don't ask.", "很好。拿着：圣尘。没人知道它从哪儿来。别问。")],
-    // the outline's reward was a mortar, a tool that is never used up; tools arrive in plan 4.5, so this gives the dust the next quest needs
+    outro: [say(M.laugh, "Good. Here: my old burner, and sacred dust. Nobody knows where the dust comes from. Don't ask.", "很好。拿着：我的旧小炉子，还有圣尘。没人知道圣尘从哪儿来。别问。")],
+    // the outline gave a mortar for the next quest's sweet; here the sweet is a syrup, brewed, so the tool is the burner
     objectives: [obj(from("FIND", 1004, 1), "Find a pine cone", "找到一颗松果"), obj(from("FIND", 1011, 1), "Find a daffodil", "找到一朵水仙"), obj(from("FIND", 1013, 1), "Find a ruby mushroom", "找到一朵红宝石蘑菇")],
-    rewards: [coins(15), item(11011, 2), trust("praline", 5)],
+    rewards: [coins(15), item(23101), item(11011, 2), trust("praline", 5)],
   }),
   quest(23, 3, "praline", [done("q22")], {
     title: T("Sugar work", "熬糖"),
-    intro: [say(M.flat, "Grind the dust at the workbench and it turns into syrup. Sweet syrup. Make one.", "在工作台把圣尘磨一磨，它就变成糖浆了。甜糖浆。做一份。")],
+    intro: [say(M.flat, "Warm the dust on the burner at the workbench and it turns into syrup. Sweet syrup. Make one.", "在工作台用小炉子把圣尘热一热，它就变成糖浆了。甜糖浆。做一份。")],
     outro: [say(M.laugh, "Not bad for a first batch. Take a candy; you've earned one.", "第一锅不算差。拿颗糖吧，这是你应得的。")],
     objectives: [obj(from("CRAFT", 1201, 1), "Make sweet syrup at the workbench", "在工作台做一份甜糖浆")],
     rewards: [coins(20), item(11303, 2), trust("praline", 5)],
@@ -205,10 +205,9 @@ export const ARC_2_TO_5: QuestDef[] = [
   quest(37, 5, "bolt", [done("q36")], {
     title: T("Trading up", "越换越好"),
     intro: [say(R.two, "Three pebbles make a stone block at the workbench. Bring me one block.", "三颗小石子在工作台能做成一块石砖。给我带一块。")],
-    outro: [say(R.three, "A proper block. Here: a metal bar. Better than a block. Trading up.", "像样的石砖。给你：一根金属条。比石砖好。越换越好。")],
-    // the outline's reward was a screwdriver, a tool; tools arrive in plan 4.5, so this gives the metal bar the compass needs
+    outro: [say(R.three, "A proper block. Here: a screwdriver, and a metal bar for the finder. Trading up.", "像样的石砖。给你：一把螺丝刀，还有做仪器用的金属条。越换越好。")],
     objectives: [obj(from("GIVE_TO", "bolt:1301", 1), "Give Bolt a stone block (made from 3 pebbles)", "送螺丝一块石砖（用 3 颗小石子做）")],
-    rewards: [coins(15), item(1303), trust("bolt", 5)],
+    rewards: [coins(15), item(23102), item(1303), trust("bolt", 5)],
   }),
   quest(38, 5, "bolt", [done("q37")], {
     title: T("Bits and pieces", "零零碎碎"),
@@ -227,10 +226,9 @@ export const ARC_2_TO_5: QuestDef[] = [
   }),
   quest(40, 5, "bolt", [done("q39")], {
     title: T("It points somewhere", "它指着某处"),
-    intro: [say(R.two, "Take the rod out and look around in three places. See what it points at.", "拿着探物杖，在三个地方四处找找。看看它指向什么。")],
+    intro: [say(R.two, "Every room hides something for those who keep looking. Take the rod and find what three rooms hide.", "每个房间都藏着点东西，留给常来找的人。拿着探物杖，找出三个房间藏着的东西。")],
     outro: [say(R.three, "Told you. Very well organised world, if you know where to look. Goggles: for looking.", "跟你说了吧。只要知道往哪儿看，这世界非常有条理。护目镜：用来看的。")],
-    // the outline asked for three hidden spots the compass shows; hidden finds arrive in plan 4.5, so this is three looks with the rod in the bag
-    objectives: [obj(ever("ITEM", 100010, 1), "Keep the dowsing rod in your bag", "背包里带着探物杖"), obj(from("FORAGE", undefined, 3), "Look around 3 times", "四处找找 3 次")],
+    objectives: [obj(ever("ITEM", 100010, 1), "Keep the dowsing rod in your bag", "背包里带着探物杖"), obj(from("FAMILIAR", undefined, 3), "Find what 3 rooms hide (fill their bars)", "找出 3 个房间藏着的东西（把进度条填满）")],
     rewards: [coins(30), piece("goggles"), trust("bolt", 6)],
   }),
 ];

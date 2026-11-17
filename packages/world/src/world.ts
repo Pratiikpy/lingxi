@@ -392,11 +392,12 @@ export function forage(
   let bag = w.bag;
   for (const f of found) bag = add(bag, f.item, f.n);
   const buffs = extra ? (({ forageExtra: _spent, ...rest }) => rest)(w.buffs ?? {}) : w.buffs;
-  const next = bump(
+  const looked = bump(
     { ...w, bag, foraged: { ...w.foraged, [w.room]: hour }, foragedCount: w.foragedCount + 1, ...(buffs ? { buffs } : {}), ...(familiarMap ? { familiar: familiarMap } : {}) },
     "FORAGE",
     w.room,
   );
+  const next = familiar?.filled ? bump(looked, "FAMILIAR", w.room) : looked;
   return { ok: true, found, ...(familiar ? { familiar } : {}), world: bumpFinds(next, found) };
 }
 
