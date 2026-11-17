@@ -194,6 +194,9 @@ function makeRelayer(): BrainRelayer | null {
  * Serves the built site from the same origin as the API, with safe headers: the
  * landing page at /, the game at /play.html, the proof page at /verify.html.
  */
+/** A Range in the only unit and syntax a file can answer: bytes, one or more N-M, N- or -N. */
+const BYTE_RANGES = /^bytes=(\d+-\d*|-\d+)(\s*,\s*(\d+-\d*|-\d+))*$/;
+
 export function withSite(app: Hono, root: string): Hono {
   app.use("*", async (c, next) => {
     await next();
@@ -209,7 +212,23 @@ export function withSite(app: Hono, root: string): Hono {
     // hashed file names: safe to cache for a year
     c.header("Cache-Control", "public, max-age=31536000, immutable");
   });
-  app.use("/*", serveStatic({ root, rewriteRequestPath: (p) => (p === "/" ? "/index.html" : p) }));
+  // A Range the static server cannot read (words, an unknown unit) made it throw, a 500. HTTP says to ignore such a
+  // Range and send the whole file; a range that starts past the end is refused with 416.
+  const files = serveStatic({ root, rewriteRequestPath: (p) => (p === "/" ? "/index.html" : p) });
+  app.use("/*", async (c, next) => {
+    const range = c.req.header("range");
+    if (range !== undefined && !BYTE_RANGES.test(range.trim())) {
+      const headers = new Headers(c.req.raw.headers);
+      headers.delete("range");
+      return app.fetch(new Request(c.req.raw, { headers }));
+    }
+    try {
+      return await files(c, next);
+    } catch (e) {
+      if ((e as { code?: string }).code === "ERR_OUT_OF_RANGE") return c.body(null, 416);
+      throw e;
+    }
+  });
   return app;
 }
 
