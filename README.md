@@ -6,8 +6,8 @@
   <a href="https://lingxi.knole.me"><img alt="Live" src="https://img.shields.io/badge/play-lingxi.knole.me-FF7A59?style=flat-square"></a>
   <a href="https://1-2-419.tapekit.org/"><img alt="DeWEB" src="https://img.shields.io/badge/on_chain-1.2.419.tape-2B2140?style=flat-square"></a>
   <a href="https://www.oklink.com/xlayer/address/0xf70d324Da8C1C4Cb0dE3FF147E53E7E9db543c4e"><img alt="X Layer" src="https://img.shields.io/badge/X_Layer-chain_196-FFC83D?style=flat-square"></a>
-  <a href="#tests"><img alt="Tests" src="https://img.shields.io/badge/tests-575_passing-7FCB8E?style=flat-square"></a>
-  <a href="#contracts-on-x-layer-mainnet"><img alt="Contracts" src="https://img.shields.io/badge/contracts-10_verified_on_Sourcify-9BE8FF?style=flat-square"></a>
+  <a href="#tests"><img alt="Tests" src="https://img.shields.io/badge/tests-796_passing-7FCB8E?style=flat-square"></a>
+  <a href="#contracts-on-x-layer-mainnet"><img alt="Contracts" src="https://img.shields.io/badge/contracts-11_verified_on_Sourcify-9BE8FF?style=flat-square"></a>
 </p>
 
 <p align="center">
@@ -84,6 +84,10 @@ The core game is free and there is no token. The extras that cost something are 
 | Item shop: on-chain decorations (Star lamp, Circuit rug, Tape reel shelf, Moon window) | 0.05 BEM each, 500 copies | the whole price burned |
 | Adopting a little one | set by the breeder (0.01–100 BEM) | 3% burned · 10% to the other parent's owner · the rest to the breeder |
 | Keepsakes of the community goals | free, by signed voucher | nothing |
+| Limited outfits: the Tape-out set (NAND crown, Probe visor, Wafer wand) | 0.1 BEM each, 300 copies each | the whole price burned |
+| Room space: four more pieces at home, up to three times | 0.05 BEM | the whole price burned |
+| Saved looks: three more outfits kept for one tap, up to three times | 0.05 BEM | the whole price burned |
+| A colour for a pet's name, shown wherever its name is (back to plain is free) | 0.05 BEM | the whole price burned |
 | Holder outfit for BEM, FAB and TapeCode-Test1 holders | free | nothing |
 
 Every one of these numbers is read live from the chain on the [live-numbers page](https://lingxi.knole.me/numbers.html): pets hatched and born, days kept on X Layer, outfits sold, BEM burned by each contract and in total, with the contract each figure comes from. `pnpm --filter @lingxi/chain recount` recomputes them independently from the chain's logs and reports any difference.
@@ -126,7 +130,7 @@ pnpm judge:check          # about 3.5 minutes, read-only against mainnet
 | Containers | a pet's home is a TapeOut container; pet #1's is `0x31B025aD4cBD4142007f59684D51cD1F2ccc5098` |
 | DeWEB | the whole site is published on chain at `1.2.419.tape`, served at [1-2-419.tapekit.org](https://1-2-419.tapekit.org/) |
 | TapeKit | TapeSend letters between homes and the Telegram Mini App |
-| BEM | the fee token: breeding, items, adoption and the fashion market; all fees burned |
+| BEM | the fee token: breeding, items, adoption, the extras and the fashion market; all fees burned |
 | Community circuits | Builders' Lane runs circuits from the TapeOut community, read from the chain |
 
 ## Contracts on X Layer mainnet
@@ -138,6 +142,7 @@ pnpm judge:check          # about 3.5 minutes, read-only against mainnet
 | AdoptionCentre | [`0x58212451fcd46ff6130cff428f2f4273f4cc7596`](https://www.oklink.com/xlayer/address/0x58212451fcd46ff6130cff428f2f4273f4cc7596) | [verified ✓](https://repo.sourcify.dev/196/0x58212451fcd46ff6130cff428f2f4273f4cc7596) | offers of young bred pets; 3% burned, 10% to the co-parent |
 | OutfitMarketV2 | [`0xa292c12b0414bbfc14994f93bcff8bd58c921e55`](https://www.oklink.com/xlayer/address/0xa292c12b0414bbfc14994f93bcff8bd58c921e55) | [verified ✓](https://repo.sourcify.dev/196/0xa292c12b0414bbfc14994f93bcff8bd58c921e55) | player outfits and on-chain items (ERC-1155), priced in BEM; fees burned |
 | ItemShop | [`0xaf8857c0d723e14f60d00fe46120abd0303f52cc`](https://www.oklink.com/xlayer/address/0xaf8857c0d723e14f60d00fe46120abd0303f52cc) | [verified ✓](https://repo.sourcify.dev/196/0xaf8857c0d723e14f60d00fe46120abd0303f52cc) | decorations for BEM, the whole price burned; keepsakes by voucher |
+| Extras | [`0x560c7dc63a45e5afe53ad156152555a5c067598d`](https://www.oklink.com/xlayer/address/0x560c7dc63a45e5afe53ad156152555a5c067598d) | [verified ✓](https://repo.sourcify.dev/196/0x560c7dc63a45e5afe53ad156152555a5c067598d) | room space, saved looks and name colours; the whole price burned |
 | HolderGift | [`0xc216a4abb6c4c2d0b485f42219197551330b6cf4`](https://www.oklink.com/xlayer/address/0xc216a4abb6c4c2d0b485f42219197551330b6cf4) | [verified ✓](https://repo.sourcify.dev/196/0xc216a4abb6c4c2d0b485f42219197551330b6cf4) | the free holder outfit, checked against balances on chain |
 | PetLook | [`0x0642a802967260714d4efec05fef701b17d31b75`](https://www.oklink.com/xlayer/address/0x0642a802967260714d4efec05fef701b17d31b75) | [verified ✓](https://repo.sourcify.dev/196/0x0642a802967260714d4efec05fef701b17d31b75) | each pet's picture and name, drawn on chain |
 | RedPacket | [`0x7acceb7ab1cff102fe2660f511e88d42010e806b`](https://www.oklink.com/xlayer/address/0x7acceb7ab1cff102fe2660f511e88d42010e806b) | [verified ✓](https://repo.sourcify.dev/196/0x7acceb7ab1cff102fe2660f511e88d42010e806b) | gift packets sealed by a circuit |
@@ -146,7 +151,7 @@ pnpm judge:check          # about 3.5 minutes, read-only against mainnet
 
 Lingxi's TapeOut processor: [`0xf70d324Da8C1C4Cb0dE3FF147E53E7E9db543c4e`](https://www.oklink.com/xlayer/address/0xf70d324Da8C1C4Cb0dE3FF147E53E7E9db543c4e). BEM: `0x60e62Efa9405d6873C5deaBD4E6CC91c25363952`. All contract addresses, circuit ids, item ids and deployment blocks are in [`packages/chain/deployments/xlayer.json`](packages/chain/deployments/xlayer.json).
 
-All ten are verified on Sourcify as an **exact match** of both creation and runtime bytecode, so anyone can read the source of what runs on X Layer. The [proof page](https://lingxi.knole.me/verify.html#contracts) asks Sourcify live each time it opens.
+All eleven are verified on Sourcify as an **exact match** of both creation and runtime bytecode, so anyone can read the source of what runs on X Layer. The [proof page](https://lingxi.knole.me/verify.html#contracts) asks Sourcify live each time it opens.
 
 Owner powers are deliberately small: fees move only within fixed bounds, burn shares cannot change, and no contract can move a player's BEM or pets. Ownership is two-step everywhere.
 
@@ -160,7 +165,7 @@ packages/world    rooms, residents, trust, quests and dailies, items, recipes, f
 packages/chain    viem client for every contract and the processor; deploy, publish-to-DeWEB and recount scripts
 packages/send     TapeKit's TapeSend module (letters between homes)
 packages/art      hand-placed pixel art: bodies, expressions, stages, outfits
-contracts         Solidity (Foundry): the ten contracts above, with unit tests and fork tests against X Layer
+contracts         Solidity (Foundry): the eleven contracts above, with unit tests and fork tests against X Layer
 services/api      Hono server: site hosting, live rooms, teach-by-words, the relayer that tapes out brains, the
                   history indexer, vouchers, adoption papers, the agents' API, and the same-origin door to X Layer
 video             the demo and launch videos, cut with Remotion from scripted recordings of the live game
@@ -193,13 +198,13 @@ flowchart TB
 
 ```sh
 pnpm test
-# 575 tests: game 206 · world 144 · api 84 · brain 57 · chain 34 · send 30 · web 16 · art 4
+# 613 tests: game 206 · world 159 · api 97 · brain 57 · chain 34 · send 30 · web 23 · art 7
 
 cd contracts && forge test
-# 87 unit tests, including fuzz tests
+# 116 unit tests, including fuzz and invariant tests
 
 cd contracts && forge test --fork-url https://xlayerrpc.okx.com --fork-block-number <head - 2000>
-# 62 fork tests of every contract against the live registry, BEM and the TapeOut factory
+# 67 fork tests of every contract against the live registry, BEM and the TapeOut factory
 ```
 
 The brain tests include an exhaustive check of the seal circuit against its reference on all 65,536 inputs. Every quest sheet is checked before each build (`check-sheets.ts`): conditions, givers, faces, both languages, bubble length, rewards that exist. The contract fork tests run the real flows with real BEM on a copy of X Layer: a listing that a saved day invalidates, a reentrant buyer, a price that changed in flight, a pet that moved, an allowance that ran out.

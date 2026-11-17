@@ -147,9 +147,15 @@
     "goal-saves": "6",
     "goal-hatch": "7",
     "goal-family": "8",
-    "goal-ember": "9"
+    "goal-ember": "9",
+    "nand-crown": "10",
+    "probe-visor": "11",
+    "wafer-wand": "12"
   },
   "adoptionCentre": "0x58212451fcd46ff6130cff428f2f4273f4cc7596",
   "adoptionCentreBlock": 76104110,
-  "adoptionCentreTx": "0x03698a4fd7b2ac8cdfda709416f92ea9e86dd0ef857f1752e5260eeae1903717"
+  "adoptionCentreTx": "0x03698a4fd7b2ac8cdfda709416f92ea9e86dd0ef857f1752e5260eeae1903717",
+  "extras": "0x560c7dc63a45e5afe53ad156152555a5c067598d",
+  "extrasBlock": 76162815,
+  "extrasTx": "0x874b824b7ebcc09342b3d47bcbffefb4cf0cb6197509454cc801e3fe02ebb864"
 }
