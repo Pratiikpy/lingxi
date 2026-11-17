@@ -6,7 +6,7 @@
   <a href="https://lingxi.knole.me"><img alt="Live" src="https://img.shields.io/badge/play-lingxi.knole.me-FF7A59?style=flat-square"></a>
   <a href="https://1-2-419.tapekit.org/"><img alt="DeWEB" src="https://img.shields.io/badge/on_chain-1.2.419.tape-2B2140?style=flat-square"></a>
   <a href="https://www.oklink.com/xlayer/address/0xf70d324Da8C1C4Cb0dE3FF147E53E7E9db543c4e"><img alt="X Layer" src="https://img.shields.io/badge/X_Layer-chain_196-FFC83D?style=flat-square"></a>
-  <a href="#tests"><img alt="Tests" src="https://img.shields.io/badge/tests-796_passing-7FCB8E?style=flat-square"></a>
+  <a href="#tests"><img alt="Tests" src="https://img.shields.io/badge/tests-831_passing-7FCB8E?style=flat-square"></a>
   <a href="#contracts-on-x-layer-mainnet"><img alt="Contracts" src="https://img.shields.io/badge/contracts-11_verified_on_Sourcify-9BE8FF?style=flat-square"></a>
 </p>
 
@@ -64,6 +64,8 @@ The game runs the same netlist through a fast local evaluator; any beat can be r
 **Meet friends.** Pets share a room live, friends visit your decorated home, gifts and red packets travel by link, and a friend can pet-sit while you are away.
 
 **Give it an instinct you own.** Any circuit you own on X Layer can be taught as an everyday instinct. On chain this is a new circuit that REFs both, so it stays verifiable.
+
+**Take it along.** Pack snacks from your bag and your pet goes out on a handheld: the firmware of an M5Stack Cardputer, playable in any browser at `handheld.html` or flashed to a real Cardputer over USB. It runs on the same circuit it thinks with at home, read from X Layer with every circuit it REFs, and checked against the game on all 65,536 inputs before it leaves. Feed it, play, put it to bed with the keys; time with the handheld put down is lived as time away. When it comes home the game replays the whole trip, beat by beat, from the state it kept, and takes the pet back only if it arrives at exactly the same pet. Care given on the handheld counts for quests and dailies like care at home.
 
 **Builders' Lane.** A street of pets whose brains are circuits from the TapeOut community, read gate for gate from the chain. Behemoth thinks with the founder's own 4-bit CPU: tap once and the chain runs the same step, same lamps, same memory.
 
@@ -198,7 +200,7 @@ flowchart TB
 
 ```sh
 pnpm test
-# 613 tests: game 206 · world 159 · api 97 · brain 57 · chain 34 · send 30 · web 23 · art 7
+# 648 tests: game 206 · world 159 · api 97 · brain 57 · handheld 35 · chain 34 · send 30 · web 23 · art 7
 
 cd contracts && forge test
 # 116 unit tests, including fuzz and invariant tests
@@ -206,6 +208,8 @@ cd contracts && forge test
 cd contracts && forge test --fork-url https://xlayerrpc.okx.com --fork-block-number <head - 2000>
 # 67 fork tests of every contract against the live registry, BEM and the TapeOut factory
 ```
+
+The handheld's C core is checked against the game bit for bit: every input and memory state of the starter brains (16.7 million for the gentle one), the evolution, seal and rule circuits, composed children and instincts, pet #1's 33-word mainnet log, and hundreds of random trips through sickness, hibernation and the catch-up limit; its USB link is tested against the game's own client.
 
 The brain tests include an exhaustive check of the seal circuit against its reference on all 65,536 inputs. Every quest sheet is checked before each build (`check-sheets.ts`): conditions, givers, faces, both languages, bubble length, rewards that exist. The contract fork tests run the real flows with real BEM on a copy of X Layer: a listing that a saved day invalidates, a reentrant buyer, a price that changed in flight, a pet that moved, an allowance that ran out.
 
@@ -227,7 +231,7 @@ The on-chain copy is built with `node apps/web/scripts/deweb-build.mjs` and publ
 
 ## What is next
 
-- A pet's brain running on a real handheld, loading its netlist by id and running it beat by beat.
+- The Cardputer firmware flashed to a device and timed on it (it builds today: 849 KB of flash, 240 KB of RAM).
 - Monthly seasons of community goals, each with its own keepsake.
 
 ## Team

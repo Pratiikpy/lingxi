@@ -19,6 +19,36 @@ const STAGE_RANK: Record<string, number> = { baby: 1, child: 2, teen: 3, adult: 
 
 /** What each successful care result counts as in the tally: CARE:<index>. */
 const CARE_INDEX: Partial<Record<string, string>> = { ate: "feed", woke: "feed", played: "play", cleaned: "clean", sleeping: "sleep", awake: "wake", petted: "pet", healed: "medicine", listened: "talk", used: "use" };
+
+/**
+ * What a care counts for: quest and daily tallies, badges, today's care marks. The same whether the care was given
+ * at home or on the handheld (plan 4.14), so care given anywhere counts once.
+ */
+export function countCare(kind: Care["kind"], wasAsleep: boolean, r: CareResult): void {
+  // the tally counts what care actually did (plan 4.1); waking a pet that was not asleep did nothing
+  const careIndex = CARE_INDEX[r.note];
+  if (careIndex && !(kind === "wake" && !wasAsleep)) {
+    noteTally("CARE", careIndex);
+    if (careIndex === "pet" && takeComfort()) noteEvent("comforted");
+    // the same care by the pet's time of day ("put it to bed at night"), a finer key of the same act
+    noteTally("CARE", `${careIndex}-${TIMES_OF_DAY[timeOfDay(localHour(r.pet, r.pet.beat))]}`, 1, { total: false });
+  }
+  const metric = CARE_METRIC[r.note];
+  if (metric) {
+    const b = useBadges.getState();
+    b.note("care");
+    b.note(metric);
+    b.note("kinship", kinshipNow(r.pet, r.pet.beat));
+    b.note("stage", STAGE_RANK[stageOf(r.pet, Date.now())] ?? 0);
+  }
+  const g = useGame.getState();
+  const d = g.daily.day === todayKey() ? { ...g.daily } : freshDaily();
+  if (kind === "feed" && r.note !== "overfed") d.fed = true;
+  if (kind === "play" && r.note === "played") d.played = true;
+  if (kind === "clean") d.cleaned = true;
+  if (kind === "pet") d.petted = true;
+  useGame.setState({ daily: d });
+}
 import { create } from "zustand";
 import { type Program, type Rule, STARTERS, compileProgram, fastBrain, stateBits, timeOfDay } from "@lingxi/brain";
 import { FOODS, type Brain, type Care, type CareResult, type Growth, type Pet, type UpgradeRefusal, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, learnSkill, levelUpPet, liveBeat, mindBrain, respecPet, ruleSkillIds, settleForm, skillRules, stageOf, teach as teachRule, awayEvent, awaySeed, beatOf, localHour, instinctBrain, MAX_MIND_STATE, type OutsideInstinct, withGrowth, withSegment } from "@lingxi/game";
@@ -294,31 +324,10 @@ export const useGame = create<GameState>((set, get) => ({
     save(r.pet);
     // cleaning up after a messy pet leaves compost for the garden (C4)
     if (c.kind === "clean" && r.note === "cleaned") void import("./world").then((m) => m.useWorld.getState().compost(cleanBefore));
-    // the tally counts what care actually did (plan 4.1); waking a pet that was not asleep did nothing
-    const careIndex = CARE_INDEX[r.note];
-    if (careIndex && !(c.kind === "wake" && !pet.asleep)) {
-      noteTally("CARE", careIndex);
-      if (careIndex === "pet" && takeComfort()) noteEvent("comforted");
-      // the same care by the pet's time of day ("put it to bed at night"), a finer key of the same act
-      noteTally("CARE", `${careIndex}-${TIMES_OF_DAY[timeOfDay(localHour(r.pet, r.pet.beat))]}`, 1, { total: false });
-    }
-    const metric = CARE_METRIC[r.note];
-    if (metric) {
-      const b = useBadges.getState();
-      b.note("care");
-      b.note(metric);
-      b.note("kinship", kinshipNow(r.pet, r.pet.beat));
-      b.note("stage", STAGE_RANK[stageOf(r.pet, Date.now())] ?? 0);
-    }
-    const d = get().daily.day === todayKey() ? { ...get().daily } : freshDaily();
-    if (c.kind === "feed" && r.note !== "overfed") d.fed = true;
-    if (c.kind === "play" && r.note === "played") d.played = true;
-    if (c.kind === "clean") d.cleaned = true;
-    if (c.kind === "pet") d.petted = true;
+    countCare(c.kind, pet.asleep, r);
     set({
       pet: r.pet,
       pets: roster.pets,
-      daily: d,
       lastCare: { kind: c.kind === "use" ? "feed" : c.kind, at: performance.now(), ...(foodArt(c, art) ? { food: foodArt(c, art)! } : {}) },
       toast: { id: ++toastId, note: r.note },
     });

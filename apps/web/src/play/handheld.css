@@ -1,0 +1,89 @@
+/* the handheld on the Pet sheet (plan 4.14): the snack picker and the text button on the away card */
+.handheld-step {
+  margin-top: 8px;
+  font-weight: 700;
+}
+.handheld-snacks {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0 10px;
+  padding: 0;
+  list-style: none;
+}
+.handheld-snacks li {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--card);
+  transition: background var(--t-micro) var(--ease), transform var(--t-micro) var(--ease);
+}
+.handheld-snacks li.on {
+  background: var(--tint);
+  transform: translateY(-1px);
+}
+.handheld-snack-name {
+  display: grid;
+  font-family: var(--round);
+  font-weight: 700;
+  line-height: 1.2;
+}
+.handheld-snack-name .small {
+  font-family: var(--body);
+  font-weight: 400;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+}
+.handheld-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.handheld-stepper .btn {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.handheld-stepper output {
+  min-width: 1.6em;
+  text-align: center;
+  font-family: var(--display);
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+}
+.handheld-textbtn {
+  justify-self: start;
+  margin-top: 6px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--ink-soft);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  font: inherit;
+}
+.handheld-textbtn:hover,
+.handheld-textbtn:focus-visible {
+  color: var(--ink);
+}
+@media (prefers-reduced-motion: reduce) {
+  .handheld-snacks li {
+    transition: none;
+  }
+  .handheld-snacks li.on {
+    transform: none;
+  }
+}
+/* "Open the handheld" is a link dressed as the card's main button */
+.away-card a.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}

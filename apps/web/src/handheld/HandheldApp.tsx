@@ -1,0 +1,297 @@
+/**
+ * The browser handheld (plan 4.14): the firmware's own app, compiled to WebAssembly, on a drawn Cardputer. The
+ * screen is the app's 240x135 framebuffer as it is; the keys are the Cardputer's. A pet the game sent arrives through
+ * local storage, its trip is kept across reloads (the packet and the log replay to the same bits), and "Bring home"
+ * hands the game the packet back. The game decides whether the pet comes home, by replaying the whole trip.
+ */
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import wasmUrl from "@lingxi/handheld/wasm/lingxi-handheld.wasm?url";
+import { useLang } from "../i18n";
+import { DEVICE_KEY, INBOX_KEY, RETURN_KEY, fromB64 } from "../game/handheldKeys";
+import "./handheld.css";
+
+interface HH {
+  memory: WebAssembly.Memory;
+  hh_in(): number;
+  hh_out(): number;
+  hh_fb(): number;
+  hh_init(now: number): number;
+  hh_open(len: number): number;
+  hh_resume(p: number, l: number): number;
+  hh_tick(now: number, beat: number, present: number): void;
+  hh_key(k: number): void;
+  hh_draw(): void;
+  hh_close(): number;
+  hh_release(): void;
+  hh_log(): number;
+  hh_log_len(): number;
+  hh_ready(): number;
+  hh_selftest(): number;
+}
+
+type Lang = "en" | "zh";
+const W = 240;
+const H = 135;
+
+const b64 = (b: Uint8Array): string => {
+  let s = "";
+  for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode(...b.subarray(i, i + 0x8000));
+  return btoa(s);
+};
+
+/** The keys a pet needs, laid out as the Cardputer's rows; each sends the code the firmware reads. */
+const KEYS: Array<Array<{ k: string; code: number; en: string; zh: string; wide?: boolean }>> = [
+  [
+    { k: "`", code: 27, en: "back", zh: "返回" },
+    { k: "1", code: 49, en: "", zh: "" },
+    { k: "2", code: 50, en: "", zh: "" },
+    { k: "3", code: 51, en: "", zh: "" },
+    { k: "4", code: 52, en: "", zh: "" },
+    { k: "?", code: 63, en: "keys", zh: "按键" },
+  ],
+  [
+    { k: "F", code: 102, en: "feed", zh: "喂食" },
+    { k: "P", code: 112, en: "play", zh: "玩耍" },
+    { k: "C", code: 99, en: "clean", zh: "洗澡" },
+    { k: "L", code: 108, en: "sleep", zh: "睡觉" },
+    { k: "H", code: 104, en: "pet", zh: "摸摸" },
+  ],
+  [
+    { k: "M", code: 109, en: "medicine", zh: "吃药" },
+    { k: "T", code: 116, en: "talk", zh: "说话" },
+    { k: "B", code: 98, en: "brain", zh: "电路" },
+    { k: "G", code: 103, en: "go home", zh: "回家" },
+    { k: "Z", code: 122, en: "中文", zh: "English" },
+  ],
+  [{ k: "space", code: 32, en: "", zh: "", wide: true }],
+];
+
+function keyCode(e: KeyboardEvent): number | null {
+  if (e.key === "Escape" || e.key === "Backspace" || e.key === "`") return 27;
+  if (e.key === "Enter") return 13;
+  if (e.key === " ") return 32;
+  if (e.key.length === 1) return e.key.toLowerCase().charCodeAt(0);
+  return null;
+}
+
+export function HandheldApp() {
+  const lang = useLang((s) => s.lang) as Lang;
+  const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
+  const canvas = useRef<HTMLCanvasElement>(null);
+  const hh = useRef<HH | null>(null);
+  const [selfTest, setSelfTest] = useState<number | null>(null);
+  const [ready, setReady] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const t0 = useRef(performance.now());
+
+  const now = () => Math.floor(performance.now() - t0.current);
+  const wallBeat = () => Math.floor(Date.now() / 60_000);
+
+  /** keep the trip: the packet it started from and its log, which replay to the same pet */
+  const keep = useCallback(() => {
+    const x = hh.current;
+    if (!x || !x.hh_ready()) return;
+    const raw = localStorage.getItem(DEVICE_KEY);
+    if (!raw) return;
+    const kept = JSON.parse(raw) as { packet: string; log: string };
+    const log = new Uint8Array(x.memory.buffer, x.hh_log(), x.hh_log_len()).slice();
+    localStorage.setItem(DEVICE_KEY, JSON.stringify({ packet: kept.packet, log: b64(log) }));
+  }, []);
+
+  /** a pet waiting in the inbox comes aboard, or the one aboard is taken up again after a reload */
+  const takeAboard = useCallback(() => {
+    const x = hh.current;
+    if (!x) return;
+    const put = (b: Uint8Array, at = 0) => new Uint8Array(x.memory.buffer).set(b, x.hh_in() + at);
+    const kept = localStorage.getItem(DEVICE_KEY);
+    if (kept && !x.hh_ready()) {
+      const k = JSON.parse(kept) as { packet: string; log: string };
+      const packet = fromB64(k.packet);
+      const log = fromB64(k.log);
+      put(packet);
+      put(log, packet.length);
+      const e = x.hh_resume(packet.length, log.length);
+      if (e !== 0) setProblem(L(`The trip kept here could not be read (${e}). Bring the pet back from the game.`, `这里保存的旅程读不出来（${e}）。请在游戏里把宠物叫回来。`));
+    }
+    const inbox = localStorage.getItem(INBOX_KEY);
+    if (inbox && !x.hh_ready()) {
+      const packet = fromB64(inbox);
+      put(packet);
+      const e = x.hh_open(packet.length);
+      if (e === 0) {
+        localStorage.setItem(DEVICE_KEY, JSON.stringify({ packet: inbox, log: "" }));
+        localStorage.removeItem(INBOX_KEY);
+      } else setProblem(L(`The pet's packet was refused (${e}).`, `宠物的数据被拒收了（${e}）。`));
+    }
+    setReady(!!x.hh_ready());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
+
+  useEffect(() => {
+    let alive = true;
+    let ticker = 0;
+    let frame = 0;
+    void (async () => {
+      const { instance } = await WebAssembly.instantiateStreaming(fetch(wasmUrl), {}).catch(async () => WebAssembly.instantiate(await (await fetch(wasmUrl)).arrayBuffer(), {}));
+      if (!alive) return;
+      const x = instance.exports as unknown as HH;
+      hh.current = x;
+      x.hh_init(now());
+      if (useLang.getState().lang === "zh") x.hh_key(122);
+      setSelfTest(x.hh_selftest());
+      takeAboard();
+      const ctx = canvas.current!.getContext("2d")!;
+      const img = ctx.createImageData(W, H);
+      const draw = () => {
+        x.hh_draw();
+        const fb = new Uint16Array(x.memory.buffer, x.hh_fb(), W * H);
+        const d = img.data;
+        for (let i = 0; i < W * H; i++) {
+          const v = fb[i]!;
+          const r = (v >> 11) & 31, g = (v >> 5) & 63, b = v & 31;
+          d[4 * i] = (r << 3) | (r >> 2);
+          d[4 * i + 1] = (g << 2) | (g >> 4);
+          d[4 * i + 2] = (b << 3) | (b >> 2);
+          d[4 * i + 3] = 255;
+        }
+        ctx.putImageData(img, 0, 0);
+        frame = requestAnimationFrame(draw);
+      };
+      frame = requestAnimationFrame(draw);
+      let lastKeep = 0;
+      ticker = window.setInterval(() => {
+        x.hh_tick(now(), wallBeat(), document.hidden ? 0 : 1);
+        if (Date.now() - lastKeep > 5000) {
+          keep();
+          lastKeep = Date.now();
+        }
+      }, 250);
+    })();
+    const onStorage = (e: StorageEvent) => {
+      // the game took the pet home (or sent one): follow it
+      if (e.key === DEVICE_KEY && e.newValue === null && hh.current?.hh_ready()) {
+        hh.current.hh_release();
+        setReady(false);
+      }
+      if (e.key === INBOX_KEY && e.newValue) takeAboard();
+    };
+    const onHide = () => keep();
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("pagehide", onHide);
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      alive = false;
+      clearInterval(ticker);
+      cancelAnimationFrame(frame);
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("pagehide", onHide);
+      document.removeEventListener("visibilitychange", onHide);
+      keep();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const press = useCallback(
+    (code: number) => {
+      const x = hh.current;
+      if (!x) return;
+      x.hh_tick(now(), wallBeat(), 1);
+      x.hh_key(code);
+      // Z switches the handheld's language; the page around it follows
+      if (code === 122) useLang.getState().toggle();
+      keep();
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [keep],
+  );
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const c = keyCode(e);
+      if (c === null) return;
+      e.preventDefault();
+      press(c);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [press]);
+
+  const bringHome = () => {
+    const x = hh.current;
+    if (!x || !x.hh_ready()) return;
+    setSending(true);
+    x.hh_tick(now(), wallBeat(), 1);
+    keep();
+    const n = x.hh_close();
+    if (!n) {
+      setSending(false);
+      setProblem(L("The trip's log is too long to send.", "旅程日志太长，发不出去。"));
+      return;
+    }
+    localStorage.setItem(RETURN_KEY, b64(new Uint8Array(x.memory.buffer, x.hh_out(), n).slice()));
+    location.href = "play.html#handheld-home";
+  };
+
+  const passed = selfTest !== null && (selfTest & 0x100) !== 0;
+  return (
+    <main className="hh-page">
+      <header className="hh-head">
+        <a className="hh-back" href="play.html">
+          {L("← Lingxi", "← 灵犀")}
+        </a>
+        <h1>{L("The handheld", "掌上灵犀")}</h1>
+        <p className="hh-sub">
+          {L(
+            "The Cardputer's own firmware, running in your browser: the same C code, the same screen, the pet's brain the circuit on X Layer.",
+            "Cardputer 的固件原样跑在浏览器里：同一份 C 代码、同一块屏幕，宠物的大脑就是 X Layer 上的那块电路。",
+          )}
+        </p>
+      </header>
+
+      <section className="hh-device" aria-label={L("Handheld", "掌机")}>
+        <div className="hh-bezel">
+          <canvas ref={canvas} className="hh-screen" width={W} height={H} aria-label={L("The handheld's screen", "掌机屏幕")} />
+        </div>
+        <div className="hh-keys">
+          {KEYS.map((row, i) => (
+            <div className="hh-row" key={i}>
+              {row.map((key) => (
+                <button key={key.k} type="button" className={`hh-key${key.wide ? " wide" : ""}`} onClick={() => press(key.code)} aria-label={`${key.k}${key[lang] ? ` ${key[lang]}` : ""}`}>
+                  <span className="hh-cap">{key.k === "space" ? L("space", "空格") : key.k === "`" ? "esc" : key.k}</span>
+                  {key[lang] && <span className="hh-what">{key[lang]}</span>}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="hh-panel" aria-live="polite">
+        {selfTest !== null && (
+          <p className={passed ? "hh-ok" : "hh-bad"}>
+            {passed
+              ? L("Self-test passed: its three starter brains match X Layer and pet #1's mainnet log replays exactly.", "自检通过：三个初始大脑与 X Layer 一致，1 号宠物的主网日志重放一致。")
+              : L("Self-test failed: this handheld takes no pets.", "自检没通过：这台掌机不接收宠物。")}
+          </p>
+        )}
+        {problem && <p className="hh-bad">{problem}</p>}
+        {ready ? (
+          <>
+            <p>{L("Everything that happens here is replayed by the game, step by step, before your pet comes home.", "这里发生的每一步，游戏都会在宠物回家前重放一遍。")}</p>
+            <button type="button" className="btn primary" disabled={sending} onClick={bringHome}>
+              {sending ? L("Sending…", "发送中……") : L("Bring home", "带回家")}
+            </button>
+          </>
+        ) : (
+          <p>
+            {L("No pet aboard. In the game, open Pet and choose Take along.", "还没有宠物。在游戏里打开“宠物”，选“带出门”。")}{" "}
+            <a href="play.html">{L("Open the game", "打开游戏")}</a>
+          </p>
+        )}
+      </section>
+    </main>
+  );
+}

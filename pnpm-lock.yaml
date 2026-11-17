@@ -47,6 +47,9 @@ importers:
       '@lingxi/game':
         specifier: workspace:*
         version: link:../../packages/game
+      '@lingxi/handheld':
+        specifier: workspace:*
+        version: link:../../packages/handheld
       '@lingxi/world':
         specifier: workspace:*
         version: link:../../packages/world

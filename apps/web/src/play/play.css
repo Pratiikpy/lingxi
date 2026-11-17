@@ -659,6 +659,10 @@
   margin: var(--s2) 0;
   width: 100%;
 }
+/* a panel with nothing to show (a pet away, a feature off) renders nothing: one line between neighbours, not a stack */
+.divider + .divider {
+  display: none;
+}
 
 .brainview {
   margin: 0;
@@ -1201,10 +1205,12 @@
   display: grid;
   gap: 6px;
   padding: 12px 14px;
-  border: 2px solid #2b2140;
+  border: 2px solid var(--line);
   border-radius: 16px;
-  background: rgba(255, 253, 248, 0.97);
-  box-shadow: 0 4px 0 #2b2140;
+  /* the theme's own card and ink, so the card reads in dark mode as well as light */
+  background: color-mix(in srgb, var(--card) 97%, transparent);
+  color: var(--ink);
+  box-shadow: 0 4px 0 var(--line);
 }
 .away-card p {
   margin: 0;

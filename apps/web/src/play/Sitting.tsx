@@ -4,6 +4,8 @@
  */
 
 import { atCentre } from "../game/adoption";
+import { atHandheld } from "../game/handheld";
+import { HandheldAwayCard } from "./Handheld";
 import { CentreCard } from "./Adoption";
 import { useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
@@ -110,6 +112,8 @@ export function SitPanel({ pet }: { pet: Pet }) {
 export function AwayCard({ pet }: { pet: Pet }) {
   // a little one waiting at the adoption centre has its own card (plan 4.8)
   if (atCentre(pet)) return <CentreCard pet={pet} />;
+  // a pet out on the handheld (plan 4.14)
+  if (atHandheld(pet)) return <HandheldAwayCard pet={pet} />;
   return <FriendAwayCard pet={pet} />;
 }
 

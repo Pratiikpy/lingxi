@@ -65,6 +65,7 @@ import { FashionMarketPanel } from "./FashionMarket";
 import { ItemShopPanel } from "./ItemShop";
 import { ExtrasPanel } from "./Extras";
 import { AdoptionPanel, FarewellNote } from "./Adoption";
+import { HandheldPanel, HandheldReturn } from "./Handheld";
 import { syncChainPieces } from "../game/chainDecor";
 import { loadColours, syncPacks } from "../game/extras";
 import { RIG_HOME_BGS, useHoldings } from "../game/holders";
@@ -395,6 +396,7 @@ export function PlayApp() {
         <DuelArrival hasPet={false} />
         <SitArrival />
         <FarewellNote />
+        <HandheldReturn />
       </>
     );
   }
@@ -723,6 +725,7 @@ export function PlayApp() {
       <BadgeToast />
       <QuestToast onOpenBook={() => pick("quests")} />
       <FarewellNote />
+      <HandheldReturn />
       <RulesMark />
       <QuestDialog />
       <HintRing />
@@ -765,6 +768,8 @@ export function PlayApp() {
         <Lazy><InvitePanel /></Lazy>
         <hr className="divider" />
         <Lazy><SitPanel pet={pet} /></Lazy>
+        <hr className="divider" />
+        <Lazy><HandheldPanel pet={pet} /></Lazy>
         <hr className="divider" />
         <Lazy><OnChainNote lang={lang} /></Lazy>
         <hr className="divider" />
