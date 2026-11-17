@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import type { Address } from "viem";
 import type { Deployment } from "@lingxi/chain";
 import { deployment } from "../game/chain";
+import { type SourceState, sourcifyPage, sourcifyState } from "../game/sourcify";
 
 type Key = "registry" | "breeder" | "adoptionCentre" | "outfitMarketV2" | "itemShop" | "extras" | "holderGift" | "look" | "redPacket" | "outfitMarket" | "breederFree";
 
@@ -25,23 +26,7 @@ const CONTRACTS: Array<{ key: Key; name: string; about: { en: string; zh: string
   { key: "breederFree", name: "Breeder", about: { en: "the first breeder, before the BEM fee", zh: "最早的繁育合约，收 BEM 费之前" } },
 ];
 
-type State = "exact" | "partial" | "none" | "unreachable";
-
-/** Sourcify's verdict on one address: an exact match needs both the creation and the runtime bytecode to match. */
-async function sourcifyState(address: Address, signal: AbortSignal): Promise<State> {
-  try {
-    const r = await fetch(`https://sourcify.dev/server/v2/contract/196/${address}`, { signal });
-    if (r.status === 404) return "none";
-    if (!r.ok) return "unreachable";
-    const d = (await r.json()) as { match?: string | null; creationMatch?: string | null; runtimeMatch?: string | null };
-    if (d.creationMatch === "exact_match" && d.runtimeMatch === "exact_match") return "exact";
-    return d.match ? "partial" : "none";
-  } catch {
-    return "unreachable";
-  }
-}
-
-const WORD: Record<State, { en: string; zh: string }> = {
+const WORD: Record<SourceState, { en: string; zh: string }> = {
   exact: { en: "✓ source verified", zh: "✓ 源码已验证" },
   partial: { en: "~ partial match", zh: "~ 部分匹配" },
   none: { en: "✗ not verified", zh: "✗ 未验证" },
@@ -54,7 +39,7 @@ export function ContractTable({ lang }: { lang: "en" | "zh" }) {
     const address = d?.[c.key] as Address | undefined;
     return address ? [{ ...c, address }] : [];
   });
-  const [states, setStates] = useState<Record<string, State>>({});
+  const [states, setStates] = useState<Record<string, SourceState>>({});
   const addresses = rows.map((r) => r.address).join(",");
   useEffect(() => {
     if (!addresses) return;
@@ -114,7 +99,7 @@ export function ContractTable({ lang }: { lang: "en" | "zh" }) {
                       </td>
                       <td className={s === "exact" ? "v-ok" : s === "none" || s === "partial" ? "v-bad" : ""}>
                         {s ? (
-                          <a href={`https://repo.sourcify.dev/196/${r.address}`} target="_blank" rel="noopener noreferrer">
+                          <a href={sourcifyPage(r.address)} target="_blank" rel="noopener noreferrer">
                             <span aria-hidden="true">{WORD[s][lang].slice(0, 1)}</span>
                             <span className="v-check-word">{WORD[s][lang].slice(1)}</span>
                           </a>

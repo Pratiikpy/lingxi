@@ -18,6 +18,7 @@ import { liveAvailable, useLive } from "../game/live";
 import { useWorld } from "../game/world";
 import { play } from "../game/sound";
 import { PetName } from "./PetName";
+import { type SourceState, sourcifyPage, sourcifyState } from "../game/sourcify";
 import "./extras.css";
 
 type Lang = "en" | "zh";
@@ -33,6 +34,35 @@ function Packs({ n, label }: { n: number; label: string }) {
   );
 }
 
+/** The contract's address and what Sourcify says about its source, asked when the panel opens. */
+function ContractSource({ address, lang }: { address: `0x${string}`; lang: Lang }) {
+  const [state, setState] = useState<SourceState | null>(null);
+  useEffect(() => {
+    const ctl = new AbortController();
+    void sourcifyState(address, ctl.signal).then((s) => !ctl.signal.aborted && setState(s));
+    return () => ctl.abort();
+  }, [address]);
+  const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
+  const said: Record<SourceState, string> = {
+    exact: L("source verified on Sourcify", "源码已在 Sourcify 验证"),
+    partial: L("source only partly matches on Sourcify", "Sourcify 上的源码只部分匹配"),
+    none: L("source not yet verified", "源码尚未验证"),
+    unreachable: L("Sourcify could not be reached", "连不上 Sourcify"),
+  };
+  return (
+    <p className="small">
+      {L(`Contract ${short(address)} on X Layer, `, `X Layer 上的合约 ${short(address)}，`)}
+      {state ? (
+        <a href={sourcifyPage(address)} target="_blank" rel="noopener noreferrer">
+          {said[state]}
+        </a>
+      ) : (
+        L("checking its source…", "正在核对源码……")
+      )}
+      {L(".", "。")}
+    </p>
+  );
+}
 export function ExtrasPanel({ pet }: { pet: Pet }) {
   const lang = useLang((s) => s.lang) as Lang;
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
@@ -249,7 +279,7 @@ export function ExtrasPanel({ pet }: { pet: Pet }) {
           {note}
         </p>
       )}
-      {deployment?.extras && <p className="small">{L(`Contract ${short(deployment.extras)} on X Layer, source verified.`, `X Layer 上的合约 ${short(deployment.extras)}，源码已验证。`)}</p>}
+      {deployment?.extras && <ContractSource address={deployment.extras} lang={lang} />}
     </div>
   );
 }
