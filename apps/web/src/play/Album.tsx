@@ -63,7 +63,7 @@ export function VisitorArt({ v, scale, hidden = false }: { v: Visitor; scale: nu
 }
 
 /** The shy one of the Butterfly Forest (quests 42 and 43): never drawn as a chance visitor, only met through Flit's story. */
-const SHY_ONE: Visitor = {
+export const SHY_ONE: Visitor = {
   id: "shy-one",
   rarity: "rare",
   name: { en: "The shy one", zh: "害羞的小家伙" },

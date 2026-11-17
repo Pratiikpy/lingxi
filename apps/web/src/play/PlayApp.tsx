@@ -3,7 +3,7 @@
 import { OnChainNote } from "../OnChainNote";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useReducedMotion } from "motion/react";
-import { boundingBox, drawPet } from "@lingxi/art";
+import { NIGHT, boundingBox, drawPet } from "@lingxi/art";
 import { STARTERS, timeOfDay } from "@lingxi/brain";
 import { type Challenge, type Partner, visitorsNow, friendPartner, petCard, stageOf, visibleMeters, bondLevel } from "@lingxi/game";
 import { type Key, useT, useLang } from "../i18n";
@@ -50,7 +50,7 @@ import { LevelUpMoment, SkillsPanel, useSkillsUi } from "./Skills";
 import { HomePanel } from "./Home";
 import { WardrobePanel } from "./Wardrobe";
 import { MailboxPanel } from "./Mailbox";
-import { AlbumPanel } from "./Album";
+import { AlbumPanel, SHY_ONE } from "./Album";
 import { FriendsPanel } from "./Friends";
 import { HoldersPanel } from "./Holders";
 import { StudioPanel } from "./Studio";
@@ -76,6 +76,9 @@ import { DESTINATION, outfitOf } from "@lingxi/world";
 import { Icon } from "./icons";
 import { Sprite } from "./Sprite";
 import "./play.css";
+
+/** where Flit's shy visitor lives (room 56) */
+const BUTTERFLY_FOREST = 56;
 
 function phaseNow(): DayPhase {
   const t = timeOfDay(new Date().getHours());
@@ -428,6 +431,20 @@ export function PlayApp() {
           say: { text: lang === "zh" ? `来看看${pet.name}！` : `Came to see ${pet.name}!`, at: (KIN_HELLO[`${hourNow}:${k.pet.bornAt}`] ??= performance.now() + i * 400) },
         }))
       : [];
+  // Flit's story (quests 42 and 43): at night something shy watches from the Butterfly Forest's trees; once it is a
+  // friend it comes closer. Only at night, only in the forest, only after it has been seen.
+  const forestFlags = worldFull.flags ?? [];
+  const shyOne =
+    worldRoom === BUTTERFLY_FOREST && phase === "night" && !visiting && forestFlags.includes("shy-visitor")
+      ? {
+          id: "shy:one",
+          name: forestFlags.includes("shy-friend") ? SHY_ONE.name[lang] : lang === "zh" ? "某个害羞的家伙" : "Something shy",
+          line: SHY_ONE.look.line,
+          stage: SHY_ONE.look.stage,
+          mood: forestFlags.includes("shy-friend") ? 2 : 0,
+          look: { palette: { key: "night", colors: NIGHT }, outfitAt: () => ({}), x: forestFlags.includes("shy-friend") ? 42 : 18 },
+        }
+      : null;
   // R2: a builder's pet lives in this room
   const resident = !visiting ? builderIn(worldRoom) : null;
   const pick = (next: Tab, force = false) => {
@@ -472,7 +489,7 @@ export function PlayApp() {
             onPetTap={onPetTap}
             reduceMotion={reduce}
             bgs={worldRoom === HOME && rigSkin && !visiting ? RIG_HOME_BGS : room.bgs}
-            others={[...Object.values(others), ...kinVisitors, ...(resident ? [builderInScene(resident, lang, residentSaid.current)] : [])]}
+            others={[...Object.values(others), ...kinVisitors, ...(shyOne ? [shyOne] : []), ...(resident ? [builderInScene(resident, lang, residentSaid.current)] : [])]}
             onOtherTap={(id) => (play("tap"), setPicked(id))}
             npc={who ? (talking && npcFace ? npcFace : who.stand) : null}
             npcMark={npcMark}
@@ -573,6 +590,23 @@ export function PlayApp() {
                 else pick(a === "shop" ? "bag" : a);
               }}
             />
+          )}
+          {picked === "shy:one" && shyOne && (
+            <div className="visitor-card" role="dialog" aria-label={shyOne.name}>
+              <b>{shyOne.name}</b>
+              <span className="small">
+                {forestFlags.includes("shy-friend")
+                  ? lang === "zh"
+                    ? `它现在敢待在${pet.name}身边了。白天你见不到它。`
+                    : `It stays near ${pet.name} now. You will never see it by day.`
+                  : lang === "zh"
+                    ? `在树影边上看着${pet.name}，从不靠近。`
+                    : `At the edge of the trees, watching ${pet.name}. It never comes close.`}
+              </span>
+              <button type="button" className="icon-x" aria-label={lang === "zh" ? "关闭" : "Close"} onClick={() => setPicked(null)}>
+                <Icon name="close" size={14} />
+              </button>
+            </div>
           )}
           {picked?.startsWith("kin:") && kinVisitors.find((k) => k.id === picked) && (
             <div className="visitor-card" role="dialog" aria-label={kinVisitors.find((k) => k.id === picked)!.name}>
