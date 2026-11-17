@@ -197,12 +197,19 @@ export function RoomScene(props: SceneProps) {
     let ready = false;
     const app = new Application();
     let cleanup = () => {};
+    // the app is destroyed exactly once, whichever side gets there first (Pixi's resize plugin throws on a second)
+    let destroyed = false;
+    const destroyApp = () => {
+      if (destroyed) return;
+      destroyed = true;
+      app.destroy(true, { children: true });
+    };
 
     (async () => {
       await app.init({ backgroundAlpha: 0, antialias: false, resizeTo: el, autoDensity: true, resolution: window.devicePixelRatio || 1 });
       ready = true;
       if (disposed) {
-        app.destroy(true, { children: true });
+        destroyApp();
         return;
       }
       el.appendChild(app.canvas);
@@ -212,7 +219,7 @@ export function RoomScene(props: SceneProps) {
       const first = await makeBg(latest.current.bgs[latest.current.phase], latest.current.reduceMotion);
       if (disposed) {
         first.destroy();
-        app.destroy(true, { children: true });
+        destroyApp();
         return;
       }
 
@@ -853,7 +860,7 @@ export function RoomScene(props: SceneProps) {
       disposed = true;
       cleanup();
       // if init is still running, it destroys the app itself when it finishes
-      if (ready) app.destroy(true, { children: true });
+      if (ready) destroyApp();
     };
   }, []);
 

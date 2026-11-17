@@ -3,6 +3,8 @@
  * waiting card, the friend's arrival card, and sending it home.
  */
 
+import { atCentre } from "../game/adoption";
+import { CentreCard } from "./Adoption";
 import { useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { drawPet } from "@lingxi/art";
@@ -106,6 +108,12 @@ export function SitPanel({ pet }: { pet: Pet }) {
 
 /** The owner's view while the pet is away: it waits here, frozen, until it comes home. */
 export function AwayCard({ pet }: { pet: Pet }) {
+  // a little one waiting at the adoption centre has its own card (plan 4.8)
+  if (atCentre(pet)) return <CentreCard pet={pet} />;
+  return <FriendAwayCard pet={pet} />;
+}
+
+function FriendAwayCard({ pet }: { pet: Pet }) {
   const lang = useLang((s) => s.lang) as Lang;
   const [state, setState] = useState<"idle" | "checking" | "waiting" | "refused" | "unreachable">("idle");
   const away = pet.away;

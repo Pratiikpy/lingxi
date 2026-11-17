@@ -151,6 +151,8 @@ interface GameState {
   switchTo: (index: number) => void;
   /** a newborn joins the family and comes on screen */
   adopt: (child: Pet) => boolean;
+  /** a little one adopted from the adoption centre joins the roster (plan 4.8) */
+  welcome: (p: Pet) => boolean;
   /** replace the active pet after something outside the store changed it (walking, breeding) */
   replace: (p: Pet) => void;
   /** a friend's pet comes to stay (pet-sitting): added to the roster without counting as a new pet of yours */
@@ -248,6 +250,15 @@ export const useGame = create<GameState>((set, get) => ({
     if (roster.pets.length >= MAX_PETS || roster.pets.some((x) => x.bornAt === p.bornAt)) return false;
     roster = { active: roster.pets.length, pets: [...roster.pets, p] };
     persist();
+    set({ pet: p, pets: roster.pets, active: roster.active, lastCare: null });
+    return true;
+  },
+  welcome: (p) => {
+    if (roster.pets.length >= MAX_PETS || roster.pets.some((x) => x.bornAt === p.bornAt)) return false;
+    roster = { active: roster.pets.length, pets: [...roster.pets, p] };
+    persist();
+    useBadges.getState().note("pets");
+    noteEvent("adopted");
     set({ pet: p, pets: roster.pets, active: roster.active, lastCare: null });
     return true;
   },

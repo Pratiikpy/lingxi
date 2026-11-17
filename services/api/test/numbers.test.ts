@@ -74,7 +74,7 @@ describe("live numbers", () => {
     expect(n.head).toBe(2_150);
     expect(n.pets).toEqual({ hatched: 9, children: 2, daysSaved: 40, savedLast24h: 3, hatchers: 5, nextPetId: 12, indexedTo: 2_140 });
     // the item shop's whole price is burned and counts in the total (plan 4.6)
-    expect(n.burned).toEqual({ market: "4200000", breeding: "10000000", shop: "15000000", total: "29200000" });
+    expect(n.burned).toEqual({ market: "4200000", breeding: "10000000", shop: "15000000", adoption: "0", total: "29200000" });
     expect(n.contracts.itemShop).toEqual({ address: SHOP, url: `https://x/address/${SHOP}` });
     expect(n.pins).toBe(7);
     expect(n.outfits.bem?.copies).toBe(5);

@@ -1,0 +1,49 @@
+/* the adoption centre (plan 4.8): offer form and the waiting little ones */
+.adoption-offer {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  margin: 8px 0 12px;
+  border: 2px dashed var(--line);
+  border-radius: var(--r-sm);
+}
+.adoption-price {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.adoption-price input {
+  width: 7em;
+}
+.adoption-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+}
+.adoption-card {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 4px;
+  padding: 10px 8px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--card);
+  text-align: center;
+}
+.adoption-card .small {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+}
+.adoption-price-tag {
+  font-family: var(--round);
+  font-weight: 800;
+  font-size: 1rem;
+}
+.adoption-card .adoption-ok {
+  color: var(--ink);
+  font-weight: 700;
+}

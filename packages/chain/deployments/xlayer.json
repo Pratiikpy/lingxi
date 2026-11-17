@@ -148,5 +148,8 @@
     "goal-hatch": "7",
     "goal-family": "8",
     "goal-ember": "9"
-  }
+  },
+  "adoptionCentre": "0x58212451fcd46ff6130cff428f2f4273f4cc7596",
+  "adoptionCentreBlock": 76104110,
+  "adoptionCentreTx": "0x03698a4fd7b2ac8cdfda709416f92ea9e86dd0ef857f1752e5260eeae1903717"
 }

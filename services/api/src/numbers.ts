@@ -108,7 +108,7 @@ export interface NumbersDeps {
   counts: (sinceSec: number) => { hatched: number; children: number; saves: number; savedSince: number; hatchers: number };
   petsIndexedTo: () => number;
   sales: SalesCounter;
-  contracts: { registry: Address; marketOkb?: Address; marketBem?: Address; breeder?: Address; gift?: Address; itemShop?: Address };
+  contracts: { registry: Address; marketOkb?: Address; marketBem?: Address; breeder?: Address; gift?: Address; itemShop?: Address; adoption?: Address };
   explorer: string;
 }
 
@@ -119,7 +119,7 @@ export interface Numbers {
   head: number;
   pets: { hatched: number; children: number; daysSaved: number; savedLast24h: number; hatchers: number; nextPetId: number; indexedTo: number };
   outfits: { okb: (MarketTotals & { indexedTo: number }) | null; bem: (MarketTotals & { indexedTo: number }) | null };
-  burned: { market: string; breeding: string; shop: string; total: string };
+  burned: { market: string; breeding: string; shop: string; adoption: string; total: string };
   pins: number | null;
   contracts: Record<string, { address: Address; url: string }>;
 }
@@ -127,12 +127,13 @@ export interface Numbers {
 export async function readNumbers(d: NumbersDeps, nowMs = Date.now()): Promise<Numbers> {
   const read = async (address: Address | undefined, fn: "totalBurned" | "total" | "nextPetId"): Promise<bigint> =>
     address ? ((await d.pub.readContract({ address, abi: views, functionName: fn })) as bigint) : 0n;
-  const [head, nextPetId, marketBurned, breedingBurned, shopBurned, pins] = await Promise.all([
+  const [head, nextPetId, marketBurned, breedingBurned, shopBurned, adoptionBurned, pins] = await Promise.all([
     d.pub.getBlockNumber(),
     read(d.contracts.registry, "nextPetId"),
     read(d.contracts.marketBem, "totalBurned"),
     read(d.contracts.breeder, "totalBurned"),
     read(d.contracts.itemShop, "totalBurned"),
+    read(d.contracts.adoption, "totalBurned"),
     d.contracts.gift ? read(d.contracts.gift, "total") : Promise.resolve(null),
   ]);
   const c = d.counts(Math.floor(nowMs / 1000) - 86_400);
@@ -145,7 +146,13 @@ export async function readNumbers(d: NumbersDeps, nowMs = Date.now()): Promise<N
     head: Number(head),
     pets: { hatched: c.hatched, children: c.children, daysSaved: c.saves, savedLast24h: c.savedSince, hatchers: c.hatchers, nextPetId: Number(nextPetId), indexedTo: d.petsIndexedTo() },
     outfits: { okb: market(d.contracts.marketOkb), bem: market(d.contracts.marketBem) },
-    burned: { market: marketBurned.toString(), breeding: breedingBurned.toString(), shop: shopBurned.toString(), total: (marketBurned + breedingBurned + shopBurned).toString() },
+    burned: {
+      market: marketBurned.toString(),
+      breeding: breedingBurned.toString(),
+      shop: shopBurned.toString(),
+      adoption: adoptionBurned.toString(),
+      total: (marketBurned + breedingBurned + shopBurned + adoptionBurned).toString(),
+    },
     pins: pins === null ? null : Number(pins),
     contracts,
   };

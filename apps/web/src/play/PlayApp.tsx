@@ -63,6 +63,7 @@ import { MoveNotes, MoveSheet, TelegramCard } from "./Move";
 import { Lazy } from "./Lazy";
 import { FashionMarketPanel } from "./FashionMarket";
 import { ItemShopPanel } from "./ItemShop";
+import { AdoptionPanel, FarewellNote } from "./Adoption";
 import { syncChainPieces } from "../game/chainDecor";
 import { RIG_HOME_BGS, useHoldings } from "../game/holders";
 import { bondName, bondsOf, friendKey, useFriends } from "../game/friends";
@@ -387,6 +388,7 @@ export function PlayApp() {
         <PacketArrival />
         <DuelArrival hasPet={false} />
         <SitArrival />
+        <FarewellNote />
       </>
     );
   }
@@ -714,6 +716,7 @@ export function PlayApp() {
 
       <BadgeToast />
       <QuestToast onOpenBook={() => pick("quests")} />
+      <FarewellNote />
       <RulesMark />
       <QuestDialog />
       <HintRing />
@@ -730,6 +733,8 @@ export function PlayApp() {
         <Lazy><FashionMarketPanel pet={pet} /></Lazy>
         <hr className="divider" />
         <Lazy><ItemShopPanel /></Lazy>
+        <hr className="divider" />
+        <Lazy><AdoptionPanel pet={pet} /></Lazy>
         <hr className="divider" />
         <Lazy><FriendsPanel pet={pet} /></Lazy>
         <hr className="divider" />

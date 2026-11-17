@@ -61,7 +61,7 @@ async function main() {
   const live = (await (await fetch(`${api}/api/numbers`, { cache: "no-store" })).json()) as {
     pets: { hatched: number; children: number; daysSaved: number; indexedTo: number; nextPetId: number };
     outfits: { okb: { copies: number; paid: string; indexedTo: number } | null; bem: { copies: number; paid: string; indexedTo: number } | null };
-    burned: { market: string; breeding: string; shop?: string; total: string };
+    burned: { market: string; breeding: string; shop?: string; adoption?: string; total: string };
     pins: number | null;
   };
   const diffs: string[] = [];
@@ -127,14 +127,22 @@ async function main() {
     }
     check("BEM burned by the item shop (sum of its Burned events)", shop.toString(), live.burned.shop ?? "absent");
   }
-  check("BEM burned in total", (market + breeding + shop).toString(), live.burned.total);
+  let adoption = 0n;
+  if (d.adoptionCentre && d.adoptionCentreBlock) {
+    for (const l of await logsOf(d.adoptionCentre, d.adoptionCentreBlock, Number(await pub.getBlockNumber()))) {
+      if (l.topics[0] !== T.burned) continue;
+      adoption += (decodeEventLog({ abi: events, data: l.data, topics: l.topics }).args as { amount: bigint }).amount;
+    }
+    check("BEM burned by the adoption centre (sum of its Burned events)", adoption.toString(), live.burned.adoption ?? "absent");
+  }
+  check("BEM burned in total", (market + breeding + shop + adoption).toString(), live.burned.total);
   if (d.holderGift) check("holder pins claimed", Number(await read(d.holderGift, "total")), live.pins ?? "absent");
 
   // community goals, each up to the block the goals page has read to
   const goalsPage = (await (await fetch(`${api}/api/goals`, { cache: "no-store" })).json()) as { indexedTo: number; goals: Array<{ id: string; total: number; contributors: number; top: Array<{ wallet: string; n: number }> }> };
   const to = goalsPage.indexedTo;
   const raw = [...(await logsOf(d.registry, registryFrom, to))];
-  const burners = [d.breederBem ? [d.breeder, (d as { breederBlock?: number }).breederBlock] : null, [d.outfitMarketV2, d.outfitMarketV2Block], [d.itemShop, d.itemShopBlock]].filter((x): x is [Address, number] => !!x && !!x[0] && !!x[1]);
+  const burners = [d.breederBem ? [d.breeder, (d as { breederBlock?: number }).breederBlock] : null, [d.outfitMarketV2, d.outfitMarketV2Block], [d.itemShop, d.itemShopBlock], [d.adoptionCentre, d.adoptionCentreBlock]].filter((x): x is [Address, number] => !!x && !!x[0] && !!x[1]);
   for (const [a, from] of burners) raw.push(...(await logsOf(a, from, to)));
   raw.sort((a, b) => Number(BigInt(a.blockNumber) - BigInt(b.blockNumber)) || Number(BigInt(a.logIndex) - BigInt(b.logIndex)));
   const owners = new Map<string, string>();

@@ -332,7 +332,8 @@ export const useChain = create<ChainState>((set, get) => ({
   },
   saveToday: async (pet, onSaved, quiet = false) => {
     const record = records[petKey(pet)];
-    if (!deployment || !record || get().busy !== "idle") return;
+    // a pet away (with a friend, or waiting at the adoption centre, whose offer fixes its saved record) is not saved
+    if (!deployment || !record || get().busy !== "idle" || pet.away) return;
     set({ busy: quiet ? "auto" : "connecting", error: null });
     try {
       const auto = await autoWallet(pet, record);

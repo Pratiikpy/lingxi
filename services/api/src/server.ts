@@ -27,7 +27,7 @@ import { type SeasonStore, createSeasonStore, settleAwards } from "./season";
 import { weekOf } from "@lingxi/game";
 import { MAX_LESSONS, parseCard } from "@lingxi/game";
 import { createPublicClient, http, type PublicClient } from "viem";
-import { type Deployment, readPet, xLayer } from "@lingxi/chain";
+import { type Deployment, adoptionCentreAbi, petRegistryAbi, readPet, xLayer } from "@lingxi/chain";
 import { createAgentStore } from "./agents";
 import { withAgentApi } from "./agentApi";
 import { type Letter, currentLetters, loadLetters } from "./mail";
@@ -37,6 +37,7 @@ import { LibraryRule, createLibrary, type Library } from "./library";
 import { createIndexer, type Indexer } from "./indexer";
 import { createGoalLedger, withGoals } from "./goals";
 import { withVouchers } from "./voucher";
+import { createPapersStore, withPapers } from "./papers";
 import { privateKeyToAccount } from "viem/accounts";
 import { createSalesCounter, withNumbers } from "./numbers";
 import { buildTree } from "./tree";
@@ -534,6 +535,17 @@ if (isMain) {
       process.stderr.write(`agent API without chain reads: ${(e as Error).message}\n`);
     }
     withAgentApi(app, { agents: createAgentStore(process.env.LINGXI_AGENT_STORE), seasons, ...(chain ? { chain } : {}) });
+    // adoption papers (plan 4.8): posted by the owner of a pet on offer, fetched by the buyer's game
+    if (chain?.deployment.adoptionCentre) {
+      const { pub, deployment } = chain;
+      withPapers(app, createPapersStore(process.env.LINGXI_PAPERS_STORE), {
+        ownerOf: async (id) => (await pub.readContract({ address: deployment.registry, abi: petRegistryAbi, functionName: "ownerOf", args: [id] })) as `0x${string}`,
+        sellerOf: async (id) => {
+          const row = (await pub.readContract({ address: deployment.adoptionCentre!, abi: adoptionCentreAbi, functionName: "listings", args: [id] })) as readonly [`0x${string}`, bigint, bigint, `0x${string}`];
+          return /^0x0{40}$/i.test(row[0]) ? null : row[0];
+        },
+      });
+    }
     withMove(app, createMoveStore());
     // R2: Little Mars counts today's tape-outs across every X Layer processor
     const lane = createTapeoutCounter(factoryReader(rpc), process.env.LINGXI_LANE_FILE);
@@ -586,11 +598,11 @@ if (isMain) {
       counts: (since) => indexer.counts(since),
       petsIndexedTo: () => indexer.head(),
       sales,
-      contracts: { registry: process.env.LINGXI_REGISTRY as `0x${string}`, marketOkb: env("LINGXI_MARKET_OKB"), marketBem: env("LINGXI_MARKET_BEM"), breeder: env("LINGXI_BREEDER"), gift: env("LINGXI_GIFT"), itemShop: env("LINGXI_ITEM_SHOP") },
+      contracts: { registry: process.env.LINGXI_REGISTRY as `0x${string}`, marketOkb: env("LINGXI_MARKET_OKB"), marketBem: env("LINGXI_MARKET_BEM"), breeder: env("LINGXI_BREEDER"), gift: env("LINGXI_GIFT"), itemShop: env("LINGXI_ITEM_SHOP"), adoption: env("LINGXI_ADOPTION") },
       explorer: "https://www.oklink.com/xlayer",
     });
     // community goals: every contribution read from the registry and the two BEM burners
-    const burners = [env("LINGXI_BREEDER"), env("LINGXI_MARKET_BEM"), env("LINGXI_ITEM_SHOP")].filter((a): a is `0x${string}` => !!a);
+    const burners = [env("LINGXI_BREEDER"), env("LINGXI_MARKET_BEM"), env("LINGXI_ITEM_SHOP"), env("LINGXI_ADOPTION")].filter((a): a is `0x${string}` => !!a);
     const ledger = createGoalLedger({ rpc, registry: process.env.LINGXI_REGISTRY as `0x${string}`, burners, fromBlock: Number(process.env.LINGXI_REGISTRY_FROM), store: process.env.LINGXI_GOALS_STORE });
     withGoals(app, ledger);
     // keepsake vouchers (plan 4.6): signed only for contributors to a completed goal, with the voucher key

@@ -24,6 +24,9 @@ export interface Deployment {
   /** the holder gift contract and the outfit it gives (a design on the BEM market) */
   holderGift?: Address;
   holderOutfit?: number;
+  /** the adoption centre (plan 4.8) and the block it was deployed at */
+  adoptionCentre?: Address;
+  adoptionCentreBlock?: number;
   /** the item shop (plan 4.6): sells on-chain items for burned BEM and redeems the game's vouchers */
   itemShop?: Address;
   itemShopBlock?: number;
