@@ -12,6 +12,8 @@ import { type Circuit, REF, decode, hexToBytes, load, refKey } from "@lingxi/bra
 export interface Deployment {
   /** the Breeder contract, when families are deployed */
   breeder?: Address;
+  /** the first breeder (free, before the BEM fee); its children stay on record */
+  breederFree?: Address;
   /** true when `breeder` is BreederV2: a BEM fee (burned), a fee cap argument, at most 4 children per pet */
   breederBem?: boolean;
   /** red packet escrow and its seal circuit id, when deployed */

@@ -10,6 +10,7 @@
 import { OnChainNote } from "../OnChainNote";
 import { ProofTable } from "./ProofTable";
 import { RuleTable } from "./RuleTable";
+import { ContractTable } from "./ContractTable";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type Hex } from "viem";
 import { beat, bitsToWord, circuitBrain, hexToBytes, load, type Circuit, wordToBits, decodeSenses } from "@lingxi/brain";
@@ -497,6 +498,7 @@ export function VerifyApp() {
       )}
       <ProofTable lang={lang} />
       <RuleTable lang={lang} />
+      <ContractTable lang={lang} />
       <p className="v-note">
         <a href="numbers.html">{lang === "zh" ? "链上数字：宠物、交易和销毁的 BEM，全部读自合约" : "Live numbers: pets, sales and BEM burned, all read from the contracts"}</a>
       </p>

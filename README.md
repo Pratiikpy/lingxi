@@ -7,7 +7,7 @@
   <a href="https://1-2-419.tapekit.org/"><img alt="DeWEB" src="https://img.shields.io/badge/on_chain-1.2.419.tape-2B2140?style=flat-square"></a>
   <a href="https://www.oklink.com/xlayer/address/0xf70d324Da8C1C4Cb0dE3FF147E53E7E9db543c4e"><img alt="X Layer" src="https://img.shields.io/badge/X_Layer-chain_196-FFC83D?style=flat-square"></a>
   <a href="#tests"><img alt="Tests" src="https://img.shields.io/badge/tests-575_passing-7FCB8E?style=flat-square"></a>
-  <a href="#contracts-on-x-layer-mainnet"><img alt="Contracts" src="https://img.shields.io/badge/contracts-10_on_mainnet-9BE8FF?style=flat-square"></a>
+  <a href="#contracts-on-x-layer-mainnet"><img alt="Contracts" src="https://img.shields.io/badge/contracts-10_verified_on_Sourcify-9BE8FF?style=flat-square"></a>
 </p>
 
 <p align="center">
@@ -131,20 +131,22 @@ pnpm judge:check          # about 3.5 minutes, read-only against mainnet
 
 ## Contracts on X Layer mainnet
 
-| Contract | Address | What it holds |
-|---|---|---|
-| PetRegistry | [`0x103d7252eb6b2fec22b3f65a6bb605945f280e99`](https://www.oklink.com/xlayer/address/0x103d7252eb6b2fec22b3f65a6bb605945f280e99) | pets (ERC-721), daily checkpoints, sitters, parents |
-| BreederV2 | [`0x8da8221466de12321e6ee2ea73d62aaf28bb11b0`](https://www.oklink.com/xlayer/address/0x8da8221466de12321e6ee2ea73d62aaf28bb11b0) | children of two pets; 0.1 BEM burned |
-| AdoptionCentre | [`0x58212451fcd46ff6130cff428f2f4273f4cc7596`](https://www.oklink.com/xlayer/address/0x58212451fcd46ff6130cff428f2f4273f4cc7596) | offers of young bred pets; 3% burned, 10% to the co-parent |
-| OutfitMarketV2 | [`0xa292c12b0414bbfc14994f93bcff8bd58c921e55`](https://www.oklink.com/xlayer/address/0xa292c12b0414bbfc14994f93bcff8bd58c921e55) | player outfits and on-chain items (ERC-1155), priced in BEM; fees burned |
-| ItemShop | [`0xaf8857c0d723e14f60d00fe46120abd0303f52cc`](https://www.oklink.com/xlayer/address/0xaf8857c0d723e14f60d00fe46120abd0303f52cc) | decorations for BEM, the whole price burned; keepsakes by voucher |
-| HolderGift | [`0xc216a4abb6c4c2d0b485f42219197551330b6cf4`](https://www.oklink.com/xlayer/address/0xc216a4abb6c4c2d0b485f42219197551330b6cf4) | the free holder outfit, checked against balances on chain |
-| PetLook | [`0x0642a802967260714d4efec05fef701b17d31b75`](https://www.oklink.com/xlayer/address/0x0642a802967260714d4efec05fef701b17d31b75) | each pet's picture and name, drawn on chain |
-| RedPacket | [`0x7acceb7ab1cff102fe2660f511e88d42010e806b`](https://www.oklink.com/xlayer/address/0x7acceb7ab1cff102fe2660f511e88d42010e806b) | gift packets sealed by a circuit |
-| OutfitMarket (first market, OKB) | [`0xb9f6b18edd21933582ec69fb1e718d9629e684cd`](https://www.oklink.com/xlayer/address/0xb9f6b18edd21933582ec69fb1e718d9629e684cd) | the market before BEM pricing; still readable |
-| Breeder (first breeder, free) | [`0x5e5bbb798c5a2afc89f431debabaa0b889f77dd1`](https://www.oklink.com/xlayer/address/0x5e5bbb798c5a2afc89f431debabaa0b889f77dd1) | the breeder before the BEM fee |
+| Contract | Address | Source | What it holds |
+|---|---|---|---|
+| PetRegistry | [`0x103d7252eb6b2fec22b3f65a6bb605945f280e99`](https://www.oklink.com/xlayer/address/0x103d7252eb6b2fec22b3f65a6bb605945f280e99) | [verified ✓](https://repo.sourcify.dev/196/0x103d7252eb6b2fec22b3f65a6bb605945f280e99) | pets (ERC-721), daily checkpoints, sitters, parents |
+| BreederV2 | [`0x8da8221466de12321e6ee2ea73d62aaf28bb11b0`](https://www.oklink.com/xlayer/address/0x8da8221466de12321e6ee2ea73d62aaf28bb11b0) | [verified ✓](https://repo.sourcify.dev/196/0x8da8221466de12321e6ee2ea73d62aaf28bb11b0) | children of two pets; 0.1 BEM burned |
+| AdoptionCentre | [`0x58212451fcd46ff6130cff428f2f4273f4cc7596`](https://www.oklink.com/xlayer/address/0x58212451fcd46ff6130cff428f2f4273f4cc7596) | [verified ✓](https://repo.sourcify.dev/196/0x58212451fcd46ff6130cff428f2f4273f4cc7596) | offers of young bred pets; 3% burned, 10% to the co-parent |
+| OutfitMarketV2 | [`0xa292c12b0414bbfc14994f93bcff8bd58c921e55`](https://www.oklink.com/xlayer/address/0xa292c12b0414bbfc14994f93bcff8bd58c921e55) | [verified ✓](https://repo.sourcify.dev/196/0xa292c12b0414bbfc14994f93bcff8bd58c921e55) | player outfits and on-chain items (ERC-1155), priced in BEM; fees burned |
+| ItemShop | [`0xaf8857c0d723e14f60d00fe46120abd0303f52cc`](https://www.oklink.com/xlayer/address/0xaf8857c0d723e14f60d00fe46120abd0303f52cc) | [verified ✓](https://repo.sourcify.dev/196/0xaf8857c0d723e14f60d00fe46120abd0303f52cc) | decorations for BEM, the whole price burned; keepsakes by voucher |
+| HolderGift | [`0xc216a4abb6c4c2d0b485f42219197551330b6cf4`](https://www.oklink.com/xlayer/address/0xc216a4abb6c4c2d0b485f42219197551330b6cf4) | [verified ✓](https://repo.sourcify.dev/196/0xc216a4abb6c4c2d0b485f42219197551330b6cf4) | the free holder outfit, checked against balances on chain |
+| PetLook | [`0x0642a802967260714d4efec05fef701b17d31b75`](https://www.oklink.com/xlayer/address/0x0642a802967260714d4efec05fef701b17d31b75) | [verified ✓](https://repo.sourcify.dev/196/0x0642a802967260714d4efec05fef701b17d31b75) | each pet's picture and name, drawn on chain |
+| RedPacket | [`0x7acceb7ab1cff102fe2660f511e88d42010e806b`](https://www.oklink.com/xlayer/address/0x7acceb7ab1cff102fe2660f511e88d42010e806b) | [verified ✓](https://repo.sourcify.dev/196/0x7acceb7ab1cff102fe2660f511e88d42010e806b) | gift packets sealed by a circuit |
+| OutfitMarket (first market, OKB) | [`0xb9f6b18edd21933582ec69fb1e718d9629e684cd`](https://www.oklink.com/xlayer/address/0xb9f6b18edd21933582ec69fb1e718d9629e684cd) | [verified ✓](https://repo.sourcify.dev/196/0xb9f6b18edd21933582ec69fb1e718d9629e684cd) | the market before BEM pricing; still readable |
+| Breeder (first breeder, free) | [`0x5e5bbb798c5a2afc89f431debabaa0b889f77dd1`](https://www.oklink.com/xlayer/address/0x5e5bbb798c5a2afc89f431debabaa0b889f77dd1) | [verified ✓](https://repo.sourcify.dev/196/0x5e5bbb798c5a2afc89f431debabaa0b889f77dd1) | the breeder before the BEM fee |
 
 Lingxi's TapeOut processor: [`0xf70d324Da8C1C4Cb0dE3FF147E53E7E9db543c4e`](https://www.oklink.com/xlayer/address/0xf70d324Da8C1C4Cb0dE3FF147E53E7E9db543c4e). BEM: `0x60e62Efa9405d6873C5deaBD4E6CC91c25363952`. All contract addresses, circuit ids, item ids and deployment blocks are in [`packages/chain/deployments/xlayer.json`](packages/chain/deployments/xlayer.json).
+
+All ten are verified on Sourcify as an **exact match** of both creation and runtime bytecode, so anyone can read the source of what runs on X Layer. The [proof page](https://lingxi.knole.me/verify.html#contracts) asks Sourcify live each time it opens.
 
 Owner powers are deliberately small: fees move only within fixed bounds, burn shares cannot change, and no contract can move a player's BEM or pets. Ownership is two-step everywhere.
 
@@ -220,7 +222,6 @@ The on-chain copy is built with `node apps/web/scripts/deweb-build.mjs` and publ
 
 ## What is next
 
-- The contracts' source published on Sourcify, so anyone can read what runs on X Layer.
 - A pet's brain running on a real handheld, loading its netlist by id and running it beat by beat.
 - Monthly seasons of community goals, each with its own keepsake.
 

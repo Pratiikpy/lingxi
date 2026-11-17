@@ -365,20 +365,24 @@
   color: var(--ink-soft, inherit);
   opacity: 0.85;
 }
-#rules td:last-child {
+#rules td:last-child,
+#contracts td:last-child {
   white-space: nowrap;
 }
 /* the first column wraps, so on a phone the id, gates and check stay in view */
-#rules td:first-child {
+#rules td:first-child,
+#contracts td:first-child {
   white-space: normal;
   min-width: 0;
 }
-#rules .v-rule-about {
+#rules .v-rule-about,
+#contracts .v-rule-about {
   white-space: normal;
 }
 /* on a phone the check shows as its mark alone; the words stay for screen readers */
 @media (max-width: 600px) {
-  #rules .v-check-word {
+  #rules .v-check-word,
+  #contracts .v-check-word {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -386,4 +390,12 @@
     clip: rect(0 0 0 0);
     white-space: nowrap;
   }
+}
+
+/* contracts (plan 4.13): the Sourcify link carries the verdict's own colour, as the rule checks do */
+#contracts td.v-ok a,
+#contracts td.v-bad a {
+  color: inherit;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
 }
