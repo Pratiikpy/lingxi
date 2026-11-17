@@ -5,7 +5,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { BEAT_MS, createPet, newGrowth } from "@lingxi/game";
-import { HandheldLink, LinkError, type LinkIo } from "../src/link";
+import { HandheldLink, LinkError, type LinkIo, MAX_LINE } from "../src/link";
 import { type Snack, bringHome, tripPacket } from "../src/trip";
 import { root, starterBrain } from "./helpers";
 
@@ -151,6 +151,12 @@ describe("the USB link", () => {
     expect((await new HandheldLink(noisy).hello()).selfTest).toBe(true);
   });
 
+  it("stops reading a device that never ends its line", async () => {
+    const flood = new TextEncoder().encode("LX".padEnd(64 * 1024, "f"));
+    const noisy: LinkIo = { write: async () => {}, read: async () => flood };
+    await expect(new HandheldLink(noisy).hello()).rejects.toThrow("too long");
+    expect(MAX_LINE).toBeGreaterThan(2 * (32 * 1024 + 1024));
+  });
   it("gives up on a handheld that never answers", async () => {
     const silent: LinkIo = { write: async () => {}, read: () => new Promise(() => {}) };
     await expect(new HandheldLink(silent, 50).hello()).rejects.toThrow("did not answer");

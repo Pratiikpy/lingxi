@@ -28,6 +28,8 @@ const enc = new TextEncoder();
 const dec = new TextDecoder();
 /** a packet goes out in runs this long, well inside what a USB serial line buffers */
 const CHUNK = 4096;
+/** the longest answer a handheld can give: a packet back from the largest log the firmware keeps, as hex, with room */
+export const MAX_LINE = 256 * 1024;
 const hex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
 
 export class HandheldLink {
@@ -67,6 +69,8 @@ export class HandheldLink {
       if (chunk === "late") throw new Error("the handheld did not answer");
       if (chunk === null) throw new Error("the handheld's line closed");
       this.pending += dec.decode(chunk, { stream: true });
+      // a device that never ends its line is not allowed to fill the page's memory
+      if (this.pending.length > MAX_LINE) throw new Error("the handheld sent an answer too long to be a trip");
     }
   }
 
