@@ -10,7 +10,7 @@
 import { walletNeeded } from "./move";
 import { useBadges } from "./badges";
 import { create } from "zustand";
-import { createPublicClient, createWalletClient, custom, erc20Abi, http, isAddress, type Hex, type PublicClient, type WalletClient } from "viem";
+import { createPublicClient, createWalletClient, custom, erc20Abi, http, isAddress, type Hex, type PublicClient, type WalletClient, fallback } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { type Deployment, type TapeQuote, type TapeStep, allowPartnerOnChain, breedOnChain, breedingTerms, checkpointOnChain, hatchOnChain, quoteTapeout, readKeeping, readPet, setBrainOnChain, setSitterOnChain, tapeOutYourself, xLayer } from "@lingxi/chain";
 import { compileProgram, netlistBytes } from "@lingxi/brain";
@@ -41,13 +41,25 @@ export const explorerTx = (tx: string) => (NETWORK === "local" ? null : `https:/
 
 // VITE_RPC points a test build at a local fork of X Layer; production builds leave it unset
 // (an empty value counts as unset, as the on-chain build passes it)
-const rpc = (import.meta.env.VITE_RPC as string | undefined) || deployment?.rpc || "https://rpc.xlayer.tech";
-const chain = { ...xLayer, rpcUrls: { default: { http: [rpc] } } };
-export const publicClient: PublicClient = createPublicClient({ chain, transport: http(rpc) }) as PublicClient;
-/** X Layer's official RPC endpoints, for spreading heavy read loads (the proof page's full check). */
+// X Layer's public RPCs. OKX's answers every browser request with CORS headers; rpc.xlayer.tech drops them
+// on its rate-limit replies, which the browser then reports as a blocked request, so it is the fallback.
+const OFFICIAL_RPCS = ["https://xlayerrpc.okx.com", "https://rpc.xlayer.tech"];
+// With a server of our own (VITE_API_URL), the browser reads X Layer through it, same origin, so a public RPC's
+// rate-limit reply can never surface as a blocked request; the public RPCs stay behind it as fallbacks. The
+// on-chain copy on DeWEB has no server and talks to the public RPCs directly.
+const API_RPC = (import.meta.env.VITE_API_URL as string | undefined) ? `${import.meta.env.VITE_API_URL as string}/api/rpc` : location.hostname === "localhost" ? "http://localhost:8787/api/rpc" : null;
+const rpcs: string[] = (import.meta.env.VITE_RPC as string | undefined)
+  ? [import.meta.env.VITE_RPC as string]
+  : NETWORK === "xlayer"
+    ? [...(API_RPC ? [API_RPC] : []), ...OFFICIAL_RPCS]
+    : [deployment?.rpc ?? "https://xlayerrpc.okx.com"];
+const rpc = rpcs[0] ?? "https://xlayerrpc.okx.com";
+const chain = { ...xLayer, rpcUrls: { default: { http: rpcs } } };
+export const publicClient: PublicClient = createPublicClient({ chain, transport: fallback(rpcs.map((u) => http(u))) }) as PublicClient;
+/** One client per official RPC, for spreading heavy read loads (the proof page's full check). */
 export const readClients: PublicClient[] =
   NETWORK === "xlayer"
-    ? ["https://rpc.xlayer.tech", "https://xlayerrpc.okx.com"].map((u) => createPublicClient({ chain: { ...xLayer, rpcUrls: { default: { http: [u] } } }, transport: http(u) }) as PublicClient)
+    ? OFFICIAL_RPCS.map((u) => createPublicClient({ chain: { ...xLayer, rpcUrls: { default: { http: [u] } } }, transport: http(u) }) as PublicClient)
     : [publicClient];
 
 interface Eip1193 {
@@ -75,7 +87,7 @@ export async function connectWallet(): Promise<WalletClient> {
   } catch {
     await provider.request({
       method: "wallet_addEthereumChain",
-      params: [{ chainId: "0xc4", chainName: "X Layer", nativeCurrency: { name: "OKB", symbol: "OKB", decimals: 18 }, rpcUrls: ["https://rpc.xlayer.tech"], blockExplorerUrls: ["https://www.oklink.com/xlayer"] }],
+      params: [{ chainId: "0xc4", chainName: "X Layer", nativeCurrency: { name: "OKB", symbol: "OKB", decimals: 18 }, rpcUrls: OFFICIAL_RPCS, blockExplorerUrls: ["https://www.oklink.com/xlayer"] }],
     });
   }
   return createWalletClient({ chain, transport: custom(provider), account: address });

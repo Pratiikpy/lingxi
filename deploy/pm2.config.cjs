@@ -27,7 +27,7 @@ module.exports = {
         LINGXI_ORIGINS: "https://lingxi.knole.me",
         LINGXI_RELAYER_KEY_FILE: path.join(secrets, "relayer.env"),
         LINGXI_PROCESSOR: "0xf70d324Da8C1C4Cb0dE3FF147E53E7E9db543c4e",
-        LINGXI_RPC: "https://rpc.xlayer.tech",
+        LINGXI_RPC: "https://xlayerrpc.okx.com",
         LINGXI_BRAIN_STORE: path.join(root, "services", "api", "data", "brains-xlayer.json"),
         LINGXI_RELAY_PER_DAY: "100",
         LINGXI_PUSH_KEY_FILE: path.join(secrets, "push.env"),

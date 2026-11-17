@@ -1,6 +1,6 @@
 {
   "chainId": 196,
-  "rpc": "https://rpc.xlayer.tech",
+  "rpc": "https://xlayerrpc.okx.com",
   "processor": "0xf70d324Da8C1C4Cb0dE3FF147E53E7E9db543c4e",
   "processorIndex": 419,
   "transistors": "0x92DFda52386386Be40EFd7becB545139372C7139",

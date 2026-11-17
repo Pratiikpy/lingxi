@@ -41,7 +41,7 @@ export const WINDOW = 100;
 export function createIndexer(opts: { rpc: string; registry: Address; fromBlock: number; store?: string; client?: PublicClient; paceMs?: number }) {
   const pub = opts.client ?? (createPublicClient({ transport: http(opts.rpc, { timeout: 20_000, retryCount: 0 }) }) as PublicClient);
   // the two official X Layer nodes take turns, halving the load on each
-  const pubs: PublicClient[] = opts.client ? [opts.client] : [opts.rpc, ...(opts.rpc === "https://rpc.xlayer.tech" ? ["https://xlayerrpc.okx.com"] : [])].map((u) => createPublicClient({ transport: http(u, { timeout: 20_000, retryCount: 0 }) }) as PublicClient);
+  const pubs: PublicClient[] = opts.client ? [opts.client] : [opts.rpc, ...["https://xlayerrpc.okx.com", "https://rpc.xlayer.tech"].filter((u) => u !== opts.rpc && opts.rpc.includes("xlayer"))].map((u) => createPublicClient({ transport: http(u, { timeout: 20_000, retryCount: 0 }) }) as PublicClient);
   let data: Stored = { v: STORE_VERSION, next: opts.fromBlock, pets: {}, times: {} };
   if (opts.store && existsSync(opts.store)) {
     try {

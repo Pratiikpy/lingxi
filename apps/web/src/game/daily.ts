@@ -11,7 +11,7 @@ import { xLayer } from "@lingxi/chain";
 import { DAY_MS, dailyPartnerIndex, dailySeed, dayIndex, firstBlockAtOrAfter } from "@lingxi/game";
 
 const KEY = "lingxi.daily.v1";
-const RPCS = ["https://rpc.xlayer.tech", "https://xlayerrpc.okx.com"];
+const RPCS = ["https://xlayerrpc.okx.com", "https://rpc.xlayer.tech"];
 
 export interface DailyBlock {
   day: number;

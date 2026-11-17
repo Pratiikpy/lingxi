@@ -38,6 +38,7 @@ import { createIndexer, type Indexer } from "./indexer";
 import { createGoalLedger, withGoals } from "./goals";
 import { withVouchers } from "./voucher";
 import { createPapersStore, withPapers } from "./papers";
+import { withRpcProxy } from "./rpc";
 import { privateKeyToAccount } from "viem/accounts";
 import { createSalesCounter, withNumbers } from "./numbers";
 import { buildTree } from "./tree";
@@ -535,6 +536,8 @@ if (isMain) {
       process.stderr.write(`agent API without chain reads: ${(e as Error).message}\n`);
     }
     withAgentApi(app, { agents: createAgentStore(process.env.LINGXI_AGENT_STORE), seasons, ...(chain ? { chain } : {}) });
+    // the browser's door to X Layer: same origin, so a rate-limited public RPC can never look like a blocked request
+    withRpcProxy(app, { upstreams: [rpc, ...["https://xlayerrpc.okx.com", "https://rpc.xlayer.tech"].filter((u) => u !== rpc)] });
     // adoption papers (plan 4.8): posted by the owner of a pet on offer, fetched by the buyer's game
     if (chain?.deployment.adoptionCentre) {
       const { pub, deployment } = chain;
