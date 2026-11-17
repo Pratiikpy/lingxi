@@ -376,9 +376,33 @@ function play(p: Player, q: QuestDef) {
   p.log.push(q.id);
 }
 
+/**
+ * The quest as a player reads it in each language, with the pet's name filled in as the game fills it: title,
+ * every line of the introduction and closing, every objective. English must read as English and Chinese as Chinese,
+ * nothing may be empty, and no placeholder may be left unfilled.
+ */
+const CJK = /[\u3400-\u9fff]/;
+const read: Record<"en" | "zh", number> = { en: 0, zh: 0 };
+function readBoth(q: QuestDef): string[] {
+  const faults: string[] = [];
+  for (const lang of ["en", "zh"] as const) {
+    const name = lang === "zh" ? "团团" : "Mochi";
+    const texts = [q.title[lang], ...q.intro.map((l) => l[lang]), ...q.outro.map((l) => l[lang]), ...q.objectives.map((o) => o.text[lang])];
+    for (const raw of texts) {
+      const t = raw.replaceAll("{name}", name);
+      read[lang]++;
+      if (!t.trim()) faults.push(`${q.id} ${lang}: empty`);
+      else if (/\{\w+\}/.test(t)) faults.push(`${q.id} ${lang}: unfilled "${t.slice(0, 40)}"`);
+      else if (lang === "zh" && !CJK.test(t)) faults.push(`${q.id} zh: not Chinese "${t.slice(0, 40)}"`);
+      else if (lang === "en" && CJK.test(t)) faults.push(`${q.id} en: Chinese in English "${t.slice(0, 40)}"`);
+    }
+  }
+  return faults;
+}
 describe("the automated playthrough", () => {
   it("finishes all 80 story quests through the game's own rules, alone", () => {
     const p = new Player();
+    const faults: string[] = [];
     const left = new Set(STORY.map((q) => q.id));
     for (let round = 0; left.size && round < 100; round++) {
       let progressed = false;
@@ -388,6 +412,7 @@ describe("the automated playthrough", () => {
         const trustOk = q.objectives.every((o) => o.cond.type !== "TRUST_LEVEL" || questStatus(q, p.w, p.view()) !== "locked");
         if (!reqsMet || !trustOk) continue;
         play(p, q);
+        faults.push(...readBoth(q));
         left.delete(q.id);
         progressed = true;
       }
@@ -395,6 +420,10 @@ describe("the automated playthrough", () => {
     }
     expect([...left], "quests the playthrough could not reach").toEqual([]);
     expect(p.log).toHaveLength(80);
+    // every quest played was read in both languages as it was handed in
+    expect(faults, "quest text a player could not read").toEqual([]);
+    expect(read.en).toBe(read.zh);
+    expect(read.en).toBeGreaterThan(80 * 4);
     // nothing asks a player to wait more than a night (36-QUEST-LINE.md §1), except quests that are about days:
     // saving several days, or coming back on different days
     const aboutDays = (q: QuestDef) => q.objectives.some((o) => (o.cond.type === "SAVE" && (o.cond.value ?? 1) > 1) || /HEALTHY_DAY|MEET_DAY/.test(String(o.cond.index)));
@@ -410,6 +439,7 @@ describe("the automated playthrough", () => {
   it("finishes every daily, across real days, and earns the weekly gift without a streak", () => {
     const p = new Player();
     const seen = new Set<string>();
+    const faults: string[] = [];
     let day = 0;
     for (; seen.size < DAILIES.length && day < 120; day += 2) {
       p.now = Date.UTC(2026, 10, 16, 8) + day * 86_400_000; // every other day: gaps never cost anything
@@ -419,10 +449,12 @@ describe("the automated playthrough", () => {
         for (const o of q.objectives) satisfy(p, o.cond, q);
         expect(questStatus(q, p.w, p.view()), `${id} on day ${day}`).toBe("ready");
         p.must(completeQuest(p.w, q, p.view()), `hand in ${id}`);
+        faults.push(...readBoth(q));
         seen.add(id);
       }
     }
     expect(DAILIES.filter((q) => !seen.has(q.id)).map((q) => q.id)).toEqual([]);
+    expect(faults, "daily text a player could not read").toEqual([]);
     expect(weeklyGiftsWaiting(p.w)).toBeGreaterThanOrEqual(1);
     const coins = p.w.coins;
     p.must(claimWeekly(p.w, WEEKLY_GIFT), "weekly gift");
