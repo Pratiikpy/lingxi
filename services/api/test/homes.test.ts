@@ -144,11 +144,35 @@ describe("what visitors see (plan 4.9)", () => {
     expect(await homes.colourOf(HOME, "999")).toBe(0);
     for (const bad of ["0", "-1", "abc", 7, null]) expect(await homes.colourOf(HOME, bad)).toBe(0);
   });
+
+  it("a colour changed on chain is read again on request, but no more than once every few seconds", async () => {
+    const { state, chain } = fakeChain();
+    let t = 1_000_000;
+    const homes = createHomes({ chain, now: () => t });
+    state.owners["7"] = alice.address;
+    state.colours["7"] = 3;
+    await homes.link(HOME, alice.address, await alice.signMessage({ message: homeLinkMessage(HOME) }));
+    expect(await homes.colourOf(HOME, "7")).toBe(3);
+    state.colours["7"] = 5;
+    // an ordinary reading keeps the cached colour for a minute
+    t += 10_000;
+    expect(await homes.colourOf(HOME, "7")).toBe(3);
+    // a fresh reading looks again
+    expect(await homes.colourOf(HOME, "7", true)).toBe(5);
+    // asked again at once, it does not touch the chain: a client cannot make the server read on every message
+    state.colours["7"] = 6;
+    const reads = state.reads;
+    t += 1_000;
+    expect(await homes.colourOf(HOME, "7", true)).toBe(5);
+    expect(state.reads).toBe(reads);
+    t += 5_000;
+    expect(await homes.colourOf(HOME, "7", true)).toBe(6);
+  });
 });
 
 describe("the live room with linked homes (plan 4.9)", () => {
   const { state, chain } = fakeChain();
-  const rooms = new LiveRooms(createDecorStore(), createHomes({ chain }));
+  const rooms = new LiveRooms(createDecorStore(), createHomes({ chain, freshMs: 0 }));
   const http = createServer();
   let port = 0;
   beforeAll(async () => {
@@ -241,6 +265,58 @@ describe("the live room with linked homes (plan 4.9)", () => {
     send(a, { t: "hello", id: "colourful1", name: "Mochi", line: "gentle", stage: "child", mood: 2, space: "room:70", petId: "41" });
     await b.next("joined");
     expect(await b.next("colour")).toEqual({ t: "colour", id: "colourful1", colour: 6 });
+    a.ws.close();
+    b.ws.close();
+  });
+
+  it("a pet already in a room gains its colour when the wallet is linked, and loses it when unlinked", async () => {
+    state.owners["52"] = bob.address;
+    state.colours["52"] = 4;
+    const a = await connect();
+    send(a, { t: "hello", id: "linklater1", name: "Pip", line: "gentle", stage: "baby", mood: 1, space: "room:71", petId: "52" });
+    await a.next("room");
+    const b = await connect();
+    send(b, { t: "hello", id: "watcher44", name: "Tofu", line: "bold", stage: "child", mood: 2, space: "room:71" });
+    const room = await b.next("room");
+    // not linked yet: the pet is in the room with a plain name
+    expect((room.members as Array<Record<string, unknown>>).find((m) => m.id === "linklater1")?.colour).toBeUndefined();
+    send(a, { t: "link", key: KEY, wallet: bob.address, signature: await bob.signMessage({ message: homeLinkMessage("linklater1") }) });
+    await a.next("linked");
+    expect(await b.next("colour")).toEqual({ t: "colour", id: "linklater1", colour: 4 });
+    // someone arriving now sees the colour in the room list itself
+    const c = await connect();
+    send(c, { t: "hello", id: "watcher55", name: "Bean", line: "curious", stage: "child", mood: 2, space: "room:71" });
+    expect(((await c.next("room")).members as Array<Record<string, unknown>>).find((m) => m.id === "linklater1")?.colour).toBe(4);
+    send(a, { t: "unlink", key: KEY, wallet: bob.address });
+    await a.next("linked");
+    expect(await b.next("colour")).toEqual({ t: "colour", id: "linklater1", colour: 0 });
+    expect(await c.next("colour")).toEqual({ t: "colour", id: "linklater1", colour: 0 });
+    for (const p of [a, b, c]) p.ws.close();
+  });
+
+  it("a colour changed on chain shows when the player asks the server to look again", async () => {
+    state.owners["53"] = alice.address;
+    state.colours["53"] = 2;
+    const a = await connect();
+    send(a, { t: "hello", id: "recolour01", name: "Pip", line: "gentle", stage: "baby", mood: 1, space: "home:recolour01" });
+    await a.next("room");
+    send(a, { t: "link", key: KEY, wallet: alice.address, signature: await alice.signMessage({ message: homeLinkMessage("recolour01") }) });
+    await a.next("linked");
+    const b = await connect();
+    send(b, { t: "hello", id: "watcher66", name: "Tofu", line: "bold", stage: "child", mood: 2, space: "room:72" });
+    await b.next("room");
+    send(a, { t: "hello", id: "recolour01", name: "Pip", line: "gentle", stage: "baby", mood: 1, space: "room:72", petId: "53" });
+    expect(await b.next("colour")).toEqual({ t: "colour", id: "recolour01", colour: 2 });
+    state.colours["53"] = 7;
+    send(a, { t: "recolour" });
+    expect(await b.next("colour")).toEqual({ t: "colour", id: "recolour01", colour: 7 });
+    // back to plain on chain: the room hears 0
+    state.colours["53"] = 0;
+    send(a, { t: "recolour" });
+    expect(await b.next("colour")).toEqual({ t: "colour", id: "recolour01", colour: 0 });
+    // nothing changed: nothing is sent
+    send(a, { t: "recolour" });
+    await expect(b.next("colour", 500)).rejects.toThrow("no colour");
     a.ws.close();
     b.ws.close();
   });

@@ -74,6 +74,8 @@ interface LiveState {
   /** link a wallet that signed `homeLinkMessage(playerId())`, or unlink one */
   link: (wallet: string, signature: string) => void;
   unlink: (wallet: string) => void;
+  /** after the player changed the pet's name colour on chain: ask the server to look again */
+  recolour: () => void;
   /** last emote others sent to us, for the scene */
   incoming: { from: string; kind: string; at: number } | null;
   /** a friend's pet card we asked for, to spar against */
@@ -184,7 +186,9 @@ export const useLive = create<LiveState>((set, get) => {
         case "colour": {
           const x = members[m.id as string];
           if (!x || !Number.isInteger(m.colour)) return;
-          members[x.id] = { ...x, colour: m.colour as number };
+          // 0 is plain: the server stopped vouching for the colour (a wallet was unlinked, or it changed on chain)
+          const { colour: _was, ...rest } = x;
+          members[x.id] = (m.colour as number) > 0 ? { ...rest, colour: m.colour as number } : rest;
           return set({ members });
         }
         case "linked":
@@ -243,6 +247,7 @@ export const useLive = create<LiveState>((set, get) => {
     linkAnswer: null,
     link: (wallet, signature) => send({ t: "link", key: decorKey(), wallet, signature }),
     unlink: (wallet) => send({ t: "unlink", key: decorKey(), wallet }),
+    recolour: () => send({ t: "recolour" }),
     shareDecor: (placed) => {
       const next = JSON.stringify(placed);
       if (next === decorShared) return;

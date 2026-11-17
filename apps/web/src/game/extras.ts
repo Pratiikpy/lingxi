@@ -68,6 +68,8 @@ export async function buyRoomOrLooks(wallet: WalletClient, kind: "room" | "looks
 export async function setNameColour(wallet: WalletClient, petId: string, colour: number, price: bigint): Promise<string> {
   const tx = await colourName(publicClient, wallet, deployment!, BigInt(petId), colour, price);
   useExtras.setState((s) => ({ colours: { ...s.colours, [petId]: colour } }));
+  // so friends in the same room see the new colour without waiting for the server's next reading
+  useLive.getState().recolour();
   return tx;
 }
 

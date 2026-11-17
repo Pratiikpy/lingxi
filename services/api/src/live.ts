@@ -45,6 +45,8 @@ interface Client {
   /** who has asked this client's owner to raise a little one together, and when */
   proposals: Map<string, number>;
   space: string | null;
+  /** the pet's id on X Layer, as the client said in its hello; its name colour is read from it */
+  petId: string | null;
   tokens: number;
   last: number;
 }
@@ -90,6 +92,24 @@ export class LiveRooms {
     const placed = await this.shown(owner);
     const home = `home:${owner}`;
     for (const key of this.spaces.keys()) if (key === home || key.startsWith(`${home}#`)) this.broadcast(key, { t: "decor", owner, placed });
+  }
+
+  /**
+   * Reads a member's name colour and tells everyone in its space when it changed (colour 0 is plain). A colour is
+   * only ever given while a wallet linked to the player's home owns the pet; see Homes.colourOf.
+   */
+  private async recolour(c: Client, fresh: boolean): Promise<void> {
+    if (!this.homes) return;
+    const id = c.member.id;
+    const petId = c.petId;
+    const colour = petId ? await this.homes.colourOf(id, petId, fresh) : 0;
+    // the client may have said hello as another pet in the meantime; then that hello's reading counts
+    if (c.member.id !== id || c.petId !== petId || (c.member.colour ?? 0) === colour) return;
+    const next: Member = { ...c.member };
+    if (colour) next.colour = colour;
+    else delete next.colour;
+    c.member = next;
+    if (c.space) this.broadcast(c.space, { t: "colour", id, colour });
   }
 
   stats(): { online: number; spaces: number } {
@@ -160,7 +180,7 @@ export class LiveRooms {
   }
 
   handle(ws: WebSocket): void {
-    const c: Client = { ws, card: null, proposals: new Map(), member: { id: "", name: "", line: "gentle", stage: "baby", mood: 1, x: 64 }, space: null, tokens: 8, last: Date.now() };
+    const c: Client = { ws, card: null, proposals: new Map(), member: { id: "", name: "", line: "gentle", stage: "baby", mood: 1, x: 64 }, space: null, petId: null, tokens: 8, last: Date.now() };
     this.clients.add(c);
     ws.on("message", (raw, isBinary) => {
       if (isBinary) return;
@@ -198,14 +218,8 @@ export class LiveRooms {
         const space = validSpace(m.space);
         if (space) this.join(c, space);
         // the pet's name colour, only when a wallet linked to this player's home owns the pet on X Layer
-        if (this.homes && typeof m.petId === "string") {
-          const petId = m.petId;
-          void this.homes.colourOf(id, petId).then((colour) => {
-            if (!colour || c.member.id !== id) return;
-            c.member = { ...c.member, colour };
-            if (c.space) this.broadcast(c.space, { t: "colour", id, colour });
-          });
-        }
+        c.petId = typeof m.petId === "string" && /^\d{1,20}$/.test(m.petId) ? m.petId : null;
+        void this.recolour(c, false);
         return;
       }
       case "go": {
@@ -247,10 +261,18 @@ export class LiveRooms {
         if (!this.decor.authorise(owner, m.key)) return this.send(c, { t: "linked", ok: false, reason: "key" });
         const done = (r: { ok: true; wallets: string[] } | { ok: false; reason: string }) => {
           this.send(c, r.ok ? { t: "linked", ok: true, wallets: r.wallets } : { t: "linked", ok: false, reason: r.reason });
-          if (r.ok) void this.showHome(owner);
+          if (!r.ok) return;
+          void this.showHome(owner);
+          // the player's pets already out in rooms gain or lose their colour with the wallets that vouch for it
+          for (const other of this.clients) if (other.member.id === owner) void this.recolour(other, false);
         };
         if (m.t === "unlink") done(this.homes.unlink(owner, m.wallet));
         else void this.homes.link(owner, m.wallet, m.signature).then(done);
+        return;
+      }
+      case "recolour": {
+        // the player changed the name colour on chain: look again (the homes service limits how often)
+        if (c.member.id) void this.recolour(c, true);
         return;
       }
       case "links": {

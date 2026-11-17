@@ -15,6 +15,8 @@ import type { Placed } from "./decor";
 export { homeLinkMessage };
 export const MAX_LINKED = 4;
 const CACHE_MS = 60_000;
+/** A fresh colour reading (after the player changed it on chain) is taken at most this often per pet. */
+const FRESH_MS = 5_000;
 const OWNER_ID = /^[a-z0-9]{6,32}$/;
 const SAVE_DELAY_MS = 2_000;
 
@@ -44,12 +46,14 @@ export interface Homes {
   link: (owner: string, wallet: unknown, signature: unknown) => Promise<{ ok: true; wallets: Address[] } | { ok: false; reason: "invalid" | "signature" | "full" }>;
   unlink: (owner: string, wallet: unknown) => { ok: true; wallets: Address[] } | { ok: false; reason: "invalid" };
   view: (owner: string) => Promise<HomeView>;
-  /** the colour a pet's name shows with in this player's company: 0 unless a linked wallet owns the pet */
-  colourOf: (owner: string, petId: unknown) => Promise<number>;
+  /** the colour a pet's name shows with in this player's company: 0 unless a linked wallet owns the pet. `fresh`
+   * looks at the chain again (after the player changed it), at most once every few seconds per pet. */
+  colourOf: (owner: string, petId: unknown, fresh?: boolean) => Promise<number>;
 }
 
-export function createHomes(opts: { chain?: HomeChain; file?: string; now?: () => number } = {}): Homes {
+export function createHomes(opts: { chain?: HomeChain; file?: string; now?: () => number; freshMs?: number } = {}): Homes {
   const now = opts.now ?? Date.now;
+  const freshMs = opts.freshMs ?? FRESH_MS;
   const links = new Map<string, Address[]>();
   if (opts.file && existsSync(opts.file)) {
     try {
@@ -133,13 +137,13 @@ export function createHomes(opts: { chain?: HomeChain; file?: string; now?: () =
         return cached?.view ?? BARE;
       }
     },
-    colourOf: async (owner, petId) => {
+    colourOf: async (owner, petId, fresh = false) => {
       if (typeof petId !== "string" || !/^\d{1,20}$/.test(petId) || petId === "0") return 0;
       const ws = wallets(owner);
       if (!ws.length || !opts.chain) return 0;
       const key = `${owner}:${petId}`;
       const cached = colours.get(key);
-      if (cached && now() - cached.at < CACHE_MS) return cached.colour;
+      if (cached && now() - cached.at < (fresh ? freshMs : CACHE_MS)) return cached.colour;
       try {
         const id = BigInt(petId);
         const holder = getAddress(await opts.chain.ownerOf(id));
