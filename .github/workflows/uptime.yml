@@ -5,7 +5,8 @@ name: Uptime
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    # every ten minutes at minute 7, 17, 27…: GitHub drops scheduled runs under load, most at the top of the hour
+    - cron: "7-59/10 * * * *"
   workflow_dispatch:
     inputs:
       url:
