@@ -18,6 +18,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createPublicClient, http, parseAbi, type Address, type Hex, hexToString } from "viem";
 import { hasBannedName, scanNames } from "../packages/world/src/names.ts";
 
 type Verdict = "PASS" | "FAIL" | "PENDING";
@@ -37,7 +38,7 @@ const onlyArg = args.find((a) => a.startsWith("--only"));
 const only = onlyArg ? (onlyArg.includes("=") ? onlyArg.split("=")[1]! : args[args.indexOf(onlyArg) + 1]!).split(",") : null;
 
 const LIVE = process.env.LINGXI_LIVE_URL ?? "https://lingxi.knole.me";
-const DEWEB = process.env.LINGXI_DEWEB_URL ?? "https://1-2-419.tapekit.org";
+const DEWEB_URL = process.env.LINGXI_DEWEB_URL ?? "https://1-2-419.tapekit.org";
 const PLAN = process.env.LINGXI_PLAN ?? join(root, "..", "40-MASTER-PLAN.md");
 const STATUS = process.env.LINGXI_BUILD_STATUS ?? join(root, "..", "BUILD-STATUS.md");
 const TAIL_LINES = 25;
@@ -163,11 +164,26 @@ function promiseChecks(): void {
 
 // ---------------------------------------------------------------- sites
 
+/** DeWEB keeps each file on chain; the gateway answers a plain request with its own loader, so read the file itself. */
+const DEWEB = { opener: "0x536adD8F30f03b69f6fbF29d425A816A0dC50106", sites: "0xd6EFb7adCc9c83dC4924Ad56f6a8E4e969b9ADB6", circuit: 1n } as const;
+async function onChainFile(path: string): Promise<string> {
+  const deployment = JSON.parse(readFileSync(join(root, "packages/chain/deployments/xlayer.json"), "utf8")) as { processor: Address };
+  const pub = createPublicClient({ transport: http("https://rpc.xlayer.tech", { timeout: 20_000 }) });
+  const container = (await pub.readContract({ address: DEWEB.opener, abi: parseAbi(["function accountOf(address circuits, uint256 tokenId) view returns (address)"]), functionName: "accountOf", args: [deployment.processor, DEWEB.circuit] })) as Address;
+  const bytes = (await pub.readContract({ address: DEWEB.sites, abi: parseAbi(["function readRange(address container, string path, uint256 offset, uint256 length) view returns (bytes)"]), functionName: "readRange", args: [container, path, 0n, 4096n] })) as Hex;
+  return hexToString(bytes);
+}
+
 async function served(base: string): Promise<{ commit: string; dirty: boolean; builtAt: string } | string> {
   try {
-    const r = await fetch(`${base}/build.json`, { signal: AbortSignal.timeout(20_000), headers: { "cache-control": "no-cache" } });
-    if (!r.ok) return `HTTP ${r.status} for /build.json`;
-    const j = (await r.json()) as { commit?: unknown; dirty?: unknown; builtAt?: unknown };
+    let text: string;
+    if (base === DEWEB_URL) text = await onChainFile("build.json");
+    else {
+      const r = await fetch(`${base}/build.json`, { signal: AbortSignal.timeout(20_000), headers: { "cache-control": "no-cache" } });
+      if (!r.ok) return `HTTP ${r.status} for /build.json`;
+      text = await r.text();
+    }
+    const j = JSON.parse(text) as { commit?: unknown; dirty?: unknown; builtAt?: unknown };
     if (typeof j.commit !== "string") return "build.json has no commit";
     return { commit: j.commit, dirty: j.dirty === true, builtAt: String(j.builtAt) };
   } catch (e) {
@@ -180,7 +196,7 @@ async function siteChecks(): Promise<void> {
   const dirty = git("status", "--porcelain", "--untracked-files=no").trim().length > 0;
   record("sites", "this checkout is committed", dirty ? "FAIL" : "PASS", dirty ? "uncommitted changes: a site cannot be serving them honestly" : head.slice(0, 12), Date.now());
 
-  for (const [name, base] of [["live site", LIVE], ["on-chain copy", DEWEB]] as const) {
+  for (const [name, base] of [["live site", LIVE], ["on-chain copy (read from X Layer)", DEWEB_URL]] as const) {
     const t = Date.now();
     const s = await served(base);
     if (typeof s === "string") {
