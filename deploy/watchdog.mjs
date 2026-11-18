@@ -27,7 +27,7 @@ async function answers(url) {
 const restart = (name) =>
   new Promise((resolve) => {
     // pm2 is installed for the whole user (the logon task resurrects it the same way)
-    execFile("cmd.exe", ["/c", "pm2", "restart", name], { windowsHide: true }, (err, out) => resolve(err ? `failed: ${err.message.split("\n")[0]}` : out.trim().split("\n").at(-1) ?? "done"));
+    execFile("cmd.exe", ["/c", "pm2", "restart", name], { windowsHide: true }, (err) => resolve(err ? `failed: ${err.message.split("\n")[0]}` : `restarted ${name}`));
   });
 
 let watch = initialWatch();
