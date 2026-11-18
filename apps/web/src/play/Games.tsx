@@ -226,27 +226,38 @@ function PatternGame({ onEnd }: { onEnd: (score: number) => void }) {
   const [pos, setPos] = useState(0);
   // the light of the player's last press; the showing cancels it and puts it out itself (A9)
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // the showing: its steps, and the one on screen (-1 before the first)
+  const steps = useMemo(() => showSteps(seq, reduce ? 700 : 560), [seq, reduce]);
+  const [shown, setShown] = useState(-1);
+  const litPad = phase === "show" && shown >= 0 ? steps[shown]!.lit : lit;
 
+  // a showing begins: the press's own timer is cancelled, and the first step comes after its time
   useEffect(() => {
     if (phase !== "show") return;
     if (pressTimer.current) clearTimeout(pressTimer.current);
-    const steps = showSteps(seq, reduce ? 700 : 560);
-    // each step is timed from the one before, so a phone that runs a timer late stretches the showing but never cuts
-    // a light short
-    let timer: ReturnType<typeof setTimeout>;
-    const step = (i: number) => {
-      if (i === steps.length) {
+    setShown(-1);
+    const id = setTimeout(() => setShown(0), steps[0]!.at);
+    return () => clearTimeout(id);
+  }, [phase, steps]);
+
+  // each step, once it is on screen (an effect runs after the change is shown), waits its time before the next: a
+  // busy or slow phone stretches the showing, and never cuts a light short
+  useEffect(() => {
+    if (phase !== "show" || shown < 0) return;
+    if (steps[shown]!.lit !== null) play("tap");
+    const last = shown === steps.length - 1;
+    const id = setTimeout(
+      () => {
+        if (!last) return setShown(shown + 1);
+        setLit(null);
+        setShown(-1);
         setPhase("input");
         setPos(0);
-        return;
-      }
-      setLit(steps[i]!.lit);
-      if (steps[i]!.lit !== null) play("tap");
-      timer = setTimeout(() => step(i + 1), i + 1 < steps.length ? steps[i + 1]!.at - steps[i]!.at : 0);
-    };
-    timer = setTimeout(() => step(0), steps[0]!.at);
-    return () => clearTimeout(timer);
-  }, [phase, seq, reduce]);
+      },
+      last ? 0 : steps[shown + 1]!.at - steps[shown]!.at,
+    );
+    return () => clearTimeout(id);
+  }, [phase, shown, steps]);
 
   const press = (k: number) => {
     if (phase !== "input") return;
@@ -273,7 +284,7 @@ function PatternGame({ onEnd }: { onEnd: (score: number) => void }) {
       </div>
       <div className="pads">
         {PADS.map(([icon, color], k) => (
-          <button key={k} type="button" className={`pad${lit === k ? " lit" : ""}`} style={{ ["--pad" as string]: color }} onClick={() => press(k)} disabled={phase !== "input"} aria-label={icon}>
+          <button key={k} type="button" className={`pad${litPad === k ? " lit" : ""}`} style={{ ["--pad" as string]: color }} onClick={() => press(k)} disabled={phase !== "input"} aria-label={icon}>
             <Icon name={icon} size={30} />
           </button>
         ))}

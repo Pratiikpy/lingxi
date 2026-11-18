@@ -1,8 +1,9 @@
 /**
- * The timing of "Follow the Pattern"'s showing (A9). A round is shown as a timeline the game plays from the moment
- * the round begins: the press that ended the last round goes out, the pads stay dark for a clear pause, then each pad
- * is lit for half a step with dark between. The showing owns every light while it plays, so the player's last press
- * can neither run into the first light (the same pad) nor, on a slow phone whose timers run late, switch it off.
+ * The timing of "Follow the Pattern"'s showing (A9). A round is shown as a list of steps: the press that ended the
+ * last round goes out, the pads stay dark for a clear pause, then each pad is lit for half a step with dark between.
+ * The game waits each step's time from when the step before reached the screen, so a busy or slow phone stretches the
+ * showing and never cuts a light short; and the showing owns every light while it plays, so the player's last press
+ * can neither run into the first light (the same pad) nor switch it off.
  */
 
 /** How long a press lights its pad. */
