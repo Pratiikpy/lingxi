@@ -67,9 +67,13 @@ describe("keccak-256 and the log chain", () => {
 });
 
 /** compare the core with the reference evaluator on every input word and a set of states */
-function sweep(core: HandheldCore, c: Circuit, states: number[][], label: string): void {
+/** Lets the test worker answer its runner between long stretches of work, so an exhaustive check never looks hung. */
+const breathe = () => new Promise<void>((r) => setImmediate(r));
+
+async function sweep(core: HandheldCore, c: Circuit, states: number[][], label: string): Promise<void> {
   const nIn = c.nIn;
   for (const s of states) {
+    await breathe();
     for (let w = 0; w < 1 << nIn; w++) {
       const inputs = wordToBits(w, nIn);
       const [ns, outs] = beat(c, s, inputs);
@@ -96,7 +100,7 @@ describe("the TAP-02 evaluator", () => {
       const c = load(bytes, 16, 8);
       expect(core.loadCircuit(circuitBlob(bytes, 16, 8))).toBe("ok");
       expect(core.shape()).toEqual({ nIn: 16, nOut: 8, nState: c.nState, nGates: c.nGates });
-      sweep(core, c, someStates(c.nState, 3, 6), line);
+      await sweep(core, c, someStates(c.nState, 3, 6), line);
     }
   }, 600_000);
 
@@ -107,6 +111,7 @@ describe("the TAP-02 evaluator", () => {
     expect(core.loadCircuit(circuitBlob(netlistBytes(n), 16, 8))).toBe("ok");
     const nState = n.latches.length;
     for (let s = 0; s < 1 << nState; s++) {
+      await breathe();
       const state = Uint8Array.from(wordToBits(s, nState));
       for (let w = 0; w < 1 << 16; w++) {
         const ref = state.slice();
@@ -134,7 +139,7 @@ describe("the TAP-02 evaluator", () => {
     for (const [name, bytes, nIn, nOut] of circuits) {
       const c = load(bytes, nIn, nOut);
       expect(core.loadCircuit(circuitBlob(bytes, nIn, nOut)), name).toBe("ok");
-      sweep(core, c, someStates(c.nState, 5, c.nState ? 3 : 1), name);
+      await sweep(core, c, someStates(c.nState, 5, c.nState ? 3 : 1), name);
     }
   }, 600_000);
 
@@ -153,7 +158,7 @@ describe("the TAP-02 evaluator", () => {
       const c = load(bytes, 16, 8, resolve);
       expect(core.loadCircuit(circuitBlob(bytes, 16, 8, parts)), name).toBe("ok");
       expect(core.shape().nState, name).toBe(c.nState);
-      sweep(core, c, someStates(c.nState, 9, 3), name);
+      await sweep(core, c, someStates(c.nState, 9, 3), name);
     }
   }, 600_000);
 
