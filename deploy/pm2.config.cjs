@@ -1,7 +1,8 @@
 /**
  * Runs Lingxi on one machine: the game server (site, API, live rooms, brain
- * relayer on X Layer mainnet) and the Cloudflare tunnel that gives it its public
- * address. Secrets are read from files outside the repo; none are written here.
+ * relayer on X Layer mainnet), the Cloudflare tunnel that gives it its public
+ * address, and the daily backup of the server's data. Secrets are read from files
+ * outside the repo; none are written here.
  *
  *   pm2 start deploy/pm2.config.cjs && pm2 save
  */
@@ -68,6 +69,14 @@ module.exports = {
       args: ["--config", tunnelConfig, "tunnel", "run", "lingxi"],
       interpreter: "none",
       restart_delay: 5000,
+    },
+    {
+      // once a day: the data folder to a dated copy and to Google Drive, checked (deploy/backup.mjs)
+      name: "lingxi-backup",
+      cwd: root,
+      script: path.join(root, "deploy", "backup.mjs"),
+      cron_restart: "30 3 * * *",
+      autorestart: false,
     },
   ],
 };

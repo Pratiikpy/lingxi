@@ -56,3 +56,13 @@ describe("framing", () => {
     expect(home.headers.get("x-frame-options")).toBe("SAMEORIGIN");
   });
 });
+
+describe("moves waiting at once", () => {
+  it("one address may have only a few, and the rest of the world is not blocked by it", () => {
+    const store = createMoveStore();
+    const save = { "lingxi.pets.v2": "{}" };
+    for (let i = 0; i < 3; i++) expect(store.put(save, "203.0.113.9").ok).toBe(true);
+    expect(store.put(save, "203.0.113.9")).toEqual({ ok: false, reason: "busy" });
+    expect(store.put(save, "198.51.100.1").ok).toBe(true);
+  });
+});

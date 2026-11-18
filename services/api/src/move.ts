@@ -14,15 +14,18 @@ export const MOVE_TTL_MS = 15 * 60_000;
 /** The largest save one move may carry (characters across all its entries). */
 export const MAX_MOVE_CHARS = 3_000_000;
 const MAX_HELD = 500;
-/** All waiting moves together never hold more than this (characters), whatever their count. */
-export const MAX_HELD_CHARS = 150_000_000;
+/** All waiting moves together never hold more than this (characters), whatever their count: well under the memory
+ * the server is restarted at (pm2 600 MB), with room for everything else it holds. */
+export const MAX_HELD_CHARS = 64_000_000;
+/** Moves one address may have waiting at once. */
+export const MAX_WAITING_PER_OWNER = 3;
 
 const KEY = /^lingxi\.[a-z0-9_.-]{1,40}$/i;
 export const MoveSave = z.record(z.string().regex(KEY), z.string().max(MAX_MOVE_CHARS)).refine((r) => Object.keys(r).length > 0 && Object.keys(r).length <= 64, "entries");
 export type MoveSave = z.infer<typeof MoveSave>;
 
 export function createMoveStore(now: () => number = Date.now) {
-  const held = new Map<string, { save: MoveSave; until: number; size: number }>();
+  const held = new Map<string, { save: MoveSave; until: number; size: number; owner: string }>();
   let heldChars = 0;
   const drop = (k: string) => {
     const v = held.get(k);
@@ -34,16 +37,17 @@ export function createMoveStore(now: () => number = Date.now) {
     for (const [k, v] of held) if (v.until <= t) drop(k);
   };
   return {
-    put(raw: unknown): { ok: true; code: string; expiresAt: number } | { ok: false; reason: "invalid" | "tooBig" | "busy" } {
+    put(raw: unknown, owner = "unknown"): { ok: true; code: string; expiresAt: number } | { ok: false; reason: "invalid" | "tooBig" | "busy" } {
       const parsed = MoveSave.safeParse(raw);
       if (!parsed.success) return { ok: false, reason: "invalid" };
       const size = Object.entries(parsed.data).reduce((n, [k, v]) => n + k.length + v.length, 0);
       if (size > MAX_MOVE_CHARS) return { ok: false, reason: "tooBig" };
       sweep();
       if (held.size >= MAX_HELD || heldChars + size > MAX_HELD_CHARS) return { ok: false, reason: "busy" };
+      if ([...held.values()].filter((v) => v.owner === owner).length >= MAX_WAITING_PER_OWNER) return { ok: false, reason: "busy" };
       const code = randomBytes(16).toString("base64url");
       const until = now() + MOVE_TTL_MS;
-      held.set(code, { save: parsed.data, until, size });
+      held.set(code, { save: parsed.data, until, size, owner });
       heldChars += size;
       return { ok: true, code, expiresAt: until };
     },

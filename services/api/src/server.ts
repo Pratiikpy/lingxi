@@ -7,6 +7,7 @@
  */
 
 import { readdirSync, readFileSync, statSync } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import Anthropic from "@anthropic-ai/sdk";
@@ -301,10 +302,10 @@ export function withSitting(app: Hono, store: SittingStore, writes = new RateLim
     } catch {
       return c.json({ ok: false, reason: "invalid" }, 400);
     }
-    return c.json(store.leave(body.pack, body.keyHash, body.until));
+    return c.json(await store.leave(body.pack, body.keyHash, body.until, who(c)));
   });
-  app.get("/api/sit/:code", (c) => {
-    const r = store.collect(c.req.param("code"));
+  app.get("/api/sit/:code", async (c) => {
+    const r = await store.collect(c.req.param("code"));
     return c.json(r ? { ok: true, ...r } : { ok: false, reason: "unknown" });
   });
   app.post("/api/sit/:code/home", async (c) => {
@@ -316,7 +317,7 @@ export function withSitting(app: Hono, store: SittingStore, writes = new RateLim
     } catch {
       return c.json({ ok: false, reason: "invalid" }, 400);
     }
-    return c.json(store.sendHome(c.req.param("code"), body.key, body.pet) ? { ok: true } : { ok: false, reason: "refused" });
+    return c.json((await store.sendHome(c.req.param("code"), body.key, body.pet)) ? { ok: true } : { ok: false, reason: "refused" });
   });
   return app;
 }
@@ -504,7 +505,7 @@ export function withMove(app: Hono, store: MoveStore, limiter = new RateLimiter(
     } catch {
       return c.json({ ok: false, reason: "invalid" }, 400);
     }
-    const r = store.put((body as { save?: unknown })?.save);
+    const r = store.put((body as { save?: unknown })?.save, ipOf(c));
     return c.json(r, r.ok ? 200 : r.reason === "invalid" ? 400 : r.reason === "tooBig" ? 413 : 503);
   });
   app.post("/api/move/:code/claim", (c) => {
@@ -559,6 +560,17 @@ function makePusher(): Pusher | null {
   );
   if (!env.VAPID_PUBLIC || !env.VAPID_PRIVATE) return null;
   return createPusher({ publicKey: env.VAPID_PUBLIC, privateKey: env.VAPID_PRIVATE, subject: env.VAPID_SUBJECT ?? "https://lingxi.knole.me", store: process.env.LINGXI_PUSH_STORE });
+}
+
+/** The last daily backup (deploy/backup.mjs): how old it is and whether both copies were made. */
+function backupStatus(): { ageHours: number; local: boolean; drive: boolean; error: string | null } | null {
+  try {
+    const file = process.env.LINGXI_BACKUP_STATUS ?? join(homedir(), "lingxi-backups", "last.json");
+    const s = JSON.parse(readFileSync(file, "utf8")) as { at: string; local: boolean; drive: boolean; error: string | null };
+    return { ageHours: Math.round(((Date.now() - Date.parse(s.at)) / 3_600_000) * 10) / 10, local: s.local, drive: s.drive, error: s.error };
+  } catch {
+    return null;
+  }
 }
 
 /** Sizes of the server's data files and folders, in KB, so a store growing without bound shows before it hurts. */
@@ -646,6 +658,7 @@ if (isMain) {
       relayerLow: relayerWei !== null && Number(relayerWei) / 1e18 < Number(process.env.LINGXI_RELAY_ALARM_OKB ?? 0.02),
       relayerUsage: relayer?.usage() ?? null,
       modelTokensToday: client ? { used: modelBudget.used(), perDay: modelBudget.perDay } : null,
+      backup: backupStatus(),
       storesKb: storeSizes(dataDir),
     };
     cached = { at: Date.now(), value };

@@ -1,3 +1,6 @@
+import { existsSync, mkdtempSync, readdirSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { Hono } from "hono";
 import { withSitting } from "../src/server";
@@ -5,6 +8,7 @@ import { createSittingStore, keyHashOf } from "../src/sitting";
 
 const KEY = "c".repeat(32);
 const pack = JSON.stringify({ v: 1, pet: { bornAt: 1 } });
+const big = (n: number) => JSON.stringify({ v: 1, pet: { bornAt: 1 }, pad: "x".repeat(n) });
 
 describe("pet-sitting packs", () => {
   it("leaves, collects and sends home only with the right key", async () => {
@@ -22,17 +26,52 @@ describe("pet-sitting packs", () => {
     expect(await (await app.request("/api/sit/nope")).json()).toEqual({ ok: false, reason: "unknown" });
   });
 
-  it("refuses junk packs, bad keys, impossible end dates, and forgets old sittings", () => {
+  it("refuses junk packs, bad keys, impossible end dates, and forgets old sittings", async () => {
     let t = 1_800_000_000_000;
     const store = createSittingStore(undefined, () => t);
-    expect(store.leave("not json", keyHashOf(KEY), t + 1000).ok).toBe(false);
-    expect(store.leave(pack, "short", t + 1000).ok).toBe(false);
-    expect(store.leave(pack, keyHashOf(KEY), t - 1).ok).toBe(false);
-    expect(store.leave(pack, keyHashOf(KEY), t + 40 * 86_400_000).ok).toBe(false);
-    const r = store.leave(pack, keyHashOf(KEY), t + 1000);
+    expect((await store.leave("not json", keyHashOf(KEY), t + 1000)).ok).toBe(false);
+    expect((await store.leave(pack, "short", t + 1000)).ok).toBe(false);
+    expect((await store.leave(pack, keyHashOf(KEY), t - 1)).ok).toBe(false);
+    expect((await store.leave(pack, keyHashOf(KEY), t + 40 * 86_400_000)).ok).toBe(false);
+    const r = await store.leave(pack, keyHashOf(KEY), t + 1000);
     expect(r.ok).toBe(true);
     t += 8 * 86_400_000;
-    store.leave(pack, keyHashOf(KEY), t + 1000);
-    expect(store.collect((r as { code: string }).code)).toBeNull();
+    await store.leave(pack, keyHashOf(KEY), t + 1000);
+    expect(await store.collect((r as { code: string }).code)).toBeNull();
+  });
+
+  it("lets one address have only a few packs waiting, and keeps all packs within their byte budget", async () => {
+    const t = 1_800_000_000_000;
+    const store = createSittingStore(undefined, () => t, { maxBytes: 1_000_000, perOwner: 3 });
+    for (let i = 0; i < 3; i++) expect((await store.leave(pack, keyHashOf(KEY), t + 1000, "203.0.113.9")).ok).toBe(true);
+    expect(await store.leave(pack, keyHashOf(KEY), t + 1000, "203.0.113.9")).toEqual({ ok: false, reason: "tooMany" });
+    expect((await store.leave(pack, keyHashOf(KEY), t + 1000, "198.51.100.1")).ok).toBe(true);
+    // a bigger pack than the budget has left is refused, whoever sends it
+    expect((await store.leave(big(500_000), keyHashOf(KEY), t + 1000, "198.51.100.2")).ok).toBe(true);
+    expect(await store.leave(big(500_000), keyHashOf(KEY), t + 1000, "198.51.100.3")).toEqual({ ok: false, reason: "full" });
+    expect(store.stats().bytes).toBeLessThanOrEqual(1_000_000);
+  });
+
+  it("keeps each pack in its own file and remembers them all after a restart", async () => {
+    const t = 1_800_000_000_000;
+    const dir = join(mkdtempSync(join(tmpdir(), "lx-sit-")), "sitting");
+    const a = createSittingStore(dir, () => t);
+    const r = (await a.leave(pack, keyHashOf(KEY), t + 86_400_000, "203.0.113.9")) as { code: string };
+    expect(readdirSync(dir).sort()).toEqual([`${r.code}.pack`, "index.json"]);
+    const b = createSittingStore(dir, () => t);
+    expect(await b.collect(r.code)).toEqual({ pack });
+  });
+
+  it("moves a store from before (one JSON file) into the new layout without losing a pack", async () => {
+    const t = 1_800_000_000_000;
+    const base = mkdtempSync(join(tmpdir(), "lx-sit-"));
+    const legacy = join(base, "sitting.json");
+    const code = "a".repeat(24);
+    writeFileSync(legacy, JSON.stringify({ [code]: { pack, keyHash: keyHashOf(KEY), until: t + 86_400_000, created: t, back: '{"home":1}', backAt: t } }));
+    const store = createSittingStore(legacy, () => t);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(await store.collect(code)).toEqual({ pack, back: '{"home":1}', backAt: t });
+    expect(existsSync(`${legacy}.migrated`)).toBe(true);
+    expect(await createSittingStore(legacy, () => t).collect(code)).toEqual({ pack, back: '{"home":1}', backAt: t });
   });
 });

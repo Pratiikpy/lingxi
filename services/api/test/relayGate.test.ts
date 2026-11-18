@@ -60,9 +60,15 @@ describe("how much one pet, one keeper and everyone together may ask for", () =>
   it("caps tape-outs per pet and per signer each day, and everyone each hour", () => {
     const q = new RelayQuota({ perPetPerDay: 3, perSignerPerDay: 5, perHour: 6 });
     const t = NOW;
-    for (let i = 0; i < 3; i++) expect(q.allow("7", "0xa", t)).toBe(true), q.spend("7", "0xa", t);
+    for (let i = 0; i < 3; i++) {
+      expect(q.allow("7", "0xa", t)).toBe(true);
+      q.spend("7", "0xa", t);
+    }
     expect(q.allow("7", "0xa", t)).toBe(false);
-    for (let i = 0; i < 2; i++) expect(q.allow(`p${i}`, "0xa", t)).toBe(true), q.spend(`p${i}`, "0xa", t);
+    for (let i = 0; i < 2; i++) {
+      expect(q.allow(`p${i}`, "0xa", t)).toBe(true);
+      q.spend(`p${i}`, "0xa", t);
+    }
     expect(q.allow("p9", "0xa", t)).toBe(false);
     expect(q.allow("p9", "0xb", t)).toBe(true);
     q.spend("p9", "0xb", t);
