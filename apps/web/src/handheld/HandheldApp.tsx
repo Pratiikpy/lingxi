@@ -9,7 +9,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import wasmUrl from "@lingxi/handheld/wasm/lingxi-handheld.wasm?url";
 import { useLang } from "../i18n";
 import { DEVICE_KEY, INBOX_KEY, RETURN_KEY, fromB64 } from "../game/handheldKeys";
-import { handheldIsMine } from "../game/handheldLock";
+import { gameIsOpen, handheldIsMine } from "../game/handheldLock";
 import { startHandheldClock, wallBeat } from "./clock";
 import "./handheld.css";
 
@@ -78,6 +78,24 @@ function keyCode(e: KeyboardEvent): number | null {
   return null;
 }
 
+/** Closes a tab the game opened; a tab the browser will not let a page close says the player may close it. */
+function CloseTab({ lang }: { lang: Lang }) {
+  const [refused, setRefused] = useState(false);
+  if (refused) return <p className="hh-sub">{lang === "zh" ? "现在可以关掉这个标签页了。" : "You can close this tab now."}</p>;
+  return (
+    <button
+      type="button"
+      className="btn primary"
+      onClick={() => {
+        window.close();
+        setTimeout(() => setRefused(!window.closed), 300);
+      }}
+    >
+      {lang === "zh" ? "关闭这个标签页" : "Close this tab"}
+    </button>
+  );
+}
+
 export function HandheldApp() {
   const lang = useLang((s) => s.lang) as Lang;
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
@@ -88,6 +106,10 @@ export function HandheldApp() {
   // kept in both languages, so a message shown before the language changes follows it
   const [problem, setProblem] = useState<Words | null>(null);
   const [sending, setSending] = useState(false);
+  // A7: sent to the game open in another tab, and what became of it there
+  const [sent, setSent] = useState<"no" | "toGame" | "home" | "refused">("no");
+  // once the trip is sent the handheld stops: no more beats, keys or saves, so the log stays the one the game reads
+  const stopped = useRef(false);
   // the handheld's own clock: milliseconds since this page started it
   const [t0] = useState(() => performance.now());
   const now = useCallback(() => Math.floor(performance.now() - t0), [t0]);
@@ -95,7 +117,7 @@ export function HandheldApp() {
   /** keep the trip: the packet it started from and its log, which replay to the same pet */
   const keep = useCallback(() => {
     const x = hh.current;
-    if (!x || !x.hh_ready()) return;
+    if (!x || !x.hh_ready() || stopped.current) return;
     const raw = localStorage.getItem(DEVICE_KEY);
     if (!raw) return;
     const kept = JSON.parse(raw) as { packet: string; log: string };
@@ -166,6 +188,7 @@ export function HandheldApp() {
       frame = requestAnimationFrame(draw);
       let lastKeep = 0;
       ticker = window.setInterval(() => {
+        if (stopped.current) return;
         x.hh_tick(now(), wallBeat(), document.hidden ? 0 : 1);
         if (now() - lastKeep > 5000) {
           keep();
@@ -180,6 +203,8 @@ export function HandheldApp() {
         setReady(false);
       }
       if (e.key === INBOX_KEY && e.newValue) takeAboard();
+      // the game read the packet this tab sent: the pet is home if the game cleared its place here, else it was refused
+      if (e.key === RETURN_KEY && e.newValue === null) setSent((s) => (s === "toGame" ? (localStorage.getItem(DEVICE_KEY) === null ? "home" : "refused") : s));
     };
     const onHide = () => keep();
     window.addEventListener("storage", onStorage);
@@ -199,7 +224,7 @@ export function HandheldApp() {
   const press = useCallback(
     (code: number) => {
       const x = hh.current;
-      if (!x) return;
+      if (!x || stopped.current) return;
       x.hh_tick(now(), wallBeat(), 1);
       x.hh_key(code);
       // Z switches the handheld's language; the page around it follows
@@ -221,7 +246,7 @@ export function HandheldApp() {
     return () => window.removeEventListener("keydown", onKey);
   }, [press]);
 
-  const bringHome = () => {
+  const bringHome = async () => {
     const x = hh.current;
     if (!x || !x.hh_ready()) return;
     setSending(true);
@@ -233,7 +258,14 @@ export function HandheldApp() {
       setProblem({ en: "The trip's log is too long to send.", zh: "旅程日志太长，发不出去。" });
       return;
     }
+    stopped.current = true;
     localStorage.setItem(RETURN_KEY, b64(new Uint8Array(x.memory.buffer, x.hh_out(), n).slice()));
+    // the game open in another tab brings the pet home from there; this tab stays the handheld and follows it (A7)
+    if (await gameIsOpen()) {
+      setSending(false);
+      setSent("toGame");
+      return;
+    }
     location.href = "play.html#handheld-home";
   };
 
@@ -280,7 +312,21 @@ export function HandheldApp() {
           </p>
         )}
         {problem && <p className="hh-bad">{problem[lang]}</p>}
-        {ready ? (
+        {sent === "toGame" ? (
+          <p className="hh-sent">{L("Sent home. Your game is open in another tab, and your pet is on its way there.", "已送回家。游戏在另一个标签页里开着，宠物正在回去的路上。")}</p>
+        ) : sent === "home" ? (
+          <>
+            <p className="hh-ok">{L("Home: your pet is back in your game.", "到家了：宠物已经回到游戏里。")}</p>
+            <CloseTab lang={lang} />
+          </>
+        ) : sent === "refused" ? (
+          <>
+            <p className="hh-bad">{L("The game kept your pet out here; its tab says why. It is still aboard.", "游戏没有接收宠物，原因在游戏的标签页里。它还在掌机上。")}</p>
+            <button type="button" className="btn" onClick={() => location.reload()}>
+              {L("Back to the handheld", "回到掌机")}
+            </button>
+          </>
+        ) : ready ? (
           <>
             <p>{L("Everything that happens here is replayed by the game, step by step, before your pet comes home.", "这里发生的每一步，游戏都会在宠物回家前重放一遍。")}</p>
             <button type="button" className="btn primary" disabled={sending} onClick={bringHome}>

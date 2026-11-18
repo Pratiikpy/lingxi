@@ -126,3 +126,30 @@ export function createWriter(o: WriterOptions) {
   };
 }
 export type Writer = ReturnType<typeof createWriter>;
+
+/** The part of the Web Locks API that reports which locks are held. */
+export interface LockQuery {
+  query(): Promise<{ held?: Array<{ name?: string }> }>;
+}
+
+/**
+ * Whether some tab holds the game (or another lock) right now, read without taking anything (A7): from the browser's
+ * own record of held Web Locks where it has them, else from a lease stamp still fresh. A writer with Web Locks stamps
+ * once and never renews, so its stamp is read only when the browser cannot say.
+ */
+export async function heldElsewhere(o: { lockName?: string; stampKey?: string; locks?: LockQuery; storage: { getItem(k: string): string | null }; now: () => number }): Promise<boolean> {
+  const lockName = o.lockName ?? LOCK_NAME;
+  if (o.locks) {
+    try {
+      return ((await o.locks.query()).held ?? []).some((l) => l.name === lockName);
+    } catch {
+      // the browser would not say: the stamp is all there is
+    }
+  }
+  try {
+    const s = JSON.parse(o.storage.getItem(o.stampKey ?? STAMP_KEY) ?? "null") as Stamp | null;
+    return !!s && typeof s.until === "number" && s.until > o.now();
+  } catch {
+    return false;
+  }
+}

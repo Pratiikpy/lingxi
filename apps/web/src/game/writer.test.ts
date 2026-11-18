@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LEASE_MS, type LockApi, createWriter } from "./writer";
+import { LEASE_MS, LOCK_NAME, type LockApi, createWriter, heldElsewhere } from "./writer";
 import { memoryStorage } from "./testStorage";
 
 /** The browser's lock manager, in memory: one holder; `ifAvailable` gets null when held; `steal` takes it over. */
@@ -75,5 +75,44 @@ describe("one writer across tabs, without Web Locks (a lease in storage)", () =>
     const storage = memoryStorage(0);
     const a = createWriter({ storage, now: () => 0, every: () => () => undefined });
     expect(await a.acquire()).toBe(true);
+  });
+});
+
+describe("is the game open in another tab? (A7)", () => {
+  const stamp = (until: number) => JSON.stringify({ id: "other", until });
+  const store = (v: string | null) => ({ getItem: () => v });
+
+  it("asks the browser which locks are held, where it has Web Locks", async () => {
+    const held = { query: async () => ({ held: [{ name: "lingxi-handheld" }, { name: LOCK_NAME }] }) };
+    const free = { query: async () => ({ held: [{ name: "lingxi-handheld" }] }) };
+    expect(await heldElsewhere({ locks: held, storage: store(null), now: () => 0 })).toBe(true);
+    expect(await heldElsewhere({ locks: free, storage: store(stamp(9e15)), now: () => 0 })).toBe(false);
+  });
+
+  it("reads the lease stamp where there are no Web Locks: fresh is open, stale is not", async () => {
+    expect(await heldElsewhere({ storage: store(stamp(10_000)), now: () => 9_000 })).toBe(true);
+    expect(await heldElsewhere({ storage: store(stamp(10_000)), now: () => 11_000 })).toBe(false);
+    expect(await heldElsewhere({ storage: store(null), now: () => 0 })).toBe(false);
+    expect(await heldElsewhere({ storage: store("not json"), now: () => 0 })).toBe(false);
+  });
+
+  it("falls back to the stamp when the browser will not say", async () => {
+    const broken = { query: async () => Promise.reject(new Error("SecurityError")) };
+    expect(await heldElsewhere({ locks: broken, storage: store(stamp(10_000)), now: () => 9_000 })).toBe(true);
+  });
+
+  it("sees a writer that took the game with the lock as open", async () => {
+    let held: Array<{ name: string }> = [];
+    const locks: LockApi & { query(): Promise<{ held: Array<{ name: string }> }> } = {
+      request: (name, _o, cb) => {
+        held = [{ name }];
+        return Promise.resolve(cb({ name }));
+      },
+      query: async () => ({ held }),
+    };
+    const s = memoryStorage();
+    expect(await heldElsewhere({ locks, storage: s, now: () => 0 })).toBe(false);
+    await createWriter({ storage: s, now: () => 0, locks }).acquire();
+    expect(await heldElsewhere({ locks, storage: s, now: () => 0 })).toBe(true);
   });
 });

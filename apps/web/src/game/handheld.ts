@@ -243,12 +243,23 @@ async function untilArrived(start: Pet, packet: Uint8Array, onArriving?: (ms: nu
   }
 }
 
+/** The homecoming under way in this page, if any: one at a time, so a second call cannot read a trip the first ends. */
+let homecoming: Promise<HomeResult> | null = null;
+
 /**
  * Bring the pet home from the packet a handheld sent back. Nothing changes unless the replay matches exactly, and
  * then only after `release` (a Cardputer letting go of the pet) has succeeded, so a pet is never in two places. A log
- * that ends a moment ahead of the game's clock is waited for first (`onArriving` hears for how long).
+ * that ends a moment ahead of the game's clock is waited for first (`onArriving` hears for how long). A call made
+ * while one is under way (the page starting as the packet lands, say) gets that one's result.
  */
-export async function bringPetHome(packet: Uint8Array, release?: () => Promise<void>, onArriving?: (ms: number) => void): Promise<HomeResult> {
+export function bringPetHome(packet: Uint8Array, release?: () => Promise<void>, onArriving?: (ms: number) => void): Promise<HomeResult> {
+  homecoming ??= homecomingOf(packet, release, onArriving).finally(() => {
+    homecoming = null;
+  });
+  return homecoming;
+}
+
+async function homecomingOf(packet: Uint8Array, release?: () => Promise<void>, onArriving?: (ms: number) => void): Promise<HomeResult> {
   const first = readTrip();
   if (!first) return { ok: false, reason: "noTrip" };
   await untilArrived(first.start, packet, onArriving);

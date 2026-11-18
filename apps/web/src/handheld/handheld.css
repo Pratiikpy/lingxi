@@ -167,6 +167,31 @@ body {
   color: #b3261e;
   font-weight: 600;
 }
+/* sent to the game's tab and not yet taken: a soft pulse says it is under way */
+.hh-sent {
+  font-weight: 600;
+}
+.hh-sent::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--coral);
+  vertical-align: 1px;
+  animation: hh-pulse 1.2s ease-in-out infinite;
+}
+@keyframes hh-pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hh-sent::before {
+    animation: none;
+  }
+}
 .hh-panel .btn {
   font: inherit;
   font-family: var(--round);

@@ -4,7 +4,7 @@
  * handheld still hand the pet across in two tabs, as designed.
  */
 
-import { type LockApi, createWriter } from "./writer";
+import { type LockApi, type LockQuery, createWriter, heldElsewhere } from "./writer";
 
 const STEAL = "lingxi.handheldHere";
 let lost: (() => void) | null = null;
@@ -40,6 +40,10 @@ export const handheldIsMine = (): boolean => writer.isWriter();
 export const onHandheldLost = (fn: () => void): void => {
   lost = fn;
 };
+
+/** Whether the game is open in another tab of this browser (A7): that tab brings a returned pet home by itself. */
+export const gameIsOpen = (): Promise<boolean> =>
+  heldElsewhere({ storage, now: () => Date.now(), ...(typeof navigator !== "undefined" && "locks" in navigator ? { locks: navigator.locks as unknown as LockQuery } : {}) });
 
 /** Moves the handheld to this tab. */
 export function handheldHere(): void {
