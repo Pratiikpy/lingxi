@@ -14,8 +14,6 @@ import { ARC_2_TO_5 } from "./arc02-05";
 import { ARC_6_TO_10 } from "./arc06-10";
 import { ARC_11_12 } from "./arc11-12";
 import { DAILIES, WEEKLY_GIFT } from "./dailies";
-import { GOALS } from "./goals";
-import { FRIENDS } from "../friends";
 import type { FriendSheet, Unlock } from "../friendship";
 import { GOAL_METRICS, type GoalDef, TIER_PCTS } from "../goals";
 

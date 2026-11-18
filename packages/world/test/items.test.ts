@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { scanNames } from "../src/names";
 import { endWalk, startWalk } from "../src/outings";
 import { DESTINATIONS } from "../src/outings";
 import { CROPS } from "../src/garden";
@@ -128,7 +129,7 @@ describe("item rules (plan 4.5)", () => {
     for (const [id, it] of Object.entries(ITEM)) {
       for (const s of [it.name.en, it.name.zh, it.desc.en, it.desc.zh]) {
         expect(s.trim().length, id).toBeGreaterThan(0);
-        expect(/pet|coin/i.test(s), `${id}: ${s}`).toBe(false);
+        expect(scanNames(s), `${id}: ${s}`).toEqual([]);
       }
     }
   });

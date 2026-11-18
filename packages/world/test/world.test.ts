@@ -16,7 +16,13 @@ describe("the map", () => {
   it("every room can be reached from home", () => {
     const seen = new Set([HOME]);
     const queue = [HOME];
-    while (queue.length) for (const n of neighbours(queue.shift()!)) if (!seen.has(n)) (seen.add(n), queue.push(n));
+    while (queue.length) {
+      for (const n of neighbours(queue.shift()!)) {
+        if (seen.has(n)) continue;
+        seen.add(n);
+        queue.push(n);
+      }
+    }
     const unreachable = Object.keys(ROOMS).map(Number).filter((r) => !seen.has(r));
     expect(unreachable).toEqual([]);
   });

@@ -17,7 +17,7 @@ def backgrounds(idx):
     if not d:
         return None
     files = sorted(os.listdir(os.path.join(ART, "rooms", d, "backgrounds")))
-    files = [f for f in files if (f.endswith(".png") or f.endswith(".gif")) and "christmas" not in f and "halloween" not in f and "wick" not in f and "frog" not in f and "-v2" not in f]
+    files = [f for f in files if (f.endswith(".png") or f.endswith(".gif")) and "christmas" not in f and "halloween" not in f and "frog" not in f and "-v2" not in f]
     def pick(*keys):
         for k in keys:
             for f in files:
@@ -33,14 +33,13 @@ drops = {r["Name"]: list(zip([int(x) for x in r["Indices"].split(",")], [int(x) 
 nodes = {int(r["Index"]): r for r in rd("rooms/nodes.csv") if r["Status"] == "In Game"}
 items = {int(r["Index"]): r for r in rd("items/items.csv") if r["Status"] == "In Game"}
 
-# art already chosen for the shipped items (files were later given neutral names): kept as it is
+# art already chosen for the shipped items (files were later given neutral names): kept as it is; the source's
+# own names are never copied, since every name the game shows is written in src/items.ts
 try:
     KEPT = {it["index"]: it for it in json.load(open(OUT, encoding="utf-8"))["items"]}
 except (OSError, ValueError, KeyError):
     KEPT = {}
 KEPT_ART = {i: it["art"] for i, it in KEPT.items()}
-# the product never names the source: its own brand words stay out of the shipped names
-BRAND = re.compile(r"pet|coin", re.I)
 
 def art_for(name):
     slug = re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
@@ -60,7 +59,7 @@ for r in rd("rooms/rooms.csv"):
     node = nodes.get(idx)
     dl = drops.get(node["Drops"], []) if node else []
     rooms.append({
-        "index": idx, "src": r["Name"],
+        "index": idx,
         "x": int(r["X"]), "y": int(r["Y"]), "z": int(r["Z"]),
         "exits": [int(e) for e in r["Exits"].split(",") if e.strip().isdigit()],
         "bgs": bgs,
@@ -81,7 +80,7 @@ for r in rd("crafting/recipes.csv"):
     out = int(r["Output Index"])
     if out in items and all(i in items for i in ins):
         recipes.append({
-            "index": int(r["Index"]), "src": r["Name"], "out": out, "outAmount": int(r["Output Amount"] or 1),
+            "index": int(r["Index"]), "out": out, "outAmount": int(r["Output Amount"] or 1),
             "ins": [{"item": i, "amount": a} for i, a in zip(ins, amts)],
             "stamina": int(r["Cost (Stamina)"] or 0),
             # plan 4.5: the source's XP, tool (held, never used up) and room (only 10002, room 11)
@@ -105,8 +104,7 @@ for i in sorted(used):
     art = KEPT_ART.get(i) or art_for(r["Name"])
     if not art:
         continue
-    name = KEPT[i]["src"] if i in KEPT else ("" if BRAND.search(r["Name"]) else r["Name"])
-    item_rows.append({"index": i, "src": name, "type": r["Type"], "rarity": r["Rarity"], "art": art})
+    item_rows.append({"index": i, "type": r["Type"], "rarity": r["Rarity"], "art": art})
 have = {it["index"] for it in item_rows}
 recipes = [rc for rc in recipes if rc["out"] in have and all(x["item"] in have for x in rc["ins"])]
 for rm in rooms:

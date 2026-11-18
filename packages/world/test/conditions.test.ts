@@ -76,7 +76,7 @@ describe("the condition engine", () => {
     // note A §8.3: 24 rows, of which gacha rerolls and the launch flag are left out
     const sourceTypes = [
       "ITEM_BURN", "HARVEST_TIME", "HARVEST_TIME_MOONSIDE", "SCAV_CLAIM_NODE", "DROPTABLE_ITEM_TOTAL", "CRAFT_ITEM", "ROOM", "MOVE",
-      "LISTING_BUY_TOTAL", "ITEM_SPEND", "ITEM_TOTAL", "PET_NUM_OWNED", "PET_LEVELS_TOTAL", "PET_LEVEL_HIGHEST", "SKILL_POINTS_USE",
+      "LISTING_BUY_TOTAL", "ITEM_SPEND", "ITEM_TOTAL", "PETS_OWNED", "PET_LEVELS_TOTAL", "PET_LEVEL_HIGHEST", "SKILL_POINTS_USE",
       "PET_NAME", "PET_ITEM_USE", "LIQUIDATE_TOTAL", "TRADE_EXECUTE", "PHASE", "QUEST", "QUEST_COMPLETED_DELAY", "BLOCKTIME",
       "REPUTATION", "COMPLETE_COMP",
     ];
@@ -111,7 +111,7 @@ describe("the condition engine", () => {
     expect(read(c("BUY", "CURR_MIN", 11130, 1))).toBe(4); // LISTING_BUY_TOTAL
     expect(read(c("COINS_SPENT", "CURR_MIN", undefined, 1))).toBe(120); // ITEM_SPEND
     expect(read(c("COINS_EARNED", "CURR_MIN", undefined, 1))).toBe(300); // ITEM_TOTAL
-    expect(read(c("PETS", "CURR_MIN", undefined, 1))).toBe(2); // PET_NUM_OWNED
+    expect(read(c("PETS", "CURR_MIN", undefined, 1))).toBe(2); // PETS_OWNED
     expect(read(c("LEVEL", "CURR_MIN", undefined, 1))).toBe(4); // PET_LEVEL_HIGHEST
     expect(read(c("STAGE", "CURR_MIN", undefined, 1))).toBe(2); // PET_LEVELS_TOTAL: teen is the third stage
     expect(read(c("LESSON", "CURR_MIN", undefined, 1))).toBe(5); // SKILL_POINTS_USE

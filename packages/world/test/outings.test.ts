@@ -30,7 +30,7 @@ const ok = <T,>(r: { ok: true; world: WorldState } & T | { ok: false; reason: st
 
 describe("walks", () => {
   it("with a step sensor, every 400 steps turns up a find, capped at six", () => {
-    let w = ok(startWalk(w0(), T0, true)).world;
+    const w = ok(startWalk(w0(), T0, true)).world;
     let r = ok(stepWalk(w, STEPS_PER_FIND - 1, T0 + 5 * MIN));
     expect(r.found).toHaveLength(0);
     r = ok(stepWalk(r.world, 1, T0 + 5 * MIN));

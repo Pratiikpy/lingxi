@@ -175,7 +175,10 @@ export function QuestBook() {
   const [tab, setTab] = useState<"story" | "today" | "together" | "milestones">(bookTab ?? "story");
   // a goal's toast asks for Together; take the ask once
   useEffect(() => {
-    if (bookTab) (setTab(bookTab), setBookTab(null));
+    if (bookTab) {
+      setTab(bookTab);
+      setBookTab(null);
+    }
   }, [bookTab, setBookTab]);
   const statuses = useMemo(() => allStatuses(), [world, pet]);
   const live = STORY.filter((q) => order.includes(statuses[q.id]!)).sort((a, b) => order.indexOf(statuses[a.id]!) - order.indexOf(statuses[b.id]!));

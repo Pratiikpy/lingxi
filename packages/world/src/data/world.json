@@ -2,7 +2,6 @@
  "rooms": [
   {
    "index": 1,
-   "src": "Misty Riverside",
    "x": 3,
    "y": 1,
    "z": 1,
@@ -29,7 +28,6 @@
   },
   {
    "index": 2,
-   "src": "Tunnel of Trees",
    "x": 3,
    "y": 3,
    "z": 1,
@@ -56,7 +54,6 @@
   },
   {
    "index": 3,
-   "src": "Torii Gate",
    "x": 3,
    "y": 4,
    "z": 1,
@@ -85,7 +82,6 @@
   },
   {
    "index": 4,
-   "src": "Vending Machine",
    "x": 3,
    "y": 6,
    "z": 1,
@@ -101,7 +97,6 @@
   },
   {
    "index": 5,
-   "src": "Restricted Area",
    "x": 3,
    "y": 9,
    "z": 1,
@@ -126,7 +121,6 @@
   },
   {
    "index": 6,
-   "src": "Labs Entrance",
    "x": 4,
    "y": 10,
    "z": 1,
@@ -157,7 +151,6 @@
   },
   {
    "index": 9,
-   "src": "Forest: Old Growth",
    "x": 5,
    "y": 8,
    "z": 1,
@@ -186,7 +179,6 @@
   },
   {
    "index": 10,
-   "src": "Forest: Insect Node",
    "x": 5,
    "y": 5,
    "z": 1,
@@ -215,7 +207,6 @@
   },
   {
    "index": 11,
-   "src": "Temple by the Waterfall",
    "x": 6,
    "y": 11,
    "z": 1,
@@ -234,7 +225,6 @@
   },
   {
    "index": 12,
-   "src": "Scrap Confluence",
    "x": 1,
    "y": 6,
    "z": 1,
@@ -267,7 +257,6 @@
   },
   {
    "index": 13,
-   "src": "Convenience Store",
    "x": 4,
    "y": 3,
    "z": 2,
@@ -285,7 +274,6 @@
   },
   {
    "index": 15,
-   "src": "Temple Cave",
    "x": 5,
    "y": 7,
    "z": 3,
@@ -316,7 +304,6 @@
   },
   {
    "index": 16,
-   "src": "Techno Temple",
    "x": 6,
    "y": 7,
    "z": 3,
@@ -349,7 +336,6 @@
   },
   {
    "index": 18,
-   "src": "Cave Crossroads",
    "x": 5,
    "y": 6,
    "z": 3,
@@ -378,7 +364,6 @@
   },
   {
    "index": 19,
-   "src": "Temple of the Wheel",
    "x": 2,
    "y": 4,
    "z": 3,
@@ -413,7 +398,6 @@
   },
   {
    "index": 25,
-   "src": "Lost Skeleton",
    "x": 6,
    "y": 9,
    "z": 1,
@@ -442,7 +426,6 @@
   },
   {
    "index": 26,
-   "src": "Trash-Strewn Graves",
    "x": 2,
    "y": 8,
    "z": 1,
@@ -471,7 +454,6 @@
   },
   {
    "index": 29,
-   "src": "Misty Forest Path",
    "x": 3,
    "y": 2,
    "z": 1,
@@ -500,7 +482,6 @@
   },
   {
    "index": 30,
-   "src": "Scrapyard Entrance",
    "x": 3,
    "y": 5,
    "z": 1,
@@ -529,7 +510,6 @@
   },
   {
    "index": 31,
-   "src": "Scrapyard Exit",
    "x": 3,
    "y": 8,
    "z": 1,
@@ -558,7 +538,6 @@
   },
   {
    "index": 32,
-   "src": "Road To Labs",
    "x": 3,
    "y": 10,
    "z": 1,
@@ -583,7 +562,6 @@
   },
   {
    "index": 33,
-   "src": "Forest Entrance",
    "x": 4,
    "y": 8,
    "z": 1,
@@ -608,7 +586,6 @@
   },
   {
    "index": 34,
-   "src": "Deeper Into Scrap",
    "x": 2,
    "y": 6,
    "z": 1,
@@ -633,7 +610,6 @@
   },
   {
    "index": 35,
-   "src": "Elder Path",
    "x": 5,
    "y": 6,
    "z": 1,
@@ -662,7 +638,6 @@
   },
   {
    "index": 36,
-   "src": "Parting Path",
    "x": 5,
    "y": 9,
    "z": 1,
@@ -691,7 +666,6 @@
   },
   {
    "index": 37,
-   "src": "Hollow Path",
    "x": 6,
    "y": 10,
    "z": 1,
@@ -716,7 +690,6 @@
   },
   {
    "index": 47,
-   "src": "Scrap Paths",
    "x": 3,
    "y": 7,
    "z": 1,
@@ -745,7 +718,6 @@
   },
   {
    "index": 48,
-   "src": "Murky Forest Path",
    "x": 5,
    "y": 7,
    "z": 1,
@@ -778,7 +750,6 @@
   },
   {
    "index": 49,
-   "src": "Clearing",
    "x": 7,
    "y": 9,
    "z": 1,
@@ -811,7 +782,6 @@
   },
   {
    "index": 50,
-   "src": "Ancient Forest Entrance",
    "x": 6,
    "y": 5,
    "z": 1,
@@ -836,7 +806,6 @@
   },
   {
    "index": 51,
-   "src": "Scrap-Littered Undergrowth",
    "x": 7,
    "y": 5,
    "z": 1,
@@ -869,7 +838,6 @@
   },
   {
    "index": 52,
-   "src": "Airplane Crash",
    "x": 8,
    "y": 5,
    "z": 1,
@@ -900,7 +868,6 @@
   },
   {
    "index": 53,
-   "src": "Blooming Tree",
    "x": 7,
    "y": 4,
    "z": 1,
@@ -929,7 +896,6 @@
   },
   {
    "index": 54,
-   "src": "Plane Interior",
    "x": 8,
    "y": 5,
    "z": 2,
@@ -947,7 +913,6 @@
   },
   {
    "index": 55,
-   "src": "Shady Path",
    "x": 4,
    "y": 3,
    "z": 1,
@@ -976,7 +941,6 @@
   },
   {
    "index": 56,
-   "src": "Butterfly Forest",
    "x": 5,
    "y": 3,
    "z": 1,
@@ -1005,7 +969,6 @@
   },
   {
    "index": 57,
-   "src": "River Crossing",
    "x": 6,
    "y": 3,
    "z": 1,
@@ -1034,7 +997,6 @@
   },
   {
    "index": 58,
-   "src": "Mouth of Scrap",
    "x": 1,
    "y": 5,
    "z": 1,
@@ -1063,7 +1025,6 @@
   },
   {
    "index": 59,
-   "src": "Black Pool",
    "x": 1,
    "y": 4,
    "z": 1,
@@ -1094,7 +1055,6 @@
   },
   {
    "index": 60,
-   "src": "Scrap Trees",
    "x": 5,
    "y": 1,
    "z": 1,
@@ -1127,7 +1087,6 @@
   },
   {
    "index": 61,
-   "src": "Musty Forest Path",
    "x": 7,
    "y": 1,
    "z": 1,
@@ -1156,7 +1115,6 @@
   },
   {
    "index": 62,
-   "src": "Centipedes",
    "x": 8,
    "y": 1,
    "z": 1,
@@ -1185,7 +1143,6 @@
   },
   {
    "index": 63,
-   "src": "Deeper Forest Path",
    "x": 6,
    "y": 2,
    "z": 1,
@@ -1218,7 +1175,6 @@
   },
   {
    "index": 64,
-   "src": "Burning Room",
    "x": 5,
    "y": 5,
    "z": 2,
@@ -1236,7 +1192,6 @@
   },
   {
    "index": 65,
-   "src": "Forest Hut",
    "x": 6,
    "y": 1,
    "z": 1,
@@ -1267,7 +1222,6 @@
   },
   {
    "index": 66,
-   "src": "Marketplace",
    "x": 2,
    "y": 2,
    "z": 1,
@@ -1283,7 +1237,6 @@
   },
   {
    "index": 67,
-   "src": "Boulder Tunnel",
    "x": 4,
    "y": 6,
    "z": 3,
@@ -1312,7 +1265,6 @@
   },
   {
    "index": 68,
-   "src": "Slippery Pit",
    "x": 3,
    "y": 6,
    "z": 3,
@@ -1341,7 +1293,6 @@
   },
   {
    "index": 69,
-   "src": "Lotus Pool",
    "x": 3,
    "y": 7,
    "z": 3,
@@ -1374,7 +1325,6 @@
   },
   {
    "index": 70,
-   "src": "Still Stream",
    "x": 2,
    "y": 7,
    "z": 3,
@@ -1403,7 +1353,6 @@
   },
   {
    "index": 71,
-   "src": "Shabby Deck",
    "x": 1,
    "y": 7,
    "z": 3,
@@ -1432,7 +1381,6 @@
   },
   {
    "index": 72,
-   "src": "Hatch to Nowhere",
    "x": 1,
    "y": 6,
    "z": 3,
@@ -1467,7 +1415,6 @@
   },
   {
    "index": 73,
-   "src": "Broken Tube",
    "x": 1,
    "y": 5,
    "z": 3,
@@ -1496,7 +1443,6 @@
   },
   {
    "index": 74,
-   "src": "Engraved Door",
    "x": 2,
    "y": 5,
    "z": 3,
@@ -1529,7 +1475,6 @@
   },
   {
    "index": 75,
-   "src": "Flood Mural",
    "x": 3,
    "y": 5,
    "z": 3,
@@ -1558,7 +1503,6 @@
   },
   {
    "index": 76,
-   "src": "Fungus Garden",
    "x": 5,
    "y": 5,
    "z": 3,
@@ -1587,7 +1531,6 @@
   },
   {
    "index": 77,
-   "src": "Thriving Mushrooms",
    "x": 5,
    "y": 4,
    "z": 3,
@@ -1616,7 +1559,6 @@
   },
   {
    "index": 78,
-   "src": "Toadstool Platforms",
    "x": 5,
    "y": 3,
    "z": 3,
@@ -1645,7 +1587,6 @@
   },
   {
    "index": 79,
-   "src": "Abandoned Campsite",
    "x": 5,
    "y": 2,
    "z": 3,
@@ -1678,7 +1619,6 @@
   },
   {
    "index": 80,
-   "src": "Radiant Crystal",
    "x": 6,
    "y": 2,
    "z": 3,
@@ -1715,7 +1655,6 @@
   },
   {
    "index": 81,
-   "src": "Flower Mural",
    "x": 7,
    "y": 2,
    "z": 3,
@@ -1744,7 +1683,6 @@
   },
   {
    "index": 82,
-   "src": "Geometric Cliffs",
    "x": 7,
    "y": 3,
    "z": 3,
@@ -1777,7 +1715,6 @@
   },
   {
    "index": 83,
-   "src": "Canyon Bridge",
    "x": 7,
    "y": 4,
    "z": 3,
@@ -1806,7 +1743,6 @@
   },
   {
    "index": 84,
-   "src": "Reinforced Tunnel",
    "x": 6,
    "y": 4,
    "z": 3,
@@ -1835,7 +1771,6 @@
   },
   {
    "index": 85,
-   "src": "Giant’s Palm",
    "x": 7,
    "y": 5,
    "z": 3,
@@ -1860,7 +1795,6 @@
   },
   {
    "index": 86,
-   "src": "Guardian Skull",
    "x": 8,
    "y": 5,
    "z": 3,
@@ -1893,7 +1827,6 @@
   },
   {
    "index": 87,
-   "src": "Sacrarium",
    "x": 8,
    "y": 6,
    "z": 3,
@@ -1926,7 +1859,6 @@
   },
   {
    "index": 88,
-   "src": "Treasure Hoard",
    "x": 3,
    "y": 1,
    "z": 4,
@@ -1957,7 +1889,6 @@
   },
   {
    "index": 89,
-   "src": "Trophies of the Hunt",
    "x": 2,
    "y": 1,
    "z": 4,
@@ -1986,7 +1917,6 @@
   },
   {
    "index": 90,
-   "src": "Scenic View",
    "x": 1,
    "y": 1,
    "z": 4,
@@ -2013,854 +1943,732 @@
  "items": [
   {
    "index": 1001,
-   "src": "Wooden Stick",
    "type": "Material",
    "rarity": "Common",
    "art": "art/items/wooden_stick.png"
   },
   {
    "index": 1002,
-   "src": "Stone",
    "type": "Material",
    "rarity": "Common",
    "art": "art/items/stone.png"
   },
   {
    "index": 1003,
-   "src": "Plastic Bottle",
    "type": "Material",
    "rarity": "Uncommon",
    "art": "art/items/plastic_bottle.png"
   },
   {
    "index": 1004,
-   "src": "Pine Cone",
    "type": "Material",
    "rarity": "Uncommon",
    "art": "art/items/pine_cone.png"
   },
   {
    "index": 1005,
-   "src": "Scrap Metal",
    "type": "Material",
    "rarity": "Common",
    "art": "art/items/scrap_metal.png"
   },
   {
    "index": 1006,
-   "src": "Glass Jar",
    "type": "Material",
    "rarity": "Rare",
    "art": "art/items/glass_jar.png"
   },
   {
    "index": 1007,
-   "src": "Red Amber Crystal",
    "type": "Material",
    "rarity": "Epic",
    "art": "art/items/red_amber_crystal.png"
   },
   {
    "index": 1010,
-   "src": "Black Poppy",
    "type": "Material",
    "rarity": "Rare",
    "art": "art/items/black_poppy.png"
   },
   {
    "index": 1011,
-   "src": "Daffodil",
    "type": "Material",
    "rarity": "Uncommon",
    "art": "art/items/daffodil.png"
   },
   {
    "index": 1012,
-   "src": "Mint",
    "type": "Material",
    "rarity": "Epic",
    "art": "art/items/mint.png"
   },
   {
    "index": 1013,
-   "src": "Sanguine Shroom",
    "type": "Material",
    "rarity": "Uncommon",
    "art": "art/items/sanguine_shroom.png"
   },
   {
    "index": 1014,
-   "src": "Chalkberry",
    "type": "Material",
    "rarity": "Uncommon",
    "art": "art/items/chalkberry.png"
   },
   {
    "index": 1015,
-   "src": "Obol",
    "type": "Misc",
    "rarity": "Uncommon",
    "art": "art/items/obol.png"
   },
   {
    "index": 1016,
-   "src": "Dried Stems",
    "type": "Material",
    "rarity": "Common",
    "art": "art/items/dried_stems.png"
   },
   {
    "index": 1017,
-   "src": "Patinated Pipe",
    "type": "Material",
    "rarity": "Common",
    "art": "art/items/patinated_pipe.png"
   },
   {
    "index": 1018,
-   "src": "Cigarette Butt",
    "type": "Material",
    "rarity": "Common",
    "art": "art/items/cigarette_butt.png"
   },
   {
    "index": 1019,
-   "src": "Otherworld Coin",
    "type": "Material",
    "rarity": "Common",
    "art": "art/items/otherworld_coin.png"
   },
   {
    "index": 1020,
-   "src": "Bone Chunk",
    "type": "Material",
    "rarity": "Common",
    "art": "art/items/bone_chunk.png"
   },
   {
    "index": 1021,
-   "src": "Irradiated Root",
    "type": "Material",
    "rarity": "Rare",
    "art": "art/items/irradiated_root.png"
   },
   {
    "index": 1102,
-   "src": "Empty Cup",
    "type": "Material",
    "rarity": "Uncommon",
    "art": "art/items/empty_cup.png"
   },
   {
    "index": 1103,
-   "src": "Microplastics",
    "type": "Material",
    "rarity": "Uncommon",
    "art": "art/items/microplastics.png"
   },
   {
    "index": 1104,
-   "src": "Pine Pollen",
    "type": "Material",
    "rarity": "Uncommon",
    "art": "art/items/pine_pollen.png"
   },
   {
    "index": 1107,
-   "src": "Powdered Red Amber",
    "type": "Material",
    "rarity": "Epic",
    "art": "art/items/powdered_red_amber.png"
   },
   {
    "index": 1110,
-   "src": "Black Poppy Extract",
    "type": "Material",
    "rarity": "Rare",
    "art": "art/items/black_poppy_extract.png"
   },
   {
    "index": 1111,
-   "src": "Essence of Daffodil",
    "type": "Material",
    "rarity": "Uncommon",
    "art": "art/items/essence_of_daffodil.png"
   },
   {
    "index": 1112,
-   "src": "Shredded Mint",
    "type": "Material",
    "rarity": "Epic",
    "art": "art/items/shredded_mint.png"
   },
   {
    "index": 1113,
-   "src": "Sanguineous Powder",
    "type": "Material",
    "rarity": "Uncommon",
    "art": "art/items/sanguineous_powder.png"
   },
   {
    "index": 1114,
-   "src": "Berry Chalk",
    "type": "Material",
    "rarity": "Uncommon",
    "art": "art/items/berry_chalk.png"
   },
   {
    "index": 1121,
-   "src": "Pallid Root Extract",
    "type": "Material",
    "rarity": "Rare",
    "art": "art/items/pallid_root_extract.png"
   },
   {
    "index": 1201,
-   "src": "Holy Syrup",
    "type": "Material",
    "rarity": "Rare",
    "art": "art/items/holy_syrup.png"
   },
   {
    "index": 1202,
-   "src": "Resin Tincture",
    "type": "Material",
    "rarity": "Uncommon",
    "art": "art/items/resin_tincture.png"
   },
   {
    "index": 1203,
-   "src": "Fuliginous Ooze",
    "type": "Material",
    "rarity": "Legendary",
    "art": "art/items/fuliginous_ooze.png"
   },
   {
    "index": 1301,
-   "src": "Ashlar",
    "type": "Material",
    "rarity": "Uncommon",
    "art": "art/items/ashlar.png"
   },
   {
    "index": 1302,
-   "src": "Timber",
    "type": "Material",
    "rarity": "Uncommon",
    "art": "art/items/timber.png"
   },
   {
    "index": 1303,
-   "src": "Ingot",
    "type": "Material",
    "rarity": "Uncommon",
    "art": "art/items/ingot.png"
   },
   {
    "index": 6001,
-   "src": "Essence of Hearing",
    "type": "Material",
    "rarity": "Rare",
    "art": "art/items/essence_of_hearing.png"
   },
   {
    "index": 6002,
-   "src": "Essence of Smell",
    "type": "Material",
    "rarity": "Rare",
    "art": "art/items/essence_of_smell.png"
   },
   {
    "index": 6003,
-   "src": "Essence of Sight",
    "type": "Material",
    "rarity": "Rare",
    "art": "art/items/essence_of_sight.png"
   },
   {
    "index": 6004,
-   "src": "Essence of Taste",
    "type": "Material",
    "rarity": "Rare",
    "art": "art/items/essence_of_taste.png"
   },
   {
    "index": 6005,
-   "src": "Essence of Touch",
    "type": "Material",
    "rarity": "Rare",
    "art": "art/items/essence_of_touch.png"
   },
   {
    "index": 6006,
-   "src": "Essence of Thought",
    "type": "Material",
    "rarity": "Rare",
    "art": "art/items/essence_of_thought.png"
   },
   {
    "index": 6007,
-   "src": "Pure Essence",
    "type": "Material",
    "rarity": "Epic",
    "art": "art/items/pure_essence.png"
   },
   {
    "index": 11001,
-   "src": "Red Ribbon Gummy",
    "type": "Consumable",
    "rarity": "Uncommon",
    "art": "art/items/red_ribbon_gummy.png"
   },
   {
    "index": 11003,
-   "src": "Djed Pillar",
    "type": "Consumable",
    "rarity": "Uncommon",
    "art": "art/items/djed_pillar.png"
   },
   {
    "index": 11004,
-   "src": "Pale Potion",
    "type": "Potion",
    "rarity": "Rare",
    "art": "art/items/pale_potion.png"
   },
   {
    "index": 11011,
-   "src": "Holy Dust",
    "type": "Material",
    "rarity": "Uncommon",
    "art": "art/items/holy_dust.png"
   },
   {
    "index": 11020,
-   "src": "Cleaning Fluid",
    "type": "Potion",
    "rarity": "Rare",
    "art": "art/items/cleaning_fluid.png"
   },
   {
    "index": 11110,
-   "src": "Gaokerena Mochi",
    "type": "Food",
    "rarity": "Epic",
    "art": "art/items/gaokerena_mochi.png"
   },
   {
    "index": 11120,
-   "src": "Sunset Apple Mochi",
    "type": "Food",
    "rarity": "Epic",
    "art": "art/items/sunset_apple_mochi.png"
   },
   {
    "index": 11130,
-   "src": "Rice Mochi",
    "type": "Food",
    "rarity": "Epic",
    "art": "art/items/rice_mochi.png"
   },
   {
    "index": 11140,
-   "src": "Mana Mochi",
    "type": "Food",
    "rarity": "Epic",
    "art": "art/items/mana_mochi.png"
   },
   {
    "index": 11201,
-   "src": "XP Candy (Small)",
    "type": "Food",
    "rarity": "Uncommon",
    "art": "art/items/xp_candy_small.png"
   },
   {
    "index": 11202,
-   "src": "XP Candy (Medium)",
    "type": "Food",
    "rarity": "Uncommon",
    "art": "art/items/xp_candy_medium.png"
   },
   {
    "index": 11203,
-   "src": "XP Candy (Large)",
    "type": "Food",
    "rarity": "Uncommon",
    "art": "art/items/xp_candy_large.png"
   },
   {
    "index": 11204,
-   "src": "XP Candy (Huge)",
    "type": "Food",
    "rarity": "Rare",
    "art": "art/items/xp_candy_huge.png"
   },
   {
    "index": 11211,
-   "src": "“Cultivation I” Spell Card",
    "type": "Spell Card",
    "rarity": "Uncommon",
    "art": "art/items/cultivation_i_spell_card.png"
   },
   {
    "index": 11212,
-   "src": "“Cultivation II” Spell Card",
    "type": "Spell Card",
    "rarity": "Uncommon",
    "art": "art/items/cultivation_ii_spell_card.png"
   },
   {
    "index": 11213,
-   "src": "“Cultivation III” Spell Card",
    "type": "Spell Card",
    "rarity": "Rare",
    "art": "art/items/cultivation_iii_spell_card.png"
   },
   {
    "index": 11214,
-   "src": "“Cultivation IV” Spell Card",
    "type": "Spell Card",
    "rarity": "Epic",
    "art": "art/items/cultivation_iv_spell_card.png"
   },
   {
    "index": 11221,
-   "src": "Full Heart Crystal",
    "type": "Food",
    "rarity": "Rare",
    "art": "art/items/full_heart_crystal.png"
   },
   {
    "index": 11222,
-   "src": "Half Heart Crystal",
    "type": "Food",
    "rarity": "Uncommon",
    "art": "art/items/half_heart_crystal.png"
   },
   {
    "index": 11223,
-   "src": "Great Heart Crystal",
    "type": "Food",
    "rarity": "Epic",
    "art": "art/items/great_heart_crystal.png"
   },
   {
    "index": 11224,
-   "src": "Inverted Teardrop Jewel",
    "type": "Consumable",
    "rarity": "Rare",
    "art": "art/items/inverted_teardrop_jewel.png"
   },
   {
    "index": 11225,
-   "src": "Teardrop Jewel",
    "type": "Consumable",
    "rarity": "Rare",
    "art": "art/items/teardrop_jewel.png"
   },
   {
    "index": 11226,
-   "src": "Ash Pearl",
    "type": "Food",
    "rarity": "Rare",
    "art": "art/items/ash_pearl.png"
   },
   {
    "index": 11227,
-   "src": "Fetid Egg",
    "type": "Food",
    "rarity": "Uncommon",
    "art": "art/items/fetid_egg.png"
   },
   {
    "index": 11233,
-   "src": "Gingerbread Cookie",
    "type": "Food",
    "rarity": "Rare",
    "art": "art/items/gingerbread_cookie.png"
   },
   {
    "index": 11301,
-   "src": "Maple-Flavor Ghost Gum",
    "type": "Food",
    "rarity": "Common",
    "art": "art/items/maple_flavor_ghost_gum.png"
   },
   {
    "index": 11302,
-   "src": "Cheeseburger",
    "type": "Food",
    "rarity": "Uncommon",
    "art": "art/items/cheeseburger.png"
   },
   {
    "index": 11303,
-   "src": "Pom-Pom Fruit Candy",
    "type": "Food",
    "rarity": "Uncommon",
    "art": "art/items/pom_pom_fruit_candy.png"
   },
   {
    "index": 11304,
-   "src": "Gakki Cookie Sticks",
    "type": "Food",
    "rarity": "Uncommon",
    "art": "art/items/gakki_cookie_sticks.png"
   },
   {
    "index": 11311,
-   "src": "Resin",
    "type": "Food",
    "rarity": "Uncommon",
    "art": "art/items/resin.png"
   },
   {
    "index": 11312,
-   "src": "Honeydew Scale",
    "type": "Food",
    "rarity": "Rare",
    "art": "art/items/honeydew_scale.png"
   },
   {
    "index": 11313,
-   "src": "Golden Apple",
    "type": "Food",
    "rarity": "Rare",
    "art": "art/items/golden_apple.png"
   },
   {
    "index": 11314,
-   "src": "Blue Pansy",
    "type": "Food",
    "rarity": "Uncommon",
    "art": "art/items/blue_pansy.png"
   },
   {
    "index": 11401,
-   "src": "XP Potion",
    "type": "Potion",
    "rarity": "Uncommon",
    "art": "art/items/xp_potion.png"
   },
   {
    "index": 11402,
-   "src": "Greater XP Potion",
    "type": "Potion",
    "rarity": "Rare",
    "art": "art/items/greater_xp_potion.png"
   },
   {
    "index": 11403,
-   "src": "Respec Potion",
    "type": "Potion",
    "rarity": "Epic",
    "art": "art/items/respec_potion.png"
   },
   {
    "index": 11404,
-   "src": "Grace Potion",
    "type": "Potion",
    "rarity": "Rare",
    "art": "art/items/grace_potion.png"
   },
   {
    "index": 11405,
-   "src": "Bless Potion",
    "type": "Potion",
    "rarity": "Uncommon",
    "art": "art/items/bless_potion.png"
   },
   {
    "index": 11406,
-   "src": "Apology Letter",
    "type": "Consumable",
    "rarity": "Uncommon",
    "art": "art/items/apology_letter.png"
   },
   {
    "index": 11407,
-   "src": "COIN Magnet",
    "type": "Consumable",
    "rarity": "Rare",
    "art": "art/items/coin_magnet.png"
   },
   {
    "index": 11408,
-   "src": "Festival Chime",
    "type": "Consumable",
    "rarity": "Uncommon",
    "art": "art/items/festival_chime.png"
   },
   {
    "index": 11409,
-   "src": "Energy Drink",
    "type": "Consumable",
    "rarity": "Uncommon",
    "art": "art/items/energy_drink.png"
   },
   {
    "index": 11410,
-   "src": "Hostility Potion",
    "type": "Potion",
    "rarity": "Uncommon",
    "art": "art/items/hostility_potion.png"
   },
   {
    "index": 11411,
-   "src": "Fortified XP Potion",
    "type": "Potion",
    "rarity": "Epic",
    "art": "art/items/fortified_xp_potion.png"
   },
   {
    "index": 11412,
-   "src": "Flash Talisman",
    "type": "Consumable",
    "rarity": "Rare",
    "art": "art/items/flash_talisman.png"
   },
   {
    "index": 11413,
-   "src": "Mistletoe",
    "type": "Food",
    "rarity": "Rare",
    "art": "art/items/mistletoe.png"
   },
   {
    "index": 11414,
-   "src": "Igors Candy",
    "type": "Food",
    "rarity": "Rare",
    "art": "art/items/igors_candy.png"
   },
   {
    "index": 11501,
-   "src": "Toadstool Liquor",
    "type": "Potion",
    "rarity": "Rare",
    "art": "art/items/toadstool_liquor.png"
   },
   {
    "index": 11502,
-   "src": "Sarcophagus Honey",
    "type": "Consumable",
    "rarity": "Epic",
    "art": "art/items/sarcophagus_honey.png"
   },
   {
    "index": 19001,
-   "src": "Spirit Glue",
    "type": "Potion",
    "rarity": "Uncommon",
    "art": "art/items/spirit_glue.png"
   },
   {
    "index": 19101,
-   "src": "Animistic Poison",
    "type": "Potion",
    "rarity": "Rare",
    "art": "art/items/animistic_poison.png"
   },
   {
    "index": 19201,
-   "src": "Cthonic Blight",
    "type": "Potion",
    "rarity": "Rare",
    "art": "art/items/cthonic_blight.png"
   },
   {
    "index": 19301,
-   "src": "Curse Tablet",
    "type": "Consumable",
    "rarity": "Epic",
    "art": "art/items/curse_tablet.png"
   },
   {
    "index": 21003,
-   "src": "Wonder Egg",
    "type": "Lootbox",
    "rarity": "Rare",
    "art": "art/items/wonder_egg.png"
   },
   {
    "index": 21004,
-   "src": "Booster Pack",
    "type": "Lootbox",
    "rarity": "Rare",
    "art": "art/items/booster_pack.png"
   },
   {
    "index": 21005,
-   "src": "Mochibox",
    "type": "Lootbox",
    "rarity": "Epic",
    "art": "art/items/mochibox.png"
   },
   {
    "index": 21006,
-   "src": "Atonement Box",
    "type": "Lootbox",
    "rarity": "Epic",
    "art": "art/items/atonement_box.png"
   },
   {
    "index": 21007,
-   "src": "Silt-Caked Box",
    "type": "Lootbox",
    "rarity": "Uncommon",
    "art": "art/items/silt_caked_box.png"
   },
   {
    "index": 21008,
-   "src": "Golden Box",
    "type": "Lootbox",
    "rarity": "Epic",
    "art": "art/items/golden_box.png"
   },
   {
    "index": 21201,
-   "src": "Ice Cream",
    "type": "Food",
    "rarity": "Uncommon",
    "art": "art/items/ice_cream.png"
   },
   {
    "index": 21202,
-   "src": "Better Ice Cream",
    "type": "Food",
    "rarity": "Uncommon",
    "art": "art/items/better_ice_cream.png"
   },
   {
    "index": 21203,
-   "src": "Best Ice Cream",
    "type": "Food",
    "rarity": "Uncommon",
    "art": "art/items/best_ice_cream.png"
   },
   {
    "index": 21205,
-   "src": "Rock Candyfloss",
    "type": "Consumable",
    "rarity": "Rare",
    "art": "art/items/rock_candyfloss.png"
   },
   {
    "index": 21206,
-   "src": "Uninteresting Paste",
    "type": "Potion",
    "rarity": "Rare",
    "art": "art/items/uninteresting_paste.png"
   },
   {
    "index": 22802,
-   "src": "Ring of Spirits",
    "type": "Key Item",
    "rarity": "Epic",
    "art": "art/items/ring_of_spirits.webp"
   },
   {
    "index": 23100,
-   "src": "Spice Grinder",
    "type": "Tool",
    "rarity": "Uncommon",
    "art": "art/items/spice_grinder.png"
   },
   {
    "index": 23101,
-   "src": "Portable Burner",
    "type": "Tool",
    "rarity": "Uncommon",
    "art": "art/items/portable_burner.png"
   },
   {
    "index": 23102,
-   "src": "Screwdriver",
    "type": "Tool",
    "rarity": "Rare",
    "art": "art/items/screwdriver.png"
   },
   {
    "index": 100001,
-   "src": "Astrolabe Disk",
    "type": "Key Item",
    "rarity": "Epic",
    "art": "art/items/astrolabe_disk.png"
   },
   {
    "index": 100002,
-   "src": "Ancient Machine Part",
    "type": "Key Item",
    "rarity": "Epic",
    "art": "art/items/ancient_machine_part.png"
   },
   {
    "index": 100003,
-   "src": "Disc-Shaped Map",
    "type": "Key Item",
    "rarity": "Epic",
    "art": "art/items/disc_shaped_map.png"
   },
   {
    "index": 100004,
-   "src": "Aetheric Sextant",
    "type": "Key Item",
    "rarity": "Legendary",
    "art": "art/items/aetheric_sextant.png"
   },
   {
    "index": 100005,
-   "src": "Pyramid Engine",
    "type": "Key Item",
    "rarity": "Epic",
    "art": "art/items/pyramid_engine.png"
   },
   {
    "index": 100006,
-   "src": "“KW Maps” Data Chip",
    "type": "Key Item",
    "rarity": "Rare",
    "art": "art/items/kw_maps_data_chip.png"
   },
   {
    "index": 100007,
-   "src": "Unmarked Data Chip",
    "type": "Key Item",
    "rarity": "Rare",
    "art": "art/items/unmarked_data_chip.png"
   },
   {
    "index": 100008,
-   "src": "Rock Crystal Lens",
    "type": "Key Item",
    "rarity": "Epic",
    "art": "art/items/rock_crystal_lens.png"
   },
   {
    "index": 100009,
-   "src": "Switchbox Imp",
    "type": "Key Item",
    "rarity": "Epic",
    "art": "art/items/switchbox_imp.png"
   },
   {
    "index": 100010,
-   "src": "Dowsing Rod",
    "type": "Key Item",
    "rarity": "Epic",
    "art": "art/items/dowsing_rod.png"
   },
   {
    "index": 100011,
-   "src": "“Homecoming” Data Chip",
    "type": "Key Item",
    "rarity": "Epic",
    "art": "art/items/homecoming_data_chip.png"
   },
   {
    "index": 100012,
-   "src": "Igors Amulet",
    "type": "Key Item",
    "rarity": "Uncommon",
    "art": "art/items/igors_amulet.png"
@@ -2869,7 +2677,6 @@
  "recipes": [
   {
    "index": 1,
-   "src": "Brew XP Potion",
    "out": 11401,
    "outAmount": 1,
    "ins": [
@@ -2889,7 +2696,6 @@
   },
   {
    "index": 2,
-   "src": "Brew Greater XP Potion",
    "out": 11402,
    "outAmount": 1,
    "ins": [
@@ -2909,7 +2715,6 @@
   },
   {
    "index": 3,
-   "src": "Brew Respec Potion",
    "out": 11403,
    "outAmount": 1,
    "ins": [
@@ -2929,7 +2734,6 @@
   },
   {
    "index": 4,
-   "src": "Brew Grace Potion",
    "out": 11404,
    "outAmount": 1,
    "ins": [
@@ -2953,7 +2757,6 @@
   },
   {
    "index": 5,
-   "src": "Brew Bless Potion",
    "out": 11405,
    "outAmount": 1,
    "ins": [
@@ -2973,7 +2776,6 @@
   },
   {
    "index": 6,
-   "src": "Extract Pine Pollen",
    "out": 1104,
    "outAmount": 500,
    "ins": [
@@ -2989,7 +2791,6 @@
   },
   {
    "index": 7,
-   "src": "Extract Microplastics",
    "out": 1103,
    "outAmount": 500,
    "ins": [
@@ -3005,7 +2806,6 @@
   },
   {
    "index": 8,
-   "src": "Extract Daffodil",
    "out": 1111,
    "outAmount": 500,
    "ins": [
@@ -3021,7 +2821,6 @@
   },
   {
    "index": 9,
-   "src": "Extract Mint",
    "out": 1112,
    "outAmount": 500,
    "ins": [
@@ -3037,7 +2836,6 @@
   },
   {
    "index": 10,
-   "src": "Extract Black Poppy",
    "out": 1110,
    "outAmount": 500,
    "ins": [
@@ -3053,7 +2851,6 @@
   },
   {
    "index": 11,
-   "src": "Assemble Aetheric Sextant",
    "out": 100004,
    "outAmount": 1,
    "ins": [
@@ -3077,7 +2874,6 @@
   },
   {
    "index": 12,
-   "src": "Grind Berry Chalk",
    "out": 1114,
    "outAmount": 500,
    "ins": [
@@ -3093,7 +2889,6 @@
   },
   {
    "index": 13,
-   "src": "Crush Red Amber",
    "out": 1107,
    "outAmount": 500,
    "ins": [
@@ -3109,7 +2904,6 @@
   },
   {
    "index": 14,
-   "src": "Mix Holy Syrup",
    "out": 1201,
    "outAmount": 500,
    "ins": [
@@ -3125,7 +2919,6 @@
   },
   {
    "index": 15,
-   "src": "Process Resin",
    "out": 1202,
    "outAmount": 500,
    "ins": [
@@ -3141,7 +2934,6 @@
   },
   {
    "index": 16,
-   "src": "Extract Powder",
    "out": 1113,
    "outAmount": 500,
    "ins": [
@@ -3157,7 +2949,6 @@
   },
   {
    "index": 17,
-   "src": "Chisel Cup",
    "out": 1102,
    "outAmount": 1,
    "ins": [
@@ -3173,7 +2964,6 @@
   },
   {
    "index": 18,
-   "src": "Brew Hostility Potion",
    "out": 11410,
    "outAmount": 1,
    "ins": [
@@ -3197,7 +2987,6 @@
   },
   {
    "index": 19,
-   "src": "Brew Energy Drink",
    "out": 11409,
    "outAmount": 1,
    "ins": [
@@ -3221,7 +3010,6 @@
   },
   {
    "index": 20,
-   "src": "Write Apology Letter",
    "out": 11406,
    "outAmount": 1,
    "ins": [
@@ -3245,7 +3033,6 @@
   },
   {
    "index": 21,
-   "src": "Craft Festival Chime",
    "out": 11408,
    "outAmount": 1,
    "ins": [
@@ -3265,7 +3052,6 @@
   },
   {
    "index": 22,
-   "src": "Craft COIN Magnet",
    "out": 11407,
    "outAmount": 1,
    "ins": [
@@ -3289,7 +3075,6 @@
   },
   {
    "index": 23,
-   "src": "Craft Spirit Glue",
    "out": 19001,
    "outAmount": 1,
    "ins": [
@@ -3313,7 +3098,6 @@
   },
   {
    "index": 24,
-   "src": "Craft Animistic Poison",
    "out": 19101,
    "outAmount": 1,
    "ins": [
@@ -3337,7 +3121,6 @@
   },
   {
    "index": 25,
-   "src": "Craft Cthonic Blight",
    "out": 19201,
    "outAmount": 1,
    "ins": [
@@ -3361,7 +3144,6 @@
   },
   {
    "index": 26,
-   "src": "Craft Flash Talisman",
    "out": 11412,
    "outAmount": 5,
    "ins": [
@@ -3385,7 +3167,6 @@
   },
   {
    "index": 28,
-   "src": "Craft Toadstool Liquor",
    "out": 11501,
    "outAmount": 1,
    "ins": [
@@ -3409,7 +3190,6 @@
   },
   {
    "index": 29,
-   "src": "Craft Fortified XP Potion",
    "out": 11411,
    "outAmount": 1,
    "ins": [
@@ -3433,7 +3213,6 @@
   },
   {
    "index": 30,
-   "src": "Craft Pure Essence",
    "out": 6007,
    "outAmount": 1,
    "ins": [
@@ -3469,7 +3248,6 @@
   },
   {
    "index": 31,
-   "src": "Craft Timber with Stems",
    "out": 1302,
    "outAmount": 1,
    "ins": [
@@ -3485,7 +3263,6 @@
   },
   {
    "index": 32,
-   "src": "Craft Ingot with Pipes",
    "out": 1303,
    "outAmount": 1,
    "ins": [
@@ -3501,7 +3278,6 @@
   },
   {
    "index": 33,
-   "src": "Craft Ashlar with Bone",
    "out": 1301,
    "outAmount": 1,
    "ins": [
@@ -3517,7 +3293,6 @@
   },
   {
    "index": 34,
-   "src": "Craft Timber with Stick",
    "out": 1302,
    "outAmount": 1,
    "ins": [
@@ -3533,7 +3308,6 @@
   },
   {
    "index": 35,
-   "src": "Craft Ingot with Scrap",
    "out": 1303,
    "outAmount": 1,
    "ins": [
@@ -3549,7 +3323,6 @@
   },
   {
    "index": 36,
-   "src": "Craft Ashlar with Stone",
    "out": 1301,
    "outAmount": 1,
    "ins": [
@@ -3565,7 +3338,6 @@
   },
   {
    "index": 37,
-   "src": "Craft Uninteresting Paste",
    "out": 21206,
    "outAmount": 1,
    "ins": [
@@ -3585,7 +3357,6 @@
   },
   {
    "index": 38,
-   "src": "Extract Microplastics From Cigs",
    "out": 1103,
    "outAmount": 250,
    "ins": [
@@ -3601,7 +3372,6 @@
   },
   {
    "index": 39,
-   "src": "Extract Irradiated Root",
    "out": 1121,
    "outAmount": 500,
    "ins": [
@@ -3617,7 +3387,6 @@
   },
   {
    "index": 40,
-   "src": "Craft Pale Potion",
    "out": 11004,
    "outAmount": 1,
    "ins": [
@@ -3641,7 +3410,6 @@
   },
   {
    "index": 41,
-   "src": "Assemble Dowsing Rod",
    "out": 100010,
    "outAmount": 1,
    "ins": [
@@ -3665,7 +3433,6 @@
   },
   {
    "index": 42,
-   "src": "Craft Igors Amulet",
    "out": 100012,
    "outAmount": 1,
    "ins": [
@@ -3689,7 +3456,6 @@
   },
   {
    "index": 10002,
-   "src": "Offer an Obol",
    "out": 21007,
    "outAmount": 1,
    "ins": [

@@ -1,3 +1,4 @@
+import "../boot/legacyNames";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "@fontsource-variable/pixelify-sans";

@@ -150,7 +150,7 @@ export const TYPES = {
   ITEM: { kind: "count", index: "item", read: (v, i) => v.world.bag[Number(i)] ?? 0 },
   COINS: { kind: "count", index: "none", read: (v) => v.world.coins },
   VISITED: { kind: "count", index: "none", read: (v) => v.world.visited.length },
-  PETS: { kind: "count", index: "none", read: (v) => v.pets, source: "PET_NUM_OWNED" },
+  PETS: { kind: "count", index: "none", read: (v) => v.pets, source: "PETS_OWNED" },
   LEVEL: { kind: "count", index: "none", read: (v) => v.pet?.level ?? 0, source: "PET_LEVEL_HIGHEST" },
   STAGE: { kind: "count", index: "none", read: (v) => stageRank(v.pet?.stage), source: "PET_LEVELS_TOTAL" },
   TRUST: { kind: "count", index: "resident", read: (v, i) => v.world.trust?.[String(i)] ?? 0, source: "REPUTATION" },
@@ -182,7 +182,7 @@ export type ConditionType = keyof typeof TYPES;
 const spec = (type: string): TypeSpec | undefined => (TYPES as Record<string, TypeSpec>)[type];
 
 /** The source's types we map, and the two left out on purpose (gacha rerolls; a one-off launch flag). */
-export const LEFT_OUT = ["PET_GACHA_REROLL", "PRALINE_LAUNCH_VICTIM"] as const;
+export const LEFT_OUT = ["PET_GACHA_REROLL", "SHOP_LAUNCH_FLAG"] as const;
 
 const [handlerOf, operatorOf] = [(l: Logic) => l.split("_")[0] as Handler, (l: Logic) => l.split("_")[1] as Operator];
 

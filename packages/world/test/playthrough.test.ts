@@ -89,7 +89,11 @@ class Player {
     const queue = [this.w.room];
     while (queue.length && !prev.has(room)) {
       const r = queue.shift()!;
-      for (const n of neighbours(r)) if (!prev.has(n)) (prev.set(n, r), queue.push(n));
+      for (const n of neighbours(r)) {
+        if (prev.has(n)) continue;
+        prev.set(n, r);
+        queue.push(n);
+      }
     }
     if (!prev.has(room)) throw new Error(`room ${room} cannot be reached from ${this.w.room}`);
     const path: number[] = [];
@@ -118,7 +122,11 @@ class Player {
     while (queue.length) {
       const r = queue.shift()!;
       if (ROOMS[r]?.drops.length) return r;
-      for (const n of neighbours(r)) if (!seen.has(n)) (seen.add(n), queue.push(n));
+      for (const n of neighbours(r)) {
+        if (seen.has(n)) continue;
+        seen.add(n);
+        queue.push(n);
+      }
     }
     throw new Error("no room has anything to find");
   }

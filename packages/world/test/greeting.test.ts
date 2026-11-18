@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { scanNames } from "../src/names";
 import { CHARACTERS, FOLK, FOLK_BY_ID, FRIEND_BY_ID, type WorldState, folkViewOf, giveGift, greetingNow, newWorld } from "../src";
 
 const withItem = (w: WorldState, item: number, n: number): WorldState => ({ ...w, bag: { ...w.bag, [item]: (w.bag[item] ?? 0) + n } });
@@ -18,7 +19,7 @@ describe("residents greet you through their circuits (plan 4.11)", () => {
       for (const slot of [1, 2, 3, 4, 5, 6, 7] as const) {
         const l = f.lines[slot];
         expect(l.en.length * l.zh.length, `${f.id} ${slot}`).toBeGreaterThan(0);
-        expect(/pet|coin/i.test(l.en + l.zh)).toBe(false);
+        expect(scanNames(`${l.en}\n${l.zh}`), `${f.id} ${slot}`).toEqual([]);
       }
       expect(f.faces).toHaveLength(4);
     }
