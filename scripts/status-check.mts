@@ -9,9 +9,10 @@
  *   plan       when the workspace plan sits beside the repo: one row in progress, every done row proven
  *
  * Each line is PASS, FAIL or PENDING (a check whose subject is not built yet). The run fails on any
- * FAIL; with --release a PENDING fails it too, because nothing may be handed in unbuilt.
+ * FAIL; with --release a PENDING fails it too, because nothing may be handed in unbuilt. The on-chain copy is published
+ * once per milestone, so between closes it may lag and is PENDING; `--milestone` (and `--release`) require it current.
  *
- *   pnpm status:check [--quick] [--release] [--only code,sites]
+ *   pnpm status:check [--quick] [--milestone] [--release] [--only code,sites]
  */
 
 import { spawnSync } from "node:child_process";
@@ -34,6 +35,8 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
 const quick = args.includes("--quick");
 const release = args.includes("--release");
+/** at a milestone's close the on-chain copy must be current too (between closes it is published once per milestone) */
+const milestone = args.includes("--milestone") || release;
 const onlyArg = args.find((a) => a.startsWith("--only"));
 const only = onlyArg ? (onlyArg.includes("=") ? onlyArg.split("=")[1]! : args[args.indexOf(onlyArg) + 1]!).split(",") : null;
 
@@ -224,7 +227,10 @@ async function siteChecks(): Promise<void> {
         : unchanged
           ? `serves ${s.commit.slice(0, 12)}; nothing it is built from has changed since`
           : `serves ${s.commit.slice(0, 12)}, and what it is built from changed since: redeploy`;
-    record("sites", `${name} is current`, same ? "PASS" : "FAIL", why, t);
+    // the on-chain copy is published at the end of each milestone (about 0.01 OKB a time, see the plan), so between
+    // those it may lag; it is pending then, and a failure at a milestone's close or a release
+    const lagsByDesign = !same && base === DEWEB_URL && !s.dirty && !milestone;
+    record("sites", `${name} is current`, same ? "PASS" : lagsByDesign ? "PENDING" : "FAIL", lagsByDesign ? `${why} (published at the milestone's close)` : why, t);
   }
 
   const t = Date.now();
