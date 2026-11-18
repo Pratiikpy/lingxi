@@ -225,24 +225,36 @@ export function HandheldAwayCard({ pet }: { pet: Pet }) {
   );
 }
 
+/** A wait shorter than this is not mentioned: the homecoming follows at once. */
+const SAY_ARRIVING_MS = 600;
+
 /** Mounted with the game: a pet the handheld sent home is checked as soon as the game opens. */
 export function HandheldReturn() {
   const lang = useLang((s) => s.lang) as Lang;
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
   const [result, setResult] = useState<HomeResult | null>(null);
+  // a pet whose log ends a moment ahead of the game's clock is on its way (A6)
+  const [arriving, setArriving] = useState(false);
   useEffect(() => {
     const show = (r: HomeResult) => {
       play(r.ok ? "success" : "error");
       setResult(r);
     };
+    let checking = false;
     const check = async () => {
       const packet = pendingReturn();
-      if (!packet || !readTrip()) return;
-      const r = await bringPetHome(packet);
-      // a refused packet is not checked again on every visit; the handheld still holds the pet and can send it again
-      if (!r.ok) saveRemove(RETURN_KEY);
-      show(r);
-      if (location.hash === "#handheld-home") history.replaceState(null, "", location.pathname + location.search);
+      if (!packet || !readTrip() || checking) return;
+      checking = true;
+      try {
+        const r = await bringPetHome(packet, undefined, (ms) => setArriving(ms >= SAY_ARRIVING_MS));
+        setArriving(false);
+        // a refused packet is not checked again on every visit; the handheld still holds the pet and can send it again
+        if (!r.ok) saveRemove(RETURN_KEY);
+        show(r);
+        if (location.hash === "#handheld-home") history.replaceState(null, "", location.pathname + location.search);
+      } finally {
+        checking = false;
+      }
     };
     void check();
     const onCheck = () => void check();
@@ -257,6 +269,15 @@ export function HandheldReturn() {
       window.removeEventListener(RESULT, onResult);
     };
   }, []);
+  if (!result && arriving)
+    return (
+      <div className="fam-modal" role="dialog" aria-label={L("On its way home", "正在回家的路上")} aria-busy="true">
+        <div className="fam-card">
+          <p className="label">{L("On its way home", "正在回家的路上")}</p>
+          <p aria-live="polite">{L("Its trip ends a few seconds from now by the game's clock. It will be here in a moment.", "按游戏的时钟，它的旅程还有几秒才结束。马上就到。")}</p>
+        </div>
+      </div>
+    );
   if (!result) return null;
   const m = result.ok ? result.minutes : 0;
   const span = (lang: Lang) => (m < 120 ? (lang === "zh" ? `${m} 分钟` : `${m} minute${m === 1 ? "" : "s"}`) : lang === "zh" ? `${Math.round(m / 6) / 10} 小时` : `${Math.round(m / 6) / 10} hours`);
@@ -268,8 +289,8 @@ export function HandheldReturn() {
             <p className="label">{L("Home from the handheld", "从掌机回来了")}</p>
             <p>
               {L(
-                `${m === 0 ? "It came straight back. " : `The game replayed every minute of its ${span("en")} out, `}${m === 0 ? "The game replayed" : "and"} its ${result.words} thoughts, and arrived at exactly the pet the handheld sent back.${result.cares ? ` Cared for ${result.cares} time${result.cares === 1 ? "" : "s"}; it all counts.` : ""}`,
-                `${m === 0 ? "它一出门就回来了。游戏重放了" : `游戏重放了它在外面的 ${span("zh")}，每一分钟都没落下，还有`}它的 ${result.words} 个念头，得到的正是掌机送回来的宠物。${result.cares ? `照顾了 ${result.cares} 次，全部算数。` : ""}`,
+                `${m === 0 ? "It came straight back. The game replayed " : `The game replayed ${m === 1 ? "its one minute out" : `every minute of its ${span("en")} out`} and `}${result.words === 1 ? "its one thought" : `its ${result.words} thoughts`}, and arrived at exactly the pet the handheld sent back.${result.cares ? ` Cared for ${result.cares === 1 ? "once" : `${result.cares} times`}; it all counts.` : ""}`,
+                `${m === 0 ? "它一出门就回来了。游戏重放了" : m === 1 ? "游戏重放了它在外面的这 1 分钟，还有" : `游戏重放了它在外面的 ${span("zh")}，每一分钟都没落下，还有`}它的 ${result.words} 个念头，得到的正是掌机送回来的宠物。${result.cares ? `照顾了 ${result.cares} 次，全部算数。` : ""}`,
               )}
             </p>
           </>

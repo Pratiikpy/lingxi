@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import { keccak_256 } from "@noble/hashes/sha3";
 import { type ItemEffect, type Pet, BEAT_MS, FOODS, SKILLS, createPet, newGrowth } from "@lingxi/game";
 import { type HandheldCore } from "../src/core";
-import { type Snack, type TripOp, type TripScreen, bringHome, petDigest, readReturn, replayOps, tripPacket } from "../src/trip";
+import { type Snack, type TripOp, type TripScreen, arrivingIn, bringHome, petDigest, readReturn, replayOps, returnEndBeat, tripPacket } from "../src/trip";
 import { type TestBrain, childBrain, loadCore, rng, starterBrain } from "./helpers";
 
 const START = Date.UTC(2026, 10, 17, 3, 0);
@@ -212,5 +212,56 @@ describe("taking a pet along and bringing it home", () => {
     expect(core.open(forged)).toBe("badHash");
     // a brain with the wrong number of memory bits for this pet
     expect(core.open(tripPacket(start, starterBrain("bold").trip, snacksOf(), SCREEN))).toBe(starterBrain("bold").netlist!.latches.length === start.brain.length ? "ok" : "badShape");
+  });
+});
+
+describe("a log a moment ahead of the game's clock is waited for, never accepted early (A6)", () => {
+  async function trip(seed: number) {
+    const core = await loadCore();
+    const tb = starterBrain("gentle");
+    const start = petWith(tb, seed);
+    const snacks = snacksOf();
+    expect(core.open(tripPacket(start, tb.trip, snacks, SCREEN))).toBe("ok");
+    for (let j = 0; j < 30; j++) core.live();
+    core.away(90);
+    return { start, tb, snacks, back: core.close() };
+  }
+
+  it("names the beat the log reaches, and nothing for a packet that is not this trip", async () => {
+    const t = await trip(61);
+    const end = returnEndBeat(t.start, t.back);
+    expect(end).toBe(t.start.beat + 30 + 90);
+    expect(returnEndBeat({ ...t.start, xp: t.start.xp + 1 }, t.back)).toBeNull();
+    expect(returnEndBeat(t.start, t.back.slice(0, 10))).toBeNull();
+  });
+
+  it("checks at once a log that ends by the game's minute", async () => {
+    const t = await trip(62);
+    const end = returnEndBeat(t.start, t.back)!;
+    expect(arrivingIn(t.start, t.back, end * BEAT_MS)).toBe(0);
+    expect(arrivingIn(t.start, t.back, (end + 5) * BEAT_MS + 1234)).toBe(0);
+  });
+
+  it("waits until the game's clock reaches a log that ends one beat ahead, then brings the pet home", async () => {
+    const t = await trip(63);
+    const end = returnEndBeat(t.start, t.back)!;
+    const now = end * BEAT_MS - 700;
+    expect(bringHome(t.start, t.tb.brain, t.snacks, t.back, now)).toEqual({ ok: false, reason: "aheadOfTime" });
+    expect(arrivingIn(t.start, t.back, now)).toBe(700);
+    expect(bringHome(t.start, t.tb.brain, t.snacks, t.back, now + 700).ok).toBe(true);
+  });
+
+  it("does not wait for a log two beats ahead or more: that one is refused as before", async () => {
+    const t = await trip(64);
+    const end = returnEndBeat(t.start, t.back)!;
+    expect(arrivingIn(t.start, t.back, (end - 1) * BEAT_MS - 1)).toBe(0);
+    expect(bringHome(t.start, t.tb.brain, t.snacks, t.back, (end - 1) * BEAT_MS - 1)).toEqual({ ok: false, reason: "aheadOfTime" });
+  });
+
+  it("does not wait for a packet it cannot read: the replay refuses it with its own reason", async () => {
+    const t = await trip(65);
+    const flip = t.back.slice();
+    flip[60] = flip[60]! ^ 1;
+    expect(arrivingIn(t.start, flip, t.start.beat * BEAT_MS)).toBe(0);
   });
 });

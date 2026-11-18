@@ -10,6 +10,7 @@ import wasmUrl from "@lingxi/handheld/wasm/lingxi-handheld.wasm?url";
 import { useLang } from "../i18n";
 import { DEVICE_KEY, INBOX_KEY, RETURN_KEY, fromB64 } from "../game/handheldKeys";
 import { handheldIsMine } from "../game/handheldLock";
+import { startHandheldClock, wallBeat } from "./clock";
 import "./handheld.css";
 
 interface HH {
@@ -33,9 +34,6 @@ interface HH {
 
 type Lang = "en" | "zh";
 type Words = Record<Lang, string>;
-
-/** The game's beat: whole minutes of wall time, as the pet at home counts them. */
-const wallBeat = () => Math.floor(Date.now() / 60_000);
 const W = 240;
 const H = 135;
 
@@ -139,7 +137,8 @@ export function HandheldApp() {
     let ticker = 0;
     let frame = 0;
     void (async () => {
-      const { instance } = await WebAssembly.instantiateStreaming(fetch(wasmUrl), {}).catch(async () => WebAssembly.instantiate(await (await fetch(wasmUrl)).arrayBuffer(), {}));
+      // the pet lives by the game's clock (A6): the handheld's first beat waits for it, as the game's does
+      const [{ instance }] = await Promise.all([WebAssembly.instantiateStreaming(fetch(wasmUrl), {}).catch(async () => WebAssembly.instantiate(await (await fetch(wasmUrl)).arrayBuffer(), {})), startHandheldClock()]);
       if (!alive) return;
       const x = instance.exports as unknown as HH;
       hh.current = x;
@@ -168,9 +167,9 @@ export function HandheldApp() {
       let lastKeep = 0;
       ticker = window.setInterval(() => {
         x.hh_tick(now(), wallBeat(), document.hidden ? 0 : 1);
-        if (Date.now() - lastKeep > 5000) {
+        if (now() - lastKeep > 5000) {
           keep();
-          lastKeep = Date.now();
+          lastKeep = now();
         }
       }, 250);
     })();

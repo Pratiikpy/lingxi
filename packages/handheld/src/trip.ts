@@ -374,3 +374,23 @@ export function bringHome(
   if (done.pet.beat !== t.endBeat || petDigest(done.pet, words) !== t.endDigest) return { ok: false, reason: "differs" };
   return { ok: true, pet: done.pet, snacks: done.snacks, words, cares: done.cares };
 }
+
+/** The last beat a returned packet's log reaches, or null for a packet that cannot be read or is not this trip. */
+export function returnEndBeat(start: Pet, packet: Uint8Array): number | null {
+  const r = readReturn(packet);
+  if (!r.ok || r.trip.startDigest !== petDigest(start, 0)) return null;
+  const beats = r.trip.ops.reduce((n, o) => n + (o.op === "care" ? 0 : o.n), 0);
+  return Math.max(start.beat + beats, r.trip.endBeat);
+}
+
+/**
+ * How long to wait before bringing a returned packet home, in ms: 0 to check it now. The handheld and the game read
+ * the same clock, but each page asked the server for it on its own, moments apart, so a log can end in the minute
+ * the game's clock has not quite reached. Such a log is waited for, never accepted early: `bringHome` still refuses
+ * anything past the present. A log further ahead than that is not waited for, and the replay refuses it.
+ */
+export function arrivingIn(start: Pet, packet: Uint8Array, now: number): number {
+  const end = returnEndBeat(start, packet);
+  if (end === null || end !== Math.floor(now / BEAT_MS) + 1) return 0;
+  return end * BEAT_MS - now;
+}

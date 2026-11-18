@@ -16,9 +16,9 @@
  */
 
 import { REF, decode, hexToBytes, refKey } from "@lingxi/brain";
-import { type Pet, stageOf, ruleSkillIds } from "@lingxi/game";
+import { type Pet, BEAT_MS, stageOf, ruleSkillIds } from "@lingxi/game";
 import { readNetlist } from "@lingxi/chain";
-import { type BrainPart, type HomeRefusal, type Snack, type TripBrain, bringHome, gameCircuit, petDigest, sameMind, tripBrainOf, tripPacket } from "@lingxi/handheld";
+import { type BrainPart, type HomeRefusal, type Snack, type TripBrain, arrivingIn, bringHome, gameCircuit, petDigest, returnEndBeat, sameMind, tripBrainOf, tripPacket } from "@lingxi/handheld";
 import { ITEM } from "@lingxi/world";
 import type { Address } from "viem";
 import { deployment, mindKey, publicClient, recordOf } from "./chain";
@@ -27,7 +27,7 @@ import { brainOf, countCare, useGame } from "./store";
 import { useWorld } from "./world";
 import { DEVICE_KEY, INBOX_KEY, RETURN_KEY, TRIP_KEY, fromB64 } from "./handheldKeys";
 import { saveRemove, saveWrite } from "./saveRuntime";
-import { now } from "./gameClock";
+import { clock, now } from "./gameClock";
 
 export { DEVICE_KEY, INBOX_KEY, RETURN_KEY, TRIP_KEY, fromB64 };
 
@@ -222,13 +222,39 @@ function finish(home: Pet, snacksLeft: ReadonlyArray<{ item: number; count: numb
 
 export type HomeResult = { ok: true; minutes: number; cares: number; words: number } | { ok: false; reason: HomeRefusal | "noTrip" };
 
+/** Past the minute's boundary by this much before a waited-for log is checked again. */
+const ARRIVAL_MARGIN_MS = 50;
+
+/**
+ * A6: the handheld's log may end in the minute the game's clock has not quite reached (each page asked the server
+ * for the time on its own, moments apart). Waits for the game's clock to reach it, saying how long; a log further
+ * ahead is not waited for and the replay refuses it. A clock that has not yet heard from the server asks again
+ * before such a log is judged.
+ */
+async function untilArrived(start: Pet, packet: Uint8Array, onArriving?: (ms: number) => void): Promise<void> {
+  const end = returnEndBeat(start, packet);
+  if (end === null) return;
+  if (end > Math.floor(now() / BEAT_MS) && !clock.synced()) await clock.sync();
+  for (let tries = 0; tries < 2; tries++) {
+    const ms = arrivingIn(start, packet, now());
+    if (ms <= 0) return;
+    onArriving?.(ms);
+    await new Promise((r) => setTimeout(r, ms + ARRIVAL_MARGIN_MS));
+  }
+}
+
 /**
  * Bring the pet home from the packet a handheld sent back. Nothing changes unless the replay matches exactly, and
- * then only after `release` (a Cardputer letting go of the pet) has succeeded, so a pet is never in two places.
+ * then only after `release` (a Cardputer letting go of the pet) has succeeded, so a pet is never in two places. A log
+ * that ends a moment ahead of the game's clock is waited for first (`onArriving` hears for how long).
  */
-export async function bringPetHome(packet: Uint8Array, release?: () => Promise<void>): Promise<HomeResult> {
+export async function bringPetHome(packet: Uint8Array, release?: () => Promise<void>, onArriving?: (ms: number) => void): Promise<HomeResult> {
+  const first = readTrip();
+  if (!first) return { ok: false, reason: "noTrip" };
+  await untilArrived(first.start, packet, onArriving);
+  // the trip is read again after any wait: the pet may have been called back meanwhile
   const t = readTrip();
-  if (!t || focusTravelling(t) < 0) return { ok: false, reason: "noTrip" };
+  if (!t || t.packet !== first.packet || focusTravelling(t) < 0) return { ok: false, reason: "noTrip" };
   const { brain } = tripBrainOf(tripBrain(t));
   const r = bringHome(t.start, brain, t.snacks, packet, now());
   if (!r.ok) return r;
