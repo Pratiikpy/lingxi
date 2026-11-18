@@ -28,6 +28,7 @@ const REASON_KEY: Record<string, Key> = {
   tooBig: "teach.tooBig",
   invalid: "teach.invalid",
   busy: "teach.busy",
+  resting: "teach.resting",
   offline: "teach.offline",
   error: "teach.error",
 };

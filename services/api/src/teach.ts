@@ -113,7 +113,7 @@ export function cleanName(name: string | undefined): string {
 
 export type TeachResult =
   | { ok: true; rule: Rule; gates: number; reply: { en: string; zh: string } }
-  | { ok: false; reason: "notUnderstood" | "invalid" | "full" | "tooBig" | "duplicate" | "busy" | "error"; reply?: { en: string; zh: string }; detail?: string };
+  | { ok: false; reason: "notUnderstood" | "invalid" | "full" | "tooBig" | "duplicate" | "busy" | "resting" | "error"; reply?: { en: string; zh: string }; detail?: string };
 
 /** Turn a model proposal into a checked lesson. Pure: no network. */
 export function finishProposal(raw: unknown, line: StarterLine, stage: Exclude<Stage, "egg">, lessons: Rule[]): TeachResult {
@@ -162,7 +162,9 @@ export async function teachInWords(client: Anthropic, req: TeachRequest): Promis
       messages: [{ role: "user", content: `The owner says: "${words}"` }],
     } as never);
   } catch (e) {
-    if (e instanceof Anthropic.RateLimitError || e instanceof BudgetSpent) return { ok: false, reason: "busy" };
+    // the day's shared budget is spent: say so, rather than "try again in a minute"
+    if (e instanceof BudgetSpent) return { ok: false, reason: "resting" };
+    if (e instanceof Anthropic.RateLimitError) return { ok: false, reason: "busy" };
     if (e instanceof Anthropic.APIError) return { ok: false, reason: "error", detail: `api ${e.status}` };
     return { ok: false, reason: "error", detail: "network" };
   }

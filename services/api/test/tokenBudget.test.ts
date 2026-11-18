@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { budgetedClient, createTokenBudget } from "../src/tokenBudget";
+import { teachInWords } from "../src/teach";
 
 /** A stand-in client whose every call reports the usage it is given. */
 const fakeClient = (usage = { input_tokens: 1500, output_tokens: 200 }) => {
@@ -42,5 +43,14 @@ describe("the daily token budget for teaching and voices", () => {
     const b = createTokenBudget({ perDay: 10_000, file });
     expect(b.used()).toBe(1_700);
     expect(JSON.parse(readFileSync(file, "utf8")).used).toBe(1_700);
+  });
+
+  it("tells a player teaching in words that today's share is used, not to try again in a minute", async () => {
+    const budget = createTokenBudget({ perDay: 1 });
+    const f = fakeClient();
+    const c = budgetedClient(f.client as never, budget);
+    await c.messages.create({} as never);
+    const r = await teachInWords(c as never, { words: "when hungry ask for food", line: "gentle", name: "Mochi", lessons: [] } as never);
+    expect(r).toMatchObject({ ok: false, reason: "resting" });
   });
 });
