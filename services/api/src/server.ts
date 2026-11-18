@@ -696,7 +696,6 @@ if (isMain) {
   const modelBudget = createTokenBudget({ perDay: Number(process.env.LINGXI_MODEL_TOKENS_PER_DAY ?? 2_000_000), file: resolve(dirname(fileURLToPath(import.meta.url)), "../data/model-budget.json") });
   const client = key ? budgetedClient(new Anthropic({ apiKey: key }), modelBudget) : null;
   const port = Number(process.env.PORT ?? 8787);
-  const relayer = makeRelayer();
   // the deployment the game runs on, read once: the agent API, adoption papers and what visitors see all use it
   const rpcMain = process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech";
   let chainCtx: { pub: PublicClient; deployment: Deployment } | undefined;
@@ -712,6 +711,7 @@ if (isMain) {
   if (chainCtx) {
     const d = chainCtx.deployment;
     const fromRecord: Record<string, string | number | undefined> = {
+      LINGXI_PROCESSOR: d.processor,
       LINGXI_REGISTRY: d.registry,
       LINGXI_REGISTRY_FROM: d.registryBlock,
       LINGXI_LOOK: d.look,
@@ -727,6 +727,8 @@ if (isMain) {
     };
     for (const [key, value] of Object.entries(fromRecord)) if (process.env[key] === undefined && value !== undefined) process.env[key] = String(value);
   }
+  // made after the record is read: it tapes out on the deployment's processor
+  const relayer = makeRelayer();
   // homes (plan 4.9): what visitors see is what the home's linked wallets hold on X Layer
   const homeChain: HomeChain | undefined = chainCtx && {
     roomPacks: async (wallets) => (await packsHeld(chainCtx!.pub, chainCtx!.deployment, wallets)).room,

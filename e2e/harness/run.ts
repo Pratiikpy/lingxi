@@ -7,7 +7,7 @@
  * mnemonic every Foundry and Hardhat install ships, and their balances are written into the fork.
  */
 
-import { cpSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { createPublicClient, http, toHex, type Address, type PublicClient } from "viem";
 import { mnemonicToAccount } from "viem/accounts";
@@ -19,6 +19,8 @@ const FORK = JSON.parse(readFileSync(join(ROOT, "e2e/fork.json"), "utf8")) as { 
 /** Foundry's and Hardhat's public test mnemonic: its keys hold nothing anywhere real. */
 const TEST_MNEMONIC = "test test test test test test test test test test test junk";
 const PLAYERS = 4;
+/** The test wallet the server relays with (the last one). */
+export const RELAYER = PLAYERS - 1;
 const OKB_EACH = 100n * 10n ** 18n;
 const BEM_EACH = 10_000n * 10n ** 18n;
 
@@ -116,14 +118,20 @@ export async function startRun(): Promise<Run> {
         ].map(([k, f]) => [k, s(f!)]),
       ),
     };
-    for (const k of ["LINGXI_RELAYER_KEY_FILE", "LINGXI_VOUCHER_KEY_FILE", "LINGXI_PUSH_KEY_FILE", "LINGXI_STATIC"]) delete serverEnv[k];
+    for (const k of ["LINGXI_VOUCHER_KEY_FILE", "LINGXI_PUSH_KEY_FILE", "LINGXI_STATIC"]) delete serverEnv[k];
+    // the relayer that tapes out players' brains: the last test wallet, funded on the fork; its key stays in the
+    // scratch folder of this run
+    writeFileSync(s("relayer.env"), `K=${keyOf(RELAYER)}
+`);
+    serverEnv.LINGXI_RELAYER_KEY_FILE = s("relayer.env");
     // no model: the secrets file has a default path on this machine, so it is pointed at one that does not exist,
     // and a spec never spends on a paid model or depends on its answer
     serverEnv.LINGXI_SECRETS = join(dir, "no-secrets.env");
     const server = keep(start("server", node, [tsx, "src/server.ts"], { cwd: join(ROOT, "services/api"), env: serverEnv, log: join(dir, "server.log") }));
     await waitFor("the server", () => answers(`${api}/api/health`), 90_000, server.log);
-    const health = (await (await fetch(`${api}/api/health`)).json()) as { teach?: boolean; voice?: boolean };
+    const health = (await (await fetch(`${api}/api/health`)).json()) as { teach?: boolean; voice?: boolean; relay?: boolean };
     if (health.teach || health.voice) throw new Error("the suite's server can reach a paid model; it must not");
+    if (!health.relay) throw new Error("the suite's server has no relayer");
 
     // the game, once per player's wallet
     const players: Player[] = [];
@@ -137,8 +145,10 @@ export async function startRun(): Promise<Run> {
     for (const a of addresses.slice(2)) players.push({ index: players.length, address: a, web: "" });
 
     const run: Run = { dir, fork: { rpc, block: FORK.block }, api, players, procs };
-    writeFileSync(join(ROOT, "e2e/.run/current.json"), JSON.stringify(run, null, 2));
-    cpSync(join(ROOT, "e2e/.run/current.json"), join(dir, "run.json"));
+    // each run keeps its own record, so two runs on one machine never read each other's; the specs find it by the
+    // environment the global setup hands its workers
+    writeFileSync(join(dir, "run.json"), JSON.stringify(run, null, 2));
+    process.env.LINGXI_E2E_RUN = join(dir, "run.json");
     return run;
   } catch (e) {
     for (const p of procs.reverse()) stop(p);
@@ -151,4 +161,8 @@ export function stopRun(run: Pick<Run, "procs">): void {
 }
 
 /** The run the global setup started, for a spec to read. */
-export const currentRun = (): Run => JSON.parse(readFileSync(join(ROOT, "e2e/.run/current.json"), "utf8")) as Run;
+export function currentRun(): Run {
+  const file = process.env.LINGXI_E2E_RUN;
+  if (!file) throw new Error("no run: start specs with `pnpm e2e`, whose global setup starts the fork, the server and the game");
+  return JSON.parse(readFileSync(file, "utf8")) as Run;
+}
