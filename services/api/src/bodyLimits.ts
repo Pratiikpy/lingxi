@@ -33,7 +33,8 @@ export function withBodyLimits(app: Hono): Hono {
   const of = (max: number) => {
     let mw = cache.get(max);
     if (!mw) {
-      mw = bodyLimit({ maxSize: max, onError: (c: Context) => c.json({ ok: false, reason: "tooBig" }, 413) });
+      // the rest of an oversized body is never read, so the connection cannot carry another request: say so
+      mw = bodyLimit({ maxSize: max, onError: (c: Context) => c.json({ ok: false, reason: "tooBig" }, 413, { connection: "close" }) });
       cache.set(max, mw);
     }
     return mw;

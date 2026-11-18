@@ -22,7 +22,10 @@ const send = (path: string, bytes: number) => app().request(path, { method: "POS
 
 describe("how much a write may carry", () => {
   it("refuses an oversized body that comes in chunks with no length given", async () => {
-    expect((await send("/api/teach", 64 * 1024)).status).toBe(413);
+    const r = await send("/api/teach", 64 * 1024);
+    expect(r.status).toBe(413);
+    // the rest of the body is not read, so the connection is closed and no client sends its next request down it
+    expect(r.headers.get("connection")).toBe("close");
   });
 
   it("reads a body of honest size", async () => {
