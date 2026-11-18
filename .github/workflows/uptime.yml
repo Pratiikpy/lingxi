@@ -1,0 +1,64 @@
+name: Uptime
+
+# The site runs on one PC behind a tunnel, so it is watched from outside: every ten minutes this asks its health.
+# Down twice running opens an issue for the owner; back up closes it with the time.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Health URL to ask"
+        default: "https://lingxi.knole.me/api/health"
+      dry_run:
+        description: "Say what would be done to the issue, without doing it"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+  actions: read
+
+concurrency: uptime
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      URL: ${{ inputs.url || 'https://lingxi.knole.me/api/health' }}
+      DRY: ${{ inputs.dry_run && 'yes' || 'no' }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Ask the site, three tries
+        id: ask
+        run: |
+          for i in 1 2 3; do
+            if curl -fsS --max-time 20 "$URL" | grep -q '"ok":true'; then echo "up=yes" >> "$GITHUB_OUTPUT"; exit 0; fi
+            sleep 20
+          done
+          echo "up=no" >> "$GITHUB_OUTPUT"
+
+      - name: Open or close the downtime issue
+        run: |
+          now=$(date -u +"%Y-%m-%d %H:%M UTC")
+          # a failed read here must not fail the run: only the site being down may, since the next run reads that
+          open=$(gh issue list --label downtime --state open --json number --jq '.[0].number // empty' || true)
+          # the run before this one, by this workflow: a failed run means the site was down then too
+          before=$(gh run list --workflow uptime.yml --status completed --limit 1 --json conclusion --jq '.[0].conclusion // "none"' || echo none)
+          act() { if [ "$DRY" = yes ]; then echo "would run: $*"; else "$@"; fi; }
+          if [ "${{ steps.ask.outputs.up }}" = yes ]; then
+            echo "up at $now"
+            if [ -n "$open" ]; then act gh issue close "$open" --comment "Back up at $now."; fi
+            exit 0
+          fi
+          echo "down at $now; the run before was: $before"
+          if [ "$before" = failure ] && [ -z "$open" ]; then
+            act gh label create downtime --color B60205 --description "The site did not answer twice running" --force
+            act gh issue create --label downtime --assignee "${{ github.repository_owner }}" --title "The site is down ($now)" \
+              --body "$URL did not answer twice running (three tries each, ten minutes apart). On the PC: \`pm2 ls\` shows whether lingxi-server and lingxi-tunnel run, and ~/lingxi-watchdog.json what the watchdog last saw and did. This issue closes itself when the site answers again."
+          fi
+          exit 1

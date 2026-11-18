@@ -9,6 +9,8 @@
 
 import { useEffect, useRef } from "react";
 import { Application, Assets, Container, Graphics, Sprite, Text, type Texture } from "pixi.js";
+// the site sends a script policy without eval; this module gives Pixi the code paths that never need it
+import "pixi.js/unsafe-eval";
 import { AnimatedGIF } from "@pixi/gif";
 import type { Expression } from "@lingxi/art";
 import type { StarterLine } from "@lingxi/brain";

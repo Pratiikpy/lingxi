@@ -2,20 +2,23 @@
  * Community goals (plan 4.10): every contribution read from X Layer. One walk over the pet registry, the BEM
  * breeder and the BEM market, in the public nodes' 100-block windows, keeps a ledger of what each wallet did:
  *
- *   saves     PetRegistry Checkpoint   credited to the pet's owner at that block
- *   hatched   PetRegistry Hatched      every new pet (a child is hatched too), credited to the wallet it was hatched for
+ *   saves     PetRegistry Checkpoint   each pet-day once (a day saved again does not count), for the pet's owner then
+ *   hatched   PetRegistry Hatched      a new pet (a child is hatched too), counted when it is settled: at the
+ *                                      Checkpoint that saves its SETTLED_DAYS-th different day, for the wallet it
+ *                                      was hatched for
  *   children  PetRegistry Bred         credited to the child's owner (its mint comes first in the same transaction)
- *   burned    Burned (breeder, market) the BEM sent to the dead address, credited to the payer
+ *   burned    Burned (Lingxi's BEM contracts) the BEM sent to the dead address, credited to the payer
  *
  * Owners are followed through the registry's Transfer events from its deploy block, so a pet given away credits
- * its new owner. A goal's total is the sum of its metric over the goal's window, by block time; anyone can recount
- * it from the same events (packages/chain/scripts/recount-numbers.ts does).
+ * its new owner. A goal's total is the sum of its metric over the goal's window, by block time, with no wallet
+ * counting for more than walletCap(goal); anyone can recount it from the same events
+ * (packages/chain/scripts/recount-numbers.ts does, by its own walk).
  */
 
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import type { Hono } from "hono";
 import { type Address, type PublicClient, createPublicClient, http, parseAbiItem } from "viem";
-import { GOALS, type GoalDef, type GoalMetric, goalState, tiersReached } from "@lingxi/world";
+import { GOALS, type GoalDef, type GoalMetric, SETTLED_DAYS, goalState, tiersReached, walletCap } from "@lingxi/world";
 import { WINDOW } from "./indexer";
 
 export const GOAL_EVENTS = [
@@ -36,10 +39,19 @@ export interface Entry {
   tx: string;
 }
 
+/** A pet the ledger has seen hatch: who it was hatched for, the days of it saved so far, and whether it has counted. */
+interface PetSeen {
+  to: string;
+  days: number[];
+  counted: boolean;
+}
+
 interface Stored {
-  v: 1;
+  /** 2: settled pets and single-counted days (a version 1 file is read again from the deploy block) */
+  v: 2;
   next: number;
   owners: Record<string, string>;
+  pets: Record<string, PetSeen>;
   entries: Entry[];
 }
 
@@ -59,11 +71,11 @@ export function createGoalLedger(opts: GoalLedgerOptions) {
   const pub = opts.client ?? (createPublicClient({ transport: http(opts.rpc, { timeout: 20_000, retryCount: 0 }) }) as PublicClient);
   const registry = opts.registry.toLowerCase();
   const burners = new Set(opts.burners.map((a) => a.toLowerCase()));
-  let data: Stored = { v: 1, next: opts.fromBlock, owners: {}, entries: [] };
+  let data: Stored = { v: 2, next: opts.fromBlock, owners: {}, pets: {}, entries: [] };
   if (opts.store && existsSync(opts.store)) {
     try {
       const held = JSON.parse(readFileSync(opts.store, "utf8")) as Stored;
-      if (held.v === 1) data = held;
+      if (held.v === 2) data = held;
     } catch {
       // a damaged file is read again from the deploy block
     }
@@ -103,6 +115,7 @@ export function createGoalLedger(opts: GoalLedgerOptions) {
         const to = Math.min(head, data.next + WINDOW - 1);
         const logs = [...(await logsIn(data.next, to))].sort((a, b) => Number(a.blockNumber) - Number(b.blockNumber) || Number(a.logIndex) - Number(b.logIndex));
         const owners = { ...data.owners };
+        const pets = { ...data.pets };
         const fresh: Entry[] = [];
         for (const l of logs) {
           const at = l.address.toLowerCase();
@@ -115,12 +128,24 @@ export function createGoalLedger(opts: GoalLedgerOptions) {
           };
           if (at === registry) {
             if (l.eventName === "Transfer") owners[String(a.tokenId)] = String(a.to).toLowerCase();
-            else if (l.eventName === "Hatched") await add("hatched", String(a.to), 1);
+            else if (l.eventName === "Hatched") pets[String(a.petId)] = { to: String(a.to).toLowerCase(), days: [], counted: false };
             else if (l.eventName === "Bred") await add("children", owners[String(a.petId)], 1);
-            else if (l.eventName === "Checkpoint") await add("saves", owners[String(a.petId)], 1);
+            else if (l.eventName === "Checkpoint") {
+              const id = String(a.petId);
+              const day = Number(a.day);
+              const seen = pets[id];
+              // a day saved again counts once
+              if (!seen || seen.days.includes(day)) continue;
+              const days = [...seen.days, day];
+              await add("saves", owners[id], 1);
+              // the pet is settled when its SETTLED_DAYS-th different day is saved: then it counts as a new pet
+              const settles = !seen.counted && days.length >= SETTLED_DAYS;
+              if (settles) await add("hatched", seen.to, 1);
+              pets[id] = { ...seen, days, counted: seen.counted || settles };
+            }
           } else if (burners.has(at) && l.eventName === "Burned") await add("burned", String(a.payer), Number(a.amount));
         }
-        data = { ...data, next: to + 1, owners, entries: fresh.length ? [...data.entries, ...fresh] : data.entries };
+        data = { ...data, next: to + 1, owners, pets, entries: fresh.length ? [...data.entries, ...fresh] : data.entries };
         added += fresh.length;
         await sleep(opts.paceMs ?? 400);
         if (fresh.length || i % 50 === 49) save();
@@ -147,8 +172,10 @@ export interface GoalReport {
   start: number;
   end: number;
   state: ReturnType<typeof goalState>;
-  /** everything counted in the window; progress stops at the target, the total does not */
+  /** everything counted in the window, each wallet up to `cap`; progress stops at the target, the total does not */
   total: number;
+  /** the most one wallet counts for in this goal */
+  cap: number;
   tiers: number[];
   contributors: number;
   /** the ten who gave most, with their share of the total */
@@ -161,15 +188,18 @@ export interface GoalReport {
 export function reportGoals(entries: readonly Entry[], goals: readonly GoalDef[], nowSec: number, wallets: readonly string[] = []): GoalReport[] {
   const mineSet = new Set(wallets.map((w) => w.toLowerCase()));
   return goals.map((g) => {
+    const cap = walletCap(g);
     const by = new Map<string, number>();
     for (const e of entries) if (e.m === g.metric && e.t >= g.start && e.t < g.end) by.set(e.w, (by.get(e.w) ?? 0) + e.n);
+    // no wallet counts for more than its share, so no one finishes a goal alone
+    for (const [w, n] of by) by.set(w, Math.min(n, cap));
     const total = [...by.values()].reduce((s, n) => s + n, 0);
     const top = [...by.entries()]
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
       .slice(0, 10)
       .map(([wallet, n]) => ({ wallet, n, share: total ? n / total : 0 }));
     const mine = [...by.entries()].filter(([w]) => mineSet.has(w)).reduce((s, [, n]) => s + n, 0);
-    return { id: g.id, metric: g.metric, target: g.target, start: g.start, end: g.end, state: goalState(g, total, nowSec), total, tiers: tiersReached(g, total), contributors: by.size, top, mine };
+    return { id: g.id, metric: g.metric, target: g.target, start: g.start, end: g.end, state: goalState(g, total, nowSec), total, cap, tiers: tiersReached(g, total), contributors: by.size, top, mine };
   });
 }
 

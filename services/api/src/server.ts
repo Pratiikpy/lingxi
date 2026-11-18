@@ -6,6 +6,7 @@
  * ANTHROPIC_API_KEY environment variable) and never leaves this process.
  */
 
+import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -222,14 +223,50 @@ function makeRelayer(): BrainRelayer | null {
 /** A Range in the only unit and syntax a file can answer: bytes, one or more N-M, N- or -N. */
 const BYTE_RANGES = /^bytes=(\d+-\d*|-\d+)(\s*,\s*(\d+-\d*|-\d+))*$/;
 
+/** Where pages may load scripts from besides our own origin: Telegram's Mini App script and Cloudflare's analytics beacon. */
+const SCRIPT_HOSTS = ["https://telegram.org", "https://static.cloudflareinsights.com"];
+
+/** The inline scripts of a page, as the CSP hashes that allow exactly them and nothing else. */
+export function scriptPolicy(html: string): { hashes: string[] } {
+  const hashes: string[] = [];
+  for (const m of html.matchAll(/<script(\s[^>]*)?>([\s\S]*?)<\/script>/gi)) {
+    if (/\ssrc\s*=/i.test(m[1] ?? "")) continue;
+    // the browser hashes the script as HTML parsing leaves it: every CRLF or lone CR read as LF
+    const text = (m[2] ?? "").replace(/\r\n?/g, "\n");
+    hashes.push(`'sha256-${createHash("sha256").update(text).digest("base64")}'`);
+  }
+  return { hashes };
+}
+
 export function withSite(app: Hono, root: string): Hono {
+  // each page's policy, from its own file: re-read when the build changes it
+  const policies = new Map<string, { mtimeMs: number; csp: string }>();
+  const policyFor = (path: string): string | null => {
+    const file = join(root, path === "/" ? "index.html" : path.replace(/^\/+/, ""));
+    if (!/\.html$/.test(file)) return null;
+    try {
+      const { mtimeMs } = statSync(file);
+      const held = policies.get(file);
+      if (held && held.mtimeMs === mtimeMs) return held.csp;
+      const { hashes } = scriptPolicy(readFileSync(file, "utf8"));
+      // the game runs inside Telegram Web's frame as a Mini App; every other page stays unframeable by others. Workers may
+      // also come from blob: URLs, which only a script already running on the page can make (Pixi decodes images in one)
+      const frames = path === "/play.html" ? "'self' https://web.telegram.org https://*.web.telegram.org" : "'self'";
+      const csp = [`script-src 'self' 'wasm-unsafe-eval' ${[...SCRIPT_HOSTS, ...hashes].join(" ")}`, "worker-src 'self' blob:", "object-src 'none'", "base-uri 'self'", `frame-ancestors ${frames}`].join("; ");
+      policies.set(file, { mtimeMs, csp });
+      return csp;
+    } catch {
+      return null;
+    }
+  };
   app.use("*", async (c, next) => {
     await next();
     c.header("X-Content-Type-Options", "nosniff");
     c.header("Referrer-Policy", "strict-origin-when-cross-origin");
-    // the game runs inside Telegram Web's frame as a Mini App; every other page stays unframeable by others
-    if (c.req.path === "/play.html") c.header("Content-Security-Policy", "frame-ancestors 'self' https://web.telegram.org https://*.web.telegram.org");
-    else c.header("X-Frame-Options", "SAMEORIGIN");
+    c.header("Strict-Transport-Security", "max-age=63072000; includeSubDomains");
+    const csp = policyFor(c.req.path);
+    if (csp) c.header("Content-Security-Policy", csp);
+    if (c.req.path !== "/play.html") c.header("X-Frame-Options", "SAMEORIGIN");
     c.header("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
   });
   app.use("/assets/*", async (c, next) => {
@@ -587,6 +624,17 @@ function backupStatus(): { ageHours: number; local: boolean; drive: boolean; err
   }
 }
 
+/** The watchdog's last beat (deploy/watchdog.mjs): how old it is, what it saw, and the last thing it restarted. */
+function watchdogStatus(): { ageSeconds: number; local: boolean; public: boolean; last: { action: string | null; at: string | null; result: string | null } } | null {
+  try {
+    const file = process.env.LINGXI_WATCHDOG_STATUS ?? join(homedir(), "lingxi-watchdog.json");
+    const s = JSON.parse(readFileSync(file, "utf8")) as { at: string; local: boolean; public: boolean; last: { action: string | null; at: string | null; result: string | null } };
+    return { ageSeconds: Math.round((Date.now() - Date.parse(s.at)) / 1000), local: s.local, public: s.public, last: s.last };
+  } catch {
+    return null;
+  }
+}
+
 /** Sizes of the server's data files and folders, in KB, so a store growing without bound shows before it hurts. */
 function storeSizes(dir: string): Record<string, number> {
   const out: Record<string, number> = {};
@@ -673,6 +721,7 @@ if (isMain) {
       relayerUsage: relayer?.usage() ?? null,
       modelTokensToday: client ? { used: modelBudget.used(), perDay: modelBudget.perDay } : null,
       backup: backupStatus(),
+      watchdog: watchdogStatus(),
       storesKb: storeSizes(dataDir),
     };
     cached = { at: Date.now(), value };
@@ -717,7 +766,10 @@ if (isMain) {
     const chain = chainCtx;
     withAgentApi(app, { agents: createAgentStore(process.env.LINGXI_AGENT_STORE), seasons, ...(chain ? { chain } : {}) });
     // the browser's door to X Layer: same origin, so a rate-limited public RPC can never look like a blocked request
-    withRpcProxy(app, { upstreams: [rpc, ...["https://xlayerrpc.okx.com", "https://rpc.xlayer.tech"].filter((u) => u !== rpc)] });
+    // on mainnet the door reads from X Layer's other official host than the one our jobs read from, with the jobs'
+    // host as a small reserve; any other node (a local fork) serves both
+    const official = ["https://rpc.xlayer.tech", "https://xlayerrpc.okx.com"];
+    withRpcProxy(app, official.includes(rpc) ? { upstreams: official.filter((u) => u !== rpc), reserve: { url: rpc, perMinute: 60 } } : { upstreams: [rpc] });
     // adoption papers (plan 4.8): posted by the owner of a pet on offer, fetched by the buyer's game
     if (chain?.deployment.adoptionCentre) {
       const { pub, deployment } = chain;

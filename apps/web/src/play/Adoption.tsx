@@ -130,8 +130,8 @@ export function AdoptionPanel({ pet }: { pet: Pet }) {
       <p className="label">{L("Adoption centre", "领养中心")}</p>
       <p className="small">
         {L(
-          "Little ones a breeder hatched and has not raised, offered while they are still young. A pet someone raised is never for sale here. Of the price, 3% is burned, 10% goes to the owner of the other parent, and the rest to the breeder. Every little one's papers are checked against X Layer in your browser before you can adopt it.",
-          "饲养者孵出、还没养大的小宝宝，趁它们还小的时候送出领养。被人养大的宠物永远不会在这里出售。价格的 3% 会被销毁，10% 给另一位父母的主人，其余归饲养者。每个小宝宝的资料都会先在你的浏览器里和 X Layer 核对，然后才能领养。",
+          "Little ones a breeder hatched and has not raised, offered while they are still young. A pet someone raised is never for sale here. Of the price, 3% is burned, 10% goes to the owner of the other parent, and the rest to the breeder. Every little one's papers are checked against X Layer in your browser before you can adopt it. A name colour is not part of the price: the breeder can change it until the adoption goes through.",
+          "饲养者孵出、还没养大的小宝宝，趁它们还小的时候送出领养。被人养大的宠物永远不会在这里出售。价格的 3% 会被销毁，10% 给另一位父母的主人，其余归饲养者。每个小宝宝的资料都会先在你的浏览器里和 X Layer 核对，然后才能领养。名字颜色不算在价格里：领养完成之前，饲养者都可以改它。",
         )}
       </p>
       {!papersAvailable() && <p className="small sp-warn">{L("Offering and adopting need the web version at lingxi.knole.me, which keeps the papers.", "送养和领养需要用网页版 lingxi.knole.me，由它保管资料。")}</p>}

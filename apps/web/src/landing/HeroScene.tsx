@@ -8,6 +8,8 @@
 
 import { useEffect, useRef } from "react";
 import { Application, Assets, Container, Sprite, type Texture } from "pixi.js";
+// the site sends a script policy without eval; this module gives Pixi the code paths that never need it
+import "pixi.js/unsafe-eval";
 import { timeOfDay } from "@lingxi/brain";
 import { catTexture, glyphTexture, petTexture } from "../scene/textures";
 

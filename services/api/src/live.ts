@@ -18,6 +18,7 @@ import { WebSocketServer, type WebSocket } from "ws";
 import { type DecorStore, type Placed, createDecorStore } from "./decor";
 import { type Homes, visible } from "./homes";
 import { MAX_PLACED } from "@lingxi/world";
+import { BLOCKED_WORDS as BLOCKED } from "./words";
 
 export const CAPACITY = 24;
 /** Connections one address may hold: enough for a family's or a classroom's devices behind one router, not a flood. */
@@ -33,7 +34,6 @@ const NAME_MAX = 12;
 const LINES = new Set(["gentle", "bold", "curious"]);
 const STAGES = new Set(["baby", "child", "teen", "adult", "elder"]);
 const EMOTES = new Set(["wave", "heart", "laugh", "sleepy", "dance", "gift"]);
-const BLOCKED = /(fuck|shit|cunt|nigg|fag|rape|\bkill\b|操你|傻逼|妈的|去死)/i;
 
 export interface Member {
   id: string;

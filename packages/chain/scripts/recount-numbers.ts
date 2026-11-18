@@ -8,9 +8,11 @@
  * The pet count does not trust the start block: every pet ever made emits one Hatched, so the recount must also
  * equal the registry's own nextPetId less one.
  *
- * The community goals (/api/goals) are recounted the same way: owners followed through the registry's Transfer
- * events, each Checkpoint, Hatched and Bred credited to the owner at that point, each Burned on the BEM breeder and
- * market to its payer, and only events inside a goal's window by block time.
+ * The community goals (/api/goals) are recounted the same way, by the rules in @lingxi/world goals.ts: owners
+ * followed through the registry's Transfer events; each pet-day saved once (Checkpoint), for the owner then; a new
+ * pet credited to the wallet it was hatched for at the Checkpoint that saves its SETTLED_DAYS-th different day;
+ * each Bred to the child's owner; each Burned on Lingxi's BEM contracts to its payer; only events inside a goal's
+ * window by block time; and no wallet counted beyond walletCap(goal).
  */
 
 import { readFileSync } from "node:fs";
@@ -18,7 +20,7 @@ import { type Address, createPublicClient, decodeEventLog, http, keccak256, pars
 import type { Deployment } from "../src/registry";
 import { XLAYER_ENDPOINTS, createPacedLogs } from "./lib/paced-logs";
 import { xLayer } from "../src/tapeout";
-import { GOALS, type GoalMetric } from "@lingxi/world";
+import { GOALS, type GoalMetric, SETTLED_DAYS, walletCap } from "@lingxi/world";
 
 const arg = (n: string, f?: string) => {
   const i = process.argv.indexOf(`--${n}`);
@@ -161,6 +163,8 @@ async function main() {
   for (const [a, from] of burners) raw.push(...(await logsOf(a, from, to)));
   raw.sort((a, b) => Number(BigInt(a.blockNumber) - BigInt(b.blockNumber)) || Number(BigInt(a.logIndex) - BigInt(b.logIndex)));
   const owners = new Map<string, string>();
+  // per pet: the wallet it was hatched for, the different days saved, and whether it has counted as a new pet
+  const kept = new Map<string, { to: string; days: Set<number>; counted: boolean }>();
   const times = new Map<number, number>();
   const credits: Array<{ m: GoalMetric; w: string; n: number; t: number }> = [];
   const timeOf = async (b: number) => {
@@ -172,9 +176,20 @@ async function main() {
     const fromRegistry = l.address.toLowerCase() === d.registry.toLowerCase();
     const t0 = l.topics[0];
     if (fromRegistry && t0 === T.transfer) owners.set(BigInt(l.topics[3]!).toString(), `0x${l.topics[2]!.slice(26)}`.toLowerCase());
-    else if (fromRegistry && t0 === T.hatched) credits.push({ m: "hatched", w: `0x${l.topics[2]!.slice(26)}`.toLowerCase(), n: 1, t: await timeOf(b) });
+    else if (fromRegistry && t0 === T.hatched) kept.set(BigInt(l.topics[1]!).toString(), { to: `0x${l.topics[2]!.slice(26)}`.toLowerCase(), days: new Set(), counted: false });
     else if (fromRegistry && t0 === T.bred) credits.push({ m: "children", w: owners.get(BigInt(l.topics[1]!).toString())!, n: 1, t: await timeOf(b) });
-    else if (fromRegistry && t0 === T.checkpoint) credits.push({ m: "saves", w: owners.get(BigInt(l.topics[1]!).toString())!, n: 1, t: await timeOf(b) });
+    else if (fromRegistry && t0 === T.checkpoint) {
+      const pet = BigInt(l.topics[1]!).toString();
+      const day = Number(BigInt(l.topics[2]!));
+      const k = kept.get(pet);
+      if (!k || k.days.has(day)) continue;
+      k.days.add(day);
+      credits.push({ m: "saves", w: owners.get(pet)!, n: 1, t: await timeOf(b) });
+      if (!k.counted && k.days.size >= SETTLED_DAYS) {
+        k.counted = true;
+        credits.push({ m: "hatched", w: k.to, n: 1, t: await timeOf(b) });
+      }
+    }
     else if (!fromRegistry && t0 === T.burned) {
       const ev = decodeEventLog({ abi: events, data: l.data, topics: l.topics });
       const a = ev.args as { payer: Address; amount: bigint };
@@ -184,6 +199,7 @@ async function main() {
   for (const g of GOALS) {
     const by = new Map<string, number>();
     for (const c of credits) if (c.m === g.metric && c.t >= g.start && c.t < g.end) by.set(c.w, (by.get(c.w) ?? 0) + c.n);
+    for (const [w, n] of by) by.set(w, Math.min(n, walletCap(g)));
     const page = goalsPage.goals.find((x) => x.id === g.id);
     check(`goal ${g.id} total`, [...by.values()].reduce((s, n) => s + n, 0), page?.total ?? "absent");
     check(`goal ${g.id} contributors`, by.size, page?.contributors ?? "absent");

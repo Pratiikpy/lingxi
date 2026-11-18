@@ -35,6 +35,7 @@ async function post(path: string, body: unknown): Promise<{ ok: boolean; reason?
   }
 }
 
-export const shareLesson = (rule: Rule, by: string) => post("/api/lessons/share", { rule: { when: rule.when, then: rule.then, ...(rule.label ? { label: rule.label } : {}) }, by: by.slice(0, 24) });
+// only the rule's structure is shared: the library shows no player's own words, so a lesson's label stays on this device
+export const shareLesson = (rule: Rule, by: string) => post("/api/lessons/share", { rule: { when: rule.when, then: rule.then }, by: by.slice(0, 24) });
 export const usedLesson = (key: string) => post("/api/lessons/use", { key });
 export const reportLesson = (key: string) => post("/api/lessons/report", { key });

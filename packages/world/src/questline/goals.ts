@@ -38,7 +38,7 @@ export const GOALS: readonly GoalDef[] = [
     giver: "why",
     story: [
       say("nurse_smiling.png", "New eggs keep me busy, and I love it. Let's welcome forty new pets to X Layer.", "新蛋让我忙个不停，我很喜欢。让我们在 X Layer 上迎来四十只新宠物。"),
-      say("nurse_lecturing.png", "Hatching one counts for whoever it's hatched for. Bring a friend, and help them hatch theirs.", "孵出一只就算在它的主人名下。带个朋友来，帮他们孵出自己的那只。"),
+      say("nurse_lecturing.png", "A new pet counts once it has been saved on three different days, for whoever it was hatched for. Bring a friend, and help them keep theirs.", "新宠物保存满三个不同的日子，才算在它的主人名下。带个朋友来，帮他们把自己的那只养下去。"),
     ],
     metric: "hatched",
     target: 40,

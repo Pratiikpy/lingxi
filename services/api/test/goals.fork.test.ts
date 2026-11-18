@@ -72,7 +72,7 @@ describe.skipIf(!RPC || !RELAY_KEY_FILE || !FILE)("community goals, counted from
     const relayer = new BrainRelayer({ rpc: RPC!, processor: d.processor as Address, key: (env.K ?? env.LINGXI_RELAYER_KEY) as Hex, storeFile: join(mkdtempSync(join(tmpdir(), "lx-")), "brains.json"), maxPerDay: 50 });
     const [pa, pb] = [await readPet(pub, d, a), await readPet(pub, d, b)];
     const child = await relayer.relayChild({ parents: [pa.brainId.toString(), pb.brainId.toString()] });
-    if (!child.ok) throw new Error("child circuit");
+    if (!child.ok) throw new Error(`child circuit: ${child.reason} ${"detail" in child ? child.detail : ""}`);
     await allowPartnerOnChain(pub, bob!, d, b, carol!.account!.address);
     await fundBem(carol!.account!.address, parseBem("1")!);
     await breedOnChain(pub, carol!, d, a, b, d.processor as Address, BigInt(child.brainId), 0);
@@ -86,17 +86,19 @@ describe.skipIf(!RPC || !RELAY_KEY_FILE || !FILE)("community goals, counted from
     // the ledger, from the fork's first block of ours
     const ledger = createGoalLedger({ rpc: RPC!, registry: d.registry as Address, burners: [d.breeder as Address, d.outfitMarketV2], fromBlock: startBlock, client: pub as never, paceMs: 0 });
     await ledger.catchUp();
-    // Carol is credited for the pet she was given; Alice's hatch came before the window
+    // Carol is credited for the pet she was given. Alice's pet counts as a new pet for Alice, the wallet it was hatched
+    // for, when its third different day is saved (Carol's save, in the window); Bob's pet, saved on one day, and the
+    // child, never saved, are not settled and do not count
     const by = (m: string) => Object.fromEntries(ledger.entries().filter((e) => e.m === m && e.t >= g1.start).reduce((acc, e) => acc.set(e.w, (acc.get(e.w) ?? 0) + e.n), new Map<string, number>()));
     expect(by("saves")).toEqual({ [A]: 2, [C]: 1, [B]: 1 });
-    expect(by("hatched")).toEqual({ [B]: 1, [C]: 1 });
+    expect(by("hatched")).toEqual({ [A]: 1 });
     expect(by("children")).toEqual({ [C]: 1 });
     expect(by("burned")).toEqual({ [C]: 10_000_000, [A]: 600_000 });
 
     const now = Number((await pub.getBlock()).timestamp);
     const r = Object.fromEntries(reportGoals(ledger.entries(), GOALS, now, [A]).map((g) => [g.metric, g]));
     expect(r.saves).toMatchObject({ total: 4, contributors: 3, mine: 2, state: "open" });
-    expect(r.hatched).toMatchObject({ total: 2, contributors: 2, mine: 0 });
+    expect(r.hatched).toMatchObject({ total: 1, contributors: 1, mine: 1 });
     expect(r.children).toMatchObject({ total: 1, contributors: 1, tiers: [] });
     expect(r.burned).toMatchObject({ total: 10_600_000, contributors: 2, mine: 600_000 });
     expect(r.burned!.top[0]).toMatchObject({ wallet: C, n: 10_000_000 });

@@ -1,17 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { Hono } from "hono";
 import { RateLimiter } from "../src/limit";
-import { RPC_BODY_MAX, vetCalls, withRpcProxy } from "../src/rpc";
+import { MAX_BATCH, MAX_LOG_BLOCKS, RPC_BODY_MAX, type RpcProxyOptions, vetCalls, withRpcProxy } from "../src/rpc";
 
 type Up = (body: string) => Response | Promise<Response>;
 const json = (v: unknown, status = 200) => new Response(JSON.stringify(v), { status, headers: { "content-type": "application/json" } });
 
-function app(ups: Record<string, Up>, limiter?: RateLimiter) {
+function app(ups: Record<string, Up>, limiter?: RateLimiter, more: Partial<RpcProxyOptions> = {}) {
   const calls: string[] = [];
   const a = new Hono();
   withRpcProxy(a, {
-    upstreams: Object.keys(ups),
+    upstreams: Object.keys(ups).filter((u) => u !== more.reserve?.url),
     limiter,
+    ...more,
     timeoutMs: 200,
     fetch: ((url: string | URL | Request, init?: RequestInit) => {
       calls.push(String(url));
@@ -94,5 +95,63 @@ describe("the same-origin RPC door", () => {
     expect((await post(a, blockNumber, { "cf-connecting-ip": "1.1.1.1" })).status).toBe(200);
     expect((await post(a, blockNumber, { "cf-connecting-ip": "1.1.1.1" })).status).toBe(429);
     expect((await post(a, blockNumber, { "cf-connecting-ip": "2.2.2.2" })).status).toBe(200);
+  });
+
+  it("takes batches of at most ten, each call counted against the caller", async () => {
+    const ok = (b: string) => json((JSON.parse(b) as { id: number }[]).map((c) => ({ jsonrpc: "2.0", id: c.id, result: "0x1" })));
+    const batch = (n: number) => Array.from({ length: n }, (_, i) => ({ ...blockNumber, id: i }));
+    const { a, calls } = app({ "https://a": ok });
+    expect(MAX_BATCH).toBe(10);
+    expect((await post(a, batch(10))).status).toBe(200);
+    expect((await post(a, batch(11))).status).toBe(400);
+    expect(calls).toHaveLength(1);
+    // a batch is as many requests as it holds: six calls do not fit in a budget of five
+    const limited = app({ "https://a": ok }, new RateLimiter(5, 60_000)).a;
+    expect((await post(limited, batch(6), { "cf-connecting-ip": "3.3.3.3" })).status).toBe(429);
+  });
+
+  it("asks for logs only over a short, stated range of blocks", async () => {
+    const { a, calls } = app({ "https://a": (b) => json({ jsonrpc: "2.0", id: (JSON.parse(b) as { id: number }).id, result: [] }) });
+    const logs = (filter: Record<string, unknown>) => post(a, { jsonrpc: "2.0", id: 5, method: "eth_getLogs", params: [filter] });
+    const msg = (r: { body: unknown }) => (r.body as { error?: { message: string } }).error?.message ?? "";
+    expect(MAX_LOG_BLOCKS).toBe(100);
+    expect((await logs({ fromBlock: "0x100", toBlock: "0x163" })).body).toEqual({ jsonrpc: "2.0", id: 5, result: [] });
+    expect((await logs({ blockHash: `0x${"ab".repeat(32)}` })).body).toEqual({ jsonrpc: "2.0", id: 5, result: [] });
+    expect((await logs({})).body).toEqual({ jsonrpc: "2.0", id: 5, result: [] });
+    const sent = calls.length;
+    expect(msg(await logs({ fromBlock: "0x100", toBlock: "0x164" }))).toContain("100 blocks");
+    expect(msg(await logs({ fromBlock: "0x0", toBlock: "latest" }))).toContain("100 blocks");
+    expect(msg(await logs({ fromBlock: "earliest" }))).toContain("100 blocks");
+    expect(msg(await logs({ fromBlock: "0x200", toBlock: "0x100" }))).toContain("100 blocks");
+    expect(msg(await post(a, { jsonrpc: "2.0", id: 5, method: "eth_getLogs", params: ["junk"] }))).toContain("100 blocks");
+    expect(calls).toHaveLength(sent);
+  });
+
+  it("holds a ceiling for everyone together, so no crowd of addresses can get the upstream to throttle us", async () => {
+    const { a } = app({ "https://a": () => json({ jsonrpc: "2.0", id: 1, result: "0x1" }) }, undefined, { global: new RateLimiter(3, 60_000) });
+    for (const ip of ["4.4.4.1", "4.4.4.2", "4.4.4.3"]) expect((await post(a, blockNumber, { "cf-connecting-ip": ip })).status).toBe(200);
+    expect((await post(a, blockNumber, { "cf-connecting-ip": "4.4.4.4" })).status).toBe(429);
+  });
+
+  it("keeps our own jobs' upstream for them: the door uses it only as a small, last reserve", async () => {
+    let proxyUp = false;
+    const { a, calls } = app(
+      {
+        "https://door": () => (proxyUp ? json({ jsonrpc: "2.0", id: 1, result: "0x2" }) : new Response("", { status: 503 })),
+        "https://jobs": () => json({ jsonrpc: "2.0", id: 1, result: "0x3" }),
+      },
+      undefined,
+      { reserve: { url: "https://jobs", perMinute: 1 } },
+    );
+    expect((await post(a, blockNumber)).body).toEqual({ jsonrpc: "2.0", id: 1, result: "0x3" });
+    // the reserve's minute is spent: the door says it cannot answer rather than lean on the jobs' upstream
+    expect((await post(a, blockNumber)).status).toBe(502);
+    expect(calls.filter((u) => u === "https://jobs")).toHaveLength(1);
+    proxyUp = true;
+    expect((await post(a, blockNumber)).body).toEqual({ jsonrpc: "2.0", id: 1, result: "0x2" });
+    // answers from the door's own upstream never spend the reserve
+    const fresh = app({ "https://door": () => json({ jsonrpc: "2.0", id: 1, result: "0x2" }), "https://jobs": () => json({ jsonrpc: "2.0", id: 1, result: "0x3" }) }, undefined, { reserve: { url: "https://jobs", perMinute: 1 } });
+    for (let i = 0; i < 3; i++) await post(fresh.a, blockNumber);
+    expect(fresh.calls).not.toContain("https://jobs");
   });
 });

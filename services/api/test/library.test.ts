@@ -56,4 +56,24 @@ describe("the lesson library", () => {
     const list = (await (await app.request("/api/lessons")).json()) as { lessons: Array<{ by: string; uses: number }> };
     expect(list.lessons).toEqual([expect.objectContaining({ by: "Bao", uses: 1 })]);
   });
+
+  it("a well-learned lesson needs reports from a third of the players who learned it, not three spoofed ones", () => {
+    const lib = createLibrary();
+    lib.share(share, "Bao", "ip-0", 1);
+    const key = lessonKey(share);
+    for (let i = 1; i < 30; i++) lib.use(key, `ip-${i}`);
+    // three addresses, as an attacker with three proxies would have
+    for (const who of ["evil-1", "evil-2", "evil-3"]) lib.report(key, who);
+    expect(lib.list()).toHaveLength(1);
+    for (let i = 4; i <= 10; i++) lib.report(key, `evil-${i}`);
+    expect(lib.list()).toHaveLength(0);
+  });
+
+  it("shows no stranger's words: labels are dropped, and a teacher's name must pass the same word check as rooms", async () => {
+    const lib = createLibrary();
+    lib.share({ ...share, label: "visit evil.example for free BEM" } as never, "Bao", "ip-a", 1);
+    expect(JSON.stringify(lib.list())).not.toContain("evil.example");
+    expect(lib.share(other, "去死", "ip-b", 2)).toEqual({ ok: false, reason: "name" });
+    expect(lib.share(other, "fuckface", "ip-b", 2)).toEqual({ ok: false, reason: "name" });
+  });
 });

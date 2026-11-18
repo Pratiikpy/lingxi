@@ -1,0 +1,9 @@
+export declare const FAILS_TO_ACT: number;
+export declare const QUIET_MS: number;
+export interface Watch {
+  localFails: number;
+  publicFails: number;
+  quietUntil: number;
+}
+export declare function initialWatch(): Watch;
+export declare function decide(w: Watch, beat: { local: boolean; public: boolean }, now: number): { watch: Watch; action: "restart-server" | "restart-tunnel" | null };

@@ -237,7 +237,7 @@ async function siteChecks(): Promise<void> {
   try {
     const r = await fetch(`${LIVE}/api/health`, { signal: AbortSignal.timeout(20_000) });
     const j = (await r.json()) as Record<string, unknown> & {
-      detail?: { jobs?: Record<string, string>; relayerOkb?: number | null; relayerLow?: boolean; indexerLagBlocks?: number | null; backup?: { ageHours: number; local: boolean; drive: boolean; error: string | null } | null };
+      detail?: { jobs?: Record<string, string>; relayerOkb?: number | null; relayerLow?: boolean; indexerLagBlocks?: number | null; backup?: { ageHours: number; local: boolean; drive: boolean; error: string | null } | null; watchdog?: { ageSeconds: number } | null };
     };
     // the switches are booleans; every background job must also be healthy
     const down = Object.entries(j).filter(([k, v]) => k !== "detail" && v !== true).map(([k]) => k);
@@ -246,6 +246,9 @@ async function siteChecks(): Promise<void> {
     const b = j.detail?.backup;
     if (j.detail && (!b || b.ageHours > 26 || !b.local || !b.drive)) failing.push(`backup ${b ? `${b.ageHours}h old, local ${b.local}, drive ${b.drive}${b.error ? `: ${b.error}` : ""}` : "never ran"}`);
     if (j.detail?.relayerLow) failing.push(`relayer low: ${j.detail.relayerOkb} OKB`);
+    // the watchdog beats every minute; three minutes without one means nothing is watching the site
+    const wd = j.detail?.watchdog;
+    if (j.detail && (!wd || wd.ageSeconds > 180)) failing.push(`watchdog ${wd ? `silent for ${wd.ageSeconds}s` : "not running"}`);
     const facts = j.detail ? `; relayer ${j.detail.relayerOkb ?? "?"} OKB, indexer ${j.detail.indexerLagBlocks ?? "?"} blocks behind` : "";
     record("sites", "live server's parts and jobs are all up", r.ok && !down.length && !failing.length ? "PASS" : "FAIL", [down.length ? `down: ${down.join(", ")}` : "", failing.length ? `failing: ${failing.join("; ")}` : ""].filter(Boolean).join(" ") || `${Object.keys(j.detail?.jobs ?? {}).length} jobs ok${facts}`, t);
   } catch (e) {
