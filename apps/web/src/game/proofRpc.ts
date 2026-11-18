@@ -53,8 +53,10 @@ export const useProofRpc = create<Tally>((set) => ({
 /** The endpoints a verification asks now, with the public ones rotated so parallel workers spread across them. */
 export function endpoints(start = 0): Endpoints {
   const pub = NETWORK === "xlayer" ? OFFICIAL_RPCS : rpcs;
-  const rotated = pub.map((_, i) => pub[(i + start) % pub.length]!);
-  return { mine: useProofRpc.getState().mine, publicRpcs: rotated, fallback: NETWORK === "xlayer" ? API_RPC : null };
+  const mine = useProofRpc.getState().mine;
+  // the judge's own endpoint is asked once, first, even when it is one of the public ones
+  const rotated = pub.map((_, i) => pub[(i + start) % pub.length]!).filter((u) => !mine || new URL(u).host !== new URL(mine).host);
+  return { mine, publicRpcs: rotated, fallback: NETWORK === "xlayer" ? API_RPC : null };
 }
 
 /**

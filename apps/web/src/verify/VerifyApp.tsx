@@ -20,11 +20,10 @@ import { type ChainPet, anchorBrains, canvasOfSvg, gameSprite, loadCircuitFromCh
 import { Named } from "../play/Named";
 import { type DiaryLine, chainAll, diaryOfStretches, diaryText, unpackState, ZERO_HASH } from "@lingxi/game";
 
-const DIARY_API = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
 import { deployment } from "../game/chain";
 import { proofClient } from "../game/proofRpc";
 import { EndpointPanel } from "./Endpoints";
-import { fetchPetHistory } from "./indexer";
+import { INDEXER, fetchPetHistory } from "./indexer";
 import { useLang } from "../i18n";
 import "./verify.css";
 import { markProofChecked } from "../game/proofMark";
@@ -346,11 +345,11 @@ export function VerifyApp() {
   useEffect(() => {
     setDiary(null);
     setDiaryState("none");
-    if (!pet || !circuit || !DIARY_API) return;
+    if (!pet || !circuit) return;
     let live = true;
     void (async () => {
       try {
-        const r = (await (await fetch(`${DIARY_API}/api/pets/${pet.id}/log`)).json()) as { ok: boolean; log?: { words: number[]; segments: Array<{ brainId: string | null; words: number[] }> } };
+        const r = (await (await fetch(`${INDEXER}/api/pets/${pet.id}/log`, { signal: AbortSignal.timeout(8000) })).json()) as { ok: boolean; log?: { words: number[]; segments: Array<{ brainId: string | null; words: number[] }> } };
         if (!live || !r.ok || !r.log) return;
         setDiaryState("checking");
         const stretches = await replayLog(r.log);

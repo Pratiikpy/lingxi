@@ -34,7 +34,7 @@ const TEXT = {
       "Teaching in plain words and the pet's spoken lines use an AI model (Claude); the rule it proposes is always shown before anything changes.",
       "Live rooms, friends' visits, shared decorations, the shared lesson library and reminders.",
     ],
-    noServer: "This on-chain version runs without a server of its own: AI teaching, voices and live rooms are off. Its proof page asks Lingxi's indexer only which transactions to read, then proves each one on X Layer.",
+    noServer: "This on-chain version runs without a server of its own: AI teaching, voices and live rooms are off. Its proof page asks Lingxi's indexer only for public things (which transactions to read, an owner's published log) and proves each one on X Layer before it is shown.",
   },
   zh: {
     title: "哪些在链上，哪些不在",
@@ -52,7 +52,7 @@ const TEXT = {
     device: ["两次存档之间的照顾、日记和倒带（由你设备上的念头记录算出）。", "金币、物品、装饰、徽章、切磋和每日挑战的记录。"],
     serverHead: "经过我们的服务器（仅网页版）",
     server: ["用自己的话教它、宠物说的话，用到 AI 模型（Claude）；它提出的规则在改动之前一定先给你看。", "实时房间、朋友来访、共享装饰、共享课程库和提醒。"],
-    noServer: "这个链上版本不带自己的服务器：AI 教学、说话和实时房间都关掉了。它的验证页只向灵犀的索引服务询问该读哪些交易，再逐一在 X Layer 上核对。",
+    noServer: "这个链上版本不带自己的服务器：AI 教学、说话和实时房间都关掉了。它的验证页只向灵犀的索引服务要公开的东西（该读哪些交易、主人发布的日志），每一样都先在 X Layer 上核对再显示。",
   },
 } as const;
 

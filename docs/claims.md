@@ -45,7 +45,7 @@ Kinds of check:
 | tests | README | The test counts in the README. | facts:tests |
 | no-server-lessons | landing, README | Pet School lessons and hand-built rules need no server. | test:packages/game/test/lessons.test.ts |
 | deweb | README | The whole site is published on chain at 1.2.419.tape. | auto:deweb |
-| deweb-server | on-chain copy | The on-chain copy has no server of its own; its proof page asks Lingxi's indexer only which transactions to read. | test:apps/web/src/game/rpcAsk.test.ts |
+| deweb-server | on-chain copy | The on-chain copy has no server of its own; its proof page asks Lingxi's indexer only for public things (which transactions to read, an owner's published log) and proves each on X Layer. | test:apps/web/src/game/rpcAsk.test.ts |
 | live-pages | README, landing | The live site serves the game, the proof page, the numbers, the tree of life and the agents' API. | auto:live-pages |
 | red-packet | landing, README | Red packets hold USDT in a contract, and a circuit decides each share. | test:contracts/test/RedPacket.fork.t.sol |
 | families | landing, README | A child's mind is its parents' circuits composed by REF, on chain. | test:contracts/test/BreederV2.fork.t.sol |
