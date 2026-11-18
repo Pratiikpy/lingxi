@@ -1,0 +1,5 @@
+{
+  "block": 76250000,
+  "rpc": "https://xlayerrpc.okx.com",
+  "why": "X Layer mainnet after every Lingxi deployment (the last, extras, at block 76162815): the fork carries the real contracts; set LINGXI_E2E_UPSTREAM to fork from another node"
+}

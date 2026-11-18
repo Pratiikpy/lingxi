@@ -23,6 +23,8 @@ export default tseslint.config(
       "no-control-regex": "off",
     },
   },
+  // the end-to-end suite is not React: Playwright names its fixture callback `use`, which the hooks rules would take for React's
+  { files: ["e2e/**"], rules: { "react-hooks/rules-of-hooks": "off", "react-hooks/exhaustive-deps": "off" } },
   // CommonJS config files load their neighbours with require()
   { files: ["**/*.cjs"], rules: { "@typescript-eslint/no-require-imports": "off" } },
 );

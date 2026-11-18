@@ -59,5 +59,7 @@ export default defineConfig({
       input: { index: resolve(__dirname, "index.html"), play: resolve(__dirname, "play.html"), verify: resolve(__dirname, "verify.html"), agents: resolve(__dirname, "agents.html"), tree: resolve(__dirname, "tree.html"), numbers: resolve(__dirname, "numbers.html"), handheld: resolve(__dirname, "handheld.html") },
     },
   },
-  server: { port: 5199 },
+  // the end-to-end suite (e2e/) plays a dev server that must not reload a page under a running test when a file is
+  // saved; its reload channel stays, since Vite uses it to reload a page after bundling a newly found dependency
+  server: { port: 5199, ...(process.env.LINGXI_E2E === "1" ? { watch: null } : {}) },
 });
