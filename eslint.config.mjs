@@ -6,7 +6,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 import globals from "globals";
 
 export default tseslint.config(
-  { ignores: ["**/dist/**", "**/dist-deweb/**", "**/node_modules/**", "contracts/**", "packages/handheld/wasm/**", "packages/handheld/firmware/**", "**/.pio/**", "**/coverage/**"] },
+  { ignores: ["**/dist/**", "**/dist-deweb/**", "**/assets-kept/**", "**/node_modules/**", "contracts/**", "packages/handheld/wasm/**", "packages/handheld/firmware/**", "**/.pio/**", "**/coverage/**"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
