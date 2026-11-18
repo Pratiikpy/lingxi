@@ -13,7 +13,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { createPublicClient, createWalletClient, formatEther, http, parseEther } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { buyDesign, buyListing, cancelListing, copiesHeld, listCopies, marketFeeBps, proceedsOwed, readDesign, withdrawProceeds, xLayer, type Deployment } from "../src/index";
+import { buyDesign, buyListing, copiesHeld, listCopies, marketFeeBps, proceedsOwed, readDesign, withdrawProceeds, xLayer, type Deployment } from "../src/index";
 
 const RPC = process.env.FORK_RPC;
 const file = process.env.DEPLOYMENT_FILE ?? new URL("../deployments/xlayer.json", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");

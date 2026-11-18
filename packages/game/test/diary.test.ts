@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type Rule, STARTERS, compileProgram, fastBrain, stateBits } from "@lingxi/brain";
+import { type Rule, compileProgram, fastBrain, stateBits } from "@lingxi/brain";
 import { care, catchUp, composeProgram, createPet, diaryOf, diaryText, teach } from "../src/index";
 
 const brainFor = (lessons: Rule[]) => {

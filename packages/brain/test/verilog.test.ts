@@ -5,9 +5,9 @@ describe("Verilog export", () => {
   it("has one NAND per gate, one next-state per latch, eight outputs and both modules", () => {
     const net = compileProgram(STARTERS.gentle);
     const v = toVerilog(net, "lingxi_gentle");
-    expect(v.match(/^  wire g\d+ = ~\(/gm)).toHaveLength(net.gates.length);
-    expect(v.match(/^  assign next\[\d+\]/gm)).toHaveLength(net.latches.length);
-    expect(v.match(/^  assign out\[\d+\]/gm)).toHaveLength(8);
+    expect(v.match(/^ {2}wire g\d+ = ~\(/gm)).toHaveLength(net.gates.length);
+    expect(v.match(/^ {2}assign next\[\d+\]/gm)).toHaveLength(net.latches.length);
+    expect(v.match(/^ {2}assign out\[\d+\]/gm)).toHaveLength(8);
     expect(v).toContain("module lingxi_gentle_step (");
     expect(v).toContain("module lingxi_gentle (");
     expect(v).toContain("always @(posedge clk) mem <= reset ? 8'b0 : next;");

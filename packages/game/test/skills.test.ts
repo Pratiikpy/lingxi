@@ -289,8 +289,6 @@ describe("Care skills change the pet's life", () => {
 });
 
 describe("Mind skills widen the budget the circuit lives in", () => {
-  const big = { label: "big", when: { hunger: [1], joy: [2], energy: [3], clean: [1], time: [2], action: [3], event: [2] }, then: { want: 2, mood: 2 } };
-
   it("Wide Mind and the rest raise the gate budget, and the relayer's ceiling is the most any pet can have", () => {
     expect(gateBudget(undefined)).toBe(BASE_GATES);
     expect(gateBudget(holding({ 211: 5, 221: 5, 233: 1 }))).toBe(BASE_GATES + 150);

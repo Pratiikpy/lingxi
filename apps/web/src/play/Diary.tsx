@@ -147,7 +147,7 @@ async function card(pet: Pet, lines: string[], date: string, lang: Lang, backdro
 }
 
 function wrap(g: CanvasRenderingContext2D, text: string, max: number): string[] {
-  const cjk = /[　-鿿]/.test(text);
+  const cjk = /[\u3000-\u9fff]/.test(text);
   const parts = cjk ? Array.from(text) : text.split(" ");
   const out: string[] = [];
   let cur = "";

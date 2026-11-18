@@ -13,7 +13,7 @@
  */
 
 import { type FastBrain, type Program, type Rule, type StarterLine, circuitBrain, circuitFromParts, compileProgram, fastBrain, gateCount, inputField, stateBits } from "@lingxi/brain";
-import { LESSON_CAPACITY, MAX_GATES, type MindExtra, cleanInstincts, composeProgram } from "./lessons";
+import { LESSON_CAPACITY, type MindExtra, cleanInstincts, composeProgram } from "./lessons";
 import { type Growth, MAX_GATES_SKILLED, extraLessons, gateBudget, legalGrowth, ruleGrowth, ruleSkillIds, skillRules } from "./skills";
 import type { Family, OutsideInstinct, ParentInfo, Stage } from "./pet";
 import type { Brain } from "./sim";

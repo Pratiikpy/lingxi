@@ -13,7 +13,7 @@ import { RuleTable } from "./RuleTable";
 import { ContractTable } from "./ContractTable";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type Hex } from "viem";
-import { beat, bitsToWord, circuitBrain, hexToBytes, load, type Circuit, wordToBits, decodeSenses } from "@lingxi/brain";
+import { beat, bitsToWord, circuitBrain, type Circuit, wordToBits, decodeSenses } from "@lingxi/brain";
 import { PetHistory } from "./History";
 import { type ChainPet, canvasOfSvg, gameSprite, loadCircuitFromChain, lookOf, nameColours, readMetadata, readPet, replayMany, replayStep } from "@lingxi/chain";
 import { Named } from "../play/Named";

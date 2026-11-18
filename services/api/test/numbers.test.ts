@@ -100,7 +100,7 @@ describe("live numbers", () => {
     const { client } = fakeChain(1_300);
     let reads = 0;
     const sales = createSalesCounter({ rpc: "", markets: [{ address: OKB, fromBlock: 1_000 }], client, paceMs: 0 });
-    const app = withNumbers(new Hono(), { pub: client, counts: (s) => (reads++, counts()), petsIndexedTo: () => 1, sales, contracts: { registry: REG, marketOkb: OKB }, explorer: "https://x" });
+    const app = withNumbers(new Hono(), { pub: client, counts: () => (reads++, counts()), petsIndexedTo: () => 1, sales, contracts: { registry: REG, marketOkb: OKB }, explorer: "https://x" });
     const a = await app.request("/api/numbers");
     expect(a.status).toBe(200);
     expect(a.headers.get("access-control-allow-origin")).toBe("*");

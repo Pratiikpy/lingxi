@@ -38,8 +38,8 @@ const WORDS: Record<string, [string, string]> = {
 };
 export const cardputerWords = (key: string, lang: "en" | "zh"): string => (WORDS[key] ?? [key, key])[lang === "zh" ? 1 : 0];
 
-/** Open the Cardputer (one already allowed, or ask for it), run `use` over the link, and always close the port. */
-async function withCardputer<T>(use: (link: HandheldLink) => Promise<T>): Promise<T> {
+/** Open the Cardputer (one already allowed, or ask for it), run `session` over the link, and always close the port. */
+async function withCardputer<T>(session: (link: HandheldLink) => Promise<T>): Promise<T> {
   const s = serial();
   if (!s) throw new CardputerProblem("noLink");
   let port: SerialPortLike;
@@ -59,7 +59,7 @@ async function withCardputer<T>(use: (link: HandheldLink) => Promise<T>): Promis
         return r.done ? null : r.value;
       },
     });
-    return await use(link);
+    return await session(link);
   } finally {
     await reader.cancel().catch(() => {});
     reader.releaseLock();

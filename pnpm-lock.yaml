@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      '@eslint/js':
+        specifier: 9.17.0
+        version: 9.17.0
       '@lingxi/art':
         specifier: workspace:*
         version: link:packages/art
@@ -20,9 +23,21 @@ importers:
       '@lingxi/game':
         specifier: workspace:*
         version: link:packages/game
+      eslint:
+        specifier: 9.17.0
+        version: 9.17.0
+      eslint-plugin-react-hooks:
+        specifier: 5.1.0
+        version: 5.1.0(eslint@9.17.0)
+      globals:
+        specifier: 14.0.0
+        version: 14.0.0
       tsx:
         specifier: 4.20.3
         version: 4.20.3
+      typescript-eslint:
+        specifier: 8.18.1
+        version: 8.18.1(eslint@9.17.0)(typescript@5.9.3)
       viem:
         specifier: 2.57.7
         version: 2.57.7(typescript@5.9.3)(zod@4.1.13)

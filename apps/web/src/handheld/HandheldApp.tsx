@@ -203,7 +203,6 @@ export function HandheldApp() {
       if (code === 122) useLang.getState().toggle();
       keep();
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [keep],
   );
 
