@@ -7,7 +7,7 @@
  * mnemonic every Foundry and Hardhat install ships, and their balances are written into the fork.
  */
 
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { createPublicClient, http, toHex, type Address, type PublicClient } from "viem";
 import { mnemonicToAccount } from "viem/accounts";
@@ -187,8 +187,10 @@ async function warmUp(web: string, log: string): Promise<void> {
   }
 }
 
-export function stopRun(run: Pick<Run, "procs">): void {
+export function stopRun(run: Pick<Run, "procs" | "dir">): void {
   for (const p of [...run.procs].reverse()) stop(p);
+  // the logs and stores stay for a look; the dev servers' bundled dependencies (most of a run's size) do not
+  for (const name of readdirSync(run.dir)) if (name.startsWith("vite-cache-")) rmSync(join(run.dir, name), { recursive: true, force: true, maxRetries: 3 });
 }
 
 /** The run the global setup started, for a spec to read. */
