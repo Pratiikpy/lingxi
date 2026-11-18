@@ -1,19 +1,36 @@
-import { mkdtempSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { playerIdFor } from "@lingxi/chain";
 import { cleanPlaced, createDecorStore } from "../src/decor";
 
 const KEY = "a".repeat(32);
 const OTHER = "b".repeat(32);
+const MINE = playerIdFor(KEY);
 
 describe("shared home decorations", () => {
-  it("binds a home to the first key and refuses anyone else", () => {
+  it("a home belongs to the key its id comes from; nobody else can claim it, even first", () => {
     const s = createDecorStore();
-    expect(s.set("owner123", KEY, [{ id: "fern", x: 20, y: 90 }])).toEqual([{ id: "fern", x: 20, y: 90 }]);
-    expect(s.set("owner123", OTHER, [])).toBe(false);
-    expect(s.get("owner123")).toEqual([{ id: "fern", x: 20, y: 90 }]);
-    expect(s.set("owner123", KEY, [])).toEqual([]);
+    // a squatter who saw the id tries first, with its own key
+    expect(s.authorise(MINE, OTHER)).toBe(false);
+    expect(s.set(MINE, OTHER, [])).toBe(false);
+    expect(s.set(MINE, KEY, [{ id: "fern", x: 20, y: 90 }])).toEqual([{ id: "fern", x: 20, y: 90 }]);
+    expect(s.set(MINE, OTHER, [])).toBe(false);
+    expect(s.get(MINE)).toEqual([{ id: "fern", x: 20, y: 90 }]);
+    expect(s.set(MINE, KEY, [])).toEqual([]);
+    // an id that is not derived from any key it is shown with cannot be claimed at all
+    expect(s.authorise("owner123", KEY)).toBe(false);
+  });
+
+  it("a home bound before ids came from keys keeps working with its own key, and only that", () => {
+    const file = join(mkdtempSync(join(tmpdir(), "decor-")), "home-decor.json");
+    const hash = createHash("sha256").update(`lingxi-decor:${KEY}`).digest("hex");
+    writeFileSync(file, JSON.stringify({ owner123: { key: hash, placed: [] } }));
+    const s = createDecorStore(file);
+    expect(s.authorise("owner123", KEY)).toBe(true);
+    expect(s.authorise("owner123", OTHER)).toBe(false);
   });
 
   it("rejects unknown pieces, duplicates, too many, bad keys and bad owners; clamps positions", () => {
@@ -28,11 +45,11 @@ describe("shared home decorations", () => {
 
   it("keeps homes across a restart without keeping the key in clear", async () => {
     const file = join(mkdtempSync(join(tmpdir(), "decor-")), "home-decor.json");
-    createDecorStore(file).set("owner123", KEY, [{ id: "rug", x: 64, y: 110 }]);
+    createDecorStore(file).set(MINE, KEY, [{ id: "rug", x: 64, y: 110 }]);
     await new Promise((r) => setTimeout(r, 2300));
     const again = createDecorStore(file);
-    expect(again.get("owner123")).toEqual([{ id: "rug", x: 64, y: 110 }]);
-    expect(again.set("owner123", OTHER, [])).toBe(false);
+    expect(again.get(MINE)).toEqual([{ id: "rug", x: 64, y: 110 }]);
+    expect(again.set(MINE, OTHER, [])).toBe(false);
     const { readFileSync } = await import("node:fs");
     expect(readFileSync(file, "utf8")).not.toContain(KEY);
   });

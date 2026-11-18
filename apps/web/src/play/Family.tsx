@@ -11,7 +11,7 @@ import { type Family, type ParentInfo, type Pet, BOND_LEVELS, BREED_COOLDOWN_DAY
 import { useLang } from "../i18n";
 import { MAX_PETS, useGame } from "../game/store";
 import { deployment, petKey, publicClient, useChain } from "../game/chain";
-import { breedingTerms, formatBem } from "@lingxi/chain";
+import { type PartnerCheck, breedingTerms, checkPartner, formatBem } from "@lingxi/chain";
 import { useLive } from "../game/live";
 import { bondName, bondsOf, friendKey, useFriends } from "../game/friends";
 import { play } from "../game/sound";
@@ -72,11 +72,26 @@ export function ProposalDialog({ pet }: { pet: Pet }) {
   const reply = useLive((s) => s.reply);
   const replace = useGame((s) => s.replace);
   const [signing, setSigning] = useState(false);
+  // what the proposer says about its pet is checked on X Layer before our wallet signs anything for it
+  const [partner, setPartner] = useState<{ at: number; check: PartnerCheck } | null>(null);
+  const claimed = proposal?.chain;
+  useEffect(() => {
+    if (!claimed || !deployment || !proposal) return;
+    let live = true;
+    const at = proposal.at;
+    void checkPartner(publicClient, deployment, claimed).then((check) => live && setPartner({ at, check }));
+    return () => {
+      live = false;
+    };
+  }, [claimed, proposal]);
   if (!proposal) return null;
   const bonds = bondsOf(useFriends.getState().all, pet.bornAt);
   const block = familyBlock(pet, proposal.stage, lang) ?? bondBlock(pet, bonds[friendKey(proposal.from, proposal.name)]?.points ?? 0, proposal.name, lang);
   const mine = useChain.getState().infoOf(pet);
-  const onChain = !!(mine && proposal.chain);
+  const claimsChain = !!(mine && proposal.chain);
+  const check = partner?.at === proposal.at ? partner.check : null;
+  const onChain = claimsChain && check === "ok";
+  const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
   return (
     <div className="fam-modal" role="dialog" aria-label={lang === "zh" ? "家人请求" : "Family request"}>
       <motion.div className="fam-card" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }}>
@@ -89,9 +104,23 @@ export function ProposalDialog({ pet }: { pet: Pet }) {
         <p className="small">
           {lang === "zh" ? `之后${pet.name}要休息 ${BREED_COOLDOWN_DAYS} 天。` : `${pet.name} will rest for ${BREED_COOLDOWN_DAYS} days afterwards.`}
         </p>
+        {claimsChain && check === null && <p className="small">{lang === "zh" ? "正在 X Layer 上核对对方的宠物……" : "Checking their pet on X Layer…"}</p>}
         {onChain && (
           <p className="small">
-            {lang === "zh" ? "两只宠物都在链上：同意时会用你的钱包签一次授权，让小宝宝在链上出生。" : "Both pets live on chain: saying yes signs one consent with your wallet so the little one is born on chain."}
+            {lang === "zh"
+              ? `两只宠物都在链上：同意时会用你的钱包签一次授权，给 ${short(proposal.chain!.owner)}（已在 X Layer 上核对：它是 ${proposal.chain!.petId} 号宠物的主人），让小宝宝在链上出生。`
+              : `Both pets live on chain: saying yes signs one consent with your wallet for ${short(proposal.chain!.owner)} (checked on X Layer: the owner of pet #${proposal.chain!.petId}), so the little one is born on chain.`}
+          </p>
+        )}
+        {claimsChain && check !== null && check !== "ok" && (
+          <p className="small warn">
+            {check === "unreadable"
+              ? lang === "zh"
+                ? "现在读不到 X Layer，没法核对对方的宠物，所以不会签任何东西；同意的话，小宝宝只在游戏里出生。"
+                : "X Layer can't be read just now to check their pet, so nothing will be signed; saying yes makes the little one in the game only."
+              : lang === "zh"
+                ? "对方发来的宠物信息和 X Layer 上的不符，所以不会签任何东西；同意的话，小宝宝只在游戏里出生。"
+                : "What they sent about their pet doesn't match X Layer, so nothing will be signed; saying yes makes the little one in the game only."}
           </p>
         )}
         {block && <p className="small warn">{block}</p>}
@@ -99,7 +128,7 @@ export function ProposalDialog({ pet }: { pet: Pet }) {
           <button
             type="button"
             className="btn primary"
-            disabled={!!block || signing}
+            disabled={!!block || signing || (claimsChain && check === null)}
             onClick={async () => {
               let chain = undefined;
               if (onChain) {
@@ -245,6 +274,14 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
                   ? lang === "zh"
                     ? "每只宠物一生最多有 4 个孩子，其中一位已经满了。"
                     : "Each pet can have at most four little ones in its life, and one of these two already has."
+                  : chainError === "noConsent"
+                    ? lang === "zh"
+                      ? "对方还没在链上签下同意（或者那只宠物已经换了主人），所以小宝宝没法在链上出生。"
+                      : "The other owner's consent isn't on chain (or their pet has changed hands), so the little one can't be born on chain."
+                  : chainError === "partnerNotOnChain"
+                    ? lang === "zh"
+                      ? "对方宠物的信息和 X Layer 上的不符，所以没有花任何东西。"
+                      : "Their pet's details don't match X Layer, so nothing was spent."
                   : chainError === "notEnoughBem"
                     ? lang === "zh"
                       ? `这个钱包在 X Layer 上的 BEM 不够付 ${fee !== null ? formatBem(fee) : ""} BEM 的出生费用。`

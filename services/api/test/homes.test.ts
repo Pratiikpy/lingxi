@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { mkdtempSync } from "node:fs";
@@ -7,6 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import WebSocket from "ws";
 import type { Address } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
+import { playerIdFor } from "@lingxi/chain";
 import { createDecorStore } from "../src/decor";
 import { type HomeChain, MAX_LINKED, createHomes, homeLinkMessage, visible } from "../src/homes";
 import { LiveRooms, attachLive } from "../src/live";
@@ -209,43 +211,44 @@ describe("the live room with linked homes (plan 4.9)", () => {
       ws.on("error", reject);
     });
   const send = (p: Peer, m: unknown) => p.ws.send(JSON.stringify(m));
-  const KEY = "a".repeat(32);
+  const keyOf = (who: string) => createHash("md5").update(who).digest("hex");
+  const idOf = (who: string) => playerIdFor(keyOf(who));
   const OTHER_KEY = "b".repeat(32);
 
   it("a visitor sees an on-chain piece only after the owner links the wallet that holds it", async () => {
     state.pieces[alice.address] = ["star-lamp"];
     state.packs[alice.address] = 1;
     const owner = await connect();
-    send(owner, { t: "hello", id: "ownerhome1", name: "Mochi", line: "gentle", stage: "child", mood: 2, space: "home:ownerhome1" });
+    send(owner, { t: "hello", id: idOf("ownerhome1"), key: keyOf("ownerhome1"), name: "Mochi", line: "gentle", stage: "child", mood: 2, space: `home:${idOf("ownerhome1")}` });
     await owner.next("room");
     // entering a home sends its pieces; this one has none yet
     expect((await owner.next("decor")).placed).toEqual([]);
     const many = [{ id: "star-lamp", x: 30, y: 80 }, ...["fern", "lantern", "mushroom", "flowers", "star", "heart", "bunting", "rug", "books", "crystal", "globe", "ball", "postcard", "starmap", "photo", "portrait"].map((id) => ({ id, x: 40, y: 90 }))];
     expect(many).toHaveLength(17);
-    send(owner, { t: "decor", key: KEY, placed: many });
+    send(owner, { t: "decor", key: keyOf("ownerhome1"), placed: many });
     const before = await owner.next("decor");
     expect((before.placed as Array<{ id: string }>).map((p) => p.id)).toEqual(many.slice(1, 13).map((p) => p.id));
 
     // someone holding the home's link but not its key cannot link a wallet to it
     const stranger = await connect();
-    send(stranger, { t: "hello", id: "ownerhome1", name: "Fake", line: "gentle", stage: "child", mood: 2, space: "room:65" });
-    await stranger.next("room");
-    send(stranger, { t: "link", key: OTHER_KEY, wallet: bob.address, signature: await bob.signMessage({ message: homeLinkMessage("ownerhome1") }) });
-    expect(await stranger.next("linked")).toEqual({ t: "linked", ok: false, reason: "key" });
+    send(stranger, { t: "hello", id: idOf("ownerhome1"), key: OTHER_KEY, name: "Fake", line: "gentle", stage: "child", mood: 2, space: "room:65" });
+    expect(await stranger.next("refused")).toEqual({ t: "refused", reason: "id" });
+    send(stranger, { t: "link", key: OTHER_KEY, wallet: bob.address, signature: await bob.signMessage({ message: homeLinkMessage(idOf("ownerhome1")) }) });
+    await expect(stranger.next("linked", 300)).rejects.toThrow();
 
-    send(owner, { t: "link", key: KEY, wallet: alice.address, signature: await alice.signMessage({ message: homeLinkMessage("ownerhome1") }) });
+    send(owner, { t: "link", key: keyOf("ownerhome1"), wallet: alice.address, signature: await alice.signMessage({ message: homeLinkMessage(idOf("ownerhome1")) }) });
     expect(await owner.next("linked")).toEqual({ t: "linked", ok: true, wallets: [alice.address] });
     const after = await owner.next("decor");
     expect((after.placed as Array<{ id: string }>).map((p) => p.id)).toEqual(many.slice(0, 16).map((p) => p.id));
 
     const visitor = await connect();
-    send(visitor, { t: "hello", id: "visitor22", name: "Tofu", line: "bold", stage: "child", mood: 2, space: "home:ownerhome1" });
+    send(visitor, { t: "hello", id: idOf("visitor22"), key: keyOf("visitor22"), name: "Tofu", line: "bold", stage: "child", mood: 2, space: `home:${idOf("ownerhome1")}` });
     await visitor.next("room");
     expect(((await visitor.next("decor")).placed as unknown[]).length).toBe(16);
 
-    send(owner, { t: "links", key: KEY });
+    send(owner, { t: "links", key: keyOf("ownerhome1") });
     expect((await owner.next("linked")).wallets).toEqual([alice.address]);
-    send(owner, { t: "unlink", key: KEY, wallet: alice.address });
+    send(owner, { t: "unlink", key: keyOf("ownerhome1"), wallet: alice.address });
     expect(await owner.next("linked")).toEqual({ t: "linked", ok: true, wallets: [] });
     expect(((await visitor.next("decor")).placed as Array<{ id: string }>).map((p) => p.id)).toEqual(many.slice(1, 13).map((p) => p.id));
     for (const p of [owner, stranger, visitor]) p.ws.close();
@@ -255,16 +258,16 @@ describe("the live room with linked homes (plan 4.9)", () => {
     state.owners["41"] = alice.address;
     state.colours["41"] = 6;
     const a = await connect();
-    send(a, { t: "hello", id: "colourful1", name: "Mochi", line: "gentle", stage: "child", mood: 2, space: "home:colourful1" });
+    send(a, { t: "hello", id: idOf("colourful1"), key: keyOf("colourful1"), name: "Mochi", line: "gentle", stage: "child", mood: 2, space: `home:${idOf("colourful1")}` });
     await a.next("room");
-    send(a, { t: "link", key: KEY, wallet: alice.address, signature: await alice.signMessage({ message: homeLinkMessage("colourful1") }) });
+    send(a, { t: "link", key: keyOf("colourful1"), wallet: alice.address, signature: await alice.signMessage({ message: homeLinkMessage(idOf("colourful1")) }) });
     await a.next("linked");
     const b = await connect();
-    send(b, { t: "hello", id: "watcher33", name: "Tofu", line: "bold", stage: "child", mood: 2, space: "room:70" });
+    send(b, { t: "hello", id: idOf("watcher33"), key: keyOf("watcher33"), name: "Tofu", line: "bold", stage: "child", mood: 2, space: "room:70" });
     await b.next("room");
-    send(a, { t: "hello", id: "colourful1", name: "Mochi", line: "gentle", stage: "child", mood: 2, space: "room:70", petId: "41" });
+    send(a, { t: "hello", id: idOf("colourful1"), key: keyOf("colourful1"), name: "Mochi", line: "gentle", stage: "child", mood: 2, space: "room:70", petId: "41" });
     await b.next("joined");
-    expect(await b.next("colour")).toEqual({ t: "colour", id: "colourful1", colour: 6 });
+    expect(await b.next("colour")).toEqual({ t: "colour", id: idOf("colourful1"), colour: 6 });
     a.ws.close();
     b.ws.close();
   });
@@ -273,24 +276,24 @@ describe("the live room with linked homes (plan 4.9)", () => {
     state.owners["52"] = bob.address;
     state.colours["52"] = 4;
     const a = await connect();
-    send(a, { t: "hello", id: "linklater1", name: "Pip", line: "gentle", stage: "baby", mood: 1, space: "room:71", petId: "52" });
+    send(a, { t: "hello", id: idOf("linklater1"), key: keyOf("linklater1"), name: "Pip", line: "gentle", stage: "baby", mood: 1, space: "room:71", petId: "52" });
     await a.next("room");
     const b = await connect();
-    send(b, { t: "hello", id: "watcher44", name: "Tofu", line: "bold", stage: "child", mood: 2, space: "room:71" });
+    send(b, { t: "hello", id: idOf("watcher44"), key: keyOf("watcher44"), name: "Tofu", line: "bold", stage: "child", mood: 2, space: "room:71" });
     const room = await b.next("room");
     // not linked yet: the pet is in the room with a plain name
-    expect((room.members as Array<Record<string, unknown>>).find((m) => m.id === "linklater1")?.colour).toBeUndefined();
-    send(a, { t: "link", key: KEY, wallet: bob.address, signature: await bob.signMessage({ message: homeLinkMessage("linklater1") }) });
+    expect((room.members as Array<Record<string, unknown>>).find((m) => m.id === idOf("linklater1"))?.colour).toBeUndefined();
+    send(a, { t: "link", key: keyOf("linklater1"), wallet: bob.address, signature: await bob.signMessage({ message: homeLinkMessage(idOf("linklater1")) }) });
     await a.next("linked");
-    expect(await b.next("colour")).toEqual({ t: "colour", id: "linklater1", colour: 4 });
+    expect(await b.next("colour")).toEqual({ t: "colour", id: idOf("linklater1"), colour: 4 });
     // someone arriving now sees the colour in the room list itself
     const c = await connect();
-    send(c, { t: "hello", id: "watcher55", name: "Bean", line: "curious", stage: "child", mood: 2, space: "room:71" });
-    expect(((await c.next("room")).members as Array<Record<string, unknown>>).find((m) => m.id === "linklater1")?.colour).toBe(4);
-    send(a, { t: "unlink", key: KEY, wallet: bob.address });
+    send(c, { t: "hello", id: idOf("watcher55"), key: keyOf("watcher55"), name: "Bean", line: "curious", stage: "child", mood: 2, space: "room:71" });
+    expect(((await c.next("room")).members as Array<Record<string, unknown>>).find((m) => m.id === idOf("linklater1"))?.colour).toBe(4);
+    send(a, { t: "unlink", key: keyOf("linklater1"), wallet: bob.address });
     await a.next("linked");
-    expect(await b.next("colour")).toEqual({ t: "colour", id: "linklater1", colour: 0 });
-    expect(await c.next("colour")).toEqual({ t: "colour", id: "linklater1", colour: 0 });
+    expect(await b.next("colour")).toEqual({ t: "colour", id: idOf("linklater1"), colour: 0 });
+    expect(await c.next("colour")).toEqual({ t: "colour", id: idOf("linklater1"), colour: 0 });
     for (const p of [a, b, c]) p.ws.close();
   });
 
@@ -298,22 +301,22 @@ describe("the live room with linked homes (plan 4.9)", () => {
     state.owners["53"] = alice.address;
     state.colours["53"] = 2;
     const a = await connect();
-    send(a, { t: "hello", id: "recolour01", name: "Pip", line: "gentle", stage: "baby", mood: 1, space: "home:recolour01" });
+    send(a, { t: "hello", id: idOf("recolour01"), key: keyOf("recolour01"), name: "Pip", line: "gentle", stage: "baby", mood: 1, space: `home:${idOf("recolour01")}` });
     await a.next("room");
-    send(a, { t: "link", key: KEY, wallet: alice.address, signature: await alice.signMessage({ message: homeLinkMessage("recolour01") }) });
+    send(a, { t: "link", key: keyOf("recolour01"), wallet: alice.address, signature: await alice.signMessage({ message: homeLinkMessage(idOf("recolour01")) }) });
     await a.next("linked");
     const b = await connect();
-    send(b, { t: "hello", id: "watcher66", name: "Tofu", line: "bold", stage: "child", mood: 2, space: "room:72" });
+    send(b, { t: "hello", id: idOf("watcher66"), key: keyOf("watcher66"), name: "Tofu", line: "bold", stage: "child", mood: 2, space: "room:72" });
     await b.next("room");
-    send(a, { t: "hello", id: "recolour01", name: "Pip", line: "gentle", stage: "baby", mood: 1, space: "room:72", petId: "53" });
-    expect(await b.next("colour")).toEqual({ t: "colour", id: "recolour01", colour: 2 });
+    send(a, { t: "hello", id: idOf("recolour01"), key: keyOf("recolour01"), name: "Pip", line: "gentle", stage: "baby", mood: 1, space: "room:72", petId: "53" });
+    expect(await b.next("colour")).toEqual({ t: "colour", id: idOf("recolour01"), colour: 2 });
     state.colours["53"] = 7;
     send(a, { t: "recolour" });
-    expect(await b.next("colour")).toEqual({ t: "colour", id: "recolour01", colour: 7 });
+    expect(await b.next("colour")).toEqual({ t: "colour", id: idOf("recolour01"), colour: 7 });
     // back to plain on chain: the room hears 0
     state.colours["53"] = 0;
     send(a, { t: "recolour" });
-    expect(await b.next("colour")).toEqual({ t: "colour", id: "recolour01", colour: 0 });
+    expect(await b.next("colour")).toEqual({ t: "colour", id: idOf("recolour01"), colour: 0 });
     // nothing changed: nothing is sent
     send(a, { t: "recolour" });
     await expect(b.next("colour", 500)).rejects.toThrow("no colour");

@@ -6,21 +6,43 @@
  */
 
 import { create } from "zustand";
+import { PLAYER_SECRET, playerIdFor } from "@lingxi/chain/player";
 import { noteEvent } from "./tally";
 
 const LIVE_URL = (import.meta.env.VITE_LIVE_URL as string | undefined) ?? (location.hostname === "localhost" ? "ws://localhost:8787/live" : "");
 const PLAYER_KEY = "lingxi.player.v1";
 
+/**
+ * This player's public id (rooms, home, invite links). A new device's id comes from its secret key (decorKey), so
+ * the server knows the id is ours without trusting whoever says it first; an id from before then is kept while the
+ * server still knows it as ours (see `moveToKeyedId`).
+ */
 export function playerId(): string {
   try {
     const saved = localStorage.getItem(PLAYER_KEY);
     if (saved && /^[a-z0-9]{12,32}$/.test(saved)) return saved;
-    const id = Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => b.toString(16).padStart(2, "0")).join("");
+    const id = playerIdFor(decorKey());
     localStorage.setItem(PLAYER_KEY, id);
     return id;
   } catch {
-    return "guest" + Math.random().toString(16).slice(2, 14);
+    return playerIdFor(decorKey());
   }
+}
+
+/**
+ * The server refused our id: it was never bound to this device's key (an id from before ids came from keys, never
+ * used for a home), or someone else holds it. Take the id that comes from our own key instead; it cannot be refused.
+ * Returns false when we already have that id, so a refusal never loops.
+ */
+function moveToKeyedId(): boolean {
+  const keyed = playerIdFor(decorKey());
+  if (playerId() === keyed) return false;
+  try {
+    localStorage.setItem(PLAYER_KEY, keyed);
+  } catch {
+    // without storage, playerId() already answers the keyed id
+  }
+  return true;
 }
 
 /** A friend's home we arrived at through an invite link (?visit=<id>). */
@@ -111,17 +133,22 @@ let want: string | null = null;
 let lessonsCard: string | null = null;
 let decorShared: string | null = null;
 
-/** This device's key for its home's decorations; the server binds the home to it on first save. */
+/** A key made for this page only, when the browser keeps no storage: never one shared by every such player. */
+let sessionKey: string | null = null;
+const freshKey = () => Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
+
+/** This device's secret key: its player id comes from it, and it proves to the server that the id and home are ours. */
 function decorKey(): string {
   const k = "lingxi.decorKey";
   try {
     const held = localStorage.getItem(k);
-    if (held && /^[a-f0-9]{32}$/.test(held)) return held;
-    const fresh = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
+    if (held && PLAYER_SECRET.test(held)) return held;
+    const fresh = freshKey();
     localStorage.setItem(k, fresh);
     return fresh;
   } catch {
-    return "0".repeat(32);
+    sessionKey ??= freshKey();
+    return sessionKey;
   }
 }
 
@@ -138,7 +165,7 @@ export const useLive = create<LiveState>((set, get) => {
     sock.onopen = () => {
       retry = 0;
       set({ status: "on" });
-      send({ t: "hello", id: playerId(), ...me, space: want });
+      send({ t: "hello", id: playerId(), key: decorKey(), ...me, space: want });
       send({ t: "links", key: decorKey() });
       if (lessonsCard) send({ t: "card", lessons: lessonsCard });
       if (decorShared) send({ t: "decor", key: decorKey(), placed: JSON.parse(decorShared) });
@@ -152,6 +179,16 @@ export const useLive = create<LiveState>((set, get) => {
       }
       const members = { ...get().members };
       switch (m.t) {
+        case "refused": {
+          // our id is not ours on the server: move to the id our own key gives, and come in again as that
+          const before = playerId();
+          if (m.reason !== "id" || !me || !moveToKeyedId()) return;
+          if (want === `home:${before}`) want = `home:${playerId()}`;
+          send({ t: "hello", id: playerId(), key: decorKey(), ...me, space: want });
+          send({ t: "links", key: decorKey() });
+          set({ space: null });
+          return;
+        }
         case "room":
           set({ space: m.space as string, members: Object.fromEntries((m.members as LiveMember[]).map((x) => [x.id, x])) });
           return;
@@ -273,7 +310,7 @@ export const useLive = create<LiveState>((set, get) => {
       want = space;
       if (!ws) open();
       // another pet on screen introduces itself again (its name, and its id for the name colour)
-      else if (changed) send({ t: "hello", id: playerId(), ...me, space });
+      else if (changed) send({ t: "hello", id: playerId(), key: decorKey(), ...me, space });
       else send({ t: "go", space });
     },
     go: (space) => {

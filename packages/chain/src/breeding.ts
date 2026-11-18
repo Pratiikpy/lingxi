@@ -9,6 +9,7 @@
 
 import { type Address, type Hex, type PublicClient, type WalletClient, erc20Abi, parseAbi, parseEventLogs } from "viem";
 import { breederAbi } from "./breederAbi";
+import { readPet } from "./registry";
 import { breederV2Abi } from "./breederV2Abi";
 
 /** The breeder's ABI plus the BEM token's own errors, so a payment refusal is named, not shown as a raw selector. */
@@ -35,6 +36,24 @@ export async function breedingTerms(pub: PublicClient, d: Deployment, parents: r
   const read = <T>(functionName: string, args: unknown[] = []) => pub.readContract({ address: d.breeder!, abi: breederV2Abi, functionName: functionName as never, args: args as never }) as Promise<T>;
   const [fee, bem, max, ...kids] = await Promise.all([read<bigint>("breedFee"), read<Address>("bem"), read<number>("MAX_CHILDREN"), ...parents.map((p) => read<number>("children", [p]))]);
   return { fee, bem, childrenLeft: kids.map((k) => Number(max) - Number(k)) };
+}
+
+/** What another player said about their pet, checked against X Layer before anything is signed or taped out for it. */
+export type PartnerCheck = "ok" | "notOwner" | "notBrain" | "unreadable";
+
+/**
+ * Whether `info` (a pet id, its owner, its brain, as a peer sent them) is true on chain now: the address owns the pet
+ * and the pet's brain is that circuit. A peer can send anything, so nothing is signed or spent on its word alone.
+ */
+export async function checkPartner(pub: PublicClient, d: Deployment, info: { petId: string; owner: string; brain: string }): Promise<PartnerCheck> {
+  if (!/^\d{1,20}$/.test(info.petId) || !/^\d{1,20}$/.test(info.brain) || !/^0x[0-9a-fA-F]{40}$/.test(info.owner)) return "notOwner";
+  try {
+    const pet = await readPet(pub, d, BigInt(info.petId));
+    if (pet.owner.toLowerCase() !== info.owner.toLowerCase()) return "notOwner";
+    return pet.brainId === BigInt(info.brain) ? "ok" : "notBrain";
+  } catch {
+    return "unreadable";
+  }
 }
 
 export async function hasConsent(pub: PublicClient, d: Deployment, petId: bigint, partnerOwner: Address): Promise<boolean> {

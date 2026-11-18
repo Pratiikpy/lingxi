@@ -12,7 +12,7 @@ import { useBadges } from "./badges";
 import { create } from "zustand";
 import { createPublicClient, createWalletClient, custom, erc20Abi, http, isAddress, type Address, type Hex, type PublicClient, type WalletClient, fallback } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { type Deployment, type TapeQuote, type TapeStep, allowPartnerOnChain, breedOnChain, breedingTerms, checkpointOnChain, hatchOnChain, quoteTapeout, readKeeping, readPet, setBrainOnChain, setSitterOnChain, signRelay, type SignedRelay, tapeOutYourself, xLayer } from "@lingxi/chain";
+import { type Deployment, type TapeQuote, type TapeStep, allowPartnerOnChain, breedOnChain, breedingTerms, checkPartner, hasConsent, checkpointOnChain, hatchOnChain, quoteTapeout, readKeeping, readPet, setBrainOnChain, setSitterOnChain, signRelay, type SignedRelay, tapeOutYourself, xLayer } from "@lingxi/chain";
 import { compileProgram, netlistBytes } from "@lingxi/brain";
 import { AUTO_DAYS, AUTO_FUND, AUTO_LOW, sessionAccount, sessionWallet } from "./session";
 import { type Pet, logSegments, packState, petCard, stageOf, unpackState, ruleSkillIds } from "@lingxi/game";
@@ -294,6 +294,10 @@ export const useChain = create<ChainState>((set, get) => ({
         const held = (await publicClient.readContract({ address: terms.bem, abi: erc20Abi, functionName: "balanceOf", args: [wallet.account!.address] })) as bigint;
         if (held < terms.fee) throw new Error("not enough BEM");
       }
+      // the partner's pet, owner and brain as they told us are checked on chain, and its consent must stand, before
+      // the child circuit is taped out: nothing is spent on a partner's word alone
+      if ((await checkPartner(publicClient, deployment, partner)) !== "ok") throw new Error("PartnerNotOnChain");
+      if (!(await hasConsent(publicClient, deployment, BigInt(partner.petId), wallet.account!.address))) throw new Error("NoConsent");
       set({ busy: "taping" });
       const relayed = await relayChild(await signRelay(await relaySigner(r.petId, wallet), "child", r.petId, { parents: [mine, partner.brain] }));
       if (!relayed.ok) throw new Error(relayed.reason);
@@ -322,6 +326,8 @@ export const useChain = create<ChainState>((set, get) => ({
             ? "tooSoon"
             : /NoConsent/.test(msg)
               ? "noConsent"
+              : /PartnerNotOnChain/.test(msg)
+                ? "partnerNotOnChain"
               : /TooManyChildren/.test(msg)
                 ? "tooManyChildren"
                 : /not enough BEM/.test(msg)

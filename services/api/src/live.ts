@@ -6,15 +6,24 @@
  * pets; beyond that, players are spread over parallel copies so rooms never
  * feel crowded. Messages are small JSON frames; everything a client sends is
  * checked, trimmed and rate limited before anyone else sees it.
+ *
+ * A player is in a room only as itself: its hello carries the secret key its id
+ * comes from (see decor.ts), so an id seen in a room cannot be used by anyone
+ * else. One address holds at most MAX_PER_ADDRESS connections.
  */
 
 import type { IncomingMessage } from "node:http";
+import { isIP } from "node:net";
 import { WebSocketServer, type WebSocket } from "ws";
-import type { DecorStore, Placed } from "./decor";
+import { type DecorStore, type Placed, createDecorStore } from "./decor";
 import { type Homes, visible } from "./homes";
 import { MAX_PLACED } from "@lingxi/world";
 
 export const CAPACITY = 24;
+/** Connections one address may hold: enough for a family's or a classroom's devices behind one router, not a flood. */
+export const MAX_PER_ADDRESS = 12;
+/** Connections the server holds in all. */
+export const MAX_CONNECTIONS = 4_000;
 const MAX_FRAME = 12_288;
 const CARD_MAX = 10_000;
 const CARD_RULES = 8;
@@ -77,13 +86,13 @@ export class LiveRooms {
   private readonly spaces = new Map<string, Set<Client>>();
 
   constructor(
-    private readonly decor?: DecorStore,
+    private readonly decor: DecorStore = createDecorStore(),
     private readonly homes?: Homes,
   ) {}
 
   /** A home's pieces as a visitor sees them: what the owner placed, cut to what its linked wallets allow on X Layer. */
   private async shown(owner: string): Promise<Placed> {
-    const placed = this.decor?.get(owner) ?? [];
+    const placed = this.decor.get(owner) ?? [];
     return visible(placed, this.homes ? await this.homes.view(owner) : { capacity: MAX_PLACED, held: [] });
   }
 
@@ -205,7 +214,8 @@ export class LiveRooms {
     switch (m.t) {
       case "hello": {
         const id = clean(m.id, 32).toLowerCase();
-        if (!/^[a-z0-9]{6,32}$/.test(id)) return;
+        // only the device holding the key behind this id may be it
+        if (!/^[a-z0-9]{6,32}$/.test(id) || !this.decor.authorise(id, m.key)) return this.send(c, { t: "refused", reason: "id" });
         const name = clean(m.name, NAME_MAX) || "Pet";
         c.member = {
           id,
@@ -247,7 +257,7 @@ export class LiveRooms {
       }
       case "decor": {
         // only for your own home, and only with the key your device bound it to
-        if (!this.decor || !c.member.id) return;
+        if (!c.member.id) return;
         const placed = this.decor.set(c.member.id, m.key, m.placed);
         if (!placed) return this.send(c, { t: "decorRefused" });
         void this.showHome(c.member.id);
@@ -256,7 +266,7 @@ export class LiveRooms {
       case "link":
       case "unlink": {
         // a wallet joins or leaves this player's home: only with the home's own key, and to join, the wallet's signature
-        if (!this.homes || !this.decor || !c.member.id) return;
+        if (!this.homes || !c.member.id) return;
         const owner = c.member.id;
         if (!this.decor.authorise(owner, m.key)) return this.send(c, { t: "linked", ok: false, reason: "key" });
         const done = (r: { ok: true; wallets: string[] } | { ok: false; reason: string }) => {
@@ -276,7 +286,7 @@ export class LiveRooms {
         return;
       }
       case "links": {
-        if (!this.homes || !this.decor || !c.member.id || !this.decor.authorise(c.member.id, m.key)) return;
+        if (!this.homes || !c.member.id || !this.decor.authorise(c.member.id, m.key)) return;
         this.send(c, { t: "linked", ok: true, wallets: this.homes.wallets(c.member.id) });
         return;
       }
@@ -333,9 +343,18 @@ export class LiveRooms {
   }
 }
 
-/** Attaches live rooms to an HTTP server at /live, accepting only allowed origins. */
+/** The visitor's address: Cloudflare's header (the server listens only behind the tunnel), else the socket's. */
+export function addressOf(req: IncomingMessage): string {
+  const cf = req.headers["cf-connecting-ip"];
+  if (typeof cf === "string" && isIP(cf.trim())) return cf.trim();
+  return req.socket.remoteAddress ?? "local";
+}
+
+/** Attaches live rooms to an HTTP server at /live, accepting only allowed origins and a few connections per address. */
 export function attachLive(server: { on(event: "upgrade", cb: (req: IncomingMessage, socket: import("node:stream").Duplex, head: Buffer) => void): unknown }, rooms: LiveRooms, origins: string[]): WebSocketServer {
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_FRAME });
+  const held = new Map<string, number>();
+  let total = 0;
   server.on("upgrade", (req, socket, head) => {
     const url = req.url ?? "";
     const origin = req.headers.origin ?? "";
@@ -343,6 +362,23 @@ export function attachLive(server: { on(event: "upgrade", cb: (req: IncomingMess
       socket.destroy();
       return;
     }
+    const address = addressOf(req);
+    if ((held.get(address) ?? 0) >= MAX_PER_ADDRESS || total >= MAX_CONNECTIONS) {
+      socket.end("HTTP/1.1 429 Too Many Requests\r\nConnection: close\r\n\r\n");
+      return;
+    }
+    held.set(address, (held.get(address) ?? 0) + 1);
+    total++;
+    let released = false;
+    const release = () => {
+      if (released) return;
+      released = true;
+      total--;
+      const n = (held.get(address) ?? 1) - 1;
+      if (n > 0) held.set(address, n);
+      else held.delete(address);
+    };
+    socket.once("close", release);
     wss.handleUpgrade(req, socket, head, (ws) => rooms.handle(ws));
   });
   return wss;

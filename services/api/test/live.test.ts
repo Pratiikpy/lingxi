@@ -2,7 +2,9 @@ import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import WebSocket from "ws";
-import { CAPACITY, LiveRooms, attachLive, validSpace } from "../src/live";
+import { createHash } from "node:crypto";
+import { playerIdFor } from "@lingxi/chain";
+import { CAPACITY, MAX_PER_ADDRESS, LiveRooms, attachLive, validSpace } from "../src/live";
 
 let port = 0;
 const rooms = new LiveRooms();
@@ -21,9 +23,11 @@ interface Peer {
   next: (t: string, timeout?: number) => Promise<Record<string, unknown>>;
 }
 
-function connect(origin = "http://ok.test"): Promise<Peer> {
+let nextAddress = 1;
+/** Each test player comes from its own address unless one is given, as players do behind Cloudflare. */
+function connect(origin = "http://ok.test", address = `198.51.100.${nextAddress++}`): Promise<Peer> {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(`ws://127.0.0.1:${port}/live`, { headers: { origin } });
+    const ws = new WebSocket(`ws://127.0.0.1:${port}/live`, { headers: { origin, "cf-connecting-ip": address } });
     const inbox: Array<Record<string, unknown>> = [];
     const waiters: Array<{ t: string; r: (m: Record<string, unknown>) => void }> = [];
     ws.on("message", (raw) => {
@@ -46,7 +50,10 @@ function connect(origin = "http://ok.test"): Promise<Peer> {
   });
 }
 
-const hello = (p: Peer, id: string, space: string, name = "Mochi") => p.ws.send(JSON.stringify({ t: "hello", id, name, line: "gentle", stage: "child", mood: 2, space }));
+/** A test player's device secret and the id that belongs to it. */
+const keyOf = (who: string) => createHash("md5").update(who).digest("hex");
+const idOf = (who: string) => playerIdFor(keyOf(who));
+const hello = (p: Peer, who: string, space: string, name = "Mochi") => p.ws.send(JSON.stringify({ t: "hello", id: idOf(who), key: keyOf(who), name, line: "gentle", stage: "child", mood: 2, space }));
 
 describe("live rooms", () => {
   it("only allows known space names", () => {
@@ -73,7 +80,7 @@ describe("live rooms", () => {
     expect((joined.member as { name: string }).name).toBe("Tofu");
     b.ws.send(JSON.stringify({ t: "pos", x: 300 }));
     expect((await a.next("pos")).x).toBe(120);
-    b.ws.send(JSON.stringify({ t: "emote", kind: "wave", to: "aaaaaa1" }));
+    b.ws.send(JSON.stringify({ t: "emote", kind: "wave", to: idOf("aaaaaa1") }));
     expect((await a.next("emote")).kind).toBe("wave");
     b.ws.send(JSON.stringify({ t: "emote", kind: "explode" }));
     b.ws.send(JSON.stringify({ t: "say", text: "<b>hi</b> friend" }));
@@ -81,7 +88,7 @@ describe("live rooms", () => {
     b.ws.send(JSON.stringify({ t: "say", text: "go fuck yourself" }));
     await expect(a.next("say", 400)).rejects.toThrow();
     b.ws.close();
-    expect((await a.next("left")).id).toBe("bbbbbb2");
+    expect((await a.next("left")).id).toBe(idOf("bbbbbb2"));
     a.ws.close();
   });
 
@@ -115,12 +122,12 @@ describe("live rooms", () => {
     a.ws.send(JSON.stringify({ t: "card", lessons }));
     a.ws.send(JSON.stringify({ t: "card", lessons: "x".repeat(10_500) }));
     await new Promise((r) => setTimeout(r, 100));
-    b.ws.send(JSON.stringify({ t: "ask", to: "carda01" }));
+    b.ws.send(JSON.stringify({ t: "ask", to: idOf("carda01") }));
     const card = await b.next("card");
     expect(card.lessons).toBe(lessons);
     expect(card.line).toBe("gentle");
     expect((await a.next("asked")).name).toBe("Tofu");
-    c.ws.send(JSON.stringify({ t: "ask", to: "carda01" }));
+    c.ws.send(JSON.stringify({ t: "ask", to: idOf("carda01") }));
     await expect(c.next("card", 400)).rejects.toThrow();
     for (const p of [a, b, c]) p.ws.close();
   });
@@ -137,19 +144,53 @@ describe("live rooms", () => {
     await c.next("room");
     b.ws.send(JSON.stringify({ t: "card", lessons: JSON.stringify({ lessons: [] }) }));
     // an answer nobody asked for goes nowhere
-    c.ws.send(JSON.stringify({ t: "answer", to: "fama001", yes: true }));
+    c.ws.send(JSON.stringify({ t: "answer", to: idOf("fama001"), yes: true }));
     await expect(a.next("answer", 300)).rejects.toThrow();
-    a.ws.send(JSON.stringify({ t: "propose", to: "famb002" }));
+    a.ws.send(JSON.stringify({ t: "propose", to: idOf("famb002") }));
     const p = await b.next("proposal");
-    expect(p.from).toBe("fama001");
-    b.ws.send(JSON.stringify({ t: "answer", to: "fama001", yes: true }));
+    expect(p.from).toBe(idOf("fama001"));
+    b.ws.send(JSON.stringify({ t: "answer", to: idOf("fama001"), yes: true }));
     const ans = await a.next("answer");
     expect(ans.yes).toBe(true);
     expect(ans.card).toBe(JSON.stringify({ lessons: [] }));
     // a proposal can be answered only once
-    b.ws.send(JSON.stringify({ t: "answer", to: "fama001", yes: true }));
+    b.ws.send(JSON.stringify({ t: "answer", to: idOf("fama001"), yes: true }));
     await expect(a.next("answer", 300)).rejects.toThrow();
     for (const x of [a, b, c]) x.ws.close();
+  });
+
+  it("an id is only its owner's: someone who saw it in a room cannot take it, and a made-up id is refused", async () => {
+    const owner = await connect();
+    hello(owner, "realowner", "room:21", "Mochi");
+    await owner.next("room");
+    const impostor = await connect();
+    // the impostor knows the id (every room shows it) but not the secret behind it
+    impostor.ws.send(JSON.stringify({ t: "hello", id: idOf("realowner"), key: keyOf("someone else"), name: "Mochi", line: "gentle", stage: "child", mood: 2, space: "room:21" }));
+    expect(await impostor.next("refused")).toEqual({ t: "refused", reason: "id" });
+    await expect(owner.next("joined", 300)).rejects.toThrow();
+    // without a key, or with an id that is not the key's, nobody gets in
+    impostor.ws.send(JSON.stringify({ t: "hello", id: idOf("realowner"), name: "Mochi", space: "room:21" }));
+    expect((await impostor.next("refused")).reason).toBe("id");
+    impostor.ws.send(JSON.stringify({ t: "hello", id: "abcdef123456", key: keyOf("x"), name: "Mochi", space: "room:21" }));
+    expect((await impostor.next("refused")).reason).toBe("id");
+    // nothing it says reaches the room as the owner
+    impostor.ws.send(JSON.stringify({ t: "say", text: "I am Mochi" }));
+    await expect(owner.next("say", 300)).rejects.toThrow();
+    owner.ws.close();
+    impostor.ws.close();
+  });
+
+  it("one address holds only a few connections", async () => {
+    const same = "203.0.113.77";
+    const open: Peer[] = [];
+    for (let i = 0; i < MAX_PER_ADDRESS; i++) open.push(await connect(undefined, same));
+    await expect(connect(undefined, same)).rejects.toBeTruthy();
+    // another address is not affected, and a closed connection frees its place
+    const other = await connect();
+    open[0]!.ws.close();
+    await new Promise((r) => setTimeout(r, 100));
+    open[0] = await connect(undefined, same);
+    for (const p of [...open, other]) p.ws.close();
   });
 
   it("drops a flood of messages from one client", async () => {

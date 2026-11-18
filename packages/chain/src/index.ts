@@ -27,3 +27,4 @@ export * from "./extras";
 export * from "./anchor";
 export * from "./receipts";
 export * from "./relayAuth";
+export * from "./player";
