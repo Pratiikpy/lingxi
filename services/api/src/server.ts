@@ -722,6 +722,8 @@ if (isMain) {
       modelTokensToday: client ? { used: modelBudget.used(), perDay: modelBudget.perDay } : null,
       backup: backupStatus(),
       watchdog: watchdogStatus(),
+      // the process's own memory, in MB: a store or cache growing without end shows here first
+      memoryMb: Object.fromEntries(Object.entries(process.memoryUsage()).map(([k, v]) => [k, Math.round(v / 1e5) / 10])),
       storesKb: storeSizes(dataDir),
     };
     cached = { at: Date.now(), value };

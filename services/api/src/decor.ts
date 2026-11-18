@@ -9,6 +9,11 @@
  * something, and a full store never keeps a new player out of the rooms. Homes
  * bound before ids came from keys keep the key they were bound to. Only the key's
  * hash is stored.
+ *
+ * What a keyed home holds is a copy of what its owner's own game holds, sent again
+ * on every connection; so when the store is full, the keyed home active least
+ * recently makes room, and its owner's next visit puts it back. A home from before
+ * keyed ids is never dropped, since its key binding exists only here.
  */
 
 import { createHash } from "node:crypto";
@@ -21,6 +26,8 @@ export type Placed = Array<{ id: string; x: number; y: number }>;
 const MAX_HOMES = 50_000;
 const SAVE_DELAY_MS = 2_000;
 const OWNER_ID = /^[a-z0-9]{6,32}$/;
+/** A keyed player id (@lingxi/chain playerIdFor): its home can be dropped and restored by its owner. */
+const KEYED_ID = /^[0-9a-f]{24}$/;
 
 const hash = (secret: string): string => createHash("sha256").update(`lingxi-decor:${secret}`).digest("hex");
 
@@ -53,14 +60,16 @@ export interface DecorStore {
   size: () => number;
 }
 
-export function createDecorStore(file?: string, maxHomes = MAX_HOMES): DecorStore {
-  const homes = new Map<string, { key: string; placed: Placed }>();
+export function createDecorStore(file?: string, maxHomes = MAX_HOMES, now: () => number = Date.now): DecorStore {
+  /** owner → home, ordered from the home active least recently to the one active most recently */
+  const homes = new Map<string, { key: string; placed: Placed; at: number }>();
   if (file && existsSync(file)) {
     try {
-      const raw = JSON.parse(readFileSync(file, "utf8")) as Record<string, { key: string; placed: unknown }>;
-      for (const [owner, h] of Object.entries(raw)) {
+      const raw = JSON.parse(readFileSync(file, "utf8")) as Record<string, { key: string; placed: unknown; at?: number }>;
+      const loaded = Object.entries(raw).sort(([, a], [, b]) => (a.at ?? 0) - (b.at ?? 0));
+      for (const [owner, h] of loaded) {
         const placed = cleanPlaced(h.placed);
-        if (OWNER_ID.test(owner) && typeof h.key === "string" && placed) homes.set(owner, { key: h.key, placed });
+        if (OWNER_ID.test(owner) && typeof h.key === "string" && placed) homes.set(owner, { key: h.key, placed, at: typeof h.at === "number" ? h.at : 0 });
       }
     } catch {
       // a damaged file starts an empty store rather than stopping the server
@@ -86,8 +95,12 @@ export function createDecorStore(file?: string, maxHomes = MAX_HOMES): DecorStor
       if (!OWNER_ID.test(owner) || typeof secret !== "string" || !PLAYER_SECRET.test(secret)) return false;
       const key = hash(secret);
       const held = homes.get(owner);
-      if (held) return held.key === key;
-      return owner === playerIdFor(secret);
+      if (!held) return owner === playerIdFor(secret);
+      if (held.key !== key) return false;
+      // the owner arrived: their home is the most recently active
+      homes.delete(owner);
+      homes.set(owner, { ...held, at: now() });
+      return true;
     },
     holds: (owner) => homes.has(owner),
     size: () => homes.size,
@@ -101,8 +114,19 @@ export function createDecorStore(file?: string, maxHomes = MAX_HOMES): DecorStor
       if (!held && owner !== playerIdFor(secret)) return false;
       // a new home is kept only once it holds something, and only while there is room
       if (!held && placed.length === 0) return placed;
-      if (!held && homes.size >= maxHomes) return false;
-      homes.set(owner, { key, placed });
+      if (!held && homes.size >= maxHomes) {
+        // the keyed home active least recently makes room; its owner's game sends it again on their next visit
+        let idle: string | null = null;
+        for (const o of homes.keys())
+          if (KEYED_ID.test(o)) {
+            idle = o;
+            break;
+          }
+        if (!idle) return false;
+        homes.delete(idle);
+      }
+      homes.delete(owner);
+      homes.set(owner, { key, placed, at: now() });
       save();
       return placed;
     },
