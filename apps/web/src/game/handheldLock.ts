@@ -9,7 +9,7 @@ import { type LockApi, type LockQuery, createWriter, heldElsewhere } from "./wri
 const STEAL = "lingxi.handheldHere";
 let lost: (() => void) | null = null;
 
-const storage = typeof localStorage !== "undefined" ? localStorage : { getItem: () => null, setItem: () => undefined };
+const storage = typeof localStorage !== "undefined" ? localStorage : { getItem: () => null, setItem: () => undefined, removeItem: () => undefined };
 const writer = createWriter({
   lockName: "lingxi-handheld",
   stampKey: "lingxi.handheld.lease",
@@ -20,6 +20,14 @@ const writer = createWriter({
     if (!mine) lost?.();
   },
 });
+
+// without Web Locks the handheld gives its lease up as the page goes, and takes it back from the back-forward cache (A8)
+if (typeof window !== "undefined") {
+  window.addEventListener("pagehide", () => writer.leave());
+  window.addEventListener("pageshow", (e) => {
+    if (e.persisted) void writer.rejoin();
+  });
+}
 
 /** Claims the handheld for this tab at start; a tab the player moved it to takes it over. */
 export async function claimHandheld(): Promise<boolean> {

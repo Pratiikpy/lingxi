@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LEASE_MS, LOCK_NAME, type LockApi, createWriter, heldElsewhere } from "./writer";
+import { LEASE_MS, LOCK_NAME, type LockApi, RENEW_MS, STAMP_KEY, WATCH_MS, createWriter, heldElsewhere } from "./writer";
 import { memoryStorage } from "./testStorage";
 
 /** The browser's lock manager, in memory: one holder; `ifAvailable` gets null when held; `steal` takes it over. */
@@ -47,28 +47,98 @@ describe("one writer across tabs, with Web Locks", () => {
 });
 
 describe("one writer across tabs, without Web Locks (a lease in storage)", () => {
-  it("the same rules hold, and a tab closed without a word gives its place up when its lease runs out", async () => {
+  /** Tabs sharing one storage and one clock; `wait` lets time pass while a tab watches a lease, renewing the live ones. */
+  function tabs() {
     const storage = memoryStorage();
     let t = 0;
-    const timers: Array<() => void> = [];
-    const every = (fn: () => void) => {
-      timers.push(fn);
-      return () => undefined;
+    const renewers = new Map<string, () => void>();
+    const alive = new Set<string>();
+    const renew = () => alive.forEach((id) => renewers.get(id)?.());
+    const wait = async (ms: number) => {
+      for (let passed = 0; passed < ms; passed += 1_000) {
+        t += 1_000;
+        if (t % 2_000 === 0) renew();
+      }
     };
-    const renew = () => timers.forEach((f) => f());
-    const a = createWriter({ storage, now: () => t, every });
-    const b = createWriter({ storage, now: () => t, every });
+    const open = (id: string) => {
+      alive.add(id);
+      const every = (fn: () => void) => {
+        renewers.set(id, fn);
+        return () => void renewers.delete(id);
+      };
+      return createWriter({ storage, now: () => t, every, wait, id });
+    };
+    return { storage, open, renew, wait, die: (id: string) => alive.delete(id), later: (ms: number) => (t += ms) };
+  }
+
+  it("the same rules hold: one writer, 'play here' moves the game, the first stops on its next renewal", async () => {
+    const { open, renew } = tabs();
+    const a = open("a");
+    const b = open("b");
     expect(await a.acquire()).toBe(true);
     expect(await b.acquire()).toBe(false);
-    // b takes over: a notices on its next renewal and stops
     expect(await b.acquire({ steal: true })).toBe(true);
     renew();
     expect([a.isWriter(), b.isWriter()]).toEqual([false, true]);
-    // b's tab closes without a word; once its lease has run out a new tab may write
-    const c = createWriter({ storage, now: () => t, every: () => () => undefined });
-    expect(await c.acquire()).toBe(false);
-    t += LEASE_MS + 1;
-    expect(await c.acquire()).toBe(true);
+  });
+
+  it("a page gives its lease up as it goes, so its own reload plays at once (A8)", async () => {
+    const { open, storage } = tabs();
+    const before = open("before-reload");
+    expect(await before.acquire()).toBe(true);
+    before.leave();
+    expect(storage.getItem(STAMP_KEY)).toBeNull();
+    // its last words still save (a later pagehide handler), until the next page stamps
+    expect(before.isWriter()).toBe(true);
+    const after = open("after-reload");
+    expect(await after.acquire()).toBe(true);
+    expect([before.isWriter(), after.isWriter()]).toEqual([false, true]);
+  });
+
+  it("a lease that is not renewed within the watch is a page that died without a word: it is taken over (A8)", async () => {
+    const { open, die } = tabs();
+    const crashed = open("crashed");
+    expect(await crashed.acquire()).toBe(true);
+    die("crashed");
+    expect(await open("next").acquire()).toBe(true);
+    expect(WATCH_MS).toBeGreaterThan(RENEW_MS);
+    expect(WATCH_MS).toBeLessThan(LEASE_MS);
+  });
+
+  it("a lease renewed in time is a tab that is really open: the new one does not take it", async () => {
+    const { open } = tabs();
+    const live = open("live");
+    expect(await live.acquire()).toBe(true);
+    const second = open("second");
+    expect(await second.acquire()).toBe(false);
+    expect([live.isWriter(), second.isWriter()]).toEqual([true, false]);
+  });
+
+  it("a page restored from the back-forward cache takes its lease back, or yields to a tab that took the game", async () => {
+    const { open, renew } = tabs();
+    const a = open("a");
+    expect(await a.acquire()).toBe(true);
+    a.leave();
+    expect(await a.rejoin()).toBe(true);
+    expect(a.isWriter()).toBe(true);
+    a.leave();
+    const b = open("b");
+    expect(await b.acquire()).toBe(true);
+    expect(await a.rejoin()).toBe(false);
+    renew();
+    expect([a.isWriter(), b.isWriter()]).toEqual([false, true]);
+  });
+
+  it("a page that never held the game has nothing to give up or take back", async () => {
+    const { open } = tabs();
+    const a = open("a");
+    expect(await a.acquire()).toBe(true);
+    const b = open("b");
+    expect(await b.acquire()).toBe(false);
+    b.leave();
+    expect(a.isWriter()).toBe(true);
+    expect(await b.rejoin()).toBe(false);
+    expect(a.isWriter()).toBe(true);
   });
 
   it("a storage that cannot be written at all leaves the tab as the only writer it can be, rather than locking the player out", async () => {

@@ -64,6 +64,15 @@ const writer = createWriter({
 
 export const saves = createSaveStore({ storage, now: () => Date.now(), isWriter: () => writer.isWriter(), onEvent });
 
+// without Web Locks a page gives its lease up as it goes, so its own reload plays at once, and takes it back if the
+// browser restores it from the back-forward cache (A8)
+if (typeof window !== "undefined") {
+  window.addEventListener("pagehide", () => writer.leave());
+  window.addEventListener("pageshow", (e) => {
+    if (e.persisted) void writer.rejoin();
+  });
+}
+
 /** Whether the last good copy of a held save is one this build can read (only then is it offered). */
 export function copyUsable(key: string): boolean {
   const raw = saves.read(`${key}~copy`);

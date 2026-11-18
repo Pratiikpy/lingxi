@@ -13,7 +13,13 @@ export const LOCK_NAME = "lingxi-writer";
 export const STAMP_KEY = "lingxi.writer.lease";
 /** Without Web Locks: how long a writer's lease lasts, and how often the writer renews it. */
 export const LEASE_MS = 6_000;
-const RENEW_MS = 2_000;
+export const RENEW_MS = 2_000;
+/**
+ * Without Web Locks: how long a tab watches a lease that is not its own for the renewal a live tab makes every
+ * RENEW_MS. Not renewed in that time, the page that held it is gone (a crash, a tab the system killed) and its lease is
+ * taken over, so a player is never kept out by a page that no longer exists (A8).
+ */
+export const WATCH_MS = 3_000;
 
 export interface LockApi {
   request(name: string, options: { ifAvailable?: boolean; steal?: boolean }, callback: (lock: unknown | null) => unknown): Promise<unknown>;
@@ -30,11 +36,13 @@ export interface WriterOptions {
   stampKey?: string;
   /** `navigator.locks` where the browser has it */
   locks?: LockApi;
-  storage: { getItem(k: string): string | null; setItem(k: string, v: string): void };
+  storage: { getItem(k: string): string | null; setItem(k: string, v: string): void; removeItem(k: string): void };
   now: () => number;
   onChange?: (writer: boolean) => void;
   /** runs `fn` every `ms`; returns a stop function (setInterval in the browser) */
   every?: (fn: () => void, ms: number) => () => void;
+  /** lets `ms` pass (setTimeout in the browser) */
+  wait?: (ms: number) => Promise<void>;
   id?: string;
 }
 
@@ -44,9 +52,12 @@ export function createWriter(o: WriterOptions) {
     const t = setInterval(fn, ms);
     return () => clearInterval(t);
   });
+  const wait = o.wait ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   const lockName = o.lockName ?? LOCK_NAME;
   const stampKey = o.stampKey ?? STAMP_KEY;
   let held = false;
+  // without Web Locks: this page gave its lease up as it went (A8), and may take it back if the browser restores it
+  let gaveUp = false;
   let stopRenewing: (() => void) | null = null;
 
   const readStamp = (): Stamp | null => {
@@ -97,9 +108,15 @@ export function createWriter(o: WriterOptions) {
         });
     });
 
-  const viaLease = (steal: boolean): boolean => {
+  const viaLease = async (steal: boolean): Promise<boolean> => {
     const stamp = readStamp();
-    if (!steal && stamp && stamp.id !== id && stamp.until > o.now()) return false;
+    if (!steal && stamp && stamp.id !== id && stamp.until > o.now()) {
+      // a live tab renews its lease; one that has not, within the watch, belonged to a page that is gone
+      await wait(WATCH_MS);
+      const now = readStamp();
+      const renewed = now !== null && now.id !== id && now.until > o.now() && (now.id !== stamp.id || now.until !== stamp.until);
+      if (renewed) return false;
+    }
     if (!writeStamp()) {
       set(true);
       return true;
@@ -117,6 +134,33 @@ export function createWriter(o: WriterOptions) {
     id,
     /** Tries to become the writer; with `steal`, takes the game over from whichever tab has it. */
     acquire: async ({ steal = false }: { steal?: boolean } = {}): Promise<boolean> => (o.locks ? viaLocks(o.locks, steal) : viaLease(steal)),
+    /**
+     * Without Web Locks, the page is going (`pagehide`: a reload, a link, a closed tab, the back-forward cache): it
+     * gives its lease up at once, so the next page plays without waiting for the lease to run out. A Web Lock is
+     * released by the browser itself.
+     */
+    leave(): void {
+      if (o.locks || !held) return;
+      stopRenewing?.();
+      stopRenewing = null;
+      const s = readStamp();
+      try {
+        if (s && s.id === id) o.storage.removeItem(stampKey);
+      } catch {
+        // storage gone: the lease runs out on its own
+      }
+      // still the writer for this page's last words (a later `pagehide` handler may save), until another page stamps
+      gaveUp = true;
+    },
+    /** Without Web Locks, a page restored from the back-forward cache takes its lease back, unless a tab has the game. */
+    rejoin: async (): Promise<boolean> => {
+      if (o.locks) return held;
+      if (!gaveUp) return false;
+      gaveUp = false;
+      const back = await viaLease(false);
+      if (!back) set(false);
+      return back;
+    },
     /** True only while this tab holds the game and the stamp in storage is its own (checked on every write). */
     isWriter(): boolean {
       if (!held) return false;
