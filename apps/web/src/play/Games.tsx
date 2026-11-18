@@ -10,6 +10,7 @@ import { drawPet } from "@lingxi/art";
 import { type GameId, type Pet, SEASONAL, afterSwaps, nextPattern, seasonOf, shuffles, stageOf, starsFor, toVisible } from "@lingxi/game";
 import { HOME, ITEM, ROOMS } from "@lingxi/world";
 import { useWorld } from "../game/world";
+import { PRESS_MS, showSteps } from "../game/patternShow";
 import { LifePanel } from "./Jobs";
 import { useLang } from "../i18n";
 import { useGame } from "../game/store";
@@ -223,32 +224,33 @@ function PatternGame({ onEnd }: { onEnd: (score: number) => void }) {
   const [lit, setLit] = useState<number | null>(null);
   const [phase, setPhase] = useState<"show" | "input">("show");
   const [pos, setPos] = useState(0);
+  // the light of the player's last press; the showing cancels it and puts it out itself (A9)
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (phase !== "show") return;
-    let i = 0;
-    const gap = reduce ? 700 : 560;
-    const id = setInterval(() => {
-      if (i >= seq.length * 2) {
-        clearInterval(id);
-        setLit(null);
+    if (pressTimer.current) clearTimeout(pressTimer.current);
+    const steps = showSteps(seq, reduce ? 700 : 560);
+    const timers = steps.map((s) =>
+      setTimeout(() => {
+        setLit(s.lit);
+        if (s.lit !== null) play("tap");
+      }, s.at),
+    );
+    timers.push(
+      setTimeout(() => {
         setPhase("input");
         setPos(0);
-        return;
-      }
-      if (i % 2 === 0) {
-        setLit(seq[i / 2]!);
-        play("tap");
-      } else setLit(null);
-      i++;
-    }, gap / 2);
-    return () => clearInterval(id);
+      }, steps.at(-1)!.at),
+    );
+    return () => timers.forEach(clearTimeout);
   }, [phase, seq, reduce]);
 
   const press = (k: number) => {
     if (phase !== "input") return;
     setLit(k);
-    setTimeout(() => setLit(null), 180);
+    if (pressTimer.current) clearTimeout(pressTimer.current);
+    pressTimer.current = setTimeout(() => setLit(null), PRESS_MS);
     if (seq[pos] !== k) {
       play("error");
       onEnd(seq.length - 1);

@@ -2,33 +2,9 @@
  * A new player's first minutes, as a player plays them: hatch a pet, feed it from the bag, play with it, look around
  * the room, and take a gift from the mail. Each step is checked in the save the game keeps, not only on screen.
  */
-import { type Opened, dismiss, expect, hatch, savedPet, test } from "../fixtures";
+import { type Opened, dismiss, expect, hatch, playPattern, savedPet, test } from "../fixtures";
 
 const bagOf = (p: Opened) => p.page.evaluate(() => (JSON.parse(localStorage.getItem("lingxi.world.v1") ?? "{}") as { bag?: Record<string, number> }).bag ?? {});
-/**
- * The lights the pattern game shows, in order, read as a player watches them; resolves when the pads take input. The
- * count starts once the showing has begun with every pad dark: the pad a player just pressed stays lit a moment.
- */
-const watchPattern = (page: Opened["page"]) =>
-  page.evaluate(
-    () =>
-      new Promise<number[]>((resolve) => {
-        const seen: number[] = [];
-        let last = -1;
-        let started = false;
-        const tick = () => {
-          const pads = [...document.querySelectorAll<HTMLButtonElement>(".pads .pad")];
-          const showing = pads.length > 0 && pads[0]!.disabled;
-          const lit = pads.findIndex((b) => b.classList.contains("lit"));
-          if (showing && lit < 0) started = true;
-          if (started && lit >= 0 && lit !== last) seen.push(lit);
-          last = lit;
-          if (started && !showing) resolve(seen);
-          else requestAnimationFrame(tick);
-        };
-        tick();
-      }),
-  );
 const meter = async (p: Opened, m: "food" | "joy") => ((await savedPet(p.page)) as { meters: Record<string, number> } | null)?.meters[m] ?? -1;
 
 for (const look of [
@@ -55,13 +31,7 @@ for (const look of [
     // play: "Follow the Pattern", watched and repeated for two rounds, then a miss ends it with a score
     const joy0 = await meter(p, "joy");
     await page.locator("button.act[data-hint=play]").click();
-    await page.locator(".game-card").nth(1).click();
-    for (let round = 1; round <= 3; round++) {
-      const shown = await watchPattern(page);
-      expect(shown.length, `round ${round} shows ${round} lights`).toBe(round);
-      if (round < 3) for (const k of shown) await page.locator(".pads .pad").nth(k).click();
-      else await page.locator(".pads .pad").nth((shown[0]! + 1) % 4).click();
-    }
+    await playPattern(page);
     await expect(page.locator(".game-result")).toContainText(t("Score 2", "得分 2"));
     await expect.poll(() => meter(p, "joy"), { message: "played: the joy meter rises in the save" }).toBeGreaterThan(joy0);
     await page.locator(".games .btn", { hasText: t("Back to the room", "回到房间") }).click();
