@@ -1,0 +1,229 @@
+{
+ "build": "https://lingxi.knole.me",
+ "built": "2026-11-17T08:08:11",
+ "why": "a player's save on the live site, 17 Nov, before the extras",
+ "keys": {
+  "lingxi.player.v1": "6513a7f3e963add7124a6895",
+  "lingxi.pets.v2": {
+   "active": 0,
+   "pets": [
+    {
+     "version": 1,
+     "name": "Oldie",
+     "line": "gentle",
+     "bornAt": 1794883076700,
+     "beat": 29914718,
+     "meters": {
+      "food": 60000,
+      "joy": 45570,
+      "energy": 47972,
+      "clean": 60000
+     },
+     "asleep": false,
+     "hibernating": false,
+     "starvingBeats": 0,
+     "brain": [
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lessons": [],
+     "traits": {
+      "brave": 0,
+      "curious": 0,
+      "greedy": 0,
+      "calm": 0,
+      "playful": 0,
+      "gentle": 0,
+      "shy": 3
+     },
+     "xp": 9,
+     "growth": {
+      "level": 1,
+      "points": 1,
+      "skills": {}
+     },
+     "counts": {
+      "feed": 3,
+      "play": 0,
+      "clean": 3,
+      "pet": 3,
+      "lessons": 0
+     },
+     "diet": {
+      "sweet": 0,
+      "fruit": 0,
+      "savory": 0,
+      "grain": 3
+     },
+     "logHash": "0x053a068cf768e0f02145c5d087d7e948d896c212a51fc120b054248f4aee4f95",
+     "pendingLog": [
+      505,
+      34296,
+      36344,
+      38396,
+      34296,
+      36344,
+      38396,
+      34296,
+      36344,
+      38396
+     ],
+     "last": {
+      "want": 0,
+      "mood": 1,
+      "nudge": 7,
+      "rule": 12,
+      "word": 38396,
+      "before": [
+       0,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "tzOffsetMin": 330,
+     "dirtyBeats": 0,
+     "logMarks": [
+      [
+       0,
+       29914718
+      ],
+      [
+       1,
+       29914718
+      ],
+      [
+       2,
+       29914718
+      ],
+      [
+       3,
+       29914718
+      ],
+      [
+       4,
+       29914718
+      ],
+      [
+       5,
+       29914718
+      ],
+      [
+       6,
+       29914718
+      ],
+      [
+       7,
+       29914718
+      ],
+      [
+       8,
+       29914718
+      ],
+      [
+       9,
+       29914718
+      ]
+     ],
+     "logBeat": 29914718,
+     "xpCarry": 0,
+     "kinship": 1,
+     "kinBeat": 29914718
+    }
+   ]
+  },
+  "lingxi.badges.v1": {
+   "pets": 1,
+   "care": 7,
+   "feed": 1,
+   "stage": 1,
+   "clean": 3,
+   "petting": 3,
+   "kinship": 1
+  },
+  "lingxi.reveal.v1": "1",
+  "lingxi.decorKey": "11f903bf98209755e0cfb80db05586a1",
+  "lingxi.world.v1": {
+   "version": 1,
+   "room": 65,
+   "coins": 30,
+   "bag": {
+    "11301": 2,
+    "11313": 2
+   },
+   "visited": [
+    65
+   ],
+   "foraged": {},
+   "crafted": 0,
+   "foragedCount": 0,
+   "seed": "5a1ca9a9ee2296b9",
+   "claimed": [],
+   "tally": {
+    "USE:0": 3,
+    "USE:11130": 3,
+    "CARE:0": 7,
+    "CARE:feed": 1,
+    "CARE:feed-morning": 1,
+    "TOGETHER:0": 1,
+    "TOGETHER:65": 1,
+    "TOGETHER_WHEN:0": 1,
+    "TOGETHER_WHEN:morning": 1,
+    "TOGETHER_WHEN:morning-65": 1,
+    "TOGETHER_WHEN:morning-inside": 1,
+    "HEALTHY_DAY:2026-11-17": 1,
+    "FED:0": 1,
+    "FED:11130": 1,
+    "FED_GROUP:2026-11-17-grain": 1,
+    "CARE:clean": 3,
+    "CARE:clean-morning": 3,
+    "CARE:pet": 3,
+    "CARE:pet-morning": 3
+   },
+   "tallied": 1,
+   "quests": {
+    "active": {
+     "d-game": {
+      "at": 1794883077106,
+      "snap": {
+       "CARE:play": 0
+      }
+     },
+     "d-friend": {
+      "at": 1794883077106,
+      "snap": {
+       "EVENT:visited-by-friend": 0,
+       "MEET:0": 0
+      }
+     },
+     "d-evening": {
+      "at": 1794883077106,
+      "snap": {
+       "TOGETHER_WHEN:evening-outside": 0
+      }
+     }
+    },
+    "done": {},
+    "today": {
+     "day": "2026-11-17",
+     "offered": [
+      "d-game",
+      "d-friend",
+      "d-evening"
+     ],
+     "done": []
+    }
+   }
+  }
+ }
+}

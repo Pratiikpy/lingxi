@@ -1,0 +1,328 @@
+{
+ "build": "http://localhost:5243",
+ "built": "2026-11-17T21:30:42",
+ "why": "a fork session that adopted and bought, with chain records, 17 Nov",
+ "keys": {
+  "lingxi.chain.v2": {
+   "1794931065328": {
+    "petId": "4",
+    "hatchTx": "0x4836be910423adc6ef3e1667e646e521a924cfbea429bc03810ed8179b16c6a8",
+    "lastDay": 0,
+    "owner": "0x343503035D56946783af45316297371a6A571157",
+    "bornChain": 1794931182,
+    "brains": {
+     "[]": "1"
+    },
+    "brainKey": "[]"
+   }
+  },
+  "lingxi.player.v1": "e3d845f50c93b7214589cdb2",
+  "lingxi.pets.v2": {
+   "active": 0,
+   "pets": [
+    {
+     "version": 1,
+     "name": "Pip",
+     "line": "gentle",
+     "bornAt": 1794931065328,
+     "beat": 29915520,
+     "meters": {
+      "food": 37065,
+      "joy": 41910,
+      "energy": 47916,
+      "clean": 53946
+     },
+     "asleep": false,
+     "hibernating": false,
+     "starvingBeats": 0,
+     "brain": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lessons": [],
+     "traits": {
+      "brave": 0,
+      "curious": 0,
+      "greedy": 0,
+      "calm": 0,
+      "playful": 0,
+      "gentle": 0,
+      "shy": 0
+     },
+     "xp": 0,
+     "growth": {
+      "level": 1,
+      "points": 1,
+      "skills": {}
+     },
+     "counts": {
+      "feed": 0,
+      "play": 0,
+      "clean": 0,
+      "pet": 0,
+      "lessons": 0
+     },
+     "diet": {
+      "sweet": 0,
+      "fruit": 0,
+      "savory": 0,
+      "grain": 0
+     },
+     "logHash": "0xf2c02db06c7c73f29c99fcdab6ad33a2229eb7ed5cc7b29d283c6c620224c726",
+     "pendingLog": [
+      33017,
+      33017,
+      33017
+     ],
+     "last": {
+      "want": 3,
+      "mood": 1,
+      "nudge": 0,
+      "rule": 14,
+      "word": 33017,
+      "before": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "tzOffsetMin": 330,
+     "dirtyBeats": 0,
+     "logMarks": [
+      [
+       0,
+       29915518
+      ]
+     ],
+     "logBeat": 29915520
+    }
+   ]
+  },
+  "lingxi.badges.v1": {
+   "pets": 2,
+   "care": 60,
+   "feed": 31,
+   "play": 31,
+   "clean": 21,
+   "petting": 51,
+   "rooms": 1,
+   "rooms_seen": [
+    65
+   ]
+  },
+  "lingxi.lang": "en",
+  "lingxi.reveal.v1": "1",
+  "lingxi.decorKey": "708caa9d32f24d1eebb13126aa941db5",
+  "lingxi.world.v1": {
+   "version": 1,
+   "room": 65,
+   "coins": 395,
+   "bag": {
+    "11130": 3,
+    "11301": 2,
+    "11313": 2
+   },
+   "visited": [
+    65
+   ],
+   "foraged": {},
+   "crafted": 0,
+   "foragedCount": 0,
+   "seed": "fdddf98d79e370e4",
+   "claimed": [],
+   "tally": {
+    "TOGETHER:0": 3,
+    "TOGETHER:65": 3,
+    "TOGETHER_NIGHT:0": 3,
+    "TOGETHER_WHEN:0": 3,
+    "TOGETHER_WHEN:night": 3,
+    "TOGETHER_WHEN:night-65": 3,
+    "TOGETHER_WHEN:night-inside": 3,
+    "CHOOSE:0": 3,
+    "CHOOSE:sleep": 3,
+    "CHOOSE:sleep-65": 3,
+    "HEALTHY_DAY:2026-11-17": 3,
+    "BUY:0": 12,
+    "COINS_SPENT:0": 605,
+    "EVENT:0": 1,
+    "EVENT:visited-by-friend": 1
+   },
+   "tallied": 1,
+   "extras": {
+    "room": 1,
+    "looks": 1
+   },
+   "flags": [],
+   "quests": {
+    "active": {
+     "d-bath": {
+      "at": 1794931066323,
+      "snap": {
+       "CARE:clean": 0
+      }
+     },
+     "d-friend": {
+      "at": 1794931066323,
+      "snap": {
+       "EVENT:visited-by-friend": 0,
+       "MEET:0": 0
+      }
+     },
+     "d-walk": {
+      "at": 1794931066323,
+      "snap": {
+       "WALK:0": 0
+      }
+     }
+    },
+    "done": {},
+    "today": {
+     "day": "2026-11-17",
+     "offered": [
+      "d-bath",
+      "d-friend",
+      "d-walk"
+     ],
+     "done": []
+    }
+   },
+   "decor": {
+    "owned": [
+     "fern",
+     "lantern",
+     "mushroom",
+     "flowers",
+     "star",
+     "heart",
+     "bunting",
+     "rug",
+     "books",
+     "crystal",
+     "globe",
+     "ball"
+    ],
+    "placed": [
+     {
+      "id": "fern",
+      "x": 39,
+      "y": 64
+     },
+     {
+      "id": "lantern",
+      "x": 51,
+      "y": 64
+     },
+     {
+      "id": "mushroom",
+      "x": 64,
+      "y": 64
+     },
+     {
+      "id": "flowers",
+      "x": 77,
+      "y": 64
+     },
+     {
+      "id": "star",
+      "x": 89,
+      "y": 64
+     },
+     {
+      "id": "heart",
+      "x": 39,
+      "y": 81
+     },
+     {
+      "id": "bunting",
+      "x": 51,
+      "y": 81
+     },
+     {
+      "id": "rug",
+      "x": 64,
+      "y": 81
+     },
+     {
+      "id": "books",
+      "x": 77,
+      "y": 81
+     },
+     {
+      "id": "crystal",
+      "x": 89,
+      "y": 81
+     },
+     {
+      "id": "globe",
+      "x": 39,
+      "y": 99
+     },
+     {
+      "id": "ball",
+      "x": 51,
+      "y": 99
+     },
+     {
+      "id": "star-lamp",
+      "x": 77,
+      "y": 99
+     }
+    ],
+    "chainHeld": [
+     "star-lamp"
+    ]
+   },
+   "wardrobe": {
+    "owned": [],
+    "worn": {
+     "1794931065328": {
+      "head": "nand-crown"
+     }
+    },
+    "chainHeld": [
+     "nand-crown",
+     "probe-visor",
+     "wafer-wand"
+    ]
+   },
+   "looks": [
+    {
+     "id": "l1",
+     "name": "Crown",
+     "outfit": {
+      "head": "nand-crown"
+     }
+    },
+    {
+     "id": "l2",
+     "name": "Crown and visor",
+     "outfit": {
+      "head": "nand-crown",
+      "face": "probe-visor"
+     }
+    },
+    {
+     "id": "l3",
+     "name": "Full set",
+     "outfit": {
+      "head": "nand-crown",
+      "face": "probe-visor",
+      "held": "wafer-wand"
+     }
+    }
+   ],
+   "looksMade": 4
+  }
+ }
+}

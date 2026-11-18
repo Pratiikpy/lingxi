@@ -160,3 +160,31 @@ describe("items from the world", () => {
     expect(decodeSenses(r2.pet.pendingLog.at(-1)!).action).toBe(ACTION.medicine);
   });
 });
+
+describe("a clock that comes back from running ahead (P1 S6)", () => {
+  it("moves a pet ahead of now back to now with nothing else changed, and it lives on at once", () => {
+    // the pet lived three hours on a clock that ran ahead; the clock is now back on real time
+    const ahead = catchUp(newPet(), T0 + 3 * 60 * BEAT_MS, gentle);
+    const back = catchUp(ahead, T0 + 60 * BEAT_MS, gentle);
+    expect(back.beat).toBe(Math.floor((T0 + 60 * BEAT_MS) / BEAT_MS));
+    expect({ ...back, beat: ahead.beat }).toEqual(ahead);
+    // and time passes for it again from there, instead of waiting two hours frozen
+    const later = catchUp(back, T0 + 61 * BEAT_MS, gentle);
+    expect(later.beat).toBe(back.beat + 1);
+    expect(later.pendingLog.length).toBe(back.pendingLog.length + 1);
+    expect(liveBeat(ahead, T0 + 60 * BEAT_MS, gentle).beat).toBe(back.beat);
+  });
+
+  it("keeps a pet's other marks of time no later than its beat", () => {
+    const ahead = { ...catchUp(newPet(), T0 + 120 * BEAT_MS, gentle), kinBeat: Math.floor(T0 / BEAT_MS) + 110, missed: [{ kind: "food" as const, beat: Math.floor(T0 / BEAT_MS) + 100 }, { kind: "clean" as const, beat: Math.floor(T0 / BEAT_MS) + 10 }] };
+    const back = catchUp(ahead, T0 + 50 * BEAT_MS, gentle);
+    expect(back.kinBeat).toBe(back.beat);
+    expect(back.missed).toEqual([{ kind: "food", beat: back.beat }, { kind: "clean", beat: Math.floor(T0 / BEAT_MS) + 10 }]);
+  });
+
+  it("returns the same pet when nothing is due", () => {
+    const p = catchUp(newPet(), T0 + 5 * BEAT_MS, gentle);
+    expect(catchUp(p, T0 + 5 * BEAT_MS, gentle)).toBe(p);
+    expect(liveBeat(p, T0 + 5 * BEAT_MS, gentle)).toBe(p);
+  });
+});

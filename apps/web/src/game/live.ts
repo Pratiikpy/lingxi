@@ -8,6 +8,7 @@
 import { create } from "zustand";
 import { PLAYER_SECRET, playerIdFor } from "@lingxi/chain/player";
 import { noteEvent } from "./tally";
+import { saveWrite } from "./saveRuntime";
 
 const LIVE_URL = (import.meta.env.VITE_LIVE_URL as string | undefined) ?? (location.hostname === "localhost" ? "ws://localhost:8787/live" : "");
 const PLAYER_KEY = "lingxi.player.v1";
@@ -22,7 +23,7 @@ export function playerId(): string {
     const saved = localStorage.getItem(PLAYER_KEY);
     if (saved && /^[a-z0-9]{12,32}$/.test(saved)) return saved;
     const id = playerIdFor(decorKey());
-    localStorage.setItem(PLAYER_KEY, id);
+    saveWrite(PLAYER_KEY, id);
     return id;
   } catch {
     return playerIdFor(decorKey());
@@ -38,7 +39,7 @@ function moveToKeyedId(): boolean {
   const keyed = playerIdFor(decorKey());
   if (playerId() === keyed) return false;
   try {
-    localStorage.setItem(PLAYER_KEY, keyed);
+    saveWrite(PLAYER_KEY, keyed);
   } catch {
     // without storage, playerId() already answers the keyed id
   }
@@ -146,7 +147,7 @@ function decorKey(): string {
     const held = localStorage.getItem(k);
     if (held && PLAYER_SECRET.test(held)) return held;
     const fresh = freshKey();
-    localStorage.setItem(k, fresh);
+    saveWrite(k, fresh);
     return fresh;
   } catch {
     sessionKey ??= freshKey();

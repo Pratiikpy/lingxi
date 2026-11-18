@@ -1,6 +1,7 @@
 /** The spar record kept on this device: wins and losses against each partner. */
 
 import { create } from "zustand";
+import { saveWrite } from "./saveRuntime";
 
 const KEY = "lingxi.spar.v1";
 export type Record = { w: number; l: number; d: number };
@@ -26,7 +27,7 @@ export const useSpar = create<SparStore>((set, get) => ({
     const prev = get().records[id] ?? { w: 0, l: 0, d: 0 };
     const next = { ...get().records, [id]: { ...prev, [outcome]: prev[outcome] + 1 } };
     try {
-      localStorage.setItem(KEY, JSON.stringify(next));
+      saveWrite(KEY, JSON.stringify(next));
     } catch {
       // private mode: the record lasts for this visit
     }

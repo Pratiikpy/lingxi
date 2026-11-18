@@ -17,10 +17,15 @@ import { VisitorArt } from "./Album";
 import { Icon } from "./icons";
 import { WANT_NAMES } from "./ruleText";
 import { Sprite } from "./Sprite";
+import { saveWrite } from "../game/saveRuntime";
+import { now } from "../game/gameClock";
+import { dayAtLeast } from "../game/days";
 
 type Lang = "en" | "zh";
 const KEY = "lingxi.work.v1";
-const dayKey = () => new Date().toDateString();
+const dayKey = () => new Date(now()).toDateString();
+/** The day a shift counts against: never earlier than the last day worked, so a clock turned back pays no extra shifts. */
+const jobDay = (log: { day: string } | null | undefined) => dayAtLeast(dayKey(), log?.day);
 const DISHES = [11110, 11120, 11130, 7202] as const;
 const HOUSES = [
   { color: "#ff8a6b", en: "red", zh: "红" },
@@ -37,7 +42,7 @@ function loadLogs(): Record<string, WorkLog> {
 }
 function saveLog(pet: Pet, log: WorkLog) {
   try {
-    localStorage.setItem(KEY, JSON.stringify({ ...loadLogs(), [String(pet.bornAt)]: log }));
+    saveWrite(KEY, JSON.stringify({ ...loadLogs(), [String(pet.bornAt)]: log }));
   } catch {
     // private mode: lasts for this visit
   }
@@ -47,7 +52,7 @@ function saveLog(pet: Pet, log: WorkLog) {
 export function LifePanel({ pet, onSchool, blocked }: { pet: Pet; onSchool: () => void; blocked: string | null }) {
   const lang = useLang((s) => s.lang) as Lang;
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
-  const life = lifeOf(stageOf(pet, Date.now()));
+  const life = lifeOf(stageOf(pet, now()));
   const [log, setLog] = useState<WorkLog | undefined>(() => loadLogs()[String(pet.bornAt)]);
   const [shift, setShift] = useState<Job | null>(null);
   const [done, setDone] = useState<{ job: Job; right: number; wrong: number; pay: number } | null>(null);
@@ -85,7 +90,7 @@ export function LifePanel({ pet, onSchool, blocked }: { pet: Pet; onSchool: () =
         onEnd={(right, wrong) => {
           const fit = jobFit(program, shift);
           const pay = shiftPay(right, wrong, fit);
-          const next = logShift(log, dayKey(), pay);
+          const next = logShift(log, jobDay(log), pay);
           saveLog(pet, next);
           setLog(next);
           useWorld.getState().reward(pay);
@@ -97,7 +102,7 @@ export function LifePanel({ pet, onSchool, blocked }: { pet: Pet; onSchool: () =
       />
     );
 
-  const shiftsLeft = log && log.day === dayKey() ? SHIFTS_PER_DAY - log.shifts : SHIFTS_PER_DAY;
+  const shiftsLeft = log && log.day === jobDay(log) ? SHIFTS_PER_DAY - log.shifts : SHIFTS_PER_DAY;
   return (
     <section className="life-card">
       <p className="label">{L("Work", "打工")}</p>
@@ -119,7 +124,7 @@ export function LifePanel({ pet, onSchool, blocked }: { pet: Pet; onSchool: () =
           const fit = jobFit(program, j);
           return (
             <li key={j.id}>
-              <button type="button" className="job-card" disabled={!!blocked || !canWork(log, dayKey())} onClick={() => (play("tap"), setDone(null), setShift(j))}>
+              <button type="button" className="job-card" disabled={!!blocked || !canWork(log, jobDay(log))} onClick={() => (play("tap"), setDone(null), setShift(j))}>
                 <b>{j.name[lang]}</b>
                 <small>{j.how[lang]}</small>
                 <small>{L(`Suits a pet that wants to ${j.suits.map((w) => WANT_NAMES.en[w]).join(" or ")} at work: teach it that, and it earns more.`, `适合在工作中想要${j.suits.map((w) => WANT_NAMES.zh[w]).join("或")}的宠物：教会它，就能多赚。`)}</small>
@@ -134,7 +139,7 @@ export function LifePanel({ pet, onSchool, blocked }: { pet: Pet; onSchool: () =
           );
         })}
       </ul>
-      {!canWork(log, dayKey()) && <p className="small">{L(`That's all the shifts for today. ${pet.name} can work again tomorrow.`, `今天的班都上完了，${pet.name}明天还能再来。`)}</p>}
+      {!canWork(log, jobDay(log)) && <p className="small">{L(`That's all the shifts for today. ${pet.name} can work again tomorrow.`, `今天的班都上完了，${pet.name}明天还能再来。`)}</p>}
     </section>
   );
 }
@@ -143,7 +148,7 @@ export function LifePanel({ pet, onSchool, blocked }: { pet: Pet; onSchool: () =
 function Shift({ pet, job, onEnd }: { pet: Pet; job: Job; onEnd: (right: number, wrong: number) => void }) {
   const lang = useLang((s) => s.lang) as Lang;
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
-  const answers = useMemo(() => shiftRounds(job, (Date.now() ^ pet.bornAt) >>> 0, 80), [job, pet.bornAt]);
+  const answers = useMemo(() => shiftRounds(job, (now() ^ pet.bornAt) >>> 0, 80), [job, pet.bornAt]);
   const [round, setRound] = useState(0);
   const [right, setRight] = useState(0);
   const [wrong, setWrong] = useState(0);

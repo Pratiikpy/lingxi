@@ -6,6 +6,7 @@
 
 import { create } from "zustand";
 import { RUN_VERSION, type RunState, type RunStep, startRun } from "@lingxi/game";
+import { saveWrite } from "./saveRuntime";
 
 const KEY = "lingxi.run.v1";
 /** coins for finishing a run with all ten trophies */
@@ -30,7 +31,7 @@ function load(): Saved {
 
 function save(s: Saved) {
   try {
-    localStorage.setItem(KEY, JSON.stringify(s));
+    saveWrite(KEY, JSON.stringify(s));
   } catch {
     // private mode: the run lasts for this visit
   }

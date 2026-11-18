@@ -9,6 +9,7 @@ import { create } from "zustand";
 import { type Pet, stageOf, visibleMeters } from "@lingxi/game";
 import { decidingChips } from "../play/ruleText";
 import { decidingPart } from "./store";
+import { now as gameNow } from "./gameClock";
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
 /** At most one new line this often on its own; a tap may ask sooner. */
@@ -41,11 +42,11 @@ export const useVoice = create<VoiceState>((set, get) => ({
   lastSig: "",
   hush: () => set({ line: null }),
   speak: async (pet, lang, tapped = false) => {
-    const stage = stageOf(pet, Date.now());
+    const stage = stageOf(pet, gameNow());
     if (!(await voiceAvailable())) return;
     const chips = decidingChips(decidingPart(pet).program, pet.last.rule, "en");
     const sig = `${lang}|${chips.then}|${chips.when.join("+")}|${pet.asleep}|${pet.sick}`;
-    const now = Date.now();
+    const now = gameNow();
     const s = get();
     if (now - s.lastAt < (tapped ? TAP_EVERY_MS : AUTO_EVERY_MS)) return;
     if (!tapped && sig === s.lastSig) return;

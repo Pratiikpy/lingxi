@@ -1,3 +1,4 @@
+import { now as gameNow } from "./gameClock";
 /**
  * One JSON-RPC request for a verification, tried endpoint by endpoint: the judge's own RPC first, then X Layer's public
  * RPCs (paced), and Lingxi's server only when every one of those failed. The answer says which host gave it.
@@ -38,7 +39,7 @@ const hostOf = (url: string) => new URL(url).host;
 
 async function paced(url: string): Promise<void> {
   const host = hostOf(url);
-  const now = Date.now();
+  const now = gameNow();
   const at = Math.max(now, (lastStart.get(host) ?? 0) + GAP_MS);
   lastStart.set(host, at);
   if (at > now) await new Promise((r) => setTimeout(r, at - now));

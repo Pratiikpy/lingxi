@@ -7,6 +7,7 @@
 import { HandheldLink, LinkError, readReturn } from "@lingxi/handheld";
 import { BEAT_MS } from "@lingxi/game";
 import { type Deliver, type HomeResult, bringPetHome, isOwed, settleOwed } from "./handheld";
+import { now } from "./gameClock";
 
 /* the slice of Web Serial used here; the DOM library this project builds with does not declare it */
 interface SerialPortLike {
@@ -68,7 +69,7 @@ async function withCardputer<T>(session: (link: HandheldLink) => Promise<T>): Pr
   }
 }
 
-const nowBeat = () => Math.floor(Date.now() / BEAT_MS);
+const nowBeat = () => Math.floor(now() / BEAT_MS);
 
 /** clear a pet this game called back while the Cardputer was away; refuse if it carries anyone else's */
 async function makeRoom(link: HandheldLink): Promise<void> {

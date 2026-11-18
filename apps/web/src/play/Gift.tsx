@@ -20,6 +20,8 @@ import { Sprite } from "./Sprite";
 import { Icon } from "./icons";
 import "./gift.css";
 import { noteTally } from "../game/tally";
+import { saveWrite } from "../game/saveRuntime";
+import { now } from "../game/gameClock";
 
 type Lang = "en" | "zh";
 const OPENED_KEY = "lingxi.gifts.opened.v1";
@@ -37,7 +39,7 @@ function markOpened(id: string): void {
   // the link has done its job; a reload must not offer the same gift again
   history.replaceState(null, "", location.pathname + location.search);
   try {
-    localStorage.setItem(OPENED_KEY, JSON.stringify([...openedIds().slice(-200), id]));
+    saveWrite(OPENED_KEY, JSON.stringify([...openedIds().slice(-200), id]));
   } catch {
     // private mode: the gift may be opened again on this visit only
   }
@@ -65,11 +67,11 @@ export function SendGiftPanel({ pet }: { pet: Pet }) {
     if (item !== null && !wrap(item, 1)) return;
     const gift: Gift = {
       id: newGiftId(),
-      from: { name: pet.name, line: pet.line, stage: stageOf(pet, Date.now()) },
+      from: { name: pet.name, line: pet.line, stage: stageOf(pet, now()) },
       letter: letter.trim().slice(0, LETTER_MAX),
       ...(egg && !pet.sitting ? { egg: eggOf(pet.line, pet.lessons) } : {}),
       ...(item !== null ? { item: { id: item, n: 1 } } : {}),
-      at: Date.now(),
+      at: now(),
     };
     setLink(`${linkPrefix("play.html")}gift=${encodeGift(gift)}`);
     useBadges.getState().note("gifts");
@@ -234,7 +236,7 @@ export function GiftArrival() {
   const hatch = () => {
     const egg = gift.egg!;
     const brain = mindBrain({ line: egg.line, lessons: egg.lessons });
-    const born = createPet({ name: name.trim().slice(0, 12) || (lang === "zh" ? "小礼" : "Present"), line: egg.line, now: Date.now(), tzOffsetMin: -new Date().getTimezoneOffset(), brain });
+    const born = createPet({ name: name.trim().slice(0, 12) || (lang === "zh" ? "小礼" : "Present"), line: egg.line, now: now(), tzOffsetMin: -new Date(now()).getTimezoneOffset(), brain });
     // the sibling starts with the lessons the sender taught; its log replays on that brain from the first beat
     const sibling: Pet = { ...born, lessons: egg.lessons.slice(), segments: [{ from: 0, lessons: egg.lessons.slice() }] };
     markOpened(gift.id);

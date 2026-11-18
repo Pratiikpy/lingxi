@@ -21,9 +21,11 @@ import type { ChainInfo } from "./live";
 import { programFor, useGame } from "./store";
 import localDeployment from "../../../../packages/chain/deployments/local.json";
 import xlayerDeployment from "../../../../packages/chain/deployments/xlayer.json";
+import { saveWrite } from "./saveRuntime";
 // a rehearsal of a mainnet deploy on a local fork of X Layer (VITE_CHAIN=rehearsal, test builds only)
 import rehearsalDeployment from "../../../../packages/chain/deployments/rehearsal.json";
 import { noteTally } from "./tally";
+import { now as gameNow } from "./gameClock";
 
 const OLD_KEY = "lingxi.chain.v1";
 const CHAIN_KEY = "lingxi.chain.v2";
@@ -162,7 +164,7 @@ function store(pet: Pet, rec: ChainRecord | null): void {
   else delete next[petKey(pet)];
   records = next;
   try {
-    localStorage.setItem(CHAIN_KEY, JSON.stringify(records));
+    saveWrite(CHAIN_KEY, JSON.stringify(records));
   } catch {
     // in memory for this visit
   }
@@ -240,7 +242,7 @@ export async function signSeasonEntry(pet: Pet, entry: unknown): Promise<SignedR
 }
 
 async function autoWallet(pet: Pet, record: ChainRecord): Promise<WalletClient | null> {
-  if (!deployment || autoStatus(record, Date.now()) === "off") return null;
+  if (!deployment || autoStatus(record, gameNow()) === "off") return null;
   const key = sessionAccount().address;
   const [k, balance] = await Promise.all([readKeeping(publicClient, deployment, BigInt(record.petId), key), publicClient.getBalance({ address: key })]);
   if (!k.keeper) {
@@ -345,7 +347,7 @@ export const useChain = create<ChainState>((set, get) => ({
       const wallet = await connectWallet();
       set({ busy: "hatching" });
       const line = LINES.indexOf(pet.line);
-      const { petId, tx } = await hatchOnChain(publicClient, wallet, deployment, line, pet.line, packState(pet, stageOf(pet, Date.now())));
+      const { petId, tx } = await hatchOnChain(publicClient, wallet, deployment, line, pet.line, packState(pet, stageOf(pet, gameNow())));
       const onChain = await readPet(publicClient, deployment, petId);
       const record: ChainRecord = {
         petId: petId.toString(),
@@ -391,7 +393,7 @@ export const useChain = create<ChainState>((set, get) => ({
         set({ busy: "idle", error: quiet ? null : "alreadySaved" });
         return;
       }
-      const tx = await checkpointOnChain(publicClient, wallet, deployment, BigInt(record.petId), day, packState(pet, stageOf(pet, Date.now())), pet.logHash as Hex);
+      const tx = await checkpointOnChain(publicClient, wallet, deployment, BigInt(record.petId), day, packState(pet, stageOf(pet, gameNow())), pet.logHash as Hex);
       const next = { ...(records[petKey(pet)] ?? record), lastDay: day, lastTx: tx, logLen: pet.pendingLog.length };
       store(pet, next);
       set({ record: activeRecord(), busy: "idle" });

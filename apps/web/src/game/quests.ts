@@ -32,11 +32,12 @@ import { play } from "./sound";
 import { useGame } from "./store";
 import { useWorld } from "./world";
 import { goalsDone } from "./goals";
+import { now as gameNow } from "./gameClock";
 
-const tzOffset = () => useGame.getState().pet?.tzOffsetMin ?? -new Date().getTimezoneOffset();
+const tzOffset = () => useGame.getState().pet?.tzOffsetMin ?? -new Date(gameNow()).getTimezoneOffset();
 
 /** Everything a condition reads, from the stores as they are right now. */
-export function conditionView(now = Date.now()): ConditionView {
+export function conditionView(now = gameNow()): ConditionView {
   const world = useWorld.getState().world;
   const { pet, pets } = useGame.getState();
   const ledger = useBadges.getState().ledger;

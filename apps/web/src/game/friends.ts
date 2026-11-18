@@ -7,6 +7,8 @@
 import { create } from "zustand";
 import { type BondEvent, type Bonds, BOND_NAMES, addBond } from "@lingxi/game";
 import { useGame } from "./store";
+import { saveWrite } from "./saveRuntime";
+import { now } from "./gameClock";
 
 const KEY = "lingxi.friends.v1";
 
@@ -39,16 +41,16 @@ export const useFriends = create<FriendsStore>((set, get) => ({
     if (!pet || !playerId || !who.name || pet.sitting) return;
     const mine = String(pet.bornAt);
     const id = friendKey(playerId, who.name);
-    const r = addBond(get().all[mine] ?? {}, id, who, event, Date.now());
+    const r = addBond(get().all[mine] ?? {}, id, who, event, now());
     // nothing more today with a friend already known: no write
     if (!r.gained && get().all[mine]?.[id]) return;
     const all = { ...get().all, [mine]: r.bonds };
     try {
-      localStorage.setItem(KEY, JSON.stringify(all));
+      saveWrite(KEY, JSON.stringify(all));
     } catch {
       // private mode: lasts for this visit
     }
-    set({ all, ...(r.levelUp !== null ? { levelUp: { name: who.name, level: r.levelUp, at: Date.now() } } : {}) });
+    set({ all, ...(r.levelUp !== null ? { levelUp: { name: who.name, level: r.levelUp, at: now() } } : {}) });
   },
 }));
 

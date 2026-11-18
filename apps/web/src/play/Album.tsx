@@ -11,6 +11,7 @@ import { useLang } from "../i18n";
 import { Sprite } from "./Sprite";
 import { noteTally } from "../game/tally";
 import { useWorld } from "../game/world";
+import { saveWrite } from "../game/saveRuntime";
 
 const KEY = "lingxi.album.v1";
 const PALETTES: Record<Visitor["look"]["palette"], Palette> = { mint: MINT, lilac: LILAC, peach: PEACH, night: NIGHT, coral: CORAL, sunny: SUNNY, sky: SKY };
@@ -40,7 +41,7 @@ export const useAlbum = create<AlbumStore>((set, get) => ({
     const next = { album: addToAlbum(get().album, visits), counted: [...get().counted, key].slice(-200) };
     noteTally("EVENT", "visitor-met", visits.length);
     try {
-      localStorage.setItem(KEY, JSON.stringify(next));
+      saveWrite(KEY, JSON.stringify(next));
     } catch {
       // private mode: lasts for this visit
     }
@@ -87,9 +88,12 @@ function Butterfly({ scale, hidden }: { scale: number; hidden: boolean }) {
 }
 
 /** What Flit's story in the Butterfly Forest leaves in the album. */
+/** One empty list for a world without flags: a new list on every read would make the store's selector loop forever. */
+const NO_FLAGS: readonly string[] = [];
+
 function ForestCards({ lang }: { lang: "en" | "zh" }) {
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
-  const flags = useWorld((s) => s.world.flags ?? []);
+  const flags = useWorld((s) => s.world.flags ?? NO_FLAGS);
   const butterfly = flags.includes("butterfly");
   const seen = flags.includes("shy-visitor");
   const friend = flags.includes("shy-friend");

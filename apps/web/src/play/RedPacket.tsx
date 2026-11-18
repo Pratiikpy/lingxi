@@ -18,6 +18,7 @@ import { play } from "../game/sound";
 import { PALETTE_OF } from "../scene/textures";
 import { Sprite } from "./Sprite";
 import "./redpacket.css";
+import { now } from "../game/gameClock";
 
 type Lang = "en" | "zh";
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -160,7 +161,7 @@ function SentList() {
       <ul>
         {sent.slice(0, 5).map((s) => {
           const v = views[s.id];
-          const expired = v && Date.now() / 1000 >= v.expiry;
+          const expired = v && now() / 1000 >= v.expiry;
           return (
             <li key={s.id}>
               <b>#{s.id}</b> {s.total} USDT
@@ -235,7 +236,7 @@ export function PacketArrival() {
   };
   const text = (k: string) => reasonText[k]?.[lang === "zh" ? 1 : 0] ?? (lang === "zh" ? `没领成：${k}` : `Couldn't open it: ${k}`);
   const left = view ? view.count - view.paid : 0;
-  const expired = view ? Date.now() / 1000 >= view.expiry : false;
+  const expired = view ? now() / 1000 >= view.expiry : false;
 
   return (
     <div className="fam-modal rp-modal" role="dialog" aria-label={lang === "zh" ? "红包" : "Red packet"}>

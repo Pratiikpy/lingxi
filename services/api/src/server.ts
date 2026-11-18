@@ -51,6 +51,7 @@ import { MAX_MOVE_CHARS, type MoveStore, createMoveStore } from "./move";
 import { createTapeoutCounter, withLane } from "./lane";
 import { factoryReader } from "./laneReader";
 import { petLookAbi as lookAbi } from "@lingxi/chain";
+import { SEND_LIMITS } from "@lingxi/chain/limits";
 import { clientIp } from "./clientIp";
 import { withBodyLimits } from "./bodyLimits";
 import { proveSeasonEntry } from "./seasonProof";
@@ -107,11 +108,13 @@ export function createApp(
   // the agent API, and a pet's public log and history, are open to any origin; the rest answers only the game's pages
   // every write is held to its route's size before a byte of it is parsed (bodyLimits.ts)
   withBodyLimits(app);
-  app.use("/api/*", cors({ origin: (o, c) => (c.req.path.startsWith("/api/v1") || (c.req.method === "GET" && /^\/api\/pets\/\d+\/(log|history)$/.test(c.req.path)) ? "*" : origins.includes(o) ? o : null), allowMethods: ["GET", "POST"], allowHeaders: ["Authorization", "Content-Type"], maxAge: 600 }));
+  app.use("/api/*", cors({ origin: (o, c) => (c.req.path.startsWith("/api/v1") || (c.req.method === "GET" && (/^\/api\/pets\/\d+\/(log|history)$/.test(c.req.path) || c.req.path === "/api/time")) ? "*" : origins.includes(o) ? o : null), allowMethods: ["GET", "POST"], allowHeaders: ["Authorization", "Content-Type"], maxAge: 600 }));
 
   // the parts are booleans (true when on); `detail` is everything else worth watching, for the status check and for Prateek
   app.get("/api/health", async (c) => c.json({ ok: true, teach: client !== null, voice: client !== null, relay: relayer !== null, live: live !== null, ...(detail ? { detail: await detail() } : {}) }));
   app.get("/api/live/stats", (c) => c.json(live ? live.stats() : { online: 0, spaces: 0 }));
+  // the game's clock is corrected against this one, so a device clock set wrong cannot move a pet's day (P1)
+  app.get("/api/time", (c) => c.json({ now: Date.now() }, 200, { "cache-control": "no-store" }));
 
   app.post("/api/teach", async (c) => {
     if (!client) return c.json({ ok: false, reason: "error", detail: "teaching is not configured" }, 503);
@@ -333,7 +336,7 @@ export function withSitting(app: Hono, store: SittingStore, writes = new RateLim
   const who = (c: Context) => clientIp(c);
   app.post("/api/sit", async (c) => {
     if (!writes.take(who(c))) return busy(c);
-    if (Number(c.req.header("content-length") ?? 0) > 700_000) return c.json({ ok: false, reason: "tooBig" }, 413);
+    if (Number(c.req.header("content-length") ?? 0) > SEND_LIMITS.sitBodyBytes) return c.json({ ok: false, reason: "tooBig" }, 413);
     let body;
     try {
       body = z.object({ pack: z.string(), keyHash: z.string(), until: z.number() }).parse(await c.req.json());
@@ -348,7 +351,7 @@ export function withSitting(app: Hono, store: SittingStore, writes = new RateLim
   });
   app.post("/api/sit/:code/home", async (c) => {
     if (!writes.take(who(c))) return busy(c);
-    if (Number(c.req.header("content-length") ?? 0) > 700_000) return c.json({ ok: false, reason: "tooBig" }, 413);
+    if (Number(c.req.header("content-length") ?? 0) > SEND_LIMITS.sitBodyBytes) return c.json({ ok: false, reason: "tooBig" }, 413);
     let body;
     try {
       body = z.object({ key: z.string(), pet: z.string() }).parse(await c.req.json());

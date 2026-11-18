@@ -7,6 +7,10 @@
 import { CARE_METRIC, useBadges } from "./badges";
 import { noteEvent, noteTally, questSlots } from "./tally";
 import { TIMES_OF_DAY } from "@lingxi/world";
+import { saveWrite } from "./saveRuntime";
+import { MAX_PETS, type Roster, keptName, readRoster, rosterText } from "./roster";
+import { dayAtLeast } from "./days";
+import { now as gameNow } from "./gameClock";
 
 /** The picture of what was eaten: the item's own art, or the starter food's. */
 function foodArt(c: Care, art?: string): string | undefined {
@@ -39,10 +43,12 @@ export function countCare(kind: Care["kind"], wasAsleep: boolean, r: CareResult)
     b.note("care");
     b.note(metric);
     b.note("kinship", kinshipNow(r.pet, r.pet.beat));
-    b.note("stage", STAGE_RANK[stageOf(r.pet, Date.now())] ?? 0);
+    b.note("stage", STAGE_RANK[stageOf(r.pet, gameNow())] ?? 0);
   }
   const g = useGame.getState();
-  const d = g.daily.day === todayKey() ? { ...g.daily } : freshDaily();
+  // a day only moves forward: a clock turned back keeps today's card instead of handing out a fresh one (days.ts)
+  const day = dayAtLeast(todayKey(), g.daily.day);
+  const d = g.daily.day === day ? { ...g.daily } : { ...freshDaily(), day };
   if (kind === "feed" && r.note !== "overfed") d.fed = true;
   if (kind === "play" && r.note === "played") d.played = true;
   if (kind === "clean") d.cleaned = true;
@@ -51,14 +57,14 @@ export function countCare(kind: Care["kind"], wasAsleep: boolean, r: CareResult)
 }
 import { create } from "zustand";
 import { type Program, type Rule, STARTERS, compileProgram, fastBrain, stateBits, timeOfDay } from "@lingxi/brain";
-import { FOODS, type Brain, type Care, type CareResult, type Growth, type Pet, type UpgradeRefusal, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, learnSkill, levelUpPet, liveBeat, mindBrain, respecPet, ruleSkillIds, settleForm, skillRules, stageOf, teach as teachRule, awayEvent, awaySeed, beatOf, localHour, instinctBrain, MAX_MIND_STATE, type OutsideInstinct, withGrowth, withSegment } from "@lingxi/game";
+import { FOODS, type Brain, type Care, type CareResult, type Growth, type Pet, type UpgradeRefusal, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, learnSkill, levelUpPet, liveBeat, mindBrain, respecPet, ruleSkillIds, settleForm, skillRules, stageOf, teach as teachRule, awayEvent, awaySeed, beatOf, localHour, instinctBrain, MAX_MIND_STATE, type OutsideInstinct, withSegment } from "@lingxi/game";
 import type { StarterLine } from "@lingxi/brain";
 import { takeComfort } from "./comfort";
 
 const OLD_KEY = "lingxi.pet.v1";
 const SAVE_KEY = "lingxi.pets.v2";
 /** the most pets one player keeps on this device */
-export const MAX_PETS = 8;
+export { MAX_PETS };
 
 /** An absence: which pet, and the beats it spanned. */
 export interface Away {
@@ -110,40 +116,28 @@ export function decidingPart(pet: Pet): MindPart {
 /** Any pet's brain, including a child built from two parents. */
 export const brainOf = (p: Pet): Brain => (p.family || p.outside ? mindBrain({ line: p.line, lessons: p.lessons ?? [], family: p.family, instincts: p.instincts, outside: p.outside, growth: p.growth }) : brainFor(p.line, p.lessons ?? [], p.instincts ?? 0, p.growth));
 
-interface Roster {
-  active: number;
-  pets: Pet[];
-}
-
-const valid = (p: Pet | null | undefined): p is Pet => !!p && p.version === 1 && !!STARTERS[p.line];
-/** A saved pet made current: lessons always a list, and a pet from before levels were spent keeps the level it showed (plan 4.4). */
-const tidy = (p: Pet): Pet => withGrowth({ ...p, lessons: Array.isArray(p.lessons) ? p.lessons : [] });
+/** Pets this build cannot read, kept exactly as saved and written back with every save (roster.ts, P1). */
+let kept: unknown[] = [];
+/** The names of the pets kept safe for a newer Lingxi, for the pets screen. */
+export const keptPetNames = (): string[] => kept.map(keptName);
 
 function loadRoster(): Roster {
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (raw) {
-      const r = JSON.parse(raw) as Roster;
-      const pets = (Array.isArray(r.pets) ? r.pets : []).filter(valid).map(tidy).slice(0, MAX_PETS);
-      return { active: Math.min(Math.max(0, r.active | 0), Math.max(0, pets.length - 1)), pets };
-    }
-    // a save from before families: one pet becomes the first of the roster
-    const old = localStorage.getItem(OLD_KEY);
-    if (old) {
-      const p = JSON.parse(old) as Pet;
-      if (valid(p)) return { active: 0, pets: [tidy(p)] };
-    }
+    // a save from before families (OLD_KEY) becomes the first pet of the roster
+    const r = readRoster(localStorage.getItem(SAVE_KEY), localStorage.getItem(OLD_KEY));
+    kept = r.kept;
+    return r.roster;
   } catch {
-    // unreadable save: start fresh rather than crash
+    // a save that will not parse was held at start and waits for the player's choice (save.ts); nothing writes over it
+    return { active: 0, pets: [] };
   }
-  return { active: 0, pets: [] };
 }
 
 let roster: Roster = loadRoster();
 
 function persist(): void {
   try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify(roster));
+    saveWrite(SAVE_KEY, rosterText(roster, kept));
   } catch {
     // storage full or blocked: the pets keep living in memory for this visit
   }
@@ -215,7 +209,7 @@ interface GameState {
   respec: () => void;
 }
 
-const todayKey = () => new Date().toDateString();
+const todayKey = () => new Date(gameNow()).toDateString();
 const freshDaily = (): Daily => ({ day: todayKey(), fed: false, played: false, cleaned: false, petted: false });
 
 /** At least this long away (minutes) before the pet has a "while you were away" to tell. */
@@ -225,13 +219,19 @@ const AWAY_STORY_BEATS = 60;
  * Bring a pet up to now after time away: every missed minute runs through its
  * brain, with the small surprises of an absence (see @lingxi/game away.ts).
  */
+/** A pet lives by the time zone of the device it is on, as it is now: travel, and its mornings travel with it (P1 S6). */
+function zoned(p: Pet): Pet {
+  const tz = -new Date(gameNow()).getTimezoneOffset();
+  return p.tzOffsetMin === tz ? p : { ...p, tzOffsetMin: tz };
+}
+
 function returnTo(p: Pet): { pet: Pet; away: Away | null } {
   // a pet staying with a friend is frozen here until it comes home
   if (p.away) return { pet: p, away: null };
-  const now = Date.now();
+  const now = gameNow();
   const from = p.beat;
   const seed = awaySeed(p);
-  const pet = settleForm(catchUp(p, now, brainOf(p), (b) => awayEvent(seed, b)), now);
+  const pet = settleForm(catchUp(zoned(p), now, brainOf(p), (b) => awayEvent(seed, b)), now);
   const to = beatOf(now);
   return { pet, away: to - from >= AWAY_STORY_BEATS ? { petKey: String(p.bornAt), from, to } : null };
 }
@@ -307,8 +307,8 @@ export const useGame = create<GameState>((set, get) => ({
     const pet = createPet({
       name: name.trim().slice(0, 12) || "Mochi",
       line,
-      now: Date.now(),
-      tzOffsetMin: -new Date().getTimezoneOffset(),
+      now: gameNow(),
+      tzOffsetMin: -new Date(gameNow()).getTimezoneOffset(),
       brain: brainFor(line, [], instincts),
       instincts,
     });
@@ -320,7 +320,7 @@ export const useGame = create<GameState>((set, get) => ({
     const { pet } = get();
     if (!pet || pet.away) return;
     const cleanBefore = Math.floor(pet.meters.clean / 60);
-    const r = care(pet, c, Date.now(), brainOf(pet));
+    const r = care(pet, c, gameNow(), brainOf(pet));
     save(r.pet);
     // cleaning up after a messy pet leaves compost for the garden (C4)
     if (c.kind === "clean" && r.note === "cleaned") void import("./world").then((m) => m.useWorld.getState().compost(cleanBefore));
@@ -336,10 +336,10 @@ export const useGame = create<GameState>((set, get) => ({
     const { pet } = get();
     if (!pet || pet.away) return;
     // a tab left hidden for a while comes back like any return, surprises included
-    if (beatOf(Date.now()) - pet.beat > 10) return get().wakeUp();
-    const next = settleForm(liveBeat(pet, Date.now(), brainOf(pet)), Date.now());
+    if (beatOf(gameNow()) - pet.beat > 10) return get().wakeUp();
+    const next = settleForm(liveBeat(zoned(pet), gameNow(), brainOf(pet)), gameNow());
     if (next !== pet) {
-      if (stageOf(next, Date.now()) !== stageOf(pet, Date.now() - 60_000)) useBadges.getState().note("stage", STAGE_RANK[stageOf(next, Date.now())] ?? 0);
+      if (stageOf(next, gameNow()) !== stageOf(pet, gameNow() - 60_000)) useBadges.getState().note("stage", STAGE_RANK[stageOf(next, gameNow())] ?? 0);
       save(next);
       set({ pet: next, pets: roster.pets });
     }
@@ -359,12 +359,12 @@ export const useGame = create<GameState>((set, get) => ({
     if (!pet) return { ok: false, reason: "invalid", detail: "no pet" };
     // a pet away cannot learn here, and a friend's pet is only taught by its owner
     if (pet.away || pet.sitting) return { ok: false, reason: "notYours", detail: "only its owner teaches it" };
-    const caught = catchUp(pet, Date.now(), brainOf(pet));
-    const r = teachRule(caught, rule, Date.now(), questSlots());
+    const caught = catchUp(pet, gameNow(), brainOf(pet));
+    const r = teachRule(caught, rule, gameNow(), questSlots());
     if (!r.ok) return { ok: false, reason: r.reason, detail: r.detail };
     if (at === "bottom") for (let i = 0; i < r.pet.lessons.length - 1; i++) r.pet = arrangeLessons(r.pet, i, "down");
     // one live beat with "talk" on the pins, so the new mind answers at once
-    const after = care(r.pet, { kind: "talk" }, Date.now(), brainOf(r.pet)).pet;
+    const after = care(r.pet, { kind: "talk" }, gameNow(), brainOf(r.pet)).pet;
     save(after);
     set({ pet: after, pets: roster.pets, lastCare: { kind: "learn", at: performance.now() }, toast: { id: ++toastId, note: "learned" } });
     useBadges.getState().note("lessons");
@@ -384,12 +384,12 @@ export const useGame = create<GameState>((set, get) => ({
     if (pet.away || pet.sitting) return { ok: false, reason: "notYours" };
     const inst = instinctBrain(o);
     if (!inst) return { ok: false, reason: "badCircuit" };
-    const caught = catchUp(pet, Date.now(), brainOf(pet));
+    const caught = catchUp(pet, gameNow(), brainOf(pet));
     const own = brainOf({ ...caught, outside: undefined }).nState;
     if (own + inst.nState > MAX_MIND_STATE) return { ok: false, reason: "tooBig" };
     // the pet's own memory stays; the instinct's starts empty after it
     const taught = withSegment({ ...caught, outside: o, brain: [...caught.brain.slice(0, own), ...new Array(inst.nState).fill(0)] });
-    const after = care(taught, { kind: "talk" }, Date.now(), brainOf(taught)).pet;
+    const after = care(taught, { kind: "talk" }, gameNow(), brainOf(taught)).pet;
     save(after);
     set({ pet: after, pets: roster.pets, lastCare: { kind: "learn", at: performance.now() }, toast: { id: ++toastId, note: "learned" } });
     return { ok: true };
@@ -397,7 +397,7 @@ export const useGame = create<GameState>((set, get) => ({
   forgetInstinct: () => {
     const { pet } = get();
     if (!pet?.outside || pet.away || pet.sitting) return;
-    const caught = catchUp(pet, Date.now(), brainOf(pet));
+    const caught = catchUp(pet, gameNow(), brainOf(pet));
     const { outside: _gone, ...rest } = caught;
     const own = brainOf(rest as Pet).nState;
     const next = withSegment({ ...(rest as Pet), brain: caught.brain.slice(0, own) });
@@ -407,7 +407,7 @@ export const useGame = create<GameState>((set, get) => ({
   levelUp: () => {
     const pet = get().pet;
     if (!pet) return { ok: false, reason: "xp" };
-    const r = levelUpPet(catchUp(pet, Date.now(), brainOf(pet)));
+    const r = levelUpPet(catchUp(pet, gameNow(), brainOf(pet)));
     if (!r.ok) return r;
     save(r.pet);
     set({ pet: r.pet, pets: roster.pets });
@@ -417,7 +417,7 @@ export const useGame = create<GameState>((set, get) => ({
     const pet = get().pet;
     if (!pet) return { ok: false, reason: "noSkill" };
     // the pet is brought up to now on the brain it had, then the skill (which may change that brain) is taken
-    const r = learnSkill(catchUp(pet, Date.now(), brainOf(pet)), id);
+    const r = learnSkill(catchUp(pet, gameNow(), brainOf(pet)), id);
     if (!r.ok) return r;
     save(r.pet);
     set({ pet: r.pet, pets: roster.pets });
@@ -426,7 +426,7 @@ export const useGame = create<GameState>((set, get) => ({
   respec: () => {
     const pet = get().pet;
     if (!pet) return;
-    const next = respecPet(catchUp(pet, Date.now(), brainOf(pet)));
+    const next = respecPet(catchUp(pet, gameNow(), brainOf(pet)));
     save(next);
     set({ pet: next, pets: roster.pets });
   },

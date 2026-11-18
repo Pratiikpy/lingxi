@@ -9,7 +9,7 @@ import { motion } from "motion/react";
 import { drawPet } from "@lingxi/art";
 import { type Family, type ParentInfo, type Pet, BOND_LEVELS, BREED_COOLDOWN_DAYS, FAMILY_BOND_LEVEL, bondLevel, canBreed, childMemory, createPet, dayOf, familyOf, mindBrain, parseCard, ruleSkillIds, stageOf } from "@lingxi/game";
 import { useLang } from "../i18n";
-import { MAX_PETS, useGame } from "../game/store";
+import { MAX_PETS, keptPetNames, useGame } from "../game/store";
 import { deployment, petKey, publicClient, useChain } from "../game/chain";
 import { type PartnerCheck, breedingTerms, checkPartner, formatBem } from "@lingxi/chain";
 import { useLive } from "../game/live";
@@ -18,19 +18,20 @@ import { play } from "../game/sound";
 import { PALETTE_OF, type PetStage } from "../scene/textures";
 import { Sprite } from "./Sprite";
 import "./family.css";
+import { now } from "../game/gameClock";
 
 type Lang = "en" | "zh";
 const LINES = ["gentle", "bold", "curious"] as const;
 type Line = (typeof LINES)[number];
 const drawn = (s: string): PetStage => (s === "elder" ? "adult" : (["baby", "child", "teen", "adult"].includes(s) ? s : "baby") as PetStage);
-const today = (p: Pet) => dayOf(p, Date.now());
+const today = (p: Pet) => dayOf(p, now());
 
 /** Why this pet cannot start a family right now, or null if it can. */
 export function familyBlock(pet: Pet, partnerStage: string, lang: Lang): string | null {
   // families belong to owners: a pet staying with a friend, or away at one, waits
   if (pet.sitting || pet.away) return lang === "zh" ? `${pet.name}正在朋友家做客，回家后才能养小宝宝。` : `${pet.name} is staying away from home; little ones wait until it is back with its owner.`;
   const r = canBreed(
-    { stage: stageOf(pet, Date.now()), generation: pet.family?.generation ?? 0, ...(pet.lastBredDay !== undefined ? { lastBredDay: pet.lastBredDay } : {}) },
+    { stage: stageOf(pet, now()), generation: pet.family?.generation ?? 0, ...(pet.lastBredDay !== undefined ? { lastBredDay: pet.lastBredDay } : {}) },
     { stage: (["baby", "child", "teen", "adult", "elder"].includes(partnerStage) ? partnerStage : "baby") as "baby" },
     today(pet),
   );
@@ -217,7 +218,7 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
   const canChain = !!(partnerChain && useChain.getState().infoOf(pet));
   const welcome = async (offChain = false) => {
     const brain = mindBrain({ line: a.line, lessons: [], family });
-    const born = createPet({ name: name.trim().slice(0, 12) || (lang === "zh" ? "小宝" : "Bean"), line: a.line, now: Date.now(), tzOffsetMin: -new Date().getTimezoneOffset(), brain });
+    const born = createPet({ name: name.trim().slice(0, 12) || (lang === "zh" ? "小宝" : "Bean"), line: a.line, now: now(), tzOffsetMin: -new Date(now()).getTimezoneOffset(), brain });
     let child: Pet = { ...born, family, brain: childMemory(brain.nState, pet.brain, parseCard(answer.card ?? "")?.memory) };
     if (canChain && !offChain) {
       setHatching("busy");
@@ -321,36 +322,46 @@ function ParentChip({ parent, when, lang }: { parent: ParentInfo; when: "day" | 
 export function PetsPanel({ onPicked }: { onPicked: () => void }) {
   const lang = useLang((s) => s.lang) as Lang;
   const { pets, active, switchTo } = useGame();
+  const kept = keptPetNames();
   return (
-    <ul className="fam-pets">
-      {pets.map((p, i) => {
-        const stage = stageOf(p, Date.now());
-        return (
-          <li key={p.bornAt}>
-            <button
-              type="button"
-              className={`fam-pet${i === active ? " on" : ""}`}
-              aria-current={i === active ? "true" : undefined}
-              onClick={() => {
-                play("tap");
-                switchTo(i);
-                onPicked();
-              }}
-            >
-              <Sprite canvas={drawPet(p.line, drawn(stage), { expression: p.asleep ? "asleep" : "happy", ...(p.form ? { form: p.form } : {}) })} palette={PALETTE_OF[p.line]} scale={1.5} />
-              <span>
-                <b>{p.name}</b>
-                <small>
-                  {lang === "zh" ? `第 ${p.family?.generation ?? 0} 代` : `Generation ${p.family?.generation ?? 0}`}
-                  {p.family ? (lang === "zh" ? ` · ${p.family.parents[0].name}和${p.family.parents[1].name}的孩子` : ` · child of ${p.family.parents[0].name} & ${p.family.parents[1].name}`) : ""}
-                </small>
-              </span>
-              {i === active && <em>{lang === "zh" ? "正在照顾" : "Here now"}</em>}
-            </button>
-          </li>
-        );
-      })}
-    </ul>
+    <>
+      <ul className="fam-pets">
+        {pets.map((p, i) => {
+          const stage = stageOf(p, now());
+          return (
+            <li key={p.bornAt}>
+              <button
+                type="button"
+                className={`fam-pet${i === active ? " on" : ""}`}
+                aria-current={i === active ? "true" : undefined}
+                onClick={() => {
+                  play("tap");
+                  switchTo(i);
+                  onPicked();
+                }}
+              >
+                <Sprite canvas={drawPet(p.line, drawn(stage), { expression: p.asleep ? "asleep" : "happy", ...(p.form ? { form: p.form } : {}) })} palette={PALETTE_OF[p.line]} scale={1.5} />
+                <span>
+                  <b>{p.name}</b>
+                  <small>
+                    {lang === "zh" ? `第 ${p.family?.generation ?? 0} 代` : `Generation ${p.family?.generation ?? 0}`}
+                    {p.family ? (lang === "zh" ? ` · ${p.family.parents[0].name}和${p.family.parents[1].name}的孩子` : ` · child of ${p.family.parents[0].name} & ${p.family.parents[1].name}`) : ""}
+                  </small>
+                </span>
+                {i === active && <em>{lang === "zh" ? "正在照顾" : "Here now"}</em>}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      {kept.length > 0 && (
+        <p className="fam-kept" role="note">
+          {lang === "zh"
+            ? `${kept.join("、")}由更新版本的灵犀保存，这里读不了，所以原样保管着，不会丢。刷新页面换到最新版本，就能和${kept.length === 1 ? "它" : "它们"}一起玩。`
+            : `${kept.join(", ")} ${kept.length === 1 ? "was" : "were"} saved by a newer Lingxi, which this page can't read, so ${kept.length === 1 ? "it is" : "they are"} kept safe exactly as saved. Reload the page for the newest version to play with ${kept.length === 1 ? "it" : "them"}.`}
+        </p>
+      )}
+    </>
   );
 }
 

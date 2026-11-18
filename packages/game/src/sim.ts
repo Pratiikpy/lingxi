@@ -239,9 +239,24 @@ function think(p: Pet, brain: Brain, beat: number, action: number, event: number
 }
 
 /** Replay every beat from the pet's last beat up to `now`, the owner away. */
+/**
+ * A pet whose last beat is ahead of `beat` (the game's clock ran ahead and has come back to real time) moved back to it
+ * with nothing else changed, so it lives on at once instead of waiting, frozen, for real time to catch up (P1 S6).
+ * Its other marks of time are kept no later than its beat.
+ */
+function rebased(p0: Pet, beat: number): Pet {
+  return {
+    ...p0,
+    beat,
+    ...(p0.kinBeat !== undefined && p0.kinBeat > beat ? { kinBeat: beat } : {}),
+    ...(p0.missed?.some((m) => m.beat > beat) ? { missed: p0.missed.map((m) => (m.beat > beat ? { ...m, beat } : m)) } : {}),
+  };
+}
+
 export function catchUp(p0: Pet, now: number, brain: Brain, eventAt: (beat: number) => number = () => EVENT.none): Pet {
   const target = beatOf(now);
-  if (target <= p0.beat) return p0;
+  if (target < p0.beat) return rebased(p0, target);
+  if (target === p0.beat) return p0;
   const p = cloneForEdit(p0);
   const gap = target - p.beat;
   const skipped = Math.max(0, gap - MAX_CATCH_UP);
@@ -403,7 +418,8 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
 /** One live beat with the owner watching and nothing done (the app is open). */
 export function liveBeat(p0: Pet, now: number, brain: Brain, event = EVENT.none): Pet {
   const target = beatOf(now);
-  if (target <= p0.beat) return p0;
+  if (target < p0.beat) return rebased(p0, target);
+  if (target === p0.beat) return p0;
   const p = cloneForEdit(catchUp(p0, now - BEAT_MS, brain));
   p.beat = target;
   decay(p, target);

@@ -1,0 +1,137 @@
+{
+ "build": "01f1060",
+ "built": "2026-11-16T04:59:41+05:30",
+ "why": "Telegram Mini App",
+ "page": "play.html",
+ "captured": "2026-11-18T11:01:07Z",
+ "keys": {
+  "lingxi.player.v1": "de22ff85cccd5e81",
+  "lingxi.pets.v2": {
+   "active": 0,
+   "pets": [
+    {
+     "version": 1,
+     "name": "Kiri",
+     "line": "gentle",
+     "bornAt": 1794999652364,
+     "beat": 29916661,
+     "meters": {
+      "food": 37155,
+      "joy": 41970,
+      "energy": 47372,
+      "clean": 59982
+     },
+     "asleep": false,
+     "hibernating": false,
+     "starvingBeats": 0,
+     "brain": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lessons": [],
+     "traits": {
+      "brave": 0,
+      "curious": 0,
+      "greedy": 0,
+      "calm": 0,
+      "playful": 0,
+      "gentle": 0,
+      "shy": 0
+     },
+     "xp": 1,
+     "counts": {
+      "feed": 0,
+      "play": 0,
+      "clean": 1,
+      "pet": 0,
+      "lessons": 0
+     },
+     "diet": {
+      "sweet": 0,
+      "fruit": 0,
+      "savory": 0,
+      "grain": 0
+     },
+     "logHash": "0xbc6cc1bc1f1e6d9b492a3d4bbcdcbb83f0cd66c3cf7ae904e678eee11a891be3",
+     "pendingLog": [
+      36601,
+      761
+     ],
+     "last": {
+      "want": 0,
+      "mood": 1,
+      "nudge": 0,
+      "rule": -1,
+      "word": 761,
+      "before": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "tzOffsetMin": 330,
+     "logMarks": [
+      [
+       0,
+       29916660
+      ]
+     ],
+     "logBeat": 29916661,
+     "dirtyBeats": 0
+    }
+   ]
+  },
+  "lingxi.badges.v1": {
+   "pets": 1,
+   "care": 1,
+   "clean": 1,
+   "stage": 1
+  },
+  "lingxi.lang": "en",
+  "lingxi.mail.v1": {
+   "read": [
+    "lane",
+    "garden",
+    "outings"
+   ],
+   "claimed": [
+    "garden"
+   ],
+   "local": []
+  },
+  "lingxi.reveal.v1": "1",
+  "lingxi.world.v1": {
+   "version": 1,
+   "room": 65,
+   "coins": 30,
+   "bag": {
+    "1001": 1,
+    "7102": 2,
+    "11130": 3,
+    "11301": 2,
+    "11313": 2
+   },
+   "visited": [
+    65
+   ],
+   "foraged": {
+    "65": 498611
+   },
+   "crafted": 0,
+   "foragedCount": 1,
+   "seed": "046e97e61652f9ff",
+   "claimed": []
+  }
+ }
+}

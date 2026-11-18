@@ -33,6 +33,7 @@ import { useWorld } from "../game/world";
 import { play } from "../game/sound";
 import { PALETTE_OF } from "../scene/textures";
 import { Sprite } from "./Sprite";
+import { now } from "../game/gameClock";
 
 type Lang = "en" | "zh";
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -53,7 +54,7 @@ export function OnPet({ pet, id }: { pet: Pet; id: string }) {
     const m = s.market.find((x) => wearKey(x.market, x.id) === id);
     return m ? safeDecode(m.pixels)?.slot : undefined;
   });
-  const stage = stageOf(pet, Date.now());
+  const stage = stageOf(pet, now());
   const st = (stage === "elder" ? "adult" : stage) as "baby" | "child" | "teen" | "adult";
   const art = useMemo(() => {
     const canvas = drawPet(pet.line, st, { expression: "happy", ...(pet.form ? { form: pet.form } : {}) });
@@ -150,7 +151,7 @@ export function FashionMarketPanel({ pet }: { pet: Pet }) {
   const nameOf = (l: OutfitListing) => market.find((m) => m.market === l.market && m.id === l.design)?.name ?? `#${l.design}`;
   const pieces = market.filter((m) => !m.item);
   const forSale = (m: OutfitDesign) => !m.closed && m.price > 0n && m.minted < m.maxSupply;
-  const daysLeft = (t: number) => Math.max(1, Math.ceil((t - Date.now() / 1000) / 86_400));
+  const daysLeft = (t: number) => Math.max(1, Math.ceil((t - now() / 1000) / 86_400));
 
   return (
     <div className="chainpanel fashion">

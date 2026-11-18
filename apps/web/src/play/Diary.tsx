@@ -12,6 +12,7 @@ import { useWorld } from "../game/world";
 import { noteEvent } from "../game/tally";
 import { HOME, ROOMS } from "@lingxi/world";
 import { PALETTE_OF, type PetStage } from "../scene/textures";
+import { now } from "../game/gameClock";
 
 type Lang = "en" | "zh";
 const drawn = (s: string): PetStage => (s === "elder" ? "adult" : (s as PetStage));
@@ -23,7 +24,7 @@ export function DiaryPanel({ pet }: { pet: Pet }) {
   const backdrop = (ROOMS[room] ?? ROOMS[HOME]!).bgs.day;
   // the replay depends only on the log and the brains it ran on
   const lines = useMemo(() => diaryOf(pet, (lessons, outside, skills) => mindBrain({ line: pet.line, lessons, family: pet.family, instincts: pet.instincts, outside, growth: ruleGrowth(skills) })), [pet.pendingLog.length, pet.segments, pet.family, pet.line, pet.instincts, pet.outside]);
-  const date = new Date().toLocaleDateString(lang === "zh" ? "zh-CN" : "en-GB", { month: "long", day: "numeric", weekday: "long" });
+  const date = new Date(now()).toLocaleDateString(lang === "zh" ? "zh-CN" : "en-GB", { month: "long", day: "numeric", weekday: "long" });
 
   const share = async () => {
     setBusy(true);
@@ -110,7 +111,7 @@ async function card(pet: Pet, lines: string[], date: string, lang: Lang, backdro
   g.lineWidth = 8;
   g.stroke();
   // the pet, pixel-crisp
-  const art = drawPet(pet.line, drawn(stageOf(pet, Date.now())), { expression: "happy", ...(pet.form ? { form: pet.form } : {}) });
+  const art = drawPet(pet.line, drawn(stageOf(pet, now())), { expression: "happy", ...(pet.form ? { form: pet.form } : {}) });
   const img = new ImageData(new Uint8ClampedArray(toRgba(art, PALETTE_OF[pet.line], 1)), art.w, art.h);
   const tmp = document.createElement("canvas");
   tmp.width = art.w;

@@ -11,6 +11,8 @@
 import { create } from "zustand";
 import { upcomingNeeds, type Pet } from "@lingxi/game";
 import { brainOf } from "./store";
+import { saveWrite } from "./saveRuntime";
+import { now as gameNow } from "./gameClock";
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
 const KEY = "lingxi.reminders.v1";
@@ -59,7 +61,7 @@ const readOn = () => {
 };
 const writeOn = (on: boolean) => {
   try {
-    localStorage.setItem(KEY, on ? "on" : "off");
+    saveWrite(KEY, on ? "on" : "off");
   } catch {
     // the choice still holds for this visit
   }
@@ -76,7 +78,7 @@ export function planSignature(needs: Array<{ kind: string; at: number }>, now: n
 }
 
 async function sendPlan(sub: PushSubscription, pet: Pet, lang: "en" | "zh", force = false): Promise<boolean> {
-  const now = Date.now();
+  const now = gameNow();
   const needs = upcomingNeeds(pet, now, brainOf(pet)).slice(0, 6);
   const sig = planSignature(needs, now, lang, pet.name);
   if (!force && sig === lastSig && now - lastSentAt < RESEND_MS) return true;
@@ -86,7 +88,7 @@ async function sendPlan(sub: PushSubscription, pet: Pet, lang: "en" | "zh", forc
   const r = await fetch(`${BASE}/api/push/plan`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ subscription: { endpoint: json.endpoint, keys: json.keys }, lang, name: pet.name.slice(0, 24), tz: -new Date().getTimezoneOffset(), reminders }),
+    body: JSON.stringify({ subscription: { endpoint: json.endpoint, keys: json.keys }, lang, name: pet.name.slice(0, 24), tz: -new Date(gameNow()).getTimezoneOffset(), reminders }),
     signal: AbortSignal.timeout(8000),
   });
   // a refusal (busy) comes back as ok:false in the body, not as an HTTP error

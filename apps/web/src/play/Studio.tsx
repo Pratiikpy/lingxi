@@ -7,6 +7,7 @@
 import { useMemo, useRef, useState } from "react";
 import { type Design, DesignError, DESIGN_FACE_MAX_W, DESIGN_MAX_H, DESIGN_MAX_W, SLOTS, type Slot, boundingBox, designWearable, drawPet, registerWearables, trimDesign, wearOverlay, encodeDesign } from "@lingxi/art";
 import { currentMarket, parseBem, publishDesign } from "@lingxi/chain";
+import { now } from "../game/gameClock";
 
 /** The BEM market's smallest price per copy (its MIN_PRICE: 0.0001 BEM). */
 const MIN_BEM_PRICE = 10_000n;
@@ -51,7 +52,7 @@ export function StudioPanel({ pet }: { pet: Pet }) {
   const drawn = grid.some((r) => r.some((v) => v > 0));
 
   // the pet wearing the piece as it is drawn
-  const stage = stageOf(pet, Date.now());
+  const stage = stageOf(pet, now());
   const st = (stage === "elder" ? "adult" : stage) as "baby" | "child" | "teen" | "adult";
   const preview = useMemo(() => {
     const canvas = drawPet(pet.line, st, { expression: "happy", ...(pet.form ? { form: pet.form } : {}) });

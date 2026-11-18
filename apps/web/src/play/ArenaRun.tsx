@@ -55,6 +55,7 @@ import { Sprite } from "./Sprite";
 import { boundingBox, type PixelCanvas } from "@lingxi/art";
 import "./arenarun.css";
 import { noteEvent, noteTally } from "../game/tally";
+import { now } from "../game/gameClock";
 
 type Lang = "en" | "zh";
 const PALETTE: Record<CompanionDef["look"]["palette"], Palette> = { mint: MINT, lilac: LILAC, peach: PEACH, night: NIGHT };
@@ -86,7 +87,7 @@ function CompanionArt({ id, scale, face = "happy", label }: { id: string; scale:
 }
 
 function PetArt({ pet, scale, face = "happy" }: { pet: Pet; scale: number; face?: Expression }) {
-  const stage = stageOf(pet, Date.now());
+  const stage = stageOf(pet, now());
   const drawn = stage === "elder" ? "adult" : stage;
   const world = useWorld((s) => s.world);
   const worn = outfitOf(world, String(pet.bornAt)) as Outfit;
@@ -114,7 +115,7 @@ function RivalArt({ pet, scale, face = "happy" }: { pet: DuelPet; scale: number;
 
 /** the pet as it travels to the arena: its name, body and card (lessons, instincts, family, memory) */
 function linePet(pet: Pet): DuelPet {
-  return { name: pet.name, line: pet.line, stage: stageOf(pet, Date.now()), card: petCard(pet), story: { days: dayOf(pet, Date.now()), lessons: pet.lessons.length, nature: [] } };
+  return { name: pet.name, line: pet.line, stage: stageOf(pet, now()), card: petCard(pet), story: { days: dayOf(pet, now()), lessons: pet.lessons.length, nature: [] } };
 }
 
 function rivalUnit(p: DuelPet): TeamUnit {

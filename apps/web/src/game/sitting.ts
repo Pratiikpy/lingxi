@@ -17,6 +17,8 @@ import { linkPrefix } from "./links";
 import { brainOf, useGame } from "./store";
 import { type ChainRecord, deployment, publicClient, recordOf, setRecordOf } from "./chain";
 import { noteEvent } from "./tally";
+import { SEND_LIMITS, checkSize } from "./sendSize";
+import { now } from "./gameClock";
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
 export const sittingAvailable = () => BASE !== "";
@@ -37,20 +39,24 @@ interface Homecoming {
 /** Owner: send the pet to a friend. Returns the link to give them. */
 export async function sendToSitter(pet: Pet, days: number): Promise<string> {
   const key = hex(crypto.getRandomValues(new Uint8Array(16)));
-  const until = Date.now() + Math.round(days) * 86_400_000;
+  const until = now() + Math.round(days) * 86_400_000;
   const record = recordOf(pet);
   const pack: SitPack = {
     v: 1,
     pet,
     chain: record ? { petId: record.petId, owner: record.owner, bornChain: record.bornChain, brains: record.brains, brainKey: record.brainKey, lastDay: record.lastDay } : null,
-    sitter: record?.sitter && record.sitter.until * 1000 > Date.now() ? record.sitter.who : null,
+    sitter: record?.sitter && record.sitter.until * 1000 > now() ? record.sitter.who : null,
     until,
     host: playerId(),
   };
+  const packText = JSON.stringify(pack);
+  const body = JSON.stringify({ pack: packText, keyHash: await keyHash(key), until });
+  // measured before it leaves: one too large throws TooBig, and nothing is sent
+  checkSize(body, SEND_LIMITS.sitBodyBytes, { unit: "bytes", have: packText.length, most: SEND_LIMITS.sitPackChars });
   const r = await fetch(`${BASE}/api/sit`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ pack: JSON.stringify(pack), keyHash: await keyHash(key), until }),
+    body,
     signal: AbortSignal.timeout(15000),
   });
   const j = (await r.json()) as { ok: boolean; code?: string; reason?: string };
@@ -143,10 +149,13 @@ export async function sendHome(given: Pet): Promise<boolean> {
   const { sitting, ...home } = pet;
   const own = useGame.getState().pets.find((p) => !p.sitting);
   const body: Homecoming = { pet: home as Pet, chain: record && record.logLen !== undefined ? { lastDay: record.lastDay, logLen: record.logLen } : null, ...(own ? { sitter: { id: playerId(), name: own.name, line: own.line } } : {}) };
+  const petText = JSON.stringify(body);
+  const sent = JSON.stringify({ key: sitting.key, pet: petText });
+  checkSize(sent, SEND_LIMITS.sitBodyBytes, { unit: "bytes", have: petText.length, most: SEND_LIMITS.sitPackChars });
   const r = await fetch(`${BASE}/api/sit/${sitting.code}/home`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ key: sitting.key, pet: JSON.stringify(body) }),
+    body: sent,
     signal: AbortSignal.timeout(15000),
   });
   const j = (await r.json()) as { ok: boolean };

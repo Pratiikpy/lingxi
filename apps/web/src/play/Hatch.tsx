@@ -15,6 +15,7 @@ import { useLang, useT, type Key } from "../i18n";
 import { play } from "../game/sound";
 import { PALETTE_OF } from "../scene/textures";
 import { Sprite } from "./Sprite";
+import { useSaveFileUi } from "./SaveFile";
 import "./hatch.css";
 
 const LINES: readonly StarterLine[] = ["gentle", "bold", "curious"];
@@ -128,6 +129,9 @@ export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string, 
           </div>
           <button type="button" className="hatch-go" onClick={hatch} disabled={!name.trim()}>
             {t("hatch.go")}
+          </button>
+          <button type="button" className="hatch-restore" onClick={() => useSaveFileUi.getState().show()}>
+            {lang === "zh" ? "有存档文件？从文件恢复" : "Have a save file? Restore it"}
           </button>
         </>
       )}

@@ -1,0 +1,242 @@
+{
+ "build": "http://localhost:5243 (the fork harness, P1 build)",
+ "built": "2026-11-18T16:43:10",
+ "why": "a friend who took in another player's pet: a guest in the roster and a friendship (lingxi.friends.v1)",
+ "keys": {
+  "lingxi.player.v1": "53e5cd54579bc8413db28453",
+  "lingxi.pets.v2": {
+   "active": 1,
+   "pets": [
+    {
+     "version": 1,
+     "name": "Momo",
+     "line": "gentle",
+     "bornAt": 1795000383623.4,
+     "beat": 29916673,
+     "meters": {
+      "food": 37200,
+      "joy": 42000,
+      "energy": 48000,
+      "clean": 54000
+     },
+     "asleep": false,
+     "hibernating": false,
+     "starvingBeats": 0,
+     "brain": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lessons": [],
+     "traits": {
+      "brave": 0,
+      "curious": 0,
+      "greedy": 0,
+      "calm": 0,
+      "playful": 0,
+      "gentle": 0,
+      "shy": 0
+     },
+     "xp": 0,
+     "growth": {
+      "level": 1,
+      "points": 1,
+      "skills": {}
+     },
+     "counts": {
+      "feed": 0,
+      "play": 0,
+      "clean": 0,
+      "pet": 0,
+      "lessons": 0
+     },
+     "diet": {
+      "sweet": 0,
+      "fruit": 0,
+      "savory": 0,
+      "grain": 0
+     },
+     "logHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+     "pendingLog": [],
+     "last": {
+      "want": 0,
+      "mood": 1,
+      "nudge": 0,
+      "rule": -1,
+      "word": 0
+     },
+     "tzOffsetMin": 330
+    },
+    {
+     "version": 1,
+     "name": "Kiri",
+     "line": "gentle",
+     "bornAt": 1795000367134.2,
+     "beat": 29916672,
+     "meters": {
+      "food": 37200,
+      "joy": 42000,
+      "energy": 48000,
+      "clean": 54000
+     },
+     "asleep": false,
+     "hibernating": false,
+     "starvingBeats": 0,
+     "brain": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lessons": [],
+     "traits": {
+      "brave": 0,
+      "curious": 0,
+      "greedy": 0,
+      "calm": 0,
+      "playful": 0,
+      "gentle": 0,
+      "shy": 0
+     },
+     "xp": 0,
+     "growth": {
+      "level": 1,
+      "points": 1,
+      "skills": {}
+     },
+     "counts": {
+      "feed": 0,
+      "play": 0,
+      "clean": 0,
+      "pet": 0,
+      "lessons": 0
+     },
+     "diet": {
+      "sweet": 0,
+      "fruit": 0,
+      "savory": 0,
+      "grain": 0
+     },
+     "logHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+     "pendingLog": [],
+     "last": {
+      "want": 0,
+      "mood": 1,
+      "nudge": 0,
+      "rule": -1,
+      "word": 0
+     },
+     "tzOffsetMin": 330,
+     "sitting": {
+      "code": "34c357fd5708634b8e90899c",
+      "key": "0131356f0f22b161d1facd578f440199",
+      "until": 1795259575007.2,
+      "owner": null,
+      "name": "Kiri"
+     }
+    }
+   ]
+  },
+  "lingxi.badges.v1": {
+   "pets": 2,
+   "care": 60,
+   "feed": 31,
+   "play": 31,
+   "clean": 21,
+   "petting": 51,
+   "rooms": 1,
+   "rooms_seen": [
+    65
+   ]
+  },
+  "lingxi.lang": "en",
+  "lingxi.names.v2": "1",
+  "lingxi.clock.v1": {
+   "offset": 157.39990234375,
+   "seen": 1795000378944.4
+  },
+  "lingxi.friends.v1": {
+   "1795000383623.4": {
+    "76878bd7e1155e1682c30319:Kiri": {
+     "name": "Kiri",
+     "line": "gentle",
+     "points": 6,
+     "day": 20775,
+     "today": 6,
+     "first": 1795000386699.4,
+     "last": 1795000386699.4
+    }
+   }
+  },
+  "lingxi.reveal.v1": "1",
+  "lingxi.decorKey": "a0b538d65122b83f0c882ac26dfa481f",
+  "lingxi.world.v1": {
+   "version": 1,
+   "room": 65,
+   "coins": 30,
+   "bag": {
+    "11130": 3,
+    "11301": 2,
+    "11313": 2
+   },
+   "visited": [
+    65
+   ],
+   "foraged": {},
+   "crafted": 0,
+   "foragedCount": 0,
+   "seed": "3e23a032b87b7a13",
+   "claimed": [],
+   "tally": {
+    "EVENT:0": 1,
+    "EVENT:pet-sat": 1
+   },
+   "tallied": 1,
+   "extras": {
+    "room": 0,
+    "looks": 0
+   },
+   "quests": {
+    "active": {
+     "d-bath": {
+      "at": 1795000384105.4,
+      "snap": {
+       "CARE:clean": 0
+      }
+     },
+     "d-diver": {
+      "at": 1795000384105.4,
+      "snap": {
+       "MEET:diver": 0
+      }
+     },
+     "d-rooms": {
+      "at": 1795000384105.4,
+      "snap": {
+       "MOVE:0": 0
+      }
+     }
+    },
+    "done": {},
+    "today": {
+     "day": "2026-11-18",
+     "offered": [
+      "d-bath",
+      "d-diver",
+      "d-rooms"
+     ],
+     "done": []
+    }
+   }
+  }
+ }
+}

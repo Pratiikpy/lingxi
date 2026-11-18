@@ -15,6 +15,7 @@ import { type WorldNotice, useWorld } from "../game/world";
 import { allStatuses, giverRoom } from "../game/quests";
 import "./world.css";
 import { GardenPanel } from "./Garden";
+import { now } from "../game/gameClock";
 
 export function itemList(items: Array<{ item: number; n: number }> | undefined, lang: "en" | "zh"): string {
   return (items ?? []).map((x) => `${ITEM[x.item]?.name[lang] ?? "?"}${x.n > 1 ? ` ×${x.n}` : ""}`).join(lang === "zh" ? "、" : ", ");
@@ -368,7 +369,7 @@ export function QuestPanel() {
   const pet = useGame((s) => s.pet);
   const onChain = useChain((s) => s.record !== null);
   if (!pet) return null;
-  const view = { world, counts: pet.counts, stage: stageOf(pet, Date.now()), onChain };
+  const view = { world, counts: pet.counts, stage: stageOf(pet, now()), onChain };
   const shown = QUESTS.map((q) => ({ q, st: questState(q, view, world.claimed) })).filter((x) => x.st !== "locked");
   shown.sort((a, b) => ["ready", "active", "claimed"].indexOf(a.st) - ["ready", "active", "claimed"].indexOf(b.st));
   return (

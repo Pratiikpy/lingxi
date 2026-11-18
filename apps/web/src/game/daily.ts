@@ -9,6 +9,8 @@ import { create } from "zustand";
 import { createPublicClient, http } from "viem";
 import { xLayer } from "@lingxi/chain";
 import { DAY_MS, dailyPartnerIndex, dailySeed, dayIndex, firstBlockAtOrAfter } from "@lingxi/game";
+import { saveWrite } from "./saveRuntime";
+import { now } from "./gameClock";
 
 const KEY = "lingxi.daily.v1";
 const RPCS = ["https://xlayerrpc.okx.com", "https://rpc.xlayer.tech"];
@@ -34,7 +36,7 @@ function read(): Saved {
 }
 function write(s: Saved): void {
   try {
-    localStorage.setItem(KEY, JSON.stringify(s));
+    saveWrite(KEY, JSON.stringify(s));
   } catch {
     // storage full or blocked: the challenge still works for this visit
   }
@@ -70,13 +72,13 @@ interface DailyState {
 
 export const useDaily = create<DailyState>((set, get) => ({
   status: "idle",
-  day: dayIndex(Date.now()),
+  day: dayIndex(now()),
   block: null,
   seed: null,
-  partnerIndex: dailyPartnerIndex(dayIndex(Date.now())),
+  partnerIndex: dailyPartnerIndex(dayIndex(now())),
   best: null,
   load: async () => {
-    const day = dayIndex(Date.now());
+    const day = dayIndex(now());
     const saved = read();
     const best = saved.best?.day === day ? saved.best : null;
     if (saved.block?.day === day) {

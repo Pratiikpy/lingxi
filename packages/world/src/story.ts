@@ -201,7 +201,8 @@ export function pickDailies(pool: readonly QuestDef[], seed: string, day: string
 export function rollDailies(w: WorldState, pool: readonly QuestDef[], v: ConditionView, tzOffsetMin: number): WorldState {
   const day = localDay(v.now, tzOffsetMin);
   const b = bookOf(w);
-  if (b.today?.day === day) return w;
+  // a day only moves forward: a clock turned back keeps today's dailies rather than offering an earlier day's again
+  if (b.today && b.today.day >= day) return w;
   const offered = pickDailies(pool, w.seed, day);
   const active = { ...b.active };
   // yesterday's unfinished dailies lapse quietly

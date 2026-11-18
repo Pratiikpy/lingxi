@@ -9,9 +9,10 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "
 import { join } from "node:path";
 import { z } from "zod";
 import { ZERO_HASH, chainAll } from "@lingxi/game";
+import { SEND_LIMITS } from "@lingxi/chain/limits";
 
 /** The most beats one published log may hold (about 70 days of minutes). */
-export const MAX_LOG_WORDS = 100_000;
+export const MAX_LOG_WORDS = SEND_LIMITS.logWords;
 
 const Word = z.number().int().min(0).max(65535);
 export const PublishedLog = z.object({

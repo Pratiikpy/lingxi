@@ -11,6 +11,8 @@ import type { Address } from "viem";
 import { type OutsideCircuit, AdoptError, readOutsideCircuit } from "@lingxi/chain";
 import { publicClient } from "./chain";
 import { type Adopted, type Profile, profileOf } from "./adoptBrain";
+import { saveWrite } from "./saveRuntime";
+import { now } from "./gameClock";
 
 export * from "./adoptBrain";
 
@@ -49,7 +51,7 @@ function load(): Record<string, Adopted> {
 export const useAdopted = create<AdoptStore>((set, get) => {
   const keep = (byPet: Record<string, Adopted>) => {
     try {
-      localStorage.setItem(KEY, JSON.stringify(byPet));
+      saveWrite(KEY, JSON.stringify(byPet));
     } catch {
       // private mode: lasts for this visit
     }
@@ -57,7 +59,7 @@ export const useAdopted = create<AdoptStore>((set, get) => {
   };
   return {
     byPet: load(),
-    adopt: (pet, a) => keep({ ...get().byPet, [String(pet)]: { ...a, on: true, at: Date.now() } }),
+    adopt: (pet, a) => keep({ ...get().byPet, [String(pet)]: { ...a, on: true, at: now() } }),
     setOn: (pet, on) => {
       const a = get().byPet[String(pet)];
       if (a) keep({ ...get().byPet, [String(pet)]: { ...a, on } });

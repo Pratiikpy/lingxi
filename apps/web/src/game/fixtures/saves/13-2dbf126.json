@@ -1,0 +1,190 @@
+{
+ "build": "2dbf126",
+ "built": "2026-11-17T23:46:47+05:30",
+ "why": "the handheld",
+ "page": "play.html",
+ "captured": "2026-11-18T11:04:32Z",
+ "keys": {
+  "lingxi.player.v1": "75842ad19a926868",
+  "lingxi.pets.v2": {
+   "active": 0,
+   "pets": [
+    {
+     "version": 1,
+     "name": "Kiri",
+     "line": "gentle",
+     "bornAt": 1794999850791,
+     "beat": 29916664,
+     "meters": {
+      "food": 37200,
+      "joy": 42000,
+      "energy": 47400,
+      "clean": 60000
+     },
+     "asleep": false,
+     "hibernating": false,
+     "starvingBeats": 0,
+     "brain": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lessons": [],
+     "traits": {
+      "brave": 0,
+      "curious": 0,
+      "greedy": 0,
+      "calm": 0,
+      "playful": 0,
+      "gentle": 0,
+      "shy": 0
+     },
+     "xp": 1,
+     "growth": {
+      "level": 1,
+      "points": 1,
+      "skills": {}
+     },
+     "counts": {
+      "feed": 0,
+      "play": 0,
+      "clean": 1,
+      "pet": 0,
+      "lessons": 0
+     },
+     "diet": {
+      "sweet": 0,
+      "fruit": 0,
+      "savory": 0,
+      "grain": 0
+     },
+     "logHash": "0x2af08a19bbbca24c2a79545fd7da9f3c43e71217082e65e9b060394ed92dadf1",
+     "pendingLog": [
+      36601
+     ],
+     "last": {
+      "want": 0,
+      "mood": 1,
+      "nudge": 0,
+      "rule": -1,
+      "word": 36601,
+      "before": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "tzOffsetMin": 330,
+     "logMarks": [
+      [
+       0,
+       29916664
+      ]
+     ],
+     "logBeat": 29916664,
+     "xpCarry": 0
+    }
+   ]
+  },
+  "lingxi.badges.v1": {
+   "pets": 1,
+   "care": 1,
+   "clean": 1,
+   "stage": 1
+  },
+  "lingxi.lang": "en",
+  "lingxi.mail.v1": {
+   "read": [
+    "lane",
+    "garden",
+    "outings"
+   ],
+   "claimed": [
+    "garden"
+   ],
+   "local": []
+  },
+  "lingxi.reveal.v1": "1",
+  "lingxi.world.v1": {
+   "version": 1,
+   "room": 65,
+   "coins": 30,
+   "bag": {
+    "1003": 1,
+    "7102": 2,
+    "11130": 3,
+    "11301": 2,
+    "11313": 2
+   },
+   "visited": [
+    65
+   ],
+   "foraged": {
+    "65": 498611
+   },
+   "crafted": 0,
+   "foragedCount": 1,
+   "seed": "22e1a3c8889a2461",
+   "claimed": [],
+   "tally": {
+    "CARE:0": 1,
+    "CARE:clean": 1,
+    "CARE:clean-day": 1,
+    "FORAGE:0": 1,
+    "FORAGE:65": 1,
+    "FIND:0": 1,
+    "FIND:1003": 1
+   },
+   "tallied": 1,
+   "extras": {
+    "room": 0,
+    "looks": 0
+   },
+   "quests": {
+    "active": {
+     "d-nap": {
+      "at": 1794999851205,
+      "snap": {
+       "CARE:sleep": 0
+      }
+     },
+     "d-diver": {
+      "at": 1794999851205,
+      "snap": {
+       "MEET:diver": 0
+      }
+     },
+     "d-evening": {
+      "at": 1794999851205,
+      "snap": {
+       "TOGETHER_WHEN:evening-outside": 0
+      }
+     }
+    },
+    "done": {},
+    "today": {
+     "day": "2026-11-18",
+     "offered": [
+      "d-nap",
+      "d-diver",
+      "d-evening"
+     ],
+     "done": []
+    }
+   },
+   "familiar": {
+    "65": 1
+   }
+  }
+ }
+}

@@ -11,6 +11,8 @@ import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { XLAYER_USDT, claimPacket, collectPacket, createPacket, owedOf, pendingOf, readClaims, readPacket, refundPacket, revealPacket, signClaim, tokenBalance } from "@lingxi/chain";
 import { b64urlDecode, b64urlEncode } from "@lingxi/brain";
 import { connectWallet, deployment, publicClient } from "./chain";
+import { saveWrite } from "./saveRuntime";
+import { now } from "./gameClock";
 
 const SENT_KEY = "lingxi.packets.sent.v1";
 const PREFIX = "lxp1.";
@@ -108,9 +110,9 @@ export const usePackets = create<PacketStore>((set, get) => ({
         petOwnersOnly: o.petOwnersOnly,
       });
       const link = `${o.origin}packet=${encodePacketLink({ id: id.toString(), key: pk.slice(2), from: o.from, letter: o.letter })}`;
-      const sent = [{ id: id.toString(), link, total: o.amount, count: o.count, at: Date.now() }, ...get().sent].slice(0, 50);
+      const sent = [{ id: id.toString(), link, total: o.amount, count: o.count, at: now() }, ...get().sent].slice(0, 50);
       try {
-        localStorage.setItem(SENT_KEY, JSON.stringify(sent));
+        saveWrite(SENT_KEY, JSON.stringify(sent));
       } catch {
         // the link is still shown; it just won't be listed after a reload
       }

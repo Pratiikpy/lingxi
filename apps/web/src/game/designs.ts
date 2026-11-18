@@ -12,6 +12,8 @@ import type { Address, Hex } from "viem";
 import { type Design, decodeDesign, designWearable, encodeDesign, registerWearables } from "@lingxi/art";
 import { type Market, type OutfitDesign, type OutfitListing, copiesHeld, marketsOf, parseWearKey, readDesigns, readListings, wearKey } from "@lingxi/chain";
 import { deployment, publicClient } from "./chain";
+import { saveWrite } from "./saveRuntime";
+import { now } from "./gameClock";
 
 const KEY = "lingxi.designs.v1";
 export const marketAvailable = () => !!deployment && marketsOf(deployment).length > 0;
@@ -91,7 +93,7 @@ export const useDesigns = create<DesignsStore>((set, get) => {
   register(initial, []);
   const keep = (local: LocalDesign[]) => {
     try {
-      localStorage.setItem(KEY, JSON.stringify(local));
+      saveWrite(KEY, JSON.stringify(local));
     } catch {
       // private mode: lasts for this visit
     }
@@ -116,8 +118,8 @@ export const useDesigns = create<DesignsStore>((set, get) => {
     version: 0,
     save: (name, d) => {
       const hex = toHex(encodeDesign(d));
-      const id = `u:${Date.now().toString(36)}`;
-      keep([{ id, name: name.slice(0, 32), hex, at: Date.now() }, ...get().local].slice(0, 60));
+      const id = `u:${now().toString(36)}`;
+      keep([{ id, name: name.slice(0, 32), hex, at: now() }, ...get().local].slice(0, 60));
       return id;
     },
     remove: (id) => keep(get().local.filter((l) => l.id !== id)),

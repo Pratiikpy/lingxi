@@ -12,6 +12,7 @@ import { useLang } from "../i18n";
 import { useWorld } from "../game/world";
 import { PALETTE_OF } from "../scene/textures";
 import { Sprite } from "./Sprite";
+import { now } from "../game/gameClock";
 
 const SLOT_NAME: Record<(typeof SLOTS)[number], { en: string; zh: string }> = { head: { en: "Head", zh: "头上" }, face: { en: "Face", zh: "脸上" }, held: { en: "Held", zh: "手里" } };
 
@@ -20,7 +21,7 @@ export function useWornArt(pet: Pet, expression: "happy" | "neutral" | "sparkly"
   const world = useWorld((s) => s.world);
   const outfit = outfitOf(world, String(pet.bornAt));
   const version = useDesigns((s) => s.version);
-  const stage = stageOf(pet, Date.now());
+  const stage = stageOf(pet, now());
   const drawn = (stage === "elder" ? "adult" : stage) as "baby" | "child" | "teen" | "adult";
   return useMemo(() => {
     const canvas = drawPet(pet.line, drawn, { expression, ...(pet.form ? { form: pet.form } : {}) });

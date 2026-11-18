@@ -1,0 +1,73 @@
+{
+ "build": "6144451",
+ "built": "2026-11-15T11:54:03+05:30",
+ "why": "the first playable room: one pet under lingxi.pet.v1",
+ "page": "play.html",
+ "captured": "2026-11-18T10:57:10Z",
+ "keys": {
+  "lingxi.reveal.v1": "1",
+  "lingxi.lang": "en",
+  "lingxi.pet.v1": {
+   "version": 1,
+   "name": "Kiri",
+   "line": "gentle",
+   "bornAt": 1794999420372,
+   "beat": 29916657,
+   "meters": {
+    "food": 34800,
+    "joy": 55440,
+    "energy": 43080,
+    "clean": 60000
+   },
+   "asleep": false,
+   "hibernating": false,
+   "starvingBeats": 0,
+   "brain": [
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    1,
+    0
+   ],
+   "traits": {
+    "brave": 0,
+    "curious": 0,
+    "greedy": 0,
+    "calm": 0,
+    "playful": 0,
+    "gentle": 0,
+    "shy": 0
+   },
+   "xp": 2,
+   "counts": {
+    "feed": 0,
+    "play": 1,
+    "clean": 1,
+    "pet": 0,
+    "lessons": 0
+   },
+   "diet": {
+    "sweet": 0,
+    "fruit": 0,
+    "savory": 0,
+    "grain": 0
+   },
+   "logHash": "0xc031f3c8e69c55443743aa9d4f4e1972e45dc9d1bb879fc326f34465f0e7864d",
+   "pendingLog": [
+    35565,
+    36589
+   ],
+   "last": {
+    "want": 2,
+    "mood": 3,
+    "nudge": 0,
+    "rule": 13,
+    "word": 36589
+   },
+   "tzOffsetMin": 330
+  }
+ }
+}

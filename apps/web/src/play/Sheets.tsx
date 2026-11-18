@@ -12,6 +12,7 @@ import { useLang, useT, type Key } from "../i18n";
 import { Icon } from "./icons";
 import { Chips } from "./parts";
 import { chipsFor, MOOD_NAMES } from "./ruleText";
+import { now as gameNow } from "../game/gameClock";
 
 /** Open sheets, newest last: Escape closes only the one on top when two are stacked. */
 const openSheets: object[] = [];
@@ -171,7 +172,7 @@ export function MeSheetBody({ pet }: { pet: Pet }) {
   const nature = pet.traits[top[0]!] === 0 ? t(`line.${pet.line}`) : top.filter((x) => pet.traits[x] > 0).map((x) => TRAIT_NAMES[x]![lang]).join(lang === "zh" ? "、" : ", ");
   const fav = [...DIETS].sort((a, b) => pet.diet[b] - pet.diet[a])[0]!;
   const favFood = FOODS.find((f) => f.diet === fav);
-  const kin = kinshipNow(pet, beatOf(Date.now()));
+  const kin = kinshipNow(pet, beatOf(gameNow()));
   const friendship = Math.min(10, kin);
   // the level is kept and XP is spent at each level-up (plan 4.4): the bar shows the way to the next
   const g = growthOf(pet);
@@ -184,7 +185,7 @@ export function MeSheetBody({ pet }: { pet: Pet }) {
     sick: ["fell ill", "生病了"],
   };
   const ago = (beat: number) => {
-    const h = Math.max(0, Math.round((beatOf(Date.now()) - beat) / 60));
+    const h = Math.max(0, Math.round((beatOf(gameNow()) - beat) / 60));
     return h < 1 ? (lang === "zh" ? "刚才" : "just now") : h < 48 ? (lang === "zh" ? `${h} 小时前` : `${h} h ago`) : lang === "zh" ? `${Math.round(h / 24)} 天前` : `${Math.round(h / 24)} days ago`;
   };
   return (
@@ -239,7 +240,7 @@ export function MeSheetBody({ pet }: { pet: Pet }) {
         </>
       )}
       <dt>{t("me.together")}</dt>
-      <dd>{t("me.days", { n: dayOf(pet, Date.now()) })}</dd>
+      <dd>{t("me.days", { n: dayOf(pet, gameNow()) })}</dd>
       <dt>{t("me.diet")}</dt>
       <dd>{pet.diet[fav] > 0 && favFood ? favFood.name[lang] : "–"}</dd>
       <dt>{t("think.label")}</dt>
@@ -264,7 +265,7 @@ function FormSprite({ line, form, shown }: { line: Pet["line"]; form: (typeof FO
 
 export function EvolutionChart({ pet }: { pet: Pet }) {
   const { lang } = useLang();
-  const now = Date.now();
+  const now = gameNow();
   const grown = ["adult", "elder"].includes(stageOf(pet, now));
   // once grown the form is fixed; before that, the chart shows where today's care is heading
   const e = pet.form ? { form: pet.form } : evolve(evolutionInputs(pet, now));

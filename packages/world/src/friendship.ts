@@ -143,7 +143,9 @@ export function giveGift(w: WorldState, sheet: FriendSheet, item: number, day: s
   if (giftTrust(taste, false).refused) return { ok: true, world: { ...w, friends: learnt }, taste, trust: 0 };
   const given = giveTo(w, sheet.id, item, 1);
   if (!given.ok) return given;
-  const counts = learnt.gifted[sheet.id] !== day;
+  // the day's first gift counts, and only for a day after the last one counted (a clock turned back adds nothing)
+  const last = learnt.gifted[sheet.id];
+  const counts = !last || day > last;
   const trust = giftTrust(taste, !counts).points;
   const friends: FriendsState = counts ? { ...learnt, gifted: { ...learnt.gifted, [sheet.id]: day } } : learnt;
   const world: WorldState = { ...given.world, friends, trust: trust ? { ...(given.world.trust ?? {}), [sheet.id]: trustOf(given.world, sheet.id) + trust } : given.world.trust };

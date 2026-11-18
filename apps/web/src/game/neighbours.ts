@@ -11,14 +11,15 @@ import { questsOf } from "./quests";
 import { play } from "./sound";
 import { useGame } from "./store";
 import { useWorld } from "./world";
+import { now } from "./gameClock";
 
-const today = () => localDay(Date.now(), useGame.getState().pet?.tzOffsetMin ?? -new Date().getTimezoneOffset());
+const today = () => localDay(now(), useGame.getState().pet?.tzOffsetMin ?? -new Date(now()).getTimezoneOffset());
 
 /** A resident's greeting now, chosen by their circuit from the hour, trust, today's gift, the pet and their quests. */
 export function greetingFor(id: string, fallback: readonly Line[]): Line[] {
   const pet = useGame.getState().pet;
   const view = folkViewOf(useWorld.getState().world, id, {
-    hour: pet ? localHour(pet, Math.floor(Date.now() / 60_000)) : new Date().getHours(),
+    hour: pet ? localHour(pet, Math.floor(now() / 60_000)) : new Date(now()).getHours(),
     day: today(),
     petHappy: !!pet && pet.meters.joy / SUB >= 600,
     petHungry: !!pet && pet.meters.food / SUB < 300,

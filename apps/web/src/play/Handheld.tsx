@@ -12,6 +12,7 @@ import { play } from "../game/sound";
 import { type HomeResult, type TakeRefusal, MAX_SNACK_KINDS, MAX_SNACKS_EACH, RETURN_KEY, atHandheld, bringPetHome, callBack, pendingReturn, readTrip, takeAlong, travelFoods } from "../game/handheld";
 import { CardputerProblem, cardputerAvailable, cardputerWords, fromCardputer, toCardputer } from "../game/cardputer";
 import "./handheld.css";
+import { saveRemove } from "../game/saveRuntime";
 
 type Lang = "en" | "zh";
 const HANDHELD_PAGE = "handheld.html";
@@ -239,7 +240,7 @@ export function HandheldReturn() {
       if (!packet || !readTrip()) return;
       const r = await bringPetHome(packet);
       // a refused packet is not checked again on every visit; the handheld still holds the pet and can send it again
-      if (!r.ok) localStorage.removeItem(RETURN_KEY);
+      if (!r.ok) saveRemove(RETURN_KEY);
       show(r);
       if (location.hash === "#handheld-home") history.replaceState(null, "", location.pathname + location.search);
     };

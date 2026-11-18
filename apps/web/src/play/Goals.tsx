@@ -13,6 +13,7 @@ import { useWorld } from "../game/world";
 import { type GoalReport, takeGoalEveryone, takeGoalTiers, useGoals, waitingIn } from "../game/goals";
 import { rewardText } from "./Quests";
 import "./goals.css";
+import { now as gameNow } from "../game/gameClock";
 
 type Lang = "en" | "zh";
 const LIVE_SITE = "https://lingxi.knole.me/play.html";
@@ -79,7 +80,7 @@ function GoalCard({ g }: { g: GoalDef }) {
         <div>
           <b className="gl-title">{g.title[lang]}</b>
           <span className="gl-from">
-            {L(`From ${giver?.name.en ?? g.giver}`, `来自${giver?.name.zh ?? g.giver}`)} · <span className="gl-time">{timeText(g, r, now || Math.floor(Date.now() / 1000), lang)}</span>
+            {L(`From ${giver?.name.en ?? g.giver}`, `来自${giver?.name.zh ?? g.giver}`)} · <span className="gl-time">{timeText(g, r, now || Math.floor(gameNow() / 1000), lang)}</span>
           </span>
         </div>
       </div>

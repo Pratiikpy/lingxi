@@ -15,6 +15,7 @@ import { useLang } from "../i18n";
 import { connectWallet, deployment, publicClient, recordOf, useChain } from "../game/chain";
 import { play } from "../game/sound";
 import { marketAvailable, marketOf, useDesigns } from "../game/designs";
+import { now } from "../game/gameClock";
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
@@ -29,7 +30,7 @@ export function HomePanel({ pet }: { pet: Pet }) {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
   const [keep, setKeep] = useState("");
-  const stage = stageOf(pet, Date.now());
+  const stage = stageOf(pet, now());
   const grown = stage === "adult" || stage === "elder";
   const deed = record?.brainKey ? record.brains?.[record.brainKey] : undefined;
 

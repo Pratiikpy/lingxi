@@ -12,6 +12,7 @@ import { useWorld } from "../game/world";
 import { allowMotion, countSteps, probeMotion } from "../game/steps";
 import { play } from "../game/sound";
 import { itemList } from "./WorldPanels";
+import { now as gameNow } from "../game/gameClock";
 
 function clock(ms: number, lang: string): string {
   const m = Math.max(0, Math.ceil(ms / 60_000));
@@ -23,14 +24,14 @@ export function Outings({ pet }: { pet: Pet }) {
   const lang = useLang((s) => s.lang) as "en" | "zh";
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
   const { world, startWalk, addSteps, endWalk, startTrip, endTrip, lastOuting } = useWorld();
-  const [tick, setNow] = useState(Date.now());
+  const [tick, setNow] = useState(gameNow());
   // never behind the walk's own start, so the first second cannot show negative steps
   const now = Math.max(tick, world.walk?.startedAt ?? 0);
   const [starting, setStarting] = useState(false);
   const walk = world.walk;
   const trip = world.trip;
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), walk ? 1000 : 30_000);
+    const id = setInterval(() => setNow(gameNow()), walk ? 1000 : 30_000);
     return () => clearInterval(id);
   }, [walk]);
   // steps from the motion sensor while the walk is on screen

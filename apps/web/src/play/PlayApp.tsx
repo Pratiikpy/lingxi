@@ -76,12 +76,15 @@ import { DESTINATION, outfitOf } from "@lingxi/world";
 import { Icon } from "./icons";
 import { Sprite } from "./Sprite";
 import "./play.css";
+import { ElsewhereOverlay, SaveBanner } from "./SaveScreens";
+import { SaveFileCard, SaveFileSheet, useSaveFileUi } from "./SaveFile";
+import { now } from "../game/gameClock";
 
 /** where Flit's shy visitor lives (room 56) */
 const BUTTERFLY_FOREST = 56;
 
 function phaseNow(): DayPhase {
-  const t = timeOfDay(new Date().getHours());
+  const t = timeOfDay(new Date(now()).getHours());
   return t === 0 ? "night" : t === 3 ? "evening" : "day";
 }
 
@@ -200,7 +203,7 @@ export function PlayApp() {
   // what the room sounds like: rain outdoors on a rainy day, else birds by day and crickets at night
   const outdoors = !INDOOR_ROOMS.has(worldRoom);
   useEffect(() => {
-    setAmbience(outdoors && weatherFor(new Date()) === "rain" ? "rain" : !outdoors ? "quiet" : phase === "night" ? "crickets" : phase === "day" ? "birds" : "quiet");
+    setAmbience(outdoors && weatherFor(new Date(now())) === "rain" ? "rain" : !outdoors ? "quiet" : phase === "night" ? "crickets" : phase === "day" ? "birds" : "quiet");
     return () => setAmbience("quiet");
   }, [outdoors, phase]);
   // over the resident's head: a quest to hand in, or one to offer
@@ -238,7 +241,7 @@ export function PlayApp() {
   const [decorating, setDecorating] = useState<string | null>(null);
   const others = useLive((s) => s.members);
   const roster = useGame((s) => s.pets);
-  const [hourNow, setHourNow] = useState(() => Math.floor(Date.now() / 3_600_000));
+  const [hourNow, setHourNow] = useState(() => Math.floor(now() / 3_600_000));
   const liveConnect = useLive((s) => s.connect);
   const liveMood = useLive((s) => s.mood);
   const liveEmote = useLive((s) => s.emote);
@@ -304,7 +307,7 @@ export function PlayApp() {
   useEffect(() => {
     const p = useGame.getState().pet;
     if (!p || !liveAvailable()) return;
-    liveConnect({ name: p.name, line: p.line, stage: stageOf(p, Date.now()), mood: p.last.mood, ...(chainPetId ? { petId: chainPetId } : {}) }, space);
+    liveConnect({ name: p.name, line: p.line, stage: stageOf(p, now()), mood: p.last.mood, ...(chainPetId ? { petId: chainPetId } : {}) }, space);
   }, [space, liveConnect, pet?.name, chainPetId]);
   useEffect(() => {
     if (pet) liveMood(pet.last.mood);
@@ -338,7 +341,7 @@ export function PlayApp() {
     const id = setInterval(() => {
       tick();
       setPhase(phaseNow());
-      setHourNow(Math.floor(Date.now() / 3_600_000));
+      setHourNow(Math.floor(now() / 3_600_000));
     }, 5_000);
     const onVis = () => {
       if (!document.hidden) {
@@ -372,7 +375,7 @@ export function PlayApp() {
     void useVoice.getState().speak(p, useLang.getState().lang as "en" | "zh", true);
   }, [act, say]);
 
-  const stage = pet ? drawnStage(stageOf(pet, Date.now())) : "baby";
+  const stage = pet ? drawnStage(stageOf(pet, now())) : "baby";
   const face = useMemo(() => (pet ? drawPet(pet.line, stage, { expression: "happy", ...(pet.form ? { form: pet.form } : {}) }) : null), [pet?.line, stage, pet?.form]);
 
   // say so when a relative arrives (once per visit); the visitors themselves are drawn in the room
@@ -382,7 +385,7 @@ export function PlayApp() {
     const seen = `${hourNow}:${pet.bornAt}:${kinArrivals}`;
     if (KIN_SEEN.has(seen)) return;
     KIN_SEEN.add(seen);
-    setWorldMsg({ id: Date.now(), text: lang === "zh" ? `${kinArrivals}来看${pet.name}了。` : `${kinArrivals} dropped by to see ${pet.name}.` });
+    setWorldMsg({ id: now(), text: lang === "zh" ? `${kinArrivals}来看${pet.name}了。` : `${kinArrivals} dropped by to see ${pet.name}.` });
   }, [kinArrivals]);
 
   // S11: inside Telegram, its back button closes whichever sheet is open
@@ -418,6 +421,10 @@ export function PlayApp() {
         <SitArrival />
         <FarewellNote />
         <HandheldReturn />
+        <SaveBanner onSaveFile={() => useSaveFileUi.getState().show()} />
+        <SaveFileSheet here={[]} />
+        <MoveNotes />
+        <ElsewhereOverlay />
       </>
     );
   }
@@ -442,7 +449,7 @@ export function PlayApp() {
           id: `kin:${k.pet.bornAt}`,
           name: k.pet.name,
           line: k.pet.line,
-          stage: stageOf(k.pet, Date.now()),
+          stage: stageOf(k.pet, now()),
           mood: 2,
           who: lang === "zh" ? `${pet.name}的${KIN_WORD[k.kin].zh}，从你的宠物里过来串门。` : `${pet.name}'s ${KIN_WORD[k.kin].en}, dropping by from your other pets.`,
           // a hello when they arrive this hour
@@ -667,10 +674,10 @@ export function PlayApp() {
                   const other = others[picked]!;
                   const block = familyBlock(pet, other.stage, lang) ?? bondBlock(pet, bondsOf(friendsAll, pet.bornAt)[friendKey(other.id, other.name)]?.points ?? 0, other.name, lang);
                   setPicked(null);
-                  if (block) return setWorldMsg({ id: Date.now(), text: block });
+                  if (block) return setWorldMsg({ id: now(), text: block });
                   play("tap");
                   livePropose(other.id, useChain.getState().infoOf(pet) ?? undefined);
-                  setWorldMsg({ id: Date.now(), text: lang === "zh" ? `问过${other.name}的主人了，等回复……` : `Asked ${other.name}'s owner. Waiting for an answer…` });
+                  setWorldMsg({ id: now(), text: lang === "zh" ? `问过${other.name}的主人了，等回复……` : `Asked ${other.name}'s owner. Waiting for an answer…` });
                 }}
               >
                 <Icon name="heart" size={16} /> {lang === "zh" ? "家人" : "Family"}
@@ -787,6 +794,7 @@ export function PlayApp() {
       <LevelUpMoment />
       <Sheet open={tab === "me"} title={t("me.title", { name: pet.name })} onClose={close}>
         <TelegramCard />
+        <SaveFileCard />
         <WardrobePanel pet={pet} />
         <hr className="divider" />
         <Lazy><StudioPanel pet={pet} /></Lazy>
@@ -852,6 +860,9 @@ export function PlayApp() {
       </Sheet>
       <MoveSheet />
       <MoveNotes />
+      <SaveBanner onSaveFile={() => useSaveFileUi.getState().show()} />
+      <SaveFileSheet here={roster.map((p) => p.name)} />
+      <ElsewhereOverlay />
     </div>
   );
 }

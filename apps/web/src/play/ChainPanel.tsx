@@ -10,6 +10,8 @@ import { SelfTape } from "./SelfTape";
 import { play } from "../game/sound";
 import { NameClaim } from "./NameClaim";
 import { useGame } from "../game/store";
+import { SEND_LIMITS, TooBig, checkSize, sizeNote } from "../game/sendSize";
+import { now } from "../game/gameClock";
 
 const ERR: Record<string, Key> = {
   noWallet: "chain.noWallet",
@@ -40,7 +42,7 @@ export function ChainPanel({ pet }: { pet: Pet }) {
   const [friend, setFriend] = useState("");
   const [days, setDays] = useState(3);
   const [lowGas, setLowGas] = useState(false);
-  const auto = autoStatus(record, Date.now());
+  const auto = autoStatus(record, now());
   useEffect(() => {
     if (auto === "off") return;
     let live = true;
@@ -130,7 +132,7 @@ export function ChainPanel({ pet }: { pet: Pet }) {
           </div>
           <div className="keeping">
             <p className="label">{t("sit.title")}</p>
-            {record.sitter && record.sitter.until * 1000 > Date.now() ? (
+            {record.sitter && record.sitter.until * 1000 > now() ? (
               <>
                 <p className="small">{t("sit.now", { who: short(record.sitter.who), date: dateOf(record.sitter.until, lang) })}</p>
                 <button type="button" className="btn" disabled={busy !== "idle"} onClick={() => (play("tap"), endSitting(pet))}>
@@ -231,6 +233,8 @@ function PublishDiary({ pet, petId, log }: { pet: Pet; petId: string; log: strin
           setBusy(true);
           setNote("");
           try {
+            // measured before it leaves: a diary over the page's limit is never sent
+            checkSize(log, SEND_LIMITS.logBodyBytes, { unit: "words", have: words, most: SEND_LIMITS.logWords });
             const r = await fetch(`${DIARY_BASE}/api/pets/${petId}/log`, { method: "POST", headers: { "content-type": "application/json" }, body: log, signal: AbortSignal.timeout(20000) });
             const j = (await r.json()) as { ok: boolean; beats?: number; reason?: string };
             play(j.ok ? "success" : "error");
@@ -243,8 +247,13 @@ function PublishDiary({ pet, petId, log }: { pet: Pet; petId: string; log: strin
                     ? L("A longer diary is already on its page.", "它的页面上已经有更长的日记了。")
                     : L("That didn't go through. Try again later.", "没有成功，请稍后再试。"),
             );
-          } catch {
-            setNote(L("That didn't go through. Try again later.", "没有成功，请稍后再试。"));
+          } catch (e) {
+            play("error");
+            setNote(
+              e instanceof TooBig
+                ? L(`The diary is too long to publish in one go ${sizeNote(e, lang)}. Nothing was sent.`, `日记太长，一次发布不了${sizeNote(e, lang)}。什么都没有发出去。`)
+                : L("That didn't go through. Try again later.", "没有成功，请稍后再试。"),
+            );
           }
           setBusy(false);
         }}

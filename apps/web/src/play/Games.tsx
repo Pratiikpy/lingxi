@@ -18,6 +18,7 @@ import { PALETTE_OF, type PetStage } from "../scene/textures";
 import { Sprite } from "./Sprite";
 import { Icon, type IconName } from "./icons";
 import "./games.css";
+import { now } from "../game/gameClock";
 
 type Lang = "en" | "zh";
 const drawn = (s: string): PetStage => (s === "elder" ? "adult" : (s as PetStage));
@@ -28,7 +29,7 @@ export function GamesPanel({ pet, onDone, onSchool }: { pet: Pet; onDone: () => 
   const act = useGame((s) => s.act);
   const [game, setGame] = useState<GameId | null>(null);
   const [result, setResult] = useState<{ game: GameId; score: number; stars: number } | null>(null);
-  const season = seasonOf(new Date());
+  const season = seasonOf(new Date(now()));
   const seasonal = SEASONAL[season];
   const block = pet.asleep
     ? lang === "zh"
@@ -120,7 +121,7 @@ function CatchGame({ pet, onEnd }: { pet: Pet; onEnd: (score: number) => void })
   const [score, setScore] = useState(0);
   const [left, setLeft] = useState(20);
   const st = useRef({ x: 50, drops: [] as Drop[], score: 0, next: 0, id: 0, start: 0, ended: false });
-  const art = useMemo(() => drawPet(pet.line, drawn(stageOf(pet, Date.now())), { expression: "happy", ...(pet.form ? { form: pet.form } : {}) }), [pet]);
+  const art = useMemo(() => drawPet(pet.line, drawn(stageOf(pet, now())), { expression: "happy", ...(pet.form ? { form: pet.form } : {}) }), [pet]);
   const room = useWorld((s) => s.world.room);
   const backdrop = (ROOMS[room] ?? ROOMS[HOME]!).bgs.day;
 
@@ -296,7 +297,7 @@ function SeekGame({ pet, season, onEnd }: { pet: Pet; season: keyof typeof SEASO
   const [phase, setPhase] = useState<"peek" | "mix" | "pick" | "reveal">("peek");
   const [hidden] = useState(() => (seed.current >>> 3) % 3);
   const [picked, setPicked] = useState<number | null>(null);
-  const art = useMemo(() => drawPet(pet.line, drawn(stageOf(pet, Date.now())), { expression: "sparkly", ...(pet.form ? { form: pet.form } : {}) }), [pet]);
+  const art = useMemo(() => drawPet(pet.line, drawn(stageOf(pet, now())), { expression: "sparkly", ...(pet.form ? { form: pet.form } : {}) }), [pet]);
   const swaps = useMemo(() => shuffles(round, seed.current + round * 7919), [round]);
   const [c1, c2] = SPOT_COLOURS[season]!;
 

@@ -14,6 +14,7 @@
 
 import { create } from "zustand";
 import { useSound } from "./sound";
+import { now } from "./gameClock";
 
 export type SongId = "day" | "evening" | "night" | "spar";
 
@@ -306,7 +307,7 @@ export function songForHour(hour: number): SongId {
 /** Keeps the home music in step with the clock; a spar holds its own piece until it ends. */
 export function followClock(): () => void {
   const tick = () => {
-    if (useMusic.getState().song !== "spar") useMusic.getState().want(songForHour(new Date().getHours()));
+    if (useMusic.getState().song !== "spar") useMusic.getState().want(songForHour(new Date(now()).getHours()));
   };
   tick();
   const id = setInterval(tick, 60_000);

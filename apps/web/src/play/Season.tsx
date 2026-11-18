@@ -13,6 +13,7 @@ import { play } from "../game/sound";
 import { signSeasonEntry, recordOf } from "../game/chain";
 import { useWorld } from "../game/world";
 import { useMail } from "../game/mail";
+import { now } from "../game/gameClock";
 
 const ordinal = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
 import "./season.css";
@@ -35,7 +36,7 @@ export function SeasonCard({ pet }: { pet: Pet }) {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
   const [check, setCheck] = useState<{ same: boolean; digest: string } | null>(null);
-  const week = weekOf(Date.now());
+  const week = weekOf(now());
 
   const load = useCallback(async () => {
     setState("loading");
@@ -76,7 +77,7 @@ export function SeasonCard({ pet }: { pet: Pet }) {
   const enter = async () => {
     setBusy(true);
     setNote("");
-    const entry = { name: pet.name, line: pet.line, stage: stageOf(pet, Date.now()), card: petCard(pet), story: { days: dayOf(pet, Date.now()), lessons: pet.lessons.length, nature: [] } };
+    const entry = { name: pet.name, line: pet.line, stage: stageOf(pet, now()), card: petCard(pet), story: { days: dayOf(pet, now()), lessons: pet.lessons.length, nature: [] } };
     // a pet on X Layer enters as itself, signed, so it can win the keepsake; if that cannot be proven it still plays
     let proof: Awaited<ReturnType<typeof signSeasonEntry>> = null;
     let why: "unsigned" | "notProven" | null = null;
@@ -145,7 +146,7 @@ export function SeasonCard({ pet }: { pet: Pet }) {
           <p className="label">{L(`Weekly season · ${week}`, `每周赛季 · ${week}`)}</p>
           <p className="small">
             {view
-              ? L(`${view.entries.length} entered · ends in ${left(view.ends - Date.now(), lang)} · every pet fights every other, from both sides; level on points, the smaller brain ranks higher.`, `${view.entries.length} 只参赛 · ${left(view.ends - Date.now(), lang)}后结束 · 每只宠物和其他每只各打两场（左右各一）；同分时大脑更小的排前面。`)
+              ? L(`${view.entries.length} entered · ends in ${left(view.ends - now(), lang)} · every pet fights every other, from both sides; level on points, the smaller brain ranks higher.`, `${view.entries.length} 只参赛 · ${left(view.ends - now(), lang)}后结束 · 每只宠物和其他每只各打两场（左右各一）；同分时大脑更小的排前面。`)
               : serverless
                 ? L("Weekly seasons are run by Lingxi's server, which this on-chain copy of the game doesn't use. Enter them on lingxi.knole.me.", "每周赛季由灵犀的服务器举办，这份链上版本不使用服务器。请到 lingxi.knole.me 参赛。")
                 : state === "error"

@@ -14,8 +14,10 @@ import { type Pet, type SitPack, stageOf } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { play } from "../game/sound";
 import { bringHomeNow, checkHome, collect, sendHome, sendToSitter, sitLink, sittingAvailable, takeIn } from "../game/sitting";
+import { TooBig, sizeNote } from "../game/sendSize";
 import { PALETTE_OF, type PetStage } from "../scene/textures";
 import { Sprite } from "./Sprite";
+import { now } from "../game/gameClock";
 
 type Lang = "en" | "zh";
 const drawn = (s: string): PetStage => (s === "elder" ? "adult" : s === "egg" ? "baby" : (s as PetStage));
@@ -54,9 +56,22 @@ export function SitPanel({ pet }: { pet: Pet }) {
           onClick={async () => {
             play("tap");
             setBusy(true);
-            const ok = await sendHome(pet).catch(() => false);
+            const { ok, big } = await sendHome(pet).then(
+              (sent) => ({ ok: sent, big: null }),
+              (e: unknown) => ({ ok: false, big: e instanceof TooBig ? e : null }),
+            );
             setBusy(false);
-            setMsg(ok ? null : lang === "zh" ? "没送出去，请再试一次。" : "It couldn't be sent home; please try again.");
+            setMsg(
+              ok
+                ? null
+                : big
+                  ? lang === "zh"
+                    ? `${s.name}这次带回家的东西太多，发不出去${sizeNote(big, lang)}。什么都没有丢，它会留在你这里。`
+                    : `${s.name} has too much to carry home this way ${sizeNote(big, lang)}. Nothing is lost; it stays with you for now.`
+                  : lang === "zh"
+                    ? "没送出去，请再试一次。"
+                    : "It couldn't be sent home; please try again.",
+            );
             if (ok) play("success");
           }}
         >
@@ -93,8 +108,16 @@ export function SitPanel({ pet }: { pet: Pet }) {
               const url = await sendToSitter(pet, days);
               await share(url, lang === "zh" ? `来照看${pet.name}` : `Look after ${pet.name}`);
               play("success");
-            } catch {
-              setMsg(lang === "zh" ? "没能送出，请再试一次。" : "It couldn't be sent; please try again.");
+            } catch (e) {
+              setMsg(
+                e instanceof TooBig
+                  ? lang === "zh"
+                    ? `${pet.name}的存档太大，送不到朋友那里${sizeNote(e, lang)}。什么都没有发出去，它还在你身边。`
+                    : `${pet.name}'s save is too large to send to a friend ${sizeNote(e, lang)}. Nothing was sent; it is still with you.`
+                  : lang === "zh"
+                    ? "没能送出，请再试一次。"
+                    : "It couldn't be sent; please try again.",
+              );
             } finally {
               setBusy(false);
             }
@@ -192,7 +215,7 @@ export function SitArrival() {
     window.addEventListener("hashchange", read);
     return () => window.removeEventListener("hashchange", read);
   }, []);
-  const art = useMemo(() => (arrival && "pack" in arrival ? drawPet(arrival.pack.pet.line, drawn(stageOf(arrival.pack.pet, Date.now())), { expression: "happy" }) : null), [arrival]);
+  const art = useMemo(() => (arrival && "pack" in arrival ? drawPet(arrival.pack.pet.line, drawn(stageOf(arrival.pack.pet, now())), { expression: "happy" }) : null), [arrival]);
   if (!arrival) return null;
   const close = () => setArrival(null);
   if ("error" in arrival)

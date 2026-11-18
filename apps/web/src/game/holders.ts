@@ -9,6 +9,8 @@
 import { create } from "zustand";
 import { type Address, parseAbi } from "viem";
 import { publicClient } from "./chain";
+import { saveWrite } from "./saveRuntime";
+import { now } from "./gameClock";
 
 /** The contracts on X Layer (chain 196), as TapeOut's and Fab X's own sites configure them. */
 export const HOLDINGS = {
@@ -37,7 +39,7 @@ export interface Holdings {
 export async function readHoldings(wallet: Address): Promise<Holdings> {
   const bal = async (token: string) => ((await publicClient.readContract({ address: token as Address, abi: balanceAbi, functionName: "balanceOf", args: [wallet] })) as bigint) > 0n;
   const [rig, bem, fab, test1] = await Promise.all([bal(HOLDINGS.rig), bal(HOLDINGS.bem), bal(HOLDINGS.fab), bal(HOLDINGS.test1)]);
-  return { wallet: wallet.toLowerCase(), rig, bem, fab, test1, at: Date.now() };
+  return { wallet: wallet.toLowerCase(), rig, bem, fab, test1, at: now() };
 }
 
 const KEY = "lingxi.holdings.v1";
@@ -63,7 +65,7 @@ function load(): { held: Holdings | null; skinOn: boolean } {
 export const useHoldings = create<HoldingsStore>((set, get) => {
   const keep = (next: { held: Holdings | null; skinOn: boolean }) => {
     try {
-      localStorage.setItem(KEY, JSON.stringify(next));
+      saveWrite(KEY, JSON.stringify(next));
     } catch {
       // private mode: lasts for this visit
     }

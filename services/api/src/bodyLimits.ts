@@ -6,18 +6,19 @@
 
 import type { Context, Hono, MiddlewareHandler } from "hono";
 import { bodyLimit } from "hono/body-limit";
+import { SEND_LIMITS } from "@lingxi/chain/limits";
 
 const KB = 1024;
 /** [path pattern, bytes] — the first that matches wins */
 export const BODY_LIMITS: ReadonlyArray<readonly [RegExp, number]> = [
   // a whole game save moving to another device (every local store, as text)
-  [/^\/api\/move$/, 4096 * KB],
+  [/^\/api\/move$/, SEND_LIMITS.moveBodyBytes],
   // a pet's published thought log: up to 100,000 words, listed twice (whole and by brain)
-  [/^\/api\/pets\/\d+\/log$/, 1536 * KB],
+  [/^\/api\/pets\/\d+\/log$/, SEND_LIMITS.logBodyBytes],
   // adoption papers (PAPERS_MAX 600,000 characters) and their signature
   [/^\/api\/papers\/\d+$/, 620 * KB],
   // a pet left with a friend, or coming home from one (700,000 as before)
-  [/^\/api\/sit(\/[^/]+\/home)?$/, 700 * KB],
+  [/^\/api\/sit(\/[^/]+\/home)?$/, SEND_LIMITS.sitBodyBytes],
   [/^\/api\/(arena\/snapshot|season\/enter)$/, 16 * KB],
   [/^\/api\/(teach|voice|lessons\/share|push\/(plan|stop))$/, 16 * KB],
   [/^\/api\/v1\//, 16 * KB],

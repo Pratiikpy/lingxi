@@ -1,0 +1,194 @@
+{
+ "build": "327f6b1",
+ "built": "2026-11-18T07:38:57+05:30",
+ "why": "renamed residents: lingxi.names.v2",
+ "page": "play.html",
+ "captured": "2026-11-18T11:06:11Z",
+ "keys": {
+  "lingxi.mail.v1": {
+   "read": [
+    "lane",
+    "garden",
+    "outings"
+   ],
+   "claimed": [
+    "garden"
+   ],
+   "local": []
+  },
+  "lingxi.player.v1": "97591c218223c18e",
+  "lingxi.pets.v2": {
+   "active": 0,
+   "pets": [
+    {
+     "version": 1,
+     "name": "Kiri",
+     "line": "gentle",
+     "bornAt": 1794999952328,
+     "beat": 29916666,
+     "meters": {
+      "food": 37155,
+      "joy": 41970,
+      "energy": 47372,
+      "clean": 59982
+     },
+     "asleep": false,
+     "hibernating": false,
+     "starvingBeats": 0,
+     "brain": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "lessons": [],
+     "traits": {
+      "brave": 0,
+      "curious": 0,
+      "greedy": 0,
+      "calm": 0,
+      "playful": 0,
+      "gentle": 0,
+      "shy": 0
+     },
+     "xp": 1,
+     "growth": {
+      "level": 1,
+      "points": 1,
+      "skills": {}
+     },
+     "counts": {
+      "feed": 0,
+      "play": 0,
+      "clean": 1,
+      "pet": 0,
+      "lessons": 0
+     },
+     "diet": {
+      "sweet": 0,
+      "fruit": 0,
+      "savory": 0,
+      "grain": 0
+     },
+     "logHash": "0xbc6cc1bc1f1e6d9b492a3d4bbcdcbb83f0cd66c3cf7ae904e678eee11a891be3",
+     "pendingLog": [
+      36601,
+      761
+     ],
+     "last": {
+      "want": 0,
+      "mood": 1,
+      "nudge": 0,
+      "rule": -1,
+      "word": 761,
+      "before": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "tzOffsetMin": 330,
+     "logMarks": [
+      [
+       0,
+       29916665
+      ]
+     ],
+     "logBeat": 29916666,
+     "xpCarry": 0,
+     "dirtyBeats": 0
+    }
+   ]
+  },
+  "lingxi.badges.v1": {
+   "pets": 1,
+   "care": 1,
+   "clean": 1,
+   "stage": 1
+  },
+  "lingxi.lang": "en",
+  "lingxi.names.v2": "1",
+  "lingxi.reveal.v1": "1",
+  "lingxi.world.v1": {
+   "version": 1,
+   "room": 65,
+   "coins": 30,
+   "bag": {
+    "1003": 1,
+    "7102": 2,
+    "11130": 3,
+    "11301": 2,
+    "11313": 2
+   },
+   "visited": [
+    65
+   ],
+   "foraged": {
+    "65": 498611
+   },
+   "crafted": 0,
+   "foragedCount": 1,
+   "seed": "1849151f8518baea",
+   "claimed": [],
+   "tally": {
+    "CARE:0": 1,
+    "CARE:clean": 1,
+    "CARE:clean-day": 1,
+    "FORAGE:0": 1,
+    "FORAGE:65": 1,
+    "FIND:0": 1,
+    "FIND:1003": 1
+   },
+   "tallied": 1,
+   "extras": {
+    "room": 0,
+    "looks": 0
+   },
+   "quests": {
+    "active": {
+     "d-breakfast": {
+      "at": 1794999952740,
+      "snap": {
+       "CARE:feed-morning": 0
+      }
+     },
+     "d-friend": {
+      "at": 1794999952740,
+      "snap": {
+       "EVENT:visited-by-friend": 0,
+       "MEET:0": 0
+      }
+     },
+     "d-look": {
+      "at": 1794999952740,
+      "snap": {
+       "FORAGE:0": 0
+      }
+     }
+    },
+    "done": {},
+    "today": {
+     "day": "2026-11-18",
+     "offered": [
+      "d-breakfast",
+      "d-friend",
+      "d-look"
+     ],
+     "done": []
+    }
+   },
+   "familiar": {
+    "65": 1
+   }
+  }
+ }
+}

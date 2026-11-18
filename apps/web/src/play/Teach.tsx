@@ -21,6 +21,7 @@ import { Sandbox } from "./Sandbox";
 import { OwnedInstinctPanel } from "./OwnedInstinct";
 import { MOOD_NAMES, VALUE_NAMES, WANT_NAMES, chipsFor } from "./ruleText";
 import "./teach.css";
+import { now } from "../game/gameClock";
 
 const REASON_KEY: Record<string, Key> = {
   full: "teach.full",
@@ -299,7 +300,7 @@ function Words({ pet, onPropose }: { pet: Pet; onPropose: (rule: Rule, reply: st
     setBusy(true);
     setMsg(null);
     play("tap");
-    const r = await teachInWords({ words, name: pet.name, line: pet.line, stage: stageOf(pet, Date.now()), lessons: pet.lessons });
+    const r = await teachInWords({ words, name: pet.name, line: pet.line, stage: stageOf(pet, now()), lessons: pet.lessons });
     setBusy(false);
     if (r.ok) onPropose(r.rule, r.reply[lang]);
     else setMsg(r.reply?.[lang] ?? t(REASON_KEY[r.reason] ?? "teach.error", { name: pet.name }));
@@ -451,7 +452,7 @@ export function TeachPanel({ pet }: { pet: Pet }) {
   const t = useT();
   const { lang } = useLang();
   const [proposal, setProposal] = useState<{ rule: Rule; reply?: string; source: Source } | null>(null);
-  const stage = stageOf(pet, Date.now());
+  const stage = stageOf(pet, now());
   // the stage's slots, those its skills add and any a quest gave: the same capacity the game checks when it teaches
   const slots = useWorld((s) => ((s.world.flags ?? []).includes("lesson-slot") ? 1 : 0));
   const max = lessonCapacity(stage, pet.growth, slots);

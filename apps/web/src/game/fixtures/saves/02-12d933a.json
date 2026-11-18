@@ -1,0 +1,105 @@
+{
+ "build": "12d933a",
+ "built": "2026-11-15T13:07:40+05:30",
+ "why": "the world arrives: lingxi.world.v1",
+ "page": "play.html",
+ "captured": "2026-11-18T10:57:44Z",
+ "keys": {
+  "lingxi.lang": "en",
+  "lingxi.pet.v1": {
+   "version": 1,
+   "name": "Kiri",
+   "line": "gentle",
+   "bornAt": 1794999451109,
+   "beat": 29916657,
+   "meters": {
+    "food": 34800,
+    "joy": 55440,
+    "energy": 42480,
+    "clean": 60000
+   },
+   "asleep": false,
+   "hibernating": false,
+   "starvingBeats": 0,
+   "brain": [
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    1,
+    0
+   ],
+   "lessons": [],
+   "traits": {
+    "brave": 0,
+    "curious": 0,
+    "greedy": 0,
+    "calm": 0,
+    "playful": 0,
+    "gentle": 0,
+    "shy": 0
+   },
+   "xp": 2,
+   "counts": {
+    "feed": 0,
+    "play": 1,
+    "clean": 1,
+    "pet": 0,
+    "lessons": 0
+   },
+   "diet": {
+    "sweet": 0,
+    "fruit": 0,
+    "savory": 0,
+    "grain": 0
+   },
+   "logHash": "0xc031f3c8e69c55443743aa9d4f4e1972e45dc9d1bb879fc326f34465f0e7864d",
+   "pendingLog": [
+    35565,
+    36589
+   ],
+   "last": {
+    "want": 2,
+    "mood": 3,
+    "nudge": 0,
+    "rule": 13,
+    "word": 36589,
+    "before": [
+     0,
+     0,
+     0,
+     1,
+     0,
+     1,
+     0,
+     0
+    ]
+   },
+   "tzOffsetMin": 330
+  },
+  "lingxi.reveal.v1": "1",
+  "lingxi.world.v1": {
+   "version": 1,
+   "room": 65,
+   "coins": 30,
+   "bag": {
+    "1003": 1,
+    "11130": 3,
+    "11301": 2,
+    "11313": 2
+   },
+   "visited": [
+    65
+   ],
+   "foraged": {
+    "65": 498610
+   },
+   "crafted": 0,
+   "foragedCount": 1,
+   "seed": "d3ce21045157fdfa",
+   "claimed": []
+  }
+ }
+}

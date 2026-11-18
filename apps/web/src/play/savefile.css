@@ -1,0 +1,155 @@
+/* the save file sheet (P1 S5) */
+.sf {
+  display: grid;
+  gap: 14px;
+}
+.sf-part {
+  display: grid;
+  gap: 10px;
+}
+.sf-part h3 {
+  margin: 0;
+  font-family: var(--round);
+  font-size: 18px;
+}
+.sf-part p {
+  margin: 0;
+  line-height: 1.5;
+}
+.sf-part > .btn {
+  justify-self: start;
+}
+.sf-field {
+  display: grid;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.sf-field input:not([type="file"]) {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--card);
+  color: var(--ink);
+  font: 500 16px var(--body);
+}
+.sf-pick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.sf-pick .btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  cursor: pointer;
+}
+/* the real file input, invisible but still reached by keyboard and screen readers through its label */
+.sf-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+}
+.sf-pick:focus-within .btn {
+  outline: 3px solid var(--sky);
+  outline-offset: 2px;
+}
+.sf-file-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+.sf-field input:focus-visible {
+  outline: 3px solid var(--sky);
+  outline-offset: 1px;
+}
+.sf-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sf-warn {
+  padding: 10px 12px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--sunny);
+  color: var(--plum);
+  font-weight: 700;
+}
+.sf-ok {
+  color: var(--ink);
+  font-weight: 700;
+}
+.sf-bad {
+  padding: 10px 12px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--pink);
+  color: var(--plum);
+}
+.sf-sum {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 12px;
+  margin: 0;
+  padding: 12px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--tint);
+}
+.sf-sum dt {
+  font-weight: 700;
+}
+.sf-sum dd {
+  margin: 0;
+}
+@media (max-width: 380px) {
+  .sf-sum {
+    grid-template-columns: 1fr;
+  }
+  .sf-sum dd {
+    margin-bottom: 6px;
+  }
+}
+.sf-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 12px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--tint);
+}
+.sf-card h3 {
+  margin: 0 0 2px;
+  font-family: var(--round);
+  font-size: 16px;
+}
+.sf-card p {
+  margin: 0;
+}
+.sf-card .btn {
+  flex: none;
+}
+.hatch-restore {
+  justify-self: center;
+  margin-top: 4px;
+  padding: 8px 12px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: 700 14px var(--round);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}

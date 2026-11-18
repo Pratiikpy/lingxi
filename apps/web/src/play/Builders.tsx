@@ -44,6 +44,8 @@ import { Sprite } from "./Sprite";
 import { noteEvent, noteTally } from "../game/tally";
 import { LaneQuests } from "./Quests";
 import { LaneFriendship } from "./Neighbours";
+import { saveWrite } from "../game/saveRuntime";
+import { now as gameNow } from "../game/gameClock";
 
 const PALETTES: Record<BuilderPet["look"]["palette"], Palette> = { silicon: SILICON, mars: MARS, sky: SKY, sunny: SUNNY, mint: MINT };
 const API = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
@@ -58,7 +60,7 @@ export function builderOutfit(b: BuilderPet, ms: number): Outfit {
 /** The resident of a room as the scene draws it. */
 export function builderInScene(b: BuilderPet, lang: "en" | "zh", saidAt: number) {
   // its line and mood come from its own circuit (plan 4.11)
-  const now = builderNow(b, Date.now(), new Date().getHours(), useBuilders.getState().met.includes(b.id));
+  const now = builderNow(b, gameNow(), new Date(gameNow()).getHours(), useBuilders.getState().met.includes(b.id));
   return {
     id: `builder:${b.id}`,
     name: b.name[lang],
@@ -87,7 +89,7 @@ export const useBuilders = create<{ met: BuilderId[]; meet: (id: BuilderId) => v
     if (get().met.includes(id)) return;
     const met = [...get().met, id];
     try {
-      localStorage.setItem(KEY, JSON.stringify(met));
+      saveWrite(KEY, JSON.stringify(met));
     } catch {
       // kept for this visit
     }
@@ -115,9 +117,9 @@ function BuilderArt({ b, scale, ms }: { b: BuilderPet; scale: number; ms: number
 
 /** Ticks while mounted, so the lamps follow the CPU. */
 function useNow(every: number): number {
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(() => gameNow());
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), every);
+    const id = setInterval(() => setNow(gameNow()), every);
     return () => clearInterval(id);
   }, [every]);
   return now;
@@ -204,7 +206,7 @@ function BehemothMind({ lang }: { lang: "en" | "zh" }) {
         onClick={async () => {
           play("tap");
           setCheck("busy");
-          const at = behemothStepNow(Date.now());
+          const at = behemothStepNow(gameNow());
           try {
             const r = await checkOnBnb(at);
             if (r === "same") noteEvent("lane-checked");
@@ -316,9 +318,9 @@ async function postcard(pet: Pet, b: BuilderPet, lang: "en" | "zh"): Promise<Blo
     ctx.drawImage(tmp, (-c.w / 2) * S, (feet - 45) * S, c.w * S, c.h * S);
     ctx.restore();
   };
-  const st = stageOf(pet, Date.now());
+  const st = stageOf(pet, gameNow());
   const mine = (st === "elder" ? "adult" : st) as "baby" | "child" | "teen" | "adult";
-  put(b.look.line, b.look.stage, PALETTES[b.look.palette], builderOutfit(b, Date.now()), 82, 112, true);
+  put(b.look.line, b.look.stage, PALETTES[b.look.palette], builderOutfit(b, gameNow()), 82, 112, true);
   put(pet.line, mine, PALETTE_OF[pet.line], outfitOf(useWorld.getState().world, String(pet.bornAt)) as Outfit, 44, 112, false, pet.form);
   ctx.fillStyle = "#2B2140";
   ctx.fillRect(0, 128 * S, el.width, 56);
@@ -343,12 +345,12 @@ export function BuilderCard({ b, pet, onSpar }: { b: BuilderPet; pet: Pet; onSpa
     meet(b.id);
     // every visit counts for quests, and so does each day you came by
     noteTally("MEET", b.id);
-    noteTally("MEET_DAY", `${b.id}-${localDay(Date.now(), -new Date().getTimezoneOffset())}`, 1, { total: false });
+    noteTally("MEET_DAY", `${b.id}-${localDay(gameNow(), -new Date(gameNow()).getTimezoneOffset())}`, 1, { total: false });
     if (party) {
       const k = `lingxi.laneparty.${party}`;
       try {
         if (!localStorage.getItem(k)) {
-          localStorage.setItem(k, "1");
+          saveWrite(k, "1");
           useBadges.getState().note("laneParty");
         }
       } catch {

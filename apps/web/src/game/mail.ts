@@ -6,6 +6,7 @@
 
 import { create } from "zustand";
 import { useWorld } from "./world";
+import { saveWrite } from "./saveRuntime";
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
 const KEY = "lingxi.mail.v1";
@@ -38,7 +39,7 @@ function load(): Kept {
 
 function save(k: Kept) {
   try {
-    localStorage.setItem(KEY, JSON.stringify(k));
+    saveWrite(KEY, JSON.stringify(k));
   } catch {
     // private mode: lasts for this visit
   }

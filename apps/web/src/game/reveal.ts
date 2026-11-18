@@ -8,6 +8,7 @@
 
 import { create } from "zustand";
 import { type Pet, dayOf } from "@lingxi/game";
+import { now as gameNow } from "./gameClock";
 
 const KEY = "lingxi.reveal.v1";
 export type Gated = "mind" | "map" | "bag" | "spar";
@@ -41,7 +42,7 @@ export const useReveal = create<RevealState>((set) => ({
 }));
 
 /** Whether a part is open for this pet now. */
-export function isOpen(part: string, pet: Pet, all: boolean, now = Date.now()): boolean {
+export function isOpen(part: string, pet: Pet, all: boolean, now = gameNow()): boolean {
   if (all || !(part in OPENS_ON)) return true;
   return dayOf(pet, now) >= OPENS_ON[part as Gated];
 }

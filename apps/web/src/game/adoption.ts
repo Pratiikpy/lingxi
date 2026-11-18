@@ -15,6 +15,8 @@ import { type ChainPetView, type PapersProblem, type Pet, checkPapers, savedLeng
 import { type Offer, adoptChild, adoptionTerms, childView, offerChild, offerable, readOffers, withdrawOffer } from "@lingxi/chain";
 import { type ChainRecord, connectWallet, deployment, publicClient, recordOf, setRecordOf, useChain } from "./chain";
 import { useGame } from "./store";
+import { saveRemove, saveWrite } from "./saveRuntime";
+import { now as gameNow } from "./gameClock";
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
 export const adoptionAvailable = () => !!deployment?.adoptionCentre;
@@ -47,7 +49,7 @@ export async function offerForAdoption(pet: Pet, priceUnits: bigint, untilSec: n
   if (pet.outside) return { ok: false, reason: "outsideInstinct" };
   const wallet = await connectWallet();
   const who = wallet.account!.address;
-  const can = await offerable(publicClient, deployment, BigInt(record.petId), who, Math.floor(Date.now() / 1000));
+  const can = await offerable(publicClient, deployment, BigInt(record.petId), who, Math.floor(gameNow() / 1000));
   if (can !== "ok") return { ok: false, reason: can };
   // save today first, if it has not been saved, so the papers follow straight on from the chain
   onStep("saving");
@@ -82,12 +84,12 @@ export async function checkCentre(pet: Pet): Promise<"waiting" | "adopted" | "ba
   }
   if (owner.toLowerCase() !== record.owner.toLowerCase()) {
     // adopted: it belongs to someone else now, so it leaves this device, with a note to say where it went
-    noteFarewell({ name: pet.name, petId, to: owner, at: Date.now() });
+    noteFarewell({ name: pet.name, petId, to: owner, at: gameNow() });
     setRecordOf(pet, null);
     useGame.getState().release(pet.bornAt);
     return "adopted";
   }
-  const stillOffered = offer && offer.live && offer.seller.toLowerCase() === record.owner.toLowerCase() && Date.now() < offer.expiresAt * 1000;
+  const stillOffered = offer && offer.live && offer.seller.toLowerCase() === record.owner.toLowerCase() && gameNow() < offer.expiresAt * 1000;
   if (stillOffered) return "waiting";
   comeBack(pet);
   return "back";
@@ -105,7 +107,7 @@ export interface Farewell {
 function noteFarewell(f: Farewell): void {
   try {
     const all = JSON.parse(localStorage.getItem(FAREWELL) ?? "[]") as Farewell[];
-    localStorage.setItem(FAREWELL, JSON.stringify([...all.filter((x) => x.petId !== f.petId), f].slice(-8)));
+    saveWrite(FAREWELL, JSON.stringify([...all.filter((x) => x.petId !== f.petId), f].slice(-8)));
   } catch {
     // the pet still goes; only the note is lost
   }
@@ -114,7 +116,7 @@ function noteFarewell(f: Farewell): void {
 export function takeFarewells(): Farewell[] {
   try {
     const all = JSON.parse(localStorage.getItem(FAREWELL) ?? "[]") as Farewell[];
-    localStorage.removeItem(FAREWELL);
+    saveRemove(FAREWELL);
     return Array.isArray(all) ? all.filter((f) => typeof f?.name === "string" && /^\d+$/.test(String(f.petId))) : [];
   } catch {
     return [];
@@ -190,7 +192,7 @@ export async function adoptFromCentre(c: CheckedOffer): Promise<{ ok: true; pet:
   const problem = checkPapers(withoutAway(c.papers.pet), view as ChainPetView);
   if (problem) return { ok: false, reason: problem };
   const tx: Hex = await adoptChild(publicClient, wallet, deployment, c.offer.petId, c.offer.price);
-  const now = Date.now();
+  const now = gameNow();
   const base = withoutAway(c.papers.pet);
   const pet: Pet = {
     ...base,
@@ -202,7 +204,7 @@ export async function adoptFromCentre(c: CheckedOffer): Promise<{ ok: true; pet:
     starvingBeats: 0,
     sick: false,
     dirtyBeats: 0,
-    tzOffsetMin: -new Date().getTimezoneOffset(),
+    tzOffsetMin: -new Date(gameNow()).getTimezoneOffset(),
   };
   const saved = savedLength(base.pendingLog, onChain.logHash) ?? 0;
   const record: ChainRecord = {

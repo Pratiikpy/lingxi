@@ -11,6 +11,7 @@ import { COMPOST, CROP, CROPS, GARDEN_ROOM, ITEM, ROOMS, gardenOf, plotStage } f
 import { useLang } from "../i18n";
 import { useWorld } from "../game/world";
 import { play } from "../game/sound";
+import { now as gameNow } from "../game/gameClock";
 
 const CROP_COLORS: Record<string, [string, string]> = { apple: ["#E8C14A", "#C98A00"], rice: ["#FFE08A", "#E0A21F"], pepper: ["#E8604A", "#B24A45"], clover: ["#FF9FC0", "#E5486C"] };
 
@@ -45,11 +46,11 @@ export function GardenPanel() {
   const lang = useLang((s) => s.lang);
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
   const { world, plant, harvest } = useWorld();
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(gameNow());
   const [picking, setPicking] = useState<number | null>(null);
   const [useCompost, setUseCompost] = useState(true);
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 30_000);
+    const id = setInterval(() => setNow(gameNow()), 30_000);
     return () => clearInterval(id);
   }, []);
   const plots = gardenOf(world);

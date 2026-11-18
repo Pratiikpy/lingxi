@@ -9,6 +9,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import wasmUrl from "@lingxi/handheld/wasm/lingxi-handheld.wasm?url";
 import { useLang } from "../i18n";
 import { DEVICE_KEY, INBOX_KEY, RETURN_KEY, fromB64 } from "../game/handheldKeys";
+import { handheldIsMine } from "../game/handheldLock";
 import "./handheld.css";
 
 interface HH {
@@ -97,7 +98,8 @@ export function HandheldApp() {
     if (!raw) return;
     const kept = JSON.parse(raw) as { packet: string; log: string };
     const log = new Uint8Array(x.memory.buffer, x.hh_log(), x.hh_log_len()).slice();
-    localStorage.setItem(DEVICE_KEY, JSON.stringify({ packet: kept.packet, log: b64(log) }));
+    // only the tab that runs the handheld writes its memory (P1)
+    if (handheldIsMine()) localStorage.setItem(DEVICE_KEY, JSON.stringify({ packet: kept.packet, log: b64(log) }));
   }, []);
 
   /** a pet waiting in the inbox comes aboard, or the one aboard is taken up again after a reload */

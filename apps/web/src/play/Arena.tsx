@@ -16,6 +16,7 @@ import { linkPrefix } from "../game/links";
 import { SILICON } from "@lingxi/art";
 import { BEHEMOTH_STEPS_PER_ROUND, behemothAt, behemothFighter } from "@lingxi/game";
 import { useBuilders } from "./Builders";
+import { now } from "../game/gameClock";
 
 const BEHEMOTH_PARTNER: Partner = { id: "builder:behemoth", name: { en: "Behemoth", zh: "巨兽" }, look: "behemoth", line: "gentle", stage: "adult", level: 1, blurb: { en: "", zh: "" }, program: STARTERS.gentle };
 import { useDaily } from "../game/daily";
@@ -103,14 +104,14 @@ type FightState = {
 
 /** The pet as it travels in a challenge link: its whole mind, its body, and a few true facts. */
 export function duelPetOf(pet: Pet): DuelPet {
-  const stage = stageOf(pet, Date.now());
+  const stage = stageOf(pet, now());
   const nature = [...TRAITS].filter((t) => pet.traits[t] > 0).sort((a, b) => pet.traits[b] - pet.traits[a]).slice(0, 2);
   return {
     name: pet.name,
     line: pet.line,
     stage,
     card: petCard(pet),
-    story: { days: dayOf(pet, Date.now()), lessons: pet.lessons.length, nature },
+    story: { days: dayOf(pet, now()), lessons: pet.lessons.length, nature },
   };
 }
 
@@ -139,7 +140,7 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken
   useEffect(() => {
     if (!fighting) return;
     useMusic.getState().want("spar");
-    return () => useMusic.getState().want(songForHour(new Date().getHours()));
+    return () => useMusic.getState().want(songForHour(new Date(now()).getHours()));
   }, [fighting]);
   useEffect(() => {
     if (!challenge) return;
@@ -172,7 +173,7 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken
       <FightView
         key={`${fight.result.seed}${again ? ":again" : ""}`}
         pet={pet}
-        self={{ name: pet.name, line: pet.line, stage: drawn(stageOf(pet, Date.now())) }}
+        self={{ name: pet.name, line: pet.line, stage: drawn(stageOf(pet, now())) }}
         {...shown}
         replay={again}
         onDone={() => setFight(null)}
@@ -184,7 +185,7 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken
 
   const makeLink = async () => {
     const id = Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => b.toString(16).padStart(2, "0")).join("");
-    const url = `${linkPrefix("play.html")}duel=${encodeChallenge({ id, from: duelPetOf(pet), at: Date.now() })}`;
+    const url = `${linkPrefix("play.html")}duel=${encodeChallenge({ id, from: duelPetOf(pet), at: now() })}`;
     setLink(url);
     play("success");
     try {
@@ -196,7 +197,7 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken
   };
 
   function start(partner: Partner, daily?: { seed: number }, opponent?: Fighter) {
-    const stage = stageOf(pet, Date.now());
+    const stage = stageOf(pet, now());
     const own = fighterOfMind(pet.name, { line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts, outside: pet.outside, growth: pet.growth }, levelOf(stage), pet.brain);
     // the daily challenge is the same fight for everyone, so it is always fought with the pet's own mind
     const adopted = useAdopted.getState().byPet[String(pet.bornAt)];
@@ -764,7 +765,7 @@ function Result({ pet, partner, result, reward, opponent, duel, cheer, instinct,
     if (result.winner === 0) return;
     // the coach runs a few hundred practice spars; let the result paint first
     const id = setTimeout(() => {
-      const stage = stageOf(pet, Date.now());
+      const stage = stageOf(pet, now());
       setNote(
         coach({
           result,
@@ -901,7 +902,7 @@ function SparChainCheck({ pet, partner, opponent, result, cheer }: { pet: Pet; p
       pet={pet}
       rounds={result.rounds.length}
       run={(petId, onProgress) => {
-        const me = fighterOfMind(pet.name, { line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts, outside: pet.outside, growth: pet.growth }, levelOf(stageOf(pet, Date.now())), pet.brain);
+        const me = fighterOfMind(pet.name, { line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts, outside: pet.outside, growth: pet.growth }, levelOf(stageOf(pet, now())), pet.brain);
         return checkSparOnChain({ petId, me, them: () => opponent ?? fighterOfPartner(partner), result, cheer, onProgress });
       }}
     />

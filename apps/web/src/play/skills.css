@@ -284,10 +284,11 @@
   font: 800 11px/1 var(--round);
   cursor: pointer;
 }
+/* a larger touch area, reaching out and down away from the face it sits on, so a tap on the face still opens the pets */
 .lv-chip::before {
   content: "";
   position: absolute;
-  inset: -12px;
+  inset: -4px -2px -14px -12px;
 }
 /* a dot when skill points are waiting */
 .who .lv-chip b,

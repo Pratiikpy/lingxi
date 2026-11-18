@@ -1,4 +1,3 @@
-import "../boot/legacyNames";
 import { StrictMode } from "react";
 import { followGoLink } from "../game/links";
 import { createRoot } from "react-dom/client";

@@ -26,6 +26,8 @@ import { useExtras } from "./extras";
 import { brainOf, countCare, useGame } from "./store";
 import { useWorld } from "./world";
 import { DEVICE_KEY, INBOX_KEY, RETURN_KEY, TRIP_KEY, fromB64 } from "./handheldKeys";
+import { saveRemove, saveWrite } from "./saveRuntime";
+import { now } from "./gameClock";
 
 export { DEVICE_KEY, INBOX_KEY, RETURN_KEY, TRIP_KEY, fromB64 };
 
@@ -64,8 +66,8 @@ export function readTrip(): Trip | null {
   }
 }
 function writeTrip(t: Trip | null): void {
-  if (t) localStorage.setItem(TRIP_KEY, JSON.stringify(t));
-  else localStorage.removeItem(TRIP_KEY);
+  if (t) saveWrite(TRIP_KEY, JSON.stringify(t));
+  else saveRemove(TRIP_KEY);
 }
 
 /* ── the brain that travels ───────────────────────────────────────────── */
@@ -150,7 +152,7 @@ export async function takeAlong(
   const packet = tripPacket(current, brainOut, snacks, {
     name: current.name,
     line: current.line,
-    stage: STAGE_INDEX[stageOf(current, Date.now())] ?? 1,
+    stage: STAGE_INDEX[stageOf(current, now())] ?? 1,
     form: 0,
     colour: r ? (useExtras.getState().colours[r.petId] ?? 0) : 0,
     lang,
@@ -178,11 +180,11 @@ export async function takeAlong(
       root: hex(brainOut.bytes),
       parts: brainOut.parts.map((q) => ({ processor: q.processor, id: q.id.toString(), nIn: q.nIn, nOut: q.nOut, hex: hex(q.bytes) })),
     },
-    sentAt: Date.now(),
+    sentAt: now(),
   };
   writeTrip(trip);
-  if (!deliver) localStorage.setItem(INBOX_KEY, trip.packet);
-  localStorage.removeItem(RETURN_KEY);
+  if (!deliver) saveWrite(INBOX_KEY, trip.packet);
+  saveRemove(RETURN_KEY);
   useGame.getState().replace({ ...current, away: { code: HANDHELD, key: "", until: 0, sitter: null } });
   return { ok: true, source };
 }
@@ -211,9 +213,9 @@ function finish(home: Pet, snacksLeft: ReadonlyArray<{ item: number; count: numb
   useGame.getState().replace(back as Pet);
   for (const s of snacksLeft) if (s.count > 0) useWorld.getState().receive(s.item, s.count);
   writeTrip(null);
-  localStorage.removeItem(INBOX_KEY);
-  localStorage.removeItem(DEVICE_KEY);
-  localStorage.removeItem(RETURN_KEY);
+  saveRemove(INBOX_KEY);
+  saveRemove(DEVICE_KEY);
+  saveRemove(RETURN_KEY);
   // the time since the handheld's last beat passes at home, as after any absence
   useGame.getState().wakeUp();
 }
@@ -228,7 +230,7 @@ export async function bringPetHome(packet: Uint8Array, release?: () => Promise<v
   const t = readTrip();
   if (!t || focusTravelling(t) < 0) return { ok: false, reason: "noTrip" };
   const { brain } = tripBrainOf(tripBrain(t));
-  const r = bringHome(t.start, brain, t.snacks, packet, Date.now());
+  const r = bringHome(t.start, brain, t.snacks, packet, now());
   if (!r.ok) return r;
   if (release) await release();
   for (const c of r.cares) countCare(c.kind, c.wasAsleep, c.result);
@@ -270,12 +272,12 @@ function owed(): string[] {
   }
 }
 function owe(startDigest: string): void {
-  localStorage.setItem(OWED_KEY, JSON.stringify([...new Set([...owed(), startDigest])].slice(-16)));
+  saveWrite(OWED_KEY, JSON.stringify([...new Set([...owed(), startDigest])].slice(-16)));
 }
 /** whether a pet a Cardputer still carries is one this game called back, by the trip's start digest */
 export const isOwed = (startDigest: string): boolean => owed().includes(startDigest);
 export function settleOwed(startDigest: string): void {
-  localStorage.setItem(OWED_KEY, JSON.stringify(owed().filter((d) => d !== startDigest)));
+  saveWrite(OWED_KEY, JSON.stringify(owed().filter((d) => d !== startDigest)));
 }
 
 /** For the screen: what this trip took and where its brain came from. */

@@ -15,6 +15,7 @@ import { play } from "../game/sound";
 import { PALETTE_OF } from "../scene/textures";
 import { Sprite } from "./Sprite";
 import "./adoption.css";
+import { now } from "../game/gameClock";
 
 type Lang = "en" | "zh";
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -70,7 +71,7 @@ export function AdoptionPanel({ pet }: { pet: Pet }) {
 
   const record = recordOf(pet);
   const bornSec = record?.bornChain ?? 0;
-  const nowSec = Math.floor(Date.now() / 1000);
+  const nowSec = Math.floor(now() / 1000);
   const youngLeft = terms ? bornSec + terms.youngAge - nowSec : 0;
   const canOffer = !!record && !!pet.family && !pet.away && !pet.sitting && !pet.outside && youngLeft > 3600 && papersAvailable();
   const units = parseBem(price);

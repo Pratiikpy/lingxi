@@ -5,6 +5,7 @@
  */
 
 import type { DuelPet } from "@lingxi/game";
+import { saveWrite } from "./saveRuntime";
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
 const DEVICE_KEY = "lingxi.device.v1";
@@ -21,7 +22,7 @@ export function deviceId(): string {
     const have = localStorage.getItem(DEVICE_KEY);
     if (have && /^[0-9a-f]{32}$/.test(have)) return have;
     const id = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
-    localStorage.setItem(DEVICE_KEY, id);
+    saveWrite(DEVICE_KEY, id);
     return id;
   } catch {
     return "0".repeat(32);

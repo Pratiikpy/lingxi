@@ -6,6 +6,7 @@
 import type { DuelPet, SeasonEntry, Standing } from "@lingxi/game";
 import { deviceId } from "./arenaApi";
 import type { SignedRelay } from "@lingxi/chain";
+import { saveWrite } from "./saveRuntime";
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
 const KEY = "lingxi.season.v1";
@@ -40,7 +41,7 @@ export function mine(): Mine {
 
 function keep(m: Mine) {
   try {
-    localStorage.setItem(KEY, JSON.stringify(m));
+    saveWrite(KEY, JSON.stringify(m));
   } catch {
     // private mode: lasts for this visit
   }

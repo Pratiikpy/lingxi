@@ -153,6 +153,15 @@ describe("dailies", () => {
     expect(questStatus(notToday, next, view(next, T0 + DAY))).toBe("locked");
   });
 
+  it("never hands out an earlier day's dailies again when the clock goes back (P1)", () => {
+    let w = rollDailies(newWorld("seed"), POOL, view(newWorld("seed"), T0 + DAY), 0);
+    const today = w.quests!.today!;
+    // the clock turned back a day: today's set stays, nothing new is offered
+    expect(rollDailies(w, POOL, view(w, T0), 0)).toBe(w);
+    w = rollDailies(w, POOL, view(w, T0 + 2 * DAY), 0);
+    expect(w.quests!.today!.day).not.toBe(today.day);
+  });
+
   it("an unfinished daily lapses with its day and costs nothing", () => {
     let w = rollDailies(newWorld("seed"), POOL, view(newWorld("seed")), 0);
     const first = w.quests!.today!.offered;

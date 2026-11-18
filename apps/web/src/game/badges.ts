@@ -7,6 +7,7 @@
 import { create } from "zustand";
 import { type Badge, type Ledger, type Metric, newTiers, record, visitRoom } from "@lingxi/game";
 import { play } from "./sound";
+import { saveWrite } from "./saveRuntime";
 
 const KEY = "lingxi.badges.v1";
 
@@ -35,7 +36,7 @@ export const useBadges = create<BadgeState>((set, get) => {
     const before = get().ledger;
     if (next === before) return;
     try {
-      localStorage.setItem(KEY, JSON.stringify(next));
+      saveWrite(KEY, JSON.stringify(next));
     } catch {
       // kept for this visit
     }

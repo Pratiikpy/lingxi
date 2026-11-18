@@ -57,6 +57,10 @@ describe("gifts", () => {
     // the next day it counts again
     const next = giveGift(again.world, praline, 11313, "2026-11-21");
     expect(next.ok && trustOf(next.world, "praline")).toBe(8);
+    // a clock turned back to an earlier day adds no trust: a day only moves forward (P1)
+    if (!next.ok) throw new Error(next.reason);
+    const back = giveGift(withItem(next.world, 11313, 1), praline, 11313, "2026-11-20");
+    expect(back.ok && [back.trust, trustOf(back.world, "praline")]).toEqual([0, 8]);
   });
 
   it("are politely refused when disliked: the item stays and the taste is remembered", () => {

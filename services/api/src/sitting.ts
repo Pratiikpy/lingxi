@@ -15,8 +15,9 @@ import { createHash, randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync } from "node:fs";
 import { readFile, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { SEND_LIMITS } from "@lingxi/chain/limits";
 
-const MAX_PACK = 600_000;
+const MAX_PACK = SEND_LIMITS.sitPackChars;
 const KEEP_AFTER_MS = 7 * 86_400_000;
 const MAX_SITTING_MS = 31 * 86_400_000;
 const CODE = /^[a-f0-9]{24}$/;

@@ -10,6 +10,7 @@
 
 import { createWalletClient, http, parseEther, type Hex, type WalletClient } from "viem";
 import { generatePrivateKey, privateKeyToAccount, type PrivateKeyAccount } from "viem/accounts";
+import { saveWrite } from "./saveRuntime";
 
 const KEY = "lingxi.session.v1";
 
@@ -34,7 +35,7 @@ export function sessionAccount(): PrivateKeyAccount {
   if (!k) {
     k = generatePrivateKey();
     try {
-      localStorage.setItem(KEY, k);
+      saveWrite(KEY, k);
     } catch {
       // kept in memory for this visit
     }

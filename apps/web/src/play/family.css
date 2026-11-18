@@ -156,3 +156,13 @@
   font-family: var(--display);
   font-size: 11px;
 }
+/* pets kept safe for a newer Lingxi (P1) */
+.fam-kept {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border: 2px dashed var(--line);
+  border-radius: var(--r-md);
+  background: var(--tint);
+  font-size: 14px;
+  line-height: 1.45;
+}

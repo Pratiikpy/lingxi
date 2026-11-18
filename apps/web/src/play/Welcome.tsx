@@ -14,6 +14,7 @@ import { useLang } from "../i18n";
 import { programFor, useGame } from "../game/store";
 import { useWorld } from "../game/world";
 import { play } from "../game/sound";
+import { saveWrite } from "../game/saveRuntime";
 
 type Lang = "en" | "zh";
 const CLAIMED = "lingxi.away.claimed";
@@ -33,7 +34,7 @@ function claimed(key: string): boolean {
 }
 function claim(key: string): void {
   try {
-    localStorage.setItem(CLAIMED, key);
+    saveWrite(CLAIMED, key);
   } catch {
     // shown again next time at worst; the find is still given once per visit
   }

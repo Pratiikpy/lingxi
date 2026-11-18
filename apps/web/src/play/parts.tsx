@@ -13,6 +13,7 @@ import { Icon, type IconName } from "./icons";
 import { WANT_COLORS, decidingChips, WANT_NAMES } from "./ruleText";
 import { PetName } from "./PetName";
 import { recordOf } from "../game/chain";
+import { now as gameNow } from "../game/gameClock";
 
 export function Chips({ when, then, want }: { when: string[]; then: string; want?: number }) {
   const { lang } = useLang();
@@ -38,7 +39,7 @@ export function TopBar({ pet, daily, face, onQuests, onPets, petCount, onMail, u
   const t = useT();
   const toggleLang = useLang((s) => s.toggle);
   const sound = useSound();
-  const now = Date.now();
+  const now = gameNow();
   const done = [daily.fed, daily.played, daily.cleaned, daily.petted];
   const n = done.filter(Boolean).length;
   return (

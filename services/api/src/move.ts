@@ -8,11 +8,12 @@
 
 import { randomBytes } from "node:crypto";
 import { z } from "zod";
+import { SEND_LIMITS } from "@lingxi/chain/limits";
 
 /** How long a move waits to be claimed. */
 export const MOVE_TTL_MS = 15 * 60_000;
 /** The largest save one move may carry (characters across all its entries). */
-export const MAX_MOVE_CHARS = 3_000_000;
+export const MAX_MOVE_CHARS = SEND_LIMITS.moveChars;
 const MAX_HELD = 500;
 /** All waiting moves together never hold more than this (characters), whatever their count: well under the memory
  * the server is restarted at (pm2 600 MB), with room for everything else it holds. */

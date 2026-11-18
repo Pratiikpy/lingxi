@@ -1,0 +1,386 @@
+{
+ "build": "https://lingxi.knole.me",
+ "built": "2026-11-18T04:14:01",
+ "why": "the 18 Nov audit on the live site: a handheld trip",
+ "keys": {
+  "lingxi.daily.v1": {
+   "block": {
+    "day": 20774,
+    "block": 76104564,
+    "hash": "0xdfa689b4c73141b80afc1ef02fe5f4e340e8acc4e9178e71f328946772600b78"
+   }
+  },
+  "lingxi.mail.v1": {
+   "read": [
+    "welcome"
+   ],
+   "claimed": [
+    "welcome"
+   ],
+   "local": []
+  },
+  "lingxi.pets.v2": {
+   "active": 0,
+   "pets": [
+    {
+     "version": 1,
+     "name": "Kopos",
+     "line": "bold",
+     "bornAt": 1794954645567,
+     "beat": 29915923,
+     "meters": {
+      "food": 49815,
+      "joy": 59940,
+      "energy": 36536,
+      "clean": 59964
+     },
+     "asleep": false,
+     "hibernating": false,
+     "starvingBeats": 0,
+     "brain": [
+      1,
+      0,
+      1,
+      1,
+      0,
+      1,
+      1,
+      1
+     ],
+     "lessons": [
+      {
+       "when": {
+        "event": [
+         1
+        ],
+        "joy": [
+         1,
+         2,
+         3
+        ]
+       },
+       "then": {
+        "want": 7,
+        "mood": 2,
+        "nudge": 6
+       },
+       "label": "shares toys with friends"
+      }
+     ],
+     "instincts": 1,
+     "traits": {
+      "brave": 0,
+      "curious": 0,
+      "greedy": 0,
+      "calm": 0,
+      "playful": 0,
+      "gentle": 0,
+      "shy": 0
+     },
+     "xp": 19,
+     "growth": {
+      "level": 1,
+      "points": 1,
+      "skills": {}
+     },
+     "counts": {
+      "feed": 1,
+      "play": 2,
+      "clean": 3,
+      "pet": 5,
+      "lessons": 1
+     },
+     "diet": {
+      "sweet": 0,
+      "fruit": 0,
+      "savory": 0,
+      "grain": 1
+     },
+     "logHash": "0x35f73c448c3ba664361136d9d43ab4c061e9c0e13994445a52e81dd27bcd1df8",
+     "pendingLog": [
+      249,
+      38137,
+      38141,
+      36093,
+      37117,
+      33021,
+      253,
+      35053,
+      33005,
+      33005,
+      35053,
+      33005,
+      33005,
+      237,
+      40173,
+      237,
+      237,
+      33005,
+      38125,
+      38125,
+      38125,
+      237,
+      34028,
+      36076,
+      36076,
+      236,
+      236
+     ],
+     "last": {
+      "want": 3,
+      "mood": 1,
+      "nudge": 0,
+      "rule": -1,
+      "word": 236,
+      "before": [
+       1,
+       0,
+       1,
+       1,
+       0,
+       1,
+       1,
+       1
+      ]
+     },
+     "tzOffsetMin": 330,
+     "dirtyBeats": 0,
+     "logMarks": [
+      [
+       0,
+       29915911
+      ],
+      [
+       1,
+       29915911
+      ],
+      [
+       2,
+       29915911
+      ],
+      [
+       3,
+       29915911
+      ],
+      [
+       4,
+       29915911
+      ],
+      [
+       5,
+       29915911
+      ],
+      [
+       7,
+       29915912
+      ],
+      [
+       10,
+       29915914
+      ],
+      [
+       14,
+       29915917
+      ],
+      [
+       18,
+       29915920
+      ],
+      [
+       19,
+       29915920
+      ],
+      [
+       20,
+       29915920
+      ],
+      [
+       22,
+       29915921
+      ],
+      [
+       23,
+       29915921
+      ],
+      [
+       24,
+       29915921
+      ]
+     ],
+     "logBeat": 29915923,
+     "kinship": 1,
+     "kinBeat": 29915911,
+     "xpCarry": 0,
+     "segments": [
+      {
+       "from": 0,
+       "lessons": []
+      },
+      {
+       "from": 14,
+       "lessons": [
+        {
+         "when": {
+          "event": [
+           1
+          ],
+          "joy": [
+           1,
+           2,
+           3
+          ]
+         },
+         "then": {
+          "want": 7,
+          "mood": 2,
+          "nudge": 6
+         },
+         "label": "shares toys with friends"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "lingxi.player.v1": "0d6d123b912ebd8eb84d7705",
+  "lingxi.badges.v1": {
+   "pets": 1,
+   "care": 11,
+   "petting": 5,
+   "kinship": 1,
+   "stage": 1,
+   "clean": 3,
+   "play": 2,
+   "lessons": 1,
+   "rooms_seen": [
+    60
+   ],
+   "rooms": 1,
+   "feed": 1,
+   "sparWins": 1
+  },
+  "lingxi.spar.v1": {
+   "plush": {
+    "w": 1,
+    "l": 0,
+    "d": 0
+   }
+  },
+  "lingxi.reveal.v1": "1",
+  "lingxi.decorKey": "c6e95080de2f116d57ebb68acd5fdb3e",
+  "lingxi.world.v1": {
+   "version": 1,
+   "room": 60,
+   "coins": 65,
+   "bag": {
+    "1001": 2,
+    "11130": 4,
+    "11301": 2,
+    "11313": 2
+   },
+   "visited": [
+    65,
+    60
+   ],
+   "foraged": {
+    "65": 498598
+   },
+   "crafted": 0,
+   "foragedCount": 1,
+   "seed": "7bd6fc1ea4dba182",
+   "claimed": [],
+   "tally": {
+    "EVENT:0": 3,
+    "EVENT:circuit-opened": 1,
+    "CARE:0": 13,
+    "CARE:pet": 5,
+    "CARE:pet-night": 5,
+    "CARE:clean": 3,
+    "CARE:clean-night": 3,
+    "CARE:sleep": 1,
+    "CARE:sleep-night": 1,
+    "CARE:wake": 1,
+    "CARE:wake-night": 1,
+    "CARE:play": 2,
+    "CARE:play-night": 2,
+    "TOGETHER:0": 6,
+    "TOGETHER:65": 5,
+    "TOGETHER_NIGHT:0": 6,
+    "TOGETHER_WHEN:0": 6,
+    "TOGETHER_WHEN:night": 6,
+    "TOGETHER_WHEN:night-65": 5,
+    "TOGETHER_WHEN:night-inside": 5,
+    "CHOOSE:0": 6,
+    "CHOOSE:sleep": 6,
+    "CHOOSE:sleep-65": 5,
+    "HEALTHY_DAY:2026-11-18": 6,
+    "EVENT:diary-read": 2,
+    "LESSON:0": 1,
+    "FORAGE:0": 1,
+    "FORAGE:65": 1,
+    "FIND:0": 2,
+    "FIND:1001": 2,
+    "MOVE:0": 1,
+    "VISIT:0": 1,
+    "VISIT:60": 1,
+    "COINS_EARNED:0": 35,
+    "USE:0": 1,
+    "USE:11130": 1,
+    "CARE:feed": 1,
+    "CARE:feed-night": 1,
+    "TOGETHER:60": 1,
+    "TOGETHER_WHEN:night-60": 1,
+    "TOGETHER_WHEN:night-outside": 1,
+    "CHOOSE:sleep-60": 1,
+    "FED:0": 1,
+    "FED:11130": 1,
+    "FED_GROUP:2026-11-18-grain": 1,
+    "SPAR:0": 1,
+    "SPAR_WIN:0": 1
+   },
+   "tallied": 1,
+   "flags": [],
+   "extras": {
+    "room": 0,
+    "looks": 0
+   },
+   "quests": {
+    "active": {
+     "d-nap": {
+      "at": 1794954645977,
+      "snap": {
+       "CARE:sleep": 0
+      }
+     },
+     "d-friend": {
+      "at": 1794954645977,
+      "snap": {
+       "EVENT:visited-by-friend": 0,
+       "MEET:0": 0
+      }
+     },
+     "d-walk": {
+      "at": 1794954645977,
+      "snap": {
+       "WALK:0": 0
+      }
+     }
+    },
+    "done": {},
+    "today": {
+     "day": "2026-11-18",
+     "offered": [
+      "d-nap",
+      "d-friend",
+      "d-walk"
+     ],
+     "done": []
+    }
+   },
+   "familiar": {
+    "65": 2
+   }
+  }
+ }
+}

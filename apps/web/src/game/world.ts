@@ -42,6 +42,8 @@ import { PROOF_KEY, takeProofChecks } from "./proofMark";
 import { useChain } from "./chain";
 import { brainOf, useGame } from "./store";
 import { play } from "./sound";
+import { saveWrite } from "./saveRuntime";
+import { now } from "./gameClock";
 
 const KEY = "lingxi.world.v1";
 
@@ -71,7 +73,7 @@ function load(): WorldState {
 
 function save(w: WorldState): void {
   try {
-    localStorage.setItem(KEY, JSON.stringify(w));
+    saveWrite(KEY, JSON.stringify(w));
   } catch {
     // keeps working in memory
   }
@@ -158,7 +160,7 @@ function tirePet(energy: number): void {
   const g = useGame.getState();
   const p = g.pet;
   if (!p) return;
-  g.replace(exert(p, energy, Date.now(), brainOf(p)));
+  g.replace(exert(p, energy, now(), brainOf(p)));
 }
 
 export const useWorld = create<WorldStore>((set, get) => ({
@@ -192,7 +194,7 @@ export const useWorld = create<WorldStore>((set, get) => ({
     const p = useGame.getState().pet;
     // at home where its kind lives: twice the familiarity (brave pets are at home in eerie places too)
     const kin = p ? affinitiesOf(p.line, ((p.instincts ?? 0) & 1) === 1) : [];
-    const r = forageHere(get().world, Date.now(), petEnergy(), mods, kin);
+    const r = forageHere(get().world, now(), petEnergy(), mods, kin);
     if (!r.ok) {
       play("error");
       return set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
@@ -225,7 +227,7 @@ export const useWorld = create<WorldStore>((set, get) => ({
     }
     // the work tires the pet and teaches it (plan 4.5)
     const p = g.pet;
-    if (p) g.replace(work(p, r.energy, r.xp, Date.now(), brainOf(p)));
+    if (p) g.replace(work(p, r.energy, r.xp, now(), brainOf(p)));
     save(r.world);
     play("success");
     set({ world: r.world, notice: { id: ++n, kind: "made", items: [{ item: r.made, n: 1 }], xp: r.xp } });
@@ -252,11 +254,11 @@ export const useWorld = create<WorldStore>((set, get) => ({
     const after = useGame.getState();
     if (def.kind === "food" && after.pet && after.toast && after.toast.id !== before && (after.toast.note === "ate" || after.toast.note === "woke")) {
       get().tally("FED", String(item), 1);
-      if (r.use.diet) get().tally("FED_GROUP", `${localDay(Date.now(), after.pet.tzOffsetMin)}-${r.use.diet}`, 1, { total: false });
+      if (r.use.diet) get().tally("FED_GROUP", `${localDay(now(), after.pet.tzOffsetMin)}-${r.use.diet}`, 1, { total: false });
     }
   },
   openBox: (box = 21007) => {
-    const r = openBoxRule(get().world, Date.now(), box);
+    const r = openBoxRule(get().world, now(), box);
     if (!r.ok) return set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
     save(r.world);
     play("success");
@@ -279,7 +281,7 @@ export const useWorld = create<WorldStore>((set, get) => ({
     return true;
   },
   plant: (plot, crop, withCompost) => {
-    const r = plantRule(get().world, plot, crop, withCompost, Date.now());
+    const r = plantRule(get().world, plot, crop, withCompost, now());
     if (!r.ok) {
       play("error");
       return set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
@@ -289,7 +291,7 @@ export const useWorld = create<WorldStore>((set, get) => ({
     set({ world: r.world, notice: { id: ++n, kind: "planted" } });
   },
   harvest: (plot) => {
-    const r = harvestRule(get().world, plot, Date.now());
+    const r = harvestRule(get().world, plot, now());
     if (!r.ok) {
       play("error");
       return set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
@@ -418,20 +420,20 @@ export const useWorld = create<WorldStore>((set, get) => ({
   },
   lastOuting: null,
   startWalk: (sensor) => {
-    const r = startWalkRule(get().world, Date.now(), sensor);
+    const r = startWalkRule(get().world, now(), sensor);
     if (!r.ok) return set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
     save(r.world);
     set({ world: r.world, lastOuting: null });
   },
   addSteps: (steps) => {
-    const r = stepWalkRule(get().world, steps, Date.now(), petMods());
+    const r = stepWalkRule(get().world, steps, now(), petMods());
     if (!r.ok) return;
     save(r.world);
     if (r.found.length) play("pop");
     set({ world: r.world });
   },
   endWalk: () => {
-    const r = endWalkRule(get().world, Date.now(), petMods());
+    const r = endWalkRule(get().world, now(), petMods());
     if (!r.ok) return;
     save(r.world);
     set({ world: r.world, lastOuting: { kind: "walk", steps: r.steps, minutes: r.minutes, found: r.finds, capped: r.capped } });
@@ -439,13 +441,13 @@ export const useWorld = create<WorldStore>((set, get) => ({
     if (r.minutes >= 5) useGame.getState().act({ kind: "play" });
   },
   startTrip: (to) => {
-    const r = startTripRule(get().world, to, Date.now());
+    const r = startTripRule(get().world, to, now());
     if (!r.ok) return set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
     save(r.world);
     set({ world: r.world, lastOuting: null });
   },
   endTrip: () => {
-    const r = endTripRule(get().world, Date.now(), petMods());
+    const r = endTripRule(get().world, now(), petMods());
     if (!r.ok) return set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
     save(r.world);
     set({ world: r.world, lastOuting: { kind: "trip", to: r.to, found: r.found, learned: r.learned } });
@@ -493,7 +495,7 @@ export const useWorld = create<WorldStore>((set, get) => ({
   claim: (id) => {
     const p = useGame.getState().pet;
     if (!p) return;
-    const r = claimQuest(get().world, id, { counts: p.counts, stage: stageOf(p, Date.now()), onChain: useChain.getState().record !== null });
+    const r = claimQuest(get().world, id, { counts: p.counts, stage: stageOf(p, now()), onChain: useChain.getState().record !== null });
     if (!r.ok) return set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
     save(r.world);
     play("success");
@@ -541,6 +543,6 @@ useGame.subscribe((s, prev) => {
     w.tally("CHOOSE", `${want}-${room}`, 1, { total: false });
   }
   // a day the pet was seen with every need at least a quarter full (DISTINCT counts the days)
-  if (needsMinOf(p) >= 250) w.tally("HEALTHY_DAY", localDay(Date.now(), p.tzOffsetMin), 1, { total: false });
+  if (needsMinOf(p) >= 250) w.tally("HEALTHY_DAY", localDay(now(), p.tzOffsetMin), 1, { total: false });
 });
 
