@@ -12,6 +12,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { INPUT_FIELDS, MOODS, NUDGES, type Rule, STARTERS, type StarterLine, WANTS } from "@lingxi/brain";
 import { checkLesson, type Stage } from "@lingxi/game";
+import { BudgetSpent } from "./tokenBudget";
 
 export const MODEL = "claude-opus-5-5";
 export const MAX_WORDS = 240;
@@ -152,7 +153,8 @@ export async function teachInWords(client: Anthropic, req: TeachRequest): Promis
   try {
     response = await client.beta.messages.create({
       model: MODEL,
-      max_tokens: 4000,
+      // a proposal is about 200 tokens (348 the most in measured real answers); a cut answer fails safely below
+      max_tokens: 1200,
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
       output_config: { effort: "low", format: { type: "json_schema", schema: PROPOSAL_JSON_SCHEMA } },
@@ -160,12 +162,12 @@ export async function teachInWords(client: Anthropic, req: TeachRequest): Promis
       messages: [{ role: "user", content: `The owner says: "${words}"` }],
     } as never);
   } catch (e) {
-    if (e instanceof Anthropic.RateLimitError) return { ok: false, reason: "busy" };
+    if (e instanceof Anthropic.RateLimitError || e instanceof BudgetSpent) return { ok: false, reason: "busy" };
     if (e instanceof Anthropic.APIError) return { ok: false, reason: "error", detail: `api ${e.status}` };
     return { ok: false, reason: "error", detail: "network" };
   }
   const msg = response as unknown as Anthropic.Message;
-  if (msg.stop_reason === "refusal") return { ok: false, reason: "notUnderstood" };
+  if (msg.stop_reason === "refusal" || msg.stop_reason === "max_tokens") return { ok: false, reason: "notUnderstood" };
   const text = msg.content.find((b): b is Anthropic.TextBlock => b.type === "text")?.text;
   if (!text) return { ok: false, reason: "error", detail: "empty answer" };
   let raw: unknown;

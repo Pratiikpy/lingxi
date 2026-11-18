@@ -8,6 +8,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
+import { BudgetSpent } from "./tokenBudget";
 
 export const VOICE_MODEL = "claude-haiku-5-5";
 
@@ -111,7 +112,7 @@ export function createVoice(client: Anthropic, capacity = 2000) {
         output_config: { format: { type: "json_schema", schema: VOICE_SCHEMA } },
       } as never)) as unknown as Anthropic.Message;
     } catch (e) {
-      return e instanceof Anthropic.RateLimitError ? "busy" : null;
+      return e instanceof Anthropic.RateLimitError || e instanceof BudgetSpent ? "busy" : null;
     }
     if (msg.stop_reason === "refusal") return null;
     const text = msg.content.find((b): b is Anthropic.TextBlock => b.type === "text")?.text ?? "";

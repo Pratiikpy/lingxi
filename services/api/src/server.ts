@@ -50,6 +50,8 @@ import { createTapeoutCounter, withLane } from "./lane";
 import { factoryReader } from "./laneReader";
 import { petLookAbi as lookAbi } from "@lingxi/chain";
 import { clientIp } from "./clientIp";
+import { withBodyLimits } from "./bodyLimits";
+import { budgetedClient, createTokenBudget } from "./tokenBudget";
 import { createJobs } from "./jobs";
 
 function loadKey(): string | undefined {
@@ -100,6 +102,8 @@ export function createApp(
   const app = new Hono();
   const origins = (process.env.LINGXI_ORIGINS ?? "http://localhost:5199,http://localhost:4173").split(",");
   // the agent API, and a pet's public log and history, are open to any origin; the rest answers only the game's pages
+  // every write is held to its route's size before a byte of it is parsed (bodyLimits.ts)
+  withBodyLimits(app);
   app.use("/api/*", cors({ origin: (o, c) => (c.req.path.startsWith("/api/v1") || (c.req.method === "GET" && /^\/api\/pets\/\d+\/(log|history)$/.test(c.req.path)) ? "*" : origins.includes(o) ? o : null), allowMethods: ["GET", "POST"], allowHeaders: ["Authorization", "Content-Type"], maxAge: 600 }));
 
   // the parts are booleans (true when on); `detail` is everything else worth watching, for the status check and for Prateek
@@ -583,7 +587,9 @@ if (isMain) {
   });
   const jobs = createJobs();
   const key = loadKey();
-  const client = key ? new Anthropic({ apiKey: key }) : null;
+  // teaching and voices share one daily token budget, kept on disk so a restart does not reset it (tokenBudget.ts)
+  const modelBudget = createTokenBudget({ perDay: Number(process.env.LINGXI_MODEL_TOKENS_PER_DAY ?? 2_000_000), file: resolve(dirname(fileURLToPath(import.meta.url)), "../data/model-budget.json") });
+  const client = key ? budgetedClient(new Anthropic({ apiKey: key }), modelBudget) : null;
   const port = Number(process.env.PORT ?? 8787);
   const relayer = makeRelayer();
   // the deployment the game runs on, read once: the agent API, adoption papers and what visitors see all use it
@@ -639,6 +645,7 @@ if (isMain) {
       // the alarm the outside check turns into an issue for Prateek: top the relayer up before players are refused
       relayerLow: relayerWei !== null && Number(relayerWei) / 1e18 < Number(process.env.LINGXI_RELAY_ALARM_OKB ?? 0.02),
       relayerUsage: relayer?.usage() ?? null,
+      modelTokensToday: client ? { used: modelBudget.used(), perDay: modelBudget.perDay } : null,
       storesKb: storeSizes(dataDir),
     };
     cached = { at: Date.now(), value };
