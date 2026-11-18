@@ -18,7 +18,8 @@ import { z } from "zod";
 import { STARTERS } from "@lingxi/brain";
 import { MAX_WORDS, teachInWords } from "./teach";
 import { RateLimiter } from "./limit";
-import { BrainRelayer } from "./relayer";
+import { BrainRelayer, type RelayResult } from "./relayer";
+import { RelayQuota, checkRelayAuth, createNonceBook } from "./relayGate";
 import { LiveRooms, attachLive } from "./live";
 import { createDecorStore } from "./decor";
 import { type SittingStore, createSittingStore } from "./sitting";
@@ -82,7 +83,20 @@ const TeachBody = z.object({
 /** What the running server adds to /api/health: its jobs, indexer lag, relayer balance and store sizes. */
 export type HealthDetail = () => Promise<Record<string, unknown>> | Record<string, unknown>;
 
-export function createApp(client: Anthropic | null, limiter = new RateLimiter(6, 60_000), relayer: BrainRelayer | null = null, relayLimiter = new RateLimiter(4, 3_600_000), live: LiveRooms | null = null, detail?: HealthDetail) {
+/** Who may keep a pet on chain right now (PetRegistry.isKeeper): the relayer only tapes out for them. */
+export type KeeperCheck = (petId: string, who: `0x${string}`) => Promise<boolean>;
+
+export function createApp(
+  client: Anthropic | null,
+  limiter = new RateLimiter(6, 60_000),
+  relayer: BrainRelayer | null = null,
+  // per address only against floods: each request is also signed and capped per pet and per keeper (relayGate.ts)
+  relayLimiter = new RateLimiter(20, 3_600_000),
+  live: LiveRooms | null = null,
+  detail?: HealthDetail,
+  isKeeper?: KeeperCheck,
+  quota = new RelayQuota({ perPetPerDay: 6, perSignerPerDay: 12, perHour: 12 }),
+) {
   const app = new Hono();
   const origins = (process.env.LINGXI_ORIGINS ?? "http://localhost:5199,http://localhost:4173").split(",");
   // the agent API, and a pet's public log and history, are open to any origin; the rest answers only the game's pages
@@ -113,56 +127,52 @@ export function createApp(client: Anthropic | null, limiter = new RateLimiter(6,
     // capstone rule skills the pet holds (plan 4.4)
     skills: z.array(z.number().int().min(100).max(999)).max(8).optional(),
   });
-  app.post("/api/tapeout", async (c) => {
-    if (!relayer) return c.json({ ok: false, reason: "error", detail: "relaying is not configured" }, 503);
-    const ip = clientIp(c);
-    if (!relayLimiter.take(ip)) return busy(c);
-    let body: z.infer<typeof RelayBody>;
-    try {
-      body = RelayBody.parse(await c.req.json());
-    } catch {
-      return c.json({ ok: false, reason: "invalid", detail: "bad request" }, 400);
-    }
-    const r = await relayer.relay(body.line, body.lessons as never, body.instincts ?? 0, body.skills ?? []);
-    return c.json(r);
-  });
-
   // a child's brain: REFs to its parents' circuits, or (once taught) to both of its halves
   const ChildBody = z.union([z.object({ parents: z.tuple([z.string().regex(/^\d{1,20}$/), z.string().regex(/^\d{1,20}$/)]) }), z.object({ card: z.string().max(10_000) })]);
-  app.post("/api/tapeout-child", async (c) => {
-    if (!relayer) return c.json({ ok: false, reason: "error", detail: "relaying is not configured" }, 503);
-    const ip = clientIp(c);
-    if (!relayLimiter.take(ip)) return busy(c);
-    let body: z.infer<typeof ChildBody>;
-    try {
-      body = ChildBody.parse(await c.req.json());
-    } catch {
-      return c.json({ ok: false, reason: "invalid", detail: "bad request" }, 400);
-    }
-    let r;
-    if ("parents" in body) r = await relayer.relayChild({ parents: body.parents });
-    else {
-      const card = parseCard(body.card);
-      if (!card?.family) return c.json({ ok: false, reason: "invalid", detail: "not a child's card" }, 400);
-      r = await relayer.relayChild({ family: card.family, lessons: card.lessons, ...(card.growth ? { growth: card.growth } : {}) });
-    }
-    return c.json(r);
-  });
-
   // X1: an owned circuit as an everyday instinct, REF'd beside the pet's own brain
   const InstinctBody = z.object({ own: z.string().regex(/^\d{1,20}$/), processor: z.string().regex(/^0x[0-9a-fA-F]{40}$/), id: z.string().regex(/^\d{1,20}$/) });
-  app.post("/api/tapeout-instinct", async (c) => {
-    if (!relayer) return c.json({ ok: false, reason: "error", detail: "relaying is not configured" }, 503);
-    const ip = clientIp(c);
-    if (!relayLimiter.take(ip)) return busy(c);
-    let body: z.infer<typeof InstinctBody>;
-    try {
-      body = InstinctBody.parse(await c.req.json());
-    } catch {
-      return c.json({ ok: false, reason: "invalid", detail: "bad request" }, 400);
-    }
-    return c.json(await relayer.relayInstinct({ own: body.own, processor: body.processor as `0x${string}`, id: body.id }));
+  // every relay request is the signed form (see relayGate.ts and @lingxi/chain's relayAuth.ts)
+  const Signed = z.object({
+    kind: z.enum(["brain", "child", "instinct"]),
+    petId: z.string().regex(/^\d{1,20}$/),
+    payload: z.string().max(20_000),
+    auth: z.object({ signer: z.string(), nonce: z.string(), time: z.number(), signature: z.string() }),
   });
+  const nonces = createNonceBook();
+  const refusalStatus: Record<string, 401 | 403 | 429> = { unsigned: 401, expired: 401, badSignature: 401, replayed: 401, notKeeper: 403, busy: 429 };
+
+  /** The shared path of the three relay routes: who asked, how often, and what they asked for. */
+  const relayRoute = <T,>(path: string, kind: "brain" | "child" | "instinct", schema: z.ZodType<T>, act: (body: T) => Promise<RelayResult>) =>
+    app.post(path, async (c) => {
+      if (!relayer || !isKeeper) return c.json({ ok: false, reason: "error", detail: "relaying is not configured" }, 503);
+      if (!relayLimiter.take(clientIp(c))) return busy(c);
+      let req: z.infer<typeof Signed>;
+      let body: T;
+      try {
+        req = Signed.parse(await c.req.json());
+        if (req.kind !== kind) throw new Error("kind");
+        body = schema.parse(JSON.parse(req.payload));
+      } catch {
+        return c.json({ ok: false, reason: "invalid", detail: "bad request" }, 400);
+      }
+      const gate = await checkRelayAuth(req as never, { isKeeper, now: () => Date.now(), nonces });
+      if (!gate.ok) return c.json({ ok: false, reason: gate.reason }, refusalStatus[gate.reason] ?? 401);
+      if (!quota.allow(req.petId, gate.signer)) return busy(c);
+      const result = await act(body);
+      // a brain already taped out costs nothing; anything that sent a transaction is charged
+      if ((result.ok && !result.reused) || (!result.ok && result.spent)) quota.spend(req.petId, gate.signer);
+      const { spent: _spent, ...shown } = result as RelayResult & { spent?: boolean };
+      return c.json(shown);
+    });
+
+  relayRoute("/api/tapeout", "brain", RelayBody, (b) => relayer!.relay(b.line, b.lessons as never, b.instincts ?? 0, b.skills ?? []));
+  relayRoute("/api/tapeout-child", "child", ChildBody, async (b) => {
+    if ("parents" in b) return relayer!.relayChild({ parents: b.parents });
+    const card = parseCard(b.card);
+    if (!card?.family) return { ok: false, reason: "invalid", detail: "not a child's card" };
+    return relayer!.relayChild({ family: card.family, lessons: card.lessons, ...(card.growth ? { growth: card.growth } : {}) });
+  });
+  relayRoute("/api/tapeout-instinct", "instinct", InstinctBody, (b) => relayer!.relayInstinct({ own: b.own, processor: b.processor as `0x${string}`, id: b.id }));
 
   return app;
 }
@@ -193,6 +203,9 @@ function makeRelayer(): BrainRelayer | null {
     key,
     storeFile: process.env.LINGXI_BRAIN_STORE ?? resolve(here, "../data/brains.json"),
     maxPerDay: Number(process.env.LINGXI_RELAY_PER_DAY ?? 200),
+    maxPerHour: Number(process.env.LINGXI_RELAY_PER_HOUR ?? 12),
+    // OKB kept for season keepsakes (players' tape-outs stop above it); 0.01 OKB unless set
+    reserveWei: BigInt(Math.round(Number(process.env.LINGXI_RELAY_RESERVE_OKB ?? 0.01) * 1e18)),
   });
 }
 
@@ -623,12 +636,19 @@ if (isMain) {
       jobs: Object.fromEntries(jobs.status().map((j) => [j.name, j.healthy ? "ok" : `failing: ${j.lastError?.message ?? "?"}`])),
       indexerLagBlocks: head !== null && watch.indexed ? Number(head) - watch.indexed() : null,
       relayerOkb: relayerWei === null ? null : Number(relayerWei) / 1e18,
+      // the alarm the outside check turns into an issue for Prateek: top the relayer up before players are refused
+      relayerLow: relayerWei !== null && Number(relayerWei) / 1e18 < Number(process.env.LINGXI_RELAY_ALARM_OKB ?? 0.02),
+      relayerUsage: relayer?.usage() ?? null,
       storesKb: storeSizes(dataDir),
     };
     cached = { at: Date.now(), value };
     return value;
   };
-  const app = createApp(client, undefined, relayer, undefined, live, detail);
+  // who may keep a pet, read from PetRegistry on X Layer at the moment of the request
+  const isKeeper: KeeperCheck | undefined = chainCtx
+    ? async (petId, who) => (await chainCtx!.pub.readContract({ address: chainCtx!.deployment.registry, abi: petRegistryAbi, functionName: "isKeeper", args: [BigInt(petId), who] })) as boolean
+    : undefined;
+  const app = createApp(client, undefined, relayer, undefined, live, detail, isKeeper);
   if (client) withVoice(app, createVoice(client));
   withLibrary(app, createLibrary(process.env.LINGXI_LIBRARY_STORE));
   withSitting(app, createSittingStore(process.env.LINGXI_SIT_STORE));

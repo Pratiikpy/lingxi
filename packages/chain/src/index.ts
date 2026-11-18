@@ -25,3 +25,5 @@ export * from "./adoption";
 export * from "./extrasAbi";
 export * from "./extras";
 export * from "./anchor";
+export * from "./receipts";
+export * from "./relayAuth";

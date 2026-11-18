@@ -11,7 +11,23 @@ import { play } from "../game/sound";
 import { NameClaim } from "./NameClaim";
 import { useGame } from "../game/store";
 
-const ERR: Record<string, Key> = { noWallet: "chain.noWallet", noAccount: "chain.noWallet", alreadySaved: "chain.alreadySaved", badAddress: "sit.badAddress", badDays: "sit.badDays", selfSitter: "sit.self" };
+const ERR: Record<string, Key> = {
+  noWallet: "chain.noWallet",
+  noAccount: "chain.noWallet",
+  alreadySaved: "chain.alreadySaved",
+  badAddress: "sit.badAddress",
+  badDays: "sit.badDays",
+  selfSitter: "sit.self",
+  // what the relayer answers (services/api relayGate.ts and relayer.ts)
+  busy: "relay.busy",
+  budget: "relay.budget",
+  notKeeper: "relay.notKeeper",
+  unsigned: "relay.signature",
+  expired: "relay.signature",
+  replayed: "relay.signature",
+  badSignature: "relay.signature",
+  offline: "relay.offline",
+};
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 const dateOf = (sec: number, lang: string) => new Date(sec * 1000).toLocaleDateString(lang === "zh" ? "zh-CN" : "en", { month: "short", day: "numeric" });

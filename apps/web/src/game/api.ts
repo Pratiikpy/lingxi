@@ -1,5 +1,6 @@
 /** Calls to Lingxi's own server (web build). The DeWEB build never sets an API address. */
 import type { Rule } from "@lingxi/brain";
+import type { SignedRelay } from "@lingxi/chain";
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
 
@@ -33,13 +34,16 @@ export async function teachInWords(body: { words: string; name: string; line: st
 
 export type RelayResponse = { ok: true; processor: string; brainId: string; reused: boolean } | { ok: false; reason: string; detail?: string };
 
-export async function relayBrain(body: { line: string; lessons: Rule[]; instincts?: number; skills?: number[] }): Promise<RelayResponse> {
+/** The body of a brain tape-out, signed by a keeper of the pet (see chain.ts relaySigner and @lingxi/chain signRelay). */
+export type BrainRelayBody = { line: string; lessons: Rule[]; instincts?: number; skills?: number[] };
+
+export async function relayBrain(signed: SignedRelay): Promise<RelayResponse> {
   if (!BASE) return { ok: false, reason: "offline" };
   try {
     const r = await fetch(`${BASE}/api/tapeout`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify(signed),
       signal: AbortSignal.timeout(180_000),
     });
     return (await r.json()) as RelayResponse;
@@ -49,13 +53,13 @@ export async function relayBrain(body: { line: string; lessons: Rule[]; instinct
 }
 
 /** Tape out a child's brain: REFs to two parent circuits, or both halves of a taught child (its card). */
-export async function relayChild(body: { parents: [string, string] } | { card: string }): Promise<RelayResponse> {
+export async function relayChild(signed: SignedRelay): Promise<RelayResponse> {
   if (!BASE) return { ok: false, reason: "offline" };
   try {
     const r = await fetch(`${BASE}/api/tapeout-child`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify(signed),
       signal: AbortSignal.timeout(300_000),
     });
     return (await r.json()) as RelayResponse;
@@ -65,10 +69,10 @@ export async function relayChild(body: { parents: [string, string] } | { card: s
 }
 
 /** X1: tape out the circuit that puts an owned instinct beside the pet's own brain. */
-export async function relayInstinct(body: { own: string; processor: string; id: string }): Promise<RelayResponse> {
+export async function relayInstinct(signed: SignedRelay): Promise<RelayResponse> {
   if (!BASE) return { ok: false, reason: "offline" };
   try {
-    const r = await fetch(`${BASE}/api/tapeout-instinct`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(300_000) });
+    const r = await fetch(`${BASE}/api/tapeout-instinct`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(signed), signal: AbortSignal.timeout(300_000) });
     return (await r.json()) as RelayResponse;
   } catch {
     return { ok: false, reason: "offline" };

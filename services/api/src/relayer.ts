@@ -7,16 +7,18 @@
  *
  * Abuse limits: the program is rebuilt here from the line and lessons and must
  * pass the same checks as in the game (valid rules, at most 8 lessons, at most
- * 500 gates); per-caller and per-day caps; identical brains are never paid twice.
+ * 500 gates); identical brains are never paid twice. Who may ask, and how often per pet and per keeper, is decided
+ * before this (relayGate.ts). Here: a daily and an hourly ceiling, counted on every tape-out that sends a transaction
+ * (a reverted one costs gas too), and a reserve of OKB that only season keepsakes may spend.
  */
 
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { createPublicClient, createWalletClient, erc20Abi, http, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { type Program, type Rule, type StarterLine, bytesToHex, compileProgram, composeChild, composeInstinct, gateCount, netlistBytes } from "@lingxi/brain";
-import { FACTORY, factoryAbi, processorAbi, transistorsAbi, xLayer } from "@lingxi/chain";
+import { FACTORY, circuitIdFrom, factoryAbi, processorAbi, transistorsAbi, xLayer } from "@lingxi/chain";
 import { type Family, type Growth, MAX_GATES, MAX_GATES_SKILLED, MAX_LESSONS, SKILL_BY_ID, cleanInstincts, composeProgram, gateBudget, halfBudgets, halvesOf, mindExtra, skillRules } from "@lingxi/game";
 
 const NEWLINE = /\r?\n/;
@@ -27,15 +29,26 @@ export interface RelayerConfig {
   key: Hex;
   storeFile: string;
   maxPerDay: number;
+  /** tape-outs that send a transaction, at most this many in any hour */
+  maxPerHour?: number;
+  /** OKB wei kept for season keepsakes: players' tape-outs stop above it */
+  reserveWei?: bigint;
+  /** a player's tape-out is refused when it could take the balance below the reserve: this much is set aside per try */
+  perTapeoutWei?: bigint;
 }
 
 interface Store {
   brains: Record<string, string>;
   day: string;
   used: number;
+  /** when each tape-out in the last hour sent its transaction (ms) */
+  hour?: number[];
 }
 
-export type RelayResult = { ok: true; processor: Address; brainId: string; reused: boolean; tx?: string } | { ok: false; reason: "invalid" | "tooBig" | "budget" | "error"; detail?: string };
+/** A tape-out costs the processor's fee, transistor mints and gas: about 0.002 OKB, set aside here at 0.004. */
+const PER_TAPEOUT_WEI = 4_000_000_000_000_000n;
+
+export type RelayResult = { ok: true; processor: Address; brainId: string; reused: boolean; tx?: string } | { ok: false; reason: "invalid" | "tooBig" | "budget" | "error"; detail?: string; spent?: boolean };
 
 export type KeepsakeResult = { ok: true; processor: Address; brainId: string; tapeTx: string; sendTx: string } | { ok: false; reason: "invalid" | "tooBig" | "budget" | "error"; detail?: string };
 
@@ -49,6 +62,8 @@ export class BrainRelayer {
   private readonly wallet;
   private store: Store;
   private queue: Promise<unknown> = Promise.resolve();
+  /** set while a season keepsake is being made: only it may spend the reserve */
+  private forKeepsake = false;
 
   /** the relayer's own address, which pays for every tape-out */
   readonly address: `0x${string}`;
@@ -59,16 +74,36 @@ export class BrainRelayer {
     this.address = account.address;
     this.pub = createPublicClient({ chain, transport: http(cfg.rpc) });
     this.wallet = createWalletClient({ chain, transport: http(cfg.rpc), account });
+    let raw: string | null = null;
     try {
-      this.store = JSON.parse(readFileSync(cfg.storeFile, "utf8")) as Store;
+      raw = readFileSync(cfg.storeFile, "utf8");
     } catch {
-      this.store = { brains: {}, day: "", used: 0 };
+      // first run
+    }
+    if (raw === null) this.store = { brains: {}, day: "", used: 0, hour: [] };
+    else {
+      // a store that cannot be read stops the relayer rather than starting it with a fresh budget
+      this.store = JSON.parse(raw) as Store;
+      this.store.hour ??= [];
     }
   }
 
+  /** Written to a temporary file and renamed, so a crash mid-write never leaves a half store (or a reset budget). */
   private save(): void {
     mkdirSync(dirname(this.cfg.storeFile), { recursive: true });
-    writeFileSync(this.cfg.storeFile, JSON.stringify(this.store, null, 1));
+    writeFileSync(`${this.cfg.storeFile}.tmp`, JSON.stringify(this.store, null, 1));
+    renameSync(`${this.cfg.storeFile}.tmp`, this.cfg.storeFile);
+  }
+
+  /** Today's and this hour's tape-outs, against their ceilings. */
+  usage(now = Date.now()): { today: number; maxPerDay: number; lastHour: number; maxPerHour: number } {
+    const today = new Date(now).toISOString().slice(0, 10);
+    return {
+      today: this.store.day === today ? this.store.used : 0,
+      maxPerDay: this.cfg.maxPerDay,
+      lastHour: (this.store.hour ?? []).filter((t) => now - t < 3_600_000).length,
+      maxPerHour: this.cfg.maxPerHour ?? 20,
+    };
   }
 
   /** What the relayer holds now, in OKB wei (read from chain). */
@@ -182,45 +217,54 @@ export class BrainRelayer {
    */
   keepsake(spec: { line: StarterLine; lessons: Rule[]; instincts?: number; family?: Family; growth?: Growth }, to: Address): Promise<KeepsakeResult> {
     return this.serial(async () => {
-      if (!/^0x[0-9a-fA-F]{40}$/.test(to) || /^0x0{40}$/.test(to)) return { ok: false, reason: "invalid", detail: "no wallet" } as const;
-      // the same limit as every other tape-out: lesson skills let a grown pet hold more than eight (plan 4.4)
-      if (spec.lessons.length > MAX_LESSONS) return { ok: false, reason: "invalid", detail: "too many lessons" } as const;
-      let r: RelayResult;
+      this.forKeepsake = true;
       try {
-        if (spec.family) {
-          const got: bigint[] = [];
-          // each half within its own budget, as when the child itself is taped (relayChild)
-          const budgets = halfBudgets(spec.family, spec.growth);
-          for (const [i, h] of halvesOf(spec.family, spec.lessons, skillRules(spec.growth)).entries()) {
-            const half = await this.tapeProgram(h, budgets[i]!);
-            if (!half.ok) return half;
-            got.push(BigInt(half.brainId));
-          }
-          const child = composeChild({ cpu: this.cfg.processor, id: got[0]! }, { cpu: this.cfg.processor, id: got[1]! });
-          r = await this.tapeBytes(child.bytes, child.elements.filter((e) => e.op === 0).length, 0, true);
-        } else {
-          const net = compileProgram(composeProgram(spec.line, spec.lessons, cleanInstincts(spec.instincts ?? 0), mindExtra(spec.growth)));
-          if (gateCount(net) > gateBudget(spec.growth)) return { ok: false, reason: "tooBig" } as const;
-          r = await this.tapeBytes(netlistBytes(net), net.gates.length, net.latches.length, true);
-        }
-      } catch (e) {
-        return { ok: false, reason: "invalid", detail: (e as Error).message } as const;
-      }
-      if (!r.ok) return r;
-      try {
-        const id = BigInt(r.brainId);
-        const me = this.wallet.account.address;
-        const sim = await this.pub.simulateContract({ address: this.cfg.processor, abi: erc721TransferAbi, functionName: "transferFrom", args: [me, to, id], account: this.wallet.account });
-        const sendTx = await this.wallet.writeContract(sim.request);
-        const rc = await this.pub.waitForTransactionReceipt({ hash: sendTx });
-        if (rc.status !== "success") return { ok: false, reason: "error", detail: "transfer reverted" } as const;
-        const owner = (await this.pub.readContract({ address: this.cfg.processor, abi: erc721TransferAbi, functionName: "ownerOf", args: [id] })) as Address;
-        if (owner.toLowerCase() !== to.toLowerCase()) return { ok: false, reason: "error", detail: "the circuit did not arrive" } as const;
-        return { ok: true, processor: this.cfg.processor, brainId: r.brainId, tapeTx: r.tx ?? "", sendTx } as const;
-      } catch (e) {
-        return { ok: false, reason: "error", detail: (e as Error).message.split(NEWLINE)[0] } as const;
+        return await this.makeKeepsake(spec, to);
+      } finally {
+        this.forKeepsake = false;
       }
     });
+  }
+
+  private async makeKeepsake(spec: { line: StarterLine; lessons: Rule[]; instincts?: number; family?: Family; growth?: Growth }, to: Address): Promise<KeepsakeResult> {
+    if (!/^0x[0-9a-fA-F]{40}$/.test(to) || /^0x0{40}$/.test(to)) return { ok: false, reason: "invalid", detail: "no wallet" } as const;
+    // the same limit as every other tape-out: lesson skills let a grown pet hold more than eight (plan 4.4)
+    if (spec.lessons.length > MAX_LESSONS) return { ok: false, reason: "invalid", detail: "too many lessons" } as const;
+    let r: RelayResult;
+    try {
+      if (spec.family) {
+        const got: bigint[] = [];
+        // each half within its own budget, as when the child itself is taped (relayChild)
+        const budgets = halfBudgets(spec.family, spec.growth);
+        for (const [i, h] of halvesOf(spec.family, spec.lessons, skillRules(spec.growth)).entries()) {
+          const half = await this.tapeProgram(h, budgets[i]!);
+          if (!half.ok) return half;
+          got.push(BigInt(half.brainId));
+        }
+        const child = composeChild({ cpu: this.cfg.processor, id: got[0]! }, { cpu: this.cfg.processor, id: got[1]! });
+        r = await this.tapeBytes(child.bytes, child.elements.filter((e) => e.op === 0).length, 0, true);
+      } else {
+        const net = compileProgram(composeProgram(spec.line, spec.lessons, cleanInstincts(spec.instincts ?? 0), mindExtra(spec.growth)));
+        if (gateCount(net) > gateBudget(spec.growth)) return { ok: false, reason: "tooBig" } as const;
+        r = await this.tapeBytes(netlistBytes(net), net.gates.length, net.latches.length, true);
+      }
+    } catch (e) {
+      return { ok: false, reason: "invalid", detail: (e as Error).message } as const;
+    }
+    if (!r.ok) return r;
+    try {
+      const id = BigInt(r.brainId);
+      const me = this.wallet.account.address;
+      const sim = await this.pub.simulateContract({ address: this.cfg.processor, abi: erc721TransferAbi, functionName: "transferFrom", args: [me, to, id], account: this.wallet.account });
+      const sendTx = await this.wallet.writeContract(sim.request);
+      const rc = await this.pub.waitForTransactionReceipt({ hash: sendTx });
+      if (rc.status !== "success") return { ok: false, reason: "error", detail: "transfer reverted" } as const;
+      const owner = (await this.pub.readContract({ address: this.cfg.processor, abi: erc721TransferAbi, functionName: "ownerOf", args: [id] })) as Address;
+      if (owner.toLowerCase() !== to.toLowerCase()) return { ok: false, reason: "error", detail: "the circuit did not arrive" } as const;
+      return { ok: true, processor: this.cfg.processor, brainId: r.brainId, tapeTx: r.tx ?? "", sendTx } as const;
+    } catch (e) {
+      return { ok: false, reason: "error", detail: (e as Error).message.split(NEWLINE)[0] } as const;
+    }
   }
 
   /**
@@ -264,12 +308,23 @@ export class BrainRelayer {
     const known = this.store.brains[key];
     if (known && !fresh) return { ok: true, processor: this.cfg.processor, brainId: known, reused: true };
 
-    const today = new Date().toISOString().slice(0, 10);
+    const now = Date.now();
+    const today = new Date(now).toISOString().slice(0, 10);
     if (this.store.day !== today) {
       this.store.day = today;
       this.store.used = 0;
     }
-    if (this.store.used >= this.cfg.maxPerDay) return { ok: false, reason: "budget" };
+    this.store.hour = (this.store.hour ?? []).filter((t) => now - t < 3_600_000);
+    if (this.store.used >= this.cfg.maxPerDay) return { ok: false, reason: "budget", detail: "today's tape-outs are used" };
+    if (this.store.hour.length >= (this.cfg.maxPerHour ?? 20)) return { ok: false, reason: "budget", detail: "this hour's tape-outs are used" };
+    if (!this.forKeepsake) {
+      const balance = await this.balance().catch(() => 0n);
+      if (balance < (this.cfg.reserveWei ?? 0n) + (this.cfg.perTapeoutWei ?? PER_TAPEOUT_WEI)) return { ok: false, reason: "budget", detail: "the relayer's OKB is held for season keepsakes" };
+    }
+    // counted before anything is sent: a tape-out that reverts still spent gas
+    this.store.used += 1;
+    this.store.hour.push(now);
+    this.save();
 
     try {
       const p = this.cfg.processor;
@@ -287,18 +342,18 @@ export class BrainRelayer {
       }
       const fee = (await this.pub.readContract({ address: p, abi: processorAbi, functionName: "TAPEOUT_FEE" })) as bigint;
       const hex = bytesToHex(bytes) as Hex;
-      const { result } = await this.pub.simulateContract({ address: p, abi: processorAbi, functionName: "tapeout", args: [hex, 16, 8], value: fee, account: this.wallet.account });
+      // simulated first so a tape-out that would revert costs nothing; its id is read from the mined receipt
+      await this.pub.simulateContract({ address: p, abi: processorAbi, functionName: "tapeout", args: [hex, 16, 8], value: fee, account: this.wallet.account });
       const tx = await this.wallet.writeContract({ address: p, abi: processorAbi, functionName: "tapeout", args: [hex, 16, 8], value: fee });
       const r = await this.pub.waitForTransactionReceipt({ hash: tx });
-      if (r.status !== "success") return { ok: false, reason: "error", detail: "tapeout reverted" };
-      const id = (result as bigint).toString();
+      if (r.status !== "success") return { ok: false, reason: "error", detail: "tapeout reverted", spent: true };
+      const id = circuitIdFrom(r, p, me).toString();
       // a keepsake leaves our hands, so it is never offered later as a shared brain
       if (!fresh) this.store.brains[key] = id;
-      this.store.used += 1;
       this.save();
       return { ok: true, processor: p, brainId: id, reused: false, tx };
     } catch (e) {
-      return { ok: false, reason: "error", detail: (e as Error).message.split(NEWLINE)[0] };
+      return { ok: false, reason: "error", detail: (e as Error).message.split(NEWLINE)[0], spent: true };
     }
   }
 }

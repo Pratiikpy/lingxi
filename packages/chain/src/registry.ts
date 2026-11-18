@@ -5,6 +5,7 @@
 
 import { keccak256, type Address, type Hex, type PublicClient, type WalletClient } from "viem";
 import { petLookAbi } from "./lookAbi";
+import { hatchedPetIdFrom } from "./receipts";
 import { petRegistryAbi } from "./registryAbi";
 import { processorAbi } from "./tapeout";
 import { type Circuit, REF, decode, hexToBytes, load, refKey } from "@lingxi/brain";
@@ -121,7 +122,7 @@ export async function hatchOnChain(pub: PublicClient, wallet: WalletClient, d: D
   const account = wallet.account;
   if (!account) throw new Error("wallet has no account");
   const brainId = BigInt(d.circuits[lineName]!.id);
-  const { result, request } = await pub.simulateContract({
+  const { request } = await pub.simulateContract({
     address: d.registry,
     abi: petRegistryAbi,
     functionName: "hatch",
@@ -131,7 +132,8 @@ export async function hatchOnChain(pub: PublicClient, wallet: WalletClient, d: D
   const tx = await wallet.writeContract(request);
   const r = await pub.waitForTransactionReceipt({ hash: tx });
   if (r.status !== "success") throw new Error("hatch failed");
-  return { petId: result as bigint, tx };
+  // the id from the mined Hatched event: someone else's hatch between the simulation and the block takes the simulated one
+  return { petId: hatchedPetIdFrom(r, d.registry, account.address), tx };
 }
 
 export async function checkpointOnChain(pub: PublicClient, wallet: WalletClient, d: Deployment, petId: bigint, day: number, state: bigint, logHash: Hex): Promise<Hex> {

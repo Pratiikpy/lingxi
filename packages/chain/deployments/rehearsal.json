@@ -5,6 +5,7 @@
   "processorIndex": 419,
   "transistors": "0x92DFda52386386Be40EFd7becB545139372C7139",
   "registry": "0x103d7252eb6b2fec22b3f65a6bb605945f280e99",
+  "registryBlock": 75968135,
   "breeder": "0x8da8221466de12321e6ee2ea73d62aaf28bb11b0",
   "redPacket": "0x7acceb7ab1cff102fe2660f511e88d42010e806b",
   "seal": "5",
@@ -156,6 +157,6 @@
   "adoptionCentreBlock": 76104110,
   "adoptionCentreTx": "0x03698a4fd7b2ac8cdfda709416f92ea9e86dd0ef857f1752e5260eeae1903717",
   "extras": "0x560c7dc63a45e5afe53ad156152555a5c067598d",
-  "extrasBlock": 76143443,
-  "extrasTx": "0xa012757123b0ef789463a670a5c8f5c8c6610a1c0fa9677fc415f5e8782acc6a"
+  "extrasBlock": 76162815,
+  "extrasTx": "0x874b824b7ebcc09342b3d47bcbffefb4cf0cb6197509454cc801e3fe02ebb864"
 }
