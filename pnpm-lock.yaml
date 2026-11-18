@@ -44,6 +44,9 @@ importers:
       viem:
         specifier: 2.57.7
         version: 2.57.7(typescript@5.9.3)(zod@4.6.7)
+      vitest:
+        specifier: 3.2.4
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@22.15.30)(tsx@4.20.3)
 
   apps/web:
     dependencies:

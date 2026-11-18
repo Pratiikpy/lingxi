@@ -21,6 +21,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createPublicClient, http, parseAbi, type Address, type Hex, hexToString } from "viem";
 import { hasBannedName, scanNames } from "../packages/world/src/names.ts";
+import { retryNote, steadyFetch } from "./lib/steadyFetch.mts";
 
 type Verdict = "PASS" | "FAIL" | "PENDING";
 interface Result {
@@ -192,7 +193,7 @@ async function served(base: string): Promise<{ commit: string; dirty: boolean; b
     let text: string;
     if (base === DEWEB_URL) text = await onChainFile("build.json");
     else {
-      const r = await fetch(`${base}/build.json`, { signal: AbortSignal.timeout(20_000), headers: { "cache-control": "no-cache" } });
+      const { res: r } = await steadyFetch(`${base}/build.json`, { headers: { "cache-control": "no-cache" } });
       if (!r.ok) return `HTTP ${r.status} for /build.json`;
       text = await r.text();
     }
@@ -235,7 +236,7 @@ async function siteChecks(): Promise<void> {
 
   const t = Date.now();
   try {
-    const r = await fetch(`${LIVE}/api/health`, { signal: AbortSignal.timeout(20_000) });
+    const { res: r, retried } = await steadyFetch(`${LIVE}/api/health`);
     const j = (await r.json()) as Record<string, unknown> & {
       detail?: { jobs?: Record<string, string>; relayerOkb?: number | null; relayerLow?: boolean; indexerLagBlocks?: number | null; backup?: { ageHours: number; local: boolean; drive: boolean; error: string | null } | null; watchdog?: { ageSeconds: number } | null };
     };
@@ -249,7 +250,7 @@ async function siteChecks(): Promise<void> {
     // the watchdog beats every minute; three minutes without one means nothing is watching the site
     const wd = j.detail?.watchdog;
     if (j.detail && (!wd || wd.ageSeconds > 180)) failing.push(`watchdog ${wd ? `silent for ${wd.ageSeconds}s` : "not running"}`);
-    const facts = j.detail ? `; relayer ${j.detail.relayerOkb ?? "?"} OKB, indexer ${j.detail.indexerLagBlocks ?? "?"} blocks behind` : "";
+    const facts = `${j.detail ? `; relayer ${j.detail.relayerOkb ?? "?"} OKB, indexer ${j.detail.indexerLagBlocks ?? "?"} blocks behind` : ""}${retried.length ? `; ${retryNote("health", retried)}` : ""}`;
     record("sites", "live server's parts and jobs are all up", r.ok && !down.length && !failing.length ? "PASS" : "FAIL", [down.length ? `down: ${down.join(", ")}` : "", failing.length ? `failing: ${failing.join("; ")}` : ""].filter(Boolean).join(" ") || `${Object.keys(j.detail?.jobs ?? {}).length} jobs ok${facts}`, t);
   } catch (e) {
     record("sites", "live server's parts are all up", "FAIL", e instanceof Error ? e.message : String(e), t);

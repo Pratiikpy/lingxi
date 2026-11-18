@@ -30,6 +30,8 @@ import {
   xLayer,
 } from "../packages/chain/src/index.ts";
 
+import { retryNote, steadyFetch } from "./lib/steadyFetch.mts";
+
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const LIVE = process.env.LINGXI_LIVE_URL ?? "https://lingxi.knole.me";
 const d = JSON.parse(readFileSync(join(root, "packages/chain/deployments/xlayer.json"), "utf8")) as Deployment & Record<string, unknown>;
@@ -187,12 +189,20 @@ const AUTO: Record<string, Check> = {
   },
   "live-pages": async () => {
     const bad: string[] = [];
+    const notes: string[] = [];
     for (const p of ["", "play.html", "verify.html", "numbers.html", "tree.html", "agents.html", "api/health"]) {
-      const r = await fetch(`${LIVE}/${p}`, { signal: AbortSignal.timeout(20_000) });
-      if (!r.ok) bad.push(`${p || "/"} ${r.status}`);
+      // a passing edge hiccup is tried again and reported; a page that keeps failing still fails (A5)
+      try {
+        const { res, retried } = await steadyFetch(`${LIVE}/${p}`);
+        if (!res.ok) bad.push(`${p || "/"} ${res.status}`);
+        const note = retryNote(p || "/", retried);
+        if (note) notes.push(note);
+      } catch (e) {
+        bad.push(e instanceof Error ? e.message : String(e));
+      }
     }
-    expect(!bad.length, bad.join(", "));
-    return "all answer";
+    expect(!bad.length, [...bad, ...notes].join(", "));
+    return notes.length ? `all answer; ${notes.join("; ")}` : "all answer";
   },
 };
 
