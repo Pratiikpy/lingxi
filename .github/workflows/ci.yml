@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  schedule:
+    # the fork tests read X Layer as it is today, so they also run once a day on their own
+    - cron: "17 3 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # the hygiene check reads every commit message
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.7.1
+      - run: pnpm install --frozen-lockfile
+      - name: Type check
+        run: pnpm typecheck
+      - name: Lint
+        run: pnpm lint
+      - name: Tests
+        run: pnpm test
+      - name: Contract tests
+        run: forge test
+        working-directory: contracts
+      - name: Contract tests on a fork of X Layer mainnet (reads only)
+        run: forge test --fork-url xlayer --match-path 'test/*.fork.t.sol'
+        working-directory: contracts
+      - name: README numbers, repo hygiene
+        run: pnpm status:check --only promises,hygiene && pnpm exec tsx scripts/readme-facts.mts --check
+      - name: The web build, with its name guard
+        run: pnpm --filter @lingxi/web build
+        env:
+          VITE_CHAIN: xlayer

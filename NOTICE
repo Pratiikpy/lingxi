@@ -1,0 +1,16 @@
+Lingxi
+Copyright (c) 2026 Prateek
+
+The source code in this repository is released under the MIT licence (see
+LICENSE).
+
+The MIT licence does not cover the game's content: its pixel art, sprites,
+portraits, room backgrounds and icons (apps/web/public/art and
+packages/art), its sound and music, and its written text (residents' lines,
+quests, item names and descriptions, and the copy of the site). All rights
+to this content are reserved; it may not be reused without written
+permission.
+
+Third-party code vendored under contracts/lib (OpenZeppelin Contracts,
+forge-std) and packages/send (TapeKit's TapeSend module) keeps its own licence,
+found beside it.

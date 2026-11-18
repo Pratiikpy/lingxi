@@ -29,7 +29,9 @@ const OLD_KEY = "lingxi.chain.v1";
 const CHAIN_KEY = "lingxi.chain.v2";
 const LINES = ["gentle", "bold", "curious"] as const;
 
-const NETWORK = (import.meta.env.VITE_CHAIN as string | undefined) ?? (import.meta.env.DEV ? "local" : "xlayer");
+// X Layer mainnet unless a build asks for a local chain (VITE_CHAIN=local) or a fork rehearsal, so a fresh clone plays
+// against the real contracts with no setup
+const NETWORK = (import.meta.env.VITE_CHAIN as string | undefined) || "xlayer";
 const DEPLOYMENTS: Record<string, Deployment | undefined> = {
   local: localDeployment as unknown as Deployment,
   xlayer: xlayerDeployment as unknown as Deployment,

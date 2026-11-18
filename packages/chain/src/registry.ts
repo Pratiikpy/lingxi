@@ -10,6 +10,8 @@ import { processorAbi } from "./tapeout";
 import { type Circuit, REF, decode, hexToBytes, load, refKey } from "@lingxi/brain";
 
 export interface Deployment {
+  /** the block PetRegistry was deployed at, where an index of its events starts */
+  registryBlock?: number;
   /** the Breeder contract, when families are deployed */
   breeder?: Address;
   /** the first breeder (free, before the BEM fee); its children stay on record */
@@ -20,6 +22,8 @@ export interface Deployment {
   redPacket?: Address;
   /** the first fashion market, paid in OKB (OutfitMarket); kept for designs sold there */
   outfitMarket?: Address;
+  /** the block the first market was deployed at */
+  outfitMarketBlock?: number;
   /** the fashion market paid in BEM, fees burned (OutfitMarketV2), and the block it was deployed at */
   outfitMarketV2?: Address;
   outfitMarketV2Block?: number;

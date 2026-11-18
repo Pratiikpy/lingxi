@@ -554,6 +554,26 @@ if (isMain) {
   } catch (e) {
     process.stderr.write(`no chain reads: ${(e as Error).message}\n`);
   }
+  // every contract address and start block not set by hand comes from the deployment record, so a fresh clone indexes
+  // the same chain the live site does with no configuration
+  if (chainCtx) {
+    const d = chainCtx.deployment;
+    const fromRecord: Record<string, string | number | undefined> = {
+      LINGXI_REGISTRY: d.registry,
+      LINGXI_REGISTRY_FROM: d.registryBlock,
+      LINGXI_LOOK: d.look,
+      LINGXI_MARKET_OKB: d.outfitMarket,
+      LINGXI_MARKET_OKB_FROM: d.outfitMarketBlock,
+      LINGXI_MARKET_BEM: d.outfitMarketV2,
+      LINGXI_MARKET_BEM_FROM: d.outfitMarketV2Block,
+      LINGXI_BREEDER: d.breeder,
+      LINGXI_GIFT: d.holderGift,
+      LINGXI_ITEM_SHOP: d.itemShop,
+      LINGXI_ADOPTION: d.adoptionCentre,
+      LINGXI_EXTRAS: d.extras,
+    };
+    for (const [key, value] of Object.entries(fromRecord)) if (process.env[key] === undefined && value !== undefined) process.env[key] = String(value);
+  }
   // homes (plan 4.9): what visitors see is what the home's linked wallets hold on X Layer
   const homeChain: HomeChain | undefined = chainCtx && {
     roomPacks: async (wallets) => (await packsHeld(chainCtx!.pub, chainCtx!.deployment, wallets)).room,

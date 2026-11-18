@@ -6,7 +6,7 @@
   <a href="https://lingxi.knole.me"><img alt="Live" src="https://img.shields.io/badge/play-lingxi.knole.me-FF7A59?style=flat-square"></a>
   <a href="https://1-2-419.tapekit.org/"><img alt="DeWEB" src="https://img.shields.io/badge/on_chain-1.2.419.tape-2B2140?style=flat-square"></a>
   <a href="https://www.oklink.com/xlayer/address/0xf70d324Da8C1C4Cb0dE3FF147E53E7E9db543c4e"><img alt="X Layer" src="https://img.shields.io/badge/X_Layer-chain_196-FFC83D?style=flat-square"></a>
-  <a href="#tests"><img alt="Tests" src="https://img.shields.io/badge/tests-831_passing-7FCB8E?style=flat-square"></a>
+  <a href="https://github.com/Pratiikpy/lingxi/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Pratiikpy/lingxi/actions/workflows/ci.yml/badge.svg"></a>
   <a href="#contracts-on-x-layer-mainnet"><img alt="Contracts" src="https://img.shields.io/badge/contracts-11_verified_on_Sourcify-9BE8FF?style=flat-square"></a>
 </p>
 
@@ -51,7 +51,7 @@ The game runs the same netlist through a fast local evaluator; any beat can be r
 
 **Rewind.** Scrub back through any day or spar and see, moment by moment, what it sensed, which rule fired, and whether that rule was taught, an instinct or inborn.
 
-**Live in a world.** Seventy rooms that follow your own clock, residents with their own stories, foraging, a garden, walks counted by your steps and trips that bring back new recipes. **80 story quests** in twelve arcs and **three dailies a day**, with an introduction and a closing in each giver's voice, in English and Chinese. **Residents remember you:** trust grows with gifts and errands and opens shelves, recipes and visits. **Levels and four skill trees** (Care, Mind, Explore, Spar, 72 skills); capstone skills add real gates to the brain. **122 items and 42 recipes**: tools, energy, experience, boxes with their own odds. Community goals the whole player base reaches together, with a keepsake for everyone who helped.
+**Live in a world.** <!--f:rooms-->70<!--/f--> rooms that follow your own clock, residents with their own stories, foraging, a garden, walks counted by your steps and trips that bring back new recipes. **<!--f:quests-->80<!--/f--> story quests** in twelve arcs and **three dailies a day** drawn from <!--f:dailies-->15<!--/f-->, with an introduction and a closing in each giver's voice, in English and Chinese. **Residents remember you:** trust grows with gifts and errands and opens shelves, recipes and visits. **Levels and <!--f:trees-->4<!--/f--> skill trees** (Care, Mind, Explore, Spar; <!--f:skills-->72<!--/f--> skills); capstone skills add real gates to the brain. **<!--f:items-->116<!--/f--> items and <!--f:recipes-->39<!--/f--> recipes**: tools, energy, experience, boxes with their own odds. Community goals the whole player base reaches together, with a keepsake for everyone who helped.
 
 <p align="center"><img src="docs/readme/world.png" alt="The quest book, talking to a resident, the skill trees, the bag" width="100%"></p>
 
@@ -73,7 +73,7 @@ The game runs the same netlist through a fast local evaluator; any beat can be r
 
 ## Rules and residents are circuits too
 
-The game does not run its rules as code: it reads the answers of compiled circuits. What drops where and how rare it is, how trust grows, which skill tier is open, how each of nine residents greets you and which line they choose, and how each of five Builders' Lane pets behaves: **17 rule circuits** taped out on X Layer. Every time the page starts, the browser recompiles each rule and compares it byte for byte with the netlist stored on the processor, then shows the mark ("Rules verified on X Layer · 17 circuits"). The proof page lists all of them with their ids and gate counts.
+The game does not run its rules as code: it reads the answers of compiled circuits. What drops where and how rare it is, how trust grows, which skill tier is open, how each of <!--f:residents-->9<!--/f--> residents greets you and which line they choose, and how each of <!--f:builders-->5<!--/f--> Builders' Lane pets behaves: **<!--f:rules-->17<!--/f--> rule circuits** taped out on X Layer. Every time the page starts, the browser recompiles each rule and compares it byte for byte with the netlist stored on the processor, then shows the mark ("Rules verified on X Layer · 17 circuits"). The proof page lists all of them with their ids and gate counts.
 
 ## BEM in, BEM burned
 
@@ -153,7 +153,7 @@ pnpm judge:check          # about 3.5 minutes, read-only against mainnet
 
 Lingxi's TapeOut processor: [`0xf70d324Da8C1C4Cb0dE3FF147E53E7E9db543c4e`](https://www.oklink.com/xlayer/address/0xf70d324Da8C1C4Cb0dE3FF147E53E7E9db543c4e). BEM: `0x60e62Efa9405d6873C5deaBD4E6CC91c25363952`. All contract addresses, circuit ids, item ids and deployment blocks are in [`packages/chain/deployments/xlayer.json`](packages/chain/deployments/xlayer.json).
 
-All eleven are verified on Sourcify as an **exact match** of both creation and runtime bytecode, so anyone can read the source of what runs on X Layer. The [proof page](https://lingxi.knole.me/verify.html#contracts) asks Sourcify live each time it opens.
+All <!--f:contracts-->11<!--/f--> are verified on Sourcify as an **exact match** of both creation and runtime bytecode, so anyone can read the source of what runs on X Layer. The [proof page](https://lingxi.knole.me/verify.html#contracts) asks Sourcify live each time it opens.
 
 Owner powers are deliberately small: fees move only within fixed bounds, burn shares cannot change, and no contract can move a player's BEM or pets. Ownership is two-step everywhere.
 
@@ -170,7 +170,6 @@ packages/art      hand-placed pixel art: bodies, expressions, stages, outfits
 contracts         Solidity (Foundry): the eleven contracts above, with unit tests and fork tests against X Layer
 services/api      Hono server: site hosting, live rooms, teach-by-words, the relayer that tapes out brains, the
                   history indexer, vouchers, adoption papers, the agents' API, and the same-origin door to X Layer
-video             the demo and launch videos, cut with Remotion from scripted recordings of the live game
 ```
 
 ```mermaid
@@ -198,16 +197,15 @@ flowchart TB
 
 ## Tests
 
-```sh
-pnpm test
-# 648 tests: game 206 · world 159 · api 97 · brain 57 · handheld 35 · chain 34 · send 30 · web 23 · art 7
+Every number below is counted by `scripts/readme-facts.mts` from the suites themselves, and `pnpm status:check` fails when one goes stale.
 
-cd contracts && forge test
-# 116 unit tests, including fuzz and invariant tests
+| Suite | Command | Passing |
+|---|---|---|
+| TypeScript, every package | `pnpm test` | <!--f:tests-->666<!--/f--> (game <!--f:tests-game-->212<!--/f--> · world <!--f:tests-world-->164<!--/f--> · api <!--f:tests-api-->101<!--/f--> · brain <!--f:tests-brain-->57<!--/f--> · handheld <!--f:tests-handheld-->36<!--/f--> · chain <!--f:tests-chain-->36<!--/f--> · send <!--f:tests-send-->30<!--/f--> · web <!--f:tests-web-->23<!--/f--> · art <!--f:tests-art-->7<!--/f-->) |
+| Contracts, unit, fuzz and invariant | `cd contracts && forge test` | <!--f:forge-unit-->116<!--/f--> |
+| Contracts on a fork of X Layer mainnet (reads only) | `cd contracts && forge test --fork-url xlayer --match-path 'test/*.fork.t.sol'` | <!--f:forge-fork-->67<!--/f--> |
 
-cd contracts && forge test --fork-url https://xlayerrpc.okx.com --fork-block-number <head - 2000>
-# 67 fork tests of every contract against the live registry, BEM and the TapeOut factory
-```
+`pnpm status:check` runs all of it, plus lint, the type check, the repo's hygiene checks and whether the live site serves the current commit.
 
 The handheld's C core is checked against the game bit for bit: every input and memory state of the starter brains (16.7 million for the gentle one), the evolution, seal and rule circuits, composed children and instincts, pet #1's 33-word mainnet log, and hundreds of random trips through sickness, hibernation and the catch-up limit; its USB link is tested against the game's own client.
 
@@ -219,10 +217,12 @@ Every contract had a written review and a Slither pass before it reached mainnet
 
 ## Run it locally
 
+Needs Node 22 or later and pnpm 10.
+
 ```sh
 pnpm install
-pnpm --filter @lingxi/web dev          # the site on http://localhost:5173
-pnpm --filter @lingxi/api start        # API, live rooms and the X Layer door on :8787
+pnpm --filter @lingxi/web dev          # the game on http://localhost:5199, against X Layer mainnet
+pnpm --filter @lingxi/api start        # optional: API, live rooms and the X Layer door on :8787
 ```
 
 Teach-by-words needs an Anthropic API key in the server's environment. The brain relayer needs a funded relayer key file. Without them the game still runs fully: Pet School lessons and hand-built rules work offline, and every on-chain read goes through the public RPCs.
@@ -233,6 +233,13 @@ The on-chain copy is built with `node apps/web/scripts/deweb-build.mjs` and publ
 
 - The Cardputer firmware flashed to a device and timed on it (it builds today: 849 KB of flash, 240 KB of RAM).
 - Monthly seasons of community goals, each with its own keepsake.
+
+## Licence and credits
+
+The code is MIT-licensed ([LICENSE](LICENSE)). The art, sound and written content are not covered by it: all rights reserved ([NOTICE](NOTICE)).
+
+- `packages/send` is TapeKit's TapeSend module by TapeOutProtocol, MIT ([its licence](packages/send/LICENSE)).
+- `contracts/lib` vendors OpenZeppelin Contracts and forge-std, each under its own licence.
 
 ## Team
 
