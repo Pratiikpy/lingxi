@@ -26,6 +26,9 @@ export function freePort(): Promise<number> {
   });
 }
 
+/** The processes started in this Node process, by number, so a stop can check each is still the one it started. */
+const children = new Map<number, ChildProcess>();
+
 /** Starts `command` with its output in `log`; on Linux in its own process group, so it can be stopped as a whole. */
 export function start(name: string, command: string, args: string[], o: { cwd: string; env: NodeJS.ProcessEnv; log: string }): Started & { child: ChildProcess } {
   const out = createWriteStream(o.log, { flags: "a" });
@@ -33,11 +36,19 @@ export function start(name: string, command: string, args: string[], o: { cwd: s
   child.stdout?.pipe(out);
   child.stderr?.pipe(out);
   if (!child.pid) throw new Error(`${name} did not start: ${command}`);
+  children.set(child.pid, child);
   return { name, pid: child.pid, log: o.log, child };
 }
 
-/** Stops a process and everything it started. A process already gone is fine. */
-export function stop(p: Pick<Started, "pid" | "name">): void {
+/**
+ * Stops a process and everything it started. A process already gone is left alone: Windows gives a dead process's
+ * number to the next process that starts, so killing by number after an exit could stop someone else's (another
+ * run's game server, say). The child's own handle says whether it still runs, and while that handle is open Windows
+ * does not reuse its number.
+ */
+export function stop(p: Pick<Started, "pid" | "name"> & { child?: ChildProcess }): void {
+  const child = p.child ?? children.get(p.pid);
+  if (child && (child.exitCode !== null || child.signalCode !== null)) return;
   try {
     if (process.platform === "win32") execFileSync("taskkill", ["/pid", String(p.pid), "/T", "/F"], { stdio: "ignore" });
     else process.kill(-p.pid, "SIGTERM");
