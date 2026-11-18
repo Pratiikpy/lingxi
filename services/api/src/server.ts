@@ -39,6 +39,7 @@ import { PlanSchema, createPusher, type Pusher } from "./push";
 import { VoiceRequest, createVoice } from "./voice";
 import { LibraryRule, createLibrary, type Library } from "./library";
 import { createIndexer, type Indexer } from "./indexer";
+import { createPacketIndex, type PacketIndex } from "./packets";
 import { createGoalLedger, withGoals } from "./goals";
 import { withVouchers } from "./voucher";
 import { createPapersStore, withPapers } from "./papers";
@@ -497,6 +498,18 @@ export function withHistory(app: Hono, indexer: Indexer): Hono {
   return app;
 }
 
+/** Who opened a red packet (A1): read from the claims index, never from a log query a public node would refuse. */
+export function withPackets(app: Hono, index: Pick<PacketIndex, "claimsOf" | "head">): Hono {
+  app.get("/api/packets/:id/claims", (c) => {
+    const id = c.req.param("id");
+    if (!/^\d{1,20}$/.test(id)) return c.json({ ok: false, reason: "invalid" }, 400);
+    c.header("Cache-Control", "public, max-age=10");
+    const p = index.claimsOf(id);
+    return p ? c.json({ ok: true, indexedTo: index.head(), ...p }) : c.json({ ok: false, reason: "unknown", indexedTo: index.head() });
+  });
+  return app;
+}
+
 /**
  * The tree of life: every pet on chain with its generation, ancestors and the
  * owners who raised them. Names come from PetLook and name colours from the
@@ -724,7 +737,7 @@ if (isMain) {
   const live = new LiveRooms(createDecorStore(process.env.LINGXI_DECOR_STORE), createHomes({ ...(homeChain ? { chain: homeChain } : {}), file: process.env.LINGXI_HOMES_STORE }));
   const origins = (process.env.LINGXI_ORIGINS ?? "http://localhost:5199,http://localhost:4173").split(",");
   // what /api/health reports beyond its switches; chain reads are cached so a busy health check costs nothing
-  const watch: { indexed?: () => number; head?: () => Promise<bigint> } = {};
+  const watch: { indexed?: () => number; head?: () => Promise<bigint>; packets?: () => number } = {};
   let cached: { at: number; value: Record<string, unknown> } | null = null;
   const dataDir = resolve(dirname(fileURLToPath(import.meta.url)), "../data");
   const detail: HealthDetail = async () => {
@@ -733,6 +746,7 @@ if (isMain) {
     const value = {
       jobs: Object.fromEntries(jobs.status().map((j) => [j.name, j.healthy ? "ok" : `failing: ${j.lastError?.message ?? "?"}`])),
       indexerLagBlocks: head !== null && watch.indexed ? Number(head) - watch.indexed() : null,
+      packetsLagBlocks: head !== null && watch.packets ? Number(head) - watch.packets() : null,
       relayerOkb: relayerWei === null ? null : Number(relayerWei) / 1e18,
       // the alarm the outside check turns into an issue for Prateek: top the relayer up before players are refused
       relayerLow: relayerWei !== null && Number(relayerWei) / 1e18 < Number(process.env.LINGXI_RELAY_ALARM_OKB ?? 0.02),
@@ -839,6 +853,18 @@ if (isMain) {
       chainCtx?.deployment.extras ? (ids) => nameColours(chainCtx!.pub, chainCtx!.deployment, ids.map((x) => BigInt(x))) : undefined,
     );
     jobs.loop("indexer", () => indexer.catchUp(), 15_000);
+    // who opened each red packet (A1): the contract keeps only events, read here in 100-block windows
+    if (chainCtx?.deployment.redPacket && chainCtx.deployment.redPacketBlock) {
+      const packets = createPacketIndex({
+        rpc: process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech",
+        address: chainCtx.deployment.redPacket as `0x${string}`,
+        fromBlock: Number(process.env.LINGXI_PACKETS_FROM ?? chainCtx.deployment.redPacketBlock),
+        store: process.env.LINGXI_PACKETS_STORE ?? join(dataDir, "packets.json"),
+      });
+      withPackets(app, packets);
+      watch.packets = () => packets.head();
+      jobs.loop("packets", () => packets.catchUp(), 20_000);
+    }
     // live numbers: the pet counts above, both markets' sales, and the contracts' own totals
     const rpc = process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech";
     const env = (k: string) => (process.env[k] ? (process.env[k] as `0x${string}`) : undefined);

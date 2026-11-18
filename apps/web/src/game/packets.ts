@@ -8,13 +8,14 @@
 import { create } from "zustand";
 import { type Address, type Hex, formatUnits, parseUnits } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { XLAYER_USDT, claimPacket, collectPacket, createPacket, owedOf, pendingOf, readClaims, readPacket, refundPacket, revealPacket, signClaim, tokenBalance } from "@lingxi/chain";
+import { type ClaimView, XLAYER_USDT, claimPacket, collectPacket, createPacket, owedOf, pendingOf, readPacket, refundPacket, revealPacket, signClaim, tokenBalance } from "@lingxi/chain";
 import { b64urlDecode, b64urlEncode } from "@lingxi/brain";
 import { connectWallet, deployment, publicClient } from "./chain";
 import { saveWrite } from "./saveRuntime";
 import { now } from "./gameClock";
 
 const SENT_KEY = "lingxi.packets.sent.v1";
+const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
 const PREFIX = "lxp1.";
 export const USDT_DECIMALS = 6;
 export const packetsAvailable = () => !!deployment?.redPacket;
@@ -74,7 +75,8 @@ interface PacketStore {
   send: (o: { amount: string; count: number; lucky: boolean; petOwnersOnly: boolean; days: number; from: PacketLink["from"]; letter: string; origin: string }) => Promise<string | null>;
   /** claim (and reveal if lucky); returns the amount received */
   /** claim (and reveal if lucky); `petId` is the opener's settled pet on chain, for pet-owners-only packets */
-  open: (link: PacketLink, onStage: (s: "signing" | "claiming" | "luck" | "revealing") => void, petId?: string) => Promise<{ ok: true; amount: bigint; best: boolean } | { ok: false; reason: string }>;
+  /** opens a share; `claim` is the share as its own transaction recorded it (null if the receipt had none) */
+  open: (link: PacketLink, onStage: (s: "signing" | "claiming" | "luck" | "revealing") => void, petId?: string) => Promise<{ ok: true; amount: bigint; best: boolean; claim: ClaimView | null } | { ok: false; reason: string }>;
   refund: (id: string) => Promise<boolean>;
   /** a lucky packet's top-up waiting for this wallet once every share is open */
   owed: (id: string) => Promise<bigint>;
@@ -136,7 +138,7 @@ export const usePackets = create<PacketStore>((set, get) => ({
         const sig = await signClaim(publicClient, deployment, `0x${link.key}` as Hex, id, me);
         onStage("claiming");
         const r = await claimPacket(publicClient, wallet, deployment, id, sig, petId ? BigInt(petId) : 0n);
-        if (!r.reserved) return { ok: true, amount: r.amount, best: false };
+        if (!r.reserved) return { ok: true, amount: r.amount, best: false, claim: r.claim };
         block = r.block;
       } else block = already.atBlock;
       // a lucky share is decided by a block that did not exist when we claimed
@@ -147,9 +149,8 @@ export const usePackets = create<PacketStore>((set, get) => ({
       }
       onStage("revealing");
       const r = await revealPacket(publicClient, wallet, deployment, id);
-      const claims = await readClaims(publicClient, deployment, id);
-      const mine = claims.find((c) => c.claimer.toLowerCase() === me.toLowerCase());
-      return { ok: true, amount: r.amount, best: !!mine && ((mine.sealOutput >> 5) & 1) === 1 };
+      // the reveal's own receipt carries the share it drew: whether it was the best is bit 5 of the seal's answer
+      return { ok: true, amount: r.amount, best: !!r.claim && ((r.claim.sealOutput >> 5) & 1) === 1, claim: r.claim };
     } catch (e) {
       // the contract's error name sits further down viem's message than the first line
       const msg = (e as Error).message ?? "";
@@ -190,4 +191,34 @@ export const usePackets = create<PacketStore>((set, get) => ({
   },
 }));
 
-export { readPacket, readClaims };
+/**
+ * Who opened a packet so far (A1). The contract keeps only events, and the public nodes read at most 100 blocks a time,
+ * so the list comes from the game server's index of them; the on-chain copy, which has no server, has the contract's
+ * own counts only. `asOf` is the block the index has read to.
+ */
+export type ClaimsRead = { kind: "list"; claims: ClaimView[]; asOf: number } | { kind: "catchingUp"; asOf: number } | { kind: "onChainCopy" } | { kind: "unreachable" };
+
+/** The list with a claim this player just made, from its own receipt, until the server's index has read it too. */
+export function withClaim(read: ClaimsRead, claim: ClaimView | null): ClaimsRead {
+  if (!claim || read.kind !== "list" || read.claims.some((c) => c.tx === claim.tx && c.index === claim.index)) return read;
+  return { ...read, claims: [...read.claims, claim] };
+}
+
+export async function claimsOf(id: bigint): Promise<ClaimsRead> {
+  if (!BASE) return { kind: "onChainCopy" };
+  try {
+    const r = (await (await fetch(`${BASE}/api/packets/${id}/claims`, { signal: AbortSignal.timeout(10_000) })).json()) as
+      | { ok: true; indexedTo: number; claims: Array<{ claimer: string; amount: string; index: number; sealInput: number; sealOutput: number; tx: string }> }
+      | { ok: false; reason: string; indexedTo?: number };
+    if (!r.ok) return r.reason === "unknown" && typeof r.indexedTo === "number" ? { kind: "catchingUp", asOf: r.indexedTo } : { kind: "unreachable" };
+    return {
+      kind: "list",
+      asOf: r.indexedTo,
+      claims: r.claims.map((c) => ({ claimer: c.claimer as Address, amount: BigInt(c.amount), index: c.index, sealInput: c.sealInput, sealOutput: c.sealOutput, tx: c.tx as Hex })),
+    };
+  } catch {
+    return { kind: "unreachable" };
+  }
+}
+
+export { readPacket };

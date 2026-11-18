@@ -9,9 +9,9 @@ import { useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { drawPet } from "@lingxi/art";
 import type { Pet } from "@lingxi/game";
-import { type ClaimView, type PacketView } from "@lingxi/chain";
+import { type PacketView } from "@lingxi/chain";
 import { useLang } from "../i18n";
-import { type PacketLink, decodePacketLink, packetsAvailable, readClaims, readPacket, usdt, usePackets } from "../game/packets";
+import { type ClaimsRead, type PacketLink, claimsOf, decodePacketLink, packetsAvailable, readPacket, usdt, usePackets, withClaim } from "../game/packets";
 import { deployment, publicClient, useChain } from "../game/chain";
 import { useGame } from "../game/store";
 import { play } from "../game/sound";
@@ -22,6 +22,33 @@ import { now } from "../game/gameClock";
 
 type Lang = "en" | "zh";
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+
+/**
+ * Why the list of who opened a packet is not shown (A1): the server's index is still reading up to it, the packet
+ * closed more than 30 days ago, this is the on-chain copy (no server; the counts above come from the contract), or
+ * the server could not be reached. A shown list needs no note.
+ */
+function ClaimsNote({ read, closedLongAgo, lang }: { read: ClaimsRead | null; closedLongAgo: boolean; lang: "en" | "zh" }) {
+  if (!read || read.kind === "list") return null;
+  const zh = lang === "zh";
+  const text =
+    read.kind === "onChainCopy"
+      ? zh
+        ? "谁领了多少，列在游戏的网站 lingxi.knole.me 上；上面的份数直接来自合约。"
+        : "Who opened it is listed on the game's site, lingxi.knole.me; the shares above come straight from the contract."
+      : read.kind === "unreachable"
+        ? zh
+          ? "谁领了多少暂时读不到，稍后再看。"
+          : "The list of who opened it couldn't be read just now; look again in a moment."
+        : closedLongAgo
+          ? zh
+            ? "红包结束 30 天后，就不再列出谁领了多少。"
+            : "The list of who opened a packet is kept for 30 days after it closes."
+          : zh
+            ? `谁领了多少还在从 X Layer 读取（已读到区块 ${read.asOf.toLocaleString("zh-CN")}）。`
+            : `The list of who opened it is still being read from X Layer (up to block ${read.asOf.toLocaleString("en")}).`;
+  return <p className="small rp-claims-note">{text}</p>;
+}
 
 /** Fund and send a red packet from the Pet sheet. */
 export function RedPacketPanel({ pet }: { pet: Pet }) {
@@ -193,7 +220,8 @@ export function PacketArrival() {
   const [owed, setOwed] = useState<bigint>(0n);
   const [link, setLink] = useState<PacketLink | null>(null);
   const [view, setView] = useState<PacketView | null>(null);
-  const [claims, setClaims] = useState<ClaimView[]>([]);
+  const [read, setRead] = useState<ClaimsRead | null>(null);
+  const claims = read?.kind === "list" ? read.claims : [];
   const [stage, setStage] = useState<"idle" | "signing" | "claiming" | "luck" | "revealing" | "done" | "error">("idle");
   const [result, setResult] = useState<{ amount: bigint; best: boolean } | null>(null);
   const [reason, setReason] = useState<string | null>(null);
@@ -208,7 +236,7 @@ export function PacketArrival() {
       setStage("idle");
       setResult(null);
       void readPacket(publicClient, deployment!, BigInt(l.id)).then(setView, () => setReason("unknown"));
-      void readClaims(publicClient, deployment!, BigInt(l.id)).then(setClaims, () => undefined);
+      void claimsOf(BigInt(l.id)).then(setRead);
       void owedFn(l.id).then(setOwed);
     };
     read();
@@ -282,7 +310,7 @@ export function PacketArrival() {
                     play("success");
                     setResult({ amount: r.amount, best: r.best });
                     setStage("done");
-                    void readClaims(publicClient, deployment!, BigInt(link.id)).then(setClaims);
+                    void claimsOf(BigInt(link.id)).then((list) => setRead(withClaim(list, r.claim)));
                     void readPacket(publicClient, deployment!, BigInt(link.id)).then(setView);
                     void owedFn(link.id).then(setOwed);
                   } else {
@@ -363,6 +391,7 @@ export function PacketArrival() {
             )}
           </>
         )}
+        {link && view && <ClaimsNote read={read} closedLongAgo={view.expiry + 3_600 + 30 * 86_400 < now() / 1000} lang={lang} />}
         {!link && reason && <p>{text(reason)}</p>}
         <button type="button" className="btn" onClick={close}>
           {lang === "zh" ? "关闭" : "Close"}

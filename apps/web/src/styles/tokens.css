@@ -17,6 +17,8 @@
   --ink-soft: #5b4e73;
   --card: #fffdf8;
   --tint: var(--lavender);
+  /* a handwritten note on its card (a gift's or a red packet's letter): warm, and legible under --ink in both themes */
+  --note-paper: color-mix(in srgb, #fff3c4 45%, var(--card));
   --band: var(--pink);
   --line: var(--plum);
   --track: #f1e4d2;
@@ -58,6 +60,7 @@
     --band: #2a2147;
     --line: #fff3e2;
     --track: #3a2f5e;
+    --note-paper: color-mix(in srgb, #fff3c4 12%, var(--card));
     color-scheme: dark;
   }
 }
@@ -70,6 +73,7 @@
   --band: #2a2147;
   --line: #fff3e2;
   --track: #3a2f5e;
+  --note-paper: color-mix(in srgb, #fff3c4 12%, var(--card));
   color-scheme: dark;
 }
 

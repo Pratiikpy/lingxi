@@ -47,6 +47,8 @@ module.exports = {
         LINGXI_LOOK: "0x0642a802967260714d4efec05fef701b17d31b75",
         LINGXI_REGISTRY_FROM: "75968151",
         LINGXI_HISTORY_STORE: path.join(root, "services", "api", "data", "history-xlayer.json"),
+        // who opened each red packet, indexed from the contract's events (A1)
+        LINGXI_PACKETS_STORE: path.join(root, "services", "api", "data", "red-packet-claims.json"),
         LINGXI_MARKET_OKB: "0xb9f6b18edd21933582ec69fb1e718d9629e684cd",
         LINGXI_MARKET_OKB_FROM: "76011196",
         LINGXI_SALES_STORE: path.join(root, "services", "api", "data", "sales-xlayer.json"),

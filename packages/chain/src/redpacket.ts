@@ -86,24 +86,31 @@ export async function signClaim(pub: PublicClient, d: Deployment, keyPk: Hex, id
 }
 
 /** Claim a share; `petId` is the claimer's settled pet for a pet-owners-only packet (0 otherwise). */
-export async function claimPacket(pub: PublicClient, wallet: WalletClient, d: Deployment, id: bigint, sig: Hex, petId = 0n): Promise<{ amount: bigint; reserved: boolean; tx: Hex; block: bigint }> {
+/** The claim a transaction made, read from its own receipt: no log query, so no node's range limit applies. */
+function claimIn(logs: Parameters<typeof parseEventLogs>[0]["logs"], tx: Hex): ClaimView | null {
+  const paid = parseEventLogs({ abi: redPacketAbi, logs, eventName: "Claimed" })[0];
+  if (!paid) return null;
+  return { claimer: paid.args.claimer, amount: paid.args.amount, index: Number(paid.args.index), sealInput: Number(paid.args.sealInput), sealOutput: Number(paid.args.sealOutput), tx };
+}
+
+export async function claimPacket(pub: PublicClient, wallet: WalletClient, d: Deployment, id: bigint, sig: Hex, petId = 0n): Promise<{ amount: bigint; reserved: boolean; tx: Hex; block: bigint; claim: ClaimView | null }> {
   const account = acct(wallet);
   const { request } = await pub.simulateContract({ address: need(d), abi: redPacketAbi, functionName: "claim", args: [id, sig, petId], account });
   const tx = await wallet.writeContract(request);
   const r = await pub.waitForTransactionReceipt({ hash: tx });
   if (r.status !== "success") throw new Error("claim failed");
-  const paid = parseEventLogs({ abi: redPacketAbi, logs: r.logs, eventName: "Claimed" })[0];
-  return { amount: paid ? paid.args.amount : 0n, reserved: !paid, tx, block: r.blockNumber };
+  const claim = claimIn(r.logs, tx);
+  return { amount: claim?.amount ?? 0n, reserved: !claim, tx, block: r.blockNumber, claim };
 }
 
-export async function revealPacket(pub: PublicClient, wallet: WalletClient, d: Deployment, id: bigint): Promise<{ amount: bigint; tx: Hex }> {
+export async function revealPacket(pub: PublicClient, wallet: WalletClient, d: Deployment, id: bigint): Promise<{ amount: bigint; tx: Hex; claim: ClaimView | null }> {
   const account = acct(wallet);
   const { request } = await pub.simulateContract({ address: need(d), abi: redPacketAbi, functionName: "reveal", args: [id], account });
   const tx = await wallet.writeContract(request);
   const r = await pub.waitForTransactionReceipt({ hash: tx });
   if (r.status !== "success") throw new Error("reveal failed");
-  const paid = parseEventLogs({ abi: redPacketAbi, logs: r.logs, eventName: "Claimed" })[0];
-  return { amount: paid ? paid.args.amount : 0n, tx };
+  const claim = claimIn(r.logs, tx);
+  return { amount: claim?.amount ?? 0n, tx, claim };
 }
 
 export async function refundPacket(pub: PublicClient, wallet: WalletClient, d: Deployment, id: bigint): Promise<Hex> {
@@ -118,18 +125,6 @@ export async function refundPacket(pub: PublicClient, wallet: WalletClient, d: D
 export async function readPacket(pub: PublicClient, d: Deployment, id: bigint): Promise<PacketView> {
   const p = (await pub.readContract({ address: need(d), abi: redPacketAbi, functionName: "packet", args: [id] })) as unknown as PacketView & { expiry: bigint };
   return { ...p, expiry: Number(p.expiry), count: Number(p.count), claimed: Number(p.claimed), paid: Number(p.paid) };
-}
-
-export async function readClaims(pub: PublicClient, d: Deployment, id: bigint): Promise<ClaimView[]> {
-  const logs = await pub.getContractEvents({ address: need(d), abi: redPacketAbi, eventName: "Claimed", args: { id }, fromBlock: d.redPacketBlock ? BigInt(d.redPacketBlock) : "earliest" });
-  return logs.map((l) => ({
-    claimer: l.args.claimer as Address,
-    amount: l.args.amount as bigint,
-    index: Number(l.args.index),
-    sealInput: Number(l.args.sealInput),
-    sealOutput: Number(l.args.sealOutput),
-    tx: l.transactionHash as Hex,
-  }));
 }
 
 export async function pendingOf(pub: PublicClient, d: Deployment, id: bigint, who: Address): Promise<{ atBlock: bigint; index: number } | null> {

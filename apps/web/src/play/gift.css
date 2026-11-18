@@ -110,7 +110,7 @@
   padding: 14px 16px;
   border: 2px dashed var(--line);
   border-radius: 14px;
-  background: color-mix(in srgb, #fff3c4 45%, var(--card));
+  background: var(--note-paper);
   font-family: var(--round);
   font-weight: 600;
   line-height: 1.5;
