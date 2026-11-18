@@ -164,6 +164,16 @@ function promiseChecks(): void {
 
 // ---------------------------------------------------------------- sites
 
+/** What a site's build is made of: a change anywhere here means it must be rebuilt and published. */
+const SITE_INPUTS = [
+  "apps/web/src", "apps/web/public", "apps/web/*.html", "apps/web/vite.config.ts", "apps/web/package.json", "apps/web/scripts",
+  ...["brain", "game", "world", "art", "send", "handheld", "chain"].flatMap((p) => [`packages/${p}/src`, `packages/${p}/package.json`]),
+  "packages/handheld/wasm", "packages/chain/deployments", "pnpm-lock.yaml",
+  ":(exclude)**/*.test.ts", ":(exclude)**/*.test.tsx",
+];
+/** And the live server's own code and settings. */
+const SERVER_INPUTS = ["services/api/src", "services/api/package.json", "deploy"];
+
 /** DeWEB keeps each file on chain; the gateway answers a plain request with its own loader, so read the file itself. */
 const DEWEB = { opener: "0x536adD8F30f03b69f6fbF29d425A816A0dC50106", sites: "0xd6EFb7adCc9c83dC4924Ad56f6a8E4e969b9ADB6", circuit: 1n } as const;
 async function onChainFile(path: string): Promise<string> {
@@ -203,9 +213,18 @@ async function siteChecks(): Promise<void> {
       record("sites", `${name} serves this commit`, "FAIL", `${base}: ${s}`, t);
       continue;
     }
-    const same = s.commit === head && !s.dirty;
-    const why = s.dirty ? `built from uncommitted changes on top of ${s.commit.slice(0, 12)}` : `serves ${s.commit.slice(0, 12)}, built ${s.builtAt}`;
-    record("sites", `${name} serves this commit`, same ? "PASS" : "FAIL", why, t);
+    // a site built from an older commit is still current when nothing it is made of changed since
+    const inputs = base === DEWEB_URL ? SITE_INPUTS : [...SITE_INPUTS, ...SERVER_INPUTS];
+    const unchanged = s.commit === head || (!s.dirty && spawnSync("git", ["diff", "--quiet", s.commit, head, "--", ...inputs], { cwd: root }).status === 0);
+    const same = !s.dirty && unchanged;
+    const why = s.dirty
+      ? `built from uncommitted changes on top of ${s.commit.slice(0, 12)}`
+      : s.commit === head
+        ? `serves ${s.commit.slice(0, 12)}, built ${s.builtAt}`
+        : unchanged
+          ? `serves ${s.commit.slice(0, 12)}; nothing it is built from has changed since`
+          : `serves ${s.commit.slice(0, 12)}, and what it is built from changed since: redeploy`;
+    record("sites", `${name} is current`, same ? "PASS" : "FAIL", why, t);
   }
 
   const t = Date.now();
