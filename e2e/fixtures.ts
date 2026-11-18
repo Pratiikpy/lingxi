@@ -3,7 +3,7 @@
  * wallet beyond the test one its game signs with) in a language, a colour scheme and a size; every page it opens is
  * watched, and any console error or page error fails the test that made it.
  */
-import { test as base, expect, type BrowserContext, type Page } from "@playwright/test";
+import { test as base, expect, type BrowserContext, type Locator, type Page } from "@playwright/test";
 import { currentRun, type Run } from "./harness/run";
 
 export { expect };
@@ -134,52 +134,93 @@ export function zoneWithHour(from: number, to: number): string {
   throw new Error(`no zone has an hour between ${from} and ${to} now`);
 }
 
+/** One showing of the pattern game: when the pads closed to input, and each light with when it came on and went out. */
+export interface Showing {
+  closedAt: number;
+  lights: Array<{ pad: number; on: number; off: number }>;
+  ended: boolean;
+}
+
 /**
- * The lights the pattern game shows, in order, read as a player watches them: each pad that lights while the pads are
- * closed to input, counted the moment it lights. Resolves when the pads open for the player's turn.
+ * Starts recording every showing of the pattern game, as a player watches them: from when the pads close to input
+ * until they open again, each pad that lights, counted the moment it lights, with its times. Installed before the
+ * game starts, so no showing can begin before the recorder listens, however slow the machine.
  */
-const watchPattern = (page: Page) =>
-  page.evaluate(
-    () =>
-      new Promise<number[]>((resolve) => {
-        const pads = () => [...document.querySelectorAll<HTMLButtonElement>(".pads .pad")];
-        const seen: number[] = [];
-        let showing = false;
-        const settle = () => {
-          const ps = pads();
-          const now = ps.length > 0 && ps[0]!.disabled;
-          if (showing && !now) {
-            watcher.disconnect();
-            resolve(seen);
-          }
-          showing = now;
-        };
-        const watcher = new MutationObserver((records) => {
-          settle();
-          for (const r of records) {
-            const el = r.target as HTMLButtonElement;
-            const lit = el.classList?.contains("pad") && el.classList.contains("lit") && !(r.oldValue ?? "").split(" ").includes("lit");
-            if (r.attributeName === "class" && lit && showing) seen.push(pads().indexOf(el));
-          }
-        });
-        watcher.observe(document.body, { subtree: true, attributes: true, attributeFilter: ["class", "disabled"], attributeOldValue: true });
-        settle();
-      }),
-  );
+export async function recordShowings(page: Page): Promise<void> {
+  // the first round's pads are added already closed, so new elements are watched as well as changes
+  await page.evaluate(() => {
+    const w = window as unknown as { __showings?: Showing[] };
+    if (w.__showings) return;
+    const showings: Showing[] = (w.__showings = []);
+    const pads = () => [...document.querySelectorAll<HTMLButtonElement>(".pads .pad")];
+    let current: Showing | null = null;
+    new MutationObserver((records) => {
+      const now = performance.now();
+      const ps = pads();
+      const closed = ps.length > 0 && ps[0]!.disabled;
+      // a light that comes on in the same change as the closing is the player's last press, not the showing's
+      const opening = closed && !current;
+      if (opening) showings.push((current = { closedAt: now, lights: [], ended: false }));
+      for (const r of records) {
+        const el = r.target as HTMLButtonElement;
+        if (r.attributeName !== "class" || !el.classList?.contains("pad") || !current) continue;
+        const was = (r.oldValue ?? "").split(" ").includes("lit");
+        const is = el.classList.contains("lit");
+        const pad = ps.indexOf(el);
+        if (is && !was && !opening) current.lights.push({ pad, on: now, off: -1 });
+        if (was && !is) {
+          const l = [...current.lights].reverse().find((x) => x.pad === pad && x.off < 0);
+          if (l) l.off = now;
+        }
+      }
+      if (current && !closed) {
+        current.ended = true;
+        current = null;
+      }
+    }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["class", "disabled"], attributeOldValue: true });
+  });
+}
+
+/** The `n`th showing (1 for the first round), once it has ended and the pads are open for the player. */
+export async function showing(page: Page, n: number): Promise<Showing> {
+  await page.waitForFunction((i) => (window as unknown as { __showings?: Showing[] }).__showings?.[i]?.ended === true, n - 1);
+  return page.evaluate((i) => (window as unknown as { __showings: Showing[] }).__showings[i]!, n - 1);
+}
 
 /**
  * Plays "Follow the Pattern" from the games sheet as a player does: watches the lights and repeats them for two rounds,
  * then misses on the third, so the game ends with a score of 2.
  */
 export async function playPattern(page: Page): Promise<void> {
+  await recordShowings(page);
   await page.locator(".game-card").nth(1).click();
   for (let round = 1; round <= 3; round++) {
-    const shown = await watchPattern(page);
+    const shown = (await showing(page, round)).lights.map((l) => l.pad);
     expect(shown.length, `round ${round} shows ${round} lights`).toBe(round);
     if (round < 3) for (const k of shown) await page.locator(".pads .pad").nth(k).click();
     else await page.locator(".pads .pad").nth((shown[0]! + 1) % 4).click();
   }
   await page.locator(".game-result").waitFor();
+}
+
+/**
+ * Taps a control that never stops moving (the pet's quest bubble bobs), as a player does: once it is visible and
+ * nothing covers its centre, at its centre, without Playwright's wait for it to hold still.
+ */
+export async function tapMoving(locator: Locator): Promise<void> {
+  await expect(locator).toBeVisible();
+  await expect
+    .poll(
+      () =>
+        locator.evaluate((el) => {
+          const r = el.getBoundingClientRect();
+          const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+          return hit !== null && el.contains(hit);
+        }),
+      { message: "nothing covers it" },
+    )
+    .toBe(true);
+  await locator.click({ force: true });
 }
 
 /** The pet on screen, as the save holds it. */

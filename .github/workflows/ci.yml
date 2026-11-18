@@ -74,6 +74,8 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: e2e-report
+          # the harness keeps its logs under e2e/.run, a hidden folder the action skips unless asked
+          include-hidden-files: true
           path: |
             playwright-report/
             test-results/

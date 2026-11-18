@@ -231,19 +231,21 @@ function PatternGame({ onEnd }: { onEnd: (score: number) => void }) {
     if (phase !== "show") return;
     if (pressTimer.current) clearTimeout(pressTimer.current);
     const steps = showSteps(seq, reduce ? 700 : 560);
-    const timers = steps.map((s) =>
-      setTimeout(() => {
-        setLit(s.lit);
-        if (s.lit !== null) play("tap");
-      }, s.at),
-    );
-    timers.push(
-      setTimeout(() => {
+    // each step is timed from the one before, so a phone that runs a timer late stretches the showing but never cuts
+    // a light short
+    let timer: ReturnType<typeof setTimeout>;
+    const step = (i: number) => {
+      if (i === steps.length) {
         setPhase("input");
         setPos(0);
-      }, steps.at(-1)!.at),
-    );
-    return () => timers.forEach(clearTimeout);
+        return;
+      }
+      setLit(steps[i]!.lit);
+      if (steps[i]!.lit !== null) play("tap");
+      timer = setTimeout(() => step(i + 1), i + 1 < steps.length ? steps[i + 1]!.at - steps[i]!.at : 0);
+    };
+    timer = setTimeout(() => step(0), steps[0]!.at);
+    return () => clearTimeout(timer);
   }, [phase, seq, reduce]);
 
   const press = (k: number) => {

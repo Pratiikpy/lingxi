@@ -61,5 +61,9 @@ export default defineConfig({
   },
   // the end-to-end suite (e2e/) plays a dev server that must not reload a page under a running test when a file is
   // saved; its reload channel stays, since Vite uses it to reload a page after bundling a newly found dependency
-  server: { port: 5199, ...(process.env.LINGXI_E2E === "1" ? { watch: null } : {}) },
+  // under the suite it also transforms the game's source as it starts, so a dependency it finds is bundled before any
+  // test loads a page (a cold CI machine otherwise found one mid-load, and the page could not load)
+  server: { port: 5199, ...(process.env.LINGXI_E2E === "1" ? { watch: null, warmup: { clientFiles: ["./src/**/main.tsx", "./src/**/*.tsx", "!./src/**/*.test.tsx"] } } : {}) },
+  // the end-to-end suite gives each run its own dependency cache, so runs never share one and each starts as CI does
+  ...(process.env.LINGXI_VITE_CACHE ? { cacheDir: process.env.LINGXI_VITE_CACHE } : {}),
 });

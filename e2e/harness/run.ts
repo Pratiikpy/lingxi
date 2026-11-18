@@ -75,6 +75,9 @@ export async function startRun(): Promise<Run> {
     const bem = (await pub.readContract({ address: deployment.itemShop, abi: [{ type: "function", name: "bem", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] }] as const, functionName: "bem" })) as Address;
     const addresses = Array.from({ length: PLAYERS }, (_, i) => testAccount(i).address);
     for (const a of addresses) {
+      // the test mnemonic's addresses are public, and on X Layer some carry EIP-7702 delegation code a stranger set,
+      // which refuses the pet a registry mints to them: on the fork they are made plain wallets again
+      if (((await pub.getCode({ address: a })) ?? "0x") !== "0x") await pub.request({ method: "anvil_setCode" as never, params: [a, "0x"] as never });
       await giveOkb(pub, a, OKB_EACH);
       await giveToken(pub, bem, a, BEM_EACH);
     }
@@ -132,14 +135,18 @@ export async function startRun(): Promise<Run> {
     const health = (await (await fetch(`${api}/api/health`)).json()) as { teach?: boolean; voice?: boolean; relay?: boolean };
     if (health.teach || health.voice) throw new Error("the suite's server can reach a paid model; it must not");
     if (!health.relay) throw new Error("the suite's server has no relayer");
+    // the server's first reading of Builders' Lane loads hundreds of processors the fork has never touched, and the
+    // fork answers nothing else quickly until it is done: specs start after it
+    await waitFor("the server's first reading of the chain", async () => ((await (await fetch(`${api}/api/lane/tapeouts`)).json()) as { ok?: boolean }).ok === true, 300_000, server.log);
 
     // the game, once per player's wallet
     const players: Player[] = [];
     for (const [i, port] of webPorts.entries()) {
       const web = `http://localhost:${port}`;
-      const env: NodeJS.ProcessEnv = { ...process.env, LINGXI_E2E: "1", VITE_CHAIN: "rehearsal", VITE_RPC: rpc, VITE_API_URL: api, VITE_LIVE_URL: `${api.replace("http", "ws")}/live`, VITE_DEV_KEY: keyOf(i) };
+      const env: NodeJS.ProcessEnv = { ...process.env, LINGXI_E2E: "1", LINGXI_VITE_CACHE: join(dir, `vite-cache-${i}`), VITE_CHAIN: "rehearsal", VITE_RPC: rpc, VITE_API_URL: api, VITE_LIVE_URL: `${api.replace("http", "ws")}/live`, VITE_DEV_KEY: keyOf(i) };
       const p = keep(start(`web${i}`, node, [vite, "--port", String(port), "--strictPort", "--host", "localhost"], { cwd: join(ROOT, "apps/web"), env, log: join(dir, `web${i}.log`) }));
       await waitFor(`the game for player ${i}`, () => answers(`${web}/play.html`), 90_000, p.log);
+      await warmUp(web, p.log);
       players.push({ index: i, address: addresses[i]!, web });
     }
     for (const a of addresses.slice(2)) players.push({ index: players.length, address: a, web: "" });
@@ -153,6 +160,30 @@ export async function startRun(): Promise<Run> {
   } catch (e) {
     for (const p of procs.reverse()) stop(p);
     throw e;
+  }
+}
+
+/**
+ * Opens the game once in a browser and waits for the hatch screen, so the dev server has transformed and bundled
+ * everything the first page needs before any spec plays. A page that could not load (the server still bundling a
+ * dependency it just found) is loaded again, up to three times; then the run stops and says so.
+ */
+async function warmUp(web: string, log: string): Promise<void> {
+  const { chromium } = await import("@playwright/test");
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    for (let attempt = 1; ; attempt++) {
+      await page.goto(`${web}/play.html`, { timeout: 120_000 });
+      const shown = await page.locator(".hatch, #load-failed-title").first().waitFor({ timeout: 120_000 }).then(
+        async () => ((await page.locator(".hatch").count()) ? "game" : "failed"),
+        () => "nothing",
+      );
+      if (shown === "game") return;
+      if (attempt === 3) throw new Error(`the game at ${web} would not load in a browser (${shown}); see ${log}`);
+    }
+  } finally {
+    await browser.close();
   }
 }
 
