@@ -10,7 +10,7 @@ import { useLang } from "../i18n";
 import { type SeasonView, enterSeason, markAwarded, mine, readSeason, seasonsAvailable } from "../game/season";
 import { useBadges } from "../game/badges";
 import { play } from "../game/sound";
-import { recordOf } from "../game/chain";
+import { signSeasonEntry, recordOf } from "../game/chain";
 import { useWorld } from "../game/world";
 import { useMail } from "../game/mail";
 
@@ -76,11 +76,35 @@ export function SeasonCard({ pet }: { pet: Pet }) {
   const enter = async () => {
     setBusy(true);
     setNote("");
-    const r = await enterSeason({ name: pet.name, line: pet.line, stage: stageOf(pet, Date.now()), card: petCard(pet), story: { days: dayOf(pet, Date.now()), lessons: pet.lessons.length, nature: [] } }, recordOf(pet)?.owner);
+    const entry = { name: pet.name, line: pet.line, stage: stageOf(pet, Date.now()), card: petCard(pet), story: { days: dayOf(pet, Date.now()), lessons: pet.lessons.length, nature: [] } };
+    // a pet on X Layer enters as itself, signed, so it can win the keepsake; if that cannot be proven it still plays
+    let proof: Awaited<ReturnType<typeof signSeasonEntry>> = null;
+    let why: "unsigned" | "notProven" | null = null;
+    if (onChain) {
+      try {
+        proof = await signSeasonEntry(pet, entry);
+      } catch {
+        why = "unsigned";
+      }
+    }
+    let r = await enterSeason(entry, proof ?? undefined);
+    if (!r.ok && r.reason === "notProven") {
+      why = "notProven";
+      r = await enterSeason(entry);
+    }
     setBusy(false);
     if (r.ok) {
       play("success");
-      setNote(myKey ? L(`${pet.name}'s entry is updated with what it knows now.`, `已用${pet.name}现在学会的东西更新参赛。`) : L(`${pet.name} is in this week's season.`, `${pet.name}已参加本周赛季。`));
+      const base = myKey ? L(`${pet.name}'s entry is updated with what it knows now.`, `已用${pet.name}现在学会的东西更新参赛。`) : L(`${pet.name} is in this week's season.`, `${pet.name}已参加本周赛季。`);
+      setNote(
+        why === "notProven"
+          ? `${base} ${L(`Its mind on X Layer is behind what it knows now, so this entry can't win the keepsake. Put its new mind on chain (Pet sheet), then update the entry.`, `它在 X Layer 上的心智落后于它现在学会的，所以这次参赛不能赢纪念品。先在宠物页把新心智放上链，再更新参赛。`)}`
+          : why === "unsigned"
+            ? `${base} ${L("Without your signature this entry can't win the keepsake; update it and sign to be in line.", "没有你的签名，这次参赛不能赢纪念品；更新参赛并签名就能排上。")}`
+            : r.proven
+              ? `${base} ${L("It's entered as itself on X Layer, so the keepsake can be yours.", "它以 X Layer 上的身份参赛，纪念品可以归你。")}`
+              : base,
+      );
       setCheck(null);
       await load();
     } else {
@@ -88,6 +112,8 @@ export function SeasonCard({ pet }: { pet: Pet }) {
       setNote(
         r.reason === "full"
           ? L("This week's season is full. A new one opens on Monday.", "本周赛季已满，周一开新赛季。")
+          : r.reason === "tooMany"
+            ? L("Three pets from here are already in this week's season. A new one opens on Monday.", "这里已经有三只宠物参加本周赛季了，周一开新赛季。")
           : r.reason === "busy"
             ? L("Too many entries from here just now. Try again in a little while.", "这里刚刚提交太多次了，过一会儿再试。")
             : L("The season couldn't be reached. Try again in a moment.", "暂时连不上赛季，过一会儿再试。"),
@@ -143,8 +169,8 @@ export function SeasonCard({ pet }: { pet: Pet }) {
       </div>
       <p className="small ss-prize">
         {onChain
-          ? L(`The champion's brain is taped out on X Layer and the circuit sent to its owner's wallet. ${pet.name} is on X Layer, so it would go to you.`, `冠军的大脑会在 X Layer 上流片，电路送到主人的钱包。${pet.name}在 X Layer 上，赢了就会送给你。`)
-          : L(`The champion's brain is taped out on X Layer and the circuit sent to its owner's wallet. Put ${pet.name} on X Layer first if you want it to come to you.`, `冠军的大脑会在 X Layer 上流片，电路送到主人的钱包。想收到的话，先把${pet.name}放上 X Layer。`)}
+          ? L(`The best-placed pet kept on X Layer has its brain taped out and the circuit sent to its owner. ${pet.name} is on X Layer: entering asks you to sign once (no fee) so the entry is proven to be it.`, `排名最高的、放在 X Layer 上的宠物，它的大脑会流片，电路送到主人手里。${pet.name}在 X Layer 上：参赛时请签一次名（不收费），证明这就是它。`)
+          : L(`The best-placed pet kept on X Layer has its brain taped out and the circuit sent to its owner. Put ${pet.name} on X Layer first to be in line for it.`, `排名最高的、放在 X Layer 上的宠物，它的大脑会流片，电路送到主人手里。想排上，先把${pet.name}放上 X Layer。`)}
       </p>
       {note && (
         <p className="small ss-note" aria-live="polite">

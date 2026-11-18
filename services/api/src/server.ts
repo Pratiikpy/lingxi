@@ -16,7 +16,7 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import { type Context, Hono } from "hono";
 import { cors } from "hono/cors";
 import { z } from "zod";
-import { STARTERS } from "@lingxi/brain";
+import { STARTERS, circuitBrain } from "@lingxi/brain";
 import { MAX_WORDS, teachInWords } from "./teach";
 import { RateLimiter } from "./limit";
 import { BrainRelayer, type RelayResult } from "./relayer";
@@ -29,7 +29,7 @@ import { type SeasonStore, createSeasonStore, settleAwards } from "./season";
 import { weekOf } from "@lingxi/game";
 import { MAX_LESSONS, parseCard } from "@lingxi/game";
 import { createPublicClient, http, type PublicClient } from "viem";
-import { type Deployment, adoptionCentreAbi, nameColours, packsHeld, petRegistryAbi, piecesHeld, readPet, xLayer } from "@lingxi/chain";
+import { type Deployment, type SignedRelay, adoptionCentreAbi, loadCircuitFromChain, nameColours, packsHeld, petRegistryAbi, piecesHeld, readPet, xLayer } from "@lingxi/chain";
 import { type HomeChain, createHomes } from "./homes";
 import { createAgentStore } from "./agents";
 import { withAgentApi } from "./agentApi";
@@ -52,6 +52,7 @@ import { factoryReader } from "./laneReader";
 import { petLookAbi as lookAbi } from "@lingxi/chain";
 import { clientIp } from "./clientIp";
 import { withBodyLimits } from "./bodyLimits";
+import { proveSeasonEntry } from "./seasonProof";
 import { budgetedClient, createTokenBudget } from "./tokenBudget";
 import { createJobs } from "./jobs";
 
@@ -348,20 +349,33 @@ export function withArena(app: Hono, store: ArenaStore, writes = new RateLimiter
 }
 
 /** Weekly seasons: enter this week with one tap; read any week's entries and standings. */
-export function withSeason(app: Hono, store: SeasonStore, writes = new RateLimiter(30, 3_600_000), now: () => number = Date.now): Hono {
+/** Proves an entry is a pet on X Layer (seasonProof.ts); without it, entries are open but cannot win the keepsake. */
+export type SeasonProver = (pet: { line: string; card: string }, proof: SignedRelay) => Promise<{ ok: true; petId: string } | { ok: false; reason: string }>;
+
+export function withSeason(app: Hono, store: SeasonStore, writes = new RateLimiter(30, 3_600_000), now: () => number = Date.now, prove?: SeasonProver): Hono {
   const who = (c: Context) => clientIp(c);
   app.post("/api/season/enter", async (c) => {
     if (!writes.take(who(c))) return busy(c);
     if (Number(c.req.header("content-length") ?? 0) > 16_000) return c.json({ ok: false, reason: "tooBig" }, 413);
     let body;
     try {
-      body = z.object({ pet: z.unknown(), device: z.string(), wallet: z.string().optional() }).parse(await c.req.json());
+      body = z.object({ pet: z.unknown(), device: z.string(), proof: z.unknown().optional() }).parse(await c.req.json());
     } catch {
       return c.json({ ok: false, reason: "invalid" }, 400);
     }
-    const r = store.enter(body.pet, body.device, body.wallet);
-    // a full week is normal play: answer 200 so the page shows our own message
-    return c.json(r, r.ok || r.reason === "full" ? 200 : 400);
+    // an entry that says it is a pet on X Layer must prove it; one that fails is refused, never entered unproven
+    let petId: string | undefined;
+    if (body.proof !== undefined) {
+      if (!prove) return c.json({ ok: false, reason: "noProof", detail: "this server cannot check pets on chain" }, 503);
+      const p = await prove(body.pet as never, body.proof as SignedRelay);
+      // an expected answer in play (its mind on chain is behind, say), so 200 with the reason, like "full" and "busy"
+      if (!p.ok) return c.json({ ok: false, reason: "notProven", detail: p.reason });
+      petId = p.petId;
+    }
+    const r = store.enter(body.pet, body.device, { from: who(c), ...(petId ? { petId } : {}) });
+    // a full week, or this address's share of it, is normal play: answer 200 so the page shows our own message.
+    // `proven` is what the page may tell the player: never assumed from having sent a proof
+    return c.json(r.ok ? { ...r, proven: !!petId } : r, r.ok || r.reason === "full" || r.reason === "tooMany" ? 200 : 400);
   });
   app.get("/api/season/:week", (c) => {
     const week = c.req.param("week") === "current" ? weekOf(now()) : c.req.param("week");
@@ -680,7 +694,23 @@ if (isMain) {
     withMail(app, () => letters);
   }
   const seasons = createSeasonStore(process.env.LINGXI_SEASON_STORE);
-  withSeason(app, seasons);
+  // proving an entry is a pet on X Layer: its keeper's signature, and its card thinks as its brain on chain does
+  const seasonNonces = createNonceBook();
+  const prove: SeasonProver | undefined =
+    chainCtx && isKeeper
+      ? (pet, proof) =>
+          proveSeasonEntry(pet, proof, {
+            isKeeper,
+            now: Date.now,
+            nonces: seasonNonces,
+            brainOf: async (id) => {
+              const onChain = await readPet(chainCtx!.pub, chainCtx!.deployment, BigInt(id));
+              const circuit = await loadCircuitFromChain(chainCtx!.pub, onChain.processor, onChain.brainId);
+              return { fast: circuitBrain(circuit), nState: circuit.nState } as never;
+            },
+          })
+      : undefined;
+  withSeason(app, seasons, undefined, undefined, prove);
   {
     // the open agent API reads pets from the deployment the game runs on
     const rpc = rpcMain;
@@ -709,12 +739,15 @@ if (isMain) {
   if (relayer) {
     // a finished week's champion gets its brain taped out and sent to its wallet (PRD F26)
     const giveKeepsakes = () =>
-      settleAwards(seasons, async (entry, wallet) => {
+      settleAwards(seasons, async (entry, petId) => {
         const card = parseCard(entry.pet.card);
         if (!card) return { ok: false, detail: "damaged card" };
-        const r = await relayer.keepsake({ line: entry.pet.line, lessons: card.lessons, instincts: card.instincts, family: card.family, growth: card.growth }, wallet as `0x${string}`);
+        // the keepsake goes to whoever owns the proven pet now, read on chain at the moment it is sent
+        if (!chainCtx) return { ok: false, detail: "no chain reads" };
+        const to = (await chainCtx.pub.readContract({ address: chainCtx.deployment.registry, abi: petRegistryAbi, functionName: "ownerOf", args: [BigInt(petId)] })) as `0x${string}`;
+        const r = await relayer.keepsake({ line: entry.pet.line, lessons: card.lessons, instincts: card.instincts, family: card.family, growth: card.growth }, to);
         if (!r.ok) process.stderr.write(`season keepsake failed: ${r.reason} ${r.detail ?? ""}\n`);
-        return r.ok ? { ok: true, brainId: r.brainId, tapeTx: r.tapeTx, sendTx: r.sendTx } : { ok: false, detail: r.detail };
+        return r.ok ? { ok: true, brainId: r.brainId, to, tapeTx: r.tapeTx, sendTx: r.sendTx } : { ok: false, detail: r.detail };
       });
     jobs.after("season keepsakes (first)", 30_000, giveKeepsakes);
     jobs.every("season keepsakes", 10 * 60_000, giveKeepsakes);

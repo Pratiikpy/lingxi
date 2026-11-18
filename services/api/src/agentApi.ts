@@ -230,7 +230,7 @@ export function withAgentApi(app: Hono, deps: AgentApiDeps): Hono {
     const t = mine(c);
     const sp = t ? deps.agents.seasonPet(t) : null;
     if (!t || !sp) return c.json({ ok: false, reason: "unknown" }, 401);
-    const r = deps.seasons.enter(sp.pet, `agent-${t.slice(0, 40)}`, undefined, sp.agent);
+    const r = deps.seasons.enter(sp.pet, `agent-${t.slice(0, 40)}`, { agent: sp.agent });
     return c.json(r, r.ok || r.reason === "full" ? 200 : 400);
   });
 

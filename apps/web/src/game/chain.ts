@@ -12,7 +12,7 @@ import { useBadges } from "./badges";
 import { create } from "zustand";
 import { createPublicClient, createWalletClient, custom, erc20Abi, http, isAddress, type Address, type Hex, type PublicClient, type WalletClient, fallback } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { type Deployment, type TapeQuote, type TapeStep, allowPartnerOnChain, breedOnChain, breedingTerms, checkpointOnChain, hatchOnChain, quoteTapeout, readKeeping, readPet, setBrainOnChain, setSitterOnChain, signRelay, tapeOutYourself, xLayer } from "@lingxi/chain";
+import { type Deployment, type TapeQuote, type TapeStep, allowPartnerOnChain, breedOnChain, breedingTerms, checkpointOnChain, hatchOnChain, quoteTapeout, readKeeping, readPet, setBrainOnChain, setSitterOnChain, signRelay, type SignedRelay, tapeOutYourself, xLayer } from "@lingxi/chain";
 import { compileProgram, netlistBytes } from "@lingxi/brain";
 import { AUTO_DAYS, AUTO_FUND, AUTO_LOW, sessionAccount, sessionWallet } from "./session";
 import { type Pet, logSegments, packState, petCard, stageOf, unpackState, ruleSkillIds } from "@lingxi/game";
@@ -227,6 +227,16 @@ async function relaySigner(petId: string, wallet?: WalletClient): Promise<{ addr
   const account = w.account;
   if (!account) throw new Error("wallet has no account");
   return { address: account.address, signMessage: ({ message }) => w.signMessage({ account, message }) };
+}
+
+/**
+ * A season entry signed as this pet on X Layer (kind "season"), so the server can prove it and put it in line for the
+ * keepsake. Null for a pet that is not on chain. Throws when no keeper can sign (no wallet, or the signature declined).
+ */
+export async function signSeasonEntry(pet: Pet, entry: unknown): Promise<SignedRelay | null> {
+  const record = records[petKey(pet)];
+  if (!deployment || !record) return null;
+  return signRelay(await relaySigner(record.petId), "season", record.petId, entry);
 }
 
 async function autoWallet(pet: Pet, record: ChainRecord): Promise<WalletClient | null> {

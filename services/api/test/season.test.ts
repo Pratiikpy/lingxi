@@ -42,18 +42,36 @@ describe("weekly seasons", () => {
   });
 });
 
+describe("no one fills the season", () => {
+  it("one address holds only a few entries a week, and updating its own costs nothing", () => {
+    const store = createSeasonStore(undefined, () => T);
+    for (let i = 0; i < 3; i++) expect(store.enter(pet(`Mine${i}`), `device-mine-000${i}`, { from: "203.0.113.9" }).ok).toBe(true);
+    expect(store.enter(pet("Mine3"), "device-mine-0003", { from: "203.0.113.9" })).toEqual({ ok: false, reason: "tooMany" });
+    expect(store.enter(pet("Mine0 again"), "device-mine-0000", { from: "203.0.113.9" }).ok).toBe(true);
+    expect(store.enter(pet("Yours"), "device-your-0000", { from: "198.51.100.1" }).ok).toBe(true);
+  });
+
+  it("a proven pet has one entry: entering it from another device moves it there", () => {
+    const store = createSeasonStore(undefined, () => T);
+    store.enter(pet("Ana"), "device-aaaa-1111", { petId: "7" });
+    store.enter(pet("Ana on her phone"), "device-aaaa-2222", { petId: "7" });
+    const v = store.view("2026-W47")!;
+    expect(v.entries.map((e) => e.pet.name)).toEqual(["Ana on her phone"]);
+  });
+});
+
 describe("champion keepsakes", () => {
-  it("go to a finished week's champion once; no wallet means none; a failure is retried, then given up", async () => {
-    let t = Date.UTC(2026, 10, 18, 12);
+  it("go to the best-placed proven pet once; a failure is retried, then given up; nothing private is served", async () => {
+    let t = T;
     const store = createSeasonStore(undefined, () => t);
-    store.enter(pet("Ana"), "device-aaaa-1111", "0x1111111111111111111111111111111111111111");
-    store.enter(pet("Bea", "bold"), "device-bbbb-2222", "0x2222222222222222222222222222222222222222");
+    store.enter(pet("Ana"), "device-aaaa-1111", { petId: "11" });
+    store.enter(pet("Bea", "bold"), "device-bbbb-2222", { petId: "22" });
     const { settleAwards } = await import("../src/season");
     const calls: string[] = [];
     let fail = true;
-    const give = async (_e: unknown, wallet: string) => {
-      calls.push(wallet);
-      return fail ? { ok: false as const, detail: "rpc down" } : { ok: true as const, brainId: "77", tapeTx: "0xaa", sendTx: "0xbb" };
+    const give = async (_e: unknown, petId: string) => {
+      calls.push(petId);
+      return fail ? { ok: false as const, detail: "rpc down" } : { ok: true as const, brainId: "77", to: "0x2222222222222222222222222222222222222222", tapeTx: "0xaa", sendTx: "0xbb" };
     };
     await settleAwards(store, give);
     expect(calls).toHaveLength(0); // the week is still open
@@ -68,18 +86,56 @@ describe("champion keepsakes", () => {
     expect(calls).toHaveLength(3);
     const v = store.view("2026-W47")!;
     expect(v.award).toMatchObject({ brainId: "77", sendTx: "0xbb", key: v.standings[0]!.key });
-    expect(JSON.stringify(v)).not.toContain("wallets");
-    expect(v.entries.some((e) => JSON.stringify(e).includes("0x2222"))).toBe(false);
+    expect(JSON.stringify(v)).not.toMatch(/"pets"|"from"|203\.0\.113/);
   });
 
-  it("a champion entered without a wallet gets a record but no keepsake", async () => {
-    let t = Date.UTC(2026, 10, 18, 12);
+  it("skip an unproven champion for the best proven pet below it", async () => {
+    let t = T;
+    const store = createSeasonStore(undefined, () => t);
+    for (let i = 0; i < 6; i++) store.enter(pet(`Pet${i}`, ["gentle", "bold", "curious"][i % 3]), `device-pet0000${i}`, i === 5 ? { petId: "55" } : {});
+    t += 7 * 86_400_000;
+    const { settleAwards } = await import("../src/season");
+    const given: string[] = [];
+    await settleAwards(store, async (_e, petId) => {
+      given.push(petId);
+      return { ok: true as const, brainId: "1", to: "0x5", tapeTx: "", sendTx: "" };
+    });
+    expect(given).toEqual(["55"]);
+  });
+
+  it("a week with no proven pet gets a record but no keepsake", async () => {
+    let t = T;
     const store = createSeasonStore(undefined, () => t);
     store.enter(pet("Solo"), "device-solo-0000");
     t += 7 * 86_400_000;
     const { settleAwards } = await import("../src/season");
-    await settleAwards(store, async () => ({ ok: true as const, brainId: "1", tapeTx: "", sendTx: "" }));
+    await settleAwards(store, async () => ({ ok: true as const, brainId: "1", to: "0x1", tapeTx: "", sendTx: "" }));
     expect(store.view("2026-W47")!.award).toMatchObject({ name: "Solo", none: "noWallet" });
-    expect(store.enter(pet("Bad"), "device-bad-00000", "not-a-wallet")).toEqual({ ok: false, reason: "invalid" });
+    expect(store.enter(pet("Bad"), "device-bad-00000", { petId: "not-a-pet" })).toEqual({ ok: false, reason: "invalid" });
+  });
+});
+
+describe("POST /api/season/enter with a proof", () => {
+  const post = (app: Hono, body: unknown) => app.request("/api/season/enter", { method: "POST", body: JSON.stringify(body), headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.9" } });
+  it("enters a proven pet as that pet, refuses a proof that fails, and never enters it unproven instead", async () => {
+    const store = createSeasonStore(undefined, () => T);
+    let verdict: { ok: true; petId: string } | { ok: false; reason: string } = { ok: false, reason: "notItsBrain" };
+    const app = withSeason(new Hono(), store, undefined, () => T, async () => verdict);
+    const refused = await post(app, { pet: pet("Ana"), device: "device-aaaa-1111", proof: {} });
+    expect(refused.status).toBe(200);
+    expect(await refused.json()).toMatchObject({ ok: false, reason: "notProven", detail: "notItsBrain" });
+    expect(store.view("2026-W47")!.entries).toHaveLength(0);
+    verdict = { ok: true, petId: "7" };
+    const ok = await post(app, { pet: pet("Ana"), device: "device-aaaa-1111", proof: {} });
+    expect(ok.status).toBe(200);
+    expect(await ok.json()).toMatchObject({ ok: true, proven: true });
+    expect(store.pending()).toEqual([]);
+    // an entry without a proof is told it is not proven
+    expect(await (await post(app, { pet: pet("Bea"), device: "device-bbbb-2222" })).json()).toMatchObject({ ok: true, proven: false });
+  });
+
+  it("says plainly when the server cannot check pets on chain", async () => {
+    const app = withSeason(new Hono(), createSeasonStore(undefined, () => T), undefined, () => T);
+    expect((await post(app, { pet: pet("Ana"), device: "device-aaaa-1111", proof: {} })).status).toBe(503);
   });
 });
