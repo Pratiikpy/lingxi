@@ -364,7 +364,7 @@ export function attachLive(server: { on(event: "upgrade", cb: (req: IncomingMess
     }
     const address = addressOf(req);
     if ((held.get(address) ?? 0) >= MAX_PER_ADDRESS || total >= MAX_CONNECTIONS) {
-      socket.end("HTTP/1.1 429 Too Many Requests\r\nConnection: close\r\n\r\n");
+      socket.end("HTTP/1.1 429 Too Many Requests\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
       return;
     }
     held.set(address, (held.get(address) ?? 0) + 1);

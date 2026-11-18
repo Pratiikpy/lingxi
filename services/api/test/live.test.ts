@@ -184,7 +184,8 @@ describe("live rooms", () => {
     const same = "203.0.113.77";
     const open: Peer[] = [];
     for (let i = 0; i < MAX_PER_ADDRESS; i++) open.push(await connect(undefined, same));
-    await expect(connect(undefined, same)).rejects.toBeTruthy();
+    // refused with a real 429, so a proxy in front passes it on as one
+    await expect(connect(undefined, same)).rejects.toThrow("429");
     // another address is not affected, and a closed connection frees its place
     const other = await connect();
     open[0]!.ws.close();
