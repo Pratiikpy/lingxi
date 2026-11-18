@@ -105,7 +105,9 @@ export const PIECE_PRICES: Readonly<Record<string, number>> = { bow: 40, balloon
 export type Outfit = Partial<Record<WearSlot, string>>;
 
 export const ownedPieces = (w: WorldState): string[] => w.wardrobe?.owned ?? [];
-export const outfitOf = (w: WorldState, petKey: string): Outfit => w.wardrobe?.worn[petKey] ?? {};
+/** A pet wearing nothing: one shared value, so what is drawn from an outfit is not drawn again for an empty one. */
+const NOTHING_WORN: Outfit = Object.freeze({});
+export const outfitOf = (w: WorldState, petKey: string): Outfit => w.wardrobe?.worn[petKey] ?? NOTHING_WORN;
 
 const wardrobe = (w: WorldState) => w.wardrobe ?? { owned: [], worn: {} };
 const bagAdd = (bag: Record<number, number>, item: number, n: number) => {

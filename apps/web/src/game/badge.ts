@@ -20,9 +20,9 @@ export function needsOf(pet: Pet): Array<"food" | "clean" | "rest" | "joy" | "me
 
 type BadgeNav = Navigator & { setAppBadge?: (n?: number) => Promise<void>; clearAppBadge?: () => Promise<void> };
 
-export function showNeeds(pet: Pet | null): void {
+/** Shows how many things the pet needs (`needsOf`) on the app's icon, or clears it at none. */
+export function showNeeds(n: number): void {
   const nav = navigator as BadgeNav;
   if (!nav.setAppBadge || !nav.clearAppBadge) return;
-  const n = pet ? needsOf(pet).length : 0;
   (n ? nav.setAppBadge(n) : nav.clearAppBadge()).catch(() => undefined);
 }

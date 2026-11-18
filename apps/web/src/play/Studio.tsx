@@ -5,7 +5,7 @@
  */
 
 import { useMemo, useRef, useState } from "react";
-import { type Design, DesignError, DESIGN_FACE_MAX_W, DESIGN_MAX_H, DESIGN_MAX_W, SLOTS, type Slot, boundingBox, designWearable, drawPet, registerWearables, trimDesign, wearOverlay, encodeDesign } from "@lingxi/art";
+import { type Design, DesignError, DESIGN_FACE_MAX_W, DESIGN_MAX_H, DESIGN_MAX_W, SLOTS, type Slot, boundingBox, designWearable, drawPet, trimDesign, wearOverlay, encodeDesign } from "@lingxi/art";
 import { currentMarket, parseBem, publishDesign } from "@lingxi/chain";
 import { now } from "../game/gameClock";
 
@@ -47,8 +47,8 @@ export function StudioPanel({ pet }: { pet: Pet }) {
   const bemMarket = !!deployment && currentMarket(deployment)?.v === 2;
   const painting = useRef(false);
 
-  const grid = cells.slice(0, DESIGN_MAX_H).map((r) => r.slice(0, width));
-  const design: Design = { slot, cells: grid, colours };
+  const design = useMemo<Design>(() => ({ slot, cells: cells.slice(0, DESIGN_MAX_H).map((r) => r.slice(0, width)), colours }), [slot, cells, width, colours]);
+  const grid = design.cells;
   const drawn = grid.some((r) => r.some((v) => v > 0));
 
   // the pet wearing the piece as it is drawn
@@ -59,8 +59,9 @@ export function StudioPanel({ pet }: { pet: Pet }) {
     let overlay: ReturnType<typeof wearOverlay> = [];
     if (drawn) {
       try {
-        registerWearables([designWearable("u:preview", trimDesign(design), { en: "", zh: "" })]);
-        overlay = wearOverlay(canvas, pet.line, st, { [slot]: "u:preview" }, 0, pet.form);
+        // the piece being drawn is lent to this picture alone; nothing is registered until it is saved
+        const pieces = new Map([["u:preview", designWearable("u:preview", trimDesign(design), { en: "", zh: "" })]]);
+        overlay = wearOverlay(canvas, pet.line, st, { [design.slot]: "u:preview" }, 0, pet.form, pieces);
       } catch {
         overlay = [];
       }
@@ -71,9 +72,7 @@ export function StudioPanel({ pet }: { pet: Pet }) {
     const x0 = Math.max(0, Math.min(...xs) - 1);
     const y0 = Math.max(0, Math.min(...ys) - 1);
     return { canvas, overlay, crop: { x: x0, y: y0, w: Math.min(canvas.w, Math.max(...xs) + 2) - x0, h: Math.min(canvas.h, Math.max(...ys) + 2) - y0 } };
-    // the design is captured whole in its JSON
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(design), pet.line, st, pet.form]);
+  }, [design, drawn, pet.line, st, pet.form]);
 
   const paint = (x: number, y: number) =>
     setCells((c) => {

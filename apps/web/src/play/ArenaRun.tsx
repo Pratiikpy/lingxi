@@ -92,7 +92,7 @@ function PetArt({ pet, scale, face = "happy" }: { pet: Pet; scale: number; face?
   const world = useWorld((s) => s.world);
   const worn = outfitOf(world, String(pet.bornAt)) as Outfit;
   const canvas = useMemo(() => drawPet(pet.line, drawn as "baby", { expression: face, ...(pet.form ? { form: pet.form } : {}) }), [pet.line, drawn, face, pet.form]);
-  const overlay = useMemo(() => (worn.head || worn.face || worn.held ? wearOverlay(canvas, pet.line, drawn as "baby", worn, 0, pet.form) : undefined), [canvas, pet.line, drawn, worn.head, worn.face, worn.held, pet.form]);
+  const overlay = useMemo(() => (worn.head || worn.face || worn.held ? wearOverlay(canvas, pet.line, drawn as "baby", worn, 0, pet.form) : undefined), [canvas, pet.line, drawn, worn, pet.form]);
   return <Art canvas={canvas} palette={PALETTE_OF[pet.line]} scale={scale} label={pet.name} overlay={overlay} />;
 }
 

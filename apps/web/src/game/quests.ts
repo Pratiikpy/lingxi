@@ -4,6 +4,7 @@
  * rules themselves live in @lingxi/world (story.ts); this module only feeds them and keeps the world saved.
  */
 
+import { useMemo } from "react";
 import { create } from "zustand";
 import { timeOfDay } from "@lingxi/brain";
 import { bondLevel, growthOf, localHour, needsMinOf, stageOf } from "@lingxi/game";
@@ -31,28 +32,44 @@ import { bondsOf, useFriends } from "./friends";
 import { play } from "./sound";
 import { useGame } from "./store";
 import { useWorld } from "./world";
-import { goalsDone } from "./goals";
+import { goalsDone, useGoals } from "./goals";
 import { now as gameNow } from "./gameClock";
 
 const tzOffset = () => useGame.getState().pet?.tzOffsetMin ?? -new Date(gameNow()).getTimezoneOffset();
 
-/** Everything a condition reads, from the stores as they are right now. */
-export function conditionView(now = gameNow()): ConditionView {
-  const world = useWorld.getState().world;
-  const { pet, pets } = useGame.getState();
-  const ledger = useBadges.getState().ledger;
+/** Every store a quest condition reads: the inputs of `conditionViewFrom`. */
+export interface ConditionInputs {
+  world: ReturnType<typeof useWorld.getState>["world"];
+  pet: ReturnType<typeof useGame.getState>["pet"];
+  pets: ReturnType<typeof useGame.getState>["pets"];
+  ledger: ReturnType<typeof useBadges.getState>["ledger"];
+  friends: ReturnType<typeof useFriends.getState>["all"];
+  onChain: boolean;
+  goalsDone: string[];
+  now: number;
+}
+
+/** Everything a condition reads, from the inputs given. */
+export function conditionViewFrom(i: ConditionInputs): ConditionView {
+  const { pet, now } = i;
   const stage = pet ? stageOf(pet, now) : null;
-  const bonds = pet ? Object.values(bondsOf(useFriends.getState().all, pet.bornAt)) : [];
+  const bonds = pet ? Object.values(bondsOf(i.friends, pet.bornAt)) : [];
   return {
-    world,
-    pet: pet && stage ? { level: growthOf(pet).level, stage, onChain: useChain.getState().record !== null, needsMin: needsMinOf(pet) } : null,
-    pets: Math.max(pets.length, ledger.pets ?? 0),
+    world: i.world,
+    pet: pet && stage ? { level: growthOf(pet).level, stage, onChain: i.onChain, needsMin: needsMinOf(pet) } : null,
+    pets: Math.max(i.pets.length, i.ledger.pets ?? 0),
     now,
     timeOfDay: pet ? (timeOfDay(localHour(pet, Math.floor(now / 60_000))) as 0 | 1 | 2 | 3) : 2,
-    day: localDay(now, tzOffset()),
+    day: localDay(now, pet?.tzOffsetMin ?? -new Date(now).getTimezoneOffset()),
     bondLevel: bonds.reduce((m, b) => Math.max(m, bondLevel(b.points)), 0),
-    goalsDone: goalsDone(),
+    goalsDone: i.goalsDone,
   };
+}
+
+/** Everything a condition reads, from the stores as they are right now. */
+export function conditionView(now = gameNow()): ConditionView {
+  const { pet, pets } = useGame.getState();
+  return conditionViewFrom({ world: useWorld.getState().world, pet, pets, ledger: useBadges.getState().ledger, friends: useFriends.getState().all, onChain: useChain.getState().record !== null, goalsDone: goalsDone(), now });
 }
 
 export const statusOf = (q: QuestDef, v = conditionView()): QuestStatus => questStatus(q, useWorld.getState().world, v);
@@ -151,8 +168,25 @@ export function rollToday(): void {
 
 /** Every quest's status, for the book, the markers and the notes. */
 export function allStatuses(v = conditionView()): Record<string, QuestStatus> {
-  const w = useWorld.getState().world;
-  return Object.fromEntries(QUESTLINE.map((q) => [q.id, questStatus(q, w, v)]));
+  return Object.fromEntries(QUESTLINE.map((q) => [q.id, questStatus(q, v.world, v)]));
+}
+
+/**
+ * Every quest's status on screen, kept current with every store a condition reads (P2): a quest that waits on a badge,
+ * a friendship, a chain record or a community goal changes the moment that does, not at the pet's next beat.
+ */
+export function useQuestStatuses(): Record<string, QuestStatus> {
+  const world = useWorld((s) => s.world);
+  const pet = useGame((s) => s.pet);
+  const pets = useGame((s) => s.pets);
+  const ledger = useBadges((s) => s.ledger);
+  const friends = useFriends((s) => s.all);
+  const onChain = useChain((s) => s.record !== null);
+  const reports = useGoals((s) => s.reports);
+  return useMemo(() => {
+    const done = goalsDone(reports);
+    return allStatuses(conditionViewFrom({ world, pet, pets, ledger, friends, onChain, goalsDone: done, now: gameNow() }));
+  }, [world, pet, pets, ledger, friends, onChain, reports]);
 }
 
 /** Quests a giver has for you now: ones to offer, and ones to take back. */

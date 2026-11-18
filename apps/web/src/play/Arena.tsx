@@ -6,7 +6,7 @@
  */
 
 import { useBadges } from "../game/badges";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { FLY, type OverlayPixel, type Palette, type PixelCanvas, boundingBox, drawFly, drawPet, type Expression, type Outfit, wearOverlay } from "@lingxi/art";
 import { outfitOf } from "@lingxi/world";
@@ -42,6 +42,9 @@ import { ChainCheck } from "./ChainCheck";
 import { SeasonCard } from "./Season";
 import { noteEvent, noteTally, questSlots } from "../game/tally";
 import { markLoss } from "../game/comfort";
+
+/** A pet in a replay, or with nothing on: one shared empty outfit, so its drawing is not redone each round. */
+const NO_OUTFIT: Outfit = {};
 
 type Lang = "en" | "zh";
 const MOVE_NAMES: Record<Move, [string, string]> = {
@@ -142,29 +145,31 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken
     useMusic.getState().want("spar");
     return () => useMusic.getState().want(songForHour(new Date(now()).getHours()));
   }, [fighting]);
-  useEffect(() => {
-    if (!challenge) return;
-    start(challenge);
+  // a new challenge starts one fight, with the pet as it is at that moment
+  const takeChallenge = useEffectEvent((c: Partner) => {
+    start(c);
     onChallengeTaken?.();
-    // a new challenge starts one fight
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [challenge]);
+  });
   useEffect(() => {
-    if (!duel) return;
-    // a challenge from a link: our pet answers with its own brain, on the challenge's fixed seed
+    if (challenge) takeChallenge(challenge);
+  }, [challenge]);
+  // a challenge from a link: our pet answers with its own brain, on the challenge's fixed seed
+  const takeDuel = useEffectEvent((d: Challenge) => {
     const reply = duelPetOf(pet);
     play("tap");
-    setFight({ partner: partnerOfDuel(duel), result: runDuel(duel, reply), cheer: false, opponent: duelFighter(duel.from), duel: { challenge: duel, reply } });
+    setFight({ partner: partnerOfDuel(d), result: runDuel(d, reply), cheer: false, opponent: duelFighter(d.from), duel: { challenge: d, reply } });
     onDuelTaken?.();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  useEffect(() => {
+    if (duel) takeDuel(duel);
   }, [duel]);
+  // asked from Behemoth's card: one fight
   const sparAsk = useBuilders((s) => s.sparAsk);
+  const fightBehemoth = useEffectEvent(() => start(BEHEMOTH_PARTNER, undefined, behemothFighter(BEHEMOTH_PARTNER.name.en)));
   useEffect(() => {
     if (!sparAsk) return;
     useBuilders.setState({ sparAsk: false });
-    start(BEHEMOTH_PARTNER, undefined, behemothFighter(BEHEMOTH_PARTNER.name.en));
-    // asked from Behemoth's card: one fight
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    fightBehemoth();
   }, [sparAsk]);
   if (running) return <RunView pet={pet} onClose={() => setRunning(false)} />;
   if (fight) {
@@ -629,6 +634,7 @@ export function FightView({
   }, [shown, finished, result, reduce]);
 
   const settled = useRef(false);
+  const growth = pet?.growth;
   const [reward, setReward] = useState(0);
   const [dailyNote, setDailyNote] = useState<"best" | "same" | null>(null);
   // a replay watched to its end (quests count it)
@@ -657,7 +663,7 @@ export function FightView({
     if (outcome === "w") noteTally("SPAR_WIN");
     if (outcome === "w" && partner.look === "behemoth") useBadges.getState().note("behemothWins");
     // Spar skills (plan 4.4): more for a win, and something even for a loss; friendly matches pay nothing, as before
-    const skill = sparMods(pet?.growth);
+    const skill = sparMods(growth);
     if (outcome === "w" && !partner.id.startsWith("friend:")) {
       const coins = WIN_COINS + (first ? FIRST_WIN_COINS : 0) + skill.winCoins;
       useWorld.getState().reward(coins);
@@ -669,7 +675,8 @@ export function FightView({
       useWorld.getState().reward(lossCoins);
       setReward(lossCoins);
     }
-  }, [finished, result, partner.id, instinct]);
+    // settled once per fight: whatever changes afterwards, the rewards are given a single time
+  }, [finished, result, partner.id, partner.look, instinct, replay, daily, boostCoins, growth]);
 
   const face = (side: 0 | 1): Expression => {
     if (finished) return result.winner === side ? "proud" : result.winner === -1 ? "happy" : "sad";
@@ -680,19 +687,23 @@ export function FightView({
     if (round.moves[side] === "charm" || round.moves[side] === "gift") return "love";
     return round.moods[side]! >= 2 ? "sparkly" : round.moods[side] === 0 ? "sulk" : "neutral";
   };
-  const mine = useMemo(() => drawPet(self.line, stage, { expression: face(0), ...(pet?.form && !replay ? { form: pet.form } : {}) }), [self.line, stage, shown, finished, pet?.form, replay]);
+  const myFace = face(0);
+  const theirFace = face(1);
+  const form = pet?.form;
+  const mine = useMemo(() => drawPet(self.line, stage, { expression: myFace, ...(form && !replay ? { form } : {}) }), [self.line, stage, myFace, form, replay]);
   // our own pet fights in its outfit (looks only)
   const world = useWorld((s) => s.world);
-  const worn = pet && !replay ? (outfitOf(world, String(pet.bornAt)) as Outfit) : {};
-  const mineWorn = useMemo(() => (worn.head || worn.face || worn.held ? wearOverlay(mine, self.line, stage, worn, 0, pet?.form) : undefined), [mine, self.line, stage, worn.head, worn.face, worn.held, pet?.form]);
+  const worn = pet && !replay ? (outfitOf(world, String(pet.bornAt)) as Outfit) : NO_OUTFIT;
+  const mineWorn = useMemo(() => (worn.head || worn.face || worn.held ? wearOverlay(mine, self.line, stage, worn, 0, form) : undefined), [mine, self.line, stage, worn, form]);
   // Behemoth's lamps show the number its CPU holds this round
   const theirsWorn = useMemo(
     () => (partner.look === "behemoth" ? wearOverlay(drawPet(partner.line, partner.stage, {}), partner.line, partner.stage, { head: `b:lamps${behemothAt(shown * BEHEMOTH_STEPS_PER_ROUND).acc}` }, 0) : undefined),
     [partner.look, partner.line, partner.stage, shown],
   );
+  const flap = !!round && round.moves[1] === "pounce";
   const theirs = useMemo(
-    () => (partner.look === "fly" ? drawFly({ flap: !!round && round.moves[1] === "pounce", hurt: face(1) === "startled" || face(1) === "sad" }) : drawPet(partner.line, partner.stage, { expression: face(1) })),
-    [partner.look, partner.line, partner.stage, shown, finished],
+    () => (partner.look === "fly" ? drawFly({ flap, hurt: theirFace === "startled" || theirFace === "sad" }) : drawPet(partner.line, partner.stage, { expression: theirFace })),
+    [partner.look, partner.line, partner.stage, flap, theirFace],
   );
 
   return (
@@ -785,7 +796,7 @@ function Result({ pet, partner, result, reward, opponent, duel, cheer, instinct,
       );
     }, 60);
     return () => clearTimeout(id);
-  }, [result, partner]);
+  }, [result, partner, opponent]);
 
   const title = result.winner === 0 ? (lang === "zh" ? `${pet.name}赢了！` : `${pet.name} won!`) : result.winner === 1 ? (lang === "zh" ? `${partner.name.zh}赢了` : `${partner.name.en} won`) : lang === "zh" ? "平手" : "A draw";
   return (

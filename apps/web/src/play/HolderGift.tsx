@@ -5,7 +5,7 @@
  * chain. The snapshot file is used only when its rebuilt root equals the gift contract's.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { type GiftTerms, type GiftWay, type Snapshot, type SnapshotFile, checkTest1, claimGift, formatBem, giftClaimed, giftTerms, giftWays, loadSnapshot } from "@lingxi/chain";
 import type { Pet } from "@lingxi/game";
 import { useLang } from "../i18n";
@@ -37,6 +37,7 @@ export function HolderGiftPanel({ pet, wallet }: { pet: Pet; wallet: string }) {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
 
+  const readFailed = useEffectEvent(() => setNote(L("The holder pin couldn't be read just now.", "暂时读不到持有人徽章。")));
   useEffect(() => {
     if (!deployment?.holderGift) return;
     let live = true;
@@ -62,14 +63,13 @@ export function HolderGiftPanel({ pet, wallet }: { pet: Pet; wallet: string }) {
         // a pin claimed earlier, or on another device, belongs in the wardrobe too: read this wallet's pieces
         if (c && useDesigns.getState().wallet?.toLowerCase() !== who.toLowerCase()) void refreshDesigns(who);
       } catch {
-        if (live) setNote(L("The holder pin couldn't be read just now.", "暂时读不到持有人徽章。"));
+        if (live) readFailed();
       }
     })();
     return () => {
       live = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wallet]);
+  }, [wallet, refreshDesigns]);
 
   if (!deployment?.holderGift || !terms) return note ? <p className="small sp-warn">{note}</p> : null;
 

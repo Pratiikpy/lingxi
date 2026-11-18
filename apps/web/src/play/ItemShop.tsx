@@ -5,7 +5,7 @@
  * Cosmetic only.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { type ShopItem, buyShopItem, claimVoucher, formatBem, listCopies, marketsOf, parseBem, readShopItems, shopBurned, shopReadiness } from "@lingxi/chain";
 import { WEARABLE } from "@lingxi/art";
 import { CHAIN_DECOR, CHAIN_WEAR, DECOR_BY_ID, GOAL_BY_ID, isChainWear } from "@lingxi/world";
@@ -51,9 +51,10 @@ export function ItemShopPanel() {
   };
   // a wallet connected anywhere (the fashion market's button, a purchase) is read for pieces too
   const connected = useDesigns((s) => s.wallet);
+  // the shelf is read once when the shop opens, and again after a purchase
+  const readOnOpen = useEffectEvent(() => void read());
   useEffect(() => {
-    void read();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    readOnOpen();
   }, []);
   useEffect(() => {
     void syncChainPieces(connected);

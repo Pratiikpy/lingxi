@@ -5,7 +5,7 @@
  * the lesson, side by side. Nothing here is saved, logged or sent anywhere.
  */
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { INPUT_FIELDS, type Program, type Rule, encodeSenses, runBeat, stateBits } from "@lingxi/brain";
 import { type Pet, halvesOf, skillRules } from "@lingxi/game";
 import { useLang } from "../i18n";
@@ -64,14 +64,19 @@ export function Sandbox({ pet, trying }: { pet: Pet; trying?: Rule | null }) {
   const lang = useLang((s) => s.lang) as Lang;
   const [senses, setSenses] = useState<Senses>(START);
   const [mem, setMem] = useState<Record<string, number>>({ trust: 3 });
-  // a child decides by day with one parent's half and by night with the other's
-  const programOf = (lessons: Rule[]) => {
-    if (!pet.family) return programFor(pet.line, lessons, pet.instincts ?? 0, pet.growth);
-    const [a, b] = halvesOf(pet.family, lessons, skillRules(pet.growth));
-    return senses.time === 1 || senses.time === 2 ? a : b;
-  };
-  const now = useMemo(() => programOf(pet.lessons), [pet.lessons, pet.family, pet.instincts, pet.line, senses.time]);
-  const withLesson = useMemo(() => (trying ? programOf([trying, ...pet.lessons]) : null), [trying, pet.lessons, pet.family, pet.instincts, pet.line, senses.time]);
+  // a child decides by day with one parent's half and by night with the other's; skills count too (growth)
+  const { line, family, instincts, growth, lessons } = pet;
+  const time = senses.time;
+  const programOf = useCallback(
+    (ls: Rule[]) => {
+      if (!family) return programFor(line, ls, instincts ?? 0, growth);
+      const [a, b] = halvesOf(family, ls, skillRules(growth));
+      return time === 1 || time === 2 ? a : b;
+    },
+    [line, family, instincts, growth, time],
+  );
+  const now = useMemo(() => programOf(lessons), [programOf, lessons]);
+  const withLesson = useMemo(() => (trying ? programOf([trying, ...lessons]) : null), [programOf, trying, lessons]);
   return (
     <details className="sandbox">
       <summary>{lang === "zh" ? "沙盒：随便设个情况，看它会怎么做（不会改变它）" : "Sandbox: set up any situation and see what it would do (nothing changes)"}</summary>

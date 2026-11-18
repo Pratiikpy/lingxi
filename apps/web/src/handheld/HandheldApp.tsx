@@ -32,6 +32,10 @@ interface HH {
 }
 
 type Lang = "en" | "zh";
+type Words = Record<Lang, string>;
+
+/** The game's beat: whole minutes of wall time, as the pet at home counts them. */
+const wallBeat = () => Math.floor(Date.now() / 60_000);
 const W = 240;
 const H = 135;
 
@@ -83,12 +87,12 @@ export function HandheldApp() {
   const hh = useRef<HH | null>(null);
   const [selfTest, setSelfTest] = useState<number | null>(null);
   const [ready, setReady] = useState(false);
-  const [problem, setProblem] = useState<string | null>(null);
+  // kept in both languages, so a message shown before the language changes follows it
+  const [problem, setProblem] = useState<Words | null>(null);
   const [sending, setSending] = useState(false);
-  const t0 = useRef(performance.now());
-
-  const now = () => Math.floor(performance.now() - t0.current);
-  const wallBeat = () => Math.floor(Date.now() / 60_000);
+  // the handheld's own clock: milliseconds since this page started it
+  const [t0] = useState(() => performance.now());
+  const now = useCallback(() => Math.floor(performance.now() - t0), [t0]);
 
   /** keep the trip: the packet it started from and its log, which replay to the same pet */
   const keep = useCallback(() => {
@@ -115,7 +119,7 @@ export function HandheldApp() {
       put(packet);
       put(log, packet.length);
       const e = x.hh_resume(packet.length, log.length);
-      if (e !== 0) setProblem(L(`The trip kept here could not be read (${e}). Bring the pet back from the game.`, `这里保存的旅程读不出来（${e}）。请在游戏里把宠物叫回来。`));
+      if (e !== 0) setProblem({ en: `The trip kept here could not be read (${e}). Bring the pet back from the game.`, zh: `这里保存的旅程读不出来（${e}）。请在游戏里把宠物叫回来。` });
     }
     const inbox = localStorage.getItem(INBOX_KEY);
     if (inbox && !x.hh_ready()) {
@@ -125,11 +129,10 @@ export function HandheldApp() {
       if (e === 0) {
         localStorage.setItem(DEVICE_KEY, JSON.stringify({ packet: inbox, log: "" }));
         localStorage.removeItem(INBOX_KEY);
-      } else setProblem(L(`The pet's packet was refused (${e}).`, `宠物的数据被拒收了（${e}）。`));
+      } else setProblem({ en: `The pet's packet was refused (${e}).`, zh: `宠物的数据被拒收了（${e}）。` });
     }
     setReady(!!x.hh_ready());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lang]);
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -192,8 +195,7 @@ export function HandheldApp() {
       document.removeEventListener("visibilitychange", onHide);
       keep();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [now, keep, takeAboard]);
 
   const press = useCallback(
     (code: number) => {
@@ -205,7 +207,7 @@ export function HandheldApp() {
       if (code === 122) useLang.getState().toggle();
       keep();
     },
-    [keep],
+    [now, keep],
   );
 
   useEffect(() => {
@@ -229,7 +231,7 @@ export function HandheldApp() {
     const n = x.hh_close();
     if (!n) {
       setSending(false);
-      setProblem(L("The trip's log is too long to send.", "旅程日志太长，发不出去。"));
+      setProblem({ en: "The trip's log is too long to send.", zh: "旅程日志太长，发不出去。" });
       return;
     }
     localStorage.setItem(RETURN_KEY, b64(new Uint8Array(x.memory.buffer, x.hh_out(), n).slice()));
@@ -278,7 +280,7 @@ export function HandheldApp() {
               : L("Self-test failed: this handheld takes no pets.", "自检没通过：这台掌机不接收宠物。")}
           </p>
         )}
-        {problem && <p className="hh-bad">{problem}</p>}
+        {problem && <p className="hh-bad">{problem[lang]}</p>}
         {ready ? (
           <>
             <p>{L("Everything that happens here is replayed by the game, step by step, before your pet comes home.", "这里发生的每一步，游戏都会在宠物回家前重放一遍。")}</p>

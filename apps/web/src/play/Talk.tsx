@@ -25,7 +25,7 @@ import { useLang } from "../i18n";
 import { play } from "../game/sound";
 import "./talk.css";
 import { noteTally } from "../game/tally";
-import { allStatuses, conditionView, handIn, questsOf, takeQuest } from "../game/quests";
+import { allStatuses, conditionView, handIn, questsOf, takeQuest, useQuestStatuses } from "../game/quests";
 import { useWorld } from "../game/world";
 import { buyFromNeighbour, giftNeighbour, greetingFor, meetNeighbourAtHome, takeNeighbourStep } from "../game/neighbours";
 import { GiftPicker, NeighbourNoteLine, TrustStrip } from "./Neighbours";
@@ -75,24 +75,24 @@ export function Talk({ who, visiting = false, onFace, onAction, onClose }: { who
   // an errand being offered: its lines play, then Okay / Not now
   const [offering, setOffering] = useState<string | null>(null);
   const world = useWorld((s) => s.world);
-  const quests = useMemo(() => questsOf(who.id, allStatuses()), [who.id, world]);
+  const statuses = useQuestStatuses();
+  const quests = useMemo(() => questsOf(who.id, statuses), [who.id, statuses]);
   // a daily that asks for any small gift can be settled with any resident
-  const dailyGift = useMemo(() => {
-    const st = allStatuses();
-    return (world.quests?.today?.offered ?? []).map((id) => QUEST_BY_ID[id]!).find((q) => st[q.id] === "active" && q.objectives.some((o) => o.cond.type === "GIVE"));
-  }, [world]);
+  const dailyGift = useMemo(
+    () => (world.quests?.today?.offered ?? []).map((id) => QUEST_BY_ID[id]!).find((q) => statuses[q.id] === "active" && q.objectives.some((o) => o.cond.type === "GIVE")),
+    [world, statuses],
+  );
   const spare = useMemo(() => {
     // never offer up something an errand still asks for
-    const st = allStatuses();
     const wanted = new Set<number>();
     for (const q of Object.values(QUEST_BY_ID)) {
-      if (st[q.id] !== "active") continue;
+      if (statuses[q.id] !== "active") continue;
       for (const o of q.objectives) if (o.cond.type === "GIVE_TO" || o.cond.type === "GIVE" || o.cond.type === "ITEM") wanted.add(Number(String(o.cond.index ?? "").split(":").pop()));
     }
     const items = Object.entries(world.bag).filter(([id, n]) => n > 0 && ITEM[Number(id)]?.kind === "material" && !wanted.has(Number(id)));
     items.sort((a, b) => b[1] - a[1]);
     return items[0] ? Number(items[0][0]) : null;
-  }, [world]);
+  }, [world, statuses]);
   const line = queue[at] ?? null;
   // talking to a resident counts for quests and dailies, once per conversation
   useEffect(() => {

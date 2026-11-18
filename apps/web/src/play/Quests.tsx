@@ -31,7 +31,7 @@ import { useLang } from "../i18n";
 import { play } from "../game/sound";
 import { useGame } from "../game/store";
 import { useWorld } from "../game/world";
-import { allStatuses, conditionView, giverRoom, handIn, putDown, takeQuest, takeWeeklyGift, useQuestUi } from "../game/quests";
+import { allStatuses, conditionView, giverRoom, handIn, putDown, takeQuest, takeWeeklyGift, useQuestStatuses, useQuestUi } from "../game/quests";
 import { QuestPanel } from "./WorldPanels";
 import { TogetherPanel, togetherWaiting } from "./Goals";
 import "./quests.css";
@@ -169,7 +169,6 @@ export function QuestBook() {
   const lang = useLang((s) => s.lang) as Lang;
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
   const world = useWorld((s) => s.world);
-  const pet = useGame((s) => s.pet);
   const bookTab = useQuestUi((s) => s.bookTab);
   const setBookTab = useQuestUi((s) => s.setBookTab);
   const [tab, setTab] = useState<"story" | "today" | "together" | "milestones">(bookTab ?? "story");
@@ -180,7 +179,7 @@ export function QuestBook() {
       setBookTab(null);
     }
   }, [bookTab, setBookTab]);
-  const statuses = useMemo(() => allStatuses(), [world, pet]);
+  const statuses = useQuestStatuses();
   const live = STORY.filter((q) => order.includes(statuses[q.id]!)).sort((a, b) => order.indexOf(statuses[a.id]!) - order.indexOf(statuses[b.id]!));
   const arcs = Array.from({ length: 12 }, (_, i) => {
     const qs = STORY.filter((q) => q.arc === i + 1);
@@ -437,10 +436,9 @@ export function QuestToast({ onOpenBook }: { onOpenBook: () => void }) {
 /** The pet's own "!" when it has something to ask or a quest to take back; tap to hear it. */
 export function PetQuestBubble() {
   const lang = useLang((s) => s.lang) as Lang;
-  const world = useWorld((s) => s.world);
   const pet = useGame((s) => s.pet);
   const setOpen = useQuestUi((s) => s.setOpen);
-  const statuses = useMemo(() => allStatuses(), [world, pet]);
+  const statuses = useQuestStatuses();
   const mine = STORY.filter((q) => q.giver === "pet");
   const ready = mine.find((q) => statuses[q.id] === "ready");
   const offer = mine.find((q) => statuses[q.id] === "available");
@@ -457,9 +455,8 @@ export function PetQuestBubble() {
 export function LaneQuests({ id }: { id: string }) {
   const lang = useLang((s) => s.lang) as Lang;
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
-  const world = useWorld((s) => s.world);
   const setOpen = useQuestUi((s) => s.setOpen);
-  const statuses = useMemo(() => allStatuses(), [world]);
+  const statuses = useQuestStatuses();
   const mine = STORY.filter((q) => q.giver === `lane:${id}` && ["available", "ready", "active"].includes(statuses[q.id]!));
   if (!mine.length) return null;
   return (
@@ -498,14 +495,10 @@ const HINT_TARGETS: Record<string, string[]> = {
 
 /** During the first eleven quests, a soft ring around the one control the active quest is about. */
 export function HintRing() {
-  const world = useWorld((s) => s.world);
+  const statuses = useQuestStatuses();
   const [box, setBox] = useState<DOMRect | null>(null);
   const reduce = useReducedMotion() ?? false;
-  const hint = useMemo(() => {
-    const statuses = allStatuses();
-    const q = ONBOARDING.map((id) => QUEST_BY_ID[id]!).find((x) => statuses[x.id] === "active");
-    return q?.hint ?? null;
-  }, [world]);
+  const hint = ONBOARDING.map((id) => QUEST_BY_ID[id]!).find((x) => statuses[x.id] === "active")?.hint ?? null;
   useEffect(() => {
     if (!hint) return setBox(null);
     const find = () => {

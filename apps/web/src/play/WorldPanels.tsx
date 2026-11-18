@@ -12,7 +12,7 @@ import { useLang, useT, type Key } from "../i18n";
 import { useChain } from "../game/chain";
 import { useGame } from "../game/store";
 import { type WorldNotice, useWorld } from "../game/world";
-import { allStatuses, giverRoom } from "../game/quests";
+import { giverRoom, useQuestStatuses } from "../game/quests";
 import "./world.css";
 import { GardenPanel } from "./Garden";
 import { now } from "../game/gameClock";
@@ -66,8 +66,8 @@ export function MapPanel({ onGone }: { onGone: () => void }) {
   const cols = Math.max(...xs) - minX + 1;
   const rows = Math.max(...ys) - minY + 1;
   // rooms where someone has a quest to give ("!") or to take back ("✓")
+  const st = useQuestStatuses();
   const marks = useMemo(() => {
-    const st = allStatuses();
     const out: Record<number, "!" | "✓"> = {};
     for (const q of STORY) {
       const s2 = st[q.id];
@@ -77,7 +77,7 @@ export function MapPanel({ onGone }: { onGone: () => void }) {
       if (s2 === "ready" || !out[room]) out[room] = s2 === "ready" ? "✓" : "!";
     }
     return out;
-  }, [world]);
+  }, [st]);
   return (
     <div className="map">
       {levels.length > 1 && (

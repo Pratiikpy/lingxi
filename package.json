@@ -18,7 +18,7 @@
     "@lingxi/chain": "workspace:*",
     "@lingxi/game": "workspace:*",
     "eslint": "9.17.0",
-    "eslint-plugin-react-hooks": "5.1.0",
+    "eslint-plugin-react-hooks": "7.1.1",
     "globals": "14.0.0",
     "tsx": "4.20.3",
     "typescript-eslint": "8.18.1",

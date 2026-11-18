@@ -4,7 +4,7 @@
  * for. The waiting card shows on the breeder's side while the little one is at the centre.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useState } from "react";
 import { type AdoptionTerms, formatBem, parseBem } from "@lingxi/chain";
 import type { Pet, PapersProblem } from "@lingxi/game";
 import { boundingBox, drawPet } from "@lingxi/art";
@@ -61,11 +61,12 @@ export function AdoptionPanel({ pet }: { pet: Pet }) {
       setNote(L("The adoption centre couldn't be read just now.", "暂时读不到领养中心。"));
     }
   };
+  // the centre is read once when the panel opens; the note is in the language of that moment
+  const readOnOpen = useEffectEvent(() => void read());
   useEffect(() => {
     if (!adoptionAvailable()) return;
     void centreTerms().then(setTerms, () => setTerms(null));
-    void read();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    readOnOpen();
   }, []);
   if (!adoptionAvailable()) return null;
 
@@ -229,12 +230,13 @@ export function CentreCard({ pet }: { pet: Pet }) {
     if (r === "adopted" || r === "back") play("success");
     else setState(r);
   };
+  // each check reads the pet as it is then, not as it was when the timer started
+  const checkNow = useEffectEvent(() => void check());
   useEffect(() => {
     if (!petId) return;
-    void check();
-    const id = setInterval(() => void check(), 3 * 60_000);
+    checkNow();
+    const id = setInterval(() => checkNow(), 3 * 60_000);
     return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [petId]);
   if (!petId || !pet.away) return null;
   const until = new Date(pet.away.until).toLocaleString(lang === "zh" ? "zh-CN" : "en-GB", { weekday: "short", hour: "2-digit", minute: "2-digit" });

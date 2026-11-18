@@ -64,8 +64,8 @@ export const standingOf = (id: string): GoalStanding => {
   return { total: r?.total ?? 0, mine: r?.mine ?? 0 };
 };
 
-/** Complete goals, for the GOAL_DONE condition. */
-export const goalsDone = (): string[] => GOALS.filter((g) => (useGoals.getState().reports[g.id]?.total ?? 0) >= g.target).map((g) => g.id);
+/** Complete goals, for the GOAL_DONE condition: from the reports given, or the store's. */
+export const goalsDone = (reports = useGoals.getState().reports): string[] => GOALS.filter((g) => (reports[g.id]?.total ?? 0) >= g.target).map((g) => g.id);
 
 /** Anything this world can take from a goal now: its tiers, or the reward for everyone. */
 export function waitingIn(id: string): { tiers: TierPct[]; everyone: boolean } {

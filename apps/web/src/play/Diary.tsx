@@ -22,8 +22,8 @@ export function DiaryPanel({ pet }: { pet: Pet }) {
   const [busy, setBusy] = useState(false);
   const room = useWorld((s) => s.world.room);
   const backdrop = (ROOMS[room] ?? ROOMS[HOME]!).bgs.day;
-  // the replay depends only on the log and the brains it ran on
-  const lines = useMemo(() => diaryOf(pet, (lessons, outside, skills) => mindBrain({ line: pet.line, lessons, family: pet.family, instincts: pet.instincts, outside, growth: ruleGrowth(skills) })), [pet.pendingLog.length, pet.segments, pet.family, pet.line, pet.instincts, pet.outside]);
+  // the log grows by a word every beat, so the pet changing and the log changing come at the same pace
+  const lines = useMemo(() => diaryOf(pet, (lessons, outside, skills) => mindBrain({ line: pet.line, lessons, family: pet.family, instincts: pet.instincts, outside, growth: ruleGrowth(skills) })), [pet]);
   const date = new Date(now()).toLocaleDateString(lang === "zh" ? "zh-CN" : "en-GB", { month: "long", day: "numeric", weekday: "long" });
 
   const share = async () => {

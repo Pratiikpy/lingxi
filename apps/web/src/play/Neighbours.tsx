@@ -120,11 +120,14 @@ export function NeighbourNoteLine({ who }: { who: string }) {
   );
 }
 
+/** A resident whose taste is not yet known: one shared empty list, so the gift list is not worked out again for nothing. */
+const NOTHING_KNOWN: readonly number[] = [];
+
 /** Choose something from the bag to give; what you have learnt of their taste is marked. */
 export function GiftPicker({ sheet, onGive, onBack }: { sheet: FriendSheet; onGive: (item: number) => void; onBack: () => void }) {
   const lang = useLang((s) => s.lang) as Lang;
   const world = useWorld((s) => s.world);
-  const known = friendsOf(world).known[sheet.id] ?? [];
+  const known = friendsOf(world).known[sheet.id] ?? NOTHING_KNOWN;
   const items = useMemo(() => {
     const order: Record<Taste, number> = { love: 0, like: 1, neutral: 2, dislike: 3 };
     return Object.entries(world.bag)

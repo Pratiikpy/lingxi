@@ -12,7 +12,7 @@ import { OnChainNote } from "../OnChainNote";
 import { ProofTable } from "./ProofTable";
 import { RuleTable } from "./RuleTable";
 import { ContractTable } from "./ContractTable";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import { type Hex } from "viem";
 import { beat, bitsToWord, circuitBrain, type Circuit, wordToBits, decodeSenses } from "@lingxi/brain";
 import { PetHistory } from "./History";
@@ -185,10 +185,10 @@ export function VerifyApp() {
     }
   }, [id, t]);
 
+  // read once on open, for the pet in the address; later reads are the reader's own
+  const readOnOpen = useEffectEvent(() => void read());
   useEffect(() => {
-    void read();
-    // read once on open; later reads are explicit
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    readOnOpen();
   }, []);
 
   // following a family link (or editing the address) opens that pet
@@ -342,17 +342,21 @@ export function VerifyApp() {
   // Z1: the diary its owner published, checked here against the chain before a word of it is shown
   const [diary, setDiary] = useState<DiaryLine[] | null>(null);
   const [diaryState, setDiaryState] = useState<"none" | "checking" | "ok" | "bad">("none");
+  // the published log is checked against the pet and circuit shown at that moment
+  const replayPublished = useEffectEvent((log: Parameters<typeof replayLog>[0]) => replayLog(log));
+  const petId = pet?.id;
+  const logHash = pet?.logHash;
   useEffect(() => {
     setDiary(null);
     setDiaryState("none");
-    if (!pet || !circuit) return;
+    if (petId === undefined || !circuit) return;
     let live = true;
     void (async () => {
       try {
-        const r = (await (await fetch(`${INDEXER}/api/pets/${pet.id}/log`, { signal: AbortSignal.timeout(8000) })).json()) as { ok: boolean; log?: { words: number[]; segments: Array<{ brainId: string | null; words: number[] }> } };
+        const r = (await (await fetch(`${INDEXER}/api/pets/${petId}/log`, { signal: AbortSignal.timeout(8000) })).json()) as { ok: boolean; log?: { words: number[]; segments: Array<{ brainId: string | null; words: number[] }> } };
         if (!live || !r.ok || !r.log) return;
         setDiaryState("checking");
-        const stretches = await replayLog(r.log);
+        const stretches = await replayPublished(r.log);
         if (!live) return;
         if (!stretches) return setDiaryState("bad");
         setDiary(diaryOfStretches(stretches.map((x) => ({ brain: { fast: x.brain.fast as never, nState: x.brain.nState }, words: x.words }))));
@@ -364,8 +368,7 @@ export function VerifyApp() {
     return () => {
       live = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pet?.id, pet?.logHash, circuit]);
+  }, [petId, logHash, circuit]);
 
   const ok = rows.filter((r) => r.chain.next === r.local.next && r.chain.outputs === r.local.outputs).length;
   const u = pet ? unpackState(pet.state, pet.brainBits) : null;

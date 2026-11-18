@@ -7,7 +7,7 @@ import { atCentre } from "../game/adoption";
 import { atHandheld } from "../game/handheld";
 import { HandheldAwayCard } from "./Handheld";
 import { CentreCard } from "./Adoption";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { drawPet } from "@lingxi/art";
 import { type Pet, type SitPack, stageOf } from "@lingxi/game";
@@ -150,14 +150,15 @@ function FriendAwayCard({ pet }: { pet: Pet }) {
     if (r === "home") play("success");
     else setState(r);
   };
-  // look for a return when the screen opens, and every few minutes
+  // look for a return when the screen opens, and every few minutes, each time with the pet as it is then
+  const checkNow = useEffectEvent(() => void check());
+  const code = away?.code;
   useEffect(() => {
-    if (!away) return;
-    void check();
-    const id = setInterval(() => void check(), 5 * 60_000);
+    if (!code) return;
+    checkNow();
+    const id = setInterval(() => checkNow(), 5 * 60_000);
     return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [away?.code]);
+  }, [code]);
   if (!away) return null;
   const link = sitLink(away.code, away.key);
   return (

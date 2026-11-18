@@ -97,18 +97,29 @@ function Proposal({ pet, rule, reply, source, onDone }: { pet: Pet; rule: Rule; 
   );
 }
 
+/** The parts of a pet its brain is built from. */
 const specOf = (pet: Pet) => ({ line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts, outside: pet.outside });
+
+/**
+ * The same parts as one object that stays the same while they do: a pet changes every beat, its brain only when one
+ * of these does, so what is worked out from the brain is worked out again only then.
+ */
+function useSpec(pet: Pet) {
+  const { line, lessons, family, instincts, outside } = pet;
+  return useMemo(() => ({ line, lessons, family, instincts, outside }), [line, lessons, family, instincts, outside]);
+}
 
 /** What a lesson costs in gates, and what sharing logic saves (PRD F6). */
 function CostLine({ pet, rule }: { pet: Pet; rule: Rule }) {
   const t = useT();
+  const spec = useSpec(pet);
   const c = useMemo(() => {
     try {
-      return lessonCost(specOf(pet), rule);
+      return lessonCost(spec, rule);
     } catch {
       return null;
     }
-  }, [pet.lessons, pet.family, pet.instincts, pet.line, rule]);
+  }, [spec, rule]);
   if (!c) return null;
   return (
     <p className={`cost${c.fits ? "" : " over"}`}>
@@ -121,7 +132,8 @@ function CostLine({ pet, rule }: { pet: Pet; rule: Rule }) {
 /** The brain's size against its budget. */
 function GateMeter({ pet }: { pet: Pet }) {
   const t = useT();
-  const size = useMemo(() => brainSize(specOf(pet)), [pet.lessons, pet.family, pet.instincts, pet.line]);
+  const spec = useSpec(pet);
+  const size = useMemo(() => brainSize(spec), [spec]);
   return (
     <div className="gates" title={t("teach.gatesWhy")}>
       <span>{t("teach.gates", { n: size.gates, max: size.max })}</span>
@@ -163,7 +175,8 @@ function TrapNote({ pet, traps }: { pet: Pet; traps: Trap[] }) {
 function SchoolLevels({ pet, canLearn, onPropose }: { pet: Pet; canLearn: boolean; onPropose: (rule: Rule) => void }) {
   const t = useT();
   const { lang } = useLang();
-  const report = useMemo(() => schoolReport(specOf(pet)), [pet.lessons, pet.family, pet.instincts, pet.line]);
+  const spec = useSpec(pet);
+  const report = useMemo(() => schoolReport(spec), [spec]);
   const total = report.reduce((n, r) => n + r.stars, 0);
   return (
     <section className="levels" aria-label={t("teach.school")}>

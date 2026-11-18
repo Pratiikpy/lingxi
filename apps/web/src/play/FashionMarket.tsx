@@ -49,7 +49,7 @@ const parsePrice = (v: MarketVersion, text: string): bigint | null => {
 };
 
 export function OnPet({ pet, id }: { pet: Pet; id: string }) {
-  const version = useDesigns((s) => s.version);
+  const pieces = useDesigns((s) => s.pieces);
   const slot = useDesigns((s) => {
     const m = s.market.find((x) => wearKey(x.market, x.id) === id);
     return m ? safeDecode(m.pixels)?.slot : undefined;
@@ -58,15 +58,14 @@ export function OnPet({ pet, id }: { pet: Pet; id: string }) {
   const st = (stage === "elder" ? "adult" : stage) as "baby" | "child" | "teen" | "adult";
   const art = useMemo(() => {
     const canvas = drawPet(pet.line, st, { expression: "happy", ...(pet.form ? { form: pet.form } : {}) });
-    const overlay = slot ? wearOverlay(canvas, pet.line, st, { [slot]: id }, 0, pet.form) : [];
+    const overlay = slot ? wearOverlay(canvas, pet.line, st, { [slot]: id }, 0, pet.form, pieces) : [];
     const b = boundingBox(canvas);
     const xs = [b.x, b.x + b.w - 1, ...overlay.map((o) => o[0])];
     const ys = [b.y, b.y + b.h - 1, ...overlay.map((o) => o[1])];
     const x0 = Math.max(0, Math.min(...xs) - 1);
     const y0 = Math.max(0, Math.min(...ys) - 1);
     return { canvas, overlay, crop: { x: x0, y: y0, w: Math.min(canvas.w, Math.max(...xs) + 2) - x0, h: Math.min(canvas.h, Math.max(...ys) + 2) - y0 } };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, slot, version, pet.line, st, pet.form]);
+  }, [id, slot, pieces, pet.line, st, pet.form]);
   return <Sprite canvas={art.canvas} palette={PALETTE_OF[pet.line]} scale={3} overlay={art.overlay} crop={art.crop} />;
 }
 
@@ -86,8 +85,10 @@ export function FashionMarketPanel({ pet }: { pet: Pet }) {
   useEffect(() => {
     if (marketAvailable()) void refresh();
   }, [refresh]);
+  // read again whenever the market changes (a sale, a listing) or another wallet connects
   useEffect(() => {
-    if (bemMarket) void bemBurned(publicClient, bemMarket).then(setBurned, () => setBurned(null));
+    const bem = marketOf(2);
+    if (bem) void bemBurned(publicClient, bem).then(setBurned, () => setBurned(null));
     if (!wallet) return;
     const who = wallet as `0x${string}`;
     const one = (v: 1 | 2) => {
@@ -95,8 +96,7 @@ export function FashionMarketPanel({ pet }: { pet: Pet }) {
       return m ? proceedsOwed(publicClient, m, who) : Promise.resolve(0n);
     };
     void Promise.all([one(1), one(2)]).then(([v1, v2]) => setOwed({ v1, v2 }), () => setOwed(null));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wallet, market.length, listings.length]);
+  }, [wallet, market, listings]);
 
   if (!marketAvailable()) return null;
 

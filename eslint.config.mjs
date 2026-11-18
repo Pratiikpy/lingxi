@@ -15,7 +15,8 @@ export default tseslint.config(
     plugins: { "react-hooks": reactHooks },
     rules: {
       "react-hooks/rules-of-hooks": "error",
-      "react-hooks/exhaustive-deps": "warn",
+      // an effect that reads a value it does not list runs on stale data; what must not re-run it is an effect event
+      "react-hooks/exhaustive-deps": "error",
       // a leading underscore names what is set aside on purpose: `const { gone: _gone, ...rest } = x`
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_", destructuredArrayIgnorePattern: "^_", caughtErrors: "none" }],
       // untrusted text is cleaned of control characters on purpose, and those patterns have to name them

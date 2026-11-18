@@ -9,7 +9,7 @@
 
 import { create } from "zustand";
 import type { Address, Hex } from "viem";
-import { type Design, decodeDesign, designWearable, encodeDesign, registerWearables } from "@lingxi/art";
+import { type Design, type Wearable, decodeDesign, designWearable, encodeDesign, registeredWearables, registerWearables } from "@lingxi/art";
 import { type Market, type OutfitDesign, type OutfitListing, copiesHeld, marketsOf, parseWearKey, readDesigns, readListings, wearKey } from "@lingxi/chain";
 import { deployment, publicClient } from "./chain";
 import { saveWrite } from "./saveRuntime";
@@ -64,8 +64,8 @@ interface DesignsStore {
   wallet: string | null;
   loading: boolean;
   error: string | null;
-  /** bumps whenever wearables are (re)registered, so pictures redraw */
-  version: number;
+  /** the player-made pieces as registered now: a new value whenever more are, so a picture of them redraws */
+  pieces: ReadonlyMap<string, Wearable>;
   save: (name: string, d: Design) => string;
   remove: (id: string) => void;
   markPublished: (id: string, chainId: string) => void;
@@ -98,7 +98,7 @@ export const useDesigns = create<DesignsStore>((set, get) => {
       // private mode: lasts for this visit
     }
     register(local, get().market);
-    set({ local, version: get().version + 1 });
+    set({ local, pieces: registeredWearables() });
   };
   return {
     local: initial,
@@ -115,7 +115,7 @@ export const useDesigns = create<DesignsStore>((set, get) => {
     wallet: null,
     loading: false,
     error: null,
-    version: 0,
+    pieces: registeredWearables(),
     save: (name, d) => {
       const hex = toHex(encodeDesign(d));
       const id = `u:${now().toString(36)}`;
@@ -149,7 +149,7 @@ export const useDesigns = create<DesignsStore>((set, get) => {
         const market = parts.flatMap((p) => p.designs);
         const listings = parts.flatMap((p) => p.open);
         register(get().local, market);
-        set({ market, listings, held, atHome, wallet: who ?? null, loading: false, version: get().version + 1 });
+        set({ market, listings, held, atHome, wallet: who ?? null, loading: false, pieces: registeredWearables() });
       } catch (e) {
         set({ loading: false, error: (e as Error).message.split("\n")[0] ?? "error" });
       }

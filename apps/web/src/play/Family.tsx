@@ -56,7 +56,8 @@ export function bondBlock(pet: Pet, points: number, other: string, lang: Lang): 
 }
 
 // a parent's capstone rules are part of the brain its half of the child REFs, so they travel with it
-const asParent = (p: Pet): ParentInfo & { generation: number } => ({
+type AsParent = Pick<Pet, "name" | "line" | "lessons" | "instincts" | "growth" | "family" | "bornAt">;
+const asParent = (p: AsParent): ParentInfo & { generation: number } => ({
   name: p.name,
   line: p.line,
   lessons: p.lessons,
@@ -174,19 +175,19 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
     };
   }, []);
   const partnerIsChild = useMemo(() => !!(answer?.card && parseCard(answer.card)?.family), [answer]);
+  // our half of the child: what the pet has learnt, not its meters, so the family is not rebuilt every beat
+  const { name: petName, line: petLine, lessons, instincts, growth, family: petFamily, bornAt } = pet;
   const family = useMemo<Family | null>(() => {
     if (!answer?.yes || !answer.card) return null;
     const line = LINES.find((l) => l === answer.line);
     const card = parseCard(answer.card);
     if (!line || !card) return null;
     try {
-      return familyOf(asParent(pet), { name: answer.name, line, lessons: card.lessons, ...(card.instincts ? { instincts: card.instincts } : {}), ...(ruleSkillIds(card.growth).length ? { skills: ruleSkillIds(card.growth) } : {}), generation: card.family?.generation ?? 0 });
+      return familyOf(asParent({ name: petName, line: petLine, lessons, instincts, growth, family: petFamily, bornAt }), { name: answer.name, line, lessons: card.lessons, ...(card.instincts ? { instincts: card.instincts } : {}), ...(ruleSkillIds(card.growth).length ? { skills: ruleSkillIds(card.growth) } : {}), generation: card.family?.generation ?? 0 });
     } catch {
       return null;
     }
-    // the answer is the event; the pet at that moment is the parent
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [answer]);
+  }, [answer, petName, petLine, lessons, instincts, growth, petFamily, bornAt]);
   if (!answer) return null;
   if (!answer.yes || !family) {
     return (

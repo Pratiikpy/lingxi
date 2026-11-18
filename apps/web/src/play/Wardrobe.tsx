@@ -20,13 +20,13 @@ const SLOT_NAME: Record<(typeof SLOTS)[number], { en: string; zh: string }> = { 
 export function useWornArt(pet: Pet, expression: "happy" | "neutral" | "sparkly" = "happy") {
   const world = useWorld((s) => s.world);
   const outfit = outfitOf(world, String(pet.bornAt));
-  const version = useDesigns((s) => s.version);
+  const pieces = useDesigns((s) => s.pieces);
   const stage = stageOf(pet, now());
   const drawn = (stage === "elder" ? "adult" : stage) as "baby" | "child" | "teen" | "adult";
   return useMemo(() => {
     const canvas = drawPet(pet.line, drawn, { expression, ...(pet.form ? { form: pet.form } : {}) });
-    return { canvas, overlay: wearOverlay(canvas, pet.line, drawn, outfit as Outfit, 0, pet.form), outfit };
-  }, [pet.line, drawn, pet.form, expression, outfit.head, outfit.face, outfit.held, version]);
+    return { canvas, overlay: wearOverlay(canvas, pet.line, drawn, outfit as Outfit, 0, pet.form, pieces), outfit };
+  }, [pet.line, drawn, pet.form, expression, outfit, pieces]);
 }
 
 export function WardrobePanel({ pet }: { pet: Pet }) {

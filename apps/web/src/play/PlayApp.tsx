@@ -1,7 +1,7 @@
 /** The game: hatch on first visit, then the pet's room with care, mind, spar and profile. */
 
 import { OnChainNote } from "../OnChainNote";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { NIGHT, boundingBox, drawPet } from "@lingxi/art";
 import { STARTERS, timeOfDay } from "@lingxi/brain";
@@ -23,7 +23,7 @@ import { EvolutionChart, MeSheetBody, MindPanel, Sheet } from "./Sheets";
 import { BagPanel, MapPanel, noticeText } from "./WorldPanels";
 import { HintRing, PetQuestBubble, QuestBook, QuestDialog, QuestToast } from "./Quests";
 import { RulesMark } from "./RulesMark";
-import { allStatuses, questsOf } from "../game/quests";
+import { questsOf, useQuestStatuses } from "../game/quests";
 import { useWorld } from "../game/world";
 import { recordOf, useChain } from "../game/chain";
 import { liveAvailable, playerId, useLive, visitingFrom } from "../game/live";
@@ -109,9 +109,10 @@ export function PlayApp() {
   const travelling = !!worldFull.trip;
   const mailState = useMail();
   const unread = unreadCount(mailState);
+  const { loaded: mailLoaded, fetch: fetchMail } = mailState;
   useEffect(() => {
-    if (!mailState.loaded) void mailState.fetch();
-  }, [mailState.loaded, mailState.fetch]);
+    if (!mailLoaded) void fetchMail();
+  }, [mailLoaded, fetchMail]);
   const homeDecor = useLive((s) => s.homeDecor);
   const placedDecor = decorOf(worldFull).placed;
   // our home's decorations live on the server too, so friends who drop by see them
@@ -120,21 +121,23 @@ export function PlayApp() {
   }, [placedDecor]);
   // the server didn't keep our decorations: say so, since visitors will not see them
   const decorRefused = useLive((s) => s.decorRefused);
-  useEffect(() => {
-    if (!decorRefused) return;
+  // shown once per refusal, in the language of that moment
+  const sayDecorRefused = useEffectEvent((refused: NonNullable<typeof decorRefused>) => {
     const text =
-      decorRefused.reason === "tooMany"
+      refused.reason === "tooMany"
         ? lang === "zh"
           ? "访客明天才能看到你的新布置：这个网络地址今天开的新家够多了。"
           : "Visitors will see your new decorations from tomorrow: this address has started enough new homes today."
         : lang === "zh"
           ? "访客暂时看不到你的布置，下次改动时会再发送。"
           : "Visitors can't see your decorations for now; they'll be sent again on your next change.";
-    setWorldMsg({ id: Math.round(decorRefused.at), text });
+    setWorldMsg({ id: Math.round(refused.at), text });
+  });
+  useEffect(() => {
+    if (!decorRefused) return;
+    sayDecorRefused(decorRefused);
     const id = setTimeout(() => setWorldMsg(null), 6000);
     return () => clearTimeout(id);
-    // shown once per refusal; the words follow the language at that moment
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [decorRefused]);
   const worldNotice = useWorld((s) => s.notice);
   const worldMove = useWorld((s) => s.move);
@@ -187,15 +190,16 @@ export function PlayApp() {
     const id = setInterval(run, 10 * 60_000);
     return () => clearInterval(id);
   }, [autoOn]);
+  // a new notice on every event, in the words and language of that moment; true when it had something to say
+  const sayNotice = useEffectEvent((notice: NonNullable<typeof worldNotice>) => {
+    const text = noticeText(notice, t, lang);
+    if (text) setWorldMsg({ id: notice.id, text });
+    return !!text;
+  });
   useEffect(() => {
-    if (!worldNotice) return;
-    const text = noticeText(worldNotice, t, lang);
-    if (!text) return;
-    setWorldMsg({ id: worldNotice.id, text });
+    if (!worldNotice || !sayNotice(worldNotice)) return;
     const id = setTimeout(() => setWorldMsg(null), 2800);
     return () => clearTimeout(id);
-    // the notice id changes on every event; t and lang only matter at that moment
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [worldNotice]);
   const room = ROOMS[worldRoom] ?? ROOMS[HOME]!;
   // X2: a rig holder's own home wears the rig-bay skin (a friend's home keeps its own look)
@@ -220,15 +224,14 @@ export function PlayApp() {
     else if (!talking) setGuest(null);
   }, [visitor, talking]);
   const who = CHARACTER_IN_ROOM[worldRoom] ?? visitor ?? (talking && worldRoom === HOME ? guest : null);
+  const questStatuses = useQuestStatuses();
   const npcMark = useMemo<"!" | "✓" | "★" | null>(() => {
     if (!who) return null;
-    const q = questsOf(who.id, allStatuses());
+    const q = questsOf(who.id, questStatuses);
     const friend = FRIEND_BY_ID[who.id];
     // quests first; then a visitor waiting, or a friendship step open
     return q.ready.length ? "✓" : q.offer.length ? "!" : who === visitor || (friend && openSteps(worldState, friend).length) ? "★" : null;
-    // the statuses follow the world (and the pet, read inside)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [who, worldState]);
+  }, [who, questStatuses, visitor, worldState]);
   const [npcFace, setNpcFace] = useState<string | null>(null);
   useEffect(() => {
     setTalking(false);
@@ -252,11 +255,12 @@ export function PlayApp() {
   const meet = useFriends((s) => s.meet);
   const friendsAll = useFriends((s) => s.all);
   const levelUp = useFriends((s) => s.levelUp);
-  useEffect(() => {
-    if (!levelUp) return;
+  const sayLevelUp = useEffectEvent((up: NonNullable<typeof levelUp>) => {
     play("success");
-    setWorldMsg({ id: levelUp.at, text: lang === "zh" ? `${useGame.getState().pet?.name ?? ""}和${levelUp.name}成了${bondName(levelUp.level, "zh")}！` : `${useGame.getState().pet?.name ?? "Your pet"} and ${levelUp.name} are now ${bondName(levelUp.level, "en").toLowerCase()}!` });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setWorldMsg({ id: up.at, text: lang === "zh" ? `${useGame.getState().pet?.name ?? ""}和${up.name}成了${bondName(up.level, "zh")}！` : `${useGame.getState().pet?.name ?? "Your pet"} and ${up.name} are now ${bondName(up.level, "en").toLowerCase()}!` });
+  });
+  useEffect(() => {
+    if (levelUp) sayLevelUp(levelUp);
   }, [levelUp]);
   // ten minutes in the same room together is a moment shared with each pet there
   useEffect(() => {
@@ -277,24 +281,27 @@ export function PlayApp() {
   }, [worldRoom]);
   const [challenge, setChallenge] = useState<Partner | null>(null);
   const [duel, setDuel] = useState<Challenge | null>(null);
+  // the card carries the pet's memory, which changes every beat; so does the pet: one share per beat, as before
   useEffect(() => {
     if (pet) liveShare(petCard(pet));
-  }, [pet?.lessons, pet?.family, pet?.brain, liveShare]);
+  }, [pet, liveShare]);
+  // a friend's card arriving opens a spar against it; one that cannot spar says so, in the language of that moment
+  const sayCannotSpar = useEffectEvent((at: number) => setWorldMsg({ id: Math.round(at), text: lang === "zh" ? "没法和这只宠物切磋" : "Can't spar with that pet" }));
   useEffect(() => {
     if (!card) return;
     const partner = friendPartner(card);
     if (!partner) {
-      setWorldMsg({ id: Math.round(card.at), text: lang === "zh" ? "没法和这只宠物切磋" : "Can't spar with that pet" });
+      sayCannotSpar(card.at);
       return;
     }
     setChallenge(partner);
     setTab("spar");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [card]);
+  const saySparred = useEffectEvent((by: NonNullable<typeof asked>) =>
+    setWorldMsg({ id: Math.round(by.at), text: lang === "zh" ? `${by.name}和${useGame.getState().pet?.name ?? ""}切磋了一场` : `${by.name} sparred with ${useGame.getState().pet?.name ?? "your pet"}` }),
+  );
   useEffect(() => {
-    if (!asked) return;
-    setWorldMsg({ id: Math.round(asked.at), text: lang === "zh" ? `${asked.name}和${useGame.getState().pet?.name ?? ""}切磋了一场` : `${asked.name} sparred with ${useGame.getState().pet?.name ?? "your pet"}` });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (asked) saySparred(asked);
   }, [asked]);
   const space = worldRoom === HOME ? `home:${visiting ?? playerId()}` : `room:${worldRoom}`;
   useEffect(() => {
@@ -304,16 +311,19 @@ export function PlayApp() {
     }
   }, [worldRoom, visiting]);
   const chainPetId = useChain((s) => s.record?.petId);
+  // a room is joined again when the space, the pet's name or its chain id changes; it reads the rest fresh
+  const petName = pet?.name;
   useEffect(() => {
     const p = useGame.getState().pet;
     if (!p || !liveAvailable()) return;
     liveConnect({ name: p.name, line: p.line, stage: stageOf(p, now()), mood: p.last.mood, ...(chainPetId ? { petId: chainPetId } : {}) }, space);
-  }, [space, liveConnect, pet?.name, chainPetId]);
+  }, [space, liveConnect, petName, chainPetId]);
+  const mood = pet?.last.mood;
   useEffect(() => {
-    if (pet) liveMood(pet.last.mood);
-  }, [pet?.last.mood, liveMood]);
-  useEffect(() => {
-    if (!incoming) return;
+    if (mood !== undefined) liveMood(mood);
+  }, [mood, liveMood]);
+  // only a new incoming emote is answered; who sent it is read as the room is then
+  const answerEmote = useEffectEvent((incoming: NonNullable<ReturnType<typeof useLive.getState>["incoming"]>) => {
     const who = others[incoming.from]?.name ?? "";
     const verbs: Record<string, [string, string]> = {
       wave: ["waved at you", "向你挥手"],
@@ -328,8 +338,9 @@ export function PlayApp() {
     const from = others[incoming.from];
     if (from) meet(from.id, { name: from.name, line: from.line }, incoming.kind === "heart" ? "heart" : incoming.kind === "gift" ? "gift" : "wave");
     setWorldMsg({ id: Math.round(incoming.at), text: lang === "zh" ? `${who}${v[1]}` : `${who} ${v[0]}` });
-    // only react to a new incoming emote
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  useEffect(() => {
+    if (incoming) answerEmote(incoming);
   }, [incoming]);
 
   useEffect(() => {
@@ -376,7 +387,9 @@ export function PlayApp() {
   }, [act, say]);
 
   const stage = pet ? drawnStage(stageOf(pet, now())) : "baby";
-  const face = useMemo(() => (pet ? drawPet(pet.line, stage, { expression: "happy", ...(pet.form ? { form: pet.form } : {}) }) : null), [pet?.line, stage, pet?.form]);
+  const petLine = pet?.line;
+  const petForm = pet?.form;
+  const face = useMemo(() => (petLine ? drawPet(petLine, stage, { expression: "happy", ...(petForm ? { form: petForm } : {}) }) : null), [petLine, stage, petForm]);
 
   // say so when a relative arrives (once per visit); the visitors themselves are drawn in the room
   const kinArrivals = pet && worldRoom === HOME && !visiting ? visitorsNow(pet, roster, hourNow).map((k) => k.pet.name).join(", ") : "";
@@ -386,7 +399,8 @@ export function PlayApp() {
     if (KIN_SEEN.has(seen)) return;
     KIN_SEEN.add(seen);
     setWorldMsg({ id: now(), text: lang === "zh" ? `${kinArrivals}来看${pet.name}了。` : `${kinArrivals} dropped by to see ${pet.name}.` });
-  }, [kinArrivals]);
+    // once per hour and set of visitors (KIN_SEEN), whatever else changes
+  }, [kinArrivals, pet, hourNow, lang]);
 
   // S11: inside Telegram, its back button closes whichever sheet is open
   const moveAsk = useMove((s) => s.ask);
@@ -394,9 +408,10 @@ export function PlayApp() {
     telegramBack(moveAsk ? () => useMove.getState().closeOffer() : tab === "home" ? null : () => setTab("home"));
   }, [tab, moveAsk]);
   // Y1: the app icon shows how many things the pet needs (hooks stay above the hatch screen's early return)
+  const needCount = pet ? needsOf(pet).length : 0;
   useEffect(() => {
-    showNeeds(pet);
-  }, [pet ? needsOf(pet).join() : ""]);
+    showNeeds(needCount);
+  }, [needCount]);
   // a home-screen shortcut (Feed, Play, Teach) opens straight onto that screen once there is a pet
   const shortcutDone = useRef(false);
   useEffect(() => {

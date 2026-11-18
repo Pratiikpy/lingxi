@@ -239,13 +239,20 @@ export const WEARABLES: readonly Wearable[] = [
 
 export const WEARABLE: Readonly<Record<string, Wearable>> = Object.fromEntries(WEARABLES.map((w) => [w.id, w]));
 
-/** Player-made pieces (designs.ts), registered at run time beside Lingxi's own. */
-const custom = new Map<string, Wearable>();
+/**
+ * Player-made pieces (designs.ts), registered at run time beside Lingxi's own. Each registration makes a new set, never
+ * changing the one before, so a screen that drew from one set can tell when there is a newer one.
+ */
+let custom: ReadonlyMap<string, Wearable> = new Map();
 export function registerWearables(list: readonly Wearable[]): void {
-  for (const w of list) custom.set(w.id, w);
+  const next = new Map(custom);
+  for (const w of list) next.set(w.id, w);
+  custom = next;
 }
-/** Any wearable by id: Lingxi's own, or a registered player design. */
-export const wearableOf = (id: string): Wearable | undefined => WEARABLE[id] ?? custom.get(id);
+/** The player-made pieces registered so far. */
+export const registeredWearables = (): ReadonlyMap<string, Wearable> => custom;
+/** Any wearable by id: Lingxi's own, or a player design (from `pieces`, the ones registered now unless given). */
+export const wearableOf = (id: string, pieces: ReadonlyMap<string, Wearable> = custom): Wearable | undefined => WEARABLE[id] ?? pieces.get(id);
 
 export type Outfit = Partial<Record<Slot, string>>;
 
@@ -306,7 +313,7 @@ function rightEdge(c: PixelCanvas, y: number): number {
  * Where the outfit's pixels go on a drawn pet. `canvas` is the pet as drawn
  * (body and face), so the pieces follow its pose: breathing, squash and form.
  */
-export function wearOverlay(canvas: PixelCanvas, line: Line, stage: Exclude<Stage, "egg">, outfit: Outfit, squash = 0, form?: Form): OverlayPixel[] {
+export function wearOverlay(canvas: PixelCanvas, line: Line, stage: Exclude<Stage, "egg">, outfit: Outfit, squash = 0, form?: Form, pieces: ReadonlyMap<string, Wearable> = custom): OverlayPixel[] {
   const out: OverlayPixel[] = [];
   // a hat replaces the scholar form's own cap: clear the cap's ink and tassel where it is drawn
   if (outfit.head && stage === "adult" && form === "scholar") {
@@ -330,7 +337,7 @@ export function wearOverlay(canvas: PixelCanvas, line: Line, stage: Exclude<Stag
   const face = faceAnchor(line, stage, squash);
   const faceRows = (face.size === "L" ? FACES_L : FACES_S).neutral.length;
   const eyeTop = face.y - Math.floor(faceRows / 2);
-  const held = outfit.held ? wearableOf(outfit.held) : undefined;
+  const held = outfit.held ? wearableOf(outfit.held, pieces) : undefined;
   if (held) {
     const y = Math.min(canvas.h - 3, eyeTop + faceRows + 2);
     // held beside the body, never over it
@@ -338,13 +345,13 @@ export function wearOverlay(canvas: PixelCanvas, line: Line, stage: Exclude<Stag
     const right = Math.min(canvas.w - w, rightEdge(canvas, y) + 1);
     put(held.rows, held.colors, right, y - held.rows.length + 2);
   }
-  const head = outfit.head ? wearableOf(outfit.head) : undefined;
+  const head = outfit.head ? wearableOf(outfit.head, pieces) : undefined;
   if (head) {
     const t = topOfHead(canvas);
     const w = Math.max(...head.rows.map((r) => r.length));
     put(head.rows, head.colors, Math.round(t.x - w / 2), t.y + 2 - head.rows.length);
   }
-  const fw = outfit.face ? wearableOf(outfit.face) : undefined;
+  const fw = outfit.face ? wearableOf(outfit.face, pieces) : undefined;
   if (fw) {
     const rows = face.size === "S" && fw.rowsSmall ? fw.rowsSmall : fw.rows;
     const w = Math.max(...rows.map((r) => r.length));

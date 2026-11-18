@@ -12,9 +12,10 @@ export function MailboxPanel() {
   const mail = useMail();
   const letters = allLetters(mail);
   const [openId, setOpenId] = useState<string | null>(null);
+  const { loaded, fetch: fetchMail } = mail;
   useEffect(() => {
-    if (!mail.loaded) void mail.fetch();
-  }, [mail.loaded, mail.fetch]);
+    if (!loaded) void fetchMail();
+  }, [loaded, fetchMail]);
   if (!letters.length) return <p className="small">{mail.loaded ? L("No letters yet.", "还没有信。") : L("Fetching the mail…", "正在取信……")}</p>;
   return (
     <ul className="mail-list">

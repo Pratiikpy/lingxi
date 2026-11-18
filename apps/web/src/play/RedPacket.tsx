@@ -243,7 +243,8 @@ export function PacketArrival() {
     // a link opened in a tab that already shows the game only changes the hash
     window.addEventListener("hashchange", read);
     return () => window.removeEventListener("hashchange", read);
-  }, []);
+    // the store's action keeps one identity, so this runs once, as a page's link handler should
+  }, [owedFn]);
   const carrier = useMemo(() => drawPet(link?.from.line ?? "gentle", "child", { expression: "proud" }), [link?.from.line]);
   if (!link && !reason) return null;
   const close = () => {

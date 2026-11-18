@@ -5,7 +5,7 @@
  * Shown once per absence.
  */
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { HOME, ITEM, ROOMS } from "@lingxi/world";
 import { type Frame, type Pet, awayFind, awaySeed, halvesOf, momentText, rewind, visitorsDuring, skillRules, ruleGrowth } from "@lingxi/game";
@@ -42,43 +42,48 @@ function claim(key: string): void {
 
 const clock = (f: Frame, lang: Lang) => (f.at === null ? "" : new Date(f.at).toLocaleTimeString(lang === "zh" ? "zh-CN" : "en-GB", { hour: "2-digit", minute: "2-digit" }));
 
+/** The card for the last long absence, if it belongs to the pet on screen; one card per absence. */
 export function WelcomeBack({ pet }: { pet: Pet }) {
+  const away = useGame((s) => s.away);
+  const mine = away && away.petKey === String(pet.bornAt) ? away : null;
+  if (!mine) return null;
+  return <AwayCard key={`${mine.petKey}:${mine.to}`} pet={pet} absence={mine} />;
+}
+
+/** What happened while the player was away, read once from the pet's log when the absence is first shown. */
+function report(pet: Pet, absence: { from: number; to: number }) {
+  const frames = rewind(pet, (l, outside, skills) => ({ ...(pet.family ? { halves: halvesOf(pet.family, l, skillRules(ruleGrowth(skills))) } : { program: programFor(pet.line, l, pet.instincts ?? 0, ruleGrowth(skills)) }), ...(outside ? { outside } : {}) }), absence.to - absence.from + 1);
+  const window = frames.filter((f) => f.at !== null && f.at >= absence.from * 60_000 && f.at <= absence.to * 60_000);
+  return {
+    events: window.filter((f) => f.senses.event !== 0).slice(-5),
+    napped: window.some((f) => f.want === 3),
+    find: awayFind(awaySeed(pet), absence.from, absence.to, ROOMS[HOME]?.drops ?? []),
+    // the travelling pets who came by, for the album (M9)
+    visits: visitorsDuring(awaySeed(pet), absence.from, absence.to),
+  };
+}
+
+/** Mounted once per absence (its key), so the story, the find and the visitors are worked out once, as they were. */
+function AwayCard({ pet, absence }: { pet: Pet; absence: { petKey: string; from: number; to: number } }) {
   const lang = useLang((s) => s.lang) as Lang;
   const reduce = useReducedMotion() ?? false;
-  const away = useGame((s) => s.away);
   const clear = useGame((s) => s.clearAway);
   const receive = useWorld((s) => s.receive);
-  const mine = away && away.petKey === String(pet.bornAt) ? away : null;
-  const key = mine ? `${mine.petKey}:${mine.to}` : "";
-
-  const story = useMemo(() => {
-    if (!mine) return null;
-    const frames = rewind(pet, (l, outside, skills) => ({ ...(pet.family ? { halves: halvesOf(pet.family, l, skillRules(ruleGrowth(skills))) } : { program: programFor(pet.line, l, pet.instincts ?? 0, ruleGrowth(skills)) }), ...(outside ? { outside } : {}) }), mine.to - mine.from + 1);
-    const window = frames.filter((f) => f.at !== null && f.at >= mine.from * 60_000 && f.at <= mine.to * 60_000);
-    const events = window.filter((f) => f.senses.event !== 0).slice(-5);
-    const napped = window.some((f) => f.want === 3);
-    return { events, napped };
-    // the story is read once, when the absence is first shown
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
-  const find = useMemo(() => (mine ? awayFind(awaySeed(pet), mine.from, mine.to, ROOMS[HOME]?.drops ?? []) : null), [key]);
-  // the travelling pets who came by, for the album (M9)
-  const visits = useMemo(() => (mine ? visitorsDuring(awaySeed(pet), mine.from, mine.to) : []), [key]);
   const addVisits = useAlbum((s) => s.add);
+  const key = `${absence.petKey}:${absence.to}`;
+  const [{ events, napped, find, visits }] = useState(() => report(pet, absence));
+  const story = { events, napped };
   useEffect(() => {
-    if (mine && visits.length) addVisits(key, visits);
-  }, [key]);
-
-  const given = useRef(false);
+    if (visits.length) addVisits(key, visits);
+  }, [key, visits, addVisits]);
   useEffect(() => {
-    if (!mine || given.current || claimed(key)) return;
-    given.current = true;
+    // the find goes into the bag once per absence, even if the card is shown again
+    if (claimed(key)) return;
     claim(key);
     if (find !== null) receive(find, 1);
-  }, [key]);
+  }, [key, find, receive]);
 
-  if (!mine || !story) return null;
-  const hours = Math.max(1, Math.round((mine.to - mine.from) / 60));
+  const hours = Math.max(1, Math.round((absence.to - absence.from) / 60));
   const item = find !== null ? ITEM[find] : undefined;
   return (
     <div className="fam-modal" role="dialog" aria-modal="true" aria-label={lang === "zh" ? "你不在的时候" : "While you were away"}>
