@@ -314,7 +314,10 @@ contract RedPacketForkTest is Test {
         assertEq(got, floor + (uint256(rp.packet(id).extra) * 1) / (15 * 2));
         // when the last share opens, the rest is shared by weight and collected
         _claim(id, b);
+        // the deciding block lies past the forked chain's head, so a live RPC has no hash for it: give it one
+        uint256 decider = block.number + 1;
         vm.roll(block.number + 2);
+        vm.setBlockhash(decider, keccak256("the block after b's claim"));
         vm.prank(b);
         rp.reveal(id);
         vm.prank(a);
