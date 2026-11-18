@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/writer.ts
++++ b/apps/web/src/game/writer.ts
+@@ -114,7 +114,7 @@
+       // a live tab renews its lease; one that has not, within the watch, belonged to a page that is gone
+       await wait(WATCH_MS);
+       const now = readStamp();
+-      const renewed = now !== null && now.id !== id && now.until > o.now() && (now.id !== stamp.id || now.until !== stamp.until);
++      const renewed = now !== null && now.id !== id && now.until > o.now();
+       if (renewed) return false;
+     }
+     if (!writeStamp()) {

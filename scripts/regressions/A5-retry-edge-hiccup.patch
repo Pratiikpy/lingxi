@@ -1,0 +1,11 @@
+--- a/scripts/lib/steadyFetch.mts
++++ b/scripts/lib/steadyFetch.mts
+@@ -29,7 +29,7 @@
+     let failed: string;
+     try {
+       res = await fetchFn(url, { signal: AbortSignal.timeout(o.timeoutMs ?? 20_000), ...(o.headers ? { headers: o.headers } : {}) });
+-      if (!TRANSIENT.has(res.status)) return { res, retried };
++      return { res, retried };
+       failed = String(res.status);
+     } catch (e) {
+       failed = e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError") ? "timeout" : `no answer (${e instanceof Error ? e.message : String(e)})`;

@@ -1,0 +1,32 @@
+[
+  {
+    "id": "A5-retry-edge-hiccup",
+    "row": "A5",
+    "bug": "one passing Cloudflare 520 turned the public checks red",
+    "test": { "kind": "vitest", "dir": ".", "file": "scripts/lib/steadyFetch.test.mts", "name": "tries again after a passing edge error, and says that it did" }
+  },
+  {
+    "id": "A6-handheld-game-clock",
+    "row": "A6",
+    "bug": "the browser handheld counted minutes on the device's clock, so a fast phone's trips were refused",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/handheld/clock.test.ts", "name": "comes from the game's time, not the device's, once the server has answered" }
+  },
+  {
+    "id": "A6-hold-one-beat",
+    "row": "A6",
+    "bug": "a log ending one beat past the game's clock (two pages synced moments apart) was refused, not waited for",
+    "test": { "kind": "vitest", "dir": "packages/handheld", "file": "test/trip.test.ts", "name": "waits until the game's clock reaches a log that ends one beat ahead, then brings the pet home" }
+  },
+  {
+    "id": "A8-lease-given-up",
+    "row": "A8",
+    "bug": "without Web Locks, a reload found its own page's lease and showed \"open in another tab\"",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/writer.test.ts", "name": "a page gives its lease up as it goes, so its own reload plays at once (A8)" }
+  },
+  {
+    "id": "A8-dead-lease-taken",
+    "row": "A8",
+    "bug": "a lease left by a page that died without a word kept the player out until it ran out",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/writer.test.ts", "name": "a lease that is not renewed within the watch is a page that died without a word: it is taken over (A8)" }
+  }
+]

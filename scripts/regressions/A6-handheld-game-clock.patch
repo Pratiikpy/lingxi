@@ -1,0 +1,8 @@
+--- a/apps/web/src/handheld/clock.ts
++++ b/apps/web/src/handheld/clock.ts
+@@ -20,4 +20,4 @@
+ export const startHandheldClock = keepInTime(handheldClock);
+ 
+ /** The minute the handheld lives up to, by the game's time. */
+-export const wallBeat = (): number => Math.floor(handheldClock.now() / BEAT_MS);
++export const wallBeat = (): number => Math.floor(Date.now() / BEAT_MS);

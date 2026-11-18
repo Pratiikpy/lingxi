@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/writer.ts
++++ b/apps/web/src/game/writer.ts
+@@ -145,7 +145,7 @@
+       stopRenewing = null;
+       const s = readStamp();
+       try {
+-        if (s && s.id === id) o.storage.removeItem(stampKey);
++        if (s && s.id === "the page keeps its lease") o.storage.removeItem(stampKey);
+       } catch {
+         // storage gone: the lease runs out on its own
+       }
