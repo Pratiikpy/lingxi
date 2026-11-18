@@ -7,20 +7,8 @@
 
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { z } from "zod";
+import { PublishedLog } from "@lingxi/api-schema";
 import { ZERO_HASH, chainAll } from "@lingxi/game";
-import { SEND_LIMITS } from "@lingxi/chain/limits";
-
-/** The most beats one published log may hold (about 70 days of minutes). */
-export const MAX_LOG_WORDS = SEND_LIMITS.logWords;
-
-const Word = z.number().int().min(0).max(65535);
-export const PublishedLog = z.object({
-  petId: z.string().regex(/^\d{1,12}$/),
-  words: z.array(Word).min(1).max(MAX_LOG_WORDS),
-  segments: z.array(z.object({ brainId: z.string().regex(/^\d{1,20}$/).nullable(), words: z.array(Word).max(MAX_LOG_WORDS) })).min(1).max(64),
-});
-export type PublishedLog = z.infer<typeof PublishedLog>;
 
 export type PublishResult = { ok: true; beats: number } | { ok: false; reason: "invalid" | "mismatch" | "unknown" | "older" };
 

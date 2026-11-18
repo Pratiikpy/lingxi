@@ -6,7 +6,9 @@
 
 import { useEffect, useState } from "react";
 import { MANIFESTS } from "@lingxi/brain";
+import type { SparQuery } from "@lingxi/api-schema";
 import { useLang } from "../i18n";
+import { withQuery } from "../game/requests";
 import "./agents.css";
 
 const API = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
@@ -92,7 +94,7 @@ export function AgentsApp() {
     setTrying(true);
     setTryErr(false);
     try {
-      const r = await fetch(`${V1}/api/v1/spar?chips=punish,block,bite&vs=pip&seed=7`);
+      const r = await fetch(`${V1}${withQuery("/api/v1/spar", { chips: "punish,block,bite", vs: "pip", seed: "7" } satisfies SparQuery)}`);
       const j = (await r.json()) as { ok: boolean; winner: string; digest: string; rounds: unknown[] };
       if (!j.ok) throw new Error("refused");
       setTried({ winner: j.winner, digest: j.digest, rounds: j.rounds.length });

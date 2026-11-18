@@ -10,12 +10,12 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
+import { MAX_WORDS } from "@lingxi/api-schema";
 import { INPUT_FIELDS, MOODS, NUDGES, type Rule, STARTERS, type StarterLine, WANTS } from "@lingxi/brain";
 import { checkLesson, type Stage } from "@lingxi/game";
 import { BudgetSpent } from "./tokenBudget";
 
 export const MODEL = "claude-opus-5-5";
-export const MAX_WORDS = 240;
 
 const MEMORY_DOC = (line: StarterLine) =>
   STARTERS[line].memory
@@ -160,7 +160,7 @@ export async function teachInWords(client: Anthropic, req: TeachRequest): Promis
       output_config: { effort: "low", format: { type: "json_schema", schema: PROPOSAL_JSON_SCHEMA } },
       system: systemPrompt(req.line, cleanName(req.name)),
       messages: [{ role: "user", content: `The owner says: "${words}"` }],
-    } as never);
+    });
   } catch (e) {
     // the day's shared budget is spent: say so, rather than "try again in a minute"
     if (e instanceof BudgetSpent) return { ok: false, reason: "resting" };
@@ -168,9 +168,8 @@ export async function teachInWords(client: Anthropic, req: TeachRequest): Promis
     if (e instanceof Anthropic.APIError) return { ok: false, reason: "error", detail: `api ${e.status}` };
     return { ok: false, reason: "error", detail: "network" };
   }
-  const msg = response as unknown as Anthropic.Message;
-  if (msg.stop_reason === "refusal" || msg.stop_reason === "max_tokens") return { ok: false, reason: "notUnderstood" };
-  const text = msg.content.find((b): b is Anthropic.TextBlock => b.type === "text")?.text;
+  if (response.stop_reason === "refusal" || response.stop_reason === "max_tokens") return { ok: false, reason: "notUnderstood" };
+  const text = response.content.find((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text")?.text;
   if (!text) return { ok: false, reason: "error", detail: "empty answer" };
   let raw: unknown;
   try {

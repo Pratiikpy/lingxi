@@ -13,6 +13,7 @@ import { playerId } from "./live";
 import { useFriends } from "./friends";
 import { type Pet, type SitPack, ZERO_HASH, chainAll, checkReturn } from "@lingxi/game";
 import { readPet } from "@lingxi/chain";
+import { sitHomeBody, sitLeaveBody } from "./requests";
 import { linkPrefix } from "./links";
 import { brainOf, useGame } from "./store";
 import { type ChainRecord, deployment, publicClient, recordOf, setRecordOf } from "./chain";
@@ -50,7 +51,7 @@ export async function sendToSitter(pet: Pet, days: number): Promise<string> {
     host: playerId(),
   };
   const packText = JSON.stringify(pack);
-  const body = JSON.stringify({ pack: packText, keyHash: await keyHash(key), until });
+  const body = JSON.stringify(sitLeaveBody(packText, await keyHash(key), until));
   // measured before it leaves: one too large throws TooBig, and nothing is sent
   checkSize(body, SEND_LIMITS.sitBodyBytes, { unit: "bytes", have: packText.length, most: SEND_LIMITS.sitPackChars });
   const r = await fetch(`${BASE}/api/sit`, {
@@ -150,7 +151,7 @@ export async function sendHome(given: Pet): Promise<boolean> {
   const own = useGame.getState().pets.find((p) => !p.sitting);
   const body: Homecoming = { pet: home as Pet, chain: record && record.logLen !== undefined ? { lastDay: record.lastDay, logLen: record.logLen } : null, ...(own ? { sitter: { id: playerId(), name: own.name, line: own.line } } : {}) };
   const petText = JSON.stringify(body);
-  const sent = JSON.stringify({ key: sitting.key, pet: petText });
+  const sent = JSON.stringify(sitHomeBody(sitting.key, petText));
   checkSize(sent, SEND_LIMITS.sitBodyBytes, { unit: "bytes", have: petText.length, most: SEND_LIMITS.sitPackChars });
   const r = await fetch(`${BASE}/api/sit/${sitting.code}/home`, {
     method: "POST",

@@ -6,6 +6,7 @@
 import type { DuelPet, SeasonEntry, Standing } from "@lingxi/game";
 import { deviceId } from "./arenaApi";
 import type { SignedRelay } from "@lingxi/chain";
+import { seasonEnterBody } from "./requests";
 import { saveWrite } from "./saveRuntime";
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
@@ -67,9 +68,9 @@ export async function readSeason(week: string): Promise<SeasonView | null> {
 }
 
 /** Enters `pet`; with `proof` (signed as the pet on X Layer, see chain.ts signSeasonEntry) it is in line for the keepsake. */
-export async function enterSeason(pet: DuelPet, proof?: SignedRelay): Promise<{ ok: true; week: string; key: string; proven?: boolean } | { ok: false; reason: string; detail?: string }> {
+export async function enterSeason(pet: DuelPet, proof?: SignedRelay<"season">): Promise<{ ok: true; week: string; key: string; proven?: boolean } | { ok: false; reason: string; detail?: string }> {
   try {
-    const r = await fetch(`${BASE}/api/season/enter`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ pet, device: deviceId(), ...(proof ? { proof } : {}) }) });
+    const r = await fetch(`${BASE}/api/season/enter`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(seasonEnterBody(pet, deviceId(), proof)) });
     const body = (await r.json()) as { ok: true; week: string; key: string; proven?: boolean } | { ok: false; reason: string; detail?: string };
     if (body.ok) {
       const m = mine();

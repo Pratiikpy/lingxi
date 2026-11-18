@@ -18,8 +18,8 @@ export interface RelayAuth {
 }
 
 /** What is sent: the request as the exact text that was signed, and who signed it. */
-export interface SignedRelay {
-  kind: RelayKind;
+export interface SignedRelay<K extends RelayKind = RelayKind> {
+  kind: K;
   petId: string;
   payload: string;
   auth: RelayAuth;
@@ -51,13 +51,13 @@ export function relayMessage(o: { kind: RelayKind; petId: string; payload: strin
 }
 
 /** Signs a relay request with any signer that can sign a personal message (a wallet or this device's key). */
-export async function signRelay(
+export async function signRelay<K extends RelayKind>(
   signer: { address: Address; signMessage: (m: { message: string }) => Promise<Hex> },
-  kind: RelayKind,
+  kind: K,
   petId: string,
   body: unknown,
   now = Date.now(),
-): Promise<SignedRelay> {
+): Promise<SignedRelay<K>> {
   const payload = JSON.stringify(body);
   const nonce = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
   const time = Math.floor(now / 1000);

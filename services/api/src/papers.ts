@@ -9,8 +9,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import type { Hono } from "hono";
 import { type Address, type Hex, keccak256, recoverMessageAddress, toBytes } from "viem";
-
-export const PAPERS_MAX = 600_000;
+import { PAPERS_MAX, PapersBody } from "@lingxi/api-schema";
 
 /** The message the owner signs: names the pet and the exact papers. */
 export const papersMessage = (petId: string, papers: string) => `Lingxi adoption papers for pet #${petId}\n${keccak256(toBytes(papers))}`;
@@ -70,18 +69,15 @@ export function withPapers(app: Hono, store: PapersStore, chain: PapersChain, no
     if (!ID.test(id)) return c.json({ ok: false, reason: "petId" }, 400);
     const raw = await c.req.text();
     if (raw.length > PAPERS_MAX + 1_000) return c.json({ ok: false, reason: "tooBig" }, 413);
-    let body: { papers?: unknown; signature?: unknown };
+    let json: unknown;
     try {
-      body = JSON.parse(raw) as typeof body;
+      json = JSON.parse(raw);
     } catch {
       return c.json({ ok: false, reason: "json" }, 400);
     }
-    if (typeof body.papers !== "string" || body.papers.length > PAPERS_MAX || typeof body.signature !== "string" || !/^0x[0-9a-fA-F]{130}$/.test(body.signature)) return c.json({ ok: false, reason: "invalid" }, 400);
-    try {
-      JSON.parse(body.papers);
-    } catch {
-      return c.json({ ok: false, reason: "invalid" }, 400);
-    }
+    const parsed = PapersBody.safeParse(json);
+    if (!parsed.success) return c.json({ ok: false, reason: "invalid" }, 400);
+    const body = parsed.data;
     let signer: Address;
     try {
       signer = await recoverMessageAddress({ message: papersMessage(id, body.papers), signature: body.signature as Hex });

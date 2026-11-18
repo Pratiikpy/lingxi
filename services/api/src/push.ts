@@ -11,30 +11,19 @@
 
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import webpush from "web-push";
-import { z } from "zod";
+import type { PushPlanBody } from "@lingxi/api-schema";
 
 export type ReminderKind = "hungry" | "bored" | "dirty" | "sick";
 
 const PUSH_HOSTS = [/^fcm\.googleapis\.com$/, /^updates\.push\.services\.mozilla\.com$/, /(^|\.)push\.apple\.com$/, /(^|\.)notify\.windows\.com$/, /^android\.googleapis\.com$/];
 const MAX_SUBS = 20_000;
-const MAX_REMINDERS = 6;
 const HORIZON_MS = 48 * 3_600_000;
 const MIN_GAP_MS = 3 * 3_600_000;
 const QUIET_FROM = 22;
 const QUIET_TO = 8;
 
-export const PlanSchema = z.object({
-  subscription: z.object({
-    endpoint: z.string().url().max(800),
-    keys: z.object({ p256dh: z.string().min(16).max(200), auth: z.string().min(8).max(100) }),
-  }),
-  lang: z.enum(["en", "zh"]),
-  name: z.string().min(1).max(24),
-  /** minutes east of UTC, as the browser reports it */
-  tz: z.number().int().min(-840).max(840),
-  reminders: z.array(z.object({ kind: z.enum(["hungry", "bored", "dirty", "sick"]), at: z.number().int() })).max(MAX_REMINDERS),
-});
-export type Plan = z.infer<typeof PlanSchema>;
+/** A plan as the game sends it and the server checks it (@lingxi/api-schema PushPlanBody). */
+export type Plan = PushPlanBody;
 
 interface Entry {
   sub: Plan["subscription"];

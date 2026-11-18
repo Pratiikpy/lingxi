@@ -65,8 +65,8 @@ export function budgetedClient(client: Anthropic, budget: TokenBudget): Anthropi
       budget.spend((res.usage?.input_tokens ?? 0) + (res.usage?.output_tokens ?? 0));
       return res;
     }) as F;
-  const messages = { ...client.messages, create: wrap(client.messages.create.bind(client.messages) as never) };
-  const beta = { ...client.beta, messages: { ...client.beta.messages, create: wrap(client.beta.messages.create.bind(client.beta.messages) as never) } };
+  const messages = { ...client.messages, create: wrap(client.messages.create.bind(client.messages)) };
+  const beta = { ...client.beta, messages: { ...client.beta.messages, create: wrap(client.beta.messages.create.bind(client.beta.messages)) } };
   return new Proxy(client, {
     get(target, prop, receiver) {
       if (prop === "messages") return messages;

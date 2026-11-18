@@ -79,7 +79,7 @@ export function OwnedInstinctPanel({ pet }: { pet: Pet }) {
     setBusy(o.id);
     setNote("");
     try {
-      const c = await readOutsideCircuit(publicClient as never, o.processor as Address, BigInt(o.id));
+      const c = await readOutsideCircuit(publicClient, o.processor as Address, BigInt(o.id));
       // ownership is checked on the chain now, not taken from the list
       if (c.owner.toLowerCase() !== address.toLowerCase()) {
         setNote(L("This wallet doesn't own that circuit any more.", "这个钱包已经不再拥有那个电路了。"));

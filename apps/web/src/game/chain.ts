@@ -16,8 +16,10 @@ import { type Deployment, type TapeQuote, type TapeStep, allowPartnerOnChain, br
 import { compileProgram, netlistBytes } from "@lingxi/brain";
 import { AUTO_DAYS, AUTO_FUND, AUTO_LOW, sessionAccount, sessionWallet } from "./session";
 import { type Pet, logSegments, packState, petCard, stageOf, unpackState, ruleSkillIds } from "@lingxi/game";
-import { type BrainRelayBody, relayAvailable, relayBrain, relayChild, relayInstinct } from "./api";
+import type { BrainRelayPayload } from "@lingxi/api-schema";
+import { relayAvailable, relayBrain, relayChild, relayInstinct, signRelayRequest } from "./api";
 import type { ChainInfo } from "./live";
+import { diaryBody } from "./requests";
 import { programFor, useGame } from "./store";
 import localDeployment from "../../../../packages/chain/deployments/local.json";
 import xlayerDeployment from "../../../../packages/chain/deployments/xlayer.json";
@@ -236,7 +238,7 @@ async function relaySigner(petId: string, wallet?: WalletClient): Promise<{ addr
  * A season entry signed as this pet on X Layer (kind "season"), so the server can prove it and put it in line for the
  * keepsake. Null for a pet that is not on chain. Throws when no keeper can sign (no wallet, or the signature declined).
  */
-export async function signSeasonEntry(pet: Pet, entry: unknown): Promise<SignedRelay | null> {
+export async function signSeasonEntry(pet: Pet, entry: unknown): Promise<SignedRelay<"season"> | null> {
   const record = records[petKey(pet)];
   if (!deployment || !record) return null;
   return signRelay(await relaySigner(record.petId), "season", record.petId, entry);
@@ -302,7 +304,7 @@ export const useChain = create<ChainState>((set, get) => ({
       if ((await checkPartner(publicClient, deployment, partner)) !== "ok") throw new Error("PartnerNotOnChain");
       if (!(await hasConsent(publicClient, deployment, BigInt(partner.petId), wallet.account!.address))) throw new Error("NoConsent");
       set({ busy: "taping" });
-      const relayed = await relayChild(await signRelay(await relaySigner(r.petId, wallet), "child", r.petId, { parents: [mine, partner.brain] }));
+      const relayed = await relayChild(await signRelayRequest(await relaySigner(r.petId, wallet), "child", r.petId, { parents: [mine, partner.brain] }));
       if (!relayed.ok) throw new Error(relayed.reason);
       set({ busy: "hatching" });
       const { childId, tx } = await breedOnChain(publicClient, wallet, deployment, BigInt(r.petId), BigInt(partner.petId), deployment.processor, BigInt(relayed.brainId), LINES.indexOf(child.line));
@@ -364,8 +366,8 @@ export const useChain = create<ChainState>((set, get) => ({
       // instincts moves straight onto its own circuit before anything is saved
       if (pet.instincts && relayAvailable()) {
         set({ busy: "taping" });
-        const body: BrainRelayBody = { line: pet.line, lessons: pet.lessons, instincts: pet.instincts, skills: ruleSkillIds(pet.growth) };
-        const r = await relayBrain(await signRelay(await relaySigner(petId.toString(), wallet), "brain", petId.toString(), body));
+        const body: BrainRelayPayload = { line: pet.line, lessons: pet.lessons, instincts: pet.instincts, skills: ruleSkillIds(pet.growth) };
+        const r = await relayBrain(await signRelayRequest(await relaySigner(petId.toString(), wallet), "brain", petId.toString(), body));
         if (!r.ok) throw new Error(r.reason);
         set({ busy: "saving" });
         await setBrainOnChain(publicClient, wallet, deployment, petId, deployment.processor, BigInt(r.brainId));
@@ -520,15 +522,15 @@ export const useChain = create<ChainState>((set, get) => ({
         if (!ownId) {
           const signer = await relaySigner(record.petId);
           const r = pet.family
-            ? await relayChild(await signRelay(signer, "child", record.petId, { card: petCard(plain) }))
-            : await relayBrain(await signRelay(signer, "brain", record.petId, { line: pet.line, lessons: pet.lessons, ...(pet.instincts ? { instincts: pet.instincts } : {}), skills: ruleSkillIds(pet.growth) } satisfies BrainRelayBody));
+            ? await relayChild(await signRelayRequest(signer, "child", record.petId, { card: petCard(plain) }))
+            : await relayBrain(await signRelayRequest(signer, "brain", record.petId, { line: pet.line, lessons: pet.lessons, ...(pet.instincts ? { instincts: pet.instincts } : {}), skills: ruleSkillIds(pet.growth) }));
           if (!r.ok) throw new Error(r.reason);
           ownId = r.brainId;
         }
         brainId = ownId;
         // an owned instinct: a circuit that REFs the pet's own brain and the owned one
         if (pet.outside) {
-          const r = await relayInstinct(await signRelay(await relaySigner(record.petId), "instinct", record.petId, { own: ownId, processor: pet.outside.processor, id: pet.outside.id }));
+          const r = await relayInstinct(await signRelayRequest(await relaySigner(record.petId), "instinct", record.petId, { own: ownId, processor: pet.outside.processor, id: pet.outside.id }));
           if (!r.ok) throw new Error(r.reason);
           brainId = r.brainId;
         }
@@ -551,7 +553,7 @@ export const useChain = create<ChainState>((set, get) => ({
     const segments = logSegments({ ...pet, pendingLog: pet.pendingLog.slice(0, n) })
       .map((s) => ({ brainId: record.brains?.[mindKey(s.lessons, pet.instincts, s.outside, s.skills)] ?? null, words: s.words }))
       .filter((s) => s.words.length > 0);
-    return JSON.stringify({ petId: record.petId, words: pet.pendingLog.slice(0, n), segments });
+    return JSON.stringify(diaryBody(record.petId, pet.pendingLog.slice(0, n), segments));
   },
   forget: () => {
     const p = useGame.getState().pet;

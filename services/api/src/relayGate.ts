@@ -6,7 +6,7 @@
  */
 
 import { type Address, type Hex, isAddress, recoverMessageAddress } from "viem";
-import { type SignedRelay, relayMessage } from "@lingxi/chain";
+import { type RelayKind, relayMessage } from "@lingxi/chain";
 
 const WINDOW_S = 5 * 60;
 const NONCE = /^[0-9a-f]{16,64}$/;
@@ -14,6 +14,19 @@ const PET = /^\d{1,20}$/;
 const MAX_PAYLOAD = 20_000;
 
 export type RelayRefusal = "unsigned" | "expired" | "replayed" | "badSignature" | "notKeeper" | "busy";
+
+/**
+ * A relay request as it arrives (a relay route's envelope, or a season entry's proof). Nothing in it is trusted yet:
+ * `checkRelayAuth` reads the signer as an address and the signature as one only after checking that they are.
+ */
+export interface RelayRequest {
+  kind: RelayKind;
+  petId: string;
+  payload: string;
+  auth: { signer: string; nonce: string; time: number; signature: string };
+}
+
+const isSignature = (s: string): s is Hex => /^0x[0-9a-fA-F]{130}$/.test(s);
 
 /** Nonces seen in the last window, so a signature is used once. */
 export function createNonceBook(cap = 100_000) {
@@ -32,16 +45,16 @@ export function createNonceBook(cap = 100_000) {
 export type NonceBook = ReturnType<typeof createNonceBook>;
 
 export async function checkRelayAuth(
-  req: SignedRelay,
+  req: RelayRequest,
   deps: { isKeeper: (petId: string, who: Address) => Promise<boolean>; now: () => number; nonces: NonceBook },
 ): Promise<{ ok: true; signer: Address } | { ok: false; reason: RelayRefusal }> {
   const a = req.auth;
-  if (!a || !PET.test(req.petId) || typeof req.payload !== "string" || req.payload.length > MAX_PAYLOAD || !isAddress(a.signer) || !NONCE.test(a.nonce) || !Number.isInteger(a.time) || !/^0x[0-9a-fA-F]{130}$/.test(a.signature)) return { ok: false, reason: "unsigned" };
+  if (!a || !PET.test(req.petId) || typeof req.payload !== "string" || req.payload.length > MAX_PAYLOAD || !isAddress(a.signer) || !NONCE.test(a.nonce) || !Number.isInteger(a.time) || !isSignature(a.signature)) return { ok: false, reason: "unsigned" };
   const now = deps.now();
   if (Math.abs(now / 1000 - a.time) > WINDOW_S) return { ok: false, reason: "expired" };
   let signer: Address;
   try {
-    signer = await recoverMessageAddress({ message: relayMessage({ kind: req.kind, petId: req.petId, payload: req.payload, nonce: a.nonce, time: a.time }), signature: a.signature as Hex });
+    signer = await recoverMessageAddress({ message: relayMessage({ kind: req.kind, petId: req.petId, payload: req.payload, nonce: a.nonce, time: a.time }), signature: a.signature });
   } catch {
     return { ok: false, reason: "badSignature" };
   }

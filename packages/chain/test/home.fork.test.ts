@@ -147,8 +147,7 @@ describe.skipIf(!RPC)("pet homes and letters, on an X Layer fork", () => {
     const [owner, stranger] = [0, 1].map(() => createWalletClient({ chain, transport: http(RPC), account: privateKeyToAccount(generatePrivateKey()) }));
     const home = await homeFor(pub, owner!, stranger!, LINGXI, "gentle");
     const market: Address = "0xb9f6b18edd21933582ec69fb1e718d9629e684cd";
-    const d = { chainId: 196, rpc: RPC!, processor: LINGXI, registry: "0x103d7252eb6b2fec22b3f65a6bb605945f280e99", circuits: {}, outfitMarket: market } as never;
-    const { id } = await publishDesign(pub as never, owner!, d, { pixels: encodeDesign({ slot: "held", cells: [[1, 2], [2, 1]], colours: ["#2b2140", "#ffc83d"] }), name: "Home hat", price: parseEther("0.001"), maxSupply: 5, royaltyBps: 0 });
+    const { id } = await publishDesign(pub as never, owner!, { v: 1, address: market }, { pixels: encodeDesign({ slot: "held", cells: [[1, 2], [2, 1]], colours: ["#2b2140", "#ffc83d"] }), name: "Home hat", price: parseEther("0.001"), maxSupply: 5, royaltyBps: 0 });
     const bal = (who: Address) => pub.readContract({ address: market, abi: [{ type: "function", name: "balanceOf", stateMutability: "view", inputs: [{ name: "a", type: "address" }, { name: "i", type: "uint256" }], outputs: [{ type: "uint256" }] }] as const, functionName: "balanceOf", args: [who, id] });
     await expect(keepOutfitAtHome(pub as never, stranger!, market, id, home)).rejects.toMatchObject({ code: "notHolder" });
     await keepOutfitAtHome(pub as never, owner!, market, id, home);

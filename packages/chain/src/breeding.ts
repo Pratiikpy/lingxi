@@ -33,8 +33,13 @@ export async function allowPartnerOnChain(pub: PublicClient, wallet: WalletClien
 /** The breeding fee and how many children each parent may still have; null on the free breeder. */
 export async function breedingTerms(pub: PublicClient, d: Deployment, parents: readonly bigint[] = []): Promise<{ fee: bigint; bem: Address; childrenLeft: number[] } | null> {
   if (!d.breeder || !d.breederBem) return null;
-  const read = <T>(functionName: string, args: unknown[] = []) => pub.readContract({ address: d.breeder!, abi: breederV2Abi, functionName: functionName as never, args: args as never }) as Promise<T>;
-  const [fee, bem, max, ...kids] = await Promise.all([read<bigint>("breedFee"), read<Address>("bem"), read<number>("MAX_CHILDREN"), ...parents.map((p) => read<number>("children", [p]))]);
+  const breeder = { address: d.breeder, abi: breederV2Abi } as const;
+  const [fee, bem, max, ...kids] = await Promise.all([
+    pub.readContract({ ...breeder, functionName: "breedFee" }),
+    pub.readContract({ ...breeder, functionName: "bem" }),
+    pub.readContract({ ...breeder, functionName: "MAX_CHILDREN" }),
+    ...parents.map((p) => pub.readContract({ ...breeder, functionName: "children", args: [p] })),
+  ]);
   return { fee, bem, childrenLeft: kids.map((k) => Number(max) - Number(k)) };
 }
 

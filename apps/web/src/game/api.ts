@@ -1,6 +1,7 @@
 /** Calls to Lingxi's own server (web build). The DeWEB build never sets an API address. */
+import type { RelayEnvelopeOf, RelayPayloads, TeachBody } from "@lingxi/api-schema";
 import type { Rule } from "@lingxi/brain";
-import type { SignedRelay } from "@lingxi/chain";
+import { type SignedRelay, signRelay } from "@lingxi/chain";
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
 
@@ -18,7 +19,8 @@ export function teachingAvailable(): Promise<boolean> {
   return health;
 }
 
-export async function teachInWords(body: { words: string; name: string; line: string; stage: string; lessons: Rule[] }): Promise<TeachResponse> {
+/** Teaching in plain words; build the body with requests.ts teachBody. */
+export async function teachInWords(body: TeachBody): Promise<TeachResponse> {
   try {
     const r = await fetch(`${BASE}/api/teach`, {
       method: "POST",
@@ -34,10 +36,13 @@ export async function teachInWords(body: { words: string; name: string; line: st
 
 export type RelayResponse = { ok: true; processor: string; brainId: string; reused: boolean } | { ok: false; reason: string; detail?: string };
 
-/** The body of a brain tape-out, signed by a keeper of the pet (see chain.ts relaySigner and @lingxi/chain signRelay). */
-export type BrainRelayBody = { line: string; lessons: Rule[]; instincts?: number; skills?: number[] };
+/**
+ * A keeper's signed request for one relay route (see chain.ts relaySigner), its payload that route's own schema: a
+ * payload the server would refuse, or one sent to the wrong route, fails the type check.
+ */
+export const signRelayRequest = <K extends keyof RelayPayloads>(signer: Parameters<typeof signRelay>[0], kind: K, petId: string, payload: RelayPayloads[K]): Promise<SignedRelay<K>> => signRelay(signer, kind, petId, payload);
 
-export async function relayBrain(signed: SignedRelay): Promise<RelayResponse> {
+export async function relayBrain(signed: RelayEnvelopeOf<"brain">): Promise<RelayResponse> {
   if (!BASE) return { ok: false, reason: "offline" };
   try {
     const r = await fetch(`${BASE}/api/tapeout`, {
@@ -53,7 +58,7 @@ export async function relayBrain(signed: SignedRelay): Promise<RelayResponse> {
 }
 
 /** Tape out a child's brain: REFs to two parent circuits, or both halves of a taught child (its card). */
-export async function relayChild(signed: SignedRelay): Promise<RelayResponse> {
+export async function relayChild(signed: RelayEnvelopeOf<"child">): Promise<RelayResponse> {
   if (!BASE) return { ok: false, reason: "offline" };
   try {
     const r = await fetch(`${BASE}/api/tapeout-child`, {
@@ -69,7 +74,7 @@ export async function relayChild(signed: SignedRelay): Promise<RelayResponse> {
 }
 
 /** X1: tape out the circuit that puts an owned instinct beside the pet's own brain. */
-export async function relayInstinct(signed: SignedRelay): Promise<RelayResponse> {
+export async function relayInstinct(signed: RelayEnvelopeOf<"instinct">): Promise<RelayResponse> {
   if (!BASE) return { ok: false, reason: "offline" };
   try {
     const r = await fetch(`${BASE}/api/tapeout-instinct`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(signed), signal: AbortSignal.timeout(300_000) });

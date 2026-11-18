@@ -7,27 +7,14 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk";
-import { z } from "zod";
+import { type ParsedVoiceBody, VoiceBody } from "@lingxi/api-schema";
 import { BudgetSpent } from "./tokenBudget";
 
 export const VOICE_MODEL = "claude-haiku-5-5";
 
-export const VoiceRequest = z.object({
-  name: z.string().min(1).max(24),
-  lang: z.enum(["en", "zh"]),
-  stage: z.enum(["baby", "child", "teen", "adult", "elder"]),
-  line: z.enum(["gentle", "bold", "curious"]),
-  /** what the brain decided, as the game words it (e.g. "ask for food", "sulk") */
-  decision: z.string().min(1).max(60),
-  /** the conditions of the rule that fired, as the game words them */
-  because: z.array(z.string().max(60)).max(6),
-  meters: z.object({ food: z.number().int().min(0).max(1000), joy: z.number().int().min(0).max(1000), energy: z.number().int().min(0).max(1000), clean: z.number().int().min(0).max(1000) }),
-  sick: z.boolean(),
-  asleep: z.boolean(),
-  /** "decided": its circuit just chose this; "petted": its owner just petted it */
-  moment: z.enum(["decided", "petted"]).default("decided"),
-});
-export type VoiceRequest = z.infer<typeof VoiceRequest>;
+/** The request the game sends (its schema is shared with the game, @lingxi/api-schema), as parsed here. */
+export const VoiceRequest = VoiceBody;
+export type VoiceRequest = ParsedVoiceBody;
 
 export type VoiceResult = { ok: true; line: string; cached: boolean } | { ok: false; reason: "busy" | "error" };
 
@@ -104,13 +91,13 @@ export function createVoice(client: Anthropic, capacity = 2000) {
   async function ask(system: string, user: string, lang: VoiceRequest["lang"]): Promise<string | null> {
     let msg: Anthropic.Message;
     try {
-      msg = (await client.messages.create({
+      msg = await client.messages.create({
         model: VOICE_MODEL,
         max_tokens: 200,
         system,
         messages: [{ role: "user", content: user }],
         output_config: { format: { type: "json_schema", schema: VOICE_SCHEMA } },
-      } as never)) as unknown as Anthropic.Message;
+      });
     } catch (e) {
       return e instanceof Anthropic.RateLimitError || e instanceof BudgetSpent ? "busy" : null;
     }

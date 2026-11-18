@@ -17,6 +17,7 @@
 
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import type { Hono } from "hono";
+import { GoalsQuery } from "@lingxi/api-schema";
 import { type Address, type PublicClient, createPublicClient, http, parseAbiItem } from "viem";
 import { GOALS, type GoalDef, type GoalMetric, SETTLED_DAYS, goalState, tiersReached, walletCap } from "@lingxi/world";
 import { WINDOW } from "./indexer";
@@ -203,17 +204,15 @@ export function reportGoals(entries: readonly Entry[], goals: readonly GoalDef[]
   });
 }
 
-const WALLET = /^0x[0-9a-fA-F]{40}$/;
-
 /** GET /api/goals[?wallet=0x…,0x…]: every goal's standing, read from the chain; any origin may read it. */
 export function withGoals(app: Hono, ledger: Pick<GoalLedger, "entries" | "head">, goals: readonly GoalDef[] = GOALS): Hono {
   app.get("/api/goals", (c) => {
     c.header("access-control-allow-origin", "*");
     c.header("cache-control", "no-store");
-    const raw = (c.req.query("wallet") ?? "").split(",").filter(Boolean);
-    if (raw.length > 8 || raw.some((w) => !WALLET.test(w))) return c.json({ ok: false, reason: "wallet" }, 400);
+    const q = GoalsQuery.safeParse(c.req.query());
+    if (!q.success) return c.json({ ok: false, reason: "wallet" }, 400);
     const now = Math.floor(Date.now() / 1000);
-    return c.json({ ok: true, now, indexedTo: ledger.head(), goals: reportGoals(ledger.entries(), goals, now, raw) });
+    return c.json({ ok: true, now, indexedTo: ledger.head(), goals: reportGoals(ledger.entries(), goals, now, q.data.wallet) });
   });
   return app;
 }

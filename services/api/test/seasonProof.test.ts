@@ -35,6 +35,14 @@ describe("an entry proven to be a pet on X Layer", () => {
   });
 });
 
+describe("an entry its keeper signed that is not a pet the game makes", () => {
+  it("is not proven, and never throws, whatever its line or card", async () => {
+    for (const pet of [null, 7, "pet", { ...entry(), line: "sly" }, { ...entry(), card: 5 }, { name: "Sora" }]) {
+      expect(await proveSeasonEntry(pet, await signRelay(owner, "season", "7", pet), deps()), JSON.stringify(pet)).toEqual({ ok: false, reason: "notItsBrain" });
+    }
+  });
+});
+
 describe("two brains are the same mind", () => {
   it("when every input gives the same answer and memory, from empty memory and from the card's", () => {
     const a = mindBrain({ line: "gentle", lessons: [] });

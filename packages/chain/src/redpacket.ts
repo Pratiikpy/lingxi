@@ -123,7 +123,7 @@ export async function refundPacket(pub: PublicClient, wallet: WalletClient, d: D
 }
 
 export async function readPacket(pub: PublicClient, d: Deployment, id: bigint): Promise<PacketView> {
-  const p = (await pub.readContract({ address: need(d), abi: redPacketAbi, functionName: "packet", args: [id] })) as unknown as PacketView & { expiry: bigint };
+  const p = await pub.readContract({ address: need(d), abi: redPacketAbi, functionName: "packet", args: [id] });
   return { ...p, expiry: Number(p.expiry), count: Number(p.count), claimed: Number(p.claimed), paid: Number(p.paid) };
 }
 

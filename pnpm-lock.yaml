@@ -102,6 +102,9 @@ importers:
         specifier: 5.0.5
         version: 5.0.5(@types/react@19.2.18)(react@19.2.9)
     devDependencies:
+      '@lingxi/api-schema':
+        specifier: workspace:*
+        version: link:../../packages/api
       '@types/react':
         specifier: 19.2.18
         version: 19.2.18
@@ -126,6 +129,31 @@ importers:
       vite:
         specifier: 6.3.5
         version: 6.3.5(@types/node@22.15.30)(tsx@4.20.3)
+      vitest:
+        specifier: 3.2.4
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@22.15.30)(tsx@4.20.3)
+
+  packages/api:
+    dependencies:
+      '@lingxi/brain':
+        specifier: workspace:*
+        version: link:../brain
+      '@lingxi/chain':
+        specifier: workspace:*
+        version: link:../chain
+      '@lingxi/game':
+        specifier: workspace:*
+        version: link:../game
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@types/node':
+        specifier: 22.15.30
+        version: 22.15.30
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
       vitest:
         specifier: 3.2.4
         version: 3.2.4(@types/debug@4.1.13)(@types/node@22.15.30)(tsx@4.20.3)
@@ -299,6 +327,9 @@ importers:
       '@hono/node-server':
         specifier: 2.1.9
         version: 2.1.9(hono@4.13.19)
+      '@lingxi/api-schema':
+        specifier: workspace:*
+        version: link:../../packages/api
       '@lingxi/brain':
         specifier: workspace:*
         version: link:../../packages/brain

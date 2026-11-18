@@ -17,8 +17,27 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import { type Context, Hono } from "hono";
 import { cors } from "hono/cors";
 import { z } from "zod";
-import { STARTERS, circuitBrain } from "@lingxi/brain";
-import { MAX_WORDS, teachInWords } from "./teach";
+import { circuitBrain } from "@lingxi/brain";
+import {
+  ArenaOpponentQuery,
+  ArenaSnapshotBody,
+  BrainRelayPayload,
+  ChildRelayPayload,
+  InstinctRelayPayload,
+  LessonKeyBody,
+  LessonShareBody,
+  MoveBody,
+  PublishedLog,
+  PushPlanBody,
+  PushStopBody,
+  RelayEnvelope,
+  SeasonEnterBody,
+  SitHomeBody,
+  SitLeaveBody,
+  TeachBody,
+  VoiceBody,
+} from "@lingxi/api-schema";
+import { teachInWords } from "./teach";
 import { RateLimiter } from "./limit";
 import { BrainRelayer, type RelayResult } from "./relayer";
 import { RelayQuota, checkRelayAuth, createNonceBook } from "./relayGate";
@@ -28,16 +47,16 @@ import { type SittingStore, createSittingStore } from "./sitting";
 import { type ArenaStore, createArenaStore } from "./arena";
 import { type SeasonStore, createSeasonStore, settleAwards } from "./season";
 import { weekOf } from "@lingxi/game";
-import { MAX_LESSONS, parseCard } from "@lingxi/game";
+import { parseCard } from "@lingxi/game";
 import { createPublicClient, http, type PublicClient } from "viem";
 import { type Deployment, type SignedRelay, adoptionCentreAbi, loadCircuitFromChain, nameColours, packsHeld, petRegistryAbi, piecesHeld, readPet, xLayer } from "@lingxi/chain";
 import { type HomeChain, createHomes } from "./homes";
 import { createAgentStore } from "./agents";
 import { withAgentApi } from "./agentApi";
 import { type Letter, currentLetters, loadLetters } from "./mail";
-import { PlanSchema, createPusher, type Pusher } from "./push";
-import { VoiceRequest, createVoice } from "./voice";
-import { LibraryRule, createLibrary, type Library } from "./library";
+import { createPusher, type Pusher } from "./push";
+import { createVoice } from "./voice";
+import { createLibrary, type Library } from "./library";
 import { createIndexer, type Indexer } from "./indexer";
 import { createPacketIndex, type PacketIndex } from "./packets";
 import { createGoalLedger, withGoals } from "./goals";
@@ -72,20 +91,6 @@ function loadKey(): string | undefined {
     return undefined;
   }
 }
-
-const RuleSchema = z.object({
-  when: z.record(z.string(), z.array(z.number().int().min(0).max(15)).max(16)),
-  then: z.object({ want: z.number().int(), mood: z.number().int(), nudge: z.number().int().optional() }),
-  label: z.string().max(60).optional(),
-});
-
-const TeachBody = z.object({
-  words: z.string().min(1).max(MAX_WORDS),
-  name: z.string().max(40).optional(),
-  line: z.enum(Object.keys(STARTERS) as [keyof typeof STARTERS, ...Array<keyof typeof STARTERS>]),
-  stage: z.enum(["baby", "child", "teen", "adult", "elder"]),
-  lessons: z.array(RuleSchema).max(8),
-});
 
 /** What the running server adds to /api/health: its jobs, indexer lag, relayer balance and store sizes. */
 export type HealthDetail = () => Promise<Record<string, unknown>> | Record<string, unknown>;
@@ -128,28 +133,12 @@ export function createApp(
     } catch {
       return c.json({ ok: false, reason: "invalid", detail: "bad request" }, 400);
     }
-    const result = await teachInWords(client, body as never);
+    const result = await teachInWords(client, body);
     return result.ok || result.reason !== "busy" ? c.json(result) : busy(c);
   });
 
-  const RelayBody = z.object({
-    line: TeachBody.shape.line,
-    lessons: z.array(RuleSchema).max(MAX_LESSONS),
-    instincts: z.number().int().min(0).max(15).optional(),
-    // capstone rule skills the pet holds (plan 4.4)
-    skills: z.array(z.number().int().min(100).max(999)).max(8).optional(),
-  });
-  // a child's brain: REFs to its parents' circuits, or (once taught) to both of its halves
-  const ChildBody = z.union([z.object({ parents: z.tuple([z.string().regex(/^\d{1,20}$/), z.string().regex(/^\d{1,20}$/)]) }), z.object({ card: z.string().max(10_000) })]);
-  // X1: an owned circuit as an everyday instinct, REF'd beside the pet's own brain
-  const InstinctBody = z.object({ own: z.string().regex(/^\d{1,20}$/), processor: z.string().regex(/^0x[0-9a-fA-F]{40}$/), id: z.string().regex(/^\d{1,20}$/) });
-  // every relay request is the signed form (see relayGate.ts and @lingxi/chain's relayAuth.ts)
-  const Signed = z.object({
-    kind: z.enum(["brain", "child", "instinct"]),
-    petId: z.string().regex(/^\d{1,20}$/),
-    payload: z.string().max(20_000),
-    auth: z.object({ signer: z.string(), nonce: z.string(), time: z.number(), signature: z.string() }),
-  });
+  // every relay request is the signed form (see relayGate.ts and @lingxi/chain's relayAuth.ts); its payload is the
+  // route's own schema
   const nonces = createNonceBook();
   const refusalStatus: Record<string, 401 | 403 | 429> = { unsigned: 401, expired: 401, badSignature: 401, replayed: 401, notKeeper: 403, busy: 429 };
 
@@ -158,16 +147,16 @@ export function createApp(
     app.post(path, async (c) => {
       if (!relayer || !isKeeper) return c.json({ ok: false, reason: "error", detail: "relaying is not configured" }, 503);
       if (!relayLimiter.take(clientIp(c))) return busy(c);
-      let req: z.infer<typeof Signed>;
+      let req: z.infer<typeof RelayEnvelope>;
       let body: T;
       try {
-        req = Signed.parse(await c.req.json());
+        req = RelayEnvelope.parse(await c.req.json());
         if (req.kind !== kind) throw new Error("kind");
         body = schema.parse(JSON.parse(req.payload));
       } catch {
         return c.json({ ok: false, reason: "invalid", detail: "bad request" }, 400);
       }
-      const gate = await checkRelayAuth(req as never, { isKeeper, now: () => Date.now(), nonces });
+      const gate = await checkRelayAuth(req, { isKeeper, now: () => Date.now(), nonces });
       if (!gate.ok) return c.json({ ok: false, reason: gate.reason }, refusalStatus[gate.reason] ?? 401);
       if (!quota.allow(req.petId, gate.signer)) return busy(c);
       const result = await act(body);
@@ -177,14 +166,14 @@ export function createApp(
       return c.json(shown);
     });
 
-  relayRoute("/api/tapeout", "brain", RelayBody, (b) => relayer!.relay(b.line, b.lessons as never, b.instincts ?? 0, b.skills ?? []));
-  relayRoute("/api/tapeout-child", "child", ChildBody, async (b) => {
+  relayRoute("/api/tapeout", "brain", BrainRelayPayload, (b) => relayer!.relay(b.line, b.lessons, b.instincts ?? 0, b.skills ?? []));
+  relayRoute("/api/tapeout-child", "child", ChildRelayPayload, async (b) => {
     if ("parents" in b) return relayer!.relayChild({ parents: b.parents });
     const card = parseCard(b.card);
     if (!card?.family) return { ok: false, reason: "invalid", detail: "not a child's card" };
     return relayer!.relayChild({ family: card.family, lessons: card.lessons, ...(card.growth ? { growth: card.growth } : {}) });
   });
-  relayRoute("/api/tapeout-instinct", "instinct", InstinctBody, (b) => relayer!.relayInstinct({ own: b.own, processor: b.processor as `0x${string}`, id: b.id }));
+  relayRoute("/api/tapeout-instinct", "instinct", InstinctRelayPayload, (b) => relayer!.relayInstinct({ own: b.own, processor: b.processor as `0x${string}`, id: b.id }));
 
   return app;
 }
@@ -337,7 +326,7 @@ export function withVoice(app: Hono, voice: ReturnType<typeof createVoice>, limi
     if (Number(c.req.header("content-length") ?? 0) > 2048) return c.json({ ok: false, reason: "invalid" }, 413);
     let body;
     try {
-      body = VoiceRequest.parse(await c.req.json());
+      body = VoiceBody.parse(await c.req.json());
     } catch {
       return c.json({ ok: false, reason: "invalid" }, 400);
     }
@@ -355,7 +344,7 @@ export function withSitting(app: Hono, store: SittingStore, writes = new RateLim
     if (Number(c.req.header("content-length") ?? 0) > SEND_LIMITS.sitBodyBytes) return c.json({ ok: false, reason: "tooBig" }, 413);
     let body;
     try {
-      body = z.object({ pack: z.string(), keyHash: z.string(), until: z.number() }).parse(await c.req.json());
+      body = SitLeaveBody.parse(await c.req.json());
     } catch {
       return c.json({ ok: false, reason: "invalid" }, 400);
     }
@@ -370,7 +359,7 @@ export function withSitting(app: Hono, store: SittingStore, writes = new RateLim
     if (Number(c.req.header("content-length") ?? 0) > SEND_LIMITS.sitBodyBytes) return c.json({ ok: false, reason: "tooBig" }, 413);
     let body;
     try {
-      body = z.object({ key: z.string(), pet: z.string() }).parse(await c.req.json());
+      body = SitHomeBody.parse(await c.req.json());
     } catch {
       return c.json({ ok: false, reason: "invalid" }, 400);
     }
@@ -387,7 +376,7 @@ export function withArena(app: Hono, store: ArenaStore, writes = new RateLimiter
     if (Number(c.req.header("content-length") ?? 0) > 16_000) return c.json({ ok: false, reason: "tooBig" }, 413);
     let body;
     try {
-      body = z.object({ round: z.number().int(), pet: z.unknown(), team: z.unknown(), device: z.string() }).parse(await c.req.json());
+      body = ArenaSnapshotBody.parse(await c.req.json());
     } catch {
       return c.json({ ok: false, reason: "invalid" }, 400);
     }
@@ -395,10 +384,9 @@ export function withArena(app: Hono, store: ArenaStore, writes = new RateLimiter
     return c.json(r, r.ok ? 200 : 400);
   });
   app.get("/api/arena/opponent", (c) => {
-    const round = Number(c.req.query("round"));
-    const device = c.req.query("device") ?? "";
-    if (!Number.isInteger(round) || round < 0 || device.length < 8 || device.length > 64) return c.json({ ok: false, reason: "invalid" }, 400);
-    const s = store.pick(round, device);
+    const q = ArenaOpponentQuery.safeParse(c.req.query());
+    if (!q.success) return c.json({ ok: false, reason: "invalid" }, 400);
+    const s = store.pick(q.data.round, q.data.device);
     return c.json(s ? { ok: true, ...s } : { ok: false, reason: "none" });
   });
   return app;
@@ -406,7 +394,7 @@ export function withArena(app: Hono, store: ArenaStore, writes = new RateLimiter
 
 /** Weekly seasons: enter this week with one tap; read any week's entries and standings. */
 /** Proves an entry is a pet on X Layer (seasonProof.ts); without it, entries are open but cannot win the keepsake. */
-export type SeasonProver = (pet: { line: string; card: string }, proof: SignedRelay) => Promise<{ ok: true; petId: string } | { ok: false; reason: string }>;
+export type SeasonProver = (pet: unknown, proof: SignedRelay) => Promise<{ ok: true; petId: string } | { ok: false; reason: string }>;
 
 export function withSeason(app: Hono, store: SeasonStore, writes = new RateLimiter(30, 3_600_000), now: () => number = Date.now, prove?: SeasonProver): Hono {
   const who = (c: Context) => clientIp(c);
@@ -415,7 +403,7 @@ export function withSeason(app: Hono, store: SeasonStore, writes = new RateLimit
     if (Number(c.req.header("content-length") ?? 0) > 16_000) return c.json({ ok: false, reason: "tooBig" }, 413);
     let body;
     try {
-      body = z.object({ pet: z.unknown(), device: z.string(), proof: z.unknown().optional() }).parse(await c.req.json());
+      body = SeasonEnterBody.parse(await c.req.json());
     } catch {
       return c.json({ ok: false, reason: "invalid" }, 400);
     }
@@ -423,7 +411,7 @@ export function withSeason(app: Hono, store: SeasonStore, writes = new RateLimit
     let petId: string | undefined;
     if (body.proof !== undefined) {
       if (!prove) return c.json({ ok: false, reason: "noProof", detail: "this server cannot check pets on chain" }, 503);
-      const p = await prove(body.pet as never, body.proof as SignedRelay);
+      const p = await prove(body.pet, body.proof as SignedRelay);
       // an expected answer in play (its mind on chain is behind, say), so 200 with the reason, like "full" and "busy"
       if (!p.ok) return c.json({ ok: false, reason: "notProven", detail: p.reason });
       petId = p.petId;
@@ -455,7 +443,6 @@ export function withMail(app: Hono, letters: () => readonly Letter[], now: () =>
 
 export function withLibrary(app: Hono, library: Library, writes = new RateLimiter(60, 3_600_000)): Hono {
   const who = (c: Context) => clientIp(c);
-  const Key = z.object({ key: z.string().regex(/^[0-9a-f]{24}$/) });
   app.get("/api/lessons", (c) => {
     c.header("Cache-Control", "public, max-age=30");
     return c.json({ ok: true, lessons: library.list(40) });
@@ -464,11 +451,11 @@ export function withLibrary(app: Hono, library: Library, writes = new RateLimite
     if (!writes.take(who(c))) return busy(c);
     let body;
     try {
-      body = z.object({ rule: LibraryRule, by: z.string().max(40) }).parse(await c.req.json());
+      body = LessonShareBody.parse(await c.req.json());
     } catch {
       return c.json({ ok: false, reason: "invalid" }, 400);
     }
-    const r = library.share(body.rule as never, body.by, who(c), Date.now());
+    const r = library.share(body.rule, body.by, who(c), Date.now());
     return c.json(r, r.ok ? 200 : 400);
   });
   for (const action of ["use", "report"] as const) {
@@ -476,7 +463,7 @@ export function withLibrary(app: Hono, library: Library, writes = new RateLimite
       if (!writes.take(who(c))) return busy(c);
       let body;
       try {
-        body = Key.parse(await c.req.json());
+        body = LessonKeyBody.parse(await c.req.json());
       } catch {
         return c.json({ ok: false, reason: "invalid" }, 400);
       }
@@ -568,8 +555,9 @@ export function withDiaries(app: Hono, store: DiaryStore, logHashOf: (id: string
     } catch {
       return c.json({ ok: false, reason: "invalid" }, 400);
     }
-    if ((body as { petId?: unknown })?.petId !== id) return c.json({ ok: false, reason: "invalid" }, 400);
-    const r = store.publish(body, await logHashOf(id).catch(() => null));
+    const published = PublishedLog.safeParse(body);
+    if (!published.success || published.data.petId !== id) return c.json({ ok: false, reason: "invalid" }, 400);
+    const r = store.publish(published.data, await logHashOf(id).catch(() => null));
     return c.json(r, r.ok ? 200 : r.reason === "invalid" ? 400 : 409);
   });
   return app;
@@ -587,7 +575,9 @@ export function withMove(app: Hono, store: MoveStore, limiter = new RateLimiter(
     } catch {
       return c.json({ ok: false, reason: "invalid" }, 400);
     }
-    const r = store.put((body as { save?: unknown })?.save, ipOf(c));
+    const move = MoveBody.safeParse(body);
+    if (!move.success) return c.json({ ok: false, reason: "invalid" }, 400);
+    const r = store.put(move.data.save, ipOf(c));
     return c.json(r, r.ok ? 200 : r.reason === "invalid" ? 400 : r.reason === "tooBig" ? 413 : 503);
   });
   app.post("/api/move/:code/claim", (c) => {
@@ -611,7 +601,7 @@ export function withPush(app: Hono, pusher: Pusher, limiter = new RateLimiter(30
     if (Number(c.req.header("content-length") ?? 0) > 4096) return c.json({ ok: false, reason: "invalid" }, 413);
     let body;
     try {
-      body = PlanSchema.parse(await c.req.json());
+      body = PushPlanBody.parse(await c.req.json());
     } catch {
       return c.json({ ok: false, reason: "invalid" }, 400);
     }
@@ -621,7 +611,7 @@ export function withPush(app: Hono, pusher: Pusher, limiter = new RateLimiter(30
   app.post("/api/push/stop", async (c) => {
     let endpoint: string;
     try {
-      endpoint = z.object({ endpoint: z.string().max(800) }).parse(await c.req.json()).endpoint;
+      endpoint = PushStopBody.parse(await c.req.json()).endpoint;
     } catch {
       return c.json({ ok: false, reason: "invalid" }, 400);
     }
@@ -791,7 +781,7 @@ if (isMain) {
             brainOf: async (id) => {
               const onChain = await readPet(chainCtx!.pub, chainCtx!.deployment, BigInt(id));
               const circuit = await loadCircuitFromChain(chainCtx!.pub, onChain.processor, onChain.brainId);
-              return { fast: circuitBrain(circuit), nState: circuit.nState } as never;
+              return { fast: circuitBrain(circuit), nState: circuit.nState };
             },
           })
       : undefined;
@@ -877,7 +867,7 @@ if (isMain) {
     const sales = createSalesCounter({ rpc, markets, store: process.env.LINGXI_SALES_STORE });
     jobs.loop("sales", () => sales.catchUp(), 20_000);
     withNumbers(app, {
-      pub: createPublicClient({ transport: http(rpc, { timeout: 15_000 }) }) as never,
+      pub: createPublicClient({ transport: http(rpc, { timeout: 15_000 }) }),
       counts: (since) => indexer.counts(since),
       petsIndexedTo: () => indexer.head(),
       sales,
@@ -912,6 +902,6 @@ if (isMain) {
   // forged cf-connecting-ip (see clientIp.ts)
   const hostname = process.env.LINGXI_HOST ?? "127.0.0.1";
   const server = serve({ fetch: app.fetch, port, hostname });
-  attachLive(server as never, live, origins);
+  attachLive(server, live, origins);
   process.stdout.write(`lingxi api on ${hostname}:${port} (teaching ${client ? "on" : "off: no key"}, relaying ${relayer ? "on" : "off"}, reminders ${pusher ? "on" : "off"})\n`);
 }

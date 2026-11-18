@@ -82,9 +82,9 @@ const acct = (w: WalletClient) => {
   return w.account;
 };
 
-async function send(pub: PublicClient, wallet: WalletClient, m: Market, functionName: string, args: readonly unknown[], value = 0n) {
-  const { request } = await pub.simulateContract({ address: m.address, abi: abiOf(m), functionName: functionName as never, args: args as never, value, account: acct(wallet) } as never);
-  const tx = await wallet.writeContract(request as never);
+/** Sends one write (`write` simulates it first, against its own market's ABI) and waits for it to be mined. */
+async function confirmed(pub: PublicClient, functionName: string, write: () => Promise<Hex>) {
+  const tx = await write();
   const r = await pub.waitForTransactionReceipt({ hash: tx });
   if (r.status !== "success") throw new Error(`${functionName} failed`);
   return { tx, logs: r.logs };
@@ -128,8 +128,14 @@ export async function approveBem(pub: PublicClient, wallet: WalletClient, m: Mar
 
 export async function publishDesign(pub: PublicClient, wallet: WalletClient, m: Market, o: { pixels: Uint8Array; name: string; price: bigint; maxSupply: number; royaltyBps: number }): Promise<{ id: bigint; tx: Hex }> {
   const hex = `0x${Array.from(o.pixels, (b) => b.toString(16).padStart(2, "0")).join("")}` as Hex;
-  const { tx, logs } = await send(pub, wallet, m, "create", [hex, o.name, o.price, o.maxSupply, o.royaltyBps]);
-  const ev = parseEventLogs({ abi: abiOf(m), logs, eventName: "Created" })[0] as { args: { id: bigint } } | undefined;
+  const account = acct(wallet);
+  const args = [hex, o.name, o.price, o.maxSupply, o.royaltyBps] as const;
+  const { tx, logs } = await confirmed(pub, "create", async () =>
+    m.v === 2
+      ? wallet.writeContract((await pub.simulateContract({ address: m.address, abi: outfitMarketV2Abi, functionName: "create", args, account })).request)
+      : wallet.writeContract((await pub.simulateContract({ address: m.address, abi: outfitMarketAbi, functionName: "create", args, account })).request),
+  );
+  const ev = (m.v === 2 ? parseEventLogs({ abi: outfitMarketV2Abi, logs, eventName: "Created" }) : parseEventLogs({ abi: outfitMarketAbi, logs, eventName: "Created" }))[0];
   if (!ev) throw new Error("no Created event");
   return { id: ev.args.id, tx };
 }
@@ -137,40 +143,58 @@ export async function publishDesign(pub: PublicClient, wallet: WalletClient, m: 
 /** Buy copies from the creator. On market 2 the BEM is approved first when needed. */
 export async function buyDesign(pub: PublicClient, wallet: WalletClient, m: Market, id: bigint, quantity: number, price: bigint): Promise<Hex> {
   const total = price * BigInt(quantity);
+  const args = [id, quantity, price] as const;
   if (m.v === 2) {
     await approveBem(pub, wallet, m, total);
-    return (await send(pub, wallet, m, "mint", [id, quantity, price])).tx;
+    return (await confirmed(pub, "mint", async () => wallet.writeContract((await pub.simulateContract({ address: m.address, abi: outfitMarketV2Abi, functionName: "mint", args, account: acct(wallet) })).request))).tx;
   }
-  return (await send(pub, wallet, m, "mint", [id, quantity, price], total)).tx;
+  return (await confirmed(pub, "mint", async () => wallet.writeContract((await pub.simulateContract({ address: m.address, abi: outfitMarketAbi, functionName: "mint", args, value: total, account: acct(wallet) })).request))).tx;
 }
 
 /** List copies for resale. Market 2 listings last `days` (1 to 180) and may name one buyer. */
 export async function listCopies(pub: PublicClient, wallet: WalletClient, m: Market, id: bigint, quantity: number, priceEach: bigint, opts: { days?: number; buyer?: Address } = {}): Promise<{ listingId: bigint; tx: Hex }> {
-  const args =
+  const account = acct(wallet);
+  const expiresAt = BigInt(Math.floor(Date.now() / 1000) + Math.min(180, Math.max(1, opts.days ?? 30)) * DAY);
+  const { tx, logs } = await confirmed(pub, "list", async () =>
     m.v === 2
-      ? [id, quantity, priceEach, BigInt(Math.floor(Date.now() / 1000) + Math.min(180, Math.max(1, opts.days ?? 30)) * DAY), opts.buyer ?? ZERO]
-      : [id, quantity, priceEach];
-  const { tx, logs } = await send(pub, wallet, m, "list", args);
-  const ev = parseEventLogs({ abi: abiOf(m), logs, eventName: "Listed" })[0] as { args: { listingId: bigint } } | undefined;
+      ? wallet.writeContract((await pub.simulateContract({ address: m.address, abi: outfitMarketV2Abi, functionName: "list", args: [id, quantity, priceEach, expiresAt, opts.buyer ?? ZERO], account })).request)
+      : wallet.writeContract((await pub.simulateContract({ address: m.address, abi: outfitMarketAbi, functionName: "list", args: [id, quantity, priceEach], account })).request),
+  );
+  const ev = (m.v === 2 ? parseEventLogs({ abi: outfitMarketV2Abi, logs, eventName: "Listed" }) : parseEventLogs({ abi: outfitMarketAbi, logs, eventName: "Listed" }))[0];
   if (!ev) throw new Error("no Listed event");
   return { listingId: ev.args.listingId, tx };
 }
 
 export async function buyListing(pub: PublicClient, wallet: WalletClient, m: Market, listingId: bigint, quantity: number, priceEach: bigint): Promise<Hex> {
   const total = priceEach * BigInt(quantity);
+  const args = [listingId, quantity, priceEach] as const;
   if (m.v === 2) {
     await approveBem(pub, wallet, m, total);
-    return (await send(pub, wallet, m, "buy", [listingId, quantity, priceEach])).tx;
+    return (await confirmed(pub, "buy", async () => wallet.writeContract((await pub.simulateContract({ address: m.address, abi: outfitMarketV2Abi, functionName: "buy", args, account: acct(wallet) })).request))).tx;
   }
-  return (await send(pub, wallet, m, "buy", [listingId, quantity, priceEach], total)).tx;
+  return (await confirmed(pub, "buy", async () => wallet.writeContract((await pub.simulateContract({ address: m.address, abi: outfitMarketAbi, functionName: "buy", args, value: total, account: acct(wallet) })).request))).tx;
 }
 
 export async function cancelListing(pub: PublicClient, wallet: WalletClient, m: Market, listingId: bigint): Promise<Hex> {
-  return (await send(pub, wallet, m, "cancel", [listingId])).tx;
+  const account = acct(wallet);
+  return (
+    await confirmed(pub, "cancel", async () =>
+      m.v === 2
+        ? wallet.writeContract((await pub.simulateContract({ address: m.address, abi: outfitMarketV2Abi, functionName: "cancel", args: [listingId], account })).request)
+        : wallet.writeContract((await pub.simulateContract({ address: m.address, abi: outfitMarketAbi, functionName: "cancel", args: [listingId], account })).request),
+    )
+  ).tx;
 }
 
 export async function withdrawProceeds(pub: PublicClient, wallet: WalletClient, m: Market): Promise<Hex> {
-  return (await send(pub, wallet, m, "withdraw", [])).tx;
+  const account = acct(wallet);
+  return (
+    await confirmed(pub, "withdraw", async () =>
+      m.v === 2
+        ? wallet.writeContract((await pub.simulateContract({ address: m.address, abi: outfitMarketV2Abi, functionName: "withdraw", account })).request)
+        : wallet.writeContract((await pub.simulateContract({ address: m.address, abi: outfitMarketAbi, functionName: "withdraw", account })).request),
+    )
+  ).tx;
 }
 
 export async function readDesign(pub: PublicClient, m: Market, id: bigint): Promise<OutfitDesign> {

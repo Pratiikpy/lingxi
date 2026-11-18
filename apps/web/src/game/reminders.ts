@@ -13,6 +13,7 @@ import { upcomingNeeds, type Pet } from "@lingxi/game";
 import { brainOf } from "./store";
 import { saveWrite } from "./saveRuntime";
 import { now as gameNow } from "./gameClock";
+import { pushPlanBody, pushStopBody } from "./requests";
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
 const KEY = "lingxi.reminders.v1";
@@ -88,7 +89,7 @@ async function sendPlan(sub: PushSubscription, pet: Pet, lang: "en" | "zh", forc
   const r = await fetch(`${BASE}/api/push/plan`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ subscription: { endpoint: json.endpoint, keys: json.keys }, lang, name: pet.name.slice(0, 24), tz: -new Date(gameNow()).getTimezoneOffset(), reminders }),
+    body: JSON.stringify(pushPlanBody({ endpoint: json.endpoint, keys: json.keys }, lang, pet.name, -new Date(gameNow()).getTimezoneOffset(), reminders)),
     signal: AbortSignal.timeout(8000),
   });
   // a refusal (busy) comes back as ok:false in the body, not as an HTTP error
@@ -123,7 +124,7 @@ export const useReminders = create<RemindState>((set, get) => ({
     try {
       const sub = await subscription(false);
       if (sub) {
-        await fetch(`${BASE}/api/push/stop`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ endpoint: sub.endpoint }), signal: AbortSignal.timeout(8000) }).catch(() => {});
+        await fetch(`${BASE}/api/push/stop`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(pushStopBody(sub.endpoint)), signal: AbortSignal.timeout(8000) }).catch(() => {});
         await sub.unsubscribe();
       }
     } catch {

@@ -359,7 +359,7 @@ export function VerifyApp() {
         const stretches = await replayPublished(r.log);
         if (!live) return;
         if (!stretches) return setDiaryState("bad");
-        setDiary(diaryOfStretches(stretches.map((x) => ({ brain: { fast: x.brain.fast as never, nState: x.brain.nState }, words: x.words }))));
+        setDiary(diaryOfStretches(stretches.map((x) => ({ brain: { fast: x.brain.fast, nState: x.brain.nState }, words: x.words }))));
         setDiaryState("ok");
       } catch {
         // no published diary: nothing to show

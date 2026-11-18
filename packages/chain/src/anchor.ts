@@ -55,10 +55,9 @@ async function eventsIn(pub: PublicClient, registry: Address, tx: Hex): Promise<
   for (const log of receipt.logs) {
     if (log.address.toLowerCase() !== registry.toLowerCase()) continue;
     try {
-      const e = decodeEventLog({ abi: petRegistryAbi, data: log.data, topics: log.topics as [Hex, ...Hex[]] });
-      const a = e.args as unknown as { petId: bigint; brainId: bigint; state?: bigint };
-      if (e.eventName === "Hatched") found.push({ kind: "hatched", petId: a.petId, brainId: BigInt(a.brainId), state: a.state, block: receipt.blockNumber, tx });
-      else if (e.eventName === "BrainChanged") found.push({ kind: "changed", petId: a.petId, brainId: BigInt(a.brainId), block: receipt.blockNumber, tx });
+      const e = decodeEventLog({ abi: petRegistryAbi, data: log.data, topics: log.topics });
+      if (e.eventName === "Hatched") found.push({ kind: "hatched", petId: e.args.petId, brainId: e.args.brainId, state: e.args.state, block: receipt.blockNumber, tx });
+      else if (e.eventName === "BrainChanged") found.push({ kind: "changed", petId: e.args.petId, brainId: e.args.brainId, block: receipt.blockNumber, tx });
     } catch {
       // another event of the registry's
     }

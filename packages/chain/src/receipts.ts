@@ -17,7 +17,7 @@ export function circuitIdFrom(receipt: TransactionReceipt, processor: Address, t
   for (const log of receipt.logs) {
     if (!same(log.address, processor)) continue;
     try {
-      const e = decodeEventLog({ abi: transferAbi, data: log.data, topics: log.topics as never });
+      const e = decodeEventLog({ abi: transferAbi, data: log.data, topics: log.topics });
       if (e.eventName === "Transfer" && same(e.args.from, ZERO) && same(e.args.to, to)) ids.push(e.args.tokenId);
     } catch {
       // another of the processor's events
@@ -34,9 +34,8 @@ export function hatchedPetIdFrom(receipt: TransactionReceipt, registry: Address,
   for (const log of receipt.logs) {
     if (!same(log.address, registry)) continue;
     try {
-      const e = decodeEventLog({ abi: petRegistryAbi, data: log.data, topics: log.topics as never });
-      const a = e.args as unknown as { petId: bigint; to: string };
-      if (e.eventName === "Hatched" && same(a.to, to)) return a.petId;
+      const e = decodeEventLog({ abi: petRegistryAbi, data: log.data, topics: log.topics });
+      if (e.eventName === "Hatched" && same(e.args.to, to)) return e.args.petId;
     } catch {
       // another of the registry's events
     }

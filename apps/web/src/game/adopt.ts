@@ -25,7 +25,7 @@ export async function readCircuit(processor: string, id: string): Promise<ReadRe
   if (!publicClient) return { ok: false, reason: "offline" };
   if (!/^0x[0-9a-fA-F]{40}$/.test(processor) || !/^\d{1,12}$/.test(id)) return { ok: false, reason: "noCircuit" };
   try {
-    const circuit = await readOutsideCircuit(publicClient as never, processor as Address, BigInt(id));
+    const circuit = await readOutsideCircuit(publicClient, processor as Address, BigInt(id));
     const profile = profileOf(circuit.nIn, circuit.nOut);
     return profile ? { ok: true, circuit, profile } : { ok: false, reason: "pins" };
   } catch (e) {

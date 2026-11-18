@@ -7,7 +7,7 @@
  */
 
 import { randomBytes } from "node:crypto";
-import { z } from "zod";
+import { MoveSave } from "@lingxi/api-schema";
 import { SEND_LIMITS } from "@lingxi/chain/limits";
 
 /** How long a move waits to be claimed. */
@@ -20,10 +20,6 @@ const MAX_HELD = 500;
 export const MAX_HELD_CHARS = 64_000_000;
 /** Moves one address may have waiting at once. */
 export const MAX_WAITING_PER_OWNER = 3;
-
-const KEY = /^lingxi\.[a-z0-9_.-]{1,40}$/i;
-export const MoveSave = z.record(z.string().regex(KEY), z.string().max(MAX_MOVE_CHARS)).refine((r) => Object.keys(r).length > 0 && Object.keys(r).length <= 64, "entries");
-export type MoveSave = z.infer<typeof MoveSave>;
 
 export function createMoveStore(now: () => number = Date.now) {
   const held = new Map<string, { save: MoveSave; until: number; size: number; owner: string }>();

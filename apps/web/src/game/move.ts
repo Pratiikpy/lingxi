@@ -16,6 +16,7 @@ import { inTelegram, openInBrowser, telegramStart } from "./telegram";
 import { saveRemove, saveWrite } from "./saveRuntime";
 import { SEND_LIMITS, checkSize } from "./sendSize";
 import { now as gameNow } from "./gameClock";
+import { moveBody } from "./requests";
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
 /** The Telegram bot that hosts the Mini App, once it exists (for moving pets into Telegram). */
@@ -50,7 +51,7 @@ function snapshot(keys = false): Record<string, string> {
 /** Step 1: hand this device's pets to the server; returns the one-time code. A save too large to move throws TooBig, unsent. */
 export async function prepareMove(): Promise<string> {
   const save = snapshot();
-  const body = JSON.stringify({ save });
+  const body = JSON.stringify(moveBody(save));
   const chars = Object.entries(save).reduce((n, [k, v]) => n + k.length + v.length, 0);
   checkSize(body, SEND_LIMITS.moveBodyBytes, { unit: "bytes", have: chars, most: SEND_LIMITS.moveChars });
   const r = await fetch(`${BASE}/api/move`, { method: "POST", headers: { "content-type": "application/json" }, body, signal: AbortSignal.timeout(20000) });

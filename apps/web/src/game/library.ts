@@ -1,6 +1,7 @@
 /** The lesson library (web build): shared lessons, most learned first. Quiet without a server. */
 
 import type { Rule } from "@lingxi/brain";
+import { lessonKeyBody, lessonShareBody } from "./requests";
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
 
@@ -35,7 +36,6 @@ async function post(path: string, body: unknown): Promise<{ ok: boolean; reason?
   }
 }
 
-// only the rule's structure is shared: the library shows no player's own words, so a lesson's label stays on this device
-export const shareLesson = (rule: Rule, by: string) => post("/api/lessons/share", { rule: { when: rule.when, then: rule.then }, by: by.slice(0, 24) });
-export const usedLesson = (key: string) => post("/api/lessons/use", { key });
-export const reportLesson = (key: string) => post("/api/lessons/report", { key });
+export const shareLesson = (rule: Rule, by: string) => post("/api/lessons/share", lessonShareBody(rule, by));
+export const usedLesson = (key: string) => post("/api/lessons/use", lessonKeyBody(key));
+export const reportLesson = (key: string) => post("/api/lessons/report", lessonKeyBody(key));

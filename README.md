@@ -169,6 +169,8 @@ packages/world    rooms, residents, trust, quests and dailies, items, recipes, f
 packages/chain    viem client for every contract and the processor; deploy, publish-to-DeWEB and recount scripts
 packages/send     TapeKit's TapeSend module (letters between homes)
 packages/art      hand-placed pixel art: bodies, expressions, stages, outfits
+packages/api      one zod schema for each request the game sends the server: the server validates with them, the
+                  game builds its requests as their types
 contracts         Solidity (Foundry): the eleven contracts above, with unit tests and fork tests against X Layer
 services/api      Hono server: site hosting, live rooms, teach-by-words, the relayer that tapes out brains, the
                   history indexer, vouchers, adoption papers, the agents' API, and the same-origin door to X Layer
@@ -203,7 +205,7 @@ Every number below is counted by `scripts/readme-facts.mts` from the suites them
 
 | Suite | Command | Passing |
 |---|---|---|
-| TypeScript, every package | `pnpm test` | <!--f:tests-->964<!--/f--> (game <!--f:tests-game-->215<!--/f--> · world <!--f:tests-world-->165<!--/f--> · api <!--f:tests-api-->182<!--/f--> · brain <!--f:tests-brain-->57<!--/f--> · handheld <!--f:tests-handheld-->41<!--/f--> · chain <!--f:tests-chain-->51<!--/f--> · send <!--f:tests-send-->30<!--/f--> · web <!--f:tests-web-->213<!--/f--> · art <!--f:tests-art-->10<!--/f-->) |
+| TypeScript, every package | `pnpm test` | <!--f:tests-->1029<!--/f--> (game <!--f:tests-game-->215<!--/f--> · world <!--f:tests-world-->165<!--/f--> · api <!--f:tests-api-->192<!--/f--> · api-schema <!--f:tests-api-schema-->45<!--/f--> · brain <!--f:tests-brain-->57<!--/f--> · handheld <!--f:tests-handheld-->41<!--/f--> · chain <!--f:tests-chain-->51<!--/f--> · send <!--f:tests-send-->30<!--/f--> · web <!--f:tests-web-->223<!--/f--> · art <!--f:tests-art-->10<!--/f-->) |
 | Contracts, unit, fuzz and invariant | `cd contracts && forge test` | <!--f:forge-unit-->116<!--/f--> |
 | Contracts on a fork of X Layer mainnet (reads only) | `cd contracts && forge test --fork-url xlayer --match-path 'test/*.fork.t.sol'` | <!--f:forge-fork-->67<!--/f--> |
 

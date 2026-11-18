@@ -159,21 +159,23 @@ export async function publishHomePage(pub: PublicClient, wallet: WalletClient, c
   if (bytes.length > CHUNK_BYTES * 8) throw new HomePageError("tooBig", "the page is larger than a home page may be");
   const account = wallet.account!;
   const txs: Hex[] = [];
-  const send = async (req: Parameters<PublicClient["simulateContract"]>[0]) => {
-    const sim = await pub.simulateContract({ ...req, account } as never);
-    const tx = await wallet.writeContract((sim as unknown as { request: never }).request);
+  // each write is simulated, sent and confirmed in turn; `write` makes the typed call
+  const send = async (write: () => Promise<Hex>) => {
+    const tx = await write();
     const r = await pub.waitForTransactionReceipt({ hash: tx });
     if (r.status !== "success") throw new HomePageError("notWritten", "a write to the home page reverted");
     txs.push(tx);
   };
   const hash = sha256(bytes);
-  await send({ address: SITES, abi: sitesAbi, functionName: "putFile", args: [container, "index.html", "text/html; charset=utf-8", hash, bytesToHex(bytes.slice(0, CHUNK_BYTES))] } as never);
+  const sites = { address: SITES, abi: sitesAbi, account } as const;
+  await send(async () => wallet.writeContract((await pub.simulateContract({ ...sites, functionName: "putFile", args: [container, "index.html", "text/html; charset=utf-8", hash, bytesToHex(bytes.slice(0, CHUNK_BYTES))] })).request));
   for (let i = 1; i * CHUNK_BYTES < bytes.length; i++) {
-    await send({ address: SITES, abi: sitesAbi, functionName: "appendChunk", args: [container, "index.html", BigInt(i), bytesToHex(bytes.slice(i * CHUNK_BYTES, (i + 1) * CHUNK_BYTES))] } as never);
+    await send(async () => wallet.writeContract((await pub.simulateContract({ ...sites, functionName: "appendChunk", args: [container, "index.html", BigInt(i), bytesToHex(bytes.slice(i * CHUNK_BYTES, (i + 1) * CHUNK_BYTES))] })).request));
   }
-  await send({ address: SITES, abi: sitesAbi, functionName: "setFallback", args: [container, "index.html"] } as never);
+  await send(async () => wallet.writeContract((await pub.simulateContract({ ...sites, functionName: "setFallback", args: [container, "index.html"] })).request));
   if (!((await pub.readContract({ address: DOMAINS, abi: domainsAbi, functionName: "isLive", args: [siteName, container] })) as boolean)) {
-    await send({ address: DOMAINS, abi: domainsAbi, functionName: "bind", args: [siteName, container, months], value: await nameFee(pub, months) } as never);
+    const value = await nameFee(pub, months);
+    await send(async () => wallet.writeContract((await pub.simulateContract({ address: DOMAINS, abi: domainsAbi, account, functionName: "bind", args: [siteName, container, months], value })).request));
   }
   const s = await readHomePage(pub, container, siteName, html);
   if (!s.current) throw new HomePageError("notWritten", "the page on chain does not match what was written");

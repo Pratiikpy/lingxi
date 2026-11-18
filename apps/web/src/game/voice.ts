@@ -10,6 +10,7 @@ import { type Pet, stageOf, visibleMeters } from "@lingxi/game";
 import { decidingChips } from "../play/ruleText";
 import { decidingPart } from "./store";
 import { now as gameNow } from "./gameClock";
+import { voiceBody } from "./requests";
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
 /** At most one new line this often on its own; a tap may ask sooner. */
@@ -51,23 +52,11 @@ export const useVoice = create<VoiceState>((set, get) => ({
     if (now - s.lastAt < (tapped ? TAP_EVERY_MS : AUTO_EVERY_MS)) return;
     if (!tapped && sig === s.lastSig) return;
     set({ lastAt: now, lastSig: sig });
-    const m = visibleMeters(pet);
     try {
       const r = await fetch(`${BASE}/api/voice`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          name: pet.name.slice(0, 24),
-          lang,
-          stage,
-          line: pet.line,
-          decision: chips.then.slice(0, 60) || "rest",
-          because: chips.when.slice(0, 6).map((w) => w.slice(0, 60)),
-          meters: { food: m.food, joy: m.joy, energy: m.energy, clean: m.clean },
-          sick: Boolean(pet.sick),
-          asleep: pet.asleep,
-          moment: tapped ? "petted" : "decided",
-        }),
+        body: JSON.stringify(voiceBody({ pet, lang, stage, chips, meters: visibleMeters(pet), tapped })),
         signal: AbortSignal.timeout(10_000),
       });
       const j = (await r.json()) as { ok: boolean; line?: string };

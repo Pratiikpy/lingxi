@@ -11,6 +11,7 @@ import { deviceWallets, useChain } from "./chain";
 import { play } from "./sound";
 import { useQuestUi } from "./quests";
 import { useWorld } from "./world";
+import { goalsQuery, withQuery } from "./requests";
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
 
@@ -48,7 +49,7 @@ export const useGoals = create<GoalsState>((set, get) => ({
     const wallets = deviceWallets();
     if (get().status !== "ready") set({ status: "loading" });
     try {
-      const res = await fetch(`${BASE}/api/goals${wallets.length ? `?wallet=${wallets.join(",")}` : ""}`);
+      const res = await fetch(`${BASE}${withQuery("/api/goals", goalsQuery(wallets))}`);
       const body = (await res.json()) as { ok: boolean; now: number; indexedTo: number; goals: GoalReport[] };
       if (!body.ok) throw new Error("goals");
       set({ status: "ready", reports: Object.fromEntries(body.goals.map((g) => [g.id, g])), indexedTo: body.indexedTo, now: body.now, wallets });

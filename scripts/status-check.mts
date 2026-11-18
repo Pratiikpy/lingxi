@@ -175,8 +175,8 @@ const SITE_INPUTS = [
   "packages/handheld/wasm", "packages/chain/deployments", "pnpm-lock.yaml",
   ":(exclude)**/*.test.ts", ":(exclude)**/*.test.tsx",
 ];
-/** And the live server's own code and settings. */
-const SERVER_INPUTS = ["services/api/src", "services/api/package.json", "deploy"];
+/** And the live server's own code and settings, with the request schemas it validates by (the game reads only their types). */
+const SERVER_INPUTS = ["services/api/src", "services/api/package.json", "packages/api/src", "packages/api/package.json", "deploy"];
 
 /** DeWEB keeps each file on chain; the gateway answers a plain request with its own loader, so read the file itself. */
 const DEWEB = { opener: "0x536adD8F30f03b69f6fbF29d425A816A0dC50106", sites: "0xd6EFb7adCc9c83dC4924Ad56f6a8E4e969b9ADB6", circuit: 1n } as const;

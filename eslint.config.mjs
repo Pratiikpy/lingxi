@@ -6,7 +6,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 import globals from "globals";
 
 export default tseslint.config(
-  { ignores: ["**/dist/**", "**/dist-deweb/**", "**/assets-kept/**", "**/node_modules/**", "contracts/**", "packages/handheld/wasm/**", "packages/handheld/firmware/**", "**/.pio/**", "**/coverage/**"] },
+  { ignores: ["**/dist/**", "**/dist-deweb/**", "**/assets-kept/**", "**/node_modules/**", "e2e/.run/**", "test-results/**", "playwright-report/**", "contracts/**", "packages/handheld/wasm/**", "packages/handheld/firmware/**", "**/.pio/**", "**/coverage/**"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -22,6 +22,13 @@ export default tseslint.config(
       // untrusted text is cleaned of control characters on purpose, and those patterns have to name them
       "no-control-regex": "off",
     },
+  },
+  // the game builds its requests as the server's schema types and never loads the schemas, so zod stays out of its
+  // bundle; its tests may load them, to check that what the game builds is what the server accepts
+  {
+    files: ["apps/web/**"],
+    ignores: ["**/*.test.ts", "**/*.test.tsx"],
+    rules: { "@typescript-eslint/no-restricted-imports": ["error", { paths: [{ name: "@lingxi/api-schema", message: "import type only: the schemas are the server's; the game builds its requests as their types.", allowTypeImports: true }] }] },
   },
   // the end-to-end suite is not React: Playwright names its fixture callback `use`, which the hooks rules would take for React's
   { files: ["e2e/**"], rules: { "react-hooks/rules-of-hooks": "off", "react-hooks/exhaustive-deps": "off" } },

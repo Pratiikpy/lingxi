@@ -11,6 +11,8 @@
 
 import type { Context, Hono } from "hono";
 import type { Address, PublicClient } from "viem";
+import type { z } from "zod";
+import { AgentAdoptBody, AgentCareBody, AgentTeachBody, SparQuery } from "@lingxi/api-schema";
 import { MANIFESTS, MAX_GATES as BRAIN_MAX, compileProgram, decodeProgram, gateCount } from "@lingxi/brain";
 import { type Deployment, readMetadata, readNetlist, readPet } from "@lingxi/chain";
 import {
@@ -43,6 +45,18 @@ export interface AgentApiDeps {
 }
 
 const who = (c: Context) => clientIp(c);
+
+/** An agent's body as its schema reads it (a body that is JSON but not an object reads as an empty one); null when it is not JSON. */
+async function lenient<S extends z.ZodType<object>>(c: Context, schema: S): Promise<z.output<S> | null> {
+  let raw: unknown;
+  try {
+    raw = await c.req.json();
+  } catch {
+    return null;
+  }
+  const parsed = schema.safeParse(raw);
+  return parsed.success ? parsed.data : schema.parse({});
+}
 const bearer = (c: Context) => (c.req.header("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
 
 function opponent(vs: string): Fighter | null {
@@ -101,7 +115,9 @@ export function withAgentApi(app: Hono, deps: AgentApiDeps): Hono {
   app.get("/api/v1/spar", (c) => {
     const busy = guard(c);
     if (busy) return busy;
-    const q = c.req.query();
+    const parsed = SparQuery.safeParse(c.req.query());
+    if (!parsed.success) return c.json({ ok: false, reason: "invalid" }, 400);
+    const q = parsed.data;
     let me: Fighter;
     try {
       if (q.program) {
@@ -170,12 +186,8 @@ export function withAgentApi(app: Hono, deps: AgentApiDeps): Hono {
   app.post("/api/v1/agents/adopt", async (c) => {
     const busy = guard(c);
     if (busy) return busy;
-    let body: { agent?: unknown; name?: unknown; line?: unknown; instincts?: unknown };
-    try {
-      body = (await c.req.json()) as typeof body;
-    } catch {
-      return c.json({ ok: false, reason: "invalid" }, 400);
-    }
+    const body = await lenient(c, AgentAdoptBody);
+    if (!body) return c.json({ ok: false, reason: "invalid" }, 400);
     const r = deps.agents.adopt(String(body.agent ?? ""), String(body.name ?? ""), String(body.line ?? ""), body.instincts === undefined ? 0 : Number(body.instincts));
     if (!r.ok) return c.json({ ok: false, reason: r.reason, detail: r.reason === "tooMany" ? "an agent may raise at most 5 pets" : r.reason === "invalid" ? "agent: 2-32 letters, digits, space, dot or dash; name: 1-16 characters; line: gentle, bold or curious; instincts: 0-15" : undefined }, r.reason === "invalid" ? 400 : 200);
     return c.json({ ok: true, token: r.token, note: "Keep this token: send it as Authorization: Bearer <token>. It is shown only once.", pet: r.pet });
@@ -197,12 +209,8 @@ export function withAgentApi(app: Hono, deps: AgentApiDeps): Hono {
     if (busy) return busy;
     const t = mine(c);
     if (!t) return c.json({ ok: false, reason: "unknown" }, 401);
-    let body: { action?: unknown; food?: unknown };
-    try {
-      body = (await c.req.json()) as typeof body;
-    } catch {
-      return c.json({ ok: false, reason: "invalid" }, 400);
-    }
+    const body = await lenient(c, AgentCareBody);
+    if (!body) return c.json({ ok: false, reason: "invalid" }, 400);
     const r = deps.agents.act(t, String(body.action ?? ""), body.food === undefined ? undefined : String(body.food));
     if (!r.ok) return c.json({ ok: false, reason: r.reason }, r.reason === "unknown" ? 401 : 400);
     return c.json(r);
@@ -213,12 +221,8 @@ export function withAgentApi(app: Hono, deps: AgentApiDeps): Hono {
     if (busy) return busy;
     const t = mine(c);
     if (!t) return c.json({ ok: false, reason: "unknown" }, 401);
-    let body: { rule?: unknown };
-    try {
-      body = (await c.req.json()) as typeof body;
-    } catch {
-      return c.json({ ok: false, reason: "invalid" }, 400);
-    }
+    const body = await lenient(c, AgentTeachBody);
+    if (!body) return c.json({ ok: false, reason: "invalid" }, 400);
     const r = deps.agents.teach(t, body.rule);
     if (!r.ok) return c.json(r, r.reason === "unknown" ? 401 : 200);
     return c.json(r);

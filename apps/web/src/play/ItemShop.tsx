@@ -12,6 +12,7 @@ import { CHAIN_DECOR, CHAIN_WEAR, DECOR_BY_ID, GOAL_BY_ID, isChainWear } from "@
 import { useLang } from "../i18n";
 import { connectWallet, deployment, publicClient } from "../game/chain";
 import { syncChainPieces } from "../game/chainDecor";
+import { voucherQuery, withQuery } from "../game/requests";
 import { useDesigns } from "../game/designs";
 import { useWorld } from "../game/world";
 import { play } from "../game/sound";
@@ -108,7 +109,7 @@ export function ItemShopPanel() {
   const claim = (piece: string, goal: string) =>
     run(`claim:${piece}`, async (w) => {
       const who = w.account!.address;
-      const res = await fetch(`${BASE}/api/voucher?wallet=${who}&goal=${goal}`);
+      const res = await fetch(`${BASE}${withQuery("/api/voucher", voucherQuery(who, goal))}`);
       const body = (await res.json()) as { ok: boolean; reason?: string; voucher?: { to: `0x${string}`; id: string; quantity: number; nonce: string; expiresAt: string }; signature?: `0x${string}` };
       if (!body.ok || !body.voucher || !body.signature) throw new Error(body.reason ?? "voucher");
       setStep(L("Confirm the claim in your wallet (network fee only).", "请在钱包里确认领取（只需网络费）。"));

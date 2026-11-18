@@ -11,18 +11,10 @@
 
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { z } from "zod";
 import type { Rule } from "@lingxi/brain";
 import { checkLesson } from "@lingxi/game";
 import { type SeenSet, addSeen, emptySeen, hasSeen, seenFrom } from "./seenSet";
 import { BLOCKED_WORDS } from "./words";
-
-export const LibraryRule = z.object({
-  when: z.record(z.string().max(24), z.array(z.number().int().min(0).max(15)).min(1).max(16)),
-  then: z.object({ want: z.number().int().min(0).max(15), mood: z.number().int().min(0).max(3), nudge: z.number().int().min(0).max(15).optional() }),
-  /** accepted from older clients and dropped: the library shows no stranger's words */
-  label: z.string().max(60).optional(),
-});
 
 export interface LibraryEntry {
   key: string;

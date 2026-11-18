@@ -24,7 +24,7 @@ const write = process.argv.includes("--write");
 const withTests = !process.argv.includes("--no-tests");
 
 /** Test packages, in the order the README lists them. */
-const PACKAGES = ["game", "world", "api", "brain", "handheld", "chain", "send", "web", "art"] as const;
+const PACKAGES = ["game", "world", "api", "api-schema", "brain", "handheld", "chain", "send", "web", "art"] as const;
 
 function vitestPassed(pkg: string): number {
   const dir = mkdtempSync(join(tmpdir(), "lingxi-facts-"));

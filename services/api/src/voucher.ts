@@ -6,11 +6,11 @@
 
 import type { Hono } from "hono";
 import { type Address, type Hex, type LocalAccount, keccak256, toBytes } from "viem";
+import { VoucherQuery } from "@lingxi/api-schema";
 import { type Deployment, voucherTypedData } from "@lingxi/chain";
 import { CHAIN_DECOR, GOALS, type GoalDef } from "@lingxi/world";
 import { type Entry, reportGoals } from "./goals";
 
-const WALLET = /^0x[0-9a-fA-F]{40}$/;
 /** A voucher is good for thirty days; asking again later gives a fresh one with the same nonce. */
 export const VOUCHER_DAYS = 30;
 
@@ -30,9 +30,9 @@ export function withVouchers(app: Hono, o: VoucherOptions): Hono {
   app.get("/api/voucher", async (c) => {
     c.header("access-control-allow-origin", "*");
     c.header("cache-control", "no-store");
-    const wallet = c.req.query("wallet") ?? "";
-    const goalId = c.req.query("goal") ?? "";
-    if (!WALLET.test(wallet)) return c.json({ ok: false, reason: "wallet" }, 400);
+    const q = VoucherQuery.safeParse(c.req.query());
+    if (!q.success) return c.json({ ok: false, reason: "wallet" }, 400);
+    const { wallet, goal: goalId } = q.data;
     const goal = goals.find((g) => g.id === goalId);
     const piece = CHAIN_DECOR.find((p) => p.chain?.kind === "keepsake" && p.chain.goal === goalId);
     if (!goal || !piece) return c.json({ ok: false, reason: "goal" }, 404);

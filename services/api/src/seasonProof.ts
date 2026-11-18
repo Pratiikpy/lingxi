@@ -6,11 +6,22 @@
  */
 
 import type { Address } from "viem";
+import type { StarterLine } from "@lingxi/brain";
 import type { SignedRelay } from "@lingxi/chain";
-import { type Brain, mindBrain, parseCard } from "@lingxi/game";
+import { type Brain, type PetCard, mindBrain, parseCard } from "@lingxi/game";
 import { type NonceBook, type RelayRefusal, checkRelayAuth } from "./relayGate";
 
 export type SeasonProofRefusal = RelayRefusal | "notThisEntry" | "notItsBrain" | "unreadable";
+
+const LINES = ["gentle", "bold", "curious"] as const;
+
+/** What the proof reads of an entry: its line and its card. Null when either is missing or not one the game makes. */
+function mindOf(pet: unknown): { line: StarterLine; card: PetCard } | null {
+  if (typeof pet !== "object" || pet === null || !("line" in pet) || !("card" in pet) || typeof pet.card !== "string") return null;
+  const line = LINES.find((l) => l === pet.line);
+  const card = parseCard(pet.card);
+  return line && card ? { line, card } : null;
+}
 
 /** Same answers and same memory for every input word, from empty memory and from `memory`. */
 export function sameBrain(a: Brain, b: Brain, memory?: readonly number[]): boolean {
@@ -28,7 +39,7 @@ export function sameBrain(a: Brain, b: Brain, memory?: readonly number[]): boole
 }
 
 export async function proveSeasonEntry(
-  pet: { line: string; card: string },
+  pet: unknown,
   proof: SignedRelay,
   deps: { isKeeper: (petId: string, who: Address) => Promise<boolean>; brainOf: (petId: string) => Promise<Brain>; now: () => number; nonces: NonceBook },
 ): Promise<{ ok: true; petId: string } | { ok: false; reason: SeasonProofRefusal }> {
@@ -36,14 +47,15 @@ export async function proveSeasonEntry(
   if (proof?.kind !== "season" || proof.payload !== JSON.stringify(pet)) return { ok: false, reason: "notThisEntry" };
   const auth = await checkRelayAuth(proof, deps);
   if (!auth.ok) return auth;
-  const card = parseCard(pet.card);
-  if (!card) return { ok: false, reason: "notItsBrain" };
+  const mind = mindOf(pet);
+  if (!mind) return { ok: false, reason: "notItsBrain" };
+  const { line, card } = mind;
   let onChain: Brain;
   try {
     onChain = await deps.brainOf(proof.petId);
   } catch {
     return { ok: false, reason: "unreadable" };
   }
-  const mine = mindBrain({ line: pet.line as never, lessons: card.lessons, family: card.family, instincts: card.instincts, outside: card.outside, growth: card.growth });
+  const mine = mindBrain({ line, lessons: card.lessons, family: card.family, instincts: card.instincts, outside: card.outside, growth: card.growth });
   return sameBrain(onChain, mine, card.memory) ? { ok: true, petId: proof.petId } : { ok: false, reason: "notItsBrain" };
 }

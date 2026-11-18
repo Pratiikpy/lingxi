@@ -77,11 +77,10 @@ export interface ChainPet {
 }
 
 export async function readPet(pub: PublicClient, d: Deployment, id: bigint): Promise<ChainPet> {
-  const [p, owner] = await Promise.all([
+  const [x, owner] = await Promise.all([
     pub.readContract({ address: d.registry, abi: petRegistryAbi, functionName: "pet", args: [id] }),
     pub.readContract({ address: d.registry, abi: petRegistryAbi, functionName: "ownerOf", args: [id] }),
   ]);
-  const x = p as unknown as Omit<ChainPet, "id" | "owner"> & { brainId: bigint; day: number };
   return {
     id,
     owner: owner as Address,
@@ -210,8 +209,8 @@ export async function replayMany(pub: PublicClient, d: Deployment, id: bigint, b
   const res = (await pub.multicall({
     allowFailure: false,
     batchSize: 1 << 22,
-    contracts: words.map((w) => ({ address: d.registry, abi: petRegistryAbi, functionName: "replayStep", args: [id, brainState, w] })),
-  })) as unknown as Array<readonly [bigint, number]>;
+    contracts: words.map((w) => ({ address: d.registry, abi: petRegistryAbi, functionName: "replayStep" as const, args: [id, brainState, w] as const })),
+  }));
   return res.map(([next, outputs]) => ({ next: BigInt(next), outputs: Number(outputs) }));
 }
 

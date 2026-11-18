@@ -17,6 +17,7 @@ import { type ChainRecord, connectWallet, deployment, publicClient, recordOf, se
 import { useGame } from "./store";
 import { saveRemove, saveWrite } from "./saveRuntime";
 import { now as gameNow } from "./gameClock";
+import { papersBody } from "./requests";
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
 export const adoptionAvailable = () => !!deployment?.adoptionCentre;
@@ -61,7 +62,7 @@ export async function offerForAdoption(pet: Pet, priceUnits: bigint, untilSec: n
   const papers = JSON.stringify({ v: 1, pet: current, record: recordOf(current) ?? record } satisfies Papers);
   const signature = await wallet.signMessage({ account: wallet.account!, message: papersMessage(record.petId, papers) });
   onStep("papers");
-  const res = await fetch(`${BASE}/api/papers/${record.petId}`, { method: "POST", body: JSON.stringify({ papers, signature }) });
+  const res = await fetch(`${BASE}/api/papers/${record.petId}`, { method: "POST", body: JSON.stringify(papersBody(papers, signature)) });
   if (!res.ok) return { ok: false, reason: "papers" };
   // the device copy waits at the centre, frozen, until it is adopted or comes back
   useGame.getState().replace({ ...current, away: { code: `${CENTRE}${record.petId}`, key: "", until: untilSec * 1000, sitter: null } });

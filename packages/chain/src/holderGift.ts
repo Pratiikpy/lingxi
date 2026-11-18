@@ -50,15 +50,15 @@ export type GiftWay =
 
 export async function giftTerms(pub: PublicClient, d: Deployment): Promise<GiftTerms | null> {
   if (!d.holderGift) return null;
-  const read = <T>(functionName: string) => pub.readContract({ address: d.holderGift!, abi: holderGiftAbi, functionName: functionName as never }) as Promise<T>;
+  const gift = { address: d.holderGift, abi: holderGiftAbi } as const;
   const [outfit, test1, rig, snapshotRoot, snapshotBlock, bemMin, fabMin] = await Promise.all([
-    read<bigint>("outfit"),
-    read<Address>("test1"),
-    read<Address>("rig"),
-    read<Hex>("snapshotRoot"),
-    read<bigint>("snapshotBlock"),
-    read<bigint>("bemMin"),
-    read<bigint>("fabMin"),
+    pub.readContract({ ...gift, functionName: "outfit" }),
+    pub.readContract({ ...gift, functionName: "test1" }),
+    pub.readContract({ ...gift, functionName: "rig" }),
+    pub.readContract({ ...gift, functionName: "snapshotRoot" }),
+    pub.readContract({ ...gift, functionName: "snapshotBlock" }),
+    pub.readContract({ ...gift, functionName: "bemMin" }),
+    pub.readContract({ ...gift, functionName: "fabMin" }),
   ]);
   return { gift: d.holderGift, outfit, test1, rig, snapshotRoot, snapshotBlock, bemMin, fabMin };
 }
@@ -130,12 +130,11 @@ export async function checkTest1(pub: PublicClient, t: GiftTerms, who: Address, 
 
 export async function claimGift(pub: PublicClient, wallet: WalletClient, t: GiftTerms, way: GiftWay): Promise<Hex> {
   if (!wallet.account) throw new Error("wallet has no account");
-  const call =
+  const at = { address: t.gift, abi: holderGiftAbi, account: wallet.account } as const;
+  const tx =
     way.kind === "nft"
-      ? { functionName: "claimWithNft" as const, args: [way.collection, way.tokenId] as const }
-      : { functionName: "claimWithSnapshot" as const, args: [way.bem, way.fab, way.proof] as const };
-  const { request } = await pub.simulateContract({ address: t.gift, abi: holderGiftAbi, ...call, account: wallet.account } as never);
-  const tx = await wallet.writeContract(request as never);
+      ? await wallet.writeContract((await pub.simulateContract({ ...at, functionName: "claimWithNft", args: [way.collection, way.tokenId] })).request)
+      : await wallet.writeContract((await pub.simulateContract({ ...at, functionName: "claimWithSnapshot", args: [way.bem, way.fab, way.proof] })).request);
   const r = await pub.waitForTransactionReceipt({ hash: tx });
   if (r.status !== "success") throw new Error("claim failed");
   return tx;
