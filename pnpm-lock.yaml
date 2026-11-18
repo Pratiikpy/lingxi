@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  uuid@<11.1.1: 11.1.1
+
 importers:
 
   .:
@@ -40,7 +43,7 @@ importers:
         version: 8.18.1(eslint@9.17.0)(typescript@5.9.3)
       viem:
         specifier: 2.57.7
-        version: 2.57.7(typescript@5.9.3)(zod@4.1.13)
+        version: 2.57.7(typescript@5.9.3)(zod@4.6.7)
 
   apps/web:
     dependencies:
@@ -85,7 +88,7 @@ importers:
         version: 19.1.0(react@19.1.0)
       viem:
         specifier: 2.57.7
-        version: 2.57.7(typescript@5.9.3)(zod@4.1.13)
+        version: 2.57.7(typescript@5.9.3)(zod@4.6.7)
       zustand:
         specifier: 5.0.5
         version: 5.0.5(@types/react@19.1.6)(react@19.1.0)
@@ -179,7 +182,7 @@ importers:
         version: 1.0.8
       viem:
         specifier: 2.57.7
-        version: 2.57.7(typescript@5.9.3)(zod@4.1.13)
+        version: 2.57.7(typescript@5.9.3)(zod@4.6.7)
     devDependencies:
       '@types/node':
         specifier: 22.15.30
@@ -283,10 +286,10 @@ importers:
     dependencies:
       '@anthropic-ai/sdk':
         specifier: 1.3.0
-        version: 1.3.0(zod@4.1.13)
+        version: 1.3.0(zod@4.6.7)
       '@hono/node-server':
-        specifier: 1.14.4
-        version: 1.14.4(hono@4.12.34)
+        specifier: 2.1.9
+        version: 2.1.9(hono@4.13.19)
       '@lingxi/brain':
         specifier: workspace:*
         version: link:../../packages/brain
@@ -300,20 +303,20 @@ importers:
         specifier: workspace:*
         version: link:../../packages/world
       hono:
-        specifier: 4.12.34
-        version: 4.12.34
+        specifier: 4.13.19
+        version: 4.13.19
       viem:
         specifier: 2.57.7
-        version: 2.57.7(typescript@5.9.3)(zod@4.1.13)
+        version: 2.57.7(typescript@5.9.3)(zod@4.6.7)
       web-push:
         specifier: 3.6.7
         version: 3.6.7
       ws:
-        specifier: 8.18.3
-        version: 8.18.3
+        specifier: 8.23.0
+        version: 8.23.0
       zod:
-        specifier: 4.1.13
-        version: 4.1.13
+        specifier: 4.6.7
+        version: 4.6.7
     devDependencies:
       '@lingxi/art':
         specifier: workspace:*
@@ -654,11 +657,11 @@ packages:
   '@fontsource-variable/pixelify-sans@5.2.5':
     resolution: {integrity: sha512-g5i5pRGTajUn19hFu6jOKm+sQgHIvhhqBslwXnxtoJm9vCaKtc7uRQIlZlX65fJ+v2zzq4hH5Z2SIiz0XPdqrw==}
 
-  '@hono/node-server@1.14.4':
-    resolution: {integrity: sha512-DnxpshhYewr2q9ZN8ez/M5mmc3sucr8CT1sIgIy1bkeUXut9XWDkqHoFHRhWIQgkYnKpVRxunyhK7WzpJeJ6qQ==}
-    engines: {node: '>=18.14.1'}
+  '@hono/node-server@2.1.9':
+    resolution: {integrity: sha512-Sk4NQd3GFY0WZWCzndwFMPwJhtD0y9qjsQ+pjID0/03nK9pxyBCUoUHCho8QYBLBVhi0ssL8UkNPHqbgSOFPIQ==}
+    engines: {node: '>=20'}
     peerDependencies:
-      hono: ^4
+      hono: ^4 || ^5.0.0-0
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -1407,8 +1410,8 @@ packages:
     resolution: {integrity: sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==}
     engines: {node: '>=8'}
 
-  hono@4.12.34:
-    resolution: {integrity: sha512-GqXJqY/xJkJmuloTrnV1ZEXG3fqte+VjkUqoRNZXcrUidiUOP4fMSIHHY4tsqZBK++kVyWmt/AAfSUuy57/eSA==}
+  hono@4.13.19:
+    resolution: {integrity: sha512-KmXvQAXwcAHV+muzbIwoJ23niEB5nMoDVr9WcRkU8mvjUECm/1+7v4Jgp7P7a+H6MLFrh+vXrGonGrGS+RQfkA==}
     engines: {node: '>=16.9.0'}
 
   http_ece@1.2.0:
@@ -1816,9 +1819,8 @@ packages:
   uri-js@4.4.1:
     resolution: {integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==}
 
-  uuid@9.0.1:
-    resolution: {integrity: sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==}
-    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+  uuid@11.1.1:
+    resolution: {integrity: sha512-vIYxrBCC/N/K+Js3qSN88go7kIfNPssr/hHCesKCQNAjmgvYS2oqr69kIufEG+O4+PfezOH4EbIeHCfFov8ZgQ==}
     hasBin: true
 
   viem@2.57.7:
@@ -1921,8 +1923,8 @@ packages:
     resolution: {integrity: sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==}
     engines: {node: '>=0.10.0'}
 
-  ws@8.18.3:
-    resolution: {integrity: sha512-PEIGCY5tSlUt50cqyMXfCzX+oOPqN0vuGqWzbcJ2xvnkzkq46oOpz7dQaTDBdfICb4N14+GARUDw2XV2N4tvzg==}
+  ws@8.21.0:
+    resolution: {integrity: sha512-Vsp28b7DRcimFQvrqu2Wek3z1iYxDCWqHYB8Qsnk/S4RfaCQzPGPyBNuVjJV3cd6UiKtUtp6sNM77gWvzcCH+g==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
@@ -1933,8 +1935,8 @@ packages:
       utf-8-validate:
         optional: true
 
-  ws@8.21.0:
-    resolution: {integrity: sha512-Vsp28b7DRcimFQvrqu2Wek3z1iYxDCWqHYB8Qsnk/S4RfaCQzPGPyBNuVjJV3cd6UiKtUtp6sNM77gWvzcCH+g==}
+  ws@8.23.0:
+    resolution: {integrity: sha512-wCkmX8QMOrKjgO8HW2WyDbTSGeqkocxgDzS9iR79rEAexty6/2qzilx3Ag8Tqf9ykop3irLKle0MtVn5qjVnoQ==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
@@ -1952,8 +1954,8 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
-  zod@4.1.13:
-    resolution: {integrity: sha512-AvvthqfqrAhNH9dnfmrfKzX5upOdjUVJYFqNSlkmGf64gRaTzlPwz99IHYnVs28qYAybvAlBV+H7pn0saFY4Ig==}
+  zod@4.6.7:
+    resolution: {integrity: sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==}
 
   zustand@5.0.5:
     resolution: {integrity: sha512-mILtRfKW9xM47hqxGIxCv12gXusoY/xTSHBYApXozR0HmQv299whhBeeAcRy+KrPPybzosvJBCOmVjq6x12fCg==}
@@ -1977,13 +1979,13 @@ snapshots:
 
   '@adraffy/ens-normalize@1.11.1': {}
 
-  '@anthropic-ai/sdk@1.3.0(zod@4.1.13)':
+  '@anthropic-ai/sdk@1.3.0(zod@4.6.7)':
     dependencies:
       '@opentelemetry/api': 1.10.0
       json-schema-to-ts: 3.1.1
       standardwebhooks: 1.1.1
     optionalDependencies:
-      zod: 4.1.13
+      zod: 4.6.7
 
   '@babel/code-frame@7.29.7':
     dependencies:
@@ -2247,9 +2249,9 @@ snapshots:
 
   '@fontsource-variable/pixelify-sans@5.2.5': {}
 
-  '@hono/node-server@1.14.4(hono@4.12.34)':
+  '@hono/node-server@2.1.9(hono@4.13.19)':
     dependencies:
-      hono: 4.12.34
+      hono: 4.13.19
 
   '@humanfs/core@0.19.2':
     dependencies:
@@ -2305,7 +2307,7 @@ snapshots:
       debug: 4.4.3
       pony-cause: 2.1.11
       semver: 7.8.6
-      uuid: 9.0.1
+      uuid: 11.1.1
     transitivePeerDependencies:
       - supports-color
 
@@ -2677,10 +2679,10 @@ snapshots:
 
   '@xmldom/xmldom@0.8.15': {}
 
-  abitype@1.2.3(typescript@5.9.3)(zod@4.1.13):
+  abitype@1.2.3(typescript@5.9.3)(zod@4.6.7):
     optionalDependencies:
       typescript: 5.9.3
-      zod: 4.1.13
+      zod: 4.6.7
 
   acorn-jsx@5.3.2(acorn@8.19.0):
     dependencies:
@@ -3006,7 +3008,7 @@ snapshots:
 
   has-flag@4.0.0: {}
 
-  hono@4.12.34: {}
+  hono@4.13.19: {}
 
   http_ece@1.2.0: {}
 
@@ -3157,7 +3159,7 @@ snapshots:
       type-check: 0.4.0
       word-wrap: 1.2.5
 
-  ox@0.14.56(typescript@5.9.3)(zod@4.1.13):
+  ox@0.14.56(typescript@5.9.3)(zod@4.6.7):
     dependencies:
       '@adraffy/ens-normalize': 1.11.1
       '@noble/ciphers': 1.3.0
@@ -3165,7 +3167,7 @@ snapshots:
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.9.3)(zod@4.1.13)
+      abitype: 1.2.3(typescript@5.9.3)(zod@4.6.7)
       eventemitter3: 5.0.1
     optionalDependencies:
       typescript: 5.9.3
@@ -3381,17 +3383,17 @@ snapshots:
     dependencies:
       punycode: 2.3.1
 
-  uuid@9.0.1: {}
+  uuid@11.1.1: {}
 
-  viem@2.57.7(typescript@5.9.3)(zod@4.1.13):
+  viem@2.57.7(typescript@5.9.3)(zod@4.6.7):
     dependencies:
       '@noble/curves': 1.9.1
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.9.3)(zod@4.1.13)
+      abitype: 1.2.3(typescript@5.9.3)(zod@4.6.7)
       isows: 1.0.7(ws@8.21.0)
-      ox: 0.14.56(typescript@5.9.3)(zod@4.1.13)
+      ox: 0.14.56(typescript@5.9.3)(zod@4.6.7)
       ws: 8.21.0
     optionalDependencies:
       typescript: 5.9.3
@@ -3497,15 +3499,15 @@ snapshots:
 
   word-wrap@1.2.5: {}
 
-  ws@8.18.3: {}
-
   ws@8.21.0: {}
+
+  ws@8.23.0: {}
 
   yallist@3.1.1: {}
 
   yocto-queue@0.1.0: {}
 
-  zod@4.1.13: {}
+  zod@4.6.7: {}
 
   zustand@5.0.5(@types/react@19.1.6)(react@19.1.0):
     optionalDependencies:

@@ -236,9 +236,12 @@ async function siteChecks(): Promise<void> {
   const t = Date.now();
   try {
     const r = await fetch(`${LIVE}/api/health`, { signal: AbortSignal.timeout(20_000) });
-    const j = (await r.json()) as Record<string, unknown>;
-    const down = Object.entries(j).filter(([, v]) => v !== true).map(([k]) => k);
-    record("sites", "live server's parts are all up", r.ok && !down.length ? "PASS" : "FAIL", down.length ? `down: ${down.join(", ")}` : Object.keys(j).join(", "), t);
+    const j = (await r.json()) as Record<string, unknown> & { detail?: { jobs?: Record<string, string>; relayerOkb?: number | null; indexerLagBlocks?: number | null } };
+    // the switches are booleans; every background job must also be healthy
+    const down = Object.entries(j).filter(([k, v]) => k !== "detail" && v !== true).map(([k]) => k);
+    const failing = Object.entries(j.detail?.jobs ?? {}).filter(([, v]) => v !== "ok").map(([k, v]) => `${k} ${v}`);
+    const facts = j.detail ? `; relayer ${j.detail.relayerOkb ?? "?"} OKB, indexer ${j.detail.indexerLagBlocks ?? "?"} blocks behind` : "";
+    record("sites", "live server's parts and jobs are all up", r.ok && !down.length && !failing.length ? "PASS" : "FAIL", [down.length ? `down: ${down.join(", ")}` : "", failing.length ? `failing: ${failing.join("; ")}` : ""].filter(Boolean).join(" ") || `${Object.keys(j.detail?.jobs ?? {}).length} jobs ok${facts}`, t);
   } catch (e) {
     record("sites", "live server's parts are all up", "FAIL", e instanceof Error ? e.message : String(e), t);
   }

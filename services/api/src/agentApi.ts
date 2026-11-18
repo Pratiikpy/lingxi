@@ -30,6 +30,7 @@ import { programOfChips } from "@lingxi/brain";
 import type { AgentStore } from "./agents";
 import type { SeasonStore } from "./season";
 import { RateLimiter } from "./limit";
+import { clientIp } from "./clientIp";
 
 const SITE = "https://lingxi.knole.me";
 const SPAR_LEVEL = 1;
@@ -41,7 +42,7 @@ export interface AgentApiDeps {
   limiter?: RateLimiter;
 }
 
-const who = (c: Context) => c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
+const who = (c: Context) => clientIp(c);
 const bearer = (c: Context) => (c.req.header("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
 
 function opponent(vs: string): Fighter | null {

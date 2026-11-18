@@ -11,16 +11,16 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.3.0",
-    "@hono/node-server": "1.14.4",
+    "@hono/node-server": "2.1.9",
     "@lingxi/brain": "workspace:*",
     "@lingxi/chain": "workspace:*",
     "@lingxi/game": "workspace:*",
     "@lingxi/world": "workspace:*",
-    "hono": "4.12.34",
+    "hono": "4.13.19",
     "viem": "2.57.7",
     "web-push": "3.6.7",
-    "ws": "8.18.3",
-    "zod": "4.1.13"
+    "ws": "8.23.0",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@lingxi/art": "workspace:*",

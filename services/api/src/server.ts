@@ -6,8 +6,8 @@
  * ANTHROPIC_API_KEY environment variable) and never leaves this process.
  */
 
-import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import Anthropic from "@anthropic-ai/sdk";
 import { serve } from "@hono/node-server";
@@ -48,6 +48,8 @@ import { MAX_MOVE_CHARS, type MoveStore, createMoveStore } from "./move";
 import { createTapeoutCounter, withLane } from "./lane";
 import { factoryReader } from "./laneReader";
 import { petLookAbi as lookAbi } from "@lingxi/chain";
+import { clientIp } from "./clientIp";
+import { createJobs } from "./jobs";
 
 function loadKey(): string | undefined {
   if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
@@ -77,18 +79,22 @@ const TeachBody = z.object({
   lessons: z.array(RuleSchema).max(8),
 });
 
-export function createApp(client: Anthropic | null, limiter = new RateLimiter(6, 60_000), relayer: BrainRelayer | null = null, relayLimiter = new RateLimiter(4, 3_600_000), live: LiveRooms | null = null) {
+/** What the running server adds to /api/health: its jobs, indexer lag, relayer balance and store sizes. */
+export type HealthDetail = () => Promise<Record<string, unknown>> | Record<string, unknown>;
+
+export function createApp(client: Anthropic | null, limiter = new RateLimiter(6, 60_000), relayer: BrainRelayer | null = null, relayLimiter = new RateLimiter(4, 3_600_000), live: LiveRooms | null = null, detail?: HealthDetail) {
   const app = new Hono();
   const origins = (process.env.LINGXI_ORIGINS ?? "http://localhost:5199,http://localhost:4173").split(",");
   // the agent API, and a pet's public log and history, are open to any origin; the rest answers only the game's pages
   app.use("/api/*", cors({ origin: (o, c) => (c.req.path.startsWith("/api/v1") || (c.req.method === "GET" && /^\/api\/pets\/\d+\/(log|history)$/.test(c.req.path)) ? "*" : origins.includes(o) ? o : null), allowMethods: ["GET", "POST"], allowHeaders: ["Authorization", "Content-Type"], maxAge: 600 }));
 
-  app.get("/api/health", (c) => c.json({ ok: true, teach: client !== null, voice: client !== null, relay: relayer !== null, live: live !== null }));
+  // the parts are booleans (true when on); `detail` is everything else worth watching, for the status check and for Prateek
+  app.get("/api/health", async (c) => c.json({ ok: true, teach: client !== null, voice: client !== null, relay: relayer !== null, live: live !== null, ...(detail ? { detail: await detail() } : {}) }));
   app.get("/api/live/stats", (c) => c.json(live ? live.stats() : { online: 0, spaces: 0 }));
 
   app.post("/api/teach", async (c) => {
     if (!client) return c.json({ ok: false, reason: "error", detail: "teaching is not configured" }, 503);
-    const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
+    const ip = clientIp(c);
     if (!limiter.take(ip)) return busy(c);
     let body: z.infer<typeof TeachBody>;
     try {
@@ -109,7 +115,7 @@ export function createApp(client: Anthropic | null, limiter = new RateLimiter(6,
   });
   app.post("/api/tapeout", async (c) => {
     if (!relayer) return c.json({ ok: false, reason: "error", detail: "relaying is not configured" }, 503);
-    const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
+    const ip = clientIp(c);
     if (!relayLimiter.take(ip)) return busy(c);
     let body: z.infer<typeof RelayBody>;
     try {
@@ -125,7 +131,7 @@ export function createApp(client: Anthropic | null, limiter = new RateLimiter(6,
   const ChildBody = z.union([z.object({ parents: z.tuple([z.string().regex(/^\d{1,20}$/), z.string().regex(/^\d{1,20}$/)]) }), z.object({ card: z.string().max(10_000) })]);
   app.post("/api/tapeout-child", async (c) => {
     if (!relayer) return c.json({ ok: false, reason: "error", detail: "relaying is not configured" }, 503);
-    const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
+    const ip = clientIp(c);
     if (!relayLimiter.take(ip)) return busy(c);
     let body: z.infer<typeof ChildBody>;
     try {
@@ -147,7 +153,7 @@ export function createApp(client: Anthropic | null, limiter = new RateLimiter(6,
   const InstinctBody = z.object({ own: z.string().regex(/^\d{1,20}$/), processor: z.string().regex(/^0x[0-9a-fA-F]{40}$/), id: z.string().regex(/^\d{1,20}$/) });
   app.post("/api/tapeout-instinct", async (c) => {
     if (!relayer) return c.json({ ok: false, reason: "error", detail: "relaying is not configured" }, 503);
-    const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
+    const ip = clientIp(c);
     if (!relayLimiter.take(ip)) return busy(c);
     let body: z.infer<typeof InstinctBody>;
     try {
@@ -246,7 +252,7 @@ function busy(c: Context): Response {
 /** The pet's voice: one line for what its circuit decided (cached per situation). */
 export function withVoice(app: Hono, voice: ReturnType<typeof createVoice>, limiter = new RateLimiter(40, 600_000)): Hono {
   app.post("/api/voice", async (c) => {
-    const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
+    const ip = clientIp(c);
     // a missing line is normal (the pet falls back to its own words), so busy and
     // model hiccups answer 200 with ok:false rather than showing up as page errors
     if (!limiter.take(ip)) {
@@ -268,7 +274,7 @@ export function withVoice(app: Hono, voice: ReturnType<typeof createVoice>, limi
 /** The lesson library: shared lessons, most learned first, with the pet that taught each first. */
 /** Pet-sitting packs: leave a pet for a friend, collect it, send it home (the owner's game checks the return). */
 export function withSitting(app: Hono, store: SittingStore, writes = new RateLimiter(30, 3_600_000)): Hono {
-  const who = (c: { req: { header: (n: string) => string | undefined } }) => c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
+  const who = (c: Context) => clientIp(c);
   app.post("/api/sit", async (c) => {
     if (!writes.take(who(c))) return busy(c);
     if (Number(c.req.header("content-length") ?? 0) > 700_000) return c.json({ ok: false, reason: "tooBig" }, 413);
@@ -300,7 +306,7 @@ export function withSitting(app: Hono, store: SittingStore, writes = new RateLim
 
 /** Arena snapshots: save the line fielded at a round; meet another player's line at the same round. */
 export function withArena(app: Hono, store: ArenaStore, writes = new RateLimiter(120, 3_600_000)): Hono {
-  const who = (c: { req: { header: (n: string) => string | undefined } }) => c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
+  const who = (c: Context) => clientIp(c);
   app.post("/api/arena/snapshot", async (c) => {
     if (!writes.take(who(c))) return busy(c);
     if (Number(c.req.header("content-length") ?? 0) > 16_000) return c.json({ ok: false, reason: "tooBig" }, 413);
@@ -325,7 +331,7 @@ export function withArena(app: Hono, store: ArenaStore, writes = new RateLimiter
 
 /** Weekly seasons: enter this week with one tap; read any week's entries and standings. */
 export function withSeason(app: Hono, store: SeasonStore, writes = new RateLimiter(30, 3_600_000), now: () => number = Date.now): Hono {
-  const who = (c: { req: { header: (n: string) => string | undefined } }) => c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
+  const who = (c: Context) => clientIp(c);
   app.post("/api/season/enter", async (c) => {
     if (!writes.take(who(c))) return busy(c);
     if (Number(c.req.header("content-length") ?? 0) > 16_000) return c.json({ ok: false, reason: "tooBig" }, 413);
@@ -360,7 +366,7 @@ export function withMail(app: Hono, letters: () => readonly Letter[], now: () =>
 }
 
 export function withLibrary(app: Hono, library: Library, writes = new RateLimiter(60, 3_600_000)): Hono {
-  const who = (c: { req: { header: (n: string) => string | undefined } }) => c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
+  const who = (c: Context) => clientIp(c);
   const Key = z.object({ key: z.string().regex(/^[0-9a-f]{24}$/) });
   app.get("/api/lessons", (c) => {
     c.header("Cache-Control", "public, max-age=30");
@@ -453,7 +459,7 @@ export function withDiaries(app: Hono, store: DiaryStore, logHashOf: (id: string
     return log ? c.json({ ok: true, log }) : c.json({ ok: false, reason: "none" });
   });
   app.post("/api/pets/:id/log", async (c) => {
-    const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
+    const ip = clientIp(c);
     if (!limiter.take(ip)) return c.json({ ok: false, reason: "busy" }, 429);
     const id = c.req.param("id");
     let body: unknown;
@@ -471,7 +477,7 @@ export function withDiaries(app: Hono, store: DiaryStore, logHashOf: (id: string
 
 /** Moving pets between Telegram and a browser: a one-time code, claimed once within minutes. */
 export function withMove(app: Hono, store: MoveStore, limiter = new RateLimiter(20, 60 * 60_000)): Hono {
-  const ipOf = (c: { req: { header: (n: string) => string | undefined } }) => c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
+  const ipOf = (c: Context) => clientIp(c);
   app.post("/api/move", async (c) => {
     if (!limiter.take(ipOf(c))) return c.json({ ok: false, reason: "busy" }, 429);
     if (Number(c.req.header("content-length") ?? 0) > MAX_MOVE_CHARS * 2) return c.json({ ok: false, reason: "tooBig" }, 413);
@@ -500,7 +506,7 @@ export function withMove(app: Hono, store: MoveStore, limiter = new RateLimiter(
 export function withPush(app: Hono, pusher: Pusher, limiter = new RateLimiter(30, 3_600_000)): Hono {
   app.get("/api/push/key", (c) => c.json({ key: pusher.publicKey }));
   app.post("/api/push/plan", async (c) => {
-    const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
+    const ip = clientIp(c);
     if (!limiter.take(ip)) return busy(c);
     if (Number(c.req.header("content-length") ?? 0) > 4096) return c.json({ ok: false, reason: "invalid" }, 413);
     let body;
@@ -538,8 +544,31 @@ function makePusher(): Pusher | null {
   return createPusher({ publicKey: env.VAPID_PUBLIC, privateKey: env.VAPID_PRIVATE, subject: env.VAPID_SUBJECT ?? "https://lingxi.knole.me", store: process.env.LINGXI_PUSH_STORE });
 }
 
+/** Sizes of the server's data files and folders, in KB, so a store growing without bound shows before it hurts. */
+function storeSizes(dir: string): Record<string, number> {
+  const out: Record<string, number> = {};
+  const sizeOf = (p: string): number => {
+    const st = statSync(p);
+    return st.isDirectory() ? readdirSync(p).reduce((n, f) => n + sizeOf(join(p, f)), 0) : st.size;
+  };
+  try {
+    for (const f of readdirSync(dir)) out[f] = Math.round(sizeOf(join(dir, f)) / 1024);
+  } catch {
+    // no data folder yet
+  }
+  return out;
+}
+
 const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
+  // a stray rejection is logged and the server keeps serving; an exception means state may be broken, so it exits and
+  // pm2 starts it clean (every timer runs through `jobs`, which catches its own errors, so neither should happen)
+  process.on("unhandledRejection", (e) => process.stderr.write(`unhandled rejection: ${e instanceof Error ? (e.stack ?? e.message) : String(e)}\n`));
+  process.on("uncaughtException", (e) => {
+    process.stderr.write(`uncaught exception: ${e.stack ?? e.message}\n`);
+    process.exit(1);
+  });
+  const jobs = createJobs();
   const key = loadKey();
   const client = key ? new Anthropic({ apiKey: key }) : null;
   const port = Number(process.env.PORT ?? 8787);
@@ -583,7 +612,23 @@ if (isMain) {
   };
   const live = new LiveRooms(createDecorStore(process.env.LINGXI_DECOR_STORE), createHomes({ ...(homeChain ? { chain: homeChain } : {}), file: process.env.LINGXI_HOMES_STORE }));
   const origins = (process.env.LINGXI_ORIGINS ?? "http://localhost:5199,http://localhost:4173").split(",");
-  const app = createApp(client, undefined, relayer, undefined, live);
+  // what /api/health reports beyond its switches; chain reads are cached so a busy health check costs nothing
+  const watch: { indexed?: () => number; head?: () => Promise<bigint> } = {};
+  let cached: { at: number; value: Record<string, unknown> } | null = null;
+  const dataDir = resolve(dirname(fileURLToPath(import.meta.url)), "../data");
+  const detail: HealthDetail = async () => {
+    if (cached && Date.now() - cached.at < 30_000) return cached.value;
+    const [head, relayerWei] = await Promise.all([watch.head?.().catch(() => null) ?? null, relayer?.balance().catch(() => null) ?? null]);
+    const value = {
+      jobs: Object.fromEntries(jobs.status().map((j) => [j.name, j.healthy ? "ok" : `failing: ${j.lastError?.message ?? "?"}`])),
+      indexerLagBlocks: head !== null && watch.indexed ? Number(head) - watch.indexed() : null,
+      relayerOkb: relayerWei === null ? null : Number(relayerWei) / 1e18,
+      storesKb: storeSizes(dataDir),
+    };
+    cached = { at: Date.now(), value };
+    return value;
+  };
+  const app = createApp(client, undefined, relayer, undefined, live, detail);
   if (client) withVoice(app, createVoice(client));
   withLibrary(app, createLibrary(process.env.LINGXI_LIBRARY_STORE));
   withSitting(app, createSittingStore(process.env.LINGXI_SIT_STORE));
@@ -618,34 +663,28 @@ if (isMain) {
     // R2: Little Mars counts today's tape-outs across every X Layer processor
     const lane = createTapeoutCounter(factoryReader(rpc), process.env.LINGXI_LANE_FILE);
     withLane(app, lane);
-    const laneTick = () => void lane.tick().catch((e: Error) => process.stderr.write(`lane count: ${e.message}
-`));
-    laneTick();
-    setInterval(laneTick, 5 * 60_000);
+    jobs.every("lane count", 5 * 60_000, () => lane.tick(), { now: true });
     if (chain) withDiaries(app, createDiaryStore(process.env.LINGXI_DIARY_DIR), async (id) => (await readPet(chain!.pub, chain!.deployment, BigInt(id))).logHash);
   }
   if (relayer) {
     // a finished week's champion gets its brain taped out and sent to its wallet (PRD F26)
-    let giving = false;
-    const giveKeepsakes = () => {
-      if (giving) return;
-      giving = true;
-      void settleAwards(seasons, async (entry, wallet) => {
+    const giveKeepsakes = () =>
+      settleAwards(seasons, async (entry, wallet) => {
         const card = parseCard(entry.pet.card);
         if (!card) return { ok: false, detail: "damaged card" };
         const r = await relayer.keepsake({ line: entry.pet.line, lessons: card.lessons, instincts: card.instincts, family: card.family, growth: card.growth }, wallet as `0x${string}`);
         if (!r.ok) process.stderr.write(`season keepsake failed: ${r.reason} ${r.detail ?? ""}\n`);
         return r.ok ? { ok: true, brainId: r.brainId, tapeTx: r.tapeTx, sendTx: r.sendTx } : { ok: false, detail: r.detail };
-      })
-        .catch((e) => process.stderr.write(`season keepsakes: ${(e as Error).message}\n`))
-        .finally(() => (giving = false));
-    };
-    setTimeout(giveKeepsakes, 30_000);
-    setInterval(giveKeepsakes, 10 * 60_000);
+      });
+    jobs.after("season keepsakes (first)", 30_000, giveKeepsakes);
+    jobs.every("season keepsakes", 10 * 60_000, giveKeepsakes);
   }
   if (process.env.LINGXI_REGISTRY && process.env.LINGXI_REGISTRY_FROM) {
     const indexer = createIndexer({ rpc: process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech", registry: process.env.LINGXI_REGISTRY as `0x${string}`, fromBlock: Number(process.env.LINGXI_REGISTRY_FROM), store: process.env.LINGXI_HISTORY_STORE });
     withHistory(app, indexer);
+    watch.indexed = () => indexer.head();
+    const headClient = createPublicClient({ transport: http(process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech", { timeout: 10_000 }) });
+    watch.head = () => headClient.getBlockNumber();
     const look = process.env.LINGXI_LOOK as `0x${string}` | undefined;
     const lookClient = createPublicClient({ transport: http(process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech", { timeout: 10_000 }) });
     withTree(
@@ -654,8 +693,7 @@ if (isMain) {
       look ? async (id) => String(await lookClient.readContract({ address: look, abi: lookAbi, functionName: "nameOf", args: [BigInt(id)] })) : undefined,
       chainCtx?.deployment.extras ? (ids) => nameColours(chainCtx!.pub, chainCtx!.deployment, ids.map((x) => BigInt(x))) : undefined,
     );
-    const loop = () => indexer.catchUp().catch(() => 0).finally(() => setTimeout(loop, 15_000));
-    loop();
+    jobs.loop("indexer", () => indexer.catchUp(), 15_000);
     // live numbers: the pet counts above, both markets' sales, and the contracts' own totals
     const rpc = process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech";
     const env = (k: string) => (process.env[k] ? (process.env[k] as `0x${string}`) : undefined);
@@ -664,8 +702,7 @@ if (isMain) {
       { address: env("LINGXI_MARKET_BEM"), fromBlock: Number(process.env.LINGXI_MARKET_BEM_FROM ?? 0) },
     ].filter((m): m is { address: `0x${string}`; fromBlock: number } => !!m.address && m.fromBlock > 0);
     const sales = createSalesCounter({ rpc, markets, store: process.env.LINGXI_SALES_STORE });
-    const salesLoop = () => sales.catchUp().catch(() => undefined).finally(() => setTimeout(salesLoop, 20_000));
-    salesLoop();
+    jobs.loop("sales", () => sales.catchUp(), 20_000);
     withNumbers(app, {
       pub: createPublicClient({ transport: http(rpc, { timeout: 15_000 }) }) as never,
       counts: (since) => indexer.counts(since),
@@ -690,16 +727,18 @@ if (isMain) {
 `);
       }
     }
-    const goalsLoop = () => ledger.catchUp().catch(() => 0).finally(() => setTimeout(goalsLoop, 20_000));
-    goalsLoop();
+    jobs.loop("goals", () => ledger.catchUp(), 20_000);
   }
   const pusher = makePusher();
   if (pusher) {
     withPush(app, pusher);
-    setInterval(() => void pusher.tick(Date.now()), 60_000);
+    jobs.every("reminders", 60_000, () => pusher.tick(Date.now()));
   }
   if (process.env.LINGXI_STATIC) withSite(app, process.env.LINGXI_STATIC);
-  const server = serve({ fetch: app.fetch, port });
+  // loopback only: the world reaches it through the Cloudflare tunnel, so no one can send a request around it with a
+  // forged cf-connecting-ip (see clientIp.ts)
+  const hostname = process.env.LINGXI_HOST ?? "127.0.0.1";
+  const server = serve({ fetch: app.fetch, port, hostname });
   attachLive(server as never, live, origins);
-  process.stdout.write(`lingxi api on :${port} (teaching ${client ? "on" : "off: no key"}, relaying ${relayer ? "on" : "off"}, reminders ${pusher ? "on" : "off"})\n`);
+  process.stdout.write(`lingxi api on ${hostname}:${port} (teaching ${client ? "on" : "off: no key"}, relaying ${relayer ? "on" : "off"}, reminders ${pusher ? "on" : "off"})\n`);
 }

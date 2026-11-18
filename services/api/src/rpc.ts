@@ -8,6 +8,7 @@
 
 import type { Context, Hono } from "hono";
 import { RateLimiter } from "./limit";
+import { clientIp } from "./clientIp";
 
 export const RPC_METHODS = new Set([
   "eth_chainId",
@@ -68,7 +69,7 @@ export function withRpcProxy(app: Hono, opts: RpcProxyOptions) {
   const limiter = opts.limiter ?? new RateLimiter(600, 60_000);
   const doFetch = opts.fetch ?? fetch;
   const timeoutMs = opts.timeoutMs ?? 20_000;
-  const who = (c: Context) => c.req.header("cf-connecting-ip") ?? c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? "local";
+  const who = (c: Context) => clientIp(c);
 
   app.post("/api/rpc", async (c) => {
     if (!limiter.take(who(c))) return c.json({ jsonrpc: "2.0", id: null, error: { code: -32005, message: "too many requests" } }, 429);

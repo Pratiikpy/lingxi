@@ -50,9 +50,13 @@ export class BrainRelayer {
   private store: Store;
   private queue: Promise<unknown> = Promise.resolve();
 
+  /** the relayer's own address, which pays for every tape-out */
+  readonly address: `0x${string}`;
+
   constructor(private readonly cfg: RelayerConfig) {
     const chain = { ...xLayer, rpcUrls: { default: { http: [cfg.rpc] } } };
     const account = privateKeyToAccount(cfg.key);
+    this.address = account.address;
     this.pub = createPublicClient({ chain, transport: http(cfg.rpc) });
     this.wallet = createWalletClient({ chain, transport: http(cfg.rpc), account });
     try {
@@ -65,6 +69,11 @@ export class BrainRelayer {
   private save(): void {
     mkdirSync(dirname(this.cfg.storeFile), { recursive: true });
     writeFileSync(this.cfg.storeFile, JSON.stringify(this.store, null, 1));
+  }
+
+  /** What the relayer holds now, in OKB wei (read from chain). */
+  balance(): Promise<bigint> {
+    return this.pub.getBalance({ address: this.address });
   }
 
   /** Serialises tape-outs so nonces never collide and the budget is exact. */
