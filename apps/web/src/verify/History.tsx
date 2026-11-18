@@ -2,27 +2,20 @@
  * A pet's life on chain, day by day (B5, Z1): when it hatched, every daily save with
  * the meters it recorded, every new brain, and its family. Listed by Lingxi's indexer
  * from PetRegistry's events; each row links to its transaction, so anyone can check
- * it on the explorer. The on-chain build has no indexer and says where to look.
+ * it on the explorer. The on-chain copy asks the live site's indexer for the same list.
  */
 
 import { useEffect, useState } from "react";
 import { unpackState } from "@lingxi/game";
+import { type PetHistoryRecord, fetchPetHistory } from "./indexer";
 
-const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
 const TX = (tx: string) => `https://www.oklink.com/xlayer/tx/${tx}`;
 
-interface History {
-  hatched?: { block: number; tx: string; line: number; brainId: string; state: string };
-  parents?: [string, string];
-  children: string[];
-  saves: Array<{ day: number; state: string; logHash: string; block: number; tx: string }>;
-  brains: Array<{ brainId: string; bits: number; block: number; tx: string }>;
-  at: Record<string, number>;
-}
+type History = PetHistoryRecord;
 
 const T = {
-  en: { title: "Its life on chain", none: "Nothing indexed for this pet yet.", hatched: "Hatched", saved: "Day {d} saved", brain: "New mind: circuit #{id}", parents: "Parents", children: "Little ones", offline: "The day-by-day history is listed by Lingxi's indexer, which this on-chain copy doesn't use. Open this page on lingxi.knole.me to see it, or read the PetRegistry events on the explorer.", meters: "food {f} · joy {j} · energy {e} · clean {c}" },
-  zh: { title: "它在链上的一生", none: "这只宠物还没有被索引到的记录。", hatched: "孵化", saved: "第 {d} 天已保存", brain: "新心智：电路 #{id}", parents: "父母", children: "小宝宝", offline: "逐日记录由灵犀的索引服务整理，链上版本不使用它。请在 lingxi.knole.me 打开本页查看，或在区块浏览器里查看 PetRegistry 的事件。", meters: "饱腹 {f} · 开心 {j} · 精神 {e} · 干净 {c}" },
+  en: { title: "Its life on chain", none: "Nothing indexed for this pet yet.", hatched: "Hatched", saved: "Day {d} saved", brain: "New mind: circuit #{id}", parents: "Parents", children: "Little ones", source: "Listed by Lingxi's indexer from PetRegistry's events. Each row links to its transaction on X Layer; the meters are what the owner saved that day.", meters: "food {f} · joy {j} · energy {e} · clean {c}" },
+  zh: { title: "它在链上的一生", none: "这只宠物还没有被索引到的记录。", hatched: "孵化", saved: "第 {d} 天已保存", brain: "新心智：电路 #{id}", parents: "父母", children: "小宝宝", source: "由灵犀的索引服务从 PetRegistry 的事件整理。每一行都链接到 X Layer 上的交易；数值是主人那天保存的状态。", meters: "饱腹 {f} · 开心 {j} · 精神 {e} · 干净 {c}" },
 } as const;
 
 const when = (sec: number | undefined, lang: "en" | "zh") => (sec ? new Date(sec * 1000).toLocaleString(lang === "zh" ? "zh-CN" : "en", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "");
@@ -31,18 +24,15 @@ export function PetHistory({ id, brainBits, lang, onOpen }: { id: string; brainB
   const t = T[lang];
   const [h, setH] = useState<History | null | "none">(null);
   useEffect(() => {
-    if (!BASE) return;
     let live = true;
     setH(null);
-    fetch(`${BASE}/api/pets/${id}/history`, { signal: AbortSignal.timeout(8000) })
-      .then((r) => r.json() as Promise<{ ok: boolean } & History>)
-      .then((j) => live && setH(j.ok ? j : "none"))
+    fetchPetHistory(id)
+      .then((j) => live && setH(j ?? "none"))
       .catch(() => live && setH("none"));
     return () => {
       live = false;
     };
   }, [id]);
-  if (!BASE) return <p className="v-note">{t.offline}</p>;
   if (h === null) return null;
   if (h === "none") return <p className="v-note">{t.none}</p>;
   const rows: Array<{ block: number; tx: string; label: string; detail?: string }> = [];
@@ -75,10 +65,11 @@ export function PetHistory({ id, brainBits, lang, onOpen }: { id: string; brainB
           )}
         </p>
       )}
+      <p className="v-note">{t.source}</p>
       <ol className="v-timeline">
         {rows.map((r) => (
           <li key={`${r.tx}-${r.label}`}>
-            <span className="v-when">{when(h.at[r.block], lang)}</span>
+            <span className="v-when">{when(h.at?.[r.block], lang)}</span>
             <b>{r.label}</b>
             {r.detail && <span className="v-note">{r.detail}</span>}
             <a className="mono" href={TX(r.tx)} target="_blank" rel="noopener noreferrer">

@@ -157,8 +157,8 @@ export function FashionMarketPanel({ pet }: { pet: Pet }) {
       <p className="label">{L("Fashion market", "时装市场")}</p>
       <p className="small">
         {L(
-          "Pieces drawn by players, shown on your own pet. A copy is yours to wear for good; you can resell it too. New pieces are priced in BEM; the creator earns on every sale, and the market's 3% fee is burned.",
-          "玩家画的衣服，直接穿在你的宠物身上看。买到的一份永远归你穿，也可以转卖。新作品用 BEM 定价；每卖出一份作者都有收入，市场 3% 的手续费会被销毁。",
+          "Pieces drawn by players, shown on your own pet. A copy is yours to wear for good; you can resell it too. New pieces are priced in BEM; the creator earns on every sale, and the market's 3% fee is burned. Pieces listed before BEM pricing still sell on the first market in OKB, where the 3% fee goes to the project.",
+          "玩家画的衣服，直接穿在你的宠物身上看。买到的一份永远归你穿，也可以转卖。新作品用 BEM 定价；每卖出一份作者都有收入，市场 3% 的手续费会被销毁。BEM 定价之前上架的作品仍在第一个市场用 OKB 交易，那里 3% 的手续费归项目所有。",
         )}
       </p>
       {burned !== null && burned > 0n && (

@@ -1,0 +1,113 @@
+/**
+ * Where this page's proofs come from: which hosts answered, how many reads each, and a box for the judge's own X Layer
+ * RPC, which is then asked before any of ours. If Lingxi's server ever had to answer, it says so in plain words.
+ */
+
+import { useState } from "react";
+import { checkOwnRpc, endpoints, useProofRpc } from "../game/proofRpc";
+
+const T = {
+  en: {
+    title: "Where these proofs come from",
+    lede: "Every check on this page reads X Layer from your browser. It asks your own RPC first if you add one, then X Layer's public RPCs. Lingxi's server is asked only if all of those fail.",
+    asked: "Asked, in order",
+    answered: "Answered so far",
+    none: "nothing yet",
+    fallback: "Lingxi's server answered {n} of these reads because the public endpoints did not. Add your own RPC above to take it out entirely.",
+    noFallback: "Lingxi's server has answered none of them.",
+    mine: "Your own X Layer RPC",
+    use: "Use it",
+    clear: "Stop using it",
+    checking: "Checking…",
+    bad: { address: "That is not an https address.", unreachable: "It did not answer.", chain: "It answered, but not for X Layer (chain 196)." },
+    yours: "yours",
+    server: "Lingxi's server, only if all else fails",
+  },
+  zh: {
+    title: "这些证明从哪里来",
+    lede: "本页每一项核对都由你的浏览器直接读取 X Layer。如果你填了自己的 RPC，会先问它，再问 X Layer 的公共 RPC。只有它们全部失败时才会问灵犀的服务器。",
+    asked: "询问顺序",
+    answered: "目前的回答",
+    none: "还没有",
+    fallback: "其中 {n} 次读取是灵犀的服务器回答的，因为公共节点没有回应。在上面填入你自己的 RPC 就能完全不经过它。",
+    noFallback: "灵犀的服务器一次也没有回答。",
+    mine: "你自己的 X Layer RPC",
+    use: "使用",
+    clear: "不再使用",
+    checking: "检查中……",
+    bad: { address: "这不是 https 地址。", unreachable: "它没有回应。", chain: "它回应了，但不是 X Layer（链 196）。" },
+    yours: "你的",
+    server: "灵犀的服务器，仅在其他都失败时",
+  },
+};
+
+export function EndpointPanel({ lang }: { lang: "en" | "zh" }) {
+  const t = T[lang];
+  const { mine, hosts, fallback, setMine } = useProofRpc();
+  const [draft, setDraft] = useState(mine ?? "");
+  const [state, setState] = useState<"idle" | "checking" | keyof (typeof T)["en"]["bad"]>("idle");
+  const ends = endpoints();
+  const order = [...(ends.mine ? [{ host: new URL(ends.mine).host, note: t.yours }] : []), ...ends.publicRpcs.map((u) => ({ host: new URL(u).host, note: "" })), ...(ends.fallback ? [{ host: new URL(ends.fallback).host, note: t.server }] : [])];
+  const answered = Object.entries(hosts).sort((a, b) => b[1] - a[1]);
+
+  const use = async () => {
+    setState("checking");
+    const r = await checkOwnRpc(draft);
+    if (!r.ok) return setState(r.reason);
+    setMine(new URL(draft.trim()).toString());
+    setState("idle");
+  };
+
+  return (
+    <section className="v-card v-endpoints" aria-labelledby="endpoints-h">
+      <h2 id="endpoints-h">{t.title}</h2>
+      <p className="v-note">{t.lede}</p>
+      <dl>
+        <dt>{t.asked}</dt>
+        <dd>
+          <ol className="v-hosts">
+            {order.map((o) => (
+              <li key={o.host} className="mono">
+                {o.host}
+                {o.note && <span className="v-note"> · {o.note}</span>}
+              </li>
+            ))}
+          </ol>
+        </dd>
+        <dt>{t.answered}</dt>
+        <dd className="mono" data-testid="answered">
+          {answered.length ? answered.map(([h, n]) => `${h} ${n.toLocaleString()}`).join(" · ") : t.none}
+        </dd>
+      </dl>
+      <p className={fallback ? "v-bad" : "v-note"} data-testid="fallback">
+        {fallback ? t.fallback.replace("{n}", fallback.toLocaleString()) : t.noFallback}
+      </p>
+      <form
+        className="v-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void use();
+        }}
+      >
+        <label htmlFor="own-rpc">{t.mine}</label>
+        <input id="own-rpc" type="url" inputMode="url" autoComplete="off" spellCheck={false} placeholder="https://" value={draft} onChange={(e) => setDraft(e.target.value)} />
+        <button type="submit" disabled={state === "checking" || !draft.trim()}>
+          {state === "checking" ? t.checking : t.use}
+        </button>
+        {mine && (
+          <button
+            type="button"
+            className="v-link"
+            onClick={() => {
+              setMine(null);
+              setDraft("");
+            }}
+          >
+            {t.clear}
+          </button>
+        )}
+      </form>
+      {state !== "idle" && state !== "checking" && <p className="v-bad">{t.bad[state]}</p>}
+    </section>
+  );
+}

@@ -31,7 +31,7 @@ const LINES = ["gentle", "bold", "curious"] as const;
 
 // X Layer mainnet unless a build asks for a local chain (VITE_CHAIN=local) or a fork rehearsal, so a fresh clone plays
 // against the real contracts with no setup
-const NETWORK = (import.meta.env.VITE_CHAIN as string | undefined) || "xlayer";
+export const NETWORK = (import.meta.env.VITE_CHAIN as string | undefined) || "xlayer";
 const DEPLOYMENTS: Record<string, Deployment | undefined> = {
   local: localDeployment as unknown as Deployment,
   xlayer: xlayerDeployment as unknown as Deployment,
@@ -45,12 +45,12 @@ export const explorerTx = (tx: string) => (NETWORK === "local" ? null : `https:/
 // (an empty value counts as unset, as the on-chain build passes it)
 // X Layer's public RPCs. OKX's answers every browser request with CORS headers; rpc.xlayer.tech drops them
 // on its rate-limit replies, which the browser then reports as a blocked request, so it is the fallback.
-const OFFICIAL_RPCS = ["https://xlayerrpc.okx.com", "https://rpc.xlayer.tech"];
+export const OFFICIAL_RPCS = ["https://xlayerrpc.okx.com", "https://rpc.xlayer.tech"];
 // With a server of our own (VITE_API_URL), the browser reads X Layer through it, same origin, so a public RPC's
 // rate-limit reply can never surface as a blocked request; the public RPCs stay behind it as fallbacks. The
 // on-chain copy on DeWEB has no server and talks to the public RPCs directly.
-const API_RPC = (import.meta.env.VITE_API_URL as string | undefined) ? `${import.meta.env.VITE_API_URL as string}/api/rpc` : location.hostname === "localhost" ? "http://localhost:8787/api/rpc" : null;
-const rpcs: string[] = (import.meta.env.VITE_RPC as string | undefined)
+export const API_RPC = (import.meta.env.VITE_API_URL as string | undefined) ? `${import.meta.env.VITE_API_URL as string}/api/rpc` : location.hostname === "localhost" ? "http://localhost:8787/api/rpc" : null;
+export const rpcs: string[] = (import.meta.env.VITE_RPC as string | undefined)
   ? [import.meta.env.VITE_RPC as string]
   : NETWORK === "xlayer"
     ? [...(API_RPC ? [API_RPC] : []), ...OFFICIAL_RPCS]

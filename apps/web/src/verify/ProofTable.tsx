@@ -7,7 +7,8 @@
 import { useEffect, useState } from "react";
 import { keccak256, type Hex } from "viem";
 import { processorAbi } from "@lingxi/chain";
-import { deployment, readClients } from "../game/chain";
+import { deployment } from "../game/chain";
+import { proofClient } from "../game/proofRpc";
 
 const CIRCUITS: ReadonlyArray<{ id: number; name: { en: string; zh: string }; gates: number; memory: number; hash: Hex }> = [
   { id: 1, name: { en: "Gentle starter brain", zh: "温柔系初始大脑" }, gates: 296, memory: 8, hash: "0xab2d7b0e5c8eeb1fcdf6f0225b6dd912459a26b6fcc73f86d5470152a18a1e47" },
@@ -28,7 +29,7 @@ export function ProofTable({ lang }: { lang: "en" | "zh" }) {
       CIRCUITS.map(async (c, i) => {
         setStatus((s) => ({ ...s, [c.id]: "checking" }));
         try {
-          const client = readClients[i % readClients.length]!;
+          const client = proofClient(i);
           const nl = (await client.readContract({ address: deployment!.processor, abi: processorAbi, functionName: "netlist", args: [BigInt(c.id)] })) as Hex;
           if (live) setStatus((s) => ({ ...s, [c.id]: keccak256(nl) === c.hash ? "match" : "differs" }));
         } catch {

@@ -1,0 +1,63 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { type Endpoints, proofRequest } from "./rpcAsk";
+
+type Reply = { status: number; body?: unknown } | "network";
+/** A fetch that answers each URL from a script and records which URLs were asked. */
+function scripted(replies: Record<string, Reply[]>) {
+  const asked: string[] = [];
+  const fetcher = vi.fn(async (url: string) => {
+    asked.push(url);
+    const next = replies[url]?.shift() ?? { status: 500 };
+    if (next === "network") throw new TypeError("Failed to fetch");
+    return new Response(JSON.stringify(next.body ?? {}), { status: next.status, headers: { "content-type": "application/json" } });
+  });
+  return { fetcher: fetcher as unknown as typeof fetch, asked };
+}
+const ok = (result: unknown) => ({ status: 200, body: { jsonrpc: "2.0", id: 1, result } });
+const ends: Endpoints = { mine: null, publicRpcs: ["https://a.example", "https://b.example"], fallback: "https://lingxi.example/api/rpc" };
+
+describe("the proof page's reads of X Layer", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("asks a public endpoint and says which one answered", async () => {
+    const { fetcher, asked } = scripted({ "https://a.example": [ok("0xc4")] });
+    const r = await proofRequest(ends, { method: "eth_chainId" }, { fetcher });
+    expect(r).toEqual({ result: "0xc4", host: "a.example", fallback: false });
+    expect(asked).toEqual(["https://a.example"]);
+  });
+
+  it("moves to the next public endpoint on a rate limit, an outage or a refused connection", async () => {
+    for (const first of [{ status: 429 }, { status: 503 }, "network" as const, { status: 200, body: { jsonrpc: "2.0", id: 1, error: { code: -32005, message: "rate limit exceeded" } } }]) {
+      const { fetcher, asked } = scripted({ "https://a.example": [first], "https://b.example": [ok("0x1")] });
+      const r = await proofRequest(ends, { method: "eth_blockNumber" }, { fetcher });
+      expect(r.host).toBe("b.example");
+      expect(asked).toEqual(["https://a.example", "https://b.example"]);
+    }
+  });
+
+  it("uses Lingxi's server only when every public endpoint failed, and marks it", async () => {
+    const { fetcher, asked } = scripted({ "https://a.example": [{ status: 503 }], "https://b.example": ["network"], "https://lingxi.example/api/rpc": [ok("0x2")] });
+    const r = await proofRequest(ends, { method: "eth_blockNumber" }, { fetcher });
+    expect(r).toEqual({ result: "0x2", host: "lingxi.example", fallback: true });
+    expect(asked.at(-1)).toBe("https://lingxi.example/api/rpc");
+  });
+
+  it("asks the judge's own endpoint first, before any of ours", async () => {
+    const { fetcher, asked } = scripted({ "https://mine.example": [ok("0x3")] });
+    const r = await proofRequest({ ...ends, mine: "https://mine.example" }, { method: "eth_blockNumber" }, { fetcher });
+    expect(r.host).toBe("mine.example");
+    expect(asked).toEqual(["https://mine.example"]);
+  });
+
+  it("passes a contract's revert straight back rather than asking elsewhere", async () => {
+    const revert = { status: 200, body: { jsonrpc: "2.0", id: 1, error: { code: 3, message: "execution reverted", data: "0x12345678" } } };
+    const { fetcher, asked } = scripted({ "https://a.example": [revert] });
+    await expect(proofRequest(ends, { method: "eth_call" }, { fetcher })).rejects.toMatchObject({ code: 3, data: "0x12345678" });
+    expect(asked).toEqual(["https://a.example"]);
+  });
+
+  it("fails plainly when nothing answers", async () => {
+    const { fetcher } = scripted({});
+    await expect(proofRequest({ ...ends, fallback: null }, { method: "eth_blockNumber" }, { fetcher })).rejects.toThrow(/no endpoint answered/);
+  });
+});

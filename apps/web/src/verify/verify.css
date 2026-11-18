@@ -399,3 +399,65 @@
   text-decoration-thickness: 2px;
   text-underline-offset: 3px;
 }
+
+/* proven by replay, or only reported by the owner: the difference a judge needs to see at a glance */
+.v-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-family: var(--round);
+  font-size: 12px;
+  font-weight: 800;
+  vertical-align: 1px;
+}
+.v-tag-proven {
+  background: #d9f2e2;
+  color: #1f6b40;
+}
+.v-tag-reported {
+  background: var(--tint);
+  color: var(--ink-soft);
+  border: 1px dashed var(--line);
+}
+.v-block {
+  display: block;
+  margin-top: 4px;
+  font-weight: 400;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .v-tag-proven {
+    background: #1f4a33;
+    color: #a8ecc3;
+  }
+}
+
+.v-endpoints dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 14px;
+  margin: 10px 0;
+}
+.v-endpoints dt {
+  font-weight: 800;
+}
+.v-endpoints dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.v-hosts {
+  margin: 0;
+  padding-left: 1.2em;
+}
+.v-endpoints .v-form {
+  margin-top: 10px;
+}
+@media (max-width: 520px) {
+  .v-endpoints dl {
+    grid-template-columns: 1fr;
+  }
+}
+.v-endpoints .v-form input {
+  flex: 1 1 260px;
+  width: auto;
+  min-width: 0;
+}

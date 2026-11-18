@@ -76,7 +76,7 @@ function rows(n: Numbers): Array<{ title: [string, string]; readTo?: number; ite
       items: [
         { label: ["Pets hatched", "孵化的宠物"], value: fmt(n.pets.hatched), counts: ["Pets hatched from an egg (Hatched events without parents).", "从蛋里孵化的宠物（没有父母的 Hatched 事件）。"], source: "registry" },
         { label: ["Little ones born", "出生的小宝宝"], value: fmt(n.pets.children), counts: ["Pets born of two parents (Bred events).", "由两位父母生下的宠物（Bred 事件）。"], source: "registry" },
-        { label: ["Days kept on X Layer", "保存在 X Layer 的天数"], value: fmt(n.pets.daysSaved), counts: ["Every day of a pet's life saved on chain (Checkpoint events).", "宠物生活中每一天的链上存档（Checkpoint 事件）。"], source: "registry" },
+        { label: ["Days kept on X Layer", "保存在 X Layer 的天数"], value: fmt(n.pets.daysSaved), counts: ["Days a pet was saved on chain, counted over every pet (Checkpoint events).", "所有宠物在链上保存过的天数之和（Checkpoint 事件）。"], source: "registry" },
         { label: ["Pets saved in the last 24 hours", "过去 24 小时存档的宠物"], value: fmt(n.pets.savedLast24h), counts: ["Distinct pets with at least one save in the last day. Not a count of people: one person can keep several pets.", "过去一天里至少存档过一次的不同宠物。不是人数：一个人可以养好几只。"], source: "registry" },
         { label: ["Wallets that hatched a pet", "孵化过宠物的钱包"], value: fmt(n.pets.hatchers), counts: ["Distinct wallets a pet was hatched or born to.", "宠物孵化或出生时归属的不同钱包。"], source: "registry" },
       ],

@@ -1,10 +1,11 @@
 /**
  * The proof page. Anyone can check a Lingxi pet without trusting us:
- *   1. read the pet straight from PetRegistry on X Layer;
+ *   1. read the pet straight from PetRegistry on X Layer, through the public RPCs (or the judge's own), never
+ *      through our server unless every public endpoint fails, and then said so (see game/proofRpc.ts);
  *   2. download its brain's netlist from the TapeOut processor and run it in our
  *      open TAP-02 evaluator, side by side with the processor's own `step`;
- *   3. drop in a pet's input log to recompute the keccak hash chain the last
- *      checkpoint committed to, and replay every beat to the memory on chain.
+ *   3. drop in a pet's input log to recompute the keccak hash chain the last checkpoint committed to, anchor every
+ *      brain the log names to the pet's own events on chain, and replay every beat to the memory on chain.
  */
 
 import { OnChainNote } from "../OnChainNote";
@@ -15,12 +16,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { type Hex } from "viem";
 import { beat, bitsToWord, circuitBrain, type Circuit, wordToBits, decodeSenses } from "@lingxi/brain";
 import { PetHistory } from "./History";
-import { type ChainPet, canvasOfSvg, gameSprite, loadCircuitFromChain, lookOf, nameColours, readMetadata, readPet, replayMany, replayStep } from "@lingxi/chain";
+import { type ChainPet, anchorBrains, canvasOfSvg, gameSprite, loadCircuitFromChain, lookOf, nameColours, readMetadata, readPet, replayMany, replayStep } from "@lingxi/chain";
 import { Named } from "../play/Named";
 import { type DiaryLine, chainAll, diaryOfStretches, diaryText, unpackState, ZERO_HASH } from "@lingxi/game";
 
 const DIARY_API = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
-import { deployment, publicClient, readClients } from "../game/chain";
+import { deployment } from "../game/chain";
+import { proofClient } from "../game/proofRpc";
+import { EndpointPanel } from "./Endpoints";
+import { fetchPetHistory } from "./indexer";
 import { useLang } from "../i18n";
 import "./verify.css";
 import { markProofChecked } from "../game/proofMark";
@@ -35,7 +39,7 @@ interface Row {
 const T = {
   en: {
     title: "Verify a Lingxi pet",
-    lede: "Every Lingxi pet's mind is a TapeOut circuit on X Layer. This page reads the chain directly and checks the pet's thoughts with an open evaluator, so you never have to trust the game.",
+    lede: "Every Lingxi pet's mind is a TapeOut circuit on X Layer. This page reads the chain from your browser through X Layer's public RPCs (or your own) and checks the pet's thoughts with an open evaluator, so you never have to trust the game.",
     id: "Pet number",
     load: "Read from X Layer",
     owner: "Owner",
@@ -45,6 +49,9 @@ const T = {
     days: "Days saved",
     log: "Committed input log",
     meters: "Saved state",
+    proven: "Memory, proven by replay",
+    reported: "Reported by the owner",
+    reportedNote: "The owner's game writes the rest of the state word when it saves a day; the chain keeps it but cannot check it. Only the memory bits are proven, by the log check below.",
     run: "Check 32 thoughts",
     running: "Asking the processor...",
     match: "match",
@@ -55,7 +62,8 @@ const T = {
     logPick: "Choose a log file",
     logNone: "No file chosen",
     logHelp: "Drop the log file the game exports (Pet → Download log). We recompute its hash chain and replay every beat.",
-    logOk: "The log's hash equals the one on chain, and replaying its {n} gives exactly the saved memory.",
+    logOk: "The log's hash equals the one on chain, every brain it names is anchored to this pet's own events on X Layer ({a}), and replaying its {n} gives exactly the saved memory.",
+    notAnchored: "The log's hash matches, but its brains could not be anchored to this pet's events on X Layer: {why}",
     logBadHash: "This log does not hash to the value on chain.",
     logBadState: "The hash matches, but the replay ends at a different memory than the one saved.",
     notFound: "No pet with that number.",
@@ -71,7 +79,7 @@ const T = {
   },
   zh: {
     title: "验证一只灵犀宠物",
-    lede: "每只灵犀宠物的心智都是 X Layer 上的 TapeOut 电路。本页直接读取链上数据，用开源求值器核对它的念头，你不需要相信游戏本身。",
+    lede: "每只灵犀宠物的心智都是 X Layer 上的 TapeOut 电路。本页由你的浏览器通过 X Layer 的公共 RPC（或你自己的）读取链上数据，用开源求值器核对它的念头，你不需要相信游戏本身。",
     id: "宠物编号",
     load: "从 X Layer 读取",
     owner: "主人",
@@ -81,6 +89,9 @@ const T = {
     days: "已保存天数",
     log: "已承诺的输入日志",
     meters: "保存的状态",
+    proven: "记忆，由重放证明",
+    reported: "由主人上报",
+    reportedNote: "其余的状态由主人的游戏在保存当天时写入；链上保存它，但无法核对它。只有记忆位能被证明，方法是下面的日志核对。",
     run: "核对 32 个念头",
     running: "正在询问处理器……",
     match: "一致",
@@ -91,7 +102,8 @@ const T = {
     logPick: "选择日志文件",
     logNone: "还没有选择文件",
     logHelp: "拖入游戏导出的日志文件（宠物 → 下载日志）。我们会重算哈希链并重放每一拍。",
-    logOk: "日志哈希与链上一致，重放 {n} 拍后得到的记忆与保存的完全相同。",
+    logOk: "日志哈希与链上一致，它用到的每个大脑都锚定在这只宠物在 X Layer 上的事件（{a}），重放 {n} 拍后得到的记忆与保存的完全相同。",
+    notAnchored: "日志哈希一致，但它用到的大脑无法锚定到这只宠物在 X Layer 上的事件：{why}",
     logBadHash: "这份日志的哈希和链上的不一致。",
     logBadState: "哈希一致，但重放后的记忆与保存的不同。",
     notFound: "没有这个编号的宠物。",
@@ -108,6 +120,15 @@ const T = {
 };
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+/** why a log's brains could not be anchored, in plain words */
+const WHY = {
+  en: { noHints: "no hatching transaction was found to read", noHatch: "the transaction named is not this pet's hatching", hatchBrain: "the log starts with a brain the pet did not hatch with", unanchored: "a brain it names has no matching event for this pet", skipsChange: "it leaves out a brain the pet held", notCurrent: "it does not end with the pet's brain on record" },
+  zh: { noHints: "找不到它孵化的交易", noHatch: "给出的交易不是这只宠物的孵化", hatchBrain: "日志开头的大脑不是它孵化时的大脑", unanchored: "日志用到的某个大脑在链上没有这只宠物对应的事件", skipsChange: "日志漏掉了它用过的一个大脑", notCurrent: "日志结尾的大脑不是它现在记录在链上的大脑" },
+} as const;
+/** the page's reads of the pet; the checks below each take their own client, to say who answered them */
+const pc = proofClient();
+const viaText = (hosts: ReadonlySet<string>, lang: "en" | "zh") => (hosts.size ? `${lang === "zh" ? "回答者：" : "Answered by "}${[...hosts].join(", ")}` : "");
+const note = (hosts: Set<string>) => (h: string, fallback: boolean) => hosts.add(fallback ? `${h} (fallback)` : h);
 
 export function VerifyApp() {
   const { lang, toggle } = useLang();
@@ -119,6 +140,11 @@ export function VerifyApp() {
   const [err, setErr] = useState<string | null>(null);
   const [rows, setRows] = useState<Row[]>([]);
   const [running, setRunning] = useState(false);
+  const [runHosts, setRunHosts] = useState<ReadonlySet<string>>(new Set());
+  const [allHosts, setAllHosts] = useState<ReadonlySet<string>>(new Set());
+  const [logHosts, setLogHosts] = useState<ReadonlySet<string>>(new Set());
+  // only a full pass (hash, anchors, replay) is shown as a pass
+  const [logPassed, setLogPassed] = useState(false);
   const [logResult, setLogResult] = useState<string | null>(null);
   const [logName, setLogName] = useState<string | null>(null);
   const [colour, setColour] = useState(0);
@@ -134,23 +160,23 @@ export function VerifyApp() {
     setLogResult(null);
     if (!deployment) return setErr(t.notDeployed);
     try {
-      const p = await readPet(publicClient, deployment, BigInt(id));
+      const p = await readPet(pc, deployment, BigInt(id));
       setPet(p);
       setMeta(null);
       setColour(0);
       // its name colour (plan 4.9), from the extras contract
       if (deployment.extras)
-        void nameColours(publicClient, deployment, [BigInt(id)])
+        void nameColours(pc, deployment, [BigInt(id)])
           .then((c) => setColour(c[id] ?? 0))
           .catch(() => setColour(0));
-      void readMetadata(publicClient, deployment, BigInt(id))
+      void readMetadata(pc, deployment, BigInt(id))
         .then((m) => {
           const svg = m.image?.startsWith("data:image/svg+xml;base64,") ? atob(m.image.slice(26)) : null;
           setMeta({ name: m.name, image: m.image, same: svg ? JSON.stringify(canvasOfSvg(svg).px) === JSON.stringify(gameSprite(lookOf(p.state)).px) : undefined });
         })
         .catch(() => setMeta(null));
       // a child's circuit REFs its parents' circuits; those are read from the chain too
-      const c = await loadCircuitFromChain(publicClient, p.processor, p.brainId);
+      const c = await loadCircuitFromChain(pc, p.processor, p.brainId);
       setCircuit(c);
       setGates(c.nGates);
       history.replaceState(null, "", `#${id}`);
@@ -188,18 +214,21 @@ export function VerifyApp() {
   const run = async () => {
     if (!pet || !circuit || !deployment) return;
     setRunning(true);
+    const hosts = new Set<string>();
+    const client = proofClient(0, note(hosts));
     const out: Row[] = [];
     const bits = pet.brainBits;
     const saved = unpackState(pet.state, bits).brain;
     for (let i = 0; i < 32; i++) {
       const state = i === 0 ? bitsToWord(saved) : BigInt(Math.floor(Math.random() * 2 ** Math.min(bits, 30)));
       const word = Math.floor(Math.random() * 65536);
-      const chain = await replayStep(publicClient, deployment, pet.id, state, word);
+      const chain = await replayStep(client, deployment, pet.id, state, word);
       const [ns, outs] = beat(circuit, wordToBits(state, bits), wordToBits(word, 16));
       out.push({ state, word, chain, local: { next: bitsToWord(ns), outputs: Number(bitsToWord(outs)) } });
       setRows([...out]);
     }
     if (out.every((r) => r.chain.next === r.local.next && r.chain.outputs === r.local.outputs)) markProofChecked();
+    setRunHosts(hosts);
     setRunning(false);
   };
 
@@ -216,8 +245,9 @@ export function VerifyApp() {
     let bad = 0;
     let first: string | undefined;
     setAll({ done: 0, bad: 0 });
-    // two workers per official endpoint, gently paced, so neither rate-limits the page
-    const worker = async (client: typeof publicClient) => {
+    const hosts = new Set<string>();
+    // four workers, each starting at a different public endpoint and paced per host, so none rate-limits the page
+    const worker = async (client: ReturnType<typeof proofClient>) => {
       while (next < 65536 && !stopAll.current) {
         const from = next;
         next += BATCH;
@@ -244,7 +274,8 @@ export function VerifyApp() {
         setAll({ done, bad, ...(first ? { first } : {}) });
       }
     };
-    await Promise.all([0, 1, 2, 3].map((i) => worker(readClients[i % readClients.length]!)));
+    await Promise.all([0, 1, 2, 3].map((i) => worker(proofClient(i, note(hosts)))));
+    setAllHosts(hosts);
     setAll({ done, bad, ...(first ? { first } : {}), secs: Math.round((performance.now() - t0) / 1000), stopped: stopAll.current });
   };
 
@@ -252,40 +283,60 @@ export function VerifyApp() {
     try {
       await replayLog(JSON.parse(await file.text()));
     } catch {
+      setLogPassed(false);
       setLogResult(t.logBadHash);
     }
   };
 
-  /** Replays a log against the brains read from the chain; returns the stretches when it matches the saved state. */
+  /**
+   * Replays a log against the brains read from the chain. Before a beat is replayed, every brain the log names is
+   * anchored to this pet's own Hatched and BrainChanged events on X Layer (the indexer only says which transactions
+   * to read), and the starting memory is the one in its Hatched event. Returns the stretches when all of it holds.
+   */
   const replayLog = async (j: { words: number[]; segments?: Array<{ brainId: string | null; words: number[] }> }): Promise<Array<{ brain: { fast: ReturnType<typeof circuitBrain>; nState: number }; words: number[] }> | null> => {
-    if (!pet || !circuit) return null;
+    if (!pet || !circuit || !deployment) return null;
+    const hosts = new Set<string>();
+    const client = proofClient(0, note(hosts));
+    const fail = (text: string) => {
+      setLogPassed(false);
+      setLogResult(text);
+      setLogHosts(hosts);
+      return null;
+    };
     try {
       const clean = (ws: number[]) => ws.filter((w) => Number.isInteger(w) && w >= 0 && w < 65536);
-      const segments = j.segments?.length ? j.segments.map((sg) => ({ brainId: sg.brainId, words: clean(sg.words) })) : [{ brainId: pet.brainId.toString(), words: clean(j.words) }];
+      const segments = (j.segments?.length ? j.segments.map((sg) => ({ brainId: sg.brainId, words: clean(sg.words) })) : [{ brainId: pet.brainId.toString(), words: clean(j.words) }]).filter((sg) => sg.words.length);
       const words = segments.flatMap((sg) => sg.words);
-      if (chainAll(ZERO_HASH, words).toLowerCase() !== pet.logHash.toLowerCase()) {
-        setLogResult(t.logBadHash);
-        return null;
-      }
+      if (chainAll(ZERO_HASH, words).toLowerCase() !== pet.logHash.toLowerCase()) return fail(t.logBadHash);
+
+      const brains = segments.map((sg) => BigInt(sg.brainId ?? pet.brainId.toString()));
+      const hints = await fetchPetHistory(pet.id.toString()).catch(() => null);
+      if (!hints?.hatched) return fail(t.notAnchored.replace("{why}", WHY[lang].noHints));
+      const anchored = await anchorBrains(client, deployment.registry, pet.id, brains.length ? brains : [pet.brainId], { hatched: hints.hatched.tx as Hex, changes: hints.brains.map((b) => b.tx as Hex) }, pet.brainId);
+      // the technical detail is in English, so the Chinese page gives the reason alone
+      if (!anchored.ok) return fail(t.notAnchored.replace("{why}", lang === "zh" ? WHY.zh[anchored.reason] : `${WHY.en[anchored.reason]} (${anchored.detail})`));
+
       const stretches: Array<{ brain: { fast: ReturnType<typeof circuitBrain>; nState: number }; words: number[] }> = [];
-      // each stretch of the log runs on the brain it was recorded with, read from the processor
-      let st = new Array<number>(pet.brainBits).fill(0);
+      // the starting memory is the one the pet hatched with, from its Hatched event
+      let st: number[] | null = null;
       for (const sg of segments) {
-        if (!sg.words.length) continue;
-        const id = BigInt(sg.brainId ?? pet.brainId.toString());
-        const c = await loadCircuitFromChain(publicClient, pet.processor, id);
-        if (st.length !== c.nState) st = st.slice(0, c.nState).concat(new Array(Math.max(0, c.nState - st.length)).fill(0));
+        const c = await loadCircuitFromChain(client, pet.processor, BigInt(sg.brainId ?? pet.brainId.toString()));
+        st = st === null ? unpackState(anchored.startState, c.nState).brain : st.length === c.nState ? st : st.slice(0, c.nState).concat(new Array(Math.max(0, c.nState - st.length)).fill(0));
         for (const w of sg.words) st = beat(c, st, wordToBits(w, 16))[0];
         stretches.push({ brain: { fast: circuitBrain(c), nState: c.nState }, words: sg.words });
       }
+      const end = st ?? unpackState(anchored.startState, pet.brainBits).brain;
       const saved = unpackState(pet.state, pet.brainBits).brain;
       const beats = lang === "zh" ? String(words.length) : `${words.length} ${words.length === 1 ? "beat" : "beats"}`;
-      const same = st.join("") === saved.join("");
-      setLogResult(same ? t.logOk.replace("{n}", beats) : t.logBadState);
-      return same ? stretches : null;
+      const changes = anchored.anchors.length - 1;
+      const where = lang === "zh" ? `孵化交易 ${short(anchored.anchors[0]!.tx)}，之后 ${changes} 次换大脑` : `hatched in ${short(anchored.anchors[0]!.tx)}, then ${changes} new ${changes === 1 ? "brain" : "brains"}`;
+      if (end.join("") !== saved.join("")) return fail(t.logBadState);
+      setLogPassed(true);
+      setLogResult(t.logOk.replace("{n}", beats).replace("{a}", where));
+      setLogHosts(hosts);
+      return stretches;
     } catch {
-      setLogResult(t.logBadHash);
-      return null;
+      return fail(t.logBadHash);
     }
   };
 
@@ -368,9 +419,13 @@ export function VerifyApp() {
             <dd className="mono">{short(pet.logHash)}</dd>
             <dt>{t.meters}</dt>
             <dd>
+              <span className="v-tag v-tag-proven">{t.proven}</span> <span className="mono">{u.brain.join("")}</span>
+              <br />
+              <span className="v-tag v-tag-reported">{t.reported}</span>{" "}
               {lang === "zh"
                 ? `饱腹 ${u.meters.food} · 开心 ${u.meters.joy} · 精神 ${u.meters.energy} · 干净 ${u.meters.clean} · 经验 ${u.xp}`
                 : `food ${u.meters.food} · joy ${u.meters.joy} · energy ${u.meters.energy} · clean ${u.meters.clean} · xp ${u.xp}`}
+              <span className="v-note v-block">{t.reportedNote}</span>
             </dd>
           </dl>
           <button type="button" className="v-run" onClick={run} disabled={running || !circuit}>
@@ -414,10 +469,12 @@ export function VerifyApp() {
                       : `${all.bad} inputs differ, the first at ${all.first}.`}
               </p>
             )}
+            {all?.secs !== undefined && allHosts.size > 0 && <p className="v-note mono" data-testid="all-hosts">{viaText(allHosts, lang)}</p>}
           </div>
           {rows.length > 0 && (
             <>
               <p className={ok === rows.length ? "v-ok" : "v-bad"}>{ok === rows.length ? t.allOk.replace("{n}", String(rows.length)) : t.someBad.replace("{n}", String(rows.length - ok))}</p>
+              {!running && runHosts.size > 0 && <p className="v-note mono" data-testid="run-hosts">{viaText(runHosts, lang)}</p>}
               <div className="v-table" role="region" aria-label="beats" tabIndex={0}>
                 <table>
                   <thead>
@@ -460,10 +517,10 @@ export function VerifyApp() {
             <div className="v-diary">
               <p className="v-sub">{lang === "zh" ? "它的日记" : "Its diary"}</p>
               {diaryState === "checking" && <p className="v-note">{lang === "zh" ? "正在对照链上核对它的日记……" : "Checking its diary against the chain…"}</p>}
-              {diaryState === "bad" && <p className="v-bad">{lang === "zh" ? "发布的日记和链上保存的对不上，所以不显示。" : "The published diary doesn't match what is saved on chain, so it isn't shown."}</p>}
+              {diaryState === "bad" && <p className="v-bad">{lang === "zh" ? "发布的日记没能通过链上核对（原因见下面的日志核对），所以不显示。" : "The published diary did not pass the check against the chain (the log check below says why), so it isn't shown."}</p>}
               {diaryState === "ok" && diary && (
                 <>
-                  <p className="v-note">{lang === "zh" ? "最近一天，从链上读回的大脑重放每一刻得来，并与链上保存的状态一致。" : "Its latest day, replayed moment by moment through the brains read from the chain, and matching the state saved on chain."}</p>
+                  <p className="v-note">{lang === "zh" ? "最近一天，用锚定在链上事件的大脑逐刻重放得来，并与链上保存的记忆一致。" : "Its latest day, replayed moment by moment through brains anchored to its events on chain, ending at exactly the memory saved on chain."}</p>
                   <ul>
                     {diary.map((l, i) => (
                       <li key={i}>{diaryText(l, lang)}</li>
@@ -500,10 +557,12 @@ export function VerifyApp() {
               </label>
               <span className="v-note mono">{logName ?? t.logNone}</span>
             </div>
-            {logResult && <p className={logResult === t.logBadHash || logResult === t.logBadState ? "v-bad" : "v-ok"}>{logResult}</p>}
+            {logResult && <p className={logPassed ? "v-ok" : "v-bad"} data-testid="log-result">{logResult}</p>}
+            {logResult && logHosts.size > 0 && <p className="v-note mono">{viaText(logHosts, lang)}</p>}
           </div>
         </section>
       )}
+      <EndpointPanel lang={lang} />
       <ProofTable lang={lang} />
       <RuleTable lang={lang} />
       <ContractTable lang={lang} />

@@ -19,9 +19,9 @@
   <a href="https://lingxi.knole.me/agents.html"><b>API for agents</b></a>
 </p>
 
-**Lingxi (灵犀) is a virtual pet whose brain is a circuit you can read.** Every pet's mind is a TapeOut circuit of NAND gates and memory latches, taped out on X Layer. Each reaction comes from its own gates, its daily memory is saved on chain, and anyone can replay it and see that it matches. You raise it, teach it in plain words, and watch who it becomes. It is free to play, there is no token, and every fee in it is paid in BEM and burned.
+**Lingxi (灵犀) is a virtual pet whose brain is a circuit you can read.** Every pet's mind is a TapeOut circuit of NAND gates and memory latches, taped out on X Layer. Each reaction comes from its own gates, its memory is saved on chain on the days its owner keeps it there, and anyone can replay it and see that it matches. You raise it, teach it in plain words, and watch who it becomes. It is free to play and has no token of its own. Every fee paid in BEM is burned; the one other fee is the first outfit market's 3% on sales in OKB, which goes to the project.
 
-灵犀是一只心智是真电路的宠物。每只宠物的大脑都是 X Layer 上的一块 TapeOut 电路，每个反应来自它自己的门电路，每天的记忆存在链上，任何人都能重放核对。免费游玩，没有代币，所有费用用 BEM 支付并全部销毁。
+灵犀是一只心智是真电路的宠物。每只宠物的大脑都是 X Layer 上的一块 TapeOut 电路，每个反应来自它自己的门电路，主人保存的每一天，记忆都存在链上，任何人都能重放核对。免费游玩，没有自己的代币。所有用 BEM 支付的费用全部销毁；唯一的另一笔费用是第一个衣服市场对 OKB 交易收取的 3%，归项目所有。
 
 ---
 
@@ -45,7 +45,7 @@ The game runs the same netlist through a fast local evaluator; any beat can be r
 
 ## What you do in it
 
-**Raise it.** Choose one of three eggs (gentle, bold or curious) and switch on instincts (brave, greedy, curious, calm) that are wired into its circuit for life. Feed, clean, play and talk. Over two weeks it grows from baby to adult, and its adult body is decided by how you raised it. Neglect has consequences. While you are away it keeps living: its brain decides what to do, friends drop by, and you come back to the story.
+**Raise it.** Choose one of three eggs (gentle, bold or curious) and switch on instincts (brave, greedy, curious, calm) that are wired into its circuit for life. Feed, clean, play and talk. In a week it grows from baby to adult, and its adult body is decided by how you raised it. Neglect has consequences. While you are away it keeps living: its brain decides what to do, friends drop by, and you come back to the story.
 
 **Teach it.** Type a rule in plain English or Chinese and it is compiled into the circuit and taped out. Or work through Pet School: eight levels with three goals each, scored by running your pet's own circuit. Every lesson shows its cost in gates against the brain's budget, and the order of lessons is strategy: a lesson placed too high can steal another's stars, and Lingxi names the rule that gets in the way.
 
@@ -77,7 +77,9 @@ The game does not run its rules as code: it reads the answers of compiled circui
 
 ## BEM in, BEM burned
 
-The core game is free and there is no token. The extras that cost something are paid in BEM, and the contracts burn the fee in the same transaction. Lingxi keeps no BEM.
+The core game is free and has no token of its own. The extras that cost something are paid in BEM, and the contracts burn the fee in the same transaction. Lingxi keeps no BEM.
+
+There is one other rail, in OKB: designs listed on the first outfit market, before BEM pricing, still sell there, and that market pays a 3% fee on each sale to the project wallet (`feeBps` 300 and `treasury` read from [the contract](https://www.oklink.com/xlayer/address/0xb9f6b18edd21933582ec69fb1e718d9629e684cd)). Both rails are counted on the live-numbers page.
 
 | What | Price | Where the BEM goes |
 |---|---|---|
@@ -90,7 +92,7 @@ The core game is free and there is no token. The extras that cost something are 
 | Room space: four more pieces at home, up to three times | 0.05 BEM | the whole price burned |
 | Saved looks: three more outfits kept for one tap, up to three times | 0.05 BEM | the whole price burned |
 | A colour for a pet's name, shown wherever its name is (back to plain is free) | 0.05 BEM | the whole price burned |
-| Holder outfit for BEM, FAB and TapeCode-Test1 holders | free | nothing |
+| Holder outfit for BEM, FAB, Rig and TapeCode-Test1 holders | free | nothing |
 
 Every one of these numbers is read live from the chain on the [live-numbers page](https://lingxi.knole.me/numbers.html): pets hatched and born, days kept on X Layer, outfits sold, BEM burned by each contract and in total, with the contract each figure comes from. `pnpm --filter @lingxi/chain recount` recomputes them independently from the chain's logs and reports any difference.
 
@@ -104,7 +106,7 @@ Every one of these numbers is read live from the chain on the [live-numbers page
 
 <p align="center"><img src="docs/readme/proof.png" alt="The proof page replaying pet #1's saved days on X Layer mainnet" width="100%"></p>
 
-Each day the pet's 256-bit state and a hash of everything it sensed are saved on chain. The [proof page](https://lingxi.knole.me/verify.html#1) replays its thoughts against the processor on X Layer, and can check all 65,536 possible inputs of a brain. Its picture and name are drawn on chain too (PetLook), and the whole site is published on chain through DeWEB.
+Each day its owner saves, the pet's 256-bit state and a hash of everything it sensed are saved on chain. Only the memory bits are proven, by replaying that hash; the rest of the state is reported by the owner's game, and the proof page labels which is which. The [proof page](https://lingxi.knole.me/verify.html#1) replays its thoughts against the processor on X Layer, and can check all 65,536 possible inputs of a brain. It reads the chain from your browser through X Layer's public RPCs, or an RPC of your own that you paste in; Lingxi's server is asked only if every public one fails, and the page says when it was. Before it replays a log, it anchors every brain the log names to the pet's own `Hatched` and `BrainChanged` events, read from their transaction receipts, so a log cannot claim a brain the pet never had. Its picture and name are drawn on chain too (PetLook), and the whole site is published on chain through DeWEB.
 
 ```sh
 pnpm install
@@ -132,7 +134,7 @@ pnpm judge:check          # about 3.5 minutes, read-only against mainnet
 | Containers | a pet's home is a TapeOut container; pet #1's is `0x31B025aD4cBD4142007f59684D51cD1F2ccc5098` |
 | DeWEB | the whole site is published on chain at `1.2.419.tape`, served at [1-2-419.tapekit.org](https://1-2-419.tapekit.org/) |
 | TapeKit | TapeSend letters between homes and the Telegram Mini App |
-| BEM | the fee token: breeding, items, adoption, the extras and the fashion market; all fees burned |
+| BEM | the fee token: breeding, items, adoption, the extras and the fashion market; every BEM fee burned |
 | Community circuits | Builders' Lane runs circuits from the TapeOut community, read from the chain |
 
 ## Contracts on X Layer mainnet
@@ -201,7 +203,7 @@ Every number below is counted by `scripts/readme-facts.mts` from the suites them
 
 | Suite | Command | Passing |
 |---|---|---|
-| TypeScript, every package | `pnpm test` | <!--f:tests-->666<!--/f--> (game <!--f:tests-game-->212<!--/f--> · world <!--f:tests-world-->164<!--/f--> · api <!--f:tests-api-->101<!--/f--> · brain <!--f:tests-brain-->57<!--/f--> · handheld <!--f:tests-handheld-->36<!--/f--> · chain <!--f:tests-chain-->36<!--/f--> · send <!--f:tests-send-->30<!--/f--> · web <!--f:tests-web-->23<!--/f--> · art <!--f:tests-art-->7<!--/f-->) |
+| TypeScript, every package | `pnpm test` | <!--f:tests-->683<!--/f--> (game <!--f:tests-game-->212<!--/f--> · world <!--f:tests-world-->164<!--/f--> · api <!--f:tests-api-->104<!--/f--> · brain <!--f:tests-brain-->57<!--/f--> · handheld <!--f:tests-handheld-->36<!--/f--> · chain <!--f:tests-chain-->44<!--/f--> · send <!--f:tests-send-->30<!--/f--> · web <!--f:tests-web-->29<!--/f--> · art <!--f:tests-art-->7<!--/f-->) |
 | Contracts, unit, fuzz and invariant | `cd contracts && forge test` | <!--f:forge-unit-->116<!--/f--> |
 | Contracts on a fork of X Layer mainnet (reads only) | `cd contracts && forge test --fork-url xlayer --match-path 'test/*.fork.t.sol'` | <!--f:forge-fork-->67<!--/f--> |
 
@@ -225,7 +227,7 @@ pnpm --filter @lingxi/web dev          # the game on http://localhost:5199, agai
 pnpm --filter @lingxi/api start        # optional: API, live rooms and the X Layer door on :8787
 ```
 
-Teach-by-words needs an Anthropic API key in the server's environment. The brain relayer needs a funded relayer key file. Without them the game still runs fully: Pet School lessons and hand-built rules work offline, and every on-chain read goes through the public RPCs.
+Teach-by-words needs an Anthropic API key in the server's environment. The brain relayer needs a funded relayer key file. Without them the game still runs fully: Pet School lessons and hand-built rules need no server, and every on-chain read goes through the public RPCs.
 
 The on-chain copy is built with `node apps/web/scripts/deweb-build.mjs` and published with `pnpm --filter @lingxi/chain publish:deweb`.
 
