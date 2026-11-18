@@ -76,4 +76,23 @@ describe("the lesson library", () => {
     expect(lib.share(other, "去死", "ip-b", 2)).toEqual({ ok: false, reason: "name" });
     expect(lib.share(other, "fuckface", "ip-b", 2)).toEqual({ ok: false, reason: "name" });
   });
+
+  it("keeps its store small however many addresses share and report, and saves it once a burst is over", async () => {
+    const { mkdtempSync, statSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const file = join(mkdtempSync(join(tmpdir(), "lib-")), "library.json");
+    const lib = createLibrary(file);
+    lib.share(share, "Bao", "ip-0", 1);
+    const key = lessonKey(share);
+    for (let i = 1; i < 20_000; i++) lib.use(key, `ip-${i}`);
+    for (let i = 0; i < 300; i++) lib.report(key, `reporter-${i}`);
+    await new Promise((r) => setTimeout(r, 2_500));
+    expect(statSync(file).size).toBeLessThan(20_000);
+    // every learner counted at most once, most of them counted, and the same after a restart
+    const [before] = lib.list();
+    expect(before!.uses).toBeGreaterThan(10_000);
+    expect(before!.uses).toBeLessThanOrEqual(20_000);
+    expect(createLibrary(file).list()).toEqual(lib.list());
+  });
 });

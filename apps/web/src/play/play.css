@@ -198,17 +198,24 @@
   position: absolute;
   left: 50%;
   top: 62px;
+  /* as wide as its words, up to the room's width; a long message wraps to three lines rather than being cut */
+  width: max-content;
   max-width: calc(100% - 24px);
   padding: 8px 16px;
-  border-radius: var(--r-pill);
+  border-radius: 18px;
   background: #2b2140;
   color: #fff7e8;
   font-family: var(--round);
   font-weight: 700;
   font-size: 14px;
-  white-space: nowrap;
+  line-height: 20px;
+  text-align: center;
+  text-wrap: balance;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
   overflow: hidden;
-  text-overflow: ellipsis;
   pointer-events: none;
 }
 

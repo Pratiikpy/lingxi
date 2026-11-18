@@ -4,8 +4,11 @@
  * owner is away. A home belongs to the secret key its owner's device holds: a
  * player id is derived from that key (@lingxi/chain player.ts), so only the key
  * behind an id can claim it, and seeing someone's id or home link gives no way
- * to take their home, even before they first use it. Homes bound before ids came
- * from keys keep the key they were bound to. Only the key's hash is stored.
+ * to take their home, even before they first use it. A keyed id is checked from
+ * its key alone, so nothing is stored for a player until their home holds
+ * something, and a full store never keeps a new player out of the rooms. Homes
+ * bound before ids came from keys keep the key they were bound to. Only the key's
+ * hash is stored.
  */
 
 import { createHash } from "node:crypto";
@@ -42,11 +45,15 @@ export interface DecorStore {
   get: (owner: string) => Placed | null;
   /** Saves an owner's decorations; false when the key does not match or the input is bad. */
   set: (owner: string, secret: unknown, placed: unknown) => Placed | false;
-  /** Whether this key is the home's: the key a home was bound to, or for a new home the key its id comes from. */
+  /** Whether this key is the home's: the key a home was bound to, or for a new home the key its id comes from. Stores nothing. */
   authorise: (owner: string, secret: unknown) => boolean;
+  /** Whether a home is kept for this owner. */
+  holds: (owner: string) => boolean;
+  /** How many homes are kept. */
+  size: () => number;
 }
 
-export function createDecorStore(file?: string): DecorStore {
+export function createDecorStore(file?: string, maxHomes = MAX_HOMES): DecorStore {
   const homes = new Map<string, { key: string; placed: Placed }>();
   if (file && existsSync(file)) {
     try {
@@ -80,11 +87,10 @@ export function createDecorStore(file?: string): DecorStore {
       const key = hash(secret);
       const held = homes.get(owner);
       if (held) return held.key === key;
-      if (owner !== playerIdFor(secret) || homes.size >= MAX_HOMES) return false;
-      homes.set(owner, { key, placed: [] });
-      save();
-      return true;
+      return owner === playerIdFor(secret);
     },
+    holds: (owner) => homes.has(owner),
+    size: () => homes.size,
     set: (owner, secret, raw) => {
       if (!OWNER_ID.test(owner) || typeof secret !== "string" || !PLAYER_SECRET.test(secret)) return false;
       const placed = cleanPlaced(raw);
@@ -92,7 +98,10 @@ export function createDecorStore(file?: string): DecorStore {
       const key = hash(secret);
       const held = homes.get(owner);
       if (held && held.key !== key) return false;
-      if (!held && (owner !== playerIdFor(secret) || homes.size >= MAX_HOMES)) return false;
+      if (!held && owner !== playerIdFor(secret)) return false;
+      // a new home is kept only once it holds something, and only while there is room
+      if (!held && placed.length === 0) return placed;
+      if (!held && homes.size >= maxHomes) return false;
       homes.set(owner, { key, placed });
       save();
       return placed;

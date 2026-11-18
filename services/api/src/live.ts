@@ -18,6 +18,7 @@ import { WebSocketServer, type WebSocket } from "ws";
 import { type DecorStore, type Placed, createDecorStore } from "./decor";
 import { type Homes, visible } from "./homes";
 import { MAX_PLACED } from "@lingxi/world";
+import { RateLimiter } from "./limit";
 import { BLOCKED_WORDS as BLOCKED } from "./words";
 
 export const CAPACITY = 24;
@@ -25,6 +26,8 @@ export const CAPACITY = 24;
 export const MAX_PER_ADDRESS = 12;
 /** Connections the server holds in all. */
 export const MAX_CONNECTIONS = 4_000;
+/** New homes (the first decorations or the first wallet for an id) one address may make in a day. */
+export const MAX_NEW_HOMES_PER_DAY = 5;
 const MAX_FRAME = 12_288;
 const CARD_MAX = 10_000;
 const CARD_RULES = 8;
@@ -56,6 +59,8 @@ interface Client {
   space: string | null;
   /** the pet's id on X Layer, as the client said in its hello; its name colour is read from it */
   petId: string | null;
+  /** the visitor's address, for the limits kept per address */
+  address: string;
   tokens: number;
   last: number;
 }
@@ -188,8 +193,18 @@ export class LiveRooms {
     return [...(this.spaces.get(c.space) ?? [])].find((o) => o.member.id === id && o !== c) ?? null;
   }
 
-  handle(ws: WebSocket): void {
-    const c: Client = { ws, card: null, proposals: new Map(), member: { id: "", name: "", line: "gentle", stage: "baby", mood: 1, x: 64 }, space: null, petId: null, tokens: 8, last: Date.now() };
+  /** new homes per address per day: a home kept on the server costs a little of its room, so no one fills it */
+  private readonly newHomes = new RateLimiter(MAX_NEW_HOMES_PER_DAY, 86_400_000);
+
+  /** True when this would make a home the server does not keep yet, and the address has used its day's share. */
+  private overHomeShare(c: Client): boolean {
+    const id = c.member.id;
+    const fresh = !this.decor.holds(id) && !(this.homes?.wallets(id).length ?? 0);
+    return fresh && !this.newHomes.take(c.address);
+  }
+
+  handle(ws: WebSocket, address = "local"): void {
+    const c: Client = { ws, card: null, proposals: new Map(), member: { id: "", name: "", line: "gentle", stage: "baby", mood: 1, x: 64 }, space: null, petId: null, address, tokens: 8, last: Date.now() };
     this.clients.add(c);
     ws.on("message", (raw, isBinary) => {
       if (isBinary) return;
@@ -258,6 +273,8 @@ export class LiveRooms {
       case "decor": {
         // only for your own home, and only with the key your device bound it to
         if (!c.member.id) return;
+        const something = Array.isArray(m.placed) && m.placed.length > 0;
+        if (something && this.overHomeShare(c)) return this.send(c, { t: "decorRefused", reason: "tooMany" });
         const placed = this.decor.set(c.member.id, m.key, m.placed);
         if (!placed) return this.send(c, { t: "decorRefused" });
         void this.showHome(c.member.id);
@@ -269,6 +286,7 @@ export class LiveRooms {
         if (!this.homes || !c.member.id) return;
         const owner = c.member.id;
         if (!this.decor.authorise(owner, m.key)) return this.send(c, { t: "linked", ok: false, reason: "key" });
+        if (m.t === "link" && this.overHomeShare(c)) return this.send(c, { t: "linked", ok: false, reason: "tooMany" });
         const done = (r: { ok: true; wallets: string[] } | { ok: false; reason: string }) => {
           this.send(c, r.ok ? { t: "linked", ok: true, wallets: r.wallets } : { t: "linked", ok: false, reason: r.reason });
           if (!r.ok) return;
@@ -379,7 +397,7 @@ export function attachLive(server: { on(event: "upgrade", cb: (req: IncomingMess
       else held.delete(address);
     };
     socket.once("close", release);
-    wss.handleUpgrade(req, socket, head, (ws) => rooms.handle(ws));
+    wss.handleUpgrade(req, socket, head, (ws) => rooms.handle(ws, address));
   });
   return wss;
 }

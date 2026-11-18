@@ -14,7 +14,17 @@ import type { Placed } from "./decor";
 
 export { homeLinkMessage };
 export const MAX_LINKED = 4;
+/** Homes with linked wallets the server keeps, in all. */
+export const MAX_LINKED_HOMES = 50_000;
+/** Entries in each of the two chain-read caches. */
+const CACHE_ENTRIES = 20_000;
 const CACHE_MS = 60_000;
+/** Remembers `value` under `key`, forgetting the oldest entry once the cache is full. */
+const remember = <V>(cache: Map<string, V>, key: string, value: V) => {
+  cache.delete(key);
+  if (cache.size >= CACHE_ENTRIES) cache.delete(cache.keys().next().value!);
+  cache.set(key, value);
+};
 /** A fresh colour reading (after the player changed it on chain) is taken at most this often per pet. */
 const FRESH_MS = 5_000;
 const OWNER_ID = /^[a-z0-9]{6,32}$/;
@@ -43,7 +53,7 @@ export function visible(placed: Placed, view: HomeView): Placed {
 
 export interface Homes {
   wallets: (owner: string) => Address[];
-  link: (owner: string, wallet: unknown, signature: unknown) => Promise<{ ok: true; wallets: Address[] } | { ok: false; reason: "invalid" | "signature" | "full" }>;
+  link: (owner: string, wallet: unknown, signature: unknown) => Promise<{ ok: true; wallets: Address[] } | { ok: false; reason: "invalid" | "signature" | "full" | "serverFull" }>;
   unlink: (owner: string, wallet: unknown) => { ok: true; wallets: Address[] } | { ok: false; reason: "invalid" };
   view: (owner: string) => Promise<HomeView>;
   /** the colour a pet's name shows with in this player's company: 0 unless a linked wallet owns the pet. `fresh`
@@ -106,6 +116,7 @@ export function createHomes(opts: { chain?: HomeChain; file?: string; now?: () =
       const cur = wallets(owner);
       if (cur.includes(w)) return { ok: true, wallets: cur };
       if (cur.length >= MAX_LINKED) return { ok: false, reason: "full" };
+      if (!cur.length && links.size >= MAX_LINKED_HOMES) return { ok: false, reason: "serverFull" };
       const next = [...cur, w];
       links.set(owner, next);
       forget(owner);
@@ -131,7 +142,7 @@ export function createHomes(opts: { chain?: HomeChain; file?: string; now?: () =
         const [packs, held] = await Promise.all([opts.chain.roomPacks(ws), opts.chain.piecesHeld(ws)]);
         const p = Number.isInteger(packs) && packs > 0 ? Math.min(MAX_PACKS, packs) : 0;
         const view = { capacity: MAX_PLACED + ROOM_PER_PACK * p, held: held.filter((id) => !!DECOR_BY_ID[id]?.chain) };
-        views.set(owner, { at: now(), view });
+        remember(views, owner, { at: now(), view });
         return view;
       } catch {
         return cached?.view ?? BARE;
@@ -149,7 +160,7 @@ export function createHomes(opts: { chain?: HomeChain; file?: string; now?: () =
         const holder = getAddress(await opts.chain.ownerOf(id));
         const colour = ws.includes(holder) ? await opts.chain.nameColour(id) : 0;
         const c = Number.isInteger(colour) && colour > 0 && colour <= 32 ? colour : 0;
-        colours.set(key, { at: now(), colour: c });
+        remember(colours, key, { at: now(), colour: c });
         return c;
       } catch {
         return cached?.colour ?? 0;

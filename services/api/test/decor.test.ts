@@ -53,4 +53,32 @@ describe("shared home decorations", () => {
     const { readFileSync } = await import("node:fs");
     expect(readFileSync(file, "utf8")).not.toContain(KEY);
   });
+
+  it("a new player is let in by the key alone: nothing is stored until their home holds something", () => {
+    const s = createDecorStore();
+    for (let i = 0; i < 100; i++) {
+      const key = i.toString(16).padStart(32, "0");
+      expect(s.authorise(playerIdFor(key), key)).toBe(true);
+    }
+    expect(s.size()).toBe(0);
+    // an empty room is not a home worth keeping
+    expect(s.set(MINE, KEY, [])).toEqual([]);
+    expect(s.size()).toBe(0);
+    expect(s.set(MINE, KEY, [{ id: "fern", x: 20, y: 90 }])).toEqual([{ id: "fern", x: 20, y: 90 }]);
+    expect(s.size()).toBe(1);
+    // and emptied again, it is kept: the owner's choice to have nothing out
+    expect(s.set(MINE, KEY, [])).toEqual([]);
+    expect(s.size()).toBe(1);
+  });
+
+  it("a store full of homes never locks a new player out of the rooms", () => {
+    const s = createDecorStore(undefined, 3);
+    for (let i = 0; i < 3; i++) {
+      const key = (i + 1).toString(16).padStart(32, "0");
+      expect(s.set(playerIdFor(key), key, [{ id: "fern", x: 20, y: 90 }])).not.toBe(false);
+    }
+    const late = "f".repeat(32);
+    expect(s.set(playerIdFor(late), late, [{ id: "fern", x: 20, y: 90 }])).toBe(false);
+    expect(s.authorise(playerIdFor(late), late)).toBe(true);
+  });
 });

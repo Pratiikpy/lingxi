@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import WebSocket from "ws";
 import { createHash } from "node:crypto";
 import { playerIdFor } from "@lingxi/chain";
-import { CAPACITY, MAX_PER_ADDRESS, LiveRooms, attachLive, validSpace } from "../src/live";
+import { CAPACITY, MAX_NEW_HOMES_PER_DAY, MAX_PER_ADDRESS, LiveRooms, attachLive, validSpace } from "../src/live";
 
 let port = 0;
 const rooms = new LiveRooms();
@@ -209,5 +209,23 @@ describe("live rooms", () => {
     expect(got).toBeLessThanOrEqual(8);
     a.ws.close();
     b.ws.close();
+  });
+
+  it("one address makes only a few new homes a day, so no one fills the server with empty ones", async () => {
+    const same = "203.0.113.99";
+    const answers: string[] = [];
+    for (let i = 0; i < MAX_NEW_HOMES_PER_DAY + 1; i++) {
+      const p = await connect(undefined, same);
+      hello(p, `builder${i}`, `home:${idOf(`builder${i}`)}`);
+      await p.next("room");
+      // entering a home first shows what it holds; the answer to the save comes after
+      await p.next("decor");
+      p.ws.send(JSON.stringify({ t: "decor", key: keyOf(`builder${i}`), placed: [{ id: "fern", x: 20, y: 90 }] }));
+      const m = await Promise.race([p.next("decor"), p.next("decorRefused")]);
+      answers.push(String(m.t));
+      p.ws.close();
+    }
+    expect(answers.slice(0, MAX_NEW_HOMES_PER_DAY).every((t) => t === "decor")).toBe(true);
+    expect(answers.at(-1)).toBe("decorRefused");
   });
 });

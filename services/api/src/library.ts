@@ -14,6 +14,7 @@ import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { z } from "zod";
 import type { Rule } from "@lingxi/brain";
 import { checkLesson } from "@lingxi/game";
+import { type SeenSet, addSeen, emptySeen, hasSeen, seenFrom } from "./seenSet";
 import { BLOCKED_WORDS } from "./words";
 
 export const LibraryRule = z.object({
@@ -30,11 +31,15 @@ export interface LibraryEntry {
   by: string;
   firstAt: number;
   uses: number;
-  /** hashed reporter ids (never the raw IP) */
-  reports: string[];
-  /** hashed ids that already counted a use, so one player can't inflate it */
-  users: string[];
+  /** who reported it, as hashed ids (never the raw address), in a set of fixed size */
+  reports: SeenSet;
+  reportCount: number;
+  /** who already counted a use, so one player can't inflate it, in a set of fixed size */
+  users: SeenSet;
 }
+
+/** The store is written this long after the last change, once a burst of changes is over. */
+const SAVE_DELAY_MS = 2_000;
 
 const MAX_ENTRIES = 5000;
 /** Reports from different addresses that hide a lesson, at the least. */
@@ -68,18 +73,31 @@ export function createLibrary(store?: string) {
   const entries = new Map<string, LibraryEntry>();
   if (store && existsSync(store)) {
     try {
-      // labels stored before they were dropped are dropped on load
-      for (const e of JSON.parse(readFileSync(store, "utf8")) as LibraryEntry[]) entries.set(e.key, { ...e, rule: { when: e.rule.when, then: e.rule.then } as Rule });
+      // labels stored before they were dropped are dropped on load, and plain lists become fixed-size sets
+      for (const e of JSON.parse(readFileSync(store, "utf8")) as Array<LibraryEntry & { reports: unknown; users: unknown }>) {
+        const reports = seenFrom(e.reports);
+        const reportCount = typeof e.reportCount === "number" ? e.reportCount : Array.isArray(e.reports) ? e.reports.length : 0;
+        entries.set(e.key, { ...e, rule: { when: e.rule.when, then: e.rule.then } as Rule, reports, reportCount, users: seenFrom(e.users) });
+      }
     } catch {
       // a damaged file starts empty
     }
   }
+  let timer: NodeJS.Timeout | null = null;
   const save = () => {
-    if (!store) return;
-    writeFileSync(`${store}.tmp`, JSON.stringify([...entries.values()]));
-    renameSync(`${store}.tmp`, store);
+    if (!store || timer) return;
+    timer = setTimeout(() => {
+      timer = null;
+      try {
+        writeFileSync(`${store}.tmp`, JSON.stringify([...entries.values()]));
+        renameSync(`${store}.tmp`, store);
+      } catch (e) {
+        process.stderr.write(`library not saved: ${(e as Error).message}\n`);
+      }
+    }, SAVE_DELAY_MS);
+    timer.unref?.();
   };
-  const visible = (e: LibraryEntry) => e.reports.length < Math.max(HIDE_AT, Math.ceil(e.uses * HIDE_SHARE));
+  const visible = (e: LibraryEntry) => e.reportCount < Math.max(HIDE_AT, Math.ceil(e.uses * HIDE_SHARE));
   // a name stored before the word check is shown as no name
   const view = (e: LibraryEntry) => ({ key: e.key, rule: e.rule, by: cleanAuthor(e.by) ?? "", uses: e.uses, firstAt: e.firstAt });
 
@@ -99,7 +117,7 @@ export function createLibrary(store?: string) {
         return { ok: true, key, isNew: false };
       }
       if (entries.size >= MAX_ENTRIES) return { ok: false, reason: "full" };
-      entries.set(key, { key, rule: { when: rule.when, then: rule.then } as Rule, by: author, firstAt: now, uses: 1, reports: [], users: [hashId(who)] });
+      entries.set(key, { key, rule: { when: rule.when, then: rule.then } as Rule, by: author, firstAt: now, uses: 1, reports: emptySeen(), reportCount: 0, users: addSeen(emptySeen(), hashId(who)) });
       save();
       return { ok: true, key, isNew: true };
     },
@@ -108,9 +126,8 @@ export function createLibrary(store?: string) {
       const e = entries.get(key);
       if (!e) return false;
       const h = hashId(who);
-      if (e.users.includes(h)) return true;
-      e.users.push(h);
-      e.uses++;
+      if (hasSeen(e.users, h)) return true;
+      entries.set(key, { ...e, users: addSeen(e.users, h), uses: e.uses + 1 });
       save();
       return true;
     },
@@ -118,8 +135,8 @@ export function createLibrary(store?: string) {
       const e = entries.get(key);
       if (!e) return false;
       const h = hashId(who);
-      if (!e.reports.includes(h)) {
-        e.reports.push(h);
+      if (!hasSeen(e.reports, h)) {
+        entries.set(key, { ...e, reports: addSeen(e.reports, h), reportCount: e.reportCount + 1 });
         save();
       }
       return true;

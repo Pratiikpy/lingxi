@@ -149,7 +149,17 @@ export function ExtrasPanel({ pet }: { pet: Pet }) {
     run("link", async (w) => {
       setStep(L("Sign the message in your wallet. It is not a transaction and costs nothing.", "请在钱包里签名。这不是交易，不花任何费用。"));
       const r = await linkWallet(w);
-      if (!r.ok) throw new Error(r.reason === "full" ? L("Four wallets are already linked. Unlink one first.", "已经连了四个钱包，请先解除一个。") : r.reason === "noAnswer" ? L("The server didn't answer. Try again in a moment.", "服务器没有回应，请稍后再试。") : L("The signature wasn't accepted.", "签名没有被接受。"));
+      if (!r.ok) {
+        const why: Record<string, [string, string]> = {
+          full: ["Four wallets are already linked. Unlink one first.", "已经连了四个钱包，请先解除一个。"],
+          serverFull: ["The server holds as many homes with wallets as it can just now. Try again later.", "服务器上连了钱包的家已经满了，请稍后再试。"],
+          tooMany: ["This address has started enough new homes today. Try again tomorrow.", "这个网络地址今天开的新家已经够多了，明天再试吧。"],
+          key: ["This device doesn't hold this home's key, so it can't link a wallet to it.", "这台设备没有这个家的钥匙，不能给它连钱包。"],
+          noAnswer: ["The server didn't answer. Try again in a moment.", "服务器没有回应，请稍后再试。"],
+        };
+        const [en, zh] = why[r.reason ?? ""] ?? ["The signature wasn't accepted.", "签名没有被接受。"];
+        throw new Error(L(en, zh));
+      }
       return L(`Linked ${short(w.account!.address)}. Visitors now see what it holds.`, `已连接 ${short(w.account!.address)}。访客现在能看到它持有的东西了。`);
     });
 

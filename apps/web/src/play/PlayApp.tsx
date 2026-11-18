@@ -115,6 +115,24 @@ export function PlayApp() {
   useEffect(() => {
     if (liveAvailable()) useLive.getState().shareDecor(placedDecor);
   }, [placedDecor]);
+  // the server didn't keep our decorations: say so, since visitors will not see them
+  const decorRefused = useLive((s) => s.decorRefused);
+  useEffect(() => {
+    if (!decorRefused) return;
+    const text =
+      decorRefused.reason === "tooMany"
+        ? lang === "zh"
+          ? "访客明天才能看到你的新布置：这个网络地址今天开的新家够多了。"
+          : "Visitors will see your new decorations from tomorrow: this address has started enough new homes today."
+        : lang === "zh"
+          ? "访客暂时看不到你的布置，下次改动时会再发送。"
+          : "Visitors can't see your decorations for now; they'll be sent again on your next change.";
+    setWorldMsg({ id: Math.round(decorRefused.at), text });
+    const id = setTimeout(() => setWorldMsg(null), 6000);
+    return () => clearTimeout(id);
+    // shown once per refusal; the words follow the language at that moment
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [decorRefused]);
   const worldNotice = useWorld((s) => s.notice);
   const worldMove = useWorld((s) => s.move);
   const worldForage = useWorld((s) => s.forage);

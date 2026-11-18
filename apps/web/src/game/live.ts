@@ -93,6 +93,8 @@ interface LiveState {
   links: string[] | null;
   /** the last link or unlink answer, for the panel to report */
   linkAnswer: { ok: boolean; reason?: string; at: number } | null;
+  /** the server did not keep our home's decorations (visitors see the room as it was), and why */
+  decorRefused: { reason: string; at: number } | null;
   /** link a wallet that signed `homeLinkMessage(playerId())`, or unlink one */
   link: (wallet: string, signature: string) => void;
   unlink: (wallet: string) => void;
@@ -228,6 +230,11 @@ export const useLive = create<LiveState>((set, get) => {
           members[x.id] = (m.colour as number) > 0 ? { ...rest, colour: m.colour as number } : rest;
           return set({ members });
         }
+        case "decorRefused":
+          // forget what was sent, so the next change or the next visit tries again
+          decorShared = null;
+          set({ decorRefused: { reason: typeof m.reason === "string" ? m.reason : "refused", at: performance.now() } });
+          return;
         case "linked":
           if (m.ok === true && Array.isArray(m.wallets)) set({ links: (m.wallets as unknown[]).filter((w): w is string => typeof w === "string") });
           set({ linkAnswer: { ok: m.ok === true, ...(typeof m.reason === "string" ? { reason: m.reason } : {}), at: performance.now() } });
@@ -282,6 +289,7 @@ export const useLive = create<LiveState>((set, get) => {
     homeDecor: null,
     links: null,
     linkAnswer: null,
+    decorRefused: null,
     link: (wallet, signature) => send({ t: "link", key: decorKey(), wallet, signature }),
     unlink: (wallet) => send({ t: "unlink", key: decorKey(), wallet }),
     recolour: () => send({ t: "recolour" }),
