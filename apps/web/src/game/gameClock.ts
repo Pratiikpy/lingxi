@@ -1,12 +1,42 @@
 /**
  * The game's one clock, as the pages use it (clock.ts holds the rules). Everything the game times (a pet's beats, a
- * day's rewards, a shift's pay, a sitting's end) reads `now()`, never the device clock directly.
+ * day's rewards, a shift's pay, a sitting's end) reads `now()`, never the device clock directly. The time it trusts is
+ * the game server's; the on-chain copy, which has no server, takes the time of X Layer's latest block instead.
  */
 
 import { createClock } from "./clock";
 import { saveWrite } from "./saveRuntime";
+import { OFFICIAL_RPCS } from "./nodes";
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (typeof location !== "undefined" && location.hostname === "localhost" ? "http://localhost:8787" : "");
+const RPC = (import.meta.env.VITE_RPC as string | undefined) || null;
+
+/** The game server's time. */
+async function serverClock(): Promise<number> {
+  const r = await fetch(`${BASE}/api/time`, { cache: "no-store", signal: AbortSignal.timeout(8_000) });
+  return Number(((await r.json()) as { now?: unknown }).now);
+}
+
+/** The time of X Layer's latest block, from the nodes the game reads (a block is seconds old at most). */
+async function chainClock(): Promise<number> {
+  let last: unknown = new Error("no node answered");
+  for (const url of RPC ? [RPC] : OFFICIAL_RPCS) {
+    try {
+      const r = await fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_getBlockByNumber", params: ["latest", false] }),
+        cache: "no-store",
+        signal: AbortSignal.timeout(8_000),
+      });
+      const seconds = Number.parseInt(((await r.json()) as { result?: { timestamp?: string } }).result?.timestamp ?? "", 16);
+      if (Number.isFinite(seconds) && seconds > 0) return seconds * 1000;
+    } catch (e) {
+      last = e;
+    }
+  }
+  throw last;
+}
 /** How often the server is asked again while the page is open. */
 const SYNC_EVERY_MS = 30 * 60_000;
 /** How long the game waits for the server's first answer before it starts on the device's time. */
@@ -25,14 +55,7 @@ export const clock = createClock({
   mono: () => performance.now(),
   storage: { getItem: (k) => storage?.getItem(k) ?? null },
   write: (k, v) => void saveWrite(k, v),
-  ...(BASE
-    ? {
-        serverTime: async () => {
-          const r = await fetch(`${BASE}/api/time`, { cache: "no-store", signal: AbortSignal.timeout(8_000) });
-          return Number(((await r.json()) as { now?: unknown }).now);
-        },
-      }
-    : {}),
+  serverTime: BASE ? serverClock : chainClock,
 });
 
 /** The game's time now, in milliseconds since the epoch. */

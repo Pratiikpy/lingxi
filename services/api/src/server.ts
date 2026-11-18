@@ -108,12 +108,13 @@ export function createApp(
   // the agent API, and a pet's public log and history, are open to any origin; the rest answers only the game's pages
   // every write is held to its route's size before a byte of it is parsed (bodyLimits.ts)
   withBodyLimits(app);
-  app.use("/api/*", cors({ origin: (o, c) => (c.req.path.startsWith("/api/v1") || (c.req.method === "GET" && (/^\/api\/pets\/\d+\/(log|history)$/.test(c.req.path) || c.req.path === "/api/time")) ? "*" : origins.includes(o) ? o : null), allowMethods: ["GET", "POST"], allowHeaders: ["Authorization", "Content-Type"], maxAge: 600 }));
+  app.use("/api/*", cors({ origin: (o, c) => (c.req.path.startsWith("/api/v1") || (c.req.method === "GET" && /^\/api\/pets\/\d+\/(log|history)$/.test(c.req.path)) ? "*" : origins.includes(o) ? o : null), allowMethods: ["GET", "POST"], allowHeaders: ["Authorization", "Content-Type"], maxAge: 600 }));
 
   // the parts are booleans (true when on); `detail` is everything else worth watching, for the status check and for Prateek
   app.get("/api/health", async (c) => c.json({ ok: true, teach: client !== null, voice: client !== null, relay: relayer !== null, live: live !== null, ...(detail ? { detail: await detail() } : {}) }));
   app.get("/api/live/stats", (c) => c.json(live ? live.stats() : { online: 0, spaces: 0 }));
-  // the game's clock is corrected against this one, so a device clock set wrong cannot move a pet's day (P1)
+  // the game's clock is corrected against this one, so a device clock set wrong cannot move a pet's day (P1); the
+  // on-chain copy reads X Layer's block time instead, so this answers the game's own pages only
   app.get("/api/time", (c) => c.json({ now: Date.now() }, 200, { "cache-control": "no-store" }));
 
   app.post("/api/teach", async (c) => {
@@ -241,7 +242,12 @@ export function scriptPolicy(html: string): { hashes: string[] } {
   return { hashes };
 }
 
-export function withSite(app: Hono, root: string): Hono {
+/**
+ * The built site. `kept` holds the files of the builds before this one (apps/web keeps them as it builds), served when
+ * the current build has no such file: a page that was open when a new build went live loads the parts it asks for
+ * later from them (A4).
+ */
+export function withSite(app: Hono, root: string, kept: string = join(root, "..", "assets-kept")): Hono {
   // each page's policy, from its own file: re-read when the build changes it
   const policies = new Map<string, { mtimeMs: number; csp: string }>();
   const policyFor = (path: string): string | null => {
@@ -269,17 +275,20 @@ export function withSite(app: Hono, root: string): Hono {
     c.header("Strict-Transport-Security", "max-age=63072000; includeSubDomains");
     const csp = policyFor(c.req.path);
     if (csp) c.header("Content-Security-Policy", csp);
+    // a page is always asked for again (a cheap 304 while unchanged), so no browser keeps one past a deploy (A4)
+    if (c.req.path === "/" || c.req.path.endsWith(".html")) c.header("Cache-Control", "no-cache");
     if (c.req.path !== "/play.html") c.header("X-Frame-Options", "SAMEORIGIN");
     c.header("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
   });
   app.use("/assets/*", async (c, next) => {
     await next();
-    // hashed file names: safe to cache for a year
-    c.header("Cache-Control", "public, max-age=31536000, immutable");
+    // hashed file names: a file that exists is safe to cache for a year; a missing one must never be
+    c.header("Cache-Control", c.res.status === 200 || c.res.status === 206 ? "public, max-age=31536000, immutable" : "no-store");
   });
   // A Range the static server cannot read (words, an unknown unit) made it throw, a 500. HTTP says to ignore such a
   // Range and send the whole file; a range that starts past the end is refused with 416.
   const files = serveStatic({ root, rewriteRequestPath: (p) => (p === "/" ? "/index.html" : p) });
+  const keptFiles = serveStatic({ root: kept });
   app.use("/*", async (c, next) => {
     const range = c.req.header("range");
     if (range !== undefined && !BYTE_RANGES.test(range.trim())) {
@@ -288,7 +297,13 @@ export function withSite(app: Hono, root: string): Hono {
       return app.fetch(new Request(c.req.raw, { headers }));
     }
     try {
-      return await files(c, next);
+      // the current build first; an asset it does not have may be one of an earlier build's, kept
+      const fromKept = async () => {
+        // a kept file answers with its Response; otherwise the request goes on to the next handler (a 404)
+        const res: unknown = await keptFiles(c, next);
+        if (res instanceof Response) c.res = res;
+      };
+      return await files(c, c.req.path.startsWith("/assets/") ? fromKept : next);
     } catch (e) {
       if ((e as { code?: string }).code === "ERR_OUT_OF_RANGE") return c.body(null, 416);
       throw e;

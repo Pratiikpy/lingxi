@@ -102,7 +102,7 @@ export function createClock(d: ClockDeps) {
     return asking;
   };
 
-  /** The game's time now, in milliseconds since the epoch. */
+  /** The game's time now, in whole milliseconds since the epoch, as the device clock gives it. */
   const now = (): number => {
     const wall = d.wall();
     const mono = d.mono();
@@ -128,7 +128,9 @@ export function createClock(d: ClockDeps) {
     last = t;
     if (t > seen) seen = t;
     if (Math.abs(t - persistedAt) >= PERSIST_EVERY_MS) persist(t);
-    return t;
+    // the correction carries fractions (half a round trip, the monotonic timer); the game's times are whole, as
+    // Date.now() is, and the server checks some of them as such (reminder times)
+    return Math.round(t);
   };
 
   return { now, sync, synced: () => synced };

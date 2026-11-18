@@ -111,6 +111,15 @@ describe("the game's clock (P1 S6)", () => {
     expect(d.clock.now()).toBeGreaterThanOrEqual(before);
   });
 
+  it("gives whole milliseconds, as the device clock does, whatever its correction", async () => {
+    const d = device({ deviceAhead: -DAY });
+    await d.clock.sync();
+    for (let i = 0; i < 50; i++) {
+      d.pass(37.37);
+      expect(Number.isInteger(d.clock.now())).toBe(true);
+    }
+  });
+
   it("keeps what it learned for the next visit", async () => {
     const d = device({ deviceAhead: -DAY });
     await d.clock.sync();

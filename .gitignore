@@ -8,3 +8,5 @@ out/
 cache/
 broadcast/
 .secrets/
+# the files of earlier site builds, kept for pages still open across a deploy (apps/web/keepAssets.ts)
+assets-kept/

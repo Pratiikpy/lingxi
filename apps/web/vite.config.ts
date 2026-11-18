@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { hasBannedName, scanNames } from "../../packages/world/src/names";
+import { keepAssetsPlugin } from "./keepAssets";
 
 /** build.json beside the pages: the commit a build came from, so anyone can check what a site is serving. */
 function buildStamp(): Plugin {
@@ -50,7 +51,7 @@ function namesGuard(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), buildStamp(), namesGuard()],
+  plugins: [react(), buildStamp(), namesGuard(), keepAssetsPlugin()],
   base: "./",
   build: {
     target: "es2022",

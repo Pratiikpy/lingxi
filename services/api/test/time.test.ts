@@ -13,8 +13,8 @@ describe("the server's clock (P1)", () => {
     expect(res.headers.get("cache-control")).toBe("no-store");
   });
 
-  it("is readable from any page, so the on-chain copy of the game can set its clock too", async () => {
-    const res = await app.request("/api/time", { headers: { Origin: "https://1-2-419.tapekit.org" } });
-    expect(res.headers.get("access-control-allow-origin")).toBe("*");
+  it("answers the game's own pages only, like the rest of the game's routes", async () => {
+    const res = await app.request("/api/time", { headers: { Origin: "https://elsewhere.example" } });
+    expect(res.headers.get("access-control-allow-origin")).toBeNull();
   });
 });

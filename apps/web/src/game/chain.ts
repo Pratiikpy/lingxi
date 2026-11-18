@@ -26,6 +26,7 @@ import { saveWrite } from "./saveRuntime";
 import rehearsalDeployment from "../../../../packages/chain/deployments/rehearsal.json";
 import { noteTally } from "./tally";
 import { now as gameNow } from "./gameClock";
+import { OFFICIAL_RPCS } from "./nodes";
 
 const OLD_KEY = "lingxi.chain.v1";
 const CHAIN_KEY = "lingxi.chain.v2";
@@ -47,7 +48,7 @@ export const explorerTx = (tx: string) => (NETWORK === "local" ? null : `https:/
 // (an empty value counts as unset, as the on-chain build passes it)
 // X Layer's public RPCs. OKX's answers every browser request with CORS headers; rpc.xlayer.tech drops them
 // on its rate-limit replies, which the browser then reports as a blocked request, so it is the fallback.
-export const OFFICIAL_RPCS = ["https://xlayerrpc.okx.com", "https://rpc.xlayer.tech"];
+export { OFFICIAL_RPCS };
 // With a server of our own (VITE_API_URL), the browser reads X Layer through it, same origin, so a public RPC's
 // rate-limit reply can never surface as a blocked request; the public RPCs stay behind it as fallbacks. The
 // on-chain copy on DeWEB has no server and talks to the public RPCs directly.
