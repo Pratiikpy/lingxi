@@ -73,9 +73,10 @@ interface PacketStore {
   error: string | null;
   balance: () => Promise<bigint | null>;
   send: (o: { amount: string; count: number; lucky: boolean; petOwnersOnly: boolean; days: number; from: PacketLink["from"]; letter: string; origin: string }) => Promise<string | null>;
-  /** claim (and reveal if lucky); returns the amount received */
-  /** claim (and reveal if lucky); `petId` is the opener's settled pet on chain, for pet-owners-only packets */
-  /** opens a share; `claim` is the share as its own transaction recorded it (null if the receipt had none) */
+  /**
+   * Opens a share: claim, and for a lucky split reveal two blocks later. `petId` is the opener's settled pet on chain,
+   * for pet-owners-only packets. Returns the amount received and the claim as its own transaction recorded it.
+   */
   open: (link: PacketLink, onStage: (s: "signing" | "claiming" | "luck" | "revealing") => void, petId?: string) => Promise<{ ok: true; amount: bigint; best: boolean; claim: ClaimView | null } | { ok: false; reason: string }>;
   refund: (id: string) => Promise<boolean>;
   /** a lucky packet's top-up waiting for this wallet once every share is open */

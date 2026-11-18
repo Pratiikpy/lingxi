@@ -1,6 +1,8 @@
 /**
  * The result of the start-up rules check (plan 4.11): a short mark when every rule matches its circuit on X Layer,
  * a warning that stays until closed when one does not, and nothing when X Layer could not be read (no claim either way).
+ * Either waits while a sheet or a dialog is open over the room, and steps aside when one opens, so it never covers
+ * what the player is reading (A3).
  */
 
 import { useEffect, useState } from "react";
@@ -10,22 +12,51 @@ import { useRulesCheck } from "../game/rulesCheck";
 import "./rules-mark.css";
 
 const SHOW_MS = 5000;
+/** A sheet or a dialog over the room: every one in the game marks itself so. */
+const OVERLAY = '[role="dialog"], [aria-modal="true"]';
+
+/** Whether a sheet or a dialog is open, kept current as they open and close. */
+function useOverlayOpen(): boolean {
+  const [open, setOpen] = useState(() => !!document.querySelector(OVERLAY));
+  useEffect(() => {
+    let frame = 0;
+    const look = () => {
+      frame = 0;
+      setOpen(!!document.querySelector(OVERLAY));
+    };
+    const watcher = new MutationObserver(() => {
+      if (!frame) frame = requestAnimationFrame(look);
+    });
+    watcher.observe(document.body, { childList: true, subtree: true });
+    look();
+    return () => {
+      watcher.disconnect();
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, []);
+  return open;
+}
 
 export function RulesMark() {
   const lang = useLang((s) => s.lang);
   const reduce = useReducedMotion() ?? false;
   const { state, checks, run } = useRulesCheck();
-  const [shown, setShown] = useState(false);
+  const covered = useOverlayOpen();
+  // the mark is owed once the rules are verified, and shown for SHOW_MS of time with nothing open over the room
+  const [owed, setOwed] = useState(false);
   const [closed, setClosed] = useState(false);
   useEffect(() => {
     void run();
   }, [run]);
   useEffect(() => {
-    if (state !== "verified") return;
-    setShown(true);
-    const id = setTimeout(() => setShown(false), SHOW_MS);
-    return () => clearTimeout(id);
+    if (state === "verified") setOwed(true);
   }, [state]);
+  useEffect(() => {
+    if (!owed || covered) return;
+    const id = setTimeout(() => setOwed(false), SHOW_MS);
+    return () => clearTimeout(id);
+  }, [owed, covered]);
+  const shown = owed && !covered;
   const bad = checks.filter((c) => c.status === "differs" || c.status === "missing");
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
   const proof = "verify.html#rules";
@@ -50,7 +81,7 @@ export function RulesMark() {
           {L(`Rules verified on X Layer · ${checks.length} circuits`, `规则已在 X Layer 上核对 · ${checks.length} 个电路`)}
         </motion.a>
       )}
-      {state === "broken" && !closed && (
+      {state === "broken" && !closed && !covered && (
         <motion.div key="bad" className="rules-mark is-bad" role="alert" initial={reduce ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
           <span className="rules-tick" aria-hidden="true">
             !

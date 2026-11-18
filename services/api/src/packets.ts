@@ -78,6 +78,13 @@ export function createPacketIndex(opts: PacketIndexOptions) {
     renameSync(`${opts.store}.tmp`, opts.store);
   };
   const packet = (id: string): PacketRecord => (data.packets[id] ??= { claims: [] });
+  /** Each packet's shares already listed (a share is claimed once), so a window read again adds nothing twice. */
+  const listed = new Map<string, Set<number>>();
+  const listedIn = (id: string): Set<number> => {
+    let s = listed.get(id);
+    if (!s) listed.set(id, (s = new Set((data.packets[id]?.claims ?? []).map((c) => c.index))));
+    return s;
+  };
   /** When a packet stops taking claims, in seconds (unknown for one whose creation the index has not seen). */
   const closesAt = (r: PacketRecord) => (r.created ? r.created.expiry + REVEAL_GRACE_S : null);
 
@@ -86,7 +93,10 @@ export function createPacketIndex(opts: PacketIndexOptions) {
     const t = now();
     for (const [id, r] of Object.entries(data.packets)) {
       const closes = closesAt(r);
-      if (closes !== null && closes + KEEP_AFTER_CLOSE_S < t) delete data.packets[id];
+      if (closes !== null && closes + KEEP_AFTER_CLOSE_S < t) {
+        delete data.packets[id];
+        listed.delete(id);
+      }
     }
     let total = Object.values(data.packets).reduce((n, r) => n + r.claims.length, 0);
     if (total <= maxClaims) return;
@@ -97,6 +107,7 @@ export function createPacketIndex(opts: PacketIndexOptions) {
       if (total <= maxClaims) break;
       total -= r.claims.length;
       delete data.packets[id];
+      listed.delete(id);
     }
   }
 
@@ -134,10 +145,11 @@ export function createPacketIndex(opts: PacketIndexOptions) {
           if (l.eventName === "Created") {
             packet(id).created = { block, tx, sender: String(a.sender), token: String(a.token), total: String(a.total), count: Number(a.count), lucky: Boolean(a.lucky), petOwnersOnly: Boolean(a.petOwnersOnly), expiry: Number(a.expiry) };
           } else {
-            const claims = packet(id).claims;
-            // a window read again after a restart adds nothing twice
-            if (!claims.some((c) => c.tx === tx && c.index === Number(a.index))) {
-              claims.push({ claimer: String(a.claimer), amount: String(a.amount), index: Number(a.index), sealInput: Number(a.sealInput), sealOutput: Number(a.sealOutput), tx, block });
+            const index = Number(a.index);
+            const seen = listedIn(id);
+            if (!seen.has(index)) {
+              seen.add(index);
+              packet(id).claims.push({ claimer: String(a.claimer), amount: String(a.amount), index, sealInput: Number(a.sealInput), sealOutput: Number(a.sealOutput), tx, block });
             }
           }
           added++;
