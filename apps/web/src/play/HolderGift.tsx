@@ -13,6 +13,7 @@ import { connectWallet, deployment, publicClient } from "../game/chain";
 import { useDesigns } from "../game/designs";
 import { play } from "../game/sound";
 import { OnPet } from "./FashionMarket";
+import { firstLine } from "../game/errorText";
 
 type Lang = "en" | "zh";
 const WAY_NAME: Record<GiftWay["label"], { en: string; zh: string }> = {
@@ -86,7 +87,7 @@ export function HolderGiftPanel({ pet, wallet }: { pet: Pet; wallet: string }) {
       play("success");
     } catch (e) {
       play("error");
-      setNote(L(`That didn't go through: ${(e as Error).message.split("\n")[0]}`, `没有成功：${(e as Error).message.split("\n")[0]}`));
+      setNote(L(`That didn't go through: ${firstLine(e)}`, `没有成功：${firstLine(e)}`));
     }
     setBusy(false);
   };

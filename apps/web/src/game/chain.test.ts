@@ -348,12 +348,19 @@ describe("the chain store: keeping a pet on X Layer", () => {
     expect(p.storage.getItem(CHAIN)).toBeNull();
   });
 
-  // keep() reads its failure with firstLine() since A13; updateMind() still does not (A21)
+  // A21: a wallet may reject with a bare message or with nothing; the panel is freed and says it did not go through
   it("a wallet that refuses with a bare message frees the panel and says it did not go through", async () => {
     const p = await open();
     p.wallet.request = async () => Promise.reject("User denied account access");
-    await settle(p.c().keep(p.pet()).catch(() => undefined));
-    expect(p.c()).toMatchObject({ busy: "idle", error: expect.stringMatching(/\S/) });
+    await settle(p.c().keep(p.pet()));
+    expect(p.c()).toMatchObject({ busy: "idle", error: "User denied account access" });
+  });
+
+  it("a wallet that refuses with nothing at all frees the panel too (A21)", async () => {
+    const p = await open();
+    p.wallet.request = async () => Promise.reject(undefined);
+    await settle(p.c().keep(p.pet()));
+    expect(p.c()).toMatchObject({ busy: "idle", error: "failed" });
   });
 
   it("a wallet whose address refuses pets is told so before anything is signed, and nothing is kept (A13)", async () => {
@@ -624,6 +631,19 @@ describe("the chain store: the pet's mind on chain", () => {
     await settle(p.c().updateMind(p.pet()));
     expect(p.relayed).toHaveLength(1);
     expect(mined(p, "setBrain").map((m) => m.args[2])).toEqual([77n, 1n, 77n]);
+  });
+
+  it("a wallet that refuses the move with a bare message, or with nothing, frees the panel (A21)", async () => {
+    for (const refusal of ["User denied transaction signature", undefined]) {
+      const p = await open();
+      await kept(p);
+      p.useGame.getState().learn(lesson);
+      p.wallet.request = async () => Promise.reject(refusal);
+      await settle(p.c().updateMind(p.pet()));
+      expect(p.c()).toMatchObject({ busy: "idle", error: refusal ?? "failed" });
+      Reflect.deleteProperty(window, "ethereum");
+      leave();
+    }
   });
 
   it("an owned instinct is joined to the pet's own circuit by one more relayed circuit", async () => {

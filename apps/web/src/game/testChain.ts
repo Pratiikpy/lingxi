@@ -7,6 +7,7 @@
 
 import { type Abi, type Address, type Hex, decodeFunctionData, encodeAbiParameters, encodeErrorResult, encodeEventTopics, encodeFunctionResult, keccak256, numberToHex, parseTransaction, recoverTransactionAddress, stringToHex } from "viem";
 import type { AbiEvent } from "viem";
+import { errorText } from "./errorText";
 import { type Net, json } from "./testGame";
 
 /** A contract refusing a call with one of its own errors. */
@@ -259,7 +260,7 @@ export function fakeWallet(chain: FakeXLayer, o: { account: Address }) {
           try {
             return await chain.rpc(method, params);
           } catch (e) {
-            throw Object.assign(new Error((e as Error).message), { code: (e as { code?: number }).code, data: (e as { data?: Hex }).data });
+            throw Object.assign(new Error(errorText(e)), { code: (e as { code?: number }).code, data: (e as { data?: Hex }).data });
           }
       }
     },

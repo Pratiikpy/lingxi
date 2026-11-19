@@ -13,6 +13,7 @@ import { b64urlDecode, b64urlEncode } from "@lingxi/brain";
 import { connectWallet, deployment, publicClient } from "./chain";
 import { saveWrite } from "./saveRuntime";
 import { now } from "./gameClock";
+import { errorText, firstLine } from "./errorText";
 
 const SENT_KEY = "lingxi.packets.sent.v1";
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
@@ -65,7 +66,6 @@ function loadSent(): SentPacket[] {
   }
 }
 
-const firstLine = (e: unknown) => (e as Error).message?.split(/\r?\n/)[0] || "failed";
 
 interface PacketStore {
   sent: SentPacket[];
@@ -154,7 +154,7 @@ export const usePackets = create<PacketStore>((set, get) => ({
       return { ok: true, amount: r.amount, best: !!r.claim && ((r.claim.sealOutput >> 5) & 1) === 1, claim: r.claim };
     } catch (e) {
       // the contract's error name sits further down viem's message than the first line
-      const msg = (e as Error).message ?? "";
+      const msg = errorText(e);
       const reason = /AllClaimed/.test(msg) ? "allClaimed" : /AlreadyClaimed/.test(msg) ? "already" : /Expired/.test(msg) ? "expired" : /SealSaysNo|NotYourPet/.test(msg) ? "petsOnly" : /PetUsed/.test(msg) ? "petUsed" : /BadKey/.test(msg) ? "badKey" : /noWallet/.test(msg) ? "noWallet" : firstLine(e);
       return { ok: false, reason };
     }

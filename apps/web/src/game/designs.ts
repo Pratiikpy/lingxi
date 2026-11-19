@@ -14,6 +14,7 @@ import { type Market, type OutfitDesign, type OutfitListing, copiesHeld, markets
 import { deployment, publicClient } from "./chain";
 import { saveWrite } from "./saveRuntime";
 import { now } from "./gameClock";
+import { firstLine } from "./errorText";
 
 const KEY = "lingxi.designs.v1";
 export const marketAvailable = () => !!deployment && marketsOf(deployment).length > 0;
@@ -151,7 +152,7 @@ export const useDesigns = create<DesignsStore>((set, get) => {
         register(get().local, market);
         set({ market, listings, held, atHome, wallet: who ?? null, loading: false, pieces: registeredWearables() });
       } catch (e) {
-        set({ loading: false, error: (e as Error).message.split("\n")[0] ?? "error" });
+        set({ loading: false, error: firstLine(e, "error") });
       }
     },
     canWear: (id) => {

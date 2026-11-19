@@ -16,6 +16,7 @@ import { connectWallet, deployment, publicClient, recordOf, useChain } from "../
 import { play } from "../game/sound";
 import { marketAvailable, marketOf, useDesigns } from "../game/designs";
 import { now } from "../game/gameClock";
+import { errorText } from "../game/errorText";
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
@@ -220,7 +221,7 @@ function HomePage({ pet, home, petId }: { pet: Pet; home: Home; petId: string })
       await read();
     } catch (e) {
       play("error");
-      setNote((e as Error).message === "noWallet" ? L("No wallet found in this browser.", "这个浏览器里没有钱包。") : L("That didn't go through. Only the deed's holder can write the home's page; try again.", "没有成功。只有房契持有人能写这个家的页面，请再试一次。"));
+      setNote(errorText(e) === "noWallet" ? L("No wallet found in this browser.", "这个浏览器里没有钱包。") : L("That didn't go through. Only the deed's holder can write the home's page; try again.", "没有成功。只有房契持有人能写这个家的页面，请再试一次。"));
     }
     setBusy(false);
   };

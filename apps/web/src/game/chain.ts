@@ -29,6 +29,7 @@ import rehearsalDeployment from "../../../../packages/chain/deployments/rehearsa
 import { noteTally } from "./tally";
 import { now as gameNow } from "./gameClock";
 import { OFFICIAL_RPCS } from "./nodes";
+import { firstLine } from "./errorText";
 
 const OLD_KEY = "lingxi.chain.v1";
 const CHAIN_KEY = "lingxi.chain.v2";
@@ -126,8 +127,6 @@ export function autoStatus(r: ChainRecord | null, nowMs: number): "on" | "ending
   return r.autoUntil * 1000 - nowMs < 3 * 86_400_000 ? "ending" : "on";
 }
 
-/** The first line of an error, for showing to the player. */
-const firstLine = (e: unknown): string => (e as Error).message?.split(/\r?\n/)[0] || "failed";
 
 /** The registry's refusals the chain panel explains, by the contract's own error name (A19). */
 const REGISTRY_REFUSALS: Record<string, string> = {
@@ -578,7 +577,7 @@ export const useChain = create<ChainState>((set, get) => ({
       store(pet, next);
       set({ record: activeRecord(), busy: "idle" });
     } catch (e) {
-      set({ busy: "idle", error: (e as Error).message.split("\n")[0] ?? "failed" });
+      set({ busy: "idle", error: chainReason(e) });
     }
   },
   exportLog: (pet) => {

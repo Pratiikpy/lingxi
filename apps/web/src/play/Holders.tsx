@@ -8,6 +8,7 @@ import { HOLDINGS, readHoldings, useHoldings } from "../game/holders";
 import { play } from "../game/sound";
 import { Icon, type IconName } from "./icons";
 import { HolderGiftPanel } from "./HolderGift";
+import { errorText } from "../game/errorText";
 
 type Lang = "en" | "zh";
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -35,7 +36,7 @@ export function HoldersPanel({ pet }: { pet: Pet }) {
       play("success");
     } catch (e) {
       setNote(
-        (e as Error).message === "noWallet"
+        errorText(e) === "noWallet"
           ? L("No wallet found in this browser. Open Lingxi in the OKX Wallet app, or a browser with a wallet.", "这个浏览器里没有钱包。请在 OKX 钱包应用里打开灵犀，或用装了钱包的浏览器。")
           : L("Couldn't read the wallet's holdings just now.", "暂时读不到这个钱包的持有情况。"),
       );

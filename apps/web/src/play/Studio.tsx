@@ -20,6 +20,7 @@ import { useWorld } from "../game/world";
 import { play } from "../game/sound";
 import { PALETTE_OF } from "../scene/textures";
 import { Sprite } from "./Sprite";
+import { errorText, firstLine } from "../game/errorText";
 
 type Lang = "en" | "zh";
 const SLOT_NAME: Record<Slot, { en: string; zh: string }> = { head: { en: "Head", zh: "头上" }, face: { en: "Face", zh: "脸上" }, held: { en: "Held", zh: "手里" } };
@@ -130,7 +131,7 @@ export function StudioPanel({ pet }: { pet: Pet }) {
       setNote(L(`Published as market piece #${r.id}. Anyone can now buy a copy.`, `已发布为市场作品 #${r.id}。现在谁都能买一份。`));
       play("success");
     } catch (e) {
-      setNote((e as Error).message === "noWallet" ? L("No wallet found in this browser.", "这个浏览器里没有钱包。") : L(`Publishing didn't go through: ${(e as Error).message.split("\n")[0]}`, `发布没有成功：${(e as Error).message.split("\n")[0]}`));
+      setNote(errorText(e) === "noWallet" ? L("No wallet found in this browser.", "这个浏览器里没有钱包。") : L(`Publishing didn't go through: ${firstLine(e)}`, `发布没有成功：${firstLine(e)}`));
     }
     setBusy(false);
   };

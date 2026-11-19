@@ -22,4 +22,17 @@ export function Card({ open }: { open: boolean }) {
 `;
     expect(await lintGame(code)).toContainEqual({ rule: "react-hooks/rules-of-hooks", severity: 2 });
   }, 30_000);
+
+  it("fails a caught error read as (e as Error).message, which throws when a wallet rejects with a string (A21)", async () => {
+    const code = `export async function save(send: () => Promise<void>): Promise<string> {
+  try {
+    await send();
+    return "ok";
+  } catch (e) {
+    return (e as Error).message;
+  }
+}
+`;
+    expect(await lintGame(code)).toContainEqual({ rule: "no-restricted-syntax", severity: 2 });
+  }, 30_000);
 });

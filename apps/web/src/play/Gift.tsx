@@ -22,6 +22,7 @@ import "./gift.css";
 import { noteTally } from "../game/tally";
 import { saveWrite } from "../game/saveRuntime";
 import { now } from "../game/gameClock";
+import { errorText } from "../game/errorText";
 
 type Lang = "en" | "zh";
 const OPENED_KEY = "lingxi.gifts.opened.v1";
@@ -185,7 +186,7 @@ export function GiftArrival() {
         setStep("arrive");
         setState({ gift, seen: openedIds().includes(gift.id) });
       } catch (e) {
-        setState({ error: (e as Error).message });
+        setState({ error: errorText(e) });
       }
     };
     read();

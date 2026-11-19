@@ -18,6 +18,7 @@ import { useWorld } from "../game/world";
 import { play } from "../game/sound";
 import { DecorIcon } from "./DecorBar";
 import "./itemshop.css";
+import { errorText } from "../game/errorText";
 
 type Lang = "en" | "zh";
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
@@ -84,7 +85,7 @@ export function ItemShopPanel() {
       play("success");
     } catch (e) {
       play("error");
-      const m = (e as Error).message;
+      const m = errorText(e);
       setNote(
         m === "noWallet"
           ? L("No wallet found in this browser. Open Lingxi in the OKX Wallet app, or a browser with a wallet.", "这个浏览器里没有钱包。请在 OKX 钱包应用里打开灵犀，或用装了钱包的浏览器。")

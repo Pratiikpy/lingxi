@@ -20,6 +20,7 @@ import { play } from "../game/sound";
 import { PetName } from "./PetName";
 import { type SourceState, sourcifyPage, sourcifyState } from "../game/sourcify";
 import "./extras.css";
+import { errorText } from "../game/errorText";
 
 type Lang = "en" | "zh";
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -105,7 +106,7 @@ export function ExtrasPanel({ pet }: { pet: Pet }) {
       play("success");
     } catch (e) {
       play("error");
-      const m = (e as Error).message ?? "";
+      const m = errorText(e);
       setNote(
         m === "noWallet"
           ? L("No wallet found in this browser. Open Lingxi in the OKX Wallet app, or a browser with a wallet.", "这个浏览器里没有钱包。请在 OKX 钱包应用里打开灵犀，或用装了钱包的浏览器。")
