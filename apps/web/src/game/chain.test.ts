@@ -404,16 +404,28 @@ describe("the chain store: saving the day", () => {
     expect(saved).not.toHaveBeenCalled();
   });
 
-  it("a checkpoint the registry refuses (another device already saved this day) is not counted", async () => {
+  it("a checkpoint the registry refuses (another device already saved this day) is not counted, and says so (A19)", async () => {
     const p = await open();
     await kept(p);
     p.x.pets.get(41n)!.day = 1;
     const saved = vi.fn();
     await settle(p.c().saveToday(p.pet(), saved));
-    expect(p.c()).toMatchObject({ busy: "idle", error: 'The contract function "checkpoint" reverted.', record: { lastDay: 0 } });
+    expect(p.c()).toMatchObject({ busy: "idle", error: "alreadySaved", record: { lastDay: 0 } });
     expect(saved).not.toHaveBeenCalled();
     expect(mined(p, "checkpoint")).toEqual([]);
     expect(p.useBadges.getState().ledger.chainDays).toBeUndefined();
+  });
+
+  it("a pet that has changed hands on chain is not saved, and the panel says whose it is to save (A19)", async () => {
+    const p = await open();
+    await kept(p);
+    p.x.pets.get(41n)!.owner = "0x00000000000000000000000000000000000000ee";
+    const saved = vi.fn();
+    await settle(p.c().saveToday(p.pet(), saved));
+    expect(p.c()).toMatchObject({ busy: "idle", error: "notKeeping", record: { lastDay: 0 } });
+    expect(panelSays("chain.notKeeping")[0]).toMatch(/no longer keeps/);
+    expect(saved).not.toHaveBeenCalled();
+    expect(mined(p, "checkpoint")).toEqual([]);
   });
 
   it("the player refusing the save in the wallet saves nothing", async () => {
@@ -818,21 +830,30 @@ describe("the chain store: a family on chain", () => {
     expect(mined(p, "breed")).toEqual([]);
   });
 
-  // DEFECT: the Breeder refuses with custom errors (NotAdult(uint256), TooSoon(uint256)); viem puts the error's name on
-  // a later line of its message ('The contract function "breed" reverted.' first), and chain.ts matches only the first
-  // line, so these two reasons never reach the Family screen, which shows the raw first line instead.
-  it.fails("a birth the Breeder refuses because a parent is not grown on chain tells the player so", async () => {
+  // A19: the Breeder refuses with custom errors (NotAdult(uint256), TooSoon(uint256), ...); viem puts the error's name
+  // on a later line of its message ('The contract function "breed" reverted.' first), so the reason is read from the
+  // decoded error, and the Family screen says why instead of showing that first line.
+  it("a birth the Breeder refuses because a parent is not grown on chain tells the player so", async () => {
     const p = await open();
     await kept(p);
     p.x.rules.breedRefusal = new Revert("NotAdult", [41n]);
     expect(await settle(p.c().breed(p.pet(), partnerOnChain(p), childOf(p.pet())))).toEqual({ ok: false, reason: "notAdultOnChain" });
   });
 
-  it.fails("a birth the Breeder refuses because the parents are still resting tells the player so", async () => {
+  it("a birth the Breeder refuses because the parents are still resting tells the player so", async () => {
     const p = await open();
     await kept(p);
     p.x.rules.breedRefusal = new Revert("TooSoon", [41n]);
     expect(await settle(p.c().breed(p.pet(), partnerOnChain(p), childOf(p.pet())))).toEqual({ ok: false, reason: "tooSoon" });
+  });
+
+  it("a birth the Breeder refuses because its fee changed, or because the pet changed hands, tells the player so", async () => {
+    const p = await open();
+    await kept(p);
+    p.x.rules.breedRefusal = new Revert("FeeMoved", [7n]);
+    expect(await settle(p.c().breed(p.pet(), partnerOnChain(p), childOf(p.pet())))).toEqual({ ok: false, reason: "feeMoved" });
+    p.x.rules.breedRefusal = new Revert("NotYours");
+    expect(await settle(p.c().breed(p.pet(), partnerOnChain(p), childOf(p.pet())))).toEqual({ ok: false, reason: "notYours" });
   });
 
   it("a birth the Breeder refuses on chain sends nothing and keeps no record for the child", async () => {

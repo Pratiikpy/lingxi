@@ -12,7 +12,7 @@ import { useBadges } from "./badges";
 import { create } from "zustand";
 import { createPublicClient, createWalletClient, custom, erc20Abi, http, isAddress, type Address, type Hex, type PublicClient, type WalletClient, fallback } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { type Deployment, type TapeQuote, type TapeStep, allowPartnerOnChain, breedOnChain, breedingTerms, checkPartner, hasConsent, checkpointOnChain, hatchOnChain, quoteTapeout, readKeeping, readPet, setBrainOnChain, setSitterOnChain, signRelay, type SignedRelay, tapeOutYourself, xLayer, refusesTokens, LineMismatchError } from "@lingxi/chain";
+import { petRegistryAbi, type Deployment, type TapeQuote, type TapeStep, allowPartnerOnChain, breedOnChain, breedingTerms, checkPartner, hasConsent, checkpointOnChain, hatchOnChain, quoteTapeout, readKeeping, readPet, setBrainOnChain, setSitterOnChain, signRelay, type SignedRelay, tapeOutYourself, xLayer, refusesTokens, LineMismatchError, revertName, breederV2Abi } from "@lingxi/chain";
 import { compileProgram, netlistBytes } from "@lingxi/brain";
 import { AUTO_DAYS, AUTO_FUND, AUTO_LOW, sessionAccount, sessionWallet } from "./session";
 import { type Pet, logSegments, packState, petCard, stageOf, unpackState, ruleSkillIds } from "@lingxi/game";
@@ -128,6 +128,35 @@ export function autoStatus(r: ChainRecord | null, nowMs: number): "on" | "ending
 
 /** The first line of an error, for showing to the player. */
 const firstLine = (e: unknown): string => (e as Error).message?.split(/\r?\n/)[0] || "failed";
+
+/** The registry's refusals the chain panel explains, by the contract's own error name (A19). */
+const REGISTRY_REFUSALS: Record<string, string> = {
+  DayNotAfter: "alreadySaved",
+  NotKeeper: "notKeeping",
+  SittingTooLong: "badDays",
+};
+
+/**
+ * What the chain panel says about a failed write: the contract's own reason when it gave one (read from the decoded
+ * error, never from the message's first line, which is viem's "The contract function ... reverted."), else that
+ * first line.
+ */
+function chainReason(e: unknown): string {
+  if (refusesTokens(e)) return "cannotReceive";
+  if (e instanceof LineMismatchError) return "notThisPet";
+  const refused = revertName(e, petRegistryAbi);
+  return (refused && REGISTRY_REFUSALS[refused]) || firstLine(e);
+}
+
+/** The Breeder's refusals the Family screen explains, by the contract's own error name (A19). */
+const BREED_REFUSALS: Record<string, string> = {
+  NotAdult: "notAdultOnChain",
+  TooSoon: "tooSoon",
+  NoConsent: "noConsent",
+  TooManyChildren: "tooManyChildren",
+  FeeMoved: "feeMoved",
+  NotYours: "notYours",
+};
 
 /**
  * Which taped-out brain a mind needs, by what it was taught and the instincts it
@@ -281,7 +310,7 @@ export const useChain = create<ChainState>((set, get) => ({
       set({ busy: "idle" });
       return true;
     } catch (e) {
-      set({ busy: "idle", error: firstLine(e) });
+      set({ busy: "idle", error: chainReason(e) });
       return false;
     }
   },
@@ -323,23 +352,19 @@ export const useChain = create<ChainState>((set, get) => ({
     } catch (e) {
       const msg = firstLine(e);
       set({ busy: "idle", error: msg });
+      // the Breeder's own reason, read from the decoded error, not the message's first line (A19)
+      const refused = revertName(e, breederV2Abi);
       return {
         ok: false,
         reason: refusesTokens(e)
           ? "cannotReceive"
-          : /NotAdult/.test(msg)
-          ? "notAdultOnChain"
-          : /TooSoon/.test(msg)
-            ? "tooSoon"
-            : /NoConsent/.test(msg)
-              ? "noConsent"
-              : /PartnerNotOnChain/.test(msg)
-                ? "partnerNotOnChain"
-              : /TooManyChildren/.test(msg)
-                ? "tooManyChildren"
-                : /not enough BEM/.test(msg)
-                  ? "notEnoughBem"
-                  : msg,
+          : refused && refused in BREED_REFUSALS
+            ? BREED_REFUSALS[refused]!
+            : /PartnerNotOnChain/.test(msg)
+              ? "partnerNotOnChain"
+              : /not enough BEM/.test(msg)
+                ? "notEnoughBem"
+                : msg,
       };
     }
   },
@@ -378,7 +403,7 @@ export const useChain = create<ChainState>((set, get) => ({
       set({ record: activeRecord(), busy: "idle" });
     } catch (e) {
       // an address whose code refuses tokens is told so (A13); any other failure by its first line
-      set({ busy: "idle", error: refusesTokens(e) ? "cannotReceive" : e instanceof LineMismatchError ? "notThisPet" : firstLine(e) });
+      set({ busy: "idle", error: chainReason(e) });
     }
   },
   saveToday: async (pet, onSaved, quiet = false) => {
@@ -406,8 +431,8 @@ export const useChain = create<ChainState>((set, get) => ({
       noteTally("SAVE");
       onSaved();
     } catch (e) {
-      // a state of another line is never written over a pet (A18): said, not left as a raw message
-      set({ busy: "idle", error: quiet ? null : e instanceof LineMismatchError ? "notThisPet" : firstLine(e) });
+      // a state of another line is never written over a pet (A18), and a refusal says the registry's reason (A19)
+      set({ busy: "idle", error: quiet ? null : chainReason(e) });
     }
   },
   enableAuto: async (pet) => {
@@ -430,7 +455,7 @@ export const useChain = create<ChainState>((set, get) => ({
       store(pet, { ...record, autoUntil: until, sitter: undefined });
       set({ record: activeRecord(), busy: "idle" });
     } catch (e) {
-      set({ busy: "idle", error: firstLine(e) });
+      set({ busy: "idle", error: chainReason(e) });
     }
   },
   endSitting: async (pet) => {
@@ -444,7 +469,7 @@ export const useChain = create<ChainState>((set, get) => ({
       store(pet, { ...record, autoUntil: undefined, sitter: undefined });
       set({ record: activeRecord(), busy: "idle" });
     } catch (e) {
-      set({ busy: "idle", error: firstLine(e) });
+      set({ busy: "idle", error: chainReason(e) });
     }
   },
   sitWith: async (pet, who, days) => {
@@ -470,8 +495,7 @@ export const useChain = create<ChainState>((set, get) => ({
       set({ record: activeRecord(), busy: "idle" });
       return true;
     } catch (e) {
-      const msg = firstLine(e);
-      set({ busy: "idle", error: msg === "selfSitter" ? "selfSitter" : msg });
+      set({ busy: "idle", error: chainReason(e) });
       return false;
     }
   },
@@ -485,7 +509,7 @@ export const useChain = create<ChainState>((set, get) => ({
       set({ busy: "idle" });
       return q;
     } catch (e) {
-      set({ busy: "idle", error: firstLine(e) });
+      set({ busy: "idle", error: chainReason(e) });
       return null;
     }
   },
@@ -505,7 +529,7 @@ export const useChain = create<ChainState>((set, get) => ({
       set({ record: activeRecord(), busy: "idle" });
       return true;
     } catch (e) {
-      set({ busy: "idle", error: firstLine(e) });
+      set({ busy: "idle", error: chainReason(e) });
       return false;
     }
   },
