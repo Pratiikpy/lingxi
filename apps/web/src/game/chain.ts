@@ -12,7 +12,7 @@ import { useBadges } from "./badges";
 import { create } from "zustand";
 import { createPublicClient, createWalletClient, custom, erc20Abi, http, isAddress, type Address, type Hex, type PublicClient, type WalletClient, fallback } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { petRegistryAbi, type Deployment, type TapeQuote, type TapeStep, allowPartnerOnChain, breedOnChain, breedingTerms, checkPartner, hasConsent, checkpointOnChain, hatchOnChain, quoteTapeout, readKeeping, readPet, setBrainOnChain, setSitterOnChain, signRelay, type SignedRelay, tapeOutYourself, xLayer, refusesTokens, LineMismatchError, RevertedOnChain, revertName, breederV2Abi } from "@lingxi/chain";
+import { petRegistryAbi, type Deployment, type TapeQuote, type TapeStep, allowPartnerOnChain, breedOnChain, breedingTerms, checkPartner, hasConsent, checkpointOnChain, hatchOnChain, quoteTapeout, readKeeping, readPet, setBrainOnChain, setSitterOnChain, signRelay, type SignedRelay, tapeOutYourself, xLayer, refusesTokens, LineMismatchError, RevertedOnChain, StillPending, hatchOutcome, revertName, breederV2Abi } from "@lingxi/chain";
 import { compileProgram, netlistBytes } from "@lingxi/brain";
 import { AUTO_DAYS, AUTO_FUND, AUTO_LOW, sessionAccount, sessionWallet } from "./session";
 import { type Pet, logSegments, packState, petCard, stageOf, unpackState, ruleSkillIds } from "@lingxi/game";
@@ -202,6 +202,39 @@ function store(pet: Pet, rec: ChainRecord | null): void {
     // in memory for this visit
   }
 }
+/**
+ * Hatches sent but not yet confirmed, by pet (A30): kept the moment a hatch is sent, so a keep that timed out never sends
+ * a second one; cleared once X Layer has said what became of it.
+ */
+const PENDING_KEY = "lingxi.chain.pending.v1";
+/** A hatch the node has never heard of is let go after this long (it was dropped, or never left the wallet). */
+const PENDING_FORGET_MS = 30 * 60_000;
+interface PendingHatch {
+  tx: Hex;
+  owner: string;
+  at: number;
+}
+function loadPending(): Record<string, PendingHatch> {
+  try {
+    const r = localStorage.getItem(PENDING_KEY);
+    return r ? (JSON.parse(r) as Record<string, PendingHatch>) : {};
+  } catch {
+    return {};
+  }
+}
+let pending = loadPending();
+function setPending(pet: Pet, p: PendingHatch | null): void {
+  const next = { ...pending };
+  if (p) next[petKey(pet)] = p;
+  else delete next[petKey(pet)];
+  pending = next;
+  try {
+    saveWrite(PENDING_KEY, JSON.stringify(pending));
+  } catch {
+    // in memory for this visit
+  }
+}
+
 /** Any pet's chain record on this device, and setting it (pet-sitting moves records between devices). */
 export const recordOf = (pet: Pick<Pet, "bornAt">): ChainRecord | null => records[petKey(pet)] ?? null;
 /** Every wallet that owns a pet kept on this device (community goals count what these wallets did on chain). */
@@ -377,25 +410,32 @@ export const useChain = create<ChainState>((set, get) => ({
     if (get().busy !== "idle") return;
     set({ busy: "connecting", error: null });
     try {
-      const wallet = await connectWallet();
       // a pet this device has kept already is never hatched again; keeping it again finishes what is left (A20)
       let record = records[petKey(pet)] ?? null;
-      if (!record) {
-        set({ busy: "hatching" });
-        const { petId, tx } = await hatchOnChain(publicClient, wallet, deployment, pet.line, packState(pet, stageOf(pet, gameNow())));
+      const recordFrom = async (petId: bigint, tx: Hex, owner: string): Promise<ChainRecord> => {
         const onChain = await readPet(publicClient, deployment, petId);
-        record = {
-          petId: petId.toString(),
-          hatchTx: tx,
-          lastDay: 0,
-          owner: wallet.account!.address,
-          bornChain: onChain.born,
-          brains: { [mindKey([])]: deployment.circuits[pet.line]!.id },
-          brainKey: mindKey([]),
-        };
-        store(pet, record);
+        const rec: ChainRecord = { petId: petId.toString(), hatchTx: tx, lastDay: 0, owner, bornChain: onChain.born, brains: { [mindKey([])]: deployment.circuits[pet.line]!.id }, brainKey: mindKey([]) };
+        store(pet, rec);
+        setPending(pet, null);
         // from here on the panel shows the pet as kept, whatever fails after
         set({ record: activeRecord() });
+        return rec;
+      };
+      // a hatch sent before and not yet confirmed is asked about first, never sent again (A30)
+      const sent = record ? null : (pending[petKey(pet)] ?? null);
+      if (sent) {
+        set({ busy: "hatching" });
+        const out = await hatchOutcome(publicClient, deployment, sent.tx, sent.owner as Hex);
+        if (out === "pending" || (out === "unknown" && Date.now() - sent.at < PENDING_FORGET_MS)) return set({ busy: "idle", error: "hatchPending" });
+        if (typeof out === "object") record = await recordFrom(out.petId, sent.tx, sent.owner);
+        else setPending(pet, null);
+      }
+      const wallet = await connectWallet();
+      if (!record) {
+        set({ busy: "hatching" });
+        const owner = wallet.account!.address;
+        const { petId, tx } = await hatchOnChain(publicClient, wallet, deployment, pet.line, packState(pet, stageOf(pet, gameNow())), (tx) => setPending(pet, { tx, owner, at: Date.now() }));
+        record = await recordFrom(petId, tx, owner);
       }
       // the registry hatches every pet on its line's starter brain; a pet with
       // instincts moves straight onto its own circuit before anything is saved
@@ -412,8 +452,8 @@ export const useChain = create<ChainState>((set, get) => ({
       set({ record: activeRecord(), busy: "idle" });
     } catch (e) {
       // an address whose code refuses tokens is told so (A13), a contract's own reason is said (A19); a hatch that
-      // landed before the failure stays shown as kept (A20)
-      set({ busy: "idle", error: chainReason(e), record: activeRecord() });
+      // landed before the failure stays shown as kept (A20); one sent and not yet confirmed is said so (A30)
+      set({ busy: "idle", error: e instanceof StillPending ? "hatchPending" : chainReason(e), record: activeRecord() });
     }
   },
   saveToday: async (pet, onSaved, quiet = false) => {

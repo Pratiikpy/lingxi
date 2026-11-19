@@ -3,7 +3,7 @@
  * any viem wallet client (an injected wallet, Privy, or a local key in tests).
  */
 
-import { keccak256, type Address, type Hex, type PublicClient, type WalletClient } from "viem";
+import { WaitForTransactionReceiptTimeoutError, keccak256, type Address, type Hex, type PublicClient, type WalletClient } from "viem";
 import { LOOK_LINES } from "./look";
 import { petLookAbi } from "./lookAbi";
 import { hatchedPetIdFrom, RevertedOnChain } from "./receipts";
@@ -140,12 +140,38 @@ export class LineMismatchError extends Error {
 
 const lineName = (i: number) => LOOK_LINES[i] ?? `line ${i}`;
 
+/** How long a hatch waits for X Layer to confirm it before the game says it is still waiting (A30). */
+export const RECEIPT_TIMEOUT_MS = 120_000;
+
+/** A write sent but not confirmed in time (A30): it may still land, so the game must not send it again. */
+export class StillPending extends Error {
+  constructor(
+    readonly what: string,
+    readonly tx: Hex,
+  ) {
+    super(`${what} sent, not yet confirmed`);
+    this.name = "StillPending";
+  }
+}
+
+/**
+ * What became of a hatch sent earlier (A30): its pet once mined, "failed" if X Layer turned it down, "pending" while
+ * the node knows the transaction but has not mined it, "unknown" when the node knows nothing of it (not yet seen, or
+ * dropped).
+ */
+export async function hatchOutcome(pub: PublicClient, d: Deployment, tx: Hex, owner: Address): Promise<{ petId: bigint } | "failed" | "pending" | "unknown"> {
+  const r = await pub.getTransactionReceipt({ hash: tx }).catch(() => null);
+  if (!r) return (await pub.getTransaction({ hash: tx }).catch(() => null)) ? "pending" : "unknown";
+  if (r.status !== "success") return "failed";
+  return { petId: hatchedPetIdFrom(r, d.registry, owner) };
+}
+
 /**
  * Hatches a pet of `line` with its starting state. The registry's line index is derived here from the name, and a
  * state of another line is refused: mainnet pet #2 was hatched with index 0 and a bold state by a script that passed
  * the two separately (A18).
  */
-export async function hatchOnChain(pub: PublicClient, wallet: WalletClient, d: Deployment, line: Line, initialState: bigint): Promise<{ petId: bigint; tx: Hex }> {
+export async function hatchOnChain(pub: PublicClient, wallet: WalletClient, d: Deployment, line: Line, initialState: bigint, onSent?: (tx: Hex) => void): Promise<{ petId: bigint; tx: Hex }> {
   const account = wallet.account;
   if (!account) throw new Error("wallet has no account");
   const index = LOOK_LINES.indexOf(line);
@@ -160,7 +186,15 @@ export async function hatchOnChain(pub: PublicClient, wallet: WalletClient, d: D
     account,
   });
   const tx = await wallet.writeContract(request);
-  const r = await pub.waitForTransactionReceipt({ hash: tx });
+  // remembered before the wait, so a hatch that is slow to confirm is never sent twice (A30)
+  onSent?.(tx);
+  let r;
+  try {
+    r = await pub.waitForTransactionReceipt({ hash: tx, timeout: RECEIPT_TIMEOUT_MS });
+  } catch (e) {
+    if (e instanceof WaitForTransactionReceiptTimeoutError) throw new StillPending("hatch", tx);
+    throw e;
+  }
   if (r.status !== "success") throw new RevertedOnChain("hatch", r.transactionHash);
   // the id from the mined Hatched event: someone else's hatch between the simulation and the block takes the simulated one
   return { petId: hatchedPetIdFrom(r, d.registry, account.address), tx };

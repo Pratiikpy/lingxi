@@ -374,6 +374,37 @@ describe("the chain store: keeping a pet on X Layer", () => {
     expect(zh).toMatch(/收不了宠物或道具/);
   });
 
+  it("a hatch whose receipt does not come in time says so, and keeping again never sends a second (A30)", async () => {
+    const p = await open();
+    p.xl.node.holdReceipts = true;
+    await settle(p.c().keep(p.pet()), 1_000, 400);
+    expect(p.c()).toMatchObject({ busy: "idle", error: "hatchPending", record: null });
+    expect(panelSays("chain.hatchPending")[0]).toMatch(/sent/);
+    expect(mined(p, "hatch")).toHaveLength(1);
+    // still held: keeping again asks for that transaction and sends nothing new
+    await settle(p.c().keep(p.pet()), 1_000, 400);
+    expect(p.c()).toMatchObject({ busy: "idle", error: "hatchPending", record: null });
+    expect(mined(p, "hatch")).toHaveLength(1);
+    // the node tells of it now: keeping again records that pet, with no second hatch
+    p.xl.node.holdReceipts = false;
+    await settle(p.c().keep(p.pet()));
+    expect(p.c()).toMatchObject({ busy: "idle", error: null, record: { petId: "41" } });
+    expect(mined(p, "hatch")).toHaveLength(1);
+  });
+
+  it("a hatch that failed on chain while it was waiting lets a new one go (A30)", async () => {
+    const p = await open();
+    p.x.rules.revertMined = "hatch";
+    p.xl.node.holdReceipts = true;
+    await settle(p.c().keep(p.pet()), 1_000, 400);
+    expect(p.c().error).toBe("hatchPending");
+    p.xl.node.holdReceipts = false;
+    p.x.rules.revertMined = null;
+    await settle(p.c().keep(p.pet()));
+    expect(mined(p, "hatch").map((m) => m.status)).toEqual(["reverted", "success"]);
+    expect(p.c()).toMatchObject({ error: null, record: { petId: "41" } });
+  });
+
   it("a hatch the block refuses after the simulation passed is not kept, and the panel says its fee was spent (A22)", async () => {
     const p = await open();
     p.x.rules.revertMined = "hatch";

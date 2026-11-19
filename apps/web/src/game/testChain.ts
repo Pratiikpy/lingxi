@@ -65,6 +65,8 @@ export function fakeXLayer(o: { contracts: Record<string, FakeContract>; balance
   const contracts = new Map(Object.entries(o.contracts).map(([a, c]) => [lower(a), c]));
   const balances = new Map(Object.entries(o.balances ?? {}).map(([a, b]) => [lower(a), b]));
   const receipts = new Map<string, Record<string, unknown>>();
+  /** what each transaction carried, for eth_getTransactionByHash */
+  const sentTxs = new Map<string, { from: Address; to: Address; data: Hex; nonce: number }>();
   const mined: Mined[] = [];
   const asked: string[] = [];
   let blockNumber = 76_300_000n;
@@ -74,6 +76,8 @@ export function fakeXLayer(o: { contracts: Record<string, FakeContract>; balance
     down: false,
     /** node URLs that do not answer (the others still do) */
     silent: new Set<string>(),
+    /** transactions are mined, but the node has not told of them yet: their receipts read as null (A30) */
+    holdReceipts: false,
   };
 
   const seconds = () => Math.floor(Date.now() / 1000);
@@ -140,6 +144,7 @@ export function fakeXLayer(o: { contracts: Record<string, FakeContract>; balance
       type: "0x2",
     });
     mined.push({ hash, from: c.from, to: c.to, functionName: called?.functionName ?? "", args: called?.args ?? [], value: r?.value ?? 0n, status });
+    sentTxs.set(hash, { from: c.from, to: c.to, data: c.data ?? "0x", nonce: sent });
     return hash;
   }
 
@@ -196,7 +201,35 @@ export function fakeXLayer(o: { contracts: Record<string, FakeContract>; balance
         return mine({ from: await recoverTransactionAddress({ serializedTransaction: raw as never }), to: tx.to!, data: tx.data ?? "0x", value: tx.value ?? 0n });
       }
       case "eth_getTransactionReceipt":
-        return receipts.get(params[0] as string) ?? null;
+        return node.holdReceipts ? null : (receipts.get(params[0] as string) ?? null);
+      case "eth_getTransactionByHash": {
+        // a transaction the node knows; while receipts are held it reads as still waiting for a block (A30)
+        const hash = params[0] as Hex;
+        const t = sentTxs.get(hash);
+        if (!t) return null;
+        const r = node.holdReceipts ? null : receipts.get(hash);
+        return {
+          hash,
+          from: t.from,
+          to: t.to,
+          input: t.data,
+          value: "0x0",
+          nonce: numberToHex(t.nonce),
+          gas: "0x30d40",
+          type: "0x2",
+          maxFeePerGas: "0x3b9aca00",
+          maxPriorityFeePerGas: "0x1",
+          chainId: numberToHex(196),
+          accessList: [],
+          v: "0x0",
+          r: "0x1",
+          s: "0x1",
+          yParity: "0x0",
+          blockHash: r ? r.blockHash : null,
+          blockNumber: r ? r.blockNumber : null,
+          transactionIndex: r ? "0x0" : null,
+        };
+      }
       default:
         throw new RpcError(-32601, `the method ${method} does not exist`);
     }
