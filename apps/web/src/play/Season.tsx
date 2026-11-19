@@ -26,6 +26,10 @@ function left(ms: number, lang: string): string {
   return lang === "zh" ? (d > 0 ? `${d} 天 ${h % 24} 小时` : `${h} 小时`) : d > 0 ? `${d}d ${h % 24}h` : `${h}h`;
 }
 
+/** While the server is still working out standings, how often and how many times the card asks again (A38). */
+const PENDING_ASK_MS = 3_000;
+const PENDING_ASKS = 20;
+
 export function SeasonCard({ pet }: { pet: Pet }) {
   const lang = useLang((s) => s.lang);
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
@@ -47,7 +51,8 @@ export function SeasonCard({ pet }: { pet: Pet }) {
     // a finished season turns our final place into a badge, once
     const m = mine();
     const key = l ? m.keys[l.week] : undefined;
-    if (l?.closed && key && !m.awarded.includes(l.week)) {
+    // a place is awarded only from standings fought for the week's own entries, never from ones still being worked out
+    if (l?.closed && !l.pending && key && !m.awarded.includes(l.week)) {
       const row = l.standings.find((r) => r.key === key);
       const tier = row ? placeTier(row.rank) : 0;
       if (tier) useBadges.getState().note("seasonPlace", tier);
@@ -73,12 +78,20 @@ export function SeasonCard({ pet }: { pet: Pet }) {
     setState("loading");
     return readBoth().then(show);
   }, [readBoth, show]);
-  // read when the card opens (it starts out loading)
+  // read when the card opens (it starts out loading), and again while the server is still working out standings (A38)
   useEffect(() => {
     let live = true;
-    void readBoth().then((r) => live && show(r));
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const read = (left: number) =>
+      readBoth().then((r) => {
+        if (!live) return;
+        show(r);
+        if ((r[0]?.pending || r[1]?.pending) && left > 0) timer = setTimeout(() => void read(left - 1), PENDING_ASK_MS);
+      });
+    void read(PENDING_ASKS);
     return () => {
       live = false;
+      clearTimeout(timer);
     };
   }, [readBoth, show]);
 
@@ -142,8 +155,8 @@ export function SeasonCard({ pet }: { pet: Pet }) {
   const rows = view?.standings ?? [];
   const mineRow = rows.find((r) => r.key === myKey);
   const shown = rows.slice(0, SHOWN);
-  const champ = last?.closed ? last.standings[0] : undefined;
-  const lastMine = last ? last.standings.find((r) => r.key === mine().keys[last.week]) : undefined;
+  const champ = last?.closed && !last.pending ? last.standings[0] : undefined;
+  const lastMine = last && !last.pending ? last.standings.find((r) => r.key === mine().keys[last.week]) : undefined;
   const onChain = !!recordOf(pet);
   const award = last?.award;
   const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -210,6 +223,13 @@ export function SeasonCard({ pet }: { pet: Pet }) {
           )}
         </p>
       )}
+      {view?.pending && (
+        <p className="small ss-note" aria-live="polite">
+          {rows.length
+            ? L("The table is being worked out again for the newest entries; this is the last one.", "正在为最新的参赛重新计算排名；下面是上一次的结果。")
+            : L("The table is being worked out: every pet fights every other, which takes a few seconds.", "正在计算排名：每只宠物都要和其他每只打一场，需要几秒钟。")}
+        </p>
+      )}
       {rows.length > 0 && (
         <table className="ss-table">
           <thead>
@@ -243,7 +263,7 @@ export function SeasonCard({ pet }: { pet: Pet }) {
           </tbody>
         </table>
       )}
-      {view && view.entries.length > 0 && (
+      {view && view.entries.length > 0 && !view.pending && (
         <div className="ss-check">
           <button type="button" className="link" onClick={recompute}>
             {L("Recompute the table in your browser", "在你的浏览器里重算这张表")}

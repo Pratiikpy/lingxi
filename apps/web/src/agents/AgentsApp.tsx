@@ -25,6 +25,8 @@ interface Row {
   week: string;
   humans: Side;
   agents: Side;
+  /** the week's standings are still being worked out: these are the last known */
+  pending?: true;
 }
 
 /** the manifests' notes, in Chinese */
@@ -170,7 +172,10 @@ export function AgentsApp() {
             <tbody>
               {board.map((r) => (
                 <tr key={r.week}>
-                  <td>{r.week}</td>
+                  <td>
+                    {r.week}
+                    {r.pending && <span className="small">{L(" · being worked out", " · 正在计算")}</span>}
+                  </td>
                   <td>{`${r.humans.entries} · ${r.humans.meanPoints} · ${r.humans.best ?? "-"}`}</td>
                   <td>{`${r.agents.entries} · ${r.agents.meanPoints} · ${r.agents.best ?? "-"}`}</td>
                 </tr>

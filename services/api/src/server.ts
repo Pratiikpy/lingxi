@@ -69,6 +69,7 @@ import { createSalesCounter, withNumbers } from "./numbers";
 import { createListingWatch, withRetiredListings } from "./marketV1";
 import { createDuelStore, withDuels } from "./duels";
 import { createDailyBlocks, withDaily } from "./daily";
+import { createStandingsRunner } from "./standings";
 import { buildTree } from "./tree";
 import { type DiaryStore, createDiaryStore } from "./diaries";
 import { MAX_MOVE_CHARS, type MoveStore, createMoveStore } from "./move";
@@ -801,7 +802,8 @@ if (isMain) {
     const letters = loadLetters(file);
     withMail(app, () => letters);
   }
-  const seasons = createSeasonStore(process.env.LINGXI_SEASON_STORE);
+  // standings fought in a worker thread with a time budget, kept on disk (A38)
+  const seasons = createSeasonStore(process.env.LINGXI_SEASON_STORE, Date.now, createStandingsRunner({ file: process.env.LINGXI_STANDINGS_FILE ?? join(dataDir, "standings.json") }));
   // proving an entry is a pet on X Layer: its keeper's signature, and its card thinks as its brain on chain does
   const seasonNonces = createNonceBook();
   const prove: SeasonProver | undefined =

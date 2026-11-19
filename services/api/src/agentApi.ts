@@ -243,7 +243,9 @@ export function withAgentApi(app: Hono, deps: AgentApiDeps): Hono {
       .weeks()
       .map((w) => deps.seasons.view(w))
       .filter((v): v is NonNullable<typeof v> => !!v && v.entries.length > 0);
-    return c.json({ ok: true, weeks: scoreboard(views.map((v) => ({ week: v.week, standings: v.standings }))) });
+    // a week whose standings are still being fought shows the last ones known, marked pending (A38)
+    const rows = scoreboard(views.map((v) => ({ week: v.week, standings: v.standings })));
+    return c.json({ ok: true, weeks: rows.map((r, i) => (views[i]!.pending ? { ...r, pending: true } : r)) });
   });
 
   return app;

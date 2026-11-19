@@ -19,6 +19,8 @@ export interface SeasonView {
   entries: SeasonEntry[];
   standings: Standing[];
   digest: string;
+  /** the standings are still being worked out for the newest entries; these are the last known (A38) */
+  pending?: true;
   /** the champion's keepsake: its brain taped out on X Layer and sent to its owner */
   award?: { key: string; name: string; brainId?: string; to?: string; sendTx?: string; none?: "noWallet" | "failed" };
 }

@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { MAX_ENTRIES, petCard, seasonStandings, standingsDigest } from "@lingxi/game";
 import { withSeason } from "../src/server";
 import { createSeasonStore } from "../src/season";
+import { createStandingsRunner } from "../src/standings";
 
 const pet = (name: string, line = "gentle") => ({ name, line, stage: "child", card: petCard({ lessons: [] }), story: { days: 1, lessons: 0, nature: [] } });
 const T = Date.UTC(2026, 10, 18, 12); // Wednesday of 2026-W47
@@ -87,6 +88,24 @@ describe("champion keepsakes", () => {
     const v = store.view("2026-W47")!;
     expect(v.award).toMatchObject({ brainId: "77", sendTx: "0xbb", key: v.standings[0]!.key });
     expect(JSON.stringify(v)).not.toMatch(/"pets"|"from"|203\.0\.113/);
+  });
+
+  it("with standings fought off the request thread, a view says pending until they are fought, and no keepsake is chosen from them (A38)", async () => {
+    let t = T;
+    const go: Array<() => void> = [];
+    const runner = createStandingsRunner({ compute: (week, entries) => new Promise((r) => go.push(() => r(seasonStandings(week, entries)))) });
+    const store = createSeasonStore(undefined, () => t, runner);
+    store.enter(pet("Ana"), "device-aaaa-1111", { petId: "11" });
+    store.enter(pet("Bea", "bold"), "device-bbbb-2222", { petId: "22" });
+    expect(store.view("2026-W47")).toMatchObject({ standings: [], pending: true });
+    t += 7 * 86_400_000;
+    expect(store.pending(), "no champion from standings still being fought").toEqual([]);
+    go.splice(0).forEach((f) => f());
+    await runner.idle();
+    const v = store.view("2026-W47")!;
+    expect(v.pending).toBeUndefined();
+    expect(v.standings).toEqual(seasonStandings("2026-W47", v.entries));
+    expect(store.pending().map((p) => p.petId)).toHaveLength(1);
   });
 
   it("skip an unproven champion for the best proven pet below it", async () => {

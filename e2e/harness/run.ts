@@ -120,6 +120,7 @@ export async function startRun(): Promise<Run> {
           ["LINGXI_DIARY_DIR", "diaries"],
           ["LINGXI_DUELS_DIR", "duels"],
           ["LINGXI_DAILY_FILE", "daily.json"],
+          ["LINGXI_STANDINGS_FILE", "standings.json"],
         ].map(([k, f]) => [k, s(f!)]),
       ),
     };

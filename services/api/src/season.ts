@@ -15,6 +15,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { MAX_ENTRIES, type SeasonEntry, type Standing, seasonStandings, standingsDigest, weekBounds, weekOf } from "@lingxi/game";
 import { validSnapshot } from "./arena";
+import { type StandingsAnswer, entriesKey } from "./standings";
 
 const KEEP_WEEKS = 12;
 const WEEK = /^\d{4}-W\d{2}$/;
@@ -64,6 +65,8 @@ export interface SeasonView {
   entries: SeasonEntry[];
   standings: Standing[];
   digest: string;
+  /** the standings are not yet those of these entries: they are being fought (A38) */
+  pending?: true;
   award?: Award;
 }
 
@@ -88,9 +91,29 @@ export interface SeasonStore {
 
 const tag = (s: string) => createHash("sha256").update(s).digest("hex");
 
-export function createSeasonStore(file?: string, now: () => number = Date.now): SeasonStore {
+/** Where standings come from: fought on the spot (tests), or by the server's runner off the request thread (A38). */
+export interface StandingsSource {
+  get: (week: string, entries: readonly SeasonEntry[]) => StandingsAnswer;
+}
+
+/** Standings fought where they are asked for, kept until the week's entries change. */
+function foughtHere(): StandingsSource {
+  const kept = new Map<string, { key: string; answer: StandingsAnswer }>();
+  return {
+    get(week, entries) {
+      const key = entriesKey(week, entries);
+      const have = kept.get(week);
+      if (have?.key === key) return have.answer;
+      const standings = seasonStandings(week, entries);
+      const answer = { standings, digest: standingsDigest(standings), pending: false };
+      kept.set(week, { key, answer });
+      return answer;
+    },
+  };
+}
+
+export function createSeasonStore(file?: string, now: () => number = Date.now, source: StandingsSource = foughtHere()): SeasonStore {
   const weeks = new Map<string, Week>();
-  const cache = new Map<string, { n: number; at: number; view: SeasonView }>();
   if (file && existsSync(file)) {
     try {
       for (const [w, v] of Object.entries(JSON.parse(readFileSync(file, "utf8")) as Record<string, Week>)) if (WEEK.test(w) && Array.isArray(v.entries)) weeks.set(w, { ...v, entries: v.entries.slice(0, MAX_ENTRIES), by: v.by ?? {} });
@@ -143,7 +166,6 @@ export function createSeasonStore(file?: string, now: () => number = Date.now): 
       else delete pets[key];
       if (opts.from && !from[key]) from[key] = opts.from;
       weeks.set(week, { ...w, entries, by: { ...w.by, [who]: key }, pets, from });
-      cache.delete(week);
       prune();
       save();
       return { ok: true, week, key };
@@ -157,21 +179,19 @@ export function createSeasonStore(file?: string, now: () => number = Date.now): 
         return null;
       }
       const w = weeks.get(week) ?? { entries: [], by: {} };
-      const hit = cache.get(week);
       const award = w.award && (w.award.brainId || w.award.none === "noWallet" || w.award.tries >= MAX_TRIES) ? { award: w.award } : {};
-      if (hit && hit.n === w.entries.length && hit.at === Math.max(0, ...w.entries.map((e) => e.at))) return { ...hit.view, closed: now() >= bounds.end, ...award };
-      const standings = seasonStandings(week, w.entries);
-      const view: SeasonView = { week, closed: now() >= bounds.end, ends: bounds.end, entries: w.entries, standings, digest: standingsDigest(standings), ...award };
-      cache.set(week, { n: w.entries.length, at: Math.max(0, ...w.entries.map((e) => e.at)), view });
-      return view;
+      const s = source.get(week, w.entries);
+      return { week, closed: now() >= bounds.end, ends: bounds.end, entries: w.entries, standings: s.standings, digest: s.digest, ...(s.pending ? { pending: true as const } : {}), ...award };
     },
     pending: () => {
       const out: PendingAward[] = [];
       for (const [week, w] of weeks) {
         if (!w.entries.length || now() < weekBounds(week).end) continue;
         if (w.award && (w.award.brainId || w.award.none === "noWallet" || w.award.tries >= MAX_TRIES)) continue;
-        // the keepsake goes to the best-placed pet proven to be on X Layer
-        const standings = seasonStandings(week, w.entries);
+        // the keepsake goes to the best-placed pet proven to be on X Layer, from standings fought for these entries
+        const s = source.get(week, w.entries);
+        if (s.pending) continue;
+        const standings = s.standings;
         const best = standings.find((row) => w.pets?.[row.key]) ?? standings[0]!;
         const entry = w.entries.find((e) => e.key === best.key)!;
         out.push({ week, entry, petId: w.pets?.[best.key] ?? null, tries: w.award?.tries ?? 0 });
@@ -183,7 +203,6 @@ export function createSeasonStore(file?: string, now: () => number = Date.now): 
       const w = weeks.get(week);
       if (!w) return;
       weeks.set(week, { ...w, award });
-      cache.delete(week);
       save();
     },
   };
