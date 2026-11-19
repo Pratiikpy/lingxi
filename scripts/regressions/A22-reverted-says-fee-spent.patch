@@ -1,0 +1,10 @@
+--- a/apps/web/src/game/chain.ts
++++ b/apps/web/src/game/chain.ts
+@@ -144,7 +144,6 @@ function chainReason(e: unknown): string {
+   if (refusesTokens(e)) return "cannotReceive";
+   if (e instanceof LineMismatchError) return "notThisPet";
+   // sent, mined and turned down: its network fee was spent, so the panel must not say nothing was charged (A22)
+-  if (e instanceof RevertedOnChain) return "revertedOnChain";
+   const refused = revertName(e, petRegistryAbi);
+   return (refused && REGISTRY_REFUSALS[refused]) || firstLine(e);
+ }

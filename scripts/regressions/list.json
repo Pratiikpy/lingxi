@@ -724,5 +724,17 @@
     "row": "A21",
     "bug": "a wallet rejecting with a bare string or nothing threw inside the catch and left the chain panel on connecting",
     "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/chain.test.ts", "name": "a wallet that refuses the move with a bare message, or with nothing, frees the panel (A21)" }
+  },
+  {
+    "id": "A22-adopted-event-listed",
+    "row": "A22",
+    "bug": "the game counted the event \"adopted\", which the world's EVENTS list lacked, so no quest could ask for it",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/events.test.ts", "name": "are all on the world's list" }
+  },
+  {
+    "id": "A22-reverted-says-fee-spent",
+    "row": "A22",
+    "bug": "a transaction mined and turned down said \"Nothing was charged\" though its network fee was spent",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/chain.test.ts", "name": "a save X Layer mines and turns down is not counted, and says its fee was spent (A22)" }
   }
 ]
