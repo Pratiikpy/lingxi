@@ -712,5 +712,11 @@
     "row": "A19",
     "bug": "a save another device had already made showed 'The contract function \"checkpoint\" reverted.'",
     "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/chain.test.ts", "name": "a checkpoint the registry refuses (another device already saved this day) is not counted, and says so (A19)" }
+  },
+  {
+    "id": "A20-keep-never-hatches-twice",
+    "row": "A20",
+    "bug": "keeping a pet again after its circuit was turned down minted a second pet and orphaned the first",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/chain.test.ts", "name": "keeping again after the circuit was turned down mints nothing new and finishes the pet's own circuit (A20)" }
   }
 ]

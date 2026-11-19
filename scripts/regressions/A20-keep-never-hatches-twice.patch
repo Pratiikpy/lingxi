@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/chain.ts
++++ b/apps/web/src/game/chain.ts
+@@ -378,7 +378,7 @@ export const useChain = create<ChainState>((set, get) => ({
+     try {
+       const wallet = await connectWallet();
+       // a pet this device has kept already is never hatched again; keeping it again finishes what is left (A20)
+-      let record = records[petKey(pet)] ?? null;
++      let record: ChainRecord | null = null;
+       if (!record) {
+         set({ busy: "hatching" });
+         const { petId, tx } = await hatchOnChain(publicClient, wallet, deployment, pet.line, packState(pet, stageOf(pet, gameNow())));
