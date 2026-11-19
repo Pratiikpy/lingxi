@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/daily.ts
++++ b/apps/web/src/game/daily.ts
+@@ -80,7 +80,7 @@ function sources(): DailySources {
+ 
+ /** Today's block from the server when there is one (checked where it can be), else from the public nodes. */
+ export async function findBlock(day: number, from: DailySources = sources()): Promise<DailyBlock> {
+-  if (!from.server) return from.search(day);
++  return from.search(day);
+   const a = await from.server(day);
+   if (!a.ok) throw new Error(a.reason);
+   if (a.day !== day || !Number.isInteger(a.block) || a.block < 1 || !/^0x[0-9a-f]{64}$/.test(a.hash)) throw new Error("not today's block");

@@ -1,0 +1,10 @@
+--- a/services/api/src/daily.ts
++++ b/services/api/src/daily.ts
+@@ -71,7 +71,6 @@ export function createDailyBlocks(reader: ChainReader, opts: { now?: () => numbe
+       if (now() - failedAt < RETRY_AFTER_MS) return Promise.resolve({ ok: false, reason: "unavailable" });
+       const run = search(day)
+         .then((found): DailyAnswer => {
+-          kept.set(day, found);
+           save();
+           return found;
+         })

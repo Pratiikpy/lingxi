@@ -850,5 +850,23 @@
     "row": "A33",
     "bug": "the proof page showed an unsaved little one's zeros as its state",
     "test": { "kind": "e2e", "spec": "e2e/specs/birth-on-chain.spec.ts", "title": "a little one whose first day does not save is still born, and its player is told how to put it right (en light phone proposes, zh dark desktop agrees)" }
+  },
+  {
+    "id": "A34-daily-from-server",
+    "row": "A34",
+    "bug": "every player's browser searched the public nodes for today's block, and their rate-limit replies showed as blocked requests in the console",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/daily.test.ts", "name": "comes from the server, checked through its door, and no public node is searched" }
+  },
+  {
+    "id": "A34-daily-checked",
+    "row": "A34",
+    "bug": "the game would have taken any block the server named as today's seed",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/daily.test.ts", "name": "refuses a server answer the chain does not bear out" }
+  },
+  {
+    "id": "A34-daily-found-once",
+    "row": "A34",
+    "bug": "the server would have searched X Layer again for every player's ask",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/daily.test.ts", "name": "finds the first block at or after the day's midnight UTC, once, and keeps it" }
   }
 ]

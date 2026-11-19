@@ -1,0 +1,10 @@
+--- a/apps/web/src/game/daily.ts
++++ b/apps/web/src/game/daily.ts
+@@ -88,7 +88,6 @@ export async function findBlock(day: number, from: DailySources = sources()): Pr
+     const midnight = (day * DAY_MS) / 1000;
+     const [b, before] = await Promise.all([from.check(a.block), from.check(a.block - 1)]);
+     // the block the server named, the first at or after midnight: its own time at or after, the one before it before
+-    if (b.hash !== a.hash || b.timestamp < midnight || before.timestamp >= midnight) throw new Error("not today's block");
+   }
+   return { day, block: a.block, hash: a.hash };
+ }
