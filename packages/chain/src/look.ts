@@ -179,14 +179,27 @@ export function gameSprite(look: Look): PixelCanvas {
 
 /* ── installing the art ───────────────────────────────────────────────────── */
 
-/** A palette as PetLook stores it: 16 colours, role 1..16, 4 bytes RGBA each. */
+/**
+ * The one alpha PetLook cannot write (A17): it prints a see-through colour as `fill-opacity:.PP`, PP being
+ * round(alpha / 255 * 100), and 254 rounds to 100, which comes out as `fill-opacity:.:0`.
+ */
+export const UNWRITABLE_ALPHA = 254;
+
+/**
+ * A palette as PetLook stores it: 16 colours, role 1..16, 4 bytes RGBA each. Each colour must be `#rrggbb` (opaque)
+ * or `#rrggbbaa`, never with alpha 254: once the art is frozen nothing installed can change, so a colour PetLook
+ * would draw wrongly is refused here, before it is sent.
+ */
 export function paletteBytes(pal: Partial<Record<Role, string>>): `0x${string}` {
   const out: number[] = [];
   for (let r = 1; r <= 16; r++) {
-    const c = pal[ROLES[r]!] ?? "#00000000";
-    const h = c.replace("#", "");
-    const full = h.length === 6 ? `${h}ff` : h;
-    for (let k = 0; k < 4; k++) out.push(parseInt(full.slice(k * 2, k * 2 + 2), 16));
+    const role = ROLES[r]!;
+    const c = pal[role] ?? "#00000000";
+    if (!/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(c)) throw new Error(`palette role ${role}: ${c} is not #rrggbb or #rrggbbaa`);
+    const full = c.length === 7 ? `${c.slice(1)}ff` : c.slice(1);
+    const rgba = [0, 1, 2, 3].map((k) => parseInt(full.slice(k * 2, k * 2 + 2), 16));
+    if (rgba[3] === UNWRITABLE_ALPHA) throw new Error(`palette role ${role}: ${c} has alpha ${UNWRITABLE_ALPHA}, which PetLook writes as broken CSS`);
+    out.push(...rgba);
   }
   return hex(out);
 }
