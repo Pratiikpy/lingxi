@@ -1,0 +1,10 @@
+--- a/apps/web/src/scene/RoomScene.tsx
++++ b/apps/web/src/scene/RoomScene.tsx
+@@ -278,7 +278,6 @@ export function RoomScene(props: SceneProps) {
+       pet.anchor.set(0.5, 1);
+       pet.eventMode = "static";
+       pet.cursor = "pointer";
+-      pet.hitArea = bodyHitArea(pet);
+       world.addChild(pet);
+       // living details: dust bunnies on the floor behind the cat and pet; the food, the ball and
+       // the "hungry" thought in front of the pet; drifting motes and weather over everything
