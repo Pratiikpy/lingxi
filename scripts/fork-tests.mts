@@ -16,11 +16,12 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createPublicClient, http, toHex, type Address, type PublicClient } from "viem";
 import { mnemonicToAccount } from "viem/accounts";
-// the suite's harness compiles as CommonJS (the repo root has no module type), so it is taken whole
-import procs from "../e2e/harness/procs.ts";
+// the suite's harness compiles as CommonJS (the repo root has no module type): Node hands an ES module a CommonJS
+// module's `module.exports` as its default export and no named ones, so the harness is taken whole, typed as it is
+import * as harness from "../e2e/harness/procs.ts";
 import { assertLocal, giveOkb, giveToken } from "../packages/chain/scripts/lib/forkFund.ts";
 
-const { answers, freePort, start, stop, waitFor } = procs;
+const { answers, freePort, start, stop, waitFor } = (harness as unknown as { default: typeof harness }).default;
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const fork = JSON.parse(readFileSync(join(root, "e2e/fork.json"), "utf8")) as { block: number; rpc: string };
 /** Foundry's and Hardhat's public test mnemonic: its keys hold nothing anywhere real. */
@@ -32,7 +33,8 @@ const vitest = join(root, "node_modules/vitest/vitest.mjs");
  */
 const PACKAGES = ["services/api", "packages/chain"];
 const onlyAt = process.argv.indexOf("--only");
-const only = onlyAt < 0 ? null : process.argv[onlyAt + 1];
+// `--only` with no package after it is an empty name, refused below like any unknown one
+const only = onlyAt < 0 ? null : (process.argv[onlyAt + 1] ?? "");
 if (only !== null && !PACKAGES.includes(only)) throw new Error(`--only takes one of ${PACKAGES.join(", ")}`);
 /** What is passed on to vitest: every argument but `--only` and its package. */
 const vitestArgs = process.argv.slice(2).filter((_, i, all) => all[i] !== "--only" && all[i - 1] !== "--only");

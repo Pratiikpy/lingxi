@@ -1,8 +1,8 @@
 /**
  * `pnpm status:check` — the real state of Lingxi in one run, nothing taken on trust.
  *
- *   code       type check, lint, every package's tests, the contract tests (and, without --quick, the
- *              mainnet fork tests, which only read X Layer)
+ *   code       type check (packages, scripts, browser suite), lint, every package's tests, the contract tests
+ *              (and, without --quick, the mainnet fork tests, which only read X Layer)
  *   hygiene    the repo carries no names it must not, no machine-made commit trailers, no secrets
  *   promises   the balance targets, the 90-day simulator and the claims sheet, once each exists
  *   sites      the live site and the on-chain copy serve the commit checked out here, built clean
@@ -99,7 +99,8 @@ function git(...gitArgs: string[]): string {
 // ---------------------------------------------------------------- code
 
 function codeChecks(): void {
-  step("code", "type check, every package", "pnpm", ["-r", "typecheck"]);
+  // every package, the repo's own scripts and the browser suite (A36)
+  step("code", "type check, every package, the scripts and the browser suite", "pnpm", ["typecheck"]);
   step("code", "lint", "pnpm", ["lint"]);
   step("code", "tests, every package", "pnpm", ["-r", "test"]);
   step("code", "contract tests", "forge", ["test"], join(root, "contracts"));
