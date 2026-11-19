@@ -6,8 +6,14 @@ on:
   schedule:
     # the fork tests read X Layer as it is today, so they also run once a day on their own
     - cron: "17 3 * * *"
-  # the nightly run, started by hand (GitHub has not yet fired this repo's schedule)
+  # the nightly run, started by hand (GitHub has not yet fired this repo's schedule); `revert` names the revert entries
+  # to check (comma-separated), or leaves it empty to check them all
   workflow_dispatch:
+    inputs:
+      revert:
+        description: Revert entries to check, comma-separated (empty for all)
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -104,4 +110,63 @@ jobs:
             playwright-report/
             test-results/
             e2e/.run/*/*.log
+          retention-days: 14
+
+  revert:
+    # every fix has a test that fails with the fix undone (scripts/revert-check.mts): a push checks the entries it adds
+    # or changes, the nightly run checks all of them (and so a patch the code has moved away from), a run started by
+    # hand checks the entries it names or all of them. Its browser entries start their own fork, server and game, which
+    # is why this runs here rather than on a PC short of memory (A35).
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env:
+      EVENT: ${{ github.event_name }}
+      BEFORE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+      NAMED: ${{ inputs.revert }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # the commit before the push, to see which entries it changed
+          fetch-depth: 0
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Which entries this run checks
+        id: pick
+        run: |
+          if [ "$EVENT" = "push" ] || [ "$EVENT" = "pull_request" ]; then
+            ids=$(pnpm exec tsx scripts/revert-check.mts --changed "$BEFORE" --list)
+          elif [ -n "$NAMED" ]; then
+            ids=$(pnpm exec tsx scripts/revert-check.mts --only "$NAMED" --list)
+          else
+            ids=$(pnpm exec tsx scripts/revert-check.mts --list)
+          fi
+          echo "ids=${ids// /,}" >> "$GITHUB_OUTPUT"
+          echo "checking: ${ids:-nothing}"
+      - uses: foundry-rs/foundry-toolchain@dba66c27052e63476d886f22216e119ba7e615bf # v1.9.2
+        if: steps.pick.outputs.ids != ''
+        with:
+          version: v1.7.1
+      - name: The browser the browser entries play in
+        if: steps.pick.outputs.ids != ''
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Revert checks
+        if: steps.pick.outputs.ids != ''
+        env:
+          IDS: ${{ steps.pick.outputs.ids }}
+          # the scratch worktree lands here and is kept, so a failure's logs can be kept too
+          TMPDIR: ${{ runner.temp }}/revert
+        run: mkdir -p "$TMPDIR" && pnpm exec tsx scripts/revert-check.mts --only "$IDS" --keep
+      - name: Keep the logs of a failing run
+        if: failure() && steps.pick.outputs.ids != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: revert-logs
+          include-hidden-files: true
+          path: |
+            ${{ runner.temp }}/revert/*/test-results/
+            ${{ runner.temp }}/revert/*/e2e/.run/*/*.log
           retention-days: 14

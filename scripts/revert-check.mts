@@ -6,7 +6,12 @@
  * that stays green has stopped guarding its fix; a patch that no longer applies means the fixed code moved and the
  * patch must follow it; a revert that no longer builds proves nothing.
  *
- *   pnpm revert:check [--only <id>[,<id>]] [--keep]     (--keep leaves the worktree for a look)
+ *   pnpm revert:check [--only <id>[,<id>]] [--changed <commit>] [--list] [--keep]
+ *
+ * `--list` names the entries that would run and stops; `--keep` leaves the worktree for a look.
+ *
+ * `--changed <commit>` (CI, on a push) checks only the entries added or changed in the list since that commit and those
+ * whose patch changed; all of them when the commit is not known here (a new branch). See `lib/revertSelect.mts`.
  */
 
 import { execFileSync, spawnSync } from "node:child_process";
@@ -14,6 +19,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { changedEntries } from "./lib/revertSelect.mts";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const listFile = join(root, "scripts/regressions/list.json");
@@ -91,9 +97,32 @@ function check(wt: string, reg: Regression): { outcome: Outcome; detail: string 
   return { outcome: "unguarded", detail: reverted.detail || "the test still passes with the fix undone" };
 }
 
+/** The list as it stood at `commit`, and the files changed since; null when that commit is not known here. */
+function since(commit: string): { before: Regression[]; files: string[] } | null {
+  // a push to a new branch names an all-zero "before"; a commit this clone does not have is not known either
+  const found = /^0+$/.test(commit) ? null : sh("git", ["rev-parse", "--verify", "--quiet", `${commit}^{commit}`], root);
+  if (!found || found.status !== 0) return null;
+  const sha = found.stdout.trim();
+  const old = sh("git", ["show", `${sha}:scripts/regressions/list.json`], root);
+  const files = sh("git", ["diff", "--name-only", sha, "HEAD"], root).stdout.split(/\r?\n/).filter(Boolean);
+  return { before: old.status === 0 ? (JSON.parse(old.stdout) as Regression[]) : [], files };
+}
+
 function main(): void {
-  const only = process.argv.includes("--only") ? process.argv[process.argv.indexOf("--only") + 1]!.split(",") : null;
-  const list = (JSON.parse(readFileSync(listFile, "utf8")) as Regression[]).filter((r) => !only || only.includes(r.id));
+  const valueOf = (flag: string) => (process.argv.includes(flag) ? (process.argv[process.argv.indexOf(flag) + 1] ?? "") : null);
+  const only = valueOf("--only")?.split(",") ?? null;
+  const changed = valueOf("--changed");
+  const all = JSON.parse(readFileSync(listFile, "utf8")) as Regression[];
+  let list = all.filter((r) => !only || only.includes(r.id));
+  if (changed !== null) {
+    const base = since(changed);
+    list = changedEntries(base?.before ?? null, list, base?.files ?? []);
+    // on stderr, so `--list` prints only the ids
+    console.error(base ? `entries added or changed since ${changed.slice(0, 12)}: ${list.map((r) => r.id).join(", ") || "none"}` : `${changed || "no commit"} is not known here: every entry`);
+    if (!list.length) return;
+  }
+  // `--list`: say which entries would run, and stop
+  if (process.argv.includes("--list")) return void console.log(list.map((r) => r.id).join(" "));
   for (const r of list) if (!existsSync(join(root, "scripts/regressions", `${r.id}.patch`))) throw new Error(`${r.id}: no patch file`);
   const wt = mkdtempSync(join(tmpdir(), "lingxi-revert-"));
   execFileSync("git", ["worktree", "add", "--detach", wt, "HEAD"], { cwd: root, stdio: "ignore" });
