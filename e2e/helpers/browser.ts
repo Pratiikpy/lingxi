@@ -170,43 +170,43 @@ export async function keepOnChain(p: Opened, run: Run, withBrain = false): Promi
 /* ── the site, built and served as a deploy serves it ─────────────────── */
 
 const node = process.execPath;
-const vite = join(ROOT, "apps/web/node_modules/vite/bin/vite.js");
 const tsx = join(ROOT, "services/api/node_modules/tsx/dist/cli.mjs");
 
-/**
- * A folder for one spec's builds, in the run's scratch folder: `site/dist` is the build, and `site/assets-kept` the
- * files earlier builds left there (apps/web keepAssets.ts keeps them beside a folder named dist). Nothing in
- * apps/web/dist is touched.
- */
-export function siteFolder(run: Run, name: string): { site: string; dist: string; kept: string } {
+/** A releases folder for one spec, in the run's scratch folder, served as the live site serves its releases (A10). */
+export function siteFolder(run: Run, name: string): { site: string } {
   const site = join(run.dir, name, "site");
   rmSync(site, { recursive: true, force: true });
   mkdirSync(site, { recursive: true });
-  return { site, dist: join(site, "dist"), kept: join(site, "assets-kept") };
+  return { site };
 }
 
 /**
- * Builds the site into `dist`, as a release is built. The build has no game server of its own (VITE_API_URL empty,
- * as the on-chain copy has none): it reads X Layer, and the time, from the run's fork, so the page needs nothing the
- * suite's server would refuse from another origin. `release` changes how the fork's address is written, which is
- * enough to give every part that names it a new file name, as two releases differ.
+ * Builds a release and makes it live with the release command itself (`scripts/site-release.mts`), as the live site is
+ * released. The build has no game server of its own (VITE_API_URL empty, as the on-chain copy has none): it reads X
+ * Layer, and the time, from the run's fork, so the page needs nothing the suite's server would refuse from another
+ * origin. `release` changes how the fork's address is written, which is enough to give every part that names it a new
+ * file name, as two releases differ. Returns the release's name.
  */
-export async function buildSite(run: Run, dist: string, release: "A" | "B"): Promise<void> {
+export async function buildSite(run: Run, site: string, release: "A" | "B"): Promise<string> {
   const env: NodeJS.ProcessEnv = { ...process.env, VITE_CHAIN: "rehearsal", VITE_RPC: release === "A" ? run.fork.rpc : `${run.fork.rpc}/`, VITE_API_URL: "", VITE_LIVE_URL: "" };
   delete env.VITE_DEV_KEY;
-  const log = join(dist, "..", `build-${release}.log`);
-  const p = start(`build ${release}`, node, [vite, "build", "--outDir", dist, "--emptyOutDir"], { cwd: join(ROOT, "apps/web"), env, log });
+  const log = join(site, "..", `release-${release}.log`);
+  const p = start(`release ${release}`, node, [tsx, "scripts/site-release.mts", "--site", site, "--allow-dirty"], { cwd: ROOT, env, log });
   const code = await new Promise<number | null>((resolve) => p.child.on("exit", resolve));
-  if (code !== 0) throw new Error(`build ${release} failed (${code}):\n${readFileSync(log, "utf8").split("\n").slice(-30).join("\n")}`);
+  if (code !== 0) throw new Error(`release ${release} failed (${code}):\n${readFileSync(log, "utf8").split("\n").slice(-30).join("\n")}`);
+  return liveRelease(site);
 }
 
-/** The entry script a built play.html loads (each release names it differently). */
-export const entryOf = (dist: string): string => readFileSync(join(dist, "play.html"), "utf8").match(/src="\.\/(assets\/play-[^"]+\.js)"/)?.[1] ?? "";
+/** The release live in a releases folder now. */
+export const liveRelease = (site: string): string => (JSON.parse(readFileSync(join(site, "current.json"), "utf8")) as { release: string }).release;
 
-/** Serves a built site with the server's own site handling (services/api/scripts/serve-site.mts), as a deploy does. */
-export async function serveSite(dist: string): Promise<{ url: string; stop: () => void }> {
+/** The entry script the live release's play.html loads (each release names it differently). */
+export const entryOf = (site: string): string => readFileSync(join(site, "releases", liveRelease(site), "play.html"), "utf8").match(/src="\.\/(assets\/play-[^"]+\.js)"/)?.[1] ?? "";
+
+/** Serves a releases folder with the server's own site handling (services/api/scripts/serve-site.mts), as the live site. */
+export async function serveSite(site: string): Promise<{ url: string; stop: () => void }> {
   const port = await freePort();
-  const p = start("site", node, [tsx, "scripts/serve-site.mts", dist, String(port)], { cwd: join(ROOT, "services/api"), env: process.env, log: join(dist, "..", "serve.log") });
+  const p = start("site", node, [tsx, "scripts/serve-site.mts", site, String(port)], { cwd: join(ROOT, "services/api"), env: process.env, log: join(site, "..", "serve.log") });
   const url = `http://127.0.0.1:${port}`;
   await waitFor("the built site", () => answers(`${url}/play.html`), 60_000, p.log);
   return { url, stop: () => stop(p) };

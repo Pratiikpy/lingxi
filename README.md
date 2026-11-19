@@ -237,6 +237,8 @@ pnpm --filter @lingxi/api start        # optional: API, live rooms and the X Lay
 
 Teach-by-words needs an Anthropic API key in the server's environment. The brain relayer needs a funded relayer key file. Without them the game still runs fully: Pet School lessons and hand-built rules need no server, and every on-chain read goes through the public RPCs.
 
+The live site is served from releases: `pnpm site:release` builds the committed code into a folder of its own under `apps/web/site/releases/`, checks that every page and every file a page names is there, and only then makes it live by replacing one small pointer file, so a deploy never leaves a moment with pages missing. The release before it stays for `pnpm site:release --rollback`, and releases stay 14 days after they stop being live, for the pages left open on them. The server serves the releases folder named by `LINGXI_SITE`.
+
 The on-chain copy is built with `node apps/web/scripts/deweb-build.mjs` and published with `pnpm --filter @lingxi/chain publish:deweb`.
 
 ## What is next

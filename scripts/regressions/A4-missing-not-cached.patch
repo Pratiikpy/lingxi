@@ -1,11 +1,11 @@
 --- a/services/api/src/server.ts
 +++ b/services/api/src/server.ts
-@@ -273,7 +273,7 @@
+@@ -279,7 +279,7 @@ export function withSite(app: Hono, site: string | SiteSource): Hono {
    app.use("/assets/*", async (c, next) => {
      await next();
      // hashed file names: a file that exists is safe to cache for a year; a missing one must never be
 -    c.header("Cache-Control", c.res.status === 200 || c.res.status === 206 ? "public, max-age=31536000, immutable" : "no-store");
 +    c.header("Cache-Control", "public, max-age=31536000, immutable");
    });
-   // A Range the static server cannot read (words, an unknown unit) made it throw, a 500. HTTP says to ignore such a
-   // Range and send the whole file; a range that starts past the end is refused with 416.
+   // one file server per folder, made the first time the folder is served from
+   const servers = new Map<string, ReturnType<typeof serveStatic>>();

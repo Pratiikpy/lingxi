@@ -13,7 +13,8 @@
     "e2e": "playwright test -c e2e/playwright.config.ts",
     "test:fork": "tsx scripts/fork-tests.mts",
     "coverage": "tsx scripts/coverage.mts",
-    "revert:check": "tsx scripts/revert-check.mts"
+    "revert:check": "tsx scripts/revert-check.mts",
+    "site:release": "tsx scripts/site-release.mts"
   },
   "devDependencies": {
     "@eslint/js": "9.17.0",

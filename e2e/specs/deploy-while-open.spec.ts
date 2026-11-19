@@ -1,12 +1,14 @@
 /**
- * A deploy while a page is open. Release A is built and served as a deploy serves it; a page opens on it, and its
- * request for the game's main part (loaded on demand by play/main.tsx) is held while release B is built over A, then
- * let go. With the files of earlier builds kept (apps/web keepAssets.ts), A's part still arrives and the game starts
- * on A without a reload; a fresh page then gets B. With those files gone, the part is missing, the page reloads itself
- * once (boot/staleBuild.ts) and the game starts on B. Pages are sent with Cache-Control no-cache. Each release is
- * built into the run's scratch folder; nothing in apps/web/dist is touched.
+ * A deploy while a page is open. Release A is made live with the release command and served as the live site serves
+ * its releases; a page opens on it, and its request for the game's main part (loaded on demand by play/main.tsx) is
+ * held while release B is built and made live, then let go. With A still kept (releases stay 14 days after they stop
+ * being live), A's part still arrives and the game starts on A without a reload; a fresh page then gets B. With A gone,
+ * the part is missing, the page reloads itself once (boot/staleBuild.ts) and the game starts on B. Pages are sent with
+ * Cache-Control no-cache. And while a release is built and made live, no page and no file a page names is ever
+ * missing (A10). Every release is made in the run's scratch folder; the live site's releases are not touched.
  */
 import { rmSync } from "node:fs";
+import { join } from "node:path";
 import { expect, test } from "../fixtures";
 import { buildSite, entryOf, expectedErrors, serveSite, siteFolder } from "../helpers/browser";
 
@@ -21,9 +23,9 @@ for (const { kept, look } of [
   test(`a deploy while a page is open, earlier files ${kept ? "kept" : "gone"} (${look.lang}, ${look.scheme}, ${look.size})`, async ({ player, run }) => {
     test.setTimeout(360_000);
     const f = siteFolder(run, `deploy-${tag}`);
-    await buildSite(run, f.dist, "A");
-    const entryA = entryOf(f.dist);
-    const site = await serveSite(f.dist);
+    const releaseA = await buildSite(run, f.site, "A");
+    const entryA = entryOf(f.site);
+    const site = await serveSite(f.site);
     try {
       const p = await player(look);
       const { page } = p;
@@ -42,8 +44,8 @@ for (const { kept, look } of [
         if (!held) {
           held = true;
           // the new release goes live while this page still waits for its part
-          await buildSite(run, f.dist, "B");
-          if (!kept) rmSync(f.kept, { recursive: true, force: true });
+          await buildSite(run, f.site, "B");
+          if (!kept) rmSync(join(f.site, "releases", releaseA), { recursive: true, force: true });
         }
         await route.continue();
       });
@@ -53,7 +55,7 @@ for (const { kept, look } of [
       await page.locator(".hatch").waitFor({ timeout: 120_000 });
       await page.waitForTimeout(1_500);
       const nowEntry = (await page.evaluate(() => document.querySelector("script[type=module][src]")?.getAttribute("src"))) ?? "";
-      const entryB = entryOf(f.dist);
+      const entryB = entryOf(f.site);
       expect(entryB, "the two releases really differ").not.toBe(entryA);
       // the part's script and its styles
       const part = [...answered.entries()].filter(([n]) => n.startsWith("PlayApp-"));
@@ -83,3 +85,53 @@ for (const { kept, look } of [
     }
   });
 }
+
+test("a release in progress never takes a page or its files away (A10)", async ({ run }) => {
+  test.setTimeout(360_000);
+  const f = siteFolder(run, "release-poll");
+  await buildSite(run, f.site, "A");
+  const entryA = entryOf(f.site);
+  const site = await serveSite(f.site);
+  const pages = ["index.html", "play.html", "verify.html", "agents.html", "tree.html", "numbers.html", "handheld.html"];
+  const bad: string[] = [];
+  const served = new Set<string>();
+  let asked = 0;
+  let releasing = true;
+  try {
+    // every page, and the entry each names, asked for every 20 ms while release B is built and made live
+    const poll = (async () => {
+      while (releasing) {
+        for (const page of pages) {
+          const res = await fetch(`${site.url}/${page}`);
+          const html = await res.text();
+          asked++;
+          if (res.status !== 200) bad.push(`${page} ${res.status}`);
+          const entry = /src="\.\/(assets\/[^"]+\.js)"/.exec(html)?.[1];
+          if (!entry) {
+            bad.push(`${page} names no script`);
+            continue;
+          }
+          if (page === "play.html") served.add(entry);
+          const part = await fetch(`${site.url}/${entry}`);
+          await part.arrayBuffer();
+          asked++;
+          if (part.status !== 200) bad.push(`${entry} ${part.status}`);
+        }
+        await new Promise((r) => setTimeout(r, 20));
+      }
+    })();
+    await buildSite(run, f.site, "B");
+    // a last round after B is live
+    await new Promise((r) => setTimeout(r, 500));
+    releasing = false;
+    await poll;
+    const entryB = entryOf(f.site);
+    expect(entryB, "the two releases really differ").not.toBe(entryA);
+    expect([...served].sort(), "the poll saw release A, then release B").toEqual([entryA, entryB].sort());
+    expect(asked, "it asked many times while B was built").toBeGreaterThan(200);
+    expect(bad, "and every answer was the page or the file").toEqual([]);
+  } finally {
+    site.stop();
+    rmSync(f.site, { recursive: true, force: true });
+  }
+});

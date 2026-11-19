@@ -25,7 +25,8 @@ module.exports = {
       interpreter: "node",
       env: {
         PORT: "8790",
-        LINGXI_STATIC: "../../apps/web/dist",
+        // the site's releases (A10): `pnpm site:release` makes each live by replacing apps/web/site/current.json
+        LINGXI_SITE: "../../apps/web/site",
         LINGXI_ORIGINS: "https://lingxi.knole.me",
         LINGXI_RELAYER_KEY_FILE: path.join(secrets, "relayer.env"),
         LINGXI_PROCESSOR: "0xf70d324Da8C1C4Cb0dE3FF147E53E7E9db543c4e",

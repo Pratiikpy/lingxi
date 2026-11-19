@@ -1,20 +1,10 @@
---- a/apps/web/keepAssets.ts
-+++ b/apps/web/keepAssets.ts
-@@ -22,17 +22,6 @@
-   mkdirSync(to, { recursive: true });
-   let kept = 0;
-   let removed = 0;
--  if (existsSync(from)) {
--    for (const name of readdirSync(from)) {
--      const dest = join(to, name);
--      if (!existsSync(dest)) {
--        copyFileSync(join(from, name), dest);
--        kept++;
--      }
--      // still part of the build being replaced: its days start now
--      utimesSync(dest, now / 1000, now / 1000);
--    }
--  }
-   for (const name of readdirSync(to)) {
-     const file = join(to, name);
-     if (now - statSync(file).mtimeMs > maxAgeMs) {
+--- a/scripts/lib/release.mts
++++ b/scripts/lib/release.mts
+@@ -94,7 +94,6 @@ export function prune(site: string, now: number, keepDays = KEEP_DAYS): string[]
+     if (keep.has(name)) continue;
+     const seen = h[name];
+     const retired = seen?.retired ?? seen?.live;
+-    if (seen && retired !== undefined && now - retired < keepDays * DAY_MS) continue;
+     rmSync(join(releasesDir(site), name), { recursive: true, force: true, maxRetries: 5 });
+     delete h[name];
+     gone.push(name);

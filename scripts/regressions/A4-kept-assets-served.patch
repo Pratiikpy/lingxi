@@ -1,11 +1,11 @@
 --- a/services/api/src/server.ts
 +++ b/services/api/src/server.ts
-@@ -293,7 +293,7 @@
-         const res: unknown = await keptFiles(c, next);
+@@ -315,7 +315,7 @@ export function withSite(app: Hono, site: string | SiteSource): Hono {
+         const res: unknown = await serverFor(earlier[i]!)(c, from(i + 1));
          if (res instanceof Response) c.res = res;
        };
--      return await files(c, c.req.path.startsWith("/assets/") ? fromKept : next);
-+      return await files(c, next);
+-      return await serverFor(root)(c, from(0));
++      return await serverFor(root)(c, next);
      } catch (e) {
        if ((e as { code?: string }).code === "ERR_OUT_OF_RANGE") return c.body(null, 416);
        throw e;

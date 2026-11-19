@@ -518,20 +518,20 @@
   {
     "id": "A4-keep-assets",
     "row": "A4",
-    "bug": "each build emptied its folder, deleting the files a page still open would ask for",
-    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/keepAssets.test.ts", "name": "keeps every file of the build about to be replaced, beside it, where the server looks" }
+    "bug": "each build deleted the last build's files, so a page left open could not load the parts it asked for later; releases now stay 14 days after they stop being live (A10)",
+    "test": { "kind": "vitest", "dir": ".", "file": "scripts/release.test.mts", "name": "lets a release go fourteen days after it stopped being live, never the live one or the one before it" }
   },
   {
     "id": "A4-stale-reload",
     "row": "A4",
     "bug": "a page whose part no longer existed after a deploy stayed broken instead of loading the live build",
-    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/keepAssets.test.ts", "name": "reloads once into the build that is live now, and never again for the same build" }
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/boot/staleBuild.test.ts", "name": "reloads once into the build that is live now, and never again for the same build" }
   },
   {
     "id": "A4-stale-reload-once",
     "row": "A4",
     "bug": "a part that failed again after its reload would reload the page in a loop",
-    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/keepAssets.test.ts", "name": "reloads once into the build that is live now, and never again for the same build" }
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/boot/staleBuild.test.ts", "name": "reloads once into the build that is live now, and never again for the same build" }
   },
   {
     "id": "A4-onchain-copy-clock",
@@ -634,5 +634,11 @@
     "row": "P2",
     "bug": "the goals ledger read the chain's head through viem's few-second cache, so a catch-up right after a write stopped one block short (the goals fork test failed one run in about ten)",
     "test": { "kind": "vitest", "dir": "services/api", "file": "test/headExact.test.ts", "name": "the goals ledger, the history indexer, the packet index and the sales counter each reach the block just written" }
+  },
+  {
+    "id": "A10-release-in-own-folder",
+    "row": "A10",
+    "bug": "a deploy built over the folder the site served, so for a few seconds of every build the pages were missing (play.html 404 for 2.8 s of a 13 s build)",
+    "test": { "kind": "e2e", "spec": "e2e/specs/deploy-while-open.spec.ts", "title": "a release in progress never takes a page or its files away (A10)" }
   }
 ]

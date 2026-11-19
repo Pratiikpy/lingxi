@@ -2,7 +2,7 @@
  * A dropped connection while the game loads: the part of the game a page loads on demand never arrives. The page
  * reloads once, in case a new build went live (boot/staleBuild.ts), then says plainly that Lingxi couldn't load and
  * that the save is fine (play/LoadFailed.tsx): never a blank page, never a reload loop. Once the connection is back,
- * Reload opens the game, and a returning player's pet is there as it was. Played on the site as built and served for
+ * Reload opens the game, and a returning player's pet is there as it was. Played on the site as released and served for
  * players, since only a build reloads for a new one; the save is read in storage.
  */
 import { rmSync } from "node:fs";
@@ -25,8 +25,8 @@ test.beforeAll(async () => {
   const run = currentRun();
   const f = siteFolder(run, "offline");
   folder = f.site;
-  await buildSite(run, f.dist, "A");
-  site = await serveSite(f.dist);
+  await buildSite(run, f.site, "A");
+  site = await serveSite(f.site);
 });
 
 test.afterAll(() => {

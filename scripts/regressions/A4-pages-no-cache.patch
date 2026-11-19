@@ -1,7 +1,7 @@
 --- a/services/api/src/server.ts
 +++ b/services/api/src/server.ts
-@@ -266,7 +266,6 @@
-     const csp = policyFor(c.req.path);
+@@ -272,7 +272,6 @@ export function withSite(app: Hono, site: string | SiteSource): Hono {
+     const csp = policyFor(rootOf.get(c.req.raw) ?? null, c.req.path);
      if (csp) c.header("Content-Security-Policy", csp);
      // a page is always asked for again (a cheap 304 while unchanged), so no browser keeps one past a deploy (A4)
 -    if (c.req.path === "/" || c.req.path.endsWith(".html")) c.header("Cache-Control", "no-cache");

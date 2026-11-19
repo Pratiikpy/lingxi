@@ -9,7 +9,8 @@
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
+import { type SiteSource, folderSource, releaseSource } from "./releases";
 import { fileURLToPath } from "node:url";
 import Anthropic from "@anthropic-ai/sdk";
 import { serve } from "@hono/node-server";
@@ -233,14 +234,16 @@ export function scriptPolicy(html: string): { hashes: string[] } {
 }
 
 /**
- * The built site. `kept` holds the files of the builds before this one (apps/web keeps them as it builds), served when
- * the current build has no such file: a page that was open when a new build went live loads the parts it asks for
- * later from them (A4).
+ * The built site: a folder (tests, a rehearsal) or the live release of a releases folder (A10). Pages come only from
+ * the live folder; an asset it does not have may be one an earlier release still serves, for a page that was open
+ * when the next went live (A4).
  */
-export function withSite(app: Hono, root: string, kept: string = join(root, "..", "assets-kept")): Hono {
-  // each page's policy, from its own file: re-read when the build changes it
+export function withSite(app: Hono, site: string | SiteSource): Hono {
+  const source = typeof site === "string" ? folderSource(site) : site;
+  // each page's policy, from its own file: re-read when the release or the build changes it
   const policies = new Map<string, { mtimeMs: number; csp: string }>();
-  const policyFor = (path: string): string | null => {
+  const policyFor = (root: string | null, path: string): string | null => {
+    if (!root) return null;
     const file = join(root, path === "/" ? "index.html" : path.replace(/^\/+/, ""));
     if (!/\.html$/.test(file)) return null;
     try {
@@ -258,12 +261,15 @@ export function withSite(app: Hono, root: string, kept: string = join(root, ".."
       return null;
     }
   };
+  // the release a request is answered from is fixed when it arrives, so its page and its policy always match
+  const rootOf = new WeakMap<Request, string | null>();
   app.use("*", async (c, next) => {
+    rootOf.set(c.req.raw, source.root());
     await next();
     c.header("X-Content-Type-Options", "nosniff");
     c.header("Referrer-Policy", "strict-origin-when-cross-origin");
     c.header("Strict-Transport-Security", "max-age=63072000; includeSubDomains");
-    const csp = policyFor(c.req.path);
+    const csp = policyFor(rootOf.get(c.req.raw) ?? null, c.req.path);
     if (csp) c.header("Content-Security-Policy", csp);
     // a page is always asked for again (a cheap 304 while unchanged), so no browser keeps one past a deploy (A4)
     if (c.req.path === "/" || c.req.path.endsWith(".html")) c.header("Cache-Control", "no-cache");
@@ -275,10 +281,18 @@ export function withSite(app: Hono, root: string, kept: string = join(root, ".."
     // hashed file names: a file that exists is safe to cache for a year; a missing one must never be
     c.header("Cache-Control", c.res.status === 200 || c.res.status === 206 ? "public, max-age=31536000, immutable" : "no-store");
   });
+  // one file server per folder, made the first time the folder is served from
+  const servers = new Map<string, ReturnType<typeof serveStatic>>();
+  const serverFor = (dir: string) => {
+    let s = servers.get(dir);
+    if (!s) {
+      s = serveStatic({ root: relative(process.cwd(), dir) || ".", rewriteRequestPath: (p) => (p === "/" ? "/index.html" : p) });
+      servers.set(dir, s);
+    }
+    return s;
+  };
   // A Range the static server cannot read (words, an unknown unit) made it throw, a 500. HTTP says to ignore such a
   // Range and send the whole file; a range that starts past the end is refused with 416.
-  const files = serveStatic({ root, rewriteRequestPath: (p) => (p === "/" ? "/index.html" : p) });
-  const keptFiles = serveStatic({ root: kept });
   app.use("/*", async (c, next) => {
     const range = c.req.header("range");
     if (range !== undefined && !BYTE_RANGES.test(range.trim())) {
@@ -286,14 +300,22 @@ export function withSite(app: Hono, root: string, kept: string = join(root, ".."
       headers.delete("range");
       return app.fetch(new Request(c.req.raw, { headers }));
     }
+    const root = rootOf.get(c.req.raw) ?? null;
+    if (!root) {
+      c.header("Retry-After", "30");
+      return c.text("Lingxi is being released; try again in a moment.", 503);
+    }
     try {
-      // the current build first; an asset it does not have may be one of an earlier build's, kept
-      const fromKept = async () => {
-        // a kept file answers with its Response; otherwise the request goes on to the next handler (a 404)
-        const res: unknown = await keptFiles(c, next);
+      if (!c.req.path.startsWith("/assets/")) return await serverFor(root)(c, next);
+      // the live release first; then each earlier release still kept, newest first
+      const earlier = source.fallbacks();
+      const from = (i: number) => async () => {
+        if (i >= earlier.length) return next();
+        // a file found answers with its Response; otherwise the request goes on to the next folder, then to a 404
+        const res: unknown = await serverFor(earlier[i]!)(c, from(i + 1));
         if (res instanceof Response) c.res = res;
       };
-      return await files(c, c.req.path.startsWith("/assets/") ? fromKept : next);
+      return await serverFor(root)(c, from(0));
     } catch (e) {
       if ((e as { code?: string }).code === "ERR_OUT_OF_RANGE") return c.body(null, 416);
       throw e;
@@ -897,7 +919,9 @@ if (isMain) {
     withPush(app, pusher);
     jobs.every("reminders", 60_000, () => pusher.tick(Date.now()));
   }
-  if (process.env.LINGXI_STATIC) withSite(app, process.env.LINGXI_STATIC);
+  // the site: the live release of a releases folder (A10), or one folder as it is
+  if (process.env.LINGXI_SITE) withSite(app, releaseSource(process.env.LINGXI_SITE));
+  else if (process.env.LINGXI_STATIC) withSite(app, process.env.LINGXI_STATIC);
   // loopback only: the world reaches it through the Cloudflare tunnel, so no one can send a request around it with a
   // forged cf-connecting-ip (see clientIp.ts)
   const hostname = process.env.LINGXI_HOST ?? "127.0.0.1";
