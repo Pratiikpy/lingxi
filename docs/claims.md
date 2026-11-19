@@ -31,6 +31,7 @@ Kinds of check:
 | teach-taped-out | README | A taught rule is compiled into the circuit; for a pet kept on X Layer, the new circuit is taped out when its owner puts its new mind on chain. | test:e2e/specs/relay.spec.ts |
 | handheld-circuit | README, handheld panel | The handheld runs the circuit read from X Layer when the pet's mind is on chain, the game's own circuit otherwise, checked on all 65,536 inputs. | test:e2e/specs/handheld.spec.ts |
 | tapekit-letters | README | Letters between homes stay closed until TapeSend's hub accepts circuits from Lingxi's processor; TapeKit's gateway serves the on-chain copy. | manual: every branch of `apps/web/src/play/Home.tsx`'s letters note keeps them closed ("coming next", hub code not approved, or circuits not accepted), and `packages/chain/src/home.ts` checks the hub against its allow-list; the gateway is `links.ts`'s `*.tapekit.org` (checked 2026-11-20). |
+| builders-lane | README | Five tribute pets on Builders' Lane; Behemoth runs the founder's 4-bit CPU read gate for gate from BNB Chain, the other four are Lingxi pets with two lessons each. | test:packages/game/test/builders.test.ts |
 | rules | README, game, proof page | 17 rule circuits on X Layer, each byte for byte the rule the game compiles. | auto:rules |
 | starter-brain | landing | Mochi's starter brain has 296 gates and 8 bits of memory. | auto:starter-brain |
 | replay-gas | landing | Re-running one beat on chain costs about 760,000 gas for Mochi's 296 gates. | auto:replay-gas |

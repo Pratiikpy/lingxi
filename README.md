@@ -67,7 +67,7 @@ The game runs the same netlist through a fast local evaluator; any beat can be r
 
 **Take it along.** Pack snacks from your bag and your pet goes out on a handheld: the firmware of an M5Stack Cardputer, playable in any browser at `handheld.html` or flashed to a real Cardputer over USB. It runs on the same circuit it thinks with at home (read from X Layer, with every circuit it REFs, when its mind is on chain; the game's own circuit otherwise), checked against the game on all 65,536 inputs before it leaves. Feed it, play, put it to bed with the keys; time with the handheld put down is lived as time away. When it comes home the game replays the whole trip, beat by beat, from the state it kept, and takes the pet back only if it arrives at exactly the same pet. Care given on the handheld counts for quests and dailies like care at home.
 
-**Builders' Lane.** A street of pets whose brains are circuits from the TapeOut community, read gate for gate from the chain. Behemoth thinks with the founder's own 4-bit CPU: tap once and the chain runs the same step, same lamps, same memory.
+**Builders' Lane.** A street of five tribute pets for people who build TapeOut. Behemoth thinks with the founder's own 4-bit CPU, read gate for gate from BNB Chain: tap once and BNB Chain runs the same step, same lamps, same memory. The other four are Lingxi pets, each with two lessons that fit the builder it honours.
 
 <p align="center"><img src="docs/readme/tree.png" alt="The tree of life, read from X Layer" width="100%"></p>
 
@@ -135,7 +135,7 @@ pnpm judge:check          # about 3.5 minutes, read-only against mainnet
 | DeWEB | the whole site is published on chain at `1.2.419.tape`, served at [1-2-419.tapekit.org](https://1-2-419.tapekit.org/) |
 | TapeKit | its DeWEB gateway serves the on-chain copy and checks it in each visitor's browser; TapeSend is in the repo and a home checks its hub, but letters between homes stay closed until the hub accepts circuits from Lingxi's processor (they are planned over TapeRelay instead) |
 | BEM | the fee token: breeding, items, adoption, the extras and the fashion market; every BEM fee burned |
-| Community circuits | Builders' Lane runs circuits from the TapeOut community, read from the chain |
+| Community circuits | Behemoth on Builders' Lane runs the founder's 4-bit CPU, read gate for gate from BNB Chain and checkable there step by step |
 
 ## Contracts on X Layer mainnet
 
