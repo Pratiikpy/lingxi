@@ -12,6 +12,7 @@ interface IProcR {
     function TAPEOUT_FEE() external view returns (uint256);
     function transistors() external view returns (address);
     function eval(uint256 id, bytes calldata inputs) external view returns (bytes memory);
+    function netlist(uint256 id) external view returns (bytes memory);
 }
 
 interface ITransistorsR {
@@ -357,4 +358,24 @@ contract RedPacketForkTest is Test {
         assertEq(USDT.balanceOf(address(rp)), 0);
     }
 
+    /// The deployed escrow's guards against a seal that refuses or answers weight 0 cannot fire there: it is sealed
+    /// by the very netlist taped out above (which packages/brain checks against the reference on all 65,536 words),
+    /// and for each kind of word the escrow can send, that seal allows the claim with a weight in 1..15.
+    function test_theDeployedPacketIsSealedByTheCircuitTestedHere() public view {
+        RedPacket live = RedPacket(0x7Acceb7Ab1cff102fe2660F511E88d42010E806B);
+        IProcR proc = IProcR(address(live.processor()));
+        uint256 id = live.sealId();
+        assertEq(keccak256(proc.netlist(id)), keccak256(fx.readBytes(".seal.netlist")));
+        // the escrow always says "open", and "member" exactly when the packet is for pet owners only
+        for (uint256 kind = 0; kind < 4; kind++) {
+            uint256 lucky = kind & 1;
+            uint256 only = kind >> 1;
+            for (uint256 seed = 0; seed < 256; seed += 255) {
+                uint256 word = 15 | (seed << 4) | (1 << 12) | (only << 13) | (lucky << 14) | (only << 15);
+                uint8 o = uint8(proc.eval(id, abi.encodePacked(uint8(word), uint8(word >> 8)))[0]);
+                assertEq(o & 1, 1, "allowed");
+                assertGe((o >> 1) & 15, 1, "weight");
+            }
+        }
+    }
 }

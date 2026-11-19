@@ -380,4 +380,100 @@ contract OutfitMarketTest is Test {
         assertEq(m.owed(treasury) + m.owed(creator) + m.owed(alice), address(m).balance);
         assertEq(address(m).balance, total * 2);
     }
+
+    /* ── refusals at the edges ───────────────────────────────────────────── */
+
+    function test_theMarketNeedsATreasury() public {
+        vm.expectRevert(OutfitMarket.BadTerms.selector);
+        new OutfitMarket(owner, address(0));
+    }
+
+    function test_aDesignOrListingThatDoesNotExistCannotBeUsed() public {
+        vm.expectRevert(OutfitMarket.NoDesign.selector);
+        m.design(7);
+        vm.startPrank(creator);
+        vm.expectRevert(OutfitMarket.NoDesign.selector);
+        m.setPrice(7, 1 ether, false);
+        vm.expectRevert(OutfitMarket.NoDesign.selector);
+        m.list(7, 1, 1 ether);
+        vm.expectRevert(OutfitMarket.NoListing.selector);
+        m.cancel(7);
+        vm.stopPrank();
+    }
+
+    function test_pixelDataShorterThanAHeaderOrLongerThanTheCapIsRefused() public {
+        vm.startPrank(creator);
+        vm.expectRevert(OutfitMarket.BadPixels.selector);
+        m.create(hex"000101010000", "x", 1, 1, 0); // six bytes: no room for a colour and a cell byte
+        vm.expectRevert(OutfitMarket.BadPixels.selector);
+        m.create(new bytes(97), "x", 1, 1, 0);
+        vm.stopPrank();
+        assertEq(m.nextDesign(), 1);
+    }
+
+    function test_aResaleMustBePaidExactly() public {
+        uint256 id = _create(1 ether, 10, 0);
+        vm.prank(creator);
+        uint256 lid = m.list(id, 1, 1 ether);
+        vm.startPrank(bob);
+        vm.expectRevert(OutfitMarket.WrongPayment.selector);
+        m.buy{value: 0.5 ether}(lid, 1, 1 ether);
+        vm.expectRevert(OutfitMarket.WrongPayment.selector);
+        m.buy{value: 2 ether}(lid, 1, 1 ether);
+        vm.stopPrank();
+        assertEq(bob.balance, 100 ether);
+        assertEq(m.balanceOf(bob, id), 0);
+    }
+
+    /// A payee that cannot take ether keeps its credit: the failed withdrawal moves nothing and blocks nobody else.
+    function test_aWithdrawalTheRecipientRefusesFailsAndKeepsTheCredit() public {
+        Refuser r = new Refuser();
+        vm.prank(owner);
+        m.setFee(300, address(r));
+        uint256 id = _create(1 ether, 10, 0);
+        vm.prank(alice);
+        m.mint{value: 1 ether}(id, 1, 1 ether);
+        vm.expectRevert(OutfitMarket.TransferFailed.selector);
+        r.withdrawFrom(m);
+        assertEq(m.owed(address(r)), 0.03 ether);
+        vm.prank(creator);
+        m.withdraw();
+        assertEq(address(m).balance, 0.03 ether);
+    }
+
+    /// Alice holds one copy and lists it twice, cheap and dear; bob buys the dear listing.
+    function _oneCopyListedTwiceAndSold() internal returns (uint256 id, uint256 cheap) {
+        id = _create(1 ether, 10, 0);
+        vm.startPrank(alice);
+        m.mint{value: 1 ether}(id, 1, 1 ether);
+        cheap = m.list(id, 1, 0.1 ether);
+        uint256 dear = m.list(id, 1, 1 ether);
+        vm.stopPrank();
+        vm.prank(bob);
+        m.buy{value: 1 ether}(dear, 1, 1 ether);
+    }
+
+    function test_aListingWhoseCopiesSoldThroughAnotherListingCannotBeBought() public {
+        (uint256 id, uint256 cheap) = _oneCopyListedTwiceAndSold();
+        vm.prank(bob);
+        vm.expectRevert(OutfitMarket.NotEnoughHeld.selector);
+        m.buy{value: 0.1 ether}(cheap, 1, 0.1 ether);
+        assertEq(m.balanceOf(bob, id), 1);
+    }
+
+    /// The comment on `listNonce` promises "a listing can never come back to life when copies are later
+    /// re-acquired", but a sale here does not bump the nonce, so a listing beside the one that sold comes back, at
+    /// its old price, the moment the seller holds a copy again. OutfitMarketV2 bumps it on every sale (review M-1).
+    function test_defect_aSaleLeavesTheSellersOtherListingsToComeBackWithTheNextCopy() public {
+        (uint256 id, uint256 cheap) = _oneCopyListedTwiceAndSold();
+        // later alice buys another copy for herself; the forgotten cheap listing is live again
+        vm.prank(alice);
+        m.mint{value: 1 ether}(id, 1, 1 ether);
+        address carol = address(0xCA);
+        vm.deal(carol, 1 ether);
+        vm.prank(carol);
+        m.buy{value: 0.1 ether}(cheap, 1, 0.1 ether);
+        assertEq(m.balanceOf(carol, id), 1);
+        assertEq(m.balanceOf(alice, id), 0);
+    }
 }

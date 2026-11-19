@@ -559,4 +559,100 @@ contract OutfitMarketV2Test is Test {
         m.acceptOwnership();
         assertEq(m.owner(), alice);
     }
+
+    /* ── refusals at the edges ───────────────────────────────────────────── */
+
+    function test_theMarketNeedsBem() public {
+        vm.expectRevert(OutfitMarketV2.BadTerms.selector);
+        new OutfitMarketV2(owner, IERC20(address(0)));
+    }
+
+    function test_anItemKindNeedsASupplyWithinTheCap() public {
+        vm.startPrank(owner);
+        vm.expectRevert(OutfitMarketV2.BadTerms.selector);
+        m.createItem("Lantern", 0);
+        vm.expectRevert(OutfitMarketV2.BadTerms.selector);
+        m.createItem("Lantern", 100_001);
+        uint256 id = m.createItem("Lantern", 100_000);
+        vm.stopPrank();
+        assertEq(m.design(id).maxSupply, 100_000);
+    }
+
+    function test_aMinterGrantMustNameAMinter() public {
+        uint256 id = _create(ONE, 10, 0);
+        vm.prank(creator);
+        vm.expectRevert(OutfitMarketV2.BadTerms.selector);
+        m.setMinter(id, address(0), 5);
+        assertEq(m.minterCap(id, address(0)), 0);
+    }
+
+    function test_aTypeOrListingThatDoesNotExistCannotBeUsed() public {
+        vm.expectRevert(OutfitMarketV2.NoDesign.selector);
+        m.design(7);
+        vm.startPrank(creator);
+        vm.expectRevert(OutfitMarketV2.NoDesign.selector);
+        m.setPrice(7, ONE, false);
+        vm.expectRevert(OutfitMarketV2.NoDesign.selector);
+        m.setMinter(7, alice, 5);
+        vm.expectRevert(OutfitMarketV2.NoDesign.selector);
+        m.mintTo(7, alice, 1);
+        vm.expectRevert(OutfitMarketV2.NoDesign.selector);
+        m.list(7, 1, ONE, _until(), address(0));
+        vm.expectRevert(OutfitMarketV2.NoListing.selector);
+        m.cancel(7);
+        vm.stopPrank();
+    }
+
+    function test_aSellerCannotNameThemselvesTheBuyer() public {
+        uint256 id = _create(ONE, 10, 0);
+        vm.prank(creator);
+        vm.expectRevert(OutfitMarketV2.BadTerms.selector);
+        m.list(id, 1, ONE, _until(), creator);
+        assertEq(m.nextListing(), 1);
+    }
+
+    function test_pixelDataShorterThanAHeaderOrLongerThanTheCapIsRefused() public {
+        vm.startPrank(creator);
+        vm.expectRevert(OutfitMarketV2.BadPixels.selector);
+        m.create(hex"000101010000", "x", ONE, 1, 0); // six bytes: no room for a colour and a cell byte
+        vm.expectRevert(OutfitMarketV2.BadPixels.selector);
+        m.create(new bytes(97), "x", ONE, 1, 0);
+        vm.stopPrank();
+        assertEq(m.nextDesign(), 1);
+    }
+
+    /// Why `buy` can never reach NotEnoughHeld: copies leave a seller only by a transfer or a sale, both bump the
+    /// seller's nonce, and only the rest of the listing just bought from is re-stamped, less exactly what sold. So a
+    /// listing whose nonce is current is always fully backed, whatever order lists, sales, transfers and mints come in.
+    function testFuzz_aListingWithACurrentNonceIsAlwaysFullyBacked(uint256 seed) public {
+        uint256 id = _create(ONE, 1_000, 0);
+        vm.prank(alice);
+        m.mint(id, 4, ONE);
+        uint256[] memory lids = new uint256[](24);
+        uint256 n;
+        for (uint256 step = 0; step < 24; step++) {
+            uint256 r = uint256(keccak256(abi.encode(seed, step)));
+            uint256 held = m.balanceOf(alice, id);
+            if (r % 4 == 0 && held > 0) {
+                lids[n++] = _list(alice, id, uint32(1 + (r >> 8) % held), ONE);
+            } else if (r % 4 == 1 && n > 0) {
+                uint256 lid = lids[(r >> 8) % n];
+                (address seller,, uint32 q,, uint32 nonce,,,) = m.listings(lid);
+                if (seller != address(0) && nonce == m.listNonce(seller, id)) {
+                    vm.prank(bob);
+                    m.buy(lid, uint32(1 + (r >> 16) % q), ONE);
+                }
+            } else if (r % 4 == 2 && held > 0) {
+                vm.prank(alice);
+                m.safeTransferFrom(alice, address(0xCA), id, 1 + (r >> 8) % held, "");
+            } else {
+                vm.prank(alice);
+                m.mint(id, 1, ONE);
+            }
+            for (uint256 i = 0; i < n; i++) {
+                (address seller,, uint32 q,, uint32 nonce,,,) = m.listings(lids[i]);
+                if (seller != address(0) && nonce == m.listNonce(seller, id)) assertGe(m.balanceOf(seller, id), q);
+            }
+        }
+    }
 }

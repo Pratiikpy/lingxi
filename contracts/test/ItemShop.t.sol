@@ -278,6 +278,47 @@ contract ItemShopTest is Test {
         assertEq(market.balanceOf(bob, lamp), 1);
         assertEq(bem.balanceOf(DEAD), 0.05e8 + 0.006e8);
     }
+
+    /* ── refusals at the edges ── */
+
+    function test_theShopNeedsAMarketBemAndASigner() public {
+        IItemMarket m = IItemMarket(address(market));
+        IERC20 b = IERC20(address(bem));
+        vm.expectRevert(ItemShop.BadTerms.selector);
+        new ItemShop(owner, IItemMarket(address(0)), b, signer);
+        vm.expectRevert(ItemShop.BadTerms.selector);
+        new ItemShop(owner, m, IERC20(address(0)), signer);
+        vm.expectRevert(ItemShop.BadTerms.selector);
+        new ItemShop(owner, m, b, address(0));
+    }
+
+    /// Signed by the real key, a voucher is still refused if it names nobody, nothing or more than ten copies, and
+    /// its nonce stays unused.
+    function test_aSignedVoucherForNobodyNothingOrTooMuchIsRefused() public {
+        uint64 exp = uint64(block.timestamp + 1 days);
+        (ItemShop.Voucher memory toNobody, bytes memory s1) = _voucher(address(0), banner, 1, 21, exp);
+        (ItemShop.Voucher memory nothing, bytes memory s2) = _voucher(alice, banner, 0, 22, exp);
+        (ItemShop.Voucher memory tooMany, bytes memory s3) = _voucher(alice, banner, 11, 23, exp);
+        vm.expectRevert(ItemShop.BadTerms.selector);
+        shop.claim(toNobody, s1);
+        vm.expectRevert(ItemShop.BadTerms.selector);
+        shop.claim(nothing, s2);
+        vm.expectRevert(ItemShop.BadTerms.selector);
+        shop.claim(tooMany, s3);
+        assertFalse(shop.usedNonce(21));
+        assertFalse(shop.usedNonce(22));
+        assertFalse(shop.usedNonce(23));
+        (ItemShop.Voucher memory ten, bytes memory s4) = _voucher(alice, banner, 10, 24, exp);
+        shop.claim(ten, s4);
+        assertEq(market.balanceOf(alice, banner), 10);
+    }
+
+    function test_theSignerCanNeverBeSetToTheZeroAddress() public {
+        vm.prank(owner);
+        vm.expectRevert(ItemShop.BadTerms.selector);
+        shop.setSigner(address(0));
+        assertEq(shop.signer(), signer);
+    }
 }
 
 import {Vm} from "forge-std/Vm.sol";
