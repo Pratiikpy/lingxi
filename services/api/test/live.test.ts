@@ -165,7 +165,7 @@ describe("live rooms", () => {
     await mochi.next("room");
     const lookalike = await connect();
     hello(lookalike, "lookalike01", "room:22", "Mochi\u061c");
-    expect((await mochi.next("joined")).member.name).toBe("Mochi\ufffd");
+    expect(((await mochi.next("joined")).member as { name: string }).name).toBe("Mochi\ufffd");
     mochi.ws.close();
     lookalike.ws.close();
   });
