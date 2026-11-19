@@ -46,6 +46,28 @@ function forgePassed(args: string[]): number {
   return Object.values(suites).flatMap((s) => Object.values(s.test_results)).filter((t) => t.status === "Success").length;
 }
 
+/** The server's tests with its fork tests switched on (`pnpm test:fork`): a pinned fork of X Layer, reads only. */
+function forkTestsPassed(): number {
+  const dir = mkdtempSync(join(tmpdir(), "lingxi-facts-"));
+  const out = join(dir, "r.json");
+  try {
+    const p = spawnSync(process.execPath, [join(root, "node_modules/tsx/dist/cli.mjs"), "scripts/fork-tests.mts", "--reporter=json", `--outputFile=${out}`], { cwd: root, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
+    const r = JSON.parse(readFileSync(out, "utf8")) as { numPassedTests: number; numFailedTests: number };
+    if (p.status !== 0 || r.numFailedTests > 0) throw new Error(`the server's fork tests: ${r.numFailedTests} fail; no count is written for a failing suite`);
+    return r.numPassedTests;
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+/** The end-to-end suite's tests, as Playwright lists them (listing starts nothing; CI runs them on every push). */
+function e2eListed(): { tests: number; specs: number } {
+  const p = spawnSync(process.execPath, [join(root, "node_modules/@playwright/test/cli.js"), "test", "-c", "e2e/playwright.config.ts", "--list"], { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+  const m = /Total: (\d+) tests? in (\d+) files?/.exec(p.stdout);
+  if (p.status !== 0 || !m) throw new Error(`playwright --list failed:\n${(p.stdout + p.stderr).slice(-2000)}`);
+  return { tests: Number(m[1]), specs: Number(m[2]) };
+}
+
 const deployment = JSON.parse(readFileSync(join(root, "packages/chain/deployments/xlayer.json"), "utf8")) as Record<string, unknown>;
 /** The eleven contracts the README's table lists, by their deployment keys. */
 const CONTRACT_KEYS = ["registry", "breeder", "adoptionCentre", "outfitMarketV2", "itemShop", "extras", "holderGift", "look", "redPacket", "outfitMarket", "breederFree"];
@@ -62,7 +84,14 @@ const facts: Record<string, string> = {
   residents: String(CHARACTERS.length),
   builders: String(LANE.length),
   contracts: String(CONTRACT_KEYS.filter((k) => typeof deployment[k] === "string").length),
+  // each fix with a patch that undoes it and the test that must then fail (`pnpm revert:check` proves the pairs)
+  regressions: String((JSON.parse(readFileSync(join(root, "scripts/regressions/list.json"), "utf8")) as unknown[]).length),
 };
+{
+  const e2e = e2eListed();
+  facts["e2e"] = String(e2e.tests);
+  facts["e2e-specs"] = String(e2e.specs);
+}
 
 if (withTests) {
   let total = 0;
@@ -74,6 +103,7 @@ if (withTests) {
   facts["tests"] = String(total);
   facts["forge-unit"] = String(forgePassed([]));
   facts["forge-fork"] = String(forgePassed(["--fork-url", "xlayer", "--match-path", "test/*.fork.t.sol"]));
+  facts["tests-api-fork"] = String(forkTestsPassed());
   facts["tests-all"] = String(total + Number(facts["forge-unit"]) + Number(facts["forge-fork"]));
 }
 
