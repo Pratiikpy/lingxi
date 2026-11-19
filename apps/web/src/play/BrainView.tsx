@@ -26,8 +26,8 @@ export function BrainView({ pet, reduceMotion }: { pet: Pet; reduceMotion: boole
   const net = useMemo(() => compileProgram(program), [program]);
   const lay = useMemo(() => layout(net), [net]);
   // a child shows the half that decided this beat, with that half's own memory
-  const before = (pet.last.before ?? pet.brain).slice(part.offset, part.offset + net.latches.length);
-  const trace = useMemo(() => traceBeat(net, before, pet.last.word), [net, before, pet.last.word]);
+  const memory = pet.last.before ?? pet.brain;
+  const trace = useMemo(() => traceBeat(net, memory.slice(part.offset, part.offset + net.latches.length), pet.last.word), [net, memory, part.offset, pet.last.word]);
 
   useEffect(() => {
     const el = ref.current;

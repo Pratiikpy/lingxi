@@ -103,16 +103,20 @@ export function Talk({ who, visiting = false, onFace, onAction, onClose }: { who
   useEffect(() => {
     if (line) onFace(line.face);
   }, [line, onFace]);
+  // each new line is typed out from its start; with reduced motion it stands written in full
+  const [typedFor, setTypedFor] = useState(text);
+  if (text !== typedFor) {
+    setTypedFor(text);
+    setTyped(0);
+  }
+  const shown = reduce ? text.length : typed;
   useEffect(() => {
-    setTyped(reduce ? text.length : 0);
-  }, [text, reduce]);
-  useEffect(() => {
-    if (typed >= text.length) return;
+    if (reduce || typed >= text.length) return;
     const id = setTimeout(() => setTyped((n) => Math.min(text.length, n + (lang === "zh" ? 1 : 2))), 24);
     return () => clearTimeout(id);
-  }, [typed, text, lang]);
+  }, [typed, text, lang, reduce]);
 
-  const done = typed >= text.length;
+  const done = shown >= text.length;
   const lastLine = at >= queue.length - 1;
   const advance = () => {
     if (!done) return setTyped(text.length);
@@ -189,9 +193,9 @@ export function Talk({ who, visiting = false, onFace, onAction, onClose }: { who
           <small>{who.role[lang]}</small>
         </span>
         <span className="talk-text">
-          {text.slice(0, typed)}
+          {text.slice(0, shown)}
           <span className="talk-ghost" aria-hidden="true">
-            {text.slice(typed)}
+            {text.slice(shown)}
           </span>
         </span>
         {done && (!lastLine || ending) && <span className="talk-more" aria-hidden="true">▼</span>}

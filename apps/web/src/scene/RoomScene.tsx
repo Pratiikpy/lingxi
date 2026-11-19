@@ -7,7 +7,7 @@
  * so the scene never rebuilds on a state change.
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { Application, Assets, Container, Graphics, Sprite, Text, type Texture } from "pixi.js";
 // the site sends a script policy without eval; this module gives Pixi the code paths that never need it
 import "pixi.js/unsafe-eval";
@@ -191,8 +191,11 @@ function expressionFor(p: SceneProps, now: number, blinking: boolean): { e: Expr
 
 export function RoomScene(props: SceneProps) {
   const host = useRef<HTMLDivElement>(null);
+  // the scene draws from the latest props on its own clock; they are handed over as each render commits
   const latest = useRef(props);
-  latest.current = props;
+  useLayoutEffect(() => {
+    latest.current = props;
+  });
 
   useEffect(() => {
     const el = host.current;

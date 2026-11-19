@@ -172,12 +172,14 @@ export function QuestBook() {
   const bookTab = useQuestUi((s) => s.bookTab);
   const setBookTab = useQuestUi((s) => s.setBookTab);
   const [tab, setTab] = useState<"story" | "today" | "together" | "milestones">(bookTab ?? "story");
-  // a goal's toast asks for Together; take the ask once
+  // a goal's toast asks for Together: the book turns to it once, and the ask is put away
+  const [askSeen, setAskSeen] = useState(bookTab);
+  if (bookTab !== askSeen) {
+    setAskSeen(bookTab);
+    if (bookTab) setTab(bookTab);
+  }
   useEffect(() => {
-    if (bookTab) {
-      setTab(bookTab);
-      setBookTab(null);
-    }
+    if (bookTab) setBookTab(null);
   }, [bookTab, setBookTab]);
   const statuses = useQuestStatuses();
   const live = STORY.filter((q) => order.includes(statuses[q.id]!)).sort((a, b) => order.indexOf(statuses[a.id]!) - order.indexOf(statuses[b.id]!));
@@ -308,13 +310,17 @@ export function QuestDialog() {
     if (id && QUEST_BY_ID[id]) setOpen(id);
   }, [setOpen]);
   const [at, setAt] = useState(0);
-  useEffect(() => {
-    if (!open) return;
-    const st = allStatuses()[open];
-    const forced = import.meta.env.DEV ? new URLSearchParams(location.search).get("lines") : null;
-    setMode(forced === "outro" ? "closing" : forced === "intro" ? "offer" : st === "ready" ? "ready" : st === "active" ? "active" : "offer");
-    setAt(0);
-  }, [open]);
+  // a quest opened starts from its first line, in the part of its story the quest is at
+  const [openedFor, setOpenedFor] = useState<typeof open>(null);
+  if (open !== openedFor) {
+    setOpenedFor(open);
+    if (open) {
+      const st = allStatuses()[open];
+      const forced = import.meta.env.DEV ? new URLSearchParams(location.search).get("lines") : null;
+      setMode(forced === "outro" ? "closing" : forced === "intro" ? "offer" : st === "ready" ? "ready" : st === "active" ? "active" : "offer");
+      setAt(0);
+    }
+  }
   const progress = useMemo(() => (q && (mode === "active" || mode === "ready") ? questProgress(q, world, conditionView()) : null), [q, mode, world]);
   // Escape closes it, like every other dialog in the game
   useEffect(() => {
@@ -500,7 +506,7 @@ export function HintRing() {
   const reduce = useReducedMotion() ?? false;
   const hint = ONBOARDING.map((id) => QUEST_BY_ID[id]!).find((x) => statuses[x.id] === "active")?.hint ?? null;
   useEffect(() => {
-    if (!hint) return setBox(null);
+    if (!hint) return;
     const find = () => {
       // a sheet or a dialog on top covers the game: only a target inside the top layer can be pointed at
       const layers = Array.from(document.querySelectorAll<HTMLElement>(".sheet, .fam-modal, .talk"));
@@ -516,6 +522,8 @@ export function HintRing() {
     window.addEventListener("resize", find);
     return () => (clearInterval(id), window.removeEventListener("resize", find));
   }, [hint]);
-  if (!box) return null;
-  return <div className={`hint-ring${reduce ? " still" : ""}`} aria-hidden="true" style={{ left: box.left - 6, top: box.top - 6, width: box.width + 12, height: box.height + 12 }} />;
+  // with no quest pointing anywhere, nothing is ringed (a box found earlier is not shown)
+  const ring = hint ? box : null;
+  if (!ring) return null;
+  return <div className={`hint-ring${reduce ? " still" : ""}`} aria-hidden="true" style={{ left: ring.left - 6, top: ring.top - 6, width: ring.width + 12, height: ring.height + 12 }} />;
 }

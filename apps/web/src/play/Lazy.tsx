@@ -8,14 +8,11 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 export function Lazy({ children, height = 240 }: { children: ReactNode; height?: number }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [shown, setShown] = useState(false);
+  // a browser that cannot tell when it is near draws it at once
+  const [shown, setShown] = useState(() => typeof IntersectionObserver === "undefined");
   useEffect(() => {
     const el = ref.current;
     if (!el || shown) return;
-    if (typeof IntersectionObserver === "undefined") {
-      setShown(true);
-      return;
-    }
     const io = new IntersectionObserver((entries) => entries.some((e) => e.isIntersecting) && setShown(true), { root: el.closest(".sheet") ?? null, rootMargin: "600px 0px" });
     io.observe(el);
     return () => io.disconnect();

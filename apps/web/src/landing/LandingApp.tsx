@@ -83,11 +83,10 @@ function TeachDemo({ reduce }: { reduce: boolean }) {
   const [typed, setTyped] = useState(0);
   const lesson = PET_SCHOOL[i % PET_SCHOOL.length]!;
   const text = lesson.say[lang];
+  // with reduced motion the first lesson stands written out in full, and nothing moves
+  const shown = reduce ? text.length : typed;
   useEffect(() => {
-    if (reduce) {
-      setTyped(text.length);
-      return;
-    }
+    if (reduce) return;
     if (typed < text.length) {
       const id = setTimeout(() => setTyped((n) => n + 1), lang === "zh" ? 110 : 45);
       return () => clearTimeout(id);
@@ -98,12 +97,12 @@ function TeachDemo({ reduce }: { reduce: boolean }) {
     }, 3200);
     return () => clearTimeout(id);
   }, [typed, text, lang, reduce]);
-  const done = typed >= text.length;
+  const done = shown >= text.length;
   const chips = chipsFor(STARTERS.gentle, lesson.rule, lang);
   return (
     <div className="teach-demo">
       <div className="say-box">
-        <span>{text.slice(0, typed)}</span>
+        <span>{text.slice(0, shown)}</span>
         <i className="caret" aria-hidden="true" />
       </div>
       <motion.div className="rule-out" animate={{ opacity: done ? 1 : 0.25, y: done ? 0 : 4 }} transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}>

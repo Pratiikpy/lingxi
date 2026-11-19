@@ -34,22 +34,31 @@ export function HomePanel({ pet }: { pet: Pet }) {
   const grown = stage === "adult" || stage === "elder";
   const deed = record?.brainKey ? record.brains?.[record.brainKey] : undefined;
 
-  const load = useCallback(async () => {
-    if (!deployment || !deed) return;
+  // the home as X Layer holds it now, the opening fee, and whether the letters hub takes this processor's homes
+  const readAll = useCallback(() => Promise.all([readHome(publicClient, deployment!.processor, BigInt(deed!)), openingFee(publicClient), hubAccepts(publicClient, deployment!.processor)]), [deed]);
+  const show = useCallback(([h, f, ok]: Awaited<ReturnType<typeof readAll>>) => {
+    setHome(h);
+    setFee(f);
+    setLetters(ok);
+    setState("ready");
+  }, []);
+  const load = useCallback(() => {
+    if (!deployment || !deed) return Promise.resolve();
     setState("loading");
-    try {
-      const [h, f, ok] = await Promise.all([readHome(publicClient, deployment.processor, BigInt(deed)), openingFee(publicClient), hubAccepts(publicClient, deployment.processor)]);
-      setHome(h);
-      setFee(f);
-      setLetters(ok);
-      setState("ready");
-    } catch {
-      setState("error");
-    }
-  }, [deed]);
+    return readAll().then(show, () => setState("error"));
+  }, [deed, readAll, show]);
+  // read when the panel opens on a grown pet (it starts out loading)
   useEffect(() => {
-    if (grown && record) void load();
-  }, [grown, record, load]);
+    if (!grown || !record || !deployment || !deed) return;
+    let live = true;
+    readAll().then(
+      (r) => live && show(r),
+      () => live && setState("error"),
+    );
+    return () => {
+      live = false;
+    };
+  }, [grown, record, deed, readAll, show]);
 
   if (!record || !deployment) return null;
   const holds = home && home.holder.toLowerCase() === record.owner.toLowerCase();
@@ -167,19 +176,24 @@ function HomePage({ pet, home, petId }: { pet: Pet; home: Home; petId: string })
   const [site, setSite] = useState<{ index: number; live: boolean; published: boolean; fee: bigint } | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
-  const read = useCallback(async () => {
-    if (!deployment) return;
-    try {
-      const index = await processorIndex(publicClient, deployment.processor, deployment.processorIndex);
-      const [s, fee] = await Promise.all([readHomePage(publicClient, home.container, homeSiteName(home.circuit, index)), nameFee(publicClient)]);
-      setSite({ index, live: s.live, published: s.published, fee });
-    } catch {
-      setSite(null);
-    }
+  // the page as DeWEB holds it now: the processor's index, whether it is published and live, and the name fee
+  const readSite = useCallback(async () => {
+    const index = await processorIndex(publicClient, deployment!.processor, deployment!.processorIndex);
+    const [s, fee] = await Promise.all([readHomePage(publicClient, home.container, homeSiteName(home.circuit, index)), nameFee(publicClient)]);
+    return { index, live: s.live, published: s.published, fee };
   }, [home.container, home.circuit]);
+  const read = () => readSite().then(setSite, () => setSite(null));
   useEffect(() => {
-    void read();
-  }, [read]);
+    if (!deployment) return;
+    let live = true;
+    readSite().then(
+      (s) => live && setSite(s),
+      () => live && setSite(null),
+    );
+    return () => {
+      live = false;
+    };
+  }, [readSite]);
   if (!site || !deployment) return null;
   const name = homeSiteName(home.circuit, site.index);
   const url = homeSiteUrl(home.circuit, site.index);

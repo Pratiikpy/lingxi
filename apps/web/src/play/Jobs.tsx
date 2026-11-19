@@ -168,8 +168,12 @@ function Shift({ pet, job, onEnd }: { pet: Pet; job: Job; onEnd: (right: number,
     }
   }, [left, right, wrong, onEnd]);
   // each guest waits a few seconds, then leaves unserved
-  useEffect(() => {
+  const [waitingFor, setWaitingFor] = useState(round);
+  if (round !== waitingFor) {
+    setWaitingFor(round);
     setWait(PATIENCE_SECONDS);
+  }
+  useEffect(() => {
     const id = setInterval(() => setWait((w) => w - 1), 1000);
     return () => clearInterval(id);
   }, [round]);

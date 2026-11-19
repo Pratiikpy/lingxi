@@ -15,7 +15,9 @@ export function NameClaim({ pet, record }: { pet: Pet; record: ChainRecord }) {
   const [onChain, setOnChain] = useState<string | null>(null);
   const [settled, setSettled] = useState<boolean | null>(null);
   const [name, setName] = useState(pet.name);
-  const [taken, setTaken] = useState<string | null>(null);
+  // who holds a name, as last asked: it answers only for the name it was asked about
+  const [holderOf, setHolderOf] = useState<{ name: string; holder: string | null } | null>(null);
+  const taken = holderOf?.name === name ? holderOf.holder : null;
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const id = BigInt(record.petId);
@@ -33,10 +35,11 @@ export function NameClaim({ pet, record }: { pet: Pet; record: ChainRecord }) {
 
   // is the name free? (checked as the player types, after a short pause)
   useEffect(() => {
-    setTaken(null);
     if (!deployment?.look || nameProblem(name) || name === onChain) return;
     const h = setTimeout(() => {
-      void nameHolderOf(publicClient, deployment!, name).then((holder) => setTaken(holder !== null && holder !== id ? holder.toString() : null)).catch(() => {});
+      void nameHolderOf(publicClient, deployment!, name)
+        .then((holder) => setHolderOf({ name, holder: holder !== null && holder !== id ? holder.toString() : null }))
+        .catch(() => {});
     }, 400);
     return () => clearTimeout(h);
   }, [name, onChain, id]);

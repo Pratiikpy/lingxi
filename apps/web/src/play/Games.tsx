@@ -219,8 +219,8 @@ const PADS: Array<[IconName, string]> = [
 function PatternGame({ onEnd }: { onEnd: (score: number) => void }) {
   const lang = useLang((s) => s.lang) as Lang;
   const reduce = useReducedMotion() ?? false;
-  const seed = useRef((Math.random() * 2 ** 31) | 0);
-  const [seq, setSeq] = useState<number[]>(() => nextPattern([], seed.current));
+  const [seed] = useState(() => (Math.random() * 2 ** 31) | 0);
+  const [seq, setSeq] = useState<number[]>(() => nextPattern([], seed));
   const [lit, setLit] = useState<number | null>(null);
   const [phase, setPhase] = useState<"show" | "input">("show");
   const [pos, setPos] = useState(0);
@@ -231,14 +231,14 @@ function PatternGame({ onEnd }: { onEnd: (score: number) => void }) {
   const [shown, setShown] = useState(-1);
   const litPad = phase === "show" && shown >= 0 ? steps[shown]!.lit : lit;
 
-  // a showing begins: the press's own timer is cancelled, and the first step comes after its time
+  // a showing begins (with none of its steps on screen: the last showing's end put them away): the press's own timer
+  // is cancelled, and the first step, the press going out, comes after a press's time
   useEffect(() => {
     if (phase !== "show") return;
     if (pressTimer.current) clearTimeout(pressTimer.current);
-    setShown(-1);
-    const id = setTimeout(() => setShown(0), steps[0]!.at);
+    const id = setTimeout(() => setShown(0), PRESS_MS);
     return () => clearTimeout(id);
-  }, [phase, steps]);
+  }, [phase]);
 
   // each step, once it is on screen (an effect runs after the change is shown), waits its time before the next: a
   // busy or slow phone stretches the showing, and never cuts a light short
@@ -272,7 +272,7 @@ function PatternGame({ onEnd }: { onEnd: (score: number) => void }) {
     play("pop");
     if (pos + 1 === seq.length) {
       if (seq.length >= 8) return onEnd(seq.length);
-      setSeq(nextPattern(seq, seed.current));
+      setSeq(nextPattern(seq, seed));
       setPhase("show");
     } else setPos(pos + 1);
   };
@@ -305,20 +305,19 @@ const SPOT_COLOURS: Record<string, [string, string]> = {
 function SeekGame({ pet, season, onEnd }: { pet: Pet; season: keyof typeof SEASONAL; onEnd: (score: number) => void }) {
   const lang = useLang((s) => s.lang) as Lang;
   const reduce = useReducedMotion() ?? false;
-  const seed = useRef((Math.random() * 2 ** 31) | 0);
+  const [seed] = useState(() => (Math.random() * 2 ** 31) | 0);
   const [round, setRound] = useState(0);
   const [score, setScore] = useState(0);
   const [slots, setSlots] = useState([0, 1, 2]); // slots[cup] = position
   const [phase, setPhase] = useState<"peek" | "mix" | "pick" | "reveal">("peek");
-  const [hidden] = useState(() => (seed.current >>> 3) % 3);
+  const [hidden] = useState(() => (seed >>> 3) % 3);
   const [picked, setPicked] = useState<number | null>(null);
   const art = useMemo(() => drawPet(pet.line, drawn(stageOf(pet, now())), { expression: "sparkly", ...(pet.form ? { form: pet.form } : {}) }), [pet]);
-  const swaps = useMemo(() => shuffles(round, seed.current + round * 7919), [round]);
+  const swaps = useMemo(() => shuffles(round, seed + round * 7919), [round, seed]);
   const [c1, c2] = SPOT_COLOURS[season]!;
 
   useEffect(() => {
     if (phase === "peek") {
-      setSlots([0, 1, 2]);
       const id = setTimeout(() => setPhase("mix"), 1100);
       return () => clearTimeout(id);
     }
@@ -359,6 +358,8 @@ function SeekGame({ pet, season, onEnd }: { pet: Pet; season: keyof typeof SEASO
       if (round >= 2) return onEnd(nextScore);
       setRound(round + 1);
       setPicked(null);
+      // the cups go back where they started before the pet peeks out again
+      setSlots([0, 1, 2]);
       setPhase("peek");
     }, 1200);
   };

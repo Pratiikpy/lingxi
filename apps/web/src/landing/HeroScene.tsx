@@ -32,8 +32,8 @@ export function HeroScene({ reduceMotion, phase }: { reduceMotion: boolean; phas
   // switching day, dusk and night swaps the landscape without rebuilding the scene
   const swap = useRef<((p: HeroPhase) => void) | null>(null);
   const phaseRef = useRef(phase);
-  phaseRef.current = phase;
   useEffect(() => {
+    phaseRef.current = phase;
     swap.current?.(phase);
   }, [phase]);
   useEffect(() => {

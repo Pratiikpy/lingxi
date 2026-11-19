@@ -7,7 +7,7 @@ import { atCentre } from "../game/adoption";
 import { atHandheld } from "../game/handheld";
 import { HandheldAwayCard } from "./Handheld";
 import { CentreCard } from "./Adoption";
-import { useEffect, useEffectEvent, useMemo, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { drawPet } from "@lingxi/art";
 import { type Pet, type SitPack, stageOf } from "@lingxi/game";
@@ -142,23 +142,34 @@ export function AwayCard({ pet }: { pet: Pet }) {
 
 function FriendAwayCard({ pet }: { pet: Pet }) {
   const lang = useLang((s) => s.lang) as Lang;
-  const [state, setState] = useState<"idle" | "checking" | "waiting" | "refused" | "unreachable">("idle");
+  const [state, setState] = useState<"idle" | "checking" | "waiting" | "refused" | "unreachable">(() => (pet.away?.code ? "checking" : "idle"));
   const away = pet.away;
-  const check = async () => {
-    setState("checking");
-    const r = await checkHome(pet);
+  const settled = useCallback((r: Awaited<ReturnType<typeof checkHome>>) => {
     if (r === "home") play("success");
     else setState(r);
+  }, []);
+  const check = () => {
+    setState("checking");
+    return checkHome(pet).then(settled);
   };
-  // look for a return when the screen opens, and every few minutes, each time with the pet as it is then
-  const checkNow = useEffectEvent(() => void check());
   const code = away?.code;
+  // a pet newly away is being looked for from the moment the screen shows it
+  const [checkedFor, setCheckedFor] = useState(code);
+  if (code !== checkedFor) {
+    setCheckedFor(code);
+    if (code) setState("checking");
+  }
+  // look for a return when the screen opens, and every few minutes, each time with the pet as it is then
+  const checkPet = useEffectEvent(() => checkHome(pet));
   useEffect(() => {
     if (!code) return;
-    checkNow();
-    const id = setInterval(() => checkNow(), 5 * 60_000);
+    void checkPet().then(settled);
+    const id = setInterval(() => {
+      setState("checking");
+      void checkPet().then(settled);
+    }, 5 * 60_000);
     return () => clearInterval(id);
-  }, [code]);
+  }, [code, settled]);
   if (!away) return null;
   const link = sitLink(away.code, away.key);
   return (

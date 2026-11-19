@@ -69,7 +69,8 @@ export function TreeApp() {
   const { lang, toggle } = useLang();
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
   const [data, setData] = useState<TreeData | null>(null);
-  const [err, setErr] = useState(false);
+  // the on-chain copy has no indexer of its own; the tree is read on the full site
+  const [err, setErr] = useState(!API);
   const [query, setQuery] = useState(() => location.hash.replace("#", ""));
   const [picked, setPicked] = useState<string | null>(() => location.hash.replace("#", "") || null);
 
@@ -78,8 +79,7 @@ export function TreeApp() {
     document.title = lang === "zh" ? "灵犀 · 生命之树" : "Lingxi · the tree of life";
   }, [lang]);
   useEffect(() => {
-    // the on-chain copy has no indexer of its own; the tree is read on the full site
-    if (!API) return setErr(true);
+    if (!API) return;
     fetch(`${API}/api/tree`, { cache: "no-store" })
       .then((r) => r.json())
       .then((j: TreeData & { ok: boolean }) => (j.ok ? setData(j) : setErr(true)))

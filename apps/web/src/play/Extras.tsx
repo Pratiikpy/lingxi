@@ -73,7 +73,13 @@ export function ExtrasPanel({ pet }: { pet: Pet }) {
   const current = useExtras((s) => (petId ? (s.colours[petId] ?? 0) : 0));
   const links = useLive((s) => s.links);
   const connected = useDesigns((s) => s.wallet);
-  const [pick, setPick] = useState<number>(0);
+  // the colour picked starts as the pet's colour on chain, and follows it when that changes
+  const [pick, setPick] = useState<number>(current);
+  const [pickedFrom, setPickedFrom] = useState(current);
+  if (current !== pickedFrom) {
+    setPickedFrom(current);
+    setPick(current);
+  }
   const [busy, setBusy] = useState<string | null>(null);
   const [step, setStep] = useState("");
   const [note, setNote] = useState("");
@@ -84,7 +90,6 @@ export function ExtrasPanel({ pet }: { pet: Pet }) {
   useEffect(() => {
     if (petId) void loadColours([petId]);
   }, [petId]);
-  useEffect(() => setPick(current), [current]);
   if (!extrasLive()) return null;
 
   const packs = extrasOf(world);

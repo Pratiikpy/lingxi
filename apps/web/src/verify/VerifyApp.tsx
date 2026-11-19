@@ -136,7 +136,8 @@ export function VerifyApp() {
   const [pet, setPet] = useState<ChainPet | null>(null);
   const [circuit, setCircuit] = useState<Circuit | null>(null);
   const [gates, setGates] = useState(0);
-  const [err, setErr] = useState<string | null>(null);
+  // with no deployment to read from, the page says so from the start
+  const [err, setErr] = useState<string | null>(() => (deployment ? null : t.notDeployed));
   const [rows, setRows] = useState<Row[]>([]);
   const [running, setRunning] = useState(false);
   const [runHosts, setRunHosts] = useState<ReadonlySet<string>>(new Set());
@@ -153,22 +154,18 @@ export function VerifyApp() {
   // the picture and name the registry serves for this pet, drawn by PetLook
   const [meta, setMeta] = useState<{ name: string; image?: string; same?: boolean } | null>(null);
 
-  const read = useCallback(async () => {
-    setErr(null);
-    setRows([]);
-    setLogResult(null);
-    if (!deployment) return setErr(t.notDeployed);
-    try {
-      const p = await readPet(pc, deployment, BigInt(id));
+  // a pet read from X Layer is shown with everything about it read alongside: its name colour, its picture, its circuit
+  const show = useCallback(
+    async (forId: string, p: ChainPet) => {
       setPet(p);
       setMeta(null);
       setColour(0);
       // its name colour (plan 4.9), from the extras contract
-      if (deployment.extras)
-        void nameColours(pc, deployment, [BigInt(id)])
-          .then((c) => setColour(c[id] ?? 0))
+      if (deployment!.extras)
+        void nameColours(pc, deployment!, [BigInt(forId)])
+          .then((c) => setColour(c[forId] ?? 0))
           .catch(() => setColour(0));
-      void readMetadata(pc, deployment, BigInt(id))
+      void readMetadata(pc, deployment!, BigInt(forId))
         .then((m) => {
           const svg = m.image?.startsWith("data:image/svg+xml;base64,") ? atob(m.image.slice(26)) : null;
           setMeta({ name: m.name, image: m.image, same: svg ? JSON.stringify(canvasOfSvg(svg).px) === JSON.stringify(gameSprite(lookOf(p.state)).px) : undefined });
@@ -178,37 +175,43 @@ export function VerifyApp() {
       const c = await loadCircuitFromChain(pc, p.processor, p.brainId);
       setCircuit(c);
       setGates(c.nGates);
-      history.replaceState(null, "", `#${id}`);
-    } catch {
-      setPet(null);
-      setErr(t.notFound);
-    }
-  }, [id, t]);
+      history.replaceState(null, "", `#${forId}`);
+    },
+    [],
+  );
+  const notFound = useCallback(() => {
+    setPet(null);
+    setErr(t.notFound);
+  }, [t]);
+  const fetchPet = (forId: string) => readPet(pc, deployment!, BigInt(forId));
+  // a read asked for (the form, a family link followed) starts from a clean page
+  const read = (forId = id) => {
+    setErr(null);
+    setRows([]);
+    setLogResult(null);
+    if (!deployment) return setErr(t.notDeployed);
+    return fetchPet(forId).then((p) => show(forId, p).catch(notFound), notFound);
+  };
 
-  // read once on open, for the pet in the address; later reads are the reader's own
-  const readOnOpen = useEffectEvent(() => void read());
+  // read once on open, for the pet in the address (the page starts clean); later reads are the reader's own
+  const readOnOpen = useEffectEvent(() => fetchPet(id).then((p) => show(id, p).catch(notFound), notFound));
   useEffect(() => {
-    readOnOpen();
+    if (deployment) void readOnOpen();
   }, []);
 
   // following a family link (or editing the address) opens that pet
-  const [follow, setFollow] = useState(false);
+  const openFromHash = useEffectEvent((h: string) => {
+    setId(h);
+    void read(h);
+  });
   useEffect(() => {
     const on = () => {
       const h = location.hash.replace("#", "");
-      if (/^\d{1,10}$/.test(h)) {
-        setId(h);
-        setFollow(true);
-      }
+      if (/^\d{1,10}$/.test(h)) openFromHash(h);
     };
     addEventListener("hashchange", on);
     return () => removeEventListener("hashchange", on);
   }, []);
-  useEffect(() => {
-    if (!follow) return;
-    setFollow(false);
-    void read();
-  }, [follow, read]);
 
   const run = async () => {
     if (!pet || !circuit || !deployment) return;
@@ -340,31 +343,31 @@ export function VerifyApp() {
   };
 
   // Z1: the diary its owner published, checked here against the chain before a word of it is shown
-  const [diary, setDiary] = useState<DiaryLine[] | null>(null);
-  const [diaryState, setDiaryState] = useState<"none" | "checking" | "ok" | "bad">("none");
   // the published log is checked against the pet and circuit shown at that moment
   const replayPublished = useEffectEvent((log: Parameters<typeof replayLog>[0]) => replayLog(log));
   const petId = pet?.id;
   const logHash = pet?.logHash;
+  // the diary's check, with the pet, log and circuit it was made for: it shows only while those are still on the page
+  const [diaryCheck, setDiaryCheck] = useState<{ petId: unknown; logHash: unknown; circuit: Circuit; state: "checking" | "ok" | "bad"; diary?: DiaryLine[] } | null>(null);
+  const diaryNow = diaryCheck && diaryCheck.petId === petId && diaryCheck.logHash === logHash && diaryCheck.circuit === circuit ? diaryCheck : null;
+  const diary = diaryNow?.diary ?? null;
+  const diaryState = diaryNow?.state ?? "none";
   useEffect(() => {
-    setDiary(null);
-    setDiaryState("none");
     if (petId === undefined || !circuit) return;
     let live = true;
-    void (async () => {
-      try {
-        const r = (await (await fetch(`${INDEXER}/api/pets/${petId}/log`, { signal: AbortSignal.timeout(8000) })).json()) as { ok: boolean; log?: { words: number[]; segments: Array<{ brainId: string | null; words: number[] }> } };
+    const said = (state: "checking" | "ok" | "bad", lines?: DiaryLine[]) => live && setDiaryCheck({ petId, logHash, circuit, state, ...(lines ? { diary: lines } : {}) });
+    fetch(`${INDEXER}/api/pets/${petId}/log`, { signal: AbortSignal.timeout(8000) })
+      .then((res) => res.json() as Promise<{ ok: boolean; log?: { words: number[]; segments: Array<{ brainId: string | null; words: number[] }> } }>)
+      .then(async (r) => {
         if (!live || !r.ok || !r.log) return;
-        setDiaryState("checking");
+        said("checking");
         const stretches = await replayPublished(r.log);
-        if (!live) return;
-        if (!stretches) return setDiaryState("bad");
-        setDiary(diaryOfStretches(stretches.map((x) => ({ brain: { fast: x.brain.fast, nState: x.brain.nState }, words: x.words }))));
-        setDiaryState("ok");
-      } catch {
+        if (!stretches) return said("bad");
+        said("ok", diaryOfStretches(stretches.map((x) => ({ brain: { fast: x.brain.fast, nState: x.brain.nState }, words: x.words }))));
+      })
+      .catch(() => {
         // no published diary: nothing to show
-      }
-    })();
+      });
     return () => {
       live = false;
     };

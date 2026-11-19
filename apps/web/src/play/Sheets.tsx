@@ -106,12 +106,13 @@ function MindPartView({ pet, part, firing }: { pet: Pet; part: MindPart; firing:
   const t = useT();
   const { lang } = useLang();
   const p = part.program;
-  let bit = part.offset;
-  const memory = p.memory.map((m) => {
-    const bits = m.kind === "flag" ? 1 : m.bits;
+  // each memory sits after the ones before it, from the part's own offset
+  const widths = p.memory.map((m) => (m.kind === "flag" ? 1 : m.bits));
+  const memory = p.memory.map((m, i) => {
+    const bits = widths[i]!;
+    const start = part.offset + widths.slice(0, i).reduce((a, w) => a + w, 0);
     let v = 0;
-    for (let b = 0; b < bits; b++) v |= (pet.brain[bit + b] ? 1 : 0) << b;
-    bit += bits;
+    for (let b = 0; b < bits; b++) v |= (pet.brain[start + b] ? 1 : 0) << b;
     return { name: m.name, v, max: (1 << bits) - 1, kind: m.kind };
   });
   const memName = (n: string) =>

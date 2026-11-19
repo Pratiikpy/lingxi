@@ -48,9 +48,11 @@ export function RulesMark() {
   useEffect(() => {
     void run();
   }, [run]);
-  useEffect(() => {
+  const [stateSeen, setStateSeen] = useState<typeof state | null>(null);
+  if (state !== stateSeen) {
+    setStateSeen(state);
     if (state === "verified") setOwed(true);
-  }, [state]);
+  }
   useEffect(() => {
     if (!owed || covered) return;
     const id = setTimeout(() => setOwed(false), SHOW_MS);

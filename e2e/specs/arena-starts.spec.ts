@@ -1,0 +1,111 @@
+/**
+ * The ways a fight starts from outside the spar screen, each in the event that asks for it: a friend's duel link
+ * accepted, and a friend's card asked for in a room (a damaged card says so for a moment, then the message goes).
+ * Leaving the spar screen mid-fight ends the fight, as the screen's own state would: it opens again on the partners.
+ */
+import { randomBytes } from "node:crypto";
+import { type Page } from "@playwright/test";
+import { expect, hatch, sheet, test } from "../fixtures";
+import { RoomSocket, keyedId, stored } from "../helpers/browser";
+
+/** Where the room puts a visiting pet that does not move (reduced motion): a lane picked from its id. */
+function spotFor(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return [26, 42, 86, 102, 34, 94, 18, 110][h % 8]!;
+}
+
+/** Taps the room at a point of its 128-pixel scene, as `patPet` does for the player's own pet. */
+async function tapScene(page: Page, x: number, y: number): Promise<string> {
+  const box = (await page.locator(".room-scene").boundingBox())!;
+  const scale = Math.max(1, Math.ceil(Math.max(box.width, box.height) / 128));
+  const left = box.x + Math.round((box.width - 128 * scale) / 2);
+  const top = box.y + Math.round((box.height - 128 * scale) / 2);
+  const at = { x: left + x * scale, y: top + y * scale };
+  const under = await page.evaluate(({ x, y }) => {
+    const e = document.elementFromPoint(x, y);
+    return e ? `${e.tagName}.${e.className}` : "nothing";
+  }, at);
+  await page.mouse.click(at.x, at.y);
+  return `${Math.round(at.x)},${Math.round(at.y)} on ${under}`;
+}
+
+/** Leaving the spar screen mid-fight, then opening it again, finds the partners, not the fight. */
+async function leaveMidFight(page: Page): Promise<void> {
+  await expect(page.locator(".sp-fight"), "the fight plays").toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".sheet"), "the spar screen closes").toHaveCount(0);
+  await sheet(page, "spar");
+  await expect(page.locator(".sp-partners").first(), "it opens again on the partners").toBeVisible();
+  await expect(page.locator(".sp-fight"), "the fight left with the screen").toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".sheet")).toHaveCount(0);
+}
+
+test("a friend's duel link opens straight onto the fight, and leaving ends it (en light phone, zh dark desktop)", async ({ player }) => {
+  test.setTimeout(240_000);
+  const a = await player({ lang: "en", scheme: "light", size: "phone" });
+  await hatch(a, "Ari");
+  await sheet(a.page, "spar");
+  await a.page.getByRole("button", { name: "Challenge a friend by link" }).click();
+  const link = await a.page.locator(".sp-link").inputValue();
+  expect(link, "the link carries a challenge").toMatch(/#duel=lxc1\./);
+
+  const b = await player({ lang: "zh", scheme: "dark", size: "desktop" });
+  await hatch(b, "Bo");
+  await b.page.goto(link.replace(/^https?:\/\/[^/]+\//, `${b.web}/`));
+  const accept = b.page.getByRole("button", { name: "让Bo应战" });
+  await accept.waitFor({ timeout: 20_000 });
+  await b.page.screenshot({ path: test.info().outputPath("duel-arrival-zh-dark-desktop.png") });
+  await accept.click();
+  await expect(b.page.locator(".sheet"), "the spar screen opens onto the fight").toHaveCount(1);
+  await expect(b.page.locator(".sp-fight"), "against the friend's pet").toContainText("Ari");
+  await b.page.screenshot({ path: test.info().outputPath("duel-fight-zh-dark-desktop.png") });
+  await leaveMidFight(b.page);
+});
+
+test("a friend's card starts a spar; a damaged one says so for a moment (en, light, phone)", async ({ player, run }) => {
+  test.setTimeout(240_000);
+  const p = await player({ lang: "en", scheme: "light", size: "phone", reducedMotion: true });
+  const { page } = p;
+  await hatch(p, "Kiri");
+  const home = `home:${(await stored(page, "lingxi.player.v1"))!}`;
+
+  // a friend in the player's home, whose card is a pet with no lessons yet; one whose spot a phone shows (the room's
+  // edges are cropped on a narrow screen) clear of the player's pet, whose taps reach past its body (row A25)
+  let secret = randomBytes(16).toString("hex");
+  while (![34, 94].includes(spotFor(keyedId(secret)))) secret = randomBytes(16).toString("hex");
+  const friendId = keyedId(secret);
+  const friend = await RoomSocket.open(`${run.api.replace("http", "ws")}/live`, p.web);
+  friend.hello(home, friendId, secret, "Mallory");
+  await friend.next("room");
+  friend.send({ t: "card", lessons: JSON.stringify({ lessons: [] }) });
+
+  const askSpar = async () => {
+    const card = page.locator(".visitor-card");
+    let last = "";
+    for (let tries = 0; tries < 20 && !(await card.isVisible()); tries++) {
+      last = await tapScene(page, spotFor(friendId), 96);
+      await page.waitForTimeout(250);
+    }
+    await expect(card, `the friend's pet is picked (last tap ${last})`).toBeVisible();
+    await card.getByRole("button", { name: "Spar" }).click();
+  };
+
+  await askSpar();
+  await expect(page.locator(".sp-fight"), "the spar screen opens onto a fight with the friend's pet").toContainText("Mallory");
+  await page.screenshot({ path: test.info().outputPath("card-fight-en-light-phone.png") });
+  await leaveMidFight(page);
+
+  // the friend's card is damaged now (well-formed, so the room keeps it, but no lesson the game knows): the room says
+  // so, and the message goes by itself
+  friend.send({ t: "card", lessons: JSON.stringify({ lessons: [{ nonsense: 1 }] }) });
+  await page.waitForTimeout(500);
+  await askSpar();
+  const said = page.locator(".world-toast", { hasText: "Can't spar with that pet" });
+  await expect(said, "a damaged card is said to be one").toBeVisible();
+  await expect(page.locator(".sheet"), "and no spar screen opens").toHaveCount(0);
+  await page.screenshot({ path: test.info().outputPath("card-damaged-en-light-phone.png") });
+  await expect(said, "the message goes after a few seconds").toHaveCount(0, { timeout: 8_000 });
+  friend.close();
+});

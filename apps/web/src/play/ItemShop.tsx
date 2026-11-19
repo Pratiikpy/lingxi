@@ -25,6 +25,9 @@ const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.h
 const NONE: readonly string[] = [];
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
+/** The shop's shelf as X Layer holds it now, and the BEM it has burned. */
+const readShelf = () => Promise.all([readShopItems(publicClient, deployment!), shopBurned(publicClient, deployment!)]);
+
 export function ItemShopPanel() {
   const lang = useLang((s) => s.lang) as Lang;
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
@@ -39,23 +42,28 @@ export function ItemShopPanel() {
   const [resell, setResell] = useState<{ piece: string; price: string } | null>(null);
   const shop = deployment?.itemShop;
 
-  const read = async () => {
-    if (!deployment?.itemShop) return;
-    try {
-      const [list, b] = await Promise.all([readShopItems(publicClient, deployment), shopBurned(publicClient, deployment)]);
-      setItems(list);
-      setBurned(b);
-    } catch {
-      setItems([]);
-      setNote(L("The shop couldn't be read just now.", "暂时读不到道具店。"));
-    }
+  const shelf = (list: ShopItem[], b: bigint) => {
+    setItems(list);
+    setBurned(b);
   };
+  const unreadable = () => {
+    setItems([]);
+    setNote(L("The shop couldn't be read just now.", "暂时读不到道具店。"));
+  };
+  const read = () => (deployment?.itemShop ? readShelf().then(([list, b]) => shelf(list, b), unreadable) : Promise.resolve());
   // a wallet connected anywhere (the fashion market's button, a purchase) is read for pieces too
   const connected = useDesigns((s) => s.wallet);
-  // the shelf is read once when the shop opens, and again after a purchase
-  const readOnOpen = useEffectEvent(() => void read());
+  // the shelf is read once when the shop opens, and again after a purchase; a failure is said in the language of then
+  const sayUnreadable = useEffectEvent(unreadable);
   useEffect(() => {
-    readOnOpen();
+    if (!deployment?.itemShop) return;
+    void readShelf().then(
+      ([list, b]) => {
+        setItems(list);
+        setBurned(b);
+      },
+      () => sayUnreadable(),
+    );
   }, []);
   useEffect(() => {
     void syncChainPieces(connected);

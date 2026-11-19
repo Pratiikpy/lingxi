@@ -38,9 +38,9 @@ export function SeasonCard({ pet }: { pet: Pet }) {
   const [check, setCheck] = useState<{ same: boolean; digest: string } | null>(null);
   const week = weekOf(now());
 
-  const load = useCallback(async () => {
-    setState("loading");
-    const [v, l] = await Promise.all([readSeason(week), readSeason(previousWeek(week))]);
+  // this week's season and last week's, as the server holds them now
+  const readBoth = useCallback(() => Promise.all([readSeason(week), readSeason(previousWeek(week))]), [week]);
+  const show = useCallback(([v, l]: Awaited<ReturnType<typeof readBoth>>) => {
     setView(v);
     setLast(l);
     setState(v ? "ready" : "error");
@@ -68,10 +68,19 @@ export function SeasonCard({ pet }: { pet: Pet }) {
       if (tier === 3) useWorld.getState().giveLaurel();
       markAwarded(l.week);
     }
-  }, [week]);
+  }, []);
+  const load = useCallback(() => {
+    setState("loading");
+    return readBoth().then(show);
+  }, [readBoth, show]);
+  // read when the card opens (it starts out loading)
   useEffect(() => {
-    void load();
-  }, [load]);
+    let live = true;
+    void readBoth().then((r) => live && show(r));
+    return () => {
+      live = false;
+    };
+  }, [readBoth, show]);
 
   const myKey = mine().keys[week];
   const enter = async () => {

@@ -17,6 +17,23 @@ export default tseslint.config(
       "react-hooks/rules-of-hooks": "error",
       // an effect that reads a value it does not list runs on stale data; what must not re-run it is an effect event
       "react-hooks/exhaustive-deps": "error",
+      // the React Compiler's checks, every one an error: no state set straight from an effect (each is a second
+      // render), no refs read or written while rendering, nothing impure in render, nothing changed after it
+      "react-hooks/set-state-in-effect": "error",
+      "react-hooks/set-state-in-render": "error",
+      "react-hooks/refs": "error",
+      "react-hooks/purity": "error",
+      "react-hooks/immutability": "error",
+      "react-hooks/globals": "error",
+      "react-hooks/static-components": "error",
+      "react-hooks/use-memo": "error",
+      "react-hooks/void-use-memo": "error",
+      "react-hooks/preserve-manual-memoization": "error",
+      "react-hooks/incompatible-library": "error",
+      "react-hooks/unsupported-syntax": "error",
+      "react-hooks/error-boundaries": "error",
+      "react-hooks/config": "error",
+      "react-hooks/gating": "error",
       // a leading underscore names what is set aside on purpose: `const { gone: _gone, ...rest } = x`
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_", destructuredArrayIgnorePattern: "^_", caughtErrors: "none" }],
       // untrusted text is cleaned of control characters on purpose, and those patterns have to name them

@@ -81,10 +81,8 @@ function loadMet(): BuilderId[] {
   }
 }
 
-export const useBuilders = create<{ met: BuilderId[]; meet: (id: BuilderId) => void; sparAsk: boolean }>((set, get) => ({
+export const useBuilders = create<{ met: BuilderId[]; meet: (id: BuilderId) => void }>((set, get) => ({
   met: loadMet(),
-  /** Behemoth's card asked for a spar: the arena starts it when it opens */
-  sparAsk: false,
   meet: (id) => {
     if (get().met.includes(id)) return;
     const met = [...get().met, id];
@@ -243,9 +241,10 @@ function BehemothMind({ lang }: { lang: "en" | "zh" }) {
 
 /** Mars's count: circuits taped out on X Layer today, from the server's running tally of every processor. */
 function TapeoutsToday({ lang }: { lang: "en" | "zh" }) {
-  const [v, setV] = useState<{ today: number; total: number; processors: number; since: string } | null | "none">(null);
+  // with no server to ask, there is no count to show
+  const [v, setV] = useState<{ today: number; total: number; processors: number; since: string } | null | "none">(API ? null : "none");
   useEffect(() => {
-    if (!API) return setV("none");
+    if (!API) return;
     let live = true;
     fetch(`${API}/api/lane/tapeouts`, { signal: AbortSignal.timeout(15000) })
       .then((r) => r.json())

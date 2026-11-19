@@ -4,7 +4,7 @@
  * for. The waiting card shows on the breeder's side while the little one is at the centre.
  */
 
-import { useEffect, useEffectEvent, useMemo, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useMemo, useState } from "react";
 import { type AdoptionTerms, formatBem, parseBem } from "@lingxi/chain";
 import type { Pet, PapersProblem } from "@lingxi/game";
 import { boundingBox, drawPet } from "@lingxi/art";
@@ -53,20 +53,17 @@ export function AdoptionPanel({ pet }: { pet: Pet }) {
   const [note, setNote] = useState("");
   const [price, setPrice] = useState("0.5");
 
-  const read = async () => {
-    try {
-      setOffers(await browseOffers());
-    } catch {
-      setOffers([]);
-      setNote(L("The adoption centre couldn't be read just now.", "暂时读不到领养中心。"));
-    }
+  const unreadable = () => {
+    setOffers([]);
+    setNote(L("The adoption centre couldn't be read just now.", "暂时读不到领养中心。"));
   };
+  const read = () => browseOffers().then(setOffers, unreadable);
   // the centre is read once when the panel opens; the note is in the language of that moment
-  const readOnOpen = useEffectEvent(() => void read());
+  const sayUnreadable = useEffectEvent(unreadable);
   useEffect(() => {
     if (!adoptionAvailable()) return;
     void centreTerms().then(setTerms, () => setTerms(null));
-    readOnOpen();
+    void browseOffers().then(setOffers, () => sayUnreadable());
   }, []);
   if (!adoptionAvailable()) return null;
 
@@ -221,23 +218,34 @@ export function AdoptionPanel({ pet }: { pet: Pet }) {
 export function CentreCard({ pet }: { pet: Pet }) {
   const lang = useLang((s) => s.lang) as Lang;
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
-  const [state, setState] = useState<"idle" | "checking" | "waiting" | "unreachable">("idle");
-  const [busy, setBusy] = useState(false);
   const petId = atCentre(pet);
-  const check = async () => {
-    setState("checking");
-    const r = await checkCentre(pet);
+  const [state, setState] = useState<"idle" | "checking" | "waiting" | "unreachable">(petId ? "checking" : "idle");
+  const [busy, setBusy] = useState(false);
+  const settled = useCallback((r: Awaited<ReturnType<typeof checkCentre>>) => {
     if (r === "adopted" || r === "back") play("success");
     else setState(r);
+  }, []);
+  const check = () => {
+    setState("checking");
+    return checkCentre(pet).then(settled);
   };
+  // a little one newly at the centre is being checked from the moment the card shows it
+  const [checkedFor, setCheckedFor] = useState(petId);
+  if (petId !== checkedFor) {
+    setCheckedFor(petId);
+    if (petId) setState("checking");
+  }
   // each check reads the pet as it is then, not as it was when the timer started
-  const checkNow = useEffectEvent(() => void check());
+  const checkPet = useEffectEvent(() => checkCentre(pet));
   useEffect(() => {
     if (!petId) return;
-    checkNow();
-    const id = setInterval(() => checkNow(), 3 * 60_000);
+    void checkPet().then(settled);
+    const id = setInterval(() => {
+      setState("checking");
+      void checkPet().then(settled);
+    }, 3 * 60_000);
     return () => clearInterval(id);
-  }, [petId]);
+  }, [petId, settled]);
   if (!petId || !pet.away) return null;
   const until = new Date(pet.away.until).toLocaleString(lang === "zh" ? "zh-CN" : "en-GB", { weekday: "short", hour: "2-digit", minute: "2-digit" });
   return (

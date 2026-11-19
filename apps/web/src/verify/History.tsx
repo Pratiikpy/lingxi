@@ -22,13 +22,14 @@ const when = (sec: number | undefined, lang: "en" | "zh") => (sec ? new Date(sec
 
 export function PetHistory({ id, brainBits, lang, onOpen }: { id: string; brainBits: number; lang: "en" | "zh"; onOpen: (id: string) => void }) {
   const t = T[lang];
-  const [h, setH] = useState<History | null | "none">(null);
+  // a pet's history, with the pet it was read for: another pet's never shows while this one's is read
+  const [read, setRead] = useState<{ id: string; h: History | "none" } | null>(null);
+  const h = read?.id === id ? read.h : null;
   useEffect(() => {
     let live = true;
-    setH(null);
     fetchPetHistory(id)
-      .then((j) => live && setH(j ?? "none"))
-      .catch(() => live && setH("none"));
+      .then((j) => live && setRead({ id, h: j ?? "none" }))
+      .catch(() => live && setRead({ id, h: "none" }));
     return () => {
       live = false;
     };

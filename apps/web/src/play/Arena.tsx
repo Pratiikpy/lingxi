@@ -7,6 +7,7 @@
 
 import { useBadges } from "../game/badges";
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
+import { create } from "zustand";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { FLY, type OverlayPixel, type Palette, type PixelCanvas, boundingBox, drawFly, drawPet, type Expression, type Outfit, wearOverlay } from "@lingxi/art";
 import { outfitOf } from "@lingxi/world";
@@ -15,7 +16,6 @@ import { DESIGNED_PARTNERS, composeProgram, type Challenge, type CoachNote, type
 import { linkPrefix } from "../game/links";
 import { SILICON } from "@lingxi/art";
 import { BEHEMOTH_STEPS_PER_ROUND, behemothAt, behemothFighter } from "@lingxi/game";
-import { useBuilders } from "./Builders";
 import { now } from "../game/gameClock";
 
 const BEHEMOTH_PARTNER: Partner = { id: "builder:behemoth", name: { en: "Behemoth", zh: "巨兽" }, look: "behemoth", line: "gentle", stage: "adult", level: 1, blurb: { en: "", zh: "" }, program: STARTERS.gentle };
@@ -105,6 +105,62 @@ type FightState = {
   boosted?: boolean;
 };
 
+/** A fight on the spar screen; `again`: the same fight shown once more as a replay, nothing paid or recorded twice. */
+type ArenaFight = FightState & { again?: boolean };
+
+/**
+ * The fight on the spar screen. It is kept outside the panel so whatever starts a fight (a partner picked on the
+ * screen, a friend's card arriving, a duel link accepted, Behemoth's card) starts it in that same event, and the
+ * screen opens onto it; closing the screen ends it, as the screen's own state would.
+ */
+export const useArena = create<{ fight: ArenaFight | null }>(() => ({ fight: null }));
+
+/** Behemoth, as a sparring partner; its moves come from its own CPU (`behemothFighter`). */
+export const BEHEMOTH = { partner: BEHEMOTH_PARTNER, opponent: () => behemothFighter(BEHEMOTH_PARTNER.name.en) };
+
+/**
+ * Starts a fight for `pet` against `partner`, with the pet as it is at this moment: spends the bonuses readied from
+ * the bag on a practice spar (never on the shared daily challenge), rolls a practice spar's seed, and shows the fight.
+ */
+export function startFight(pet: Pet, partner: Partner, o: { daily?: { seed: number }; opponent?: Fighter; cheer?: boolean } = {}): void {
+  const { daily, opponent } = o;
+  const stage = stageOf(pet, now());
+  const own = fighterOfMind(pet.name, { line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts, outside: pet.outside, growth: pet.growth }, levelOf(stage), pet.brain);
+  // the daily challenge is the same fight for everyone, so it is always fought with the pet's own mind
+  const adopted = useAdopted.getState().byPet[String(pet.bornAt)];
+  const me = !daily && adopted?.on ? fighterOf(adopted, pet.name, levelOf(stage)) : own;
+  const them = opponent ?? fighterOfPartner(partner);
+  // practice spars roll a private seed; the daily challenge uses the day's block, with no cheering, so it is the same for everyone
+  const seed = daily ? daily.seed : crypto.getRandomValues(new Uint32Array(1))[0]!;
+  const cheering = daily ? false : (o.cheer ?? false);
+  // bonuses readied from the bag (a Wild Jewel, a tonic) are spent on the next practice spar; never on the shared daily
+  const boost = daily ? { power: 0, hp: 0, lossCoins: 0 } : useWorld.getState().spendSparBuffs();
+  const boosted = boost.power > 0 || boost.hp > 0;
+  const fighter: Fighter = boosted
+    ? { ...me, mods: { stamina: 0, guard: 0, dodge: 0, heal: 0, ...me.mods, power: (me.mods?.power ?? 0) + boost.power, hp: (me.mods?.hp ?? 0) + boost.hp } }
+    : me;
+  play("tap");
+  useArena.setState({
+    fight: {
+      partner,
+      result: spar(fighter, them, seed, () => [cheering, false]),
+      cheer: cheering,
+      ...(opponent ? { opponent } : {}),
+      ...(daily ? { daily: true } : {}),
+      ...(me !== own && adopted ? { instinct: adopted.name } : {}),
+      ...(boost.lossCoins ? { boostCoins: boost.lossCoins } : {}),
+      ...(boosted || boost.lossCoins ? { boosted: true } : {}),
+    },
+  });
+}
+
+/** Answers a challenge from a link: our pet, as it is now, replies with its own brain on the challenge's fixed seed. */
+export function startDuel(pet: Pet, d: Challenge): void {
+  const reply = duelPetOf(pet);
+  play("tap");
+  useArena.setState({ fight: { partner: partnerOfDuel(d), result: runDuel(d, reply), cheer: false, opponent: duelFighter(d.from), duel: { challenge: d, reply } } });
+}
+
 /** The pet as it travels in a challenge link: its whole mind, its body, and a few true facts. */
 export function duelPetOf(pet: Pet): DuelPet {
   const stage = stageOf(pet, now());
@@ -132,10 +188,10 @@ export function partnerOfDuel(c: Challenge): Partner {
   };
 }
 
-export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken }: { pet: Pet; challenge?: Partner | null; onChallengeTaken?: () => void; duel?: Challenge | null; onDuelTaken?: () => void }) {
+export function ArenaPanel({ pet }: { pet: Pet }) {
   const lang = useLang((s) => s.lang) as Lang;
-  // `again`: the same fight shown once more as a replay, with nothing paid or recorded a second time
-  const [fight, setFight] = useState<(FightState & { again?: boolean }) | null>(null);
+  const fight = useArena((s) => s.fight);
+  const setFight = (f: ArenaFight | null) => useArena.setState({ fight: f });
   const [link, setLink] = useState("");
   const [cheer, setCheer] = useState(false);
   const [running, setRunning] = useState(false);
@@ -145,32 +201,7 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken
     useMusic.getState().want("spar");
     return () => useMusic.getState().want(songForHour(new Date(now()).getHours()));
   }, [fighting]);
-  // a new challenge starts one fight, with the pet as it is at that moment
-  const takeChallenge = useEffectEvent((c: Partner) => {
-    start(c);
-    onChallengeTaken?.();
-  });
-  useEffect(() => {
-    if (challenge) takeChallenge(challenge);
-  }, [challenge]);
-  // a challenge from a link: our pet answers with its own brain, on the challenge's fixed seed
-  const takeDuel = useEffectEvent((d: Challenge) => {
-    const reply = duelPetOf(pet);
-    play("tap");
-    setFight({ partner: partnerOfDuel(d), result: runDuel(d, reply), cheer: false, opponent: duelFighter(d.from), duel: { challenge: d, reply } });
-    onDuelTaken?.();
-  });
-  useEffect(() => {
-    if (duel) takeDuel(duel);
-  }, [duel]);
-  // asked from Behemoth's card: one fight
-  const sparAsk = useBuilders((s) => s.sparAsk);
-  const fightBehemoth = useEffectEvent(() => start(BEHEMOTH_PARTNER, undefined, behemothFighter(BEHEMOTH_PARTNER.name.en)));
-  useEffect(() => {
-    if (!sparAsk) return;
-    useBuilders.setState({ sparAsk: false });
-    fightBehemoth();
-  }, [sparAsk]);
+  const start = (partner: Partner, daily?: { seed: number }, opponent?: Fighter) => startFight(pet, partner, { ...(daily ? { daily } : {}), ...(opponent ? { opponent } : {}), cheer });
   if (running) return <RunView pet={pet} onClose={() => setRunning(false)} />;
   if (fight) {
     const { again, ...shown } = fight;
@@ -200,35 +231,6 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken
       // the share sheet was dismissed; the link stays on screen to copy
     }
   };
-
-  function start(partner: Partner, daily?: { seed: number }, opponent?: Fighter) {
-    const stage = stageOf(pet, now());
-    const own = fighterOfMind(pet.name, { line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts, outside: pet.outside, growth: pet.growth }, levelOf(stage), pet.brain);
-    // the daily challenge is the same fight for everyone, so it is always fought with the pet's own mind
-    const adopted = useAdopted.getState().byPet[String(pet.bornAt)];
-    const me = !daily && adopted?.on ? fighterOf(adopted, pet.name, levelOf(stage)) : own;
-    const them = opponent ?? fighterOfPartner(partner);
-    // practice spars roll a private seed; the daily challenge uses the day's block, with no cheering, so it is the same for everyone
-    const seed = daily ? daily.seed : crypto.getRandomValues(new Uint32Array(1))[0]!;
-    const cheering = daily ? false : cheer;
-    // bonuses readied from the bag (a Wild Jewel, a tonic) are spent on the next practice spar; never on the shared daily
-    const boost = daily ? { power: 0, hp: 0, lossCoins: 0 } : useWorld.getState().spendSparBuffs();
-    const boosted = boost.power > 0 || boost.hp > 0;
-    const fighter: Fighter = boosted
-      ? { ...me, mods: { stamina: 0, guard: 0, dodge: 0, heal: 0, ...me.mods, power: (me.mods?.power ?? 0) + boost.power, hp: (me.mods?.hp ?? 0) + boost.hp } }
-      : me;
-    play("tap");
-    setFight({
-      partner,
-      result: spar(fighter, them, seed, () => [cheering, false]),
-      cheer: cheering,
-      ...(opponent ? { opponent } : {}),
-      ...(daily ? { daily: true } : {}),
-      ...(me !== own && adopted ? { instinct: adopted.name } : {}),
-      ...(boost.lossCoins ? { boostCoins: boost.lossCoins } : {}),
-      ...(boosted || boost.lossCoins ? { boosted: true } : {}),
-    });
-  }
 
   return (
     <div className="sp-arena">
@@ -268,7 +270,7 @@ export function ArenaPanel({ pet, challenge, onChallengeTaken, duel, onDuelTaken
               : "Behemoth doesn't look at the fight. Each round the founder's 4-bit CPU runs nine steps, and the three low lamps of its accumulator pick the move. It is the same every time, so your pet can be taught to read it."}
           </p>
         </div>
-        <button type="button" className="btn primary" onClick={() => start(BEHEMOTH_PARTNER, undefined, behemothFighter(BEHEMOTH_PARTNER.name.en))}>
+        <button type="button" className="btn primary" onClick={() => start(BEHEMOTH.partner, undefined, BEHEMOTH.opponent())}>
           {lang === "zh" ? "切磋" : "Spar"}
         </button>
       </section>
@@ -623,15 +625,6 @@ export function FightView({
   const roomIndex = useWorld((s) => s.world.room);
   const backdrop = (ROOMS[roomIndex] ?? ROOMS[HOME]!).bgs.day;
 
-  useEffect(() => {
-    if (finished) return;
-    const id = setTimeout(() => {
-      const r = result.rounds[shown]!;
-      play(r.hits[0] || r.hits[1] ? "pop" : "tap");
-      setShown((n) => n + 1);
-    }, shown === 0 ? 500 : reduce ? 450 : ROUND_MS);
-    return () => clearTimeout(id);
-  }, [shown, finished, result, reduce]);
 
   const settled = useRef(false);
   const growth = pet?.growth;
@@ -644,8 +637,9 @@ export function FightView({
     replaySeen.current = true;
     noteEvent("replay-watched");
   }, [finished, replay]);
-  useEffect(() => {
-    if (!finished || settled.current || replay) return;
+  // the fight is settled as its last round is shown: once, whatever changes afterwards
+  const settle = () => {
+    if (settled.current || replay) return;
     settled.current = true;
     // a win by an adopted brain is the brain's, not the pet's: no record, badge or coins
     if (instinct) return;
@@ -675,9 +669,20 @@ export function FightView({
       useWorld.getState().reward(lossCoins);
       setReward(lossCoins);
     }
-    // settled once per fight: whatever changes afterwards, the rewards are given a single time
-  }, [finished, result, partner.id, partner.look, instinct, replay, daily, boostCoins, growth]);
+  };
 
+  const settleOnce = useEffectEvent(settle);
+  // each round is shown after the last one, and the last one settles the fight
+  useEffect(() => {
+    if (finished) return;
+    const id = setTimeout(() => {
+      const r = result.rounds[shown]!;
+      play(r.hits[0] || r.hits[1] ? "pop" : "tap");
+      setShown(shown + 1);
+      if (shown + 1 >= result.rounds.length) settleOnce();
+    }, shown === 0 ? 500 : reduce ? 450 : ROUND_MS);
+    return () => clearTimeout(id);
+  }, [shown, finished, result, reduce]);
   const face = (side: 0 | 1): Expression => {
     if (finished) return result.winner === side ? "proud" : result.winner === -1 ? "happy" : "sad";
     if (!round) return "neutral";
@@ -770,9 +775,9 @@ function Result({ pet, partner, result, reward, opponent, duel, cheer, instinct,
   const [note, setNote] = useState<CoachNote | null>(null);
   const [taught, setTaught] = useState<"idle" | "done" | string>("idle");
   // the coach looks at the pet as it was in this fight; teaching afterwards does not re-run it
-  const asFought = useRef(pet);
+  const [asFought] = useState(pet);
   useEffect(() => {
-    const pet = asFought.current;
+    const pet = asFought;
     if (result.winner === 0) return;
     // the coach runs a few hundred practice spars; let the result paint first
     const id = setTimeout(() => {
@@ -796,7 +801,7 @@ function Result({ pet, partner, result, reward, opponent, duel, cheer, instinct,
       );
     }, 60);
     return () => clearTimeout(id);
-  }, [result, partner, opponent]);
+  }, [result, partner, opponent, asFought]);
 
   const title = result.winner === 0 ? (lang === "zh" ? `${pet.name}赢了！` : `${pet.name} won!`) : result.winner === 1 ? (lang === "zh" ? `${partner.name.zh}赢了` : `${partner.name.en} won`) : lang === "zh" ? "平手" : "A draw";
   return (
@@ -900,8 +905,8 @@ function Result({ pet, partner, result, reward, opponent, duel, cheer, instinct,
         {lang === "zh" ? `回放指纹 ${result.digest} · 种子 ${result.seed}` : `Replay ${result.digest} · seed ${result.seed}`}
       </p>
       {/* both replay the pet's own mind, which did not fight this one */}
-      {!instinct && <SparChainCheck pet={asFought.current} partner={partner} opponent={opponent} result={result} cheer={cheer} />}
-      {!instinct && <FightRewind pet={asFought.current} result={result} />}
+      {!instinct && <SparChainCheck pet={asFought} partner={partner} opponent={opponent} result={result} cheer={cheer} />}
+      {!instinct && <FightRewind pet={asFought} result={result} />}
     </motion.div>
   );
 }
