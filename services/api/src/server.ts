@@ -835,7 +835,7 @@ if (isMain) {
     withHistory(app, indexer);
     watch.indexed = () => indexer.head();
     const headClient = createPublicClient({ transport: http(process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech", { timeout: 10_000 }) });
-    watch.head = () => headClient.getBlockNumber();
+    watch.head = () => headClient.getBlockNumber({ cacheTime: 0 });
     const look = process.env.LINGXI_LOOK as `0x${string}` | undefined;
     const lookClient = createPublicClient({ transport: http(process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech", { timeout: 10_000 }) });
     withTree(

@@ -133,7 +133,8 @@ export function createPacketIndex(opts: PacketIndexOptions) {
     running = true;
     let added = 0;
     try {
-      const head = Number(await pub.getBlockNumber());
+      // the head as it is now: viem keeps a block number it has read for a few seconds, which would stop a catch-up short
+      const head = Number(await pub.getBlockNumber({ cacheTime: 0 }));
       for (let i = 0; i < maxWindows && data.next <= head; i++) {
         const to = Math.min(head, data.next + WINDOW - 1);
         const logs = await logsIn(data.next, to);

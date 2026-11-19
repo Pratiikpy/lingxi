@@ -62,7 +62,8 @@ export function createSalesCounter(opts: { rpc: string; markets: Array<{ address
     if (running) return;
     running = true;
     try {
-      const head = Number(await pub.getBlockNumber());
+      // the head as it is now: viem keeps a block number it has read for a few seconds, which would stop a catch-up short
+      const head = Number(await pub.getBlockNumber({ cacheTime: 0 }));
       for (const m of opts.markets) {
         const k = m.address.toLowerCase();
         for (let i = 0; i < maxWindows && data.next[k]! <= head; i++) {
@@ -132,7 +133,7 @@ export async function readNumbers(d: NumbersDeps, nowMs = Date.now()): Promise<N
     address ? ((await d.pub.readContract({ address, abi: views, functionName: fn })) as bigint) : 0n;
   const sold = (f: number) => d.pub.readContract({ address: d.contracts.extras!, abi: views, functionName: "sold", args: [f] }) as Promise<bigint>;
   const [head, nextPetId, marketBurned, breedingBurned, shopBurned, adoptionBurned, extrasBurned, pins, extrasSold] = await Promise.all([
-    d.pub.getBlockNumber(),
+    d.pub.getBlockNumber({ cacheTime: 0 }),
     read(d.contracts.registry, "nextPetId"),
     read(d.contracts.marketBem, "totalBurned"),
     read(d.contracts.breeder, "totalBurned"),

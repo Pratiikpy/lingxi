@@ -1,0 +1,12 @@
+--- a/services/api/src/goals.ts
++++ b/services/api/src/goals.ts
+@@ -111,8 +111,7 @@ export function createGoalLedger(opts: GoalLedgerOptions) {
+     running = true;
+     let added = 0;
+     try {
+-      // the head as it is now: viem keeps a block number it has read for a few seconds, which would stop a catch-up short
+-      const head = Number(await pub.getBlockNumber({ cacheTime: 0 }));
++      const head = Number(await pub.getBlockNumber());
+       for (let i = 0; i < maxWindows && data.next <= head; i++) {
+         const to = Math.min(head, data.next + WINDOW - 1);
+         const logs = [...(await logsIn(data.next, to))].sort((a, b) => Number(a.blockNumber) - Number(b.blockNumber) || Number(a.logIndex) - Number(b.logIndex));

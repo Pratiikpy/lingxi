@@ -628,5 +628,11 @@
     "row": "A9",
     "bug": "the showing was timed from the round's start with the press's light still running, so on a slow phone a light was cut short or ran into the press",
     "test": { "kind": "e2e", "spec": "e2e/specs/pattern.spec.ts", "title": "the pattern game shows every light clearly on a slow phone (en, light, phone)" }
+  },
+  {
+    "id": "P2-head-exact",
+    "row": "P2",
+    "bug": "the goals ledger read the chain's head through viem's few-second cache, so a catch-up right after a write stopped one block short (the goals fork test failed one run in about ten)",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/headExact.test.ts", "name": "the goals ledger, the history indexer, the packet index and the sales counter each reach the block just written" }
   }
 ]
