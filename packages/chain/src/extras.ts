@@ -6,6 +6,7 @@
 import { type Address, type Hex, type PublicClient, type WalletClient, erc20Abi } from "viem";
 import { extrasAbi } from "./extrasAbi";
 import type { Deployment } from "./registry";
+import { RevertedOnChain } from "./receipts";
 
 export const EXTRA = { room: 0, looks: 1, colour: 2 } as const;
 export type ExtraKind = keyof typeof EXTRA;
@@ -81,7 +82,7 @@ async function approveIfNeeded(pub: PublicClient, wallet: WalletClient, d: Deplo
   const bem = (await pub.readContract({ address: d.extras!, abi: extrasAbi, functionName: "bem" })) as Address;
   const { request } = await pub.simulateContract({ address: bem, abi: erc20Abi, functionName: "approve", args: [d.extras!, amount], account: acct(wallet) });
   const a = await wallet.writeContract(request);
-  if ((await pub.waitForTransactionReceipt({ hash: a })).status !== "success") throw new Error("approve failed");
+  if ((await pub.waitForTransactionReceipt({ hash: a })).status !== "success") throw new RevertedOnChain("approve", a);
 }
 
 /** Buy a room or look pack at the price the player saw. Returns the purchase's hash. */
@@ -89,7 +90,7 @@ export async function buyPack(pub: PublicClient, wallet: WalletClient, d: Deploy
   await approveIfNeeded(pub, wallet, d, price);
   const { request } = await pub.simulateContract({ address: d.extras!, abi: extrasAbi, functionName: kind === "room" ? "buyRoom" : "buyLooks", args: [price], account: acct(wallet) });
   const tx = await wallet.writeContract(request);
-  if ((await pub.waitForTransactionReceipt({ hash: tx })).status !== "success") throw new Error("purchase failed");
+  if ((await pub.waitForTransactionReceipt({ hash: tx })).status !== "success") throw new RevertedOnChain("purchase", tx);
   return tx;
 }
 
@@ -98,6 +99,6 @@ export async function colourName(pub: PublicClient, wallet: WalletClient, d: Dep
   if (colour !== 0) await approveIfNeeded(pub, wallet, d, price);
   const { request } = await pub.simulateContract({ address: d.extras!, abi: extrasAbi, functionName: "setNameColour", args: [petId, colour, colour === 0 ? 0n : price], account: acct(wallet) });
   const tx = await wallet.writeContract(request);
-  if ((await pub.waitForTransactionReceipt({ hash: tx })).status !== "success") throw new Error("colour failed");
+  if ((await pub.waitForTransactionReceipt({ hash: tx })).status !== "success") throw new RevertedOnChain("colour", tx);
   return tx;
 }

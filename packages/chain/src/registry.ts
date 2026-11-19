@@ -6,7 +6,7 @@
 import { keccak256, type Address, type Hex, type PublicClient, type WalletClient } from "viem";
 import { LOOK_LINES } from "./look";
 import { petLookAbi } from "./lookAbi";
-import { hatchedPetIdFrom } from "./receipts";
+import { hatchedPetIdFrom, RevertedOnChain } from "./receipts";
 import { petRegistryAbi } from "./registryAbi";
 import { processorAbi } from "./tapeout";
 import { type Circuit, REF, decode, hexToBytes, load, refKey } from "@lingxi/brain";
@@ -161,7 +161,7 @@ export async function hatchOnChain(pub: PublicClient, wallet: WalletClient, d: D
   });
   const tx = await wallet.writeContract(request);
   const r = await pub.waitForTransactionReceipt({ hash: tx });
-  if (r.status !== "success") throw new Error("hatch failed");
+  if (r.status !== "success") throw new RevertedOnChain("hatch", r.transactionHash);
   // the id from the mined Hatched event: someone else's hatch between the simulation and the block takes the simulated one
   return { petId: hatchedPetIdFrom(r, d.registry, account.address), tx };
 }
@@ -181,7 +181,7 @@ export async function checkpointOnChain(pub: PublicClient, wallet: WalletClient,
   });
   const tx = await wallet.writeContract(request);
   const r = await pub.waitForTransactionReceipt({ hash: tx });
-  if (r.status !== "success") throw new Error("checkpoint failed");
+  if (r.status !== "success") throw new RevertedOnChain("checkpoint", r.transactionHash);
   return tx;
 }
 
@@ -192,7 +192,7 @@ export async function setSitterOnChain(pub: PublicClient, wallet: WalletClient, 
   const { request } = await pub.simulateContract({ address: d.registry, abi: petRegistryAbi, functionName: "setSitter", args: [petId, who, until], account });
   const tx = await wallet.writeContract(request);
   const r = await pub.waitForTransactionReceipt({ hash: tx });
-  if (r.status !== "success") throw new Error("setSitter failed");
+  if (r.status !== "success") throw new RevertedOnChain("setSitter", r.transactionHash);
   return tx;
 }
 
@@ -217,7 +217,7 @@ export async function setBrainOnChain(pub: PublicClient, wallet: WalletClient, d
   });
   const tx = await wallet.writeContract(request);
   const r = await pub.waitForTransactionReceipt({ hash: tx });
-  if (r.status !== "success") throw new Error("setBrain failed");
+  if (r.status !== "success") throw new RevertedOnChain("setBrain", r.transactionHash);
   return tx;
 }
 
@@ -267,7 +267,7 @@ export async function setNameOnChain(pub: PublicClient, wallet: WalletClient, d:
   if (!account) throw new Error("wallet has no account");
   const { request } = await pub.simulateContract({ address: d.look, abi: petLookAbi, functionName: "setName", args: [petId, name], account });
   const tx = await wallet.writeContract(request);
-  if ((await pub.waitForTransactionReceipt({ hash: tx })).status !== "success") throw new Error("setName failed");
+  if ((await pub.waitForTransactionReceipt({ hash: tx })).status !== "success") throw new RevertedOnChain("setName", tx);
   return tx;
 }
 

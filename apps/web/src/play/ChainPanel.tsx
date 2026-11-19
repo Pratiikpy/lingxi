@@ -20,6 +20,7 @@ const ERR: Record<string, Key> = {
   cannotReceive: "chain.cannotReceive",
   notThisPet: "chain.notThisPet",
   notKeeping: "chain.notKeeping",
+  revertedOnChain: "chain.revertedOnChain",
   badAddress: "sit.badAddress",
   badDays: "sit.badDays",
   selfSitter: "sit.self",

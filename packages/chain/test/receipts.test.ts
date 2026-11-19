@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { type Address, type Hex, type TransactionReceipt, createPublicClient, encodeAbiParameters, encodeEventTopics, http, parseAbi } from "viem";
-import { circuitIdFrom, hatchedPetIdFrom } from "../src/receipts";
+import { circuitIdFrom, hatchedPetIdFrom, RevertedOnChain } from "../src/receipts";
 import { petRegistryAbi } from "../src/registryAbi";
 
 const PROC = "0xf70d324da8c1c4cb0de3ff147e53e7e9db543c4e" as Address;
@@ -26,7 +26,8 @@ describe("ids read from what was mined, never from a simulation", () => {
     expect(() => circuitIdFrom(receipt([mint(OTHER, ZERO, ME, 42n)]), PROC, ME)).toThrow(/no circuit/);
     expect(() => circuitIdFrom(receipt([mint(PROC, ZERO, OTHER, 42n)]), PROC, ME)).toThrow(/no circuit/);
     expect(() => circuitIdFrom(receipt([mint(PROC, OTHER, ME, 42n)]), PROC, ME)).toThrow(/no circuit/);
-    expect(() => circuitIdFrom(receipt([mint(PROC, ZERO, ME, 42n)], "reverted"), PROC, ME)).toThrow(/reverted/);
+    // mined and turned down: the typed error, so a screen can say its fee was spent (A22)
+    expect(() => circuitIdFrom(receipt([mint(PROC, ZERO, ME, 42n)], "reverted"), PROC, ME)).toThrow(RevertedOnChain);
   });
 
   it("refuses a receipt that minted two circuits rather than guess which", () => {

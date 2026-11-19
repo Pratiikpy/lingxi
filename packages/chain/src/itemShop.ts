@@ -7,6 +7,7 @@ import { type Address, type Hex, type PublicClient, type WalletClient, erc20Abi 
 import { itemShopAbi } from "./itemShopAbi";
 import { outfitMarketV2Abi } from "./outfitMarketV2Abi";
 import type { Deployment } from "./registry";
+import { RevertedOnChain } from "./receipts";
 
 export interface ShopItem {
   /** the game's piece id (a decoration) */
@@ -88,11 +89,11 @@ export async function buyShopItem(pub: PublicClient, wallet: WalletClient, d: De
     const bem = (await pub.readContract({ address: d.itemShop!, abi: itemShopAbi, functionName: "bem" })) as Address;
     const { request } = await pub.simulateContract({ address: bem, abi: erc20Abi, functionName: "approve", args: [d.itemShop!, total], account: acct(wallet) });
     const a = await wallet.writeContract(request);
-    if ((await pub.waitForTransactionReceipt({ hash: a })).status !== "success") throw new Error("approve failed");
+    if ((await pub.waitForTransactionReceipt({ hash: a })).status !== "success") throw new RevertedOnChain("approve", a);
   }
   const { request } = await pub.simulateContract({ address: d.itemShop!, abi: itemShopAbi, functionName: "buy", args: [id, quantity, price], account: acct(wallet) });
   const tx = await wallet.writeContract(request);
-  if ((await pub.waitForTransactionReceipt({ hash: tx })).status !== "success") throw new Error("buy failed");
+  if ((await pub.waitForTransactionReceipt({ hash: tx })).status !== "success") throw new RevertedOnChain("buy", tx);
   return tx;
 }
 
@@ -101,7 +102,7 @@ export async function claimVoucher(pub: PublicClient, wallet: WalletClient, d: D
   const args = [{ to: v.to, id: v.id, quantity: v.quantity, nonce: v.nonce, expiresAt: v.expiresAt }, signature] as const;
   const { request } = await pub.simulateContract({ address: d.itemShop!, abi: itemShopAbi, functionName: "claim", args, account: acct(wallet) });
   const tx = await wallet.writeContract(request);
-  if ((await pub.waitForTransactionReceipt({ hash: tx })).status !== "success") throw new Error("claim failed");
+  if ((await pub.waitForTransactionReceipt({ hash: tx })).status !== "success") throw new RevertedOnChain("claim", tx);
   return tx;
 }
 

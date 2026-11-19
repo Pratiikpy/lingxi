@@ -8,6 +8,7 @@ import { type Address, type Hex, type PublicClient, type WalletClient, erc20Abi,
 import { privateKeyToAccount } from "viem/accounts";
 import { redPacketAbi } from "./redPacketAbi";
 import type { Deployment } from "./registry";
+import { RevertedOnChain } from "./receipts";
 
 /** USDT on X Layer (6 decimals). */
 export const XLAYER_USDT: Address = "0x1E4a5963aBFD975d8c9021ce480b42188849D41d";
@@ -61,7 +62,7 @@ export async function createPacket(
     const { request } = await pub.simulateContract({ address: o.token, abi: erc20Abi, functionName: "approve", args: [rp, o.total], account });
     const atx = await wallet.writeContract(request);
     const ar = await pub.waitForTransactionReceipt({ hash: atx });
-    if (ar.status !== "success") throw new Error("approve failed");
+    if (ar.status !== "success") throw new RevertedOnChain("approve", ar.transactionHash);
   }
   const { request } = await pub.simulateContract({
     address: rp,
@@ -72,7 +73,7 @@ export async function createPacket(
   });
   const tx = await wallet.writeContract(request);
   const r = await pub.waitForTransactionReceipt({ hash: tx });
-  if (r.status !== "success") throw new Error("create failed");
+  if (r.status !== "success") throw new RevertedOnChain("create", r.transactionHash);
   const ev = parseEventLogs({ abi: redPacketAbi, logs: r.logs, eventName: "Created" })[0];
   if (!ev) throw new Error("no Created event");
   return { id: ev.args.id, tx };
@@ -98,7 +99,7 @@ export async function claimPacket(pub: PublicClient, wallet: WalletClient, d: De
   const { request } = await pub.simulateContract({ address: need(d), abi: redPacketAbi, functionName: "claim", args: [id, sig, petId], account });
   const tx = await wallet.writeContract(request);
   const r = await pub.waitForTransactionReceipt({ hash: tx });
-  if (r.status !== "success") throw new Error("claim failed");
+  if (r.status !== "success") throw new RevertedOnChain("claim", r.transactionHash);
   const claim = claimIn(r.logs, tx);
   return { amount: claim?.amount ?? 0n, reserved: !claim, tx, block: r.blockNumber, claim };
 }
@@ -108,7 +109,7 @@ export async function revealPacket(pub: PublicClient, wallet: WalletClient, d: D
   const { request } = await pub.simulateContract({ address: need(d), abi: redPacketAbi, functionName: "reveal", args: [id], account });
   const tx = await wallet.writeContract(request);
   const r = await pub.waitForTransactionReceipt({ hash: tx });
-  if (r.status !== "success") throw new Error("reveal failed");
+  if (r.status !== "success") throw new RevertedOnChain("reveal", r.transactionHash);
   const claim = claimIn(r.logs, tx);
   return { amount: claim?.amount ?? 0n, tx, claim };
 }
@@ -118,7 +119,7 @@ export async function refundPacket(pub: PublicClient, wallet: WalletClient, d: D
   const { request } = await pub.simulateContract({ address: need(d), abi: redPacketAbi, functionName: "refund", args: [id], account });
   const tx = await wallet.writeContract(request);
   const r = await pub.waitForTransactionReceipt({ hash: tx });
-  if (r.status !== "success") throw new Error("refund failed");
+  if (r.status !== "success") throw new RevertedOnChain("refund", r.transactionHash);
   return tx;
 }
 
@@ -142,6 +143,6 @@ export async function collectPacket(pub: PublicClient, wallet: WalletClient, d: 
   const { request, result } = await pub.simulateContract({ address: need(d), abi: redPacketAbi, functionName: "collect", args: [id], account });
   const tx = await wallet.writeContract(request);
   const r = await pub.waitForTransactionReceipt({ hash: tx });
-  if (r.status !== "success") throw new Error("collect failed");
+  if (r.status !== "success") throw new RevertedOnChain("collect", r.transactionHash);
   return { amount: result as bigint, tx };
 }

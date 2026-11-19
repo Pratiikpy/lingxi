@@ -18,6 +18,7 @@ const breedWithTokenErrors = [
   ...parseAbi(["error ERC20InsufficientAllowance(address spender, uint256 allowance, uint256 needed)", "error ERC20InsufficientBalance(address sender, uint256 balance, uint256 needed)"]),
 ] as const;
 import type { Deployment } from "./registry";
+import { RevertedOnChain } from "./receipts";
 
 export async function allowPartnerOnChain(pub: PublicClient, wallet: WalletClient, d: Deployment, petId: bigint, partnerOwner: Address): Promise<Hex> {
   if (!d.breeder) throw new Error("no breeder in this deployment");
@@ -26,7 +27,7 @@ export async function allowPartnerOnChain(pub: PublicClient, wallet: WalletClien
   const { request } = await pub.simulateContract({ address: d.breeder, abi: breederAbi, functionName: "allowPartner", args: [petId, partnerOwner, true], account });
   const tx = await wallet.writeContract(request);
   const r = await pub.waitForTransactionReceipt({ hash: tx });
-  if (r.status !== "success") throw new Error("allowPartner failed");
+  if (r.status !== "success") throw new RevertedOnChain("allowPartner", r.transactionHash);
   return tx;
 }
 
@@ -97,7 +98,7 @@ export async function breedOnChain(
     if (allowance < terms.fee) {
       const { request: ap } = await pub.simulateContract({ address: terms.bem, abi: erc20Abi, functionName: "approve", args: [d.breeder, terms.fee], account });
       const at = await wallet.writeContract(ap);
-      if ((await pub.waitForTransactionReceipt({ hash: at })).status !== "success") throw new Error("approve failed");
+      if ((await pub.waitForTransactionReceipt({ hash: at })).status !== "success") throw new RevertedOnChain("approve", at);
     }
     const { request } = await pub.simulateContract({ address: d.breeder, abi: breederV2Abi, functionName: "breed", args: [a, b, childProcessor, childBrainId, line, terms.fee], account });
     tx = await wallet.writeContract(request);
@@ -106,7 +107,7 @@ export async function breedOnChain(
     tx = await wallet.writeContract(request);
   }
   const r = await pub.waitForTransactionReceipt({ hash: tx });
-  if (r.status !== "success") throw new Error("breed failed");
+  if (r.status !== "success") throw new RevertedOnChain("breed", r.transactionHash);
   const born = parseEventLogs({ abi: breederAbi, logs: r.logs, eventName: "Born" })[0];
   if (!born) throw new Error("no Born event");
   return { childId: born.args.child, tx };

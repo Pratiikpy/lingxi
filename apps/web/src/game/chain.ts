@@ -12,7 +12,7 @@ import { useBadges } from "./badges";
 import { create } from "zustand";
 import { createPublicClient, createWalletClient, custom, erc20Abi, http, isAddress, type Address, type Hex, type PublicClient, type WalletClient, fallback } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { petRegistryAbi, type Deployment, type TapeQuote, type TapeStep, allowPartnerOnChain, breedOnChain, breedingTerms, checkPartner, hasConsent, checkpointOnChain, hatchOnChain, quoteTapeout, readKeeping, readPet, setBrainOnChain, setSitterOnChain, signRelay, type SignedRelay, tapeOutYourself, xLayer, refusesTokens, LineMismatchError, revertName, breederV2Abi } from "@lingxi/chain";
+import { petRegistryAbi, type Deployment, type TapeQuote, type TapeStep, allowPartnerOnChain, breedOnChain, breedingTerms, checkPartner, hasConsent, checkpointOnChain, hatchOnChain, quoteTapeout, readKeeping, readPet, setBrainOnChain, setSitterOnChain, signRelay, type SignedRelay, tapeOutYourself, xLayer, refusesTokens, LineMismatchError, RevertedOnChain, revertName, breederV2Abi } from "@lingxi/chain";
 import { compileProgram, netlistBytes } from "@lingxi/brain";
 import { AUTO_DAYS, AUTO_FUND, AUTO_LOW, sessionAccount, sessionWallet } from "./session";
 import { type Pet, logSegments, packState, petCard, stageOf, unpackState, ruleSkillIds } from "@lingxi/game";
@@ -143,6 +143,8 @@ const REGISTRY_REFUSALS: Record<string, string> = {
 function chainReason(e: unknown): string {
   if (refusesTokens(e)) return "cannotReceive";
   if (e instanceof LineMismatchError) return "notThisPet";
+  // sent, mined and turned down: its network fee was spent, so the panel must not say nothing was charged (A22)
+  if (e instanceof RevertedOnChain) return "revertedOnChain";
   const refused = revertName(e, petRegistryAbi);
   return (refused && REGISTRY_REFUSALS[refused]) || firstLine(e);
 }

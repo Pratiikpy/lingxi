@@ -12,6 +12,7 @@
 
 import { type Address, type Hex, type PublicClient, type WalletClient, bytesToHex, erc20Abi, maxUint128 } from "viem";
 import { FACTORY, processorAbi, transistorsAbi } from "./tapeout";
+import { RevertedOnChain } from "./receipts";
 
 const IDS = { nand: 0n, latch: 1n } as const;
 const factoryBemAbi = [{ type: "function", name: "bem", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] }] as const;
@@ -120,7 +121,7 @@ export async function tapeOutYourself(
   const txs: Hex[] = [];
   const send = async (hash: Hex) => {
     const r = await pub.waitForTransactionReceipt({ hash });
-    if (r.status !== "success") throw new Error(`transaction failed: ${hash}`);
+    if (r.status !== "success") throw new RevertedOnChain("transaction", hash);
     txs.push(hash);
   };
   const transistors = (await pub.readContract({ address: processor, abi: processorAbi, functionName: "transistors" })) as Address;

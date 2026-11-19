@@ -3,8 +3,22 @@
  * and the block, someone else's transaction can take the id it returned, so a simulated id is never stored.
  */
 
-import { type Address, type TransactionReceipt, decodeEventLog, parseAbi } from "viem";
+import { type Address, type Hex, type TransactionReceipt, decodeEventLog, parseAbi } from "viem";
 import { petRegistryAbi } from "./registryAbi";
+
+/**
+ * A transaction X Layer mined and turned down (A22). It was sent, so its network fee was spent: a screen that says
+ * "nothing was charged" must not say it of this. The message keeps the old "<what> failed" form.
+ */
+export class RevertedOnChain extends Error {
+  constructor(
+    readonly what: string,
+    readonly tx: Hex,
+  ) {
+    super(`${what} failed`);
+    this.name = "RevertedOnChain";
+  }
+}
 
 const transferAbi = parseAbi(["event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"]);
 const ZERO = "0x0000000000000000000000000000000000000000";
@@ -12,7 +26,7 @@ const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
 /** The circuit a tape-out minted: the processor's ERC-721 Transfer from 0x0 to `to`. */
 export function circuitIdFrom(receipt: TransactionReceipt, processor: Address, to: Address): bigint {
-  if (receipt.status !== "success") throw new Error("the tape-out reverted");
+  if (receipt.status !== "success") throw new RevertedOnChain("tape-out", receipt.transactionHash);
   const ids: bigint[] = [];
   for (const log of receipt.logs) {
     if (!same(log.address, processor)) continue;
@@ -30,7 +44,7 @@ export function circuitIdFrom(receipt: TransactionReceipt, processor: Address, t
 
 /** The pet a hatch created: the registry's Hatched event for `to`. */
 export function hatchedPetIdFrom(receipt: TransactionReceipt, registry: Address, to: Address): bigint {
-  if (receipt.status !== "success") throw new Error("the hatch reverted");
+  if (receipt.status !== "success") throw new RevertedOnChain("hatch", receipt.transactionHash);
   for (const log of receipt.logs) {
     if (!same(log.address, registry)) continue;
     try {

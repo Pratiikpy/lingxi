@@ -14,6 +14,7 @@ import { type Address, type Hex, type PublicClient, type WalletClient, erc20Abi,
 import { outfitMarketAbi } from "./outfitMarketAbi";
 import { outfitMarketV2Abi } from "./outfitMarketV2Abi";
 import type { Deployment } from "./registry";
+import { RevertedOnChain } from "./receipts";
 
 export type MarketVersion = 1 | 2;
 
@@ -86,7 +87,7 @@ const acct = (w: WalletClient) => {
 async function confirmed(pub: PublicClient, functionName: string, write: () => Promise<Hex>) {
   const tx = await write();
   const r = await pub.waitForTransactionReceipt({ hash: tx });
-  if (r.status !== "success") throw new Error(`${functionName} failed`);
+  if (r.status !== "success") throw new RevertedOnChain(functionName, r.transactionHash);
   return { tx, logs: r.logs };
 }
 
@@ -122,7 +123,7 @@ export async function approveBem(pub: PublicClient, wallet: WalletClient, m: Mar
   const { request } = await pub.simulateContract({ address: bem, abi: erc20Abi, functionName: "approve", args: [m.address, amount], account: acct(wallet) });
   const tx = await wallet.writeContract(request);
   const rc = await pub.waitForTransactionReceipt({ hash: tx });
-  if (rc.status !== "success") throw new Error("approve failed");
+  if (rc.status !== "success") throw new RevertedOnChain("approve", rc.transactionHash);
   return tx;
 }
 

@@ -89,6 +89,7 @@ export const EVENTS = [
   "lane-count", // Behemoth seen counting all the way to 13
   "lane-checked", // a Behemoth step checked against BNB Chain
   "child-born", // a little one welcomed
+  "adopted", // a pet adopted from the adoption centre (store.ts welcome)
 ] as const;
 const EVENT_SET = new Set<string>(EVENTS);
 

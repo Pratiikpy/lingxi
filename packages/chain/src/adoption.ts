@@ -8,6 +8,7 @@ import { adoptionCentreAbi } from "./adoptionCentreAbi";
 import { readOutsideCircuit } from "./adopt";
 import { petRegistryAbi } from "./registryAbi";
 import { type ChainPet, type Deployment, readPet } from "./registry";
+import { RevertedOnChain } from "./receipts";
 
 export interface Offer {
   petId: bigint;
@@ -85,18 +86,18 @@ export async function offerChild(pub: PublicClient, wallet: WalletClient, d: Dep
   if (approved.toLowerCase() !== c.toLowerCase()) {
     const { request } = await pub.simulateContract({ address: d.registry, abi: petRegistryAbi, functionName: "approve", args: [c, petId], account: acct(wallet) });
     const a = await wallet.writeContract(request);
-    if ((await pub.waitForTransactionReceipt({ hash: a })).status !== "success") throw new Error("approve failed");
+    if ((await pub.waitForTransactionReceipt({ hash: a })).status !== "success") throw new RevertedOnChain("approve", a);
   }
   const { request } = await pub.simulateContract({ address: c, abi: adoptionCentreAbi, functionName: "list", args: [petId, price, BigInt(expiresAt)], account: acct(wallet) });
   const tx = await wallet.writeContract(request);
-  if ((await pub.waitForTransactionReceipt({ hash: tx })).status !== "success") throw new Error("list failed");
+  if ((await pub.waitForTransactionReceipt({ hash: tx })).status !== "success") throw new RevertedOnChain("list", tx);
   return tx;
 }
 
 export async function withdrawOffer(pub: PublicClient, wallet: WalletClient, d: Deployment, petId: bigint): Promise<Hex> {
   const { request } = await pub.simulateContract({ address: centreOf(d), abi: adoptionCentreAbi, functionName: "withdraw", args: [petId], account: acct(wallet) });
   const tx = await wallet.writeContract(request);
-  if ((await pub.waitForTransactionReceipt({ hash: tx })).status !== "success") throw new Error("withdraw failed");
+  if ((await pub.waitForTransactionReceipt({ hash: tx })).status !== "success") throw new RevertedOnChain("withdraw", tx);
   return tx;
 }
 
@@ -113,11 +114,11 @@ export async function adoptChild(pub: PublicClient, wallet: WalletClient, d: Dep
   if (allowance < price) {
     const { request } = await pub.simulateContract({ address: bem, abi: erc20Abi, functionName: "approve", args: [c, price], account: acct(wallet) });
     const a = await wallet.writeContract(request);
-    if ((await pub.waitForTransactionReceipt({ hash: a })).status !== "success") throw new Error("approve failed");
+    if ((await pub.waitForTransactionReceipt({ hash: a })).status !== "success") throw new RevertedOnChain("approve", a);
   }
   const { request } = await pub.simulateContract({ address: c, abi: adoptionCentreAbi, functionName: "adopt", args: [petId, price], account: acct(wallet) });
   const tx = await wallet.writeContract(request);
-  if ((await pub.waitForTransactionReceipt({ hash: tx })).status !== "success") throw new Error("adopt failed");
+  if ((await pub.waitForTransactionReceipt({ hash: tx })).status !== "success") throw new RevertedOnChain("adopt", tx);
   return tx;
 }
 

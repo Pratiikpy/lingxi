@@ -374,11 +374,15 @@ describe("the chain store: keeping a pet on X Layer", () => {
     expect(zh).toMatch(/收不了宠物或道具/);
   });
 
-  it("a hatch the block refuses after the simulation passed is not kept", async () => {
+  it("a hatch the block refuses after the simulation passed is not kept, and the panel says its fee was spent (A22)", async () => {
     const p = await open();
     p.x.rules.revertMined = "hatch";
     await settle(p.c().keep(p.pet()));
-    expect(p.c()).toMatchObject({ busy: "idle", error: "hatch failed", record: null });
+    expect(p.c()).toMatchObject({ busy: "idle", error: "revertedOnChain", record: null });
+    const [en, zh] = panelSays("chain.revertedOnChain");
+    expect(en).toMatch(/network fee was spent/);
+    expect(en).not.toMatch(/Nothing was charged/);
+    expect(zh).toMatch(/手续费/);
     expect(mined(p, "hatch")).toEqual([expect.objectContaining({ status: "reverted" })]);
     expect(p.storage.getItem(CHAIN)).toBeNull();
   });
@@ -464,6 +468,17 @@ describe("the chain store: saving the day", () => {
     expect(panelSays("chain.notKeeping")[0]).toMatch(/no longer keeps/);
     expect(saved).not.toHaveBeenCalled();
     expect(mined(p, "checkpoint")).toEqual([]);
+  });
+
+  it("a save X Layer mines and turns down is not counted, and says its fee was spent (A22)", async () => {
+    const p = await open();
+    await kept(p);
+    p.x.rules.revertMined = "checkpoint";
+    const saved = vi.fn();
+    await settle(p.c().saveToday(p.pet(), saved));
+    expect(p.c()).toMatchObject({ busy: "idle", error: "revertedOnChain", record: { lastDay: 0 } });
+    expect(mined(p, "checkpoint")).toEqual([expect.objectContaining({ status: "reverted" })]);
+    expect(saved).not.toHaveBeenCalled();
   });
 
   it("the player refusing the save in the wallet saves nothing", async () => {

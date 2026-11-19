@@ -10,6 +10,7 @@ import { type Address, type Hex, type PublicClient, type WalletClient, parseAbi 
 import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
 import { holderGiftAbi } from "./holderGiftAbi";
 import type { Deployment } from "./registry";
+import { RevertedOnChain } from "./receipts";
 
 const nftAbi = parseAbi([
   "function ownerOf(uint256) view returns (address)",
@@ -136,6 +137,6 @@ export async function claimGift(pub: PublicClient, wallet: WalletClient, t: Gift
       ? await wallet.writeContract((await pub.simulateContract({ ...at, functionName: "claimWithNft", args: [way.collection, way.tokenId] })).request)
       : await wallet.writeContract((await pub.simulateContract({ ...at, functionName: "claimWithSnapshot", args: [way.bem, way.fab, way.proof] })).request);
   const r = await pub.waitForTransactionReceipt({ hash: tx });
-  if (r.status !== "success") throw new Error("claim failed");
+  if (r.status !== "success") throw new RevertedOnChain("claim", r.transactionHash);
   return tx;
 }
