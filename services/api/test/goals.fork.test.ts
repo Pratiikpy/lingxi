@@ -37,9 +37,13 @@ describe.skipIf(!RPC || !RELAY_KEY_FILE || !FILE)("community goals, counted from
     const BEM = "0x60e62Efa9405d6873C5deaBD4E6CC91c25363952" as Address;
     const fundBem = (who: Address, n: bigint) => rpc("anvil_setStorageAt", [BEM, keccak256(encodeAbiParameters([{ type: "address" }, { type: "uint256" }], [who, 5n])), pad(toHex(n), { size: 32 })]);
     const brain = (line: "gentle" | "bold") => ({ fast: fastBrain(compileProgram(STARTERS[line])), nState: stateBits(STARTERS[line]), program: STARTERS[line] });
-    const g1 = GOALS.find((g) => g.metric === "saves")!;
+    // the goals' calendar, moved to open an hour after the fork's head: every window keeps its length and its place
+    // against the others, so the rules are tested whatever date the fork is from
     const head = Number((await pub.getBlock()).timestamp);
-    expect(head).toBeLessThan(g1.start); // the fork is from before the goals open
+    const shift = head + 3_600 - GOALS.find((g) => g.metric === "saves")!.start;
+    const goals = GOALS.map((g) => ({ ...g, start: g.start + shift, end: g.end + shift }));
+    const g1 = goals.find((g) => g.metric === "saves")!;
+    expect(head).toBeLessThan(g1.start);
     const startBlock = Number(await pub.getBlockNumber()) + 1;
 
     // before the window: Alice hatches her pet (a new pet that must not count)
@@ -96,7 +100,7 @@ describe.skipIf(!RPC || !RELAY_KEY_FILE || !FILE)("community goals, counted from
     expect(by("burned")).toEqual({ [C]: 10_000_000, [A]: 600_000 });
 
     const now = Number((await pub.getBlock()).timestamp);
-    const r = Object.fromEntries(reportGoals(ledger.entries(), GOALS, now, [A]).map((g) => [g.metric, g]));
+    const r = Object.fromEntries(reportGoals(ledger.entries(), goals, now, [A]).map((g) => [g.metric, g]));
     expect(r.saves).toMatchObject({ total: 4, contributors: 3, mine: 2, state: "open" });
     expect(r.hatched).toMatchObject({ total: 1, contributors: 1, mine: 1 });
     expect(r.children).toMatchObject({ total: 1, contributors: 1, tiers: [] });

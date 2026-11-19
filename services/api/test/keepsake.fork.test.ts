@@ -15,7 +15,7 @@ import { createPublicClient, encodeAbiParameters, erc20Abi, http, keccak256, num
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { compileProgram, netlistBytes } from "@lingxi/brain";
 import { FACTORY, circuitMatches, xLayer } from "@lingxi/chain";
-import { PET_SCHOOL, composeProgram } from "@lingxi/game";
+import { MAX_LESSONS, PET_SCHOOL, composeProgram } from "@lingxi/game";
 import { BrainRelayer } from "../src/relayer";
 
 const RPC = process.env.FORK_RPC;
@@ -82,7 +82,8 @@ describe.skipIf(!RPC)("season keepsakes, on an X Layer fork", () => {
     const d = await relayer.keepsake({ line: "curious", lessons: many as never, growth }, winner);
     if (!d.ok) throw new Error(`${d.reason} ${d.detail}`);
     expect(((await pub.readContract({ address: PROCESSOR, abi: ownerAbi, functionName: "ownerOf", args: [BigInt(d.brainId)] })) as Address).toLowerCase()).toBe(winner.toLowerCase());
-    expect(await relayer.keepsake({ line: "curious", lessons: Array(14).fill(many[0]) as never, growth }, winner)).toMatchObject({ ok: false, reason: "invalid" });
+    // past the most lessons any pet can hold, the relayer refuses before spending anything
+    expect(await relayer.keepsake({ line: "curious", lessons: Array(MAX_LESSONS + 1).fill(many[0]) as never, growth }, winner)).toMatchObject({ ok: false, reason: "invalid" });
     // no wallet, no tape-out
     expect(await relayer.keepsake({ line: "bold", lessons }, "0x0000000000000000000000000000000000000000")).toMatchObject({ ok: false, reason: "invalid" });
   });

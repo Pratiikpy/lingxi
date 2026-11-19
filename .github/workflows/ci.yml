@@ -42,12 +42,32 @@ jobs:
       - name: Contract tests on a fork of X Layer mainnet (reads only)
         run: forge test --fork-url xlayer --match-path 'test/*.fork.t.sol'
         working-directory: contracts
+      - name: Server tests with its fork tests, on a pinned fork (reads X Layer only)
+        run: pnpm test:fork
       - name: README numbers, repo hygiene
         run: pnpm status:check --only promises,hygiene && pnpm exec tsx scripts/readme-facts.mts --check
       - name: The web build, with its name guard
         run: pnpm --filter @lingxi/web build
         env:
           VITE_CHAIN: xlayer
+
+  coverage:
+    # how much of each part's code its tests run, held to 80% of lines and branches (scripts/coverage.mts)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: foundry-rs/foundry-toolchain@dba66c27052e63476d886f22216e119ba7e615bf # v1.9.2
+        with:
+          version: v1.7.1
+      - run: pnpm install --frozen-lockfile
+      - name: Coverage, every part at or above 80%
+        run: pnpm coverage
 
   e2e:
     # the game played in a browser against a fork of X Layer mainnet, with the server and the game started by the
