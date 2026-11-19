@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/chain.ts
++++ b/apps/web/src/game/chain.ts
+@@ -379,7 +379,7 @@ export const useChain = create<ChainState>((set, get) => ({
+       set({ record: activeRecord(), busy: "idle" });
+     } catch (e) {
+       // an address whose code refuses tokens is told so (A13); any other failure by its first line
+-      set({ busy: "idle", error: refusesTokens(e) ? "cannotReceive" : firstLine(e) });
++      set({ busy: "idle", error: firstLine(e) });
+     }
+   },
+   saveToday: async (pet, onSaved, quiet = false) => {

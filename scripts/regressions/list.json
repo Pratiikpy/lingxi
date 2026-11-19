@@ -652,5 +652,11 @@
     "row": "A12",
     "bug": "the home panel called into whatever implementation the letters hub ran, so when the hub moved to code TapeKit had not approved its read reverted and every pet's home panel failed",
     "test": { "kind": "vitest", "dir": "packages/chain", "file": "test/hubStatus.test.ts", "name": "are closed, as the hub's, when the hub runs an implementation TapeKit has not approved, and nothing of it is called" }
+  },
+  {
+    "id": "A13-cannot-receive-said",
+    "row": "A13",
+    "bug": "a wallet whose address refuses NFTs (an EIP-7702 delegation without a receiver) was told only that keeping the pet did not go through, though retrying can never work",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/chain.test.ts", "name": "a wallet whose address refuses pets is told so before anything is signed, and nothing is kept (A13)" }
   }
 ]
