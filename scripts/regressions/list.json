@@ -700,5 +700,17 @@
     "row": "A18",
     "bug": "a day's save could write a state of another line over a pet, which no later save undoes",
     "test": { "kind": "vitest", "dir": "packages/chain", "file": "test/lineGuard.test.ts", "name": "refuses to save a state of another line over a pet before any wallet prompt" }
+  },
+  {
+    "id": "A19-breed-refusal-reason",
+    "row": "A19",
+    "bug": "a birth the Breeder refused (NotAdult) showed viem's first line instead of the reason",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/chain.test.ts", "name": "a birth the Breeder refuses because a parent is not grown on chain tells the player so" }
+  },
+  {
+    "id": "A19-registry-refusal-reason",
+    "row": "A19",
+    "bug": "a save another device had already made showed 'The contract function \"checkpoint\" reverted.'",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/chain.test.ts", "name": "a checkpoint the registry refuses (another device already saved this day) is not counted, and says so (A19)" }
   }
 ]

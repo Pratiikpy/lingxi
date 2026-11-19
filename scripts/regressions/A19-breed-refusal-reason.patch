@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/chain.ts
++++ b/apps/web/src/game/chain.ts
+@@ -353,7 +353,7 @@ export const useChain = create<ChainState>((set, get) => ({
+       const msg = firstLine(e);
+       set({ busy: "idle", error: msg });
+       // the Breeder's own reason, read from the decoded error, not the message's first line (A19)
+-      const refused = revertName(e, breederV2Abi);
++      const refused: string | null = null;
+       return {
+         ok: false,
+         reason: refusesTokens(e)

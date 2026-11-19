@@ -1,0 +1,12 @@
+--- a/apps/web/src/game/chain.ts
++++ b/apps/web/src/game/chain.ts
+@@ -144,8 +144,7 @@ const REGISTRY_REFUSALS: Record<string, string> = {
+ function chainReason(e: unknown): string {
+   if (refusesTokens(e)) return "cannotReceive";
+   if (e instanceof LineMismatchError) return "notThisPet";
+-  const refused = revertName(e, petRegistryAbi);
+-  return (refused && REGISTRY_REFUSALS[refused]) || firstLine(e);
++  return firstLine(e);
+ }
+ 
+ /** The Breeder's refusals the Family screen explains, by the contract's own error name (A19). */
