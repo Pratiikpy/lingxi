@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/writer.ts
++++ b/apps/web/src/game/writer.ts
+@@ -151,8 +151,6 @@ export function createWriter(o: WriterOptions) {
+     stopWatching =
+       o.watch?.((key) => {
+         if (key !== stampKey) return;
+-        const s = readStamp();
+-        if (s && s.id !== id) set(false);
+       }) ?? null;
+     return true;
+   };

@@ -1048,5 +1048,11 @@
     "row": "A48",
     "bug": "a birth that landed after the page closed never brought its child home",
     "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/chain.test.ts", "name": "a birth found after the page closed is finished on the next visit, its child joining the pets (A48)" }
+  },
+  {
+    "id": "A70-lease-told-at-once",
+    "row": "A70",
+    "bug": "a tab without Web Locks showed a game another tab had taken until its timer ran",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/writer.test.ts", "name": "a tab told of another tab taking the lease stops at once, without waiting for its timer (A70)" }
   }
 ]
