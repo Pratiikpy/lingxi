@@ -69,7 +69,7 @@ describe("pet-sitting packs", () => {
     const code = "a".repeat(24);
     writeFileSync(legacy, JSON.stringify({ [code]: { pack, keyHash: keyHashOf(KEY), until: t + 86_400_000, created: t, back: '{"home":1}', backAt: t } }));
     const store = createSittingStore(legacy, () => t);
-    await new Promise((r) => setTimeout(r, 50));
+    // asked at once, before the move's files can have landed: the store answers only once its move is done (A37)
     expect(await store.collect(code)).toEqual({ pack, back: '{"home":1}', backAt: t });
     expect(existsSync(`${legacy}.migrated`)).toBe(true);
     expect(await createSittingStore(legacy, () => t).collect(code)).toEqual({ pack, back: '{"home":1}', backAt: t });

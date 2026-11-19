@@ -118,6 +118,10 @@ export function createSittingStore(dir?: string, now: () => number = Date.now, l
     return queue;
   };
 
+  // A37: a store moved in from the old layout lists its packs at once, while their files are still being written; it is
+  // ready once every file is written, the index saved and the old file set aside, and every call waits for that, so a
+  // pack asked for in the first moments after a start is never missed
+  let ready: Promise<void> = Promise.resolve();
   if (legacy && existsSync(legacy)) {
     // the old layout: one JSON file holding every pack; moved in once, then kept as .migrated
     try {
@@ -130,10 +134,10 @@ export function createSittingStore(dir?: string, now: () => number = Date.now, l
         moves.push(blobs.write(`${code}.pack`, e.pack));
         if (e.back) moves.push(blobs.write(`${code}.back`, e.back));
       }
-      void Promise.all(moves)
+      ready = Promise.all(moves)
         .then(saveIndex)
         .then(() => renameSync(legacy, `${legacy}.migrated`))
-        .catch((e: Error) => process.stderr.write(`sitting migration: ${e.message}\n`));
+        .catch((e: Error) => void process.stderr.write(`sitting migration: ${e.message}\n`));
     } catch (e) {
       process.stderr.write(`sitting store from before could not be read: ${(e as Error).message}\n`);
     }
@@ -156,6 +160,7 @@ export function createSittingStore(dir?: string, now: () => number = Date.now, l
 
   return {
     async leave(pack, keyHash, until, owner = "unknown") {
+      await ready;
       await sweep();
       if (typeof pack !== "string" || pack.length > MAX_PACK) return { ok: false, reason: "tooBig" };
       if (!/^[a-f0-9]{64}$/.test(keyHash)) return { ok: false, reason: "invalid" };
@@ -179,6 +184,7 @@ export function createSittingStore(dir?: string, now: () => number = Date.now, l
     },
     async collect(code) {
       if (!CODE.test(code)) return null;
+      await ready;
       const e = index.get(code);
       if (!e) return null;
       const pack = await blobs.read(`${code}.pack`);
@@ -188,6 +194,7 @@ export function createSittingStore(dir?: string, now: () => number = Date.now, l
     },
     async sendHome(code, key, pet) {
       if (!CODE.test(code) || typeof key !== "string" || !KEY.test(key) || typeof pet !== "string" || pet.length > MAX_PACK) return false;
+      await ready;
       const e = index.get(code);
       if (!e || e.keyHash !== hash(key)) return false;
       try {

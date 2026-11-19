@@ -54,6 +54,35 @@ function connect(origin = "http://ok.test", address = `198.51.100.${nextAddress+
 /** A test player's device secret and the id that belongs to it. */
 const keyOf = (who: string) => createHash("md5").update(who).digest("hex");
 const idOf = (who: string) => playerIdFor(keyOf(who));
+/**
+ * Resolves once the room has handled everything `from` sent before it was called: one connection's messages are handled
+ * in order, so a position `from` sends now reaching `to` (in the same room) proves the rest came first. A marker the
+ * rate limit drops costs nothing and is sent again. Waits for the room itself, not for a length of time (A37).
+ */
+async function handled(from: Peer, to: Peer, x: number): Promise<void> {
+  for (let tries = 0; tries < 30; tries++) {
+    from.ws.send(JSON.stringify({ t: "pos", x }));
+    try {
+      for (;;) if ((await to.next("pos", 700)).x === x) return;
+    } catch {
+      // not seen yet, or refused by the rate limit: send it again
+    }
+  }
+  throw new Error(`the room never handled position ${x}`);
+}
+
+/** `attempt` until it succeeds, for something the server does in its own time (A37). */
+async function eventually<T>(attempt: () => Promise<T>, tries = 50, gapMs = 100): Promise<T> {
+  for (let i = 1; ; i++) {
+    try {
+      return await attempt();
+    } catch (e) {
+      if (i >= tries) throw e;
+      await new Promise((r) => setTimeout(r, gapMs));
+    }
+  }
+}
+
 const hello = (p: Peer, who: string, space: string, name = "Mochi") => p.ws.send(JSON.stringify({ t: "hello", id: idOf(who), key: keyOf(who), name, line: "gentle", stage: "child", mood: 2, space }));
 
 describe("live rooms", () => {
@@ -122,7 +151,7 @@ describe("live rooms", () => {
     const lessons = JSON.stringify([{ when: { event: [3] }, then: { want: 5, mood: 1 } }]);
     a.ws.send(JSON.stringify({ t: "card", lessons }));
     a.ws.send(JSON.stringify({ t: "card", lessons: "x".repeat(10_500) }));
-    await new Promise((r) => setTimeout(r, 100));
+    await handled(a, b, 31);
     b.ws.send(JSON.stringify({ t: "ask", to: idOf("carda01") }));
     const card = await b.next("card");
     expect(card.lessons).toBe(lessons);
@@ -173,12 +202,12 @@ describe("live rooms", () => {
     expect(full.length).toBeGreaterThan(29_000);
     expect(full.length).toBeLessThanOrEqual(CARD_MAX);
     a.ws.send(JSON.stringify({ t: "card", lessons: full }));
-    await new Promise((r) => setTimeout(r, 100));
+    await handled(a, b, 47);
     b.ws.send(JSON.stringify({ t: "ask", to: idOf("cardbig1") }));
     expect((await b.next("card")).lessons).toBe(full);
     // a card over the budget is refused: the friend still gets the one before it
     a.ws.send(JSON.stringify({ t: "card", lessons: JSON.stringify({ lessons: [rule], outside: { parts: [{ hex: "0".repeat(CARD_MAX) }] } }) }));
-    await new Promise((r) => setTimeout(r, 100));
+    await handled(a, b, 53);
     b.ws.send(JSON.stringify({ t: "ask", to: idOf("cardbig1") }));
     expect((await b.next("card")).lessons).toBe(full);
     // and any other message over 12 KB is ignored, as before
@@ -229,8 +258,8 @@ describe("live rooms", () => {
     // another address is not affected, and a closed connection frees its place
     const other = await connect();
     open[0]!.ws.close();
-    await new Promise((r) => setTimeout(r, 100));
-    open[0] = await connect(undefined, same);
+    // the place is free once the server has seen the close, in its own time
+    open[0] = await eventually(() => connect(undefined, same));
     for (const p of [...open, other]) p.ws.close();
   });
 
@@ -259,7 +288,8 @@ describe("live rooms", () => {
     await b.next("room");
     await a.next("joined");
     for (let i = 0; i < 40; i++) b.ws.send(JSON.stringify({ t: "say", text: `hi ${i}` }));
-    await new Promise((r) => setTimeout(r, 300));
+    // every one of the forty handled (passed or dropped) before counting
+    await handled(b, a, 59);
     const got = a.inbox.filter((m) => m.t === "say").length;
     expect(got).toBeGreaterThan(0);
     expect(got).toBeLessThanOrEqual(8);
