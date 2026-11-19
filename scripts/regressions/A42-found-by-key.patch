@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/packets.ts
++++ b/apps/web/src/game/packets.ts
+@@ -187,7 +187,7 @@ export const usePackets = create<PacketStore>((set, get) => {
+           set({ error: "packetFailed" });
+           continue;
+         }
+-        const id = await byKey(p);
++        const id: bigint | null = null;
+         if (id !== null) found(p, id);
+         else if (now() - p.at > PENDING_FORGET_MS) letGo(p);
+       } catch {

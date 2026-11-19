@@ -1,0 +1,10 @@
+--- a/apps/web/src/game/packets.ts
++++ b/apps/web/src/game/packets.ts
+@@ -217,7 +217,6 @@ export const usePackets = create<PacketStore>((set, get) => {
+       // the key is kept before any money can move (a full storage refuses the packet here, before anything is sent):
+       // a packet whose link was never made can still be found by it (A42)
+       const draft: PendingPacket = { key: pk.slice(2), keyAddress, fromId: (await nextPacketId(publicClient, deployment)).toString(), sender: wallet.account!.address, total: o.amount, count: o.count, from: o.from, letter: o.letter, origin: o.origin, at: now() };
+-      keepPending([...get().pending, draft]);
+       kept = draft;
+       const { id } = await createPacket(
+         publicClient,

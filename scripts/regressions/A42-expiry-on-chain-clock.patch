@@ -1,0 +1,11 @@
+--- a/apps/web/src/play/RedPacket.tsx
++++ b/apps/web/src/play/RedPacket.tsx
+@@ -232,7 +232,7 @@ function SentList() {
+       <ul>
+         {sent.slice(0, 5).map((s) => {
+           const v = views[s.id];
+-          const expired = v && chainNow !== null && chainNow >= v.expiry;
++          const expired = v && now() / 1000 >= v.expiry;
+           return (
+             <li key={s.id}>
+               <b>#{s.id}</b> {s.total} USDT

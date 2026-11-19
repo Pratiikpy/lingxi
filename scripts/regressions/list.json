@@ -1018,5 +1018,23 @@
     "row": "A41",
     "bug": "agent pets never left, so the store could be filled for good",
     "test": { "kind": "vitest", "dir": "services/api", "file": "test/agentApi.test.ts", "name": "an agent pet nobody has looked at for 30 days goes home, and its place counts again" }
+  },
+  {
+    "id": "A42-key-kept-before-sending",
+    "row": "A42",
+    "bug": "a red packet's link key lived only in memory until its receipt came back",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/packets.test.ts", "name": "a tab closed while the packet was being confirmed finds it on the next visit, with its link and letter" }
+  },
+  {
+    "id": "A42-found-by-key",
+    "row": "A42",
+    "bug": "a packet sent before its transaction was known could not be found again",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/packets.test.ts", "name": "a key kept before its transaction was known is matched to its packet by the key itself" }
+  },
+  {
+    "id": "A42-expiry-on-chain-clock",
+    "row": "A42",
+    "bug": "a packet's expiry was judged by the device's clock, so a wrong clock offered the wrong button",
+    "test": { "kind": "e2e", "spec": "e2e/specs/red-packet-send.spec.ts", "title": "a packet whose page closed before its receipt is found on the next visit, with its link (zh, dark, desktop)" }
   }
 ]
