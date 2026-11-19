@@ -17,7 +17,7 @@ import { isIP } from "node:net";
 import { WebSocketServer, type WebSocket } from "ws";
 import { type DecorStore, type Placed, createDecorStore } from "./decor";
 import { type Homes, visible } from "./homes";
-import { shownName } from "@lingxi/game";
+import { CARD_MAX, MAX_LESSONS, shownName } from "@lingxi/game";
 import { MAX_PLACED } from "@lingxi/world";
 import { RateLimiter } from "./limit";
 import { BLOCKED_WORDS as BLOCKED } from "./words";
@@ -30,8 +30,10 @@ export const MAX_CONNECTIONS = 4_000;
 /** New homes (the first decorations or the first wallet for an id) one address may make in a day. */
 export const MAX_NEW_HOMES_PER_DAY = 5;
 const MAX_FRAME = 12_288;
-const CARD_MAX = 10_000;
-const CARD_RULES = 8;
+/** A pet's card is the one message allowed to be longer: the game's whole card budget, with room for its envelope (A26). */
+const MAX_CARD_FRAME = 2 * CARD_MAX + 1_024;
+/** A card may hold as many lessons as a pet can learn (it was 8, which dropped a well-taught pet's card, A26). */
+const CARD_RULES = MAX_LESSONS;
 const PROPOSAL_MS = 120_000;
 const SAY_MAX = 60;
 const NAME_MAX = 12;
@@ -210,13 +212,15 @@ export class LiveRooms {
     ws.on("message", (raw, isBinary) => {
       if (isBinary) return;
       const text = raw.toString();
-      if (text.length > MAX_FRAME || !this.allow(c)) return;
+      if (text.length > MAX_CARD_FRAME || !this.allow(c)) return;
       let m: Record<string, unknown>;
       try {
         m = JSON.parse(text) as Record<string, unknown>;
       } catch {
         return;
       }
+      // every message but a card stays small; a card may be as long as the game's card budget (A26)
+      if (text.length > MAX_FRAME && m.t !== "card") return;
       this.onMessage(c, m);
     });
     ws.on("close", () => {
@@ -372,7 +376,7 @@ export function addressOf(req: IncomingMessage): string {
 
 /** Attaches live rooms to an HTTP server at /live, accepting only allowed origins and a few connections per address. */
 export function attachLive(server: { on(event: "upgrade", cb: (req: IncomingMessage, socket: import("node:stream").Duplex, head: Buffer) => void): unknown }, rooms: LiveRooms, origins: string[]): WebSocketServer {
-  const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_FRAME });
+  const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_CARD_FRAME });
   const held = new Map<string, number>();
   let total = 0;
   server.on("upgrade", (req, socket, head) => {

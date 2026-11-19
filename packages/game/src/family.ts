@@ -250,8 +250,18 @@ export function petCard(p: { lessons: readonly Rule[]; family?: Family; brain?: 
   });
 }
 
+/**
+ * The card budget (A26), the one every road a card travels is sized to: the pet itself (lessons, skills, family,
+ * memory: the fullest a player can raise measures 4,082 characters) and an owned instinct's circuits.
+ */
+export const CARD_BASE_MAX = 10_000;
 /** The most a card's instinct bytes may weigh (hex characters). */
 export const CARD_OUTSIDE_MAX = 24_000;
+/** The longest card the game reads, and so the longest any route must carry. */
+export const CARD_MAX = CARD_BASE_MAX + CARD_OUTSIDE_MAX;
+
+/** Whether an instinct's circuits fit a card: a pet never learns one its card could not carry to friends (A26). */
+export const instinctFits = (parts: ReadonlyArray<{ hex: string }>): boolean => parts.reduce((n, p) => n + p.hex.length, 0) <= CARD_OUTSIDE_MAX;
 
 /** An instinct from someone else's card: every field checked, and the bytes must rebuild into a pet-shaped circuit. */
 export function cleanOutside(v: unknown): OutsideInstinct | undefined {
@@ -277,7 +287,7 @@ export function childMemory(nState: number, a: readonly number[], b: readonly nu
 
 /** Reads a card from someone else. Everything is checked; anything odd means no card. */
 export function parseCard(raw: string): PetCard | null {
-  if (typeof raw !== "string" || raw.length > 10_000 + CARD_OUTSIDE_MAX) return null;
+  if (typeof raw !== "string" || raw.length > CARD_MAX) return null;
   try {
     const v = JSON.parse(raw) as unknown;
     const lessons = (Array.isArray(v) ? v : (v as { lessons?: unknown }).lessons) as unknown;

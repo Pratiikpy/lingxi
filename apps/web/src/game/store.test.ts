@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { type Rule, STARTERS, compileProgram, composeInstinct, encode, fastBrain, netlistBytes, stateBits, toElements, validateProgram } from "@lingxi/brain";
-import { type OutsideInstinct, type Pet, SUB, beatOf, createPet, familyOf, mindBrain } from "@lingxi/game";
+import { CARD_OUTSIDE_MAX, type OutsideInstinct, type Pet, SUB, beatOf, createPet, familyOf, mindBrain } from "@lingxi/game";
 import { COMPOST } from "@lingxi/world";
 import { type Key, translate } from "../i18n";
 import { type Net, type Storage, json, leave, reload, visit } from "./testGame";
@@ -566,6 +566,15 @@ describe("the game store: teaching and growing", () => {
     expect(useGame.getState().pet?.lessons).toEqual([another, lesson]);
     useGame.getState().arrange(0, "forget");
     expect(useGame.getState().pet?.lessons).toEqual([lesson]);
+  });
+
+  it("an owned circuit too big to travel with the pet's card is not taught (A26)", async () => {
+    const { useGame } = await open();
+    useGame.getState().hatch("gentle", "Kiri");
+    const before = useGame.getState().pet!;
+    const huge = { ...owned, parts: [...owned.parts, { ...owned.parts[0]!, id: "999", hex: "0".repeat(CARD_OUTSIDE_MAX) }] };
+    expect(useGame.getState().teachInstinct(huge)).toEqual({ ok: false, reason: "tooLong" });
+    expect(useGame.getState().pet).toEqual(before);
   });
 
   it("an owned circuit taught as an instinct answers beside the pet's own mind, and can be forgotten", async () => {

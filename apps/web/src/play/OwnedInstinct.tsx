@@ -87,7 +87,7 @@ export function OwnedInstinctPanel({ pet }: { pet: Pet }) {
       } else {
         const r = teach({ processor: c.processor, id: c.id, owner: c.owner.toLowerCase(), parts: c.parts });
         if (r.ok) play("success");
-        else setNote(r.reason === "tooBig" ? L(`Its memory doesn't fit beside ${pet.name}'s: there is room for ${room} more bits.`, `它的记忆放不进${pet.name}的大脑：只剩 ${room} 位的空间。`) : r.reason === "notYours" ? L(`${pet.name} is away or is a friend's pet.`, `${pet.name}不在家，或是朋友托你照看的。`) : L("That circuit can't be read as a pet's brain.", "那个电路读不成宠物的大脑。"));
+        else setNote(r.reason === "tooBig" ? L(`Its memory doesn't fit beside ${pet.name}'s: there is room for ${room} more bits.`, `它的记忆放不进${pet.name}的大脑：只剩 ${room} 位的空间。`) : r.reason === "tooLong" ? L(`That circuit is too big to travel with ${pet.name}: friends, seasons and duels could not read ${pet.name}'s card. An instinct can take up to 12,000 bytes of circuit.`, `那个电路太大，没法跟着${pet.name}走：朋友、赛季和切磋都读不了${pet.name}的卡片。本能的电路最多 12,000 字节。`) : r.reason === "notYours" ? L(`${pet.name} is away or is a friend's pet.`, `${pet.name}不在家，或是朋友托你照看的。`) : L("That circuit can't be read as a pet's brain.", "那个电路读不成宠物的大脑。"));
       }
     } catch (e) {
       setNote(e instanceof AdoptError && e.reason === "tooBig" ? L("That circuit is too big for a pet to carry on a phone.", "那个电路太大了，宠物在手机上带不动。") : L("That circuit couldn't be read just now.", "暂时读不了那个电路。"));

@@ -19,9 +19,9 @@ export const BODY_LIMITS: ReadonlyArray<readonly [RegExp, number]> = [
   [/^\/api\/papers\/\d+$/, 620 * KB],
   // a pet left with a friend, or coming home from one (700,000 as before)
   [/^\/api\/sit(\/[^/]+\/home)?$/, SEND_LIMITS.sitBodyBytes],
-  [/^\/api\/(arena\/snapshot|season\/enter)$/, 16 * KB],
-  // a lesson in words with the pet's whole mind, as its card (34,000 characters at most, A11)
-  [/^\/api\/teach$/, 48 * KB],
+  // a lesson in words, an arena snapshot or a season entry: each carries the pet's whole card (34,000 characters at
+  // most, the game's card budget; A11, A26)
+  [/^\/api\/(teach|arena\/snapshot|season\/enter)$/, 48 * KB],
   [/^\/api\/(voice|lessons\/share|push\/(plan|stop))$/, 16 * KB],
   [/^\/api\/v1\//, 16 * KB],
   [/^\/api\/tapeout/, 24 * KB],

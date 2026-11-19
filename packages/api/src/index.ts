@@ -11,7 +11,7 @@
 
 import { z } from "zod";
 import { STARTERS } from "@lingxi/brain";
-import { CARD_OUTSIDE_MAX, MAX_LESSONS, QUEST_SLOTS_MAX } from "@lingxi/game";
+import { CARD_BASE_MAX, CARD_MAX as GAME_CARD_MAX, MAX_LESSONS, QUEST_SLOTS_MAX } from "@lingxi/game";
 import { SEND_LIMITS } from "@lingxi/chain/limits";
 
 const ID = /^\d{1,20}$/;
@@ -38,7 +38,8 @@ export type LessonRule = z.input<typeof LessonRule>;
  * The most characters of a pet card (its lessons, skills, instincts, family and owned instinct, as the game shares it):
  * what `parseCard` accepts, ten thousand for the pet and room for an owned instinct's circuit.
  */
-export const CARD_MAX = 10_000 + CARD_OUTSIDE_MAX;
+/** The longest card a request may carry: the game's own card budget (A26). */
+export const CARD_MAX = GAME_CARD_MAX;
 
 export const TeachBody = z.object({
   words: z.string().min(1).max(MAX_WORDS),
@@ -77,7 +78,7 @@ export const BrainRelayPayload = z.object({
 export type BrainRelayPayload = z.input<typeof BrainRelayPayload>;
 
 /** A child's brain: REFs to its parents' circuits, or (once taught) both of its halves as its card. */
-export const ChildRelayPayload = z.union([z.object({ parents: z.tuple([z.string().regex(ID), z.string().regex(ID)]) }), z.object({ card: z.string().max(10_000) })]);
+export const ChildRelayPayload = z.union([z.object({ parents: z.tuple([z.string().regex(ID), z.string().regex(ID)]) }), z.object({ card: z.string().max(CARD_BASE_MAX) })]);
 export type ChildRelayPayload = z.input<typeof ChildRelayPayload>;
 
 /** X1: an owned circuit as an everyday instinct, REF'd beside the pet's own brain. */

@@ -10,7 +10,7 @@
 
 import { b64urlDecode, b64urlEncode, compileProgram, gateCount } from "@lingxi/brain";
 import { fighterOfMind } from "./coach";
-import { type PetCard, halvesOf, mindBrain, mindExtra, parseCard } from "./family";
+import { type PetCard, halvesOf, mindBrain, mindExtra, parseCard, CARD_MAX } from "./family";
 import { composeProgram } from "./lessons";
 import { shownName } from "./names";
 import { gateBudget, skillRules } from "./skills";
@@ -19,7 +19,12 @@ import { spar } from "./spar";
 
 const CHALLENGE = "lxc1.";
 const RESULT = "lxr1.";
-export const MAX_DUEL_CODE = 12_000;
+/**
+ * The longest challenge code read: one carrying the largest card the game makes (A26). The card travels as a JSON string,
+ * where an escaped character takes two, and the code is base64, four characters for three; the rest of a challenge (its
+ * name, story and id) stays under 2,000.
+ */
+export const MAX_DUEL_CODE = Math.ceil(((2 * CARD_MAX + 2_000) * 4) / 3) + 16;
 const LINES = ["gentle", "bold", "curious"] as const;
 const STAGES = ["baby", "child", "teen", "adult", "elder"] as const;
 type Line = (typeof LINES)[number];

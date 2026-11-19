@@ -1,3 +1,4 @@
+import { CARD_MAX } from "@lingxi/game";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -157,6 +158,34 @@ describe("live rooms", () => {
     b.ws.send(JSON.stringify({ t: "answer", to: idOf("fama001"), yes: true }));
     await expect(a.next("answer", 300)).rejects.toThrow();
     for (const x of [a, b, c]) x.ws.close();
+  });
+
+  it("a card of the game's whole budget, with every lesson a pet can hold, reaches a friend who asks (A26)", async () => {
+    const a = await connect();
+    const b = await connect();
+    hello(a, "cardbig1", "room:32", "Mochi");
+    await a.next("room");
+    hello(b, "cardbig2", "room:32", "Tofu");
+    await b.next("room");
+    const rule = { when: { event: [3] }, then: { want: 5, mood: 1 } };
+    // fourteen lessons and an instinct whose circuits take most of the budget
+    const full = JSON.stringify({ lessons: Array(14).fill(rule), outside: { parts: [{ hex: "0".repeat(29_000) }] } });
+    expect(full.length).toBeGreaterThan(29_000);
+    expect(full.length).toBeLessThanOrEqual(CARD_MAX);
+    a.ws.send(JSON.stringify({ t: "card", lessons: full }));
+    await new Promise((r) => setTimeout(r, 100));
+    b.ws.send(JSON.stringify({ t: "ask", to: idOf("cardbig1") }));
+    expect((await b.next("card")).lessons).toBe(full);
+    // a card over the budget is refused: the friend still gets the one before it
+    a.ws.send(JSON.stringify({ t: "card", lessons: JSON.stringify({ lessons: [rule], outside: { parts: [{ hex: "0".repeat(CARD_MAX) }] } }) }));
+    await new Promise((r) => setTimeout(r, 100));
+    b.ws.send(JSON.stringify({ t: "ask", to: idOf("cardbig1") }));
+    expect((await b.next("card")).lessons).toBe(full);
+    // and any other message over 12 KB is ignored, as before
+    a.ws.send(JSON.stringify({ t: "say", text: "hi", pad: "x".repeat(13_000) }));
+    await expect(b.next("say", 300)).rejects.toThrow();
+    a.ws.close();
+    b.ws.close();
   });
 
   it("a name with a character that shows as nothing reaches the room with it shown, never as another pet's name (A16)", async () => {
