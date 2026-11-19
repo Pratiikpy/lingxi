@@ -888,31 +888,62 @@
   font-size: 12.5px;
 }
 
+/* A28: the card keeps its light paper in both looks, so everything inside reads from the light tokens (as the arena's
+   TapeFly panel does); it wraps to two rows (who, then what to do) and never grows past the room */
 .visitor-card {
+  --ink: var(--plum);
+  --ink-soft: #5b4e73;
+  --card: #fffdf8;
+  --line: var(--plum);
   position: absolute;
   left: 50%;
   bottom: 112px;
   transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 16px);
+  box-sizing: border-box;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  padding: 8px 8px 8px 14px;
+  padding: 8px 8px 10px 14px;
   border: 2px solid #2b2140;
   border-radius: 16px;
   background: #fffdf8;
   color: #2b2140;
   box-shadow: 0 4px 0 #2b2140;
   z-index: 6;
-  white-space: nowrap;
 }
 .visitor-card b {
+  order: 0;
   font-family: var(--display);
   margin-right: 4px;
+  overflow-wrap: anywhere;
+}
+.visitor-card .visitor-bond {
+  order: 1;
+  flex: 1 1 auto;
+  color: var(--ink-soft);
+}
+.visitor-card .icon-x {
+  order: 2;
+  margin-left: auto;
+}
+/* the line between who it is and what you can do */
+.visitor-card::before {
+  content: "";
+  order: 3;
+  flex-basis: 100%;
+  height: 0;
 }
 .visitor-card .btn {
+  order: 4;
+  flex: 1 1 0;
+  justify-content: center;
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  color: var(--ink);
 }
 .icon-x {
   width: 32px;
