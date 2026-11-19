@@ -1,0 +1,19 @@
+--- a/services/api/src/decor.ts
++++ b/services/api/src/decor.ts
+@@ -95,7 +95,7 @@
+       if (!OWNER_ID.test(owner) || typeof secret !== "string" || !PLAYER_SECRET.test(secret)) return false;
+       const key = hash(secret);
+       const held = homes.get(owner);
+-      if (!held) return owner === playerIdFor(secret);
++      if (!held) return true;
+       if (held.key !== key) return false;
+       // the owner arrived: their home is the most recently active
+       homes.delete(owner);
+@@ -111,7 +111,6 @@
+       const key = hash(secret);
+       const held = homes.get(owner);
+       if (held && held.key !== key) return false;
+-      if (!held && owner !== playerIdFor(secret)) return false;
+       // a new home is kept only once it holds something, and only while there is room
+       if (!held && placed.length === 0) return placed;
+       if (!held && homes.size >= maxHomes) {

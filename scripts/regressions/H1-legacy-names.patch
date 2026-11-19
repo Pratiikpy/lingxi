@@ -1,0 +1,23 @@
+--- a/packages/world/src/legacy.ts
++++ b/packages/world/src/legacy.ts
+@@ -63,19 +63,7 @@
+ 
+ /** A string with every old name in it, whole or as a part between `:`, `-` and `/`, replaced by today's. */
+ export function renameLegacyString(s: string): string {
+-  const whole = LEGACY.get(cyrb53(s));
+-  if (whole) return whole;
+-  if (!/[:/-]/.test(s)) return s;
+-  const parts = s.split(/([:/-])/);
+-  let changed = false;
+-  for (let i = 0; i < parts.length; i += 2) {
+-    const next = LEGACY.get(cyrb53(parts[i]!));
+-    if (next) {
+-      parts[i] = next;
+-      changed = true;
+-    }
+-  }
+-  return changed ? parts.join("") : s;
++  return s;
+ }
+ 
+ /** A saved value with every old resident id and portrait name renamed; the same object when nothing changed. */

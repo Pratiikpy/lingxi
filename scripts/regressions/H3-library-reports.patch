@@ -1,0 +1,11 @@
+--- a/services/api/src/library.ts
++++ b/services/api/src/library.ts
+@@ -89,7 +89,7 @@
+     }, SAVE_DELAY_MS);
+     timer.unref?.();
+   };
+-  const visible = (e: LibraryEntry) => e.reportCount < Math.max(HIDE_AT, Math.ceil(e.uses * HIDE_SHARE));
++  const visible = (e: LibraryEntry) => e.reportCount < HIDE_AT;
+   // a name stored before the word check is shown as no name
+   const view = (e: LibraryEntry) => ({ key: e.key, rule: e.rule, by: cleanAuthor(e.by) ?? "", uses: e.uses, firstAt: e.firstAt });
+ 

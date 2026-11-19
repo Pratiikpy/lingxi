@@ -1,0 +1,10 @@
+--- a/services/api/src/sitting.ts
++++ b/services/api/src/sitting.ts
+@@ -168,7 +168,6 @@
+       }
+       const t = now();
+       const waiting = [...index.values()].filter((e) => e.owner === owner && e.until > t).length;
+-      if (waiting >= limits.perOwner) return { ok: false, reason: "tooMany" };
+       if (bytes + pack.length > limits.maxBytes) return { ok: false, reason: "full" };
+       const code = randomBytes(12).toString("hex");
+       await blobs.write(`${code}.pack`, pack);

@@ -81,6 +81,15 @@ describe("the red packet claims index (A1)", () => {
     expect(index.claimsOf("3")!.claims).toHaveLength(2);
     expect(index.size()).toEqual({ packets: 1, claims: 2 });
   });
+
+  it("forgets a closed packet's claims 30 days after it closes, however much room is left", async () => {
+    const t = 1_800_000_000;
+    const logs = [created(1, 1_010, t - 31 * DAY), claimed(1, 1_011, 0), created(2, 1_020, t - 29 * DAY), claimed(2, 1_021, 0)];
+    const index = createPacketIndex({ address: ADDR, fromBlock: 1_000, client: strictNode(1_040, logs).client, paceMs: 0, now: () => t });
+    await index.catchUp();
+    expect(index.claimsOf("1")).toBeNull();
+    expect(index.claimsOf("2")!.claims).toHaveLength(1);
+  });
 });
 
 describe("every log read stays within the public nodes' 100-block limit (A1)", () => {

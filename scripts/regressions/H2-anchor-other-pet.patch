@@ -1,0 +1,11 @@
+--- a/packages/chain/src/anchor.ts
++++ b/packages/chain/src/anchor.ts
+@@ -80,7 +80,7 @@
+   // every change the hints can prove, for this pet, oldest first
+   const changes = (await Promise.all(hints.changes.map((tx) => eventsIn(pub, registry, tx))))
+     .flat()
+-    .filter((e) => e.kind === "changed" && e.petId === petId && e.block >= hatch.block)
++    .filter((e) => e.kind === "changed" && e.block >= hatch.block)
+     .sort((a, b) => (a.block < b.block ? -1 : a.block > b.block ? 1 : 0));
+ 
+   const anchors: BrainAnchor[] = [{ brainId: hatch.brainId, tx: hatch.tx, block: hatch.block, kind: "hatched" }];

@@ -1,0 +1,14 @@
+--- a/packages/chain/src/receipts.ts
++++ b/packages/chain/src/receipts.ts
+@@ -15,10 +15,9 @@
+   if (receipt.status !== "success") throw new Error("the tape-out reverted");
+   const ids: bigint[] = [];
+   for (const log of receipt.logs) {
+-    if (!same(log.address, processor)) continue;
+     try {
+       const e = decodeEventLog({ abi: transferAbi, data: log.data, topics: log.topics });
+-      if (e.eventName === "Transfer" && same(e.args.from, ZERO) && same(e.args.to, to)) ids.push(e.args.tokenId);
++      if (e.eventName === "Transfer") ids.push(e.args.tokenId);
+     } catch {
+       // another of the processor's events
+     }

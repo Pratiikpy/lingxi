@@ -1,0 +1,11 @@
+--- a/services/api/src/server.ts
++++ b/services/api/src/server.ts
+@@ -293,7 +293,7 @@
+         const res: unknown = await keptFiles(c, next);
+         if (res instanceof Response) c.res = res;
+       };
+-      return await files(c, c.req.path.startsWith("/assets/") ? fromKept : next);
++      return await files(c, next);
+     } catch (e) {
+       if ((e as { code?: string }).code === "ERR_OUT_OF_RANGE") return c.body(null, 416);
+       throw e;

@@ -1,0 +1,11 @@
+--- a/services/api/src/library.ts
++++ b/services/api/src/library.ts
+@@ -109,7 +109,7 @@
+         return { ok: true, key, isNew: false };
+       }
+       if (entries.size >= MAX_ENTRIES) return { ok: false, reason: "full" };
+-      entries.set(key, { key, rule: { when: rule.when, then: rule.then } as Rule, by: author, firstAt: now, uses: 1, reports: emptySeen(), reportCount: 0, users: addSeen(emptySeen(), hashId(who)) });
++      entries.set(key, { key, rule, by: author, firstAt: now, uses: 1, reports: emptySeen(), reportCount: 0, users: addSeen(emptySeen(), hashId(who)) });
+       save();
+       return { ok: true, key, isNew: true };
+     },

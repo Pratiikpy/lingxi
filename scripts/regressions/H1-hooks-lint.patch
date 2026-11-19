@@ -1,0 +1,10 @@
+--- a/eslint.config.mjs
++++ b/eslint.config.mjs
+@@ -14,7 +14,6 @@
+     languageOptions: { globals: { ...globals.browser, ...globals.node }, parserOptions: { ecmaFeatures: { jsx: true } } },
+     plugins: { "react-hooks": reactHooks },
+     rules: {
+-      "react-hooks/rules-of-hooks": "error",
+       // an effect that reads a value it does not list runs on stale data; what must not re-run it is an effect event
+       "react-hooks/exhaustive-deps": "error",
+       // a leading underscore names what is set aside on purpose: `const { gone: _gone, ...rest } = x`

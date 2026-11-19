@@ -1,0 +1,13 @@
+--- a/apps/web/src/game/save.ts
++++ b/apps/web/src/game/save.ts
+@@ -115,10 +115,6 @@
+ 
+   const allowed = (key: string): boolean => {
+     if (!isGameKey(key)) return true;
+-    if (!o.isWriter()) {
+-      o.onEvent({ kind: "refused", key });
+-      return false;
+-    }
+     return !held.has(key);
+   };
+ 

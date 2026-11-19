@@ -1,0 +1,14 @@
+--- a/apps/web/src/handheld/HandheldApp.tsx
++++ b/apps/web/src/handheld/HandheldApp.tsx
+@@ -261,11 +261,6 @@
+     stopped.current = true;
+     localStorage.setItem(RETURN_KEY, b64(new Uint8Array(x.memory.buffer, x.hh_out(), n).slice()));
+     // the game open in another tab brings the pet home from there; this tab stays the handheld and follows it (A7)
+-    if (await gameIsOpen()) {
+-      setSending(false);
+-      setSent("toGame");
+-      return;
+-    }
+     location.href = "play.html#handheld-home";
+   };
+ 

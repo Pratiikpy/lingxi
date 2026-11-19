@@ -1,0 +1,11 @@
+--- a/services/api/src/goals.ts
++++ b/services/api/src/goals.ts
+@@ -136,7 +136,7 @@
+               const day = Number(a.day);
+               const seen = pets[id];
+               // a day saved again counts once
+-              if (!seen || seen.days.includes(day)) continue;
++              if (!seen) continue;
+               const days = [...seen.days, day];
+               await add("saves", owners[id], 1);
+               // the pet is settled when its SETTLED_DAYS-th different day is saved: then it counts as a new pet

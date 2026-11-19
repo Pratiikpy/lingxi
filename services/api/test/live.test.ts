@@ -194,6 +194,22 @@ describe("live rooms", () => {
     for (const p of [...open, other]) p.ws.close();
   });
 
+  it("refuses an extra connection with a complete HTTP answer, which a proxy in front can pass on", async () => {
+    const same = "203.0.113.78";
+    const open: Peer[] = [];
+    for (let i = 0; i < MAX_PER_ADDRESS; i++) open.push(await connect(undefined, same));
+    const answer = await new Promise<import("node:http").IncomingMessage>((resolve, reject) => {
+      const ws = new WebSocket(`ws://127.0.0.1:${port}/live`, { headers: { origin: "http://ok.test", "cf-connecting-ip": same } });
+      ws.on("unexpected-response", (_req, res) => resolve(res));
+      ws.on("open", () => reject(new Error("let in")));
+    });
+    expect(answer.statusCode).toBe(429);
+    // a body of known length (none): without it, a proxy waits for the connection to close to know the answer is over
+    expect(answer.headers["content-length"]).toBe("0");
+    answer.resume();
+    for (const p of open) p.ws.close();
+  });
+
   it("drops a flood of messages from one client", async () => {
     const a = await connect();
     const b = await connect();

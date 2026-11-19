@@ -1,0 +1,14 @@
+--- a/apps/web/src/game/clock.ts
++++ b/apps/web/src/game/clock.ts
+@@ -112,11 +112,6 @@
+     if (drift < -JUMP_MS) {
+       // the device clock was set back during this visit: real time did not go back
+       offset -= drift;
+-    } else if (drift > JUMP_MS) {
+-      // forward: set ahead, or the device slept. Hold it until the server says which.
+-      offset -= drift;
+-      held += drift;
+-      void sync();
+     }
+     let t = wall + offset;
+     if (!synced && t < seen) {

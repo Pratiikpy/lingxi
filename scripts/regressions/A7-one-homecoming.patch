@@ -1,0 +1,14 @@
+--- a/apps/web/src/game/handheld.ts
++++ b/apps/web/src/game/handheld.ts
+@@ -253,10 +253,7 @@
+  * while one is under way (the page starting as the packet lands, say) gets that one's result.
+  */
+ export function bringPetHome(packet: Uint8Array, release?: () => Promise<void>, onArriving?: (ms: number) => void): Promise<HomeResult> {
+-  homecoming ??= homecomingOf(packet, release, onArriving).finally(() => {
+-    homecoming = null;
+-  });
+-  return homecoming;
++  return homecomingOf(packet, release, onArriving);
+ }
+ 
+ async function homecomingOf(packet: Uint8Array, release?: () => Promise<void>, onArriving?: (ms: number) => void): Promise<HomeResult> {

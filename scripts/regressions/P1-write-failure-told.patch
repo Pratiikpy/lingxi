@@ -1,0 +1,12 @@
+--- a/apps/web/src/game/save.ts
++++ b/apps/web/src/game/save.ts
+@@ -131,8 +131,7 @@
+       if (isGameKey(key)) keepCopy(key, old);
+       try {
+         o.storage.setItem(key, value);
+-      } catch (e) {
+-        failure(key, e);
++      } catch {
+         return false;
+       }
+       if (++writes % MEASURE_EVERY === 1) measure();

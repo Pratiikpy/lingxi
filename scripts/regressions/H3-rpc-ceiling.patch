@@ -1,0 +1,10 @@
+--- a/services/api/src/rpc.ts
++++ b/services/api/src/rpc.ts
+@@ -123,7 +123,6 @@
+     const { calls, batch, refused } = vetted;
+     // every call in a batch counts, for the caller (the first was taken above) and for everyone together
+     for (let i = 1; i < calls.length; i++) if (!limiter.take(who(c))) return busy();
+-    for (let i = 0; i < calls.length; i++) if (!global.take("all")) return busy();
+     let answers: unknown[] = [];
+     if (calls.length) {
+       let forwarded = await forward(calls, opts.upstreams, doFetch, timeoutMs);

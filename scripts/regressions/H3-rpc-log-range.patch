@@ -1,0 +1,10 @@
+--- a/services/api/src/rpc.ts
++++ b/services/api/src/rpc.ts
+@@ -93,7 +93,6 @@
+     const c = item as Call;
+     if (typeof c.method !== "string") return null;
+     if (!RPC_METHODS.has(c.method)) refused.push(refusal(c, -32601, `method not allowed here: ${c.method}`));
+-    else if (c.method === "eth_getLogs" && !shortLogRange(c.params)) refused.push(refusal(c, -32602, `logs over at most ${MAX_LOG_BLOCKS} blocks: give fromBlock and toBlock as block numbers, or a blockHash`));
+     else calls.push(c);
+   }
+   return { calls, batch, refused };

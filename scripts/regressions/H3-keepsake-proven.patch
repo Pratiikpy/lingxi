@@ -1,0 +1,11 @@
+--- a/services/api/src/season.ts
++++ b/services/api/src/season.ts
+@@ -172,7 +172,7 @@
+         if (w.award && (w.award.brainId || w.award.none === "noWallet" || w.award.tries >= MAX_TRIES)) continue;
+         // the keepsake goes to the best-placed pet proven to be on X Layer
+         const standings = seasonStandings(week, w.entries);
+-        const best = standings.find((row) => w.pets?.[row.key]) ?? standings[0]!;
++        const best = standings[0]!;
+         const entry = w.entries.find((e) => e.key === best.key)!;
+         out.push({ week, entry, petId: w.pets?.[best.key] ?? null, tries: w.award?.tries ?? 0 });
+       }

@@ -1,7 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { describe, expect, it, vi } from "vitest";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { signRelay } from "@lingxi/chain";
 import { RelayQuota, checkRelayAuth, createNonceBook } from "../src/relayGate";
+import { BrainRelayer } from "../src/relayer";
 
 const owner = privateKeyToAccount(generatePrivateKey());
 const stranger = privateKeyToAccount(generatePrivateKey());
@@ -81,5 +85,32 @@ describe("how much one pet, one keeper and everyone together may ask for", () =>
     const q = new RelayQuota({ perPetPerDay: 1, perSignerPerDay: 1, perHour: 1 });
     expect(q.allow("7", "0xa", NOW)).toBe(true);
     expect(q.allow("7", "0xa", NOW)).toBe(true);
+  });
+});
+
+describe("what the relayer itself holds back", () => {
+  /** A relayer on a node that never answers: anything it tries to send fails, so a refusal here came before sending. */
+  const relayerWith = (cfg: { maxPerHour?: number; reserveWei?: bigint }, store?: unknown) => {
+    const file = join(mkdtempSync(join(tmpdir(), "lx-")), "brains.json");
+    if (store) writeFileSync(file, JSON.stringify(store));
+    return new BrainRelayer({ rpc: "http://127.0.0.1:9", processor: "0xf70d324da8c1c4cb0de3ff147e53e7e9db543c4e", key: generatePrivateKey(), storeFile: file, maxPerDay: 100, ...cfg });
+  };
+  const OKB = 10n ** 18n;
+
+  it("refuses a player's tape-out that would reach into the OKB kept for season keepsakes", async () => {
+    const relayer = relayerWith({ reserveWei: OKB / 100n });
+    // 0.012 OKB held: a tape-out set aside at 0.004 would leave less than the 0.01 reserve
+    vi.spyOn(relayer, "balance").mockResolvedValue((OKB * 12n) / 1000n);
+    expect(await relayer.relay("gentle", [])).toMatchObject({ ok: false, reason: "budget", detail: "the relayer's OKB is held for season keepsakes" });
+    expect(relayer.usage().today).toBe(0);
+  });
+
+  it("refuses a tape-out once this hour's are used, before anything is sent", async () => {
+    const now = Date.now();
+    const relayer = relayerWith({ maxPerHour: 2, reserveWei: 0n }, { brains: {}, day: new Date(now).toISOString().slice(0, 10), used: 2, hour: [now - 60_000, now - 120_000] });
+    const balance = vi.spyOn(relayer, "balance").mockResolvedValue(OKB);
+    expect(await relayer.relay("gentle", [])).toMatchObject({ ok: false, reason: "budget", detail: "this hour's tape-outs are used" });
+    expect(balance).not.toHaveBeenCalled();
+    expect(relayer.usage(now)).toMatchObject({ today: 2, lastHour: 2 });
   });
 });

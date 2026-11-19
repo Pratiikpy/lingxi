@@ -1,0 +1,10 @@
+--- a/services/api/src/goals.ts
++++ b/services/api/src/goals.ts
+@@ -193,7 +193,6 @@
+     const by = new Map<string, number>();
+     for (const e of entries) if (e.m === g.metric && e.t >= g.start && e.t < g.end) by.set(e.w, (by.get(e.w) ?? 0) + e.n);
+     // no wallet counts for more than its share, so no one finishes a goal alone
+-    for (const [w, n] of by) by.set(w, Math.min(n, cap));
+     const total = [...by.values()].reduce((s, n) => s + n, 0);
+     const top = [...by.entries()]
+       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))

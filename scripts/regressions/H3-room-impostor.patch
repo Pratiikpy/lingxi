@@ -1,0 +1,11 @@
+--- a/services/api/src/live.ts
++++ b/services/api/src/live.ts
+@@ -230,7 +230,7 @@
+       case "hello": {
+         const id = clean(m.id, 32).toLowerCase();
+         // only the device holding the key behind this id may be it
+-        if (!/^[a-z0-9]{6,32}$/.test(id) || !this.decor.authorise(id, m.key)) return this.send(c, { t: "refused", reason: "id" });
++        if (!/^[a-z0-9]{6,32}$/.test(id)) return this.send(c, { t: "refused", reason: "id" });
+         const name = clean(m.name, NAME_MAX) || "Pet";
+         c.member = {
+           id,

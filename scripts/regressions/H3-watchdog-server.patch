@@ -1,0 +1,10 @@
+--- a/deploy/watchdog-rules.mjs
++++ b/deploy/watchdog-rules.mjs
+@@ -27,7 +27,6 @@
+   const next = { localFails, publicFails, quietUntil: w.quietUntil };
+   if (now < w.quietUntil) return { watch: next, action: null };
+   const acted = { localFails: 0, publicFails: 0, quietUntil: now + QUIET_MS };
+-  if (localFails >= FAILS_TO_ACT) return { watch: acted, action: "restart-server" };
+   if (beat.local && publicFails >= FAILS_TO_ACT) return { watch: acted, action: "restart-tunnel" };
+   return { watch: next, action: null };
+ }

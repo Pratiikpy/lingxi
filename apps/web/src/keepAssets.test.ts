@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { KEEP_DAYS, keepAssets, keptDirFor } from "../keepAssets";
 
 const DAY = 86_400_000;
@@ -57,5 +57,32 @@ describe("keeping an earlier build's files (A4)", () => {
     writeFileSync(join(kept, "assets", "ancient.js"), "x");
     utimesSync(join(kept, "assets", "ancient.js"), (NOW - 30 * DAY) / 1000, (NOW - 30 * DAY) / 1000);
     expect(keepAssets(dist, kept, NOW).removed).toBe(1);
+  });
+});
+
+describe("a page left open across a deploy whose part fails to load (A4)", () => {
+  it("reloads once into the build that is live now, and never again for the same build", async () => {
+    const page = new EventTarget();
+    const session = new Map<string, string>();
+    const reload = vi.fn();
+    vi.stubGlobal("window", page);
+    vi.stubGlobal("document", { querySelector: () => ({ src: "https://lingxi.knole.me/assets/play-A.js" }) });
+    vi.stubGlobal("sessionStorage", { getItem: (k: string) => session.get(k) ?? null, setItem: (k: string, v: string) => void session.set(k, v) });
+    vi.stubGlobal("location", { reload, pathname: "/play.html" });
+    try {
+      await import("./boot/staleBuild");
+      const partFails = () => {
+        const e = new Event("vite:preloadError", { cancelable: true });
+        page.dispatchEvent(e);
+        return e.defaultPrevented;
+      };
+      expect(partFails()).toBe(true);
+      expect(reload).toHaveBeenCalledTimes(1);
+      // the same build failing again after its reload is left to the crash guard's message, not reloaded in a loop
+      expect(partFails()).toBe(false);
+      expect(reload).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

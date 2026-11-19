@@ -1,0 +1,11 @@
+--- a/services/api/src/seenSet.ts
++++ b/services/api/src/seenSet.ts
+@@ -42,7 +42,7 @@
+ /** The set with `id` in it (a new value; the old one is left as it was). */
+ export function addSeen(s: SeenSet, id: string): SeenSet {
+   if (hasSeen(s, id)) return s;
+-  if (!s.bloom && s.ids.length < EXACT_MAX) return { ids: [...s.ids, id], bloom: null };
++  if (!s.bloom) return { ids: [...s.ids, id], bloom: null };
+   const bits = s.bloom ? decode(s.bloom) : new Uint8Array(BLOOM_BYTES);
+   // moving to the filter, everyone already listed goes into it
+   if (!s.bloom) for (const x of s.ids) withBit(bits, x);

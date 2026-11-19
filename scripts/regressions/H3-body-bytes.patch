@@ -1,0 +1,9 @@
+--- a/services/api/src/bodyLimits.ts
++++ b/services/api/src/bodyLimits.ts
+@@ -40,6 +40,5 @@
+     }
+     return mw;
+   };
+-  app.use("/api/*", async (c, next) => (c.req.method === "GET" || c.req.method === "HEAD" || c.req.method === "OPTIONS" ? next() : of(limitFor(c.req.path))(c, next)));
+   return app;
+ }

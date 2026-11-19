@@ -1,0 +1,10 @@
+--- a/services/api/src/move.ts
++++ b/services/api/src/move.ts
+@@ -41,7 +41,6 @@
+       if (size > MAX_MOVE_CHARS) return { ok: false, reason: "tooBig" };
+       sweep();
+       if (held.size >= MAX_HELD || heldChars + size > MAX_HELD_CHARS) return { ok: false, reason: "busy" };
+-      if ([...held.values()].filter((v) => v.owner === owner).length >= MAX_WAITING_PER_OWNER) return { ok: false, reason: "busy" };
+       const code = randomBytes(16).toString("base64url");
+       const until = now() + MOVE_TTL_MS;
+       held.set(code, { save: parsed.data, until, size, owner });

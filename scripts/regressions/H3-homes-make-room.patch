@@ -1,0 +1,18 @@
+--- a/services/api/src/decor.ts
++++ b/services/api/src/decor.ts
+@@ -116,14 +116,7 @@
+       if (!held && placed.length === 0) return placed;
+       if (!held && homes.size >= maxHomes) {
+         // the keyed home active least recently makes room; its owner's game sends it again on their next visit
+-        let idle: string | null = null;
+-        for (const o of homes.keys())
+-          if (KEYED_ID.test(o)) {
+-            idle = o;
+-            break;
+-          }
+-        if (!idle) return false;
+-        homes.delete(idle);
++        return false;
+       }
+       homes.delete(owner);
+       homes.set(owner, { key, placed, at: now() });

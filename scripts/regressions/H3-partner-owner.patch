@@ -1,0 +1,10 @@
+--- a/packages/chain/src/breeding.ts
++++ b/packages/chain/src/breeding.ts
+@@ -54,7 +54,6 @@
+   if (!/^\d{1,20}$/.test(info.petId) || !/^\d{1,20}$/.test(info.brain) || !/^0x[0-9a-fA-F]{40}$/.test(info.owner)) return "notOwner";
+   try {
+     const pet = await readPet(pub, d, BigInt(info.petId));
+-    if (pet.owner.toLowerCase() !== info.owner.toLowerCase()) return "notOwner";
+     return pet.brainId === BigInt(info.brain) ? "ok" : "notBrain";
+   } catch {
+     return "unreadable";

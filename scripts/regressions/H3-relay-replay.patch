@@ -1,0 +1,10 @@
+--- a/services/api/src/relayGate.ts
++++ b/services/api/src/relayGate.ts
+@@ -63,7 +63,6 @@
+   // the nonce is spent only by a request that would otherwise go through
+   const fresh = deps.nonces.use(`${signer.toLowerCase()}:${a.nonce}`, (a.time + WINDOW_S) * 1000, now);
+   if (fresh === "full") return { ok: false, reason: "busy" };
+-  if (!fresh) return { ok: false, reason: "replayed" };
+   return { ok: true, signer };
+ }
+ 

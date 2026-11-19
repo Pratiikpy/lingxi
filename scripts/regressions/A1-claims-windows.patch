@@ -1,0 +1,11 @@
+--- a/services/api/src/packets.ts
++++ b/services/api/src/packets.ts
+@@ -135,7 +135,7 @@
+     try {
+       const head = Number(await pub.getBlockNumber());
+       for (let i = 0; i < maxWindows && data.next <= head; i++) {
+-        const to = Math.min(head, data.next + WINDOW - 1);
++        const to = head;
+         const logs = await logsIn(data.next, to);
+         for (const l of logs) {
+           const a = l.args as Record<string, bigint | number | string | boolean>;

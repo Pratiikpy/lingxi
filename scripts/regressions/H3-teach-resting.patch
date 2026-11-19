@@ -1,0 +1,10 @@
+--- a/services/api/src/teach.ts
++++ b/services/api/src/teach.ts
+@@ -163,7 +163,6 @@
+     });
+   } catch (e) {
+     // the day's shared budget is spent: say so, rather than "try again in a minute"
+-    if (e instanceof BudgetSpent) return { ok: false, reason: "resting" };
+     if (e instanceof Anthropic.RateLimitError) return { ok: false, reason: "busy" };
+     if (e instanceof Anthropic.APIError) return { ok: false, reason: "error", detail: `api ${e.status}` };
+     return { ok: false, reason: "error", detail: "network" };

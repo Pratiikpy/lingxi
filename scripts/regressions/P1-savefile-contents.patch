@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/saveFile.ts
++++ b/apps/web/src/game/saveFile.ts
+@@ -131,7 +131,7 @@
+   if (typeof c.savedAt !== "number" || !c.keys || typeof c.keys !== "object" || Array.isArray(c.keys)) return false;
+   let chars = 0;
+   for (const [k, val] of Object.entries(c.keys)) {
+-    if (!isSaved(k) || k.endsWith("~copy") || k.endsWith("~damaged") || typeof val !== "string") return false;
++    if (typeof val !== "string") return false;
+     chars += k.length + val.length;
+   }
+   return chars <= MAX_SAVE_CHARS;

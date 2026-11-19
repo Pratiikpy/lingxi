@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
 import { limitFor, withBodyLimits } from "../src/bodyLimits";
+import { createApp } from "../src/server";
 
 /** A request whose body arrives in chunks with no content-length, as a caller trying to slip past a header check would send it. */
 const chunked = (bytes: number) =>
@@ -39,5 +40,11 @@ describe("how much a write may carry", () => {
     expect((await send("/api/move", 5 * 1024 * 1024)).status).toBe(413);
     expect(limitFor("/api/pets/12/log")).toBeGreaterThan(1_300_000);
     expect(limitFor("/api/something-new")).toBe(64 * 1024);
+  });
+
+  it("holds the server's own routes to their sizes", async () => {
+    const big = "a".repeat(20 * 1024);
+    const r = await createApp(null).request("/api/teach", { method: "POST", headers: { "content-type": "application/json", "content-length": String(big.length) }, body: big });
+    expect(r.status).toBe(413);
   });
 });

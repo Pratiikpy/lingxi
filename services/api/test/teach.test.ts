@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cleanName, finishProposal, systemPrompt } from "../src/teach";
+import { cleanName, finishProposal, systemPrompt, teachInWords } from "../src/teach";
 import { createApp } from "../src/server";
 import { RateLimiter } from "../src/limit";
 
@@ -61,6 +61,18 @@ describe("the endpoint", () => {
     expect(l.take("a", 20)).toBe(false);
     expect(l.take("b", 20)).toBe(true);
     expect(l.take("a", 1500)).toBe(true);
+  });
+});
+
+describe("what a lesson in words may cost", () => {
+  it("asks the model for no more than an answer needs", async () => {
+    const asked: Array<{ max_tokens: number }> = [];
+    const client = { beta: { messages: { create: async (params: { max_tokens: number }) => (asked.push(params), { stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify(good) }] }) } } };
+    await teachInWords(client as never, { words: "share your toys", line: "gentle", stage: "child", lessons: [] });
+    expect(asked).toHaveLength(1);
+    // the longest real answer measured was 348 tokens; room for it, and no more than a cut-off answer would waste
+    expect(asked[0]!.max_tokens).toBeGreaterThan(348);
+    expect(asked[0]!.max_tokens).toBeLessThanOrEqual(1200);
   });
 });
 

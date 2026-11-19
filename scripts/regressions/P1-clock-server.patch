@@ -1,0 +1,10 @@
+--- a/apps/web/src/game/clock.ts
++++ b/apps/web/src/game/clock.ts
+@@ -80,7 +80,6 @@
+         const m1 = d.mono();
+         if (!Number.isFinite(server) || m1 - m0 > MAX_ROUND_TRIP_MS) throw new Error("no usable answer");
+         // the server's time at the moment its answer arrived, against the device's at that moment
+-        offset = server + (m1 - m0) / 2 - d.wall();
+         held = 0;
+         synced = true;
+         anchorWall = d.wall();

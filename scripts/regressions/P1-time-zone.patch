@@ -1,0 +1,12 @@
+--- a/apps/web/src/game/store.ts
++++ b/apps/web/src/game/store.ts
+@@ -221,8 +221,7 @@
+  */
+ /** A pet lives by the time zone of the device it is on, as it is now: travel, and its mornings travel with it (P1 S6). */
+ function zoned(p: Pet): Pet {
+-  const tz = -new Date(gameNow()).getTimezoneOffset();
+-  return p.tzOffsetMin === tz ? p : { ...p, tzOffsetMin: tz };
++  return p;
+ }
+ 
+ function returnTo(p: Pet): { pet: Pet; away: Away | null } {

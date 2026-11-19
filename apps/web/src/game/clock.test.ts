@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CLOCK_KEY, createClock } from "./clock";
+import { dayAtLeast } from "./days";
 
 const H = 3_600_000;
 const DAY = 24 * H;
@@ -127,5 +128,15 @@ describe("the game's clock (P1 S6)", () => {
     expect(Math.abs(saved.offset - DAY)).toBeLessThan(10);
     const next = device({ online: false, deviceAhead: -DAY, saved });
     expect(Math.abs(next.clock.now() - next.real())).toBeLessThan(10);
+  });
+});
+
+describe("a day only moves forward (P1 S6)", () => {
+  it("keeps the latest day already used when the clock goes back, so its allowance is not handed out again", () => {
+    expect(dayAtLeast("Wed Nov 18 2026", "Thu Nov 19 2026")).toBe("Thu Nov 19 2026");
+    expect(dayAtLeast("Fri Nov 20 2026", "Thu Nov 19 2026")).toBe("Fri Nov 20 2026");
+    // compared by the moment each day begins, not as text, where this Thursday would sort after the Monday that follows it
+    expect(dayAtLeast("Mon Nov 30 2026", "Thu Nov 26 2026")).toBe("Mon Nov 30 2026");
+    expect(dayAtLeast("Wed Nov 18 2026", null)).toBe("Wed Nov 18 2026");
   });
 });

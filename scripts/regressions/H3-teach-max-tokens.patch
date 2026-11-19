@@ -1,0 +1,11 @@
+--- a/services/api/src/teach.ts
++++ b/services/api/src/teach.ts
+@@ -154,7 +154,7 @@
+     response = await client.beta.messages.create({
+       model: MODEL,
+       // a proposal is about 200 tokens (348 the most in measured real answers); a cut answer fails safely below
+-      max_tokens: 1200,
++      max_tokens: 4000,
+       betas: ["server-side-fallback-2026-07-01"],
+       fallbacks: "default",
+       output_config: { effort: "low", format: { type: "json_schema", schema: PROPOSAL_JSON_SCHEMA } },

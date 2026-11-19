@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/patternShow.ts
++++ b/apps/web/src/game/patternShow.ts
+@@ -18,7 +18,7 @@
+ 
+ /** The steps of one showing of `seq`, `gap` ms per light; the player's turn begins after the last. */
+ export function showSteps(seq: readonly number[], gap: number): ShowStep[] {
+-  const steps: ShowStep[] = [{ at: PRESS_MS, lit: null }];
++  const steps: ShowStep[] = [];
+   // a pause of one full step, all dark, before the first light
+   const start = PRESS_MS + gap;
+   seq.forEach((pad, i) => {

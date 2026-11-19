@@ -1,0 +1,10 @@
+--- a/packages/chain/src/anchor.ts
++++ b/packages/chain/src/anchor.ts
+@@ -50,7 +50,6 @@
+   } catch {
+     return [];
+   }
+-  if (receipt.status !== "success") return [];
+   const found: Found[] = [];
+   for (const log of receipt.logs) {
+     if (log.address.toLowerCase() !== registry.toLowerCase()) continue;

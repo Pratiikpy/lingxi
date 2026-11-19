@@ -22,3 +22,6 @@ window.addEventListener("vite:preloadError", (event) => {
   event.preventDefault();
   location.reload();
 });
+
+// a module of its own, loaded for what it sets up
+export {};

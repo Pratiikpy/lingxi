@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/rpcAsk.ts
++++ b/apps/web/src/game/rpcAsk.ts
+@@ -51,7 +51,7 @@
+ export async function proofRequest(ends: Endpoints, call: { method: string; params?: unknown }, opts: { fetcher?: typeof fetch } = {}): Promise<Answer> {
+   const fetcher = opts.fetcher ?? fetch;
+   const order = [...(ends.mine ? [ends.mine] : []), ...ends.publicRpcs];
+-  const tries = [...order.map((url) => ({ url, fallback: false })), ...(ends.fallback ? [{ url: ends.fallback, fallback: true }] : [])];
++  const tries = [...(ends.fallback ? [{ url: ends.fallback, fallback: true }] : []), ...order.map((url) => ({ url, fallback: false }))];
+   for (const { url, fallback } of tries) {
+     if (!opts.fetcher) await paced(url);
+     let res: Response;

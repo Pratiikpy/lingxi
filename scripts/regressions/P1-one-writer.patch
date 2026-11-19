@@ -1,0 +1,13 @@
+--- a/apps/web/src/game/writer.ts
++++ b/apps/web/src/game/writer.ts
+@@ -163,9 +163,7 @@
+     },
+     /** True only while this tab holds the game and the stamp in storage is its own (checked on every write). */
+     isWriter(): boolean {
+-      if (!held) return false;
+-      const s = readStamp();
+-      return s === null || s.id === id;
++      return true;
+     },
+   };
+ }

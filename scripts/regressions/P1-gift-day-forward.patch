@@ -1,0 +1,11 @@
+--- a/packages/world/src/friendship.ts
++++ b/packages/world/src/friendship.ts
+@@ -145,7 +145,7 @@
+   if (!given.ok) return given;
+   // the day's first gift counts, and only for a day after the last one counted (a clock turned back adds nothing)
+   const last = learnt.gifted[sheet.id];
+-  const counts = !last || day > last;
++  const counts = last !== day;
+   const trust = giftTrust(taste, !counts).points;
+   const friends: FriendsState = counts ? { ...learnt, gifted: { ...learnt.gifted, [sheet.id]: day } } : learnt;
+   const world: WorldState = { ...given.world, friends, trust: trust ? { ...(given.world.trust ?? {}), [sheet.id]: trustOf(given.world, sheet.id) + trust } : given.world.trust };

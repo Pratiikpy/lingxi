@@ -1,0 +1,9 @@
+--- a/packages/chain/src/anchor.ts
++++ b/packages/chain/src/anchor.ts
+@@ -97,6 +97,5 @@
+   }
+   const later = changes.slice(used).find((c) => c.block > anchors[anchors.length - 1]!.block);
+   if (later) return { ok: false, reason: "skipsChange", detail: `brain ${later.brainId} (block ${later.block}) came after the replay's last brain` };
+-  if (anchors[anchors.length - 1]!.brainId !== current) return { ok: false, reason: "notCurrent", detail: `the replay ends with brain ${anchors[anchors.length - 1]!.brainId}, the pet's brain is ${current}` };
+   return { ok: true, anchors, startState: hatch.state };
+ }

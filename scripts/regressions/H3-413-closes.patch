@@ -1,0 +1,11 @@
+--- a/services/api/src/bodyLimits.ts
++++ b/services/api/src/bodyLimits.ts
+@@ -35,7 +35,7 @@
+     let mw = cache.get(max);
+     if (!mw) {
+       // the rest of an oversized body is never read, so the connection cannot carry another request: say so
+-      mw = bodyLimit({ maxSize: max, onError: (c: Context) => c.json({ ok: false, reason: "tooBig" }, 413, { connection: "close" }) });
++      mw = bodyLimit({ maxSize: max, onError: (c: Context) => c.json({ ok: false, reason: "tooBig" }, 413) });
+       cache.set(max, mw);
+     }
+     return mw;

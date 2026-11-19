@@ -1,0 +1,9 @@
+--- a/apps/web/src/boot/staleBuild.ts
++++ b/apps/web/src/boot/staleBuild.ts
+@@ -19,6 +19,4 @@
+     // without session storage a reload could not be remembered, so none is made
+     return;
+   }
+-  event.preventDefault();
+-  location.reload();
+ });

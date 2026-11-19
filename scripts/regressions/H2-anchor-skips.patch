@@ -1,0 +1,10 @@
+--- a/packages/chain/src/anchor.ts
++++ b/packages/chain/src/anchor.ts
+@@ -90,7 +90,6 @@
+     if (at < 0) return { ok: false, reason: "unanchored", detail: `no BrainChanged to brain ${brain} after block ${anchors[anchors.length - 1]!.block}` };
+     // a proven change between the last anchor and this one means the replay left a brain out
+     const skipped = changes.slice(used, at).find((c) => c.block > anchors[anchors.length - 1]!.block);
+-    if (skipped) return { ok: false, reason: "skipsChange", detail: `brain ${skipped.brainId} (block ${skipped.block}) is missing from the replay` };
+     const c = changes[at]!;
+     anchors.push({ brainId: c.brainId, tx: c.tx, block: c.block, kind: "changed" });
+     used = at + 1;

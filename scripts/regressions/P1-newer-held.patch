@@ -1,0 +1,13 @@
+--- a/apps/web/src/game/save.ts
++++ b/apps/web/src/game/save.ts
+@@ -184,9 +184,7 @@
+         if (looksJson(raw)) {
+           try {
+             const value: unknown = JSON.parse(raw);
+-            const reader = readers[k];
+-            const verdict = reader ? reader(value) : "ok";
+-            why = verdict === "ok" ? null : verdict;
++            why = null;
+           } catch {
+             why = "unreadable";
+           }

@@ -1,5 +1,563 @@
 [
   {
+    "id": "H1-legacy-names",
+    "row": "H1",
+    "bug": "renaming the residents would have cost old saves every friendship, gift and quest step made with them",
+    "test": { "kind": "vitest", "dir": "packages/world", "file": "test/legacy.test.ts", "name": "keep every resident's trust, steps, known tastes and talks under the new names" }
+  },
+  {
+    "id": "H1-hooks-lint",
+    "row": "H1",
+    "bug": "the lint did not check the rules of hooks, and a hook placed after an early return took the live game down",
+    "test": { "kind": "vitest", "dir": ".", "file": "scripts/lint.test.mts", "name": "fails a hook placed after an early return" }
+  },
+  {
+    "id": "H2-public-rpc-first",
+    "row": "H2",
+    "bug": "the proof page read X Layer through Lingxi's own server, so it proved nothing a judge could not doubt",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/rpcAsk.test.ts", "name": "asks a public endpoint and says which one answered" }
+  },
+  {
+    "id": "H2-cors-history",
+    "row": "H2",
+    "bug": "the on-chain copy, which has no server, could not read a pet's history to anchor its replay",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/cors.test.ts", "name": "lets any page read a pet's public history and published log" }
+  },
+  {
+    "id": "H2-anchor-hatch-brain",
+    "row": "H2",
+    "bug": "the proof page's replay took its first brain from a hint, not from the pet's own Hatched event",
+    "test": { "kind": "vitest", "dir": "packages/chain", "file": "test/anchor.test.ts", "name": "refuses a first brain other than the one it hatched with" }
+  },
+  {
+    "id": "H2-anchor-current",
+    "row": "H2",
+    "bug": "a replay could end with a brain other than the pet's brain on record now",
+    "test": { "kind": "vitest", "dir": "packages/chain", "file": "test/anchor.test.ts", "name": "refuses a last brain other than the one on record now" }
+  },
+  {
+    "id": "H2-anchor-skips",
+    "row": "H2",
+    "bug": "a replay could leave out a brain the pet really held",
+    "test": { "kind": "vitest", "dir": "packages/chain", "file": "test/anchor.test.ts", "name": "refuses a replay that skips a brain the pet really held" }
+  },
+  {
+    "id": "H2-anchor-order",
+    "row": "H2",
+    "bug": "a replay's brains were matched in the order the hints gave, not the order the chain recorded",
+    "test": { "kind": "vitest", "dir": "packages/chain", "file": "test/anchor.test.ts", "name": "refuses brains in an order the chain did not record" }
+  },
+  {
+    "id": "H2-anchor-other-pet",
+    "row": "H2",
+    "bug": "another pet's BrainChanged event could anchor this pet's replay",
+    "test": { "kind": "vitest", "dir": "packages/chain", "file": "test/anchor.test.ts", "name": "does not count another pet's event, another contract's event, or a reverted transaction" }
+  },
+  {
+    "id": "H2-anchor-other-contract",
+    "row": "H2",
+    "bug": "an event from another contract, shaped like the registry's, could anchor a replay",
+    "test": { "kind": "vitest", "dir": "packages/chain", "file": "test/anchor.test.ts", "name": "does not count another pet's event, another contract's event, or a reverted transaction" }
+  },
+  {
+    "id": "H2-anchor-reverted",
+    "row": "H2",
+    "bug": "a reverted transaction's events could anchor a replay",
+    "test": { "kind": "vitest", "dir": "packages/chain", "file": "test/anchor.test.ts", "name": "does not count another pet's event, another contract's event, or a reverted transaction" }
+  },
+  {
+    "id": "H3-client-ip",
+    "row": "H3",
+    "bug": "every limit keyed on x-forwarded-for, which a caller writes, so rotating it passed every limit",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/clientip.test.ts", "name": "is the address Cloudflare saw, and never a header the caller wrote" }
+  },
+  {
+    "id": "H3-relay-signed",
+    "row": "H3",
+    "bug": "the relayer taped out (spending Lingxi's OKB) for anyone who asked, with no signature from the pet's keeper",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/relayRoutes.test.ts", "name": "refuses an unsigned request, a stranger, a replay and a request sent to the wrong route" }
+  },
+  {
+    "id": "H3-relay-replay",
+    "row": "H3",
+    "bug": "a signed relay request could be sent again and again",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/relayGate.test.ts", "name": "not the same signature twice" }
+  },
+  {
+    "id": "H3-relay-expired",
+    "row": "H3",
+    "bug": "a relay signature stayed good for ever, so one seen once could be used later",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/relayGate.test.ts", "name": "not a signature older or newer than five minutes" }
+  },
+  {
+    "id": "H3-relay-quota",
+    "row": "H3",
+    "bug": "one keeper could ask for tape-outs without end, from as many addresses as they had",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/relayRoutes.test.ts", "name": "stops a keeper at the pet's daily quota, even from many addresses" }
+  },
+  {
+    "id": "H3-relay-reserve",
+    "row": "H3",
+    "bug": "players' tape-outs could spend the relayer's last OKB, leaving none for season keepsakes",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/relayGate.test.ts", "name": "refuses a player's tape-out that would reach into the OKB kept for season keepsakes" }
+  },
+  {
+    "id": "H3-relay-hourly",
+    "row": "H3",
+    "bug": "the relayer had a daily ceiling only, so a day's tape-outs could all be spent in one hour",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/relayGate.test.ts", "name": "refuses a tape-out once this hour's are used, before anything is sent" }
+  },
+  {
+    "id": "H3-ids-from-receipt",
+    "row": "H3",
+    "bug": "a taped-out brain's id came from the simulation, which another transaction could take before the block",
+    "test": { "kind": "vitest", "dir": "packages/chain", "file": "test/receipts.test.ts", "name": "refuses a mint by another contract, to someone else, a transfer that is not a mint, or a reverted transaction" }
+  },
+  {
+    "id": "H3-token-budget",
+    "row": "H3",
+    "bug": "teaching and voices had no daily token budget, so a flood of requests could run up the model bill",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/tokenBudget.test.ts", "name": "counts every call's tokens and refuses once the day's budget is spent" }
+  },
+  {
+    "id": "H3-teach-max-tokens",
+    "row": "H3",
+    "bug": "a lesson in words asked the model for up to 4,000 tokens, far more than an answer needs",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/teach.test.ts", "name": "asks the model for no more than an answer needs" }
+  },
+  {
+    "id": "H3-teach-resting",
+    "row": "H3",
+    "bug": "with the day's model budget spent, teaching in words told the player to try again in a minute",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/tokenBudget.test.ts", "name": "tells a player teaching in words that today's share is used, not to try again in a minute" }
+  },
+  {
+    "id": "H3-body-bytes",
+    "row": "H3",
+    "bug": "body limits read only content-length, so a chunked body with no length passed any size",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/bodyLimits.test.ts", "name": "refuses an oversized body that comes in chunks with no length given" }
+  },
+  {
+    "id": "H3-body-limits-wired",
+    "row": "H3",
+    "bug": "the server's own routes would take any body if the limits were not applied to them",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/bodyLimits.test.ts", "name": "holds the server's own routes to their sizes" }
+  },
+  {
+    "id": "H3-413-closes",
+    "row": "H3",
+    "bug": "a refused oversized upload left its connection open, so a client reusing it failed its next request",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/bodyLimits.test.ts", "name": "refuses an oversized body that comes in chunks with no length given" }
+  },
+  {
+    "id": "H3-sitting-per-owner",
+    "row": "H3",
+    "bug": "one address could leave sitting packs without end and fill the store",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/sitting.test.ts", "name": "lets one address have only a few packs waiting, and keeps all packs within their byte budget" }
+  },
+  {
+    "id": "H3-sitting-bytes",
+    "row": "H3",
+    "bug": "sitting packs had no byte budget, so packs together could grow until the server ran out of memory",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/sitting.test.ts", "name": "lets one address have only a few packs waiting, and keeps all packs within their byte budget" }
+  },
+  {
+    "id": "H3-move-per-owner",
+    "row": "H3",
+    "bug": "one address could hold every waiting move and block the rest of the world",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/move.test.ts", "name": "one address may have only a few, and the rest of the world is not blocked by it" }
+  },
+  {
+    "id": "H3-season-per-address",
+    "row": "H3",
+    "bug": "one client could fill the week's season with 64 entries",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/season.test.ts", "name": "one address holds only a few entries a week, and updating its own costs nothing" }
+  },
+  {
+    "id": "H3-season-one-per-pet",
+    "row": "H3",
+    "bug": "one proven pet could hold several entries in a week, one from each device",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/season.test.ts", "name": "a proven pet has one entry: entering it from another device moves it there" }
+  },
+  {
+    "id": "H3-season-proof-keeper",
+    "row": "H3",
+    "bug": "a season entry could claim to be someone else's pet, and its keepsake",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/seasonProof.test.ts", "name": "is not a stranger's, not another entry's signature, and not a card that thinks differently from the chain" }
+  },
+  {
+    "id": "H3-season-proof-brain",
+    "row": "H3",
+    "bug": "a season entry could be proven with a card that thinks differently from the pet's brain on chain",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/seasonProof.test.ts", "name": "is not a stranger's, not another entry's signature, and not a card that thinks differently from the chain" }
+  },
+  {
+    "id": "H3-keepsake-proven",
+    "row": "H3",
+    "bug": "the season keepsake went to the top entry whether or not it was proven to be a pet on X Layer",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/season.test.ts", "name": "skip an unproven champion for the best proven pet below it" }
+  },
+  {
+    "id": "H3-room-impostor",
+    "row": "H3",
+    "bug": "anyone who saw a player's id in a room could join as that player",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/live.test.ts", "name": "an id is only its owner's: someone who saw it in a room cannot take it, and a made-up id is refused" }
+  },
+  {
+    "id": "H3-room-connections",
+    "row": "H3",
+    "bug": "one address could open rooms connections without end",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/live.test.ts", "name": "one address holds only a few connections" }
+  },
+  {
+    "id": "H3-room-429-complete",
+    "row": "H3",
+    "bug": "the rooms' refusal of an extra connection was a 429 with no length, which a proxy in front could not pass on",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/live.test.ts", "name": "refuses an extra connection with a complete HTTP answer" }
+  },
+  {
+    "id": "H3-partner-owner",
+    "row": "H3",
+    "bug": "a family proposal's owner was taken on a peer's word, so a player could be asked to consent for a stranger's wallet",
+    "test": { "kind": "vitest", "dir": "packages/chain", "file": "test/partner.test.ts", "name": "passes only when the address owns the pet and the pet's brain is the one named" }
+  },
+  {
+    "id": "H3-partner-brain",
+    "row": "H3",
+    "bug": "a family proposal's brain was taken on a peer's word",
+    "test": { "kind": "vitest", "dir": "packages/chain", "file": "test/partner.test.ts", "name": "passes only when the address owns the pet and the pet's brain is the one named" }
+  },
+  {
+    "id": "H3-home-squatter",
+    "row": "H3",
+    "bug": "a squatter who learned a new player's id could claim that player's home before they first used it",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/decor.test.ts", "name": "a home belongs to the key its id comes from; nobody else can claim it, even first" }
+  },
+  {
+    "id": "H3-homes-nothing-stored",
+    "row": "H3",
+    "bug": "every new key kept a home record, so cycling keys could fill the homes store and shut new players out of rooms",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/decor.test.ts", "name": "a new player is let in by the key alone: nothing is stored until their home holds something" }
+  },
+  {
+    "id": "H3-homes-make-room",
+    "row": "H3",
+    "bug": "a full homes store refused every new player's home",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/decor.test.ts", "name": "when full, the home kept least recently active makes room; its owner's game restores it on their next visit" }
+  },
+  {
+    "id": "H3-homes-per-day",
+    "row": "H3",
+    "bug": "one address could start new homes without end",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/live.test.ts", "name": "one address makes only a few new homes a day, so no one fills the server with empty ones" }
+  },
+  {
+    "id": "H3-goals-wallet-cap",
+    "row": "H3",
+    "bug": "one wallet could finish a community goal, and claim its keepsake, alone",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/goals.test.ts", "name": "no wallet finishes a goal alone: each counts for at most a fifth of the target" }
+  },
+  {
+    "id": "H3-goals-settled",
+    "row": "H3",
+    "bug": "a farm of fresh pets moved the new-pets goal",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/goals.test.ts", "name": "a farm of fresh pets does not move the new-pets goal; only pets kept for days do" }
+  },
+  {
+    "id": "H3-goals-day-once",
+    "row": "H3",
+    "bug": "saving the same pet-day again counted again toward the saves goal",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/goals.test.ts", "name": "credits each event to the right wallet, following the pet through a transfer" }
+  },
+  {
+    "id": "H3-rpc-batch",
+    "row": "H3",
+    "bug": "the RPC door took batches of any size",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/rpc.test.ts", "name": "takes batches of at most ten, each call counted against the caller" }
+  },
+  {
+    "id": "H3-rpc-calls-counted",
+    "row": "H3",
+    "bug": "a batch counted as one request, so one caller's batches passed its limit",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/rpc.test.ts", "name": "takes batches of at most ten, each call counted against the caller" }
+  },
+  {
+    "id": "H3-rpc-log-range",
+    "row": "H3",
+    "bug": "the RPC door forwarded eth_getLogs over any range of blocks",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/rpc.test.ts", "name": "asks for logs only over a short, stated range of blocks" }
+  },
+  {
+    "id": "H3-rpc-ceiling",
+    "row": "H3",
+    "bug": "a crowd of addresses could use the RPC door to get the upstream to throttle the server",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/rpc.test.ts", "name": "holds a ceiling for everyone together, so no crowd of addresses can get the upstream to throttle us" }
+  },
+  {
+    "id": "H3-rpc-jobs-reserve",
+    "row": "H3",
+    "bug": "the RPC door shared the server's own jobs' upstream without limit",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/rpc.test.ts", "name": "keeps our own jobs' upstream for them: the door uses it only as a small, last reserve" }
+  },
+  {
+    "id": "H3-jobs-guarded",
+    "row": "H3",
+    "bug": "a background job's rejection reached the process and took the server down",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/jobs.test.ts", "name": "keep running after a job throws or rejects, and say so" }
+  },
+  {
+    "id": "H3-library-reports",
+    "row": "H3",
+    "bug": "three spoofed reports hid a lesson thirty players had learned",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/library.test.ts", "name": "a well-learned lesson needs reports from a third of the players who learned it, not three spoofed ones" }
+  },
+  {
+    "id": "H3-library-labels",
+    "row": "H3",
+    "bug": "the lesson library served a stranger's free-text label to every player",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/library.test.ts", "name": "shows no stranger's words: labels are dropped, and a teacher's name must pass the same word check as rooms" }
+  },
+  {
+    "id": "H3-library-names",
+    "row": "H3",
+    "bug": "a teacher's name in the library skipped the word check rooms use",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/library.test.ts", "name": "shows no stranger's words: labels are dropped, and a teacher's name must pass the same word check as rooms" }
+  },
+  {
+    "id": "H3-seen-set",
+    "row": "H3",
+    "bug": "each lesson's lists of who used and reported it grew with every address, without end",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/seenSet.test.ts", "name": "past that, it holds any number in the same few kilobytes, still never forgetting anyone" }
+  },
+  {
+    "id": "H3-limiter-keys",
+    "row": "H3",
+    "bug": "the rate limiters' maps grew with every new address, without end",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/limit.test.ts", "name": "holds at most so many addresses, so a crowd of new ones cannot grow it without end" }
+  },
+  {
+    "id": "H3-hsts",
+    "row": "H3",
+    "bug": "the live site did not pin HTTPS",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/site-headers.test.ts", "name": "pins HTTPS and allows scripts only from our origin" }
+  },
+  {
+    "id": "H3-script-policy",
+    "row": "H3",
+    "bug": "the live site had no script policy, so an injected script would run",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/site-headers.test.ts", "name": "pins HTTPS and allows scripts only from our origin" }
+  },
+  {
+    "id": "H3-watchdog-tunnel",
+    "row": "H3",
+    "bug": "a tunnel gone stale stayed down until someone noticed (it once did for two days)",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/watchdog.test.ts", "name": "restarts the tunnel when the server answers here but the site does not answer outside" }
+  },
+  {
+    "id": "H3-watchdog-server",
+    "row": "H3",
+    "bug": "a hung server process stayed hung: pm2 restarts a crash, not a hang",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/watchdog.test.ts", "name": "restarts the server when it stops answering even here" }
+  },
+  {
+    "id": "P1-one-writer",
+    "row": "P1",
+    "bug": "every open tab wrote the save, so a stale tab wrote over a gift claimed in another (the QA run's lost Rice Seeds)",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/writer.test.ts", "name": "the first tab writes; a second waits; 'play here' moves the game at once and the first stops" }
+  },
+  {
+    "id": "P1-stamp-checked",
+    "row": "P1",
+    "bug": "a tab whose game was taken over kept writing until the browser told it the lock was gone",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/writer.test.ts", "name": "a page gives its lease up as it goes" }
+  },
+  {
+    "id": "P1-save-refuses",
+    "row": "P1",
+    "bug": "any tab could write the game's state, writer or not",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/save.test.ts", "name": "writes nothing of the game's from a tab that is not the writer, but lets it change preferences" }
+  },
+  {
+    "id": "P1-copy-kept",
+    "row": "P1",
+    "bug": "a save was replaced with nothing kept of what it replaced",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/save.test.ts", "name": "keeps a copy of what it replaces: on the first change, then at most every few minutes" }
+  },
+  {
+    "id": "P1-damaged-held",
+    "row": "P1",
+    "bug": "a save that would not parse was read as empty and the next write saved over it",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/save.test.ts", "name": "keeps a save that will not parse as it was, offers the last good copy, and refuses to write over it until the player chooses" }
+  },
+  {
+    "id": "P1-newer-held",
+    "row": "P1",
+    "bug": "a save that parsed but this build could not read (a newer Lingxi's) was taken as it came",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/save.test.ts", "name": "holds a save that parses but this build cannot read: a newer version, or a shape it does not know" }
+  },
+  {
+    "id": "P1-write-failure-told",
+    "row": "P1",
+    "bug": "a write refused by a full or blocked storage was swallowed, and the save lost in silence",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/save.test.ts", "name": "says when storage is full instead of losing the save in silence" }
+  },
+  {
+    "id": "P1-kept-pets",
+    "row": "P1",
+    "bug": "a pet whose version was not 1 was dropped from the roster at the next save",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/roster.test.ts", "name": "keeps a pet from a newer version exactly as saved, names it, and writes it back with every save" }
+  },
+  {
+    "id": "P1-send-size",
+    "row": "P1",
+    "bug": "a moving save, a sitting pack and a published log went out unmeasured and came back refused",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/sendSize.test.ts", "name": "lets a body at the limit through and refuses one byte more, counting bytes as sent" }
+  },
+  {
+    "id": "P1-savefile-rounds",
+    "row": "P1",
+    "bug": "a crafted save file asking for billions of key rounds would hang the page that opened it",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/saveFile.test.ts", "name": "says plainly when a file is not a save file, or comes from a newer Lingxi" }
+  },
+  {
+    "id": "P1-savefile-contents",
+    "row": "P1",
+    "bug": "a crafted save file could write keys outside the game's into the browser's storage",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/saveFile.test.ts", "name": "refuses contents that are not the game's, so a crafted file cannot write elsewhere in storage" }
+  },
+  {
+    "id": "P1-clock-server",
+    "row": "P1",
+    "bug": "the game ran on the device's clock alone, so a clock set wrong moved a pet's day and its rewards",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/clock.test.ts", "name": "is real time once the server answers, whatever the device clock says" }
+  },
+  {
+    "id": "P1-clock-back",
+    "row": "P1",
+    "bug": "a clock set back during a visit froze the pet until real time passed its last beat",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/clock.test.ts", "name": "cancels a device clock set back during a visit: the game neither freezes nor goes back" }
+  },
+  {
+    "id": "P1-clock-ahead",
+    "row": "P1",
+    "bug": "a device clock set ahead during a visit was believed, so the game skipped ahead",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/clock.test.ts", "name": "does not believe a device clock set ahead once the server answers" }
+  },
+  {
+    "id": "P1-clock-offline",
+    "row": "P1",
+    "bug": "offline, a clock set back started the game earlier than the last moment it had seen",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/clock.test.ts", "name": "offline, never starts a visit earlier than the last moment it saw, and runs on from there" }
+  },
+  {
+    "id": "P1-days-forward",
+    "row": "P1",
+    "bug": "turning the clock back a day handed out that day's daily care and shifts again",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/clock.test.ts", "name": "keeps the latest day already used when the clock goes back" }
+  },
+  {
+    "id": "P1-gift-day-forward",
+    "row": "P1",
+    "bug": "turning the clock back a day let a resident's gift count for trust again",
+    "test": { "kind": "vitest", "dir": "packages/world", "file": "test/friendship.test.ts", "name": "raise trust by taste, with only the day's first gift counting" }
+  },
+  {
+    "id": "P1-dailies-forward",
+    "row": "P1",
+    "bug": "turning the clock back a day offered that day's dailies again",
+    "test": { "kind": "vitest", "dir": "packages/world", "file": "test/story.test.ts", "name": "never hands out an earlier day's dailies again when the clock goes back (P1)" }
+  },
+  {
+    "id": "P1-pet-ahead-lives",
+    "row": "P1",
+    "bug": "a pet whose clock ran ahead stayed frozen until real time caught up with it",
+    "test": { "kind": "vitest", "dir": "packages/game", "file": "test/sim.test.ts", "name": "moves a pet ahead of now back to now with nothing else changed, and it lives on at once" }
+  },
+  {
+    "id": "P1-time-zone",
+    "row": "P1",
+    "bug": "a pet's time zone was fixed at hatch, so it kept the mornings of wherever it was hatched",
+    "test": { "kind": "e2e", "spec": "e2e/specs/time-zone.spec.ts", "title": "a pet follows the time zone of the device it is on" }
+  },
+  {
+    "id": "A1-claims-windows",
+    "row": "A1",
+    "bug": "red packet claims were asked for from the deploy block to now in one request, which every mainnet node refuses",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/packets.test.ts", "name": "reads to the head in windows of at most 100 blocks and lists each packet's claims in order" }
+  },
+  {
+    "id": "A1-claims-forget",
+    "row": "A1",
+    "bug": "the claims index kept every closed packet for ever",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/packets.test.ts", "name": "forgets a closed packet's claims 30 days after it closes, however much room is left" }
+  },
+  {
+    "id": "A1-claims-budget",
+    "row": "A1",
+    "bug": "the claims index had no budget, so claims could grow without end",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/packets.test.ts", "name": "forgets a packet 30 days after it closes, never one still open, and keeps within its claim budget" }
+  },
+  {
+    "id": "A2-album-first-visit",
+    "row": "A2",
+    "bug": "a brand-new player who scrolled to the album on the first visit got a blank page: its selector made a new list on every read and looped",
+    "test": { "kind": "e2e", "spec": "e2e/specs/album.spec.ts", "title": "a new player's album draws on the first visit" }
+  },
+  {
+    "id": "A3-mark-waits",
+    "row": "A3",
+    "bug": "the start-up mark \"Rules verified on X Layer\" floated over an open sheet's title for its five seconds",
+    "test": { "kind": "e2e", "spec": "e2e/specs/rules-mark.spec.ts", "title": "the rules mark waits while a sheet is open" }
+  },
+  {
+    "id": "A4-clock-whole-ms",
+    "row": "A4",
+    "bug": "the game's clock gave fractions of a millisecond, and the reminder route refused such times",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/clock.test.ts", "name": "gives whole milliseconds, as the device clock does, whatever its correction" }
+  },
+  {
+    "id": "A4-keep-assets",
+    "row": "A4",
+    "bug": "each build emptied its folder, deleting the files a page still open would ask for",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/keepAssets.test.ts", "name": "keeps every file of the build about to be replaced, beside it, where the server looks" }
+  },
+  {
+    "id": "A4-stale-reload",
+    "row": "A4",
+    "bug": "a page whose part no longer existed after a deploy stayed broken instead of loading the live build",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/keepAssets.test.ts", "name": "reloads once into the build that is live now, and never again for the same build" }
+  },
+  {
+    "id": "A4-stale-reload-once",
+    "row": "A4",
+    "bug": "a part that failed again after its reload would reload the page in a loop",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/keepAssets.test.ts", "name": "reloads once into the build that is live now, and never again for the same build" }
+  },
+  {
+    "id": "A4-onchain-copy-clock",
+    "row": "A4",
+    "bug": "the on-chain copy, built with no server, asked a server it did not have for the time, so its clock was never corrected",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/handheld/clock.test.ts", "name": "comes from the game's time, not the device's, once the server has answered" }
+  },
+  {
+    "id": "A4-pages-no-cache",
+    "row": "A4",
+    "bug": "pages were sent with no Cache-Control, so a browser could keep an old page past a deploy",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/site-deploys.test.ts", "name": "sends every page with no-cache, so a browser never reuses an old page past a deploy" }
+  },
+  {
+    "id": "A4-kept-assets-served",
+    "row": "A4",
+    "bug": "each build deleted the last build's files, so a page open across a deploy asked for parts that no longer existed",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/site-deploys.test.ts", "name": "still serves a file of the build before, for a page that was open when the new one went live" }
+  },
+  {
+    "id": "A4-missing-not-cached",
+    "row": "A4",
+    "bug": "every /assets/ answer, a 404 included, was marked immutable for a year",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/site-deploys.test.ts", "name": "never marks a missing file to be kept for a year" }
+  },
+  {
     "id": "A5-retry-edge-hiccup",
     "row": "A5",
     "bug": "one passing Cloudflare 520 turned the public checks red",
@@ -18,6 +576,24 @@
     "test": { "kind": "vitest", "dir": "packages/handheld", "file": "test/trip.test.ts", "name": "waits until the game's clock reaches a log that ends one beat ahead, then brings the pet home" }
   },
   {
+    "id": "A7-game-open-elsewhere",
+    "row": "A7",
+    "bug": "\"Bring home\" sent the handheld's tab to the game even with the game open in another tab, stranding it on \"open in another tab\"",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/writer.test.ts", "name": "asks the browser which locks are held, where it has Web Locks" }
+  },
+  {
+    "id": "A7-handheld-tab-stays",
+    "row": "A7",
+    "bug": "\"Bring home\" turned the handheld's tab into the game while the game was open in another tab, so it landed on \"open in another tab\"",
+    "test": { "kind": "e2e", "spec": "e2e/specs/handheld.spec.ts", "title": "G1: the handheld's tab stays, says the pet is on its way, then home, and closes on request (en, light, phone)" }
+  },
+  {
+    "id": "A7-one-homecoming",
+    "row": "A7",
+    "bug": "two homecoming checks could overlap, and the second reported \"no pet on the handheld\" over a pet that had come home",
+    "test": { "kind": "e2e", "spec": "e2e/specs/handheld.spec.ts", "title": "G2: with no game tab open, the handheld's tab becomes the game and brings the pet home (zh, light, phone)" }
+  },
+  {
     "id": "A8-lease-given-up",
     "row": "A8",
     "bug": "without Web Locks, a reload found its own page's lease and showed \"open in another tab\"",
@@ -28,5 +604,29 @@
     "row": "A8",
     "bug": "a lease left by a page that died without a word kept the player out until it ran out",
     "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/writer.test.ts", "name": "a lease that is not renewed within the watch is a page that died without a word: it is taken over (A8)" }
+  },
+  {
+    "id": "A8-restored-page",
+    "row": "A8",
+    "bug": "without Web Locks, a page the browser restored from its back-forward cache stayed out of its own game",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/writer.test.ts", "name": "a page restored from the back-forward cache takes its lease back, or yields to a tab that took the game" }
+  },
+  {
+    "id": "A9-dark-pause",
+    "row": "A9",
+    "bug": "a round's first light followed the player's last press with almost no dark between, and was taken for the press",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/patternShow.test.ts", "name": "shows nothing for a clear pause, at least one light's time, before the first light" }
+  },
+  {
+    "id": "A9-press-out-first",
+    "row": "A9",
+    "bug": "the player's last press stayed lit into the showing, running into a first light on the same pad",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/patternShow.test.ts", "name": "first puts out the press that ended the last round" }
+  },
+  {
+    "id": "A9-showing-owns-lights",
+    "row": "A9",
+    "bug": "the showing was timed from the round's start with the press's light still running, so on a slow phone a light was cut short or ran into the press",
+    "test": { "kind": "e2e", "spec": "e2e/specs/pattern.spec.ts", "title": "the pattern game shows every light clearly on a slow phone (en, light, phone)" }
   }
 ]

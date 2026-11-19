@@ -1,0 +1,17 @@
+--- a/services/api/src/season.ts
++++ b/services/api/src/season.ts
+@@ -125,14 +125,6 @@
+       const from = { ...(w.from ?? {}) };
+       // a proven pet has one entry: entering it again from another device moves its entry there
+       let entries = w.entries;
+-      if (opts.petId) {
+-        const before = Object.keys(pets).find((k) => pets[k] === opts.petId && k !== w.by[who]);
+-        if (before) {
+-          entries = entries.filter((e) => e.key !== before);
+-          delete pets[before];
+-          delete from[before];
+-        }
+-      }
+       const key = w.by[who] ?? tag(`lingxi-season:${week}:${who}`).slice(0, 12);
+       const at = entries.findIndex((e) => e.key === key);
+       if (at < 0 && entries.length >= MAX_ENTRIES) return { ok: false, reason: "full" };

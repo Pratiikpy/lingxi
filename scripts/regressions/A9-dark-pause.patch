@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/patternShow.ts
++++ b/apps/web/src/game/patternShow.ts
+@@ -20,7 +20,7 @@
+ export function showSteps(seq: readonly number[], gap: number): ShowStep[] {
+   const steps: ShowStep[] = [{ at: PRESS_MS, lit: null }];
+   // a pause of one full step, all dark, before the first light
+-  const start = PRESS_MS + gap;
++  const start = 280;
+   seq.forEach((pad, i) => {
+     steps.push({ at: start + i * gap, lit: pad }, { at: start + i * gap + gap / 2, lit: null });
+   });

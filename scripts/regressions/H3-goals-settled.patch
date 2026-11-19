@@ -1,0 +1,11 @@
+--- a/services/api/src/goals.ts
++++ b/services/api/src/goals.ts
+@@ -140,7 +140,7 @@
+               const days = [...seen.days, day];
+               await add("saves", owners[id], 1);
+               // the pet is settled when its SETTLED_DAYS-th different day is saved: then it counts as a new pet
+-              const settles = !seen.counted && days.length >= SETTLED_DAYS;
++              const settles = !seen.counted && days.length >= 1;
+               if (settles) await add("hatched", seen.to, 1);
+               pets[id] = { ...seen, days, counted: seen.counted || settles };
+             }

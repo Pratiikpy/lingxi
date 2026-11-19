@@ -1,0 +1,10 @@
+--- a/packages/chain/src/anchor.ts
++++ b/packages/chain/src/anchor.ts
+@@ -53,7 +53,6 @@
+   if (receipt.status !== "success") return [];
+   const found: Found[] = [];
+   for (const log of receipt.logs) {
+-    if (log.address.toLowerCase() !== registry.toLowerCase()) continue;
+     try {
+       const e = decodeEventLog({ abi: petRegistryAbi, data: log.data, topics: log.topics });
+       if (e.eventName === "Hatched") found.push({ kind: "hatched", petId: e.args.petId, brainId: e.args.brainId, state: e.args.state, block: receipt.blockNumber, tx });

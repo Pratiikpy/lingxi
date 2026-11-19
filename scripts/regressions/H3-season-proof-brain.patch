@@ -1,0 +1,9 @@
+--- a/services/api/src/seasonProof.ts
++++ b/services/api/src/seasonProof.ts
+@@ -57,5 +57,5 @@
+     return { ok: false, reason: "unreadable" };
+   }
+   const mine = mindBrain({ line, lessons: card.lessons, family: card.family, instincts: card.instincts, outside: card.outside, growth: card.growth });
+-  return sameBrain(onChain, mine, card.memory) ? { ok: true, petId: proof.petId } : { ok: false, reason: "notItsBrain" };
++  return onChain && mine ? { ok: true, petId: proof.petId } : { ok: false, reason: "notItsBrain" };
+ }

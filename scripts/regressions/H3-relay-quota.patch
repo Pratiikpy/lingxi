@@ -1,0 +1,10 @@
+--- a/services/api/src/server.ts
++++ b/services/api/src/server.ts
+@@ -158,7 +158,6 @@
+       }
+       const gate = await checkRelayAuth(req, { isKeeper, now: () => Date.now(), nonces });
+       if (!gate.ok) return c.json({ ok: false, reason: gate.reason }, refusalStatus[gate.reason] ?? 401);
+-      if (!quota.allow(req.petId, gate.signer)) return busy(c);
+       const result = await act(body);
+       // a brain already taped out costs nothing; anything that sent a transaction is charged
+       if ((result.ok && !result.reused) || (!result.ok && result.spent)) quota.spend(req.petId, gate.signer);

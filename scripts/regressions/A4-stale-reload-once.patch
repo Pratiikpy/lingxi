@@ -1,0 +1,10 @@
+--- a/apps/web/src/boot/staleBuild.ts
++++ b/apps/web/src/boot/staleBuild.ts
+@@ -13,7 +13,6 @@
+ window.addEventListener("vite:preloadError", (event) => {
+   const build = thisBuild();
+   try {
+-    if (sessionStorage.getItem(RELOADED_FOR) === build) return;
+     sessionStorage.setItem(RELOADED_FOR, build);
+   } catch {
+     // without session storage a reload could not be remembered, so none is made

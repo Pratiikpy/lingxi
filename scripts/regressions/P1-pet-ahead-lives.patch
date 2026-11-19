@@ -1,0 +1,22 @@
+--- a/packages/game/src/sim.ts
++++ b/packages/game/src/sim.ts
+@@ -255,8 +255,7 @@
+ 
+ export function catchUp(p0: Pet, now: number, brain: Brain, eventAt: (beat: number) => number = () => EVENT.none): Pet {
+   const target = beatOf(now);
+-  if (target < p0.beat) return rebased(p0, target);
+-  if (target === p0.beat) return p0;
++  if (target <= p0.beat) return p0;
+   const p = cloneForEdit(p0);
+   const gap = target - p.beat;
+   const skipped = Math.max(0, gap - MAX_CATCH_UP);
+@@ -418,8 +417,7 @@
+ /** One live beat with the owner watching and nothing done (the app is open). */
+ export function liveBeat(p0: Pet, now: number, brain: Brain, event = EVENT.none): Pet {
+   const target = beatOf(now);
+-  if (target < p0.beat) return rebased(p0, target);
+-  if (target === p0.beat) return p0;
++  if (target <= p0.beat) return p0;
+   const p = cloneForEdit(catchUp(p0, now - BEAT_MS, brain));
+   p.beat = target;
+   decay(p, target);

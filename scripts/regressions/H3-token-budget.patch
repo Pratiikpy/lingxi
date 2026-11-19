@@ -1,0 +1,10 @@
+--- a/services/api/src/tokenBudget.ts
++++ b/services/api/src/tokenBudget.ts
+@@ -60,7 +60,6 @@
+ export function budgetedClient(client: Anthropic, budget: TokenBudget): Anthropic {
+   const wrap = <F extends (...a: never[]) => Promise<unknown>>(create: F): F =>
+     (async (...args: Parameters<F>) => {
+-      if (!budget.allow()) throw new BudgetSpent();
+       const res = (await create(...args)) as Usage;
+       budget.spend((res.usage?.input_tokens ?? 0) + (res.usage?.output_tokens ?? 0));
+       return res;

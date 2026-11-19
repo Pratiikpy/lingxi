@@ -1,0 +1,11 @@
+--- a/services/api/src/rpc.ts
++++ b/services/api/src/rpc.ts
+@@ -85,7 +85,7 @@
+ export function vetCalls(body: unknown): { calls: Call[]; batch: boolean; refused: Record<string, unknown>[] } | null {
+   const batch = Array.isArray(body);
+   const list = (batch ? body : [body]) as unknown[];
+-  if (list.length === 0 || list.length > MAX_BATCH) return null;
++  if (list.length === 0) return null;
+   const calls: Call[] = [];
+   const refused: Record<string, unknown>[] = [];
+   for (const item of list) {

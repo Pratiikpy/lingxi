@@ -1,0 +1,11 @@
+--- a/services/api/src/clientIp.ts
++++ b/services/api/src/clientIp.ts
+@@ -10,6 +10,8 @@
+ import { isIP } from "node:net";
+ 
+ export function clientIp(c: Context): string {
++  const forwarded = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip");
++  if (forwarded) return forwarded;
+   const cf = c.req.header("cf-connecting-ip");
+   if (cf !== undefined) return cf.length <= 45 && isIP(cf.trim()) ? cf.trim() : "invalid";
+   try {

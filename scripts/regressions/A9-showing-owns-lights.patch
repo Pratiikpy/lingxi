@@ -1,0 +1,98 @@
+--- a/apps/web/src/play/Games.tsx
++++ b/apps/web/src/play/Games.tsx
+@@ -10,7 +10,6 @@ import { drawPet } from "@lingxi/art";
+ import { type GameId, type Pet, SEASONAL, afterSwaps, nextPattern, seasonOf, shuffles, stageOf, starsFor, toVisible } from "@lingxi/game";
+ import { HOME, ITEM, ROOMS } from "@lingxi/world";
+ import { useWorld } from "../game/world";
+-import { PRESS_MS, showSteps } from "../game/patternShow";
+ import { LifePanel } from "./Jobs";
+ import { useLang } from "../i18n";
+ import { useGame } from "../game/store";
+@@ -219,51 +218,37 @@ const PADS: Array<[IconName, string]> = [
+ function PatternGame({ onEnd }: { onEnd: (score: number) => void }) {
+   const lang = useLang((s) => s.lang) as Lang;
+   const reduce = useReducedMotion() ?? false;
+-  const [seed] = useState(() => (Math.random() * 2 ** 31) | 0);
+-  const [seq, setSeq] = useState<number[]>(() => nextPattern([], seed));
++  const seed = useRef((Math.random() * 2 ** 31) | 0);
++  const [seq, setSeq] = useState<number[]>(() => nextPattern([], seed.current));
+   const [lit, setLit] = useState<number | null>(null);
+   const [phase, setPhase] = useState<"show" | "input">("show");
+   const [pos, setPos] = useState(0);
+-  // the light of the player's last press; the showing cancels it and puts it out itself (A9)
+-  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+-  // the showing: its steps, and the one on screen (-1 before the first)
+-  const steps = useMemo(() => showSteps(seq, reduce ? 700 : 560), [seq, reduce]);
+-  const [shown, setShown] = useState(-1);
+-  const litPad = phase === "show" && shown >= 0 ? steps[shown]!.lit : lit;
+ 
+-  // a showing begins (with none of its steps on screen: the last showing's end put them away): the press's own timer
+-  // is cancelled, and the first step, the press going out, comes after a press's time
+   useEffect(() => {
+     if (phase !== "show") return;
+-    if (pressTimer.current) clearTimeout(pressTimer.current);
+-    const id = setTimeout(() => setShown(0), PRESS_MS);
+-    return () => clearTimeout(id);
+-  }, [phase]);
+-
+-  // each step, once it is on screen (an effect runs after the change is shown), waits its time before the next: a
+-  // busy or slow phone stretches the showing, and never cuts a light short
+-  useEffect(() => {
+-    if (phase !== "show" || shown < 0) return;
+-    if (steps[shown]!.lit !== null) play("tap");
+-    const last = shown === steps.length - 1;
+-    const id = setTimeout(
+-      () => {
+-        if (!last) return setShown(shown + 1);
++    let i = 0;
++    const gap = reduce ? 700 : 560;
++    const id = setInterval(() => {
++      if (i >= seq.length * 2) {
++        clearInterval(id);
+         setLit(null);
+-        setShown(-1);
+         setPhase("input");
+         setPos(0);
+-      },
+-      last ? 0 : steps[shown + 1]!.at - steps[shown]!.at,
+-    );
+-    return () => clearTimeout(id);
+-  }, [phase, shown, steps]);
++        return;
++      }
++      if (i % 2 === 0) {
++        setLit(seq[i / 2]!);
++        play("tap");
++      } else setLit(null);
++      i++;
++    }, gap / 2);
++    return () => clearInterval(id);
++  }, [phase, seq, reduce]);
+ 
+   const press = (k: number) => {
+     if (phase !== "input") return;
+     setLit(k);
+-    if (pressTimer.current) clearTimeout(pressTimer.current);
+-    pressTimer.current = setTimeout(() => setLit(null), PRESS_MS);
++    setTimeout(() => setLit(null), 180);
+     if (seq[pos] !== k) {
+       play("error");
+       onEnd(seq.length - 1);
+@@ -272,7 +257,7 @@ function PatternGame({ onEnd }: { onEnd: (score: number) => void }) {
+     play("pop");
+     if (pos + 1 === seq.length) {
+       if (seq.length >= 8) return onEnd(seq.length);
+-      setSeq(nextPattern(seq, seed));
++      setSeq(nextPattern(seq, seed.current));
+       setPhase("show");
+     } else setPos(pos + 1);
+   };
+@@ -284,7 +269,7 @@ function PatternGame({ onEnd }: { onEnd: (score: number) => void }) {
+       </div>
+       <div className="pads">
+         {PADS.map(([icon, color], k) => (
+-          <button key={k} type="button" className={`pad${litPad === k ? " lit" : ""}`} style={{ ["--pad" as string]: color }} onClick={() => press(k)} disabled={phase !== "input"} aria-label={icon}>
++          <button key={k} type="button" className={`pad${lit === k ? " lit" : ""}`} style={{ ["--pad" as string]: color }} onClick={() => press(k)} disabled={phase !== "input"} aria-label={icon}>
+             <Icon name={icon} size={30} />
+           </button>
+         ))}

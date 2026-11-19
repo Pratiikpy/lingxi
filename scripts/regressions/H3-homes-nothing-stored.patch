@@ -1,0 +1,10 @@
+--- a/services/api/src/decor.ts
++++ b/services/api/src/decor.ts
+@@ -113,7 +113,6 @@
+       if (held && held.key !== key) return false;
+       if (!held && owner !== playerIdFor(secret)) return false;
+       // a new home is kept only once it holds something, and only while there is room
+-      if (!held && placed.length === 0) return placed;
+       if (!held && homes.size >= maxHomes) {
+         // the keyed home active least recently makes room; its owner's game sends it again on their next visit
+         let idle: string | null = null;

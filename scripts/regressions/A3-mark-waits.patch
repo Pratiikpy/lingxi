@@ -1,0 +1,25 @@
+--- a/apps/web/src/play/RulesMark.tsx
++++ b/apps/web/src/play/RulesMark.tsx
+@@ -52,11 +52,11 @@
+     if (state === "verified") setOwed(true);
+   }, [state]);
+   useEffect(() => {
+-    if (!owed || covered) return;
++    if (!owed) return;
+     const id = setTimeout(() => setOwed(false), SHOW_MS);
+     return () => clearTimeout(id);
+   }, [owed, covered]);
+-  const shown = owed && !covered;
++  const shown = owed;
+   const bad = checks.filter((c) => c.status === "differs" || c.status === "missing");
+   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
+   const proof = "verify.html#rules";
+@@ -81,7 +81,7 @@
+           {L(`Rules verified on X Layer · ${checks.length} circuits`, `规则已在 X Layer 上核对 · ${checks.length} 个电路`)}
+         </motion.a>
+       )}
+-      {state === "broken" && !closed && !covered && (
++      {state === "broken" && !closed && (
+         <motion.div key="bad" className="rules-mark is-bad" role="alert" initial={reduce ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+           <span className="rules-tick" aria-hidden="true">
+             !

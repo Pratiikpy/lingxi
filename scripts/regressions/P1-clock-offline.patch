@@ -1,0 +1,14 @@
+--- a/apps/web/src/game/clock.ts
++++ b/apps/web/src/game/clock.ts
+@@ -119,11 +119,6 @@
+       void sync();
+     }
+     let t = wall + offset;
+-    if (!synced && t < seen) {
+-      // before the server answers, never earlier than the last moment seen
+-      offset += seen - t;
+-      t = seen;
+-    }
+     if (t < last && last - t <= ABSORB_MS) t = last;
+     last = t;
+     if (t > seen) seen = t;

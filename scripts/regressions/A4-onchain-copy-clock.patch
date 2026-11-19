@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/clockSources.ts
++++ b/apps/web/src/game/clockSources.ts
+@@ -42,7 +42,7 @@
+ const FIRST_ANSWER_MS = 1_500;
+ 
+ /** The time the game trusts, from the server when there is one, else from X Layer's latest block. */
+-export const serverTime: () => Promise<number> = BASE ? serverClock : chainClock;
++export const serverTime: () => Promise<number> = serverClock;
+ 
+ /** The clock state the game saved last, read by any page; storage may be blocked (some private modes). */
+ export const savedClock = {

@@ -1,0 +1,14 @@
+--- a/apps/web/src/game/writer.ts
++++ b/apps/web/src/game/writer.ts
+@@ -157,9 +157,8 @@
+       if (o.locks) return held;
+       if (!gaveUp) return false;
+       gaveUp = false;
+-      const back = await viaLease(false);
+-      if (!back) set(false);
+-      return back;
++      set(false);
++      return false;
+     },
+     /** True only while this tab holds the game and the stamp in storage is its own (checked on every write). */
+     isWriter(): boolean {

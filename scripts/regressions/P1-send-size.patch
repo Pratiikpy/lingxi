@@ -1,0 +1,10 @@
+--- a/apps/web/src/game/sendSize.ts
++++ b/apps/web/src/game/sendSize.ts
+@@ -23,7 +23,6 @@
+ export function checkSize(body: string, mostBytes: number, also?: { unit: "bytes" | "words"; have: number; most: number }): void {
+   if (also && also.have > also.most) throw new TooBig(also.unit, also.have, also.most);
+   const bytes = utf8Bytes(body);
+-  if (bytes > mostBytes) throw new TooBig("bytes", bytes, mostBytes);
+ }
+ 
+ /** "(1.4 MB; the most is 1.0 MB)" in the player's language. */

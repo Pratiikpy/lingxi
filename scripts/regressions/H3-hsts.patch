@@ -1,0 +1,10 @@
+--- a/services/api/src/server.ts
++++ b/services/api/src/server.ts
+@@ -262,7 +262,6 @@
+     await next();
+     c.header("X-Content-Type-Options", "nosniff");
+     c.header("Referrer-Policy", "strict-origin-when-cross-origin");
+-    c.header("Strict-Transport-Security", "max-age=63072000; includeSubDomains");
+     const csp = policyFor(c.req.path);
+     if (csp) c.header("Content-Security-Policy", csp);
+     // a page is always asked for again (a cheap 304 while unchanged), so no browser keeps one past a deploy (A4)

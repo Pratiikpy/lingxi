@@ -1,0 +1,11 @@
+--- a/services/api/src/rpc.ts
++++ b/services/api/src/rpc.ts
+@@ -128,7 +128,7 @@
+     if (calls.length) {
+       let forwarded = await forward(calls, opts.upstreams, doFetch, timeoutMs);
+       // the jobs' upstream only when the door's own failed, and only within its small budget
+-      if (!forwarded && reserve?.limiter.take("all")) forwarded = await forward(calls, [reserve.url], doFetch, timeoutMs);
++      if (!forwarded && reserve) forwarded = await forward(calls, [reserve.url], doFetch, timeoutMs);
+       if (!forwarded) return c.json({ jsonrpc: "2.0", id: null, error: { code: -32603, message: "no upstream answered" } }, 502);
+       answers = forwarded;
+     }

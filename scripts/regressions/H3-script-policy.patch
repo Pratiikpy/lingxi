@@ -1,0 +1,10 @@
+--- a/services/api/src/server.ts
++++ b/services/api/src/server.ts
+@@ -264,7 +264,6 @@
+     c.header("Referrer-Policy", "strict-origin-when-cross-origin");
+     c.header("Strict-Transport-Security", "max-age=63072000; includeSubDomains");
+     const csp = policyFor(c.req.path);
+-    if (csp) c.header("Content-Security-Policy", csp);
+     // a page is always asked for again (a cheap 304 while unchanged), so no browser keeps one past a deploy (A4)
+     if (c.req.path === "/" || c.req.path.endsWith(".html")) c.header("Cache-Control", "no-cache");
+     if (c.req.path !== "/play.html") c.header("X-Frame-Options", "SAMEORIGIN");

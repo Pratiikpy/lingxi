@@ -1,0 +1,11 @@
+--- a/apps/web/src/play/Album.tsx
++++ b/apps/web/src/play/Album.tsx
+@@ -93,7 +93,7 @@
+ 
+ function ForestCards({ lang }: { lang: "en" | "zh" }) {
+   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
+-  const flags = useWorld((s) => s.world.flags ?? NO_FLAGS);
++  const flags = useWorld((s) => s.world.flags ?? []);
+   const butterfly = flags.includes("butterfly");
+   const seen = flags.includes("shy-visitor");
+   const friend = flags.includes("shy-friend");

@@ -1,0 +1,15 @@
+--- a/services/api/src/jobs.ts
++++ b/services/api/src/jobs.ts
+@@ -31,12 +31,6 @@
+       await fn();
+       s.lastOk = Date.now();
+       s.failuresInARow = 0;
+-    } catch (e) {
+-      const message = e instanceof Error ? e.message : String(e);
+-      s.failures++;
+-      s.failuresInARow++;
+-      s.lastError = { at: Date.now(), message };
+-      log(`${name}: ${message}\n`);
+     } finally {
+       s.running = false;
+       s.healthy = s.failuresInARow < UNHEALTHY_AFTER;

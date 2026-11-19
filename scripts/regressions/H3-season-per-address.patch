@@ -1,0 +1,10 @@
+--- a/services/api/src/season.ts
++++ b/services/api/src/season.ts
+@@ -136,7 +136,6 @@
+       const key = w.by[who] ?? tag(`lingxi-season:${week}:${who}`).slice(0, 12);
+       const at = entries.findIndex((e) => e.key === key);
+       if (at < 0 && entries.length >= MAX_ENTRIES) return { ok: false, reason: "full" };
+-      if (at < 0 && opts.from && Object.values(from).filter((a) => a === opts.from).length >= MAX_ENTRIES_PER_ADDRESS) return { ok: false, reason: "tooMany" };
+       const entry: SeasonEntry = { key, pet: v.pet, at: t, ...(opts.agent ? { agent: opts.agent } : {}) };
+       entries = at < 0 ? [...entries, entry] : entries.map((e, i) => (i === at ? entry : e));
+       if (opts.petId) pets[key] = opts.petId;

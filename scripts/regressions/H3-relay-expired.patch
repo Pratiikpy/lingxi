@@ -1,0 +1,10 @@
+--- a/services/api/src/relayGate.ts
++++ b/services/api/src/relayGate.ts
+@@ -51,7 +51,6 @@
+   const a = req.auth;
+   if (!a || !PET.test(req.petId) || typeof req.payload !== "string" || req.payload.length > MAX_PAYLOAD || !isAddress(a.signer) || !NONCE.test(a.nonce) || !Number.isInteger(a.time) || !isSignature(a.signature)) return { ok: false, reason: "unsigned" };
+   const now = deps.now();
+-  if (Math.abs(now / 1000 - a.time) > WINDOW_S) return { ok: false, reason: "expired" };
+   let signer: Address;
+   try {
+     signer = await recoverMessageAddress({ message: relayMessage({ kind: req.kind, petId: req.petId, payload: req.payload, nonce: a.nonce, time: a.time }), signature: a.signature });

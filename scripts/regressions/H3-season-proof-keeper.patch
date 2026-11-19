@@ -1,0 +1,11 @@
+--- a/services/api/src/seasonProof.ts
++++ b/services/api/src/seasonProof.ts
+@@ -45,8 +45,6 @@
+ ): Promise<{ ok: true; petId: string } | { ok: false; reason: SeasonProofRefusal }> {
+   // the signature covers the entry as sent, so a proof cannot be lifted onto another pet's card
+   if (proof?.kind !== "season" || proof.payload !== JSON.stringify(pet)) return { ok: false, reason: "notThisEntry" };
+-  const auth = await checkRelayAuth(proof, deps);
+-  if (!auth.ok) return auth;
+   const mind = mindOf(pet);
+   if (!mind) return { ok: false, reason: "notItsBrain" };
+   const { line, card } = mind;

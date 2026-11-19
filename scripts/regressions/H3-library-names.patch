@@ -1,0 +1,11 @@
+--- a/services/api/src/library.ts
++++ b/services/api/src/library.ts
+@@ -51,7 +51,7 @@
+ /** Pet names shown to others: like on-chain names, plus no control or hidden characters. */
+ export function cleanAuthor(name: string): string | null {
+   const n = name.trim();
+-  if (!n || new TextEncoder().encode(n).length > 24 || BLOCKED_WORDS.test(n)) return null;
++  if (!n || new TextEncoder().encode(n).length > 24) return null;
+   for (const ch of n) {
+     const cp = ch.codePointAt(0)!;
+     if (cp < 0x20 || cp === 0x7f || '"\\<>&'.includes(ch) || (cp >= 0x80 && cp <= 0xa0) || (cp >= 0x2000 && cp <= 0x206f) || cp === 0xfeff || cp === 0xad) return null;

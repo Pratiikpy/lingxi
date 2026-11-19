@@ -1,0 +1,10 @@
+--- a/services/api/src/limit.ts
++++ b/services/api/src/limit.ts
+@@ -18,7 +18,6 @@
+     const recent = held ? held.filter((t) => now - t < this.windowMs) : [];
+     // moved to the most-recent end on every request
+     if (held) this.hits.delete(key);
+-    else while (this.hits.size >= this.maxKeys) this.hits.delete(this.hits.keys().next().value!);
+     if (recent.length >= this.max) {
+       this.hits.set(key, recent);
+       return false;

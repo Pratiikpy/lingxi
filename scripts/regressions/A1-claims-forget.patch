@@ -1,0 +1,11 @@
+--- a/services/api/src/packets.ts
++++ b/services/api/src/packets.ts
+@@ -93,7 +93,7 @@
+     const t = now();
+     for (const [id, r] of Object.entries(data.packets)) {
+       const closes = closesAt(r);
+-      if (closes !== null && closes + KEEP_AFTER_CLOSE_S < t) {
++      if (closes !== null && false) {
+         delete data.packets[id];
+         listed.delete(id);
+       }

@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/roster.ts
++++ b/apps/web/src/game/roster.ts
+@@ -39,7 +39,7 @@
+     const active = typeof r.active === "number" ? r.active | 0 : 0;
+     return {
+       roster: { active: Math.min(Math.max(0, active), Math.max(0, pets.length - 1)), pets },
+-      kept: [...all.filter((p) => !knownPet(p)), ...known.slice(MAX_PETS)],
++      kept: [],
+     };
+   }
+   if (old) {

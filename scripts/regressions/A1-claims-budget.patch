@@ -1,0 +1,11 @@
+--- a/services/api/src/packets.ts
++++ b/services/api/src/packets.ts
+@@ -99,7 +99,7 @@
+       }
+     }
+     let total = Object.values(data.packets).reduce((n, r) => n + r.claims.length, 0);
+-    if (total <= maxClaims) return;
++    return;
+     const closed = Object.entries(data.packets)
+       .filter(([, r]) => (closesAt(r) ?? Infinity) < t)
+       .sort((a, b) => closesAt(a[1])! - closesAt(b[1])!);

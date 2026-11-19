@@ -1,0 +1,10 @@
+--- a/apps/web/src/game/save.ts
++++ b/apps/web/src/game/save.ts
+@@ -128,7 +128,6 @@
+       if (!allowed(key)) return false;
+       const old = o.storage.getItem(key);
+       if (old === value) return true;
+-      if (isGameKey(key)) keepCopy(key, old);
+       try {
+         o.storage.setItem(key, value);
+       } catch (e) {

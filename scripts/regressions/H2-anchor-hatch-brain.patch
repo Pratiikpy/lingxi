@@ -1,0 +1,10 @@
+--- a/packages/chain/src/anchor.ts
++++ b/packages/chain/src/anchor.ts
+@@ -75,7 +75,6 @@
+ 
+   const hatch = (await eventsIn(pub, registry, hints.hatched)).find((e) => e.kind === "hatched" && e.petId === petId);
+   if (!hatch || hatch.state === undefined) return { ok: false, reason: "noHatch", detail: `no Hatched event for pet ${petId} in ${hints.hatched}` };
+-  if (hatch.brainId !== sequence[0]) return { ok: false, reason: "hatchBrain", detail: `it hatched with brain ${hatch.brainId}, the replay starts with ${sequence[0]}` };
+ 
+   // every change the hints can prove, for this pet, oldest first
+   const changes = (await Promise.all(hints.changes.map((tx) => eventsIn(pub, registry, tx))))

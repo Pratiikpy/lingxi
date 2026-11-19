@@ -1,0 +1,10 @@
+--- a/services/api/src/server.ts
++++ b/services/api/src/server.ts
+@@ -113,7 +113,6 @@
+   const origins = (process.env.LINGXI_ORIGINS ?? "http://localhost:5199,http://localhost:4173").split(",");
+   // the agent API, and a pet's public log and history, are open to any origin; the rest answers only the game's pages
+   // every write is held to its route's size before a byte of it is parsed (bodyLimits.ts)
+-  withBodyLimits(app);
+   app.use("/api/*", cors({ origin: (o, c) => (c.req.path.startsWith("/api/v1") || (c.req.method === "GET" && /^\/api\/pets\/\d+\/(log|history)$/.test(c.req.path)) ? "*" : origins.includes(o) ? o : null), allowMethods: ["GET", "POST"], allowHeaders: ["Authorization", "Content-Type"], maxAge: 600 }));
+ 
+   // the parts are booleans (true when on); `detail` is everything else worth watching, for the status check and for Prateek

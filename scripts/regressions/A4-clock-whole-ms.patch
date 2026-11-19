@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/clock.ts
++++ b/apps/web/src/game/clock.ts
+@@ -130,7 +130,7 @@
+     if (Math.abs(t - persistedAt) >= PERSIST_EVERY_MS) persist(t);
+     // the correction carries fractions (half a round trip, the monotonic timer); the game's times are whole, as
+     // Date.now() is, and the server checks some of them as such (reminder times)
+-    return Math.round(t);
++    return t;
+   };
+ 
+   return { now, sync, synced: () => synced };

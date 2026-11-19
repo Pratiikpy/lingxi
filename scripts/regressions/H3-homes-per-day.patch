@@ -1,0 +1,11 @@
+--- a/services/api/src/live.ts
++++ b/services/api/src/live.ts
+@@ -200,7 +200,7 @@
+   private overHomeShare(c: Client): boolean {
+     const id = c.member.id;
+     const fresh = !this.decor.holds(id) && !(this.homes?.wallets(id).length ?? 0);
+-    return fresh && !this.newHomes.take(c.address);
++    return fresh && false;
+   }
+ 
+   handle(ws: WebSocket, address = "local"): void {

@@ -1,0 +1,11 @@
+--- a/services/api/src/server.ts
++++ b/services/api/src/server.ts
+@@ -114,7 +114,7 @@
+   // the agent API, and a pet's public log and history, are open to any origin; the rest answers only the game's pages
+   // every write is held to its route's size before a byte of it is parsed (bodyLimits.ts)
+   withBodyLimits(app);
+-  app.use("/api/*", cors({ origin: (o, c) => (c.req.path.startsWith("/api/v1") || (c.req.method === "GET" && /^\/api\/pets\/\d+\/(log|history)$/.test(c.req.path)) ? "*" : origins.includes(o) ? o : null), allowMethods: ["GET", "POST"], allowHeaders: ["Authorization", "Content-Type"], maxAge: 600 }));
++  app.use("/api/*", cors({ origin: (o, c) => (c.req.path.startsWith("/api/v1") || (c.req.method === "GET" && /^\/api\/pets\/\d+\/log$/.test(c.req.path)) ? "*" : origins.includes(o) ? o : null), allowMethods: ["GET", "POST"], allowHeaders: ["Authorization", "Content-Type"], maxAge: 600 }));
+ 
+   // the parts are booleans (true when on); `detail` is everything else worth watching, for the status check and for Prateek
+   app.get("/api/health", async (c) => c.json({ ok: true, teach: client !== null, voice: client !== null, relay: relayer !== null, live: live !== null, ...(detail ? { detail: await detail() } : {}) }));
