@@ -1,0 +1,11 @@
+--- a/services/api/src/duels.ts
++++ b/services/api/src/duels.ts
+@@ -97,7 +97,7 @@ export function withDuels(app: Hono, store: DuelStore, limiter = new RateLimiter
+     } catch {
+       return c.json({ ok: false, reason: "code" }, 400);
+     }
+-    if (typeof code !== "string" || !readable(code)) return c.json({ ok: false, reason: "code" }, 400);
++    if (typeof code !== "string") return c.json({ ok: false, reason: "code" }, 400);
+     const id = await duelLinkId(code);
+     store.put(id, code, now());
+     return c.json({ ok: true, id });

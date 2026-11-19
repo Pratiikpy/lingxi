@@ -808,5 +808,29 @@
     "row": "A31",
     "bug": "a newborn's proof page said nothing was indexed and never asked again, so its parents and lineage never showed",
     "test": { "kind": "e2e", "spec": "e2e/specs/birth-on-chain.spec.ts", "title": "a little one is born on chain from two players' grown pets (zh dark desktop proposes, en light phone agrees)" }
+  },
+  {
+    "id": "A32-short-duel-links",
+    "row": "A32",
+    "bug": "a duel link carried its whole challenge, often more than a chat message holds",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/duelLinks.test.ts", "name": "is a short token when the server keeps the code" }
+  },
+  {
+    "id": "A32-short-link-checked",
+    "row": "A32",
+    "bug": "a short link would have opened whatever challenge the server handed back, not the one it was made for",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/duelLinks.test.ts", "name": "resolves a token only to a code that hashes back to it" }
+  },
+  {
+    "id": "A32-whole-result-on-chain-copy",
+    "row": "A32",
+    "bug": "on the on-chain copy, a result link longer than 12,500 characters stopped at the landing page",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/duelLinks.test.ts", "name": "is followed to the game, however long two full cards make it" }
+  },
+  {
+    "id": "A32-only-duels-kept",
+    "row": "A32",
+    "bug": "the server would have kept anything posted to it as a duel",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/duels.test.ts", "name": "refuses what is not a duel, and keeps nothing of it" }
   }
 ]

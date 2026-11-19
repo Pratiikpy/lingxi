@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/duelLinks.ts
++++ b/apps/web/src/game/duelLinks.ts
+@@ -31,7 +31,7 @@ export async function tokenCode(token: string, fetchFn: typeof fetch = fetch): P
+     const r = await fetchFn(`${BASE}/api/duels/${m[1]}`);
+     if (!r.ok) return null;
+     const { code } = (await r.json()) as { code?: unknown };
+-    return typeof code === "string" && isDuelCode(code) && (await duelLinkId(code)) === m[1] ? code : null;
++    return typeof code === "string" && isDuelCode(code) ? code : null;
+   } catch {
+     return null;
+   }

@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/links.ts
++++ b/apps/web/src/game/links.ts
+@@ -15,7 +15,7 @@ type Page = (typeof PAGES)[number];
+  * The longest fragment a `#go=` link carries: a duel result's whole code (two pets' cards, `MAX_DUEL_RESULT_CODE`)
+  * after `duelr=`, since the on-chain copy has no server to keep it under a short id (A32).
+  */
+-export const MAX_GO_FRAGMENT = 190_000;
++export const MAX_GO_FRAGMENT = 12_500;
+ 
+ const siteBase = () => `${location.origin}${location.pathname.replace(/[^/]*$/, "")}`;
+ 
