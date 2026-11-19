@@ -220,13 +220,23 @@ export async function moveIntoHome(pub: PublicClient, wallet: WalletClient, proc
   return tx;
 }
 
-/** Whether TapeSend's hub will run mailboxes for circuits on this processor (it pins one processor code). */
-export async function hubAccepts(pub: PublicClient, processor: Address): Promise<boolean> {
+/**
+ * Whether letters between homes can open for circuits on this processor (A12): "open" when TapeSend's hub runs an
+ * implementation on TapeKit's allow-list and pins this processor's code; "processor" when the approved hub pins another
+ * processor's; "hub" when the hub runs code TapeKit has not approved (nothing of it is called) or its pin cannot be read.
+ */
+export async function lettersStatus(pub: PublicClient, processor: Address): Promise<"open" | "processor" | "hub"> {
   const raw = await pub.getStorageAt({ address: HUB, slot: IMPL_SLOT });
-  const impl = `0x${(raw ?? "0x").slice(-40)}` as Address;
-  const pinned = (await pub.readContract({ address: impl, abi: parseAbi(["function circuitCodehash() view returns (bytes32)"]), functionName: "circuitCodehash" })) as Hex;
+  const impl = `0x${(raw ?? "0x").slice(-40)}`.toLowerCase() as Address;
+  if (!HUB_IMPLEMENTATIONS_XLAYER.includes(impl)) return "hub";
+  let pinned: Hex;
+  try {
+    pinned = (await pub.readContract({ address: impl, abi: parseAbi(["function circuitCodehash() view returns (bytes32)"]), functionName: "circuitCodehash" })) as Hex;
+  } catch {
+    return "hub";
+  }
   const code = await pub.getCode({ address: processor });
-  return !!code && keccak256(code) === pinned;
+  return code && keccak256(code) === pinned ? "open" : "processor";
 }
 
 const outfitAbi = parseAbi(["function safeTransferFrom(address from, address to, uint256 id, uint256 value, bytes data)", "function balanceOf(address who, uint256 id) view returns (uint256)"]);

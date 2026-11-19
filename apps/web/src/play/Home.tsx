@@ -9,7 +9,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { formatEther } from "viem";
-import { type Home, HomeError, homeCallFee, keepOutfitAtHome, takeOutfitFromHome, homePageHtml, homeSiteName, homeSiteUrl, hubAccepts, moveIntoHome, nameFee, openHome, openingFee, processorIndex, publishHomePage, readHome, readHomePage, readMetadata, type OutfitDesign, wearKey } from "@lingxi/chain";
+import { type Home, HomeError, homeCallFee, keepOutfitAtHome, takeOutfitFromHome, homePageHtml, homeSiteName, homeSiteUrl, lettersStatus, moveIntoHome, nameFee, openHome, openingFee, processorIndex, publishHomePage, readHome, readHomePage, readMetadata, type OutfitDesign, wearKey } from "@lingxi/chain";
 import { type Pet, stageOf } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { connectWallet, deployment, publicClient, recordOf, useChain } from "../game/chain";
@@ -25,7 +25,7 @@ export function HomePanel({ pet }: { pet: Pet }) {
   const record = useChain((s) => s.record) ?? recordOf(pet);
   const [home, setHome] = useState<Home | null>(null);
   const [fee, setFee] = useState<bigint | null>(null);
-  const [letters, setLetters] = useState<boolean | null>(null);
+  const [letters, setLetters] = useState<"open" | "processor" | "hub" | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
@@ -34,8 +34,8 @@ export function HomePanel({ pet }: { pet: Pet }) {
   const grown = stage === "adult" || stage === "elder";
   const deed = record?.brainKey ? record.brains?.[record.brainKey] : undefined;
 
-  // the home as X Layer holds it now, the opening fee, and whether the letters hub takes this processor's homes
-  const readAll = useCallback(() => Promise.all([readHome(publicClient, deployment!.processor, BigInt(deed!)), openingFee(publicClient), hubAccepts(publicClient, deployment!.processor)]), [deed]);
+  // the home as X Layer holds it now, the opening fee, and whether letters between homes can open (A12)
+  const readAll = useCallback(() => Promise.all([readHome(publicClient, deployment!.processor, BigInt(deed!)), openingFee(publicClient), lettersStatus(publicClient, deployment!.processor)]), [deed]);
   const show = useCallback(([h, f, ok]: Awaited<ReturnType<typeof readAll>>) => {
     setHome(h);
     setFee(f);
@@ -154,9 +154,11 @@ export function HomePanel({ pet }: { pet: Pet }) {
           <HomePage pet={pet} home={home!} petId={record.petId} />
           <HomeOutfits pet={pet} home={home!} />
           <p className="small">
-            {letters
+            {letters === "open"
               ? L("Letters between homes are coming next.", "家与家之间的信件即将开放。")
-              : L("Letters between homes go through TapeSend, whose hub does not yet accept circuits from Lingxi's processor. They open here as soon as it does.", "家与家之间的信件走 TapeSend，它的中枢目前还不接受灵犀处理器上的电路。一旦接受，这里就会开放。")}
+              : letters === "hub"
+                ? L("Letters between homes go through TapeSend's hub, which now runs code TapeKit has not approved, so Lingxi keeps letters closed until it is.", "家与家之间的信件走 TapeSend 的中枢，它现在运行的代码还没有得到 TapeKit 认可，所以灵犀先不开放信件，等认可之后再开。")
+                : L("Letters between homes go through TapeSend, whose hub does not yet accept circuits from Lingxi's processor. They open here as soon as it does.", "家与家之间的信件走 TapeSend，它的中枢目前还不接受灵犀处理器上的电路。一旦接受，这里就会开放。")}
           </p>
         </>
       )}

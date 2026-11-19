@@ -11,7 +11,7 @@ import { createPublicClient, createWalletClient, encodeAbiParameters, erc20Abi, 
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { STARTERS, compileProgram, netlistBytes } from "@lingxi/brain";
 import { quoteTapeout, tapeOutYourself } from "../src/selftape";
-import { HomeError, homeCallFee, keepOutfitAtHome, takeOutfitFromHome, checkHub, hubAccepts, mailKey, moveIntoHome, openHome, openMailbox, openingFee, readHome, readLetters, sendLetter } from "../src/home";
+import { HomeError, homeCallFee, keepOutfitAtHome, takeOutfitFromHome, checkHub, lettersStatus, mailKey, HUB, HUB_IMPLEMENTATIONS_XLAYER, moveIntoHome, openHome, openMailbox, openingFee, readHome, readLetters, sendLetter } from "../src/home";
 import { xLayer } from "../src/tapeout";
 import { encodeDesign } from "@lingxi/art";
 import { publishDesign } from "../src/outfits";
@@ -56,16 +56,33 @@ async function homeFor(pub: ReturnType<typeof createPublicClient>, wallet: Retur
   return opened;
 }
 
+/** The hub's implementation slot (ERC-1967). Since before block 76,250,000 it points at code TapeKit has not approved
+ * (A12); the letter tests set it back to the approved implementation on the fork, to keep that path proven. */
+const IMPL_SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
+const approveHubOnFork = (pub: ReturnType<typeof createPublicClient>) =>
+  pub.request({ method: "anvil_setStorageAt" as never, params: [HUB, IMPL_SLOT, pad(HUB_IMPLEMENTATIONS_XLAYER[0]! as Hex, { size: 32 })] as never });
+
 describe.skipIf(!RPC)("pet homes and letters, on an X Layer fork", () => {
-  it("homes open on Lingxi's processor; TapeSend's hub refuses its mailboxes (it pins the older processor code)", { timeout: 400_000 }, async () => {
+  it("refuses today's hub, which runs code TapeKit has not approved, and keeps letters closed for it (A12)", { timeout: 60_000 }, async () => {
     if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(RPC!)) throw new Error("fork tests run only against a local node");
     const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
     const pub = createPublicClient({ chain, transport: http(RPC) });
+    const impl = `0x${(await pub.getStorageAt({ address: HUB, slot: IMPL_SLOT }))!.slice(-40)}`;
+    if (HUB_IMPLEMENTATIONS_XLAYER.includes(impl)) return; // a fork from before the change, or after TapeKit approves it
+    await expect(checkHub(pub as never)).rejects.toMatchObject({ code: "hubUnknown" });
+    expect(await lettersStatus(pub as never, LINGXI)).toBe("hub");
+  });
+
+  it("homes open on Lingxi's processor; the approved hub refuses its mailboxes (it pins the older processor code)", { timeout: 400_000 }, async () => {
+    if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(RPC!)) throw new Error("fork tests run only against a local node");
+    const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
+    const pub = createPublicClient({ chain, transport: http(RPC) });
+    await approveHubOnFork(pub);
     await checkHub(pub as never);
     const [owner, stranger] = [0, 1].map(() => createWalletClient({ chain, transport: http(RPC), account: privateKeyToAccount(generatePrivateKey()) }));
     const home = await homeFor(pub, owner!, stranger!, LINGXI, "gentle");
     const key = await mailKey(owner!, home, 419);
-    expect(await hubAccepts(pub as never, LINGXI)).toBe(false);
+    expect(await lettersStatus(pub as never, LINGXI)).toBe("processor");
     await expect(openMailbox(pub as never, owner!, home, key)).rejects.toThrow(/0x853f2907|NotCPU/);
     // a keepsake (another circuit the owner holds) goes into the home; the deed itself cannot
     const net = compileProgram(STARTERS.curious);
@@ -85,8 +102,9 @@ describe.skipIf(!RPC)("pet homes and letters, on an X Layer fork", () => {
     if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(RPC!)) throw new Error("fork tests run only against a local node");
     const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
     const pub = createPublicClient({ chain, transport: http(RPC) });
+    await approveHubOnFork(pub);
     const OLD = (await pub.readContract({ address: FACTORY, abi: factoryAbi, functionName: "cpuAt", args: [10n] })) as Address;
-    expect(await hubAccepts(pub as never, OLD)).toBe(true);
+    expect(await lettersStatus(pub as never, OLD)).toBe("open");
     const wallets = [0, 1, 2].map(() => createWalletClient({ chain, transport: http(RPC), account: privateKeyToAccount(generatePrivateKey()) }));
     const homes = [];
     for (const [i, line] of (["gentle", "bold"] as const).entries()) {
