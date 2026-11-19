@@ -772,5 +772,11 @@
     "row": "A26",
     "bug": "a pet could learn an instinct too big for its card, which every other player then refused to read",
     "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/store.test.ts", "name": "an owned circuit too big to travel with the pet's card is not taught (A26)" }
+  },
+  {
+    "id": "A27-child-inherits-whole-minds",
+    "row": "A27",
+    "bug": "a child kept only its parents' first 8 lessons in the game while its circuit on chain held all of them",
+    "test": { "kind": "vitest", "dir": "packages/game", "file": "test/family.test.ts", "name": "a child inherits each parent's whole mind, as its circuit on chain does (A27)" }
   }
 ]

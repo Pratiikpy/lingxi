@@ -1,0 +1,11 @@
+--- a/packages/game/src/family.ts
++++ b/packages/game/src/family.ts
+@@ -213,7 +213,7 @@ export function familyOf(a: ParentInfo & { generation?: number }, b: ParentInfo
+   const strip = ({ name, line, lessons, instincts, petId, owner, key, skills }: ParentInfo): ParentInfo => ({
+     name: shownName(name, 12),
+     line,
+-    lessons: [...lessons],
++    lessons: lessons.slice(0, 8),
+     ...(cleanInstincts(instincts) ? { instincts: cleanInstincts(instincts) } : {}),
+     ...(cleanParentSkills(skills).length ? { skills: cleanParentSkills(skills) } : {}),
+     ...(petId !== undefined ? { petId } : {}),
