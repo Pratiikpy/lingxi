@@ -691,7 +691,8 @@ export function PlayApp() {
             </div>
           )}
           {!talking && !circuit && <VoiceBubble />}
-          {!talking && <PetQuestBubble />}
+          {/* the pet's "!" steps aside while the Decorate bar holds the top of the room (A14) */}
+          {!talking && decorating === null && <PetQuestBubble />}
           {talking ? null : Object.keys(others).length > 0 ? <SocialBar count={Object.keys(others).length} /> : <ThinkStrip pet={pet} />}
         </section>
         <div className="side">
