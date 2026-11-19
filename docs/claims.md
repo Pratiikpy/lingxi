@@ -27,6 +27,9 @@ Kinds of check:
 | processor | README, judge check | The processor is registered with TapeOut's factory. | judge |
 | circuits-hash | README, proof page | The five core circuits on chain have the keccak256 hashes listed. | auto:circuit-hashes |
 | circuits-compiler | README | The circuits on chain are byte for byte what this repo's compiler produces. | judge |
+| minds-taped-out | README (EN, ZH), proof page, agents page (EN, ZH) | Every pet's mind is a circuit of NAND gates and latches; once its owner keeps it on X Layer, that circuit is taped out there (the line's starter circuit at hatching, its own when its new mind is put on chain). | test:apps/web/src/game/chain.test.ts |
+| teach-taped-out | README | A taught rule is compiled into the circuit; for a pet kept on X Layer, the new circuit is taped out when its owner puts its new mind on chain. | test:e2e/specs/relay.spec.ts |
+| handheld-circuit | README, handheld panel | The handheld runs the circuit read from X Layer when the pet's mind is on chain, the game's own circuit otherwise, checked on all 65,536 inputs. | test:e2e/specs/handheld.spec.ts |
 | rules | README, game, proof page | 17 rule circuits on X Layer, each byte for byte the rule the game compiles. | auto:rules |
 | starter-brain | landing | Mochi's starter brain has 296 gates and 8 bits of memory. | auto:starter-brain |
 | replay-gas | landing | Re-running one beat on chain costs about 760,000 gas for Mochi's 296 gates. | auto:replay-gas |

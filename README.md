@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/readme/banner.png" alt="Lingxi 灵犀: a pet whose mind is a real TapeOut circuit on X Layer" width="100%">
+  <img src="docs/readme/banner.png" alt="Lingxi 灵犀: a pet whose mind is a real circuit you can read" width="100%">
 </p>
 
 <p align="center">
@@ -19,9 +19,9 @@
   <a href="https://lingxi.knole.me/agents.html"><b>API for agents</b></a>
 </p>
 
-**Lingxi (灵犀) is a virtual pet whose brain is a circuit you can read.** Every pet's mind is a TapeOut circuit of NAND gates and memory latches, taped out on X Layer. Each reaction comes from its own gates, its memory is saved on chain on the days its owner keeps it there, and anyone can replay it and see that it matches. You raise it, teach it in plain words, and watch who it becomes. It is free to play and has no token of its own. Every fee paid in BEM is burned; the one other fee is the first outfit market's 3% on sales in OKB, which goes to the project.
+**Lingxi (灵犀) is a virtual pet whose brain is a circuit you can read.** Every pet's mind is a circuit of NAND gates and memory latches; once its owner keeps it on X Layer, that circuit is taped out there and anyone can read it gate for gate. Each reaction comes from its own gates, its memory is saved on chain on the days its owner keeps it there, and anyone can replay it and see that it matches. You raise it, teach it in plain words, and watch who it becomes. It is free to play and has no token of its own. Every fee paid in BEM is burned; the one other fee is the first outfit market's 3% on sales in OKB, which goes to the project.
 
-灵犀是一只心智是真电路的宠物。每只宠物的大脑都是 X Layer 上的一块 TapeOut 电路，每个反应来自它自己的门电路，主人保存的每一天，记忆都存在链上，任何人都能重放核对。免费游玩，没有自己的代币。所有用 BEM 支付的费用全部销毁；唯一的另一笔费用是第一个衣服市场对 OKB 交易收取的 3%，归项目所有。
+灵犀是一只心智是真电路的宠物。每只宠物的大脑都是一块由与非门和记忆锁存器组成的电路；主人把它留在 X Layer 上之后，这块电路就在链上流片，任何人都能逐门读到。每个反应来自它自己的门电路，主人保存的每一天，记忆都存在链上，任何人都能重放核对。免费游玩，没有自己的代币。所有用 BEM 支付的费用全部销毁；唯一的另一笔费用是第一个衣服市场对 OKB 交易收取的 3%，归项目所有。
 
 ---
 
@@ -47,7 +47,7 @@ The game runs the same netlist through a fast local evaluator; any beat can be r
 
 **Raise it.** Choose one of three eggs (gentle, bold or curious) and switch on instincts (brave, greedy, curious, calm) that are wired into its circuit for life. Feed, clean, play and talk. In a week it grows from baby to adult, and its adult body is decided by how you raised it. Neglect has consequences. While you are away it keeps living: its brain decides what to do, friends drop by, and you come back to the story.
 
-**Teach it.** Type a rule in plain English or Chinese and it is compiled into the circuit and taped out. Or work through Pet School: eight levels with three goals each, scored by running your pet's own circuit. Every lesson shows its cost in gates against the brain's budget, and the order of lessons is strategy: a lesson placed too high can steal another's stars, and Lingxi names the rule that gets in the way.
+**Teach it.** Type a rule in plain English or Chinese and it is compiled into the circuit; for a pet kept on X Layer, the new circuit is taped out when its owner puts its new mind on chain. Or work through Pet School: eight levels with three goals each, scored by running your pet's own circuit. Every lesson shows its cost in gates against the brain's budget, and the order of lessons is strategy: a lesson placed too high can steal another's stars, and Lingxi names the rule that gets in the way.
 
 **Rewind.** Scrub back through any day or spar and see, moment by moment, what it sensed, which rule fired, and whether that rule was taught, an instinct or inborn.
 
@@ -65,7 +65,7 @@ The game runs the same netlist through a fast local evaluator; any beat can be r
 
 **Give it an instinct you own.** Any circuit you own on X Layer can be taught as an everyday instinct. On chain this is a new circuit that REFs both, so it stays verifiable.
 
-**Take it along.** Pack snacks from your bag and your pet goes out on a handheld: the firmware of an M5Stack Cardputer, playable in any browser at `handheld.html` or flashed to a real Cardputer over USB. It runs on the same circuit it thinks with at home, read from X Layer with every circuit it REFs, and checked against the game on all 65,536 inputs before it leaves. Feed it, play, put it to bed with the keys; time with the handheld put down is lived as time away. When it comes home the game replays the whole trip, beat by beat, from the state it kept, and takes the pet back only if it arrives at exactly the same pet. Care given on the handheld counts for quests and dailies like care at home.
+**Take it along.** Pack snacks from your bag and your pet goes out on a handheld: the firmware of an M5Stack Cardputer, playable in any browser at `handheld.html` or flashed to a real Cardputer over USB. It runs on the same circuit it thinks with at home (read from X Layer, with every circuit it REFs, when its mind is on chain; the game's own circuit otherwise), checked against the game on all 65,536 inputs before it leaves. Feed it, play, put it to bed with the keys; time with the handheld put down is lived as time away. When it comes home the game replays the whole trip, beat by beat, from the state it kept, and takes the pet back only if it arrives at exactly the same pet. Care given on the handheld counts for quests and dailies like care at home.
 
 **Builders' Lane.** A street of pets whose brains are circuits from the TapeOut community, read gate for gate from the chain. Behemoth thinks with the founder's own 4-bit CPU: tap once and the chain runs the same step, same lamps, same memory.
 

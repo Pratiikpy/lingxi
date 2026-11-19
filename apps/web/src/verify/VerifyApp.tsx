@@ -39,7 +39,7 @@ interface Row {
 const T = {
   en: {
     title: "Verify a Lingxi pet",
-    lede: "Every Lingxi pet's mind is a TapeOut circuit on X Layer. This page reads the chain from your browser through X Layer's public RPCs (or your own) and checks the pet's thoughts with an open evaluator, so you never have to trust the game.",
+    lede: "Every Lingxi pet's mind is a circuit of NAND gates and latches; once its owner keeps it on X Layer, that circuit is taped out there. This page reads the chain from your browser through X Layer's public RPCs (or your own) and checks the pet's thoughts with an open evaluator, so you never have to trust the game.",
     id: "Pet number",
     load: "Read from X Layer",
     owner: "Owner",
@@ -84,7 +84,7 @@ const T = {
   },
   zh: {
     title: "验证一只灵犀宠物",
-    lede: "每只灵犀宠物的心智都是 X Layer 上的 TapeOut 电路。本页由你的浏览器通过 X Layer 的公共 RPC（或你自己的）读取链上数据，用开源求值器核对它的念头，你不需要相信游戏本身。",
+    lede: "每只灵犀宠物的心智都是一块由与非门和锁存器组成的电路；主人把它留在 X Layer 上之后，这块电路就在链上流片。本页由你的浏览器通过 X Layer 的公共 RPC（或你自己的）读取链上数据，用开源求值器核对它的念头，你不需要相信游戏本身。",
     id: "宠物编号",
     load: "从 X Layer 读取",
     owner: "主人",
