@@ -7,11 +7,11 @@
  * every answer says which host gave it, so the page can show it.
  */
 
-import { type PublicClient, createPublicClient, custom } from "viem";
+import type { PublicClient } from "viem";
 import { create } from "zustand";
 import { xLayer } from "@lingxi/chain";
 import { API_RPC, NETWORK, OFFICIAL_RPCS, rpcs } from "./chain";
-import { type Endpoints, proofRequest, rotated } from "./rpcAsk";
+import { type Endpoints, makeProofClient, proofRequest, rotated } from "./rpcAsk";
 
 export { type Answer, type Endpoints, RpcAnswerError, proofRequest } from "./rpcAsk";
 
@@ -64,22 +64,10 @@ export function endpoints(start = 0): Endpoints {
  * tally hears them all.
  */
 export function proofClient(start = 0, onAnswer?: (host: string, fallback: boolean) => void): PublicClient {
-  // each request starts at the next public node, and reads made together go as one Multicall3 call, so a page asks the
-  // public nodes a few times instead of thirty, none of them takes the whole load, and a burst never meets a node's
-  // rate limit (whose reply carries no CORS headers, so the browser reports it as a blocked request) (A29)
-  let asked = start;
-  return createPublicClient({
-    chain: xLayer,
-    batch: { multicall: { wait: 16 } },
-    transport: custom({
-      async request({ method, params }) {
-        const a = await proofRequest(endpoints(asked++), { method, params });
-        useProofRpc.getState().answered(a.host, a.fallback);
-        onAnswer?.(a.host, a.fallback);
-        return a.result;
-      },
-    }),
-  }) as PublicClient;
+  return makeProofClient(xLayer, endpoints, start, (a) => {
+    useProofRpc.getState().answered(a.host, a.fallback);
+    onAnswer?.(a.host, a.fallback);
+  });
 }
 
 /** Checks that an RPC a judge typed is an https X Layer node before any proof uses it. */

@@ -1,3 +1,4 @@
+import { type Chain, type PublicClient, createPublicClient, custom } from "viem";
 import { now as gameNow } from "./gameClock";
 /**
  * One JSON-RPC request for a verification, tried endpoint by endpoint: the judge's own RPC first, then X Layer's public
@@ -78,3 +79,25 @@ export async function proofRequest(ends: Endpoints, call: { method: string; para
   }
   throw new Error(`no endpoint answered ${call.method}`);
 }
+
+/**
+ * A client for verification reads (A29): each request starts at the next public node (`endpointsFor(n)` for the n-th
+ * request), and reads made together go as one Multicall3 call, so a page asks a few times instead of thirty, no node
+ * takes the whole load, and a burst never meets a node's rate limit (whose reply carries no CORS headers, so the browser
+ * reports it as a blocked request).
+ */
+export function makeProofClient(chain: Chain, endpointsFor: (n: number) => Endpoints, start: number, answered: (a: Answer) => void, fetcher?: typeof fetch): PublicClient {
+  let asked = start;
+  return createPublicClient({
+    chain,
+    batch: { multicall: { wait: 16 } },
+    transport: custom({
+      async request({ method, params }) {
+        const a = await proofRequest(endpointsFor(asked++), { method, params }, fetcher ? { fetcher } : {});
+        answered(a);
+        return a.result;
+      },
+    }),
+  }) as PublicClient;
+}
+

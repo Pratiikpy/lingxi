@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { type Endpoints, proofRequest, rotated } from "./rpcAsk";
+import { decodeFunctionData, encodeAbiParameters, encodeFunctionResult, erc20Abi, multicall3Abi, type Hex } from "viem";
+import { xLayer } from "@lingxi/chain";
+import { type Endpoints, makeProofClient, proofRequest, rotated } from "./rpcAsk";
 
 type Reply = { status: number; body?: unknown } | "network";
 /** A fetch that answers each URL from a script and records which URLs were asked. */
@@ -68,6 +70,43 @@ describe("spreading a page's requests over the public nodes (A29)", () => {
     expect([0, 1, 2, 3].map((n) => rotated(nodes, n)[0])).toEqual(["https://a.example", "https://b.example", "https://a.example", "https://b.example"]);
     expect(rotated(nodes, 1)).toEqual(["https://b.example", "https://a.example"]);
     expect(rotated([], 3)).toEqual([]);
+  });
+});
+
+describe("the proof client asks the public nodes little, and in turn (A29)", () => {
+  const nodes = ["https://a.example", "https://b.example"];
+  const ends = (n: number): Endpoints => ({ mine: null, publicRpcs: rotated(nodes, n), fallback: null });
+  /** A node that answers a block number, and a Multicall3 call with 42 for every read in it; it records each request. */
+  const node = () => {
+    const asked: Array<{ url: string; method: string }> = [];
+    const fetcher = (async (url: string, init: RequestInit) => {
+      const { method, params } = JSON.parse(String(init.body)) as { method: string; params: Array<{ data?: Hex }> };
+      asked.push({ url, method });
+      let result: unknown = "0x10";
+      if (method === "eth_call") {
+        const { args } = decodeFunctionData({ abi: multicall3Abi, data: params[0]!.data! });
+        const calls = args[0] as readonly unknown[];
+        result = encodeFunctionResult({ abi: multicall3Abi, functionName: "aggregate3", result: calls.map(() => ({ success: true, returnData: encodeAbiParameters([{ type: "uint256" }], [42n]) })) });
+      }
+      return new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, result }), { status: 200 });
+    }) as unknown as typeof fetch;
+    return { asked, fetcher };
+  };
+
+  it("sends reads made together as one Multicall3 request", async () => {
+    const n = node();
+    const client = makeProofClient(xLayer, ends, 0, () => undefined, n.fetcher);
+    const token = "0x0000000000000000000000000000000000000abc";
+    const read = (who: Hex) => client.readContract({ address: token, abi: erc20Abi, functionName: "balanceOf", args: [who] });
+    expect(await Promise.all([read("0x00000000000000000000000000000000000000a1"), read("0x00000000000000000000000000000000000000b2"), read("0x00000000000000000000000000000000000000c3")])).toEqual([42n, 42n, 42n]);
+    expect(n.asked).toEqual([{ url: "https://a.example", method: "eth_call" }]);
+  });
+
+  it("starts each request at the next node", async () => {
+    const n = node();
+    const client = makeProofClient(xLayer, ends, 0, () => undefined, n.fetcher);
+    for (let i = 0; i < 4; i++) await client.getBlockNumber({ cacheTime: 0 });
+    expect(n.asked.map((a) => a.url)).toEqual(["https://a.example", "https://b.example", "https://a.example", "https://b.example"]);
   });
 });
 
