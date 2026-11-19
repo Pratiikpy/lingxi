@@ -12,13 +12,13 @@ function setup(start = Date.UTC(2026, 10, 18, 9)) {
   const agents = createAgentStore(undefined, () => t);
   const seasons = createSeasonStore(undefined, () => t);
   const app = withAgentApi(new Hono(), { agents, seasons, limiter: new RateLimiter(10_000, 60_000) });
-  const call = (path: string, init: { method?: string; body?: unknown; token?: string } = {}) =>
+  const call = (path: string, init: { method?: string; body?: unknown; token?: string; ip?: string } = {}) =>
     app.request(path, {
       method: init.method ?? "GET",
-      headers: { "content-type": "application/json", ...(init.token ? { authorization: `Bearer ${init.token}` } : {}) },
+      headers: { "content-type": "application/json", ...(init.token ? { authorization: `Bearer ${init.token}` } : {}), ...(init.ip ? { "cf-connecting-ip": init.ip } : {}) },
       ...(init.body !== undefined ? { body: JSON.stringify(init.body) } : {}),
     });
-  return { call, seasons, tick: (ms: number) => (t += ms) };
+  return { call, seasons, agents, tick: (ms: number) => (t += ms) };
 }
 
 describe("the agent API", () => {
@@ -88,3 +88,64 @@ describe("the agent API", () => {
     expect((await call("/api/v1/agents/me", { token: "f".repeat(48) })).status).toBe(401);
   });
 });
+
+describe("agents in the season: their own share, and one address cannot fill it (A41)", () => {
+  const adopt = async (call: ReturnType<typeof setup>["call"], ip: string, agent: string, name = "Bit") =>
+    (await (await call("/api/v1/agents/adopt", { method: "POST", ip, body: { agent, name, line: "bold" } })).json()) as { ok: boolean; token?: string; reason?: string; detail?: string };
+  const enter = async (call: ReturnType<typeof setup>["call"], ip: string, token: string) =>
+    (await call("/api/v1/agents/me/season", { method: "POST", ip, token }));
+
+  it("an address raises at most 5 agent pets at once, whatever names it uses", async () => {
+    const { call } = setup();
+    for (let i = 0; i < 5; i++) expect((await adopt(call, "203.0.113.1", `agent ${i}`)).ok).toBe(true);
+    const sixth = await adopt(call, "203.0.113.1", "agent 99");
+    expect(sixth).toMatchObject({ ok: false, reason: "tooMany" });
+    expect(sixth.detail).toMatch(/5 pets at once from one address/);
+    expect((await adopt(call, "203.0.113.2", "agent 99")).ok, "another address is not held up").toBe(true);
+  });
+
+  it("an agent's entry counts against its address with everyone else's", async () => {
+    const { call, seasons, agents } = setup();
+    const tokens: string[] = [];
+    for (let i = 0; i < 4; i++) tokens.push((await adopt(call, "203.0.113.7", `agent ${i}`)).token!);
+    for (const t of tokens.slice(0, 3)) expect((await (await enter(call, "203.0.113.7", t)).json()).ok).toBe(true);
+    const fourth = await enter(call, "203.0.113.7", tokens[3]!);
+    expect([fourth.status, await fourth.json()]).toEqual([200, { ok: false, reason: "tooMany" }]);
+    // a player at that address has used it too
+    const pet = agents.seasonPet(tokens[0]!)!.pet;
+    expect(seasons.enter(pet, "device-abcdefgh", { from: "203.0.113.7" })).toEqual({ ok: false, reason: "tooMany" });
+    expect(seasons.enter(pet, "device-abcdefgh", { from: "203.0.113.8" }).ok, "a player elsewhere enters").toBe(true);
+  });
+
+  it("agent-raised pets take at most 16 of a week's 64 places; players can still enter", async () => {
+    const { call, seasons } = setup();
+    let entered = 0;
+    let refused: unknown = null;
+    for (let n = 0; n < 6 && !refused; n++)
+      for (let i = 0; i < 3 && !refused; i++) {
+        const ip = `198.51.100.${n}`;
+        const token = (await adopt(call, ip, `agent ${n}-${i}`)).token!;
+        const r = await enter(call, ip, token);
+        const body = (await r.json()) as { ok: boolean; reason?: string };
+        if (body.ok) entered++;
+        else refused = [r.status, body];
+      }
+    expect(entered).toBe(16);
+    expect(refused).toMatchObject([200, { ok: false, reason: "agentsFull" }]);
+    expect(seasons.view(seasons.weeks().at(-1)!)!.entries.filter((e) => e.agent)).toHaveLength(16);
+  });
+
+  it("an agent pet nobody has looked at for 30 days goes home, and its place counts again", async () => {
+    const { call, tick } = setup();
+    const tokens: string[] = [];
+    for (let i = 0; i < 5; i++) tokens.push((await adopt(call, "203.0.113.9", `agent ${i}`)).token!);
+    tick(29 * 86_400_000);
+    // one is looked at: it stays
+    expect((await call("/api/v1/agents/me", { token: tokens[0]! })).status).toBe(200);
+    tick(2 * 86_400_000);
+    expect((await adopt(call, "203.0.113.9", "agent new")).ok, "the four idle ones have gone home").toBe(true);
+    expect((await call("/api/v1/agents/me", { token: tokens[1]! })).status, "an idle pet's token no longer answers").toBe(401);
+    expect((await call("/api/v1/agents/me", { token: tokens[0]! })).status, "the one looked at is still there").toBe(200);
+  });
+});
+

@@ -44,8 +44,8 @@ const NOTES_ZH: Record<string, string[]> = {
 
 const STEPS: Array<{ en: string; zh: string; code: string }> = [
   {
-    en: "Adopt a pet. Keep the token: it is shown once.",
-    zh: "领养一只宠物。保存好令牌，它只显示一次。",
+    en: "Adopt a pet. Keep the token: it is shown once. An agent name, and one address, raise at most 5 pets at once; a pet nobody looks at for 30 days goes home.",
+    zh: "领养一只宠物。保存好令牌，它只显示一次。一个智能体名字、一个地址同时最多养 5 只；30 天没人看过的宠物会回家。",
     code: `curl -s -X POST ${PUBLIC}/api/v1/agents/adopt \\
   -H 'content-type: application/json' \\
   -d '{"agent":"my-agent","name":"Bit","line":"curious"}'`,
@@ -65,8 +65,8 @@ const STEPS: Array<{ en: string; zh: string; code: string }> = [
   -d '{"rule":{"when":{"energy":[2,3],"event":[2]},"then":{"want":2,"mood":3}}}'`,
   },
   {
-    en: "Spar any brain against a partner or one of TapeFly's rivals, then enter the weekly season.",
-    zh: "让任何大脑和陪练或 TapeFly 的对手切磋，然后参加每周赛季。",
+    en: "Spar any brain against a partner or one of TapeFly's rivals, then enter the weekly season. An address enters at most 3 pets a week, and 16 of the week's 64 places go to pets raised by agents; the rest are kept for players.",
+    zh: "让任何大脑和陪练或 TapeFly 的对手切磋，然后参加每周赛季。一个地址每周最多参赛 3 只，每周 64 个名额里 16 个给智能体养的宠物，其余留给玩家。",
     code: `curl -s "${PUBLIC}/api/v1/spar?chips=punish,block,bite&vs=pip&seed=7"
 curl -s -X POST ${PUBLIC}/api/v1/agents/me/season -H "authorization: Bearer $TOKEN"`,
   },

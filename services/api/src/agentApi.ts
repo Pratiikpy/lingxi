@@ -18,6 +18,7 @@ import { type Deployment, readMetadata, readNetlist, readPet } from "@lingxi/cha
 import {
   FLY_RIVALS,
   type Fighter,
+  MAX_ENTRIES,
   MAX_GATES,
   PARTNERS,
   type SparResult,
@@ -30,7 +31,7 @@ import {
 } from "@lingxi/game";
 import { programOfChips } from "@lingxi/brain";
 import type { AgentStore } from "./agents";
-import type { SeasonStore } from "./season";
+import { MAX_AGENT_ENTRIES, type SeasonStore } from "./season";
 import { RateLimiter } from "./limit";
 import { clientIp } from "./clientIp";
 
@@ -92,11 +93,11 @@ export function withAgentApi(app: Hono, deps: AgentApiDeps): Hono {
         "GET /api/v1/spar?program=lx1.…&vs=pip": "spar a brain (a Lingxi program code, or p1=… / chips=… for a TapeFly brain) against a partner or fly:<rival>; &seed= for a fixed fight",
         "GET /api/v1/pets/:id": "a pet on X Layer: owner, line, brain circuit, day, log hash, picture",
         "GET /api/v1/pets/:id/brain": "the pet's brain netlist as stored on chain (TAP-02 bytes)",
-        "POST /api/v1/agents/adopt": "{ agent, name, line, instincts? } → a token; keep it, it is shown once",
+        "POST /api/v1/agents/adopt": "{ agent, name, line, instincts? } → a token; keep it, it is shown once. At most 5 pets at once per agent name and per address; a pet nobody looks at for 30 days goes home",
         "GET /api/v1/agents/me": "your pet now (Authorization: Bearer <token>)",
         "POST /api/v1/agents/me/care": "{ action: feed|play|clean|pet|medicine|lightsOff|wake|talk, food? }",
         "POST /api/v1/agents/me/teach": "{ rule: { when: {...}, then: { want, mood } } } in the PET-16x8/1 rule language",
-        "POST /api/v1/agents/me/season": "enter your pet in this week's season, marked as raised by an agent",
+        "POST /api/v1/agents/me/season": "enter your pet in this week's season, marked as raised by an agent: at most 3 entries per address a week, and 16 of the 64 places go to agent-raised pets",
         "GET /api/v1/scoreboard": "agent-raised against human-raised pets, week by week",
       },
     }),
@@ -188,8 +189,8 @@ export function withAgentApi(app: Hono, deps: AgentApiDeps): Hono {
     if (busy) return busy;
     const body = await lenient(c, AgentAdoptBody);
     if (!body) return c.json({ ok: false, reason: "invalid" }, 400);
-    const r = deps.agents.adopt(String(body.agent ?? ""), String(body.name ?? ""), String(body.line ?? ""), body.instincts === undefined ? 0 : Number(body.instincts));
-    if (!r.ok) return c.json({ ok: false, reason: r.reason, detail: r.reason === "tooMany" ? "an agent may raise at most 5 pets" : r.reason === "invalid" ? "agent: 2-32 letters, digits, space, dot or dash; name: 1-16 characters; line: gentle, bold or curious; instincts: 0-15" : undefined }, r.reason === "invalid" ? 400 : 200);
+    const r = deps.agents.adopt(String(body.agent ?? ""), String(body.name ?? ""), String(body.line ?? ""), body.instincts === undefined ? 0 : Number(body.instincts), who(c));
+    if (!r.ok) return c.json({ ok: false, reason: r.reason, detail: r.detail ?? (r.reason === "invalid" ? "agent: 2-32 letters, digits, space, dot or dash; name: 1-16 characters; line: gentle, bold or curious; instincts: 0-15" : undefined) }, r.reason === "invalid" ? 400 : 200);
     return c.json({ ok: true, token: r.token, note: "Keep this token: send it as Authorization: Bearer <token>. It is shown only once.", pet: r.pet });
   });
 
@@ -234,8 +235,10 @@ export function withAgentApi(app: Hono, deps: AgentApiDeps): Hono {
     const t = mine(c);
     const sp = t ? deps.agents.seasonPet(t) : null;
     if (!t || !sp) return c.json({ ok: false, reason: "unknown" }, 401);
-    const r = deps.seasons.enter(sp.pet, `agent-${t.slice(0, 40)}`, { agent: sp.agent });
-    return c.json(r, r.ok || r.reason === "full" ? 200 : 400);
+    // an agent's entry counts against its address like a player's, and agents share a quarter of the week (A41)
+    const r = deps.seasons.enter(sp.pet, `agent-${t.slice(0, 40)}`, { agent: sp.agent, from: who(c) });
+    if (!r.ok && r.reason === "agentsFull") return c.json({ ok: false, reason: r.reason, detail: `this week's places for agent-raised pets (${MAX_AGENT_ENTRIES} of ${MAX_ENTRIES}) are taken; the rest are kept for players` });
+    return c.json(r, r.ok || r.reason === "full" || r.reason === "tooMany" ? 200 : 400);
   });
 
   app.get("/api/v1/scoreboard", (c) => {

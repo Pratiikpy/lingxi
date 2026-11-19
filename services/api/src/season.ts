@@ -33,6 +33,8 @@ interface Week {
 
 /** Entries one address may hold in a week. */
 export const MAX_ENTRIES_PER_ADDRESS = 3;
+/** A week's places that may go to pets raised by agents: a quarter, so they can never crowd players out (A41). */
+export const MAX_AGENT_ENTRIES = MAX_ENTRIES / 4;
 
 /** The champion's keepsake (PRD F26): its brain taped out on X Layer and sent to its owner. */
 export interface Award {
@@ -80,7 +82,7 @@ export interface EnterOptions {
 }
 
 export interface SeasonStore {
-  enter: (pet: unknown, device: string, opts?: EnterOptions) => { ok: true; week: string; key: string } | { ok: false; reason: "invalid" | "full" | "tooMany" };
+  enter: (pet: unknown, device: string, opts?: EnterOptions) => { ok: true; week: string; key: string } | { ok: false; reason: "invalid" | "full" | "tooMany" | "agentsFull" };
   view: (week: string) => SeasonView | null;
   /** finished weeks whose champion has no keepsake yet */
   pending: () => PendingAward[];
@@ -159,6 +161,7 @@ export function createSeasonStore(file?: string, now: () => number = Date.now, s
       const key = w.by[who] ?? tag(`lingxi-season:${week}:${who}`).slice(0, 12);
       const at = entries.findIndex((e) => e.key === key);
       if (at < 0 && entries.length >= MAX_ENTRIES) return { ok: false, reason: "full" };
+      if (at < 0 && opts.agent && entries.filter((e) => e.agent).length >= MAX_AGENT_ENTRIES) return { ok: false, reason: "agentsFull" };
       if (at < 0 && opts.from && Object.values(from).filter((a) => a === opts.from).length >= MAX_ENTRIES_PER_ADDRESS) return { ok: false, reason: "tooMany" };
       const entry: SeasonEntry = { key, pet: v.pet, at: t, ...(opts.agent ? { agent: opts.agent } : {}) };
       entries = at < 0 ? [...entries, entry] : entries.map((e, i) => (i === at ? entry : e));

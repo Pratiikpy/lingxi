@@ -32,6 +32,10 @@ import {
 
 const MAX_PETS = 5_000;
 const MAX_PER_AGENT = 5;
+/** Agent pets one address may raise at once, whatever agent names it uses (A41). */
+export const MAX_PER_ADDRESS = 5;
+/** An agent pet nobody has looked at or cared for this long goes home, freeing its place (A41). */
+export const AGENT_IDLE_MS = 30 * 86_400_000;
 const LINES = new Set<StarterLine>(["gentle", "bold", "curious"]);
 export const AGENT_CARE = ["feed", "play", "clean", "pet", "medicine", "lightsOff", "wake", "talk"] as const;
 export type AgentCare = (typeof AGENT_CARE)[number];
@@ -40,6 +44,10 @@ interface Kept {
   agent: string;
   pet: Pet;
   created: number;
+  /** the address that adopted it, for the per-address cap */
+  from?: string;
+  /** when it was last looked at or cared for */
+  seen?: number;
 }
 
 export interface AgentPetView {
@@ -96,7 +104,7 @@ export function viewOf(k: Kept, now: number): AgentPetView {
 }
 
 export interface AgentStore {
-  adopt: (agent: string, name: string, line: string, instincts?: number) => { ok: true; token: string; pet: AgentPetView } | { ok: false; reason: AgentRefusal };
+  adopt: (agent: string, name: string, line: string, instincts?: number, from?: string) => { ok: true; token: string; pet: AgentPetView } | { ok: false; reason: AgentRefusal; detail?: string };
   view: (token: string) => AgentPetView | null;
   act: (token: string, kind: string, food?: string) => { ok: true; note: string; pet: AgentPetView } | { ok: false; reason: AgentRefusal };
   teach: (token: string, rule: unknown) => { ok: true; pet: AgentPetView } | { ok: false; reason: AgentRefusal | string; detail?: string };
@@ -125,6 +133,15 @@ export function createAgentStore(file?: string, now: () => number = Date.now): A
     }
   };
   if (file) setInterval(save, 15_000).unref();
+  /** pets idle past `AGENT_IDLE_MS` go home */
+  const letIdleGo = (t: number) => {
+    for (const [h, k] of pets)
+      if (t - (k.seen ?? k.created) > AGENT_IDLE_MS) {
+        pets.delete(h);
+        dirty = true;
+      }
+  };
+  letIdleGo(now());
   const touch = (h: string, k: Kept) => {
     pets.set(h, k);
     dirty = true;
@@ -136,22 +153,24 @@ export function createAgentStore(file?: string, now: () => number = Date.now): A
     const k = pets.get(h);
     if (!k) return null;
     const caught = grown(catchUp(k.pet, now(), brainOf(k.pet)));
-    const next = { ...k, pet: caught };
+    const next = { ...k, pet: caught, seen: now() };
     touch(h, next);
     return [h, next];
   };
   return {
-    adopt: (agent, name, line, instincts = 0) => {
+    adopt: (agent, name, line, instincts = 0, from) => {
       if (typeof agent !== "string" || !/^[\w .-]{2,32}$/.test(agent) || typeof name !== "string" || name.trim().length < 1 || name.length > 16 || !LINES.has(line as StarterLine)) return { ok: false, reason: "invalid" };
       if (!Number.isInteger(instincts) || instincts < 0 || instincts > 15) return { ok: false, reason: "invalid" };
-      if (pets.size >= MAX_PETS) return { ok: false, reason: "full" };
-      if ([...pets.values()].filter((k) => k.agent === agent).length >= MAX_PER_AGENT) return { ok: false, reason: "tooMany" };
       const t = now();
+      letIdleGo(t);
+      if (pets.size >= MAX_PETS) return { ok: false, reason: "full" };
+      if ([...pets.values()].filter((k) => k.agent === agent).length >= MAX_PER_AGENT) return { ok: false, reason: "tooMany", detail: `an agent may raise at most ${MAX_PER_AGENT} pets` };
+      if (from && [...pets.values()].filter((k) => k.from === from).length >= MAX_PER_ADDRESS) return { ok: false, reason: "tooMany", detail: `at most ${MAX_PER_ADDRESS} pets at once from one address, whatever agent names it uses; a pet nobody looks at for 30 days goes home` };
       const inst = cleanInstincts(instincts);
       const brain = mindBrain({ line: line as StarterLine, lessons: [], instincts: inst });
       const pet = createPet({ name: name.trim(), line: line as StarterLine, now: t, tzOffsetMin: 0, brain, instincts: inst });
       const token = randomBytes(24).toString("hex");
-      const k: Kept = { agent, pet, created: t };
+      const k: Kept = { agent, pet, created: t, seen: t, ...(from ? { from } : {}) };
       touch(hash(token), k);
       save();
       return { ok: true, token, pet: viewOf(k, t) };
