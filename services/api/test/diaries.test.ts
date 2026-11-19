@@ -51,10 +51,10 @@ describe("diaries bounded (A39)", () => {
   it("holds no log in memory: what it keeps is read from its file when asked", () => {
     const dir = tmp();
     const store = createDiaryStore(dir, { now: () => NOW });
-    const { log: big, hash: h } = longLog("11", 50_000);
-    expect(store.publish(big, onChain(h), "a")).toEqual({ ok: true, beats: 50_000 });
+    const { log: big, hash: h } = longLog("11", 8_000);
+    expect(store.publish(big, onChain(h), "a")).toEqual({ ok: true, beats: 8_000 });
     // a fresh store over the same folder reads it back: nothing lived only in memory
-    expect(createDiaryStore(dir, { now: () => NOW }).get("11")?.words.length).toBe(50_000);
+    expect(createDiaryStore(dir, { now: () => NOW }).get("11")?.words.length).toBe(8_000);
     expect(store.heldInMemory()).toBe(0);
   });
 
@@ -66,11 +66,14 @@ describe("diaries bounded (A39)", () => {
     expect(store.publish(atFloor.log, { ...hourOld, logHash: atFloor.hash }, "a")).toEqual({ ok: true, beats: DIARY_FLOOR_WORDS });
     const past = longLog("22", DIARY_FLOOR_WORDS + 1);
     expect(store.publish(past.log, { ...hourOld, logHash: past.hash }, "a")).toEqual({ ok: false, reason: "tooLong" });
-    // a ten-day-old pet may hold ten words for each minute it has lived
-    const tenDays = { born: Math.floor(NOW / 1000) - 10 * 86_400 };
-    const most = 10 * 1440 * DIARY_WORDS_PER_MINUTE;
-    const fits = longLog("23", Math.min(most, 100_000));
-    expect(store.publish(fits.log, { ...tenDays, logHash: fits.hash }, "a").ok).toBe(true);
+    // past the floor, a pet may hold ten words for each minute it has lived: nine hours is 5,400, and not one more
+    const nineHours = { born: Math.floor(NOW / 1000) - 9 * 3600 };
+    const most = 9 * 60 * DIARY_WORDS_PER_MINUTE;
+    expect(most).toBeGreaterThan(DIARY_FLOOR_WORDS);
+    const fits = longLog("23", most);
+    expect(store.publish(fits.log, { ...nineHours, logHash: fits.hash }, "a")).toEqual({ ok: true, beats: most });
+    const over = longLog("24", most + 1);
+    expect(store.publish(over.log, { ...nineHours, logHash: over.hash }, "a")).toEqual({ ok: false, reason: "tooLong" });
   });
 
   it("takes the pet's age on the chain's clock, not this server's: a chain running a day behind does not age the pet", () => {
@@ -82,21 +85,22 @@ describe("diaries bounded (A39)", () => {
   });
 
   it("an address may publish only so much a day, counting only what a republish adds", () => {
-    const store = createDiaryStore(tmp(), { now: () => NOW, perAddressBytesPerDay: 400_000 });
-    const a = longLog("31", 20_000);
+    // a log of 8,000 words is about 96,000 bytes of JSON: one fits an address's day of 150,000, two do not
+    const store = createDiaryStore(tmp(), { now: () => NOW, perAddressBytesPerDay: 150_000 });
+    const a = longLog("31", 8_000);
     expect(store.publish(a.log, onChain(a.hash), "1.2.3.4").ok).toBe(true);
-    const b = longLog("32", 20_000);
+    const b = longLog("32", 8_000);
     expect(store.publish(b.log, onChain(b.hash), "1.2.3.4")).toEqual({ ok: false, reason: "busy" });
     expect(store.publish(b.log, onChain(b.hash), "5.6.7.8").ok, "another address is not held up").toBe(true);
   });
 
   it("refuses a new diary when the shelf is full, and keeps every diary it had", () => {
-    const store = createDiaryStore(tmp(), { now: () => NOW, totalBytes: 300_000 });
-    const a = longLog("41", 20_000);
+    const store = createDiaryStore(tmp(), { now: () => NOW, totalBytes: 150_000 });
+    const a = longLog("41", 8_000);
     expect(store.publish(a.log, onChain(a.hash), "a").ok).toBe(true);
-    const b = longLog("42", 20_000);
+    const b = longLog("42", 8_000);
     expect(store.publish(b.log, onChain(b.hash), "b")).toEqual({ ok: false, reason: "full" });
-    expect(store.get("41")?.words.length).toBe(20_000);
+    expect(store.get("41")?.words.length).toBe(8_000);
   });
 
   it("reads the diaries written before (one PublishedLog per file)", () => {
