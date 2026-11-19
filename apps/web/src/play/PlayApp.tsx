@@ -693,7 +693,14 @@ export function PlayApp() {
           {!talking && !circuit && <VoiceBubble />}
           {/* the pet's "!" steps aside while the Decorate bar holds the top of the room (A14) */}
           {!talking && decorating === null && <PetQuestBubble />}
-          {talking ? null : Object.keys(others).length > 0 ? <SocialBar count={Object.keys(others).length} /> : <ThinkStrip pet={pet} />}
+          {talking ? null : Object.keys(others).length > 0 ? (
+            <SocialBar
+              here={[...Object.values(others), ...kinVisitors, ...(shyOne ? [shyOne] : [])].map((o) => ({ id: o.id, name: o.name }))}
+              onPick={(id) => setPicked(id)}
+            />
+          ) : (
+            <ThinkStrip pet={pet} />
+          )}
         </section>
         <div className="side">
           <Meters pet={pet} />

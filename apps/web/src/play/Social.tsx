@@ -1,6 +1,6 @@
 /** Saying hello to the pets around you, and inviting friends home. */
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLang } from "../i18n";
 import { liveAvailable, playerId, useLive } from "../game/live";
 import { play } from "../game/sound";
@@ -13,11 +13,39 @@ const EMOTES: Array<[string, IconName, string]> = [
   ["dance", "star", "dance"],
 ];
 
-export function SocialBar({ count }: { count: number }) {
+/** Someone in the room whose card can be opened. */
+export interface HereOne {
+  id: string;
+  name: string;
+}
+
+/**
+ * The room's bar: who is here, a wave or a heart for everyone, and a line to say. The count opens a list of who is
+ * here, each name opening that pet's card: the way to a visitor however crowded or narrow the room is, and the only one
+ * for a keyboard or a screen reader, which cannot tap the room's picture (A69).
+ */
+export function SocialBar({ here, onPick }: { here: HereOne[]; onPick: (id: string) => void }) {
   const { lang } = useLang();
   const emote = useLive((s) => s.emote);
   const say = useLive((s) => s.say);
   const [text, setText] = useState("");
+  const [asked, setOpen] = useState(false);
+  // nobody left to list: the list is shut with them
+  const open = asked && here.length > 0;
+  const list = useRef<HTMLDivElement>(null);
+  const opener = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    list.current?.querySelector<HTMLButtonElement>(".here-one")?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      opener.current?.focus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+  const title = lang === "zh" ? "谁在这里" : "Who's here";
   return (
     <form
       className="social"
@@ -29,7 +57,26 @@ export function SocialBar({ count }: { count: number }) {
         play("tap");
       }}
     >
-      <em>{lang === "zh" ? `${count} 位朋友在这里` : `${count} here`}</em>
+      <button ref={opener} type="button" className="here" aria-expanded={open} aria-haspopup="dialog" onClick={() => (play("tap"), setOpen(!open))}>
+        {lang === "zh" ? `${here.length} 位朋友在这里` : `${here.length} here`}
+      </button>
+      {open && (
+        <div ref={list} className="here-list" role="dialog" aria-label={title}>
+          <b>{title}</b>
+          <button type="button" className="icon-x" aria-label={lang === "zh" ? "关闭" : "Close"} onClick={() => (setOpen(false), opener.current?.focus())}>
+            <Icon name="close" size={14} />
+          </button>
+          <ul>
+            {here.map((h) => (
+              <li key={h.id}>
+                <button type="button" className="here-one" onClick={() => (play("tap"), setOpen(false), onPick(h.id))}>
+                  {h.name}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {EMOTES.map(([kind, icon, label]) => (
         <button key={kind} type="button" className="emote" aria-label={label} onClick={() => (emote(kind), play("pop"))}>
           <Icon name={icon} size={16} />

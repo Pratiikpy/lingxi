@@ -5,7 +5,7 @@
 import { randomBytes } from "node:crypto";
 import { expect, hatch, test } from "../fixtures";
 import { RoomSocket, keyedId, stored } from "../helpers/browser";
-import { spotFor, tapScene } from "../helpers/room";
+import { spotFor, tapVisitor } from "../helpers/room";
 
 const LOOKALIKE = "Mochi\u061c";
 const SHOWN = "Mochi\ufffd";
@@ -20,9 +20,8 @@ for (const look of [
     const { page } = p;
     await hatch(p, "Kiri");
     const home = `home:${(await stored(page, "lingxi.player.v1"))!}`;
-    // a visitor at a spot a phone shows (its edges are cropped) clear of the player's own pet
-    let secret = randomBytes(16).toString("hex");
-    while (![34, 94].includes(spotFor(keyedId(secret)))) secret = randomBytes(16).toString("hex");
+    // a visitor, wherever its lane: the room stands it where a phone shows it (A69)
+    const secret = randomBytes(16).toString("hex");
     const visitorId = keyedId(secret);
     const visitor = await RoomSocket.open(`${run.api.replace("http", "ws")}/live`, p.web);
     visitor.hello(home, visitorId, secret, LOOKALIKE);
@@ -31,7 +30,7 @@ for (const look of [
     const card = page.locator(".visitor-card");
     let last = "";
     for (let tries = 0; tries < 20 && !(await card.isVisible()); tries++) {
-      last = await tapScene(page, spotFor(visitorId), 96);
+      last = await tapVisitor(page, spotFor(visitorId), { nth: tries });
       await page.waitForTimeout(250);
     }
     await expect(card, `the visitor is picked (last tap ${last})`).toBeVisible();

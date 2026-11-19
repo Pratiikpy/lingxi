@@ -15,7 +15,7 @@ import { type Page } from "@playwright/test";
 import { dismiss, expect, sheet, test } from "../fixtures";
 import { keepOnChain, stored, walletOf } from "../helpers/browser";
 import { forkOf } from "../helpers/chain";
-import { spotFor, tapScene } from "../helpers/room";
+import { spotFor, tapVisitor } from "../helpers/room";
 import { unpackState } from "../../packages/game/src/pack";
 
 const DAY = 86_400_000;
@@ -96,7 +96,7 @@ async function familyOnChain(player: Fixtures["player"], run: Fixtures["run"], l
   await dismiss(b.page);
   const card = a.page.locator(".visitor-card");
   for (let tries = 0; tries < 20 && !(await card.isVisible()); tries++) {
-    await tapScene(a.page, spotFor(idB), 96);
+    await tapVisitor(a.page, spotFor(idB), { own: "adult", nth: tries });
     await a.page.waitForTimeout(400);
   }
   await expect(card, "Tofu is picked in Mochi's room").toBeVisible();

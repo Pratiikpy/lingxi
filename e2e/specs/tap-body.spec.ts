@@ -7,7 +7,7 @@ import { randomBytes } from "node:crypto";
 import { type Page } from "@playwright/test";
 import { careCount, expect, hatch, patPet, test } from "../fixtures";
 import { RoomSocket, keyedId, stored } from "../helpers/browser";
-import { spotFor, tapScene } from "../helpers/room";
+import { spotFor, tapVisitor } from "../helpers/room";
 
 /** A28: the visitor card and every control in it lie inside the room, and every button's text reads at 4.5:1 or more. */
 async function cardFitsAndReads(page: Page): Promise<void> {
@@ -62,7 +62,7 @@ for (const look of [
       const card = page.locator(".visitor-card");
       let last = "";
       for (let tries = 0; tries < 12 && !(await card.isVisible()); tries++) {
-        last = await tapScene(page, lane, 96);
+        last = await tapVisitor(page, lane, { nth: tries });
         await page.waitForTimeout(250);
       }
       await expect(card, `the friend at lane ${lane} is picked (last tap ${last})`).toBeVisible();

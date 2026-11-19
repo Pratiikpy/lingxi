@@ -14,7 +14,7 @@ import { INSTINCT_MAX_GATES } from "../../packages/game/src/family";
 import { expect, hatch, sheet, test } from "../fixtures";
 import { forkOf } from "../helpers/chain";
 import { RoomSocket, keyedId, stored } from "../helpers/browser";
-import { spotFor, tapScene } from "../helpers/room";
+import { spotFor, tapVisitor } from "../helpers/room";
 
 const cpu = `0x${"ab".repeat(20)}`;
 
@@ -60,7 +60,7 @@ test("a friend's card with a brain too big to run is said to be damaged, and the
 
   const card = page.locator(".visitor-card");
   for (let tries = 0; tries < 20 && !(await card.isVisible()); tries++) {
-    await tapScene(page, spotFor(friendId), 96);
+    await tapVisitor(page, spotFor(friendId), { nth: tries });
     await page.waitForTimeout(250);
   }
   await expect(card, "the friend's pet is picked").toBeVisible();

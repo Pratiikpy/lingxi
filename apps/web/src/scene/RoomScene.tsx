@@ -16,6 +16,7 @@ import type { Expression } from "@lingxi/art";
 import type { StarterLine } from "@lingxi/brain";
 import { DECOR_BY_ID, NAME_COLOUR_BY_ID } from "@lingxi/world";
 import { BITS, type PetStage, catTexture, glowTexture, glyphTexture, petTexture, pixelTexture, vignetteTexture } from "./textures";
+import { HALF, PET_HOME, ROOM, WANDER, floorSpot, laneOf, sceneScale, type FloorView } from "./floor";
 import { bodyHitArea } from "./hitArea";
 
 export type DayPhase = "day" | "evening" | "night";
@@ -113,15 +114,6 @@ function drawMark(g: Graphics, kind: "!" | "✓" | "★"): void {
   );
 }
 
-/** A stable spot on the floor for a visitor, from their id. */
-function spotFor(id: string): number {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  const lanes = [26, 42, 86, 102, 34, 94, 18, 110];
-  return lanes[h % lanes.length]!;
-}
-
-const ROOM = 128;
 const bgCache = new Map<string, Texture>();
 async function bgTexture(url: string): Promise<Texture> {
   const hit = bgCache.get(url);
@@ -147,9 +139,7 @@ async function makeBg(url: string, still: boolean): Promise<Sprite> {
   return gif;
 }
 /** where the pet stands when nothing else shares its floor */
-const PET_HOME = 64;
 /** half the drawn width of each stage, to keep two pets apart */
-const HALF = { baby: 10, child: 12, teen: 14, adult: 18 } as const;
 const PET_FEET = 104;
 const CAT_FEET = 96;
 
@@ -394,16 +384,22 @@ export function RoomScene(props: SceneProps) {
         bubbleBg: Graphics;
         x: number;
         target: number;
+        /** where in the whole room it means to stand: its lane, or a step from it as it wanders (A69) */
+        lane: number;
         lastEmote: number;
       }
       const visitors = new Map<string, Visitor>();
+      /** the part of the room that shows (a phone crops the sides), in room pixels */
+      const view: FloorView = { left: 0, right: ROOM };
+      /** half the width of a pet at a stage that may be one the room does not draw (an elder stands as an adult) */
+      const halfOf = (stage: string) => HALF[(stage in HALF ? stage : "adult") as keyof typeof HALF];
 
       let scale = 1;
       const layout = () => {
         const w = el.clientWidth;
         const h = el.clientHeight;
         // the largest whole-number scale that covers the box, cropped evenly
-        scale = Math.max(1, Math.ceil(Math.max(w, h) / ROOM));
+        scale = sceneScale(w, h);
         world.scale.set(scale);
         world.x = Math.round((w - ROOM * scale) / 2);
         world.y = Math.round((h - ROOM * scale) / 2);
@@ -449,15 +445,15 @@ export function RoomScene(props: SceneProps) {
         const now = performance.now();
         const p = latest.current;
         {
-          // the part of the room that shows (a phone crops the sides), in room pixels
-          const left = Math.max(0, -world.x / scale);
-          const right = Math.min(ROOM, left + el.clientWidth / scale);
+          view.left = Math.max(0, -world.x / scale);
+          view.right = Math.min(ROOM, view.left + el.clientWidth / scale);
+          const { left, right } = view;
           const resident = p.others.find((o) => o.look);
           residentSpot.clear();
           PET_X = PET_HOME;
           if (resident?.look) {
             const hp = HALF[p.stage];
-            const hr = HALF[(resident.stage in HALF ? resident.stage : "adult") as keyof typeof HALF];
+            const hr = halfOf(resident.stage);
             const onRight = resident.look.x >= PET_HOME;
             const want = Math.max(left + hr + 2, Math.min(right - hr - 2, resident.look.x));
             const gap = Math.abs(want - PET_HOME) - hp - hr;
@@ -780,13 +776,15 @@ export function RoomScene(props: SceneProps) {
             bubble.anchor.set(0.5, 1);
             const bubbleBg = new Graphics();
             ui.addChild(tag, bubbleBg, bubble);
-            const home = o.look ? (residentSpot.get(o.id) ?? o.look.x) : spotFor(o.id);
-            v = { sprite, tag, bubble, bubbleBg, x: home, target: home, lastEmote: 0 };
+            const lane = o.look ? o.look.x : laneOf(o.id);
+            const home = residentSpot.get(o.id) ?? floorSpot(lane, view, halfOf(o.stage));
+            v = { sprite, tag, bubble, bubbleBg, x: home, target: home, lane, lastEmote: 0 };
             visitors.set(o.id, v);
           }
-          // a resident keeps to its spot (it may move when the view is resized); visitors wander
-          if (o.look) v.target = residentSpot.get(o.id) ?? o.look.x;
-          else if (!p.reduceMotion && Math.random() < 0.004) v.target = Math.max(14, Math.min(114, spotFor(o.id) + (Math.random() * 24 - 12)));
+          // a resident keeps to its spot, visitors wander near their lane; every pet stands within what shows, which moves
+          // when the view is resized (A69)
+          if (!o.look && !p.reduceMotion && Math.random() < 0.004) v.lane = Math.max(WANDER.min, Math.min(WANDER.max, laneOf(o.id) + (Math.random() * 24 - 12)));
+          v.target = residentSpot.get(o.id) ?? floorSpot(o.look ? o.look.x : v.lane, view, halfOf(o.stage));
           if (Math.abs(v.target - v.x) > 0.5) v.x += Math.sign(v.target - v.x) * 0.15;
           const stageName = o.stage === "elder" ? "adult" : o.stage;
           const expr = o.mood === 3 ? "sparkly" : o.mood === 2 ? "happy" : o.mood === 0 ? "sulk" : "neutral";

@@ -838,13 +838,79 @@
   border: 2px solid #2b2140;
   color: #2b2140;
 }
-.social em {
-  font-style: normal;
+/* the count opens the list of who is here (A69) */
+.social .here {
+  flex: none;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 2px solid #2b2140;
+  border-radius: var(--r-pill);
+  background: #fffdf8;
   font-family: var(--display);
   font-size: 12px;
   letter-spacing: 0.06em;
-  color: #5b4e73;
+  color: #2b2140;
   white-space: nowrap;
+  cursor: pointer;
+  transition: transform var(--t-micro) var(--ease);
+}
+.social .here:active {
+  transform: scale(0.95);
+}
+.social .here[aria-expanded="true"] {
+  background: #ffc83d;
+}
+/* the list keeps the light paper of the bar and the visitor card in both looks */
+.here-list {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  width: max-content;
+  min-width: 180px;
+  max-width: 100%;
+  max-height: 220px;
+  overflow-y: auto;
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 8px 10px 14px;
+  border: 2px solid #2b2140;
+  border-radius: 16px;
+  background: #fffdf8;
+  color: #2b2140;
+  box-shadow: 0 4px 0 #2b2140;
+  z-index: 6;
+}
+.here-list b {
+  flex: 1;
+  font-family: var(--display);
+}
+.here-list ul {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.here-one {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 2px solid #2b2140;
+  border-radius: var(--r-pill);
+  background: #fffdf8;
+  color: #2b2140;
+  font-family: var(--round);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.here-one:hover,
+.here-one:focus-visible {
+  background: #ffe9a8;
 }
 .emote {
   width: 34px;
