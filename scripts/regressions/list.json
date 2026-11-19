@@ -868,5 +868,11 @@
     "row": "A34",
     "bug": "the server would have searched X Layer again for every player's ask",
     "test": { "kind": "vitest", "dir": "services/api", "file": "test/daily.test.ts", "name": "finds the first block at or after the day's midnight UTC, once, and keeps it" }
+  },
+  {
+    "id": "A35-changed-patch-rechecked",
+    "row": "A35",
+    "bug": "a push that changed only a fix's patch would not have had that fix checked in CI",
+    "test": { "kind": "vitest", "dir": ".", "file": "scripts/revertSelect.test.mts", "name": "picks entries new in the list, changed in the list, or whose patch changed, and nothing else" }
   }
 ]

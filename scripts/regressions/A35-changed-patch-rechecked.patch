@@ -1,0 +1,9 @@
+--- a/scripts/lib/revertSelect.mts
++++ b/scripts/lib/revertSelect.mts
+@@ -14,5 +14,5 @@ export function changedEntries<E extends Entry>(before: readonly E[] | null, aft
+   if (!before) return [...after];
+   const was = new Map(before.map((e) => [e.id, JSON.stringify(e)]));
+   const patched = new Set(changedFiles.map((f) => /^scripts\/regressions\/(.+)\.patch$/.exec(f)?.[1]).filter((id): id is string => !!id));
+-  return after.filter((e) => was.get(e.id) !== JSON.stringify(e) || patched.has(e.id));
++  return after.filter((e) => was.get(e.id) !== JSON.stringify(e));
+ }
