@@ -748,5 +748,11 @@
     "row": "A23",
     "bug": "nothing said which OKB-market listings a sale had retired, since V1 deletes a sold-out listing",
     "test": { "kind": "vitest", "dir": "services/api", "file": "test/marketV1.test.ts", "name": "a sale retires the seller's earlier listings of that design, and only those" }
+  },
+  {
+    "id": "A24-lineage-says-a-changed-brain",
+    "row": "A24",
+    "bug": "a child whose brain was swapped after birth was shown with its parents as though their circuit were still its mind",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/verify/lineage.test.ts", "name": "is said to have changed once its brain is another circuit, though its parents stay" }
   }
 ]

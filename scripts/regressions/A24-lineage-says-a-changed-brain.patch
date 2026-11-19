@@ -1,0 +1,9 @@
+--- a/apps/web/src/verify/lineage.ts
++++ b/apps/web/src/verify/lineage.ts
+@@ -9,5 +9,5 @@ import type { PetHistoryRecord } from "./indexer";
+ /** "kept": its brain is still the circuit checked at birth; "changed": it has had another since; null: not a child. */
+ export function lineageNow(h: PetHistoryRecord, brainNow: string): "kept" | "changed" | null {
+   if (!h.parents || !h.hatched) return null;
+-  return h.hatched.brainId === brainNow ? "kept" : "changed";
++  return brainNow ? "kept" : "kept";
+ }
