@@ -1,0 +1,11 @@
+--- a/services/api/src/teach.ts
++++ b/services/api/src/teach.ts
+@@ -123,7 +123,7 @@ export type TeachResult =
+  */
+ export function mindOf(body: Pick<TeachBody, "line" | "lessons" | "card" | "slots">): MindSpec | null {
+   const line = body.line as StarterLine;
+-  if (body.card === undefined) return { line, lessons: body.lessons as Rule[] };
++  return { line, lessons: body.lessons as Rule[] };
+   const card = parseCard(body.card);
+   if (!card) return null;
+   return {

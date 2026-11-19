@@ -640,5 +640,11 @@
     "row": "A10",
     "bug": "a deploy built over the folder the site served, so for a few seconds of every build the pages were missing (play.html 404 for 2.8 s of a 13 s build)",
     "test": { "kind": "e2e", "spec": "e2e/specs/deploy-while-open.spec.ts", "title": "a release in progress never takes a page or its files away (A10)" }
+  },
+  {
+    "id": "A11-teach-whole-mind",
+    "row": "A11",
+    "bug": "teaching in words checked a lesson against the stage's slots alone, so a pet whose skills and quest slot gave it room was told it was full",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/teachMind.test.ts", "name": "teaches an elder holding thirteen lessons, its skills and quest slot giving it room for a fourteenth" }
   }
 ]
