@@ -1,0 +1,10 @@
+--- a/packages/chain/src/registry.ts
++++ b/packages/chain/src/registry.ts
+@@ -171,7 +171,6 @@ export async function checkpointOnChain(pub: PublicClient, wallet: WalletClient,
+   const account = wallet.account;
+   if (!account) throw new Error("wallet has no account");
+   const recorded = (await pub.readContract({ address: d.registry, abi: petRegistryAbi, functionName: "pet", args: [petId] })) as { line: number };
+-  if (lineOfState(state) !== Number(recorded.line)) throw new LineMismatchError(lineName(Number(recorded.line)), lineName(lineOfState(state)));
+   const { request } = await pub.simulateContract({
+     address: d.registry,
+     abi: petRegistryAbi,

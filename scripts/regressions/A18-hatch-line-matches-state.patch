@@ -1,0 +1,10 @@
+--- a/packages/chain/src/registry.ts
++++ b/packages/chain/src/registry.ts
+@@ -150,7 +150,6 @@ export async function hatchOnChain(pub: PublicClient, wallet: WalletClient, d: D
+   if (!account) throw new Error("wallet has no account");
+   const index = LOOK_LINES.indexOf(line);
+   if (index < 0) throw new Error(`unknown line ${line}`);
+-  if (lineOfState(initialState) !== index) throw new LineMismatchError(line, lineName(lineOfState(initialState)));
+   const brainId = BigInt(d.circuits[line]!.id);
+   const { request } = await pub.simulateContract({
+     address: d.registry,

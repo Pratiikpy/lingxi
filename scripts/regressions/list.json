@@ -688,5 +688,17 @@
     "row": "A17",
     "bug": "the art installer would send a colour with alpha 254, which PetLook writes as fill-opacity:.:0",
     "test": { "kind": "vitest", "dir": "packages/chain", "file": "test/palette.test.ts", "name": "refuses alpha 254, naming the role and the colour" }
+  },
+  {
+    "id": "A18-hatch-line-matches-state",
+    "row": "A18",
+    "bug": "a hatch could record one line with another line's starting state, as mainnet pet #2 was",
+    "test": { "kind": "vitest", "dir": "packages/chain", "file": "test/lineGuard.test.ts", "name": "refuses a starting state of another line before any wallet prompt" }
+  },
+  {
+    "id": "A18-save-line-matches-pet",
+    "row": "A18",
+    "bug": "a day's save could write a state of another line over a pet, which no later save undoes",
+    "test": { "kind": "vitest", "dir": "packages/chain", "file": "test/lineGuard.test.ts", "name": "refuses to save a state of another line over a pet before any wallet prompt" }
   }
 ]
