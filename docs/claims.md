@@ -21,7 +21,7 @@ Kinds of check:
 | fee-limited | README, wardrobe | The Tape-out set: three outfits, 0.1 BEM each, 300 copies each, the whole price burned. | auto:fees-limited |
 | fee-extras | README, extras panel | Room space, saved looks and a name colour: 0.05 BEM each, the whole price burned; room and looks up to three times. | auto:fees-extras |
 | fee-holder | README, numbers | The holder outfit is free for BEM, FAB, Rig and TapeCode-Test1 holders. | auto:holder-gift |
-| keeps-no-bem | README, numbers, extras | Lingxi keeps no BEM: no contract holds a balance to take. | auto:no-bem-held |
+| keeps-no-bem | README, extras | Lingxi takes no share of any BEM payment; no contract keeps a fee, and a contract holds only what it owes others until they take it. | auto:no-bem-held |
 | no-token | README | Lingxi has no token of its own. | manual: the deployment record lists every contract Lingxi deployed (`packages/chain/deployments/xlayer.json`); none is a token. BEM is TapeOut's. |
 | owner-powers | README | Fees move only within fixed bounds; burn shares cannot change; ownership is two-step. | test:contracts/test/SecurityReview.t.sol |
 | processor | README, judge check | The processor is registered with TapeOut's factory. | judge |

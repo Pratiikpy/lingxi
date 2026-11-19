@@ -129,7 +129,21 @@ const AUTO: Record<string, Check> = {
     const others = held.filter((h) => !h.startsWith("outfitMarketV2"));
     expect(!others.length, `holding BEM: ${others.join(", ")}`);
     expect(!market || BigInt(market.split(" ")[1]!) <= owed, `the BEM market holds more than it owes (${market}, owed ${owed})`);
-    return `no contract holds BEM beyond what the market owes sellers (${owed})`;
+    // OKB: only the first market, and exactly what it owes the project's treasury (its 3% fee, until withdrawn) (A46)
+    const okb: string[] = [];
+    for (const k of CONTRACTS) {
+      const a = d[k];
+      if (typeof a !== "string") continue;
+      const b = await pub.getBalance({ address: a as Address });
+      if (b > 0n) okb.push(`${k} ${b}`);
+    }
+    const okbOthers = okb.filter((h) => !h.startsWith("outfitMarket "));
+    expect(!okbOthers.length, `holding OKB: ${okbOthers.join(", ")}`);
+    const v1 = await pub.getBalance({ address: d.outfitMarket as Address });
+    const treasury = (await read(d.outfitMarket, outfitMarketAbi, "treasury")) as Address;
+    const owedProject = (await read(d.outfitMarket, outfitMarketAbi, "owed", [treasury])) as bigint;
+    expect(v1 === owedProject, `the first market holds ${v1} wei of OKB but owes the project ${owedProject}`);
+    return `BEM only in the second market, ${market ? market.split(" ")[1] : "0"} of ${owed} owed; OKB only in the first, ${v1} wei, all owed to the project`;
   },
   "circuit-hashes": async () => {
     for (const [id, hash] of Object.entries(CORE)) {

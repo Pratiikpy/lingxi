@@ -77,7 +77,7 @@ The game does not run its rules as code: it reads the answers of compiled circui
 
 ## BEM in, BEM burned
 
-The core game is free and has no token of its own. The extras that cost something are paid in BEM, and the contracts burn the fee in the same transaction. Lingxi keeps no BEM.
+The core game is free and has no token of its own. The extras that cost something are paid in BEM, and the contracts burn the fee in the same transaction. Lingxi takes no share of any BEM payment.
 
 There is one other rail, in OKB: designs listed on the first outfit market, before BEM pricing, still sell there, and that market pays a 3% fee on each sale to the project wallet (`feeBps` 300 and `treasury` read from [the contract](https://www.oklink.com/xlayer/address/0xb9f6b18edd21933582ec69fb1e718d9629e684cd)). Both rails are counted on the live-numbers page.
 
@@ -221,7 +221,7 @@ The brain tests include an exhaustive check of the seal circuit against its refe
 
 ## Security
 
-Every contract had a written review and a Slither pass before it reached mainnet; the reviews and their fixes are recorded with the build notes. The properties that matter most: all BEM moves straight from the buyer to the dead address and the parties in one transaction, so no contract ever holds a balance to steal; `expectedPrice` guards every purchase against a price changed in flight; listings bind a fingerprint of the pet's on-chain record so nothing in that record can change between an offer and its sale; approvals are per pet, never for all; and the server is a mailbox and a relay, never the judge (the buyer's game verifies against the chain before paying). One trust assumption to know: PetRegistry's owner chooses which breeder contracts may record a pet's parents.
+Every contract had a written review and a Slither pass before it reached mainnet; the reviews and their fixes are recorded with the build notes. The properties that matter most: all BEM moves straight from the buyer to the dead address and the parties in one transaction, so no contract keeps a fee: a contract holds only what it owes others until they take it (sellers' BEM in the second outfit market, each red packet's USDT until it is opened or refunded, and the first market's OKB owed to the project); `expectedPrice` guards every purchase against a price changed in flight; listings bind a fingerprint of the pet's on-chain record so nothing in that record can change between an offer and its sale; approvals are per pet, never for all; and the server is a mailbox and a relay, never the judge (the buyer's game verifies against the chain before paying). One trust assumption to know: PetRegistry's owner chooses which breeder contracts may record a pet's parents.
 
 Two limits of the mainnet contracts, and what the game does about them. A pet's name colour lives in the Extras contract, outside the record an adoption listing fingerprints, so a breeder could change it before a sale; the adoption centre therefore says that a name colour is not part of the price. A red packet "for pet owners" asks the registry that the claimer owns a settled pet (lived on chain three days and saved its third day), which stops casual farming but not someone willing to settle many pets; the game says exactly that where the option is chosen.
 
