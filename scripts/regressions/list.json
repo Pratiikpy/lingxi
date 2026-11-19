@@ -994,5 +994,29 @@
     "row": "A69",
     "bug": "nothing but a tap on the room's picture reached a visitor",
     "test": { "kind": "e2e", "spec": "e2e/specs/room-visitors.spec.ts", "title": "the count opens the list of who is here, in Chinese and the dark look (zh, dark, desktop)" }
+  },
+  {
+    "id": "A41-agent-entry-address",
+    "row": "A41",
+    "bug": "an agent's season entry carried no address, so one address could fill the week",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/agentApi.test.ts", "name": "an agent's entry counts against its address with everyone else's" }
+  },
+  {
+    "id": "A41-agent-share",
+    "row": "A41",
+    "bug": "agent-raised pets could take every place in the season",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/agentApi.test.ts", "name": "agent-raised pets take at most 16 of a week's 64 places; players can still enter" }
+  },
+  {
+    "id": "A41-adopt-per-address",
+    "row": "A41",
+    "bug": "one address could raise any number of agent pets under new names",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/agentApi.test.ts", "name": "an address raises at most 5 agent pets at once, whatever names it uses" }
+  },
+  {
+    "id": "A41-idle-pets-go-home",
+    "row": "A41",
+    "bug": "agent pets never left, so the store could be filled for good",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/agentApi.test.ts", "name": "an agent pet nobody has looked at for 30 days goes home, and its place counts again" }
   }
 ]

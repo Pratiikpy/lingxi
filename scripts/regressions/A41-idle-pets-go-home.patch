@@ -1,0 +1,20 @@
+--- a/services/api/src/agents.ts
++++ b/services/api/src/agents.ts
+@@ -136,7 +136,7 @@ export function createAgentStore(file?: string, now: () => number = Date.now): A
+   /** pets idle past `AGENT_IDLE_MS` go home */
+   const letIdleGo = (t: number) => {
+     for (const [h, k] of pets)
+-      if (t - (k.seen ?? k.created) > AGENT_IDLE_MS) {
++      if (false) {
+         pets.delete(h);
+         dirty = true;
+       }
+@@ -153,7 +153,7 @@ export function createAgentStore(file?: string, now: () => number = Date.now): A
+     const k = pets.get(h);
+     if (!k) return null;
+     const caught = grown(catchUp(k.pet, now(), brainOf(k.pet)));
+-    const next = { ...k, pet: caught, seen: now() };
++    const next = { ...k, pet: caught };
+     touch(h, next);
+     return [h, next];
+   };

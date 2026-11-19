@@ -1,0 +1,11 @@
+--- a/services/api/src/agentApi.ts
++++ b/services/api/src/agentApi.ts
+@@ -236,7 +236,7 @@ export function withAgentApi(app: Hono, deps: AgentApiDeps): Hono {
+     const sp = t ? deps.agents.seasonPet(t) : null;
+     if (!t || !sp) return c.json({ ok: false, reason: "unknown" }, 401);
+     // an agent's entry counts against its address like a player's, and agents share a quarter of the week (A41)
+-    const r = deps.seasons.enter(sp.pet, `agent-${t.slice(0, 40)}`, { agent: sp.agent, from: who(c) });
++    const r = deps.seasons.enter(sp.pet, `agent-${t.slice(0, 40)}`, { agent: sp.agent });
+     if (!r.ok && r.reason === "agentsFull") return c.json({ ok: false, reason: r.reason, detail: `this week's places for agent-raised pets (${MAX_AGENT_ENTRIES} of ${MAX_ENTRIES}) are taken; the rest are kept for players` });
+     return c.json(r, r.ok || r.reason === "full" || r.reason === "tooMany" ? 200 : 400);
+   });
