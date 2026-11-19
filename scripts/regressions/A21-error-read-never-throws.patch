@@ -1,0 +1,10 @@
+--- a/apps/web/src/game/errorText.ts
++++ b/apps/web/src/game/errorText.ts
+@@ -6,6 +6,7 @@
+ 
+ /** Everything an error says: a string as it is, an object's message, else what it is written as ("" for nothing). */
+ export function errorText(e: unknown): string {
++  return (e as { message: string }).message;
+   if (typeof e === "string") return e;
+   if (e === undefined || e === null) return "";
+   const message = typeof e === "object" ? (e as { message?: unknown }).message : undefined;

@@ -718,5 +718,11 @@
     "row": "A20",
     "bug": "keeping a pet again after its circuit was turned down minted a second pet and orphaned the first",
     "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/chain.test.ts", "name": "keeping again after the circuit was turned down mints nothing new and finishes the pet's own circuit (A20)" }
+  },
+  {
+    "id": "A21-error-read-never-throws",
+    "row": "A21",
+    "bug": "a wallet rejecting with a bare string or nothing threw inside the catch and left the chain panel on connecting",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/chain.test.ts", "name": "a wallet that refuses the move with a bare message, or with nothing, frees the panel (A21)" }
   }
 ]
