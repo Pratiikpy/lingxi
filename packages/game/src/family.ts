@@ -12,7 +12,7 @@
  * still fit the brain's size budget.
  */
 
-import { type FastBrain, type Program, type Rule, type StarterLine, circuitBrain, circuitFromParts, compileProgram, fastBrain, gateCount, inputField, stateBits } from "@lingxi/brain";
+import { type FastBrain, type Program, type Rule, type StarterLine, REF, circuitBrain, circuitFromParts, compileProgram, composeChild, composeInstinct, fastBrain, gateCount, inputField, stateBits } from "@lingxi/brain";
 import { LESSON_CAPACITY, type MindExtra, cleanInstincts, composeProgram } from "./lessons";
 import { type Growth, MAX_GATES_SKILLED, extraLessons, gateBudget, legalGrowth, ruleGrowth, ruleSkillIds, skillRules } from "./skills";
 import { shownName } from "./names";
@@ -94,11 +94,23 @@ export function instinctFast(own: FastBrain, nOwn: number, instinct: FastBrain):
 /** The most memory a pet's brain may hold (the registry keeps 64 bits). */
 export const MAX_MIND_STATE = 64;
 
-/** An instinct circuit, rebuilt from its kept bytes; null when the bytes do not make a 16-in, 8-out circuit. */
+/** The gates an instinct runs each beat, from its built parts (nothing is compiled or run); null when it cannot be built as a 16-in, 8-out circuit. */
+export function instinctGates(o: Pick<OutsideInstinct, "parts">): number | null {
+  try {
+    const c = circuitFromParts(o.parts);
+    return c.nIn === 16 && c.nOut === 8 ? c.nGates : null;
+  } catch {
+    return null;
+  }
+}
+
+/** An instinct circuit, rebuilt from its kept bytes; null when the bytes do not make a 16-in, 8-out circuit, or one too big to run (A38). */
 export function instinctBrain(o: OutsideInstinct): { fast: FastBrain; nState: number; gates: number } | null {
   try {
     const c = circuitFromParts(o.parts);
     if (c.nIn !== 16 || c.nOut !== 8) return null;
+    // counted before anything is compiled or run: a few kilobytes of REFs can expand to millions of gates
+    if (c.nGates > INSTINCT_MAX_GATES) return null;
     return { fast: circuitBrain(c), nState: c.nState, gates: c.nGates };
   } catch {
     return null;
@@ -275,6 +287,24 @@ export const CARD_BASE_MAX = 10_000;
 export const CARD_OUTSIDE_MAX = 24_000;
 /** The longest card the game reads, and so the longest any route must carry. */
 export const CARD_MAX = CARD_BASE_MAX + CARD_OUTSIDE_MAX;
+
+/**
+ * A38: the most gates an instinct may run each beat, counted as it runs them (every REF counts its target again):
+ * as many as the largest instinct a card can carry with no REF at all (a LATCH, the smallest element, is 4 bytes).
+ * REFs may make an instinct smaller to carry, never bigger to run.
+ */
+export const INSTINCT_MAX_GATES = CARD_OUTSIDE_MAX / 2 / 4;
+
+/** The gates of a glue circuit, apart from what it REFs. */
+const glueGates = (c: { elements: ReadonlyArray<{ op: number }> }) => c.elements.filter((e) => e.op !== REF).length;
+const SOMEWHERE = { cpu: `0x${"0".repeat(40)}`, id: 1n };
+
+/**
+ * The most gates an honest pet's whole mind runs each beat: a child's two halves at the skilled budget, an instinct at
+ * its budget, and the glue around them (`composeChild`, `composeInstinct`). No brain from someone else, on a card or on
+ * chain, is run past it.
+ */
+export const MAX_RUN_GATES = 2 * MAX_GATES_SKILLED + INSTINCT_MAX_GATES + glueGates(composeChild(SOMEWHERE, SOMEWHERE)) + glueGates(composeInstinct(SOMEWHERE, SOMEWHERE));
 
 /** Whether an instinct's circuits fit a card: a pet never learns one its card could not carry to friends (A26). */
 export const instinctFits = (parts: ReadonlyArray<{ hex: string }>): boolean => parts.reduce((n, p) => n + p.hex.length, 0) <= CARD_OUTSIDE_MAX;

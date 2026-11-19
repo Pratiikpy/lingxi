@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { type Rule, STARTERS, compileProgram, composeInstinct, encode, fastBrain, netlistBytes, stateBits, toElements, validateProgram } from "@lingxi/brain";
-import { CARD_OUTSIDE_MAX, type OutsideInstinct, type Pet, SUB, beatOf, createPet, familyOf, mindBrain } from "@lingxi/game";
+import { REF, type Rule, STARTERS, compileProgram, composeInstinct, encode, fastBrain, netlistBytes, stateBits, toElements, validateProgram } from "@lingxi/brain";
+import { CARD_OUTSIDE_MAX, INSTINCT_MAX_GATES, type OutsideInstinct, type Pet, SUB, beatOf, createPet, familyOf, mindBrain } from "@lingxi/game";
 import { COMPOST } from "@lingxi/world";
 import { type Key, translate } from "../i18n";
 import { type Net, type Storage, json, leave, reload, visit } from "./testGame";
@@ -574,6 +574,18 @@ describe("the game store: teaching and growing", () => {
     const before = useGame.getState().pet!;
     const huge = { ...owned, parts: [...owned.parts, { ...owned.parts[0]!, id: "999", hex: "0".repeat(CARD_OUTSIDE_MAX) }] };
     expect(useGame.getState().teachInstinct(huge)).toEqual({ ok: false, reason: "tooLong" });
+    expect(useGame.getState().pet).toEqual(before);
+  });
+
+  it("an owned circuit that runs more gates each beat than an instinct may is not taught, and says how many (A38)", async () => {
+    const { useGame } = await open();
+    useGame.getState().hatch("gentle", "Kiri");
+    const before = useGame.getState().pet!;
+    // eight REFs to a chain of NANDs one more than the budget allows across eight: 8 * 376 = 3,008 gates a beat
+    const top = Array.from({ length: 8 }, (_, i) => ({ op: REF, ins: [2], cpu: CPU, id: 2n, nOut: 1, firstOut: 18 + i }));
+    const chain = Array.from({ length: INSTINCT_MAX_GATES / 8 + 1 }, (_, i) => ({ op: 0, ins: i === 0 ? [2, 2] : [2 + i, 2 + i], nOut: 1, firstOut: 3 + i }));
+    const wide: OutsideInstinct = { ...owned, parts: [{ processor: CPU, id: "1", nIn: 16, nOut: 8, hex: hex(encode(top as never)) }, { processor: CPU, id: "2", nIn: 1, nOut: 1, hex: hex(encode(chain as never)) }] };
+    expect(useGame.getState().teachInstinct(wide)).toEqual({ ok: false, reason: "tooManyGates", gates: INSTINCT_MAX_GATES + 8 });
     expect(useGame.getState().pet).toEqual(before);
   });
 

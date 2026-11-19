@@ -18,8 +18,8 @@ import { dirname } from "node:path";
 import { createPublicClient, createWalletClient, erc20Abi, http, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { type Program, type Rule, type StarterLine, bytesToHex, compileProgram, composeChild, composeInstinct, gateCount, netlistBytes } from "@lingxi/brain";
-import { FACTORY, circuitIdFrom, factoryAbi, processorAbi, transistorsAbi, xLayer } from "@lingxi/chain";
-import { type Family, type Growth, MAX_GATES, MAX_GATES_SKILLED, MAX_LESSONS, SKILL_BY_ID, cleanInstincts, composeProgram, gateBudget, halfBudgets, halvesOf, mindExtra, skillRules } from "@lingxi/game";
+import { BrainTooBigError, FACTORY, circuitIdFrom, factoryAbi, loadCircuitFromChain, processorAbi, transistorsAbi, xLayer } from "@lingxi/chain";
+import { type Family, type Growth, INSTINCT_MAX_GATES, MAX_GATES, MAX_GATES_SKILLED, MAX_LESSONS, SKILL_BY_ID, cleanInstincts, composeProgram, gateBudget, halfBudgets, halvesOf, mindExtra, skillRules } from "@lingxi/game";
 
 const NEWLINE = /\r?\n/;
 
@@ -204,6 +204,14 @@ export class BrainRelayer {
         return { ok: false, reason: "invalid", detail: "no such circuit" } as const;
       }
       if (state > 64) return { ok: false, reason: "tooBig", detail: `${state} memory bits` } as const;
+      // the owned circuit must run within an instinct's budget, counted as it runs (A38): REFs may make it small to
+      // carry, never big to run, and every friend who meets the pet runs it
+      try {
+        await loadCircuitFromChain(this.pub, input.processor, BigInt(input.id), INSTINCT_MAX_GATES);
+      } catch (e) {
+        if (e instanceof BrainTooBigError) return { ok: false, reason: "tooBig", detail: `${e.gates} gates a beat, past ${e.max}` } as const;
+        return { ok: false, reason: "invalid", detail: "the circuit could not be read" } as const;
+      }
       const c = composeInstinct({ cpu: this.cfg.processor, id: BigInt(input.own) }, { cpu: input.processor, id: BigInt(input.id) });
       return this.tapeBytes(c.bytes, c.elements.filter((e) => e.op === 0).length, 0);
     });

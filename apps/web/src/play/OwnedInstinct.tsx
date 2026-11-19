@@ -9,7 +9,7 @@
 import { useState } from "react";
 import type { Address } from "viem";
 import { AdoptError, processorAbi, readOutsideCircuit } from "@lingxi/chain";
-import { MAX_MIND_STATE, type Pet, instinctBrain } from "@lingxi/game";
+import { INSTINCT_MAX_GATES, MAX_MIND_STATE, type Pet, instinctBrain } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { connectWallet, deployment, publicClient } from "../game/chain";
 import { brainOf, useGame } from "../game/store";
@@ -75,6 +75,13 @@ export function OwnedInstinctPanel({ pet }: { pet: Pet }) {
     setBusy(null);
   };
 
+  const limit = INSTINCT_MAX_GATES.toLocaleString(lang === "zh" ? "zh-CN" : "en");
+  const tooManyGates = (gates: number) =>
+    L(
+      `That circuit runs ${gates.toLocaleString("en")} gates each beat, more than an instinct may (${limit}): every friend who meets ${pet.name} would have to run it too.`,
+      `那个电路每一拍要跑 ${gates.toLocaleString("zh-CN")} 个门，超过本能的上限（${limit} 个）：每个遇到${pet.name}的朋友也都得跑它。`,
+    );
+
   const teachIt = async (o: Owned) => {
     if (!address) return;
     setBusy(o.id);
@@ -87,6 +94,7 @@ export function OwnedInstinctPanel({ pet }: { pet: Pet }) {
       } else {
         const r = teach({ processor: c.processor, id: c.id, owner: c.owner.toLowerCase(), parts: c.parts });
         if (r.ok) play("success");
+        else if (r.reason === "tooManyGates") setNote(tooManyGates(r.gates));
         else setNote(r.reason === "tooBig" ? L(`Its memory doesn't fit beside ${pet.name}'s: there is room for ${room} more bits.`, `它的记忆放不进${pet.name}的大脑：只剩 ${room} 位的空间。`) : r.reason === "tooLong" ? L(`That circuit is too big to travel with ${pet.name}: friends, seasons and duels could not read ${pet.name}'s card. An instinct can take up to 12,000 bytes of circuit.`, `那个电路太大，没法跟着${pet.name}走：朋友、赛季和切磋都读不了${pet.name}的卡片。本能的电路最多 12,000 字节。`) : r.reason === "notYours" ? L(`${pet.name} is away or is a friend's pet.`, `${pet.name}不在家，或是朋友托你照看的。`) : L("That circuit can't be read as a pet's brain.", "那个电路读不成宠物的大脑。"));
       }
     } catch (e) {
@@ -142,16 +150,20 @@ export function OwnedInstinctPanel({ pet }: { pet: Pet }) {
           {owned && owned.length > 0 && (
             <ul className="owned-list">
               {owned.map((o) => {
+                // the processor's count is at least what it runs, so one past the budget here is past it for sure (A38)
+                const runs = o.gates <= INSTINCT_MAX_GATES;
                 const fits = o.nState <= room;
                 const isCurrent = current?.processor === o.processor && current.id === o.id;
                 return (
                   <li key={`${o.processor}:${o.id}`}>
                     <span>
                       <b>{L(`Circuit #${o.id}`, `#${o.id} 号电路`)}</b>
-                      <span className="small">{L(` · ${o.gates} gates · ${o.nState} memory bits`, ` · ${o.gates} 个门 · ${o.nState} 位记忆`)}</span>
+                      <span className="small">{L(` · ${o.gates.toLocaleString("en")} gates · ${o.nState} memory bits`, ` · ${o.gates.toLocaleString("zh-CN")} 个门 · ${o.nState} 位记忆`)}</span>
+                      {/* said on the page, not only in a tooltip a phone never shows (A38) */}
+                      {!runs && <span className="small sp-warn owned-why">{tooManyGates(o.gates)}</span>}
                     </span>
-                    <button type="button" className="btn primary" disabled={!fits || isCurrent || busy !== null} onClick={() => void teachIt(o)}>
-                      {isCurrent ? L("Its instinct", "已是本能") : busy === o.id ? L("Reading…", "读取中……") : fits ? L("Teach as instinct", "教成本能") : L("Too much memory", "记忆太多")}
+                    <button type="button" className="btn primary" disabled={!fits || !runs || isCurrent || busy !== null} onClick={() => void teachIt(o)}>
+                      {isCurrent ? L("Its instinct", "已是本能") : busy === o.id ? L("Reading…", "读取中……") : !runs ? L("Too many gates", "门太多") : fits ? L("Teach as instinct", "教成本能") : L("Too much memory", "记忆太多")}
                     </button>
                   </li>
                 );

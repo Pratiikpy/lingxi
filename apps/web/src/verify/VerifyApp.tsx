@@ -16,7 +16,7 @@ import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react"
 import { type Hex } from "viem";
 import { beat, bitsToWord, circuitBrain, type Circuit, wordToBits, decodeSenses } from "@lingxi/brain";
 import { PetHistory } from "./History";
-import { type ChainPet, anchorBrains, canvasOfSvg, gameSprite, lineOfState, loadCircuitFromChain, lookOf, nameColours, readMetadata, readPet, replayMany, replayStep } from "@lingxi/chain";
+import { BrainTooBigError, type ChainPet, anchorBrains, canvasOfSvg, gameSprite, lineOfState, loadCircuitFromChain, lookOf, nameColours, readMetadata, readPet, replayMany, replayStep } from "@lingxi/chain";
 import { Named } from "../play/Named";
 import { type DiaryLine, chainAll, diaryOfStretches, diaryText, unpackState, ZERO_HASH } from "@lingxi/game";
 
@@ -66,6 +66,8 @@ const T = {
     logBadHash: "This log does not hash to the value on chain.",
     logBadState: "The hash matches, but the replay ends at a different memory than the one saved.",
     notFound: "No pet with that number.",
+    tooBig: "This pet's brain on X Layer would run {n} gates each beat, more than any pet's mind can ({max}), so this page will not run it.",
+    circuitUnread: "Its circuit couldn't be read from X Layer just now. Try again in a moment.",
     picture: "Its picture, drawn on chain",
     pictureNote: "PetLook draws this from the pet's saved state: its stage, its mood and whether its circuit glows. This page only shows what the chain returns.",
     pictureSame: "Pixel for pixel the game's own art for this state.",
@@ -109,6 +111,8 @@ const T = {
     logBadHash: "这份日志的哈希和链上的不一致。",
     logBadState: "哈希一致，但重放后的记忆与保存的不同。",
     notFound: "没有这个编号的宠物。",
+    tooBig: "这只宠物在 X Layer 上的大脑每一拍要跑 {n} 个门，超过任何宠物心智的上限（{max} 个），所以本页不会运行它。",
+    circuitUnread: "暂时没能从 X Layer 读到它的电路，请稍后再试。",
     picture: "它的样子，由链上绘制",
     pictureNote: "PetLook 根据宠物保存的状态画出这张图：成长阶段、心情，以及电路有没有亮。本页只是显示链上返回的结果。",
     pictureSame: "与游戏里这个状态的画面逐像素一致。",
@@ -142,6 +146,8 @@ export function VerifyApp() {
   const [pet, setPet] = useState<ChainPet | null>(null);
   const [circuit, setCircuit] = useState<Circuit | null>(null);
   const [gates, setGates] = useState(0);
+  // why the pet's circuit is not shown: too big to run (A38), or not read just now
+  const [circuitError, setCircuitError] = useState<{ tooBig: { gates: number; max: number } } | { unread: true } | null>(null);
   // with no deployment to read from, the page says so from the start
   const [err, setErr] = useState<string | null>(() => (deployment ? null : t.notDeployed));
   const [rows, setRows] = useState<Row[]>([]);
@@ -177,14 +183,22 @@ export function VerifyApp() {
           setMeta({ name: m.name, image: m.image, same: svg ? JSON.stringify(canvasOfSvg(svg).px) === JSON.stringify(gameSprite(lookOf(p.state)).px) : undefined });
         })
         .catch(() => setMeta(null));
-      // a child's circuit REFs its parents' circuits; those are read from the chain too
-      const c = await loadCircuitFromChain(pc, p.processor, p.brainId);
-      setCircuit(c);
-      setGates(c.nGates);
+      // a child's circuit REFs its parents' circuits; those are read from the chain too. A brain no pet's mind could be
+      // is not run (A38): the pet is still shown, its circuit is not
+      setCircuitError(null);
+      try {
+        const c = await loadCircuitFromChain(pc, p.processor, p.brainId);
+        setCircuit(c);
+        setGates(c.nGates);
+      } catch (e) {
+        setCircuit(null);
+        setCircuitError(e instanceof BrainTooBigError ? { tooBig: { gates: e.gates, max: e.max } } : { unread: true });
+      }
       history.replaceState(null, "", `#${forId}`);
     },
     [],
   );
+  const tooBigText = (n: number, max: number) => t.tooBig.replace("{n}", n.toLocaleString(lang === "zh" ? "zh-CN" : "en")).replace("{max}", max.toLocaleString(lang === "zh" ? "zh-CN" : "en"));
   const notFound = useCallback(() => {
     setPet(null);
     setErr(t.notFound);
@@ -343,8 +357,9 @@ export function VerifyApp() {
       setLogResult(t.logOk.replace("{n}", beats).replace("{a}", where));
       setLogHosts(hosts);
       return stretches;
-    } catch {
-      return fail(t.logBadHash);
+    } catch (e) {
+      // a brain past any pet's mind is said as such, never as a hash that does not match (A38)
+      return fail(e instanceof BrainTooBigError ? tooBigText(e.gates, e.max) : t.logBadHash);
     }
   };
 
@@ -407,6 +422,7 @@ export function VerifyApp() {
         <button type="submit">{t.load}</button>
       </form>
       {err && <p className="v-err">{err}</p>}
+      {!err && circuitError && <p className="v-err">{"tooBig" in circuitError ? tooBigText(circuitError.tooBig.gates, circuitError.tooBig.max) : t.circuitUnread}</p>}
       {pet && u && (
         <section className="v-card" aria-label={t.brain}>
           {meta?.image && (

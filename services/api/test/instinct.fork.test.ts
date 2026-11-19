@@ -12,9 +12,10 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createPublicClient, createWalletClient, http, type Address, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { STARTERS, validateProgram } from "@lingxi/brain";
-import { hatchOnChain, readOutsideCircuit, readPet, replayStep, setBrainOnChain, type Deployment, xLayer } from "@lingxi/chain";
-import { createPet, mindBrain, packState } from "@lingxi/game";
+import { NAND, REF, STARTERS, encode, validateProgram, type Element } from "@lingxi/brain";
+import { hatchOnChain, quoteTapeout, readOutsideCircuit, readPet, replayStep, setBrainOnChain, tapeOutYourself, type Deployment, xLayer } from "@lingxi/chain";
+import { giveToken } from "../../../packages/chain/scripts/lib/forkFund";
+import { INSTINCT_MAX_GATES, createPet, instinctGates, mindBrain, packState } from "@lingxi/game";
 import { BrainRelayer } from "../src/relayer";
 
 const RPC = process.env.FORK_RPC;
@@ -76,5 +77,21 @@ describe.skipIf(!RPC || !RELAY_KEY_FILE)("an owned instinct, proven on an X Laye
       if (mind.instinct && (out & 7) === 7) spoke++;
     }
     expect(spoke).toBeGreaterThan(0);
-  }, 600_000);
+
+    // A38: an owned circuit that runs more gates each beat than an instinct may is refused before anything is taped:
+    // a player tapes out, with their own wallet, a pet-shaped chain of NANDs and a pet-shaped circuit that REFs it
+    // eight times (a player's own tape-out is always 16 in, 8 out)
+    const leafEls = Array.from({ length: INSTINCT_MAX_GATES / 8 + 1 }, (_, i) => ({ op: NAND, ins: i === 0 ? [2, 3] : [17 + i, 17 + i], nOut: 1, firstOut: 18 + i }) as Element);
+    const leafBytes = encode(leafEls);
+    const qLeaf = await quoteTapeout(pub, d.processor as Address, owner.address, leafEls.length, 0, leafBytes.length);
+    if (qLeaf.bemNeeded > 0n) await giveToken(pub, qLeaf.bem, owner.address, qLeaf.bemNeeded + 10n ** 18n);
+    const leaf = await tapeOutYourself(pub, alice, d.processor as Address, leafBytes, await quoteTapeout(pub, d.processor as Address, owner.address, leafEls.length, 0, leafBytes.length));
+    const inputs = Array.from({ length: 16 }, (_, i) => 2 + i);
+    const topBytes = encode(Array.from({ length: 8 }, (_, i) => ({ op: REF, ins: inputs, cpu: (d.processor as string).toLowerCase(), id: leaf.brainId, nOut: 8, firstOut: 18 + 8 * i }) as Element));
+    const top = await tapeOutYourself(pub, alice, d.processor as Address, topBytes, await quoteTapeout(pub, d.processor as Address, owner.address, 0, 0, topBytes.length));
+    const heavy = await readOutsideCircuit(pub as never, d.processor as Address, top.brainId);
+    expect(instinctGates(heavy), "TapeOut took the circuit, and it runs past the budget").toBe(INSTINCT_MAX_GATES + 8);
+    const bomb = await relayer.relayInstinct({ own: before.brainId.toString(), processor: d.processor as Address, id: top.brainId.toString() });
+    expect(bomb).toMatchObject({ ok: false, reason: "tooBig" });
+  }, 900_000);
 });

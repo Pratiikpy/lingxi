@@ -57,7 +57,7 @@ export function countCare(kind: Care["kind"], wasAsleep: boolean, r: CareResult)
 }
 import { create } from "zustand";
 import { type Program, type Rule, STARTERS, compileProgram, fastBrain, stateBits, timeOfDay } from "@lingxi/brain";
-import { FOODS, type Brain, type Care, type CareResult, type Growth, type Pet, type UpgradeRefusal, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, learnSkill, levelUpPet, liveBeat, mindBrain, respecPet, ruleSkillIds, settleForm, skillRules, stageOf, teach as teachRule, awayEvent, awaySeed, beatOf, localHour, instinctBrain, MAX_MIND_STATE, type OutsideInstinct, instinctFits, stripHidden, withSegment } from "@lingxi/game";
+import { FOODS, type Brain, type Care, type CareResult, type Growth, type Pet, type UpgradeRefusal, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, learnSkill, levelUpPet, liveBeat, mindBrain, respecPet, ruleSkillIds, settleForm, skillRules, stageOf, teach as teachRule, awayEvent, awaySeed, beatOf, localHour, instinctBrain, instinctGates, INSTINCT_MAX_GATES, MAX_MIND_STATE, type OutsideInstinct, instinctFits, stripHidden, withSegment } from "@lingxi/game";
 import type { StarterLine } from "@lingxi/brain";
 import { takeComfort } from "./comfort";
 
@@ -201,7 +201,7 @@ interface GameState {
   learn: (rule: Rule, at?: "top" | "bottom") => { ok: true } | { ok: false; reason: string; detail: string };
   arrange: (index: number, move: "up" | "down" | "forget") => void;
   /** X1: teach an owned circuit as an everyday instinct (ownership is checked by the caller), or forget it */
-  teachInstinct: (o: OutsideInstinct) => { ok: true } | { ok: false; reason: "notYours" | "badCircuit" | "tooBig" | "tooLong" };
+  teachInstinct: (o: OutsideInstinct) => { ok: true } | { ok: false; reason: "notYours" | "badCircuit" | "tooBig" | "tooLong" } | { ok: false; reason: "tooManyGates"; gates: number };
   forgetInstinct: () => void;
   /** levels and skills (plan 4.4): spend XP for a level and a point, take a skill, or forget them all */
   levelUp: () => { ok: true; level: number } | { ok: false; reason: "xp" | "max" };
@@ -385,6 +385,9 @@ export const useGame = create<GameState>((set, get) => ({
     if (pet.away || pet.sitting) return { ok: false, reason: "notYours" };
     // a circuit its card could not carry would leave friends, seasons and duels reading an old card (A26)
     if (!instinctFits(o.parts)) return { ok: false, reason: "tooLong" };
+    // a circuit too big to run each beat, counted before it is compiled (A38): every friend who meets the pet runs it too
+    const gates = instinctGates(o);
+    if (gates !== null && gates > INSTINCT_MAX_GATES) return { ok: false, reason: "tooManyGates", gates };
     const inst = instinctBrain(o);
     if (!inst) return { ok: false, reason: "badCircuit" };
     const caught = catchUp(pet, gameNow(), brainOf(pet));

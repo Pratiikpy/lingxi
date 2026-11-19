@@ -10,6 +10,7 @@ import { hatchedPetIdFrom, RevertedOnChain } from "./receipts";
 import { petRegistryAbi } from "./registryAbi";
 import { processorAbi } from "./tapeout";
 import { type Circuit, REF, decode, hexToBytes, load, refKey } from "@lingxi/brain";
+import { MAX_RUN_GATES } from "@lingxi/game";
 
 export interface Deployment {
   /** the block PetRegistry was deployed at, where an index of its events starts */
@@ -255,21 +256,48 @@ export async function setBrainOnChain(pub: PublicClient, wallet: WalletClient, d
   return tx;
 }
 
+/** A brain that would run more gates each beat than an honest pet's whole mind can (A38). */
+export class BrainTooBigError extends Error {
+  constructor(
+    readonly gates: number,
+    readonly max: number,
+  ) {
+    super(`this brain runs ${gates} gates a beat, past the ${max} any pet's mind can`);
+    this.name = "BrainTooBigError";
+  }
+}
+
 /**
  * Loads a circuit straight from the chain, together with every circuit it REFs
- * (a child's brain REFs both parents'), so it can be evaluated locally.
+ * (a child's brain REFs both parents'), so it can be evaluated locally. Each
+ * distinct circuit is read once however many paths lead to it, and a brain that
+ * would run more than `maxGates` gates a beat is refused before anyone runs it
+ * (A38): any pet can be pointed at any circuit on the processor.
  */
-export async function loadCircuitFromChain(pub: PublicClient, processor: Address, id: bigint, depth = 0): Promise<Circuit> {
-  if (depth > 4) throw new Error("circuit nests too deeply");
-  const nl = await readNetlist(pub, processor, id);
-  const bytes = hexToBytes(nl.bytes);
-  const subs = new Map<string, Circuit>();
-  for (const e of decode(bytes, nl.nIn)) {
-    if (e.op !== REF) continue;
-    const key = refKey(e.cpu, e.id);
-    if (!subs.has(key)) subs.set(key, await loadCircuitFromChain(pub, e.cpu as Address, e.id, depth + 1));
-  }
-  return load(bytes, nl.nIn, nl.nOut, (cpu, sid) => subs.get(refKey(cpu, sid)) ?? null);
+export async function loadCircuitFromChain(pub: PublicClient, processor: Address, id: bigint, maxGates = MAX_RUN_GATES): Promise<Circuit> {
+  const loading = new Map<string, Promise<Circuit>>();
+  const one = (cpu: Address, cid: bigint, depth: number): Promise<Circuit> => {
+    const key = refKey(cpu, cid);
+    const known = loading.get(key);
+    if (known) return known;
+    const p = (async () => {
+      if (depth > 4) throw new Error("circuit nests too deeply");
+      const nl = await readNetlist(pub, cpu, cid);
+      const bytes = hexToBytes(nl.bytes);
+      const subs = new Map<string, Circuit>();
+      for (const e of decode(bytes, nl.nIn)) {
+        if (e.op !== REF) continue;
+        const k = refKey(e.cpu, e.id);
+        if (!subs.has(k)) subs.set(k, await one(e.cpu as Address, e.id, depth + 1));
+      }
+      const c = load(bytes, nl.nIn, nl.nOut, (rc, sid) => subs.get(refKey(rc, sid)) ?? null);
+      if (c.nGates > maxGates) throw new BrainTooBigError(c.nGates, maxGates);
+      return c;
+    })();
+    loading.set(key, p);
+    return p;
+  };
+  return one(processor, id, 0);
 }
 
 /** One beat for many inputs at once, through Multicall3 (64 per call fits X Layer's call gas cap). */
