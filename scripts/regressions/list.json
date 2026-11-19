@@ -784,5 +784,17 @@
     "row": "A28",
     "bug": "the visitor card's plain buttons were dark on dark in the dark look",
     "test": { "kind": "e2e", "spec": "e2e/specs/tap-body.spec.ts", "title": "a friend beside the pet can be tapped, and the pet still can (zh, dark, desktop)" }
+  },
+  {
+    "id": "A29-proof-reads-batched",
+    "row": "A29",
+    "bug": "the proof page sent each read as its own request to the public nodes, thirty a load",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/rpcAsk.test.ts", "name": "sends reads made together as one Multicall3 request" }
+  },
+  {
+    "id": "A29-proof-reads-spread",
+    "row": "A29",
+    "bug": "every proof read started at the same public node, which took the page's whole load",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/rpcAsk.test.ts", "name": "starts each request at the next node" }
   }
 ]

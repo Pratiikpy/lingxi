@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/rpcAsk.ts
++++ b/apps/web/src/game/rpcAsk.ts
+@@ -93,7 +93,7 @@ export function makeProofClient(chain: Chain, endpointsFor: (n: number) => Endpo
+     batch: { multicall: { wait: 16 } },
+     transport: custom({
+       async request({ method, params }) {
+-        const a = await proofRequest(endpointsFor(asked++), { method, params }, fetcher ? { fetcher } : {});
++        const a = await proofRequest(endpointsFor(start), { method, params }, fetcher ? { fetcher } : {});
+         answered(a);
+         return a.result;
+       },

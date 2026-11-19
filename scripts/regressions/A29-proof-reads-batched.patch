@@ -1,0 +1,10 @@
+--- a/apps/web/src/game/rpcAsk.ts
++++ b/apps/web/src/game/rpcAsk.ts
+@@ -90,7 +90,6 @@ export function makeProofClient(chain: Chain, endpointsFor: (n: number) => Endpo
+   let asked = start;
+   return createPublicClient({
+     chain,
+-    batch: { multicall: { wait: 16 } },
+     transport: custom({
+       async request({ method, params }) {
+         const a = await proofRequest(endpointsFor(asked++), { method, params }, fetcher ? { fetcher } : {});
