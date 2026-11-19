@@ -14,6 +14,7 @@ describe("what a little one inherits, said before it is welcomed (A27)", () => {
     const b = { name: "Tofu", lessons: [] };
     expect(newbornInherits(a, b, 120, "en")).toBe("It inherits both whole minds: Mochi's 13 lessons and no lessons of Tofu's yet, with their instincts and skills. Whatever you teach it, both halves learn.");
     expect(newbornInherits(a, b, -40, "en")).toMatch(/can learn lessons of its own once it has grown\.$/);
-    expect(newbornInherits(a, { name: "豆腐", lessons: [1] }, 0, "zh")).toBe("它继承了父母完整的心智：Mochi的 13 条课、豆腐的 1 条课，还有它们的本能和技能。现在父母的心智把它装满了：等它长大一些，才有空间学自己的新课。");
+    expect(newbornInherits(a, { name: "豆腐", lessons: [1] }, 0, "zh")).toBe("它继承了父母完整的心智和它们的本能、技能。传下来的课：Mochi 13 条，豆腐 1 条。现在父母的心智把它装满了：等它长大一些，才有空间学自己的新课。");
+    expect(newbornInherits({ name: "团子", lessons: [] }, { name: "豆腐", lessons: [] }, 9, "zh")).toBe("它继承了父母完整的心智和它们的本能、技能。传下来的课：团子 还没有，豆腐 还没有。你再教它的，两边都会学。");
   });
 });
