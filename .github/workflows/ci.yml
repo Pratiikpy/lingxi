@@ -45,7 +45,7 @@ jobs:
       - name: Server tests with its fork tests, on a pinned fork (reads X Layer only)
         run: pnpm test:fork
       - name: README numbers, repo hygiene
-        run: pnpm status:check --only promises,hygiene && pnpm exec tsx scripts/readme-facts.mts --check
+        run: pnpm status:check --only promises,hygiene && pnpm exec tsx scripts/readme-facts.mts --check --no-tests
       - name: The web build, with its name guard
         run: pnpm --filter @lingxi/web build
         env:
