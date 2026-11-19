@@ -43,8 +43,24 @@ export interface WriterOptions {
   every?: (fn: () => void, ms: number) => () => void;
   /** lets `ms` pass (setTimeout in the browser) */
   wait?: (ms: number) => Promise<void>;
+  /**
+   * Without Web Locks: tells `fn` the key another page of this site just wrote (the browser's storage event), so a
+   * tab whose game was taken says so at once rather than on its next renewal, which a hidden page runs late (A70).
+   * Returns a stop function.
+   */
+  watch?: (fn: (key: string) => void) => () => void;
   id?: string;
 }
+
+/** The browser's storage event, as `WriterOptions.watch` takes it: the key another page of this site just wrote (A70). */
+export const browserStorageWatch: WriterOptions["watch"] =
+  typeof window === "undefined"
+    ? undefined
+    : (fn) => {
+        const on = (e: StorageEvent) => e.key !== null && fn(e.key);
+        window.addEventListener("storage", on);
+        return () => window.removeEventListener("storage", on);
+      };
 
 export function createWriter(o: WriterOptions) {
   const id = o.id ?? Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => b.toString(16).padStart(2, "0")).join("");
@@ -59,6 +75,7 @@ export function createWriter(o: WriterOptions) {
   // without Web Locks: this page gave its lease up as it went (A8), and may take it back if the browser restores it
   let gaveUp = false;
   let stopRenewing: (() => void) | null = null;
+  let stopWatching: (() => void) | null = null;
 
   const readStamp = (): Stamp | null => {
     try {
@@ -83,6 +100,8 @@ export function createWriter(o: WriterOptions) {
     if (!w) {
       stopRenewing?.();
       stopRenewing = null;
+      stopWatching?.();
+      stopWatching = null;
     }
     o.onChange?.(w);
   };
@@ -127,6 +146,14 @@ export function createWriter(o: WriterOptions) {
       if (s && s.id !== id) set(false);
       else writeStamp();
     }, RENEW_MS);
+    // another page wrote the stamp: the game is theirs now, said at once (A70)
+    stopWatching?.();
+    stopWatching =
+      o.watch?.((key) => {
+        if (key !== stampKey) return;
+        const s = readStamp();
+        if (s && s.id !== id) set(false);
+      }) ?? null;
     return true;
   };
 

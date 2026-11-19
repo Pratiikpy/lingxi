@@ -10,7 +10,7 @@ import { type Held, type KeyValueStore, type SaveEvent, createSaveStore } from "
 import { READERS } from "./saveReaders";
 
 export { READERS };
-import { type LockApi, createWriter } from "./writer";
+import { type LockApi, browserStorageWatch, createWriter } from "./writer";
 
 /** The browser's storage, or a stand-in in memory where there is none (tests, a storage the browser blocks). */
 function browserStorage(): KeyValueStore {
@@ -59,6 +59,8 @@ const writer = createWriter({
   storage,
   now: () => Date.now(),
   ...(locks ? { locks } : {}),
+  // another tab writing the lease stamp reaches this one at once, hidden or not (A70)
+  ...(browserStorageWatch ? { watch: browserStorageWatch } : {}),
   onChange: (w) => useSaveState.setState({ role: w ? "writer" : "elsewhere" }),
 });
 

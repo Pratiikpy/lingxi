@@ -82,6 +82,27 @@ describe("one writer across tabs, without Web Locks (a lease in storage)", () =>
     expect([a.isWriter(), b.isWriter()]).toEqual([false, true]);
   });
 
+  it("a tab told of another tab taking the lease stops at once, without waiting for its timer (A70)", async () => {
+    const { storage, open } = tabs();
+    // the browser's storage event, as it reaches the first tab when another page writes a key
+    const told = new Set<(key: string) => void>();
+    const watch = (fn: (key: string) => void) => (told.add(fn), () => void told.delete(fn));
+    const said: boolean[] = [];
+    const a = createWriter({ storage, now: () => 0, every: () => () => undefined, wait: async () => undefined, id: "a", watch, onChange: (w) => said.push(w) });
+    const b = open("b");
+    expect(await a.acquire()).toBe(true);
+    expect(told.size, "the first tab listens while it holds the game").toBe(1);
+    // another key, or this tab's own stamp, changes nothing
+    told.forEach((fn) => fn("lingxi.other"));
+    expect(said).toEqual([true]);
+    expect(await b.acquire({ steal: true })).toBe(true);
+    // no timer runs here: only the event can tell the first tab
+    told.forEach((fn) => fn(STAMP_KEY));
+    expect(said, "the screen is told the game is open elsewhere").toEqual([true, false]);
+    expect([a.isWriter(), b.isWriter()]).toEqual([false, true]);
+    expect(told.size, "and it stops listening once it has given the game up").toBe(0);
+  });
+
   it("a page gives its lease up as it goes, so its own reload plays at once (A8)", async () => {
     const { open, storage } = tabs();
     const before = open("before-reload");

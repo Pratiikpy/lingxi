@@ -4,7 +4,7 @@
  * handheld still hand the pet across in two tabs, as designed.
  */
 
-import { type LockApi, type LockQuery, createWriter, heldElsewhere } from "./writer";
+import { type LockApi, type LockQuery, browserStorageWatch, createWriter, heldElsewhere } from "./writer";
 
 const STEAL = "lingxi.handheldHere";
 let lost: (() => void) | null = null;
@@ -16,6 +16,7 @@ const writer = createWriter({
   storage,
   now: () => Date.now(),
   ...(typeof navigator !== "undefined" && "locks" in navigator ? { locks: navigator.locks as unknown as LockApi } : {}),
+  ...(browserStorageWatch ? { watch: browserStorageWatch } : {}),
   onChange: (mine) => {
     if (!mine) lost?.();
   },
