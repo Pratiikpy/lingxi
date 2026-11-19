@@ -36,6 +36,7 @@ import { PALETTE_OF } from "../scene/textures";
 import { Sprite } from "./Sprite";
 import { now } from "../game/gameClock";
 import { errorText } from "../game/errorText";
+import { retiredOkbListings } from "../game/marketRetired";
 
 type Lang = "en" | "zh";
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -119,6 +120,8 @@ export function FashionMarketPanel({ pet }: { pet: Pet }) {
       setNote(
         m === "noWallet"
           ? L("No wallet found in this browser. Open Lingxi in the OKX Wallet app, or a browser with a wallet.", "这个浏览器里没有钱包。请在 OKX 钱包应用里打开灵犀，或用装了钱包的浏览器。")
+          : m === "listingRetired"
+            ? L("That listing is no longer for sale: the seller sold a copy through another one. Nothing was charged.", "这份挂单已经不卖了：卖家通过另一份挂单卖出了一份。没有扣费。")
           : m === "not enough BEM"
             ? L("This wallet doesn't hold enough BEM on X Layer for that.", "这个钱包在 X Layer 上的 BEM 不够。")
             : refusesTokens(e)
@@ -147,6 +150,11 @@ export function FashionMarketPanel({ pet }: { pet: Pet }) {
 
   const buyResale = (l: OutfitListing) =>
     run(`resale:${l.market}:${l.id}`, async (w) => {
+      // the chain would sell an OKB-market listing a sale retired: asked again just before buying (A23)
+      if (l.market === 1) {
+        const retired = await retiredOkbListings();
+        if (!retired || retired.has(l.id.toString())) throw new Error("listingRetired");
+      }
       await announce(l.market, w.account!.address, l.priceEach);
       await buyListing(publicClient, w, marketOf(l.market)!, l.id, 1, l.priceEach);
       return L(`Bought one “${nameOf(l)}” from ${short(l.seller)}.`, `从 ${short(l.seller)} 那里买了一份「${nameOf(l)}」。`);

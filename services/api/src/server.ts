@@ -66,6 +66,7 @@ import { createPapersStore, withPapers } from "./papers";
 import { withRpcProxy } from "./rpc";
 import { privateKeyToAccount } from "viem/accounts";
 import { createSalesCounter, withNumbers } from "./numbers";
+import { createListingWatch, withRetiredListings } from "./marketV1";
 import { buildTree } from "./tree";
 import { type DiaryStore, createDiaryStore } from "./diaries";
 import { MAX_MOVE_CHARS, type MoveStore, createMoveStore } from "./move";
@@ -896,6 +897,13 @@ if (isMain) {
     ].filter((m): m is { address: `0x${string}`; fromBlock: number } => !!m.address && m.fromBlock > 0);
     const sales = createSalesCounter({ rpc, markets, store: process.env.LINGXI_SALES_STORE });
     jobs.loop("sales", () => sales.catchUp(), 20_000);
+    // the OKB market's listings a sale retired, which V1 itself would still sell (A23); the game shows none without it
+    const okb = markets.find((m) => m.address === env("LINGXI_MARKET_OKB"));
+    if (okb) {
+      const listingWatch = createListingWatch({ rpc, market: okb.address, fromBlock: okb.fromBlock, store: process.env.LINGXI_MARKET_V1_STORE ?? join(dataDir, "market-v1.json") });
+      withRetiredListings(app, listingWatch);
+      jobs.loop("okb listings", () => listingWatch.catchUp(), 20_000);
+    }
     withNumbers(app, {
       pub: createPublicClient({ transport: http(rpc, { timeout: 15_000 }) }),
       counts: (since) => indexer.counts(since),

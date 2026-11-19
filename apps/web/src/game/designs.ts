@@ -15,6 +15,7 @@ import { deployment, publicClient } from "./chain";
 import { saveWrite } from "./saveRuntime";
 import { now } from "./gameClock";
 import { firstLine } from "./errorText";
+import { retiredOkbListings, shownListings } from "./marketRetired";
 
 const KEY = "lingxi.designs.v1";
 export const marketAvailable = () => !!deployment && marketsOf(deployment).length > 0;
@@ -148,7 +149,13 @@ export const useDesigns = create<DesignsStore>((set, get) => {
           }),
         );
         const market = parts.flatMap((p) => p.designs);
-        const listings = parts.flatMap((p) => p.open);
+        // an OKB-market listing a sale retired is never shown, and none is when the server cannot say (A23)
+        const retired = markets.some((m) => m.v === 1) ? await retiredOkbListings() : null;
+        const listings = shownListings(
+          parts.flatMap((p) => p.open),
+          retired,
+          who ?? null,
+        );
         register(get().local, market);
         set({ market, listings, held, atHome, wallet: who ?? null, loading: false, pieces: registeredWearables() });
       } catch (e) {
