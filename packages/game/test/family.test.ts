@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { type Circuit, STARTERS, beat, bitsToWord, compileProgram, composeChild, load, netlistBytes, refKey, wordToBits } from "@lingxi/brain";
-import { checkMindLesson, familyOf, halvesOf, mindBrain, canBreed } from "../src/family";
+import { checkMindLesson, childRoom, familyOf, halvesOf, mindBrain, canBreed, parseCard } from "../src/family";
+import { composeProgram } from "../src/lessons";
 import { createPet, teach } from "../src/index";
 
 const brave = { when: { event: [3], owner: [1] }, then: { want: 6, mood: 1, nudge: 1 } };
@@ -94,4 +95,24 @@ describe("a child of a parent with capstones can still learn", () => {
     const r = checkMindLesson({ line: "gentle", lessons: [], family: fam }, "baby", { label: "x", when: { hunger: [3] }, then: { want: 1, mood: 1 } });
     expect(r.ok).toBe(true);
   });
+
+  it("a child inherits each parent's whole mind, as its circuit on chain does (A27)", () => {
+    const thirteen = Array.from({ length: 13 }, (_, i) => ({ when: { event: [i % 4], hunger: [i % 3] }, then: { want: (i % 5) + 1, mood: i % 4 } }));
+    const fam = familyOf({ name: "Mochi", line: "gentle", lessons: thirteen, instincts: 5 }, { name: "Tofu", line: "bold", lessons: [napper] });
+    expect(fam.parents[0].lessons).toHaveLength(13);
+    // the half the game runs is the parent's own brain, which the child's circuit REFs on chain
+    const [half] = halvesOf(fam, []);
+    expect(netlistBytes(compileProgram(half))).toEqual(netlistBytes(compileProgram(composeProgram("gentle", thirteen, 5))));
+    // and a card carrying that family is read back whole
+    const back = parseCard(JSON.stringify({ lessons: [], family: fam }));
+    expect(back?.family?.parents[0].lessons).toHaveLength(13);
+  });
+
+  it("says how much room a newborn has to learn: none while its parents' minds fill its halves (A27)", () => {
+    const many = Array.from({ length: 8 }, (_, i) => ({ when: { event: [i % 4], hunger: [i % 3] }, then: { want: (i % 5) + 1, mood: i % 4 } }));
+    expect(childRoom(familyOf({ name: "A", line: "gentle", lessons: [] }, { name: "B", line: "bold", lessons: [] }))).toBeGreaterThan(0);
+    // eight lessons and all four instinct switches fill a half past an ungrown child's budget
+    expect(childRoom(familyOf({ name: "A", line: "gentle", lessons: many, instincts: 15 }, { name: "B", line: "bold", lessons: [] }))).toBeLessThanOrEqual(0);
+  });
 });
+

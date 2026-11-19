@@ -35,6 +35,16 @@ export function halvesOf(family: Family, childLessons: readonly Rule[], skillRul
 }
 
 /**
+ * How many gates a newborn has to learn with: the smaller of its two halves' room under their budgets. Its halves start
+ * as its parents' whole minds, so a child of a well-taught parent has none (0 or less) until it grows (A27).
+ */
+export function childRoom(family: Family): number {
+  const halves = halvesOf(family, []);
+  const budgets = halfBudgets(family, undefined);
+  return Math.min(...halves.map((h, i) => budgets[i]! - gateCount(compileProgram(h))));
+}
+
+/**
  * How big each half of a child's mind may grow: the child's own budget, plus exactly the gates its parent's
  * capstone rules add (inherited rules never eat into what the child can learn), never past the most any brain holds.
  */
@@ -191,13 +201,19 @@ export function canBreed(a: BreedSide, b: BreedSide, today: number): { ok: true 
   return { ok: true };
 }
 
-/** A child's family record from its two parents (A first: A shapes its days and moods, B its nights and habits). */
+/**
+ * A child's family record from its two parents (A first: A shapes its days and moods, B its nights and habits). Each
+ * parent passes on its whole mind as it is now: every lesson, its instincts and its capstone skills, since the child's
+ * circuit on chain is made of the parents' own circuits (A27; it once kept only the first 8 lessons, so the game's copy
+ * of a child of a well-taught parent differed from the chain's).
+ */
 export function familyOf(a: ParentInfo & { generation?: number }, b: ParentInfo & { generation?: number }): Family {
   if ((a.generation ?? 0) > 0 || (b.generation ?? 0) > 0) throw new Error("secondGeneration");
+  for (const p of [a, b]) if (p.lessons.length > MAX_LESSONS) throw new Error("a parent holds more lessons than any pet can");
   const strip = ({ name, line, lessons, instincts, petId, owner, key, skills }: ParentInfo): ParentInfo => ({
     name: shownName(name, 12),
     line,
-    lessons: lessons.slice(0, 8),
+    lessons: [...lessons],
     ...(cleanInstincts(instincts) ? { instincts: cleanInstincts(instincts) } : {}),
     ...(cleanParentSkills(skills).length ? { skills: cleanParentSkills(skills) } : {}),
     ...(petId !== undefined ? { petId } : {}),
@@ -305,7 +321,7 @@ export function parseCard(raw: string): PetCard | null {
     if (!Number.isInteger(f.generation) || (f.generation as number) < 1 || (f.generation as number) > 99) return null;
     const parents = (f.parents as Array<Record<string, unknown>>).map((p) => {
       const line = LINES.find((l) => l === p.line);
-      if (!line || typeof p.name !== "string" || !Array.isArray(p.lessons) || p.lessons.length > 8) throw new Error("bad parent");
+      if (!line || typeof p.name !== "string" || !Array.isArray(p.lessons) || p.lessons.length > MAX_LESSONS) throw new Error("bad parent");
       const pi = cleanInstincts(p.instincts);
       const ps = cleanParentSkills(p.skills);
       return { name: shownName(p.name, 12), line, lessons: p.lessons as Rule[], ...(pi ? { instincts: pi } : {}), ...(ps.length ? { skills: ps } : {}) };

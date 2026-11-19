@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import { CARD_BASE_MAX, CARD_MAX, CARD_OUTSIDE_MAX, MAX_DUEL_CODE, MAX_LESSONS, SKILLS, encodeChallenge, instinctFits, parseCard, petCard } from "../src/index";
 
 const wide = { when: { event: [1, 2, 3], hunger: [0, 1, 2], mood: [0, 1, 2, 3], trust: [0, 1, 2] }, then: { want: 5, mood: 3 } };
-const parent = { name: "Mochimochimo", line: "gentle", lessons: Array(8).fill(wide), instincts: 255 };
+const parent = { name: "Mochimochimo", line: "gentle", lessons: Array(MAX_LESSONS).fill(wide), instincts: 255 };
 const fullest = { lessons: Array(MAX_LESSONS).fill(wide), growth: { level: 60, points: 0, skills: Object.fromEntries(SKILLS.map((s) => [s.id, 5])) }, family: { parents: [parent, parent], generation: 1 }, brain: Array(64).fill(1), instincts: 255 };
 const parts = (hex: number) => [{ processor: `0x${"a".repeat(40)}`, id: "123456", nIn: 16, nOut: 8, hex: "0".repeat(hex) }];
 const outside = (hex: number) => ({ processor: `0x${"a".repeat(40)}`, id: "123456", owner: `0x${"b".repeat(40)}`, parts: parts(hex) });

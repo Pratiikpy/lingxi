@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { drawPet } from "@lingxi/art";
-import { type Family, type ParentInfo, type Pet, BOND_LEVELS, BREED_COOLDOWN_DAYS, FAMILY_BOND_LEVEL, bondLevel, canBreed, childMemory, createPet, dayOf, familyOf, mindBrain, parseCard, ruleSkillIds, stageOf } from "@lingxi/game";
+import { type Family, type ParentInfo, type Pet, BOND_LEVELS, BREED_COOLDOWN_DAYS, FAMILY_BOND_LEVEL, bondLevel, canBreed, childMemory, childRoom, createPet, dayOf, familyOf, mindBrain, parseCard, ruleSkillIds, stageOf } from "@lingxi/game";
 import { useLang, useT } from "../i18n";
 import { MAX_PETS, keptPetNames, useGame } from "../game/store";
 import { deployment, petKey, publicClient, useChain } from "../game/chain";
@@ -19,6 +19,7 @@ import { PALETTE_OF, type PetStage } from "../scene/textures";
 import { Sprite } from "./Sprite";
 import "./family.css";
 import { now } from "../game/gameClock";
+import { newbornInherits, proposalInherits } from "./inherits";
 
 type Lang = "en" | "zh";
 const LINES = ["gentle", "bold", "curious"] as const;
@@ -100,9 +101,11 @@ export function ProposalDialog({ pet }: { pet: Pet }) {
         <h3>{lang === "zh" ? "一起养个小宝宝？" : "Raise a little one together?"}</h3>
         <p>
           {lang === "zh"
-            ? `${proposal.name}的主人想让${proposal.name}和${pet.name}一起养一只小宝宝。小宝宝的心智由它们俩的心智拼成，会住在对方家里。`
-            : `${proposal.name}'s owner would like ${proposal.name} and ${pet.name} to raise a little one. Its mind will be built from both of theirs, and it will live with them.`}
+            ? `${proposal.name}的主人想让${proposal.name}和${pet.name}一起养一只小宝宝。小宝宝的心智由它们俩完整的心智拼成，会住在对方家里。`
+            : `${proposal.name}'s owner would like ${proposal.name} and ${pet.name} to raise a little one. Its mind will be built from both of theirs, whole, and it will live with them.`}
         </p>
+        {/* which of this pet's lessons go into the little one, said before the player agrees (A27) */}
+        <p className="small fam-inherits">{proposalInherits(pet.name, pet.lessons.length, lang)}</p>
         <p className="small">
           {lang === "zh" ? `之后${pet.name}要休息 ${BREED_COOLDOWN_DAYS} 天。` : `${pet.name} will rest for ${BREED_COOLDOWN_DAYS} days afterwards.`}
         </p>
@@ -215,6 +218,7 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
     );
   }
   const [a, b] = family.parents;
+  const room = childRoom(family);
   const baby = drawPet(a.line as Line, "baby", { expression: "sparkly" });
   const partnerChain = answer.chain;
   const canChain = !!(partnerChain && useChain.getState().infoOf(pet));
@@ -247,9 +251,11 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
         </div>
         <p className="small">
           {lang === "zh"
-            ? `白天它像${a.name}，心情也随${a.name}；夜里它像${b.name}，小习惯随${b.name}。你教它的，两边都会学。`
-            : `By day it acts like ${a.name}, with ${a.name}'s moods; by night like ${b.name}, with ${b.name}'s habits. Whatever you teach it, both halves learn.`}
+            ? `白天它像${a.name}，心情也随${a.name}；夜里它像${b.name}，小习惯随${b.name}。`
+            : `By day it acts like ${a.name}, with ${a.name}'s moods; by night like ${b.name}, with ${b.name}'s habits.`}
         </p>
+        {/* what it inherits, and whether it can learn yet, said before it is welcomed (A27) */}
+        <p className="small fam-inherits">{newbornInherits(a, b, room, lang)}</p>
         <label className="fam-name">
           <span>{lang === "zh" ? "给它起个名字" : "Give it a name"}</span>
           <input value={name} maxLength={12} onChange={(e) => setName(e.target.value)} placeholder={lang === "zh" ? "小宝" : "Bean"} autoFocus />
