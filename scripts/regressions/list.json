@@ -664,5 +664,11 @@
     "row": "A14",
     "bug": "on a phone the pet's \"!\" covered the Decorate bar's hint",
     "test": { "kind": "e2e", "spec": "e2e/specs/decorate.spec.ts", "title": "the Decorate bar is never covered (en, light, phone)" }
+  },
+  {
+    "id": "A15-notices-stack",
+    "row": "A15",
+    "bug": "on a phone the quest toast, the pet's line and the rules mark piled on each other and on the room's top row",
+    "test": { "kind": "e2e", "spec": "e2e/specs/notices.spec.ts", "title": "the room's notices stack, clear of its buttons (en, light, phone)" }
   }
 ]

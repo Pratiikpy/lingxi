@@ -1,0 +1,15 @@
+--- a/apps/web/src/play/notice-lane.css
++++ b/apps/web/src/play/notice-lane.css
+@@ -13,12 +13,3 @@
+   gap: 8px;
+   pointer-events: none;
+ }
+-.notice-lane > :is(.toast, .quest-toast, .badge-toast, .rules-mark) {
+-  position: relative;
+-  inset: auto;
+-  translate: none;
+-  margin: 0;
+-  width: fit-content;
+-  max-width: 100%;
+-  pointer-events: auto;
+-}
