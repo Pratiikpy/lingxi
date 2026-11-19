@@ -1,0 +1,10 @@
+--- a/services/api/src/sitting.ts
++++ b/services/api/src/sitting.ts
+@@ -184,7 +184,6 @@ export function createSittingStore(dir?: string, now: () => number = Date.now, l
+     },
+     async collect(code) {
+       if (!CODE.test(code)) return null;
+-      await ready;
+       const e = index.get(code);
+       if (!e) return null;
+       const pack = await blobs.read(`${code}.pack`);

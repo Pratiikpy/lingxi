@@ -880,5 +880,11 @@
     "row": "A36",
     "bug": "the repo's own scripts and the browser suite were type-checked nowhere, and two errors sat in the fork-test script",
     "test": { "kind": "vitest", "dir": ".", "file": "scripts/typecheckCover.test.mts", "name": "is run by `pnpm typecheck`, and so by CI and the status check" }
+  },
+  {
+    "id": "A37-sitting-waits-for-move",
+    "row": "A37",
+    "bug": "a pack asked for in the first moments after the sitting store moved in from its old file was read as missing",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/sitting.test.ts", "name": "moves a store from before (one JSON file) into the new layout without losing a pack" }
   }
 ]
