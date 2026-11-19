@@ -7,9 +7,9 @@
  * address: the wallet approves exactly the fee first when it needs to.
  */
 
-import { type Address, type Hex, type PublicClient, type WalletClient, erc20Abi, parseAbi, parseEventLogs } from "viem";
+import { type Address, type Hex, type PublicClient, type TransactionReceipt, type WalletClient, WaitForTransactionReceiptTimeoutError, erc20Abi, parseAbi, parseEventLogs } from "viem";
 import { breederAbi } from "./breederAbi";
-import { readPet } from "./registry";
+import { RECEIPT_TIMEOUT_MS, StillPending, readPet } from "./registry";
 import { breederV2Abi } from "./breederV2Abi";
 
 /** The breeder's ABI plus the BEM token's own errors, so a payment refusal is named, not shown as a raw selector. */
@@ -76,6 +76,8 @@ export async function breedOnChain(
   childProcessor: Address,
   childBrainId: bigint,
   line: number,
+  /** told the moment the wallet sent the birth, so a birth slow to confirm is never sent twice (A48) */
+  onSent?: (tx: Hex) => void,
 ): Promise<{ childId: bigint; tx: Hex }> {
   if (!d.breeder) throw new Error("no breeder in this deployment");
   const account = wallet.account;
@@ -106,9 +108,32 @@ export async function breedOnChain(
     const { request } = await pub.simulateContract({ address: d.breeder, abi: breederAbi, functionName: "breed", args: [a, b, childProcessor, childBrainId, line], account });
     tx = await wallet.writeContract(request);
   }
-  const r = await pub.waitForTransactionReceipt({ hash: tx });
+  onSent?.(tx);
+  let r: TransactionReceipt;
+  try {
+    r = await pub.waitForTransactionReceipt({ hash: tx, timeout: RECEIPT_TIMEOUT_MS });
+  } catch (e) {
+    if (e instanceof WaitForTransactionReceiptTimeoutError) throw new StillPending("breed", tx);
+    throw e;
+  }
   if (r.status !== "success") throw new RevertedOnChain("breed", r.transactionHash);
-  const born = parseEventLogs({ abi: breederAbi, logs: r.logs, eventName: "Born" })[0];
-  if (!born) throw new Error("no Born event");
-  return { childId: born.args.child, tx };
+  const childId = bornIn(r);
+  if (childId === null) throw new Error("no Born event");
+  return { childId, tx };
+}
+
+/** The child a mined birth made, from its Born event; null if it made none. */
+function bornIn(r: TransactionReceipt): bigint | null {
+  return parseEventLogs({ abi: breederAbi, logs: r.logs, eventName: "Born" })[0]?.args.child ?? null;
+}
+
+/**
+ * What became of a birth sent earlier (A48): its child once mined, "failed" if X Layer turned it down, "pending" while
+ * the node knows the transaction but has not mined it, "unknown" when the node knows nothing of it.
+ */
+export async function birthOutcome(pub: PublicClient, tx: Hex): Promise<{ childId: bigint } | "failed" | "pending" | "unknown"> {
+  const r = await pub.getTransactionReceipt({ hash: tx }).catch(() => null);
+  if (!r) return (await pub.getTransaction({ hash: tx }).catch(() => null)) ? "pending" : "unknown";
+  const childId = r.status === "success" ? bornIn(r) : null;
+  return childId === null ? "failed" : { childId };
 }

@@ -15,6 +15,7 @@ const DAY = 24 * H;
 const T0 = Date.UTC(2026, 10, 18, 9, 0, 0);
 const CHAIN = "lingxi.chain.v2";
 const OLD_CHAIN = "lingxi.chain.v1";
+const BIRTHS = "lingxi.chain.births.v1";
 const REGISTRY = xlayer.registry as Address;
 const BREEDER = xlayer.breeder as Address;
 const PROCESSOR = xlayer.processor as Address;
@@ -135,6 +136,8 @@ function contractsOnXLayer() {
         if (rules.breedRefusal) throw rules.breedRefusal;
         if (!consent.has(`${b}:${lower(c.from)}`)) throw new Revert("NoConsent");
         if ((bemHeld.get(lower(c.from)) ?? 0n) < (maxFee as bigint)) throw new Revert("PaymentShort");
+        // the simulation passed, the block disagreed: the consent was used by another birth in between
+        if (!c.dry && rules.revertMined === "breed") throw new Revert("NoConsent");
         const id = nextPet;
         if (!c.dry) {
           pets.set(id, { owner: c.from, line: line as number, processor: processor as Address, brainId: brainId as bigint, brainBits: 12, born: c.now, day: 0, state: 0b101n });
@@ -185,6 +188,7 @@ function contractsOnXLayer() {
     consent,
     children,
     bemHeld,
+    allowances,
     rules,
     contracts: { [REGISTRY]: registry, [BREEDER]: breeder, [BEM]: bem, [PROCESSOR]: processor, [TRANSISTORS]: transistors, [FACTORY]: factory },
   };
@@ -928,6 +932,71 @@ describe("the chain store: a family on chain", () => {
     await settle(p.c().saveToday({ ...child, brain: r.ok ? r.memory : child.brain }, () => undefined));
     expect(p.x.pets.get(42n)).toMatchObject({ day: 1 });
     expect(p.chain.recordOf(child)).toMatchObject({ lastDay: 1 });
+  });
+
+  /** The owner has bred before: the Breeder may already spend its BEM, so the birth is the only transaction sent. */
+  const approvedBefore = (p: Page) => p.x.allowances.set(`${lower(OWNER)}:${lower(BREEDER)}`, 10n * OKB);
+
+  // A48: a birth is kept the moment it is sent, so a slow receipt or a closed page never loses a child the chain made
+  it("a birth whose receipt does not come in time says so, and welcoming again records that child with no second birth (A48)", async () => {
+    const p = await open();
+    await kept(p);
+    const partner = partnerOnChain(p);
+    approvedBefore(p);
+    p.xl.node.holdReceipts = true;
+    expect(await settle(p.c().breed(p.pet(), partner, childOf(p.pet())), 1_000, 400)).toEqual({ ok: false, reason: "birthPending" });
+    expect(mined(p, "breed")).toHaveLength(1);
+    // still waiting: Welcome again sends nothing and tapes out nothing
+    expect(await settle(p.c().breed(p.pet(), partner, childOf(p.pet())), 1_000, 400)).toEqual({ ok: false, reason: "birthPending" });
+    expect(mined(p, "breed")).toHaveLength(1);
+    expect(p.relayed).toHaveLength(1);
+    // X Layer tells of it now: Welcome again records that child, and saves its first day
+    p.xl.node.holdReceipts = false;
+    const child = childOf(p.pet());
+    const r = await settle(p.c().breed(p.pet(), partner, child));
+    expect(r).toEqual({ ok: true, memory: [1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0], firstDay: true });
+    expect(mined(p, "breed")).toHaveLength(1);
+    expect(p.relayed).toHaveLength(1);
+    expect(p.chain.recordOf(child)).toMatchObject({ petId: "42", owner: OWNER, brains: { "[]": "77" } });
+    expect(p.storage.getItem(BIRTHS) ?? "{}").toBe("{}");
+  });
+
+  it("a birth refused on chain while it waited lets a new one go (A48)", async () => {
+    const p = await open();
+    await kept(p);
+    const partner = partnerOnChain(p);
+    approvedBefore(p);
+    p.x.rules.revertMined = "breed";
+    p.xl.node.holdReceipts = true;
+    expect(await settle(p.c().breed(p.pet(), partner, childOf(p.pet())), 1_000, 400)).toEqual({ ok: false, reason: "birthPending" });
+    p.xl.node.holdReceipts = false;
+    p.x.rules.revertMined = null;
+    const r = await settle(p.c().breed(p.pet(), partner, childOf(p.pet())));
+    expect(r.ok).toBe(true);
+    expect(mined(p, "breed").map((m) => m.status)).toEqual(["reverted", "success"]);
+  });
+
+  it("a birth found after the page closed is finished on the next visit, its child joining the pets (A48)", async () => {
+    const p = await open();
+    await kept(p);
+    const child = childOf(p.pet());
+    approvedBefore(p);
+    p.xl.node.holdReceipts = true;
+    void p.c().breed(p.pet(), partnerOnChain(p), child);
+    await settle(new Promise((r) => setTimeout(r, 5_000)), 250, 40);
+    expect(mined(p, "breed")).toHaveLength(1);
+    expect(Object.keys(JSON.parse(p.storage.getItem(BIRTHS)!))).toHaveLength(1);
+    // the page closes; the next visit hears of receipts as usual
+    p.xl.node.holdReceipts = false;
+    const v = await reload(p.storage, { at: T0 + 10 * MIN, net: p.xl.fetchVia(async () => json({ ok: true })) });
+    void v;
+    const chain = await import("./chain");
+    const born = await settle(chain.useChain.getState().finishBirths());
+    expect(born.map((b) => b.child.name)).toEqual([child.name]);
+    expect(born[0]!.memory).toEqual([1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    expect(chain.recordOf(child)).toMatchObject({ petId: "42", owner: OWNER });
+    expect(p.storage.getItem(BIRTHS)).toBe("{}");
+    expect(mined(p, "breed")).toHaveLength(1);
   });
 
   it("a pet not on chain cannot have a child there", async () => {

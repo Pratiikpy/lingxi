@@ -10,7 +10,7 @@
  * A33: the Breeder records only the little one's mixed memory, so its first day is saved right after the birth; when
  * that save does not happen the birth stands, the player is told, and the Save button puts it right.
  */
-import { parseAbi, toFunctionSelector } from "viem";
+import { type Hex, parseAbi, parseTransaction, toFunctionSelector } from "viem";
 import { type Page } from "@playwright/test";
 import { dismiss, expect, sheet, test } from "../fixtures";
 import { keepOnChain, stored, walletOf } from "../helpers/browser";
@@ -232,4 +232,55 @@ test("a little one whose first day does not save is still born, and its player i
   await a.page.goto(`${a.web}/verify.html#${child}`);
   await expect(a.page.locator(".v-lineage")).toBeVisible({ timeout: 120_000 });
   await expect(a.page.locator(".v-unsaved"), "saved now, so no longer called unsaved").toHaveCount(0);
+});
+
+test("a birth whose page closed before its receipt comes home on the next visit (en light phone proposes, zh dark desktop agrees) (A48)", async ({ player, run }) => {
+  test.setTimeout(900_000);
+  const { a, fork, petA, ask, yes } = await familyOnChain(player, run, { a: { lang: "en", scheme: "light", size: "phone" }, b: { lang: "zh", scheme: "dark", size: "desktop", wallet: 1 } }, { family: "Family", yes: "好呀" });
+  await yes.click();
+  await expect(ask).toHaveCount(0, { timeout: 120_000 });
+  await fork.pub.request({ method: "evm_increaseTime" as never, params: [8 * 86_400] as never });
+  await fork.pub.request({ method: "evm_mine" as never, params: [] as never });
+  const born = a.page.locator(".fam-modal", { hasText: "A little one is born!" });
+  await born.waitFor({ timeout: 60_000 });
+  await born.locator(".fam-name input").fill("Bean");
+
+  // this visit never hears of the birth's receipt, as when the page closes while it is being confirmed
+  const BREEDER_ABI = parseAbi(["function children(uint256) view returns (uint256)"]);
+  const kids = () => fork.pub.readContract({ address: fork.d.breeder as Hex, abi: BREEDER_ABI, functionName: "children", args: [BigInt(petA)] });
+  const before = await kids();
+  let birth: string | null = null;
+  await a.page.route(
+    (u) => u.href.startsWith(run.fork.rpc),
+    async (route) => {
+      const sent = JSON.parse(route.request().postData() ?? "null") as unknown;
+      const calls = (Array.isArray(sent) ? sent : [sent]) as Array<{ id?: number; method?: string; params?: unknown[] } | null>;
+      const toBreeder = calls.find((c) => c?.method === "eth_sendRawTransaction" && parseTransaction(c.params?.[0] as Hex).to?.toLowerCase() === String(fork.d.breeder).toLowerCase());
+      if (toBreeder) {
+        const r = await route.fetch();
+        const body = (await r.json()) as { id?: number; result?: string } | Array<{ id?: number; result?: string }>;
+        birth = (Array.isArray(body) ? body.find((x) => x.id === toBreeder.id) : body)?.result?.toLowerCase() ?? null;
+        return route.fulfill({ response: r, body: JSON.stringify(body) });
+      }
+      if (!birth || !calls.some((c) => c?.method === "eth_getTransactionReceipt" && String(c.params?.[0]).toLowerCase() === birth)) return route.continue();
+      const held = calls.map((c) => ({ jsonrpc: "2.0", id: c?.id ?? null, result: null }));
+      return route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(Array.isArray(sent) ? held : held[0]) });
+    },
+  );
+  await born.getByRole("button", { name: "Welcome home" }).click();
+  await expect.poll(kids, { message: "the birth landed on X Layer", timeout: 240_000 }).toBe(before + 1n);
+  await expect.poll(async () => Object.keys(JSON.parse((await stored(a.page, "lingxi.chain.births.v1")) ?? "{}")).length, { message: "the birth was kept the moment it was sent" }).toBe(1);
+
+  // the page closes; the next visit hears of receipts as usual
+  await a.page.unrouteAll({ behavior: "ignoreErrors" });
+  await a.page.goto(`${a.web}/play.html`);
+  await a.page.locator(".stage").waitFor();
+  await expect(a.page.locator(".world-toast", { hasText: "Bean was born on X Layer and has joined your pets." }), "the little one comes home").toBeVisible({ timeout: 120_000 });
+  await a.page.screenshot({ path: test.info().outputPath("birth-found-en-light-phone.png") });
+  const pets = JSON.parse((await stored(a.page, "lingxi.pets.v2"))!) as { pets: Array<{ name: string }> };
+  expect(pets.pets.map((x) => x.name), "among the pets").toContain("Bean");
+  const child = await childOf(a.page, [petA]);
+  expect(child, "with its record on this device").toBeTruthy();
+  expect(Number((await petOnChain(fork, child)).born), "the pet on chain the record names").toBeGreaterThan(0);
+  expect(await stored(a.page, "lingxi.chain.births.v1")).toBe("{}");
 });

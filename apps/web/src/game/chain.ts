@@ -12,7 +12,7 @@ import { useBadges } from "./badges";
 import { create } from "zustand";
 import { createPublicClient, createWalletClient, custom, erc20Abi, http, isAddress, type Address, type Hex, type PublicClient, type WalletClient, fallback } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { petRegistryAbi, type Deployment, type TapeQuote, type TapeStep, allowPartnerOnChain, breedOnChain, breedingTerms, checkPartner, hasConsent, checkpointOnChain, hatchOnChain, quoteTapeout, readKeeping, readPet, setBrainOnChain, setSitterOnChain, signRelay, type SignedRelay, tapeOutYourself, xLayer, refusesTokens, LineMismatchError, RevertedOnChain, StillPending, hatchOutcome, revertName, breederV2Abi } from "@lingxi/chain";
+import { petRegistryAbi, type Deployment, type TapeQuote, type TapeStep, allowPartnerOnChain, breedOnChain, breedingTerms, checkPartner, hasConsent, checkpointOnChain, hatchOnChain, quoteTapeout, readKeeping, readPet, setBrainOnChain, setSitterOnChain, signRelay, type SignedRelay, tapeOutYourself, xLayer, refusesTokens, LineMismatchError, RevertedOnChain, StillPending, hatchOutcome, birthOutcome, revertName, breederV2Abi } from "@lingxi/chain";
 import { compileProgram, netlistBytes } from "@lingxi/brain";
 import { AUTO_DAYS, AUTO_FUND, AUTO_LOW, sessionAccount, sessionWallet } from "./session";
 import { type Pet, logSegments, packState, petCard, stageOf, unpackState, ruleSkillIds } from "@lingxi/game";
@@ -235,6 +235,45 @@ function setPending(pet: Pet, p: PendingHatch | null): void {
   }
 }
 
+/**
+ * Births sent but not yet recorded, by parent (A48): kept the moment the wallet sends one, with the child it is for, so
+ * a birth slow to confirm is never sent again and a birth found after the page closed still brings its child home.
+ */
+const BIRTHS_KEY = "lingxi.chain.births.v1";
+interface PendingBirth {
+  tx: Hex;
+  owner: string;
+  at: number;
+  brainId: string;
+  child: Pet;
+}
+function loadBirths(): Record<string, PendingBirth> {
+  try {
+    const r = localStorage.getItem(BIRTHS_KEY);
+    return r ? (JSON.parse(r) as Record<string, PendingBirth>) : {};
+  } catch {
+    return {};
+  }
+}
+let births = loadBirths();
+function setBirth(parentKey: string, b: PendingBirth | null): void {
+  const next = { ...births };
+  if (b) next[parentKey] = b;
+  else delete next[parentKey];
+  births = next;
+  try {
+    saveWrite(BIRTHS_KEY, JSON.stringify(births));
+  } catch {
+    // in memory for this visit
+  }
+}
+/** A child's record, from the birth that made it. */
+async function birthRecord(childId: bigint, tx: Hex, owner: string, brainId: string): Promise<{ record: ChainRecord; memory: number[] }> {
+  const onChain = await readPet(publicClient, deployment!, childId);
+  const record: ChainRecord = { petId: childId.toString(), hatchTx: tx, lastDay: 0, owner, bornChain: onChain.born, brains: { [mindKey([])]: brainId }, brainKey: mindKey([]) };
+  return { record, memory: unpackState(onChain.state, onChain.brainBits).brain };
+}
+
 /** Any pet's chain record on this device, and setting it (pet-sitting moves records between devices). */
 export const recordOf = (pet: Pick<Pet, "bornAt">): ChainRecord | null => records[petKey(pet)] ?? null;
 /** Every wallet that owns a pet kept on this device (community goals count what these wallets did on chain). */
@@ -280,6 +319,8 @@ interface ChainState {
    * and whether its first day was saved (A33)
    */
   breed: (parent: Pet, partner: ChainInfo, child: Pet) => Promise<{ ok: true; memory: number[]; firstDay: boolean } | { ok: false; reason: string }>;
+  /** births sent before the page closed and found on X Layer since: recorded, and their children handed back to join the pets (A48) */
+  finishBirths: () => Promise<Array<{ child: Pet; memory: number[] }>>;
 }
 
 /**
@@ -370,12 +411,50 @@ export const useChain = create<ChainState>((set, get) => ({
       return false;
     }
   },
+  finishBirths: async () => {
+    const out: Array<{ child: Pet; memory: number[] }> = [];
+    if (!deployment) return out;
+    for (const [parentKey, b] of Object.entries(births)) {
+      try {
+        const o = await birthOutcome(publicClient, b.tx);
+        if (typeof o === "object") {
+          const { record, memory } = await birthRecord(o.childId, b.tx, b.owner, b.brainId);
+          store(b.child, record);
+          setBirth(parentKey, null);
+          out.push({ child: { ...b.child, brain: memory.length === b.child.brain.length ? memory : b.child.brain }, memory });
+        } else if (o === "failed" || (o === "unknown" && Date.now() - b.at >= PENDING_FORGET_MS)) setBirth(parentKey, null);
+      } catch {
+        // the node did not answer: asked again next time
+      }
+    }
+    return out;
+  },
   breed: async (parent, partner, child) => {
     const r = records[petKey(parent)];
     const mine = r?.brains?.[r.brainKey ?? ""];
     if (!deployment?.breeder || !r || !mine) return { ok: false, reason: "offChain" };
     set({ busy: "connecting", error: null });
     try {
+      // a birth sent before and not yet recorded is asked about first, never sent again (A48)
+      const sentBefore = births[petKey(parent)] ?? null;
+      if (sentBefore) {
+        set({ busy: "hatching" });
+        const out = await birthOutcome(publicClient, sentBefore.tx);
+        if (out === "pending" || (out === "unknown" && Date.now() - sentBefore.at < PENDING_FORGET_MS)) {
+          set({ busy: "idle", error: "birthPending" });
+          return { ok: false, reason: "birthPending" };
+        }
+        if (typeof out === "object") {
+          const { record: born, memory } = await birthRecord(out.childId, sentBefore.tx, sentBefore.owner, sentBefore.brainId);
+          store(child, born);
+          setBirth(petKey(parent), null);
+          set({ busy: "saving" });
+          const firstDay = await saveFirstDay(await connectWallet(), born, { ...child, brain: memory });
+          set({ busy: "idle", record: activeRecord() });
+          return { ok: true, memory, firstDay };
+        }
+        setBirth(petKey(parent), null);
+      }
       // the wallet and the fee come first: a child circuit is taped out only for a birth that can go through
       const wallet = await connectWallet();
       const terms = await breedingTerms(publicClient, deployment, [BigInt(r.petId), BigInt(partner.petId)]);
@@ -392,24 +471,23 @@ export const useChain = create<ChainState>((set, get) => ({
       const relayed = await relayChild(await signRelayRequest(await relaySigner(r.petId, wallet), "child", r.petId, { parents: [mine, partner.brain] }));
       if (!relayed.ok) throw new Error(relayed.reason);
       set({ busy: "hatching" });
-      const { childId, tx } = await breedOnChain(publicClient, wallet, deployment, BigInt(r.petId), BigInt(partner.petId), deployment.processor, BigInt(relayed.brainId), LINES.indexOf(child.line));
-      const onChain = await readPet(publicClient, deployment, childId);
-      const born: ChainRecord = {
-        petId: childId.toString(),
-        hatchTx: tx,
-        lastDay: 0,
-        owner: wallet.account!.address,
-        bornChain: onChain.born,
-        brains: { [mindKey([])]: relayed.brainId },
-        brainKey: mindKey([]),
-      };
+      const owner = wallet.account!.address;
+      const { childId, tx } = await breedOnChain(publicClient, wallet, deployment, BigInt(r.petId), BigInt(partner.petId), deployment.processor, BigInt(relayed.brainId), LINES.indexOf(child.line), (sent) =>
+        setBirth(petKey(parent), { tx: sent, owner, at: Date.now(), brainId: relayed.brainId, child }),
+      );
+      const { record: born, memory } = await birthRecord(childId, tx, owner, relayed.brainId);
       store(child, born);
-      const memory = unpackState(onChain.state, onChain.brainBits).brain;
+      setBirth(petKey(parent), null);
       set({ busy: "saving" });
       const firstDay = await saveFirstDay(wallet, born, { ...child, brain: memory });
       set({ busy: "idle", record: activeRecord() });
       return { ok: true, memory, firstDay };
     } catch (e) {
+      // sent and not yet confirmed: kept, and asked about when Welcome is pressed again (A48)
+      if (e instanceof StillPending) {
+        set({ busy: "idle", error: "birthPending" });
+        return { ok: false, reason: "birthPending" };
+      }
       const msg = firstLine(e);
       set({ busy: "idle", error: msg });
       // the Breeder's own reason, read from the decoded error, not the message's first line (A19)

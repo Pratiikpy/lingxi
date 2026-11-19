@@ -5,7 +5,7 @@ import { useCallback, useEffect, useEffectEvent, useMemo, useState } from "react
 import { useReducedMotion } from "motion/react";
 import { NIGHT, boundingBox, drawPet } from "@lingxi/art";
 import { STARTERS, timeOfDay } from "@lingxi/brain";
-import { visitorsNow, friendPartner, petCard, stageOf, visibleMeters, bondLevel } from "@lingxi/game";
+import { type Pet, visitorsNow, friendPartner, petCard, stageOf, visibleMeters, bondLevel } from "@lingxi/game";
 import { type Key, useT, useLang } from "../i18n";
 import { useGame } from "../game/store";
 import { chirp, play } from "../game/sound";
@@ -112,6 +112,19 @@ export function PlayApp() {
     const id = setTimeout(() => setWorldMsg(null), worldMsg.ms);
     return () => clearTimeout(id);
   }, [worldMsg]);
+  // a birth sent before the page closed and found on X Layer since: its little one comes home now (A48)
+  const welcomeFound = useEffectEvent((found: Array<{ child: Pet }>) => {
+    for (const { child } of found) if (useGame.getState().adopt(child)) play("success");
+    if (found.length)
+      setWorldMsg({
+        id: `births:${found.map((f) => f.child.bornAt).join(",")}`,
+        text: lang === "zh" ? `${found.map((f) => f.child.name).join("、")}在 X Layer 上出生了，已经回到你的宠物里。` : `${found.map((f) => f.child.name).join(" and ")} was born on X Layer and has joined your pets.`,
+        ms: 6000,
+      });
+  });
+  useEffect(() => {
+    void useChain.getState().finishBirths().then(welcomeFound);
+  }, []);
   const worldFull = useWorld((s) => s.world);
   const travelling = !!worldFull.trip;
   const mailState = useMail();
