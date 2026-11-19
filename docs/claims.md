@@ -23,7 +23,8 @@ Kinds of check:
 | fee-holder | README, numbers | The holder outfit is free for BEM, FAB, Rig and TapeCode-Test1 holders. | auto:holder-gift |
 | keeps-no-bem | README, extras | Lingxi takes no share of any BEM payment; no contract keeps a fee, and a contract holds only what it owes others until they take it. | auto:no-bem-held |
 | no-token | README | Lingxi has no token of its own. | manual: the deployment record lists every contract Lingxi deployed (`packages/chain/deployments/xlayer.json`); none is a token. BEM is TapeOut's. |
-| owner-powers | README | Fees move only within fixed bounds; burn shares cannot change; ownership is two-step. | test:contracts/test/SecurityReview.t.sol |
+| owner-powers | README | Fees move only within fixed bounds; burn shares cannot change. | test:contracts/test/SecurityReview.t.sol |
+| two-step-owners | README | Ownership is handed over in two steps on every owned contract except the first outfit market. | auto:two-step-owners |
 | processor | README, judge check | The processor is registered with TapeOut's factory. | judge |
 | circuits-hash | README, proof page | The five core circuits on chain have the keccak256 hashes listed. | auto:circuit-hashes |
 | circuits-compiler | README | The circuits on chain are byte for byte what this repo's compiler produces. | judge |

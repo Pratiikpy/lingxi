@@ -145,6 +145,23 @@ const AUTO: Record<string, Check> = {
     expect(v1 === owedProject, `the first market holds ${v1} wei of OKB but owes the project ${owedProject}`);
     return `BEM only in the second market, ${market ? market.split(" ")[1] : "0"} of ${owed} owed; OKB only in the first, ${v1} wei, all owed to the project`;
   },
+  "two-step-owners": async () => {
+    // an owned contract answers owner(); a two-step one also answers pendingOwner() (A47)
+    const abi = [
+      { type: "function", name: "owner", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
+      { type: "function", name: "pendingOwner", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
+    ] as const;
+    const answers = async (a: Address, fn: "owner" | "pendingOwner") => pub.readContract({ address: a, abi, functionName: fn }).then(() => true, () => false);
+    const two: string[] = [];
+    const one: string[] = [];
+    for (const k of CONTRACTS) {
+      const a = d[k];
+      if (typeof a !== "string" || !(await answers(a as Address, "owner"))) continue;
+      ((await answers(a as Address, "pendingOwner")) ? two : one).push(k);
+    }
+    expect(one.length === 1 && one[0] === "outfitMarket", `one-step ownership: ${one.join(", ") || "none"}`);
+    return `two-step: ${two.join(", ")}; one-step: outfitMarket`;
+  },
   "circuit-hashes": async () => {
     for (const [id, hash] of Object.entries(CORE)) {
       const nl = (await read(d.processor, processorAbi, "netlist", [BigInt(id)])) as Hex;
