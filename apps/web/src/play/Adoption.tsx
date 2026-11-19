@@ -5,10 +5,10 @@
  */
 
 import { useCallback, useEffect, useEffectEvent, useMemo, useState } from "react";
-import { type AdoptionTerms, formatBem, parseBem } from "@lingxi/chain";
+import { type AdoptionTerms, formatBem, parseBem, refusesTokens } from "@lingxi/chain";
 import type { Pet, PapersProblem } from "@lingxi/game";
 import { boundingBox, drawPet } from "@lingxi/art";
-import { useLang } from "../i18n";
+import { useLang, useT } from "../i18n";
 import { recordOf } from "../game/chain";
 import { type CheckedOffer, type Farewell, adoptFromCentre, takeFarewells, adoptionAvailable, atCentre, browseOffers, centreTerms, checkCentre, offerForAdoption, papersAvailable, withdrawFromCentre } from "../game/adoption";
 import { play } from "../game/sound";
@@ -46,6 +46,7 @@ const PROBLEM: Record<PapersProblem | "noPapers" | "unreachable", [string, strin
 
 export function AdoptionPanel({ pet }: { pet: Pet }) {
   const lang = useLang((s) => s.lang) as Lang;
+  const t = useT();
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
   const [terms, setTerms] = useState<AdoptionTerms | null>(null);
   const [offers, setOffers] = useState<CheckedOffer[] | null>(null);
@@ -90,7 +91,9 @@ export function AdoptionPanel({ pet }: { pet: Pet }) {
           ? L("No wallet found in this browser. Open Lingxi in the OKX Wallet app, or a browser with a wallet.", "这个浏览器里没有钱包。请在 OKX 钱包应用里打开灵犀，或用装了钱包的浏览器。")
           : m === "notEnoughBem"
             ? L("This wallet doesn't hold enough BEM on X Layer for that.", "这个钱包在 X Layer 上的 BEM 不够。")
-            : L(`That didn't go through: ${m.split("\n")[0]}`, `没有成功：${m.split("\n")[0]}`),
+            : refusesTokens(e)
+              ? t("chain.cannotReceive")
+              : L(`That didn't go through: ${m.split("\n")[0]}`, `没有成功：${m.split("\n")[0]}`),
       );
     }
     setBusy(null);

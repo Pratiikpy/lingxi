@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { drawPet } from "@lingxi/art";
 import { type Family, type ParentInfo, type Pet, BOND_LEVELS, BREED_COOLDOWN_DAYS, FAMILY_BOND_LEVEL, bondLevel, canBreed, childMemory, createPet, dayOf, familyOf, mindBrain, parseCard, ruleSkillIds, stageOf } from "@lingxi/game";
-import { useLang } from "../i18n";
+import { useLang, useT } from "../i18n";
 import { MAX_PETS, keptPetNames, useGame } from "../game/store";
 import { deployment, petKey, publicClient, useChain } from "../game/chain";
 import { type PartnerCheck, breedingTerms, checkPartner, formatBem } from "@lingxi/chain";
@@ -158,6 +158,7 @@ export function ProposalDialog({ pet }: { pet: Pet }) {
 /** The other owner said yes: meet and name the newborn. */
 export function NewbornDialog({ pet }: { pet: Pet }) {
   const lang = useLang((s) => s.lang) as Lang;
+  const t = useT();
   const answer = useLive((s) => s.answer);
   const clear = useLive((s) => s.clearFamily);
   const adopt = useGame((s) => s.adopt);
@@ -284,6 +285,8 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
                     ? lang === "zh"
                       ? "对方宠物的信息和 X Layer 上的不符，所以没有花任何东西。"
                       : "Their pet's details don't match X Layer, so nothing was spent."
+                  : chainError === "cannotReceive"
+                    ? t("chain.cannotReceive")
                   : chainError === "notEnoughBem"
                     ? lang === "zh"
                       ? `这个钱包在 X Layer 上的 BEM 不够付 ${fee !== null ? formatBem(fee) : ""} BEM 的出生费用。`

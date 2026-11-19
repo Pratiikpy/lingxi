@@ -23,10 +23,11 @@ import {
   proceedsOwed,
   wearKey,
   withdrawProceeds,
+  refusesTokens,
 } from "@lingxi/chain";
 import { type Pet, stageOf } from "@lingxi/game";
 import { formatEther, parseEther } from "viem";
-import { useLang } from "../i18n";
+import { useLang, useT } from "../i18n";
 import { connectWallet, deployment, publicClient } from "../game/chain";
 import { marketAvailable, marketOf, safeDecode, useDesigns } from "../game/designs";
 import { useWorld } from "../game/world";
@@ -72,6 +73,7 @@ export function OnPet({ pet, id }: { pet: Pet; id: string }) {
 export function FashionMarketPanel({ pet }: { pet: Pet }) {
   const lang = useLang((s) => s.lang) as Lang;
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
+  const t = useT();
   const { market, listings, held, wallet, loading, error, refresh } = useDesigns();
   const wear = useWorld((s) => s.wear);
   const [busy, setBusy] = useState<string | null>(null);
@@ -118,7 +120,9 @@ export function FashionMarketPanel({ pet }: { pet: Pet }) {
           ? L("No wallet found in this browser. Open Lingxi in the OKX Wallet app, or a browser with a wallet.", "这个浏览器里没有钱包。请在 OKX 钱包应用里打开灵犀，或用装了钱包的浏览器。")
           : m === "not enough BEM"
             ? L("This wallet doesn't hold enough BEM on X Layer for that.", "这个钱包在 X Layer 上的 BEM 不够。")
-            : L(`That didn't go through: ${m.split("\n")[0]}`, `没有成功：${m.split("\n")[0]}`),
+            : refusesTokens(e)
+              ? t("chain.cannotReceive")
+              : L(`That didn't go through: ${m.split("\n")[0]}`, `没有成功：${m.split("\n")[0]}`),
       );
     }
     setBusy(null);

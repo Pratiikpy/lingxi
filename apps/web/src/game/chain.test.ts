@@ -51,7 +51,7 @@ function contractsOnXLayer() {
   const netlists = new Map<bigint, Hex>();
   const bemHeld = new Map<string, bigint>([[lower(OWNER), 100n * OKB]]);
   const allowances = new Map<string, bigint>();
-  const rules = { breedFee: OKB, maxChildren: 4, breedRefusal: null as Revert | null, revertMined: null as string | null };
+  const rules = { breedFee: OKB, maxChildren: 4, breedRefusal: null as Revert | null, revertMined: null as string | null, refuseReceiver: false };
   let nextPet = 41n;
   let nextCircuit = 500n;
 
@@ -78,6 +78,8 @@ function contractsOnXLayer() {
     calls: {
       hatch: ([to, line, processor, brainId, state], c) => {
         minedRefusal("hatch", c.dry);
+        // an address whose code takes no NFTs (an EIP-7702 delegation without a receiver): the safe mint refuses it
+        if (rules.refuseReceiver) throw new Revert("ERC721InvalidReceiver", [to]);
         const id = nextPet;
         if (!c.dry) {
           pets.set(id, { owner: to as Address, line: line as number, processor: processor as Address, brainId: brainId as bigint, brainBits: 16, born: c.now, day: 0, state: state as bigint });
@@ -315,14 +317,23 @@ describe("the chain store: keeping a pet on X Layer", () => {
     expect(p.storage.getItem(CHAIN)).toBeNull();
   });
 
-  // DEFECT: keep() and updateMind() read `(e as Error).message.split(...)` in their catch, where every other action uses
-  // firstLine(); a wallet that refuses with a bare string (no .message) throws inside the catch, so the promise
-  // rejects and `busy` stays "connecting": the panel's buttons stay disabled until the page is reloaded.
-  it.fails("a wallet that refuses with a bare message frees the panel and says it did not go through", async () => {
+  // keep() reads its failure with firstLine() since A13; updateMind() still does not (A21)
+  it("a wallet that refuses with a bare message frees the panel and says it did not go through", async () => {
     const p = await open();
     p.wallet.request = async () => Promise.reject("User denied account access");
     await settle(p.c().keep(p.pet()).catch(() => undefined));
     expect(p.c()).toMatchObject({ busy: "idle", error: expect.stringMatching(/\S/) });
+  });
+
+  it("a wallet whose address refuses pets is told so before anything is signed, and nothing is kept (A13)", async () => {
+    const p = await open();
+    p.x.rules.refuseReceiver = true;
+    await settle(p.c().keep(p.pet()));
+    expect(p.c()).toMatchObject({ busy: "idle", error: "cannotReceive", record: null });
+    expect(p.xl.mined).toEqual([]);
+    const [en, zh] = panelSays("chain.cannotReceive");
+    expect(en).toMatch(/can't receive pets or items/);
+    expect(zh).toMatch(/收不了宠物或道具/);
   });
 
   it("a hatch the block refuses after the simulation passed is not kept", async () => {

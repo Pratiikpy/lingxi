@@ -6,10 +6,10 @@
  */
 
 import { useEffect, useEffectEvent, useState } from "react";
-import { type ShopItem, buyShopItem, claimVoucher, formatBem, listCopies, marketsOf, parseBem, readShopItems, shopBurned, shopReadiness } from "@lingxi/chain";
+import { type ShopItem, buyShopItem, claimVoucher, formatBem, listCopies, marketsOf, parseBem, readShopItems, shopBurned, shopReadiness, refusesTokens } from "@lingxi/chain";
 import { WEARABLE } from "@lingxi/art";
 import { CHAIN_DECOR, CHAIN_WEAR, DECOR_BY_ID, GOAL_BY_ID, isChainWear } from "@lingxi/world";
-import { useLang } from "../i18n";
+import { useLang, useT } from "../i18n";
 import { connectWallet, deployment, publicClient } from "../game/chain";
 import { syncChainPieces } from "../game/chainDecor";
 import { voucherQuery, withQuery } from "../game/requests";
@@ -30,6 +30,7 @@ const readShelf = () => Promise.all([readShopItems(publicClient, deployment!), s
 
 export function ItemShopPanel() {
   const lang = useLang((s) => s.lang) as Lang;
+  const t = useT();
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
   const held = useWorld((s) => s.world.decor?.chainHeld) ?? NONE;
   const wornHeld = useWorld((s) => s.world.wardrobe?.chainHeld) ?? NONE;
@@ -91,8 +92,8 @@ export function ItemShopPanel() {
             ? L("This wallet doesn't hold enough BEM on X Layer for that.", "这个钱包在 X Layer 上的 BEM 不够。")
             : m === "notComplete"
               ? L("That goal isn't finished yet. The keepsake opens when everyone together reaches it.", "这个目标还没完成。大家一起达成后才能领取纪念品。")
-              : /ERC1155InvalidReceiver|0x57f447ce/.test(m)
-                ? L("This wallet can't hold on-chain items (it runs code that refuses them). Nothing was taken. Try a plain wallet address.", "这个钱包收不了链上道具（它运行的代码会拒收）。没有扣任何东西。请换一个普通钱包地址。")
+              : refusesTokens(e)
+                ? t("chain.cannotReceive")
               : m === "notContributor"
                 ? L("This wallet didn't add to that goal, so there is no keepsake for it.", "这个钱包没有为这个目标出过力，所以没有它的纪念品。")
                 : L(`That didn't go through: ${m.split("\n")[0]}`, `没有成功：${m.split("\n")[0]}`),
