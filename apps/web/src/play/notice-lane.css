@@ -1,0 +1,24 @@
+/* A15: the room's notices in one lane. NoticeLane.tsx measures where it goes: under the room's top row (one line on a
+   desktop, two on a phone) and clear of the pet's "!" corner. The notices stack in order with a gap, above sheets as
+   the quest and badge toasts always were; each keeps its own look, and loses only its own placement. */
+.notice-lane {
+  position: fixed;
+  z-index: 61;
+  top: var(--lane-top, calc(112px + env(safe-area-inset-top, 0px)));
+  left: var(--lane-left, 16px);
+  width: var(--lane-width, calc(100vw - 96px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+.notice-lane > :is(.toast, .quest-toast, .badge-toast, .rules-mark) {
+  position: relative;
+  inset: auto;
+  translate: none;
+  margin: 0;
+  width: fit-content;
+  max-width: 100%;
+  pointer-events: auto;
+}

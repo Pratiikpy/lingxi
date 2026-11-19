@@ -13,6 +13,7 @@ import { followClock, setAmbience } from "../game/music";
 import { useReminders } from "../game/reminders";
 import { RemindersPanel } from "./Reminders";
 import { DecorBar } from "./DecorBar";
+import { NoticeLane } from "./NoticeLane";
 import { BadgeShelf, BadgeToast } from "./Badges";
 import { type DayPhase, RoomScene, weatherFor } from "../scene/RoomScene";
 import { PALETTE_OF, type PetStage } from "../scene/textures";
@@ -580,7 +581,6 @@ export function PlayApp() {
           <button type="button" className="circuit-btn" aria-pressed={circuit} aria-label={lang === "zh" ? "看它的电路" : "See its circuit"} onClick={() => (play("tap"), setCircuit((v) => !v))}>
             <Icon name="mind" size={22} />
           </button>
-          <ToastView toast={toast} name={pet.name} />
           {pet.away && <AwayCard pet={pet} />}
           {travelling && worldFull.trip && (
             <div className="trip-note" role="status">
@@ -786,11 +786,15 @@ export function PlayApp() {
         <PetsPanel onPicked={close} />
       </Sheet>
 
-      <BadgeToast />
-      <QuestToast onOpenBook={() => pick("quests")} />
+      {/* the room's notices, stacked in one lane under its top row (A15) */}
+      <NoticeLane>
+        <QuestToast onOpenBook={() => pick("quests")} />
+        <BadgeToast />
+        <ToastView toast={toast} name={pet.name} />
+        <RulesMark />
+      </NoticeLane>
       <FarewellNote />
       <HandheldReturn />
-      <RulesMark />
       <QuestDialog />
       <HintRing />
       <Sheet open={skillsOpen} title={lang === "zh" ? `${pet.name}的技能` : `${pet.name}'s skills`} onClose={() => useSkillsUi.getState().hide()}>
