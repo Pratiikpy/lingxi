@@ -17,6 +17,7 @@ import { isIP } from "node:net";
 import { WebSocketServer, type WebSocket } from "ws";
 import { type DecorStore, type Placed, createDecorStore } from "./decor";
 import { type Homes, visible } from "./homes";
+import { shownName } from "@lingxi/game";
 import { MAX_PLACED } from "@lingxi/world";
 import { RateLimiter } from "./limit";
 import { BLOCKED_WORDS as BLOCKED } from "./words";
@@ -231,7 +232,8 @@ export class LiveRooms {
         const id = clean(m.id, 32).toLowerCase();
         // only the device holding the key behind this id may be it
         if (!/^[a-z0-9]{6,32}$/.test(id) || !this.decor.authorise(id, m.key)) return this.send(c, { t: "refused", reason: "id" });
-        const name = clean(m.name, NAME_MAX) || "Pet";
+        // a hidden character is shown, so no pet in the room can pass for another (A16)
+        const name = shownName(m.name, NAME_MAX) || "Pet";
         c.member = {
           id,
           name: BLOCKED.test(name) ? "Pet" : name,

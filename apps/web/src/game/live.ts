@@ -7,10 +7,15 @@
 
 import { create } from "zustand";
 import { PLAYER_SECRET, playerIdFor } from "@lingxi/chain/player";
+import { shownName } from "@lingxi/game";
 import { noteEvent } from "./tally";
 import { saveWrite } from "./saveRuntime";
 
 const LIVE_URL = (import.meta.env.VITE_LIVE_URL as string | undefined) ?? (location.hostname === "localhost" ? "ws://localhost:8787/live" : "");
+/** The server's longest pet name; every name that arrives is shown as shownName shows it (A16), whatever a server sent. */
+const NAME_MAX = 12;
+const nameIn = (m: Record<string, unknown>): string => shownName(m.name, NAME_MAX) || "Pet";
+const named = (x: LiveMember): LiveMember => ({ ...x, name: shownName(x.name, NAME_MAX) || "Pet" });
 const PLAYER_KEY = "lingxi.player.v1";
 
 /**
@@ -193,10 +198,10 @@ export const useLive = create<LiveState>((set, get) => {
           return;
         }
         case "room":
-          set({ space: m.space as string, members: Object.fromEntries((m.members as LiveMember[]).map((x) => [x.id, x])) });
+          set({ space: m.space as string, members: Object.fromEntries((m.members as LiveMember[]).map((x) => [x.id, named(x)])) });
           return;
         case "joined": {
-          const x = m.member as LiveMember;
+          const x = named(m.member as LiveMember);
           members[x.id] = x;
           // a friend's pet arrived in our own home (quests count it)
           if (get().space === `home:${playerId()}` && x.id !== playerId()) noteEvent("visited-by-friend");
@@ -241,16 +246,16 @@ export const useLive = create<LiveState>((set, get) => {
           set({ linkAnswer: { ok: m.ok === true, ...(typeof m.reason === "string" ? { reason: m.reason } : {}), at: performance.now() } });
           return;
         case "card":
-          set({ card: { id: m.id as string, name: m.name as string, line: m.line as string, stage: m.stage as string, lessons: m.lessons as string, at: performance.now() } });
+          set({ card: { id: m.id as string, name: nameIn(m), line: m.line as string, stage: m.stage as string, lessons: m.lessons as string, at: performance.now() } });
           return;
         case "proposal":
-          set({ proposal: { from: m.from as string, name: m.name as string, stage: m.stage as string, line: m.line as string, ...(asChain(m.chain) ? { chain: asChain(m.chain)! } : {}), at: performance.now() } });
+          set({ proposal: { from: m.from as string, name: nameIn(m), stage: m.stage as string, line: m.line as string, ...(asChain(m.chain) ? { chain: asChain(m.chain)! } : {}), at: performance.now() } });
           return;
         case "answer":
           set({
             answer: {
               from: m.from as string,
-              name: m.name as string,
+              name: nameIn(m),
               yes: m.yes === true,
               ...(typeof m.line === "string" ? { line: m.line } : {}),
               ...(typeof m.stage === "string" ? { stage: m.stage } : {}),
@@ -261,7 +266,7 @@ export const useLive = create<LiveState>((set, get) => {
           });
           return;
         case "asked":
-          set({ asked: { name: m.name as string, at: performance.now() } });
+          set({ asked: { name: nameIn(m), at: performance.now() } });
           return;
         case "say": {
           const x = members[m.id as string];

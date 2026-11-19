@@ -7,6 +7,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { boundingBox, drawPet } from "@lingxi/art";
+import { revealHidden } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { PALETTE_OF } from "../scene/textures";
 import { Sprite } from "../play/Sprite";
@@ -98,7 +99,7 @@ export function TreeApp() {
     history.replaceState(null, "", `#${id}`);
   };
   const chosen = picked ? byId.get(picked) : undefined;
-  const nameOf = (id: string) => byId.get(id)?.name || `#${id}`;
+  const nameOf = (id: string) => revealHidden(byId.get(id)?.name ?? "").text || `#${id}`;
 
   return (
     <main className="agents tree">

@@ -1,7 +1,7 @@
 /** Claim the pet's name on chain (PetLook): unique across every Lingxi pet, open once the pet is settled. */
 
 import { useEffect, useState } from "react";
-import type { Pet } from "@lingxi/game";
+import { type Pet, revealHidden } from "@lingxi/game";
 import { nameHolderOf, nameProblem, petRegistryAbi, readName, setNameOnChain } from "@lingxi/chain";
 import { type Key, useT } from "../i18n";
 import { connectWallet, deployment, publicClient, type ChainRecord } from "../game/chain";
@@ -65,7 +65,7 @@ export function NameClaim({ pet, record }: { pet: Pet; record: ChainRecord }) {
   return (
     <div className="keeping">
       <p className="label">{t("name.title")}</p>
-      {onChain ? <p className="small">{t("name.yours", { name: onChain })}</p> : <p className="small">{t("name.pitch", { name: pet.name })}</p>}
+      {onChain ? <p className="small">{t("name.yours", { name: revealHidden(onChain).text })}</p> : <p className="small">{t("name.pitch", { name: pet.name })}</p>}
       {settled === false ? (
         <p className="small">{t("name.notSettled")}</p>
       ) : (

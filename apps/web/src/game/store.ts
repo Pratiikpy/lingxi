@@ -57,7 +57,7 @@ export function countCare(kind: Care["kind"], wasAsleep: boolean, r: CareResult)
 }
 import { create } from "zustand";
 import { type Program, type Rule, STARTERS, compileProgram, fastBrain, stateBits, timeOfDay } from "@lingxi/brain";
-import { FOODS, type Brain, type Care, type CareResult, type Growth, type Pet, type UpgradeRefusal, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, learnSkill, levelUpPet, liveBeat, mindBrain, respecPet, ruleSkillIds, settleForm, skillRules, stageOf, teach as teachRule, awayEvent, awaySeed, beatOf, localHour, instinctBrain, MAX_MIND_STATE, type OutsideInstinct, withSegment } from "@lingxi/game";
+import { FOODS, type Brain, type Care, type CareResult, type Growth, type Pet, type UpgradeRefusal, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, learnSkill, levelUpPet, liveBeat, mindBrain, respecPet, ruleSkillIds, settleForm, skillRules, stageOf, teach as teachRule, awayEvent, awaySeed, beatOf, localHour, instinctBrain, MAX_MIND_STATE, type OutsideInstinct, stripHidden, withSegment } from "@lingxi/game";
 import type { StarterLine } from "@lingxi/brain";
 import { takeComfort } from "./comfort";
 
@@ -305,7 +305,8 @@ export const useGame = create<GameState>((set, get) => ({
   daily: freshDaily(),
   hatch: (line, name, instincts = 0) => {
     const pet = createPet({
-      name: name.trim().slice(0, 12) || "Mochi",
+      // a character that shows as nothing is taken out: the name stays what the player can see (A16)
+      name: stripHidden(name).trim().slice(0, 12) || "Mochi",
       line,
       now: gameNow(),
       tzOffsetMin: -new Date(gameNow()).getTimezoneOffset(),

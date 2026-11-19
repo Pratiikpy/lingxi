@@ -11,7 +11,7 @@
  */
 
 import { type Address, type Hex, keccak256, toBytes } from "viem";
-import { type ChainPetView, type PapersProblem, type Pet, checkPapers, savedLength } from "@lingxi/game";
+import { type ChainPetView, type PapersProblem, type Pet, checkPapers, savedLength, shownName } from "@lingxi/game";
 import { type Offer, adoptChild, adoptionTerms, childView, offerChild, offerable, readOffers, withdrawOffer } from "@lingxi/chain";
 import { type ChainRecord, connectWallet, deployment, publicClient, recordOf, setRecordOf, useChain } from "./chain";
 import { useGame } from "./store";
@@ -35,6 +35,12 @@ interface Papers {
 }
 
 /** The message the owner signs; the server checks the same text. */
+/** Another player's papers as this game shows them: the pet's name and its parents' as shownName shows them (A16). */
+function shownPapers(p: Papers): Papers {
+  const family = p.pet.family && { ...p.pet.family, parents: p.pet.family.parents.map((x) => ({ ...x, name: shownName(x.name, 12) })) as typeof p.pet.family.parents };
+  return { ...p, pet: { ...p.pet, name: shownName(p.pet.name, 12) || "Mochi", ...(family ? { family } : {}) } };
+}
+
 export const papersMessage = (petId: string, papers: string) => `Lingxi adoption papers for pet #${petId}
 ${keccak256(toBytes(papers))}`;
 
@@ -159,7 +165,7 @@ export async function browseOffers(): Promise<CheckedOffer[]> {
         const body = (await r.json()) as { ok: boolean; papers: string; signer: string };
         if (!r.ok || !body.ok) return { offer, papers: null, problem: "noPapers" };
         if (body.signer.toLowerCase() !== offer.seller.toLowerCase()) return { offer, papers: null, problem: "noPapers" };
-        papers = JSON.parse(body.papers) as Papers;
+        papers = shownPapers(JSON.parse(body.papers) as Papers);
       } catch {
         return { offer, papers: null, problem: BASE ? "noPapers" : "unreachable" };
       }

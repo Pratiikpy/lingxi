@@ -159,6 +159,17 @@ describe("live rooms", () => {
     for (const x of [a, b, c]) x.ws.close();
   });
 
+  it("a name with a character that shows as nothing reaches the room with it shown, never as another pet's name (A16)", async () => {
+    const mochi = await connect();
+    hello(mochi, "mochi01", "room:22", "Mochi");
+    await mochi.next("room");
+    const lookalike = await connect();
+    hello(lookalike, "lookalike01", "room:22", "Mochi\u061c");
+    expect((await mochi.next("joined")).member.name).toBe("Mochi\ufffd");
+    mochi.ws.close();
+    lookalike.ws.close();
+  });
+
   it("an id is only its owner's: someone who saw it in a room cannot take it, and a made-up id is refused", async () => {
     const owner = await connect();
     hello(owner, "realowner", "room:21", "Mochi");

@@ -12,6 +12,7 @@ import { b64urlDecode, b64urlEncode, compileProgram, gateCount } from "@lingxi/b
 import { fighterOfMind } from "./coach";
 import { type PetCard, halvesOf, mindBrain, mindExtra, parseCard } from "./family";
 import { composeProgram } from "./lessons";
+import { shownName } from "./names";
 import { gateBudget, skillRules } from "./skills";
 import type { Fighter, SparResult } from "./spar";
 import { spar } from "./spar";
@@ -65,7 +66,7 @@ function readPet(v: unknown): DuelPet & { parsed: PetCard } {
   const st = (p.story ?? {}) as Record<string, unknown>;
   const nature = Array.isArray(st.nature) ? st.nature.slice(0, 3).map((x) => clean(x, 16)).filter(Boolean) : [];
   return {
-    name: clean(p.name, 12) || "Friend",
+    name: shownName(p.name, 12) || "Friend",
     line,
     stage,
     card: p.card,

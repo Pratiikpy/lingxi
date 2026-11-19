@@ -115,3 +115,10 @@
     transition: none;
   }
 }
+
+/* a name carrying characters that show as nothing (A16): they are shown, and the name says so on a long press or hover */
+.named-hidden {
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  cursor: help;
+}

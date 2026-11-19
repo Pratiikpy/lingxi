@@ -35,3 +35,99 @@ export function nameFromBrain(netlist: Uint8Array, draw = 0): BrainName {
   const zh = byte(5) & 1 ? first + first : first + (second === first ? ZH[(byte(4) + 1) & 31]! : second);
   return { en, zh, from: h };
 }
+
+/* ── names that cannot pass for another (A16) ───────────────────────────── */
+
+/**
+ * Invisible or direction-changing code points a name may not carry: those PetLook refuses on chain, and every other
+ * code point Unicode 18 marks Default_Ignorable (A16: U+061C, U+17B4..17B5, U+180B..180D, U+180F, U+1BCA0..1BCA3 and
+ * U+1D173..1D17A pass PetLook, so the game refuses them itself and shows them where a name carries one).
+ */
+export function hiddenCodePoint(cp: number): boolean {
+  return (
+    (cp >= 0x80 && cp <= 0xa0) || cp === 0xad || cp === 0x34f || cp === 0x61c || cp === 0x115f || cp === 0x1160 || (cp >= 0x17b4 && cp <= 0x17b5) ||
+    (cp >= 0x180b && cp <= 0x180f) || (cp >= 0x2000 && cp <= 0x206f) || cp === 0x3000 || cp === 0x3164 || (cp >= 0xfe00 && cp <= 0xfe0f) ||
+    cp === 0xfeff || cp === 0xffa0 || (cp >= 0xfff0 && cp <= 0xfffb) || (cp >= 0x1bca0 && cp <= 0x1bca3) || (cp >= 0x1d173 && cp <= 0x1d17a) ||
+    (cp >= 0xe0000 && cp <= 0xe0fff)
+  );
+}
+
+/**
+ * Code points that draw as nothing, or as a blank that passes for an ordinary space, when a name is shown: Unicode's
+ * Default_Ignorable set (18.0), the C1 controls, the spaces other than U+0020, the line and paragraph separators and
+ * the interlinear annotation marks. Narrower than `hiddenCodePoint`, which also refuses visible punctuation (… — ‘’)
+ * the chain will not take: a name carrying those is shown as it is.
+ */
+export function invisibleCodePoint(cp: number): boolean {
+  return (
+    (cp >= 0x80 && cp <= 0xa0) || cp === 0xad || cp === 0x34f || cp === 0x61c || cp === 0x115f || cp === 0x1160 || cp === 0x1680 ||
+    (cp >= 0x17b4 && cp <= 0x17b5) || (cp >= 0x180b && cp <= 0x180f) || (cp >= 0x2000 && cp <= 0x200f) || (cp >= 0x2028 && cp <= 0x202f) ||
+    (cp >= 0x205f && cp <= 0x206f) || cp === 0x3000 || cp === 0x3164 || (cp >= 0xfe00 && cp <= 0xfe0f) || cp === 0xfeff || cp === 0xffa0 ||
+    (cp >= 0xfff0 && cp <= 0xfffb) || (cp >= 0x1bca0 && cp <= 0x1bca3) || (cp >= 0x1d173 && cp <= 0x1d17a) || (cp >= 0xe0000 && cp <= 0xe0fff)
+  );
+}
+
+const PICTOGRAPH = /\p{Extended_Pictographic}/u;
+const KEYCAP_BASE = /^[0-9#*]$/;
+const TAG_LETTER = /[\u{e0020}-\u{e007e}]/u;
+const isSkinTone = (ch: string) => ch.codePointAt(0)! >= 0x1f3fb && ch.codePointAt(0)! <= 0x1f3ff;
+
+/**
+ * Whether the invisible character at `i` is part of an emoji, which draws as the emoji and not as nothing: a
+ * presentation selector (U+FE0E, U+FE0F) after a pictograph or a keycap's digit, a joiner (U+200D) between two
+ * pictographs, or the tag sequence of a black flag (U+1F3F4) that spells out a region. Anywhere else the same
+ * character can only hide.
+ */
+function inEmoji(chars: readonly string[], i: number): boolean {
+  const cp = chars[i]!.codePointAt(0)!;
+  const before = chars[i - 1];
+  if (cp === 0xfe0e || cp === 0xfe0f) return before !== undefined && (PICTOGRAPH.test(before) || (KEYCAP_BASE.test(before) && chars[i + 1] === "\u20e3"));
+  if (cp === 0x200d) {
+    let j = i - 1;
+    while (j >= 0 && (chars[j] === "\ufe0f" || isSkinTone(chars[j]!))) j--;
+    const after = chars[i + 1];
+    return j >= 0 && PICTOGRAPH.test(chars[j]!) && after !== undefined && PICTOGRAPH.test(after);
+  }
+  if (cp >= 0xe0020 && cp <= 0xe007f) {
+    let j = i - 1;
+    while (j >= 0 && TAG_LETTER.test(chars[j]!)) j--;
+    return j >= 0 && chars[j] === "\u{1f3f4}";
+  }
+  return false;
+}
+
+const shows = (chars: readonly string[], i: number) => !invisibleCodePoint(chars[i]!.codePointAt(0)!) || inEmoji(chars, i);
+
+/** A name with every character that draws as nothing taken out: what a player typed, as it can be seen (a pet's own name). */
+export function stripHidden(name: string): string {
+  const chars = Array.from(name);
+  return chars.filter((_, i) => shows(chars, i)).join("");
+}
+
+/**
+ * A name as it may be shown: each character that would draw as nothing replaced by U+FFFD, so a name that carries one
+ * (PetLook lets a few through, and the live room, cards and papers come from other players) can never pass for
+ * another; `hidden` counts them.
+ */
+export function revealHidden(name: string): { text: string; hidden: number } {
+  const chars = Array.from(name);
+  let hidden = 0;
+  const text = chars.map((ch, i) => (shows(chars, i) ? ch : (hidden++, "\ufffd"))).join("");
+  return { text, hidden };
+}
+
+/** The most of a name ever looked at: a name is cut far shorter, and a hostile one cannot make the work grow. */
+const NAME_READ_MAX = 256;
+
+/**
+ * Another player's pet name as this game shows it, wherever it arrives from (the live room, a card, a family's papers,
+ * a duel): control characters and angle brackets dropped, every hidden code point shown as U+FFFD, trimmed, and cut to
+ * `max` UTF-16 units without splitting a character.
+ */
+export function shownName(raw: unknown, max: number): string {
+  if (typeof raw !== "string") return "";
+  const text = revealHidden(raw.slice(0, NAME_READ_MAX).replace(/[\u0000-\u001f\u007f<>]/g, "")).text.trim();
+  if (text.length <= max) return text;
+  const cut = /[\ud800-\udbff]/.test(text[max - 1] ?? "") ? max - 1 : max;
+  return text.slice(0, cut).trimEnd();
+}

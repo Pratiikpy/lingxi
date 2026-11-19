@@ -15,6 +15,7 @@
 import { type FastBrain, type Program, type Rule, type StarterLine, circuitBrain, circuitFromParts, compileProgram, fastBrain, gateCount, inputField, stateBits } from "@lingxi/brain";
 import { LESSON_CAPACITY, type MindExtra, cleanInstincts, composeProgram } from "./lessons";
 import { type Growth, MAX_GATES_SKILLED, extraLessons, gateBudget, legalGrowth, ruleGrowth, ruleSkillIds, skillRules } from "./skills";
+import { shownName } from "./names";
 import type { Family, OutsideInstinct, ParentInfo, Stage } from "./pet";
 import type { Brain } from "./sim";
 
@@ -194,7 +195,7 @@ export function canBreed(a: BreedSide, b: BreedSide, today: number): { ok: true 
 export function familyOf(a: ParentInfo & { generation?: number }, b: ParentInfo & { generation?: number }): Family {
   if ((a.generation ?? 0) > 0 || (b.generation ?? 0) > 0) throw new Error("secondGeneration");
   const strip = ({ name, line, lessons, instincts, petId, owner, key, skills }: ParentInfo): ParentInfo => ({
-    name: name.slice(0, 12),
+    name: shownName(name, 12),
     line,
     lessons: lessons.slice(0, 8),
     ...(cleanInstincts(instincts) ? { instincts: cleanInstincts(instincts) } : {}),
@@ -297,7 +298,7 @@ export function parseCard(raw: string): PetCard | null {
       if (!line || typeof p.name !== "string" || !Array.isArray(p.lessons) || p.lessons.length > 8) throw new Error("bad parent");
       const pi = cleanInstincts(p.instincts);
       const ps = cleanParentSkills(p.skills);
-      return { name: p.name.slice(0, 12), line, lessons: p.lessons as Rule[], ...(pi ? { instincts: pi } : {}), ...(ps.length ? { skills: ps } : {}) };
+      return { name: shownName(p.name, 12), line, lessons: p.lessons as Rule[], ...(pi ? { instincts: pi } : {}), ...(ps.length ? { skills: ps } : {}) };
     }) as [ParentInfo, ParentInfo];
     return { lessons: lessons as Rule[], family: { parents, generation: f.generation as number }, ...(memory ? { memory } : {}), ...(outside ? { outside } : {}), ...(growth ? { growth } : {}) };
   } catch {

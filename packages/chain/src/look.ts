@@ -17,6 +17,7 @@
  * can compare the contract's drawing with the game's sprite pixel by pixel.
  */
 
+import { hiddenCodePoint } from "@lingxi/game";
 import { CORAL, EXPRESSIONS, FACES_L, FACES_S, ROLES, SHELL, SKY, SUNNY, PixelCanvas, boundingBox, drawBody, drawEgg, drawPet, faceAnchor, type Expression, type Role } from "@lingxi/art";
 
 export const LOOK_STAGES = ["egg", "baby", "child", "teen", "adult"] as const;
@@ -243,10 +244,4 @@ export function nameProblem(name: string): "empty" | "long" | "space" | "chars" 
   return null;
 }
 
-/** Invisible or direction-changing code points PetLook refuses in names. */
-export function hiddenCodePoint(cp: number): boolean {
-  return (
-    (cp >= 0x80 && cp <= 0xa0) || cp === 0xad || cp === 0x34f || cp === 0x115f || cp === 0x1160 || cp === 0x180e || (cp >= 0x2000 && cp <= 0x206f) ||
-    cp === 0x3000 || cp === 0x3164 || (cp >= 0xfe00 && cp <= 0xfe0f) || cp === 0xfeff || cp === 0xffa0 || (cp >= 0xfff0 && cp <= 0xfffb) || (cp >= 0xe0000 && cp <= 0xe0fff)
-  );
-}
+export { hiddenCodePoint, invisibleCodePoint, revealHidden, stripHidden } from "@lingxi/game";
