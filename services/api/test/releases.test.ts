@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
 import { RELEASE_NAME, listReleases, readPointer, releaseSource, writePointer } from "../src/releases";
-import { withSite } from "../src/server";
+import { SITE_CACHE_MAX, withSite } from "../src/server";
 
 const A = "20261119T050000Z-aaaaaaa";
 const B = "20261119T060000Z-bbbbbbb";
@@ -114,6 +114,19 @@ describe("serving releases (A10)", () => {
     mkdirSync(join(dir, "releases", "not-a-release"), { recursive: true });
     writeFileSync(join(dir, "releases", "20261119T070000Z-ccccccc"), "a file, not a folder");
     expect(listReleases(dir)).toEqual([B, A]);
+  });
+
+  it("keeps serving correctly past more releases than it remembers at once", async () => {
+    const names = Array.from({ length: SITE_CACHE_MAX + 6 }, (_, i) => `20261119T${String(100000 + i).slice(-6)}Z-${"c".repeat(7)}`);
+    const dir = site(Object.fromEntries(names.map((n, i) => [n, build(`r${i}`)])));
+    const app = withSite(new Hono(), releaseSource(dir));
+    for (const [i, name] of names.entries()) {
+      writePointer(dir, { release: name });
+      expect(await (await app.request("/")).text(), name).toContain(`Lingxi r${i}`);
+      expect((await app.request(`/assets/play-r${i}.js`)).status).toBe(200);
+      // and the first release's file, from the far end of the earlier ones
+      expect((await app.request("/assets/play-r0.js")).status).toBe(200);
+    }
   });
 
   it("names a release by when it was built and the commit it came from", () => {

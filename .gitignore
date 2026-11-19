@@ -9,7 +9,6 @@ cache/
 broadcast/
 .secrets/
 # the files of earlier site builds, kept for pages still open across a deploy (apps/web/keepAssets.ts)
-assets-kept/
 apps/web/site/
 # the end-to-end suite's runs: logs, scratch stores, traces and its report
 e2e/.run/

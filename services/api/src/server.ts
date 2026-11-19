@@ -218,6 +218,9 @@ function makeRelayer(): BrainRelayer | null {
 /** A Range in the only unit and syntax a file can answer: bytes, one or more N-M, N- or -N. */
 const BYTE_RANGES = /^bytes=(\d+-\d*|-\d+)(\s*,\s*(\d+-\d*|-\d+))*$/;
 
+/** How many folders' file servers, and pages' policies, the site keeps at once: releases come and go, memory stays bounded. */
+export const SITE_CACHE_MAX = 64;
+
 /** Where pages may load scripts from besides our own origin: Telegram's Mini App script and Cloudflare's analytics beacon. */
 const SCRIPT_HOSTS = ["https://telegram.org", "https://static.cloudflareinsights.com"];
 
@@ -255,6 +258,8 @@ export function withSite(app: Hono, site: string | SiteSource): Hono {
       // also come from blob: URLs, which only a script already running on the page can make (Pixi decodes images in one)
       const frames = path === "/play.html" ? "'self' https://web.telegram.org https://*.web.telegram.org" : "'self'";
       const csp = [`script-src 'self' 'wasm-unsafe-eval' ${[...SCRIPT_HOSTS, ...hashes].join(" ")}`, "worker-src 'self' blob:", "object-src 'none'", "base-uri 'self'", `frame-ancestors ${frames}`].join("; ");
+      // releases come and go: the memory of their pages' policies is bounded, and simply rebuilt when cleared
+      if (policies.size >= SITE_CACHE_MAX) policies.clear();
       policies.set(file, { mtimeMs, csp });
       return csp;
     } catch {
@@ -287,6 +292,7 @@ export function withSite(app: Hono, site: string | SiteSource): Hono {
     let s = servers.get(dir);
     if (!s) {
       s = serveStatic({ root: relative(process.cwd(), dir) || ".", rewriteRequestPath: (p) => (p === "/" ? "/index.html" : p) });
+      if (servers.size >= SITE_CACHE_MAX) servers.clear();
       servers.set(dir, s);
     }
     return s;
