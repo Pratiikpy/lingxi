@@ -1,0 +1,11 @@
+--- a/apps/web/src/play/PlayApp.tsx
++++ b/apps/web/src/play/PlayApp.tsx
+@@ -692,7 +692,7 @@ export function PlayApp() {
+           )}
+           {!talking && !circuit && <VoiceBubble />}
+           {/* the pet's "!" steps aside while the Decorate bar holds the top of the room (A14) */}
+-          {!talking && decorating === null && <PetQuestBubble />}
++          {!talking && <PetQuestBubble />}
+           {talking ? null : Object.keys(others).length > 0 ? <SocialBar count={Object.keys(others).length} /> : <ThinkStrip pet={pet} />}
+         </section>
+         <div className="side">

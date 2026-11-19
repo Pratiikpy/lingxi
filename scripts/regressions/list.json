@@ -658,5 +658,11 @@
     "row": "A13",
     "bug": "a wallet whose address refuses NFTs (an EIP-7702 delegation without a receiver) was told only that keeping the pet did not go through, though retrying can never work",
     "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/chain.test.ts", "name": "a wallet whose address refuses pets is told so before anything is signed, and nothing is kept (A13)" }
+  },
+  {
+    "id": "A14-decorate-uncovered",
+    "row": "A14",
+    "bug": "on a phone the pet's \"!\" covered the Decorate bar's hint",
+    "test": { "kind": "e2e", "spec": "e2e/specs/decorate.spec.ts", "title": "the Decorate bar is never covered (en, light, phone)" }
   }
 ]
