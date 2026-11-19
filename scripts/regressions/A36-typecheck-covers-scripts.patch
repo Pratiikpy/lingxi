@@ -1,0 +1,11 @@
+--- a/package.json
++++ b/package.json
+@@ -5,7 +5,7 @@
+   "scripts": {
+     "dev": "node scripts/dev.mjs",
+     "test": "pnpm -r test && vitest run --dir scripts",
+-    "typecheck": "pnpm -r typecheck && tsc -p scripts && tsc -p e2e",
++    "typecheck": "pnpm -r typecheck",
+     "judge:check": "tsx scripts/judge-check.mts",
+     "lint": "eslint .",
+     "status:check": "tsx scripts/status-check.mts",
