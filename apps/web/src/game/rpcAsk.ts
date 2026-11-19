@@ -31,6 +31,9 @@ export class RpcAnswerError extends Error {
   }
 }
 
+/** A list turned to start at item `n` (wrapping round): each request starts at the next public node (A29). */
+export const rotated = <T>(list: readonly T[], n: number): T[] => list.map((_, i) => list[(i + n) % list.length]!);
+
 const TIMEOUT_MS = 15_000;
 /** At most one request starting per host in this window, so a full check stays inside the public nodes' limits. */
 const GAP_MS = 45;

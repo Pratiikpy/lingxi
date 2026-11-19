@@ -11,7 +11,7 @@ import { type PublicClient, createPublicClient, custom } from "viem";
 import { create } from "zustand";
 import { xLayer } from "@lingxi/chain";
 import { API_RPC, NETWORK, OFFICIAL_RPCS, rpcs } from "./chain";
-import { type Endpoints, proofRequest } from "./rpcAsk";
+import { type Endpoints, proofRequest, rotated } from "./rpcAsk";
 
 export { type Answer, type Endpoints, RpcAnswerError, proofRequest } from "./rpcAsk";
 
@@ -55,8 +55,8 @@ export function endpoints(start = 0): Endpoints {
   const pub = NETWORK === "xlayer" ? OFFICIAL_RPCS : rpcs;
   const mine = useProofRpc.getState().mine;
   // the judge's own endpoint is asked once, first, even when it is one of the public ones
-  const rotated = pub.map((_, i) => pub[(i + start) % pub.length]!).filter((u) => !mine || new URL(u).host !== new URL(mine).host);
-  return { mine, publicRpcs: rotated, fallback: NETWORK === "xlayer" ? API_RPC : null };
+  const order = rotated(pub, start).filter((u) => !mine || new URL(u).host !== new URL(mine).host);
+  return { mine, publicRpcs: order, fallback: NETWORK === "xlayer" ? API_RPC : null };
 }
 
 /**
@@ -64,11 +64,16 @@ export function endpoints(start = 0): Endpoints {
  * tally hears them all.
  */
 export function proofClient(start = 0, onAnswer?: (host: string, fallback: boolean) => void): PublicClient {
+  // each request starts at the next public node, and reads made together go as one Multicall3 call, so a page asks the
+  // public nodes a few times instead of thirty, none of them takes the whole load, and a burst never meets a node's
+  // rate limit (whose reply carries no CORS headers, so the browser reports it as a blocked request) (A29)
+  let asked = start;
   return createPublicClient({
     chain: xLayer,
+    batch: { multicall: { wait: 16 } },
     transport: custom({
       async request({ method, params }) {
-        const a = await proofRequest(endpoints(start), { method, params });
+        const a = await proofRequest(endpoints(asked++), { method, params });
         useProofRpc.getState().answered(a.host, a.fallback);
         onAnswer?.(a.host, a.fallback);
         return a.result;

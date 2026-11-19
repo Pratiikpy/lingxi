@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { type Endpoints, proofRequest } from "./rpcAsk";
+import { type Endpoints, proofRequest, rotated } from "./rpcAsk";
 
 type Reply = { status: number; body?: unknown } | "network";
 /** A fetch that answers each URL from a script and records which URLs were asked. */
@@ -61,3 +61,13 @@ describe("the proof page's reads of X Layer", () => {
     await expect(proofRequest({ ...ends, fallback: null }, { method: "eth_blockNumber" }, { fetcher })).rejects.toThrow(/no endpoint answered/);
   });
 });
+
+describe("spreading a page's requests over the public nodes (A29)", () => {
+  it("starts each request at the next node, so no node takes the page's whole load", () => {
+    const nodes = ["https://a.example", "https://b.example"];
+    expect([0, 1, 2, 3].map((n) => rotated(nodes, n)[0])).toEqual(["https://a.example", "https://b.example", "https://a.example", "https://b.example"]);
+    expect(rotated(nodes, 1)).toEqual(["https://b.example", "https://a.example"]);
+    expect(rotated([], 3)).toEqual([]);
+  });
+});
+

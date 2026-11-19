@@ -49,8 +49,8 @@ export const explorerTx = (tx: string) => (NETWORK === "local" ? null : `https:/
 
 // VITE_RPC points a test build at a local fork of X Layer; production builds leave it unset
 // (an empty value counts as unset, as the on-chain build passes it)
-// X Layer's public RPCs. OKX's answers every browser request with CORS headers; rpc.xlayer.tech drops them
-// on its rate-limit replies, which the browser then reports as a blocked request, so it is the fallback.
+// X Layer's public RPCs. Both drop their CORS headers on a rate-limit reply, which the browser then reports as a
+// blocked request: to a burst of 80 at once, OKX's refused 1 and rpc.xlayer.tech 2 (2026-11-19). OKX's is listed first.
 export { OFFICIAL_RPCS };
 // With a server of our own (VITE_API_URL), the browser reads X Layer through it, same origin, so a public RPC's
 // rate-limit reply can never surface as a blocked request; the public RPCs stay behind it as fallbacks. The
