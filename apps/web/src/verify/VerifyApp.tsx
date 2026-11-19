@@ -548,6 +548,7 @@ export function VerifyApp() {
           <PetHistory
             id={pet.id.toString()}
             brainBits={pet.brainBits}
+            brainNow={pet.brainId.toString()}
             lang={lang}
             onOpen={(other) => {
               location.hash = other;

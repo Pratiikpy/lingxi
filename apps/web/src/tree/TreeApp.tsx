@@ -114,8 +114,8 @@ export function TreeApp() {
       <h1>{L("The tree of life", "生命之树")}</h1>
       <p className="ag-lede">
         {L(
-          "Every Lingxi pet ever hatched or bred on X Layer, as one family. Each little one's mind is woven from its two parents' circuits, so every pet here carries the lessons of the owners who raised its line. The tree is read from PetRegistry's events, which anyone can re-read.",
-          "每一只在 X Layer 上孵化或出生的灵犀宠物，组成同一个大家庭。小宝宝的心智由父母两块电路织成，所以这里的每只宠物都带着养大它这一脉的主人们教过的东西。这棵树读自 PetRegistry 的链上事件，任何人都能重新核对。",
+          "Every Lingxi pet ever hatched or bred on X Layer, as one family. Each little one is born with a mind woven from its two parents' circuits, carrying the lessons of the owners who raised its line; its parents stay on record even if its brain changes later. The tree is read from PetRegistry's events, which anyone can re-read.",
+          "每一只在 X Layer 上孵化或出生的灵犀宠物，组成同一个大家庭。小宝宝出生时，心智由父母两块电路织成，带着养大它这一脉的主人们教过的东西；即使它的大脑以后换了，父母也一直记录在链上。这棵树读自 PetRegistry 的链上事件，任何人都能重新核对。",
         )}
       </p>
 
