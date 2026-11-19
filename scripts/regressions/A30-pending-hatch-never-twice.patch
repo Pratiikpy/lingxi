@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/chain.ts
++++ b/apps/web/src/game/chain.ts
+@@ -422,7 +422,7 @@ export const useChain = create<ChainState>((set, get) => ({
+         return rec;
+       };
+       // a hatch sent before and not yet confirmed is asked about first, never sent again (A30)
+-      const sent = record ? null : (pending[petKey(pet)] ?? null);
++      const sent = null as PendingHatch | null;
+       if (sent) {
+         set({ busy: "hatching" });
+         const out = await hatchOutcome(publicClient, deployment, sent.tx, sent.owner as Hex);

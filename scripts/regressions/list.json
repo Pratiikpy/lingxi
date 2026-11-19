@@ -796,5 +796,11 @@
     "row": "A29",
     "bug": "every proof read started at the same public node, which took the page's whole load",
     "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/rpcAsk.test.ts", "name": "starts each request at the next node" }
+  },
+  {
+    "id": "A30-pending-hatch-never-twice",
+    "row": "A30",
+    "bug": "a hatch slow to confirm timed out with no record kept, and keeping again sent a second hatch",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/chain.test.ts", "name": "a hatch whose receipt does not come in time says so, and keeping again never sends a second (A30)" }
   }
 ]
