@@ -1,0 +1,10 @@
+--- a/services/api/src/relayer.ts
++++ b/services/api/src/relayer.ts
+@@ -377,7 +377,6 @@ export class BrainRelayer {
+     const calls = await this.mintCalls(nands, latches).catch(() => 0);
+     if (calls > 0) {
+       const f = await this.fees().catch(() => null);
+-      if (f && f.feeIn === "bem" && f.bem < f.protocolFee * BigInt(calls)) return { ok: false, reason: "budget", detail: "the relayer's BEM is too low for the transistor fee" };
+     }
+     // counted before anything is sent: a tape-out that reverts still spent gas
+     this.store.used += 1;

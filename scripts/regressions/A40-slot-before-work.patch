@@ -1,0 +1,10 @@
+--- a/services/api/src/server.ts
++++ b/services/api/src/server.ts
+@@ -172,6 +172,7 @@ export function createApp(
+       // the slot is taken before the tape-out, so a burst cannot pass a cap; it is given back when nothing was sent (A40)
+       const slot = quota.take(req.petId, gate.signer, await isSettled(req.petId).catch(() => false));
+       if (!slot.ok) return slot.reason === "busy" ? busy(c) : c.json({ ok: false, reason: slot.reason });
++      quota.refund(slot.ticket);
+       let result: RelayResult;
+       try {
+         result = await act(body);

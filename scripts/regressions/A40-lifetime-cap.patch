@@ -1,0 +1,10 @@
+--- a/services/api/src/relayGate.ts
++++ b/services/api/src/relayGate.ts
+@@ -143,7 +143,6 @@ export class RelayQuota {
+     const s = signer.toLowerCase();
+     const share = this.caps.newcomerShare ?? 1;
+     const life = this.lifetime.get(petId) ?? 0;
+-    if (this.caps.lifetime && life >= (settled ? this.caps.lifetime.settled : this.caps.lifetime.newcomer)) return { ok: false, reason: "lifetime" };
+     if ((this.perPet.get(petId) ?? 0) >= this.caps.perPetPerDay || (this.perSigner.get(s) ?? 0) >= this.caps.perSignerPerDay || this.hour.length >= this.caps.perHour) return { ok: false, reason: "busy" };
+     if (!settled) {
+       const hourNew = this.hour.filter((h) => !h.settled).length;

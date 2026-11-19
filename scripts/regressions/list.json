@@ -952,5 +952,29 @@
     "row": "A39",
     "bug": "the proof page called a genuine diary failed when the pet was not indexed yet",
     "test": { "kind": "e2e", "spec": "e2e/specs/diary.spec.ts", "title": "a kept pet's diary is published and its proof page reads it back, checked against the chain (en, light, phone)" }
+  },
+  {
+    "id": "A40-newcomers-share",
+    "row": "A40",
+    "bug": "fresh pets could take every sponsored tape-out of an hour",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/relayGate.test.ts", "name": "lets pets not yet settled draw only the newcomers' share of the hour and of the day" }
+  },
+  {
+    "id": "A40-lifetime-cap",
+    "row": "A40",
+    "bug": "one pet could draw sponsored tape-outs without end",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/relayGate.test.ts", "name": "sponsors a pet 3 tape-outs before it settles and 40 in its life" }
+  },
+  {
+    "id": "A40-slot-before-work",
+    "row": "A40",
+    "bug": "a burst of requests all passed the quota before any was counted",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/relayRoutes.test.ts", "name": "a burst of signed requests for one pet, all at once, passes only its daily cap" }
+  },
+  {
+    "id": "A40-relayer-bem",
+    "row": "A40",
+    "bug": "the relayer started a tape-out its BEM could not pay, spending gas before failing",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/relayGate.test.ts", "name": "refuses a tape-out whose transistor fee its BEM cannot pay, before anything is sent (A40)" }
   }
 ]
