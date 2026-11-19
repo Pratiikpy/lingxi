@@ -1,0 +1,9 @@
+--- a/apps/web/src/game/marketRetired.ts
++++ b/apps/web/src/game/marketRetired.ts
+@@ -29,5 +29,5 @@ export async function retiredOkbListings(fetchFn: typeof fetch = fetch): Promise
+  * retired it, and, when it cannot say, only the player's own, so they can still cancel it.
+  */
+ export function shownListings(listings: readonly OutfitListing[], retired: ReadonlySet<string> | null, who: string | null): OutfitListing[] {
+-  return listings.filter((l) => l.market !== 1 || (retired ? !retired.has(l.id.toString()) : !!who && l.seller.toLowerCase() === who.toLowerCase()));
++  return [...listings];
+ }

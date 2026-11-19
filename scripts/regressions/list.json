@@ -736,5 +736,17 @@
     "row": "A22",
     "bug": "a transaction mined and turned down said \"Nothing was charged\" though its network fee was spent",
     "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/chain.test.ts", "name": "a save X Layer mines and turns down is not counted, and says its fee was spent (A22)" }
+  },
+  {
+    "id": "A23-game-hides-retired-okb-listings",
+    "row": "A23",
+    "bug": "the game showed and sold an OKB-market listing that came back after a sale, at its old price",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/marketRetired.test.ts", "name": "are hidden; the others, and every BEM-market listing, are shown" }
+  },
+  {
+    "id": "A23-watch-names-retired-listings",
+    "row": "A23",
+    "bug": "nothing said which OKB-market listings a sale had retired, since V1 deletes a sold-out listing",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/marketV1.test.ts", "name": "a sale retires the seller's earlier listings of that design, and only those" }
   }
 ]

@@ -1,0 +1,10 @@
+--- a/services/api/src/marketV1.ts
++++ b/services/api/src/marketV1.ts
+@@ -38,7 +38,6 @@ export function retiredBy(events: readonly MarketEvent[]): Set<string> {
+     }
+     const sale = listed.get(id);
+     if (!sale) continue;
+-    for (const [other, l] of listed) if (other !== id && l.seller === sale.seller && l.design === sale.design) retired.add(other);
+   }
+   return retired;
+ }
