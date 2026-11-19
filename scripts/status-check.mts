@@ -16,7 +16,8 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createPublicClient, http, parseAbi, type Address, type Hex, hexToString } from "viem";
@@ -70,11 +71,19 @@ function tail(out: string): string {
   return out.trim().split(/\r?\n/).slice(-TAIL_LINES).map((l) => `          ${l}`).join("\n");
 }
 
+/** Where a failing step's whole output is kept, so a failure that does not come back can still be read. */
+const LOGS = join(tmpdir(), "lingxi-status-check");
+
 function step(group: string, name: string, cmd: string, cmdArgs: string[], cwd = root): void {
   const t = Date.now();
   const { ok, out } = run(cmd, cmdArgs, cwd);
   record(group, name, ok ? "PASS" : "FAIL", "", t);
-  if (!ok) console.log(tail(out));
+  if (ok) return;
+  console.log(tail(out));
+  mkdirSync(LOGS, { recursive: true });
+  const log = join(LOGS, `${new Date(t).toISOString().replace(/[:.]/g, "-")}-${name.replace(/[^a-z0-9]+/gi, "-")}.log`);
+  writeFileSync(log, out);
+  console.log(`          the whole output: ${log}`);
 }
 
 function wanted(group: string): boolean {
