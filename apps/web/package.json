@@ -18,6 +18,7 @@
     "@lingxi/brain": "workspace:*",
     "@lingxi/chain": "workspace:*",
     "@lingxi/game": "workspace:*",
+    "@lingxi/handheld": "workspace:*",
     "@lingxi/world": "workspace:*",
     "@pixi/gif": "3.0.1",
     "motion": "12.16.0",
@@ -25,8 +26,7 @@
     "react": "19.2.9",
     "react-dom": "19.2.9",
     "viem": "2.57.7",
-    "zustand": "5.0.5",
-    "@lingxi/handheld": "workspace:*"
+    "zustand": "5.0.5"
   },
   "devDependencies": {
     "@lingxi/api-schema": "workspace:*",
@@ -35,6 +35,7 @@
     "@vitejs/plugin-react": "4.5.2",
     "eslint": "9.17.0",
     "eslint-plugin-react-hooks": "7.1.1",
+    "happy-dom": "21.0.4",
     "typescript": "5.9.3",
     "typescript-eslint": "8.18.1",
     "vite": "6.3.5",
