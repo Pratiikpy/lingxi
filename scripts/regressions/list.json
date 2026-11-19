@@ -807,7 +807,7 @@
     "id": "A31-history-asks-again",
     "row": "A31",
     "bug": "a newborn's proof page said nothing was indexed and never asked again, so its parents and lineage never showed",
-    "test": { "kind": "e2e", "spec": "e2e/specs/birth-on-chain.spec.ts", "title": "a little one is born on chain from two players' grown pets (zh dark desktop proposes, en light phone agrees)" }
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/verify/askHistory.test.ts", "name": "asks again after the indexer's interval and shows the history once it is there" }
   },
   {
     "id": "A32-short-duel-links",

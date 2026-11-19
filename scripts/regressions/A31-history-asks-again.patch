@@ -1,11 +1,10 @@
---- a/apps/web/src/verify/History.tsx
-+++ b/apps/web/src/verify/History.tsx
-@@ -43,7 +43,7 @@ export function PetHistory({ id, brainBits, brainNow, lang, onOpen }: { id: stri
-           setRead({ id, h: j ?? "none" });
-           if (!j && left > 0) timer = setTimeout(() => void ask(left - 1), HISTORY_RETRY_MS);
-         });
--    void ask(HISTORY_RETRIES);
-+    void ask(0);
-     return () => {
-       live = false;
-       clearTimeout(timer);
+--- a/apps/web/src/verify/askHistory.ts
++++ b/apps/web/src/verify/askHistory.ts
+@@ -18,7 +18,6 @@ export function askHistory<H>(fetchOnce: () => Promise<H | null | undefined>, on
+       .then((h) => {
+         if (!live) return;
+         onRead(h ?? "none");
+-        if (!h && left > 0) timer = setTimeout(() => void ask(left - 1), every);
+       });
+   void ask(retries);
+   return () => {
