@@ -1,0 +1,13 @@
+--- a/apps/web/src/play/play.css
++++ b/apps/web/src/play/play.css
+@@ -891,10 +891,6 @@
+ /* A28: the card keeps its light paper in both looks, so everything inside reads from the light tokens (as the arena's
+    TapeFly panel does); it wraps to two rows (who, then what to do) and never grows past the room */
+ .visitor-card {
+-  --ink: var(--plum);
+-  --ink-soft: #5b4e73;
+-  --card: #fffdf8;
+-  --line: var(--plum);
+   position: absolute;
+   left: 50%;
+   bottom: 112px;

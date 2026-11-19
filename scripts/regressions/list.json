@@ -778,5 +778,11 @@
     "row": "A27",
     "bug": "a child kept only its parents' first 8 lessons in the game while its circuit on chain held all of them",
     "test": { "kind": "vitest", "dir": "packages/game", "file": "test/family.test.ts", "name": "a child inherits each parent's whole mind, as its circuit on chain does (A27)" }
+  },
+  {
+    "id": "A28-visitor-card-reads-in-dark",
+    "row": "A28",
+    "bug": "the visitor card's plain buttons were dark on dark in the dark look",
+    "test": { "kind": "e2e", "spec": "e2e/specs/tap-body.spec.ts", "title": "a friend beside the pet can be tapped, and the pet still can (zh, dark, desktop)" }
   }
 ]
