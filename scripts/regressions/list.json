@@ -646,5 +646,11 @@
     "row": "A11",
     "bug": "teaching in words checked a lesson against the stage's slots alone, so a pet whose skills and quest slot gave it room was told it was full",
     "test": { "kind": "vitest", "dir": "services/api", "file": "test/teachMind.test.ts", "name": "teaches an elder holding thirteen lessons, its skills and quest slot giving it room for a fourteenth" }
+  },
+  {
+    "id": "A12-unknown-hub-closed",
+    "row": "A12",
+    "bug": "the home panel called into whatever implementation the letters hub ran, so when the hub moved to code TapeKit had not approved its read reverted and every pet's home panel failed",
+    "test": { "kind": "vitest", "dir": "packages/chain", "file": "test/hubStatus.test.ts", "name": "are closed, as the hub's, when the hub runs an implementation TapeKit has not approved, and nothing of it is called" }
   }
 ]

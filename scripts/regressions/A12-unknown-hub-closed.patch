@@ -1,0 +1,10 @@
+--- a/packages/chain/src/home.ts
++++ b/packages/chain/src/home.ts
+@@ -228,7 +228,6 @@ export async function moveIntoHome(pub: PublicClient, wallet: WalletClient, proc
+ export async function lettersStatus(pub: PublicClient, processor: Address): Promise<"open" | "processor" | "hub"> {
+   const raw = await pub.getStorageAt({ address: HUB, slot: IMPL_SLOT });
+   const impl = `0x${(raw ?? "0x").slice(-40)}`.toLowerCase() as Address;
+-  if (!HUB_IMPLEMENTATIONS_XLAYER.includes(impl)) return "hub";
+   let pinned: Hex;
+   try {
+     pinned = (await pub.readContract({ address: impl, abi: parseAbi(["function circuitCodehash() view returns (bytes32)"]), functionName: "circuitCodehash" })) as Hex;
