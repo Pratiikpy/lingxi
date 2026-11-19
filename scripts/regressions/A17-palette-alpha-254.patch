@@ -1,0 +1,10 @@
+--- a/packages/chain/src/look.ts
++++ b/packages/chain/src/look.ts
+@@ -198,7 +198,6 @@ export function paletteBytes(pal: Partial<Record<Role, string>>): `0x${string}`
+     if (!/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(c)) throw new Error(`palette role ${role}: ${c} is not #rrggbb or #rrggbbaa`);
+     const full = c.length === 7 ? `${c.slice(1)}ff` : c.slice(1);
+     const rgba = [0, 1, 2, 3].map((k) => parseInt(full.slice(k * 2, k * 2 + 2), 16));
+-    if (rgba[3] === UNWRITABLE_ALPHA) throw new Error(`palette role ${role}: ${c} has alpha ${UNWRITABLE_ALPHA}, which PetLook writes as broken CSS`);
+     out.push(...rgba);
+   }
+   return hex(out);

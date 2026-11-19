@@ -682,5 +682,11 @@
     "row": "A16",
     "bug": "the game, like PetLook, let U+061C, U+17B4, U+180B and U+180F into a name it sent to the chain",
     "test": { "kind": "vitest", "dir": "packages/chain", "file": "test/names.test.ts", "name": "refuses, before anything is sent, a name that would pass for another" }
+  },
+  {
+    "id": "A17-palette-alpha-254",
+    "row": "A17",
+    "bug": "the art installer would send a colour with alpha 254, which PetLook writes as fill-opacity:.:0",
+    "test": { "kind": "vitest", "dir": "packages/chain", "file": "test/palette.test.ts", "name": "refuses alpha 254, naming the role and the colour" }
   }
 ]
