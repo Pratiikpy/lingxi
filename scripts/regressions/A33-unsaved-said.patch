@@ -1,0 +1,10 @@
+--- a/apps/web/src/play/Family.tsx
++++ b/apps/web/src/play/Family.tsx
+@@ -265,7 +265,6 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
+     replace({ ...pet, lastBredDay: today(pet) });
+     if (adopt(child)) play("success");
+     // born, but its first day is not on chain: say so and how to put it right before the dialog closes (A33)
+-    if (!firstDay) return setUnsaved(child.name);
+     clear();
+   };
+   const chainError = hatching !== "idle" && hatching !== "busy" ? hatching : null;

@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/chain.ts
++++ b/apps/web/src/game/chain.ts
+@@ -406,7 +406,7 @@ export const useChain = create<ChainState>((set, get) => ({
+       store(child, born);
+       const memory = unpackState(onChain.state, onChain.brainBits).brain;
+       set({ busy: "saving" });
+-      const firstDay = await saveFirstDay(wallet, born, { ...child, brain: memory });
++      const firstDay = false;
+       set({ busy: "idle", record: activeRecord() });
+       return { ok: true, memory, firstDay };
+     } catch (e) {

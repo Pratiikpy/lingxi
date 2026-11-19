@@ -1,0 +1,11 @@
+--- a/apps/web/src/verify/VerifyApp.tsx
++++ b/apps/web/src/verify/VerifyApp.tsx
+@@ -382,7 +382,7 @@ export function VerifyApp() {
+   const ok = rows.filter((r) => r.chain.next === r.local.next && r.chain.outputs === r.local.outputs).length;
+   const u = pet ? unpackState(pet.state, pet.brainBits) : null;
+   // a little one hatched by the Breeder and never saved: its state is only the memory the Breeder mixed (A33)
+-  const unsaved = !!pet && pet.day === 0 && (pet.parentA !== 0n || pet.parentB !== 0n);
++  const unsaved = false;
+   return (
+     <main className="verify">
+       <header className="v-head">

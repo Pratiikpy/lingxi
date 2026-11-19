@@ -832,5 +832,23 @@
     "row": "A32",
     "bug": "the server would have kept anything posted to it as a duel",
     "test": { "kind": "vitest", "dir": "services/api", "file": "test/duels.test.ts", "name": "refuses what is not a duel, and keeps nothing of it" }
+  },
+  {
+    "id": "A33-first-day-saved",
+    "row": "A33",
+    "bug": "a little one born on chain stayed an egg with every meter at 0 on X Layer until its owner happened to save a day",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/chain.test.ts", "name": "a newborn's first day is saved on chain right after its birth, as the baby it is" }
+  },
+  {
+    "id": "A33-unsaved-said",
+    "row": "A33",
+    "bug": "a little one whose first day did not save was welcomed silently, with no word that X Layer still showed an egg",
+    "test": { "kind": "e2e", "spec": "e2e/specs/birth-on-chain.spec.ts", "title": "a little one whose first day does not save is still born, and its player is told how to put it right (en light phone proposes, zh dark desktop agrees)" }
+  },
+  {
+    "id": "A33-proof-names-unsaved",
+    "row": "A33",
+    "bug": "the proof page showed an unsaved little one's zeros as its state",
+    "test": { "kind": "e2e", "spec": "e2e/specs/birth-on-chain.spec.ts", "title": "a little one whose first day does not save is still born, and its player is told how to put it right (en light phone proposes, zh dark desktop agrees)" }
   }
 ]
