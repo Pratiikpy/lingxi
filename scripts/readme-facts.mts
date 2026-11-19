@@ -26,12 +26,21 @@ const withTests = !process.argv.includes("--no-tests");
 /** Test packages, in the order the README lists them. */
 const PACKAGES = ["game", "world", "api", "api-schema", "brain", "handheld", "chain", "send", "web", "art"] as const;
 
+/** A suite's JSON result; a suite that wrote none did not run to its end (killed, out of memory), which is said as such. */
+function resultOf(out: string, suite: string, p: { status: number | null; stdout: string; stderr: string }): { numPassedTests: number; numFailedTests: number } {
+  try {
+    return JSON.parse(readFileSync(out, "utf8")) as { numPassedTests: number; numFailedTests: number };
+  } catch {
+    throw new Error(`${suite} gave no result (exit ${p.status}); it did not run to its end, so nothing is counted:\n${(p.stdout + p.stderr).slice(-2000)}`);
+  }
+}
+
 function vitestPassed(pkg: string): number {
   const dir = mkdtempSync(join(tmpdir(), "lingxi-facts-"));
   const out = join(dir, "r.json");
   try {
     const p = spawnSync(`pnpm --filter @lingxi/${pkg} exec vitest run --reporter=json "--outputFile=${out}"`, { cwd: root, encoding: "utf8", shell: true, maxBuffer: 256 * 1024 * 1024 });
-    const r = JSON.parse(readFileSync(out, "utf8")) as { numPassedTests: number; numFailedTests: number };
+    const r = resultOf(out, `@lingxi/${pkg}`, p);
     if (p.status !== 0 || r.numFailedTests > 0) throw new Error(`@lingxi/${pkg}: ${r.numFailedTests} tests fail; no count is written for a failing suite`);
     return r.numPassedTests;
   } finally {
@@ -52,7 +61,7 @@ function forkTestsPassed(): number {
   const out = join(dir, "r.json");
   try {
     const p = spawnSync(process.execPath, [join(root, "node_modules/tsx/dist/cli.mjs"), "scripts/fork-tests.mts", "--reporter=json", `--outputFile=${out}`], { cwd: root, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
-    const r = JSON.parse(readFileSync(out, "utf8")) as { numPassedTests: number; numFailedTests: number };
+    const r = resultOf(out, "the server's fork tests", p);
     if (p.status !== 0 || r.numFailedTests > 0) throw new Error(`the server's fork tests: ${r.numFailedTests} fail; no count is written for a failing suite`);
     return r.numPassedTests;
   } finally {
