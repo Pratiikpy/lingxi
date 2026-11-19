@@ -760,5 +760,17 @@
     "row": "A25",
     "bug": "a tap on a friend standing beside the player's pet patted the pet, whose transparent margin answered taps",
     "test": { "kind": "e2e", "spec": "e2e/specs/tap-body.spec.ts", "title": "a friend beside the pet can be tapped, and the pet still can (en, light, phone)" }
+  },
+  {
+    "id": "A26-room-takes-a-whole-card",
+    "row": "A26",
+    "bug": "the live room dropped a card with more than 8 lessons or over 10,000 characters, so friends sparred against an old card",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/live.test.ts", "name": "a card of the game's whole budget, with every lesson a pet can hold, reaches a friend who asks (A26)" }
+  },
+  {
+    "id": "A26-instinct-fits-the-card",
+    "row": "A26",
+    "bug": "a pet could learn an instinct too big for its card, which every other player then refused to read",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/store.test.ts", "name": "an owned circuit too big to travel with the pet's card is not taught (A26)" }
   }
 ]

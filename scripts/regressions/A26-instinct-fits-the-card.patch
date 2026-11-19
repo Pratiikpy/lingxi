@@ -1,0 +1,10 @@
+--- a/apps/web/src/game/store.ts
++++ b/apps/web/src/game/store.ts
+@@ -384,7 +384,6 @@ export const useGame = create<GameState>((set, get) => ({
+     if (!pet) return { ok: false, reason: "badCircuit" };
+     if (pet.away || pet.sitting) return { ok: false, reason: "notYours" };
+     // a circuit its card could not carry would leave friends, seasons and duels reading an old card (A26)
+-    if (!instinctFits(o.parts)) return { ok: false, reason: "tooLong" };
+     const inst = instinctBrain(o);
+     if (!inst) return { ok: false, reason: "badCircuit" };
+     const caught = catchUp(pet, gameNow(), brainOf(pet));
