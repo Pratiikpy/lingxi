@@ -1,0 +1,11 @@
+--- a/services/api/src/diaries.ts
++++ b/services/api/src/diaries.ts
+@@ -108,7 +108,7 @@ export function createDiaryStore(dir?: string, opts: { now?: () => number; total
+       if (joined.length !== log.words.length || joined.some((w, i) => w !== log.words[i])) return { ok: false, reason: "invalid" };
+       if (!chain) return { ok: false, reason: "unknown" };
+       const t = now();
+-      if (log.words.length > diaryMaxWords(chain.born, chain.at !== undefined ? chain.at * 1000 : t)) return { ok: false, reason: "tooLong" };
++      if (log.words.length > diaryMaxWords(chain.born, t)) return { ok: false, reason: "tooLong" };
+       if (chainAll(ZERO_HASH, log.words).toLowerCase() !== chain.logHash.toLowerCase()) return { ok: false, reason: "mismatch" };
+       const held = index.get(log.petId);
+       if (held && held.words > log.words.length) return { ok: false, reason: "older" };

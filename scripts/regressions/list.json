@@ -922,5 +922,35 @@
     "row": "A38",
     "bug": "every ask for a week's standings would have fought the whole season again",
     "test": { "kind": "vitest", "dir": "services/api", "file": "test/standings.test.ts", "name": "answers at once, pending, then with the standings once they are fought, fighting each set of entries once" }
+  },
+  {
+    "id": "A39-diary-no-longer-than-lived",
+    "row": "A39",
+    "bug": "a pet hatched minutes ago could put a 100,000-word diary on the shelf",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/diaries.test.ts", "name": "refuses a log longer than its pet has lived on chain, and takes one as long" }
+  },
+  {
+    "id": "A39-diary-per-address",
+    "row": "A39",
+    "bug": "one address could fill the diary shelf",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/diaries.test.ts", "name": "an address may publish only so much a day, counting only what a republish adds" }
+  },
+  {
+    "id": "A39-diary-shelf-full",
+    "row": "A39",
+    "bug": "the diary shelf grew without bound",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/diaries.test.ts", "name": "refuses a new diary when the shelf is full, and keeps every diary it had" }
+  },
+  {
+    "id": "A39-diary-age-on-chain-clock",
+    "row": "A39",
+    "bug": "a chain behind the server's clock made a new pet look old enough for a long diary",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/diaries.test.ts", "name": "takes the pet's age on the chain's clock, not this server's: a chain running a day behind does not age the pet" }
+  },
+  {
+    "id": "A39-diary-waits-for-indexer",
+    "row": "A39",
+    "bug": "the proof page called a genuine diary failed when the pet was not indexed yet",
+    "test": { "kind": "e2e", "spec": "e2e/specs/diary.spec.ts", "title": "a kept pet's diary is published and its proof page reads it back, checked against the chain (en, light, phone)" }
   }
 ]

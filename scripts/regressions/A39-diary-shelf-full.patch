@@ -1,0 +1,10 @@
+--- a/services/api/src/diaries.ts
++++ b/services/api/src/diaries.ts
+@@ -118,7 +118,6 @@ export function createDiaryStore(dir?: string, opts: { now?: () => number; total
+       const mine = spent.get(from);
+       const today = mine?.day === day ? mine.bytes : 0;
+       if (today + grows > perAddress) return { ok: false, reason: "busy" };
+-      if (total + grows > totalBytes) return { ok: false, reason: "full" };
+       if (dir) {
+         writeFileSync(`${file(log.petId)}.tmp`, body);
+         renameSync(`${file(log.petId)}.tmp`, file(log.petId));

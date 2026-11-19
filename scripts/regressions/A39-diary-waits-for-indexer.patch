@@ -1,0 +1,10 @@
+--- a/apps/web/src/verify/VerifyApp.tsx
++++ b/apps/web/src/verify/VerifyApp.tsx
+@@ -402,7 +402,6 @@ export function VerifyApp() {
+         said("checking");
+         // a pet kept a moment ago is not indexed yet, and its diary cannot be anchored until its hatching is: wait for
+         // it, saying so, rather than call a genuine diary failed (A39)
+-        if (!(await hatchIndexed(petId.toString(), () => live, () => said("waiting")))) return said("unindexed");
+         if (!live) return;
+         said("checking");
+         const stretches = await replayPublished(r.log);
