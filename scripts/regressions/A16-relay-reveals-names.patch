@@ -1,0 +1,11 @@
+--- a/services/api/src/live.ts
++++ b/services/api/src/live.ts
+@@ -233,7 +233,7 @@ export class LiveRooms {
+         // only the device holding the key behind this id may be it
+         if (!/^[a-z0-9]{6,32}$/.test(id) || !this.decor.authorise(id, m.key)) return this.send(c, { t: "refused", reason: "id" });
+         // a hidden character is shown, so no pet in the room can pass for another (A16)
+-        const name = shownName(m.name, NAME_MAX) || "Pet";
++        const name = clean(m.name, NAME_MAX) || "Pet";
+         c.member = {
+           id,
+           name: BLOCKED.test(name) ? "Pet" : name,

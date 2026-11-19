@@ -670,5 +670,17 @@
     "row": "A15",
     "bug": "on a phone the quest toast, the pet's line and the rules mark piled on each other and on the room's top row",
     "test": { "kind": "e2e", "spec": "e2e/specs/notices.spec.ts", "title": "the room's notices stack, clear of its buttons (en, light, phone)" }
+  },
+  {
+    "id": "A16-relay-reveals-names",
+    "row": "A16",
+    "bug": "the live room relayed \"Mochi\" plus an invisible mark as sent, so a visitor could pass for another pet",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/live.test.ts", "name": "a name with a character that shows as nothing reaches the room with it shown, never as another pet's name (A16)" }
+  },
+  {
+    "id": "A16-refuse-default-ignorables",
+    "row": "A16",
+    "bug": "the game, like PetLook, let U+061C, U+17B4, U+180B and U+180F into a name it sent to the chain",
+    "test": { "kind": "vitest", "dir": "packages/chain", "file": "test/names.test.ts", "name": "refuses, before anything is sent, a name that would pass for another" }
   }
 ]
