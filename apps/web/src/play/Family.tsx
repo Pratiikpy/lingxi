@@ -168,6 +168,9 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
   const replace = useGame((s) => s.replace);
   const [name, setName] = useState("");
   const [hatching, setHatching] = useState<"idle" | "busy" | string>("idle");
+  // a little one born on chain whose first day did not save there: its name, while the player is told (A33)
+  const [unsaved, setUnsaved] = useState<string | null>(null);
+  const chainBusy = useChain((s) => s.busy);
   // the BEM breeder's fee, read once; null on the free breeder or before it is read
   const [fee, setFee] = useState<bigint | null>(null);
   useEffect(() => {
@@ -193,6 +196,30 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
     }
   }, [answer, petName, petLine, lessons, instincts, growth, petFamily, bornAt]);
   if (!answer) return null;
+  if (unsaved) {
+    return (
+      <div className="fam-modal" role="dialog" aria-label={lang === "zh" ? "新生的小宝宝" : "A newborn"}>
+        <div className="fam-card">
+          <h3>{lang === "zh" ? `${unsaved}在 X Layer 上出生了` : `${unsaved} was born on X Layer`}</h3>
+          <p className="small fam-unsaved">
+            {lang === "zh"
+              ? `只是它的第一天还没存到链上，所以链上暂时把它显示成一颗蛋，各项数值都是 0。打开${unsaved}的「宠物」页，点「把今天存上链」就好。`
+              : `Its first day isn't saved there yet, so for now X Layer shows it as an egg with every meter at 0. Open ${unsaved}'s Pet tab and press "Save today on chain" to put that right.`}
+          </p>
+          <button
+            type="button"
+            className="btn primary"
+            onClick={() => {
+              setUnsaved(null);
+              clear();
+            }}
+          >
+            {lang === "zh" ? "好的" : "OK"}
+          </button>
+        </div>
+      </div>
+    );
+  }
   if (!answer.yes || !family) {
     return (
       <div className="fam-modal" role="dialog">
@@ -226,15 +253,19 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
     const brain = mindBrain({ line: a.line, lessons: [], family });
     const born = createPet({ name: name.trim().slice(0, 12) || (lang === "zh" ? "小宝" : "Bean"), line: a.line, now: now(), tzOffsetMin: -new Date(now()).getTimezoneOffset(), brain });
     let child: Pet = { ...born, family, brain: childMemory(brain.nState, pet.brain, parseCard(answer.card ?? "")?.memory) };
+    let firstDay = true;
     if (canChain && !offChain) {
       setHatching("busy");
       const r = await useChain.getState().breed(pet, partnerChain!, child);
       if (!r.ok) return setHatching(r.reason);
       // the chain mixed the parents' memories from their last checkpoints; the chain's version wins
       if (r.memory.length === brain.nState) child = { ...child, brain: r.memory };
+      firstDay = r.firstDay;
     }
     replace({ ...pet, lastBredDay: today(pet) });
     if (adopt(child)) play("success");
+    // born, but its first day is not on chain: say so and how to put it right before the dialog closes (A33)
+    if (!firstDay) return setUnsaved(child.name);
     clear();
   };
   const chainError = hatching !== "idle" && hatching !== "busy" ? hatching : null;
@@ -262,7 +293,9 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
         </label>
         {canChain && !chainError && (
           <p className="small">
-            {lang === "zh" ? "它会在链上出生：先刻好它的电路，再由繁育合约核对父母并孵化。" : "It will be born on chain: its circuit is taped out, then the Breeder checks both parents and hatches it."}
+            {lang === "zh"
+              ? "它会在链上出生：先刻好它的电路，再由繁育合约核对父母并孵化。出生后钱包会再请你签一次，把它的第一天存上链，这样链上显示的就是它本来的样子，而不是一颗蛋。"
+              : "It will be born on chain: its circuit is taped out, then the Breeder checks both parents and hatches it. Then your wallet asks once more, to save its first day there, so X Layer shows it as itself rather than an egg."}
             {fee !== null &&
               (lang === "zh"
                 ? ` 链上出生要 ${formatBem(fee)} BEM，这笔钱会被销毁；钱包可能先请你允许取用正好这么多。`
@@ -312,7 +345,7 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
         )}
         <div className="row">
           <button type="button" className="btn primary" disabled={hatching === "busy"} onClick={() => void welcome()}>
-            {hatching === "busy" ? (lang === "zh" ? "正在链上出生……" : "Being born on chain…") : chainError ? (lang === "zh" ? "再试一次" : "Try again") : lang === "zh" ? "欢迎回家" : "Welcome home"}
+            {hatching === "busy" ? (chainBusy === "saving" ? (lang === "zh" ? "正在保存它的第一天……" : "Saving its first day…") : lang === "zh" ? "正在链上出生……" : "Being born on chain…") : chainError ? (lang === "zh" ? "再试一次" : "Try again") : lang === "zh" ? "欢迎回家" : "Welcome home"}
           </button>
           {chainError && (
             <button type="button" className="btn" onClick={() => void welcome(true)}>

@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { type Abi, type Address, type Hex, erc20Abi, parseAbi } from "viem";
 import { FACTORY, breederV2Abi, petRegistryAbi, processorAbi, transistorsAbi } from "@lingxi/chain";
-import { type Pet, createPet, familyOf, mindBrain } from "@lingxi/game";
+import { type Pet, createPet, familyOf, mindBrain, packState, unpackState } from "@lingxi/game";
 import xlayer from "../../../../packages/chain/deployments/xlayer.json";
 import { type Key, translate } from "../i18n";
 import { type Net, type Storage, json, leave, reload, settle, visit } from "./testGame";
@@ -881,13 +881,53 @@ describe("the chain store: a family on chain", () => {
     const partner = partnerOnChain(p);
     const child = childOf(p.pet());
     const r = await settle(p.c().breed(p.pet(), partner, child));
-    expect(r).toEqual({ ok: true, memory: [1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0] });
+    expect(r).toEqual({ ok: true, memory: [1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0], firstDay: true });
     expect(p.relayed.map((x) => x.path)).toEqual(["/api/tapeout-child"]);
     expect(JSON.parse(p.relayed[0]!.body.payload)).toEqual({ parents: [xlayer.circuits.gentle.id, "2"] });
     expect(mined(p, "approve")).toHaveLength(1);
     expect(mined(p, "breed")).toEqual([expect.objectContaining({ args: [41n, 90n, PROCESSOR, 77n, 0, OKB] })]);
     expect(p.chain.recordOf(child)).toMatchObject({ petId: "42", owner: OWNER, brainKey: "[]", brains: { "[]": "77" } });
     expect(p.x.bemHeld.get(lower(OWNER))).toBe(99n * OKB);
+  });
+
+  // A33: the Breeder records only the child's mixed memory, so until a day is saved X Layer reads it as an egg with every
+  // meter at 0; its first day is saved at once, from the same wallet, with the memory the chain mixed
+  it("a newborn's first day is saved on chain right after its birth, as the baby it is", async () => {
+    const p = await open();
+    await kept(p);
+    const child = childOf(p.pet());
+    const r = await settle(p.c().breed(p.pet(), partnerOnChain(p), child));
+    expect(r).toEqual({ ok: true, memory: [1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0], firstDay: true });
+    const saved = mined(p, "checkpoint");
+    expect(saved).toHaveLength(1);
+    const [id, day, state] = saved[0]!.args as [bigint, number, bigint];
+    expect([id, day]).toEqual([42n, 1]);
+    const u = unpackState(state, 12);
+    expect(u.stage, "a baby, not an egg").toBe("baby");
+    expect(u.line).toBe("gentle");
+    expect(u.brain, "with the memory the chain mixed").toEqual([1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    expect(u.meters, "and its own meters, not zeros").toEqual(unpackState(packState(child, "baby"), 12).meters);
+    expect(Object.values(u.meters).every((m) => m > 0)).toBe(true);
+    expect(p.x.pets.get(42n)).toMatchObject({ day: 1, state });
+    expect(p.chain.recordOf(child)).toMatchObject({ petId: "42", lastDay: 1 });
+    expect(p.c()).toMatchObject({ busy: "idle", error: null });
+  });
+
+  it("a first day that is not saved leaves the birth standing, said so, for the Save button to finish", async () => {
+    const p = await open();
+    await kept(p);
+    const child = childOf(p.pet());
+    p.x.rules.revertMined = "checkpoint";
+    const r = await settle(p.c().breed(p.pet(), partnerOnChain(p), child));
+    expect(r).toEqual({ ok: true, memory: [1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0], firstDay: false });
+    expect(mined(p, "breed")).toHaveLength(1);
+    expect(p.chain.recordOf(child)).toMatchObject({ petId: "42", lastDay: 0 });
+    expect(p.c()).toMatchObject({ busy: "idle" });
+    // the Save button finishes it later, as day 1
+    p.x.rules.revertMined = null;
+    await settle(p.c().saveToday({ ...child, brain: r.ok ? r.memory : child.brain }, () => undefined));
+    expect(p.x.pets.get(42n)).toMatchObject({ day: 1 });
+    expect(p.chain.recordOf(child)).toMatchObject({ lastDay: 1 });
   });
 
   it("a pet not on chain cannot have a child there", async () => {

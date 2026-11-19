@@ -6,13 +6,17 @@
  *
  * Growing the pets takes days of game time, which a test cannot wait for: each pet's hatch time is moved back 9 days in
  * its own save, and the two are given the bond three meetings a day would build; everything on chain is done for real.
+ *
+ * A33: the Breeder records only the little one's mixed memory, so its first day is saved right after the birth; when
+ * that save does not happen the birth stands, the player is told, and the Save button puts it right.
  */
-import { parseAbi } from "viem";
+import { parseAbi, toFunctionSelector } from "viem";
 import { type Page } from "@playwright/test";
 import { dismiss, expect, sheet, test } from "../fixtures";
 import { keepOnChain, stored, walletOf } from "../helpers/browser";
 import { forkOf } from "../helpers/chain";
 import { spotFor, tapScene } from "../helpers/room";
+import { unpackState } from "../../packages/game/src/pack";
 
 const DAY = 86_400_000;
 const REGISTRY = parseAbi([
@@ -58,10 +62,16 @@ async function grownAndBonded(page: Page, days: number, friend: { id: string; na
   await dismiss(page);
 }
 
-test("a little one is born on chain from two players' grown pets (zh dark desktop proposes, en light phone agrees)", async ({ player, run }) => {
-  test.setTimeout(900_000);
-  const a = await player({ lang: "zh", scheme: "dark", size: "desktop", reducedMotion: true });
-  const b = await player({ lang: "en", scheme: "light", size: "phone", wallet: 1 });
+type Fixtures = Parameters<Parameters<typeof test>[2]>[0];
+type Look = Parameters<Fixtures["player"]>[0];
+
+/**
+ * Two players, each with a grown pet kept on X Layer by its own wallet, the pets knowing each other well: B visits A,
+ * A asks for a family from B's card, and B's game shows the proposal checked on X Layer. Returns before B says yes.
+ */
+async function familyOnChain(player: Fixtures["player"], run: Fixtures["run"], looks: { a: Look; b: Look }, words: { family: string; yes: string }) {
+  const a = await player(looks.a);
+  const b = await player(looks.b);
   const fork = await forkOf(run);
 
   await hatchEgg(a.page, a.web, 0, "Mochi");
@@ -90,14 +100,29 @@ test("a little one is born on chain from two players' grown pets (zh dark deskto
     await a.page.waitForTimeout(400);
   }
   await expect(card, "Tofu is picked in Mochi's room").toBeVisible();
-  await card.getByRole("button", { name: "家人" }).click();
+  await card.getByRole("button", { name: words.family }).click();
 
-  // Tofu's player sees the proposal checked on X Layer, says yes and signs one consent
+  // Tofu's player sees the proposal checked on X Layer before Yes can be pressed
   const ask = b.page.locator(".fam-modal");
   await ask.waitFor({ timeout: 30_000 });
   await expect(ask, "the proposal says what of Tofu goes into the little one").toContainText("Tofu");
-  const yes = ask.getByRole("button", { name: "Yes" });
+  const yes = ask.getByRole("button", { name: words.yes });
   await expect(yes, "the proposal is checked on X Layer before Yes can be pressed").toBeEnabled({ timeout: 60_000 });
+  return { a, b, fork, petA, petB, ask, yes };
+}
+
+/** The little one's id: the chain record on A's device that is neither parent's. */
+async function childOf(page: Page, parents: string[]): Promise<string> {
+  const records = JSON.parse((await stored(page, "lingxi.chain.v2"))!) as Record<string, { petId: string }>;
+  return Object.values(records).map((r) => r.petId).find((id) => !parents.includes(id))!;
+}
+
+/** The registry's record of a pet. */
+const petOnChain = (fork: Awaited<ReturnType<typeof forkOf>>, id: string) => fork.pub.readContract({ address: fork.d.registry, abi: REGISTRY, functionName: "pet", args: [BigInt(id)] });
+
+test("a little one is born on chain from two players' grown pets (zh dark desktop proposes, en light phone agrees)", async ({ player, run }) => {
+  test.setTimeout(900_000);
+  const { a, b, fork, petA, petB, ask, yes } = await familyOnChain(player, run, { a: { lang: "zh", scheme: "dark", size: "desktop", reducedMotion: true }, b: { lang: "en", scheme: "light", size: "phone", wallet: 1 } }, { family: "家人", yes: "Yes" });
   await b.page.screenshot({ path: test.info().outputPath("birth-proposal-en-light-phone.png") });
   await yes.click();
   await expect(ask).toHaveCount(0, { timeout: 120_000 });
@@ -120,15 +145,91 @@ test("a little one is born on chain from two players' grown pets (zh dark deskto
   await fork.pub.request({ method: "evm_mine" as never, params: [] as never });
   await born.getByRole("button", { name: "再试一次" }).click();
   await expect(born).toHaveCount(0, { timeout: 240_000 });
-  const records = JSON.parse((await stored(a.page, "lingxi.chain.v2"))!) as Record<string, { petId: string }>;
-  const child = Object.values(records).map((r) => r.petId).find((id) => id !== petA && id !== petB)!;
+  const child = await childOf(a.page, [petA, petB]);
   expect(child, "the little one has its own record").toBeTruthy();
   expect(await fork.bemOf(walletOf(run, a)), "the fee was paid in BEM").toBeLessThan(bemBefore);
-  const onChain = await fork.pub.readContract({ address: fork.d.registry, abi: REGISTRY, functionName: "pet", args: [BigInt(child)] });
+  const onChain = await petOnChain(fork, child);
   expect([onChain.parentA.toString(), onChain.parentB.toString()].sort(), "its parents on chain are Mochi and Tofu").toEqual([petA, petB].sort());
 
-  // its proof page names its parents and says its brain is still the one checked at birth (A24)
+  // its first day was saved right after the birth: X Layer holds the baby it is, not an egg of zeros (A33)
+  expect(onChain.day, "its first day is saved").toBe(1);
+  const state = unpackState(onChain.state, onChain.brainBits);
+  expect(state.stage, "a baby on chain, not an egg").toBe("baby");
+  expect(state.line, "of its own line").toBe("gentle");
+  expect(Object.values(state.meters).every((m) => m > 0), "with its own meters").toBe(true);
+
+  // its proof page names its parents, says its brain is still the one checked at birth (A24), and shows its state
   await a.page.goto(`${a.web}/verify.html#${child}`);
   await expect(a.page.locator(".v-lineage"), "the proof page says its brain is still the circuit checked at birth").toContainText("它现在的大脑仍是那块电路", { timeout: 120_000 });
+  await expect(a.page.locator(".v-unsaved"), "a saved little one is not called unsaved").toHaveCount(0);
   await a.page.screenshot({ path: test.info().outputPath("birth-proof-zh-dark-desktop.png"), fullPage: true });
+});
+
+test("a little one whose first day does not save is still born, and its player is told how to put it right (en light phone proposes, zh dark desktop agrees)", async ({ player, run }) => {
+  test.setTimeout(900_000);
+  const { a, fork, petA, petB, ask, yes } = await familyOnChain(player, run, { a: { lang: "en", scheme: "light", size: "phone" }, b: { lang: "zh", scheme: "dark", size: "desktop", wallet: 1 } }, { family: "Family", yes: "好呀" });
+  await yes.click();
+  await expect(ask).toHaveCount(0, { timeout: 120_000 });
+
+  // the pets have lived on X Layer for longer than the Breeder's 7 days
+  await fork.pub.request({ method: "evm_increaseTime" as never, params: [8 * 86_400] as never });
+  await fork.pub.request({ method: "evm_mine" as never, params: [] as never });
+  const born = a.page.locator(".fam-modal", { hasText: "A little one is born!" });
+  await born.waitFor({ timeout: 60_000 });
+  await expect(born, "the second signature is said before Welcome is pressed").toContainText("Then your wallet asks once more, to save its first day there");
+  await born.locator(".fam-name input").fill("Bean");
+
+  // the first day's save is lost on its way to X Layer (only that transaction: the birth goes through)
+  const save = toFunctionSelector("checkpoint(uint256,uint32,uint256,bytes32)").slice(2);
+  await a.page.route(
+    (u) => u.href.startsWith(run.fork.rpc),
+    async (route) => {
+      const sent = JSON.parse(route.request().postData() ?? "null") as unknown;
+      const calls = (Array.isArray(sent) ? sent : [sent]) as Array<{ id?: number; method?: string; params?: unknown[] } | null>;
+      if (!calls.some((c) => c?.method === "eth_sendRawTransaction" && String(c.params?.[0] ?? "").toLowerCase().includes(save))) return route.continue();
+      const refused = calls.map((c) => ({ jsonrpc: "2.0", id: c?.id ?? null, error: { code: -32000, message: "lost on its way (the test)" } }));
+      return route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(Array.isArray(sent) ? refused : refused[0]) });
+    },
+  );
+  await born.getByRole("button", { name: "Welcome home" }).click();
+  const told = a.page.locator(".fam-unsaved");
+  await expect(told, "the player is told its first day is not on chain, and how to put it right").toContainText("Its first day isn't saved there yet", { timeout: 240_000 });
+  await expect(told).toContainText('press "Save today on chain"');
+  await a.page.screenshot({ path: test.info().outputPath("birth-unsaved-en-light-phone.png") });
+  // the same words in Chinese (the language button sits under the dialog's scrim, so it is pressed directly)
+  const language = a.page.locator("button.round-btn[lang]");
+  await language.dispatchEvent("click");
+  await expect(told).toContainText("只是它的第一天还没存到链上");
+  await expect(told).toContainText("点「把今天存上链」");
+  await a.page.screenshot({ path: test.info().outputPath("birth-unsaved-zh-light-phone.png") });
+  await language.dispatchEvent("click");
+  await expect(told).toContainText("Its first day isn't saved there yet");
+  const child = await childOf(a.page, [petA, petB]);
+  expect((await petOnChain(fork, child)).day, "born, its first day not saved").toBe(0);
+  await a.page.locator(".fam-modal").getByRole("button", { name: "OK" }).click();
+  await a.page.unrouteAll({ behavior: "wait" });
+
+  // its proof page says so, and does not show the egg's zeros as its state
+  await a.page.goto(`${a.web}/verify.html#${child}`);
+  await expect(a.page.locator(".v-unsaved"), "the proof page names a little one never saved").toContainText(`Born on X Layer from #${petA} and #${petB}, and its first day is not saved yet`, { timeout: 120_000 });
+  await expect(a.page.locator(".v-picture img"), "PetLook's picture, an egg until a day is saved").toBeVisible({ timeout: 60_000 });
+  await expect(a.page.locator(".v-picture img")).toHaveJSProperty("complete", true);
+  await a.page.screenshot({ path: test.info().outputPath("birth-proof-unsaved-en-light-phone.png"), fullPage: true });
+  await a.page.locator(".v-lang").click();
+  await expect(a.page.locator(".v-unsaved")).toContainText(`由 #${petA} 和 #${petB} 在 X Layer 上生下，它的第一天还没保存`);
+  await a.page.screenshot({ path: test.info().outputPath("birth-proof-unsaved-zh-light-phone.png") });
+  await a.page.locator(".v-lang").click();
+
+  // the Save button puts it right
+  await a.page.goto(`${a.web}/play.html`);
+  await a.page.locator(".stage").waitFor();
+  await dismiss(a.page);
+  await sheet(a.page, "me");
+  await a.page.getByRole("button", { name: "Save today on chain" }).click();
+  await expect.poll(async () => (await petOnChain(fork, child)).day, { timeout: 240_000, message: "the Save button saves its first day" }).toBe(1);
+  const after = await petOnChain(fork, child);
+  expect(unpackState(after.state, after.brainBits).stage).toBe("baby");
+  await a.page.goto(`${a.web}/verify.html#${child}`);
+  await expect(a.page.locator(".v-lineage")).toBeVisible({ timeout: 120_000 });
+  await expect(a.page.locator(".v-unsaved"), "saved now, so no longer called unsaved").toHaveCount(0);
 });

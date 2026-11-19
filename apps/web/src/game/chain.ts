@@ -275,8 +275,11 @@ interface ChainState {
   infoOf: (pet: Pet) => ChainInfo | null;
   /** the partner's owner allows the proposer's owner to raise a child with this pet */
   allow: (pet: Pet, partnerOwner: string) => Promise<boolean>;
-  /** hatch the newborn through the Breeder; returns the child's memory as the chain mixed it */
-  breed: (parent: Pet, partner: ChainInfo, child: Pet) => Promise<{ ok: true; memory: number[] } | { ok: false; reason: string }>;
+  /**
+   * hatch the newborn through the Breeder, then save its first day; returns the child's memory as the chain mixed it,
+   * and whether its first day was saved (A33)
+   */
+  breed: (parent: Pet, partner: ChainInfo, child: Pet) => Promise<{ ok: true; memory: number[]; firstDay: boolean } | { ok: false; reason: string }>;
 }
 
 /**
@@ -323,6 +326,25 @@ async function autoWallet(pet: Pet, record: ChainRecord): Promise<WalletClient |
 /** Whether the auto-save key is running low on gas. */
 export async function autoGasLow(): Promise<boolean> {
   return (await publicClient.getBalance({ address: sessionAccount().address })) < AUTO_LOW;
+}
+
+/**
+ * A33: the Breeder records only a newborn's mixed memory, so until a day is saved X Layer reads it as an egg with every
+ * meter at 0 (PetLook's picture, its metadata, its proof page). Its first day is saved at once, from the wallet that
+ * owns it, with the memory the chain mixed and the newborn's own stage and meters. Returns whether it was saved; when it
+ * was not (refused in the wallet, refused on chain, the network), the birth stands and the Save button saves day 1.
+ */
+async function saveFirstDay(wallet: WalletClient, record: ChainRecord, pet: Pet): Promise<boolean> {
+  if (!deployment) return false;
+  try {
+    // counted the way PetRegistry counts days: from block time
+    const day = chainDay(record, Number((await publicClient.getBlock()).timestamp) * 1000);
+    const tx = await checkpointOnChain(publicClient, wallet, deployment, BigInt(record.petId), day, packState(pet, stageOf(pet, gameNow())), pet.logHash as Hex);
+    store(pet, { ...record, lastDay: day, lastTx: tx, logLen: pet.pendingLog.length });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export const useChain = create<ChainState>((set, get) => ({
@@ -372,7 +394,7 @@ export const useChain = create<ChainState>((set, get) => ({
       set({ busy: "hatching" });
       const { childId, tx } = await breedOnChain(publicClient, wallet, deployment, BigInt(r.petId), BigInt(partner.petId), deployment.processor, BigInt(relayed.brainId), LINES.indexOf(child.line));
       const onChain = await readPet(publicClient, deployment, childId);
-      store(child, {
+      const born: ChainRecord = {
         petId: childId.toString(),
         hatchTx: tx,
         lastDay: 0,
@@ -380,9 +402,13 @@ export const useChain = create<ChainState>((set, get) => ({
         bornChain: onChain.born,
         brains: { [mindKey([])]: relayed.brainId },
         brainKey: mindKey([]),
-      });
+      };
+      store(child, born);
+      const memory = unpackState(onChain.state, onChain.brainBits).brain;
+      set({ busy: "saving" });
+      const firstDay = await saveFirstDay(wallet, born, { ...child, brain: memory });
       set({ busy: "idle", record: activeRecord() });
-      return { ok: true, memory: unpackState(onChain.state, onChain.brainBits).brain };
+      return { ok: true, memory, firstDay };
     } catch (e) {
       const msg = firstLine(e);
       set({ busy: "idle", error: msg });

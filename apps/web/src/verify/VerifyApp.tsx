@@ -70,6 +70,7 @@ const T = {
     pictureNote: "PetLook draws this from the pet's saved state: its stage, its mood and whether its circuit glows. This page only shows what the chain returns.",
     pictureSame: "Pixel for pixel the game's own art for this state.",
     pictureDiff: "This picture differs from the game's art for this state.",
+    unsaved: "Born on X Layer from #{a} and #{b}, and its first day is not saved yet: the chain holds only the memory the Breeder mixed for it, so until its owner saves a day PetLook draws an egg and every meter reads 0. Those zeros are not its state.",
     lineMismatch: "PetRegistry records this pet as the {recorded} line, but its saved state is a {state} pet's, and that is what it is drawn and thinks as. It was hatched that way; the game can no longer write such a pet, and the checks below are unaffected.",
     lines: ["gentle", "bold", "curious"],
     named: "Name on chain",
@@ -112,6 +113,7 @@ const T = {
     pictureNote: "PetLook 根据宠物保存的状态画出这张图：成长阶段、心情，以及电路有没有亮。本页只是显示链上返回的结果。",
     pictureSame: "与游戏里这个状态的画面逐像素一致。",
     pictureDiff: "这张图和游戏里这个状态的画面不一致。",
+    unsaved: "由 #{a} 和 #{b} 在 X Layer 上生下，它的第一天还没保存：链上只有繁育合约为它混合好的记忆，所以在主人保存一天之前，PetLook 会把它画成一颗蛋，各项数值都显示 0。这些 0 并不是它的状态。",
     lineMismatch: "PetRegistry 把这只宠物记为{recorded}品种，但它保存的状态是{state}品种的，它的样子和想法都按这个来。它出生时就是这样；游戏现在已经不会再写出这样的宠物，下面的核对不受影响。",
     lines: ["温柔", "勇敢", "好奇"],
     named: "链上名字",
@@ -379,6 +381,8 @@ export function VerifyApp() {
 
   const ok = rows.filter((r) => r.chain.next === r.local.next && r.chain.outputs === r.local.outputs).length;
   const u = pet ? unpackState(pet.state, pet.brainBits) : null;
+  // a little one hatched by the Breeder and never saved: its state is only the memory the Breeder mixed (A33)
+  const unsaved = !!pet && pet.day === 0 && (pet.parentA !== 0n || pet.parentB !== 0n);
   return (
     <main className="verify">
       <header className="v-head">
@@ -413,7 +417,7 @@ export function VerifyApp() {
                 <span className="v-note">{t.pictureNote}</span>
                 {meta.same !== undefined && <span className={meta.same ? "v-ok" : "v-bad"}>{meta.same ? t.pictureSame : t.pictureDiff}</span>}
                 {/* a record whose line is not its state's (mainnet pet #2, A18) is said, not left for a reader to find */}
-                {pet.line !== lineOfState(pet.state) && (
+                {!unsaved && pet.line !== lineOfState(pet.state) && (
                   <span className="v-note v-line">
                     {t.lineMismatch.replace("{recorded}", t.lines[pet.line] ?? `#${pet.line}`).replace("{state}", t.lines[lineOfState(pet.state)] ?? `#${lineOfState(pet.state)}`)}
                   </span>
@@ -436,11 +440,18 @@ export function VerifyApp() {
             <dd>
               <span className="v-tag v-tag-proven">{t.proven}</span> <span className="mono">{u.brain.join("")}</span>
               <br />
-              <span className="v-tag v-tag-reported">{t.reported}</span>{" "}
-              {lang === "zh"
-                ? `饱腹 ${u.meters.food} · 开心 ${u.meters.joy} · 精神 ${u.meters.energy} · 干净 ${u.meters.clean} · 经验 ${u.xp}`
-                : `food ${u.meters.food} · joy ${u.meters.joy} · energy ${u.meters.energy} · clean ${u.meters.clean} · xp ${u.xp}`}
-              <span className="v-note v-block">{t.reportedNote}</span>
+              {/* a little one never saved holds only its mixed memory: its zeros are said to be zeros, not shown as its state (A33) */}
+              {unsaved ? (
+                <span className="v-note v-block v-unsaved">{t.unsaved.replace("{a}", pet.parentA.toString()).replace("{b}", pet.parentB.toString())}</span>
+              ) : (
+                <>
+                  <span className="v-tag v-tag-reported">{t.reported}</span>{" "}
+                  {lang === "zh"
+                    ? `饱腹 ${u.meters.food} · 开心 ${u.meters.joy} · 精神 ${u.meters.energy} · 干净 ${u.meters.clean} · 经验 ${u.xp}`
+                    : `food ${u.meters.food} · joy ${u.meters.joy} · energy ${u.meters.energy} · clean ${u.meters.clean} · xp ${u.xp}`}
+                  <span className="v-note v-block">{t.reportedNote}</span>
+                </>
+              )}
             </dd>
           </dl>
           <button type="button" className="v-run" onClick={run} disabled={running || !circuit}>
