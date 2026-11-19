@@ -1036,5 +1036,17 @@
     "row": "A42",
     "bug": "a packet's expiry was judged by the device's clock, so a wrong clock offered the wrong button",
     "test": { "kind": "e2e", "spec": "e2e/specs/red-packet-send.spec.ts", "title": "a packet whose page closed before its receipt is found on the next visit, with its link (zh, dark, desktop)" }
+  },
+  {
+    "id": "A48-birth-asked-before-sending",
+    "row": "A48",
+    "bug": "a birth slow to confirm was sent again, or lost",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/chain.test.ts", "name": "a birth whose receipt does not come in time says so, and welcoming again records that child with no second birth (A48)" }
+  },
+  {
+    "id": "A48-birth-finished-on-load",
+    "row": "A48",
+    "bug": "a birth that landed after the page closed never brought its child home",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/chain.test.ts", "name": "a birth found after the page closed is finished on the next visit, its child joining the pets (A48)" }
   }
 ]

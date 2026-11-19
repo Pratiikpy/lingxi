@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/chain.ts
++++ b/apps/web/src/game/chain.ts
+@@ -413,7 +413,7 @@ export const useChain = create<ChainState>((set, get) => ({
+   },
+   finishBirths: async () => {
+     const out: Array<{ child: Pet; memory: number[] }> = [];
+-    if (!deployment) return out;
++    if (out.length === 0) return out;
+     for (const [parentKey, b] of Object.entries(births)) {
+       try {
+         const o = await birthOutcome(publicClient, b.tx);

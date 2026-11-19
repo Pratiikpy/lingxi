@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/chain.ts
++++ b/apps/web/src/game/chain.ts
+@@ -436,7 +436,7 @@ export const useChain = create<ChainState>((set, get) => ({
+     set({ busy: "connecting", error: null });
+     try {
+       // a birth sent before and not yet recorded is asked about first, never sent again (A48)
+-      const sentBefore = births[petKey(parent)] ?? null;
++      const sentBefore = null as PendingBirth | null;
+       if (sentBefore) {
+         set({ busy: "hatching" });
+         const out = await birthOutcome(publicClient, sentBefore.tx);
