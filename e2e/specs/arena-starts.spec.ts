@@ -109,3 +109,21 @@ test("a friend's card starts a spar; a damaged one says so for a moment (en, lig
   await expect(said, "the message goes after a few seconds").toHaveCount(0, { timeout: 8_000 });
   friend.close();
 });
+
+test("Behemoth's card on Builders' Lane opens straight onto its fight (zh, dark, phone)", async ({ player }) => {
+  test.setTimeout(240_000);
+  const p = await player({ lang: "zh", scheme: "dark", size: "phone" });
+  const { page } = p;
+  await hatch(p, "Momo");
+  // the pet is already in Behemoth's room on the lane (room 66), as after walking there
+  await page.evaluate(() => {
+    const world = JSON.parse(localStorage.getItem("lingxi.world.v1")!) as { room: number };
+    localStorage.setItem("lingxi.world.v1", JSON.stringify({ ...world, room: 66 }));
+  });
+  await page.reload();
+  await page.getByRole("button", { name: "见见巨兽" }).click();
+  await page.getByRole("button", { name: "和巨兽切磋" }).click();
+  await expect(page.locator(".sp-fight"), "the spar screen opens onto a fight with Behemoth").toContainText("巨兽");
+  await page.screenshot({ path: test.info().outputPath("behemoth-fight-zh-dark-phone.png") });
+  await leaveMidFight(page);
+});
