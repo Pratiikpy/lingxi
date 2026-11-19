@@ -252,7 +252,13 @@ function PublishDiary({ pet, petId, log }: { pet: Pet; petId: string; log: strin
                   ? L("It doesn't match what is saved on chain yet. Save today first, then publish.", "和链上保存的还对不上。请先保存今天，再发布。")
                   : j.reason === "older"
                     ? L("A longer diary is already on its page.", "它的页面上已经有更长的日记了。")
-                    : L("That didn't go through. Try again later.", "没有成功，请稍后再试。"),
+                    : j.reason === "tooLong"
+                      ? L(`This diary has more moments than ${pet.name} has lived on X Layer, so it wasn't kept.`, `这本日记的时刻比${pet.name}在 X Layer 上活过的还多，所以没有收下。`)
+                      : j.reason === "busy"
+                        ? L("Enough diaries have been published from here today. Try again tomorrow.", "今天从这里发布的日记已经够多了，明天再试。")
+                        : j.reason === "full"
+                          ? L("The diary shelf is full just now, so nothing was kept. Try again later.", "日记架暂时满了，什么都没有收下。请稍后再试。")
+                          : L("That didn't go through. Try again later.", "没有成功，请稍后再试。"),
             );
           } catch (e) {
             play("error");

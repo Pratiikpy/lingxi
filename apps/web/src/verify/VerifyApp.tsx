@@ -24,6 +24,7 @@ import { deployment } from "../game/chain";
 import { proofClient } from "../game/proofRpc";
 import { EndpointPanel } from "./Endpoints";
 import { INDEXER, fetchPetHistory } from "./indexer";
+import { HISTORY_RETRIES, HISTORY_RETRY_MS } from "./askHistory";
 import { useLang } from "../i18n";
 import "./verify.css";
 import { markProofChecked } from "../game/proofMark";
@@ -138,6 +139,23 @@ const WHY = {
 const pc = proofClient();
 const viaText = (hosts: ReadonlySet<string>, lang: "en" | "zh") => (hosts.size ? `${lang === "zh" ? "回答者：" : "Answered by "}${[...hosts].join(", ")}` : "");
 const note = (hosts: Set<string>) => (h: string, fallback: boolean) => hosts.add(fallback ? `${h} (fallback)` : h);
+
+/** Where the diary's check stands: checking, waiting for the indexer, not indexed in time, passed, or failed. */
+type DiaryState = "checking" | "waiting" | "unindexed" | "ok" | "bad";
+
+/**
+ * Resolves true once Lingxi's indexer has read the pet's hatching (a diary is anchored to it), asking again every
+ * HISTORY_RETRY_MS, HISTORY_RETRIES more times; false when it still has not, or the page moved on (A39).
+ */
+async function hatchIndexed(id: string, alive: () => boolean, waiting: () => void): Promise<boolean> {
+  for (let left = HISTORY_RETRIES; ; left--) {
+    const h = await fetchPetHistory(id).catch(() => null);
+    if (h?.hatched) return true;
+    if (left <= 0 || !alive()) return false;
+    waiting();
+    await new Promise((r) => setTimeout(r, HISTORY_RETRY_MS));
+  }
+}
 
 export function VerifyApp() {
   const { lang, toggle } = useLang();
@@ -369,18 +387,23 @@ export function VerifyApp() {
   const petId = pet?.id;
   const logHash = pet?.logHash;
   // the diary's check, with the pet, log and circuit it was made for: it shows only while those are still on the page
-  const [diaryCheck, setDiaryCheck] = useState<{ petId: unknown; logHash: unknown; circuit: Circuit; state: "checking" | "ok" | "bad"; diary?: DiaryLine[] } | null>(null);
+  const [diaryCheck, setDiaryCheck] = useState<{ petId: unknown; logHash: unknown; circuit: Circuit; state: DiaryState; diary?: DiaryLine[] } | null>(null);
   const diaryNow = diaryCheck && diaryCheck.petId === petId && diaryCheck.logHash === logHash && diaryCheck.circuit === circuit ? diaryCheck : null;
   const diary = diaryNow?.diary ?? null;
   const diaryState = diaryNow?.state ?? "none";
   useEffect(() => {
     if (petId === undefined || !circuit) return;
     let live = true;
-    const said = (state: "checking" | "ok" | "bad", lines?: DiaryLine[]) => live && setDiaryCheck({ petId, logHash, circuit, state, ...(lines ? { diary: lines } : {}) });
+    const said = (state: DiaryState, lines?: DiaryLine[]) => live && setDiaryCheck({ petId, logHash, circuit, state, ...(lines ? { diary: lines } : {}) });
     fetch(`${INDEXER}/api/pets/${petId}/log`, { signal: AbortSignal.timeout(8000) })
       .then((res) => res.json() as Promise<{ ok: boolean; log?: { words: number[]; segments: Array<{ brainId: string | null; words: number[] }> } }>)
       .then(async (r) => {
         if (!live || !r.ok || !r.log) return;
+        said("checking");
+        // a pet kept a moment ago is not indexed yet, and its diary cannot be anchored until its hatching is: wait for
+        // it, saying so, rather than call a genuine diary failed (A39)
+        if (!(await hatchIndexed(petId.toString(), () => live, () => said("waiting")))) return said("unindexed");
+        if (!live) return;
         said("checking");
         const stretches = await replayPublished(r.log);
         if (!stretches) return said("bad");
@@ -559,6 +582,8 @@ export function VerifyApp() {
             <div className="v-diary">
               <p className="v-sub">{lang === "zh" ? "它的日记" : "Its diary"}</p>
               {diaryState === "checking" && <p className="v-note">{lang === "zh" ? "正在对照链上核对它的日记……" : "Checking its diary against the chain…"}</p>}
+              {diaryState === "waiting" && <p className="v-note">{lang === "zh" ? "正在等灵犀的索引服务从 X Layer 读到它的孵化（每 15 秒读一次新区块），读到后就核对它的日记……" : "Waiting for Lingxi's indexer to read its hatching from X Layer (it reads new blocks every 15 seconds); its diary is checked as soon as it has…"}</p>}
+              {diaryState === "unindexed" && <p className="v-note">{lang === "zh" ? "它的孵化还没被索引，所以暂时核对不了它的日记。过几分钟再打开这一页。" : "Its hatching isn't indexed yet, so its diary can't be checked right now. Open this page again in a few minutes."}</p>}
               {diaryState === "bad" && <p className="v-bad">{lang === "zh" ? "发布的日记没能通过链上核对（原因见下面的日志核对），所以不显示。" : "The published diary did not pass the check against the chain (the log check below says why), so it isn't shown."}</p>}
               {diaryState === "ok" && diary && (
                 <>

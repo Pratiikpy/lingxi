@@ -7,7 +7,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { createReadStream, readdirSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { type SiteSource, folderSource, releaseSource } from "./releases";
@@ -71,7 +71,7 @@ import { createDuelStore, withDuels } from "./duels";
 import { createDailyBlocks, withDaily } from "./daily";
 import { createStandingsRunner } from "./standings";
 import { buildTree } from "./tree";
-import { type DiaryStore, createDiaryStore } from "./diaries";
+import { type DiaryStore, type PetOnChain, createDiaryStore } from "./diaries";
 import { MAX_MOVE_CHARS, type MoveStore, createMoveStore } from "./move";
 import { createTapeoutCounter, withLane } from "./lane";
 import { factoryReader } from "./laneReader";
@@ -570,18 +570,47 @@ export function withTree(app: Hono, indexer: Pick<Indexer, "pets" | "head">, nam
  * Public diaries: owners publish the log their pet's checkpoint committed to; it is kept only if it
  * hashes to the log hash on chain, and anyone may read it (read-only, any origin).
  */
-export function withDiaries(app: Hono, store: DiaryStore, logHashOf: (id: string) => Promise<string | null>): Hono {
+export function withDiaries(app: Hono, store: DiaryStore, chainOf: (id: string) => Promise<PetOnChain | null>): Hono {
   const limiter = new RateLimiter(20, 60 * 60_000);
   app.get("/api/pets/:id/log", (c) => {
     const id = c.req.param("id");
     if (!/^\d{1,12}$/.test(id)) return c.json({ ok: false, reason: "invalid" }, 400);
-    const log = store.get(id);
+    const at = store.where(id);
     c.header("Cache-Control", "public, max-age=30");
-    return log ? c.json({ ok: true, log }) : c.json({ ok: false, reason: "none" });
+    if (!at) return c.json({ ok: false, reason: "none" });
+    c.header("content-type", "application/json; charset=utf-8");
+    const head = '{"ok":true,"log":';
+    if ("text" in at) return c.body(`${head}${at.text}}`);
+    // streamed from its file a piece at a time, as fast as the reader takes it: no diary is ever held whole (A39)
+    const pieces = createReadStream(at.file)[Symbol.asyncIterator]();
+    const bytes = new TextEncoder();
+    let stage: "head" | "file" | "tail" = "head";
+    return c.body(
+      new ReadableStream<Uint8Array>({
+        async pull(out) {
+          if (stage === "head") {
+            out.enqueue(bytes.encode(head));
+            stage = "file";
+            return;
+          }
+          if (stage === "file") {
+            const next = await pieces.next();
+            if (!next.done) return out.enqueue(next.value as Uint8Array);
+            stage = "tail";
+          }
+          out.enqueue(bytes.encode("}"));
+          out.close();
+        },
+        async cancel() {
+          await pieces.return?.();
+        },
+      }),
+    );
   });
   app.post("/api/pets/:id/log", async (c) => {
     const ip = clientIp(c);
-    if (!limiter.take(ip)) return c.json({ ok: false, reason: "busy" }, 429);
+    // a refusal a player can meet is an answer, not an error a browser would log (A39); only a malformed request is a 400
+    if (!limiter.take(ip)) return c.json({ ok: false, reason: "busy" });
     const id = c.req.param("id");
     let body: unknown;
     try {
@@ -591,8 +620,8 @@ export function withDiaries(app: Hono, store: DiaryStore, logHashOf: (id: string
     }
     const published = PublishedLog.safeParse(body);
     if (!published.success || published.data.petId !== id) return c.json({ ok: false, reason: "invalid" }, 400);
-    const r = store.publish(published.data, await logHashOf(id).catch(() => null));
-    return c.json(r, r.ok ? 200 : r.reason === "invalid" ? 400 : 409);
+    const r = store.publish(published.data, await chainOf(id).catch(() => null), ip);
+    return c.json(r, !r.ok && r.reason === "invalid" ? 400 : 200);
   });
   return app;
 }
@@ -876,7 +905,12 @@ if (isMain) {
     const lane = createTapeoutCounter(factoryReader(rpc), process.env.LINGXI_LANE_FILE);
     withLane(app, lane);
     jobs.every("lane count", 5 * 60_000, () => lane.tick(), { now: true });
-    if (chain) withDiaries(app, createDiaryStore(process.env.LINGXI_DIARY_DIR), async (id) => (await readPet(chain!.pub, chain!.deployment, BigInt(id))).logHash);
+    if (chain)
+      withDiaries(app, createDiaryStore(process.env.LINGXI_DIARY_DIR), async (id) => {
+        // the pet's age on the chain's own clock: its hatch block's time against the latest block's (A39)
+        const [p, head] = await Promise.all([readPet(chain!.pub, chain!.deployment, BigInt(id)), chain!.pub.getBlock()]);
+        return { logHash: p.logHash, born: p.born, at: Number(head.timestamp) };
+      });
   }
   if (relayer) {
     // a finished week's champion gets its brain taped out and sent to its wallet (PRD F26)
