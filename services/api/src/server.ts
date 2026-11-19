@@ -858,7 +858,14 @@ if (isMain) {
       }
     : undefined;
   const quota = new RelayQuota(
-    { perPetPerDay: 6, perSignerPerDay: 12, perHour: 12, perDay: Number(process.env.LINGXI_RELAY_PER_DAY ?? 200), newcomerShare: 0.25, lifetime: { newcomer: 3, settled: 40 } },
+    {
+      perPetPerDay: 6,
+      perSignerPerDay: 12,
+      perHour: Number(process.env.LINGXI_RELAY_PER_HOUR ?? 12),
+      perDay: Number(process.env.LINGXI_RELAY_PER_DAY ?? 200),
+      newcomerShare: Number(process.env.LINGXI_RELAY_NEWCOMER_SHARE ?? 0.25),
+      lifetime: { newcomer: 3, settled: 40 },
+    },
     process.env.LINGXI_RELAY_QUOTA_FILE ?? join(dataDir, "relay-quota.json"),
   );
   const app = createApp(client, undefined, relayer, undefined, live, detail, isKeeper, quota, isSettled);

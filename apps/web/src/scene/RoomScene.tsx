@@ -862,6 +862,8 @@ export function RoomScene(props: SceneProps) {
         }
       };
       app.ticker.add(tick);
+      // the room answers taps once its first frame has drawn the pet (its body is what a tap is tested against)
+      app.ticker.addOnce(() => (el.dataset.ready = "1"));
       const onVis = () => (document.hidden ? app.ticker.stop() : app.ticker.start());
       document.addEventListener("visibilitychange", onVis);
       cleanup = () => {

@@ -116,6 +116,8 @@ export const careCount = async (page: Page, kind: string): Promise<number> => {
  * (64, 104) when no visitor has moved it aside), then waits for the save to count it.
  */
 export async function patPet(page: Page): Promise<void> {
+  // a tap before the room has drawn its first frame finds no body to land on
+  await page.locator(".room-scene[data-ready]").waitFor();
   const box = (await page.locator(".room-scene").boundingBox())!;
   const scale = Math.max(1, Math.ceil(Math.max(box.width, box.height) / 128));
   const left = box.x + Math.round((box.width - 128 * scale) / 2);

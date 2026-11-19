@@ -34,6 +34,8 @@ export async function tapVisitor(page: Page, lane: number, opts: { visitor?: Sta
 
 /** Taps the room at a point of its 128-pixel scene, as `patPet` does for the player's own pet. */
 export async function tapScene(page: Page, x: number, y: number): Promise<string> {
+  // a tap before the room has drawn its first frame finds no body to land on
+  await page.locator(".room-scene[data-ready]").waitFor();
   const box = (await page.locator(".room-scene").boundingBox())!;
   const scale = Math.max(1, Math.ceil(Math.max(box.width, box.height) / 128));
   const left = box.x + Math.round((box.width - 128 * scale) / 2);

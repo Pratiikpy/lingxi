@@ -131,6 +131,11 @@ export async function startRun(): Promise<Run> {
     writeFileSync(s("relayer.env"), `K=${keyOf(RELAYER)}
 `);
     serverEnv.LINGXI_RELAYER_KEY_FILE = s("relayer.env");
+    // one server serves every spec of a run, and every pet on the fork is new: Lingxi's own hourly sponsorship and its
+    // newcomers' share would run out partway through the suite. Those limits are proven by the API's own tests (A40);
+    // here every spec's tape-out is sponsored
+    serverEnv.LINGXI_RELAY_PER_HOUR = "1000";
+    serverEnv.LINGXI_RELAY_NEWCOMER_SHARE = "1";
     // no model: the secrets file has a default path on this machine, so it is pointed at one that does not exist,
     // and a spec never spends on a paid model or depends on its answer
     serverEnv.LINGXI_SECRETS = join(dir, "no-secrets.env");
