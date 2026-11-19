@@ -372,38 +372,47 @@ export const useChain = create<ChainState>((set, get) => ({
   error: null,
   keep: async (pet) => {
     if (!deployment) return set({ error: "notDeployed" });
+    // a second press while a keep is under way does nothing: one pet, one hatch (A20)
+    if (get().busy !== "idle") return;
     set({ busy: "connecting", error: null });
     try {
       const wallet = await connectWallet();
-      set({ busy: "hatching" });
-      const { petId, tx } = await hatchOnChain(publicClient, wallet, deployment, pet.line, packState(pet, stageOf(pet, gameNow())));
-      const onChain = await readPet(publicClient, deployment, petId);
-      const record: ChainRecord = {
-        petId: petId.toString(),
-        hatchTx: tx,
-        lastDay: 0,
-        owner: wallet.account!.address,
-        bornChain: onChain.born,
-        brains: { [mindKey([])]: deployment.circuits[pet.line]!.id },
-        brainKey: mindKey([]),
-      };
-      store(pet, record);
+      // a pet this device has kept already is never hatched again; keeping it again finishes what is left (A20)
+      let record = records[petKey(pet)] ?? null;
+      if (!record) {
+        set({ busy: "hatching" });
+        const { petId, tx } = await hatchOnChain(publicClient, wallet, deployment, pet.line, packState(pet, stageOf(pet, gameNow())));
+        const onChain = await readPet(publicClient, deployment, petId);
+        record = {
+          petId: petId.toString(),
+          hatchTx: tx,
+          lastDay: 0,
+          owner: wallet.account!.address,
+          bornChain: onChain.born,
+          brains: { [mindKey([])]: deployment.circuits[pet.line]!.id },
+          brainKey: mindKey([]),
+        };
+        store(pet, record);
+        // from here on the panel shows the pet as kept, whatever fails after
+        set({ record: activeRecord() });
+      }
       // the registry hatches every pet on its line's starter brain; a pet with
       // instincts moves straight onto its own circuit before anything is saved
-      if (pet.instincts && relayAvailable()) {
+      const key = mindKey(pet.lessons, pet.instincts, undefined, ruleSkillIds(pet.growth));
+      if (pet.instincts && relayAvailable() && record.brainKey !== key) {
         set({ busy: "taping" });
         const body: BrainRelayPayload = { line: pet.line, lessons: pet.lessons, instincts: pet.instincts, skills: ruleSkillIds(pet.growth) };
-        const r = await relayBrain(await signRelayRequest(await relaySigner(petId.toString(), wallet), "brain", petId.toString(), body));
+        const r = await relayBrain(await signRelayRequest(await relaySigner(record.petId, wallet), "brain", record.petId, body));
         if (!r.ok) throw new Error(r.reason);
         set({ busy: "saving" });
-        await setBrainOnChain(publicClient, wallet, deployment, petId, deployment.processor, BigInt(r.brainId));
-        const key = mindKey(pet.lessons, pet.instincts, undefined, ruleSkillIds(pet.growth));
+        await setBrainOnChain(publicClient, wallet, deployment, BigInt(record.petId), deployment.processor, BigInt(r.brainId));
         store(pet, { ...record, brains: { ...record.brains, [key]: r.brainId }, brainKey: key });
       }
       set({ record: activeRecord(), busy: "idle" });
     } catch (e) {
-      // an address whose code refuses tokens is told so (A13); any other failure by its first line
-      set({ busy: "idle", error: chainReason(e) });
+      // an address whose code refuses tokens is told so (A13), a contract's own reason is said (A19); a hatch that
+      // landed before the failure stays shown as kept (A20)
+      set({ busy: "idle", error: chainReason(e), record: activeRecord() });
     }
   },
   saveToday: async (pet, onSaved, quiet = false) => {

@@ -57,6 +57,8 @@ export function ChainPanel({ pet }: { pet: Pet }) {
   if (!deployment) return null;
   const busyText = busy === "connecting" ? t("chain.connecting") : busy === "hatching" ? t("chain.hatching") : busy === "saving" ? t("chain.saving") : busy === "taping" ? t("chain.taping") : busy === "auto" ? t("auto.saving") : null;
   const mindBehind = record && (record.brainKey ?? mindKey([])) !== mindKey(pet.lessons, pet.instincts, pet.outside, ruleSkillIds(pet.growth));
+  // kept, but the move onto its own instinct circuit did not finish (A20): it has not learned anything, so say what is left
+  const instinctsBehind = mindBehind && !!pet.instincts && pet.lessons.length === 0 && (record.brainKey ?? mindKey([])) === mindKey([]);
   const err = error ? t(ERR[error] ?? "chain.failed") : null;
   // a friend's pet: the sitter may save its day (PetRegistry lets the named sitter), and nothing else here
   if (pet.sitting || pet.away)
@@ -177,7 +179,7 @@ export function ChainPanel({ pet }: { pet: Pet }) {
           </div>
           {mindBehind && (
             <div className="mind-behind">
-              <p className="small">{t("chain.mindBehind", { name: pet.name })}</p>
+              <p className="small">{t(instinctsBehind ? "chain.instinctsBehind" : "chain.mindBehind", { name: pet.name })}</p>
               {relayAvailable() && (
                 <button type="button" className="btn primary" disabled={busy !== "idle"} onClick={() => (play("tap"), updateMind(pet))}>
                   {t("chain.updateMind")}

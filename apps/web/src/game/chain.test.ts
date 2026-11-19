@@ -111,6 +111,7 @@ function contractsOnXLayer() {
       isKeeper: ([id, who], c) => keeper(id as bigint, who as Address, c.now),
       setBrain: ([id, processor, brainId], c) => {
         ownerOnly(id as bigint, c.from);
+        minedRefusal("setBrain", c.dry);
         if (!c.dry) Object.assign(petOf(id as bigint), { processor, brainId });
       },
     },
@@ -276,13 +277,43 @@ describe("the chain store: keeping a pet on X Layer", () => {
     expect(mined(p, "setBrain")).toEqual([]);
   });
 
-  // DEFECT: keep() stores the record once the hatch is mined, but sets `record` for the screen only at the very end; when
-  // the relayer then turns the circuit down, the panel still shows "keep on X Layer", and keeping again hatches a second
-  // twin on chain (a new pet id, more gas) and overwrites the first one's record on this device.
-  it.fails("after the relayer turns the circuit down, the panel shows the pet as kept, so it is never hatched twice", async () => {
+  // A20: keep() stores the record once the hatch is mined; the panel shows it from then on, whatever fails after, so it
+  // never offers "keep on X Layer" again for a pet that is already on chain.
+  it("after the relayer turns the circuit down, the panel shows the pet as kept, so it is never hatched twice", async () => {
     const p = await open({ hatch: { instincts: 5 }, relay: () => ({ ok: false, reason: "busy" }) });
     await settle(p.c().keep(p.pet()));
     expect(p.c().record).toEqual(p.chain.recordOf(p.pet()));
+  });
+
+  it("keeping again after the circuit was turned down mints nothing new and finishes the pet's own circuit (A20)", async () => {
+    let refuse = true;
+    const p = await open({ hatch: { instincts: 5 }, relay: () => (refuse ? { ok: false, reason: "busy" } : { ok: true, processor: PROCESSOR, brainId: "88", reused: false }) });
+    await settle(p.c().keep(p.pet()));
+    refuse = false;
+    await settle(p.c().keep(p.pet()));
+    expect(mined(p, "hatch")).toHaveLength(1);
+    expect(mined(p, "setBrain")).toEqual([expect.objectContaining({ status: "success", args: [41n, PROCESSOR, 88n] })]);
+    expect(p.c()).toMatchObject({ busy: "idle", error: null, record: { petId: "41", brainKey: p.chain.mindKey([], 5) } });
+    expect(p.x.pets.get(41n)?.brainId).toBe(88n);
+  });
+
+  it("a move onto the pet's own circuit that fails on chain keeps the record, and keeping again only retries the move (A20)", async () => {
+    const p = await open({ hatch: { instincts: 5 } });
+    p.x.rules.revertMined = "setBrain";
+    await settle(p.c().keep(p.pet()));
+    expect(p.c().record).toMatchObject({ petId: "41", brainKey: "[]" });
+    expect(p.c().error).not.toBeNull();
+    p.x.rules.revertMined = null;
+    await settle(p.c().keep(p.pet()));
+    expect(mined(p, "hatch")).toHaveLength(1);
+    expect(p.c()).toMatchObject({ busy: "idle", error: null, record: { petId: "41", brainKey: p.chain.mindKey([], 5) } });
+  });
+
+  it("keep pressed twice at once hatches the pet once (A20)", async () => {
+    const p = await open();
+    await settle(Promise.all([p.c().keep(p.pet()), p.c().keep(p.pet())]));
+    expect(mined(p, "hatch")).toHaveLength(1);
+    expect(p.c().record).toMatchObject({ petId: "41" });
   });
 
   it("with no wallet in the browser, the player is told to find one, and nothing is sent", async () => {
