@@ -224,7 +224,7 @@ export function SeasonCard({ pet }: { pet: Pet }) {
         </p>
       )}
       {view?.pending && (
-        <p className="small ss-note" aria-live="polite">
+        <p className="small ss-pending" aria-live="polite">
           {rows.length
             ? L("The table is being worked out again for the newest entries; this is the last one.", "正在为最新的参赛重新计算排名；下面是上一次的结果。")
             : L("The table is being worked out: every pet fights every other, which takes a few seconds.", "正在计算排名：每只宠物都要和其他每只打一场，需要几秒钟。")}
