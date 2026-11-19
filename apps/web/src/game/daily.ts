@@ -1,8 +1,13 @@
 /**
  * Today's challenge: one partner and one seed for everyone, the seed read from
  * the first X Layer block of the UTC day (see @lingxi/game daily.ts). The block
- * is found with a few public reads, kept for the day, and shown with a link so
- * anyone can check it. The best result per day stays on this device.
+ * is kept for the day and shown with a link so anyone can check it. The best
+ * result per day stays on this device.
+ *
+ * Where the block comes from (A34): with the live server, from it (it finds each
+ * day's block once), same origin, and checked on mainnet with two reads through
+ * the server's door to X Layer; without a server (the on-chain copy), from the
+ * public nodes, searched here.
  */
 
 import { create } from "zustand";
@@ -14,6 +19,10 @@ import { now } from "./gameClock";
 
 const KEY = "lingxi.daily.v1";
 const RPCS = ["https://xlayerrpc.okx.com", "https://rpc.xlayer.tech"];
+// the live server (an empty VITE_API_URL, as the on-chain copy is built, means none), and whether the game runs on
+// mainnet, where the server's door to X Layer reads the same chain the challenge is seeded by
+const API = (import.meta.env.VITE_API_URL as string | undefined) ?? (typeof location !== "undefined" && location.hostname === "localhost" ? "http://localhost:8787" : "");
+const ON_MAINNET = ((import.meta.env.VITE_CHAIN as string | undefined) || "xlayer") === "xlayer" && !import.meta.env.VITE_RPC;
 
 export interface DailyBlock {
   day: number;
@@ -42,7 +51,50 @@ function write(s: Saved): void {
   }
 }
 
-async function findBlock(day: number): Promise<DailyBlock> {
+/** The server's answer for a day (`services/api/src/daily.ts`). */
+export type ServerAnswer = { ok: true; day: number; block: number; hash: string } | { ok: false; reason: string };
+
+/** Where today's block can come from; see the module note. */
+export interface DailySources {
+  /** the server's answer, or null where there is no server */
+  server: ((day: number) => Promise<ServerAnswer>) | null;
+  /** a mainnet block read through the server's door, to check its answer; null where the door leads elsewhere */
+  check: ((n: number) => Promise<{ timestamp: number; hash: string }>) | null;
+  /** the public nodes, searched from here */
+  search: (day: number) => Promise<DailyBlock>;
+}
+
+function sources(): DailySources {
+  const door = API && ON_MAINNET ? createPublicClient({ chain: xLayer, transport: http(`${API}/api/rpc`, { timeout: 8000 }) }) : null;
+  return {
+    server: API ? async (day) => (await fetch(`${API}/api/daily/${day}`)).json() as Promise<ServerAnswer> : null,
+    check: door
+      ? async (n) => {
+          const b = await door.getBlock({ blockNumber: BigInt(n) });
+          return { timestamp: Number(b.timestamp), hash: b.hash };
+        }
+      : null,
+    search: searchPublicNodes,
+  };
+}
+
+/** Today's block from the server when there is one (checked where it can be), else from the public nodes. */
+export async function findBlock(day: number, from: DailySources = sources()): Promise<DailyBlock> {
+  if (!from.server) return from.search(day);
+  const a = await from.server(day);
+  if (!a.ok) throw new Error(a.reason);
+  if (a.day !== day || !Number.isInteger(a.block) || a.block < 1 || !/^0x[0-9a-f]{64}$/.test(a.hash)) throw new Error("not today's block");
+  if (from.check) {
+    const midnight = (day * DAY_MS) / 1000;
+    const [b, before] = await Promise.all([from.check(a.block), from.check(a.block - 1)]);
+    // the block the server named, the first at or after midnight: its own time at or after, the one before it before
+    if (b.hash !== a.hash || b.timestamp < midnight || before.timestamp >= midnight) throw new Error("not today's block");
+  }
+  return { day, block: a.block, hash: a.hash };
+}
+
+/** The first block of the day, searched from the public nodes (the on-chain copy has no server to ask). */
+async function searchPublicNodes(day: number): Promise<DailyBlock> {
   let last: unknown;
   for (const url of RPCS) {
     try {

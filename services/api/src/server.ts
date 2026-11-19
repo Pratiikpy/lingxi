@@ -47,9 +47,9 @@ import { createDecorStore } from "./decor";
 import { type SittingStore, createSittingStore } from "./sitting";
 import { type ArenaStore, createArenaStore } from "./arena";
 import { type SeasonStore, createSeasonStore, settleAwards } from "./season";
-import { weekOf } from "@lingxi/game";
+import { dayIndex, weekOf } from "@lingxi/game";
 import { parseCard } from "@lingxi/game";
-import { createPublicClient, http, type PublicClient } from "viem";
+import { createPublicClient, fallback, http, type PublicClient } from "viem";
 import { type Deployment, type SignedRelay, adoptionCentreAbi, loadCircuitFromChain, nameColours, packsHeld, petRegistryAbi, piecesHeld, readPet, xLayer } from "@lingxi/chain";
 import { type HomeChain, createHomes } from "./homes";
 import { createAgentStore } from "./agents";
@@ -68,6 +68,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { createSalesCounter, withNumbers } from "./numbers";
 import { createListingWatch, withRetiredListings } from "./marketV1";
 import { createDuelStore, withDuels } from "./duels";
+import { createDailyBlocks, withDaily } from "./daily";
 import { buildTree } from "./tree";
 import { type DiaryStore, createDiaryStore } from "./diaries";
 import { MAX_MOVE_CHARS, type MoveStore, createMoveStore } from "./move";
@@ -842,6 +843,33 @@ if (isMain) {
     withMove(app, createMoveStore());
     // short duel links: a duel code kept under the start of its own hash (A32)
     withDuels(app, createDuelStore(process.env.LINGXI_DUELS_DIR ?? join(dataDir, "duels")));
+    // A34: the daily challenge's block, the first X Layer mainnet block of each UTC day, found once from mainnet's
+    // official nodes (whatever chain the game runs on: the challenge is seeded by mainnet) and served same-origin
+    const dailyNodes = createPublicClient({ chain: xLayer, transport: fallback(official.map((u) => http(u, { timeout: 8_000 }))) });
+    const daily = createDailyBlocks(
+      {
+        head: async () => {
+          const b = await dailyNodes.getBlock();
+          return { number: Number(b.number), timestamp: Number(b.timestamp) };
+        },
+        block: async (n) => {
+          const b = await dailyNodes.getBlock({ blockNumber: BigInt(n) });
+          return { number: n, timestamp: Number(b.timestamp), hash: b.hash };
+        },
+      },
+      { file: process.env.LINGXI_DAILY_FILE ?? join(dataDir, "daily.json") },
+    );
+    withDaily(app, daily);
+    // today's is found soon after midnight UTC, before the first player asks; nodes that cannot answer mark the job
+    jobs.every(
+      "daily block",
+      5 * 60_000,
+      async () => {
+        const today = await daily.get(dayIndex(Date.now()));
+        if (!today.ok && today.reason === "unavailable") throw new Error("X Layer's official nodes did not answer");
+      },
+      { now: true },
+    );
     // R2: Little Mars counts today's tape-outs across every X Layer processor
     const lane = createTapeoutCounter(factoryReader(rpc), process.env.LINGXI_LANE_FILE);
     withLane(app, lane);
