@@ -16,6 +16,7 @@ import type { Expression } from "@lingxi/art";
 import type { StarterLine } from "@lingxi/brain";
 import { DECOR_BY_ID, NAME_COLOUR_BY_ID } from "@lingxi/world";
 import { BITS, type PetStage, catTexture, glowTexture, glyphTexture, petTexture, pixelTexture, vignetteTexture } from "./textures";
+import { bodyHitArea } from "./hitArea";
 
 export type DayPhase = "day" | "evening" | "night";
 
@@ -253,6 +254,8 @@ export function RoomScene(props: SceneProps) {
       npc.anchor.set(0.5, 1);
       npc.eventMode = "static";
       npc.cursor = "pointer";
+      // every tappable sprite answers only on its drawn pixels, so a tap on one's margin reaches what is behind (A25)
+      npc.hitArea = bodyHitArea(npc);
       npc.visible = false;
       npc.on("pointertap", () => latest.current.onNpcTap());
       world.addChild(npc);
@@ -269,11 +272,13 @@ export function RoomScene(props: SceneProps) {
       cat.anchor.set(0.5, 1);
       cat.eventMode = "static";
       cat.cursor = "pointer";
+      cat.hitArea = bodyHitArea(cat);
       world.addChild(cat);
       const pet = new Sprite();
       pet.anchor.set(0.5, 1);
       pet.eventMode = "static";
       pet.cursor = "pointer";
+      pet.hitArea = bodyHitArea(pet);
       world.addChild(pet);
       // living details: dust bunnies on the floor behind the cat and pet; the food, the ball and
       // the "hungry" thought in front of the pet; drifting motes and weather over everything
@@ -766,6 +771,7 @@ export function RoomScene(props: SceneProps) {
             sprite.anchor.set(0.5, 1);
             sprite.eventMode = "static";
             sprite.cursor = "pointer";
+            sprite.hitArea = bodyHitArea(sprite);
             sprite.on("pointertap", () => latest.current.onOtherTap(o.id));
             world.addChildAt(sprite, world.getChildIndex(pet));
             const tag = new Text({ text: o.name, style: { fontFamily: "Baloo 2 Variable, sans-serif", fontWeight: "800", fontSize: 12, fill: "#2B2140", stroke: { color: "#FFF7E8", width: 4 } } });
