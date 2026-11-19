@@ -802,5 +802,11 @@
     "row": "A30",
     "bug": "a hatch slow to confirm timed out with no record kept, and keeping again sent a second hatch",
     "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/chain.test.ts", "name": "a hatch whose receipt does not come in time says so, and keeping again never sends a second (A30)" }
+  },
+  {
+    "id": "A31-history-asks-again",
+    "row": "A31",
+    "bug": "a newborn's proof page said nothing was indexed and never asked again, so its parents and lineage never showed",
+    "test": { "kind": "e2e", "spec": "e2e/specs/birth-on-chain.spec.ts", "title": "a little one is born on chain from two players' grown pets (zh dark desktop proposes, en light phone agrees)" }
   }
 ]

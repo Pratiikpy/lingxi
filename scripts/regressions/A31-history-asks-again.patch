@@ -1,0 +1,11 @@
+--- a/apps/web/src/verify/History.tsx
++++ b/apps/web/src/verify/History.tsx
+@@ -43,7 +43,7 @@ export function PetHistory({ id, brainBits, brainNow, lang, onOpen }: { id: stri
+           setRead({ id, h: j ?? "none" });
+           if (!j && left > 0) timer = setTimeout(() => void ask(left - 1), HISTORY_RETRY_MS);
+         });
+-    void ask(HISTORY_RETRIES);
++    void ask(0);
+     return () => {
+       live = false;
+       clearTimeout(timer);
