@@ -1,0 +1,11 @@
+--- a/apps/web/src/play/Social.tsx
++++ b/apps/web/src/play/Social.tsx
+@@ -69,7 +69,7 @@ export function SocialBar({ here, onPick }: { here: HereOne[]; onPick: (id: stri
+           <ul>
+             {here.map((h) => (
+               <li key={h.id}>
+-                <button type="button" className="here-one" onClick={() => (play("tap"), setOpen(false), onPick(h.id))}>
++                <button type="button" className="here-one" onClick={() => (play("tap"), setOpen(false))}>
+                   {h.name}
+                 </button>
+               </li>

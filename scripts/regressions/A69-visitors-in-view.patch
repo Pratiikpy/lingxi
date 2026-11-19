@@ -1,0 +1,19 @@
+--- a/apps/web/src/scene/RoomScene.tsx
++++ b/apps/web/src/scene/RoomScene.tsx
+@@ -777,14 +777,14 @@ export function RoomScene(props: SceneProps) {
+             const bubbleBg = new Graphics();
+             ui.addChild(tag, bubbleBg, bubble);
+             const lane = o.look ? o.look.x : laneOf(o.id);
+-            const home = residentSpot.get(o.id) ?? floorSpot(lane, view, halfOf(o.stage));
++            const home = residentSpot.get(o.id) ?? lane;
+             v = { sprite, tag, bubble, bubbleBg, x: home, target: home, lane, lastEmote: 0 };
+             visitors.set(o.id, v);
+           }
+           // a resident keeps to its spot, visitors wander near their lane; every pet stands within what shows, which moves
+           // when the view is resized (A69)
+           if (!o.look && !p.reduceMotion && Math.random() < 0.004) v.lane = Math.max(WANDER.min, Math.min(WANDER.max, laneOf(o.id) + (Math.random() * 24 - 12)));
+-          v.target = residentSpot.get(o.id) ?? floorSpot(o.look ? o.look.x : v.lane, view, halfOf(o.stage));
++          v.target = residentSpot.get(o.id) ?? (o.look ? o.look.x : v.lane);
+           if (Math.abs(v.target - v.x) > 0.5) v.x += Math.sign(v.target - v.x) * 0.15;
+           const stageName = o.stage === "elder" ? "adult" : o.stage;
+           const expr = o.mood === 3 ? "sparkly" : o.mood === 2 ? "happy" : o.mood === 0 ? "sulk" : "neutral";

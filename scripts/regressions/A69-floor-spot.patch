@@ -1,0 +1,10 @@
+--- a/apps/web/src/scene/floor.ts
++++ b/apps/web/src/scene/floor.ts
+@@ -50,6 +50,7 @@ export function laneOf(id: string): number {
+ export function floorSpot(x: number, view: FloorView, half: number): number {
+   const lo = view.left + half;
+   const hi = view.right - half;
++  if (lo > -1) return x;
+   if (hi <= lo) return (view.left + view.right) / 2;
+   const t = (Math.max(half, Math.min(ROOM - half, x)) - half) / (ROOM - 2 * half);
+   return lo + t * (hi - lo);

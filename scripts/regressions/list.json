@@ -976,5 +976,23 @@
     "row": "A40",
     "bug": "the relayer started a tape-out its BEM could not pay, spending gas before failing",
     "test": { "kind": "vitest", "dir": "services/api", "file": "test/relayGate.test.ts", "name": "refuses a tape-out whose transistor fee its BEM cannot pay, before anything is sent (A40)" }
+  },
+  {
+    "id": "A69-floor-spot",
+    "row": "A69",
+    "bug": "a visitor's spot ignored what a phone shows of the room",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/scene/floor.test.ts", "name": "keeps a pet's whole body inside what shows, at every lane and both ends of its wandering, for every stage" }
+  },
+  {
+    "id": "A69-visitors-in-view",
+    "row": "A69",
+    "bug": "on a phone, visitors at the outer lanes stood outside the room that shows and could not be tapped",
+    "test": { "kind": "e2e", "spec": "e2e/specs/room-visitors.spec.ts", "title": "on a phone, visitors at the room's outermost lanes stand where it shows and open with a tap (en, light, phone)" }
+  },
+  {
+    "id": "A69-here-list-opens-card",
+    "row": "A69",
+    "bug": "nothing but a tap on the room's picture reached a visitor",
+    "test": { "kind": "e2e", "spec": "e2e/specs/room-visitors.spec.ts", "title": "the count opens the list of who is here, in Chinese and the dark look (zh, dark, desktop)" }
   }
 ]
