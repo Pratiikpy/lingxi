@@ -1,0 +1,10 @@
+--- a/packages/chain/src/registry.ts
++++ b/packages/chain/src/registry.ts
+@@ -291,7 +291,6 @@ export async function loadCircuitFromChain(pub: PublicClient, processor: Address
+         if (!subs.has(k)) subs.set(k, await one(e.cpu as Address, e.id, depth + 1));
+       }
+       const c = load(bytes, nl.nIn, nl.nOut, (rc, sid) => subs.get(refKey(rc, sid)) ?? null);
+-      if (c.nGates > maxGates) throw new BrainTooBigError(c.nGates, maxGates);
+       return c;
+     })();
+     loading.set(key, p);

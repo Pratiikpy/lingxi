@@ -1,0 +1,11 @@
+--- a/services/api/src/standings.ts
++++ b/services/api/src/standings.ts
+@@ -129,7 +129,7 @@ export function createStandingsRunner(opts: { compute?: Compute; file?: string;
+       const key = entriesKey(week, entries);
+       if (have?.key === key) return { standings: have.standings, digest: have.digest, pending: false };
+       const lastFailed = failed.get(key);
+-      if (running !== key && waiting.get(week)?.key !== key && (lastFailed === undefined || now() - lastFailed >= RETRY_AFTER_MS)) {
++      if (lastFailed === undefined || now() - lastFailed >= RETRY_AFTER_MS) {
+         waiting.set(week, { entries, key });
+         next();
+       }

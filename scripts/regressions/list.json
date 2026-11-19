@@ -886,5 +886,41 @@
     "row": "A37",
     "bug": "a pack asked for in the first moments after the sitting store moved in from its old file was read as missing",
     "test": { "kind": "vitest", "dir": "services/api", "file": "test/sitting.test.ts", "name": "moves a store from before (one JSON file) into the new layout without losing a pack" }
+  },
+  {
+    "id": "A38-instinct-run-budget",
+    "row": "A38",
+    "bug": "a 15 KB card of nested REFs was run as millions of gates a beat on every road a card travels",
+    "test": { "kind": "vitest", "dir": "packages/game", "file": "test/runBudget.test.ts", "name": "refuses the reviewer's card (four levels of 55 REFs) before running it, and so refuses the whole card" }
+  },
+  {
+    "id": "A38-chain-brain-budget",
+    "row": "A38",
+    "bug": "a brain on chain past any pet's mind was loaded and run by the proof page and the season proof",
+    "test": { "kind": "vitest", "dir": "packages/chain", "file": "test/loadBudget.test.ts", "name": "refuses a brain that would expand past an honest pet's whole mind, before it is run, and says how big" }
+  },
+  {
+    "id": "A38-chain-reads-once",
+    "row": "A38",
+    "bug": "a circuit reached by several paths was read from the chain once per path",
+    "test": { "kind": "vitest", "dir": "packages/chain", "file": "test/loadBudget.test.ts", "name": "reads each distinct circuit once, however many paths lead to it" }
+  },
+  {
+    "id": "A38-teach-says-too-many-gates",
+    "row": "A38",
+    "bug": "an owned circuit too big to run was refused as \"can't be read as a pet's brain\"",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/store.test.ts", "name": "an owned circuit that runs more gates each beat than an instinct may is not taught, and says how many (A38)" }
+  },
+  {
+    "id": "A38-no-keepsake-from-pending",
+    "row": "A38",
+    "bug": "a keepsake could have gone to the champion of standings not yet fought for the week's entries",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/season.test.ts", "name": "with standings fought off the request thread, a view says pending until they are fought, and no keepsake is chosen from them (A38)" }
+  },
+  {
+    "id": "A38-standings-fought-once",
+    "row": "A38",
+    "bug": "every ask for a week's standings would have fought the whole season again",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/standings.test.ts", "name": "answers at once, pending, then with the standings once they are fought, fighting each set of entries once" }
   }
 ]

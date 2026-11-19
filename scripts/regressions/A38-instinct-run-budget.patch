@@ -1,0 +1,10 @@
+--- a/packages/game/src/family.ts
++++ b/packages/game/src/family.ts
+@@ -110,7 +110,6 @@ export function instinctBrain(o: OutsideInstinct): { fast: FastBrain; nState: nu
+     const c = circuitFromParts(o.parts);
+     if (c.nIn !== 16 || c.nOut !== 8) return null;
+     // counted before anything is compiled or run: a few kilobytes of REFs can expand to millions of gates
+-    if (c.nGates > INSTINCT_MAX_GATES) return null;
+     return { fast: circuitBrain(c), nState: c.nState, gates: c.nGates };
+   } catch {
+     return null;

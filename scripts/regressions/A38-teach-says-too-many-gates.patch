@@ -1,0 +1,10 @@
+--- a/apps/web/src/game/store.ts
++++ b/apps/web/src/game/store.ts
+@@ -387,7 +387,6 @@ export const useGame = create<GameState>((set, get) => ({
+     if (!instinctFits(o.parts)) return { ok: false, reason: "tooLong" };
+     // a circuit too big to run each beat, counted before it is compiled (A38): every friend who meets the pet runs it too
+     const gates = instinctGates(o);
+-    if (gates !== null && gates > INSTINCT_MAX_GATES) return { ok: false, reason: "tooManyGates", gates };
+     const inst = instinctBrain(o);
+     if (!inst) return { ok: false, reason: "badCircuit" };
+     const caught = catchUp(pet, gameNow(), brainOf(pet));

@@ -1,0 +1,11 @@
+--- a/packages/chain/src/registry.ts
++++ b/packages/chain/src/registry.ts
+@@ -278,8 +278,6 @@ export async function loadCircuitFromChain(pub: PublicClient, processor: Address
+   const loading = new Map<string, Promise<Circuit>>();
+   const one = (cpu: Address, cid: bigint, depth: number): Promise<Circuit> => {
+     const key = refKey(cpu, cid);
+-    const known = loading.get(key);
+-    if (known) return known;
+     const p = (async () => {
+       if (depth > 4) throw new Error("circuit nests too deeply");
+       const nl = await readNetlist(pub, cpu, cid);
