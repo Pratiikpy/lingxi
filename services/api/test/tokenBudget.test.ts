@@ -50,7 +50,7 @@ describe("the daily token budget for teaching and voices", () => {
     const f = fakeClient();
     const c = budgetedClient(f.client as never, budget);
     await c.messages.create({} as never);
-    const r = await teachInWords(c as never, { words: "when hungry ask for food", line: "gentle", name: "Mochi", lessons: [] } as never);
+    const r = await teachInWords(c as never, { words: "when hungry ask for food", name: "Mochi", stage: "child", mind: { line: "gentle", lessons: [] } });
     expect(r).toMatchObject({ ok: false, reason: "resting" });
   });
 });

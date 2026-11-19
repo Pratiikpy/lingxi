@@ -12,7 +12,7 @@ const good = {
 
 describe("checking what the model proposes", () => {
   it("accepts a valid rule and returns it in program form", () => {
-    const r = finishProposal(good, "gentle", "adult", []);
+    const r = finishProposal(good, { line: "gentle", lessons: [] }, "adult");
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.rule.when).toEqual({ event: [1], joy: [2, 3] });
@@ -21,14 +21,14 @@ describe("checking what the model proposes", () => {
     }
   });
   it("refuses invented fields, out-of-range values and malformed answers", () => {
-    expect(finishProposal({ ...good, rule: { ...good.rule, when: [{ field: "weather", values: [1] }] } }, "gentle", "adult", []).ok).toBe(false);
-    expect(finishProposal({ ...good, rule: { ...good.rule, when: [{ field: "hunger", values: [7] }] } }, "gentle", "adult", []).ok).toBe(false);
-    expect(finishProposal({ nope: 1 }, "gentle", "adult", []).ok).toBe(false);
-    const evil = finishProposal({ ...good, rule: { ...good.rule, when: [{ field: "__proto__", values: [1] }] } }, "gentle", "adult", []);
+    expect(finishProposal({ ...good, rule: { ...good.rule, when: [{ field: "weather", values: [1] }] } }, { line: "gentle", lessons: [] }, "adult").ok).toBe(false);
+    expect(finishProposal({ ...good, rule: { ...good.rule, when: [{ field: "hunger", values: [7] }] } }, { line: "gentle", lessons: [] }, "adult").ok).toBe(false);
+    expect(finishProposal({ nope: 1 }, { line: "gentle", lessons: [] }, "adult").ok).toBe(false);
+    const evil = finishProposal({ ...good, rule: { ...good.rule, when: [{ field: "__proto__", values: [1] }] } }, { line: "gentle", lessons: [] }, "adult");
     expect(evil.ok).toBe(false);
   });
   it("passes the not-understood reply through to the player", () => {
-    const r = finishProposal({ understood: false, rule: null, reply_en: "It can't buy things.", reply_zh: "它不会买东西。" }, "gentle", "adult", []);
+    const r = finishProposal({ understood: false, rule: null, reply_en: "It can't buy things.", reply_zh: "它不会买东西。" }, { line: "gentle", lessons: [] }, "adult");
     expect(r.ok).toBe(false);
     if (!r.ok) {
       expect(r.reason).toBe("notUnderstood");
@@ -36,7 +36,7 @@ describe("checking what the model proposes", () => {
     }
   });
   it("respects lesson capacity", () => {
-    const r = finishProposal(good, "gentle", "baby", [{ when: { owner: [1] }, then: { want: 2, mood: 3 } }]);
+    const r = finishProposal(good, { line: "gentle", lessons: [{ when: { owner: [1] }, then: { want: 2, mood: 3 } }] }, "baby");
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.reason).toBe("full");
   });
@@ -68,7 +68,7 @@ describe("what a lesson in words may cost", () => {
   it("asks the model for no more than an answer needs", async () => {
     const asked: Array<{ max_tokens: number }> = [];
     const client = { beta: { messages: { create: async (params: { max_tokens: number }) => (asked.push(params), { stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify(good) }] }) } } };
-    await teachInWords(client as never, { words: "share your toys", line: "gentle", stage: "child", lessons: [] });
+    await teachInWords(client as never, { words: "share your toys", stage: "child", mind: { line: "gentle", lessons: [] } });
     expect(asked).toHaveLength(1);
     // the longest real answer measured was 348 tokens; room for it, and no more than a cut-off answer would waste
     expect(asked[0]!.max_tokens).toBeGreaterThan(348);

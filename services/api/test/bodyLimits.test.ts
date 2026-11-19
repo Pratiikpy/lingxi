@@ -40,10 +40,12 @@ describe("how much a write may carry", () => {
     expect((await send("/api/move", 5 * 1024 * 1024)).status).toBe(413);
     expect(limitFor("/api/pets/12/log")).toBeGreaterThan(1_300_000);
     expect(limitFor("/api/something-new")).toBe(64 * 1024);
+    // a lesson in words carries the pet's whole card, up to 34,000 characters (A11)
+    expect(limitFor("/api/teach")).toBeGreaterThan(34_000 + 4_000);
   });
 
   it("holds the server's own routes to their sizes", async () => {
-    const big = "a".repeat(20 * 1024);
+    const big = "a".repeat(limitFor("/api/teach") + 1);
     const r = await createApp(null).request("/api/teach", { method: "POST", headers: { "content-type": "application/json", "content-length": String(big.length) }, body: big });
     expect(r.status).toBe(413);
   });

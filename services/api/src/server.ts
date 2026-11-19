@@ -38,7 +38,7 @@ import {
   TeachBody,
   VoiceBody,
 } from "@lingxi/api-schema";
-import { teachInWords } from "./teach";
+import { mindOf, teachInWords } from "./teach";
 import { RateLimiter } from "./limit";
 import { BrainRelayer, type RelayResult } from "./relayer";
 import { RelayQuota, checkRelayAuth, createNonceBook } from "./relayGate";
@@ -134,7 +134,9 @@ export function createApp(
     } catch {
       return c.json({ ok: false, reason: "invalid", detail: "bad request" }, 400);
     }
-    const result = await teachInWords(client, body);
+    const mind = mindOf(body);
+    if (!mind) return c.json({ ok: false, reason: "invalid", detail: "bad request" }, 400);
+    const result = await teachInWords(client, { words: body.words, ...(body.name !== undefined ? { name: body.name } : {}), stage: body.stage, mind });
     return result.ok || result.reason !== "busy" ? c.json(result) : busy(c);
   });
 

@@ -11,7 +11,7 @@
 
 import { z } from "zod";
 import { STARTERS } from "@lingxi/brain";
-import { MAX_LESSONS } from "@lingxi/game";
+import { CARD_OUTSIDE_MAX, MAX_LESSONS, QUEST_SLOTS_MAX } from "@lingxi/game";
 import { SEND_LIMITS } from "@lingxi/chain/limits";
 
 const ID = /^\d{1,20}$/;
@@ -34,12 +34,23 @@ export const LessonRule = z.object({
 });
 export type LessonRule = z.input<typeof LessonRule>;
 
+/**
+ * The most characters of a pet card (its lessons, skills, instincts, family and owned instinct, as the game shares it):
+ * what `parseCard` accepts, ten thousand for the pet and room for an owned instinct's circuit.
+ */
+export const CARD_MAX = 10_000 + CARD_OUTSIDE_MAX;
+
 export const TeachBody = z.object({
   words: z.string().min(1).max(MAX_WORDS),
   name: z.string().max(40).optional(),
   line: LINE,
   stage: STAGE,
-  lessons: z.array(LessonRule).max(8),
+  /** the lessons it holds, as many as any pet can (A11) */
+  lessons: z.array(LessonRule).max(MAX_LESSONS),
+  /** its whole mind, as its card: the lesson is checked against this with the game's own rule (A11) */
+  card: z.string().max(CARD_MAX).optional(),
+  /** the lesson slots the player's quests gave its pets (quest 65) */
+  slots: z.number().int().min(0).max(QUEST_SLOTS_MAX).optional(),
 });
 export type TeachBody = z.input<typeof TeachBody>;
 

@@ -2,7 +2,7 @@ import { describe, expect, expectTypeOf, it } from "vitest";
 import * as schema from "@lingxi/api-schema";
 import type { Rule } from "@lingxi/brain";
 import type { SignedRelay } from "@lingxi/chain";
-import type { DuelPet } from "@lingxi/game";
+import { parseCard, petCard, type DuelPet } from "@lingxi/game";
 import type { relayBrain, relayChild, relayInstinct, signRelayRequest, teachInWords } from "./api";
 import * as req from "./requests";
 
@@ -48,8 +48,14 @@ describe("the game's requests are the server's own types", () => {
 });
 
 describe("what the builders send is what the server accepts", () => {
-  it("teaching, with the pet's lessons as it holds them", () => {
-    expect(schema.TeachBody.safeParse(req.teachBody("ask for food when hungry", { name: "Mochi", line: "bold", lessons: [rule] }, "teen")).success).toBe(true);
+  it("teaching, with the pet's whole mind as its card and the player's quest slots (A11)", () => {
+    const pet = { name: "Mochi", line: "bold" as const, lessons: [rule], instincts: 5, growth: { level: 2, points: 0, skills: { 211: 1, 212: 1 } } };
+    const body = req.teachBody("ask for food when hungry", pet, "teen", 1);
+    expect(schema.TeachBody.safeParse(body).success).toBe(true);
+    expect(body).toMatchObject({ lessons: [rule], slots: 1 });
+    // the card the server reads the mind from is the one the game shares everywhere else
+    expect(body.card).toBe(petCard(pet));
+    expect(parseCard(body.card!)).toMatchObject({ lessons: [rule], instincts: 5, growth: pet.growth });
   });
 
   it("the voice, with the decision and reasons cut to the server's lengths", () => {

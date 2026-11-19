@@ -12,6 +12,7 @@ import { PET_SCHOOL, type Pet, lessonCapacity, type Trap, brainSize, checkLesson
 import { useLang, useT, type Key } from "../i18n";
 import { teachInWords, teachingAvailable } from "../game/api";
 import { teachBody } from "../game/requests";
+import { questSlots } from "../game/tally";
 import { type LibraryLesson, libraryAvailable, listLessons, reportLesson, shareLesson, usedLesson } from "../game/library";
 import { play } from "../game/sound";
 import { mindParts, useGame } from "../game/store";
@@ -314,7 +315,7 @@ function Words({ pet, onPropose }: { pet: Pet; onPropose: (rule: Rule, reply: st
     setBusy(true);
     setMsg(null);
     play("tap");
-    const r = await teachInWords(teachBody(words, pet, stageOf(pet, now())));
+    const r = await teachInWords(teachBody(words, pet, stageOf(pet, now()), questSlots()));
     setBusy(false);
     if (r.ok) onPropose(r.rule, r.reply[lang]);
     else setMsg(r.reply?.[lang] ?? t(REASON_KEY[r.reason] ?? "teach.error", { name: pet.name }));

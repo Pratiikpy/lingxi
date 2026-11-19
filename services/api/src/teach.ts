@@ -3,16 +3,17 @@
  *
  * The model only ever proposes a rule in the pet's own vocabulary (the pins and
  * memory of LX-PET/1). It never writes gates. Every proposal is then checked by
- * the same code that checks block-editor lessons (validation, capacity, gate
- * budget), so a bad or hostile answer can never reach a pet; the player sees the
- * rule and confirms it before anything is saved.
+ * the game's own rule against the pet's whole mind (its slots from stage, skills
+ * and quests, its gate budget, a child's two halves, an owned instinct's memory),
+ * so a bad or hostile answer can never reach a pet; the player sees the rule and
+ * confirms it before anything is saved (A11).
  */
 
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
-import { MAX_WORDS } from "@lingxi/api-schema";
+import { MAX_WORDS, type TeachBody } from "@lingxi/api-schema";
 import { INPUT_FIELDS, MOODS, NUDGES, type Rule, STARTERS, type StarterLine, WANTS } from "@lingxi/brain";
-import { checkLesson, type Stage } from "@lingxi/game";
+import { checkMindLesson, composeProgram, lessonCapacity, parseCard, type MindSpec, type Stage } from "@lingxi/game";
 import { BudgetSpent } from "./tokenBudget";
 
 export const MODEL = "claude-opus-5-5";
@@ -115,8 +116,30 @@ export type TeachResult =
   | { ok: true; rule: Rule; gates: number; reply: { en: string; zh: string } }
   | { ok: false; reason: "notUnderstood" | "invalid" | "full" | "tooBig" | "duplicate" | "busy" | "resting" | "error"; reply?: { en: string; zh: string }; detail?: string };
 
-/** Turn a model proposal into a checked lesson. Pure: no network. */
-export function finishProposal(raw: unknown, line: StarterLine, stage: Exclude<Stage, "egg">, lessons: Rule[]): TeachResult {
+/**
+ * The pet's mind a lesson is checked against: its card when the game sent one (lessons, skills, instincts, family,
+ * owned instinct) with the player's quest slots, or, from a page built before the card was sent, its lessons alone.
+ * Null when the card cannot be read.
+ */
+export function mindOf(body: Pick<TeachBody, "line" | "lessons" | "card" | "slots">): MindSpec | null {
+  const line = body.line as StarterLine;
+  if (body.card === undefined) return { line, lessons: body.lessons as Rule[] };
+  const card = parseCard(body.card);
+  if (!card) return null;
+  return {
+    line,
+    lessons: card.lessons,
+    ...(card.family ? { family: card.family } : {}),
+    ...(card.instincts ? { instincts: card.instincts } : {}),
+    ...(card.outside ? { outside: card.outside } : {}),
+    ...(card.growth ? { growth: card.growth } : {}),
+    ...(body.slots ? { slots: body.slots } : {}),
+  };
+}
+
+/** Turn a model proposal into a lesson checked against the pet's mind. Pure: no network. */
+export function finishProposal(raw: unknown, mind: MindSpec, stage: Exclude<Stage, "egg">): TeachResult {
+  const line = mind.line;
   const parsed = ProposalSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, reason: "error", detail: "the answer did not match the schema" };
   const p = parsed.data;
@@ -133,22 +156,25 @@ export function finishProposal(raw: unknown, line: StarterLine, stage: Exclude<S
     then: { want: p.rule.then.want, mood: p.rule.then.mood, ...(p.rule.then.nudge ? { nudge: p.rule.then.nudge } : {}) },
     label: p.rule.label.slice(0, 60),
   };
-  const check = checkLesson(line, stage, lessons, rule);
+  const check = checkMindLesson(mind, stage, rule);
   if (!check.ok) return { ok: false, reason: check.reason, reply, detail: check.detail };
-  return { ok: true, rule: check.program.rules[0]!, gates: check.gates, reply };
+  // the rule as the pet's program holds it
+  return { ok: true, rule: composeProgram(line, [rule]).rules[0]!, gates: check.gates, reply };
 }
 
 export interface TeachRequest {
   words: string;
   name?: string;
-  line: StarterLine;
   stage: Exclude<Stage, "egg">;
-  lessons: Rule[];
+  mind: MindSpec;
 }
 
 export async function teachInWords(client: Anthropic, req: TeachRequest): Promise<TeachResult> {
   const words = req.words.trim().slice(0, MAX_WORDS);
   if (!words) return { ok: false, reason: "notUnderstood" };
+  // a pet with no room left is told so before any model is asked
+  const room = lessonCapacity(req.stage, req.mind.growth, req.mind.slots);
+  if (req.mind.lessons.length >= room) return { ok: false, reason: "full", detail: `a ${req.stage} can hold ${room} lessons` };
   let response;
   try {
     response = await client.beta.messages.create({
@@ -158,7 +184,7 @@ export async function teachInWords(client: Anthropic, req: TeachRequest): Promis
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
       output_config: { effort: "low", format: { type: "json_schema", schema: PROPOSAL_JSON_SCHEMA } },
-      system: systemPrompt(req.line, cleanName(req.name)),
+      system: systemPrompt(req.mind.line, cleanName(req.name)),
       messages: [{ role: "user", content: `The owner says: "${words}"` }],
     });
   } catch (e) {
@@ -177,5 +203,5 @@ export async function teachInWords(client: Anthropic, req: TeachRequest): Promis
   } catch {
     return { ok: false, reason: "error", detail: "answer was not JSON" };
   }
-  return finishProposal(raw, req.line, req.stage, req.lessons);
+  return finishProposal(raw, req.mind, req.stage);
 }

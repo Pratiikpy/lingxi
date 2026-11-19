@@ -24,7 +24,7 @@ import type {
 } from "@lingxi/api-schema";
 import type { Rule } from "@lingxi/brain";
 import type { SignedRelay } from "@lingxi/chain";
-import type { DuelPet, Meters, NeedKind, Pet, Stage } from "@lingxi/game";
+import { type DuelPet, type Meters, type NeedKind, type Pet, type Stage, petCard } from "@lingxi/game";
 
 type Hatched = Exclude<Stage, "egg">;
 
@@ -34,8 +34,19 @@ export function withQuery(path: string, query: Record<string, string | undefined
   return parts.length ? `${path}?${new URLSearchParams(parts).toString()}` : path;
 }
 
-/** POST /api/teach: the owner's words, and the pet as the lesson is checked against it. */
-export const teachBody = (words: string, pet: Pick<Pet, "name" | "line" | "lessons">, stage: Hatched): TeachBody => ({ words, name: pet.name, line: pet.line, stage, lessons: pet.lessons });
+/**
+ * POST /api/teach: the owner's words, and the pet as the lesson is checked against it: its whole mind as its card
+ * (skills, instincts, family, owned instinct) and the lesson slots the player's quests gave (A11).
+ */
+export const teachBody = (words: string, pet: Pick<Pet, "name" | "line" | "lessons" | "growth" | "instincts" | "family" | "outside">, stage: Hatched, slots: number): TeachBody => ({
+  words,
+  name: pet.name,
+  line: pet.line,
+  stage,
+  lessons: pet.lessons,
+  card: petCard(pet),
+  slots,
+});
 
 /** POST /api/voice: what the pet's circuit decided and why, for one line in its own words. */
 export function voiceBody(o: { pet: Pick<Pet, "name" | "line" | "sick" | "asleep">; lang: "en" | "zh"; stage: Hatched; chips: { then: string; when: string[] }; meters: Meters; tapped: boolean }): VoiceBody {

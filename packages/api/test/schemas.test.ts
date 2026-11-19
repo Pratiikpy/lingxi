@@ -7,7 +7,7 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 import type { z } from "zod";
 import type { Rule, StarterLine } from "@lingxi/brain";
-import { MAX_LESSONS } from "@lingxi/game";
+import { MAX_LESSONS, QUEST_SLOTS_MAX } from "@lingxi/game";
 import { SEND_LIMITS } from "@lingxi/chain/limits";
 import {
   AgentAdoptBody,
@@ -16,6 +16,7 @@ import {
   ArenaOpponentQuery,
   ArenaSnapshotBody,
   BrainRelayPayload,
+  CARD_MAX,
   ChildRelayPayload,
   GoalsQuery,
   InstinctRelayPayload,
@@ -93,10 +94,19 @@ describe("POST /api/teach", () => {
     for (const stage of ["baby", "child", "teen", "adult", "elder"]) accepts(TeachBody, { ...body, stage });
     refuses(TeachBody, { ...body, stage: "egg" });
   });
-  it("takes eight lessons at most", () => {
+  it(`takes as many lessons as any pet can hold, ${MAX_LESSONS}, and no more (A11)`, () => {
     const lesson = { when: { hunger: [1] }, then: { want: 1, mood: 0 } };
-    accepts(TeachBody, { ...body, lessons: range(8).map(() => lesson) });
-    refuses(TeachBody, { ...body, lessons: range(9).map(() => lesson) });
+    accepts(TeachBody, { ...body, lessons: range(MAX_LESSONS).map(() => lesson) });
+    refuses(TeachBody, { ...body, lessons: range(MAX_LESSONS + 1).map(() => lesson) });
+    expect(MAX_LESSONS).toBe(14);
+  });
+  it("takes the pet's card, as the game shares it, and the quest slots the player has (A11)", () => {
+    accepts(TeachBody, { ...body, card: JSON.stringify({ lessons: [] }), slots: 0 });
+    accepts(TeachBody, { ...body, card: text(CARD_MAX), slots: QUEST_SLOTS_MAX });
+    refuses(TeachBody, { ...body, card: text(CARD_MAX + 1) });
+    refuses(TeachBody, { ...body, slots: QUEST_SLOTS_MAX + 1 });
+    refuses(TeachBody, { ...body, slots: -1 });
+    refuses(TeachBody, { ...body, slots: 0.5 });
   });
   it("refuses the wrong types", () => {
     refuses(TeachBody, { ...body, words: 42 });
