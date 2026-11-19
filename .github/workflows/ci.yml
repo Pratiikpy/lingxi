@@ -66,6 +66,10 @@ jobs:
         with:
           version: v1.7.1
       - run: pnpm install --frozen-lockfile
+      # the chain package's fork tests deploy contracts from their compiled artifacts (contracts/out)
+      - name: Compile the contracts
+        run: forge build
+        working-directory: contracts
       - name: Coverage, every part at or above 80%
         run: pnpm coverage
 

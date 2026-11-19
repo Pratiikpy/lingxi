@@ -3,7 +3,7 @@
  * forks X Layer mainnet afresh at the end-to-end suite's pinned block (`e2e/fork.json`, after every Lingxi
  * deployment), funds a relayer from the public test mnemonic with OKB and BEM written into the fork, points the tests
  * at it (`FORK_RPC`, `RELAY_KEY_FILE` and `FORK_KEY_FILE`, `DEPLOYMENT_FILE`), runs `vitest run` there with any
- * arguments given (`pnpm test:fork --coverage`), and stops the fork after. A fresh fork per package: the server's
+ * arguments given (`pnpm test:fork --coverage`), and stops the fork after. `--only <package>` runs one package's. A fresh fork per package: the server's
  * breeding and goal tests move the fork's clock, and on a fork they had used the chain package's BEM market test failed
  * where on a fresh one it passes.
  * Nothing leaves this machine but reads of X Layer: the forks and every balance on them are local.
@@ -31,6 +31,11 @@ const vitest = join(root, "node_modules/vitest/vitest.mjs");
  * automatically before A18.
  */
 const PACKAGES = ["services/api", "packages/chain"];
+const onlyAt = process.argv.indexOf("--only");
+const only = onlyAt < 0 ? null : process.argv[onlyAt + 1];
+if (only !== null && !PACKAGES.includes(only)) throw new Error(`--only takes one of ${PACKAGES.join(", ")}`);
+/** What is passed on to vitest: every argument but `--only` and its package. */
+const vitestArgs = process.argv.slice(2).filter((_, i, all) => all[i] !== "--only" && all[i - 1] !== "--only");
 
 /** Runs one package's tests against a fork of its own; true when they pass. The fork's files stay after a failure. */
 async function forkTestsIn(pkg: string): Promise<boolean> {
@@ -56,7 +61,7 @@ async function forkTestsIn(pkg: string): Promise<boolean> {
 
     console.log(`\nfork tests in ${pkg}`);
     // one file at a time: the fork tests share one relayer, and two of them sending at once would race for its nonce
-    const run = spawnSync(process.execPath, [vitest, "run", "--no-file-parallelism", ...process.argv.slice(2)], {
+    const run = spawnSync(process.execPath, [vitest, "run", "--no-file-parallelism", ...vitestArgs], {
       cwd: join(root, pkg),
       stdio: "inherit",
       env: { ...process.env, FORK_RPC: rpc, RELAY_KEY_FILE: keyFile, FORK_KEY_FILE: keyFile, DEPLOYMENT_FILE: deploymentFile },
@@ -71,7 +76,7 @@ async function forkTestsIn(pkg: string): Promise<boolean> {
 }
 
 let status = 0;
-for (const pkg of PACKAGES) {
+for (const pkg of only ? [only] : PACKAGES) {
   if (!(await forkTestsIn(pkg))) {
     status = 1;
     break;

@@ -37,8 +37,9 @@ for (const pkg of ["packages/brain", "packages/game", "packages/world"]) {
 }
 
 {
-  // the server, with its fork tests switched on; its config holds the bar
-  const run = spawnSync(process.execPath, [join(root, "node_modules/tsx/dist/cli.mjs"), "scripts/fork-tests.mts", "--coverage"], { cwd: root, stdio: ["ignore", "ignore", "inherit"] });
+  // the server, with its fork tests switched on; its config holds the bar (the chain package's fork tests run in CI's
+  // check job, and are not part of this measure)
+  const run = spawnSync(process.execPath, [join(root, "node_modules/tsx/dist/cli.mjs"), "scripts/fork-tests.mts", "--only", "services/api", "--coverage"], { cwd: root, stdio: ["ignore", "ignore", "inherit"] });
   const t = totals(join(root, "services/api"));
   rows.push({ part: "services/api (with fork tests)", lines: t.lines.pct, branches: t.branches.pct, ok: run.status === 0 });
 }
