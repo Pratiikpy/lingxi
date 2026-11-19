@@ -61,30 +61,75 @@ describe("who may ask the relayer to tape out a brain", () => {
 });
 
 describe("how much one pet, one keeper and everyone together may ask for", () => {
+  const caps = { perPetPerDay: 3, perSignerPerDay: 5, perHour: 6 };
+
   it("caps tape-outs per pet and per signer each day, and everyone each hour", () => {
-    const q = new RelayQuota({ perPetPerDay: 3, perSignerPerDay: 5, perHour: 6 });
+    const q = new RelayQuota(caps);
     const t = NOW;
-    for (let i = 0; i < 3; i++) {
-      expect(q.allow("7", "0xa", t)).toBe(true);
-      q.spend("7", "0xa", t);
-    }
-    expect(q.allow("7", "0xa", t)).toBe(false);
-    for (let i = 0; i < 2; i++) {
-      expect(q.allow(`p${i}`, "0xa", t)).toBe(true);
-      q.spend(`p${i}`, "0xa", t);
-    }
-    expect(q.allow("p9", "0xa", t)).toBe(false);
-    expect(q.allow("p9", "0xb", t)).toBe(true);
-    q.spend("p9", "0xb", t);
-    expect(q.allow("p10", "0xc", t)).toBe(false);
-    expect(q.allow("p10", "0xc", t + 3_600_001)).toBe(true);
-    expect(q.allow("7", "0xa", t + 86_400_001)).toBe(true);
+    for (let i = 0; i < 3; i++) expect(q.take("7", "0xa", true, t).ok).toBe(true);
+    expect(q.take("7", "0xa", true, t)).toEqual({ ok: false, reason: "busy" });
+    for (let i = 0; i < 2; i++) expect(q.take(`p${i}`, "0xa", true, t).ok).toBe(true);
+    expect(q.take("p9", "0xa", true, t)).toEqual({ ok: false, reason: "busy" });
+    expect(q.take("p9", "0xb", true, t).ok).toBe(true);
+    expect(q.take("p10", "0xc", true, t)).toEqual({ ok: false, reason: "busy" });
+    expect(q.take("p10", "0xc", true, t + 3_600_001).ok).toBe(true);
+    expect(q.take("7", "0xa", true, t + 86_400_001).ok).toBe(true);
   });
 
-  it("charges nothing for a brain that was already taped out", () => {
+  it("gives the slot back for a brain that was already taped out", () => {
     const q = new RelayQuota({ perPetPerDay: 1, perSignerPerDay: 1, perHour: 1 });
-    expect(q.allow("7", "0xa", NOW)).toBe(true);
-    expect(q.allow("7", "0xa", NOW)).toBe(true);
+    const a = q.take("7", "0xa", true, NOW);
+    expect(a.ok).toBe(true);
+    if (a.ok) q.refund(a.ticket);
+    expect(q.take("7", "0xa", true, NOW).ok).toBe(true);
+  });
+});
+
+describe("sponsored tape-outs go first to pets with standing, and cannot be raced (A40)", () => {
+  it("takes the slot before the work: a burst of requests never passes a cap", () => {
+    const q = new RelayQuota({ perPetPerDay: 6, perSignerPerDay: 12, perHour: 12 });
+    // twenty asks land together, before any tape-out has finished
+    const passed = Array.from({ length: 20 }, () => q.take("7", "0xa", true, NOW)).filter((r) => r.ok);
+    expect(passed).toHaveLength(6);
+  });
+
+  it("lets pets not yet settled draw only the newcomers' share of the hour and of the day", () => {
+    const q = new RelayQuota({ perPetPerDay: 6, perSignerPerDay: 100, perHour: 12, perDay: 100, newcomerShare: 0.25, lifetime: { newcomer: 3, settled: 40 } });
+    // a quarter of the hour: three newcomer tape-outs, from three fresh pets and keys
+    for (let i = 0; i < 3; i++) expect(q.take(`n${i}`, `0xn${i}`, false, NOW).ok).toBe(true);
+    expect(q.take("n9", "0xn9", false, NOW)).toEqual({ ok: false, reason: "newcomer" });
+    // settled pets still have the rest of the hour
+    for (let i = 0; i < 9; i++) expect(q.take(`s${i}`, `0xs${i}`, true, NOW).ok).toBe(true);
+    expect(q.take("s9", "0xs9", true, NOW)).toEqual({ ok: false, reason: "busy" });
+    // over a day, newcomers stop at a quarter of the relayer's 100
+    const day = new RelayQuota({ perPetPerDay: 6, perSignerPerDay: 100, perHour: 1000, perDay: 100, newcomerShare: 0.25, lifetime: { newcomer: 3, settled: 40 } });
+    let fresh = 0;
+    for (let i = 0; i < 40; i++) if (day.take(`f${i}`, `0xf${i}`, false, NOW + i * 60_000).ok) fresh++;
+    expect(fresh).toBe(25);
+  });
+
+  it("sponsors a pet 3 tape-outs before it settles and 40 in its life", () => {
+    const q = new RelayQuota({ perPetPerDay: 1000, perSignerPerDay: 1000, perHour: 1000, perDay: 1000, newcomerShare: 1, lifetime: { newcomer: 3, settled: 40 } });
+    for (let i = 0; i < 3; i++) expect(q.take("7", "0xa", false, NOW + i).ok).toBe(true);
+    expect(q.take("7", "0xa", false, NOW)).toEqual({ ok: false, reason: "lifetime" });
+    // once settled, the same pet goes on to 40 in all
+    let more = 0;
+    for (let i = 0; i < 50; i++) if (q.take("7", "0xa", true, NOW + 100 + i).ok) more++;
+    expect(more).toBe(37);
+    expect(q.take("7", "0xa", true, NOW + 1000)).toEqual({ ok: false, reason: "lifetime" });
+  });
+
+  it("keeps each pet's lifetime count on disk, so a restart does not hand them out again", () => {
+    const file = join(mkdtempSync(join(tmpdir(), "lx-quota-")), "relay-quota.json");
+    const caps = { perPetPerDay: 1000, perSignerPerDay: 1000, perHour: 1000, perDay: 1000, newcomerShare: 1, lifetime: { newcomer: 3, settled: 40 } };
+    const a = new RelayQuota(caps, file);
+    for (let i = 0; i < 3; i++) a.take("7", "0xa", false, NOW);
+    expect(new RelayQuota(caps, file).take("7", "0xa", false, NOW)).toEqual({ ok: false, reason: "lifetime" });
+    // a slot given back is not counted
+    const b = new RelayQuota(caps, file);
+    const t = b.take("8", "0xa", false, NOW);
+    if (t.ok) b.refund(t.ticket);
+    expect(new RelayQuota(caps, file).take("8", "0xa", false, NOW).ok).toBe(true);
   });
 });
 
@@ -113,4 +158,15 @@ describe("what the relayer itself holds back", () => {
     expect(balance).not.toHaveBeenCalled();
     expect(relayer.usage(now)).toMatchObject({ today: 2, lastHour: 2 });
   });
+
+  it("refuses a tape-out whose transistor fee its BEM cannot pay, before anything is sent (A40)", async () => {
+    const relayer = relayerWith({ reserveWei: 0n });
+    vi.spyOn(relayer, "balance").mockResolvedValue(OKB);
+    // this processor takes its 0.01 BEM fee in BEM, once per kind of transistor minted (mainnet, 2026-11-20)
+    vi.spyOn(relayer, "mintCalls").mockResolvedValue(2);
+    vi.spyOn(relayer, "fees").mockResolvedValue({ bem: 1_500_000n, protocolFee: 1_000_000n, feeIn: "bem" });
+    expect(await relayer.relay("gentle", [])).toMatchObject({ ok: false, reason: "budget", detail: "the relayer's BEM is too low for the transistor fee" });
+    expect(relayer.usage().today, "nothing counted, nothing sent").toBe(0);
+  });
 });
+

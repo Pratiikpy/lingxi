@@ -102,6 +102,8 @@ export type HealthDetail = () => Promise<Record<string, unknown>> | Record<strin
 
 /** Who may keep a pet on chain right now (PetRegistry.isKeeper): the relayer only tapes out for them. */
 export type KeeperCheck = (petId: string, who: `0x${string}`) => Promise<boolean>;
+/** Whether a pet has standing on chain (PetRegistry.isSettled): sponsored tape-outs go first to such pets (A40). */
+export type SettledCheck = (petId: string) => Promise<boolean>;
 
 export function createApp(
   client: Anthropic | null,
@@ -113,6 +115,8 @@ export function createApp(
   detail?: HealthDetail,
   isKeeper?: KeeperCheck,
   quota = new RelayQuota({ perPetPerDay: 6, perSignerPerDay: 12, perHour: 12 }),
+  // with no chain to ask (tests), every pet counts as settled
+  isSettled: SettledCheck = async () => true,
 ) {
   const app = new Hono();
   const origins = (process.env.LINGXI_ORIGINS ?? "http://localhost:5199,http://localhost:4173").split(",");
@@ -165,10 +169,18 @@ export function createApp(
       }
       const gate = await checkRelayAuth(req, { isKeeper, now: () => Date.now(), nonces });
       if (!gate.ok) return c.json({ ok: false, reason: gate.reason }, refusalStatus[gate.reason] ?? 401);
-      if (!quota.allow(req.petId, gate.signer)) return busy(c);
-      const result = await act(body);
+      // the slot is taken before the tape-out, so a burst cannot pass a cap; it is given back when nothing was sent (A40)
+      const slot = quota.take(req.petId, gate.signer, await isSettled(req.petId).catch(() => false));
+      if (!slot.ok) return slot.reason === "busy" ? busy(c) : c.json({ ok: false, reason: slot.reason });
+      let result: RelayResult;
+      try {
+        result = await act(body);
+      } catch (e) {
+        quota.refund(slot.ticket);
+        throw e;
+      }
       // a brain already taped out costs nothing; anything that sent a transaction is charged
-      if ((result.ok && !result.reused) || (!result.ok && result.spent)) quota.spend(req.petId, gate.signer);
+      if (!((result.ok && !result.reused) || (!result.ok && result.spent))) quota.refund(slot.ticket);
       const { spent: _spent, ...shown } = result as RelayResult & { spent?: boolean };
       return c.json(shown);
     });
@@ -797,7 +809,9 @@ if (isMain) {
   const dataDir = resolve(dirname(fileURLToPath(import.meta.url)), "../data");
   const detail: HealthDetail = async () => {
     if (cached && Date.now() - cached.at < 30_000) return cached.value;
-    const [head, relayerWei] = await Promise.all([watch.head?.().catch(() => null) ?? null, relayer?.balance().catch(() => null) ?? null]);
+    const [head, relayerWei, fees] = await Promise.all([watch.head?.().catch(() => null) ?? null, relayer?.balance().catch(() => null) ?? null, relayer?.fees().catch(() => null) ?? null]);
+    // how many more tape-outs the relayer's BEM pays the transistor fee for (two kinds minted each, at most) (A40)
+    const bemTapeouts = fees && fees.feeIn === "bem" && fees.protocolFee > 0n ? Number(fees.bem / (fees.protocolFee * 2n)) : null;
     const value = {
       jobs: Object.fromEntries(jobs.status().map((j) => [j.name, j.healthy ? "ok" : `failing: ${j.lastError?.message ?? "?"}`])),
       indexerLagBlocks: head !== null && watch.indexed ? Number(head) - watch.indexed() : null,
@@ -805,6 +819,11 @@ if (isMain) {
       relayerOkb: relayerWei === null ? null : Number(relayerWei) / 1e18,
       // the alarm the outside check turns into an issue for Prateek: top the relayer up before players are refused
       relayerLow: relayerWei !== null && Number(relayerWei) / 1e18 < Number(process.env.LINGXI_RELAY_ALARM_OKB ?? 0.02),
+      relayerBem: fees ? Number(fees.bem) / 1e8 : null,
+      relayFeeIn: fees?.feeIn ?? null,
+      relayerBemTapeouts: bemTapeouts,
+      // the same alarm for BEM: below ten tape-outs' transistor fees, top it up before players are refused
+      relayerBemLow: bemTapeouts !== null && bemTapeouts < Number(process.env.LINGXI_RELAY_ALARM_BEM_TAPEOUTS ?? 10),
       relayerUsage: relayer?.usage() ?? null,
       modelTokensToday: client ? { used: modelBudget.used(), perDay: modelBudget.perDay } : null,
       backup: backupStatus(),
@@ -820,7 +839,29 @@ if (isMain) {
   const isKeeper: KeeperCheck | undefined = chainCtx
     ? async (petId, who) => (await chainCtx!.pub.readContract({ address: chainCtx!.deployment.registry, abi: petRegistryAbi, functionName: "isKeeper", args: [BigInt(petId), who] })) as boolean
     : undefined;
-  const app = createApp(client, undefined, relayer, undefined, live, detail, isKeeper);
+  // A40: sponsored tape-outs go first to pets with standing on chain. A settled pet stays settled (its days and age
+  // only grow), so it is remembered for good; an unsettled one is asked again after ten minutes
+  const settledPets = new Set<string>();
+  const unsettledAt = new Map<string, number>();
+  const isSettled: SettledCheck | undefined = chainCtx
+    ? async (petId) => {
+        if (settledPets.has(petId)) return true;
+        const asked = unsettledAt.get(petId);
+        if (asked !== undefined && Date.now() - asked < 10 * 60_000) return false;
+        const yes = (await chainCtx!.pub.readContract({ address: chainCtx!.deployment.registry, abi: petRegistryAbi, functionName: "isSettled", args: [BigInt(petId)] })) as boolean;
+        if (unsettledAt.size > 100_000) unsettledAt.clear();
+        if (yes) {
+          settledPets.add(petId);
+          unsettledAt.delete(petId);
+        } else unsettledAt.set(petId, Date.now());
+        return yes;
+      }
+    : undefined;
+  const quota = new RelayQuota(
+    { perPetPerDay: 6, perSignerPerDay: 12, perHour: 12, perDay: Number(process.env.LINGXI_RELAY_PER_DAY ?? 200), newcomerShare: 0.25, lifetime: { newcomer: 3, settled: 40 } },
+    process.env.LINGXI_RELAY_QUOTA_FILE ?? join(dataDir, "relay-quota.json"),
+  );
+  const app = createApp(client, undefined, relayer, undefined, live, detail, isKeeper, quota, isSettled);
   if (client) withVoice(app, createVoice(client));
   withLibrary(app, createLibrary(process.env.LINGXI_LIBRARY_STORE));
   withSitting(app, createSittingStore(process.env.LINGXI_SIT_STORE));

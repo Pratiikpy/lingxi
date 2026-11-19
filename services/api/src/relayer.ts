@@ -15,7 +15,7 @@
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { createPublicClient, createWalletClient, erc20Abi, http, type Address, type Hex } from "viem";
+import { createPublicClient, createWalletClient, erc20Abi, http, maxUint128, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { type Program, type Rule, type StarterLine, bytesToHex, compileProgram, composeChild, composeInstinct, gateCount, netlistBytes } from "@lingxi/brain";
 import { BrainTooBigError, FACTORY, circuitIdFrom, factoryAbi, loadCircuitFromChain, processorAbi, transistorsAbi, xLayer } from "@lingxi/chain";
@@ -109,6 +109,49 @@ export class BrainRelayer {
   /** What the relayer holds now, in OKB wei (read from chain). */
   balance(): Promise<bigint> {
     return this.pub.getBalance({ address: this.address });
+  }
+
+  /** The processor's fee currency, as last read (it changes rarely): asked again after ten minutes. */
+  private feeIn: { is: "okb" | "bem"; at: number } | null = null;
+
+  /**
+   * A40: the BEM the relayer holds, the transistors' protocol fee, and whether the processor takes that fee in BEM
+   * (on mainnet it does: paying it in OKB reverts, 2026-11-20), so a tape-out the relayer cannot pay is refused before
+   * anything is sent, and `/api/health` can say how many more it can pay for.
+   */
+  async fees(): Promise<{ bem: bigint; protocolFee: bigint; feeIn: "okb" | "bem" }> {
+    const transistors = (await this.pub.readContract({ address: this.cfg.processor, abi: processorAbi, functionName: "transistors" })) as Address;
+    const [price, protocolFee] = (await Promise.all([
+      this.pub.readContract({ address: transistors, abi: transistorsAbi, functionName: "mintPrice" }),
+      this.pub.readContract({ address: transistors, abi: transistorsAbi, functionName: "protocolFee" }),
+    ])) as [bigint, bigint];
+    if (!this.feeIn || Date.now() - this.feeIn.at > 10 * 60_000) {
+      let is: "okb" | "bem" = "okb";
+      try {
+        await this.pub.simulateContract({ address: transistors, abi: transistorsAbi, functionName: "mint", args: [0n, 1n], value: price + protocolFee, account: this.address, stateOverride: [{ address: this.address, balance: maxUint128 }] });
+      } catch {
+        is = "bem";
+      }
+      this.feeIn = { is, at: Date.now() };
+    }
+    const bemToken = (await this.pub.readContract({ address: FACTORY, abi: [{ type: "function", name: "bem", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] }] as const, functionName: "bem" })) as Address;
+    const bem = (await this.pub.readContract({ address: bemToken, abi: erc20Abi, functionName: "balanceOf", args: [this.address] })) as bigint;
+    return { bem, protocolFee, feeIn: this.feeIn.is };
+  }
+
+  /** How many kinds of transistor (NAND, LATCH) a tape-out must mint: each is one call, and one protocol fee. */
+  async mintCalls(nands: number, latches: number): Promise<number> {
+    const transistors = (await this.pub.readContract({ address: this.cfg.processor, abi: processorAbi, functionName: "transistors" })) as Address;
+    let calls = 0;
+    for (const [id, need] of [
+      [0n, BigInt(nands)],
+      [1n, BigInt(latches)],
+    ] as const) {
+      if (need === 0n) continue;
+      const have = (await this.pub.readContract({ address: transistors, abi: transistorsAbi, functionName: "balanceOf", args: [this.address, id] })) as bigint;
+      if (have < need) calls++;
+    }
+    return calls;
   }
 
   /** Serialises tape-outs so nonces never collide and the budget is exact. */
@@ -328,6 +371,13 @@ export class BrainRelayer {
     if (!this.forKeepsake) {
       const balance = await this.balance().catch(() => 0n);
       if (balance < (this.cfg.reserveWei ?? 0n) + (this.cfg.perTapeoutWei ?? PER_TAPEOUT_WEI)) return { ok: false, reason: "budget", detail: "the relayer's OKB is held for season keepsakes" };
+    }
+    // the transistors' fee, per kind minted: a tape-out the relayer's BEM cannot pay is refused before anything is sent,
+    // rather than failing at the mint after its approval cost gas (A40)
+    const calls = await this.mintCalls(nands, latches).catch(() => 0);
+    if (calls > 0) {
+      const f = await this.fees().catch(() => null);
+      if (f && f.feeIn === "bem" && f.bem < f.protocolFee * BigInt(calls)) return { ok: false, reason: "budget", detail: "the relayer's BEM is too low for the transistor fee" };
     }
     // counted before anything is sent: a tape-out that reverts still spent gas
     this.store.used += 1;

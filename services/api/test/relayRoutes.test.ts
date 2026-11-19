@@ -27,8 +27,8 @@ function fakeRelayer(opts: { reused?: boolean } = {}) {
 const body = { line: "gentle", lessons: [] };
 const post = (app: ReturnType<typeof createApp>, json: unknown, ip = "203.0.113.9") =>
   app.request("/api/tapeout", { method: "POST", headers: { "content-type": "application/json", "cf-connecting-ip": ip }, body: JSON.stringify(json) });
-const appWith = (relayer: unknown, quota = new RelayQuota({ perPetPerDay: 6, perSignerPerDay: 12, perHour: 12 })) =>
-  createApp(null, undefined, relayer as never, new RateLimiter(1000, 3_600_000), null, undefined, isKeeper, quota);
+const appWith = (relayer: unknown, quota = new RelayQuota({ perPetPerDay: 6, perSignerPerDay: 12, perHour: 12 }), isSettled?: (pet: string) => Promise<boolean>) =>
+  createApp(null, undefined, relayer as never, new RateLimiter(1000, 3_600_000), null, undefined, isKeeper, quota, isSettled);
 
 describe("POST /api/tapeout", () => {
   it("tapes out for the pet's owner or its sitter", async () => {
@@ -75,3 +75,25 @@ describe("POST /api/tapeout", () => {
     expect((await post(app, await signRelay(owner, "brain", "7", body))).status).toBe(503);
   });
 });
+
+describe("sponsored tape-outs, by route (A40)", () => {
+  it("a burst of signed requests for one pet, all at once, passes only its daily cap", async () => {
+    const spent: string[] = [];
+    // a relayer that takes its time, so every request is in flight before any finishes
+    const slow = { relay: async (line: string) => (await new Promise((r) => setTimeout(r, 50)), spent.push(line), { ok: true, processor: "0xf70d324da8c1c4cb0de3ff147e53e7e9db543c4e", brainId: "99", reused: false }) };
+    const app = appWith(slow, new RelayQuota({ perPetPerDay: 3, perSignerPerDay: 100, perHour: 100 }));
+    const asks = await Promise.all(Array.from({ length: 8 }, async (_, i) => post(app, await signRelay(owner, "brain", "7", body), `198.51.100.${i}`)));
+    expect(asks.every((r) => r.status === 200)).toBe(true);
+    expect(spent, "only three tape-outs were sent").toHaveLength(3);
+  });
+
+  it("refuses a pet not yet settled once the newcomers' share is used, and says so as an answer", async () => {
+    const f = fakeRelayer();
+    const app = appWith(f.relayer, new RelayQuota({ perPetPerDay: 6, perSignerPerDay: 12, perHour: 4, perDay: 100, newcomerShare: 0.25, lifetime: { newcomer: 3, settled: 40 } }), async () => false);
+    expect(((await (await post(app, await signRelay(owner, "brain", "7", body))).json()) as { ok: boolean }).ok).toBe(true);
+    const r = await post(app, await signRelay(owner, "brain", "8", body));
+    expect([r.status, await r.json()]).toEqual([200, { ok: false, reason: "newcomer" }]);
+    expect(f.spent).toHaveLength(1);
+  });
+});
+

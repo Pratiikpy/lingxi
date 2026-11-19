@@ -1,10 +1,12 @@
 /**
  * The gate in front of the brain relayer, which spends Lingxi's OKB. A request passes only if it is signed, fresh and
  * new by a key that may keep the pet on chain (see `@lingxi/chain`'s relayAuth.ts), and only within quotas per pet,
- * per signer and for everyone each hour. The relayer itself adds a daily ceiling, an hourly ceiling and a reserve
+ * per signer and for everyone each hour, first to pets with standing on chain (A40). The relayer itself adds a daily ceiling, an hourly ceiling and a reserve
  * kept for season keepsakes.
  */
 
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 import { type Address, type Hex, isAddress, recoverMessageAddress } from "viem";
 import { type RelayKind, relayMessage } from "@lingxi/chain";
 
@@ -67,14 +69,55 @@ export async function checkRelayAuth(
   return { ok: true, signer };
 }
 
-/** Tape-outs per pet and per signer each day, and for everyone each hour. A reused brain costs nothing and is not charged. */
+/** The caps on Lingxi's sponsored tape-outs (A40). */
+export interface SponsorCaps {
+  perPetPerDay: number;
+  perSignerPerDay: number;
+  perHour: number;
+  /** the relayer's own daily ceiling, of which newcomers may draw their share */
+  perDay?: number;
+  /** the share of each hour and each day a pet not yet settled on chain may draw */
+  newcomerShare?: number;
+  /** sponsored tape-outs a pet may have in all: before it settles, and over its life */
+  lifetime?: { newcomer: number; settled: number };
+}
+
+/** A slot taken for one tape-out, given back with `refund` when nothing was sent. */
+export interface SponsorTicket {
+  petId: string;
+  signer: string;
+  at: number;
+  settled: boolean;
+  day: string;
+}
+
+/**
+ * Lingxi's sponsored tape-outs: per pet and per signer each day, for everyone each hour, and (A40) first to pets with
+ * standing on chain. A pet not yet settled (PetRegistry.isSettled: three days and its third day saved) draws only the
+ * newcomers' share of each hour and day, and only so many in all before it settles; a settled pet so many over its
+ * life. A slot is taken before the tape-out and given back only if nothing was sent, so no burst can pass a cap. The
+ * lifetime counts are kept in `file`.
+ */
 export class RelayQuota {
   private day = "";
   private perPet = new Map<string, number>();
   private perSigner = new Map<string, number>();
-  private hour: number[] = [];
+  private hour: Array<{ at: number; settled: boolean }> = [];
+  private newcomersToday = 0;
+  private lifetime = new Map<string, number>();
 
-  constructor(private readonly caps: { perPetPerDay: number; perSignerPerDay: number; perHour: number }) {}
+  constructor(
+    private readonly caps: SponsorCaps,
+    private readonly file?: string,
+  ) {
+    if (file && existsSync(file)) {
+      try {
+        for (const [pet, n] of Object.entries(JSON.parse(readFileSync(file, "utf8")) as Record<string, number>)) if (PET.test(pet) && Number.isInteger(n) && n > 0) this.lifetime.set(pet, n);
+      } catch {
+        // an unreadable file starts from nothing; the daily and hourly caps still hold
+      }
+    }
+  }
 
   private roll(now: number) {
     const day = new Date(now).toISOString().slice(0, 10);
@@ -82,21 +125,50 @@ export class RelayQuota {
       this.day = day;
       this.perPet.clear();
       this.perSigner.clear();
+      this.newcomersToday = 0;
     }
-    this.hour = this.hour.filter((t) => now - t < 3_600_000);
+    this.hour = this.hour.filter((h) => now - h.at < 3_600_000);
   }
 
-  allow(petId: string, signer: string, now = Date.now()): boolean {
-    this.roll(now);
-    const s = signer.toLowerCase();
-    return (this.perPet.get(petId) ?? 0) < this.caps.perPetPerDay && (this.perSigner.get(s) ?? 0) < this.caps.perSignerPerDay && this.hour.length < this.caps.perHour;
+  private save() {
+    if (!this.file) return;
+    mkdirSync(dirname(this.file), { recursive: true });
+    writeFileSync(`${this.file}.tmp`, JSON.stringify(Object.fromEntries(this.lifetime)));
+    renameSync(`${this.file}.tmp`, this.file);
   }
 
-  spend(petId: string, signer: string, now = Date.now()): void {
+  /** Takes a slot for one tape-out, or says why not: `busy` (a daily or hourly cap), `newcomer` (the newcomers' share), `lifetime` (the pet's own). */
+  take(petId: string, signer: string, settled: boolean, now = Date.now()): { ok: true; ticket: SponsorTicket } | { ok: false; reason: "busy" | "newcomer" | "lifetime" } {
     this.roll(now);
     const s = signer.toLowerCase();
+    const share = this.caps.newcomerShare ?? 1;
+    const life = this.lifetime.get(petId) ?? 0;
+    if (this.caps.lifetime && life >= (settled ? this.caps.lifetime.settled : this.caps.lifetime.newcomer)) return { ok: false, reason: "lifetime" };
+    if ((this.perPet.get(petId) ?? 0) >= this.caps.perPetPerDay || (this.perSigner.get(s) ?? 0) >= this.caps.perSignerPerDay || this.hour.length >= this.caps.perHour) return { ok: false, reason: "busy" };
+    if (!settled) {
+      const hourNew = this.hour.filter((h) => !h.settled).length;
+      if (hourNew >= Math.floor(this.caps.perHour * share) || (this.caps.perDay !== undefined && this.newcomersToday >= Math.floor(this.caps.perDay * share))) return { ok: false, reason: "newcomer" };
+      this.newcomersToday++;
+    }
     this.perPet.set(petId, (this.perPet.get(petId) ?? 0) + 1);
     this.perSigner.set(s, (this.perSigner.get(s) ?? 0) + 1);
-    this.hour.push(now);
+    this.hour.push({ at: now, settled });
+    this.lifetime.set(petId, life + 1);
+    this.save();
+    return { ok: true, ticket: { petId, signer: s, at: now, settled, day: this.day } };
+  }
+
+  /** Gives a slot back: nothing was sent (a brain already taped out, or a refusal before sending). */
+  refund(t: SponsorTicket): void {
+    const life = this.lifetime.get(t.petId) ?? 0;
+    if (life > 1) this.lifetime.set(t.petId, life - 1);
+    else this.lifetime.delete(t.petId);
+    this.save();
+    if (t.day !== this.day) return;
+    this.perPet.set(t.petId, Math.max(0, (this.perPet.get(t.petId) ?? 0) - 1));
+    this.perSigner.set(t.signer, Math.max(0, (this.perSigner.get(t.signer) ?? 0) - 1));
+    const i = this.hour.findIndex((h) => h.at === t.at && h.settled === t.settled);
+    if (i >= 0) this.hour.splice(i, 1);
+    if (!t.settled) this.newcomersToday = Math.max(0, this.newcomersToday - 1);
   }
 }

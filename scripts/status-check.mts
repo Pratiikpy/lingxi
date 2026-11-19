@@ -248,7 +248,7 @@ async function siteChecks(): Promise<void> {
   try {
     const { res: r, retried } = await steadyFetch(`${LIVE}/api/health`);
     const j = (await r.json()) as Record<string, unknown> & {
-      detail?: { jobs?: Record<string, string>; relayerOkb?: number | null; relayerLow?: boolean; indexerLagBlocks?: number | null; backup?: { ageHours: number; local: boolean; drive: boolean; error: string | null } | null; watchdog?: { ageSeconds: number } | null };
+      detail?: { jobs?: Record<string, string>; relayerOkb?: number | null; relayerLow?: boolean; relayerBem?: number | null; relayerBemTapeouts?: number | null; relayerBemLow?: boolean; indexerLagBlocks?: number | null; backup?: { ageHours: number; local: boolean; drive: boolean; error: string | null } | null; watchdog?: { ageSeconds: number } | null };
     };
     // the switches are booleans; every background job must also be healthy
     const down = Object.entries(j).filter(([k, v]) => k !== "detail" && v !== true).map(([k]) => k);
@@ -257,10 +257,12 @@ async function siteChecks(): Promise<void> {
     const b = j.detail?.backup;
     if (j.detail && (!b || b.ageHours > 26 || !b.local || !b.drive)) failing.push(`backup ${b ? `${b.ageHours}h old, local ${b.local}, drive ${b.drive}${b.error ? `: ${b.error}` : ""}` : "never ran"}`);
     if (j.detail?.relayerLow) failing.push(`relayer low: ${j.detail.relayerOkb} OKB`);
+    // the processor takes the transistor fee in BEM: below ten tape-outs' worth, players would soon be refused (A40)
+    if (j.detail?.relayerBemLow) failing.push(`relayer's BEM low: ${j.detail.relayerBem} BEM, ${j.detail.relayerBemTapeouts} tape-outs' fees`);
     // the watchdog beats every minute; three minutes without one means nothing is watching the site
     const wd = j.detail?.watchdog;
     if (j.detail && (!wd || wd.ageSeconds > 180)) failing.push(`watchdog ${wd ? `silent for ${wd.ageSeconds}s` : "not running"}`);
-    const facts = `${j.detail ? `; relayer ${j.detail.relayerOkb ?? "?"} OKB, indexer ${j.detail.indexerLagBlocks ?? "?"} blocks behind` : ""}${retried.length ? `; ${retryNote("health", retried)}` : ""}`;
+    const facts = `${j.detail ? `; relayer ${j.detail.relayerOkb ?? "?"} OKB and ${j.detail.relayerBem ?? "?"} BEM (${j.detail.relayerBemTapeouts ?? "?"} tape-outs' fees), indexer ${j.detail.indexerLagBlocks ?? "?"} blocks behind` : ""}${retried.length ? `; ${retryNote("health", retried)}` : ""}`;
     record("sites", "live server's parts and jobs are all up", r.ok && !down.length && !failing.length ? "PASS" : "FAIL", [down.length ? `down: ${down.join(", ")}` : "", failing.length ? `failing: ${failing.join("; ")}` : ""].filter(Boolean).join(" ") || `${Object.keys(j.detail?.jobs ?? {}).length} jobs ok${facts}`, t);
   } catch (e) {
     record("sites", "live server's parts are all up", "FAIL", e instanceof Error ? e.message : String(e), t);
