@@ -67,6 +67,7 @@ import { withRpcProxy } from "./rpc";
 import { privateKeyToAccount } from "viem/accounts";
 import { createSalesCounter, withNumbers } from "./numbers";
 import { createListingWatch, withRetiredListings } from "./marketV1";
+import { createDuelStore, withDuels } from "./duels";
 import { buildTree } from "./tree";
 import { type DiaryStore, createDiaryStore } from "./diaries";
 import { MAX_MOVE_CHARS, type MoveStore, createMoveStore } from "./move";
@@ -839,6 +840,8 @@ if (isMain) {
       });
     }
     withMove(app, createMoveStore());
+    // short duel links: a duel code kept under the start of its own hash (A32)
+    withDuels(app, createDuelStore(process.env.LINGXI_DUELS_DIR ?? join(dataDir, "duels")));
     // R2: Little Mars counts today's tape-outs across every X Layer processor
     const lane = createTapeoutCounter(factoryReader(rpc), process.env.LINGXI_LANE_FILE);
     withLane(app, lane);

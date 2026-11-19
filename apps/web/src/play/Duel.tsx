@@ -13,6 +13,7 @@ import { play } from "../game/sound";
 import { PALETTE_OF, type PetStage } from "../scene/textures";
 import { FightView, partnerOfDuel } from "./Arena";
 import { Sprite } from "./Sprite";
+import { tokenCode } from "../game/duelLinks";
 
 type Lang = "en" | "zh";
 const drawn = (s: string): PetStage => (s === "elder" ? "adult" : (s as PetStage));
@@ -30,18 +31,28 @@ const NATURE: Record<string, { en: string; zh: string }> = {
 
 const clearHash = () => history.replaceState(null, "", location.pathname + location.search);
 
-type Arrival = { kind: "challenge"; challenge: Challenge; code: string } | { kind: "result"; result: DuelResult } | { kind: "error" };
+type Token = { kind: "challenge" | "result"; token: string };
+/** `lost`: a short link whose code could not be had (the server no longer keeps it, or cannot be reached). */
+type Arrival = { kind: "challenge"; challenge: Challenge; code: string } | { kind: "result"; result: DuelResult } | { kind: "error" } | { kind: "lost"; token: Token };
 
-function readHash(): Arrival | null {
-  const c = location.hash.match(/^#duel=(lxc1\.[A-Za-z0-9_-]+)$/);
-  const r = location.hash.match(/^#duelr=(lxr1\.[A-Za-z0-9_-]+)$/);
+/** The link in the address: a challenge or a result, as its code or as a short token the server keeps (A32). */
+function hashToken(): Token | null {
+  const c = location.hash.match(/^#duel=(lxc1\.[A-Za-z0-9_-]+|s\.[A-Za-z0-9_-]{16})$/);
+  const r = location.hash.match(/^#duelr=(lxr1\.[A-Za-z0-9_-]+|s\.[A-Za-z0-9_-]{16})$/);
+  return c ? { kind: "challenge", token: c[1]! } : r ? { kind: "result", token: r[1]! } : null;
+}
+
+/** What arrived: the code a token stands for (checked against its id), read as the game reads a duel. */
+async function arrivalOf(t: Token): Promise<Arrival> {
+  const code = await tokenCode(t.token);
+  if (!code && t.token.startsWith("s.")) return { kind: "lost", token: t };
   try {
-    if (c) return { kind: "challenge", challenge: decodeChallenge(c[1]!), code: c[1]! };
-    if (r) return { kind: "result", result: decodeResult(r[1]!) };
+    if (code && t.kind === "challenge" && code.startsWith("lxc1.")) return { kind: "challenge", challenge: decodeChallenge(code), code };
+    if (code && t.kind === "result" && code.startsWith("lxr1.")) return { kind: "result", result: decodeResult(code) };
   } catch {
-    return { kind: "error" };
+    // a damaged code reads as an error below
   }
-  return null;
+  return { kind: "error" };
 }
 
 export function DuelArrival({ hasPet, petName, onAccept }: { hasPet: boolean; petName?: string; onAccept?: (c: Challenge) => void }) {
@@ -50,13 +61,17 @@ export function DuelArrival({ hasPet, petName, onAccept }: { hasPet: boolean; pe
   const [arrival, setArrival] = useState<Arrival | null>(null);
 
   useEffect(() => {
+    let live = true;
     const read = () => {
-      const a = readHash();
-      if (a) {
-        setArrival(a);
+      const t = hashToken();
+      if (t) {
         clearHash();
-        // a challenge opened before hatching waits until there is a pet to answer it
-        if (a.kind === "challenge") sessionStorage.setItem(PENDING, a.code);
+        void arrivalOf(t).then((a) => {
+          if (!live) return;
+          setArrival(a);
+          // a challenge opened before hatching waits until there is a pet to answer it
+          if (a.kind === "challenge") sessionStorage.setItem(PENDING, a.code);
+        });
         return;
       }
       if (hasPet) {
@@ -71,7 +86,10 @@ export function DuelArrival({ hasPet, petName, onAccept }: { hasPet: boolean; pe
     };
     read();
     window.addEventListener("hashchange", read);
-    return () => window.removeEventListener("hashchange", read);
+    return () => {
+      live = false;
+      window.removeEventListener("hashchange", read);
+    };
   }, [hasPet]);
 
   const close = () => {
@@ -83,6 +101,33 @@ export function DuelArrival({ hasPet, petName, onAccept }: { hasPet: boolean; pe
   const replay = useMemo(() => (arrival?.kind === "result" ? duel(arrival.result.challenge, arrival.result.reply) : null), [arrival]);
 
   if (!arrival) return null;
+  if (arrival.kind === "lost") {
+    const { token } = arrival;
+    return (
+      <div className="fam-modal" role="dialog" aria-modal="true">
+        <div className="fam-card">
+          <p>
+            {lang === "zh"
+              ? "找不到这个切磋链接：它可能已经过期，或者暂时连不上服务器。可以再试一次，或请朋友重新发一个。"
+              : "This spar link can't be found: it may have expired, or the server can't be reached right now. Try again, or ask your friend for a new one."}
+          </p>
+          <div className="row">
+            <button type="button" className="btn primary" onClick={() =>
+                void arrivalOf(token).then((a) => {
+                  setArrival(a);
+                  if (a.kind === "challenge") sessionStorage.setItem(PENDING, a.code);
+                })
+              }>
+              {lang === "zh" ? "再试一次" : "Try again"}
+            </button>
+            <button type="button" className="btn" onClick={close}>
+              {lang === "zh" ? "好的" : "OK"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (arrival.kind === "error") {
     return (
       <div className="fam-modal" role="dialog" aria-modal="true">

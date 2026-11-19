@@ -11,6 +11,12 @@ const SELF_VERIFYING_GATEWAY = /^\d+-\d+-\d+\.tapekit\.org$/;
 const PAGES = ["play.html", "verify.html", "handheld.html", "numbers.html", "tree.html", "agents.html"] as const;
 type Page = (typeof PAGES)[number];
 
+/**
+ * The longest fragment a `#go=` link carries: a duel result's whole code (two pets' cards, `MAX_DUEL_RESULT_CODE`)
+ * after `duelr=`, since the on-chain copy has no server to keep it under a short id (A32).
+ */
+export const MAX_GO_FRAGMENT = 190_000;
+
 const siteBase = () => `${location.origin}${location.pathname.replace(/[^/]*$/, "")}`;
 
 /** Everything up to the fragment's content: append e.g. `gift=…` to it. */
@@ -20,7 +26,7 @@ export function linkPrefix(page: Page): string {
 
 /** On the landing page: follow a `#go=` link to its page. Returns true when it is leaving. */
 export function followGoLink(): boolean {
-  const m = /^#go=([a-z]+\.html)(?:~([\w.=%~-]{0,12500}))?$/.exec(location.hash);
+  const m = new RegExp(String.raw`^#go=([a-z]+\.html)(?:~([\w.=%~-]{0,${MAX_GO_FRAGMENT}}))?$`).exec(location.hash);
   if (!m || !(PAGES as readonly string[]).includes(m[1]!)) return false;
   location.replace(`${m[1]}${m[2] ? `#${m[2]}` : ""}`);
   return true;

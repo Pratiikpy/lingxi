@@ -42,6 +42,7 @@ import { ChainCheck } from "./ChainCheck";
 import { SeasonCard } from "./Season";
 import { noteEvent, noteTally, questSlots } from "../game/tally";
 import { markLoss } from "../game/comfort";
+import { linkToken } from "../game/duelLinks";
 
 /** A pet in a replay, or with nothing on: one shared empty outfit, so its drawing is not redone each round. */
 const NO_OUTFIT: Outfit = {};
@@ -221,7 +222,8 @@ export function ArenaPanel({ pet }: { pet: Pet }) {
 
   const makeLink = async () => {
     const id = Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => b.toString(16).padStart(2, "0")).join("");
-    const url = `${linkPrefix("play.html")}duel=${encodeChallenge({ id, from: duelPetOf(pet), at: now() })}`;
+    // a short link when the live server keeps the challenge, the whole code when there is none (A32)
+    const url = `${linkPrefix("play.html")}duel=${await linkToken(encodeChallenge({ id, from: duelPetOf(pet), at: now() }))}`;
     setLink(url);
     play("success");
     try {
@@ -870,7 +872,7 @@ function Result({ pet, partner, result, reward, opponent, duel, cheer, instinct,
             type="button"
             className="btn primary"
             onClick={async () => {
-              const url = `${linkPrefix("play.html")}duelr=${encodeResult(duel)}`;
+              const url = `${linkPrefix("play.html")}duelr=${await linkToken(encodeResult(duel))}`;
               setBackLink(url);
               play("success");
               try {

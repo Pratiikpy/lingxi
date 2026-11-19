@@ -28,7 +28,8 @@ test("a friend's duel link opens straight onto the fight, and leaving ends it (e
   await sheet(a.page, "spar");
   await a.page.getByRole("button", { name: "Challenge a friend by link" }).click();
   const link = await a.page.locator(".sp-link").inputValue();
-  expect(link, "the link carries a challenge").toMatch(/#duel=lxc1\./);
+  // the server keeps the challenge; the link carries only its short id (A32)
+  expect(link, "the link carries a short id for the challenge").toMatch(/#duel=s\.[A-Za-z0-9_-]{16}$/);
 
   const b = await player({ lang: "zh", scheme: "dark", size: "desktop" });
   await hatch(b, "Bo");
@@ -41,6 +42,43 @@ test("a friend's duel link opens straight onto the fight, and leaving ends it (e
   await expect(b.page.locator(".sp-fight"), "against the friend's pet").toContainText("Ari");
   await b.page.screenshot({ path: test.info().outputPath("duel-fight-zh-dark-desktop.png") });
   await leaveMidFight(b.page);
+});
+
+test("a duel's result comes back by a short link; a link the server does not keep says so (en light desktop challenges, zh dark phone answers)", async ({ player }) => {
+  test.setTimeout(240_000);
+  const a = await player({ lang: "en", scheme: "light", size: "desktop" });
+  await hatch(a, "Ari");
+  await sheet(a.page, "spar");
+  await a.page.getByRole("button", { name: "Challenge a friend by link" }).click();
+  const link = await a.page.locator(".sp-link").inputValue();
+  expect(link, "the challenge link is short enough for any chat").toMatch(/\/play\.html#duel=s\.[A-Za-z0-9_-]{16}$/);
+  expect(link.length).toBeLessThan(120);
+  await a.page.keyboard.press("Escape");
+
+  const b = await player({ lang: "zh", scheme: "dark", size: "phone" });
+  await hatch(b, "Bo");
+  await b.page.goto(link.replace(/^https?:\/\/[^/]+\//, `${b.web}/`));
+  await b.page.getByRole("button", { name: "让Bo应战" }).click();
+  await b.page.getByRole("button", { name: "跳到结果" }).click();
+  await b.page.getByRole("button", { name: /把结果发回给/ }).click();
+  const back = await b.page.getByRole("textbox", { name: "结果链接" }).inputValue();
+  expect(back, "the result link is short too").toMatch(/\/play\.html#duelr=s\.[A-Za-z0-9_-]{16}$/);
+  await b.page.screenshot({ path: test.info().outputPath("duel-result-link-zh-dark-phone.png") });
+
+  // the challenger opens the result and watches the fight
+  await a.page.goto(back.replace(/^https?:\/\/[^/]+\//, `${a.web}/`));
+  const replay = a.page.getByRole("dialog", { name: "Spar replay" });
+  await expect(replay, "the result opens as the fight it was").toContainText("Bo vs Ari", { timeout: 20_000 });
+  await a.page.screenshot({ path: test.info().outputPath("duel-result-en-light-desktop.png") });
+
+  // a short id the server never kept: said plainly, with a way to try again, never "damaged"
+  await a.page.goto(`${a.web}/play.html#duel=s.AAAAAAAAAAAAAAAA`);
+  const lost = a.page.getByRole("dialog").filter({ hasText: "can't be found" });
+  await expect(lost, "a link the server does not keep says so").toBeVisible({ timeout: 20_000 });
+  await expect(lost.getByRole("button", { name: "Try again" })).toBeVisible();
+  await a.page.screenshot({ path: test.info().outputPath("duel-lost-en-light-desktop.png") });
+  await lost.getByRole("button", { name: "OK" }).click();
+  await expect(lost).toHaveCount(0);
 });
 
 test("a friend's card starts a spar; a damaged one says so for a moment (en, light, phone)", async ({ player, run }) => {

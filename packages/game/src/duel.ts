@@ -25,6 +25,22 @@ const RESULT = "lxr1.";
  * name, story and id) stays under 2,000.
  */
 export const MAX_DUEL_CODE = Math.ceil(((2 * CARD_MAX + 2_000) * 4) / 3) + 16;
+/** The longest result code read: it carries two pets' cards, the challenger's and the reply's (A32). */
+export const MAX_DUEL_RESULT_CODE = Math.ceil(((4 * CARD_MAX + 4_000) * 4) / 3) + 16;
+
+/** Whether a string is a challenge or a result code (what a short link stands for). */
+export const isDuelCode = (s: string): boolean => s.startsWith(CHALLENGE) || s.startsWith(RESULT);
+
+/**
+ * A short link's id for a duel code (A32): the first 16 characters of the code's SHA-256 in base64url. The same code
+ * always has the same id, and whoever fetches a code by its id can check it hashes back, so whoever keeps the codes
+ * cannot swap one challenge for another.
+ */
+export async function duelLinkId(code: string): Promise<string> {
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(code)));
+  // the digest's own bytes in base64url (b64urlEncode would read them as text first)
+  return btoa(String.fromCharCode(...digest)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "").slice(0, 16);
+}
 const LINES = ["gentle", "bold", "curious"] as const;
 const STAGES = ["baby", "child", "teen", "adult", "elder"] as const;
 type Line = (typeof LINES)[number];
@@ -96,9 +112,9 @@ function readChallenge(v: Record<string, unknown>): Challenge {
   return { id, from: strip(readPet(v.from)), at: Number.isFinite(v.at) ? Math.max(0, Math.floor(v.at as number)) : 0 };
 }
 
-function unpack(code: string, prefix: string): Record<string, unknown> {
+function unpack(code: string, prefix: string, max: number): Record<string, unknown> {
   if (typeof code !== "string" || !code.startsWith(prefix)) throw new DuelError("not a Lingxi challenge");
-  if (code.length > MAX_DUEL_CODE) throw new DuelError("the link is too long");
+  if (code.length > max) throw new DuelError("the link is too long");
   try {
     const v = JSON.parse(b64urlDecode(code.slice(prefix.length))) as unknown;
     if (!v || typeof v !== "object" || Array.isArray(v)) throw new Error();
@@ -108,14 +124,14 @@ function unpack(code: string, prefix: string): Record<string, unknown> {
   }
 }
 
-export const decodeChallenge = (code: string): Challenge => readChallenge(unpack(code, CHALLENGE));
+export const decodeChallenge = (code: string): Challenge => readChallenge(unpack(code, CHALLENGE, MAX_DUEL_CODE));
 
 export function encodeResult(r: DuelResult): string {
   return RESULT + b64urlEncode(JSON.stringify({ challenge: { ...r.challenge, from: strip(r.challenge.from) }, reply: strip(r.reply) }));
 }
 
 export function decodeResult(code: string): DuelResult {
-  const v = unpack(code, RESULT);
+  const v = unpack(code, RESULT, MAX_DUEL_RESULT_CODE);
   return { challenge: readChallenge((v.challenge ?? {}) as Record<string, unknown>), reply: strip(readPet(v.reply)) };
 }
 

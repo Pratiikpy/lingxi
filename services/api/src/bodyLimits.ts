@@ -22,6 +22,8 @@ export const BODY_LIMITS: ReadonlyArray<readonly [RegExp, number]> = [
   // a lesson in words, an arena snapshot or a season entry: each carries the pet's whole card (34,000 characters at
   // most, the game's card budget; A11, A26)
   [/^\/api\/(teach|arena\/snapshot|season\/enter)$/, 48 * KB],
+  // a duel code to keep under a short link: a result carries two pets' whole cards (MAX_DUEL_RESULT_CODE, A32)
+  [/^\/api\/duels$/, 192 * KB],
   [/^\/api\/(voice|lessons\/share|push\/(plan|stop))$/, 16 * KB],
   [/^\/api\/v1\//, 16 * KB],
   [/^\/api\/tapeout/, 24 * KB],
