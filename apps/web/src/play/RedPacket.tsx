@@ -12,7 +12,7 @@ import type { Pet } from "@lingxi/game";
 import { type PacketView } from "@lingxi/chain";
 import { useLang } from "../i18n";
 import { type ClaimsRead, type PacketLink, claimsOf, decodePacketLink, packetsAvailable, readPacket, usdt, usePackets, withClaim } from "../game/packets";
-import { deployment, publicClient, useChain } from "../game/chain";
+import { deployment, explorerTx, publicClient, useChain } from "../game/chain";
 import { useGame } from "../game/store";
 import { play } from "../game/sound";
 import { PALETTE_OF } from "../scene/textures";
@@ -53,7 +53,7 @@ function ClaimsNote({ read, closedLongAgo, lang }: { read: ClaimsRead | null; cl
 /** Fund and send a red packet from the Pet sheet. */
 export function RedPacketPanel({ pet }: { pet: Pet }) {
   const lang = useLang((s) => s.lang) as Lang;
-  const { send, busy, error, sent, balance } = usePackets();
+  const { send, busy, error, sent, pending, recover, balance } = usePackets();
   const [amount, setAmount] = useState("8.88");
   const [count, setCount] = useState(4);
   const [lucky, setLucky] = useState(true);
@@ -66,6 +66,13 @@ export function RedPacketPanel({ pet }: { pet: Pet }) {
   useEffect(() => {
     if (packetsAvailable()) void balance().then(setBal);
   }, [balance, link]);
+  // a packet sent and not yet matched to its link is looked for now, and every 15 seconds while one waits (A42)
+  useEffect(() => {
+    if (!packetsAvailable() || pending.length === 0) return;
+    void recover();
+    const t = setInterval(() => void recover(), 15_000);
+    return () => clearInterval(t);
+  }, [pending.length, recover]);
   if (!packetsAvailable()) return null;
   const value = Number(amount);
   const valid = Number.isFinite(value) && value >= 0.01 * count && count >= 1 && count <= 16;
@@ -144,7 +151,19 @@ export function RedPacketPanel({ pet }: { pet: Pet }) {
           </label>
           {bal !== null && <p className="small">{lang === "zh" ? `钱包里有 ${usdt(bal)} USDT` : `Your wallet holds ${usdt(bal)} USDT`}</p>}
           {tooMuch && <p className="small warn">{lang === "zh" ? "钱包里的 USDT 不够。" : "Not enough USDT in your wallet."}</p>}
-          {error && <p className="err" role="alert">{lang === "zh" ? `没发出去：${error}` : `Didn't send: ${error}`}</p>}
+          {error === "packetPending" ? (
+            <p className="small" role="status">
+              {lang === "zh"
+                ? "红包已经发到 X Layer，还在确认。确认后它的链接会出现在下面的“你发出的红包”里，不会重复发送。"
+                : "Your packet was sent to X Layer and is still being confirmed. Its link appears under \"Packets you sent\" as soon as it is; nothing is sent twice."}
+            </p>
+          ) : error === "packetFailed" ? (
+            <p className="err" role="alert">
+              {lang === "zh" ? "X Layer 拒绝了这个红包，USDT 还在你的钱包里，只花了网络手续费。" : "X Layer refused the packet, so its USDT stayed in your wallet; only the network fee was spent."}
+            </p>
+          ) : (
+            error && <p className="err" role="alert">{lang === "zh" ? `没发出去：${error}` : `Didn't send: ${error}`}</p>
+          )}
           <button
             type="button"
             className="btn primary rp-go"
@@ -162,6 +181,24 @@ export function RedPacketPanel({ pet }: { pet: Pet }) {
           </button>
         </>
       )}
+      {pending.length > 0 && (
+        <div className="rp-sent rp-confirming">
+          <p className="small">{lang === "zh" ? "正在确认的红包" : "Packets being confirmed"}</p>
+          <ul>
+            {pending.map((p) => (
+              <li key={p.key}>
+                <b>{p.total} USDT</b>
+                <span className="small">{lang === "zh" ? ` · ${p.count} 份 · 链接会在确认后出现` : ` · ${p.count} shares · its link appears once confirmed`}</span>
+                {p.tx && explorerTx(p.tx) && (
+                  <a className="small" href={explorerTx(p.tx)!} target="_blank" rel="noopener noreferrer">
+                    {lang === "zh" ? "查看交易" : "View transaction"}
+                  </a>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {sent.length > 0 && <SentList />}
     </div>
   );
@@ -171,6 +208,9 @@ function SentList() {
   const lang = useLang((s) => s.lang) as Lang;
   const { sent, refund } = usePackets();
   const [views, setViews] = useState<Record<string, PacketView>>({});
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  /** the chain's own time: a packet's expiry is X Layer's, and a device's clock may be off (A42) */
+  const [chainNow, setChainNow] = useState<number | null>(null);
   const [tick, setTick] = useState(0);
   useEffect(() => {
     if (!deployment) return;
@@ -178,6 +218,10 @@ function SentList() {
     void Promise.all(sent.slice(0, 5).map(async (s) => [s.id, await readPacket(publicClient, deployment!, BigInt(s.id))] as const)).then((rows) => {
       if (live) setViews(Object.fromEntries(rows));
     });
+    void publicClient.getBlock().then(
+      (b) => live && setChainNow(Number(b.timestamp)),
+      () => live && setChainNow(Math.floor(now() / 1000)),
+    );
     return () => {
       live = false;
     };
@@ -188,7 +232,7 @@ function SentList() {
       <ul>
         {sent.slice(0, 5).map((s) => {
           const v = views[s.id];
-          const expired = v && now() / 1000 >= v.expiry;
+          const expired = v && chainNow !== null && chainNow >= v.expiry;
           return (
             <li key={s.id}>
               <b>#{s.id}</b> {s.total} USDT
@@ -196,6 +240,24 @@ function SentList() {
                 <span className="small">
                   {lang === "zh" ? ` · 已领 ${v.paid}/${v.count} · 剩 ${usdt(v.remaining)}` : ` · ${v.paid}/${v.count} opened · ${usdt(v.remaining)} left`}
                 </span>
+              )}
+              {/* the link again, for a packet sent earlier or found after its tab closed (A42) */}
+              {v && chainNow !== null && !expired && v.paid < v.count && (
+                <button
+                  type="button"
+                  className="btn rp-copy"
+                  onClick={async () => {
+                    play("tap");
+                    try {
+                      await navigator.clipboard.writeText(s.link);
+                      setCopiedId(s.id);
+                    } catch {
+                      setCopiedId(null);
+                    }
+                  }}
+                >
+                  {copiedId === s.id ? (lang === "zh" ? "已复制" : "Copied") : lang === "zh" ? "复制链接" : "Copy link"}
+                </button>
               )}
               {v && expired && v.remaining > 0n && (
                 <button type="button" className="btn" onClick={async () => (await refund(s.id)) && (play("success"), setTick((t) => t + 1))}>

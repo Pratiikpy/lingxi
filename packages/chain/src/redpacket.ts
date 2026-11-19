@@ -22,6 +22,8 @@ export interface PacketView {
   lucky: boolean;
   petOwnersOnly: boolean;
   token: Address;
+  /** the address of the link's one-time key */
+  key: Address;
   remaining: bigint;
   floor: bigint;
   extra: bigint;
@@ -54,6 +56,8 @@ export async function createPacket(
   wallet: WalletClient,
   d: Deployment,
   o: { token: Address; total: bigint; count: number; lifetimeSec: number; key: Address; lucky: boolean; petOwnersOnly: boolean },
+  /** told just before the wallet is asked to send the packet, and with its transaction the moment the wallet sent it */
+  hooks: { sending?: () => void; sent?: (tx: Hex) => void } = {},
 ): Promise<{ id: bigint; tx: Hex }> {
   const rp = need(d);
   const account = acct(wallet);
@@ -71,12 +75,24 @@ export async function createPacket(
     args: [o.token, o.total, o.count, 0n, BigInt(o.lifetimeSec), o.key, o.lucky, o.petOwnersOnly],
     account,
   });
+  hooks.sending?.();
   const tx = await wallet.writeContract(request);
+  hooks.sent?.(tx);
   const r = await pub.waitForTransactionReceipt({ hash: tx });
   if (r.status !== "success") throw new RevertedOnChain("create", r.transactionHash);
-  const ev = parseEventLogs({ abi: redPacketAbi, logs: r.logs, eventName: "Created" })[0];
-  if (!ev) throw new Error("no Created event");
-  return { id: ev.args.id, tx };
+  const id = createdIn(r.logs);
+  if (id === null) throw new Error("no Created event");
+  return { id, tx };
+}
+
+/** The packet a transaction created, read from its receipt's logs; null if it created none. */
+export function createdIn(logs: Parameters<typeof parseEventLogs>[0]["logs"]): bigint | null {
+  return parseEventLogs({ abi: redPacketAbi, logs, eventName: "Created" })[0]?.args.id ?? null;
+}
+
+/** The id the next packet will get: every packet made after this reading has an id at least this. */
+export async function nextPacketId(pub: PublicClient, d: Deployment): Promise<bigint> {
+  return (await pub.readContract({ address: need(d), abi: redPacketAbi, functionName: "nextId" })) as bigint;
 }
 
 /** The link key signs the claimer's address; the signature is useless to anyone else. */
