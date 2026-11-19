@@ -5,7 +5,7 @@
  * largest one a card could carry with no REF at all.
  */
 import { describe, expect, it } from "vitest";
-import { NAND, LATCH, REF, bytesToHex, encode, type Element } from "@lingxi/brain";
+import { NAND, REF, bytesToHex, encode, type Element } from "@lingxi/brain";
 import { CARD_OUTSIDE_MAX, INSTINCT_MAX_GATES, MAX_RUN_GATES, MAX_GATES_SKILLED, cleanOutside, instinctGates, parseCard, petCard } from "../src";
 
 const cpu = `0x${"ab".repeat(20)}`;
