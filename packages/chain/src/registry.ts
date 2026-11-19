@@ -4,6 +4,7 @@
  */
 
 import { keccak256, type Address, type Hex, type PublicClient, type WalletClient } from "viem";
+import { LOOK_LINES } from "./look";
 import { petLookAbi } from "./lookAbi";
 import { hatchedPetIdFrom } from "./receipts";
 import { petRegistryAbi } from "./registryAbi";
@@ -117,15 +118,45 @@ export async function readNetlist(pub: PublicClient, processor: Address, id: big
   return { bytes: bytes as Hex, nIn: Number(nIn), nOut: Number(nOut), nState: Number(nState), gates: Number(gates) };
 }
 
-export async function hatchOnChain(pub: PublicClient, wallet: WalletClient, d: Deployment, line: number, lineName: string, initialState: bigint): Promise<{ petId: bigint; tx: Hex }> {
+/** A line by name, in the registry's order: its index is the line the registry records. */
+export type Line = (typeof LOOK_LINES)[number];
+
+/** The line a state word carries (bits 152-153, as the game packs it; 3 is no line). */
+export const lineOfState = (state: bigint): number => Number((state >> 152n) & 3n);
+
+/**
+ * A write refused before any wallet prompt because the state is another line's pet (A18): a hatch whose starting
+ * state is not its line's, or a day's save over a pet of another line, which no later save could undo.
+ */
+export class LineMismatchError extends Error {
+  constructor(
+    readonly line: string,
+    readonly stateLine: string,
+  ) {
+    super(`this state is a ${stateLine} pet's, not a ${line} pet's: not written`);
+    this.name = "LineMismatchError";
+  }
+}
+
+const lineName = (i: number) => LOOK_LINES[i] ?? `line ${i}`;
+
+/**
+ * Hatches a pet of `line` with its starting state. The registry's line index is derived here from the name, and a
+ * state of another line is refused: mainnet pet #2 was hatched with index 0 and a bold state by a script that passed
+ * the two separately (A18).
+ */
+export async function hatchOnChain(pub: PublicClient, wallet: WalletClient, d: Deployment, line: Line, initialState: bigint): Promise<{ petId: bigint; tx: Hex }> {
   const account = wallet.account;
   if (!account) throw new Error("wallet has no account");
-  const brainId = BigInt(d.circuits[lineName]!.id);
+  const index = LOOK_LINES.indexOf(line);
+  if (index < 0) throw new Error(`unknown line ${line}`);
+  if (lineOfState(initialState) !== index) throw new LineMismatchError(line, lineName(lineOfState(initialState)));
+  const brainId = BigInt(d.circuits[line]!.id);
   const { request } = await pub.simulateContract({
     address: d.registry,
     abi: petRegistryAbi,
     functionName: "hatch",
-    args: [account.address, line, d.processor, brainId, initialState],
+    args: [account.address, index, d.processor, brainId, initialState],
     account,
   });
   const tx = await wallet.writeContract(request);
@@ -135,9 +166,12 @@ export async function hatchOnChain(pub: PublicClient, wallet: WalletClient, d: D
   return { petId: hatchedPetIdFrom(r, d.registry, account.address), tx };
 }
 
+/** Saves a day: refused, before any wallet prompt, when the state is not of the pet's recorded line (A18). */
 export async function checkpointOnChain(pub: PublicClient, wallet: WalletClient, d: Deployment, petId: bigint, day: number, state: bigint, logHash: Hex): Promise<Hex> {
   const account = wallet.account;
   if (!account) throw new Error("wallet has no account");
+  const recorded = (await pub.readContract({ address: d.registry, abi: petRegistryAbi, functionName: "pet", args: [petId] })) as { line: number };
+  if (lineOfState(state) !== Number(recorded.line)) throw new LineMismatchError(lineName(Number(recorded.line)), lineName(lineOfState(state)));
   const { request } = await pub.simulateContract({
     address: d.registry,
     abi: petRegistryAbi,

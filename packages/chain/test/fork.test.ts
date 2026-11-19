@@ -37,7 +37,7 @@ describe.skipIf(!RPC || !KEY_FILE)("a pet's day, proven on an X Layer fork", () 
     pet = care(pet, { kind: "play" }, t0 + 120_000, brain).pet;
     pet = catchUp(pet, t0 + 3 * 3_600_000, brain);
 
-    const { petId } = await hatchOnChain(pub, wallet, d, 0, "gentle", born);
+    const { petId } = await hatchOnChain(pub, wallet, d, "gentle", born);
     const onChain0 = await readPet(pub, d, petId);
     expect(onChain0.owner).toBe(account.address);
     expect(onChain0.brainId).toBe(BigInt(d.circuits.gentle!.id));

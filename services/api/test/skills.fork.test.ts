@@ -45,7 +45,7 @@ describe.skipIf(!RPC || !RELAY_KEY_FILE || !FILE)("a skilled brain, taped out an
     // a pet hatched and moved onto that circuit
     const brain = { fast: fastBrain(compileProgram(STARTERS.gentle)), nState: stateBits(STARTERS.gentle) };
     const pet = createPet({ name: "Skilled", line: "gentle", now: Date.now(), tzOffsetMin: 0, brain });
-    const { petId } = await hatchOnChain(pub, wallet, d, 0, "gentle", packState(pet, "baby"));
+    const { petId } = await hatchOnChain(pub, wallet, d, "gentle", packState(pet, "baby"));
     await setBrainOnChain(pub, wallet, d, petId, d.processor as Address, BigInt(r.brainId));
     expect((await readPet(pub, d, petId)).brainId).toBe(BigInt(r.brainId));
     expect((await readPet(pub, d, petId)).brainBits).toBe(game.nState);

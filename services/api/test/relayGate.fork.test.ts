@@ -37,7 +37,7 @@ describe.skipIf(!RPC || !RELAY_KEY_FILE)("the relay gate, on an X Layer fork", (
     const t0 = Number((await pub.getBlock()).timestamp) * 1000;
     const brain = mindBrain({ line: "gentle", lessons: [] });
     const pet = createPet({ name: "Sora", line: "gentle", now: t0, tzOffsetMin: 0, brain: { fast: brain.fast, nState: brain.nState, program: STARTERS.gentle } });
-    const { petId } = await hatchOnChain(pub, wallet, d, 0, "gentle", packState(pet, "baby"));
+    const { petId } = await hatchOnChain(pub, wallet, d, "gentle", packState(pet, "baby"));
     expect((await readPet(pub, d, petId)).owner.toLowerCase()).toBe(owner.address.toLowerCase());
 
     const env = Object.fromEntries(readFileSync(RELAY_KEY_FILE!, "utf8").split(/\r?\n/).filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).trim()]));

@@ -43,7 +43,7 @@ const brain = { fast: fastBrain(compileProgram(program)), nState: stateBits(prog
 const t0 = Number((await pub.getBlock()).timestamp) * 1000;
 let pet = createPet({ name: arg("name", "Mochi")!, line, now: t0, tzOffsetMin: 480, brain });
 const born = packState(pet, "baby");
-const { petId, tx } = await hatchOnChain(pub, wallet, d, ["gentle", "bold", "curious"].indexOf(line), line, born);
+const { petId, tx } = await hatchOnChain(pub, wallet, d, line, born);
 console.log(`hatched pet #${petId}: ${tx}`);
 // its first hours, under the game's own rules
 pet = care(pet, { kind: "feed", food: "mochi" }, t0 + 60_000, brain).pet;

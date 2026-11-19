@@ -12,7 +12,7 @@ import { useBadges } from "./badges";
 import { create } from "zustand";
 import { createPublicClient, createWalletClient, custom, erc20Abi, http, isAddress, type Address, type Hex, type PublicClient, type WalletClient, fallback } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { type Deployment, type TapeQuote, type TapeStep, allowPartnerOnChain, breedOnChain, breedingTerms, checkPartner, hasConsent, checkpointOnChain, hatchOnChain, quoteTapeout, readKeeping, readPet, setBrainOnChain, setSitterOnChain, signRelay, type SignedRelay, tapeOutYourself, xLayer, refusesTokens } from "@lingxi/chain";
+import { type Deployment, type TapeQuote, type TapeStep, allowPartnerOnChain, breedOnChain, breedingTerms, checkPartner, hasConsent, checkpointOnChain, hatchOnChain, quoteTapeout, readKeeping, readPet, setBrainOnChain, setSitterOnChain, signRelay, type SignedRelay, tapeOutYourself, xLayer, refusesTokens, LineMismatchError } from "@lingxi/chain";
 import { compileProgram, netlistBytes } from "@lingxi/brain";
 import { AUTO_DAYS, AUTO_FUND, AUTO_LOW, sessionAccount, sessionWallet } from "./session";
 import { type Pet, logSegments, packState, petCard, stageOf, unpackState, ruleSkillIds } from "@lingxi/game";
@@ -351,8 +351,7 @@ export const useChain = create<ChainState>((set, get) => ({
     try {
       const wallet = await connectWallet();
       set({ busy: "hatching" });
-      const line = LINES.indexOf(pet.line);
-      const { petId, tx } = await hatchOnChain(publicClient, wallet, deployment, line, pet.line, packState(pet, stageOf(pet, gameNow())));
+      const { petId, tx } = await hatchOnChain(publicClient, wallet, deployment, pet.line, packState(pet, stageOf(pet, gameNow())));
       const onChain = await readPet(publicClient, deployment, petId);
       const record: ChainRecord = {
         petId: petId.toString(),
@@ -379,7 +378,7 @@ export const useChain = create<ChainState>((set, get) => ({
       set({ record: activeRecord(), busy: "idle" });
     } catch (e) {
       // an address whose code refuses tokens is told so (A13); any other failure by its first line
-      set({ busy: "idle", error: refusesTokens(e) ? "cannotReceive" : firstLine(e) });
+      set({ busy: "idle", error: refusesTokens(e) ? "cannotReceive" : e instanceof LineMismatchError ? "notThisPet" : firstLine(e) });
     }
   },
   saveToday: async (pet, onSaved, quiet = false) => {
@@ -407,7 +406,8 @@ export const useChain = create<ChainState>((set, get) => ({
       noteTally("SAVE");
       onSaved();
     } catch (e) {
-      set({ busy: "idle", error: quiet ? null : firstLine(e) });
+      // a state of another line is never written over a pet (A18): said, not left as a raw message
+      set({ busy: "idle", error: quiet ? null : e instanceof LineMismatchError ? "notThisPet" : firstLine(e) });
     }
   },
   enableAuto: async (pet) => {

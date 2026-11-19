@@ -47,8 +47,8 @@ describe.skipIf(!RPC || !RELAY_KEY_FILE)("a family, proven on an X Layer fork", 
     const t0 = Number((await pub.getBlock()).timestamp) * 1000;
     const petA = createPet({ name: "Mochi", line: "gentle", now: t0, tzOffsetMin: 0, brain: brainOf("gentle") });
     const petB = createPet({ name: "Tofu", line: "bold", now: t0, tzOffsetMin: 0, brain: brainOf("bold") });
-    const { petId: a } = await hatchOnChain(pub, alice!, d, 0, "gentle", packState(petA, "baby"));
-    const { petId: b } = await hatchOnChain(pub, bob!, d, 1, "bold", packState(petB, "baby"));
+    const { petId: a } = await hatchOnChain(pub, alice!, d, "gentle", packState(petA, "baby"));
+    const { petId: b } = await hatchOnChain(pub, bob!, d, "bold", packState(petB, "baby"));
 
     // nine days later both are grown, and their checkpoints say so
     await rpc("evm_increaseTime", [9 * 86_400]);

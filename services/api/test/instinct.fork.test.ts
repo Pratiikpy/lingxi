@@ -33,7 +33,7 @@ describe.skipIf(!RPC || !RELAY_KEY_FILE)("an owned instinct, proven on an X Laye
 
     const t0 = Number((await pub.getBlock()).timestamp) * 1000;
     const pet = createPet({ name: "Mochi", line: "bold", now: t0, tzOffsetMin: 0, brain: { fast: mindBrain({ line: "bold", lessons: [] }).fast, nState: mindBrain({ line: "bold", lessons: [] }).nState, program: STARTERS.bold } });
-    const { petId } = await hatchOnChain(pub, alice, d, 1, "bold", packState(pet, "baby"));
+    const { petId } = await hatchOnChain(pub, alice, d, "bold", packState(pet, "baby"));
     const before = await readPet(pub, d, petId);
 
     const env = Object.fromEntries(readFileSync(RELAY_KEY_FILE!, "utf8").split(/\r?\n/).filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).trim()]));

@@ -49,14 +49,14 @@ describe.skipIf(!RPC || !RELAY_KEY_FILE || !FILE)("community goals, counted from
     // before the window: Alice hatches her pet (a new pet that must not count)
     const t0 = head * 1000;
     const petA = createPet({ name: "Mochi", line: "gentle", now: t0, tzOffsetMin: 0, brain: brain("gentle") });
-    const { petId: a } = await hatchOnChain(pub, alice!, d, 0, "gentle", packState(petA, "baby"));
+    const { petId: a } = await hatchOnChain(pub, alice!, d, "gentle", packState(petA, "baby"));
 
     // the window opens: Alice saves day 1, Bob hatches his pet
     await rpc("evm_setNextBlockTimestamp", [g1.start + 600]);
     await rpc("evm_mine", []);
     await checkpointOnChain(pub, alice!, d, a, 1, packState(petA, "baby"), petA.logHash as Hex);
     const petB = createPet({ name: "Tofu", line: "bold", now: (g1.start + 600) * 1000, tzOffsetMin: 0, brain: brain("bold") });
-    const { petId: b } = await hatchOnChain(pub, bob!, d, 1, "bold", packState(petB, "baby"));
+    const { petId: b } = await hatchOnChain(pub, bob!, d, "bold", packState(petB, "baby"));
     // a day later Alice saves again, then gives her pet to Carol
     await rpc("evm_increaseTime", [86_400]);
     await rpc("evm_mine", []);
