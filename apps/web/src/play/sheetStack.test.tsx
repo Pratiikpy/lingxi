@@ -2,6 +2,7 @@
 /** A124: a sheet opened from another opens on top of it, as Escape already assumes. */
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
+import { MotionGlobalConfig } from "motion/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { leave, visit } from "../game/testGame";
 
@@ -11,6 +12,8 @@ describe("stacked sheets (A124)", () => {
   it("the sheet opened second is drawn above the first, its scrim too, whatever their order on the page", async () => {
     await visit({ at: Date.UTC(2026, 10, 21, 9) });
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    // the sheets' slide is not what is tested, and an animation cut short by the unmount would be reported as an error
+    MotionGlobalConfig.skipAnimations = true;
     const { Sheet } = await import("./Sheets");
     // the skills sheet comes first on the page and the pet's sheet after it, as in the game
     const page = (skills: boolean) =>
@@ -33,5 +36,6 @@ describe("stacked sheets (A124)", () => {
     expect(Math.max(...scrims), "its scrim covers the sheet below").toBeGreaterThan(z(sheet("About")));
     act(() => root.unmount());
     host.remove();
+    MotionGlobalConfig.skipAnimations = false;
   });
 });
