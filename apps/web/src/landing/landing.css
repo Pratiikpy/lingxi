@@ -629,7 +629,7 @@
   font-size: 13px;
 }
 .sd-head .mono {
-  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-family: var(--mono);
   color: var(--ink-soft);
 }
 .sd-ring {

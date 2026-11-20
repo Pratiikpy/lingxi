@@ -173,7 +173,7 @@
   gap: 6px;
 }
 .fam-address {
-  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-family: var(--mono);
   font-size: 12.5px;
   overflow-wrap: anywhere;
   color: var(--ink);

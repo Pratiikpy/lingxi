@@ -27,6 +27,8 @@
   --display: "Pixelify Sans Variable", "Baloo 2 Variable", ui-rounded, system-ui, sans-serif;
   --round: "Baloo 2 Variable", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", ui-rounded, system-ui, sans-serif;
   --body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* code: real monospace faces first, so a Chinese page never hands code to a CJK serif (A99) */
+  --mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, "Liberation Mono", "Noto Sans Mono", monospace;
 
   --r-sm: 12px;
   --r-md: 18px;
@@ -87,6 +89,12 @@ body,
 #root {
   height: 100%;
   margin: 0;
+}
+pre,
+code,
+kbd,
+samp {
+  font-family: var(--mono);
 }
 body {
   background: var(--page);

@@ -115,7 +115,7 @@
   overflow-wrap: anywhere;
 }
 .mono {
-  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-family: var(--mono);
   font-variant-numeric: tabular-nums;
   font-size: 13px;
 }
