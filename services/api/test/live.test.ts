@@ -376,7 +376,9 @@ describe("live rooms send a card once per change, limit asks, and let quiet conn
   });
 
   it("a connection silent past the idle time is closed with 4001, and one that does not answer pings is dropped", async () => {
-    const quiet = new LiveRooms(undefined, undefined, { idleMs: 400, pingMs: 150 });
+    // the idle time far past the ping cycle, so which rule closed a socket shows in its close code alone (an idle close
+    // is 4001), never in a wall-clock bound a busy machine can miss
+    const quiet = new LiveRooms(undefined, undefined, { idleMs: 2_000, pingMs: 150 });
     const server = createServer();
     attachLive(server, quiet, ["http://ok.test"]);
     await new Promise<void>((r) => server.listen(0, r));
@@ -386,10 +388,8 @@ describe("live rooms send a card once per change, limit asks, and let quiet conn
     expect(code, "closed as idle").toBe(4001);
     // a socket that stops answering pings (its pong handler removed, as a dead peer would) is dropped before the idle time
     const dead = new WebSocket(`ws://127.0.0.1:${at}/live`, { headers: { origin: "http://ok.test", "cf-connecting-ip": "203.0.113.62" }, autoPong: false } as never);
-    const t0 = Date.now();
     const deadCode = await new Promise<number>((r) => dead.on("close", (c) => r(c)));
-    expect(deadCode).not.toBe(4001);
-    expect(Date.now() - t0, "dropped for not answering, before the idle time").toBeLessThan(400);
+    expect(deadCode, "dropped for not answering pings, before the idle time could close it").not.toBe(4001);
     server.close();
   });
 });
