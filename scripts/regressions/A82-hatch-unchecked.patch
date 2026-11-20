@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/chain.ts
++++ b/apps/web/src/game/chain.ts
+@@ -634,7 +634,7 @@ export const useChain = create<ChainState>((set, get) => ({
+       if (sent) {
+         set({ busy: "hatching" });
+         // a check X Layer could not answer is never taken for a hatch that was not sent (A82)
+-        const out = await hatchOutcome(publicClient, deployment, sent.tx, sent.owner as Hex).catch(() => "unchecked" as const);
++        const out = await hatchOutcome(publicClient, deployment, sent.tx, sent.owner as Hex).catch(() => "unknown" as const);
+         if (out === "unchecked") return set({ busy: "idle", error: "hatchUnchecked" });
+         if (out === "pending" || (out === "unknown" && Date.now() - sent.at < PENDING_FORGET_MS)) return set({ busy: "idle", error: "hatchPending" });
+         if (typeof out === "object") record = await recordFrom(out.petId, sent.tx, sent.owner, sent);

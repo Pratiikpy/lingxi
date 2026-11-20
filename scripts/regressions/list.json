@@ -1336,5 +1336,23 @@
     "row": "A81",
     "bug": "visitors' reads fell back to the jobs' node with no budget",
     "test": { "kind": "vitest", "dir": "services/api", "file": "test/visitorBudget.test.ts", "name": "passes calls up to its budget and refuses the next at once, without reaching the node" }
+  },
+  {
+    "id": "A82-outcome-not-found-only",
+    "row": "A82",
+    "bug": "a node that failed to answer was read as a hatch or birth the chain knew nothing of",
+    "test": { "kind": "vitest", "dir": "packages/chain", "file": "test/outcomes.test.ts", "name": "a node that fails to answer is not a transaction that was never sent" }
+  },
+  {
+    "id": "A82-packet-unread-kept",
+    "row": "A82",
+    "bug": "a red packet that could not be read once lost its only link key after a day",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/packets.test.ts", "name": "a key is kept past a day while its packet cannot be read, and its link appears once it can (A82)" }
+  },
+  {
+    "id": "A82-hatch-unchecked",
+    "row": "A82",
+    "bug": "a pending hatch whose check failed after half an hour was dropped and a second hatch sent",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/chain.test.ts", "name": "a hatch whose check fails while X Layer is down is never taken for one that was not sent, however long ago (A82)" }
   }
 ]

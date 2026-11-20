@@ -1,0 +1,11 @@
+--- a/packages/chain/src/registry.ts
++++ b/packages/chain/src/registry.ts
+@@ -164,7 +164,7 @@ export async function sentState(pub: PublicClient, tx: Hex): Promise<Transaction
+   try {
+     return await pub.getTransactionReceipt({ hash: tx });
+   } catch (e) {
+-    if (!(e instanceof TransactionReceiptNotFoundError)) throw e;
++    if (!(e instanceof TransactionReceiptNotFoundError) && false) throw e;
+   }
+   try {
+     await pub.getTransaction({ hash: tx });

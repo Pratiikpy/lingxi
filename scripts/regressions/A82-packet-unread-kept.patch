@@ -1,0 +1,13 @@
+--- a/apps/web/src/game/packets.ts
++++ b/apps/web/src/game/packets.ts
+@@ -164,8 +164,8 @@ export const usePackets = create<PacketStore>((set, get) => {
+     const end = await nextPacketId(publicClient, deployment!);
+     const last = BigInt(p.fromId) + BigInt(SCAN_LIMIT);
+     for (let id = BigInt(p.fromId); id < end && id < last; id++) {
+-      const v = await readPacket(publicClient, deployment!, id);
+-      if (v.key.toLowerCase() === p.keyAddress.toLowerCase() && v.sender.toLowerCase() === p.sender.toLowerCase()) return id;
++      const v = await readPacket(publicClient, deployment!, id).catch(() => null);
++      if (v && v.key.toLowerCase() === p.keyAddress.toLowerCase() && v.sender.toLowerCase() === p.sender.toLowerCase()) return id;
+     }
+     return null;
+   };
