@@ -1114,5 +1114,11 @@
     "row": "A53",
     "bug": "one address could spend the whole day's model budget, leaving teaching resting for everyone",
     "test": { "kind": "vitest", "dir": "services/api", "file": "test/tokenBudget.test.ts", "name": "one address past its share is told yourShare while another address teaches on" }
+  },
+  {
+    "id": "A54-ipv6-by-64",
+    "row": "A54",
+    "bug": "one IPv6 /64 could rotate addresses past every per-address limit",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/clientip.test.ts", "name": "holds a caller rotating addresses inside one /64 to the season's per-address cap" }
   }
 ]
