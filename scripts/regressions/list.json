@@ -1294,5 +1294,17 @@
     "row": "A77",
     "bug": "a card kept any field its sender added, so padding travelled to every friend",
     "test": { "kind": "vitest", "dir": "services/api", "file": "test/live.test.ts", "name": "a padded card is kept in its own shape, and answering twice sends it once" }
+  },
+  {
+    "id": "A78-heavy-reads-limited",
+    "row": "A78",
+    "bug": "a season week, a diary, a duel link, the tree and an agent's pet could be read without limit",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/heavyReads.test.ts", "name": "the season answers \"busy\" past its limit, and another caller is not affected" }
+  },
+  {
+    "id": "A78-entered-cards-small",
+    "row": "A78",
+    "bug": "a card entered in the season or the arena kept its sender's padding",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/heavyReads.test.ts", "name": "a padded card entered in the season or the arena is kept in its own shape" }
   }
 ]

@@ -1,0 +1,11 @@
+--- a/services/api/src/arena.ts
++++ b/services/api/src/arena.ts
+@@ -39,7 +39,7 @@ export function validSnapshot(pet: unknown, team: unknown): { pet: DuelPet; team
+   if (!p || typeof p.name !== "string" || p.name.length < 1 || p.name.length > 24) return null;
+   if (!LINES.has(p.line as string) || !STAGES.has(p.stage as string) || typeof p.card !== "string") return null;
+   // the card in its own shape: nothing a sender adds is kept or served to others (A78)
+-  const card = canonicalCard(p.card);
++  const card = canonicalCard(p.card) ? p.card : null;
+   if (!card) return null;
+   const clean: DuelPet = { name: p.name, line: p.line!, stage: p.stage!, card, story: { days: 0, lessons: 0, nature: [] } };
+   try {

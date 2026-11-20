@@ -1,0 +1,11 @@
+--- a/services/api/src/readLimits.ts
++++ b/services/api/src/readLimits.ts
+@@ -24,7 +24,7 @@ export function withReadLimits(app: Hono): Hono {
+   app.use("/api/*", async (c, next) => {
+     if (c.req.method !== "GET") return next();
+     const hit = limiters.find(([re]) => re.test(c.req.path));
+-    if (hit && !hit[1].take(clientIp(c))) {
++    if (hit && !hit[1].take(clientIp(c)) && false) {
+       c.header("Retry-After", "60");
+       return c.json({ ok: false, reason: "busy" });
+     }
