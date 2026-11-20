@@ -106,10 +106,15 @@ export interface PetState {
   xp: number;
   counts: { feed: number; play: number; clean: number; pet: number; lessons: number };
   diet: Record<Diet, number>;
-  /** keccak hash chain of every input word since hatching */
+  /** keccak hash chain of every input word in the log, from zero */
   logHash: string;
-  /** every input word since hatching, in order (the log the checkpoints commit to) */
+  /**
+   * every input word since hatching, in order (the log the checkpoints commit to); for a pet kept on X Layer after
+   * living in the browser, since the moment its hatch recorded (A66)
+   */
   pendingLog: number[];
+  /** the memory where the log starts, when it is not a newborn's zeros: the memory the hatch recorded (A66) */
+  logStart?: number[];
   /**
    * When each logged word happened, kept sparsely: [log index, beat] wherever the
    * log stops being one word per consecutive beat (a care action inside a beat, a

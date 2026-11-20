@@ -74,7 +74,8 @@ export function rewind(pet: Pet, mindFor: (lessons: Rule[], outside?: OutsideIns
     // an owned instinct keeps its memory after the pet's own
     const inst = mind.outside ? instinctBrain(mind.outside) : null;
     const nState = own + (inst?.nState ?? 0);
-    if (!mem || mem.length !== nState) mem = new Array(nState).fill(0);
+    // the log starts where the pet's memory was then: all zeros at birth, or what it was when it was kept (A66)
+    if (!mem || mem.length !== nState) mem = !mem && pet.logStart?.length === nState ? pet.logStart.slice() : new Array(nState).fill(0);
     const fast = programs.map((p) => fastBrain(compileProgram(p)));
     const stepInstinct = (word: number): number => {
       if (!inst) return 0;

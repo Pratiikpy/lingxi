@@ -1,6 +1,7 @@
 export * from "./pet";
 export * from "./items";
 export * from "./log";
+export * from "./keepLog";
 export * from "./sim";
 export * from "./pack";
 export * from "./lessons";

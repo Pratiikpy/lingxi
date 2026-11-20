@@ -15,7 +15,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { petRegistryAbi, type Deployment, type TapeQuote, type TapeStep, allowPartnerOnChain, consentStands, withdrawConsentOnChain, breedOnChain, breedingTerms, checkPartner, hasConsent, checkpointOnChain, hatchOnChain, quoteTapeout, readKeeping, readPet, setBrainOnChain, setSitterOnChain, signRelay, type SignedRelay, tapeOutYourself, xLayer, refusesTokens, LineMismatchError, RevertedOnChain, StillPending, hatchOutcome, birthOutcome, revertName, breederV2Abi } from "@lingxi/chain";
 import { compileProgram, netlistBytes } from "@lingxi/brain";
 import { AUTO_DAYS, AUTO_FUND, AUTO_LOW, sessionAccount, sessionWallet } from "./session";
-import { type Pet, logSegments, packState, petCard, stageOf, unpackState, ruleSkillIds } from "@lingxi/game";
+import { type Pet, logSegments, packState, petCard, restartLog, stageOf, unpackState, ruleSkillIds } from "@lingxi/game";
 import type { BrainRelayPayload } from "@lingxi/api-schema";
 import { relayAvailable, relayBrain, relayChild, relayInstinct, signRelayRequest } from "./api";
 import type { ChainInfo } from "./live";
@@ -213,6 +213,9 @@ interface PendingHatch {
   tx: Hex;
   owner: string;
   at: number;
+  /** how many words the log held, and the memory, when the hatch's state was taken (A66); absent on older entries */
+  n?: number;
+  memory?: number[];
 }
 function loadPending(): Record<string, PendingHatch> {
   try {
@@ -610,10 +613,12 @@ export const useChain = create<ChainState>((set, get) => ({
     try {
       // a pet this device has kept already is never hatched again; keeping it again finishes what is left (A20)
       let record = records[petKey(pet)] ?? null;
-      const recordFrom = async (petId: bigint, tx: Hex, owner: string): Promise<ChainRecord> => {
+      const recordFrom = async (petId: bigint, tx: Hex, owner: string, start?: { n?: number; memory?: number[] }): Promise<ChainRecord> => {
         const onChain = await readPet(publicClient, deployment, petId);
         const rec: ChainRecord = { petId: petId.toString(), hatchTx: tx, lastDay: 0, owner, bornChain: onChain.born, brains: { [mindKey([])]: deployment.circuits[pet.line]!.id }, brainKey: mindKey([]) };
         store(pet, rec);
+        // its log now starts where the hatch took its state, which is where the chain's proof of its memory starts (A66)
+        if (start?.n !== undefined && start.memory) useGame.getState().rework(pet.bornAt, (p) => restartLog(p, start.n!, start.memory!));
         setPending(pet, null);
         // from here on the panel shows the pet as kept, whatever fails after
         set({ record: activeRecord() });
@@ -625,15 +630,17 @@ export const useChain = create<ChainState>((set, get) => ({
         set({ busy: "hatching" });
         const out = await hatchOutcome(publicClient, deployment, sent.tx, sent.owner as Hex);
         if (out === "pending" || (out === "unknown" && Date.now() - sent.at < PENDING_FORGET_MS)) return set({ busy: "idle", error: "hatchPending" });
-        if (typeof out === "object") record = await recordFrom(out.petId, sent.tx, sent.owner);
+        if (typeof out === "object") record = await recordFrom(out.petId, sent.tx, sent.owner, sent);
         else setPending(pet, null);
       }
       const wallet = await connectWallet();
       if (!record) {
         set({ busy: "hatching" });
         const owner = wallet.account!.address;
-        const { petId, tx } = await hatchOnChain(publicClient, wallet, deployment, pet.line, packState(pet, stageOf(pet, gameNow())), (tx) => setPending(pet, { tx, owner, at: Date.now() }));
-        record = await recordFrom(petId, tx, owner);
+        // the state the hatch records and the log's length at that moment, taken together from the same pet
+        const start = { n: pet.pendingLog.length, memory: pet.brain.slice() };
+        const { petId, tx } = await hatchOnChain(publicClient, wallet, deployment, pet.line, packState(pet, stageOf(pet, gameNow())), (tx) => setPending(pet, { tx, owner, at: Date.now(), ...start }));
+        record = await recordFrom(petId, tx, owner, start);
       }
       // the registry hatches every pet on its line's starter brain; a pet with
       // instincts moves straight onto its own circuit before anything is saved

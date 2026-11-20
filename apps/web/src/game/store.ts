@@ -179,6 +179,8 @@ interface GameState {
   welcome: (p: Pet) => boolean;
   /** replace the active pet after something outside the store changed it (walking, breeding) */
   replace: (p: Pet) => void;
+  /** change one pet, wherever it is in the roster (its log restarted when its hatch lands, A66) */
+  rework: (bornAt: number, f: (p: Pet) => Pet) => void;
   /** a friend's pet comes to stay (pet-sitting): added to the roster without counting as a new pet of yours */
   guest: (p: Pet) => boolean;
   /** a pet leaves this device (a sat pet going home) */
@@ -275,6 +277,15 @@ export const useGame = create<GameState>((set, get) => ({
   replace: (p) => {
     save(p);
     set({ pet: p, pets: roster.pets });
+  },
+  rework: (bornAt, f) => {
+    const i = roster.pets.findIndex((x) => x.bornAt === bornAt);
+    if (i < 0) return;
+    const pets = roster.pets.slice();
+    pets[i] = f(pets[i]!);
+    roster = { ...roster, pets };
+    persist();
+    set({ pets: roster.pets, ...(i === roster.active ? { pet: pets[i]! } : {}) });
   },
   guest: (p) => {
     if (roster.pets.length >= MAX_PETS || roster.pets.some((x) => x.bornAt === p.bornAt)) return false;

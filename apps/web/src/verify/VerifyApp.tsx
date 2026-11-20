@@ -72,6 +72,8 @@ const T = {
     notAnchored: "The log's hash matches, but its brains could not be anchored to this pet's events on X Layer: {why}",
     logBadHash: "This log does not hash to the value on chain.",
     logBadState: "The hash matches, but the replay ends at a different memory than the one saved.",
+    logFromBirth:
+      "This log runs from the pet's birth in the browser, before it was kept on X Layer: Lingxi kept pets that way until 20 November. Replayed from the memory every new pet starts with, its {n} give exactly the saved memory, but X Layer did not record that starting memory, so this is not a proof anchored on chain.",
     notFound: "No pet with that number.",
     tooBig: "This pet's brain on X Layer would run {n} gates each beat, more than any pet's mind can ({max}), so this page will not run it.",
     circuitUnread: "Its circuit couldn't be read from X Layer just now. Try again in a moment.",
@@ -123,6 +125,7 @@ const T = {
     notAnchored: "日志哈希一致，但它用到的大脑无法锚定到这只宠物在 X Layer 上的事件：{why}",
     logBadHash: "这份日志的哈希和链上的不一致。",
     logBadState: "哈希一致，但重放后的记忆与保存的不同。",
+    logFromBirth: "这份日志从宠物在浏览器里出生时记起，早于它上链：灵犀在 11 月 20 日之前都是这样上链的。从每只新宠物都有的初始记忆重放，这 {n} 拍正好得到保存的记忆；但 X Layer 没有记录这个初始记忆，所以这不是锚定在链上的证明。",
     notFound: "没有这个编号的宠物。",
     tooBig: "这只宠物在 X Layer 上的大脑每一拍要跑 {n} 个门，超过任何宠物心智的上限（{max} 个），所以本页不会运行它。",
     circuitUnread: "暂时没能从 X Layer 读到它的电路，请稍后再试。",
@@ -153,7 +156,7 @@ const viaText = (hosts: ReadonlySet<string>, lang: "en" | "zh") => (hosts.size ?
 const note = (hosts: Set<string>) => (h: string, fallback: boolean) => hosts.add(fallback ? `${h} (fallback)` : h);
 
 /** Where the diary's check stands: checking, waiting for the indexer, not indexed in time, passed, or failed. */
-type DiaryState = "checking" | "waiting" | "unindexed" | "ok" | "bad";
+type DiaryState = "checking" | "waiting" | "unindexed" | "ok" | "bad" | "birth";
 
 /**
  * Resolves true once Lingxi's indexer has read the pet's hatching (a diary is anchored to it), asking again every
@@ -189,6 +192,8 @@ export function VerifyApp() {
   // only a full pass (hash, anchors, replay) is shown as a pass
   const [logPassed, setLogPassed] = useState(false);
   const [logResult, setLogResult] = useState<string | null>(null);
+  // the log runs from the pet's birth in the browser: neither a pass nor a failure (A66)
+  const [logBirth, setLogBirth] = useState(false);
   const [logName, setLogName] = useState<string | null>(null);
   const [colour, setColour] = useState(0);
   // the exhaustive check: every one of the 65,536 inputs at the pet's saved memory
@@ -358,12 +363,14 @@ export function VerifyApp() {
    * anchored to this pet's own Hatched and BrainChanged events on X Layer (the indexer only says which transactions
    * to read), and the starting memory is the one in its Hatched event. Returns the stretches when all of it holds.
    */
-  const replayLog = async (j: { words: number[]; segments?: Array<{ brainId: string | null; words: number[] }> }): Promise<Array<{ brain: { fast: ReturnType<typeof circuitBrain>; nState: number }; words: number[] }> | null> => {
+  // "birth": the log runs from the pet's birth in the browser, before it was kept, and replays from a newborn's memory (A66)
+  const replayLog = async (j: { words: number[]; segments?: Array<{ brainId: string | null; words: number[] }> }): Promise<Array<{ brain: { fast: ReturnType<typeof circuitBrain>; nState: number }; words: number[] }> | null | "birth"> => {
     if (!pet || !circuit || !deployment) return null;
     const hosts = new Set<string>();
     const client = proofClient(0, note(hosts));
     const fail = (text: string) => {
       setLogPassed(false);
+      setLogBirth(false);
       setLogResult(text);
       setLogHosts(hosts);
       return null;
@@ -382,21 +389,37 @@ export function VerifyApp() {
       if (!anchored.ok) return fail(t.notAnchored.replace("{why}", lang === "zh" ? WHY.zh[anchored.reason] : `${WHY.en[anchored.reason]} (${anchored.detail})`));
 
       const stretches: Array<{ brain: { fast: ReturnType<typeof circuitBrain>; nState: number }; words: number[] }> = [];
+      const circuits: Circuit[] = [];
+      for (const sg of segments) circuits.push(await loadCircuitFromChain(client, pet.processor, BigInt(sg.brainId ?? pet.brainId.toString())));
+      /** the log replayed stretch by stretch from the memory `first` gives the first circuit */
+      const replayed = (first: (nState: number) => number[]): number[] | null => {
+        let st: number[] | null = null;
+        segments.forEach((sg, i) => {
+          const c = circuits[i]!;
+          st = st === null ? first(c.nState) : st.length === c.nState ? st : st.slice(0, c.nState).concat(new Array(Math.max(0, c.nState - st.length)).fill(0));
+          for (const w of sg.words) st = beat(c, st, wordToBits(w, 16))[0];
+        });
+        return st;
+      };
+      segments.forEach((sg, i) => stretches.push({ brain: { fast: circuitBrain(circuits[i]!), nState: circuits[i]!.nState }, words: sg.words }));
       // the starting memory is the one the pet hatched with, from its Hatched event
-      let st: number[] | null = null;
-      for (const sg of segments) {
-        const c = await loadCircuitFromChain(client, pet.processor, BigInt(sg.brainId ?? pet.brainId.toString()));
-        st = st === null ? unpackState(anchored.startState, c.nState).brain : st.length === c.nState ? st : st.slice(0, c.nState).concat(new Array(Math.max(0, c.nState - st.length)).fill(0));
-        for (const w of sg.words) st = beat(c, st, wordToBits(w, 16))[0];
-        stretches.push({ brain: { fast: circuitBrain(c), nState: c.nState }, words: sg.words });
-      }
-      const end = st ?? unpackState(anchored.startState, pet.brainBits).brain;
+      const end = replayed((n) => unpackState(anchored.startState, n).brain) ?? unpackState(anchored.startState, pet.brainBits).brain;
       const saved = unpackState(pet.state, pet.brainBits).brain;
       const beats = lang === "zh" ? String(words.length) : `${words.length} ${words.length === 1 ? "beat" : "beats"}`;
       const changes = anchored.anchors.length - 1;
       const where = lang === "zh" ? `孵化交易 ${short(anchored.anchors[0]!.tx)}，之后 ${changes} 次换大脑` : `hatched in ${short(anchored.anchors[0]!.tx)}, then ${changes} new ${changes === 1 ? "brain" : "brains"}`;
-      if (end.join("") !== saved.join("")) return fail(t.logBadState);
+      if (end.join("") !== saved.join("")) {
+        // a pet kept after living in the browser, before its log started at the kept state: said as what it is (A66)
+        const fromBirth = replayed((n) => new Array(n).fill(0));
+        if (fromBirth && fromBirth.join("") === saved.join("")) {
+          fail(t.logFromBirth.replace("{n}", beats));
+          setLogBirth(true);
+          return "birth";
+        }
+        return fail(t.logBadState);
+      }
       setLogPassed(true);
+      setLogBirth(false);
       setLogResult(t.logOk.replace("{n}", beats).replace("{a}", where));
       setLogHosts(hosts);
       return stretches;
@@ -432,6 +455,7 @@ export function VerifyApp() {
         if (!live) return;
         said("checking");
         const stretches = await replayPublished(r.log);
+        if (stretches === "birth") return said("birth");
         if (!stretches) return said("bad");
         said("ok", diaryOfStretches(stretches.map((x) => ({ brain: { fast: x.brain.fast, nState: x.brain.nState }, words: x.words }))));
       })
@@ -628,6 +652,13 @@ export function VerifyApp() {
               {diaryState === "checking" && <p className="v-note">{lang === "zh" ? "正在对照链上核对它的日记……" : "Checking its diary against the chain…"}</p>}
               {diaryState === "waiting" && <p className="v-note">{lang === "zh" ? "正在等灵犀的索引服务从 X Layer 读到它的孵化（每 15 秒读一次新区块），读到后就核对它的日记……" : "Waiting for Lingxi's indexer to read its hatching from X Layer (it reads new blocks every 15 seconds); its diary is checked as soon as it has…"}</p>}
               {diaryState === "unindexed" && <p className="v-note">{lang === "zh" ? "它的孵化还没被索引，所以暂时核对不了它的日记。过几分钟再打开这一页。" : "Its hatching isn't indexed yet, so its diary can't be checked right now. Open this page again in a few minutes."}</p>}
+              {diaryState === "birth" && (
+                <p className="v-note">
+                  {lang === "zh"
+                    ? "它发布的日记从它在浏览器里出生时记起，早于它上链（灵犀在 11 月 20 日之前都是这样上链的），所以链上无法为它锚定起点，这里不显示。下面的日志核对说明了它能证明什么。"
+                    : "Its published diary runs from its birth in the browser, before it was kept on X Layer (Lingxi kept pets that way until 20 November), so the chain cannot anchor where it starts, and it isn't shown. The log check below says what it does show."}
+                </p>
+              )}
               {diaryState === "bad" && <p className="v-bad">{lang === "zh" ? "发布的日记没能通过链上核对（原因见下面的日志核对），所以不显示。" : "The published diary did not pass the check against the chain (the log check below says why), so it isn't shown."}</p>}
               {diaryState === "ok" && diary && (
                 <>
@@ -669,7 +700,7 @@ export function VerifyApp() {
               </label>
               <span className="v-note mono">{logName ?? t.logNone}</span>
             </div>
-            {logResult && <p className={logPassed ? "v-ok" : "v-bad"} data-testid="log-result">{logResult}</p>}
+            {logResult && <p className={logPassed ? "v-ok" : logBirth ? "v-note" : "v-bad"} data-testid="log-result" data-result={logPassed ? "ok" : logBirth ? "birth" : "bad"}>{logResult}</p>}
             {logResult && logHosts.size > 0 && <p className="v-note mono">{viaText(logHosts, lang)}</p>}
           </div>
         </section>
