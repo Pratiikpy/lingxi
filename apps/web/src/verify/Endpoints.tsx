@@ -9,7 +9,7 @@ import { checkOwnRpc, endpoints, useProofRpc } from "../game/proofRpc";
 const T = {
   en: {
     title: "Where these proofs come from",
-    lede: "Every check on this page reads X Layer from your browser. It asks your own RPC first if you add one, then X Layer's public RPCs. Lingxi's server is asked only if all of those fail.",
+    lede: "Every read of X Layer on this page comes from your browser: your own RPC first if you add one, then X Layer's public RPCs, and Lingxi's server only if all of those fail. Three things come from Lingxi's server instead: Sourcify's verdicts on the contracts (each row links to Sourcify itself), a pet's history (each row links to its transaction on X Layer) and its published diary (checked against X Layer before it is shown).",
     asked: "Asked, in order",
     answered: "Answered so far",
     none: "nothing yet",
@@ -25,7 +25,7 @@ const T = {
   },
   zh: {
     title: "这些证明从哪里来",
-    lede: "本页每一项核对都由你的浏览器直接读取 X Layer。如果你填了自己的 RPC，会先问它，再问 X Layer 的公共 RPC。只有它们全部失败时才会问灵犀的服务器。",
+    lede: "本页对 X Layer 的每一次读取都来自你的浏览器：如果你填了自己的 RPC，会先问它，再问 X Layer 的公共 RPC，只有它们全部失败时才会问灵犀的服务器。有三样东西来自灵犀的服务器：Sourcify 对合约的核验结果（每一行都链接到 Sourcify 本身）、宠物的经历（每一行都链接到它在 X Layer 上的交易），以及发布的日记（显示之前先对照 X Layer 核对）。",
     asked: "询问顺序",
     answered: "目前的回答",
     none: "还没有",

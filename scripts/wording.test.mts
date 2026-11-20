@@ -122,6 +122,14 @@ describe("the wording the audits corrected stays corrected (A87)", () => {
     expect(panel).toMatch(/还没有在真正的 Cardputer 上运行过/);
   });
 
+  it("A108: the proof page's sources say which checks come through Lingxi's server", () => {
+    const sources = read("apps/web/src/verify/Endpoints.tsx");
+    expect(sources).not.toMatch(/Every check on this page reads X Layer from your browser/);
+    expect(sources).not.toMatch(/本页每一项核对都由你的浏览器直接读取/);
+    expect(sources).toMatch(/Three things come from Lingxi's server instead/);
+    expect(sources).toMatch(/有三样东西来自灵犀的服务器/);
+  });
+
   it("A88: the README says what pet #1's home address is, not only that it is pet #1's", () => {
     const row = read("README.md").split("\n").find((l) => l.startsWith("| Containers |")) ?? "";
     expect(row).not.toMatch(/a pet's home is a TapeOut container; pet #1's is/);
