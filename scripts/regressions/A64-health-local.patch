@@ -1,0 +1,11 @@
+--- a/services/api/src/server.ts
++++ b/services/api/src/server.ts
+@@ -129,7 +129,7 @@ export function createApp(
+ 
+   // the parts are booleans (true when on), for anyone; `detail` (balances, usage, memory, stores) is everything else
+   // worth watching, and goes only to a request made on this machine directly: the status check (A64)
+-  app.get("/api/health", async (c) => c.json({ ok: true, teach: client !== null, voice: client !== null, relay: relayer !== null, live: live !== null, ...(detail && directLocal(c) ? { detail: await detail() } : {}) }));
++  app.get("/api/health", async (c) => c.json({ ok: true, teach: client !== null, voice: client !== null, relay: relayer !== null, live: live !== null, ...(detail ? { detail: await detail() } : {}) }));
+   app.get("/api/live/stats", (c) => c.json(live ? live.stats() : { online: 0, spaces: 0 }));
+   // the game's clock is corrected against this one, so a device clock set wrong cannot move a pet's day (P1); the
+   // on-chain copy reads X Layer's block time instead, so this answers the game's own pages only

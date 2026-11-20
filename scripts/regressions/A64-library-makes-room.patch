@@ -1,0 +1,11 @@
+--- a/services/api/src/library.ts
++++ b/services/api/src/library.ts
+@@ -134,7 +134,7 @@ export function createLibrary(store?: string, limits: { max?: number; perSharer?
+         return { ok: true, key, isNew: false };
+       }
+       const from = hashId(who);
+-      const room = roomFor(from);
++      const room = entries.size >= max ? ({ ok: false } as const) : ({ ok: true, drop: null } as const);
+       if (!room.ok) return { ok: false, reason: "full" };
+       if (room.drop) entries.delete(room.drop);
+       entries.set(key, { key, rule: { when: rule.when, then: rule.then } as Rule, by: author, firstAt: now, uses: 1, reports: emptySeen(), reportCount: 0, users: addSeen(emptySeen(), from), from });

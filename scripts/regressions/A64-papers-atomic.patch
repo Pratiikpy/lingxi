@@ -1,0 +1,12 @@
+--- a/services/api/src/papers.ts
++++ b/services/api/src/papers.ts
+@@ -42,8 +42,7 @@ export function createPapersStore(file?: string) {
+     if (!file) return;
+     try {
+       mkdirSync(dirname(file), { recursive: true });
+-      writeFileSync(`${file}.tmp`, JSON.stringify(data));
+-      renameSync(`${file}.tmp`, file);
++      writeFileSync(file, JSON.stringify(data));
+     } catch (e) {
+       process.stderr.write(`papers not saved: ${(e as Error).message}\n`);
+     }

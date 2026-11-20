@@ -1150,5 +1150,35 @@
     "row": "A63",
     "bug": "a breeding consent could not be withdrawn and stood on chain with no expiry",
     "test": { "kind": "e2e", "spec": "e2e/specs/birth-on-chain.spec.ts", "title": "a consent given in a room is listed from X Layer and can be withdrawn (en light phone proposes, zh dark desktop agrees) (A63)" }
+  },
+  {
+    "id": "A64-papers-atomic",
+    "row": "A64",
+    "bug": "a papers write cut short emptied every adoption paper",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/papers.test.ts", "name": "a write that fails part way leaves the papers already kept whole" }
+  },
+  {
+    "id": "A64-library-makes-room",
+    "row": "A64",
+    "bug": "a full lesson library refused every share for good",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/library.test.ts", "name": "a hidden lesson goes first, then the oldest nobody else learned; a lesson others learned stays" }
+  },
+  {
+    "id": "A64-proposals-bounded",
+    "row": "A64",
+    "bug": "a pet's waiting proposals grew with every proposer",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/live.test.ts", "name": "a target keeps at most 16: the oldest is dropped, and a fresh one is still answered" }
+  },
+  {
+    "id": "A64-health-local",
+    "row": "A64",
+    "bug": "the health detail went to anyone",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/teach.test.ts", "name": "a request through the tunnel gets the switches; a direct local one also gets the detail" }
+  },
+  {
+    "id": "A64-saves-daily-cap",
+    "row": "A64",
+    "bug": "one wallet's goal saves grew with every free pet it hatched",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/goals.test.ts", "name": "a wallet's saves count for at most as many pets as a player keeps, each day (A64)" }
   }
 ]

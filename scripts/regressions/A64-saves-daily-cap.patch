@@ -1,0 +1,11 @@
+--- a/packages/world/src/goals.ts
++++ b/packages/world/src/goals.ts
+@@ -62,7 +62,7 @@ export function goalCounts(g: Pick<GoalDef, "metric" | "start" | "end" | "target
+     if (c.m === "saves") {
+       const day = `${c.w} ${Math.floor(c.t / 86_400)}`;
+       const so = daily.get(day) ?? 0;
+-      n = Math.max(0, Math.min(n, SAVES_PER_WALLET_DAY - so));
++      n = Math.max(0, n);
+       daily.set(day, so + n);
+     }
+     if (n > 0) by.set(c.w, (by.get(c.w) ?? 0) + n);

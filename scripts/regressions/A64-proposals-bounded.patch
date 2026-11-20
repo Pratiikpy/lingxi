@@ -1,0 +1,11 @@
+--- a/services/api/src/live.ts
++++ b/services/api/src/live.ts
+@@ -397,7 +397,7 @@ export class LiveRooms {
+         for (const [who, at] of target.proposals) if (now - at > PROPOSAL_MS) target.proposals.delete(who);
+         target.proposals.delete(c.member.id);
+         target.proposals.set(c.member.id, now);
+-        while (target.proposals.size > MAX_PROPOSALS) target.proposals.delete(target.proposals.keys().next().value!);
++
+         const chain = chainInfo(m.chain);
+         this.send(target, { t: "proposal", from: c.member.id, name: c.member.name, stage: c.member.stage, line: c.member.line, ...(chain ? { chain } : {}) });
+         return;
