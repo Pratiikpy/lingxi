@@ -1282,5 +1282,17 @@
     "row": "A98",
     "bug": "two writes of one sitting file at once collided, a server error to the player",
     "test": { "kind": "vitest", "dir": "services/api", "file": "test/sitting.test.ts", "name": "twenty pets sent home to one code at once never collide on a file, and stray temporary files are cleared (A98)" }
+  },
+  {
+    "id": "A77-answer-once",
+    "row": "A77",
+    "bug": "every yes to a family proposal sent the whole card again",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/live.test.ts", "name": "a padded card is kept in its own shape, and answering twice sends it once" }
+  },
+  {
+    "id": "A77-card-own-shape",
+    "row": "A77",
+    "bug": "a card kept any field its sender added, so padding travelled to every friend",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/live.test.ts", "name": "a padded card is kept in its own shape, and answering twice sends it once" }
   }
 ]

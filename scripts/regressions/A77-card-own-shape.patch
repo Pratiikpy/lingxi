@@ -1,0 +1,11 @@
+--- a/services/api/src/live.ts
++++ b/services/api/src/live.ts
+@@ -385,7 +385,7 @@ export class LiveRooms {
+         // a sender adds travels with it (A77); whoever uses it still validates it in full
+         // a card that does not read as one is kept as a short mark the game reads as damaged, so a friend is told the
+         // card is damaged, as before, and none of it travels
+-        const card = canonicalCard(m.lessons) ?? DAMAGED_CARD;
++        const card = canonicalCard(m.lessons) ? m.lessons : DAMAGED_CARD;
+         if (card === c.card) return;
+         c.card = card;
+         c.cardVersion++;

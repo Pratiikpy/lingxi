@@ -1,0 +1,11 @@
+--- a/services/api/src/live.ts
++++ b/services/api/src/live.ts
+@@ -416,7 +416,7 @@ export class LiveRooms {
+         // the card once per change, as an ask sends it; after that the proposer's game uses the one it kept (A77)
+         let card: { card: string } | { cardUnchanged: true } | Record<string, never> = {};
+         if (yes) {
+-          if (proposer.seen.get(c.member.id) === c.cardVersion) card = { cardUnchanged: true };
++          if (proposer.seen.get(c.member.id) === -1) card = { cardUnchanged: true };
+           else {
+             proposer.seen.set(c.member.id, c.cardVersion);
+             card = { card: c.card ?? "[]" };
