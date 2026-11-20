@@ -1,0 +1,12 @@
+--- a/docs/readme/shots.json
++++ b/docs/readme/shots.json
+@@ -18,9 +18,5 @@
+   "tree.png": {
+     "commit": "c95e397af177e4fc59c16371f2a60021fae2733f",
+     "at": "2026-11-21"
+-  },
+-  "world.png": {
+-    "commit": "c95e397af177e4fc59c16371f2a60021fae2733f",
+-    "at": "2026-11-21"
+   }
+ }
