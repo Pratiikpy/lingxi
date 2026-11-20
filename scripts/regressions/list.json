@@ -1324,5 +1324,17 @@
     "row": "A80",
     "bug": "the server read and parsed every kept diary before it could listen",
     "test": { "kind": "vitest", "dir": "services/api", "file": "test/diaries.test.ts", "name": "opens a folder of large diaries without reading them, and still refuses a shorter republish (A80)" }
+  },
+  {
+    "id": "A81-home-views-limited",
+    "row": "A81",
+    "bug": "a player's room visits could cause any number of uncached chain reads of homes",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/homes.test.ts", "name": "one player's 21st uncached home view in a minute reads nothing; another player still reads; cached views are free" }
+  },
+  {
+    "id": "A81-fallback-budgeted",
+    "row": "A81",
+    "bug": "visitors' reads fell back to the jobs' node with no budget",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/visitorBudget.test.ts", "name": "passes calls up to its budget and refuses the next at once, without reaching the node" }
   }
 ]

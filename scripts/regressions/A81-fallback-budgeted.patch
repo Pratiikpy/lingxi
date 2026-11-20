@@ -1,0 +1,11 @@
+--- a/services/api/src/visitorBudget.ts
++++ b/services/api/src/visitorBudget.ts
+@@ -16,7 +16,7 @@ export function budgetedRequest(request: Request, perMinute = VISITOR_FALLBACK_P
+   return async (args) => {
+     const t = now();
+     calls = calls.filter((c) => t - c < 60_000);
+-    if (calls.length >= perMinute) throw new Error("visitor reads past their budget on the jobs' node");
++    if (calls.length >= perMinute && perMinute < 0) throw new Error("visitor reads past their budget on the jobs' node");
+     calls.push(t);
+     return request(args);
+   };

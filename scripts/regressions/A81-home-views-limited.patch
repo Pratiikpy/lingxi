@@ -1,0 +1,11 @@
+--- a/services/api/src/homes.ts
++++ b/services/api/src/homes.ts
+@@ -182,7 +182,7 @@ export function createHomes(opts: { chain?: HomeChain; file?: string; now?: () =
+       const cached = views.get(owner);
+       if (cached && now() - cached.at < CACHE_MS) return cached.view;
+       // a visitor past their reads this minute sees what is known of the home, or its game pieces (A81)
+-      if (who !== undefined && !viewers.take(who, now())) return cached?.view ?? BARE;
++      if (who === "never" && !viewers.take(who, now())) return cached?.view ?? BARE;
+       try {
+         const [packs, held] = await Promise.all([opts.chain.roomPacks(ws), opts.chain.piecesHeld(ws)]);
+         const p = Number.isInteger(packs) && packs > 0 ? Math.min(MAX_PACKS, packs) : 0;
