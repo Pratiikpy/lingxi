@@ -10,7 +10,7 @@ import { drawPet } from "@lingxi/art";
 import { type Family, type ParentInfo, type Pet, BOND_LEVELS, BREED_COOLDOWN_DAYS, FAMILY_BOND_LEVEL, bondLevel, canBreed, childMemory, childRoom, createPet, dayOf, familyOf, mindBrain, parseCard, ruleSkillIds, stageOf } from "@lingxi/game";
 import { useLang, useT } from "../i18n";
 import { MAX_PETS, keptPetNames, useGame } from "../game/store";
-import { deployment, petKey, publicClient, useChain } from "../game/chain";
+import { type GivenConsent, deployment, petKey, publicClient, useChain } from "../game/chain";
 import { type PartnerCheck, breedingTerms, checkPartner, formatBem } from "@lingxi/chain";
 import { useLive } from "../game/live";
 import { bondName, bondsOf, friendKey, useFriends } from "../game/friends";
@@ -94,7 +94,6 @@ export function ProposalDialog({ pet }: { pet: Pet }) {
   const claimsChain = !!(mine && proposal.chain);
   const check = partner?.at === proposal.at ? partner.check : null;
   const onChain = claimsChain && check === "ok";
-  const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
   return (
     <div className="fam-modal" role="dialog" aria-label={lang === "zh" ? "家人请求" : "Family request"}>
       <motion.div className="fam-card" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }}>
@@ -111,11 +110,20 @@ export function ProposalDialog({ pet }: { pet: Pet }) {
         </p>
         {claimsChain && check === null && <p className="small">{lang === "zh" ? "正在 X Layer 上核对对方的宠物……" : "Checking their pet on X Layer…"}</p>}
         {onChain && (
-          <p className="small">
-            {lang === "zh"
-              ? `两只宠物都在链上：同意时会用你的钱包签一次授权，给 ${short(proposal.chain!.owner)}（已在 X Layer 上核对：它是 ${proposal.chain!.petId} 号宠物的主人），让小宝宝在链上出生。`
-              : `Both pets live on chain: saying yes signs one consent with your wallet for ${short(proposal.chain!.owner)} (checked on X Layer: the owner of pet #${proposal.chain!.petId}), so the little one is born on chain.`}
-          </p>
+          // who the consent is really for (A63): the wallet that owns that pet on X Layer, whoever is asking in the room
+          <div className="fam-consent-to">
+            <p className="small">
+              {lang === "zh"
+                ? `两只宠物都在链上：同意时会用你的钱包签一次授权。授权给的是 X Layer 上 ${proposal.chain!.petId} 号宠物主人的钱包，不论房间里提问的是谁：`
+                : `Both pets live on chain: saying yes signs one consent with your wallet. It goes to the wallet that owns pet #${proposal.chain!.petId} on X Layer, whoever is asking in this room:`}
+            </p>
+            <code className="fam-address">{proposal.chain!.owner}</code>
+            <p className="small">
+              {lang === "zh"
+                ? `这个钱包之后可以和${pet.name}在链上养一只小宝宝。授权一直有效，直到用掉、${pet.name}被卖出，或你在宠物页的“家人”里撤回。`
+                : `That wallet may then raise one little one with ${pet.name} on chain. The consent stands until it is used, ${pet.name} is sold, or you withdraw it (Family, on the pet sheet).`}
+            </p>
+          </div>
         )}
         {claimsChain && check !== null && check !== "ok" && (
           <p className="small warn">
@@ -421,6 +429,90 @@ export function PetsPanel({ onPicked }: { onPicked: () => void }) {
 }
 
 /** Parents and children of the pet on screen. */
+/** The consents standing for a pet on X Layer, each confirmed on its breeder, with a way to withdraw one (A63). */
+function ConsentsOnChain({ pet, lang }: { pet: Pet; lang: Lang }) {
+  const record = useChain((s) => s.recordOf(pet));
+  const busy = useChain((s) => s.busy);
+  const [withdrawing, setWithdrawing] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [read, setRead] = useState(0);
+  // what was read, and for which pet and which reading: anything else on screen is still being read
+  const reading = `${record?.petId ?? ""}:${read}`;
+  const [got, setGot] = useState<{ for: string; value: { consents: GivenConsent[]; partial: boolean } | null } | null>(null);
+  useEffect(() => {
+    if (!record) return;
+    let live = true;
+    void useChain
+      .getState()
+      .consentsOf(pet)
+      .then((value) => live && setGot({ for: reading, value }));
+    return () => {
+      live = false;
+    };
+    // the pet's record and each new reading, not every change to the pet, decide what is read
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reading]);
+  if (!record) return null;
+  const state = got?.for === reading ? got.value : "reading";
+  const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+  return (
+    <div className="fam-consents" data-state={state === "reading" ? "reading" : state === null ? "unread" : "read"}>
+      <p className="label">{lang === "zh" ? "链上的授权" : "Consents on X Layer"}</p>
+      {state === "reading" ? (
+        <p className="small">{lang === "zh" ? "正在读取 X Layer 上的授权……" : "Reading the consents on X Layer…"}</p>
+      ) : state === null ? (
+        <p className="small">{lang === "zh" ? "现在读不到 X Layer，所以列不出授权。过一会儿再看。" : "X Layer can't be read just now, so its consents can't be listed. Look again in a moment."}</p>
+      ) : state.consents.length === 0 ? (
+        <p className="small">
+          {lang === "zh" ? `没有钱包能不经再次同意就和${pet.name}在链上养小宝宝。` : `No wallet may raise a little one with ${pet.name} on chain without asking again.`}
+        </p>
+      ) : (
+        <ul className="fam-consent-list">
+          {state.consents.map((c) => {
+            const id = `${c.breeder}:${c.partner}`;
+            return (
+              <li key={id}>
+                <span className="small">
+                  {lang === "zh" ? (
+                    <>
+                      <code className="fam-address" title={c.partner}>{short(c.partner)}</code> 可以和{pet.name}养一只小宝宝
+                    </>
+                  ) : (
+                    <>
+                      <code className="fam-address" title={c.partner}>{short(c.partner)}</code> may raise one little one with {pet.name}
+                    </>
+                  )}
+                </span>
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={withdrawing !== null || busy !== "idle"}
+                  onClick={async () => {
+                    play("tap");
+                    setWithdrawing(id);
+                    setFailed(false);
+                    const ok = await useChain.getState().withdraw(pet, c);
+                    setWithdrawing(null);
+                    if (ok) play("success");
+                    else setFailed(true);
+                    setRead((n) => n + 1);
+                  }}
+                >
+                  {withdrawing === id ? (lang === "zh" ? "撤回中……" : "Withdrawing…") : lang === "zh" ? "撤回" : "Withdraw"}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {failed && <p className="small warn">{lang === "zh" ? "授权没有撤回，它仍然有效。可以再试一次。" : "The consent wasn't withdrawn and still stands. You can try again."}</p>}
+      {state !== "reading" && state?.partial && (
+        <p className="small">{lang === "zh" ? "服务器还在读取 X Layer 上较早的记录，以前在别的设备上给的授权可能还没列出。" : "The server is still reading X Layer's older records, so a consent given earlier on another device may not be listed yet."}</p>
+      )}
+    </div>
+  );
+}
+
 export function FamilyTree({ pet }: { pet: Pet }) {
   const lang = useLang((s) => s.lang) as Lang;
   const pets = useGame((s) => s.pets);
@@ -460,6 +552,7 @@ export function FamilyTree({ pet }: { pet: Pet }) {
             ? "长大后，和朋友的宠物在同一个房间时，点它就能问能不能一起养小宝宝。"
             : "Once grown, tap a friend's pet in the same room to ask about raising a little one together."}
       </p>
+      <ConsentsOnChain pet={pet} lang={lang} />
     </div>
   );
 }

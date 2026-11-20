@@ -12,7 +12,7 @@ import { useBadges } from "./badges";
 import { create } from "zustand";
 import { createPublicClient, createWalletClient, custom, erc20Abi, http, isAddress, type Address, type Hex, type PublicClient, type WalletClient, fallback } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { petRegistryAbi, type Deployment, type TapeQuote, type TapeStep, allowPartnerOnChain, breedOnChain, breedingTerms, checkPartner, hasConsent, checkpointOnChain, hatchOnChain, quoteTapeout, readKeeping, readPet, setBrainOnChain, setSitterOnChain, signRelay, type SignedRelay, tapeOutYourself, xLayer, refusesTokens, LineMismatchError, RevertedOnChain, StillPending, hatchOutcome, birthOutcome, revertName, breederV2Abi } from "@lingxi/chain";
+import { petRegistryAbi, type Deployment, type TapeQuote, type TapeStep, allowPartnerOnChain, consentStands, withdrawConsentOnChain, breedOnChain, breedingTerms, checkPartner, hasConsent, checkpointOnChain, hatchOnChain, quoteTapeout, readKeeping, readPet, setBrainOnChain, setSitterOnChain, signRelay, type SignedRelay, tapeOutYourself, xLayer, refusesTokens, LineMismatchError, RevertedOnChain, StillPending, hatchOutcome, birthOutcome, revertName, breederV2Abi } from "@lingxi/chain";
 import { compileProgram, netlistBytes } from "@lingxi/brain";
 import { AUTO_DAYS, AUTO_FUND, AUTO_LOW, sessionAccount, sessionWallet } from "./session";
 import { type Pet, logSegments, packState, petCard, stageOf, unpackState, ruleSkillIds } from "@lingxi/game";
@@ -267,6 +267,43 @@ function setBirth(parentKey: string, b: PendingBirth | null): void {
     // in memory for this visit
   }
 }
+/**
+ * Consents this device gave, by pet (A63): listed on the pet sheet at once, before the server's index of the breeders'
+ * events reaches them. Each is confirmed with the breeder's own view before it is shown.
+ */
+const CONSENTS_KEY = "lingxi.chain.consents.v1";
+/** A breeding consent standing on X Layer: the breeder it is on and the wallet it lets raise one little one. */
+export interface GivenConsent {
+  breeder: Address;
+  partner: Address;
+}
+function loadGiven(): Record<string, GivenConsent[]> {
+  try {
+    const r = localStorage.getItem(CONSENTS_KEY);
+    return r ? (JSON.parse(r) as Record<string, GivenConsent[]>) : {};
+  } catch {
+    return {};
+  }
+}
+let given = loadGiven();
+function setGiven(key: string, list: GivenConsent[]): void {
+  const next = { ...given };
+  if (list.length) next[key] = list;
+  else delete next[key];
+  given = next;
+  try {
+    saveWrite(CONSENTS_KEY, JSON.stringify(given));
+  } catch {
+    // in memory for this visit
+  }
+}
+const sameConsent = (a: GivenConsent, b: GivenConsent) => a.breeder.toLowerCase() === b.breeder.toLowerCase() && a.partner.toLowerCase() === b.partner.toLowerCase();
+/** Only the deployment's own breeders: an address from the server is never called unless it is one of them. */
+const breedersHere = (): Address[] => [deployment?.breeder, deployment?.breederFree].filter((a): a is Address => !!a);
+const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
+/** How far behind X Layer's head the server's index may be and still be called complete (about ten minutes of blocks). */
+const INDEX_BEHIND_OK = 600;
+
 /** A child's record, from the birth that made it. */
 async function birthRecord(childId: bigint, tx: Hex, owner: string, brainId: string): Promise<{ record: ChainRecord; memory: number[] }> {
   const onChain = await readPet(publicClient, deployment!, childId);
@@ -314,6 +351,13 @@ interface ChainState {
   infoOf: (pet: Pet) => ChainInfo | null;
   /** the partner's owner allows the proposer's owner to raise a child with this pet */
   allow: (pet: Pet, partnerOwner: string) => Promise<boolean>;
+  /**
+   * the consents standing for this pet on X Layer, each confirmed on its breeder (A63); `partial` when the server's
+   * index of older ones has not caught up; null when X Layer cannot be read
+   */
+  consentsOf: (pet: Pet) => Promise<{ consents: GivenConsent[]; partial: boolean } | null>;
+  /** withdraw a consent not yet used (A63) */
+  withdraw: (pet: Pet, c: GivenConsent) => Promise<boolean>;
   /**
    * hatch the newborn through the Breeder, then save its first day; returns the child's memory as the chain mixed it,
    * and whether its first day was saved (A33)
@@ -404,6 +448,56 @@ export const useChain = create<ChainState>((set, get) => ({
       const wallet = await connectWallet();
       set({ busy: "saving" });
       await allowPartnerOnChain(publicClient, wallet, deployment, BigInt(r.petId), partnerOwner as Hex);
+      const c = { breeder: deployment.breeder, partner: partnerOwner as Address };
+      const held = given[petKey(pet)] ?? [];
+      if (!held.some((x) => sameConsent(x, c))) setGiven(petKey(pet), [...held, c]);
+      set({ busy: "idle" });
+      return true;
+    } catch (e) {
+      set({ busy: "idle", error: chainReason(e) });
+      return false;
+    }
+  },
+  consentsOf: async (pet) => {
+    const r = records[petKey(pet)];
+    if (!deployment || !r) return { consents: [], partial: false };
+    const known = breedersHere().map((a) => a.toLowerCase());
+    const candidates: GivenConsent[] = [...(given[petKey(pet)] ?? [])];
+    let partial = true;
+    try {
+      const res = await fetch(`${API_BASE}/api/consents/${r.petId}`);
+      const body = (await res.json()) as { ok: boolean; indexedTo?: number; consents?: Array<{ breeder: string; partner: string }> };
+      if (body.ok && Array.isArray(body.consents)) {
+        for (const c of body.consents) {
+          if (!known.includes(c.breeder.toLowerCase()) || !isAddress(c.partner)) continue;
+          const x = { breeder: c.breeder as Address, partner: c.partner as Address };
+          if (!candidates.some((y) => sameConsent(x, y))) candidates.push(x);
+        }
+        const head = Number(await publicClient.getBlockNumber());
+        partial = typeof body.indexedTo !== "number" || head - body.indexedTo > INDEX_BEHIND_OK;
+      }
+    } catch {
+      // the server's list is only a help: the consents this device gave are still checked below
+    }
+    try {
+      const standing = await Promise.all(candidates.map((c) => consentStands(publicClient, c.breeder, BigInt(r.petId), c.partner)));
+      const consents = candidates.filter((_, i) => standing[i]);
+      // one this device gave that no longer stands (used, withdrawn, the pet sold) is forgotten
+      setGiven(petKey(pet), (given[petKey(pet)] ?? []).filter((x) => consents.some((y) => sameConsent(x, y))));
+      return { consents, partial };
+    } catch {
+      return null;
+    }
+  },
+  withdraw: async (pet, c) => {
+    const r = records[petKey(pet)];
+    if (!deployment || !r || !breedersHere().some((a) => a.toLowerCase() === c.breeder.toLowerCase())) return false;
+    set({ busy: "connecting", error: null });
+    try {
+      const wallet = await connectWallet();
+      set({ busy: "saving" });
+      await withdrawConsentOnChain(publicClient, wallet, c.breeder, BigInt(r.petId), c.partner);
+      setGiven(petKey(pet), (given[petKey(pet)] ?? []).filter((x) => !sameConsent(x, c)));
       set({ busy: "idle" });
       return true;
     } catch (e) {

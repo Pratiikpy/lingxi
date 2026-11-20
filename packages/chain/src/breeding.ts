@@ -31,6 +31,22 @@ export async function allowPartnerOnChain(pub: PublicClient, wallet: WalletClien
   return tx;
 }
 
+/** Whether a consent given on `breeder` still stands (A63): one used, withdrawn, or ended by a sale does not. */
+export async function consentStands(pub: PublicClient, breeder: Address, petId: bigint, partnerOwner: Address): Promise<boolean> {
+  return (await pub.readContract({ address: breeder, abi: breederAbi, functionName: "consent", args: [petId, partnerOwner] })) as boolean;
+}
+
+/** Withdraws a consent not yet used (A63): `allowPartner(pet, partner, false)` on the breeder it was given on. */
+export async function withdrawConsentOnChain(pub: PublicClient, wallet: WalletClient, breeder: Address, petId: bigint, partnerOwner: Address): Promise<Hex> {
+  const account = wallet.account;
+  if (!account) throw new Error("wallet has no account");
+  const { request } = await pub.simulateContract({ address: breeder, abi: breederAbi, functionName: "allowPartner", args: [petId, partnerOwner, false], account });
+  const tx = await wallet.writeContract(request);
+  const r = await pub.waitForTransactionReceipt({ hash: tx });
+  if (r.status !== "success") throw new RevertedOnChain("allowPartner", r.transactionHash);
+  return tx;
+}
+
 /** The breeding fee and how many children each parent may still have; null on the free breeder. */
 export async function breedingTerms(pub: PublicClient, d: Deployment, parents: readonly bigint[] = []): Promise<{ fee: bigint; bem: Address; childrenLeft: number[] } | null> {
   if (!d.breeder || !d.breederBem) return null;

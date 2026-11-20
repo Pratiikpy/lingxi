@@ -14,7 +14,7 @@ import { type Hex, parseAbi, parseTransaction, toFunctionSelector } from "viem";
 import { type Page } from "@playwright/test";
 import { dismiss, expect, sheet, test } from "../fixtures";
 import { keepOnChain, stored, walletOf } from "../helpers/browser";
-import { forkOf } from "../helpers/chain";
+import { forkOf, reach } from "../helpers/chain";
 import { spotFor, tapVisitor } from "../helpers/room";
 import { unpackState } from "../../packages/game/src/pack";
 
@@ -111,6 +111,19 @@ async function familyOnChain(player: Fixtures["player"], run: Fixtures["run"], l
   return { a, b, fork, petA, petB, ask, yes };
 }
 
+const CONSENT = parseAbi(["function consent(uint256 petId, address partnerOwner) view returns (bool)"]);
+/** Whether the breeder holds a standing consent from pet `pet` for `partner`. */
+const consentOnChain = (fork: Awaited<ReturnType<typeof forkOf>>, pet: string, partner: string) =>
+  fork.pub.readContract({ address: fork.d.breeder as Hex, abi: CONSENT, functionName: "consent", args: [BigInt(pet), partner as Hex] });
+
+/** Opens the pet sheet's consents on X Layer and waits for them to be read (A63). */
+async function consentsPanel(page: Page) {
+  await sheet(page, "me");
+  const panel = await reach(page, ".fam-consents");
+  await expect(panel, "the consents are read from X Layer").toHaveAttribute("data-state", "read", { timeout: 120_000 });
+  return panel;
+}
+
 /** The little one's id: the chain record on A's device that is neither parent's. */
 async function childOf(page: Page, parents: string[]): Promise<string> {
   const records = JSON.parse((await stored(page, "lingxi.chain.v2"))!) as Record<string, { petId: string }>;
@@ -123,9 +136,22 @@ const petOnChain = (fork: Awaited<ReturnType<typeof forkOf>>, id: string) => for
 test("a little one is born on chain from two players' grown pets (zh dark desktop proposes, en light phone agrees)", async ({ player, run }) => {
   test.setTimeout(900_000);
   const { a, b, fork, petA, petB, ask, yes } = await familyOnChain(player, run, { a: { lang: "zh", scheme: "dark", size: "desktop", reducedMotion: true }, b: { lang: "en", scheme: "light", size: "phone", wallet: 1 } }, { family: "家人", yes: "Yes" });
+  // the consent goes to the wallet that owns Mochi on X Layer, shown in full, whoever is asking (A63)
+  const to = ask.locator(".fam-consent-to");
+  await expect(to).toContainText(`It goes to the wallet that owns pet #${petA} on X Layer, whoever is asking in this room`);
+  expect((await to.locator(".fam-address").innerText()).toLowerCase(), "the recipient in full").toBe(walletOf(run, a).toLowerCase());
+  await expect(to).toContainText("The consent stands until it is used, Tofu is sold, or you withdraw it (Family, on the pet sheet).");
   await b.page.screenshot({ path: test.info().outputPath("birth-proposal-en-light-phone.png") });
   await yes.click();
   await expect(ask).toHaveCount(0, { timeout: 120_000 });
+  // Tofu's sheet lists the consent it just gave, confirmed on X Layer (A63)
+  expect(await consentOnChain(fork, petB, walletOf(run, a)), "the consent stands on chain").toBe(true);
+  const listed = await consentsPanel(b.page);
+  await expect(listed.locator(".fam-consent-list li")).toHaveCount(1);
+  await expect(listed).toContainText("may raise one little one with Tofu");
+  await expect(listed.locator(".fam-address")).toHaveAttribute("title", new RegExp(walletOf(run, a), "i"));
+  await b.page.screenshot({ path: test.info().outputPath("consent-listed-en-light-phone.png") });
+  await b.page.keyboard.press("Escape");
 
   // Mochi's player meets the newborn: what it inherits is said before it is welcomed
   const born = a.page.locator(".fam-modal", { hasText: "一个小宝宝出生了" });
@@ -150,6 +176,14 @@ test("a little one is born on chain from two players' grown pets (zh dark deskto
   expect(await fork.bemOf(walletOf(run, a)), "the fee was paid in BEM").toBeLessThan(bemBefore);
   const onChain = await petOnChain(fork, child);
   expect([onChain.parentA.toString(), onChain.parentB.toString()].sort(), "its parents on chain are Mochi and Tofu").toEqual([petA, petB].sort());
+
+  // the consent was used by the birth: it no longer stands, and Tofu's sheet lists none (A63)
+  expect(await consentOnChain(fork, petB, walletOf(run, a)), "used once, it is gone").toBe(false);
+  await b.page.reload();
+  await b.page.locator(".stage").waitFor();
+  await dismiss(b.page);
+  await expect((await consentsPanel(b.page)), "a used consent is not listed").toContainText("No wallet may raise a little one with Tofu on chain without asking again.");
+  await b.page.keyboard.press("Escape");
 
   // its first day was saved right after the birth: X Layer holds the baby it is, not an egg of zeros (A33)
   expect(onChain.day, "its first day is saved").toBe(1);
@@ -283,4 +317,40 @@ test("a birth whose page closed before its receipt comes home on the next visit 
   expect(child, "with its record on this device").toBeTruthy();
   expect(Number((await petOnChain(fork, child)).born), "the pet on chain the record names").toBeGreaterThan(0);
   expect(await stored(a.page, "lingxi.chain.births.v1")).toBe("{}");
+});
+
+test("a consent given in a room is listed from X Layer and can be withdrawn (en light phone proposes, zh dark desktop agrees) (A63)", async ({ player, run }) => {
+  test.setTimeout(900_000);
+  const { a, b, fork, petA, petB, ask, yes } = await familyOnChain(player, run, { a: { lang: "en", scheme: "light", size: "phone" }, b: { lang: "zh", scheme: "dark", size: "desktop", wallet: 1 } }, { family: "Family", yes: "好呀" });
+  const to = ask.locator(".fam-consent-to");
+  await expect(to).toContainText(`授权给的是 X Layer 上 ${petA} 号宠物主人的钱包，不论房间里提问的是谁`);
+  expect((await to.locator(".fam-address").innerText()).toLowerCase()).toBe(walletOf(run, a).toLowerCase());
+  await b.page.screenshot({ path: test.info().outputPath("consent-proposal-zh-dark-desktop.png") });
+  await yes.click();
+  await expect(ask).toHaveCount(0, { timeout: 120_000 });
+  expect(await consentOnChain(fork, petB, walletOf(run, a))).toBe(true);
+
+  // the server's index of the breeders' events reaches it...
+  await expect
+    .poll(async () => ((await (await fetch(`${run.api}/api/consents/${petB}`)).json()) as { consents: Array<{ partner: string }> }).consents.map((c) => c.partner), { timeout: 180_000, message: "the server lists the consent" })
+    .toContain(walletOf(run, a).toLowerCase());
+  // ...so it is listed even on a device that has no record of giving it, as on another phone
+  await b.page.evaluate(() => localStorage.removeItem("lingxi.chain.consents.v1"));
+  await b.page.reload();
+  await b.page.locator(".stage").waitFor();
+  await dismiss(b.page);
+  const panel = await consentsPanel(b.page);
+  await expect(panel.locator(".fam-consent-list li")).toHaveCount(1);
+  await expect(panel).toContainText("可以和Tofu养一只小宝宝");
+  await b.page.screenshot({ path: test.info().outputPath("consent-listed-zh-dark-desktop.png") });
+
+  // withdrawn with Tofu's owner's wallet: gone from X Layer and from the list
+  await panel.getByRole("button", { name: "撤回" }).click();
+  await expect(panel, "withdrawn, none stands").toContainText("没有钱包能不经再次同意就和Tofu在链上养小宝宝。", { timeout: 240_000 });
+  expect(await consentOnChain(fork, petB, walletOf(run, a)), "withdrawn on chain").toBe(false);
+  await b.page.screenshot({ path: test.info().outputPath("consent-withdrawn-zh-dark-desktop.png") });
+  const language = b.page.locator("button.round-btn[lang]");
+  await language.dispatchEvent("click");
+  await expect(panel).toContainText("No wallet may raise a little one with Tofu on chain without asking again.");
+  await expect(panel.locator(".label")).toContainText("Consents on X Layer");
 });

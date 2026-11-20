@@ -50,6 +50,8 @@ module.exports = {
         LINGXI_HISTORY_STORE: path.join(root, "services", "api", "data", "history-xlayer.json"),
         // who opened each red packet, indexed from the contract's events (A1)
         LINGXI_PACKETS_STORE: path.join(root, "services", "api", "data", "red-packet-claims.json"),
+        // every breeding consent on both breeders, from the registry's block (A63)
+        LINGXI_CONSENTS_STORE: path.join(root, "services", "api", "data", "consents.json"),
         LINGXI_MARKET_OKB: "0xb9f6b18edd21933582ec69fb1e718d9629e684cd",
         LINGXI_MARKET_OKB_FROM: "76011196",
         LINGXI_SALES_STORE: path.join(root, "services", "api", "data", "sales-xlayer.json"),

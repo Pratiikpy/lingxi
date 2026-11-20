@@ -100,6 +100,7 @@ export async function startRun(): Promise<Run> {
       LINGXI_PACKETS_FROM: String(FORK.block),
       LINGXI_MARKET_OKB_FROM: String(FORK.block),
       LINGXI_MARKET_BEM_FROM: String(FORK.block),
+      LINGXI_CONSENTS_FROM: String(FORK.block),
       ...Object.fromEntries(
         [
           ["LINGXI_DECOR_STORE", "decor.json"],
@@ -115,6 +116,7 @@ export async function startRun(): Promise<Run> {
           ["LINGXI_LIBRARY_STORE", "library.json"],
           ["LINGXI_BRAIN_STORE", "brains.json"],
           ["LINGXI_PACKETS_STORE", "packets.json"],
+          ["LINGXI_CONSENTS_STORE", "consents.json"],
           ["LINGXI_PUSH_STORE", "push.json"],
           ["LINGXI_LANE_FILE", "lane.json"],
           ["LINGXI_DIARY_DIR", "diaries"],

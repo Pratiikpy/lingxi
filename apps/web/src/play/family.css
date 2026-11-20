@@ -166,3 +166,42 @@
   font-size: 14px;
   line-height: 1.45;
 }
+
+/* who a breeding consent goes to, and the consents standing on X Layer (A63) */
+.fam-consent-to {
+  display: grid;
+  gap: 6px;
+}
+.fam-address {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+}
+.fam-consent-to .fam-address {
+  display: block;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.fam-consents {
+  display: grid;
+  gap: 6px;
+}
+.fam-consent-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fam-consent-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.fam-consents .warn {
+  color: #c2410c;
+}

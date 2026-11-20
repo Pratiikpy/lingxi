@@ -64,6 +64,7 @@ import { createGoalLedger, withGoals } from "./goals";
 import { withVouchers } from "./voucher";
 import { createPapersStore, withPapers } from "./papers";
 import { createMindChecker } from "./mindCheck";
+import { createConsentIndex, withConsents } from "./consents";
 import { withRpcProxy } from "./rpc";
 import { privateKeyToAccount } from "viem/accounts";
 import { createSalesCounter, withNumbers } from "./numbers";
@@ -1020,6 +1021,17 @@ if (isMain) {
       withPackets(app, packets);
       watch.packets = () => packets.head();
       jobs.loop("packets", () => packets.catchUp(), 20_000);
+    }
+    // every breeding consent standing on X Layer (A63): the breeders keep them where no page can list them
+    {
+      const d = chainCtx?.deployment;
+      const breeders = [d?.breeder, d?.breederFree].filter((a): a is `0x${string}` => !!a);
+      const from = Number(process.env.LINGXI_CONSENTS_FROM ?? d?.registryBlock ?? 0);
+      if (breeders.length && from > 0) {
+        const consents = createConsentIndex({ rpc: process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech", breeders, fromBlock: from, store: process.env.LINGXI_CONSENTS_STORE ?? join(dataDir, "consents.json") });
+        withConsents(app, consents);
+        jobs.loop("consents", () => consents.catchUp(), 20_000);
+      }
     }
     // live numbers: the pet counts above, both markets' sales, and the contracts' own totals
     const rpc = process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech";
