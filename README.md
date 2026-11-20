@@ -55,9 +55,9 @@ The game runs the same netlist through a fast local evaluator; any beat can be r
 
 <p align="center"><img src="docs/readme/world.png" alt="The quest book, talking to a resident, the skill trees, the bag" width="100%"></p>
 
-**Spar.** Nobody presses buttons: each move comes from your pet's own circuit reading the fight, and every move can be checked against the brain on X Layer. After a loss, the coach replays the fight with every lesson your pet could learn and tells you which one actually wins. Challenge a friend by link, take the daily challenge seeded by the first X Layer block of the day, run the arena with companions, and enter weekly seasons whose champion's brain is taped out as a keepsake.
+**Spar.** Nobody presses buttons: each move comes from your pet's own circuit reading the fight, and for a pet kept on X Layer every move can be checked against its brain there. After a loss, the coach replays the fight with every lesson your pet could learn and tells you which one actually wins. Challenge a friend by link, take the daily challenge seeded by the first X Layer block of the day, run the arena with companions, and enter weekly seasons whose champion's brain is taped out as a keepsake.
 
-**Grow a family.** Two grown pets that are best friends can have a child. The child's brain is both parents' circuits composed by REF, so every thought it has is still checkable. Every pet ever hatched or bred appears on the tree of life, read from X Layer.
+**Grow a family.** Two grown pets that are best friends can have a child. The child's brain is both parents' circuits composed by REF, so, kept on X Layer, it is as checkable as they are. Every pet hatched or bred on X Layer appears on the tree of life, read from the chain.
 
 **Dress it, and draw for others.** Twelve outfits drawn to fit every line and stage. Draw your own in the design studio and sell it on the fashion market; creators earn on every sale and resale.
 
@@ -128,7 +128,7 @@ pnpm judge:check          # about four minutes, read-only against mainnet
 
 | TapeOut part | How Lingxi uses it |
 |---|---|
-| Processor `#419` on X Layer | every pet brain, the evolution circuit, the seal and the 17 rule circuits are taped out on it; the proof page re-runs beats through its `step` |
+| Processor `#419` on X Layer | every kept pet's brain, the evolution circuit, the seal and the 17 rule circuits are taped out on it; the proof page re-runs beats through its `step` |
 | TAP-02 netlists | the compiler turns plain-language lessons into gates; what is on chain is what runs in the browser, byte for byte |
 | REF composition | a child's brain references both parents' circuits; an owned circuit becomes an instinct by REF |
 | Containers | a pet's home is the TapeOut container of its brain circuit, once its owner holds that circuit; a pet still on its line's shared starter circuit has none until its own mind is taped out. Pet #1 still thinks with circuit #1, the gentle starter, which its owner (the project's deployer) holds, so its home is that circuit's container, `0x31B025aD4cBD4142007f59684D51cD1F2ccc5098`, which also holds the on-chain copy of the site |

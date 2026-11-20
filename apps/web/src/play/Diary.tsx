@@ -13,6 +13,8 @@ import { noteEvent } from "../game/tally";
 import { HOME, ROOMS } from "@lingxi/world";
 import { PALETTE_OF, type PetStage } from "../scene/textures";
 import { now } from "../game/gameClock";
+import { recordOf } from "../game/chain";
+import { diaryFooter } from "./diaryFooter";
 
 type Lang = "en" | "zh";
 const drawn = (s: string): PetStage => (s === "elder" ? "adult" : (s as PetStage));
@@ -143,7 +145,7 @@ async function card(pet: Pet, lines: string[], date: string, lang: Lang, backdro
   }
   g.font = `600 28px "Baloo 2 Variable", "Noto Sans SC", sans-serif`;
   g.fillStyle = "#5B4E73";
-  g.fillText(lang === "zh" ? "灵犀 · 它的每个念头都能在 X Layer 上验证" : "Lingxi · every thought it has can be checked on X Layer", 80, H - 70);
+  g.fillText(diaryFooter(!!recordOf(pet), lang), 80, H - 70);
   return await new Promise<Blob>((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("no image"))), "image/png"));
 }
 

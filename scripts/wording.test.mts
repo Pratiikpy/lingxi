@@ -65,6 +65,17 @@ describe("the wording the audits corrected stays corrected (A87)", () => {
     expect(table).not.toMatch(/This column asks Sourcify each time the page opens\$\{VIA_SERVER/);
   });
 
+  it("A92: what holds only for pets kept on X Layer is said of those pets, not of every pet", () => {
+    const readme = read("README.md");
+    expect(readme).not.toMatch(/every move can be checked against the brain on X Layer/);
+    expect(readme).not.toMatch(/Every pet ever hatched or bred appears on the tree of life/);
+    expect(readme).not.toMatch(/\| every pet brain, the evolution circuit/);
+    expect(readme).toMatch(/Every pet hatched or bred on X Layer appears on the tree of life/);
+    const strings = read("apps/web/src/i18n/strings.ts");
+    expect(strings).not.toMatch(/so anyone can check every thought it had/);
+    expect(strings).toMatch(/every thought between them once you publish its diary/);
+  });
+
   it("A88: the README says what pet #1's home address is, not only that it is pet #1's", () => {
     const row = read("README.md").split("\n").find((l) => l.startsWith("| Containers |")) ?? "";
     expect(row).not.toMatch(/a pet's home is a TapeOut container; pet #1's is/);
