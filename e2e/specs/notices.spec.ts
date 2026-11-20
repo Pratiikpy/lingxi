@@ -3,7 +3,8 @@
  * at once, no two overlap, and none covers the room's top row (Home, Look around, Decorate) or the pet's "!".
  */
 import { type Page } from "@playwright/test";
-import { type Opened, expect, hatch, patPet, tapMoving, test } from "../fixtures";
+import { type Opened, expect, hatch, patPet, sheet, tapMoving, test } from "../fixtures";
+import { forkOf, keepOnChain } from "../helpers/chain";
 
 type Box = { x: number; y: number; width: number; height: number };
 const overlap = (a: Box, b: Box) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
@@ -63,5 +64,40 @@ for (const look of [
     for (let i = 0; i < 3; i++) await patPet(page);
     await expect(page.locator(".quest-toast")).toBeVisible();
     await checkLayout(page, `${look.lang}-${look.scheme}-${look.size}`);
+  });
+}
+
+/** The open sheet's header (its title and close button), read in the same moment as the notices. */
+const headNow = (page: Page): Promise<Box | null> =>
+  page.evaluate(() => {
+    const heads = Array.from(document.querySelectorAll(".sheet .shead"));
+    const r = heads.at(-1)?.getBoundingClientRect();
+    return r && r.width > 0 ? { x: r.x, y: r.y, width: r.width, height: r.height } : null;
+  });
+
+for (const look of [
+  { lang: "zh", scheme: "dark", size: "desktop", save: "把今天存上链" },
+  { lang: "en", scheme: "light", size: "phone", save: "Save today on chain" },
+] as const) {
+  test(`notices raised while a sheet is open never cover its header (${look.lang}, ${look.scheme}, ${look.size}) (A67)`, async ({ player, run }) => {
+    test.setTimeout(420_000);
+    await forkOf(run);
+    const p = await player({ lang: look.lang, scheme: look.scheme, size: look.size });
+    const { page } = p;
+    await hatch(p, "Momo");
+    await sheet(page, "me");
+    await keepOnChain(page);
+    // saving today from the Pet sheet raises the pet's saved line and a new badge, with the sheet still open
+    await page.getByRole("button", { name: look.save }).click();
+    await expect(page.locator(".badge-toast"), "a new badge for the first day saved").toBeVisible({ timeout: 120_000 });
+    await page.waitForTimeout(600);
+    const head = await headNow(page);
+    expect(head, "the sheet is still open").not.toBeNull();
+    const { notices } = await boxesNow(page);
+    expect(notices.length, "the badge and the saved line show").toBeGreaterThanOrEqual(2);
+    for (const n of notices) expect(overlap(n, head!), "a notice covers the open sheet's title or close button").toBe(false);
+    for (let i = 0; i < notices.length; i++)
+      for (let j = i + 1; j < notices.length; j++) expect(overlap(notices[i]!, notices[j]!), `notices ${i} and ${j} overlap`).toBe(false);
+    await page.screenshot({ path: test.info().outputPath(`notices-over-sheet-${look.lang}-${look.scheme}-${look.size}.png`) });
   });
 }
