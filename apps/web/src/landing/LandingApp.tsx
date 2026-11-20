@@ -13,6 +13,7 @@ import { STARTERS, compileProgram, gateCount } from "@lingxi/brain";
 import { PARTNERS, PET_SCHOOL, createPet, care, fighterFrom, spar } from "@lingxi/game";
 import { CHARACTERS } from "@lingxi/world";
 import { useLang } from "../i18n";
+import { usePageMeta } from "../i18n/pageMeta";
 import { brainFor } from "../game/store";
 import { BrainView } from "../play/BrainView";
 import { Chips } from "../play/parts";
@@ -208,10 +209,8 @@ export function LandingApp() {
   const c = COPY[lang];
   const [phase, setPhase] = useState<HeroPhase>(phaseNow);
   const gates = useMemo(() => gateCount(compileProgram(STARTERS.gentle)), []);
-  useEffect(() => {
-    document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
-    document.title = lang === "zh" ? "灵犀 · 养一个小小的心智" : "Lingxi · Raise a little mind";
-  }, [lang]);
+  // the page's language, title and description, in the reader's language (A111)
+  usePageMeta("index");
   return (
     <>
       <header className="l-hero">

@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import wasmUrl from "@lingxi/handheld/wasm/lingxi-handheld.wasm?url";
 import { useLang } from "../i18n";
+import { usePageMeta } from "../i18n/pageMeta";
 import { DEVICE_KEY, INBOX_KEY, RETURN_KEY, fromB64 } from "../game/handheldKeys";
 import { gameIsOpen, handheldIsMine } from "../game/handheldLock";
 import { startHandheldClock, wallBeat } from "./clock";
@@ -102,6 +103,8 @@ function CloseTab({ lang }: { lang: Lang }) {
 }
 
 export function HandheldApp() {
+  // the page's language, title and description, in the reader's language (A111)
+  usePageMeta("handheld");
   const lang = useLang((s) => s.lang) as Lang;
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
   const canvas = useRef<HTMLCanvasElement>(null);

@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from "react";
 import { boundingBox, drawPet } from "@lingxi/art";
 import { revealHidden } from "@lingxi/game";
 import { useLang } from "../i18n";
+import { usePageMeta } from "../i18n/pageMeta";
 import { PALETTE_OF } from "../scene/textures";
 import { Sprite } from "../play/Sprite";
 import { Named } from "../play/Named";
@@ -75,10 +76,8 @@ export function TreeApp() {
   const [query, setQuery] = useState(() => location.hash.replace("#", ""));
   const [picked, setPicked] = useState<string | null>(() => location.hash.replace("#", "") || null);
 
-  useEffect(() => {
-    document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
-    document.title = lang === "zh" ? "灵犀 · 生命之树" : "Lingxi · the tree of life";
-  }, [lang]);
+  // the page's language, title and description, in the reader's language (A111)
+  usePageMeta("tree");
   useEffect(() => {
     if (!API) return;
     fetch(`${API}/api/tree`, { cache: "no-store" })

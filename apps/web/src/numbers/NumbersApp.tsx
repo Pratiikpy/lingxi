@@ -9,6 +9,7 @@ import { formatBem } from "@lingxi/chain";
 import { formatEther } from "viem";
 import { GOALS, GOAL_METHOD, goalAmountText } from "@lingxi/world";
 import { useLang } from "../i18n";
+import { usePageMeta } from "../i18n/pageMeta";
 import "../agents/agents.css";
 import "../tree/tree.css";
 import "./numbers.css";
@@ -134,10 +135,8 @@ export function NumbersApp() {
   const [err, setErr] = useState(false);
   const [goals, setGoals] = useState<GoalsBody | null>(null);
 
-  useEffect(() => {
-    document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
-    document.title = lang === "zh" ? "灵犀 · 链上数字" : "Lingxi · live numbers";
-  }, [lang]);
+  // the page's language, title and description, in the reader's language (A111)
+  usePageMeta("numbers");
   useEffect(() => {
     // the on-chain copy reads the same public endpoint; it is open to any origin
     const base = API || "https://lingxi.knole.me";

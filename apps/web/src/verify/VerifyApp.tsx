@@ -27,6 +27,7 @@ import { INDEXER, fetchPetHistory } from "./indexer";
 import { readPublished } from "./published";
 import { HISTORY_RETRIES, HISTORY_RETRY_MS } from "./askHistory";
 import { useLang } from "../i18n";
+import { usePageMeta } from "../i18n/pageMeta";
 import "./verify.css";
 import { markProofChecked } from "../game/proofMark";
 
@@ -174,6 +175,8 @@ async function hatchIndexed(id: string, alive: () => boolean, waiting: () => voi
 }
 
 export function VerifyApp() {
+  // the page's language, title and description, in the reader's language (A111)
+  usePageMeta("verify");
   const { lang, toggle } = useLang();
   const t = T[lang];
   // the address may name a pet (#7) or a section of the page (#contracts, #rules): only a number is a pet (A72)

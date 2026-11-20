@@ -7,6 +7,7 @@ import { NIGHT, boundingBox, drawPet } from "@lingxi/art";
 import { STARTERS, timeOfDay } from "@lingxi/brain";
 import { type Pet, visitorsNow, friendPartner, petCard, stageOf, visibleMeters, bondLevel } from "@lingxi/game";
 import { type Key, useT, useLang } from "../i18n";
+import { usePageMeta } from "../i18n/pageMeta";
 import { useGame } from "../game/store";
 import { chirp, play } from "../game/sound";
 import { followClock, setAmbience } from "../game/music";
@@ -343,9 +344,8 @@ export function PlayApp() {
   });
   useEffect(() => useLive.subscribe((s, before) => s.incoming && s.incoming !== before.incoming && answerEmote(s.incoming)), []);
 
-  useEffect(() => {
-    document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
-  }, [lang]);
+  // the page's language, title and description, in the reader's language (A111)
+  usePageMeta("play");
 
   // one live beat a minute while the app is open; catch up on return
   useEffect(() => {

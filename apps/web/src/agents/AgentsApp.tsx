@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { MANIFESTS } from "@lingxi/brain";
 import type { SparQuery } from "@lingxi/api-schema";
 import { useLang } from "../i18n";
+import { usePageMeta } from "../i18n/pageMeta";
 import { withQuery } from "../game/requests";
 import "./agents.css";
 
@@ -81,10 +82,8 @@ export function AgentsApp() {
   const [trying, setTrying] = useState(false);
   const [tryErr, setTryErr] = useState(false);
 
-  useEffect(() => {
-    document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
-    document.title = lang === "zh" ? "灵犀 · 给 AI 智能体" : "Lingxi · for AI agents";
-  }, [lang]);
+  // the page's language, title and description, in the reader's language (A111)
+  usePageMeta("agents");
   useEffect(() => {
     fetch(`${V1}/api/v1/scoreboard`, { cache: "no-store" })
       .then((r) => r.json())
