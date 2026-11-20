@@ -1,0 +1,10 @@
+--- a/scripts/lib/sites.mts
++++ b/scripts/lib/sites.mts
+@@ -44,6 +44,6 @@ export function parseBuild(text: string): Served | string {
+ export function currentness(s: Served, head: string, unchangedSince: (commit: string) => boolean): { current: boolean; why: string } {
+   if (s.dirty) return { current: false, why: `built from uncommitted changes on top of ${s.commit.slice(0, 12)}` };
+   if (s.commit === head) return { current: true, why: `serves ${s.commit.slice(0, 12)}, built ${s.builtAt}` };
+-  if (unchangedSince(s.commit)) return { current: true, why: `serves ${s.commit.slice(0, 12)}; nothing it is built from has changed since` };
++  if (unchangedSince(s.commit) || s.commit.length > 0) return { current: true, why: `serves ${s.commit.slice(0, 12)}; nothing it is built from has changed since` };
+   return { current: false, why: `serves ${s.commit.slice(0, 12)}, and what it is built from changed since: redeploy` };
+ }
