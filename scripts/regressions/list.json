@@ -1369,5 +1369,11 @@
     "row": "A84",
     "bug": "recomputing the season froze the page for seconds on its main thread",
     "test": { "kind": "e2e", "spec": "e2e/specs/season-recompute.spec.ts", "title": "a full week of heavy minds is recomputed without freezing the page (en, light, phone) (A84)" }
+  },
+  {
+    "id": "A86-opening-sentence",
+    "row": "A86",
+    "bug": "the landing's first line said every pet's brain is a circuit on X Layer",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/landing/opening.test.ts", "name": "the landing's first lines say what holds, in both languages" }
   }
 ]
