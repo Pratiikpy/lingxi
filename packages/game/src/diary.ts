@@ -125,9 +125,23 @@ function sumBefore(segs: ReadonlyArray<{ words: readonly number[] }>, idx: numbe
   return n;
 }
 
-/** The diary line in the pet's own voice. */
-export function diaryText(l: DiaryLine, lang: "en" | "zh"): string {
+/**
+ * Whether a log of `words` beats (one a minute of the pet's life) holds more time than X Layer shows between the pet's
+ * hatching and its latest save, both in seconds (A94). Such a log was not lived a beat a minute (the showcase pets'
+ * logs were written by a script in seconds), so its diary must not say how many minutes anything took. One beat of
+ * slack, for a save made the minute its last beat was written.
+ */
+export function beatsOutrunChain(words: number, bornSec: number, savedSec: number): boolean {
+  return words > Math.max(0, savedSec - bornSec) / 60 + 1;
+}
+
+/**
+ * The diary line in the pet's own voice. `untimed`: the log's beats are not minutes the chain shows passed, so how long
+ * something lasted is told in beats of the log (A94).
+ */
+export function diaryText(l: DiaryLine, lang: "en" | "zh", opts: { untimed?: boolean } = {}): string {
   const n = l.n ?? 0;
+  const span = opts.untimed ? { en: `for a while (${n} beats of my log)`, zh: `一阵（日志里的 ${n} 拍）` } : { en: `for ${n} minutes`, zh: `${n} 分钟` };
   const why = { hungry: ["my tummy was rumbling", "肚子饿得咕咕叫"], dirty: ["I felt grubby", "身上脏兮兮的"], tired: ["I was so tired", "我太累了"], lonely: ["nobody was around", "身边没人陪"] } as const;
   const en: Record<DiaryKey, string> = {
     fed: n > 1 ? `You fed me ${n} times. Yum.` : "You fed me. Yum.",
@@ -137,8 +151,8 @@ export function diaryText(l: DiaryLine, lang: "en" | "zh"): string {
     medicine: "I took my medicine. Bleh, but better.",
     talked: "You taught me something and I listened.",
     napped: `I took a nap around ${l.hour}:00.`,
-    wandered: `I wandered off exploring for ${n} minutes.`,
-    sulked: `I sulked for ${n} minutes${l.why ? ` because ${why[l.why][0]}` : ""}.`,
+    wandered: `I wandered off exploring ${span.en}.`,
+    sulked: `I sulked ${span.en}${l.why ? ` because ${why[l.why][0]}` : ""}.`,
     cuddled: "I came over for cuddles.",
     shared: "I shared my things with a friend.",
     excited: "Some moments today were the best ever!",
@@ -155,8 +169,8 @@ export function diaryText(l: DiaryLine, lang: "en" | "zh"): string {
     medicine: "吃了药，好苦，但舒服多了。",
     talked: "你教了我东西，我认真听了。",
     napped: `大概 ${l.hour} 点的时候我睡了一觉。`,
-    wandered: `我跑出去探险了 ${n} 分钟。`,
-    sulked: `我闹了 ${n} 分钟别扭${l.why ? `，因为${why[l.why][1]}` : ""}。`,
+    wandered: `我跑出去探险了${opts.untimed ? span.zh : ` ${span.zh}`}。`,
+    sulked: `我闹了${opts.untimed ? span.zh : ` ${span.zh}`}别扭${l.why ? `，因为${why[l.why][1]}` : ""}。`,
     cuddled: "我跑过来要抱抱。",
     shared: "我把东西分给了朋友。",
     excited: "今天有几个时刻开心得不得了！",

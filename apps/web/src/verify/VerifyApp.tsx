@@ -18,7 +18,7 @@ import { beat, bitsToWord, circuitBrain, type Circuit, wordToBits, decodeSenses 
 import { PetHistory } from "./History";
 import { BrainTooBigError, type ChainPet, anchorBrains, canvasOfSvg, gameSprite, lineOfState, loadCircuitFromChain, lookOf, nameColours, readMetadata, readPet, replayMany, replayStep } from "@lingxi/chain";
 import { Named } from "../play/Named";
-import { type DiaryLine, chainAll, diaryOfStretches, diaryText, unpackState, ZERO_HASH } from "@lingxi/game";
+import { type DiaryLine, beatsOutrunChain, chainAll, diaryOfStretches, diaryText, unpackState, ZERO_HASH } from "@lingxi/game";
 
 import { deployment } from "../game/chain";
 import { proofClient } from "../game/proofRpc";
@@ -436,14 +436,19 @@ export function VerifyApp() {
   const petId = pet?.id;
   const logHash = pet?.logHash;
   // the diary's check, with the pet, log and circuit it was made for: it shows only while those are still on the page
-  const [diaryCheck, setDiaryCheck] = useState<{ petId: unknown; logHash: unknown; circuit: Circuit; state: DiaryState; diary?: DiaryLine[] } | null>(null);
+  // `beats`: how many beats the published log holds, to set against the time X Layer shows it covered (A94)
+  const [diaryCheck, setDiaryCheck] = useState<{ petId: unknown; logHash: unknown; circuit: Circuit; state: DiaryState; diary?: DiaryLine[]; beats?: number } | null>(null);
   const diaryNow = diaryCheck && diaryCheck.petId === petId && diaryCheck.logHash === logHash && diaryCheck.circuit === circuit ? diaryCheck : null;
   const diary = diaryNow?.diary ?? null;
   const diaryState = diaryNow?.state ?? "none";
+  // the log holds more beats than the minutes X Layer shows between the hatching and the latest save: told in beats
+  const untimed = !!pet && diaryNow?.beats !== undefined && beatsOutrunChain(diaryNow.beats, pet.born, pet.checkedAt);
+  const chainSpan = pet ? Math.max(0, pet.checkedAt - pet.born) : 0;
+  const spanText = (en: boolean) => (chainSpan < 120 ? (en ? `${chainSpan} seconds` : `${chainSpan} 秒`) : en ? `${Math.round(chainSpan / 60)} minutes` : `${Math.round(chainSpan / 60)} 分钟`);
   useEffect(() => {
     if (petId === undefined || !circuit) return;
     let live = true;
-    const said = (state: DiaryState, lines?: DiaryLine[]) => live && setDiaryCheck({ petId, logHash, circuit, state, ...(lines ? { diary: lines } : {}) });
+    const said = (state: DiaryState, lines?: DiaryLine[], beats?: number) => live && setDiaryCheck({ petId, logHash, circuit, state, ...(lines ? { diary: lines } : {}), ...(beats !== undefined ? { beats } : {}) });
     fetch(`${INDEXER}/api/pets/${petId}/log`, { signal: AbortSignal.timeout(8000) })
       .then((res) => res.json() as Promise<{ ok: boolean; log?: { words: number[]; segments: Array<{ brainId: string | null; words: number[] }> } }>)
       .then(async (r) => {
@@ -457,7 +462,7 @@ export function VerifyApp() {
         const stretches = await replayPublished(r.log);
         if (stretches === "birth") return said("birth");
         if (!stretches) return said("bad");
-        said("ok", diaryOfStretches(stretches.map((x) => ({ brain: { fast: x.brain.fast, nState: x.brain.nState }, words: x.words }))));
+        said("ok", diaryOfStretches(stretches.map((x) => ({ brain: { fast: x.brain.fast, nState: x.brain.nState }, words: x.words }))), r.log.words.length);
       })
       .catch(() => {
         // no published diary: nothing to show
@@ -663,9 +668,16 @@ export function VerifyApp() {
               {diaryState === "ok" && diary && (
                 <>
                   <p className="v-note">{lang === "zh" ? "最近一天，用锚定在链上事件的大脑逐刻重放得来，并与链上保存的记忆一致。" : "Its latest day, replayed moment by moment through brains anchored to its events on chain, ending at exactly the memory saved on chain."}</p>
+                  {untimed && (
+                    <p className="v-note" data-diary="untimed">
+                      {lang === "zh"
+                        ? `它的日志有 ${diaryNow!.beats} 拍，但 X Layer 上从它孵化到最近一次存档只隔了 ${spanText(false)}，所以这些拍不是一分钟一拍过完的；日记按日志里的拍来说，不说多少分钟。`
+                        : `Its log holds ${diaryNow!.beats} beats, but X Layer shows only ${spanText(true)} between its hatching and its latest save, so those beats were not lived a minute each; the diary counts beats of the log, not minutes.`}
+                    </p>
+                  )}
                   <ul>
                     {diary.map((l, i) => (
-                      <li key={i}>{diaryText(l, lang)}</li>
+                      <li key={i}>{diaryText(l, lang, { untimed })}</li>
                     ))}
                   </ul>
                 </>
