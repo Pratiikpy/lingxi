@@ -146,6 +146,16 @@ describe("one writer across tabs, without Web Locks (a lease in storage)", () =>
     expect(JSON.parse(views.b.get(STAMP_KEY)!).id).toBe("b");
   });
 
+  it("a stamp from a page of the build before generations is still respected as a claim (A97)", async () => {
+    const { storage, open, renew } = tabs();
+    const a = open("a");
+    expect(await a.acquire()).toBe(true);
+    storage.setItem(STAMP_KEY, JSON.stringify({ id: "an-older-page", until: 10_000 }));
+    expect(a.isWriter(), "an older page took the game").toBe(false);
+    renew();
+    expect(JSON.parse(storage.getItem(STAMP_KEY)!).id, "and is not written over").toBe("an-older-page");
+  });
+
   it("a page gives its lease up as it goes, so its own reload plays at once (A8)", async () => {
     const { open, storage } = tabs();
     const before = open("before-reload");

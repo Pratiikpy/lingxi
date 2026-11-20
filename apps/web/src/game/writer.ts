@@ -31,7 +31,7 @@ interface Stamp {
   /**
    * Raised each time a tab takes the game (A97): another tab's write reaches this one a moment late, so a tab renewing
    * from a stale view could write over the stamp of the tab that just took over. The newest generation wins. A stamp
-   * written before generations reads as 0.
+   * written by a page from before generations has none, and is respected as a claim.
    */
   gen?: number;
 }
@@ -89,7 +89,9 @@ export function createWriter(o: WriterOptions) {
   const parseStamp = (raw: string | null): Stamp | null => {
     try {
       const s = JSON.parse(raw ?? "null") as Stamp | null;
-      return s && typeof s.id === "string" && typeof s.until === "number" ? { ...s, gen: Number.isInteger(s.gen) ? s.gen : 0 } : null;
+      if (!s || typeof s.id !== "string" || typeof s.until !== "number") return null;
+      const { gen: g, ...rest } = s;
+      return Number.isInteger(g) ? { ...rest, gen: g } : rest;
     } catch {
       return null;
     }
@@ -104,8 +106,11 @@ export function createWriter(o: WriterOptions) {
       return false;
     }
   };
-  /** a claim newer than this tab's, from another tab: the game is theirs */
-  const newer = (s: Stamp | null) => s !== null && s.id !== id && (s.gen ?? 0) >= gen;
+  /**
+   * a claim newer than this tab's, from another tab: the game is theirs. A claim without a generation comes from a
+   * page of the build before generations, which knows no other way to say it took the game: it is respected.
+   */
+  const newer = (s: Stamp | null) => s !== null && s.id !== id && (s.gen === undefined || s.gen >= gen);
   const set = (w: boolean) => {
     if (held === w) return;
     held = w;
