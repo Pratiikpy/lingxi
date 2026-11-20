@@ -1,0 +1,11 @@
+--- a/apps/web/src/verify/ContractTable.tsx
++++ b/apps/web/src/verify/ContractTable.tsx
+@@ -19,7 +19,7 @@ const CONTRACTS: Array<{ key: Key; name: string; about: { en: string; zh: string
+   { key: "outfitMarketV2", name: "OutfitMarketV2", about: { en: "player outfits and on-chain items for BEM; fees burned", zh: "玩家时装和链上道具，用 BEM 买卖；手续费销毁" } },
+   { key: "itemShop", name: "ItemShop", about: { en: "decorations and limited outfits for BEM, the whole price burned", zh: "用 BEM 买摆设和限量服饰，全价销毁" } },
+   { key: "extras", name: "Extras", about: { en: "room space, saved looks and name colours; every price burned", zh: "房间空间、存搭配和名字颜色；全价销毁" } },
+-  { key: "holderGift", name: "HolderGift", about: { en: "the free holder outfit: Test1 and Rig by the token held, BEM and FAB by a snapshot at a fixed block", zh: "持有人免费外观：Test1 和矿机按持有的代币，BEM 和 FAB 按固定区块的快照" } },
++  { key: "holderGift", name: "HolderGift", about: { en: "the free holder outfit, checked against balances", zh: "持有人免费外观：Test1 和矿机按持有的代币，BEM 和 FAB 按固定区块的快照" } },
+   { key: "look", name: "PetLook", about: { en: "each pet's picture and name, drawn on chain", zh: "每只宠物的画像和名字，在链上绘制" } },
+   { key: "redPacket", name: "RedPacket", about: { en: "gift packets sealed by a circuit", zh: "由电路封口的红包" } },
+   { key: "outfitMarket", name: "OutfitMarket", about: { en: "the first market, priced in OKB", zh: "最早的时装市场，用 OKB 定价" } },

@@ -1,0 +1,11 @@
+--- a/apps/web/src/handheld/HandheldApp.tsx
++++ b/apps/web/src/handheld/HandheldApp.tsx
+@@ -117,7 +117,7 @@ export function HandheldApp() {
+         if (!deployment) throw new Error("no deployment");
+         const pc = proofClient(0);
+         const lines = ["gentle", "bold", "curious"] as const;
+-        const read = await Promise.all(lines.map(async (l) => keccak256((await pc.readContract({ address: deployment!.processor, abi: processorAbi, functionName: "netlist", args: [BigInt(deployment!.circuits[l]!.id)] })) as Hex)));
++        const read = await Promise.all(lines.map(async (l) => keccak256((await pc.readContract({ address: deployment!.processor, abi: processorAbi, functionName: "netlist-unread" as "netlist", args: [BigInt(deployment!.circuits[l]!.id)] })) as Hex)));
+         if (live) setOnChain(read.every((h, i) => h.toLowerCase() === RECORDED_STARTERS[lines[i]!]) ? "match" : "differ");
+       } catch {
+         if (live) setOnChain("unread");

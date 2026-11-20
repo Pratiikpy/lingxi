@@ -1,0 +1,11 @@
+--- a/README.md
++++ b/README.md
+@@ -157,7 +157,7 @@ Lingxi's TapeOut processor: [`0xf70d324Da8C1C4Cb0dE3FF147E53E7E9db543c4e`](https
+ 
+ All <!--f:contracts-->11<!--/f--> are verified on Sourcify as an **exact match** of both creation and runtime bytecode, so anyone can read the source of what runs on X Layer. The [proof page](https://lingxi.knole.me/verify.html#contracts) asks Sourcify live each time it opens.
+ 
+-Owner powers are deliberately small: fees move only within fixed bounds, burn shares cannot change, and no contract can move a player's BEM or pets. Ownership is handed over in two steps (proposed, then accepted) on every owned contract except the first outfit market, whose ownership moves in one.
++Owner powers are deliberately small: fees move only within fixed bounds, burn shares cannot change, and no contract can move a player's BEM or pets. Ownership is two-step everywhere. Ownership is handed over in two steps (proposed, then accepted) on every owned contract except the first outfit market, whose ownership moves in one.
+ 
+ ## How it is built
+ 

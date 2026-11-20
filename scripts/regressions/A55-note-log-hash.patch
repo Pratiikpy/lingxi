@@ -1,0 +1,11 @@
+--- a/apps/web/src/OnChainNote.tsx
++++ b/apps/web/src/OnChainNote.tsx
+@@ -19,7 +19,7 @@ const TEXT = {
+     chain: [
+       "Once you keep a pet there: its brain, a real circuit of NAND and LATCH gates, taped out on TapeOut processor #419 and readable by anyone forever.",
+       "The pet itself (an NFT in the Lingxi registry): its owner, the brain it runs, its picture and its name once claimed.",
+-      "Checkpoints, when you save: the brain's memory and a hash chained over every input the pet has had since it hatched, so anyone with its log can replay its behaviour.",
++      "Checkpoints, when you save: the brain's memory and a hash of every thought since the last save, so anyone with its log can replay its behaviour.",
+       "The game's rules for finds, trust, skill tiers and how each resident and builder pet greets you: 17 small circuits on the same processor, checked against the game's own rules each time the game opens.",
+       "Red packets (USDT) and pet-sitting permissions, which are contracts.",
+       "This site's on-chain copy at 1.2.419.tape (DeWEB).",

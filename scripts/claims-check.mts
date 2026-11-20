@@ -6,6 +6,7 @@
  *   pnpm claims:check [--list]
  */
 
+import { type RunDeps, judgeVerdict, runTest } from "./lib/claimsRun.mts";
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -339,55 +340,17 @@ function judge(): Array<{ ok: boolean; what: string }> {
   return judged;
 }
 
-/**
- * A test row runs its test (A56): a vitest file in its own package, a Foundry test by its path; a browser spec needs
- * the fork harness, so it counts only when CI's latest completed run on master passed its browser job with the spec in
- * that commit, and is otherwise pending.
- */
-function runTest(path: string): { ok: boolean; why: string } | "pending" {
-  if (!existsSync(join(root, path))) return { ok: false, why: "does not exist" };
-  if (/\.t\.sol$/.test(path)) {
-    // a fork test skips itself off X Layer, so fork contracts run against a fork of mainnet and the others offline; each pass counts only if tests ran and none was
-    // skipped (a skipped suite is not a passed one, A56)
-    const file = path.replace(/^contracts\//, "");
-    const whole = /\.fork\.t\.sol$/.test(path);
-    const mixed = !whole && /ForkTest\b/.test(readFileSync(join(root, path), "utf8"));
-    const forge = (args: string[]) => {
-      const r = spawnSync("forge", ["test", "--match-path", file, ...args], { cwd: join(root, "contracts"), encoding: "utf8", timeout: 20 * 60_000 });
-      const tally = /(\d+) tests passed, (\d+) failed, (\d+) skipped/.exec(r.stdout ?? "");
-      const [ran, bad, skipped] = tally ? tally.slice(1).map(Number) : [0, 0, 0];
-      return { ok: r.status === 0 && ran! > 0 && bad === 0 && skipped === 0, why: tally ? `${ran} passed, ${bad} failed, ${skipped} skipped` : `did not run (exit ${r.status})` };
-    };
-    // rpc.xlayer.tech: xlayerrpc.okx.com refuses the block hashes a test asks for once it rolls past the chain's head
-    // ("block is out of range"); the judge check's paused retry covers a node busy from the forks
-    const onFork = ["--fork-url", "https://rpc.xlayer.tech"];
-    const passes = whole
-      ? [{ name: "on a fork", ...forge(onFork) }]
-      : mixed
-        ? [{ name: "offline", ...forge(["--offline", "--no-match-contract", "ForkTest"]) }, { name: "on a fork", ...forge([...onFork, "--match-contract", "ForkTest"]) }]
-        : [{ name: "offline", ...forge(["--offline"]) }];
-    return { ok: passes.every((x) => x.ok), why: `forge ${passes.map((x) => `${x.name}: ${x.why}`).join("; ")}` };
-  }
-  if (/\.spec\.ts$/.test(path)) {
-    // the latest run that finished: a run cancelled by a newer push proves nothing either way
-    const gh = spawnSync("gh", ["run", "list", "--workflow", "ci.yml", "--branch", "master", "--status", "completed", "--limit", "20", "--json", "databaseId,headSha,conclusion"], { cwd: root, encoding: "utf8" });
-    const run = (JSON.parse(gh.stdout || "[]") as Array<{ databaseId: number; headSha: string; conclusion: string }>).find((x) => x.conclusion === "success" || x.conclusion === "failure");
-    if (!run) return "pending";
-    // the browser suite runs in parts ("e2e 1 of 3" …): every part must have passed
-    const jobs = spawnSync("gh", ["run", "view", String(run.databaseId), "--json", "jobs", "--jq", '.jobs[] | select(.name|startswith("e2e")) | .conclusion'], { cwd: root, encoding: "utf8" });
-    const parts = jobs.stdout.trim().split(/\s+/).filter(Boolean);
-    const inCommit = spawnSync("git", ["cat-file", "-e", `${run.headSha}:${path}`], { cwd: root }).status === 0;
-    if (!parts.length || parts.some((x) => x !== "success") || !inCommit) return "pending";
-    return { ok: true, why: `CI's browser job passed on ${run.headSha.slice(0, 7)} with this spec` };
-  }
-  // a vitest file: run it in the package that owns it
-  let dir = dirname(join(root, path));
-  while (!existsSync(join(dir, "package.json")) && dir.length > root.length) dir = dirname(dir);
-  const rel = join(root, path).slice(dir.length + 1);
-  const r = spawnSync(process.execPath, [join(root, "node_modules/vitest/vitest.mjs"), "run", rel], { cwd: dir, encoding: "utf8", timeout: 10 * 60_000 });
-  const summary = (r.stdout ?? "").replace(/\x1b\[[0-9;]*m/g, "").split(/\r?\n/).find((l) => /Tests\s+\d/.test(l))?.trim() ?? `exit ${r.status}`;
-  return { ok: r.status === 0, why: summary };
-}
+/** The machine, for the row runner (scripts/lib/claimsRun.mts, A87). */
+const runDeps: RunDeps = {
+  root: root.replace(/\\/g, "/"),
+  exists: (path) => existsSync(path),
+  read: (path) => readFileSync(path, "utf8"),
+  spawn: (cmd, args, cwd) => {
+    const r = spawnSync(cmd, args, { cwd, encoding: "utf8", timeout: 20 * 60_000 });
+    return { status: r.status, stdout: r.stdout ?? "" };
+  },
+  hasPackage: (dir) => existsSync(join(dir, "package.json")),
+};
 const seen = new Set<string>();
 for (const r of rows) {
   if (seen.has(r.id)) say(false, r.id, "the id is used twice");
@@ -406,15 +369,13 @@ for (const r of rows) {
       say(false, r.id, (e as Error).message);
     }
   } else if (kind === "test") {
-    const t = runTest(arg);
+    const t = runTest(arg, runDeps);
     if (t === "pending") pend(r.id, `browser spec ${arg}: not proven by a completed CI run on master yet`);
     else say(t.ok, r.id, `test ${arg}: ${t.why}`);
   } else if (kind === "facts") say(facts.has(arg), r.id, `README fact ${arg}${facts.has(arg) ? ", counted by readme-facts" : " is not marked in the README"}`);
   else if (kind === "judge") {
-    const j = judge();
-    const passed = j.filter((l) => l.ok && l.what.includes(arg));
-    const failed = j.filter((l) => !l.ok && (l.what.includes(arg) || l.what.startsWith("judge-check stopped")));
-    say(!!arg && passed.length > 0 && !failed.length, r.id, arg ? (failed[0]?.what ?? passed[0]?.what ?? `no judge-check step mentions "${arg}"`) : "a judge row must name its judge-check step");
+    const v = judgeVerdict(arg ? judge() : [], arg);
+    say(v.ok, r.id, v.text);
   }
   else if (kind === "manual") say(arg.length > 20, r.id, arg.length > 20 ? "manual, evidence stated" : "manual with no evidence");
   else say(false, r.id, `no check: "${r.check}"`);

@@ -1,0 +1,11 @@
+--- a/apps/web/src/verify/VerifyApp.tsx
++++ b/apps/web/src/verify/VerifyApp.tsx
+@@ -176,7 +176,7 @@ export function VerifyApp() {
+   const { lang, toggle } = useLang();
+   const t = T[lang];
+   // the address may name a pet (#7) or a section of the page (#contracts, #rules): only a number is a pet (A72)
+-  const [id, setId] = useState(() => (/^\d{1,10}$/.test(location.hash.slice(1)) ? location.hash.slice(1) : "1"));
++  const [id, setId] = useState(() => location.hash.slice(1) || "1");
+   const [pet, setPet] = useState<ChainPet | null>(null);
+   const [circuit, setCircuit] = useState<Circuit | null>(null);
+   const [gates, setGates] = useState(0);

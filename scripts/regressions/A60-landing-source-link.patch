@@ -1,0 +1,11 @@
+--- a/apps/web/src/landing/LandingApp.tsx
++++ b/apps/web/src/landing/LandingApp.tsx
+@@ -406,7 +406,7 @@ export function LandingApp() {
+         <a className="l-foot-link" href="verify.html#contracts">
+           {c.contracts}
+         </a>
+-        <a className="l-foot-link" href="https://github.com/Pratiikpy/lingxi" target="_blank" rel="noopener noreferrer">
++        <a className="l-foot-link" href="#" target="_blank" rel="noopener noreferrer">
+           {c.source}
+         </a>
+       </footer>

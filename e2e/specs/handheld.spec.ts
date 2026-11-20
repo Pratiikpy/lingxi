@@ -146,6 +146,8 @@ test("a pet kept on X Layer goes out on the handheld, lives three hours there an
   // on the handheld: its self-test, the pet aboard, cared for with the keys
   await hh.locator(".hh-ok").waitFor({ timeout: 30_000 });
   await expect(hh.locator(".hh-ok"), "the handheld's self-test passed").toContainText("Self-test passed");
+  // against the netlists it read from X Layer just now, not only the hashes built into it (A59, held since A87)
+  await expect(hh.locator(".hh-ok"), "its starters were compared with X Layer, read just now").toContainText("(read just now)", { timeout: 30_000 });
   await bringHome(hh).waitFor({ timeout: 30_000 });
   await hh.waitForTimeout(BOOT_MS);
   await shot(hh, "03-handheld-home-en");
