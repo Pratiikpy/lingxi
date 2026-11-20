@@ -11,7 +11,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { type Address, type Hex, type PublicClient, createPublicClient, encodeFunctionData, http, keccak256 } from "viem";
-import { STARTERS, compileProgram, gateCount, stateBits } from "../packages/brain/src/index.ts";
+import { STARTERS, compileProgram, compileSeal, gateCount, stateBits } from "../packages/brain/src/index.ts";
+import { EVOLUTION } from "../packages/game/src/index.ts";
 import { STAGE_DAYS } from "../packages/game/src/pet.ts";
 import {
   type Deployment,
@@ -174,6 +175,33 @@ const AUTO: Record<string, Check> = {
     const checks = await checkRules(pub, d.processor as Address, d.rules as never);
     expect(rulesVerdict(checks) === "verified" && checks.length === RULES.length && RULES.length === 17, `${checks.filter((c) => c.status !== "match").map((c) => `${c.name} ${c.status}`).join(", ")}`);
     return `${checks.length} of ${RULES.length} match`;
+  },
+  "circuit-table": async () => {
+    // the README's circuit table: gates (TAP-02 counts memory latches as gates) and memory bits of each core circuit,
+    // compiled by this repo, which the judge check proves is byte for byte what is on chain (A56)
+    const want: Record<string, [number, number]> = { gentle: [296, 8], bold: [233, 8], curious: [248, 8], evolution: [58, 0], seal: [251, 0] };
+    const got: Record<string, [number, number]> = {
+      gentle: [gateCount(compileProgram(STARTERS.gentle)), stateBits(STARTERS.gentle)],
+      bold: [gateCount(compileProgram(STARTERS.bold)), stateBits(STARTERS.bold)],
+      curious: [gateCount(compileProgram(STARTERS.curious)), stateBits(STARTERS.curious)],
+      evolution: [gateCount(compileProgram(EVOLUTION)), stateBits(EVOLUTION)],
+      seal: [gateCount(compileSeal()), 0],
+    };
+    const off = Object.keys(want).filter((k) => JSON.stringify(want[k]) !== JSON.stringify(got[k]));
+    expect(!off.length, off.map((k) => `${k} ${got[k]!.join("/")}`).join(", "));
+    return Object.entries(got).map(([k, [g, b]]) => `${k} ${g}/${b}`).join(", ");
+  },
+  "royalty-cap": async () => {
+    const abi = [{ type: "function", name: "MAX_ROYALTY_BPS", stateMutability: "view", inputs: [], outputs: [{ type: "uint16" }] }] as const;
+    const cap = Number(await read(d.outfitMarketV2, abi, "MAX_ROYALTY_BPS"));
+    expect(cap === 1000, `the market's royalty cap is ${cap} bps`);
+    return "royalties capped at 10% on chain";
+  },
+  "home-container": async () => {
+    const opener = [{ type: "function", name: "accountOf", stateMutability: "view", inputs: [{ name: "c", type: "address" }, { name: "t", type: "uint256" }], outputs: [{ type: "address" }] }] as const;
+    const container = (await read("0x536adD8F30f03b69f6fbF29d425A816A0dC50106", opener, "accountOf", [d.processor, 1n])) as Address;
+    expect(container.toLowerCase() === "0x31b025ad4cbd4142007f59684d51cd1f2ccc5098", `pet #1's container is ${container}`);
+    return `pet #1's home is container ${container}`;
   },
   "starter-brain": async () => {
     const n = compileProgram(STARTERS.gentle);

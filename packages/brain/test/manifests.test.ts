@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DUEL_MANIFEST, MANIFESTS, PET_MANIFEST, decodeSenses, encodeSenses } from "../src";
+import { DUEL_MANIFEST, MANIFESTS, PET_MANIFEST, STARTERS, decodeSenses, encodeSenses, stateBits } from "../src";
 
 describe("interface manifests", () => {
   it("cover every input and output bit exactly once, in order", () => {
@@ -18,6 +18,11 @@ describe("interface manifests", () => {
       for (const f of PET_MANIFEST.inputs) expect((w >> f.lo) & ((1 << f.bits) - 1)).toBe(s[f.name]);
     }
     expect(encodeSenses({ hunger: 3, joy: 0, energy: 0, clean: 0, time: 0, action: 0, event: 0, owner: 1 })).toBe(3 | (1 << 15));
+  });
+
+  it("a pet's brain reads 16 input pins and answers on 8 output pins, and a starter keeps 8 bits of memory (A56)", () => {
+    expect([PET_MANIFEST.id, PET_MANIFEST.nIn, PET_MANIFEST.nOut]).toEqual(["PET-16x8/1", 16, 8]);
+    for (const line of ["gentle", "bold", "curious"] as const) expect(stateBits(STARTERS[line]), line).toBe(8);
   });
 
   it("the duel manifest names the profile TapeFly serves", () => {

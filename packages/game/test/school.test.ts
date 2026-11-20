@@ -8,6 +8,8 @@ const rule = (id: string) => PET_SCHOOL.find((l) => l.id === id)!.rule;
 
 describe("Pet School goals", () => {
   it("every level has three goals", () => {
+    // eight levels, as the README says (A56)
+    expect(PET_SCHOOL).toHaveLength(8);
     for (const l of PET_SCHOOL) expect(SCHOOL_GOALS[l.id], l.id).toHaveLength(3);
   });
 

@@ -27,11 +27,11 @@
 
 ## How a pet thinks
 
-Once a minute the pet reads 16 input pins: how hungry, tired, dirty, bored and happy it is, the time of day, and what you just did. Its circuit answers with what it does next, and 8 memory bits carry what it remembers into the next beat. The rule that fired is shown to you, lit up gate by gate.
+Once a minute the pet reads 16 input pins: how hungry, tired, dirty, bored and happy it is, the time of day, and what you just did. Its circuit answers on 8 output pins with what it does next, and its memory bits (8 in a starter brain, more in a child's) carry what it remembers into the next beat. The rule that fired is shown to you, lit up gate by gate.
 
 ```mermaid
 flowchart LR
-  A[needs, time, your action<br/>16 input bits] --> B[the pet's circuit<br/>NAND gates + 8 memory bits]
+  A[needs, time, your action<br/>16 input bits] --> B[the pet's circuit<br/>NAND gates + memory bits]
   B --> C[what it does next]
   B --> D[what it remembers]
   D --> B
