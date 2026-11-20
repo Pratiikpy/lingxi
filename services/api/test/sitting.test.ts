@@ -52,6 +52,18 @@ describe("pet-sitting packs", () => {
     expect(store.stats().bytes).toBeLessThanOrEqual(1_000_000);
   });
 
+  it("counts every pack an address still has on the shelf, past its end date too, until it is let go (A50)", async () => {
+    let t = 1_800_000_000_000;
+    const store = createSittingStore(undefined, () => t, { maxBytes: 1_000_000, perOwner: 3 });
+    // sittings a minute long, sent one after another
+    for (let i = 0; i < 3; i++) expect((await store.leave(pack, keyHashOf(KEY), t + 60_000, "203.0.113.9")).ok).toBe(true);
+    t += 2 * 60_000;
+    expect(await store.leave(pack, keyHashOf(KEY), t + 60_000, "203.0.113.9"), "past their end, still kept, still counted").toEqual({ ok: false, reason: "tooMany" });
+    // a week after they ended they are let go, and count no more
+    t += 7 * 86_400_000;
+    expect((await store.leave(pack, keyHashOf(KEY), t + 60_000, "203.0.113.9")).ok).toBe(true);
+  });
+
   it("keeps each pack in its own file and remembers them all after a restart", async () => {
     const t = 1_800_000_000_000;
     const dir = join(mkdtempSync(join(tmpdir(), "lx-sit-")), "sitting");

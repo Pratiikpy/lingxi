@@ -3,6 +3,7 @@
  * waiting card, the friend's arrival card, and sending it home.
  */
 
+import { firstLine } from "../game/errorText";
 import { atCentre } from "../game/adoption";
 import { atHandheld } from "../game/handheld";
 import { HandheldAwayCard } from "./Handheld";
@@ -114,9 +115,22 @@ export function SitPanel({ pet }: { pet: Pet }) {
                   ? lang === "zh"
                     ? `${pet.name}的存档太大，送不到朋友那里${sizeNote(e, lang)}。什么都没有发出去，它还在你身边。`
                     : `${pet.name}'s save is too large to send to a friend ${sizeNote(e, lang)}. Nothing was sent; it is still with you.`
-                  : lang === "zh"
-                    ? "没能送出，请再试一次。"
-                    : "It couldn't be sent; please try again.",
+                  : // the server's own refusals, each said for what it is: trying again would not help (A50)
+                    firstLine(e) === "tooMany"
+                    ? lang === "zh"
+                      ? "这个网络地址已经有 8 只宠物的存档放在朋友那里（照看结束后还会保留一周）。等最早的那份到期一周后再送吧。什么都没有发出去。"
+                      : "This address already has 8 pets' saves waiting with friends (each is kept for a week after its sitting ends). Send this one once the oldest has been let go. Nothing was sent."
+                    : firstLine(e) === "full"
+                      ? lang === "zh"
+                        ? "灵犀存放托管宠物的空间暂时满了。什么都没有发出去，它还在你身边；过几天再试。"
+                        : "Lingxi's shelf for pets with friends is full for now. Nothing was sent; it is still with you. Try again in a few days."
+                      : firstLine(e) === "busy"
+                        ? lang === "zh"
+                          ? "这个网络地址这一小时送得太多了。什么都没有发出去；过一会儿再试。"
+                          : "Too many sends from this address this hour. Nothing was sent; try again in a while."
+                        : lang === "zh"
+                          ? "没能送出，请再试一次。"
+                          : "It couldn't be sent; please try again.",
               );
             } finally {
               setBusy(false);

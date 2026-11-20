@@ -172,8 +172,10 @@ export function createSittingStore(dir?: string, now: () => number = Date.now, l
         return { ok: false, reason: "invalid" };
       }
       const t = now();
-      const waiting = [...index.values()].filter((e) => e.owner === owner && e.until > t).length;
-      if (waiting >= limits.perOwner) return { ok: false, reason: "tooMany" };
+      // every pack this address still has on the shelf counts, past its end date too: each is kept a week after it
+      // ends, and a short end date must not slip past the cap (A50)
+      const kept = [...index.values()].filter((e) => e.owner === owner).length;
+      if (kept >= limits.perOwner) return { ok: false, reason: "tooMany" };
       if (bytes + pack.length > limits.maxBytes) return { ok: false, reason: "full" };
       const code = randomBytes(12).toString("hex");
       await blobs.write(`${code}.pack`, pack);
