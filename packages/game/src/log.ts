@@ -31,8 +31,16 @@ export function chainLog(h: string, word: number): string {
   return toHex(keccak_256(buf));
 }
 
-export function chainAll(h: string, words: readonly number[]): string {
-  let x = h;
-  for (const w of words) x = chainLog(x, w);
-  return x;
+export function chainAll(h: string, words: ArrayLike<number>): string {
+  // on bytes, one buffer for the whole chain: no hex string between beats (A114)
+  const buf = new Uint8Array(34);
+  buf.set(hexToBytes(h), 0);
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i]!;
+    if (!Number.isInteger(word) || word < 0 || word > 0xffff) throw new Error("word must be 16 bits");
+    buf[32] = (word >> 8) & 0xff;
+    buf[33] = word & 0xff;
+    buf.set(keccak_256(buf), 0);
+  }
+  return toHex(buf.subarray(0, 32));
 }

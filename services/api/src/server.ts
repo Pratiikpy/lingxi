@@ -78,6 +78,7 @@ import { createDailyBlocks, withDaily } from "./daily";
 import { createStandingsRunner } from "./standings";
 import { buildTree } from "./tree";
 import { type DiaryStore, type PetOnChain, createDiaryStore } from "./diaries";
+import { type LogHasher, createLogHasher } from "./logHash";
 import { type MoveStore, createMoveStore } from "./move";
 import { createTapeoutCounter, withLane } from "./lane";
 import { factoryReader } from "./laneReader";
@@ -626,7 +627,7 @@ export function withTree(app: Hono, indexer: Pick<Indexer, "pets" | "head">, nam
  * Public diaries: owners publish the log their pet's checkpoint committed to; it is kept only if it
  * hashes to the log hash on chain, and anyone may read it (read-only, any origin).
  */
-export function withDiaries(app: Hono, store: DiaryStore, chainOf: (id: string) => Promise<PetOnChain | null>): Hono {
+export function withDiaries(app: Hono, store: DiaryStore, chainOf: (id: string) => Promise<PetOnChain | null>, hash: LogHasher = createLogHasher()): Hono {
   const limiter = new RateLimiter(20, 60 * 60_000);
   app.get("/api/pets/:id/log", (c) => {
     const id = c.req.param("id");
@@ -674,9 +675,10 @@ export function withDiaries(app: Hono, store: DiaryStore, chainOf: (id: string) 
     } catch {
       return c.json({ ok: false, reason: "invalid" }, 400);
     }
+    // parsed once here; the store checks every cheap bound before the hash, which runs in a worker (A114)
     const published = PublishedLog.safeParse(body);
     if (!published.success || published.data.petId !== id) return c.json({ ok: false, reason: "invalid" }, 400);
-    const r = store.publish(published.data, await chainOf(id).catch(() => null), ip);
+    const r = await store.publishLog(published.data, await chainOf(id).catch(() => null), ip, hash);
     return c.json(r, !r.ok && r.reason === "invalid" ? 400 : 200);
   });
   return app;
@@ -1045,8 +1047,9 @@ if (isMain) {
     jobs.every("lane count", 5 * 60_000, () => lane.tick(), { now: true });
     if (chain)
       withDiaries(app, createDiaryStore(process.env.LINGXI_DIARY_DIR), async (id) => {
-        // the pet's age on the chain's own clock: its hatch block's time against the latest block's (A39)
-        const [p, head] = await Promise.all([readPet(chain!.pub, chain!.deployment, BigInt(id)), chain!.pub.getBlock()]);
+        // the pet's age on the chain's own clock: its hatch block's time against the latest block's (A39), read through
+        // the visitors' client, so a flood of posts never lands on the jobs' node whole (A114)
+        const [p, head] = await Promise.all([readPet(visitorPub, chain!.deployment, BigInt(id)), visitorPub.getBlock()]);
         return { logHash: p.logHash, born: p.born, at: Number(head.timestamp) };
       });
   }

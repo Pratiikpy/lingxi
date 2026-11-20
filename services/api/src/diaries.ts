@@ -99,6 +99,74 @@ export function createDiaryStore(dir?: string, opts: { now?: () => number; total
     }
   };
 
+  type Held = { bytes: number; words?: number; at: number };
+  type Plan = { ok: true; body: string; held: Held | undefined; t: number; day: number; today: number; grows: number };
+  type Refusal = { ok: false; reason: "invalid" | "unknown" | "tooLong" | "older" | "busy" | "full" };
+
+  /** what `from` has spent today, in bytes */
+  const spentToday = (from: string, day: number) => {
+    const mine = spent.get(from);
+    return mine?.day === day ? mine.bytes : 0;
+  };
+  const charge = (from: string, bytes: number) => {
+    const day = Math.floor(now() / DAY_MS);
+    spent.set(from, { day, bytes: spentToday(from, day) + bytes });
+  };
+
+  /** Every bound that needs no hash: the log's shape, its pet's age, a longer kept diary, the sender's bytes, the shelf. */
+  const check = (log: PublishedLog, chain: PetOnChain | null, from: string): Plan | Refusal => {
+    const joined = log.segments.flatMap((x) => x.words);
+    if (joined.length !== log.words.length || joined.some((w, i) => w !== log.words[i])) return { ok: false, reason: "invalid" };
+    if (!chain) return { ok: false, reason: "unknown" };
+    const t = now();
+    if (log.words.length > diaryMaxWords(chain.born, chain.at !== undefined ? chain.at * 1000 : t)) return { ok: false, reason: "tooLong" };
+    const held = index.get(log.petId);
+    // the kept diary's length, read from its file the first time it is needed (A80)
+    const heldWords = held ? (held.words ?? read(log.petId)?.words.length ?? 0) : 0;
+    if (held && heldWords > log.words.length) return { ok: false, reason: "older" };
+    const body = JSON.stringify(log);
+    const grows = Math.max(0, body.length - (held?.bytes ?? 0));
+    const day = Math.floor(t / DAY_MS);
+    const today = spentToday(from, day);
+    if (today + grows > perAddress) return { ok: false, reason: "busy" };
+    // a full shelf can let go of every other diary; one too big even for that is refused before it is hashed
+    if (body.length > totalBytes) return { ok: false, reason: "full" };
+    return { ok: true, body, held, t, day, today, grows };
+  };
+
+  /** Keeps a log that matched: makes room on a full shelf, writes it, and spends its sender's bytes. */
+  const commit = (log: PublishedLog, plan: Plan, from: string): PublishResult => {
+    const { body, held, t, day, today, grows } = plan;
+    // a full shelf lets go the diaries quiet longest (published or read longest ago), never this pet's (A80)
+    if (body.length - (held?.bytes ?? 0) + total > totalBytes) {
+      const others = [...index].filter(([id]) => id !== log.petId).sort((x, y) => x[1].at - y[1].at);
+      let free = totalBytes - total + (held?.bytes ?? 0);
+      const go: string[] = [];
+      for (const [id, e] of others) {
+        if (free >= body.length) break;
+        go.push(id);
+        free += e.bytes;
+      }
+      if (free < body.length) return { ok: false, reason: "full" };
+      for (const id of go) {
+        total -= index.get(id)!.bytes;
+        index.delete(id);
+        if (dir) rmSync(file(id), { force: true });
+        else texts.delete(id);
+      }
+    }
+    if (dir) {
+      writeFileSync(`${file(log.petId)}.tmp`, body);
+      // the file keeps the store's own time, as a read does, so a restart orders the shelf on one clock (A80)
+      utimesSync(`${file(log.petId)}.tmp`, t / 1000, t / 1000);
+      renameSync(`${file(log.petId)}.tmp`, file(log.petId));
+    } else texts.set(log.petId, body);
+    total += body.length - (held?.bytes ?? 0);
+    index.set(log.petId, { bytes: body.length, words: log.words.length, at: t });
+    spent.set(from, { day, bytes: today + grows });
+    return { ok: true, beats: log.words.length };
+  };
+
   return {
     /** A kept log, parsed now and not kept in memory (tests and the publish check). */
     get: read,
@@ -122,55 +190,37 @@ export function createDiaryStore(dir?: string, opts: { now?: () => number; total
       const t = texts.get(id);
       return t === undefined ? null : { text: t };
     },
-    /** Keep a log once it matches the chain's saved hash and every bound holds; a shorter log never replaces a longer one. */
+    /**
+     * Keep a log once it matches the chain's saved hash and every bound holds; a shorter log never replaces a longer
+     * one. Every cheap bound is checked before the hash is worked out (A114), the hash runs where `hash` runs it (a
+     * worker on the server), and the bounds are checked again after it, since another publish may have landed while it
+     * ran. A log that does not match still spends its sender's daily bytes: junk costs the one who sends it.
+     */
+    async publishLog(log: PublishedLog, chain: PetOnChain | null, from: string, hash: (words: readonly number[]) => Promise<string | null>): Promise<PublishResult> {
+      const first = check(log, chain, from);
+      if (!first.ok) return first;
+      const got = await hash(log.words);
+      if (got === null) return { ok: false, reason: "busy" };
+      if (got.toLowerCase() !== chain!.logHash.toLowerCase()) {
+        charge(from, first.body.length);
+        return { ok: false, reason: "mismatch" };
+      }
+      const again = check(log, chain, from);
+      if (!again.ok) return again;
+      return commit(log, again, from);
+    },
+    /** The same, from an unchecked body and with the hash on this thread (tests and tools). */
     publish(raw: unknown, chain: PetOnChain | null, from: string): PublishResult {
       const parsed = PublishedLog.safeParse(raw);
       if (!parsed.success) return { ok: false, reason: "invalid" };
       const log = parsed.data;
-      const joined = log.segments.flatMap((s) => s.words);
-      if (joined.length !== log.words.length || joined.some((w, i) => w !== log.words[i])) return { ok: false, reason: "invalid" };
-      if (!chain) return { ok: false, reason: "unknown" };
-      const t = now();
-      if (log.words.length > diaryMaxWords(chain.born, chain.at !== undefined ? chain.at * 1000 : t)) return { ok: false, reason: "tooLong" };
-      if (chainAll(ZERO_HASH, log.words).toLowerCase() !== chain.logHash.toLowerCase()) return { ok: false, reason: "mismatch" };
-      const held = index.get(log.petId);
-      // the kept diary's length, read from its file the first time it is needed (A80)
-      const heldWords = held ? (held.words ?? read(log.petId)?.words.length ?? 0) : 0;
-      if (held && heldWords > log.words.length) return { ok: false, reason: "older" };
-      const body = JSON.stringify(log);
-      const grows = Math.max(0, body.length - (held?.bytes ?? 0));
-      const day = Math.floor(t / DAY_MS);
-      const mine = spent.get(from);
-      const today = mine?.day === day ? mine.bytes : 0;
-      if (today + grows > perAddress) return { ok: false, reason: "busy" };
-      // a full shelf lets go the diaries quiet longest (published or read longest ago), never this pet's (A80)
-      if (body.length - (held?.bytes ?? 0) + total > totalBytes) {
-        const others = [...index].filter(([id]) => id !== log.petId).sort((x, y) => x[1].at - y[1].at);
-        let free = totalBytes - total + (held?.bytes ?? 0);
-        const go: string[] = [];
-        for (const [id, e] of others) {
-          if (free >= body.length) break;
-          go.push(id);
-          free += e.bytes;
-        }
-        if (free < body.length) return { ok: false, reason: "full" };
-        for (const id of go) {
-          total -= index.get(id)!.bytes;
-          index.delete(id);
-          if (dir) rmSync(file(id), { force: true });
-          else texts.delete(id);
-        }
+      const first = check(log, chain, from);
+      if (!first.ok) return first;
+      if (chainAll(ZERO_HASH, log.words).toLowerCase() !== chain!.logHash.toLowerCase()) {
+        charge(from, first.body.length);
+        return { ok: false, reason: "mismatch" };
       }
-      if (dir) {
-        writeFileSync(`${file(log.petId)}.tmp`, body);
-        // the file keeps the store's own time, as a read does, so a restart orders the shelf on one clock (A80)
-        utimesSync(`${file(log.petId)}.tmp`, t / 1000, t / 1000);
-        renameSync(`${file(log.petId)}.tmp`, file(log.petId));
-      } else texts.set(log.petId, body);
-      total += body.length - (held?.bytes ?? 0);
-      index.set(log.petId, { bytes: body.length, words: log.words.length, at: t });
-      spent.set(from, { day, bytes: today + grows });
-      return { ok: true, beats: log.words.length };
+      return commit(log, first, from);
     },
     /** How many logs are held in memory: none with a folder (A39). */
     heldInMemory: () => texts.size,
