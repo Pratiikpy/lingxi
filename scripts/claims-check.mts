@@ -373,9 +373,11 @@ function runTest(path: string): { ok: boolean; why: string } | "pending" {
     const gh = spawnSync("gh", ["run", "list", "--workflow", "ci.yml", "--branch", "master", "--status", "completed", "--limit", "20", "--json", "databaseId,headSha,conclusion"], { cwd: root, encoding: "utf8" });
     const run = (JSON.parse(gh.stdout || "[]") as Array<{ databaseId: number; headSha: string; conclusion: string }>).find((x) => x.conclusion === "success" || x.conclusion === "failure");
     if (!run) return "pending";
-    const jobs = spawnSync("gh", ["run", "view", String(run.databaseId), "--json", "jobs", "--jq", '.jobs[] | select(.name=="e2e") | .conclusion'], { cwd: root, encoding: "utf8" });
+    // the browser suite runs in parts ("e2e 1 of 3" …): every part must have passed
+    const jobs = spawnSync("gh", ["run", "view", String(run.databaseId), "--json", "jobs", "--jq", '.jobs[] | select(.name|startswith("e2e")) | .conclusion'], { cwd: root, encoding: "utf8" });
+    const parts = jobs.stdout.trim().split(/\s+/).filter(Boolean);
     const inCommit = spawnSync("git", ["cat-file", "-e", `${run.headSha}:${path}`], { cwd: root }).status === 0;
-    if (jobs.stdout.trim() !== "success" || !inCommit) return "pending";
+    if (!parts.length || parts.some((x) => x !== "success") || !inCommit) return "pending";
     return { ok: true, why: `CI's browser job passed on ${run.headSha.slice(0, 7)} with this spec` };
   }
   // a vitest file: run it in the package that owns it
