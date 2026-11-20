@@ -1,0 +1,11 @@
+--- a/apps/web/src/play/RedPacket.tsx
++++ b/apps/web/src/play/RedPacket.tsx
+@@ -334,7 +334,7 @@ export function PacketArrival() {
+   const text = (k: string) => reasonText[k]?.[lang === "zh" ? 1 : 0] ?? (lang === "zh" ? `没领成：${k}` : `Couldn't open it: ${k}`);
+   const left = view ? view.count - view.paid : 0;
+   // by X Layer's clock, read with the packet (a claim past expiry is refused by the contract itself)
+-  const expired = view ? (chainNow ?? Math.floor(now() / 1000)) >= view.expiry : false;
++  const expired = view ? now() / 1000 >= view.expiry : false;
+ 
+   return (
+     <div className="fam-modal rp-modal" role="dialog" aria-label={lang === "zh" ? "红包" : "Red packet"}>

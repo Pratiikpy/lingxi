@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/writer.ts
++++ b/apps/web/src/game/writer.ts
+@@ -105,7 +105,7 @@ export function createWriter(o: WriterOptions) {
+     }
+   };
+   /** a claim newer than this tab's, from another tab: the game is theirs */
+-  const newer = (s: Stamp | null) => s !== null && s.id !== id && (s.gen ?? 0) >= gen;
++  const newer = (s: Stamp | null) => s !== null && s.id !== id;
+   const set = (w: boolean) => {
+     if (held === w) return;
+     held = w;

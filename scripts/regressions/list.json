@@ -1264,5 +1264,17 @@
     "row": "A76",
     "bug": "thirty sitting packs sent together were all accepted against a cap of eight",
     "test": { "kind": "vitest", "dir": "services/api", "file": "test/sitting.test.ts", "name": "thirty packs left at once from one address keep to its cap" }
+  },
+  {
+    "id": "A97-lease-generation",
+    "row": "A97",
+    "bug": "a tab renewing its lease from a stale view took the game back from the tab that pressed Play here",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/writer.test.ts", "name": "a tab that renews from a stale view cannot take the game back from the tab that took it over (A97)" }
+  },
+  {
+    "id": "A97-packet-chain-clock",
+    "row": "A97",
+    "bug": "the red packet card judged expiry by the device's clock, not X Layer's",
+    "test": { "kind": "e2e", "spec": "e2e/specs/red-packet.spec.ts", "title": "a red packet's claims: two opened before, the player opens the last, a viewer sees all three (en light phone; zh dark desktop)" }
   }
 ]
