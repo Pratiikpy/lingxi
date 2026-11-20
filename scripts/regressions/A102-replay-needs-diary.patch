@@ -1,0 +1,11 @@
+--- a/apps/web/src/landing/copy.ts
++++ b/apps/web/src/landing/copy.ts
+@@ -44,7 +44,7 @@ export const COPY = {
+     sparCoach: "Coach: try teaching it to pounce at an opening.",
+     proofLabel: "Verify it yourself",
+     proofH: "You never have to trust us.",
+-    proofP: "Once your pet is kept on X Layer, you save its day there, or let this device do it for you: its memory and a fingerprint of everything it sensed. Once you publish its diary, anyone can replay its thoughts through the same circuit the chain runs.",
++    proofP: "Once your pet is kept on X Layer, you save its day there, or let this device do it for you: its memory and a fingerprint of everything it sensed. Anyone can replay its thoughts through the same circuit the chain runs.",
+     proofSteps: [
+       ["One circuit per mind", "the brain is taped out on TapeOut; its bytes live on chain"],
+       ["One save a day", "the whole state fits in 256 bits, written for a fraction of a cent"],

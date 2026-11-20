@@ -1,0 +1,11 @@
+--- a/apps/web/src/landing/copy.ts
++++ b/apps/web/src/landing/copy.ts
+@@ -36,7 +36,7 @@ export const COPY = {
+       ["Visit live", "pets in the same room see each other in real time"],
+       ["Gifts by link", "a letter, an egg, a treat; opens with no sign-up"],
+       ["Red packets", "USDT held by a contract; a circuit decides each share"],
+-      ["Families", "a child is born with its parents' minds composed together, on chain when both parents are kept there"],
++      ["Families", "a child is born with its parents' minds wired together on chain"],
+     ],
+     sparLabel: "Spars",
+     sparH: "Nobody presses buttons. Its mind fights.",
