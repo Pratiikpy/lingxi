@@ -202,11 +202,25 @@ const AUTO: Record<string, Check> = {
     expect(cap === 1000, `the market's royalty cap is ${cap} bps`);
     return "royalties capped at 10% on chain";
   },
+  // read through pet #1 (A88): its brain circuit, that circuit's holder against pet #1's owner, and that circuit's
+  // container, opened; any of them changing fails the claim
   "home-container": async () => {
-    const opener = [{ type: "function", name: "accountOf", stateMutability: "view", inputs: [{ name: "c", type: "address" }, { name: "t", type: "uint256" }], outputs: [{ type: "address" }] }] as const;
-    const container = (await read("0x536adD8F30f03b69f6fbF29d425A816A0dC50106", opener, "accountOf", [d.processor, 1n])) as Address;
-    expect(container.toLowerCase() === "0x31b025ad4cbd4142007f59684d51cd1f2ccc5098", `pet #1's container is ${container}`);
-    return `pet #1's home is container ${container}`;
+    const opener = [
+      { type: "function", name: "accountOf", stateMutability: "view", inputs: [{ name: "c", type: "address" }, { name: "t", type: "uint256" }], outputs: [{ type: "address" }] },
+      { type: "function", name: "isDeployed", stateMutability: "view", inputs: [{ name: "c", type: "address" }, { name: "t", type: "uint256" }], outputs: [{ type: "bool" }] },
+    ] as const;
+    const ownerAbi = [{ type: "function", name: "ownerOf", stateMutability: "view", inputs: [{ name: "id", type: "uint256" }], outputs: [{ type: "address" }] }] as const;
+    const pet = (await read(d.registry, petRegistryAbi, "pet", [1n])) as { brainId: bigint | number };
+    const brainId = BigInt(pet.brainId);
+    const petOwner = (await read(d.registry, ownerAbi, "ownerOf", [1n])) as Address;
+    const holder = (await read(d.processor, ownerAbi, "ownerOf", [brainId])) as Address;
+    const container = (await read("0x536adD8F30f03b69f6fbF29d425A816A0dC50106", opener, "accountOf", [d.processor, brainId])) as Address;
+    const opened = (await read("0x536adD8F30f03b69f6fbF29d425A816A0dC50106", opener, "isDeployed", [d.processor, brainId])) as boolean;
+    expect(brainId === 1n, `pet #1 thinks with circuit #${brainId}, not #1`);
+    expect(holder.toLowerCase() === petOwner.toLowerCase(), `circuit #${brainId} is held by ${holder}, pet #1 by ${petOwner}: it is not pet #1's home`);
+    expect(container.toLowerCase() === "0x31b025ad4cbd4142007f59684d51cd1f2ccc5098", `circuit #${brainId}'s container is ${container}`);
+    expect(opened, `container ${container} is not opened`);
+    return `pet #1 thinks with circuit #${brainId}, held by its owner; its home is container ${container}, opened`;
   },
   "starter-brain": async () => {
     const n = compileProgram(STARTERS.gentle);
@@ -351,8 +365,11 @@ const runDeps: RunDeps = {
   },
   hasPackage: (dir) => existsSync(join(dir, "package.json")),
 };
+/** `--only a,b`: those rows alone (a check being worked on); the sheet-wide checks are then skipped */
+const onlyArg = process.argv.indexOf("--only");
+const only = onlyArg >= 0 ? new Set((process.argv[onlyArg + 1] ?? "").split(",").filter(Boolean)) : null;
 const seen = new Set<string>();
-for (const r of rows) {
+for (const r of rows.filter((x) => !only || only.has(x.id))) {
   if (seen.has(r.id)) say(false, r.id, "the id is used twice");
   seen.add(r.id);
   const [kind, ...rest] = r.check.split(":");
@@ -381,6 +398,6 @@ for (const r of rows) {
   else say(false, r.id, `no check: "${r.check}"`);
 }
 const unused = Object.keys(AUTO).filter((k) => !rows.some((r) => r.check === `auto:${k}`));
-if (unused.length) say(false, "sheet", `automatic checks no claim uses: ${unused.join(", ")}`);
-console.log(`\n${rows.length} claims, ${failed} failing${pending ? `, ${pending} pending` : ""}`);
+if (!only && unused.length) say(false, "sheet", `automatic checks no claim uses: ${unused.join(", ")}`);
+console.log(`\n${only ? `${rows.filter((x) => only.has(x.id)).length} of ${rows.length}` : rows.length} claims, ${failed} failing${pending ? `, ${pending} pending` : ""}`);
 process.exit(failed ? 1 : 0);

@@ -46,6 +46,14 @@ describe("the wording the audits corrected stays corrected (A87)", () => {
     expect(note).toMatch(/chained over every input/);
   });
 
+  it("A88: the README says what pet #1's home address is, not only that it is pet #1's", () => {
+    const row = read("README.md").split("\n").find((l) => l.startsWith("| Containers |")) ?? "";
+    expect(row).not.toMatch(/a pet's home is a TapeOut container; pet #1's is/);
+    expect(row).toMatch(/container of its brain circuit, once its owner holds that circuit/);
+    expect(row).toMatch(/circuit #1, the gentle starter/);
+    expect(row).toMatch(/on-chain copy of the site/);
+  });
+
   it("A58: the holder gift is a snapshot for BEM and FAB, not a live balance", () => {
     expect(read("apps/web/src/verify/ContractTable.tsx")).not.toMatch(/checked against balances/);
     expect(read("apps/web/src/verify/ContractTable.tsx")).toMatch(/by a snapshot at a fixed block/);

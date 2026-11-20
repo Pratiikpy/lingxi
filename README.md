@@ -131,7 +131,7 @@ pnpm judge:check          # about four minutes, read-only against mainnet
 | Processor `#419` on X Layer | every pet brain, the evolution circuit, the seal and the 17 rule circuits are taped out on it; the proof page re-runs beats through its `step` |
 | TAP-02 netlists | the compiler turns plain-language lessons into gates; what is on chain is what runs in the browser, byte for byte |
 | REF composition | a child's brain references both parents' circuits; an owned circuit becomes an instinct by REF |
-| Containers | a pet's home is a TapeOut container; pet #1's is `0x31B025aD4cBD4142007f59684D51cD1F2ccc5098` |
+| Containers | a pet's home is the TapeOut container of its brain circuit, once its owner holds that circuit; a pet still on its line's shared starter circuit has none until its own mind is taped out. Pet #1 still thinks with circuit #1, the gentle starter, which its owner (the project's deployer) holds, so its home is that circuit's container, `0x31B025aD4cBD4142007f59684D51cD1F2ccc5098`, which also holds the on-chain copy of the site |
 | DeWEB | the whole site is published on chain at `1.2.419.tape`, served at [1-2-419.tapekit.org](https://1-2-419.tapekit.org/) |
 | TapeKit | its DeWEB gateway serves the on-chain copy and checks it in each visitor's browser; TapeSend is in the repo and a home checks its hub, but letters between homes stay closed until the hub accepts circuits from Lingxi's processor (they are planned over TapeRelay instead) |
 | BEM | the fee token: breeding, items, adoption, the extras and the fashion market; every BEM fee burned |

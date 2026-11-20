@@ -46,7 +46,7 @@ Kinds of check:
 | landing-links | landing (EN, ZH) | The landing links the contracts on X Layer (with their verified source) and the public source code. | test:e2e/specs/landing-links.spec.ts |
 | pet-school | README | Pet School has eight levels with three goals each, scored by running the pet's own circuit. | test:packages/game/test/school.test.ts |
 | royalty-cap | README, fashion market | A creator's royalty is at most 10%. | auto:royalty-cap |
-| home-container | README | Pet #1's home is TapeOut container 0x31B025aD4cBD4142007f59684D51cD1F2ccc5098. | auto:home-container |
+| home-container | README | A pet's home is the container of its brain circuit once its owner holds it. Pet #1 thinks with circuit #1, which its owner holds, so its home is circuit #1's container 0x31B025aD4cBD4142007f59684D51cD1F2ccc5098, opened. | auto:home-container |
 | rules | README, game, proof page | 17 rule circuits on X Layer, each byte for byte the rule the game compiles. | auto:rules |
 | starter-brain | landing | Mochi's starter brain has 296 gates and 8 bits of memory. | auto:starter-brain |
 | replay-gas | landing | Re-running one beat on chain costs about 760,000 gas for Mochi's 296 gates. | auto:replay-gas |
