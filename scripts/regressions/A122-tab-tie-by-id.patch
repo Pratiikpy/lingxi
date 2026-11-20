@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/writer.ts
++++ b/apps/web/src/game/writer.ts
+@@ -112,7 +112,7 @@ export function createWriter(o: WriterOptions) {
+    * that claimed the same generation at once (no Web Locks) break the tie by id, so exactly one keeps it (A122); a page
+    * that gave its lease up as it went yields to any claim, whatever its id, as its own reload is one.
+    */
+-  const newer = (s: Stamp | null) => s !== null && s.id !== id && (gaveUp || s.gen === undefined || s.gen > gen || (s.gen === gen && s.id > id));
++  const newer = (s: Stamp | null) => s !== null && s.id !== id && (gaveUp || s.gen === undefined || s.gen >= gen);
+   const set = (w: boolean) => {
+     if (held === w) return;
+     held = w;
