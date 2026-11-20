@@ -6,6 +6,7 @@
  */
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Hono } from "hono";
 import { type Address, type Hex, keccak256, recoverMessageAddress, toBytes } from "viem";
@@ -98,11 +99,12 @@ export function createPapersStore(file?: string, limits: { count: number; chars:
     }
   }
   return {
-    get: (petId: string): Stored | null => {
+    /** read off the request thread: a pet's papers run to 600 KB (A119) */
+    get: async (petId: string): Promise<Stored | null> => {
       if (!kept.has(petId)) return null;
       if (!dir) return memory.get(petId) ?? null;
       try {
-        return JSON.parse(readFileSync(path(petId), "utf8")) as Stored;
+        return JSON.parse(await readFile(path(petId), "utf8")) as Stored;
       } catch {
         return null;
       }
@@ -123,12 +125,13 @@ export type PapersStore = ReturnType<typeof createPapersStore>;
 
 
 export function withPapers(app: Hono, store: PapersStore, chain: PapersChain, now: () => number = Date.now, limiter = new RateLimiter(30, 3_600_000)): Hono {
-  app.get("/api/papers/:petId", (c) => {
+  app.get("/api/papers/:petId", async (c) => {
     c.header("access-control-allow-origin", "*");
-    c.header("cache-control", "no-store");
+    // papers are public and change only when their owner signs again: a short shared cache spares repeat reads (A119)
+    c.header("cache-control", "public, max-age=15");
     const id = c.req.param("petId");
     if (!ID.test(id)) return c.json({ ok: false, reason: "petId" }, 400);
-    const s = store.get(id);
+    const s = await store.get(id);
     // no papers yet is an ordinary answer, not an error a buyer's browser should log
     return s ? c.json({ ok: true, papers: s.papers, signer: s.signer, at: s.at }) : c.json({ ok: false, reason: "none" });
   });

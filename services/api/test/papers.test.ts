@@ -83,10 +83,10 @@ describe("the papers store writes safely (A64), one pet at a time, and makes roo
     // pet 8's place cannot be written (something is in the way), as when the disk fails
     mkdirSync(join(file.replace(/\.json$/, ""), "8.json"));
     expect(() => store.put("8", { papers, signer: owner.address, at: 2 })).not.toThrow();
-    expect(createPapersStore(file).get("7")?.papers, "what was kept is whole").toBe(papers);
+    expect((await createPapersStore(file).get("7"))?.papers, "what was kept is whole").toBe(papers);
     rmSync(join(file.replace(/\.json$/, ""), "8.json"), { recursive: true });
     store.put("9", { papers, signer: owner.address, at: 3 });
-    expect(createPapersStore(file).get("9")?.papers, "and later writes go through").toBe(papers);
+    expect((await createPapersStore(file).get("9"))?.papers, "and later writes go through").toBe(papers);
   });
 
   it("each pet's papers are their own file, the older single file is moved in once, and a full shelf lets the oldest go", async () => {
@@ -97,7 +97,7 @@ describe("the papers store writes safely (A64), one pet at a time, and makes roo
     writeFileSync(file, JSON.stringify({ "3": { papers, signer: owner.address, at: 100 } }));
     const size = JSON.stringify({ papers, signer: owner.address, at: 100 }).length;
     const store = createPapersStore(file, { count: 1_000, chars: size * 2 + 10 });
-    expect(store.get("3")?.papers, "moved in from the older file").toBe(papers);
+    expect((await store.get("3"))?.papers, "moved in from the older file").toBe(papers);
     expect(existsSync(file)).toBe(false);
     store.put("4", { papers, signer: owner.address, at: 200 });
     store.put("5", { papers, signer: owner.address, at: 300 });
@@ -105,6 +105,6 @@ describe("the papers store writes safely (A64), one pet at a time, and makes roo
     // after a restart, the order holds: the next post lets 4 go
     const again = createPapersStore(file, { count: 1_000, chars: size * 2 + 10 });
     again.put("6", { papers, signer: owner.address, at: 400 });
-    expect([again.get("4"), again.get("5")?.papers, again.get("6")?.papers]).toEqual([null, papers, papers]);
+    expect([await again.get("4"), (await again.get("5"))?.papers, (await again.get("6"))?.papers]).toEqual([null, papers, papers]);
   });
 });

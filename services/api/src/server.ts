@@ -426,6 +426,8 @@ export function withSitting(app: Hono, store: SittingStore, writes = new RateLim
     return c.json(await store.leave(body.pack, body.keyHash, body.until, who(c)));
   });
   app.get("/api/sit/:code", async (c) => {
+    // the code is the pack's key: never kept by a shared cache; heavy, so limited per caller (A119)
+    c.header("Cache-Control", "no-store");
     const r = await store.collect(c.req.param("code"));
     return c.json(r ? { ok: true, ...r } : { ok: false, reason: "unknown" });
   });

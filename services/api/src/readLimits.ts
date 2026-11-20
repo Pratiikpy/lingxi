@@ -1,6 +1,7 @@
 /**
  * Heavy reads, limited per caller (A78). Each of these answers can run to hundreds of kilobytes or more (a week's
- * season with every card, a pet's whole diary, a duel result with two cards, the tree of every pet), so repeated
+ * season with every card, a pet's whole diary, a duel result with two cards, the tree of every pet, a sitting pack, a
+ * pet's papers), so repeated
  * without limit they would take the request thread and the line. Each limit is well above what a real player's pages
  * ask in a minute; past it the answer is "busy" (200, so a browser logs nothing), and other callers are not affected.
  */
@@ -16,6 +17,9 @@ export const READ_LIMITS: ReadonlyArray<readonly [RegExp, number]> = [
   [/^\/api\/duels\/[^/]+$/, 120],
   [/^\/api\/tree$/, 30],
   [/^\/api\/v1\/agents\/me$/, 60],
+  // a sitting pack with its homecoming, up to 1.2 MB, and a pet's papers, up to 600 KB (A119)
+  [/^\/api\/sit\/[a-f0-9]{24}$/, 30],
+  [/^\/api\/papers\/\d+$/, 60],
 ];
 
 /** Applies each heavy read's limit; registered before the routes, as the body limits are. */

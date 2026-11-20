@@ -37,17 +37,20 @@ describe("cards kept small, the season served from one text (A78)", () => {
 });
 
 describe("heavy reads are limited per caller (A78)", () => {
-  const paths: Array<[string, string]> = [
-    ["/api/season/current", "season"],
-    ["/api/pets/7/log", "diary log"],
-    ["/api/duels/AAAAAAAAAAAAAAAA", "duel link"],
-    ["/api/tree", "tree"],
-    ["/api/v1/agents/me", "agent's pet"],
+  const paths: Array<[string, string, string]> = [
+    ["/api/season/current", "season", "/api/season/:week"],
+    ["/api/pets/7/log", "diary log", "/api/pets/:id/log"],
+    ["/api/duels/AAAAAAAAAAAAAAAA", "duel link", "/api/duels/:id"],
+    ["/api/tree", "tree", "/api/tree"],
+    ["/api/v1/agents/me", "agent's pet", "/api/v1/agents/me"],
+    // A119: a sitting pack and its homecoming (up to 1.2 MB), and a pet's papers (up to 600 KB)
+    ["/api/sit/0123456789abcdef01234567", "sitting pack", "/api/sit/:code"],
+    ["/api/papers/42", "pet's papers", "/api/papers/:petId"],
   ];
-  for (const [path, what] of paths) {
+  for (const [path, what, route] of paths) {
     it(`the ${what} answers "busy" past its limit, and another caller is not affected`, async () => {
       const app = withReadLimits(new Hono());
-      app.get(path.replace(/\/[A-Z]{16}$/, "/:id").replace(/\/7\//, "/:id/"), (c) => c.json({ ok: true }));
+      app.get(route, (c) => c.json({ ok: true }));
       const limit = READ_LIMITS.find(([re]) => re.test(path))![1];
       const get = (ip: string) => app.request(path, { headers: { "cf-connecting-ip": ip } });
       for (let i = 0; i < limit; i++) expect(((await (await get("198.51.100.1")).json()) as { ok: boolean }).ok).toBe(true);
