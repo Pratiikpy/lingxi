@@ -1,0 +1,11 @@
+--- a/apps/web/src/verify/ProofTable.tsx
++++ b/apps/web/src/verify/ProofTable.tsx
+@@ -48,7 +48,7 @@ export function ProofTable({ lang }: { lang: "en" | "zh" }) {
+     unreachable: { en: "X Layer unreachable", zh: "连不上 X Layer" },
+   };
+   return (
+-    <section className="v-card v-proof-table v-circuits" aria-labelledby="proof-table-h">
++    <section className="v-card v-proof-table" aria-labelledby="proof-table-h">
+       <h2 id="proof-table-h">{lang === "zh" ? "证明表" : "Proof table"}</h2>
+       <p className="v-note">
+         {lang === "zh"

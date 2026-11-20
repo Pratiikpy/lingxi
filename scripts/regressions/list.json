@@ -1210,5 +1210,11 @@
     "row": "A67",
     "bug": "a notice raised while a sheet was open covered the sheet's title",
     "test": { "kind": "e2e", "spec": "e2e/specs/notices.spec.ts", "title": "notices raised while a sheet is open never cover its header (zh, dark, desktop) (A67)" }
+  },
+  {
+    "id": "A68-proof-table-phone",
+    "row": "A68",
+    "bug": "the proof table's check started off-screen on a phone",
+    "test": { "kind": "e2e", "spec": "e2e/specs/proof-table-phone.spec.ts", "title": "the proof table's check reads on the page (en, light, phone) (A68)" }
   }
 ]
