@@ -1,0 +1,11 @@
+--- a/services/api/src/duels.ts
++++ b/services/api/src/duels.ts
+@@ -56,7 +56,7 @@ export function createDuelStore(dir?: string, limits: { count: number; chars: nu
+       // opened now: a link people still open is kept ahead of ones nobody opens (A51)
+       const t = now();
+       const touch = t - k.at > TOUCH_MS;
+-      if (touch) kept.set(id, { ...k, at: t });
++      if (touch && t < 0) kept.set(id, { ...k, at: t });
+       if (!dir) return memory.get(id) ?? null;
+       try {
+         const code = readFileSync(join(dir, `${id}.txt`), "utf8");

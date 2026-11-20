@@ -1072,5 +1072,17 @@
     "row": "A50",
     "bug": "a send refused for a full cap told the player to try again",
     "test": { "kind": "e2e", "spec": "e2e/specs/sitting-refusals.spec.ts", "title": "a send to a friend the server refuses says why (en, light, phone)" }
+  },
+  {
+    "id": "A51-duels-per-address-day",
+    "row": "A51",
+    "bug": "one address could store duel links without end and push out everyone's",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/duels.test.ts", "name": "an address past its day's characters is refused as an answer, another is not, and a new day lets it post again" }
+  },
+  {
+    "id": "A51-duels-opened-kept",
+    "row": "A51",
+    "bug": "links people still opened were let go before a flood's new ones",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/duels.test.ts", "name": "when full, the link nobody has opened for longest goes first, so links people still open are kept" }
   }
 ]

@@ -1,0 +1,11 @@
+--- a/services/api/src/duels.ts
++++ b/services/api/src/duels.ts
+@@ -125,7 +125,7 @@ export function withDuels(app: Hono, store: DuelStore, limiter = new RateLimiter
+         spent.clear();
+       }
+       const used = spent.get(ip) ?? 0;
+-      if (used + code.length > perAddressDay) return c.json({ ok: false, reason: "busy" });
++      if (used + code.length > perAddressDay * 1000) return c.json({ ok: false, reason: "busy" });
+       spent.set(ip, used + code.length);
+     }
+     store.put(id, code, now());
