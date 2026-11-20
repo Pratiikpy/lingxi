@@ -1,0 +1,11 @@
+--- a/apps/web/src/play/Home.tsx
++++ b/apps/web/src/play/Home.tsx
+@@ -159,7 +159,7 @@ export function HomePanel({ pet }: { pet: Pet }) {
+               ? L("TapeSend's hub would carry this home's letters, but Lingxi does not send letters between homes yet: they are planned over TapeRelay.", "TapeSend 的中枢可以送这个家的信，但灵犀还没有开放家与家之间的信件：计划改走 TapeRelay。")
+               : letters === "hub"
+                 ? L("Letters between homes are closed: TapeSend's hub now runs code TapeKit has not approved, and Lingxi does not send letters between homes yet (they are planned over TapeRelay).", "家与家之间的信件没有开放：TapeSend 的中枢现在运行的代码没有得到 TapeKit 认可，而且灵犀还没有开放家与家之间的信件（计划改走 TapeRelay）。")
+-                : L("Letters between homes are closed: TapeSend's hub does not accept circuits from Lingxi's processor, and Lingxi does not send letters between homes yet (they are planned over TapeRelay).", "家与家之间的信件没有开放：TapeSend 的中枢不接受灵犀处理器上的电路，而且灵犀还没有开放家与家之间的信件（计划改走 TapeRelay）。")}
++                : L("Letters between homes go through TapeSend, whose hub does not yet accept circuits from Lingxi's processor. They open here as soon as it does.", "家与家之间的信件没有开放：TapeSend 的中枢不接受灵犀处理器上的电路，而且灵犀还没有开放家与家之间的信件（计划改走 TapeRelay）。")}
+           </p>
+         </>
+       )}
