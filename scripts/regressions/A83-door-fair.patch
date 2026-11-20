@@ -1,0 +1,11 @@
+--- a/services/api/src/rpc.ts
++++ b/services/api/src/rpc.ts
+@@ -124,7 +124,7 @@ export function withRpcProxy(app: Hono, opts: RpcProxyOptions) {
+     // every call in a batch counts, for the caller (the first was taken above) and for everyone together
+     for (let i = 1; i < calls.length; i++) if (!limiter.take(who(c))) return busy();
+     // the ceiling is shared: a caller past its share of it waits while others are served (A83)
+-    for (let i = 0; i < calls.length; i++) if (!global.take(who(c))) return busy();
++    for (let i = 0; i < calls.length; i++) if (!global.take("all")) return busy();
+     let answers: unknown[] = [];
+     if (calls.length) {
+       let forwarded = await forward(calls, opts.upstreams, doFetch, timeoutMs);

@@ -1,0 +1,11 @@
+--- a/services/api/src/tokenBudget.ts
++++ b/services/api/src/tokenBudget.ts
+@@ -82,7 +82,7 @@ export function createTokenBudget(opts: { perDay: number; perAddress?: number; f
+       const prefix = prefixOf(address);
+       if (mine >= opts.perAddress) return false;
+       if (prefix !== null && (state.by[keyOf(prefix)] ?? 0) >= opts.perAddress * PREFIX_SHARE) return false;
+-      return state.used < opts.perDay * (1 - KEPT_FOR_LIGHT) || mine < opts.perAddress * LIGHT;
++      return true;
+     },
+     spend(tokens: number, address?: string): void {
+       roll();

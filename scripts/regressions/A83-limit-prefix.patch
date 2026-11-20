@@ -1,0 +1,11 @@
+--- a/services/api/src/limit.ts
++++ b/services/api/src/limit.ts
+@@ -18,7 +18,7 @@ export class RateLimiter {
+     const prefix = prefixOf(key);
+     const own = this.recent(key, now);
+     const shared = prefix === null ? null : this.recent(prefix, now);
+-    const ok = own.length < this.max && (shared === null || shared.length < this.max * PREFIX_SHARE);
++    const ok = own.length < this.max;
+     if (ok) {
+       own.push(now);
+       shared?.push(now);

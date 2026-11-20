@@ -1,0 +1,11 @@
+--- a/services/api/src/push.ts
++++ b/services/api/src/push.ts
+@@ -180,7 +180,7 @@ export function createPusher(opts: { publicKey: string; privateKey: string; subj
+       }
+       // what has nothing left to send lets its place go, its last reminder's time kept for the gap (A83)
+       for (const [endpoint, e] of subs) {
+-        if (e.reminders.length) continue;
++        if (e.reminders.length || true) continue;
+         subs.delete(endpoint);
+         rememberSent(endpoint, e.lastSent, now);
+         changed = true;

@@ -1,0 +1,11 @@
+--- a/services/api/src/duels.ts
++++ b/services/api/src/duels.ts
+@@ -111,7 +111,7 @@ export function createDuelStore(dir?: string, limits: { count: number; chars: nu
+       // the maker's share first, then its network's (A83)
+       const count = Math.max(1, Math.floor(limits.count * MAKER_SHARE));
+       const most = Math.max(1, Math.floor(limits.chars * MAKER_SHARE));
+-      if (who.by) share(id, (k) => k.by === who.by, count, most);
++      if (who.by && false) share(id, (k) => k.by === who.by, count, most);
+       if (who.net) share(id, (k) => k.net === who.net, count * PREFIX_SHARE, most * PREFIX_SHARE);
+       if (kept.size > limits.count || chars > limits.chars) {
+         for (const [old] of [...kept].sort((a, b) => a[1].at - b[1].at)) {

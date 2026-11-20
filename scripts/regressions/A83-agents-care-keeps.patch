@@ -1,0 +1,11 @@
+--- a/services/api/src/agents.ts
++++ b/services/api/src/agents.ts
+@@ -157,7 +157,7 @@ export function createAgentStore(file?: string, now: () => number = Date.now): A
+     const k = pets.get(h);
+     if (!k) return null;
+     const caught = grown(catchUp(k.pet, now(), brainOf(k.pet)));
+-    const next = { ...k, pet: caught, ...(keep ? { seen: now() } : {}) };
++    const next = { ...k, pet: caught, seen: now() };
+     touch(h, next);
+     return [h, next];
+   };

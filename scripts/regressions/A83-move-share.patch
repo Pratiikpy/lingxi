@@ -1,0 +1,11 @@
+--- a/services/api/src/move.ts
++++ b/services/api/src/move.ts
+@@ -55,7 +55,7 @@ export function createMoveStore(now: () => number = Date.now) {
+         if (v.owner === owner) mine += v.size;
+         if (prefix !== null && prefixOf(v.owner) === prefix) network += v.size;
+       }
+-      if (mine + size > MAX_OWNER_CHARS || network + size > MAX_OWNER_CHARS * PREFIX_SHARE) return { ok: false, reason: "busy" };
++      if (mine + size > MAX_OWNER_CHARS * 100 || network + size > MAX_OWNER_CHARS * PREFIX_SHARE * 100) return { ok: false, reason: "busy" };
+       const code = randomBytes(16).toString("base64url");
+       const until = now() + MOVE_TTL_MS;
+       held.set(code, { save: parsed.data, until, size, owner });

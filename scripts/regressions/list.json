@@ -1354,5 +1354,14 @@
     "row": "A82",
     "bug": "a pending hatch whose check failed after half an hour was dropped and a second hatch sent",
     "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/chain.test.ts", "name": "a hatch whose check fails while X Layer is down is never taken for one that was not sent, however long ago (A82)" }
-  }
+  },
+  {"id": "A83-limit-prefix", "row": "A83", "bug": "one IPv6 /48 counted as 65,536 callers for every rate limit", "test": {"kind": "vitest", "dir": "services/api", "file": "test/limit.test.ts", "name": "a limit per address holds for the /48 at four addresses' worth, and leaves another /48 alone"}},
+  {"id": "A83-door-fair", "row": "A83", "bug": "three callers filled the RPC door's minute for everyone", "test": {"kind": "vitest", "dir": "services/api", "file": "test/rpc.test.ts", "name": "shares that ceiling: three callers running hot cannot shut a fourth out of the door (A83)"}},
+  {"id": "A83-move-share", "row": "A83", "bug": "seven addresses could fill the moves shelf", "test": {"kind": "vitest", "dir": "services/api", "file": "test/move.test.ts", "name": "no few addresses fill the shelf: one holds at most a largest save and room, and a /48 four of those (A83)"}},
+  {"id": "A83-push-empty-goes", "row": "A83", "bug": "a reminder subscription with nothing left to send held its place for good", "test": {"kind": "vitest", "dir": "services/api", "file": "test/push.test.ts", "name": "lets go of a subscription with nothing left to send, and still keeps the three-hour gap (A83)"}},
+  {"id": "A83-push-devices", "row": "A83", "bug": "one address could hold any number of reminder subscriptions", "test": {"kind": "vitest", "dir": "services/api", "file": "test/push.test.ts", "name": "one address holds a few devices' subscriptions, and a /48 four addresses' worth (A83)"}},
+  {"id": "A83-agents-care-keeps", "row": "A83", "bug": "agent pets were kept alive by reading them", "test": {"kind": "vitest", "dir": "services/api", "file": "test/agentApi.test.ts", "name": "an agent pet nobody has cared for in 30 days goes home, however often it is read, and its place counts again (A83)"}},
+  {"id": "A83-duel-maker-share", "row": "A83", "bug": "a few makers could hold the duel shelf by opening their own links", "test": {"kind": "vitest", "dir": "services/api", "file": "test/duels.test.ts", "name": "one maker holds at most its share, its own least opened going first; others are not touched; a restart keeps it"}},
+  {"id": "A83-model-kept-for-light", "row": "A83", "bug": "twenty addresses could spend the whole model day", "test": {"kind": "vitest", "dir": "services/api", "file": "test/tokenBudget.test.ts", "name": "heavy addresses cannot spend the last quarter of the day; a newcomer still can"}},
+  {"id": "A83-papers-one-file", "row": "A83", "bug": "adoption papers were never let go", "test": {"kind": "vitest", "dir": "services/api", "file": "test/papers.test.ts", "name": "each pet's papers are their own file, the older single file is moved in once, and a full shelf lets the oldest go"}}
 ]

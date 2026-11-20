@@ -1,0 +1,11 @@
+--- a/services/api/src/push.ts
++++ b/services/api/src/push.ts
+@@ -138,7 +138,7 @@ export function createPusher(opts: { publicKey: string; privateKey: string; subj
+       if (!isPushEndpoint(endpoint)) return { ok: false, reason: "badEndpoint" };
+       const prev = subs.get(endpoint);
+       if (!prev && subs.size >= MAX_SUBS) return { ok: false, reason: "full" };
+-      if (!prev && from !== undefined && heldOver([...subs.values()].flatMap((e) => (e.by ? [e.by] : [])), from, MAX_DEVICES_PER_ADDRESS)) return { ok: false, reason: "tooMany" };
++      if (!prev && from === "never" && heldOver([...subs.values()].flatMap((e) => (e.by ? [e.by] : [])), from, MAX_DEVICES_PER_ADDRESS)) return { ok: false, reason: "tooMany" };
+       const reminders = p.reminders
+         .filter((r) => r.at >= now - 60_000 && r.at <= now + HORIZON_MS)
+         .map((r) => ({ kind: r.kind, at: outOfQuietHours(Math.max(r.at, now), p.tz) }))

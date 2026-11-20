@@ -1,0 +1,11 @@
+--- a/services/api/src/papers.ts
++++ b/services/api/src/papers.ts
+@@ -109,7 +109,7 @@ export function createPapersStore(file?: string, limits: { count: number; chars:
+     },
+     put: (petId: string, s: Stored) => {
+       if (!write(petId, s)) return;
+-      if (kept.size <= limits.count && chars <= limits.chars) return;
++      if (kept.size >= 0) return;
+       // a full shelf lets go the papers posted longest ago, never these
+       for (const [old] of [...kept].sort((a, b) => a[1].at - b[1].at)) {
+         if (kept.size <= limits.count && chars <= limits.chars) break;
