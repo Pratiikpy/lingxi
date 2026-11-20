@@ -50,14 +50,20 @@ const T = {
     log: "Committed input log",
     meters: "Saved state",
     proven: "Memory, proven by replay",
+    savedOnly: "Memory as saved",
+    savedOnlyNote: "Proven once a log replays to it: the published diary or a log file, below.",
     reported: "Reported by the owner",
     reportedNote: "The owner's game writes the rest of the state word when it saves a day; the chain keeps it but cannot check it. Only the memory bits are proven, by the log check below.",
-    run: "Check 32 thoughts",
+    run: "Compare 32 random steps of its circuit",
     running: "Asking the processor...",
     match: "match",
     differ: "differ",
-    allOk: "All {n} thoughts match: the processor on X Layer and the open evaluator give identical memory and outputs.",
-    someBad: "{n} thoughts differ. Report this; it should never happen.",
+    allOk: "All {n} steps match: at its saved memory and at 31 random memories, each with a random input, the processor on X Layer and the open evaluator give the same next memory and outputs.",
+    someBad: "{n} steps differ. Report this; it should never happen.",
+    comparing: "{k} of 32 compared…",
+    bitOrder: "memory, bit 0 first",
+    logNotLog: "This file isn't a Lingxi log: it could not be read as one.",
+    logUnread: "X Layer couldn't be read to finish this check just now. Try again in a moment.",
     logTitle: "Check a day's log",
     logPick: "Choose a log file",
     logNone: "No file chosen",
@@ -95,14 +101,20 @@ const T = {
     log: "已承诺的输入日志",
     meters: "保存的状态",
     proven: "记忆，由重放证明",
+    savedOnly: "保存的记忆",
+    savedOnlyNote: "等日志重放到它才算证明：下面发布的日记或日志文件都可以。",
     reported: "由主人上报",
     reportedNote: "其余的状态由主人的游戏在保存当天时写入；链上保存它，但无法核对它。只有记忆位能被证明，方法是下面的日志核对。",
-    run: "核对 32 个念头",
+    run: "比对它电路的 32 个随机步骤",
     running: "正在询问处理器……",
     match: "一致",
     differ: "不一致",
-    allOk: "{n} 个念头全部一致：X Layer 上的处理器和开源求值器给出完全相同的记忆和输出。",
-    someBad: "有 {n} 个念头不一致。请报告，这不应该发生。",
+    allOk: "{n} 个步骤全部一致：在它保存的记忆和 31 个随机记忆下，各配一个随机输入，X Layer 上的处理器和开源求值器给出相同的下一份记忆和输出。",
+    someBad: "有 {n} 个步骤不一致。请报告，这不应该发生。",
+    comparing: "已比对 {k} / 32……",
+    bitOrder: "记忆，第 0 位在前",
+    logNotLog: "这个文件不是灵犀的日志：没法按日志读出来。",
+    logUnread: "暂时没能读到 X Layer，这次核对没法完成。请稍后再试。",
     logTitle: "核对某一天的日志",
     logPick: "选择日志文件",
     logNone: "还没有选择文件",
@@ -320,12 +332,17 @@ export function VerifyApp() {
   };
 
   const onLog = async (file: File) => {
+    // a file that is not a log is said to be one, never a hash that does not match (A57)
+    let j: { words: number[]; segments?: Array<{ brainId: string | null; words: number[] }> };
     try {
-      await replayLog(JSON.parse(await file.text()));
+      j = JSON.parse(await file.text()) as typeof j;
+      if (!j || (!Array.isArray(j.words) && !Array.isArray(j.segments))) throw new SyntaxError("not a log");
     } catch {
       setLogPassed(false);
-      setLogResult(t.logBadHash);
+      setLogResult(t.logNotLog);
+      return;
     }
+    await replayLog(j);
   };
 
   /**
@@ -376,8 +393,9 @@ export function VerifyApp() {
       setLogHosts(hosts);
       return stretches;
     } catch (e) {
-      // a brain past any pet's mind is said as such, never as a hash that does not match (A38)
-      return fail(e instanceof BrainTooBigError ? tooBigText(e.gates, e.max) : t.logBadHash);
+      // a brain past any pet's mind is said as such (A38), a log that names no real circuit is not a log, and any other
+      // failure came from reading X Layer: none of them is a hash that does not match (A57)
+      return fail(e instanceof BrainTooBigError ? tooBigText(e.gates, e.max) : e instanceof SyntaxError ? t.logNotLog : t.logUnread);
     }
   };
 
@@ -477,7 +495,18 @@ export function VerifyApp() {
             <dd className="mono">{short(pet.logHash)}</dd>
             <dt>{t.meters}</dt>
             <dd>
-              <span className="v-tag v-tag-proven">{t.proven}</span> <span className="mono">{u.brain.join("")}</span>
+              {/* proven only once a log has replayed to it on this page (A57) */}
+              {logPassed || diaryState === "ok" ? (
+                <span className="v-tag v-tag-proven">{t.proven}</span>
+              ) : (
+                <span className="v-tag v-tag-reported" title={t.savedOnlyNote}>
+                  {t.savedOnly}
+                </span>
+              )}{" "}
+              <span className="mono" title={t.bitOrder}>
+                {u.brain.join("")}
+              </span>
+              {!(logPassed || diaryState === "ok") && <span className="v-note v-block">{t.savedOnlyNote}</span>}
               <br />
               {/* a little one never saved holds only its mixed memory: its zeros are said to be zeros, not shown as its state (A33) */}
               {unsaved ? (
@@ -538,14 +567,21 @@ export function VerifyApp() {
           </div>
           {rows.length > 0 && (
             <>
-              <p className={ok === rows.length ? "v-ok" : "v-bad"}>{ok === rows.length ? t.allOk.replace("{n}", String(rows.length)) : t.someBad.replace("{n}", String(rows.length - ok))}</p>
+              {/* the verdict only once all 32 are compared (A57) */}
+              {running ? (
+                <p className="v-note">{t.comparing.replace("{k}", String(rows.length))}</p>
+              ) : (
+                <p className={ok === rows.length ? "v-ok" : "v-bad"}>{ok === rows.length ? t.allOk.replace("{n}", String(rows.length)) : t.someBad.replace("{n}", String(rows.length - ok))}</p>
+              )}
               {!running && runHosts.size > 0 && <p className="v-note mono" data-testid="run-hosts">{viaText(runHosts, lang)}</p>}
               <div className="v-table" role="region" aria-label="beats" tabIndex={0}>
                 <table>
                   <thead>
                     <tr>
                       <th>#</th>
-                      <th>{t.state}</th>
+                      <th>
+                        {t.state} <span className="v-note">({t.bitOrder})</span>
+                      </th>
                       <th>{t.inputs}</th>
                       <th>X Layer</th>
                       <th>{lang === "zh" ? "开源求值器" : "open evaluator"}</th>
@@ -559,15 +595,15 @@ export function VerifyApp() {
                       return (
                         <tr key={i}>
                           <td>{i + 1}</td>
-                          <td className="mono">{r.state.toString(2).padStart(pet.brainBits, "0")}</td>
+                          <td className="mono">{wordToBits(r.state, pet.brainBits).join("")}</td>
                           <td className="mono" title={JSON.stringify(s)}>
                             0x{r.word.toString(16).padStart(4, "0")}
                           </td>
                           <td className="mono">
-                            {r.chain.next.toString(2).padStart(pet.brainBits, "0")} / {r.chain.outputs}
+                            {wordToBits(r.chain.next, pet.brainBits).join("")} / {r.chain.outputs}
                           </td>
                           <td className="mono">
-                            {r.local.next.toString(2).padStart(pet.brainBits, "0")} / {r.local.outputs}
+                            {wordToBits(r.local.next, pet.brainBits).join("")} / {r.local.outputs}
                           </td>
                           <td className={same ? "v-ok" : "v-bad"}>{same ? t.match : t.differ}</td>
                         </tr>
