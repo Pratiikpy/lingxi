@@ -132,7 +132,7 @@ pnpm judge:check          # about four minutes, read-only against mainnet
 | TAP-02 netlists | the compiler turns plain-language lessons into gates; what is on chain is what runs in the browser, byte for byte |
 | REF composition | a child's brain references both parents' circuits; an owned circuit becomes an instinct by REF |
 | Containers | a pet's home is the TapeOut container of its brain circuit, once its owner holds that circuit; a pet still on its line's shared starter circuit has none until its own mind is taped out. Pet #1 still thinks with circuit #1, the gentle starter, which its owner (the project's deployer) holds, so its home is that circuit's container, `0x31B025aD4cBD4142007f59684D51cD1F2ccc5098`, which also holds the on-chain copy of the site |
-| DeWEB | the whole site is published on chain at `1.2.419.tape`, served at [1-2-419.tapekit.org](https://1-2-419.tapekit.org/) |
+| DeWEB | the whole site is published on chain at `1.2.419.tape`, served at [1-2-419.tapekit.org](https://1-2-419.tapekit.org/), at the close of each milestone; its `build.json` names the commit it was built from |
 | TapeKit | its DeWEB gateway serves the on-chain copy and checks it in each visitor's browser; TapeSend is in the repo and a home reads its hub's state live, but letters between homes stay closed: on X Layer mainnet the hub runs code TapeKit has not approved, and Lingxi does not send letters between homes in any case; they are planned over TapeRelay |
 | BEM | the fee token: breeding, items, adoption, the extras and the fashion market; every BEM fee burned |
 | Community circuits | Behemoth on Builders' Lane runs the founder's 4-bit CPU, read gate for gate from BNB Chain and checkable there step by step |

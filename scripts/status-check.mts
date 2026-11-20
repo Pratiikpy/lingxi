@@ -20,9 +20,9 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createPublicClient, http, parseAbi, type Address, type Hex, hexToString } from "viem";
 import { hasBannedName, scanNames } from "../packages/world/src/names.ts";
 import { retryNote, steadyFetch } from "./lib/steadyFetch.mts";
+import { SERVER_INPUTS, SITE_INPUTS, currentness, onChainFile, parseBuild } from "./lib/sites.mts";
 
 type Verdict = "PASS" | "FAIL" | "PENDING";
 interface Result {
@@ -175,43 +175,23 @@ function promised(name: string, script: string, cmd: string, cmdArgs: string[], 
 function promiseChecks(): void {
   promised("balance targets", "packages/game/test/balance.test.ts", "pnpm", ["--filter", "@lingxi/game", "exec", "vitest", "run", "test/balance.test.ts"]);
   promised("the 90-day simulator inside its targets", "packages/game/scripts/sim90.ts", "pnpm", ["--filter", "@lingxi/game", "exec", "tsx", "scripts/sim90.ts", "--check"]);
-  promised("every public claim checked", "scripts/claims-check.mts", "pnpm", ["exec", "tsx", "scripts/claims-check.mts"]);
+  promised("every public claim checked", "scripts/claims-check.mts", "pnpm", ["exec", "tsx", "scripts/claims-check.mts", ...(milestone ? ["--milestone"] : [])]);
 }
 
 // ---------------------------------------------------------------- sites
 
-/** What a site's build is made of: a change anywhere here means it must be rebuilt and published. */
-const SITE_INPUTS = [
-  "apps/web/src", "apps/web/public", "apps/web/*.html", "apps/web/vite.config.ts", "apps/web/package.json", "apps/web/scripts",
-  ...["brain", "game", "world", "art", "send", "handheld", "chain"].flatMap((p) => [`packages/${p}/src`, `packages/${p}/package.json`]),
-  "packages/handheld/wasm", "packages/chain/deployments", "pnpm-lock.yaml",
-  ":(exclude)**/*.test.ts", ":(exclude)**/*.test.tsx",
-];
-/** And the live server's own code and settings, with the request schemas it validates by (the game reads only their types). */
-const SERVER_INPUTS = ["services/api/src", "services/api/package.json", "packages/api/src", "packages/api/package.json", "deploy"];
-
-/** DeWEB keeps each file on chain; the gateway answers a plain request with its own loader, so read the file itself. */
-const DEWEB = { opener: "0x536adD8F30f03b69f6fbF29d425A816A0dC50106", sites: "0xd6EFb7adCc9c83dC4924Ad56f6a8E4e969b9ADB6", circuit: 1n } as const;
-async function onChainFile(path: string): Promise<string> {
-  const deployment = JSON.parse(readFileSync(join(root, "packages/chain/deployments/xlayer.json"), "utf8")) as { processor: Address };
-  const pub = createPublicClient({ transport: http("https://rpc.xlayer.tech", { timeout: 20_000 }) });
-  const container = (await pub.readContract({ address: DEWEB.opener, abi: parseAbi(["function accountOf(address circuits, uint256 tokenId) view returns (address)"]), functionName: "accountOf", args: [deployment.processor, DEWEB.circuit] })) as Address;
-  const bytes = (await pub.readContract({ address: DEWEB.sites, abi: parseAbi(["function readRange(address container, string path, uint256 offset, uint256 length) view returns (bytes)"]), functionName: "readRange", args: [container, path, 0n, 4096n] })) as Hex;
-  return hexToString(bytes);
-}
+// what each site is built from, and the on-chain reader, are shared with the claims check (scripts/lib/sites.mts, A85)
 
 async function served(base: string): Promise<{ commit: string; dirty: boolean; builtAt: string } | string> {
   try {
     let text: string;
-    if (base === DEWEB_URL) text = await onChainFile("build.json");
+    if (base === DEWEB_URL) text = await onChainFile(root, "build.json");
     else {
       const { res: r } = await steadyFetch(`${base}/build.json`, { headers: { "cache-control": "no-cache" } });
       if (!r.ok) return `HTTP ${r.status} for /build.json`;
       text = await r.text();
     }
-    const j = JSON.parse(text) as { commit?: unknown; dirty?: unknown; builtAt?: unknown };
-    if (typeof j.commit !== "string") return "build.json has no commit";
-    return { commit: j.commit, dirty: j.dirty === true, builtAt: String(j.builtAt) };
+    return parseBuild(text);
   } catch (e) {
     return e instanceof Error ? e.message : String(e);
   }
@@ -231,15 +211,7 @@ async function siteChecks(): Promise<void> {
     }
     // a site built from an older commit is still current when nothing it is made of changed since
     const inputs = base === DEWEB_URL ? SITE_INPUTS : [...SITE_INPUTS, ...SERVER_INPUTS];
-    const unchanged = s.commit === head || (!s.dirty && spawnSync("git", ["diff", "--quiet", s.commit, head, "--", ...inputs], { cwd: root }).status === 0);
-    const same = !s.dirty && unchanged;
-    const why = s.dirty
-      ? `built from uncommitted changes on top of ${s.commit.slice(0, 12)}`
-      : s.commit === head
-        ? `serves ${s.commit.slice(0, 12)}, built ${s.builtAt}`
-        : unchanged
-          ? `serves ${s.commit.slice(0, 12)}; nothing it is built from has changed since`
-          : `serves ${s.commit.slice(0, 12)}, and what it is built from changed since: redeploy`;
+    const { current: same, why } = currentness(s, head, (commit) => spawnSync("git", ["diff", "--quiet", commit, head, "--", ...inputs], { cwd: root }).status === 0);
     // the on-chain copy is published at the end of each milestone (about 0.01 OKB a time, see the plan), so between
     // those it may lag; it is pending then, and a failure at a milestone's close or a release
     const lagsByDesign = !same && base === DEWEB_URL && !s.dirty && !milestone;

@@ -4,10 +4,11 @@
  * latest completed run on master passed it), its README fact, the judge check's step it names, or stated evidence for
  * a manual row (A56).
  *
- *   pnpm claims:check [--only id,id]
+ *   pnpm claims:check [--only id,id] [--milestone]
  */
 
 import { type RunDeps, judgeVerdict, runTest } from "./lib/claimsRun.mts";
+import { SITE_INPUTS, currentness, onChainFile, parseBuild } from "./lib/sites.mts";
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -64,6 +65,9 @@ const CORE: Record<number, Hex> = {
 };
 /** The eleven contracts the README lists, by deployment key. */
 const CONTRACTS = ["registry", "breeder", "adoptionCentre", "outfitMarketV2", "itemShop", "extras", "holderGift", "look", "redPacket", "outfitMarket", "breederFree"];
+
+/** An automatic check whose evidence is not due yet: it is reported PENDING, never PASS. */
+class Pending extends Error {}
 
 const AUTO: Record<string, Check> = {
   "fees-markets": async () => {
@@ -305,7 +309,16 @@ const AUTO: Record<string, Check> = {
     const container = (await read("0x536adD8F30f03b69f6fbF29d425A816A0dC50106", opener, "accountOf", [d.processor, 1n])) as Address;
     const live = (await read("0x68809Fd2fb343aA57D0aeB7f33Defe477c9666f9", domains, "isLive", ["1.2.419.tape", container])) as boolean;
     expect(live, "1.2.419.tape is not live");
-    return `1.2.419.tape is live, container ${container}`;
+    // and it carries this build: its build.json, read from X Layer, names this commit or one nothing it is made of has
+    // changed since (A85); "is live" alone said nothing of what it serves
+    const head = spawnSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).stdout.trim();
+    const built = parseBuild(await onChainFile(root, "build.json"));
+    if (typeof built === "string") throw new Error(`the on-chain copy: ${built}`);
+    const { current, why } = currentness(built, head, (commit) => spawnSync("git", ["diff", "--quiet", commit, head, "--", ...SITE_INPUTS], { cwd: root }).status === 0);
+    // published at each milestone's close: between closes a copy behind is pending, at a close (--milestone) it fails
+    if (!current && !atMilestone) throw new Pending(`the on-chain copy ${why} (published at the milestone's close)`);
+    expect(current, `the on-chain copy ${why}`);
+    return `1.2.419.tape is live, container ${container}, and ${why}`;
   },
   "live-pages": async () => {
     const bad: string[] = [];
@@ -398,6 +411,8 @@ const runDeps: RunDeps = {
   },
   hasPackage: (dir) => existsSync(join(dir, "package.json")),
 };
+/** `--milestone`: a milestone's close, when what may lag between closes (the on-chain copy) must be current */
+const atMilestone = process.argv.includes("--milestone");
 /** `--only a,b`: those rows alone (a check being worked on); the sheet-wide checks are then skipped */
 const onlyArg = process.argv.indexOf("--only");
 const only = onlyArg >= 0 ? new Set((process.argv[onlyArg + 1] ?? "").split(",").filter(Boolean)) : null;
@@ -416,7 +431,8 @@ for (const r of rows.filter((x) => !only || only.has(x.id))) {
     try {
       say(true, r.id, await check());
     } catch (e) {
-      say(false, r.id, (e as Error).message);
+      if (e instanceof Pending) pend(r.id, e.message);
+      else say(false, r.id, (e as Error).message);
     }
   } else if (kind === "test") {
     const t = runTest(arg, runDeps);

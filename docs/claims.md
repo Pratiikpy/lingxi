@@ -67,7 +67,7 @@ Kinds of check:
 | residents | README | Nine residents and five Builders' Lane pets, each greeted by its own circuit. | facts:residents |
 | tests | README | The test counts in the README. | facts:tests |
 | no-server-lessons | landing, README | Pet School lessons and hand-built rules need no server. | test:packages/game/test/lessons.test.ts |
-| deweb | README | The whole site is published on chain at 1.2.419.tape. | auto:deweb |
+| deweb | README | The whole site is published on chain at 1.2.419.tape at the close of each milestone: at a close its `build.json`, read from X Layer, names this commit or one nothing the site is made of has changed since (between closes a copy behind is pending). | auto:deweb |
 | deweb-server | on-chain copy | The on-chain copy has no server of its own; its proof page asks Lingxi's indexer only for public things (which transactions to read, an owner's published log) and proves each on X Layer. | test:apps/web/src/game/rpcAsk.test.ts |
 | live-pages | README, landing | The live site serves the game, the proof page, the numbers, the tree of life and the agents' API. | auto:live-pages |
 | red-packet | landing, README | Red packets hold USDT in a contract, and a circuit decides each share. | test:contracts/test/RedPacket.fork.t.sol |
