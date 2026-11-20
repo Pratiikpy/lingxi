@@ -1132,5 +1132,17 @@
     "row": "A61",
     "bug": "every ask was answered with the whole card, letting one address draw megabytes a minute",
     "test": { "kind": "vitest", "dir": "services/api", "file": "test/live.test.ts", "name": "a second ask for an unchanged card gets the short answer, and a changed card is sent whole again" }
+  },
+  {
+    "id": "A62-season-proof-off-thread",
+    "row": "A62",
+    "bug": "a season proof's mind comparison ran on the request thread",
+    "test": { "kind": "e2e", "spec": "e2e/specs/season.spec.ts", "title": "a pet on X Layer enters the season proven, then honestly unproven (en, light, phone)" }
+  },
+  {
+    "id": "A62-season-busy-said",
+    "row": "A62",
+    "bug": "a proof the server could not check was entered unproven and blamed on the pet's mind",
+    "test": { "kind": "e2e", "spec": "e2e/specs/season.spec.ts", "title": "a proof the server cannot check just now enters nothing and says to try again (en, light, phone) (A62)" }
   }
 ]

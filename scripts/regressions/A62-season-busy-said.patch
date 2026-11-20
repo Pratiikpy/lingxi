@@ -1,0 +1,11 @@
+--- a/apps/web/src/play/Season.tsx
++++ b/apps/web/src/play/Season.tsx
+@@ -112,7 +112,7 @@ export function SeasonCard({ pet }: { pet: Pet }) {
+     }
+     let r = await enterSeason(entry, proof ?? undefined);
+     // the server is checking many pets on X Layer just now: nothing was entered, and trying again is the answer (A62)
+-    const checkerBusy = !r.ok && r.reason === "notProven" && r.detail === "busy";
++    const checkerBusy = false;
+     if (!r.ok && r.reason === "notProven" && !checkerBusy) {
+       why = "notProven";
+       r = await enterSeason(entry);
