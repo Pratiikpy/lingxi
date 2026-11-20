@@ -15,7 +15,8 @@
     "coverage": "tsx scripts/coverage.mts",
     "revert:check": "tsx scripts/revert-check.mts",
     "site:release": "tsx scripts/site-release.mts",
-    "readme:banner": "tsx scripts/readme-banner.mts"
+    "readme:banner": "tsx scripts/readme-banner.mts",
+    "readme:shots": "tsx scripts/readme-shots.mts"
   },
   "devDependencies": {
     "@eslint/js": "9.17.0",
