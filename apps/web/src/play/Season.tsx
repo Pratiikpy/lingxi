@@ -4,8 +4,8 @@
  * browser from the public entry list; ties go to the smaller brain.
  */
 
-import { useCallback, useEffect, useState } from "react";
-import { type Pet, dayOf, petCard, placeTier, previousWeek, seasonStandings, stageOf, standingsDigest, weekOf } from "@lingxi/game";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { type Pet, dayOf, petCard, placeTier, previousWeek, stageOf, weekOf } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { type SeasonView, enterSeason, markAwarded, mine, readSeason, seasonsAvailable } from "../game/season";
 import { useBadges } from "../game/badges";
@@ -14,6 +14,7 @@ import { signSeasonEntry, recordOf } from "../game/chain";
 import { useWorld } from "../game/world";
 import { useMail } from "../game/mail";
 import { now } from "../game/gameClock";
+import { refight } from "../game/seasonCheck";
 
 const ordinal = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
 import "./season.css";
@@ -40,6 +41,10 @@ export function SeasonCard({ pet }: { pet: Pet }) {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
   const [check, setCheck] = useState<{ same: boolean; digest: string } | null>(null);
+  /** the recompute under way, fought in a worker (A84); ended if the sheet closes */
+  const [checking, setChecking] = useState(false);
+  const refighting = useRef<{ stop: () => void } | null>(null);
+  useEffect(() => () => refighting.current?.stop(), []);
   const week = weekOf(now());
 
   // this week's season and last week's, as the server holds them now
@@ -148,15 +153,27 @@ export function SeasonCard({ pet }: { pet: Pet }) {
     }
   };
 
-  const recompute = () => {
-    if (!view) return;
-    const rows = seasonStandings(view.week, view.entries);
-    const digest = standingsDigest(rows);
-    setCheck({ same: digest === view.digest, digest });
-    play(digest === view.digest ? "success" : "error");
+  const recompute = async () => {
+    if (!view || refighting.current) return;
+    setCheck(null);
+    setChecking(true);
+    const job = refight({ week: view.week, entries: view.entries });
+    refighting.current = job;
+    try {
+      const digest = await job.done;
+      setCheck({ same: digest === view.digest, digest });
+      play(digest === view.digest ? "success" : "error");
+    } catch {
+      // stopped: the sheet closed
+    } finally {
+      refighting.current = null;
+      setChecking(false);
+    }
   };
 
   const rows = view?.standings ?? [];
+  /** every entry against every other, from both sides */
+  const bouts = view ? (view.entries.length * (view.entries.length - 1)).toLocaleString(lang === "zh" ? "zh-CN" : "en") : "";
   const mineRow = rows.find((r) => r.key === myKey);
   const shown = rows.slice(0, SHOWN);
   const champ = last?.closed && !last.pending ? last.standings[0] : undefined;
@@ -269,13 +286,15 @@ export function SeasonCard({ pet }: { pet: Pet }) {
       )}
       {view && view.entries.length > 0 && !view.pending && (
         <div className="ss-check">
-          <button type="button" className="link" onClick={recompute}>
-            {L("Recompute the table in your browser", "在你的浏览器里重算这张表")}
+          <button type="button" className="link" onClick={() => void recompute()} disabled={checking} aria-busy={checking}>
+            {checking
+              ? L(`Re-fighting all ${bouts} bouts…`, `正在重打全部 ${bouts} 场……`)
+              : L("Recompute the table in your browser", "在你的浏览器里重算这张表")}
           </button>
           {check && (
             <span className={`small ${check.same ? "ss-ok" : "ss-bad"}`}>
               {check.same
-                ? L(`Same table: all ${view.entries.length * (view.entries.length - 1)} bouts re-fought here, fingerprint ${check.digest}.`, `同一张表：这里重打了全部 ${view.entries.length * (view.entries.length - 1)} 场，指纹 ${check.digest}。`)
+                ? L(`Same table: all ${bouts} bouts re-fought here, fingerprint ${check.digest}.`, `同一张表：这里重打了全部 ${bouts} 场，指纹 ${check.digest}。`)
                 : L(`Different table here (fingerprint ${check.digest}, the server says ${view.digest}).`, `这里算出的表不同（指纹 ${check.digest}，服务器是 ${view.digest}）。`)}
             </span>
           )}
