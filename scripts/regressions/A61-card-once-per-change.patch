@@ -1,0 +1,11 @@
+--- a/services/api/src/live.ts
++++ b/services/api/src/live.ts
+@@ -418,7 +418,7 @@ export class LiveRooms {
+         c.asks.push(now);
+         // the whole card once per change of it; after that a short answer, and the game keeps the card it has (A61)
+         const about = { t: "card", id: target.member.id, name: target.member.name, line: target.member.line, stage: target.member.stage };
+-        if (c.seen.get(target.member.id) === target.cardVersion) this.send(c, { ...about, unchanged: true });
++        if (false) this.send(c, { ...about, unchanged: true });
+         else {
+           c.seen.set(target.member.id, target.cardVersion);
+           this.send(c, { ...about, lessons: target.card ?? "[]" });

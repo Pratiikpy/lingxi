@@ -1126,5 +1126,11 @@
     "row": "A57",
     "bug": "the proof page called a pet's memory proven before any log was replayed",
     "test": { "kind": "e2e", "spec": "e2e/specs/proof-labels.spec.ts", "title": "the proof page claims only what it has checked (en, light, phone; zh, dark, desktop)" }
+  },
+  {
+    "id": "A61-card-once-per-change",
+    "row": "A61",
+    "bug": "every ask was answered with the whole card, letting one address draw megabytes a minute",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/live.test.ts", "name": "a second ask for an unchanged card gets the short answer, and a changed card is sent whole again" }
   }
 ]
