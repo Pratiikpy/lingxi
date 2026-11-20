@@ -50,7 +50,7 @@ import { type SeasonStore, createSeasonStore, settleAwards } from "./season";
 import { dayIndex, weekOf } from "@lingxi/game";
 import { parseCard } from "@lingxi/game";
 import { createPublicClient, custom, fallback, http, type PublicClient } from "viem";
-import { type Deployment, type SignedRelay, adoptionCentreAbi, loadCircuitFromChain, nameColours, packsHeld, petRegistryAbi, piecesHeld, readPet, xLayer } from "@lingxi/chain";
+import { type Deployment, type SignedRelay, adoptionCentreAbi, createNetlistCache, loadCircuitFromChain, nameColours, packsHeld, petRegistryAbi, piecesHeld, readPet, xLayer } from "@lingxi/chain";
 import { type HomeChain, createHomes } from "./homes";
 import { createAgentStore } from "./agents";
 import { withAgentApi } from "./agentApi";
@@ -968,6 +968,8 @@ if (isMain) {
   // proving an entry is a pet on X Layer: its keeper's signature, and its card thinks as its brain on chain does
   const seasonNonces = createNonceBook();
   const mindChecker = createMindChecker();
+  // netlists a season proof has read; a taped-out netlist never changes (A115)
+  const seasonNetlists = createNetlistCache();
   const prove: SeasonProver | undefined =
     chainCtx && isKeeper
       ? (pet, proof) =>
@@ -975,15 +977,17 @@ if (isMain) {
             isKeeper,
             now: Date.now,
             nonces: seasonNonces,
+            // a proven entry's brain is read through the visitors' client, at most MAX_CIRCUIT_READS circuits, each
+            // netlist read once for the whole server (A115)
             brainOf: async (id) => {
-              const onChain = await readPet(chainCtx!.pub, chainCtx!.deployment, BigInt(id));
-              const circuit = await loadCircuitFromChain(chainCtx!.pub, onChain.processor, onChain.brainId);
+              const onChain = await readPet(visitorPub, chainCtx!.deployment, BigInt(id));
+              const circuit = await loadCircuitFromChain(visitorPub, onChain.processor, onChain.brainId, undefined, { cache: seasonNetlists });
               return { fast: circuitBrain(circuit), nState: circuit.nState };
             },
             // the comparison itself runs off the request thread, with a budget (A62)
             circuitOf: async (id) => {
-              const onChain = await readPet(chainCtx!.pub, chainCtx!.deployment, BigInt(id));
-              return loadCircuitFromChain(chainCtx!.pub, onChain.processor, onChain.brainId);
+              const onChain = await readPet(visitorPub, chainCtx!.deployment, BigInt(id));
+              return loadCircuitFromChain(visitorPub, onChain.processor, onChain.brainId, undefined, { cache: seasonNetlists });
             },
             check: mindChecker,
           })

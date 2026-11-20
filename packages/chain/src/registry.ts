@@ -288,28 +288,83 @@ export class BrainTooBigError extends Error {
 }
 
 /**
+ * The most distinct circuits one load reads (A115). An honest brain is at most a family four generations deep, 31
+ * circuits; a circuit made to REF hundreds of others is refused once it passes this, after at most this many reads.
+ */
+export const MAX_CIRCUIT_READS = 32;
+
+export class CircuitTooWideError extends Error {
+  constructor(readonly max: number) {
+    super(`this brain REFs more than the ${max} circuits any pet's mind can`);
+    this.name = "CircuitTooWideError";
+  }
+}
+
+type Netlist = Awaited<ReturnType<typeof readNetlist>>;
+
+/**
+ * Netlists already read, by processor and circuit (A115). A taped-out netlist never changes (the processor's only
+ * write is `tapeout`, which makes a new circuit), so a cache never goes stale; it is bounded, least recently used out.
+ * One per chain: a fork and mainnet share addresses and ids, never netlists.
+ */
+export function createNetlistCache(max = 512): { get(key: string): Promise<Netlist> | undefined; set(key: string, value: Promise<Netlist>): void; size(): number } {
+  const held = new Map<string, Promise<Netlist>>();
+  return {
+    get(key) {
+      const v = held.get(key);
+      if (v) {
+        held.delete(key);
+        held.set(key, v);
+      }
+      return v;
+    },
+    set(key, value) {
+      held.delete(key);
+      held.set(key, value);
+      while (held.size > max) held.delete(held.keys().next().value!);
+      // a read that failed is not kept, so the next asker reads again
+      value.catch(() => {
+        if (held.get(key) === value) held.delete(key);
+      });
+    },
+    size: () => held.size,
+  };
+}
+export type NetlistCache = ReturnType<typeof createNetlistCache>;
+
+/**
  * Loads a circuit straight from the chain, together with every circuit it REFs
  * (a child's brain REFs both parents'), so it can be evaluated locally. Each
- * distinct circuit is read once however many paths lead to it, and a brain that
- * would run more than `maxGates` gates a beat is refused before anyone runs it
- * (A38): any pet can be pointed at any circuit on the processor.
+ * distinct circuit is read once however many paths lead to it, a circuit's REFs
+ * are read together, at most `MAX_CIRCUIT_READS` distinct circuits are read (A115),
+ * and a brain that would run more than `maxGates` gates a beat is refused before
+ * anyone runs it (A38): any pet can be pointed at any circuit on the processor.
  */
-export async function loadCircuitFromChain(pub: PublicClient, processor: Address, id: bigint, maxGates = MAX_RUN_GATES): Promise<Circuit> {
+export async function loadCircuitFromChain(pub: PublicClient, processor: Address, id: bigint, maxGates = MAX_RUN_GATES, opts: { maxCircuits?: number; cache?: NetlistCache } = {}): Promise<Circuit> {
+  const maxCircuits = opts.maxCircuits ?? MAX_CIRCUIT_READS;
   const loading = new Map<string, Promise<Circuit>>();
+  const netlist = (cpu: Address, cid: bigint): Promise<Netlist> => {
+    const key = refKey(cpu, cid);
+    const known = opts.cache?.get(key);
+    if (known) return known;
+    const p = readNetlist(pub, cpu, cid);
+    opts.cache?.set(key, p);
+    return p;
+  };
   const one = (cpu: Address, cid: bigint, depth: number): Promise<Circuit> => {
     const key = refKey(cpu, cid);
     const known = loading.get(key);
     if (known) return known;
+    if (loading.size >= maxCircuits) return Promise.reject(new CircuitTooWideError(maxCircuits));
     const p = (async () => {
       if (depth > 4) throw new Error("circuit nests too deeply");
-      const nl = await readNetlist(pub, cpu, cid);
+      const nl = await netlist(cpu, cid);
       const bytes = hexToBytes(nl.bytes);
+      const wanted = new Map<string, { cpu: Address; id: bigint }>();
+      for (const e of decode(bytes, nl.nIn)) if (e.op === REF) wanted.set(refKey(e.cpu, e.id), { cpu: e.cpu as Address, id: e.id });
       const subs = new Map<string, Circuit>();
-      for (const e of decode(bytes, nl.nIn)) {
-        if (e.op !== REF) continue;
-        const k = refKey(e.cpu, e.id);
-        if (!subs.has(k)) subs.set(k, await one(e.cpu as Address, e.id, depth + 1));
-      }
+      const got = await Promise.all([...wanted].map(async ([k, w]) => [k, await one(w.cpu, w.id, depth + 1)] as const));
+      for (const [k, c] of got) subs.set(k, c);
       const c = load(bytes, nl.nIn, nl.nOut, (rc, sid) => subs.get(refKey(rc, sid)) ?? null);
       if (c.nGates > maxGates) throw new BrainTooBigError(c.nGates, maxGates);
       return c;

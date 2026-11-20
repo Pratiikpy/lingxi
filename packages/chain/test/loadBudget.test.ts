@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 import type { PublicClient } from "viem";
 import { NAND, REF, encode, type Element } from "@lingxi/brain";
 import { MAX_RUN_GATES } from "@lingxi/game";
-import { BrainTooBigError, loadCircuitFromChain } from "../src/registry";
+import { BrainTooBigError, CircuitTooWideError, MAX_CIRCUIT_READS, createNetlistCache, loadCircuitFromChain } from "../src/registry";
 
 const CPU = "0x00000000000000000000000000000000000000cc" as const;
 const toHex = (b: Uint8Array) => `0x${Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("")}`;
@@ -64,3 +64,45 @@ describe("a brain loaded from the chain to be run (A38)", () => {
     expect((err as BrainTooBigError).gates).toBeGreaterThan(MAX_RUN_GATES);
   });
 });
+
+describe("a brain's reads are capped and its netlists cached (A115)", () => {
+  /** a top circuit that REFs `n` distinct leaves */
+  const wide = (n: number) => {
+    const out: Record<string, { nIn: number; nOut: number; els: Element[] }> = {
+      "1": { nIn: 16, nOut: Math.min(n, 8), els: Array.from({ length: n }, (_, i) => ({ op: REF, ins: [2], cpu: CPU, id: BigInt(100 + i), nOut: 1, firstOut: 18 + i }) as Element) },
+    };
+    for (let i = 0; i < n; i++) out[String(100 + i)] = leaf;
+    return out;
+  };
+
+  it("a circuit that REFs hundreds of others is refused after at most MAX_CIRCUIT_READS reads", async () => {
+    const { pub, reads } = processor(wide(300));
+    await expect(loadCircuitFromChain(pub, CPU, 1n)).rejects.toBeInstanceOf(CircuitTooWideError);
+    expect([...reads.values()].reduce((a, b) => a + b, 0)).toBeLessThanOrEqual(MAX_CIRCUIT_READS);
+  });
+
+  it("an honest family four generations deep, 31 circuits, loads", async () => {
+    // circuit k REFs 2k and 2k+1 down to the 16 leaves 16..31
+    const tree: Record<string, { nIn: number; nOut: number; els: Element[] }> = {};
+    for (let k = 1; k < 16; k++)
+      tree[String(k)] = { nIn: k === 1 ? 16 : 1, nOut: k === 1 ? 2 : 1, els: [0, 1].map((j) => ({ op: REF, ins: [2], cpu: CPU, id: BigInt(2 * k + j), nOut: 1, firstOut: (k === 1 ? 18 : 3) + j }) as Element) };
+    for (let k = 16; k < 32; k++) tree[String(k)] = leaf;
+    const { pub, reads } = processor(tree);
+    expect((await loadCircuitFromChain(pub, CPU, 1n)).nGates).toBe(16);
+    expect(reads.size).toBe(31);
+  });
+
+  it("with a cache, a netlist is read once across loads, and a failed read is read again", async () => {
+    const { pub, reads } = processor(wide(3));
+    const cache = createNetlistCache();
+    await loadCircuitFromChain(pub, CPU, 1n, undefined, { cache });
+    await loadCircuitFromChain(pub, CPU, 1n, undefined, { cache });
+    expect([...reads.values()].every((n) => n === 1), JSON.stringify([...reads])).toBe(true);
+    const missing = processor({});
+    await expect(loadCircuitFromChain(missing.pub, CPU, 9n, undefined, { cache })).rejects.toThrow();
+    await Promise.resolve();
+    expect(cache.get("never"), "nothing kept for a key never read").toBeUndefined();
+    expect(cache.size(), "the failed read was not kept").toBe(4);
+  });
+});
+

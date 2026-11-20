@@ -18,7 +18,7 @@ import { dirname } from "node:path";
 import { createPublicClient, createWalletClient, erc20Abi, http, maxUint128, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { type Program, type Rule, type StarterLine, bytesToHex, compileProgram, composeChild, composeInstinct, gateCount, netlistBytes } from "@lingxi/brain";
-import { BrainTooBigError, FACTORY, circuitIdFrom, factoryAbi, loadCircuitFromChain, processorAbi, transistorsAbi, xLayer } from "@lingxi/chain";
+import { BrainTooBigError, CircuitTooWideError, FACTORY, circuitIdFrom, createNetlistCache, factoryAbi, loadCircuitFromChain, processorAbi, transistorsAbi, xLayer } from "@lingxi/chain";
 import { type Family, type Growth, INSTINCT_MAX_GATES, MAX_GATES, MAX_GATES_SKILLED, MAX_LESSONS, SKILL_BY_ID, cleanInstincts, composeProgram, gateBudget, halfBudgets, halvesOf, mindExtra, skillRules } from "@lingxi/game";
 
 const NEWLINE = /\r?\n/;
@@ -162,6 +162,11 @@ export class BrainRelayer {
    * Serialises tape-outs so nonces never collide and the budget is exact. A relay's result says how many tape-outs it
    * sent, counted here: one job runs at a time, so the count is exactly that job's.
    */
+  /** instinct checks, one at a time and apart from the tape-out queue (A115) */
+  private checks: Promise<unknown> = Promise.resolve();
+  /** netlists read from the chain; a taped-out netlist never changes (A115) */
+  private readonly netlists = createNetlistCache();
+
   private serial<T>(job: () => Promise<T>): Promise<T> {
     const run = this.queue.then(async () => {
       this.sentNow = 0;
@@ -240,8 +245,20 @@ export class BrainRelayer {
    * any processor TapeOut's factory registered), plus the glue. Both must be pet
    * brains (16 in, 8 out) and their memory together must fit the registry's 64 bits.
    */
-  relayInstinct(input: { own: string; processor: Address; id: string }): Promise<RelayResult> {
+  async relayInstinct(input: { own: string; processor: Address; id: string }): Promise<RelayResult> {
+    // every read happens before the tape-out queue, in a line of its own, so a circuit that takes many reads holds up
+    // only other instinct checks, never a paid tape-out (A115)
+    const refused = await this.checkInstinct(input);
+    if (refused) return { ...refused, sent: 0 };
     return this.serial(async () => {
+      const c = composeInstinct({ cpu: this.cfg.processor, id: BigInt(input.own) }, { cpu: input.processor, id: BigInt(input.id) });
+      return this.tapeBytes(c.bytes, c.elements.filter((e) => e.op === 0).length, 0);
+    });
+  }
+
+  /** An instinct's reads, one check at a time: null when it may be taped, else why not. */
+  private checkInstinct(input: { own: string; processor: Address; id: string }): Promise<Extract<RelayResult, { ok: false }> | null> {
+    const run = this.checks.then(async (): Promise<Extract<RelayResult, { ok: false }> | null> => {
       const read = async (cpu: Address, id: bigint) => (await this.pub.readContract({ address: cpu, abi: processorAbi, functionName: "circuitInfo", args: [id] })) as readonly [bigint, bigint, bigint, bigint];
       let state = 0;
       try {
@@ -261,14 +278,16 @@ export class BrainRelayer {
       // the owned circuit must run within an instinct's budget, counted as it runs (A38): REFs may make it small to
       // carry, never big to run, and every friend who meets the pet runs it
       try {
-        await loadCircuitFromChain(this.pub, input.processor, BigInt(input.id), INSTINCT_MAX_GATES);
+        await loadCircuitFromChain(this.pub, input.processor, BigInt(input.id), INSTINCT_MAX_GATES, { cache: this.netlists });
       } catch (e) {
         if (e instanceof BrainTooBigError) return { ok: false, reason: "tooBig", detail: `${e.gates} gates a beat, past ${e.max}` } as const;
+        if (e instanceof CircuitTooWideError) return { ok: false, reason: "tooBig", detail: e.message } as const;
         return { ok: false, reason: "invalid", detail: "the circuit could not be read" } as const;
       }
-      const c = composeInstinct({ cpu: this.cfg.processor, id: BigInt(input.own) }, { cpu: input.processor, id: BigInt(input.id) });
-      return this.tapeBytes(c.bytes, c.elements.filter((e) => e.op === 0).length, 0);
+      return null;
     });
+    this.checks = run.catch(() => null);
+    return run;
   }
 
   /**
