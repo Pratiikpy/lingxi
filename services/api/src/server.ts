@@ -722,7 +722,7 @@ export function withPush(app: Hono, pusher: Pusher, limiter = new RateLimiter(30
     } catch {
       return c.json({ ok: false, reason: "invalid" }, 400);
     }
-    const r = pusher.plan(body, Date.now());
+    const r = pusher.plan(body, Date.now(), ip);
     return c.json(r, r.ok ? 200 : 400);
   });
   app.post("/api/push/stop", async (c) => {

@@ -44,8 +44,8 @@ const NOTES_ZH: Record<string, string[]> = {
 
 const STEPS: Array<{ en: string; zh: string; code: string }> = [
   {
-    en: "Adopt a pet. Keep the token: it is shown once. An agent name, and one address, raise at most 5 pets at once; a pet nobody looks at for 30 days goes home.",
-    zh: "领养一只宠物。保存好令牌，它只显示一次。一个智能体名字、一个地址同时最多养 5 只；30 天没人看过的宠物会回家。",
+    en: "Adopt a pet. Keep the token: it is shown once. An agent name, and one address, raise at most 5 pets at once; a pet nobody cares for in 30 days goes home.",
+    zh: "领养一只宠物。保存好令牌，它只显示一次。一个智能体名字、一个地址同时最多养 5 只；30 天没人照顾的宠物会回家。",
     code: `curl -s -X POST ${PUBLIC}/api/v1/agents/adopt \\
   -H 'content-type: application/json' \\
   -d '{"agent":"my-agent","name":"Bit","line":"curious"}'`,

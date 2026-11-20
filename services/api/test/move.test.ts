@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Hono } from "hono";
-import { MOVE_TTL_MS, createMoveStore } from "../src/move";
+import { PREFIX_SHARE } from "../src/limit";
+import { MAX_HELD_CHARS, MAX_MOVE_CHARS, MAX_OWNER_CHARS, MOVE_TTL_MS, createMoveStore } from "../src/move";
 import { withMove } from "../src/server";
 
 const save = { "lingxi.pets.v2": JSON.stringify({ active: 0, pets: [{ name: "Mochi" }] }), "lingxi.lang": "zh" };
@@ -64,5 +65,21 @@ describe("moves waiting at once", () => {
     for (let i = 0; i < 3; i++) expect(store.put(save, "203.0.113.9").ok).toBe(true);
     expect(store.put(save, "203.0.113.9")).toEqual({ ok: false, reason: "busy" });
     expect(store.put(save, "198.51.100.1").ok).toBe(true);
+  });
+
+  it("no few addresses fill the shelf: one holds at most a largest save and room, and a /48 four of those (A83)", () => {
+    const store = createMoveStore();
+    const big = { "lingxi.pets.v2": "x".repeat(MAX_MOVE_CHARS - 20) };
+    expect(store.put(big, "203.0.113.9").ok).toBe(true);
+    expect(store.put(big, "203.0.113.9"), "a second largest save is past one address's share").toEqual({ ok: false, reason: "busy" });
+    expect(store.put(save, "203.0.113.9").ok, "a small one still fits beside it").toBe(true);
+    // a /48 holds four addresses' worth across its /64s, then the rest of them wait
+    let fromNetwork = 0;
+    for (let i = 0; i < 100; i++) if (store.put(big, `2001:db8:7:${i.toString(16)}::/64`).ok) fromNetwork++;
+    const size = big["lingxi.pets.v2"].length + "lingxi.pets.v2".length;
+    expect(fromNetwork).toBe(Math.floor((MAX_OWNER_CHARS * PREFIX_SHARE) / size));
+    // so filling the whole shelf takes many networks, not seven addresses
+    expect(MAX_HELD_CHARS / MAX_OWNER_CHARS).toBeGreaterThanOrEqual(16);
+    expect(store.put(big, "198.51.100.1").ok, "and others still move their pets").toBe(true);
   });
 });

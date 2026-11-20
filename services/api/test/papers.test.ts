@@ -72,20 +72,39 @@ describe("adoption papers are limited per address before any chain read (A52)", 
   });
 });
 
-describe("the papers store writes safely (A64)", () => {
-  it("a write that fails part way leaves the papers already kept whole", async () => {
-    const { mkdtempSync, mkdirSync, readFileSync, rmSync } = await import("node:fs");
+describe("the papers store writes safely (A64), one pet at a time, and makes room (A83)", () => {
+  it("a write that fails part way leaves the papers already kept whole, and later writes go through", async () => {
+    const { mkdtempSync, mkdirSync, rmSync } = await import("node:fs");
     const { tmpdir } = await import("node:os");
     const { join } = await import("node:path");
     const file = join(mkdtempSync(join(tmpdir(), "papers-")), "papers.json");
     const store = createPapersStore(file);
     store.put("7", { papers, signer: owner.address, at: 1 });
-    // the next write cannot be made (its temporary file is in the way), as when the disk fills or the process dies
-    mkdirSync(`${file}.tmp`);
+    // pet 8's place cannot be written (something is in the way), as when the disk fails
+    mkdirSync(join(file.replace(/\.json$/, ""), "8.json"));
     expect(() => store.put("8", { papers, signer: owner.address, at: 2 })).not.toThrow();
-    expect(Object.keys(JSON.parse(readFileSync(file, "utf8")) as object), "the file still holds what was kept").toEqual(["7"]);
-    rmSync(`${file}.tmp`, { recursive: true });
+    expect(createPapersStore(file).get("7")?.papers, "what was kept is whole").toBe(papers);
+    rmSync(join(file.replace(/\.json$/, ""), "8.json"), { recursive: true });
     store.put("9", { papers, signer: owner.address, at: 3 });
-    expect(Object.keys(createPapersStore(file).get("9") ?? {}).length, "and later writes go through").toBeGreaterThan(0);
+    expect(createPapersStore(file).get("9")?.papers, "and later writes go through").toBe(papers);
+  });
+
+  it("each pet's papers are their own file, the older single file is moved in once, and a full shelf lets the oldest go", async () => {
+    const { mkdtempSync, readdirSync, writeFileSync, existsSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const file = join(mkdtempSync(join(tmpdir(), "papers-")), "papers.json");
+    writeFileSync(file, JSON.stringify({ "3": { papers, signer: owner.address, at: 100 } }));
+    const size = JSON.stringify({ papers, signer: owner.address, at: 100 }).length;
+    const store = createPapersStore(file, { count: 1_000, chars: size * 2 + 10 });
+    expect(store.get("3")?.papers, "moved in from the older file").toBe(papers);
+    expect(existsSync(file)).toBe(false);
+    store.put("4", { papers, signer: owner.address, at: 200 });
+    store.put("5", { papers, signer: owner.address, at: 300 });
+    expect(readdirSync(file.replace(/\.json$/, "")).sort(), "one file per pet, the oldest let go").toEqual(["4.json", "5.json"]);
+    // after a restart, the order holds: the next post lets 4 go
+    const again = createPapersStore(file, { count: 1_000, chars: size * 2 + 10 });
+    again.put("6", { papers, signer: owner.address, at: 400 });
+    expect([again.get("4"), again.get("5")?.papers, again.get("6")?.papers]).toEqual([null, papers, papers]);
   });
 });

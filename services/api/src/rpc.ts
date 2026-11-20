@@ -13,7 +13,7 @@
  */
 
 import type { Context, Hono } from "hono";
-import { RateLimiter } from "./limit";
+import { FairCeiling, RateLimiter } from "./limit";
 import { clientIp } from "./clientIp";
 
 export const RPC_METHODS = new Set([
@@ -58,8 +58,8 @@ export interface RpcProxyOptions {
   reserve?: { url: string; perMinute: number };
   /** calls per caller */
   limiter?: RateLimiter;
-  /** calls for everyone together */
-  global?: RateLimiter;
+  /** calls for everyone together, shared fairly among the callers asking (A83) */
+  global?: FairCeiling;
   fetch?: typeof fetch;
   timeoutMs?: number;
 }
@@ -101,7 +101,7 @@ export function vetCalls(body: unknown): { calls: Call[]; batch: boolean; refuse
 
 export function withRpcProxy(app: Hono, opts: RpcProxyOptions) {
   const limiter = opts.limiter ?? new RateLimiter(600, 60_000);
-  const global = opts.global ?? new RateLimiter(1_800, 60_000);
+  const global = opts.global ?? new FairCeiling(1_800, 60_000);
   const reserve = opts.reserve ? { url: opts.reserve.url, limiter: new RateLimiter(opts.reserve.perMinute, 60_000) } : null;
   const doFetch = opts.fetch ?? fetch;
   const timeoutMs = opts.timeoutMs ?? 20_000;
@@ -123,7 +123,8 @@ export function withRpcProxy(app: Hono, opts: RpcProxyOptions) {
     const { calls, batch, refused } = vetted;
     // every call in a batch counts, for the caller (the first was taken above) and for everyone together
     for (let i = 1; i < calls.length; i++) if (!limiter.take(who(c))) return busy();
-    for (let i = 0; i < calls.length; i++) if (!global.take("all")) return busy();
+    // the ceiling is shared: a caller past its share of it waits while others are served (A83)
+    for (let i = 0; i < calls.length; i++) if (!global.take(who(c))) return busy();
     let answers: unknown[] = [];
     if (calls.length) {
       let forwarded = await forward(calls, opts.upstreams, doFetch, timeoutMs);

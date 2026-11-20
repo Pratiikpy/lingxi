@@ -9,7 +9,7 @@ import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
 import { duelLinkId, encodeChallenge, encodeResult, decodeChallenge, petCard, type DuelPet } from "@lingxi/game";
 import { RateLimiter } from "../src/limit";
-import { createDuelStore, withDuels } from "../src/duels";
+import { MAKER_SHARE, createDuelStore, withDuels } from "../src/duels";
 
 const pet = (name: string): DuelPet => ({ name, line: "gentle", stage: "adult", card: petCard({ lessons: [] }), story: { days: 9, lessons: 0, nature: [] } });
 const challenge = encodeChallenge({ id: "abcdef0123456789", from: pet("Mochi"), at: 1 });
@@ -159,3 +159,43 @@ describe("one address cannot push out the duel links people share (A51)", () => 
   });
 });
 
+
+describe("no few makers hold the duel shelf, however often they open their links (A83)", () => {
+  const ids = (n: number, tag: string) => Array.from({ length: n }, (_, i) => `${tag}${String(i).padStart(16 - tag.length, "0")}`);
+
+  it("one maker holds at most its share, its own least opened going first; others are not touched; a restart keeps it", () => {
+    const dir = mkdtempSync(join(tmpdir(), "lingxi-duels-"));
+    try {
+      let t = 1_000;
+      const limits = { count: 200 * 2, chars: 1_000_000_000 };
+      const a = createDuelStore(dir, limits, () => t);
+      expect(Math.floor(limits.count * MAKER_SHARE)).toBe(2);
+      const [x1, x2, x3, x4] = ids(4, "X");
+      const [y1] = ids(1, "Y");
+      a.put(y1!, "lxc1.y", t++, "198.51.100.1");
+      a.put(x1!, "lxc1.x1", t++, "203.0.113.9");
+      a.put(x2!, "lxc1.x2", t++, "203.0.113.9");
+      // the maker keeps opening its first link, so it is the second that is least opened
+      t += 120_000;
+      expect(a.get(x1!)).toBe("lxc1.x1");
+      a.put(x3!, "lxc1.x3", t++, "203.0.113.9");
+      expect([a.has(x1!), a.has(x2!), a.has(x3!), a.has(y1!)]).toEqual([true, false, true, true]);
+      // after a restart, the shelf still knows who made what
+      t += 120_000;
+      const b = createDuelStore(dir, limits, () => t);
+      b.put(x4!, "lxc1.x4", t++, "203.0.113.9");
+      expect([b.has(x1!), b.has(x3!), b.has(x4!), b.has(y1!)]).toEqual([false, true, true, true]);
+      expect(b.get(x4!)).toBe("lxc1.x4");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("an IPv6 /48 holds four makers' worth across its /64s", () => {
+    let t = 1_000;
+    const store = createDuelStore(undefined, { count: 200 * 2, chars: 1_000_000_000 }, () => t);
+    const all = ids(40, "N");
+    all.forEach((id, i) => store.put(id, `lxc1.${i}`, t++, `2001:db8:7:${i.toString(16)}::/64`));
+    expect(all.filter((id) => store.has(id))).toHaveLength(2 * 4);
+  });
+});

@@ -113,3 +113,25 @@ describe("the teach route charges each lesson to the address that asked (A53)", 
   });
 });
 
+
+describe("the model day keeps room for those who have spent little (A83)", () => {
+  it("heavy addresses cannot spend the last quarter of the day; a newcomer still can", () => {
+    const budget = createTokenBudget({ perDay: 100_000, perAddress: 10_000 });
+    // seven heavy addresses spend their whole shares: 70% of the day
+    for (let i = 0; i < 7; i++) budget.spend(10_000, `198.51.100.${i}`);
+    // an eighth starts and spends past a quarter of its share, into the last quarter of the day
+    budget.spend(5_000, "198.51.100.50");
+    expect(budget.used()).toBe(75_000);
+    expect(budget.allowFor("198.51.100.50"), "past a quarter of its share, it waits for tomorrow").toBe(false);
+    expect(budget.allowFor("198.51.100.200"), "a newcomer is served from the quarter kept").toBe(true);
+    budget.spend(2_000, "198.51.100.200");
+    expect(budget.allowFor("198.51.100.200"), "and keeps being served while it has spent little").toBe(true);
+  });
+
+  it("an IPv6 /48 has four addresses' worth of the day, across its /64s", () => {
+    const budget = createTokenBudget({ perDay: 1_000_000, perAddress: 10_000 });
+    for (let i = 0; i < 4; i++) budget.spend(10_000, `2001:db8:7:${i}::/64`);
+    expect(budget.allowFor("2001:db8:7:99::/64"), "the network's share is spent").toBe(false);
+    expect(budget.allowFor("2001:db8:8:1::/64"), "another network is not affected").toBe(true);
+  });
+});

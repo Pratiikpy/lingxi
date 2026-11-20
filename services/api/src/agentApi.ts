@@ -93,7 +93,7 @@ export function withAgentApi(app: Hono, deps: AgentApiDeps): Hono {
         "GET /api/v1/spar?program=lx1.…&vs=pip": "spar a brain (a Lingxi program code, or p1=… / chips=… for a TapeFly brain) against a partner or fly:<rival>; &seed= for a fixed fight",
         "GET /api/v1/pets/:id": "a pet on X Layer: owner, line, brain circuit, day, log hash, picture",
         "GET /api/v1/pets/:id/brain": "the pet's brain netlist as stored on chain (TAP-02 bytes)",
-        "POST /api/v1/agents/adopt": "{ agent, name, line, instincts? } → a token; keep it, it is shown once. At most 5 pets at once per agent name and per address; a pet nobody looks at for 30 days goes home",
+        "POST /api/v1/agents/adopt": "{ agent, name, line, instincts? } → a token; keep it, it is shown once. At most 5 pets at once per agent name and per address; a pet nobody cares for in 30 days goes home",
         "GET /api/v1/agents/me": "your pet now (Authorization: Bearer <token>)",
         "POST /api/v1/agents/me/care": "{ action: feed|play|clean|pet|medicine|lightsOff|wake|talk, food? }",
         "POST /api/v1/agents/me/teach": "{ rule: { when: {...}, then: { want, mood } } } in the PET-16x8/1 rule language",

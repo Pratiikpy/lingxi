@@ -7,6 +7,7 @@
  * what the public scoreboard compares.
  */
 
+import { heldOver } from "./limit";
 import { createHash, randomBytes } from "node:crypto";
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { MOODS, type Rule, type StarterLine, WANTS, compileProgram, gateCount, validateProgram } from "@lingxi/brain";
@@ -146,14 +147,17 @@ export function createAgentStore(file?: string, now: () => number = Date.now): A
     pets.set(h, k);
     dirty = true;
   };
-  /** the pet brought up to the present before anything is read or done */
-  const current = (token: string): [string, Kept] | null => {
+  /**
+   * the pet brought up to the present before anything is read or done; only care (`keep`) keeps it from going home, so
+   * a crowd of pets is not held by reading them (A83)
+   */
+  const current = (token: string, keep = false): [string, Kept] | null => {
     if (typeof token !== "string" || !/^[0-9a-f]{48}$/.test(token)) return null;
     const h = hash(token);
     const k = pets.get(h);
     if (!k) return null;
     const caught = grown(catchUp(k.pet, now(), brainOf(k.pet)));
-    const next = { ...k, pet: caught, seen: now() };
+    const next = { ...k, pet: caught, ...(keep ? { seen: now() } : {}) };
     touch(h, next);
     return [h, next];
   };
@@ -165,7 +169,8 @@ export function createAgentStore(file?: string, now: () => number = Date.now): A
       letIdleGo(t);
       if (pets.size >= MAX_PETS) return { ok: false, reason: "full" };
       if ([...pets.values()].filter((k) => k.agent === agent).length >= MAX_PER_AGENT) return { ok: false, reason: "tooMany", detail: `an agent may raise at most ${MAX_PER_AGENT} pets` };
-      if (from && [...pets.values()].filter((k) => k.from === from).length >= MAX_PER_ADDRESS) return { ok: false, reason: "tooMany", detail: `at most ${MAX_PER_ADDRESS} pets at once from one address, whatever agent names it uses; a pet nobody looks at for 30 days goes home` };
+      // an IPv6 /48 raises four addresses' worth (A83)
+      if (from && heldOver([...pets.values()].flatMap((k) => (k.from ? [k.from] : [])), from, MAX_PER_ADDRESS)) return { ok: false, reason: "tooMany", detail: `at most ${MAX_PER_ADDRESS} pets at once from one address, whatever agent names it uses; a pet nobody cares for in 30 days goes home` };
       const inst = cleanInstincts(instincts);
       const brain = mindBrain({ line: line as StarterLine, lessons: [], instincts: inst });
       const pet = createPet({ name: name.trim(), line: line as StarterLine, now: t, tzOffsetMin: 0, brain, instincts: inst });
@@ -180,7 +185,7 @@ export function createAgentStore(file?: string, now: () => number = Date.now): A
       return c ? viewOf(c[1], now()) : null;
     },
     act: (token, kind, food) => {
-      const c = current(token);
+      const c = current(token, true);
       if (!c) return { ok: false, reason: "unknown" };
       if (!(AGENT_CARE as readonly string[]).includes(kind)) return { ok: false, reason: "invalid" };
       const action: Care = kind === "feed" ? { kind: "feed", food: typeof food === "string" && food ? food : "mochi" } : ({ kind } as Care);
@@ -195,7 +200,7 @@ export function createAgentStore(file?: string, now: () => number = Date.now): A
       return { ok: true, note: r.note, pet: viewOf(next, now()) };
     },
     teach: (token, rule) => {
-      const c = current(token);
+      const c = current(token, true);
       if (!c) return { ok: false, reason: "unknown" };
       // the rule's shape first, so a malformed rule is called malformed whatever room the mind has
       let clean: Rule;

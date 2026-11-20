@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Hono } from "hono";
-import { RateLimiter } from "../src/limit";
+import { FairCeiling, RateLimiter } from "../src/limit";
 import { MAX_BATCH, MAX_LOG_BLOCKS, RPC_BODY_MAX, type RpcProxyOptions, vetCalls, withRpcProxy } from "../src/rpc";
 
 type Up = (body: string) => Response | Promise<Response>;
@@ -128,9 +128,31 @@ describe("the same-origin RPC door", () => {
   });
 
   it("holds a ceiling for everyone together, so no crowd of addresses can get the upstream to throttle us", async () => {
-    const { a } = app({ "https://a": () => json({ jsonrpc: "2.0", id: 1, result: "0x1" }) }, undefined, { global: new RateLimiter(3, 60_000) });
+    const { a } = app({ "https://a": () => json({ jsonrpc: "2.0", id: 1, result: "0x1" }) }, undefined, { global: new FairCeiling(3, 60_000) });
     for (const ip of ["4.4.4.1", "4.4.4.2", "4.4.4.3"]) expect((await post(a, blockNumber, { "cf-connecting-ip": ip })).status).toBe(200);
     expect((await post(a, blockNumber, { "cf-connecting-ip": "4.4.4.4" })).status).toBe(429);
+  });
+
+  it("shares that ceiling: three callers running hot cannot shut a fourth out of the door (A83)", async () => {
+    vi.useFakeTimers({ now: 0, toFake: ["Date"] });
+    try {
+      const { a } = app({ "https://a": () => json({ jsonrpc: "2.0", id: 1, result: "0x1" }) }, new RateLimiter(10_000, 60_000), { global: new FairCeiling(12, 60_000) });
+      const ask = async (ip: string) => (await post(a, blockNumber, { "cf-connecting-ip": ip })).status;
+      for (let i = 0; i < 90; i++) {
+        vi.setSystemTime(i * 2_000);
+        for (const ip of ["4.4.4.1", "4.4.4.2", "4.4.4.3"]) await ask(ip);
+      }
+      let served = 0;
+      for (let i = 90; i < 120; i++) {
+        vi.setSystemTime(i * 2_000);
+        for (const ip of ["4.4.4.1", "4.4.4.2", "4.4.4.3"]) await ask(ip);
+        if ((await ask("4.4.4.4")) === 200) served++;
+      }
+      // a fair quarter of 12 a minute is 3
+      expect(served).toBeGreaterThanOrEqual(2);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("keeps our own jobs' upstream for them: the door uses it only as a small, last reserve", async () => {

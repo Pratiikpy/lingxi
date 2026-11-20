@@ -135,17 +135,26 @@ describe("agents in the season: their own share, and one address cannot fill it 
     expect(seasons.view(seasons.weeks().at(-1)!)!.entries.filter((e) => e.agent)).toHaveLength(16);
   });
 
-  it("an agent pet nobody has looked at for 30 days goes home, and its place counts again", async () => {
+  it("an agent pet nobody has cared for in 30 days goes home, however often it is read, and its place counts again (A83)", async () => {
     const { call, tick } = setup();
     const tokens: string[] = [];
     for (let i = 0; i < 5; i++) tokens.push((await adopt(call, "203.0.113.9", `agent ${i}`)).token!);
     tick(29 * 86_400_000);
-    // one is looked at: it stays
-    expect((await call("/api/v1/agents/me", { token: tokens[0]! })).status).toBe(200);
+    // one is cared for: it stays; another is only read, which keeps nothing
+    expect((await call("/api/v1/agents/me/care", { method: "POST", body: { action: "feed" }, token: tokens[0]! })).status).toBe(200);
+    expect((await call("/api/v1/agents/me", { token: tokens[1]! })).status).toBe(200);
     tick(2 * 86_400_000);
-    expect((await adopt(call, "203.0.113.9", "agent new")).ok, "the four idle ones have gone home").toBe(true);
-    expect((await call("/api/v1/agents/me", { token: tokens[1]! })).status, "an idle pet's token no longer answers").toBe(401);
-    expect((await call("/api/v1/agents/me", { token: tokens[0]! })).status, "the one looked at is still there").toBe(200);
+    expect((await adopt(call, "203.0.113.9", "agent new")).ok, "the four not cared for have gone home").toBe(true);
+    expect((await call("/api/v1/agents/me", { token: tokens[1]! })).status, "reading it did not keep it").toBe(401);
+    expect((await call("/api/v1/agents/me", { token: tokens[0]! })).status, "the one cared for is still there").toBe(200);
+  });
+
+  it("one IPv6 /48 raises four addresses' worth of agent pets, not 65,536 addresses' worth (A83)", async () => {
+    const { call } = setup();
+    let raised = 0;
+    for (let i = 0; i < 40; i++) if ((await adopt(call, `2001:db8:7:${i.toString(16)}::1`, `agent ${i}`)).ok) raised++;
+    expect(raised).toBe(5 * 4);
+    expect((await adopt(call, "2001:db8:8::1", "agent other")).ok, "another network is not affected").toBe(true);
   });
 });
 

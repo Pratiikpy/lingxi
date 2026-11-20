@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { RateLimiter } from "../src/limit";
+import { FairCeiling, PREFIX_SHARE, RateLimiter, heldOver, prefixOf } from "../src/limit";
 
 describe("the per-address limiter", () => {
   it("limits one address and leaves another alone", () => {
@@ -16,5 +16,60 @@ describe("the per-address limiter", () => {
     for (let i = 0; i < 4; i++) l.take("busy", 30_000 + i);
     expect(l.take("busy", 30_010)).toBe(true);
     expect(l.take("busy", 30_011)).toBe(false);
+  });
+});
+
+describe("one IPv6 /48 counts as four addresses, not 65,536 (A83)", () => {
+  const net = (i: number) => `2001:db8:7:${i.toString(16)}::/64`;
+
+  it("names a /64 caller's /48, and nothing for an IPv4 caller or another key", () => {
+    expect(prefixOf("2001:db8:7:1a::/64")).toBe("2001:db8:7::/48");
+    expect([prefixOf("198.51.100.4"), prefixOf("local"), prefixOf("all")]).toEqual([null, null, null]);
+  });
+
+  it("a limit per address holds for the /48 at four addresses' worth, and leaves another /48 alone", () => {
+    const l = new RateLimiter(3, 60_000);
+    let passed = 0;
+    for (let i = 0; i < 100; i++) for (let k = 0; k < 3; k++) if (l.take(net(i), i)) passed++;
+    expect(passed, "the /48 had four addresses' worth").toBe(3 * PREFIX_SHARE);
+    expect(l.take("2001:db8:8:1::/64", 200), "another /48").toBe(true);
+    expect(l.take("198.51.100.9", 201), "an IPv4 caller").toBe(true);
+  });
+
+  it("what an address holds is limited for the address and for its /48", () => {
+    const owners = [net(1), net(1), net(2), net(3), net(4), net(5), net(6), net(7)];
+    expect(heldOver(owners, net(1), 2), "net 1 holds its two").toBe(true);
+    expect(heldOver(owners, net(9), 2), "the /48 holds 8 = 2 x 4").toBe(true);
+    expect(heldOver(owners, "2001:db8:8:1::/64", 2), "another /48 holds none").toBe(false);
+    expect(heldOver(["198.51.100.1"], "198.51.100.2", 1), "IPv4 addresses are their own").toBe(false);
+  });
+});
+
+describe("a ceiling for everyone is shared fairly (A83)", () => {
+  it("three callers running hot cannot shut out a fourth, and the ceiling holds", () => {
+    const c = new FairCeiling(30, 60_000);
+    let t = 0;
+    // three heavy callers ask without pause for two minutes, as a steady load
+    for (let i = 0; i < 800; i++) {
+      t += 150;
+      for (const k of ["a", "b", "c"]) c.take(k, t);
+    }
+    expect(c.inWindow(t), "they fill the ceiling, and never pass it").toBe(30);
+    // a fourth arrives while they keep asking; within the minute it gets its share
+    let fourth = 0;
+    for (let i = 0; i < 400; i++) {
+      t += 150;
+      for (const k of ["a", "b", "c"]) c.take(k, t);
+      if (c.take("d", t)) fourth++;
+    }
+    // 400 steps of 150 ms is one minute: a fair quarter of 30 is 7.5
+    expect(fourth, "the newcomer is served about a fair quarter of the minute").toBeGreaterThanOrEqual(6);
+    expect(c.inWindow(t), "and the ceiling still holds").toBeLessThanOrEqual(30);
+  });
+
+  it("one caller alone may use the whole ceiling", () => {
+    const c = new FairCeiling(10, 60_000);
+    const got = Array.from({ length: 12 }, (_, i) => c.take("solo", i)).filter(Boolean).length;
+    expect(got).toBe(10);
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createPusher, isPushEndpoint, outOfQuietHours, reminderText, type Plan } from "../src/push";
+import { MAX_DEVICES_PER_ADDRESS, createPusher, isPushEndpoint, outOfQuietHours, reminderText, type Plan } from "../src/push";
 
 const H = 3_600_000;
 const NOON_UTC = Date.UTC(2026, 10, 16, 12);
@@ -72,6 +72,33 @@ describe("reminders by web push", () => {
     await pusher.tick(NOON_UTC + H);
     expect(pusher.size()).toBe(0);
     expect(sent).toHaveLength(1);
+  });
+
+  it("lets go of a subscription with nothing left to send, and still keeps the three-hour gap (A83)", async () => {
+    const { pusher, sent } = fake();
+    pusher.plan(plan(), NOON_UTC);
+    await pusher.tick(NOON_UTC + H);
+    expect(sent).toHaveLength(1);
+    expect(pusher.size(), "nothing left to send: it holds no place").toBe(0);
+    // the next visit plans again an hour later: the gap since the last reminder still holds
+    pusher.plan(plan({ reminders: [{ kind: "bored", at: NOON_UTC + 2 * H }] }), NOON_UTC + 1.5 * H);
+    await pusher.tick(NOON_UTC + 2 * H);
+    expect(sent, "no second reminder within three hours").toHaveLength(1);
+    // a plan with nothing to send holds nothing
+    pusher.plan(plan({ reminders: [] }), NOON_UTC + 3 * H);
+    expect(pusher.size()).toBe(0);
+  });
+
+  it("one address holds a few devices' subscriptions, and a /48 four addresses' worth (A83)", () => {
+    const { pusher } = fake();
+    const device = (i: number) => plan({ subscription: sub(`https://fcm.googleapis.com/fcm/send/d${i}`) });
+    for (let i = 0; i < MAX_DEVICES_PER_ADDRESS; i++) expect(pusher.plan(device(i), NOON_UTC, "203.0.113.9").ok).toBe(true);
+    expect(pusher.plan(device(99), NOON_UTC, "203.0.113.9")).toEqual({ ok: false, reason: "tooMany" });
+    expect(pusher.plan(device(0), NOON_UTC, "203.0.113.9").ok, "a device already there may always plan again").toBe(true);
+    expect(pusher.plan(device(100), NOON_UTC, "198.51.100.1").ok, "another address is not affected").toBe(true);
+    let fromNetwork = 0;
+    for (let i = 0; i < 200; i++) if (pusher.plan(device(1_000 + i), NOON_UTC, `2001:db8:7:${i.toString(16)}::/64`).ok) fromNetwork++;
+    expect(fromNetwork).toBe(MAX_DEVICES_PER_ADDRESS * 4);
   });
 
   it("ignores reminders in the past or more than two days out", async () => {

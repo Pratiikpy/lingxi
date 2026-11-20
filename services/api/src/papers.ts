@@ -5,8 +5,8 @@
  * the papers against the chain before paying; this server is a mailbox, never the judge.
  */
 
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import type { Hono } from "hono";
 import { type Address, type Hex, keccak256, recoverMessageAddress, toBytes } from "viem";
 import { PAPERS_MAX, PapersBody } from "@lingxi/api-schema";
@@ -28,37 +28,99 @@ interface Stored {
   at: number;
 }
 
-export function createPapersStore(file?: string) {
-  let data: Record<string, Stored> = {};
-  if (file && existsSync(file)) {
-    try {
-      data = JSON.parse(readFileSync(file, "utf8")) as Record<string, Stored>;
-    } catch {
-      data = {};
+const ID = /^[1-9]\d{0,18}$/;
+
+/** Papers kept, in all; past it the papers posted longest ago go (A83). About 330 of the largest. */
+export const MAX_PAPERS_CHARS = 200_000_000;
+const MAX_PAPERS = 50_000;
+const PET = /^([1-9]\d{0,18})\.json$/;
+
+/**
+ * One file per pet in a folder beside `file` (its name without `.json`), so a post writes only its own papers rather
+ * than every pet's (A83); a start reads only the files' sizes and times. Papers kept in the older single file are moved
+ * into the folder once. Each file is written beside its place under a name of its own and renamed over it (A64, A98),
+ * and keeps its post's time as the file's time, so a full shelf lets go the papers posted longest ago, across restarts.
+ */
+export function createPapersStore(file?: string, limits: { count: number; chars: number } = { count: MAX_PAPERS, chars: MAX_PAPERS_CHARS }) {
+  const dir = file ? file.replace(/\.json$/, "") : null;
+  const memory = new Map<string, Stored>();
+  const kept = new Map<string, { at: number; size: number }>();
+  let chars = 0;
+  let writes = 0;
+  const path = (id: string) => join(dir!, `${id}.json`);
+  const drop = (id: string) => {
+    const k = kept.get(id);
+    if (!k) return;
+    if (dir) rmSync(path(id), { force: true });
+    else memory.delete(id);
+    kept.delete(id);
+    chars -= k.size;
+  };
+  const write = (id: string, s: Stored): boolean => {
+    const body = JSON.stringify(s);
+    if (dir) {
+      const tmp = join(dir, `${id}.${process.pid}.${++writes}.tmp`);
+      try {
+        writeFileSync(tmp, body);
+        utimesSync(tmp, s.at / 1000, s.at / 1000);
+        renameSync(tmp, path(id));
+      } catch (e) {
+        rmSync(tmp, { force: true });
+        process.stderr.write(`papers not saved: ${(e as Error).message}
+`);
+        return false;
+      }
+    } else memory.set(id, s);
+    chars += body.length - (kept.get(id)?.size ?? 0);
+    kept.set(id, { at: s.at, size: body.length });
+    return true;
+  };
+  if (dir) {
+    mkdirSync(dir, { recursive: true });
+    for (const name of readdirSync(dir)) {
+      if (name.endsWith(".tmp")) rmSync(join(dir, name), { force: true });
+      const m = PET.exec(name);
+      if (!m) continue;
+      const st = statSync(join(dir, name));
+      kept.set(m[1]!, { at: st.mtimeMs, size: st.size });
+      chars += st.size;
+    }
+    // the older single file, moved into the folder once
+    if (file && existsSync(file)) {
+      try {
+        const old = JSON.parse(readFileSync(file, "utf8")) as Record<string, Stored>;
+        for (const [id, s] of Object.entries(old)) if (ID.test(id) && !kept.has(id)) write(id, s);
+        renameSync(file, `${file}.migrated`);
+      } catch (e) {
+        process.stderr.write(`older papers file not moved: ${(e as Error).message}
+`);
+      }
     }
   }
-  // written beside and renamed over the old file, so a write cut short never leaves it truncated (A64)
-  const save = () => {
-    if (!file) return;
-    try {
-      mkdirSync(dirname(file), { recursive: true });
-      writeFileSync(`${file}.tmp`, JSON.stringify(data));
-      renameSync(`${file}.tmp`, file);
-    } catch (e) {
-      process.stderr.write(`papers not saved: ${(e as Error).message}\n`);
-    }
-  };
   return {
-    get: (petId: string): Stored | null => data[petId] ?? null,
-    put: (petId: string, s: Stored) => {
-      data[petId] = s;
-      save();
+    get: (petId: string): Stored | null => {
+      if (!kept.has(petId)) return null;
+      if (!dir) return memory.get(petId) ?? null;
+      try {
+        return JSON.parse(readFileSync(path(petId), "utf8")) as Stored;
+      } catch {
+        return null;
+      }
     },
+    put: (petId: string, s: Stored) => {
+      if (!write(petId, s)) return;
+      if (kept.size <= limits.count && chars <= limits.chars) return;
+      // a full shelf lets go the papers posted longest ago, never these
+      for (const [old] of [...kept].sort((a, b) => a[1].at - b[1].at)) {
+        if (kept.size <= limits.count && chars <= limits.chars) break;
+        if (old !== petId) drop(old);
+      }
+    },
+    size: () => kept.size,
   };
 }
 export type PapersStore = ReturnType<typeof createPapersStore>;
 
-const ID = /^[1-9]\d{0,18}$/;
 
 export function withPapers(app: Hono, store: PapersStore, chain: PapersChain, now: () => number = Date.now, limiter = new RateLimiter(30, 3_600_000)): Hono {
   app.get("/api/papers/:petId", (c) => {

@@ -9,6 +9,7 @@
  * other address. Subscriptions are kept in one JSON file.
  */
 
+import { heldOver } from "./limit";
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import webpush from "web-push";
 import type { PushPlanBody } from "@lingxi/api-schema";
@@ -17,6 +18,8 @@ export type ReminderKind = "hungry" | "bored" | "dirty" | "sick";
 
 const PUSH_HOSTS = [/^fcm\.googleapis\.com$/, /^updates\.push\.services\.mozilla\.com$/, /(^|\.)push\.apple\.com$/, /(^|\.)notify\.windows\.com$/, /^android\.googleapis\.com$/];
 const MAX_SUBS = 20_000;
+/** Subscriptions one address may hold (its devices); an IPv6 /48 holds four addresses' worth (A83). */
+export const MAX_DEVICES_PER_ADDRESS = 8;
 const HORIZON_MS = 48 * 3_600_000;
 const MIN_GAP_MS = 3 * 3_600_000;
 const QUIET_FROM = 22;
@@ -32,6 +35,8 @@ interface Entry {
   tz: number;
   reminders: Array<{ kind: ReminderKind; at: number }>;
   lastSent: number;
+  /** the address that planned it (A83); entries kept before this have none and count against no one */
+  by?: string;
 }
 
 export const isPushEndpoint = (url: string): boolean => {
@@ -76,7 +81,7 @@ export function reminderText(kind: ReminderKind, lang: Plan["lang"], name: strin
 
 export interface Pusher {
   publicKey: string;
-  plan: (p: Plan, now: number) => { ok: true } | { ok: false; reason: string };
+  plan: (p: Plan, now: number, from?: string) => { ok: true } | { ok: false; reason: string };
   stop: (endpoint: string) => boolean;
   /** send whatever is due; returns how many were sent */
   tick: (now: number) => Promise<number>;
@@ -87,6 +92,19 @@ type Send = (sub: Plan["subscription"], payload: string) => Promise<{ gone: bool
 
 export function createPusher(opts: { publicKey: string; privateKey: string; subject: string; store?: string; send?: Send }): Pusher {
   const subs = new Map<string, Entry>();
+  /**
+   * When each subscription let go for having nothing left to send was last sent to (A83), kept for the gap between
+   * reminders, so planning again soon after does not bring the next one early; oldest first, gone once past the gap
+   */
+  const lastSentOf = new Map<string, number>();
+  const rememberSent = (endpoint: string, at: number, now: number) => {
+    for (const [k, t] of lastSentOf) {
+      if (now - t < MIN_GAP_MS && lastSentOf.size < MAX_SUBS) break;
+      lastSentOf.delete(k);
+    }
+    lastSentOf.delete(endpoint);
+    if (now - at < MIN_GAP_MS) lastSentOf.set(endpoint, at);
+  };
   if (opts.store && existsSync(opts.store)) {
     try {
       for (const e of JSON.parse(readFileSync(opts.store, "utf8")) as Entry[]) if (isPushEndpoint(e.sub.endpoint)) subs.set(e.sub.endpoint, e);
@@ -115,15 +133,22 @@ export function createPusher(opts: { publicKey: string; privateKey: string; subj
   return {
     publicKey: opts.publicKey,
     size: () => subs.size,
-    plan: (p, now) => {
-      if (!isPushEndpoint(p.subscription.endpoint)) return { ok: false, reason: "badEndpoint" };
-      if (!subs.has(p.subscription.endpoint) && subs.size >= MAX_SUBS) return { ok: false, reason: "full" };
+    plan: (p, now, from) => {
+      const endpoint = p.subscription.endpoint;
+      if (!isPushEndpoint(endpoint)) return { ok: false, reason: "badEndpoint" };
+      const prev = subs.get(endpoint);
+      if (!prev && subs.size >= MAX_SUBS) return { ok: false, reason: "full" };
+      if (!prev && from !== undefined && heldOver([...subs.values()].flatMap((e) => (e.by ? [e.by] : [])), from, MAX_DEVICES_PER_ADDRESS)) return { ok: false, reason: "tooMany" };
       const reminders = p.reminders
         .filter((r) => r.at >= now - 60_000 && r.at <= now + HORIZON_MS)
         .map((r) => ({ kind: r.kind, at: outOfQuietHours(Math.max(r.at, now), p.tz) }))
         .sort((a, b) => a.at - b.at);
-      const prev = subs.get(p.subscription.endpoint);
-      subs.set(p.subscription.endpoint, { sub: p.subscription, lang: p.lang, name: p.name, tz: p.tz, reminders, lastSent: prev?.lastSent ?? 0 });
+      const lastSent = prev?.lastSent ?? lastSentOf.get(endpoint) ?? 0;
+      // a plan with nothing to send holds no place (A83)
+      if (reminders.length === 0) {
+        if (prev) subs.delete(endpoint);
+        rememberSent(endpoint, lastSent, now);
+      } else subs.set(endpoint, { sub: p.subscription, lang: p.lang, name: p.name, tz: p.tz, reminders, lastSent, ...(from !== undefined ? { by: from } : prev?.by ? { by: prev.by } : {}) });
       save();
       return { ok: true };
     },
@@ -152,6 +177,13 @@ export function createPusher(opts: { publicKey: string; privateKey: string; subj
         }
         e.lastSent = now;
         sent++;
+      }
+      // what has nothing left to send lets its place go, its last reminder's time kept for the gap (A83)
+      for (const [endpoint, e] of subs) {
+        if (e.reminders.length) continue;
+        subs.delete(endpoint);
+        rememberSent(endpoint, e.lastSent, now);
+        changed = true;
       }
       if (changed) save();
       return sent;

@@ -8,6 +8,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
+import { PREFIX_SHARE, prefixOf } from "./limit";
 
 export class BudgetSpent extends Error {
   constructor() {
@@ -30,6 +31,13 @@ export const modelCaller = new AsyncLocalStorage<string>();
 
 /** Addresses whose spend the day keeps; past this the day's map is full and new addresses share one entry. */
 const MAX_ADDRESSES = 20_000;
+/**
+ * The last part of the day kept for those who have spent little (A83): once the day is this far spent, an address that
+ * has used more than LIGHT of its share waits for tomorrow, so twenty addresses at their full share cannot leave a
+ * newcomer nothing. An IPv6 /48 has four addresses' worth (limit.ts), counted under its own key.
+ */
+const KEPT_FOR_LIGHT = 0.25;
+const LIGHT = 0.25;
 
 interface DayState {
   day: string;
@@ -69,7 +77,12 @@ export function createTokenBudget(opts: { perDay: number; perAddress?: number; f
     /** whether `address` may still call today (its share), when a share is set */
     allowFor(address: string | undefined): boolean {
       roll();
-      return !opts.perAddress || address === undefined || (state.by[keyOf(address)] ?? 0) < opts.perAddress;
+      if (!opts.perAddress || address === undefined) return true;
+      const mine = state.by[keyOf(address)] ?? 0;
+      const prefix = prefixOf(address);
+      if (mine >= opts.perAddress) return false;
+      if (prefix !== null && (state.by[keyOf(prefix)] ?? 0) >= opts.perAddress * PREFIX_SHARE) return false;
+      return state.used < opts.perDay * (1 - KEPT_FOR_LIGHT) || mine < opts.perAddress * LIGHT;
     },
     spend(tokens: number, address?: string): void {
       roll();
@@ -78,6 +91,11 @@ export function createTokenBudget(opts: { perDay: number; perAddress?: number; f
       if (address !== undefined) {
         const k = keyOf(address);
         state.by[k] = (state.by[k] ?? 0) + tokens;
+        const prefix = prefixOf(address);
+        if (prefix !== null) {
+          const n = keyOf(prefix);
+          state.by[n] = (state.by[n] ?? 0) + tokens;
+        }
       }
       save();
     },
