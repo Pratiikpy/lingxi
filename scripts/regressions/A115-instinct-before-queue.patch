@@ -1,0 +1,14 @@
+--- a/services/api/src/relayer.ts
++++ b/services/api/src/relayer.ts
+@@ -248,9 +248,9 @@ export class BrainRelayer {
+   async relayInstinct(input: { own: string; processor: Address; id: string }): Promise<RelayResult> {
+     // every read happens before the tape-out queue, in a line of its own, so a circuit that takes many reads holds up
+     // only other instinct checks, never a paid tape-out (A115)
+-    const refused = await this.checkInstinct(input);
+-    if (refused) return { ...refused, sent: 0 };
+     return this.serial(async () => {
++      const refused = await this.checkInstinct(input);
++      if (refused) return { ...refused, sent: 0 };
+       const c = composeInstinct({ cpu: this.cfg.processor, id: BigInt(input.own) }, { cpu: input.processor, id: BigInt(input.id) });
+       return this.tapeBytes(c.bytes, c.elements.filter((e) => e.op === 0).length, 0);
+     });
