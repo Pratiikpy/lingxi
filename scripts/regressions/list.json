@@ -1228,5 +1228,17 @@
     "row": "A71",
     "bug": "the browser asked Sourcify itself, so an outage was console errors",
     "test": { "kind": "e2e", "spec": "e2e/specs/sourcify-relay.spec.ts", "title": "source checks come through the page's own server, and an outage is said in words (en, light, phone) (A71)" }
+  },
+  {
+    "id": "A74-rooms-by-64",
+    "row": "A74",
+    "bug": "the live rooms keyed their limits on the raw IPv6 address, so one /64 could take every connection",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/live.test.ts", "name": "thirteen connections from one /64, each from its own address in it, get twelve and a refusal" }
+  },
+  {
+    "id": "A74-homes-let-go",
+    "row": "A74",
+    "bug": "once 50,000 homes were linked, every new home was refused for good",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/homes.test.ts", "name": "a new link succeeds when full, and the home seen longest ago is the one let go" }
   }
 ]

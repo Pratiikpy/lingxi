@@ -1,0 +1,11 @@
+--- a/services/api/src/homes.ts
++++ b/services/api/src/homes.ts
+@@ -145,7 +145,7 @@ export function createHomes(opts: { chain?: HomeChain; file?: string; now?: () =
+       if (!cur.length && links.size >= maxHomes) {
+         let oldest: string | null = null;
+         for (const [o, t] of lastSeen) if (oldest === null || t < lastSeen.get(oldest)!) oldest = o;
+-        if (oldest === null) return { ok: false, reason: "serverFull" };
++        if (oldest !== null || oldest === null) return { ok: false, reason: "serverFull" };
+         links.delete(oldest);
+         lastSeen.delete(oldest);
+         forget(oldest);

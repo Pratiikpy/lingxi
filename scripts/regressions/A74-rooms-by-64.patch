@@ -1,0 +1,11 @@
+--- a/services/api/src/live.ts
++++ b/services/api/src/live.ts
+@@ -454,7 +454,7 @@ export class LiveRooms {
+  */
+ export function addressOf(req: IncomingMessage): string {
+   const cf = req.headers["cf-connecting-ip"];
+-  if (typeof cf === "string" && isIP(cf.trim())) return callerOf(cf.trim());
++  if (typeof cf === "string" && isIP(cf.trim())) return cf.trim();
+   const remote = req.socket.remoteAddress;
+   return remote && isIP(remote) ? callerOf(remote) : "local";
+ }
