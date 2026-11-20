@@ -66,6 +66,7 @@ import { createPapersStore, withPapers } from "./papers";
 import { readdir, stat } from "node:fs/promises";
 import { createMindChecker } from "./mindCheck";
 import { createConsentIndex, withConsents } from "./consents";
+import { withReadLimits } from "./readLimits";
 import { createSourcifyRelay, withSourcify } from "./sourcify";
 import { withRpcProxy } from "./rpc";
 import { privateKeyToAccount } from "viem/accounts";
@@ -130,6 +131,8 @@ export function createApp(
   // the agent API, and a pet's public log and history, are open to any origin; the rest answers only the game's pages
   // every write is held to its route's size before a byte of it is parsed (bodyLimits.ts)
   withBodyLimits(app);
+  // and every heavy read is limited per caller (readLimits.ts, A78)
+  withReadLimits(app);
   app.use("/api/*", cors({ origin: (o, c) => (c.req.path.startsWith("/api/v1") || (c.req.method === "GET" && /^\/api\/pets\/\d+\/(log|history)$/.test(c.req.path)) ? "*" : origins.includes(o) ? o : null), allowMethods: ["GET", "POST"], allowHeaders: ["Authorization", "Content-Type"], maxAge: 600 }));
 
   // the parts are booleans (true when on), for anyone; `detail` (balances, usage, memory, stores) is everything else
@@ -488,13 +491,24 @@ export function withSeason(app: Hono, store: SeasonStore, writes = new RateLimit
     // `proven` is what the page may tell the player: never assumed from having sent a proof
     return c.json(r.ok ? { ...r, proven: !!petId } : r, r.ok || r.reason === "full" || r.reason === "tooMany" ? 200 : 400);
   });
+  // each week's answer is written once per change of it and served from that text (A78): a week's season carries
+  // every entry's card, and writing it out again for every read took the request thread
+  const written = new Map<string, { of: unknown; standings: unknown; closed: boolean; award: unknown; pending: unknown; text: string }>();
   app.get("/api/season/:week", (c) => {
     const week = c.req.param("week") === "current" ? weekOf(now()) : c.req.param("week");
     const v = store.view(week);
     if (!v) return c.json({ ok: false, reason: "invalid" }, 400);
     // an open week changes with every entry, so it is never served from a cache
     c.header("Cache-Control", v.closed ? "public, max-age=3600" : "no-store");
-    return c.json({ ok: true, ...v });
+    const held = written.get(week);
+    const same = held && held.of === v.entries && held.standings === v.standings && held.closed === v.closed && held.award === v.award && held.pending === v.pending;
+    const text = same ? held.text : JSON.stringify({ ok: true, ...v });
+    if (!same) {
+      written.set(week, { of: v.entries, standings: v.standings, closed: v.closed, award: v.award, pending: v.pending, text });
+      if (written.size > 8) written.delete(written.keys().next().value!);
+    }
+    c.header("content-type", "application/json; charset=utf-8");
+    return c.body(text);
   });
   return app;
 }

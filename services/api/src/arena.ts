@@ -9,7 +9,7 @@
 
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { COMPANION, MAX_COMPANIONS, type DuelPet, duelFighter } from "@lingxi/game";
+import { COMPANION, MAX_COMPANIONS, type DuelPet, duelFighter, canonicalCard } from "@lingxi/game";
 
 export const MAX_ROUND = 30;
 const PER_ROUND = 60;
@@ -38,7 +38,10 @@ export function validSnapshot(pet: unknown, team: unknown): { pet: DuelPet; team
   const p = pet as Partial<DuelPet> | null;
   if (!p || typeof p.name !== "string" || p.name.length < 1 || p.name.length > 24) return null;
   if (!LINES.has(p.line as string) || !STAGES.has(p.stage as string) || typeof p.card !== "string") return null;
-  const clean: DuelPet = { name: p.name, line: p.line!, stage: p.stage!, card: p.card, story: { days: 0, lessons: 0, nature: [] } };
+  // the card in its own shape: nothing a sender adds is kept or served to others (A78)
+  const card = canonicalCard(p.card);
+  if (!card) return null;
+  const clean: DuelPet = { name: p.name, line: p.line!, stage: p.stage!, card, story: { days: 0, lessons: 0, nature: [] } };
   try {
     duelFighter(clean);
   } catch {
