@@ -86,3 +86,29 @@ test("a pet kept only in the browser enters the season openly (zh, light, phone)
   expect(Object.keys(weeks[week]?.pets ?? {}), "and holds it as open, not proven").not.toContain(key);
   await page.screenshot({ path: test.info().outputPath("season-zh-light-phone.png") });
 });
+
+for (const look of [
+  { lang: "en", scheme: "light", size: "phone", said: "Lingxi is checking many pets against X Layer just now, so nothing was entered." },
+  { lang: "zh", scheme: "dark", size: "desktop", said: "灵犀正在对照 X Layer 核对很多只宠物，所以这次没有参赛。" },
+] as const) {
+  test(`a proof the server cannot check just now enters nothing and says to try again (${look.lang}, ${look.scheme}, ${look.size}) (A62)`, async ({ player, run }) => {
+    test.setTimeout(5 * 60_000);
+    await forkOf(run);
+    const p = await player({ lang: look.lang, scheme: look.scheme, size: look.size });
+    const { page } = p;
+    await hatch(p, "Kiri");
+    await sheet(page, "me");
+    await keepOnChain(page);
+    await openSeason(page);
+    // the server's answer when its checks are full, as it words it
+    const sent: string[] = [];
+    await page.route(
+      (u) => u.pathname === "/api/season/enter",
+      (route) => (sent.push(route.request().postData() ?? ""), route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: false, reason: "notProven", detail: "busy" }) })),
+    );
+    const note = await enter(page);
+    expect(note).toContain(look.said);
+    expect(sent, "and the game does not enter it unproven instead").toHaveLength(1);
+    await page.screenshot({ path: test.info().outputPath(`season-busy-${look.lang}-${look.scheme}-${look.size}.png`) });
+  });
+}

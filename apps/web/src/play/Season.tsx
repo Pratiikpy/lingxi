@@ -111,7 +111,9 @@ export function SeasonCard({ pet }: { pet: Pet }) {
       }
     }
     let r = await enterSeason(entry, proof ?? undefined);
-    if (!r.ok && r.reason === "notProven") {
+    // the server is checking many pets on X Layer just now: nothing was entered, and trying again is the answer (A62)
+    const checkerBusy = !r.ok && r.reason === "notProven" && r.detail === "busy";
+    if (!r.ok && r.reason === "notProven" && !checkerBusy) {
       why = "notProven";
       r = await enterSeason(entry);
     }
@@ -139,6 +141,8 @@ export function SeasonCard({ pet }: { pet: Pet }) {
             ? L("Three pets from here are already in this week's season. A new one opens on Monday.", "这里已经有三只宠物参加本周赛季了，周一开新赛季。")
           : r.reason === "busy"
             ? L("Too many entries from here just now. Try again in a little while.", "这里刚刚提交太多次了，过一会儿再试。")
+          : checkerBusy
+            ? L("Lingxi is checking many pets against X Layer just now, so nothing was entered. Try again in a minute.", "灵犀正在对照 X Layer 核对很多只宠物，所以这次没有参赛。过一分钟再试。")
             : L("The season couldn't be reached. Try again in a moment.", "暂时连不上赛季，过一会儿再试。"),
       );
     }

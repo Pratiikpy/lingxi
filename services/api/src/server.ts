@@ -63,6 +63,7 @@ import { createPacketIndex, type PacketIndex } from "./packets";
 import { createGoalLedger, withGoals } from "./goals";
 import { withVouchers } from "./voucher";
 import { createPapersStore, withPapers } from "./papers";
+import { createMindChecker } from "./mindCheck";
 import { withRpcProxy } from "./rpc";
 import { privateKeyToAccount } from "viem/accounts";
 import { createSalesCounter, withNumbers } from "./numbers";
@@ -893,6 +894,7 @@ if (isMain) {
   const seasons = createSeasonStore(process.env.LINGXI_SEASON_STORE, Date.now, createStandingsRunner({ file: process.env.LINGXI_STANDINGS_FILE ?? join(dataDir, "standings.json") }));
   // proving an entry is a pet on X Layer: its keeper's signature, and its card thinks as its brain on chain does
   const seasonNonces = createNonceBook();
+  const mindChecker = createMindChecker();
   const prove: SeasonProver | undefined =
     chainCtx && isKeeper
       ? (pet, proof) =>
@@ -905,6 +907,12 @@ if (isMain) {
               const circuit = await loadCircuitFromChain(chainCtx!.pub, onChain.processor, onChain.brainId);
               return { fast: circuitBrain(circuit), nState: circuit.nState };
             },
+            // the comparison itself runs off the request thread, with a budget (A62)
+            circuitOf: async (id) => {
+              const onChain = await readPet(chainCtx!.pub, chainCtx!.deployment, BigInt(id));
+              return loadCircuitFromChain(chainCtx!.pub, onChain.processor, onChain.brainId);
+            },
+            check: mindChecker,
           })
       : undefined;
   withSeason(app, seasons, undefined, undefined, prove);

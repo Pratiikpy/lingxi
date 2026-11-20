@@ -6,12 +6,13 @@
  */
 
 import type { Address } from "viem";
-import type { StarterLine } from "@lingxi/brain";
+import type { Circuit, StarterLine } from "@lingxi/brain";
+import type { MindCheck } from "./mindCheck";
 import type { SignedRelay } from "@lingxi/chain";
 import { type Brain, type PetCard, mindBrain, parseCard } from "@lingxi/game";
 import { type NonceBook, type RelayRefusal, checkRelayAuth } from "./relayGate";
 
-export type SeasonProofRefusal = RelayRefusal | "notThisEntry" | "notItsBrain" | "unreadable";
+export type SeasonProofRefusal = RelayRefusal | "notThisEntry" | "notItsBrain" | "unreadable" | "busy";
 
 const LINES = ["gentle", "bold", "curious"] as const;
 
@@ -41,7 +42,15 @@ export function sameBrain(a: Brain, b: Brain, memory?: readonly number[]): boole
 export async function proveSeasonEntry(
   pet: unknown,
   proof: SignedRelay,
-  deps: { isKeeper: (petId: string, who: Address) => Promise<boolean>; brainOf: (petId: string) => Promise<Brain>; now: () => number; nonces: NonceBook },
+  deps: {
+    isKeeper: (petId: string, who: Address) => Promise<boolean>;
+    brainOf: (petId: string) => Promise<Brain>;
+    now: () => number;
+    nonces: NonceBook;
+    /** the server's way (A62): the pet's circuit read here, the comparison run off the request thread */
+    circuitOf?: (petId: string) => Promise<Circuit>;
+    check?: MindCheck;
+  },
 ): Promise<{ ok: true; petId: string } | { ok: false; reason: SeasonProofRefusal }> {
   // the signature covers the entry as sent, so a proof cannot be lifted onto another pet's card
   if (proof?.kind !== "season" || proof.payload !== JSON.stringify(pet)) return { ok: false, reason: "notThisEntry" };
@@ -50,6 +59,17 @@ export async function proveSeasonEntry(
   const mind = mindOf(pet);
   if (!mind) return { ok: false, reason: "notItsBrain" };
   const { line, card } = mind;
+  if (deps.circuitOf && deps.check) {
+    let circuit: Circuit;
+    try {
+      circuit = await deps.circuitOf(proof.petId);
+    } catch {
+      return { ok: false, reason: "unreadable" };
+    }
+    const v = await deps.check(circuit, line, card);
+    if (v === "busy" || v === "slow") return { ok: false, reason: "busy" };
+    return v === "same" ? { ok: true, petId: proof.petId } : { ok: false, reason: "notItsBrain" };
+  }
   let onChain: Brain;
   try {
     onChain = await deps.brainOf(proof.petId);
