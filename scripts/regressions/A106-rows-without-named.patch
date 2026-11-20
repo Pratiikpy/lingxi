@@ -1,0 +1,9 @@
+--- a/scripts/regressions/without.json
++++ b/scripts/regressions/without.json
+@@ -1,5 +1,4 @@
+ {
+   "A73": "fixed only the tests and CI themselves: nothing in the game, the server, the contracts or the tools to undo",
+-  "A87": "its fixes were revert pairs for other rows and the claims checker's tests, each pair recorded under the row it guards (A43 to A47, A55, A56, A58 to A60, A72)",
+-  "A93": "retook two README images; whether the README's images are current is held by the status check's images check, whose pair is A100's"
++  "A87": "its fixes were revert pairs for other rows and the claims checker's tests, each pair recorded under the row it guards (A43 to A47, A55, A56, A58 to A60, A72)"
+ }
