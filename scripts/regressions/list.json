@@ -1108,5 +1108,11 @@
     "row": "A52",
     "bug": "a player naming pets in a room had colours read for every one",
     "test": { "kind": "vitest", "dir": "services/api", "file": "test/homes.test.ts", "name": "the same pet asked twice at once is read once, and a player is read colours for at most 12 distinct pets an hour" }
+  },
+  {
+    "id": "A53-model-share-per-address",
+    "row": "A53",
+    "bug": "one address could spend the whole day's model budget, leaving teaching resting for everyone",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/tokenBudget.test.ts", "name": "one address past its share is told yourShare while another address teaches on" }
   }
 ]
