@@ -1,0 +1,10 @@
+--- a/apps/web/src/i18n/pageMeta.ts
++++ b/apps/web/src/i18n/pageMeta.ts
+@@ -60,7 +60,6 @@ export function applyPageMeta(page: Page, lang: Lang, doc: Document = document):
+   const meta = PAGE_META[page];
+   doc.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+   doc.title = meta.title[lang];
+-  doc.querySelector('meta[name="description"]')?.setAttribute("content", meta.description[lang]);
+ }
+ 
+ /** Keeps the page's language, title and description in the reader's language. */
