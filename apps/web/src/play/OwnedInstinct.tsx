@@ -110,8 +110,8 @@ export function OwnedInstinctPanel({ pet }: { pet: Pet }) {
       <p className="label">{L("An instinct from a circuit you own", "来自你拥有的电路的本能")}</p>
       <p className="small">
         {L(
-          `Any circuit you own on X Layer whose pins fit a pet's brain (16 in, 8 out) can become ${pet.name}'s instinct: whenever it wants something, it answers; otherwise ${pet.name}'s own brain does. On chain, a new circuit points at both, so anyone can check every thought.`,
-          `你在 X Layer 上拥有的、引脚接得上宠物大脑（16 进 8 出）的任何电路，都能成为${pet.name}的本能：它想做什么时由它回答，否则由${pet.name}自己的大脑回答。在链上，会有一个新电路同时指向两者，谁都能核对每一个念头。`,
+          `A circuit you own on X Layer can become ${pet.name}'s instinct when its pins fit a pet's brain (16 in, 8 out), it runs in at most ${INSTINCT_MAX_GATES.toLocaleString("en")} gates and its memory fits beside ${pet.name}'s: whenever it wants something, it answers; otherwise ${pet.name}'s own brain does. On chain, a new circuit points at both, so the chain shows which circuits it thinks with.`,
+          `你在 X Layer 上拥有的电路，只要引脚接得上宠物大脑（16 进 8 出）、运行不超过 ${INSTINCT_MAX_GATES.toLocaleString("zh-CN")} 个门、记忆放得进${pet.name}的大脑，就能成为${pet.name}的本能：它想做什么时由它回答，否则由${pet.name}自己的大脑回答。在链上，会有一个新电路同时指向两者，链上能看出它用哪些电路思考。`,
         )}
       </p>
       {current && (

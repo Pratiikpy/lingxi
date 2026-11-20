@@ -76,6 +76,19 @@ describe("the wording the audits corrected stays corrected (A87)", () => {
     expect(strings).toMatch(/every thought between them once you publish its diary/);
   });
 
+  it("A95: smaller wordings say what holds", () => {
+    const agents = read("apps/web/src/agents/AgentsApp.tsx");
+    expect(agents).not.toMatch(/the rest are kept for players|其余留给玩家/);
+    expect(agents).toMatch(/may take at most 16 of the week's 64 places; players may fill all 64/);
+    expect(read("services/api/src/agentApi.ts")).not.toMatch(/the rest are kept for players/);
+    expect(read("README.md")).not.toMatch(/Any circuit you own on X Layer can be taught/);
+    expect(read("apps/web/src/play/OwnedInstinct.tsx")).not.toMatch(/Any circuit you own on X Layer|任何电路/);
+    expect(read("apps/web/src/numbers/NumbersApp.tsx").match(/timeZoneName: "short"/g)?.length, "the numbers page's time says its zone").toBe(2);
+    expect(read("scripts/claims-check.mts")).not.toMatch(/here they are only confirmed to exist/);
+    expect(read("scripts/judge-check.mts")).not.toMatch(/at empty memory/);
+    expect(read("apps/web/src/i18n/strings.ts")).toMatch(/"relay.budgetHour"/);
+  });
+
   it("A88: the README says what pet #1's home address is, not only that it is pet #1's", () => {
     const row = read("README.md").split("\n").find((l) => l.startsWith("| Containers |")) ?? "";
     expect(row).not.toMatch(/a pet's home is a TapeOut container; pet #1's is/);

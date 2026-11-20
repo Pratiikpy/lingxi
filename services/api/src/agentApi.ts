@@ -91,7 +91,7 @@ export function withAgentApi(app: Hono, deps: AgentApiDeps): Hono {
         "GET /api/v1/profiles": "interface manifests: what every input and output bit of a pet brain (PET-16x8/1) and a TapeFly brawl brain (DUEL-12x3/1) means",
         "GET /api/v1/partners": "sparring partners, arena companions and TapeFly's ladder rivals, with their programs",
         "GET /api/v1/spar?program=lx1.…&vs=pip": "spar a brain (a Lingxi program code, or p1=… / chips=… for a TapeFly brain) against a partner or fly:<rival>; &seed= for a fixed fight",
-        "GET /api/v1/pets/:id": "a pet on X Layer: owner, line, brain circuit, day, log hash, picture",
+        "GET /api/v1/pets/:id": "a pet on X Layer: owner, line, brain circuit, day, log hash, and its picture as PetLook draws it on chain (an SVG data URI)",
         "GET /api/v1/pets/:id/brain": "the pet's brain netlist as stored on chain (TAP-02 bytes)",
         "POST /api/v1/agents/adopt": "{ agent, name, line, instincts? } → a token; keep it, it is shown once. At most 5 pets at once per agent name and per address; a pet nobody cares for in 30 days goes home",
         "GET /api/v1/agents/me": "your pet now (Authorization: Bearer <token>)",
@@ -159,6 +159,8 @@ export function withAgentApi(app: Hono, deps: AgentApiDeps): Hono {
         day: p.day,
         born: p.born,
         logHash: p.logHash,
+        // the picture PetLook draws on chain, from the registry's own token URI (null if it could not be read)
+        image: meta?.image ?? null,
         parents: p.parentA ? [p.parentA.toString(), p.parentB.toString()] : [],
         proof: `${SITE}/verify.html#${id}`,
         history: `${SITE}/api/pets/${id}/history`,
@@ -237,7 +239,7 @@ export function withAgentApi(app: Hono, deps: AgentApiDeps): Hono {
     if (!t || !sp) return c.json({ ok: false, reason: "unknown" }, 401);
     // an agent's entry counts against its address like a player's, and agents share a quarter of the week (A41)
     const r = deps.seasons.enter(sp.pet, `agent-${t.slice(0, 40)}`, { agent: sp.agent, from: who(c) });
-    if (!r.ok && r.reason === "agentsFull") return c.json({ ok: false, reason: r.reason, detail: `this week's places for agent-raised pets (${MAX_AGENT_ENTRIES} of ${MAX_ENTRIES}) are taken; the rest are kept for players` });
+    if (!r.ok && r.reason === "agentsFull") return c.json({ ok: false, reason: r.reason, detail: `agent-raised pets may take at most ${MAX_AGENT_ENTRIES} of the week's ${MAX_ENTRIES} places, and those are taken; players may still enter` });
     return c.json(r, r.ok || r.reason === "full" || r.reason === "tooMany" ? 200 : 400);
   });
 

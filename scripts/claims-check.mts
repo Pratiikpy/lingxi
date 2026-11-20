@@ -1,9 +1,10 @@
 /**
- * `pnpm claims:check`: every row of docs/claims.md has a check, and every automatic check passes against X Layer
- * mainnet and the live site. Tests, README facts and the judge check are run elsewhere (`pnpm test`, `forge test`,
- * `readme-facts`, `judge:check`); here they are only confirmed to exist, so no row points at nothing.
+ * `pnpm claims:check`: every row of docs/claims.md has a check, and each row passes on its own evidence: an automatic
+ * check against X Layer mainnet and the live site, its test run in its own package (a browser spec counts when CI's
+ * latest completed run on master passed it), its README fact, the judge check's step it names, or stated evidence for
+ * a manual row (A56).
  *
- *   pnpm claims:check [--list]
+ *   pnpm claims:check [--only id,id]
  */
 
 import { type RunDeps, judgeVerdict, runTest } from "./lib/claimsRun.mts";

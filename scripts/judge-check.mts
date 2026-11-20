@@ -4,7 +4,7 @@
  *   1. our processor is registered with TapeOut's factory
  *   2. every circuit on chain is byte for byte what this repo's compiler produces (SHA-256 shown)
  *   3. pet #1's saved day: its committed log hash and memory are reproduced by replaying its log
- *   4. the gentle starter brain answers all 65,536 inputs (at empty memory) exactly as the open evaluator
+ *   4. pet #1's brain answers all 65,536 inputs, at the memory it saved on chain, exactly as the open evaluator
  *   5. the red packet seal answers all 65,536 inputs exactly as its reference
  *
  * Reads only; needs no wallet. About four minutes on the public RPC (220 s measured on 20 November), longer on a busy machine.

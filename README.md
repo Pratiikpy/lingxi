@@ -63,7 +63,7 @@ The game runs the same netlist through a fast local evaluator; any beat can be r
 
 **Meet friends.** Pets share a room live, friends visit your decorated home, gifts and red packets travel by link, and a friend can pet-sit while you are away.
 
-**Give it an instinct you own.** Any circuit you own on X Layer can be taught as an everyday instinct. On chain this is a new circuit that REFs both, so it stays verifiable.
+**Give it an instinct you own.** A circuit you own on X Layer can be taught as an everyday instinct when its pins fit a pet's brain, it runs in at most 3,000 gates and its memory fits beside the pet's. On chain this is a new circuit that REFs both, so it stays verifiable.
 
 **Take it along.** Pack snacks from your bag and your pet goes out on a handheld: the firmware of an M5Stack Cardputer, playable in any browser at `handheld.html` or flashed to a real Cardputer over USB. It runs on the same circuit it thinks with at home (read from X Layer, with every circuit it REFs, when its mind is on chain; the game's own circuit otherwise), checked against the game on all 65,536 inputs before it leaves. Feed it, play, put it to bed with the keys; time with the handheld put down is lived as time away. When it comes home the game replays the whole trip, beat by beat, from the state it kept, and takes the pet back only if it arrives at exactly the same pet. Care given on the handheld counts for quests and dailies like care at home.
 

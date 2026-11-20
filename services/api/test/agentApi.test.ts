@@ -158,3 +158,20 @@ describe("agents in the season: their own share, and one address cannot fill it 
   });
 });
 
+
+describe("a pet on X Layer, as the agent API gives it (A95)", () => {
+  it("gives the picture PetLook draws on chain, as its index promises", async () => {
+    const image = "data:image/svg+xml;base64,PHN2Zy8+";
+    const uri = `data:application/json;base64,${Buffer.from(JSON.stringify({ name: "Lingxi #1", image })).toString("base64")}`;
+    const pet = { processor: "0xf70d324Da8C1C4Cb0dE3FF147E53E7E9db543c4e", brainId: 1n, line: 0, brainBits: 8, day: 1, born: 1, checkedAt: 5, logHash: `0x${"11".repeat(32)}`, state: 0n, parentA: 0n, parentB: 0n };
+    const pub = {
+      readContract: async ({ functionName }: { functionName: string }) =>
+        functionName === "pet" ? pet : functionName === "ownerOf" ? "0xA551feD6f2Ab35d509A71B74D5E9F38742E0aaD8" : functionName === "tokenURI" ? uri : Promise.reject(new Error(functionName)),
+    };
+    const app = withAgentApi(new Hono(), { agents: createAgentStore(undefined, () => Date.UTC(2026, 10, 18)), seasons: createSeasonStore(undefined, () => Date.UTC(2026, 10, 18)), limiter: new RateLimiter(10_000, 60_000), chain: { pub: pub as never, deployment: { registry: "0x103d7252eb6b2fec22b3f65a6bb605945f280e99" } as never } });
+    const body = (await (await app.request("/api/v1/pets/1", { headers: { "cf-connecting-ip": "203.0.113.5" } })).json()) as { ok: boolean; image?: string; name?: string };
+    expect(body).toMatchObject({ ok: true, name: "Lingxi #1", image });
+    const index = (await (await app.request("/api/v1")).json()) as { endpoints: Record<string, string> };
+    expect(index.endpoints["GET /api/v1/pets/:id"]).toMatch(/picture as PetLook draws it on chain/);
+  });
+});

@@ -146,7 +146,7 @@ describe("what the relayer itself holds back", () => {
     const relayer = relayerWith({ reserveWei: OKB / 100n });
     // 0.012 OKB held: a tape-out set aside at 0.004 would leave less than the 0.01 reserve
     vi.spyOn(relayer, "balance").mockResolvedValue((OKB * 12n) / 1000n);
-    expect(await relayer.relay("gentle", [])).toMatchObject({ ok: false, reason: "budget", detail: "the relayer's OKB is held for season keepsakes" });
+    expect(await relayer.relay("gentle", [])).toMatchObject({ ok: false, reason: "relayLow", detail: "the relayer's OKB is held for season keepsakes" });
     expect(relayer.usage().today).toBe(0);
   });
 
@@ -154,7 +154,7 @@ describe("what the relayer itself holds back", () => {
     const now = Date.now();
     const relayer = relayerWith({ maxPerHour: 2, reserveWei: 0n }, { brains: {}, day: new Date(now).toISOString().slice(0, 10), used: 2, hour: [now - 60_000, now - 120_000] });
     const balance = vi.spyOn(relayer, "balance").mockResolvedValue(OKB);
-    expect(await relayer.relay("gentle", [])).toMatchObject({ ok: false, reason: "budget", detail: "this hour's tape-outs are used" });
+    expect(await relayer.relay("gentle", [])).toMatchObject({ ok: false, reason: "budgetHour", detail: "this hour's tape-outs are used" });
     expect(balance).not.toHaveBeenCalled();
     expect(relayer.usage(now)).toMatchObject({ today: 2, lastHour: 2 });
   });
@@ -165,7 +165,7 @@ describe("what the relayer itself holds back", () => {
     // this processor takes its 0.01 BEM fee in BEM, once per kind of transistor minted (mainnet, 2026-11-20)
     vi.spyOn(relayer, "mintCalls").mockResolvedValue(2);
     vi.spyOn(relayer, "fees").mockResolvedValue({ bem: 1_500_000n, protocolFee: 1_000_000n, feeIn: "bem" });
-    expect(await relayer.relay("gentle", [])).toMatchObject({ ok: false, reason: "budget", detail: "the relayer's BEM is too low for the transistor fee" });
+    expect(await relayer.relay("gentle", [])).toMatchObject({ ok: false, reason: "relayLow", detail: "the relayer's BEM is too low for the transistor fee" });
     expect(relayer.usage().today, "nothing counted, nothing sent").toBe(0);
   });
 });

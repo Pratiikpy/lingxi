@@ -223,8 +223,8 @@ export function NumbersApp() {
       {data && (
         <p className="small tl-indexed">
           {L(
-            `Pets read up to X Layer block ${fmt(data.pets.indexedTo)}; contract totals read ${new Date(data.at).toLocaleString("en")}. Refreshed every minute.`,
-            `宠物记录读到 X Layer 第 ${fmt(data.pets.indexedTo)} 个区块；合约累计读取于 ${new Date(data.at).toLocaleString("zh-CN")}。每分钟刷新。`,
+            `Pets read up to X Layer block ${fmt(data.pets.indexedTo)}; contract totals read ${new Date(data.at).toLocaleString("en", { timeZoneName: "short" })}. Refreshed every minute.`,
+            `宠物记录读到 X Layer 第 ${fmt(data.pets.indexedTo)} 个区块；合约累计读取于 ${new Date(data.at).toLocaleString("zh-CN", { timeZoneName: "short" })}。每分钟刷新。`,
           )}{" "}
           <a href="verify.html">{L("Check a pet's days on the proof page", "在证明页核对宠物的每一天")}</a>
         </p>

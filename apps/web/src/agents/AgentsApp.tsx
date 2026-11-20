@@ -65,8 +65,8 @@ const STEPS: Array<{ en: string; zh: string; code: string }> = [
   -d '{"rule":{"when":{"energy":[2,3],"event":[2]},"then":{"want":2,"mood":3}}}'`,
   },
   {
-    en: "Spar any brain against a partner or one of TapeFly's rivals, then enter the weekly season. An address enters at most 3 pets a week, and 16 of the week's 64 places go to pets raised by agents; the rest are kept for players.",
-    zh: "让任何大脑和陪练或 TapeFly 的对手切磋，然后参加每周赛季。一个地址每周最多参赛 3 只，每周 64 个名额里 16 个给智能体养的宠物，其余留给玩家。",
+    en: "Spar any brain against a partner or one of TapeFly's rivals, then enter the weekly season. An address enters at most 3 pets a week, and pets raised by agents may take at most 16 of the week's 64 places; players may fill all 64.",
+    zh: "让任何大脑和陪练或 TapeFly 的对手切磋，然后参加每周赛季。一个地址每周最多参赛 3 只，智能体养的宠物每周最多占 64 个名额中的 16 个，玩家可以占满全部 64 个。",
     code: `curl -s "${PUBLIC}/api/v1/spar?chips=punish,block,bite&vs=pip&seed=7"
 curl -s -X POST ${PUBLIC}/api/v1/agents/me/season -H "authorization: Bearer $TOKEN"`,
   },

@@ -49,9 +49,9 @@ interface Store {
 const PER_TAPEOUT_WEI = 4_000_000_000_000_000n;
 
 /** `sent`: how many tape-outs this request sent, each charged against the sponsor's caps (A75); never shown to players. */
-export type RelayResult = ({ ok: true; processor: Address; brainId: string; reused: boolean; tx?: string } | { ok: false; reason: "invalid" | "tooBig" | "budget" | "error"; detail?: string; spent?: boolean }) & { sent?: number };
+export type RelayResult = ({ ok: true; processor: Address; brainId: string; reused: boolean; tx?: string } | { ok: false; reason: "invalid" | "tooBig" | "budget" | "budgetHour" | "relayLow" | "error"; detail?: string; spent?: boolean }) & { sent?: number };
 
-export type KeepsakeResult = { ok: true; processor: Address; brainId: string; tapeTx: string; sendTx: string } | { ok: false; reason: "invalid" | "tooBig" | "budget" | "error"; detail?: string };
+export type KeepsakeResult = { ok: true; processor: Address; brainId: string; tapeTx: string; sendTx: string } | { ok: false; reason: "invalid" | "tooBig" | "budget" | "budgetHour" | "relayLow" | "error"; detail?: string };
 
 const erc721TransferAbi = [
   { type: "function", name: "transferFrom", stateMutability: "nonpayable", inputs: [{ name: "from", type: "address" }, { name: "to", type: "address" }, { name: "id", type: "uint256" }], outputs: [] },
@@ -378,17 +378,17 @@ export class BrainRelayer {
     }
     this.store.hour = (this.store.hour ?? []).filter((t) => now - t < 3_600_000);
     if (this.store.used >= this.cfg.maxPerDay) return { ok: false, reason: "budget", detail: "today's tape-outs are used" };
-    if (this.store.hour.length >= (this.cfg.maxPerHour ?? 20)) return { ok: false, reason: "budget", detail: "this hour's tape-outs are used" };
+    if (this.store.hour.length >= (this.cfg.maxPerHour ?? 20)) return { ok: false, reason: "budgetHour", detail: "this hour's tape-outs are used" };
     if (!this.forKeepsake) {
       const balance = await this.balance().catch(() => 0n);
-      if (balance < (this.cfg.reserveWei ?? 0n) + (this.cfg.perTapeoutWei ?? PER_TAPEOUT_WEI)) return { ok: false, reason: "budget", detail: "the relayer's OKB is held for season keepsakes" };
+      if (balance < (this.cfg.reserveWei ?? 0n) + (this.cfg.perTapeoutWei ?? PER_TAPEOUT_WEI)) return { ok: false, reason: "relayLow", detail: "the relayer's OKB is held for season keepsakes" };
     }
     // the transistors' fee, per kind minted: a tape-out the relayer's BEM cannot pay is refused before anything is sent,
     // rather than failing at the mint after its approval cost gas (A40)
     const calls = await this.mintCalls(nands, latches).catch(() => 0);
     if (calls > 0) {
       const f = await this.fees().catch(() => null);
-      if (f && f.feeIn === "bem" && f.bem < f.protocolFee * BigInt(calls)) return { ok: false, reason: "budget", detail: "the relayer's BEM is too low for the transistor fee" };
+      if (f && f.feeIn === "bem" && f.bem < f.protocolFee * BigInt(calls)) return { ok: false, reason: "relayLow", detail: "the relayer's BEM is too low for the transistor fee" };
     }
     // counted before anything is sent: a tape-out that reverts still spent gas
     this.store.used += 1;

@@ -29,6 +29,8 @@ const ERR: Record<string, Key> = {
   // what the relayer answers (services/api relayGate.ts and relayer.ts)
   busy: "relay.busy",
   budget: "relay.budget",
+  budgetHour: "relay.budgetHour",
+  relayLow: "relay.relayLow",
   newcomer: "relay.newcomer",
   lifetime: "relay.lifetime",
   notKeeper: "relay.notKeeper",
