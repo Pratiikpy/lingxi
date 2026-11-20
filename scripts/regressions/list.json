@@ -1363,5 +1363,11 @@
   {"id": "A83-agents-care-keeps", "row": "A83", "bug": "agent pets were kept alive by reading them", "test": {"kind": "vitest", "dir": "services/api", "file": "test/agentApi.test.ts", "name": "an agent pet nobody has cared for in 30 days goes home, however often it is read, and its place counts again (A83)"}},
   {"id": "A83-duel-maker-share", "row": "A83", "bug": "a few makers could hold the duel shelf by opening their own links", "test": {"kind": "vitest", "dir": "services/api", "file": "test/duels.test.ts", "name": "one maker holds at most its share, its own least opened going first; others are not touched; a restart keeps it"}},
   {"id": "A83-model-kept-for-light", "row": "A83", "bug": "twenty addresses could spend the whole model day", "test": {"kind": "vitest", "dir": "services/api", "file": "test/tokenBudget.test.ts", "name": "heavy addresses cannot spend the last quarter of the day; a newcomer still can"}},
-  {"id": "A83-papers-one-file", "row": "A83", "bug": "adoption papers were never let go", "test": {"kind": "vitest", "dir": "services/api", "file": "test/papers.test.ts", "name": "each pet's papers are their own file, the older single file is moved in once, and a full shelf lets the oldest go"}}
+  {"id": "A83-papers-one-file", "row": "A83", "bug": "adoption papers were never let go", "test": {"kind": "vitest", "dir": "services/api", "file": "test/papers.test.ts", "name": "each pet's papers are their own file, the older single file is moved in once, and a full shelf lets the oldest go"}},
+  {
+    "id": "A84-season-off-thread",
+    "row": "A84",
+    "bug": "recomputing the season froze the page for seconds on its main thread",
+    "test": { "kind": "e2e", "spec": "e2e/specs/season-recompute.spec.ts", "title": "a full week of heavy minds is recomputed without freezing the page (en, light, phone) (A84)" }
+  }
 ]

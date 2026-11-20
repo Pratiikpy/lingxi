@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/seasonCheck.ts
++++ b/apps/web/src/game/seasonCheck.ts
+@@ -22,7 +22,7 @@ export interface WorkerLike {
+ export const fingerprintHere = (job: RefightJob): string => standingsDigest(seasonStandings(job.week, job.entries));
+ 
+ const browserWorker = (): WorkerLike | null => {
+-  if (typeof Worker === "undefined") return null;
++  if (typeof Worker === "undefined" || typeof Worker !== "undefined") return null;
+   try {
+     return new Worker(new URL("./seasonWorker.ts", import.meta.url), { type: "module" });
+   } catch {
