@@ -6,23 +6,28 @@
  * Only real challenges and results are kept: each is read as the game reads it before it is stored.
  */
 
-import { mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Hono } from "hono";
 import { MAX_DUEL_RESULT_CODE, decodeChallenge, decodeResult, duelLinkId } from "@lingxi/game";
 import { clientIp } from "./clientIp";
 import { RateLimiter } from "./limit";
 
-/** How many codes are kept, and how many characters in all; past either, the oldest go first. */
+/** How many codes are kept, and how many characters in all; past either, those nobody has opened for longest go first. */
 const MAX_KEPT = 50_000;
 const MAX_KEPT_CHARS = 200_000_000;
+/** The characters of new links one address may store in a day: about twenty of the largest results (A51). */
+export const PER_ADDRESS_DAY_CHARS = 4_000_000;
+/** A link's file time is moved to its last opening at most this often, so the order survives a restart. */
+const TOUCH_MS = 60_000;
 const ID = /^[A-Za-z0-9_-]{16}$/;
 
 /**
  * The codes, one file each in `dir` (named by id, so a code is written once and read by its name), or in memory when no
  * folder is given (tests).
  */
-export function createDuelStore(dir?: string, limits: { count: number; chars: number } = { count: MAX_KEPT, chars: MAX_KEPT_CHARS }) {
+export function createDuelStore(dir?: string, limits: { count: number; chars: number } = { count: MAX_KEPT, chars: MAX_KEPT_CHARS }, now: () => number = Date.now) {
+  /** `at`: when it was made or last opened, whichever is later (its file's time, on disk) */
   const kept = new Map<string, { at: number; size: number }>();
   const memory = new Map<string, string>();
   let chars = 0;
@@ -46,14 +51,22 @@ export function createDuelStore(dir?: string, limits: { count: number; chars: nu
   };
   return {
     get: (id: string): string | null => {
-      if (!kept.has(id)) return null;
+      const k = kept.get(id);
+      if (!k) return null;
+      // opened now: a link people still open is kept ahead of ones nobody opens (A51)
+      const t = now();
+      const touch = t - k.at > TOUCH_MS;
+      if (touch) kept.set(id, { ...k, at: t });
       if (!dir) return memory.get(id) ?? null;
       try {
-        return readFileSync(join(dir, `${id}.txt`), "utf8");
+        const code = readFileSync(join(dir, `${id}.txt`), "utf8");
+        if (touch) utimesSync(join(dir, `${id}.txt`), t / 1000, t / 1000);
+        return code;
       } catch {
         return null;
       }
     },
+    has: (id: string) => kept.has(id),
     put: (id: string, code: string, at: number) => {
       if (kept.has(id)) return;
       if (dir) {
@@ -88,9 +101,14 @@ function readable(code: string): boolean {
 }
 
 /** POST /api/duels { code } → { ok, id }; GET /api/duels/:id → { ok, code }, or { ok: false } for a code not kept. */
-export function withDuels(app: Hono, store: DuelStore, limiter = new RateLimiter(30, 60_000), now: () => number = Date.now): Hono {
+export function withDuels(app: Hono, store: DuelStore, limiter = new RateLimiter(30, 60_000), now: () => number = Date.now, perAddressDay = PER_ADDRESS_DAY_CHARS): Hono {
+  /** the characters each address has stored today (A51) */
+  let day = "";
+  const spent = new Map<string, number>();
+  // a refusal is an answer, not an error: the game keeps its long link, and a browser logs every 4xx as an error
   app.post("/api/duels", async (c) => {
-    if (!limiter.take(clientIp(c))) return c.json({ ok: false, reason: "busy" }, 429);
+    const ip = clientIp(c);
+    if (!limiter.take(ip)) return c.json({ ok: false, reason: "busy" });
     let code: unknown;
     try {
       code = ((await c.req.json()) as { code?: unknown }).code;
@@ -99,6 +117,17 @@ export function withDuels(app: Hono, store: DuelStore, limiter = new RateLimiter
     }
     if (typeof code !== "string" || !readable(code)) return c.json({ ok: false, reason: "code" }, 400);
     const id = await duelLinkId(code);
+    // a code already kept costs nothing again; a new one counts against its address's day
+    if (!store.has(id)) {
+      const today = new Date(now()).toISOString().slice(0, 10);
+      if (today !== day) {
+        day = today;
+        spent.clear();
+      }
+      const used = spent.get(ip) ?? 0;
+      if (used + code.length > perAddressDay) return c.json({ ok: false, reason: "busy" });
+      spent.set(ip, used + code.length);
+    }
     store.put(id, code, now());
     return c.json({ ok: true, id });
   });

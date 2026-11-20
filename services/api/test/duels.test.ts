@@ -60,11 +60,12 @@ describe("short duel links on the server (A32)", () => {
     expect((await s.app.request("/api/duels/not-an-id")).status).toBe(400);
   });
 
-  it("limits how fast one address may make links", async () => {
+  it("limits how fast one address may make links, and says so as an answer (the game keeps its long link)", async () => {
     const s = server(2);
     expect((await s.post(challenge)).status).toBe(200);
     expect((await s.post(challenge)).status).toBe(200);
-    expect((await s.post(challenge)).status).toBe(429);
+    const r = await s.post(challenge);
+    expect([r.status, await r.json()]).toEqual([200, { ok: false, reason: "busy" }]);
   });
 
   it("keeps each code in its own file, reads them back after a restart, and lets the oldest go past its limits", () => {
@@ -79,6 +80,58 @@ describe("short duel links on the server (A32)", () => {
       expect(b.size()).toBe(2);
       expect(b.get("CCCCCCCCCCCCCCCC")).toBe("lxc1.three");
       expect([b.get("AAAAAAAAAAAAAAAA"), b.get("BBBBBBBBBBBBBBBB")].filter(Boolean)).toHaveLength(1);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("one address cannot push out the duel links people share (A51)", () => {
+  const code = (n: number) => encodeChallenge({ id: `abcdef01234567${String(n).padStart(2, "0")}`, from: pet("Mochi"), at: n });
+  const at = (ip: string, app: Hono, c: string) => app.request("/api/duels", { method: "POST", headers: { "content-type": "application/json", "cf-connecting-ip": ip }, body: JSON.stringify({ code: c }) });
+
+  it("an address past its day's characters is refused as an answer, another is not, and a new day lets it post again", async () => {
+    let t = Date.UTC(2026, 10, 20, 9);
+    const app = withDuels(new Hono(), createDuelStore(), new RateLimiter(1000, 60_000), () => t, code(1).length * 2);
+    expect(((await (await at("203.0.113.5", app, code(1))).json()) as { ok: boolean }).ok).toBe(true);
+    expect(((await (await at("203.0.113.5", app, code(2))).json()) as { ok: boolean }).ok).toBe(true);
+    const r = await at("203.0.113.5", app, code(3));
+    expect([r.status, await r.json()]).toEqual([200, { ok: false, reason: "busy" }]);
+    // a code already kept costs nothing again
+    expect(((await (await at("203.0.113.5", app, code(1))).json()) as { ok: boolean }).ok).toBe(true);
+    expect(((await (await at("198.51.100.5", app, code(3))).json()) as { ok: boolean }).ok, "another address is not held up").toBe(true);
+    t += 86_400_000;
+    expect(((await (await at("203.0.113.5", app, code(4))).json()) as { ok: boolean }).ok, "a new day").toBe(true);
+  });
+
+  it("when full, the link nobody has opened for longest goes first, so links people still open are kept", () => {
+    // minutes apart: an opening is noted at most once a minute
+    let t = Date.UTC(2026, 10, 20, 9);
+    const store = createDuelStore(undefined, { count: 2, chars: 1_000_000 }, () => t);
+    store.put("AAAAAAAAAAAAAAAA", "lxc1.one", t);
+    t += 120_000;
+    store.put("BBBBBBBBBBBBBBBB", "lxc1.two", t);
+    t += 120_000;
+    expect(store.get("AAAAAAAAAAAAAAAA")).toBe("lxc1.one");
+    t += 120_000;
+    store.put("CCCCCCCCCCCCCCCC", "lxc1.three", t);
+    expect([store.get("AAAAAAAAAAAAAAAA"), store.get("BBBBBBBBBBBBBBBB"), store.get("CCCCCCCCCCCCCCCC")]).toEqual(["lxc1.one", null, "lxc1.three"]);
+  });
+
+  it("a link's last opening survives a restart", () => {
+    const dir = mkdtempSync(join(tmpdir(), "lingxi-duels-"));
+    try {
+      let t = Date.UTC(2026, 10, 20, 9);
+      const a = createDuelStore(dir, { count: 2, chars: 1_000_000 }, () => t);
+      a.put("AAAAAAAAAAAAAAAA", "lxc1.one", t);
+      t += 60_000;
+      a.put("BBBBBBBBBBBBBBBB", "lxc1.two", t);
+      t += 3_600_000;
+      expect(a.get("AAAAAAAAAAAAAAAA")).toBe("lxc1.one");
+      t += 60_000;
+      const b = createDuelStore(dir, { count: 2, chars: 1_000_000 }, () => t);
+      b.put("CCCCCCCCCCCCCCCC", "lxc1.three", t);
+      expect([b.get("AAAAAAAAAAAAAAAA"), b.get("BBBBBBBBBBBBBBBB")]).toEqual(["lxc1.one", null]);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
