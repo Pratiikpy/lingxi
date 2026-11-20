@@ -172,7 +172,8 @@ async function hatchIndexed(id: string, alive: () => boolean, waiting: () => voi
 export function VerifyApp() {
   const { lang, toggle } = useLang();
   const t = T[lang];
-  const [id, setId] = useState(() => location.hash.replace("#", "") || "1");
+  // the address may name a pet (#7) or a section of the page (#contracts, #rules): only a number is a pet (A72)
+  const [id, setId] = useState(() => (/^\d{1,10}$/.test(location.hash.slice(1)) ? location.hash.slice(1) : "1"));
   const [pet, setPet] = useState<ChainPet | null>(null);
   const [circuit, setCircuit] = useState<Circuit | null>(null);
   const [gates, setGates] = useState(0);
@@ -233,7 +234,8 @@ export function VerifyApp() {
     setPet(null);
     setErr(t.notFound);
   }, [t]);
-  const fetchPet = (forId: string) => readPet(pc, deployment!, BigInt(forId));
+  // a pet number is digits; anything else (a typed word) is no pet, never a crash (A72)
+  const fetchPet = (forId: string) => (/^\d{1,20}$/.test(forId.trim()) ? readPet(pc, deployment!, BigInt(forId.trim())) : Promise.reject(new Error("notFound")));
   // a read asked for (the form, a family link followed) starts from a clean page
   const read = (forId = id) => {
     setErr(null);
@@ -247,6 +249,12 @@ export function VerifyApp() {
   const readOnOpen = useEffectEvent(() => fetchPet(id).then((p) => show(id, p).catch(notFound), notFound));
   useEffect(() => {
     if (deployment) void readOnOpen();
+    // a section named in the address is brought into view once the page has drawn it (A72)
+    const section = location.hash.slice(1);
+    if (section && !/^\d+$/.test(section)) {
+      const t = setTimeout(() => document.getElementById(section)?.scrollIntoView(), 300);
+      return () => clearTimeout(t);
+    }
   }, []);
 
   // following a family link (or editing the address) opens that pet
