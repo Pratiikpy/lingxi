@@ -89,11 +89,13 @@ async function everyInput(label: string, ask: (client: (typeof pubs)[number], wo
   ok(bad === 0, `${label}: ${65536 - bad} of 65,536 inputs match (${Math.round((Date.now() - t0) / 1000)} s)`);
 }
 
+// at the memory pet #1 saved on chain, as the landing, README and proof page say (A56)
+const savedMemory = unpackState(pet.state, pet.brainBits).brain;
 await everyInput(
-  "pet #1's brain at empty memory, via PetRegistry.replayStep → processor.step",
-  async (client, words) => (await replayMany(client, d, 1n, 0n, words)).map((r) => Number(r.outputs) | (Number(r.next) << 8)),
+  `pet #1's brain at its saved memory (${savedMemory.join("")}), via PetRegistry.replayStep → processor.step`,
+  async (client, words) => (await replayMany(client, d, 1n, BigInt(bitsToWord(savedMemory)), words)).map((r) => Number(r.outputs) | (Number(r.next) << 8)),
   (w) => {
-    const [ns, outs] = beat(gentle, new Array(8).fill(0), wordToBits(w, 16));
+    const [ns, outs] = beat(gentle, savedMemory, wordToBits(w, 16));
     return Number(bitsToWord(outs)) | (Number(bitsToWord(ns)) << 8);
   },
 );

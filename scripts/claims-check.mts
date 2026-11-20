@@ -6,6 +6,7 @@
  *   pnpm claims:check [--list]
  */
 
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -191,10 +192,18 @@ const AUTO: Record<string, Check> = {
   },
   "save-cost": async () => {
     const gasPrice = await pub.getGasPrice();
-    // a day's save, as measured on mainnet (44,841 gas); a cent is far above this at any OKB price under $10,000
-    const cost = 44_841n * gasPrice;
+    // the gas the real mainnet saves used, read from each save's own receipt (the server's index names the
+    // transactions; their gas comes from the chain) (A56); a cent is far above this at any OKB price under $10,000
+    const used: bigint[] = [];
+    for (const id of [1, 2, 3]) {
+      const h = (await (await steadyFetch(`${LIVE}/api/pets/${id}/history`)).res.json()) as { saves?: Array<{ tx: Hex }> };
+      for (const s of h.saves ?? []) used.push((await pub.getTransactionReceipt({ hash: s.tx })).gasUsed);
+    }
+    expect(used.length > 0, "no mainnet save found to measure");
+    const most = used.reduce((a, b) => (b > a ? b : a));
+    const cost = most * gasPrice;
     expect(cost < 10n ** 14n, `a save costs ${cost} wei at ${gasPrice} wei/gas`);
-    return `${Number(cost) / 1e18} OKB at today's gas price`;
+    return `the costliest of ${used.length} mainnet saves used ${most} gas: ${Number(cost) / 1e18} OKB at today's gas price`;
   },
   sourcify: async () => {
     const out: string[] = [];
@@ -228,6 +237,17 @@ const AUTO: Record<string, Check> = {
         if (!res.ok) bad.push(`${p || "/"} ${res.status}`);
         const note = retryNote(p || "/", retried);
         if (note) notes.push(note);
+        if (!res.ok || p.startsWith("api/")) continue;
+        // a 200 from a page shell is not a page: its own script must load, and be the game's (A56)
+        const html = await res.text();
+        const src = /<script[^>]+type="module"[^>]+src="\.?\/?([^"]+)"/.exec(html)?.[1];
+        if (!/<title>[^<]*(Lingxi|灵犀)/.test(html) || !src) {
+          bad.push(`${p || "/"} is not a Lingxi page`);
+          continue;
+        }
+        const js = await steadyFetch(`${LIVE}/${src}`);
+        const body = js.res.ok ? await js.res.text() : "";
+        if (!js.res.ok || !/javascript/.test(js.res.headers.get("content-type") ?? "") || body.length < 1_000) bad.push(`${p || "/"}'s script ${src} ${js.res.status}`);
       } catch (e) {
         bad.push(e instanceof Error ? e.message : String(e));
       }
@@ -251,10 +271,88 @@ const rows: Row[] = sheet
 const facts = new Set([...readFileSync(join(root, "README.md"), "utf8").matchAll(/<!--f:([a-z0-9-]+)-->/g)].map((m) => m[1]!));
 
 let failed = 0;
+let pending = 0;
 const say = (ok: boolean, id: string, text: string) => {
   if (!ok) failed++;
   console.log(`${ok ? "PASS" : "FAIL"}  ${id.padEnd(18)} ${text}`);
 };
+/** a row whose evidence is not in yet: never PASS (A56) */
+const pend = (id: string, text: string) => {
+  pending++;
+  console.log(`PENDING  ${id.padEnd(18)} ${text}`);
+};
+
+/** The read-only check of mainnet, run once for every judge row; each row passes only on the step it names (A56). */
+let judged: Array<{ ok: boolean; what: string }> | null = null;
+function judge(): Array<{ ok: boolean; what: string }> {
+  if (judged) return judged;
+  const once = () => {
+    const r = spawnSync(process.execPath, [join(root, "node_modules/tsx/dist/cli.mjs"), join(root, "scripts/judge-check.mts")], { cwd: root, encoding: "utf8", timeout: 20 * 60_000 });
+    const steps = (r.stdout ?? "")
+      .split(/\r?\n/)
+      .map((l) => /^(PASS|FAIL)\s+(.*)$/.exec(l))
+      .filter((m): m is RegExpExecArray => !!m)
+      .map((m) => ({ ok: m[1] === "PASS", what: m[2]! }));
+    return { steps, crashed: r.status !== 0 && !steps.some((s) => !s.ok), why: (r.stderr || r.error?.message || `exit ${r.status}`).split(/\r?\n/).filter(Boolean).slice(-1)[0] ?? "" };
+  };
+  // a node that drops a read mid-run crashes the check before it can say anything: it is run once more, and if it
+  // crashes again every judge row fails with the reason (a crash is never a pass)
+  let run = once();
+  if (run.crashed) {
+    // a throttled node recovers within seconds: wait before the second run
+    spawnSync(process.execPath, ["-e", "setTimeout(() => {}, 30000)"]);
+    run = once();
+  }
+  judged = run.crashed ? [...run.steps, { ok: false, what: `judge-check stopped: ${run.why} (every step)` }] : run.steps;
+  return judged;
+}
+
+/**
+ * A test row runs its test (A56): a vitest file in its own package, a Foundry test by its path; a browser spec needs
+ * the fork harness, so it counts only when CI's latest completed run on master passed its browser job with the spec in
+ * that commit, and is otherwise pending.
+ */
+function runTest(path: string): { ok: boolean; why: string } | "pending" {
+  if (!existsSync(join(root, path))) return { ok: false, why: "does not exist" };
+  if (/\.t\.sol$/.test(path)) {
+    // a fork test skips itself off X Layer, so fork contracts run against a fork of mainnet (read from the official
+    // host the judge check reads least) and the others offline; each pass counts only if tests ran and none was
+    // skipped (a skipped suite is not a passed one, A56)
+    const file = path.replace(/^contracts\//, "");
+    const whole = /\.fork\.t\.sol$/.test(path);
+    const mixed = !whole && /ForkTest\b/.test(readFileSync(join(root, path), "utf8"));
+    const forge = (args: string[]) => {
+      const r = spawnSync("forge", ["test", "--match-path", file, ...args], { cwd: join(root, "contracts"), encoding: "utf8", timeout: 20 * 60_000 });
+      const tally = /(\d+) tests passed, (\d+) failed, (\d+) skipped/.exec(r.stdout ?? "");
+      const [ran, bad, skipped] = tally ? tally.slice(1).map(Number) : [0, 0, 0];
+      return { ok: r.status === 0 && ran! > 0 && bad === 0 && skipped === 0, why: tally ? `${ran} passed, ${bad} failed, ${skipped} skipped` : `did not run (exit ${r.status})` };
+    };
+    const onFork = ["--fork-url", "https://xlayerrpc.okx.com"];
+    const passes = whole
+      ? [{ name: "on a fork", ...forge(onFork) }]
+      : mixed
+        ? [{ name: "offline", ...forge(["--offline", "--no-match-contract", "ForkTest"]) }, { name: "on a fork", ...forge([...onFork, "--match-contract", "ForkTest"]) }]
+        : [{ name: "offline", ...forge(["--offline"]) }];
+    return { ok: passes.every((x) => x.ok), why: `forge ${passes.map((x) => `${x.name}: ${x.why}`).join("; ")}` };
+  }
+  if (/\.spec\.ts$/.test(path)) {
+    // the latest run that finished: a run cancelled by a newer push proves nothing either way
+    const gh = spawnSync("gh", ["run", "list", "--workflow", "ci.yml", "--branch", "master", "--status", "completed", "--limit", "20", "--json", "databaseId,headSha,conclusion"], { cwd: root, encoding: "utf8" });
+    const run = (JSON.parse(gh.stdout || "[]") as Array<{ databaseId: number; headSha: string; conclusion: string }>).find((x) => x.conclusion === "success" || x.conclusion === "failure");
+    if (!run) return "pending";
+    const jobs = spawnSync("gh", ["run", "view", String(run.databaseId), "--json", "jobs", "--jq", '.jobs[] | select(.name=="e2e") | .conclusion'], { cwd: root, encoding: "utf8" });
+    const inCommit = spawnSync("git", ["cat-file", "-e", `${run.headSha}:${path}`], { cwd: root }).status === 0;
+    if (jobs.stdout.trim() !== "success" || !inCommit) return "pending";
+    return { ok: true, why: `CI's browser job passed on ${run.headSha.slice(0, 7)} with this spec` };
+  }
+  // a vitest file: run it in the package that owns it
+  let dir = dirname(join(root, path));
+  while (!existsSync(join(dir, "package.json")) && dir.length > root.length) dir = dirname(dir);
+  const rel = join(root, path).slice(dir.length + 1);
+  const r = spawnSync(process.execPath, [join(root, "node_modules/vitest/vitest.mjs"), "run", rel], { cwd: dir, encoding: "utf8", timeout: 10 * 60_000 });
+  const summary = (r.stdout ?? "").replace(/\x1b\[[0-9;]*m/g, "").split(/\r?\n/).find((l) => /Tests\s+\d/.test(l))?.trim() ?? `exit ${r.status}`;
+  return { ok: r.status === 0, why: summary };
+}
 const seen = new Set<string>();
 for (const r of rows) {
   if (seen.has(r.id)) say(false, r.id, "the id is used twice");
@@ -272,13 +370,21 @@ for (const r of rows) {
     } catch (e) {
       say(false, r.id, (e as Error).message);
     }
-  } else if (kind === "test") say(existsSync(join(root, arg)), r.id, `test ${arg}${existsSync(join(root, arg)) ? "" : " does not exist"}`);
-  else if (kind === "facts") say(facts.has(arg), r.id, `README fact ${arg}${facts.has(arg) ? ", counted by readme-facts" : " is not marked in the README"}`);
-  else if (kind === "judge") say(true, r.id, "pnpm judge:check");
+  } else if (kind === "test") {
+    const t = runTest(arg);
+    if (t === "pending") pend(r.id, `browser spec ${arg}: not proven by a completed CI run on master yet`);
+    else say(t.ok, r.id, `test ${arg}: ${t.why}`);
+  } else if (kind === "facts") say(facts.has(arg), r.id, `README fact ${arg}${facts.has(arg) ? ", counted by readme-facts" : " is not marked in the README"}`);
+  else if (kind === "judge") {
+    const j = judge();
+    const passed = j.filter((l) => l.ok && l.what.includes(arg));
+    const failed = j.filter((l) => !l.ok && (l.what.includes(arg) || l.what.startsWith("judge-check stopped")));
+    say(!!arg && passed.length > 0 && !failed.length, r.id, arg ? (failed[0]?.what ?? passed[0]?.what ?? `no judge-check step mentions "${arg}"`) : "a judge row must name its judge-check step");
+  }
   else if (kind === "manual") say(arg.length > 20, r.id, arg.length > 20 ? "manual, evidence stated" : "manual with no evidence");
   else say(false, r.id, `no check: "${r.check}"`);
 }
 const unused = Object.keys(AUTO).filter((k) => !rows.some((r) => r.check === `auto:${k}`));
 if (unused.length) say(false, "sheet", `automatic checks no claim uses: ${unused.join(", ")}`);
-console.log(`\n${rows.length} claims, ${failed} failing`);
+console.log(`\n${rows.length} claims, ${failed} failing${pending ? `, ${pending} pending` : ""}`);
 process.exit(failed ? 1 : 0);

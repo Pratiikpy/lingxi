@@ -7,9 +7,10 @@ table, refuses a row without a check, and runs every automatic check against X L
 Kinds of check:
 
 - `auto:<name>`: a check in `scripts/claims-check.mts`, run against X Layer mainnet and the live site.
-- `test:<path>`: a test in the repo's suites (run by `pnpm test`, `forge test` and CI).
+- `test:<path>`: a test in the repo's suites, run by the checker (see below).
 - `facts:<name>`: a number counted from the repo by `scripts/readme-facts.mts`.
-- `judge`: `pnpm judge:check`, the read-only check of mainnet (about five minutes).
+- `judge: <step>`: the step of `pnpm judge:check` (the read-only check of mainnet, about five minutes) the claim rests on; the checker runs it and passes the row only if that step passed.
+- A `test:` row runs its test: a vitest file in its package, a Foundry test by its path; a browser spec counts only when CI's latest completed run on master passed its browser job with the spec, and is PENDING until then.
 - `manual: …`: how it was checked by hand, with the evidence.
 
 | Id | Where | Claim | Check |
@@ -25,9 +26,9 @@ Kinds of check:
 | no-token | README | Lingxi has no token of its own. | manual: the deployment record lists every contract Lingxi deployed (`packages/chain/deployments/xlayer.json`); none is a token. BEM is TapeOut's. |
 | owner-powers | README | Fees move only within fixed bounds; burn shares cannot change. | test:contracts/test/SecurityReview.t.sol |
 | two-step-owners | README | Ownership is handed over in two steps on every owned contract except the first outfit market. | auto:two-step-owners |
-| processor | README, judge check | The processor is registered with TapeOut's factory. | judge |
+| processor | README, judge check | The processor is registered with TapeOut's factory. | judge: processor is registered with TapeOut's factory |
 | circuits-hash | README, proof page | The five core circuits on chain have the keccak256 hashes listed. | auto:circuit-hashes |
-| circuits-compiler | README | The circuits on chain are byte for byte what this repo's compiler produces. | judge |
+| circuits-compiler | README | The circuits on chain are byte for byte what this repo's compiler produces. | judge: equals this repo's compiler output |
 | minds-taped-out | README (EN, ZH), proof page, agents page (EN, ZH) | Every pet's mind is a circuit of NAND gates and latches; once its owner keeps it on X Layer, that circuit is taped out there (the line's starter circuit at hatching, its own when its new mind is put on chain). | test:apps/web/src/game/chain.test.ts |
 | teach-taped-out | README | A taught rule is compiled into the circuit; for a pet kept on X Layer, the new circuit is taped out when its owner puts its new mind on chain. | test:e2e/specs/relay.spec.ts |
 | handheld-circuit | README, handheld panel | The handheld runs the circuit read from X Layer when the pet's mind is on chain, the game's own circuit otherwise, checked on all 65,536 inputs. | test:e2e/specs/handheld.spec.ts |
@@ -40,8 +41,9 @@ Kinds of check:
 | starter-brain | landing | Mochi's starter brain has 296 gates and 8 bits of memory. | auto:starter-brain |
 | replay-gas | landing | Re-running one beat on chain costs about 760,000 gas for Mochi's 296 gates. | auto:replay-gas |
 | save-cost | landing | A day's save fits in 256 bits and costs a fraction of a cent. | auto:save-cost |
-| pet1-all | landing, README, proof page | At pet #1's saved memory, all 65,536 inputs give the chain's own answer. | judge |
-| pet1-log | README, proof page | Pet #1's log hashes to the value on chain and replays to the saved memory. | judge |
+| pet1-all | landing, README, proof page | At pet #1's saved memory, all 65,536 inputs give the chain's own answer. | judge: pet #1's brain at its saved memory |
+| pet1-log | README, proof page | Pet #1's log hashes to the value on chain. | judge: the log's hash chain equals the hash committed on chain |
+| pet1-replay | README, proof page | Pet #1's log replays to the memory saved on chain. | judge: replaying the log gives exactly the memory saved on chain |
 | anchored | README, proof page | Before replaying a log, the proof page anchors every brain it names to the pet's own Hatched and BrainChanged events. | test:packages/chain/test/anchor.test.ts |
 | public-rpcs | README, proof page | The proof page reads X Layer through the public RPCs, or the judge's own; Lingxi's server only when every public one fails, and it says so. | test:apps/web/src/game/rpcAsk.test.ts |
 | sourcify | README, proof page | All eleven contracts are verified on Sourcify as an exact match of creation and runtime bytecode. | auto:sourcify |
