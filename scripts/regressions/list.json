@@ -1216,5 +1216,17 @@
     "row": "A68",
     "bug": "the proof table's check started off-screen on a phone",
     "test": { "kind": "e2e", "spec": "e2e/specs/proof-table-phone.spec.ts", "title": "the proof table's check reads on the page (en, light, phone) (A68)" }
+  },
+  {
+    "id": "A71-sourcify-own-contracts",
+    "row": "A71",
+    "bug": "the Sourcify relay would ask about any address, an open proxy",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/sourcify.test.ts", "name": "answers over HTTP for the deployment's contracts only" }
+  },
+  {
+    "id": "A71-sourcify-through-server",
+    "row": "A71",
+    "bug": "the browser asked Sourcify itself, so an outage was console errors",
+    "test": { "kind": "e2e", "spec": "e2e/specs/sourcify-relay.spec.ts", "title": "source checks come through the page's own server, and an outage is said in words (en, light, phone) (A71)" }
   }
 ]

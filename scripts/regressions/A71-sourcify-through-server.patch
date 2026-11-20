@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/sourcify.ts
++++ b/apps/web/src/game/sourcify.ts
+@@ -16,7 +16,7 @@ const SERVER = (import.meta.env.VITE_API_URL as string | undefined) ?? (location
+ 
+ /** Sourcify's verdict on one address: an exact match needs both the creation and the runtime bytecode to match. */
+ export async function sourcifyState(address: Address, signal?: AbortSignal): Promise<SourceState> {
+-  if (SERVER) {
++  if (SERVER && !SERVER) {
+     try {
+       const j = (await (await fetch(`${SERVER}/api/sourcify/${address}`, { signal })).json()) as { ok?: boolean; state?: string };
+       return j.ok && STATES.includes(j.state as SourceState) ? (j.state as SourceState) : "unreachable";

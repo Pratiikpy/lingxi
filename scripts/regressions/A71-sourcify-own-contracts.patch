@@ -1,0 +1,11 @@
+--- a/services/api/src/sourcify.ts
++++ b/services/api/src/sourcify.ts
+@@ -68,7 +68,7 @@ export function createSourcifyRelay(opts: SourcifyRelayOptions) {
+     /** Sourcify's verdict on `address`, or null for an address not in the deployment. */
+     async state(address: string): Promise<SourceState | null> {
+       const a = address.toLowerCase();
+-      if (!allowed.has(a)) return null;
++
+       const held = kept.get(a);
+       if (held && now() < held.until) return held.state;
+       let flight = asking.get(a);
