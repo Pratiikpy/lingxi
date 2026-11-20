@@ -1,0 +1,12 @@
+--- a/services/api/src/diaries.ts
++++ b/services/api/src/diaries.ts
+@@ -69,7 +69,8 @@ export function createDiaryStore(dir?: string, opts: { now?: () => number; total
+       if (!ID.test(id) || !name.endsWith(".json")) continue;
+       try {
+         const st = statSync(join(dir, name));
+-        index.set(id, { bytes: st.size, at: st.mtimeMs });
++        const parsed = PublishedLog.parse(JSON.parse(readFileSync(join(dir, name), "utf8")));
++        index.set(id, { bytes: st.size, at: st.mtimeMs, words: parsed.words.length });
+         total += st.size;
+       } catch {
+         // gone while listed: not counted

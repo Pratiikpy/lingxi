@@ -1312,5 +1312,17 @@
     "row": "A79",
     "bug": "two addresses could pin every lesson and close the library for good",
     "test": { "kind": "vitest", "dir": "services/api", "file": "test/library.test.ts", "name": "two addresses cannot close it: with every lesson used by a second address, an honest share still gets in (A79)" }
+  },
+  {
+    "id": "A80-diary-shelf-room",
+    "row": "A80",
+    "bug": "a full diary shelf refused every new diary for good",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/diaries.test.ts", "name": "a full shelf takes a new diary by letting the least recently published or read go, and keeps that order across a restart (A80)" }
+  },
+  {
+    "id": "A80-diary-open-unread",
+    "row": "A80",
+    "bug": "the server read and parsed every kept diary before it could listen",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/diaries.test.ts", "name": "opens a folder of large diaries without reading them, and still refuses a shorter republish (A80)" }
   }
 ]

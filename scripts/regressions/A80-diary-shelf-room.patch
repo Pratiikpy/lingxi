@@ -1,0 +1,11 @@
+--- a/services/api/src/diaries.ts
++++ b/services/api/src/diaries.ts
+@@ -153,7 +153,7 @@ export function createDiaryStore(dir?: string, opts: { now?: () => number; total
+           go.push(id);
+           free += e.bytes;
+         }
+-        if (free < body.length) return { ok: false, reason: "full" };
++        if (free < body.length || go.length >= 0) return { ok: false, reason: "full" };
+         for (const id of go) {
+           total -= index.get(id)!.bytes;
+           index.delete(id);
