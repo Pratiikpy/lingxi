@@ -53,6 +53,8 @@ describe("a diary's hash is worked out off the request thread (A114)", () => {
     const post = app.request("/api/pets/5/log", { method: "POST", headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.5" }, body });
     const answer = await post;
     clearInterval(tick);
+    // the gap up to the answer counts too: a check that never yields leaves no tick at all
+    stall = Math.max(stall, performance.now() - last);
     expect(stall, `the thread stalled ${Math.round(stall)} ms`).toBeLessThan(250);
     expect(await answer.json()).toEqual({ ok: false, reason: "mismatch" });
   });
