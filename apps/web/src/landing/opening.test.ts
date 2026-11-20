@@ -12,7 +12,7 @@ import { COPY } from "./copy";
 
 const root = join(__dirname, "../../../..");
 /** read with no-break spaces as plain ones, so a no-break space cannot hide the old sentence */
-const plain = (text: string) => text.replace(/ |&nbsp;/g, " ");
+const plain = (text: string) => text.replace(/\u00a0|&nbsp;/g, " ");
 const read = (path: string) => plain(readFileSync(join(root, path), "utf8"));
 const PUBLIC = ["apps/web/index.html", "apps/web/play.html", "apps/web/verify.html", "apps/web/handheld.html", "apps/web/agents.html", "apps/web/public/manifest.webmanifest", "services/api/src/agentApi.ts", "docs/readme/banner.html"];
 
