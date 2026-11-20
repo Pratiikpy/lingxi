@@ -282,6 +282,8 @@ export function PacketArrival() {
   const [owed, setOwed] = useState<bigint>(0n);
   const [link, setLink] = useState<PacketLink | null>(null);
   const [view, setView] = useState<PacketView | null>(null);
+  /** the chain's own time when the packet was read: its expiry is X Layer's, not this device's (A42) */
+  const [chainNow, setChainNow] = useState<number | null>(null);
   const [read, setRead] = useState<ClaimsRead | null>(null);
   const claims = read?.kind === "list" ? read.claims : [];
   const [stage, setStage] = useState<"idle" | "signing" | "claiming" | "luck" | "revealing" | "done" | "error">("idle");
@@ -298,6 +300,10 @@ export function PacketArrival() {
       setStage("idle");
       setResult(null);
       void readPacket(publicClient, deployment!, BigInt(l.id)).then(setView, () => setReason("unknown"));
+      void publicClient.getBlock().then(
+        (b) => setChainNow(Number(b.timestamp)),
+        () => setChainNow(Math.floor(now() / 1000)),
+      );
       void claimsOf(BigInt(l.id)).then(setRead);
       void owedFn(l.id).then(setOwed);
     };
@@ -327,7 +333,8 @@ export function PacketArrival() {
   };
   const text = (k: string) => reasonText[k]?.[lang === "zh" ? 1 : 0] ?? (lang === "zh" ? `没领成：${k}` : `Couldn't open it: ${k}`);
   const left = view ? view.count - view.paid : 0;
-  const expired = view ? now() / 1000 >= view.expiry : false;
+  // by X Layer's clock, read with the packet (a claim past expiry is refused by the contract itself)
+  const expired = view ? (chainNow ?? Math.floor(now() / 1000)) >= view.expiry : false;
 
   return (
     <div className="fam-modal rp-modal" role="dialog" aria-label={lang === "zh" ? "红包" : "Red packet"}>

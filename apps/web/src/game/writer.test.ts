@@ -103,6 +103,49 @@ describe("one writer across tabs, without Web Locks (a lease in storage)", () =>
     expect(told.size, "and it stops listening once it has given the game up").toBe(0);
   });
 
+  it("a tab that renews from a stale view cannot take the game back from the tab that took it over (A97)", async () => {
+    // each tab sees storage as it was when the other's last write reached it, as in a browser: writes are delivered
+    // to the other tab, with its storage event, only when `deliver` runs
+    const views = { a: new Map<string, string>(), b: new Map<string, string>() };
+    const told: Record<"a" | "b", ((key: string, value: string | null) => void) | null> = { a: null, b: null };
+    const queue: Array<{ to: "a" | "b"; key: string; value: string }> = [];
+    const renewers: Partial<Record<"a" | "b", () => void>> = {};
+    const tab = (me: "a" | "b") => {
+      const other = me === "a" ? "b" : "a";
+      return createWriter({
+        storage: {
+          getItem: (k) => views[me].get(k) ?? null,
+          setItem: (k, v) => (views[me].set(k, v), queue.push({ to: other, key: k, value: v })),
+          removeItem: (k) => views[me].delete(k),
+        },
+        now: () => 0,
+        every: (fn) => ((renewers[me] = fn), () => void delete renewers[me]),
+        wait: async () => undefined,
+        id: me,
+        watch: (fn) => ((told[me] = fn), () => void (told[me] = null)),
+      });
+    };
+    const deliver = () => {
+      while (queue.length) {
+        const w = queue.shift()!;
+        views[w.to].set(w.key, w.value);
+        told[w.to]?.(w.key, w.value);
+      }
+    };
+    const a = tab("a");
+    const b = tab("b");
+    expect(await a.acquire()).toBe(true);
+    deliver();
+    expect(await b.acquire({ steal: true }), "'play here' in the second tab").toBe(true);
+    // before b's stamp reaches a, a's renewal runs on its stale view and writes its own stamp again
+    renewers.a?.();
+    deliver();
+    deliver();
+    expect([a.isWriter(), b.isWriter()], "the tab that took the game over keeps it").toEqual([false, true]);
+    expect(JSON.parse(views.a.get(STAMP_KEY)!).id, "and both views end on its stamp").toBe("b");
+    expect(JSON.parse(views.b.get(STAMP_KEY)!).id).toBe("b");
+  });
+
   it("a page gives its lease up as it goes, so its own reload plays at once (A8)", async () => {
     const { open, storage } = tabs();
     const before = open("before-reload");

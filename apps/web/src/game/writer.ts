@@ -28,6 +28,12 @@ export interface LockApi {
 interface Stamp {
   id: string;
   until: number;
+  /**
+   * Raised each time a tab takes the game (A97): another tab's write reaches this one a moment late, so a tab renewing
+   * from a stale view could write over the stamp of the tab that just took over. The newest generation wins. A stamp
+   * written before generations reads as 0.
+   */
+  gen?: number;
 }
 
 export interface WriterOptions {
@@ -44,11 +50,12 @@ export interface WriterOptions {
   /** lets `ms` pass (setTimeout in the browser) */
   wait?: (ms: number) => Promise<void>;
   /**
-   * Without Web Locks: tells `fn` the key another page of this site just wrote (the browser's storage event), so a
+   * Without Web Locks: tells `fn` the key another page of this site just wrote and its new value (the browser's storage
+   * event; the value is the one written, where this page's storage may still lag behind it), so a
    * tab whose game was taken says so at once rather than on its next renewal, which a hidden page runs late (A70).
    * Returns a stop function.
    */
-  watch?: (fn: (key: string) => void) => () => void;
+  watch?: (fn: (key: string, value?: string | null) => void) => () => void;
   id?: string;
 }
 
@@ -57,7 +64,7 @@ export const browserStorageWatch: WriterOptions["watch"] =
   typeof window === "undefined"
     ? undefined
     : (fn) => {
-        const on = (e: StorageEvent) => e.key !== null && fn(e.key);
+        const on = (e: StorageEvent) => e.key !== null && fn(e.key, e.newValue);
         window.addEventListener("storage", on);
         return () => window.removeEventListener("storage", on);
       };
@@ -76,24 +83,29 @@ export function createWriter(o: WriterOptions) {
   let gaveUp = false;
   let stopRenewing: (() => void) | null = null;
   let stopWatching: (() => void) | null = null;
+  /** the generation of this tab's claim (A97) */
+  let gen = 0;
 
-  const readStamp = (): Stamp | null => {
+  const parseStamp = (raw: string | null): Stamp | null => {
     try {
-      const s = JSON.parse(o.storage.getItem(stampKey) ?? "null") as Stamp | null;
-      return s && typeof s.id === "string" && typeof s.until === "number" ? s : null;
+      const s = JSON.parse(raw ?? "null") as Stamp | null;
+      return s && typeof s.id === "string" && typeof s.until === "number" ? { ...s, gen: Number.isInteger(s.gen) ? s.gen : 0 } : null;
     } catch {
       return null;
     }
   };
+  const readStamp = (): Stamp | null => parseStamp(o.storage.getItem(stampKey));
   /** false when storage cannot be written at all: then this tab is the only writer it can be */
   const writeStamp = (): boolean => {
     try {
-      o.storage.setItem(stampKey, JSON.stringify({ id, until: o.now() + LEASE_MS }));
+      o.storage.setItem(stampKey, JSON.stringify({ id, until: o.now() + LEASE_MS, gen }));
       return true;
     } catch {
       return false;
     }
   };
+  /** a claim newer than this tab's, from another tab: the game is theirs */
+  const newer = (s: Stamp | null) => s !== null && s.id !== id && (s.gen ?? 0) >= gen;
   const set = (w: boolean) => {
     if (held === w) return;
     held = w;
@@ -114,6 +126,7 @@ export function createWriter(o: WriterOptions) {
             decided(false);
             return undefined;
           }
+          gen = (readStamp()?.gen ?? 0) + 1;
           writeStamp();
           set(true);
           decided(true);
@@ -136,23 +149,26 @@ export function createWriter(o: WriterOptions) {
       const renewed = now !== null && now.id !== id && now.until > o.now() && (now.id !== stamp.id || now.until !== stamp.until);
       if (renewed) return false;
     }
+    // taking the game: a generation past the newest this tab has seen (A97)
+    gen = Math.max(gen, readStamp()?.gen ?? 0) + 1;
     if (!writeStamp()) {
       set(true);
       return true;
     }
     set(true);
     stopRenewing = every(() => {
-      const s = readStamp();
-      if (s && s.id !== id) set(false);
+      // a newer claim is another tab's game; an older one over this tab's (written from a stale view) is overwritten
+      if (newer(readStamp())) set(false);
       else writeStamp();
     }, RENEW_MS);
-    // another page wrote the stamp: the game is theirs now, said at once (A70)
+    // another page wrote the stamp: read what it wrote, not this page's storage, which may still lag (A70, A97)
     stopWatching?.();
     stopWatching =
-      o.watch?.((key) => {
+      o.watch?.((key, value) => {
         if (key !== stampKey) return;
-        const s = readStamp();
-        if (s && s.id !== id) set(false);
+        const s = value === undefined ? readStamp() : parseStamp(value);
+        if (newer(s)) set(false);
+        else if (s && s.id !== id) writeStamp();
       }) ?? null;
     return true;
   };
@@ -188,11 +204,13 @@ export function createWriter(o: WriterOptions) {
       if (!back) set(false);
       return back;
     },
-    /** True only while this tab holds the game and the stamp in storage is its own (checked on every write). */
+    /**
+     * True only while this tab holds the game and no newer claim is in storage (checked on every write). An older
+     * claim over this tab's, from a tab renewing on a stale view, does not take the game: this tab writes over it.
+     */
     isWriter(): boolean {
       if (!held) return false;
-      const s = readStamp();
-      return s === null || s.id === id;
+      return !newer(readStamp());
     },
   };
 }
