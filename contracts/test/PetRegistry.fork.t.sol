@@ -193,6 +193,18 @@ contract PetRegistryForkTest is Test {
         assertFalse(reg.isKeeper(petId, carol));
     }
 
+    /// A104: settled is three days lived and a saved day 3 or later; one save can be enough.
+    function test_oneSaveOfDayThreeSettlesAPet() public {
+        uint64 id = _tapeout("gentle");
+        vm.prank(owner);
+        reg.setStarterBrain(address(PROC), id, true);
+        uint256 petId = reg.hatch(alice, 0, address(PROC), id, 0);
+        vm.warp(block.timestamp + 3 days);
+        vm.prank(alice);
+        reg.checkpoint(petId, 3, 0, bytes32(0));
+        assertTrue(reg.isSettled(petId), "three days lived and one save, of day 3");
+    }
+
     function test_settledPetsAndMetadataWithoutARenderer() public {
         uint64 id = _tapeout("gentle");
         vm.prank(owner);

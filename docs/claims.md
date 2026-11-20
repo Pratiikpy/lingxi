@@ -28,6 +28,10 @@ Kinds of check:
 | two-step-owners | README | Ownership is handed over in two steps on every owned contract except the first outfit market. | auto:two-step-owners |
 | owner-powers-listed | README | Every power a contract gives its owner is in the README's table of owner powers, named by function in its contract's row; HolderGift and the first Breeder give none. | test:scripts/ownerPowers.test.mts |
 | owner-state | README | Every owner is the deployer; PetLook's art is still open; the renderer is PetLook; the item shop's voucher signer is the game's; of the two breeders only BreederV2 may record births. | auto:owner-state |
+| slither-finding | README (Security) | Slither found one issue that needed a fix, in the first OutfitMarket before it was deployed: its sale flag stayed raised during a buyer's ERC-1155 callback; the fix is held by a test. | test:contracts/test/OutfitMarket.t.sol |
+| review-regressions | README (Security) | The written reviews' findings that needed a fix are kept as regression tests, which CI runs. | test:contracts/test/SecurityReview.t.sol |
+| review-regressions-v2 | README (Security) | The same for the second outfit market. | test:contracts/test/OutfitMarketV2.review.t.sol |
+| settled-rule | README (two limits) | A settled pet has lived on chain three days and saved a day 3 or later; one save can be enough. | test:contracts/test/PetRegistry.fork.t.sol |
 | processor | README, judge check | The processor is registered with TapeOut's factory. | judge: processor is registered with TapeOut's factory |
 | circuits-hash | README, proof page | The five core circuits on chain have the keccak256 hashes listed. | auto:circuit-hashes |
 | circuits-compiler | README | The circuits on chain are byte for byte what this repo's compiler produces. | judge: equals this repo's compiler output |

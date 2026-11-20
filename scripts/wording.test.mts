@@ -106,6 +106,14 @@ describe("the wording the audits corrected stays corrected (A87)", () => {
     expect(landing).toMatch(/父母都在链上时，它就在链上出生/);
   });
 
+  it("A104 and A105: the settled rule and Slither's finding are said as they are", () => {
+    const readme = read("README.md");
+    expect(readme).not.toMatch(/three days and three saves/);
+    expect(readme).toMatch(/three days lived and a saved day 3 or later, so one save can be enough/);
+    expect(readme).not.toMatch(/Slither found nothing in any of them that needed a fix/);
+    expect(readme).toMatch(/Slither found one issue that needed a fix, in the first OutfitMarket/);
+  });
+
   it("A88: the README says what pet #1's home address is, not only that it is pet #1's", () => {
     const row = read("README.md").split("\n").find((l) => l.startsWith("| Containers |")) ?? "";
     expect(row).not.toMatch(/a pet's home is a TapeOut container; pet #1's is/);
