@@ -178,7 +178,7 @@ export const CHARACTERS: readonly Character[] = [
         ask: ask("Is it really real?", "这些是真的吗？"),
         lines: [
           L("twain_frown.png", "Its circuit lives on the chain, and so does a fingerprint of everything that has happened to it.", "它的电路存在链上，它经历过的每一件事，也都留下了指纹。"),
-          L("twain_laugh.png", "Anyone can replay its thoughts and check them. We checked. We were disappointed it was honest.", "谁都可以重放它的想法来核对。我们核对过了。它太诚实，我们有点失望。"),
+          L("twain_laugh.png", "Anyone with its log can replay its thoughts and check them. We checked. We were disappointed it was honest.", "拿到它的日志，谁都可以重放它的想法来核对。我们核对过了。它太诚实，我们有点失望。"),
         ],
         action: "proof",
       },

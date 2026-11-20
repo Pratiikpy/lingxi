@@ -89,6 +89,23 @@ describe("the wording the audits corrected stays corrected (A87)", () => {
     expect(read("apps/web/src/i18n/strings.ts")).toMatch(/"relay.budgetHour"/);
   });
 
+  it("A102: replaying a pet's thoughts is said to need its log or published diary", () => {
+    const landing = read("apps/web/src/landing/copy.ts");
+    expect(landing).not.toMatch(/Anyone can replay its thoughts/);
+    expect(landing).toMatch(/Once you publish its diary, anyone can replay its thoughts/);
+    expect(landing).toMatch(/你公开它的日记之后，任何人都能/);
+    const twain = read("packages/world/src/characters.ts");
+    expect(twain).toMatch(/Anyone with its log can replay its thoughts/);
+    expect(twain).toMatch(/拿到它的日志，谁都可以重放/);
+  });
+
+  it("A103: a child is said to be born on chain only when both parents are kept there", () => {
+    const landing = read("apps/web/src/landing/copy.ts");
+    expect(landing).not.toMatch(/wired together on chain|在链上连接而成/);
+    expect(landing).toMatch(/on chain when both parents are kept there/);
+    expect(landing).toMatch(/父母都在链上时，它就在链上出生/);
+  });
+
   it("A88: the README says what pet #1's home address is, not only that it is pet #1's", () => {
     const row = read("README.md").split("\n").find((l) => l.startsWith("| Containers |")) ?? "";
     expect(row).not.toMatch(/a pet's home is a TapeOut container; pet #1's is/);
