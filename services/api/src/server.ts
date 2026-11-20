@@ -369,7 +369,6 @@ export function withVoice(app: Hono, voice: ReturnType<typeof createVoice>, limi
       c.header("Retry-After", "60");
       return c.json({ ok: false, reason: "busy" });
     }
-    if (Number(c.req.header("content-length") ?? 0) > 2048) return c.json({ ok: false, reason: "invalid" }, 413);
     let body;
     try {
       body = VoiceBody.parse(await c.req.json());
@@ -387,7 +386,6 @@ export function withSitting(app: Hono, store: SittingStore, writes = new RateLim
   const who = (c: Context) => clientIp(c);
   app.post("/api/sit", async (c) => {
     if (!writes.take(who(c))) return busy(c);
-    if (Number(c.req.header("content-length") ?? 0) > SEND_LIMITS.sitBodyBytes) return c.json({ ok: false, reason: "tooBig" }, 413);
     let body;
     try {
       body = SitLeaveBody.parse(await c.req.json());
@@ -402,7 +400,6 @@ export function withSitting(app: Hono, store: SittingStore, writes = new RateLim
   });
   app.post("/api/sit/:code/home", async (c) => {
     if (!writes.take(who(c))) return busy(c);
-    if (Number(c.req.header("content-length") ?? 0) > SEND_LIMITS.sitBodyBytes) return c.json({ ok: false, reason: "tooBig" }, 413);
     let body;
     try {
       body = SitHomeBody.parse(await c.req.json());
@@ -419,7 +416,6 @@ export function withArena(app: Hono, store: ArenaStore, writes = new RateLimiter
   const who = (c: Context) => clientIp(c);
   app.post("/api/arena/snapshot", async (c) => {
     if (!writes.take(who(c))) return busy(c);
-    if (Number(c.req.header("content-length") ?? 0) > 16_000) return c.json({ ok: false, reason: "tooBig" }, 413);
     let body;
     try {
       body = ArenaSnapshotBody.parse(await c.req.json());
@@ -446,7 +442,6 @@ export function withSeason(app: Hono, store: SeasonStore, writes = new RateLimit
   const who = (c: Context) => clientIp(c);
   app.post("/api/season/enter", async (c) => {
     if (!writes.take(who(c))) return busy(c);
-    if (Number(c.req.header("content-length") ?? 0) > 16_000) return c.json({ ok: false, reason: "tooBig" }, 413);
     let body;
     try {
       body = SeasonEnterBody.parse(await c.req.json());
@@ -643,7 +638,6 @@ export function withMove(app: Hono, store: MoveStore, limiter = new RateLimiter(
   const ipOf = (c: Context) => clientIp(c);
   app.post("/api/move", async (c) => {
     if (!limiter.take(ipOf(c))) return c.json({ ok: false, reason: "busy" }, 429);
-    if (Number(c.req.header("content-length") ?? 0) > MAX_MOVE_CHARS * 2) return c.json({ ok: false, reason: "tooBig" }, 413);
     let body: unknown;
     try {
       body = await c.req.json();
@@ -673,7 +667,6 @@ export function withPush(app: Hono, pusher: Pusher, limiter = new RateLimiter(30
   app.post("/api/push/plan", async (c) => {
     const ip = clientIp(c);
     if (!limiter.take(ip)) return busy(c);
-    if (Number(c.req.header("content-length") ?? 0) > 4096) return c.json({ ok: false, reason: "invalid" }, 413);
     let body;
     try {
       body = PushPlanBody.parse(await c.req.json());

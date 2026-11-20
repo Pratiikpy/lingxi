@@ -24,7 +24,11 @@ export const BODY_LIMITS: ReadonlyArray<readonly [RegExp, number]> = [
   [/^\/api\/(teach|arena\/snapshot|season\/enter)$/, 48 * KB],
   // a duel code to keep under a short link: a result carries two pets' whole cards (MAX_DUEL_RESULT_CODE, A32)
   [/^\/api\/duels$/, 192 * KB],
-  [/^\/api\/(voice|lessons\/share|push\/(plan|stop))$/, 16 * KB],
+  // the situation a line of the pet's voice is asked for, and a plan of upcoming reminders (A49: the sizes these
+  // routes used to check from the header alone)
+  [/^\/api\/voice$/, 2 * KB],
+  [/^\/api\/push\/plan$/, 4 * KB],
+  [/^\/api\/(lessons\/share|push\/stop)$/, 16 * KB],
   [/^\/api\/v1\//, 16 * KB],
   [/^\/api\/tapeout/, 24 * KB],
 ];
