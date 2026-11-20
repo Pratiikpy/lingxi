@@ -1,11 +1,24 @@
 --- a/packages/chain/src/registry.ts
 +++ b/packages/chain/src/registry.ts
-@@ -164,7 +164,7 @@ export async function sentState(pub: PublicClient, tx: Hex): Promise<Transaction
-   try {
-     return await pub.getTransactionReceipt({ hash: tx });
-   } catch (e) {
+@@ -161,18 +161,9 @@ export class StillPending extends Error {
+  * throws, so a caller asks again later and never takes a failed read for a transaction that was never sent.
+  */
+ export async function sentState(pub: PublicClient, tx: Hex): Promise<TransactionReceipt | "pending" | "unknown"> {
+-  try {
+-    return await pub.getTransactionReceipt({ hash: tx });
+-  } catch (e) {
 -    if (!(e instanceof TransactionReceiptNotFoundError)) throw e;
-+    if (!(e instanceof TransactionReceiptNotFoundError) && false) throw e;
-   }
-   try {
-     await pub.getTransaction({ hash: tx });
+-  }
+-  try {
+-    await pub.getTransaction({ hash: tx });
+-    return "pending";
+-  } catch (e) {
+-    if (e instanceof TransactionNotFoundError) return "unknown";
+-    throw e;
+-  }
++  const r = await pub.getTransactionReceipt({ hash: tx }).catch(() => null);
++  if (r) return r;
++  return (await pub.getTransaction({ hash: tx }).catch(() => null)) ? "pending" : "unknown";
+ }
+ 
+ /**
