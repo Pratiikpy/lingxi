@@ -133,7 +133,7 @@ pnpm judge:check          # about four minutes, read-only against mainnet
 | REF composition | a child's brain references both parents' circuits; an owned circuit becomes an instinct by REF |
 | Containers | a pet's home is the TapeOut container of its brain circuit, once its owner holds that circuit; a pet still on its line's shared starter circuit has none until its own mind is taped out. Pet #1 still thinks with circuit #1, the gentle starter, which its owner (the project's deployer) holds, so its home is that circuit's container, `0x31B025aD4cBD4142007f59684D51cD1F2ccc5098`, which also holds the on-chain copy of the site |
 | DeWEB | the whole site is published on chain at `1.2.419.tape`, served at [1-2-419.tapekit.org](https://1-2-419.tapekit.org/) |
-| TapeKit | its DeWEB gateway serves the on-chain copy and checks it in each visitor's browser; TapeSend is in the repo and a home checks its hub, but letters between homes stay closed until the hub accepts circuits from Lingxi's processor (they are planned over TapeRelay instead) |
+| TapeKit | its DeWEB gateway serves the on-chain copy and checks it in each visitor's browser; TapeSend is in the repo and a home reads its hub's state live, but letters between homes stay closed: on X Layer mainnet the hub runs code TapeKit has not approved, and Lingxi does not send letters between homes in any case; they are planned over TapeRelay |
 | BEM | the fee token: breeding, items, adoption, the extras and the fashion market; every BEM fee burned |
 | Community circuits | Behemoth on Builders' Lane runs the founder's 4-bit CPU, read gate for gate from BNB Chain and checkable there step by step |
 
@@ -181,7 +181,7 @@ packages/brain    the rule language → TAP-02 netlist compiler, the evaluator, 
 packages/game     the pet: needs, growth, sickness, lessons, spars, skills, families, adoption papers, gifts
 packages/world    rooms, residents, trust, quests and dailies, items, recipes, foraging, garden, decorations, goals
 packages/chain    viem client for every contract and the processor; deploy, publish-to-DeWEB and recount scripts
-packages/send     TapeKit's TapeSend module (letters between homes; closed until its hub accepts Lingxi's processor)
+packages/send     TapeKit's TapeSend module (letters between homes; closed: its hub runs code TapeKit has not approved, and letters are planned over TapeRelay)
 packages/art      hand-placed pixel art: bodies, expressions, stages, outfits
 packages/api      one zod schema for each request the game sends the server: the server validates with them, the
                   game builds its requests as their types

@@ -25,6 +25,7 @@ import {
   outfitMarketAbi,
   outfitMarketV2Abi,
   itemShopAbi,
+  lettersStatus,
   petRegistryAbi,
   processorAbi,
   readDesign,
@@ -168,6 +169,12 @@ const AUTO: Record<string, Check> = {
     }
     expect(one.length === 1 && one[0] === "outfitMarket", `one-step ownership: ${one.join(", ") || "none"}`);
     return `two-step: ${two.join(", ")}; one-step: outfitMarket`;
+  },
+  // the reason the README gives for closed letters, read as the game reads it (A90): the hub's code not approved
+  "letters-status": async () => {
+    const status = await lettersStatus(pub, d.processor);
+    expect(status === "hub", `letters status is "${status}"; the README says the hub runs code TapeKit has not approved`);
+    return `letters status "hub": TapeSend's hub runs code TapeKit has not approved`;
   },
   // the states the README's owner table states (A89): every owner the deployer, the art still open, the renderer
   // PetLook, the voucher signer the game's, and of the two breeders only BreederV2 recording births

@@ -156,10 +156,10 @@ export function HomePanel({ pet }: { pet: Pet }) {
           <HomeOutfits pet={pet} home={home!} />
           <p className="small">
             {letters === "open"
-              ? L("Letters between homes are coming next.", "家与家之间的信件即将开放。")
+              ? L("TapeSend's hub would carry this home's letters, but Lingxi does not send letters between homes yet: they are planned over TapeRelay.", "TapeSend 的中枢可以送这个家的信，但灵犀还没有开放家与家之间的信件：计划改走 TapeRelay。")
               : letters === "hub"
-                ? L("Letters between homes go through TapeSend's hub, which now runs code TapeKit has not approved, so Lingxi keeps letters closed until it is.", "家与家之间的信件走 TapeSend 的中枢，它现在运行的代码还没有得到 TapeKit 认可，所以灵犀先不开放信件，等认可之后再开。")
-                : L("Letters between homes go through TapeSend, whose hub does not yet accept circuits from Lingxi's processor. They open here as soon as it does.", "家与家之间的信件走 TapeSend，它的中枢目前还不接受灵犀处理器上的电路。一旦接受，这里就会开放。")}
+                ? L("Letters between homes are closed: TapeSend's hub now runs code TapeKit has not approved, and Lingxi does not send letters between homes yet (they are planned over TapeRelay).", "家与家之间的信件没有开放：TapeSend 的中枢现在运行的代码没有得到 TapeKit 认可，而且灵犀还没有开放家与家之间的信件（计划改走 TapeRelay）。")
+                : L("Letters between homes are closed: TapeSend's hub does not accept circuits from Lingxi's processor, and Lingxi does not send letters between homes yet (they are planned over TapeRelay).", "家与家之间的信件没有开放：TapeSend 的中枢不接受灵犀处理器上的电路，而且灵犀还没有开放家与家之间的信件（计划改走 TapeRelay）。")}
           </p>
         </>
       )}

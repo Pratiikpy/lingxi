@@ -46,6 +46,16 @@ describe("the wording the audits corrected stays corrected (A87)", () => {
     expect(note).toMatch(/chained over every input/);
   });
 
+  it("A90: letters between homes are said to be closed for the real reason, and never promised to open by themselves", () => {
+    const home = read("apps/web/src/play/Home.tsx");
+    expect(home).not.toMatch(/They open here as soon as it does/);
+    expect(home).not.toMatch(/一旦接受，这里就会开放/);
+    expect(home).not.toMatch(/Letters between homes are coming next/);
+    expect(home.match(/planned over TapeRelay/g)?.length, "every state says Lingxi does not send them yet").toBe(3);
+    expect(read("README.md")).not.toMatch(/until the hub accepts circuits from Lingxi's processor/);
+    expect(read("README.md")).toMatch(/the hub runs code TapeKit has not approved/);
+  });
+
   it("A88: the README says what pet #1's home address is, not only that it is pet #1's", () => {
     const row = read("README.md").split("\n").find((l) => l.startsWith("| Containers |")) ?? "";
     expect(row).not.toMatch(/a pet's home is a TapeOut container; pet #1's is/);
