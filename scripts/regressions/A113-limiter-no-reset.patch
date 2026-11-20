@@ -1,0 +1,21 @@
+--- a/services/api/src/limit.ts
++++ b/services/api/src/limit.ts
+@@ -22,7 +22,6 @@ export class RateLimiter {
+     const shared = prefix === null ? null : this.recent(prefix, now);
+     let ok = own.length < this.max && (shared === null || shared.length < this.max * PREFIX_SHARE);
+     // a key that would be new needs a free place: one whose window has passed, never one still counting
+-    if (ok && !this.room(key, prefix, now)) ok = false;
+     if (ok) {
+       own.push(now);
+       shared?.push(now);
+@@ -55,7 +54,9 @@ export class RateLimiter {
+    * most-recent end; a refused one leaves it where it is, so the order is always the order of last counted requests.
+    */
+   private keep(key: string, times: number[], counted: boolean): void {
+-    if (!times.length) this.hits.delete(key);
++    while (!this.hits.has(key) && this.hits.size >= this.maxKeys) this.hits.delete(this.hits.keys().next().value!);
++    if (!times.length && !counted) this.hits.set(key, times);
++    else if (!times.length) this.hits.delete(key);
+     else if (counted) {
+       this.hits.delete(key);
+       this.hits.set(key, times);
