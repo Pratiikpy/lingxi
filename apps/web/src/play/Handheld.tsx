@@ -133,6 +133,14 @@ export function HandheldPanel({ pet }: { pet: Pet }) {
             )}
           </div>
           <p className="small">{L("It is paused here while it is out. Snacks it does not eat come back to your bag.", "出门期间它在家里暂停。没吃完的零食会回到包里。")}</p>
+          {cardputerAvailable() && (
+            <p className="small" data-cardputer="untried">
+              {L(
+                "The Cardputer firmware is the same code as this browser handheld and is tested here, but it has not yet been run on a real Cardputer.",
+                "Cardputer 固件和这个浏览器掌机是同一份代码，在这里测试过，但还没有在真正的 Cardputer 上运行过。",
+              )}
+            </p>
+          )}
         </>
       )}
       {note && (

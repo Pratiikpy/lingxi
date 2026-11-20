@@ -114,6 +114,14 @@ describe("the wording the audits corrected stays corrected (A87)", () => {
     expect(readme).toMatch(/Slither found one issue that needed a fix, in the first OutfitMarket/);
   });
 
+  it("A107: the Cardputer is said to be untried on a real device, in the README and beside its option", () => {
+    expect(read("README.md")).not.toMatch(/or flashed to a real Cardputer over USB\./);
+    expect(read("README.md")).toMatch(/it has not yet been run on one/);
+    const panel = read("apps/web/src/play/Handheld.tsx");
+    expect(panel).toMatch(/it has not yet been run on a real Cardputer/);
+    expect(panel).toMatch(/还没有在真正的 Cardputer 上运行过/);
+  });
+
   it("A88: the README says what pet #1's home address is, not only that it is pet #1's", () => {
     const row = read("README.md").split("\n").find((l) => l.startsWith("| Containers |")) ?? "";
     expect(row).not.toMatch(/a pet's home is a TapeOut container; pet #1's is/);
