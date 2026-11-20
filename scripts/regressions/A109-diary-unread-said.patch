@@ -1,0 +1,17 @@
+--- a/apps/web/src/verify/published.ts
++++ b/apps/web/src/verify/published.ts
+@@ -16,12 +16,12 @@ const READ_MS = 8000;
+ export async function readPublished(base: string, id: string, ask: typeof fetch = fetch): Promise<Published> {
+   try {
+     const res = await ask(`${base}/api/pets/${id}/log`, { signal: AbortSignal.timeout(READ_MS) });
+-    if (!res.ok) return { kind: "unread" };
++    if (!res.ok) return { kind: "none" };
+     const r = (await res.json()) as { ok?: boolean; reason?: string; log?: PublishedLog };
+     if (r.ok === true && r.log && Array.isArray(r.log.words) && Array.isArray(r.log.segments)) return { kind: "log", log: r.log };
+     if (r.ok === false && r.reason === "none") return { kind: "none" };
+     return { kind: "unread" };
+   } catch {
+-    return { kind: "unread" };
++    return { kind: "none" };
+   }
+ }
