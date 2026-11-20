@@ -21,6 +21,9 @@ export function Sheet({ open, title, onClose, children }: { open: boolean; title
   const t = useT();
   const reduce = useReducedMotion();
   const closeRef = useRef<HTMLButtonElement>(null);
+  // how many sheets were already open when this one opened: it is drawn above them, whatever their order on the page
+  // (a sheet earlier on the page, such as the skills, opened from a later one, such as the pet's, sat beneath it, A124)
+  const depth = useMemo(() => (open ? openSheets.length : 0), [open]);
   useEffect(() => {
     if (!open) return;
     const prev = document.activeElement as HTMLElement | null;
@@ -39,9 +42,10 @@ export function Sheet({ open, title, onClose, children }: { open: boolean; title
     <AnimatePresence>
       {open && (
         <>
-          <motion.div className="scrim" onClick={onClose} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.22 }} />
+          <motion.div className="scrim" style={depth ? { zIndex: 20 + 2 * depth } : undefined} onClick={onClose} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.22 }} />
           <motion.div
             className="sheet"
+            style={depth ? { zIndex: 21 + 2 * depth } : undefined}
             role="dialog"
             aria-modal="true"
             aria-label={title}

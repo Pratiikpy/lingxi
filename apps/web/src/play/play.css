@@ -566,6 +566,7 @@
 }
 .rows dd {
   margin: 0;
+  min-width: 0;
   font-family: var(--round);
   font-weight: 700;
   font-size: 15px;
@@ -1030,11 +1031,17 @@
   color: var(--ink-soft);
 }
 
+/* the level, its bar and the skills button wrap on a narrow phone rather than push the sheet sideways (A125) */
 .lv {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 6px 8px;
+  max-width: 100%;
   font-family: var(--display);
+}
+.lv-skills {
+  white-space: nowrap;
 }
 .lv-bar {
   display: inline-block;
