@@ -1,0 +1,10 @@
+--- a/services/api/src/agentApi.ts
++++ b/services/api/src/agentApi.ts
+@@ -160,7 +160,6 @@ export function withAgentApi(app: Hono, deps: AgentApiDeps): Hono {
+         born: p.born,
+         logHash: p.logHash,
+         // the picture PetLook draws on chain, from the registry's own token URI (null if it could not be read)
+-        image: meta?.image ?? null,
+         parents: p.parentA ? [p.parentA.toString(), p.parentB.toString()] : [],
+         proof: `${SITE}/verify.html#${id}`,
+         history: `${SITE}/api/pets/${id}/history`,

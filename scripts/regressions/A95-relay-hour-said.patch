@@ -1,0 +1,11 @@
+--- a/services/api/src/relayer.ts
++++ b/services/api/src/relayer.ts
+@@ -378,7 +378,7 @@ export class BrainRelayer {
+     }
+     this.store.hour = (this.store.hour ?? []).filter((t) => now - t < 3_600_000);
+     if (this.store.used >= this.cfg.maxPerDay) return { ok: false, reason: "budget", detail: "today's tape-outs are used" };
+-    if (this.store.hour.length >= (this.cfg.maxPerHour ?? 20)) return { ok: false, reason: "budgetHour", detail: "this hour's tape-outs are used" };
++    if (this.store.hour.length >= (this.cfg.maxPerHour ?? 20)) return { ok: false, reason: "budget", detail: "this hour's tape-outs are used" };
+     if (!this.forKeepsake) {
+       const balance = await this.balance().catch(() => 0n);
+       if (balance < (this.cfg.reserveWei ?? 0n) + (this.cfg.perTapeoutWei ?? PER_TAPEOUT_WEI)) return { ok: false, reason: "relayLow", detail: "the relayer's OKB is held for season keepsakes" };
