@@ -85,7 +85,7 @@ export function withAgentApi(app: Hono, deps: AgentApiDeps): Hono {
   app.get("/api/v1", (c) =>
     c.json({
       ok: true,
-      what: "Lingxi: pets whose minds are TapeOut circuits on X Layer. Everything a player can see, an agent can read; an agent can also raise its own pet.",
+      what: "Lingxi: pets whose minds are circuits of NAND gates and latches, taped out on X Layer once their owners keep them there. Everything a player can see, an agent can read; an agent can also raise its own pet.",
       docs: `${SITE}/agents.html`,
       endpoints: {
         "GET /api/v1/profiles": "interface manifests: what every input and output bit of a pet brain (PET-16x8/1) and a TapeFly brawl brain (DUEL-12x3/1) means",

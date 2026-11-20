@@ -1,0 +1,39 @@
+<!doctype html>
+<!--
+  The README banner (A86). Its art is `banner-base.png`: the banner first drawn on 2026-11-17, with its English lines
+  removed (filled smoothly from the area's own edges); the words are set here, in the game's own font, so they can be
+  read, checked and changed like any other text. Rendered to `banner.png` by `pnpm readme:banner`
+  (scripts/readme-banner.mts). The test `apps/web/src/landing/opening.test.ts` reads this file.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      @font-face {
+        font-family: "Baloo 2 Variable";
+        src: url("../../apps/web/node_modules/@fontsource-variable/baloo-2/files/baloo-2-latin-wght-normal.woff2") format("woff2");
+        font-weight: 400 800;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1600px;
+        height: 640px;
+        overflow: hidden;
+        background: url("banner-base.png") no-repeat;
+      }
+      p {
+        position: absolute;
+        left: 445px;
+        top: 296px;
+        width: 560px;
+        margin: 0;
+        color: #5b4e73;
+        font: 600 30px/39px "Baloo 2 Variable", sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <p>A pet whose mind is a real circuit of NAND gates, taped out on X Layer once you keep it there, for anyone to check.</p>
+  </body>
+</html>

@@ -14,7 +14,8 @@
     "test:fork": "tsx scripts/fork-tests.mts",
     "coverage": "tsx scripts/coverage.mts",
     "revert:check": "tsx scripts/revert-check.mts",
-    "site:release": "tsx scripts/site-release.mts"
+    "site:release": "tsx scripts/site-release.mts",
+    "readme:banner": "tsx scripts/readme-banner.mts"
   },
   "devDependencies": {
     "@eslint/js": "9.17.0",

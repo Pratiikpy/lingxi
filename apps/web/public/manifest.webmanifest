@@ -1,7 +1,7 @@
 {
   "name": "Lingxi · 灵犀",
   "short_name": "Lingxi",
-  "description": "A pet whose mind is a real circuit on X Layer.",
+  "description": "A pet whose mind is a real circuit of NAND gates, taped out on X Layer once you keep it there.",
   "start_url": "play.html",
   "scope": "./",
   "display": "standalone",
