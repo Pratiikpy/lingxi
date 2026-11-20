@@ -5,7 +5,7 @@
  * the papers against the chain before paying; this server is a mailbox, never the judge.
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import type { Hono } from "hono";
 import { type Address, type Hex, keccak256, recoverMessageAddress, toBytes } from "viem";
@@ -37,10 +37,16 @@ export function createPapersStore(file?: string) {
       data = {};
     }
   }
+  // written beside and renamed over the old file, so a write cut short never leaves it truncated (A64)
   const save = () => {
     if (!file) return;
-    mkdirSync(dirname(file), { recursive: true });
-    writeFileSync(file, JSON.stringify(data));
+    try {
+      mkdirSync(dirname(file), { recursive: true });
+      writeFileSync(`${file}.tmp`, JSON.stringify(data));
+      renameSync(`${file}.tmp`, file);
+    } catch (e) {
+      process.stderr.write(`papers not saved: ${(e as Error).message}\n`);
+    }
   };
   return {
     get: (petId: string): Stored | null => data[petId] ?? null,

@@ -85,3 +85,13 @@ describe("pet names in the prompt", () => {
     expect(systemPrompt("gentle", "Mochi")).toContain("called Mochi");
   });
 });
+
+describe("the health detail is for this machine only (A64)", () => {
+  it("a request through the tunnel gets the switches; a direct local one also gets the detail", async () => {
+    const app = createApp(null, undefined, null, undefined, null, () => ({ relayerOkb: 1.5 }));
+    const outside = await (await app.request("/api/health", { headers: { "cf-connecting-ip": "198.51.100.7" } })).json();
+    expect(outside).toEqual({ ok: true, teach: false, voice: false, relay: false, live: false });
+    const local = await (await app.request("/api/health")).json();
+    expect(local).toMatchObject({ ok: true, detail: { relayerOkb: 1.5 } });
+  });
+});

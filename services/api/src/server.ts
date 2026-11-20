@@ -7,7 +7,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { createReadStream, readdirSync, readFileSync, statSync } from "node:fs";
+import { createReadStream, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { type SiteSource, folderSource, releaseSource } from "./releases";
@@ -63,6 +63,7 @@ import { createPacketIndex, type PacketIndex } from "./packets";
 import { createGoalLedger, withGoals } from "./goals";
 import { withVouchers } from "./voucher";
 import { createPapersStore, withPapers } from "./papers";
+import { readdir, stat } from "node:fs/promises";
 import { createMindChecker } from "./mindCheck";
 import { createConsentIndex, withConsents } from "./consents";
 import { withRpcProxy } from "./rpc";
@@ -78,7 +79,7 @@ import { type MoveStore, createMoveStore } from "./move";
 import { createTapeoutCounter, withLane } from "./lane";
 import { factoryReader } from "./laneReader";
 import { petLookAbi as lookAbi } from "@lingxi/chain";
-import { clientIp } from "./clientIp";
+import { clientIp, directLocal } from "./clientIp";
 import { withBodyLimits } from "./bodyLimits";
 import { proveSeasonEntry } from "./seasonProof";
 import { budgetedClient, createTokenBudget, modelCaller } from "./tokenBudget";
@@ -126,8 +127,9 @@ export function createApp(
   withBodyLimits(app);
   app.use("/api/*", cors({ origin: (o, c) => (c.req.path.startsWith("/api/v1") || (c.req.method === "GET" && /^\/api\/pets\/\d+\/(log|history)$/.test(c.req.path)) ? "*" : origins.includes(o) ? o : null), allowMethods: ["GET", "POST"], allowHeaders: ["Authorization", "Content-Type"], maxAge: 600 }));
 
-  // the parts are booleans (true when on); `detail` is everything else worth watching, for the status check and for Prateek
-  app.get("/api/health", async (c) => c.json({ ok: true, teach: client !== null, voice: client !== null, relay: relayer !== null, live: live !== null, ...(detail ? { detail: await detail() } : {}) }));
+  // the parts are booleans (true when on), for anyone; `detail` (balances, usage, memory, stores) is everything else
+  // worth watching, and goes only to a request made on this machine directly: the status check (A64)
+  app.get("/api/health", async (c) => c.json({ ok: true, teach: client !== null, voice: client !== null, relay: relayer !== null, live: live !== null, ...(detail && directLocal(c) ? { detail: await detail() } : {}) }));
   app.get("/api/live/stats", (c) => c.json(live ? live.stats() : { online: 0, spaces: 0 }));
   // the game's clock is corrected against this one, so a device clock set wrong cannot move a pet's day (P1); the
   // on-chain copy reads X Layer's block time instead, so this answers the game's own pages only
@@ -734,19 +736,32 @@ function watchdogStatus(): { ageSeconds: number; local: boolean; public: boolean
   }
 }
 
-/** Sizes of the server's data files and folders, in KB, so a store growing without bound shows before it hurts. */
-function storeSizes(dir: string): Record<string, number> {
-  const out: Record<string, number> = {};
-  const sizeOf = (p: string): number => {
-    const st = statSync(p);
-    return st.isDirectory() ? readdirSync(p).reduce((n, f) => n + sizeOf(join(p, f)), 0) : st.size;
+/**
+ * Sizes of the server's data files and folders, in KB, so a store growing without bound shows before it hurts. Walked
+ * without blocking the request thread (a folder can hold tens of thousands of files), and kept five minutes (A64).
+ */
+const STORE_SIZES_MS = 5 * 60_000;
+let sizesKept: { at: number; value: Promise<Record<string, number>> } | null = null;
+function storeSizes(dir: string): Promise<Record<string, number>> {
+  if (sizesKept && Date.now() - sizesKept.at < STORE_SIZES_MS) return sizesKept.value;
+  const sizeOf = async (p: string): Promise<number> => {
+    const st = await stat(p);
+    if (!st.isDirectory()) return st.size;
+    let n = 0;
+    for (const f of await readdir(p)) n += await sizeOf(join(p, f));
+    return n;
   };
-  try {
-    for (const f of readdirSync(dir)) out[f] = Math.round(sizeOf(join(dir, f)) / 1024);
-  } catch {
-    // no data folder yet
-  }
-  return out;
+  const value = (async () => {
+    const out: Record<string, number> = {};
+    try {
+      for (const f of await readdir(dir)) out[f] = Math.round((await sizeOf(join(dir, f))) / 1024);
+    } catch {
+      // no data folder yet, or a file gone while it was read
+    }
+    return out;
+  })();
+  sizesKept = { at: Date.now(), value };
+  return value;
 }
 
 const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
@@ -842,7 +857,7 @@ if (isMain) {
       watchdog: watchdogStatus(),
       // the process's own memory, in MB: a store or cache growing without end shows here first
       memoryMb: Object.fromEntries(Object.entries(process.memoryUsage()).map(([k, v]) => [k, Math.round(v / 1e5) / 10])),
-      storesKb: storeSizes(dataDir),
+      storesKb: await storeSizes(dataDir),
     };
     cached = { at: Date.now(), value };
     return value;

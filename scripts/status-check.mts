@@ -43,6 +43,8 @@ const onlyArg = args.find((a) => a.startsWith("--only"));
 const only = onlyArg ? (onlyArg.includes("=") ? onlyArg.split("=")[1]! : args[args.indexOf(onlyArg) + 1]!).split(",") : null;
 
 const LIVE = process.env.LINGXI_LIVE_URL ?? "https://lingxi.knole.me";
+/** The live server on this machine, answered directly: only it gives the health detail (A64). */
+const LOCAL_API = process.env.LINGXI_LOCAL_API ?? "http://127.0.0.1:8790";
 const DEWEB_URL = process.env.LINGXI_DEWEB_URL ?? "https://1-2-419.tapekit.org";
 const PLAN = process.env.LINGXI_PLAN ?? join(root, "..", "40-MASTER-PLAN.md");
 const STATUS = process.env.LINGXI_BUILD_STATUS ?? join(root, "..", "BUILD-STATUS.md");
@@ -246,8 +248,12 @@ async function siteChecks(): Promise<void> {
 
   const t = Date.now();
   try {
+    // the switches through the tunnel, as the world sees them; the detail only from this machine directly (A64)
     const { res: r, retried } = await steadyFetch(`${LIVE}/api/health`);
-    const j = (await r.json()) as Record<string, unknown> & {
+    const pub = (await r.json()) as Record<string, unknown>;
+    const local = (await (await fetch(`${LOCAL_API}/api/health`, { signal: AbortSignal.timeout(20_000) })).json()) as { detail?: unknown };
+    if (pub.detail !== undefined) throw new Error("the public health answer carries its detail: it must go to this machine only");
+    const j = { ...pub, detail: local.detail } as Record<string, unknown> & {
       detail?: { jobs?: Record<string, string>; relayerOkb?: number | null; relayerLow?: boolean; relayerBem?: number | null; relayerBemTapeouts?: number | null; relayerBemLow?: boolean; indexerLagBlocks?: number | null; backup?: { ageHours: number; local: boolean; drive: boolean; error: string | null } | null; watchdog?: { ageSeconds: number } | null };
     };
     // the switches are booleans; every background job must also be healthy

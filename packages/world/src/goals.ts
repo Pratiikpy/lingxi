@@ -34,6 +34,44 @@ export const GOAL_METRICS: readonly GoalMetric[] = ["saves", "hatched", "childre
 /** A new pet counts towards a goal once it has been saved on this many different days. */
 export const SETTLED_DAYS = 3;
 
+/**
+ * A wallet's saves count for at most this many pets a day (UTC, by block time): the most pets a player keeps (the
+ * game's roster). Hatching is free, so without it one wallet's saves would grow with every pet it hatched (A64).
+ */
+export const SAVES_PER_WALLET_DAY = 8;
+
+/** One counted thing, as the server's ledger and the recount both keep it. */
+export interface GoalCredit {
+  m: GoalMetric;
+  w: string;
+  n: number;
+  /** block time, seconds */
+  t: number;
+}
+
+/**
+ * What each wallet counts for in goal `g`: its credits in the goal's window, its saves at most SAVES_PER_WALLET_DAY a
+ * day, and the whole at most walletCap(g). The server's ledger and the recount script both count with this.
+ */
+export function goalCounts(g: Pick<GoalDef, "metric" | "start" | "end" | "target">, credits: readonly GoalCredit[]): Map<string, number> {
+  const by = new Map<string, number>();
+  const daily = new Map<string, number>();
+  for (const c of credits) {
+    if (c.m !== g.metric || c.t < g.start || c.t >= g.end) continue;
+    let n = c.n;
+    if (c.m === "saves") {
+      const day = `${c.w} ${Math.floor(c.t / 86_400)}`;
+      const so = daily.get(day) ?? 0;
+      n = Math.max(0, Math.min(n, SAVES_PER_WALLET_DAY - so));
+      daily.set(day, so + n);
+    }
+    if (n > 0) by.set(c.w, (by.get(c.w) ?? 0) + n);
+  }
+  // no wallet counts for more than its share, so no one finishes a goal alone
+  for (const [w, n] of by) by.set(w, Math.min(n, walletCap(g)));
+  return by;
+}
+
 /** The largest share of a goal's target one wallet's contributions count for. */
 export const WALLET_SHARE = 0.2;
 
@@ -45,8 +83,8 @@ export function walletCap(g: Pick<GoalDef, "target">): number {
 /** How each metric is counted, said plainly (the game's goal card and the numbers page say the same). */
 export const GOAL_METHOD: Readonly<Record<GoalMetric, Text>> = {
   saves: {
-    en: "Counts each day of a pet's life saved on X Layer (PetRegistry's Checkpoint, each day once), for the pet's owner. One wallet counts for at most a fifth of the goal.",
-    zh: "统计 X Layer 上保存的宠物的每一天（PetRegistry 的 Checkpoint，同一天只算一次），算在宠物主人名下。一个钱包最多算目标的五分之一。",
+    en: `Counts each day of a pet's life saved on X Layer (PetRegistry's Checkpoint, each day once), for the pet's owner, at most ${SAVES_PER_WALLET_DAY} a day for one wallet (the most pets a player keeps). One wallet counts for at most a fifth of the goal.`,
+    zh: `统计 X Layer 上保存的宠物的每一天（PetRegistry 的 Checkpoint，同一天只算一次），算在宠物主人名下，一个钱包一天最多算 ${SAVES_PER_WALLET_DAY} 次（一个玩家最多养的宠物数）。一个钱包最多算目标的五分之一。`,
   },
   hatched: {
     en: `Counts each new pet on X Layer, children included, once it has been saved on ${SETTLED_DAYS} different days (PetRegistry's Hatched and Checkpoint), for the wallet it was hatched for. One wallet counts for at most a fifth of the goal.`,

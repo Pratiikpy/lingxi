@@ -12,7 +12,8 @@
  * followed through the registry's Transfer events; each pet-day saved once (Checkpoint), for the owner then; a new
  * pet credited to the wallet it was hatched for at the Checkpoint that saves its SETTLED_DAYS-th different day;
  * each Bred to the child's owner; each Burned on Lingxi's BEM contracts to its payer; only events inside a goal's
- * window by block time; and no wallet counted beyond walletCap(goal).
+ * window by block time; a wallet's saves at most SAVES_PER_WALLET_DAY a day; and no wallet counted beyond
+ * walletCap(goal) (goalCounts, shared with the server).
  */
 
 import { readFileSync } from "node:fs";
@@ -20,7 +21,7 @@ import { type Address, createPublicClient, decodeEventLog, http, keccak256, pars
 import type { Deployment } from "../src/registry";
 import { XLAYER_ENDPOINTS, createPacedLogs } from "./lib/paced-logs";
 import { xLayer } from "../src/tapeout";
-import { GOALS, type GoalMetric, SETTLED_DAYS, walletCap } from "@lingxi/world";
+import { GOALS, type GoalMetric, SETTLED_DAYS, goalCounts } from "@lingxi/world";
 
 const arg = (n: string, f?: string) => {
   const i = process.argv.indexOf(`--${n}`);
@@ -197,9 +198,7 @@ async function main() {
     }
   }
   for (const g of GOALS) {
-    const by = new Map<string, number>();
-    for (const c of credits) if (c.m === g.metric && c.t >= g.start && c.t < g.end) by.set(c.w, (by.get(c.w) ?? 0) + c.n);
-    for (const [w, n] of by) by.set(w, Math.min(n, walletCap(g)));
+    const by = goalCounts(g, credits);
     const page = goalsPage.goals.find((x) => x.id === g.id);
     check(`goal ${g.id} total`, [...by.values()].reduce((s, n) => s + n, 0), page?.total ?? "absent");
     check(`goal ${g.id} contributors`, by.size, page?.contributors ?? "absent");

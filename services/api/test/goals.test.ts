@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import type { PublicClient } from "viem";
 import { GOALS, type GoalDef, SETTLED_DAYS, walletCap } from "@lingxi/world";
 import { createGoalLedger, reportGoals, withGoals } from "../src/goals";
+import { SAVES_PER_WALLET_DAY } from "@lingxi/world";
 
 const REG = "0x00000000000000000000000000000000000000c3";
 const BREEDER = "0x00000000000000000000000000000000000000d4";
@@ -118,6 +119,16 @@ describe("community goal ledger", () => {
     expect(walletCap(goal("g3", "children", 3))).toBe(1);
   });
 
+  it("a wallet's saves count for at most as many pets as a player keeps, each day (A64)", () => {
+    const g = goal("g1", "saves", 1_000);
+    const DAY = 86_400;
+    // twelve pets saved on day one and three on day two, all by one wallet
+    const saves = [...Array.from({ length: 12 }, (_, i) => ({ m: "saves" as const, w: ALICE, n: 1, b: i, t: DAY + i, tx: "0x" })), ...Array.from({ length: 3 }, (_, i) => ({ m: "saves" as const, w: ALICE, n: 1, b: 100 + i, t: 2 * DAY + i, tx: "0x" }))];
+    const [r] = reportGoals(saves, [g], 3 * DAY, [ALICE]);
+    expect(SAVES_PER_WALLET_DAY).toBe(8);
+    expect(r).toMatchObject({ total: 11, mine: 11 });
+  });
+
   it("a farm of fresh pets does not move the new-pets goal; only pets kept for days do", async () => {
     const FARM = "0x000000000000000000000000000000000000fa12";
     const logs: Log[] = [];
@@ -135,8 +146,9 @@ describe("community goal ledger", () => {
     await l.catchUp();
     const [hatched, saves] = reportGoals(l.entries(), [goal("g2", "hatched", 40), goal("g1", "saves", 150)], 1e9);
     expect(hatched!.total).toBe(0);
-    // forty pets each saved on one day: forty saves, of which one wallet counts for a fifth of the goal
-    expect(saves!.total).toBe(walletCap(goal("g1", "saves", 150)));
+    // forty pets each saved on the same day: one wallet's saves count for as many pets as a player keeps (A64)
+    expect(saves!.total).toBe(SAVES_PER_WALLET_DAY);
+    expect(SAVES_PER_WALLET_DAY).toBeLessThan(walletCap(goal("g1", "saves", 150)));
     expect(SETTLED_DAYS).toBe(3);
   });
 });

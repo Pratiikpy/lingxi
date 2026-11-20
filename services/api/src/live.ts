@@ -35,6 +35,8 @@ const MAX_CARD_FRAME = 2 * CARD_MAX + 1_024;
 /** A card may hold as many lessons as a pet can learn (it was 8, which dropped a well-taught pet's card, A26). */
 const CARD_RULES = MAX_LESSONS;
 const PROPOSAL_MS = 120_000;
+/** The most proposals one pet holds waiting for an answer (A64). */
+const MAX_PROPOSALS = 16;
 const SAY_MAX = 60;
 const NAME_MAX = 12;
 const LINES = new Set(["gentle", "bold", "curious"]);
@@ -390,7 +392,12 @@ export class LiveRooms {
       case "propose": {
         const target = this.peer(c, m.to);
         if (!target) return;
-        target.proposals.set(c.member.id, Date.now());
+        // a target keeps only recent proposals, and at most MAX_PROPOSALS, the oldest dropped (A64)
+        const now = Date.now();
+        for (const [who, at] of target.proposals) if (now - at > PROPOSAL_MS) target.proposals.delete(who);
+        target.proposals.delete(c.member.id);
+        target.proposals.set(c.member.id, now);
+        while (target.proposals.size > MAX_PROPOSALS) target.proposals.delete(target.proposals.keys().next().value!);
         const chain = chainInfo(m.chain);
         this.send(target, { t: "proposal", from: c.member.id, name: c.member.name, stage: c.member.stage, line: c.member.line, ...(chain ? { chain } : {}) });
         return;

@@ -25,6 +25,20 @@ export function clientIp(c: Context): string {
   }
 }
 
+/**
+ * A request made on this machine directly, not through the tunnel (A64): no `cf-connecting-ip`, which Cloudflare sets
+ * on every request it carries, and from a loopback socket. An in-process request (tests) has no socket and counts.
+ */
+export function directLocal(c: Context): boolean {
+  if (c.req.header("cf-connecting-ip") !== undefined) return false;
+  try {
+    const remote = getConnInfo(c).remote.address;
+    return remote === undefined || remote === "127.0.0.1" || remote === "::1" || remote === "::ffff:127.0.0.1";
+  } catch {
+    return true;
+  }
+}
+
 /** The eight 16-bit groups of an IPv6 address, an embedded IPv4 tail read as its two groups. */
 function groupsOf(v6: string): number[] {
   let text = v6.toLowerCase();

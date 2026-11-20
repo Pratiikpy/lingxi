@@ -385,3 +385,28 @@ describe("live rooms send a card once per change, limit asks, and let quiet conn
   });
 });
 
+describe("a pet's proposals stay few and fresh (A64)", () => {
+  it("a target keeps at most 16: the oldest is dropped, and a fresh one is still answered", async () => {
+    const t = await connect();
+    hello(t, "prop000", "room:36", "Mochi");
+    await t.next("room");
+    const ps = [] as Array<Awaited<ReturnType<typeof connect>>>;
+    for (let i = 1; i <= 18; i++) {
+      const p = await connect(undefined, `203.0.113.${100 + i}`);
+      hello(p, `prop${String(i).padStart(3, "0")}`, "room:36", `P${i}`);
+      await p.next("room");
+      ps.push(p);
+    }
+    for (const p of ps) {
+      p.ws.send(JSON.stringify({ t: "propose", to: idOf("prop000") }));
+      await t.next("proposal");
+    }
+    // the first proposer's proposal was dropped: an answer to it goes nowhere
+    t.ws.send(JSON.stringify({ t: "answer", to: idOf("prop001"), yes: false }));
+    await expect(ps[0]!.next("answer", 600)).rejects.toThrow();
+    // the newest is answered
+    t.ws.send(JSON.stringify({ t: "answer", to: idOf("prop018"), yes: false }));
+    expect(await ps[17]!.next("answer")).toMatchObject({ yes: false });
+    for (const p of [t, ...ps]) p.ws.close();
+  });
+});

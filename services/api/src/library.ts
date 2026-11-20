@@ -7,6 +7,11 @@
  * a client sends is dropped, never stored. Players can report a lesson: it is
  * hidden once reports from different addresses reach three and a third of the
  * players who learned it, so a few addresses cannot bury a lesson many learned.
+ *
+ * A full library makes room rather than closing (A64): a new share first removes a hidden lesson, then the oldest
+ * lesson nobody but its sharer learned; it is refused only when every lesson has been learned by someone else. One
+ * sharer holds at most MAX_PER_SHARER lessons nobody else learned: past that, their own oldest goes. A lesson others
+ * learned is never removed.
  */
 
 import { createHash } from "node:crypto";
@@ -28,12 +33,16 @@ export interface LibraryEntry {
   reportCount: number;
   /** who already counted a use, so one player can't inflate it, in a set of fixed size */
   users: SeenSet;
+  /** who shared it, as a hashed id; absent on lessons shared before it was kept */
+  from?: string;
 }
 
 /** The store is written this long after the last change, once a burst of changes is over. */
 const SAVE_DELAY_MS = 2_000;
 
 const MAX_ENTRIES = 5000;
+/** The most lessons one sharer holds that nobody else learned (A64). */
+const MAX_PER_SHARER = 50;
 /** Reports from different addresses that hide a lesson, at the least. */
 const HIDE_AT = 3;
 /** ...and at least this share of the players who learned it. */
@@ -61,7 +70,9 @@ export function cleanAuthor(name: string): string | null {
 
 export const hashId = (id: string) => createHash("sha256").update(`lingxi-library:${id}`).digest("hex").slice(0, 16);
 
-export function createLibrary(store?: string) {
+export function createLibrary(store?: string, limits: { max?: number; perSharer?: number } = {}) {
+  const max = limits.max ?? MAX_ENTRIES;
+  const perSharer = limits.perSharer ?? MAX_PER_SHARER;
   const entries = new Map<string, LibraryEntry>();
   if (store && existsSync(store)) {
     try {
@@ -93,8 +104,22 @@ export function createLibrary(store?: string) {
   // a name stored before the word check is shown as no name
   const view = (e: LibraryEntry) => ({ key: e.key, rule: e.rule, by: cleanAuthor(e.by) ?? "", uses: e.uses, firstAt: e.firstAt });
 
+  /** a lesson nobody but its sharer learned */
+  const solo = (e: LibraryEntry) => e.uses <= 1;
+  const oldest = (list: LibraryEntry[]) => list.reduce<LibraryEntry | null>((a, e) => (!a || e.firstAt < a.firstAt ? e : a), null);
+  /** What a new share from `from` removes to fit, if anything; not ok when nothing may go (A64). */
+  const roomFor = (from: string): { ok: true; drop: string | null } | { ok: false } => {
+    const all = [...entries.values()];
+    const mine = all.filter((e) => e.from === from && solo(e));
+    if (mine.length >= perSharer) return { ok: true, drop: oldest(mine)!.key };
+    if (entries.size < max) return { ok: true, drop: null };
+    const victim = oldest(all.filter((e) => !visible(e))) ?? oldest(all.filter(solo));
+    return victim ? { ok: true, drop: victim.key } : { ok: false };
+  };
+
   return {
     size: () => entries.size,
+    has: (key: string) => entries.has(key),
     /** Share a lesson (or count as a use if it is already there). */
     share(rule: Rule, by: string, who: string, now: number): { ok: true; key: string; isNew: boolean } | { ok: false; reason: "invalid" | "name" | "full" } {
       const author = cleanAuthor(by);
@@ -108,8 +133,11 @@ export function createLibrary(store?: string) {
         this.use(key, who);
         return { ok: true, key, isNew: false };
       }
-      if (entries.size >= MAX_ENTRIES) return { ok: false, reason: "full" };
-      entries.set(key, { key, rule: { when: rule.when, then: rule.then } as Rule, by: author, firstAt: now, uses: 1, reports: emptySeen(), reportCount: 0, users: addSeen(emptySeen(), hashId(who)) });
+      const from = hashId(who);
+      const room = roomFor(from);
+      if (!room.ok) return { ok: false, reason: "full" };
+      if (room.drop) entries.delete(room.drop);
+      entries.set(key, { key, rule: { when: rule.when, then: rule.then } as Rule, by: author, firstAt: now, uses: 1, reports: emptySeen(), reportCount: 0, users: addSeen(emptySeen(), from), from });
       save();
       return { ok: true, key, isNew: true };
     },

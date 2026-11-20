@@ -96,3 +96,55 @@ describe("the lesson library", () => {
     expect(createLibrary(file).list()).toEqual(lib.list());
   });
 });
+
+describe("a full library makes room instead of closing (A64)", () => {
+  // distinct lessons a pet can hold
+  const lessons = (n: number) => {
+    const out: Array<typeof share> = [];
+    for (let hunger = 0; hunger < 4 && out.length < n; hunger++)
+      for (let want = 0; want < 8 && out.length < n; want++)
+        for (let mood = 0; mood < 4 && out.length < n; mood++) {
+          const rule = { ...share, when: { hunger: [hunger] }, then: { want, mood } } as typeof share;
+          if (createLibrary().share(rule, "Bao", "probe", 0).ok) out.push(rule);
+        }
+    return out;
+  };
+  const keys = (lib: ReturnType<typeof createLibrary>) => new Set(lib.list(100).map((l) => l.key));
+
+  it("one sharer holds at most so many lessons nobody else learned: past that, their own oldest goes", () => {
+    const rules = lessons(4);
+    const lib = createLibrary(undefined, { max: 100, perSharer: 3 });
+    rules.forEach((r, i) => expect(lib.share(r, "Bao", "ip-a", i)).toMatchObject({ ok: true }));
+    expect(lib.size()).toBe(3);
+    expect(keys(lib).has(lessonKey(rules[0]!)), "the first went").toBe(false);
+  });
+
+  it("a hidden lesson goes first, then the oldest nobody else learned; a lesson others learned stays", () => {
+    const rules = lessons(8);
+    const lib = createLibrary(undefined, { max: 6, perSharer: 3 });
+    for (let i = 0; i < 3; i++) lib.share(rules[i]!, "Bao", "ip-a", i);
+    for (let i = 3; i < 6; i++) lib.share(rules[i]!, "Mochi", "ip-b", i);
+    // Mochi's first lesson is learned by someone else; one of Bao's is reported away
+    lib.use(lessonKey(rules[3]!), "ip-learner");
+    for (const r of ["r1", "r2", "r3"]) lib.report(lessonKey(rules[1]!), r);
+    expect(lib.share(rules[6]!, "Tofu", "ip-c", 10)).toMatchObject({ ok: true, isNew: true });
+    expect(lib.size()).toBe(6);
+    expect(lib.share(rules[7]!, "Tofu", "ip-c", 11)).toMatchObject({ ok: true, isNew: true });
+    const left = new Set([...Array(8).keys()].filter((i) => lib.has(lessonKey(rules[i]!))));
+    expect(left.has(1), "the hidden one went first").toBe(false);
+    expect(left.has(0), "then the oldest nobody else learned").toBe(false);
+    expect(left.has(3), "the one someone learned stays").toBe(true);
+    expect(left.has(6) && left.has(7)).toBe(true);
+  });
+
+  it("only when every lesson was learned by someone else is it full", () => {
+    const rules = lessons(3);
+    const lib = createLibrary(undefined, { max: 2, perSharer: 3 });
+    for (let i = 0; i < 2; i++) {
+      lib.share(rules[i]!, "Bao", "ip-a", i);
+      lib.use(lessonKey(rules[i]!), `ip-learner-${i}`);
+    }
+    expect(lib.share(rules[2]!, "Tofu", "ip-c", 5)).toEqual({ ok: false, reason: "full" });
+    expect(lib.has(lessonKey(rules[0]!)) && lib.has(lessonKey(rules[1]!))).toBe(true);
+  });
+});

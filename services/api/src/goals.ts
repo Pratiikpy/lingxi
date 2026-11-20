@@ -2,7 +2,8 @@
  * Community goals (plan 4.10): every contribution read from X Layer. One walk over the pet registry, the BEM
  * breeder and the BEM market, in the public nodes' 100-block windows, keeps a ledger of what each wallet did:
  *
- *   saves     PetRegistry Checkpoint   each pet-day once (a day saved again does not count), for the pet's owner then
+ *   saves     PetRegistry Checkpoint   each pet-day once (a day saved again does not count), for the pet's owner then,
+ *                                      at most SAVES_PER_WALLET_DAY a day for one wallet (goalCounts)
  *   hatched   PetRegistry Hatched      a new pet (a child is hatched too), counted when it is settled: at the
  *                                      Checkpoint that saves its SETTLED_DAYS-th different day, for the wallet it
  *                                      was hatched for
@@ -19,7 +20,7 @@ import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import type { Hono } from "hono";
 import { GoalsQuery } from "@lingxi/api-schema";
 import { type Address, type PublicClient, createPublicClient, http, parseAbiItem } from "viem";
-import { GOALS, type GoalDef, type GoalMetric, SETTLED_DAYS, goalState, tiersReached, walletCap } from "@lingxi/world";
+import { GOALS, type GoalDef, type GoalMetric, SETTLED_DAYS, goalCounts, goalState, tiersReached, walletCap } from "@lingxi/world";
 import { WINDOW } from "./indexer";
 
 export const GOAL_EVENTS = [
@@ -191,10 +192,8 @@ export function reportGoals(entries: readonly Entry[], goals: readonly GoalDef[]
   const mineSet = new Set(wallets.map((w) => w.toLowerCase()));
   return goals.map((g) => {
     const cap = walletCap(g);
-    const by = new Map<string, number>();
-    for (const e of entries) if (e.m === g.metric && e.t >= g.start && e.t < g.end) by.set(e.w, (by.get(e.w) ?? 0) + e.n);
-    // no wallet counts for more than its share, so no one finishes a goal alone
-    for (const [w, n] of by) by.set(w, Math.min(n, cap));
+    // a wallet's saves at most SAVES_PER_WALLET_DAY a day, and no wallet past its share (shared with the recount)
+    const by = goalCounts(g, entries);
     const total = [...by.values()].reduce((s, n) => s + n, 0);
     const top = [...by.entries()]
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))

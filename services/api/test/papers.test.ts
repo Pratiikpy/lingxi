@@ -71,3 +71,21 @@ describe("adoption papers are limited per address before any chain read (A52)", 
     expect(reads).toBe(2);
   });
 });
+
+describe("the papers store writes safely (A64)", () => {
+  it("a write that fails part way leaves the papers already kept whole", async () => {
+    const { mkdtempSync, mkdirSync, readFileSync, rmSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const file = join(mkdtempSync(join(tmpdir(), "papers-")), "papers.json");
+    const store = createPapersStore(file);
+    store.put("7", { papers, signer: owner.address, at: 1 });
+    // the next write cannot be made (its temporary file is in the way), as when the disk fills or the process dies
+    mkdirSync(`${file}.tmp`);
+    expect(() => store.put("8", { papers, signer: owner.address, at: 2 })).not.toThrow();
+    expect(Object.keys(JSON.parse(readFileSync(file, "utf8")) as object), "the file still holds what was kept").toEqual(["7"]);
+    rmSync(`${file}.tmp`, { recursive: true });
+    store.put("9", { papers, signer: owner.address, at: 3 });
+    expect(Object.keys(createPapersStore(file).get("9") ?? {}).length, "and later writes go through").toBeGreaterThan(0);
+  });
+});
