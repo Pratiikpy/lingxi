@@ -1,0 +1,11 @@
+--- a/services/api/src/season.ts
++++ b/services/api/src/season.ts
+@@ -164,7 +164,7 @@ export function createSeasonStore(file?: string, now: () => number = Date.now, s
+       if (at < 0 && entries.length >= MAX_ENTRIES) return { ok: false, reason: "full" };
+       if (at < 0 && opts.agent && entries.filter((e) => e.agent).length >= MAX_AGENT_ENTRIES) return { ok: false, reason: "agentsFull" };
+       // an address holds a few entries, and its IPv6 /48 four addresses' worth, so one network cannot fill the week (A117)
+-      if (at < 0 && opts.from && heldOver(Object.values(from), opts.from, MAX_ENTRIES_PER_ADDRESS)) return { ok: false, reason: "tooMany" };
++      if (at < 0 && opts.from && Object.values(from).filter((a) => a === opts.from).length >= MAX_ENTRIES_PER_ADDRESS) return { ok: false, reason: "tooMany" };
+       const entry: SeasonEntry = { key, pet: v.pet, at: t, ...(opts.agent ? { agent: opts.agent } : {}) };
+       entries = at < 0 ? [...entries, entry] : entries.map((e, i) => (i === at ? entry : e));
+       if (opts.petId) pets[key] = opts.petId;
