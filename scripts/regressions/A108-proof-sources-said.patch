@@ -1,0 +1,11 @@
+--- a/apps/web/src/verify/Endpoints.tsx
++++ b/apps/web/src/verify/Endpoints.tsx
+@@ -9,7 +9,7 @@ import { checkOwnRpc, endpoints, useProofRpc } from "../game/proofRpc";
+ const T = {
+   en: {
+     title: "Where these proofs come from",
+-    lede: "Every read of X Layer on this page comes from your browser: your own RPC first if you add one, then X Layer's public RPCs, and Lingxi's server only if all of those fail. Three things come from Lingxi's server instead: Sourcify's verdicts on the contracts (each row links to Sourcify itself), a pet's history (each row links to its transaction on X Layer) and its published diary (checked against X Layer before it is shown).",
++    lede: "Every read of X Layer on this page comes from your browser: your own RPC first if you add one, then X Layer's public RPCs, and Lingxi's server only if all of those fail. Every check on this page reads X Layer from your browser. Also: Sourcify's verdicts on the contracts (each row links to Sourcify itself), a pet's history (each row links to its transaction on X Layer) and its published diary (checked against X Layer before it is shown).",
+     asked: "Asked, in order",
+     answered: "Answered so far",
+     none: "nothing yet",
