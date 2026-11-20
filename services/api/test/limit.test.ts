@@ -10,12 +10,53 @@ describe("the per-address limiter", () => {
 
   it("holds at most so many addresses, so a crowd of new ones cannot grow it without end", () => {
     const l = new RateLimiter(5, 3_600_000, 1_000);
-    for (let i = 0; i < 25_000; i++) l.take(`10.0.${i >> 8}.${i & 255}`, i);
+    for (let i = 0; i < 4; i++) l.take("busy", i);
+    for (let i = 0; i < 25_000; i++) l.take(`10.0.${i >> 8}.${i & 255}`, 10 + i);
     expect(l.size()).toBeLessThanOrEqual(1_000);
-    // the address seen most recently is still remembered, and still limited
-    for (let i = 0; i < 4; i++) l.take("busy", 30_000 + i);
+    // an address that came before the crowd is still remembered, and still limited (A113)
     expect(l.take("busy", 30_010)).toBe(true);
     expect(l.take("busy", 30_011)).toBe(false);
+  });
+});
+
+describe("no flood of callers resets a limit while its window runs (A113)", () => {
+  const HOUR = 3_600_000;
+  const net = (i: number) => `2001:db8:9:${i.toString(16)}::/64`;
+
+  it("a refused caller with nothing in its window is not remembered", () => {
+    const l = new RateLimiter(2, HOUR, 1_000);
+    // the /48's share is spent by its first eight /64s; every later /64 is refused and leaves nothing behind
+    for (let i = 0; i < 500; i++) l.take(net(i), i);
+    expect(l.size(), "eight /64s with hits and the /48 itself").toBe(2 * PREFIX_SHARE + 1);
+  });
+
+  it("when full, keys whose window has passed go first, and a caller still in its window keeps its count", () => {
+    const l = new RateLimiter(2, 1_000, 10);
+    for (let i = 0; i < 9; i++) l.take(`10.1.0.${i}`, 0);
+    expect([l.take("victim", 500), l.take("victim", 501), l.take("victim", 502)]).toEqual([true, true, false]);
+    // the nine early callers' windows have passed; nine newcomers take their places
+    for (let i = 0; i < 9; i++) expect(l.take(`10.2.0.${i}`, 1_200)).toBe(true);
+    expect(l.take("victim", 1_201), "still refused: its window runs to 1,500").toBe(false);
+  });
+
+  it("when every key is still in its window, a newcomer waits rather than reset anyone", () => {
+    const l = new RateLimiter(2, 1_000, 10);
+    expect([l.take("victim", 0), l.take("victim", 1), l.take("victim", 2)]).toEqual([true, true, false]);
+    for (let i = 0; i < 9; i++) l.take(`10.3.0.${i}`, 10);
+    for (let i = 0; i < 5_000; i++) expect(l.take(`10.4.${i >> 8}.${i & 255}`, 20)).toBe(false);
+    expect(l.take("victim", 30), "the flood did not reset it").toBe(false);
+    expect(l.size()).toBe(10);
+    // once windows pass, newcomers are let in again
+    expect(l.take("10.5.0.1", 1_011)).toBe(true);
+  });
+
+  it("one /48 cannot fill the limiter: it adds at most its share of callers in a window", () => {
+    const l = new RateLimiter(5, HOUR, 50_000);
+    for (let i = 0; i < 50_000; i++) l.take(net(i), i);
+    expect(l.size()).toBeLessThanOrEqual(5 * PREFIX_SHARE + 1);
+    l.take("198.51.100.9", 60_000);
+    for (let i = 0; i < 4; i++) l.take("198.51.100.9", 60_001 + i);
+    expect(l.take("198.51.100.9", 60_010), "an IPv4 caller's count holds").toBe(false);
   });
 });
 

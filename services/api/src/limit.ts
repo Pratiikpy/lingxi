@@ -1,8 +1,10 @@
 /**
  * A per-key sliding-window limiter: at most `max` requests per `windowMs`. It remembers at most `maxKeys` keys, so a
- * crowd of addresses each seen once cannot grow it without end: when full, the key seen least recently is forgotten
- * (a forgotten key starts afresh, which a crowd of rotating addresses already does; the limits that guard spending
- * are shared ceilings, not per-address ones).
+ * crowd of addresses each seen once cannot grow it without end, and no crowd can make it forget a key whose window
+ * still runs (A113): a refused caller with nothing in its window is not remembered at all; when full, keys whose window
+ * has passed are let go first, least recently seen first; and when every key is still in its window, a newcomer is
+ * refused until one passes, rather than reset someone else's count. One IPv6 /48 cannot fill it: its share (A83) lets
+ * it add at most `max x PREFIX_SHARE` keys in a window.
  */
 export class RateLimiter {
   /** key → its recent request times, ordered from the key seen least recently to the one seen most recently */
@@ -18,13 +20,15 @@ export class RateLimiter {
     const prefix = prefixOf(key);
     const own = this.recent(key, now);
     const shared = prefix === null ? null : this.recent(prefix, now);
-    const ok = own.length < this.max && (shared === null || shared.length < this.max * PREFIX_SHARE);
+    let ok = own.length < this.max && (shared === null || shared.length < this.max * PREFIX_SHARE);
+    // a key that would be new needs a free place: one whose window has passed, never one still counting
+    if (ok && !this.room(key, prefix, now)) ok = false;
     if (ok) {
       own.push(now);
       shared?.push(now);
     }
-    this.keep(key, own);
-    if (prefix !== null) this.keep(prefix, shared!);
+    this.keep(key, own, ok);
+    if (prefix !== null) this.keep(prefix, shared!, ok);
     return ok;
   }
 
@@ -33,11 +37,29 @@ export class RateLimiter {
     return held ? held.filter((t) => now - t < this.windowMs) : [];
   }
 
-  /** remembered at the most-recent end; when full, the key seen least recently is forgotten */
-  private keep(key: string, times: number[]): void {
-    if (this.hits.has(key)) this.hits.delete(key);
-    else while (this.hits.size >= this.maxKeys) this.hits.delete(this.hits.keys().next().value!);
-    this.hits.set(key, times);
+  /** whether every key this request would add fits, after letting go of keys whose window has passed */
+  private room(key: string, prefix: string | null, now: number): boolean {
+    const adding = (this.hits.has(key) ? 0 : 1) + (prefix !== null && !this.hits.has(prefix) ? 1 : 0);
+    if (this.hits.size + adding <= this.maxKeys) return true;
+    // least recently seen first: once one still counts, the rest were seen later and count too
+    for (const [k, times] of this.hits) {
+      if (this.hits.size + adding <= this.maxKeys) break;
+      if (times.some((t) => now - t < this.windowMs)) break;
+      this.hits.delete(k);
+    }
+    return this.hits.size + adding <= this.maxKeys;
+  }
+
+  /**
+   * A key with nothing in its window is let go rather than kept. A request that counted moves its key to the
+   * most-recent end; a refused one leaves it where it is, so the order is always the order of last counted requests.
+   */
+  private keep(key: string, times: number[], counted: boolean): void {
+    if (!times.length) this.hits.delete(key);
+    else if (counted) {
+      this.hits.delete(key);
+      this.hits.set(key, times);
+    } else if (this.hits.has(key)) this.hits.set(key, times);
   }
 
   /** How many keys are remembered. */
