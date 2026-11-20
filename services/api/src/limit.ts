@@ -99,7 +99,8 @@ export function heldOver(owners: Iterable<string>, who: string, cap: number): bo
  * A ceiling for everyone together, shared fairly (A83): at most `max` in any `windowMs`, and while several callers ask,
  * one past its share (the ceiling over the callers active in the window) is refused even when there is room, so the
  * room that opens as old calls age goes to those under their share. A caller alone may use the whole ceiling; three
- * callers running hot cannot shut out a fourth for longer than it takes their calls to age past their share.
+ * callers running hot cannot shut out a fourth for longer than it takes their calls to age past their share. An IPv6
+ * caller shares as its /48 (A116): a network asking from thousands of /64s is one asker, never thousands.
  */
 export class FairCeiling {
   /** every call in the window, oldest first, from `head` */
@@ -114,7 +115,8 @@ export class FairCeiling {
     private readonly maxKeys = 50_000,
   ) {}
 
-  take(key: string, now = Date.now()): boolean {
+  take(caller: string, now = Date.now()): boolean {
+    const key = prefixOf(caller) ?? caller;
     this.age(now);
     this.askers.delete(key);
     while (this.askers.size >= this.maxKeys) this.askers.delete(this.askers.keys().next().value!);

@@ -113,4 +113,28 @@ describe("a ceiling for everyone is shared fairly (A83)", () => {
     const got = Array.from({ length: 12 }, (_, i) => c.take("solo", i)).filter(Boolean).length;
     expect(got).toBe(10);
   });
+
+  it("one /48 asking from thousands of /64s is one asker, so two players still get their share (A116)", () => {
+    const c = new FairCeiling(1_800, 60_000);
+    let served = 0;
+    for (let i = 0; i < 2_400; i++) if (c.take(`2001:db8:48:${i.toString(16)}::/64`, i / 10)) served++;
+    expect(served, "the /48 alone may use the whole ceiling while no one else asks").toBe(1_800);
+    // two honest players arrive within the minute; the /48 keeps asking
+    let honest = 0;
+    for (let i = 0; i < 30; i++) {
+      c.take(`2001:db8:48:${(3_000 + i).toString(16)}::/64`, 300 + i);
+      if (c.take("198.51.100.1", 300 + i)) honest++;
+      if (c.take("2001:db8:99:1::/64", 300 + i)) honest++;
+    }
+    expect(c.inWindow(330)).toBeLessThanOrEqual(1_800);
+    // while the ceiling is full nobody is served; as the /48's calls age, the two players are served first
+    let later = 0;
+    for (let i = 0; i < 600; i++) {
+      const t = 60_000 + i * 10;
+      c.take(`2001:db8:48:${(5_000 + i).toString(16)}::/64`, t);
+      if (c.take("198.51.100.1", t)) later++;
+      if (c.take("2001:db8:99:1::/64", t)) later++;
+    }
+    expect(honest + later, "the two players were served").toBeGreaterThan(400);
+  });
 });
