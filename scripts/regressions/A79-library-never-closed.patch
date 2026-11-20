@@ -1,0 +1,11 @@
+--- a/services/api/src/library.ts
++++ b/services/api/src/library.ts
+@@ -119,7 +119,7 @@ export function createLibrary(store?: string, limits: { max?: number; perSharer?
+     const hidden = oldest(all.filter((e) => !visible(e)));
+     if (hidden) return { ok: true, drop: hidden.key };
+     // the fewest learners, then the quietest: two addresses can no longer hold a lesson against everyone else
+-    const least = all.reduce<LibraryEntry | null>((a, e) => (!a || e.uses < a.uses || (e.uses === a.uses && quiet(e) < quiet(a)) ? e : a), null);
++    const least = oldest(all.filter(solo));
+     return least ? { ok: true, drop: least.key } : { ok: false };
+   };
+ 

@@ -1306,5 +1306,11 @@
     "row": "A78",
     "bug": "a card entered in the season or the arena kept its sender's padding",
     "test": { "kind": "vitest", "dir": "services/api", "file": "test/heavyReads.test.ts", "name": "a padded card entered in the season or the arena is kept in its own shape" }
+  },
+  {
+    "id": "A79-library-never-closed",
+    "row": "A79",
+    "bug": "two addresses could pin every lesson and close the library for good",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/library.test.ts", "name": "two addresses cannot close it: with every lesson used by a second address, an honest share still gets in (A79)" }
   }
 ]
