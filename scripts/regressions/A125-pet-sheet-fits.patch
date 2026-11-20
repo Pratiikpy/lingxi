@@ -1,0 +1,14 @@
+--- a/apps/web/src/play/play.css
++++ b/apps/web/src/play/play.css
+@@ -1034,10 +1034,9 @@
+ /* the level, its bar and the skills button wrap on a narrow phone rather than push the sheet sideways (A125) */
+ .lv {
+   display: inline-flex;
+-  flex-wrap: wrap;
++  flex-wrap: nowrap;
+   align-items: center;
+   gap: 6px 8px;
+-  max-width: 100%;
+   font-family: var(--display);
+ }
+ .lv-skills {

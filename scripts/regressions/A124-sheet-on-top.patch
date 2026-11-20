@@ -1,0 +1,11 @@
+--- a/apps/web/src/play/Sheets.tsx
++++ b/apps/web/src/play/Sheets.tsx
+@@ -23,7 +23,7 @@ export function Sheet({ open, title, onClose, children }: { open: boolean; title
+   const closeRef = useRef<HTMLButtonElement>(null);
+   // how many sheets were already open when this one opened: it is drawn above them, whatever their order on the page
+   // (a sheet earlier on the page, such as the skills, opened from a later one, such as the pet's, sat beneath it, A124)
+-  const depth = useMemo(() => (open ? openSheets.length : 0), [open]);
++  const depth = useMemo(() => (open ? 0 : 0), [open]);
+   useEffect(() => {
+     if (!open) return;
+     const prev = document.activeElement as HTMLElement | null;
