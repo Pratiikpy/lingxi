@@ -209,11 +209,11 @@ Every number below is counted by `scripts/readme-facts.mts` from the suites them
 | Contracts, unit, fuzz and invariant | `cd contracts && forge test` | <!--f:forge-unit-->254<!--/f--> |
 | Contracts on a fork of X Layer mainnet (reads only) | `cd contracts && forge test --fork-url xlayer --match-path 'test/*.fork.t.sol'` | <!--f:forge-fork-->75<!--/f--> |
 | The server, with its fork tests on a pinned fork of X Layer (reads only) | `pnpm test:fork` | <!--f:tests-api-fork-->214<!--/f--> |
-| End to end: the game in real browsers, against a fork of X Layer | `pnpm e2e` | <!--f:e2e-->105<!--/f--> tests in <!--f:e2e-specs-->39<!--/f--> specs (listed here; CI runs every one on each push) |
+| End to end: the game in real browsers, against a fork of X Layer | `pnpm e2e` | <!--f:e2e-->106<!--/f--> tests in <!--f:e2e-specs-->39<!--/f--> specs (listed here; CI runs every one on each push) |
 
 `pnpm status:check` runs all of it, plus lint, the type check, the repo's hygiene checks and whether the live site serves the current commit.
 
-Every fix the audits asked for has a patch that undoes it and the test that must then fail: <!--f:regressions-->190<!--/f--> pairs, and `pnpm revert:check` applies each patch to a clean copy and proves its test fails. CI runs it on every push for the pairs the push adds or changes, and on all of them every night. `pnpm coverage` holds the rules packages, the game's four stores, the server (with its fork tests) and every contract to at least 80% of lines and of branches, and CI fails below that.
+Every fix the audits asked for has a patch that undoes it and the test that must then fail: <!--f:regressions-->192<!--/f--> pairs, and `pnpm revert:check` applies each patch to a clean copy and proves its test fails. CI runs it on every push for the pairs the push adds or changes, and on all of them every night. `pnpm coverage` holds the rules packages, the game's four stores, the server (with its fork tests) and every contract to at least 80% of lines and of branches, and CI fails below that.
 
 The handheld's C core is checked against the game bit for bit: every input and memory state of the starter brains (16.7 million for the gentle one), the evolution, seal and rule circuits, composed children and instincts, pet #1's 33-word mainnet log, and hundreds of random trips through sickness, hibernation and the catch-up limit; its USB link is tested against the game's own client.
 

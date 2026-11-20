@@ -1,0 +1,11 @@
+--- a/services/api/src/consents.ts
++++ b/services/api/src/consents.ts
+@@ -104,7 +104,7 @@ export function createConsentIndex(opts: ConsentIndexOptions) {
+           const key = `${l.address.toLowerCase()} ${a.partnerOwner.toLowerCase()}`;
+           const given = (data.pets[pet] ??= {});
+           if (a.allowed) given[key] = { block: Number(l.blockNumber), index: Number(l.logIndex), tx: l.transactionHash! };
+-          else {
++          else if (false) {
+             delete given[key];
+             if (!Object.keys(given).length) delete data.pets[pet];
+           }

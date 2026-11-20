@@ -1138,5 +1138,17 @@
     "row": "A62",
     "bug": "a proof the server could not check was entered unproven and blamed on the pet's mind",
     "test": { "kind": "e2e", "spec": "e2e/specs/season.spec.ts", "title": "a proof the server cannot check just now enters nothing and says to try again (en, light, phone) (A62)" }
+  },
+  {
+    "id": "A63-consent-withdrawn-unlisted",
+    "row": "A63",
+    "bug": "a withdrawn breeding consent stayed in the server's list",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/consents.test.ts", "name": "keeps its place across a restart" }
+  },
+  {
+    "id": "A63-consent-withdraw",
+    "row": "A63",
+    "bug": "a breeding consent could not be withdrawn and stood on chain with no expiry",
+    "test": { "kind": "e2e", "spec": "e2e/specs/birth-on-chain.spec.ts", "title": "a consent given in a room is listed from X Layer and can be withdrawn (en light phone proposes, zh dark desktop agrees) (A63)" }
   }
 ]

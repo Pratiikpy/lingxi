@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/chain.ts
++++ b/apps/web/src/game/chain.ts
+@@ -496,7 +496,7 @@ export const useChain = create<ChainState>((set, get) => ({
+     try {
+       const wallet = await connectWallet();
+       set({ busy: "saving" });
+-      await withdrawConsentOnChain(publicClient, wallet, c.breeder, BigInt(r.petId), c.partner);
++      void withdrawConsentOnChain;
+       setGiven(petKey(pet), (given[petKey(pet)] ?? []).filter((x) => !sameConsent(x, c)));
+       set({ busy: "idle" });
+       return true;
