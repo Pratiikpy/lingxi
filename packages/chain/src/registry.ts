@@ -3,7 +3,7 @@
  * any viem wallet client (an injected wallet, Privy, or a local key in tests).
  */
 
-import { WaitForTransactionReceiptTimeoutError, keccak256, type Address, type Hex, type PublicClient, type WalletClient } from "viem";
+import { WaitForTransactionReceiptTimeoutError, keccak256, type Address, type Hex, type PublicClient, type WalletClient, TransactionNotFoundError, TransactionReceiptNotFoundError, type TransactionReceipt } from "viem";
 import { LOOK_LINES } from "./look";
 import { petLookAbi } from "./lookAbi";
 import { hatchedPetIdFrom, RevertedOnChain } from "./receipts";
@@ -156,13 +156,33 @@ export class StillPending extends Error {
 }
 
 /**
+ * A sent transaction as the chain says it is (A82): its receipt once mined; "pending" while the node knows it but has
+ * not mined it; "unknown" only when the node answers that it knows no such transaction. A node that fails to answer
+ * throws, so a caller asks again later and never takes a failed read for a transaction that was never sent.
+ */
+export async function sentState(pub: PublicClient, tx: Hex): Promise<TransactionReceipt | "pending" | "unknown"> {
+  try {
+    return await pub.getTransactionReceipt({ hash: tx });
+  } catch (e) {
+    if (!(e instanceof TransactionReceiptNotFoundError)) throw e;
+  }
+  try {
+    await pub.getTransaction({ hash: tx });
+    return "pending";
+  } catch (e) {
+    if (e instanceof TransactionNotFoundError) return "unknown";
+    throw e;
+  }
+}
+
+/**
  * What became of a hatch sent earlier (A30): its pet once mined, "failed" if X Layer turned it down, "pending" while
  * the node knows the transaction but has not mined it, "unknown" when the node knows nothing of it (not yet seen, or
  * dropped).
  */
 export async function hatchOutcome(pub: PublicClient, d: Deployment, tx: Hex, owner: Address): Promise<{ petId: bigint } | "failed" | "pending" | "unknown"> {
-  const r = await pub.getTransactionReceipt({ hash: tx }).catch(() => null);
-  if (!r) return (await pub.getTransaction({ hash: tx }).catch(() => null)) ? "pending" : "unknown";
+  const r = await sentState(pub, tx);
+  if (r === "pending" || r === "unknown") return r;
   if (r.status !== "success") return "failed";
   return { petId: hatchedPetIdFrom(r, d.registry, owner) };
 }

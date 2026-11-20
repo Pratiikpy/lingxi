@@ -22,6 +22,7 @@ const ERR: Record<string, Key> = {
   notKeeping: "chain.notKeeping",
   revertedOnChain: "chain.revertedOnChain",
   hatchPending: "chain.hatchPending",
+  hatchUnchecked: "chain.hatchUnchecked",
   badAddress: "sit.badAddress",
   badDays: "sit.badDays",
   selfSitter: "sit.self",

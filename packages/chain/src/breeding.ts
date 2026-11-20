@@ -9,7 +9,7 @@
 
 import { type Address, type Hex, type PublicClient, type TransactionReceipt, type WalletClient, WaitForTransactionReceiptTimeoutError, erc20Abi, parseAbi, parseEventLogs } from "viem";
 import { breederAbi } from "./breederAbi";
-import { RECEIPT_TIMEOUT_MS, StillPending, readPet } from "./registry";
+import { RECEIPT_TIMEOUT_MS, StillPending, readPet, sentState } from "./registry";
 import { breederV2Abi } from "./breederV2Abi";
 
 /** The breeder's ABI plus the BEM token's own errors, so a payment refusal is named, not shown as a raw selector. */
@@ -148,8 +148,8 @@ function bornIn(r: TransactionReceipt): bigint | null {
  * the node knows the transaction but has not mined it, "unknown" when the node knows nothing of it.
  */
 export async function birthOutcome(pub: PublicClient, tx: Hex): Promise<{ childId: bigint } | "failed" | "pending" | "unknown"> {
-  const r = await pub.getTransactionReceipt({ hash: tx }).catch(() => null);
-  if (!r) return (await pub.getTransaction({ hash: tx }).catch(() => null)) ? "pending" : "unknown";
+  const r = await sentState(pub, tx);
+  if (r === "pending" || r === "unknown") return r;
   const childId = r.status === "success" ? bornIn(r) : null;
   return childId === null ? "failed" : { childId };
 }

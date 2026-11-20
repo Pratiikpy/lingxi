@@ -396,6 +396,28 @@ describe("the chain store: keeping a pet on X Layer", () => {
     expect(mined(p, "hatch")).toHaveLength(1);
   });
 
+  it("a hatch whose check fails while X Layer is down is never taken for one that was not sent, however long ago (A82)", async () => {
+    const p = await open();
+    p.xl.node.holdReceipts = true;
+    await settle(p.c().keep(p.pet()), 1_000, 400);
+    expect(p.c().error).toBe("hatchPending");
+    // past the half hour after which a hatch the chain knows nothing of is let go, X Layer stops answering
+    vi.advanceTimersByTime(31 * MIN);
+    p.xl.node.down = true;
+    await settle(p.c().keep(p.pet()), 1_000, 400);
+    expect(p.c().record).toBeNull();
+    expect(p.c().error, "the player is told the check could not be made, and that nothing new was sent").toBe("hatchUnchecked");
+    expect(panelSays("chain.hatchUnchecked")[0]).toMatch(/Nothing new was sent/);
+    expect(panelSays("chain.hatchUnchecked")[1]).toMatch(/没有再发新的/);
+    expect(mined(p, "hatch"), "and no second hatch was sent").toHaveLength(1);
+    // X Layer answers again and tells of the hatch: it is recorded, still with one hatch
+    p.xl.node.down = false;
+    p.xl.node.holdReceipts = false;
+    await settle(p.c().keep(p.pet()));
+    expect(p.c()).toMatchObject({ error: null, record: { petId: "41" } });
+    expect(mined(p, "hatch")).toHaveLength(1);
+  });
+
   it("a hatch that failed on chain while it was waiting lets a new one go (A30)", async () => {
     const p = await open();
     p.x.rules.revertMined = "hatch";
@@ -959,6 +981,27 @@ describe("the chain store: a family on chain", () => {
     expect(p.relayed).toHaveLength(1);
     expect(p.chain.recordOf(child)).toMatchObject({ petId: "42", owner: OWNER, brains: { "[]": "77" } });
     expect(p.storage.getItem(BIRTHS) ?? "{}").toBe("{}");
+  });
+
+  it("a birth whose check fails while X Layer is down is kept, past the half hour, and no second birth is sent (A82)", async () => {
+    const p = await open();
+    await kept(p);
+    const partner = partnerOnChain(p);
+    approvedBefore(p);
+    p.xl.node.holdReceipts = true;
+    expect(await settle(p.c().breed(p.pet(), partner, childOf(p.pet())), 1_000, 400)).toEqual({ ok: false, reason: "birthPending" });
+    vi.advanceTimersByTime(31 * MIN);
+    p.xl.node.down = true;
+    expect(await settle(p.c().breed(p.pet(), partner, childOf(p.pet())), 1_000, 400)).toEqual({ ok: false, reason: "birthUnchecked" });
+    // the welcome on the next visit asks too, and keeps the birth while X Layer cannot answer
+    expect(await settle(p.c().finishBirths())).toEqual([]);
+    expect(Object.keys(JSON.parse(p.storage.getItem(BIRTHS)!)), "the birth is still kept").toHaveLength(1);
+    expect(mined(p, "breed")).toHaveLength(1);
+    p.xl.node.down = false;
+    p.xl.node.holdReceipts = false;
+    const r = await settle(p.c().breed(p.pet(), partner, childOf(p.pet())));
+    expect(r.ok).toBe(true);
+    expect(mined(p, "breed"), "still one birth").toHaveLength(1);
   });
 
   it("a birth refused on chain while it waited lets a new one go (A48)", async () => {

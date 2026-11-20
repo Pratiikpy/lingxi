@@ -6,7 +6,7 @@
  */
 
 import { create } from "zustand";
-import { type Address, type Hex, formatUnits, parseUnits } from "viem";
+import { type Address, type Hex, formatUnits, parseUnits, TransactionReceiptNotFoundError } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { type ClaimView, XLAYER_USDT, claimPacket, collectPacket, createPacket, createdIn, nextPacketId, owedOf, pendingOf, readPacket, refundPacket, revealPacket, signClaim, tokenBalance } from "@lingxi/chain";
 import { b64urlDecode, b64urlEncode } from "@lingxi/brain";
@@ -156,13 +156,16 @@ export const usePackets = create<PacketStore>((set, get) => {
       // kept in storage until it can be written again; found again next time, and listed once
     }
   };
-  /** the packet a kept key opens, among those made since it was kept; null if none carries it yet */
+  /**
+   * the packet a kept key opens, among those made since it was kept; null only when the chain answered for every one of
+   * them and none carries it (A82): a packet that could not be read throws, so the key is kept and asked again
+   */
   const byKey = async (p: PendingPacket): Promise<bigint | null> => {
     const end = await nextPacketId(publicClient, deployment!);
     const last = BigInt(p.fromId) + BigInt(SCAN_LIMIT);
     for (let id = BigInt(p.fromId); id < end && id < last; id++) {
-      const v = await readPacket(publicClient, deployment!, id).catch(() => null);
-      if (v && v.key.toLowerCase() === p.keyAddress.toLowerCase() && v.sender.toLowerCase() === p.sender.toLowerCase()) return id;
+      const v = await readPacket(publicClient, deployment!, id);
+      if (v.key.toLowerCase() === p.keyAddress.toLowerCase() && v.sender.toLowerCase() === p.sender.toLowerCase()) return id;
     }
     return null;
   };
@@ -175,7 +178,8 @@ export const usePackets = create<PacketStore>((set, get) => {
     if (!deployment?.redPacket) return;
     for (const p of get().pending) {
       try {
-        const receipt = p.tx ? await publicClient.getTransactionReceipt({ hash: p.tx }).catch(() => null) : null;
+        // no receipt yet is an answer; a node that fails to answer throws, and the key is asked about again (A82)
+        const receipt = p.tx ? await publicClient.getTransactionReceipt({ hash: p.tx }).catch((e: unknown) => (e instanceof TransactionReceiptNotFoundError ? null : Promise.reject(e))) : null;
         const made = receipt?.status === "success" ? createdIn(receipt.logs) : null;
         if (made !== null) {
           found(p, made);

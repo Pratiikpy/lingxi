@@ -28,7 +28,8 @@ function contracts() {
   const held = new Map<string, bigint>([[lower(SENDER), 100_000_000n]]);
   // a sender who has sent a packet before: the contract may already spend its USDT, so only the packet is sent
   const allowances = new Map<string, bigint>([[`${lower(SENDER)}:${lower(RED_PACKET)}`, 10n ** 30n]]);
-  const rules = { revertCreate: false };
+  /** packetFails: the node fails to answer a packet's read (it still answers everything else) */
+  const rules = { revertCreate: false, packetFails: false };
   let nextId = 7n;
   const redPacket: FakeContract = {
     abi: redPacketAbi as Abi,
@@ -47,6 +48,7 @@ function contracts() {
         return id;
       },
       packet: ([id]) => {
+        if (rules.packetFails) throw new TypeError("Failed to fetch");
         const p = packets.get(id as bigint);
         if (!p) throw new Revert("Unknown");
         return { sender: p.sender, expiry: p.expiry, count: p.count, claimed: 0, paid: 0, lucky: true, petOwnersOnly: false, token: XLAYER_USDT, key: p.key, remaining: p.total, floor: 0n, extra: 0n };
@@ -67,10 +69,13 @@ function contracts() {
   return { packets, rules, contracts: { [RED_PACKET]: redPacket, [XLAYER_USDT]: usdt }, made: (id: bigint) => (nextId = id + 1n) };
 }
 
-async function open(o: { storage?: Parameters<typeof reload>[0]; chain?: ReturnType<typeof contracts>; xl?: ReturnType<typeof fakeXLayer> } = {}) {
+async function open(o: { storage?: Parameters<typeof reload>[0]; chain?: ReturnType<typeof contracts>; xl?: ReturnType<typeof fakeXLayer>; at?: number } = {}) {
   const x = o.chain ?? contracts();
   const xl = o.xl ?? fakeXLayer({ contracts: x.contracts, balances: { [SENDER]: 10n ** 18n } });
-  const v = o.storage ? await reload(o.storage, { at: T0, net: xl.fetchVia(offline) }) : await visit({ at: T0, net: xl.fetchVia(offline) });
+  const at = o.at ?? T0;
+  // the game server answers only its time; everything else the page asks of it fails as offline
+  const net = xl.fetchVia(async (url, init) => (String(url).endsWith("/api/time") ? new Response(JSON.stringify({ now: Date.now() })) : offline(url, init)));
+  const v = o.storage ? await reload(o.storage, { at, net }) : await visit({ at, net });
   const wallet = fakeWallet(xl, { account: SENDER });
   Object.defineProperty(window, "ethereum", { value: wallet, configurable: true });
   const { usePackets } = await import("./packets");
@@ -139,6 +144,48 @@ describe("a red packet's link key is kept before its money is sent (A42)", () =>
     await settle(again.s().recover());
     expect(again.s().sent.map((x) => x.id)).toEqual(["8"]);
     expect(keyIn(again.s().sent[0]!.link).key).toBe(pk.slice(2));
+  });
+
+  it("a key is kept past a day while its packet cannot be read, and its link appears once it can (A82)", async () => {
+    const p = await open();
+    const pk = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d" as const;
+    const keyAddress = privateKeyToAccount(pk).address;
+    // kept before its transaction was known; packet 7 carries the key
+    p.storage.setItem(PENDING, JSON.stringify([{ key: pk.slice(2), keyAddress, fromId: "7", sender: SENDER, total: "5", count: 2, from: order.from, letter: "", origin: order.origin, at: T0 }]));
+    p.x.packets.set(7n, { sender: SENDER, key: keyAddress, total: 5_000_000n, count: 2, expiry: 0n });
+    p.x.made(7n);
+    // a day and more later, the node answers everything but the packet's own read: the key stays
+    const later = await open({ storage: p.storage, chain: p.x, xl: p.xl, at: T0 + 25 * 3_600_000 });
+    const { clock, now: gameNow } = await import("./gameClock");
+    expect(await settle(clock.sync())).toBe(true);
+    expect(gameNow() - T0, "a day and more has passed by the game's clock").toBeGreaterThan(24 * 3_600_000);
+    p.x.rules.packetFails = true;
+    await settle(later.s().recover());
+    expect(later.s().pending, "a packet that could not be read is not a packet that is not there").toHaveLength(1);
+    // the packet can be read again: it is found by its key, and listed with its link
+    p.x.rules.packetFails = false;
+    await settle(later.s().recover());
+    expect(later.s().pending).toHaveLength(0);
+    expect(later.s().sent.map((x) => x.id)).toEqual(["7"]);
+  });
+
+  it("a key whose packet the chain says was never made is let go after a day, and kept while X Layer is down (A82)", async () => {
+    const p = await open();
+    const pk = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d" as const;
+    const keyAddress = privateKeyToAccount(pk).address;
+    p.storage.setItem(PENDING, JSON.stringify([{ key: pk.slice(2), keyAddress, fromId: "7", sender: SENDER, total: "5", count: 2, from: order.from, letter: "", origin: order.origin, at: T0 }]));
+    p.x.packets.set(7n, { sender: SENDER, key: "0x9999999999999999999999999999999999999999", total: 1n, count: 1, expiry: 0n });
+    p.x.made(7n);
+    const later = await open({ storage: p.storage, chain: p.x, xl: p.xl, at: T0 + 25 * 3_600_000 });
+    const { clock } = await import("./gameClock");
+    expect(await settle(clock.sync())).toBe(true);
+    later.xl.node.down = true;
+    await settle(later.s().recover());
+    expect(later.s().pending).toHaveLength(1);
+    later.xl.node.down = false;
+    await settle(later.s().recover());
+    expect(later.s().pending).toHaveLength(0);
+    expect(later.s().sent).toHaveLength(0);
   });
 
   it("a packet the wallet refused keeps no key and says it did not go through", async () => {

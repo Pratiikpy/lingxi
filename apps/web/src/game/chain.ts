@@ -536,7 +536,12 @@ export const useChain = create<ChainState>((set, get) => ({
       const sentBefore = births[petKey(parent)] ?? null;
       if (sentBefore) {
         set({ busy: "hatching" });
-        const out = await birthOutcome(publicClient, sentBefore.tx);
+        // a check X Layer could not answer is never taken for a birth that was not sent (A82)
+        const out = await birthOutcome(publicClient, sentBefore.tx).catch(() => "unchecked" as const);
+        if (out === "unchecked") {
+          set({ busy: "idle", error: "birthUnchecked" });
+          return { ok: false, reason: "birthUnchecked" };
+        }
         if (out === "pending" || (out === "unknown" && Date.now() - sentBefore.at < PENDING_FORGET_MS)) {
           set({ busy: "idle", error: "birthPending" });
           return { ok: false, reason: "birthPending" };
@@ -628,7 +633,9 @@ export const useChain = create<ChainState>((set, get) => ({
       const sent = record ? null : (pending[petKey(pet)] ?? null);
       if (sent) {
         set({ busy: "hatching" });
-        const out = await hatchOutcome(publicClient, deployment, sent.tx, sent.owner as Hex);
+        // a check X Layer could not answer is never taken for a hatch that was not sent (A82)
+        const out = await hatchOutcome(publicClient, deployment, sent.tx, sent.owner as Hex).catch(() => "unchecked" as const);
+        if (out === "unchecked") return set({ busy: "idle", error: "hatchUnchecked" });
         if (out === "pending" || (out === "unknown" && Date.now() - sent.at < PENDING_FORGET_MS)) return set({ busy: "idle", error: "hatchPending" });
         if (typeof out === "object") record = await recordFrom(out.petId, sent.tx, sent.owner, sent);
         else setPending(pet, null);

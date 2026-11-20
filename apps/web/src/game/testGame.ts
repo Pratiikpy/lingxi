@@ -61,6 +61,9 @@ export interface VisitOptions {
 export async function visit(o: VisitOptions) {
   leavePage();
   vi.resetModules();
+  // vitest ignores a second install while its fake timers run, which would keep the last page's time: a page opened
+  // later must start at its own `at`
+  vi.useRealTimers();
   vi.useFakeTimers({ now: o.at, toFake: ["Date", "performance", "setTimeout", "clearTimeout", "setInterval", "clearInterval"] });
   const storage = o.storage ?? memoryStorage(o.limit);
   vi.stubGlobal("localStorage", "localStorage" in o ? o.localStorage : storage);
