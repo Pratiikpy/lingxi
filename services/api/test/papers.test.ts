@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import type { Address } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { createPapersStore, papersMessage, withPapers } from "../src/papers";
+import { RateLimiter } from "../src/limit";
 
 const owner = privateKeyToAccount("0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d");
 const other = privateKeyToAccount("0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a");
@@ -54,5 +55,19 @@ describe("adoption papers mailbox (plan 4.8)", () => {
     const big = JSON.stringify({ log: "x".repeat(700_000) });
     const signature = await owner.signMessage({ message: papersMessage("7", big) });
     expect((await post(app(), "7", { papers: big, signature })).status).toBe(413);
+  });
+});
+
+describe("adoption papers are limited per address before any chain read (A52)", () => {
+  it("an address past its posts for the hour is told busy, with no read of X Layer", async () => {
+    let reads = 0;
+    const chain = { ownerOf: async () => (reads++, owner.address), sellerOf: async () => owner.address };
+    const a = withPapers(new Hono(), createPapersStore(), chain, Date.now, new RateLimiter(2, 3_600_000));
+    const body = { papers, signature: await owner.signMessage({ message: papersMessage("7", papers) }) };
+    expect((await post(a, "7", body)).body.ok).toBe(true);
+    expect((await post(a, "7", body)).body.ok).toBe(true);
+    const r = await post(a, "7", body);
+    expect([r.status, r.body]).toEqual([200, { ok: false, reason: "busy" }]);
+    expect(reads).toBe(2);
   });
 });

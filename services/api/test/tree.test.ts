@@ -55,3 +55,25 @@ describe("the tree route", () => {
     expect(asked).toEqual(["1", "2"]);
   });
 });
+
+describe("the tree's names are read once at a time, whoever asks (A52)", () => {
+  it("two requests at an expiry make one read per stale pet, never more than eight at once", async () => {
+    const pets = Array.from({ length: 30 }, (_, i) => pet(String(i + 1), "0xA"));
+    let reads = 0;
+    let open = 0;
+    let most = 0;
+    const app = withTree(new Hono(), { pets: () => pets, head: () => 99 }, async (id) => {
+      reads++;
+      most = Math.max(most, ++open);
+      await new Promise((r) => setTimeout(r, 5));
+      open--;
+      return `Pet ${id}`;
+    });
+    const [a, b] = await Promise.all([app.request("/api/tree"), app.request("/api/tree")]);
+    expect([a.status, b.status]).toEqual([200, 200]);
+    expect(reads).toBe(30);
+    expect(most).toBeLessThanOrEqual(8);
+    const names = ((await b.json()) as { pets: Array<{ id: string; name?: string }> }).pets.map((p) => p.name);
+    expect(names.every((n) => n?.startsWith("Pet "))).toBe(true);
+  });
+});

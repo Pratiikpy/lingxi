@@ -10,6 +10,8 @@ import { dirname } from "node:path";
 import type { Hono } from "hono";
 import { type Address, type Hex, keccak256, recoverMessageAddress, toBytes } from "viem";
 import { PAPERS_MAX, PapersBody } from "@lingxi/api-schema";
+import { clientIp } from "./clientIp";
+import { RateLimiter } from "./limit";
 
 /** The message the owner signs: names the pet and the exact papers. */
 export const papersMessage = (petId: string, papers: string) => `Lingxi adoption papers for pet #${petId}\n${keccak256(toBytes(papers))}`;
@@ -52,7 +54,7 @@ export type PapersStore = ReturnType<typeof createPapersStore>;
 
 const ID = /^[1-9]\d{0,18}$/;
 
-export function withPapers(app: Hono, store: PapersStore, chain: PapersChain, now: () => number = Date.now): Hono {
+export function withPapers(app: Hono, store: PapersStore, chain: PapersChain, now: () => number = Date.now, limiter = new RateLimiter(30, 3_600_000)): Hono {
   app.get("/api/papers/:petId", (c) => {
     c.header("access-control-allow-origin", "*");
     c.header("cache-control", "no-store");
@@ -65,6 +67,8 @@ export function withPapers(app: Hono, store: PapersStore, chain: PapersChain, no
 
   app.post("/api/papers/:petId", async (c) => {
     c.header("access-control-allow-origin", "*");
+    // each post costs two reads of X Layer: an address is held to 30 an hour before any is made (A52)
+    if (!limiter.take(clientIp(c))) return c.json({ ok: false, reason: "busy" });
     const id = c.req.param("petId");
     if (!ID.test(id)) return c.json({ ok: false, reason: "petId" }, 400);
     const raw = await c.req.text();

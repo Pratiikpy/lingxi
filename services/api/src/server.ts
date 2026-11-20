@@ -546,11 +546,14 @@ export function withTree(app: Hono, indexer: Pick<Indexer, "pets" | "head">, nam
   const names = new Map<string, { name: string; at: number }>();
   const colours = new Map<string, { colour: number; at: number }>();
   const NAME_TTL = 10 * 60_000;
-  app.get("/api/tree", async (c) => {
-    const pets = indexer.pets();
+  // one refresh at a time, whoever asks: requests arriving during it wait for the same one (A52)
+  let refreshing: Promise<void> | null = null;
+  const refresh = async (pets: ReturnType<typeof indexer.pets>) => {
     if (nameOf) {
       const stale = pets.filter((p) => (names.get(p.id)?.at ?? 0) < Date.now() - NAME_TTL).slice(0, 50);
-      await Promise.all(stale.map(async (p) => names.set(p.id, { name: await nameOf(p.id).catch(() => names.get(p.id)?.name ?? ""), at: Date.now() })));
+      // eight reads at a time
+      for (let i = 0; i < stale.length; i += 8)
+        await Promise.all(stale.slice(i, i + 8).map(async (p) => names.set(p.id, { name: await nameOf(p.id).catch(() => names.get(p.id)?.name ?? ""), at: Date.now() })));
     }
     if (coloursOf) {
       const stale = pets.filter((p) => (colours.get(p.id)?.at ?? 0) < Date.now() - NAME_TTL).slice(0, 200).map((p) => p.id);
@@ -559,6 +562,11 @@ export function withTree(app: Hono, indexer: Pick<Indexer, "pets" | "head">, nam
         if (got) for (const id of stale) colours.set(id, { colour: got[id] ?? 0, at: Date.now() });
       }
     }
+  };
+  app.get("/api/tree", async (c) => {
+    const pets = indexer.pets();
+    refreshing ??= refresh(pets).finally(() => (refreshing = null));
+    await refreshing;
     const tree = buildTree(
       pets.map((p) => {
         const name = names.get(p.id)?.name;
@@ -763,6 +771,13 @@ if (isMain) {
   } catch (e) {
     process.stderr.write(`no chain reads: ${(e as Error).message}\n`);
   }
+  // A52: what the server reads on a visitor's behalf (adoption papers, the tree's names and colours, the numbers, a
+  // room's name colours, the agent API) goes to X Layer's official host the jobs do not read from, falling back to the
+  // jobs' node only when that fails, so visitors can never get the jobs' node to throttle us; on any other node (a
+  // fork) both are that node
+  const officialHosts = ["https://rpc.xlayer.tech", "https://xlayerrpc.okx.com"];
+  const visitorUrls = officialHosts.includes(rpcMain) ? [...officialHosts.filter((u) => u !== rpcMain), rpcMain] : [rpcMain];
+  const visitorPub = createPublicClient({ chain: { ...xLayer, rpcUrls: { default: { http: visitorUrls } } }, transport: fallback(visitorUrls.map((u) => http(u, { timeout: 10_000 }))) }) as PublicClient;
   // every contract address and start block not set by hand comes from the deployment record, so a fresh clone indexes
   // the same chain the live site does with no configuration
   if (chainCtx) {
@@ -788,10 +803,10 @@ if (isMain) {
   const relayer = makeRelayer();
   // homes (plan 4.9): what visitors see is what the home's linked wallets hold on X Layer
   const homeChain: HomeChain | undefined = chainCtx && {
-    roomPacks: async (wallets) => (await packsHeld(chainCtx!.pub, chainCtx!.deployment, wallets)).room,
-    piecesHeld: (wallets) => piecesHeld(chainCtx!.pub, chainCtx!.deployment, wallets),
-    ownerOf: async (id) => (await chainCtx!.pub.readContract({ address: chainCtx!.deployment.registry, abi: petRegistryAbi, functionName: "ownerOf", args: [id] })) as `0x${string}`,
-    nameColour: async (id) => (await nameColours(chainCtx!.pub, chainCtx!.deployment, [id]))[id.toString()] ?? 0,
+    roomPacks: async (wallets) => (await packsHeld(visitorPub, chainCtx!.deployment, wallets)).room,
+    piecesHeld: (wallets) => piecesHeld(visitorPub, chainCtx!.deployment, wallets),
+    ownerOf: async (id) => (await visitorPub.readContract({ address: chainCtx!.deployment.registry, abi: petRegistryAbi, functionName: "ownerOf", args: [id] })) as `0x${string}`,
+    nameColour: async (id) => (await nameColours(visitorPub, chainCtx!.deployment, [id]))[id.toString()] ?? 0,
   };
   const live = new LiveRooms(createDecorStore(process.env.LINGXI_DECOR_STORE), createHomes({ ...(homeChain ? { chain: homeChain } : {}), file: process.env.LINGXI_HOMES_STORE }));
   const origins = (process.env.LINGXI_ORIGINS ?? "http://localhost:5199,http://localhost:4173").split(",");
@@ -894,7 +909,7 @@ if (isMain) {
     // the open agent API reads pets from the deployment the game runs on
     const rpc = rpcMain;
     const chain = chainCtx;
-    withAgentApi(app, { agents: createAgentStore(process.env.LINGXI_AGENT_STORE), seasons, ...(chain ? { chain } : {}) });
+    withAgentApi(app, { agents: createAgentStore(process.env.LINGXI_AGENT_STORE), seasons, ...(chain ? { chain: { ...chain, pub: visitorPub } } : {}) });
     // the browser's door to X Layer: same origin, so a rate-limited public RPC can never look like a blocked request
     // on mainnet the door reads from X Layer's other official host than the one our jobs read from, with the jobs'
     // host as a small reserve; any other node (a local fork) serves both
@@ -902,7 +917,8 @@ if (isMain) {
     withRpcProxy(app, official.includes(rpc) ? { upstreams: official.filter((u) => u !== rpc), reserve: { url: rpc, perMinute: 60 } } : { upstreams: [rpc] });
     // adoption papers (plan 4.8): posted by the owner of a pet on offer, fetched by the buyer's game
     if (chain?.deployment.adoptionCentre) {
-      const { pub, deployment } = chain;
+      const { deployment } = chain;
+      const pub = visitorPub;
       withPapers(app, createPapersStore(process.env.LINGXI_PAPERS_STORE), {
         ownerOf: async (id) => (await pub.readContract({ address: deployment.registry, abi: petRegistryAbi, functionName: "ownerOf", args: [id] })) as `0x${string}`,
         sellerOf: async (id) => {
@@ -975,12 +991,11 @@ if (isMain) {
     const headClient = createPublicClient({ transport: http(process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech", { timeout: 10_000 }) });
     watch.head = () => headClient.getBlockNumber({ cacheTime: 0 });
     const look = process.env.LINGXI_LOOK as `0x${string}` | undefined;
-    const lookClient = createPublicClient({ transport: http(process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech", { timeout: 10_000 }) });
     withTree(
       app,
       indexer,
-      look ? async (id) => String(await lookClient.readContract({ address: look, abi: lookAbi, functionName: "nameOf", args: [BigInt(id)] })) : undefined,
-      chainCtx?.deployment.extras ? (ids) => nameColours(chainCtx!.pub, chainCtx!.deployment, ids.map((x) => BigInt(x))) : undefined,
+      look ? async (id) => String(await visitorPub.readContract({ address: look, abi: lookAbi, functionName: "nameOf", args: [BigInt(id)] })) : undefined,
+      chainCtx?.deployment.extras ? (ids) => nameColours(visitorPub, chainCtx!.deployment, ids.map((x) => BigInt(x))) : undefined,
     );
     jobs.loop("indexer", () => indexer.catchUp(), 15_000);
     // who opened each red packet (A1): the contract keeps only events, read here in 100-block windows
@@ -1012,7 +1027,7 @@ if (isMain) {
       jobs.loop("okb listings", () => listingWatch.catchUp(), 20_000);
     }
     withNumbers(app, {
-      pub: createPublicClient({ transport: http(rpc, { timeout: 15_000 }) }),
+      pub: visitorPub,
       counts: (since) => indexer.counts(since),
       petsIndexedTo: () => indexer.head(),
       sales,

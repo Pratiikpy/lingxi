@@ -170,15 +170,20 @@ export async function readNumbers(d: NumbersDeps, nowMs = Date.now()): Promise<N
 /** GET /api/numbers: the live numbers, cached for a minute; readable from any origin (the DeWEB copy reads it too). */
 export function withNumbers(app: Hono, d: NumbersDeps): Hono {
   let cache: { at: number; body: Numbers } | null = null;
+  // one refresh at a time, whoever asks: requests arriving during it share it (A52)
+  let refreshing: Promise<void> | null = null;
   app.get("/api/numbers", async (c) => {
     c.header("access-control-allow-origin", "*");
     c.header("cache-control", "public, max-age=60");
     if (!cache || Date.now() - cache.at > 60_000) {
-      try {
-        cache = { at: Date.now(), body: await readNumbers(d) };
-      } catch {
-        if (!cache) return c.json({ ok: false, reason: "chain" }, 503);
-      }
+      refreshing ??= readNumbers(d)
+        .then(
+          (body) => void (cache = { at: Date.now(), body }),
+          () => undefined,
+        )
+        .finally(() => (refreshing = null));
+      await refreshing;
+      if (!cache) return c.json({ ok: false, reason: "chain" }, 503);
     }
     return c.json(cache.body);
   });

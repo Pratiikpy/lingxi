@@ -324,3 +324,25 @@ describe("the live room with linked homes (plan 4.9)", () => {
     b.ws.close();
   });
 });
+
+describe("a room's name colours are read sparingly (A52)", () => {
+  it("the same pet asked twice at once is read once, and a player is read colours for at most 12 distinct pets an hour", async () => {
+    let t = 0;
+    const { state, chain } = fakeChain();
+    const homes = createHomes({ chain, now: () => t });
+    await homes.link(HOME, alice.address, await alice.signMessage({ message: homeLinkMessage(HOME) }));
+    for (let i = 1; i <= 20; i++) {
+      state.owners[String(i)] = alice.address;
+      state.colours[String(i)] = 3;
+    }
+    const before = state.reads;
+    expect(await Promise.all([homes.colourOf(HOME, "1"), homes.colourOf(HOME, "1")])).toEqual([3, 3]);
+    expect(state.reads - before, "one ownerOf and one nameColour").toBe(2);
+    for (let i = 2; i <= 20; i++) await homes.colourOf(HOME, String(i));
+    expect(state.reads - before, "12 pets read, the rest answered from what is known").toBe(24);
+    expect(await homes.colourOf(HOME, "20")).toBe(0);
+    // an hour later the player may be read again
+    t += 3_600_001;
+    expect(await homes.colourOf(HOME, "20")).toBe(3);
+  });
+});

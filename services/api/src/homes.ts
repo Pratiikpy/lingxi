@@ -19,6 +19,8 @@ export const MAX_LINKED_HOMES = 50_000;
 /** Entries in each of the two chain-read caches. */
 const CACHE_ENTRIES = 20_000;
 const CACHE_MS = 60_000;
+/** Distinct pets a player may have name colours read for in an hour: each is two reads of X Layer (A52). */
+const COLOUR_PETS_PER_HOUR = 12;
 /** Remembers `value` under `key`, forgetting the oldest entry once the cache is full. */
 const remember = <V>(cache: Map<string, V>, key: string, value: V) => {
   cache.delete(key);
@@ -94,6 +96,9 @@ export function createHomes(opts: { chain?: HomeChain; file?: string; now?: () =
 
   const views = new Map<string, { at: number; view: HomeView }>();
   const colours = new Map<string, { at: number; colour: number }>();
+  /** colour reads under way, and the pets each player has had read this hour (A52) */
+  const reading = new Map<string, Promise<number>>();
+  const askedBy = new Map<string, { since: number; pets: Set<string> }>();
   const forget = (owner: string) => {
     views.delete(owner);
     for (const k of colours.keys()) if (k.startsWith(`${owner}:`)) colours.delete(k);
@@ -155,16 +160,32 @@ export function createHomes(opts: { chain?: HomeChain; file?: string; now?: () =
       const key = `${owner}:${petId}`;
       const cached = colours.get(key);
       if (cached && now() - cached.at < (fresh ? freshMs : CACHE_MS)) return cached.colour;
-      try {
-        const id = BigInt(petId);
-        const holder = getAddress(await opts.chain.ownerOf(id));
-        const colour = ws.includes(holder) ? await opts.chain.nameColour(id) : 0;
-        const c = Number.isInteger(colour) && colour > 0 && colour <= 32 ? colour : 0;
-        remember(colours, key, { at: now(), colour: c });
-        return c;
-      } catch {
-        return cached?.colour ?? 0;
-      }
+      // the same pet asked again while it is being read waits for that read (A52)
+      const flying = reading.get(key);
+      if (flying) return flying;
+      // a player is read colours for at most COLOUR_PETS_PER_HOUR distinct pets an hour; the rest from what is known
+      const t = now();
+      const asked = askedBy.get(owner);
+      const window = asked && t - asked.since < 3_600_000 ? asked : { since: t, pets: new Set<string>() };
+      if (!window.pets.has(petId) && window.pets.size >= COLOUR_PETS_PER_HOUR) return cached?.colour ?? 0;
+      window.pets.add(petId);
+      remember(askedBy, owner, window);
+      const read = (async () => {
+        try {
+          const id = BigInt(petId);
+          const holder = getAddress(await opts.chain!.ownerOf(id));
+          const colour = ws.includes(holder) ? await opts.chain!.nameColour(id) : 0;
+          const c = Number.isInteger(colour) && colour > 0 && colour <= 32 ? colour : 0;
+          remember(colours, key, { at: now(), colour: c });
+          return c;
+        } catch {
+          return cached?.colour ?? 0;
+        } finally {
+          reading.delete(key);
+        }
+      })();
+      reading.set(key, read);
+      return read;
     },
   };
 }
