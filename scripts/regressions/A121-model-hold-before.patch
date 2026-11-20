@@ -1,0 +1,11 @@
+--- a/services/api/src/tokenBudget.ts
++++ b/services/api/src/tokenBudget.ts
+@@ -165,7 +165,7 @@ export function budgetedClient(client: Anthropic, budget: TokenBudget): Anthropi
+     (async (...args: Parameters<F>) => {
+       const caller = modelCaller.getStore();
+       // the call holds what it may cost before it runs, so calls in flight together cannot overrun (A121)
+-      const held = budget.reserve(holdFor(args[0]), caller);
++      const held = budget.reserve(0 * holdFor(args[0]), caller);
+       if (held === "day") throw new BudgetSpent();
+       if (held === "share") throw new ShareSpent();
+       let res: Usage;
