@@ -71,6 +71,8 @@ export function createDuelStore(dir?: string, limits: { count: number; chars: nu
       if (kept.has(id)) return;
       if (dir) {
         writeFileSync(join(dir, `${id}.tmp`), code);
+        // the file keeps the store's own time, as an opening does, so a restart restores the same order (A96)
+        utimesSync(join(dir, `${id}.tmp`), at / 1000, at / 1000);
         renameSync(join(dir, `${id}.tmp`), join(dir, `${id}.txt`));
       } else memory.set(id, code);
       kept.set(id, { at, size: code.length });

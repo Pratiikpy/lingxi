@@ -118,6 +118,27 @@ describe("one address cannot push out the duel links people share (A51)", () => 
     expect([store.get("AAAAAAAAAAAAAAAA"), store.get("BBBBBBBBBBBBBBBB"), store.get("CCCCCCCCCCCCCCCC")]).toEqual(["lxc1.one", null, "lxc1.three"]);
   });
 
+  it("the order links were kept and opened in survives a restart, whatever the real date (A96)", () => {
+    for (const base of [Date.UTC(2001, 0, 1), Date.UTC(2099, 0, 1)]) {
+      const dir = mkdtempSync(join(tmpdir(), "lingxi-duels-"));
+      try {
+        let t = base;
+        const a = createDuelStore(dir, { count: 2, chars: 1_000_000 }, () => t);
+        a.put("AAAAAAAAAAAAAAAA", "lxc1.one", t);
+        t += 60_000;
+        a.put("BBBBBBBBBBBBBBBB", "lxc1.two", t);
+        t += 3_600_000;
+        expect(a.get("AAAAAAAAAAAAAAAA")).toBe("lxc1.one");
+        t += 60_000;
+        const b = createDuelStore(dir, { count: 2, chars: 1_000_000 }, () => t);
+        b.put("CCCCCCCCCCCCCCCC", "lxc1.three", t);
+        expect([b.get("AAAAAAAAAAAAAAAA"), b.get("BBBBBBBBBBBBBBBB")], new Date(base).toISOString()).toEqual(["lxc1.one", null]);
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    }
+  });
+
   it("a link's last opening survives a restart", () => {
     const dir = mkdtempSync(join(tmpdir(), "lingxi-duels-"));
     try {
