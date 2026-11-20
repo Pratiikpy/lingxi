@@ -159,9 +159,9 @@ export class LiveRooms {
   }
 
   /** A home's pieces as a visitor sees them: what the owner placed, cut to what its linked wallets allow on X Layer. */
-  private async shown(owner: string): Promise<Placed> {
+  private async shown(owner: string, who?: string): Promise<Placed> {
     const placed = this.decor.get(owner) ?? [];
-    return visible(placed, this.homes ? await this.homes.view(owner) : { capacity: MAX_PLACED, held: [] });
+    return visible(placed, this.homes ? await this.homes.view(owner, who) : { capacity: MAX_PLACED, held: [] });
   }
 
   /** Sends a home's pieces to everyone in it (every copy of the space). */
@@ -234,7 +234,8 @@ export class LiveRooms {
     // a home shows its owner's decorations to everyone who comes in, as its linked wallets allow
     if (space.startsWith("home:")) {
       const owner = space.slice(5);
-      void this.shown(owner).then((placed) => {
+      // the visitor's own views of homes are limited (A81)
+      void this.shown(owner, c.address).then((placed) => {
         if (c.space?.startsWith(space)) this.send(c, { t: "decor", owner, placed });
       });
     }

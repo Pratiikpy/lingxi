@@ -49,7 +49,7 @@ import { type ArenaStore, createArenaStore } from "./arena";
 import { type SeasonStore, createSeasonStore, settleAwards } from "./season";
 import { dayIndex, weekOf } from "@lingxi/game";
 import { parseCard } from "@lingxi/game";
-import { createPublicClient, fallback, http, type PublicClient } from "viem";
+import { createPublicClient, custom, fallback, http, type PublicClient } from "viem";
 import { type Deployment, type SignedRelay, adoptionCentreAbi, loadCircuitFromChain, nameColours, packsHeld, petRegistryAbi, piecesHeld, readPet, xLayer } from "@lingxi/chain";
 import { type HomeChain, createHomes } from "./homes";
 import { createAgentStore } from "./agents";
@@ -67,6 +67,7 @@ import { readdir, stat } from "node:fs/promises";
 import { createMindChecker } from "./mindCheck";
 import { createConsentIndex, withConsents } from "./consents";
 import { withReadLimits } from "./readLimits";
+import { budgetedRequest } from "./visitorBudget";
 import { createSourcifyRelay, withSourcify } from "./sourcify";
 import { withRpcProxy } from "./rpc";
 import { privateKeyToAccount } from "viem/accounts";
@@ -833,7 +834,12 @@ if (isMain) {
   // fork) both are that node
   const officialHosts = ["https://rpc.xlayer.tech", "https://xlayerrpc.okx.com"];
   const visitorUrls = officialHosts.includes(rpcMain) ? [...officialHosts.filter((u) => u !== rpcMain), rpcMain] : [rpcMain];
-  const visitorPub = createPublicClient({ chain: { ...xLayer, rpcUrls: { default: { http: visitorUrls } } }, transport: fallback(visitorUrls.map((u) => http(u, { timeout: 10_000 }))) }) as PublicClient;
+  // the jobs' node, when it is the fallback, is on a budget (A81): a busy minute of visitors never lands on it whole
+  const jobsNode = createPublicClient({ transport: http(rpcMain, { timeout: 10_000 }) });
+  const visitorTransports = visitorUrls.map((u) =>
+    officialHosts.includes(rpcMain) && u === rpcMain ? custom({ request: budgetedRequest((args) => jobsNode.request(args as never)) }) : http(u, { timeout: 10_000 }),
+  );
+  const visitorPub = createPublicClient({ chain: { ...xLayer, rpcUrls: { default: { http: visitorUrls } } }, transport: fallback(visitorTransports) }) as PublicClient;
   // every contract address and start block not set by hand comes from the deployment record, so a fresh clone indexes
   // the same chain the live site does with no configuration
   if (chainCtx) {

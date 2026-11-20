@@ -409,3 +409,23 @@ describe("a player in a room keeps their home's links (A74)", () => {
   });
 });
 
+
+describe("home views have a limit per player (A81)", () => {
+  it("one player's 21st uncached home view in a minute reads nothing; another player still reads; cached views are free", async () => {
+    const { state, chain } = fakeChain();
+    const homes = createHomes({ chain, now: () => 1_000 });
+    const owners = Array.from({ length: 22 }, (_, i) => `homeview${String(i).padStart(2, "0")}`);
+    for (const o of owners) await homes.link(o, alice.address, await alice.signMessage({ message: homeLinkMessage(o) }));
+    state.reads = 0;
+    for (let i = 0; i < 20; i++) await homes.view(owners[i]!, "visitor-a");
+    const used = state.reads;
+    expect(used, "twenty homes read").toBeGreaterThan(0);
+    const bare = await homes.view(owners[20]!, "visitor-a");
+    expect(state.reads, "the 21st reads nothing").toBe(used);
+    expect(bare.held, "it shows only what needs no chain").toEqual([]);
+    await homes.view(owners[0]!, "visitor-a");
+    expect(state.reads, "a home already read is free").toBe(used);
+    await homes.view(owners[21]!, "visitor-b");
+    expect(state.reads, "another player still reads").toBeGreaterThan(used);
+  });
+});

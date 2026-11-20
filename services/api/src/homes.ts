@@ -14,6 +14,7 @@
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { type Address, type Hex, getAddress, isAddress, recoverMessageAddress } from "viem";
 import { DECOR_BY_ID, MAX_PACKS, MAX_PLACED, ROOM_PER_PACK, homeLinkMessage } from "@lingxi/world";
+import { RateLimiter } from "./limit";
 import type { Placed } from "./decor";
 
 export { homeLinkMessage };
@@ -23,6 +24,8 @@ export const MAX_LINKED_HOMES = 50_000;
 /** Entries in each of the two chain-read caches. */
 const CACHE_ENTRIES = 20_000;
 const CACHE_MS = 60_000;
+/** Uncached home views a visitor may cause a minute: each is two reads of X Layer (A81). */
+const VIEWS_PER_MINUTE = 20;
 /** Distinct pets a player may have name colours read for in an hour: each is two reads of X Layer (A52). */
 const COLOUR_PETS_PER_HOUR = 12;
 /** Remembers `value` under `key`, forgetting the oldest entry once the cache is full. */
@@ -61,7 +64,8 @@ export interface Homes {
   wallets: (owner: string) => Address[];
   link: (owner: string, wallet: unknown, signature: unknown) => Promise<{ ok: true; wallets: Address[] } | { ok: false; reason: "invalid" | "signature" | "full" | "serverFull" }>;
   unlink: (owner: string, wallet: unknown) => { ok: true; wallets: Address[] } | { ok: false; reason: "invalid" };
-  view: (owner: string) => Promise<HomeView>;
+  /** what visitors see of `owner`'s home; `who`, the visitor, may cause only so many uncached reads a minute (A81) */
+  view: (owner: string, who?: string) => Promise<HomeView>;
   /** the owner of `owner`'s home is here now (in a room): its links are the last to go when the store is full (A74) */
   seen: (owner: string) => void;
   /** the colour a pet's name shows with in this player's company: 0 unless a linked wallet owns the pet. `fresh`
@@ -110,6 +114,8 @@ export function createHomes(opts: { chain?: HomeChain; file?: string; now?: () =
   };
 
   const views = new Map<string, { at: number; view: HomeView }>();
+  /** uncached home views each visitor may cause a minute (A81) */
+  const viewers = new RateLimiter(VIEWS_PER_MINUTE, 60_000);
   const colours = new Map<string, { at: number; colour: number }>();
   /** colour reads under way, and the pets each player has had read this hour (A52) */
   const reading = new Map<string, Promise<number>>();
@@ -170,11 +176,13 @@ export function createHomes(opts: { chain?: HomeChain; file?: string; now?: () =
       save();
       return { ok: true, wallets: next };
     },
-    view: async (owner) => {
+    view: async (owner, who) => {
       const ws = wallets(owner);
       if (!ws.length || !opts.chain) return BARE;
       const cached = views.get(owner);
       if (cached && now() - cached.at < CACHE_MS) return cached.view;
+      // a visitor past their reads this minute sees what is known of the home, or its game pieces (A81)
+      if (who !== undefined && !viewers.take(who, now())) return cached?.view ?? BARE;
       try {
         const [packs, held] = await Promise.all([opts.chain.roomPacks(ws), opts.chain.piecesHeld(ws)]);
         const p = Number.isInteger(packs) && packs > 0 ? Math.min(MAX_PACKS, packs) : 0;
