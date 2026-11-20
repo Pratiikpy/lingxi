@@ -16,7 +16,7 @@
   ],
   "module": {
     "path": "wasm/lingxi-handheld.wasm",
-    "sha256": "af4a3a290c8a684952b8da083ebe2726d3b1f48cd949b10f1b221196592e0fad"
+    "sha256": "013b9ebcc26d652f331d7c64f9ff2e0d465e6ad032b69b502bbadcffaa88da5d"
   },
   "sources": {
     "core/keccak.c": "0143a2ebaaa7fb37c0b04f227c475d5494d9ff6fe419296a49ff2ae2988e6505",
@@ -28,7 +28,7 @@
     "core/art_data.c": "4a61c511bf10c2526fd566dca1a205c21e85c8238bc425a3e5de125e47f142b2",
     "core/selftest.c": "5f564e11ed4a52b775470435a03ee1777225df8866fbbff76b641b558ac00427",
     "core/selftest_data.c": "fc01f20d2067d24d4d99005457a7be4ea8fcc0d95959f49b29cc0308dd03abdc",
-    "core/app.c": "60190d660d63efca56faa1eeca246551b940d8e2b738446da85ad6e5f8a0e635",
+    "core/app.c": "c02f9ab831025de371b5c7e6b08f63c8c526d629aeaa388db61a0d4e93b91f4d",
     "core/link.c": "2fe46405a5874652d69869ed6c294fc1f52c2d71f2b5cef99bcb881944b40dad",
     "platform/wasm_app.c": "7f3a3cd7119eae6642c0cdd1f966660133461962f8a7a4cc8f91e9815ee8a93f"
   },

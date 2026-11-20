@@ -638,13 +638,13 @@ static void draw_boot(lx_app *a, lx_px *fb, int failed) {
     char t[64] = {0};
     int ok = s->hashOk[i] && s->loadOk[i];
     cat(t, sizeof t, names[i]);
-    cat(t, sizeof t, a->lang ? " 网表与链上一致" : " matches X Layer");
+    cat(t, sizeof t, a->lang ? " 网表与链上记录一致" : " matches X Layer record");
     mark(fb, 10, 49 + 14 * i, ok, ok ? C_LEAF : C_BAD);
     lx_text(fb, 24, 46 + 14 * i, t, ok ? C_LEAF : C_BAD, LX_W - 30);
   }
   char t[64] = {0};
   int ok1 = s->pet1HashOk && s->pet1MemoryOk;
-  cat(t, sizeof t, a->lang ? "1 号宠物的主网日志重放一致" : "pet #1's mainnet log replays");
+  cat(t, sizeof t, a->lang ? "1 号宠物记录的日志重放一致" : "pet #1's recorded log replays");
   mark(fb, 10, 91, ok1, ok1 ? C_LEAF : C_BAD);
   lx_text(fb, 24, 88, t, ok1 ? C_LEAF : C_BAD, LX_W - 30);
   if (failed) lx_text_centre(fb, 0, 108, LX_W, a->lang ? "自检没通过，不接收宠物。" : "Self-test failed: no pet can come here.", C_BAD);

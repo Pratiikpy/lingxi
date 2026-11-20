@@ -12,13 +12,10 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { keccak_256 } from "@noble/hashes/sha3";
 import { STARTERS, compileProgram, fastBrain, netlistBytes } from "@lingxi/brain";
 import { ZERO_HASH, chainAll } from "@lingxi/game";
+import { RECORDED_STARTERS } from "../src/recorded";
 
-/** keccak-256 of each starter's netlist on X Layer (circuits 1, 2, 3 of processor 0xf70d…3c4e) */
-const ON_CHAIN = {
-  gentle: "0xab2d7b0e5c8eeb1fcdf6f0225b6dd912459a26b6fcc73f86d5470152a18a1e47",
-  bold: "0x085d9b6352bf1cd5f06061c948f48787db58469454558f627a198569d55b24cd",
-  curious: "0x372b08dab3d43d9d14e0f4c8884c8063d978264abbc1fe4261c8d25eb8064a7a",
-} as const;
+// keccak-256 of each starter's netlist on X Layer, shared with the browser handheld that confirms them live (A59)
+const ON_CHAIN = RECORDED_STARTERS;
 
 const hex = (b: Uint8Array) => `0x${Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("")}`;
 const bytesOf = (h: string) => Array.from({ length: (h.length - 2) / 2 }, (_, i) => parseInt(h.slice(2 + 2 * i, 4 + 2 * i), 16));

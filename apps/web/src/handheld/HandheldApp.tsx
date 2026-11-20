@@ -11,6 +11,11 @@ import { useLang } from "../i18n";
 import { DEVICE_KEY, INBOX_KEY, RETURN_KEY, fromB64 } from "../game/handheldKeys";
 import { gameIsOpen, handheldIsMine } from "../game/handheldLock";
 import { startHandheldClock, wallBeat } from "./clock";
+import { keccak256, type Hex } from "viem";
+import { processorAbi } from "@lingxi/chain";
+import { RECORDED_STARTERS } from "@lingxi/handheld";
+import { deployment } from "../game/chain";
+import { proofClient } from "../game/proofRpc";
 import "./handheld.css";
 
 interface HH {
@@ -102,6 +107,26 @@ export function HandheldApp() {
   const canvas = useRef<HTMLCanvasElement>(null);
   const hh = useRef<HH | null>(null);
   const [selfTest, setSelfTest] = useState<number | null>(null);
+  // the firmware compares with the record it was built with; here, where X Layer can be read, the record is compared
+  // with the chain itself (A59)
+  const [onChain, setOnChain] = useState<"reading" | "match" | "unread" | "differ">("reading");
+  useEffect(() => {
+    let live = true;
+    void (async () => {
+      try {
+        if (!deployment) throw new Error("no deployment");
+        const pc = proofClient(0);
+        const lines = ["gentle", "bold", "curious"] as const;
+        const read = await Promise.all(lines.map(async (l) => keccak256((await pc.readContract({ address: deployment!.processor, abi: processorAbi, functionName: "netlist", args: [BigInt(deployment!.circuits[l]!.id)] })) as Hex)));
+        if (live) setOnChain(read.every((h, i) => h.toLowerCase() === RECORDED_STARTERS[lines[i]!]) ? "match" : "differ");
+      } catch {
+        if (live) setOnChain("unread");
+      }
+    })();
+    return () => {
+      live = false;
+    };
+  }, []);
   const [ready, setReady] = useState(false);
   // kept in both languages, so a message shown before the language changes follows it
   const [problem, setProblem] = useState<Words | null>(null);
@@ -269,7 +294,7 @@ export function HandheldApp() {
     location.href = "play.html#handheld-home";
   };
 
-  const passed = selfTest !== null && (selfTest & 0x100) !== 0;
+  const passed = selfTest !== null && (selfTest & 0x100) !== 0 && onChain !== "differ";
   return (
     <main className="hh-page">
       <header className="hh-head">
@@ -306,9 +331,15 @@ export function HandheldApp() {
       <section className="hh-panel" aria-live="polite">
         {selfTest !== null && (
           <p className={passed ? "hh-ok" : "hh-bad"}>
-            {passed
-              ? L("Self-test passed: its three starter brains match X Layer and pet #1's mainnet log replays exactly.", "自检通过：三个初始大脑与 X Layer 一致，1 号宠物的主网日志重放一致。")
-              : L("Self-test failed: this handheld takes no pets.", "自检没通过：这台掌机不接收宠物。")}
+            {!passed
+              ? onChain === "differ"
+                ? L("Self-test failed: X Layer now holds other starter circuits than this handheld was built with, so it takes no pets.", "自检没通过：X Layer 上的初始电路和这台掌机构建时记录的不一样，所以它不接收宠物。")
+                : L("Self-test failed: this handheld takes no pets.", "自检没通过：这台掌机不接收宠物。")
+              : onChain === "match"
+                ? L("Self-test passed: its three starter brains match the netlists on X Layer (read just now), and pet #1's recorded mainnet log replays exactly.", "自检通过：三个初始大脑与刚从 X Layer 读到的网表一致，1 号宠物记录的主网日志重放一致。")
+                : onChain === "unread"
+                  ? L("Self-test passed: its three starter brains match the hashes recorded from X Layer when it was built (X Layer couldn't be read just now), and pet #1's recorded mainnet log replays exactly.", "自检通过：三个初始大脑与构建时从 X Layer 记录的哈希一致（暂时读不到 X Layer），1 号宠物记录的主网日志重放一致。")
+                  : L("Self-test passed against the record built into it; reading X Layer to confirm…", "按内置记录自检通过，正在读取 X Layer 确认……")}
           </p>
         )}
         {problem && <p className="hh-bad">{problem[lang]}</p>}
