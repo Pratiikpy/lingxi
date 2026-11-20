@@ -1240,5 +1240,11 @@
     "row": "A74",
     "bug": "once 50,000 homes were linked, every new home was refused for good",
     "test": { "kind": "vitest", "dir": "services/api", "file": "test/homes.test.ts", "name": "a new link succeeds when full, and the home seen longest ago is the one let go" }
+  },
+  {
+    "id": "A96-duels-one-clock",
+    "row": "A96",
+    "bug": "the duel store wrote files at the real time and kept its own, so a restart could reorder links",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/duels.test.ts", "name": "the order links were kept and opened in survives a restart, whatever the real date (A96)" }
   }
 ]
