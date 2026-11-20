@@ -1054,5 +1054,11 @@
     "row": "A70",
     "bug": "a tab without Web Locks showed a game another tab had taken until its timer ran",
     "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/writer.test.ts", "name": "a tab told of another tab taking the lease stops at once, without waiting for its timer (A70)" }
+  },
+  {
+    "id": "A49-season-size-on-bytes",
+    "row": "A49",
+    "bug": "season entries over 16,000 bytes were refused by a header check, though 48 KB was promised",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/bodyLimits.test.ts", "name": "/api/season/enter takes a 20,000-byte card, with or without its length said, and refuses one over 48 KB either way" }
   }
 ]

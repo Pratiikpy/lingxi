@@ -1,0 +1,10 @@
+--- a/services/api/src/server.ts
++++ b/services/api/src/server.ts
+@@ -442,6 +442,7 @@ export function withSeason(app: Hono, store: SeasonStore, writes = new RateLimit
+   const who = (c: Context) => clientIp(c);
+   app.post("/api/season/enter", async (c) => {
+     if (!writes.take(who(c))) return busy(c);
++    if (Number(c.req.header("content-length") ?? 0) > 16_000) return c.json({ ok: false, reason: "tooBig" }, 413);
+     let body;
+     try {
+       body = SeasonEnterBody.parse(await c.req.json());
