@@ -41,14 +41,14 @@ describe("an instinct relay holds up no tape-out (A115)", () => {
     // a tape-out answers at once here: what is measured is how long it waits in line
     inner.tapeBytes = async () => ({ ok: true, processor: CPU, brainId: "42", reused: true });
 
-    const started = performance.now();
-    const instinct = relayer.relayInstinct({ own: "1", processor: CPU, id: "7" });
-    await new Promise((r) => setTimeout(r, READ_MS * 3));
-    const paid = await relayer.relayProgram(STARTERS.gentle);
-    const paidWaited = performance.now() - started;
+    const finished: string[] = [];
+    const instinct = relayer.relayInstinct({ own: "1", processor: CPU, id: "7" }).then((r) => (finished.push("instinct"), r));
+    await new Promise((r) => setTimeout(r, READ_MS));
+    // a paid tape-out asked while the instinct is still being read finishes first: it never waits for those reads
+    const paid = await relayer.relayProgram(STARTERS.gentle).then((r) => (finished.push("paid"), r));
     expect(paid.ok, "the paid tape-out went through").toBe(true);
-    expect(paidWaited, `the paid tape-out waited ${Math.round(paidWaited)} ms`).toBeLessThan(READ_MS * 6);
     expect(await instinct).toMatchObject({ ok: false, reason: "tooBig" });
+    expect(finished).toEqual(["paid", "instinct"]);
     expect(netlistReads).toBeLessThanOrEqual(MAX_CIRCUIT_READS);
   });
 });
