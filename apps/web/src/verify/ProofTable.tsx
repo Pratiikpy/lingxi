@@ -48,7 +48,7 @@ export function ProofTable({ lang }: { lang: "en" | "zh" }) {
     unreachable: { en: "X Layer unreachable", zh: "连不上 X Layer" },
   };
   return (
-    <section className="v-card v-proof-table" aria-labelledby="proof-table-h">
+    <section className="v-card v-proof-table v-circuits" aria-labelledby="proof-table-h">
       <h2 id="proof-table-h">{lang === "zh" ? "证明表" : "Proof table"}</h2>
       <p className="v-note">
         {lang === "zh"
@@ -70,14 +70,15 @@ export function ProofTable({ lang }: { lang: "en" | "zh" }) {
           <tbody>
             {CIRCUITS.map((c) => (
               <tr key={c.id}>
-                <td>{c.name[lang]}</td>
-                <td>{c.id}</td>
-                <td>{c.gates}</td>
-                <td>{c.memory}</td>
-                <td className="mono" title={c.hash}>
+                {/* on a phone each row is a block: name and check first, then the labelled figures, then the hash (A68) */}
+                <td className="v-c-name">{c.name[lang]}</td>
+                <td className="v-c-fig" data-label="Id">{c.id}</td>
+                <td className="v-c-fig" data-label={lang === "zh" ? "门" : "Gates"}>{c.gates}</td>
+                <td className="v-c-fig" data-label={lang === "zh" ? "记忆位" : "Memory bits"}>{c.memory}</td>
+                <td className="mono v-c-hash" data-label="keccak256" title={c.hash}>
                   {c.hash.slice(0, 10)}…{c.hash.slice(-6)}
                 </td>
-                <td className={status[c.id] === "match" ? "v-ok" : status[c.id] === "differs" ? "v-bad" : ""}>{word[status[c.id] ?? "checking"][lang]}</td>
+                <td className={`v-c-check ${status[c.id] === "match" ? "v-ok" : status[c.id] === "differs" ? "v-bad" : ""}`}>{word[status[c.id] ?? "checking"][lang]}</td>
               </tr>
             ))}
           </tbody>

@@ -462,3 +462,63 @@
   min-width: 0;
   text-align: left;
 }
+
+/* A68: on a phone the proof table's six columns do not fit, and the check, which matters most, was the one off-screen.
+   Each circuit becomes a block: its name and check on the first line, then its labelled figures, then its hash. */
+@media (max-width: 600px) {
+  .v-circuits thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .v-circuits tr {
+    display: grid;
+    grid-template-columns: auto auto 1fr auto;
+    grid-template-areas:
+      "name name name check"
+      "id gates mem mem"
+      "hash hash hash hash";
+    gap: 2px 14px;
+    padding: 10px 2px;
+    border-bottom: 1px solid var(--line);
+  }
+  .v-circuits td {
+    padding: 0;
+    border: 0;
+    white-space: normal;
+  }
+  .v-circuits .v-c-name {
+    grid-area: name;
+    font-weight: 700;
+  }
+  .v-circuits .v-c-check {
+    grid-area: check;
+    justify-self: end;
+    text-align: right;
+    /* the check stays whole; a long name wraps instead */
+    white-space: nowrap;
+  }
+  .v-circuits .v-c-fig {
+    white-space: nowrap;
+  }
+  .v-circuits .v-c-fig:nth-of-type(2) {
+    grid-area: id;
+  }
+  .v-circuits .v-c-fig:nth-of-type(3) {
+    grid-area: gates;
+  }
+  .v-circuits .v-c-fig:nth-of-type(4) {
+    grid-area: mem;
+  }
+  .v-circuits .v-c-hash {
+    grid-area: hash;
+  }
+  .v-circuits [data-label]::before {
+    content: attr(data-label) " ";
+    color: var(--ink-soft);
+    font-family: var(--round);
+  }
+}
+
