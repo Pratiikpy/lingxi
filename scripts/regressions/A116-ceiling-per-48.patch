@@ -1,0 +1,11 @@
+--- a/services/api/src/limit.ts
++++ b/services/api/src/limit.ts
+@@ -116,7 +116,7 @@ export class FairCeiling {
+   ) {}
+ 
+   take(caller: string, now = Date.now()): boolean {
+-    const key = prefixOf(caller) ?? caller;
++    const key = caller;
+     this.age(now);
+     this.askers.delete(key);
+     while (this.askers.size >= this.maxKeys) this.askers.delete(this.askers.keys().next().value!);
