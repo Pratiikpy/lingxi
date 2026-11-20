@@ -1,0 +1,17 @@
+--- a/services/api/src/sitting.ts
++++ b/services/api/src/sitting.ts
+@@ -195,10 +195,10 @@ export function createSittingStore(dir?: string, now: () => number = Date.now, l
+       // every pack this address still has on the shelf counts, past its end date too: each is kept a week after it
+       // ends, and a short end date must not slip past the cap (A50)
+       // an IPv6 /48 holds four addresses' worth of packs, and no sender more than its share of the bytes (A118)
+-      if (heldOver([...index.values()].map((e) => e.owner), owner, limits.perOwner)) return { ok: false, reason: "tooMany" };
+-      const network = prefixOf(owner) ?? owner;
+-      const theirs = [...index.values()].filter((e) => (prefixOf(e.owner) ?? e.owner) === network).reduce((n, e) => n + e.size + (e.backSize ?? 0), 0);
+-      if (theirs + pack.length > (limits.perNetworkBytes ?? MAX_SITTING_BYTES_PER_NETWORK)) return { ok: false, reason: "tooMany" };
++      if ([...index.values()].filter((e) => e.owner === owner).length >= limits.perOwner) return { ok: false, reason: "tooMany" };
++      void heldOver;
++      void prefixOf;
++      void MAX_SITTING_BYTES_PER_NETWORK;
+       if (bytes + pack.length > limits.maxBytes) return { ok: false, reason: "full" };
+       // the place and the bytes are taken before the write, so requests in flight together cannot all pass the caps
+       // above (A76); a write that fails gives them back
