@@ -1204,5 +1204,11 @@
     "row": "A66",
     "bug": "a pet kept the old way had its diary called failed, with no word of why",
     "test": { "kind": "e2e", "spec": "e2e/specs/diary.spec.ts", "title": "a pet kept before its log started at the kept state is said plainly (zh, dark, desktop) (A66)" }
+  },
+  {
+    "id": "A67-notices-clear-sheet",
+    "row": "A67",
+    "bug": "a notice raised while a sheet was open covered the sheet's title",
+    "test": { "kind": "e2e", "spec": "e2e/specs/notices.spec.ts", "title": "notices raised while a sheet is open never cover its header (zh, dark, desktop) (A67)" }
   }
 ]
