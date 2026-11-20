@@ -1,0 +1,19 @@
+--- a/services/api/src/sitting.ts
++++ b/services/api/src/sitting.ts
+@@ -180,15 +180,9 @@ export function createSittingStore(dir?: string, now: () => number = Date.now, l
+       // the place and the bytes are taken before the write, so requests in flight together cannot all pass the caps
+       // above (A76); a write that fails gives them back
+       const code = randomBytes(12).toString("hex");
++      await blobs.write(`${code}.pack`, pack);
+       index.set(code, { keyHash, until, created: t, owner, size: pack.length });
+       bytes += pack.length;
+-      try {
+-        await blobs.write(`${code}.pack`, pack);
+-      } catch (e) {
+-        index.delete(code);
+-        bytes -= pack.length;
+-        throw e;
+-      }
+       await saveIndex();
+       return { ok: true, code };
+     },

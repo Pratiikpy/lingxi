@@ -1258,5 +1258,11 @@
     "row": "A75",
     "bug": "a child's card was taped out for any pet, child or not",
     "test": { "kind": "vitest", "dir": "services/api", "file": "test/relayRoutes.test.ts", "name": "refuses a child's card for a pet that is not a child, and a birth whose first parent is not this pet's brain, sending nothing" }
+  },
+  {
+    "id": "A76-sitting-burst",
+    "row": "A76",
+    "bug": "thirty sitting packs sent together were all accepted against a cap of eight",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/sitting.test.ts", "name": "thirty packs left at once from one address keep to its cap" }
   }
 ]
