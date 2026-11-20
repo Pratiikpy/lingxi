@@ -27,7 +27,7 @@
 
 ## How a pet thinks
 
-Once a minute the pet reads 16 input pins: how hungry, tired, dirty, bored and happy it is, the time of day, and what you just did. Its circuit answers on 8 output pins with what it does next, and its memory bits (8 in a starter brain, more in a child's) carry what it remembers into the next beat. The rule that fired is shown to you, lit up gate by gate.
+Once a minute the pet reads 16 input pins: how hungry, happy, rested and clean it is, the time of day, what you just did, whether a friend, a toy or something scary is near, and whether you are there. Its circuit answers on 8 output pins with what it does next, and its memory bits (8 in a starter brain, more in a child's) carry what it remembers into the next beat. The rule that fired is shown to you, lit up gate by gate.
 
 ```mermaid
 flowchart LR
@@ -39,7 +39,7 @@ flowchart LR
   E --> F[proof page: replay on the processor<br/>same circuit, same input, same answer]
 ```
 
-The game runs the same netlist through a fast local evaluator; any beat can be re-run on chain through the processor's `step`. A pet's thoughts are only ever claimed when the two agree.
+The game runs the same netlist through a fast local evaluator; any beat can be re-run on chain through the processor's `step`. The proof page and `pnpm judge:check` do that and say whether the two agree; the game itself does not check each beat against the chain as it plays.
 
 <p align="center"><img src="docs/readme/play.png" alt="Home, the circuit view, teaching in plain words, a spar" width="100%"></p>
 
@@ -94,7 +94,7 @@ There is one other rail, in OKB: designs listed on the first outfit market, befo
 | A colour for a pet's name, shown wherever its name is (back to plain is free) | 0.05 BEM | the whole price burned |
 | Holder outfit for TapeCode-Test1 and Rig holders (each token once), and BEM and FAB holders at the snapshot block | free | nothing |
 
-Every one of these numbers is read live from the chain on the [live-numbers page](https://lingxi.knole.me/numbers.html): pets hatched and born, days kept on X Layer, outfits sold, BEM burned by each contract and in total, with the contract each figure comes from. `pnpm --filter @lingxi/chain recount` recomputes them independently from the chain's logs and reports any difference.
+Every one of these numbers is read from X Layer by Lingxi's server, at most a minute old, on the [live-numbers page](https://lingxi.knole.me/numbers.html), which refreshes each minute: pets hatched and born, days kept on X Layer, outfits sold, BEM burned by each contract and in total, with the contract each figure comes from. `pnpm --filter @lingxi/chain recount` recomputes them independently from the chain's logs and reports any difference.
 
 <p align="center"><img src="docs/readme/chain.png" alt="The item shop, the adoption centre, the home at night in Chinese, the map" width="100%"></p>
 
@@ -110,7 +110,7 @@ Each day its owner saves, the pet's 256-bit state and a hash of everything it se
 
 ```sh
 pnpm install
-pnpm judge:check          # about 3.5 minutes, read-only against mainnet
+pnpm judge:check          # about four minutes, read-only against mainnet
 ```
 
 `judge:check` confirms that the processor is registered with the TapeOut factory; that the circuits on chain are byte for byte what our compiler produces; that pet #1's saved log hash and memory reproduce exactly; and that the gentle brain and the seal circuit give the chain's own answer on every one of their 65,536 inputs.
@@ -221,9 +221,9 @@ The brain tests include an exhaustive check of the seal circuit against its refe
 
 ## Security
 
-Every contract had a written review and a Slither pass before it reached mainnet; the reviews and their fixes are recorded with the build notes. The properties that matter most: all BEM moves straight from the buyer to the dead address and the parties in one transaction, so no contract keeps a fee: a contract holds only what it owes others until they take it (sellers' BEM in the second outfit market, each red packet's USDT until it is opened or refunded, and the first market's OKB owed to the project); `expectedPrice` guards every purchase against a price changed in flight; listings bind a fingerprint of the pet's on-chain record so nothing in that record can change between an offer and its sale; approvals are per pet, never for all; and the server is a mailbox and a relay, never the judge (the buyer's game verifies against the chain before paying). One trust assumption to know: PetRegistry's owner chooses which breeder contracts may record a pet's parents.
+Every contract had a written security review before it reached mainnet, and Slither found nothing in any of them that needed a fix (for BreederV2, HolderGift and OutfitMarketV2 it was run after their deploy, on 20 November). The findings that did need a fix are kept as regression tests in `contracts/test/SecurityReview.t.sol` and `contracts/test/OutfitMarketV2.review.t.sol`, which CI runs. The properties that matter most: all BEM moves straight from the buyer to the dead address and the parties in one transaction, so no contract keeps a fee: a contract holds only what it owes others until they take it (sellers' BEM in the second outfit market, each red packet's USDT until it is opened or refunded, and the first market's OKB owed to the project); `expectedPrice` guards every purchase against a price changed in flight; listings bind a fingerprint of the pet's on-chain record so nothing in that record can change between an offer and its sale; the game asks for approval per pet, never for all (the adoption centre also honours an approval for all, if an owner gave one elsewhere); and the server is a mailbox and a relay, never the judge (the buyer's game verifies against the chain before paying). One trust assumption to know: PetRegistry's owner chooses which breeder contracts may record a pet's parents.
 
-Two limits of the mainnet contracts, and what the game does about them. A pet's name colour lives in the Extras contract, outside the record an adoption listing fingerprints, so a breeder could change it before a sale; the adoption centre therefore says that a name colour is not part of the price. A red packet "for pet owners" asks the registry that the claimer owns a settled pet (lived on chain three days and saved its third day), which stops casual farming but not someone willing to settle many pets; the game says exactly that where the option is chosen.
+Two limits of the mainnet contracts, and what the game does about them. A pet's name colour lives in the Extras contract, outside the record an adoption listing fingerprints, so a breeder could change it before a sale; the adoption centre therefore says that a name colour is not part of the price. A red packet "for pet owners" asks the registry that the claimer owns a settled pet (lived on chain three days and saved its third day), which stops casual farming but not someone willing to settle many pets; the game says exactly that where the option is chosen. (RedPacket's own source comment calls that check a day old and one day saved; the registry's rule, which is what runs, is three days and three saves.)
 
 ## Run it locally
 

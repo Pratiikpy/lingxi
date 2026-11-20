@@ -7,7 +7,7 @@
  *   4. the gentle starter brain answers all 65,536 inputs (at empty memory) exactly as the open evaluator
  *   5. the red packet seal answers all 65,536 inputs exactly as its reference
  *
- * Reads only; needs no wallet. About five minutes on the public RPC.
+ * Reads only; needs no wallet. About four minutes on the public RPC (220 s measured on 20 November), longer on a busy machine.
  */
 
 import { createHash } from "node:crypto";

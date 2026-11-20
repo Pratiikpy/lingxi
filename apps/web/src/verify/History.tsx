@@ -20,7 +20,7 @@ const T = {
   zh: { title: "它在链上的一生", none: "这只宠物还没有被索引到的记录。", hatched: "孵化", saved: "第 {d} 天已保存", brain: "新心智：电路 #{id}", parents: "父母", children: "小宝宝", lineageKept: "出生时记录：繁育合约当时核对过它的电路确实是这两位父母的孩子。它现在的大脑仍是那块电路。", lineageChanged: "出生时记录：繁育合约当时核对过它的电路确实是这两位父母的孩子。之后它的大脑换过（见下面的“新心智”），所以本页核对的是它现在的电路，可能已经不再是父母的。", source: "由灵犀的索引服务从 PetRegistry 的事件整理。每一行都链接到 X Layer 上的交易；数值是主人那天保存的状态。", meters: "饱腹 {f} · 开心 {j} · 精神 {e} · 干净 {c}" },
 } as const;
 
-const when = (sec: number | undefined, lang: "en" | "zh") => (sec ? new Date(sec * 1000).toLocaleString(lang === "zh" ? "zh-CN" : "en", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "");
+const when = (sec: number | undefined, lang: "en" | "zh") => (sec ? new Date(sec * 1000).toLocaleString(lang === "zh" ? "zh-CN" : "en", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", timeZoneName: "short" }) : "");
 
 export function PetHistory({ id, brainBits, brainNow, lang, onOpen }: { id: string; brainBits: number; brainNow: string; lang: "en" | "zh"; onOpen: (id: string) => void }) {
   const t = T[lang];

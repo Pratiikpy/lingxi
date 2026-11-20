@@ -6,8 +6,8 @@ on:
   schedule:
     # the fork tests read X Layer as it is today, so they also run once a day on their own
     - cron: "17 3 * * *"
-  # the nightly run, started by hand (GitHub has not yet fired this repo's schedule); `revert` names the revert entries
-  # to check (comma-separated), or leaves it empty to check them all
+  # the nightly run can also be started by hand; `revert` names the revert entries to check (comma-separated), or
+  # leaves it empty to check them all
   workflow_dispatch:
     inputs:
       revert:

@@ -118,11 +118,14 @@ function rows(n: Numbers): Array<{ title: [string, string]; readTo?: number; ite
               },
             ]
           : []),
-        { label: ["Burned in total", "合计销毁"], value: `${formatBem(BigInt(n.burned.total))} BEM`, counts: ["The totals above added together. Lingxi never keeps BEM.", "上面各项之和。灵犀从不留下 BEM。"] },
+        { label: ["Burned in total", "合计销毁"], value: `${formatBem(BigInt(n.burned.total))} BEM`, counts: ["The totals above added together: every one was sent straight to the dead address, none of it to Lingxi.", "上面各项之和：每一笔都直接送到销毁地址，没有一枚给灵犀。"] },
       ],
     },
   ];
 }
+
+/** How often the page reads the numbers again; the server keeps them a minute. */
+const REFRESH_MS = 60_000;
 
 export function NumbersApp() {
   const { lang, toggle } = useLang();
@@ -138,14 +141,31 @@ export function NumbersApp() {
   useEffect(() => {
     // the on-chain copy reads the same public endpoint; it is open to any origin
     const base = API || "https://lingxi.knole.me";
-    fetch(`${base}/api/numbers`, { cache: "no-store" })
-      .then((r) => r.json())
-      .then((j: Numbers & { ok: boolean }) => (j.ok ? setData(j) : setErr(true)))
-      .catch(() => setErr(true));
-    fetch(`${base}/api/goals`, { cache: "no-store" })
-      .then((r) => r.json())
-      .then((j: GoalsBody & { ok: boolean }) => j.ok && setGoals(j))
-      .catch(() => undefined);
+    const read = () => {
+      fetch(`${base}/api/numbers`, { cache: "no-store" })
+        .then((r) => r.json())
+        .then((j: Numbers & { ok: boolean }) => {
+          if (j.ok) {
+            setData(j);
+            setErr(false);
+          } else setErr(true);
+        })
+        // numbers already shown stay; the message shows only when there are none
+        .catch(() => setErr(true));
+      fetch(`${base}/api/goals`, { cache: "no-store" })
+        .then((r) => r.json())
+        .then((j: GoalsBody & { ok: boolean }) => j.ok && setGoals(j))
+        .catch(() => undefined);
+    };
+    read();
+    // read again each minute, as the page says, while it is in view (A65)
+    const every = setInterval(() => document.visibilityState === "visible" && read(), REFRESH_MS);
+    const shown = () => document.visibilityState === "visible" && read();
+    document.addEventListener("visibilitychange", shown);
+    return () => {
+      clearInterval(every);
+      document.removeEventListener("visibilitychange", shown);
+    };
   }, []);
 
   return (
@@ -161,11 +181,11 @@ export function NumbersApp() {
       <h1>{L("Live numbers", "链上数字")}</h1>
       <p className="ag-lede">
         {L(
-          "What Lingxi has done on X Layer, read from the chain: the pets' own records, every outfit sale, and every BEM burned. Each number says what it counts and links to the contract it comes from.",
-          "灵犀在 X Layer 上做了什么，全部读自链上：宠物自己的记录、每一笔衣服交易、每一枚销毁的 BEM。每个数字都写明它数的是什么，并链接到它来自的合约。",
+          "What Lingxi has done on X Layer, read from the chain by Lingxi's server and at most a minute old: the pets' own records, every outfit sale, and every BEM burned. Each number says what it counts and links to the contract it comes from.",
+          "灵犀在 X Layer 上做了什么，由灵犀的服务器从链上读出，最多晚一分钟：宠物自己的记录、每一笔衣服交易、每一枚销毁的 BEM。每个数字都写明它数的是什么，并链接到它来自的合约。",
         )}
       </p>
-      {err && <p className="ag-card">{L("The numbers couldn't be read just now. The chain still has them: try again in a moment.", "暂时读不到这些数字。链上记录还在，请稍后再试。")}</p>}
+      {err && !data && <p className="ag-card">{L("The numbers couldn't be read just now. The chain still has them: try again in a moment.", "暂时读不到这些数字。链上记录还在，请稍后再试。")}</p>}
       {!data && !err && <p className="ag-card tl-loading">{L("Reading the chain…", "正在读取链上记录……")}</p>}
       {data &&
         [...rows(data), ...(goals ? [goalRows(goals, lang as Lang)] : [])].map((group) => (

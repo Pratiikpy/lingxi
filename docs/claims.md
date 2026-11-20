@@ -9,7 +9,7 @@ Kinds of check:
 - `auto:<name>`: a check in `scripts/claims-check.mts`, run against X Layer mainnet and the live site.
 - `test:<path>`: a test in the repo's suites, run by the checker (see below).
 - `facts:<name>`: a number counted from the repo by `scripts/readme-facts.mts`.
-- `judge: <step>`: the step of `pnpm judge:check` (the read-only check of mainnet, about five minutes) the claim rests on; the checker runs it and passes the row only if that step passed.
+- `judge: <step>`: the step of `pnpm judge:check` (the read-only check of mainnet, about four minutes) the claim rests on; the checker runs it and passes the row only if that step passed.
 - A `test:` row runs its test: a vitest file in its package, a Foundry test by its path; a browser spec counts only when CI's latest completed run on master passed its browser job with the spec, and is PENDING until then.
 - `manual: …`: how it was checked by hand, with the evidence.
 
