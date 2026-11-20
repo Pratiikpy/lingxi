@@ -1,0 +1,11 @@
+--- a/README.md
++++ b/README.md
+@@ -57,7 +57,7 @@ The game runs the same netlist through a fast local evaluator; any beat can be r
+ 
+ **Spar.** Nobody presses buttons: each move comes from your pet's own circuit reading the fight, and for a pet kept on X Layer every move can be checked against its brain there. After a loss, the coach replays the fight with every lesson your pet could learn and tells you which one actually wins. Challenge a friend by link, take the daily challenge seeded by the first X Layer block of the day, run the arena with companions, and enter weekly seasons whose champion's brain is taped out as a keepsake.
+ 
+-**Grow a family.** Two grown pets that are best friends can have a child. The child's brain is both parents' circuits composed by REF, so, kept on X Layer, it is as checkable as they are. Every pet hatched or bred on X Layer appears on the tree of life, read from the chain.
++**Grow a family.** Two grown pets that are best friends can have a child. The child's brain is both parents' circuits composed by REF, so, kept on X Layer, it is as checkable as they are. Every pet ever hatched or bred appears on the tree of life, read from X Layer.
+ 
+ **Dress it, and draw for others.** Twelve outfits drawn to fit every line and stage. Draw your own in the design studio and sell it on the fashion market; creators earn on every sale and resale.
+ 
