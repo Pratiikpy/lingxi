@@ -4,13 +4,17 @@
  * on chain lacks, it still enters, unproven, and the game says why it cannot win the keepsake. A pet that lives only
  * in the browser enters openly. Each entry is read back from the server's season store, not only from the screen.
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { type Opened, dismiss, expect, hatch, sheet, test } from "../fixtures";
 import { forkOf, keepOnChain, reach, teach } from "../helpers/chain";
 
-/** The season store the server writes: week → its entries and its proven pets (entry key → pet id). */
-const stored = (dir: string) => JSON.parse(readFileSync(join(dir, "stores", "season.json"), "utf8")) as Record<string, { entries: Array<{ key: string }>; pets?: Record<string, string> }>;
+type StoredWeek = { entries: Array<{ key: string }>; pets?: Record<string, string> };
+/** The season store the server writes, one file a week (A123): week → its entries and its proven pets (key → pet id). */
+const stored = (dir: string): Record<string, StoredWeek> => {
+  const weeks = join(dir, "stores", "season.json.d");
+  return Object.fromEntries(readdirSync(weeks).filter((n) => n.endsWith(".json")).map((n) => [n.slice(0, -5), JSON.parse(readFileSync(join(weeks, n), "utf8")) as StoredWeek]));
+};
 /** This device's entry key for `week`, as the game remembers it. */
 const myKey = (page: Opened["page"], week: string) => page.evaluate((w) => (JSON.parse(localStorage.getItem("lingxi.season.v1") ?? "{}") as { keys?: Record<string, string> }).keys?.[w], week);
 

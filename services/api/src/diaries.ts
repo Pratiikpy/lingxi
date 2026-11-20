@@ -17,6 +17,7 @@ import { join } from "node:path";
 import { PublishedLog } from "@lingxi/api-schema";
 import { SEND_LIMITS } from "@lingxi/chain/limits";
 import { ZERO_HASH, chainAll } from "@lingxi/game";
+import { PREFIX_SHARE, prefixOf } from "./limit";
 
 /** Words a pet's log may hold for each minute it has lived: one a beat, the rest care (a player would have to tap nine times a minute, all its life). */
 export const DIARY_WORDS_PER_MINUTE = 10;
@@ -65,6 +66,11 @@ export function createDiaryStore(dir?: string, opts: { now?: () => number; total
     // only each file's size and time: no diary is read to open the shelf, however many it holds (A80); a file a write
     // left half-done is a `.tmp`, never listed
     for (const name of readdirSync(dir)) {
+      // a write a crash cut short left a temporary file: it is cleared, never listed (A123)
+      if (name.endsWith(".tmp")) {
+        rmSync(join(dir, name), { force: true });
+        continue;
+      }
       const id = name.replace(/\.json$/, "");
       if (!ID.test(id) || !name.endsWith(".json")) continue;
       try {
@@ -100,7 +106,7 @@ export function createDiaryStore(dir?: string, opts: { now?: () => number; total
   };
 
   type Held = { bytes: number; words?: number; at: number };
-  type Plan = { ok: true; body: string; held: Held | undefined; t: number; day: number; today: number; grows: number };
+  type Plan = { ok: true; body: string; held: Held | undefined; t: number; day: number; grows: number };
   type Refusal = { ok: false; reason: "invalid" | "unknown" | "tooLong" | "older" | "busy" | "full" };
 
   /** what `from` has spent today, in bytes */
@@ -108,10 +114,11 @@ export function createDiaryStore(dir?: string, opts: { now?: () => number; total
     const mine = spent.get(from);
     return mine?.day === day ? mine.bytes : 0;
   };
-  const charge = (from: string, bytes: number) => {
-    const day = Math.floor(now() / DAY_MS);
-    spent.set(from, { day, bytes: spentToday(from, day) + bytes });
+  /** spends `bytes` of `from`'s day, and of its IPv6 /48's (A123) */
+  const addSpent = (from: string, day: number, bytes: number) => {
+    for (const k of [from, ...(prefixOf(from) !== null ? [prefixOf(from)!] : [])]) spent.set(k, { day, bytes: spentToday(k, day) + bytes });
   };
+  const charge = (from: string, bytes: number) => addSpent(from, Math.floor(now() / DAY_MS), bytes);
 
   /** Every bound that needs no hash: the log's shape, its pet's age, a longer kept diary, the sender's bytes, the shelf. */
   const check = (log: PublishedLog, chain: PetOnChain | null, from: string): Plan | Refusal => {
@@ -128,15 +135,17 @@ export function createDiaryStore(dir?: string, opts: { now?: () => number; total
     const grows = Math.max(0, body.length - (held?.bytes ?? 0));
     const day = Math.floor(t / DAY_MS);
     const today = spentToday(from, day);
-    if (today + grows > perAddress) return { ok: false, reason: "busy" };
+    const prefix = prefixOf(from);
+    // an address publishes its day's bytes, and its IPv6 /48 four addresses' worth (A123)
+    if (today + grows > perAddress || (prefix !== null && spentToday(prefix, day) + grows > perAddress * PREFIX_SHARE)) return { ok: false, reason: "busy" };
     // a full shelf can let go of every other diary; one too big even for that is refused before it is hashed
     if (body.length > totalBytes) return { ok: false, reason: "full" };
-    return { ok: true, body, held, t, day, today, grows };
+    return { ok: true, body, held, t, day, grows };
   };
 
   /** Keeps a log that matched: makes room on a full shelf, writes it, and spends its sender's bytes. */
   const commit = (log: PublishedLog, plan: Plan, from: string): PublishResult => {
-    const { body, held, t, day, today, grows } = plan;
+    const { body, held, t, day, grows } = plan;
     // a full shelf lets go the diaries quiet longest (published or read longest ago), never this pet's (A80)
     if (body.length - (held?.bytes ?? 0) + total > totalBytes) {
       const others = [...index].filter(([id]) => id !== log.petId).sort((x, y) => x[1].at - y[1].at);
@@ -163,7 +172,7 @@ export function createDiaryStore(dir?: string, opts: { now?: () => number; total
     } else texts.set(log.petId, body);
     total += body.length - (held?.bytes ?? 0);
     index.set(log.petId, { bytes: body.length, words: log.words.length, at: t });
-    spent.set(from, { day, bytes: today + grows });
+    addSpent(from, day, grows);
     return { ok: true, beats: log.words.length };
   };
 

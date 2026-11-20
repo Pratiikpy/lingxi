@@ -8,8 +8,8 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { COMPANION, MAX_COMPANIONS, type DuelPet, duelFighter, canonicalCard } from "@lingxi/game";
+import { openShards } from "./shards";
 
 export const MAX_ROUND = 30;
 const PER_ROUND = 60;
@@ -28,6 +28,8 @@ export interface ArenaStore {
   save: (round: number, pet: unknown, team: unknown, device: string) => { ok: true } | { ok: false; reason: "invalid" };
   pick: (round: number, device: string, roll?: number) => Omit<Snapshot, "by"> | null;
   count: (round: number) => number;
+  /** writes every round that changed since the last write (A123) */
+  flush: () => Promise<void>;
 }
 
 const tag = (device: string) => createHash("sha256").update(`lingxi-arena:${device}`).digest("hex").slice(0, 16);
@@ -50,30 +52,22 @@ export function validSnapshot(pet: unknown, team: unknown): { pet: DuelPet; team
   return { pet: clean, team: team as string[] };
 }
 
-export function createArenaStore(file?: string, now: () => number = Date.now): ArenaStore {
+export function createArenaStore(file?: string, now: () => number = Date.now, opts: { every?: number } = {}): ArenaStore {
   const rounds = new Map<number, Snapshot[]>();
-  if (file && existsSync(file)) {
-    try {
-      for (const [r, list] of Object.entries(JSON.parse(readFileSync(file, "utf8")) as Record<string, Snapshot[]>)) {
-        const n = Number(r);
-        if (Number.isInteger(n) && n >= 0 && n <= MAX_ROUND && Array.isArray(list)) rounds.set(n, list.slice(-PER_ROUND));
-      }
-    } catch {
-      // a damaged file starts empty rather than stopping the server
-    }
+  // one file a round (A123): the timer writes the rounds that changed, never all thirty
+  const shards = file ? openShards(file, ".before-rounds", "arena round") : null;
+  for (const [r, list] of shards?.all() ?? []) {
+    const n = Number(r);
+    if (Number.isInteger(n) && n >= 0 && n <= MAX_ROUND && Array.isArray(list)) rounds.set(n, (list as Snapshot[]).slice(-PER_ROUND));
   }
-  let dirty = false;
+  const dirty = new Set<number>();
   const save = () => {
-    if (!file || !dirty) return;
-    dirty = false;
-    try {
-      writeFileSync(`${file}.tmp`, JSON.stringify(Object.fromEntries(rounds)));
-      renameSync(`${file}.tmp`, file);
-    } catch (e) {
-      process.stderr.write(`arena store not saved: ${(e as Error).message}\n`);
-    }
+    if (!shards) return;
+    for (const n of dirty) shards.write(String(n), rounds.get(n) ?? []);
+    dirty.clear();
   };
-  if (file) setInterval(save, 30_000).unref();
+  const every = opts.every ?? 30_000;
+  if (shards && every > 0) setInterval(save, every).unref();
   return {
     save: (round, pet, team, device) => {
       if (!Number.isInteger(round) || round < 0 || round > MAX_ROUND || typeof device !== "string" || device.length < 8 || device.length > 64) return { ok: false, reason: "invalid" };
@@ -84,7 +78,7 @@ export function createArenaStore(file?: string, now: () => number = Date.now): A
       const list = (rounds.get(round) ?? []).filter((s) => s.by !== by);
       list.push({ ...v, by, at: now() });
       rounds.set(round, list.slice(-PER_ROUND));
-      dirty = true;
+      dirty.add(round);
       return { ok: true };
     },
     pick: (round, device, roll = Math.random()) => {
@@ -95,5 +89,6 @@ export function createArenaStore(file?: string, now: () => number = Date.now): A
       return { pet: s.pet, team: s.team, at: s.at };
     },
     count: (round) => rounds.get(round)?.length ?? 0,
+    flush: async () => save(),
   };
 }

@@ -12,11 +12,11 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { MAX_ENTRIES, type SeasonEntry, type Standing, seasonStandings, standingsDigest, weekBounds, weekOf } from "@lingxi/game";
 import { validSnapshot } from "./arena";
 import { type StandingsAnswer, entriesKey } from "./standings";
 import { heldOver } from "./limit";
+import { openShards } from "./shards";
 
 const KEEP_WEEKS = 12;
 const WEEK = /^\d{4}-W\d{2}$/;
@@ -117,25 +117,23 @@ function foughtHere(): StandingsSource {
 
 export function createSeasonStore(file?: string, now: () => number = Date.now, source: StandingsSource = foughtHere()): SeasonStore {
   const weeks = new Map<string, Week>();
-  if (file && existsSync(file)) {
-    try {
-      for (const [w, v] of Object.entries(JSON.parse(readFileSync(file, "utf8")) as Record<string, Week>)) if (WEEK.test(w) && Array.isArray(v.entries)) weeks.set(w, { ...v, entries: v.entries.slice(0, MAX_ENTRIES), by: v.by ?? {} });
-    } catch {
-      // a damaged file starts empty rather than stopping the server
-    }
+  // one file a week (A123): an entry rewrites its own week, never every week kept
+  const shards = file ? openShards(file, ".before-weeks", "season week") : null;
+  for (const [w, raw] of shards?.all() ?? []) {
+    const v = raw as Week;
+    if (WEEK.test(w) && v && Array.isArray(v.entries)) weeks.set(w, { ...v, entries: v.entries.slice(0, MAX_ENTRIES), by: v.by ?? {} });
   }
-  const save = () => {
-    if (!file) return;
-    try {
-      writeFileSync(`${file}.tmp`, JSON.stringify(Object.fromEntries(weeks)));
-      renameSync(`${file}.tmp`, file);
-    } catch (e) {
-      process.stderr.write(`season store not saved: ${(e as Error).message}\n`);
-    }
+  const save = (week: string) => {
+    const w = weeks.get(week);
+    if (shards && w) shards.write(week, w);
   };
   const prune = () => {
     const keep = [...weeks.keys()].sort().slice(-KEEP_WEEKS);
-    for (const w of weeks.keys()) if (!keep.includes(w)) weeks.delete(w);
+    for (const w of [...weeks.keys()])
+      if (!keep.includes(w)) {
+        weeks.delete(w);
+        shards?.remove(w);
+      }
   };
   return {
     enter: (pet, device, opts = {}) => {
@@ -172,7 +170,7 @@ export function createSeasonStore(file?: string, now: () => number = Date.now, s
       if (opts.from && !from[key]) from[key] = opts.from;
       weeks.set(week, { ...w, entries, by: { ...w.by, [who]: key }, pets, from });
       prune();
-      save();
+      save(week);
       return { ok: true, week, key };
     },
     view: (week) => {
@@ -208,7 +206,7 @@ export function createSeasonStore(file?: string, now: () => number = Date.now, s
       const w = weeks.get(week);
       if (!w) return;
       weeks.set(week, { ...w, award });
-      save();
+      save(week);
     },
   };
 }

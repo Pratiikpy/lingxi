@@ -49,6 +49,11 @@ export function createDuelStore(dir?: string, limits: { count: number; chars: nu
   if (dir) {
     mkdirSync(dir, { recursive: true });
     for (const name of readdirSync(dir)) {
+      // a write a crash cut short left a temporary file: it is cleared, never read (A123)
+      if (name.endsWith(".tmp")) {
+        rmSync(join(dir, name), { force: true });
+        continue;
+      }
       const m = FILE.exec(name);
       if (!m) continue;
       const st = statSync(join(dir, name));
@@ -162,9 +167,13 @@ export function withDuels(app: Hono, store: DuelStore, limiter = new RateLimiter
         day = today;
         spent.clear();
       }
+      // an address stores its day's characters, and its IPv6 /48 four addresses' worth (A123)
       const used = spent.get(ip) ?? 0;
-      if (used + code.length > perAddressDay) return c.json({ ok: false, reason: "busy" });
+      const prefix = prefixOf(ip);
+      const network = prefix === null ? 0 : (spent.get(prefix) ?? 0);
+      if (used + code.length > perAddressDay || (prefix !== null && network + code.length > perAddressDay * PREFIX_SHARE)) return c.json({ ok: false, reason: "busy" });
       spent.set(ip, used + code.length);
+      if (prefix !== null) spent.set(prefix, network + code.length);
     }
     store.put(id, code, now(), ip);
     return c.json({ ok: true, id });
