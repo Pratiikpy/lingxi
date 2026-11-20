@@ -66,7 +66,30 @@ interface Client {
   address: string;
   tokens: number;
   last: number;
+  /** bumped each time the card changes: an asker is sent a card once per change (A61) */
+  cardVersion: number;
+  /** the card version of each pet this client has been sent */
+  seen: Map<string, number>;
+  /** when this client last asked for cards, for the per-connection limit */
+  asks: number[];
+  /** answered the last ping; when it last sent anything */
+  alive: boolean;
+  heard: number;
 }
+
+/** How a room watches its connections and limits asks (A61). */
+export interface RoomLimits {
+  /** a connection that sends nothing for this long is closed with 4001 ("idle") */
+  idleMs: number;
+  /** every connection is pinged this often, and dropped if it has not answered the last ping */
+  pingMs: number;
+  /** asks for a card one connection may make in a minute, and one address */
+  asksPerConnection: number;
+  asksPerAddress: number;
+}
+const ROOM_LIMITS: RoomLimits = { idleMs: 15 * 60_000, pingMs: 30_000, asksPerConnection: 6, asksPerAddress: 30 };
+/** The close code for a connection let go for being idle: the game reconnects on the player's next action. */
+export const IDLE_CLOSE = 4001;
 
 const clean = (s: unknown, max: number): string =>
   typeof s === "string" ? s.replace(/[\u0000-\u001f\u007f<>]/g, "").trim().slice(0, max) : "";
@@ -93,10 +116,43 @@ export class LiveRooms {
   private readonly clients = new Set<Client>();
   private readonly spaces = new Map<string, Set<Client>>();
 
+  private readonly limits: RoomLimits;
+  private readonly askers: RateLimiter;
+  private watching: ReturnType<typeof setInterval> | null = null;
+
   constructor(
     private readonly decor: DecorStore = createDecorStore(),
     private readonly homes?: Homes,
-  ) {}
+    limits: Partial<RoomLimits> = {},
+  ) {
+    this.limits = { ...ROOM_LIMITS, ...limits };
+    this.askers = new RateLimiter(this.limits.asksPerAddress, 60_000);
+  }
+
+  /** Pings every connection, drops one that did not answer the last ping, and closes one silent past the idle time. */
+  private watch(): void {
+    if (this.watching) return;
+    this.watching = setInterval(() => {
+      const now = Date.now();
+      for (const c of this.clients) {
+        if (!c.alive) {
+          c.ws.terminate();
+          continue;
+        }
+        if (now - c.heard > this.limits.idleMs) {
+          c.ws.close(IDLE_CLOSE, "idle");
+          continue;
+        }
+        c.alive = false;
+        try {
+          c.ws.ping();
+        } catch {
+          c.ws.terminate();
+        }
+      }
+    }, this.limits.pingMs);
+    this.watching.unref?.();
+  }
 
   /** A home's pieces as a visitor sees them: what the owner placed, cut to what its linked wallets allow on X Layer. */
   private async shown(owner: string): Promise<Placed> {
@@ -207,9 +263,12 @@ export class LiveRooms {
   }
 
   handle(ws: WebSocket, address = "local"): void {
-    const c: Client = { ws, card: null, proposals: new Map(), member: { id: "", name: "", line: "gentle", stage: "baby", mood: 1, x: 64 }, space: null, petId: null, address, tokens: 8, last: Date.now() };
+    const c: Client = { ws, card: null, proposals: new Map(), member: { id: "", name: "", line: "gentle", stage: "baby", mood: 1, x: 64 }, space: null, petId: null, address, tokens: 8, last: Date.now(), cardVersion: 0, seen: new Map(), asks: [], alive: true, heard: Date.now() };
     this.clients.add(c);
+    this.watch();
+    ws.on("pong", () => (c.alive = true));
     ws.on("message", (raw, isBinary) => {
+      c.heard = Date.now();
       if (isBinary) return;
       const text = raw.toString();
       if (text.length > MAX_CARD_FRAME || !this.allow(c)) return;
@@ -325,6 +384,7 @@ export class LiveRooms {
           return;
         }
         c.card = m.lessons;
+        c.cardVersion++;
         return;
       }
       case "propose": {
@@ -351,7 +411,18 @@ export class LiveRooms {
         if (!c.space || typeof m.to !== "string") return;
         const target = [...(this.spaces.get(c.space) ?? [])].find((o) => o.member.id === m.to && o !== c);
         if (!target) return;
-        this.send(c, { t: "card", id: target.member.id, name: target.member.name, line: target.member.line, stage: target.member.stage, lessons: target.card ?? "[]" });
+        // a few asks a minute, per connection and per address (A61)
+        const now = Date.now();
+        c.asks = c.asks.filter((t) => now - t < 60_000);
+        if (c.asks.length >= this.limits.asksPerConnection || !this.askers.take(c.address)) return;
+        c.asks.push(now);
+        // the whole card once per change of it; after that a short answer, and the game keeps the card it has (A61)
+        const about = { t: "card", id: target.member.id, name: target.member.name, line: target.member.line, stage: target.member.stage };
+        if (c.seen.get(target.member.id) === target.cardVersion) this.send(c, { ...about, unchanged: true });
+        else {
+          c.seen.set(target.member.id, target.cardVersion);
+          this.send(c, { ...about, lessons: target.card ?? "[]" });
+        }
         this.send(target, { t: "asked", from: c.member.id, name: c.member.name });
         return;
       }

@@ -140,6 +140,11 @@ let me: Me | null = null;
 let want: string | null = null;
 let lessonsCard: string | null = null;
 let decorShared: string | null = null;
+/** the cards friends' pets have been sent whole, by member id: the room answers a repeat ask "unchanged" (A61) */
+const keptCards = new Map<string, string>();
+/** the room let this connection go for being idle (4001): it reconnects on the player's next action, not by itself */
+let resting = false;
+let wakeUp: (() => void) | null = null;
 
 /** A key made for this page only, when the browser keeps no storage: never one shared by every such player. */
 let sessionKey: string | null = null;
@@ -161,6 +166,7 @@ function decorKey(): string {
 }
 
 const send = (m: unknown) => {
+  if (resting) wakeUp?.();
   if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(m));
 };
 
@@ -245,9 +251,19 @@ export const useLive = create<LiveState>((set, get) => {
           if (m.ok === true && Array.isArray(m.wallets)) set({ links: (m.wallets as unknown[]).filter((w): w is string => typeof w === "string") });
           set({ linkAnswer: { ok: m.ok === true, ...(typeof m.reason === "string" ? { reason: m.reason } : {}), at: performance.now() } });
           return;
-        case "card":
-          set({ card: { id: m.id as string, name: nameIn(m), line: m.line as string, stage: m.stage as string, lessons: m.lessons as string, at: performance.now() } });
+        case "card": {
+          // an "unchanged" answer means the card this game was sent before still stands (A61)
+          const id = m.id as string;
+          const lessons = m.unchanged === true ? keptCards.get(id) : typeof m.lessons === "string" ? m.lessons : undefined;
+          if (lessons === undefined) return;
+          if (m.unchanged !== true) {
+            keptCards.delete(id);
+            keptCards.set(id, lessons);
+            if (keptCards.size > 200) keptCards.delete(keptCards.keys().next().value!);
+          }
+          set({ card: { id, name: nameIn(m), line: m.line as string, stage: m.stage as string, lessons, at: performance.now() } });
           return;
+        }
         case "proposal":
           set({ proposal: { from: m.from as string, name: nameIn(m), stage: m.stage as string, line: m.line as string, ...(asChain(m.chain) ? { chain: asChain(m.chain)! } : {}), at: performance.now() } });
           return;
@@ -277,10 +293,29 @@ export const useLive = create<LiveState>((set, get) => {
         default:
       }
     };
-    sock.onclose = () => {
+    sock.onclose = (e) => {
       if (ws !== sock) return;
       ws = null;
       set({ status: "off", members: {} });
+      // let go for being idle: back when the player acts or the tab is shown again, not in a loop by itself (A61)
+      if (e.code === 4001) {
+        resting = true;
+        const back = () => {
+          if (!resting) return;
+          resting = false;
+          wakeUp = null;
+          removeEventListener("pointerdown", back);
+          removeEventListener("keydown", back);
+          document.removeEventListener("visibilitychange", shown);
+          open();
+        };
+        const shown = () => document.visibilityState === "visible" && back();
+        wakeUp = back;
+        addEventListener("pointerdown", back);
+        addEventListener("keydown", back);
+        document.addEventListener("visibilitychange", shown);
+        return;
+      }
       const delay = Math.min(30_000, 1000 * 2 ** retry++);
       setTimeout(open, delay);
     };

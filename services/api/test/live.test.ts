@@ -205,11 +205,11 @@ describe("live rooms", () => {
     await handled(a, b, 47);
     b.ws.send(JSON.stringify({ t: "ask", to: idOf("cardbig1") }));
     expect((await b.next("card")).lessons).toBe(full);
-    // a card over the budget is refused: the friend still gets the one before it
+    // a card over the budget is refused: the card kept is the one before it, which the friend already has (A61)
     a.ws.send(JSON.stringify({ t: "card", lessons: JSON.stringify({ lessons: [rule], outside: { parts: [{ hex: "0".repeat(CARD_MAX) }] } }) }));
     await handled(a, b, 53);
     b.ws.send(JSON.stringify({ t: "ask", to: idOf("cardbig1") }));
-    expect((await b.next("card")).lessons).toBe(full);
+    expect(await b.next("card")).toMatchObject({ id: idOf("cardbig1"), unchanged: true });
     // and any other message over 12 KB is ignored, as before
     a.ws.send(JSON.stringify({ t: "say", text: "hi", pad: "x".repeat(13_000) }));
     await expect(b.next("say", 300)).rejects.toThrow();
@@ -315,3 +315,73 @@ describe("live rooms", () => {
     expect(answers.at(-1)).toBe("decorRefused");
   });
 });
+
+describe("live rooms send a card once per change, limit asks, and let quiet connections go (A61)", () => {
+  it("a second ask for an unchanged card gets the short answer, and a changed card is sent whole again", async () => {
+    const a = await connect();
+    const b = await connect();
+    hello(a, "once001", "room:33", "Mochi");
+    await a.next("room");
+    hello(b, "once002", "room:33", "Tofu");
+    await b.next("room");
+    await a.next("joined");
+    const first = JSON.stringify([{ when: { event: [3] }, then: { want: 5, mood: 1 } }]);
+    a.ws.send(JSON.stringify({ t: "card", lessons: first }));
+    await handled(a, b, 33);
+    b.ws.send(JSON.stringify({ t: "ask", to: idOf("once001") }));
+    expect((await b.next("card")).lessons).toBe(first);
+    b.ws.send(JSON.stringify({ t: "ask", to: idOf("once001") }));
+    const again = await b.next("card");
+    expect(again).toMatchObject({ id: idOf("once001"), unchanged: true });
+    expect(again.lessons).toBeUndefined();
+    const second = JSON.stringify([{ when: { event: [2] }, then: { want: 4, mood: 2 } }]);
+    a.ws.send(JSON.stringify({ t: "card", lessons: second }));
+    await handled(a, b, 34);
+    b.ws.send(JSON.stringify({ t: "ask", to: idOf("once001") }));
+    expect((await b.next("card")).lessons, "a changed card is sent whole").toBe(second);
+    for (const p of [a, b]) p.ws.close();
+  });
+
+  it("asks past the limit are not answered", async () => {
+    const a = await connect();
+    const b = await connect();
+    hello(a, "lim0001", "room:34", "Mochi");
+    await a.next("room");
+    hello(b, "lim0002", "room:34", "Tofu");
+    await b.next("room");
+    await a.next("joined");
+    a.ws.send(JSON.stringify({ t: "card", lessons: "[]" }));
+    await handled(a, b, 35);
+    let answered = 0;
+    for (let i = 0; i < 10; i++) {
+      b.ws.send(JSON.stringify({ t: "ask", to: idOf("lim0001") }));
+      try {
+        await b.next("card", 700);
+        answered++;
+      } catch {
+        // not answered
+      }
+    }
+    expect(answered).toBe(6);
+    for (const p of [a, b]) p.ws.close();
+  });
+
+  it("a connection silent past the idle time is closed with 4001, and one that does not answer pings is dropped", async () => {
+    const quiet = new LiveRooms(undefined, undefined, { idleMs: 400, pingMs: 150 });
+    const server = createServer();
+    attachLive(server, quiet, ["http://ok.test"]);
+    await new Promise<void>((r) => server.listen(0, r));
+    const at = (server.address() as AddressInfo).port;
+    const ws = new WebSocket(`ws://127.0.0.1:${at}/live`, { headers: { origin: "http://ok.test", "cf-connecting-ip": "203.0.113.61" } });
+    const code = await new Promise<number>((r) => ws.on("close", (c) => r(c)));
+    expect(code, "closed as idle").toBe(4001);
+    // a socket that stops answering pings (its pong handler removed, as a dead peer would) is dropped before the idle time
+    const dead = new WebSocket(`ws://127.0.0.1:${at}/live`, { headers: { origin: "http://ok.test", "cf-connecting-ip": "203.0.113.62" }, autoPong: false } as never);
+    const t0 = Date.now();
+    const deadCode = await new Promise<number>((r) => dead.on("close", (c) => r(c)));
+    expect(deadCode).not.toBe(4001);
+    expect(Date.now() - t0, "dropped for not answering, before the idle time").toBeLessThan(400);
+    server.close();
+  });
+});
+
