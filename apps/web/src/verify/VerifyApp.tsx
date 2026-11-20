@@ -24,6 +24,7 @@ import { deployment } from "../game/chain";
 import { proofClient } from "../game/proofRpc";
 import { EndpointPanel } from "./Endpoints";
 import { INDEXER, fetchPetHistory } from "./indexer";
+import { readPublished } from "./published";
 import { HISTORY_RETRIES, HISTORY_RETRY_MS } from "./askHistory";
 import { useLang } from "../i18n";
 import "./verify.css";
@@ -156,7 +157,7 @@ const viaText = (hosts: ReadonlySet<string>, lang: "en" | "zh") => (hosts.size ?
 const note = (hosts: Set<string>) => (h: string, fallback: boolean) => hosts.add(fallback ? `${h} (fallback)` : h);
 
 /** Where the diary's check stands: checking, waiting for the indexer, not indexed in time, passed, or failed. */
-type DiaryState = "checking" | "waiting" | "unindexed" | "ok" | "bad" | "birth";
+type DiaryState = "checking" | "waiting" | "unindexed" | "ok" | "bad" | "birth" | "unread";
 
 /**
  * Resolves true once Lingxi's indexer has read the pet's hatching (a diary is anchored to it), asking again every
@@ -437,6 +438,8 @@ export function VerifyApp() {
   const logHash = pet?.logHash;
   // the diary's check, with the pet, log and circuit it was made for: it shows only while those are still on the page
   // `beats`: how many beats the published log holds, to set against the time X Layer shows it covered (A94)
+  // asking again for a diary that could not be read (A109)
+  const [diaryTry, setDiaryTry] = useState(0);
   const [diaryCheck, setDiaryCheck] = useState<{ petId: unknown; logHash: unknown; circuit: Circuit; state: DiaryState; diary?: DiaryLine[]; beats?: number } | null>(null);
   const diaryNow = diaryCheck && diaryCheck.petId === petId && diaryCheck.logHash === logHash && diaryCheck.circuit === circuit ? diaryCheck : null;
   const diary = diaryNow?.diary ?? null;
@@ -449,28 +452,32 @@ export function VerifyApp() {
     if (petId === undefined || !circuit) return;
     let live = true;
     const said = (state: DiaryState, lines?: DiaryLine[], beats?: number) => live && setDiaryCheck({ petId, logHash, circuit, state, ...(lines ? { diary: lines } : {}), ...(beats !== undefined ? { beats } : {}) });
-    fetch(`${INDEXER}/api/pets/${petId}/log`, { signal: AbortSignal.timeout(8000) })
-      .then((res) => res.json() as Promise<{ ok: boolean; log?: { words: number[]; segments: Array<{ brainId: string | null; words: number[] }> } }>)
+    readPublished(INDEXER, petId.toString())
       .then(async (r) => {
-        if (!live || !r.ok || !r.log) return;
+        if (!live) return;
+        // no published diary: nothing to show; a diary that could not be read is said so, with a retry (A109)
+        if (r.kind === "none") return setDiaryCheck(null);
+        if (r.kind === "unread") return said("unread");
+        const log = r.log;
         said("checking");
         // a pet kept a moment ago is not indexed yet, and its diary cannot be anchored until its hatching is: wait for
         // it, saying so, rather than call a genuine diary failed (A39)
         if (!(await hatchIndexed(petId.toString(), () => live, () => said("waiting")))) return said("unindexed");
         if (!live) return;
         said("checking");
-        const stretches = await replayPublished(r.log);
+        const stretches = await replayPublished(log);
         if (stretches === "birth") return said("birth");
         if (!stretches) return said("bad");
-        said("ok", diaryOfStretches(stretches.map((x) => ({ brain: { fast: x.brain.fast, nState: x.brain.nState }, words: x.words }))), r.log.words.length);
+        said("ok", diaryOfStretches(stretches.map((x) => ({ brain: { fast: x.brain.fast, nState: x.brain.nState }, words: x.words }))), log.words.length);
       })
       .catch(() => {
-        // no published diary: nothing to show
+        // the chain reads behind the check failed: the diary was not checked, which is not the same as failing it
+        said("unread");
       });
     return () => {
       live = false;
     };
-  }, [petId, logHash, circuit]);
+  }, [petId, logHash, circuit, diaryTry]);
 
   const ok = rows.filter((r) => r.chain.next === r.local.next && r.chain.outputs === r.local.outputs).length;
   const u = pet ? unpackState(pet.state, pet.brainBits) : null;
@@ -656,6 +663,21 @@ export function VerifyApp() {
               <p className="v-sub">{lang === "zh" ? "它的日记" : "Its diary"}</p>
               {diaryState === "checking" && <p className="v-note">{lang === "zh" ? "正在对照链上核对它的日记……" : "Checking its diary against the chain…"}</p>}
               {diaryState === "waiting" && <p className="v-note">{lang === "zh" ? "正在等灵犀的索引服务从 X Layer 读到它的孵化（每 15 秒读一次新区块），读到后就核对它的日记……" : "Waiting for Lingxi's indexer to read its hatching from X Layer (it reads new blocks every 15 seconds); its diary is checked as soon as it has…"}</p>}
+              {diaryState === "unread" && (
+                <div className="v-note" data-diary="unread">
+                  <p>{lang === "zh" ? "这次没能读到它发布的日记（灵犀的服务器或 X Layer 没有回答），所以还没有核对。这不代表它没有日记。" : "Its published diary could not be read this time (Lingxi's server or X Layer did not answer), so it has not been checked. That does not mean it has none."}</p>
+                  <button
+                    type="button"
+                    className="v-run"
+                    onClick={() => {
+                      setDiaryCheck((c) => c && { ...c, state: "checking" });
+                      setDiaryTry((n) => n + 1);
+                    }}
+                  >
+                    {lang === "zh" ? "再试一次" : "Try again"}
+                  </button>
+                </div>
+              )}
               {diaryState === "unindexed" && <p className="v-note">{lang === "zh" ? "它的孵化还没被索引，所以暂时核对不了它的日记。过几分钟再打开这一页。" : "Its hatching isn't indexed yet, so its diary can't be checked right now. Open this page again in a few minutes."}</p>}
               {diaryState === "birth" && (
                 <p className="v-note">

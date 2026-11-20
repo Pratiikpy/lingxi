@@ -1,5 +1,5 @@
 /**
- * Public diaries, as players publish and read them (Z1, A39). A pet kept on X Layer has its day saved, its owner
+ * Public diaries, as players publish and read them (Z1, A39, A109). A pet kept on X Layer has its day saved, its owner
  * publishes its diary, and the pet's proof page reads it back and checks it against the chain. A diary longer than its
  * pet has lived on chain is refused by its age, and the game says so.
  */
@@ -9,7 +9,7 @@ import { mindBrain } from "../../packages/game/src/family";
 import { packState } from "../../packages/game/src/pack";
 import { DIARY_FLOOR_WORDS } from "../../services/api/src/diaries";
 import { expect, hatch, sheet, test } from "../fixtures";
-import { keepOnChain, stored, walletOf } from "../helpers/browser";
+import { expectedErrors, keepOnChain, stored, walletOf } from "../helpers/browser";
 import { forkOf } from "../helpers/chain";
 
 test("a kept pet's diary is published and its proof page reads it back, checked against the chain (en, light, phone)", async ({ player, run }) => {
@@ -32,12 +32,24 @@ test("a kept pet's diary is published and its proof page reads it back, checked 
   await expect(page.locator(".publish-diary [role=status]"), "the diary is kept").toContainText(/Published: \d+ moments, checked against the chain/, { timeout: 60_000 });
   await page.screenshot({ path: test.info().outputPath("diary-published-en-light-phone.png") });
 
+  // the first read of its diary fails at the server: the page says it could not be read, not that there is none (A109)
+  const logRoute = new RegExp(`/api/pets/${petId}/log$`);
+  await page.route(logRoute, (r) => (r.request().method() === "GET" ? r.fulfill({ status: 502, body: "Bad Gateway" }) : r.continue()));
   await page.goto(`${p.web}/verify.html#${petId}`);
   const diary = page.locator(".v-diary");
+  const unread = diary.locator("[data-diary=unread]");
+  await expect(unread, "a failed read is said, with a retry").toContainText("could not be read this time", { timeout: 60_000 });
+  await unread.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: test.info().outputPath("diary-unread-en-light-phone.png") });
+  // the browser logs the refused read itself; that one line is this flow's, any other error still fails
+  await expectedErrors(p, /the server responded with a status of 502/, 1);
+  await page.unroute(logRoute);
+  await unread.getByRole("button", { name: "Try again" }).click();
   // the check waits for the indexer to read the pet's hatching (every 15 s), then passes, fails or says it cannot yet
   await expect(diary, "the diary check comes to a verdict").toContainText(/Its latest day|did not pass|isn't indexed yet/, { timeout: 180_000 });
   const why = (await page.getByTestId("log-result").textContent().catch(() => null)) ?? "(no log check shown)";
   await expect(diary, `the proof page reads the published diary and checks it (its log check said: ${why})`).toContainText("Its latest day, replayed moment by moment", { timeout: 5_000 });
+  await expect(unread, "the retry's answer replaces the failed read").toHaveCount(0);
   await page.screenshot({ path: test.info().outputPath("diary-proof-en-light-phone.png"), fullPage: true });
 });
 

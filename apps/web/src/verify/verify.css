@@ -81,6 +81,15 @@
   cursor: pointer;
   box-shadow: 0 3px 0 #2b2140;
 }
+[data-diary="unread"] {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s2);
+}
+[data-diary="unread"] p {
+  margin: 0;
+}
 .v-run[disabled] {
   opacity: 0.6;
 }
