@@ -16,6 +16,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync } 
 import { readFile, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { SEND_LIMITS } from "@lingxi/chain/limits";
+import { heldOver, prefixOf } from "./limit";
 
 const MAX_PACK = SEND_LIMITS.sitPackChars;
 const KEEP_AFTER_MS = 7 * 86_400_000;
@@ -24,8 +25,10 @@ const CODE = /^[a-f0-9]{24}$/;
 const KEY = /^[a-f0-9]{32}$/;
 /** all packs and their homecomings together */
 export const MAX_SITTING_BYTES = 256 * 1024 * 1024;
-/** packs one address may have waiting at once */
+/** packs one address may have waiting at once; an IPv6 /48 may have four addresses' worth (A118) */
 export const MAX_PACKS_PER_OWNER = 8;
+/** the shelf's bytes one address, or one IPv6 /48 however many /64s it uses, may hold (A118) */
+export const MAX_SITTING_BYTES_PER_NETWORK = MAX_SITTING_BYTES / 16;
 
 interface Entry {
   keyHash: string;
@@ -102,7 +105,7 @@ function memoryBlobs(): Blobs {
  * `dir` holds the packs; a `dir` ending in `.json` is taken as the old single-file store, which is moved into a folder
  * of the same name without the extension.
  */
-export function createSittingStore(dir?: string, now: () => number = Date.now, limits = { maxBytes: MAX_SITTING_BYTES, perOwner: MAX_PACKS_PER_OWNER }): SittingStore {
+export function createSittingStore(dir?: string, now: () => number = Date.now, limits: { maxBytes: number; perOwner: number; perNetworkBytes?: number } = { maxBytes: MAX_SITTING_BYTES, perOwner: MAX_PACKS_PER_OWNER }): SittingStore {
   const legacy = dir?.endsWith(".json") ? dir : undefined;
   const folder = legacy ? legacy.slice(0, -".json".length) : dir;
   const blobs = folder ? folderBlobs(folder) : memoryBlobs();
@@ -191,8 +194,11 @@ export function createSittingStore(dir?: string, now: () => number = Date.now, l
       const t = now();
       // every pack this address still has on the shelf counts, past its end date too: each is kept a week after it
       // ends, and a short end date must not slip past the cap (A50)
-      const kept = [...index.values()].filter((e) => e.owner === owner).length;
-      if (kept >= limits.perOwner) return { ok: false, reason: "tooMany" };
+      // an IPv6 /48 holds four addresses' worth of packs, and no sender more than its share of the bytes (A118)
+      if (heldOver([...index.values()].map((e) => e.owner), owner, limits.perOwner)) return { ok: false, reason: "tooMany" };
+      const network = prefixOf(owner) ?? owner;
+      const theirs = [...index.values()].filter((e) => (prefixOf(e.owner) ?? e.owner) === network).reduce((n, e) => n + e.size + (e.backSize ?? 0), 0);
+      if (theirs + pack.length > (limits.perNetworkBytes ?? MAX_SITTING_BYTES_PER_NETWORK)) return { ok: false, reason: "tooMany" };
       if (bytes + pack.length > limits.maxBytes) return { ok: false, reason: "full" };
       // the place and the bytes are taken before the write, so requests in flight together cannot all pass the caps
       // above (A76); a write that fails gives them back

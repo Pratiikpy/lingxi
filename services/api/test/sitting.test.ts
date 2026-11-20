@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { Hono } from "hono";
 import { withSitting } from "../src/server";
 import { createSittingStore, keyHashOf } from "../src/sitting";
+import { PREFIX_SHARE } from "../src/limit";
 
 const KEY = "c".repeat(32);
 const pack = JSON.stringify({ v: 1, pet: { bornAt: 1 } });
@@ -50,6 +51,26 @@ describe("pet-sitting packs", () => {
     expect((await store.leave(big(500_000), keyHashOf(KEY), t + 1000, "198.51.100.2")).ok).toBe(true);
     expect(await store.leave(big(500_000), keyHashOf(KEY), t + 1000, "198.51.100.3")).toEqual({ ok: false, reason: "full" });
     expect(store.stats().bytes).toBeLessThanOrEqual(1_000_000);
+  });
+
+  it("one IPv6 /48 holds four addresses' worth of packs and its share of the bytes, and another player still leaves one (A118)", async () => {
+    const t = 1_800_000_000_000;
+    const store = createSittingStore(undefined, () => t, { maxBytes: 10_000_000, perOwner: 3, perNetworkBytes: 1_000_000 });
+    const net = (i: number) => `2001:db8:118:${(i + 1).toString(16)}::/64`;
+    const got: string[] = [];
+    for (let i = 0; i < 30; i++) {
+      const r = await store.leave(pack, keyHashOf(KEY), t + 1000, net(i));
+      got.push(r.ok ? "ok" : r.reason);
+    }
+    expect(got.filter((x) => x === "ok").length).toBe(3 * PREFIX_SHARE);
+    expect(got.at(-1)).toBe("tooMany");
+    expect((await store.leave(pack, keyHashOf(KEY), t + 1000, "198.51.100.18")).ok).toBe(true);
+    // in bytes too: a big pack from another /64 of a /48 that already holds its share is refused
+    const bytes = createSittingStore(undefined, () => t, { maxBytes: 10_000_000, perOwner: 8, perNetworkBytes: 1_000_000 });
+    expect((await bytes.leave(big(450_000), keyHashOf(KEY), t + 1000, "2001:db8:119:1::/64")).ok).toBe(true);
+    expect((await bytes.leave(big(450_000), keyHashOf(KEY), t + 1000, "2001:db8:119:2::/64")).ok).toBe(true);
+    expect(await bytes.leave(big(450_000), keyHashOf(KEY), t + 1000, "2001:db8:119:3::/64")).toEqual({ ok: false, reason: "tooMany" });
+    expect((await bytes.leave(big(450_000), keyHashOf(KEY), t + 1000, "198.51.100.19")).ok).toBe(true);
   });
 
   it("counts every pack an address still has on the shelf, past its end date too, until it is let go (A50)", async () => {
