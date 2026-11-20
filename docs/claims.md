@@ -28,6 +28,9 @@ Kinds of check:
 | two-step-owners | README | Ownership is handed over in two steps on every owned contract except the first outfit market. | auto:two-step-owners |
 | owner-powers-listed | README | Every power a contract gives its owner is in the README's table of owner powers, named by function in its contract's row; HolderGift and the first Breeder give none. | test:scripts/ownerPowers.test.mts |
 | owner-state | README | Every owner is the deployer; PetLook's art is still open; the renderer is PetLook; the item shop's voucher signer is the game's; of the two breeders only BreederV2 may record births. | auto:owner-state |
+| wearables | README | The number of pieces a pet can wear (the wardrobe's and the builders' quest pieces), hats, face pieces and things to hold. | facts:wearables |
+| wearables-fit | README | Each piece is drawn to fit every line, stage and adult form. | test:packages/art/test/wear.test.ts |
+| season-keepsake | README | A week's keepsake goes to the best-placed pet proven to be on X Layer, sent to its owner; an unproven champion is skipped. | test:services/api/test/season.test.ts |
 | slither-finding | README (Security) | Slither found one issue that needed a fix, in the first OutfitMarket before it was deployed: its sale flag stayed raised during a buyer's ERC-1155 callback; the fix is held by a test. | test:contracts/test/OutfitMarket.t.sol |
 | review-regressions | README (Security) | The written reviews' findings that needed a fix are kept as regression tests, which CI runs. | test:contracts/test/SecurityReview.t.sol |
 | review-regressions-v2 | README (Security) | The same for the second outfit market. | test:contracts/test/OutfitMarketV2.review.t.sol |
@@ -64,7 +67,7 @@ Kinds of check:
 | public-rpcs | README, proof page | The proof page reads X Layer through the public RPCs, or the judge's own; Lingxi's server only when every public one fails, and it says so. | test:apps/web/src/game/rpcAsk.test.ts |
 | sourcify | README, proof page | All eleven contracts are verified on Sourcify as an exact match of creation and runtime bytecode. | auto:sourcify |
 | growth | landing, README | In a week a pet grows from baby to adult (adult on day 8). | auto:growth |
-| rooms | landing, README | Seventy places to wander. | facts:rooms |
+| rooms | landing, README | Seventy places to wander. | auto:rooms |
 | quests | README | 80 story quests and three dailies a day. | facts:quests |
 | items | README | 116 items and 39 recipes. | facts:items |
 | skills | README | Four skill trees, 72 skills. | facts:skills |

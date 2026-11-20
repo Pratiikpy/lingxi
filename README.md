@@ -55,11 +55,11 @@ The game runs the same netlist through a fast local evaluator; any beat can be r
 
 <p align="center"><img src="docs/readme/world.png" alt="The quest book, the map, the skill trees, the bag" width="100%"></p>
 
-**Spar.** Nobody presses buttons: each move comes from your pet's own circuit reading the fight, and for a pet kept on X Layer every move can be checked against its brain there. After a loss, the coach replays the fight with every lesson your pet could learn and tells you which one actually wins. Challenge a friend by link, take the daily challenge seeded by the first X Layer block of the day, run the arena with companions, and enter weekly seasons whose champion's brain is taped out as a keepsake.
+**Spar.** Nobody presses buttons: each move comes from your pet's own circuit reading the fight, and for a pet kept on X Layer every move can be checked against its brain there. After a loss, the coach replays the fight with every lesson your pet could learn and tells you which one actually wins. Challenge a friend by link, take the daily challenge seeded by the first X Layer block of the day, run the arena with companions, and enter weekly seasons whose best-placed pet proven to be on X Layer has its brain taped out as a keepsake, sent to its owner.
 
 **Grow a family.** Two grown pets that are best friends can have a child. The child's brain is both parents' circuits composed by REF, so, kept on X Layer, it is as checkable as they are. Every pet hatched or bred on X Layer appears on the tree of life, read from the chain.
 
-**Dress it, and draw for others.** Twelve outfits drawn to fit every line and stage. Draw your own in the design studio and sell it on the fashion market; creators earn on every sale and resale.
+**Dress it, and draw for others.** <!--f:wearables-->47<!--/f--> pieces to wear (hats, face pieces and things to hold), each drawn to fit every line, stage and adult form. Draw your own in the design studio and sell it on the fashion market; creators earn on every sale and resale.
 
 **Meet friends.** Pets share a room live, friends visit your decorated home, gifts and red packets travel by link, and a friend can pet-sit while you are away.
 
@@ -223,7 +223,7 @@ Every number below is counted by `scripts/readme-facts.mts` from the suites them
 | Contracts, unit, fuzz and invariant | `cd contracts && forge test` | <!--f:forge-unit-->254<!--/f--> |
 | Contracts on a fork of X Layer mainnet (reads only) | `cd contracts && forge test --fork-url xlayer --match-path 'test/*.fork.t.sol'` | <!--f:forge-fork-->75<!--/f--> |
 | The server, with its fork tests on a pinned fork of X Layer (reads only) | `pnpm test:fork` | <!--f:tests-api-fork-->214<!--/f--> |
-| End to end: the game in real browsers, against a fork of X Layer | `pnpm e2e` | <!--f:e2e-->127<!--/f--> tests in <!--f:e2e-specs-->46<!--/f--> specs (listed here; CI runs every one on each push) |
+| End to end: the game in real browsers, against a fork of X Layer | `pnpm e2e` | <!--f:e2e-->127<!--/f--> tests in <!--f:e2e-specs-->46<!--/f--> specs (each a file in `e2e/specs/`; CI runs every one on each push) |
 
 `pnpm status:check` runs all of it, plus lint, the type check, the repo's hygiene checks and whether the live site serves the current commit.
 

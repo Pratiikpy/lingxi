@@ -319,6 +319,12 @@
   color: var(--ink-soft);
 }
 .think-line .chip,
+.teach-note {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
 .rule-out .chip {
   background: var(--card);
   color: var(--ink);

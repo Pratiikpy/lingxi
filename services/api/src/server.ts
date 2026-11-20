@@ -1051,7 +1051,7 @@ if (isMain) {
       });
   }
   if (relayer) {
-    // a finished week's champion gets its brain taped out and sent to its wallet (PRD F26)
+    // a finished week's best-placed proven pet gets its brain taped out and sent to its owner's wallet (PRD F26)
     const giveKeepsakes = () =>
       settleAwards(seasons, async (entry, petId) => {
         const card = parseCard(entry.pet.card);

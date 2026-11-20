@@ -272,7 +272,7 @@ export class BrainRelayer {
   }
 
   /**
-   * A season champion's keepsake (PRD F26): its brain taped out as a circuit of
+   * A season keepsake for the week's best-placed proven pet (PRD F26): its brain taped out as a circuit of
    * its own (never a shared, earlier copy) and the circuit sent to the winner.
    * A child's brain REFs its two halves (taped out once and shared) through a
    * glue circuit of its own.

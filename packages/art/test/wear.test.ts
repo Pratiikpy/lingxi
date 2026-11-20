@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FORMS, LINES, SETS, WEARABLES, drawPet, registeredWearables, registerWearables, setPieces, wearOverlay, wearableOf, type Line, type Wearable } from "../src/index";
+import { BUILDER_WEARABLES, FORMS, LINES, SETS, WEARABLES, drawPet, registeredWearables, registerWearables, setPieces, wearOverlay, wearableOf, type Line, type Wearable } from "../src/index";
 
 const STAGES = ["baby", "child", "teen", "adult"] as const;
 
@@ -13,7 +13,8 @@ describe("wearables", () => {
   });
 
   it("every piece sits on every egg line, stage and adult form, inside the picture", () => {
-    for (const w of WEARABLES) {
+    // the builders' quest pieces too: the README counts them among the pieces drawn to fit (A110)
+    for (const w of [...WEARABLES, ...BUILDER_WEARABLES]) {
       for (const line of Object.keys(LINES) as Line[]) {
         const forms = [undefined, ...FORMS];
         for (const stage of STAGES) {

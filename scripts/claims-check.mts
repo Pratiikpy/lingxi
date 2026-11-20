@@ -37,6 +37,8 @@ import {
 } from "../packages/chain/src/index.ts";
 
 import { retryNote, steadyFetch } from "./lib/steadyFetch.mts";
+import { chineseCount, englishCount } from "./lib/spelled.mts";
+import { ROOMS } from "../packages/world/src/index.ts";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const LIVE = process.env.LINGXI_LIVE_URL ?? "https://lingxi.knole.me";
@@ -68,6 +70,23 @@ const CONTRACTS = ["registry", "breeder", "adoptionCentre", "outfitMarketV2", "i
 
 /** An automatic check whose evidence is not due yet: it is reported PENDING, never PASS. */
 class Pending extends Error {}
+
+/** OKB's price in dollars: OKX's own market (OKB-USDT) first, then CoinGecko; unreadable is PENDING, never a guess. */
+async function okbPrice(): Promise<{ price: number; from: string }> {
+  const sources: Array<[string, string, (j: unknown) => unknown]> = [
+    ["OKX", "https://www.okx.com/api/v5/market/ticker?instId=OKB-USDT", (j) => (j as { data?: Array<{ last?: string }> }).data?.[0]?.last],
+    ["CoinGecko", "https://api.coingecko.com/api/v3/simple/price?ids=okb&vs_currencies=usd", (j) => (j as { okb?: { usd?: number } }).okb?.usd],
+  ];
+  for (const [from, url, pick] of sources) {
+    try {
+      const price = Number(pick(await (await fetch(url, { signal: AbortSignal.timeout(15_000) })).json()));
+      if (Number.isFinite(price) && price > 0) return { price, from };
+    } catch {
+      // the next source
+    }
+  }
+  throw new Pending("OKB's price could not be read from OKX or CoinGecko, so a save's cost in dollars is not checked");
+}
 
 const AUTO: Record<string, Check> = {
   "fees-markets": async () => {
@@ -259,6 +278,17 @@ const AUTO: Record<string, Check> = {
     expect(opened, `container ${container} is not opened`);
     return `pet #1 thinks with circuit #${brainId}, held by its owner; its home is container ${container}, opened`;
   },
+  rooms: async () => {
+    // the landing spells the count out; it must be the number of rooms the world has (A110)
+    const n = Object.keys(ROOMS).length;
+    const copy = readFileSync(join(root, "apps/web/src/landing/copy.ts"), "utf8");
+    const en = englishCount(n);
+    const zh = chineseCount(n);
+    expect(new RegExp(`\\b${en}\\s+places\\b`, "i").test(copy), `the landing does not say "${en} places"`);
+    expect(copy.includes(`${zh}个地方`), `the landing does not say "${zh}个地方"`);
+    expect(facts.has("rooms"), "the README's rooms fact is not marked");
+    return `${n} rooms: "${en[0]!.toUpperCase()}${en.slice(1)} places" / "${zh}个地方"`;
+  },
   "starter-brain": async () => {
     const n = compileProgram(STARTERS.gentle);
     // TAP-02 counts memory latches as gates, as the processor and the proof table do
@@ -277,7 +307,7 @@ const AUTO: Record<string, Check> = {
   "save-cost": async () => {
     const gasPrice = await pub.getGasPrice();
     // the gas the real mainnet saves used, read from each save's own receipt (the server's index names the
-    // transactions; their gas comes from the chain) (A56); a cent is far above this at any OKB price under $10,000
+    // transactions; their gas comes from the chain) (A56), priced in dollars at OKB's price on OKX right now (A110)
     const used: bigint[] = [];
     for (const id of [1, 2, 3]) {
       const h = (await (await steadyFetch(`${LIVE}/api/pets/${id}/history`)).res.json()) as { saves?: Array<{ tx: Hex }> };
@@ -285,9 +315,11 @@ const AUTO: Record<string, Check> = {
     }
     expect(used.length > 0, "no mainnet save found to measure");
     const most = used.reduce((a, b) => (b > a ? b : a));
-    const cost = most * gasPrice;
-    expect(cost < 10n ** 14n, `a save costs ${cost} wei at ${gasPrice} wei/gas`);
-    return `the costliest of ${used.length} mainnet saves used ${most} gas: ${Number(cost) / 1e18} OKB at today's gas price`;
+    const okb = Number(most * gasPrice) / 1e18;
+    const { price, from } = await okbPrice();
+    const dollars = okb * price;
+    expect(dollars < 0.01, `a save costs ${okb} OKB, $${dollars.toFixed(4)} at $${price} per OKB (${from})`);
+    return `the costliest of ${used.length} mainnet saves used ${most} gas: ${okb} OKB, $${dollars.toFixed(6)} at today's gas price and $${price} per OKB (${from})`;
   },
   sourcify: async () => {
     const out: string[] = [];

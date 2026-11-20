@@ -108,6 +108,9 @@ function TeachDemo({ reduce }: { reduce: boolean }) {
       <motion.div className="rule-out" animate={{ opacity: done ? 1 : 0.25, y: done ? 0 : 4 }} transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}>
         <Chips when={chips.when} then={chips.then} want={chips.want} />
       </motion.div>
+      {/* these are Pet School lessons, words and rule written together; words a player types are turned into a rule
+          when they teach (A110) */}
+      <p className="teach-note">{lang === "zh" ? "宠物学堂的课：话和规则是一起写好的。你自己写的话，会在教它时变成规则。" : "Pet School lessons: the words and the rule are written together. Words you write yourself become a rule when you teach."}</p>
     </div>
   );
 }
@@ -304,7 +307,7 @@ export function LandingApp() {
               <i />
               <i />
               <i />
-              teach.txt
+              pet-school.txt
             </div>
             <TeachDemo reduce={reduce} />
           </div>

@@ -130,6 +130,19 @@ describe("the wording the audits corrected stays corrected (A87)", () => {
     expect(sources).toMatch(/有三样东西来自灵犀的服务器/);
   });
 
+  it("A110: outfits, the season keepsake, the e2e list and the teach demo are said as they are", () => {
+    const readme = read("README.md");
+    expect(readme).not.toMatch(/Twelve outfits/);
+    expect(readme).toMatch(/<!--f:wearables-->\d+<!--\/f--> pieces to wear/);
+    expect(readme).not.toMatch(/seasons whose champion's brain/);
+    expect(readme).toMatch(/best-placed pet proven to be on X Layer has its brain taped out/);
+    expect(readme).not.toMatch(/\(listed here;/);
+    expect(read("scripts/claims-check.mts")).not.toMatch(/a cent is far above this at any OKB price/);
+    const demo = read("apps/web/src/landing/LandingApp.tsx");
+    expect(demo).toMatch(/Pet School lessons: the words and the rule are written together/);
+    expect(demo).toMatch(/宠物学堂的课：话和规则是一起写好的/);
+  });
+
   it("A88: the README says what pet #1's home address is, not only that it is pet #1's", () => {
     const row = read("README.md").split("\n").find((l) => l.startsWith("| Containers |")) ?? "";
     expect(row).not.toMatch(/a pet's home is a TapeOut container; pet #1's is/);
