@@ -1120,5 +1120,11 @@
     "row": "A54",
     "bug": "one IPv6 /64 could rotate addresses past every per-address limit",
     "test": { "kind": "vitest", "dir": "services/api", "file": "test/clientip.test.ts", "name": "holds a caller rotating addresses inside one /64 to the season's per-address cap" }
+  },
+  {
+    "id": "A57-memory-proven-only-after-replay",
+    "row": "A57",
+    "bug": "the proof page called a pet's memory proven before any log was replayed",
+    "test": { "kind": "e2e", "spec": "e2e/specs/proof-labels.spec.ts", "title": "the proof page claims only what it has checked (en, light, phone; zh, dark, desktop)" }
   }
 ]

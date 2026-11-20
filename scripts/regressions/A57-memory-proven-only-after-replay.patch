@@ -1,0 +1,11 @@
+--- a/apps/web/src/verify/VerifyApp.tsx
++++ b/apps/web/src/verify/VerifyApp.tsx
+@@ -496,7 +496,7 @@ export function VerifyApp() {
+             <dt>{t.meters}</dt>
+             <dd>
+               {/* proven only once a log has replayed to it on this page (A57) */}
+-              {logPassed || diaryState === "ok" ? (
++              {true ? (
+                 <span className="v-tag v-tag-proven">{t.proven}</span>
+               ) : (
+                 <span className="v-tag v-tag-reported" title={t.savedOnlyNote}>
