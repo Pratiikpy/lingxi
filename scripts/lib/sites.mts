@@ -2,7 +2,7 @@
  * What the two sites are built from, and whether a site is current (A85): shared by the status check and the claims
  * check, so the live site and the on-chain copy are judged by one rule.
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { type Address, type Hex, createPublicClient, hexToString, http, parseAbi } from "viem";
 
@@ -46,4 +46,24 @@ export function currentness(s: Served, head: string, unchangedSince: (commit: st
   if (s.commit === head) return { current: true, why: `serves ${s.commit.slice(0, 12)}, built ${s.builtAt}` };
   if (unchangedSince(s.commit)) return { current: true, why: `serves ${s.commit.slice(0, 12)}; nothing it is built from has changed since` };
   return { current: false, why: `serves ${s.commit.slice(0, 12)}, and what it is built from changed since: redeploy` };
+}
+
+/** Where the README's images say which live build they were taken from (A100). */
+export const SHOTS_FILE = "docs/readme/shots.json";
+
+/** Records that `files` were just taken from the site at `site`, built from the commit its build.json names. */
+export async function recordShots(root: string, site: string, files: string[]): Promise<void> {
+  const r = await fetch(`${site}/build.json`, { headers: { "cache-control": "no-cache" } });
+  const built = parseBuild(await r.text());
+  if (typeof built === "string") throw new Error(`${site}: ${built}`);
+  const path = join(root, SHOTS_FILE);
+  let kept: Record<string, { commit: string; at: string }> = {};
+  try {
+    kept = JSON.parse(readFileSync(path, "utf8")) as typeof kept;
+  } catch {
+    // the first shots
+  }
+  const at = new Date().toISOString().slice(0, 10);
+  for (const f of files) kept[f] = { commit: built.commit, at };
+  writeFileSync(path, `${JSON.stringify(Object.fromEntries(Object.entries(kept).sort()), null, 2)}\n`);
 }

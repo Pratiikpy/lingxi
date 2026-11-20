@@ -22,7 +22,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { hasBannedName, scanNames } from "../packages/world/src/names.ts";
 import { retryNote, steadyFetch } from "./lib/steadyFetch.mts";
-import { SERVER_INPUTS, SITE_INPUTS, currentness, onChainFile, parseBuild } from "./lib/sites.mts";
+import { SERVER_INPUTS, SHOTS_FILE, SITE_INPUTS, currentness, onChainFile, parseBuild } from "./lib/sites.mts";
 
 type Verdict = "PASS" | "FAIL" | "PENDING";
 interface Result {
@@ -216,6 +216,23 @@ async function siteChecks(): Promise<void> {
     // those it may lag; it is pending then, and a failure at a milestone's close or a release
     const lagsByDesign = !same && base === DEWEB_URL && !s.dirty && !milestone;
     record("sites", `${name} is current`, same ? "PASS" : lagsByDesign ? "PENDING" : "FAIL", lagsByDesign ? `${why} (published at the milestone's close)` : why, t);
+  }
+
+  // the README's images show the game as it is (A100): each was taken from a live build (`pnpm readme:shots` and
+  // `pnpm readme:phones` record which), and nothing it shows may have changed since; retaken at each milestone's close
+  {
+    const t = Date.now();
+    let shots: Record<string, { commit: string }> = {};
+    try {
+      shots = JSON.parse(readFileSync(join(root, SHOTS_FILE), "utf8")) as typeof shots;
+    } catch {
+      // none recorded
+    }
+    const taken = ["proof.png", "numbers.png", "tree.png", "play.png", "world.png", "chain.png"];
+    const missing = taken.filter((f) => !shots[f]);
+    const stale = taken.filter((f) => shots[f] && !currentness({ commit: shots[f].commit, dirty: false, builtAt: "" }, head, (c) => spawnSync("git", ["diff", "--quiet", c, head, "--", ...SITE_INPUTS], { cwd: root }).status === 0).current);
+    const why = missing.length ? `not recorded as taken from a live build: ${missing.join(", ")}` : stale.length ? `taken from a build the game has changed since: ${stale.join(", ")} (retake with pnpm readme:shots / readme:phones)` : `all ${taken.length} taken from a build the game has not changed since`;
+    record("sites", "README images show the current game", missing.length ? "FAIL" : !stale.length ? "PASS" : milestone ? "FAIL" : "PENDING", why, t);
   }
 
   const t = Date.now();

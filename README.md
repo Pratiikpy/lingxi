@@ -41,7 +41,7 @@ flowchart LR
 
 The game runs the same netlist through a fast local evaluator; any beat can be re-run on chain through the processor's `step`. The proof page and `pnpm judge:check` do that and say whether the two agree; the game itself does not check each beat against the chain as it plays.
 
-<p align="center"><img src="docs/readme/play.png" alt="Home, the circuit view, teaching in plain words, a spar" width="100%"></p>
+<p align="center"><img src="docs/readme/play.png" alt="Home at night, the circuit view, an instinct from a circuit you own, a spar and its coach" width="100%"></p>
 
 ## What you do in it
 
@@ -53,7 +53,7 @@ The game runs the same netlist through a fast local evaluator; any beat can be r
 
 **Live in a world.** <!--f:rooms-->70<!--/f--> rooms that follow your own clock, residents with their own stories, foraging, a garden, walks counted by your steps and trips that bring back new recipes. **<!--f:quests-->80<!--/f--> story quests** in twelve arcs and **three dailies a day** drawn from <!--f:dailies-->15<!--/f-->, with an introduction and a closing in each giver's voice, in English and Chinese. **Residents remember you:** trust grows with gifts and errands and opens shelves, recipes and visits. **Levels and <!--f:trees-->4<!--/f--> skill trees** (Care, Mind, Explore, Spar; <!--f:skills-->72<!--/f--> skills); capstone skills add real gates to the brain. **<!--f:items-->116<!--/f--> items and <!--f:recipes-->39<!--/f--> recipes**: tools, energy, experience, boxes with their own odds. Community goals the whole player base reaches together, with a keepsake for everyone who helped.
 
-<p align="center"><img src="docs/readme/world.png" alt="The quest book, talking to a resident, the skill trees, the bag" width="100%"></p>
+<p align="center"><img src="docs/readme/world.png" alt="The quest book, the map, the skill trees, the bag" width="100%"></p>
 
 **Spar.** Nobody presses buttons: each move comes from your pet's own circuit reading the fight, and for a pet kept on X Layer every move can be checked against its brain there. After a loss, the coach replays the fight with every lesson your pet could learn and tells you which one actually wins. Challenge a friend by link, take the daily challenge seeded by the first X Layer block of the day, run the arena with companions, and enter weekly seasons whose champion's brain is taped out as a keepsake.
 
@@ -96,7 +96,7 @@ There is one other rail, in OKB: designs listed on the first outfit market, befo
 
 Every one of these numbers is read from X Layer by Lingxi's server, at most a minute old, on the [live-numbers page](https://lingxi.knole.me/numbers.html), which refreshes each minute: pets hatched and born, days kept on X Layer, outfits sold, BEM burned by each contract and in total, with the contract each figure comes from. `pnpm --filter @lingxi/chain recount` recomputes them independently from the chain's logs and reports any difference.
 
-<p align="center"><img src="docs/readme/chain.png" alt="The item shop, the adoption centre, the home at night in Chinese, the map" width="100%"></p>
+<p align="center"><img src="docs/readme/chain.png" alt="The item shop, the adoption centre and neighbours, the home at night in Chinese, the map in Chinese" width="100%"></p>
 
 **The adoption centre keeps a promise:** only a little one that was bred, is still young and has never changed hands can be offered; a raised pet is never for sale. The listing fixes a fingerprint of the pet's on-chain record, the papers travel as a signed file, and the adopter's game checks them against X Layer (brain, log, record) before paying a single BEM.
 
