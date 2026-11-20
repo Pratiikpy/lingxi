@@ -5,7 +5,7 @@
  * (chips), never from free text; the only words shown are the first teacher pet's
  * name, checked like an on-chain name and against the words rooms refuse; a label
  * a client sends is dropped, never stored. Players can report a lesson: it is
- * hidden once reports from different addresses reach three and a third of the
+ * hidden once reports from different players (an IPv6 /48 is one) reach five and a third of the
  * players who learned it, so a few addresses cannot bury a lesson many learned.
  *
  * A full library always makes room (A64, A79): a new share first removes a hidden lesson, else the lesson the fewest
@@ -20,6 +20,7 @@ import type { Rule } from "@lingxi/brain";
 import { checkLesson } from "@lingxi/game";
 import { type SeenSet, addSeen, emptySeen, hasSeen, seenFrom } from "./seenSet";
 import { BLOCKED_WORDS } from "./words";
+import { prefixOf } from "./limit";
 
 export interface LibraryEntry {
   key: string;
@@ -45,8 +46,8 @@ const SAVE_DELAY_MS = 2_000;
 const MAX_ENTRIES = 5000;
 /** The most lessons one sharer holds that nobody else learned (A64). */
 const MAX_PER_SHARER = 50;
-/** Reports from different addresses that hide a lesson, at the least. */
-const HIDE_AT = 3;
+/** Reports from different players (an IPv6 /48 is one) that hide a lesson, at the least (A120). */
+const HIDE_AT = 5;
 /** ...and at least this share of the players who learned it. */
 const HIDE_SHARE = 1 / 3;
 
@@ -70,7 +71,8 @@ export function cleanAuthor(name: string): string | null {
   return n;
 }
 
-export const hashId = (id: string) => createHash("sha256").update(`lingxi-library:${id}`).digest("hex").slice(0, 16);
+/** A player as the library counts them: an IPv6 caller is its /48, so one network is one learner and one reporter (A120). */
+export const hashId = (id: string) => createHash("sha256").update(`lingxi-library:${prefixOf(id) ?? id}`).digest("hex").slice(0, 16);
 
 export function createLibrary(store?: string, limits: { max?: number; perSharer?: number } = {}) {
   const max = limits.max ?? MAX_ENTRIES;

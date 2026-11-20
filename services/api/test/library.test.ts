@@ -35,16 +35,27 @@ describe("the lesson library", () => {
     expect(cleanAuthor("包子")).toBe("包子");
   });
 
-  it("hides a lesson after three different players report it", () => {
+  it("hides a lesson after five different players report it (A120)", () => {
     const lib = createLibrary();
     lib.share(share, "Bao", "ip-a", 1);
     const key = lessonKey(share);
     lib.report(key, "x");
     lib.report(key, "x");
-    lib.report(key, "y");
-    expect(lib.list()).toHaveLength(1);
-    lib.report(key, "z");
+    for (const who of ["y", "z", "w"]) lib.report(key, who);
+    expect(lib.list(), "four players are not enough").toHaveLength(1);
+    lib.report(key, "v");
     expect(lib.list()).toHaveLength(0);
+  });
+
+  it("one IPv6 /48 is one reporter and one learner however many /64s it uses (A120)", () => {
+    const lib = createLibrary();
+    lib.share(share, "Bao", "198.51.100.20", 1);
+    const key = lessonKey(share);
+    for (let i = 1; i <= 60; i++) lib.report(key, `2001:db8:120:${i.toString(16)}::/64`);
+    expect(lib.list(), "sixty reports from one /48 count once").toHaveLength(1);
+    lib.share(other, "Mei", "198.51.100.21", 2);
+    for (let i = 1; i <= 10; i++) lib.use(lessonKey(other), `2001:db8:121:${i.toString(16)}::/64`, 3);
+    expect(lib.list().find((e) => e.key === lessonKey(other))!.uses, "the sharer and one /48").toBe(2);
   });
 
   it("serves it over HTTP with validation", async () => {
