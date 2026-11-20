@@ -94,13 +94,39 @@ describe("diaries bounded (A39)", () => {
     expect(store.publish(b.log, onChain(b.hash), "5.6.7.8").ok, "another address is not held up").toBe(true);
   });
 
-  it("refuses a new diary when the shelf is full, and keeps every diary it had", () => {
-    const store = createDiaryStore(tmp(), { now: () => NOW, totalBytes: 150_000 });
-    const a = longLog("41", 8_000);
-    expect(store.publish(a.log, onChain(a.hash), "a").ok).toBe(true);
-    const b = longLog("42", 8_000);
-    expect(store.publish(b.log, onChain(b.hash), "b")).toEqual({ ok: false, reason: "full" });
-    expect(store.get("41")?.words.length).toBe(8_000);
+  it("a full shelf takes a new diary by letting the least recently published or read go, and keeps that order across a restart (A80)", () => {
+    const dir = tmp();
+    let t = NOW;
+    const size = JSON.stringify(longLog("41", 8_000).log).length;
+    const store = createDiaryStore(dir, { now: () => t, totalBytes: size * 2 + 1_000 });
+    for (const id of ["41", "42"]) {
+      const d = longLog(id, 8_000);
+      expect(store.publish(d.log, onChain(d.hash), `addr-${id}`).ok).toBe(true);
+      t += 120_000;
+    }
+    // 41 is read: it keeps its place
+    expect(store.where("41")).not.toBeNull();
+    t += 120_000;
+    const c = longLog("43", 8_000);
+    expect(store.publish(c.log, onChain(c.hash), "addr-43")).toEqual({ ok: true, beats: 8_000 });
+    expect([store.get("41") !== null, store.get("42") !== null, store.get("43") !== null], "42 went").toEqual([true, false, true]);
+    // after a restart the order holds: 41 was read before 43 was published, so 41 is now the one quiet longest
+    t += 120_000;
+    const again = createDiaryStore(dir, { now: () => t, totalBytes: size * 2 + 1_000 });
+    const d = longLog("44", 8_000);
+    expect(again.publish(d.log, onChain(d.hash), "addr-44").ok).toBe(true);
+    expect([again.get("41") !== null, again.get("43") !== null, again.get("44") !== null], "41, quiet longest, went").toEqual([false, true, true]);
+  });
+
+  it("opens a folder of large diaries without reading them, and still refuses a shorter republish (A80)", () => {
+    const dir = tmp();
+    for (let i = 0; i < 6; i++) writeFileSync(join(dir, `${50 + i}.json`), JSON.stringify(longLog(String(50 + i), 100_000).log));
+    const started = performance.now();
+    const store = createDiaryStore(dir, { now: () => NOW });
+    expect(performance.now() - started, "no diary is read to open the shelf").toBeLessThan(150);
+    expect(store.stats().diaries).toBe(6);
+    const shorter = longLog("50", 10);
+    expect(store.publish(shorter.log, onChain(shorter.hash), "x")).toEqual({ ok: false, reason: "older" });
   });
 
   it("reads the diaries written before (one PublishedLog per file)", () => {

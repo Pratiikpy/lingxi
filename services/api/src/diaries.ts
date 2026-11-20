@@ -12,7 +12,7 @@
  * than evicting one it keeps (an eviction would let a flood push honest ones out).
  */
 
-import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { PublishedLog } from "@lingxi/api-schema";
 import { SEND_LIMITS } from "@lingxi/chain/limits";
@@ -44,28 +44,35 @@ export interface PetOnChain {
 /** The most words a pet hatched at `born` (seconds) may have logged by `now` (ms). */
 export const diaryMaxWords = (born: number, now: number) => Math.min(SEND_LIMITS.logWords, Math.max(DIARY_FLOOR_WORDS, Math.ceil(Math.max(0, now / 1000 - born) / 60) * DIARY_WORDS_PER_MINUTE));
 
+/** A read marks a diary at most this often, on its file too (A80). */
+const TOUCH_MS = 60_000;
+
 export function createDiaryStore(dir?: string, opts: { now?: () => number; totalBytes?: number; perAddressBytesPerDay?: number } = {}) {
   const now = opts.now ?? Date.now;
   const totalBytes = opts.totalBytes ?? TOTAL_BYTES;
   const perAddress = opts.perAddressBytesPerDay ?? PER_ADDRESS_BYTES_PER_DAY;
   if (dir && !existsSync(dir)) mkdirSync(dir, { recursive: true });
   const file = (id: string) => join(dir!, `${id}.json`);
-  /** what is kept, by pet: its size and words (never its words themselves) */
-  const index = new Map<string, { bytes: number; words: number }>();
+  /**
+   * what is kept, by pet: its size, its word count once read (a start reads no diary, A80), and when it was last
+   * published or read, which decides what a full shelf lets go
+   */
+  const index = new Map<string, { bytes: number; words?: number; at: number }>();
   /** without a folder (tests), the logs' text */
   const texts = new Map<string, string>();
   let total = 0;
   if (dir) {
+    // only each file's size and time: no diary is read to open the shelf, however many it holds (A80); a file a write
+    // left half-done is a `.tmp`, never listed
     for (const name of readdirSync(dir)) {
       const id = name.replace(/\.json$/, "");
       if (!ID.test(id) || !name.endsWith(".json")) continue;
       try {
-        const parsed = PublishedLog.parse(JSON.parse(readFileSync(join(dir, name), "utf8")));
-        const bytes = statSync(join(dir, name)).size;
-        index.set(id, { bytes, words: parsed.words.length });
-        total += bytes;
+        const st = statSync(join(dir, name));
+        index.set(id, { bytes: st.size, at: st.mtimeMs });
+        total += st.size;
       } catch {
-        // a damaged file is not served, and not counted
+        // gone while listed: not counted
       }
     }
   }
@@ -81,20 +88,36 @@ export function createDiaryStore(dir?: string, opts: { now?: () => number; total
     }
   };
 
+  /** A kept log, parsed now and not kept in memory. */
+  const read = (id: string): PublishedLog | null => {
+    const t = text(id);
+    if (t === null) return null;
+    try {
+      return PublishedLog.parse(JSON.parse(t));
+    } catch {
+      return null;
+    }
+  };
+
   return {
     /** A kept log, parsed now and not kept in memory (tests and the publish check). */
-    get(id: string): PublishedLog | null {
-      const t = text(id);
-      if (t === null) return null;
-      try {
-        return PublishedLog.parse(JSON.parse(t));
-      } catch {
-        return null;
-      }
-    },
+    get: read,
     /** Where a kept log is, to stream it: its file, or (with no folder) its text. */
     where(id: string): { file: string } | { text: string } | null {
       if (!ID.test(id) || !index.has(id)) return null;
+      // a diary read keeps its place on the shelf, on its file's time too (at most once a minute) so a restart keeps it
+      const e = index.get(id)!;
+      const at = now();
+      if (at - e.at > TOUCH_MS) {
+        index.set(id, { ...e, at });
+        if (dir) {
+          try {
+            utimesSync(file(id), at / 1000, at / 1000);
+          } catch {
+            // the time on disk only orders a restart
+          }
+        }
+      }
       if (dir) return { file: file(id) };
       const t = texts.get(id);
       return t === undefined ? null : { text: t };
@@ -111,20 +134,41 @@ export function createDiaryStore(dir?: string, opts: { now?: () => number; total
       if (log.words.length > diaryMaxWords(chain.born, chain.at !== undefined ? chain.at * 1000 : t)) return { ok: false, reason: "tooLong" };
       if (chainAll(ZERO_HASH, log.words).toLowerCase() !== chain.logHash.toLowerCase()) return { ok: false, reason: "mismatch" };
       const held = index.get(log.petId);
-      if (held && held.words > log.words.length) return { ok: false, reason: "older" };
+      // the kept diary's length, read from its file the first time it is needed (A80)
+      const heldWords = held ? (held.words ?? read(log.petId)?.words.length ?? 0) : 0;
+      if (held && heldWords > log.words.length) return { ok: false, reason: "older" };
       const body = JSON.stringify(log);
       const grows = Math.max(0, body.length - (held?.bytes ?? 0));
       const day = Math.floor(t / DAY_MS);
       const mine = spent.get(from);
       const today = mine?.day === day ? mine.bytes : 0;
       if (today + grows > perAddress) return { ok: false, reason: "busy" };
-      if (total + grows > totalBytes) return { ok: false, reason: "full" };
+      // a full shelf lets go the diaries quiet longest (published or read longest ago), never this pet's (A80)
+      if (body.length - (held?.bytes ?? 0) + total > totalBytes) {
+        const others = [...index].filter(([id]) => id !== log.petId).sort((x, y) => x[1].at - y[1].at);
+        let free = totalBytes - total + (held?.bytes ?? 0);
+        const go: string[] = [];
+        for (const [id, e] of others) {
+          if (free >= body.length) break;
+          go.push(id);
+          free += e.bytes;
+        }
+        if (free < body.length) return { ok: false, reason: "full" };
+        for (const id of go) {
+          total -= index.get(id)!.bytes;
+          index.delete(id);
+          if (dir) rmSync(file(id), { force: true });
+          else texts.delete(id);
+        }
+      }
       if (dir) {
         writeFileSync(`${file(log.petId)}.tmp`, body);
+        // the file keeps the store's own time, as a read does, so a restart orders the shelf on one clock (A80)
+        utimesSync(`${file(log.petId)}.tmp`, t / 1000, t / 1000);
         renameSync(`${file(log.petId)}.tmp`, file(log.petId));
       } else texts.set(log.petId, body);
       total += body.length - (held?.bytes ?? 0);
-      index.set(log.petId, { bytes: body.length, words: log.words.length });
+      index.set(log.petId, { bytes: body.length, words: log.words.length, at: t });
       spent.set(from, { day, bytes: today + grows });
       return { ok: true, beats: log.words.length };
     },
