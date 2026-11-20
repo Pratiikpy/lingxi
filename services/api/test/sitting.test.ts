@@ -87,3 +87,38 @@ describe("pet-sitting packs", () => {
     expect(await createSittingStore(legacy, () => t).collect(code)).toEqual({ pack, back: '{"home":1}', backAt: t });
   });
 });
+
+describe("a burst cannot pass the sitting caps (A76)", () => {
+  it("thirty packs left at once from one address keep to its cap", async () => {
+    const t = 1_800_000_000_000;
+    const store = createSittingStore(mkdtempSync(join(tmpdir(), "sit-")), () => t, { maxBytes: 100_000_000, perOwner: 8 });
+    const got = await Promise.all(Array.from({ length: 30 }, () => store.leave(pack, keyHashOf(KEY), t + 86_400_000, "203.0.113.76")));
+    expect(got.filter((r) => r.ok)).toHaveLength(8);
+    expect(got.filter((r) => !r.ok && r.reason === "tooMany")).toHaveLength(22);
+    expect(store.stats().packs).toBe(8);
+  });
+
+  it("thirty addresses at once keep to the byte budget, and a pack sent home keeps to it too", async () => {
+    const t = 1_800_000_000_000;
+    const size = big(1_000).length;
+    const store = createSittingStore(mkdtempSync(join(tmpdir(), "sit-")), () => t, { maxBytes: size * 5, perOwner: 8 });
+    const got = await Promise.all(Array.from({ length: 30 }, (_, i) => store.leave(big(1_000), keyHashOf(KEY), t + 86_400_000, `198.51.100.${i}`)));
+    expect(got.filter((r) => r.ok)).toHaveLength(5);
+    expect(store.stats().bytes).toBeLessThanOrEqual(size * 5);
+    // the shelf is full: two pets sent home at once cannot both pass it
+    const codes = got.filter((r): r is { ok: true; code: string } => r.ok).map((r) => r.code);
+    const back = await Promise.all(codes.slice(0, 2).map((c) => store.sendHome(c, KEY, big(1_000))));
+    expect(back.filter(Boolean).length).toBeLessThanOrEqual(0);
+    expect(store.stats().bytes).toBeLessThanOrEqual(size * 5);
+  });
+
+  it("two pets sent home to one code at once count its bytes once", async () => {
+    const t = 1_800_000_000_000;
+    const store = createSittingStore(mkdtempSync(join(tmpdir(), "sit-")), () => t, { maxBytes: 100_000_000, perOwner: 8 });
+    const left = await store.leave(pack, keyHashOf(KEY), t + 86_400_000, "203.0.113.77");
+    if (!left.ok) throw new Error("not left");
+    const before = store.stats().bytes;
+    await Promise.all([store.sendHome(left.code, KEY, big(500)), store.sendHome(left.code, KEY, big(500))]);
+    expect(store.stats().bytes).toBe(before + big(500).length);
+  });
+});

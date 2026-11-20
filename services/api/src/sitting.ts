@@ -177,10 +177,18 @@ export function createSittingStore(dir?: string, now: () => number = Date.now, l
       const kept = [...index.values()].filter((e) => e.owner === owner).length;
       if (kept >= limits.perOwner) return { ok: false, reason: "tooMany" };
       if (bytes + pack.length > limits.maxBytes) return { ok: false, reason: "full" };
+      // the place and the bytes are taken before the write, so requests in flight together cannot all pass the caps
+      // above (A76); a write that fails gives them back
       const code = randomBytes(12).toString("hex");
-      await blobs.write(`${code}.pack`, pack);
       index.set(code, { keyHash, until, created: t, owner, size: pack.length });
       bytes += pack.length;
+      try {
+        await blobs.write(`${code}.pack`, pack);
+      } catch (e) {
+        index.delete(code);
+        bytes -= pack.length;
+        throw e;
+      }
       await saveIndex();
       return { ok: true, code };
     },
@@ -205,9 +213,18 @@ export function createSittingStore(dir?: string, now: () => number = Date.now, l
         return false;
       }
       if (bytes - (e.backSize ?? 0) + pet.length > limits.maxBytes) return false;
-      await blobs.write(`${code}.back`, pet);
-      bytes += pet.length - (e.backSize ?? 0);
+      // taken before the write, as for a pack left, and the entry's size with it, so a second sending home at once
+      // counts from this one (A76)
+      const grow = pet.length - (e.backSize ?? 0);
+      bytes += grow;
       index.set(code, { ...e, backSize: pet.length, backAt: now() });
+      try {
+        await blobs.write(`${code}.back`, pet);
+      } catch (err) {
+        bytes -= grow;
+        if (index.get(code)?.backSize === pet.length) index.set(code, e);
+        throw err;
+      }
       await saveIndex();
       return true;
     },
