@@ -1,0 +1,11 @@
+--- a/README.md
++++ b/README.md
+@@ -161,7 +161,7 @@ Every power a contract gives its owner is below; the owner of each is the projec
+ 
+ | Contract | What its owner can do | What it cannot |
+ |---|---|---|
+-| PetRegistry | `setStarterBrain`: approve or withdraw a starter brain for new hatchings (an approved one must check out as a valid starter); `setBreeder`: choose which breeder contracts may record a pet's parents (now BreederV2 only); `setRenderer`: swap the contract that draws every pet's picture (now PetLook) | move a pet, change its record or its brain |
++| PetRegistry | `setBreeder`: choose which breeder contracts may record a pet's parents (now BreederV2 only) | move a pet, change its record or its brain |
+ | PetLook | `setLayers`, `setFaces`, `setFrame`, `setPalette`: change the pets' art while it is open, which it still is; `freezeArt`: close it for good; `releaseName`: release any pet's name (for impersonation or abuse) | change art once frozen; give a name to anyone |
+ | Extras | `setPrice`: set each extra between 0.001 and 10 BEM, or take it off sale; `addColours`: offer more name colours, up to 32 | change the burn; take a colour back |
+ | ItemShop | `setPrice`: set each item between 0.001 and 10 BEM, or stop its sale; `setSigner`: change who signs the free item vouchers (a voucher makes free copies of a game item, within that item's cap) | change where the BEM goes (all of it is burned) |
