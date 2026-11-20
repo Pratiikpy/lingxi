@@ -108,9 +108,11 @@ export function createWriter(o: WriterOptions) {
   };
   /**
    * a claim newer than this tab's, from another tab: the game is theirs. A claim without a generation comes from a
-   * page of the build before generations, which knows no other way to say it took the game: it is respected.
+   * page of the build before generations, which knows no other way to say it took the game: it is respected. Two tabs
+   * that claimed the same generation at once (no Web Locks) break the tie by id, so exactly one keeps it (A122); a page
+   * that gave its lease up as it went yields to any claim, whatever its id, as its own reload is one.
    */
-  const newer = (s: Stamp | null) => s !== null && s.id !== id && (s.gen === undefined || s.gen >= gen);
+  const newer = (s: Stamp | null) => s !== null && s.id !== id && (gaveUp || s.gen === undefined || s.gen > gen || (s.gen === gen && s.id > id));
   const set = (w: boolean) => {
     if (held === w) return;
     held = w;

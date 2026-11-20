@@ -146,6 +146,46 @@ describe("one writer across tabs, without Web Locks (a lease in storage)", () =>
     expect(JSON.parse(views.b.get(STAMP_KEY)!).id).toBe("b");
   });
 
+  it("two tabs opened at once without Web Locks both take generation 1, and exactly one keeps the game (A122)", async () => {
+    // each tab's writes reach the other only when `deliver` runs, so both claim before either sees the other
+    const views = { a: new Map<string, string>(), b: new Map<string, string>() };
+    const told: Record<"a" | "b", ((key: string, value: string | null) => void) | null> = { a: null, b: null };
+    const queue: Array<{ to: "a" | "b"; key: string; value: string }> = [];
+    const renewers: Partial<Record<"a" | "b", () => void>> = {};
+    const tab = (me: "a" | "b") => {
+      const other = me === "a" ? "b" : "a";
+      return createWriter({
+        storage: {
+          getItem: (k) => views[me].get(k) ?? null,
+          setItem: (k, v) => (views[me].set(k, v), queue.push({ to: other, key: k, value: v })),
+          removeItem: (k) => views[me].delete(k),
+        },
+        now: () => 0,
+        every: (fn) => ((renewers[me] = fn), () => void delete renewers[me]),
+        wait: async () => undefined,
+        id: me === "a" ? "tab-1111" : "tab-2222",
+        watch: (fn) => ((told[me] = fn), () => void (told[me] = null)),
+      });
+    };
+    const deliver = () => {
+      while (queue.length) {
+        const w = queue.shift()!;
+        views[w.to].set(w.key, w.value);
+        told[w.to]?.(w.key, w.value);
+      }
+    };
+    const a = tab("a");
+    const b = tab("b");
+    const [ga, gb] = await Promise.all([a.acquire(), b.acquire()]);
+    expect([ga, gb], "both claimed before either saw the other").toEqual([true, true]);
+    deliver();
+    renewers.a?.();
+    renewers.b?.();
+    deliver();
+    const writers = [a.isWriter(), b.isWriter()].filter(Boolean).length;
+    expect(writers, "exactly one tab writes, without anyone pressing 'play here'").toBe(1);
+  });
+
   it("a stamp from a page of the build before generations is still respected as a claim (A97)", async () => {
     const { storage, open, renew } = tabs();
     const a = open("a");
