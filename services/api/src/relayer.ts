@@ -48,7 +48,8 @@ interface Store {
 /** A tape-out costs the processor's fee, transistor mints and gas: about 0.002 OKB, set aside here at 0.004. */
 const PER_TAPEOUT_WEI = 4_000_000_000_000_000n;
 
-export type RelayResult = { ok: true; processor: Address; brainId: string; reused: boolean; tx?: string } | { ok: false; reason: "invalid" | "tooBig" | "budget" | "error"; detail?: string; spent?: boolean };
+/** `sent`: how many tape-outs this request sent, each charged against the sponsor's caps (A75); never shown to players. */
+export type RelayResult = ({ ok: true; processor: Address; brainId: string; reused: boolean; tx?: string } | { ok: false; reason: "invalid" | "tooBig" | "budget" | "error"; detail?: string; spent?: boolean }) & { sent?: number };
 
 export type KeepsakeResult = { ok: true; processor: Address; brainId: string; tapeTx: string; sendTx: string } | { ok: false; reason: "invalid" | "tooBig" | "budget" | "error"; detail?: string };
 
@@ -154,9 +155,19 @@ export class BrainRelayer {
     return calls;
   }
 
-  /** Serialises tape-outs so nonces never collide and the budget is exact. */
+  /** tape-outs sent by the job now running in the serial queue (A75) */
+  private sentNow = 0;
+
+  /**
+   * Serialises tape-outs so nonces never collide and the budget is exact. A relay's result says how many tape-outs it
+   * sent, counted here: one job runs at a time, so the count is exactly that job's.
+   */
   private serial<T>(job: () => Promise<T>): Promise<T> {
-    const run = this.queue.then(job);
+    const run = this.queue.then(async () => {
+      this.sentNow = 0;
+      const r = await job();
+      return r && typeof r === "object" && "ok" in r ? ({ ...r, sent: this.sentNow } as T) : r;
+    });
     this.queue = run.catch(() => undefined);
     return run;
   }
@@ -381,6 +392,7 @@ export class BrainRelayer {
     }
     // counted before anything is sent: a tape-out that reverts still spent gas
     this.store.used += 1;
+    this.sentNow += 1;
     this.store.hour.push(now);
     this.save();
 

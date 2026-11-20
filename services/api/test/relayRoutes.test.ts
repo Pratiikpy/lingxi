@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { signRelay } from "@lingxi/chain";
+import { familyOf, petCard } from "@lingxi/game";
 import { RateLimiter } from "../src/limit";
 import { RelayQuota } from "../src/relayGate";
 import { createApp } from "../src/server";
@@ -97,3 +98,42 @@ describe("sponsored tape-outs, by route (A40)", () => {
   });
 });
 
+
+describe("the child relay is charged per tape-out, and only for a real child or a real parent (A75)", () => {
+  // a child's card as the game makes it (petCard of a pet with a family)
+  const card = (family: boolean) =>
+    petCard({ line: "gentle", lessons: [], instincts: 0, ...(family ? { family: familyOf({ name: "A", line: "gentle", lessons: [] }, { name: "B", line: "bold", lessons: [] }) } : {}) } as never);
+  /** a relayer whose child relay sent `sent` tape-outs */
+  const childRelayer = (sent: number) => {
+    const asked: unknown[] = [];
+    return { asked, relayer: { relayChild: async (input: unknown) => (asked.push(input), { ok: true, processor: "0xf70d324da8c1c4cb0de3ff147e53e7e9db543c4e", brainId: "77", reused: sent === 0, sent }) } };
+  };
+  const pets: Record<string, { brainId: string; parents: [string, string] | null }> = { "7": { brainId: "41", parents: ["3", "4"] }, "8": { brainId: "42", parents: null } };
+  const petOnChain = async (id: string) => pets[id] ?? null;
+  const appOf = (relayer: unknown, quota: RelayQuota) => createApp(null, undefined, relayer as never, new RateLimiter(1000, 3_600_000), null, undefined, isKeeper, quota, async () => false, petOnChain);
+  const postChild = (app: ReturnType<typeof createApp>, json: unknown) =>
+    app.request("/api/tapeout-child", { method: "POST", headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.75" }, body: JSON.stringify(json) });
+
+  it("a taught child's halves and glue cost three slots, and what was not sent comes back", async () => {
+    const quota = new RelayQuota({ perPetPerDay: 6, perSignerPerDay: 100, perHour: 100 });
+    const three = childRelayer(3);
+    expect((await (await postChild(appOf(three.relayer, quota), await signRelay(owner, "child", "7", { card: card(true) }))).json()) as { ok: boolean }).toMatchObject({ ok: true });
+    // six a day for the pet: three are used, so a second request that may send three still fits, a third does not
+    const app = appOf(childRelayer(3).relayer, quota);
+    expect(((await (await postChild(app, await signRelay(owner, "child", "7", { card: card(true) }))).json()) as { ok: boolean }).ok).toBe(true);
+    expect(await (await postChild(app, await signRelay(owner, "child", "7", { card: card(true) }))).json()).toMatchObject({ ok: false });
+    // one that sent only its glue gives two back
+    const q2 = new RelayQuota({ perPetPerDay: 4, perSignerPerDay: 100, perHour: 100 });
+    await postChild(appOf(childRelayer(1).relayer, q2), await signRelay(owner, "child", "7", { card: card(true) }));
+    expect(((await (await postChild(appOf(childRelayer(3).relayer, q2), await signRelay(owner, "child", "7", { card: card(true) }))).json()) as { ok: boolean }).ok, "3 of 4 left").toBe(true);
+  });
+
+  it("refuses a child's card for a pet that is not a child, and a birth whose first parent is not this pet's brain, sending nothing", async () => {
+    const f = childRelayer(3);
+    const app = appOf(f.relayer, new RelayQuota({ perPetPerDay: 6, perSignerPerDay: 100, perHour: 100 }));
+    expect(await (await postChild(app, await signRelay(owner, "child", "8", { card: card(true) }))).json()).toMatchObject({ ok: false, reason: "invalid" });
+    expect(await (await postChild(app, await signRelay(owner, "child", "8", { parents: ["99", "100"] }))).json()).toMatchObject({ ok: false, reason: "invalid" });
+    expect(((await (await postChild(app, await signRelay(owner, "child", "8", { parents: ["42", "100"] }))).json()) as { ok: boolean }).ok, "its own brain first: allowed").toBe(true);
+    expect(f.asked).toHaveLength(1);
+  });
+});

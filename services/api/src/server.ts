@@ -105,6 +105,8 @@ export type HealthDetail = () => Promise<Record<string, unknown>> | Record<strin
 
 /** Who may keep a pet on chain right now (PetRegistry.isKeeper): the relayer only tapes out for them. */
 export type KeeperCheck = (petId: string, who: `0x${string}`) => Promise<boolean>;
+/** A pet's brain on chain and its parents (null when it was hatched, not born), or null when there is no such pet (A75). */
+export type PetOnChainReader = (petId: string) => Promise<{ brainId: string; parents: [string, string] | null } | null>;
 /** Whether a pet has standing on chain (PetRegistry.isSettled): sponsored tape-outs go first to such pets (A40). */
 export type SettledCheck = (petId: string) => Promise<boolean>;
 
@@ -120,6 +122,8 @@ export function createApp(
   quota = new RelayQuota({ perPetPerDay: 6, perSignerPerDay: 12, perHour: 12 }),
   // with no chain to ask (tests), every pet counts as settled
   isSettled: SettledCheck = async () => true,
+  // a pet's brain and parents on chain (A75); with no chain to ask (tests), the relay's own checks only
+  petOnChain?: PetOnChainReader,
 ) {
   const app = new Hono();
   const origins = (process.env.LINGXI_ORIGINS ?? "http://localhost:5199,http://localhost:4173").split(",");
@@ -159,7 +163,7 @@ export function createApp(
   const refusalStatus: Record<string, 401 | 403 | 429> = { unsigned: 401, expired: 401, badSignature: 401, replayed: 401, notKeeper: 403, busy: 429 };
 
   /** The shared path of the three relay routes: who asked, how often, and what they asked for. */
-  const relayRoute = <T,>(path: string, kind: "brain" | "child" | "instinct", schema: z.ZodType<T>, act: (body: T) => Promise<RelayResult>) =>
+  const relayRoute = <T,>(path: string, kind: "brain" | "child" | "instinct", schema: z.ZodType<T>, act: (body: T, petId: string) => Promise<RelayResult>, most: (body: T) => number = () => 1) =>
     app.post(path, async (c) => {
       if (!relayer || !isKeeper) return c.json({ ok: false, reason: "error", detail: "relaying is not configured" }, 503);
       if (!relayLimiter.take(clientIp(c))) return busy(c);
@@ -175,28 +179,45 @@ export function createApp(
       const gate = await checkRelayAuth(req, { isKeeper, now: () => Date.now(), nonces });
       if (!gate.ok) return c.json({ ok: false, reason: gate.reason }, refusalStatus[gate.reason] ?? 401);
       // the slot is taken before the tape-out, so a burst cannot pass a cap; it is given back when nothing was sent (A40)
-      const slot = quota.take(req.petId, gate.signer, await isSettled(req.petId).catch(() => false));
+      // as many slots as this request may send tape-outs, all at once; those it does not send come back (A75)
+      const slot = quota.take(req.petId, gate.signer, await isSettled(req.petId).catch(() => false), Date.now(), most(body));
       if (!slot.ok) return slot.reason === "busy" ? busy(c) : c.json({ ok: false, reason: slot.reason });
       let result: RelayResult;
       try {
-        result = await act(body);
+        result = await act(body, req.petId);
       } catch (e) {
         quota.refund(slot.ticket);
         throw e;
       }
-      // a brain already taped out costs nothing; anything that sent a transaction is charged
-      if (!((result.ok && !result.reused) || (!result.ok && result.spent))) quota.refund(slot.ticket);
-      const { spent: _spent, ...shown } = result as RelayResult & { spent?: boolean };
+      // charged for every tape-out sent; a brain already taped out, or a refusal before sending, costs nothing
+      const sent = result.sent ?? ((result.ok && !result.reused) || (!result.ok && result.spent) ? 1 : 0);
+      quota.refund(slot.ticket, slot.ticket.n - Math.min(sent, slot.ticket.n));
+      const { spent: _spent, sent: _sent, ...shown } = result as RelayResult & { spent?: boolean };
       return c.json(shown);
     });
 
   relayRoute("/api/tapeout", "brain", BrainRelayPayload, (b) => relayer!.relay(b.line, b.lessons, b.instincts ?? 0, b.skills ?? []));
-  relayRoute("/api/tapeout-child", "child", ChildRelayPayload, async (b) => {
-    if ("parents" in b) return relayer!.relayChild({ parents: b.parents });
-    const card = parseCard(b.card);
-    if (!card?.family) return { ok: false, reason: "invalid", detail: "not a child's card" };
-    return relayer!.relayChild({ family: card.family, lessons: card.lessons, ...(card.growth ? { growth: card.growth } : {}) });
-  });
+  relayRoute(
+    "/api/tapeout-child",
+    "child",
+    ChildRelayPayload,
+    async (b, petId) => {
+      // only for this pet as the chain has it: a birth's first parent is its own brain, a taught child's card a child's (A75)
+      const pet = petOnChain ? await petOnChain(petId).catch(() => undefined) : null;
+      if (pet === undefined) return { ok: false, reason: "error", detail: "X Layer could not be read" };
+      if (petOnChain && pet === null) return { ok: false, reason: "invalid", detail: "no such pet" };
+      if ("parents" in b) {
+        if (pet && pet.brainId !== b.parents[0]) return { ok: false, reason: "invalid", detail: "the first parent is not this pet's brain" };
+        return relayer!.relayChild({ parents: b.parents });
+      }
+      if (pet && !pet.parents) return { ok: false, reason: "invalid", detail: "this pet is not a child" };
+      const card = parseCard(b.card);
+      if (!card?.family) return { ok: false, reason: "invalid", detail: "not a child's card" };
+      return relayer!.relayChild({ family: card.family, lessons: card.lessons, ...(card.growth ? { growth: card.growth } : {}) });
+    },
+    // a taught child's two halves and its glue; a birth's glue alone
+    (b) => ("parents" in b ? 1 : 3),
+  );
   relayRoute("/api/tapeout-instinct", "instinct", InstinctRelayPayload, (b) => relayer!.relayInstinct({ own: b.own, processor: b.processor as `0x${string}`, id: b.id }));
 
   return app;
@@ -896,7 +917,20 @@ if (isMain) {
     },
     process.env.LINGXI_RELAY_QUOTA_FILE ?? join(dataDir, "relay-quota.json"),
   );
-  const app = createApp(client, undefined, relayer, undefined, live, detail, isKeeper, quota, isSettled);
+  // a pet's brain and parents as PetRegistry has them, read when a child relay asks (A75)
+  const petOnChain: PetOnChainReader | undefined = chainCtx
+    ? async (petId) => {
+        try {
+          const p = await readPet(chainCtx!.pub, chainCtx!.deployment, BigInt(petId));
+          if (!p.born) return null;
+          return { brainId: p.brainId.toString(), parents: p.parentA && p.parentB ? [p.parentA.toString(), p.parentB.toString()] : null };
+        } catch (e) {
+          if (/Nonexistent|NotFound|nonexistent/i.test((e as Error).message)) return null;
+          throw e;
+        }
+      }
+    : undefined;
+  const app = createApp(client, undefined, relayer, undefined, live, detail, isKeeper, quota, isSettled, petOnChain);
   if (client) withVoice(app, createVoice(client));
   withLibrary(app, createLibrary(process.env.LINGXI_LIBRARY_STORE));
   withSitting(app, createSittingStore(process.env.LINGXI_SIT_STORE));

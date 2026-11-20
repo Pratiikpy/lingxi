@@ -82,13 +82,15 @@ export interface SponsorCaps {
   lifetime?: { newcomer: number; settled: number };
 }
 
-/** A slot taken for one tape-out, given back with `refund` when nothing was sent. */
+/** Slots taken for the tape-outs one request may send, given back with `refund` for those it did not send. */
 export interface SponsorTicket {
   petId: string;
   signer: string;
   at: number;
   settled: boolean;
   day: string;
+  /** how many slots it holds (A75: a taught child's halves and glue are three tape-outs) */
+  n: number;
 }
 
 /**
@@ -137,38 +139,45 @@ export class RelayQuota {
     renameSync(`${this.file}.tmp`, this.file);
   }
 
-  /** Takes a slot for one tape-out, or says why not: `busy` (a daily or hourly cap), `newcomer` (the newcomers' share), `lifetime` (the pet's own). */
-  take(petId: string, signer: string, settled: boolean, now = Date.now()): { ok: true; ticket: SponsorTicket } | { ok: false; reason: "busy" | "newcomer" | "lifetime" } {
+  /**
+   * Takes `n` slots, one for each tape-out the request may send, all at once against every cap, or says why not:
+   * `busy` (a daily or hourly cap), `newcomer` (the newcomers' share), `lifetime` (the pet's own).
+   */
+  take(petId: string, signer: string, settled: boolean, now = Date.now(), n = 1): { ok: true; ticket: SponsorTicket } | { ok: false; reason: "busy" | "newcomer" | "lifetime" } {
     this.roll(now);
     const s = signer.toLowerCase();
     const share = this.caps.newcomerShare ?? 1;
     const life = this.lifetime.get(petId) ?? 0;
-    if (this.caps.lifetime && life >= (settled ? this.caps.lifetime.settled : this.caps.lifetime.newcomer)) return { ok: false, reason: "lifetime" };
-    if ((this.perPet.get(petId) ?? 0) >= this.caps.perPetPerDay || (this.perSigner.get(s) ?? 0) >= this.caps.perSignerPerDay || this.hour.length >= this.caps.perHour) return { ok: false, reason: "busy" };
+    if (this.caps.lifetime && life + n > (settled ? this.caps.lifetime.settled : this.caps.lifetime.newcomer)) return { ok: false, reason: "lifetime" };
+    if ((this.perPet.get(petId) ?? 0) + n > this.caps.perPetPerDay || (this.perSigner.get(s) ?? 0) + n > this.caps.perSignerPerDay || this.hour.length + n > this.caps.perHour) return { ok: false, reason: "busy" };
     if (!settled) {
       const hourNew = this.hour.filter((h) => !h.settled).length;
-      if (hourNew >= Math.floor(this.caps.perHour * share) || (this.caps.perDay !== undefined && this.newcomersToday >= Math.floor(this.caps.perDay * share))) return { ok: false, reason: "newcomer" };
-      this.newcomersToday++;
+      if (hourNew + n > Math.floor(this.caps.perHour * share) || (this.caps.perDay !== undefined && this.newcomersToday + n > Math.floor(this.caps.perDay * share))) return { ok: false, reason: "newcomer" };
+      this.newcomersToday += n;
     }
-    this.perPet.set(petId, (this.perPet.get(petId) ?? 0) + 1);
-    this.perSigner.set(s, (this.perSigner.get(s) ?? 0) + 1);
-    this.hour.push({ at: now, settled });
-    this.lifetime.set(petId, life + 1);
+    this.perPet.set(petId, (this.perPet.get(petId) ?? 0) + n);
+    this.perSigner.set(s, (this.perSigner.get(s) ?? 0) + n);
+    for (let i = 0; i < n; i++) this.hour.push({ at: now, settled });
+    this.lifetime.set(petId, life + n);
     this.save();
-    return { ok: true, ticket: { petId, signer: s, at: now, settled, day: this.day } };
+    return { ok: true, ticket: { petId, signer: s, at: now, settled, day: this.day, n } };
   }
 
-  /** Gives a slot back: nothing was sent (a brain already taped out, or a refusal before sending). */
-  refund(t: SponsorTicket): void {
+  /** Gives back `k` of a ticket's slots (all of them unless said): those tape-outs were not sent. */
+  refund(t: SponsorTicket, k = t.n): void {
+    const back = Math.max(0, Math.min(k, t.n));
+    if (!back) return;
     const life = this.lifetime.get(t.petId) ?? 0;
-    if (life > 1) this.lifetime.set(t.petId, life - 1);
+    if (life > back) this.lifetime.set(t.petId, life - back);
     else this.lifetime.delete(t.petId);
     this.save();
     if (t.day !== this.day) return;
-    this.perPet.set(t.petId, Math.max(0, (this.perPet.get(t.petId) ?? 0) - 1));
-    this.perSigner.set(t.signer, Math.max(0, (this.perSigner.get(t.signer) ?? 0) - 1));
-    const i = this.hour.findIndex((h) => h.at === t.at && h.settled === t.settled);
-    if (i >= 0) this.hour.splice(i, 1);
-    if (!t.settled) this.newcomersToday = Math.max(0, this.newcomersToday - 1);
+    this.perPet.set(t.petId, Math.max(0, (this.perPet.get(t.petId) ?? 0) - back));
+    this.perSigner.set(t.signer, Math.max(0, (this.perSigner.get(t.signer) ?? 0) - back));
+    for (let j = 0; j < back; j++) {
+      const i = this.hour.findIndex((h) => h.at === t.at && h.settled === t.settled);
+      if (i >= 0) this.hour.splice(i, 1);
+    }
+    if (!t.settled) this.newcomersToday = Math.max(0, this.newcomersToday - back);
   }
 }

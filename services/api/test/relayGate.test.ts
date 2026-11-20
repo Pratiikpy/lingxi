@@ -170,3 +170,17 @@ describe("what the relayer itself holds back", () => {
   });
 });
 
+
+describe("a request is charged for every tape-out it can send (A75)", () => {
+  it("takes several slots at once against every cap, and gives back those not used", () => {
+    const q = new RelayQuota({ perPetPerDay: 6, perSignerPerDay: 100, perHour: 12, perDay: 100, newcomerShare: 0.25, lifetime: { newcomer: 3, settled: 40 } });
+    const a = q.take("7", "0xA", false, 0, 3);
+    expect(a.ok, "three slots for a child's halves and glue").toBe(true);
+    expect(q.take("8", "0xB", false, 0, 1), "the hour's newcomer share (3 of 12) is used by that one request").toEqual({ ok: false, reason: "newcomer" });
+    // two of the three were not sent (halves already taped out): they come back
+    if (a.ok) q.refund(a.ticket, 2);
+    expect(q.take("8", "0xB", false, 0, 1).ok).toBe(true);
+    expect(q.take("7", "0xA", true, 0, 6), "a pet's day is six, and one is used").toEqual({ ok: false, reason: "busy" });
+    expect(q.take("9", "0xC", false, 0, 4), "more than a newcomer pet's lifetime at once").toEqual({ ok: false, reason: "lifetime" });
+  });
+});
