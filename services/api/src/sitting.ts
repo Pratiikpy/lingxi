@@ -12,7 +12,7 @@
  */
 
 import { createHash, randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync } from "node:fs";
 import { readFile, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { SEND_LIMITS } from "@lingxi/chain/limits";
@@ -57,11 +57,28 @@ interface Blobs {
 
 function folderBlobs(dir: string): Blobs {
   mkdirSync(dir, { recursive: true });
+  // a write a crash cut short leaves only its temporary file, which nothing reads: cleared on open (A98)
+  for (const f of readdirSync(dir)) if (f.endsWith(".tmp")) rmSync(join(dir, f), { force: true });
+  // writes of one name go one after another: two renames onto one file at once fail on Windows (EPERM) (A98)
+  const writing = new Map<string, Promise<void>>();
   return {
-    async write(name, text) {
+    write(name, text) {
       const p = join(dir, name);
-      await writeFile(`${p}.tmp`, text);
-      await rename(`${p}.tmp`, p);
+      const run = async () => {
+        // each write its own temporary file, removed if the write fails
+        const tmp = `${p}.${randomBytes(6).toString("hex")}.tmp`;
+        try {
+          await writeFile(tmp, text);
+          await rename(tmp, p);
+        } catch (e) {
+          await rm(tmp, { force: true });
+          throw e;
+        }
+      };
+      const next = (writing.get(name) ?? Promise.resolve()).catch(() => undefined).then(run);
+      writing.set(name, next);
+      void next.finally(() => writing.get(name) === next && writing.delete(name)).catch(() => undefined);
+      return next;
     },
     async read(name) {
       try {

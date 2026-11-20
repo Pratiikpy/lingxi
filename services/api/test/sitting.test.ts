@@ -121,4 +121,22 @@ describe("a burst cannot pass the sitting caps (A76)", () => {
     await Promise.all([store.sendHome(left.code, KEY, big(500)), store.sendHome(left.code, KEY, big(500))]);
     expect(store.stats().bytes).toBe(before + big(500).length);
   });
+
+  it("twenty pets sent home to one code at once never collide on a file, and stray temporary files are cleared (A98)", async () => {
+    const t = 1_800_000_000_000;
+    const dir = mkdtempSync(join(tmpdir(), "sit-"));
+    const store = createSittingStore(dir, () => t, { maxBytes: 100_000_000, perOwner: 8 });
+    const left = await store.leave(pack, keyHashOf(KEY), t + 86_400_000, "203.0.113.98");
+    if (!left.ok) throw new Error("not left");
+    const before = store.stats().bytes;
+    const sent = await Promise.allSettled(Array.from({ length: 20 }, () => store.sendHome(left.code, KEY, big(300))));
+    expect(sent.filter((r) => r.status === "rejected"), "no write failed").toEqual([]);
+    expect(store.stats().bytes).toBe(before + big(300).length);
+    expect(readdirSync(dir).filter((f) => f.endsWith(".tmp")), "nothing left half-written").toEqual([]);
+    writeFileSync(join(dir, `${left.code}.back.abc.tmp`), "half");
+    createSittingStore(dir, () => t);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(readdirSync(dir).filter((f) => f.endsWith(".tmp")), "a crash's leftovers are cleared on open").toEqual([]);
+  });
 });
+
