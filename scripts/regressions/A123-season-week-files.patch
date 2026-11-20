@@ -1,0 +1,11 @@
+--- a/services/api/src/season.ts
++++ b/services/api/src/season.ts
+@@ -125,7 +125,7 @@ export function createSeasonStore(file?: string, now: () => number = Date.now, s
+   }
+   const save = (week: string) => {
+     const w = weeks.get(week);
+-    if (shards && w) shards.write(week, w);
++    if (shards && w) for (const k of weeks.keys()) shards.write(k, weeks.get(k));
+   };
+   const prune = () => {
+     const keep = [...weeks.keys()].sort().slice(-KEEP_WEEKS);

@@ -1,0 +1,11 @@
+--- a/services/api/src/diaries.ts
++++ b/services/api/src/diaries.ts
+@@ -137,7 +137,7 @@ export function createDiaryStore(dir?: string, opts: { now?: () => number; total
+     const today = spentToday(from, day);
+     const prefix = prefixOf(from);
+     // an address publishes its day's bytes, and its IPv6 /48 four addresses' worth (A123)
+-    if (today + grows > perAddress || (prefix !== null && spentToday(prefix, day) + grows > perAddress * PREFIX_SHARE)) return { ok: false, reason: "busy" };
++    if (today + grows > perAddress || (prefix !== null && false)) return { ok: false, reason: "busy" };
+     // a full shelf can let go of every other diary; one too big even for that is refused before it is hashed
+     if (body.length > totalBytes) return { ok: false, reason: "full" };
+     return { ok: true, body, held, t, day, grows };
