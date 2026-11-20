@@ -26,6 +26,8 @@ Kinds of check:
 | no-token | README | Lingxi has no token of its own. | manual: the deployment record lists every contract Lingxi deployed (`packages/chain/deployments/xlayer.json`); none is a token. BEM is TapeOut's. |
 | owner-powers | README | Fees move only within fixed bounds; burn shares cannot change. | test:contracts/test/SecurityReview.t.sol |
 | two-step-owners | README | Ownership is handed over in two steps on every owned contract except the first outfit market. | auto:two-step-owners |
+| owner-powers-listed | README | Every power a contract gives its owner is in the README's table of owner powers, named by function in its contract's row; HolderGift and the first Breeder give none. | test:scripts/ownerPowers.test.mts |
+| owner-state | README | Every owner is the deployer; PetLook's art is still open; the renderer is PetLook; the item shop's voucher signer is the game's; of the two breeders only BreederV2 may record births. | auto:owner-state |
 | processor | README, judge check | The processor is registered with TapeOut's factory. | judge: processor is registered with TapeOut's factory |
 | circuits-hash | README, proof page | The five core circuits on chain have the keccak256 hashes listed. | auto:circuit-hashes |
 | circuits-compiler | README | The circuits on chain are byte for byte what this repo's compiler produces. | judge: equals this repo's compiler output |

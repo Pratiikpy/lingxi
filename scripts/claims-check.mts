@@ -11,7 +11,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { type Address, type Hex, type PublicClient, createPublicClient, encodeFunctionData, http, keccak256 } from "viem";
+import { type Address, type Hex, type PublicClient, createPublicClient, encodeFunctionData, http, keccak256, parseAbi } from "viem";
 import { STARTERS, compileProgram, compileSeal, gateCount, stateBits } from "../packages/brain/src/index.ts";
 import { EVOLUTION } from "../packages/game/src/index.ts";
 import { STAGE_DAYS } from "../packages/game/src/pet.ts";
@@ -168,6 +168,31 @@ const AUTO: Record<string, Check> = {
     }
     expect(one.length === 1 && one[0] === "outfitMarket", `one-step ownership: ${one.join(", ") || "none"}`);
     return `two-step: ${two.join(", ")}; one-step: outfitMarket`;
+  },
+  // the states the README's owner table states (A89): every owner the deployer, the art still open, the renderer
+  // PetLook, the voucher signer the game's, and of the two breeders only BreederV2 recording births
+  "owner-state": async () => {
+    const one = (sig: string) => parseAbi([sig]);
+    const owners: string[] = [];
+    for (const k of CONTRACTS) {
+      const a = d[k];
+      if (typeof a !== "string") continue;
+      const owner = await pub.readContract({ address: a as Address, abi: one("function owner() view returns (address)"), functionName: "owner" }).then((x) => x as Address, () => null);
+      if (owner === null) continue;
+      expect(owner.toLowerCase() === PROJECT.toLowerCase(), `${k}'s owner is ${owner}, not the deployer`);
+      owners.push(k);
+    }
+    const frozen = (await read(d.look, one("function artFrozen() view returns (bool)"), "artFrozen")) as boolean;
+    const renderer = (await read(d.registry, one("function renderer() view returns (address)"), "renderer")) as Address;
+    const signer = (await read(d.itemShop, one("function signer() view returns (address)"), "signer")) as Address;
+    const breeders = one("function breeders(address) view returns (bool)");
+    const v2 = (await read(d.registry, breeders, "breeders", [d.breeder as Address])) as boolean;
+    const first = (await read(d.registry, breeders, "breeders", [d.breederFree as Address])) as boolean;
+    expect(!frozen, "PetLook's art is frozen: the README says it is still open");
+    expect(renderer.toLowerCase() === (d.look ?? "").toLowerCase(), `the renderer is ${renderer}, not PetLook`);
+    expect(signer.toLowerCase() === (d.voucherSigner as string).toLowerCase(), `the voucher signer is ${signer}, not the game's`);
+    expect(v2 && !first, `breeders: BreederV2 ${v2}, the first breeder ${first}`);
+    return `${owners.length} owned contracts, each the deployer's; art open; renderer PetLook; signer the game's; BreederV2 the only breeder`;
   },
   "circuit-hashes": async () => {
     for (const [id, hash] of Object.entries(CORE)) {
