@@ -113,7 +113,11 @@ const AUTO: Record<string, Check> = {
     expect(!same(test1, zero) && !same(rig, zero) && (bemMin as bigint) > 0n && (fabMin as bigint) > 0n && (outfit as bigint) > 0n, `test1 ${test1}, rig ${rig}, bem ${bemMin}, fab ${fabMin}, outfit ${outfit}`);
     const payable = (await import("../packages/chain/src/holderGiftAbi.ts")).holderGiftAbi.filter((x: { type: string; stateMutability?: string }) => x.type === "function" && x.stateMutability === "payable");
     expect(payable.length === 0, "the gift contract takes payment");
-    return "Test1, Rig, BEM and FAB holders; no payable function";
+    // BEM and FAB are a snapshot at a fixed block, not live balances (A58)
+    const snap = [{ type: "function", name: "snapshotBlock", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] }] as const;
+    const block = (await read(d.holderGift, snap, "snapshotBlock")) as bigint;
+    expect(block === 76_052_000n, `the snapshot block is ${block}`);
+    return `Test1 and Rig by token, BEM and FAB by the snapshot at block ${block}; no payable function`;
   },
   "no-bem-held": async () => {
     const bem = (await read(d.breeder, breederV2Abi, "bem")) as Address;

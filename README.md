@@ -92,7 +92,7 @@ There is one other rail, in OKB: designs listed on the first outfit market, befo
 | Room space: four more pieces at home, up to three times | 0.05 BEM | the whole price burned |
 | Saved looks: three more outfits kept for one tap, up to three times | 0.05 BEM | the whole price burned |
 | A colour for a pet's name, shown wherever its name is (back to plain is free) | 0.05 BEM | the whole price burned |
-| Holder outfit for BEM, FAB, Rig and TapeCode-Test1 holders | free | nothing |
+| Holder outfit for TapeCode-Test1 and Rig holders (each token once), and BEM and FAB holders at the snapshot block | free | nothing |
 
 Every one of these numbers is read live from the chain on the [live-numbers page](https://lingxi.knole.me/numbers.html): pets hatched and born, days kept on X Layer, outfits sold, BEM burned by each contract and in total, with the contract each figure comes from. `pnpm --filter @lingxi/chain recount` recomputes them independently from the chain's logs and reports any difference.
 
@@ -147,7 +147,7 @@ pnpm judge:check          # about 3.5 minutes, read-only against mainnet
 | OutfitMarketV2 | [`0xa292c12b0414bbfc14994f93bcff8bd58c921e55`](https://www.oklink.com/xlayer/address/0xa292c12b0414bbfc14994f93bcff8bd58c921e55) | [verified ✓](https://repo.sourcify.dev/196/0xa292c12b0414bbfc14994f93bcff8bd58c921e55) | player outfits and on-chain items (ERC-1155), priced in BEM; fees burned |
 | ItemShop | [`0xaf8857c0d723e14f60d00fe46120abd0303f52cc`](https://www.oklink.com/xlayer/address/0xaf8857c0d723e14f60d00fe46120abd0303f52cc) | [verified ✓](https://repo.sourcify.dev/196/0xaf8857c0d723e14f60d00fe46120abd0303f52cc) | decorations for BEM, the whole price burned; keepsakes by voucher |
 | Extras | [`0x560c7dc63a45e5afe53ad156152555a5c067598d`](https://www.oklink.com/xlayer/address/0x560c7dc63a45e5afe53ad156152555a5c067598d) | [verified ✓](https://repo.sourcify.dev/196/0x560c7dc63a45e5afe53ad156152555a5c067598d) | room space, saved looks and name colours; the whole price burned |
-| HolderGift | [`0xc216a4abb6c4c2d0b485f42219197551330b6cf4`](https://www.oklink.com/xlayer/address/0xc216a4abb6c4c2d0b485f42219197551330b6cf4) | [verified ✓](https://repo.sourcify.dev/196/0xc216a4abb6c4c2d0b485f42219197551330b6cf4) | the free holder outfit, checked against balances on chain |
+| HolderGift | [`0xc216a4abb6c4c2d0b485f42219197551330b6cf4`](https://www.oklink.com/xlayer/address/0xc216a4abb6c4c2d0b485f42219197551330b6cf4) | [verified ✓](https://repo.sourcify.dev/196/0xc216a4abb6c4c2d0b485f42219197551330b6cf4) | the free holder outfit: TapeCode-Test1 and Rig by the token held (each once), BEM and FAB by a snapshot of balances at block 76,052,000 |
 | PetLook | [`0x0642a802967260714d4efec05fef701b17d31b75`](https://www.oklink.com/xlayer/address/0x0642a802967260714d4efec05fef701b17d31b75) | [verified ✓](https://repo.sourcify.dev/196/0x0642a802967260714d4efec05fef701b17d31b75) | each pet's picture and name, drawn on chain |
 | RedPacket | [`0x7acceb7ab1cff102fe2660f511e88d42010e806b`](https://www.oklink.com/xlayer/address/0x7acceb7ab1cff102fe2660f511e88d42010e806b) | [verified ✓](https://repo.sourcify.dev/196/0x7acceb7ab1cff102fe2660f511e88d42010e806b) | gift packets sealed by a circuit |
 | OutfitMarket (first market, OKB) | [`0xb9f6b18edd21933582ec69fb1e718d9629e684cd`](https://www.oklink.com/xlayer/address/0xb9f6b18edd21933582ec69fb1e718d9629e684cd) | [verified ✓](https://repo.sourcify.dev/196/0xb9f6b18edd21933582ec69fb1e718d9629e684cd) | the market before BEM pricing; still readable |
