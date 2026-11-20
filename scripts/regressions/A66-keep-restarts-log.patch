@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/chain.ts
++++ b/apps/web/src/game/chain.ts
+@@ -618,7 +618,7 @@ export const useChain = create<ChainState>((set, get) => ({
+         const rec: ChainRecord = { petId: petId.toString(), hatchTx: tx, lastDay: 0, owner, bornChain: onChain.born, brains: { [mindKey([])]: deployment.circuits[pet.line]!.id }, brainKey: mindKey([]) };
+         store(pet, rec);
+         // its log now starts where the hatch took its state, which is where the chain's proof of its memory starts (A66)
+-        if (start?.n !== undefined && start.memory) useGame.getState().rework(pet.bornAt, (p) => restartLog(p, start.n!, start.memory!));
++        if (start?.n !== undefined && start.memory && restartLog === undefined) useGame.getState().rework(pet.bornAt, (p) => p);
+         setPending(pet, null);
+         // from here on the panel shows the pet as kept, whatever fails after
+         set({ record: activeRecord() });

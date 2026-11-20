@@ -1186,5 +1186,23 @@
     "row": "A65",
     "bug": "the live-numbers page said it refreshed every minute and read its numbers once",
     "test": { "kind": "e2e", "spec": "e2e/specs/wording-a65.spec.ts", "title": "the landing, the numbers page and the proof page say only what holds (en, light, phone)" }
+  },
+  {
+    "id": "A66-restart-rechains",
+    "row": "A66",
+    "bug": "a kept pet's restarted log kept the hash of its whole browser life",
+    "test": { "kind": "vitest", "dir": "packages/game", "file": "test/keepLog.test.ts", "name": "keeps only the moments after the hatch's state, chained from zero, and they replay from the kept memory to the pet's own" }
+  },
+  {
+    "id": "A66-keep-restarts-log",
+    "row": "A66",
+    "bug": "a pet played before it was kept had a diary the proof page called failed",
+    "test": { "kind": "e2e", "spec": "e2e/specs/diary.spec.ts", "title": "a pet that lived in the browser before it was kept has a diary that checks (en, light, phone) (A66)" }
+  },
+  {
+    "id": "A66-old-pet-said",
+    "row": "A66",
+    "bug": "a pet kept the old way had its diary called failed, with no word of why",
+    "test": { "kind": "e2e", "spec": "e2e/specs/diary.spec.ts", "title": "a pet kept before its log started at the kept state is said plainly (zh, dark, desktop) (A66)" }
   }
 ]

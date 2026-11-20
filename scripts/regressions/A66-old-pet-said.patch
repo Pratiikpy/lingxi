@@ -1,0 +1,11 @@
+--- a/apps/web/src/verify/VerifyApp.tsx
++++ b/apps/web/src/verify/VerifyApp.tsx
+@@ -411,7 +411,7 @@ export function VerifyApp() {
+       if (end.join("") !== saved.join("")) {
+         // a pet kept after living in the browser, before its log started at the kept state: said as what it is (A66)
+         const fromBirth = replayed((n) => new Array(n).fill(0));
+-        if (fromBirth && fromBirth.join("") === saved.join("")) {
++        if (fromBirth && fromBirth.join("") === "never") {
+           fail(t.logFromBirth.replace("{n}", beats));
+           setLogBirth(true);
+           return "birth";
