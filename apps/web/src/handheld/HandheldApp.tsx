@@ -304,8 +304,8 @@ export function HandheldApp() {
         <h1>{L("The handheld", "掌上灵犀")}</h1>
         <p className="hh-sub">
           {L(
-            "The Cardputer's own firmware, running in your browser: the same C code, the same screen, the pet's brain the circuit on X Layer.",
-            "Cardputer 的固件原样跑在浏览器里：同一份 C 代码、同一块屏幕，宠物的大脑就是 X Layer 上的那块电路。",
+            "The Cardputer's own firmware, running in your browser: the same C code, the same screen, and the same circuit the pet thinks with at home (read from X Layer when its mind is on chain).",
+            "Cardputer 的固件原样跑在浏览器里：同一份 C 代码、同一块屏幕，宠物用的是它在家里思考的同一块电路（心智上链后从 X Layer 读取）。",
           )}
         </p>
       </header>
