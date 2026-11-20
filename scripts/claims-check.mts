@@ -343,8 +343,7 @@ function judge(): Array<{ ok: boolean; what: string }> {
 function runTest(path: string): { ok: boolean; why: string } | "pending" {
   if (!existsSync(join(root, path))) return { ok: false, why: "does not exist" };
   if (/\.t\.sol$/.test(path)) {
-    // a fork test skips itself off X Layer, so fork contracts run against a fork of mainnet (read from the official
-    // host the judge check reads least) and the others offline; each pass counts only if tests ran and none was
+    // a fork test skips itself off X Layer, so fork contracts run against a fork of mainnet and the others offline; each pass counts only if tests ran and none was
     // skipped (a skipped suite is not a passed one, A56)
     const file = path.replace(/^contracts\//, "");
     const whole = /\.fork\.t\.sol$/.test(path);
@@ -355,7 +354,9 @@ function runTest(path: string): { ok: boolean; why: string } | "pending" {
       const [ran, bad, skipped] = tally ? tally.slice(1).map(Number) : [0, 0, 0];
       return { ok: r.status === 0 && ran! > 0 && bad === 0 && skipped === 0, why: tally ? `${ran} passed, ${bad} failed, ${skipped} skipped` : `did not run (exit ${r.status})` };
     };
-    const onFork = ["--fork-url", "https://xlayerrpc.okx.com"];
+    // rpc.xlayer.tech: xlayerrpc.okx.com refuses the block hashes a test asks for once it rolls past the chain's head
+    // ("block is out of range"); the judge check's paused retry covers a node busy from the forks
+    const onFork = ["--fork-url", "https://rpc.xlayer.tech"];
     const passes = whole
       ? [{ name: "on a fork", ...forge(onFork) }]
       : mixed
