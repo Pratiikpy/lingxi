@@ -1,0 +1,11 @@
+--- a/README.md
++++ b/README.md
+@@ -155,7 +155,7 @@ pnpm judge:check          # about four minutes, read-only against mainnet
+ 
+ Lingxi's TapeOut processor: [`0xf70d324Da8C1C4Cb0dE3FF147E53E7E9db543c4e`](https://www.oklink.com/xlayer/address/0xf70d324Da8C1C4Cb0dE3FF147E53E7E9db543c4e). BEM: `0x60e62Efa9405d6873C5deaBD4E6CC91c25363952`. All contract addresses, circuit ids, item ids and deployment blocks are in [`packages/chain/deployments/xlayer.json`](packages/chain/deployments/xlayer.json).
+ 
+-All <!--f:contracts-->11<!--/f--> are verified on Sourcify as an **exact match** of both creation and runtime bytecode, so anyone can read the source of what runs on X Layer. The [proof page](https://lingxi.knole.me/verify.html#contracts) asks Sourcify for each contract through Lingxi's server, which keeps each answer for up to ten minutes, and links every row to Sourcify's own page; the on-chain copy, which has no server, asks Sourcify directly each time it opens.
++All <!--f:contracts-->11<!--/f--> are verified on Sourcify as an **exact match** of both creation and runtime bytecode, so anyone can read the source of what runs on X Layer. The [proof page](https://lingxi.knole.me/verify.html#contracts) asks Sourcify live each time it opens.
+ 
+ Every power a contract gives its owner is below; the owner of each is the project's deployer, `0xA551…aaD8`. No owner can move a player's BEM or pets, change a pet's record or brain, or change a burn. Ownership is handed over in two steps (proposed, then accepted) on every owned contract except the first outfit market, whose ownership moves in one.
+ 
