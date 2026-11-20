@@ -175,3 +175,13 @@ describe("a pet on X Layer, as the agent API gives it (A95)", () => {
     expect(index.endpoints["GET /api/v1/pets/:id"]).toMatch(/picture as PetLook draws it on chain/);
   });
 });
+
+describe("the agents API index says what holds (A101)", () => {
+  it("the season's sixteen places are a cap on agents, not places kept for them", async () => {
+    const app = withAgentApi(new Hono(), { agents: createAgentStore(undefined, () => Date.UTC(2026, 10, 18)), seasons: createSeasonStore(undefined, () => Date.UTC(2026, 10, 18)), limiter: new RateLimiter(10_000, 60_000) });
+    const index = (await (await app.request("/api/v1")).json()) as { endpoints: Record<string, string> };
+    const season = index.endpoints["POST /api/v1/agents/me/season"]!;
+    expect(season).not.toMatch(/go to agent-raised pets|kept for/);
+    expect(season).toMatch(/agent-raised pets may take at most 16 of the week's 64 places; players may fill all 64/);
+  });
+});
