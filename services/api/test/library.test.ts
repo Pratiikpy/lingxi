@@ -137,14 +137,21 @@ describe("a full library makes room instead of closing (A64)", () => {
     expect(left.has(6) && left.has(7)).toBe(true);
   });
 
-  it("only when every lesson was learned by someone else is it full", () => {
-    const rules = lessons(3);
-    const lib = createLibrary(undefined, { max: 2, perSharer: 3 });
-    for (let i = 0; i < 2; i++) {
+  it("two addresses cannot close it: with every lesson used by a second address, an honest share still gets in (A79)", () => {
+    const rules = lessons(4);
+    const lib = createLibrary(undefined, { max: 3, perSharer: 3 });
+    // one address shares, a second "learns" each: every lesson has two uses
+    for (let i = 0; i < 3; i++) {
       lib.share(rules[i]!, "Bao", "ip-a", i);
-      lib.use(lessonKey(rules[i]!), `ip-learner-${i}`);
+      lib.use(lessonKey(rules[i]!), "ip-friend", i);
     }
-    expect(lib.share(rules[2]!, "Tofu", "ip-c", 5)).toEqual({ ok: false, reason: "full" });
-    expect(lib.has(lessonKey(rules[0]!)) && lib.has(lessonKey(rules[1]!))).toBe(true);
+    // the third is really learned by five players
+    for (let k = 0; k < 5; k++) lib.use(lessonKey(rules[2]!), `ip-learner-${k}`, 10 + k);
+    expect(lib.share(rules[3]!, "Tofu", "ip-c", 20)).toMatchObject({ ok: true, isNew: true });
+    expect(lib.size()).toBe(3);
+    expect(lib.has(lessonKey(rules[0]!)), "the least learned and quietest goes").toBe(false);
+    expect(lib.has(lessonKey(rules[1]!))).toBe(true);
+    expect(lib.has(lessonKey(rules[2]!)), "the lesson five learned stays").toBe(true);
+    expect(lib.has(lessonKey(rules[3]!))).toBe(true);
   });
 });

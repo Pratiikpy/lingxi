@@ -8,10 +8,10 @@
  * hidden once reports from different addresses reach three and a third of the
  * players who learned it, so a few addresses cannot bury a lesson many learned.
  *
- * A full library makes room rather than closing (A64): a new share first removes a hidden lesson, then the oldest
- * lesson nobody but its sharer learned; it is refused only when every lesson has been learned by someone else. One
- * sharer holds at most MAX_PER_SHARER lessons nobody else learned: past that, their own oldest goes. A lesson others
- * learned is never removed.
+ * A full library always makes room (A64, A79): a new share first removes a hidden lesson, else the lesson the fewest
+ * players learned, the one quiet longest among those, so keeping a lesson takes real learners, not one friend, and a
+ * lesson many learned is the last to go. One sharer holds at most MAX_PER_SHARER lessons nobody else learned: past
+ * that, their own oldest goes.
  */
 
 import { createHash } from "node:crypto";
@@ -35,6 +35,8 @@ export interface LibraryEntry {
   users: SeenSet;
   /** who shared it, as a hashed id; absent on lessons shared before it was kept */
   from?: string;
+  /** when it was last shared or learned (A79); absent on lessons kept before, which count from `firstAt` */
+  lastAt?: number;
 }
 
 /** The store is written this long after the last change, once a burst of changes is over. */
@@ -107,14 +109,18 @@ export function createLibrary(store?: string, limits: { max?: number; perSharer?
   /** a lesson nobody but its sharer learned */
   const solo = (e: LibraryEntry) => e.uses <= 1;
   const oldest = (list: LibraryEntry[]) => list.reduce<LibraryEntry | null>((a, e) => (!a || e.firstAt < a.firstAt ? e : a), null);
-  /** What a new share from `from` removes to fit, if anything; not ok when nothing may go (A64). */
+  const quiet = (e: LibraryEntry) => e.lastAt ?? e.firstAt;
+  /** What a new share from `from` removes to fit, if anything (A64, A79): there is always room. */
   const roomFor = (from: string): { ok: true; drop: string | null } | { ok: false } => {
     const all = [...entries.values()];
     const mine = all.filter((e) => e.from === from && solo(e));
     if (mine.length >= perSharer) return { ok: true, drop: oldest(mine)!.key };
     if (entries.size < max) return { ok: true, drop: null };
-    const victim = oldest(all.filter((e) => !visible(e))) ?? oldest(all.filter(solo));
-    return victim ? { ok: true, drop: victim.key } : { ok: false };
+    const hidden = oldest(all.filter((e) => !visible(e)));
+    if (hidden) return { ok: true, drop: hidden.key };
+    // the fewest learners, then the quietest: two addresses can no longer hold a lesson against everyone else
+    const least = all.reduce<LibraryEntry | null>((a, e) => (!a || e.uses < a.uses || (e.uses === a.uses && quiet(e) < quiet(a)) ? e : a), null);
+    return least ? { ok: true, drop: least.key } : { ok: false };
   };
 
   return {
@@ -130,24 +136,24 @@ export function createLibrary(store?: string, limits: { max?: number; perSharer?
       const key = lessonKey(rule);
       const have = entries.get(key);
       if (have) {
-        this.use(key, who);
+        this.use(key, who, now);
         return { ok: true, key, isNew: false };
       }
       const from = hashId(who);
       const room = roomFor(from);
       if (!room.ok) return { ok: false, reason: "full" };
       if (room.drop) entries.delete(room.drop);
-      entries.set(key, { key, rule: { when: rule.when, then: rule.then } as Rule, by: author, firstAt: now, uses: 1, reports: emptySeen(), reportCount: 0, users: addSeen(emptySeen(), from), from });
+      entries.set(key, { key, rule: { when: rule.when, then: rule.then } as Rule, by: author, firstAt: now, uses: 1, reports: emptySeen(), reportCount: 0, users: addSeen(emptySeen(), from), from, lastAt: now });
       save();
       return { ok: true, key, isNew: true };
     },
     /** A pet learned it from the library: one count per player per lesson. */
-    use(key: string, who: string): boolean {
+    use(key: string, who: string, now = Date.now()): boolean {
       const e = entries.get(key);
       if (!e) return false;
       const h = hashId(who);
       if (hasSeen(e.users, h)) return true;
-      entries.set(key, { ...e, users: addSeen(e.users, h), uses: e.uses + 1 });
+      entries.set(key, { ...e, users: addSeen(e.users, h), uses: e.uses + 1, lastAt: now });
       save();
       return true;
     },
