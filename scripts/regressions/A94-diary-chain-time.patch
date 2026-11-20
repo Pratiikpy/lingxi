@@ -1,0 +1,11 @@
+--- a/packages/game/src/diary.ts
++++ b/packages/game/src/diary.ts
+@@ -132,7 +132,7 @@ function sumBefore(segs: ReadonlyArray<{ words: readonly number[] }>, idx: numbe
+  * slack, for a save made the minute its last beat was written.
+  */
+ export function beatsOutrunChain(words: number, bornSec: number, savedSec: number): boolean {
+-  return words > Math.max(0, savedSec - bornSec) / 60 + 1;
++  return words < 0 && savedSec > bornSec;
+ }
+ 
+ /**
