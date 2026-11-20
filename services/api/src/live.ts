@@ -20,6 +20,7 @@ import { type Homes, visible } from "./homes";
 import { CARD_MAX, MAX_LESSONS, shownName } from "@lingxi/game";
 import { MAX_PLACED } from "@lingxi/world";
 import { RateLimiter } from "./limit";
+import { callerOf } from "./clientIp";
 import { BLOCKED_WORDS as BLOCKED } from "./words";
 
 export const CAPACITY = 24;
@@ -307,6 +308,8 @@ export class LiveRooms {
           mood: Number.isInteger(m.mood) ? Math.max(0, Math.min(3, m.mood as number)) : 1,
           x: 64,
         };
+        // the player is here: its home's links are the last to go when the server's store of them is full (A74)
+        this.homes?.seen(id);
         const space = validSpace(m.space);
         if (space) this.join(c, space);
         // the pet's name colour, only when a wallet linked to this player's home owns the pet on X Layer
@@ -445,11 +448,15 @@ export class LiveRooms {
   }
 }
 
-/** The visitor's address: Cloudflare's header (the server listens only behind the tunnel), else the socket's. */
+/**
+ * The visitor's address: Cloudflare's header (the server listens only behind the tunnel), else the socket's, keyed as
+ * every HTTP limit keys it (`callerOf`): an IPv6 caller is its /64, a mapped IPv4 its IPv4 (A74).
+ */
 export function addressOf(req: IncomingMessage): string {
   const cf = req.headers["cf-connecting-ip"];
-  if (typeof cf === "string" && isIP(cf.trim())) return cf.trim();
-  return req.socket.remoteAddress ?? "local";
+  if (typeof cf === "string" && isIP(cf.trim())) return callerOf(cf.trim());
+  const remote = req.socket.remoteAddress;
+  return remote && isIP(remote) ? callerOf(remote) : "local";
 }
 
 /** Attaches live rooms to an HTTP server at /live, accepting only allowed origins and a few connections per address. */

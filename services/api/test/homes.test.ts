@@ -346,3 +346,66 @@ describe("a room's name colours are read sparingly (A52)", () => {
     expect(await homes.colourOf(HOME, "20")).toBe(3);
   });
 });
+
+describe("a full set of linked homes lets go of the one seen longest ago (A74)", () => {
+  it("a new link succeeds when full, and the home seen longest ago is the one let go", async () => {
+    let now = 1_000;
+    const homes = createHomes({ chain: fakeChain().chain, maxHomes: 3, now: () => now });
+    const sign = (home: string) => alice.signMessage({ message: homeLinkMessage(home) });
+    for (const h of ["homeaaaa", "homebbbb", "homecccc"]) {
+      expect(await homes.link(h, alice.address, await sign(h))).toMatchObject({ ok: true });
+      now += 1_000;
+    }
+    // the first home's player comes back: it is now the most recently seen
+    homes.seen("homeaaaa");
+    now += 1_000;
+    expect(await homes.link("homedddd", alice.address, await sign("homedddd")), "a full store makes room").toMatchObject({ ok: true });
+    expect(homes.wallets("homebbbb"), "the home seen longest ago goes").toEqual([]);
+    expect(homes.wallets("homeaaaa"), "the one in use stays").toEqual([alice.address]);
+    expect(homes.wallets("homecccc")).toEqual([alice.address]);
+    expect(homes.wallets("homedddd")).toEqual([alice.address]);
+  });
+
+  it("keeps when each home was last seen across a restart, and reads the old file shape", async () => {
+    const file = join(mkdtempSync(join(tmpdir(), "homes-")), "homes.json");
+    let now = 5_000;
+    const homes = createHomes({ chain: fakeChain().chain, maxHomes: 2, file, now: () => now });
+    const sign = (home: string) => alice.signMessage({ message: homeLinkMessage(home) });
+    await homes.link("homeaaaa", alice.address, await sign("homeaaaa"));
+    now += 1_000;
+    await homes.link("homebbbb", alice.address, await sign("homebbbb"));
+    now += 1_000;
+    homes.seen("homeaaaa");
+    await new Promise((r) => setTimeout(r, 2_300));
+    const again = createHomes({ chain: fakeChain().chain, maxHomes: 2, file, now: () => now + 1_000 });
+    await again.link("homecccc", alice.address, await sign("homecccc"));
+    expect(again.wallets("homebbbb"), "last seen read back from the file").toEqual([]);
+    expect(again.wallets("homeaaaa")).toEqual([alice.address]);
+    // the shape kept before A74 (owner -> wallets) is read, each home counting as seen longest ago
+    const { writeFileSync } = await import("node:fs");
+    const old = join(mkdtempSync(join(tmpdir(), "homes-")), "homes.json");
+    writeFileSync(old, JSON.stringify({ homeolddd: [alice.address] }));
+    expect(createHomes({ chain: fakeChain().chain, file: old }).wallets("homeolddd")).toEqual([alice.address]);
+  }, 20_000);
+});
+
+describe("a player in a room keeps their home's links (A74)", () => {
+  it("saying hello in a room marks the player's home as seen", async () => {
+    const seen: string[] = [];
+    const homes = { ...createHomes({ chain: fakeChain().chain }), seen: (owner: string) => seen.push(owner) };
+    const rooms = new LiveRooms(createDecorStore(), homes);
+    const server = createServer();
+    attachLive(server, rooms, ["http://ok.test"]);
+    await new Promise<void>((r) => server.listen(0, r));
+    const port = (server.address() as AddressInfo).port;
+    const key = createHash("sha256").update("a74-seen").digest("hex").slice(0, 32);
+    const ws = new WebSocket(`ws://127.0.0.1:${port}/live`, { headers: { origin: "http://ok.test", "cf-connecting-ip": "203.0.113.74" } });
+    await new Promise((r) => ws.on("open", r));
+    ws.send(JSON.stringify({ t: "hello", id: playerIdFor(key), key, name: "Mochi", line: "gentle", stage: "baby", mood: 1, space: "room:74" }));
+    await new Promise((r) => setTimeout(r, 300));
+    expect(seen).toEqual([playerIdFor(key)]);
+    ws.close();
+    server.close();
+  });
+});
+

@@ -5,6 +5,10 @@
  * pet's name its colour only while a linked wallet owns that pet. A home with no linked wallet shows its game pieces,
  * up to 12, as it always did. Chain readings are cached briefly; when X Layer cannot be read, the last good reading
  * stands, and with none the home shows only what needs no chain.
+ *
+ * A74: linking costs only a free signature, so the store remembers when each home was last seen (linked, or its owner
+ * in a room) and, when full, lets go of the home seen longest ago rather than refusing every new home for good. A home
+ * let go keeps nothing the chain does not: its wallets can link it again with the same signature.
  */
 
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
@@ -58,22 +62,33 @@ export interface Homes {
   link: (owner: string, wallet: unknown, signature: unknown) => Promise<{ ok: true; wallets: Address[] } | { ok: false; reason: "invalid" | "signature" | "full" | "serverFull" }>;
   unlink: (owner: string, wallet: unknown) => { ok: true; wallets: Address[] } | { ok: false; reason: "invalid" };
   view: (owner: string) => Promise<HomeView>;
+  /** the owner of `owner`'s home is here now (in a room): its links are the last to go when the store is full (A74) */
+  seen: (owner: string) => void;
   /** the colour a pet's name shows with in this player's company: 0 unless a linked wallet owns the pet. `fresh`
    * looks at the chain again (after the player changed it), at most once every few seconds per pet. */
   colourOf: (owner: string, petId: unknown, fresh?: boolean) => Promise<number>;
 }
 
-export function createHomes(opts: { chain?: HomeChain; file?: string; now?: () => number; freshMs?: number } = {}): Homes {
+export function createHomes(opts: { chain?: HomeChain; file?: string; now?: () => number; freshMs?: number; maxHomes?: number } = {}): Homes {
   const now = opts.now ?? Date.now;
   const freshMs = opts.freshMs ?? FRESH_MS;
+  const maxHomes = opts.maxHomes ?? MAX_LINKED_HOMES;
   const links = new Map<string, Address[]>();
+  /** when each linked home was last seen, in ms; a home read from the older file shape counts as seen longest ago */
+  const lastSeen = new Map<string, number>();
   if (opts.file && existsSync(opts.file)) {
     try {
       const raw = JSON.parse(readFileSync(opts.file, "utf8")) as Record<string, unknown>;
-      for (const [owner, list] of Object.entries(raw)) {
+      for (const [owner, entry] of Object.entries(raw)) {
+        // the shape since A74: { w: wallets, seen: ms }; before it: wallets alone
+        const list = Array.isArray(entry) ? entry : entry && typeof entry === "object" ? (entry as { w?: unknown }).w : null;
+        const seenAt = !Array.isArray(entry) && entry && typeof entry === "object" ? Number((entry as { seen?: unknown }).seen) : 0;
         if (!OWNER_ID.test(owner) || !Array.isArray(list)) continue;
         const ok = list.filter((w): w is string => typeof w === "string" && isAddress(w)).map((w) => getAddress(w)).slice(0, MAX_LINKED);
-        if (ok.length) links.set(owner, ok);
+        if (ok.length) {
+          links.set(owner, ok);
+          lastSeen.set(owner, Number.isFinite(seenAt) ? seenAt : 0);
+        }
       }
     } catch {
       // a damaged file starts with no links rather than stopping the server
@@ -85,7 +100,7 @@ export function createHomes(opts: { chain?: HomeChain; file?: string; now?: () =
     timer = setTimeout(() => {
       timer = null;
       try {
-        writeFileSync(`${opts.file}.tmp`, JSON.stringify(Object.fromEntries(links)));
+        writeFileSync(`${opts.file}.tmp`, JSON.stringify(Object.fromEntries([...links].map(([owner, w]) => [owner, { w, seen: lastSeen.get(owner) ?? 0 }]))));
         renameSync(`${opts.file}.tmp`, opts.file!);
       } catch (e) {
         process.stderr.write(`home links not saved: ${(e as Error).message}\n`);
@@ -108,6 +123,11 @@ export function createHomes(opts: { chain?: HomeChain; file?: string; now?: () =
 
   return {
     wallets,
+    seen: (owner) => {
+      if (!links.has(owner)) return;
+      lastSeen.set(owner, now());
+      save();
+    },
     link: async (owner, wallet, signature) => {
       if (!OWNER_ID.test(owner) || typeof wallet !== "string" || !isAddress(wallet) || typeof signature !== "string" || !/^0x[0-9a-fA-F]{130}$/.test(signature)) return { ok: false, reason: "invalid" };
       let signer: Address;
@@ -121,9 +141,18 @@ export function createHomes(opts: { chain?: HomeChain; file?: string; now?: () =
       const cur = wallets(owner);
       if (cur.includes(w)) return { ok: true, wallets: cur };
       if (cur.length >= MAX_LINKED) return { ok: false, reason: "full" };
-      if (!cur.length && links.size >= MAX_LINKED_HOMES) return { ok: false, reason: "serverFull" };
+      // full: the home seen longest ago is let go, so the store never closes to new players (A74)
+      if (!cur.length && links.size >= maxHomes) {
+        let oldest: string | null = null;
+        for (const [o, t] of lastSeen) if (oldest === null || t < lastSeen.get(oldest)!) oldest = o;
+        if (oldest === null) return { ok: false, reason: "serverFull" };
+        links.delete(oldest);
+        lastSeen.delete(oldest);
+        forget(oldest);
+      }
       const next = [...cur, w];
       links.set(owner, next);
+      lastSeen.set(owner, now());
       forget(owner);
       save();
       return { ok: true, wallets: next };
@@ -133,7 +162,10 @@ export function createHomes(opts: { chain?: HomeChain; file?: string; now?: () =
       const w = getAddress(wallet);
       const next = wallets(owner).filter((x) => x !== w);
       if (next.length) links.set(owner, next);
-      else links.delete(owner);
+      else {
+        links.delete(owner);
+        lastSeen.delete(owner);
+      }
       forget(owner);
       save();
       return { ok: true, wallets: next };

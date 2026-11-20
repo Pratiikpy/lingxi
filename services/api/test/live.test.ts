@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import WebSocket from "ws";
 import { createHash } from "node:crypto";
 import { playerIdFor } from "@lingxi/chain";
-import { CAPACITY, MAX_NEW_HOMES_PER_DAY, MAX_PER_ADDRESS, LiveRooms, attachLive, validSpace } from "../src/live";
+import { CAPACITY, MAX_NEW_HOMES_PER_DAY, MAX_PER_ADDRESS, LiveRooms, addressOf, attachLive, validSpace } from "../src/live";
 
 let port = 0;
 const rooms = new LiveRooms();
@@ -408,5 +408,33 @@ describe("a pet's proposals stay few and fresh (A64)", () => {
     t.ws.send(JSON.stringify({ t: "answer", to: idOf("prop018"), yes: false }));
     expect(await ps[17]!.next("answer")).toMatchObject({ yes: false });
     for (const p of [t, ...ps]) p.ws.close();
+  });
+});
+
+describe("live rooms key their limits as every route does (A74)", () => {
+  it("an IPv6 caller is its /64 and a mapped IPv4 its IPv4", () => {
+    const req = (ip: string) => ({ headers: { "cf-connecting-ip": ip }, socket: { remoteAddress: "127.0.0.1" } }) as never;
+    expect(addressOf(req("2001:db8:1:2::7"))).toBe("2001:db8:1:2::/64");
+    expect(addressOf(req("2001:db8:1:2:ffff::1"))).toBe("2001:db8:1:2::/64");
+    expect(addressOf(req("::ffff:198.51.100.9"))).toBe("198.51.100.9");
+    expect(addressOf(req("198.51.100.9"))).toBe("198.51.100.9");
+  });
+
+  it("thirteen connections from one /64, each from its own address in it, get twelve and a refusal", async () => {
+    const opened: WebSocket[] = [];
+    let refused = 0;
+    for (let i = 1; i <= 13; i++) {
+      const ws = new WebSocket(`ws://127.0.0.1:${port}/live`, { headers: { origin: "http://ok.test", "cf-connecting-ip": `2001:db8:74:1::${i.toString(16)}` } });
+      const ok = await new Promise<boolean>((r) => {
+        ws.on("open", () => r(true));
+        ws.on("error", () => r(false));
+        ws.on("unexpected-response", () => r(false));
+      });
+      if (ok) opened.push(ws);
+      else refused++;
+    }
+    expect(opened.length).toBe(12);
+    expect(refused).toBe(1);
+    for (const ws of opened) ws.close();
   });
 });
