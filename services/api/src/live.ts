@@ -17,7 +17,7 @@ import { isIP } from "node:net";
 import { WebSocketServer, type WebSocket } from "ws";
 import { type DecorStore, type Placed, createDecorStore } from "./decor";
 import { type Homes, visible } from "./homes";
-import { CARD_MAX, MAX_LESSONS, shownName } from "@lingxi/game";
+import { CARD_MAX, canonicalCard, shownName } from "@lingxi/game";
 import { MAX_PLACED } from "@lingxi/world";
 import { RateLimiter } from "./limit";
 import { callerOf } from "./clientIp";
@@ -34,8 +34,9 @@ const MAX_FRAME = 12_288;
 /** A pet's card is the one message allowed to be longer: the game's whole card budget, with room for its envelope (A26). */
 const MAX_CARD_FRAME = 2 * CARD_MAX + 1_024;
 /** A card may hold as many lessons as a pet can learn (it was 8, which dropped a well-taught pet's card, A26). */
-const CARD_RULES = MAX_LESSONS;
 const PROPOSAL_MS = 120_000;
+/** What the room keeps of a card that does not read as a pet card: the game reads it as damaged (A77). */
+export const DAMAGED_CARD = '{"damaged":true}';
 /** The most proposals one pet holds waiting for an answer (A64). */
 const MAX_PROPOSALS = 16;
 const SAY_MAX = 60;
@@ -380,15 +381,13 @@ export class LiveRooms {
       }
       case "card": {
         if (typeof m.lessons !== "string" || m.lessons.length > CARD_MAX) return;
-        try {
-          // a pet card: its lessons, and for a child its family (parents' lessons); shape-checked here, fully validated by whoever uses it
-          const card = JSON.parse(m.lessons) as { lessons?: unknown; family?: unknown } | unknown[];
-          const rules = Array.isArray(card) ? card : card.lessons;
-          if (!Array.isArray(rules) || rules.length > CARD_RULES) return;
-        } catch {
-          return;
-        }
-        c.card = m.lessons;
+        // a pet card: its lessons, and for a child its family (parents' lessons), kept only in its own shape, so nothing
+        // a sender adds travels with it (A77); whoever uses it still validates it in full
+        // a card that does not read as one is kept as a short mark the game reads as damaged, so a friend is told the
+        // card is damaged, as before, and none of it travels
+        const card = canonicalCard(m.lessons) ?? DAMAGED_CARD;
+        if (card === c.card) return;
+        c.card = card;
         c.cardVersion++;
         return;
       }
@@ -414,7 +413,16 @@ export class LiveRooms {
         c.proposals.delete(proposer.member.id);
         const yes = m.yes === true;
         const chain = yes ? chainInfo(m.chain) : undefined;
-        this.send(proposer, { t: "answer", from: c.member.id, name: c.member.name, yes, ...(yes ? { line: c.member.line, stage: c.member.stage, card: c.card ?? "[]" } : {}), ...(chain ? { chain } : {}) });
+        // the card once per change, as an ask sends it; after that the proposer's game uses the one it kept (A77)
+        let card: { card: string } | { cardUnchanged: true } | Record<string, never> = {};
+        if (yes) {
+          if (proposer.seen.get(c.member.id) === c.cardVersion) card = { cardUnchanged: true };
+          else {
+            proposer.seen.set(c.member.id, c.cardVersion);
+            card = { card: c.card ?? "[]" };
+          }
+        }
+        this.send(proposer, { t: "answer", from: c.member.id, name: c.member.name, yes, ...(yes ? { line: c.member.line, stage: c.member.stage, ...card } : {}), ...(chain ? { chain } : {}) });
         return;
       }
       case "ask": {

@@ -142,6 +142,13 @@ let lessonsCard: string | null = null;
 let decorShared: string | null = null;
 /** the cards friends' pets have been sent whole, by member id: the room answers a repeat ask "unchanged" (A61) */
 const keptCards = new Map<string, string>();
+/** Keeps a pet's card as it was sent whole, the newest 200 (A61, A77). */
+const keep = (id: string, card: string): string => {
+  keptCards.delete(id);
+  keptCards.set(id, card);
+  if (keptCards.size > 200) keptCards.delete(keptCards.keys().next().value!);
+  return card;
+};
 /** the room let this connection go for being idle (4001): it reconnects on the player's next action, not by itself */
 let resting = false;
 let wakeUp: (() => void) | null = null;
@@ -256,11 +263,7 @@ export const useLive = create<LiveState>((set, get) => {
           const id = m.id as string;
           const lessons = m.unchanged === true ? keptCards.get(id) : typeof m.lessons === "string" ? m.lessons : undefined;
           if (lessons === undefined) return;
-          if (m.unchanged !== true) {
-            keptCards.delete(id);
-            keptCards.set(id, lessons);
-            if (keptCards.size > 200) keptCards.delete(keptCards.keys().next().value!);
-          }
+          if (m.unchanged !== true) keep(id, lessons);
           set({ card: { id, name: nameIn(m), line: m.line as string, stage: m.stage as string, lessons, at: performance.now() } });
           return;
         }
@@ -275,7 +278,8 @@ export const useLive = create<LiveState>((set, get) => {
               yes: m.yes === true,
               ...(typeof m.line === "string" ? { line: m.line } : {}),
               ...(typeof m.stage === "string" ? { stage: m.stage } : {}),
-              ...(typeof m.card === "string" ? { card: m.card } : {}),
+              // a card sent whole is kept; "unchanged" means the one kept from this pet before (A77)
+              ...(typeof m.card === "string" ? { card: keep(m.from as string, m.card) } : m.cardUnchanged === true && keptCards.has(m.from as string) ? { card: keptCards.get(m.from as string)! } : {}),
               ...(asChain(m.chain) ? { chain: asChain(m.chain)! } : {}),
               at: performance.now(),
             },

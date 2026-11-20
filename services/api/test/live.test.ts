@@ -1,3 +1,5 @@
+import { NAND, type Element, bytesToHex, encode } from "@lingxi/brain";
+import { canonicalCard, parseCard } from "@lingxi/game";
 import { CARD_MAX } from "@lingxi/game";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -5,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import WebSocket from "ws";
 import { createHash } from "node:crypto";
 import { playerIdFor } from "@lingxi/chain";
-import { CAPACITY, MAX_NEW_HOMES_PER_DAY, MAX_PER_ADDRESS, LiveRooms, addressOf, attachLive, validSpace } from "../src/live";
+import { CAPACITY, DAMAGED_CARD, MAX_NEW_HOMES_PER_DAY, MAX_PER_ADDRESS, LiveRooms, addressOf, attachLive, validSpace } from "../src/live";
 
 let port = 0;
 const rooms = new LiveRooms();
@@ -149,12 +151,13 @@ describe("live rooms", () => {
     hello(c, "cardc03", "room:31", "Far");
     await c.next("room");
     const lessons = JSON.stringify([{ when: { event: [3] }, then: { want: 5, mood: 1 } }]);
-    a.ws.send(JSON.stringify({ t: "card", lessons }));
+    // junk first (kept as a damaged mark, A77), then a real card, which replaces it
     a.ws.send(JSON.stringify({ t: "card", lessons: "x".repeat(10_500) }));
+    a.ws.send(JSON.stringify({ t: "card", lessons }));
     await handled(a, b, 31);
     b.ws.send(JSON.stringify({ t: "ask", to: idOf("carda01") }));
     const card = await b.next("card");
-    expect(card.lessons).toBe(lessons);
+    expect(card.lessons, "the card as the room keeps it: its own shape").toBe(canonicalCard(lessons));
     expect(card.line).toBe("gentle");
     expect((await a.next("asked")).name).toBe("Tofu");
     c.ws.send(JSON.stringify({ t: "ask", to: idOf("carda01") }));
@@ -198,8 +201,14 @@ describe("live rooms", () => {
     await b.next("room");
     const rule = { when: { event: [3] }, then: { want: 5, mood: 1 } };
     // fourteen lessons and an instinct whose circuits take most of the budget
-    const full = JSON.stringify({ lessons: Array(14).fill(rule), outside: { parts: [{ hex: "0".repeat(29_000) }] } });
-    expect(full.length).toBeGreaterThan(29_000);
+    // the heaviest card a pet can carry: an owned instinct of 1,700 gates (23,800 characters, under its 24,000) and
+    // fourteen lessons
+    const cpu = `0x${"ab".repeat(20)}`;
+    const gates = Array.from({ length: 1_700 }, (_, i) => ({ op: NAND, ins: [i % 16, (i + 1) % 16], nOut: 1, firstOut: 16 + i }) as Element);
+    const outside = { processor: cpu, id: "1", owner: "", parts: [{ processor: cpu, id: "1", nIn: 16, nOut: 8, hex: bytesToHex(encode(gates)).slice(2) }] };
+    const full = canonicalCard(JSON.stringify({ lessons: Array(14).fill(rule), outside }))!;
+    expect(full, "a card the game itself accepts").toBeTruthy();
+    expect(full.length, "near the whole card budget").toBeGreaterThan(24_000);
     expect(full.length).toBeLessThanOrEqual(CARD_MAX);
     a.ws.send(JSON.stringify({ t: "card", lessons: full }));
     await handled(a, b, 47);
@@ -329,7 +338,7 @@ describe("live rooms send a card once per change, limit asks, and let quiet conn
     a.ws.send(JSON.stringify({ t: "card", lessons: first }));
     await handled(a, b, 33);
     b.ws.send(JSON.stringify({ t: "ask", to: idOf("once001") }));
-    expect((await b.next("card")).lessons).toBe(first);
+    expect((await b.next("card")).lessons).toBe(canonicalCard(first));
     b.ws.send(JSON.stringify({ t: "ask", to: idOf("once001") }));
     const again = await b.next("card");
     expect(again).toMatchObject({ id: idOf("once001"), unchanged: true });
@@ -338,7 +347,7 @@ describe("live rooms send a card once per change, limit asks, and let quiet conn
     a.ws.send(JSON.stringify({ t: "card", lessons: second }));
     await handled(a, b, 34);
     b.ws.send(JSON.stringify({ t: "ask", to: idOf("once001") }));
-    expect((await b.next("card")).lessons, "a changed card is sent whole").toBe(second);
+    expect((await b.next("card")).lessons, "a changed card is sent whole").toBe(canonicalCard(second));
     for (const p of [a, b]) p.ws.close();
   });
 
@@ -438,3 +447,55 @@ describe("live rooms key their limits as every route does (A74)", () => {
     for (const ws of opened) ws.close();
   });
 });
+
+describe("a card travels small, and once per change on every path (A77)", () => {
+  it("a padded card is kept in its own shape, and answering twice sends it once", async () => {
+    const a = await connect();
+    const b = await connect();
+    hello(a, "pad0001", "room:77", "Mochi");
+    await a.next("room");
+    hello(b, "pad0002", "room:77", "Tofu");
+    await b.next("room");
+    await a.next("joined");
+    const rule = { when: { event: [3] }, then: { want: 5, mood: 1 } };
+    // padding everywhere a sender could put it
+    const padded = JSON.stringify({ lessons: [{ ...rule, pad: "x".repeat(8_000) }], extra: "y".repeat(8_000) });
+    b.ws.send(JSON.stringify({ t: "card", lessons: padded }));
+    await handled(b, a, 77);
+    // two proposals answered: the card goes with the first answer only
+    for (const n of [1, 2]) {
+      a.ws.send(JSON.stringify({ t: "propose", to: idOf("pad0002") }));
+      await b.next("proposal");
+      b.ws.send(JSON.stringify({ t: "answer", to: idOf("pad0001"), yes: true }));
+      const ans = await a.next("answer");
+      if (n === 1) expect(ans).toMatchObject({ yes: true, card: canonicalCard(padded) });
+      else {
+        expect(ans).toMatchObject({ yes: true, cardUnchanged: true });
+        expect(ans.card, "the card was sent already").toBeUndefined();
+      }
+    }
+    expect(canonicalCard(padded)!.length, "the padding never travels").toBeLessThan(200);
+    // one record of what was sent serves both paths: an ask now gets the short answer
+    a.ws.send(JSON.stringify({ t: "ask", to: idOf("pad0002") }));
+    expect(await a.next("card")).toMatchObject({ unchanged: true });
+    for (const x of [a, b]) x.ws.close();
+  });
+
+  it("a card that does not read as one reaches a friend as a short mark the game reads as damaged", async () => {
+    const a = await connect();
+    const b = await connect();
+    hello(a, "bad0001", "room:78", "Mochi");
+    await a.next("room");
+    hello(b, "bad0002", "room:78", "Tofu");
+    await b.next("room");
+    await a.next("joined");
+    b.ws.send(JSON.stringify({ t: "card", lessons: JSON.stringify({ lessons: [], outside: { parts: [{ hex: "0".repeat(20_000) }] } }) }));
+    await handled(b, a, 78);
+    a.ws.send(JSON.stringify({ t: "ask", to: idOf("bad0002") }));
+    const got = await a.next("card");
+    expect(got.lessons).toBe(DAMAGED_CARD);
+    expect(parseCard(got.lessons as string), "which the game reads as no card").toBeNull();
+    for (const x of [a, b]) x.ws.close();
+  });
+});
+

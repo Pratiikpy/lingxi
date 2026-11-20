@@ -332,6 +332,47 @@ export function childMemory(nState: number, a: readonly number[], b: readonly nu
 }
 
 /** Reads a card from someone else. Everything is checked; anything odd means no card. */
+/** The longest label a lesson keeps in a card passed between players (A77). */
+const CARD_LABEL_MAX = 48;
+
+/** One lesson rebuilt from its known parts (A77): `when` (a field to small integers), `then` (want, mood, nudge), a label cut short. */
+function cleanRule(r: unknown): Rule | null {
+  const x = r as { when?: unknown; then?: unknown; label?: unknown } | null;
+  if (!x || typeof x !== "object" || !x.when || typeof x.when !== "object" || Array.isArray(x.when) || !x.then || typeof x.then !== "object") return null;
+  const when: Record<string, number[]> = {};
+  for (const [k, v] of Object.entries(x.when as Record<string, unknown>)) {
+    if (!/^[A-Za-z][A-Za-z0-9]{0,23}$/.test(k) || !Array.isArray(v) || v.length > 32 || !v.every((n) => Number.isInteger(n) && n >= 0 && n < 256)) return null;
+    when[k] = v as number[];
+  }
+  const t = x.then as { want?: unknown; mood?: unknown; nudge?: unknown };
+  const small = (n: unknown) => Number.isInteger(n) && (n as number) >= 0 && (n as number) < 256;
+  if (!small(t.want) || !small(t.mood) || (t.nudge !== undefined && !small(t.nudge))) return null;
+  const then = { want: t.want as number, mood: t.mood as number, ...(t.nudge !== undefined ? { nudge: t.nudge as number } : {}) };
+  return { when, then, ...(typeof x.label === "string" && x.label ? { label: x.label.slice(0, CARD_LABEL_MAX) } : {}) } as Rule;
+}
+
+/**
+ * A card as players pass it on (A77): parsed, every lesson (the parents' too) rebuilt from its known parts, and
+ * written again, so nothing a sender adds travels with it. Null for anything that is not a card.
+ */
+export function canonicalCard(raw: string): string | null {
+  const c = parseCard(raw);
+  if (!c) return null;
+  const clean = (ls: readonly unknown[]): Rule[] | null => {
+    const out = ls.map(cleanRule);
+    return out.every((r): r is Rule => r !== null) ? out : null;
+  };
+  const lessons = clean(c.lessons);
+  if (!lessons) return null;
+  let family = c.family;
+  if (family) {
+    const parents = family.parents.map((p) => ({ ...p, lessons: clean(p.lessons) }));
+    if (parents.some((p) => !p.lessons)) return null;
+    family = { ...family, parents: parents as [ParentInfo, ParentInfo] };
+  }
+  return JSON.stringify({ ...c, lessons, ...(family ? { family } : {}) });
+}
+
 export function parseCard(raw: string): PetCard | null {
   if (typeof raw !== "string" || raw.length > CARD_MAX) return null;
   try {

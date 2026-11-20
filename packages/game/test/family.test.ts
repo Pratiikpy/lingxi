@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { type Circuit, STARTERS, beat, bitsToWord, compileProgram, composeChild, load, netlistBytes, refKey, wordToBits } from "@lingxi/brain";
-import { checkMindLesson, childRoom, familyOf, halvesOf, mindBrain, canBreed, parseCard } from "../src/family";
+import { canonicalCard, checkMindLesson, childRoom, familyOf, halvesOf, mindBrain, canBreed, parseCard, petCard } from "../src/family";
 import { composeProgram } from "../src/lessons";
 import { createPet, teach } from "../src/index";
 
@@ -116,3 +116,28 @@ describe("a child of a parent with capstones can still learn", () => {
   });
 });
 
+
+describe("a card in its own shape (A77)", () => {
+  it("keeps a real card's meaning and drops every field the game does not know, at every level", () => {
+    const family = familyOf({ name: "Mochi", line: "gentle", lessons: [brave] }, { name: "Tofu", line: "bold", lessons: [napper] });
+    const real = petCard({ line: "gentle", lessons: [brave], instincts: 0, family } as never);
+    const once = canonicalCard(real)!;
+    expect(parseCard(once), "the same card, read back").toEqual(parseCard(real));
+    expect(canonicalCard(once), "and stable").toBe(once);
+    const padded = JSON.parse(real) as { lessons: Array<Record<string, unknown>>; family: { parents: Array<{ lessons: Array<Record<string, unknown>> }> } };
+    padded.lessons[0]!.pad = "x".repeat(5_000);
+    (padded.lessons[0]!.then as Record<string, unknown>).pad = "z".repeat(5_000);
+    padded.lessons[0]!.label = "L".repeat(5_000);
+    padded.family.parents[0]!.lessons[0]!.pad = "p".repeat(5_000);
+    (padded as unknown as Record<string, unknown>).extra = "e".repeat(5_000);
+    const clean = canonicalCard(JSON.stringify(padded))!;
+    expect(clean.length, "the padding is gone").toBeLessThan(once.length + 100);
+    expect(clean).not.toContain("xxxx");
+    expect(clean).not.toContain("pppp");
+    expect(canonicalCard("not a card")).toBeNull();
+    // a condition the game never writes (text where it reads small integers) is not a card to pass on
+    const odd = JSON.parse(real) as { lessons: Array<{ when: Record<string, unknown> }> };
+    odd.lessons[0]!.when.junk = ["y".repeat(5_000)];
+    expect(canonicalCard(JSON.stringify(odd))).toBeNull();
+  });
+});
