@@ -44,7 +44,8 @@ async function hatchEgg(page: Page, web: string, egg: number, name: string): Pro
 async function grownAndBonded(page: Page, days: number, friend: { id: string; name: string; line: string }): Promise<void> {
   await page.addInitScript(
     ({ ms, friend }) => {
-      if (sessionStorage.getItem("a31.grown")) return;
+      // not on a blank page the test leaves through, where the browser denies storage
+      if (location.protocol === "about:" || sessionStorage.getItem("a31.grown")) return;
       const save = JSON.parse(localStorage.getItem("lingxi.pets.v2")!) as { pets: Array<{ bornAt: number }> };
       const bornAt = save.pets[0]!.bornAt - ms;
       save.pets[0]!.bornAt = bornAt;
@@ -305,7 +306,9 @@ test("a birth whose page closed before its receipt comes home on the next visit 
   await expect.poll(kids, { message: "the birth landed on X Layer", timeout: 240_000 }).toBe(before + 1n);
   await expect.poll(async () => Object.keys(JSON.parse((await stored(a.page, "lingxi.chain.births.v1")) ?? "{}")).length, { message: "the birth was kept the moment it was sent" }).toBe(1);
 
-  // the page closes; the next visit hears of receipts as usual
+  // the page closes, and only then are receipts heard again: lifting the block while the page is still open let it hear
+  // the receipt itself and welcome the little one there, which a closed page cannot (CI, eef89d9)
+  await a.page.goto("about:blank");
   await a.page.unrouteAll({ behavior: "ignoreErrors" });
   await a.page.goto(`${a.web}/play.html`);
   await a.page.locator(".stage").waitFor();

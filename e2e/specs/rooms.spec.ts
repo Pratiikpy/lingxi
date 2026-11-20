@@ -10,7 +10,6 @@ import { type Page } from "@playwright/test";
 import { expect, hatch, sheet, test } from "../fixtures";
 import { RoomSocket, keepOnChain, keyedId, ownerOnChain, stored } from "../helpers/browser";
 
-const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 /** A proposal is checked on X Layer before the dialog says anything about signing. */
 const settled = (page: Page) =>
   page.waitForFunction(() => {
@@ -72,8 +71,9 @@ test("an impostor is refused, and proposals are checked on X Layer (en, light, p
   await page.locator(".fam-modal").waitFor({ timeout: 10_000 });
   await settled(page);
   const honest = await page.locator(".fam-modal").innerText();
-  expect(honest, "an honest proposal says whom the consent is for").toContain(`signs one consent with your wallet for ${short(owner)}`);
-  expect(honest, "as checked on X Layer").toContain("checked on X Layer: the owner of pet #1");
+  // the wallet that owns pet #1 on X Layer, in full, whoever is asking in the room (A63)
+  expect(honest, "an honest proposal says whom the consent is for").toContain("It goes to the wallet that owns pet #1 on X Layer, whoever is asking in this room");
+  expect((await page.locator(".fam-modal .fam-address").innerText()).toLowerCase(), "that wallet in full, as X Layer has it").toBe(owner.toLowerCase());
   await page.waitForTimeout(600);
   await page.screenshot({ path: test.info().outputPath("proposal-honest-en.png") });
   await page.locator(".fam-modal button", { hasText: "Not now" }).click();

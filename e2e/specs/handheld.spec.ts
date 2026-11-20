@@ -476,7 +476,11 @@ for (const c of [
     await expect(page.locator(".fam-modal").first(), "the game's tab brought it home").toContainText("Home from the handheld");
     await shot(page, `${c.tag}-game`);
     const closed = hh.waitForEvent("close", { timeout: 5_000 });
-    await hh.locator("button.btn.primary", { hasText: "Close this tab" }).click();
+    // the button closes its own tab, so the click can be told the page is gone as it finishes: only a click that left
+    // the tab open is a failure (CI, 56f49cc)
+    await hh.locator("button.btn.primary", { hasText: "Close this tab" }).click().catch((e: unknown) => {
+      if (!hh.isClosed()) throw e;
+    });
     await closed;
     expect(hh.isClosed(), "the handheld's tab closes itself on request").toBe(true);
     expect(await elsewhere(page).count(), "no tab says the game is open elsewhere").toBe(0);
