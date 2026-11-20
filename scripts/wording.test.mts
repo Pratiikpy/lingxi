@@ -56,6 +56,15 @@ describe("the wording the audits corrected stays corrected (A87)", () => {
     expect(read("README.md")).toMatch(/the hub runs code TapeKit has not approved/);
   });
 
+  it("A91: the proof page says it asks Sourcify through Lingxi's server, which keeps answers, not live each time", () => {
+    const table = read("apps/web/src/verify/ContractTable.tsx");
+    expect(read("README.md")).not.toMatch(/asks Sourcify live each time it opens/);
+    expect(read("README.md")).toMatch(/through Lingxi's server, which keeps each answer for up to ten minutes/);
+    expect(table).toMatch(/through Lingxi's server, which keeps each answer for up to ten minutes/);
+    expect(table).toMatch(/服务器会把每个答复保留最多十分钟/);
+    expect(table).not.toMatch(/This column asks Sourcify each time the page opens\$\{VIA_SERVER/);
+  });
+
   it("A88: the README says what pet #1's home address is, not only that it is pet #1's", () => {
     const row = read("README.md").split("\n").find((l) => l.startsWith("| Containers |")) ?? "";
     expect(row).not.toMatch(/a pet's home is a TapeOut container; pet #1's is/);

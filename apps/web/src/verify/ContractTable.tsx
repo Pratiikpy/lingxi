@@ -1,7 +1,8 @@
 /**
  * Open and verified contracts (plan 4.13): every Lingxi contract on X Layer, what it holds, its address on the
- * explorer, and its Solidity source on Sourcify. The page asks Sourcify each time it opens, so the state shown is
- * Sourcify's own answer for the bytecode on chain, never a claim written into the page.
+ * explorer, and its Solidity source on Sourcify. The state shown is Sourcify's own answer for the bytecode on chain,
+ * never a claim written into the page: on the live site asked through Lingxi's server, which keeps each answer up to
+ * ten minutes (A71, A91); on the on-chain copy, which has no server, asked of Sourcify each time the page opens.
  */
 
 import { useEffect, useState } from "react";
@@ -63,8 +64,8 @@ export function ContractTable({ lang }: { lang: "en" | "zh" }) {
       <h2 id="contracts-h">{lang === "zh" ? "合约与源码" : "Contracts and their source"}</h2>
       <p className="v-note">
         {lang === "zh"
-          ? `灵犀在 X Layer 上的每个合约都把 Solidity 源码公开在 Sourcify：任何人都能看到链上运行的代码就是这份源码。这一栏每次打开都会询问 Sourcify${VIA_SERVER ? "（经由灵犀的服务器转问，每一行都链接到 Sourcify 自己的页面）" : ""}。`
-          : `Every Lingxi contract on X Layer has its Solidity source published on Sourcify, so anyone can see that the code running on chain is this source. This column asks Sourcify each time the page opens${VIA_SERVER ? " (through Lingxi's server; each row links to Sourcify's own page)" : ""}.`}
+          ? `灵犀在 X Layer 上的每个合约都把 Solidity 源码公开在 Sourcify：任何人都能看到链上运行的代码就是这份源码。${VIA_SERVER ? "这一栏经由灵犀的服务器询问 Sourcify，服务器会把每个答复保留最多十分钟；每一行都链接到 Sourcify 自己的页面，可以当场核对。" : "这一栏每次打开都会直接询问 Sourcify。"}`
+          : `Every Lingxi contract on X Layer has its Solidity source published on Sourcify, so anyone can see that the code running on chain is this source. ${VIA_SERVER ? "This column asks Sourcify through Lingxi's server, which keeps each answer for up to ten minutes; each row links to Sourcify's own page to check it there and then." : "This column asks Sourcify directly each time the page opens."}`}
       </p>
       {rows.length === 0 ? (
         <p className="v-note">{lang === "zh" ? "这个版本还没有连接到链上合约。" : "This build is not connected to deployed contracts."}</p>
