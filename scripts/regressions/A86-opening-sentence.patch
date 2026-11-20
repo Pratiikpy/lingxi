@@ -4,7 +4,7 @@
      cta: "Hatch an egg",
      quiet: "See how it thinks",
      h1: "Raise a little mind.",
--    lede: "Lingxi is a pet whose brain is a real circuit of NAND gates. Keep it on X Layer and that circuit is taped out there. Care for it, teach it in your own words, and watch who it becomes.",
+-    lede: "Lingxi is a pet whose brain is a real circuit of NAND gates. Keep it on X Layer and that circuit is taped out there. Care for it, teach it in your own words, and watch who it becomes.",
 +    lede: "Lingxi is a pet whose brain is a real circuit on X Layer. Care for it, teach it in your own words, and watch who it becomes.",
      hint: "Tap the pet. Tap the grass to call it over.",
      growLabel: "Grows with you",

@@ -11,7 +11,9 @@ import { describe, expect, it } from "vitest";
 import { COPY } from "./copy";
 
 const root = join(__dirname, "../../../..");
-const read = (path: string) => readFileSync(join(root, path), "utf8");
+/** read with no-break spaces as plain ones, so a no-break space cannot hide the old sentence */
+const plain = (text: string) => text.replace(/ |&nbsp;/g, " ");
+const read = (path: string) => plain(readFileSync(join(root, path), "utf8"));
 const PUBLIC = ["apps/web/index.html", "apps/web/play.html", "apps/web/verify.html", "apps/web/handheld.html", "apps/web/agents.html", "apps/web/public/manifest.webmanifest", "services/api/src/agentApi.ts", "docs/readme/banner.html"];
 
 /** The old sentence, in the shapes it was written in: a pet's (every pet's) brain or mind as a circuit on X Layer. */
@@ -25,9 +27,9 @@ describe("the opening sentence (A86)", () => {
     });
 
   it("the landing's first lines say what holds, in both languages", () => {
-    for (const old of OLD) expect(`${COPY.en.lede} ${COPY.zh.lede}`).not.toMatch(old);
+    for (const old of OLD) expect(plain(`${COPY.en.lede} ${COPY.zh.lede}`)).not.toMatch(old);
     expect(COPY.en.lede).toMatch(/NAND gates/);
-    expect(COPY.en.lede).toMatch(/keep it on X Layer/i);
+    expect(plain(COPY.en.lede)).toMatch(/keep it on X Layer/i);
     expect(COPY.zh.lede).toMatch(/与非门/);
     expect(COPY.zh.lede).toMatch(/留在 X Layer/);
   });
