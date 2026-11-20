@@ -8,6 +8,7 @@ import WebSocket from "ws";
 import { createHash } from "node:crypto";
 import { playerIdFor } from "@lingxi/chain";
 import { CAPACITY, DAMAGED_CARD, MAX_NEW_HOMES_PER_DAY, MAX_PER_ADDRESS, LiveRooms, addressOf, attachLive, validSpace } from "../src/live";
+import { PREFIX_SHARE } from "../src/limit";
 
 let port = 0;
 const rooms = new LiveRooms();
@@ -445,6 +446,32 @@ describe("live rooms key their limits as every route does (A74)", () => {
     expect(opened.length).toBe(12);
     expect(refused).toBe(1);
     for (const ws of opened) ws.close();
+  });
+
+  it("one /48, spread over many /64s, holds four addresses' worth, and another network still gets in (A112)", async () => {
+    const tryOpen = (ip: string) =>
+      new Promise<WebSocket | null>((r) => {
+        const ws = new WebSocket(`ws://127.0.0.1:${port}/live`, { headers: { origin: "http://ok.test", "cf-connecting-ip": ip } });
+        ws.on("open", () => r(ws));
+        ws.on("error", () => r(null));
+        ws.on("unexpected-response", () => r(null));
+      });
+    const opened: WebSocket[] = [];
+    let refused = 0;
+    // a few connections from each of 30 /64s inside 2001:db8:75::/48
+    for (let net = 1; net <= 30 && opened.length + refused < MAX_PER_ADDRESS * PREFIX_SHARE + 10; net++)
+      for (let i = 1; i <= 2; i++) {
+        const ws = await tryOpen(`2001:db8:75:${net.toString(16)}::${i}`);
+        if (ws) opened.push(ws);
+        else refused++;
+      }
+    expect(opened.length, "the /48 holds four addresses' worth").toBe(MAX_PER_ADDRESS * PREFIX_SHARE);
+    expect(refused).toBeGreaterThan(0);
+    const other = await tryOpen("2001:db8:76:1::1");
+    const ipv4 = await tryOpen("203.0.113.75");
+    expect(other, "another /48 still connects").not.toBeNull();
+    expect(ipv4, "an IPv4 player still connects").not.toBeNull();
+    for (const ws of [...opened, other, ipv4]) ws?.close();
   });
 });
 

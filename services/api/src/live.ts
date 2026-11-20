@@ -9,7 +9,7 @@
  *
  * A player is in a room only as itself: its hello carries the secret key its id
  * comes from (see decor.ts), so an id seen in a room cannot be used by anyone
- * else. One address holds at most MAX_PER_ADDRESS connections.
+ * else. One address holds at most MAX_PER_ADDRESS connections, and one IPv6 /48 at most PREFIX_SHARE times that.
  */
 
 import type { IncomingMessage } from "node:http";
@@ -19,7 +19,7 @@ import { type DecorStore, type Placed, createDecorStore } from "./decor";
 import { type Homes, visible } from "./homes";
 import { CARD_MAX, canonicalCard, shownName } from "@lingxi/game";
 import { MAX_PLACED } from "@lingxi/world";
-import { RateLimiter } from "./limit";
+import { PREFIX_SHARE, RateLimiter, prefixOf } from "./limit";
 import { callerOf } from "./clientIp";
 import { BLOCKED_WORDS as BLOCKED } from "./words";
 
@@ -472,6 +472,13 @@ export function addressOf(req: IncomingMessage): string {
 export function attachLive(server: { on(event: "upgrade", cb: (req: IncomingMessage, socket: import("node:stream").Duplex, head: Buffer) => void): unknown }, rooms: LiveRooms, origins: string[]): WebSocketServer {
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_CARD_FRAME });
   const held = new Map<string, number>();
+  // a /48 holds at most PREFIX_SHARE addresses' worth, so one network cannot take every connection (A112)
+  const network = new Map<string, number>();
+  const count = (map: Map<string, number>, key: string, by: number) => {
+    const n = (map.get(key) ?? 0) + by;
+    if (n > 0) map.set(key, n);
+    else map.delete(key);
+  };
   let total = 0;
   server.on("upgrade", (req, socket, head) => {
     const url = req.url ?? "";
@@ -481,20 +488,21 @@ export function attachLive(server: { on(event: "upgrade", cb: (req: IncomingMess
       return;
     }
     const address = addressOf(req);
-    if ((held.get(address) ?? 0) >= MAX_PER_ADDRESS || total >= MAX_CONNECTIONS) {
+    const prefix = prefixOf(address);
+    if ((held.get(address) ?? 0) >= MAX_PER_ADDRESS || (prefix !== null && (network.get(prefix) ?? 0) >= MAX_PER_ADDRESS * PREFIX_SHARE) || total >= MAX_CONNECTIONS) {
       socket.end("HTTP/1.1 429 Too Many Requests\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
       return;
     }
-    held.set(address, (held.get(address) ?? 0) + 1);
+    count(held, address, 1);
+    if (prefix !== null) count(network, prefix, 1);
     total++;
     let released = false;
     const release = () => {
       if (released) return;
       released = true;
       total--;
-      const n = (held.get(address) ?? 1) - 1;
-      if (n > 0) held.set(address, n);
-      else held.delete(address);
+      count(held, address, -1);
+      if (prefix !== null) count(network, prefix, -1);
     };
     socket.once("close", release);
     wss.handleUpgrade(req, socket, head, (ws) => rooms.handle(ws, address));
