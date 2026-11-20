@@ -1,7 +1,9 @@
 /**
  * A daily budget of model tokens for teaching in words and the pets' voices. Every call through the wrapped client
  * is counted from the usage the API reports; once the day's tokens are spent, calls are refused until the next UTC
- * day, so a flood of requests cannot run up the bill. The day's spend is kept on disk and survives a restart.
+ * day, so a flood of requests cannot run up the bill. The day's spend is kept on disk and survives a restart. A call
+ * holds what it may cost before it runs (A121), so calls in flight together count against the share, the quarter kept
+ * and the day as though spent, and settle to what the API reports.
  */
 
 import type Anthropic from "@anthropic-ai/sdk";
@@ -63,6 +65,16 @@ export function createTokenBudget(opts: { perDay: number; perAddress?: number; f
     if (state.day !== today()) state = fresh();
   };
   const keyOf = (address: string) => (address in state.by || Object.keys(state.by).length < MAX_ADDRESSES ? address : "(others)");
+  /** tokens held by calls in flight: the day's, and each address's and /48's (A121) */
+  const held = { used: 0, by: new Map<string, number>() };
+  const hold = (key: string, tokens: number) => {
+    const n = (held.by.get(key) ?? 0) + tokens;
+    if (n > 0) held.by.set(key, n);
+    else held.by.delete(key);
+  };
+  /** what an address (or /48) has spent today and holds in flight */
+  const spentBy = (key: string) => (state.by[keyOf(key)] ?? 0) + (held.by.get(key) ?? 0);
+  const keysFor = (address: string | undefined) => (address === undefined ? [] : [address, ...(prefixOf(address) !== null ? [prefixOf(address)!] : [])]);
   const save = () => {
     if (!opts.file) return;
     mkdirSync(dirname(opts.file), { recursive: true });
@@ -72,17 +84,37 @@ export function createTokenBudget(opts: { perDay: number; perAddress?: number; f
   return {
     allow(): boolean {
       roll();
-      return state.used < opts.perDay;
+      return state.used + held.used < opts.perDay;
     },
     /** whether `address` may still call today (its share), when a share is set */
     allowFor(address: string | undefined): boolean {
       roll();
       if (!opts.perAddress || address === undefined) return true;
-      const mine = state.by[keyOf(address)] ?? 0;
+      const mine = spentBy(address);
       const prefix = prefixOf(address);
       if (mine >= opts.perAddress) return false;
-      if (prefix !== null && (state.by[keyOf(prefix)] ?? 0) >= opts.perAddress * PREFIX_SHARE) return false;
-      return state.used < opts.perDay * (1 - KEPT_FOR_LIGHT) || mine < opts.perAddress * LIGHT;
+      if (prefix !== null && spentBy(prefix) >= opts.perAddress * PREFIX_SHARE) return false;
+      return state.used + held.used < opts.perDay * (1 - KEPT_FOR_LIGHT) || mine < opts.perAddress * LIGHT;
+    },
+    /**
+     * Holds `tokens` for a call `address` is about to make, when the day and its share allow (A121): "day" or "share"
+     * when they do not. The hold counts as spent until `settle` replaces it with what the call actually cost.
+     */
+    reserve(tokens: number, address: string | undefined): { settle(actual: number): void } | "day" | "share" {
+      if (!this.allow()) return "day";
+      if (!this.allowFor(address)) return "share";
+      held.used += tokens;
+      for (const k of keysFor(address)) hold(k, tokens);
+      let settled = false;
+      return {
+        settle: (actual: number) => {
+          if (settled) return;
+          settled = true;
+          held.used -= tokens;
+          for (const k of keysFor(address)) hold(k, -tokens);
+          if (actual > 0) this.spend(actual, address);
+        },
+      };
     },
     spend(tokens: number, address?: string): void {
       roll();
@@ -116,15 +148,35 @@ export type TokenBudget = ReturnType<typeof createTokenBudget>;
 
 type Usage = { usage?: { input_tokens?: number; output_tokens?: number } };
 
+/**
+ * What a call may cost, held before it runs (A121): the output it may write (`max_tokens`) and its input, counted at a
+ * token for every three characters of what it sends, which is above what the model counts for English or Chinese.
+ */
+export function holdFor(args: unknown): number {
+  const a = (args ?? {}) as { max_tokens?: unknown; messages?: unknown; system?: unknown; tools?: unknown };
+  const out = typeof a.max_tokens === "number" && Number.isFinite(a.max_tokens) ? a.max_tokens : 0;
+  const sent = JSON.stringify([a.system ?? "", a.messages ?? [], a.tools ?? []]).length;
+  return out + Math.ceil(sent / 3);
+}
+
 /** The same client, with every `messages.create` (plain and beta) checked against and counted into `budget`. */
 export function budgetedClient(client: Anthropic, budget: TokenBudget): Anthropic {
   const wrap = <F extends (...a: never[]) => Promise<unknown>>(create: F): F =>
     (async (...args: Parameters<F>) => {
-      if (!budget.allow()) throw new BudgetSpent();
       const caller = modelCaller.getStore();
-      if (!budget.allowFor(caller)) throw new ShareSpent();
-      const res = (await create(...args)) as Usage;
-      budget.spend((res.usage?.input_tokens ?? 0) + (res.usage?.output_tokens ?? 0), caller);
+      // the call holds what it may cost before it runs, so calls in flight together cannot overrun (A121)
+      const held = budget.reserve(holdFor(args[0]), caller);
+      if (held === "day") throw new BudgetSpent();
+      if (held === "share") throw new ShareSpent();
+      let res: Usage;
+      try {
+        res = (await create(...args)) as Usage;
+      } catch (e) {
+        // a call that failed costs nothing here: its hold is given back
+        held.settle(0);
+        throw e;
+      }
+      held.settle((res.usage?.input_tokens ?? 0) + (res.usage?.output_tokens ?? 0));
       return res;
     }) as F;
   const messages = { ...client.messages, create: wrap(client.messages.create.bind(client.messages)) };

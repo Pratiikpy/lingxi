@@ -128,6 +128,30 @@ describe("the model day keeps room for those who have spent little (A83)", () =>
     expect(budget.allowFor("198.51.100.200"), "and keeps being served while it has spent little").toBe(true);
   });
 
+  it("calls in flight hold their tokens before they run, so a burst cannot overrun a share or the day (A121)", async () => {
+    const budget = createTokenBudget({ perDay: 1_000_000, perAddress: 100_000 });
+    const usage = { input_tokens: 2_500, output_tokens: 1_200 };
+    // each call takes a while, as the model does, and asks for up to 1,200 tokens over about 2,500 of input
+    const create = async () => (await new Promise((r) => setTimeout(r, 30)), { usage, content: [], stop_reason: "end_turn" });
+    const c = budgetedClient({ messages: { create }, beta: { messages: { create } } } as never, budget);
+    const ask = { max_tokens: 1_200, messages: [{ role: "user", content: "x".repeat(7_500) }] };
+    const burst = await Promise.allSettled(Array.from({ length: 46 }, () => modelCaller.run("203.0.113.21", () => c.messages.create(ask as never))));
+    const served = burst.filter((r) => r.status === "fulfilled").length;
+    expect(served).toBeLessThan(46);
+    expect(budget.used(), `${served} calls charged ${budget.used()}`).toBeLessThanOrEqual(100_000 + 3_700);
+    // the day's ceiling holds the same way
+    const day = createTokenBudget({ perDay: 20_000 });
+    const d = budgetedClient({ messages: { create }, beta: { messages: { create } } } as never, day);
+    await Promise.allSettled(Array.from({ length: 30 }, () => d.messages.create(ask as never)));
+    expect(day.used()).toBeLessThanOrEqual(20_000 + 3_700);
+    // a call that fails gives its hold back
+    const failing = createTokenBudget({ perDay: 10_000 });
+    const f = budgetedClient({ messages: { create: async () => Promise.reject(new Error("down")) }, beta: { messages: { create } } } as never, failing);
+    await expect(f.messages.create(ask as never)).rejects.toThrow("down");
+    expect(failing.allow(), "nothing is held for a call that failed").toBe(true);
+    expect(failing.used()).toBe(0);
+  });
+
   it("an IPv6 /48 has four addresses' worth of the day, across its /64s", () => {
     const budget = createTokenBudget({ perDay: 1_000_000, perAddress: 10_000 });
     for (let i = 0; i < 4; i++) budget.spend(10_000, `2001:db8:7:${i}::/64`);
