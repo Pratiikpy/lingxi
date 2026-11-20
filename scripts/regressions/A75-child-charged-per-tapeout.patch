@@ -1,0 +1,11 @@
+--- a/services/api/src/server.ts
++++ b/services/api/src/server.ts
+@@ -216,7 +216,7 @@ export function createApp(
+       return relayer!.relayChild({ family: card.family, lessons: card.lessons, ...(card.growth ? { growth: card.growth } : {}) });
+     },
+     // a taught child's two halves and its glue; a birth's glue alone
+-    (b) => ("parents" in b ? 1 : 3),
++    () => 1,
+   );
+   relayRoute("/api/tapeout-instinct", "instinct", InstinctRelayPayload, (b) => relayer!.relayInstinct({ own: b.own, processor: b.processor as `0x${string}`, id: b.id }));
+ 

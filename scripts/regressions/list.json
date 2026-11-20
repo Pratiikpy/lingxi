@@ -1246,5 +1246,17 @@
     "row": "A96",
     "bug": "the duel store wrote files at the real time and kept its own, so a restart could reorder links",
     "test": { "kind": "vitest", "dir": "services/api", "file": "test/duels.test.ts", "name": "the order links were kept and opened in survives a restart, whatever the real date (A96)" }
+  },
+  {
+    "id": "A75-child-charged-per-tapeout",
+    "row": "A75",
+    "bug": "a taught child's relay sent three tape-outs for one slot of the sponsor's caps",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/relayRoutes.test.ts", "name": "a taught child's halves and glue cost three slots, and what was not sent comes back" }
+  },
+  {
+    "id": "A75-child-card-for-children",
+    "row": "A75",
+    "bug": "a child's card was taped out for any pet, child or not",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/relayRoutes.test.ts", "name": "refuses a child's card for a pet that is not a child, and a birth whose first parent is not this pet's brain, sending nothing" }
   }
 ]

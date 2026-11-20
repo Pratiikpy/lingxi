@@ -1,0 +1,11 @@
+--- a/services/api/src/server.ts
++++ b/services/api/src/server.ts
+@@ -210,7 +210,7 @@ export function createApp(
+         if (pet && pet.brainId !== b.parents[0]) return { ok: false, reason: "invalid", detail: "the first parent is not this pet's brain" };
+         return relayer!.relayChild({ parents: b.parents });
+       }
+-      if (pet && !pet.parents) return { ok: false, reason: "invalid", detail: "this pet is not a child" };
++
+       const card = parseCard(b.card);
+       if (!card?.family) return { ok: false, reason: "invalid", detail: "not a child's card" };
+       return relayer!.relayChild({ family: card.family, lessons: card.lessons, ...(card.growth ? { growth: card.growth } : {}) });
