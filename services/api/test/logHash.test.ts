@@ -42,14 +42,19 @@ describe("a diary's hash is worked out off the request thread (A114)", () => {
     const store = createDiaryStore(tmp(), { now: () => NOW });
     const app = withDiaries(new Hono(), store, async () => onChain("0x" + "ab".repeat(32)));
     const body = JSON.stringify(junk("5", 100_000));
+    // the longest the thread went without a turn while the post was checked: a blocked thread delays every tick
+    let last = performance.now();
+    let stall = 0;
+    const tick = setInterval(() => {
+      const t = performance.now();
+      stall = Math.max(stall, t - last);
+      last = t;
+    }, 5);
     const post = app.request("/api/pets/5/log", { method: "POST", headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.5" }, body });
-    // give the post its parse, then ask something else and time the answer
-    await new Promise((r) => setTimeout(r, 150));
-    const t = performance.now();
-    await app.request("/api/pets/9/log");
-    const waited = performance.now() - t;
-    expect(waited, `another request waited ${Math.round(waited)} ms`).toBeLessThan(100);
-    expect(await (await post).json()).toEqual({ ok: false, reason: "mismatch" });
+    const answer = await post;
+    clearInterval(tick);
+    expect(stall, `the thread stalled ${Math.round(stall)} ms`).toBeLessThan(250);
+    expect(await answer.json()).toEqual({ ok: false, reason: "mismatch" });
   });
 });
 
