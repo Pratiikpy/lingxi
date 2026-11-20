@@ -1180,5 +1180,11 @@
     "row": "A64",
     "bug": "one wallet's goal saves grew with every free pet it hatched",
     "test": { "kind": "vitest", "dir": "services/api", "file": "test/goals.test.ts", "name": "a wallet's saves count for at most as many pets as a player keeps, each day (A64)" }
+  },
+  {
+    "id": "A65-numbers-refresh",
+    "row": "A65",
+    "bug": "the live-numbers page said it refreshed every minute and read its numbers once",
+    "test": { "kind": "e2e", "spec": "e2e/specs/wording-a65.spec.ts", "title": "the landing, the numbers page and the proof page say only what holds (en, light, phone)" }
   }
 ]

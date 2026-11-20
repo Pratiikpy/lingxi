@@ -1,0 +1,11 @@
+--- a/apps/web/src/numbers/NumbersApp.tsx
++++ b/apps/web/src/numbers/NumbersApp.tsx
+@@ -159,7 +159,7 @@ export function NumbersApp() {
+     };
+     read();
+     // read again each minute, as the page says, while it is in view (A65)
+-    const every = setInterval(() => document.visibilityState === "visible" && read(), REFRESH_MS);
++    const every = setInterval(() => undefined, REFRESH_MS);
+     const shown = () => document.visibilityState === "visible" && read();
+     document.addEventListener("visibilitychange", shown);
+     return () => {
