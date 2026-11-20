@@ -293,6 +293,15 @@ function planChecks(): void {
   });
   record("plan", "every done row names its proof section, and the section exists", unproven.length ? "FAIL" : "PASS", unproven.length ? `unproven: ${unproven.map((r) => r.id).join(", ")}` : `${done.length} done`, Date.now());
 
+  // every done row has a patch that undoes it and the test that must then fail, or its reason for none is written down
+  // (scripts/regressions/without.json), so the README's sentence about them stays true (A106)
+  {
+    const pairs = new Set((JSON.parse(readFileSync(join(root, "scripts/regressions/list.json"), "utf8")) as Array<{ row: string }>).map((e) => e.row));
+    const without = JSON.parse(readFileSync(join(root, "scripts/regressions/without.json"), "utf8")) as Record<string, string>;
+    const bare = done.filter((r) => /^A\d+$/.test(r.id) && !pairs.has(r.id) && !without[r.id]).map((r) => r.id);
+    record("plan", "every done row has a revert pair, or a reason for none", bare.length ? "FAIL" : "PASS", bare.length ? `no pair and no reason: ${bare.join(", ")}` : `${Object.keys(without).length} rows without a pair, each with its reason`, Date.now());
+  }
+
   const open = rows.filter((r) => !/^(done|waiting|later)\b/i.test(r.status));
   record("plan", "rows still open", open.length ? "PENDING" : "PASS", open.map((r) => r.id).join(" "), Date.now());
 }

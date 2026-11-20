@@ -95,6 +95,8 @@ const facts: Record<string, string> = {
   contracts: String(CONTRACT_KEYS.filter((k) => typeof deployment[k] === "string").length),
   // each fix with a patch that undoes it and the test that must then fail (`pnpm revert:check` proves the pairs)
   regressions: String((JSON.parse(readFileSync(join(root, "scripts/regressions/list.json"), "utf8")) as unknown[]).length),
+  // the rows without a revert pair, each with its reason in that file (A106)
+  "revert-without": Object.keys(JSON.parse(readFileSync(join(root, "scripts/regressions/without.json"), "utf8")) as Record<string, string>).sort((x, y) => Number(x.slice(1)) - Number(y.slice(1))).join(", "),
 };
 {
   const e2e = e2eListed();
