@@ -1,0 +1,133 @@
+{
+  "recorded": "2026-11-20",
+  "answers": {
+    "0xf70d324da8c1c4cb0de3ff147e53e7e9db543c4e": {
+      "status": 404,
+      "body": {
+        "match": null,
+        "creationMatch": null,
+        "runtimeMatch": null,
+        "chainId": "196",
+        "address": "0xf70d324Da8C1C4Cb0dE3FF147E53E7E9db543c4e"
+      }
+    },
+    "0x92dfda52386386be40efd7becb545139372c7139": {
+      "status": 404,
+      "body": {
+        "match": null,
+        "creationMatch": null,
+        "runtimeMatch": null,
+        "chainId": "196",
+        "address": "0x92DFda52386386Be40EFd7becB545139372C7139"
+      }
+    },
+    "0x103d7252eb6b2fec22b3f65a6bb605945f280e99": {
+      "status": 200,
+      "body": {
+        "match": "exact_match",
+        "creationMatch": "exact_match",
+        "runtimeMatch": "exact_match"
+      }
+    },
+    "0x8da8221466de12321e6ee2ea73d62aaf28bb11b0": {
+      "status": 200,
+      "body": {
+        "match": "exact_match",
+        "creationMatch": "exact_match",
+        "runtimeMatch": "exact_match"
+      }
+    },
+    "0x7acceb7ab1cff102fe2660f511e88d42010e806b": {
+      "status": 200,
+      "body": {
+        "match": "exact_match",
+        "creationMatch": "exact_match",
+        "runtimeMatch": "exact_match"
+      }
+    },
+    "0xa551fed6f2ab35d509a71b74d5e9f38742e0aad8": {
+      "status": 404,
+      "body": {
+        "match": null,
+        "creationMatch": null,
+        "runtimeMatch": null,
+        "chainId": "196",
+        "address": "0xA551feD6f2Ab35d509A71B74D5E9F38742E0aaD8"
+      }
+    },
+    "0x0642a802967260714d4efec05fef701b17d31b75": {
+      "status": 200,
+      "body": {
+        "match": "exact_match",
+        "creationMatch": "exact_match",
+        "runtimeMatch": "exact_match"
+      }
+    },
+    "0xb9f6b18edd21933582ec69fb1e718d9629e684cd": {
+      "status": 200,
+      "body": {
+        "match": "exact_match",
+        "creationMatch": "exact_match",
+        "runtimeMatch": "exact_match"
+      }
+    },
+    "0x5e5bbb798c5a2afc89f431debabaa0b889f77dd1": {
+      "status": 200,
+      "body": {
+        "match": "exact_match",
+        "creationMatch": "exact_match",
+        "runtimeMatch": "exact_match"
+      }
+    },
+    "0xa292c12b0414bbfc14994f93bcff8bd58c921e55": {
+      "status": 200,
+      "body": {
+        "match": "exact_match",
+        "creationMatch": "exact_match",
+        "runtimeMatch": "exact_match"
+      }
+    },
+    "0xc216a4abb6c4c2d0b485f42219197551330b6cf4": {
+      "status": 200,
+      "body": {
+        "match": "exact_match",
+        "creationMatch": "exact_match",
+        "runtimeMatch": "exact_match"
+      }
+    },
+    "0xaf8857c0d723e14f60d00fe46120abd0303f52cc": {
+      "status": 200,
+      "body": {
+        "match": "exact_match",
+        "creationMatch": "exact_match",
+        "runtimeMatch": "exact_match"
+      }
+    },
+    "0x4459dc282c4a2114c1c4d6b7f96d8129779e2d11": {
+      "status": 404,
+      "body": {
+        "match": null,
+        "creationMatch": null,
+        "runtimeMatch": null,
+        "chainId": "196",
+        "address": "0x4459Dc282c4A2114c1c4D6B7F96d8129779e2d11"
+      }
+    },
+    "0x58212451fcd46ff6130cff428f2f4273f4cc7596": {
+      "status": 200,
+      "body": {
+        "match": "exact_match",
+        "creationMatch": "exact_match",
+        "runtimeMatch": "exact_match"
+      }
+    },
+    "0x560c7dc63a45e5afe53ad156152555a5c067598d": {
+      "status": 200,
+      "body": {
+        "match": "exact_match",
+        "creationMatch": "exact_match",
+        "runtimeMatch": "exact_match"
+      }
+    }
+  }
+}

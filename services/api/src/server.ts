@@ -66,6 +66,7 @@ import { createPapersStore, withPapers } from "./papers";
 import { readdir, stat } from "node:fs/promises";
 import { createMindChecker } from "./mindCheck";
 import { createConsentIndex, withConsents } from "./consents";
+import { createSourcifyRelay, withSourcify } from "./sourcify";
 import { withRpcProxy } from "./rpc";
 import { privateKeyToAccount } from "viem/accounts";
 import { createSalesCounter, withNumbers } from "./numbers";
@@ -1036,6 +1037,11 @@ if (isMain) {
       withPackets(app, packets);
       watch.packets = () => packets.head();
       jobs.loop("packets", () => packets.catchUp(), 20_000);
+    }
+    // Sourcify's verdict on the deployment's contracts, asked here so an outage reaches the page as words (A71)
+    if (chainCtx) {
+      const own = Object.values(chainCtx.deployment).filter((v): v is string => typeof v === "string" && /^0x[0-9a-fA-F]{40}$/.test(v));
+      withSourcify(app, createSourcifyRelay({ allowed: own, base: process.env.LINGXI_SOURCIFY_URL }));
     }
     // every breeding consent standing on X Layer (A63): the breeders keep them where no page can list them
     {

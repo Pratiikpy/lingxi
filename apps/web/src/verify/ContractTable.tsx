@@ -33,6 +33,9 @@ const WORD: Record<SourceState, { en: string; zh: string }> = {
   unreachable: { en: "? Sourcify unreachable", zh: "? 连不上 Sourcify" },
 };
 
+/** The live site asks Sourcify through its own server (A71); the on-chain copy, which has none, asks it directly. */
+const VIA_SERVER = Boolean((import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : ""));
+
 export function ContractTable({ lang }: { lang: "en" | "zh" }) {
   const d = deployment as Deployment | undefined;
   const rows = CONTRACTS.flatMap((c) => {
@@ -53,13 +56,15 @@ export function ContractTable({ lang }: { lang: "en" | "zh" }) {
   }, [addresses]);
   const verified = rows.filter((r) => states[r.address] === "exact").length;
   const checked = rows.filter((r) => states[r.address]).length;
+  // a contract Sourcify could not be asked about is not counted as unverified: it is said apart (A71)
+  const unreached = rows.filter((r) => states[r.address] === "unreachable").length;
   return (
     <section id="contracts" className="v-card v-proof-table" aria-labelledby="contracts-h">
       <h2 id="contracts-h">{lang === "zh" ? "合约与源码" : "Contracts and their source"}</h2>
       <p className="v-note">
         {lang === "zh"
-          ? "灵犀在 X Layer 上的每个合约都把 Solidity 源码公开在 Sourcify：任何人都能看到链上运行的代码就是这份源码。这一栏每次打开都会直接询问 Sourcify。"
-          : "Every Lingxi contract on X Layer has its Solidity source published on Sourcify, so anyone can see that the code running on chain is this source. This column asks Sourcify directly each time the page opens."}
+          ? `灵犀在 X Layer 上的每个合约都把 Solidity 源码公开在 Sourcify：任何人都能看到链上运行的代码就是这份源码。这一栏每次打开都会询问 Sourcify${VIA_SERVER ? "（经由灵犀的服务器转问，每一行都链接到 Sourcify 自己的页面）" : ""}。`
+          : `Every Lingxi contract on X Layer has its Solidity source published on Sourcify, so anyone can see that the code running on chain is this source. This column asks Sourcify each time the page opens${VIA_SERVER ? " (through Lingxi's server; each row links to Sourcify's own page)" : ""}.`}
       </p>
       {rows.length === 0 ? (
         <p className="v-note">{lang === "zh" ? "这个版本还没有连接到链上合约。" : "This build is not connected to deployed contracts."}</p>
@@ -70,9 +75,13 @@ export function ContractTable({ lang }: { lang: "en" | "zh" }) {
               ? lang === "zh"
                 ? "正在询问 Sourcify……"
                 : "Asking Sourcify…"
-              : lang === "zh"
-                ? `${rows.length} 个合约中 ${verified} 个源码完全匹配（创建码和运行码都一致）。`
-                : `${verified} of ${rows.length} contracts are an exact match (both creation and runtime bytecode).`}
+              : unreached === rows.length
+                ? lang === "zh"
+                  ? "现在连不上 Sourcify，所以暂时核对不了这些合约的源码。过一会儿再打开这一页。"
+                  : "Sourcify can't be reached just now, so the contracts' source can't be checked. Open this page again in a little while."
+                : lang === "zh"
+                  ? `${rows.length} 个合约中 ${verified} 个源码完全匹配（创建码和运行码都一致）${unreached ? `；${unreached} 个暂时连不上 Sourcify，没能核对` : ""}。`
+                  : `${verified} of ${rows.length} contracts are an exact match (both creation and runtime bytecode)${unreached ? `; ${unreached} could not be checked, as Sourcify could not be reached` : ""}.`}
           </p>
           <div className="v-table-wrap">
             <table>

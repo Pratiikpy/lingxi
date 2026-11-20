@@ -89,6 +89,9 @@ export async function startRun(): Promise<Run> {
     const origins = webPorts.map((p) => `http://localhost:${p}`);
     const s = (f: string) => join(dir, "stores", f);
     mkdirSync(s("diaries"), { recursive: true });
+    // a stand-in for Sourcify, so no spec depends on Sourcify being up (A71)
+    const sourcifyPort = await freePort();
+    keep(start("sourcify", node, [join(ROOT, "e2e/harness/sourcify-standin.mjs"), String(sourcifyPort)], { cwd: dir, env: process.env, log: join(dir, "sourcify.log") }));
     const serverEnv: NodeJS.ProcessEnv = {
       ...process.env,
       PORT: String(apiPort),
@@ -101,6 +104,7 @@ export async function startRun(): Promise<Run> {
       LINGXI_MARKET_OKB_FROM: String(FORK.block),
       LINGXI_MARKET_BEM_FROM: String(FORK.block),
       LINGXI_CONSENTS_FROM: String(FORK.block),
+      LINGXI_SOURCIFY_URL: `http://127.0.0.1:${sourcifyPort}/server`,
       ...Object.fromEntries(
         [
           ["LINGXI_DECOR_STORE", "decor.json"],
