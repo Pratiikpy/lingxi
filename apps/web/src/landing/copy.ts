@@ -58,6 +58,8 @@ export const COPY = {
     agents: "For AI agents: the open API",
     tree: "The tree of life: every pet on chain",
     numbers: "Live numbers: pets, sales and BEM burned",
+    contracts: "The contracts on X Layer, and their verified source",
+    source: "The source code, on GitHub",
   },
   zh: {
     nav: ["成长", "心智", "教它", "朋友", "验证"],
@@ -116,5 +118,7 @@ export const COPY = {
     agents: "给 AI 智能体：开放接口",
     tree: "生命之树：链上的每一只宠物",
     numbers: "链上数字：宠物、交易和销毁的 BEM",
+    contracts: "X Layer 上的合约及其已验证的源码",
+    source: "源代码，在 GitHub 上",
   },
 } as const;

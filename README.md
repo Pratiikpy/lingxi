@@ -209,7 +209,7 @@ Every number below is counted by `scripts/readme-facts.mts` from the suites them
 | Contracts, unit, fuzz and invariant | `cd contracts && forge test` | <!--f:forge-unit-->254<!--/f--> |
 | Contracts on a fork of X Layer mainnet (reads only) | `cd contracts && forge test --fork-url xlayer --match-path 'test/*.fork.t.sol'` | <!--f:forge-fork-->75<!--/f--> |
 | The server, with its fork tests on a pinned fork of X Layer (reads only) | `pnpm test:fork` | <!--f:tests-api-fork-->214<!--/f--> |
-| End to end: the game in real browsers, against a fork of X Layer | `pnpm e2e` | <!--f:e2e-->101<!--/f--> tests in <!--f:e2e-specs-->38<!--/f--> specs (listed here; CI runs every one on each push) |
+| End to end: the game in real browsers, against a fork of X Layer | `pnpm e2e` | <!--f:e2e-->103<!--/f--> tests in <!--f:e2e-specs-->39<!--/f--> specs (listed here; CI runs every one on each push) |
 
 `pnpm status:check` runs all of it, plus lint, the type check, the repo's hygiene checks and whether the live site serves the current commit.
 

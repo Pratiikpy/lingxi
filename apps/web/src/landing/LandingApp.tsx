@@ -402,6 +402,13 @@ export function LandingApp() {
         <a className="l-foot-link" href="numbers.html">
           {c.numbers}
         </a>
+        {/* anyone can read what runs, on chain and in the repo (A60) */}
+        <a className="l-foot-link" href="verify.html#contracts">
+          {c.contracts}
+        </a>
+        <a className="l-foot-link" href="https://github.com/Pratiikpy/lingxi" target="_blank" rel="noopener noreferrer">
+          {c.source}
+        </a>
       </footer>
     </>
   );
