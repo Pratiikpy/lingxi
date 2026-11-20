@@ -14,7 +14,7 @@ import { z } from "zod";
 import { MAX_WORDS, type TeachBody } from "@lingxi/api-schema";
 import { INPUT_FIELDS, MOODS, NUDGES, type Rule, STARTERS, type StarterLine, WANTS } from "@lingxi/brain";
 import { checkMindLesson, composeProgram, lessonCapacity, parseCard, type MindSpec, type Stage } from "@lingxi/game";
-import { BudgetSpent } from "./tokenBudget";
+import { BudgetSpent, ShareSpent } from "./tokenBudget";
 
 export const MODEL = "claude-opus-5-5";
 
@@ -114,7 +114,7 @@ export function cleanName(name: string | undefined): string {
 
 export type TeachResult =
   | { ok: true; rule: Rule; gates: number; reply: { en: string; zh: string } }
-  | { ok: false; reason: "notUnderstood" | "invalid" | "full" | "tooBig" | "duplicate" | "busy" | "resting" | "error"; reply?: { en: string; zh: string }; detail?: string };
+  | { ok: false; reason: "notUnderstood" | "invalid" | "full" | "tooBig" | "duplicate" | "busy" | "resting" | "yourShare" | "error"; reply?: { en: string; zh: string }; detail?: string };
 
 /**
  * The pet's mind a lesson is checked against: its card when the game sent one (lessons, skills, instincts, family,
@@ -190,6 +190,7 @@ export async function teachInWords(client: Anthropic, req: TeachRequest): Promis
   } catch (e) {
     // the day's shared budget is spent: say so, rather than "try again in a minute"
     if (e instanceof BudgetSpent) return { ok: false, reason: "resting" };
+    if (e instanceof ShareSpent) return { ok: false, reason: "yourShare" };
     if (e instanceof Anthropic.RateLimitError) return { ok: false, reason: "busy" };
     if (e instanceof Anthropic.APIError) return { ok: false, reason: "error", detail: `api ${e.status}` };
     return { ok: false, reason: "error", detail: "network" };

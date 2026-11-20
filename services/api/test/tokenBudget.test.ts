@@ -2,8 +2,9 @@ import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { budgetedClient, createTokenBudget } from "../src/tokenBudget";
+import { budgetedClient, createTokenBudget, modelCaller } from "../src/tokenBudget";
 import { teachInWords } from "../src/teach";
+import { createApp } from "../src/server";
 
 /** A stand-in client whose every call reports the usage it is given. */
 const fakeClient = (usage = { input_tokens: 1500, output_tokens: 200 }) => {
@@ -54,3 +55,61 @@ describe("the daily token budget for teaching and voices", () => {
     expect(r).toMatchObject({ ok: false, reason: "resting" });
   });
 });
+
+describe("each address has its share of the day, and the cost per call is measured (A53)", () => {
+  it("an address past its share is refused before the model is called, another is not, and a new day resets it", async () => {
+    let now = Date.UTC(2026, 10, 20, 9);
+    const budget = createTokenBudget({ perDay: 100_000, perAddress: 3_400, now: () => now });
+    const f = fakeClient();
+    const c = budgetedClient(f.client as never, budget);
+    const as = (ip: string) => modelCaller.run(ip, () => c.messages.create({} as never));
+    await as("203.0.113.1");
+    await as("203.0.113.1");
+    await expect(as("203.0.113.1")).rejects.toThrow(/share/);
+    expect(f.calls(), "refused before the model was called").toBe(2);
+    await expect(as("198.51.100.1"), "another address teaches on").resolves.toBeTruthy();
+    now += 86_400_000;
+    await expect(as("203.0.113.1"), "a new day").resolves.toBeTruthy();
+  });
+
+  it("the shares survive a restart", async () => {
+    const file = join(mkdtempSync(join(tmpdir(), "lx-")), "budget.json");
+    const a = createTokenBudget({ perDay: 100_000, perAddress: 3_400, file });
+    const ca = budgetedClient(fakeClient().client as never, a);
+    await modelCaller.run("203.0.113.1", () => ca.messages.create({} as never));
+    await modelCaller.run("203.0.113.1", () => ca.messages.create({} as never));
+    const b = createTokenBudget({ perDay: 100_000, perAddress: 3_400, file });
+    const cb = budgetedClient(fakeClient().client as never, b);
+    await expect(modelCaller.run("203.0.113.1", () => cb.messages.create({} as never))).rejects.toThrow(/share/);
+  });
+
+  it("counts the day's calls and reports the average tokens per call", async () => {
+    const budget = createTokenBudget({ perDay: 100_000 });
+    const c = budgetedClient(fakeClient({ input_tokens: 1000, output_tokens: 300 }).client as never, budget);
+    await c.messages.create({} as never);
+    await budgetedClient(fakeClient({ input_tokens: 2000, output_tokens: 100 }).client as never, budget).messages.create({} as never);
+    expect(budget.measured()).toEqual({ calls: 2, perCall: 1_700 });
+  });
+
+  it("tells a player past their share that it is theirs, not everyone's", async () => {
+    const budget = createTokenBudget({ perDay: 100_000, perAddress: 1 });
+    const c = budgetedClient(fakeClient().client as never, budget);
+    await modelCaller.run("203.0.113.1", () => c.messages.create({} as never));
+    const r = await modelCaller.run("203.0.113.1", () => teachInWords(c as never, { words: "when hungry ask for food", name: "Mochi", stage: "child", mind: { line: "gentle", lessons: [] } }));
+    expect(r).toMatchObject({ ok: false, reason: "yourShare" });
+  });
+});
+
+describe("the teach route charges each lesson to the address that asked (A53)", () => {
+  it("one address past its share is told yourShare while another address teaches on", async () => {
+    const budget = createTokenBudget({ perDay: 100_000, perAddress: 1_700 });
+    const app = createApp(budgetedClient(fakeClient().client as never, budget));
+    const teach = async (ip: string) =>
+      (await (await app.request("/api/teach", { method: "POST", headers: { "content-type": "application/json", "cf-connecting-ip": ip }, body: JSON.stringify({ words: "when hungry ask for food", name: "Mochi", line: "gentle", stage: "child", lessons: [] }) })).json()) as { ok: boolean; reason?: string };
+    // the stand-in model answers nothing a lesson can be made of, but each call is charged
+    expect((await teach("203.0.113.1")).reason).not.toBe("yourShare");
+    expect(await teach("203.0.113.1")).toMatchObject({ ok: false, reason: "yourShare" });
+    expect((await teach("198.51.100.1")).reason).not.toBe("yourShare");
+  });
+});
+

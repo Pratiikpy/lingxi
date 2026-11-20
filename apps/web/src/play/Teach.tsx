@@ -32,6 +32,7 @@ const REASON_KEY: Record<string, Key> = {
   invalid: "teach.invalid",
   busy: "teach.busy",
   resting: "teach.resting",
+  yourShare: "teach.yourShare",
   offline: "teach.offline",
   error: "teach.error",
 };

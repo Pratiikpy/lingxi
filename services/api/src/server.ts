@@ -79,7 +79,7 @@ import { petLookAbi as lookAbi } from "@lingxi/chain";
 import { clientIp } from "./clientIp";
 import { withBodyLimits } from "./bodyLimits";
 import { proveSeasonEntry } from "./seasonProof";
-import { budgetedClient, createTokenBudget } from "./tokenBudget";
+import { budgetedClient, createTokenBudget, modelCaller } from "./tokenBudget";
 import { createJobs } from "./jobs";
 
 function loadKey(): string | undefined {
@@ -143,7 +143,8 @@ export function createApp(
     }
     const mind = mindOf(body);
     if (!mind) return c.json({ ok: false, reason: "invalid", detail: "bad request" }, 400);
-    const result = await teachInWords(client, { words: body.words, ...(body.name !== undefined ? { name: body.name } : {}), stage: body.stage, mind });
+    // every model call this lesson makes is charged to the address that asked (A53)
+    const result = await modelCaller.run(ip, () => teachInWords(client, { words: body.words, ...(body.name !== undefined ? { name: body.name } : {}), stage: body.stage, mind }));
     return result.ok || result.reason !== "busy" ? c.json(result) : busy(c);
   });
 
@@ -374,7 +375,7 @@ export function withVoice(app: Hono, voice: ReturnType<typeof createVoice>, limi
     } catch {
       return c.json({ ok: false, reason: "invalid" }, 400);
     }
-    return c.json(await voice(body));
+    return c.json(await modelCaller.run(ip, () => voice(body)));
   });
   return app;
 }
@@ -758,7 +759,9 @@ if (isMain) {
   const jobs = createJobs();
   const key = loadKey();
   // teaching and voices share one daily token budget, kept on disk so a restart does not reset it (tokenBudget.ts)
-  const modelBudget = createTokenBudget({ perDay: Number(process.env.LINGXI_MODEL_TOKENS_PER_DAY ?? 2_000_000), file: resolve(dirname(fileURLToPath(import.meta.url)), "../data/model-budget.json") });
+  // each address may spend a twentieth of the day (A53), so no one address can leave everyone's teaching resting
+  const modelPerDay = Number(process.env.LINGXI_MODEL_TOKENS_PER_DAY ?? 2_000_000);
+  const modelBudget = createTokenBudget({ perDay: modelPerDay, perAddress: Number(process.env.LINGXI_MODEL_TOKENS_PER_ADDRESS ?? modelPerDay / 20), file: resolve(dirname(fileURLToPath(import.meta.url)), "../data/model-budget.json") });
   const client = key ? budgetedClient(new Anthropic({ apiKey: key }), modelBudget) : null;
   const port = Number(process.env.PORT ?? 8787);
   // the deployment the game runs on, read once: the agent API, adoption papers and what visitors see all use it
@@ -832,7 +835,7 @@ if (isMain) {
       // the same alarm for BEM: below ten tape-outs' transistor fees, top it up before players are refused
       relayerBemLow: bemTapeouts !== null && bemTapeouts < Number(process.env.LINGXI_RELAY_ALARM_BEM_TAPEOUTS ?? 10),
       relayerUsage: relayer?.usage() ?? null,
-      modelTokensToday: client ? { used: modelBudget.used(), perDay: modelBudget.perDay } : null,
+      modelTokensToday: client ? { used: modelBudget.used(), perDay: modelBudget.perDay, perAddress: modelBudget.perAddress, ...modelBudget.measured() } : null,
       backup: backupStatus(),
       watchdog: watchdogStatus(),
       // the process's own memory, in MB: a store or cache growing without end shows here first

@@ -8,7 +8,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { type ParsedVoiceBody, VoiceBody } from "@lingxi/api-schema";
-import { BudgetSpent } from "./tokenBudget";
+import { BudgetSpent, ShareSpent } from "./tokenBudget";
 
 export const VOICE_MODEL = "claude-haiku-5-5";
 
@@ -99,7 +99,7 @@ export function createVoice(client: Anthropic, capacity = 2000) {
         output_config: { format: { type: "json_schema", schema: VOICE_SCHEMA } },
       });
     } catch (e) {
-      return e instanceof Anthropic.RateLimitError || e instanceof BudgetSpent ? "busy" : null;
+      return e instanceof Anthropic.RateLimitError || e instanceof BudgetSpent || e instanceof ShareSpent ? "busy" : null;
     }
     if (msg.stop_reason === "refusal") return null;
     const text = msg.content.find((b): b is Anthropic.TextBlock => b.type === "text")?.text ?? "";
