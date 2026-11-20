@@ -1060,5 +1060,17 @@
     "row": "A49",
     "bug": "season entries over 16,000 bytes were refused by a header check, though 48 KB was promised",
     "test": { "kind": "vitest", "dir": "services/api", "file": "test/bodyLimits.test.ts", "name": "/api/season/enter takes a 20,000-byte card, with or without its length said, and refuses one over 48 KB either way" }
+  },
+  {
+    "id": "A50-sitting-cap-counts-kept",
+    "row": "A50",
+    "bug": "short sittings slipped past the per-address cap, so one address could fill the shelf",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/sitting.test.ts", "name": "counts every pack an address still has on the shelf, past its end date too, until it is let go (A50)" }
+  },
+  {
+    "id": "A50-sitting-refusal-said",
+    "row": "A50",
+    "bug": "a send refused for a full cap told the player to try again",
+    "test": { "kind": "e2e", "spec": "e2e/specs/sitting-refusals.spec.ts", "title": "a send to a friend the server refuses says why (en, light, phone)" }
   }
 ]
