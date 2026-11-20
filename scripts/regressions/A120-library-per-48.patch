@@ -1,0 +1,19 @@
+--- a/services/api/src/library.ts
++++ b/services/api/src/library.ts
+@@ -20,7 +20,6 @@ import type { Rule } from "@lingxi/brain";
+ import { checkLesson } from "@lingxi/game";
+ import { type SeenSet, addSeen, emptySeen, hasSeen, seenFrom } from "./seenSet";
+ import { BLOCKED_WORDS } from "./words";
+-import { prefixOf } from "./limit";
+ 
+ export interface LibraryEntry {
+   key: string;
+@@ -72,7 +71,7 @@ export function cleanAuthor(name: string): string | null {
+ }
+ 
+ /** A player as the library counts them: an IPv6 caller is its /48, so one network is one learner and one reporter (A120). */
+-export const hashId = (id: string) => createHash("sha256").update(`lingxi-library:${prefixOf(id) ?? id}`).digest("hex").slice(0, 16);
++export const hashId = (id: string) => createHash("sha256").update(`lingxi-library:${id}`).digest("hex").slice(0, 16);
+ 
+ export function createLibrary(store?: string, limits: { max?: number; perSharer?: number } = {}) {
+   const max = limits.max ?? MAX_ENTRIES;
