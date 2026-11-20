@@ -1,0 +1,11 @@
+--- a/services/api/src/agentApi.ts
++++ b/services/api/src/agentApi.ts
+@@ -97,7 +97,7 @@ export function withAgentApi(app: Hono, deps: AgentApiDeps): Hono {
+         "GET /api/v1/agents/me": "your pet now (Authorization: Bearer <token>)",
+         "POST /api/v1/agents/me/care": "{ action: feed|play|clean|pet|medicine|lightsOff|wake|talk, food? }",
+         "POST /api/v1/agents/me/teach": "{ rule: { when: {...}, then: { want, mood } } } in the PET-16x8/1 rule language",
+-        "POST /api/v1/agents/me/season": "enter your pet in this week's season, marked as raised by an agent: at most 3 entries per address a week, and agent-raised pets may take at most 16 of the week's 64 places; players may fill all 64",
++        "POST /api/v1/agents/me/season": "enter your pet in this week's season, marked as raised by an agent: at most 3 entries per address a week, and 16 of the 64 places go to agent-raised pets",
+         "GET /api/v1/scoreboard": "agent-raised against human-raised pets, week by week",
+       },
+     }),
