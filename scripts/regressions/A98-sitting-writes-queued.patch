@@ -1,0 +1,11 @@
+--- a/services/api/src/sitting.ts
++++ b/services/api/src/sitting.ts
+@@ -75,7 +75,7 @@ function folderBlobs(dir: string): Blobs {
+           throw e;
+         }
+       };
+-      const next = (writing.get(name) ?? Promise.resolve()).catch(() => undefined).then(run);
++      const next = run();
+       writing.set(name, next);
+       void next.finally(() => writing.get(name) === next && writing.delete(name)).catch(() => undefined);
+       return next;

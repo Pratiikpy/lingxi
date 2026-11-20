@@ -1276,5 +1276,11 @@
     "row": "A97",
     "bug": "the red packet card judged expiry by the device's clock, not X Layer's",
     "test": { "kind": "e2e", "spec": "e2e/specs/red-packet.spec.ts", "title": "a red packet's claims: two opened before, the player opens the last, a viewer sees all three (en light phone; zh dark desktop)" }
+  },
+  {
+    "id": "A98-sitting-writes-queued",
+    "row": "A98",
+    "bug": "two writes of one sitting file at once collided, a server error to the player",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/sitting.test.ts", "name": "twenty pets sent home to one code at once never collide on a file, and stray temporary files are cleared (A98)" }
   }
 ]
