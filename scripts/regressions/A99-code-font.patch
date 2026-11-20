@@ -1,0 +1,15 @@
+--- a/apps/web/src/styles/tokens.css
++++ b/apps/web/src/styles/tokens.css
+@@ -90,12 +90,6 @@ body,
+   height: 100%;
+   margin: 0;
+ }
+-pre,
+-code,
+-kbd,
+-samp {
+-  font-family: var(--mono);
+-}
+ body {
+   background: var(--page);
+   color: var(--ink);
