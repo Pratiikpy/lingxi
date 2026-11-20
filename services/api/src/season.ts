@@ -16,6 +16,7 @@ import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { MAX_ENTRIES, type SeasonEntry, type Standing, seasonStandings, standingsDigest, weekBounds, weekOf } from "@lingxi/game";
 import { validSnapshot } from "./arena";
 import { type StandingsAnswer, entriesKey } from "./standings";
+import { heldOver } from "./limit";
 
 const KEEP_WEEKS = 12;
 const WEEK = /^\d{4}-W\d{2}$/;
@@ -162,7 +163,8 @@ export function createSeasonStore(file?: string, now: () => number = Date.now, s
       const at = entries.findIndex((e) => e.key === key);
       if (at < 0 && entries.length >= MAX_ENTRIES) return { ok: false, reason: "full" };
       if (at < 0 && opts.agent && entries.filter((e) => e.agent).length >= MAX_AGENT_ENTRIES) return { ok: false, reason: "agentsFull" };
-      if (at < 0 && opts.from && Object.values(from).filter((a) => a === opts.from).length >= MAX_ENTRIES_PER_ADDRESS) return { ok: false, reason: "tooMany" };
+      // an address holds a few entries, and its IPv6 /48 four addresses' worth, so one network cannot fill the week (A117)
+      if (at < 0 && opts.from && heldOver(Object.values(from), opts.from, MAX_ENTRIES_PER_ADDRESS)) return { ok: false, reason: "tooMany" };
       const entry: SeasonEntry = { key, pet: v.pet, at: t, ...(opts.agent ? { agent: opts.agent } : {}) };
       entries = at < 0 ? [...entries, entry] : entries.map((e, i) => (i === at ? entry : e));
       if (opts.petId) pets[key] = opts.petId;

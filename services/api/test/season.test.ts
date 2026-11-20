@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { MAX_ENTRIES, petCard, seasonStandings, standingsDigest } from "@lingxi/game";
 import { withSeason } from "../src/server";
 import { createSeasonStore } from "../src/season";
+import { PREFIX_SHARE } from "../src/limit";
 import { createStandingsRunner } from "../src/standings";
 
 const pet = (name: string, line = "gentle") => ({ name, line, stage: "child", card: petCard({ lessons: [] }), story: { days: 1, lessons: 0, nature: [] } });
@@ -44,6 +45,18 @@ describe("weekly seasons", () => {
 });
 
 describe("no one fills the season", () => {
+  it("one IPv6 /48 holds four addresses' worth of entries, and another player still gets in (A117)", () => {
+    const store = createSeasonStore(undefined, () => T);
+    const results: string[] = [];
+    for (let i = 0; i < 40; i++) {
+      const r = store.enter(pet(`Net${i}`), `device-net-${String(i).padStart(4, "0")}`, { from: `2001:db8:117:${(Math.floor(i / 2) + 1).toString(16)}::/64` });
+      results.push(r.ok ? "ok" : r.reason);
+    }
+    expect(results.filter((x) => x === "ok").length).toBe(3 * PREFIX_SHARE);
+    expect(results.at(-1)).toBe("tooMany");
+    expect(store.enter(pet("Honest"), "device-honest-01", { from: "198.51.100.17" }).ok).toBe(true);
+  });
+
   it("one address holds only a few entries a week, and updating its own costs nothing", () => {
     const store = createSeasonStore(undefined, () => T);
     for (let i = 0; i < 3; i++) expect(store.enter(pet(`Mine${i}`), `device-mine-000${i}`, { from: "203.0.113.9" }).ok).toBe(true);
