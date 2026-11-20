@@ -1,0 +1,12 @@
+--- a/services/api/src/server.ts
++++ b/services/api/src/server.ts
+@@ -565,8 +565,7 @@ export function withTree(app: Hono, indexer: Pick<Indexer, "pets" | "head">, nam
+   };
+   app.get("/api/tree", async (c) => {
+     const pets = indexer.pets();
+-    refreshing ??= refresh(pets).finally(() => (refreshing = null));
+-    await refreshing;
++    await refresh(pets);
+     const tree = buildTree(
+       pets.map((p) => {
+         const name = names.get(p.id)?.name;

@@ -1,0 +1,11 @@
+--- a/services/api/src/numbers.ts
++++ b/services/api/src/numbers.ts
+@@ -176,7 +176,7 @@ export function withNumbers(app: Hono, d: NumbersDeps): Hono {
+     c.header("access-control-allow-origin", "*");
+     c.header("cache-control", "public, max-age=60");
+     if (!cache || Date.now() - cache.at > 60_000) {
+-      refreshing ??= readNumbers(d)
++      refreshing = readNumbers(d)
+         .then(
+           (body) => void (cache = { at: Date.now(), body }),
+           () => undefined,

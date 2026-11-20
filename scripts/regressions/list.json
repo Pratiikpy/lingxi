@@ -1084,5 +1084,29 @@
     "row": "A51",
     "bug": "links people still opened were let go before a flood's new ones",
     "test": { "kind": "vitest", "dir": "services/api", "file": "test/duels.test.ts", "name": "when full, the link nobody has opened for longest goes first, so links people still open are kept" }
+  },
+  {
+    "id": "A52-papers-limited",
+    "row": "A52",
+    "bug": "adoption papers had no limit, each post two reads of the jobs' node",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/papers.test.ts", "name": "an address past its posts for the hour is told busy, with no read of X Layer" }
+  },
+  {
+    "id": "A52-tree-one-refresh",
+    "row": "A52",
+    "bug": "every tree request at an expiry read up to fifty names",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/tree.test.ts", "name": "two requests at an expiry make one read per stale pet, never more than eight at once" }
+  },
+  {
+    "id": "A52-numbers-one-refresh",
+    "row": "A52",
+    "bug": "every numbers request during a refresh read the chain again",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/numbers.test.ts", "name": "requests arriving during a refresh share it" }
+  },
+  {
+    "id": "A52-colours-per-player",
+    "row": "A52",
+    "bug": "a player naming pets in a room had colours read for every one",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/homes.test.ts", "name": "the same pet asked twice at once is read once, and a player is read colours for at most 12 distinct pets an hour" }
   }
 ]

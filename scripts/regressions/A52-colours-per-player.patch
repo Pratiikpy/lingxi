@@ -1,0 +1,11 @@
+--- a/services/api/src/homes.ts
++++ b/services/api/src/homes.ts
+@@ -167,7 +167,7 @@ export function createHomes(opts: { chain?: HomeChain; file?: string; now?: () =
+       const t = now();
+       const asked = askedBy.get(owner);
+       const window = asked && t - asked.since < 3_600_000 ? asked : { since: t, pets: new Set<string>() };
+-      if (!window.pets.has(petId) && window.pets.size >= COLOUR_PETS_PER_HOUR) return cached?.colour ?? 0;
++
+       window.pets.add(petId);
+       remember(askedBy, owner, window);
+       const read = (async () => {
