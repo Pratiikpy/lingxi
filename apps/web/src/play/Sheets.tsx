@@ -245,7 +245,7 @@ export function MeSheetBody({ pet }: { pet: Pet }) {
         </>
       )}
       <dt>{t("me.together")}</dt>
-      <dd>{t("me.days", { n: dayOf(pet, gameNow()) })}</dd>
+      <dd>{dayOf(pet, gameNow()) === 1 ? t("me.day1") : t("me.days", { n: dayOf(pet, gameNow()) })}</dd>
       <dt>{t("me.diet")}</dt>
       <dd>{pet.diet[fav] > 0 && favFood ? favFood.name[lang] : "–"}</dd>
       <dt>{t("think.label")}</dt>

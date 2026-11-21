@@ -9,4 +9,8 @@ describe("names a player tells apart (H5)", () => {
       expect(instincts.filter((n) => lines.includes(n)), lang).toEqual([]);
     }
   });
+  it("one day is a day, not \"1 days\"", () => {
+    expect(translate("en", "me.day1" as never)).toBe("1 day");
+    expect(translate("en", "sit.day1" as never)).toBe("1 day");
+  });
 });

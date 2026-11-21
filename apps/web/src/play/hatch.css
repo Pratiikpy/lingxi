@@ -147,14 +147,21 @@
     padding: var(--s2) var(--s3);
     text-align: left;
   }
-  /* the egg is drawn at three times its size with wide clear margins; a small window shows just the egg, crisp */
+  /* the egg's 48-pixel drawing is shown at an exact two times here (three on wider screens), in a window that holds
+     its lower part, where the egg sits, so each row stays short and the pixels stay crisp */
   .egg > :first-child {
     grid-row: 1 / span 2;
     width: 72px;
-    height: 84px;
-    display: grid;
-    place-items: center;
+    height: 80px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
     overflow: hidden;
+  }
+  .egg > :first-child canvas {
+    flex: none;
+    width: 96px !important;
+    height: 96px !important;
   }
   .egg b {
     align-self: end;
