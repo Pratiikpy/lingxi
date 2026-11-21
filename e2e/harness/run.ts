@@ -128,6 +128,7 @@ export async function startRun(): Promise<Run> {
           ["LINGXI_DAILY_FILE", "daily.json"],
           ["LINGXI_STANDINGS_FILE", "standings.json"],
           ["LINGXI_RELAY_QUOTA_FILE", "relay-quota.json"],
+          ["LINGXI_SPONSOR_STORE", "sponsored.json"],
         ].map(([k, f]) => [k, s(f!)]),
       ),
     };
@@ -137,6 +138,9 @@ export async function startRun(): Promise<Run> {
     writeFileSync(s("relayer.env"), `K=${keyOf(RELAYER)}
 `);
     serverEnv.LINGXI_RELAYER_KEY_FILE = s("relayer.env");
+    // keeping a pet with no wallet (H4) is switched on here, on the fork, so its screens are played before it is on for
+    // real players (B9); its own limits stay as they are: one free pet per network a day, every spec on 127.0.0.1
+    serverEnv.LINGXI_SPONSOR = "on";
     // one server serves every spec of a run, and every pet on the fork is new: Lingxi's own hourly sponsorship and its
     // newcomers' share would run out partway through the suite. Those limits are proven by the API's own tests (A40);
     // here every spec's tape-out is sponsored

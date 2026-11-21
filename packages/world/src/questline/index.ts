@@ -23,6 +23,9 @@ export { GOALS, GOAL_BY_ID } from "./goals";
 export { FRIENDS, FRIEND_BY_ID } from "../friends";
 
 export const STORY: readonly QuestDef[] = [...ARC_1, ...ARC_2_TO_5, ...ARC_6_TO_10, ...ARC_11_12];
+
+/** The story quest "First lesson": the one in arc 1 that asks for a lesson taught (keeping a pet free opens after it). */
+export const FIRST_LESSON_QUEST: string = ARC_1.find((q) => q.objectives.some((o) => o.cond.type === "LESSON"))!.id;
 export const QUESTLINE: readonly QuestDef[] = [...STORY, ...DAILIES];
 export const QUEST_BY_ID: Readonly<Record<string, QuestDef>> = Object.fromEntries(QUESTLINE.map((q) => [q.id, q]));
 

@@ -18,8 +18,8 @@ const gentle = ((0n << 152n) | 0x1234n).toString();
 
 function app(o: { enabled?: boolean; hatch?: Sponsoring["relayer"]["sponsorHatch"]; grant?: Sponsoring["relayer"]["sponsorGrant"]; ip?: string } = {}) {
   const gate = new SponsorGate({ file: join(mkdtempSync(join(tmpdir(), "lx-")), "s.json"), enabled: o.enabled ?? true, now: () => NOW });
-  const hatch = vi.fn(o.hatch ?? (async () => ({ ok: true as const, petId: "41", hatchTx: "0xh", grantTx: "0xg" })));
-  const grant = vi.fn(o.grant ?? (async () => ({ ok: true as const, grantTx: "0xg2" })));
+  const hatch = vi.fn(o.hatch ?? (async () => ({ ok: true as const, petId: "41", hatchTx: "0xh", grantTx: "0xg", spentWei: 60_000_000_000_000n })));
+  const grant = vi.fn(o.grant ?? (async () => ({ ok: true as const, grantTx: "0xg2", spentWei: 51_000_000_000_000n })));
   const a = withSponsor(new Hono(), { gate, relayer: { sponsorHatch: hatch, sponsorGrant: grant }, deployment: d, who: () => o.ip ?? "198.51.100.1" });
   return { a, gate, hatch, grant };
 }
@@ -39,37 +39,39 @@ describe("the sponsor route (H4)", () => {
   });
 
   it("hatches for a signed device key and answers with the pet and both transactions", async () => {
-    const { a, hatch } = app();
+    const { a, gate, hatch } = app();
     const body = await ask();
     const r = await post(a, body);
     expect(r).toEqual({ status: 200, json: { ok: true, petId: "41", hatchTx: "0xh", grantTx: "0xg" } });
     expect(hatch).toHaveBeenCalledWith(d, body.to.toLowerCase(), "gentle", BigInt(gentle));
+    // what the relayer says the sends cost is what the day's OKB budget counts (B9)
+    expect(gate.pets()[0]?.spentWei).toBe("60000000000000");
   });
 
   it("refuses, naming why and sending nothing: switched off, junk, a forged key, twice for one key", async () => {
     const off = app({ enabled: false });
-    expect(await post(off.a, await ask())).toMatchObject({ status: 503, json: { ok: false, reason: "off" } });
+    expect(await post(off.a, await ask())).toMatchObject({ status: 200, json: { ok: false, reason: "off" } });
     const { a, hatch } = app();
     expect(await post(a, { to: "x" })).toMatchObject({ status: 400, json: { reason: "invalid" } });
     const body = await ask();
     expect(await post(a, { ...body, to: privateKeyToAccount(generatePrivateKey()).address })).toMatchObject({ status: 401, json: { reason: "badSignature" } });
     expect(hatch).not.toHaveBeenCalled();
     await post(a, body);
-    expect(await post(a, body)).toMatchObject({ status: 409, json: { reason: "had" } });
+    expect(await post(a, body)).toMatchObject({ status: 200, json: { ok: false, reason: "had" } });
     expect(hatch).toHaveBeenCalledTimes(1);
   });
 
   it("a relayer too low to send gives the slot back and says so", async () => {
     const { a } = app({ hatch: async () => ({ ok: false, reason: "relayLow", detail: "held", spent: false }) });
     const body = await ask();
-    expect(await post(a, body)).toMatchObject({ status: 503, json: { ok: false, reason: "relayLow" } });
+    expect(await post(a, body)).toMatchObject({ status: 200, json: { ok: false, reason: "relayLow" } });
     // nothing was spent, so the same network may try again
     expect((await post(a, await ask())).json.reason).toBe("relayLow");
   });
 
   it("a pet whose gas never came gets the gas alone when its key asks again", async () => {
     const key = privateKeyToAccount(generatePrivateKey());
-    const { a, grant, hatch } = app({ hatch: async () => ({ ok: true, petId: "41", hatchTx: "0xh", grantTx: null }) });
+    const { a, grant, hatch } = app({ hatch: async () => ({ ok: true, petId: "41", hatchTx: "0xh", grantTx: null, spentWei: 10_000_000_000_000n }) });
     expect((await post(a, await ask(key))).json).toEqual({ ok: true, petId: "41", hatchTx: "0xh", grantTx: null });
     expect((await post(a, await ask(key))).json).toEqual({ ok: true, petId: "41", hatchTx: null, grantTx: "0xg2" });
     expect(hatch).toHaveBeenCalledTimes(1);

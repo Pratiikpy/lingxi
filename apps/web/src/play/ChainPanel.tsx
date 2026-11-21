@@ -3,6 +3,7 @@
 import { ruleSkillIds } from "@lingxi/game";
 import { useEffect, useState } from "react";
 import type { Pet } from "@lingxi/game";
+import { FIRST_LESSON_QUEST } from "@lingxi/world";
 import { useLang, useT, type Key } from "../i18n";
 import { autoGasLow, autoStatus, deployment, explorerTx, mindKey, useChain } from "../game/chain";
 import { relayAvailable } from "../game/api";
@@ -67,7 +68,8 @@ export function ChainPanel({ pet }: { pet: Pet }) {
   // keeping for free opens once the player has really played: the first lesson taught (H4); read at each render, which
   // the world store triggers when a quest is handed in
   useWorld((s) => s.world);
-  const firstLessonDone = allStatuses()["q09"] === "done";
+  // B9: the first-lesson quest by what it asks for (it was read as q09, the shop quest)
+  const firstLessonDone = allStatuses()[FIRST_LESSON_QUEST] === "done";
   useEffect(() => {
     if (freeOn === null) void checkFree();
   }, [freeOn, checkFree]);

@@ -72,6 +72,46 @@ describe("who may have a pet kept for them (H4)", () => {
     expect(await take("198.51.100.3"), "the day's five are used").toBe("budget");
   });
 
+  // B9: the day's budget is OKB really spent, not a count of pets
+  it("stops for the day when the OKB spent, with the most a request on its way may cost, would pass the budget", async () => {
+    const SET_ASIDE = 80_000_000_000_000n;
+    const g = gate({ okbPerDayWei: 3n * SET_ASIDE, perDay: 100 });
+    const take = async (who: string, spentWei: bigint) => {
+      const r = await g.check(await asked(), who);
+      if (r.ok) g.finish(r.slot, { petId: "1", hatchTx: "0x1", grantTx: "0x2", spentWei });
+      return r.ok ? "ok" : r.reason;
+    };
+    // two cheap pets (60 000 gwei each) leave room for a third at the most it may cost
+    expect(await take("198.51.100.1", 60_000_000_000_000n)).toBe("ok");
+    expect(await take("198.51.100.2", 60_000_000_000_000n)).toBe("ok");
+    expect(g.spentToday()).toBe(120_000_000_000_000n);
+    expect(await take("198.51.100.3", 70_000_000_000_000n)).toBe("ok");
+    // 190 000 spent: one more at the most it may cost (80 000) would pass 240 000
+    expect(await take("198.51.100.4", 1n)).toBe("budget");
+    // a request on its way counts at the most it may cost
+    const h = gate({ okbPerDayWei: SET_ASIDE * 2n - 1n, perDay: 100 });
+    const first = await h.check(await asked(), "198.51.100.5");
+    expect(first.ok).toBe(true);
+    expect(await h.check(await asked(), "198.51.100.6"), "the first may still cost its set-aside").toMatchObject({ ok: false, reason: "budget" });
+  });
+
+  it("records each pet's cost, adds a later grant's cost to it, and counts a pet from before B9 at the most", async () => {
+    const f = file();
+    const g = gate({ file: f });
+    const key = privateKeyToAccount(generatePrivateKey());
+    const r = await g.check(await asked("gentle", NOW, key), "198.51.100.1");
+    if (!r.ok) throw new Error(r.reason);
+    g.finish(r.slot, { petId: "7", hatchTx: "0x1", grantTx: null, spentWei: 10_000_000_000_000n });
+    const again = await g.check(await asked("gentle", NOW, key), "198.51.100.1");
+    if (!again.ok) throw new Error(again.reason);
+    g.finish(again.slot, { petId: "7", hatchTx: null, grantTx: "0x3", spentWei: 51_000_000_000_000n });
+    expect(g.pets()[0]).toMatchObject({ petId: "7", grantTx: "0x3", spentWei: "61000000000000" });
+    // a pet kept before costs were recorded counts at the most a pet may cost
+    const old = gate({ file: f });
+    (old as unknown as { store: { pets: Array<Record<string, unknown>> } }).store.pets.push({ to: "0xold", petId: "1", network: "x", at: NOW, hatchTx: "0x9", grantTx: "0x9" });
+    expect(old.spentToday()).toBe(61_000_000_000_000n + 80_000_000_000_000n);
+  });
+
   it("counts a slot taken by a request that sent nothing back as free", async () => {
     const g = gate({ perDay: 1 });
     const r = await g.check(await asked(), "198.51.100.1");
@@ -104,9 +144,10 @@ describe("who may have a pet kept for them (H4)", () => {
     const body = await asked();
     const r = await g.check(body, "198.51.100.1");
     if (!r.ok) throw new Error("refused");
-    g.finish(r.slot, { petId: "9", hatchTx: "0x1", grantTx: "0x2" });
+    g.finish(r.slot, { petId: "9", hatchTx: "0x1", grantTx: "0x2", spentWei: 61_000_000_000_000n });
     const later = new SponsorGate({ file: f, enabled: true, now: () => NOW });
-    expect(later.pets()).toEqual([{ to: body.to.toLowerCase(), petId: "9", network: "198.51.100.1", at: NOW, hatchTx: "0x1", grantTx: "0x2" }]);
+    expect(later.pets()).toEqual([{ to: body.to.toLowerCase(), petId: "9", network: "198.51.100.1", at: NOW, hatchTx: "0x1", grantTx: "0x2", spentWei: "61000000000000" }]);
+    expect(later.spentToday(), "the day's spend survives a restart").toBe(61_000_000_000_000n);
     expect(await later.check(body, "198.51.100.9")).toMatchObject({ ok: false, reason: "had" });
   });
 });

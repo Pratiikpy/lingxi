@@ -59,8 +59,10 @@ export function TopBar({ pet, daily, face, onQuests, onPets, petCount, onMail, u
         </div>
         <div style={{ minWidth: 0 }}>
           <PetName name={pet.name} petId={recordOf(pet)?.petId} />
-          <span>
-            {t(`stage.${stageOf(pet, now)}` as Key)} · {t("who.day", { n: dayOf(pet, now) })}
+          {/* on a narrow phone only the day shows (B9: the line was cut off); the stage is still read out and on the Pet tab */}
+          <span aria-label={`${t(`stage.${stageOf(pet, now)}` as Key)} · ${t("who.day", { n: dayOf(pet, now) })}`}>
+            <i className="who-stage">{t(`stage.${stageOf(pet, now)}` as Key)} · </i>
+            {t("who.day", { n: dayOf(pet, now) })}
           </span>
         </div>
       </div>

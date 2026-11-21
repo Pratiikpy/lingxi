@@ -54,7 +54,8 @@ const PER_TAPEOUT_WEI = 4_000_000_000_000_000n;
 export type RelayResult = ({ ok: true; processor: Address; brainId: string; reused: boolean; tx?: string } | { ok: false; reason: "invalid" | "tooBig" | "budget" | "budgetHour" | "relayLow" | "error"; detail?: string; spent?: boolean }) & { sent?: number };
 
 /** A pet kept for a device key (H4): `spent` says whether a refused one still cost gas. */
-export type SponsorResult = { ok: true; petId: string; hatchTx: string; grantTx: string | null } | { ok: false; reason: "relayLow" | "error"; detail: string; spent: boolean };
+/** `spentWei`: what the sends cost the relayer, read from their receipts (B9); the set-aside where a fee could not be read. */
+export type SponsorResult = { ok: true; petId: string; hatchTx: string; grantTx: string | null; spentWei: bigint } | { ok: false; reason: "relayLow" | "error"; detail: string; spent: boolean; spentWei?: bigint };
 
 export type KeepsakeResult = { ok: true; processor: Address; brainId: string; tapeTx: string; sendTx: string } | { ok: false; reason: "invalid" | "tooBig" | "budget" | "budgetHour" | "relayLow" | "error"; detail?: string };
 
@@ -400,29 +401,42 @@ export class BrainRelayer {
       try {
         ({ petId, tx: hatchTx } = await hatchOnChain(this.pub as never, this.wallet as never, d, line, state, undefined, to));
       } catch (e) {
-        return { ok: false, reason: "error", detail: (e as Error).message.split(NEWLINE)[0] ?? "the hatch failed", spent: true };
+        // a hatch that failed after it was sent still cost gas; how much is not known here, so the most it may have
+        return { ok: false, reason: "error", detail: (e as Error).message.split(NEWLINE)[0] ?? "the hatch failed", spent: true, spentWei: SPONSOR_SET_ASIDE_WEI };
       }
+      const hatchFee = await this.feeOf(hatchTx);
       const grant = await this.sendGrant(to);
-      return { ok: true, petId: petId.toString(), hatchTx, grantTx: grant };
+      const spentWei = hatchFee === null || (grant && grant.feeWei === null) ? SPONSOR_SET_ASIDE_WEI : hatchFee + (grant ? SPONSOR_GRANT_WEI + grant.feeWei! : 0n);
+      return { ok: true, petId: petId.toString(), hatchTx, grantTx: grant?.tx ?? null, spentWei };
     });
   }
 
   /** The gas alone, for a sponsored pet whose grant never went out. */
-  sponsorGrant(to: Address): Promise<{ ok: true; grantTx: string } | { ok: false; reason: "relayLow" | "error"; detail: string }> {
+  sponsorGrant(to: Address): Promise<{ ok: true; grantTx: string; spentWei: bigint } | { ok: false; reason: "relayLow" | "error"; detail: string }> {
     return this.serial(async () => {
       const balance = await this.balance().catch(() => 0n);
       if (balance < (this.cfg.reserveWei ?? 0n) + SPONSOR_SET_ASIDE_WEI) return { ok: false as const, reason: "relayLow" as const, detail: "the relayer's OKB is held for season keepsakes" };
-      const tx = await this.sendGrant(to);
-      return tx ? { ok: true as const, grantTx: tx } : { ok: false as const, reason: "error" as const, detail: "the gas could not be sent" };
+      const g = await this.sendGrant(to);
+      return g ? { ok: true as const, grantTx: g.tx, spentWei: SPONSOR_GRANT_WEI + (g.feeWei ?? SPONSOR_SET_ASIDE_WEI - SPONSOR_GRANT_WEI) } : { ok: false as const, reason: "error" as const, detail: "the gas could not be sent" };
     });
   }
 
-  /** Sends a sponsored key its gas; null when it did not go out (the pet is the player's either way). */
-  private async sendGrant(to: Address): Promise<string | null> {
+  /** What a mined transaction cost in gas, from its receipt; null when the receipt does not say. */
+  private async feeOf(hash: Hex): Promise<bigint | null> {
+    try {
+      const r = (await this.pub.waitForTransactionReceipt({ hash })) as { gasUsed?: bigint; effectiveGasPrice?: bigint };
+      return typeof r.gasUsed === "bigint" && typeof r.effectiveGasPrice === "bigint" ? r.gasUsed * r.effectiveGasPrice : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Sends a sponsored key its gas, with what that send cost; null when it did not go out (the pet is the player's either way). */
+  private async sendGrant(to: Address): Promise<{ tx: string; feeWei: bigint | null } | null> {
     try {
       const tx = await this.wallet.sendTransaction({ to, value: SPONSOR_GRANT_WEI } as never);
-      const r = await this.pub.waitForTransactionReceipt({ hash: tx });
-      return r.status === "success" ? tx : null;
+      const r = (await this.pub.waitForTransactionReceipt({ hash: tx })) as { status: string; gasUsed?: bigint; effectiveGasPrice?: bigint };
+      return r.status === "success" ? { tx, feeWei: typeof r.gasUsed === "bigint" && typeof r.effectiveGasPrice === "bigint" ? r.gasUsed * r.effectiveGasPrice : null } : null;
     } catch {
       return null;
     }

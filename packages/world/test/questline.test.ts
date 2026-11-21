@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DAILIES, ITEM, LINE_MAX, ONBOARDING, QUESTLINE, STORY, type QuestDef, checkGame, questLineErrors } from "../src";
+import { DAILIES, FIRST_LESSON_QUEST, ITEM, LINE_MAX, ONBOARDING, QUESTLINE, STORY, type QuestDef, checkGame, questLineErrors } from "../src";
 
 const base = STORY[0]!;
 const bad = (over: Partial<QuestDef>): string[] => questLineErrors([{ ...base, ...over }]);
@@ -62,5 +62,13 @@ describe("a quest names the item it asks for by the item's own name (B6)", () =>
         expect(o.text.zh, `${q.id}: ${it.name.zh}`).toContain(it.name.zh);
         expect(o.text.en.toLowerCase(), `${q.id}: ${it.name.en}`).toContain(it.name.en.toLowerCase());
       }
+  });
+});
+
+describe("the first-lesson quest (B9)", () => {
+  it("is the arc 1 quest that asks for a lesson, titled First lesson", () => {
+    const q = STORY.find((x) => x.id === FIRST_LESSON_QUEST)!;
+    expect(q.title.en).toBe("First lesson");
+    expect(q.objectives.map((o) => o.cond.type)).toEqual(["LESSON"]);
   });
 });

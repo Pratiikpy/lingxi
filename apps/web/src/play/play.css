@@ -1716,12 +1716,13 @@
     font-size: 18px;
   }
   .daily {
-    gap: 3px;
+    gap: 2px;
   }
-  /* B6: on a phone the marks are the four care icons alone, faded until done and coral once done (no frame to fit) */
+  /* B6: on a phone the marks are the four care icons alone, faded until done and coral once done (no frame to fit);
+     12px boxes, the icons' own size, so the header keeps the room the old squares took (B9 found the day cut off) */
   .daily i {
-    width: 14px;
-    height: 14px;
+    width: 12px;
+    height: 12px;
     border: 0;
     background: none;
     opacity: 0.42;
@@ -2936,4 +2937,14 @@
 .kin-note {
   display: block;
   margin-top: 2px;
+}
+
+/* B9: the stage word in the header gives way to the day on a narrow phone, so "day 1" is never cut off */
+.who-stage {
+  font-style: normal;
+}
+@media (max-width: 400px) {
+  .who-stage {
+    display: none;
+  }
 }

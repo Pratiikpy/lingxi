@@ -50,7 +50,7 @@ import { type ArenaStore, createArenaStore } from "./arena";
 import { type SeasonStore, createSeasonStore, settleAwards } from "./season";
 import { dayIndex, weekOf } from "@lingxi/game";
 import { parseCard } from "@lingxi/game";
-import { createPublicClient, custom, fallback, http, type Address, type PublicClient } from "viem";
+import { createPublicClient, custom, fallback, http, parseEther, type Address, type PublicClient } from "viem";
 import { type Deployment, type SignedRelay, adoptionCentreAbi, createNetlistCache, loadCircuitFromChain, nameColours, packsHeld, petRegistryAbi, piecesHeld, readPet, xLayer } from "@lingxi/chain";
 import { type HomeChain, createHomes } from "./homes";
 import { createAgentStore } from "./agents";
@@ -527,7 +527,13 @@ export interface Sponsoring {
   who: (c: Context) => string;
 }
 
-const SPONSOR_STATUS: Record<string, 400 | 401 | 409 | 429 | 502 | 503> = { off: 503, invalid: 400, expired: 401, badSignature: 401, had: 409, busy: 429, network: 429, budget: 429, relayLow: 503, error: 502 };
+/**
+ * Each refusal's status. One that is normal play (switched off, already had, the network's pet today, the day's budget
+ * spent, a request already on its way, the OKB held for keepsakes) answers 200 with its reason, like the tape-out's
+ * "newcomer", so the page shows its own message and the browser logs no error (B9); a malformed, forged or stale
+ * request, or a failed send, keeps its error status.
+ */
+const SPONSOR_STATUS: Record<string, 200 | 400 | 401 | 502> = { off: 200, invalid: 400, expired: 401, badSignature: 401, had: 200, busy: 200, network: 200, budget: 200, relayLow: 200, error: 502 };
 
 /**
  * A pet kept on X Layer for a player with no wallet (H4): the relayer hatches it to their device key and sends that
@@ -543,7 +549,7 @@ export function withSponsor(app: Hono, s: Sponsoring | null, limiter = new RateL
     return p ? c.json({ ok: true, petId: p.petId, hatchTx: p.hatchTx, grantTx: p.grantTx }) : c.json({ ok: false, reason: "none", detail: "nothing kept for this address" }, 404);
   });
   app.post("/api/sponsor/hatch", async (c) => {
-    if (!s || !s.gate.enabled) return c.json({ ok: false, reason: "off", detail: "keeping a pet without a wallet is not switched on" }, 503);
+    if (!s || !s.gate.enabled) return c.json({ ok: false, reason: "off", detail: "keeping a pet without a wallet is not switched on" }, 200);
     const ip = s.who(c);
     if (!limiter.take(ip)) return c.json({ ok: false, reason: "busy", detail: "too many requests; try again later" }, 429);
     let body: unknown;
@@ -562,17 +568,17 @@ export function withSponsor(app: Hono, s: Sponsoring | null, limiter = new RateL
           s.gate.release(slot);
           return c.json({ ok: false, reason: g.reason, detail: g.detail }, SPONSOR_STATUS[g.reason] ?? 502);
         }
-        s.gate.finish(slot, { petId: slot.petId, hatchTx: null, grantTx: g.grantTx });
+        s.gate.finish(slot, { petId: slot.petId, hatchTx: null, grantTx: g.grantTx, spentWei: g.spentWei });
         return c.json({ ok: true, petId: slot.petId, hatchTx: null, grantTx: g.grantTx });
       }
       const h = await s.relayer.sponsorHatch(s.deployment, slot.to as Address, slot.line, slot.state);
       if (!h.ok) {
         // a hatch that cost gas is kept, so the day's count holds it; one that sent nothing gives its slot back
-        if (h.spent) s.gate.finish(slot, { petId: null, hatchTx: null, grantTx: null });
+        if (h.spent) s.gate.finish(slot, { petId: null, hatchTx: null, grantTx: null, ...(h.spentWei !== undefined ? { spentWei: h.spentWei } : {}) });
         else s.gate.release(slot);
         return c.json({ ok: false, reason: h.reason, detail: h.detail }, SPONSOR_STATUS[h.reason] ?? 502);
       }
-      s.gate.finish(slot, { petId: h.petId, hatchTx: h.hatchTx, grantTx: h.grantTx });
+      s.gate.finish(slot, { petId: h.petId, hatchTx: h.hatchTx, grantTx: h.grantTx, spentWei: h.spentWei });
       return c.json({ ok: true, petId: h.petId, hatchTx: h.hatchTx, grantTx: h.grantTx });
     } catch (e) {
       s.gate.release(slot);
@@ -1070,6 +1076,8 @@ if (isMain) {
         file: process.env.LINGXI_SPONSOR_STORE ?? join(dataDir, "sponsored.json"),
         enabled: process.env.LINGXI_SPONSOR === "on" && relayer !== null && chainCtx !== undefined,
         perDay: Number(process.env.LINGXI_SPONSOR_PER_DAY ?? 25),
+        // the day's OKB budget for keeping pets (B9), in OKB; 25 pets at the most each may cost unless told
+        okbPerDayWei: parseEther(process.env.LINGXI_SPONSOR_OKB_PER_DAY ?? "0.002"),
       });
       if (relayer && chainCtx) sponsoring = { gate, relayer, deployment: chainCtx.deployment, who: clientIp };
     } catch (e) {

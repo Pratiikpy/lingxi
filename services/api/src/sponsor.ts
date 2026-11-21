@@ -5,8 +5,10 @@
  *
  * A request is the device key's signature over what it asks for (@lingxi/chain sponsor.ts), so nobody can have a pet
  * hatched to an address they do not hold; it is dated, and an address gets one sponsored pet ever, so it cannot be sent
- * twice. One network gets one a day and a /48 three, and the whole game a daily count. A slot is held from the check to
- * the outcome, so two requests at once cannot both pass; a request that sent nothing gives its slot back.
+ * twice. One network gets one a day and a /48 three, and the whole game a daily count and a daily OKB budget (B9): what
+ * today's sends really cost, read from their receipts, plus the most each request on its way may still cost. A slot is
+ * held from the check to the outcome, so two requests at once cannot both pass; a request that sent nothing gives its
+ * slot back.
  */
 
 import { mkdirSync } from "node:fs";
@@ -21,6 +23,8 @@ import { prefixOf } from "./limit";
 export const SPONSOR_GRANT_WEI = 50_000_000_000_000n;
 /** What one sponsored pet may cost the relayer at most: the grant, and gas for the hatch and the grant. */
 export const SPONSOR_SET_ASIDE_WEI = 80_000_000_000_000n;
+/** The day's OKB budget when the server is not told one: 25 pets at the most each may cost (B9). */
+export const DEFAULT_OKB_PER_DAY_WEI = 25n * 80_000_000_000_000n;
 /** How old (or how far ahead) a request may be. */
 export const SPONSOR_MAX_AGE_MS = 10 * 60_000;
 
@@ -44,6 +48,10 @@ export interface SponsoredPet {
   hatchTx: string | null;
   /** null when the gas never arrived; the same key may then ask for the gas alone */
   grantTx: string | null;
+  /** what it cost the relayer, in wei, as a decimal string (B9); absent on a pet kept before it was recorded */
+  spentWei?: string;
+  /** when its gas was sent later, alone (that cost is counted on that day) */
+  grantAt?: number;
 }
 
 interface Store {
@@ -68,6 +76,8 @@ export interface SponsorOptions {
   enabled: boolean;
   /** sponsored pets for the whole game in one UTC day */
   perDay?: number;
+  /** OKB the relayer may spend keeping pets in one UTC day, in wei (B9) */
+  okbPerDayWei?: bigint;
   /** for one network (a /64 or an IPv4 address) in a day */
   perNetwork?: number;
   /** for one IPv6 /48 in a day */
@@ -117,9 +127,11 @@ export class SponsorGate {
     if (this.inflight.has(to)) return { ok: false, reason: "busy", detail: "a request for this pet is already on its way" };
     const had = this.store.pets.find((p) => p.to === to && p.petId !== null);
     if (had && had.grantTx !== null) return { ok: false, reason: "had", detail: "this device already has a pet kept for it" };
+    const today = dayOf(this.now());
+    if (this.spentToday(today) + SPONSOR_SET_ASIDE_WEI > (this.o.okbPerDayWei ?? DEFAULT_OKB_PER_DAY_WEI))
+      return { ok: false, reason: "budget", detail: "today's OKB for keeping pets is spent; try tomorrow" };
     if (had) return this.take({ to, network, line: b.line, state, retryGrant: true, petId: had.petId });
 
-    const today = dayOf(this.now());
     const counted = [...this.store.pets.filter((p) => dayOf(p.at) === today), ...[...this.inflight.values()].filter((s) => !s.retryGrant)];
     const prefix = prefixOf(network);
     if (counted.filter((p) => p.network === network).length >= (this.o.perNetwork ?? 1)) return { ok: false, reason: "network", detail: "this network has had its pet today" };
@@ -128,17 +140,32 @@ export class SponsorGate {
     return this.take({ to, network, line: b.line, state, retryGrant: false, petId: null });
   }
 
+  /**
+   * OKB spent keeping pets today: each send's recorded cost (the set-aside for a pet kept before costs were recorded),
+   * and the set-aside for every request still on its way, since it may yet cost that much.
+   */
+  spentToday(today = dayOf(this.now())): bigint {
+    const kept = this.store.pets.filter((p) => dayOf(p.at) === today || (p.grantAt !== undefined && dayOf(p.grantAt) === today));
+    const sent = kept.reduce((sum, p) => sum + (p.spentWei !== undefined ? BigInt(p.spentWei) : SPONSOR_SET_ASIDE_WEI), 0n);
+    return sent + BigInt(this.inflight.size) * SPONSOR_SET_ASIDE_WEI;
+  }
+
   private take(slot: SponsorSlot): SponsorCheck {
     this.inflight.set(slot.to, slot);
     return { ok: true, slot, retryGrant: slot.retryGrant, petId: slot.petId };
   }
 
   /** The outcome of a slot that sent something: kept for good (a failed hatch too, since its gas was spent). */
-  finish(slot: SponsorSlot, outcome: { petId: string | null; hatchTx: string | null; grantTx: string | null }): void {
+  finish(slot: SponsorSlot, outcome: { petId: string | null; hatchTx: string | null; grantTx: string | null; spentWei?: bigint }): void {
     this.inflight.delete(slot.to);
+    const spent = outcome.spentWei ?? SPONSOR_SET_ASIDE_WEI;
     const known = this.store.pets.find((p) => p.to === slot.to && p.petId !== null);
-    if (slot.retryGrant && known) known.grantTx = outcome.grantTx;
-    else this.store.pets.push({ to: slot.to, petId: outcome.petId, network: slot.network, at: this.now(), hatchTx: outcome.hatchTx, grantTx: outcome.grantTx });
+    if (slot.retryGrant && known) {
+      // the gas alone, later: its cost is added to the pet's and counted on the day it was sent
+      known.grantTx = outcome.grantTx;
+      known.spentWei = ((known.spentWei !== undefined ? BigInt(known.spentWei) : SPONSOR_SET_ASIDE_WEI) + spent).toString();
+      known.grantAt = this.now();
+    } else this.store.pets.push({ to: slot.to, petId: outcome.petId, network: slot.network, at: this.now(), hatchTx: outcome.hatchTx, grantTx: outcome.grantTx, spentWei: spent.toString() });
     this.save();
   }
 
