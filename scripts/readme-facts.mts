@@ -16,9 +16,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { RULES } from "../packages/chain/src/rules.ts";
 import { SKILLS, TREES } from "../packages/game/src/skills.ts";
-import { CHARACTERS, DAILIES, ITEM, LANE, RECIPES, ROOMS, STORY } from "../packages/world/src/index.ts";
-import { WEARABLES } from "../packages/art/src/wear.ts";
-import { BUILDER_WEARABLES } from "../packages/art/src/builders.ts";
+import { CHARACTERS, DAILIES, ITEM, LANE, PIECES, RECIPES, ROOMS, STORY } from "../packages/world/src/index.ts";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const README = join(root, "README.md");
@@ -85,8 +83,8 @@ const CONTRACT_KEYS = ["registry", "breeder", "adoptionCentre", "outfitMarketV2"
 
 const facts: Record<string, string> = {
   rooms: String(Object.keys(ROOMS).length),
-  // every piece a pet can wear: the wardrobe's and the builders' quest pieces (A110)
-  wearables: String(WEARABLES.length + BUILDER_WEARABLES.length),
+  // every piece a player's pet can wear: the wardrobe (A126), not the art's lit states or the residents' own pieces
+  wearables: String(Object.keys(PIECES).length),
   quests: String(STORY.length),
   dailies: String(DAILIES.length),
   items: String(Object.keys(ITEM).length),

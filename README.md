@@ -59,7 +59,7 @@ The game runs the same netlist through a fast local evaluator; any beat can be r
 
 **Grow a family.** Two grown pets that are best friends can have a child. The child's brain is both parents' circuits composed by REF, so, kept on X Layer, it is as checkable as they are. Every pet hatched or bred on X Layer appears on the tree of life, read from the chain.
 
-**Dress it, and draw for others.** <!--f:wearables-->47<!--/f--> pieces to wear (hats, face pieces and things to hold), each drawn to fit every line, stage and adult form. Draw your own in the design studio and sell it on the fashion market; creators earn on every sale and resale.
+**Dress it, and draw for others.** <!--f:wearables-->29<!--/f--> pieces to wear (hats, face pieces and things to hold), each drawn to fit every line, stage and adult form. Draw your own in the design studio and sell it on the fashion market; creators earn on every sale and resale.
 
 **Meet friends.** Pets share a room live, friends visit your decorated home, gifts and red packets travel by link, and a friend can pet-sit while you are away.
 

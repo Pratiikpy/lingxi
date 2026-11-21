@@ -28,7 +28,7 @@ Kinds of check:
 | two-step-owners | README | Ownership is handed over in two steps on every owned contract except the first outfit market. | auto:two-step-owners |
 | owner-powers-listed | README | Every power a contract gives its owner is in the README's table of owner powers, named by function in its contract's row; HolderGift and the first Breeder give none. | test:scripts/ownerPowers.test.mts |
 | owner-state | README | Every owner is the deployer; PetLook's art is still open; the renderer is PetLook; the item shop's voucher signer is the game's; of the two breeders only BreederV2 may record births. | auto:owner-state |
-| wearables | README | The number of pieces a pet can wear (the wardrobe's and the builders' quest pieces), hats, face pieces and things to hold. | facts:wearables |
+| wearables | README | The number of pieces a player's pet can wear is the wardrobe's, and every one of them is drawn, hats, face pieces and things to hold. | test:scripts/wearables.test.mts |
 | wearables-fit | README | Each piece is drawn to fit every line, stage and adult form. | test:packages/art/test/wear.test.ts |
 | season-keepsake | README | A week's keepsake goes to the best-placed pet proven to be on X Layer, sent to its owner; an unproven champion is skipped. | test:services/api/test/season.test.ts |
 | slither-finding | README (Security) | Slither found one issue that needed a fix, in the first OutfitMarket before it was deployed: its sale flag stayed raised during a buyer's ERC-1155 callback; the fix is held by a test. | test:contracts/test/OutfitMarket.t.sol |
