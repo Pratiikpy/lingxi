@@ -32,6 +32,16 @@ export const SKILL_RULE: RuleCircuit = {
   name: "skills",
   about: { en: "Which tier of a skill tree is open for the points held in it, and how many points each tier needs.", zh: "技能树里，按已投入的点数哪一层开放，以及每层需要多少点。" },
   inBits: 9,
+  fields: {
+    inputs: [
+      { name: "held", lo: 0, bits: 6, meaning: { en: "points held in the tree (0 to 63; a full tree holds 62)", zh: "这棵树里已投入的点数（0 到 63；满树 62）" } },
+      { name: "tier", lo: 6, bits: 3, meaning: { en: "the tier asked about: 1 to 6 (0 and 7 are no tier)", zh: "问的是第几层：1 到 6（0 和 7 不是层）" } },
+    ],
+    outputs: [
+      { name: "open", lo: 0, bits: 1, meaning: { en: "1 when the tier is open", zh: "这一层已开放时为 1" } },
+      { name: "needs", lo: 1, bits: 6, meaning: { en: "points the tier needs (63 for no tier)", zh: "这一层需要的点数（不是层时为 63）" } },
+    ],
+  },
   reference: (w) => {
     const held = w & 63;
     const tier = (w >> 6) & 7;

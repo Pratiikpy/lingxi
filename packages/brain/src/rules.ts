@@ -20,6 +20,16 @@ export interface RuleCircuit {
   inBits: number;
   /** the rule as plain arithmetic: input word to 8-bit answer */
   reference: (word: number) => number;
+  /** what each input and answer bit means, for the circuit catalogue other projects read (H6) */
+  fields: { inputs: readonly RuleField[]; outputs: readonly RuleField[] };
+}
+
+/** A field of a rule's input word or answer: its low bit, its width, and what its values mean. */
+export interface RuleField {
+  name: string;
+  lo: number;
+  bits: number;
+  meaning: { en: string; zh: string };
 }
 
 export const RULE_VERSION = "LX-RULE/1";

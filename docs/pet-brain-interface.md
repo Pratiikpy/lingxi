@@ -20,6 +20,11 @@ Lingxi's code is [`circuits.html`](https://lingxi.knole.me/circuits.html).
 Inputs, outputs and memory are packed the same way: little-endian bytes, bit 0 of the word in bit 0 of the first byte,
 `ceil(n / 8)` bytes for `n` pins. Every Lingxi circuit has 16 input pins (2 bytes) and 8 output pins (1 byte).
 
+Calls use the standard Solidity ABI. `eval`'s calldata is its selector `0x934d06ea`, the id as a 32-byte word, the offset
+of `inputs` (`0x40`), the length of `inputs` in bytes, then the bytes padded to 32; `step`'s is `0xe8281a1a`, the id, the
+offsets of `state` and `inputs`, then each as its length and padded bytes. Answers come back ABI-encoded the same way.
+Circuit ids in the catalogue are uint256 values written as decimal strings.
+
 ## The 16 input pins
 
 | pins | field | values |
@@ -44,16 +49,20 @@ Inputs, outputs and memory are packed the same way: little-endian bytes, bit 0 o
 ## Memory
 
 A brain's memory is LATCH bits after the gates, carried between beats by `step`. Each program declares its fields in
-order, and their bits follow that order. The starter brains declare: `trust` (a 3-bit counter), `likesToys` (a flag),
-`scared` (a flag) and `awake` (a 3-bit timer that counts beats since the last sleep and stops at 7): 8 bits. A fresh pet
-starts from all zeros. One beat is one minute of a pet's life.
+order, and their bits follow that order from bit 0 of the state. The starter brains declare `trust` (bits 0-2, a
+counter), `likesToys` (bit 3, a flag), `scared` (bit 4, a flag) and `awake` (bits 5-7, a timer that counts beats since
+the last sleep and stops at 7): 8 bits, so the state is 1 byte (`nState` counts bits). A fresh pet starts from all zeros.
+One beat is one minute of a pet's life.
 
 ## Rule circuits
 
 A rule circuit answers one question of the game's rules (what a search finds, how a gift moves trust, what a skill does)
-from the low `inBits` of its 16 input pins, as one byte; the pins above `inBits` are ignored. Each one's meaning, input
-width and every documented answer are in the catalogue, and the game checks on every load that the rules it runs are
-byte for byte the circuits on chain.
+from the low `inBits` of its 16 input pins, as one byte; the pins above `inBits` are ignored. Each rule in the catalogue
+lists its input fields and answer fields (each with its low bit, width and what its values mean; the trust rule's
+answer, for one, is `level` in bits 0-2, `gain` in bits 3-5 and `refused` in bit 6), its input width and every documented
+answer. The fields are declared beside each rule's own reference in the code, and a test checks they cover exactly the
+bits the rule reads and answers. The game checks on every load that the rules it runs are byte for byte the circuits on
+chain.
 
 ## Using one in your own circuit
 

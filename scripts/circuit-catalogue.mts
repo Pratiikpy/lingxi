@@ -64,6 +64,8 @@ const rules = RULES.map((rule) => {
     gates: rec.gates,
     netlistBytes: bytes.length,
     netlistKeccak: keccak256(bytes),
+    // what each input and answer bit means (declared beside the rule's reference, so it cannot drift from it)
+    fields: rule.fields,
     vectors: inputs.map((i) => [i, rule.reference(i)] as [number, number]),
   };
 });
@@ -88,7 +90,11 @@ const brains = BRAINS.map((line) => {
     nState,
     netlistBytes: bytes.length,
     netlistKeccak: keccak256(bytes),
-    memory: program.memory.map((m) => ({ name: m.name, label: m.label, kind: m.kind, bits: m.kind === "flag" ? 1 : (m as { bits: number }).bits })),
+    // memory bits in declaration order from bit 0 of the state
+    memory: program.memory.reduce<Array<{ name: string; label?: string; kind: string; lo: number; bits: number }>>((acc, m) => {
+      const lo = acc.reduce((n, x) => n + x.bits, 0);
+      return [...acc, { name: m.name, ...(m.label ? { label: m.label } : {}), kind: m.kind, lo, bits: m.kind === "flag" ? 1 : (m as { bits: number }).bits }];
+    }, []),
     stateFromZero: 0,
     vectors,
   };
@@ -105,6 +111,10 @@ const catalogue = {
   explorer: "https://www.oklink.com/xlayer",
   processor: d.processor as Address,
   encoding: {
+    abi: "standard Solidity ABI: eval's calldata is its 4-byte selector, then id as a 32-byte word, then the offset of inputs (0x40), then inputs' length in bytes, then inputs padded to 32 bytes; step's is the selector, id, the offsets of state and inputs, then each as length and padded bytes. The answer is ABI-encoded the same way. Selectors: eval 0x934d06ea, step 0xe8281a1a (keccak256 of the signature).",
+    ids: "every circuit id here is a uint256 written as a decimal string",
+    nState: "nState counts bits; the state is ceil(nState / 8) bytes (1 byte for the starter brains)",
+    brains: "brains are listed by their line (gentle, bold, curious); name is a label",
     inputs: "bytes, little-endian: bit 0 of the input word is bit 0 of the first byte; ceil(nIn / 8) bytes (2 for every circuit here: each has 16 input pins, and a rule reads only its low inBits, the rest 0)",
     outputs: "bytes, little-endian, the same way: the first byte holds output bits 0 to 7",
     state: "a brain's memory, packed the same way as inputs (processor.step takes and returns it)",

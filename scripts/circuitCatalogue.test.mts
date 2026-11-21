@@ -13,7 +13,7 @@ import { RULES } from "@lingxi/chain";
 const root = join(import.meta.dirname, "..");
 const cat = JSON.parse(readFileSync(join(root, "apps/web/public/circuits.json"), "utf8")) as {
   processor: string;
-  rules: Array<{ name: string; id: string; nIn: number; inBits: number; netlistKeccak: string; vectors: Array<[number, number]> }>;
+  rules: Array<{ name: string; id: string; nIn: number; inBits: number; netlistKeccak: string; fields: unknown; vectors: Array<[number, number]> }>;
   brains: Array<{ line: "gentle" | "bold" | "curious"; id: string; nState: number; netlistKeccak: string; vectors: Array<{ input: number; output: number; nextState: number }> }>;
 };
 const d = JSON.parse(readFileSync(join(root, "packages/chain/deployments/xlayer.json"), "utf8")) as { processor: string; rules: Record<string, { id: string }>; circuits: Record<string, { id: string }> };
@@ -28,6 +28,25 @@ describe("the circuit catalogue (H6)", () => {
       expect(r.nIn).toBe(16);
       expect(r.netlistKeccak, rule.name).toBe(keccak256(ruleBytes(rule)));
       for (const [i, out] of r.vectors) expect(out, `${rule.name} ${i}`).toBe(rule.reference(i));
+    }
+  });
+
+  it("says what every bit means: a rule's input fields cover exactly its input bits, its answer fields fit in 8, none overlap", () => {
+    const covers = (fields: ReadonlyArray<{ lo: number; bits: number }>) => {
+      const bits = fields.flatMap((f) => Array.from({ length: f.bits }, (_, k) => f.lo + k));
+      return { bits: [...bits].sort((x, y) => x - y), unique: new Set(bits).size === bits.length };
+    };
+    for (const rule of RULES) {
+      const inp = covers(rule.fields.inputs);
+      expect(inp.unique, `${rule.name} inputs overlap`).toBe(true);
+      expect(inp.bits, `${rule.name} inputs cover its ${rule.inBits} bits`).toEqual(Array.from({ length: rule.inBits }, (_, k) => k));
+      const out = covers(rule.fields.outputs);
+      expect(out.unique, `${rule.name} outputs overlap`).toBe(true);
+      expect(Math.max(...out.bits), `${rule.name} outputs fit a byte`).toBeLessThan(8);
+      // every answer the rule gives lives in its declared answer bits
+      const used = out.bits.reduce((m, b) => m | (1 << b), 0);
+      for (let w = 0; w < 2 ** rule.inBits; w++) expect(rule.reference(w) & ~used, `${rule.name} ${w}`).toBe(0);
+      expect(cat.rules.find((r) => r.name === rule.name)?.fields).toEqual(JSON.parse(JSON.stringify(rule.fields)));
     }
   });
 

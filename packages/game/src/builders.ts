@@ -314,6 +314,17 @@ export const builderRule = (b: BuilderPet): RuleCircuit => ({
   name: `builder:${b.id}`,
   about: { en: "Which of this builder pet's lines it says now, and its mood: by the four-minute slot, the time of day and whether you have met.", zh: "这只建造者宠物现在说哪句话、心情如何：取决于四分钟一格的时段、一天中的时间，以及你们是否见过。" },
   inBits: 9,
+  fields: {
+    inputs: [
+      { name: "slot", lo: 0, bits: 6, meaning: { en: "the four-minute slot of the day (the same for everyone, so a line is shared by all who visit)", zh: "一天中的四分钟时段（人人相同，所以来访的人听到同一句）" } },
+      { name: "time", lo: 6, bits: 2, meaning: { en: "time of day: 0 night, 1 morning, 2 day, 3 evening", zh: "一天中的时间：0 夜里，1 早上，2 白天，3 傍晚" } },
+      { name: "met", lo: 8, bits: 1, meaning: { en: "1 when you have met it before", zh: "你们见过时为 1" } },
+    ],
+    outputs: [
+      { name: "mood", lo: 0, bits: 2, meaning: { en: "mood (0 to 3)", zh: "心情（0 到 3）" } },
+      { name: "line", lo: 2, bits: 3, meaning: { en: "which of its lines it says now", zh: "它现在说的是第几句" } },
+    ],
+  },
   reference: (w) => builderReference(b, w),
 });
 
