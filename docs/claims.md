@@ -81,7 +81,7 @@ Kinds of check:
 | deweb-server | on-chain copy | The on-chain copy has no server of its own; its proof page asks Lingxi's indexer only for public things (which transactions to read, an owner's published log) and proves each on X Layer. | test:apps/web/src/game/rpcAsk.test.ts |
 | live-pages | README, landing | The live site serves the game, the proof page, the numbers, the tree of life and the agents' API. | auto:live-pages |
 | red-packet | landing, README | Red packets hold USDT in a contract, and a circuit decides each share. | test:contracts/test/RedPacket.fork.t.sol |
-| families | landing, README | A child's mind is its parents' circuits composed by REF, on chain. | test:contracts/test/BreederV2.fork.t.sol |
+| families | landing, README | A child's mind is its parents' circuits composed by REF, on chain when both parents are kept there. | test:contracts/test/BreederV2.fork.t.sol |
 | handheld | README | The handheld runs the same circuit and the game replays its trip bit for bit before taking the pet back. | test:packages/handheld/test/trip.test.ts |
 | cardputer-build | README | The Cardputer firmware builds (849 KB of flash, 240 KB of RAM). | manual: PlatformIO build of env `cardputer-adv`, recorded in BUILD-STATUS section 102; the self-test image runs on an emulated ESP32-S3 (`pnpm --filter @lingxi/handheld chip:selftest`). |
 | adoption-young | README | Only a bred, still young pet that never changed hands can be offered for adoption. | test:contracts/test/AdoptionCentre.fork.t.sol |

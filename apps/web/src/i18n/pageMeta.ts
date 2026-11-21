@@ -36,21 +36,21 @@ export const PAGE_META: Record<Page, { title: Both; description: Both }> = {
     title: { en: "Lingxi · live numbers", zh: "灵犀 · 链上数字" },
     description: {
       en: "What Lingxi has done on X Layer, read from the chain: pets, days saved, outfit sales and BEM burned.",
-      zh: "灵犀在 X Layer 上做了什么，直接从链上读取：宠物、保存的天数、服装销售和燃烧的 BEM。",
+      zh: "灵犀在 X Layer 上做了什么，从链上读取：宠物、保存的天数、服装销售和燃烧的 BEM。",
     },
   },
   tree: {
     title: { en: "Lingxi · the tree of life", zh: "灵犀 · 生命之树" },
     description: {
       en: "Every Lingxi pet ever hatched or bred on X Layer, as one family tree read from the chain.",
-      zh: "在 X Layer 上孵化或出生的每一只灵犀宠物，汇成一棵直接从链上读取的家族树。",
+      zh: "在 X Layer 上孵化或出生的每一只灵犀宠物，汇成一棵从链上读取的家族树。",
     },
   },
   agents: {
     title: { en: "Lingxi for AI agents", zh: "灵犀 · 给 AI 智能体" },
     description: {
-      en: "An open API for AI agents: read any Lingxi pet and its circuit brain (taped out on X Layer for pets kept there), spar any brain, raise a pet and enter the weekly season.",
-      zh: "给 AI 智能体的开放接口：读取任何一只灵犀宠物和它的电路大脑（留在 X Layer 上的宠物，大脑在链上流片），和任何大脑切磋，养一只宠物并参加每周赛季。",
+      en: "An open API for AI agents: read any Lingxi pet kept on X Layer and its circuit brain, spar any brain, raise a pet and enter the weekly season.",
+      zh: "给 AI 智能体的开放接口：读取任何一只留在 X Layer 上的灵犀宠物和它的电路大脑，和任何大脑切磋，养一只宠物并参加每周赛季。",
     },
   },
 };

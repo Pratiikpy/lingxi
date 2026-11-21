@@ -177,6 +177,17 @@ describe("the wording the audits corrected stays corrected (A87)", () => {
     expect(api).toMatch(/An agent can read any pet kept on X Layer and its brain netlist/);
   });
 
+  it("A134, A135, A137 and A138: four smaller sentences say what holds", () => {
+    expect(read("apps/web/src/i18n/pageMeta.ts")).not.toMatch(/直接从链上读取/);
+    expect(read("docs/claims.md")).toMatch(/composed by REF, on chain when both parents are kept there/);
+    const readme = read("README.md");
+    expect(readme).not.toMatch(/Every one of these numbers is read from X Layer/);
+    expect(readme).toMatch(/The prices above are checked against the contracts by the claims sheet/);
+    const quest = read("packages/world/src/questline/arc01-first-days.ts");
+    expect(quest).not.toMatch(/my whole day on it|上面是我的一整天/);
+    expect(quest).toMatch(/a page with my saved day on it/);
+  });
+
   it("A88: the README says what pet #1's home address is, not only that it is pet #1's", () => {
     const row = read("README.md").split("\n").find((l) => l.startsWith("| Containers |")) ?? "";
     expect(row).not.toMatch(/a pet's home is a TapeOut container; pet #1's is/);

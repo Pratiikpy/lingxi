@@ -95,7 +95,7 @@ export const ARC_1: QuestDef[] = [
   pet(11, "q10", {
     title: T("Kept forever", "永远留住"),
     intro: [say("shy", "Will you remember today? I want today to last.", "你会记得今天吗？我想让今天一直留着。"), say("happy", "Save one day on X Layer and it's kept for good, where anyone can check it.", "在 X Layer 上保存一天，它就会永远留下，谁都能核对。")],
-    outro: [say("sparkly", "Kept. Forever and ever. There's a page with my whole day on it now.", "留住了。永永远远。现在有一个页面，上面是我的一整天。")],
+    outro: [say("sparkly", "Kept. Forever and ever. There's a page with my saved day on it now.", "留住了。永永远远。现在有一个页面，上面是我保存下来的这一天。")],
     objectives: [obj(from("SAVE", undefined, 1), "Save one day on X Layer", "在 X Layer 上保存一天")],
     rewards: [coins(30), flag("first-day")],
     hint: "keep",
