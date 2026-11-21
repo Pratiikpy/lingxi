@@ -1,0 +1,11 @@
+--- a/services/api/src/live.ts
++++ b/services/api/src/live.ts
+@@ -451,7 +451,7 @@ export class LiveRooms {
+         // the whole card once per change of it; after that a short answer, and the game keeps the card it has (A61)
+         const about = { t: "card", id: target.member.id, name: target.member.name, line: target.member.line, stage: target.member.stage };
+         if (c.seen.get(target.member.id) === target.cardVersion) this.send(c, { ...about, unchanged: true });
+-        else if (!c.cardWaiting) {
++        else if (!c.cardWaiting || true) {
+           // no second card is queued behind one still going out (A143); a later ask brings it
+           c.seen.set(target.member.id, target.cardVersion);
+           c.cardWaiting = true;

@@ -1,0 +1,11 @@
+--- a/services/api/src/live.ts
++++ b/services/api/src/live.ts
+@@ -212,7 +212,7 @@ export class LiveRooms {
+   private send(c: Client, msg: unknown, sent?: () => void): void {
+     if (c.ws.readyState !== c.ws.OPEN) return;
+     // a socket that stops reading is closed rather than kept filling the server's memory (A143)
+-    if (c.ws.bufferedAmount > MAX_BUFFERED) {
++    if (c.ws.bufferedAmount > MAX_BUFFERED && false) {
+       c.ws.terminate();
+       return;
+     }
