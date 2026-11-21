@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/store.ts
++++ b/apps/web/src/game/store.ts
+@@ -26,7 +26,7 @@ const STAGE_RANK: Record<string, number> = { baby: 1, child: 2, teen: 3, adult:
+  */
+ export function countCare(kind: Care["kind"], wasAsleep: boolean, r: CareResult): void {
+   // the tally counts what care actually did (plan 4.1), by the rules the simulator counts by too (G11)
+-  const counted = careTally(kind, wasAsleep, r);
++  const counted = careTally(kind, wasAsleep, r).filter(([, , , total]) => total);
+   noteTallies(counted);
+   if (counted.some(([, index]) => index === "pet") && takeComfort()) noteEvent("comforted");
+   const metric = CARE_METRIC[r.note];
