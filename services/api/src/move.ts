@@ -9,7 +9,7 @@
 import { randomBytes } from "node:crypto";
 import { MoveSave } from "@lingxi/api-schema";
 import { SEND_LIMITS } from "@lingxi/chain/limits";
-import { PREFIX_SHARE, heldOver, prefixOf } from "./limit";
+import { PREFIX_SHARE, heldOver, prefixOf, shareOf } from "./limit";
 
 /** How long a move waits to be claimed. */
 export const MOVE_TTL_MS = 15 * 60_000;
@@ -51,11 +51,17 @@ export function createMoveStore(now: () => number = Date.now) {
       const prefix = prefixOf(owner);
       let mine = 0;
       let network = 0;
+      let places = 0;
       for (const v of held.values()) {
         if (v.owner === owner) mine += v.size;
         if (prefix !== null && prefixOf(v.owner) === prefix) network += v.size;
+        if ((prefixOf(v.owner) ?? v.owner) === (prefix ?? owner)) places++;
       }
-      if (mine + size > MAX_OWNER_CHARS || network + size > MAX_OWNER_CHARS * PREFIX_SHARE) return { ok: false, reason: "busy" };
+      // a sender's share shrinks as the shelf fills, in characters and in places, so a few networks cannot fill it (A141)
+      const free = MAX_HELD_CHARS - heldChars;
+      if (mine + size > shareOf(MAX_OWNER_CHARS, free, mine)) return { ok: false, reason: "busy" };
+      if (prefix !== null && network + size > shareOf(MAX_OWNER_CHARS * PREFIX_SHARE, free, network)) return { ok: false, reason: "busy" };
+      if (places + 1 > Math.max(1, shareOf(MAX_WAITING_PER_OWNER * PREFIX_SHARE, MAX_HELD - held.size, places))) return { ok: false, reason: "busy" };
       const code = randomBytes(16).toString("base64url");
       const until = now() + MOVE_TTL_MS;
       held.set(code, { save: parsed.data, until, size, owner });

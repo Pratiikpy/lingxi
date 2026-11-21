@@ -16,7 +16,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync } 
 import { open, readFile, rename, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { SEND_LIMITS } from "@lingxi/chain/limits";
-import { heldOver, prefixOf } from "./limit";
+import { heldOver, prefixOf, shareOf } from "./limit";
 import { hasStore, loadJson, saveJson } from "./durable";
 
 const MAX_PACK = SEND_LIMITS.sitPackChars;
@@ -113,7 +113,7 @@ function memoryBlobs(): Blobs {
  * `dir` holds the packs; a `dir` ending in `.json` is taken as the old single-file store, which is moved into a folder
  * of the same name without the extension.
  */
-export function createSittingStore(dir?: string, now: () => number = Date.now, limits: { maxBytes: number; perOwner: number; perNetworkBytes?: number } = { maxBytes: MAX_SITTING_BYTES, perOwner: MAX_PACKS_PER_OWNER }): SittingStore {
+export function createSittingStore(dir?: string, now: () => number = Date.now, limits: { maxBytes: number; perOwner: number; perNetworkBytes?: number; freeShare?: number } = { maxBytes: MAX_SITTING_BYTES, perOwner: MAX_PACKS_PER_OWNER }): SittingStore {
   const legacy = dir?.endsWith(".json") ? dir : undefined;
   const folder = legacy ? legacy.slice(0, -".json".length) : dir;
   const blobs = folder ? folderBlobs(folder) : memoryBlobs();
@@ -206,8 +206,9 @@ export function createSittingStore(dir?: string, now: () => number = Date.now, l
       if (heldOver([...index.values()].map((e) => e.owner), owner, limits.perOwner)) return { ok: false, reason: "tooMany" };
       const network = prefixOf(owner) ?? owner;
       const theirs = [...index.values()].filter((e) => (prefixOf(e.owner) ?? e.owner) === network).reduce((n, e) => n + e.size + (e.backSize ?? 0), 0);
-      if (theirs + pack.length > (limits.perNetworkBytes ?? MAX_SITTING_BYTES_PER_NETWORK)) return { ok: false, reason: "tooMany" };
       if (bytes + pack.length > limits.maxBytes) return { ok: false, reason: "full" };
+      // and that share shrinks as the shelf fills, so a few networks cannot fill it (A141)
+      if (theirs + pack.length > shareOf(limits.perNetworkBytes ?? MAX_SITTING_BYTES_PER_NETWORK, limits.maxBytes - bytes, theirs, limits.freeShare)) return { ok: false, reason: "tooMany" };
       // the place and the bytes are taken before the write, so requests in flight together cannot all pass the caps
       // above (A76); a write that fails gives them back
       const code = randomBytes(12).toString("hex");

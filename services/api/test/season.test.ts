@@ -45,6 +45,24 @@ describe("weekly seasons", () => {
 });
 
 describe("no one fills the season", () => {
+  it("a full week takes a proven pet in place of the newest unproven entry from the most crowded network (A141)", () => {
+    const store = createSeasonStore(undefined, () => T);
+    // six /48s fill the week with unproven entries
+    let n = 0;
+    for (let net = 0; net < 6; net++)
+      for (let i = 0; i < 12 && n < MAX_ENTRIES; i++, n++) store.enter(pet(`N${n}`), `device-n-${String(n).padStart(4, "0")}`, { from: `2001:db8:${(0x1600 + net).toString(16)}:${(i % 4).toString(16)}::/64` });
+    expect(store.view("2026-W47")!.entries.length).toBe(MAX_ENTRIES);
+    expect(store.enter(pet("Open"), "device-open-0001", { from: "198.51.100.30" }), "an unproven newcomer still finds the week full").toEqual({ ok: false, reason: "full" });
+    const proven = store.enter(pet("Proven"), "device-proven-01", { from: "198.51.100.31", petId: "42" });
+    expect(proven.ok, "a proven pet gets in").toBe(true);
+    const names = store.view("2026-W47")!.entries.map((e) => e.pet.name);
+    expect(names.length).toBe(MAX_ENTRIES);
+    expect(names).toContain("Proven");
+    // five networks tie at twelve entries each: the newest of their unproven entries made way
+    expect(names, "the newest entry of the most crowded networks made way").not.toContain("N59");
+    expect(names).toContain("N58");
+  });
+
   it("one IPv6 /48 holds four addresses' worth of entries, and another player still gets in (A117)", () => {
     const store = createSeasonStore(undefined, () => T);
     const results: string[] = [];

@@ -15,7 +15,7 @@ import { createHash } from "node:crypto";
 import { MAX_ENTRIES, type SeasonEntry, type Standing, seasonStandings, standingsDigest, weekBounds, weekOf } from "@lingxi/game";
 import { validSnapshot } from "./arena";
 import { type StandingsAnswer, entriesKey } from "./standings";
-import { heldOver } from "./limit";
+import { heldOver, prefixOf } from "./limit";
 import { openShards } from "./shards";
 
 const KEEP_WEEKS = 12;
@@ -94,6 +94,20 @@ export interface SeasonStore {
 
 const tag = (s: string) => createHash("sha256").update(s).digest("hex");
 
+/**
+ * The entry that makes way for a proven pet in a full week (A141): the newest unproven entry of the network (an IPv6
+ * /48, else the address) holding the most entries; null when every entry is proven.
+ */
+function makeWay(entries: readonly SeasonEntry[], pets: Record<string, string>, from: Record<string, string>): string | null {
+  const network = (k: string) => (from[k] ? (prefixOf(from[k]) ?? from[k]) : `entry:${k}`);
+  const held = new Map<string, number>();
+  for (const e of entries) held.set(network(e.key), (held.get(network(e.key)) ?? 0) + 1);
+  const open = entries.filter((e) => !pets[e.key]);
+  if (!open.length) return null;
+  const most = Math.max(...open.map((e) => held.get(network(e.key))!));
+  return open.filter((e) => held.get(network(e.key)) === most).reduce((a, b) => (b.at >= a.at ? b : a)).key;
+}
+
 /** Where standings come from: fought on the spot (tests), or by the server's runner off the request thread (A38). */
 export interface StandingsSource {
   get: (week: string, entries: readonly SeasonEntry[]) => StandingsAnswer;
@@ -158,8 +172,15 @@ export function createSeasonStore(file?: string, now: () => number = Date.now, s
         }
       }
       const key = w.by[who] ?? tag(`lingxi-season:${week}:${who}`).slice(0, 12);
-      const at = entries.findIndex((e) => e.key === key);
-      if (at < 0 && entries.length >= MAX_ENTRIES) return { ok: false, reason: "full" };
+      let at = entries.findIndex((e) => e.key === key);
+      if (at < 0 && entries.length >= MAX_ENTRIES) {
+        // a full week takes a proven pet in place of the newest unproven entry from the most crowded network (A141)
+        const out = opts.petId ? makeWay(entries, pets, from) : null;
+        if (!out) return { ok: false, reason: "full" };
+        entries = entries.filter((e) => e.key !== out);
+        delete from[out];
+        at = entries.findIndex((e) => e.key === key);
+      }
       if (at < 0 && opts.agent && entries.filter((e) => e.agent).length >= MAX_AGENT_ENTRIES) return { ok: false, reason: "agentsFull" };
       // an address holds a few entries, and its IPv6 /48 four addresses' worth, so one network cannot fill the week (A117)
       if (at < 0 && opts.from && heldOver(Object.values(from), opts.from, MAX_ENTRIES_PER_ADDRESS)) return { ok: false, reason: "tooMany" };

@@ -110,6 +110,16 @@ export class RateLimiter {
  */
 export const PREFIX_SHARE = 4;
 
+/**
+ * A sender's share of a shelf that fills (A141): at most `cap`, and at most a sixteenth of what is free plus what the
+ * sender already holds. The first sender on an empty shelf gets its full cap; each later one a sixteenth of what is left,
+ * so filling the shelf takes many networks (about 146 to bring 256 MB down to 20 KB), not a handful.
+ */
+export const FREE_SHARE = 16;
+export function shareOf(cap: number, free: number, theirs: number, part = FREE_SHARE): number {
+  return Math.min(cap, Math.floor((free + theirs) / part));
+}
+
 /** The /64s of one /48 a limiter keeps as keys of their own; its other /64s count on the /48's share alone (A140). */
 export const KEYS_PER_PREFIX = 16;
 

@@ -43,7 +43,7 @@ describe("pet-sitting packs", () => {
 
   it("lets one address have only a few packs waiting, and keeps all packs within their byte budget", async () => {
     const t = 1_800_000_000_000;
-    const store = createSittingStore(undefined, () => t, { maxBytes: 1_000_000, perOwner: 3 });
+    const store = createSittingStore(undefined, () => t, { maxBytes: 1_000_000, perOwner: 3, freeShare: 1 });
     for (let i = 0; i < 3; i++) expect((await store.leave(pack, keyHashOf(KEY), t + 1000, "203.0.113.9")).ok).toBe(true);
     expect(await store.leave(pack, keyHashOf(KEY), t + 1000, "203.0.113.9")).toEqual({ ok: false, reason: "tooMany" });
     expect((await store.leave(pack, keyHashOf(KEY), t + 1000, "198.51.100.1")).ok).toBe(true);
@@ -55,7 +55,7 @@ describe("pet-sitting packs", () => {
 
   it("one IPv6 /48 holds four addresses' worth of packs and its share of the bytes, and another player still leaves one (A118)", async () => {
     const t = 1_800_000_000_000;
-    const store = createSittingStore(undefined, () => t, { maxBytes: 10_000_000, perOwner: 3, perNetworkBytes: 1_000_000 });
+    const store = createSittingStore(undefined, () => t, { maxBytes: 10_000_000, perOwner: 3, perNetworkBytes: 1_000_000, freeShare: 1 });
     const net = (i: number) => `2001:db8:118:${(i + 1).toString(16)}::/64`;
     const got: string[] = [];
     for (let i = 0; i < 30; i++) {
@@ -66,16 +66,26 @@ describe("pet-sitting packs", () => {
     expect(got.at(-1)).toBe("tooMany");
     expect((await store.leave(pack, keyHashOf(KEY), t + 1000, "198.51.100.18")).ok).toBe(true);
     // in bytes too: a big pack from another /64 of a /48 that already holds its share is refused
-    const bytes = createSittingStore(undefined, () => t, { maxBytes: 10_000_000, perOwner: 8, perNetworkBytes: 1_000_000 });
+    const bytes = createSittingStore(undefined, () => t, { maxBytes: 10_000_000, perOwner: 8, perNetworkBytes: 1_000_000, freeShare: 1 });
     expect((await bytes.leave(big(450_000), keyHashOf(KEY), t + 1000, "2001:db8:119:1::/64")).ok).toBe(true);
     expect((await bytes.leave(big(450_000), keyHashOf(KEY), t + 1000, "2001:db8:119:2::/64")).ok).toBe(true);
     expect(await bytes.leave(big(450_000), keyHashOf(KEY), t + 1000, "2001:db8:119:3::/64")).toEqual({ ok: false, reason: "tooMany" });
     expect((await bytes.leave(big(450_000), keyHashOf(KEY), t + 1000, "198.51.100.19")).ok).toBe(true);
   });
 
+  it("many networks leaving large packs still leave room for an honest pack (A141)", async () => {
+    const t = 1_800_000_000_000;
+    const store = createSittingStore(undefined, () => t, { maxBytes: 8_000_000, perOwner: 8, perNetworkBytes: 500_000 });
+    // each network leaves large packs, then tops off with smaller ones, as one filling the shelf would
+    for (let net = 0; net < 40; net++)
+      for (const size of [90_000, 10_000, 1_000])
+        for (let i = 0; i < 12; i++) await store.leave(big(size), keyHashOf(KEY), t + 1000, `2001:db8:${(0x1500 + net).toString(16)}:${i.toString(16)}::/64`);
+    expect((await store.leave(big(20_000), keyHashOf(KEY), t + 1000, "203.0.113.142")).ok, "a 20 KB pack from someone new").toBe(true);
+  });
+
   it("counts every pack an address still has on the shelf, past its end date too, until it is let go (A50)", async () => {
     let t = 1_800_000_000_000;
-    const store = createSittingStore(undefined, () => t, { maxBytes: 1_000_000, perOwner: 3 });
+    const store = createSittingStore(undefined, () => t, { maxBytes: 1_000_000, perOwner: 3, freeShare: 1 });
     // sittings a minute long, sent one after another
     for (let i = 0; i < 3; i++) expect((await store.leave(pack, keyHashOf(KEY), t + 60_000, "203.0.113.9")).ok).toBe(true);
     t += 2 * 60_000;
@@ -122,7 +132,7 @@ describe("a burst cannot pass the sitting caps (A76)", () => {
   it("thirty addresses at once keep to the byte budget, and a pack sent home keeps to it too", async () => {
     const t = 1_800_000_000_000;
     const size = big(1_000).length;
-    const store = createSittingStore(mkdtempSync(join(tmpdir(), "sit-")), () => t, { maxBytes: size * 5, perOwner: 8 });
+    const store = createSittingStore(mkdtempSync(join(tmpdir(), "sit-")), () => t, { maxBytes: size * 5, perOwner: 8, freeShare: 1 });
     const got = await Promise.all(Array.from({ length: 30 }, (_, i) => store.leave(big(1_000), keyHashOf(KEY), t + 86_400_000, `198.51.100.${i}`)));
     expect(got.filter((r) => r.ok)).toHaveLength(5);
     expect(store.stats().bytes).toBeLessThanOrEqual(size * 5);
@@ -146,7 +156,7 @@ describe("a burst cannot pass the sitting caps (A76)", () => {
   it("twenty pets sent home to one code at once never collide on a file, and stray temporary files are cleared (A98)", async () => {
     const t = 1_800_000_000_000;
     const dir = mkdtempSync(join(tmpdir(), "sit-"));
-    const store = createSittingStore(dir, () => t, { maxBytes: 100_000_000, perOwner: 8 });
+    const store = createSittingStore(dir, () => t, { maxBytes: 100_000_000, perOwner: 8, freeShare: 1 });
     const left = await store.leave(pack, keyHashOf(KEY), t + 86_400_000, "203.0.113.98");
     if (!left.ok) throw new Error("not left");
     const before = store.stats().bytes;

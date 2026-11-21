@@ -77,9 +77,22 @@ describe("moves waiting at once", () => {
     let fromNetwork = 0;
     for (let i = 0; i < 100; i++) if (store.put(big, `2001:db8:7:${i.toString(16)}::/64`).ok) fromNetwork++;
     const size = big["lingxi.pets.v2"].length + "lingxi.pets.v2".length;
-    expect(fromNetwork).toBe(Math.floor((MAX_OWNER_CHARS * PREFIX_SHARE) / size));
+    // at most four addresses' worth, and less as the shelf fills (A141)
+    expect(fromNetwork).toBeGreaterThanOrEqual(1);
+    expect(fromNetwork).toBeLessThanOrEqual(Math.floor((MAX_OWNER_CHARS * PREFIX_SHARE) / size));
     // so filling the whole shelf takes many networks, not seven addresses
     expect(MAX_HELD_CHARS / MAX_OWNER_CHARS).toBeGreaterThanOrEqual(16);
     expect(store.put(big, "198.51.100.1").ok, "and others still move their pets").toBe(true);
+  });
+
+  it("sixty networks posting largest saves still leave room for an honest move (A141)", () => {
+    const store = createMoveStore();
+    const big = { "lingxi.pets.v2": "x".repeat(MAX_MOVE_CHARS - 20) };
+    // each network posts largest saves, then small ones, from many /64s, as one filling the shelf would
+    const small = { "lingxi.pets.v2": "z".repeat(2_000) };
+    for (let net = 0; net < 60; net++)
+      for (const save of [big, small]) for (let i = 0; i < 16; i++) store.put(save, `2001:db8:${(0x1410 + net).toString(16)}:${i.toString(16)}::/64`);
+    const honest = { "lingxi.pets.v2": "y".repeat(20_000) };
+    expect(store.put(honest, "203.0.113.141").ok, "a 20 KB move from someone new").toBe(true);
   });
 });
