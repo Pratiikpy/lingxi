@@ -71,6 +71,19 @@ const rules = RULES.map((rule) => {
 });
 
 const BRAINS = ["gentle", "bold", "curious"] as const;
+/** Beats in each brain's documented walk. */
+const WALK_BEATS = 24;
+/** A walk through a pet's minutes: a fixed, varied sequence of inputs (a scare, a toy, food, the owner coming and going). */
+function walkOf(circuit: ReturnType<typeof load>, nState: number) {
+  let state = new Array<number>(nState).fill(0);
+  return Array.from({ length: WALK_BEATS }, (_, k) => {
+    const input = (k * 40503 + 0x6a5) & 0xffff;
+    const [next, outs] = beat(circuit, state, wordToBits(input, 16));
+    const step = { state: Number(bitsToWord(state)), input, output: Number(bitsToWord(outs)), nextState: Number(bitsToWord(next)) };
+    state = next;
+    return step;
+  });
+}
 const brains = BRAINS.map((line) => {
   const program = STARTERS[line];
   const bytes = netlistBytes(compileProgram(program));
@@ -97,6 +110,8 @@ const brains = BRAINS.map((line) => {
     }, []),
     stateFromZero: 0,
     vectors,
+    // a short life: each beat starts from the memory the last one left, so memory carried between beats is documented too
+    walk: walkOf(circuit, nState),
   };
 });
 
@@ -111,7 +126,7 @@ const catalogue = {
   explorer: "https://www.oklink.com/xlayer",
   processor: d.processor as Address,
   encoding: {
-    abi: "standard Solidity ABI: eval's calldata is its 4-byte selector, then id as a 32-byte word, then the offset of inputs (0x40), then inputs' length in bytes, then inputs padded to 32 bytes; step's is the selector, id, the offsets of state and inputs, then each as length and padded bytes. The answer is ABI-encoded the same way. Selectors: eval 0x934d06ea, step 0xe8281a1a (keccak256 of the signature).",
+    abi: "standard Solidity ABI: eval's calldata is its 4-byte selector, then id as a 32-byte word, then the offset of inputs (0x40), then inputs' length in bytes, then inputs padded to 32 bytes; step's is the selector, id, the offset of state (0x60), the offset of inputs (0x60 plus 32 for state's length plus state padded to 32 bytes), then state's length and padded bytes, then inputs' length and padded bytes. Answers are ABI-encoded the same way: eval returns one bytes (offset, length, data); step returns two, newState first and outputs second. Selectors: eval 0x934d06ea, step 0xe8281a1a (keccak256 of the signature).",
     ids: "every circuit id here is a uint256 written as a decimal string",
     nState: "nState counts bits; the state is ceil(nState / 8) bytes (1 byte for the starter brains)",
     brains: "brains are listed by their line (gentle, bold, curious); name is a label",
@@ -153,14 +168,15 @@ async function onChain(c: typeof catalogue): Promise<string[]> {
   for (const b of c.brains) {
     const stored = (await pub.readContract({ address: c.processor, abi: processorAbi, functionName: "netlist", args: [BigInt(b.id)] })) as Hex;
     if (keccak256(stored) !== b.netlistKeccak) wrong.push(`brain ${b.line} (#${b.id}): the netlist on chain hashes to ${keccak256(stored)}`);
+    const all = [...b.vectors.map((v) => ({ ...v, state: 0 })), ...b.walk];
     const got = (await pub.multicall({
       allowFailure: false,
       batchSize: 1 << 20,
-      contracts: b.vectors.map((v) => ({ address: c.processor, abi: processorAbi, functionName: "step", args: [BigInt(b.id), packWord(0, b.nState), packWord(v.input, 16)] })),
+      contracts: all.map((v) => ({ address: c.processor, abi: processorAbi, functionName: "step", args: [BigInt(b.id), packWord(v.state, b.nState), packWord(v.input, 16)] })),
     })) as Array<readonly [Hex, Hex]>;
     got.forEach(([next, out], k) => {
-      const v = b.vectors[k]!;
-      if ((unpackWord(out) & 0xff) !== v.output || unpackWord(next) !== v.nextState) wrong.push(`brain ${b.line}: input ${v.input} gives ${unpackWord(out)}/${unpackWord(next)} on chain, ${v.output}/${v.nextState} here`);
+      const v = all[k]!;
+      if ((unpackWord(out) & 0xff) !== v.output || unpackWord(next) !== v.nextState) wrong.push(`brain ${b.line}: state ${v.state} input ${v.input} gives ${unpackWord(out)}/${unpackWord(next)} on chain, ${v.output}/${v.nextState} here`);
     });
   }
   return wrong;
@@ -173,7 +189,7 @@ if (checking && JSON.stringify(target) !== JSON.stringify(catalogue)) {
   process.exit(1);
 }
 const wrong = await onChain(target);
-const vectorCount = target.rules.reduce((n, r) => n + r.vectors.length, 0) + target.brains.reduce((n, b) => n + b.vectors.length, 0);
+const vectorCount = target.rules.reduce((n, r) => n + r.vectors.length, 0) + target.brains.reduce((n, b) => n + b.vectors.length + b.walk.length, 0);
 if (wrong.length) {
   console.error(`${wrong.length} disagreement(s) with X Layer:\n${wrong.slice(0, 20).join("\n")}`);
   process.exit(1);

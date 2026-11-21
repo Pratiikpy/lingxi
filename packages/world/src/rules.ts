@@ -71,7 +71,7 @@ export const TRUST_RULE: RuleCircuit = {
     ],
     outputs: [
       { name: "level", lo: 0, bits: 3, meaning: { en: "trust level 0 to 5 (from 0, 5, 15, 30, 50, 80 points)", zh: "信任等级 0 到 5（从 0、5、15、30、50、80 点起）" } },
-      { name: "gain", lo: 3, bits: 3, meaning: { en: "points the gift adds (0 when refused or already counted today)", zh: "这份礼物加的点数（被拒收或今天已算过时为 0）" } },
+      { name: "gain", lo: 3, bits: 3, meaning: { en: "points the gift adds: 4 loved, 2 liked, 1 neutral; 0 when refused or already counted today", zh: "这份礼物加的点数：最爱 4，喜欢 2，一般 1；被拒收或今天已算过时为 0" } },
       { name: "refused", lo: 6, bits: 1, meaning: { en: "1 when the gift is refused", zh: "礼物被拒收时为 1" } },
     ],
   },

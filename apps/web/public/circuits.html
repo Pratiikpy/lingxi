@@ -185,9 +185,11 @@ function brainCard(b) {
   all.onclick = async () => {
     out.textContent = "…";
     try {
-      const rets = await inChunks(b.vectors.map((v) => callStep(b.id, packInput(0, b.nState), packInput(v.input, 16))));
-      const good = rets.filter((ret, k) => Number(unpack(bytesAt(ret, 1)) & 0xffn) === b.vectors[k].output && Number(unpack(bytesAt(ret, 0))) === b.vectors[k].nextState).length;
-      out.replaceChildren(el("span", { class: good === b.vectors.length ? "ok" : "bad" }, `${good} ${t.of} ${b.vectors.length} ${t.vectorsAgree}`));
+      // from a fresh memory, then the documented walk, where each beat starts from the memory the last one left
+      const all = [...b.vectors.map((v) => ({ ...v, state: 0 })), ...(b.walk ?? [])];
+      const rets = await inChunks(all.map((v) => callStep(b.id, packInput(v.state, b.nState), packInput(v.input, 16))));
+      const good = rets.filter((ret, k) => Number(unpack(bytesAt(ret, 1)) & 0xffn) === all[k].output && Number(unpack(bytesAt(ret, 0))) === all[k].nextState).length;
+      out.replaceChildren(el("span", { class: good === all.length ? "ok" : "bad" }, `${good} ${t.of} ${all.length} ${t.vectorsAgree}`));
     } catch { out.textContent = t.unreach; }
   };
   return el("div", { class: "card", id: `brain-${b.line}` },

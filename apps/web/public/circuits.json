@@ -12,7 +12,7 @@
  "explorer": "https://www.oklink.com/xlayer",
  "processor": "0xf70d324Da8C1C4Cb0dE3FF147E53E7E9db543c4e",
  "encoding": {
-  "abi": "standard Solidity ABI: eval's calldata is its 4-byte selector, then id as a 32-byte word, then the offset of inputs (0x40), then inputs' length in bytes, then inputs padded to 32 bytes; step's is the selector, id, the offsets of state and inputs, then each as length and padded bytes. The answer is ABI-encoded the same way. Selectors: eval 0x934d06ea, step 0xe8281a1a (keccak256 of the signature).",
+  "abi": "standard Solidity ABI: eval's calldata is its 4-byte selector, then id as a 32-byte word, then the offset of inputs (0x40), then inputs' length in bytes, then inputs padded to 32 bytes; step's is the selector, id, the offset of state (0x60), the offset of inputs (0x60 plus 32 for state's length plus state padded to 32 bytes), then state's length and padded bytes, then inputs' length and padded bytes. Answers are ABI-encoded the same way: eval returns one bytes (offset, length, data); step returns two, newState first and outputs second. Selectors: eval 0x934d06ea, step 0xe8281a1a (keccak256 of the signature).",
   "ids": "every circuit id here is a uint256 written as a decimal string",
   "nState": "nState counts bits; the state is ceil(nState / 8) bytes (1 byte for the starter brains)",
   "brains": "brains are listed by their line (gentle, bold, curious); name is a label",
@@ -425,8 +425,8 @@
       "lo": 3,
       "bits": 3,
       "meaning": {
-       "en": "points the gift adds (0 when refused or already counted today)",
-       "zh": "这份礼物加的点数（被拒收或今天已算过时为 0）"
+       "en": "points the gift adds: 4 loved, 2 liked, 1 neutral; 0 when refused or already counted today",
+       "zh": "这份礼物加的点数：最爱 4，喜欢 2，一般 1；被拒收或今天已算过时为 0"
       }
      },
      {
@@ -877,8 +877,8 @@
       "lo": 1,
       "bits": 6,
       "meaning": {
-       "en": "points the tier needs (63 for no tier)",
-       "zh": "这一层需要的点数（不是层时为 63）"
+       "en": "points the tier needs: tier 1 0, tier 2 5, tier 3 15, tier 4 25, tier 5 40, tier 6 55 (63 for no tier)",
+       "zh": "这一层需要的点数：第 1 层 0，第 2 层 5，第 3 层 15，第 4 层 25，第 5 层 40，第 6 层 55（不是层时为 63）"
       }
      }
     ]
@@ -8124,6 +8124,152 @@
      "output": 229,
      "nextState": 0
     }
+   ],
+   "walk": [
+    {
+     "state": 0,
+     "input": 1701,
+     "output": 76,
+     "nextState": 32
+    },
+    {
+     "state": 32,
+     "input": 42204,
+     "output": 26,
+     "nextState": 64
+    },
+    {
+     "state": 64,
+     "input": 17171,
+     "output": 1,
+     "nextState": 96
+    },
+    {
+     "state": 96,
+     "input": 57674,
+     "output": 229,
+     "nextState": 144
+    },
+    {
+     "state": 144,
+     "input": 32641,
+     "output": 229,
+     "nextState": 176
+    },
+    {
+     "state": 176,
+     "input": 7608,
+     "output": 8,
+     "nextState": 16
+    },
+    {
+     "state": 16,
+     "input": 48111,
+     "output": 1,
+     "nextState": 49
+    },
+    {
+     "state": 49,
+     "input": 23078,
+     "output": 186,
+     "nextState": 81
+    },
+    {
+     "state": 81,
+     "input": 63581,
+     "output": 229,
+     "nextState": 114
+    },
+    {
+     "state": 114,
+     "input": 38548,
+     "output": 14,
+     "nextState": 131
+    },
+    {
+     "state": 131,
+     "input": 13515,
+     "output": 1,
+     "nextState": 162
+    },
+    {
+     "state": 162,
+     "input": 54018,
+     "output": 11,
+     "nextState": 2
+    },
+    {
+     "state": 2,
+     "input": 28985,
+     "output": 229,
+     "nextState": 17
+    },
+    {
+     "state": 17,
+     "input": 3952,
+     "output": 8,
+     "nextState": 17
+    },
+    {
+     "state": 17,
+     "input": 44455,
+     "output": 1,
+     "nextState": 49
+    },
+    {
+     "state": 49,
+     "input": 19422,
+     "output": 186,
+     "nextState": 89
+    },
+    {
+     "state": 89,
+     "input": 59925,
+     "output": 229,
+     "nextState": 121
+    },
+    {
+     "state": 121,
+     "input": 34892,
+     "output": 11,
+     "nextState": 153
+    },
+    {
+     "state": 153,
+     "input": 9859,
+     "output": 1,
+     "nextState": 185
+    },
+    {
+     "state": 185,
+     "input": 50362,
+     "output": 17,
+     "nextState": 26
+    },
+    {
+     "state": 26,
+     "input": 25329,
+     "output": 229,
+     "nextState": 26
+    },
+    {
+     "state": 26,
+     "input": 296,
+     "output": 5,
+     "nextState": 57
+    },
+    {
+     "state": 57,
+     "input": 40799,
+     "output": 1,
+     "nextState": 73
+    },
+    {
+     "state": 73,
+     "input": 15766,
+     "output": 8,
+     "nextState": 105
+    }
    ]
   },
   {
@@ -8407,6 +8553,152 @@
      "output": 60,
      "nextState": 0
     }
+   ],
+   "walk": [
+    {
+     "state": 0,
+     "input": 1701,
+     "output": 113,
+     "nextState": 32
+    },
+    {
+     "state": 32,
+     "input": 42204,
+     "output": 186,
+     "nextState": 64
+    },
+    {
+     "state": 64,
+     "input": 17171,
+     "output": 97,
+     "nextState": 96
+    },
+    {
+     "state": 96,
+     "input": 57674,
+     "output": 60,
+     "nextState": 144
+    },
+    {
+     "state": 144,
+     "input": 32641,
+     "output": 60,
+     "nextState": 176
+    },
+    {
+     "state": 176,
+     "input": 7608,
+     "output": 84,
+     "nextState": 16
+    },
+    {
+     "state": 16,
+     "input": 48111,
+     "output": 97,
+     "nextState": 49
+    },
+    {
+     "state": 49,
+     "input": 23078,
+     "output": 186,
+     "nextState": 81
+    },
+    {
+     "state": 81,
+     "input": 63581,
+     "output": 60,
+     "nextState": 114
+    },
+    {
+     "state": 114,
+     "input": 38548,
+     "output": 12,
+     "nextState": 131
+    },
+    {
+     "state": 131,
+     "input": 13515,
+     "output": 97,
+     "nextState": 162
+    },
+    {
+     "state": 162,
+     "input": 54018,
+     "output": 3,
+     "nextState": 2
+    },
+    {
+     "state": 2,
+     "input": 28985,
+     "output": 60,
+     "nextState": 17
+    },
+    {
+     "state": 17,
+     "input": 3952,
+     "output": 12,
+     "nextState": 17
+    },
+    {
+     "state": 17,
+     "input": 44455,
+     "output": 97,
+     "nextState": 49
+    },
+    {
+     "state": 49,
+     "input": 19422,
+     "output": 186,
+     "nextState": 89
+    },
+    {
+     "state": 89,
+     "input": 59925,
+     "output": 60,
+     "nextState": 121
+    },
+    {
+     "state": 121,
+     "input": 34892,
+     "output": 3,
+     "nextState": 153
+    },
+    {
+     "state": 153,
+     "input": 9859,
+     "output": 97,
+     "nextState": 185
+    },
+    {
+     "state": 185,
+     "input": 50362,
+     "output": 113,
+     "nextState": 26
+    },
+    {
+     "state": 26,
+     "input": 25329,
+     "output": 60,
+     "nextState": 26
+    },
+    {
+     "state": 26,
+     "input": 296,
+     "output": 5,
+     "nextState": 57
+    },
+    {
+     "state": 57,
+     "input": 40799,
+     "output": 97,
+     "nextState": 73
+    },
+    {
+     "state": 73,
+     "input": 15766,
+     "output": 186,
+     "nextState": 105
+    }
    ]
   },
   {
@@ -8689,6 +8981,152 @@
      "input": 65535,
      "output": 229,
      "nextState": 0
+    }
+   ],
+   "walk": [
+    {
+     "state": 0,
+     "input": 1701,
+     "output": 84,
+     "nextState": 32
+    },
+    {
+     "state": 32,
+     "input": 42204,
+     "output": 11,
+     "nextState": 64
+    },
+    {
+     "state": 64,
+     "input": 17171,
+     "output": 1,
+     "nextState": 96
+    },
+    {
+     "state": 96,
+     "input": 57674,
+     "output": 229,
+     "nextState": 144
+    },
+    {
+     "state": 144,
+     "input": 32641,
+     "output": 229,
+     "nextState": 176
+    },
+    {
+     "state": 176,
+     "input": 7608,
+     "output": 84,
+     "nextState": 16
+    },
+    {
+     "state": 16,
+     "input": 48111,
+     "output": 1,
+     "nextState": 49
+    },
+    {
+     "state": 49,
+     "input": 23078,
+     "output": 82,
+     "nextState": 81
+    },
+    {
+     "state": 81,
+     "input": 63581,
+     "output": 229,
+     "nextState": 114
+    },
+    {
+     "state": 114,
+     "input": 38548,
+     "output": 22,
+     "nextState": 131
+    },
+    {
+     "state": 131,
+     "input": 13515,
+     "output": 1,
+     "nextState": 162
+    },
+    {
+     "state": 162,
+     "input": 54018,
+     "output": 11,
+     "nextState": 2
+    },
+    {
+     "state": 2,
+     "input": 28985,
+     "output": 229,
+     "nextState": 17
+    },
+    {
+     "state": 17,
+     "input": 3952,
+     "output": 8,
+     "nextState": 17
+    },
+    {
+     "state": 17,
+     "input": 44455,
+     "output": 1,
+     "nextState": 49
+    },
+    {
+     "state": 49,
+     "input": 19422,
+     "output": 82,
+     "nextState": 89
+    },
+    {
+     "state": 89,
+     "input": 59925,
+     "output": 229,
+     "nextState": 121
+    },
+    {
+     "state": 121,
+     "input": 34892,
+     "output": 11,
+     "nextState": 153
+    },
+    {
+     "state": 153,
+     "input": 9859,
+     "output": 1,
+     "nextState": 185
+    },
+    {
+     "state": 185,
+     "input": 50362,
+     "output": 17,
+     "nextState": 26
+    },
+    {
+     "state": 26,
+     "input": 25329,
+     "output": 229,
+     "nextState": 26
+    },
+    {
+     "state": 26,
+     "input": 296,
+     "output": 5,
+     "nextState": 57
+    },
+    {
+     "state": 57,
+     "input": 40799,
+     "output": 1,
+     "nextState": 73
+    },
+    {
+     "state": 73,
+     "input": 15766,
+     "output": 215,
+     "nextState": 105
     }
    ]
   }

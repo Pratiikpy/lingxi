@@ -14,7 +14,7 @@ const root = join(import.meta.dirname, "..");
 const cat = JSON.parse(readFileSync(join(root, "apps/web/public/circuits.json"), "utf8")) as {
   processor: string;
   rules: Array<{ name: string; id: string; nIn: number; inBits: number; netlistKeccak: string; fields: unknown; vectors: Array<[number, number]> }>;
-  brains: Array<{ line: "gentle" | "bold" | "curious"; id: string; nState: number; netlistKeccak: string; vectors: Array<{ input: number; output: number; nextState: number }> }>;
+  brains: Array<{ line: "gentle" | "bold" | "curious"; id: string; nState: number; netlistKeccak: string; vectors: Array<{ input: number; output: number; nextState: number }>; walk: Array<{ state: number; input: number; output: number; nextState: number }> }>;
 };
 const d = JSON.parse(readFileSync(join(root, "packages/chain/deployments/xlayer.json"), "utf8")) as { processor: string; rules: Record<string, { id: string }>; circuits: Record<string, { id: string }> };
 
@@ -61,6 +61,13 @@ describe("the circuit catalogue (H6)", () => {
         const [next, outs] = beat(circuit, new Array<number>(b.nState).fill(0), wordToBits(v.input, 16));
         expect([Number(bitsToWord(outs)), Number(bitsToWord(next))], `${b.line} ${v.input}`).toEqual([v.output, v.nextState]);
       }
+      // the walk carries memory: each beat starts where the last one left it, and some leave it not zero
+      expect(b.walk.some((v) => v.state !== 0), `${b.line}'s walk reaches a memory that is not zero`).toBe(true);
+      b.walk.forEach((v, k) => {
+        if (k > 0) expect(v.state, `${b.line} beat ${k}`).toBe(b.walk[k - 1]!.nextState);
+        const [next, outs] = beat(circuit, wordToBits(v.state, b.nState), wordToBits(v.input, 16));
+        expect([Number(bitsToWord(outs)), Number(bitsToWord(next))], `${b.line} beat ${k}`).toEqual([v.output, v.nextState]);
+      });
     }
   });
 });

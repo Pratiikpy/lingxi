@@ -39,7 +39,7 @@ export const SKILL_RULE: RuleCircuit = {
     ],
     outputs: [
       { name: "open", lo: 0, bits: 1, meaning: { en: "1 when the tier is open", zh: "这一层已开放时为 1" } },
-      { name: "needs", lo: 1, bits: 6, meaning: { en: "points the tier needs (63 for no tier)", zh: "这一层需要的点数（不是层时为 63）" } },
+      { name: "needs", lo: 1, bits: 6, meaning: { en: "points the tier needs: tier 1 0, tier 2 5, tier 3 15, tier 4 25, tier 5 40, tier 6 55 (63 for no tier)", zh: "这一层需要的点数：第 1 层 0，第 2 层 5，第 3 层 15，第 4 层 25，第 5 层 40，第 6 层 55（不是层时为 63）" } },
     ],
   },
   reference: (w) => {
