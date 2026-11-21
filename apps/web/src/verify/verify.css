@@ -123,6 +123,12 @@
   min-width: 0;
   overflow-wrap: anywhere;
 }
+/* a pet thinking with another line's starter brain, said under its brain (A136) */
+.v-card dd .v-other-starter {
+  display: block;
+  margin-top: 6px;
+  font-weight: 400;
+}
 .mono {
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;

@@ -538,14 +538,16 @@ export function VerifyApp() {
             <dt>{t.owner}</dt>
             <dd className="mono">{short(pet.owner)}</dd>
             <dt>{t.brain}</dt>
-            <dd className="mono">
-              {short(pet.processor)} · #{pet.brainId.toString()} · {gates} {t.gates} · {pet.brainBits} {t.memory}
+            <dd>
+              <span className="mono">
+                {short(pet.processor)} · #{pet.brainId.toString()} · {gates} {t.gates} · {pet.brainBits} {t.memory}
+              </span>
+              {starterOf !== null && (
+                <span className="v-note v-other-starter" data-testid="other-starter">
+                  {t.otherStarter.replace("{starter}", t.lines[starterOf] ?? "").replace("{line}", t.lines[pet.line] ?? `#${pet.line}`)}
+                </span>
+              )}
             </dd>
-            {starterOf !== null && (
-              <dd className="v-note" data-testid="other-starter">
-                {t.otherStarter.replace("{starter}", t.lines[starterOf] ?? "").replace("{line}", t.lines[pet.line] ?? `#${pet.line}`)}
-              </dd>
-            )}
             <dt>{t.days}</dt>
             <dd>{pet.day}</dd>
             <dt>{t.log}</dt>
