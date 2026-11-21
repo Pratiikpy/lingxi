@@ -1,0 +1,11 @@
+--- a/apps/web/src/play/ruleText.ts
++++ b/apps/web/src/play/ruleText.ts
+@@ -102,7 +102,7 @@ function memoryChip(p: Program, name: string, values: number[], lang: Lang): str
+   // trust reads in words when the rule takes a third of its scale; any other count says what it is out of.
+   if (m.kind === "timer") {
+     const range = lo === hi ? `${lo}` : `${lo}–${hi}`;
+-    if (hi === max) return lang === "zh" ? `${label} ${lo} 分钟以上` : `${label} ${lo}+ min`;
++    if (hi === max) return `${label} ${lo}`;
+     return lang === "zh" ? `${label} ${range} 分钟` : `${label} ${range} min`;
+   }
+   if (name === "trust") {
