@@ -539,6 +539,17 @@ describe("a living room while you watch (G1)", () => {
   });
 });
 
+describe("a new pet's first thought (B5)", () => {
+  it("a pet just hatched has a real decision to show, not a blank record, and nothing logged", async () => {
+    const { useGame } = await open();
+    useGame.getState().hatch("gentle", "Kiri");
+    const p = useGame.getState().pet!;
+    expect(p.last.word).not.toBe(0);
+    expect(p.last.before).toBeDefined();
+    expect(p.pendingLog).toEqual([]);
+  });
+});
+
 describe("the light-bulb moment (B4)", () => {
   it("a lesson that answers a friend has a friend arrive in the next beats, logged, and the pet does what it was taught", async () => {
     const { useGame } = await open();
