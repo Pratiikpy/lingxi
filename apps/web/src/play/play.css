@@ -180,6 +180,28 @@
 .think.taught em {
   color: #c2410c;
 }
+/* G1: where the deciding rule came from */
+.rule-tag {
+  margin-left: auto;
+  padding: 1px 8px;
+  border-radius: var(--r-pill);
+  border: 1.5px solid #2b2140;
+  font-size: 11px;
+  font-weight: 700;
+  color: #2b2140;
+  background: #fffdf8;
+  white-space: nowrap;
+}
+.rule-tag.tag-taught {
+  background: #ffd9d3;
+  border-color: #c2410c;
+  color: #8a2d0a;
+}
+.rule-tag.tag-parent,
+.rule-tag.tag-instinct,
+.rule-tag.tag-skill {
+  background: #e6e0fa;
+}
 .chip {
   display: inline-flex;
   align-items: center;

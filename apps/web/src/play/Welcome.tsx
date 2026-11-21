@@ -8,7 +8,7 @@
 import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { HOME, ITEM, ROOMS } from "@lingxi/world";
-import { type Frame, type Pet, awayFind, awaySeed, momentText, rewind, visitorsDuring } from "@lingxi/game";
+import { type Frame, type Pet, awayFind, awaySeed, rewind, ruleSource, tellMoment, visitorsDuring } from "@lingxi/game";
 import { VisitorArt, useAlbum } from "./Album";
 import { useLang } from "../i18n";
 import { mindForPet, useGame } from "../game/store";
@@ -50,12 +50,20 @@ export function WelcomeBack({ pet }: { pet: Pet }) {
   return <AwayCard key={`${mine.petKey}:${mine.to}`} pet={pet} absence={mine} />;
 }
 
+/** Up to five moments: those a taught lesson decided first, then the latest others; each group in time order. */
+function leadWithTaught(frames: Frame[]): Frame[] {
+  const taught = frames.filter((f) => ruleSource(f) === "taught").slice(-5);
+  const rest = frames.filter((f) => ruleSource(f) !== "taught").slice(-(5 - taught.length));
+  return [...taught, ...(taught.length < 5 ? rest : [])];
+}
+
 /** What happened while the player was away, read once from the pet's log when the absence is first shown. */
 function report(pet: Pet, absence: { from: number; to: number }) {
   const frames = rewind(pet, mindForPet(pet), absence.to - absence.from + 1);
   const window = frames.filter((f) => f.at !== null && f.at >= absence.from * 60_000 && f.at <= absence.to * 60_000);
   return {
-    events: window.filter((f) => f.senses.event !== 0).slice(-5),
+    // the story leads with what the pet's taught lessons chose (G1), then the latest of the rest, five in all
+    events: leadWithTaught(window.filter((f) => f.senses.event !== 0)),
     napped: window.some((f) => f.want === 3),
     find: awayFind(awaySeed(pet), absence.from, absence.to, ROOMS[HOME]?.drops ?? []),
     // the travelling pets who came by, for the album (M9)
@@ -109,7 +117,7 @@ function AwayCard({ pet, absence }: { pet: Pet; absence: { petKey: string; from:
           <ul className="welcome-list">
             {story.events.map((f) => (
               <li key={f.index}>
-                <b>{clock(f, lang)}</b> {EVENT_TEXT[f.senses.event]![lang]} <span>{lang === "zh" ? `${pet.name}：` : `${pet.name}: `}“{momentText(f, lang)}”</span>
+                <b>{clock(f, lang)}</b> {EVENT_TEXT[f.senses.event]![lang]} <span>{lang === "zh" ? `${pet.name}：` : `${pet.name}: `}“{tellMoment(f, lang)}”</span>
               </li>
             ))}
           </ul>

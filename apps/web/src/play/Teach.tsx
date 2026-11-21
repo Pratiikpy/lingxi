@@ -15,7 +15,8 @@ import { teachBody } from "../game/requests";
 import { questSlots } from "../game/tally";
 import { type LibraryLesson, libraryAvailable, listLessons, reportLesson, shareLesson, usedLesson } from "../game/library";
 import { play } from "../game/sound";
-import { mindParts, useGame } from "../game/store";
+import { mindForPet, mindParts, useGame } from "../game/store";
+import { firesToday } from "../game/lessonScore";
 import { useWorld } from "../game/world";
 import { Icon } from "./icons";
 import { Chips } from "./parts";
@@ -250,6 +251,8 @@ function Learned({ pet }: { pet: Pet }) {
     doArrange(index, move);
   };
   const p = mindParts(pet)[0]!.program;
+  // each lesson's score for today, from the day replayed (G1)
+  const fires = useMemo(() => firesToday(pet, mindForPet(pet), now()), [pet]);
   if (!pet.lessons.length) return <CuteState who={{ pet, expression: "shy" }} text={t("teach.none")} />;
   return (
     <>
@@ -280,6 +283,7 @@ function Learned({ pet }: { pet: Pet }) {
           <li key={`${r.label}-${i}`}>
             <div className="rule-preview">
               <Chips when={c.when} then={c.then} want={c.want} />
+              <span className="fires small">{fires[i] ? t("teach.fired", { n: fires[i]! }) : t("teach.firedNone")}</span>
             </div>
             <div className="mini">
               <button type="button" aria-label={t("teach.up")} disabled={i === 0} onClick={() => arrange(i, "up")}>

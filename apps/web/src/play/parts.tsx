@@ -11,6 +11,7 @@ import { useSound } from "../game/sound";
 import type { Daily, Toast } from "../game/store";
 import { Icon, type IconName } from "./icons";
 import { WANT_COLORS, decidingChips, WANT_NAMES } from "./ruleText";
+import { ruleKindOf } from "../game/ruleKind";
 import { PetName } from "./PetName";
 import { recordOf } from "../game/chain";
 import { now as gameNow } from "../game/gameClock";
@@ -142,11 +143,14 @@ export function Actions({ pet, absent = false, onFeed, onPlay, onClean, onSleep,
 export function ThinkStrip({ pet, taught = false }: { pet: Pet; taught?: boolean }) {
   const t = useT();
   const { lang } = useLang();
+  const kind = pet.last.instinct ? "instinct" : ruleKindOf(pet, decidingPart(pet).program, pet.last.rule);
   const c = pet.last.instinct ? (lang === "zh" ? { when: ["它学会的本能电路想做点什么"], then: WANT_NAMES.zh[pet.last.want] ?? "", want: pet.last.want } : { when: ["its taught instinct circuit wanted something"], then: WANT_NAMES.en[pet.last.want] ?? "", want: pet.last.want }) : decidingChips(decidingPart(pet).program, pet.last.rule, lang);
   return (
     <div className={`think${taught ? " taught" : ""}`} aria-live="off">
       <em>{t(taught ? "try.mark" : "think.label")}</em>
       <Chips when={c.when} then={c.then} want={c.want} />
+      {/* where the deciding rule came from (G1) */}
+      <span className={`rule-tag tag-${kind}`}>{t(`rule.kind.${kind}` as Key)}</span>
     </div>
   );
 }

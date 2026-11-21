@@ -32,6 +32,29 @@ export function awayEvent(petSeed: number, beat: number): number {
   return EVENT.none;
 }
 
+/**
+ * Events while the owner watches (G1): a living room, so a lesson about a friend, a toy or a fright has something to
+ * answer while the player is there to see it. Chance per minute, out of 10,000: a toy about every 12 minutes, a friend
+ * about every 17, a noise about every hour; never two within WATCH_GAP minutes. Fixed by the pet and the beat, like the
+ * away events, so a visit brings the same events on any device and the chain's replay of the day sees the same words.
+ */
+const WATCH_ODDS = { friend: 600, toy: 800, scary: 160 } as const;
+export const WATCH_GAP = 3;
+
+const watchRoll = (petSeed: number, beat: number) => mix((petSeed ^ 0x5bd1e995) | 0, beat) % 10_000;
+const rolled = (roll: number) => roll < WATCH_ODDS.friend + WATCH_ODDS.toy + WATCH_ODDS.scary;
+
+/** The event (if any) on a beat while the owner watches. */
+export function watchEvent(petSeed: number, beat: number): number {
+  const roll = watchRoll(petSeed, beat);
+  if (!rolled(roll)) return EVENT.none;
+  // a quiet few minutes after each event: none if any of the beats just before rolled one
+  for (let k = 1; k <= WATCH_GAP; k++) if (rolled(watchRoll(petSeed, beat - k))) return EVENT.none;
+  if (roll < WATCH_ODDS.friend) return EVENT.friend;
+  if (roll < WATCH_ODDS.friend + WATCH_ODDS.toy) return EVENT.toy;
+  return EVENT.scary;
+}
+
 /** A pet's seed for away surprises: its birth time, folded to 32 bits. */
 export const awaySeed = (p: { bornAt: number }): number => (Math.floor(p.bornAt / 1000) ^ Math.floor(p.bornAt / 4_294_967_296_000)) >>> 0;
 

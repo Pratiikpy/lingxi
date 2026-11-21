@@ -423,7 +423,7 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
 }
 
 /** One live beat with the owner watching and nothing done (the app is open). */
-export function liveBeat(p0: Pet, now: number, brain: Brain, event = EVENT.none): Pet {
+export function liveBeat(p0: Pet, now: number, brain: Brain, event: number = EVENT.none): Pet {
   const target = beatOf(now);
   if (target < p0.beat) return rebased(p0, target);
   if (target === p0.beat) return p0;

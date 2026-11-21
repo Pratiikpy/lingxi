@@ -545,3 +545,9 @@
 .sb-answer .label {
   margin: 0;
 }
+/* G1: a lesson's score for today, beside it */
+.learned .fires {
+  display: block;
+  margin-top: 4px;
+  color: var(--ink-soft);
+}

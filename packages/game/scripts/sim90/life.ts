@@ -86,6 +86,7 @@ import {
   work,
   beatOf,
   localHour,
+  watchEvent,
 } from "../../src";
 import { FIRST_ROUND_MS, FIRST_WIN_COINS, ROUND_MS, WIN_COINS, GIVER_ROOM, type TallyEntry, careTally, meetTally, talkTally, fedTally, minuteTally, sparLevel, viewOf, awayTally } from "./client";
 
@@ -221,7 +222,8 @@ export class Life {
 
   /** One minute with the game open and the owner watching (the client's tick). */
   watch(t: number): void {
-    this.set(settleForm(liveBeat(this.pet, t, this.brain()), t));
+    // the client's tick: watched minutes bring the living room's events (store.ts tick, G1)
+    this.set(settleForm(liveBeat(this.pet, t, this.brain(), watchEvent(this.seedOfPet, beatOf(t))), t));
     this.note(minuteTally(this.world.room, this.pet, t));
     this.today.watched++;
     const rule = this.pet.last.rule;

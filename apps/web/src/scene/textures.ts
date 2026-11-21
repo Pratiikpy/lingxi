@@ -128,6 +128,11 @@ export const BITS = {
   bunny: (blink: boolean) =>
     pixelTexture(`bunny:${blink}`, ["..g.g.g..", ".ggggggg.", "gglgglggg", blink ? "ggggggggg" : "ggogggogg", "gggggggg.", ".ggggggg."], { g: "#8E86A6", l: "#B7B0CC", o: INK }),
   firefly: () => pixelTexture("firefly", [".y.", "yYy", ".y."], { y: "#E8F59A", Y: "#FFFFFF" }),
+  // G1: a lesson deciding shows as a light bulb over the pet; a friend that wanders up; a noise's "!"
+  bulb: () => pixelTexture("bulb", [".ooo.", "oyYyo", "oyyyo", ".oyo.", ".ogo.", "..o.."], { o: INK, y: "#FFD84D", Y: "#FFFFFF", g: "#8E86A6" }),
+  friend: (step: boolean) =>
+    pixelTexture(`friend:${step}`, [".o...o.", "ooooooo", "owowowo", "ooooooo", step ? "o.o.o.o" : ".o.o.o."], { o: "#C9805A", w: INK }),
+  alarm: () => pixelTexture("alarm", [".rr.", ".rr.", ".rr.", "....", ".rr."], { r: "#E0443A" }),
   mote: (c: string) => pixelTexture(`mote:${c}`, ["m"], { m: c }),
   drop: () => pixelTexture("drop", ["d", "d", "D"], { d: "#BFD9F5", D: "#E8F2FF" }),
   flake: () => pixelTexture("flake", [".f.", "fff", ".f."], { f: "#FFFFFF" }),

@@ -11,7 +11,7 @@ export const BALANCE_MEASURED: BalanceMeasured = {
   "days": 90,
   "targets": {
     "lessons-seen": {
-      "value": "2 of 8 lessons seen everywhere; 5 of 8 decide under 5% of watched minutes (share, brave, nap, tidy, thanks)",
+      "value": "2 of 8 lessons seen everywhere; 4 of 8 decide under 5% of watched minutes (brave, nap, tidy, thanks)",
       "status": "open"
     },
     "spar-best-single": {

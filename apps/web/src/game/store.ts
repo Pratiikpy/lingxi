@@ -56,8 +56,8 @@ export function countCare(kind: Care["kind"], wasAsleep: boolean, r: CareResult)
   useGame.setState({ daily: d });
 }
 import { create } from "zustand";
-import { type Program, type Rule, STARTERS, WANTS, compileProgram, fastBrain, stateBits, timeOfDay } from "@lingxi/brain";
-import { FOODS, type Brain, type Care, type CareResult, type Growth, type Pet, type UpgradeRefusal, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, learnSkill, levelUpPet, liveBeat, mindBrain, respecPet, ruleSkillIds, settleForm, skillRules, stageOf, teach as teachRule, awayEvent, awaySeed, beatOf, localHour, instinctBrain, instinctGates, INSTINCT_MAX_GATES, MAX_MIND_STATE, type OutsideInstinct, instinctFits, stripHidden, withSegment, boundLog, ruleGrowth, type Mind } from "@lingxi/game";
+import { type Program, type Rule, STARTERS, WANTS, compileProgram, fastBrain, inputField, stateBits, timeOfDay } from "@lingxi/brain";
+import { FOODS, type Brain, type Care, type CareResult, type Growth, type Pet, type UpgradeRefusal, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, learnSkill, levelUpPet, liveBeat, mindBrain, respecPet, ruleSkillIds, settleForm, skillRules, stageOf, teach as teachRule, awayEvent, awaySeed, beatOf, watchEvent, localHour, instinctBrain, instinctGates, INSTINCT_MAX_GATES, MAX_MIND_STATE, type OutsideInstinct, instinctFits, stripHidden, withSegment, boundLog, ruleGrowth, type Mind } from "@lingxi/game";
 import type { StarterLine } from "@lingxi/brain";
 import { takeComfort } from "./comfort";
 
@@ -216,6 +216,8 @@ interface GameState {
   away: Away | null;
   /** the pet's own choices made while the player was away, last return (G8) */
   chose: Chose | null;
+  /** G1: the living room's last event while watched (1 a friend, 2 a toy, 3 a noise) and performance.now() it came */
+  roomEvent: { event: number; at: number } | null;
   clearAway: () => void;
   wakeUp: () => void;
   say: (note: Toast["note"]) => void;
@@ -296,6 +298,7 @@ export const useGame = create<GameState>((set, get) => ({
   pet: initialPet(),
   away: firstAway,
   chose: firstChose,
+  roomEvent: null,
   clearAway: () => set({ away: null }),
   pets: roster.pets,
   active: roster.active,
@@ -392,7 +395,11 @@ export const useGame = create<GameState>((set, get) => ({
     if (!pet || pet.away) return;
     // a tab left hidden for a while comes back like any return, surprises included
     if (beatOf(gameNow()) - pet.beat > 10) return get().wakeUp();
-    const next = settleForm(liveBeat(zoned(pet), gameNow(), brainOf(pet)), gameNow());
+    // a living room while you watch (G1): a friend, a toy or a noise now and then, the same input words the chain logs
+    const next = settleForm(liveBeat(zoned(pet), gameNow(), brainOf(pet), watchEvent(awaySeed(pet), beatOf(gameNow()))), gameNow());
+    // what the room shows of it: the event this beat brought, from now (performance time, as the scene keeps)
+    const event = next !== pet ? (next.last.word >> inputField("event").lo) & 3 : 0;
+    if (event) set({ roomEvent: { event, at: performance.now() } });
     if (next !== pet) {
       if (stageOf(next, gameNow()) !== stageOf(pet, gameNow() - 60_000)) useBadges.getState().note("stage", STAGE_RANK[stageOf(next, gameNow())] ?? 0);
       save(next);

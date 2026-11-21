@@ -168,6 +168,17 @@ export function momentText(f: Frame, lang: "en" | "zh"): string {
   return (lang === "zh" ? zh : en)[key];
 }
 
+/**
+ * A moment told for the diary and the away story (G1): one a taught lesson decided is told as the lesson's doing, so
+ * the player reads what their teaching made the pet do; any other is the pet's own line.
+ */
+export function tellMoment(f: Frame, lang: "en" | "zh"): string {
+  const line = momentText(f, lang);
+  if (ruleSource(f) !== "taught") return line;
+  // every line is the pet speaking ("I ..."), so it follows the clause as it stands
+  return lang === "zh" ? `因为你教过我，${line}` : `Because you taught me, ${line}`;
+}
+
 const BORN = new Set(Object.values(STARTERS).flatMap((p) => p.rules.map((r) => JSON.stringify([r.when, r.then]))));
 
 /** Where the rule that decided came from: something taught, an instinct, what its egg line is born with, or nothing matched. */

@@ -54,6 +54,11 @@ export interface SceneProps {
   sick: boolean;
   want: number;
   mood: number;
+  /** G1: the event of the beat just shown (0 none, 1 a friend, 2 a toy, 3 a noise) and performance.now() it began */
+  event?: number;
+  eventAt?: number;
+  /** G1: the rule deciding now is one the player taught: a light bulb over the pet */
+  taught?: boolean;
   phase: DayPhase;
   /** performance.now() of the last care and what it was (and the food's picture, when fed) */
   lastCare: { kind: string; at: number; food?: string } | null;
@@ -325,7 +330,20 @@ export function RoomScene(props: SceneProps) {
       const thoughtFood = new Sprite();
       thoughtFood.anchor.set(0.5);
       thoughtFood.visible = false;
-      props.addChild(ball, food, thought, thoughtFood);
+      // G1: what the living room brings (a toy, a friend, a noise) and the light bulb of a taught lesson
+      const visitorToy = new Sprite(BITS.ball());
+      visitorToy.anchor.set(0.5, 1);
+      visitorToy.visible = false;
+      const visitorFriend = new Sprite(BITS.friend(false));
+      visitorFriend.anchor.set(0.5, 1);
+      visitorFriend.visible = false;
+      const alarm = new Sprite(BITS.alarm());
+      alarm.anchor.set(0.5, 1);
+      alarm.visible = false;
+      const bulb = new Sprite(BITS.bulb());
+      bulb.anchor.set(0.5, 1);
+      bulb.visible = false;
+      props.addChild(ball, food, thought, thoughtFood, visitorToy, visitorFriend, alarm, bulb);
       void bgTexture("/art/items/rice_mochi.png").then((t) => {
         if (thoughtFood.destroyed) return;
         thoughtFood.texture = t;
@@ -626,6 +644,35 @@ export function RoomScene(props: SceneProps) {
             }
           }
         }
+
+        // G1: the living room's event, for five seconds from the beat that brought it
+        const ev = p.event ?? 0;
+        const ek = p.eventAt !== undefined ? (now - p.eventAt) / 5000 : 2;
+        const showing = ev !== 0 && ek >= 0 && ek < 1 && !p.covered;
+        // a toy rolls in from the left and comes to rest beside the pet
+        visitorToy.visible = showing && ev === 2;
+        if (visitorToy.visible) {
+          const roll = Math.min(1, ek * 3.5);
+          visitorToy.x = Math.round(PET_X - 70 + roll * 52);
+          visitorToy.y = Math.round(PET_FEET - 1 - Math.abs(Math.sin(roll * Math.PI * 3)) * 6 * (1 - roll));
+        }
+        // a friend wanders up from the right and stops a little way off
+        visitorFriend.visible = showing && ev === 1;
+        if (visitorFriend.visible) {
+          const walk = Math.min(1, ek * 2.5);
+          visitorFriend.texture = BITS.friend(walk < 1 && Math.floor(now / 180) % 2 === 0);
+          visitorFriend.x = Math.round(PET_X + 70 - walk * 44);
+          visitorFriend.y = PET_FEET - 1;
+        }
+        // a noise: a red "!" over its head, and a startle
+        alarm.visible = showing && ev === 3 && Math.floor(now / 250) % 2 === 0;
+        alarm.x = PET_X - 12;
+        alarm.y = head - 4;
+        if (showing && ev === 3 && ek < 0.12 && !p.reduceMotion) pet.x = PET_X + (Math.floor(now / 40) % 2 ? 1 : -1);
+        // the light bulb of a taught lesson deciding
+        bulb.visible = !!p.taught && !p.asleep && !p.covered;
+        bulb.x = PET_X;
+        bulb.y = head - 4 + (p.reduceMotion ? 0 : Math.round(Math.sin(now / 300)));
 
         // hungry: a little thought of food above its head
         const hungry = (p.want === 1 || p.food < 250) && !p.asleep && !busyCare && (p.reduceMotion || Math.floor(now / 2600) % 2 === 0);

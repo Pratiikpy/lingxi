@@ -6,7 +6,7 @@
  * while it is open, and finding out whether lessons still show is the point.
  */
 
-import { awayEvent, awaySeed, care, catchUp, createPet, liveBeat, mindBrain, PET_SCHOOL, teach, type LessonSeen, type Pet } from "../../src";
+import { awayEvent, awaySeed, beatOf, watchEvent, care, catchUp, createPet, liveBeat, mindBrain, PET_SCHOOL, teach, type LessonSeen, type Pet } from "../../src";
 import { MIN } from "./life";
 import { DAY1, TZ } from "./players";
 
@@ -31,7 +31,7 @@ export function lessonsSeen(): LessonSeen[] {
         let firstFire: number | null = null;
         let fires = 0;
         for (let m = 0; m <= WATCH; m++) {
-          if (m > 0) p = liveBeat(p, t + m * MIN, brainOf(p));
+          if (m > 0) p = liveBeat(p, t + m * MIN, brainOf(p), watchEvent(seed, beatOf(t + m * MIN)));
           if (p.last.rule === 0 && !p.last.instinct) {
             fires++;
             firstFire ??= m;

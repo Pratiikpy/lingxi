@@ -8,7 +8,8 @@ import { STARTERS, timeOfDay } from "@lingxi/brain";
 import { type Pet, visitorsNow, friendPartner, petCard, stageOf, visibleMeters, bondLevel } from "@lingxi/game";
 import { type Key, useT, useLang } from "../i18n";
 import { usePageMeta } from "../i18n/pageMeta";
-import { useGame } from "../game/store";
+import { decidingPart, useGame } from "../game/store";
+import { ruleKindOf } from "../game/ruleKind";
 import { chirp, play } from "../game/sound";
 import { followClock, setAmbience } from "../game/music";
 import { useReminders } from "../game/reminders";
@@ -115,6 +116,9 @@ export function PlayApp() {
   const [tab, setTab] = useState<Tab>("home");
   // H5: a lesson tried out right after it was taught: the room shows it for a few seconds
   const trial = useTrial((s) => s.trial);
+  // G1: what the room shows: a lesson being tried brings its own moment; otherwise the living room's last event
+  const roomEvent = useGame((s) => s.roomEvent);
+  const roomEventProps = trial ? { event: stageFor(trial.lesson).event, eventAt: trial.shownAt } : roomEvent ? { event: roomEvent.event, eventAt: roomEvent.at } : {};
   // and the room comes back to show it, whatever sheet the lesson was taught from
   useEffect(() => useTrial.subscribe((s, prev) => s.trial && s.trial !== prev.trial && setTab("home")), []);
   const [phase, setPhase] = useState<DayPhase>(phaseNow);
@@ -529,6 +533,8 @@ export function PlayApp() {
             sick={!!pet.sick}
             want={trial ? trial.want : pet.last.want}
             mood={trial ? trial.mood : pet.last.mood}
+            {...roomEventProps}
+            taught={trial ? trial.fired : !pet.last.instinct && ruleKindOf(pet, decidingPart(pet).program, pet.last.rule) === "taught"}
             phase={phase}
             lastCare={lastCare}
             clean={visibleMeters(pet).clean}

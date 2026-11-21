@@ -362,6 +362,33 @@ describe("Mind skills widen the budget the circuit lives in", () => {
     };
     expect(want(holding({ 211: 5, 212: 5, 213: 5, 232: 1 }))).toBe(6);
   });
+
+  it("Brave Heart is alive on every line: a fright while you watch (G1's living room) now reaches it, and it changes the choice", () => {
+    // its rule answers a fright with the owner near; frights arrived only while away until the watched events of G1
+    for (const line of ["gentle", "bold", "curious"] as const)
+      for (const trust of [0, 7]) {
+        const scared = (g?: Growth) => {
+          const b = mindBrain({ line, lessons: [], growth: g });
+          const st = new Uint8Array(b.nState);
+          // trust lives in memory: set it the way the brain reads it, for this program's trust counter
+          const prog = b.program!;
+          const tm = prog.memory.find((m) => m.name === "trust");
+          if (tm) {
+            let at = 0;
+            for (const m of prog.memory) {
+              if (m === tm) break;
+              at += m.kind === "flag" ? 1 : m.bits;
+            }
+            for (let k = 0; k < tm.bits; k++) st[at + k] = (trust >> k) & 1;
+          }
+          return b.fast.step(st, encodeSenses({ hunger: 0, joy: 2, energy: 2, clean: 2, time: 2, action: 0, event: 3, owner: 1 })) & 7;
+        };
+        const before = scared(holding({ 211: 5, 212: 5, 213: 5 }));
+        const after = scared(holding({ 211: 5, 212: 5, 213: 5, 232: 1 }));
+        expect(after, `${line} trust ${trust}`).toBe(6);
+        if (!(line === "gentle" && trust === 7)) expect(before, `${line} trust ${trust}: changed`).not.toBe(6);
+      }
+  });
 });
 
 describe("Explore skills give the world its numbers for this pet (the world applies them: world/test/explore.test.ts)", () => {

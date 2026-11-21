@@ -45,7 +45,8 @@ export function tryLesson(program: Program, state: readonly number[], lesson: Ru
 }
 
 interface TrialState {
-  trial: (Trial & { at: number; lesson: Rule }) | null;
+  /** `at` game time; `shownAt` performance.now(), as the room's scene keeps time */
+  trial: (Trial & { at: number; shownAt: number; lesson: Rule }) | null;
   /** stage a trial: the room shows it, the pet says `line`, and it ends by itself after TRIAL_MS */
   stage: (t: Trial, lesson: Rule, line: string) => void;
   end: () => void;
@@ -57,7 +58,7 @@ export const useTrial = create<TrialState>((set) => ({
   trial: null,
   stage: (t, lesson, line) => {
     if (ending) clearTimeout(ending);
-    set({ trial: { ...t, lesson, at: gameNow() } });
+    set({ trial: { ...t, lesson, at: gameNow(), shownAt: performance.now() } });
     // the pet's own words for it, set here: the voice service is never asked for a staged moment
     useVoice.setState((v) => ({ line, id: v.id + 1 }));
     ending = setTimeout(() => {
