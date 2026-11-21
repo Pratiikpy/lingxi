@@ -4,7 +4,7 @@
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { type Address, type Hex, createPublicClient, hexToString, http, parseAbi } from "viem";
+import { type Address, type Hex, createPublicClient, hexToBytes, hexToString, http, parseAbi } from "viem";
 
 /** What the web build (both sites) is made of: a change here needs a rebuild. Tests change nothing a site serves. */
 export const SITE_INPUTS = [
@@ -26,6 +26,21 @@ export async function onChainFile(root: string, path: string): Promise<string> {
   const container = (await pub.readContract({ address: DEWEB.opener, abi: parseAbi(["function accountOf(address circuits, uint256 tokenId) view returns (address)"]), functionName: "accountOf", args: [deployment.processor, DEWEB.circuit] })) as Address;
   const bytes = (await pub.readContract({ address: DEWEB.sites, abi: parseAbi(["function readRange(address container, string path, uint256 offset, uint256 length) view returns (bytes)"]), functionName: "readRange", args: [container, path, 0n, 4096n] })) as Hex;
   return hexToString(bytes);
+}
+
+/** A whole file of the on-chain copy, read from X Layer in pieces (A127): what the page itself is made of. */
+export async function onChainWhole(root: string, path: string, piece = 196_608): Promise<string> {
+  const deployment = JSON.parse(readFileSync(join(root, "packages/chain/deployments/xlayer.json"), "utf8")) as { processor: Address };
+  const pub = createPublicClient({ transport: http("https://rpc.xlayer.tech", { timeout: 30_000 }) });
+  const container = (await pub.readContract({ address: DEWEB.opener, abi: parseAbi(["function accountOf(address circuits, uint256 tokenId) view returns (address)"]), functionName: "accountOf", args: [deployment.processor, DEWEB.circuit] })) as Address;
+  const read = parseAbi(["function readRange(address container, string path, uint256 offset, uint256 length) view returns (bytes)"]);
+  const parts: Uint8Array[] = [];
+  for (let offset = 0; ; offset += piece) {
+    const bytes = hexToBytes((await pub.readContract({ address: DEWEB.sites, abi: read, functionName: "readRange", args: [container, path, BigInt(offset), BigInt(piece)] })) as Hex);
+    parts.push(bytes);
+    if (bytes.length < piece) break;
+  }
+  return Buffer.concat(parts).toString("utf8");
 }
 
 export type Served = { commit: string; dirty: boolean; builtAt: string };

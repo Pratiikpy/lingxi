@@ -8,7 +8,7 @@
  */
 
 import { type RunDeps, judgeVerdict, runTest } from "./lib/claimsRun.mts";
-import { SITE_INPUTS, currentness, onChainFile, parseBuild } from "./lib/sites.mts";
+import { SITE_INPUTS, currentness, onChainFile, onChainWhole, parseBuild } from "./lib/sites.mts";
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -334,6 +334,19 @@ const AUTO: Record<string, Check> = {
   growth: async () => {
     expect(STAGE_DAYS.adult === 8 && STAGE_DAYS.child === 2 && STAGE_DAYS.teen === 4, JSON.stringify(STAGE_DAYS));
     return "adult on day 8";
+  },
+  "deweb-sources": async () => {
+    // the on-chain copy's proof page, read from X Layer: it has no server to fall back on, and says so (A127)
+    const html = await onChainWhole(root, "verify.html");
+    const assets = [...html.matchAll(/(?:src|href)="\.\/(assets\/[^"]+\.js)"/g)].map((m) => m[1]!);
+    expect(assets.length > 0, "the on-chain proof page names no scripts");
+    const texts = await Promise.all(assets.map((a) => onChainWhole(root, a)));
+    const server = assets.filter((_, i) => texts[i]!.includes("lingxi.knole.me/api"));
+    expect(!server.length, `the on-chain copy reaches Lingxi's server: ${server.join(", ")}`);
+    const says = texts.some((t) => t.includes("has no server to fall back on"));
+    if (!says && !atMilestone) throw new Pending("the on-chain copy predates its own sources wording (published at the milestone's close)");
+    expect(says, "the on-chain proof page does not say it has no server");
+    return `${assets.length} scripts read from X Layer: no server address, and the page says it has none`;
   },
   deweb: async () => {
     const domains = [{ type: "function", name: "isLive", stateMutability: "view", inputs: [{ name: "n", type: "string" }, { name: "c", type: "address" }], outputs: [{ type: "bool" }] }] as const;
