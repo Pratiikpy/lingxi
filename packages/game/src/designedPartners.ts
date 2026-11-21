@@ -13,7 +13,7 @@ const LOOKS: Record<DesignStage, Pick<Partner, "id" | "name" | "line" | "blurb">
     id: "flit",
     name: { en: "Flit the Dodger", zh: "躲闪的小闪" },
     line: "curious",
-    blurb: { en: "Dodges on nearly half its turns and taps at you in between.", zh: "将近一半的回合都在躲闪，其余时候轻拍你。" },
+    blurb: { en: "Dodges on nearly half its turns, and rests or snacks in between.", zh: "将近一半的回合都在躲闪，其余时候休息或吃零食。" },
   },
   child: {
     id: "bruno",
@@ -25,13 +25,13 @@ const LOOKS: Record<DesignStage, Pick<Partner, "id" | "name" | "line" | "blurb">
     id: "velvet",
     name: { en: "Velvet the Charmer", zh: "迷人的丝绒" },
     line: "gentle",
-    blurb: { en: "Charms you and snacks in turn, and rests when it tires.", zh: "迷惑你和吃零食轮着来，累了就休息。" },
+    blurb: { en: "Charms you on about a third of its turns, rests as often, and pounces now and then.", zh: "大约三分之一的回合在迷惑你，休息得也一样多，偶尔扑过来。" },
   },
   adult: {
     id: "sentinel",
     name: { en: "Old Sentinel", zh: "老哨兵" },
     line: "bold",
-    blurb: { en: "Taps at you on most turns, guards almost a third of the time, and snacks to heal.", zh: "大多数回合都在轻拍你，将近三分之一的回合在防守，还会吃零食回血。" },
+    blurb: { en: "Guards on half its turns and snacks to heal.", zh: "一半的回合都在防守，还会吃零食回血。" },
   },
 };
 

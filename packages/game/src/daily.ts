@@ -10,7 +10,7 @@
 
 import { PARTNERS } from "./partners";
 import { SPAR_VERSION, type SparVersion } from "./spar";
-import { SPAR_V2 } from "./spar2";
+import { SPAR_V3 } from "./spar2";
 
 import { DAY_MS } from "./pet";
 
@@ -18,11 +18,12 @@ import { DAY_MS } from "./pet";
 export const dayIndex = (ms: number): number => Math.floor(ms / DAY_MS);
 
 /**
- * G2: the first day fought in LX-SPAR/2 (Monday 23 November 2026, UTC, with the season's week 2026-W48). A day before
- * it stays LX-SPAR/1, so a day is never split between two fights, whenever a device picks up the new version.
+ * The first day fought in the new rules, LX-SPAR/3 (Monday 23 November 2026, UTC, with the season's week 2026-W48; G2
+ * and row B1). A day before it stays LX-SPAR/1, so a day is never split between two fights, whenever a device picks up
+ * the new version. (LX-SPAR/2 was never used for the daily challenge.)
  */
-export const SPAR_V2_FROM_DAY = dayIndex(Date.UTC(2026, 10, 23));
-export const dailySparVersion = (day: number): SparVersion => (day >= SPAR_V2_FROM_DAY ? SPAR_V2 : SPAR_VERSION);
+export const SPAR_V3_FROM_DAY = dayIndex(Date.UTC(2026, 10, 23));
+export const dailySparVersion = (day: number): SparVersion => (day >= SPAR_V3_FROM_DAY ? SPAR_V3 : SPAR_VERSION);
 
 /** The partner for a day: every partner in turn. */
 export const dailyPartnerIndex = (day: number): number => ((day % PARTNERS.length) + PARTNERS.length) % PARTNERS.length;

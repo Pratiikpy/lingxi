@@ -9,7 +9,7 @@ import { type MindSpec, mindBrain, parseCard } from "./family";
 import type { Partner } from "./partners";
 import type { Mind } from "./replay";
 import type { Move, Round, SparVersion } from "./spar";
-import { SPAR_V2 } from "./spar2";
+import { rulesOf } from "./spar2";
 
 /** A mind as the rewind reads it, built by the same function a fighter's brain is built with. */
 export function mindOfSpec(spec: MindSpec): Mind {
@@ -43,11 +43,11 @@ export type Exchange =
   | { kind: "feint"; by: 0 | 1; hit: number };
 
 /**
- * The exchanges of round `k`, read from the round itself. Only LX-SPAR/2 has these rules; an LX-SPAR/1 spar (fought
+ * The exchanges of round `k`, read from the round itself. These rules came with LX-SPAR/2; an LX-SPAR/1 spar (fought
  * before G2) has none to show.
  */
 export function exchangesOf(version: SparVersion, rounds: readonly Round[], k: number): Exchange[] {
-  if (version !== SPAR_V2) return [];
+  if (!rulesOf(version)) return [];
   const r = rounds[k];
   if (!r) return [];
   const out: Exchange[] = [];

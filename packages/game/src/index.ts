@@ -43,3 +43,4 @@ export * from "./adoption";
 export * from "./balanceTargets";
 export * from "./fightWhy";
 export * from "./tallyRules";
+export * from "./behemothCounter.generated";

@@ -149,11 +149,12 @@ export function behemothFighter(name: string): Fighter {
         out = r.outputs;
       }
       st.forEach((b, i) => (state[i] = b));
-      return (num(out, ACC) & 7) | (2 << 3);
+      // calm (row B1): in LX-SPAR/3 mood is a trade, and the happy mood it had made it easy prey for an untaught pet
+      return (num(out, ACC) & 7) | (1 << 3);
     },
   };
-  // G2: level 2, a boss's. LX-SPAR/2 counts half a power a level, so at its old level 1 an untaught gentle pet beat it in
-  // 16 of 20 spars; at 2 the starters lose most and a pet the coach teaches to read it wins (builders.test.ts)
+  // level 2, a boss's, and calm (G2, B1): the starters lose most of their spars against it, and a pet taught the lessons
+  // in behemothCounter.generated.ts wins most (builders.test.ts)
   return { name, brain, memory: new Array<number>(BEHEMOTH_PINS.nState).fill(0), level: BEHEMOTH_LEVEL };
 }
 

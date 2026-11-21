@@ -12,7 +12,7 @@ import type { OutsideInstinct, Stage } from "./pet";
 import { checkMindLesson, mindBrain } from "./family";
 import type { Family } from "./pet";
 import { type Fighter, type FighterMods, type SparResult } from "./spar";
-import { CURRENT_SPAR, MOVE_COST, SPAR_V2, fight } from "./spar2";
+import { CURRENT_SPAR, MOVE_COST, fight, rulesOf } from "./spar2";
 
 export type CoachKey = "tooPassive" | "noDefence" | "ranOut" | "noHealing" | "outmatched" | "wellDone";
 
@@ -100,8 +100,8 @@ function winsAgainst(me: Fighter, them: Fighter, base: number): number {
 function diagnose(r: SparResult, side: 0 | 1): CoachKey {
   const mine = r.rounds.map((x) => x.moves[side]);
   const theirs = r.rounds.map((x) => x.moves[1 - side]!);
-  // spent: LX-SPAR/1 forced a rest only at no stamina; LX-SPAR/2 at less than a pounce costs
-  const exhausted = r.rounds.filter((x) => x.stamina[side]! <= (r.version === SPAR_V2 ? MOVE_COST.pounce - 1 : 0)).length;
+  // spent: LX-SPAR/1 forced a rest only at no stamina; from LX-SPAR/2 at less than a pounce costs
+  const exhausted = r.rounds.filter((x) => x.stamina[side]! <= (rulesOf(r.version) ? MOVE_COST.pounce - 1 : 0)).length;
   const bigHits = r.rounds.filter((x) => x.hits[1 - side]! >= 14).length;
   const guarded = mine.filter((m) => m === "guard" || m === "dodge").length;
   const missed = r.rounds.filter((_, i) => i > 0 && ["rest", "snack"].includes(theirs[i - 1]!) && mine[i] !== "pounce").length;

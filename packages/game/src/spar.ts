@@ -35,8 +35,8 @@
 import { type FastBrain, encodeSenses } from "@lingxi/brain";
 
 export const SPAR_VERSION = "LX-SPAR/1";
-/** Every fight version a result can name: LX-SPAR/1 (this file) and LX-SPAR/2 (spar2.ts), each replayed by its own engine. */
-export type SparVersion = "LX-SPAR/1" | "LX-SPAR/2";
+/** Every fight version a result can name: LX-SPAR/1 (this file), LX-SPAR/2 and /3 (spar2.ts's rules), each replayed as fought. */
+export type SparVersion = "LX-SPAR/1" | "LX-SPAR/2" | "LX-SPAR/3";
 export const ROUNDS = 16;
 export const MAX_HP = 100;
 export const MAX_STAMINA = 10;

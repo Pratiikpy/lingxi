@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { keccak256 } from "viem";
-import { type Rule, STARTERS, compileProgram, gateCount } from "@lingxi/brain";
+import { STARTERS, compileProgram, gateCount } from "@lingxi/brain";
 import { BEHEMOTH_NETLIST, BEHEMOTH_NETLIST_KECCAK, BEHEMOTH_PINS, BUILDER_PETS, FIBONACCI, behemothAt, behemothCircuit, behemothFighter, behemothMoment, behemothTape, daysSinceBehemoth, laneParty, tapboyDay } from "../src/builders";
-import { LESSON_CAPACITY, MAX_GATES, composeProgram } from "../src/lessons";
+import { MAX_GATES, composeProgram } from "../src/lessons";
 import { PARTNERS } from "../src/partners";
-import { coach, fighterFrom, fighterOfMind } from "../src/coach";
+import { fighterFrom, fighterOfMind } from "../src/coach";
+import { BEHEMOTH_COUNTER } from "../src/behemothCounter.generated";
 const partnerFighter = (p: (typeof PARTNERS)[number]) => fighterFrom(p.name.en, p.program, p.level);
 import type { Fighter } from "../src/spar";
 import { CURRENT_SPAR, fight } from "../src/spar2";
@@ -46,26 +47,12 @@ describe("Behemoth, the founder's CPU", () => {
     expect(a.digest).toBe(b.digest);
     const moves = a.rounds.map((r) => r.moves[1]);
     expect(new Set(moves).size).toBeGreaterThan(2);
-    // a hard partner, not an unbeatable one: starters mostly lose, and a pet the coach teaches to read it wins
-    // (its moves are a fixed sequence, so a pet can learn it; G2's coach suggests only what wins on fresh seeds too)
+    // a hard partner, not an unbeatable one: starters mostly lose, and a pet taught to read it wins (its moves are a
+    // fixed sequence; the lessons that do it were found by search, scripts/behemoth-counter.ts)
     const rate = (f: () => ReturnType<typeof partnerFighter>) => Array.from({ length: 20 }, (_, s) => spar(f(), behemothFighter("Behemoth"), s * 31 + 5).winner === 0).filter(Boolean).length;
     for (const line of ["gentle", "bold", "curious"] as const) expect(rate(() => fighterFrom("starter", STARTERS[line], 0)), line).toBeLessThan(8);
-    const coached = (["gentle", "bold", "curious"] as const).map((line) => {
-      const lessons: Rule[] = [];
-      for (let k = 0; k < LESSON_CAPACITY.adult; k++) {
-        let note: ReturnType<typeof coach> | null = null;
-        for (let s = 0; s < 6 && !note?.lesson; s++) {
-          const r = spar(fighterOfMind("me", { line, lessons }, 1), behemothFighter("Behemoth"), 1000 + s);
-          if (r.winner !== 0) note = coach({ result: r, side: 0, line, stage: "adult", lessons, level: 1, opponent: behemothFighter("Behemoth") });
-        }
-        if (!note?.lesson) break;
-        lessons.unshift(note.lesson.rule);
-      }
-      return rate(() => fighterOfMind("me", { line, lessons }, 1));
-    });
-    expect(Math.max(...coached)).toBeGreaterThanOrEqual(15);
-    // thousands of practice spars: the coach fights 96 per lesson, lesson after lesson
-  }, 120_000);
+    expect(rate(() => fighterOfMind("me", { line: BEHEMOTH_COUNTER.line, lessons: BEHEMOTH_COUNTER.lessons }, 1))).toBeGreaterThanOrEqual(15);
+  });
 });
 
 describe("the residents of Builders' Lane", () => {

@@ -1,0 +1,299 @@
+[
+ {
+  "name": {
+   "en": "Flit the Dodger",
+   "zh": "躲闪的小闪"
+  },
+  "line": "curious",
+  "level": 0,
+  "program": {
+   "version": "LX-PET/1",
+   "memory": [],
+   "rules": [
+    {
+     "when": {
+      "clean": [
+       3
+      ]
+     },
+     "then": {
+      "want": 0,
+      "mood": 2
+     }
+    },
+    {
+     "when": {
+      "hunger": [
+       1,
+       2
+      ]
+     },
+     "then": {
+      "want": 1,
+      "mood": 2
+     }
+    },
+    {
+     "when": {
+      "event": [
+       0,
+       1
+      ],
+      "action": [
+       3,
+       4
+      ]
+     },
+     "then": {
+      "want": 1,
+      "mood": 2
+     }
+    }
+   ],
+   "otherwise": {
+    "want": 4,
+    "mood": 1
+   }
+  }
+ },
+ {
+  "name": {
+   "en": "Bruno the Bulldozer",
+   "zh": "横冲直撞的布鲁诺"
+  },
+  "line": "bold",
+  "level": 0,
+  "program": {
+   "version": "LX-PET/1",
+   "memory": [],
+   "rules": [
+    {
+     "when": {
+      "time": [
+       1
+      ],
+      "energy": [
+       2
+      ],
+      "clean": [
+       3
+      ]
+     },
+     "then": {
+      "want": 0,
+      "mood": 2
+     }
+    },
+    {
+     "when": {
+      "event": [
+       1
+      ]
+     },
+     "then": {
+      "want": 6,
+      "mood": 2
+     }
+    },
+    {
+     "when": {
+      "energy": [
+       0
+      ],
+      "joy": [
+       3
+      ],
+      "clean": [
+       1
+      ]
+     },
+     "then": {
+      "want": 1,
+      "mood": 2
+     }
+    },
+    {
+     "when": {
+      "action": [
+       4,
+       5
+      ],
+      "hunger": [
+       3
+      ]
+     },
+     "then": {
+      "want": 5,
+      "mood": 0
+     }
+    }
+   ],
+   "otherwise": {
+    "want": 2,
+    "mood": 2
+   }
+  }
+ },
+ {
+  "name": {
+   "en": "Velvet the Charmer",
+   "zh": "迷人的丝绒"
+  },
+  "line": "gentle",
+  "level": 1,
+  "program": {
+   "version": "LX-PET/1",
+   "memory": [],
+   "rules": [
+    {
+     "when": {
+      "event": [
+       2
+      ],
+      "time": [
+       3
+      ]
+     },
+     "then": {
+      "want": 5,
+      "mood": 3
+     }
+    },
+    {
+     "when": {
+      "time": [
+       1,
+       2
+      ],
+      "energy": [
+       1
+      ]
+     },
+     "then": {
+      "want": 6,
+      "mood": 0
+     }
+    },
+    {
+     "when": {
+      "time": [
+       1,
+       2,
+       3
+      ],
+      "energy": [
+       3
+      ]
+     },
+     "then": {
+      "want": 6,
+      "mood": 0
+     }
+    },
+    {
+     "when": {
+      "energy": [
+       3
+      ],
+      "event": [
+       3
+      ]
+     },
+     "then": {
+      "want": 2,
+      "mood": 0
+     }
+    },
+    {
+     "when": {
+      "energy": [
+       0,
+       1
+      ],
+      "time": [
+       2,
+       3
+      ]
+     },
+     "then": {
+      "want": 1,
+      "mood": 2
+     }
+    }
+   ],
+   "otherwise": {
+    "want": 2,
+    "mood": 2
+   }
+  }
+ },
+ {
+  "name": {
+   "en": "Old Sentinel",
+   "zh": "老哨兵"
+  },
+  "line": "bold",
+  "level": 1,
+  "program": {
+   "version": "LX-PET/1",
+   "memory": [],
+   "rules": [
+    {
+     "when": {
+      "event": [
+       3
+      ],
+      "joy": [
+       2
+      ]
+     },
+     "then": {
+      "want": 5,
+      "mood": 3
+     }
+    },
+    {
+     "when": {
+      "event": [
+       0
+      ]
+     },
+     "then": {
+      "want": 0,
+      "mood": 3
+     }
+    },
+    {
+     "when": {
+      "event": [
+       0,
+       1
+      ],
+      "joy": [
+       0
+      ]
+     },
+     "then": {
+      "want": 3,
+      "mood": 1
+     }
+    },
+    {
+     "when": {
+      "time": [
+       3
+      ]
+     },
+     "then": {
+      "want": 1,
+      "mood": 3
+     }
+    }
+   ],
+   "otherwise": {
+    "want": 5,
+    "mood": 2
+   }
+  }
+ }
+]

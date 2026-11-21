@@ -3,7 +3,7 @@
  * built the way the game builds them (`fighterFrom` for a written program, `fighterOfPartner` for a partner).
  *
  * The field: every brain of one lesson (each fight lesson the coach suggests and each Pet School lesson, on each
- * egg line), the three starter brains, a brain that only guards, one that only dodges, one that only pounces, a brain
+ * egg line), the three starter brains, a brain that only ever makes one move for every move at every mood, a brain
  * written to read the fight, and the four sparring partners; and, as the plan's field also names (G2b), the school set
  * (each line taught the Pet School lessons in order, as many as a brain's budget holds) and sample taught pets (each
  * line taught by the coach, lesson after lesson to an adult's six, to fight each hand-written partner). Each pair fights on a fixed set of seeds from both sides;
@@ -11,9 +11,10 @@
  */
 
 import { type Program, type Rule, STARTERS, compileProgram, gateCount, validateProgram } from "@lingxi/brain";
-import { FIGHT_LESSONS, type FieldBrain, type FieldNumbers, type Fighter, LESSON_CAPACITY, MAX_GATES, PARTNERS, type Partner, PET_SCHOOL, coach, composeProgram, fighterFrom, fighterOfMind, fighterOfPartner, CURRENT_SPAR, fight } from "../../src";
+import { FIGHT_LESSONS, type FieldBrain, type FieldNumbers, type Fighter, LESSON_CAPACITY, MAX_GATES, MOVES, PARTNERS, type Partner, PET_SCHOOL, coach, composeProgram, fighterFrom, fighterOfMind, fighterOfPartner, CURRENT_SPAR, fight } from "../../src";
 
 const LINES = ["gentle", "bold", "curious"] as const;
+const MOODS = ["grumpy", "calm", "happy", "excited"] as const;
 const LEVEL = 1;
 
 const only = (want: number, mood: number): Program => validateProgram({ version: "LX-PET/1", memory: [], rules: [], otherwise: { want, mood } });
@@ -21,8 +22,8 @@ const only = (want: number, mood: number): Program => validateProgram({ version:
 /**
  * A brain that reads the fight: it guards after the other pounced, pounces at an opening or a tired foe, rests
  * when spent and snacks when hurt. Written for G0 from the fight's pins (spar.ts); nothing in it is tuned to win.
- * G2: LX-SPAR/2 shows a guard and a dodge on the action pins (spar2.ts), so the reader answers them as the fight's
- * triangle says: a charm for a guard, a light tap for a dodger, and a pounce for a charm (in LX-SPAR/1 it guarded).
+ * G2: from LX-SPAR/2 a guard shows on the action pins (spar2.ts), so the reader answers as the fight's triangle says: a
+ * charm for a guard, a light tap for a dodger, and a pounce for a charm (in LX-SPAR/1 it guarded).
  */
 export const READER: Program = validateProgram({
   version: "LX-PET/1",
@@ -78,6 +79,10 @@ export function field(): Entry[] {
     { id: "guard-only", kind: "guard", fighter: fighterFrom("guard", only(5, 1), LEVEL) },
     { id: "dodge-only", kind: "dodge", fighter: fighterFrom("dodge", only(4, 1), LEVEL) },
     { id: "pounce-only", kind: "pounce", fighter: fighterFrom("pounce", only(2, 1), LEVEL) },
+    // row B1: every other one-move brain, every move at every mood (mood is part of what a brain answers)
+    ...MOVES.flatMap((move, want) =>
+      MOODS.flatMap((mood, m): Entry[] => (m === 1 && (want === 2 || want === 4 || want === 5) ? [] : [{ id: `${move}-only/${mood}`, kind: "single", fighter: fighterFrom(move, only(want, m), LEVEL) }])),
+    ),
     { id: "reader", kind: "reader", fighter: fighterFrom("reader", READER, LEVEL) },
     ...PARTNERS.map((p): Entry => ({ id: `partner:${p.id}`, kind: "partner", fighter: fighterOfPartner(p) })),
     ...LINES.map((line) => taught(`school-set/${line}`, line, schoolSet(line))),

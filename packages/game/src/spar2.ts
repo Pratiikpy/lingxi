@@ -24,60 +24,133 @@ import { encodeSenses } from "@lingxi/brain";
 import { type Fighter, MAX_HP, MAX_STAMINA, MOVES, type Move, ROUNDS, type Round, type Side, type SparResult, type SparVersion, bucketUp, digestOf, duelAnswer, duelWord, spar, xorshift } from "./spar";
 
 export const SPAR_V2 = "LX-SPAR/2";
+export const SPAR_V3 = "LX-SPAR/3";
 /** The version new fights are fought in. */
-export const CURRENT_SPAR: SparVersion = SPAR_V2;
+export const CURRENT_SPAR: SparVersion = SPAR_V3;
 
 /** A fight in the version given: each version replays with its own engine, so past spars verify as they were fought. */
 export function fight(version: SparVersion, a: Fighter, b: Fighter, seed: number, cheer?: (round: number) => [boolean, boolean]): SparResult {
-  return version === SPAR_V2 ? spar2(a, b, seed, cheer) : spar(a, b, seed, cheer);
+  const r = rulesOf(version);
+  return r ? sparWith(r, a, b, seed, cheer) : spar(a, b, seed, cheer);
 }
 
-/** Each move's number on the other pet's action pins: all eight apart (pounce, snack, charm and gift as in LX-SPAR/1). */
-const MOVE_AS_ACTION: Record<Move, number> = { tap: 0, snack: 1, pounce: 2, guard: 3, rest: 4, charm: 5, dodge: 6, gift: 7 };
-/** What each move costs in stamina. */
-export const MOVE_COST: Record<Move, number> = { tap: 0, snack: 1, pounce: 3, rest: 0, dodge: 2, guard: 1, charm: 2, gift: 1 };
-/** Power by mood: grumpy, calm, happy, excited. */
-const MOOD_POWER = [-1, 0, 1, 2] as const;
-/** What a rest gives back, what a snack heals, and the base of a tap and a pounce. */
-const REST_GAIN = 3;
-const SNACK_HEAL = 16;
-const TAP_HIT = 6;
-const POUNCE_HIT = 12;
-/** A guard lets a quarter of a pounce through (a fifth when grumpy) and a third of a tap. */
-const GUARD_POUNCE = 4;
-/** A guarded pounce: the attacker staggers (stamina), takes a recoil, more when the guard was timed. */
-const STAGGER = 2;
-/** The recoil is anything from 0 to RECOIL_MAX: a fixed one made a guard-only pet against a pounce-only one a knife edge (2 lost every fight, 3 won 60%, 4 won 93%). */
-const RECOIL_MAX = 6;
-const TIMED_RECOIL = 8;
-/** A clean dodge of a pounce: the dodger's counter-hit. */
-const RIPOSTE = 13;
-/** Stamina a guard or a clean dodge wins back when it answers a pounce. */
-const STEADY = 3;
-/** A pounce on a pet resting, snacking or charming; a charm slipping past a guard. */
-const PUNISH = 4;
-/** what a pounce adds on a pet resting, snacking or charming, for the rewind to say */
-export const SPAR_PUNISH = PUNISH;
-const FEINT = 8;
 /**
- * How LX-SPAR/2 reads the Spar skills (skills.ts sparMods; LX-SPAR/1 reads them as it always did): each point of skill
- * power adds two tenths of a damage to every pounce, carried from pounce to pounce, rather than multiplying like mood;
- * a tenth of the skills' health counts, and half their stamina; a guard skill stops a quarter of its percent of what
- * gets through a guard, carried from guard to guard; a dodge point is a quarter of a percent. Tuned so skills tilt a
- * fight and never decide it: one full guard or dodge skill moves its own matchup by under 10 points, and a full
- * Spar tree on a fight-reading brain beats the same brain unskilled in about 75% of spars, and every rank skill at
- * five points changes the result (spar2.test.ts).
+ * The numbers a fight version is played by. LX-SPAR/2 (V2_RULES) is kept exactly, so every spar fought in it replays;
+ * a later version is another table, played by the same engine.
  */
-const SKILL_POWER_TENTHS = 2;
-const SKILL_HP_SHARE = 0.1;
-const SKILL_STAMINA_SHARE = 0.5;
-/** a quarter of the guard skills' percent, carried from guard to guard; half a dodge point is half a percent on a 200 roll */
-const SKILL_GUARD_SHARE = 0.25;
-const SKILL_DODGE_SHARE = 0.5;
+export interface SparRules {
+  version: SparVersion;
+  /** each move's number on the other pet's action pins */
+  moveAsAction: Readonly<Record<Move, number>>;
+  /** what each move costs in stamina */
+  moveCost: Readonly<Record<Move, number>>;
+  /** power by mood: grumpy, calm, happy, excited */
+  moodPower: readonly [number, number, number, number];
+  /** stamina by mood added to any move that costs stamina */
+  moodCost: readonly [number, number, number, number];
+  /** damage by mood added to every hit the pet takes while it is not guarding or dodging (a reckless mood is easier to hurt) */
+  moodTaken: readonly [number, number, number, number];
+  /** how many times its power a pounce adds (a tap adds its power once) */
+  pouncePower: number;
+  /** stamina a calm pet wins back on a beat it only taps */
+  calmRecover: number;
+  /** what a rest gives back, what a snack heals, the base of a tap and a pounce */
+  restGain: number;
+  snackHeal: number;
+  tapHit: number;
+  pounceHit: number;
+  /** a guard lets through a pounce divided by this, a tap by guardTap; a grumpy guard divides by grumpyGuard more */
+  guardPounce: number;
+  guardTap: number;
+  grumpyGuard: number;
+  /** a guarded pounce: the attacker staggers, takes a recoil of 0 to recoilMax, more when the guard was timed */
+  stagger: number;
+  recoilMax: number;
+  timedRecoil: number;
+  /** a clean dodge of a pounce: the dodger's counter-hit; a dodge misses below dodgeMiss on a roll of 200 */
+  riposte: number;
+  dodgeMiss: number;
+  /** stamina a guard or a clean dodge wins back when it answers a pounce */
+  steady: number;
+  /** a pounce on a pet resting, snacking or charming; a charm slipping past a guard */
+  punish: number;
+  feint: number;
+  /** level is divided by this to give power */
+  levelDivisor: number;
+  /** how the Spar skills are read */
+  skillPowerTenths: number;
+  skillHpShare: number;
+  skillStaminaShare: number;
+  skillGuardShare: number;
+  skillDodgeShare: number;
+}
+
+/**
+ * LX-SPAR/2. Every move apart on the action pins; mood power -1/0/+1/+2 with excited paying one stamina more. The Spar
+ * skills: each point of skill power adds two tenths of a damage to every pounce, carried from pounce to pounce; a tenth
+ * of the skills' health and half their stamina count; a guard skill stops a quarter of its percent of what gets through
+ * a guard, carried; a dodge point is a quarter of a percent.
+ */
+export const V2_RULES: SparRules = {
+  version: "LX-SPAR/2",
+  moveAsAction: { tap: 0, snack: 1, pounce: 2, guard: 3, rest: 4, charm: 5, dodge: 6, gift: 7 },
+  moveCost: { tap: 0, snack: 1, pounce: 3, rest: 0, dodge: 2, guard: 1, charm: 2, gift: 1 },
+  moodPower: [-1, 0, 1, 2],
+  moodCost: [0, 0, 0, 1],
+  moodTaken: [0, 0, 0, 0],
+  pouncePower: 3,
+  calmRecover: 1,
+  restGain: 3,
+  snackHeal: 16,
+  tapHit: 6,
+  pounceHit: 12,
+  guardPounce: 4,
+  guardTap: 3,
+  grumpyGuard: 1,
+  stagger: 2,
+  recoilMax: 6,
+  timedRecoil: 8,
+  riposte: 13,
+  dodgeMiss: 66,
+  steady: 3,
+  punish: 4,
+  feint: 8,
+  levelDivisor: 2,
+  skillPowerTenths: 2,
+  skillHpShare: 0.1,
+  skillStaminaShare: 0.5,
+  skillGuardShare: 0.25,
+  skillDodgeShare: 0.5,
+};
+
+/**
+ * LX-SPAR/3 (Milestone B review, row B1). Two things LX-SPAR/2 got wrong. Mood was free power: a happy pet hit harder
+ * for nothing and an excited one paid a single stamina, so an excited pacer beat a calm one 342 to 34; now mood is how
+ * hard a pet plays, a trade both ways, and calm still recovers while it taps. The action pins are kept as LX-SPAR/2 has
+ * them, every move apart: hiding rest and dodge again (they read as "lights off" and "medicine" to a pet's care rules)
+ * was measured, and it took from the fight-reading brain what it reads (its share of the field fell from 87% to 62%).
+ */
+export const V3_RULES: SparRules = {
+  ...V2_RULES,
+  version: "LX-SPAR/3",
+  // each step of mood hits one harder and takes one more, grumpy one softer and one less; a pet braced in a guard or a
+  // dodge takes no more; measured (row B1): a pacer, a pouncer and a tapper at every mood score 41-52% against the same
+  // brain calm, and no guard-only against pounce-only pairing at any two moods falls outside 35-89%
+  moodPower: [-1, 0, 1, 2],
+  moodCost: [0, 0, 0, 0],
+  moodTaken: [-1, 0, 1, 2],
+  pouncePower: 1,
+  grumpyGuard: 0,
+};
+
+/** What each move costs in stamina (the same in every version this engine plays so far). */
+export const MOVE_COST: Readonly<Record<Move, number>> = V2_RULES.moveCost;
+/** what a pounce adds on a pet resting, snacking or charming, for the rewind to say */
+export const SPAR_PUNISH = V2_RULES.punish;
 
 const healthPin = (hp: number, max: number) => 3 - bucketUp(hp, max);
 
-function word2(me: Side, them: Side, round: number, cheering: boolean, hitHard: boolean): number {
+function wordOf(r: SparRules, me: Side, them: Side, round: number, cheering: boolean, hitHard: boolean): number {
   const phase = round < 3 ? 1 : round < ROUNDS - 4 ? 2 : 3;
   const opening = them.last === "rest" || them.last === "snack";
   const friendly = them.last === "charm" || them.last === "gift";
@@ -87,31 +160,41 @@ function word2(me: Side, them: Side, round: number, cheering: boolean, hitHard: 
     energy: bucketUp(me.stamina, me.maxStamina),
     clean: bucketUp(them.hp, them.maxHp),
     time: phase,
-    action: round > 0 ? MOVE_AS_ACTION[them.last] : 0,
+    action: round > 0 ? r.moveAsAction[them.last] : 0,
     event: hitHard ? 3 : opening && round > 0 ? 2 : friendly ? 1 : 0,
     owner: cheering ? 1 : 0,
   });
 }
 
-/** The full cost of a move at a mood: an excited pet pays one more for anything that costs stamina. */
-const costAt = (m: Move, mood: number) => MOVE_COST[m] + (mood === 3 && MOVE_COST[m] > 0 ? 1 : 0);
+/** The full cost of a move at a mood. */
+const costAt = (r: SparRules, m: Move, mood: number) => r.moveCost[m] + (r.moveCost[m] > 0 ? r.moodCost[mood]! : 0);
+
+/** The rules of each version this engine plays (LX-SPAR/1 has its own engine, spar.ts). */
+const RULES_OF: Partial<Record<SparVersion, SparRules>> = { "LX-SPAR/2": V2_RULES, "LX-SPAR/3": V3_RULES };
+export const rulesOf = (version: SparVersion): SparRules | undefined => RULES_OF[version];
 
 /**
  * The move a brain's answer (want | mood << 3) becomes with this much stamina, before a pounce's chance of slipping
- * into a tap: LX-SPAR/1 lets a pet with no stamina only rest or tap; LX-SPAR/2 turns any move it cannot pay for in full
- * into a rest. A checker that asks the chain for the brain's answer applies this to compare it with the move made.
+ * into a tap: LX-SPAR/1 lets a pet with no stamina only rest or tap; from LX-SPAR/2 any move it cannot pay for in full
+ * becomes a rest. A checker that asks the chain for the brain's answer applies this to compare it with the move made.
  */
 export function allowedMove(version: SparVersion, out: number, stamina: number): Move {
   const want = MOVES[out & 7]!;
-  if (version === SPAR_V2) return costAt(want, (out >> 3) & 3) > stamina ? "rest" : want;
+  const r = rulesOf(version);
+  if (r) return costAt(r, want, (out >> 3) & 3) > stamina ? "rest" : want;
   return stamina <= 0 && want !== "rest" && want !== "tap" ? "rest" : want;
 }
 
-export function spar2(a: Fighter, b: Fighter, seed: number, cheer: (round: number) => [boolean, boolean] = () => [false, false]): SparResult {
+export function spar2(a: Fighter, b: Fighter, seed: number, cheer?: (round: number) => [boolean, boolean]): SparResult {
+  return sparWith(V2_RULES, a, b, seed, cheer);
+}
+
+/** A fight played by a version's rules. */
+export function sparWith(r: SparRules, a: Fighter, b: Fighter, seed: number, cheer: (round: number) => [boolean, boolean] = () => [false, false]): SparResult {
   const rnd = xorshift(seed);
   const start = (f: Fighter): Side => {
-    const maxHp = MAX_HP + Math.floor((f.mods?.hp ?? 0) * SKILL_HP_SHARE);
-    const maxStamina = MAX_STAMINA + Math.floor((f.mods?.stamina ?? 0) * SKILL_STAMINA_SHARE);
+    const maxHp = MAX_HP + Math.floor((f.mods?.hp ?? 0) * r.skillHpShare);
+    const maxStamina = MAX_STAMINA + Math.floor((f.mods?.stamina ?? 0) * r.skillStaminaShare);
     return { hp: maxHp, stamina: maxStamina, maxHp, maxStamina, weakened: 0, memory: f.memory.slice(), last: "tap", momentum: 0 };
   };
   const sides: [Side, Side] = [start(a), start(b)];
@@ -123,13 +206,13 @@ export function spar2(a: Fighter, b: Fighter, seed: number, cheer: (round: numbe
   // the guard skills stop their share of what gets through a guard, carried from guard to guard the same way
   const stopped: [number, number] = [0, 0];
   const guardStops = (j: 0 | 1, through: number): number => {
-    stopped[j] += through * Math.min(90, (fighters[j]!.mods?.guard ?? 0) * SKILL_GUARD_SHARE);
+    stopped[j] += through * Math.min(90, (fighters[j]!.mods?.guard ?? 0) * r.skillGuardShare);
     const whole = Math.min(through, Math.floor(stopped[j] / 100));
     stopped[j] -= whole * 100;
     return whole;
   };
   const skillHit = (i: 0 | 1): number => {
-    carry[i] += (fighters[i]!.mods?.power ?? 0) * SKILL_POWER_TENTHS;
+    carry[i] += (fighters[i]!.mods?.power ?? 0) * r.skillPowerTenths;
     const whole = Math.floor(carry[i] / 10);
     carry[i] -= whole * 10;
     return whole;
@@ -138,7 +221,7 @@ export function spar2(a: Fighter, b: Fighter, seed: number, cheer: (round: numbe
     const cheering = cheer(n);
     const words = [0, 1].map((i) => {
       const [me, them] = i === 0 ? [sides[0], sides[1]] : [sides[1], sides[0]];
-      return fighters[i]!.profile === "DUEL-12x3/1" ? duelWord(me, them, n) : word2(me, them, n, cheering[i]!, hitHard[i]!);
+      return fighters[i]!.profile === "DUEL-12x3/1" ? duelWord(me, them, n) : wordOf(r, me, them, n, cheering[i]!, hitHard[i]!);
     }) as [number, number];
     const outs = [0, 1].map((i) => {
       const st = Uint8Array.from(sides[i]!.memory);
@@ -148,10 +231,10 @@ export function spar2(a: Fighter, b: Fighter, seed: number, cheer: (round: numbe
     });
     const moods = outs.map((o) => (o >> 3) & 3) as [number, number];
     // strict stamina: a move the pet cannot pay for in full becomes a rest; now and then an eager pounce slips to a tap
-    let moves = outs.map((o, i) => allowedMove(SPAR_V2, o, sides[i]!.stamina)) as [Move, Move];
+    let moves = outs.map((o, i) => allowedMove(r.version, o, sides[i]!.stamina)) as [Move, Move];
     moves = moves.map((m) => (m === "pounce" && rnd() % 8 === 0 ? "tap" : m)) as [Move, Move];
     // level tilts: half a point of power a level
-    const power = moods.map((m, i) => MOOD_POWER[m]! + Math.floor(fighters[i]!.level / 2)) as [number, number];
+    const power = moods.map((m, i) => r.moodPower[m]! + Math.floor(fighters[i]!.level / r.levelDivisor)) as [number, number];
     const hits: [number, number] = [0, 0];
     const heal: [number, number] = [0, 0];
     const stagger: [number, number] = [0, 0];
@@ -159,11 +242,11 @@ export function spar2(a: Fighter, b: Fighter, seed: number, cheer: (round: numbe
       const j = (1 - i) as 0 | 1;
       const me = sides[i];
       const m = moves[i];
-      me.stamina = Math.max(0, me.stamina - costAt(m, moods[i]));
-      if (m === "rest") me.stamina = Math.min(me.maxStamina, me.stamina + REST_GAIN);
+      me.stamina = Math.max(0, me.stamina - costAt(r, m, moods[i]));
+      if (m === "rest") me.stamina = Math.min(me.maxStamina, me.stamina + r.restGain);
       // calm recovers, while it only taps
-      else if (moods[i] === 1 && MOVE_COST[m] === 0) me.stamina = Math.min(me.maxStamina, me.stamina + 1);
-      if (m === "snack") heal[i] += SNACK_HEAL + power[i] * 2 + (fighters[i]!.mods?.heal ?? 0);
+      else if (moods[i] === 1 && r.moveCost[m] === 0) me.stamina = Math.min(me.maxStamina, me.stamina + r.calmRecover);
+      if (m === "snack") heal[i] += r.snackHeal + power[i] * 2 + (fighters[i]!.mods?.heal ?? 0);
       if (m === "gift") {
         heal[i] += 6;
         heal[j] += 6;
@@ -172,38 +255,40 @@ export function spar2(a: Fighter, b: Fighter, seed: number, cheer: (round: numbe
       if (m === "charm") {
         sides[j].weakened = 2;
         // a feint: past a guard for a light hit
-        if (def === "guard") hits[i] = FEINT + Math.max(0, power[i]);
+        if (def === "guard") hits[i] = r.feint + Math.max(0, power[i]);
       }
       if (m === "pounce" || m === "tap") {
-        let dmg = m === "tap" ? TAP_HIT + power[i] + (rnd() % 3) : POUNCE_HIT + power[i] * 3 + skillHit(i) + (rnd() % 5) + (rnd() % 6 === 0 ? 8 : 0);
+        let dmg = m === "tap" ? r.tapHit + power[i] + (rnd() % 3) : r.pounceHit + power[i] * r.pouncePower + skillHit(i) + (rnd() % 5) + (rnd() % 6 === 0 ? 8 : 0);
         if (me.weakened > 0) dmg = Math.floor(dmg / 2);
         const them = fighters[j]!.mods;
         if (def === "guard") {
           // a guard takes the sting out of a pounce (a quarter gets through, a fifth when grumpy), a tap a third
-          dmg = Math.floor(dmg / ((m === "pounce" ? GUARD_POUNCE : 3) + (moods[j] === 0 ? 1 : 0)));
+          dmg = Math.floor(dmg / ((m === "pounce" ? r.guardPounce : r.guardTap) + (moods[j] === 0 ? r.grumpyGuard : 0)));
           dmg -= guardStops(j, dmg);
           // a guarded pounce staggers the attacker and costs it a recoil; a guard thrown up in time (after a different
           // move) throws it back harder than one held round after round, so a pet that reads beats one that only guards
           if (m === "pounce") {
             const timed = sides[j].last !== "guard";
-            stagger[i] += STAGGER;
-            stagger[j] -= STEADY;
-            hits[j] += (rnd() % (RECOIL_MAX + 1)) + (timed ? TIMED_RECOIL : 0);
+            stagger[i] += r.stagger;
+            stagger[j] -= r.steady;
+            hits[j] += (rnd() % (r.recoilMax + 1)) + (timed ? r.timedRecoil : 0);
           }
         } else if (def === "dodge") {
-          const r = rnd();
-          if (r % 200 >= Math.max(0, 66 - Math.floor((them?.dodge ?? 0) * SKILL_DODGE_SHARE))) {
+          const roll = rnd();
+          if (roll % 200 >= Math.max(0, r.dodgeMiss - Math.floor((them?.dodge ?? 0) * r.skillDodgeShare))) {
             dmg = 0;
             // a dodged pounce overreaches: the dodger answers it
             if (m === "pounce") {
-              hits[j] += RIPOSTE;
-              stagger[j] -= STEADY;
+              hits[j] += r.riposte;
+              stagger[j] -= r.steady;
             }
           }
-        } else if (m === "pounce" && (def === "rest" || def === "snack" || def === "charm")) dmg += PUNISH;
+        } else if (m === "pounce" && (def === "rest" || def === "snack" || def === "charm")) dmg += r.punish;
         hits[i] += Math.max(0, dmg);
       }
     }
+    // a reckless mood is easier to hurt: each hit it takes is heavier, unless it is braced in a guard or a dodge
+    for (const i of [0, 1] as const) if (hits[1 - i]! > 0 && moves[i] !== "guard" && moves[i] !== "dodge") hits[1 - i] = hits[1 - i]! + r.moodTaken[moods[i]]!;
     for (const i of [0, 1] as const) {
       const j = (1 - i) as 0 | 1;
       sides[i].stamina = Math.max(0, Math.min(sides[i].maxStamina, sides[i].stamina - stagger[i]));
@@ -222,5 +307,5 @@ export function spar2(a: Fighter, b: Fighter, seed: number, cheer: (round: numbe
   }
   const [h0, h1] = [sides[0].hp, sides[1].hp];
   const winner: 0 | 1 | -1 = h0 === h1 ? -1 : h0 > h1 ? 0 : 1;
-  return { version: SPAR_V2, seed, rounds, winner, digest: digestOf(rounds, seed) };
+  return { version: r.version, seed, rounds, winner, digest: digestOf(rounds, seed) };
 }
