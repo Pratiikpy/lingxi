@@ -1,0 +1,11 @@
+--- a/services/api/src/tree.ts
++++ b/services/api/src/tree.ts
+@@ -55,7 +55,7 @@ export function buildTree(pets: readonly TreePet[]): Tree {
+     const queue = [...(byId.get(id)?.parents ?? [])];
+     for (let i = 0; i < queue.length; i++) {
+       const a = queue[i]!;
+-      if (seen.has(a)) continue;
++      if (out.includes(a) || a === id) continue;
+       seen.add(a);
+       out.push(a);
+       queue.push(...(byId.get(a)?.parents ?? []));
