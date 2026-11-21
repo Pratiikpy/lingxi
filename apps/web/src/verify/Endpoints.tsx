@@ -87,9 +87,12 @@ export function EndpointPanel({ lang }: { lang: "en" | "zh" }) {
           {answered.length ? answered.map(([h, n]) => `${h} ${n.toLocaleString()}`).join(" · ") : t.none}
         </dd>
       </dl>
-      <p className={fallback ? "v-bad" : "v-note"} data-testid="fallback">
-        {fallback ? t.fallback.replace("{n}", fallback.toLocaleString()) : t.noFallback}
-      </p>
+      {/* the on-chain copy has no server to count answers from (A127) */}
+      {ends.fallback ? (
+        <p className={fallback ? "v-bad" : "v-note"} data-testid="fallback">
+          {fallback ? t.fallback.replace("{n}", fallback.toLocaleString()) : t.noFallback}
+        </p>
+      ) : null}
       <form
         className="v-form"
         onSubmit={(e) => {
