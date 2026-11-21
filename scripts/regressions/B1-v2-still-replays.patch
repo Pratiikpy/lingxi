@@ -1,0 +1,11 @@
+--- a/packages/game/src/spar2.ts
++++ b/packages/game/src/spar2.ts
+@@ -170,7 +170,7 @@ function wordOf(r: SparRules, me: Side, them: Side, round: number, cheering: boo
+ const costAt = (r: SparRules, m: Move, mood: number) => r.moveCost[m] + (r.moveCost[m] > 0 ? r.moodCost[mood]! : 0);
+ 
+ /** The rules of each version this engine plays (LX-SPAR/1 has its own engine, spar.ts). */
+-const RULES_OF: Partial<Record<SparVersion, SparRules>> = { "LX-SPAR/2": V2_RULES, "LX-SPAR/3": V3_RULES };
++const RULES_OF: Partial<Record<SparVersion, SparRules>> = { "LX-SPAR/2": V3_RULES, "LX-SPAR/3": V3_RULES };
+ export const rulesOf = (version: SparVersion): SparRules | undefined => RULES_OF[version];
+ 
+ /**

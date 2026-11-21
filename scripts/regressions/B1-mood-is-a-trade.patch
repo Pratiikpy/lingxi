@@ -1,0 +1,11 @@
+--- a/packages/game/src/spar2.ts
++++ b/packages/game/src/spar2.ts
+@@ -138,7 +138,7 @@ export const V3_RULES: SparRules = {
+   // brain calm, and no guard-only against pounce-only pairing at any two moods falls outside 35-89%
+   moodPower: [-1, 0, 1, 2],
+   moodCost: [0, 0, 0, 0],
+-  moodTaken: [-1, 0, 1, 2],
++  moodTaken: [0, 0, 0, 0],
+   pouncePower: 1,
+   grumpyGuard: 0,
+ };

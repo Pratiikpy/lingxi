@@ -1,0 +1,11 @@
+--- a/packages/game/src/builders.ts
++++ b/packages/game/src/builders.ts
+@@ -150,7 +150,7 @@ export function behemothFighter(name: string): Fighter {
+       }
+       st.forEach((b, i) => (state[i] = b));
+       // calm (row B1): in LX-SPAR/3 mood is a trade, and the happy mood it had made it easy prey for an untaught pet
+-      return (num(out, ACC) & 7) | (1 << 3);
++      return (num(out, ACC) & 7) | (2 << 3);
+     },
+   };
+   // level 2, a boss's, and calm (G2, B1): the starters lose most of their spars against it, and a pet taught the lessons
