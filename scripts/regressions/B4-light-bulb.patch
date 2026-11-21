@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/store.ts
++++ b/apps/web/src/game/store.ts
+@@ -392,7 +392,7 @@ export const useGame = create<GameState>((set, get) => ({
+     if (beatOf(gameNow()) - pet.beat > 10) return get().wakeUp();
+     // a living room while you watch (G1): a friend, a toy or a noise now and then, the same input words the chain logs
+     // right after a lesson that answers an event, that event is staged (B4); the word is logged like any other beat
+-    const staged = stagedEvent(get().lightBulb, beatOf(gameNow()));
++    const staged = null;
+     const next = settleForm(liveBeat(zoned(pet), gameNow(), brainOf(pet), staged ?? watchEvent(awaySeed(pet), beatOf(gameNow()))), gameNow());
+     // what the room shows of it: the event this beat brought, from now (performance time, as the scene keeps)
+     const event = next !== pet ? (next.last.word >> inputField("event").lo) & 3 : 0;
