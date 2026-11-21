@@ -143,6 +143,20 @@ describe("the wording the audits corrected stays corrected (A87)", () => {
     expect(demo).toMatch(/宠物学堂的课：话和规则是一起写好的/);
   });
 
+  it("A128 and A129: the README's opening and the mail say replaying needs the log, and who gets the keepsake", () => {
+    const readme = read("README.md");
+    const mail = read("services/api/mail/letters.json");
+    for (const text of [readme, mail]) {
+      // every "anyone can replay / check" says what it needs
+      expect(text).not.toMatch(/(?<!publish its diary, )anyone can (replay|check)/i);
+      expect(text).not.toMatch(/(?<!日志或公开的日记，|日记之后，)任何人都能(重放|核对它)/);
+    }
+    expect(readme).toMatch(/anyone with its log, or its published diary, can replay it/);
+    expect(mail).toMatch(/once you publish its diary, anyone can check every thought it had/);
+    expect(mail).not.toMatch(/The winner's brain is taped out|冠军的大脑会在 X Layer 上流片/);
+    expect(mail).toMatch(/The best-placed pet proven to be on X Layer has its brain taped out/);
+  });
+
   it("A88: the README says what pet #1's home address is, not only that it is pet #1's", () => {
     const row = read("README.md").split("\n").find((l) => l.startsWith("| Containers |")) ?? "";
     expect(row).not.toMatch(/a pet's home is a TapeOut container; pet #1's is/);

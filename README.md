@@ -19,9 +19,9 @@
   <a href="https://lingxi.knole.me/agents.html"><b>API for agents</b></a>
 </p>
 
-**Lingxi (灵犀) is a virtual pet whose brain is a circuit you can read.** Every pet's mind is a circuit of NAND gates and memory latches; once its owner keeps it on X Layer, that circuit is taped out there and anyone can read it gate for gate. Each reaction comes from its own gates, its memory is saved on chain on the days its owner keeps it there, and anyone can replay it and see that it matches. You raise it, teach it in plain words, and watch who it becomes. It is free to play and has no token of its own. Every fee paid in BEM is burned; the one other fee is the first outfit market's 3% on sales in OKB, which goes to the project.
+**Lingxi (灵犀) is a virtual pet whose brain is a circuit you can read.** Every pet's mind is a circuit of NAND gates and memory latches; once its owner keeps it on X Layer, that circuit is taped out there and anyone can read it gate for gate. Each reaction comes from its own gates, its memory is saved on chain on the days its owner keeps it there, and anyone with its log, or its published diary, can replay it and see that it matches. You raise it, teach it in plain words, and watch who it becomes. It is free to play and has no token of its own. Every fee paid in BEM is burned; the one other fee is the first outfit market's 3% on sales in OKB, which goes to the project.
 
-灵犀是一只心智是真电路的宠物。每只宠物的大脑都是一块由与非门和记忆锁存器组成的电路；主人把它留在 X Layer 上之后，这块电路就在链上流片，任何人都能逐门读到。每个反应来自它自己的门电路，主人保存的每一天，记忆都存在链上，任何人都能重放核对。免费游玩，没有自己的代币。所有用 BEM 支付的费用全部销毁；唯一的另一笔费用是第一个衣服市场对 OKB 交易收取的 3%，归项目所有。
+灵犀是一只心智是真电路的宠物。每只宠物的大脑都是一块由与非门和记忆锁存器组成的电路；主人把它留在 X Layer 上之后，这块电路就在链上流片，任何人都能逐门读到。每个反应来自它自己的门电路，主人保存的每一天，记忆都存在链上，拿到它的日志或公开的日记，任何人都能重放核对。免费游玩，没有自己的代币。所有用 BEM 支付的费用全部销毁；唯一的另一笔费用是第一个衣服市场对 OKB 交易收取的 3%，归项目所有。
 
 ---
 
