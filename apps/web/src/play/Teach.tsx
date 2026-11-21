@@ -7,8 +7,8 @@
 import { CuteState } from "./CuteState";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import type { Rule } from "@lingxi/brain";
-import { PET_SCHOOL, type Pet, lessonCapacity, type Trap, brainSize, checkLesson, lessonCost, levelOpen, schoolReport, stageOf, trapsAfter } from "@lingxi/game";
+import { INPUT_FIELDS, type Rule } from "@lingxi/brain";
+import { type Frame, PET_SCHOOL, type Pet, lessonCapacity, lessonTrigger, type Trap, brainSize, checkLesson, lessonCost, levelOpen, schoolReport, stageOf, trapsAfter } from "@lingxi/game";
 import { useLang, useT, type Key } from "../i18n";
 import { teachInWords, teachingAvailable } from "../game/api";
 import { teachBody } from "../game/requests";
@@ -21,7 +21,7 @@ import { useWorld } from "../game/world";
 import { Icon } from "./icons";
 import { Chips } from "./parts";
 import { Sandbox } from "./Sandbox";
-import { TryIt } from "./TryIt";
+import { TryIt, showMoment } from "./TryIt";
 import { OwnedInstinctPanel } from "./OwnedInstinct";
 import { MOOD_NAMES, VALUE_NAMES, WANT_NAMES, chipsFor } from "./ruleText";
 import "./teach.css";
@@ -298,8 +298,14 @@ function Learned({ pet }: { pet: Pet }) {
           <li key={`${r.label}-${i}`}>
             <div className="rule-preview">
               <Chips when={c.when} then={c.then} want={c.want} />
-              <span className="fires small">{fires[i] ? t("teach.fired", { n: fires[i]! }) : t("teach.firedNone")}</span>
+              <span className="fires small">{fires[i]?.count ? t("teach.fired", { n: fires[i]!.count }) : lessonTrigger(r).kind === "moment" ? t("teach.firedWaits") : t("teach.firedNone")}</span>
             </div>
+            {fires[i]?.last && <LastTime pet={pet} frame={fires[i]!.last!} />}
+            {!fires[i]?.last && lessonTrigger(r).kind === "moment" && (
+              <button type="button" className="link small" onClick={() => showMoment(pet, r, t, lang === "zh" ? "zh" : "en")}>
+                {t("teach.seeMoment")}
+              </button>
+            )}
             <div className="mini">
               <button type="button" aria-label={t("teach.up")} disabled={i === 0} onClick={() => arrange(i, "up")}>
                 ▲
@@ -539,6 +545,31 @@ export function TeachPanel({ pet }: { pet: Pet }) {
         )}
       </AnimatePresence>
       <OwnedInstinctPanel pet={pet} />
+    </div>
+  );
+}
+
+/**
+ * The last moment today a lesson decided, shown again (G1 item 4, row B4): when it was, everything the pet sensed
+ * that beat, and what it chose, from the day's log replayed.
+ */
+function LastTime({ pet, frame }: { pet: Pet; frame: Frame }) {
+  const t = useT();
+  const { lang } = useLang();
+  const [open, setOpen] = useState(false);
+  // the time on the pet's own clock
+  const at = new Date(frame.at! + pet.tzOffsetMin * 60_000).toLocaleTimeString(lang === "zh" ? "zh-CN" : "en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
+  const sensed = INPUT_FIELDS.map((f) => VALUE_NAMES[f.name]?.[lang][frame.senses[f.name as keyof typeof frame.senses]] ?? "").filter(Boolean);
+  return (
+    <div className="last-time">
+      <button type="button" className="link small" aria-expanded={open} onClick={() => (play("tap"), setOpen((o) => !o))}>
+        {t("teach.lastAt", { time: at })}
+      </button>
+      {open && (
+        <p className="small">
+          {t("teach.lastSensed", { sensed: sensed.join(lang === "zh" ? "、" : ", ") })} {t("teach.lastDid", { then: WANT_NAMES[lang][frame.want] ?? "" })}
+        </p>
+      )}
     </div>
   );
 }

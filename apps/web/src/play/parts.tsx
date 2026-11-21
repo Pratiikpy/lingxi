@@ -1,6 +1,6 @@
 /** The pieces of the game screen: top bar, meters, care buttons, thinking strip, tabs. */
 
-import { useEffect } from "react";
+import { type ReactNode, useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useVoice } from "../game/voice";
 import { decidingPart } from "../game/store";
@@ -175,7 +175,12 @@ export function ThinkStrip({ pet, taught = false }: { pet: Pet; taught?: boolean
 }
 
 /** The pet's own words for what its circuit just decided; fades after a few seconds. */
-export function VoiceBubble() {
+/**
+ * The pet's words. They are shown in the room's notice lane (A15), at the top of the room and away from the pet, so a
+ * tail pointing down would point at whatever happens to be under the lane (B4: on a desktop, the chimney); the pet's
+ * own face beside the words says who is speaking instead.
+ */
+export function VoiceBubble({ face }: { face?: ReactNode }) {
   const { line, id, hush } = useVoice();
   useEffect(() => {
     if (!line) return;
@@ -186,7 +191,12 @@ export function VoiceBubble() {
     <AnimatePresence>
       {line && (
         <motion.p key={id} className="voice" role="status" initial={{ opacity: 0, y: 6, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}>
-          {line}
+          {face && (
+            <span className="voice-face" aria-hidden="true">
+              {face}
+            </span>
+          )}
+          <span>{line}</span>
         </motion.p>
       )}
     </AnimatePresence>

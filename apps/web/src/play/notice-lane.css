@@ -22,6 +22,32 @@
   max-width: 100%;
   pointer-events: auto;
 }
+/* B4: in the lane the pet's words sit far above the pet, so they carry its face instead of a tail pointing down */
+.notice-lane > .voice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+}
+.notice-lane > .voice::after {
+  display: none;
+}
+.voice-face {
+  flex: none;
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #ffe9b8;
+  box-shadow: inset 0 0 0 2px #2b2140;
+}
+.voice-face canvas {
+  width: 26px;
+  height: 26px;
+}
 /* H5: one notice at a time. The lane's children are in order of weight (the quest toast, a badge, a care note, the
    rules mark, the pet's own words) and each is there only while it has something to say, so the first is the one
    that matters most. The others are not shown meanwhile, and each keeps its own few seconds, so a lighter one may pass

@@ -23,8 +23,12 @@ describe("a lesson's score for today (G1)", () => {
     // ten watched minutes, a toy on three of them
     for (let m = 2; m < 12; m++) p = liveBeat(p, T0 + m * MIN, brain, m % 3 === 0 ? EVENT.toy : EVENT.none);
     const scores = firesToday(p, mindFor(p), T0 + 12 * MIN);
-    expect(scores).toEqual([3]);
+    expect(scores.map((x) => x.count)).toEqual([3]);
+    // the last of them is kept whole, so it can be shown again (B4): the toy of minute 9, and what it chose
+    expect(scores[0]!.last?.at).toBe(T0 + 9 * MIN);
+    expect(scores[0]!.last?.senses.event).toBe(EVENT.toy);
+    expect(scores[0]!.last?.want).toBe(7);
     // the same pet asked about tomorrow: nothing yet
-    expect(firesToday(p, mindFor(p), T0 + 24 * 60 * MIN)).toEqual([0]);
+    expect(firesToday(p, mindFor(p), T0 + 24 * 60 * MIN)).toEqual([{ count: 0, last: null }]);
   });
 });

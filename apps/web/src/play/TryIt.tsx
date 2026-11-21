@@ -18,6 +18,26 @@ import { play } from "../game/sound";
 const COMING: Record<number, Key> = { 1: "try.friend", 2: "try.toy", 3: "try.scary" };
 const same = (a: Rule, b: Rule) => JSON.stringify([a.when, a.then]) === JSON.stringify([b.when, b.then]);
 
+/**
+ * A moment lesson shown in the room: what the pet would do in that moment, and what it would have done without the
+ * lesson. Nothing is changed or logged; it can be shown again at any time from the Learned list.
+ */
+export function showMoment(pet: Pet, lesson: Rule, t: ReturnType<typeof useT>, lang: "en" | "zh") {
+  play("tap");
+  // a child decides with one parent's half by morning and day, the other's by evening and night
+  const time = momentFor(lesson).time;
+  const pick = <T,>(parts: T[]) => ((time === 1 || time === 2 ? parts[0] : parts[1]) ?? parts[0])!;
+  const part = pick(mindParts(pet));
+  const tried = tryLesson(part.program, pet.brain.slice(part.offset), lesson);
+  const without = pick(mindParts({ ...pet, lessons: pet.lessons.filter((l) => !same(l, lesson)) }));
+  const before = tryLesson(without.program, pet.brain.slice(without.offset), lesson);
+  const then = (want: number) => WANT_NAMES[lang][want] ?? "";
+  const line = tried.fired
+    ? `${t("try.would", { then: then(tried.want) })}${before.want !== tried.want ? ` ${t("try.without", { then: then(before.want) })}` : ""}`
+    : t("try.waits", { name: pet.name, then: then(tried.want) });
+  useTrial.getState().stage(tried, lesson, line);
+}
+
 export function TryIt({ pet, lesson, onDone }: { pet: Pet; lesson: Rule; onDone: () => void }) {
   const t = useT();
   const lang = useLang((s) => s.lang) === "zh" ? "zh" : "en";
@@ -27,21 +47,8 @@ export function TryIt({ pet, lesson, onDone }: { pet: Pet; lesson: Rule; onDone:
     useTrial.getState().watch();
     onDone();
   };
-  // a moment lesson: what it would do in that moment, and what it would have done without the lesson
   const preview = () => {
-    play("tap");
-    // a child decides with one parent's half by morning and day, the other's by evening and night
-    const time = momentFor(lesson).time;
-    const pick = <T,>(parts: T[]) => ((time === 1 || time === 2 ? parts[0] : parts[1]) ?? parts[0])!;
-    const part = pick(mindParts(pet));
-    const tried = tryLesson(part.program, pet.brain.slice(part.offset), lesson);
-    const without = pick(mindParts({ ...pet, lessons: pet.lessons.filter((l) => !same(l, lesson)) }));
-    const before = tryLesson(without.program, pet.brain.slice(without.offset), lesson);
-    const then = (want: number) => WANT_NAMES[lang][want] ?? "";
-    const line = tried.fired
-      ? `${t("try.would", { then: then(tried.want) })}${before.want !== tried.want ? ` ${t("try.without", { then: then(before.want) })}` : ""}`
-      : t("try.waits", { name: pet.name, then: then(tried.want) });
-    useTrial.getState().stage(tried, lesson, line);
+    showMoment(pet, lesson, t, lang);
     onDone();
   };
   const when = () => chipsFor(programFor(pet.line, pet.lessons, pet.instincts ?? 0, pet.growth), lesson, lang).when.join(lang === "zh" ? "且" : " and ");
