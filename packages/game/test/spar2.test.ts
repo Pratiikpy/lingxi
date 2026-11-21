@@ -16,7 +16,7 @@ import { SKILLS, sparMods } from "../src/skills";
 import { SPAR_V3_FROM_WEEK, seasonSparVersion } from "../src/season";
 import { SPAR_V3_FROM_DAY, dailySparVersion } from "../src/daily";
 import { coach, fighterFrom, fighterOfMind } from "../src/coach";
-import { LESSON_CAPACITY, composeProgram } from "../src/lessons";
+import { composeProgram } from "../src/lessons";
 import { behemothFighter } from "../src/builders";
 import { READER } from "../scripts/sim90/field";
 
