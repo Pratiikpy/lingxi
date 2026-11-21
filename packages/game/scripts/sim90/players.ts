@@ -27,6 +27,24 @@ const ERRANDS = 3;
 /** A long visit stops every half hour to look after the pet again. */
 const CARE_EVERY = 30;
 
+/**
+ * Every way a tapper can turn taps into care (B8): pats and words, a mini-game played for three stars, a bath, a meal.
+ * Each is run as its own tapper, so level-not-by-tapping holds against the fastest, not just against pats.
+ */
+export const TAP_PATHS = ["petTalk", "play3", "clean", "feed"] as const;
+export type TapPath = (typeof TAP_PATHS)[number];
+
+/** One tap down a path. A meal tap feeds from the bag and buys food when it runs out, as a determined player would. */
+function tapOnce(life: Life, path: TapPath, k: number, t: number): void {
+  if (path === "petTalk") life.care({ kind: k % 2 ? "talk" : "pet" }, t);
+  else if (path === "play3") life.care({ kind: "play", stars: 3 }, t);
+  else if (path === "clean") life.care({ kind: "clean" }, t);
+  else if (!life.feed(t)) {
+    life.shopForFood(t);
+    life.feed(t);
+  }
+}
+
 interface PlayerSpec {
   line: StarterLine;
   /** visits as [local hour, minutes], by weekday (0 Monday … 6 Sunday) */
@@ -34,6 +52,8 @@ interface PlayerSpec {
   trees: readonly Tree[];
   /** what fills each minute of a visit, beyond watching */
   minute?: "tap" | "spar";
+  /** for a tapper: which taps (pats and words unless said) */
+  tap?: TapPath;
 }
 
 const CARE_FIRST: Tree[] = ["care", "mind", "explore", "spar"];
@@ -100,7 +120,7 @@ function visit(life: Life, spec: PlayerSpec, start: number, minutes: number, hou
   for (let m = 0; m < minutes; m++) {
     const t = start + m * MIN;
     if (m > 0 && m % CARE_EVERY === 0) routine(t, hour + Math.floor(m / 60));
-    if (spec.minute === "tap") for (let k = 0; k < TAPS_PER_MINUTE; k++) life.care({ kind: k % 2 ? "talk" : "pet" }, t + Math.floor((k * MIN) / TAPS_PER_MINUTE));
+    if (spec.minute === "tap") for (let k = 0; k < TAPS_PER_MINUTE; k++) tapOnce(life, spec.tap ?? "petTalk", k, t + Math.floor((k * MIN) / TAPS_PER_MINUTE));
     if (spec.minute === "spar") for (sparMs += MIN; sparMs > 0; ) sparMs -= life.spar(grinderPick(life), t).ms;
     life.watch(t + MIN);
   }
@@ -114,8 +134,8 @@ interface RunState {
 }
 
 /** One player type's 90 days, through the real rules, from a seed. */
-export function playType(type: PlayerType, seed: number, days: number): PlayerNumbers {
-  const spec = PLAYERS[type];
+export function playType(type: PlayerType, seed: number, days: number, tap?: TapPath): PlayerNumbers {
+  const spec = tap ? { ...PLAYERS[type], tap } : PLAYERS[type];
   const bornAt = DAY1 + HATCH_HOUR * 3_600_000;
   const life = new Life({ name: type, line: spec.line, bornAt, tzOffsetMin: TZ, seed: seed ^ PLAYER_SALT[type], trees: spec.trees });
   const state: RunState = { firstTooBigDay: null, sparredToday: false };

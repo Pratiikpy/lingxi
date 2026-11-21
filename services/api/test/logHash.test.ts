@@ -85,7 +85,9 @@ describe("the hash queue is shared fairly, and the worker is kept (A145)", () =>
   });
 
   it("one worker serves many hashes, and a new one is started after a hash past its budget", async () => {
-    const hash = createLogHasher();
+    // what is checked here is that one worker is kept, not how fast it is: a budget no busy test machine can run past
+    // (the full suite runs every package at once), while the budget itself is checked just below with 1 ms
+    const hash = createLogHasher({ budgetMs: 120_000 });
     const words = junk("1", 3_000).words;
     const want = chainAll(ZERO_HASH, words);
     const t = performance.now();

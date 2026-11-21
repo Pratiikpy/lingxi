@@ -8,13 +8,13 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { BALANCE_MEASURED, BALANCE_TARGETS, type SimNumbers, balanceTargets } from "../src";
 import { playType } from "../scripts/sim90/players";
-import { DEFAULT_DAYS, DEFAULT_SEED, runSim } from "../scripts/sim90/run";
+import { DEFAULT_DAYS, DEFAULT_SEED, runSimYielding } from "../scripts/sim90/run";
 
 let n: SimNumbers;
 // the whole 90 days for all five players, the spar field and the lesson watch: about 40 seconds on one core
-beforeAll(() => {
-  n = runSim({ seed: DEFAULT_SEED, days: DEFAULT_DAYS });
-}, 240_000);
+beforeAll(async () => {
+  n = await runSimYielding({ seed: DEFAULT_SEED, days: DEFAULT_DAYS });
+}, 480_000);
 
 describe("the balance targets (38-PLAN-GAME-DESIGN.md section 2)", () => {
   for (const t of balanceTargets()) {
@@ -32,6 +32,18 @@ describe("the balance targets (38-PLAN-GAME-DESIGN.md section 2)", () => {
     expect(BALANCE_MEASURED.seed).toBe(DEFAULT_SEED);
     expect(BALANCE_MEASURED.days).toBe(DEFAULT_DAYS);
     expect(Object.keys(BALANCE_MEASURED.targets).sort()).toEqual(BALANCE_TARGETS.map((t) => t.id).sort());
+  });
+});
+
+describe("level-not-by-tapping tries every tapping path (B8)", () => {
+  const target = BALANCE_TARGETS.find((t) => t.id === "level-not-by-tapping")!;
+  it("measures each path, and fails when any one of them levels too fast", () => {
+    expect(Object.keys(n.tapPaths ?? {}).sort()).toEqual(["clean", "feed", "petTalk", "play3"]);
+    expect(target.met(n)).toBe(true);
+    const fast = { ...n, tapPaths: { ...n.tapPaths, feed: { level99Day: null, day30Level: 999 } } };
+    expect(target.met(fast), "one path far ahead of the three-visit player").toBe(false);
+    const ninetyNine = { ...n, tapPaths: { ...n.tapPaths, play3: { level99Day: 80, day30Level: 1 } } };
+    expect(target.met(ninetyNine), "one path reaching level 99").toBe(false);
   });
 });
 

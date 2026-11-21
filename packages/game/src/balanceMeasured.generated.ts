@@ -31,7 +31,7 @@ export const BALANCE_MEASURED: BalanceMeasured = {
       "status": "met"
     },
     "level-not-by-tapping": {
-      "value": "tapper level 99 on no day; day 30: tapper 29, three visits 37",
+      "value": "petTalk: level 99 never, day 30 level 29; play3: level 99 never, day 30 level 35; clean: level 99 never, day 30 level 29; feed: level 99 never, day 30 level 40; three visits day 30 level 37",
       "status": "met"
     },
     "trees-by-90": {

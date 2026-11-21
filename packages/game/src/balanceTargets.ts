@@ -126,6 +126,8 @@ export interface SimNumbers {
   seed: number;
   days: number;
   players: Record<PlayerType, PlayerNumbers>;
+  /** B8: the tapper down each tapping path (pats and words, three-star play, baths, meals) */
+  tapPaths?: Record<string, { level99Day: number | null; day30Level: number | null }>;
   field: FieldNumbers;
   lessons: LessonSeen[];
   /** coins to buy every permanent thing sold for coins: decorations, outfit pieces and tools */
@@ -158,6 +160,9 @@ const types = (n: SimNumbers) => PLAYER_TYPES.map((t) => n.players[t]);
 const lessonIds = (n: SimNumbers) => [...new Set(n.lessons.map((l) => l.id))];
 const seen = (l: LessonSeen) =>
   l.trigger === "moment" ? l.inMoment === true : l.firstFire !== null && l.firstFire <= SEEN_WITHIN && l.fires >= (l.trigger === "care" ? (l.cares ?? SEEN_IN_TEN) : SEEN_IN_TEN);
+/** Every tapping path measured, or the pats-and-words tapper alone in a record from before B8. */
+const tapPathsOf = (n: SimNumbers): Array<[string, { level99Day: number | null; day30Level: number | null }]> =>
+  n.tapPaths ? Object.entries(n.tapPaths) : [["petTalk", { level99Day: n.players.tapper.level99Day, day30Level: day(n.players.tapper, 30)?.level ?? null }]];
 const day = (p: PlayerNumbers, d: number) => p.days[Math.min(d, p.days.length) - 1];
 
 export const BALANCE_TARGETS: readonly BalanceTarget[] = [
@@ -221,17 +226,17 @@ export const BALANCE_TARGETS: readonly BalanceTarget[] = [
   {
     id: "level-not-by-tapping",
     what: "Level 99 is paced by days of real care, not by tapping",
-    target: "the tapper never reaches level 99 in 90 days, and on day 30 stands no more than a quarter above the three-visit player",
+    // B8: a tapper down every tapping path (pats and words, three-star play, baths, meals), so the fastest decides
+    target: "a tapper, down whichever tapping path is fastest (pats and words, three-star play, baths or meals), never reaches level 99 in 90 days, and on day 30 stands no more than a quarter above the three-visit player",
     owner: "G3",
     value: (n) => {
-      const t = n.players.tapper;
       const c = n.players.three;
-      return `tapper level 99 on ${t.level99Day === null ? "no day" : `day ${t.level99Day}`}; day 30: tapper ${day(t, 30)?.level ?? "-"}, three visits ${day(c, 30)?.level ?? "-"}`;
+      const paths = tapPathsOf(n);
+      return `${paths.map(([k, p]) => `${k}: level 99 ${p.level99Day === null ? "never" : `day ${p.level99Day}`}, day 30 level ${p.day30Level ?? "-"}`).join("; ")}; three visits day 30 level ${day(c, 30)?.level ?? "-"}`;
     },
     met: (n) => {
-      const t = n.players.tapper;
-      const c = n.players.three;
-      return t.level99Day === null && (day(t, 30)?.level ?? 0) <= Math.ceil(1.25 * (day(c, 30)?.level ?? 0));
+      const cap = Math.ceil(1.25 * (day(n.players.three, 30)?.level ?? 0));
+      return tapPathsOf(n).every(([, p]) => p.level99Day === null && (p.day30Level ?? 0) <= cap);
     },
   },
   {
