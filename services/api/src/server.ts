@@ -583,6 +583,9 @@ export function withPackets(app: Hono, index: Pick<PacketIndex, "claimsOf" | "he
   return app;
 }
 
+/** The most pets one page of the tree holds (A147). */
+const TREE_PAGE_MAX = 1_000;
+
 /**
  * The tree of life: every pet on chain with its generation, ancestors and the
  * owners who raised them. Names come from PetLook and name colours from the
@@ -609,19 +612,38 @@ export function withTree(app: Hono, indexer: Pick<Indexer, "pets" | "head">, nam
       }
     }
   };
+  // the built tree, kept until the indexer moves on or a name or colour changes (A147)
+  let built: { key: string; tree: ReturnType<typeof buildTree>; text: string } | null = null;
+  const look = (pets: ReturnType<typeof indexer.pets>) => pets.map((p) => `${names.get(p.id)?.name ?? ""}:${colours.get(p.id)?.colour ?? 0}`).join("|");
   app.get("/api/tree", async (c) => {
     const pets = indexer.pets();
     refreshing ??= refresh(pets).finally(() => (refreshing = null));
     await refreshing;
-    const tree = buildTree(
-      pets.map((p) => {
-        const name = names.get(p.id)?.name;
-        const colour = colours.get(p.id)?.colour;
-        return { ...p, ...(name ? { name } : {}), ...(colour ? { colour } : {}) };
-      }),
-    );
+    const key = `${indexer.head()}:${pets.length}:${look(pets)}`;
+    if (built?.key !== key) {
+      const tree = buildTree(
+        pets.map((p) => {
+          const name = names.get(p.id)?.name;
+          const colour = colours.get(p.id)?.colour;
+          return { ...p, ...(name ? { name } : {}), ...(colour ? { colour } : {}) };
+        }),
+      );
+      built = { key, tree, text: JSON.stringify({ ok: true, indexedTo: indexer.head(), ...tree }) };
+    }
     c.header("Cache-Control", "public, max-age=30");
-    return c.json({ ok: true, indexedTo: indexer.head(), ...tree });
+    // a page of pets after a given one, for whoever wants the tree in parts (A147); the whole tree otherwise
+    const after = c.req.query("after");
+    const limit = Number(c.req.query("limit") ?? "");
+    if (after !== undefined || c.req.query("limit") !== undefined) {
+      const n = Number.isInteger(limit) && limit > 0 ? Math.min(limit, TREE_PAGE_MAX) : TREE_PAGE_MAX;
+      const from = after === undefined ? 0 : built.tree.pets.findIndex((p) => p.id === after) + 1;
+      const page = built.tree.pets.slice(Math.max(0, from), Math.max(0, from) + n);
+      const more = Math.max(0, from) + n < built.tree.pets.length;
+      const { pets: _all, ...counts } = built.tree;
+      return c.json({ ok: true, indexedTo: indexer.head(), ...counts, pets: page, ...(more && page.length ? { next: page[page.length - 1]!.id } : {}) });
+    }
+    c.header("content-type", "application/json; charset=utf-8");
+    return c.body(built.text);
   });
   return app;
 }

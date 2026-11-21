@@ -48,12 +48,15 @@ export function buildTree(pets: readonly TreePet[]): Tree {
     gen.set(id, g);
     return g;
   };
+  // each ancestor once, found with a set and a moving index: linear in the ancestors, not cubic (A147)
   const ancestorsOf = (id: string): string[] => {
     const out: string[] = [];
+    const seen = new Set<string>([id]);
     const queue = [...(byId.get(id)?.parents ?? [])];
-    while (queue.length) {
-      const a = queue.shift()!;
-      if (out.includes(a) || a === id) continue;
+    for (let i = 0; i < queue.length; i++) {
+      const a = queue[i]!;
+      if (seen.has(a)) continue;
+      seen.add(a);
       out.push(a);
       queue.push(...(byId.get(a)?.parents ?? []));
     }
@@ -62,9 +65,9 @@ export function buildTree(pets: readonly TreePet[]): Tree {
   const nodes = pets
     .map((p) => {
       const ancestors = ancestorsOf(p.id);
-      const designers: string[] = [];
-      for (const who of [p.owner, ...ancestors.map((a) => byId.get(a)?.owner ?? null)]) if (who && !designers.includes(who.toLowerCase())) designers.push(who.toLowerCase());
-      return { ...p, generation: genOf(p.id), ancestors, designers };
+      const designers = new Set<string>();
+      for (const who of [p.owner, ...ancestors.map((a) => byId.get(a)?.owner ?? null)]) if (who) designers.add(who.toLowerCase());
+      return { ...p, generation: genOf(p.id), ancestors, designers: [...designers] };
     })
     .sort((a, b) => a.block - b.block || Number(a.id) - Number(b.id));
   const pairs = new Set(nodes.filter((n) => n.parents).map((n) => [...n.parents!].sort().join("+")));

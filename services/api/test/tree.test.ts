@@ -77,3 +77,41 @@ describe("the tree's names are read once at a time, whoever asks (A52)", () => {
     expect(names.every((n) => n?.startsWith("Pet "))).toBe(true);
   });
 });
+
+describe("the tree stays cheap as it grows (A147)", () => {
+  /** one bred line `n` pets deep: each pet the child of the one before and a founder of its own */
+  const line = (n: number) => {
+    const out: TreePet[] = [pet("1", "0xA"), pet("2", "0xB")];
+    for (let i = 3; i <= n; i++) out.push(pet(String(i), `0x${i}`, [String(i - 1), String(i - 2)]));
+    return out;
+  };
+
+  it("one bred line of 1,500 pets builds in well under a second, with every ancestor once", () => {
+    const t0 = performance.now();
+    const t = buildTree(line(1_500));
+    const took = performance.now() - t0;
+    expect(took, `${Math.round(took)} ms`).toBeLessThan(1_000);
+    const last = t.pets.find((p) => p.id === "1500")!;
+    expect(last.ancestors.length).toBe(1_499);
+    expect(new Set(last.ancestors).size).toBe(1_499);
+  });
+
+  it("serves one built answer until the indexer moves on, and pages it for whoever asks", async () => {
+    let head = 100;
+    let pets = line(40);
+    let calls = 0;
+    const app = withTree(new Hono(), { pets: () => (calls++, pets), head: () => head });
+    const a = await (await app.request("/api/tree")).text();
+    const built = calls;
+    const b = await (await app.request("/api/tree")).text();
+    expect(b, "the same answer, not built again").toBe(a);
+    pets = [...pets, pet("41", "0xNEW", ["40", "39"])];
+    head = 101;
+    const c = (await (await app.request("/api/tree")).json()) as { pets: Array<{ id: string }> };
+    expect(c.pets.some((p) => p.id === "41"), "a new head builds it again").toBe(true);
+    expect(calls).toBeGreaterThan(built);
+    const page = (await (await app.request("/api/tree?after=10&limit=5")).json()) as { pets: Array<{ id: string }>; next?: string };
+    expect(page.pets.map((p) => p.id)).toEqual(["11", "12", "13", "14", "15"]);
+    expect(page.next).toBe("15");
+  });
+});
