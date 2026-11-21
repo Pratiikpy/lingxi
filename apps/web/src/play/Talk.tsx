@@ -24,7 +24,8 @@ import {
 import { useLang } from "../i18n";
 import { play } from "../game/sound";
 import "./talk.css";
-import { noteTally } from "../game/tally";
+import { noteTallies } from "../game/tally";
+import { talkTally } from "@lingxi/game";
 import { allStatuses, conditionView, handIn, questsOf, takeQuest, useQuestStatuses } from "../game/quests";
 import { useWorld } from "../game/world";
 import { buyFromNeighbour, giftNeighbour, greetingFor, meetNeighbourAtHome, takeNeighbourStep } from "../game/neighbours";
@@ -96,7 +97,7 @@ export function Talk({ who, visiting = false, onFace, onAction, onClose }: { who
   const line = queue[at] ?? null;
   // talking to a resident counts for quests and dailies, once per conversation
   useEffect(() => {
-    noteTally("TALK", who.id);
+    noteTallies(talkTally(who.id));
   }, [who.id]);
   const text = line ? line[lang] : "";
 

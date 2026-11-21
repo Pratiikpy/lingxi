@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { REF, type Rule, STARTERS, compileProgram, composeInstinct, encode, fastBrain, inputField, netlistBytes, stateBits, toElements, validateProgram } from "@lingxi/brain";
-import { CARD_OUTSIDE_MAX, INSTINCT_MAX_GATES, type OutsideInstinct, type Pet, SUB, awaySeed, beatOf, createPet, familyOf, mindBrain, watchEvent } from "@lingxi/game";
+import { CARD_OUTSIDE_MAX, INSTINCT_MAX_GATES, type OutsideInstinct, type Pet, SUB, type TallyEntry, awaySeed, beatOf, careTally, createPet, familyOf, mindBrain, minuteTally, watchEvent } from "@lingxi/game";
 import { COMPOST } from "@lingxi/world";
 import { type Key, translate } from "../i18n";
 import { type Net, type Storage, json, leave, reload, visit } from "./testGame";
@@ -697,5 +697,37 @@ describe("the game store: care given on the handheld", () => {
     countCare("feed", false, { pet, note: "ate" });
     expect(useGame.getState().daily.fed).toBe(true);
     expect(tallyOf(useWorld.getState().world, "CARE:feed")).toBe(1);
+  });
+});
+
+describe("the client counts by the shared tally rules (G11)", () => {
+  /** every count the world store is asked to add, as the shared rules write them */
+  const capture = (useWorld: Awaited<ReturnType<typeof open>>["useWorld"]) => {
+    const calls: TallyEntry[] = [];
+    useWorld.setState({ tally: (type: string, index: number | string, n: number, opts: { total?: boolean } = {}) => void calls.push([type, index, n, opts.total !== false]) });
+    return calls;
+  };
+
+  it("a care sends exactly what careTally says, and waking an awake pet sends nothing", async () => {
+    const { useGame, useWorld, countCare } = await open();
+    useGame.getState().hatch("gentle", "Kiri");
+    const pet = useGame.getState().pet!;
+    const calls = capture(useWorld);
+    for (const note of ["ate", "played", "petted", "listened"] as const) countCare("feed", false, { pet, note });
+    countCare("wake", false, { pet, note: "awake" });
+    const expected = (["ate", "played", "petted", "listened"] as const).flatMap((note) => careTally("feed", false, { pet, note }));
+    expect(calls).toEqual(expected);
+    expect(careTally("wake", false, { pet, note: "awake" })).toEqual([]);
+  });
+
+  it("a watched minute sends exactly what minuteTally says", async () => {
+    const { useGame, useWorld, clock } = await open();
+    useGame.getState().hatch("gentle", "Kiri");
+    const calls = capture(useWorld);
+    const before = useGame.getState().pet!;
+    const after = { ...before, beat: before.beat + 1 };
+    useGame.setState({ pet: after });
+    expect(calls).toEqual(minuteTally(useWorld.getState().world.room, after, clock.now(), 1));
+    expect(calls.some(([type]) => type === "TOGETHER")).toBe(true);
   });
 });

@@ -276,7 +276,7 @@ export class Life {
     if (!r.ok) return false;
     this.world = r.world;
     const res = this.care({ kind: "feed", food: r.use }, t);
-    if (res.note === "ate" || res.note === "woke") this.note(fedTally(item, r.use.diet, this.pet, t));
+    if (res.note === "ate" || res.note === "woke") this.note(fedTally(item, r.use.diet, this.pet.tzOffsetMin, t));
     return true;
   }
 

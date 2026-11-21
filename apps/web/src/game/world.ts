@@ -9,8 +9,7 @@ import { useBadges } from "./badges";
 import { create } from "zustand";
 import { wearableOf } from "@lingxi/art";
 import { useDesigns } from "./designs";
-import { exert, work, localHour, needsMinOf, stageOf, exploreMods } from "@lingxi/game";
-import { WANTS, timeOfDay } from "@lingxi/brain";
+import { exert, work, stageOf, exploreMods, awayTally, fedTally, minuteTally } from "@lingxi/game";
 import {
   ITEM,
   type WorldState,
@@ -30,13 +29,9 @@ import {
   bump,
   giveTo as giveToRule,
   withFlag,
-  HOME,
-  INDOOR_ROOMS,
-  TIMES_OF_DAY,
-  localDay,
   outfitOf,
 } from "@lingxi/world";
-import { setQuestSlots, setTallySink } from "./tally";
+import { noteTallies, setQuestSlots, setTallySink } from "./tally";
 import { cleanWorld } from "./saveClean";
 import { PROOF_KEY, takeProofChecks } from "./proofMark";
 import { useChain } from "./chain";
@@ -253,8 +248,7 @@ export const useWorld = create<WorldStore>((set, get) => ({
     // a food the pet actually ate: which one, and its food group today (for "three foods", "a balanced plate")
     const after = useGame.getState();
     if (def.kind === "food" && after.pet && after.toast && after.toast.id !== before && (after.toast.note === "ate" || after.toast.note === "woke")) {
-      get().tally("FED", String(item), 1);
-      if (r.use.diet) get().tally("FED_GROUP", `${localDay(now(), after.pet.tzOffsetMin)}-${r.use.diet}`, 1, { total: false });
+      noteTallies(fedTally(item, r.use.diet, after.pet.tzOffsetMin, now()));
     }
   },
   openBox: (box = 21007) => {
@@ -528,12 +522,7 @@ let choseSeen = 0;
 const countAway = (c: Chose | null) => {
   if (!c || c.id === choseSeen) return;
   choseSeen = c.id;
-  const w = useWorld.getState();
-  const room = w.world.room;
-  for (const [want, n] of Object.entries(c.wants)) {
-    w.tally("CHOOSE", want, n);
-    w.tally("CHOOSE", `${want}-${room}`, n, { total: false });
-  }
+  noteTallies(awayTally(useWorld.getState().world.room, c.wants));
 };
 countAway(useGame.getState().chose);
 useGame.subscribe((s) => countAway(s.chose));
@@ -544,23 +533,7 @@ useGame.subscribe((s, prev) => {
   if (!p || !q || p.bornAt !== q.bornAt || p.beat <= q.beat || p.beat - q.beat > 2) return;
   if (p.away || p.sitting || p.asleep || p.hibernating) return;
   if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
-  const beats = p.beat - q.beat;
-  const w = useWorld.getState();
-  const room = w.world.room;
-  const time = TIMES_OF_DAY[timeOfDay(localHour(p, p.beat))]!;
-  const where = INDOOR_ROOMS.has(room) || room === HOME ? "inside" : "outside";
-  w.tally("TOGETHER", room, beats);
-  if (time === "night") w.tally("TOGETHER_NIGHT", 0, beats);
-  // by time of day, and by time of day in this room or outdoors (finer keys of the same minutes)
-  w.tally("TOGETHER_WHEN", time, beats);
-  w.tally("TOGETHER_WHEN", `${time}-${room}`, beats, { total: false });
-  w.tally("TOGETHER_WHEN", `${time}-${where}`, beats, { total: false });
-  const want = WANTS[p.last.want];
-  if (want && want !== "idle") {
-    w.tally("CHOOSE", want, 1);
-    w.tally("CHOOSE", `${want}-${room}`, 1, { total: false });
-  }
-  // a day the pet was seen with every need at least a quarter full (DISTINCT counts the days)
-  if (needsMinOf(p) >= 250) w.tally("HEALTHY_DAY", localDay(now(), p.tzOffsetMin), 1, { total: false });
+  // what the minutes count toward is the shared rule (G11); whether they count at all (in view, consecutive) is ours
+  noteTallies(minuteTally(useWorld.getState().world.room, p, now(), p.beat - q.beat));
 });
 

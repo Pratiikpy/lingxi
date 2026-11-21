@@ -5,6 +5,8 @@
  * event already counted (CARE:feed-morning beside CARE:feed), so the type's total is not counted twice.
  */
 
+import type { TallyEntry } from "@lingxi/game";
+
 type Opts = { total?: boolean };
 type Sink = (type: string, index: number | string, n: number, opts: Opts) => void;
 
@@ -15,6 +17,11 @@ export function noteTally(type: string, index: number | string = 0, n = 1, opts:
   if (sink) sink(type, index, n, opts);
   else waiting.push([type, index, n, opts]);
 }
+
+/** The entries the shared tally rules return (@lingxi/game tallyRules.ts, G11), each noted as one count. */
+export const noteTallies = (entries: readonly TallyEntry[]): void => {
+  for (const [type, index, n, total] of entries) noteTally(type, index, n, total ? {} : { total: false });
+};
 
 /** A one-off event by name (it must be in the world package's EVENTS list). */
 export const noteEvent = (name: string): void => noteTally("EVENT", name);

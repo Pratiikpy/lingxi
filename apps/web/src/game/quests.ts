@@ -6,8 +6,7 @@
 
 import { useMemo } from "react";
 import { create } from "zustand";
-import { timeOfDay } from "@lingxi/brain";
-import { bondLevel, growthOf, localHour, needsMinOf, stageOf } from "@lingxi/game";
+import { GIVER_ROOM, bondLevel, questView } from "@lingxi/game";
 import {
   type ConditionView,
   DAILIES,
@@ -22,7 +21,6 @@ import {
   claimWeekly,
   completeQuest,
   dropQuest,
-  localDay,
   questStatus,
   rollDailies,
 } from "@lingxi/world";
@@ -51,19 +49,19 @@ export interface ConditionInputs {
 
 /** Everything a condition reads, from the inputs given. */
 export function conditionViewFrom(i: ConditionInputs): ConditionView {
+  // the view is the shared rule (G11); how many pets and the best friendship are what only this device knows
   const { pet, now } = i;
-  const stage = pet ? stageOf(pet, now) : null;
   const bonds = pet ? Object.values(bondsOf(i.friends, pet.bornAt)) : [];
-  return {
+  return questView({
     world: i.world,
-    pet: pet && stage ? { level: growthOf(pet).level, stage, onChain: i.onChain, needsMin: needsMinOf(pet) } : null,
+    pet: pet ?? null,
     pets: Math.max(i.pets.length, i.ledger.pets ?? 0),
-    now,
-    timeOfDay: pet ? (timeOfDay(localHour(pet, Math.floor(now / 60_000))) as 0 | 1 | 2 | 3) : 2,
-    day: localDay(now, pet?.tzOffsetMin ?? -new Date(now).getTimezoneOffset()),
+    onChain: i.onChain,
     bondLevel: bonds.reduce((m, b) => Math.max(m, bondLevel(b.points)), 0),
     goalsDone: i.goalsDone,
-  };
+    now,
+    tzOffsetMin: -new Date(now).getTimezoneOffset(),
+  });
 }
 
 /** Everything a condition reads, from the stores as they are right now. */
@@ -75,7 +73,7 @@ export function conditionView(now = gameNow()): ConditionView {
 export const statusOf = (q: QuestDef, v = conditionView()): QuestStatus => questStatus(q, useWorld.getState().world, v);
 
 /** Where a giver can be found: a resident's room, Builders' Lane, or the pet itself. */
-export const giverRoom: Readonly<Record<string, number>> = { wick: 64, praline: 13, yonder: 3, bolt: 5, flit: 56, why: 59, jab: 89, twain: 19, nimbus: 53 };
+export const giverRoom: Readonly<Record<string, number>> = GIVER_ROOM;
 
 export interface QuestNote {
   id: number;

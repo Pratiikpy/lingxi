@@ -31,8 +31,9 @@ import {
   laneParty,
   stageOf,
   tapboyDay,
+  meetTally,
 } from "@lingxi/game";
-import { ROOMS, localDay, outfitOf } from "@lingxi/world";
+import { ROOMS, outfitOf } from "@lingxi/world";
 import { useLang } from "../i18n";
 import { useBadges } from "../game/badges";
 import { useWorld } from "../game/world";
@@ -41,7 +42,7 @@ import { PALETTE_OF } from "../scene/textures";
 import { Chips } from "./parts";
 import { chipsFor } from "./ruleText";
 import { Sprite } from "./Sprite";
-import { noteEvent, noteTally } from "../game/tally";
+import { noteEvent, noteTallies } from "../game/tally";
 import { LaneQuests } from "./Quests";
 import { LaneFriendship } from "./Neighbours";
 import { saveWrite } from "../game/saveRuntime";
@@ -342,8 +343,7 @@ export function BuilderCard({ b, pet, onSpar }: { b: BuilderPet; pet: Pet; onSpa
   useEffect(() => {
     meet(b.id);
     // every visit counts for quests, and so does each day you came by
-    noteTally("MEET", b.id);
-    noteTally("MEET_DAY", `${b.id}-${localDay(gameNow(), -new Date(gameNow()).getTimezoneOffset())}`, 1, { total: false });
+    noteTallies(meetTally(b.id, gameNow(), -new Date(gameNow()).getTimezoneOffset()));
     if (party) {
       const k = `lingxi.laneparty.${party}`;
       try {

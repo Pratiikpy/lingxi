@@ -5,8 +5,7 @@
  */
 
 import { CARE_METRIC, useBadges } from "./badges";
-import { noteEvent, noteTally, questSlots } from "./tally";
-import { TIMES_OF_DAY } from "@lingxi/world";
+import { noteEvent, noteTallies, noteTally, questSlots } from "./tally";
 import { saveWrite } from "./saveRuntime";
 import { MAX_PETS, type Roster, keptName, readRoster, rosterText } from "./roster";
 import { dayAtLeast } from "./days";
@@ -21,22 +20,15 @@ function foodArt(c: Care, art?: string): string | undefined {
 /** Stage as the "Growing up" badge counts it: child 2, teen 3, adult 4. */
 const STAGE_RANK: Record<string, number> = { baby: 1, child: 2, teen: 3, adult: 4, elder: 4 };
 
-/** What each successful care result counts as in the tally: CARE:<index>. */
-const CARE_INDEX: Partial<Record<string, string>> = { ate: "feed", woke: "feed", played: "play", cleaned: "clean", sleeping: "sleep", awake: "wake", petted: "pet", healed: "medicine", listened: "talk", used: "use" };
-
 /**
  * What a care counts for: quest and daily tallies, badges, today's care marks. The same whether the care was given
  * at home or on the handheld (plan 4.14), so care given anywhere counts once.
  */
 export function countCare(kind: Care["kind"], wasAsleep: boolean, r: CareResult): void {
-  // the tally counts what care actually did (plan 4.1); waking a pet that was not asleep did nothing
-  const careIndex = CARE_INDEX[r.note];
-  if (careIndex && !(kind === "wake" && !wasAsleep)) {
-    noteTally("CARE", careIndex);
-    if (careIndex === "pet" && takeComfort()) noteEvent("comforted");
-    // the same care by the pet's time of day ("put it to bed at night"), a finer key of the same act
-    noteTally("CARE", `${careIndex}-${TIMES_OF_DAY[timeOfDay(localHour(r.pet, r.pet.beat))]}`, 1, { total: false });
-  }
+  // the tally counts what care actually did (plan 4.1), by the rules the simulator counts by too (G11)
+  const counted = careTally(kind, wasAsleep, r);
+  noteTallies(counted);
+  if (counted.some(([, index]) => index === "pet") && takeComfort()) noteEvent("comforted");
   const metric = CARE_METRIC[r.note];
   if (metric) {
     const b = useBadges.getState();
@@ -56,8 +48,8 @@ export function countCare(kind: Care["kind"], wasAsleep: boolean, r: CareResult)
   useGame.setState({ daily: d });
 }
 import { create } from "zustand";
-import { type Program, type Rule, STARTERS, WANTS, compileProgram, fastBrain, inputField, stateBits, timeOfDay } from "@lingxi/brain";
-import { FOODS, type Brain, type Care, type CareResult, type Growth, type Pet, type UpgradeRefusal, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, learnSkill, levelUpPet, liveBeat, mindBrain, respecPet, ruleSkillIds, settleForm, skillRules, stageOf, teach as teachRule, awayEvent, awaySeed, beatOf, watchEvent, localHour, instinctBrain, instinctGates, INSTINCT_MAX_GATES, MAX_MIND_STATE, type OutsideInstinct, instinctFits, stripHidden, withSegment, boundLog, ruleGrowth, type Mind } from "@lingxi/game";
+import { type Program, type Rule, STARTERS, WANTS, compileProgram, fastBrain, inputField, stateBits } from "@lingxi/brain";
+import { FOODS, careTally, type Brain, type Care, type CareResult, type Growth, type Pet, type UpgradeRefusal, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, learnSkill, levelUpPet, liveBeat, mindBrain, respecPet, ruleSkillIds, settleForm, skillRules, stageOf, teach as teachRule, awayEvent, awaySeed, beatOf, watchEvent, instinctBrain, instinctGates, INSTINCT_MAX_GATES, MAX_MIND_STATE, type OutsideInstinct, instinctFits, stripHidden, withSegment, boundLog, ruleGrowth, type Mind } from "@lingxi/game";
 import type { StarterLine } from "@lingxi/brain";
 import { takeComfort } from "./comfort";
 
