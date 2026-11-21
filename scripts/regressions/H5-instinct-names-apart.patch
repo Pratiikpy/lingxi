@@ -1,0 +1,11 @@
+--- a/apps/web/src/i18n/strings.ts
++++ b/apps/web/src/i18n/strings.ts
+@@ -84,7 +84,7 @@ export const en = {
+   "instinct.brave.desc": "Walks toward scary things",
+   "instinct.greedy": "Greedy",
+   "instinct.greedy.desc": "Asks for food early",
+-  "instinct.curious": "Tinkerer",
++  "instinct.curious": "Curious",
+   "instinct.curious.desc": "Investigates every toy",
+   "instinct.calm": "Calm",
+   "instinct.calm.desc": "Doesn't sulk when grubby",

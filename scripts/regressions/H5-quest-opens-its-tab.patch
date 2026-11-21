@@ -1,0 +1,10 @@
+--- a/apps/web/src/game/reveal.ts
++++ b/apps/web/src/game/reveal.ts
+@@ -61,6 +61,6 @@ export const useReveal = create<RevealState>((set) => ({
+ 
+ /** Whether a part is open for this pet now. */
+ export function isOpen(part: string, pet: Pet, all: boolean, now = gameNow(), opened: readonly Gated[] = []): boolean {
+-  if (all || !(part in OPENS_ON) || opened.includes(part as Gated)) return true;
++  if (all || !(part in OPENS_ON)) return true;
+   return dayOf(pet, now) >= OPENS_ON[part as Gated];
+ }

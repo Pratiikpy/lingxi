@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/store.ts
++++ b/apps/web/src/game/store.ts
+@@ -435,8 +435,6 @@ export const useGame = create<GameState>((set, get) => ({
+     const r = get().learn(rule, "top");
+     if (!r.ok) {
+       // the forgotten lesson comes back as it was, and nothing was saved without it
+-      save(before);
+-      set({ pet: before, pets: roster.pets });
+     }
+     return r;
+   },

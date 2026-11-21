@@ -1,0 +1,10 @@
+--- a/apps/web/src/i18n/strings.ts
++++ b/apps/web/src/i18n/strings.ts
+@@ -67,7 +67,6 @@ export const en = {
+   "me.friendship": "Friendship",
+   "me.together": "Together",
+   "me.days": "{n} days",
+-  "me.day1": "1 day",
+   "me.lessons": "Lessons",
+   "me.diet": "Favourite food",
+   "close": "Close",
