@@ -731,6 +731,12 @@ export function PlayApp() {
           )}
         </section>
         <div className="side">
+          {/* a landscape phone shows the thinking strip here, beside the room, where it cannot hide the pet (H5) */}
+          {!talking && (
+            <div className="think-side">
+              <ThinkStrip pet={trial ? trialPet(pet, trial) : pet} taught={!!trial?.fired} />
+            </div>
+          )}
           <Meters pet={pet} />
           <Actions pet={pet} absent={travelling} onFeed={() => pick("bag")} onPlay={playBall} onClean={clean} onSleep={sleep} onMedicine={() => (play("sparkle"), act({ kind: "medicine" }))} />
           <section className="card mindcard" aria-label={t("mind.title", { name: pet.name })}>

@@ -1206,6 +1206,10 @@
     min-height: max(180px, min(calc(100vw - 32px), 380px, calc(100dvh - 312px)));
   }
 }
+/* the side column's copy of the thinking strip, shown only on a landscape phone (below) */
+.think-side {
+  display: none;
+}
 /* H5: a phone turned sideways. Above, the room would be a wide strip with the pet below its edge; here it is a square
    as tall as the screen allows under the top bar, the meters and buttons beside it, and the tabs a slim column at the
    right edge, so the pet, its words and the thinking strip all fit in view. */
@@ -1242,6 +1246,16 @@
   .side {
     max-height: var(--room);
     overflow-y: auto;
+  }
+  /* the strip leaves the room for the side column: the pet stands where it used to lie */
+  .stage .think {
+    display: none;
+  }
+  .think-side {
+    display: block;
+  }
+  .think-side .think {
+    position: static;
   }
 }
 @media (max-width: 420px) {
