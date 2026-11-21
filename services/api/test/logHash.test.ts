@@ -31,7 +31,8 @@ describe("a diary's hash is worked out off the request thread (A114)", () => {
       return "0x00";
     });
     const hash = createLogHasher({ run, atOnce: 1, waiting: 2 });
-    const asks = [hash([1]), hash([2]), hash([3]), hash([4])];
+    // four callers from four networks: one runs, two wait, the fourth finds no room
+    const asks = [1, 2, 3, 4].map((i) => hash([i], `198.51.100.${i}`));
     expect(await asks[3], "the fourth has no room").toBeNull();
     release();
     expect(await Promise.all(asks.slice(0, 3))).toEqual(["0x00", "0x00", "0x00"]);
@@ -63,6 +64,47 @@ describe("a diary's hash is worked out off the request thread (A114)", () => {
     // checked on this thread the post would stall it for the whole hash; off it, for a fraction (its parse and copy)
     expect(stall, `the thread stalled ${Math.round(stall)} ms; the hash alone takes ${Math.round(hashMs)} ms here`).toBeLessThan(hashMs / 2);
     expect(await answer.json()).toEqual({ ok: false, reason: "mismatch" });
+  });
+});
+
+describe("the hash queue is shared fairly, and the worker is kept (A145)", () => {
+  it("a network waits in one place at a time, so its junk cannot shut out an honest publish", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    const run = vi.fn(async () => {
+      await gate;
+      return "0x00";
+    });
+    const hash = createLogHasher({ run, atOnce: 1, waiting: 4 });
+    const flood = [1, 2, 3, 4, 5].map((i) => hash([i], `2001:db8:145:${i}::/64`));
+    const honest = hash([9], "198.51.100.145");
+    const settled = await Promise.race([Promise.all(flood.slice(2)), new Promise((r) => setTimeout(() => r("waiting"), 50))]);
+    expect(settled, "the flood's extra asks are answered at once").not.toBe("waiting");
+    release();
+    expect(await honest, "the honest publish was kept in line").toBe("0x00");
+  });
+
+  it("one worker serves many hashes, and a new one is started after a hash past its budget", async () => {
+    const hash = createLogHasher();
+    const words = junk("1", 3_000).words;
+    const want = chainAll(ZERO_HASH, words);
+    const t = performance.now();
+    for (let i = 0; i < 5; i++) expect(await hash(words, "198.51.100.1")).toBe(want);
+    const five = performance.now() - t;
+    expect(hash.workersStarted(), `one worker for five hashes (${Math.round(five)} ms)`).toBe(1);
+    const slow = createLogHasher({ budgetMs: 1 });
+    expect(await slow(junk("1", 100_000).words, "198.51.100.2")).toBeNull();
+    expect(await createLogHasher({ budgetMs: 5_000 })(words, "198.51.100.3")).toBe(want);
+  });
+
+  it("a log that does not match costs its sender at least 64 KB of its day, however small", async () => {
+    const store = createDiaryStore(tmp(), { now: () => NOW, perAddressBytesPerDay: 200_000 });
+    let refused = 0;
+    for (let i = 0; i < 10; i++) {
+      const r = await store.publishLog(junk("9", 1), onChain("0x" + "ee".repeat(32)), "tiny-junk", hashHere);
+      if (!r.ok && r.reason === "busy") refused++;
+    }
+    expect(refused, "four tiny junk posts spend a 200 KB day").toBeGreaterThanOrEqual(6);
   });
 });
 

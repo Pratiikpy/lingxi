@@ -28,6 +28,8 @@ export const DIARY_FLOOR_WORDS = 5_000;
 const TOTAL_BYTES = 256 * 1024 * 1024;
 const PER_ADDRESS_BYTES_PER_DAY = 16 * 1024 * 1024;
 const DAY_MS = 86_400_000;
+/** what a log that does not match costs its sender at the least, however small it is (A145) */
+const MIN_MISMATCH_CHARGE = 64 * 1024;
 const ID = /^\d{1,12}$/;
 
 export type PublishResult = { ok: true; beats: number } | { ok: false; reason: "invalid" | "mismatch" | "unknown" | "older" | "tooLong" | "busy" | "full" };
@@ -206,13 +208,13 @@ export function createDiaryStore(dir?: string, opts: { now?: () => number; total
      * worker on the server), and the bounds are checked again after it, since another publish may have landed while it
      * ran. A log that does not match still spends its sender's daily bytes: junk costs the one who sends it.
      */
-    async publishLog(log: PublishedLog, chain: PetOnChain | null, from: string, hash: (words: readonly number[]) => Promise<string | null>): Promise<PublishResult> {
+    async publishLog(log: PublishedLog, chain: PetOnChain | null, from: string, hash: (words: readonly number[], who?: string) => Promise<string | null>): Promise<PublishResult> {
       const first = check(log, chain, from);
       if (!first.ok) return first;
-      const got = await hash(log.words);
+      const got = await hash(log.words, from);
       if (got === null) return { ok: false, reason: "busy" };
       if (got.toLowerCase() !== chain!.logHash.toLowerCase()) {
-        charge(from, first.body.length);
+        charge(from, Math.max(MIN_MISMATCH_CHARGE, first.body.length));
         return { ok: false, reason: "mismatch" };
       }
       const again = check(log, chain, from);
@@ -227,7 +229,7 @@ export function createDiaryStore(dir?: string, opts: { now?: () => number; total
       const first = check(log, chain, from);
       if (!first.ok) return first;
       if (chainAll(ZERO_HASH, log.words).toLowerCase() !== chain!.logHash.toLowerCase()) {
-        charge(from, first.body.length);
+        charge(from, Math.max(MIN_MISMATCH_CHARGE, first.body.length));
         return { ok: false, reason: "mismatch" };
       }
       return commit(log, first, from);
