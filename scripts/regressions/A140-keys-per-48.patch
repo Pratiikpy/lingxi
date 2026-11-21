@@ -1,11 +1,11 @@
 --- a/services/api/src/limit.ts
 +++ b/services/api/src/limit.ts
-@@ -111,7 +111,7 @@ export class RateLimiter {
- export const PREFIX_SHARE = 4;
- 
- /** The /64s of one /48 a limiter keeps as keys of their own; its other /64s count on the /48's share alone (A140). */
--export const KEYS_PER_PREFIX = 16;
-+export const KEYS_PER_PREFIX = 1_000_000;
- 
- /** The /48 a /64 caller (as `callerOf` names it) belongs to; null for any other key. */
- export function prefixOf(key: string): string | null {
+@@ -26,7 +26,7 @@ export class RateLimiter {
+     const prefix = prefixOf(key);
+     const own = this.recent(key, now);
+     const shared = prefix === null ? null : this.recent(prefix, now);
+-    const crowded = prefix !== null && !this.hits.has(key) && (this.subs.get(prefix)?.size ?? 0) >= KEYS_PER_PREFIX;
++    const crowded = false && (this.subs.get(prefix ?? "")?.size ?? 0) >= KEYS_PER_PREFIX;
+     let ok = (crowded || own.length < this.max) && (shared === null || shared.length < this.max * PREFIX_SHARE);
+     // a key that would be new needs a free place: one whose window has passed, or one from the most crowded /48
+     if (ok && !this.room(crowded ? null : key, prefix, now)) ok = false;
