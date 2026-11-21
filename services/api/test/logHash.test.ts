@@ -41,7 +41,12 @@ describe("a diary's hash is worked out off the request thread (A114)", () => {
   it("a junk post at the send limit leaves the server answering others while it is checked", async () => {
     const store = createDiaryStore(tmp(), { now: () => NOW });
     const app = withDiaries(new Hono(), store, async () => onChain("0x" + "ab".repeat(32)));
-    const body = JSON.stringify(junk("5", 100_000));
+    const words = junk("5", 100_000);
+    const body = JSON.stringify(words);
+    // what the hash costs on this thread, measured now, so the bound holds on a busy machine as on an idle one
+    const t0 = performance.now();
+    chainAll(ZERO_HASH, words.words);
+    const hashMs = performance.now() - t0;
     // the longest the thread went without a turn while the post was checked: a blocked thread delays every tick
     let last = performance.now();
     let stall = 0;
@@ -55,7 +60,8 @@ describe("a diary's hash is worked out off the request thread (A114)", () => {
     clearInterval(tick);
     // the gap up to the answer counts too: a check that never yields leaves no tick at all
     stall = Math.max(stall, performance.now() - last);
-    expect(stall, `the thread stalled ${Math.round(stall)} ms`).toBeLessThan(250);
+    // checked on this thread the post would stall it for the whole hash; off it, for a fraction (its parse and copy)
+    expect(stall, `the thread stalled ${Math.round(stall)} ms; the hash alone takes ${Math.round(hashMs)} ms here`).toBeLessThan(hashMs / 2);
     expect(await answer.json()).toEqual({ ok: false, reason: "mismatch" });
   });
 });
