@@ -1,13 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { keccak256 } from "viem";
-import { STARTERS, compileProgram, gateCount } from "@lingxi/brain";
-import { DESIGNED_PARTNERS } from "../src/designedPartners";
+import { type Rule, STARTERS, compileProgram, gateCount } from "@lingxi/brain";
 import { BEHEMOTH_NETLIST, BEHEMOTH_NETLIST_KECCAK, BEHEMOTH_PINS, BUILDER_PETS, FIBONACCI, behemothAt, behemothCircuit, behemothFighter, behemothMoment, behemothTape, daysSinceBehemoth, laneParty, tapboyDay } from "../src/builders";
-import { MAX_GATES, composeProgram } from "../src/lessons";
+import { LESSON_CAPACITY, MAX_GATES, composeProgram } from "../src/lessons";
 import { PARTNERS } from "../src/partners";
-import { fighterFrom } from "../src/coach";
+import { coach, fighterFrom, fighterOfMind } from "../src/coach";
 const partnerFighter = (p: (typeof PARTNERS)[number]) => fighterFrom(p.name.en, p.program, p.level);
-import { spar } from "../src/spar";
+import type { Fighter } from "../src/spar";
+import { CURRENT_SPAR, fight } from "../src/spar2";
+/** the fight the game fights today */
+const spar = (a: Fighter, b: Fighter, seed: number) => fight(CURRENT_SPAR, a, b, seed);
 
 describe("Behemoth, the founder's CPU", () => {
   it("is the circuit saved from BNB Chain, unchanged", () => {
@@ -44,11 +46,24 @@ describe("Behemoth, the founder's CPU", () => {
     expect(a.digest).toBe(b.digest);
     const moves = a.rounds.map((r) => r.moves[1]);
     expect(new Set(moves).size).toBeGreaterThan(2);
-    // a hard partner, not an unbeatable one: starters mostly lose, a well-built brain wins
+    // a hard partner, not an unbeatable one: starters mostly lose, and a pet the coach teaches to read it wins
+    // (its moves are a fixed sequence, so a pet can learn it; G2's coach suggests only what wins on fresh seeds too)
     const rate = (f: () => ReturnType<typeof partnerFighter>) => Array.from({ length: 20 }, (_, s) => spar(f(), behemothFighter("Behemoth"), s * 31 + 5).winner === 0).filter(Boolean).length;
-    expect(rate(() => fighterFrom("starter", STARTERS.gentle, 0))).toBeLessThan(8);
-    const best = Math.max(...DESIGNED_PARTNERS.map((p) => rate(() => partnerFighter(p))));
-    expect(best).toBeGreaterThanOrEqual(15);
+    for (const line of ["gentle", "bold", "curious"] as const) expect(rate(() => fighterFrom("starter", STARTERS[line], 0)), line).toBeLessThan(8);
+    const coached = (["gentle", "bold", "curious"] as const).map((line) => {
+      const lessons: Rule[] = [];
+      for (let k = 0; k < LESSON_CAPACITY.adult; k++) {
+        let note: ReturnType<typeof coach> | null = null;
+        for (let s = 0; s < 6 && !note?.lesson; s++) {
+          const r = spar(fighterOfMind("me", { line, lessons }, 1), behemothFighter("Behemoth"), 1000 + s);
+          if (r.winner !== 0) note = coach({ result: r, side: 0, line, stage: "adult", lessons, level: 1, opponent: behemothFighter("Behemoth") });
+        }
+        if (!note?.lesson) break;
+        lessons.unshift(note.lesson.rule);
+      }
+      return rate(() => fighterOfMind("me", { line, lessons }, 1));
+    });
+    expect(Math.max(...coached)).toBeGreaterThanOrEqual(15);
   });
 });
 

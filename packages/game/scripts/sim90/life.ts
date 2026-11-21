@@ -77,7 +77,8 @@ import {
   mindBrain,
   restartLog,
   settleForm,
-  spar,
+  CURRENT_SPAR,
+  fight,
   sparMods,
   stageOf,
   teach,
@@ -419,7 +420,7 @@ export class Life {
   spar(partner: Partner, t: number): { won: boolean; ms: number } {
     const p = this.pet;
     const me = fighterOfMind(p.name, { line: p.line, lessons: p.lessons, family: p.family, instincts: p.instincts, outside: p.outside, growth: p.growth }, sparLevel(stageOf(p, t)), p.brain);
-    const r = spar(me, partnerFighter(partner), this.rnd(), () => [false, false]);
+    const r = fight(CURRENT_SPAR, me, partnerFighter(partner), this.rnd(), () => [false, false]);
     const outcome = r.winner === 0 ? "w" : r.winner === 1 ? "l" : "d";
     const rec = (this.record[partner.id] ??= { w: 0, l: 0, d: 0 });
     const first = outcome === "w" && rec.w === 0;

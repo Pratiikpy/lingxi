@@ -9,11 +9,20 @@
  */
 
 import { PARTNERS } from "./partners";
+import { SPAR_VERSION, type SparVersion } from "./spar";
+import { SPAR_V2 } from "./spar2";
 
 import { DAY_MS } from "./pet";
 
 /** Days since 1970 in UTC: the challenge changes at 00:00 UTC everywhere. */
 export const dayIndex = (ms: number): number => Math.floor(ms / DAY_MS);
+
+/**
+ * G2: the first day fought in LX-SPAR/2 (Monday 23 November 2026, UTC, with the season's week 2026-W48). A day before
+ * it stays LX-SPAR/1, so a day is never split between two fights, whenever a device picks up the new version.
+ */
+export const SPAR_V2_FROM_DAY = dayIndex(Date.UTC(2026, 10, 23));
+export const dailySparVersion = (day: number): SparVersion => (day >= SPAR_V2_FROM_DAY ? SPAR_V2 : SPAR_VERSION);
 
 /** The partner for a day: every partner in turn. */
 export const dailyPartnerIndex = (day: number): number => ((day % PARTNERS.length) + PARTNERS.length) % PARTNERS.length;

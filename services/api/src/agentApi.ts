@@ -27,7 +27,8 @@ import {
   flyFighter,
   parseFlyBrain,
   scoreboard,
-  spar,
+  CURRENT_SPAR,
+  fight,
 } from "@lingxi/game";
 import { programOfChips } from "@lingxi/brain";
 import type { AgentStore } from "./agents";
@@ -72,6 +73,7 @@ function opponent(vs: string): Fighter | null {
 function summary(r: SparResult) {
   return {
     winner: r.winner === 0 ? "you" : r.winner === 1 ? "them" : "draw",
+    version: r.version,
     seed: r.seed,
     digest: r.digest,
     rounds: r.rounds.map((x) => ({ n: x.n + 1, you: x.moves[0], them: x.moves[1], hp: x.hp, words: x.words })),
@@ -135,7 +137,7 @@ export function withAgentApi(app: Hono, deps: AgentApiDeps): Hono {
     const them = opponent(q.vs ?? "");
     if (!them) return c.json({ ok: false, reason: "invalid", detail: "vs must be a partner id or fly:<rival>; see /api/v1/partners" }, 400);
     const seed = q.seed !== undefined ? Number(q.seed) >>> 0 : (Math.random() * 2 ** 32) >>> 0;
-    return c.json({ ok: true, vs: q.vs, ...summary(spar(me, them, seed)) });
+    return c.json({ ok: true, vs: q.vs, ...summary(fight(CURRENT_SPAR, me, them, seed)) });
   });
 
   app.get("/api/v1/pets/:id", async (c) => {

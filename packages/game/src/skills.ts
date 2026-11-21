@@ -80,7 +80,7 @@ export type Effect =
   | "WALK_STEPS"
   | "VISIT_COINS"
   | "TRIP_EXTRA"
-  // Spar (POWER and STAMINA in tenths, so five points of a 2 make one whole)
+  // Spar (POWER and STAMINA in tenths, so five points of a 2 make one whole; spar2.ts says how LX-SPAR/2 reads each)
   | "SPAR_POWER"
   | "SPAR_HP"
   | "SPAR_STAMINA"
@@ -178,23 +178,23 @@ const ROWS: Row[] = [
   [362, T("Dowser", "探宝人"), T("Rare things turn up 40% more often, looking around and on walks.", "四处找找和散步时稀有东西多出现 40%。"), "FIND_RARE", 40],
   [363, T("Trailblazer", "开拓者"), T("Two more walks a day bring finds.", "每天多两次散步能找到东西。"), "WALK_FINDS", 2],
   // ── Spar ──
-  [411, T("Strong Paws", "有力的爪"), T("Every five points add 1 power in spars.", "每 5 点在切磋里加 1 力量。"), "SPAR_POWER", 2],
-  [412, T("Thick Fur", "厚毛"), T("4 more health per point in spars.", "每点在切磋里多 4 点体力。"), "SPAR_HP", 4],
-  [413, T("Second Breath", "缓口气"), T("Every two points add 1 stamina in spars.", "每 2 点在切磋里加 1 耐力。"), "SPAR_STAMINA", 5],
-  [421, T("Steady Guard", "稳守"), T("Guarding stops 4% more damage per point.", "每点让防守多挡 4% 伤害。"), "SPAR_GUARD", 4],
-  [422, T("Quick Feet", "快脚"), T("Dodges succeed 2% more often per point.", "每点让闪避多成功 2%。"), "SPAR_DODGE", 2],
+  [411, T("Strong Paws", "有力的爪"), T("Every five points: one more damage every five pounces in spars.", "每 5 点：切磋里每扑 5 次多 1 点伤害。"), "SPAR_POWER", 2],
+  [412, T("Thick Fur", "厚毛"), T("Every five points add 2 health in spars.", "每 5 点在切磋里多 2 点体力。"), "SPAR_HP", 4],
+  [413, T("Second Breath", "缓口气"), T("Every four points add 1 stamina in spars.", "每 4 点在切磋里加 1 耐力。"), "SPAR_STAMINA", 5],
+  [421, T("Steady Guard", "稳守"), T("Guarding stops 1% more of a hit per point.", "每点让防守多挡 1% 伤害。"), "SPAR_GUARD", 4],
+  [422, T("Quick Feet", "快脚"), T("Dodges succeed 0.5% more often per point.", "每点让闪避多成功 0.5%。"), "SPAR_DODGE", 2],
   [423, T("Snack Pack", "零食包"), T("A snack mid-spar heals 1 more per point.", "每点让切磋中吃零食多回 1 点。"), "SPAR_HEAL", 1],
-  [431, T("Champion's Heart", "冠军之心"), T("1 more power in spars.", "切磋里多 1 力量。"), "SPAR_POWER", 10],
-  [432, T("Iron Will", "钢铁意志"), T("20 more health in spars.", "切磋里多 20 点体力。"), "SPAR_HP", 20],
+  [431, T("Champion's Heart", "冠军之心"), T("One more damage every five pounces in spars.", "切磋里每扑 5 次多 1 点伤害。"), "SPAR_POWER", 10],
+  [432, T("Iron Will", "钢铁意志"), T("2 more health in spars.", "切磋里多 2 点体力。"), "SPAR_HP", 20],
   [433, T("Good Sport", "好风度"), T("10 coins even when a spar is lost.", "切磋输了也得 10 金币。"), "SPAR_LOSS_COINS", 10],
-  [441, T("Power Up", "力量提升"), T("Every five points add 1 power in spars.", "每 5 点在切磋里再加 1 力量。"), "SPAR_POWER", 2],
-  [442, T("Endurance", "持久"), T("Every two points add 1 stamina in spars.", "每 2 点在切磋里再加 1 耐力。"), "SPAR_STAMINA", 5],
-  [443, T("Guard Up", "加强防守"), T("Guarding stops 4% more damage per point.", "每点让防守再多挡 4% 伤害。"), "SPAR_GUARD", 4],
-  [451, T("Agile", "灵巧"), T("Dodges succeed 2% more often per point.", "每点让闪避再多成功 2%。"), "SPAR_DODGE", 2],
+  [441, T("Power Up", "力量提升"), T("Every five points: one more damage every five pounces again.", "每 5 点：切磋里每扑 5 次再多 1 点伤害。"), "SPAR_POWER", 2],
+  [442, T("Endurance", "持久"), T("Every four points add 1 more stamina in spars.", "每 4 点在切磋里再加 1 耐力。"), "SPAR_STAMINA", 5],
+  [443, T("Guard Up", "加强防守"), T("Guarding stops another 1% of a hit per point.", "每点让防守再多挡 1% 伤害。"), "SPAR_GUARD", 4],
+  [451, T("Agile", "灵巧"), T("Dodges succeed another 0.5% more often per point.", "每点让闪避再多成功 0.5%。"), "SPAR_DODGE", 2],
   [452, T("Bigger Snacks", "大零食"), T("A snack mid-spar heals 1 more per point.", "每点让切磋中吃零食再多回 1 点。"), "SPAR_HEAL", 1],
   [453, T("Prize Hunter", "猎奖者"), T("3 more coins per point for a spar won.", "每点让赢一场切磋多得 3 金币。"), "SPAR_WIN_COINS", 3],
-  [461, T("Legend", "传奇"), T("2 more power in spars.", "切磋里多 2 力量。"), "SPAR_POWER", 20],
-  [462, T("Unbreakable", "坚不可摧"), T("40 more health in spars.", "切磋里多 40 点体力。"), "SPAR_HP", 40],
+  [461, T("Legend", "传奇"), T("Two more damage every five pounces in spars.", "切磋里每扑 5 次多 2 点伤害。"), "SPAR_POWER", 20],
+  [462, T("Unbreakable", "坚不可摧"), T("4 more health in spars.", "切磋里多 4 点体力。"), "SPAR_HP", 40],
   [463, T("Generous Victor", "大方的赢家"), T("25 more coins for a spar won.", "赢一场切磋多得 25 金币。"), "SPAR_WIN_COINS", 25],
 ];
 

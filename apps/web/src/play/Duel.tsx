@@ -98,7 +98,7 @@ export function DuelArrival({ hasPet, petName, onAccept }: { hasPet: boolean; pe
   };
   const challenger = arrival?.kind === "challenge" ? arrival.challenge.from : null;
   const art = useMemo(() => (challenger ? drawPet(challenger.line, drawn(challenger.stage), { expression: "proud" }) : null), [challenger]);
-  const replay = useMemo(() => (arrival?.kind === "result" ? duel(arrival.result.challenge, arrival.result.reply) : null), [arrival]);
+  const replay = useMemo(() => (arrival?.kind === "result" ? duel(arrival.result.challenge, arrival.result.reply, arrival.result.version) : null), [arrival]);
 
   if (!arrival) return null;
   if (arrival.kind === "lost") {

@@ -13,25 +13,25 @@ const LOOKS: Record<DesignStage, Pick<Partner, "id" | "name" | "line" | "blurb">
     id: "flit",
     name: { en: "Flit the Dodger", zh: "躲闪的小闪" },
     line: "curious",
-    blurb: { en: "Dodges nearly half the time, and pounces or rests in between.", zh: "将近一半的回合都在躲闪，其余时候扑一下或歇一歇。" },
+    blurb: { en: "Dodges on nearly half its turns and taps at you in between.", zh: "将近一半的回合都在躲闪，其余时候轻拍你。" },
   },
   child: {
     id: "bruno",
     name: { en: "Bruno the Bulldozer", zh: "横冲直撞的布鲁诺" },
     line: "bold",
-    blurb: { en: "Pounces on about half its turns and hits hard. Rest at the wrong moment and it's over.", zh: "大约一半的回合都在猛扑，下手很重。在错的时候休息就输了。" },
+    blurb: { en: "Pounces hard on nearly half its turns and rests in between. Catch its pounces with a guard.", zh: "将近一半的回合都在猛扑，下手很重，其余时候在休息。用防守接住它的扑击。" },
   },
   teen: {
     id: "velvet",
     name: { en: "Velvet the Charmer", zh: "迷人的丝绒" },
     line: "gentle",
-    blurb: { en: "Charms you to sap your strength, then pounces while you are soft.", zh: "先迷惑你、削弱你的力气，趁你松懈时扑过来。" },
+    blurb: { en: "Charms you and snacks in turn, and rests when it tires.", zh: "迷惑你和吃零食轮着来，累了就休息。" },
   },
   adult: {
     id: "sentinel",
     name: { en: "Old Sentinel", zh: "老哨兵" },
     line: "bold",
-    blurb: { en: "Guards about a third of the time, snacks to heal, and pounces in between.", zh: "大约三分之一的回合在防守，吃点心回血，其余时候扑过来。" },
+    blurb: { en: "Taps at you on most turns, guards almost a third of the time, and snacks to heal.", zh: "大多数回合都在轻拍你，将近三分之一的回合在防守，还会吃零食回血。" },
   },
 };
 

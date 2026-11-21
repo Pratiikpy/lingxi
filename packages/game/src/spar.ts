@@ -35,6 +35,8 @@
 import { type FastBrain, encodeSenses } from "@lingxi/brain";
 
 export const SPAR_VERSION = "LX-SPAR/1";
+/** Every fight version a result can name: LX-SPAR/1 (this file) and LX-SPAR/2 (spar2.ts), each replayed by its own engine. */
+export type SparVersion = "LX-SPAR/1" | "LX-SPAR/2";
 export const ROUNDS = 16;
 export const MAX_HP = 100;
 export const MAX_STAMINA = 10;
@@ -99,7 +101,7 @@ export interface Round {
 }
 
 export interface SparResult {
-  version: typeof SPAR_VERSION;
+  version: SparVersion;
   seed: number;
   rounds: Round[];
   winner: 0 | 1 | -1;
@@ -107,11 +109,11 @@ export interface SparResult {
   digest: string;
 }
 
-const bucketUp = (v: number, max: number) => Math.min(3, Math.floor((v * 4) / (max + 1)));
+export const bucketUp = (v: number, max: number) => Math.min(3, Math.floor((v * 4) / (max + 1)));
 /** health on the pins, against the fighter's own full health, so a hardier pet does not read as wounded */
 const healthPin = (hp: number, max: number) => 3 - bucketUp(hp, max);
 
-function xorshift(seed: number): () => number {
+export function xorshift(seed: number): () => number {
   let s = seed >>> 0 || 0x9e3779b9;
   return () => {
     s ^= s << 13;
@@ -154,7 +156,7 @@ function word(me: Side, them: Side, round: number, cheering: boolean, hitHard: b
 }
 
 /** djb2 over the round data, as a short hex fingerprint. */
-function digestOf(rounds: Round[], seed: number): string {
+export function digestOf(rounds: Round[], seed: number): string {
   let h = 5381 ^ seed;
   for (const r of rounds) for (const v of [r.words[0], r.words[1], MOVES.indexOf(r.moves[0]), MOVES.indexOf(r.moves[1]), r.hp[0], r.hp[1]]) h = ((h * 33) ^ v) >>> 0;
   return h.toString(16).padStart(8, "0");

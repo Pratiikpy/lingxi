@@ -15,31 +15,31 @@ export const BALANCE_MEASURED: BalanceMeasured = {
       "status": "open"
     },
     "spar-best-single": {
-      "value": "pounce-only wins 98%",
-      "status": "open"
+      "value": "least answered: fight:fresh/gentle, beaten 70% by partner:pip; none beats the reader; best pounce-only wins 85% of the field",
+      "status": "met"
     },
     "spar-reading-pays": {
-      "value": "reader 94%; best other pounce-only 98%",
+      "value": "reader 88%; best other partner:pip 91%",
       "status": "open"
     },
     "spar-guard-answers": {
-      "value": "guard-only 0% against pounce-only, 0% against the field",
-      "status": "open"
+      "value": "guard-only 55% against pounce-only, 5% against the field",
+      "status": "met"
     },
     "spar-dodge-answers": {
-      "value": "dodge-only 0% against pounce-only, 0% against the field",
-      "status": "open"
+      "value": "dodge-only 47% against pounce-only, 7% against the field",
+      "status": "met"
     },
     "level-not-by-tapping": {
-      "value": "tapper level 99 on no day; day 30: tapper 29, three visits 37",
+      "value": "tapper level 99 on no day; day 30: tapper 29, three visits 38",
       "status": "met"
     },
     "trees-by-90": {
-      "value": "three visits: level 68 on day 90, level 64 on day 78",
+      "value": "three visits: level 69 on day 90, level 64 on day 77",
       "status": "met"
     },
     "coins-bounded": {
-      "value": "once 102, three 92, weekend 92, tapper 107, grinder 7922",
+      "value": "once 92, three 92, weekend 92, tapper 107, grinder 6232",
       "status": "open"
     },
     "coins-worth-saving": {
@@ -51,11 +51,11 @@ export const BALANCE_MEASURED: BalanceMeasured = {
       "status": "open"
     },
     "weekend-not-sick": {
-      "value": "12 of 12 weekends end with the pet ill; 156 care mistakes",
+      "value": "12 of 12 weekends end with the pet ill; 155 care mistakes",
       "status": "open"
     },
     "new-every-day": {
-      "value": "once 68 empty days, three 71 empty days, weekend 71 empty days, tapper 72 empty days, grinder 72 empty days",
+      "value": "once 69 empty days, three 71 empty days, weekend 71 empty days, tapper 72 empty days, grinder 72 empty days",
       "status": "open"
     },
     "gate-budget-binds": {

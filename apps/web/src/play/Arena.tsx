@@ -12,13 +12,13 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { FLY, type OverlayPixel, type Palette, type PixelCanvas, boundingBox, drawFly, drawPet, type Expression, type Outfit, wearOverlay } from "@lingxi/art";
 import { outfitOf } from "@lingxi/world";
 import { STARTERS, chipName, programOfChips } from "@lingxi/brain";
-import { DESIGNED_PARTNERS, composeProgram, type Challenge, type CoachNote, type DuelPet, type Fighter, MAX_HP, MOVES, type Move, PARTNERS, type Partner, type Pet, type SparResult, TRAITS, coach, dayOf, duel as runDuel, duelFighter, encodeChallenge, encodeResult, fighterOfMind, fighterOfPartner, halvesOf, petCard, rewindFight, ruleSource, spar, stageOf, FLY_RIVALS, type FlyRival, FlyLinkError, flyFighter, parseFlyBrain, skillRules, sparMods } from "@lingxi/game";
+import { DESIGNED_PARTNERS, composeProgram, type Challenge, type CoachNote, type DuelPet, type Fighter, MAX_HP, MOVES, type Move, PARTNERS, type Partner, type Pet, type SparResult, type SparVersion, CURRENT_SPAR, dailySparVersion, fight as fightSpar, TRAITS, coach, dayOf, duel as runDuel, duelFighter, encodeChallenge, encodeResult, fighterOfMind, fighterOfPartner, halvesOf, petCard, rewindFight, ruleSource, stageOf, type Exchange, type Mind, PRACTICE_SEEDS, SPAR_PUNISH, duelPetMind, exchangesOf, partnerMind, FLY_RIVALS, type FlyRival, FlyLinkError, flyFighter, parseFlyBrain, skillRules, sparMods } from "@lingxi/game";
 import { linkPrefix } from "../game/links";
 import { SILICON } from "@lingxi/art";
-import { BEHEMOTH_STEPS_PER_ROUND, SPAR_FIRST_ROUND_MS, SPAR_FIRST_WIN_COINS, SPAR_ROUND_MS, SPAR_WIN_COINS, behemothAt, behemothFighter } from "@lingxi/game";
+import { BEHEMOTH_LEVEL, BEHEMOTH_STEPS_PER_ROUND, SPAR_FIRST_ROUND_MS, SPAR_FIRST_WIN_COINS, SPAR_ROUND_MS, SPAR_WIN_COINS, behemothAt, behemothFighter } from "@lingxi/game";
 import { now } from "../game/gameClock";
 
-const BEHEMOTH_PARTNER: Partner = { id: "builder:behemoth", name: { en: "Behemoth", zh: "巨兽" }, look: "behemoth", line: "gentle", stage: "adult", level: 1, blurb: { en: "", zh: "" }, program: STARTERS.gentle };
+const BEHEMOTH_PARTNER: Partner = { id: "builder:behemoth", name: { en: "Behemoth", zh: "巨兽" }, look: "behemoth", line: "gentle", stage: "adult", level: BEHEMOTH_LEVEL, blurb: { en: "", zh: "" }, program: STARTERS.gentle };
 import { useDaily } from "../game/daily";
 import { programFor, useGame } from "../game/store";
 import { Chips } from "./parts";
@@ -94,7 +94,7 @@ type FightState = {
   result: SparResult;
   cheer: boolean;
   opponent?: Fighter;
-  duel?: { challenge: Challenge; reply: DuelPet };
+  duel?: { challenge: Challenge; reply: DuelPet; version: SparVersion };
   daily?: boolean;
   /** the adopted brain the pet fought with, if not its own */
   instinct?: string;
@@ -120,7 +120,7 @@ export const BEHEMOTH = { partner: BEHEMOTH_PARTNER, opponent: () => behemothFig
  * Starts a fight for `pet` against `partner`, with the pet as it is at this moment: spends the bonuses readied from
  * the bag on a practice spar (never on the shared daily challenge), rolls a practice spar's seed, and shows the fight.
  */
-export function startFight(pet: Pet, partner: Partner, o: { daily?: { seed: number }; opponent?: Fighter; cheer?: boolean } = {}): void {
+export function startFight(pet: Pet, partner: Partner, o: { daily?: { seed: number; day: number }; opponent?: Fighter; cheer?: boolean } = {}): void {
   const { daily, opponent } = o;
   const stage = stageOf(pet, now());
   const own = fighterOfMind(pet.name, { line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts, outside: pet.outside, growth: pet.growth }, levelOf(stage), pet.brain);
@@ -141,7 +141,8 @@ export function startFight(pet: Pet, partner: Partner, o: { daily?: { seed: numb
   useArena.setState({
     fight: {
       partner,
-      result: spar(fighter, them, seed, () => [cheering, false]),
+      // the daily challenge switches version on a set day, so one day is one fight for everyone; practice uses today's
+      result: fightSpar(daily ? dailySparVersion(daily.day) : CURRENT_SPAR, fighter, them, seed, () => [cheering, false]),
       cheer: cheering,
       ...(opponent ? { opponent } : {}),
       ...(daily ? { daily: true } : {}),
@@ -156,7 +157,8 @@ export function startFight(pet: Pet, partner: Partner, o: { daily?: { seed: numb
 export function startDuel(pet: Pet, d: Challenge): void {
   const reply = duelPetOf(pet);
   play("tap");
-  useArena.setState({ fight: { partner: partnerOfDuel(d), result: runDuel(d, reply), cheer: false, opponent: duelFighter(d.from), duel: { challenge: d, reply } } });
+  const result = runDuel(d, reply);
+  useArena.setState({ fight: { partner: partnerOfDuel(d), result, cheer: false, opponent: duelFighter(d.from), duel: { challenge: d, reply, version: result.version } } });
 }
 
 /** The pet as it travels in a challenge link: its whole mind, its body, and a few true facts. */
@@ -199,7 +201,7 @@ export function ArenaPanel({ pet }: { pet: Pet }) {
     useMusic.getState().want("spar");
     return () => useMusic.getState().want(songForHour(new Date(now()).getHours()));
   }, [fighting]);
-  const start = (partner: Partner, daily?: { seed: number }, opponent?: Fighter) => startFight(pet, partner, { ...(daily ? { daily } : {}), ...(opponent ? { opponent } : {}), cheer });
+  const start = (partner: Partner, daily?: { seed: number; day: number }, opponent?: Fighter) => startFight(pet, partner, { ...(daily ? { daily } : {}), ...(opponent ? { opponent } : {}), cheer });
   if (running) return <RunView pet={pet} onClose={() => setRunning(false)} />;
   if (fight) {
     const { again, ...shown } = fight;
@@ -258,7 +260,7 @@ export function ArenaPanel({ pet }: { pet: Pet }) {
         )}
       </div>
       <RunCard onOpen={() => setRunning(true)} />
-      <DailyCard pet={pet} onStart={(partner, seed) => start(partner, { seed })} />
+      <DailyCard pet={pet} onStart={(partner, seed, day) => start(partner, { seed, day })} />
       <SeasonCard pet={pet} />
       <section className="sp-behemoth" aria-label={lang === "zh" ? "战胜巨兽" : "Beat the Behemoth"}>
         <div>
@@ -828,8 +830,8 @@ function Result({ pet, partner, result, reward, opponent, duel, cheer, instinct,
               </p>
               <p className="small">
                 {lang === "zh"
-                  ? `在 24 场练习里，这样能赢 ${note.after} 场（现在是 ${note.before} 场）。`
-                  : `In 24 practice spars this wins ${note.after} (it wins ${note.before} now).`}
+                  ? `在 ${PRACTICE_SEEDS} 场练习里，这样能赢 ${note.after} 场（现在是 ${note.before} 场）。`
+                  : `In ${PRACTICE_SEEDS} practice spars this wins ${note.after} (it wins ${note.before} now).`}
               </p>
               {taught === "done" ? (
                 <p className="sp-ok">{lang === "zh" ? "学会了！再来一场试试。" : "Learned! Try a rematch."}</p>
@@ -905,7 +907,7 @@ function Result({ pet, partner, result, reward, opponent, duel, cheer, instinct,
       </p>
       {/* both replay the pet's own mind, which did not fight this one */}
       {!instinct && <SparChainCheck pet={asFought} partner={partner} opponent={opponent} result={result} cheer={cheer} />}
-      {!instinct && <FightRewind pet={asFought} result={result} />}
+      {!instinct && <FightRewind pet={asFought} result={result} other={otherSide(partner, opponent, duel)} />}
     </motion.div>
   );
 }
@@ -932,8 +934,43 @@ const RULE_SOURCE: Record<ReturnType<typeof ruleSource>, { en: string; zh: strin
   outside: { en: "from the instinct circuit it was taught", zh: "来自它学会的本能电路" },
 };
 
-/** F11 for spars: scrub the rounds and see which rule of its own brain picked each move. */
-function FightRewind({ pet, result }: { pet: Pet; result: SparResult }) {
+/** The other side of a fight as the rewind reads it: its name, and its mind when it is a pet's (not a fly's or Behemoth's). */
+function otherSide(partner: Partner, opponent: Fighter | undefined, duel: FightState["duel"]): { name: { en: string; zh: string }; mind: Mind | null; memory?: number[] } {
+  if (duel) {
+    const m = duelPetMind(duel.challenge.from);
+    return { name: partner.name, mind: m?.mind ?? null, ...(m?.memory ? { memory: m.memory } : {}) };
+  }
+  // a fighter brought in from elsewhere (a fly link, Behemoth) has no pet mind to rewind
+  return { name: partner.name, mind: opponent ? null : partnerMind(partner) };
+}
+
+const OPEN: Record<"rest" | "snack" | "charm", { en: string; zh: string }> = {
+  rest: { en: "resting", zh: "在休息" },
+  snack: { en: "snacking", zh: "在吃零食" },
+  charm: { en: "charming", zh: "在撒娇" },
+};
+
+/** One exchange in words: what LX-SPAR/2's rules did with the round's two moves. */
+function exchangeLine(e: Exchange, names: [string, string], lang: Lang): string {
+  const fav = names[e.by];
+  const oth = names[1 - e.by]!;
+  const zh = lang === "zh";
+  switch (e.kind) {
+    case "guarded":
+      return zh ? `${oth}扑进了${fav}${e.timed ? "及时的" : ""}防守：${oth}一个踉跄，被反弹了 ${e.back} 点。` : `${oth} pounced into ${fav}'s ${e.timed ? "well-timed " : ""}guard: ${oth} staggered and took ${e.back} back.`;
+    case "dodged":
+      return zh ? `${fav}干净利落地躲开了${oth}的扑击，反击 ${e.back} 点。` : `${fav} dodged ${oth}'s pounce cleanly and hit back for ${e.back}.`;
+    case "caught":
+      return zh ? `${oth}想躲开${fav}的扑击，却被扑个正着。` : `${oth} tried to dodge ${fav}'s pounce and was caught.`;
+    case "punished":
+      return zh ? `${fav}趁${oth}${OPEN[e.open].zh}时扑过去，多造成 ${SPAR_PUNISH} 点。` : `${fav} pounced while ${oth} was ${OPEN[e.open].en}: ${SPAR_PUNISH} extra damage.`;
+    case "feint":
+      return zh ? `${fav}的撒娇绕过了${oth}的防守，造成 ${e.hit} 点。` : `${fav}'s charm slipped past ${oth}'s guard for ${e.hit}.`;
+  }
+}
+
+/** F11 for spars, both sides (G2): scrub the rounds and see which rule of each brain picked each move, and what came of it. */
+function FightRewind({ pet, result, other }: { pet: Pet; result: SparResult; other: ReturnType<typeof otherSide> }) {
   const lang = useLang((s) => s.lang) as Lang;
   const why = useMemo(
     () =>
@@ -944,6 +981,7 @@ function FightRewind({ pet, result }: { pet: Pet; result: SparResult }) {
       ),
     [pet, result],
   );
+  const otherWhy = useMemo(() => (other.mind ? rewindFight(other.mind, other.memory ?? [], result.rounds.map((r) => r.words[1])) : null), [other, result]);
   const [k, setK] = useState(0);
   if (!why.length) return null;
   const w = why[Math.min(k, why.length - 1)]!;
@@ -951,6 +989,10 @@ function FightRewind({ pet, result }: { pet: Pet; result: SparResult }) {
   const chips = w.outside ? (lang === "zh" ? { when: ["它学会的本能电路想出招"], then: MOVE_LABEL.zh[w.want] ?? "", want: w.want } : { when: ["its taught instinct circuit wanted a move"], then: MOVE_LABEL.en[w.want] ?? "", want: w.want }) : decidingChips(w.program, w.rule, lang, true);
   const chosen = MOVES[w.want]!;
   const changed = round.moves[0] !== chosen;
+  const ow = otherWhy?.[Math.min(k, why.length - 1)];
+  const otherChips = ow ? (ow.outside ? { when: [lang === "zh" ? "它学会的本能电路想出招" : "its taught instinct circuit wanted a move"], then: MOVE_LABEL[lang][ow.want] ?? "", want: ow.want } : decidingChips(ow.program, ow.rule, lang, true)) : null;
+  const exchanges = exchangesOf(result.version, result.rounds, Math.min(k, why.length - 1));
+  const names: [string, string] = [pet.name, other.name[lang]];
   return (
     <div className="sp-why">
       <p className="label">{lang === "zh" ? `回看：${pet.name}每一招为什么这么出` : `Rewind: why ${pet.name} made each move`}</p>
@@ -975,8 +1017,8 @@ function FightRewind({ pet, result }: { pet: Pet; result: SparResult }) {
           {changed && (
             <span>
               {lang === "zh"
-                ? `它的大脑选了${MOVE_LABEL.zh[w.want]}，但${round.moves[0] === "rest" ? "没力气了，只能休息" : "扑空了，变成轻拍"}。`
-                : `Its brain chose ${MOVE_LABEL.en[w.want]}, but ${round.moves[0] === "rest" ? "it had no stamina left, so it rested" : "the pounce slipped into a tap"}.`}
+                ? `它的大脑选了${MOVE_LABEL.zh[w.want]}，但${round.moves[0] === "rest" ? "力气不够出这一招，只能休息" : "扑空了，变成轻拍"}。`
+                : `Its brain chose ${MOVE_LABEL.en[w.want]}, but ${round.moves[0] === "rest" ? "it did not have the stamina for that, so it rested" : "the pounce slipped into a tap"}.`}
             </span>
           )}
         </p>
@@ -984,6 +1026,24 @@ function FightRewind({ pet, result }: { pet: Pet; result: SparResult }) {
           <Chips when={chips.when} then={chips.then} want={chips.want} />
           <small>{RULE_SOURCE[ruleSource(w)][lang]}</small>
         </div>
+        <div className="rw-rule rw-other">
+          <p className="small">
+            <b>{other.name[lang]}</b>
+            {lang === "zh" ? `：${MOVE_LABEL.zh[MOVES.indexOf(round.moves[1])]}` : `: ${MOVE_LABEL.en[MOVES.indexOf(round.moves[1])]}`}
+          </p>
+          {otherChips ? (
+            <Chips when={otherChips.when} then={otherChips.then} want={otherChips.want} />
+          ) : (
+            <small>{lang === "zh" ? "它自己的电路这样出招，看不到规则。" : "Its own circuit chose this; it has no rules to show."}</small>
+          )}
+        </div>
+        {exchanges.length > 0 && (
+          <ul className="rw-ex">
+            {exchanges.map((e, i) => (
+              <li key={i}>{exchangeLine(e, names, lang)}</li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );
@@ -1012,7 +1072,7 @@ function ReplayResult({ self, partner, result, onDone }: { self: { name: string 
 }
 
 /** Today's challenge: the same partner and the same seed for everyone, the seed from X Layer (PRD F19, F22). */
-function DailyCard({ pet, onStart }: { pet: Pet; onStart: (partner: Partner, seed: number) => void }) {
+function DailyCard({ pet, onStart }: { pet: Pet; onStart: (partner: Partner, seed: number, day: number) => void }) {
   const lang = useLang((s) => s.lang) as Lang;
   const { status, block, seed, partnerIndex, best, load } = useDaily();
   useEffect(() => {
@@ -1055,7 +1115,7 @@ function DailyCard({ pet, onStart }: { pet: Pet; onStart: (partner: Partner, see
           {lang === "zh" ? "重试" : "Retry"}
         </button>
       ) : (
-        <button type="button" className="btn primary" disabled={status !== "ready" || seed === null} onClick={() => seed !== null && onStart(partner, seed)}>
+        <button type="button" className="btn primary" disabled={status !== "ready" || seed === null || !block} onClick={() => seed !== null && block && onStart(partner, seed, block.day)}>
           {lang === "zh" ? "挑战" : "Spar"}
         </button>
       )}

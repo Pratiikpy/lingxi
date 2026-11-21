@@ -14,8 +14,8 @@ import { type PetCard, halvesOf, mindBrain, mindExtra, parseCard, CARD_MAX } fro
 import { composeProgram } from "./lessons";
 import { shownName } from "./names";
 import { gateBudget, skillRules } from "./skills";
-import type { Fighter, SparResult } from "./spar";
-import { spar } from "./spar";
+import { type Fighter, SPAR_VERSION, type SparResult, type SparVersion } from "./spar";
+import { CURRENT_SPAR, SPAR_V2, fight } from "./spar2";
 
 const CHALLENGE = "lxc1.";
 const RESULT = "lxr1.";
@@ -67,6 +67,8 @@ export interface Challenge {
 export interface DuelResult {
   challenge: Challenge;
   reply: DuelPet;
+  /** the fight version it was answered in; a result link from before G2 names none and was fought in LX-SPAR/1 */
+  version?: SparVersion;
 }
 
 export class DuelError extends Error {}
@@ -127,12 +129,12 @@ function unpack(code: string, prefix: string, max: number): Record<string, unkno
 export const decodeChallenge = (code: string): Challenge => readChallenge(unpack(code, CHALLENGE, MAX_DUEL_CODE));
 
 export function encodeResult(r: DuelResult): string {
-  return RESULT + b64urlEncode(JSON.stringify({ challenge: { ...r.challenge, from: strip(r.challenge.from) }, reply: strip(r.reply) }));
+  return RESULT + b64urlEncode(JSON.stringify({ challenge: { ...r.challenge, from: strip(r.challenge.from) }, reply: strip(r.reply), version: r.version ?? SPAR_VERSION }));
 }
 
 export function decodeResult(code: string): DuelResult {
   const v = unpack(code, RESULT, MAX_DUEL_RESULT_CODE);
-  return { challenge: readChallenge((v.challenge ?? {}) as Record<string, unknown>), reply: strip(readPet(v.reply)) };
+  return { challenge: readChallenge((v.challenge ?? {}) as Record<string, unknown>), reply: strip(readPet(v.reply)), version: v.version === SPAR_V2 ? SPAR_V2 : SPAR_VERSION };
 }
 
 /** The spar's seed, fixed by the challenge so every replay is the same fight. */
@@ -158,6 +160,8 @@ export function duelFighter(p: DuelPet): Fighter {
  * against the challenger (side 1). No cheering on either side, so a replay from
  * the result link matches the fight exactly.
  */
-export function duel(c: Challenge, reply: DuelPet): SparResult {
-  return spar(duelFighter(reply), duelFighter(c.from), duelSeed(c));
+export function duel(c: Challenge, reply: DuelPet, version: SparVersion = CURRENT_SPAR): SparResult {
+  // a challenge answered now is fought in today's version; its result link names the version, so the challenger's
+  // replay is the same fight even after the game moves on
+  return fight(version, duelFighter(reply), duelFighter(c.from), duelSeed(c));
 }

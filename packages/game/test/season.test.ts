@@ -55,6 +55,20 @@ describe("season standings", () => {
     expect(rows[0]!.key).toBe(small.key);
   });
 
+  it("from week 2026-W48 (LX-SPAR/2) the smaller-brain tie-break is gone: level on points and wins, the order is fixed by key", () => {
+    const twin = (i: number, lessons: unknown[]) => ({ ...entry(i, lessons), pet: { ...entry(i, lessons).pet, line: "gentle" as const } });
+    // two pets that only ever rest draw every bout, in either version; one carries a lesson that never fires
+    const rest = { when: {}, then: { want: 3, mood: 1 } };
+    const idle = { when: { time: [0], owner: [1] }, then: { want: 1, mood: 0 } };
+    const big = twin(1, [idle, rest]);
+    const small = twin(2, [rest]);
+    expect(entryGates(big.pet)).toBeGreaterThan(entryGates(small.pet));
+    expect(seasonStandings("2026-W47", [big, small])[0]!.key).toBe(small.key);
+    const rows = seasonStandings("2026-W48", [small, big]);
+    expect(rows[0]!.points).toBe(rows[1]!.points);
+    expect(rows[0]!.key).toBe(big.key);
+  });
+
   it("a claimed age changes nothing", () => {
     const es = [entry(1, [], "baby"), entry(2)];
     const old = [entry(1, [], "elder"), entry(2)];

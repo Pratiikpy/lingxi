@@ -17,7 +17,8 @@
 
 import { type Clause, type Out, type Program, type Rule, INPUT_FIELDS, compileProgram, gateCount, validateProgram } from "@lingxi/brain";
 import { fighterFrom } from "./coach";
-import { type Fighter, spar } from "./spar";
+import { type Fighter } from "./spar";
+import { CURRENT_SPAR, fight } from "./spar2";
 
 export type DesignStage = "baby" | "child" | "teen" | "adult";
 
@@ -157,8 +158,8 @@ export function strength(p: Program, level: number, pool: ReadonlyArray<{ name: 
   for (const o of pool) {
     const them = fighterFrom(o.name, o.program, o.level);
     for (const s of seeds) {
-      const a = spar(me, them, s).winner;
-      const b = spar(them, me, s ^ 0x5bd1e995).winner;
+      const a = fight(CURRENT_SPAR, me, them, s).winner;
+      const b = fight(CURRENT_SPAR, them, me, s ^ 0x5bd1e995).winner;
       score += (a === 0 ? 1 : a === -1 ? 0.5 : 0) + (b === 1 ? 1 : b === -1 ? 0.5 : 0);
       fights += 2;
     }
@@ -227,7 +228,7 @@ export function moveShares(p: Program, level: number, pool: ReadonlyArray<{ name
   let n = 0;
   for (const o of pool)
     for (const s of seeds)
-      for (const r of spar(me, fighterFrom(o.name, o.program, o.level), s).rounds) {
+      for (const r of fight(CURRENT_SPAR, me, fighterFrom(o.name, o.program, o.level), s).rounds) {
         tally[r.moves[0]] = (tally[r.moves[0]] ?? 0) + 1;
         n++;
       }

@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { b64urlEncode } from "@lingxi/brain";
 import { PET_SCHOOL } from "../src/lessons";
 import { familyOf, petCard } from "../src/family";
-import { DuelError, MAX_DUEL_CODE, MAX_DUEL_RESULT_CODE, decodeChallenge, decodeResult, duel, duelLinkId, duelSeed, encodeChallenge, encodeResult, isDuelCode, type Challenge, type DuelPet } from "../src/duel";
+import { DuelError, MAX_DUEL_CODE, MAX_DUEL_RESULT_CODE, decodeChallenge, decodeResult, duel, duelFighter, duelLinkId, duelSeed, encodeChallenge, encodeResult, isDuelCode, type Challenge, type DuelPet } from "../src/duel";
+import { SPAR_VERSION, spar } from "../src/spar";
+import { CURRENT_SPAR } from "../src/spar2";
 
 const mochi: DuelPet = { name: "Mochi", line: "gentle", stage: "teen", card: petCard({ lessons: [PET_SCHOOL[1]!.rule], instincts: 1 }), story: { days: 6, lessons: 1, nature: ["brave"] } };
 const rex: DuelPet = { name: "Rex", line: "bold", stage: "adult", card: petCard({ lessons: [], instincts: 2 }), story: { days: 12, lessons: 0, nature: [] } };
@@ -25,6 +27,21 @@ describe("challenge links", () => {
     expect(b.rounds).toEqual(a.rounds);
     expect(duelSeed(challenge)).toBe(duelSeed({ id: "abcd1234ef" }));
     expect(duelSeed({ id: "abcd1234eg" })).not.toBe(duelSeed(challenge));
+  });
+
+  it("a result link names the fight version it was answered in, and an old link replays as LX-SPAR/1", () => {
+    const now = duel(challenge, rex);
+    expect(now.version).toBe(CURRENT_SPAR);
+    const back = decodeResult(encodeResult({ challenge, reply: rex, version: now.version }));
+    expect(back.version).toBe(CURRENT_SPAR);
+    expect(duel(back.challenge, back.reply, back.version).digest).toBe(now.digest);
+    // a link from before G2 has no version: it was fought in LX-SPAR/1 and replays so
+    const before = encodeResult({ challenge, reply: rex }).slice(0, 5) + btoa(JSON.stringify({ challenge, reply: rex })).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    const old = decodeResult(before);
+    expect(old.version).toBe(SPAR_VERSION);
+    const replay = duel(old.challenge, old.reply, old.version);
+    expect(replay.version).toBe(SPAR_VERSION);
+    expect(replay.digest).toBe(spar(duelFighter(rex), duelFighter(mochi), duelSeed(challenge)).digest);
   });
 
   it("a child's two halves fight from a link too", () => {

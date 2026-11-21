@@ -9,7 +9,7 @@
  */
 
 import { type Program, type Rule, STARTERS, validateProgram } from "@lingxi/brain";
-import { FIGHT_LESSONS, type FieldBrain, type FieldNumbers, type Fighter, PARTNERS, PET_SCHOOL, composeProgram, fighterFrom, fighterOfPartner, spar } from "../../src";
+import { FIGHT_LESSONS, type FieldBrain, type FieldNumbers, type Fighter, PARTNERS, PET_SCHOOL, composeProgram, fighterFrom, fighterOfPartner, CURRENT_SPAR, fight } from "../../src";
 
 const LINES = ["gentle", "bold", "curious"] as const;
 const LEVEL = 1;
@@ -19,6 +19,8 @@ const only = (want: number, mood: number): Program => validateProgram({ version:
 /**
  * A brain that reads the fight: it guards after the other pounced, pounces at an opening or a tired foe, rests
  * when spent and snacks when hurt. Written for G0 from the fight's pins (spar.ts); nothing in it is tuned to win.
+ * G2: LX-SPAR/2 shows a guard and a dodge on the action pins (spar2.ts), so the reader answers them as the fight's
+ * triangle says: a charm for a guard, a light tap for a dodger, and a pounce for a charm (in LX-SPAR/1 it guarded).
  */
 export const READER: Program = validateProgram({
   version: "LX-PET/1",
@@ -28,8 +30,10 @@ export const READER: Program = validateProgram({
     { label: "an opening: pounce", when: { event: [2] }, then: { want: 2, mood: 2 } },
     { label: "hurt: snack", when: { hunger: [3] }, then: { want: 1, mood: 1 } },
     { label: "it pounced: guard", when: { action: [2] }, then: { want: 5, mood: 1 } },
+    { label: "it guarded: charm", when: { action: [3] }, then: { want: 6, mood: 1 } },
+    { label: "it dodged: tap", when: { action: [6] }, then: { want: 0, mood: 1 } },
     { label: "it is worn down: pounce", when: { clean: [0, 1] }, then: { want: 2, mood: 2 } },
-    { label: "charmed: guard", when: { action: [5] }, then: { want: 5, mood: 1 } },
+    { label: "charmed: pounce", when: { action: [5] }, then: { want: 2, mood: 1 } },
   ],
   otherwise: { want: 2, mood: 1 },
 } as unknown);
@@ -40,7 +44,7 @@ interface Entry {
   fighter: Fighter;
 }
 
-function field(): Entry[] {
+export function field(): Entry[] {
   const one = (id: string, line: (typeof LINES)[number], rule: Rule): Entry => ({ id: `${id}/${line}`, kind: "single", fighter: fighterFrom(id, composeProgram(line, [rule]), LEVEL) });
   return [
     ...LINES.flatMap((line) => FIGHT_LESSONS.map((l) => one(`fight:${l.id}`, line, l.rule))),
@@ -55,11 +59,11 @@ function field(): Entry[] {
 }
 
 /** Wins of each side when `a` and `b` fight over the seeds, each starting from each side in turn. */
-function bout(a: Fighter, b: Fighter, seeds: readonly number[]): [number, number] {
+export function bout(a: Fighter, b: Fighter, seeds: readonly number[]): [number, number] {
   const w: [number, number] = [0, 0];
   for (const s of seeds) {
-    const first = spar(a, b, s).winner;
-    const second = spar(b, a, s ^ 0x2545f491).winner;
+    const first = fight(CURRENT_SPAR, a, b, s).winner;
+    const second = fight(CURRENT_SPAR, b, a, s ^ 0x2545f491).winner;
     if (first === 0) w[0]++;
     if (first === 1) w[1]++;
     if (second === 1) w[0]++;
@@ -68,11 +72,17 @@ function bout(a: Fighter, b: Fighter, seeds: readonly number[]): [number, number
   return w;
 }
 
+/** Head-to-head targets are read over this many seeds (two fights each), so a coin-flip dodge is not judged on noise. */
+const HEAD_SEEDS = 100;
+
 export function sparField(seed: number, nSeeds = 8): FieldNumbers {
   const seeds = Array.from({ length: nSeeds }, (_, i) => (seed + i * 104_729) >>> 0);
+  const headSeeds = Array.from({ length: HEAD_SEEDS }, (_, i) => (seed ^ 0x5bd1e995) + i * 7919 >>> 0);
   const all = field();
   const won = new Map<string, number>(all.map((e) => [e.id, 0]));
   const played = 2 * nSeeds * (all.length - 1);
+  /** beat[i][j]: the share of their fights brain i won against brain j */
+  const beat = all.map(() => new Array<number>(all.length).fill(0));
   for (let i = 0; i < all.length; i++) {
     for (let j = i + 1; j < all.length; j++) {
       const a = all[i]!;
@@ -80,6 +90,8 @@ export function sparField(seed: number, nSeeds = 8): FieldNumbers {
       const [aw, bw] = bout(a.fighter, b.fighter, seeds);
       won.set(a.id, won.get(a.id)! + aw);
       won.set(b.id, won.get(b.id)! + bw);
+      beat[i]![j] = aw / (2 * nSeeds);
+      beat[j]![i] = bw / (2 * nSeeds);
     }
   }
   const brains: FieldBrain[] = all.map((e) => ({ id: e.id, kind: e.kind, winRate: won.get(e.id)! / played }));
@@ -90,12 +102,23 @@ export function sparField(seed: number, nSeeds = 8): FieldNumbers {
   const head = (a: string, b: string) => {
     const fa = all.find((e) => e.id === a)!.fighter;
     const fb = all.find((e) => e.id === b)!.fighter;
-    return bout(fa, fb, seeds)[0] / (2 * nSeeds);
+    return bout(fa, fb, headSeeds)[0] / (2 * HEAD_SEEDS);
   };
+  const isSingle = (k: FieldBrain["kind"]) => k === "single" || k === "guard" || k === "dodge" || k === "pounce";
+  const r = all.findIndex((e) => e.id === "reader");
+  const answers = all.flatMap((e, i) => {
+    if (!isSingle(e.kind)) return [];
+    const by = all.map((_, j) => (j === i ? -1 : beat[j]![i]!)).reduce((bj, v, j, arr) => (v > arr[bj]! ? j : bj), i === 0 ? 1 : 0);
+    return [{ id: e.id, by: all[by]!.id, winRate: beat[by]![i]! }];
+  });
+  const leastAnswered = answers.reduce((m, a) => (a.winRate < m.winRate ? a : m));
+  const beatReader = all.filter((e, i) => isSingle(e.kind) && beat[i]![r]! > beat[r]![i]!).map((e) => e.id);
   return {
     brains,
     seeds: nSeeds,
     bestSingle: { id: single.id, winRate: single.winRate },
+    leastAnswered,
+    beatReader,
     bestOther: { id: other.id, winRate: other.winRate },
     reader: rate("reader"),
     guardVsPounce: head("guard-only", "pounce-only"),

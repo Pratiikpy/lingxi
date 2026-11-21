@@ -309,6 +309,32 @@
   font-size: 12px;
   color: var(--ink-soft);
 }
+/* the other side's move and rule, set apart under one's own (G2) */
+.sp-why .rw-other {
+  margin-top: var(--s2);
+  padding-top: var(--s2);
+  border-top: 1px dashed var(--line);
+}
+.sp-why .rw-other p {
+  flex-basis: 100%;
+  margin: 0;
+}
+/* what the fight's rules did with the two moves */
+.sp-why .rw-ex {
+  margin: var(--s2) 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+}
+.sp-why .rw-ex li {
+  font-size: 13px;
+  line-height: 1.4;
+  text-wrap: pretty;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--tint) 45%, var(--card));
+}
 .sp-duel {
   display: grid;
   gap: var(--s2);

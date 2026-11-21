@@ -11,7 +11,8 @@ import type { StarterLine } from "@lingxi/brain";
 import type { OutsideInstinct, Stage } from "./pet";
 import { checkMindLesson, mindBrain } from "./family";
 import type { Family } from "./pet";
-import { type Fighter, type FighterMods, type SparResult, spar } from "./spar";
+import { type Fighter, type FighterMods, type SparResult } from "./spar";
+import { CURRENT_SPAR, MOVE_COST, SPAR_V2, fight } from "./spar2";
 
 export type CoachKey = "tooPassive" | "noDefence" | "ranOut" | "noHealing" | "outmatched" | "wellDone";
 
@@ -37,7 +38,13 @@ export const FIGHT_LESSONS: readonly FightLesson[] = [
   { id: "ahead", label: { en: "plays harder when it's going well", zh: "顺利时玩得更起劲" }, rule: R({ joy: [2, 3] }, 2, 3, 5) },
 ];
 
-export const PRACTICE_SEEDS = 24;
+/**
+ * Practice spars the coach fights for each lesson. G2: 24 picked the luckiest of ten lessons often enough that a
+ * suggestion could lose more fights on fresh seeds than the pet did before; 96, with a clear margin, does not.
+ */
+export const PRACTICE_SEEDS = 96;
+/** A lesson is suggested only when it wins at least this many more practice spars than the pet does now. */
+export const COACH_MARGIN = 5;
 
 /** What each lesson fixes, so the coach's explanation matches its suggestion. */
 const FIXES: Record<string, CoachKey> = {
@@ -86,14 +93,15 @@ export function fighterFrom(name: string, program: import("@lingxi/brain").Progr
 
 function winsAgainst(me: Fighter, them: Fighter, base: number): number {
   let w = 0;
-  for (let i = 0; i < PRACTICE_SEEDS; i++) if (spar(me, them, base + i * 7919).winner === 0) w++;
+  for (let i = 0; i < PRACTICE_SEEDS; i++) if (fight(CURRENT_SPAR, me, them, base + i * 7919).winner === 0) w++;
   return w;
 }
 
 function diagnose(r: SparResult, side: 0 | 1): CoachKey {
   const mine = r.rounds.map((x) => x.moves[side]);
   const theirs = r.rounds.map((x) => x.moves[1 - side]!);
-  const exhausted = r.rounds.filter((x) => x.stamina[side] === 0).length;
+  // spent: LX-SPAR/1 forced a rest only at no stamina; LX-SPAR/2 at less than a pounce costs
+  const exhausted = r.rounds.filter((x) => x.stamina[side]! <= (r.version === SPAR_V2 ? MOVE_COST.pounce - 1 : 0)).length;
   const bigHits = r.rounds.filter((x) => x.hits[1 - side]! >= 14).length;
   const guarded = mine.filter((m) => m === "guard" || m === "dodge").length;
   const missed = r.rounds.filter((_, i) => i > 0 && ["rest", "snack"].includes(theirs[i - 1]!) && mine[i] !== "pounce").length;
@@ -135,7 +143,7 @@ export function coach(input: {
     const check = checkMindLesson(spec, stage, l.rule);
     if (!check.ok) continue;
     const wins = winsAgainst(fighterOfMind("me", { ...spec, lessons: [l.rule, ...lessons] }, level), opponent, seed);
-    if (wins > before && (!best || wins > best.wins)) best = { lesson: l, wins };
+    if (wins >= before + COACH_MARGIN && (!best || wins > best.wins)) best = { lesson: l, wins };
   }
   if (best) return { key: FIXES[best.lesson.id] ?? diagnose(result, side), lesson: best.lesson, before, after: best.wins };
   return { key: diagnose(result, side), before, after: before };

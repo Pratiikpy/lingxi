@@ -12,7 +12,8 @@
 import { compileProgram, gateCount } from "@lingxi/brain";
 import { type DuelPet, duelFighter } from "./duel";
 import { halvesOf, instinctBrain, mindBrain, parseCard } from "./family";
-import { type Fighter, spar } from "./spar";
+import { type Fighter, SPAR_VERSION, type SparVersion } from "./spar";
+import { SPAR_V2, fight } from "./spar2";
 
 export const SEASON_VERSION = "LX-SEASON/1";
 export const MAX_ENTRIES = 64;
@@ -86,9 +87,18 @@ function fnv(s: string): number {
 }
 
 /** The seed of the bout where `a` is on the near side. */
+/**
+ * G2: the week LX-SPAR/2 starts. A week before it is fought and ranked exactly as it was (LX-SPAR/1, points then the
+ * smaller brain), so a past week's standings, and the keepsake its winner was sent, read the same forever; from this
+ * week the fight is LX-SPAR/2 and the ranking is by results alone (points, then wins).
+ */
+export const SPAR_V2_FROM_WEEK = "2026-W48";
+export const seasonSparVersion = (week: string): SparVersion => (week >= SPAR_V2_FROM_WEEK ? SPAR_V2 : SPAR_VERSION);
+
 export const boutSeed = (week: string, a: string, b: string): number => fnv(`${SEASON_VERSION}|${week}|${a}|${b}`);
 
 export function seasonStandings(week: string, entries: readonly SeasonEntry[]): Standing[] {
+  const version = seasonSparVersion(week);
   const list = entries.slice(0, MAX_ENTRIES);
   const fighters: Fighter[] = list.map((e) => ({ ...duelFighter(e.pet), level: SEASON_LEVEL }));
   const rows: Standing[] = list.map((e) => ({ key: e.key, name: e.pet.name, ...(e.agent ? { agent: e.agent } : {}), line: e.pet.line, points: 0, wins: 0, draws: 0, losses: 0, gates: entryGates(e.pet), rank: 0 }));
@@ -105,12 +115,14 @@ export function seasonStandings(week: string, entries: readonly SeasonEntry[]): 
   for (let i = 0; i < list.length; i++) {
     for (let j = 0; j < list.length; j++) {
       if (i === j) continue;
-      const res = spar(fighters[i]!, fighters[j]!, boutSeed(week, list[i]!.key, list[j]!.key));
+      const res = fight(version, fighters[i]!, fighters[j]!, boutSeed(week, list[i]!.key, list[j]!.key));
       score(i, res.winner === 0 ? 1 : res.winner === -1 ? 0 : -1);
       score(j, res.winner === 1 ? 1 : res.winner === -1 ? 0 : -1);
     }
   }
-  const sorted = rows.slice().sort((a, b) => b.points - a.points || a.gates - b.gates || b.wins - a.wins || (a.key < b.key ? -1 : 1));
+  const sorted = rows
+    .slice()
+    .sort((a, b) => (version === SPAR_V2 ? b.points - a.points || b.wins - a.wins : b.points - a.points || a.gates - b.gates || b.wins - a.wins) || (a.key < b.key ? -1 : 1));
   sorted.forEach((r, i) => (r.rank = i + 1));
   return sorted;
 }

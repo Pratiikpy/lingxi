@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Hono } from "hono";
 import { STARTERS, encodeProgram } from "@lingxi/brain";
-import { PET_SCHOOL } from "@lingxi/game";
+import { CURRENT_SPAR, PET_SCHOOL } from "@lingxi/game";
 import { createAgentStore } from "../src/agents";
 import { withAgentApi } from "../src/agentApi";
 import { createSeasonStore } from "../src/season";
@@ -40,6 +40,8 @@ describe("the agent API", () => {
     const b = await (await call(`/api/v1/spar?program=${code}&vs=pip&seed=7`)).json();
     expect(a.ok).toBe(true);
     expect(a.digest).toBe(b.digest);
+    // the reply names the fight version, so a caller can re-fight it with the same engine
+    expect(a.version).toBe(CURRENT_SPAR);
     expect(["you", "them", "draw"]).toContain(a.winner);
     expect(a.rounds.length).toBeGreaterThan(0);
     const fly = await (await call(`/api/v1/spar?chips=punish,block,bite&vs=fly:ada&seed=3`)).json();

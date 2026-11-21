@@ -10,7 +10,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { CORAL, SHELL, SKY, SUNNY, drawEgg, drawPet } from "@lingxi/art";
 import { STARTERS, compileProgram, gateCount } from "@lingxi/brain";
-import { PARTNERS, PET_SCHOOL, createPet, care, fighterFrom, spar } from "@lingxi/game";
+import { CURRENT_SPAR, PARTNERS, PET_SCHOOL, createPet, care, fight, fighterFrom } from "@lingxi/game";
 import { CHARACTERS } from "@lingxi/world";
 import { useLang } from "../i18n";
 import { usePageMeta } from "../i18n/pageMeta";
@@ -167,10 +167,10 @@ function SparDemo({ reduce }: { reduce: boolean }) {
   const result = useMemo(() => {
     const pip = PARTNERS.find((p) => p.id === "pip")!;
     for (let seed = 1; seed < 200; seed++) {
-      const r = spar(fighterFrom("Mochi", STARTERS.gentle, 0), fighterFrom("Pip", pip.program, pip.level), seed);
+      const r = fight(CURRENT_SPAR, fighterFrom("Mochi", STARTERS.gentle, 0), fighterFrom("Pip", pip.program, pip.level), seed);
       if (r.rounds.length >= 8) return r;
     }
-    return spar(fighterFrom("Mochi", STARTERS.gentle, 0), fighterFrom("Pip", pip.program, pip.level), 1);
+    return fight(CURRENT_SPAR, fighterFrom("Mochi", STARTERS.gentle, 0), fighterFrom("Pip", pip.program, pip.level), 1);
   }, []);
   const [n, setN] = useState(reduce ? result.rounds.length : 1);
   useEffect(() => {

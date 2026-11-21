@@ -6,6 +6,8 @@ import { costOfEverything } from "./life";
 import { playType } from "./players";
 import { lessonsSeen } from "./seen";
 
+/** Seeds per pairing in the spar field (two fights each): 16 left a field total of ~90% decided by noise. */
+const FIELD_SEEDS = 32;
 export const DEFAULT_SEED = 20261121;
 export const DEFAULT_DAYS = 90;
 
@@ -13,5 +15,5 @@ export function runSim(o: { seed?: number; days?: number } = {}): SimNumbers {
   const seed = o.seed ?? DEFAULT_SEED;
   const days = o.days ?? DEFAULT_DAYS;
   const players = Object.fromEntries(PLAYER_TYPES.map((t) => [t, playType(t, seed, days)])) as Record<PlayerType, PlayerNumbers>;
-  return { seed, days, players, field: sparField(seed), lessons: lessonsSeen(), costOfEverything: costOfEverything() };
+  return { seed, days, players, field: sparField(seed, FIELD_SEEDS), lessons: lessonsSeen(), costOfEverything: costOfEverything() };
 }

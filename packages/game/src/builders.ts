@@ -127,6 +127,8 @@ function labelMoments(frames: readonly CpuFrame[], loopFrom: number): CpuMoment[
 
 /** How many steps one fight round takes: one pass of the CPU's Fibonacci loop. */
 export const BEHEMOTH_STEPS_PER_ROUND = 9;
+/** The level Behemoth fights at. */
+export const BEHEMOTH_LEVEL = 2;
 
 /**
  * Behemoth as a sparring partner. It does not look at the fight: each round its
@@ -150,7 +152,9 @@ export function behemothFighter(name: string): Fighter {
       return (num(out, ACC) & 7) | (2 << 3);
     },
   };
-  return { name, brain, memory: new Array<number>(BEHEMOTH_PINS.nState).fill(0), level: 1 };
+  // G2: level 2, a boss's. LX-SPAR/2 counts half a power a level, so at its old level 1 an untaught gentle pet beat it in
+  // 16 of 20 spars; at 2 the starters lose most and a pet the coach teaches to read it wins (builders.test.ts)
+  return { name, brain, memory: new Array<number>(BEHEMOTH_PINS.nState).fill(0), level: BEHEMOTH_LEVEL };
 }
 
 /* ── the calendar ────────────────────────────────────────────────────────── */
