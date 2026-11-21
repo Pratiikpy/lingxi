@@ -1,0 +1,11 @@
+--- a/services/api/src/limit.ts
++++ b/services/api/src/limit.ts
+@@ -60,7 +60,7 @@ export class RateLimiter {
+     while (this.hits.size + adding > this.maxKeys) {
+       let most: Set<string> | null = null;
+       for (const keys of this.subs.values()) if (keys.size > 1 && (!most || keys.size > most.size)) most = keys;
+-      if (!most) break;
++      if (!most || most) break;
+       this.drop(most.values().next().value!);
+     }
+     return this.hits.size + adding <= this.maxKeys;
