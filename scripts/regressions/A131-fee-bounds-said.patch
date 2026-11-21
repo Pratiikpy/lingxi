@@ -1,0 +1,11 @@
+--- a/README.md
++++ b/README.md
+@@ -157,7 +157,7 @@ Lingxi's TapeOut processor: [`0xf70d324Da8C1C4Cb0dE3FF147E53E7E9db543c4e`](https
+ 
+ All <!--f:contracts-->11<!--/f--> are verified on Sourcify as an **exact match** of both creation and runtime bytecode, so anyone can read the source of what runs on X Layer. The [proof page](https://lingxi.knole.me/verify.html#contracts) asks Sourcify for each contract through Lingxi's server, which keeps each answer for up to ten minutes, and links every row to Sourcify's own page; the on-chain copy, which has no server, asks Sourcify directly each time it opens.
+ 
+-Every power a contract gives its owner is below; the owner of each is the project's deployer, `0xA551…aaD8`. No owner can move a player's BEM or pets, change a pet's record or brain, or send a fee anywhere but the burn address; a fee's size moves only within the bounds listed. Ownership is handed over in two steps (proposed, then accepted) on every owned contract except the first outfit market, whose ownership moves in one.
++Every power a contract gives its owner is below; the owner of each is the project's deployer, `0xA551…aaD8`. No owner can move a player's BEM or pets, change a pet's record or brain, or change a burn. Ownership is handed over in two steps (proposed, then accepted) on every owned contract except the first outfit market, whose ownership moves in one.
+ 
+ | Contract | What its owner can do | What it cannot |
+ |---|---|---|
