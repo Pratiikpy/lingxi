@@ -81,6 +81,10 @@ export interface SponsorCaps {
   newcomerShare?: number;
   /** sponsored tape-outs a pet may have in all: before it settles, and over its life */
   lifetime?: { newcomer: number; settled: number };
+  /** settled pets' tape-outs one signer may draw each hour (A142) */
+  settledPerSignerPerHour?: number;
+  /** the share of each hour kept for pets not yet served today (A142) */
+  keptForUnserved?: number;
 }
 
 /** Slots taken for the tape-outs one request may send, given back with `refund` for those it did not send. */
@@ -105,8 +109,10 @@ export class RelayQuota {
   private day = "";
   private perPet = new Map<string, number>();
   private perSigner = new Map<string, number>();
-  private hour: Array<{ at: number; settled: boolean }> = [];
+  private hour: Array<{ at: number; settled: boolean; signer: string }> = [];
   private newcomersToday = 0;
+  /** every sponsored tape-out today, settled or not: the relayer's day holds for all (A142) */
+  private allToday = 0;
   private lifetime = new Map<string, number>();
 
   constructor(
@@ -129,6 +135,7 @@ export class RelayQuota {
       this.perPet.clear();
       this.perSigner.clear();
       this.newcomersToday = 0;
+      this.allToday = 0;
     }
     this.hour = this.hour.filter((h) => now - h.at < 3_600_000);
   }
@@ -150,6 +157,10 @@ export class RelayQuota {
     const life = this.lifetime.get(petId) ?? 0;
     if (this.caps.lifetime && life + n > (settled ? this.caps.lifetime.settled : this.caps.lifetime.newcomer)) return { ok: false, reason: "lifetime" };
     if ((this.perPet.get(petId) ?? 0) + n > this.caps.perPetPerDay || (this.perSigner.get(s) ?? 0) + n > this.caps.perSignerPerDay || this.hour.length + n > this.caps.perHour) return { ok: false, reason: "busy" };
+    // the relayer's day holds for settled pets too, and part of each hour stays for pets not yet served today (A142)
+    if (this.caps.perDay !== undefined && this.allToday + n > this.caps.perDay) return { ok: false, reason: "busy" };
+    if ((this.perPet.get(petId) ?? 0) > 0 && this.hour.length + n > this.caps.perHour - Math.floor(this.caps.perHour * (this.caps.keptForUnserved ?? 0))) return { ok: false, reason: "busy" };
+    if (settled && this.caps.settledPerSignerPerHour !== undefined && this.hour.filter((h) => h.settled && h.signer === s).length + n > this.caps.settledPerSignerPerHour) return { ok: false, reason: "busy" };
     if (!settled) {
       const hourNew = this.hour.filter((h) => !h.settled).length;
       if (hourNew + n > Math.floor(this.caps.perHour * share) || (this.caps.perDay !== undefined && this.newcomersToday + n > Math.floor(this.caps.perDay * share))) return { ok: false, reason: "newcomer" };
@@ -157,7 +168,8 @@ export class RelayQuota {
     }
     this.perPet.set(petId, (this.perPet.get(petId) ?? 0) + n);
     this.perSigner.set(s, (this.perSigner.get(s) ?? 0) + n);
-    for (let i = 0; i < n; i++) this.hour.push({ at: now, settled });
+    for (let i = 0; i < n; i++) this.hour.push({ at: now, settled, signer: s });
+    this.allToday += n;
     this.lifetime.set(petId, life + n);
     this.save();
     return { ok: true, ticket: { petId, signer: s, at: now, settled, day: this.day, n } };
@@ -175,9 +187,10 @@ export class RelayQuota {
     this.perPet.set(t.petId, Math.max(0, (this.perPet.get(t.petId) ?? 0) - back));
     this.perSigner.set(t.signer, Math.max(0, (this.perSigner.get(t.signer) ?? 0) - back));
     for (let j = 0; j < back; j++) {
-      const i = this.hour.findIndex((h) => h.at === t.at && h.settled === t.settled);
+      const i = this.hour.findIndex((h) => h.at === t.at && h.settled === t.settled && h.signer === t.signer);
       if (i >= 0) this.hour.splice(i, 1);
     }
     if (!t.settled) this.newcomersToday = Math.max(0, this.newcomersToday - back);
+    this.allToday = Math.max(0, this.allToday - back);
   }
 }

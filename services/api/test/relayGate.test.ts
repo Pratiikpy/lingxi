@@ -108,6 +108,22 @@ describe("sponsored tape-outs go first to pets with standing, and cannot be race
     expect(fresh).toBe(25);
   });
 
+  it("settled pets have a share too: per signer each hour, the day's cap, and room kept for pets not served today (A142)", () => {
+    const caps = { perPetPerDay: 6, perSignerPerDay: 100, perHour: 40, perDay: 300, newcomerShare: 0.25, lifetime: { newcomer: 3, settled: 40 }, settledPerSignerPerHour: 2, keptForUnserved: 0.25 };
+    // one actor with 17 settled pets and 9 keys, asking all hour
+    const q = new RelayQuota(caps);
+    let actor = 0;
+    for (let i = 0; i < 17 * 6; i++) if (q.take(`s${i % 17}`, `0xk${i % 9}`, true, NOW + i).ok) actor++;
+    expect(actor, "two an hour for each of its nine keys, at most").toBeLessThanOrEqual(9 * 2);
+    // a quarter of the hour stays for pets not yet served today: a fresh honest pet still gets a slot
+    expect(q.take("honest", "0xhonest", true, NOW + 500).ok).toBe(true);
+    // over a day, settled pets count against the relayer's day too
+    const day = new RelayQuota({ ...caps, perHour: 1000, perDay: 30, settledPerSignerPerHour: 1000 });
+    let all = 0;
+    for (let i = 0; i < 100; i++) if (day.take(`d${i}`, `0xd${i}`, true, NOW + i * 60_000).ok) all++;
+    expect(all).toBe(30);
+  });
+
   it("sponsors a pet 3 tape-outs before it settles and 40 in its life", () => {
     const q = new RelayQuota({ perPetPerDay: 1000, perSignerPerDay: 1000, perHour: 1000, perDay: 1000, newcomerShare: 1, lifetime: { newcomer: 3, settled: 40 } });
     for (let i = 0; i < 3; i++) expect(q.take("7", "0xa", false, NOW + i).ok).toBe(true);

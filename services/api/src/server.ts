@@ -944,6 +944,9 @@ if (isMain) {
       perDay: Number(process.env.LINGXI_RELAY_PER_DAY ?? 200),
       newcomerShare: Number(process.env.LINGXI_RELAY_NEWCOMER_SHARE ?? 0.25),
       lifetime: { newcomer: 3, settled: 40 },
+      // settled pets draw two an hour per signer, and a quarter of each hour waits for pets not served today (A142)
+      settledPerSignerPerHour: 2,
+      keptForUnserved: 0.25,
     },
     process.env.LINGXI_RELAY_QUOTA_FILE ?? join(dataDir, "relay-quota.json"),
   );
