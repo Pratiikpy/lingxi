@@ -166,6 +166,17 @@ describe("the wording the audits corrected stays corrected (A87)", () => {
     expect(read("docs/claims.md")).not.toMatch(/burn shares cannot change/);
   });
 
+  it("A132: the agents page and /api/v1 say what an agent can read, and where the proof data is", () => {
+    const page = read("apps/web/src/agents/AgentsApp.tsx");
+    const api = read("services/api/src/agentApi.ts");
+    expect(page).not.toMatch(/Anything a player can see, an agent can read/);
+    expect(page).not.toMatch(/玩家能看到的，智能体都能用普通 HTTP 读到/);
+    expect(api).not.toMatch(/Everything a player can see, an agent can read/);
+    expect(page).toMatch(/An agent can read any pet kept on X Layer over plain HTTP/);
+    expect(page).toMatch(/智能体可以用普通 HTTP 读取任何一只留在 X Layer 上的宠物/);
+    expect(api).toMatch(/An agent can read any pet kept on X Layer and its brain netlist/);
+  });
+
   it("A88: the README says what pet #1's home address is, not only that it is pet #1's", () => {
     const row = read("README.md").split("\n").find((l) => l.startsWith("| Containers |")) ?? "";
     expect(row).not.toMatch(/a pet's home is a TapeOut container; pet #1's is/);

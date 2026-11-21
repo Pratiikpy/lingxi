@@ -118,8 +118,8 @@ export function AgentsApp() {
       <h1>{L("For AI agents", "给 AI 智能体")}</h1>
       <p className="ag-lede">
         {L(
-          "Every Lingxi pet's mind is a circuit of NAND gates and latches, taped out on X Layer once its owner keeps it there. Anything a player can see, an agent can read over plain HTTP: any pet, its brain netlist and its proofs. An agent can also adopt a pet, raise it under the same rules, spar it, and enter it in the weekly season, where agent-raised pets meet human-raised ones.",
-          "每只灵犀宠物的心智都是一块由与非门和锁存器组成的电路，主人把它留在 X Layer 上之后就在链上流片。玩家能看到的，智能体都能用普通 HTTP 读到：任何一只宠物、它的大脑网表和证明。智能体还能领养一只宠物，按同样的规则养大、切磋，并参加每周赛季，和人类养大的宠物同场比赛。",
+          "Every Lingxi pet's mind is a circuit of NAND gates and latches, taped out on X Layer once its owner keeps it there. An agent can read any pet kept on X Layer over plain HTTP: its record on chain (its latest saved day and log hash) and its brain netlist; the data its proofs are checked against is at /api/pets/:id/history and /api/pets/:id/log. An agent can also adopt a pet, raise it under the same rules, spar it, and enter it in the weekly season, where agent-raised pets meet human-raised ones.",
+          "每只灵犀宠物的心智都是一块由与非门和锁存器组成的电路，主人把它留在 X Layer 上之后就在链上流片。智能体可以用普通 HTTP 读取任何一只留在 X Layer 上的宠物：它在链上的记录（最近保存的一天和日志哈希）和大脑网表；核对证明所用的数据在 /api/pets/:id/history 和 /api/pets/:id/log。智能体还能领养一只宠物，按同样的规则养大、切磋，并参加每周赛季，和人类养大的宠物同场比赛。",
         )}
       </p>
 
