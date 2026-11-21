@@ -22,6 +22,7 @@ import { Icon } from "./icons";
 import { Chips } from "./parts";
 import { Sandbox } from "./Sandbox";
 import { TryIt, showMoment } from "./TryIt";
+import { useTrial } from "../game/tryIt";
 import { OwnedInstinctPanel } from "./OwnedInstinct";
 import { MOOD_NAMES, VALUE_NAMES, WANT_NAMES, chipsFor } from "./ruleText";
 import "./teach.css";
@@ -64,7 +65,11 @@ function Proposal({ pet, rule, reply, source, swap, onDone, onLearned }: { pet: 
   const onTopTraps = trapsAfter(specOf(pet), [rule, ...pet.lessons]);
   const belowIsClean = onTopTraps.length > 0 && pet.lessons.length > 0 && trapsAfter(specOf(pet), [...pet.lessons, rule]).length === 0;
   const confirm = (at: "top" | "bottom" = "top") => {
+    // Try it follows a lesson taught: a badge the teaching earns waits for it from this moment, not from Try it's first
+    // paint, or it shows over Try it for a frame and leaves (B5); Try it clears the hold when it is answered
+    useTrial.setState({ offering: true });
     const r = swap ? swapLesson(drop, rule) : learn(rule, at);
+    if (!r.ok) useTrial.setState({ offering: false });
     if (r.ok) {
       play("success");
       if (source.kind === "library") void usedLesson(source.key);
