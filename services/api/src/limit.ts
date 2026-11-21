@@ -9,25 +9,32 @@
 export class RateLimiter {
   /** key → its recent request times, ordered from the key seen least recently to the one seen most recently */
   private readonly hits = new Map<string, number[]>();
+  /** each /48's /64 keys held here, oldest first (A140) */
+  private readonly subs = new Map<string, Set<string>>();
   constructor(
     private readonly max: number,
     private readonly windowMs: number,
     private readonly maxKeys = 50_000,
   ) {}
 
-  /** One request from `key`; an IPv6 caller is also held to its /48's share (A83). */
+  /**
+   * One request from `key`; an IPv6 caller is also held to its /48's share (A83). A /48 holds at most KEYS_PER_PREFIX of
+   * its /64s as keys of their own; its other /64s count on the /48's share alone (A140), so a network cannot fill the
+   * limiter with keys.
+   */
   take(key: string, now = Date.now()): boolean {
     const prefix = prefixOf(key);
     const own = this.recent(key, now);
     const shared = prefix === null ? null : this.recent(prefix, now);
-    let ok = own.length < this.max && (shared === null || shared.length < this.max * PREFIX_SHARE);
-    // a key that would be new needs a free place: one whose window has passed, never one still counting
-    if (ok && !this.room(key, prefix, now)) ok = false;
+    const crowded = prefix !== null && !this.hits.has(key) && (this.subs.get(prefix)?.size ?? 0) >= KEYS_PER_PREFIX;
+    let ok = (crowded || own.length < this.max) && (shared === null || shared.length < this.max * PREFIX_SHARE);
+    // a key that would be new needs a free place: one whose window has passed, or one from the most crowded /48
+    if (ok && !this.room(crowded ? null : key, prefix, now)) ok = false;
     if (ok) {
-      own.push(now);
+      if (!crowded) own.push(now);
       shared?.push(now);
     }
-    this.keep(key, own, ok);
+    if (!crowded) this.keep(key, own, ok);
     if (prefix !== null) this.keep(prefix, shared!, ok);
     return ok;
   }
@@ -37,17 +44,37 @@ export class RateLimiter {
     return held ? held.filter((t) => now - t < this.windowMs) : [];
   }
 
-  /** whether every key this request would add fits, after letting go of keys whose window has passed */
-  private room(key: string, prefix: string | null, now: number): boolean {
-    const adding = (this.hits.has(key) ? 0 : 1) + (prefix !== null && !this.hits.has(prefix) ? 1 : 0);
+  /**
+   * Whether every key this request would add fits: keys whose window has passed go first, least recently counted first;
+   * then a /64 key of the /48 holding the most, whose requests its /48's share still counts (A140). Only when neither
+   * frees a place is a newcomer turned away, and never by forgetting a count that still holds (A113).
+   */
+  private room(key: string | null, prefix: string | null, now: number): boolean {
+    const adding = (key !== null && !this.hits.has(key) ? 1 : 0) + (prefix !== null && !this.hits.has(prefix) ? 1 : 0);
     if (this.hits.size + adding <= this.maxKeys) return true;
-    // least recently seen first: once one still counts, the rest were seen later and count too
     for (const [k, times] of this.hits) {
       if (this.hits.size + adding <= this.maxKeys) break;
       if (times.some((t) => now - t < this.windowMs)) break;
-      this.hits.delete(k);
+      this.drop(k);
+    }
+    while (this.hits.size + adding > this.maxKeys) {
+      let most: Set<string> | null = null;
+      for (const keys of this.subs.values()) if (keys.size > 1 && (!most || keys.size > most.size)) most = keys;
+      if (!most) break;
+      this.drop(most.values().next().value!);
     }
     return this.hits.size + adding <= this.maxKeys;
+  }
+
+  /** lets go of a key, and of its place among its /48's /64 keys */
+  private drop(key: string): void {
+    this.hits.delete(key);
+    const prefix = prefixOf(key);
+    const keys = prefix === null ? undefined : this.subs.get(prefix);
+    if (keys) {
+      keys.delete(key);
+      if (!keys.size) this.subs.delete(prefix!);
+    }
   }
 
   /**
@@ -55,10 +82,16 @@ export class RateLimiter {
    * most-recent end; a refused one leaves it where it is, so the order is always the order of last counted requests.
    */
   private keep(key: string, times: number[], counted: boolean): void {
-    if (!times.length) this.hits.delete(key);
+    if (!times.length) this.drop(key);
     else if (counted) {
       this.hits.delete(key);
       this.hits.set(key, times);
+      const prefix = prefixOf(key);
+      if (prefix !== null) {
+        const keys = this.subs.get(prefix) ?? new Set<string>();
+        keys.add(key);
+        this.subs.set(prefix, keys);
+      }
     } else if (this.hits.has(key)) this.hits.set(key, times);
   }
 
@@ -76,6 +109,9 @@ export class RateLimiter {
  * unrelated households behind one provider.
  */
 export const PREFIX_SHARE = 4;
+
+/** The /64s of one /48 a limiter keeps as keys of their own; its other /64s count on the /48's share alone (A140). */
+export const KEYS_PER_PREFIX = 16;
 
 /** The /48 a /64 caller (as `callerOf` names it) belongs to; null for any other key. */
 export function prefixOf(key: string): string | null {

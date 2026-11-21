@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FairCeiling, PREFIX_SHARE, RateLimiter, heldOver, prefixOf } from "../src/limit";
+import { FairCeiling, KEYS_PER_PREFIX, PREFIX_SHARE, RateLimiter, heldOver, prefixOf } from "../src/limit";
 
 describe("the per-address limiter", () => {
   it("limits one address and leaves another alone", () => {
@@ -57,6 +57,38 @@ describe("no flood of callers resets a limit while its window runs (A113)", () =
     l.take("198.51.100.9", 60_000);
     for (let i = 0; i < 4; i++) l.take("198.51.100.9", 60_001 + i);
     expect(l.take("198.51.100.9", 60_010), "an IPv4 caller's count holds").toBe(false);
+  });
+});
+
+describe("a few dozen networks cannot fill a limiter (A140)", () => {
+  const HOUR = 3_600_000;
+  const sub = (net: number, i: number) => `2001:db8:${(0x1400 + net).toString(16)}:${i.toString(16)}::/64`;
+
+  it("one /48 holds at most KEYS_PER_PREFIX of its /64s; the rest count on the /48 alone", () => {
+    const l = new RateLimiter(240, HOUR);
+    for (let i = 0; i < 960; i++) l.take(sub(1, i), i);
+    expect(l.size(), "16 /64s and the /48").toBeLessThanOrEqual(KEYS_PER_PREFIX + 1);
+  });
+
+  it("53 /48s against a 240-an-hour limiter leave room for newcomers, IPv4 and IPv6", () => {
+    const l = new RateLimiter(240, HOUR, 50_000);
+    let t = 0;
+    for (let net = 0; net < 53; net++) for (let i = 0; i < 960; i++) l.take(sub(net, i), t++);
+    expect(l.take("198.51.100.140", t++), "a new IPv4 caller").toBe(true);
+    expect(l.take("2001:db8:ffff:1::/64", t++), "a new IPv6 caller").toBe(true);
+  });
+
+  it("a full limiter makes room from the most crowded /48 before it turns a newcomer away", () => {
+    const l = new RateLimiter(5, HOUR, 40);
+    let t = 0;
+    // one /48 with 16 /64s, and 23 IPv4 callers: 16 + 1 + 23 = 40 keys, all inside their window
+    for (let i = 0; i < KEYS_PER_PREFIX; i++) l.take(sub(7, i), t++);
+    for (let i = 0; i < 23; i++) l.take(`10.140.0.${i}`, t++);
+    expect(l.size()).toBe(40);
+    expect(l.take("10.140.1.1", t++), "room was made from the crowded /48").toBe(true);
+    // an IPv4 caller still inside its window keeps its count
+    for (let i = 0; i < 4; i++) l.take("10.140.0.0", t++);
+    expect(l.take("10.140.0.0", t++)).toBe(false);
   });
 });
 
