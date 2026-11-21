@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { type FastBrain, inputField } from "@lingxi/brain";
-import { STARTERS } from "@lingxi/brain";
+import { type Rule, STARTERS } from "@lingxi/brain";
 import { MOVES, SPAR_VERSION, type Fighter, type Move, spar } from "../src/spar";
 import { SPAR_V2, allowedMove, fight, spar2 } from "../src/spar2";
 import { PARTNERS } from "../src/partners";
@@ -13,7 +13,7 @@ import { fighterOfPartner } from "../src/coach";
 import { SKILLS, sparMods } from "../src/skills";
 import { SPAR_V2_FROM_WEEK, seasonSparVersion } from "../src/season";
 import { SPAR_V2_FROM_DAY, dailySparVersion } from "../src/daily";
-import { fighterFrom } from "../src/coach";
+import { coach, fighterFrom, fighterOfMind } from "../src/coach";
 import { composeProgram } from "../src/lessons";
 import { READER } from "../scripts/sim90/field";
 
@@ -186,3 +186,21 @@ describe("Spar skills tilt a LX-SPAR/2 fight and never decide it (G2, G8 item 4)
   });
 });
 
+
+describe("the coach's advice wins in practice (G2)", () => {
+  it("a lesson the coach suggests wins more spars on seeds it never practised on, against every hand-written partner", () => {
+    const fresh = Array.from({ length: 120 }, (_, i) => 900_001 + i * 104_729);
+    const wins = (lessons: Rule[], line: "gentle" | "bold" | "curious", opp: () => Fighter) => fresh.filter((s) => fight(SPAR_V2, fighterOfMind("me", { line, lessons }, 0), opp(), s).winner === 0).length;
+    let suggested = 0;
+    for (const p of PARTNERS) for (const line of ["gentle", "bold", "curious"] as const) {
+      const opp = () => fighterOfPartner(p);
+      const result = fight(SPAR_V2, fighterOfMind("me", { line, lessons: [] }, 0), opp(), 4242);
+      if (result.winner === 0) continue;
+      const note = coach({ result, side: 0, line, stage: "child", lessons: [], level: 0, opponent: opp() });
+      if (!note.lesson) continue;
+      suggested++;
+      expect(wins([note.lesson.rule], line, opp), `${line} vs ${p.id}: ${note.lesson.id}`).toBeGreaterThan(wins([], line, opp));
+    }
+    expect(suggested).toBeGreaterThan(3);
+  });
+});
