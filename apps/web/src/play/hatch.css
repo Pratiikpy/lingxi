@@ -147,8 +147,14 @@
     padding: var(--s2) var(--s3);
     text-align: left;
   }
+  /* the egg is drawn at three times its size with wide clear margins; a small window shows just the egg, crisp */
   .egg > :first-child {
     grid-row: 1 / span 2;
+    width: 72px;
+    height: 84px;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
   }
   .egg b {
     align-self: end;

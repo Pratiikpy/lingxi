@@ -824,13 +824,14 @@ export function PlayApp() {
       {/* the room's notices, stacked in one lane under its top row (A15) */}
       <NoticeLane>
         {/* a lesson being tried out: the pet's words about it are the one thing shown (H5) */}
-        {trial && !talking && <VoiceBubble />}
+        {trial && !talking && tab === "home" && <VoiceBubble />}
         <QuestToast onOpenBook={() => pick("quests")} />
         <BadgeToast />
         <ToastView toast={toast} name={pet.name} />
         <RulesMark />
         {/* the pet's own words, last: a quest, a badge, a care note or the rules mark is shown first (H5) */}
-        {!trial && !talking && !circuit && <VoiceBubble />}
+        {/* the pet speaks in the room: with a sheet open over it, its passing words wait */}
+        {!trial && !talking && !circuit && tab === "home" && <VoiceBubble />}
       </NoticeLane>
       <FarewellNote />
       <HandheldReturn />

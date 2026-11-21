@@ -25,7 +25,8 @@
 /* H5: one notice at a time. The lane's children are in order of weight (the quest toast, a badge, a care note, the
    rules mark, the pet's own words) and each is there only while it has something to say, so the first is the one
    that matters most. The others are not shown meanwhile, and each keeps its own few seconds, so a lighter one may pass
-   unseen behind a heavier one rather than pile on top of it. */
+   unseen behind a heavier one rather than pile on top of it. Each notice sets its own display in its own sheet, at
+   the same weight and later in the cascade, so this one rule has to outrank them all. */
 .notice-lane > * ~ * {
-  display: none;
+  display: none !important;
 }
