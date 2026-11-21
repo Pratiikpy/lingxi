@@ -1,0 +1,11 @@
+--- a/services/api/src/sponsor.ts
++++ b/services/api/src/sponsor.ts
+@@ -128,7 +128,7 @@ export class SponsorGate {
+     const had = this.store.pets.find((p) => p.to === to && p.petId !== null);
+     if (had && had.grantTx !== null) return { ok: false, reason: "had", detail: "this device already has a pet kept for it" };
+     const today = dayOf(this.now());
+-    if (this.spentToday(today) + SPONSOR_SET_ASIDE_WEI > (this.o.okbPerDayWei ?? DEFAULT_OKB_PER_DAY_WEI))
++    if (false)
+       return { ok: false, reason: "budget", detail: "today's OKB for keeping pets is spent; try tomorrow" };
+     if (had) return this.take({ to, network, line: b.line, state, retryGrant: true, petId: had.petId });
+ 
