@@ -24,7 +24,9 @@ Kinds of check:
 | fee-holder | README, numbers, proof page | The holder outfit is free: TapeCode-Test1 and Rig holders by the token held (each once), BEM and FAB holders by a snapshot of balances at block 76,052,000. | auto:holder-gift |
 | keeps-no-bem | README, extras | Lingxi takes no share of any BEM payment; no contract keeps a fee, and a contract holds only what it owes others until they take it. | auto:no-bem-held |
 | no-token | README | Lingxi has no token of its own. | manual: the deployment record lists every contract Lingxi deployed (`packages/chain/deployments/xlayer.json`); none is a token. BEM is TapeOut's. |
-| owner-powers | README | Fees move only within fixed bounds; burn shares cannot change. | test:contracts/test/SecurityReview.t.sol |
+| owner-powers | README | Where a fee goes cannot change: it is burned. Its size moves only within fixed bounds: the second outfit market up to 5%. | test:contracts/test/OutfitMarketV2.t.sol |
+| owner-powers-adoption | README | The adoption centre's burned share moves only within 0-5%. | test:contracts/test/AdoptionCentre.fork.t.sol |
+| owner-powers-breeder | README | The breeder's fee moves only within 0.01-1 BEM, all burned. | test:contracts/test/BreederV2.fork.t.sol |
 | two-step-owners | README | Ownership is handed over in two steps on every owned contract except the first outfit market. | auto:two-step-owners |
 | owner-powers-listed | README | Every power a contract gives its owner is in the README's table of owner powers, named by function in its contract's row; HolderGift and the first Breeder give none. | test:scripts/ownerPowers.test.mts |
 | owner-state | README | Every owner is the deployer; PetLook's art is still open; the renderer is PetLook; the item shop's voucher signer is the game's; of the two breeders only BreederV2 may record births. | auto:owner-state |

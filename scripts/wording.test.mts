@@ -157,6 +157,15 @@ describe("the wording the audits corrected stays corrected (A87)", () => {
     expect(mail).toMatch(/The best-placed pet proven to be on X Layer has its brain taped out/);
   });
 
+  it("A130 and A131: the README says how BEM moves and what an owner can change about a fee", () => {
+    const readme = read("README.md");
+    expect(readme).not.toMatch(/all BEM moves straight from the buyer/);
+    expect(readme).toMatch(/every BEM fee is burned in the same transaction as its purchase/);
+    expect(readme).not.toMatch(/or change a burn\./);
+    expect(readme).toMatch(/or send a fee anywhere but the burn address; a fee's size moves only within the bounds listed/);
+    expect(read("docs/claims.md")).not.toMatch(/burn shares cannot change/);
+  });
+
   it("A88: the README says what pet #1's home address is, not only that it is pet #1's", () => {
     const row = read("README.md").split("\n").find((l) => l.startsWith("| Containers |")) ?? "";
     expect(row).not.toMatch(/a pet's home is a TapeOut container; pet #1's is/);
