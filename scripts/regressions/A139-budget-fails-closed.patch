@@ -1,0 +1,11 @@
+--- a/services/api/src/tokenBudget.ts
++++ b/services/api/src/tokenBudget.ts
+@@ -63,7 +63,7 @@ export function createTokenBudget(opts: { perDay: number; perAddress?: number; f
+     } else if (got.state === "damaged") {
+       // the day's spend cannot be read: the day is taken as spent, never started again (A139); tomorrow starts afresh
+       process.stderr.write(`${opts.file} and its .bak could not be read: both kept aside, today's model budget is taken as spent\n`);
+-      state = { ...fresh(), used: opts.perDay };
++      state = fresh();
+     }
+   }
+   const roll = () => {
