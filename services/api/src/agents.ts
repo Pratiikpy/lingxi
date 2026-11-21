@@ -9,7 +9,6 @@
 
 import { heldOver } from "./limit";
 import { createHash, randomBytes } from "node:crypto";
-import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { MOODS, type Rule, type StarterLine, WANTS, compileProgram, gateCount, validateProgram } from "@lingxi/brain";
 import {
   type Care,
@@ -30,6 +29,7 @@ import {
   teach,
   toVisible,
 } from "@lingxi/game";
+import { hasStore, readStore, saveJson } from "./durable";
 
 const MAX_PETS = 5_000;
 const MAX_PER_AGENT = 5;
@@ -115,9 +115,9 @@ export interface AgentStore {
 
 export function createAgentStore(file?: string, now: () => number = Date.now): AgentStore {
   const pets = new Map<string, Kept>();
-  if (file && existsSync(file)) {
+  if (file && hasStore(file)) {
     try {
-      for (const [h, k] of Object.entries(JSON.parse(readFileSync(file, "utf8")) as Record<string, Kept>)) if (/^[0-9a-f]{64}$/.test(h)) pets.set(h, k);
+      for (const [h, k] of Object.entries(readStore(file) as Record<string, Kept>)) if (/^[0-9a-f]{64}$/.test(h)) pets.set(h, k);
     } catch {
       // a damaged file starts empty rather than stopping the server
     }
@@ -127,8 +127,7 @@ export function createAgentStore(file?: string, now: () => number = Date.now): A
     if (!file || !dirty) return;
     dirty = false;
     try {
-      writeFileSync(`${file}.tmp`, JSON.stringify(Object.fromEntries(pets)));
-      renameSync(`${file}.tmp`, file);
+      saveJson(file, undefined, JSON.stringify(Object.fromEntries(pets)));
     } catch (e) {
       process.stderr.write(`agent store not saved: ${(e as Error).message}\n`);
     }

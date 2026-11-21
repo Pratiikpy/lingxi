@@ -10,9 +10,9 @@
  */
 
 import { heldOver } from "./limit";
-import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import webpush from "web-push";
 import type { PushPlanBody } from "@lingxi/api-schema";
+import { hasStore, readStore, saveJson } from "./durable";
 
 export type ReminderKind = "hungry" | "bored" | "dirty" | "sick";
 
@@ -105,18 +105,16 @@ export function createPusher(opts: { publicKey: string; privateKey: string; subj
     lastSentOf.delete(endpoint);
     if (now - at < MIN_GAP_MS) lastSentOf.set(endpoint, at);
   };
-  if (opts.store && existsSync(opts.store)) {
+  if (opts.store && hasStore(opts.store)) {
     try {
-      for (const e of JSON.parse(readFileSync(opts.store, "utf8")) as Entry[]) if (isPushEndpoint(e.sub.endpoint)) subs.set(e.sub.endpoint, e);
+      for (const e of readStore(opts.store) as Entry[]) if (isPushEndpoint(e.sub.endpoint)) subs.set(e.sub.endpoint, e);
     } catch {
       // a damaged file starts empty rather than stopping the server
     }
   }
   const save = () => {
     if (!opts.store) return;
-    const tmp = `${opts.store}.tmp`;
-    writeFileSync(tmp, JSON.stringify([...subs.values()]));
-    renameSync(tmp, opts.store);
+    saveJson(opts.store, [...subs.values()]);
   };
   const send: Send =
     opts.send ??

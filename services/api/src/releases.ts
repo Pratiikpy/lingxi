@@ -6,8 +6,9 @@
  * command removes them (scripts/site-release.mts).
  */
 
-import { existsSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, renameSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { writeFlushed } from "./durable";
 
 /** A release's name: when it was built (UTC) and the commit it came from; `-dirty` marks a rehearsal of uncommitted work. */
 export const RELEASE_NAME = /^\d{8}T\d{6}Z-[0-9a-f]{7,40}(-dirty)?$/;
@@ -48,7 +49,7 @@ export function readPointer(site: string): Pointer | null {
 export function writePointer(site: string, p: Pointer): void {
   for (const name of [p.release, p.previous]) if (name !== undefined && !RELEASE_NAME.test(name)) throw new Error(`not a release name: ${name}`);
   const next = `${pointerFile(site)}.next`;
-  writeFileSync(next, `${JSON.stringify(p)}\n`);
+  writeFlushed(next, `${JSON.stringify(p)}\n`);
   // a reader holding the old file open can make a rename fail for a moment on Windows: try again, briefly
   for (let attempt = 0; ; attempt++) {
     try {

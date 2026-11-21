@@ -17,9 +17,9 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { PLAYER_SECRET, playerIdFor } from "@lingxi/chain";
 import { DECOR_BY_ID, PLACE_AREA, ROOM_MAX } from "@lingxi/world";
+import { hasStore, readStore, saveJson } from "./durable";
 
 export type Placed = Array<{ id: string; x: number; y: number }>;
 
@@ -63,9 +63,9 @@ export interface DecorStore {
 export function createDecorStore(file?: string, maxHomes = MAX_HOMES, now: () => number = Date.now): DecorStore {
   /** owner → home, ordered from the home active least recently to the one active most recently */
   const homes = new Map<string, { key: string; placed: Placed; at: number }>();
-  if (file && existsSync(file)) {
+  if (file && hasStore(file)) {
     try {
-      const raw = JSON.parse(readFileSync(file, "utf8")) as Record<string, { key: string; placed: unknown; at?: number }>;
+      const raw = readStore(file) as Record<string, { key: string; placed: unknown; at?: number }>;
       const loaded = Object.entries(raw).sort(([, a], [, b]) => (a.at ?? 0) - (b.at ?? 0));
       for (const [owner, h] of loaded) {
         const placed = cleanPlaced(h.placed);
@@ -81,8 +81,7 @@ export function createDecorStore(file?: string, maxHomes = MAX_HOMES, now: () =>
     timer = setTimeout(() => {
       timer = null;
       try {
-        writeFileSync(`${file}.tmp`, JSON.stringify(Object.fromEntries(homes)));
-        renameSync(`${file}.tmp`, file);
+        saveJson(file, undefined, JSON.stringify(Object.fromEntries(homes)));
       } catch (e) {
         process.stderr.write(`decor store not saved: ${(e as Error).message}\n`);
       }

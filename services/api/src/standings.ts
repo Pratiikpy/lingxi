@@ -7,10 +7,11 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { Worker } from "node:worker_threads";
 import { type SeasonEntry, type Standing, standingsDigest } from "@lingxi/game";
+import { hasStore, readStore, saveJson } from "./durable";
 
 /** How long one week's fight may take before the worker is stopped; an honest full season takes about 4.3 s. */
 export const STANDINGS_BUDGET_MS = 60_000;
@@ -72,9 +73,9 @@ export function createStandingsRunner(opts: { compute?: Compute; file?: string; 
   const now = opts.now ?? Date.now;
   const log = opts.log ?? ((m: string) => void process.stderr.write(m));
   const fought = new Map<string, Fought>();
-  if (opts.file && existsSync(opts.file)) {
+  if (opts.file && hasStore(opts.file)) {
     try {
-      for (const f of JSON.parse(readFileSync(opts.file, "utf8")) as Fought[]) if (f && typeof f.week === "string" && typeof f.key === "string" && Array.isArray(f.standings)) fought.set(f.week, f);
+      for (const f of readStore(opts.file) as Fought[]) if (f && typeof f.week === "string" && typeof f.key === "string" && Array.isArray(f.standings)) fought.set(f.week, f);
     } catch {
       // a damaged file is fought again, week by week, as asked
     }
@@ -82,8 +83,7 @@ export function createStandingsRunner(opts: { compute?: Compute; file?: string; 
   const save = () => {
     if (!opts.file) return;
     mkdirSync(dirname(opts.file), { recursive: true });
-    writeFileSync(`${opts.file}.tmp`, JSON.stringify([...fought.values()]));
-    renameSync(`${opts.file}.tmp`, opts.file);
+    saveJson(opts.file, undefined, JSON.stringify([...fought.values()]));
   };
   /** the newest set of entries waiting, per week: one that arrives later takes the place of one not yet started */
   const waiting = new Map<string, { entries: readonly SeasonEntry[]; key: string }>();

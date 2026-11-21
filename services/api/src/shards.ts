@@ -4,8 +4,9 @@
  * a half file; a temporary file such a crash left behind is cleared on open. A store still kept as the one old file is
  * moved in on first open, and the old file is put aside under `<file><aside>`, never deleted.
  */
-import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, renameSync, rmSync } from "node:fs";
 import { join } from "node:path";
+import { loadJson, readStore, saveJson } from "./durable";
 
 const KEY = /^[A-Za-z0-9-]{1,32}$/;
 
@@ -25,8 +26,7 @@ export function openShards(file: string, aside: string, what: string): Shards {
   };
   const write = (key: string, value: unknown) => {
     try {
-      writeFileSync(`${path(key)}.tmp`, JSON.stringify(value));
-      renameSync(`${path(key)}.tmp`, path(key));
+      saveJson(path(key), undefined, JSON.stringify(value));
     } catch (e) {
       process.stderr.write(`${what} ${key} not saved: ${(e as Error).message}\n`);
     }
@@ -34,31 +34,34 @@ export function openShards(file: string, aside: string, what: string): Shards {
   for (const name of readdirSync(dir)) if (name.endsWith(".tmp")) rmSync(join(dir, name), { force: true });
   if (existsSync(file)) {
     try {
-      const old = JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>;
+      const old = readStore(file) as Record<string, unknown>;
       for (const [key, value] of Object.entries(old)) if (KEY.test(key) && !existsSync(path(key))) write(key, value);
     } catch {
       // a damaged old file moves nothing in; it is still put aside below, as it was
     }
-    renameSync(file, `${file}${aside}`);
+    // a damaged old file was already put aside where it lay (A139); one read is put aside here
+    if (existsSync(file)) renameSync(file, `${file}${aside}`);
   }
   return {
     all() {
-      const out = new Map<string, unknown>();
+      // every key with a file or a .bak; a key file that cannot be read is kept aside and its .bak read (A139)
+      const keys = new Set<string>();
       for (const name of readdirSync(dir)) {
-        if (!name.endsWith(".json")) continue;
-        const key = name.slice(0, -".json".length);
-        if (!KEY.test(key)) continue;
-        try {
-          out.set(key, JSON.parse(readFileSync(join(dir, name), "utf8")));
-        } catch {
-          // a damaged file is skipped rather than stopping the server
-        }
+        const m = /^([A-Za-z0-9-]{1,32})\.json(?:\.bak)?$/.exec(name);
+        if (m) keys.add(m[1]!);
+      }
+      const out = new Map<string, unknown>();
+      for (const key of keys) {
+        const r = loadJson(path(key));
+        if (r.state === "ok") out.set(key, r.value);
+        else if (r.state === "damaged") process.stderr.write(`${what} ${key}: its file and .bak could not be read; both kept aside\n`);
       }
       return out;
     },
     write,
     remove(key) {
       rmSync(path(key), { force: true });
+      rmSync(`${path(key)}.bak`, { force: true });
     },
   };
 }

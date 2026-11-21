@@ -5,10 +5,11 @@
  * kept for season keepsakes.
  */
 
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { type Address, type Hex, isAddress, recoverMessageAddress } from "viem";
 import { type RelayKind, relayMessage } from "@lingxi/chain";
+import { hasStore, readStore, saveJson } from "./durable";
 
 const WINDOW_S = 5 * 60;
 const NONCE = /^[0-9a-f]{16,64}$/;
@@ -112,9 +113,9 @@ export class RelayQuota {
     private readonly caps: SponsorCaps,
     private readonly file?: string,
   ) {
-    if (file && existsSync(file)) {
+    if (file && hasStore(file)) {
       try {
-        for (const [pet, n] of Object.entries(JSON.parse(readFileSync(file, "utf8")) as Record<string, number>)) if (PET.test(pet) && Number.isInteger(n) && n > 0) this.lifetime.set(pet, n);
+        for (const [pet, n] of Object.entries(readStore(file) as Record<string, number>)) if (PET.test(pet) && Number.isInteger(n) && n > 0) this.lifetime.set(pet, n);
       } catch {
         // an unreadable file starts from nothing; the daily and hourly caps still hold
       }
@@ -135,8 +136,7 @@ export class RelayQuota {
   private save() {
     if (!this.file) return;
     mkdirSync(dirname(this.file), { recursive: true });
-    writeFileSync(`${this.file}.tmp`, JSON.stringify(Object.fromEntries(this.lifetime)));
-    renameSync(`${this.file}.tmp`, this.file);
+    saveJson(this.file, undefined, JSON.stringify(Object.fromEntries(this.lifetime)));
   }
 
   /**

@@ -5,7 +5,7 @@
  * the papers against the chain before paying; this server is a mailbox, never the judge.
  */
 
-import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, utimesSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Hono } from "hono";
@@ -13,6 +13,7 @@ import { type Address, type Hex, keccak256, recoverMessageAddress, toBytes } fro
 import { PAPERS_MAX, PapersBody } from "@lingxi/api-schema";
 import { clientIp } from "./clientIp";
 import { RateLimiter } from "./limit";
+import { writeFlushed } from "./durable";
 
 /** The message the owner signs: names the pet and the exact papers. */
 export const papersMessage = (petId: string, papers: string) => `Lingxi adoption papers for pet #${petId}\n${keccak256(toBytes(papers))}`;
@@ -62,13 +63,12 @@ export function createPapersStore(file?: string, limits: { count: number; chars:
     if (dir) {
       const tmp = join(dir, `${id}.${process.pid}.${++writes}.tmp`);
       try {
-        writeFileSync(tmp, body);
+        writeFlushed(tmp, body);
         utimesSync(tmp, s.at / 1000, s.at / 1000);
         renameSync(tmp, path(id));
       } catch (e) {
         rmSync(tmp, { force: true });
-        process.stderr.write(`papers not saved: ${(e as Error).message}
-`);
+        process.stderr.write(`papers not saved: ${(e as Error).message}\n`);
         return false;
       }
     } else memory.set(id, s);
@@ -93,8 +93,7 @@ export function createPapersStore(file?: string, limits: { count: number; chars:
         for (const [id, s] of Object.entries(old)) if (ID.test(id) && !kept.has(id)) write(id, s);
         renameSync(file, `${file}.migrated`);
       } catch (e) {
-        process.stderr.write(`older papers file not moved: ${(e as Error).message}
-`);
+        process.stderr.write(`older papers file not moved: ${(e as Error).message}\n`);
       }
     }
   }

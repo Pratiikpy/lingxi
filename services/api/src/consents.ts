@@ -10,10 +10,10 @@
  * a transaction someone paid for, and a withdrawn consent is removed.
  */
 
-import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import type { Hono } from "hono";
 import { type Address, type PublicClient, createPublicClient, http, parseAbiItem } from "viem";
 import { WINDOW } from "./indexer";
+import { hasStore, readStore, saveJson } from "./durable";
 
 const EVENTS = [parseAbiItem("event Consent(uint256 indexed petId, address indexed partnerOwner, bool allowed)")] as const;
 const STORE_VERSION = 1;
@@ -56,9 +56,9 @@ export function createConsentIndex(opts: ConsentIndexOptions) {
   const pub = opts.client ?? (createPublicClient({ transport: http(opts.rpc ?? "https://xlayerrpc.okx.com", { timeout: 20_000, retryCount: 0 }) }) as PublicClient);
   const breeders = opts.breeders.map((a) => a.toLowerCase() as Address);
   let data: Stored = { v: STORE_VERSION, next: opts.fromBlock, pets: {} };
-  if (opts.store && existsSync(opts.store)) {
+  if (opts.store && hasStore(opts.store)) {
     try {
-      const held = JSON.parse(readFileSync(opts.store, "utf8")) as Stored;
+      const held = readStore(opts.store) as Stored;
       if (held.v === STORE_VERSION && Number.isInteger(held.next)) data = held;
     } catch {
       // a damaged file starts again from the first block: every consent is on chain to be read again
@@ -66,8 +66,7 @@ export function createConsentIndex(opts: ConsentIndexOptions) {
   }
   const save = () => {
     if (!opts.store) return;
-    writeFileSync(`${opts.store}.tmp`, JSON.stringify(data));
-    renameSync(`${opts.store}.tmp`, opts.store);
+    saveJson(opts.store, undefined, JSON.stringify(data));
   };
 
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));

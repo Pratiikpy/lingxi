@@ -7,10 +7,10 @@
  * shows a V1 listing only when this says it is not retired and has caught up with the chain.
  */
 
-import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import type { Hono } from "hono";
 import { type Address, type PublicClient, createPublicClient, http, parseAbiItem } from "viem";
 import { WINDOW } from "./indexer";
+import { hasStore, readStore, saveJson } from "./durable";
 
 const EVENTS = [
   parseAbiItem("event Listed(uint256 indexed listingId, address indexed seller, uint256 indexed id, uint32 quantity, uint96 priceEach)"),
@@ -51,17 +51,16 @@ interface Stored {
 export function createListingWatch(opts: { rpc: string; market: Address; fromBlock: number; store?: string; client?: PublicClient; paceMs?: number }) {
   const pub = opts.client ?? (createPublicClient({ transport: http(opts.rpc, { timeout: 20_000, retryCount: 0 }) }) as PublicClient);
   let data: Stored = { next: opts.fromBlock, events: [] };
-  if (opts.store && existsSync(opts.store)) {
+  if (opts.store && hasStore(opts.store)) {
     try {
-      data = JSON.parse(readFileSync(opts.store, "utf8")) as Stored;
+      data = readStore(opts.store) as Stored;
     } catch {
       // a damaged file starts again from the deploy block
     }
   }
   const save = () => {
     if (!opts.store) return;
-    writeFileSync(`${opts.store}.tmp`, JSON.stringify(data));
-    renameSync(`${opts.store}.tmp`, opts.store);
+    saveJson(opts.store, undefined, JSON.stringify(data));
   };
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
   /** The chain's head when the watch last looked; 0 before it has. */

@@ -6,13 +6,14 @@
  * Only real challenges and results are kept: each is read as the game reads it before it is stored.
  */
 
-import { mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, utimesSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 import type { Hono } from "hono";
 import { MAX_DUEL_RESULT_CODE, decodeChallenge, decodeResult, duelLinkId } from "@lingxi/game";
 import { clientIp } from "./clientIp";
 import { PREFIX_SHARE, RateLimiter, prefixOf } from "./limit";
+import { writeFlushed } from "./durable";
 
 /** How many codes are kept, and how many characters in all; past either, those nobody has opened for longest go first. */
 const MAX_KEPT = 50_000;
@@ -107,7 +108,7 @@ export function createDuelStore(dir?: string, limits: { count: number; chars: nu
       const who: { by?: string; net?: string } = maker === undefined ? {} : { by: tag(maker), ...(prefix !== null ? { net: tag(prefix) } : {}) };
       kept.set(id, { at, size: code.length, ...who });
       if (dir) {
-        writeFileSync(join(dir, `${id}.tmp`), code);
+        writeFlushed(join(dir, `${id}.tmp`), code);
         // the file keeps the store's own time, as an opening does, so a restart restores the same order (A96)
         utimesSync(join(dir, `${id}.tmp`), at / 1000, at / 1000);
         renameSync(join(dir, `${id}.tmp`), fileOf(id));

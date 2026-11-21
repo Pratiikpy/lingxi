@@ -11,11 +11,11 @@
  * let go keeps nothing the chain does not: its wallets can link it again with the same signature.
  */
 
-import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { type Address, type Hex, getAddress, isAddress, recoverMessageAddress } from "viem";
 import { DECOR_BY_ID, MAX_PACKS, MAX_PLACED, ROOM_PER_PACK, homeLinkMessage } from "@lingxi/world";
 import { RateLimiter } from "./limit";
 import type { Placed } from "./decor";
+import { hasStore, readStore, saveJson } from "./durable";
 
 export { homeLinkMessage };
 export const MAX_LINKED = 4;
@@ -80,9 +80,9 @@ export function createHomes(opts: { chain?: HomeChain; file?: string; now?: () =
   const links = new Map<string, Address[]>();
   /** when each linked home was last seen, in ms; a home read from the older file shape counts as seen longest ago */
   const lastSeen = new Map<string, number>();
-  if (opts.file && existsSync(opts.file)) {
+  if (opts.file && hasStore(opts.file)) {
     try {
-      const raw = JSON.parse(readFileSync(opts.file, "utf8")) as Record<string, unknown>;
+      const raw = readStore(opts.file) as Record<string, unknown>;
       for (const [owner, entry] of Object.entries(raw)) {
         // the shape since A74: { w: wallets, seen: ms }; before it: wallets alone
         const list = Array.isArray(entry) ? entry : entry && typeof entry === "object" ? (entry as { w?: unknown }).w : null;
@@ -104,8 +104,7 @@ export function createHomes(opts: { chain?: HomeChain; file?: string; now?: () =
     timer = setTimeout(() => {
       timer = null;
       try {
-        writeFileSync(`${opts.file}.tmp`, JSON.stringify(Object.fromEntries([...links].map(([owner, w]) => [owner, { w, seen: lastSeen.get(owner) ?? 0 }]))));
-        renameSync(`${opts.file}.tmp`, opts.file!);
+        saveJson(opts.file!, Object.fromEntries([...links].map(([owner, w]) => [owner, { w, seen: lastSeen.get(owner) ?? 0 }])));
       } catch (e) {
         process.stderr.write(`home links not saved: ${(e as Error).message}\n`);
       }

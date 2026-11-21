@@ -12,12 +12,13 @@
  * than evicting one it keeps (an eviction would let a flood push honest ones out).
  */
 
-import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, utimesSync } from "node:fs";
 import { join } from "node:path";
 import { PublishedLog } from "@lingxi/api-schema";
 import { SEND_LIMITS } from "@lingxi/chain/limits";
 import { ZERO_HASH, chainAll } from "@lingxi/game";
 import { PREFIX_SHARE, prefixOf } from "./limit";
+import { writeFlushed } from "./durable";
 
 /** Words a pet's log may hold for each minute it has lived: one a beat, the rest care (a player would have to tap nine times a minute, all its life). */
 export const DIARY_WORDS_PER_MINUTE = 10;
@@ -165,7 +166,7 @@ export function createDiaryStore(dir?: string, opts: { now?: () => number; total
       }
     }
     if (dir) {
-      writeFileSync(`${file(log.petId)}.tmp`, body);
+      writeFlushed(`${file(log.petId)}.tmp`, body);
       // the file keeps the store's own time, as a read does, so a restart orders the shelf on one clock (A80)
       utimesSync(`${file(log.petId)}.tmp`, t / 1000, t / 1000);
       renameSync(`${file(log.petId)}.tmp`, file(log.petId));

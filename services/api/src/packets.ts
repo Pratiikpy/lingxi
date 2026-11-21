@@ -8,9 +8,9 @@
  * MAX_CLAIMS claims are kept, the packets that closed longest ago going first.
  */
 
-import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { createPublicClient, http, parseAbiItem, type Address, type PublicClient } from "viem";
 import { WINDOW } from "./indexer";
+import { hasStore, readStore, saveJson } from "./durable";
 
 const EVENTS = [
   parseAbiItem("event Created(uint256 indexed id, address indexed sender, address token, uint256 total, uint16 count, bool lucky, bool petOwnersOnly, uint64 expiry)"),
@@ -64,9 +64,9 @@ export function createPacketIndex(opts: PacketIndexOptions) {
   const now = opts.now ?? (() => Math.floor(Date.now() / 1000));
   const maxClaims = opts.maxClaims ?? MAX_CLAIMS;
   let data: Stored = { v: STORE_VERSION, next: opts.fromBlock, packets: {} };
-  if (opts.store && existsSync(opts.store)) {
+  if (opts.store && hasStore(opts.store)) {
     try {
-      const held = JSON.parse(readFileSync(opts.store, "utf8")) as Stored;
+      const held = readStore(opts.store) as Stored;
       if (held.v === STORE_VERSION && Number.isInteger(held.next)) data = held;
     } catch {
       // a damaged file starts again from the deploy block: every claim is on chain to be read again
@@ -74,8 +74,7 @@ export function createPacketIndex(opts: PacketIndexOptions) {
   }
   const save = () => {
     if (!opts.store) return;
-    writeFileSync(`${opts.store}.tmp`, JSON.stringify(data));
-    renameSync(`${opts.store}.tmp`, opts.store);
+    saveJson(opts.store, undefined, JSON.stringify(data));
   };
   const packet = (id: string): PacketRecord => (data.packets[id] ??= { claims: [] });
   /** Each packet's shares already listed (a share is claimed once), so a window read again adds nothing twice. */

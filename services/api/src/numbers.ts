@@ -5,10 +5,10 @@
  * carries the contract it comes from and what it counts, so anyone can check it.
  */
 
-import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import type { Hono } from "hono";
 import { type Address, type PublicClient, createPublicClient, http, parseAbi, parseAbiItem } from "viem";
 import { WINDOW } from "./indexer";
+import { hasStore, readStore, saveJson } from "./durable";
 
 const SALES = [
   parseAbiItem("event Minted(uint256 indexed id, address indexed buyer, uint32 quantity, uint256 paid)"),
@@ -38,9 +38,9 @@ interface Stored {
 export function createSalesCounter(opts: { rpc: string; markets: Array<{ address: Address; fromBlock: number }>; store?: string; client?: PublicClient; paceMs?: number }) {
   const pub = opts.client ?? (createPublicClient({ transport: http(opts.rpc, { timeout: 20_000, retryCount: 0 }) }) as PublicClient);
   let data: Stored = { next: {}, totals: {} };
-  if (opts.store && existsSync(opts.store)) {
+  if (opts.store && hasStore(opts.store)) {
     try {
-      data = JSON.parse(readFileSync(opts.store, "utf8")) as Stored;
+      data = readStore(opts.store) as Stored;
     } catch {
       // a damaged file starts again from the deploy blocks
     }
@@ -52,8 +52,7 @@ export function createSalesCounter(opts: { rpc: string; markets: Array<{ address
   }
   const save = () => {
     if (!opts.store) return;
-    writeFileSync(`${opts.store}.tmp`, JSON.stringify(data));
-    renameSync(`${opts.store}.tmp`, opts.store);
+    saveJson(opts.store, undefined, JSON.stringify(data));
   };
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
   let running = false;

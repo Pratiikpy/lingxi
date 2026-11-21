@@ -13,10 +13,11 @@
 
 import { createHash, randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync } from "node:fs";
-import { readFile, rename, rm, writeFile } from "node:fs/promises";
+import { open, readFile, rename, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { SEND_LIMITS } from "@lingxi/chain/limits";
 import { heldOver, prefixOf } from "./limit";
+import { hasStore, loadJson, saveJson } from "./durable";
 
 const MAX_PACK = SEND_LIMITS.sitPackChars;
 const KEEP_AFTER_MS = 7 * 86_400_000;
@@ -71,7 +72,14 @@ function folderBlobs(dir: string): Blobs {
         // each write its own temporary file, removed if the write fails
         const tmp = `${p}.${randomBytes(6).toString("hex")}.tmp`;
         try {
-          await writeFile(tmp, text);
+          // flushed to disk before it takes its place, so a crash leaves the old file or the new, never half (A139)
+          const fh = await open(tmp, "w");
+          try {
+            await fh.writeFile(text);
+            await fh.sync();
+          } finally {
+            await fh.close();
+          }
           await rename(tmp, p);
         } catch (e) {
           await rm(tmp, { force: true });
@@ -112,17 +120,17 @@ export function createSittingStore(dir?: string, now: () => number = Date.now, l
   const index = new Map<string, Entry>();
   let bytes = 0;
 
-  if (folder && existsSync(join(folder, "index.json"))) {
-    try {
-      for (const [code, e] of Object.entries(JSON.parse(readFileSync(join(folder, "index.json"), "utf8")) as Record<string, Entry>)) {
+  // the index, or its .bak when a crash cut it short; one that cannot be read is kept aside, never written over (A139)
+  if (folder && hasStore(join(folder, "index.json"))) {
+    const got = loadJson(join(folder, "index.json"));
+    if (got.state === "ok") {
+      if (got.from === "bak") process.stderr.write(`sitting index could not be read: kept aside, read its .bak instead\n`);
+      for (const [code, e] of Object.entries(got.value as Record<string, Entry>)) {
         if (!CODE.test(code)) continue;
         index.set(code, e);
         bytes += e.size + (e.backSize ?? 0);
       }
-    } catch (e) {
-      process.stderr.write(`sitting index unreadable, kept aside: ${(e as Error).message}\n`);
-      renameSync(join(folder, "index.json"), join(folder, `index.unreadable-${Date.now()}.json`));
-    }
+    } else if (got.state === "damaged") process.stderr.write(`sitting index and its .bak could not be read: both kept aside\n`);
   }
 
   // writes of the index go one after another, so a slow disk never interleaves two renames
@@ -131,7 +139,7 @@ export function createSittingStore(dir?: string, now: () => number = Date.now, l
     if (!folder) return Promise.resolve();
     const text = JSON.stringify(Object.fromEntries(index));
     queue = queue
-      .then(() => blobs.write("index.json", text))
+      .then(() => (folder ? saveJson(join(folder, "index.json"), undefined, text) : blobs.write("index.json", text)))
       .catch((e: Error) => {
         process.stderr.write(`sitting index not saved: ${e.message}\n`);
       });

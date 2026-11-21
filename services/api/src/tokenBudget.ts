@@ -8,9 +8,10 @@
 
 import type Anthropic from "@anthropic-ai/sdk";
 import { AsyncLocalStorage } from "node:async_hooks";
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { PREFIX_SHARE, prefixOf } from "./limit";
+import { loadJson, saveJson } from "./durable";
 
 export class BudgetSpent extends Error {
   constructor() {
@@ -54,11 +55,15 @@ export function createTokenBudget(opts: { perDay: number; perAddress?: number; f
   const fresh = (): DayState => ({ day: today(), used: 0, calls: 0, by: {} });
   let state = fresh();
   if (opts.file) {
-    try {
-      const saved = JSON.parse(readFileSync(opts.file, "utf8")) as Partial<DayState>;
+    const got = loadJson(opts.file);
+    if (got.state === "ok") {
+      const saved = got.value as Partial<DayState>;
+      if (got.from === "bak") process.stderr.write(`${opts.file} could not be read: kept aside, read ${opts.file}.bak instead\n`);
       if (saved.day === state.day && Number.isFinite(saved.used)) state = { ...fresh(), ...saved, by: saved.by ?? {}, calls: saved.calls ?? 0 } as DayState;
-    } catch {
-      // first run
+    } else if (got.state === "damaged") {
+      // the day's spend cannot be read: the day is taken as spent, never started again (A139); tomorrow starts afresh
+      process.stderr.write(`${opts.file} and its .bak could not be read: both kept aside, today's model budget is taken as spent\n`);
+      state = { ...fresh(), used: opts.perDay };
     }
   }
   const roll = () => {
@@ -78,8 +83,7 @@ export function createTokenBudget(opts: { perDay: number; perAddress?: number; f
   const save = () => {
     if (!opts.file) return;
     mkdirSync(dirname(opts.file), { recursive: true });
-    writeFileSync(`${opts.file}.tmp`, JSON.stringify(state));
-    renameSync(`${opts.file}.tmp`, opts.file);
+    saveJson(opts.file, undefined, JSON.stringify(state));
   };
   return {
     allow(): boolean {

@@ -865,8 +865,14 @@ if (isMain) {
     };
     for (const [key, value] of Object.entries(fromRecord)) if (process.env[key] === undefined && value !== undefined) process.env[key] = String(value);
   }
-  // made after the record is read: it tapes out on the deployment's processor
-  const relayer = makeRelayer();
+  // made after the record is read: it tapes out on the deployment's processor. A relayer that cannot start (its store
+  // unreadable) takes only relaying down, never the whole server (A139)
+  let relayer: BrainRelayer | null = null;
+  try {
+    relayer = makeRelayer();
+  } catch (e) {
+    process.stderr.write(`relaying is off: ${(e as Error).message}\n`);
+  }
   // homes (plan 4.9): what visitors see is what the home's linked wallets hold on X Layer
   const homeChain: HomeChain | undefined = chainCtx && {
     roomPacks: async (wallets) => (await packsHeld(visitorPub, chainCtx!.deployment, wallets)).room,
@@ -1153,8 +1159,7 @@ if (isMain) {
         const deployment = JSON.parse(readFileSync(file, "utf8")) as Deployment;
         withVouchers(app, { entries: () => ledger.entries(), signer: privateKeyToAccount(voucherKey as `0x${string}`), deployment });
       } catch (e) {
-        process.stderr.write(`vouchers off: ${(e as Error).message}
-`);
+        process.stderr.write(`vouchers off: ${(e as Error).message}\n`);
       }
     }
     jobs.loop("goals", () => ledger.catchUp(), 20_000);

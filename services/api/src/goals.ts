@@ -16,12 +16,12 @@
  * (packages/chain/scripts/recount-numbers.ts does, by its own walk).
  */
 
-import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import type { Hono } from "hono";
 import { GoalsQuery } from "@lingxi/api-schema";
 import { type Address, type PublicClient, createPublicClient, http, parseAbiItem } from "viem";
 import { GOALS, type GoalDef, type GoalMetric, SETTLED_DAYS, goalCounts, goalState, tiersReached, walletCap } from "@lingxi/world";
 import { WINDOW } from "./indexer";
+import { hasStore, readStore, saveJson } from "./durable";
 
 export const GOAL_EVENTS = [
   parseAbiItem("event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"),
@@ -74,9 +74,9 @@ export function createGoalLedger(opts: GoalLedgerOptions) {
   const registry = opts.registry.toLowerCase();
   const burners = new Set(opts.burners.map((a) => a.toLowerCase()));
   let data: Stored = { v: 2, next: opts.fromBlock, owners: {}, pets: {}, entries: [] };
-  if (opts.store && existsSync(opts.store)) {
+  if (opts.store && hasStore(opts.store)) {
     try {
-      const held = JSON.parse(readFileSync(opts.store, "utf8")) as Stored;
+      const held = readStore(opts.store) as Stored;
       if (held.v === 2) data = held;
     } catch {
       // a damaged file is read again from the deploy block
@@ -84,8 +84,7 @@ export function createGoalLedger(opts: GoalLedgerOptions) {
   }
   const save = () => {
     if (!opts.store) return;
-    writeFileSync(`${opts.store}.tmp`, JSON.stringify(data));
-    renameSync(`${opts.store}.tmp`, opts.store);
+    saveJson(opts.store, undefined, JSON.stringify(data));
   };
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
   const times = new Map<number, number>();

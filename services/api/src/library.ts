@@ -15,12 +15,12 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import type { Rule } from "@lingxi/brain";
 import { checkLesson } from "@lingxi/game";
 import { type SeenSet, addSeen, emptySeen, hasSeen, seenFrom } from "./seenSet";
 import { BLOCKED_WORDS } from "./words";
 import { prefixOf } from "./limit";
+import { hasStore, readStore, saveJson } from "./durable";
 
 export interface LibraryEntry {
   key: string;
@@ -78,10 +78,10 @@ export function createLibrary(store?: string, limits: { max?: number; perSharer?
   const max = limits.max ?? MAX_ENTRIES;
   const perSharer = limits.perSharer ?? MAX_PER_SHARER;
   const entries = new Map<string, LibraryEntry>();
-  if (store && existsSync(store)) {
+  if (store && hasStore(store)) {
     try {
       // labels stored before they were dropped are dropped on load, and plain lists become fixed-size sets
-      for (const e of JSON.parse(readFileSync(store, "utf8")) as Array<LibraryEntry & { reports: unknown; users: unknown }>) {
+      for (const e of readStore(store) as Array<LibraryEntry & { reports: unknown; users: unknown }>) {
         const reports = seenFrom(e.reports);
         const reportCount = typeof e.reportCount === "number" ? e.reportCount : Array.isArray(e.reports) ? e.reports.length : 0;
         entries.set(e.key, { ...e, rule: { when: e.rule.when, then: e.rule.then } as Rule, reports, reportCount, users: seenFrom(e.users) });
@@ -96,8 +96,7 @@ export function createLibrary(store?: string, limits: { max?: number; perSharer?
     timer = setTimeout(() => {
       timer = null;
       try {
-        writeFileSync(`${store}.tmp`, JSON.stringify([...entries.values()]));
-        renameSync(`${store}.tmp`, store);
+        saveJson(store, undefined, JSON.stringify([...entries.values()]));
       } catch (e) {
         process.stderr.write(`library not saved: ${(e as Error).message}\n`);
       }

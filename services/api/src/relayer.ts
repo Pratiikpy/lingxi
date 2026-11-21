@@ -13,13 +13,14 @@
  */
 
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { createPublicClient, createWalletClient, erc20Abi, http, maxUint128, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { type Program, type Rule, type StarterLine, bytesToHex, compileProgram, composeChild, composeInstinct, gateCount, netlistBytes } from "@lingxi/brain";
 import { BrainTooBigError, CircuitTooWideError, FACTORY, circuitIdFrom, createNetlistCache, factoryAbi, loadCircuitFromChain, processorAbi, transistorsAbi, xLayer } from "@lingxi/chain";
 import { type Family, type Growth, INSTINCT_MAX_GATES, MAX_GATES, MAX_GATES_SKILLED, MAX_LESSONS, SKILL_BY_ID, cleanInstincts, composeProgram, gateBudget, halfBudgets, halvesOf, mindExtra, skillRules } from "@lingxi/game";
+import { loadJson, saveJson } from "./durable";
 
 const NEWLINE = /\r?\n/;
 
@@ -75,16 +76,14 @@ export class BrainRelayer {
     this.address = account.address;
     this.pub = createPublicClient({ chain, transport: http(cfg.rpc) });
     this.wallet = createWalletClient({ chain, transport: http(cfg.rpc), account });
-    let raw: string | null = null;
-    try {
-      raw = readFileSync(cfg.storeFile, "utf8");
-    } catch {
-      // first run
-    }
-    if (raw === null) this.store = { brains: {}, day: "", used: 0, hour: [] };
+    // the store, or its .bak when a crash cut the file short (A139); with neither readable the relayer stops rather
+    // than start with a fresh budget, and the server goes on without it (server.ts)
+    const got = loadJson(cfg.storeFile);
+    if (got.state === "damaged") throw new Error(`the relayer's store ${cfg.storeFile} and its .bak could not be read (both kept aside)`);
+    if (got.state === "none") this.store = { brains: {}, day: "", used: 0, hour: [] };
     else {
-      // a store that cannot be read stops the relayer rather than starting it with a fresh budget
-      this.store = JSON.parse(raw) as Store;
+      if (got.from === "bak") process.stderr.write(`${cfg.storeFile} could not be read: kept aside, read ${cfg.storeFile}.bak instead\n`);
+      this.store = got.value as Store;
       this.store.hour ??= [];
     }
   }
@@ -92,8 +91,7 @@ export class BrainRelayer {
   /** Written to a temporary file and renamed, so a crash mid-write never leaves a half store (or a reset budget). */
   private save(): void {
     mkdirSync(dirname(this.cfg.storeFile), { recursive: true });
-    writeFileSync(`${this.cfg.storeFile}.tmp`, JSON.stringify(this.store, null, 1));
-    renameSync(`${this.cfg.storeFile}.tmp`, this.cfg.storeFile);
+    saveJson(this.cfg.storeFile, undefined, JSON.stringify(this.store, null, 1));
   }
 
   /** Today's and this hour's tape-outs, against their ceilings. */

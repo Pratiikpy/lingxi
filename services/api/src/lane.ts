@@ -7,8 +7,8 @@
  * mid-day) counts from its first reading and says so.
  */
 
-import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import type { Hono } from "hono";
+import { hasStore, readStore, saveJson } from "./durable";
 
 export interface TapeoutReading {
   at: number;
@@ -29,17 +29,16 @@ const dayOf = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 
 export function createTapeoutCounter(read: TapeoutReader, file?: string, now: () => number = Date.now) {
   let saved: Saved | null = null;
-  if (file && existsSync(file)) {
+  if (file && hasStore(file)) {
     try {
-      saved = JSON.parse(readFileSync(file, "utf8")) as Saved;
+      saved = readStore(file) as Saved;
     } catch {
       saved = null;
     }
   }
   const persist = () => {
     if (!file || !saved) return;
-    writeFileSync(`${file}.tmp`, JSON.stringify(saved));
-    renameSync(`${file}.tmp`, file);
+    saveJson(file, undefined, JSON.stringify(saved));
   };
   return {
     /** Takes one reading; a new UTC day starts a new baseline. */

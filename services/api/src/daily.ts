@@ -6,10 +6,11 @@
  * changes) and serves it same-origin; the game checks the answer through the same-origin door (`/api/rpc`).
  */
 
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import type { Hono } from "hono";
 import { DAY_MS, dayIndex, firstBlockAtOrAfter } from "@lingxi/game";
+import { hasStore, readStore, saveJson } from "./durable";
 
 /** How far back a day may be asked for: a player's clock, or a page left open, may be a little behind. */
 const OLDEST_DAYS = 30;
@@ -34,9 +35,9 @@ class NotYet extends Error {}
 export function createDailyBlocks(reader: ChainReader, opts: { now?: () => number; file?: string } = {}) {
   const now = opts.now ?? Date.now;
   const kept = new Map<number, Found>();
-  if (opts.file && existsSync(opts.file)) {
+  if (opts.file && hasStore(opts.file)) {
     try {
-      for (const f of JSON.parse(readFileSync(opts.file, "utf8")) as Found[]) if (f?.ok && Number.isInteger(f.day) && Number.isInteger(f.block) && /^0x[0-9a-f]{64}$/.test(f.hash)) kept.set(f.day, f);
+      for (const f of readStore(opts.file) as Found[]) if (f?.ok && Number.isInteger(f.day) && Number.isInteger(f.block) && /^0x[0-9a-f]{64}$/.test(f.hash)) kept.set(f.day, f);
     } catch {
       // a damaged file is searched again, day by day, as asked
     }
@@ -44,8 +45,7 @@ export function createDailyBlocks(reader: ChainReader, opts: { now?: () => numbe
   const save = () => {
     if (!opts.file) return;
     mkdirSync(dirname(opts.file), { recursive: true });
-    writeFileSync(`${opts.file}.tmp`, JSON.stringify([...kept.values()]));
-    renameSync(`${opts.file}.tmp`, opts.file);
+    saveJson(opts.file, undefined, JSON.stringify([...kept.values()]));
   };
   const searching = new Map<number, Promise<DailyAnswer>>();
   let failedAt = -Infinity;

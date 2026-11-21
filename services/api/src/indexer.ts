@@ -6,8 +6,8 @@
  * display: every state it lists is an on-chain event anyone can re-read.
  */
 
-import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { createPublicClient, http, parseAbiItem, type Address, type PublicClient } from "viem";
+import { hasStore, readStore, saveJson } from "./durable";
 
 const EVENTS = [
   parseAbiItem("event Hatched(uint256 indexed petId, address indexed to, uint8 line, address processor, uint64 brainId, uint256 state)"),
@@ -43,9 +43,9 @@ export function createIndexer(opts: { rpc: string; registry: Address; fromBlock:
   // the two official X Layer nodes take turns, halving the load on each
   const pubs: PublicClient[] = opts.client ? [opts.client] : [opts.rpc, ...["https://xlayerrpc.okx.com", "https://rpc.xlayer.tech"].filter((u) => u !== opts.rpc && opts.rpc.includes("xlayer"))].map((u) => createPublicClient({ transport: http(u, { timeout: 20_000, retryCount: 0 }) }) as PublicClient);
   let data: Stored = { v: STORE_VERSION, next: opts.fromBlock, pets: {}, times: {} };
-  if (opts.store && existsSync(opts.store)) {
+  if (opts.store && hasStore(opts.store)) {
     try {
-      const held = JSON.parse(readFileSync(opts.store, "utf8")) as Stored;
+      const held = readStore(opts.store) as Stored;
       // an older file lacks fields (who each pet was hatched for): read the chain again
       if (held.v === STORE_VERSION) data = held;
     } catch {
@@ -54,8 +54,7 @@ export function createIndexer(opts: { rpc: string; registry: Address; fromBlock:
   }
   const save = () => {
     if (!opts.store) return;
-    writeFileSync(`${opts.store}.tmp`, JSON.stringify(data));
-    renameSync(`${opts.store}.tmp`, opts.store);
+    saveJson(opts.store, undefined, JSON.stringify(data));
   };
   const pet = (id: string): PetHistory => (data.pets[id] ??= { children: [], saves: [], brains: [] });
   let running = false;
