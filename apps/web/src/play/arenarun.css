@@ -42,8 +42,23 @@
   align-items: center;
   gap: var(--s2) var(--s3);
 }
+/* B7: the way back reads as a link on any page, not a grey browser button */
 .ar-top .link {
   margin-right: auto;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.ar-top .link:focus-visible {
+  outline: 3px solid var(--sky);
+  outline-offset: 2px;
 }
 .ar-stat {
   padding: 2px 10px;

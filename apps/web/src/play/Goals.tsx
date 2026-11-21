@@ -137,7 +137,7 @@ function GoalCard({ g }: { g: GoalDef }) {
 
       <div className="gl-mine">
         {!wallets.length ? (
-          <span className="small">{L("Keep your pet on X Layer (Me → Keep it) and what you do starts to count here.", "把宠物留在 X Layer 上（我 → 留住它），你做的事就会算进来。")}</span>
+          <span className="small">{L("Keep your pet on X Layer (the Pet tab, then “Keep … on X Layer”) and what you do starts to count here.", "把宠物放上 X Layer（宠物页里的“把……放上 X Layer”），你做的事就会算进来。")}</span>
         ) : mine > 0 ? (
           <span>
             {L("You gave ", "你出了 ")}

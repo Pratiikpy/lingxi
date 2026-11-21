@@ -243,7 +243,7 @@ const TABS: ReadonlyArray<[Tab, IconName, Key]> = [
 export function TabBar({ current, onPick, locked = [] }: { current: Tab; onPick: (t: Tab) => void; locked?: readonly Tab[] }) {
   const t = useT();
   return (
-    <nav className="tabs" aria-label="Main">
+    <nav className="tabs" aria-label={t("lang") === "EN" ? "主菜单" : "Main"}>
       {TABS.map(([id, icon, label]) => (
         <button key={id} type="button" className={`tab${locked.includes(id) ? " tab-locked" : ""}`} aria-current={current === id ? "page" : undefined} onClick={() => onPick(id)} data-hint={`tab-${id}`}>
           <Icon name={icon} size={22} />
@@ -261,10 +261,11 @@ export function TabBar({ current, onPick, locked = [] }: { current: Tab; onPick:
 
 /** The pet's level on its avatar: a tap opens the skills, or levels up when the XP is there. */
 function LevelBadge({ pet }: { pet: Pet }) {
+  const zh = useLang((s) => s.lang) === "zh";
   const g = growthOf(pet);
   const ready = canLevelUp(g, pet.xp);
   return (
-    <button type="button" className={`lv-chip${ready ? " ready" : ""}`} onClick={() => (ready ? levelUpNow() : useSkillsUi.getState().show())} aria-label={ready ? `Lv ${g.level} · level up` : `Lv ${g.level} · skills`}>
+    <button type="button" className={`lv-chip${ready ? " ready" : ""}`} onClick={() => (ready ? levelUpNow() : useSkillsUi.getState().show())} aria-label={zh ? (ready ? `${g.level} 级 · 升级` : `${g.level} 级 · 技能`) : ready ? `Lv ${g.level} · level up` : `Lv ${g.level} · skills`}>
       {ready ? "▲" : ""}
       {g.level}
       {!ready && g.points > 0 && <b aria-hidden="true" />}

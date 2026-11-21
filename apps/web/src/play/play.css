@@ -2932,3 +2932,8 @@
 .circuit-overlay .bv-rules.is-bad {
   color: #ffb4a8;
 }
+/* B7: the friendship note sits on its own line under the hearts */
+.kin-note {
+  display: block;
+  margin-top: 2px;
+}

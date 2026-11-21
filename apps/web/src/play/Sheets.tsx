@@ -213,7 +213,7 @@ export function MeSheetBody({ pet }: { pet: Pet }) {
       </dd>
       <dt>{t("me.friendship")}</dt>
       <dd>
-        <div className="hearts" role="img" aria-label={`${kin}`}>
+        <div className="hearts" role="img" aria-label={lang === "zh" ? `亲密度 ${kin}` : `Friendship ${kin}`}>
           {Array.from({ length: 10 }, (_, i) => (
             <span key={i} className={i < friendship ? "f" : ""}>
               <Icon name="heart" size={14} />
@@ -221,7 +221,8 @@ export function MeSheetBody({ pet }: { pet: Pet }) {
           ))}
         </div>
         {kin > 10 ? ` ${kin}` : ""}
-        <span className="small"> {lang === "zh" ? "· 每 12 小时摸一次 +1，一整天不摸会慢慢变淡" : "· +1 for a pat every 12 hours; fades after a day without"}</span>
+        {/* its own line under the hearts, so it never starts with a stray "·" (B7) */}
+        <span className="small kin-note">{lang === "zh" ? "每 12 小时摸一次 +1，一整天不摸会慢慢变淡" : "+1 for a pat every 12 hours; fades after a day without"}</span>
       </dd>
       {pet.sick && (
         <>

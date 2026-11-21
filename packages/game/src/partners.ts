@@ -16,6 +16,8 @@ export interface Partner {
   name: { en: string; zh: string };
   /** drawn as a fruit fly: a brain brought in from TapeFly's brawl */
   look?: "fly" | "behemoth";
+  /** its own colouring, so a partner of the same line and stage as the player's egg does not look like it (B7) */
+  colours?: "lilac" | "mint" | "peach";
   line: "gentle" | "bold" | "curious";
   stage: "baby" | "child" | "teen" | "adult";
   level: number;
@@ -37,6 +39,7 @@ export const PARTNERS: readonly Partner[] = [
   {
     id: "plush",
     name: { en: "Plush", zh: "布偶" },
+    colours: "lilac",
     line: "gentle",
     stage: "baby",
     level: 0,

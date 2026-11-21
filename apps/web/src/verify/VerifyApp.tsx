@@ -633,7 +633,7 @@ export function VerifyApp() {
                 <p className={ok === rows.length ? "v-ok" : "v-bad"}>{ok === rows.length ? t.allOk.replace("{n}", String(rows.length)) : t.someBad.replace("{n}", String(rows.length - ok))}</p>
               )}
               {!running && runHosts.size > 0 && <p className="v-note mono" data-testid="run-hosts">{viaText(runHosts, lang)}</p>}
-              <div className="v-table" role="region" aria-label="beats" tabIndex={0}>
+              <div className="v-table" role="region" aria-label={lang === "zh" ? "每一拍" : "Each beat"} tabIndex={0}>
                 <table>
                   <thead>
                     <tr>

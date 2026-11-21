@@ -62,7 +62,16 @@ export function LifePanel({ pet, onSchool, blocked }: { pet: Pet; onSchool: () =
     return (
       <section className="life-card">
         <p className="label">{L("Growing up", "长大中")}</p>
-        <p className="small">{L(`${pet.name} is still little: play together now. As a child it goes to Pet School, and once grown it can take a job.`, `${pet.name}还小，现在就一起玩吧。长成孩子后会去宠物学校，长大后就能去打工。`)}</p>
+        {/* B7: Pet School is open from day 1 (it is the Mind tab's school); only jobs wait until the pet is grown */}
+        <p className="small">
+          {L(
+            `${pet.name} is still little: play together now. Pet School is open already, and once grown it can take a job.`,
+            `${pet.name}还小，现在就一起玩吧。宠物学校现在就能去，长大后还能去打工。`,
+          )}
+        </p>
+        <button type="button" className="btn" onClick={() => (play("tap"), onSchool())}>
+          <Icon name="star" size={16} /> {L("Go to Pet School", "去宠物学校")}
+        </button>
       </section>
     );
 

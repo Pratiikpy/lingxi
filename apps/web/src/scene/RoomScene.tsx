@@ -8,7 +8,7 @@
  */
 
 import { useEffect, useLayoutEffect, useRef } from "react";
-import { Application, Assets, Container, Graphics, Sprite, Text, type Texture } from "pixi.js";
+import { Application, Assets, Container, Graphics, Sprite, Text, Texture } from "pixi.js";
 // the site sends a script policy without eval; this module gives Pixi the code paths that never need it
 import "pixi.js/unsafe-eval";
 import { AnimatedGIF } from "@pixi/gif";
@@ -185,6 +185,9 @@ function expressionFor(p: SceneProps, now: number, blinking: boolean): { e: Expr
   return { e: "neutral", lit: false };
 }
 
+/** How deep the room goes while the pet sleeps (0 bright, 1 black): dim enough to read as lights out, the pet still seen. */
+const LIGHTS_OUT = 0.42;
+
 export function RoomScene(props: SceneProps) {
   const host = useRef<HTMLDivElement>(null);
   // the scene draws from the latest props on its own clock; they are handed over as each render commits
@@ -349,6 +352,14 @@ export function RoomScene(props: SceneProps) {
         thoughtFood.texture = t;
         thoughtFood.scale.set(10 / Math.max(t.width, t.height));
       });
+      // B7: lights out while the pet sleeps: a deep veil over the room and the pet, under the Zzz and the fireflies
+      const lightsOut = new Sprite(Texture.WHITE);
+      lightsOut.eventMode = "none";
+      lightsOut.tint = 0x120d26;
+      lightsOut.width = ROOM;
+      lightsOut.height = ROOM;
+      lightsOut.alpha = 0;
+      world.addChild(lightsOut);
       const fx = new Container();
       world.addChild(fx);
       const sky = new Container();
@@ -711,6 +722,8 @@ export function RoomScene(props: SceneProps) {
         glow.y = PET_FEET - 14;
         glow.width = glow.height = 80;
         vignette.alpha = p.phase === "night" ? 0.42 : p.phase === "evening" ? 0.3 : 0.16;
+        const dark = p.asleep && !p.absent ? LIGHTS_OUT : 0;
+        lightsOut.alpha = p.reduceMotion ? dark : lightsOut.alpha + (dark - lightsOut.alpha) * 0.06;
         // depth: the drifting motes and weather lean a pixel toward the pointer, ahead of the still room
         if (!p.reduceMotion) sky.x = Math.round(Math.max(-1, Math.min(1, (lookX - PET_X) / 40)) * 2);
 

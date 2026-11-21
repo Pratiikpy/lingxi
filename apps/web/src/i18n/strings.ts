@@ -459,7 +459,7 @@ export const zh: Record<Key, string> = {
   "me.noInstincts": "一个也没开",
   "hatch.instincts": "它的本能",
   "hatch.instincts.sub": "四个开关，想开哪个都行。它们会接进它的大脑，一辈子不变；你以后教的东西仍然优先。",
-  "instinct.brave": "胆大",
+  "instinct.brave": "不怕吓",
   "instinct.brave.desc": "遇到可怕的东西会走过去",
   "instinct.greedy": "贪吃",
   "instinct.greedy.desc": "早早就要吃的",

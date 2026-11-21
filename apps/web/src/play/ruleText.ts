@@ -45,12 +45,31 @@ export const MOVE_NAMES: Names = {
   zh: ["轻拍", "吃零食", "扑击", "休息", "闪避", "防守", "卖萌", "送礼"],
 };
 
+/** The moves in the order the fight numbers them (spar.ts MOVES); a test holds the two together. */
+export const MOVE_ORDER = ["tap", "snack", "pounce", "rest", "dodge", "guard", "charm", "gift"] as const;
+export type MoveName = (typeof MOVE_ORDER)[number];
+
+/**
+ * Each move as a fight screen shows it, [English, Chinese], from MOVE_NAMES: one set of words for the spar, the arena,
+ * the rewind and the landing page (B7: the arena once said 歇一歇, 闪开 and 猛扑 where the spar said 休息, 闪避, 扑击).
+ */
+export const MOVE_WORDS = Object.fromEntries(
+  MOVE_ORDER.map((m, i) => {
+    const en = MOVE_NAMES.en[i]!;
+    const shout = m === "pounce";
+    return [m, [`${en[0]!.toUpperCase()}${en.slice(1)}${shout ? "!" : ""}`, `${MOVE_NAMES.zh[i]!}${shout ? "！" : ""}`]];
+  }),
+) as Record<MoveName, [string, string]>;
+
 const MEMORY_NAMES: Record<string, { en: string; zh: string }> = {
   trust: { en: "trust", zh: "信任" },
   likesToys: { en: "likes toys", zh: "喜欢玩具" },
   scared: { en: "still shaken", zh: "还在害怕" },
-  awake: { en: "awake long", zh: "醒了很久" },
+  awake: { en: "awake", zh: "醒了" },
 };
+
+/** Trust in words, by thirds of its scale (B7): a rule that reads trust 0–2 says "low trust". */
+const TRUST_WORDS = { en: ["low trust", "some trust", "high trust"], zh: ["还不太信任你", "有点信任你", "很信任你"] } as const;
 
 export const WANT_NAMES: Names = {
   en: ["rest", "eat", "play", "sleep", "explore", "sulk", "cuddle", "share"],
@@ -78,7 +97,23 @@ function memoryChip(p: Program, name: string, values: number[], lang: Lang): str
   if (m.kind === "flag") return values.includes(1) ? label : lang === "zh" ? `不${label}` : `not ${label}`;
   const lo = Math.min(...values);
   const hi = Math.max(...values);
-  return lo === hi ? `${label} ${lo}` : `${label} ${lo}–${hi}`;
+  const max = 2 ** m.bits - 1;
+  // B7: a number never stands alone. A timer counts minutes (and stops at its top, so the top means "or more");
+  // trust reads in words when the rule takes a third of its scale; any other count says what it is out of.
+  if (m.kind === "timer") {
+    const range = lo === hi ? `${lo}` : `${lo}–${hi}`;
+    if (hi === max) return lang === "zh" ? `${label} ${lo} 分钟以上` : `${label} ${lo}+ min`;
+    return lang === "zh" ? `${label} ${range} 分钟` : `${label} ${range} min`;
+  }
+  if (name === "trust") {
+    const third = (v: number) => Math.min(2, Math.floor((3 * v) / (max + 1)));
+    if (third(lo) === third(hi)) {
+      const all = Array.from({ length: max + 1 }, (_, v) => v).filter((v) => third(v) === third(lo));
+      if (all.every((v) => values.includes(v))) return TRUST_WORDS[lang][third(lo)]!;
+    }
+  }
+  const range = lo === hi ? `${lo}` : `${lo}–${hi}`;
+  return lang === "zh" ? `${label} ${range}（满 ${max}）` : `${label} ${range} of ${max}`;
 }
 
 export function chipsFor(p: Program, r: Rule | { when: Record<string, number[]>; then: Out }, lang: Lang, fight = false): RuleChips {

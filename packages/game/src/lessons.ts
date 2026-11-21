@@ -100,7 +100,8 @@ export const PET_SCHOOL: readonly SchoolLesson[] = [
   },
   {
     id: "brave",
-    say: { en: "Be brave when something scary happens and I'm here", zh: "我在的时候，遇到可怕的事要勇敢" },
+    // B7: the words say what the rule does, come to you (a cuddle), not "be brave"
+    say: { en: "Come to me when something scary happens and I'm here", zh: "我在的时候，遇到可怕的事就来找我" },
     rule: { label: "brave with you near", when: { event: [3], owner: [1] }, then: { want: 6, mood: 1, nudge: 1 } },
   },
   {

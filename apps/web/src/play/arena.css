@@ -150,12 +150,12 @@
   gap: 4px;
   color: #2b2140;
 }
+/* B7: a long name ("Juniper the Trickster") wraps onto a second line rather than being cut off on a phone */
 .sp-fighter .sp-bar b {
   font-family: var(--display);
   font-size: 14px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 .side-1 .sp-bar {
   text-align: right;

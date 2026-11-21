@@ -39,7 +39,7 @@ const NOTES_ZH: Record<string, string[]> = {
   ],
   "DUEL-12x3/1": [
     "由 TapeFly 为它的大乱斗定义；灵犀遵循它，所以宠物能和 TapeFly 的大脑切磋。",
-    "在灵犀的切磋里：dist 永远是 3（切磋都在近身）；对方防守时 foe 为 1，猛扑时为 2，歇一歇或吃点心时为 3；只有咬会造成伤害：bite 猛扑，press 歇一歇，back 和 circle 闪开，guard 防守。",
+    "在灵犀的切磋里：dist 永远是 3（切磋都在近身）；对方防守时 foe 为 1，扑击时为 2，休息或吃零食时为 3；只有咬会造成伤害：bite 扑击，press 休息，back 和 circle 闪避，guard 防守。",
   ],
 };
 

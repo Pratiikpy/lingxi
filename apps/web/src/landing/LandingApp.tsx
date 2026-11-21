@@ -23,6 +23,7 @@ import { HeroScene, type HeroPhase, phaseNow } from "./HeroScene";
 import { COPY } from "./copy";
 import "../play/play.css";
 import "./landing.css";
+import { MOVE_WORDS } from "../play/ruleText";
 
 const STAGES = ["egg", "baby", "child", "teen", "adult"] as const;
 const ROOMS = [
@@ -179,7 +180,8 @@ function SparDemo({ reduce }: { reduce: boolean }) {
     return () => clearInterval(id);
   }, [reduce, result.rounds.length]);
   const r = result.rounds[Math.min(n, result.rounds.length) - 1]!;
-  const MOVES: Record<string, [string, string]> = { tap: ["tap", "轻拍"], snack: ["snack", "吃点心"], pounce: ["pounce!", "猛扑！"], rest: ["rest", "歇一歇"], dodge: ["dodge", "闪开"], guard: ["guard", "防守"], charm: ["charm", "撒娇"], gift: ["gift", "送礼"] };
+  // the spar's own words for each move (B7), lower case in the running text of this demo
+  const MOVES: Record<string, [string, string]> = Object.fromEntries(Object.entries(MOVE_WORDS).map(([k, [en, zh]]) => [k, [en.toLowerCase(), zh]]));
   const pa = useMemo(() => drawPet("gentle", "child", { expression: "happy" }), []);
   const pb = useMemo(() => drawPet("curious", "child", { expression: "proud" }), []);
   return (

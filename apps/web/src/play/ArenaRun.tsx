@@ -57,19 +57,12 @@ import { boundingBox, type PixelCanvas } from "@lingxi/art";
 import "./arenarun.css";
 import { noteEvent, noteTally } from "../game/tally";
 import { now } from "../game/gameClock";
+import { MOVE_WORDS } from "./ruleText";
 
 type Lang = "en" | "zh";
 const PALETTE: Record<CompanionDef["look"]["palette"], Palette> = { mint: MINT, lilac: LILAC, peach: PEACH, night: NIGHT };
-const MOVE: Record<Move, [string, string]> = {
-  tap: ["Tap", "轻拍"],
-  snack: ["Snack", "吃点心"],
-  pounce: ["Pounce!", "猛扑！"],
-  rest: ["Rest", "歇一歇"],
-  dodge: ["Dodge", "闪开"],
-  guard: ["Guard", "防守"],
-  charm: ["Charm", "撒娇"],
-  gift: ["Gift", "送礼"],
-};
+/** the spar's own words for each move (B7) */
+const MOVE: Record<Move, [string, string]> = MOVE_WORDS;
 const PET_HP = 100;
 /** every pet fights at the same level in the arena: lessons and line-up decide, not age, and a claimed age gains nothing */
 const ARENA_PET_LEVEL = 1;
@@ -453,7 +446,9 @@ function TeamFight({ pet, mine, foe, edge, rival, units, result, round, onDone }
       <div className="sp-head">
         <span>{L(`Battle ${round + 1} · round ${Math.max(1, shown)}`, `第 ${round + 1} 场 · 第 ${Math.max(1, shown)} 回合`)}</span>
         <span className="small ar-foe">
-          {rival ? L(`vs ${rival.name}'s team · a real player's line`, `对手：${rival.name}的队伍 · 真实玩家的阵容`) : edge > 0 ? L(`Ghost team, veterans (+${edge})`, `幽灵队伍，老练（+${edge}）`) : L("Ghost team", "幽灵队伍")}
+          {rival ? L(`vs ${rival.name}'s team · a real player's line`, `对手：${rival.name}的队伍 · 真实玩家的阵容`) : edge > 0
+              ? L(`Ghost team, veterans (+${edge} levels): a team the game builds when no player's team is free`, `幽灵队伍，老练（高 ${edge} 级）：没有玩家队伍可打时，由游戏组的队伍`)
+              : L("Ghost team: a team the game builds when no player's team is free", "幽灵队伍：没有玩家队伍可打时，由游戏组的队伍")}
         </span>
         {!finished && (
           <button type="button" className="link" onClick={() => setShown(result.rounds.length)}>
@@ -467,7 +462,7 @@ function TeamFight({ pet, mine, foe, edge, rival, units, result, round, onDone }
         {side(1)}
       </div>
       <p className="small ar-explain">
-        {L("Front units fight. Behind them, a gift heals the front, a charm weakens the enemy front, and pounces land at half strength.", "最前面的两个对打。后排送礼给队长回血，撒娇削弱对方队长，后排的扑击只有一半威力。")}
+        {L("Front units fight. Behind them, a gift heals the front, a charm weakens the enemy front, and pounces land at half strength.", "最前面的两个对打。后排送礼给队长回血，卖萌削弱对方队长，后排的扑击只有一半威力。")}
       </p>
       {finished && (
         <motion.div className="sp-result" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
