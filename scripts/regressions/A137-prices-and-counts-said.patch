@@ -1,0 +1,11 @@
+--- a/README.md
++++ b/README.md
+@@ -94,7 +94,7 @@ There is one other rail, in OKB: designs listed on the first outfit market, befo
+ | A colour for a pet's name, shown wherever its name is (back to plain is free) | 0.05 BEM | the whole price burned |
+ | Holder outfit for TapeCode-Test1 and Rig holders (each token once), and BEM and FAB holders at the snapshot block | free | nothing |
+ 
+-The prices above are checked against the contracts by the claims sheet (`docs/claims.md`); the game's counts are read from X Layer by Lingxi's server, at most a minute old, on the [live-numbers page](https://lingxi.knole.me/numbers.html), which refreshes each minute: pets hatched and born, days kept on X Layer, outfits sold, BEM burned by each contract and in total, with the contract each figure comes from. `pnpm --filter @lingxi/chain recount` recomputes them independently from the chain's logs and reports any difference.
++Every one of these numbers is read from X Layer by Lingxi's server, at most a minute old, on the [live-numbers page](https://lingxi.knole.me/numbers.html), which refreshes each minute: pets hatched and born, days kept on X Layer, outfits sold, BEM burned by each contract and in total, with the contract each figure comes from. `pnpm --filter @lingxi/chain recount` recomputes them independently from the chain's logs and reports any difference.
+ 
+ <p align="center"><img src="docs/readme/chain.png" alt="The item shop, the adoption centre and neighbours, the home at night in Chinese, the map in Chinese" width="100%"></p>
+ 

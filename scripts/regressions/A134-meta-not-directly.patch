@@ -1,0 +1,11 @@
+--- a/apps/web/src/i18n/pageMeta.ts
++++ b/apps/web/src/i18n/pageMeta.ts
+@@ -43,7 +43,7 @@ export const PAGE_META: Record<Page, { title: Both; description: Both }> = {
+     title: { en: "Lingxi · the tree of life", zh: "灵犀 · 生命之树" },
+     description: {
+       en: "Every Lingxi pet ever hatched or bred on X Layer, as one family tree read from the chain.",
+-      zh: "在 X Layer 上孵化或出生的每一只灵犀宠物，汇成一棵从链上读取的家族树。",
++      zh: "在 X Layer 上孵化或出生的每一只灵犀宠物，汇成一棵直接从链上读取的家族树。",
+     },
+   },
+   agents: {
