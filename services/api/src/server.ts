@@ -455,8 +455,9 @@ export function withArena(app: Hono, store: ArenaStore, writes = new RateLimiter
     } catch {
       return c.json({ ok: false, reason: "invalid" }, 400);
     }
-    const r = store.save(body.round, body.pet, body.team, body.device);
-    return c.json(r, r.ok ? 200 : 400);
+    const r = store.save(body.round, body.pet, body.team, body.device, clientIp(c));
+    // a sender past its share of the round is an answer, not an error (A144)
+    return c.json(r, r.ok || r.reason === "busy" ? 200 : 400);
   });
   app.get("/api/arena/opponent", (c) => {
     const q = ArenaOpponentQuery.safeParse(c.req.query());

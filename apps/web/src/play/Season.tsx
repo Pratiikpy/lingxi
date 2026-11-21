@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { type Pet, dayOf, petCard, placeTier, previousWeek, stageOf, weekOf } from "@lingxi/game";
+import { type Pet, dayOf, petCard, placeTier, previousWeek, shownName, stageOf, weekOf } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { type SeasonView, enterSeason, markAwarded, mine, readSeason, seasonsAvailable } from "../game/season";
 import { useBadges } from "../game/badges";
@@ -223,7 +223,7 @@ export function SeasonCard({ pet }: { pet: Pet }) {
       )}
       {champ && (
         <p className="small ss-last">
-          {L(`Last week (${last!.week}): ${champ.name} won with ${champ.points} points.`, `上周（${last!.week}）：${champ.name}以 ${champ.points} 分夺冠。`)}
+          {L(`Last week (${last!.week}): ${shownName(champ.name, 24)} won with ${champ.points} points.`, `上周（${last!.week}）：${shownName(champ.name, 24)}以 ${champ.points} 分夺冠。`)}
           {lastMine ? L(` Your pet finished ${lastMine.rank} of ${last!.standings.length}.`, ` 你的宠物排第 ${lastMine.rank} / ${last!.standings.length}。`) : ""}
           {award?.brainId && award.to ? (
             <>
@@ -266,7 +266,7 @@ export function SeasonCard({ pet }: { pet: Pet }) {
             {shown.map((r) => (
               <tr key={r.key} className={r.key === myKey ? "is-mine" : undefined}>
                 <td>{r.rank}</td>
-                <td>{r.name}</td>
+                <td>{shownName(r.name, 24)}</td>
                 <td>{r.points}</td>
                 <td>{`${r.wins}-${r.draws}-${r.losses}`}</td>
                 <td>{r.gates}</td>
@@ -275,7 +275,7 @@ export function SeasonCard({ pet }: { pet: Pet }) {
             {mineRow && mineRow.rank > SHOWN && (
               <tr className="is-mine">
                 <td>{mineRow.rank}</td>
-                <td>{mineRow.name}</td>
+                <td>{shownName(mineRow.name, 24)}</td>
                 <td>{mineRow.points}</td>
                 <td>{`${mineRow.wins}-${mineRow.draws}-${mineRow.losses}`}</td>
                 <td>{mineRow.gates}</td>

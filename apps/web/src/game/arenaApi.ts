@@ -4,7 +4,7 @@
  * when the server is slow or has nobody yet, the run meets a ghost team.
  */
 
-import type { DuelPet } from "@lingxi/game";
+import { type DuelPet, shownName } from "@lingxi/game";
 import { saveWrite } from "./saveRuntime";
 import { arenaOpponentQuery, arenaSnapshotBody, withQuery } from "./requests";
 
@@ -41,7 +41,8 @@ export async function findRival(round: number): Promise<Rival | null> {
     const r = await fetch(`${BASE}${withQuery("/api/arena/opponent", arenaOpponentQuery(round, deviceId()))}`, { signal: ctl.signal });
     if (!r.ok) return null;
     const body = (await r.json()) as { ok: boolean; pet?: DuelPet; team?: string[] };
-    return body.ok && body.pet && Array.isArray(body.team) ? { pet: body.pet, team: body.team } : null;
+    // another player's pet name, shown as every other name from elsewhere is (A144)
+    return body.ok && body.pet && Array.isArray(body.team) ? { pet: { ...body.pet, name: shownName(body.pet.name, 24) || "Friend" }, team: body.team } : null;
   } catch {
     return null;
   } finally {
