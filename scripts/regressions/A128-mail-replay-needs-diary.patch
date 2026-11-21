@@ -1,0 +1,11 @@
+--- a/services/api/mail/letters.json
++++ b/services/api/mail/letters.json
+@@ -7,7 +7,7 @@
+       "zh": "欢迎来到灵犀"
+     },
+     "body": {
+-      "en": "Your pet's mind is a small circuit, and what you teach it becomes part of that circuit. Feed it, play with it, and teach it one thing at a time from the Mind tab. When you're ready, keep it on X Layer; once you publish its diary, anyone can check every thought it had. Look after it, and it grows into whoever you raised.",
++      "en": "Your pet's mind is a small circuit, and what you teach it becomes part of that circuit. Feed it, play with it, and teach it one thing at a time from the Mind tab. When you're ready, keep it on X Layer and anyone can check every thought it had. Look after it, and it grows into whoever you raised.",
+       "zh": "你的宠物的心智是一块小电路，你教它的东西会成为电路的一部分。喂它、陪它玩，再在「心智」页一次教它一件事。准备好了，就把它存上 X Layer；你公开它的日记之后，任何人都能核对它的每一个念头。好好照顾它，它会长成你养大的样子。"
+     },
+     "gift": {

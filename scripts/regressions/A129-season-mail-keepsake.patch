@@ -1,0 +1,11 @@
+--- a/services/api/mail/letters.json
++++ b/services/api/mail/letters.json
+@@ -51,7 +51,7 @@
+       "zh": "每周赛季开始了"
+     },
+     "body": {
+-      "en": "Enter your pet in this week's season from the Spar tab. Every pet fights every other, from both sides, and anyone can recompute the table in their own browser. If two pets tie on points, the one with the smaller brain ranks higher. The best-placed pet proven to be on X Layer has its brain taped out and sent to its owner, and the champion gets a laurel to wear.",
++      "en": "Enter your pet in this week's season from the Spar tab. Every pet fights every other, from both sides, and anyone can recompute the table in their own browser. If two pets tie on points, the one with the smaller brain ranks higher. The winner's brain is taped out on X Layer and sent to its owner, with a champion's laurel to wear.",
+       "zh": "在「切磋」页让你的宠物参加本周赛季。每只宠物和其他每只各打两场，任何人都能在自己的浏览器里重算这张表。同分时，大脑更小的排前面。排名最高、并经证明在 X Layer 上的宠物，它的大脑会流片并送给主人；冠军还有一顶桂冠可以戴。"
+     }
+   },
