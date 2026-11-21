@@ -20,7 +20,7 @@ import type { BrainRelayPayload } from "@lingxi/api-schema";
 import { relayAvailable, relayBrain, relayChild, relayInstinct, signRelayRequest } from "./api";
 import type { ChainInfo } from "./live";
 import { diaryBody } from "./requests";
-import { programFor, useGame } from "./store";
+import { programFor, useGame, whenKeptOnChain } from "./store";
 import localDeployment from "../../../../packages/chain/deployments/local.json";
 import xlayerDeployment from "../../../../packages/chain/deployments/xlayer.json";
 import { saveWrite } from "./saveRuntime";
@@ -316,6 +316,8 @@ async function birthRecord(childId: bigint, tx: Hex, owner: string, brainId: str
 
 /** Any pet's chain record on this device, and setting it (pet-sitting moves records between devices). */
 export const recordOf = (pet: Pick<Pet, "bornAt">): ChainRecord | null => records[petKey(pet)] ?? null;
+// the store cuts only the logs of pets not kept here (A148)
+whenKeptOnChain((p) => recordOf(p) !== null);
 /** Every wallet that owns a pet kept on this device (community goals count what these wallets did on chain). */
 export const deviceWallets = (): string[] => [...new Set(Object.values(records).map((r) => r.owner.toLowerCase()))].filter((w) => /^0x[0-9a-f]{40}$/.test(w)).slice(0, 8);
 export function setRecordOf(pet: Pet, rec: ChainRecord | null): void {

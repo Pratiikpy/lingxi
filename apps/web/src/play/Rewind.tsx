@@ -6,10 +6,10 @@
  */
 
 import { useMemo, useState } from "react";
-import { type Frame, type Pet, halvesOf, momentText, momentsOf, rewind, ruleSource, skillRules, ruleGrowth } from "@lingxi/game";
+import { type Frame, type Pet, momentText, momentsOf, rewind, ruleSource } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { play } from "../game/sound";
-import { programFor } from "../game/store";
+import { mindForPet } from "../game/store";
 import { Chips } from "./parts";
 import { MOOD_NAMES, VALUE_NAMES, WANT_COLORS, WANT_NAMES, decidingChips } from "./ruleText";
 import "./rewind.css";
@@ -66,7 +66,7 @@ export function RewindPanel({ pet }: { pet: Pet }) {
   const [day, setDay] = useState(0);
   const days = Math.max(1, Math.ceil(pet.pendingLog.length / DAY));
   const frames = useMemo(
-    () => rewind(pet, (lessons, outside, skills) => ({ ...(pet.family ? { halves: halvesOf(pet.family, lessons, skillRules(ruleGrowth(skills))) } : { program: programFor(pet.line, lessons, pet.instincts ?? 0, ruleGrowth(skills)) }), ...(outside ? { outside } : {}) }), DAY, day * DAY),
+    () => rewind(pet, mindForPet(pet), DAY, day * DAY),
     // the log grows by a word every beat, so the pet changing and the log changing come at the same pace
     [pet, day],
   );

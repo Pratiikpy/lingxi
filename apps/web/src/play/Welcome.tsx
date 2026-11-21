@@ -8,10 +8,10 @@
 import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { HOME, ITEM, ROOMS } from "@lingxi/world";
-import { type Frame, type Pet, awayFind, awaySeed, halvesOf, momentText, rewind, visitorsDuring, skillRules, ruleGrowth } from "@lingxi/game";
+import { type Frame, type Pet, awayFind, awaySeed, momentText, rewind, visitorsDuring } from "@lingxi/game";
 import { VisitorArt, useAlbum } from "./Album";
 import { useLang } from "../i18n";
-import { programFor, useGame } from "../game/store";
+import { mindForPet, useGame } from "../game/store";
 import { useWorld } from "../game/world";
 import { play } from "../game/sound";
 import { saveWrite } from "../game/saveRuntime";
@@ -52,7 +52,7 @@ export function WelcomeBack({ pet }: { pet: Pet }) {
 
 /** What happened while the player was away, read once from the pet's log when the absence is first shown. */
 function report(pet: Pet, absence: { from: number; to: number }) {
-  const frames = rewind(pet, (l, outside, skills) => ({ ...(pet.family ? { halves: halvesOf(pet.family, l, skillRules(ruleGrowth(skills))) } : { program: programFor(pet.line, l, pet.instincts ?? 0, ruleGrowth(skills)) }), ...(outside ? { outside } : {}) }), absence.to - absence.from + 1);
+  const frames = rewind(pet, mindForPet(pet), absence.to - absence.from + 1);
   const window = frames.filter((f) => f.at !== null && f.at >= absence.from * 60_000 && f.at <= absence.to * 60_000);
   return {
     events: window.filter((f) => f.senses.event !== 0).slice(-5),

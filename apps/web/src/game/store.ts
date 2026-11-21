@@ -57,7 +57,7 @@ export function countCare(kind: Care["kind"], wasAsleep: boolean, r: CareResult)
 }
 import { create } from "zustand";
 import { type Program, type Rule, STARTERS, compileProgram, fastBrain, stateBits, timeOfDay } from "@lingxi/brain";
-import { FOODS, type Brain, type Care, type CareResult, type Growth, type Pet, type UpgradeRefusal, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, learnSkill, levelUpPet, liveBeat, mindBrain, respecPet, ruleSkillIds, settleForm, skillRules, stageOf, teach as teachRule, awayEvent, awaySeed, beatOf, localHour, instinctBrain, instinctGates, INSTINCT_MAX_GATES, MAX_MIND_STATE, type OutsideInstinct, instinctFits, stripHidden, withSegment } from "@lingxi/game";
+import { FOODS, type Brain, type Care, type CareResult, type Growth, type Pet, type UpgradeRefusal, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, learnSkill, levelUpPet, liveBeat, mindBrain, respecPet, ruleSkillIds, settleForm, skillRules, stageOf, teach as teachRule, awayEvent, awaySeed, beatOf, localHour, instinctBrain, instinctGates, INSTINCT_MAX_GATES, MAX_MIND_STATE, type OutsideInstinct, instinctFits, stripHidden, withSegment, boundLog, ruleGrowth, type Mind } from "@lingxi/game";
 import type { StarterLine } from "@lingxi/brain";
 import { takeComfort } from "./comfort";
 
@@ -75,6 +75,23 @@ export interface Away {
 
 const brains = new Map<string, Brain>();
 /** The pet's whole program: what it was taught, the instincts it hatched with, its skill rules, then its egg line's starter rules. */
+/** The mind a pet ran for a stretch of its log (its lessons, owned instinct and skills then): what Rewind replays with. */
+export const mindForPet =
+  (pet: Pet) =>
+  (lessons: Rule[], outside?: OutsideInstinct, skills?: number[]): Mind => ({
+    ...(pet.family ? { halves: halvesOf(pet.family, lessons, skillRules(ruleGrowth(skills))) } : { program: programFor(pet.line, lessons, pet.instincts ?? 0, ruleGrowth(skills)) }),
+    ...(outside ? { outside } : {}),
+  });
+
+/**
+ * Whether a pet is kept on X Layer, as the chain module knows (it registers this when it loads; the store cannot import
+ * it). Until it does, every pet counts as kept, so no log is ever cut on a guess.
+ */
+let keptOnChain: (p: Pet) => boolean = () => true;
+export function whenKeptOnChain(check: (p: Pet) => boolean): void {
+  keptOnChain = check;
+}
+
 export function programFor(line: StarterLine, lessons: readonly Rule[] = [], instincts = 0, growth?: Growth): Program {
   const rules = skillRules(growth);
   return lessons.length || instincts || rules.length ? composeProgram(line, lessons, instincts, { rules }) : STARTERS[line];
@@ -143,9 +160,11 @@ function persist(): void {
   }
 }
 
-/** Saves the active pet (or adds the first one). */
-function save(p: Pet | null): void {
-  if (!p) return;
+/** Saves the active pet (or adds the first one). A pet not kept on chain keeps the last thirty days of its log (A148). */
+function save(given: Pet | null): void {
+  if (!given) return;
+  // never while it stays with a sitter or is away: its homecoming is checked against the log it left with
+  const p = keptOnChain(given) || given.sitting || given.away ? given : boundLog(given, mindForPet(given));
   const pets = roster.pets.slice();
   if (pets.length === 0) pets.push(p);
   else pets[roster.active] = p;
