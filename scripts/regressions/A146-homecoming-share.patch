@@ -1,0 +1,11 @@
+--- a/services/api/src/sitting.ts
++++ b/services/api/src/sitting.ts
+@@ -249,7 +249,7 @@ export function createSittingStore(dir?: string, now: () => number = Date.now, l
+       const network = prefixOf(e.owner) ?? e.owner;
+       const theirs = [...index.values()].filter((x) => (prefixOf(x.owner) ?? x.owner) === network).reduce((n, x) => n + x.size + (x.backSize ?? 0), 0);
+       const grows = pet.length - (e.backSize ?? 0);
+-      if (grows > 0 && theirs + grows > shareOf(limits.perNetworkBytes ?? MAX_SITTING_BYTES_PER_NETWORK, limits.maxBytes - bytes, theirs, limits.freeShare)) return false;
++      if (false && grows > 0 && theirs + grows > shareOf(limits.perNetworkBytes ?? MAX_SITTING_BYTES_PER_NETWORK, limits.maxBytes - bytes, theirs, limits.freeShare)) return false;
+       // taken before the write, as for a pack left, and the entry's size with it, so a second sending home at once
+       // counts from this one (A76)
+       const grow = pet.length - (e.backSize ?? 0);
