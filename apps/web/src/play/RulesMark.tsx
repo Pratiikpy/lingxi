@@ -2,7 +2,8 @@
  * The result of the start-up rules check (plan 4.11): a short mark when every rule matches its circuit on X Layer,
  * a warning that stays until closed when one does not, and nothing when X Layer could not be read (no claim either way).
  * Either waits while a sheet or a dialog is open over the room, and steps aside when one opens, so it never covers
- * what the player is reading (A3).
+ * what the player is reading (A3). The mark pops up once for a set of rules, not on every load (B5): after that the
+ * proof stays in the circuit view's caption (BrainView), one tap away. A warning shows every time.
  */
 
 import { useEffect, useState } from "react";
@@ -12,8 +13,28 @@ import { useRulesCheck } from "../game/rulesCheck";
 import "./rules-mark.css";
 
 const SHOW_MS = 5000;
-/** A sheet or a dialog over the room: every one in the game marks itself so. */
-const OVERLAY = '[role="dialog"], [aria-modal="true"]';
+/** The set of rules whose mark the player has already seen, by their circuit ids. */
+const SEEN_KEY = "lingxi.rulesSeen";
+const seenSet = (): string | null => {
+  try {
+    return localStorage.getItem(SEEN_KEY);
+  } catch {
+    return null;
+  }
+};
+const markSeen = (set: string): void => {
+  try {
+    localStorage.setItem(SEEN_KEY, set);
+  } catch {
+    // a browser that keeps nothing shows the mark again next time, which is no harm
+  }
+};
+/** A sheet or a dialog over the room: every one in the game marks itself so. The circuit view counts too: its own
+ * caption carries the check, and the mark would lie over its input labels (B5). */
+const OVERLAY = '[role="dialog"], [aria-modal="true"], .circuit-overlay';
+
+/** A set of rules, as the circuits it was checked against. */
+const ruleSet = (checks: readonly { name: string; id: string | null }[]): string => checks.map((c) => `${c.name}:${c.id ?? ""}`).join(",");
 
 /** Whether a sheet or a dialog is open, kept current as they open and close. */
 function useOverlayOpen(): boolean {
@@ -51,7 +72,8 @@ export function RulesMark() {
   const [stateSeen, setStateSeen] = useState<typeof state | null>(null);
   if (state !== stateSeen) {
     setStateSeen(state);
-    if (state === "verified") setOwed(true);
+    // owed the first time this set of rules is verified on this browser
+    if (state === "verified") setOwed(seenSet() !== ruleSet(checks));
   }
   useEffect(() => {
     if (!owed || covered) return;
@@ -59,6 +81,9 @@ export function RulesMark() {
     return () => clearTimeout(id);
   }, [owed, covered]);
   const shown = owed && !covered;
+  useEffect(() => {
+    if (shown && state === "verified") markSeen(ruleSet(checks));
+  }, [shown, state, checks]);
   const bad = checks.filter((c) => c.status === "differs" || c.status === "missing");
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
   const proof = "verify.html#rules";

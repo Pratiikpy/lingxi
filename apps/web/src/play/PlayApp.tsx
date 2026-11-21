@@ -16,6 +16,7 @@ import { useReminders } from "../game/reminders";
 import { RemindersPanel } from "./Reminders";
 import { DecorBar } from "./DecorBar";
 import { NoticeLane } from "./NoticeLane";
+import { Familiar } from "./Familiar";
 import { MoreBehind } from "./MoreBehind";
 import { useTrial, type Trial } from "../game/tryIt";
 import type { Rule } from "@lingxi/brain";
@@ -49,7 +50,7 @@ import { FamilyTree, NewbornDialog, PetsPanel, ProposalDialog, bondBlock, family
 import { AnimatePresence, motion } from "motion/react";
 import { TeachPanel } from "./Teach";
 import { ArenaPanel, BEHEMOTH, startDuel, startFight, useArena } from "./Arena";
-import { BrainView } from "./BrainView";
+import { CircuitOverlay } from "./CircuitOverlay";
 import { ChainPanel } from "./ChainPanel";
 import { NeighboursPanel } from "./Neighbours";
 import { LevelUpMoment, SkillsPanel, useSkillsUi } from "./Skills";
@@ -577,17 +578,7 @@ export function PlayApp() {
               </button>
             )}
             {room.drops.length > 0 && room.familiarSize > 0 && !visiting && (
-              <span
-                className="familiar"
-                role="meter"
-                aria-valuemin={0}
-                aria-valuemax={room.familiarSize}
-                aria-valuenow={familiar?.[room.index] ?? 0}
-                aria-label={lang === "zh" ? "对这里的熟悉程度" : "How well your pet knows this place"}
-                title={lang === "zh" ? "常来这里找找，熟悉了会发现藏着的东西" : "Look around here often: a place you know shows you hidden things"}
-              >
-                <i style={{ width: `${Math.round((100 * (familiar?.[room.index] ?? 0)) / room.familiarSize)}%` }} />
-              </span>
+              <Familiar known={familiar?.[room.index] ?? 0} size={room.familiarSize} />
             )}
             {room.shop.length > 0 && (
               <button type="button" onClick={() => pick("bag")}>
@@ -608,11 +599,7 @@ export function PlayApp() {
           {decorating !== null && worldRoom === HOME && (
             <DecorBar selected={decorating || null} onSelect={(id) => setDecorating(id ?? "")} onDone={() => setDecorating(null)} />
           )}
-          {circuit && (
-            <div className="circuit-overlay">
-              <BrainView pet={pet} reduceMotion={reduce} />
-            </div>
-          )}
+          {circuit && <CircuitOverlay pet={pet} reduceMotion={reduce} />}
           <button type="button" className="circuit-btn" aria-pressed={circuit} aria-label={lang === "zh" ? "看它的电路" : "See its circuit"} onClick={() => (play("tap"), setCircuit((v) => !v))}>
             <Icon name="mind" size={22} />
           </button>

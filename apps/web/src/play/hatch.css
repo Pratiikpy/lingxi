@@ -45,9 +45,30 @@
   transform: translateY(3px) scale(0.98);
   box-shadow: var(--lift-lo);
 }
+/* B5: the chosen egg shows at a glance in either theme: a warm fill, a sunny ring and a check badge */
+.egg {
+  position: relative;
+}
 .egg[aria-checked="true"] {
-  background: var(--band);
-  box-shadow: var(--lift-hi);
+  background: color-mix(in srgb, var(--sunny) 24%, var(--card));
+  box-shadow: 0 0 0 3px var(--sunny), var(--lift-hi);
+}
+.egg[aria-checked="true"]::after {
+  content: "✓";
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid #2b2140;
+  border-radius: 50%;
+  background: var(--sunny);
+  color: #2b2140;
+  font-weight: 900;
+  font-size: 14px;
+  line-height: 1;
 }
 .egg b {
   font-family: var(--round);

@@ -1,6 +1,8 @@
 /**
- * A15: the room's notices never pile up. With the rules mark, a quest's "done" toast and the pet's own line all showing
- * at once, no two overlap, and none covers the room's top row (Home, Look around, Decorate) or the pet's "!".
+ * A15: the room's notices never pile up. With the rules mark, a quest's "done" toast and the pet's own line all raised
+ * at once, none covers the room's top row (Home, Look around, Decorate) or the pet's "!". H5 then made the lane show one
+ * notice at a time, the weightiest first (notice-lane.css), so with several raised exactly one is on screen (B5 brought
+ * this spec up to that rule; it still asked for three side by side).
  */
 import { type Page } from "@playwright/test";
 import { type Opened, expect, hatch, patPet, sheet, tapMoving, test } from "../fixtures";
@@ -20,6 +22,9 @@ const boxesNow = (page: Page): Promise<Record<"notices" | "buttons" | "marks", B
     return { notices: of(".quest-toast, .badge-toast, .toast:not(.world-toast), .rules-mark"), buttons: of(".room-pill button"), marks: of(".pet-quest") };
   });
 
+/** How many notices are raised in the lane, shown or waiting behind the one on screen. */
+const raisedNow = (page: Page): Promise<number> => page.evaluate(() => document.querySelectorAll(".notice-lane > *").length);
+
 /** Takes the pet's first quest, as its "!" offers it: its lines tapped through, then "Okay!" (as quests.spec does). */
 async function takeFirstQuest(p: Opened): Promise<void> {
   await tapMoving(p.page.locator(".pet-quest"));
@@ -38,9 +43,8 @@ async function checkLayout(page: Page, tag: string): Promise<void> {
   // each notice slides a few pixels into its place as it appears: measure once they have arrived
   await page.waitForTimeout(600);
   const { notices, buttons, marks } = await boxesNow(page);
-  expect(notices.length, "at least three notices are showing together").toBeGreaterThanOrEqual(3);
-  for (let i = 0; i < notices.length; i++)
-    for (let j = i + 1; j < notices.length; j++) expect(overlap(notices[i]!, notices[j]!), `notices ${i} and ${j} overlap`).toBe(false);
+  expect(await raisedNow(page), "several notices are raised together").toBeGreaterThanOrEqual(2);
+  expect(notices.length, "one notice is on screen at a time (H5)").toBe(1);
   for (const button of buttons)
     for (const n of notices) expect(overlap(n, button), "a notice covers the room's top row").toBe(false);
   for (const mark of marks) for (const n of notices) expect(overlap(n, mark), "a notice covers the pet's mark").toBe(false);
@@ -57,7 +61,9 @@ for (const look of [
     const { page } = p;
     await hatch(p, "Pip");
     await takeFirstQuest(p);
-    // the rules are checked as the game opens: open it afresh, then finish the quest while the mark still shows
+    // the rules are checked as the game opens: open it afresh, as a browser that has not seen the mark yet (B5 shows it
+    // once per set of rules), then finish the quest while the mark still shows
+    await page.evaluate(() => localStorage.removeItem("lingxi.rulesSeen"));
     await page.reload();
     await page.locator(".stage").waitFor();
     await expect(page.locator(".rules-mark")).toBeVisible({ timeout: 30_000 });
@@ -94,10 +100,9 @@ for (const look of [
     const head = await headNow(page);
     expect(head, "the sheet is still open").not.toBeNull();
     const { notices } = await boxesNow(page);
-    expect(notices.length, "the badge and the saved line show").toBeGreaterThanOrEqual(2);
+    expect(await raisedNow(page), "the badge and the saved line are raised").toBeGreaterThanOrEqual(2);
+    expect(notices.length, "one notice is on screen at a time (H5)").toBe(1);
     for (const n of notices) expect(overlap(n, head!), "a notice covers the open sheet's title or close button").toBe(false);
-    for (let i = 0; i < notices.length; i++)
-      for (let j = i + 1; j < notices.length; j++) expect(overlap(notices[i]!, notices[j]!), `notices ${i} and ${j} overlap`).toBe(false);
     await page.screenshot({ path: test.info().outputPath(`notices-over-sheet-${look.lang}-${look.scheme}-${look.size}.png`) });
   });
 }

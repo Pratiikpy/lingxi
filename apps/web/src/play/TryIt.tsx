@@ -7,6 +7,7 @@
  *            mind and memory with nothing changed or logged, beside what it would have done without the lesson
  */
 
+import { useEffect } from "react";
 import type { Rule } from "@lingxi/brain";
 import { type Pet, lessonTrigger, momentsFor } from "@lingxi/game";
 import { type Key, useLang, useT } from "../i18n";
@@ -47,6 +48,11 @@ export function TryIt({ pet, lesson, onDone }: { pet: Pet; lesson: Rule; onDone:
   const t = useT();
   const lang = useLang((s) => s.lang) === "zh" ? "zh" : "en";
   const trigger = lessonTrigger(lesson);
+  // while it is on screen, a badge earned by the same teaching waits rather than covering it (B5)
+  useEffect(() => {
+    useTrial.setState({ offering: true });
+    return () => useTrial.setState({ offering: false });
+  }, []);
   const watch = () => {
     play("tap");
     useTrial.getState().watch();

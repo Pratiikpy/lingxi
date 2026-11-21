@@ -38,6 +38,8 @@ export function tryLesson(program: Program, state: readonly number[], lesson: Ru
 }
 
 interface TrialState {
+  /** Try it is on screen after a lesson was taught: a badge earned by that teaching waits until it is answered (B5) */
+  offering: boolean;
   /** a request to go back to the room and watch (the light bulb), bumped each time */
   watching: number;
   watch: () => void;
@@ -51,6 +53,7 @@ interface TrialState {
 let ending: ReturnType<typeof setTimeout> | null = null;
 
 export const useTrial = create<TrialState>((set) => ({
+  offering: false,
   watching: 0,
   watch: () => set((s) => ({ watching: s.watching + 1 })),
   trial: null,

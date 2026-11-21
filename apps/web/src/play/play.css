@@ -747,7 +747,7 @@
 .circuit-overlay {
   position: absolute;
   inset: 0;
-  padding: 60px 12px 64px;
+  padding: 60px 12px var(--strip-h, 64px);
   background: rgba(27, 22, 48, 0.9);
   display: flex;
   flex-direction: column;
@@ -1423,8 +1423,33 @@
 }
 .bv-export {
   display: inline-flex;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-left: 12px;
+  vertical-align: middle;
+}
+/* B5: the downloads are real buttons, readable on the circuit's dark veil and on a light page */
+.bv-export .link {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 2px solid currentColor;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--round);
+  font-weight: 800;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.circuit-overlay .bv-export .link {
+  color: #fff3e2;
+}
+.bv-export .link:hover {
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+.bv-export .link:focus-visible {
+  outline: 3px solid var(--sky);
+  outline-offset: 2px;
 }
 .away-card {
   position: absolute;
@@ -2876,4 +2901,22 @@
 }
 .enjoy.full .enjoy-bar > i {
   background: #c2410c;
+}
+/* B5: the start-up rules check, kept in the circuit's caption */
+.bv-rules {
+  display: block;
+  margin: 2px 0 4px;
+  color: var(--ink);
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.circuit-overlay .bv-rules {
+  color: #b9f2c9;
+}
+.bv-rules.is-bad {
+  color: #b42318;
+}
+.circuit-overlay .bv-rules.is-bad {
+  color: #ffb4a8;
 }

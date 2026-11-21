@@ -49,7 +49,7 @@ export function countCare(kind: Care["kind"], wasAsleep: boolean, r: CareResult)
 }
 import { create } from "zustand";
 import { type Program, type Rule, STARTERS, WANTS, compileProgram, fastBrain, inputField, stateBits } from "@lingxi/brain";
-import { FOODS, careTally, lessonTrigger, stagedEvent, type Brain, type Care, type CareResult, type Growth, type Pet, type UpgradeRefusal, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, learnSkill, levelUpPet, liveBeat, mindBrain, respecPet, ruleSkillIds, settleForm, skillRules, stageOf, teach as teachRule, awayEvent, awaySeed, beatOf, watchEvent, instinctBrain, instinctGates, INSTINCT_MAX_GATES, MAX_MIND_STATE, type OutsideInstinct, instinctFits, stripHidden, withSegment, boundLog, ruleGrowth, type Mind } from "@lingxi/game";
+import { FOODS, careTally, firstThought, lessonTrigger, stagedEvent, type Brain, type Care, type CareResult, type Growth, type Pet, type UpgradeRefusal, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, learnSkill, levelUpPet, liveBeat, mindBrain, respecPet, ruleSkillIds, settleForm, skillRules, stageOf, teach as teachRule, awayEvent, awaySeed, beatOf, watchEvent, instinctBrain, instinctGates, INSTINCT_MAX_GATES, MAX_MIND_STATE, type OutsideInstinct, instinctFits, stripHidden, withSegment, boundLog, ruleGrowth, type Mind } from "@lingxi/game";
 import type { StarterLine } from "@lingxi/brain";
 import { takeComfort } from "./comfort";
 
@@ -365,9 +365,11 @@ export const useGame = create<GameState>((set, get) => ({
       brain: brainFor(line, [], instincts),
       instincts,
     });
-    save(pet);
+    // its first thought, so the room and the circuit show a real decision before the first minute ends (B5)
+    const thinking = firstThought(pet, gameNow(), brainOf(pet));
+    save(thinking);
     useBadges.getState().note("pets");
-    set({ pet, pets: roster.pets, daily: freshDaily() });
+    set({ pet: thinking, pets: roster.pets, daily: freshDaily() });
   },
   act: (c, art) => {
     const { pet } = get();

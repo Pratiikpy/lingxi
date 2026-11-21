@@ -12,6 +12,7 @@ import type { Pet } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { decidingPart } from "../game/store";
 import { noteEvent } from "../game/tally";
+import { useRulesCheck } from "../game/rulesCheck";
 import { MOOD_NAMES, WANT_COLORS, WANT_NAMES } from "./ruleText";
 
 const FIELD_ZH: Record<string, string> = { hunger: "饥饿", joy: "心情", energy: "精神", clean: "清洁", time: "时间", action: "动作", event: "事件", owner: "主人" };
@@ -163,6 +164,7 @@ export function BrainView({ pet, reduceMotion }: { pet: Pet; reduceMotion: boole
         {lang === "zh"
           ? `${gates} 个门 · ${net.latches.length} 位记忆 · 深度 ${netDepth(net)}`
           : `${gates} gates · ${net.latches.length} memory bits · depth ${netDepth(net)}`}
+        <RulesLine />
         <span className="bv-export">
           <button type="button" className="link" onClick={() => download(`${fileName(pet.name)}.tapeout.bin`, netlistBytes(net), "application/octet-stream")}>
             {lang === "zh" ? "下载 TapeOut 字节" : "TapeOut bytes"}
@@ -186,4 +188,24 @@ function download(name: string, data: Uint8Array | string, type: string): void {
   a.download = name;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+/** The start-up rules check, kept in the circuit's caption so the proof stays one tap away after its mark (B5). */
+function RulesLine() {
+  const lang = useLang((s) => s.lang);
+  const { state, checks } = useRulesCheck();
+  const zh = lang === "zh";
+  if (state !== "verified" && state !== "broken") return null;
+  const bad = checks.filter((c) => c.status === "differs" || c.status === "missing").length;
+  return (
+    <a className={`bv-rules${state === "broken" ? " is-bad" : ""}`} href="verify.html#rules" target="_blank" rel="noopener">
+      {state === "verified"
+        ? zh
+          ? `✓ 规则已在 X Layer 上核对 · ${checks.length} 个电路`
+          : `✓ Rules verified on X Layer · ${checks.length} circuits`
+        : zh
+          ? `! ${bad} 条规则和 X Layer 上的电路不一致`
+          : `! ${bad} ${bad === 1 ? "rule differs" : "rules differ"} from X Layer`}
+    </a>
+  );
 }

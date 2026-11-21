@@ -476,26 +476,56 @@
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
-/* how well the pet knows this room (plan 4.5): a full bar shows a hidden find */
+/* how well the pet knows this room (plan 4.5): a full bar shows a hidden find. B5: a labelled chip, not a bare bar */
+/* the explanation hangs from the room's top row (.room-pill), not the chip, so it stays inside the room on a phone */
+.familiar-wrap {
+  display: inline-flex;
+}
 .room-pill .familiar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 253, 248, 0.93);
+}
+.room-pill .familiar.is-full {
+  background: var(--sunny);
+}
+.familiar-bar {
   position: relative;
-  width: 56px;
-  height: 12px;
+  width: 32px;
+  height: 10px;
   border-radius: var(--r-pill);
   border: 2px solid #2b2140;
-  background: rgba(255, 253, 248, 0.93);
+  background: #fffdf8;
   overflow: hidden;
 }
-.room-pill .familiar i {
+.familiar-bar i {
   position: absolute;
   inset: 0 auto 0 0;
   background: var(--sunny);
   transition: width 0.4s cubic-bezier(0.23, 1, 0.32, 1);
 }
 @media (prefers-reduced-motion: reduce) {
-  .room-pill .familiar i {
+  .familiar-bar i {
     transition: none;
   }
+}
+.familiar-why {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: max-content;
+  max-width: 100%;
+  padding: 8px 12px;
+  border: 2px solid #2b2140;
+  border-radius: 12px;
+  background: #fffdf8;
+  color: #2b2140;
+  font-family: var(--round);
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.35;
+  box-shadow: 0 3px 0 #2b2140;
 }
 
 .bag-text .craft-cost {

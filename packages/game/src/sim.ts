@@ -216,8 +216,8 @@ const addVisible = (internal: number, visible: number) => clampMeter(internal + 
 const more = (amount: number, pct: number) => (amount > 0 ? boosted(amount, pct) : amount);
 
 /** Run the brain on one beat and let its answer move the pet. Mutates p. */
-function think(p: Pet, brain: Brain, beat: number, action: number, event: number, owner: boolean): void {
-  const word = inputWord(p, beat, action, event, owner);
+/** What the pet decides on `word` from its memory as it is: the decision and the memory after it (nothing changed). */
+function decide(p: Pet, brain: Brain, word: number, owner: boolean): { last: Pet["last"]; after: number[] } {
   let rule = -1;
   let half: 0 | 1 | undefined;
   if (owner && brain.program) rule = runBeat(brain.program, p.brain.slice(0, stateBits(brain.program)), word).rule;
@@ -231,13 +231,21 @@ function think(p: Pet, brain: Brain, beat: number, action: number, event: number
   const before = p.brain.slice();
   const st = Uint8Array.from(p.brain);
   const out = brain.fast.step(st, word);
-  p.brain = Array.from(st);
   const want = out & 7;
   const mood = (out >> 3) & 3;
   const nudge = (out >> 5) & 7;
   // when the owned instinct answered, no rule of the pet's own decided
   const instinctSpoke = owner && brain.instinct ? (brain.instinct.fast.step(Uint8Array.from(before.slice(brain.instinct.from)), word) & 7) !== 0 : false;
-  p.last = { want, mood, nudge, rule: instinctSpoke ? -1 : rule, word, before, ...(half !== undefined ? { half } : {}), ...(instinctSpoke ? { instinct: true as const } : {}) };
+  const last = { want, mood, nudge, rule: instinctSpoke ? -1 : rule, word, before, ...(half !== undefined ? { half } : {}), ...(instinctSpoke ? { instinct: true as const } : {}) };
+  return { last, after: Array.from(st) };
+}
+
+function think(p: Pet, brain: Brain, beat: number, action: number, event: number, owner: boolean): void {
+  const word = inputWord(p, beat, action, event, owner);
+  const { last, after } = decide(p, brain, word, owner);
+  p.brain = after;
+  p.last = last;
+  const { want, nudge } = last;
   p.logHash = chainLog(p.logHash, word);
   if (p.logBeat === undefined || beat !== p.logBeat + 1) p.logMarks = [...(p.logMarks ?? []), [p.pendingLog.length, beat]];
   p.logBeat = beat;
@@ -479,6 +487,17 @@ export function liveBeat(p0: Pet, now: number, brain: Brain, event: number = EVE
   p.beat = target;
   decay(p, target);
   if (!p.hibernating) think(p, brain, target, ACTION.none, event, true);
+  return p;
+}
+
+/**
+ * A newly hatched pet's first thought (B5): what it decides, watched, on its senses at `now`, so the room, the thinking
+ * strip and the circuit view show a real decision from the first second rather than a blank record. Nothing is logged
+ * and its memory is unchanged: its first logged beat comes with the first minute, as before.
+ */
+export function firstThought(p0: Pet, now: number, brain: Brain): Pet {
+  const p = cloneForEdit(p0);
+  p.last = decide(p, brain, inputWord(p, beatOf(now), ACTION.none, EVENT.none, true), true).last;
   return p;
 }
 
