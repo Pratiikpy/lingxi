@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/store.ts
++++ b/apps/web/src/game/store.ts
+@@ -396,7 +396,7 @@ export const useGame = create<GameState>((set, get) => ({
+     // a tab left hidden for a while comes back like any return, surprises included
+     if (beatOf(gameNow()) - pet.beat > 10) return get().wakeUp();
+     // a living room while you watch (G1): a friend, a toy or a noise now and then, the same input words the chain logs
+-    const next = settleForm(liveBeat(zoned(pet), gameNow(), brainOf(pet), watchEvent(awaySeed(pet), beatOf(gameNow()))), gameNow());
++    const next = settleForm(liveBeat(zoned(pet), gameNow(), brainOf(pet)), gameNow());
+     // what the room shows of it: the event this beat brought, from now (performance time, as the scene keeps)
+     const event = next !== pet ? (next.last.word >> inputField("event").lo) & 3 : 0;
+     if (event) set({ roomEvent: { event, at: performance.now() } });

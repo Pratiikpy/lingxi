@@ -1,0 +1,11 @@
+--- a/packages/game/src/replay.ts
++++ b/packages/game/src/replay.ts
+@@ -174,7 +174,7 @@ export function momentText(f: Frame, lang: "en" | "zh"): string {
+  */
+ export function tellMoment(f: Frame, lang: "en" | "zh"): string {
+   const line = momentText(f, lang);
+-  if (ruleSource(f) !== "taught") return line;
++  return line;
+   // every line is the pet speaking ("I ..."), so it follows the clause as it stands
+   return lang === "zh" ? `因为你教过我，${line}` : `Because you taught me, ${line}`;
+ }

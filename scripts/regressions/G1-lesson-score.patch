@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/lessonScore.ts
++++ b/apps/web/src/game/lessonScore.ts
+@@ -15,7 +15,7 @@ export function firesToday(pet: Pet, mindFor: (lessons: Rule[], outside?: Outsid
+   const today = localDay(now, pet.tzOffsetMin);
+   const counts = pet.lessons.map(() => 0);
+   for (const f of rewind(pet, mindFor, DAY_BEATS)) {
+-    if (f.at === null || localDay(f.at, pet.tzOffsetMin) !== today || f.rule < 0) continue;
++    if (f.rule < 0) continue;
+     const r = f.program.rules[f.rule]!;
+     const i = pet.lessons.findIndex((l) => same(l, r));
+     if (i >= 0) counts[i]! += 1;

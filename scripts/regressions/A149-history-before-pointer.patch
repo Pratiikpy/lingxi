@@ -1,0 +1,12 @@
+--- a/scripts/lib/release.mts
++++ b/scripts/lib/release.mts
+@@ -64,8 +64,8 @@ function point(site: string, next: string, now: number): void {
+   const h = readHistory(site);
+   if (live && live.release !== next) h[live.release] = { ...(h[live.release] ?? { live: now }), retired: now };
+   h[next] = { live: now };
+-  writeHistory(site, h);
+   writePointer(site, { release: next, ...(live && live.release !== next ? { previous: live.release } : {}) });
++  writeHistory(site, h);
+ }
+ 
+ /**

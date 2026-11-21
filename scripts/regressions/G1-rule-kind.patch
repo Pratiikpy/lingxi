@@ -1,0 +1,10 @@
+--- a/apps/web/src/game/ruleKind.ts
++++ b/apps/web/src/game/ruleKind.ts
+@@ -14,7 +14,6 @@ const same = (a: Rule, b: Rule) => JSON.stringify([a.when, a.then]) === JSON.str
+ export function ruleKindOf(pet: Pet, program: Program, rule: number): RuleKind {
+   const r = rule >= 0 ? program.rules[rule] : undefined;
+   if (!r) return "inborn";
+-  if (pet.lessons.some((l) => same(l, r))) return "taught";
+   if (pet.family?.parents.some((p) => p.lessons.some((l) => same(l, r)))) return "parent";
+   if (Object.values(INSTINCT_RULES).some((l) => same(l, r))) return "instinct";
+   if (skillRules(pet.growth).some((l) => same(l, r))) return "skill";

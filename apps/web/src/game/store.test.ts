@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { REF, type Rule, STARTERS, compileProgram, composeInstinct, encode, fastBrain, netlistBytes, stateBits, toElements, validateProgram } from "@lingxi/brain";
-import { CARD_OUTSIDE_MAX, INSTINCT_MAX_GATES, type OutsideInstinct, type Pet, SUB, beatOf, createPet, familyOf, mindBrain } from "@lingxi/game";
+import { REF, type Rule, STARTERS, compileProgram, composeInstinct, encode, fastBrain, inputField, netlistBytes, stateBits, toElements, validateProgram } from "@lingxi/brain";
+import { CARD_OUTSIDE_MAX, INSTINCT_MAX_GATES, type OutsideInstinct, type Pet, SUB, awaySeed, beatOf, createPet, familyOf, mindBrain, watchEvent } from "@lingxi/game";
 import { COMPOST } from "@lingxi/world";
 import { type Key, translate } from "../i18n";
 import { type Net, type Storage, json, leave, reload, visit } from "./testGame";
@@ -517,6 +517,27 @@ const OWNER = "0x00000000000000000000000000000000000000dd";
 const hex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
 const instinctProgram = validateProgram({ version: "LX-PET/1", memory: [{ kind: "flag", name: "met", set: [{ event: [1] }] }], rules: [{ when: { met: [1], time: [0] }, then: { want: 6, mood: 3 } }], otherwise: { want: 0, mood: 1 } });
 const owned: OutsideInstinct = { processor: CPU, id: "9", owner: OWNER, parts: [{ processor: CPU, id: "9", nIn: 16, nOut: 8, hex: hex(netlistBytes(compileProgram(instinctProgram))) }] };
+
+describe("a living room while you watch (G1)", () => {
+  it("each watched minute carries the event the pet's schedule brings, and the room is told when one comes", async () => {
+    const { useGame } = await open();
+    useGame.getState().hatch("gentle", "Kiri");
+    const seed = awaySeed(useGame.getState().pet!);
+    let seen = 0;
+    for (let m = 0; m < 30; m++) {
+      vi.advanceTimersByTime(MIN);
+      useGame.getState().tick();
+      const p = useGame.getState().pet!;
+      const event = (p.last.word >> inputField("event").lo) & 3;
+      expect(event, `minute ${m}`).toBe(watchEvent(seed, p.beat));
+      if (event) {
+        seen++;
+        expect(useGame.getState().roomEvent?.event).toBe(event);
+      }
+    }
+    expect(seen).toBeGreaterThan(0);
+  });
+});
 
 describe("the game store: teaching and growing", () => {
   const lesson: Rule = { when: { event: [2] }, then: { want: 2, mood: 3 } };

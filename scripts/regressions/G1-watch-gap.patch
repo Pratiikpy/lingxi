@@ -1,0 +1,10 @@
+--- a/packages/game/src/away.ts
++++ b/packages/game/src/away.ts
+@@ -49,7 +49,6 @@ export function watchEvent(petSeed: number, beat: number): number {
+   const roll = watchRoll(petSeed, beat);
+   if (!rolled(roll)) return EVENT.none;
+   // a quiet few minutes after each event: none if any of the beats just before rolled one
+-  for (let k = 1; k <= WATCH_GAP; k++) if (rolled(watchRoll(petSeed, beat - k))) return EVENT.none;
+   if (roll < WATCH_ODDS.friend) return EVENT.friend;
+   if (roll < WATCH_ODDS.friend + WATCH_ODDS.toy) return EVENT.toy;
+   return EVENT.scary;
