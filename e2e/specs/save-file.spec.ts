@@ -34,6 +34,8 @@ const made: { file: string; phrase: string; pets: string; world: string } = { fi
 /** Opens the save file sheet from the Pet sheet's card. */
 async function openSaveFile(page: Page): Promise<void> {
   await page.locator(".tab[data-hint=tab-me]").click();
+  // the save file sits behind the Pet tab's "Shops, friends and more" (H5)
+  await page.locator(".me-more-open").click();
   await page.locator(".sf-card").waitFor();
   await page.locator(".sf-card .btn").click();
   await page.locator(".sf-part").first().waitFor();

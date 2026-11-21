@@ -15,6 +15,9 @@ import { useReminders } from "../game/reminders";
 import { RemindersPanel } from "./Reminders";
 import { DecorBar } from "./DecorBar";
 import { NoticeLane } from "./NoticeLane";
+import { MoreBehind } from "./MoreBehind";
+import { stageFor, useTrial, type Trial } from "../game/tryIt";
+import type { Rule } from "@lingxi/brain";
 import { BadgeShelf, BadgeToast } from "./Badges";
 import { type DayPhase, RoomScene, weatherFor } from "../scene/RoomScene";
 import { PALETTE_OF, type PetStage } from "../scene/textures";
@@ -38,7 +41,7 @@ import { RewindPanel } from "./Rewind";
 import { DuelArrival } from "./Duel";
 import { WelcomeBack } from "./Welcome";
 import { AwayCard, SitArrival, SitPanel } from "./Sitting";
-import { type Gated, OPENS_ON, isOpen, useReveal } from "../game/reveal";
+import { type Gated, OPENS_ON, isOpen, openedByQuests, useReveal } from "../game/reveal";
 import { GiftArrival, SendGiftPanel } from "./Gift";
 import { PacketArrival, RedPacketPanel } from "./RedPacket";
 import { FamilyTree, NewbornDialog, PetsPanel, ProposalDialog, bondBlock, familyBlock } from "./Family";
@@ -97,12 +100,23 @@ function drawnStage(s: string): PetStage {
 /** When each visiting relative said hello this hour, so the greeting shows once on arrival. */
 const KIN_HELLO: Record<string, number> = {};
 
+/** The pet as the staged moment shows it: the decision the trial made, by the half of its mind that made it. */
+function trialPet(pet: Pet, trial: Trial & { lesson: Rule }): Pet {
+  const { instinct: _instinct, half: _half, ...last } = pet.last;
+  const time = stageFor(trial.lesson).time;
+  return { ...pet, last: { ...last, want: trial.want, mood: trial.mood, rule: trial.rule, ...(pet.family ? { half: time === 1 || time === 2 ? (0 as const) : (1 as const) } : {}) } };
+}
+
 export function PlayApp() {
   const { pet, toast, daily, lastCare, hatch, act, tick, wakeUp, say } = useGame();
   const t = useT();
   const lang = useLang((s) => s.lang);
   const reduce = useReducedMotion() ?? false;
   const [tab, setTab] = useState<Tab>("home");
+  // H5: a lesson tried out right after it was taught: the room shows it for a few seconds
+  const trial = useTrial((s) => s.trial);
+  // and the room comes back to show it, whatever sheet the lesson was taught from
+  useEffect(() => useTrial.subscribe((s, prev) => s.trial && s.trial !== prev.trial && setTab("home")), []);
   const [phase, setPhase] = useState<DayPhase>(phaseNow);
   const [circuit, setCircuit] = useState(false);
   const worldRoom = useWorld((s) => s.world.room);
@@ -456,7 +470,9 @@ export function PlayApp() {
     play("tap");
     act(pet.asleep ? { kind: "wake" } : { kind: "lightsOff" });
   };
-  const lockedTabs = (["mind", "map", "bag", "spar"] as const).filter((x) => !isOpen(x, pet, revealAll));
+  // a quest taken that points at a part opens it, so no quest sends the player to a lock (H5)
+  const questOpened = openedByQuests(questStatuses);
+  const lockedTabs = (["map", "bag", "spar"] as const).filter((x) => !isOpen(x, pet, revealAll, undefined, questOpened));
   /** `force` opens a tab even before its day, for flows the player chose (accepting a friend's challenge) */
   // relatives on this device drop by the home now and then (PRD G3)
   const KIN_WORD = { parent: { en: "parent", zh: "爸爸妈妈" }, child: { en: "little one", zh: "孩子" }, sibling: { en: "sibling", zh: "兄弟姐妹" } } as const;
@@ -511,8 +527,8 @@ export function PlayApp() {
             absent={travelling}
             outfit={outfitOf(worldFull, String(pet.bornAt))}
             sick={!!pet.sick}
-            want={pet.last.want}
-            mood={pet.last.mood}
+            want={trial ? trial.want : pet.last.want}
+            mood={trial ? trial.mood : pet.last.mood}
             phase={phase}
             lastCare={lastCare}
             clean={visibleMeters(pet).clean}
@@ -703,7 +719,6 @@ export function PlayApp() {
               </button>
             </div>
           )}
-          {!talking && !circuit && <VoiceBubble />}
           {/* the pet's "!" steps aside while the Decorate bar holds the top of the room (A14) */}
           {!talking && decorating === null && <PetQuestBubble />}
           {talking ? null : Object.keys(others).length > 0 ? (
@@ -712,7 +727,7 @@ export function PlayApp() {
               onPick={(id) => setPicked(id)}
             />
           ) : (
-            <ThinkStrip pet={pet} />
+            <ThinkStrip pet={trial ? trialPet(pet, trial) : pet} taught={!!trial?.fired} />
           )}
         </section>
         <div className="side">
@@ -808,10 +823,14 @@ export function PlayApp() {
 
       {/* the room's notices, stacked in one lane under its top row (A15) */}
       <NoticeLane>
+        {/* a lesson being tried out: the pet's words about it are the one thing shown (H5) */}
+        {trial && !talking && <VoiceBubble />}
         <QuestToast onOpenBook={() => pick("quests")} />
         <BadgeToast />
         <ToastView toast={toast} name={pet.name} />
         <RulesMark />
+        {/* the pet's own words, last: a quest, a badge, a care note or the rules mark is shown first (H5) */}
+        {!trial && !talking && !circuit && <VoiceBubble />}
       </NoticeLane>
       <FarewellNote />
       <HandheldReturn />
@@ -822,29 +841,10 @@ export function PlayApp() {
       </Sheet>
       <LevelUpMoment />
       <Sheet open={tab === "me"} title={t("me.title", { name: pet.name })} onClose={close}>
-        <TelegramCard />
-        <SaveFileCard />
-        <WardrobePanel pet={pet} />
-        <hr className="divider" />
-        <Lazy><StudioPanel pet={pet} /></Lazy>
-        <hr className="divider" />
-        <Lazy><FashionMarketPanel pet={pet} /></Lazy>
-        <hr className="divider" />
-        <Lazy><ItemShopPanel /></Lazy>
-        <hr className="divider" />
-        <Lazy><ExtrasPanel pet={pet} /></Lazy>
-        <hr className="divider" />
-        <Lazy><AdoptionPanel pet={pet} /></Lazy>
-        <hr className="divider" />
-        <Lazy><FriendsPanel pet={pet} /></Lazy>
-        <hr className="divider" />
-        <NeighboursPanel />
-        <hr className="divider" />
-        <Lazy><HoldersPanel pet={pet} /></Lazy>
-        <hr className="divider" />
-        <Lazy><AlbumPanel /></Lazy>
-        <hr className="divider" />
+        {/* H5: the pet first (who it is, keeping it on X Layer, its days, its growth and family); everything else behind one entry */}
         <Lazy><MeSheetBody pet={pet} /></Lazy>
+        <hr className="divider" />
+        <ChainPanel pet={pet} />
         <hr className="divider" />
         <Lazy><DiaryPanel pet={pet} /></Lazy>
         <hr className="divider" />
@@ -854,25 +854,47 @@ export function PlayApp() {
         <hr className="divider" />
         <Lazy><FamilyTree pet={pet} /></Lazy>
         <hr className="divider" />
-        <Lazy><InvitePanel /></Lazy>
-        <hr className="divider" />
-        <Lazy><SitPanel pet={pet} /></Lazy>
-        <hr className="divider" />
-        <Lazy><HandheldPanel pet={pet} /></Lazy>
-        <hr className="divider" />
-        <Lazy><OnChainNote lang={lang} /></Lazy>
-        <hr className="divider" />
-        <Lazy><SendGiftPanel pet={pet} /></Lazy>
-        <hr className="divider" />
-        <Lazy><RedPacketPanel pet={pet} /></Lazy>
-        <hr className="divider" />
-        <BadgeShelf />
-        <hr className="divider" />
-        <RemindersPanel pet={pet} />
-        <hr className="divider" />
-        <ChainPanel pet={pet} />
-        <hr className="divider" />
-        <HomePanel pet={pet} />
+        <MoreBehind>
+          <SaveFileCard />
+          <TelegramCard />
+          <WardrobePanel pet={pet} />
+          <hr className="divider" />
+          <Lazy><StudioPanel pet={pet} /></Lazy>
+          <hr className="divider" />
+          <Lazy><FashionMarketPanel pet={pet} /></Lazy>
+          <hr className="divider" />
+          <Lazy><ItemShopPanel /></Lazy>
+          <hr className="divider" />
+          <Lazy><ExtrasPanel pet={pet} /></Lazy>
+          <hr className="divider" />
+          <Lazy><AdoptionPanel pet={pet} /></Lazy>
+          <hr className="divider" />
+          <Lazy><FriendsPanel pet={pet} /></Lazy>
+          <hr className="divider" />
+          <NeighboursPanel />
+          <hr className="divider" />
+          <Lazy><HoldersPanel pet={pet} /></Lazy>
+          <hr className="divider" />
+          <Lazy><AlbumPanel /></Lazy>
+          <hr className="divider" />
+          <Lazy><InvitePanel /></Lazy>
+          <hr className="divider" />
+          <Lazy><SitPanel pet={pet} /></Lazy>
+          <hr className="divider" />
+          <Lazy><HandheldPanel pet={pet} /></Lazy>
+          <hr className="divider" />
+          <Lazy><OnChainNote lang={lang} /></Lazy>
+          <hr className="divider" />
+          <Lazy><SendGiftPanel pet={pet} /></Lazy>
+          <hr className="divider" />
+          <Lazy><RedPacketPanel pet={pet} /></Lazy>
+          <hr className="divider" />
+          <BadgeShelf />
+          <hr className="divider" />
+          <RemindersPanel pet={pet} />
+          <hr className="divider" />
+          <HomePanel pet={pet} />
+        </MoreBehind>
       </Sheet>
       <Sheet open={!!pickedBuilder} title={pickedBuilder ? pickedBuilder.name[lang] : ""} onClose={() => setPicked(null)}>
         {pickedBuilder && (

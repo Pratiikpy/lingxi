@@ -222,6 +222,8 @@ interface GameState {
   /** add a lesson; returns why not when refused */
   /** teach a lesson; it goes on top (asked first) unless placed at the bottom */
   learn: (rule: Rule, at?: "top" | "bottom") => { ok: true } | { ok: false; reason: string; detail: string };
+  /** a full pet learns a lesson in place of one it knows (H5): all or nothing, so a refusal changes nothing */
+  swapLesson: (index: number, rule: Rule) => { ok: true } | { ok: false; reason: string; detail: string };
   arrange: (index: number, move: "up" | "down" | "forget") => void;
   /** X1: teach an owned circuit as an everyday instinct (ownership is checked by the caller), or forget it */
   teachInstinct: (o: OutsideInstinct) => { ok: true } | { ok: false; reason: "notYours" | "badCircuit" | "tooBig" | "tooLong" } | { ok: false; reason: "tooManyGates"; gates: number };
@@ -423,6 +425,20 @@ export const useGame = create<GameState>((set, get) => ({
     useBadges.getState().note("lessons");
     noteTally("LESSON");
     return { ok: true };
+  },
+  swapLesson: (index, rule) => {
+    const { pet } = get();
+    if (!pet) return { ok: false, reason: "invalid", detail: "no pet" };
+    if (index < 0 || index >= pet.lessons.length) return { ok: false, reason: "invalid", detail: "no such lesson" };
+    const before = pet;
+    set({ pet: arrangeLessons(pet, index, "forget") });
+    const r = get().learn(rule, "top");
+    if (!r.ok) {
+      // the forgotten lesson comes back as it was, and nothing was saved without it
+      save(before);
+      set({ pet: before, pets: roster.pets });
+    }
+    return r;
   },
   arrange: (index, move) => {
     const { pet } = get();

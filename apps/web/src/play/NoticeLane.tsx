@@ -1,7 +1,7 @@
 /**
  * A15: the room's notices in one lane. The quest toast, a badge, the pet's own line and the rules mark used to place
  * themselves, each at its own height, and on a phone they piled on each other and on the room's buttons. Here they
- * stack in one column, in that order, under the room's top row and clear of the pet's "!" corner, wherever the room
+ * take one place, in that order of weight, one at a time (H5), under the room's top row and clear of the pet's "!" corner, wherever the room
  * is on the page; above sheets, as the quest and badge toasts always were. Where the lane goes is measured from the
  * room as it is laid out and written straight to the lane's style, so a resize never re-renders the game.
  *

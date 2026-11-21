@@ -20,6 +20,7 @@ import { useWorld } from "../game/world";
 import { Icon } from "./icons";
 import { Chips } from "./parts";
 import { Sandbox } from "./Sandbox";
+import { TryIt } from "./TryIt";
 import { OwnedInstinctPanel } from "./OwnedInstinct";
 import { MOOD_NAMES, VALUE_NAMES, WANT_NAMES, chipsFor } from "./ruleText";
 import "./teach.css";
@@ -50,19 +51,22 @@ function RulePreview({ pet, rule }: { pet: Pet; rule: Rule }) {
 /** Where a proposed lesson came from: Pet School, the library (by key), or the owner's own words or blocks. */
 type Source = { kind: "school" } | { kind: "library"; key: string } | { kind: "own" };
 
-function Proposal({ pet, rule, reply, source, onDone }: { pet: Pet; rule: Rule; reply?: string; source: Source; onDone: () => void }) {
+function Proposal({ pet, rule, reply, source, swap, onDone, onLearned }: { pet: Pet; rule: Rule; reply?: string; source: Source; swap: boolean; onDone: () => void; onLearned: (rule: Rule) => void }) {
   const t = useT();
   const learn = useGame((s) => s.learn);
+  const swapLesson = useGame((s) => s.swapLesson);
   const [err, setErr] = useState<string | null>(null);
   const [share, setShare] = useState(false);
   const onTopTraps = trapsAfter(specOf(pet), [rule, ...pet.lessons]);
   const belowIsClean = onTopTraps.length > 0 && pet.lessons.length > 0 && trapsAfter(specOf(pet), [...pet.lessons, rule]).length === 0;
   const confirm = (at: "top" | "bottom" = "top") => {
-    const r = learn(rule, at);
+    // a full pet learns it in place of its newest lesson (H5)
+    const r = swap ? swapLesson(0, rule) : learn(rule, at);
     if (r.ok) {
       play("success");
       if (source.kind === "library") void usedLesson(source.key);
       if (source.kind === "own" && share) void shareLesson(rule, pet.name);
+      onLearned(rule);
       onDone();
     } else {
       play("error");
@@ -76,6 +80,7 @@ function Proposal({ pet, rule, reply, source, onDone }: { pet: Pet; rule: Rule; 
       <RulePreview pet={pet} rule={rule} />
       <CostLine pet={pet} rule={rule} />
       <TrapNote pet={pet} traps={onTopTraps} />
+      {swap && <p className="small sp-warn">{t("teach.swapNote", { name: pet.name })}</p>}
       {err && <p className="err" role="alert">{err}</p>}
       {source.kind === "own" && libraryAvailable() && (
         <label className="share-opt">
@@ -84,13 +89,13 @@ function Proposal({ pet, rule, reply, source, onDone }: { pet: Pet; rule: Rule; 
         </label>
       )}
       <div className="row">
-        {belowIsClean && (
+        {belowIsClean && !swap && (
           <button type="button" className="btn primary" onClick={() => confirm("bottom")}>
             {t("teach.confirmBelow")}
           </button>
         )}
-        <button type="button" className={`btn${belowIsClean ? "" : " primary"}`} onClick={() => confirm()} data-hint="teach">
-          {t("teach.confirm")}
+        <button type="button" className={`btn${belowIsClean && !swap ? "" : " primary"}`} onClick={() => confirm()} data-hint="teach">
+          {t(swap ? "teach.confirmSwap" : "teach.confirm")}
         </button>
         <button type="button" className="btn" onClick={onDone}>
           {t("teach.retry")}
@@ -468,6 +473,8 @@ export function TeachPanel({ pet }: { pet: Pet }) {
   const t = useT();
   const { lang } = useLang();
   const [proposal, setProposal] = useState<{ rule: Rule; reply?: string; source: Source } | null>(null);
+  // the lesson just taught, offered to try out in the room (H5)
+  const [learned, setLearned] = useState<Rule | null>(null);
   const stage = stageOf(pet, now());
   // the stage's slots, those its skills add and any a quest gave: the same capacity the game checks when it teaches
   const slots = useWorld((s) => ((s.world.flags ?? []).includes("lesson-slot") ? 1 : 0));
@@ -490,17 +497,18 @@ export function TeachPanel({ pet }: { pet: Pet }) {
         <p className="label">{t("teach.learned", { name: pet.name })}</p>
         <span className="cap">{t("teach.capacity", { n: pet.lessons.length, max })}</span>
       </div>
+      {learned && !proposal && <TryIt pet={pet} lesson={learned} onDone={() => setLearned(null)} />}
       <GateMeter pet={pet} />
       <Learned pet={pet} />
-      <SchoolLevels pet={pet} canLearn={!full && !proposal} onPropose={(rule) => propose(rule, undefined, { kind: "school" })} />
+      <SchoolLevels pet={pet} canLearn={!proposal} onPropose={(rule) => propose(rule, undefined, { kind: "school" })} />
       <Sandbox pet={pet} trying={proposal?.rule ?? null} />
       <AnimatePresence mode="wait">
         {proposal ? (
-          <Proposal key="p" pet={pet} rule={proposal.rule} source={proposal.source} {...(proposal.reply ? { reply: proposal.reply } : {})} onDone={() => setProposal(null)} />
-        ) : full ? (
-          <p key="f" className="small">{t("teach.full", { name: pet.name })}</p>
+          <Proposal key="p" pet={pet} rule={proposal.rule} source={proposal.source} swap={full} {...(proposal.reply ? { reply: proposal.reply } : {})} onDone={() => setProposal(null)} onLearned={setLearned} />
         ) : (
           <motion.div key="choose" className="teach-choose" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            {/* full: the ways to teach stay, and a new lesson takes the newest one's place (H5) */}
+            {full && <p className="small">{t("teach.fullSwap", { name: pet.name })}</p>}
             <Library pet={pet} onPropose={(l) => propose(l.rule, undefined, { kind: "library", key: l.key })} />
             <p className="label">{t("teach.words")}</p>
             <Words pet={pet} onPropose={propose} />

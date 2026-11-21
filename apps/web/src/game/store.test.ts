@@ -537,6 +537,25 @@ describe("the game store: teaching and growing", () => {
     expect(savedRoster(storage)?.pets[0]?.lessons).toEqual([lesson]);
   });
 
+  it("a full pet can swap: it forgets its newest lesson and learns the new one, kept on the device (H5)", async () => {
+    const { useGame, storage } = await open();
+    useGame.getState().hatch("gentle", "Kiri");
+    useGame.getState().learn(lesson);
+    expect(useGame.getState().swapLesson(0, another)).toEqual({ ok: true });
+    expect(useGame.getState().pet?.lessons).toEqual([another]);
+    expect(savedRoster(storage)?.pets[0]?.lessons).toEqual([another]);
+  });
+
+  it("a swap the new lesson cannot make leaves the pet exactly as it was", async () => {
+    const { useGame } = await open();
+    useGame.getState().hatch("gentle", "Kiri");
+    useGame.getState().learn(lesson);
+    const before = useGame.getState().pet;
+    // a rule that is not valid (no such event) is refused, and the forgotten lesson comes back
+    expect(useGame.getState().swapLesson(0, { when: { event: [9] }, then: { want: 2, mood: 2 } } as Rule)).toMatchObject({ ok: false });
+    expect(useGame.getState().pet).toEqual(before);
+  });
+
   it("a baby holds one lesson; a refused lesson says why and leaves the pet as it was", async () => {
     const { useGame } = await open();
     useGame.getState().hatch("gentle", "Kiri");

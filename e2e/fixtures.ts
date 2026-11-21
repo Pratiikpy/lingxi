@@ -100,6 +100,14 @@ export async function sheet(page: Page, tab: string): Promise<void> {
   await page.locator(`.tab[data-hint=tab-${tab}]`).click();
   await page.locator(".sheet").waitFor();
   await page.waitForTimeout(600);
+  // the Pet tab keeps its shops and extras behind one entry (H5): opened here, as a player would to reach them
+  if (tab === "me") {
+    const more = page.locator(".me-more-open[aria-expanded=false]");
+    if (await more.count()) {
+      await more.click();
+      await page.waitForTimeout(400);
+    }
+  }
 }
 
 /** The world's save: bag, coins, quests, tallies. */

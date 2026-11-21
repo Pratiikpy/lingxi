@@ -170,6 +170,24 @@
   gap: var(--s2);
   flex-wrap: wrap;
 }
+/* H5: a lesson just taught, offered to try out in the room */
+.try-it {
+  display: grid;
+  gap: var(--s2);
+  padding: var(--s3);
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--band);
+  box-shadow: var(--lift);
+}
+.try-it p {
+  margin: 0;
+}
+.try-it .row {
+  display: flex;
+  gap: var(--s2);
+  flex-wrap: wrap;
+}
 .reply {
   margin: 0;
   font-family: var(--round);

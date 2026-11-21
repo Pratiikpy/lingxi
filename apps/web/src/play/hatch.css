@@ -130,9 +130,32 @@
   display: grid;
   place-items: center;
 }
+/* H5: on a phone the three eggs are rows, so each is described, not just named: its picture beside its name and
+   what kind of mind it hatches */
 @media (max-width: 480px) {
+  .eggs {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s2);
+  }
+  .egg {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    column-gap: var(--s3);
+    row-gap: 2px;
+    align-items: center;
+    padding: var(--s2) var(--s3);
+    text-align: left;
+  }
+  .egg > :first-child {
+    grid-row: 1 / span 2;
+  }
+  .egg b {
+    align-self: end;
+  }
   .egg span {
-    display: none;
+    align-self: start;
+    text-wrap: pretty;
   }
 }
 .instincts {

@@ -139,13 +139,13 @@ export function Actions({ pet, absent = false, onFeed, onPlay, onClean, onSleep,
   );
 }
 
-export function ThinkStrip({ pet }: { pet: Pet }) {
+export function ThinkStrip({ pet, taught = false }: { pet: Pet; taught?: boolean }) {
   const t = useT();
   const { lang } = useLang();
   const c = pet.last.instinct ? (lang === "zh" ? { when: ["它学会的本能电路想做点什么"], then: WANT_NAMES.zh[pet.last.want] ?? "", want: pet.last.want } : { when: ["its taught instinct circuit wanted something"], then: WANT_NAMES.en[pet.last.want] ?? "", want: pet.last.want }) : decidingChips(decidingPart(pet).program, pet.last.rule, lang);
   return (
-    <div className="think" aria-live="off">
-      <em>{t("think.label")}</em>
+    <div className={`think${taught ? " taught" : ""}`} aria-live="off">
+      <em>{t(taught ? "try.mark" : "think.label")}</em>
       <Chips when={c.when} then={c.then} want={c.want} />
     </div>
   );
