@@ -104,7 +104,20 @@ export interface PetState {
   outside?: OutsideInstinct;
   traits: Record<Trait, number>;
   xp: number;
+  /** every care given, by kind: what goals, adoption papers and trips count */
   counts: { feed: number; play: number; clean: number; pet: number; lessons: number };
+  /**
+   * G3: care that answered a need, by kind: what evolution's care quality counts. Absent on a pet from before it was
+   * kept, whose counts then stand in for it.
+   */
+  needs?: { feed: number; play: number; clean: number; pet: number };
+  /**
+   * G3: how much the pet is enjoying the attention, 0 to ENJOY_MAX. Each care that answers a need fills it and gives
+   * experience; a full bar gives no more until time empties it. Absent on a pet from before: read as empty.
+   */
+  enjoy?: number;
+  /** G3: the beat of the last care thought about: taps inside one beat are one thought, one log word */
+  careBeat?: number;
   diet: Record<Diet, number>;
   /** keccak hash chain of every input word in the log, from zero */
   logHash: string;

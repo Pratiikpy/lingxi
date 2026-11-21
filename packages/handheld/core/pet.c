@@ -72,8 +72,15 @@ static void miss(lx_pet *p, int kind, int32_t beat) {
 
 static int32_t less(const lx_pet *p, int m) { return (DECAY[m] * (int32_t)p->fx.decayLeft[m]) / 1000; }
 
+/* G3: the enjoyment bar, as packages/game sim.ts keeps it */
+#define LX_ENJOY_MAX 100
+#define LX_ENJOY_PER_CARE 25
+#define LX_ENJOY_EMPTY_BEATS 20
+
 static void decay(lx_pet *p, int32_t beat) {
   if (p->hibernating) return;
+  /* the enjoyment bar empties a little every beat */
+  if (p->enjoy) p->enjoy = imax(0, p->enjoy - (LX_ENJOY_PER_CARE + LX_ENJOY_EMPTY_BEATS - 1) / LX_ENJOY_EMPTY_BEATS);
   int32_t was[4];
   for (int i = 0; i < 4; i++) was[i] = p->meters[i];
   int32_t ill = p->sick ? 2 : 1;
@@ -135,7 +142,6 @@ static void think(lx_pet *p, lx_circuit *brain, uint8_t *scratch, int32_t beat, 
     p->traits[t] = imin(LX_TRAIT_MAX, p->traits[t] + grow / 100);
     if (p->fx.traitGrowth) p->traitCarry = grow % 100;
   }
-  if (owner && action != LX_A_NONE) gain_xp(p, 1);
 }
 
 void lx_away_to(lx_pet *p, lx_circuit *brain, uint8_t *scratch, int32_t target) {
@@ -157,9 +163,23 @@ void lx_live(lx_pet *p, lx_circuit *brain, uint8_t *scratch) {
   if (!p->hibernating) think(p, brain, scratch, target, LX_A_NONE, 0, 1);
 }
 
+/* G3: whether a care answers a need the pet has now; only that care is counted for evolution and can teach it */
+static int answers_need(const lx_pet *p, int kind) {
+  switch (kind) {
+    case LX_C_FEED: return visible(p->meters[LX_FOOD]) < 600;
+    case LX_C_PLAY: return visible(p->meters[LX_JOY]) < 700 && !p->sick;
+    case LX_C_CLEAN: return visible(p->meters[LX_CLEAN]) < 600;
+    case LX_C_PET: return visible(p->meters[LX_JOY]) < 800;
+    case LX_C_LIGHTS: return visible(p->meters[LX_ENERGY]) < 400;
+    case LX_C_MEDICINE: return p->sick ? 1 : 0;
+    default: return 0;
+  }
+}
+
 lx_note lx_care(lx_pet *p, lx_circuit *brain, uint8_t *scratch, int kind, const lx_food *food, int stars) {
   int action = LX_A_NONE;
   lx_note note = LX_N_LISTENED;
+  int needed, rewarded;
   if (p->hibernating && (kind == LX_C_FEED || kind == LX_C_PET || kind == LX_C_WAKE)) {
     p->hibernating = 0;
     p->asleep = 0;
@@ -167,6 +187,16 @@ lx_note lx_care(lx_pet *p, lx_circuit *brain, uint8_t *scratch, int kind, const 
     p->meters[LX_FOOD] = add_visible(p->meters[LX_FOOD], 200);
     p->meters[LX_JOY] = clamp_meter(p->meters[LX_JOY] - 100 * LX_SUB);
     return LX_N_HIBERNATION_ENDED;
+  }
+  needed = answers_need(p, kind);
+  rewarded = needed && p->enjoy + LX_ENJOY_PER_CARE <= LX_ENJOY_MAX;
+  if (needed && (kind == LX_C_FEED || kind == LX_C_PLAY || kind == LX_C_CLEAN || kind == LX_C_PET)) {
+    int at = kind == LX_C_FEED ? 0 : kind == LX_C_PLAY ? 1 : kind == LX_C_CLEAN ? 2 : 3;
+    if (!p->hasNeeds) {
+      p->hasNeeds = 1;
+      for (int i = 0; i < 4; i++) p->needs[i] = 0;
+    }
+    p->needs[at] = imin(255, p->needs[at] + 1);
   }
   switch (kind) {
     case LX_C_FEED: {
@@ -199,7 +229,7 @@ lx_note lx_care(lx_pet *p, lx_circuit *brain, uint8_t *scratch, int kind, const 
       p->meters[LX_JOY] = add_visible(p->meters[LX_JOY], more(220 + 60 * s, p->fx.joyItem));
       p->meters[LX_ENERGY] = add_visible(p->meters[LX_ENERGY], -80);
       p->meters[LX_FOOD] = add_visible(p->meters[LX_FOOD], -40);
-      gain_xp(p, 2 * s);
+      if (rewarded) gain_xp(p, 2 * s);
       p->counts[1] = imin(255, p->counts[1] + 1);
       note = LX_N_PLAYED;
       break;
@@ -246,7 +276,16 @@ lx_note lx_care(lx_pet *p, lx_circuit *brain, uint8_t *scratch, int kind, const 
       action = LX_A_TALK;
       break;
   }
-  think(p, brain, scratch, p->beat, action, 0, 1);
+  /* taps inside one beat are one thought: the first is thought about and logged, the rest change only the meters */
+  if (!p->hasCareBeat || p->careBeat != p->beat) {
+    think(p, brain, scratch, p->beat, action, 0, 1);
+    p->hasCareBeat = 1;
+    p->careBeat = p->beat;
+  }
+  if (rewarded) {
+    gain_xp(p, 1);
+    p->enjoy = imin(LX_ENJOY_MAX, p->enjoy + LX_ENJOY_PER_CARE);
+  }
   return note;
 }
 
@@ -285,6 +324,11 @@ void lx_pet_digest(const lx_pet *p, uint8_t out[32]) {
   put32(&k, p->traitCarry);
   for (int i = 0; i < 5; i++) put32(&k, p->counts[i]);
   for (int i = 0; i < 4; i++) put32(&k, p->diet[i]);
+  put32(&k, p->enjoy);
+  put8(&k, p->hasCareBeat);
+  put32(&k, p->hasCareBeat ? p->careBeat : 0);
+  put8(&k, p->hasNeeds);
+  for (int i = 0; i < 4; i++) put32(&k, p->hasNeeds ? p->needs[i] : 0);
   lx_keccak_update(&k, p->logHash, 32);
   put32(&k, (int32_t)p->logLength);
   put8(&k, p->hasLogBeat);

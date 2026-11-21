@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useVoice } from "../game/voice";
 import { decidingPart } from "../game/store";
-import { type Pet, beatOf, canLevelUp, dayOf, growthOf, kinshipNow, stageOf, visibleMeters } from "@lingxi/game";
+import { ENJOY_MAX, ENJOY_PER_CARE, type Pet, beatOf, canLevelUp, dayOf, growthOf, kinshipNow, stageOf, visibleMeters } from "@lingxi/game";
 import { levelUpNow, useSkillsUi } from "./Skills";
 import { useLang, useT, type Key } from "../i18n";
 import { useSound } from "../game/sound";
@@ -136,6 +136,25 @@ export function Actions({ pet, absent = false, onFeed, onPlay, onClean, onSleep,
       {pet.sick ? btn("pill", t("act.medicine"), onMedicine, true, false, "medicine") : btn("ball", t("act.play"), onPlay, false, pet.asleep, "play")}
       {btn("sparkle", t("act.clean"), onClean, m.clean < 250 && !pet.asleep, pet.asleep, "clean")}
       {btn(pet.asleep ? "sun" : "moon", pet.asleep ? t("act.wake") : t("act.sleep"), onSleep, m.energy < 250 && !pet.asleep, false, "sleep")}
+      <EnjoyBar pet={pet} />
+    </div>
+  );
+}
+
+/**
+ * G3: how much the pet is enjoying the attention. Care that answers a need fills it and teaches the pet something; once
+ * it is full the pet has had plenty for now, and says so, so a player knows why more fussing teaches nothing.
+ */
+function EnjoyBar({ pet }: { pet: Pet }) {
+  const t = useT();
+  const enjoy = pet.enjoy ?? 0;
+  const full = enjoy + ENJOY_PER_CARE > ENJOY_MAX;
+  return (
+    <div className={`enjoy${full ? " full" : ""}`}>
+      <span className="small">{full ? t("enjoy.full", { name: pet.name }) : t("enjoy.label")}</span>
+      <i className="enjoy-bar" role="meter" aria-label={t("enjoy.label")} aria-valuemin={0} aria-valuemax={ENJOY_MAX} aria-valuenow={enjoy}>
+        <i style={{ transform: `scaleX(${enjoy / ENJOY_MAX})` }} />
+      </i>
     </div>
   );
 }

@@ -16,20 +16,20 @@
   ],
   "module": {
     "path": "wasm/lingxi-core.wasm",
-    "sha256": "bec9fbc56b724683bf0f4cc2cb1397c88de570cad7a3733c467f534d49639fd7"
+    "sha256": "83f9a300f7c6247eeebd50e9330213a8c737e4f1779569161a99e223ee4127df"
   },
   "sources": {
     "core/keccak.c": "0143a2ebaaa7fb37c0b04f227c475d5494d9ff6fe419296a49ff2ae2988e6505",
     "core/tap02.c": "a927f5ff71e19633f5a7135405e55fd402486d5ff6789244132a953faf7ab840",
-    "core/pet.c": "8e867c491ae85fd05703bc823ad69915538e6b5cd496d6d1966c31eb6fea4a65",
-    "core/trip.c": "e2a7bdb136785a15ada25e13e54d1e301ac34b6bf3b43655812faa1ec1518d81",
+    "core/pet.c": "d171323890de98ab2c52d042d8eaf4af6d058ac5cbb0bbbe5c3702b668209b21",
+    "core/trip.c": "968e7f1ca67fa640ee86c33466b0417649043bdcac408540bd6b2cd4a12790fd",
     "platform/wasm_core.c": "4d3eb2c4e42678b4c8431ab14b09bbe88095f239e768275c7dbc2cf87a6f0e1e"
   },
   "headers": {
     "core/lx.h": "e346ada5576d1810aec804e67a23bba1f738b8fdc74124f1da2b7a7cc197ee94",
     "core/tap02.h": "1cf1161b4aa9f5c05ebe438205edf0800c34a508be56c53b607be0e68a1c5244",
-    "core/pet.h": "044bff34809dcad67fdf09c16896c7a0b2b2ca333a1d9b5d9e56ef857397831e",
-    "core/trip.h": "fb3bc29131ababd29ed41af8618b2671cb6158e22ebf34446fcd54165e9e880e",
+    "core/pet.h": "04c6a6f93b526984a4309c7dc8c4b7b636827539b3719b6688122f085e7c6924",
+    "core/trip.h": "1a641c2fd5afb7edaab5cbe16ed0e632f7d0addb9445a758d3041bba99da6fcd",
     "core/draw.h": "8317f8c1dfe7d850ec3b5a13bc700e44b5a7dafcdb78b8341047bfaf73a0eab5",
     "core/art.h": "f4cd80ad77b41eac3a53c72a347a56cb424a7ba4bfd13580e45e5dfb1e54ef24",
     "core/selftest.h": "5524f8bcbbb1036adbdf8aa645b685f886985735d5e4131904bf394453bd6841",

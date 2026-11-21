@@ -76,6 +76,12 @@ lx_err lx_trip_open(lx_trip *t, lx_arena *a, const uint8_t *bytes, uint32_t len)
   p->traitCarry = r32(&r);
   for (int i = 0; i < 5; i++) p->counts[i] = r32(&r);
   for (int i = 0; i < 4; i++) p->diet[i] = r32(&r);
+  /* G3: the enjoyment bar, the last care beat, and the care that answered a need */
+  p->enjoy = r32(&r);
+  p->hasCareBeat = r8(&r);
+  p->careBeat = r32(&r);
+  p->hasNeeds = r8(&r);
+  for (int i = 0; i < 4; i++) p->needs[i] = r32(&r);
   const uint8_t *h = rbytes(&r, 32);
   if (h) lx_memcpy(p->logHash, h, 32);
   p->hasLogBeat = r8(&r);

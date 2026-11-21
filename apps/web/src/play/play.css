@@ -2845,3 +2845,35 @@
   display: grid;
   gap: var(--s3);
 }
+
+/* G3: how much the pet is enjoying the attention, under the care buttons */
+.enjoy {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: 22px;
+}
+.enjoy .small {
+  flex: 0 1 auto;
+  color: var(--ink-soft);
+}
+.enjoy-bar {
+  flex: 1 1 60px;
+  min-width: 60px;
+  height: 8px;
+  border-radius: var(--r-pill);
+  border: 1.5px solid var(--line);
+  background: var(--card);
+  overflow: hidden;
+}
+.enjoy-bar > i {
+  display: block;
+  height: 100%;
+  background: #ff9db0;
+  transform-origin: left center;
+  transition: transform var(--t-std) var(--ease);
+}
+.enjoy.full .enjoy-bar > i {
+  background: #c2410c;
+}

@@ -156,8 +156,38 @@ function miss(p: Pet, kind: CareMiss, beat: number): void {
   p.missed = [...(p.missed ?? []), { kind, beat }].slice(-8);
 }
 
+/** G3: the enjoyment bar: its top, what one rewarded care fills, and what each beat empties (a care's worth in ENJOY_EMPTY_BEATS). */
+export const ENJOY_MAX = 100;
+export const ENJOY_PER_CARE = 25;
+export const ENJOY_EMPTY_BEATS = 20;
+
+/** Whether a care answers a need the pet has right now (G3): only that care is counted and can teach it something. */
+function answersNeed(p: Pet, c: Care): boolean {
+  const m = { food: toVisible(p.meters.food), joy: toVisible(p.meters.joy), energy: toVisible(p.meters.energy), clean: toVisible(p.meters.clean) };
+  switch (c.kind) {
+    case "feed":
+      return m.food < 600;
+    case "play":
+      return m.joy < 700 && !p.sick;
+    case "clean":
+      return m.clean < 600;
+    case "pet":
+      return m.joy < 800;
+    case "lightsOff":
+      return m.energy < 400;
+    case "medicine":
+      return !!p.sick;
+    case "use":
+      return (!!c.item.food && m.food < 600) || (!!c.item.joy && m.joy < 700) || (!!c.item.energy && m.energy < 400) || (!!c.item.clean && m.clean < 600);
+    default:
+      return false;
+  }
+}
+
 function decay(p: Pet, beat = p.beat): void {
   if (p.hibernating) return;
+  // the enjoyment bar empties a little every beat (G3)
+  if (p.enjoy) p.enjoy = Math.max(0, p.enjoy - Math.ceil(ENJOY_PER_CARE / ENJOY_EMPTY_BEATS));
   const was = { food: p.meters.food, joy: p.meters.joy, clean: p.meters.clean, energy: p.meters.energy };
   const ill = p.sick ? 2 : 1;
   // the Care skills (plan 4.4) slow each meter's decay and strengthen sleep; integer maths, so a replay agrees
@@ -235,7 +265,6 @@ function think(p: Pet, brain: Brain, beat: number, action: number, event: number
     p.traits[t] = Math.min(TRAIT_MAX, p.traits[t] + Math.floor(grow / 100));
     if (effectOf(p.growth, "TRAIT_GROWTH")) p.traitCarry = grow % 100;
   }
-  if (owner && action !== ACTION.none) gainXp(p, 1);
 }
 
 /** Replay every beat from the pet's last beat up to `now`, the owner away. */
@@ -324,6 +353,16 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
       return { pet: p, note: "hibernationEnded" };
     }
   }
+  // G3: care that answers a need is counted; it also teaches the pet something while it is still enjoying the attention
+  const needed = answersNeed(p, c);
+  // rewarded only while the bar has room for a whole care, so a full bar waits for time to empty it
+  const rewarded = needed && (p.enjoy ?? 0) + ENJOY_PER_CARE <= ENJOY_MAX;
+  // every care is counted; one that answered a need is counted again for evolution (G3)
+  const counted = (n: number) => Math.min(255, n + 1);
+  if (needed && (c.kind === "feed" || c.kind === "play" || c.kind === "clean" || c.kind === "pet")) {
+    const was = p.needs ?? { feed: 0, play: 0, clean: 0, pet: 0 };
+    p.needs = { ...was, [c.kind]: Math.min(255, was[c.kind] + 1) };
+  }
   switch (c.kind) {
     case "feed": {
       const f: ItemEffect = typeof c.food === "string" ? foodById(c.food) : c.food;
@@ -333,7 +372,7 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
       if (f.energy) p.meters.energy = addVisible(p.meters.energy, f.energy);
       if (f.xp) gainXp(p, f.xp);
       if (f.diet) p.diet[f.diet] = Math.min(63, p.diet[f.diet] + 1);
-      p.counts.feed = Math.min(255, p.counts.feed + 1);
+      p.counts.feed = counted(p.counts.feed);
       if (p.asleep) {
         p.asleep = false;
         note = "woke";
@@ -358,8 +397,9 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
       p.meters.joy = addVisible(p.meters.joy, more(220 + 60 * stars, effectOf(p.growth, "JOY_ITEM")));
       p.meters.energy = addVisible(p.meters.energy, -80);
       p.meters.food = addVisible(p.meters.food, -40);
-      gainXp(p, 2 * stars);
-      p.counts.play = Math.min(255, p.counts.play + 1);
+      // a game played well teaches more, through the same bar as any care
+      if (rewarded) gainXp(p, 2 * stars);
+      p.counts.play = counted(p.counts.play);
       note = "played";
       action = ACTION.play;
       break;
@@ -367,7 +407,7 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
     case "clean":
       p.meters.clean = METER_MAX * SUB;
       if (effectOf(p.growth, "BATH_JOY")) p.meters.joy = addVisible(p.meters.joy, effectOf(p.growth, "BATH_JOY"));
-      p.counts.clean = Math.min(255, p.counts.clean + 1);
+      p.counts.clean = counted(p.counts.clean);
       note = "cleaned";
       action = ACTION.clean;
       break;
@@ -382,7 +422,7 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
       break;
     case "pet":
       p.meters.joy = addVisible(p.meters.joy, 40);
-      p.counts.pet = Math.min(255, p.counts.pet + 1);
+      p.counts.pet = counted(p.counts.pet);
       // kinship grows at most once every 12 hours (after any fading is settled)
       // Warm Memory (plan 4.4): kinship may grow sooner, never more often than every six hours
       if (p.kinBeat === undefined || p.beat - p.kinBeat >= Math.max(360, KINSHIP_EVERY - effectOf(p.growth, "KINSHIP_SOONER"))) {
@@ -418,7 +458,15 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
       action = ACTION.talk;
       break;
   }
-  think(p, brain, p.beat, action, event, true);
+  // taps inside one beat are one thought: the first is thought about and logged, the rest change only the meters (G3)
+  if (p.careBeat !== p.beat) {
+    think(p, brain, p.beat, action, event, true);
+    p.careBeat = p.beat;
+  }
+  if (rewarded) {
+    gainXp(p, 1);
+    p.enjoy = Math.min(ENJOY_MAX, (p.enjoy ?? 0) + ENJOY_PER_CARE);
+  }
   return { pet: p, note };
 }
 

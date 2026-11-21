@@ -215,6 +215,21 @@ export const BALANCE_TARGETS: readonly BalanceTarget[] = [
     },
   },
   {
+    id: "trees-by-90",
+    what: "Skill points worth choosing: one tree finished and a second begun by day 90, never every tree full",
+    target: "the three-visit player reaches level 64 (63 points: one tree of 62 and a first point in another) by day 90, and level 64 not before day 50",
+    owner: "G3",
+    value: (n) => {
+      const c = n.players.three;
+      const reached = c.days.find((d) => d.level >= 64)?.day ?? null;
+      return `three visits: level ${day(c, 90)?.level ?? "-"} on day 90, level 64 on ${reached === null ? "no day" : `day ${reached}`}`;
+    },
+    met: (n) => {
+      const reached = n.players.three.days.find((d) => d.level >= 64)?.day ?? null;
+      return reached !== null && reached >= 50 && reached <= 90;
+    },
+  },
+  {
     id: "coins-bounded",
     what: "Coin income is bounded per day",
     target: `no player type earns more than ${DAILY_COIN_CAP} coins in a day`,

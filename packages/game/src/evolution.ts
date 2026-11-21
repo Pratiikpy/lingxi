@@ -59,7 +59,9 @@ export interface EvolutionInputs {
 export function evolutionInputs(p: Pet, now: number, trustBits: readonly number[] = p.brain.slice(0, 3)): EvolutionInputs {
   const days = Math.max(1, dayOf(p, now));
   const diet = DIETS.indexOf(argmax(DIETS, (d) => p.diet[d]));
-  const cares = p.counts.feed + p.counts.play + p.counts.clean + p.counts.pet;
+  // care that answered a need (G3); a pet from before that was kept counts all its care, as it always did
+  const n0 = p.needs ?? p.counts;
+  const cares = n0.feed + n0.play + n0.clean + n0.pet;
   const perDay = cares / days;
   const care = perDay >= 8 ? 3 : perDay >= 4 ? 2 : perDay >= 1 ? 1 : 0;
   const trust = Math.min(3, (trustBits.reduce((v, b, i) => v | ((b ? 1 : 0) << i), 0) >> 1));

@@ -16,7 +16,8 @@ function liveDay() {
   const b = () => mindBrain({ line: "gentle", lessons: pet.lessons, instincts: 1 });
   pet = catchUp(pet, T0 + 2 * H, b());
   pet = care(pet, { kind: "feed", food: "apple" } as never, T0 + 2 * H, b()).pet;
-  pet = care(pet, { kind: "play" }, T0 + 2 * H + 20_000, b()).pet;
+  // the next minute: taps inside one beat are one thought (G3), and this day means two cares
+  pet = care(pet, { kind: "play" }, T0 + 2 * H + 80_000, b()).pet;
   const t = teach(pet, PET_SCHOOL[0]!.rule, T0 + 3 * H);
   if (t.ok) pet = t.pet;
   pet = catchUp(pet, T0 + 9 * H, b());

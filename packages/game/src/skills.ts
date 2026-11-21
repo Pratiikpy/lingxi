@@ -213,10 +213,11 @@ export const SKILL_BY_ID: Readonly<Record<number, SkillDef>> = Object.fromEntrie
 
 export const MAX_LEVEL = 99;
 /**
- * XP to go from `level` to the next: a gentle line, tuned by simulating a caring player's day with the game's own
- * care rules (27 XP a day): level 3 on the first day, the last tier (level 56) around day 73.
+ * XP to go from `level` to the next: a gentle line, tuned in the 90-day simulator (G3) now that only care answering a
+ * need teaches anything: the three-visit player finishes one tree and starts a second (level 64) on day 78, and no
+ * player can tap their way past it (target "level-not-by-tapping": the tapper stands below the carer on day 30).
  */
-export const levelCost = (level: number): number => 8 + level;
+export const levelCost = (level: number): number => 6 + Math.floor(level / 5);
 
 /** What the pet holds of its own growth: level, unspent points, points per skill. */
 export interface Growth {

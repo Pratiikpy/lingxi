@@ -31,27 +31,31 @@ export const BALANCE_MEASURED: BalanceMeasured = {
       "status": "open"
     },
     "level-not-by-tapping": {
-      "value": "tapper level 99 on day 1; day 30: tapper 99, three visits 24",
-      "status": "open"
+      "value": "tapper level 99 on no day; day 30: tapper 29, three visits 37",
+      "status": "met"
+    },
+    "trees-by-90": {
+      "value": "three visits: level 68 on day 90, level 64 on day 78",
+      "status": "met"
     },
     "coins-bounded": {
-      "value": "once 100, three 92, weekend 92, tapper 97, grinder 2212",
+      "value": "once 102, three 92, weekend 92, tapper 107, grinder 7922",
       "status": "open"
     },
     "coins-worth-saving": {
-      "value": "everything costs 840; once never, three never, weekend never, tapper day 40, grinder day 1",
+      "value": "everything costs 840; once never, three never, weekend never, tapper never, grinder day 1",
       "status": "open"
     },
     "once-a-day-safe": {
-      "value": "211 care mistakes in 90 days",
+      "value": "162 care mistakes in 90 days",
       "status": "open"
     },
     "weekend-not-sick": {
-      "value": "12 of 12 weekends end with the pet ill; 185 care mistakes",
+      "value": "12 of 12 weekends end with the pet ill; 156 care mistakes",
       "status": "open"
     },
     "new-every-day": {
-      "value": "once 69 empty days, three 73 empty days, weekend 70 empty days, tapper 73 empty days, grinder 70 empty days",
+      "value": "once 68 empty days, three 71 empty days, weekend 71 empty days, tapper 72 empty days, grinder 72 empty days",
       "status": "open"
     },
     "gate-budget-binds": {

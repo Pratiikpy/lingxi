@@ -48,7 +48,7 @@ import {
   visibleMeters,
   type Pet,
 } from "../src";
-import { work } from "../src/sim";
+import { gainXp, work } from "../src/sim";
 import { BEAT_MS, DAY_MS, HIBERNATE_AFTER, SICK_AFTER } from "../src/pet";
 
 /** two lesson capstones in different tiers: the most extra lessons a pet can hold */
@@ -162,7 +162,7 @@ describe("levels", () => {
     expect(withGrowth(p)).toBe(p);
   });
 
-  it("is tuned by real play: a pet cared for every day reaches the last tier in weeks, and a first level on day one", () => {
+  it("a caring day earns the same steady experience through the game's own care rules, a first level within two days (G3)", () => {
     // a caring player's day, through the game's own care rules
     let p = newPet();
     let firstLevelDay = 0;
@@ -201,12 +201,11 @@ describe("levels", () => {
       }
       days++;
     }
-    expect(firstLevelDay).toBe(1);
-    expect(perDay.every((x) => x === perDay[0])).toBe(true);
-    expect(perDay[0]).toBe(27);
-    // the last tier in weeks (the source's curve needs about 12 million XP by level 50)
-    expect(days).toBeGreaterThanOrEqual(60);
-    expect(days).toBeLessThanOrEqual(80);
+    expect(firstLevelDay).toBeLessThanOrEqual(2);
+    // once its needs settle into the day's rhythm (from the third day), every caring day teaches the same
+    expect(perDay.slice(2).every((x) => x === perDay[2])).toBe(true);
+    expect(perDay[2]).toBeGreaterThan(0);
+    // how far that goes by day 90 is measured on real player types in the simulator (target "trees-by-90")
   });
 
   it("keeps the level in the state word (bits 234-240)", () => {
@@ -264,11 +263,12 @@ describe("Care skills change the pet's life", () => {
   });
 
   it("Quick Learner adds experience exactly, carrying fractions (+4% of 100 single points is 104)", () => {
-    let a = newPet();
-    let b = withSkills(newPet(), { 153: 1 });
+    // a hundred single points, as rewarded care gives them (G3: a talk alone no longer teaches it anything)
+    const a = newPet();
+    const b = withSkills(newPet(), { 153: 1 });
     for (let i = 0; i < 100; i++) {
-      a = care(a, { kind: "talk" }, T0 + i * BEAT_MS, gentle).pet;
-      b = care(b, { kind: "talk" }, T0 + i * BEAT_MS, gentle).pet;
+      gainXp(a, 1);
+      gainXp(b, 1);
     }
     expect(b.xp - a.xp).toBe(4);
   });
@@ -373,7 +373,7 @@ describe("Mind skills widen the budget the circuit lives in", () => {
           // trust lives in memory: set it the way the brain reads it, for this program's trust counter
           const prog = b.program!;
           const tm = prog.memory.find((m) => m.name === "trust");
-          if (tm) {
+          if (tm && tm.kind !== "flag") {
             let at = 0;
             for (const m of prog.memory) {
               if (m === tm) break;

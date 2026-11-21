@@ -73,6 +73,12 @@ typedef struct {
   int32_t xp, xpCarry, traitCarry;
   int32_t counts[5]; /* feed, play, clean, pet, lessons */
   int32_t diet[4];
+  /* G3: the enjoyment bar (0..100), the beat of the last care thought about, care that answered a need */
+  int32_t enjoy;
+  uint8_t hasCareBeat;
+  int32_t careBeat;
+  uint8_t hasNeeds;
+  int32_t needs[4]; /* feed, play, clean, pet */
   uint8_t logHash[32];
   uint32_t logLength; /* words logged since the pet set out */
   uint8_t hasLogBeat;

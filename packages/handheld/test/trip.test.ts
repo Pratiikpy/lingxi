@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import { keccak_256 } from "@noble/hashes/sha3";
 import { type ItemEffect, type Pet, BEAT_MS, FOODS, SKILLS, createPet, newGrowth } from "@lingxi/game";
 import { type HandheldCore } from "../src/core";
-import { type Snack, type TripOp, type TripScreen, arrivingIn, bringHome, petDigest, readReturn, replayOps, returnEndBeat, tripPacket } from "../src/trip";
+import { TRIP_VERSION, type Snack, type TripOp, type TripScreen, arrivingIn, bringHome, petDigest, readReturn, replayOps, returnEndBeat, tripPacket } from "../src/trip";
 import { type TestBrain, childBrain, loadCore, rng, starterBrain } from "./helpers";
 
 const START = Date.UTC(2026, 10, 17, 3, 0);
@@ -198,9 +198,10 @@ describe("taking a pet along and bringing it home", () => {
     const good = tripPacket(start, tb.trip, snacksOf(), SCREEN);
     expect(core.open(good)).toBe("ok");
     expect(core.open(good.subarray(0, good.length - 1))).toBe("badCheck");
-    const v2 = good.slice();
-    v2[4] = 2;
-    expect(core.open(v2)).toBe("badVersion");
+    // a packet of another version (the one after this) is refused, as an old firmware refuses this one
+    const other = good.slice();
+    other[4] = TRIP_VERSION + 1;
+    expect(core.open(other)).toBe("badVersion");
     expect(core.open(Uint8Array.from([0x4c, 0x58, 0x48, 0x32, ...new Array(60).fill(0)]))).toBe("badMagic");
     // a brain whose bytes were changed after its keccak was taken, the packet resealed: refused before it runs
     const bytes = tb.trip.bytes.slice();

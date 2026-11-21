@@ -13,7 +13,8 @@
 import { keccak_256 } from "@noble/hashes/sha3";
 import { type Brain, type Care, type CareResult, type ItemEffect, type Pet, BEAT_MS, DIETS, TRAITS, care, catchUp, decayLeft, effectOf, liveBeat } from "@lingxi/game";
 
-export const TRIP_VERSION = 1;
+/** 2: the pet carries G3's enjoyment bar, last care beat and need tally */
+export const TRIP_VERSION = 2;
 export const MAX_SNACKS = 4;
 export const NAME_MAX = 48;
 export const MAX_PARTS = 32;
@@ -145,6 +146,12 @@ export function petDigest(p: Pet, logLength: number): string {
   w.i32(p.traitCarry ?? 0);
   for (const c of [p.counts.feed, p.counts.play, p.counts.clean, p.counts.pet, p.counts.lessons]) w.i32(c);
   for (const d of DIETS) w.i32(p.diet[d]);
+  // G3: the enjoyment bar, the beat of the last care thought about, and the care that answered a need
+  w.i32(p.enjoy ?? 0);
+  w.u8(p.careBeat === undefined ? 0 : 1);
+  w.i32(p.careBeat ?? 0);
+  w.u8(p.needs ? 1 : 0);
+  for (const n of [p.needs?.feed ?? 0, p.needs?.play ?? 0, p.needs?.clean ?? 0, p.needs?.pet ?? 0]) w.i32(n);
   w.raw(hexBytes(p.logHash));
   w.i32(logLength);
   w.u8(p.logBeat === undefined ? 0 : 1);
@@ -191,6 +198,12 @@ export function tripPacket(p: Pet, brain: TripBrain, snacks: readonly Snack[], s
   w.i32(p.traitCarry ?? 0);
   for (const c of [p.counts.feed, p.counts.play, p.counts.clean, p.counts.pet, p.counts.lessons]) w.i32(c);
   for (const d of DIETS) w.i32(p.diet[d]);
+  // G3: the enjoyment bar, the beat of the last care thought about, and the care that answered a need
+  w.i32(p.enjoy ?? 0);
+  w.u8(p.careBeat === undefined ? 0 : 1);
+  w.i32(p.careBeat ?? 0);
+  w.u8(p.needs ? 1 : 0);
+  for (const n of [p.needs?.feed ?? 0, p.needs?.play ?? 0, p.needs?.clean ?? 0, p.needs?.pet ?? 0]) w.i32(n);
   w.raw(hexBytes(p.logHash));
   w.u8(p.logBeat === undefined ? 0 : 1);
   w.i32(p.logBeat ?? 0);
