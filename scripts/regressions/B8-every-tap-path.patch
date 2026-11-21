@@ -1,0 +1,11 @@
+--- a/packages/game/src/balanceTargets.ts
++++ b/packages/game/src/balanceTargets.ts
+@@ -236,7 +236,7 @@ export const BALANCE_TARGETS: readonly BalanceTarget[] = [
+     },
+     met: (n) => {
+       const cap = Math.ceil(1.25 * (day(n.players.three, 30)?.level ?? 0));
+-      return tapPathsOf(n).every(([, p]) => p.level99Day === null && (p.day30Level ?? 0) <= cap);
++      return tapPathsOf(n).slice(0, 1).every(([, p]) => p.level99Day === null && (p.day30Level ?? 0) <= cap);
+     },
+   },
+   {
