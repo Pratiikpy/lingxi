@@ -1,0 +1,11 @@
+--- a/services/api/src/sitting.ts
++++ b/services/api/src/sitting.ts
+@@ -208,7 +208,7 @@ export function createSittingStore(dir?: string, now: () => number = Date.now, l
+       const theirs = [...index.values()].filter((e) => (prefixOf(e.owner) ?? e.owner) === network).reduce((n, e) => n + e.size + (e.backSize ?? 0), 0);
+       if (bytes + pack.length > limits.maxBytes) return { ok: false, reason: "full" };
+       // and that share shrinks as the shelf fills, so a few networks cannot fill it (A141)
+-      if (theirs + pack.length > shareOf(limits.perNetworkBytes ?? MAX_SITTING_BYTES_PER_NETWORK, limits.maxBytes - bytes, theirs, limits.freeShare)) return { ok: false, reason: "tooMany" };
++      if (theirs + pack.length > shareOf(limits.perNetworkBytes ?? MAX_SITTING_BYTES_PER_NETWORK, limits.maxBytes - bytes, theirs, 1)) return { ok: false, reason: "tooMany" };
+       // the place and the bytes are taken before the write, so requests in flight together cannot all pass the caps
+       // above (A76); a write that fails gives them back
+       const code = randomBytes(12).toString("hex");

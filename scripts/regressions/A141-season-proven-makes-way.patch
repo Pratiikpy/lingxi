@@ -1,0 +1,11 @@
+--- a/services/api/src/season.ts
++++ b/services/api/src/season.ts
+@@ -175,7 +175,7 @@ export function createSeasonStore(file?: string, now: () => number = Date.now, s
+       let at = entries.findIndex((e) => e.key === key);
+       if (at < 0 && entries.length >= MAX_ENTRIES) {
+         // a full week takes a proven pet in place of the newest unproven entry from the most crowded network (A141)
+-        const out = opts.petId ? makeWay(entries, pets, from) : null;
++        const out = opts.petId && false ? makeWay(entries, pets, from) : null;
+         if (!out) return { ok: false, reason: "full" };
+         entries = entries.filter((e) => e.key !== out);
+         delete from[out];

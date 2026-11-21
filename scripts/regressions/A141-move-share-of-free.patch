@@ -1,0 +1,11 @@
+--- a/services/api/src/move.ts
++++ b/services/api/src/move.ts
+@@ -59,7 +59,7 @@ export function createMoveStore(now: () => number = Date.now) {
+       }
+       // a sender's share shrinks as the shelf fills, in characters and in places, so a few networks cannot fill it (A141)
+       const free = MAX_HELD_CHARS - heldChars;
+-      if (mine + size > shareOf(MAX_OWNER_CHARS, free, mine)) return { ok: false, reason: "busy" };
++      if (mine + size > shareOf(MAX_OWNER_CHARS, free, mine, 1)) return { ok: false, reason: "busy" };
+       if (prefix !== null && network + size > shareOf(MAX_OWNER_CHARS * PREFIX_SHARE, free, network)) return { ok: false, reason: "busy" };
+       if (places + 1 > Math.max(1, shareOf(MAX_WAITING_PER_OWNER * PREFIX_SHARE, MAX_HELD - held.size, places))) return { ok: false, reason: "busy" };
+       const code = randomBytes(16).toString("base64url");
