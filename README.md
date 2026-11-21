@@ -137,6 +137,7 @@ pnpm judge:check          # about four minutes, read-only against mainnet
 | Containers | a pet's home is the TapeOut container of its brain circuit, once its owner holds that circuit; a pet still on its line's shared starter circuit has none until its own mind is taped out. Pet #1 still thinks with circuit #1, the gentle starter, which its owner (the project's deployer) holds, so its home is that circuit's container, `0x31B025aD4cBD4142007f59684D51cD1F2ccc5098`, which also holds the on-chain copy of the site |
 | DeWEB | the whole site is published on chain at `1.2.419.tape`, served at [1-2-419.tapekit.org](https://1-2-419.tapekit.org/), at the close of each milestone; its `build.json` names the commit it was built from |
 | TapeKit | its DeWEB gateway serves the on-chain copy and checks it in each visitor's browser; TapeSend is in the repo and a home reads its hub's state live, but letters between homes stay closed: on X Layer mainnet the hub runs code TapeKit has not approved, and Lingxi does not send letters between homes in any case; they are planned over TapeRelay |
+| TAP-11 and TAP-13 | every operation of the agent API also answers as a signed method at `POST /api/v1/<method>`: each answer is an envelope signed by a key that the holder of circuit #1 delegated in the service's manifest, which is read from that circuit's container on X Layer (`.well-known/tapeapi.json`); TapeAPI's own client resolves the service and verifies the answers |
 | BEM | the fee token: breeding, items, adoption, the extras and the fashion market; every BEM fee burned |
 | Community circuits | Behemoth on Builders' Lane runs the founder's 4-bit CPU, read gate for gate from BNB Chain and checkable there step by step |
 
@@ -269,6 +270,10 @@ The code is MIT-licensed ([LICENSE](LICENSE)). The art, sound and written conten
 
 - `packages/send` is TapeKit's TapeSend module by TapeOutProtocol, MIT ([its licence](packages/send/LICENSE)).
 - `contracts/lib` vendors OpenZeppelin Contracts and forge-std, each under its own licence.
+- The canonical JSON and strict JSON parser in `services/api/src/tap.ts` follow `sdk/src/canon.js` of TapeAPI 1.8.1
+  ([BruceLanLan/tapeapi](https://github.com/BruceLanLan/tapeapi)), MIT, Copyright (c) 2026 TapeAPI contributors, under
+  the same permission notice as our [LICENSE](LICENSE). The TAP-11 and TAP-13 test vectors in
+  `services/api/test/vectors/tap` are CC0, from [TapeOutProtocol/TAPs](https://github.com/TapeOutProtocol/TAPs).
 
 ## Team
 

@@ -55,6 +55,7 @@ import { FACTORY, type Deployment, type SignedRelay, adoptionCentreAbi, createNe
 import { type HomeChain, createHomes } from "./homes";
 import { createAgentStore } from "./agents";
 import { withAgentApi } from "./agentApi";
+import { withTapApi } from "./tapApi";
 import { type Letter, currentLetters, loadLetters } from "./mail";
 import { createPusher, type Pusher } from "./push";
 import { createVoice } from "./voice";
@@ -1121,6 +1122,21 @@ if (isMain) {
     const rpc = rpcMain;
     const chain = chainCtx;
     withAgentApi(app, { agents: createAgentStore(process.env.LINGXI_AGENT_STORE), seasons, ...(chain ? { chain: { ...chain, pub: visitorPub } } : {}) });
+    // the same operations as TAP-13 methods, every answer signed by the key the published manifest names (H7)
+    const tapKey = readEnvFile(process.env.LINGXI_TAP_KEY_FILE).TAP_SIGNER_PRIVATE_KEY;
+    if (tapKey) {
+      try {
+        const file = process.env.LINGXI_TAP_MANIFEST ?? resolve(dirname(fileURLToPath(import.meta.url)), "../../../apps/web/public/.well-known/tapeapi.json");
+        const manifest = JSON.parse(readFileSync(file, "utf8")) as { container: `0x${string}`; signer: string; delegation: { expires: number } };
+        const signer = privateKeyToAccount(tapKey as `0x${string}`);
+        if (signer.address !== manifest.signer) throw new Error("the signing key is not the manifest's signer");
+        if (manifest.delegation.expires <= Date.now() / 1000) throw new Error("the manifest's delegation has expired");
+        withTapApi(app, { signer, container: manifest.container });
+      } catch (e) {
+        process.stderr.write(`signed answers off: ${(e as Error).message}
+`);
+      }
+    }
     // the browser's door to X Layer: same origin, so a rate-limited public RPC can never look like a blocked request
     // on mainnet the door reads from X Layer's other official host than the one our jobs read from, with the jobs'
     // host as a small reserve; any other node (a local fork) serves both

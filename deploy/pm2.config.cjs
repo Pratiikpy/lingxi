@@ -62,6 +62,8 @@ module.exports = {
         LINGXI_GIFT: "0xc216a4abb6c4c2d0b485f42219197551330b6cf4",
         LINGXI_ITEM_SHOP: "0xaf8857c0d723e14f60d00fe46120abd0303f52cc",
         LINGXI_VOUCHER_KEY_FILE: path.join(secrets, "voucher.env"),
+        // signs every TAP-13 answer of the agent API; holds no funds (scripts/tap-manifest.mts)
+        LINGXI_TAP_KEY_FILE: path.join(secrets, "tap-signer.env"),
         LINGXI_ADOPTION: "0x58212451fcd46ff6130cff428f2f4273f4cc7596",
         LINGXI_EXTRAS: "0x560c7dc63a45e5afe53ad156152555a5c067598d",
         LINGXI_PAPERS_STORE: path.join(root, "services", "api", "data", "adoption-papers.json"),
