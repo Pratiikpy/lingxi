@@ -1,0 +1,11 @@
+--- a/apps/web/src/verify/published.ts
++++ b/apps/web/src/verify/published.ts
+@@ -16,7 +16,7 @@ export type Published = { kind: "log"; log: PublishedLog } | { kind: "none" } |
+  * its first seconds, and one slow answer is not a failure, so a failed read is asked once more before it is said.
+  */
+ const READ_MS = 15_000;
+-const TRIES = 2;
++const TRIES = 1;
+ const PAUSE_MS = 1_500;
+ 
+ async function readOnce(base: string, id: string, ask: typeof fetch): Promise<Published> {
