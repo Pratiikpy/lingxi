@@ -1228,9 +1228,22 @@
     min-height: max(180px, min(calc(100vw - 32px), 380px, calc(100dvh - 312px)));
   }
 }
-/* the side column's copy of the thinking strip, shown only on a landscape phone (below) */
+/* the side column's copy of the thinking strip, shown only on a landscape phone or a short one (below) */
 .think-side {
   display: none;
+}
+/* G1/H5: a short phone held upright (360x640 and the like): the strip, two lines once it names where the rule came
+   from, would lie over the pet in a room this short, so it sits just under the room instead */
+@media (orientation: portrait) and (max-width: 480px) and (max-height: 720px) {
+  .stage .think {
+    display: none;
+  }
+  .think-side {
+    display: block;
+  }
+  .think-side .think {
+    position: static;
+  }
 }
 /* H5: a phone turned sideways. Above, the room would be a wide strip with the pet below its edge; here it is a square
    as tall as the screen allows under the top bar, the meters and buttons beside it, and the tabs a slim column at the
