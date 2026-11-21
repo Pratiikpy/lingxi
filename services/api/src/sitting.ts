@@ -245,6 +245,11 @@ export function createSittingStore(dir?: string, now: () => number = Date.now, l
         return false;
       }
       if (bytes - (e.backSize ?? 0) + pet.length > limits.maxBytes) return false;
+      // a homecoming counts against the pack owner's network share, as its pack did (A146)
+      const network = prefixOf(e.owner) ?? e.owner;
+      const theirs = [...index.values()].filter((x) => (prefixOf(x.owner) ?? x.owner) === network).reduce((n, x) => n + x.size + (x.backSize ?? 0), 0);
+      const grows = pet.length - (e.backSize ?? 0);
+      if (grows > 0 && theirs + grows > shareOf(limits.perNetworkBytes ?? MAX_SITTING_BYTES_PER_NETWORK, limits.maxBytes - bytes, theirs, limits.freeShare)) return false;
       // taken before the write, as for a pack left, and the entry's size with it, so a second sending home at once
       // counts from this one (A76)
       const grow = pet.length - (e.backSize ?? 0);

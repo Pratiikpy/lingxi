@@ -73,6 +73,22 @@ describe("pet-sitting packs", () => {
     expect((await bytes.leave(big(450_000), keyHashOf(KEY), t + 1000, "198.51.100.19")).ok).toBe(true);
   });
 
+  it("a homecoming counts against the pack owner's network share, so tiny packs sent home large cannot pass it (A146)", async () => {
+    const t = 1_800_000_000_000;
+    const store = createSittingStore(undefined, () => t, { maxBytes: 100_000_000, perOwner: 8, perNetworkBytes: 1_000_000, freeShare: 1 });
+    const codes: string[] = [];
+    for (let i = 0; i < 20; i++) {
+      const r = await store.leave(pack, keyHashOf(KEY), t + 1000, `2001:db8:146:${(i % 4).toString(16)}::/64`);
+      if (r.ok) codes.push(r.code);
+    }
+    let home = 0;
+    for (const code of codes) if (await store.sendHome(code, KEY, big(200_000))) home++;
+    expect(home, "homecomings stop at the network's million bytes").toBeLessThanOrEqual(5);
+    // a pack from another network is not held up
+    const other = await store.leave(pack, keyHashOf(KEY), t + 1000, "198.51.100.146");
+    expect(other.ok && (await store.sendHome(other.code, KEY, big(200_000)))).toBe(true);
+  });
+
   it("many networks leaving large packs still leave room for an honest pack (A141)", async () => {
     const t = 1_800_000_000_000;
     const store = createSittingStore(undefined, () => t, { maxBytes: 8_000_000, perOwner: 8, perNetworkBytes: 500_000 });
