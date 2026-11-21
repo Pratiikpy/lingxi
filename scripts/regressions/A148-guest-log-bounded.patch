@@ -1,0 +1,11 @@
+--- a/packages/game/src/keepLog.ts
++++ b/packages/game/src/keepLog.ts
+@@ -39,7 +39,7 @@ export const GUEST_LOG_MAX = GUEST_LOG_KEEP + 24 * 60;
+ 
+ /** `p` with its log cut to the last GUEST_LOG_KEEP words once it passes GUEST_LOG_MAX; `mindFor` is Rewind's. */
+ export function boundLog(p: Pet, mindFor: (lessons: Parameters<Parameters<typeof rewind>[1]>[0], outside?: Parameters<Parameters<typeof rewind>[1]>[1], skills?: number[]) => Mind): Pet {
+-  if (p.pendingLog.length <= GUEST_LOG_MAX) return p;
++  if (p.pendingLog.length <= GUEST_LOG_MAX || p) return p;
+   const n = p.pendingLog.length - GUEST_LOG_KEEP;
+   // Rewind's own replay gives the memory just before word n: the memory the log now starts from
+   const at = rewind(p, mindFor, 1, p.pendingLog.length - n - 1)[0];
