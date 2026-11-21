@@ -744,7 +744,8 @@ export function PlayApp() {
             </div>
           )}
           <Meters pet={pet} />
-          <Actions pet={pet} absent={travelling} onFeed={() => pick("bag")} onPlay={playBall} onClean={clean} onSleep={sleep} onMedicine={() => (play("sparkle"), act({ kind: "medicine" }))} />
+          {/* feeding is care: Feed opens the bag on day 1 too, though the Bag tab waits for day 2 (H5b) */}
+          <Actions pet={pet} absent={travelling} onFeed={() => pick("bag", true)} onPlay={playBall} onClean={clean} onSleep={sleep} onMedicine={() => (play("sparkle"), act({ kind: "medicine" }))} />
           <section className="card mindcard" aria-label={t("mind.title", { name: pet.name })}>
             <div className="cardbar" aria-hidden="true">
               <i />
