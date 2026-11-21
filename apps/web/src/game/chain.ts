@@ -12,7 +12,7 @@ import { useBadges } from "./badges";
 import { create } from "zustand";
 import { createPublicClient, createWalletClient, custom, erc20Abi, http, isAddress, type Address, type Hex, type PublicClient, type WalletClient, fallback } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { petRegistryAbi, type Deployment, type TapeQuote, type TapeStep, allowPartnerOnChain, consentStands, withdrawConsentOnChain, breedOnChain, breedingTerms, checkPartner, hasConsent, checkpointOnChain, hatchOnChain, quoteTapeout, readKeeping, readPet, setBrainOnChain, setSitterOnChain, signRelay, type SignedRelay, tapeOutYourself, xLayer, refusesTokens, LineMismatchError, RevertedOnChain, StillPending, hatchOutcome, birthOutcome, revertName, breederV2Abi } from "@lingxi/chain";
+import { petRegistryAbi, type Deployment, type TapeQuote, type TapeStep, allowPartnerOnChain, consentStands, withdrawConsentOnChain, breedOnChain, breedingTerms, checkPartner, hasConsent, checkpointOnChain, hatchOnChain, quoteTapeout, readKeeping, readPet, setBrainOnChain, setSitterOnChain, signRelay, type SignedRelay, tapeOutYourself, xLayer, refusesTokens, LineMismatchError, RevertedOnChain, StillPending, hatchOutcome, birthOutcome, revertName, breederV2Abi , signSponsorRequest } from "@lingxi/chain";
 import { compileProgram, netlistBytes } from "@lingxi/brain";
 import { AUTO_DAYS, AUTO_FUND, AUTO_LOW, sessionAccount, sessionWallet } from "./session";
 import { type Pet, logSegments, packState, petCard, restartLog, stageOf, unpackState, ruleSkillIds } from "@lingxi/game";
@@ -119,10 +119,17 @@ export interface ChainRecord {
   autoUntil?: number;
   /** a friend sits the pet on chain until then (seconds) */
   sitter?: { who: string; until: number };
+  /**
+   * kept for free (H4): the pet is owned by this device's own key, which saves it with the gas the game sent it, until
+   * the player moves it to a wallet
+   */
+  device?: boolean;
 }
 
 /** Whether auto-save is on now, ending soon, or off. */
 export function autoStatus(r: ChainRecord | null, nowMs: number): "on" | "ending" | "off" {
+  // a pet this device's key owns is always saved by it
+  if (r?.device) return "on";
   if (!r?.autoUntil || r.autoUntil * 1000 <= nowMs) return "off";
   return r.autoUntil * 1000 - nowMs < 3 * 86_400_000 ? "ending" : "on";
 }
@@ -304,6 +311,26 @@ const sameConsent = (a: GivenConsent, b: GivenConsent) => a.breeder.toLowerCase(
 /** Only the deployment's own breeders: an address from the server is never called unless it is one of them. */
 const breedersHere = (): Address[] => [deployment?.breeder, deployment?.breederFree].filter((a): a is Address => !!a);
 const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
+
+type KeptFree = { ok: true; petId: string | null; hatchTx: string | null; grantTx: string | null } | { ok: false; reason: string };
+
+/** Asks the server to keep this pet on X Layer for this device's key (H4), signed by that key. */
+async function askToKeep(key: ReturnType<typeof sessionAccount>, pet: Pet): Promise<KeptFree> {
+  const { request, signature } = await signSponsorRequest(key, { line: pet.line, state: packState(pet, stageOf(pet, gameNow())).toString(), at: Math.round(gameNow()) });
+  const res = await fetch(`${API_BASE}/api/sponsor/hatch`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...request, signature }) });
+  const body = (await res.json()) as Partial<KeptFree> & { ok?: boolean; reason?: string };
+  return body.ok ? { ok: true, petId: body.petId ?? null, hatchTx: body.hatchTx ?? null, grantTx: body.grantTx ?? null } : { ok: false, reason: body.reason ?? "error" };
+}
+
+/** What the server kept for this key, when its answer to the request was lost. */
+async function keptFor(address: string): Promise<{ petId: string; hatchTx: string } | null> {
+  try {
+    const r = (await (await fetch(`${API_BASE}/api/sponsor/of/${address}`)).json()) as { ok?: boolean; petId?: string | null; hatchTx?: string | null };
+    return r.ok && r.petId && r.hatchTx ? { petId: r.petId, hatchTx: r.hatchTx } : null;
+  } catch {
+    return null;
+  }
+}
 /** How far behind X Layer's head the server's index may be and still be called complete (about ten minutes of blocks). */
 const INDEX_BEHIND_OK = 600;
 
@@ -339,6 +366,13 @@ interface ChainState {
   selfTape: (pet: Pet, q: TapeQuote, onStep: (s: TapeStep | "setBrain") => void) => Promise<boolean>;
   error: string | null;
   keep: (pet: Pet) => Promise<void>;
+  /** whether the server keeps pets on X Layer for players with no wallet (H4); null until asked */
+  freeOn: boolean | null;
+  checkFree: () => Promise<void>;
+  /** keep the pet on X Layer for free: hatched to this device's own key, which then saves it with gas the game sends */
+  keepFree: (pet: Pet) => Promise<void>;
+  /** move a pet this device's key owns to the player's own wallet: one transfer, signed by this device's key */
+  moveToWallet: (pet: Pet) => Promise<boolean>;
   /** save today; with `quiet`, only through the auto-save key and never opening the wallet */
   saveToday: (pet: Pet, onSaved: () => void, quiet?: boolean) => Promise<void>;
   /** turn auto-save on (one approval and one small gas top-up) or renew it */
@@ -402,6 +436,12 @@ export async function signSeasonEntry(pet: Pet, entry: unknown): Promise<SignedR
 
 async function autoWallet(pet: Pet, record: ChainRecord): Promise<WalletClient | null> {
   if (!deployment || autoStatus(record, gameNow()) === "off") return null;
+  // kept for free: this device's key owns the pet and saves it as its owner, while it has gas
+  if (record.device) {
+    const key = sessionAccount().address;
+    if (record.owner.toLowerCase() !== key.toLowerCase()) return null;
+    return (await publicClient.getBalance({ address: key })) < AUTO_LOW ? null : sessionWallet(chain, rpc);
+  }
   const key = sessionAccount().address;
   const [k, balance] = await Promise.all([readKeeping(publicClient, deployment, BigInt(record.petId), key), publicClient.getBalance({ address: key })]);
   if (!k.keeper) {
@@ -439,6 +479,83 @@ async function saveFirstDay(wallet: WalletClient, record: ChainRecord, pet: Pet)
 
 export const useChain = create<ChainState>((set, get) => ({
   record: activeRecord(),
+  freeOn: null,
+  checkFree: async () => {
+    // the on-chain copy has no server, so nothing is kept for free there
+    if (!API_BASE || !deployment) return set({ freeOn: false });
+    try {
+      const r = (await (await fetch(`${API_BASE}/api/sponsor`)).json()) as { ok?: boolean; on?: boolean };
+      set({ freeOn: r.ok === true && r.on === true });
+    } catch {
+      set({ freeOn: false });
+    }
+  },
+  keepFree: async (pet) => {
+    if (!deployment) return set({ error: "notDeployed" });
+    if (get().busy !== "idle" || pet.family) return;
+    set({ busy: "hatching", error: null });
+    try {
+      const key = sessionAccount();
+      let record = records[petKey(pet)] ?? null;
+      // the state the hatch records and the log's length at that moment, taken together from the same pet
+      const start = { n: pet.pendingLog.length, memory: pet.brain.slice() };
+      const asked = await askToKeep(key, pet);
+      if (!asked.ok) {
+        // an answer lost on the way: the server remembers this key's pet, and X Layer says whose it is
+        if (asked.reason !== "had" || record) return set({ busy: "idle", error: `free.${asked.reason}`, record: activeRecord() });
+      }
+      const known = asked.ok && asked.petId && asked.hatchTx ? asked : await keptFor(key.address);
+      if (!record) {
+        if (!known?.petId || !known.hatchTx) return set({ busy: "idle", error: "free.error" });
+        // the chain's word, never the server's: the pet must be this device's
+        const onChain = await readPet(publicClient, deployment, BigInt(known.petId));
+        if (onChain.owner.toLowerCase() !== key.address.toLowerCase()) return set({ busy: "idle", error: "free.notOurs" });
+        record = { petId: known.petId, hatchTx: known.hatchTx, lastDay: 0, owner: key.address, bornChain: onChain.born, brains: { [mindKey([])]: deployment.circuits[pet.line]!.id }, brainKey: mindKey([]), device: true };
+        store(pet, record);
+        // its log now starts where the hatch took its state, which is where the chain's proof of its memory starts (A66)
+        if (asked.ok) useGame.getState().rework(pet.bornAt, (p) => restartLog(p, start.n, start.memory));
+        set({ record: activeRecord() });
+      }
+      const gas = await publicClient.getBalance({ address: key.address });
+      if (gas < AUTO_LOW) return set({ busy: "idle", error: "free.noGas", record: activeRecord() });
+      // a pet with instincts moves onto its own circuit, signed and paid by this device's key
+      const mind = mindKey(pet.lessons, pet.instincts, undefined, ruleSkillIds(pet.growth));
+      if (pet.instincts && relayAvailable() && record.brainKey !== mind) {
+        set({ busy: "taping" });
+        const body: BrainRelayPayload = { line: pet.line, lessons: pet.lessons, instincts: pet.instincts, skills: ruleSkillIds(pet.growth) };
+        const r = await relayBrain(await signRelayRequest(key, "brain", record.petId, body));
+        if (!r.ok) throw new Error(r.reason);
+        set({ busy: "saving" });
+        await setBrainOnChain(publicClient, sessionWallet(chain, rpc), deployment, BigInt(record.petId), deployment.processor, BigInt(r.brainId));
+        store(pet, { ...record, brains: { ...record.brains, [mind]: r.brainId }, brainKey: mind });
+      }
+      set({ record: activeRecord(), busy: "idle" });
+    } catch (e) {
+      set({ busy: "idle", error: chainReason(e), record: activeRecord() });
+    }
+  },
+  moveToWallet: async (pet) => {
+    const r = records[petKey(pet)];
+    if (!deployment || !r?.device || get().busy !== "idle") return false;
+    set({ busy: "connecting", error: null });
+    try {
+      const to = (await connectWallet()).account!.address;
+      set({ busy: "saving" });
+      const key = sessionAccount();
+      // a plain transfer from this device's key: the wallet signs nothing and pays nothing
+      const { request } = await publicClient.simulateContract({ address: deployment.registry, abi: petRegistryAbi, functionName: "transferFrom", args: [key.address, to, BigInt(r.petId)], account: key });
+      const tx = await sessionWallet(chain, rpc).writeContract(request);
+      const mined = await publicClient.waitForTransactionReceipt({ hash: tx });
+      if (mined.status !== "success") throw new Error("the move was turned down on chain");
+      const { device: _device, ...rest } = r;
+      store(pet, { ...rest, owner: to, lastTx: tx });
+      set({ busy: "idle", record: activeRecord() });
+      return true;
+    } catch (e) {
+      set({ busy: "idle", error: chainReason(e) });
+      return false;
+    }
+  },
   recordOf: (pet) => records[petKey(pet)] ?? null,
   infoOf: (pet) => {
     const r = records[petKey(pet)];

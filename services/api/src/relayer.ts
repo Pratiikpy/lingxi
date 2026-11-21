@@ -18,9 +18,10 @@ import { dirname } from "node:path";
 import { createPublicClient, createWalletClient, erc20Abi, http, maxUint128, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { type Program, type Rule, type StarterLine, bytesToHex, compileProgram, composeChild, composeInstinct, gateCount, netlistBytes } from "@lingxi/brain";
-import { BrainTooBigError, CircuitTooWideError, FACTORY, circuitIdFrom, createNetlistCache, factoryAbi, loadCircuitFromChain, processorAbi, transistorsAbi, xLayer } from "@lingxi/chain";
+import { BrainTooBigError, CircuitTooWideError, FACTORY, type Deployment, type SponsorLine, circuitIdFrom, createNetlistCache, factoryAbi, hatchOnChain, loadCircuitFromChain, processorAbi, transistorsAbi, xLayer } from "@lingxi/chain";
 import { type Family, type Growth, INSTINCT_MAX_GATES, MAX_GATES, MAX_GATES_SKILLED, MAX_LESSONS, SKILL_BY_ID, cleanInstincts, composeProgram, gateBudget, halfBudgets, halvesOf, mindExtra, skillRules } from "@lingxi/game";
 import { loadJson, saveJson } from "./durable";
+import { SPONSOR_GRANT_WEI, SPONSOR_SET_ASIDE_WEI } from "./sponsor";
 
 const NEWLINE = /\r?\n/;
 
@@ -51,6 +52,9 @@ const PER_TAPEOUT_WEI = 4_000_000_000_000_000n;
 
 /** `sent`: how many tape-outs this request sent, each charged against the sponsor's caps (A75); never shown to players. */
 export type RelayResult = ({ ok: true; processor: Address; brainId: string; reused: boolean; tx?: string } | { ok: false; reason: "invalid" | "tooBig" | "budget" | "budgetHour" | "relayLow" | "error"; detail?: string; spent?: boolean }) & { sent?: number };
+
+/** A pet kept for a device key (H4): `spent` says whether a refused one still cost gas. */
+export type SponsorResult = { ok: true; petId: string; hatchTx: string; grantTx: string | null } | { ok: false; reason: "relayLow" | "error"; detail: string; spent: boolean };
 
 export type KeepsakeResult = { ok: true; processor: Address; brainId: string; tapeTx: string; sendTx: string } | { ok: false; reason: "invalid" | "tooBig" | "budget" | "budgetHour" | "relayLow" | "error"; detail?: string };
 
@@ -382,6 +386,48 @@ export class BrainRelayer {
   }
 
   /** `fresh` tapes out a new circuit even when the same netlist exists, for a keepsake that is the winner's alone. */
+  /**
+   * Keeps a pet on X Layer for a player with no wallet (H4): hatches it to their device key, then sends that key the
+   * gas for its own saves. In the tape-out queue, so its nonces never collide with a tape-out's, and never into the
+   * OKB held for season keepsakes. Who may ask is decided before this (sponsor.ts).
+   */
+  sponsorHatch(d: Deployment, to: Address, line: SponsorLine, state: bigint): Promise<SponsorResult> {
+    return this.serial(async (): Promise<SponsorResult> => {
+      const balance = await this.balance().catch(() => 0n);
+      if (balance < (this.cfg.reserveWei ?? 0n) + SPONSOR_SET_ASIDE_WEI) return { ok: false, reason: "relayLow", detail: "the relayer's OKB is held for season keepsakes", spent: false };
+      let petId: bigint;
+      let hatchTx: Hex;
+      try {
+        ({ petId, tx: hatchTx } = await hatchOnChain(this.pub as never, this.wallet as never, d, line, state, undefined, to));
+      } catch (e) {
+        return { ok: false, reason: "error", detail: (e as Error).message.split(NEWLINE)[0] ?? "the hatch failed", spent: true };
+      }
+      const grant = await this.sendGrant(to);
+      return { ok: true, petId: petId.toString(), hatchTx, grantTx: grant };
+    });
+  }
+
+  /** The gas alone, for a sponsored pet whose grant never went out. */
+  sponsorGrant(to: Address): Promise<{ ok: true; grantTx: string } | { ok: false; reason: "relayLow" | "error"; detail: string }> {
+    return this.serial(async () => {
+      const balance = await this.balance().catch(() => 0n);
+      if (balance < (this.cfg.reserveWei ?? 0n) + SPONSOR_SET_ASIDE_WEI) return { ok: false as const, reason: "relayLow" as const, detail: "the relayer's OKB is held for season keepsakes" };
+      const tx = await this.sendGrant(to);
+      return tx ? { ok: true as const, grantTx: tx } : { ok: false as const, reason: "error" as const, detail: "the gas could not be sent" };
+    });
+  }
+
+  /** Sends a sponsored key its gas; null when it did not go out (the pet is the player's either way). */
+  private async sendGrant(to: Address): Promise<string | null> {
+    try {
+      const tx = await this.wallet.sendTransaction({ to, value: SPONSOR_GRANT_WEI } as never);
+      const r = await this.pub.waitForTransactionReceipt({ hash: tx });
+      return r.status === "success" ? tx : null;
+    } catch {
+      return null;
+    }
+  }
+
   private async tapeBytes(bytes: Uint8Array, nands: number, latches: number, fresh = false): Promise<RelayResult> {
     const key = createHash("sha256").update(bytes).digest("hex");
     const known = this.store.brains[key];

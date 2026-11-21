@@ -1117,6 +1117,24 @@
 .keeping .row .btn {
   justify-self: start;
 }
+/* a pet kept for free (H4): its key, shown only when asked, wraps on a phone and is easy to select whole */
+.device-key {
+  display: grid;
+  gap: var(--s2);
+  padding: var(--s2) var(--s3);
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+}
+.device-key code {
+  font-family: var(--mono);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+.device-key .btn {
+  justify-self: start;
+}
 .reminders > .btn {
   align-self: flex-start;
 }

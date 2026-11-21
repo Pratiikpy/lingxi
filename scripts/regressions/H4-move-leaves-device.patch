@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/chain.ts
++++ b/apps/web/src/game/chain.ts
+@@ -548,7 +548,7 @@ export const useChain = create<ChainState>((set, get) => ({
+       const mined = await publicClient.waitForTransactionReceipt({ hash: tx });
+       if (mined.status !== "success") throw new Error("the move was turned down on chain");
+       const { device: _device, ...rest } = r;
+-      store(pet, { ...rest, owner: to, lastTx: tx });
++      store(pet, { ...r, owner: to, lastTx: tx });
+       set({ busy: "idle", record: activeRecord() });
+       return true;
+     } catch (e) {

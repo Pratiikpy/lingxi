@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { type Abi, type Address, type Hex, erc20Abi, parseAbi } from "viem";
-import { FACTORY, breederV2Abi, petRegistryAbi, processorAbi, transistorsAbi } from "@lingxi/chain";
+import { type Abi, type Address, type Hex, encodeFunctionData, erc20Abi, parseAbi } from "viem";
+import { FACTORY, breederV2Abi, petRegistryAbi, processorAbi, sponsorSigner, transistorsAbi } from "@lingxi/chain";
 import { type Pet, createPet, familyOf, mindBrain, packState, unpackState } from "@lingxi/game";
 import xlayer from "../../../../packages/chain/deployments/xlayer.json";
 import { type Key, translate } from "../i18n";
@@ -94,6 +94,11 @@ function contractsOnXLayer() {
         return { processor: p.processor, brainId: p.brainId, line: p.line, brainBits: p.brainBits, day: p.day, born: p.born, checkedAt: 0, logHash: ZERO32, state: p.state, parentA: 0n, parentB: 0n };
       },
       ownerOf: ([id]) => petOf(id as bigint).owner,
+      transferFrom: ([from, to, id], c) => {
+        const p = petOf(id as bigint);
+        if (lower(p.owner) !== lower(from as string) || lower(c.from) !== lower(p.owner)) throw new Revert("ERC721InsufficientApproval", [c.from, id]);
+        if (!c.dry) p.owner = to as Address;
+      },
       checkpoint: ([id, day, state], c) => {
         const p = petOf(id as bigint);
         if (!keeper(id as bigint, c.from, c.now)) throw new Revert("NotKeeper");
@@ -196,14 +201,50 @@ function contractsOnXLayer() {
 
 type Relay = (path: string, body: { kind: string; petId: string; payload: string; auth: { signer: string } }) => unknown;
 
+/**
+ * The server's sponsor route as it behaves (services/api sponsor.ts and withSponsor): checks the device key's
+ * signature, hatches the pet to that key from the relayer and sends it its gas. `refuse` names a refusal, `noGas` keeps
+ * the grant back, `loseAnswer` mines everything and then fails the answer on the way, `lie` names someone else's pet.
+ */
+interface SponsorFake {
+  on?: boolean;
+  refuse?: string;
+  noGas?: boolean;
+  loseAnswer?: boolean;
+  lie?: string;
+}
+const RELAYER = "0x5555555555555555555555555555555555555555" as Address;
+const GRANT = 50_000_000_000_000n;
+
 /** Opens the play page against a fake X Layer and a browser wallet, with the game's server answering relay requests. */
-async function open(o: { storage?: Storage; wallet?: boolean; relay?: Relay; at?: number; hatch?: false | { instincts?: number } } = {}) {
+async function open(o: { storage?: Storage; wallet?: boolean; relay?: Relay; at?: number; hatch?: false | { instincts?: number }; sponsor?: SponsorFake } = {}) {
   const x = contractsOnXLayer();
-  const xl = fakeXLayer({ contracts: x.contracts, balances: { [OWNER]: OKB } });
+  const xl = fakeXLayer({ contracts: x.contracts, balances: { [OWNER]: OKB, [RELAYER]: OKB } });
   const relayed: Array<{ path: string; body: Parameters<Relay>[1] }> = [];
+  const sponsored = new Map<string, { petId: string; hatchTx: string; grantTx: string | null }>();
   let circuit = 77;
+  const sponsorRoute = async (path: string, init?: RequestInit) => {
+    const f = o.sponsor!;
+    if (path === "/api/sponsor") return json({ ok: true, on: f.on ?? true });
+    if (path.startsWith("/api/sponsor/of/")) {
+      const k = sponsored.get(lower(path.slice("/api/sponsor/of/".length)));
+      return k ? json({ ok: true, ...k, ...(f.lie ? { petId: f.lie } : {}) }) : json({ ok: false, reason: "none" }, 404);
+    }
+    const body = JSON.parse(String(init?.body)) as { to: Address; line: "gentle" | "bold" | "curious"; state: string; at: number; signature: Hex };
+    if (lower((await sponsorSigner(body, body.signature)) ?? "") !== lower(body.to)) return json({ ok: false, reason: "badSignature" }, 401);
+    if (f.refuse) return json({ ok: false, reason: f.refuse }, 429);
+    if (sponsored.has(lower(body.to))) return json({ ok: false, reason: "had" }, 409);
+    const line = ["gentle", "bold", "curious"].indexOf(body.line);
+    const petId = [...x.pets.keys()].reduce((m, k) => (k > m ? k : m), 40n) + 1n;
+    const hatchTx = xl.mine({ from: RELAYER, to: REGISTRY, data: encodeFunctionData({ abi: petRegistryAbi, functionName: "hatch", args: [body.to, line, PROCESSOR, BigInt(xlayer.circuits[body.line].id), BigInt(body.state)] }) });
+    const grantTx = f.noGas ? null : xl.mine({ from: RELAYER, to: body.to, value: GRANT });
+    sponsored.set(lower(body.to), { petId: String(petId), hatchTx, grantTx });
+    if (f.loseAnswer) throw new TypeError("Failed to fetch");
+    return json({ ok: true, petId: String(petId), hatchTx, grantTx });
+  };
   const server: Net = async (url, init) => {
     const path = new URL(url).pathname;
+    if (path.startsWith("/api/sponsor") && o.sponsor) return sponsorRoute(path, init);
     if (!path.startsWith("/api/tapeout")) throw new TypeError("Failed to fetch");
     const body = JSON.parse(String(init?.body)) as Parameters<Relay>[1];
     relayed.push({ path, body });
@@ -220,7 +261,7 @@ async function open(o: { storage?: Storage; wallet?: boolean; relay?: Relay; at?
   if (o.hatch !== false) useGame.getState().hatch("gentle", "Kiri", o.hatch?.instincts ?? 0);
   const pet = () => useGame.getState().pet!;
   const c = () => chain.useChain.getState();
-  return { ...v, x, xl, wallet, relayed, useGame, useWorld, useBadges, chain, c, pet, session: () => sessionAccount().address, AUTO_FUND, AUTO_LOW };
+  return { ...v, x, xl, wallet, relayed, sponsored, useGame, useWorld, useBadges, chain, c, pet, session: () => sessionAccount().address, AUTO_FUND, AUTO_LOW };
 }
 type Page = Awaited<ReturnType<typeof open>>;
 
@@ -240,6 +281,84 @@ const mined = (p: Page, functionName: string) => p.xl.mined.filter((m) => m.func
 afterEach(() => {
   Reflect.deleteProperty(window, "ethereum");
   leave();
+});
+
+describe("keeping a pet on X Layer with no wallet (H4)", () => {
+  it("the server says whether it keeps pets for free, and the game asks it", async () => {
+    const on = await open({ wallet: false, sponsor: { on: true } });
+    await settle(on.c().checkFree());
+    expect(on.c().freeOn).toBe(true);
+    leave();
+    const off = await open({ wallet: false, sponsor: { on: false } });
+    await settle(off.c().checkFree());
+    expect(off.c().freeOn).toBe(false);
+  });
+
+  it("hatches the pet to this device's own key, keeps it as the device's, and saves a day with no wallet anywhere", async () => {
+    const p = await open({ wallet: false, sponsor: {} });
+    await settle(p.c().keepFree(p.pet()));
+    const record = p.c().record;
+    expect(p.c().error).toBeNull();
+    expect(record).toMatchObject({ petId: "41", owner: p.session(), device: true, lastDay: 0 });
+    expect(p.x.pets.get(41n)!.owner).toBe(p.session());
+    expect(p.chain.autoStatus(record, Date.now())).toBe("on");
+    // a day later the game saves it by itself: the device key signs and pays, and quest 11's save is counted
+    vi.advanceTimersByTime(DAY + MIN);
+    let saved = false;
+    await settle(p.c().saveToday(p.pet(), () => (saved = true), true));
+    expect(saved).toBe(true);
+    expect(mined(p, "checkpoint")).toEqual([expect.objectContaining({ from: p.session(), status: "success" })]);
+    expect(p.wallet.asked).toEqual([]);
+  });
+
+  it("a refusal keeps nothing and says why, in both languages", async () => {
+    const p = await open({ wallet: false, sponsor: { refuse: "network" } });
+    await settle(p.c().keepFree(p.pet()));
+    expect(p.c().record).toBeNull();
+    expect(p.c().error).toBe("free.network");
+    expect(panelSays("free.network" as Key).every((t) => t.length > 0 && t !== "free.network")).toBe(true);
+  });
+
+  it("an answer lost on the way is found from the server's record, and believed only because X Layer agrees", async () => {
+    const p = await open({ wallet: false, sponsor: { loseAnswer: true } });
+    await settle(p.c().keepFree(p.pet()));
+    expect(p.c().record).toBeNull();
+    // asked again: the server says this key had its pet, the game looks it up and X Layer confirms it is the device's
+    await settle(p.c().keepFree(p.pet()));
+    expect(p.c().record).toMatchObject({ petId: "41", owner: p.session(), device: true });
+    expect(mined(p, "hatch")).toHaveLength(1);
+  });
+
+  it("a server naming a pet that is not this device's is not believed", async () => {
+    const p = await open({ wallet: false, sponsor: { loseAnswer: true, lie: "7" } });
+    p.x.pets.set(7n, { owner: OWNER, line: 0, processor: PROCESSOR, brainId: 1n, brainBits: 16, born: T0 / 1000, day: 0, state: 0n });
+    await settle(p.c().keepFree(p.pet()));
+    await settle(p.c().keepFree(p.pet()));
+    expect(p.c().record).toBeNull();
+    expect(p.c().error).toBe("free.notOurs");
+  });
+
+  it("a pet whose gas never came is kept, and the player is told saves wait for it", async () => {
+    const p = await open({ wallet: false, sponsor: { noGas: true } });
+    await settle(p.c().keepFree(p.pet()));
+    expect(p.c().record).toMatchObject({ device: true });
+    expect(p.c().error).toBe("free.noGas");
+  });
+
+  it("moves to the player's wallet in one transfer signed by the device key; the wallet signs and pays nothing", async () => {
+    const p = await open({ wallet: false, sponsor: {} });
+    await settle(p.c().keepFree(p.pet()));
+    Object.defineProperty(window, "ethereum", { value: p.wallet, configurable: true });
+    expect(await settle(p.c().moveToWallet(p.pet()))).toBe(true);
+    expect(p.x.pets.get(41n)!.owner).toBe(OWNER);
+    expect(mined(p, "transferFrom")).toEqual([expect.objectContaining({ from: p.session(), status: "success" })]);
+    expect(p.wallet.asked).not.toContain("eth_sendTransaction");
+    const record = p.c().record!;
+    expect(record).toMatchObject({ owner: OWNER });
+    expect(record.device).toBeUndefined();
+    // and from then on its owner's wallet saves it, as any kept pet
+    expect(p.chain.autoStatus(record, Date.now())).toBe("off");
+  });
 });
 
 describe("the chain store: keeping a pet on X Layer", () => {

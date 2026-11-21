@@ -1,0 +1,10 @@
+--- a/services/api/src/sponsor.ts
++++ b/services/api/src/sponsor.ts
+@@ -109,7 +109,6 @@ export class SponsorGate {
+     if (state > UINT256_MAX) return { ok: false, reason: "invalid", detail: "bad request" };
+     if (Math.abs(this.now() - b.at) > SPONSOR_MAX_AGE_MS) return { ok: false, reason: "expired", detail: "the request is out of date; ask again" };
+     const signer = await sponsorSigner({ to: b.to as Address, line: b.line, state: b.state, at: b.at }, b.signature as Hex);
+-    if (!signer || signer.toLowerCase() !== b.to.toLowerCase()) return { ok: false, reason: "badSignature", detail: "not signed by the address it names" };
+     if (lineOfState(state) !== SPONSOR_LINES.indexOf(b.line)) return { ok: false, reason: "invalid", detail: "the state is not of that line" };
+ 
+     // from here on nothing awaits: the checks and the slot are one step, so two requests cannot both pass

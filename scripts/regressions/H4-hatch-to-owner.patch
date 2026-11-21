@@ -1,0 +1,11 @@
+--- a/packages/chain/src/registry.ts
++++ b/packages/chain/src/registry.ts
+@@ -199,7 +199,7 @@ export async function hatchOutcome(pub: PublicClient, d: Deployment, tx: Hex, ow
+ export async function hatchOnChain(pub: PublicClient, wallet: WalletClient, d: Deployment, line: Line, initialState: bigint, onSent?: (tx: Hex) => void, to?: Address): Promise<{ petId: bigint; tx: Hex }> {
+   const account = wallet.account;
+   if (!account) throw new Error("wallet has no account");
+-  const owner = to ?? account.address;
++  const owner = account.address;
+   const index = LOOK_LINES.indexOf(line);
+   if (index < 0) throw new Error(`unknown line ${line}`);
+   if (lineOfState(initialState) !== index) throw new LineMismatchError(line, lineName(lineOfState(initialState)));

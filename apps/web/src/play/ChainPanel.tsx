@@ -12,6 +12,9 @@ import { NameClaim } from "./NameClaim";
 import { useGame } from "../game/store";
 import { SEND_LIMITS, TooBig, checkSize, sizeNote } from "../game/sendSize";
 import { now } from "../game/gameClock";
+import { allStatuses } from "../game/quests";
+import { useWorld } from "../game/world";
+import { DeviceKept } from "./DeviceKept";
 
 const ERR: Record<string, Key> = {
   noWallet: "chain.noWallet",
@@ -39,6 +42,19 @@ const ERR: Record<string, Key> = {
   replayed: "relay.signature",
   badSignature: "relay.signature",
   offline: "relay.offline",
+  // what keeping a pet for free answers (services/api sponsor.ts, game/chain.ts keepFree)
+  "free.off": "free.off",
+  "free.invalid": "free.invalid",
+  "free.expired": "free.expired",
+  "free.badSignature": "free.badSignature",
+  "free.had": "free.had",
+  "free.busy": "free.busy",
+  "free.network": "free.network",
+  "free.budget": "free.budget",
+  "free.relayLow": "free.relayLow",
+  "free.error": "free.error",
+  "free.notOurs": "free.notOurs",
+  "free.noGas": "free.noGas",
 };
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -47,7 +63,14 @@ const dateOf = (sec: number, lang: string) => new Date(sec * 1000).toLocaleDateS
 export function ChainPanel({ pet }: { pet: Pet }) {
   const t = useT();
   const lang = useLang((s) => s.lang);
-  const { record, busy, error, keep, saveToday, updateMind, exportLog, enableAuto, endSitting, sitWith } = useChain();
+  const { record, busy, error, keep, saveToday, updateMind, exportLog, enableAuto, endSitting, sitWith, freeOn, checkFree, keepFree } = useChain();
+  // keeping for free opens once the player has really played: the first lesson taught (H4); read at each render, which
+  // the world store triggers when a quest is handed in
+  useWorld((s) => s.world);
+  const firstLessonDone = allStatuses()["q09"] === "done";
+  useEffect(() => {
+    if (freeOn === null) void checkFree();
+  }, [freeOn, checkFree]);
   const say = useGame((s) => s.say);
   const [friend, setFriend] = useState("");
   const [days, setDays] = useState(3);
@@ -116,74 +139,80 @@ export function ChainPanel({ pet }: { pet: Pet }) {
           </div>
           <PublishDiary pet={pet} petId={record.petId} log={exportLog(pet)} />
           <NameClaim pet={pet} record={record} />
-          <div className="keeping">
-            <p className="label">{t("auto.title")}</p>
-            {auto === "off" ? (
-              <>
-                <p className="small">{t("auto.pitch", { name: pet.name })}</p>
-                <button type="button" className="btn primary" disabled={busy !== "idle"} onClick={() => (play("tap"), enableAuto(pet))}>
-                  {t("auto.on")}
-                </button>
-              </>
-            ) : (
-              <>
-                <p className="small">{t(auto === "ending" ? "auto.ending" : "auto.until", { date: dateOf(record.autoUntil!, lang) })}</p>
-                {lowGas && <p className="err">{t("auto.lowGas")}</p>}
-                <div className="row">
-                  {(auto === "ending" || lowGas) && (
-                    <button type="button" className="btn primary" disabled={busy !== "idle"} onClick={() => (play("tap"), enableAuto(pet))}>
-                      {t("auto.renew")}
+          {record.device ? (
+            <DeviceKept pet={pet} lowGas={lowGas} />
+          ) : (
+            <>
+            <div className="keeping">
+              <p className="label">{t("auto.title")}</p>
+              {auto === "off" ? (
+                <>
+                  <p className="small">{t("auto.pitch", { name: pet.name })}</p>
+                  <button type="button" className="btn primary" disabled={busy !== "idle"} onClick={() => (play("tap"), enableAuto(pet))}>
+                    {t("auto.on")}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="small">{t(auto === "ending" ? "auto.ending" : "auto.until", { date: dateOf(record.autoUntil!, lang) })}</p>
+                  {lowGas && <p className="err">{t("auto.lowGas")}</p>}
+                  <div className="row">
+                    {(auto === "ending" || lowGas) && (
+                      <button type="button" className="btn primary" disabled={busy !== "idle"} onClick={() => (play("tap"), enableAuto(pet))}>
+                        {t("auto.renew")}
+                      </button>
+                    )}
+                    <button type="button" className="btn" disabled={busy !== "idle"} onClick={() => (play("tap"), endSitting(pet))}>
+                      {t("auto.off")}
                     </button>
-                  )}
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="keeping">
+              <p className="label">{t("sit.title")}</p>
+              {record.sitter && record.sitter.until * 1000 > now() ? (
+                <>
+                  <p className="small">{t("sit.now", { who: short(record.sitter.who), date: dateOf(record.sitter.until, lang) })}</p>
                   <button type="button" className="btn" disabled={busy !== "idle"} onClick={() => (play("tap"), endSitting(pet))}>
-                    {t("auto.off")}
+                    {t("sit.end")}
                   </button>
-                </div>
-              </>
-            )}
-          </div>
-          <div className="keeping">
-            <p className="label">{t("sit.title")}</p>
-            {record.sitter && record.sitter.until * 1000 > now() ? (
-              <>
-                <p className="small">{t("sit.now", { who: short(record.sitter.who), date: dateOf(record.sitter.until, lang) })}</p>
-                <button type="button" className="btn" disabled={busy !== "idle"} onClick={() => (play("tap"), endSitting(pet))}>
-                  {t("sit.end")}
-                </button>
-              </>
-            ) : (
-              <form
-                className="sit-form"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  play("tap");
-                  void sitWith(pet, friend.trim(), days).then((ok) => ok && (setFriend(""), play("success")));
-                }}
-              >
-                <p className="small">{t("sit.pitch", { name: pet.name })}</p>
-                <label className="sr" htmlFor="sit-who">
-                  {t("sit.who")}
-                </label>
-                <input id="sit-who" className="input mono" placeholder="0x…" value={friend} onChange={(e) => setFriend(e.target.value)} autoComplete="off" spellCheck={false} />
-                <div className="row">
-                  <label className="small" htmlFor="sit-days">
-                    {t("sit.days")}
+                </>
+              ) : (
+                <form
+                  className="sit-form"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    play("tap");
+                    void sitWith(pet, friend.trim(), days).then((ok) => ok && (setFriend(""), play("success")));
+                  }}
+                >
+                  <p className="small">{t("sit.pitch", { name: pet.name })}</p>
+                  <label className="sr" htmlFor="sit-who">
+                    {t("sit.who")}
                   </label>
-                  <select id="sit-days" className="input" value={days} onChange={(e) => setDays(Number(e.target.value))}>
-                    {[1, 3, 7, 14, 30].map((d) => (
-                      <option key={d} value={d}>
-                        {t("sit.dayN", { n: d })}
-                      </option>
-                    ))}
-                  </select>
-                  <button type="submit" className="btn primary" disabled={busy !== "idle" || !friend.trim()}>
-                    {t("sit.go")}
-                  </button>
-                </div>
-                {auto !== "off" && <p className="small">{t("sit.pausesAuto")}</p>}
-              </form>
-            )}
-          </div>
+                  <input id="sit-who" className="input mono" placeholder="0x…" value={friend} onChange={(e) => setFriend(e.target.value)} autoComplete="off" spellCheck={false} />
+                  <div className="row">
+                    <label className="small" htmlFor="sit-days">
+                      {t("sit.days")}
+                    </label>
+                    <select id="sit-days" className="input" value={days} onChange={(e) => setDays(Number(e.target.value))}>
+                      {[1, 3, 7, 14, 30].map((d) => (
+                        <option key={d} value={d}>
+                          {t("sit.dayN", { n: d })}
+                        </option>
+                      ))}
+                    </select>
+                    <button type="submit" className="btn primary" disabled={busy !== "idle" || !friend.trim()}>
+                      {t("sit.go")}
+                    </button>
+                  </div>
+                  {auto !== "off" && <p className="small">{t("sit.pausesAuto")}</p>}
+                </form>
+              )}
+            </div>
+            </>
+          )}
           {mindBehind && (
             <div className="mind-behind">
               <p className="small">{t(instinctsBehind ? "chain.instinctsBehind" : "chain.mindBehind", { name: pet.name })}</p>
@@ -207,10 +236,26 @@ export function ChainPanel({ pet }: { pet: Pet }) {
       ) : (
         <>
           <p className="small">{t("chain.pitch", { name: pet.name })}</p>
-          <p className="small">{t("chain.cost")}</p>
-          <button type="button" className="btn primary" disabled={busy !== "idle"} onClick={() => (play("tap"), keep(pet))} data-hint="keep">
-            {t("chain.keep", { name: pet.name })}
-          </button>
+          {freeOn && firstLessonDone ? (
+            <>
+              <p className="small">{t("free.pitch", { name: pet.name })}</p>
+              <button type="button" className="btn primary" disabled={busy !== "idle"} onClick={() => (play("tap"), keepFree(pet))} data-hint="keep">
+                {t("free.keep", { name: pet.name })}
+              </button>
+              <p className="small">{t("free.orWallet")}</p>
+              <button type="button" className="btn" disabled={busy !== "idle"} onClick={() => (play("tap"), keep(pet))}>
+                {t("chain.keep", { name: pet.name })}
+              </button>
+            </>
+          ) : (
+            <>
+              {freeOn && <p className="small">{t("free.later")}</p>}
+              <p className="small">{t("chain.cost")}</p>
+              <button type="button" className="btn primary" disabled={busy !== "idle"} onClick={() => (play("tap"), keep(pet))} data-hint="keep">
+                {t("chain.keep", { name: pet.name })}
+              </button>
+            </>
+          )}
         </>
       )}
       {busyText && <p className="small thinking-dots" aria-live="polite">{busyText}</p>}

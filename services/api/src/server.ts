@@ -41,6 +41,7 @@ import {
 import { mindOf, teachInWords } from "./teach";
 import { RateLimiter } from "./limit";
 import { BrainRelayer, type RelayResult } from "./relayer";
+import { SponsorGate } from "./sponsor";
 import { RelayQuota, checkRelayAuth, createNonceBook } from "./relayGate";
 import { LiveRooms, attachLive } from "./live";
 import { createDecorStore } from "./decor";
@@ -49,7 +50,7 @@ import { type ArenaStore, createArenaStore } from "./arena";
 import { type SeasonStore, createSeasonStore, settleAwards } from "./season";
 import { dayIndex, weekOf } from "@lingxi/game";
 import { parseCard } from "@lingxi/game";
-import { createPublicClient, custom, fallback, http, type PublicClient } from "viem";
+import { createPublicClient, custom, fallback, http, type Address, type PublicClient } from "viem";
 import { type Deployment, type SignedRelay, adoptionCentreAbi, createNetlistCache, loadCircuitFromChain, nameColours, packsHeld, petRegistryAbi, piecesHeld, readPet, xLayer } from "@lingxi/chain";
 import { type HomeChain, createHomes } from "./homes";
 import { createAgentStore } from "./agents";
@@ -514,6 +515,69 @@ export function withSeason(app: Hono, store: SeasonStore, writes = new RateLimit
     }
     c.header("content-type", "application/json; charset=utf-8");
     return c.body(text);
+  });
+  return app;
+}
+
+/** What the sponsor route needs: who may ask (sponsor.ts), the relayer that sends, and the deployment it sends to. */
+export interface Sponsoring {
+  gate: SponsorGate;
+  relayer: Pick<BrainRelayer, "sponsorHatch" | "sponsorGrant">;
+  deployment: Deployment;
+  who: (c: Context) => string;
+}
+
+const SPONSOR_STATUS: Record<string, 400 | 401 | 409 | 429 | 502 | 503> = { off: 503, invalid: 400, expired: 401, badSignature: 401, had: 409, busy: 429, network: 429, budget: 429, relayLow: 503, error: 502 };
+
+/**
+ * A pet kept on X Layer for a player with no wallet (H4): the relayer hatches it to their device key and sends that
+ * key its gas. Off unless the server is switched on for it; every refusal is named and sends nothing.
+ */
+export function withSponsor(app: Hono, s: Sponsoring | null, limiter = new RateLimiter(20, 3_600_000)): Hono {
+  app.get("/api/sponsor", (c) => c.json({ ok: true, on: !!s?.gate.enabled }, 200, { "cache-control": "no-store" }));
+  // what was kept for a device key, so a game whose answer was lost on the way can find its pet (X Layer confirms it)
+  app.get("/api/sponsor/of/:address", (c) => {
+    const to = c.req.param("address").toLowerCase();
+    if (!/^0x[0-9a-f]{40}$/.test(to)) return c.json({ ok: false, reason: "invalid", detail: "bad address" }, 400);
+    const p = s?.gate.pets().find((x) => x.to === to && x.petId !== null);
+    return p ? c.json({ ok: true, petId: p.petId, hatchTx: p.hatchTx, grantTx: p.grantTx }) : c.json({ ok: false, reason: "none", detail: "nothing kept for this address" }, 404);
+  });
+  app.post("/api/sponsor/hatch", async (c) => {
+    if (!s || !s.gate.enabled) return c.json({ ok: false, reason: "off", detail: "keeping a pet without a wallet is not switched on" }, 503);
+    const ip = s.who(c);
+    if (!limiter.take(ip)) return c.json({ ok: false, reason: "busy", detail: "too many requests; try again later" }, 429);
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ ok: false, reason: "invalid", detail: "bad request" }, 400);
+    }
+    const r = await s.gate.check(body, ip);
+    if (!r.ok) return c.json({ ok: false, reason: r.reason, detail: r.detail }, SPONSOR_STATUS[r.reason] ?? 400);
+    const slot = r.slot;
+    try {
+      if (r.retryGrant) {
+        const g = await s.relayer.sponsorGrant(slot.to as Address);
+        if (!g.ok) {
+          s.gate.release(slot);
+          return c.json({ ok: false, reason: g.reason, detail: g.detail }, SPONSOR_STATUS[g.reason] ?? 502);
+        }
+        s.gate.finish(slot, { petId: slot.petId, hatchTx: null, grantTx: g.grantTx });
+        return c.json({ ok: true, petId: slot.petId, hatchTx: null, grantTx: g.grantTx });
+      }
+      const h = await s.relayer.sponsorHatch(s.deployment, slot.to as Address, slot.line, slot.state);
+      if (!h.ok) {
+        // a hatch that cost gas is kept, so the day's count holds it; one that sent nothing gives its slot back
+        if (h.spent) s.gate.finish(slot, { petId: null, hatchTx: null, grantTx: null });
+        else s.gate.release(slot);
+        return c.json({ ok: false, reason: h.reason, detail: h.detail }, SPONSOR_STATUS[h.reason] ?? 502);
+      }
+      s.gate.finish(slot, { petId: h.petId, hatchTx: h.hatchTx, grantTx: h.grantTx });
+      return c.json({ ok: true, petId: h.petId, hatchTx: h.hatchTx, grantTx: h.grantTx });
+    } catch (e) {
+      s.gate.release(slot);
+      throw e;
+    }
   });
   return app;
 }
@@ -996,6 +1060,22 @@ if (isMain) {
     const file = process.env.LINGXI_MAIL_FILE ?? resolve(dirname(fileURLToPath(import.meta.url)), "../mail/letters.json");
     const letters = loadLetters(file);
     withMail(app, () => letters);
+  }
+  {
+    // a pet kept on X Layer for a player with no wallet (H4): it spends the relayer's OKB, so it is off unless the
+    // server is started with LINGXI_SPONSOR=on; a store that cannot be read turns it off rather than forget who had one
+    let sponsoring: Sponsoring | null = null;
+    try {
+      const gate = new SponsorGate({
+        file: process.env.LINGXI_SPONSOR_STORE ?? join(dataDir, "sponsored.json"),
+        enabled: process.env.LINGXI_SPONSOR === "on" && relayer !== null && chainCtx !== undefined,
+        perDay: Number(process.env.LINGXI_SPONSOR_PER_DAY ?? 25),
+      });
+      if (relayer && chainCtx) sponsoring = { gate, relayer, deployment: chainCtx.deployment, who: clientIp };
+    } catch (e) {
+      process.stderr.write(`keeping pets without a wallet is off: ${(e as Error).message}\n`);
+    }
+    withSponsor(app, sponsoring);
   }
   // standings fought in a worker thread with a time budget, kept on disk (A38)
   const seasons = createSeasonStore(process.env.LINGXI_SEASON_STORE, Date.now, createStandingsRunner({ file: process.env.LINGXI_STANDINGS_FILE ?? join(dataDir, "standings.json") }));

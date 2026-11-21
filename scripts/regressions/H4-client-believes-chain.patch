@@ -1,0 +1,10 @@
+--- a/apps/web/src/game/chain.ts
++++ b/apps/web/src/game/chain.ts
+@@ -509,7 +509,6 @@ export const useChain = create<ChainState>((set, get) => ({
+         if (!known?.petId || !known.hatchTx) return set({ busy: "idle", error: "free.error" });
+         // the chain's word, never the server's: the pet must be this device's
+         const onChain = await readPet(publicClient, deployment, BigInt(known.petId));
+-        if (onChain.owner.toLowerCase() !== key.address.toLowerCase()) return set({ busy: "idle", error: "free.notOurs" });
+         record = { petId: known.petId, hatchTx: known.hatchTx, lastDay: 0, owner: key.address, bornChain: onChain.born, brains: { [mindKey([])]: deployment.circuits[pet.line]!.id }, brainKey: mindKey([]), device: true };
+         store(pet, record);
+         // its log now starts where the hatch took its state, which is where the chain's proof of its memory starts (A66)

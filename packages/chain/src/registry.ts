@@ -192,9 +192,14 @@ export async function hatchOutcome(pub: PublicClient, d: Deployment, tx: Hex, ow
  * state of another line is refused: mainnet pet #2 was hatched with index 0 and a bold state by a script that passed
  * the two separately (A18).
  */
-export async function hatchOnChain(pub: PublicClient, wallet: WalletClient, d: Deployment, line: Line, initialState: bigint, onSent?: (tx: Hex) => void): Promise<{ petId: bigint; tx: Hex }> {
+/**
+ * Hatches a pet with its line's starter brain. `to` owns it: the signer by default, or another address when the
+ * relayer hatches for a player's device key (H4); the id is read from the event mined for that owner.
+ */
+export async function hatchOnChain(pub: PublicClient, wallet: WalletClient, d: Deployment, line: Line, initialState: bigint, onSent?: (tx: Hex) => void, to?: Address): Promise<{ petId: bigint; tx: Hex }> {
   const account = wallet.account;
   if (!account) throw new Error("wallet has no account");
+  const owner = to ?? account.address;
   const index = LOOK_LINES.indexOf(line);
   if (index < 0) throw new Error(`unknown line ${line}`);
   if (lineOfState(initialState) !== index) throw new LineMismatchError(line, lineName(lineOfState(initialState)));
@@ -203,7 +208,7 @@ export async function hatchOnChain(pub: PublicClient, wallet: WalletClient, d: D
     address: d.registry,
     abi: petRegistryAbi,
     functionName: "hatch",
-    args: [account.address, index, d.processor, brainId, initialState],
+    args: [owner, index, d.processor, brainId, initialState],
     account,
   });
   const tx = await wallet.writeContract(request);
@@ -218,7 +223,7 @@ export async function hatchOnChain(pub: PublicClient, wallet: WalletClient, d: D
   }
   if (r.status !== "success") throw new RevertedOnChain("hatch", r.transactionHash);
   // the id from the mined Hatched event: someone else's hatch between the simulation and the block takes the simulated one
-  return { petId: hatchedPetIdFrom(r, d.registry, account.address), tx };
+  return { petId: hatchedPetIdFrom(r, d.registry, owner), tx };
 }
 
 /** Saves a day: refused, before any wallet prompt, when the state is not of the pet's recorded line (A18). */

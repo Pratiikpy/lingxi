@@ -1,0 +1,10 @@
+--- a/services/api/src/relayer.ts
++++ b/services/api/src/relayer.ts
+@@ -394,7 +394,6 @@ export class BrainRelayer {
+   sponsorHatch(d: Deployment, to: Address, line: SponsorLine, state: bigint): Promise<SponsorResult> {
+     return this.serial(async (): Promise<SponsorResult> => {
+       const balance = await this.balance().catch(() => 0n);
+-      if (balance < (this.cfg.reserveWei ?? 0n) + SPONSOR_SET_ASIDE_WEI) return { ok: false, reason: "relayLow", detail: "the relayer's OKB is held for season keepsakes", spent: false };
+       let petId: bigint;
+       let hatchTx: Hex;
+       try {

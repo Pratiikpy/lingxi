@@ -1,0 +1,10 @@
+--- a/services/api/src/sponsor.ts
++++ b/services/api/src/sponsor.ts
+@@ -116,7 +116,6 @@ export class SponsorGate {
+     const to = b.to.toLowerCase();
+     if (this.inflight.has(to)) return { ok: false, reason: "busy", detail: "a request for this pet is already on its way" };
+     const had = this.store.pets.find((p) => p.to === to && p.petId !== null);
+-    if (had && had.grantTx !== null) return { ok: false, reason: "had", detail: "this device already has a pet kept for it" };
+     if (had) return this.take({ to, network, line: b.line, state, retryGrant: true, petId: had.petId });
+ 
+     const today = dayOf(this.now());

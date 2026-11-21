@@ -44,6 +44,22 @@ export function sessionAccount(): PrivateKeyAccount {
   return account;
 }
 
+/**
+ * This device's key, written out for the player to keep (H4): a pet kept for free is owned by this key, so whoever holds
+ * these 64 characters holds the pet. Shown only when the player asks, with that said beside it.
+ */
+export function exportSessionKey(): Hex {
+  sessionAccount();
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(KEY);
+  } catch {
+    raw = null;
+  }
+  if (!raw || !/^0x[0-9a-f]{64}$/i.test(raw)) throw new Error("this device's key could not be read");
+  return raw as Hex;
+}
+
 export function sessionWallet(chain: Parameters<typeof createWalletClient>[0]["chain"], rpc: string): WalletClient {
   return createWalletClient({ chain, transport: http(rpc), account: sessionAccount() });
 }

@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/chain.ts
++++ b/apps/web/src/game/chain.ts
+@@ -128,8 +128,6 @@ export interface ChainRecord {
+ 
+ /** Whether auto-save is on now, ending soon, or off. */
+ export function autoStatus(r: ChainRecord | null, nowMs: number): "on" | "ending" | "off" {
+-  // a pet this device's key owns is always saved by it
+-  if (r?.device) return "on";
+   if (!r?.autoUntil || r.autoUntil * 1000 <= nowMs) return "off";
+   return r.autoUntil * 1000 - nowMs < 3 * 86_400_000 ? "ending" : "on";
+ }

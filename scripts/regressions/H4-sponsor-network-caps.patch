@@ -1,0 +1,10 @@
+--- a/services/api/src/sponsor.ts
++++ b/services/api/src/sponsor.ts
+@@ -122,7 +122,6 @@ export class SponsorGate {
+     const today = dayOf(this.now());
+     const counted = [...this.store.pets.filter((p) => dayOf(p.at) === today), ...[...this.inflight.values()].filter((s) => !s.retryGrant)];
+     const prefix = prefixOf(network);
+-    if (counted.filter((p) => p.network === network).length >= (this.o.perNetwork ?? 1)) return { ok: false, reason: "network", detail: "this network has had its pet today" };
+     if (prefix && counted.filter((p) => prefixOf(p.network) === prefix).length >= (this.o.perPrefix ?? 3)) return { ok: false, reason: "network", detail: "this network has had its pets today" };
+     if (counted.length >= (this.o.perDay ?? 25)) return { ok: false, reason: "budget", detail: "today's pets kept for players are all given; try tomorrow" };
+     return this.take({ to, network, line: b.line, state, retryGrant: false, petId: null });
