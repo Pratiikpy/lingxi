@@ -1,0 +1,11 @@
+--- a/services/api/src/limit.ts
++++ b/services/api/src/limit.ts
+@@ -111,7 +111,7 @@ export class RateLimiter {
+ export const PREFIX_SHARE = 4;
+ 
+ /** The /64s of one /48 a limiter keeps as keys of their own; its other /64s count on the /48's share alone (A140). */
+-export const KEYS_PER_PREFIX = 16;
++export const KEYS_PER_PREFIX = 1_000_000;
+ 
+ /** The /48 a /64 caller (as `callerOf` names it) belongs to; null for any other key. */
+ export function prefixOf(key: string): string | null {
