@@ -1,0 +1,11 @@
+--- a/packages/world/src/quests.ts
++++ b/packages/world/src/quests.ts
+@@ -55,7 +55,7 @@ export function questState(q: Quest, v: QuestView, claimed: readonly string[]):
+   if (milestoneDone(q.id, v.world, claimed)) return "claimed";
+   if (q.after && !milestoneDone(q.after, v.world, claimed)) return "locked";
+   // a milestone the story pays for is never claimed here (B6)
+-  if (q.story) return "active";
++
+   return q.progress(v) >= q.need ? "ready" : "active";
+ }
+ 

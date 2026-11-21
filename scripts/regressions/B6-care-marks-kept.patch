@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/store.ts
++++ b/apps/web/src/game/store.ts
+@@ -369,7 +369,7 @@ export const useGame = create<GameState>((set, get) => ({
+   },
+   toast: null,
+   lastCare: null,
+-  daily: loadDaily(),
++  daily: freshDaily(),
+   hatch: (line, name, instincts = 0) => {
+     const pet = createPet({
+       // a character that shows as nothing is taken out: the name stays what the player can see (A16)

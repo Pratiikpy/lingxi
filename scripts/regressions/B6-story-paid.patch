@@ -1,0 +1,11 @@
+--- a/packages/world/src/story.ts
++++ b/packages/world/src/story.ts
+@@ -155,7 +155,7 @@ export function completeQuest(w: WorldState, q: QuestDef, v: ConditionView): Wor
+   }
+   let next: WorldState = { ...w, quests: book };
+   // a deed a milestone already paid for is not paid for in coins again; what the quest opens still opens (B6)
+-  const paid = q.kind === "story" && paidByMilestone(q.id, w);
++  const paid = false;
+   const rewards = paid ? q.rewards.filter((r) => r.kind !== "coins") : q.rewards;
+   for (const r of rewards) next = payReward(next, r);
+   next = bump(next, q.kind === "story" ? "QUEST_DONE" : "DAILY_DONE", q.id);
