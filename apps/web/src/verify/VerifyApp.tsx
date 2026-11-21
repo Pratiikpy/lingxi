@@ -25,6 +25,7 @@ import { proofClient } from "../game/proofRpc";
 import { EndpointPanel } from "./Endpoints";
 import { INDEXER, fetchPetHistory } from "./indexer";
 import { readPublished } from "./published";
+import { otherStarter } from "./starterNote";
 import { HISTORY_RETRIES, HISTORY_RETRY_MS } from "./askHistory";
 import { useLang } from "../i18n";
 import { usePageMeta } from "../i18n/pageMeta";
@@ -86,6 +87,7 @@ const T = {
     unsaved: "Born on X Layer from #{a} and #{b}, and its first day is not saved yet: the chain holds only the memory the Breeder mixed for it, so until its owner saves a day PetLook draws an egg and every meter reads 0. Those zeros are not its state.",
     lineMismatch: "PetRegistry records this pet as the {recorded} line, but its saved state is a {state} pet's, and that is what it is drawn and thinks as. It was hatched that way; the game can no longer write such a pet, and the checks below are unaffected.",
     lines: ["gentle", "bold", "curious"],
+    otherStarter: "This is the {starter} starter brain, though the pet hatched as {line}: a test hatch from 15 November, before the game checked that a pet's brain matches its line. The chain records exactly that, and every check below reads what it holds.",
     named: "Name on chain",
     notDeployed: "This build is not connected to a deployment.",
     want: "want",
@@ -138,6 +140,7 @@ const T = {
     unsaved: "由 #{a} 和 #{b} 在 X Layer 上生下，它的第一天还没保存：链上只有繁育合约为它混合好的记忆，所以在主人保存一天之前，PetLook 会把它画成一颗蛋，各项数值都显示 0。这些 0 并不是它的状态。",
     lineMismatch: "PetRegistry 把这只宠物记为{recorded}品种，但它保存的状态是{state}品种的，它的样子和想法都按这个来。它出生时就是这样；游戏现在已经不会再写出这样的宠物，下面的核对不受影响。",
     lines: ["温柔", "勇敢", "好奇"],
+    otherStarter: "这是{starter}品种的初始大脑，但这只宠物孵化时是{line}品种：这是 11 月 15 日的一次测试孵化，那时游戏还没有核对宠物的大脑和品种是否相配。链上记录的就是这样，下面每一项核对读取的都是链上所存的内容。",
     named: "链上名字",
     notDeployed: "这个版本没有连接到部署。",
     want: "想要",
@@ -482,6 +485,8 @@ export function VerifyApp() {
     };
   }, [petId, logHash, circuit, diaryTry]);
 
+  // a brain that is another line's starter, said so (A136)
+  const starterOf = pet ? otherStarter(pet.line, pet.brainId, (deployment as { circuits?: Record<string, { id: string }> } | undefined)?.circuits) : null;
   const ok = rows.filter((r) => r.chain.next === r.local.next && r.chain.outputs === r.local.outputs).length;
   const u = pet ? unpackState(pet.state, pet.brainBits) : null;
   // a little one hatched by the Breeder and never saved: its state is only the memory the Breeder mixed (A33)
@@ -536,6 +541,11 @@ export function VerifyApp() {
             <dd className="mono">
               {short(pet.processor)} · #{pet.brainId.toString()} · {gates} {t.gates} · {pet.brainBits} {t.memory}
             </dd>
+            {starterOf !== null && (
+              <dd className="v-note" data-testid="other-starter">
+                {t.otherStarter.replace("{starter}", t.lines[starterOf] ?? "").replace("{line}", t.lines[pet.line] ?? `#${pet.line}`)}
+              </dd>
+            )}
             <dt>{t.days}</dt>
             <dd>{pet.day}</dd>
             <dt>{t.log}</dt>
