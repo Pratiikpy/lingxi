@@ -1,0 +1,11 @@
+--- a/packages/game/src/coach.ts
++++ b/packages/game/src/coach.ts
+@@ -160,7 +160,7 @@ export function coach(input: {
+       if (wins >= before + COACH_MARGIN && (!swap || wins > swap.wins)) swap = { lesson: l, replace: i, wins };
+     }
+   }
+-  if (swap) return { key: FIXES[swap.lesson.id] ?? diagnose(result, side), lesson: swap.lesson, replace: swap.replace, before, after: swap.wins };
++  if (swap && swap.wins < 0) return { key: FIXES[swap.lesson.id] ?? diagnose(result, side), lesson: swap.lesson, replace: swap.replace, before, after: swap.wins };
+   return { key: diagnose(result, side), before, after: before };
+ }
+ 

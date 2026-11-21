@@ -1,0 +1,11 @@
+--- a/apps/web/src/play/ruleText.ts
++++ b/apps/web/src/play/ruleText.ts
+@@ -33,7 +33,7 @@ export const FIGHT_VALUE_NAMES: Record<string, Names> = {
+   // the other pet's last move, as the fight sends it from LX-SPAR/2 on (spar2.ts moveAsAction): a care rule that reads
+   // "lights off" reads "foe rested" in a spar (B2)
+   action: {
+-    en: ["foe tapped", "foe snacked", "foe pounced", "foe guarded", "foe rested", "foe charmed", "foe dodged", "foe gave a gift"],
++    en: ["foe swiped", "foe snacked", "foe pounced", "foe bathed", "foe lights off", "foe charmed", "foe medicine", "foe gave a gift"],
+     zh: ["对手轻拍", "对手吃零食", "对手扑击", "对手防守", "对手休息", "对手卖萌", "对手闪避", "对手送礼"],
+   },
+   event: { en: ["nothing new", "foe was friendly", "foe left an opening", "just hit hard"], zh: ["没什么变化", "对手很友好", "对手露出破绽", "刚被重击"] },
