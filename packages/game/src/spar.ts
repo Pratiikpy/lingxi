@@ -38,6 +38,12 @@ export const SPAR_VERSION = "LX-SPAR/1";
 export const ROUNDS = 16;
 export const MAX_HP = 100;
 export const MAX_STAMINA = 10;
+/** What a practice spar won pays, and the first win against each partner on top; how long the arena shows a round. */
+export const SPAR_WIN_COINS = 5;
+export const SPAR_FIRST_WIN_COINS = 25;
+export const SPAR_ROUND_MS = 950;
+/** The arena shows the first round after this long. */
+export const SPAR_FIRST_ROUND_MS = 500;
 
 export const MOVES = ["tap", "snack", "pounce", "rest", "dodge", "guard", "charm", "gift"] as const;
 export type Move = (typeof MOVES)[number];

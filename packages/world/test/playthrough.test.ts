@@ -1,13 +1,31 @@
 /**
- * The automated playthrough (plan 4.2 done check): a simulated player finishes every story quest and every daily
- * through the world's own rules. It walks the room graph, looks around once an hour where an item really drops,
- * crafts from real recipes, buys in real shops, gives to residents, walks and travels. What the web app counts for
- * the pet (care, lessons, spars, saves, minutes together, the brain's choices, named events) is bumped the way the
- * app bumps it. Wherever a quest offers a path that needs another player, the solo path is taken, so this also
- * proves no quest needs a second player. Anything that cannot be done fails with the quest and the reason.
+ * The automated playthrough (plan 4.2 done check, made honest by plan row G0): a simulated player plays every story
+ * quest and every daily through the world's own rules, with a real pet living by the game's own rules beside it.
+ * It walks the room graph, looks around once an hour where an item really drops, crafts from real recipes, buys in
+ * real shops, gives to residents, walks and travels. Wherever a quest offers a path that needs another player, the
+ * solo path is taken, so this also proves no quest needs a second player.
+ *
+ * What changed with G0, and why. The playthrough used to give itself 500 coins at every shop, hold the pet's energy
+ * at 900 for every step, and add "the pet chose" (and its care, its minutes together, its healthy days, its meals)
+ * straight into the tally. Each of those made it finish quests a real player might not. Now:
+ *   - coins are only what the world pays (quest rewards, first visits, the weekly gift) and what spar wins pay;
+ *     when a shop costs more than the player holds, it earns the rest by sparring, as a player would;
+ *   - the pet is real (@lingxi/game): every step, look and bench job spends its energy, and when it is spent the
+ *     player feeds it, puts it to bed and waits for it to wake, so energy costs real hours;
+ *   - the pet's own brain makes its choices: "the pet chooses to …" objectives count only the beats where its brain
+ *     chose that, watched minute by minute; care is real care (a medicine counts only when it heals), minutes together
+ *     are real watched minutes at the time of day asked, meals are real foods eaten, healthy days are real days;
+ *   - an objective the real pet cannot reach is not forced: it is recorded with the reason, and the test asserts
+ *     exactly which quests stay out of reach, so the list can only change on purpose (plan G8 owns fixing them).
+ * What the web app still counts by hand here, as before, are the things only another screen or person does:
+ * saving to the chain, gifts, named events (a replay watched, a friend's visit), talks and Builders' Lane visits,
+ * and wearing a piece while walking. The client's own tally glue (what a care or a watched minute counts) is the
+ * simulator's single copy of it (packages/game/scripts/sim90/client.ts).
  */
 
 import { describe, expect, it } from "vitest";
+import { timeOfDay } from "@lingxi/brain";
+import { PARTNERS, arrangeLessons, beatOf, exploreMods, localHour, needsMinOf, stageOf, work } from "@lingxi/game";
 import {
   type Condition,
   type ConditionView,
@@ -17,6 +35,7 @@ import {
   MAKE_RECIPES,
   RECIPES,
   ROOMS,
+  STAGE_ORDER,
   STORY,
   type QuestDef,
   type WorldState,
@@ -29,13 +48,10 @@ import {
   craft,
   endTrip,
   endWalk,
-  forage,
   giveTo,
   localDay,
   make,
-  move,
   neighbours,
-  newWorld,
   placeDecor,
   questProgress,
   questStatus,
@@ -45,42 +61,141 @@ import {
   tallyOf,
   weeklyGiftsWaiting,
   DESTINATION,
+  TIMES_OF_DAY,
 } from "../src";
+import { Life, MIN } from "../../game/scripts/sim90/life";
+import { viewOf } from "../../game/scripts/sim90/client";
 
 const HOUR = 3_600_000;
-const ENERGY = 900;
+const START = Date.UTC(2026, 10, 16, 8);
 /** Events only another player can cause: the playthrough never relies on them. */
 const NEEDS_SOMEONE = (c: Condition) => (c.type === "EVENT" && ["visited-by-friend", "pet-sat", "child-born"].includes(String(c.index))) || c.type === "BOND";
+/** The most minutes the player watches for a choice or a time together before calling it out of reach. */
+const PATIENCE = 12 * 60;
+
+/** An objective the real pet could not reach, and why: the quest is left undone rather than forced. */
+class OutOfReach extends Error {}
 
 class Player {
-  w: WorldState = newWorld("playthrough-seed-1");
-  now = Date.UTC(2026, 10, 16, 8);
-  stage: "baby" | "child" | "teen" | "adult" = "baby";
+  life = new Life({ name: "Mochi", line: "gentle", bornAt: START, tzOffsetMin: 0, seed: 1, trees: ["explore", "care", "mind", "spar"] });
+  now = START;
   pets = 1;
-  needs = 300;
-  timeOfDay: 0 | 1 | 2 | 3 = 1;
   wearing: string | null = null;
   log: string[] = [];
-  /** game hours each quest took between accepting and handing in */
+  /** game hours each quest took between accepting and handing in, and of those the hours the pet slept to recover */
   hours: Record<string, number> = {};
+  rested = 0;
+  restedIn: Record<string, number> = {};
+  /** hours spent waiting for the time of day a quest names ("this evening") */
+  waited = 0;
+  waitedIn: Record<string, number> = {};
+  /** coins won sparring to afford a shop, and the spars it took */
+  sparCoins = 0;
+  spars = 0;
+
+  /** The world as it stands, with every count the pet's moves added (the life keeps them until read). */
+  get w(): WorldState {
+    return this.life.flush();
+  }
+  set w(next: WorldState) {
+    this.life.world = next;
+  }
+  get pet() {
+    return this.life.pet;
+  }
 
   view(): ConditionView {
-    return { world: this.w, pet: { level: 3, stage: this.stage, onChain: true, needsMin: this.needs }, pets: this.pets, now: this.now, timeOfDay: this.timeOfDay, day: localDay(this.now, 0), bondLevel: 0, goalsDone: [] };
+    const v = viewOf(this.w, this.pet, this.now);
+    // the playthrough's player keeps its pet on chain, as before; saving to the chain is counted below by hand
+    return { ...v, pet: { ...v.pet!, onChain: true }, pets: this.pets };
   }
   must<T extends object>(r: ({ ok: true; world: WorldState } & T) | { ok: false; reason: string }, what: string): { ok: true; world: WorldState } & T {
     if (!r.ok) throw new Error(`${what}: ${r.reason}`);
     this.w = r.world;
     return r;
   }
-  /** What the web app does for the pet: count it in the tally. */
+  /** What another screen of the web app counts (a save, a gift, a talk, a named event): bumped the way the app bumps it. */
   app(type: string, index: number | string = 0, n = 1, total = true) {
     this.w = bump(this.w, type, index, n, { total });
   }
 
+  // ── time and the pet ──
+  /** Minutes with the game open: each one a live beat, counted as the client counts it (time together, the pet's choice). */
+  pass(minutes: number) {
+    for (let i = 0; i < minutes; i++) {
+      this.now += MIN;
+      this.life.watch(this.now);
+    }
+  }
+  /** Time with the game closed: every minute replayed when the player comes back. */
+  away(minutes: number) {
+    this.now += minutes * MIN;
+    this.life.arrive(this.now);
+  }
+  /** A meal from the bag (the one that fits best). */
+  feed(item?: number): boolean {
+    return this.life.feed(this.now, item);
+  }
+  /**
+   * Meals in the bag before setting out: three Butterfly Mochi from Praline's when the bag has none, earned by
+   * sparring if the coins are short. Done between quests, never mid-errand, so a walk is never turned aside.
+   */
+  stock() {
+    if (this.life.bestFood() !== null) return;
+    const mochi = 11130;
+    this.goTo(13);
+    this.afford(3 * ITEM[mochi]!.price!);
+    for (let i = 0; i < 3; i++) this.must(buy(this.w, mochi), "buy mochi");
+  }
+  /** The pet looked after: fed when hungry, bathed when dusty, woken from hibernation. */
+  tend() {
+    if (this.pet.hibernating && !this.feed()) this.life.care({ kind: "pet" }, this.now);
+    if (this.pet.sick) this.life.care({ kind: "medicine" }, this.now);
+    if (this.life.food() < 500) this.feed();
+    if (this.pet.meters.clean / 60 < 400) this.life.care({ kind: "clean" }, this.now);
+  }
+  /** Spent: fed, put to bed, and left to sleep (an hour at a time) until it has its energy back, then woken. */
+  rest() {
+    const from = this.now;
+    this.tend();
+    if (!this.pet.asleep) this.life.care({ kind: "lightsOff" }, this.now);
+    for (let h = 0; h < 16 && this.life.energy() < 900; h++) this.away(60);
+    this.tend();
+    if (this.pet.asleep) this.life.care({ kind: "wake" }, this.now);
+    this.rested += (this.now - from) / HOUR;
+  }
+  /** At least `n` energy and awake, resting first if not. */
+  ready(n: number) {
+    if (this.pet.hibernating || this.pet.asleep || this.life.energy() < n) this.rest();
+    if (this.pet.asleep) this.life.care({ kind: "wake" }, this.now);
+    if (this.life.energy() < n) throw new Error(`the pet could not get its energy back (${this.life.energy()} of ${n})`);
+  }
+  /** Coins enough for `n`: sparring the softest partner for wins until there are (Arena.tsx's pay for a win). */
+  afford(n: number) {
+    for (let i = 0; this.w.coins < n; i++) {
+      if (i > 400) throw new Error(`could not earn ${n} coins in ${i} spars`);
+      const before = this.w.coins;
+      const r = this.life.spar(PARTNERS[0]!, this.now);
+      this.spars++;
+      this.sparCoins += this.w.coins - before;
+      this.pass(Math.ceil(r.ms / MIN));
+    }
+  }
+  /** Until the pet's local time of day is `time` (night, morning, day, evening), the game closed. */
+  waitFor(time: string) {
+    const from = this.now;
+    for (let h = 0; h < 24 && TIMES_OF_DAY[timeOfDay(localHour(this.pet, beatOf(this.now)))] !== time; h++) {
+      this.away(60);
+      this.tend();
+    }
+    this.waited += (this.now - from) / HOUR;
+  }
+
   // ── walking the map ──
   step(to: number) {
-    this.must(move(this.w, to, ENERGY), `move ${this.w.room}→${to}`);
-    this.now += 2 * 60_000; // a walk to the next room takes a couple of minutes
+    this.ready(exploreMods(this.pet.growth).moveEnergy + 5);
+    if (!this.life.step(to, this.now)) throw new Error(`move ${this.w.room}→${to} refused`);
+    this.pass(2); // a walk to the next room takes a couple of minutes
     if (this.wearing) this.app("MOVE_WEARING", this.wearing);
   }
   goTo(room: number) {
@@ -130,12 +245,17 @@ class Player {
     }
     throw new Error("no room has anything to find");
   }
-  lookAround(room?: number) {
+  /** Look around once (waiting out the room's hour if it was just looked at); what was found. */
+  lookAround(room?: number): Array<{ item: number; n: number }> {
     this.goTo(room ?? this.nearestWithDrops());
     for (let i = 0; i < 3; i++) {
-      const r = forage(this.w, this.now, ENERGY);
-      if (r.ok) return (this.w = r.world), r.found;
-      this.now += HOUR; // once per room per hour
+      this.ready(exploreMods(this.pet.growth).forageEnergy + 5);
+      const found = this.life.lookAround(this.now);
+      if (found) {
+        this.pass(1);
+        return found;
+      }
+      this.away(60); // once per room per hour
     }
     throw new Error(`cannot look around in room ${this.w.room}`);
   }
@@ -158,8 +278,8 @@ class Player {
     const shop = Object.values(ROOMS).find((r) => r.shop.includes(item));
     if (dropped) return this.find(item, need());
     if (shop) {
-      this.w = { ...this.w, coins: this.w.coins + 500 };
       this.goTo(shop.index);
+      this.afford(need() * ITEM[item]!.price!);
       while (need() > 0) this.must(buy(this.w, item), `buy ${item}`);
       return;
     }
@@ -176,7 +296,10 @@ class Player {
     // a tool is bought once and kept (plan 4.5); a room-only recipe is made in its room
     if (r.tool !== undefined) this.have(r.tool, 1);
     if (r.room !== undefined) this.goTo(r.room);
-    this.must(craft(this.w, r.index), `craft ${ITEM[out]?.name.en}`);
+    this.ready(r.energy + 5);
+    const made = this.must(craft(this.w, r.index, this.life.energy()), `craft ${ITEM[out]?.name.en}`);
+    // the work tires the pet and teaches it (world.ts craft)
+    this.life.set(work(this.pet, made.energy, made.xp, this.now, this.life.brain()));
   }
   sew(id: string) {
     const r = MAKE_RECIPES.find((x) => x.id === id)!;
@@ -190,22 +313,78 @@ class Player {
     this.must(make(this.w, r.kind, id), `make ${id}`);
   }
   walk() {
+    this.ready(200);
     this.must(startWalk(this.w, this.now, false), "start walk");
-    this.now += 21 * 60_000;
+    this.pass(21);
     this.must(endWalk(this.w, this.now), "end walk");
+    // a walk together is play (world.ts endWalk): joy for the pet, and it tires
+    this.life.care({ kind: "play" }, this.now);
   }
   trip(to: string) {
+    this.tend();
     this.must(startTrip(this.w, to, this.now), `start trip ${to}`);
-    this.now += DESTINATION[to]!.hours * HOUR;
+    this.away(DESTINATION[to]!.hours * 60);
     this.must(endTrip(this.w, this.now), `end trip ${to}`);
   }
-  /** Minutes together, as the app counts them, in a room and at a time of day. */
+  /** Minutes together at a time of day, in a room or outdoors, watched one by one with the pet awake. */
   together(key: string, minutes: number) {
     const [time, where] = key.split("-") as [string, string | undefined];
-    if (where && where !== "outside" && where !== "inside") this.goTo(Number(where));
-    if (where === "outside") this.goTo(neighbours(HOME)[0]!);
-    this.app("TOGETHER_WHEN", time, minutes);
-    this.app("TOGETHER_WHEN", key, minutes, false);
+    const goal = tallyOf(this.w, "TOGETHER_WHEN", key) + minutes;
+    for (let tried = 0; tallyOf(this.w, "TOGETHER_WHEN", key) < goal; tried++) {
+      if (tried > PATIENCE) throw new OutOfReach(`${minutes} minutes together ${key}: the pet was not awake with you that long`);
+      this.waitFor(time);
+      if (where && where !== "outside" && where !== "inside") this.goTo(Number(where));
+      if (where === "outside") this.goTo(neighbours(HOME)[0]!);
+      if (where === "inside") this.goTo(HOME);
+      if (this.pet.asleep) this.life.care({ kind: "wake" }, this.now);
+      this.pass(1);
+    }
+  }
+  /** Watch the pet until its own brain has chosen `want` (in `room`, when one is named) `n` more times. */
+  choose(want: string, room: number | undefined, n: number) {
+    if (room !== undefined) this.goTo(room);
+    const key = room !== undefined ? `${want}-${room}` : want;
+    const goal = tallyOf(this.w, "CHOOSE", key) + n;
+    for (let watched = 0; tallyOf(this.w, "CHOOSE", key) < goal; watched++) {
+      if (watched > PATIENCE) throw new OutOfReach(`its brain never chose to ${want}${room !== undefined ? ` in room ${room}` : ""} in ${PATIENCE / 60} hours watched`);
+      // to see it choose to eat, it is let get hungry rather than fed
+      if (watched % 60 === 59 && want !== "eat") this.tend();
+      if (this.pet.asleep && want === "eat") this.life.care({ kind: "wake" }, this.now);
+      else if (this.pet.asleep) this.rest();
+      if (room !== undefined) this.goTo(room);
+      this.pass(1);
+    }
+  }
+  /** One real care, at the time of day it names; counted only when it did what the client counts. */
+  care(index: string, n: number) {
+    const [kind, time] = index.split("-") as [string, string | undefined];
+    const goal = tallyOf(this.w, "CARE", index) + n;
+    for (let tries = 0; tallyOf(this.w, "CARE", index) < goal; tries++) {
+      if (tries > 48) throw new OutOfReach(`care "${index}" never counted`);
+      if (time) this.waitFor(time);
+      if (kind === "medicine") {
+        if (!this.pet.sick) throw new OutOfReach("a medicine counts only when it heals, and this pet is well");
+        this.life.care({ kind: "medicine" }, this.now);
+      } else if (kind === "feed") {
+        // a full pet is overfed, which the client does not count: wait for it to be hungry
+        if (this.life.food() >= 880) this.away(60);
+        else this.feed();
+      } else if (kind === "sleep") this.life.care({ kind: "lightsOff" }, this.now);
+      else if (kind === "wake") {
+        if (!this.pet.asleep) this.life.care({ kind: "lightsOff" }, this.now);
+        this.life.care({ kind: "wake" }, this.now);
+      } else if (kind === "play") {
+        this.ready(150);
+        this.life.care({ kind: "play" }, this.now);
+      } else this.life.care({ kind: kind as "clean" | "pet" | "talk" }, this.now);
+      this.pass(1);
+    }
+  }
+  /** A named food eaten, waiting for room in its belly first. */
+  eat(item: number) {
+    this.have(item, 1);
+    for (let h = 0; h < 12 && this.life.food() >= 880; h++) this.away(60);
+    if (!this.life.feed(this.now, item)) throw new Error(`could not eat ${ITEM[item]?.name.en}`);
   }
 }
 
@@ -279,14 +458,34 @@ function satisfy(p: Player, c: Condition, q: QuestDef): void {
         for (const r of fresh) p.lookAround(r.index);
         return;
       }
-      if (type === "FED") return void ["11110", "11120", "11140", "11302", "11313"].forEach((f) => p.app("FED", f));
+      // five different foods really eaten
+      if (type === "FED") return void [11110, 11120, 11140, 11302, 11313].forEach((f) => p.eat(f));
+      // Builders' Lane is a screen, not a room: its visits are counted by hand, as the app counts them
       if (type === "MEET") return void ["behemoth", "mars", "tapboy", "builder", "diver"].forEach((id) => p.app("MEET", id));
-      if (type === "HEALTHY_DAY") return void [0, 1, 2].forEach((d) => p.app("HEALTHY_DAY", localDay(p.now + d * 86_400_000, 0), 1, false));
-      if (type === "MEET_DAY") return void [0, 1, 2].forEach((d) => p.app("MEET_DAY", `${sub}-${localDay(p.now + d * 86_400_000, 0)}`, 1, false));
+      if (type === "MEET_DAY")
+        return void [0, 1, 2].forEach((d) => {
+          if (d) p.away(24 * 60);
+          p.tend();
+          p.app("MEET_DAY", `${sub}-${localDay(p.now, 0)}`, 1, false);
+        });
+      if (type === "HEALTHY_DAY") {
+        // three real days on which the pet was seen with every need at least a quarter full
+        for (let d = 0; d < 3; d++) {
+          if (d) p.away(24 * 60);
+          for (let i = 0; i < 6 && needsMinOf(p.pet) < 250; i++) {
+            p.tend();
+            p.ready(200);
+            p.life.care({ kind: "play" }, p.now);
+          }
+          p.pass(1);
+        }
+        return;
+      }
       throw new Error(`${q.id}: no way to raise DISTINCT ${idx}`);
     }
     case "DISTINCT_TODAY":
-      return void ["sweet", "fruit", "savory"].forEach((g) => p.app(String(idx), `${localDay(p.now, 0)}-${g}`, 1, false));
+      // a sweet, a fruit and a savoury food eaten today
+      return void [11140, 11313, 11302].forEach((f) => p.eat(f));
     case "CRAFT":
       if (idx === undefined) for (let i = 0; i < n; i++) p.make(1102);
       else for (let i = 0; i < n; i++) p.make(Number(idx));
@@ -294,11 +493,13 @@ function satisfy(p: Player, c: Condition, q: QuestDef): void {
     case "MAKE":
       for (let i = 0; i < n; i++) p.sew(String(idx));
       return;
-    case "BUY":
-      p.w = { ...p.w, coins: p.w.coins + 500 };
+    case "BUY": {
+      const item = ROOMS[13]!.shop[0]!;
       p.goTo(13);
-      for (let i = 0; i < n; i++) p.must(buy(p.w, ROOMS[13]!.shop[0]!), "buy");
+      p.afford(n * ITEM[item]!.price!);
+      for (let i = 0; i < n; i++) p.must(buy(p.w, item), "buy");
       return;
+    }
     case "GIVE_TO": {
       const [who, item] = String(idx).split(":") as [string, string | undefined];
       const it = item ? Number(item) : 1002;
@@ -320,19 +521,27 @@ function satisfy(p: Player, c: Condition, q: QuestDef): void {
       return p.together(String(idx), n);
     case "CHOOSE": {
       const [want, room] = String(idx).split("-") as [string, string | undefined];
-      if (room) p.goTo(Number(room));
-      p.app("CHOOSE", want, n);
-      if (room) p.app("CHOOSE", String(idx), n, false);
+      return p.choose(want, room === undefined ? undefined : Number(room), n);
+    }
+    case "CARE":
+      return p.care(String(idx), n);
+    case "LESSON": {
+      // a real lesson, taught as the client teaches it; a full mind forgets its oldest lesson to make room
+      for (let i = 0; i < n; i++) {
+        const before = tallyOf(p.w, "LESSON");
+        p.life.teachNext(p.now, 0, () => {});
+        if (tallyOf(p.w, "LESSON") === before && p.pet.lessons.length) {
+          p.life.set(arrangeLessons(p.pet, p.pet.lessons.length - 1, "forget"));
+          p.life.teachNext(p.now, 0, () => {});
+        }
+        if (tallyOf(p.w, "LESSON") === before) throw new Error(`${q.id}: no lesson could be taught`);
+      }
       return;
     }
-    case "CARE": {
-      const [care, time] = String(idx).split("-") as [string, string | undefined];
-      p.app("CARE", care, n);
-      if (time) p.app("CARE", String(idx), n, false);
-      return;
-    }
-    case "LESSON":
     case "SPAR":
+      // a real spar, against the softest partner
+      for (let i = 0; i < n; i++) p.life.spar(PARTNERS[0]!, p.now);
+      return;
     case "SAVE":
     case "GIFT":
       return p.app(c.type, 0, c.logic.startsWith("CURR") ? Math.max(0, n - tallyOf(p.w, c.type)) || 0 : n);
@@ -343,10 +552,29 @@ function satisfy(p: Player, c: Condition, q: QuestDef): void {
     case "ITEM":
       return p.have(Number(idx), n);
     case "NEEDS":
-      p.needs = Math.max(p.needs, n);
+      // every need brought above the line through real care
+      for (let i = 0; i < 12 && needsMinOf(p.pet) < n; i++) {
+        p.tend();
+        if (p.pet.meters.energy / 60 < n) p.rest();
+        if (p.pet.meters.joy / 60 < n) {
+          p.ready(150);
+          p.life.care({ kind: "play" }, p.now);
+        }
+        if (p.life.food() < n) {
+          p.stock();
+          p.feed();
+        }
+        if (p.pet.meters.clean / 60 < n) p.life.care({ kind: "clean" }, p.now);
+      }
+      if (needsMinOf(p.pet) < n) throw new Error(`${q.id}: needs stayed under ${n}: ${JSON.stringify(p.pet.meters)}`);
       return;
     case "STAGE":
-      p.stage = "adult";
+      // grown up by real days of care
+      for (let d = 0; STAGE_ORDER.indexOf(stageOf(p.pet, p.now)) < n; d++) {
+        if (d > 40) throw new Error(`${q.id}: the pet did not grow to ${STAGE_ORDER[n]}`);
+        p.away(12 * 60);
+        p.tend();
+      }
       return;
     case "PETS":
       p.pets = Math.max(p.pets, n);
@@ -365,15 +593,27 @@ function satisfy(p: Player, c: Condition, q: QuestDef): void {
   }
 }
 
-function play(p: Player, q: QuestDef) {
+/** Play one quest to its hand-in; an objective out of the real pet's reach leaves it taken but undone. */
+function play(p: Player, q: QuestDef, outOfReach: Map<string, string>): boolean {
   // what opens it, in the world (a resident's arc opens on entering their room)
   for (const c of q.requires) if (c.type === "VISIT" && tallyOf(p.w, "VISIT", c.index ?? 0) < (c.value ?? 1)) p.arrive(Number(c.index));
   for (const c of q.requires) if (c.type === "MEET" && tallyOf(p.w, "MEET", c.index ?? 0) < 1) p.app("MEET", c.index ?? "behemoth");
   expect(questStatus(q, p.w, p.view()), `${q.id} should be open`).toBe("available");
   p.must(acceptQuest(p.w, q, p.view()), `accept ${q.id}`);
+  p.stock();
   const started = p.now;
-  for (const o of q.objectives) satisfy(p, o.cond, q);
+  const rested = p.rested;
+  const waited = p.waited;
+  try {
+    for (const o of q.objectives) satisfy(p, o.cond, q);
+  } catch (e) {
+    if (!(e instanceof OutOfReach)) throw e;
+    outOfReach.set(q.id, e.message);
+    return false;
+  }
   p.hours[q.id] = (p.now - started) / HOUR;
+  p.restedIn[q.id] = p.rested - rested;
+  p.waitedIn[q.id] = p.waited - waited;
   const prog = questProgress(q, p.w, p.view());
   const left = q.objectives.filter((_, i) => !prog[i]!.met).map((o, i) => `${o.text.en} (${prog[i]?.have}/${prog[i]?.need})`);
   expect(left, `${q.id} ${q.title.en}: still to do`).toEqual([]);
@@ -382,6 +622,7 @@ function play(p: Player, q: QuestDef) {
   if (giverRoom && !q.objectives.some((o) => o.cond.type === "ROOM")) p.goTo(giverRoom.index);
   p.must(completeQuest(p.w, q, p.view()), `hand in ${q.id}`);
   p.log.push(q.id);
+  return true;
 }
 
 /**
@@ -389,7 +630,7 @@ function play(p: Player, q: QuestDef) {
  * every line of the introduction and closing, every objective. English must read as English and Chinese as Chinese,
  * nothing may be empty, and no placeholder may be left unfilled.
  */
-const CJK = /[\u3400-\u9fff]/;
+const CJK = /[㐀-鿿]/;
 const read: Record<"en" | "zh", number> = { en: 0, zh: 0 };
 function readBoth(q: QuestDef): string[] {
   const faults: string[] = [];
@@ -407,65 +648,114 @@ function readBoth(q: QuestDef): string[] {
   }
   return faults;
 }
+
+/**
+ * The story quests an honest player alone cannot finish today, and every quest that waits on one of them. Each is a
+ * known defect for plan row G8 to fix; this list changes only when one is fixed (or a new one appears).
+ */
+const OUT_OF_REACH: Readonly<Record<string, string>> = {
+  // an untaught gentle pet never chooses to explore while watched (G8 item 1: count its choices while away too)
+  q43: "its brain never chose to explore in room 56 in 12 hours watched",
+  // its solo path is a medicine that heals, and a pet looked after never falls ill (the other path is pet-sitting)
+  q51: "a medicine counts only when it heals, and this pet is well",
+};
+
+/** What the old playthrough reached that only the quests above lead to: two outfit pieces, and the trust of Flit (her arc waits on q43) and Nurse Why (hers on q51). */
+const KEPT_BACK = { pieces: ["net", "nurse"], decor: [] as string[], trust: ["flit", "why"] };
+
 describe("the automated playthrough", () => {
-  it("finishes all 80 story quests through the game's own rules, alone", () => {
+  it("plays every story quest through the game's own rules, alone, with real coins, real energy and its pet's own choices", () => {
     const p = new Player();
     const faults: string[] = [];
+    const outOfReach = new Map<string, string>();
     const left = new Set(STORY.map((q) => q.id));
     for (let round = 0; left.size && round < 100; round++) {
       let progressed = false;
       for (const q of STORY) {
-        if (!left.has(q.id)) continue;
+        if (!left.has(q.id) || outOfReach.has(q.id)) continue;
         const reqsMet = q.requires.every((c) => c.type !== "QUEST" || p.w.quests?.done[String(c.index)] !== undefined);
         const trustOk = q.objectives.every((o) => o.cond.type !== "TRUST_LEVEL" || questStatus(q, p.w, p.view()) !== "locked");
         if (!reqsMet || !trustOk) continue;
-        play(p, q);
+        const done = play(p, q, outOfReach);
         faults.push(...readBoth(q));
-        left.delete(q.id);
+        if (done) left.delete(q.id);
         progressed = true;
       }
       if (!progressed) break;
     }
-    expect([...left], "quests the playthrough could not reach").toEqual([]);
-    expect(p.log).toHaveLength(80);
+    if (process.env.SHOW_HOURS) {
+      console.log(Object.entries(p.hours).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([id, h]) => `${id} ${h.toFixed(1)}h (${p.restedIn[id]!.toFixed(1)}h asleep, ${p.waitedIn[id]!.toFixed(1)}h waiting for the hour)`).join(", "));
+      console.log(`days played ${((p.now - START) / 86_400_000).toFixed(1)}, slept ${p.rested.toFixed(0)}h, ${p.spars} spars for ${p.sparCoins} coins, ${p.life.mistakes} care mistakes`);
+      console.log([...outOfReach].map(([id, why]) => `${id}: ${why}`).join("\n"));
+    }
+    // what an honest solo player cannot finish, and why; everything else is finished
+    expect(Object.fromEntries(outOfReach), "objectives out of the real pet's reach").toEqual(OUT_OF_REACH);
+    const blocked = (q: QuestDef): boolean => outOfReach.has(q.id) || q.requires.some((c) => c.type === "QUEST" && blocked(STORY.find((x) => x.id === c.index)!));
+    expect([...left].sort(), "quests left undone").toEqual(STORY.filter(blocked).map((q) => q.id).sort());
+    expect(p.log).toHaveLength(STORY.length - STORY.filter(blocked).length);
     // every quest played was read in both languages as it was handed in
     expect(faults, "quest text a player could not read").toEqual([]);
     expect(read.en).toBe(read.zh);
-    expect(read.en).toBeGreaterThan(80 * 4);
-    // nothing asks a player to wait more than a night (36-QUEST-LINE.md §1), except quests that are about days:
-    // saving several days, or coming back on different days
-    const aboutDays = (q: QuestDef) => q.objectives.some((o) => (o.cond.type === "SAVE" && (o.cond.value ?? 1) > 1) || /HEALTHY_DAY|MEET_DAY/.test(String(o.cond.index)));
-    const slow = STORY.filter((q) => !aboutDays(q) && p.hours[q.id]! > 16).map((q) => `${q.id} ${p.hours[q.id]!.toFixed(1)}h`);
-    expect(slow, "quests that took more than a night").toEqual([]);
-    if (process.env.SHOW_HOURS) console.log(Object.entries(p.hours).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([id, h]) => `${id} ${h.toFixed(1)}h`).join(", "));
-    // every reward landed: the keepsakes are owned and trust reached its levels
-    expect(p.w.wardrobe?.owned).toEqual(expect.arrayContaining(["charm", "ribbon", "ranger", "goggles", "net", "nurse", "headband", "whistle", "seal", "dream", "b:lamps13", "b:telescope", "b:handheld", "b:hardhat"]));
-    expect(p.w.decor?.owned).toEqual(expect.arrayContaining(["postcard", "starmap", "photo", "portrait", "firstaid", "pillow", "cloud", "dreamjar", "eggshell", "nameplate", "sign", "mapframe"]));
-    for (const who of ["wick", "praline", "yonder", "bolt", "flit", "why", "jab", "twain", "nimbus"]) expect(p.w.trust?.[who] ?? 0, who).toBeGreaterThanOrEqual(30);
-  });
+    expect(read.en).toBeGreaterThan(p.log.length * 4);
+    // nothing asks a player to wait more than a night (36-QUEST-LINE.md §1), except quests that are about days (saving
+    // several days, coming back on different days, growing up). Counted now without the hours the pet slept to get its
+    // energy back, which the old held-up energy hid, and the hours waited for the time of day a quest names; both are
+    // real waits, reported with SHOW_HOURS, and the plan's rows weigh them (G3 the energy, G4 the pacing)
+    const aboutDays = (q: QuestDef) => q.objectives.some((o) => (o.cond.type === "SAVE" && (o.cond.value ?? 1) > 1) || o.cond.type === "STAGE" || /HEALTHY_DAY|MEET_DAY/.test(String(o.cond.index)));
+    const slow = STORY.filter((q) => p.hours[q.id] !== undefined && !aboutDays(q) && p.hours[q.id]! - p.restedIn[q.id]! - p.waitedIn[q.id]! > 16).map((q) => `${q.id} ${p.hours[q.id]!.toFixed(1)}h`);
+    expect(slow, "quests that took more than a night awake").toEqual([]);
+    // every reward landed: each finished quest's keepsakes are owned (the old fixed list less what only the quests out
+    // of reach give), and trust reached its levels
+    const given = (kind: "piece" | "decor") => STORY.filter((q) => p.log.includes(q.id)).flatMap((q) => q.rewards.flatMap((r) => (r.kind === kind ? [r.id] : [])));
+    expect(p.w.wardrobe?.owned).toEqual(expect.arrayContaining(given("piece")));
+    expect(p.w.decor?.owned).toEqual(expect.arrayContaining(given("decor")));
+    const missing = (ids: string[], owned: string[] = []) => ids.filter((id) => !owned.includes(id));
+    expect(missing(["charm", "ribbon", "ranger", "goggles", "net", "nurse", "headband", "whistle", "seal", "dream", "b:lamps13", "b:telescope", "b:handheld", "b:hardhat"], p.w.wardrobe?.owned), "pieces only quests out of reach give").toEqual(KEPT_BACK.pieces);
+    expect(missing(["postcard", "starmap", "photo", "portrait", "firstaid", "pillow", "cloud", "dreamjar", "eggshell", "nameplate", "sign", "mapframe"], p.w.decor?.owned), "decor only quests out of reach give").toEqual(KEPT_BACK.decor);
+    const residents = ["wick", "praline", "yonder", "bolt", "flit", "why", "jab", "twain", "nimbus"];
+    for (const who of residents) {
+      const owed = STORY.filter((q) => p.log.includes(q.id)).reduce((t, q) => t + q.rewards.reduce((n, r) => n + (r.kind === "trust" && r.who === who ? r.n : 0), 0), 0);
+      expect(p.w.trust?.[who] ?? 0, who).toBe(owed);
+    }
+    expect(residents.filter((who) => (p.w.trust?.[who] ?? 0) < 30), "residents whose arc waits on a quest out of reach").toEqual(KEPT_BACK.trust);
+    // the coins were earned, never granted: everything held was paid in by the world or by spar wins
+    expect(tallyOf(p.w, "COINS_EARNED") - tallyOf(p.w, "COINS_SPENT") + 30).toBe(p.w.coins);
+  }, 600_000);
 
   it("finishes every daily, across real days, and earns the weekly gift without a streak", () => {
     const p = new Player();
     const seen = new Set<string>();
     const faults: string[] = [];
-    let day = 0;
-    for (; seen.size < DAILIES.length && day < 120; day += 2) {
-      p.now = Date.UTC(2026, 10, 16, 8) + day * 86_400_000; // every other day: gaps never cost anything
+    const outOfReach = new Map<string, string>();
+    for (let day = 0; seen.size < DAILIES.length && day < 120; day += 2) {
+      // every other day: a missed day never costs a daily (the pet, being real, misses its owner meanwhile)
+      p.away(Math.max(0, START + day * 86_400_000 - p.now) / MIN);
+      p.tend();
+      p.stock();
       p.w = rollDailies(p.w, DAILIES, p.view(), 0);
       for (const id of p.w.quests!.today!.offered) {
         const q = DAILIES.find((x) => x.id === id)!;
-        for (const o of q.objectives) satisfy(p, o.cond, q);
+        try {
+          for (const o of q.objectives) satisfy(p, o.cond, q);
+        } catch (e) {
+          if (!(e instanceof OutOfReach)) throw e;
+          outOfReach.set(id, e.message);
+          continue;
+        }
+        // the day can run out while the pet sleeps or the player waits for the evening: the next offer tries again
+        if (localDay(p.now, 0) !== p.w.quests!.today!.day) continue;
         expect(questStatus(q, p.w, p.view()), `${id} on day ${day}`).toBe("ready");
         p.must(completeQuest(p.w, q, p.view()), `hand in ${id}`);
         faults.push(...readBoth(q));
         seen.add(id);
       }
     }
+    expect(Object.fromEntries(outOfReach), "dailies out of the real pet's reach").toEqual({});
     expect(DAILIES.filter((q) => !seen.has(q.id)).map((q) => q.id)).toEqual([]);
     expect(faults, "daily text a player could not read").toEqual([]);
     expect(weeklyGiftsWaiting(p.w)).toBeGreaterThanOrEqual(1);
     const coins = p.w.coins;
     p.must(claimWeekly(p.w, WEEKLY_GIFT), "weekly gift");
     expect(p.w.coins).toBe(coins + 60);
-  });
+  }, 600_000);
 });

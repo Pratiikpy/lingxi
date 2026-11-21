@@ -15,7 +15,7 @@ import { STARTERS, programOfChips } from "@lingxi/brain";
 import { DESIGNED_PARTNERS, composeProgram, type Challenge, type CoachNote, type DuelPet, type Fighter, MAX_HP, MOVES, type Move, PARTNERS, type Partner, type Pet, type SparResult, TRAITS, coach, dayOf, duel as runDuel, duelFighter, encodeChallenge, encodeResult, fighterOfMind, fighterOfPartner, halvesOf, petCard, rewindFight, ruleSource, spar, stageOf, FLY_RIVALS, type FlyRival, FlyLinkError, flyFighter, parseFlyBrain, skillRules, sparMods } from "@lingxi/game";
 import { linkPrefix } from "../game/links";
 import { SILICON } from "@lingxi/art";
-import { BEHEMOTH_STEPS_PER_ROUND, behemothAt, behemothFighter } from "@lingxi/game";
+import { BEHEMOTH_STEPS_PER_ROUND, SPAR_FIRST_ROUND_MS, SPAR_FIRST_WIN_COINS, SPAR_ROUND_MS, SPAR_WIN_COINS, behemothAt, behemothFighter } from "@lingxi/game";
 import { now } from "../game/gameClock";
 
 const BEHEMOTH_PARTNER: Partner = { id: "builder:behemoth", name: { en: "Behemoth", zh: "巨兽" }, look: "behemoth", line: "gentle", stage: "adult", level: 1, blurb: { en: "", zh: "" }, program: STARTERS.gentle };
@@ -58,9 +58,6 @@ const MOVE_NAMES: Record<Move, [string, string]> = {
   charm: ["Charm", "撒娇"],
   gift: ["Gift", "送礼"],
 };
-const WIN_COINS = 5;
-const FIRST_WIN_COINS = 25;
-const ROUND_MS = 950;
 
 const levelOf = (stage: string) => (stage === "elder" ? 2 : stage === "teen" || stage === "adult" ? 1 : 0);
 const drawn = (s: string): PetStage => (s === "elder" ? "adult" : (s as PetStage));
@@ -661,7 +658,7 @@ export function FightView({
     // Spar skills (plan 4.4): more for a win, and something even for a loss; friendly matches pay nothing, as before
     const skill = sparMods(growth);
     if (outcome === "w" && !partner.id.startsWith("friend:")) {
-      const coins = WIN_COINS + (first ? FIRST_WIN_COINS : 0) + skill.winCoins;
+      const coins = SPAR_WIN_COINS + (first ? SPAR_FIRST_WIN_COINS : 0) + skill.winCoins;
       useWorld.getState().reward(coins);
       setReward(coins);
       play("success");
@@ -682,7 +679,7 @@ export function FightView({
       play(r.hits[0] || r.hits[1] ? "pop" : "tap");
       setShown(shown + 1);
       if (shown + 1 >= result.rounds.length) settleOnce();
-    }, shown === 0 ? 500 : reduce ? 450 : ROUND_MS);
+    }, shown === 0 ? SPAR_FIRST_ROUND_MS : reduce ? 450 : SPAR_ROUND_MS);
     return () => clearTimeout(id);
   }, [shown, finished, result, reduce]);
   const face = (side: 0 | 1): Expression => {
