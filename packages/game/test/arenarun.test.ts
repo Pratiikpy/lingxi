@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { COMPANION } from "../src/companions";
+import { fighterFrom, fighterOfMind } from "../src/coach";
+import { teamSpar, type TeamUnit } from "../src/team";
 import {
   MAX_COMPANIONS,
   ROUND_COINS,
   START_HEARTS,
   TROPHIES_TO_WIN,
+  SHOP_SIZE,
+  battleSeed,
   buy,
+  ghostHealth,
   ghostLevel,
   ghostTeam,
   outcome,
@@ -105,4 +110,34 @@ describe("arena runs", () => {
   it("ghost veterans get a level edge from round 3, capped at 3", () => {
     expect([0, 2, 3, 6, 9, 30].map(ghostLevel)).toEqual([0, 0, 1, 2, 3, 3]);
   });
+});
+
+describe("arena runs stay fair on the spar's rules (B3c)", () => {
+  it("a player who buys whatever fits each round wins between a fifth and a half of its runs, as under LX-TEAM/1", () => {
+    const unitOf = (id: string, i: number, edge = 0): TeamUnit => {
+      const c = COMPANION[id]!;
+      const f = fighterFrom(c.name.en, c.program, Math.min(3, c.level + edge));
+      return { id: `${id}:${i}`, name: c.name.en, brain: f.brain, memory: f.memory, hp: ghostHealth(c.hp, edge), level: f.level };
+    };
+    let won = 0;
+    const N = 60;
+    for (let seed = 1; seed <= N; seed++) {
+      const line = (["gentle", "bold", "curious"] as const)[seed % 3]!;
+      let s = startRun(seed * 7919);
+      for (let k = 0; k < 40 && outcome(s) === "playing"; k++) {
+        for (let tries = 0; tries < 6; tries++) for (let slot = 0; slot < SHOP_SIZE; slot++) {
+          const r = buy(s, slot);
+          if (r.ok) s = r.state;
+        }
+        const pet = fighterOfMind("pet", { line, lessons: [] }, 1);
+        const mine: TeamUnit[] = [{ id: "pet", name: "pet", brain: pet.brain, memory: pet.memory, hp: 100, level: 1 }, ...s.team.map((id, i) => unitOf(id, i))];
+        const theirs = ghostTeam(s.seed, s.round).map((id, i) => unitOf(id, i, ghostLevel(s.round)));
+        const r = teamSpar(mine, theirs, battleSeed(s));
+        s = settle(s, r.winner === 0 ? 1 : r.winner === 1 ? -1 : 0);
+      }
+      if (outcome(s) === "won") won++;
+    }
+    expect(won / N).toBeGreaterThan(0.2);
+    expect(won / N).toBeLessThan(0.5);
+  }, 120_000);
 });

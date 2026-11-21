@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { STARTERS, compileProgram, fastBrain, gateCount, stateBits } from "@lingxi/brain";
 import { COMPANIONS, COMPANION } from "../src/companions";
 import { MAX_GATES } from "../src/lessons";
-import { TEAM_ROUNDS, teamSpar, type TeamUnit } from "../src/team";
+import { TEAM_ROUNDS, TEAM_V2, TEAM_VERSION, teamSpar, type TeamUnit } from "../src/team";
+import { fighterFrom } from "../src/coach";
 
 const unit = (id: string, program: import("@lingxi/brain").Program, hp: number, level = 0): TeamUnit => ({
   id,
@@ -114,3 +115,68 @@ describe("team spar records", () => {
     }
   });
 });
+
+/** LX-TEAM/1 fingerprints recorded before LX-TEAM/2 (row B3c) and identical after it: every team battle fought in it replays. */
+const TEAM_V1_PINS: [number, string][] = [
+  [0, "9f082d7e"],
+  [1, "0fc47eeb"],
+  [2, "59c27baf"],
+  [3, "72009bc8"],
+  [4, "39e4a6f4"],
+  [5, "7c1a9782"],
+  [6, "3843c443"],
+  [7, "b16f63c3"],
+  [8, "3e196ace"],
+  [9, "c38c26f1"],
+  [10, "f492cbd1"],
+  [11, "9940299a"],
+  [12, "33265447"],
+  [13, "88c8f44f"],
+  [14, "9ef338eb"],
+  [15, "d4525c52"],
+  [16, "3b6e72ec"],
+  [17, "c0801436"],
+  [18, "283ff592"],
+  [19, "bf1f78c1"],
+  [20, "fcb85c3e"],
+  [21, "faea9bf2"],
+  [22, "65aa3587"],
+  [23, "7c24b6fb"],
+  [24, "73313617"],
+  [25, "7416bd8d"],
+  [26, "70cb8ab3"],
+  [27, "17600dd6"],
+  [28, "12cd1ab2"],
+  [29, "7ca33bec"]
+];
+
+describe("team battle versions (B3c)", () => {
+  const unitOf = (id: string, program: Parameters<typeof fighterFrom>[1], hp: number, level = 0) => {
+    const f = fighterFrom(id, program, level);
+    return { id, name: id, brain: f.brain, memory: f.memory, hp, level };
+  };
+  it("LX-TEAM/1 replays every recorded battle to the same fingerprint", () => {
+    for (const [s, digest] of TEAM_V1_PINS) {
+      const a = [unitOf("pet", STARTERS[(["gentle", "bold", "curious"] as const)[s % 3]!], 100, s % 2), ...COMPANIONS.slice(0, s % 4).map((c) => unitOf(c.id, c.program, c.hp, c.level))];
+      const b = COMPANIONS.slice(s % 3, (s % 3) + 1 + (s % 4)).map((c) => unitOf(c.id, c.program, c.hp, c.level));
+      const r = teamSpar(a, b, s * 101 + 7, TEAM_VERSION);
+      expect(r.version).toBe(TEAM_VERSION);
+      expect(r.digest, `team ${s}`).toBe(digest);
+    }
+  });
+
+  it("new battles are LX-TEAM/2, where a guarding or dodging front can beat a pouncing one (the spar's triangle)", () => {
+    const only = (want: number) => ({ version: "LX-PET/1", memory: [], rules: [], otherwise: { want, mood: 1 } }) as never;
+    const rate = (want: number) => {
+      let w = 0;
+      for (let s = 0; s < 200; s++) if (teamSpar([unitOf("me", only(want), 100)], [unitOf("pouncer", only(2), 100)], s).winner === 0) w++;
+      return w / 200;
+    };
+    expect(teamSpar([unitOf("a", only(0), 100)], [unitOf("b", only(0), 100)], 1).version).toBe(TEAM_V2);
+    for (const [move, want] of [["guard", 5], ["dodge", 4]] as const) {
+      expect(rate(want), move).toBeGreaterThan(0.25);
+      expect(rate(want), move).toBeLessThan(0.75);
+    }
+  });
+});
+

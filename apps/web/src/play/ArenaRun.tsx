@@ -30,6 +30,7 @@ import {
   petCard,
   fighterFrom,
   fighterOfMind,
+  ghostHealth,
   ghostLevel,
   ghostTeam,
   outcome,
@@ -99,7 +100,7 @@ function PetArt({ pet, scale, face = "happy" }: { pet: Pet; scale: number; face?
 const companionUnit = (id: string, i: number, edge = 0): TeamUnit => {
   const c = COMPANION[id]!;
   const f = fighterFrom(c.name.en, c.program, Math.min(3, c.level + edge));
-  return { id: `${id}:${i}`, name: c.name.en, brain: f.brain, memory: f.memory, hp: c.hp, level: f.level };
+  return { id: `${id}:${i}`, name: c.name.en, brain: f.brain, memory: f.memory, hp: ghostHealth(c.hp, edge), level: f.level };
 };
 
 function petUnit(pet: Pet): TeamUnit {

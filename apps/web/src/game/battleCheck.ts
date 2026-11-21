@@ -8,7 +8,7 @@
 
 import { bitsToWord, circuitBrain } from "@lingxi/brain";
 import { loadCircuitFromChain, readPet, replayStep } from "@lingxi/chain";
-import { type Fighter, MAX_STAMINA, type Move, SPAR_VERSION, type SparResult, type SparVersion, type TeamResult, type TeamUnit, allowedMove, fight, rulesOf, teamSpar } from "@lingxi/game";
+import { type Fighter, MAX_STAMINA, type Move, TEAM_SPAR, type SparResult, type SparVersion, type TeamResult, type TeamUnit, allowedMove, fight, rulesOf, teamSpar } from "@lingxi/game";
 import { deployment, publicClient } from "./chain";
 
 export interface BattleCheck {
@@ -87,9 +87,10 @@ export async function checkTeamOnChain(opts: { petId: string; mine: () => TeamUn
   const pet = mine[0]!;
   const fought = opts.result.rounds.filter((r) => r.words[0][0]! >= 0);
   if (circuit.nState !== pet.memory.length) return { petId: opts.petId, brainId: p.brainId.toString(), digest: "", same: false, confirmed: 0, rounds: fought.length, differs: 1 };
-  const rerun = teamSpar([{ ...pet, brain: circuitBrain(circuit) }, ...mine.slice(1)], opts.theirs(), opts.result.seed);
+  // each team battle is re-fought in the version it was fought in (LX-TEAM/1 battles from before B3c still check)
+  const rerun = teamSpar([{ ...pet, brain: circuitBrain(circuit) }, ...mine.slice(1)], opts.theirs(), opts.result.seed, opts.result.version);
   const steps = fought.map((r) => ({ word: r.words[0][0]!, stamina: r.stamina[0][0]!, made: r.moves[0][0]! }));
-  // a team battle (LX-TEAM/1) keeps LX-SPAR/1's stamina rule: a pet with no stamina can only rest or tap
-  const { confirmed, differs } = await askChain(id, pet.memory, steps, SPAR_VERSION, opts.onProgress);
+  // a team battle's moves follow its version's spar rules (LX-TEAM/1 those of LX-SPAR/1, LX-TEAM/2 those of LX-SPAR/3)
+  const { confirmed, differs } = await askChain(id, pet.memory, steps, TEAM_SPAR[opts.result.version], opts.onProgress);
   return { petId: opts.petId, brainId: p.brainId.toString(), digest: rerun.digest, same: rerun.digest === opts.result.digest, confirmed, rounds: steps.length, ...(differs ? { differs } : {}) };
 }

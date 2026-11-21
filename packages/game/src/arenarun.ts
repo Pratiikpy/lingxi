@@ -150,6 +150,14 @@ export function ghostTeam(seed: number, round: number): string[] {
 
 /** level edge of every ghost unit in a round (added to its own balance-table level, capped at 3) */
 export const ghostLevel = (round: number): number => Math.min(3, Math.floor(round / 3));
+/**
+ * A ghost veteran's health: a tenth more for each level of its edge (row B3c). Team battles fight by the spar's rules
+ * from LX-TEAM/2, where a level is worth half a power, so the edge that made later rounds hard is carried by health too;
+ * measured on simulated runs (a player who buys whatever fits each round), runs won went from 34-41% under LX-TEAM/1 to
+ * 75% with no health edge and 31-37% with this one, average trophies 7.7-8.0 against 7.6-8.2.
+ */
+export const GHOST_HP_PER_EDGE = 0.1;
+export const ghostHealth = (hp: number, edge: number): number => Math.round(hp * (1 + GHOST_HP_PER_EDGE * edge));
 
 /** the seed a round's battle is fought on */
 export const battleSeed = (s: RunState): number => mix(s.seed, s.round, 0xbeef);
