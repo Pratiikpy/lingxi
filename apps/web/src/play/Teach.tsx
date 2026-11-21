@@ -302,7 +302,7 @@ function Learned({ pet }: { pet: Pet }) {
             </div>
             {fires[i]?.last && <LastTime pet={pet} frame={fires[i]!.last!} />}
             {!fires[i]?.last && lessonTrigger(r).kind === "moment" && (
-              <button type="button" className="link small" onClick={() => showMoment(pet, r, t, lang === "zh" ? "zh" : "en")}>
+              <button type="button" className="text-link small see-moment" onClick={() => showMoment(pet, r, t, lang === "zh" ? "zh" : "en")}>
                 {t("teach.seeMoment")}
               </button>
             )}
@@ -559,15 +559,20 @@ function LastTime({ pet, frame }: { pet: Pet; frame: Frame }) {
   const [open, setOpen] = useState(false);
   // the time on the pet's own clock
   const at = new Date(frame.at! + pet.tzOffsetMin * 60_000).toLocaleTimeString(lang === "zh" ? "zh-CN" : "en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
-  const sensed = INPUT_FIELDS.map((f) => VALUE_NAMES[f.name]?.[lang][frame.senses[f.name as keyof typeof frame.senses]] ?? "").filter(Boolean);
+  // everything it sensed, leaving out "nothing happening" (no care, no event), which only says what was absent
+  const sensed = INPUT_FIELDS.filter((f) => !((f.name === "action" || f.name === "event") && frame.senses[f.name] === 0))
+    .map((f) => VALUE_NAMES[f.name]?.[lang][frame.senses[f.name as keyof typeof frame.senses]] ?? "")
+    .filter(Boolean);
   return (
     <div className="last-time">
-      <button type="button" className="link small" aria-expanded={open} onClick={() => (play("tap"), setOpen((o) => !o))}>
+      <button type="button" className="text-link small" aria-expanded={open} onClick={() => (play("tap"), setOpen((o) => !o))}>
         {t("teach.lastAt", { time: at })}
       </button>
       {open && (
         <p className="small">
-          {t("teach.lastSensed", { sensed: sensed.join(lang === "zh" ? "、" : ", ") })} {t("teach.lastDid", { then: WANT_NAMES[lang][frame.want] ?? "" })}
+          {t("teach.lastSensed", { sensed: sensed.join(lang === "zh" ? "、" : ", ") })}
+          {lang === "zh" ? "" : " "}
+          {t("teach.lastDid", { then: WANT_NAMES[lang][frame.want] ?? "" })}
         </p>
       )}
     </div>

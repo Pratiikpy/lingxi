@@ -5,25 +5,16 @@
  */
 
 import { create } from "zustand";
-import { INPUT_FIELDS, type Program, type Rule, type Senses, encodeSenses, runBeat, stateBits } from "@lingxi/brain";
+import { type Program, type Rule, type Senses, encodeSenses, runBeat, stateBits } from "@lingxi/brain";
+import { momentFor } from "@lingxi/game";
 import { now as gameNow } from "./gameClock";
 import { useVoice } from "./voice";
-
-/** A calm, watched daytime moment: nothing pressing, the owner here. */
-const CALM: Senses = { hunger: 0, joy: 2, energy: 2, clean: 2, time: 2, action: 0, event: 0, owner: 1 };
 
 /** How long the room shows the staged moment. */
 export const TRIAL_MS = 6000;
 
-/** The situation a lesson names, with every sense it does not name calm and watched. */
-export function stageFor(rule: Rule): Senses {
-  const s: Senses = { ...CALM };
-  for (const f of INPUT_FIELDS) {
-    const allowed = (rule.when as Record<string, number[] | undefined>)[f.name];
-    if (allowed?.length && !allowed.includes(s[f.name])) s[f.name] = allowed[0]!;
-  }
-  return s;
-}
+/** The situation a lesson names, with every sense it does not name calm and watched (lightBulb.ts). */
+export const stageFor = (rule: Rule): Senses => momentFor(rule);
 
 export interface Trial {
   /** what the pet chose, and in what mood */
@@ -33,15 +24,17 @@ export interface Trial {
   rule: number;
   /** whether the lesson itself decided */
   fired: boolean;
+  /** the situation it was asked in */
+  senses: Senses;
 }
 
-/** What the pet's mind does in the lesson's situation, from its memory as it is. */
-export function tryLesson(program: Program, state: readonly number[], lesson: Rule): Trial {
-  const word = encodeSenses(stageFor(lesson));
+/** What the pet's mind does in the lesson's situation (or `senses`, one of them), from its memory as it is. */
+export function tryLesson(program: Program, state: readonly number[], lesson: Rule, senses: Senses = stageFor(lesson)): Trial {
+  const word = encodeSenses(senses);
   const r = runBeat(program, state.slice(0, stateBits(program)), word);
   const at = program.rules.findIndex((x) => JSON.stringify([x.when, x.then]) === JSON.stringify([lesson.when, lesson.then]));
   const decided = r.rule >= 0 ? program.rules[r.rule]!.then : program.otherwise;
-  return { want: decided.want, mood: decided.mood, rule: r.rule, fired: at >= 0 && r.rule === at };
+  return { want: decided.want, mood: decided.mood, rule: r.rule, fired: at >= 0 && r.rule === at, senses };
 }
 
 interface TrialState {

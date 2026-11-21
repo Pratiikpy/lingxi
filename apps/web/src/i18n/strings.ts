@@ -348,7 +348,7 @@ export const en = {
   "try.care.medicine": "Give it medicine",
   "try.care.talk": "Talk to it",
   "try.watched": "{name} learned it. It does this when you are near and nothing else is going on: watch it in the room.",
-  "try.moment": "{name} will do this {when}. See what it would do then.",
+  "try.moment": "{name} will do this when it's {when}. See what it would do then.",
   "try.would": "When that moment comes I'll {then}.",
   "try.without": "Without this lesson I'd {then}.",
   "try.watch": "Watch the room",

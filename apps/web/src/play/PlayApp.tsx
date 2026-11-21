@@ -17,7 +17,7 @@ import { RemindersPanel } from "./Reminders";
 import { DecorBar } from "./DecorBar";
 import { NoticeLane } from "./NoticeLane";
 import { MoreBehind } from "./MoreBehind";
-import { stageFor, useTrial, type Trial } from "../game/tryIt";
+import { useTrial, type Trial } from "../game/tryIt";
 import type { Rule } from "@lingxi/brain";
 import { BadgeShelf, BadgeToast } from "./Badges";
 import { type DayPhase, RoomScene, weatherFor } from "../scene/RoomScene";
@@ -104,7 +104,7 @@ const KIN_HELLO: Record<string, number> = {};
 /** The pet as the staged moment shows it: the decision the trial made, by the half of its mind that made it. */
 function trialPet(pet: Pet, trial: Trial & { lesson: Rule }): Pet {
   const { instinct: _instinct, half: _half, ...last } = pet.last;
-  const time = stageFor(trial.lesson).time;
+  const time = trial.senses.time;
   return { ...pet, last: { ...last, want: trial.want, mood: trial.mood, rule: trial.rule, ...(pet.family ? { half: time === 1 || time === 2 ? (0 as const) : (1 as const) } : {}) } };
 }
 
@@ -118,7 +118,7 @@ export function PlayApp() {
   const trial = useTrial((s) => s.trial);
   // G1: what the room shows: a lesson being tried brings its own moment; otherwise the living room's last event
   const roomEvent = useGame((s) => s.roomEvent);
-  const roomEventProps = trial ? { event: stageFor(trial.lesson).event, eventAt: trial.shownAt } : roomEvent ? { event: roomEvent.event, eventAt: roomEvent.at } : {};
+  const roomEventProps = trial ? { event: trial.senses.event, eventAt: trial.shownAt } : roomEvent ? { event: roomEvent.event, eventAt: roomEvent.at } : {};
   // and the room comes back to show it, whatever sheet the lesson was taught from
   useEffect(() => useTrial.subscribe((s, prev) => ((s.trial && s.trial !== prev.trial) || s.watching !== prev.watching) && setTab("home")), []);
   const [phase, setPhase] = useState<DayPhase>(phaseNow);

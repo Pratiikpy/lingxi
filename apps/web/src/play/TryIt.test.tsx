@@ -63,6 +63,9 @@ describe("Try it follows what brings the lesson about (B4)", () => {
     expect(trial?.fired).toBe(true);
     const { useVoice } = await import("../game/voice");
     expect(useVoice.getState().line).toMatch(/When that moment comes I'll/);
+    // the moment picked is one where the lesson matters: without it, a merely tired pet in the day would not sleep
+    expect(useVoice.getState().line).toMatch(/Without this lesson I'd/);
+    expect(trial?.senses.time).toBe(2);
     expect(useGame.getState().pet, "the preview logs nothing").toBe(pet);
     close();
   });

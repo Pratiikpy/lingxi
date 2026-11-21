@@ -54,6 +54,7 @@
 }
 .learned li {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--s2);
@@ -579,4 +580,37 @@
 }
 .swap-row input {
   margin: 0 4px 0 0;
+}
+
+/* B4: the last moment a lesson decided, and a moment lesson's preview, on their own line under the lesson */
+/* the lesson's words shrink and wrap within their own column, so its controls stay beside it on a phone */
+.learned li > .rule-preview {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.learned .last-time,
+.learned .see-moment {
+  order: 1;
+  flex-basis: 100%;
+}
+.last-time p {
+  margin: 2px 0 4px;
+  color: var(--ink);
+}
+.learned .text-link {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.learned .text-link:focus-visible {
+  outline: 3px solid var(--sky);
+  outline-offset: 2px;
 }

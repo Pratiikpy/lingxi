@@ -8,7 +8,7 @@
  */
 
 import type { Rule } from "@lingxi/brain";
-import { type Pet, lessonTrigger, momentFor } from "@lingxi/game";
+import { type Pet, lessonTrigger, momentsFor } from "@lingxi/game";
 import { type Key, useLang, useT } from "../i18n";
 import { WANT_NAMES, chipsFor } from "./ruleText";
 import { mindParts, programFor } from "../game/store";
@@ -24,16 +24,21 @@ const same = (a: Rule, b: Rule) => JSON.stringify([a.when, a.then]) === JSON.str
  */
 export function showMoment(pet: Pet, lesson: Rule, t: ReturnType<typeof useT>, lang: "en" | "zh") {
   play("tap");
-  // a child decides with one parent's half by morning and day, the other's by evening and night
-  const time = momentFor(lesson).time;
-  const pick = <T,>(parts: T[]) => ((time === 1 || time === 2 ? parts[0] : parts[1]) ?? parts[0])!;
-  const part = pick(mindParts(pet));
-  const tried = tryLesson(part.program, pet.brain.slice(part.offset), lesson);
-  const without = pick(mindParts({ ...pet, lessons: pet.lessons.filter((l) => !same(l, lesson)) }));
-  const before = tryLesson(without.program, pet.brain.slice(without.offset), lesson);
+  const withIt = mindParts(pet);
+  const withoutIt = mindParts({ ...pet, lessons: pet.lessons.filter((l) => !same(l, lesson)) });
+  // each situation the lesson names, asked of the half of the mind that decides then (a child decides with one
+  // parent's half by morning and day, the other's by evening and night), with and without the lesson
+  const asked = momentsFor(lesson).map((senses) => {
+    const pick = <T,>(parts: T[]) => ((senses.time === 1 || senses.time === 2 ? parts[0] : parts[1]) ?? parts[0])!;
+    const part = pick(withIt);
+    const without = pick(withoutIt);
+    return { tried: tryLesson(part.program, pet.brain.slice(part.offset), lesson, senses), before: tryLesson(without.program, pet.brain.slice(without.offset), lesson, senses) };
+  });
+  // the moment shown: one where the lesson decides and changes what the pet does, else one where it decides
+  const { tried, before } = asked.find((a) => a.tried.fired && a.before.want !== a.tried.want) ?? asked.find((a) => a.tried.fired) ?? asked[0]!;
   const then = (want: number) => WANT_NAMES[lang][want] ?? "";
   const line = tried.fired
-    ? `${t("try.would", { then: then(tried.want) })}${before.want !== tried.want ? ` ${t("try.without", { then: then(before.want) })}` : ""}`
+    ? `${t("try.would", { then: then(tried.want) })}${before.want !== tried.want ? `${lang === "zh" ? "" : " "}${t("try.without", { then: then(before.want) })}` : ""}`
     : t("try.waits", { name: pet.name, then: then(tried.want) });
   useTrial.getState().stage(tried, lesson, line);
 }

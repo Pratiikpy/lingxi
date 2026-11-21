@@ -53,6 +53,24 @@ export function momentFor(rule: Rule): Senses {
   return s;
 }
 
+/** Most situations `momentsFor` lists for one lesson. */
+const MOMENTS_MAX = 64;
+
+/**
+ * Every situation a lesson names: each sense it pins that the calm moment does not satisfy, at each value the lesson
+ * allows (the first is `momentFor`). A preview picks among them the one where the lesson changes what the pet does.
+ */
+export function momentsFor(rule: Rule): Senses[] {
+  let out: Senses[] = [{ ...CALM_SENSES }];
+  for (const f of INPUT_FIELDS) {
+    const k = f.name as keyof Senses;
+    const v = allowed(rule, k);
+    if (!v || v.includes(CALM_SENSES[k])) continue;
+    out = out.flatMap((s) => v.map((x) => ({ ...s, [k]: x }))).slice(0, MOMENTS_MAX);
+  }
+  return out;
+}
+
 /** The event a live beat carries while a light bulb is staged (`from` the teaching beat), or null when none is. */
 export function stagedEvent(staged: { event: number; from: number } | null | undefined, beat: number): number | null {
   return staged && beat > staged.from && beat <= staged.from + LIGHT_BULB_BEATS ? staged.event : null;
