@@ -1,0 +1,15 @@
+--- a/packages/game/src/sim.ts
++++ b/packages/game/src/sim.ts
+@@ -459,10 +459,8 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
+       break;
+   }
+   // taps inside one beat are one thought: the first is thought about and logged, the rest change only the meters (G3)
+-  if (p.careBeat !== p.beat) {
+-    think(p, brain, p.beat, action, event, true);
+-    p.careBeat = p.beat;
+-  }
++  think(p, brain, p.beat, action, event, true);
++  p.careBeat = p.beat;
+   if (rewarded) {
+     gainXp(p, 1);
+     p.enjoy = Math.min(ENJOY_MAX, (p.enjoy ?? 0) + ENJOY_PER_CARE);

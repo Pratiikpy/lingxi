@@ -1,0 +1,11 @@
+--- a/packages/game/src/sim.ts
++++ b/packages/game/src/sim.ts
+@@ -359,7 +359,7 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
+   const rewarded = needed && (p.enjoy ?? 0) + ENJOY_PER_CARE <= ENJOY_MAX;
+   // every care is counted; one that answered a need is counted again for evolution (G3)
+   const counted = (n: number) => Math.min(255, n + 1);
+-  if (needed && (c.kind === "feed" || c.kind === "play" || c.kind === "clean" || c.kind === "pet")) {
++  if (c.kind === "feed" || c.kind === "play" || c.kind === "clean" || c.kind === "pet") {
+     const was = p.needs ?? { feed: 0, play: 0, clean: 0, pet: 0 };
+     p.needs = { ...was, [c.kind]: Math.min(255, was[c.kind] + 1) };
+   }

@@ -1,0 +1,11 @@
+--- a/packages/game/src/sim.ts
++++ b/packages/game/src/sim.ts
+@@ -354,7 +354,7 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
+     }
+   }
+   // G3: care that answers a need is counted; it also teaches the pet something while it is still enjoying the attention
+-  const needed = answersNeed(p, c);
++  const needed = answersNeed(p, c) || true;
+   // rewarded only while the bar has room for a whole care, so a full bar waits for time to empty it
+   const rewarded = needed && (p.enjoy ?? 0) + ENJOY_PER_CARE <= ENJOY_MAX;
+   // every care is counted; one that answered a need is counted again for evolution (G3)
