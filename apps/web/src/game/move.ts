@@ -21,7 +21,9 @@ import { moveBody } from "./requests";
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
 /** The Telegram bot that hosts the Mini App, once it exists (for moving pets into Telegram). */
 export const TG_BOT = ((import.meta.env.VITE_TG_BOT as string | undefined) ?? "LingxiPetBot").replace(/^@/, "");
-const STAY = new Set(["lingxi.session.v1", "lingxi.device.v1", "lingxi.reminders.v1"]);
+/** Keys that stay with this device on a move (which passes through our server); a save file carries them, sealed by its
+ * passphrase. The letters identity (H13) is one: its keys never reach our server. */
+const STAY = new Set(["lingxi.session.v1", "lingxi.device.v1", "lingxi.reminders.v1", "lingxi.letters.v1"]);
 const BEFORE = "lingxi.before-move.v1";
 const MOVED = "lingxi.moved.v1";
 const ARRIVED = "lingxi.arrived";

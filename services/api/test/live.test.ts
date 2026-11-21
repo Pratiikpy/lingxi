@@ -125,6 +125,23 @@ describe("live rooms", () => {
     a.ws.close();
   });
 
+  it("passes on a pet's relay address for letters only in its exact form (H13)", async () => {
+    const a = await connect();
+    const b = await connect();
+    const c = await connect();
+    const good = "key:0x0123456789abcdef0123456789abcdef01234567@relay2.taperelay.com";
+    a.ws.send(JSON.stringify({ t: "hello", id: idOf("relay01"), key: keyOf("relay01"), name: "Mochi", line: "gentle", stage: "child", mood: 2, space: "room:66", relay: good }));
+    await a.next("room");
+    b.ws.send(JSON.stringify({ t: "hello", id: idOf("relay02"), key: keyOf("relay02"), name: "Tofu", line: "gentle", stage: "child", mood: 2, space: "room:66", relay: "https://evil.test/x" }));
+    const seen = await b.next("room");
+    expect((seen.members as Array<{ name: string; relay?: string }>).find((m) => m.name === "Mochi")?.relay).toBe(good);
+    const joined = await a.next("joined");
+    expect((joined.member as { relay?: string }).relay, "a URL is never passed on").toBeUndefined();
+    c.ws.send(JSON.stringify({ t: "hello", id: idOf("relay03"), key: keyOf("relay03"), name: "Bun", line: "gentle", stage: "child", mood: 2, space: "room:66", relay: good.replace("relay2", "relay9") }));
+    expect(((await a.next("joined")).member as { relay?: string }).relay, "nor a node that is not official").toBeUndefined();
+    for (const p of [a, b, c]) p.ws.close();
+  });
+
   it("rooms never hold more than the capacity; extra pets get a parallel copy", async () => {
     const peers: Peer[] = [];
     for (let i = 0; i < CAPACITY + 2; i++) {

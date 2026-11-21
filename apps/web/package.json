@@ -21,6 +21,7 @@
     "@lingxi/handheld": "workspace:*",
     "@lingxi/world": "workspace:*",
     "@pixi/gif": "3.0.1",
+    "@taperelay/client": "0.1.0-test.132",
     "motion": "12.16.0",
     "pixi.js": "8.10.0",
     "react": "19.2.9",

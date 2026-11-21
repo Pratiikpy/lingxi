@@ -7,7 +7,14 @@
 
 import { create } from "zustand";
 import { PLAYER_SECRET, playerIdFor } from "@lingxi/chain/player";
-import { shownName } from "@lingxi/game";
+import { isRelayAddress, shownName } from "@lingxi/game";
+import { relayAddress } from "./relayAddress";
+
+/** This player's letters address for the room's presence, once it exists (H13). */
+const relayField = (): { relay?: string } => {
+  const relay = relayAddress();
+  return relay ? { relay } : {};
+};
 import { noteEvent } from "./tally";
 import { saveWrite } from "./saveRuntime";
 
@@ -15,7 +22,10 @@ const LIVE_URL = (import.meta.env.VITE_LIVE_URL as string | undefined) ?? (locat
 /** The server's longest pet name; every name that arrives is shown as shownName shows it (A16), whatever a server sent. */
 const NAME_MAX = 12;
 const nameIn = (m: Record<string, unknown>): string => shownName(m.name, NAME_MAX) || "Pet";
-const named = (x: LiveMember): LiveMember => ({ ...x, name: shownName(x.name, NAME_MAX) || "Pet" });
+const named = (x: LiveMember): LiveMember => {
+  const { relay, ...rest } = x;
+  return { ...rest, name: shownName(x.name, NAME_MAX) || "Pet", ...(isRelayAddress(relay) ? { relay } : {}) };
+};
 const PLAYER_KEY = "lingxi.player.v1";
 
 /**
@@ -78,6 +88,8 @@ export interface LiveMember {
   x: number;
   /** the pet's name colour (plan 4.9), sent only when the server checked a linked wallet owns the pet */
   colour?: number;
+  /** the owner's TapeRelay address for pet letters (H13), as the server passed it on (checked again here) */
+  relay?: string;
   emote?: { kind: string; at: number };
   say?: { text: string; at: number };
 }
@@ -123,6 +135,8 @@ interface LiveState {
   /** the answer to our proposal */
   answer: { from: string; name: string; yes: boolean; line?: string; stage?: string; card?: string; chain?: ChainInfo; at: number } | null;
   propose: (to: string, chain?: ChainInfo) => void;
+  /** tells the room this player's letters address, made after it came in (H13) */
+  shareRelay: (relay: string) => void;
   reply: (to: string, yes: boolean, chain?: ChainInfo) => void;
   clearFamily: () => void;
   ask: (id: string) => void;
@@ -186,7 +200,7 @@ export const useLive = create<LiveState>((set, get) => {
     sock.onopen = () => {
       retry = 0;
       set({ status: "on" });
-      send({ t: "hello", id: playerId(), key: decorKey(), ...me, space: want });
+      send({ t: "hello", id: playerId(), key: decorKey(), ...me, space: want, ...relayField() });
       send({ t: "links", key: decorKey() });
       if (lessonsCard) send({ t: "card", lessons: lessonsCard });
       if (decorShared) send({ t: "decor", key: decorKey(), placed: JSON.parse(decorShared) });
@@ -205,7 +219,7 @@ export const useLive = create<LiveState>((set, get) => {
           const before = playerId();
           if (m.reason !== "id" || !me || !moveToKeyedId()) return;
           if (want === `home:${before}`) want = `home:${playerId()}`;
-          send({ t: "hello", id: playerId(), key: decorKey(), ...me, space: want });
+          send({ t: "hello", id: playerId(), key: decorKey(), ...me, space: want, ...relayField() });
           send({ t: "links", key: decorKey() });
           set({ space: null });
           return;
@@ -241,6 +255,13 @@ export const useLive = create<LiveState>((set, get) => {
         case "decor":
           if (typeof m.owner === "string" && Array.isArray(m.placed)) set({ homeDecor: { owner: m.owner, placed: m.placed as Array<{ id: string; x: number; y: number }> } });
           return;
+        case "relay": {
+          // a pet in the room made its letters address after it came in (H13)
+          const x = members[m.id as string];
+          if (!x || !isRelayAddress(m.relay)) return;
+          members[x.id] = { ...x, relay: m.relay };
+          return set({ members });
+        }
         case "colour": {
           const x = members[m.id as string];
           if (!x || !Number.isInteger(m.colour)) return;
@@ -351,6 +372,7 @@ export const useLive = create<LiveState>((set, get) => {
     proposal: null,
     answer: null,
     propose: (to, chain) => send({ t: "propose", to, ...(chain ? { chain } : {}) }),
+    shareRelay: (relay) => isRelayAddress(relay) && send({ t: "relay", relay }),
     reply: (to, yes, chain) => {
       send({ t: "answer", to, yes, ...(chain ? { chain } : {}) });
       set({ proposal: null });

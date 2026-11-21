@@ -2948,3 +2948,95 @@
     display: none;
   }
 }
+/* H13: the mailbox's two kinds of letter, and pet letters */
+.mail-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: var(--s3);
+}
+.mail-tabs button {
+  flex: 1;
+  min-height: 40px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--card);
+  color: var(--ink);
+  font-family: var(--round);
+  font-weight: 800;
+  cursor: pointer;
+}
+.mail-tabs button.on {
+  background: var(--sunny);
+  color: #2b2140;
+  border-color: #2b2140;
+}
+.pet-letters {
+  display: grid;
+  gap: var(--s3);
+}
+.pl-about {
+  margin: 0;
+  color: var(--ink-soft);
+}
+.pl-down {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  padding: 8px 12px;
+  border: 2px dashed var(--line);
+  border-radius: var(--r-sm);
+}
+.pl-write {
+  display: grid;
+  gap: 8px;
+}
+.pl-write select,
+.pl-write textarea {
+  font: inherit;
+  color: var(--ink);
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 6px 8px;
+}
+.pl-write textarea {
+  width: 100%;
+  resize: vertical;
+}
+.pl-send {
+  justify-content: space-between;
+  align-items: center;
+}
+.pl-send .warn {
+  color: #b42318;
+}
+.pl-ok {
+  color: var(--ink);
+}
+.pl-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.pl-letter {
+  padding: 8px 12px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--card);
+}
+.pl-letter.is-in {
+  background: var(--band);
+}
+.pl-letter p {
+  margin: 0 0 4px;
+}
+.pl-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.pl-checked {
+  color: var(--ink-soft);
+}

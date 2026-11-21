@@ -17,7 +17,7 @@ import { isIP } from "node:net";
 import { WebSocketServer, type WebSocket } from "ws";
 import { type DecorStore, type Placed, createDecorStore } from "./decor";
 import { type Homes, visible } from "./homes";
-import { CARD_MAX, canonicalCard, shownName } from "@lingxi/game";
+import { CARD_MAX, canonicalCard, isRelayAddress, shownName } from "@lingxi/game";
 import { MAX_PLACED } from "@lingxi/world";
 import { PREFIX_SHARE, RateLimiter, prefixOf } from "./limit";
 import { callerOf } from "./clientIp";
@@ -59,6 +59,8 @@ export interface Member {
   x: number;
   /** the pet's name colour (plan 4.9), present only when a wallet linked to this player's home owns the pet */
   colour?: number;
+  /** the owner's TapeRelay address for pet letters (H13), passed on only in its exact form */
+  relay?: string;
 }
 
 interface Client {
@@ -322,6 +324,8 @@ export class LiveRooms {
           stage: STAGES.has(m.stage as string) ? (m.stage as string) : "baby",
           mood: Number.isInteger(m.mood) ? Math.max(0, Math.min(3, m.mood as number)) : 1,
           x: 64,
+          // a TapeRelay user identity on an official node, or nothing: never a URL or a host of the sender's choosing
+          ...(isRelayAddress(m.relay) ? { relay: m.relay } : {}),
         };
         // the player is here: its home's links are the last to go when the server's store of them is full (A74)
         this.homes?.seen(id);
@@ -335,6 +339,13 @@ export class LiveRooms {
       case "go": {
         const space = validSpace(m.space);
         if (space && c.member.id) this.join(c, space);
+        return;
+      }
+      case "relay": {
+        // a relay identity made after this pet came in (H13): set once, in its exact form, and told to the room
+        if (!c.member.id || c.member.relay || !isRelayAddress(m.relay)) return;
+        c.member = { ...c.member, relay: m.relay };
+        if (c.space) this.broadcast(c.space, { t: "relay", id: c.member.id, relay: m.relay }, c);
         return;
       }
       case "pos": {

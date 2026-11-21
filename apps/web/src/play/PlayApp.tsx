@@ -57,6 +57,8 @@ import { LevelUpMoment, SkillsPanel, useSkillsUi } from "./Skills";
 import { HomePanel } from "./Home";
 import { WardrobePanel } from "./Wardrobe";
 import { MailboxPanel } from "./Mailbox";
+import { PetLetters } from "./PetLetters";
+import { watchLetters } from "../game/letters";
 import { AlbumPanel, SHY_ONE } from "./Album";
 import { FriendsPanel } from "./Friends";
 import { HoldersPanel } from "./Holders";
@@ -122,6 +124,8 @@ export function PlayApp() {
   const roomEventProps = trial ? { event: trial.senses.event, eventAt: trial.shownAt } : roomEvent ? { event: roomEvent.event, eventAt: roomEvent.at } : {};
   // and the room comes back to show it, whatever sheet the lesson was taught from
   useEffect(() => useTrial.subscribe((s, prev) => ((s.trial && s.trial !== prev.trial) || s.watching !== prev.watching) && setTab("home")), []);
+  // pet letters (H13): friends' addresses from the room, and the inbox read while the game is open
+  useEffect(() => watchLetters(), []);
   const [phase, setPhase] = useState<DayPhase>(phaseNow);
   const [circuit, setCircuit] = useState(false);
   const worldRoom = useWorld((s) => s.world.room);
@@ -793,7 +797,7 @@ export function PlayApp() {
         <BagPanel onFed={close} />
       </Sheet>
       <Sheet open={tab === "mail"} title={lang === "zh" ? "邮件" : "Mail"} onClose={close}>
-        <MailboxPanel />
+        <MailTabs />
       </Sheet>
       <Sheet open={tab === "map"} title={t("map.title")} onClose={close}>
         <Outings pet={pet} />
@@ -927,3 +931,22 @@ function FaceSprite({ canvas, line }: { canvas: ReturnType<typeof drawPet>; line
 }
 
 export const STARTER_COUNT = Object.keys(STARTERS).length;
+
+/** The mailbox: letters from Lingxi, and pet letters between friends over TapeRelay (H13). */
+function MailTabs() {
+  const lang = useLang((s) => s.lang) === "zh" ? "zh" : "en";
+  const [which, setWhich] = useState<"lingxi" | "pets">("lingxi");
+  return (
+    <>
+      <div className="mail-tabs" role="tablist" aria-label={lang === "zh" ? "邮件" : "Mail"}>
+        <button type="button" role="tab" aria-selected={which === "lingxi"} className={which === "lingxi" ? "on" : ""} onClick={() => (play("tap"), setWhich("lingxi"))}>
+          {lang === "zh" ? "灵犀的来信" : "From Lingxi"}
+        </button>
+        <button type="button" role="tab" aria-selected={which === "pets"} className={which === "pets" ? "on" : ""} onClick={() => (play("tap"), setWhich("pets"))}>
+          {lang === "zh" ? "宠物的信" : "Pet letters"}
+        </button>
+      </div>
+      {which === "lingxi" ? <MailboxPanel /> : <PetLetters />}
+    </>
+  );
+}
