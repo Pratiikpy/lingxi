@@ -15,19 +15,19 @@ export const BALANCE_MEASURED: BalanceMeasured = {
       "status": "open"
     },
     "spar-best-single": {
-      "value": "least answered: fight:fresh/gentle, beaten 70% by partner:pip; none beats the reader; best pounce-only wins 85% of the field",
+      "value": "least answered: fight:fresh/gentle, beaten 72% by coached/gentle/pip; none beats the reader; best pounce-only wins 79% of the field",
       "status": "met"
     },
     "spar-reading-pays": {
-      "value": "reader 88%; best other partner:pip 91%",
+      "value": "reader 84%; best other partner:pip 85%",
       "status": "open"
     },
     "spar-guard-answers": {
-      "value": "guard-only 55% against pounce-only, 5% against the field",
+      "value": "guard-only 55% against pounce-only, 7% against the field",
       "status": "met"
     },
     "spar-dodge-answers": {
-      "value": "dodge-only 47% against pounce-only, 7% against the field",
+      "value": "dodge-only 47% against pounce-only, 10% against the field",
       "status": "met"
     },
     "level-not-by-tapping": {

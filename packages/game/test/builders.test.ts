@@ -64,7 +64,8 @@ describe("Behemoth, the founder's CPU", () => {
       return rate(() => fighterOfMind("me", { line, lessons }, 1));
     });
     expect(Math.max(...coached)).toBeGreaterThanOrEqual(15);
-  });
+    // thousands of practice spars: the coach fights 96 per lesson, lesson after lesson
+  }, 120_000);
 });
 
 describe("the residents of Builders' Lane", () => {

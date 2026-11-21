@@ -4,12 +4,14 @@
  *
  * The field: every brain of one lesson (each fight lesson the coach suggests and each Pet School lesson, on each
  * egg line), the three starter brains, a brain that only guards, one that only dodges, one that only pounces, a brain
- * written to read the fight, and the four sparring partners. Each pair fights on a fixed set of seeds from both sides;
+ * written to read the fight, and the four sparring partners; and, as the plan's field also names (G2b), the school set
+ * (each line taught the Pet School lessons in order, as many as a brain's budget holds) and sample taught pets (each
+ * line taught by the coach, lesson after lesson to an adult's six, to fight each hand-written partner). Each pair fights on a fixed set of seeds from both sides;
  * a brain's win rate is its wins over all its fights (a draw is not a win). All pet brains fight at level 1, a teen's.
  */
 
-import { type Program, type Rule, STARTERS, validateProgram } from "@lingxi/brain";
-import { FIGHT_LESSONS, type FieldBrain, type FieldNumbers, type Fighter, PARTNERS, PET_SCHOOL, composeProgram, fighterFrom, fighterOfPartner, CURRENT_SPAR, fight } from "../../src";
+import { type Program, type Rule, STARTERS, compileProgram, gateCount, validateProgram } from "@lingxi/brain";
+import { FIGHT_LESSONS, type FieldBrain, type FieldNumbers, type Fighter, LESSON_CAPACITY, MAX_GATES, PARTNERS, type Partner, PET_SCHOOL, coach, composeProgram, fighterFrom, fighterOfMind, fighterOfPartner, CURRENT_SPAR, fight } from "../../src";
 
 const LINES = ["gentle", "bold", "curious"] as const;
 const LEVEL = 1;
@@ -44,8 +46,31 @@ interface Entry {
   fighter: Fighter;
 }
 
+/** A line taught the school lessons in order, as many as fit a brain's gate budget. */
+function schoolSet(line: (typeof LINES)[number]): Rule[] {
+  const taught: Rule[] = [];
+  for (const l of PET_SCHOOL) if (gateCount(compileProgram(composeProgram(line, [...taught, l.rule]))) <= MAX_GATES) taught.push(l.rule);
+  return taught;
+}
+
+/** A line taught by the coach to fight a partner: lesson after lesson, each one it suggests after a lost practice spar. */
+function coached(line: (typeof LINES)[number], partner: Partner): Rule[] {
+  const lessons: Rule[] = [];
+  for (let k = 0; k < LESSON_CAPACITY.adult; k++) {
+    let lesson: Rule | undefined;
+    for (let s = 0; s < 6 && !lesson; s++) {
+      const r = fight(CURRENT_SPAR, fighterOfMind("me", { line, lessons }, LEVEL), fighterOfPartner(partner), 1000 + s);
+      if (r.winner !== 0) lesson = coach({ result: r, side: 0, line, stage: "adult", lessons, level: LEVEL, opponent: fighterOfPartner(partner) }).lesson?.rule;
+    }
+    if (!lesson) break;
+    lessons.unshift(lesson);
+  }
+  return lessons;
+}
+
 export function field(): Entry[] {
   const one = (id: string, line: (typeof LINES)[number], rule: Rule): Entry => ({ id: `${id}/${line}`, kind: "single", fighter: fighterFrom(id, composeProgram(line, [rule]), LEVEL) });
+  const taught = (id: string, line: (typeof LINES)[number], lessons: Rule[]): Entry => ({ id, kind: "taught", fighter: fighterOfMind(id, { line, lessons }, LEVEL) });
   return [
     ...LINES.flatMap((line) => FIGHT_LESSONS.map((l) => one(`fight:${l.id}`, line, l.rule))),
     ...LINES.flatMap((line) => PET_SCHOOL.map((l) => one(`school:${l.id}`, line, l.rule))),
@@ -55,6 +80,8 @@ export function field(): Entry[] {
     { id: "pounce-only", kind: "pounce", fighter: fighterFrom("pounce", only(2, 1), LEVEL) },
     { id: "reader", kind: "reader", fighter: fighterFrom("reader", READER, LEVEL) },
     ...PARTNERS.map((p): Entry => ({ id: `partner:${p.id}`, kind: "partner", fighter: fighterOfPartner(p) })),
+    ...LINES.map((line) => taught(`school-set/${line}`, line, schoolSet(line))),
+    ...LINES.flatMap((line) => PARTNERS.map((p) => taught(`coached/${line}/${p.id}`, line, coached(line, p)))),
   ];
 }
 

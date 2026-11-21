@@ -226,5 +226,6 @@ describe("coaching lesson after lesson never makes a pet worse (G2)", () => {
         before = after;
       }
     }
-  });
+    // thousands of practice spars: the coach fights 96 per lesson, lesson after lesson
+  }, 120_000);
 });

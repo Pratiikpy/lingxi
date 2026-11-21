@@ -83,7 +83,7 @@ export interface PlayerNumbers {
 /** One brain in the spar field and its record against every other brain. */
 export interface FieldBrain {
   id: string;
-  kind: "single" | "starter" | "guard" | "dodge" | "pounce" | "reader" | "partner";
+  kind: "single" | "starter" | "guard" | "dodge" | "pounce" | "reader" | "partner" | "taught";
   winRate: number;
 }
 
