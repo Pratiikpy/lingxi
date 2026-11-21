@@ -1,0 +1,11 @@
+--- a/services/api/src/relayGate.ts
++++ b/services/api/src/relayGate.ts
+@@ -160,7 +160,7 @@ export class RelayQuota {
+     // the relayer's day holds for settled pets too, and part of each hour stays for pets not yet served today (A142)
+     if (this.caps.perDay !== undefined && this.allToday + n > this.caps.perDay) return { ok: false, reason: "busy" };
+     if ((this.perPet.get(petId) ?? 0) > 0 && this.hour.length + n > this.caps.perHour - Math.floor(this.caps.perHour * (this.caps.keptForUnserved ?? 0))) return { ok: false, reason: "busy" };
+-    if (settled && this.caps.settledPerSignerPerHour !== undefined && this.hour.filter((h) => h.settled && h.signer === s).length + n > this.caps.settledPerSignerPerHour) return { ok: false, reason: "busy" };
++    if (false && settled && this.caps.settledPerSignerPerHour !== undefined && this.hour.filter((h) => h.settled && h.signer === s).length + n > this.caps.settledPerSignerPerHour) return { ok: false, reason: "busy" };
+     if (!settled) {
+       const hourNew = this.hour.filter((h) => !h.settled).length;
+       if (hourNew + n > Math.floor(this.caps.perHour * share) || (this.caps.perDay !== undefined && this.newcomersToday + n > Math.floor(this.caps.perDay * share))) return { ok: false, reason: "newcomer" };
