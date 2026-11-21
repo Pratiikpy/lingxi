@@ -31,6 +31,11 @@ export const MAX_CONNECTIONS = 4_000;
 /** New homes (the first decorations or the first wallet for an id) one address may make in a day. */
 export const MAX_NEW_HOMES_PER_DAY = 5;
 const MAX_FRAME = 12_288;
+/**
+ * What may wait in the server for one socket (A143): a socket that stops reading is closed past this, rather than
+ * hold everything sent to it until its pong is missed. Ten of the largest cards; a reading socket never gets near it.
+ */
+export const MAX_BUFFERED = 256 * 1024;
 /** A pet's card is the one message allowed to be longer: the game's whole card budget, with room for its envelope (A26). */
 const MAX_CARD_FRAME = 2 * CARD_MAX + 1_024;
 /** A card may hold as many lessons as a pet can learn (it was 8, which dropped a well-taught pet's card, A26). */
@@ -79,6 +84,8 @@ interface Client {
   /** answered the last ping; when it last sent anything */
   alive: boolean;
   heard: number;
+  /** a full card is still going out to this socket: no second one is queued behind it (A143) */
+  cardWaiting?: boolean;
 }
 
 /** How a room watches its connections and limits asks (A61). */
@@ -202,8 +209,14 @@ export class LiveRooms {
     }
   }
 
-  private send(c: Client, msg: unknown): void {
-    if (c.ws.readyState === c.ws.OPEN) c.ws.send(JSON.stringify(msg));
+  private send(c: Client, msg: unknown, sent?: () => void): void {
+    if (c.ws.readyState !== c.ws.OPEN) return;
+    // a socket that stops reading is closed rather than kept filling the server's memory (A143)
+    if (c.ws.bufferedAmount > MAX_BUFFERED) {
+      c.ws.terminate();
+      return;
+    }
+    c.ws.send(JSON.stringify(msg), sent ? () => sent() : undefined);
   }
 
   private broadcast(space: string, msg: unknown, except?: Client): void {
@@ -438,9 +451,11 @@ export class LiveRooms {
         // the whole card once per change of it; after that a short answer, and the game keeps the card it has (A61)
         const about = { t: "card", id: target.member.id, name: target.member.name, line: target.member.line, stage: target.member.stage };
         if (c.seen.get(target.member.id) === target.cardVersion) this.send(c, { ...about, unchanged: true });
-        else {
+        else if (!c.cardWaiting) {
+          // no second card is queued behind one still going out (A143); a later ask brings it
           c.seen.set(target.member.id, target.cardVersion);
-          this.send(c, { ...about, lessons: target.card ?? "[]" });
+          c.cardWaiting = true;
+          this.send(c, { ...about, lessons: target.card ?? "[]" }, () => (c.cardWaiting = false));
         }
         this.send(target, { t: "asked", from: c.member.id, name: c.member.name });
         return;
