@@ -189,6 +189,11 @@ export function AgentsApp() {
         <p className="small">
           {L("What every input and output bit means, so a brain read from the chain can be driven by any app. Served as JSON at", "每个输入、输出位的含义，任何应用都能驱动从链上读出的大脑。JSON 版本见")} <a href={`${PUBLIC}/api/v1/profiles`}>/api/v1/profiles</a>.
         </p>
+        <p className="small">
+          {L("Every Lingxi circuit you can call on X Layer, with test vectors checked on chain, is in the", "所有能在 X Layer 上调用的灵犀电路，以及在链上核对过的测试向量，都在")}{" "}
+          <a href={`${PUBLIC}/circuits.html`}>{L("circuit catalogue", "电路目录")}</a>
+          {L(", which runs them with none of Lingxi's code.", "里，那个页面不用灵犀的任何代码就能运行它们。")}
+        </p>
         {MANIFESTS.map((m) => (
           <details key={m.id} className="ag-manifest">
             <summary>

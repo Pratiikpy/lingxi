@@ -51,7 +51,7 @@ import { type SeasonStore, createSeasonStore, settleAwards } from "./season";
 import { dayIndex, weekOf } from "@lingxi/game";
 import { parseCard } from "@lingxi/game";
 import { createPublicClient, custom, fallback, http, parseEther, type Address, type PublicClient } from "viem";
-import { type Deployment, type SignedRelay, adoptionCentreAbi, createNetlistCache, loadCircuitFromChain, nameColours, packsHeld, petRegistryAbi, piecesHeld, readPet, xLayer } from "@lingxi/chain";
+import { FACTORY, type Deployment, type SignedRelay, adoptionCentreAbi, createNetlistCache, loadCircuitFromChain, nameColours, packsHeld, petRegistryAbi, piecesHeld, readPet, xLayer } from "@lingxi/chain";
 import { type HomeChain, createHomes } from "./homes";
 import { createAgentStore } from "./agents";
 import { withAgentApi } from "./agentApi";
@@ -73,6 +73,7 @@ import { createSourcifyRelay, withSourcify } from "./sourcify";
 import { withRpcProxy } from "./rpc";
 import { privateKeyToAccount } from "viem/accounts";
 import { createSalesCounter, withNumbers } from "./numbers";
+import { createRefScanner } from "./refScan";
 import { createListingWatch, withRetiredListings } from "./marketV1";
 import { createDuelStore, withDuels } from "./duels";
 import { createDailyBlocks, withDaily } from "./daily";
@@ -1253,11 +1254,17 @@ if (isMain) {
       withRetiredListings(app, listingWatch);
       jobs.loop("okb listings", () => listingWatch.catchUp(), 20_000);
     }
+    // circuits on other processors that use Lingxi's by REF (H6): every processor TapeOut's factory made, read a little
+    // each pass, progress kept
+    const processor = (process.env.LINGXI_PROCESSOR ?? chainCtx?.deployment.processor) as `0x${string}` | undefined;
+    const refs = processor ? createRefScanner({ rpc, factory: FACTORY, ours: processor, store: process.env.LINGXI_REFS_STORE ?? join(dataDir, "refs.json") }) : undefined;
+    if (refs) jobs.loop("refs", () => refs.catchUp(), 120_000);
     withNumbers(app, {
       pub: visitorPub,
       counts: (since) => indexer.counts(since),
       petsIndexedTo: () => indexer.head(),
       sales,
+      ...(refs ? { refs } : {}),
       contracts: { registry: process.env.LINGXI_REGISTRY as `0x${string}`, marketOkb: env("LINGXI_MARKET_OKB"), marketBem: env("LINGXI_MARKET_BEM"), breeder: env("LINGXI_BREEDER"), gift: env("LINGXI_GIFT"), itemShop: env("LINGXI_ITEM_SHOP"), adoption: env("LINGXI_ADOPTION"), extras: env("LINGXI_EXTRAS") ?? chainCtx?.deployment.extras },
       explorer: "https://www.oklink.com/xlayer",
     });

@@ -16,7 +16,8 @@
   <a href="https://lingxi.knole.me/numbers.html"><b>Live numbers</b></a> ·
   <a href="https://lingxi.knole.me/tree.html"><b>Tree of life</b></a> ·
   <a href="https://t.me/LingxiPetBot/Play"><b>Telegram</b></a> ·
-  <a href="https://lingxi.knole.me/agents.html"><b>API for agents</b></a>
+  <a href="https://lingxi.knole.me/agents.html"><b>API for agents</b></a> ·
+  <a href="https://lingxi.knole.me/circuits.html"><b>Circuit catalogue</b></a>
 </p>
 
 **Lingxi (灵犀) is a virtual pet whose brain is a circuit you can read.** Every pet's mind is a circuit of NAND gates and memory latches; once its owner keeps it on X Layer, that circuit is taped out there and anyone can read it gate for gate. Each reaction comes from its own gates, its memory is saved on chain on the days its owner keeps it there, and anyone with its log, or its published diary, can replay it and see that it matches. You raise it, teach it in plain words, and watch who it becomes. It is free to play and has no token of its own. Every fee paid in BEM is burned; the one other fee is the first outfit market's 3% on sales in OKB, which goes to the project.
@@ -74,6 +75,8 @@ The game runs the same netlist through a fast local evaluator; any beat can be r
 ## Rules and residents are circuits too
 
 The game does not run its rules as code: it reads the answers of compiled circuits. What drops where and how rare it is, how trust grows, which skill tier is open, how each of <!--f:residents-->9<!--/f--> residents greets you and which line they choose, and how each of <!--f:builders-->5<!--/f--> Builders' Lane pets behaves: **<!--f:rules-->17<!--/f--> rule circuits** taped out on X Layer. Every time the page starts, the browser recompiles each rule and compares it byte for byte with the netlist stored on the processor, then shows the mark ("Rules verified on X Layer · 17 circuits"). The proof page lists all of them with their ids and gate counts.
+
+**Other projects can call them.** The [circuit catalogue](https://lingxi.knole.me/circuits.html) lists every rule circuit and the starter brains with their pins, what each bit means, the netlist's hash and test vectors, and runs any of them on X Layer from a page that uses none of the game's code (it calls the processor through X Layer's public RPC itself). The pet-brain interface is written down as [LX-PET/1](docs/pet-brain-interface.md), and [`scripts/ref-example.mts`](scripts/ref-example.mts) is a worked example of a circuit that uses one of Lingxi's rules by REF, proved on every input. The catalogue is regenerated only if every vector agrees with X Layer, and the live-numbers page counts circuits on other processors that REF Lingxi's.
 
 ## BEM in, BEM burned
 

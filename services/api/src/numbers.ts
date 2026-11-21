@@ -9,6 +9,7 @@ import type { Hono } from "hono";
 import { type Address, type PublicClient, createPublicClient, http, parseAbi, parseAbiItem } from "viem";
 import { WINDOW } from "./indexer";
 import { hasStore, readStore, saveJson } from "./durable";
+import type { RefScanner } from "./refScan";
 
 const SALES = [
   parseAbiItem("event Minted(uint256 indexed id, address indexed buyer, uint32 quantity, uint256 paid)"),
@@ -109,6 +110,8 @@ export interface NumbersDeps {
   counts: (sinceSec: number) => { hatched: number; children: number; saves: number; savedSince: number; hatchers: number };
   petsIndexedTo: () => number;
   sales: SalesCounter;
+  /** circuits on other processors that REF a Lingxi circuit (H6), counted from chain */
+  refs?: RefScanner;
   contracts: { registry: Address; marketOkb?: Address; marketBem?: Address; breeder?: Address; gift?: Address; itemShop?: Address; adoption?: Address; extras?: Address };
   explorer: string;
 }
@@ -124,6 +127,8 @@ export interface Numbers {
   /** paid extras bought (plan 4.9): room packs, look packs and name colours; null before the contract exists */
   extras: { room: number; looks: number; colours: number } | null;
   pins: number | null;
+  /** circuits on other TapeOut processors whose netlists REF a Lingxi circuit (H6); complete once every processor is read */
+  usedByOthers: { circuits: number; processors: number; scannedProcessors: number; cpuCount: number; complete: boolean } | null;
   contracts: Record<string, { address: Address; url: string }>;
 }
 
@@ -162,6 +167,7 @@ export async function readNumbers(d: NumbersDeps, nowMs = Date.now()): Promise<N
     },
     extras: extrasSold ? { room: Number(extrasSold[0]), looks: Number(extrasSold[1]), colours: Number(extrasSold[2]) } : null,
     pins: pins === null ? null : Number(pins),
+    usedByOthers: d.refs ? d.refs.totals() : null,
     contracts,
   };
 }

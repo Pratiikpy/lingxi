@@ -34,6 +34,7 @@ interface Numbers {
   burned: { market: string; breeding: string; shop?: string; adoption?: string; extras?: string; total: string };
   extras?: { room: number; looks: number; colours: number } | null;
   pins: number | null;
+  usedByOthers?: { circuits: number; processors: number; scannedProcessors: number; cpuCount: number; complete: boolean } | null;
   contracts: Record<string, { address: string; url: string }>;
 }
 
@@ -95,6 +96,23 @@ function rows(n: Numbers): Array<{ title: [string, string]; readTo?: number; ite
         ...(n.pins !== null ? [{ label: ["Holder pins claimed", "领取的持有人徽章"] as [string, string], value: fmt(n.pins), counts: ["Free pins given to Test1, Rig, BEM and FAB holders (the gift contract's own count).", "送给 Test1、矿机、BEM 和 FAB 持有人的免费徽章（礼物合约自己的计数）。"] as [string, string], source: "gift" }] : []),
       ],
     },
+    ...(n.usedByOthers
+      ? [
+          {
+            title: ["Circuits others use", "别人用的电路"] as [string, string],
+            items: [
+              {
+                label: ["Circuits on other processors that use Lingxi's", "别的处理器上用到灵犀电路的电路"] as [string, string],
+                value: `${fmt(n.usedByOthers.circuits)} · ${fmt(n.usedByOthers.processors)} ${n.usedByOthers.processors === 1 ? "processor" : "processors"}`,
+                counts: [
+                  `Circuits on other TapeOut processors whose netlists REF a Lingxi circuit, read from chain (every processor TapeOut's factory made; ${n.usedByOthers.complete ? "all read" : `still reading: ${fmt(n.usedByOthers.scannedProcessors)} of ${fmt(Math.max(0, n.usedByOthers.cpuCount - 1))} so far`}). The catalogue of circuits anyone can call is at circuits.html.`,
+                  `别的 TapeOut 处理器上，网表里 REF 了灵犀电路的电路，从链上读出（TapeOut 工厂造出的每一个处理器；${n.usedByOthers.complete ? "已全部读完" : `还在读：已读 ${fmt(n.usedByOthers.scannedProcessors)} / ${fmt(Math.max(0, n.usedByOthers.cpuCount - 1))}`}）。任何人都能调用的电路目录在 circuits.html。`,
+                ] as [string, string],
+              },
+            ],
+          },
+        ]
+      : []),
     {
       title: ["BEM burned", "销毁的 BEM"],
       items: [
