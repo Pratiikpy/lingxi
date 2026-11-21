@@ -825,17 +825,25 @@ function Result({ pet, partner, result, reward, opponent, duel, cheer, instinct,
           {note && <p>{why(note.key, pet.name, partner.name[lang], lang)}</p>}
           {note?.lesson && (
             <>
-              <p>
-                {note.replace !== undefined ? (lang === "zh" ? "它的心智满了。试着把这一课换成：" : "Its mind is full. Try swapping this lesson out for: ") : lang === "zh" ? "试着教它：" : "Try teaching it: "}
-                <b>{note.lesson.label[lang]}</b>
-              </p>
-              {note.replace !== undefined && asFought.lessons[note.replace] && (
-                <div className="sp-swap-out">
-                  {(() => {
-                    const c = chipsFor(programFor(asFought.line, asFought.lessons, asFought.instincts ?? 0, asFought.growth), asFought.lessons[note.replace]!, lang);
-                    return <Chips when={c.when} then={c.then} want={c.want} />;
-                  })()}
-                </div>
+              {note.replace !== undefined && asFought.lessons[note.replace] ? (
+                <>
+                  <p>{lang === "zh" ? "它的心智满了。把这一课换掉：" : "Its mind is full. Swap this lesson out:"}</p>
+                  <div className="sp-swap-out">
+                    {(() => {
+                      const c = chipsFor(programFor(asFought.line, asFought.lessons, asFought.instincts ?? 0, asFought.growth), asFought.lessons[note.replace]!, lang);
+                      return <Chips when={c.when} then={c.then} want={c.want} />;
+                    })()}
+                  </div>
+                  <p>
+                    {lang === "zh" ? "换成：" : "for: "}
+                    <b>{note.lesson.label[lang]}</b>
+                  </p>
+                </>
+              ) : (
+                <p>
+                  {lang === "zh" ? "试着教它：" : "Try teaching it: "}
+                  <b>{note.lesson.label[lang]}</b>
+                </p>
               )}
               <p className="small">
                 {lang === "zh"
