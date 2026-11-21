@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/letters.ts
++++ b/apps/web/src/game/letters.ts
+@@ -314,7 +314,7 @@ export const useLetters = create<LettersStore>((set, get) => {
+     },
+ 
+     pull: async () => {
+-      if (useSaveState.getState().role !== "writer" || !get().saved) return;
++      if (!get().saved) return;
+       const me = await get().ensure();
+       if (!me) return;
+       try {

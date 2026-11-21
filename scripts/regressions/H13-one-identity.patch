@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/letters.ts
++++ b/apps/web/src/game/letters.ts
+@@ -274,7 +274,7 @@ export const useLetters = create<LettersStore>((set, get) => {
+ 
+     ensure: () => {
+       if (session) return Promise.resolve(session);
+-      opening ??= open().finally(() => {
++      opening = open().finally(() => {
+         opening = null;
+       });
+       return opening;

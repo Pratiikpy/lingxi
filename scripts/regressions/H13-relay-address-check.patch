@@ -1,0 +1,11 @@
+--- a/services/api/src/live.ts
++++ b/services/api/src/live.ts
+@@ -325,7 +325,7 @@ export class LiveRooms {
+           mood: Number.isInteger(m.mood) ? Math.max(0, Math.min(3, m.mood as number)) : 1,
+           x: 64,
+           // a TapeRelay user identity on an official node, or nothing: never a URL or a host of the sender's choosing
+-          ...(isRelayAddress(m.relay) ? { relay: m.relay } : {}),
++          ...(typeof m.relay === "string" ? { relay: m.relay } : {}),
+         };
+         // the player is here: its home's links are the last to go when the server's store of them is full (A74)
+         this.homes?.seen(id);
