@@ -1,0 +1,11 @@
+--- a/apps/web/src/verify/Endpoints.tsx
++++ b/apps/web/src/verify/Endpoints.tsx
+@@ -46,7 +46,7 @@ const T = {
+ 
+ /** What the page says of where its proofs come from: the live site has a server to fall back on; the on-chain copy has none (A127). */
+ export function sourcesLede(lang: "en" | "zh", hasServer: boolean): string {
+-  return hasServer ? T[lang].lede : T[lang].ledeOnChain;
++  return hasServer || true ? T[lang].lede : T[lang].ledeOnChain;
+ }
+ 
+ export function EndpointPanel({ lang }: { lang: "en" | "zh" }) {
