@@ -9,6 +9,7 @@ import { type Rule, STARTERS } from "@lingxi/brain";
 import { MOVES, SPAR_VERSION, type Fighter, type Move, spar } from "../src/spar";
 import { CURRENT_SPAR, SPAR_V2, SPAR_V3, allowedMove, fight, spar2 } from "../src/spar2";
 import V2_DESIGNED_JSON from "./fixtures/v2-designed-partners.json";
+import { DESIGNED_PARTNERS as DESIGNED } from "../src/designedPartners";
 import { PARTNERS } from "../src/partners";
 import { fighterOfPartner } from "../src/coach";
 import { SKILLS, sparMods } from "../src/skills";
@@ -234,27 +235,41 @@ describe("the coach's advice wins in practice (G2)", () => {
   });
 });
 
-describe("coaching lesson after lesson never makes a pet worse (G2)", () => {
-  it("each lesson the coach adds against Behemoth keeps or raises the wins on fresh seeds", () => {
-    const fresh = Array.from({ length: 120 }, (_, i) => 700_001 + i * 7919);
-    const wins = (line: "gentle" | "bold" | "curious", lessons: Rule[]) => fresh.filter((s) => fight(CURRENT_SPAR, fighterOfMind("me", { line, lessons }, 1), behemothFighter("Behemoth"), s).winner === 0).length;
-    for (const line of ["gentle", "bold", "curious"] as const) {
-      const lessons: Rule[] = [];
-      let before = wins(line, lessons);
-      for (let k = 0; k < LESSON_CAPACITY.adult; k++) {
-        let note: ReturnType<typeof coach> | null = null;
-        for (let s = 0; s < 6 && !note?.lesson; s++) {
-          const r = fight(CURRENT_SPAR, fighterOfMind("me", { line, lessons }, 1), behemothFighter("Behemoth"), 1000 + s);
-          if (r.winner !== 0) note = coach({ result: r, side: 0, line, stage: "adult", lessons, level: 1, opponent: behemothFighter("Behemoth") });
-        }
-        if (!note?.lesson) break;
-        lessons.unshift(note.lesson.rule);
-        const after = wins(line, lessons);
-        expect(after, `${line}, lesson ${k + 1} (${note.lesson.id})`).toBeGreaterThanOrEqual(before);
-        before = after;
-      }
+describe("the coach's suggestion never makes a pet worse (G2, B3)", () => {
+  it("holds where a coach of 24 practice spars and no margin made a pet worse (curious against Mallow fell from 142 to 106 of 200)", () => {
+    const fresh = Array.from({ length: 200 }, (_, i) => 300_007 + i * 7919);
+    const oppOf = (id: string): Fighter => (id === "behemoth" ? behemothFighter("Behemoth") : fighterOfPartner([...PARTNERS, ...DESIGNED].find((p) => p.id === id)!));
+    const cases = [["mallow", "curious", "child", 8], ["mallow", "curious", "adult", 8], ["velvet", "bold", "child", 10], ["behemoth", "gentle", "child", 16], ["behemoth", "bold", "child", 3], ["behemoth", "bold", "adult", 24], ["behemoth", "bold", "child", 27]] as const;
+    for (const [id, line, stage, seed] of cases) {
+      const level = stage === "adult" ? 1 : 0;
+      const me = fighterOfMind("me", { line, lessons: [] }, level);
+      const result = fight(CURRENT_SPAR, me, oppOf(id), seed);
+      const note = coach({ result, side: 0, line, stage, lessons: [], level, opponent: oppOf(id) });
+      if (!note.lesson) continue;
+      const wins = (f: Fighter) => fresh.filter((s) => fight(CURRENT_SPAR, f, oppOf(id), s).winner === 0).length;
+      expect(wins(fighterOfMind("me", { line, lessons: [note.lesson.rule] }, level)), `${line} ${stage} vs ${id}, seed ${seed}: ${note.lesson.id}`).toBeGreaterThanOrEqual(wins(me));
     }
-    // thousands of practice spars: the coach fights 96 per lesson, lesson after lesson
+  }, 120_000);
+
+  it("against every partner and Behemoth, for every line as a child and an adult, a suggested lesson keeps or raises the wins on 200 unseen seeds", () => {
+    const fresh = Array.from({ length: 200 }, (_, i) => 300_007 + i * 7919);
+    const opps: [string, () => Fighter][] = [...PARTNERS, ...DESIGNED].map((p) => [p.id, () => fighterOfPartner(p)] as [string, () => Fighter]);
+    opps.push(["behemoth", () => behemothFighter("Behemoth")]);
+    const wins = (me: Fighter, opp: () => Fighter) => fresh.filter((s) => fight(CURRENT_SPAR, me, opp(), s).winner === 0).length;
+    let suggested = 0;
+    for (const [id, opp] of opps)
+      for (const line of ["gentle", "bold", "curious"] as const)
+        for (const [stage, level] of [["child", 0], ["adult", 1]] as const) {
+          const me = fighterOfMind("me", { line, lessons: [] }, level);
+          // the coach is asked after a lost spar: the first of these seeds the pet loses
+          const result = [4242, 4243, 4244, 4245, 4246].map((seed) => fight(CURRENT_SPAR, me, opp(), seed)).find((r) => r.winner !== 0);
+          if (!result) continue;
+          const note = coach({ result, side: 0, line, stage, lessons: [], level, opponent: opp() });
+          if (!note.lesson) continue;
+          suggested++;
+          expect(wins(fighterOfMind("me", { line, lessons: [note.lesson.rule] }, level), opp), `${line} ${stage} vs ${id}: ${note.lesson.id}`).toBeGreaterThanOrEqual(wins(me, opp));
+        }
+    expect(suggested).toBeGreaterThan(20);
   }, 120_000);
 });
 

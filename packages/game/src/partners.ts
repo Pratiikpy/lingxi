@@ -49,7 +49,7 @@ export const PARTNERS: readonly Partner[] = [
     line: "bold",
     stage: "child",
     level: 0,
-    blurb: { en: "Pounces whenever it has the energy. Learn to guard.", zh: "一有力气就扑过来。学会防守吧。" },
+    blurb: { en: "Pounces whenever it has the energy. A pet that guards every round beats it more often than not.", zh: "一有力气就扑过来。每回合都防守的宠物多半能赢它。" },
     program: P([{ when: { energy: [0, 1] }, then: { want: 3, mood: 1 } }, { when: { time: [3] }, then: { want: 2, mood: 2 } }, { when: { hunger: [2, 3] }, then: { want: 1, mood: 1 } }], { want: 2, mood: 1 }),
   },
   {
@@ -58,7 +58,7 @@ export const PARTNERS: readonly Partner[] = [
     line: "curious",
     stage: "teen",
     level: 0,
-    blurb: { en: "Charms you early, dodges your pounces, finishes you off.", zh: "开场先迷惑你，躲开你的扑击，最后收尾。" },
+    blurb: { en: "Dodges your pounces, pounces the rest of the time, and finishes you off when you are worn down.", zh: "躲开你的扑击，其余时候扑过来，你快不行时就收尾。" },
     program: P(
       [
         { when: { clean: [0, 1] }, then: { want: 2, mood: 3 } },

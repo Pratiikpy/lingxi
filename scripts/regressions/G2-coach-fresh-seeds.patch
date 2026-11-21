@@ -9,12 +9,12 @@
  /** A lesson is suggested only when it wins at least this many more practice spars than the pet does now. */
  export const COACH_MARGIN = 5;
  
-@@ -143,7 +143,7 @@ export function coach(input: {
+@@ -146,7 +146,7 @@ export function coach(input: {
      const check = checkMindLesson(spec, stage, l.rule);
      if (!check.ok) continue;
-     const wins = winsAgainst(fighterOfMind("me", { ...spec, lessons: [l.rule, ...lessons] }, level), opponent, seed);
+     const wins = winsAgainst(fighterOfMind("me", { ...spec, lessons: [l.rule, ...lessons] }, level), opponent, seed, result.version);
 -    if (wins >= before + COACH_MARGIN && (!best || wins > best.wins)) best = { lesson: l, wins };
 +    if (wins > before && (!best || wins > best.wins)) best = { lesson: l, wins };
    }
    if (best) return { key: FIXES[best.lesson.id] ?? diagnose(result, side), lesson: best.lesson, before, after: best.wins };
-   return { key: diagnose(result, side), before, after: before };
+   // nothing it has room for helps (or it has no room): try each lesson it holds swapped for each fight lesson, the new one

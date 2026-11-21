@@ -44,8 +44,8 @@ export const PET_MANIFEST: Manifest = {
   memory: "LATCH bits; each brain declares its own memory fields, in order, after the outputs",
   notes: [
     `Program language ${PIN_VERSION}: an ordered list of rules over these inputs; the first match decides, otherwise a default.`,
-    "In a spar the same pins read the fight: hunger = own health (0 full), joy = momentum, energy = stamina, clean = the other pet's health (3 high), time = round phase (1 opening, 2 middle, 3 late), action = the other pet's last move, event = 3 hit hard / 2 the other left an opening / 1 the other was friendly, owner = 1 while cheering.",
-    "In a spar the want becomes a move: idle tap, eat snack, play pounce, sleep rest, explore dodge, sulk guard, cuddle charm, share gift; mood adds power (grumpy -1 to excited +2).",
+    "In a spar the same pins read the fight: hunger = own health (0 full), joy = momentum, energy = stamina, clean = the other pet's health (3 high), time = round phase (1 opening, 2 middle, 3 late), action = the other pet's last move (0 tap, 1 snack, 2 pounce, 3 guard, 4 rest, 5 charm, 6 dodge, 7 gift), event = 3 hit hard / 2 the other left an opening / 1 the other was friendly, owner = 1 while cheering.",
+    "In a spar the want becomes a move: idle tap, eat snack, play pounce, sleep rest, explore dodge, sulk guard, cuddle charm, share gift. Each move costs stamina (tap 0, snack 1, pounce 3, rest 0 and gives back 3, dodge 2, guard 1, charm 2, gift 1), and a move the pet cannot pay for in full becomes a rest. Mood is how hard it plays: each step from calm hits 1 harder and takes 1 more from every hit (grumpy 1 softer and 1 less), except while it guards or dodges; a calm pet wins back 1 stamina on a tap. This is fight version LX-SPAR/3; every result names its version, and the same seed in the same version is the same fight.",
   ],
 };
 

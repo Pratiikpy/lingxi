@@ -11,7 +11,7 @@ import type { StarterLine } from "@lingxi/brain";
 import type { OutsideInstinct, Stage } from "./pet";
 import { checkMindLesson, mindBrain } from "./family";
 import type { Family } from "./pet";
-import { type Fighter, type FighterMods, type SparResult } from "./spar";
+import { type Fighter, type FighterMods, type SparResult, type SparVersion } from "./spar";
 import { CURRENT_SPAR, MOVE_COST, fight, rulesOf } from "./spar2";
 
 export type CoachKey = "tooPassive" | "noDefence" | "ranOut" | "noHealing" | "outmatched" | "wellDone";
@@ -93,9 +93,10 @@ export function fighterFrom(name: string, program: import("@lingxi/brain").Progr
   return { name, brain: fastBrain(compileProgram(program)), memory: memory ? [...memory] : new Array(stateBits(program)).fill(0), level };
 }
 
-function winsAgainst(me: Fighter, them: Fighter, base: number): number {
+/** Practice spars in the version the fight was fought in, so the advice holds for the fight it is about (B3). */
+function winsAgainst(me: Fighter, them: Fighter, base: number, version: SparVersion = CURRENT_SPAR): number {
   let w = 0;
-  for (let i = 0; i < PRACTICE_SEEDS; i++) if (fight(CURRENT_SPAR, me, them, base + i * 7919).winner === 0) w++;
+  for (let i = 0; i < PRACTICE_SEEDS; i++) if (fight(version, me, them, base + i * 7919).winner === 0) w++;
   return w;
 }
 
@@ -139,12 +140,12 @@ export function coach(input: {
   if (result.winner === side) return { key: "wellDone", before: 0, after: 0 };
   const spec = { line, lessons, family: input.family, instincts: input.instincts, outside: input.outside, growth: input.growth, slots: input.slots };
   const now = fighterOfMind("me", spec, level, input.memory);
-  const before = winsAgainst(now, opponent, seed);
+  const before = winsAgainst(now, opponent, seed, result.version);
   let best: { lesson: FightLesson; wins: number } | null = null;
   for (const l of FIGHT_LESSONS) {
     const check = checkMindLesson(spec, stage, l.rule);
     if (!check.ok) continue;
-    const wins = winsAgainst(fighterOfMind("me", { ...spec, lessons: [l.rule, ...lessons] }, level), opponent, seed);
+    const wins = winsAgainst(fighterOfMind("me", { ...spec, lessons: [l.rule, ...lessons] }, level), opponent, seed, result.version);
     if (wins >= before + COACH_MARGIN && (!best || wins > best.wins)) best = { lesson: l, wins };
   }
   if (best) return { key: FIXES[best.lesson.id] ?? diagnose(result, side), lesson: best.lesson, before, after: best.wins };
@@ -156,7 +157,7 @@ export function coach(input: {
     for (const l of FIGHT_LESSONS) {
       if (lessons.some((x) => JSON.stringify([x.when, x.then]) === JSON.stringify([l.rule.when, l.rule.then]))) continue;
       if (!checkMindLesson({ ...spec, lessons: rest }, stage, l.rule).ok) continue;
-      const wins = winsAgainst(fighterOfMind("me", { ...spec, lessons: [l.rule, ...rest] }, level), opponent, seed);
+      const wins = winsAgainst(fighterOfMind("me", { ...spec, lessons: [l.rule, ...rest] }, level), opponent, seed, result.version);
       if (wins >= before + COACH_MARGIN && (!swap || wins > swap.wins)) swap = { lesson: l, replace: i, wins };
     }
   }

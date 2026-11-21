@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { type Pet, dayOf, petCard, placeTier, previousWeek, shownName, stageOf, weekOf } from "@lingxi/game";
+import { type Pet, SPAR_VERSION, dayOf, petCard, placeTier, previousWeek, seasonSparVersion, shownName, stageOf, weekOf } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { type SeasonView, enterSeason, markAwarded, mine, readSeason, seasonsAvailable } from "../game/season";
 import { useBadges } from "../game/badges";
@@ -189,7 +189,9 @@ export function SeasonCard({ pet }: { pet: Pet }) {
           <p className="label">{L(`Weekly season · ${week}`, `每周赛季 · ${week}`)}</p>
           <p className="small">
             {view
-              ? L(`${view.entries.length} entered · ends in ${left(view.ends - now(), lang)} · every pet fights every other, from both sides; level on points, the smaller brain ranks higher.`, `${view.entries.length} 只参赛 · ${left(view.ends - now(), lang)}后结束 · 每只宠物和其他每只各打两场（左右各一）；同分时大脑更小的排前面。`)
+              ? seasonSparVersion(week) === SPAR_VERSION
+                ? L(`${view.entries.length} entered · ends in ${left(view.ends - now(), lang)} · every pet fights every other, from both sides; level on points, the smaller brain ranks higher.`, `${view.entries.length} 只参赛 · ${left(view.ends - now(), lang)}后结束 · 每只宠物和其他每只各打两场（左右各一）；同分时大脑更小的排前面。`)
+                : L(`${view.entries.length} entered · ends in ${left(view.ends - now(), lang)} · every pet fights every other, from both sides; level on points, more wins ranks higher.`, `${view.entries.length} 只参赛 · ${left(view.ends - now(), lang)}后结束 · 每只宠物和其他每只各打两场（左右各一）；同分时赢得多的排前面。`)
               : serverless
                 ? L("Weekly seasons are run by Lingxi's server, which this on-chain copy of the game doesn't use. Enter them on lingxi.knole.me.", "每周赛季由灵犀的服务器举办，这份链上版本不使用服务器。请到 lingxi.knole.me 参赛。")
                 : state === "error"

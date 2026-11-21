@@ -8,7 +8,7 @@
 
 import { bitsToWord, circuitBrain } from "@lingxi/brain";
 import { loadCircuitFromChain, readPet, replayStep } from "@lingxi/chain";
-import { type Fighter, MAX_STAMINA, type Move, SPAR_VERSION, type SparResult, type SparVersion, type TeamResult, type TeamUnit, allowedMove, fight, teamSpar } from "@lingxi/game";
+import { type Fighter, MAX_STAMINA, type Move, SPAR_VERSION, type SparResult, type SparVersion, type TeamResult, type TeamUnit, allowedMove, fight, rulesOf, teamSpar } from "@lingxi/game";
 import { deployment, publicClient } from "./chain";
 
 export interface BattleCheck {
@@ -44,7 +44,9 @@ export async function checkSparOnChain(opts: {
   const chainMe: Fighter = { ...opts.me, brain: circuitBrain(circuit), memory: opts.me.memory.slice() };
   // each spar is re-fought in the version it was fought in (an LX-SPAR/1 spar from before G2 still checks)
   const rerun = fight(opts.result.version, chainMe, opts.them(), opts.result.seed, () => [opts.cheer, false]);
-  const full = MAX_STAMINA + (opts.me.mods?.stamina ?? 0);
+  // full stamina as the spar's own version counts it (from LX-SPAR/2 a share of the skills' stamina)
+  const rules = rulesOf(opts.result.version);
+  const full = MAX_STAMINA + Math.floor((opts.me.mods?.stamina ?? 0) * (rules ? rules.skillStaminaShare : 1));
   const steps = opts.result.rounds.map((r, i) => ({ word: r.words[0], stamina: i === 0 ? full : opts.result.rounds[i - 1]!.stamina[0], made: r.moves[0] }));
   const { confirmed, differs } = await askChain(id, opts.me.memory, steps, opts.result.version, opts.onProgress);
   return { petId: opts.petId, brainId: p.brainId.toString(), digest: rerun.digest, same: rerun.digest === opts.result.digest, confirmed, rounds: opts.result.rounds.length, ...(differs ? { differs } : {}) };
