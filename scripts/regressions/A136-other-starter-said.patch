@@ -1,0 +1,9 @@
+--- a/apps/web/src/verify/starterNote.ts
++++ b/apps/web/src/verify/starterNote.ts
+@@ -9,5 +9,5 @@ const LINES = ["gentle", "bold", "curious"] as const;
+ export function otherStarter(line: number, brainId: bigint, circuits: Partial<Record<string, { id: string }>> | undefined): number | null {
+   if (!circuits) return null;
+   const of = LINES.findIndex((l) => circuits[l]?.id === brainId.toString());
+-  return of >= 0 && of !== line ? of : null;
++  return of >= 0 && of !== line && false ? of : null;
+ }
