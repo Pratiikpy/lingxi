@@ -1,5 +1,5 @@
 /** A10: making a release live, rolling back, and letting old releases go (scripts/lib/release.mts). */
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -66,6 +66,23 @@ describe("a release (A10)", () => {
     expect(readPointer(dir)).toEqual({ release: names[0], previous: names[1] });
     // and a rollback of the rollback goes forward again
     expect(rollback(dir, T0 + 3 * DAY)).toBe(names[1]);
+  });
+
+  it("a history that cannot be written leaves the live release as it was, so trying again does the whole step", () => {
+    const { dir, names } = site(0, 1);
+    makeLive(dir, names[0]!, T0);
+    const history = join(dir, "history.json");
+    const kept = readFileSync(history, "utf8");
+    // the history's place taken by a folder: its write fails, as a file held open by another program does
+    rmSync(history);
+    mkdirSync(history);
+    expect(() => makeLive(dir, names[1]!, T0 + DAY)).toThrow();
+    expect(readPointer(dir)).toEqual({ release: names[0] });
+    rmSync(history, { recursive: true });
+    writeFileSync(history, kept);
+    makeLive(dir, names[1]!, T0 + DAY);
+    expect(readPointer(dir)).toEqual({ release: names[1], previous: names[0] });
+    expect(JSON.parse(readFileSync(history, "utf8"))[names[0]!]).toEqual({ live: T0, retired: T0 + DAY });
   });
 
   it("refuses a rollback with nothing to roll back to", () => {

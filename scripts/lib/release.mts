@@ -51,17 +51,37 @@ function readHistory(site: string): History {
 }
 function writeHistory(site: string, h: History): void {
   writeFileSync(`${historyFile(site)}.next`, `${JSON.stringify(h, null, 1)}\n`);
-  renameSync(`${historyFile(site)}.next`, historyFile(site));
+  renameHeld(`${historyFile(site)}.next`, historyFile(site));
 }
 
-/** Points the site at `next`, the live release becoming the one before it, and records when. */
+/**
+ * Points the site at `next`, the live release becoming the one before it, and records when. The history is written
+ * first: if it cannot be, nothing has gone live and trying again does the whole step (a pointer moved first left the
+ * old release unmarked as retired, and a retry saw the new one already live).
+ */
 function point(site: string, next: string, now: number): void {
   const live = readPointer(site);
-  writePointer(site, { release: next, ...(live && live.release !== next ? { previous: live.release } : {}) });
   const h = readHistory(site);
   if (live && live.release !== next) h[live.release] = { ...(h[live.release] ?? { live: now }), retired: now };
   h[next] = { live: now };
   writeHistory(site, h);
+  writePointer(site, { release: next, ...(live && live.release !== next ? { previous: live.release } : {}) });
+}
+
+/**
+ * A rename that waits out Windows' brief locks: another program (a virus scan, an indexer) reading the file makes the
+ * rename fail with EPERM or EBUSY for a moment. Tried a few times, a short pause apart, then the error stands.
+ */
+function renameHeld(from: string, to: string): void {
+  for (let i = 0; ; i++) {
+    try {
+      return renameSync(from, to);
+    } catch (e) {
+      const code = (e as NodeJS.ErrnoException).code;
+      if ((code !== "EPERM" && code !== "EBUSY") || i >= 5) throw e;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 200);
+    }
+  }
 }
 
 /** Makes a built release live, once it passes the check; throws, leaving the live release as it was, when it does not. */
