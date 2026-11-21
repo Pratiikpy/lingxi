@@ -1,0 +1,11 @@
+--- a/packages/game/src/spar2.ts
++++ b/packages/game/src/spar2.ts
+@@ -103,7 +103,7 @@ const costAt = (m: Move, mood: number) => MOVE_COST[m] + (mood === 3 && MOVE_COS
+  */
+ export function allowedMove(version: SparVersion, out: number, stamina: number): Move {
+   const want = MOVES[out & 7]!;
+-  if (version === SPAR_V2) return costAt(want, (out >> 3) & 3) > stamina ? "rest" : want;
++  if (version === SPAR_V2) return stamina <= 0 && want !== "rest" && want !== "tap" ? "rest" : want;
+   return stamina <= 0 && want !== "rest" && want !== "tap" ? "rest" : want;
+ }
+ 

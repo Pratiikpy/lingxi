@@ -1,0 +1,11 @@
+--- a/packages/game/src/spar2.ts
++++ b/packages/game/src/spar2.ts
+@@ -188,7 +188,7 @@ export function spar2(a: Fighter, b: Fighter, seed: number, cheer: (round: numbe
+             const timed = sides[j].last !== "guard";
+             stagger[i] += STAGGER;
+             stagger[j] -= STEADY;
+-            hits[j] += (rnd() % (RECOIL_MAX + 1)) + (timed ? TIMED_RECOIL : 0);
++            hits[j] += 0;
+           }
+         } else if (def === "dodge") {
+           const r = rnd();

@@ -1,0 +1,11 @@
+--- a/packages/game/src/spar2.ts
++++ b/packages/game/src/spar2.ts
+@@ -69,7 +69,7 @@ const FEINT = 8;
+  * five points changes the result (spar2.test.ts).
+  */
+ const SKILL_POWER_TENTHS = 2;
+-const SKILL_HP_SHARE = 0.1;
++const SKILL_HP_SHARE = 1;
+ const SKILL_STAMINA_SHARE = 0.5;
+ /** a quarter of the guard skills' percent, carried from guard to guard; half a dodge point is half a percent on a 200 roll */
+ const SKILL_GUARD_SHARE = 0.25;

@@ -1,0 +1,11 @@
+--- a/packages/game/src/fightWhy.ts
++++ b/packages/game/src/fightWhy.ts
+@@ -47,7 +47,7 @@ export type Exchange =
+  * before G2) has none to show.
+  */
+ export function exchangesOf(version: SparVersion, rounds: readonly Round[], k: number): Exchange[] {
+-  if (version !== SPAR_V2) return [];
++  if (version !== SPAR_V2 || rounds.length >= 0) return [];
+   const r = rounds[k];
+   if (!r) return [];
+   const out: Exchange[] = [];

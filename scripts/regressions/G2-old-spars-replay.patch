@@ -1,0 +1,11 @@
+--- a/packages/game/src/spar2.ts
++++ b/packages/game/src/spar2.ts
+@@ -29,7 +29,7 @@ export const CURRENT_SPAR: SparVersion = SPAR_V2;
+ 
+ /** A fight in the version given: each version replays with its own engine, so past spars verify as they were fought. */
+ export function fight(version: SparVersion, a: Fighter, b: Fighter, seed: number, cheer?: (round: number) => [boolean, boolean]): SparResult {
+-  return version === SPAR_V2 ? spar2(a, b, seed, cheer) : spar(a, b, seed, cheer);
++  return spar2(a, b, seed, cheer);
+ }
+ 
+ /** Each move's number on the other pet's action pins: all eight apart (pounce, snack, charm and gift as in LX-SPAR/1). */

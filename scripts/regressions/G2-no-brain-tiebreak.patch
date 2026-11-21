@@ -1,0 +1,11 @@
+--- a/packages/game/src/season.ts
++++ b/packages/game/src/season.ts
+@@ -122,7 +122,7 @@ export function seasonStandings(week: string, entries: readonly SeasonEntry[]):
+   }
+   const sorted = rows
+     .slice()
+-    .sort((a, b) => (version === SPAR_V2 ? b.points - a.points || b.wins - a.wins : b.points - a.points || a.gates - b.gates || b.wins - a.wins) || (a.key < b.key ? -1 : 1));
++    .sort((a, b) => (b.points - a.points || a.gates - b.gates || b.wins - a.wins) || (a.key < b.key ? -1 : 1));
+   sorted.forEach((r, i) => (r.rank = i + 1));
+   return sorted;
+ }
