@@ -1,0 +1,11 @@
+--- a/packages/game/src/team.ts
++++ b/packages/game/src/team.ts
+@@ -30,7 +30,7 @@ export type TeamVersion = "LX-TEAM/1" | "LX-TEAM/2";
+ export const TEAM_VERSION = "LX-TEAM/1";
+ export const TEAM_V2 = "LX-TEAM/2";
+ /** The version new team battles are fought in. */
+-export const CURRENT_TEAM: TeamVersion = TEAM_V2;
++export const CURRENT_TEAM: TeamVersion = TEAM_VERSION;
+ /** The spar rules each team version's moves follow (for a checker re-applying the stamina rule). */
+ export const TEAM_SPAR: Record<TeamVersion, "LX-SPAR/1" | "LX-SPAR/3"> = { "LX-TEAM/1": "LX-SPAR/1", "LX-TEAM/2": "LX-SPAR/3" };
+ export const TEAM_ROUNDS = 24;

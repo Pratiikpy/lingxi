@@ -1,0 +1,11 @@
+--- a/packages/game/src/arenarun.ts
++++ b/packages/game/src/arenarun.ts
+@@ -156,7 +156,7 @@ export const ghostLevel = (round: number): number => Math.min(3, Math.floor(roun
+  * measured on simulated runs (a player who buys whatever fits each round), runs won went from 34-41% under LX-TEAM/1 to
+  * 75% with no health edge and 31-37% with this one, average trophies 7.7-8.0 against 7.6-8.2.
+  */
+-export const GHOST_HP_PER_EDGE = 0.1;
++export const GHOST_HP_PER_EDGE = 0;
+ export const ghostHealth = (hp: number, edge: number): number => Math.round(hp * (1 + GHOST_HP_PER_EDGE * edge));
+ 
+ /** the seed a round's battle is fought on */
