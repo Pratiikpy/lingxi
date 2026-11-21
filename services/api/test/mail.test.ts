@@ -19,6 +19,14 @@ describe("mail", () => {
     }
   });
 
+  it("the welcome letter greets every newcomer, and says so to the game (G8)", async () => {
+    const letters = loadLetters(shipped);
+    expect(letters.filter((l) => l.greets).map((l) => l.id)).toEqual(["welcome"]);
+    const app = withMail(new Hono(), () => letters, () => Date.now());
+    const served = (await (await app.request("/api/mail")).json()).letters as Array<{ id: string; greets?: boolean }>;
+    expect(served.find((l) => l.id === "welcome")?.greets).toBe(true);
+  });
+
   it("bad letters and duplicates are left out; future and expired letters are not served", async () => {
     const dir = mkdtempSync(join(tmpdir(), "mail-"));
     const f = join(dir, "letters.json");

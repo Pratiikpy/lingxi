@@ -178,6 +178,9 @@ export const DUEL_CHIPS: readonly DuelChip[] = [
   { id: "bait", name: { en: "Bait", zh: "诱招" }, rule: { when: { foe: [0, 0], dist: [2, 3] }, then: 3 } },
 ];
 
+/** A chip's name as a player reads it (G8: the ids are TapeFly's, in English); an unknown id is shown as it came. */
+export const chipName = (id: string, lang: "en" | "zh"): string => DUEL_CHIPS.find((c) => c.id === id)?.name[lang] ?? id;
+
 /** A chip list, top to bottom, as a program; with nothing matched, press at the rival. */
 export function programOfChips(ids: readonly string[]): FlyProgram {
   if (ids.length < 1 || ids.length > FLY_MAX_RULES) throw new Error("chips: 1 to 16");

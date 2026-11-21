@@ -40,7 +40,7 @@ import { setQuestSlots, setTallySink } from "./tally";
 import { cleanWorld } from "./saveClean";
 import { PROOF_KEY, takeProofChecks } from "./proofMark";
 import { useChain } from "./chain";
-import { brainOf, useGame } from "./store";
+import { type Chose, brainOf, useGame } from "./store";
 import { play } from "./sound";
 import { saveWrite } from "./saveRuntime";
 import { now } from "./gameClock";
@@ -520,6 +520,24 @@ if (typeof window !== "undefined") window.addEventListener("storage", (e) => e.k
  * game open and in view counts as a minute TOGETHER in the current room, and as TOGETHER_NIGHT by its local night;
  * what its brain chose that beat counts as CHOOSE:<want>. A long gap is an absence, not time together.
  */
+/**
+ * The pet's own choices while the player was away (G8): each want its brain chose, awake, counts as CHOOSE:<want>, in
+ * the room the game was left in, as a choice made while watched does.
+ */
+let choseSeen = 0;
+const countAway = (c: Chose | null) => {
+  if (!c || c.id === choseSeen) return;
+  choseSeen = c.id;
+  const w = useWorld.getState();
+  const room = w.world.room;
+  for (const [want, n] of Object.entries(c.wants)) {
+    w.tally("CHOOSE", want, n);
+    w.tally("CHOOSE", `${want}-${room}`, n, { total: false });
+  }
+};
+countAway(useGame.getState().chose);
+useGame.subscribe((s) => countAway(s.chose));
+
 useGame.subscribe((s, prev) => {
   const p = s.pet;
   const q = prev.pet;

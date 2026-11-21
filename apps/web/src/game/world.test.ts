@@ -652,6 +652,26 @@ describe("the world store: what the game counts on its own", () => {
     expect(tallyOf(t, `HEALTHY_DAY:${localDay(Date.now(), pet.tzOffsetMin)}`)).toBe(6);
   });
 
+  it("what the pet chose by itself while the player was away counts once, in the room it was left in (G8)", async () => {
+    const { w, useGame, arrange } = await open({ at: new Date(2026, 10, 18, 9, 0).getTime() });
+    arrange((x) => ({ ...x, room: 56 }));
+    const before = { ...(w().world.tally ?? {}) };
+    // the game keeps its own clock (gameClock.ts): fake time moves both the wall and the steady clock
+    vi.advanceTimersByTime(20 * 60 * MIN);
+    useGame.getState().wakeUp();
+    const chose = useGame.getState().chose;
+    expect(chose, "a pet left twenty hours gets hungry and chooses to eat").not.toBeNull();
+    const t = w().world;
+    for (const [want, n] of Object.entries(chose!.wants)) {
+      expect(tallyOf(t, `CHOOSE:${want}`) - (before[`CHOOSE:${want}`] ?? 0), want).toBe(n);
+      expect(tallyOf(t, `CHOOSE:${want}-56`) - (before[`CHOOSE:${want}-56`] ?? 0), `${want} in the forest`).toBe(n);
+    }
+    // opening the game again with no time gone counts nothing more
+    const once = { ...t.tally };
+    useGame.getState().wakeUp();
+    expect(w().world.tally).toEqual(once);
+  });
+
   it("a minute together at night counts as a night together", async () => {
     const { w, useGame } = await open({ at: new Date(2026, 10, 18, 23, 0).getTime() });
     vi.advanceTimersByTime(MIN);

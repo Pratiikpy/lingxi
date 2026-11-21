@@ -51,10 +51,10 @@ export const ARC_11_12: QuestDef[] = [
   // ── Arc 12. Growing up (from your pet) ──
   quest(77, 12, "pet", [done("q11")], {
     title: T("My first friend", "第一个朋友"),
-    intro: [say("shy", "I want a friend. A real one, who knows my name.", "我想要一个朋友。真正的朋友，知道我名字的那种。"), say("happy", "Let me play with a friend's pet until we're friends, or take me to meet three pets on Builders' Lane.", "让我和朋友的宠物一起玩到成为朋友，或者带我去见建设者小路上的三只宠物。")],
+    intro: [say("shy", "I want a friend. A real one, who knows my name.", "我想要一个朋友。真正的朋友，知道我名字的那种。"), say("happy", "Let me play with a friend's pet until we're friends, or take me to meet three pets on Builders' Lane.", "让我和朋友的宠物一起玩到成为朋友，或者带我去见建设者小巷上的三只宠物。")],
     outro: [say("love", "A friend! Can we keep a picture? I want to remember this.", "一个朋友！我们能留张照片吗？我想记住这一刻。")],
     // meeting counts whenever it happened: a player who already knows the lane must not be locked out
-    objectives: [obj(anyOf(ever("BOND", undefined, 2), ever("DISTINCT", "MEET", 3)), "Become friends with a friend's pet, or know 3 pets on Builders' Lane", "和朋友的宠物成为朋友，或认识建设者小路上的 3 只宠物")],
+    objectives: [obj(anyOf(ever("BOND", undefined, 2), ever("DISTINCT", "MEET", 3)), "Become friends with a friend's pet, or know 3 pets on Builders' Lane", "和朋友的宠物成为朋友，或认识建设者小巷上的 3 只宠物")],
     rewards: [coins(30), decor("photo")],
   }),
   quest(78, 12, "pet", [done("q11")], {

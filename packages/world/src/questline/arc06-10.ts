@@ -37,7 +37,7 @@ export const ARC_6_TO_10: QuestDef[] = [
     intro: [say(I, "It only comes to pets who aren't afraid. Let yours decide. Don't tell it what to do.", "它只会走近不害怕的宠物。让你的宠物自己决定。别替它做主。")],
     outro: [say(I, "It wanted to explore, all on its own. The shy one followed it. They're friends now.", "它自己想去探索，没人教它。那个害羞的家伙跟上来了。它们现在是朋友了。")],
     // the outline used a night-only visitor; visitors are drawn from the album, so the moment is the pet's own choice to explore here
-    objectives: [obj(from("CHOOSE", "explore-56", 1), "Your pet chooses to explore in the Butterfly Forest", "你的宠物在蝴蝶森林里自己选择去探索")],
+    objectives: [obj(from("CHOOSE", "explore-56", 1), "Your pet chooses to explore in the Butterfly Forest, while you watch or while you leave it there", "你的宠物在蝴蝶森林里自己选择去探索（你看着它，或把它留在那里都算）")],
     rewards: [coins(25), flag("shy-friend"), trust("flit", 5)],
   }),
   quest(44, 6, "flit", [done("q43")], {
@@ -56,7 +56,7 @@ export const ARC_6_TO_10: QuestDef[] = [
   }),
   quest(46, 6, "flit", [done("q45")], {
     title: T("Five new places", "五个新地方"),
-    intro: [say(I, "Every forest keeps its own creatures. Look around in five places you've never looked before.", "每片森林都有自己的住客。去五个你从没找过的地方四处找找。")],
+    intro: [say(I, "Every forest keeps its own creatures. Look around in five places you've never tried.", "每片森林都有自己的住客。去五个你从没找过的地方四处找找。")],
     outro: [say(I, "Five. You have a watcher's eyes now. Take my old net; I have two.", "五个了。你现在有一双观察者的眼睛。拿着我的旧网吧，我有两张。")],
     // new places, not new kinds: once the common finds are known, only rare ones are left, and five of those took days
     objectives: [obj(from("DISTINCT", "FORAGE", 5), "Look around in 5 places you never have", "在 5 个从没找过的地方四处找找")],
@@ -80,7 +80,7 @@ export const ARC_6_TO_10: QuestDef[] = [
   }),
   quest(49, 7, "why", [done("q48")], {
     title: T("Just in case", "以防万一"),
-    intro: [say(W.cradle, "Every home needs something soothing. A lucky tea: an old bottle and three spoons of daffodil drops.", "每个家都该备点安抚的东西。幸运茶：一个旧瓶子，加三勺水仙露。")],
+    intro: [say(W.cradle, "Lucky tea: an old bottle and three spoons of daffodil drops. Every home needs one.", "每个家都该备点安抚的东西。幸运茶：一个旧瓶子，加三勺水仙露。")],
     outro: [say(W.smile, "Good. Keep it in this kit, and keep the kit where you can reach it.", "很好。放进这个急救箱，急救箱放在你够得着的地方。")],
     // the outline's moon tonic needs glow root and mint, both rare since finds follow rarity tiers (plan 4.5)
     objectives: [obj(from("CRAFT", 11405, 1), "Make a lucky tea", "做一杯幸运茶")],
@@ -96,9 +96,9 @@ export const ARC_6_TO_10: QuestDef[] = [
   }),
   quest(51, 7, "why", [done("q50")], {
     title: T("Looking after a friend", "照顾朋友"),
-    intro: [say(W.cradle, "Caring for someone else's pet teaches you more than caring for your own.", "照顾别人的宠物，比照顾自己的学得更多。"), say(W.smile, "Pet-sit for a friend, or, if nobody's asked yet, nurse your own pet through a sick day.", "替朋友照看一次宠物；如果还没人托你，就在你的宠物生病时照顾好它。")],
+    intro: [say(W.cradle, "Caring for someone else's pet teaches you more than caring for your own.", "照顾别人的宠物，比照顾自己的学得更多。"), say(W.smile, "Pet-sit for a friend, nurse your own pet when it's sick, or bring my clinic three mint.", "替朋友照看一次宠物，在你的宠物生病时照顾好它，或者给我的诊所带三片薄荷。")],
     outro: [say(W.smile, "A natural carer. Wear the badge; people will know who to call.", "天生会照顾人。别上这枚徽章吧，大家就知道该找谁了。")],
-    objectives: [obj(anyOf(from("EVENT", "pet-sat", 1), from("CARE", "medicine", 1)), "Look after a friend's pet, or nurse your own when it's sick", "照看朋友的宠物，或在你的宠物生病时照顾它")],
+    objectives: [obj(anyOf(from("EVENT", "pet-sat", 1), from("CARE", "medicine", 1), from("GIVE_TO", "why:1012", 3)), "Look after a friend's pet, nurse your own when it's sick, or bring Nurse Why 3 mint for her clinic", "照看朋友的宠物，在你的宠物生病时照顾它，或给护士小慧带 3 片薄荷给诊所用")],
     rewards: [coins(30), flag("carer"), trust("why", 5)],
   }),
   quest(52, 7, "why", [done("q51")], {
@@ -133,7 +133,7 @@ export const ARC_6_TO_10: QuestDef[] = [
   }),
   quest(56, 8, "jab", [done("q55")], {
     title: T("A fair fight", "公平较量"),
-    intro: [say(AR.fierce, "Practice partners are one thing. A real mind is another. Spar a friend's pet, or Behemoth on Builders' Lane.", "练习对手是一回事，真正的心智是另一回事。和朋友的宠物切磋，或者去建设者小路找巨兽。")],
+    intro: [say(AR.fierce, "A real mind fights differently. Spar a friend's pet, or Behemoth on Builders' Lane.", "练习对手是一回事，真正的心智是另一回事。和朋友的宠物切磋，或者去建设者小巷找巨兽。")],
     outro: [say(AR.grin, "Win or lose, that was a real fight. Team spars are open to you now.", "不管输赢，这是一场真正的比赛。从现在起你可以打组队切磋了。")],
     objectives: [obj(from("EVENT", "spar-peer", 1), "Spar a friend's pet or Behemoth", "和朋友的宠物或巨兽切磋")],
     rewards: [coins(25), flag("team-spars"), trust("jab", 5)],
@@ -191,7 +191,7 @@ export const ARC_6_TO_10: QuestDef[] = [
   }),
   quest(64, 9, "twain", [done("q63")], {
     title: T("Sight", "看"),
-    intro: [say(D.frown, "Sight. It must notice someone new: a visitor at home, a friend's pet, or the pets on Builders' Lane.", "视觉。它得注意到一个新面孔：家里的访客、朋友的宠物，或建设者小路上的宠物。")],
+    intro: [say(D.frown, "Sight. It must notice someone new: a visitor at home, a friend's pet, or the pets on Builders' Lane.", "视觉。它得注意到一个新面孔：家里的访客、朋友的宠物，或建设者小巷上的宠物。")],
     outro: [say(D.laugh, "It saw them, and remembered. The spark of sight.", "它看见了，也记住了。视觉之火花。")],
     objectives: [obj(anyOf(from("EVENT", "visitor-met", 1), from("EVENT", "visited-by-friend", 1), from("MEET", undefined, 1)), "Your pet meets someone new", "你的宠物认识一个新面孔")],
     rewards: [coins(15), item(6003), trust("twain", 5)],
@@ -199,14 +199,14 @@ export const ARC_6_TO_10: QuestDef[] = [
   quest(65, 9, "twain", [done("q64")], {
     title: T("One mind", "一颗心"),
     intro: [say(D.frown, "Six sparks. Put them together at the workbench and they become one heart.", "六颗火花。在工作台把它们放在一起，就会变成一颗心。")],
-    outro: [say(D.laugh, "The heart of the senses. That is what you're raising, in the end. A thing that feels. Room for one more lesson, too.", "感官之心。说到底，你养大的就是这个：一个会感受的生命。还能多学一课。")],
+    outro: [say(D.laugh, "The heart of the senses. You're raising a thing that feels. And room for one more lesson.", "感官之心。说到底，你养大的就是这个：一个会感受的生命。还能多学一课。")],
     objectives: [obj(from("CRAFT", 6007, 1), "Make the heart of the senses", "做出感官之心")],
     rewards: [coins(50), flag("pure-essence"), flag("lesson-slot"), trust("twain", 6)],
   }),
   quest(66, 9, "twain", [done("q65")], {
     title: T("Don't trust, verify", "不信，去验"),
     intro: [say(D.laugh, "Don't believe us. Open its proof page and replay a saved day yourself.", "别信我们。打开它的证明页，自己重放保存过的一天。")],
-    outro: [say(D.frown, "Every thought matched the chain. We checked too. We were disappointed it was honest. Heh heh.", "每一个念头都和链上一致。我们也核对过。它太诚实，我们有点失望。嘿嘿。")],
+    outro: [say(D.frown, "Every thought matched the chain. We checked too. Disappointingly honest. Heh heh.", "每一个念头都和链上一致。我们也核对过。它太诚实，我们有点失望。嘿嘿。")],
     objectives: [obj(from("EVENT", "proof-checked", 1), "Check a saved day on the proof page", "在证明页核对保存过的一天")],
     rewards: [coins(40), piece("seal"), trust("twain", 6)],
   }),

@@ -1,0 +1,10 @@
+--- a/apps/web/src/game/mail.ts
++++ b/apps/web/src/game/mail.ts
+@@ -84,7 +84,6 @@ export const useMail = create<MailStore>((set, get) => {
+     loaded: false,
+     fetch: async () => {
+       // a newcomer's arrival is kept the first time the mailbox loads, so a later visit does not move it
+-      if (get().since !== undefined && !hasKept()) keep({});
+       // the on-chain (DeWEB) build has no server: only the letters the game writes itself
+       if (!BASE) return set({ loaded: true });
+       try {

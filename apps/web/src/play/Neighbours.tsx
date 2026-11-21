@@ -257,7 +257,7 @@ export function NeighboursPanel() {
                       ? "知己。"
                       : "Kindred."}
                   {" · "}
-                  {c ? c.role[lang] : zh ? "建设者小路" : "Builders' Lane"}
+                  {c ? c.role[lang] : zh ? "建设者小巷" : "Builders' Lane"}
                 </span>
               </div>
             </li>

@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/world.ts
++++ b/apps/web/src/game/world.ts
+@@ -535,8 +535,6 @@ const countAway = (c: Chose | null) => {
+     w.tally("CHOOSE", `${want}-${room}`, n, { total: false });
+   }
+ };
+-countAway(useGame.getState().chose);
+-useGame.subscribe((s) => countAway(s.chose));
+ 
+ useGame.subscribe((s, prev) => {
+   const p = s.pet;

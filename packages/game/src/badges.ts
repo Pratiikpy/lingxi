@@ -43,7 +43,8 @@ export const BADGES: readonly Badge[] = [
   { id: "healer", metric: "medicine", tiers: [1, 5, 15], name: { en: "Healer", zh: "小医生" }, how: { en: "Nurse a sick pet back {n} times", zh: "治好生病的宠物 {n} 次" } },
   { id: "teacher", metric: "lessons", tiers: [1, 8, 25], name: { en: "Teacher", zh: "好老师" }, how: { en: "Teach {n} lessons", zh: "教会 {n} 课" } },
   { id: "grown", metric: "stage", tiers: [2, 3, 4], name: { en: "Growing up", zh: "长大啦" }, how: { en: "Raise a pet to {n}", zh: "把宠物养到{n}" } },
-  { id: "keeper", metric: "pets", tiers: [1, 3, 8], name: { en: "Pet keeper", zh: "宠物之家" }, how: { en: "Raise {n} pets", zh: "养大 {n} 只宠物" } },
+  // hatching the first pet is where everyone starts, not an achievement: the badge begins with a second pet (G8)
+  { id: "keeper", metric: "pets", tiers: [2, 4, 8], name: { en: "Pet keeper", zh: "宠物之家" }, how: { en: "Raise {n} pets", zh: "养大 {n} 只宠物" } },
   { id: "family", metric: "children", tiers: [1, 3, 6], name: { en: "Family", zh: "一家人" }, how: { en: "Raise {n} little ones", zh: "养育 {n} 只小宝宝" } },
   { id: "spar", metric: "sparWins", tiers: [3, 20, 100], name: { en: "Spar star", zh: "切磋之星" }, how: { en: "Win {n} spars", zh: "赢得 {n} 场切磋" } },
   { id: "giver", metric: "gifts", tiers: [1, 5, 20], name: { en: "Gift giver", zh: "爱送礼" }, how: { en: "Send {n} gifts", zh: "送出 {n} 份礼物" } },

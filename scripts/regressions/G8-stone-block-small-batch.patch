@@ -1,0 +1,10 @@
+--- a/packages/world/src/world.ts
++++ b/packages/world/src/world.ts
+@@ -152,7 +152,6 @@ export const craftXp = (sourceXp: number) => Math.round(Math.sqrt(Math.max(0, so
+  * who needs one now. Quest 37's "three pebbles make a stone block" is this recipe.
+  */
+ export const SMALL_BATCH_RECIPES: readonly Recipe[] = [
+-  { index: 30001, name: { en: "Shape a Stone Block", zh: "拼一块石砖" }, out: 1301, outAmount: 1, ins: [{ item: 1002, amount: 3 }], energy: craftEnergy(10), xp: craftXp(9) },
+ ];
+ 
+ const SOURCE_RECIPES: Recipe[] = (data.recipes as Array<{ index: number; out: number; outAmount: number; ins: Array<{ item: number; amount: number }>; stamina: number; xp: number; tool: number | null; room: number | null }>)

@@ -56,7 +56,7 @@ export function countCare(kind: Care["kind"], wasAsleep: boolean, r: CareResult)
   useGame.setState({ daily: d });
 }
 import { create } from "zustand";
-import { type Program, type Rule, STARTERS, compileProgram, fastBrain, stateBits, timeOfDay } from "@lingxi/brain";
+import { type Program, type Rule, STARTERS, WANTS, compileProgram, fastBrain, stateBits, timeOfDay } from "@lingxi/brain";
 import { FOODS, type Brain, type Care, type CareResult, type Growth, type Pet, type UpgradeRefusal, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, learnSkill, levelUpPet, liveBeat, mindBrain, respecPet, ruleSkillIds, settleForm, skillRules, stageOf, teach as teachRule, awayEvent, awaySeed, beatOf, localHour, instinctBrain, instinctGates, INSTINCT_MAX_GATES, MAX_MIND_STATE, type OutsideInstinct, instinctFits, stripHidden, withSegment, boundLog, ruleGrowth, type Mind } from "@lingxi/game";
 import type { StarterLine } from "@lingxi/brain";
 import { takeComfort } from "./comfort";
@@ -214,6 +214,8 @@ interface GameState {
   tick: () => void;
   /** the last absence long enough to tell about, until the player has seen it */
   away: Away | null;
+  /** the pet's own choices made while the player was away, last return (G8) */
+  chose: Chose | null;
   clearAway: () => void;
   wakeUp: () => void;
   say: (note: Toast["note"]) => void;
@@ -246,23 +248,42 @@ function zoned(p: Pet): Pet {
   return p.tzOffsetMin === tz ? p : { ...p, tzOffsetMin: tz };
 }
 
-function returnTo(p: Pet): { pet: Pet; away: Away | null } {
+/** What a pet chose of its own accord, awake, while the player was away: want → beats (G8). */
+export interface Chose {
+  id: number;
+  petKey: string;
+  wants: Record<string, number>;
+}
+let choseId = 0;
+
+function returnTo(p: Pet): { pet: Pet; away: Away | null; chose: Chose | null } {
   // a pet staying with a friend is frozen here until it comes home
-  if (p.away) return { pet: p, away: null };
+  if (p.away) return { pet: p, away: null, chose: null };
   const now = gameNow();
   const from = p.beat;
   const seed = awaySeed(p);
-  const pet = settleForm(catchUp(zoned(p), now, brainOf(p), (b) => awayEvent(seed, b)), now);
+  // the pet's own choices while away count as its choices while watched do (G8)
+  const wants: Record<string, number> = {};
+  const pet = settleForm(
+    catchUp(zoned(p), now, brainOf(p), (b) => awayEvent(seed, b), (want) => {
+      const w = WANTS[want];
+      if (w && w !== "idle") wants[w] = (wants[w] ?? 0) + 1;
+    }),
+    now,
+  );
   const to = beatOf(now);
-  return { pet, away: to - from >= AWAY_STORY_BEATS ? { petKey: String(p.bornAt), from, to } : null };
+  const chose = Object.keys(wants).length ? { id: ++choseId, petKey: String(p.bornAt), wants } : null;
+  return { pet, away: to - from >= AWAY_STORY_BEATS ? { petKey: String(p.bornAt), from, to } : null, chose };
 }
 
 let firstAway: Away | null = null;
+let firstChose: Chose | null = null;
 function initialPet(): Pet | null {
   const p = roster.pets[roster.active];
   if (!p) return null;
   const r = returnTo(p);
   firstAway = r.away;
+  firstChose = r.chose;
   save(r.pet);
   return r.pet;
 }
@@ -272,6 +293,7 @@ let toastId = 0;
 export const useGame = create<GameState>((set, get) => ({
   pet: initialPet(),
   away: firstAway,
+  chose: firstChose,
   clearAway: () => set({ away: null }),
   pets: roster.pets,
   active: roster.active,
@@ -281,7 +303,7 @@ export const useGame = create<GameState>((set, get) => ({
     roster = { ...roster, active: index };
     const r = returnTo(target);
     save(r.pet);
-    set({ pet: r.pet, pets: roster.pets, active: index, lastCare: null, away: r.away });
+    set({ pet: r.pet, pets: roster.pets, active: index, lastCare: null, away: r.away, ...(r.chose ? { chose: r.chose } : {}) });
   },
   adopt: (child) => {
     if (roster.pets.length >= MAX_PETS) return false;
@@ -381,7 +403,7 @@ export const useGame = create<GameState>((set, get) => ({
     const r = returnTo(pet);
     if (r.pet !== pet) {
       save(r.pet);
-      set({ pet: r.pet, pets: roster.pets, ...(r.away ? { away: r.away } : {}) });
+      set({ pet: r.pet, pets: roster.pets, ...(r.away ? { away: r.away } : {}), ...(r.chose ? { chose: r.chose } : {}) });
     }
   },
   say: (note) => set({ toast: { id: ++toastId, note } }),

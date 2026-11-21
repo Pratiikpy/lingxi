@@ -17,6 +17,8 @@ export interface Letter {
   subject: { en: string; zh: string };
   body: { en: string; zh: string };
   gift?: { item: number; n: number };
+  /** a letter every newcomer should find unread, however long ago it was sent (the welcome) */
+  greets?: boolean;
   /** written by the game on this device */
   local?: boolean;
 }
@@ -25,15 +27,29 @@ interface Kept {
   read: string[];
   claimed: string[];
   local: Letter[];
+  /**
+   * When this mailbox was first opened (G8): letters sent before it stay readable, gifts and all, but only one that
+   * greets a newcomer counts as unread. A mailbox from before this was kept has none, and counts every letter.
+   */
+  since?: number;
 }
 
 function load(): Kept {
   try {
     const raw = localStorage.getItem(KEY);
-    const k = raw ? (JSON.parse(raw) as Partial<Kept>) : {};
-    return { read: k.read ?? [], claimed: k.claimed ?? [], local: k.local ?? [] };
+    // a mailbox opened for the first time starts now; one kept from before keeps what it had
+    const k = raw ? (JSON.parse(raw) as Partial<Kept>) : { since: Date.now() };
+    return { read: k.read ?? [], claimed: k.claimed ?? [], local: k.local ?? [], ...(typeof k.since === "number" ? { since: k.since } : {}) };
   } catch {
     return { read: [], claimed: [], local: [] };
+  }
+}
+
+function hasKept(): boolean {
+  try {
+    return localStorage.getItem(KEY) !== null;
+  } catch {
+    return true;
   }
 }
 
@@ -57,7 +73,8 @@ interface MailStore extends Kept {
 
 export const useMail = create<MailStore>((set, get) => {
   const keep = (patch: Partial<Kept>) => {
-    const next = { read: get().read, claimed: get().claimed, local: get().local, ...patch };
+    const since = get().since;
+    const next = { read: get().read, claimed: get().claimed, local: get().local, ...(since !== undefined ? { since } : {}), ...patch };
     save(next);
     set(next);
   };
@@ -66,6 +83,8 @@ export const useMail = create<MailStore>((set, get) => {
     letters: [],
     loaded: false,
     fetch: async () => {
+      // a newcomer's arrival is kept the first time the mailbox loads, so a later visit does not move it
+      if (get().since !== undefined && !hasKept()) keep({});
       // the on-chain (DeWEB) build has no server: only the letters the game writes itself
       if (!BASE) return set({ loaded: true });
       try {
@@ -94,4 +113,6 @@ export const useMail = create<MailStore>((set, get) => {
 
 /** Everything in the mailbox, newest first. */
 export const allLetters = (s: Pick<MailStore, "letters" | "local">): Letter[] => [...s.local, ...s.letters].sort((a, b) => b.at - a.at);
-export const unreadCount = (s: Pick<MailStore, "letters" | "local" | "read">): number => allLetters(s).filter((l) => !s.read.includes(l.id)).length;
+/** Letters waiting to be read: not opened yet, and sent since the mailbox was first opened or greeting a newcomer (G8). */
+export const isUnread = (s: Pick<MailStore, "read" | "since">, l: Letter): boolean => !s.read.includes(l.id) && (s.since === undefined || l.at >= s.since || l.greets === true);
+export const unreadCount = (s: Pick<MailStore, "letters" | "local" | "read" | "since">): number => allLetters(s).filter((l) => isUnread(s, l)).length;

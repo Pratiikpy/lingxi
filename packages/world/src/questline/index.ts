@@ -35,8 +35,14 @@ const PORTRAITS: ReadonlyMap<string, ReadonlySet<string>> = new Map(
 );
 const LANE_SET = new Set<string>(LANE);
 
-/** The longest line that fits the talk bubble on a phone (measured in the game: two lines of the bubble). */
-export const LINE_MAX = { en: 140, zh: 70 } as const;
+/**
+ * The longest line the quest dialog holds in three lines on a 360-pixel phone (G8, measured in the game 2026-11-21,
+ * every line in both languages): English up to 101 characters fit (lines of 92 to 116 wrapped to four and were trimmed);
+ * Chinese characters are 15 pixels each, about 20 to a line. Wrapping goes by words, so this is a guard, not a proof.
+ */
+export const LINE_MAX = { en: 101, zh: 60 } as const;
+/** A community goal's story is read as paragraphs in its card, not in the dialog, so it keeps the longer limit. */
+export const GOAL_LINE_MAX = { en: 140, zh: 70 } as const;
 
 function rewardProblem(r: Reward): string | null {
   switch (r.kind) {
@@ -113,8 +119,8 @@ export function goalErrors(defs: readonly GoalDef[]): string[] {
     if (!g.story.length) out.push(`${at}: needs its story`);
     g.story.forEach((l, i) => {
       if (!l.en || !l.zh) out.push(`${at} line ${i + 1}: needs both languages`);
-      if (l.en.length > LINE_MAX.en) out.push(`${at} line ${i + 1}: English is ${l.en.length} characters (at most ${LINE_MAX.en})`);
-      if ([...l.zh].length > LINE_MAX.zh) out.push(`${at} line ${i + 1}: Chinese is ${[...l.zh].length} characters (at most ${LINE_MAX.zh})`);
+      if (l.en.length > GOAL_LINE_MAX.en) out.push(`${at} line ${i + 1}: English is ${l.en.length} characters (at most ${GOAL_LINE_MAX.en})`);
+      if ([...l.zh].length > GOAL_LINE_MAX.zh) out.push(`${at} line ${i + 1}: Chinese is ${[...l.zh].length} characters (at most ${GOAL_LINE_MAX.zh})`);
       if (PORTRAITS.has(g.giver) && (!l.face || !PORTRAITS.get(g.giver)!.has(l.face))) out.push(`${at} line ${i + 1}: ${g.giver} has no portrait ${l.face}`);
     });
     if (!GOAL_METRICS.includes(g.metric)) out.push(`${at}: no metric ${g.metric}`);

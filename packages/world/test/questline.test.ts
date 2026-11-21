@@ -40,3 +40,13 @@ describe("the quest line", () => {
     expect(bad({ arc: undefined })).toContain("quest q01: a story quest needs its arc (1 to 12)");
   });
 });
+
+describe("one name for each place, in both languages (G8)", () => {
+  it("wherever a quest says Builders' Lane, its Chinese says 建设者小巷", () => {
+    const said = QUESTLINE.flatMap((q) => [...q.intro, ...q.outro, ...q.objectives.map((o) => o.text), q.title]);
+    const lane = said.filter((l) => l.en.includes("Builders' Lane"));
+    expect(lane.length).toBeGreaterThan(5);
+    for (const l of lane) expect(l.zh, l.en).toContain("建设者小巷");
+    expect(said.filter((l) => l.zh.includes("建设者小路"))).toEqual([]);
+  });
+});

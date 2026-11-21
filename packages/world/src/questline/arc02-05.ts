@@ -55,9 +55,9 @@ export const ARC_2_TO_5: QuestDef[] = [
   }),
   quest(17, 2, "wick", [done("q16")], {
     title: T("Someone to share it", "分享"),
-    intro: [say(A.calm, "A light is better when someone else is near it.", "灯光有人一起看，才更好。"), say(A.happy, "Have a friend's pet come to your home, or go and see the pets on Builders' Lane.", "请朋友的宠物来你家，或者去建设者小路看看那里的宠物。")],
+    intro: [say(A.calm, "A light is better when someone else is near it.", "灯光有人一起看，才更好。"), say(A.happy, "Have a friend's pet come to your home, or go and see the pets on Builders' Lane.", "请朋友的宠物来你家，或者去建设者小巷看看那里的宠物。")],
     outro: [say(A.happy, "There it is: a warm room. These charms are a pair, like you two.", "这样就对了：一间暖暖的屋子。这对发饰是一对的，就像你们俩。")],
-    objectives: [obj(anyOf(from("EVENT", "visited-by-friend", 1), from("MEET", undefined, 1)), "A friend's pet visits your home, or you visit Builders' Lane", "朋友的宠物来你家，或者你去建设者小路")],
+    objectives: [obj(anyOf(from("EVENT", "visited-by-friend", 1), from("MEET", undefined, 1)), "A friend's pet visits your home, or you visit Builders' Lane", "朋友的宠物来你家，或者你去建设者小巷")],
     rewards: [coins(25), piece("charm"), trust("wick", 5)],
   }),
   quest(18, 2, "wick", [done("q17")], {
@@ -227,7 +227,7 @@ export const ARC_2_TO_5: QuestDef[] = [
   }),
   quest(40, 5, "bolt", [done("q39")], {
     title: T("It points somewhere", "它指着某处"),
-    intro: [say(R.two, "Every room hides something for those who keep looking. Take the rod and find what three rooms hide.", "每个房间都藏着点东西，留给常来找的人。拿着探物杖，找出三个房间藏着的东西。")],
+    intro: [say(R.two, "Every room hides something. Take the rod and find out what three of them are hiding.", "每个房间都藏着点东西，留给常来找的人。拿着探物杖，找出三个房间藏着的东西。")],
     outro: [say(R.three, "Told you. Very well organised world, if you know where to look. Goggles: for looking.", "跟你说了吧。只要知道往哪儿看，这世界非常有条理。护目镜：用来看的。")],
     objectives: [obj(ever("ITEM", 100010, 1), "Keep the dowsing rod in your bag", "背包里带着探物杖"), obj(from("FAMILIAR", undefined, 3), "Find what 3 rooms hide (fill their bars)", "找出 3 个房间藏着的东西（把进度条填满）")],
     rewards: [coins(30), piece("goggles"), trust("bolt", 6)],

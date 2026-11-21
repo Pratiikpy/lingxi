@@ -1,0 +1,11 @@
+--- a/packages/world/src/questline/dailies.ts
++++ b/packages/world/src/questline/dailies.ts
+@@ -72,7 +72,7 @@ export const DAILIES: QuestDef[] = [
+     title: T("Check on Behemoth", "去看看巨兽"),
+     intro: [say("neutral", "I wonder what number Behemoth is on right now.", "不知道巨兽现在数到几了。")],
+     outro: [say("happy", "Still counting. It never gets tired.", "还在数。它从来不会累。")],
+-    objectives: [obj(from("MEET", "behemoth", 1), "Visit Behemoth on Builders' Lane", "去建设者小巷看巨兽")],
++    objectives: [obj(from("MEET", "behemoth", 1), "Visit Behemoth on Builders' Lane", "去建设者小路看巨兽")],
+     rewards: [coins(12)],
+   }),
+   d("diver", "social", {

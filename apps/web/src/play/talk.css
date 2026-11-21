@@ -47,6 +47,8 @@
   font-size: 15px;
   line-height: 1.45;
   min-height: 3em;
+  /* no word (or Chinese character) left alone on the last line, at any width (G8) */
+  text-wrap: pretty;
 }
 .talk-ghost {
   visibility: hidden;

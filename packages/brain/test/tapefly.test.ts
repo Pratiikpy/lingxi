@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DUEL_CHIPS, beat, bitsToWord, compileFlyProgram, decodeFlyProgram, encodeFlyProgram, flyCircuit, programOfChips, runFlyProgram, wordToBits } from "../src";
+import { DUEL_CHIPS, beat, chipName, bitsToWord, compileFlyProgram, decodeFlyProgram, encodeFlyProgram, flyCircuit, programOfChips, runFlyProgram, wordToBits } from "../src";
 
 const ladder = [["berserk"], ["bite"], ["breathe", "block", "flank", "bite"], ["punish", "block", "bite", "flank", "kite"], ["punish", "block", "bite"], ["punish", "block", "berserk", "finisher", "bite", "kite"], ["breathe", "block", "finisher", "bite"], ["block", "breathe", "finisher", "bite"]];
 // gate counts TapeFly publishes for its ladder rivals (/api/v1/brawl, 2026-11-15)
@@ -31,5 +31,16 @@ describe("TapeFly-format brains (DUEL-12x3/1)", () => {
     expect(() => decodeFlyProgram("p1.!!")).toThrow();
     expect(() => decodeFlyProgram("p1.AQ")).toThrow();
     expect(() => programOfChips(["laser"])).toThrow();
+  });
+});
+
+describe("chip names as a player reads them (G8)", () => {
+  it("every chip has its name in both languages, and an unknown id is shown as it came", () => {
+    for (const c of DUEL_CHIPS) {
+      expect(chipName(c.id, "en")).toBe(c.name.en);
+      expect(chipName(c.id, "zh")).toMatch(/[一-鿿]/);
+    }
+    expect(chipName("block", "zh")).toBe("格挡");
+    expect(chipName("nope", "zh")).toBe("nope");
   });
 });

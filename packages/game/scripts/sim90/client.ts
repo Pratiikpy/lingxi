@@ -66,6 +66,14 @@ export function minuteTally(room: number, p: Pet, now: number): TallyEntry[] {
   return out;
 }
 
+/** apps/web/src/game/world.ts countAway: the pet's own choices while away, as CHOOSE in the room the game was left in (G8). */
+export function awayTally(room: number, wants: Readonly<Record<string, number>>): TallyEntry[] {
+  return Object.entries(wants).flatMap(([want, n]): TallyEntry[] => [
+    ["CHOOSE", want, n, true],
+    ["CHOOSE", `${want}-${room}`, n, false],
+  ]);
+}
+
 /** apps/web/src/game/quests.ts giverRoom: where each resident is found. */
 export const GIVER_ROOM: Readonly<Record<string, number>> = { wick: 64, praline: 13, yonder: 3, bolt: 5, flit: 56, why: 59, jab: 89, twain: 19, nimbus: 53 };
 

@@ -11,7 +11,7 @@ import { create } from "zustand";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { FLY, type OverlayPixel, type Palette, type PixelCanvas, boundingBox, drawFly, drawPet, type Expression, type Outfit, wearOverlay } from "@lingxi/art";
 import { outfitOf } from "@lingxi/world";
-import { STARTERS, programOfChips } from "@lingxi/brain";
+import { STARTERS, chipName, programOfChips } from "@lingxi/brain";
 import { DESIGNED_PARTNERS, composeProgram, type Challenge, type CoachNote, type DuelPet, type Fighter, MAX_HP, MOVES, type Move, PARTNERS, type Partner, type Pet, type SparResult, TRAITS, coach, dayOf, duel as runDuel, duelFighter, encodeChallenge, encodeResult, fighterOfMind, fighterOfPartner, halvesOf, petCard, rewindFight, ruleSource, spar, stageOf, FLY_RIVALS, type FlyRival, FlyLinkError, flyFighter, parseFlyBrain, skillRules, sparMods } from "@lingxi/game";
 import { linkPrefix } from "../game/links";
 import { SILICON } from "@lingxi/art";
@@ -353,7 +353,7 @@ function FlyBrains({ pet, onFight }: { pet: Pet; onFight: (partner: Partner, opp
   const art = useMemo(() => drawFly(), []);
   const asPartner = (id: string, name: string, blurb: { en: string; zh: string }): Partner => ({ id: `fly:${id}`, name: { en: name, zh: name }, look: "fly", line: "curious", stage: "baby", level: 1, blurb, program: STARTERS.curious });
   const adopt = useAdopted((s) => s.adopt);
-  const fightRival = (r: FlyRival) => onFight(asPartner(r.id, r.name, { en: r.chips.join(" → "), zh: r.chips.join(" → ") }), flyFighter(r.name, programOfChips(r.chips), 1));
+  const fightRival = (r: FlyRival) => onFight(asPartner(r.id, r.name, { en: r.chips.map((c) => chipName(c, "en")).join(" → "), zh: r.chips.map((c) => chipName(c, "zh")).join(" → ") }), flyFighter(r.name, programOfChips(r.chips), 1));
   const fightLink = () => {
     try {
       const program = parseFlyBrain(text);
@@ -385,7 +385,7 @@ function FlyBrains({ pet, onFight }: { pet: Pet; onFight: (partner: Partner, opp
           <li key={r.id}>
             <button type="button" className="sp-fly-rival" onClick={() => fightRival(r)}>
               <b>{r.name}</b>
-              <span className="small">{r.chips.length === 1 ? r.chips[0] : `${r.chips.length} ${L("chips", "张芯片")}`}</span>
+              <span className="small">{r.chips.length === 1 ? chipName(r.chips[0]!, lang === "zh" ? "zh" : "en") : `${r.chips.length} ${L("chips", "张芯片")}`}</span>
               <span className="small sp-fly-gates">{L(`${flyFighter(r.name, programOfChips(r.chips)).gates} gates`, `${flyFighter(r.name, programOfChips(r.chips)).gates} 个门`)}</span>
             </button>
           </li>

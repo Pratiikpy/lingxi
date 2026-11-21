@@ -230,6 +230,8 @@
 .qd-text {
   font-size: 15px;
   line-height: 1.5;
+  /* no word (or Chinese character) left alone on the last line, at any width (G8) */
+  text-wrap: pretty;
 }
 
 /* ── the toast ── */

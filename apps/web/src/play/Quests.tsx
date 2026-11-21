@@ -275,7 +275,7 @@ const ARCS: ReadonlyArray<[string, string]> = [
   ["Jab, spar coach", "切磋教练阿拳"],
   ["Twain, keeper of the Wheel", "轮之殿的双生者"],
   ["Nimbus, daydreamer", "爱做梦的云朵"],
-  ["Builders' Lane", "建设者小路"],
+  ["Builders' Lane", "建设者小巷"],
   ["Growing up", "长大"],
 ];
 const arcName = (arc: number, lang: Lang) => ARCS[arc - 1]![lang === "zh" ? 1 : 0];
@@ -284,7 +284,7 @@ const ARC_OPENS: Record<number, [string, string]> = {
   2: ["Opens after your pet's first visit next door.", "宠物第一次去隔壁之后开启。"],
   3: ["Opens after your first shopping trip.", "第一次买东西之后开启。"],
   9: ["Opens after your pet's first lesson.", "宠物上完第一课之后开启。"],
-  11: ["Opens when you meet someone on Builders' Lane.", "在建设者小路认识谁之后开启。"],
+  11: ["Opens when you meet someone on Builders' Lane.", "在建设者小巷认识谁之后开启。"],
   12: ["Opens once a day is kept on X Layer.", "在 X Layer 上留住一天之后开启。"],
 };
 const arcOpens = (arc: number, lang: Lang) => (ARC_OPENS[arc] ?? ["Opens the first time you walk into their room.", "第一次走进他们的房间时开启。"])[lang === "zh" ? 1 : 0];

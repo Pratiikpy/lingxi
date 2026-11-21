@@ -253,7 +253,11 @@ function rebased(p0: Pet, beat: number): Pet {
   };
 }
 
-export function catchUp(p0: Pet, now: number, brain: Brain, eventAt: (beat: number) => number = () => EVENT.none): Pet {
+/**
+ * `chose`, when given, hears what the pet's brain chose each beat it was awake (its want), so the game can count the
+ * pet's own choices made while the player was away as it counts those made while watched (G8).
+ */
+export function catchUp(p0: Pet, now: number, brain: Brain, eventAt: (beat: number) => number = () => EVENT.none, chose?: (want: number, beat: number) => void): Pet {
   const target = beatOf(now);
   if (target < p0.beat) return rebased(p0, target);
   if (target === p0.beat) return p0;
@@ -264,7 +268,10 @@ export function catchUp(p0: Pet, now: number, brain: Brain, eventAt: (beat: numb
   while (b < target) {
     b += 1;
     decay(p, b);
-    if (!p.hibernating) think(p, brain, b, ACTION.none, eventAt(b), false);
+    if (p.hibernating) continue;
+    const awake = !p.asleep;
+    think(p, brain, b, ACTION.none, eventAt(b), false);
+    if (chose && awake) chose(p.last.want, b);
   }
   p.beat = target;
   return p;

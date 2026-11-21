@@ -63,23 +63,23 @@ export const DAILIES: QuestDef[] = [
   }),
   d("friend", "social", {
     title: T("Visit a friend", "看望朋友"),
-    intro: [say("happy", "I miss my friends. Can a friend's pet visit, or can we go and see the pets on Builders' Lane?", "我想朋友了。能让朋友的宠物来玩吗？或者我们去建设者小路看看那里的宠物？")],
+    intro: [say("happy", "I miss my friends. Can a friend's pet visit, or can we go and see the pets on Builders' Lane?", "我想朋友了。能让朋友的宠物来玩吗？或者我们去建设者小巷看看那里的宠物？")],
     outro: [say("love", "That was the best part of today.", "这是今天最开心的事。")],
-    objectives: [obj(anyOf(from("EVENT", "visited-by-friend", 1), from("MEET", undefined, 1)), "A friend's pet visits, or you visit Builders' Lane", "朋友的宠物来玩，或者你去建设者小路")],
+    objectives: [obj(anyOf(from("EVENT", "visited-by-friend", 1), from("MEET", undefined, 1)), "A friend's pet visits, or you visit Builders' Lane", "朋友的宠物来玩，或者你去建设者小巷")],
     rewards: [coins(12)],
   }),
   d("behemoth", "social", {
     title: T("Check on Behemoth", "去看看巨兽"),
     intro: [say("neutral", "I wonder what number Behemoth is on right now.", "不知道巨兽现在数到几了。")],
     outro: [say("happy", "Still counting. It never gets tired.", "还在数。它从来不会累。")],
-    objectives: [obj(from("MEET", "behemoth", 1), "Visit Behemoth on Builders' Lane", "去建设者小路看巨兽")],
+    objectives: [obj(from("MEET", "behemoth", 1), "Visit Behemoth on Builders' Lane", "去建设者小巷看巨兽")],
     rewards: [coins(12)],
   }),
   d("diver", "social", {
     title: T("Tell Diver about today", "跟潜水员说说今天"),
     intro: [say("happy", "Let's tell Diver what we did today. Diver likes stories.", "我们去跟潜水员说说今天做了什么吧。潜水员喜欢听故事。")],
     outro: [say("sparkly", "Diver listened to every word.", "潜水员每个字都听了。")],
-    objectives: [obj(from("MEET", "diver", 1), "Visit Diver on Builders' Lane", "去建设者小路看潜水员")],
+    objectives: [obj(from("MEET", "diver", 1), "Visit Diver on Builders' Lane", "去建设者小巷看潜水员")],
     rewards: [coins(12)],
   }),
   // ── explore ──

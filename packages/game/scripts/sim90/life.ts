@@ -8,7 +8,7 @@
  * a lesson is `teach` and then one "talk" beat, a return is `catchUp` with the away surprises and `settleForm`.
  */
 
-import { compileProgram, gateCount, timeOfDay } from "@lingxi/brain";
+import { WANTS, compileProgram, gateCount, timeOfDay } from "@lingxi/brain";
 import {
   DAILIES,
   ITEM,
@@ -87,7 +87,7 @@ import {
   beatOf,
   localHour,
 } from "../../src";
-import { FIRST_ROUND_MS, FIRST_WIN_COINS, ROUND_MS, WIN_COINS, GIVER_ROOM, type TallyEntry, careTally, meetTally, talkTally, fedTally, minuteTally, sparLevel, viewOf } from "./client";
+import { FIRST_ROUND_MS, FIRST_WIN_COINS, ROUND_MS, WIN_COINS, GIVER_ROOM, type TallyEntry, careTally, meetTally, talkTally, fedTally, minuteTally, sparLevel, viewOf, awayTally } from "./client";
 
 export const MIN = 60_000;
 /** Reading a spar's result and tapping for the next one (the simulator's own estimate of a quick player). */
@@ -204,7 +204,18 @@ export class Life {
   /** The player opens the game: every minute away is replayed with the away surprises, as the client's returnTo does. */
   arrive(t: number): void {
     const seed = this.seedOfPet;
-    this.set(settleForm(catchUp(this.pet, t, this.brain(), (b) => awayEvent(seed, b)), t));
+    // what the pet chose of its own accord, awake, while away counts as the client counts it (store.ts returnTo, G8)
+    const wants: Record<string, number> = {};
+    this.set(
+      settleForm(
+        catchUp(this.pet, t, this.brain(), (b) => awayEvent(seed, b), (want) => {
+          const w = WANTS[want];
+          if (w && w !== "idle") wants[w] = (wants[w] ?? 0) + 1;
+        }),
+        t,
+      ),
+    );
+    this.note(awayTally(this.world.room, wants));
     this.trimLog();
   }
 

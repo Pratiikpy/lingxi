@@ -19,6 +19,14 @@ describe("care badges across every pet", () => {
     expect(progressOf(chef, l).next).toBeNull();
   });
 
+  it("gives no badge for simply hatching the first pet: Pet keeper starts at a second one, at most the roster's eight (G8)", () => {
+    const keeper = BADGES.find((b) => b.id === "keeper")!;
+    const first = record({}, "pets");
+    expect(newTiers({}, first)).toEqual([]);
+    expect(newTiers(first, record(first, "pets"))).toEqual([{ badge: keeper, tier: 1 }]);
+    expect(keeper.tiers[2]).toBeLessThanOrEqual(8);
+  });
+
   it("keeps the best stage any pet reached, so a new egg never lowers it", () => {
     let l = record({}, "stage", 4);
     l = record(l, "stage", 1);

@@ -95,7 +95,9 @@ describe("the game store: care", () => {
 
     useGame.getState().act({ kind: "play" });
     s = useGame.getState();
-    expect(toastText(s, "en")).toBe("Kiri chased the ball until it got dizzy.");
+    // a play is a game, a shift or a walk; there is no ball, so the toast names none (G8)
+    expect(toastText(s, "en")).toBe("Kiri liked playing with you.");
+    expect(toastText(s, "zh")).toBe("Kiri喜欢和你一起玩。");
     expect(s.lastCare).toEqual({ kind: "play", at: expect.any(Number) });
 
     useGame.getState().act({ kind: "clean" });

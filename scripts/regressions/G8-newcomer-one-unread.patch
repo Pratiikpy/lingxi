@@ -1,0 +1,9 @@
+--- a/apps/web/src/game/mail.ts
++++ b/apps/web/src/game/mail.ts
+@@ -114,5 +114,5 @@ export const useMail = create<MailStore>((set, get) => {
+ /** Everything in the mailbox, newest first. */
+ export const allLetters = (s: Pick<MailStore, "letters" | "local">): Letter[] => [...s.local, ...s.letters].sort((a, b) => b.at - a.at);
+ /** Letters waiting to be read: not opened yet, and sent since the mailbox was first opened or greeting a newcomer (G8). */
+-export const isUnread = (s: Pick<MailStore, "read" | "since">, l: Letter): boolean => !s.read.includes(l.id) && (s.since === undefined || l.at >= s.since || l.greets === true);
++export const isUnread = (s: Pick<MailStore, "read" | "since">, l: Letter): boolean => !s.read.includes(l.id);
+ export const unreadCount = (s: Pick<MailStore, "letters" | "local" | "read" | "since">): number => allLetters(s).filter((l) => isUnread(s, l)).length;

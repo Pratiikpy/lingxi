@@ -147,7 +147,15 @@ const EXITS: Array<[number, number]> = (data.rooms as Array<{ index: number; exi
 export const craftEnergy = (stamina: number) => stamina * 3;
 export const craftXp = (sourceXp: number) => Math.round(Math.sqrt(Math.max(0, sourceXp)));
 
-export const RECIPES: Recipe[] = (data.recipes as Array<{ index: number; out: number; outAmount: number; ins: Array<{ item: number; amount: number }>; stamina: number; xp: number; tool: number | null; room: number | null }>)
+/**
+ * Small batches beside the source's bulk recipes (G6, G8): a handful made by hand at the bench, no tool, for a player
+ * who needs one now. Quest 37's "three pebbles make a stone block" is this recipe.
+ */
+export const SMALL_BATCH_RECIPES: readonly Recipe[] = [
+  { index: 30001, name: { en: "Shape a Stone Block", zh: "拼一块石砖" }, out: 1301, outAmount: 1, ins: [{ item: 1002, amount: 3 }], energy: craftEnergy(10), xp: craftXp(9) },
+];
+
+const SOURCE_RECIPES: Recipe[] = (data.recipes as Array<{ index: number; out: number; outAmount: number; ins: Array<{ item: number; amount: number }>; stamina: number; xp: number; tool: number | null; room: number | null }>)
   .filter((r) => RECIPE_NAMES[r.index] && ITEM[r.out] && r.ins.every((x) => ITEM[x.item]) && (r.tool === null || ITEM[r.tool]))
   .map((r) => ({
     index: r.index,
@@ -160,6 +168,8 @@ export const RECIPES: Recipe[] = (data.recipes as Array<{ index: number; out: nu
     xp: craftXp(r.xp),
     ...(r.room !== null ? { room: r.room } : {}),
   }));
+
+export const RECIPES: Recipe[] = [...SOURCE_RECIPES, ...SMALL_BATCH_RECIPES];
 
 /** Recipes only a trip teaches: the garden's harvest turned into mochi. */
 export const TRAVEL_RECIPES: readonly Recipe[] = [

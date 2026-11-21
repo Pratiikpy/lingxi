@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { ITEM } from "@lingxi/world";
 import { useLang } from "../i18n";
-import { allLetters, useMail } from "../game/mail";
+import { allLetters, isUnread, useMail } from "../game/mail";
 import { play } from "../game/sound";
 
 export function MailboxPanel() {
@@ -21,7 +21,8 @@ export function MailboxPanel() {
     <ul className="mail-list">
       {letters.map((l) => {
         const open = openId === l.id;
-        const unread = !mail.read.includes(l.id);
+        // the same rule as the count on the mail button: older news a newcomer finds is there, but not marked new
+        const unread = isUnread(mail, l);
         const claimed = mail.claimed.includes(l.id);
         return (
           <li key={l.id} className={`mail-item${unread ? " is-unread" : ""}${open ? " is-open" : ""}`}>

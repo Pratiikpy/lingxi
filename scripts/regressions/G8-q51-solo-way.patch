@@ -1,0 +1,11 @@
+--- a/packages/world/src/questline/arc06-10.ts
++++ b/packages/world/src/questline/arc06-10.ts
+@@ -98,7 +98,7 @@ export const ARC_6_TO_10: QuestDef[] = [
+     title: T("Looking after a friend", "照顾朋友"),
+     intro: [say(W.cradle, "Caring for someone else's pet teaches you more than caring for your own.", "照顾别人的宠物，比照顾自己的学得更多。"), say(W.smile, "Pet-sit for a friend, nurse your own pet when it's sick, or bring my clinic three mint.", "替朋友照看一次宠物，在你的宠物生病时照顾好它，或者给我的诊所带三片薄荷。")],
+     outro: [say(W.smile, "A natural carer. Wear the badge; people will know who to call.", "天生会照顾人。别上这枚徽章吧，大家就知道该找谁了。")],
+-    objectives: [obj(anyOf(from("EVENT", "pet-sat", 1), from("CARE", "medicine", 1), from("GIVE_TO", "why:1012", 3)), "Look after a friend's pet, nurse your own when it's sick, or bring Nurse Why 3 mint for her clinic", "照看朋友的宠物，在你的宠物生病时照顾它，或给护士小慧带 3 片薄荷给诊所用")],
++    objectives: [obj(anyOf(from("EVENT", "pet-sat", 1), from("CARE", "medicine", 1)), "Look after a friend's pet, nurse your own when it's sick, or bring Nurse Why 3 mint for her clinic", "照看朋友的宠物，在你的宠物生病时照顾它，或给护士小慧带 3 片薄荷给诊所用")],
+     rewards: [coins(30), flag("carer"), trust("why", 5)],
+   }),
+   quest(52, 7, "why", [done("q51")], {

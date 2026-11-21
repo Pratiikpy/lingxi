@@ -1,0 +1,10 @@
+--- a/packages/game/src/sim.ts
++++ b/packages/game/src/sim.ts
+@@ -271,7 +271,6 @@ export function catchUp(p0: Pet, now: number, brain: Brain, eventAt: (beat: numb
+     if (p.hibernating) continue;
+     const awake = !p.asleep;
+     think(p, brain, b, ACTION.none, eventAt(b), false);
+-    if (chose && awake) chose(p.last.want, b);
+   }
+   p.beat = target;
+   return p;

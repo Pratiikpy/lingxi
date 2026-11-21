@@ -1,0 +1,11 @@
+--- a/apps/web/src/i18n/strings.ts
++++ b/apps/web/src/i18n/strings.ts
+@@ -37,7 +37,7 @@ export const en = {
+   "note.ate": "{name} ate it all up.",
+   "note.overfed": "{name} was already full. A little grumpy now.",
+   "note.woke": "{name} woke up for food.",
+-  "note.played": "{name} liked playing with you.",
++  "note.played": "{name} chased the ball until it got dizzy.",
+   "note.cleaned": "All clean. {name} sneezed once.",
+   "note.sleeping": "Lights off. Good night, {name}.",
+   "note.awake": "Good morning, {name}.",

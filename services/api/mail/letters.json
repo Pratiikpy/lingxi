@@ -2,6 +2,7 @@
   {
     "id": "welcome",
     "at": 1794700800000,
+    "greets": true,
     "subject": {
       "en": "Welcome to Lingxi",
       "zh": "欢迎来到灵犀"

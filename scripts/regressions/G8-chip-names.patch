@@ -1,0 +1,11 @@
+--- a/packages/brain/src/tapefly.ts
++++ b/packages/brain/src/tapefly.ts
+@@ -179,7 +179,7 @@ export const DUEL_CHIPS: readonly DuelChip[] = [
+ ];
+ 
+ /** A chip's name as a player reads it (G8: the ids are TapeFly's, in English); an unknown id is shown as it came. */
+-export const chipName = (id: string, lang: "en" | "zh"): string => DUEL_CHIPS.find((c) => c.id === id)?.name[lang] ?? id;
++export const chipName = (id: string, lang: "en" | "zh"): string => id;
+ 
+ /** A chip list, top to bottom, as a program; with nothing matched, press at the rival. */
+ export function programOfChips(ids: readonly string[]): FlyProgram {

@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { drawPet } from "@lingxi/art";
+import { resultLine } from "./gameResult";
 import { type GameId, type Pet, SEASONAL, afterSwaps, nextPattern, seasonOf, shuffles, stageOf, starsFor, toVisible } from "@lingxi/game";
 import { HOME, ITEM, ROOMS } from "@lingxi/world";
 import { useWorld } from "../game/world";
@@ -77,7 +78,7 @@ export function GamesPanel({ pet, onDone, onSchool }: { pet: Pet; onDone: () => 
             ))}
           </span>
           <p>
-            {lang === "zh" ? `得分 ${result.score}。${pet.name}玩得很开心！` : `Score ${result.score}. ${pet.name} had a great time!`}
+            {resultLine(result.score, result.stars, pet.name, lang === "zh" ? "zh" : "en")}
           </p>
         </div>
       )}

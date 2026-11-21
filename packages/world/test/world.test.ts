@@ -98,6 +98,17 @@ describe("shop, workbench, bag", () => {
     }
   });
 
+  it("quest 37 says what the bench does: three pebbles make a stone block, no tool needed (G8, small batch beside the bulk)", () => {
+    const small = RECIPES.filter((r) => r.out === 1301 && r.tool === undefined && r.room === undefined);
+    expect(small.map((r) => r.ins)).toEqual([[{ item: 1002, amount: 3 }]]);
+    let w: WorldState = { ...newWorld("s"), bag: {} };
+    w = give(w, 1002, 3);
+    const made = craft(w, small[0]!.index, small[0]!.energy);
+    expect(made.ok && made.world.bag[1301]).toBe(1);
+    // the source's bulk recipe is still there beside it
+    expect(RECIPES.some((r) => r.out === 1301 && r.ins[0]!.amount === 100)).toBe(true);
+  });
+
   it("keeps the source's own amounts: an extraction makes 500 and a brew uses hundreds (no more squashing to 3)", () => {
     const pollen = RECIPES.find((r) => r.out === 1104)!;
     expect(pollen.outAmount).toBe(500);
