@@ -1,0 +1,11 @@
+--- a/services/api/src/logHash.ts
++++ b/services/api/src/logHash.ts
+@@ -79,7 +79,7 @@ export function createLogHasher(opts: { budgetMs?: number; atOnce?: number; wait
+     if (running >= atOnce) {
+       // a network waits in one place at a time (A145)
+       const network = prefixOf(who) ?? who;
+-      if (queue.length >= room || queue.some((q) => q.network === network)) return null;
++      if (queue.length >= room) return null;
+       await new Promise<void>((go) => queue.push({ network, go }));
+     }
+     running++;

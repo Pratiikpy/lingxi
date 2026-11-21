@@ -1,0 +1,11 @@
+--- a/services/api/src/diaries.ts
++++ b/services/api/src/diaries.ts
+@@ -29,7 +29,7 @@ const TOTAL_BYTES = 256 * 1024 * 1024;
+ const PER_ADDRESS_BYTES_PER_DAY = 16 * 1024 * 1024;
+ const DAY_MS = 86_400_000;
+ /** what a log that does not match costs its sender at the least, however small it is (A145) */
+-const MIN_MISMATCH_CHARGE = 64 * 1024;
++const MIN_MISMATCH_CHARGE = 0;
+ const ID = /^\d{1,12}$/;
+ 
+ export type PublishResult = { ok: true; beats: number } | { ok: false; reason: "invalid" | "mismatch" | "unknown" | "older" | "tooLong" | "busy" | "full" };
