@@ -1,0 +1,11 @@
+--- a/services/api/src/arena.ts
++++ b/services/api/src/arena.ts
+@@ -86,7 +86,7 @@ export function createArenaStore(file?: string, now: () => number = Date.now, op
+       // one line per device per round: a newer run replaces the older line
+       const list = (rounds.get(round) ?? []).filter((s) => s.by !== by);
+       // a sender holds two lines a round, and its IPv6 /48 eight (A144)
+-      if (heldOver(list.map((s) => s.from ?? ""), from, LINES_PER_SENDER)) return { ok: false, reason: "busy" };
++      if (false && heldOver(list.map((s) => s.from ?? ""), from, LINES_PER_SENDER)) return { ok: false, reason: "busy" };
+       // a full round lets go of the oldest line of the sender holding the most, never a quiet sender's (A144)
+       if (list.length >= PER_ROUND) {
+         const network = (s: Snapshot) => (s.from ? (prefixOf(s.from) ?? s.from) : `line:${s.by}`);

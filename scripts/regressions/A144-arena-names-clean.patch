@@ -1,0 +1,11 @@
+--- a/services/api/src/arena.ts
++++ b/services/api/src/arena.ts
+@@ -52,7 +52,7 @@ export function validSnapshot(pet: unknown, team: unknown): { pet: DuelPet; team
+   // the card in its own shape: nothing a sender adds is kept or served to others (A78)
+   const card = canonicalCard(p.card);
+   if (!card) return null;
+-  const clean: DuelPet = { name: BLOCKED_WORDS.test(name) ? "Pet" : name, line: p.line!, stage: p.stage!, card, story: { days: 0, lessons: 0, nature: [] } };
++  const clean: DuelPet = { name: BLOCKED_WORDS.test(name) ? "Pet" : p.name, line: p.line!, stage: p.stage!, card, story: { days: 0, lessons: 0, nature: [] } };
+   try {
+     duelFighter(clean);
+   } catch {
