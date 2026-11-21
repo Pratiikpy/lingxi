@@ -14,7 +14,8 @@ import { SKILLS, sparMods } from "../src/skills";
 import { SPAR_V2_FROM_WEEK, seasonSparVersion } from "../src/season";
 import { SPAR_V2_FROM_DAY, dailySparVersion } from "../src/daily";
 import { coach, fighterFrom, fighterOfMind } from "../src/coach";
-import { composeProgram } from "../src/lessons";
+import { LESSON_CAPACITY, composeProgram } from "../src/lessons";
+import { behemothFighter } from "../src/builders";
 import { READER } from "../scripts/sim90/field";
 
 /** a brain that answers `pick(word)` as a move, at a mood (0 grumpy .. 3 excited) */
@@ -202,5 +203,28 @@ describe("the coach's advice wins in practice (G2)", () => {
       expect(wins([note.lesson.rule], line, opp), `${line} vs ${p.id}: ${note.lesson.id}`).toBeGreaterThan(wins([], line, opp));
     }
     expect(suggested).toBeGreaterThan(3);
+  });
+});
+
+describe("coaching lesson after lesson never makes a pet worse (G2)", () => {
+  it("each lesson the coach adds against Behemoth keeps or raises the wins on fresh seeds", () => {
+    const fresh = Array.from({ length: 120 }, (_, i) => 700_001 + i * 7919);
+    const wins = (line: "gentle" | "bold" | "curious", lessons: Rule[]) => fresh.filter((s) => fight(SPAR_V2, fighterOfMind("me", { line, lessons }, 1), behemothFighter("Behemoth"), s).winner === 0).length;
+    for (const line of ["gentle", "bold", "curious"] as const) {
+      const lessons: Rule[] = [];
+      let before = wins(line, lessons);
+      for (let k = 0; k < LESSON_CAPACITY.adult; k++) {
+        let note: ReturnType<typeof coach> | null = null;
+        for (let s = 0; s < 6 && !note?.lesson; s++) {
+          const r = fight(SPAR_V2, fighterOfMind("me", { line, lessons }, 1), behemothFighter("Behemoth"), 1000 + s);
+          if (r.winner !== 0) note = coach({ result: r, side: 0, line, stage: "adult", lessons, level: 1, opponent: behemothFighter("Behemoth") });
+        }
+        if (!note?.lesson) break;
+        lessons.unshift(note.lesson.rule);
+        const after = wins(line, lessons);
+        expect(after, `${line}, lesson ${k + 1} (${note.lesson.id})`).toBeGreaterThanOrEqual(before);
+        before = after;
+      }
+    }
   });
 });
