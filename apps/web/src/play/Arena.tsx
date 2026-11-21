@@ -773,6 +773,7 @@ function Result({ pet, partner, result, reward, opponent, duel, cheer, instinct,
   const [backLink, setBackLink] = useState("");
   const lang = useLang((s) => s.lang) as Lang;
   const learn = useGame((s) => s.learn);
+  const swapLesson = useGame((s) => s.swapLesson);
   const [note, setNote] = useState<CoachNote | null>(null);
   const [taught, setTaught] = useState<"idle" | "done" | string>("idle");
   // the coach looks at the pet as it was in this fight; teaching afterwards does not re-run it
@@ -825,9 +826,17 @@ function Result({ pet, partner, result, reward, opponent, duel, cheer, instinct,
           {note?.lesson && (
             <>
               <p>
-                {lang === "zh" ? "试着教它：" : "Try teaching it: "}
+                {note.replace !== undefined ? (lang === "zh" ? "它的心智满了。试着把这一课换成：" : "Its mind is full. Try swapping this lesson out for: ") : lang === "zh" ? "试着教它：" : "Try teaching it: "}
                 <b>{note.lesson.label[lang]}</b>
               </p>
+              {note.replace !== undefined && asFought.lessons[note.replace] && (
+                <div className="sp-swap-out">
+                  {(() => {
+                    const c = chipsFor(programFor(asFought.line, asFought.lessons, asFought.instincts ?? 0, asFought.growth), asFought.lessons[note.replace]!, lang);
+                    return <Chips when={c.when} then={c.then} want={c.want} />;
+                  })()}
+                </div>
+              )}
               <p className="small">
                 {lang === "zh"
                   ? `在 ${PRACTICE_SEEDS} 场练习里，这样能赢 ${note.after} 场（现在是 ${note.before} 场）。`
@@ -840,11 +849,11 @@ function Result({ pet, partner, result, reward, opponent, duel, cheer, instinct,
                   type="button"
                   className="btn primary"
                   onClick={() => {
-                    const r = learn(note.lesson!.rule);
+                    const r = note.replace !== undefined ? swapLesson(note.replace, note.lesson!.rule) : learn(note.lesson!.rule);
                     setTaught(r.ok ? "done" : r.reason);
                   }}
                 >
-                  {lang === "zh" ? "教它这个" : "Teach this"}
+                  {note.replace !== undefined ? (lang === "zh" ? "换成这一课" : "Swap it in") : lang === "zh" ? "教它这个" : "Teach this"}
                 </button>
               )}
               {taught !== "idle" && taught !== "done" && (
@@ -861,7 +870,11 @@ function Result({ pet, partner, result, reward, opponent, duel, cheer, instinct,
             </>
           )}
           {note && !note.lesson && (
-            <p className="small">{lang === "zh" ? "现在没有哪条新课能帮上忙，长大一点再来。" : "No new lesson would help right now. Come back when it's grown a little."}</p>
+            <p className="small">
+              {lang === "zh"
+                ? `教练的切磋课，不管是新教还是换掉一课，在 ${PRACTICE_SEEDS} 场练习里都赢不了更多。可以在心智里亲手教它一条规则。`
+                : `None of the coach's fight lessons, taught new or swapped in, wins more of ${PRACTICE_SEEDS} practice spars here. You can teach it a rule of your own in Mind.`}
+            </p>
           )}
         </div>
       )}
@@ -933,6 +946,13 @@ const RULE_SOURCE: Record<ReturnType<typeof ruleSource>, { en: string; zh: strin
   default: { en: "nothing matched, so its default move", zh: "没有条件符合，按默认出招" },
   outside: { en: "from the instinct circuit it was taught", zh: "来自它学会的本能电路" },
 };
+
+/** Why a move made differs from the move the brain chose: not enough stamina, or a pounce slipped into a tap. */
+function changedNote(chose: number, made: Move, lang: Lang): string {
+  return lang === "zh"
+    ? `大脑选了${MOVE_LABEL.zh[chose]}，但${made === "rest" ? "力气不够出这一招，只能休息" : "扑空了，变成轻拍"}。`
+    : `Its brain chose ${MOVE_LABEL.en[chose]}, but ${made === "rest" ? "it did not have the stamina for that, so it rested" : "the pounce slipped into a tap"}.`;
+}
 
 /** The other side of a fight as the rewind reads it: its name, and its mind when it is a pet's (not a fly's or Behemoth's). */
 function otherSide(partner: Partner, opponent: Fighter | undefined, duel: FightState["duel"]): { name: { en: string; zh: string }; mind: Mind | null; memory?: number[] } {
@@ -1014,13 +1034,7 @@ function FightRewind({ pet, result, other }: { pet: Pet; result: SparResult; oth
       <div className="rw-card">
         <p className="rw-say" style={{ borderColor: WANT_COLORS[w.want] }}>
           {lang === "zh" ? `第 ${k + 1} 回合：${MOVE_LABEL.zh[MOVES.indexOf(round.moves[0])]}` : `Round ${k + 1}: ${MOVE_LABEL.en[MOVES.indexOf(round.moves[0])]}`}
-          {changed && (
-            <span>
-              {lang === "zh"
-                ? `它的大脑选了${MOVE_LABEL.zh[w.want]}，但${round.moves[0] === "rest" ? "力气不够出这一招，只能休息" : "扑空了，变成轻拍"}。`
-                : `Its brain chose ${MOVE_LABEL.en[w.want]}, but ${round.moves[0] === "rest" ? "it did not have the stamina for that, so it rested" : "the pounce slipped into a tap"}.`}
-            </span>
-          )}
+          {changed && <span>{changedNote(w.want, round.moves[0], lang)}</span>}
         </p>
         <div className="rw-rule">
           <Chips when={chips.when} then={chips.then} want={chips.want} />
@@ -1031,6 +1045,7 @@ function FightRewind({ pet, result, other }: { pet: Pet; result: SparResult; oth
             <b>{other.name[lang]}</b>
             {lang === "zh" ? `：${MOVE_LABEL.zh[MOVES.indexOf(round.moves[1])]}` : `: ${MOVE_LABEL.en[MOVES.indexOf(round.moves[1])]}`}
           </p>
+          {ow && round.moves[1] !== MOVES[ow.want] && <small>{changedNote(ow.want, round.moves[1], lang)}</small>}
           {otherChips ? (
             <Chips when={otherChips.when} then={otherChips.then} want={otherChips.want} />
           ) : (

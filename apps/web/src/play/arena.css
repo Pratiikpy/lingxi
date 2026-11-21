@@ -225,6 +225,17 @@
   font-family: var(--display);
   color: #c98a00;
 }
+/* the coach's swap: the lesson it would forget (B2) */
+.sp-swap-out {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin: 0 0 var(--s2);
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--tint) 45%, var(--card));
+}
 .sp-coach {
   display: grid;
   gap: 6px;

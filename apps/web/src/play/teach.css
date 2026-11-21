@@ -551,3 +551,32 @@
   margin-top: 4px;
   color: var(--ink-soft);
 }
+
+/* a full mind: the player picks the lesson it forgets (B2) */
+.swap-pick {
+  display: grid;
+  gap: 6px;
+  margin: var(--s2) 0;
+  padding: 0;
+  border: 0;
+}
+.swap-pick legend {
+  margin-bottom: 4px;
+}
+.swap-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 10px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.swap-row.on {
+  border-color: var(--ink);
+  background: color-mix(in srgb, var(--tint) 45%, var(--card));
+}
+.swap-row input {
+  margin: 0 4px 0 0;
+}

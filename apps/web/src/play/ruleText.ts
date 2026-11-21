@@ -30,9 +30,11 @@ export const FIGHT_VALUE_NAMES: Record<string, Names> = {
   energy: { en: ["no stamina", "low stamina", "some stamina", "fresh"], zh: ["没力气了", "力气不多", "还有力气", "精力充沛"] },
   clean: { en: ["foe nearly out", "foe hurt", "foe steady", "foe healthy"], zh: ["对手快不行了", "对手受了伤", "对手还稳", "对手很健康"] },
   time: { en: ["night", "opening", "middle", "late"], zh: ["夜里", "开局", "中盘", "尾声"] },
+  // the other pet's last move, as the fight sends it from LX-SPAR/2 on (spar2.ts moveAsAction): a care rule that reads
+  // "lights off" reads "foe rested" in a spar (B2)
   action: {
-    en: ["foe swiped", "foe snacked", "foe pounced", "foe bathed", "foe lights off", "foe charmed", "foe medicine", "foe gave a gift"],
-    zh: ["对手轻拍", "对手吃零食", "对手扑击", "对手洗澡", "对手关灯", "对手卖萌", "对手吃药", "对手送礼"],
+    en: ["foe tapped", "foe snacked", "foe pounced", "foe guarded", "foe rested", "foe charmed", "foe dodged", "foe gave a gift"],
+    zh: ["对手轻拍", "对手吃零食", "对手扑击", "对手防守", "对手休息", "对手卖萌", "对手闪避", "对手送礼"],
   },
   event: { en: ["nothing new", "foe was friendly", "foe left an opening", "just hit hard"], zh: ["没什么变化", "对手很友好", "对手露出破绽", "刚被重击"] },
   owner: { en: ["no cheering", "you're cheering"], zh: ["没人加油", "你在加油"] },

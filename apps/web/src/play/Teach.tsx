@@ -15,7 +15,7 @@ import { teachBody } from "../game/requests";
 import { questSlots } from "../game/tally";
 import { type LibraryLesson, libraryAvailable, listLessons, reportLesson, shareLesson, usedLesson } from "../game/library";
 import { play } from "../game/sound";
-import { mindForPet, mindParts, useGame } from "../game/store";
+import { mindForPet, mindParts, programFor, useGame } from "../game/store";
 import { firesToday } from "../game/lessonScore";
 import { useWorld } from "../game/world";
 import { Icon } from "./icons";
@@ -54,15 +54,17 @@ type Source = { kind: "school" } | { kind: "library"; key: string } | { kind: "o
 
 function Proposal({ pet, rule, reply, source, swap, onDone, onLearned }: { pet: Pet; rule: Rule; reply?: string; source: Source; swap: boolean; onDone: () => void; onLearned: (rule: Rule) => void }) {
   const t = useT();
+  const { lang } = useLang();
   const learn = useGame((s) => s.learn);
   const swapLesson = useGame((s) => s.swapLesson);
   const [err, setErr] = useState<string | null>(null);
   const [share, setShare] = useState(false);
+  // a full pet forgets the lesson the player picks, the newest unless they choose another (B2)
+  const [drop, setDrop] = useState(0);
   const onTopTraps = trapsAfter(specOf(pet), [rule, ...pet.lessons]);
   const belowIsClean = onTopTraps.length > 0 && pet.lessons.length > 0 && trapsAfter(specOf(pet), [...pet.lessons, rule]).length === 0;
   const confirm = (at: "top" | "bottom" = "top") => {
-    // a full pet learns it in place of its newest lesson (H5)
-    const r = swap ? swapLesson(0, rule) : learn(rule, at);
+    const r = swap ? swapLesson(drop, rule) : learn(rule, at);
     if (r.ok) {
       play("success");
       if (source.kind === "library") void usedLesson(source.key);
@@ -81,7 +83,20 @@ function Proposal({ pet, rule, reply, source, swap, onDone, onLearned }: { pet: 
       <RulePreview pet={pet} rule={rule} />
       <CostLine pet={pet} rule={rule} />
       <TrapNote pet={pet} traps={onTopTraps} />
-      {swap && <p className="small sp-warn">{t("teach.swapNote", { name: pet.name })}</p>}
+      {swap && (
+        <fieldset className="swap-pick">
+          <legend className="small sp-warn">{t("teach.swapNote", { name: pet.name })}</legend>
+          {pet.lessons.map((l, i) => {
+            const c = chipsFor(programFor(pet.line, pet.lessons, pet.instincts ?? 0, pet.growth), l, lang);
+            return (
+              <label key={i} className={`swap-row${drop === i ? " on" : ""}`}>
+                <input type="radio" name="swap-drop" checked={drop === i} onChange={() => setDrop(i)} />
+                <Chips when={c.when} then={c.then} want={c.want} />
+              </label>
+            );
+          })}
+        </fieldset>
+      )}
       {err && <p className="err" role="alert">{err}</p>}
       {source.kind === "own" && libraryAvailable() && (
         <label className="share-opt">

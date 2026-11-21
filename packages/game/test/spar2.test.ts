@@ -370,3 +370,24 @@ describe("LX-SPAR/2 is kept for the spars fought in it (B1)", () => {
   });
 });
 
+
+describe("the coach with a full mind (B2)", () => {
+  it("names a lesson to swap out when nothing it has room for helps, and the swap wins more on fresh seeds", () => {
+    const fresh = Array.from({ length: 120 }, (_, i) => 500_009 + i * 7919);
+    let swaps = 0;
+    for (const p of PARTNERS) for (const line of ["gentle", "bold", "curious"] as const) {
+      // a baby holds one lesson: give it one that is no help in a fight
+      const lessons: Rule[] = [{ when: { time: [0], owner: [1] }, then: { want: 1, mood: 0 } } as Rule];
+      const opp = () => fighterOfPartner(p);
+      const result = fight(CURRENT_SPAR, fighterOfMind("me", { line, lessons }, 0), opp(), 4242);
+      if (result.winner === 0) continue;
+      const note = coach({ result, side: 0, line, stage: "baby", lessons, level: 0, opponent: opp() });
+      if (!note.lesson) continue;
+      expect(note.replace, `${line} vs ${p.id}`).toBe(0);
+      swaps++;
+      const wins = (ls: Rule[]) => fresh.filter((s) => fight(CURRENT_SPAR, fighterOfMind("me", { line, lessons: ls }, 0), opp(), s).winner === 0).length;
+      expect(wins([note.lesson.rule]), `${line} vs ${p.id}`).toBeGreaterThan(wins(lessons));
+    }
+    expect(swaps).toBeGreaterThan(3);
+  }, 120_000);
+});

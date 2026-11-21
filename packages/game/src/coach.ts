@@ -63,6 +63,8 @@ const FIXES: Record<string, CoachKey> = {
 export interface CoachNote {
   key: CoachKey;
   lesson?: FightLesson;
+  /** when the mind is full: the lesson (its index in the pet's lessons) to swap out for `lesson` (B2) */
+  replace?: number;
   /** wins out of PRACTICE_SEEDS before and after the suggested lesson */
   before: number;
   after: number;
@@ -146,6 +148,19 @@ export function coach(input: {
     if (wins >= before + COACH_MARGIN && (!best || wins > best.wins)) best = { lesson: l, wins };
   }
   if (best) return { key: FIXES[best.lesson.id] ?? diagnose(result, side), lesson: best.lesson, before, after: best.wins };
+  // nothing it has room for helps (or it has no room): try each lesson it holds swapped for each fight lesson, the new one
+  // on top as a swap teaches it (B2), so the coach never says nothing helps when a swap would
+  let swap: { lesson: FightLesson; replace: number; wins: number } | null = null;
+  for (let i = 0; i < lessons.length; i++) {
+    const rest = lessons.filter((_, k) => k !== i);
+    for (const l of FIGHT_LESSONS) {
+      if (lessons.some((x) => JSON.stringify([x.when, x.then]) === JSON.stringify([l.rule.when, l.rule.then]))) continue;
+      if (!checkMindLesson({ ...spec, lessons: rest }, stage, l.rule).ok) continue;
+      const wins = winsAgainst(fighterOfMind("me", { ...spec, lessons: [l.rule, ...rest] }, level), opponent, seed);
+      if (wins >= before + COACH_MARGIN && (!swap || wins > swap.wins)) swap = { lesson: l, replace: i, wins };
+    }
+  }
+  if (swap) return { key: FIXES[swap.lesson.id] ?? diagnose(result, side), lesson: swap.lesson, replace: swap.replace, before, after: swap.wins };
   return { key: diagnose(result, side), before, after: before };
 }
 
