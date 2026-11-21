@@ -120,7 +120,7 @@ export function PlayApp() {
   const roomEvent = useGame((s) => s.roomEvent);
   const roomEventProps = trial ? { event: stageFor(trial.lesson).event, eventAt: trial.shownAt } : roomEvent ? { event: roomEvent.event, eventAt: roomEvent.at } : {};
   // and the room comes back to show it, whatever sheet the lesson was taught from
-  useEffect(() => useTrial.subscribe((s, prev) => s.trial && s.trial !== prev.trial && setTab("home")), []);
+  useEffect(() => useTrial.subscribe((s, prev) => ((s.trial && s.trial !== prev.trial) || s.watching !== prev.watching) && setTab("home")), []);
   const [phase, setPhase] = useState<DayPhase>(phaseNow);
   const [circuit, setCircuit] = useState(false);
   const worldRoom = useWorld((s) => s.world.room);

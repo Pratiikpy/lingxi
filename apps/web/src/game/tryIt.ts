@@ -45,6 +45,9 @@ export function tryLesson(program: Program, state: readonly number[], lesson: Ru
 }
 
 interface TrialState {
+  /** a request to go back to the room and watch (the light bulb), bumped each time */
+  watching: number;
+  watch: () => void;
   /** `at` game time; `shownAt` performance.now(), as the room's scene keeps time */
   trial: (Trial & { at: number; shownAt: number; lesson: Rule }) | null;
   /** stage a trial: the room shows it, the pet says `line`, and it ends by itself after TRIAL_MS */
@@ -55,6 +58,8 @@ interface TrialState {
 let ending: ReturnType<typeof setTimeout> | null = null;
 
 export const useTrial = create<TrialState>((set) => ({
+  watching: 0,
+  watch: () => set((s) => ({ watching: s.watching + 1 })),
   trial: null,
   stage: (t, lesson, line) => {
     if (ending) clearTimeout(ending);

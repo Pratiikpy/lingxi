@@ -49,7 +49,7 @@ export function countCare(kind: Care["kind"], wasAsleep: boolean, r: CareResult)
 }
 import { create } from "zustand";
 import { type Program, type Rule, STARTERS, WANTS, compileProgram, fastBrain, inputField, stateBits } from "@lingxi/brain";
-import { FOODS, careTally, type Brain, type Care, type CareResult, type Growth, type Pet, type UpgradeRefusal, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, learnSkill, levelUpPet, liveBeat, mindBrain, respecPet, ruleSkillIds, settleForm, skillRules, stageOf, teach as teachRule, awayEvent, awaySeed, beatOf, watchEvent, instinctBrain, instinctGates, INSTINCT_MAX_GATES, MAX_MIND_STATE, type OutsideInstinct, instinctFits, stripHidden, withSegment, boundLog, ruleGrowth, type Mind } from "@lingxi/game";
+import { FOODS, careTally, lessonTrigger, stagedEvent, type Brain, type Care, type CareResult, type Growth, type Pet, type UpgradeRefusal, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, learnSkill, levelUpPet, liveBeat, mindBrain, respecPet, ruleSkillIds, settleForm, skillRules, stageOf, teach as teachRule, awayEvent, awaySeed, beatOf, watchEvent, instinctBrain, instinctGates, INSTINCT_MAX_GATES, MAX_MIND_STATE, type OutsideInstinct, instinctFits, stripHidden, withSegment, boundLog, ruleGrowth, type Mind } from "@lingxi/game";
 import type { StarterLine } from "@lingxi/brain";
 import { takeComfort } from "./comfort";
 
@@ -210,6 +210,8 @@ interface GameState {
   chose: Chose | null;
   /** G1: the living room's last event while watched (1 a friend, 2 a toy, 3 a noise) and performance.now() it came */
   roomEvent: { event: number; at: number } | null;
+  /** B4: the light bulb after a lesson that answers an event: that event, staged in the beats after `from` */
+  lightBulb: { event: number; from: number } | null;
   clearAway: () => void;
   wakeUp: () => void;
   say: (note: Toast["note"]) => void;
@@ -291,6 +293,7 @@ export const useGame = create<GameState>((set, get) => ({
   away: firstAway,
   chose: firstChose,
   roomEvent: null,
+  lightBulb: null,
   clearAway: () => set({ away: null }),
   pets: roster.pets,
   active: roster.active,
@@ -388,7 +391,9 @@ export const useGame = create<GameState>((set, get) => ({
     // a tab left hidden for a while comes back like any return, surprises included
     if (beatOf(gameNow()) - pet.beat > 10) return get().wakeUp();
     // a living room while you watch (G1): a friend, a toy or a noise now and then, the same input words the chain logs
-    const next = settleForm(liveBeat(zoned(pet), gameNow(), brainOf(pet), watchEvent(awaySeed(pet), beatOf(gameNow()))), gameNow());
+    // right after a lesson that answers an event, that event is staged (B4); the word is logged like any other beat
+    const staged = stagedEvent(get().lightBulb, beatOf(gameNow()));
+    const next = settleForm(liveBeat(zoned(pet), gameNow(), brainOf(pet), staged ?? watchEvent(awaySeed(pet), beatOf(gameNow()))), gameNow());
     // what the room shows of it: the event this beat brought, from now (performance time, as the scene keeps)
     const event = next !== pet ? (next.last.word >> inputField("event").lo) & 3 : 0;
     if (event) set({ roomEvent: { event, at: performance.now() } });
@@ -420,7 +425,9 @@ export const useGame = create<GameState>((set, get) => ({
     // one live beat with "talk" on the pins, so the new mind answers at once
     const after = care(r.pet, { kind: "talk" }, gameNow(), brainOf(r.pet)).pet;
     save(after);
-    set({ pet: after, pets: roster.pets, lastCare: { kind: "learn", at: performance.now() }, toast: { id: ++toastId, note: "learned" } });
+    // the light-bulb moment (B4): a lesson that answers a friend, a toy or a noise has it arrive in the next beats
+    const trigger = lessonTrigger(rule);
+    set({ pet: after, pets: roster.pets, lastCare: { kind: "learn", at: performance.now() }, toast: { id: ++toastId, note: "learned" }, lightBulb: trigger.kind === "event" ? { event: trigger.event, from: after.beat } : null });
     useBadges.getState().note("lessons");
     noteTally("LESSON");
     return { ok: true };

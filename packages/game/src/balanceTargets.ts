@@ -114,6 +114,12 @@ export interface LessonSeen {
   firstFire: number | null;
   fires: number;
   beats: number;
+  /** what brings it about (lightBulb.ts): the game stages an event, asks for a care, or it waits for a moment */
+  trigger: "event" | "care" | "watched" | "moment";
+  /** for a care lesson: how many times the watching player gave the care */
+  cares?: number;
+  /** for a moment lesson: whether the taught brain, in the lesson's moment, picks the lesson */
+  inMoment?: boolean;
 }
 
 export interface SimNumbers {
@@ -150,14 +156,18 @@ export const SEEN_IN_TEN = 3;
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 const types = (n: SimNumbers) => PLAYER_TYPES.map((t) => n.players[t]);
 const lessonIds = (n: SimNumbers) => [...new Set(n.lessons.map((l) => l.id))];
-const seen = (l: LessonSeen) => l.firstFire !== null && l.firstFire <= SEEN_WITHIN && l.fires >= SEEN_IN_TEN;
+const seen = (l: LessonSeen) =>
+  l.trigger === "moment" ? l.inMoment === true : l.firstFire !== null && l.firstFire <= SEEN_WITHIN && l.fires >= (l.trigger === "care" ? (l.cares ?? SEEN_IN_TEN) : SEEN_IN_TEN);
 const day = (p: PlayerNumbers, d: number) => p.days[Math.min(d, p.days.length) - 1];
 
 export const BALANCE_TARGETS: readonly BalanceTarget[] = [
   {
     id: "lessons-seen",
     what: "A taught lesson changes what the pet does while you watch",
-    target: `every school lesson, on every egg line and at every visit hour sampled, decides within ${SEEN_WITHIN} minute of being taught and at least ${SEEN_IN_TEN} times in ten minutes`,
+    // B4 restated this from "every lesson decides within a minute and 3 times in ten, at every hour": a lesson that waits
+    // on the time of day or a need cannot fire at once at every hour (an afternoon nap taught at 8 in the morning)
+    // without staging the clock or the meters, which no proof would replay; those are measured in their moment instead.
+    target: `every school lesson, on every egg line and at every visit hour sampled: one that answers an event (staged by the game right after teaching), the owner, or a care (the player asked to give it) decides within ${SEEN_WITHIN} minute of being taught and at least ${SEEN_IN_TEN} times in ten minutes (a care lesson each time the care is given); one that waits on the time of day or a need decides when that moment comes`,
     owner: "G1",
     value: (n) => {
       const ids = lessonIds(n);
@@ -166,7 +176,8 @@ export const BALANCE_TARGETS: readonly BalanceTarget[] = [
         const ls = n.lessons.filter((l) => l.id === id);
         return ls.reduce((s, l) => s + l.fires, 0) / Math.max(1, ls.reduce((s, l) => s + l.beats, 0)) < 0.05;
       });
-      return `${ok.length} of ${ids.length} lessons seen everywhere; ${rare.length} of ${ids.length} decide under 5% of watched minutes (${rare.join(", ") || "none"})`;
+      const moments = ids.filter((id) => n.lessons.find((l) => l.id === id)?.trigger === "moment");
+      return `${ok.length} of ${ids.length} lessons seen everywhere; ${rare.filter((id) => !moments.includes(id)).length} of ${ids.length - moments.length} brought about at once decide under 5% of watched minutes (${rare.filter((id) => !moments.includes(id)).join(", ") || "none"}); ${moments.length} wait for their moment (${moments.join(", ")})`;
     },
     met: (n) => n.lessons.length > 0 && n.lessons.every(seen),
   },

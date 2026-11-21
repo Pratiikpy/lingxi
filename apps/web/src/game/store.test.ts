@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { REF, type Rule, STARTERS, compileProgram, composeInstinct, encode, fastBrain, inputField, netlistBytes, stateBits, toElements, validateProgram } from "@lingxi/brain";
-import { CARD_OUTSIDE_MAX, INSTINCT_MAX_GATES, type OutsideInstinct, type Pet, SUB, type TallyEntry, awaySeed, beatOf, careTally, createPet, familyOf, mindBrain, minuteTally, watchEvent } from "@lingxi/game";
+import { CARD_OUTSIDE_MAX, EVENT, INSTINCT_MAX_GATES, LIGHT_BULB_BEATS, PET_SCHOOL, type OutsideInstinct, type Pet, SUB, type TallyEntry, awaySeed, beatOf, careTally, createPet, familyOf, mindBrain, minuteTally, watchEvent } from "@lingxi/game";
 import { COMPOST } from "@lingxi/world";
 import { type Key, translate } from "../i18n";
 import { type Net, type Storage, json, leave, reload, visit } from "./testGame";
@@ -536,6 +536,37 @@ describe("a living room while you watch (G1)", () => {
       }
     }
     expect(seen).toBeGreaterThan(0);
+  });
+});
+
+describe("the light-bulb moment (B4)", () => {
+  it("a lesson that answers a friend has a friend arrive in the next beats, logged, and the pet does what it was taught", async () => {
+    const { useGame } = await open();
+    useGame.getState().hatch("gentle", "Kiri");
+    const share = PET_SCHOOL.find((l) => l.id === "share")!.rule;
+    expect(useGame.getState().learn(share).ok).toBe(true);
+    let fired = 0;
+    for (let m = 0; m < LIGHT_BULB_BEATS; m++) {
+      vi.advanceTimersByTime(MIN);
+      useGame.getState().tick();
+      const p = useGame.getState().pet!;
+      expect((p.last.word >> inputField("event").lo) & 3, `minute ${m}`).toBe(EVENT.friend);
+      expect(useGame.getState().roomEvent?.event).toBe(EVENT.friend);
+      if (p.last.rule === 0) fired++;
+    }
+    expect(fired).toBeGreaterThan(0);
+    // and then the room goes back to its own schedule
+    vi.advanceTimersByTime(MIN);
+    useGame.getState().tick();
+    const p = useGame.getState().pet!;
+    expect((p.last.word >> inputField("event").lo) & 3).toBe(watchEvent(awaySeed(p), p.beat));
+  });
+
+  it("a lesson that answers a care or a moment stages nothing", async () => {
+    const { useGame } = await open();
+    useGame.getState().hatch("gentle", "Kiri");
+    useGame.getState().learn(PET_SCHOOL.find((l) => l.id === "thanks")!.rule);
+    expect(useGame.getState().lightBulb).toBeNull();
   });
 });
 
