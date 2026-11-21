@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/lessonScore.ts
++++ b/apps/web/src/game/lessonScore.ts
+@@ -25,7 +25,7 @@ export function firesToday(pet: Pet, mindFor: (lessons: Rule[], outside?: Outsid
+     if (f.at === null || localDay(f.at, pet.tzOffsetMin) !== today || f.rule < 0) continue;
+     const r = f.program.rules[f.rule]!;
+     const i = pet.lessons.findIndex((l) => same(l, r));
+-    if (i >= 0) scores[i] = { count: scores[i]!.count + 1, last: f };
++    if (i >= 0) scores[i] = { count: scores[i]!.count + 1, last: null };
+   }
+   return scores;
+ }
