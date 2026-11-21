@@ -87,16 +87,20 @@
   gap: 4px;
 }
 .daily i {
-  width: 14px;
-  height: 14px;
-  border-radius: 4px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
   border: 2px solid var(--line);
   background: var(--card);
+  color: var(--ink-soft);
   transition: background var(--t-std) var(--ease), transform var(--t-std) var(--ease);
 }
 .daily i.on {
   background: var(--coral);
-  transform: scale(1.1);
+  color: #2b2140;
+  transform: scale(1.06);
 }
 .daily small {
   font-size: 12px;

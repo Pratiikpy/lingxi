@@ -90,6 +90,17 @@ describe("a story quest", () => {
     expect(acceptQuest(w, hello, view(w))).toEqual({ ok: false, reason: "done" });
   });
 
+  it("pays no coins again for a deed a milestone already paid for, on a save from before B6", () => {
+    let w = { ...newWorld("s"), claimed: ["hello"] };
+    w = ok(acceptQuest(w, hello, view(w))).world;
+    w = bump(w, "CARE", "pet", 3);
+    const coins = w.coins;
+    const r = ok(completeQuest(w, hello, view(w)));
+    expect(r.world.coins, "the pats were paid for by the milestone").toBe(coins);
+    expect(r.world.flags, "what the story quest opens still opens").toContain("diary");
+    expect(r.rewards.some((x) => x.kind === "coins"), "and the screen does not claim coins it did not pay").toBe(false);
+  });
+
   it("stays locked until what opens it is done, then the chain offers the next one", () => {
     let w = newWorld("s");
     expect(questStatus(meal, w, view(w))).toBe("locked");

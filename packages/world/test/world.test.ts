@@ -144,14 +144,28 @@ describe("shop, workbench, bag", () => {
 describe("quests", () => {
   const view = { counts: { feed: 0, play: 0, clean: 0, pet: 3, lessons: 0 }, stage: "baby", onChain: false };
   it("unlock in order and pay out once", () => {
-    const w = newWorld("s");
-    expect(questState(QUESTS.find((q) => q.id === "bath")!, { ...view, world: w }, w.claimed)).toBe("locked");
-    const r = claim(w, "hello", view);
+    // a milestone of its own (no story quest does the same deed): playtime, after the first meal
+    const fed = { ...newWorld("s"), quests: { active: {}, done: { q02: T0 } } };
+    const playView = { ...view, counts: { ...view.counts, play: 5 } };
+    const r = claim(fed, "playtime", playView);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.world.coins).toBe(w.coins + 10);
-    expect(claim(r.world, "hello", view).ok).toBe(false);
-    expect(questState(QUESTS.find((q) => q.id === "bath")!, { ...view, world: r.world }, r.world.claimed)).toBe("active");
+    expect(r.world.coins).toBe(fed.coins + 20);
+    expect(claim(r.world, "playtime", playView).ok).toBe(false);
+  });
+
+  // B6: a milestone that repeats a story quest's deed pays nothing of its own: it is done when the story quest is
+  it("a milestone that repeats a story quest is done with it, never paid twice", () => {
+    const mirrored = QUESTS.filter((q) => q.story);
+    expect(mirrored.map((q) => q.id).sort()).toEqual(["bath", "explorer", "firstLesson", "firstMeal", "hello", "maker"]);
+    const w = newWorld("s");
+    const hello = QUESTS.find((q) => q.id === "hello")!;
+    expect(questState(hello, { ...view, world: w }, w.claimed), "the pats are given, but the story quest pays for them").toBe("active");
+    expect(claim(w, "hello", view)).toEqual({ ok: false, reason: "notReady" });
+    const told = { ...w, quests: { active: {}, done: { q01: T0 } } };
+    expect(questState(hello, { ...view, world: told }, told.claimed)).toBe("claimed");
+    // and what comes after it in the milestones opens as before
+    expect(questState(QUESTS.find((q) => q.id === "bath")!, { ...view, world: told }, told.claimed)).not.toBe("locked");
   });
   it("every quest has text in both languages and a reachable predecessor", () => {
     const ids = new Set(QUESTS.map((q) => q.id));

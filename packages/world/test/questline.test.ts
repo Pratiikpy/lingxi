@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DAILIES, LINE_MAX, ONBOARDING, QUESTLINE, STORY, type QuestDef, checkGame, questLineErrors } from "../src";
+import { DAILIES, ITEM, LINE_MAX, ONBOARDING, QUESTLINE, STORY, type QuestDef, checkGame, questLineErrors } from "../src";
 
 const base = STORY[0]!;
 const bad = (over: Partial<QuestDef>): string[] => questLineErrors([{ ...base, ...over }]);
@@ -48,5 +48,19 @@ describe("one name for each place, in both languages (G8)", () => {
     expect(lane.length).toBeGreaterThan(5);
     for (const l of lane) expect(l.zh, l.en).toContain("建设者小巷");
     expect(said.filter((l) => l.zh.includes("建设者小路"))).toEqual([]);
+  });
+});
+
+describe("a quest names the item it asks for by the item's own name (B6)", () => {
+  it("every hand-over objective says the item's Chinese and English names", () => {
+    for (const q of STORY)
+      for (const o of q.objectives) {
+        const c = o.cond as { type: string; index?: unknown };
+        if (c.type !== "GIVE_TO" || typeof c.index !== "string") continue;
+        const it = ITEM[Number(c.index.split(":")[1])];
+        if (!it) continue;
+        expect(o.text.zh, `${q.id}: ${it.name.zh}`).toContain(it.name.zh);
+        expect(o.text.en.toLowerCase(), `${q.id}: ${it.name.en}`).toContain(it.name.en.toLowerCase());
+      }
   });
 });

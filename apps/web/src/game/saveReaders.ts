@@ -22,4 +22,5 @@ export const READERS: Readonly<Record<string, SaveReader>> = {
   "lingxi.mail.v1": anObject,
   "lingxi.badges.v1": anObject,
   "lingxi.daily.v1": anObject,
+  "lingxi.care.v1": anObject,
 };

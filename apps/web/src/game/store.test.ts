@@ -539,6 +539,22 @@ describe("a living room while you watch (G1)", () => {
   });
 });
 
+describe("the header's care marks (B6)", () => {
+  it("survive a reload the same day, and start fresh the next day", async () => {
+    const first = await open();
+    first.useGame.getState().hatch("gentle", "Kiri");
+    first.useGame.getState().act({ kind: "pet" });
+    first.useGame.getState().act({ kind: "clean" });
+    expect(first.useGame.getState().daily).toMatchObject({ petted: true, cleaned: true, fed: false });
+    // the same browser, opened again later that day
+    const again = await loaded(await reload(first.storage, { at: T0 + 60 * MIN }));
+    expect(again.useGame.getState().daily).toMatchObject({ petted: true, cleaned: true, fed: false, played: false });
+    // and the next day
+    const tomorrow = await loaded(await reload(again.storage, { at: T0 + 26 * 60 * MIN }));
+    expect(tomorrow.useGame.getState().daily).toMatchObject({ petted: false, cleaned: false, fed: false, played: false });
+  });
+});
+
 describe("a new pet's first thought (B5)", () => {
   it("a pet just hatched has a real decision to show, not a blank record, and nothing logged", async () => {
     const { useGame } = await open();

@@ -563,25 +563,34 @@ describe("the world store: walks and trips", () => {
 
 describe("the world store: quests", () => {
   it("a quest is handed in once it is done: before then the player is told it did not work", async () => {
-    const { w, useGame } = await open();
-    w().claim("hello");
+    const { w, useGame, useWorld } = await open();
+    // playtime, a milestone of its own, opens after the first meal (handed in through the story)
+    useWorld.setState({ world: { ...w().world, quests: { active: {}, done: { q02: T0 } } } });
+    w().claim("playtime");
     expect(w().notice).toMatchObject({ kind: "fail", reason: "notReady" });
     expect(said(w().notice)).toEqual(["That didn't work.", "没有成功。"]);
-    for (let i = 0; i < 3; i++) useGame.getState().act({ kind: "pet" });
-    w().claim("hello");
-    expect(w().notice).toMatchObject({ kind: "claimed", coins: 10, items: [] });
-    expect(said(w().notice)).toEqual(["Reward: 10 coins.", "奖励：10 枚金币。"]);
-    expect(w().world).toMatchObject({ coins: 40, claimed: ["hello"] });
-    w().claim("hello");
-    expect(w().world.coins).toBe(40);
+    const pet = useGame.getState().pet!;
+    useGame.setState({ pet: { ...pet, counts: { ...pet.counts, play: 5 } } });
+    const coins = w().world.coins;
+    w().claim("playtime");
+    expect(w().notice).toMatchObject({ kind: "claimed", coins: 20 });
+    expect(said(w().notice)).toEqual(["Reward: 20 coins, Ice Cream.", "奖励：20 枚金币，冰淇淋。"]);
+    expect(w().world.coins).toBe(coins + 20);
+    w().claim("playtime");
+    expect(w().world.coins).toBe(coins + 20);
   });
 
-  it("a reward with an item names it", async () => {
+  // B6: the pats and the first meal are paid for by the story quests that ask for them, not a second time here
+  it("a milestone that repeats a story quest is never handed in here", async () => {
     const { w, useGame } = await open();
+    for (let i = 0; i < 3; i++) useGame.getState().act({ kind: "pet" });
     useGame.getState().act({ kind: "feed", food: "mochi" });
+    const coins = w().world.coins;
+    w().claim("hello");
     w().claim("firstMeal");
-    expect(said(w().notice)).toEqual(["Reward: 10 coins, Golden Apple.", "奖励：10 枚金币，金苹果。"]);
-    expect(w().world.bag[GOLDEN_APPLE]).toBe(3);
+    expect(w().notice).toMatchObject({ kind: "fail", reason: "notReady" });
+    expect(w().world.coins).toBe(coins);
+    expect(w().world.claimed).toEqual([]);
   });
 
   it("with no pet there is nothing to hand in", async () => {

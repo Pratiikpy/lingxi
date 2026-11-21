@@ -392,7 +392,7 @@ export function QuestPanel() {
                 {t("quest.claim")}
               </button>
             ) : (
-              <span className="quest-state">{st === "claimed" ? t("quest.done") : `+${q.reward.coins}`}</span>
+              <span className="quest-state">{st === "claimed" ? t("quest.done") : q.story ? t("quest.inStory") : `+${q.reward.coins}`}</span>
             )}
           </li>
         );

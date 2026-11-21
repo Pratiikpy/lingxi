@@ -204,10 +204,10 @@ export const ARC_2_TO_5: QuestDef[] = [
   }),
   quest(37, 5, "bolt", [done("q36")], {
     title: T("Trading up", "越换越好"),
-    intro: [say(R.two, "Three pebbles make a stone block at the workbench. Bring me one block.", "三颗小石子在工作台能做成一块石砖。给我带一块。")],
-    outro: [say(R.three, "A proper block. Here: a metal bar. Better than a block. Trading up.", "像样的石砖。给你：一根金属条。比石砖好。越换越好。")],
+    intro: [say(R.two, "Three pebbles make a stone block at the workbench. Bring me one block.", "三颗小石子在工作台能拼成一个石块。给我带一个。")],
+    outro: [say(R.three, "A proper block. Here: a metal bar. Better than a block. Trading up.", "像样的石块。给你：一根金属条。比石块好。越换越好。")],
     // the outline's reward was a screwdriver; it now comes with quest 7, the first time a tool is needed, so this gives the metal bar the finder needs
-    objectives: [obj(from("GIVE_TO", "bolt:1301", 1), "Give Bolt a stone block (made from 3 pebbles)", "送螺丝一块石砖（用 3 颗小石子做）")],
+    objectives: [obj(from("GIVE_TO", "bolt:1301", 1), "Give Bolt a stone block (made from 3 pebbles)", "送螺丝一个石块（用 3 颗小石子做）")],
     rewards: [coins(15), item(1303), trust("bolt", 5)],
   }),
   quest(38, 5, "bolt", [done("q37")], {

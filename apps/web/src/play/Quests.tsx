@@ -279,13 +279,14 @@ const ARCS: ReadonlyArray<[string, string]> = [
   ["Growing up", "长大"],
 ];
 const arcName = (arc: number, lang: Lang) => ARCS[arc - 1]![lang === "zh" ? 1 : 0];
-const ARC_OPENS: Record<number, [string, string]> = {
+/** What opens each arc, said on its locked card; an arc opened by a story quest names that quest (B6). */
+export const ARC_OPENS: Record<number, [string, string]> = {
   1: ["Opens when your pet hatches.", "宠物孵化时开启。"],
-  2: ["Opens after your pet's first visit next door.", "宠物第一次去隔壁之后开启。"],
-  3: ["Opens after your first shopping trip.", "第一次买东西之后开启。"],
-  9: ["Opens after your pet's first lesson.", "宠物上完第一课之后开启。"],
+  2: ["Opens once you hand in the quest “Next door”.", "交了“隔壁”任务之后开启。"],
+  3: ["Opens once you hand in the quest “Sweet shop”.", "交了“糖果店”任务之后开启。"],
+  9: ["Opens once you hand in the quest “First lesson”.", "交了“第一课”任务之后开启。"],
   11: ["Opens when you meet someone on Builders' Lane.", "在建设者小巷认识谁之后开启。"],
-  12: ["Opens once a day is kept on X Layer.", "在 X Layer 上留住一天之后开启。"],
+  12: ["Opens once you hand in the quest “Kept forever”.", "交了“永远留住”任务之后开启。"],
 };
 const arcOpens = (arc: number, lang: Lang) => (ARC_OPENS[arc] ?? ["Opens the first time you walk into their room.", "第一次走进他们的房间时开启。"])[lang === "zh" ? 1 : 0];
 

@@ -36,6 +36,9 @@ export function Chips({ when, then, want }: { when: string[]; then: string; want
   );
 }
 
+/** Today's four cares, in the order of the header's marks. */
+const DAILY_ICONS = ["bowl", "ball", "sparkle", "hand"] as const;
+
 export function TopBar({ pet, daily, face, onQuests, onPets, petCount, onMail, unread = 0 }: { pet: Pet; daily: Daily; face: React.ReactNode; onQuests: () => void; onPets: () => void; petCount: number; onMail: () => void; unread?: number }) {
   const t = useT();
   const toggleLang = useLang((s) => s.toggle);
@@ -68,8 +71,11 @@ export function TopBar({ pet, daily, face, onQuests, onPets, petCount, onMail, u
             <span>{kinshipNow(pet, beatOf(now))}</span>
           </div>
           <div className="daily" role="img" aria-label={t("daily.aria", { n })}>
+            {/* each mark is the care it stands for (B6): fed, played with, bathed, patted */}
             {done.map((d, i) => (
-              <i key={i} className={d ? "on" : ""} />
+              <i key={i} className={d ? "on" : ""}>
+                <Icon name={DAILY_ICONS[i]!} size={12} />
+              </i>
             ))}
             <small>{t("daily.label")}</small>
           </div>

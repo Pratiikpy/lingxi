@@ -24,6 +24,18 @@ describe("diary", () => {
     }
   });
 
+  it("counts the times the owner came over to pat, as the log keeps them, and says so (B6)", () => {
+    let pet = createPet({ name: "M", line: "gentle", now: T0, tzOffsetMin: 0, brain: brainFor([]) });
+    // five taps in one minute, one the next minute: the log keeps one care a minute
+    for (let i = 0; i < 5; i++) pet = care(pet, { kind: "pet" }, T0 + 60_000 + i * 5_000, brainFor([])).pet;
+    pet = care(pet, { kind: "pet" }, T0 + 125_000, brainFor([])).pet;
+    pet = catchUp(pet, T0 + 3 * 3_600_000, brainFor([]));
+    const line = diaryOf(pet, brainFor).find((l) => l.key === "petted")!;
+    expect(line.n).toBe(2);
+    expect(diaryText(line, "en")).toBe("You came over to pat me 2 times.");
+    expect(diaryText(line, "zh")).toBe("你过来摸了我 2 回。");
+  });
+
   it("a day with nothing is a quiet day, and learning shows up", () => {
     const pet = createPet({ name: "M", line: "gentle", now: T0, tzOffsetMin: 0, brain: brainFor([]) });
     expect(diaryOf(pet, brainFor)).toEqual([{ key: "quiet" }]);

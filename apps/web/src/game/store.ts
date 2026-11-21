@@ -45,6 +45,7 @@ export function countCare(kind: Care["kind"], wasAsleep: boolean, r: CareResult)
   if (kind === "play" && r.note === "played") d.played = true;
   if (kind === "clean") d.cleaned = true;
   if (kind === "pet") d.petted = true;
+  saveDaily(d);
   useGame.setState({ daily: d });
 }
 import { create } from "zustand";
@@ -232,6 +233,20 @@ interface GameState {
 
 const todayKey = () => new Date(gameNow()).toDateString();
 const freshDaily = (): Daily => ({ day: todayKey(), fed: false, played: false, cleaned: false, petted: false });
+/** Today's four care marks in the header, kept so a reload does not wipe them (B6). */
+const CARE_KEY = "lingxi.care.v1";
+const isDaily = (v: unknown): v is Daily =>
+  !!v && typeof v === "object" && typeof (v as Daily).day === "string" && (["fed", "played", "cleaned", "petted"] as const).every((k) => typeof (v as Daily)[k] === "boolean");
+/** The marks kept for today, or a fresh card when they belong to another day or cannot be read. */
+function loadDaily(): Daily {
+  try {
+    const v: unknown = JSON.parse(localStorage.getItem(CARE_KEY) ?? "null");
+    return isDaily(v) && v.day === todayKey() ? v : freshDaily();
+  } catch {
+    return freshDaily();
+  }
+}
+const saveDaily = (d: Daily): void => void saveWrite(CARE_KEY, JSON.stringify(d));
 
 /** At least this long away (minutes) before the pet has a "while you were away" to tell. */
 const AWAY_STORY_BEATS = 60;
@@ -354,7 +369,7 @@ export const useGame = create<GameState>((set, get) => ({
   },
   toast: null,
   lastCare: null,
-  daily: freshDaily(),
+  daily: loadDaily(),
   hatch: (line, name, instincts = 0) => {
     const pet = createPet({
       // a character that shows as nothing is taken out: the name stays what the player can see (A16)
@@ -369,7 +384,9 @@ export const useGame = create<GameState>((set, get) => ({
     const thinking = firstThought(pet, gameNow(), brainOf(pet));
     save(thinking);
     useBadges.getState().note("pets");
-    set({ pet: thinking, pets: roster.pets, daily: freshDaily() });
+    const daily = freshDaily();
+    saveDaily(daily);
+    set({ pet: thinking, pets: roster.pets, daily });
   },
   act: (c, art) => {
     const { pet } = get();

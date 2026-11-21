@@ -19,7 +19,8 @@ const PART: Record<string, [string, string]> = {
   "lingxi.friends.v1": ["your friends", "你的朋友"],
   "lingxi.mail.v1": ["your letters", "你的信"],
   "lingxi.badges.v1": ["your badges", "你的徽章"],
-  "lingxi.daily.v1": ["today's tasks", "今天的任务"],
+  "lingxi.daily.v1": ["today's challenge", "今天的挑战"],
+  "lingxi.care.v1": ["today's care marks", "今天的照顾记号"],
 };
 const partName = (key: string, lang: string) => {
   const p = PART[key];

@@ -11,6 +11,7 @@
 import { type Condition, type ConditionView, checkAll, progressOf, snapshotOf, type Progress } from "./conditions";
 import { bump, withFlag } from "./tally";
 import { type WorldResult, type WorldState, earn, give } from "./world";
+import { paidByMilestone } from "./quests";
 
 export interface Text {
   en: string;
@@ -153,9 +154,12 @@ export function completeQuest(w: WorldState, q: QuestDef, v: ConditionView): Wor
     book = { ...book, today: { ...today, done: [...today.done, q.id] }, days: days.includes(today.day) ? days : [...days, today.day] };
   }
   let next: WorldState = { ...w, quests: book };
-  for (const r of q.rewards) next = payReward(next, r);
+  // a deed a milestone already paid for is not paid for in coins again; what the quest opens still opens (B6)
+  const paid = q.kind === "story" && paidByMilestone(q.id, w);
+  const rewards = paid ? q.rewards.filter((r) => r.kind !== "coins") : q.rewards;
+  for (const r of rewards) next = payReward(next, r);
   next = bump(next, q.kind === "story" ? "QUEST_DONE" : "DAILY_DONE", q.id);
-  return { ok: true, rewards: q.rewards, world: next };
+  return { ok: true, rewards, world: next };
 }
 
 /** The quest to show after this one is handed in: the lowest in the sheet that needs it and can be taken now. */

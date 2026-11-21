@@ -146,7 +146,8 @@ export function diaryText(l: DiaryLine, lang: "en" | "zh", opts: { untimed?: boo
   const en: Record<DiaryKey, string> = {
     fed: n > 1 ? `You fed me ${n} times. Yum.` : "You fed me. Yum.",
     played: n > 1 ? `We played ${n} times!` : "We played together!",
-    petted: n > 1 ? `You gave me ${n} pats.` : "You gave me a pat.",
+    // the log keeps one care a minute, so this counts the times the owner came over to pat, not each tap (B6)
+    petted: n > 1 ? `You came over to pat me ${n} times.` : "You came over to pat me.",
     cleaned: "I had a bath. I sneezed.",
     medicine: "I took my medicine. Bleh, but better.",
     talked: "You taught me something and I listened.",
@@ -164,7 +165,7 @@ export function diaryText(l: DiaryLine, lang: "en" | "zh", opts: { untimed?: boo
   const zh: Record<DiaryKey, string> = {
     fed: n > 1 ? `你喂了我 ${n} 次，好吃！` : "你喂我吃东西了，好吃！",
     played: n > 1 ? `我们一起玩了 ${n} 次！` : "我们一起玩啦！",
-    petted: n > 1 ? `你摸了我 ${n} 次。` : "你摸了摸我。",
+    petted: n > 1 ? `你过来摸了我 ${n} 回。` : "你过来摸了摸我。",
     cleaned: "洗了个澡，打了个喷嚏。",
     medicine: "吃了药，好苦，但舒服多了。",
     talked: "你教了我东西，我认真听了。",
