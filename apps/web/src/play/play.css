@@ -1718,11 +1718,19 @@
   .daily {
     gap: 3px;
   }
+  /* B6: on a phone the marks are the four care icons alone, faded until done and coral once done (no frame to fit) */
   .daily i {
-    width: 10px;
-    height: 10px;
-    border-width: 1.5px;
-    border-radius: 3px;
+    width: 14px;
+    height: 14px;
+    border: 0;
+    background: none;
+    opacity: 0.42;
+  }
+  .daily i.on {
+    background: none;
+    color: var(--coral);
+    opacity: 1;
+    transform: scale(1.12);
   }
   .pill {
     gap: 6px;
