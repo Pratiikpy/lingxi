@@ -41,8 +41,8 @@ test("a kept pet's diary is published and its proof page reads it back, checked 
   await expect(unread, "a failed read is said, with a retry").toContainText("could not be read this time", { timeout: 60_000 });
   await unread.scrollIntoViewIfNeeded();
   await page.screenshot({ path: test.info().outputPath("diary-unread-en-light-phone.png") });
-  // the browser logs the refused read itself; that one line is this flow's, any other error still fails
-  await expectedErrors(p, /the server responded with a status of 502/, 1);
+  // the page asked twice before saying so (A133); the browser logs each refused read, and those lines are this flow's
+  await expectedErrors(p, /the server responded with a status of 502/, 2);
   await page.unroute(logRoute);
   await unread.getByRole("button", { name: "Try again" }).click();
   // the check waits for the indexer to read the pet's hatching (every 15 s), then passes, fails or says it cannot yet

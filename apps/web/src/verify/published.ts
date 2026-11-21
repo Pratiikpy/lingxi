@@ -11,9 +11,15 @@ export interface PublishedLog {
 
 export type Published = { kind: "log"; log: PublishedLog } | { kind: "none" } | { kind: "unread" };
 
-const READ_MS = 8000;
+/**
+ * Each try's budget, the tries, and the pause between them (A133): the proof page makes about fifteen server reads in
+ * its first seconds, and one slow answer is not a failure, so a failed read is asked once more before it is said.
+ */
+const READ_MS = 15_000;
+const TRIES = 2;
+const PAUSE_MS = 1_500;
 
-export async function readPublished(base: string, id: string, ask: typeof fetch = fetch): Promise<Published> {
+async function readOnce(base: string, id: string, ask: typeof fetch): Promise<Published> {
   try {
     const res = await ask(`${base}/api/pets/${id}/log`, { signal: AbortSignal.timeout(READ_MS) });
     if (!res.ok) return { kind: "unread" };
@@ -24,4 +30,14 @@ export async function readPublished(base: string, id: string, ask: typeof fetch 
   } catch {
     return { kind: "unread" };
   }
+}
+
+export async function readPublished(base: string, id: string, ask: typeof fetch = fetch, opts: { pauseMs?: number } = {}): Promise<Published> {
+  let got: Published = { kind: "unread" };
+  for (let i = 0; i < TRIES; i++) {
+    if (i > 0) await new Promise((r) => setTimeout(r, opts.pauseMs ?? PAUSE_MS));
+    got = await readOnce(base, id, ask);
+    if (got.kind !== "unread") return got;
+  }
+  return got;
 }
