@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/store.ts
++++ b/apps/web/src/game/store.ts
+@@ -366,7 +366,7 @@ export const useGame = create<GameState>((set, get) => ({
+       instincts,
+     });
+     // its first thought, so the room and the circuit show a real decision before the first minute ends (B5)
+-    const thinking = firstThought(pet, gameNow(), brainOf(pet));
++    const thinking = pet;
+     save(thinking);
+     useBadges.getState().note("pets");
+     set({ pet: thinking, pets: roster.pets, daily: freshDaily() });

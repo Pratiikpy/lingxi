@@ -1,0 +1,11 @@
+--- a/apps/web/src/play/Badges.tsx
++++ b/apps/web/src/play/Badges.tsx
+@@ -98,7 +98,7 @@ export function BadgeToast() {
+   const dismiss = useBadges((s) => s.dismiss);
+   // a badge earned by teaching a lesson waits while Try it asks about that lesson, then has its full time (B5)
+   const offering = useTrial((s) => s.offering);
+-  const top = offering ? undefined : fresh[0];
++  const top = fresh[0];
+   useEffect(() => {
+     if (!top) return;
+     const t = setTimeout(() => dismiss(top.id), 3600);

@@ -1,0 +1,11 @@
+--- a/apps/web/src/play/Familiar.tsx
++++ b/apps/web/src/play/Familiar.tsx
+@@ -33,7 +33,7 @@ export function Familiar({ known, size }: { known: number; size: number }) {
+         <span className="familiar-bar" role="meter" aria-valuemin={0} aria-valuemax={size} aria-valuenow={n} aria-hidden="true">
+           <i style={{ width: `${Math.round((100 * n) / size)}%` }} />
+         </span>
+-        <span>{zh ? `熟悉 ${n}/${size}` : `Known ${n}/${size}`}</span>
++
+       </button>
+       {open && (
+         <span className="familiar-why" role="status">

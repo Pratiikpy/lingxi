@@ -1,0 +1,11 @@
+--- a/apps/web/src/play/RulesMark.tsx
++++ b/apps/web/src/play/RulesMark.tsx
+@@ -73,7 +73,7 @@ export function RulesMark() {
+   if (state !== stateSeen) {
+     setStateSeen(state);
+     // owed the first time this set of rules is verified on this browser
+-    if (state === "verified") setOwed(seenSet() !== ruleSet(checks));
++    if (state === "verified") setOwed(true);
+   }
+   useEffect(() => {
+     if (!owed || covered) return;
