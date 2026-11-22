@@ -1,11 +1,10 @@
---- a/scripts/circuit-catalogue.mts
-+++ b/scripts/circuit-catalogue.mts
-@@ -157,7 +157,7 @@ const catalogue = {
-   brainPins: {
-     standard: "LX-PET/1",
-     // the Chinese names are the game's own (ruleText.ts, the duel's natures), so the catalogue says what the game says
--    inputs: INPUT_FIELDS.map((f) => ({ name: f.name, lo: f.lo, bits: f.bits, values: [...f.values], nameZh: FIELD_ZH[f.name]!, valuesZh: [...VALUE_NAMES[f.name]!.zh] })),
-+    inputs: INPUT_FIELDS.map((f) => ({ name: f.name, lo: f.lo, bits: f.bits, values: [...f.values] })),
-     outputs: [
-       { name: "want", lo: 0, bits: 3, values: [...WANTS], nameZh: "想做", valuesZh: [...WANT_NAMES.zh] },
-       { name: "mood", lo: 3, bits: 2, values: [...MOODS], nameZh: "心情", valuesZh: [...MOOD_NAMES.zh] },
+--- a/apps/web/public/circuits.json
++++ b/apps/web/public/circuits.json
+@@ -24,7 +24,6 @@
+  },
+  "encodingZh": {
+   "abi": "标准 Solidity ABI：eval 的调用数据依次是 4 字节选择器、32 字节的 id、inputs 的偏移量（0x40）、inputs 的字节长度，再是补齐到 32 字节的 inputs；step 的依次是选择器、id、state 的偏移量（0x60）、inputs 的偏移量（0x60 加上 state 长度占的 32 字节和补齐后的 state），然后是 state 的长度和补齐后的字节，再是 inputs 的长度和补齐后的字节。返回值也按同样方式 ABI 编码：eval 返回一个 bytes（偏移量、长度、数据）；step 返回两个，先 newState 后 outputs。选择器：eval 0x934d06ea，step 0xe8281a1a（签名的 keccak256）。",
+-  "ids": "这里每个电路的 id 都是 uint256，写成十进制字符串",
+   "nState": "nState 数的是位数；state 占 ceil(nState / 8) 个字节（初始大脑是 1 个字节）",
+   "brains": "大脑按它的系别列出（gentle 温柔、bold 勇敢、curious 好奇）；name 只是标签",
+   "inputs": "字节，小端序：输入字的第 0 位就是第一个字节的第 0 位；共 ceil(nIn / 8) 个字节（这里每个电路都是 2 个：每个都有 16 个输入引脚，规则只读低 inBits 位，其余为 0）",
