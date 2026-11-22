@@ -1,0 +1,10 @@
+--- a/apps/web/src/play/Collection.tsx
++++ b/apps/web/src/play/Collection.tsx
+@@ -71,7 +71,6 @@ export function CollectionPanel() {
+       <hr className="divider" />
+       <BadgeShelf />
+       <hr className="divider" />
+-      <HomePieces />
+     </div>
+   );
+ }

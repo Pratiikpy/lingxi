@@ -18,6 +18,7 @@ import { DecorBar } from "./DecorBar";
 import { NoticeLane } from "./NoticeLane";
 import { Familiar } from "./Familiar";
 import { MoreBehind } from "./MoreBehind";
+import { CollectionPanel } from "./Collection";
 import { useTrial, type Trial } from "../game/tryIt";
 import type { Rule } from "@lingxi/brain";
 import { BadgeShelf, BadgeToast } from "./Badges";
@@ -736,7 +737,7 @@ export function PlayApp() {
           )}
           <Meters pet={pet} />
           {/* feeding is care: Feed opens the bag on day 1 too, though the Bag tab waits for day 2 (H5b) */}
-          <Actions pet={pet} absent={travelling} onFeed={() => pick("bag", true)} onPlay={playBall} onClean={clean} onSleep={sleep} onMedicine={() => (play("sparkle"), act({ kind: "medicine" }))} onToday={() => (useQuestUi.getState().setBookTab("today"), pick("quests"))} onCollection={() => pick("me")} />
+          <Actions pet={pet} absent={travelling} onFeed={() => pick("bag", true)} onPlay={playBall} onClean={clean} onSleep={sleep} onMedicine={() => (play("sparkle"), act({ kind: "medicine" }))} onToday={() => (useQuestUi.getState().setBookTab("today"), pick("quests"))} onCollection={() => pick("collection")} />
           <section className="card mindcard" aria-label={t("mind.title", { name: pet.name })}>
             <div className="cardbar" aria-hidden="true">
               <i />
@@ -802,6 +803,11 @@ export function PlayApp() {
       <Sheet open={tab === "map"} title={t("map.title")} onClose={close}>
         <Outings pet={pet} />
         <MapPanel onGone={close} />
+      </Sheet>
+      <Sheet open={tab === "collection"} title={lang === "zh" ? "收藏" : "Collection"} onClose={close}>
+        <Lazy>
+          <CollectionPanel />
+        </Lazy>
       </Sheet>
       <Sheet open={tab === "quests"} title={t("quest.title")} onClose={close}>
         <QuestBook />
