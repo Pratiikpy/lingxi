@@ -19,10 +19,16 @@ const CPU = "0x00000000000000000000000000000000000000cc";
 const instProgram = validateProgram({ version: "LX-PET/1", memory: [{ kind: "flag", name: "met", set: [{ event: [1] }] }], rules: [{ when: { met: [1], time: [0] }, then: { want: 6, mood: 3 } }], otherwise: { want: 0, mood: 1 } });
 const OUTSIDE: OutsideInstinct = { processor: CPU, id: "9", owner: "0x00000000000000000000000000000000000000dd", parts: [{ processor: CPU, id: "9", nIn: 16, nOut: 8, hex: hex(netlistBytes(compileProgram(instProgram))) }] };
 
-/** Distinct lessons, as many as asked: Pet School's, then simple ones of our own. */
+/**
+ * Distinct lessons, as many as asked: Pet School's, then variants of them that answer the same moment another way, so
+ * they share its logic and stay within an elder's lesson budget (D3), as a careful teacher's would.
+ */
 const lessons = (n: number): Rule[] => {
   const school = PET_SCHOOL.map((l) => l.rule);
-  const more = Array.from({ length: Math.max(0, n - school.length) }, (_, i) => ({ when: { hunger: [i % 4], time: [Math.floor(i / 4) % 4] }, then: { want: 1 + (i % 6), mood: i % 4 } }) as Rule);
+  const more = Array.from({ length: Math.max(0, n - school.length) }, (_, i) => {
+    const r = school[i % school.length]!;
+    return { when: r.when, then: { ...r.then, mood: ((r.then.mood ?? 0) + 1 + Math.floor(i / school.length)) % 4 } } as Rule;
+  });
   return [...school, ...more].slice(0, n);
 };
 /** A lesson nobody above was taught. */

@@ -1,0 +1,11 @@
+--- a/packages/game/src/skills.ts
++++ b/packages/game/src/skills.ts
+@@ -359,7 +359,7 @@ export const TAUGHT_BUDGET: Readonly<Record<"baby" | "child" | "teen" | "adult"
+  * the slot skills and the gate skills on their path still has room to fill its slots with lessons that share logic.
+  */
+ export const TAUGHT_SHARE = 3;
+-export const taughtBudget = (stage: keyof typeof TAUGHT_BUDGET, g: Growth | undefined): number => TAUGHT_BUDGET[stage] + Math.floor(effectOf(g, "GATES") / TAUGHT_SHARE);
++export const taughtBudget = (stage: keyof typeof TAUGHT_BUDGET, g: Growth | undefined): number => TAUGHT_BUDGET[stage] + effectOf(g, "GATES");
+ export const extraLessons = (g: Growth | undefined): number => effectOf(g, "LESSONS") + Math.floor(effectOf(g, "LESSON_TENTHS") / 10);
+ /** The most gates any pet can hold with every gate skill taken: the relayer accepts no more than this. */
+ export const MAX_GATES_SKILLED =

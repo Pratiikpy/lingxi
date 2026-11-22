@@ -143,6 +143,8 @@ export interface SimNumbers {
   alone?: Array<{ line: string; lowestAt72h: number; firstSickHours: number | null }>;
   /** D1: a pet only ever patted (every 93.6 hours, never fed or cleaned): its stage on day 62, whether it fell ill, its mistakes */
   patOnly?: { stageDay62: string; ill: boolean; mistakes: number };
+  /** D3: for each line, whether a teen with one point of Wide Mind (a Mind-first player) is still refused a fourth school lesson */
+  mindFirstTeenRefused?: Record<string, boolean>;
 }
 
 /* ── the targets ─────────────────────────────────────────────────────────── */
@@ -340,13 +342,14 @@ export const BALANCE_TARGETS: readonly BalanceTarget[] = [
   {
     id: "gate-budget-binds",
     what: "The gate budget is a choice the player meets by the teen stage",
-    target: "the three-visit player has a lesson refused for the gate budget by the end of the teen stage (day 7)",
+    target: "the three-visit player has a lesson refused for the gate budget by the end of the teen stage (day 7), and a player who takes Mind skills first (a teen with one point of Wide Mind) is still refused a fourth school lesson, on every line",
     owner: "G7",
     value: (n) => {
       const p = n.players.three;
-      return `first refusal ${p.firstTooBigDay === null ? "never" : `day ${p.firstTooBigDay}`}; at most ${pct(p.teenGateShare)} of the budget used by day 7`;
+      const mf = n.mindFirstTeenRefused ? Object.entries(n.mindFirstTeenRefused).map(([l, r]) => `${l} ${r ? "refused" : "fits"}`).join(", ") : "not measured";
+      return `first refusal ${p.firstTooBigDay === null ? "never" : `day ${p.firstTooBigDay}`}; at most ${pct(p.teenGateShare)} of the budget used by day 7; Mind-first teen: ${mf}`;
     },
-    met: (n) => n.players.three.firstTooBigDay !== null && n.players.three.firstTooBigDay <= 7,
+    met: (n) => n.players.three.firstTooBigDay !== null && n.players.three.firstTooBigDay <= 7 && !!n.mindFirstTeenRefused && Object.values(n.mindFirstTeenRefused).every(Boolean),
   },
 ];
 

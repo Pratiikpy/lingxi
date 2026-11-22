@@ -53,7 +53,8 @@ describe("the Teach screen shows the taught budget (G7)", () => {
 
   it("a Mind gate skill widens the number shown", async () => {
     const { host, close } = await teachScreen("en", { level: 10, points: 0, skills: { 211: 2 } });
-    expect(host.querySelector(".gates")!.textContent).toContain(`of ${TAUGHT_BUDGET.teen + 20} gates`);
+    // two points of Wide Mind: 20 gates for the brain, a third of them (6) for lessons (D3)
+    expect(host.querySelector(".gates")!.textContent).toContain(`of ${TAUGHT_BUDGET.teen + 6} gates`);
     close();
   });
 });

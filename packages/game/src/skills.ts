@@ -150,24 +150,24 @@ const ROWS: Row[] = [
   [162, T("Cuddle Bug", "黏人精"), T("A rule in its circuit: happy and petted, it cuddles you back.", "电路里多一条规则：开心时被摸，会回抱你。"), "RULE", 1, { label: "skill: cuddle bug", when: { owner: [1], joy: [2, 3], action: [5] }, then: { want: 6, mood: 3, nudge: 6 } }],
   [163, T("Wise Keeper", "老练"), T("Earns 20% more experience.", "多得 20% 经验。"), "XP_GAIN", 20],
   // ── Mind ──
-  [211, T("Wide Mind", "宽心"), T("Room for 10 more gates per point.", "每点多 10 个门的空间。"), "GATES", 10],
+  [211, T("Wide Mind", "宽心"), T("Room for 10 more gates in its brain, 3 of them for lessons, per point.", "每点让大脑多 10 个门的空间，其中 3 个给课程。"), "GATES", 10],
   [212, T("Warm Memory", "温暖的记忆"), T("Kinship can grow an hour sooner per point (every 12 hours at first).", "每点让亲密度早 1 小时就能再涨（起初是每 12 小时）。"), "KINSHIP_SOONER", 60],
   [213, T("Eager Student", "好学"), T("2 more experience per point for each lesson taught.", "每教一课，每点多得 2 经验。"), "TEACH_XP", 2],
-  [221, T("Wider Mind", "更宽的心"), T("Room for 10 more gates per point.", "每点再多 10 个门的空间。"), "GATES", 10],
+  [221, T("Wider Mind", "更宽的心"), T("Room for 10 more gates in its brain, 3 of them for lessons, per point.", "每点让大脑再多 10 个门的空间，其中 3 个给课程。"), "GATES", 10],
   [222, T("Attentive", "专心"), T("Earns 3% more experience per point.", "每点多得 3% 经验。"), "XP_GAIN", 3],
   [223, T("Long Memory", "长记性"), T("Kinship fades 10% slower per point.", "每点让亲密度消退慢 10%。"), "KINSHIP_KEEP", 10],
   [231, T("Extra Lesson", "多一课"), T("Holds one more lesson at every stage.", "每个阶段都多装一课。"), "LESSONS", 1],
   [232, T("Brave Heart", "勇敢的心"), T("A rule in its circuit: frightened with you near, it comes to you.", "电路里多一条规则：你在时受了惊吓，它会跑向你。"), "RULE", 1, { label: "skill: brave heart", when: { event: [3], owner: [1] }, then: { want: 6, mood: 1, nudge: 1 } }],
-  [233, T("Big Brain", "大脑袋"), T("Room for 50 more gates.", "多 50 个门的空间。"), "GATES", 50],
-  [241, T("Broad Mind", "开阔"), T("Room for 10 more gates per point.", "每点再多 10 个门的空间。"), "GATES", 10],
+  [233, T("Big Brain", "大脑袋"), T("Room for 50 more gates in its brain, 16 of them for lessons.", "大脑多 50 个门的空间，其中 16 个给课程。"), "GATES", 50],
+  [241, T("Broad Mind", "开阔"), T("Room for 10 more gates in its brain, 3 of them for lessons, per point.", "每点让大脑再多 10 个门的空间，其中 3 个给课程。"), "GATES", 10],
   [242, T("Deep Memory", "深记忆"), T("Its personality grows 10% faster per point.", "每点让性格成长快 10%。"), "TRAIT_GROWTH", 10],
   [243, T("Room to Learn", "学海"), T("Every five points hold one more lesson.", "每 5 点多装一课。"), "LESSON_TENTHS", 2],
-  [251, T("Vast Mind", "浩瀚"), T("Room for 10 more gates per point.", "每点再多 10 个门的空间。"), "GATES", 10],
+  [251, T("Vast Mind", "浩瀚"), T("Room for 10 more gates in its brain, 3 of them for lessons, per point.", "每点让大脑再多 10 个门的空间，其中 3 个给课程。"), "GATES", 10],
   [252, T("Lesson Master", "课业精通"), T("2 more experience per point for each lesson taught.", "每教一课，每点再多得 2 经验。"), "TEACH_XP", 2],
   [253, T("Room to Grow", "成长空间"), T("Every five points hold one more lesson.", "每 5 点再多装一课。"), "LESSON_TENTHS", 2],
   [261, T("Two More Lessons", "再多两课"), T("Holds two more lessons at every stage.", "每个阶段都多装两课。"), "LESSONS", 2],
   [262, T("Thinks Ahead", "有远见"), T("A rule in its circuit: getting hungry with nothing going on, it goes to eat before it starves.", "电路里多一条规则：开始饿又没事做时，饿坏前就去吃。"), "RULE", 1, { label: "skill: thinks ahead", when: { hunger: [2], action: [0] }, then: { want: 1, mood: 1 } }],
-  [263, T("Boundless", "无边"), T("Room for 100 more gates.", "多 100 个门的空间。"), "GATES", 100],
+  [263, T("Boundless", "无边"), T("Room for 100 more gates in its brain, 33 of them for lessons.", "大脑多 100 个门的空间，其中 33 个给课程。"), "GATES", 100],
   // ── Explore ──
   [311, T("Light Feet", "轻脚"), T("Walking to the next room costs 1 less energy per point.", "每点让走到下个房间少花 1 精神。"), "MOVE_ENERGY", 1],
   [312, T("Sharp Eyes", "眼尖"), T("Looking around costs 1 less energy per point.", "每点让四处找找少花 1 精神。"), "FORAGE_ENERGY", 1],
@@ -349,11 +349,17 @@ export const gateBudget = (g: Growth | undefined): number => BASE_GATES + effect
 /**
  * G7: gates a pet's taught lessons may add to its starter circuit, by stage (the PRD's capacity growing with age, M12),
  * widened by every Mind gate skill. The whole circuit still has to fit gateBudget, the on-chain limit; this is the budget
- * a player spends lesson by lesson. A school lesson costs 5 to 14 gates, so a teen's 34 hold three or four and a
+ * a player spends lesson by lesson. A school lesson costs 5 to 14 gates, so a teen's 32 hold three school lessons and rarely a fourth and a
  * fourth often has to be chosen.
  */
-export const TAUGHT_BUDGET: Readonly<Record<"baby" | "child" | "teen" | "adult" | "elder", number>> = { baby: 20, child: 26, teen: 34, adult: 54, elder: 78 };
-export const taughtBudget = (stage: keyof typeof TAUGHT_BUDGET, g: Growth | undefined): number => TAUGHT_BUDGET[stage] + effectOf(g, "GATES");
+export const TAUGHT_BUDGET: Readonly<Record<"baby" | "child" | "teen" | "adult" | "elder", number>> = { baby: 20, child: 26, teen: 32, adult: 48, elder: 66 };
+/**
+ * D3: a gate skill widens the lesson budget by a third of what it adds to the whole brain (Wide Mind's 10 gates a point
+ * are 3 for lessons), so each point is a number a player sees without one point ending the choice, and an elder with
+ * the slot skills and the gate skills on their path still has room to fill its slots with lessons that share logic.
+ */
+export const TAUGHT_SHARE = 3;
+export const taughtBudget = (stage: keyof typeof TAUGHT_BUDGET, g: Growth | undefined): number => TAUGHT_BUDGET[stage] + Math.floor(effectOf(g, "GATES") / TAUGHT_SHARE);
 export const extraLessons = (g: Growth | undefined): number => effectOf(g, "LESSONS") + Math.floor(effectOf(g, "LESSON_TENTHS") / 10);
 /** The most gates any pet can hold with every gate skill taken: the relayer accepts no more than this. */
 export const MAX_GATES_SKILLED =

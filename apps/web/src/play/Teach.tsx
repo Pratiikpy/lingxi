@@ -177,8 +177,8 @@ function CostLine({ pet, rule }: { pet: Pet; rule: Rule }) {
   if (!c) return null;
   return (
     <p className={`cost${c.fits ? "" : " over"}`}>
-      {t("teach.cost", { adds: c.adds, taught: c.taught, max: c.taughtMax })}
-      {c.saved > 0 && <b> {t("teach.saved", { n: c.saved })}</b>}
+      {/* D3: when sharing saves gates, the line gives the lesson alone and what it adds, so its sums add up */}
+      {c.saved > 0 ? t("teach.costShared", { alone: c.alone, adds: c.adds, taught: c.taught, max: c.taughtMax }) : t("teach.cost", { adds: c.adds, taught: c.taught, max: c.taughtMax })}
       {c.taught > c.taughtMax && <> {t("teach.over", { n: c.taught - c.taughtMax, stage: t(`stage.${stage}` as Key) })}</>}
     </p>
   );
