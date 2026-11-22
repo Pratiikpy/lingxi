@@ -25,8 +25,9 @@ import { type Fighter, MAX_HP, MAX_STAMINA, MOVES, type Move, ROUNDS, type Round
 
 export const SPAR_V2 = "LX-SPAR/2";
 export const SPAR_V3 = "LX-SPAR/3";
+export const SPAR_V4 = "LX-SPAR/4";
 /** The version new fights are fought in. */
-export const CURRENT_SPAR: SparVersion = SPAR_V3;
+export const CURRENT_SPAR: SparVersion = SPAR_V4;
 
 /** A fight in the version given: each version replays with its own engine, so past spars verify as they were fought. */
 export function fight(version: SparVersion, a: Fighter, b: Fighter, seed: number, cheer?: (round: number) => [boolean, boolean]): SparResult {
@@ -83,6 +84,8 @@ export interface SparRules {
   skillStaminaShare: number;
   skillGuardShare: number;
   skillDodgeShare: number;
+  /** the share of the snack skills' heal a snack adds (LX-SPAR/2 and /3: all of it) */
+  skillHealShare: number;
 }
 
 /**
@@ -121,6 +124,7 @@ export const V2_RULES: SparRules = {
   skillStaminaShare: 0.5,
   skillGuardShare: 0.25,
   skillDodgeShare: 0.5,
+  skillHealShare: 1,
 };
 
 /**
@@ -169,8 +173,24 @@ function wordOf(r: SparRules, me: Side, them: Side, round: number, cheering: boo
 /** The full cost of a move at a mood. */
 const costAt = (r: SparRules, m: Move, mood: number) => r.moveCost[m] + (r.moveCost[m] > 0 ? r.moodCost[mood]! : 0);
 
+/**
+ * LX-SPAR/4 (row D8). The Spar skills decided fights: a pet with the whole tree that snacks once it is hurt (the coach's
+ * own "eats when very hungry" lesson) beat the same brain unskilled in 86 to 92% of spars, where the plan says skills
+ * tilt and never decide. Half the skills' health and a fifth of their snack heal (their power left as it was: at half, a
+ * rank of Strong Paws gave nothing in a fight): measured over 1,200 fights, the whole tree with either pair of capstones
+ * now wins 77 to 78% for that brain and 67 to 69% for one that snacks only when nearly beaten, and every rank skill at
+ * five points still changes the result. Everything else is LX-SPAR/3's; a
+ * fight without skills is the same fight.
+ */
+export const V4_RULES: SparRules = {
+  ...V3_RULES,
+  version: "LX-SPAR/4",
+  skillHpShare: 0.05,
+  skillHealShare: 0.2,
+};
+
 /** The rules of each version this engine plays (LX-SPAR/1 has its own engine, spar.ts). */
-const RULES_OF: Partial<Record<SparVersion, SparRules>> = { "LX-SPAR/2": V2_RULES, "LX-SPAR/3": V3_RULES };
+const RULES_OF: Partial<Record<SparVersion, SparRules>> = { "LX-SPAR/2": V2_RULES, "LX-SPAR/3": V3_RULES, "LX-SPAR/4": V4_RULES };
 export const rulesOf = (version: SparVersion): SparRules | undefined => RULES_OF[version];
 
 /**
@@ -246,7 +266,7 @@ export function sparWith(r: SparRules, a: Fighter, b: Fighter, seed: number, che
       if (m === "rest") me.stamina = Math.min(me.maxStamina, me.stamina + r.restGain);
       // calm recovers, while it only taps
       else if (moods[i] === 1 && r.moveCost[m] === 0) me.stamina = Math.min(me.maxStamina, me.stamina + r.calmRecover);
-      if (m === "snack") heal[i] += r.snackHeal + power[i] * 2 + (fighters[i]!.mods?.heal ?? 0);
+      if (m === "snack") heal[i] += r.snackHeal + power[i] * 2 + Math.floor((fighters[i]!.mods?.heal ?? 0) * r.skillHealShare);
       if (m === "gift") {
         heal[i] += 6;
         heal[j] += 6;

@@ -19,8 +19,8 @@ export const BALANCE_MEASURED: BalanceMeasured = {
       "status": "met"
     },
     "spar-reading-pays": {
-      "value": "reader 85%; best other partner:pip 87%",
-      "status": "open"
+      "value": "reader 89%; best other partner:pip 87%",
+      "status": "met"
     },
     "spar-guard-answers": {
       "value": "guard-only 55% against pounce-only, 10% against the field",
@@ -31,7 +31,7 @@ export const BALANCE_MEASURED: BalanceMeasured = {
       "status": "met"
     },
     "level-not-by-tapping": {
-      "value": "petTalk: level 99 never, day 30 level 35; play3: level 99 never, day 30 level 37; clean: level 99 never, day 30 level 34; feed: level 99 never, day 30 level 40; three visits day 30 level 45",
+      "value": "petTalk: level 99 never, day 30 level 35; play3: level 99 never, day 30 level 38; clean: level 99 never, day 30 level 33; feed: level 99 never, day 30 level 39; three visits day 30 level 45",
       "status": "met"
     },
     "trees-by-90": {

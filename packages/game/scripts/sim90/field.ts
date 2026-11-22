@@ -30,8 +30,10 @@ export const READER: Program = validateProgram({
   memory: [],
   rules: [
     { label: "spent: rest", when: { energy: [0] }, then: { want: 3, mood: 1 } },
+    // D8: it reads its own wounds as well as the foe's moves: a snack once it is hurt (hunger 2, not only 3), before
+    // chasing an opening; waiting until it was nearly beaten lost it fights a plain pouncer with Pip's pacing won
+    { label: "hurt: snack", when: { hunger: [2, 3] }, then: { want: 1, mood: 1 } },
     { label: "an opening: pounce", when: { event: [2] }, then: { want: 2, mood: 2 } },
-    { label: "hurt: snack", when: { hunger: [3] }, then: { want: 1, mood: 1 } },
     { label: "it pounced: guard", when: { action: [2] }, then: { want: 5, mood: 1 } },
     { label: "it guarded: charm", when: { action: [3] }, then: { want: 6, mood: 1 } },
     { label: "it dodged: tap", when: { action: [6] }, then: { want: 0, mood: 1 } },
@@ -39,6 +41,12 @@ export const READER: Program = validateProgram({
     { label: "charmed: pounce", when: { action: [5] }, then: { want: 2, mood: 1 } },
   ],
   otherwise: { want: 2, mood: 1 },
+} as unknown);
+
+/** The reader as it was written before row D8 (a snack only when nearly beaten), kept for the fights recorded with it. */
+export const READER_BEFORE_D8: Program = validateProgram({
+  ...READER,
+  rules: [READER.rules[0]!, READER.rules[2]!, { ...READER.rules[1]!, when: { hunger: [3] } }, ...READER.rules.slice(3)],
 } as unknown);
 
 interface Entry {

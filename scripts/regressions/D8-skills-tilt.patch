@@ -1,0 +1,13 @@
+--- a/packages/game/src/spar2.ts
++++ b/packages/game/src/spar2.ts
+@@ -185,8 +185,8 @@ const costAt = (r: SparRules, m: Move, mood: number) => r.moveCost[m] + (r.moveC
+ export const V4_RULES: SparRules = {
+   ...V3_RULES,
+   version: "LX-SPAR/4",
+-  skillHpShare: 0.05,
+-  skillHealShare: 0.2,
++  skillHpShare: 0.1,
++  skillHealShare: 1,
+ };
+ 
+ /** The rules of each version this engine plays (LX-SPAR/1 has its own engine, spar.ts). */

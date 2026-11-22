@@ -1,0 +1,11 @@
+--- a/packages/game/scripts/sim90/field.ts
++++ b/packages/game/scripts/sim90/field.ts
+@@ -32,7 +32,7 @@ export const READER: Program = validateProgram({
+     { label: "spent: rest", when: { energy: [0] }, then: { want: 3, mood: 1 } },
+     // D8: it reads its own wounds as well as the foe's moves: a snack once it is hurt (hunger 2, not only 3), before
+     // chasing an opening; waiting until it was nearly beaten lost it fights a plain pouncer with Pip's pacing won
+-    { label: "hurt: snack", when: { hunger: [2, 3] }, then: { want: 1, mood: 1 } },
++    { label: "hurt: snack", when: { hunger: [3] }, then: { want: 1, mood: 1 } },
+     { label: "an opening: pounce", when: { event: [2] }, then: { want: 2, mood: 2 } },
+     { label: "it pounced: guard", when: { action: [2] }, then: { want: 5, mood: 1 } },
+     { label: "it guarded: charm", when: { action: [3] }, then: { want: 6, mood: 1 } },
