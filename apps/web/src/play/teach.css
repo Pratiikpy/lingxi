@@ -614,3 +614,20 @@
   outline: 3px solid var(--sky);
   outline-offset: 2px;
 }
+/* G7: the taught budget, the whole circuit beside it, and the lessons that make room */
+.gates small {
+  font-weight: 600;
+  opacity: 0.8;
+}
+.gates.full > i > i {
+  background: #f2a65a;
+}
+.swap-row.no-room {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.swap-row .makes-room {
+  margin-left: auto;
+  font-weight: 800;
+  color: #2f8a4c;
+}

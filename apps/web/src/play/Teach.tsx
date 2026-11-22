@@ -8,7 +8,7 @@ import { CuteState } from "./CuteState";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { INPUT_FIELDS, type Rule } from "@lingxi/brain";
-import { type Frame, PET_SCHOOL, type Pet, lessonCapacity, lessonTrigger, type Trap, brainSize, checkLesson, lessonCost, levelOpen, schoolReport, stageOf, trapsAfter } from "@lingxi/game";
+import { type Frame, PET_SCHOOL, type Pet, lessonCapacity, lessonTrigger, type Trap, brainSize, checkLesson, lessonCost, levelOpen, roomMakers, schoolReport, stageOf, trapsAfter } from "@lingxi/game";
 import { useLang, useT, type Key } from "../i18n";
 import { type TeachingState, teachInWords, teachingState } from "../game/api";
 import { teachBody } from "../game/requests";
@@ -61,15 +61,28 @@ function RulePreview({ pet, rule }: { pet: Pet; rule: Rule }) {
 /** Where a proposed lesson came from: Pet School, the library (by key), or the owner's own words or blocks. */
 type Source = { kind: "school" } | { kind: "library"; key: string } | { kind: "own" };
 
-function Proposal({ pet, rule, reply, source, swap, onDone, onLearned }: { pet: Pet; rule: Rule; reply?: string; source: Source; swap: boolean; onDone: () => void; onLearned: (rule: Rule) => void }) {
+function Proposal({ pet, rule, reply, source, swap: full, onDone, onLearned }: { pet: Pet; rule: Rule; reply?: string; source: Source; swap: boolean; onDone: () => void; onLearned: (rule: Rule) => void }) {
   const t = useT();
   const { lang } = useLang();
   const learn = useGame((s) => s.learn);
   const swapLesson = useGame((s) => s.swapLesson);
   const [err, setErr] = useState<string | null>(null);
   const [share, setShare] = useState(false);
-  // a full pet forgets the lesson the player picks, the newest unless they choose another (B2)
-  const [drop, setDrop] = useState(0);
+  // G7: a lesson too big for the taught budget is taught as a swap too, forgetting one that makes room
+  const stage = stageOf(pet, now());
+  const fitCheck = useMemo(() => {
+    try {
+      const spec = specOf(pet);
+      return { fits: lessonCost(spec, rule, stage).fits, makers: roomMakers(spec, rule, stage) };
+    } catch {
+      return { fits: true, makers: [] as number[] };
+    }
+  }, [pet, rule, stage]);
+  const tooBig = !fitCheck.fits;
+  const swap = full || tooBig;
+  // a full pet forgets the lesson the player picks, the newest unless they choose another (B2); when the lesson is too
+  // big, the first one whose place makes room
+  const [drop, setDrop] = useState(() => (tooBig ? (fitCheck.makers[0] ?? 0) : 0));
   const onTopTraps = trapsAfter(specOf(pet), [rule, ...pet.lessons]);
   const belowIsClean = onTopTraps.length > 0 && pet.lessons.length > 0 && trapsAfter(specOf(pet), [...pet.lessons, rule]).length === 0;
   const confirm = (at: "top" | "bottom" = "top") => {
@@ -98,13 +111,15 @@ function Proposal({ pet, rule, reply, source, swap, onDone, onLearned }: { pet: 
       <TrapNote pet={pet} traps={onTopTraps} />
       {swap && (
         <fieldset className="swap-pick">
-          <legend className="small sp-warn">{t("teach.swapNote", { name: pet.name })}</legend>
+          <legend className="small sp-warn">{t(tooBig ? (fitCheck.makers.length ? "teach.swapRoom" : "teach.noRoom") : "teach.swapNote", { name: pet.name })}</legend>
           {pet.lessons.map((l, i) => {
             const c = chipsFor(programFor(pet.line, pet.lessons, pet.instincts ?? 0, pet.growth), l, lang);
+            const makes = !tooBig || fitCheck.makers.includes(i);
             return (
-              <label key={i} className={`swap-row${drop === i ? " on" : ""}`}>
-                <input type="radio" name="swap-drop" checked={drop === i} onChange={() => setDrop(i)} />
+              <label key={i} className={`swap-row${drop === i ? " on" : ""}${makes ? "" : " no-room"}`}>
+                <input type="radio" name="swap-drop" checked={drop === i} disabled={!makes} onChange={() => setDrop(i)} />
                 <Chips when={c.when} then={c.then} want={c.want} />
+                {tooBig && makes && <small className="makes-room">{t("teach.makesRoom")}</small>}
               </label>
             );
           })}
@@ -123,7 +138,7 @@ function Proposal({ pet, rule, reply, source, swap, onDone, onLearned }: { pet: 
             {t("teach.confirmBelow")}
           </button>
         )}
-        <button type="button" className={`btn${belowIsClean && !swap ? "" : " primary"}`} onClick={() => confirm()} data-hint="teach">
+        <button type="button" className={`btn${belowIsClean && !swap ? "" : " primary"}`} onClick={() => confirm()} disabled={tooBig && !fitCheck.makers.length} data-hint="teach">
           {t(swap ? "teach.confirmSwap" : "teach.confirm")}
         </button>
         <button type="button" className="btn" onClick={onDone}>
@@ -135,47 +150,54 @@ function Proposal({ pet, rule, reply, source, swap, onDone, onLearned }: { pet: 
 }
 
 /** The parts of a pet its brain is built from. */
-const specOf = (pet: Pet) => ({ line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts, outside: pet.outside });
+const specOf = (pet: Pet) => ({ line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts, outside: pet.outside, growth: pet.growth });
 
 /**
  * The same parts as one object that stays the same while they do: a pet changes every beat, its brain only when one
  * of these does, so what is worked out from the brain is worked out again only then.
  */
 function useSpec(pet: Pet) {
-  const { line, lessons, family, instincts, outside } = pet;
-  return useMemo(() => ({ line, lessons, family, instincts, outside }), [line, lessons, family, instincts, outside]);
+  const { line, lessons, family, instincts, outside, growth } = pet;
+  // the pet's skills too: its Mind skills widen the budget it is measured against (G7)
+  return useMemo(() => ({ line, lessons, family, instincts, outside, growth }), [line, lessons, family, instincts, outside, growth]);
 }
 
-/** What a lesson costs in gates, and what sharing logic saves (PRD F6). */
+/** What a lesson costs in gates against the stage's taught budget, and what sharing logic saves (PRD F6, G7). */
 function CostLine({ pet, rule }: { pet: Pet; rule: Rule }) {
   const t = useT();
   const spec = useSpec(pet);
+  const stage = stageOf(pet, now());
   const c = useMemo(() => {
     try {
-      return lessonCost(spec, rule);
+      return lessonCost(spec, rule, stage);
     } catch {
       return null;
     }
-  }, [spec, rule]);
+  }, [spec, rule, stage]);
   if (!c) return null;
   return (
     <p className={`cost${c.fits ? "" : " over"}`}>
-      {t("teach.cost", { adds: c.adds, total: c.total })}
+      {t("teach.cost", { adds: c.adds, taught: c.taught, max: c.taughtMax })}
       {c.saved > 0 && <b> {t("teach.saved", { n: c.saved })}</b>}
+      {c.taught > c.taughtMax && <> {t("teach.over", { n: c.taught - c.taughtMax, stage: t(`stage.${stage}` as Key) })}</>}
     </p>
   );
 }
 
-/** The brain's size against its budget. */
-function GateMeter({ pet }: { pet: Pet }) {
+/** The gates its lessons use against what its stage and Mind skills allow (G7), and the whole circuit beside it. */
+export function GateMeter({ pet }: { pet: Pet }) {
   const t = useT();
   const spec = useSpec(pet);
-  const size = useMemo(() => brainSize(spec), [spec]);
+  const stage = stageOf(pet, now());
+  const size = useMemo(() => brainSize(spec, stage), [spec, stage]);
+  const label = t("teach.gates", { n: size.taught, max: size.taughtMax });
   return (
-    <div className="gates" title={t("teach.gatesWhy")}>
-      <span>{t("teach.gates", { n: size.gates, max: size.max })}</span>
-      <i role="meter" aria-valuemin={0} aria-valuemax={size.max} aria-valuenow={size.gates} aria-label={t("teach.gates", { n: size.gates, max: size.max })}>
-        <i style={{ transform: `scaleX(${Math.min(1, size.gates / size.max)})` }} />
+    <div className={`gates${size.taught >= size.taughtMax ? " full" : ""}`} title={t("teach.gatesWhy")}>
+      <span>
+        {label} <small>{t("teach.wholeBrain", { n: size.gates, max: size.max })}</small>
+      </span>
+      <i role="meter" aria-valuemin={0} aria-valuemax={size.taughtMax} aria-valuenow={size.taught} aria-label={label}>
+        <i style={{ transform: `scaleX(${Math.min(1, size.taught / Math.max(1, size.taughtMax))})` }} />
       </i>
     </div>
   );

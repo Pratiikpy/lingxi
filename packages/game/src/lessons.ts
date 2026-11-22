@@ -9,7 +9,7 @@
  * size budget. Nothing reaches the pet until it passes.
  */
 
-import { effectOf, ruleSkillIds } from "./skills";
+import { TAUGHT_BUDGET, effectOf, ruleSkillIds } from "./skills";
 import type { OutsideInstinct } from "./pet";
 import {
   type Program,
@@ -81,6 +81,9 @@ export function checkLesson(line: StarterLine, stage: Exclude<Stage, "egg">, les
   }
   const gates = gateCount(compileProgram(program));
   if (gates > MAX_GATES) return { ok: false, reason: "tooBig", detail: `${gates} gates; the limit is ${MAX_GATES}` };
+  // G7: what the lessons add to the starter circuit, against the stage's taught budget (no skills here)
+  const taught = gates - gateCount(compileProgram(composeProgram(line, [], instincts)));
+  if (taught > TAUGHT_BUDGET[stage]) return { ok: false, reason: "tooBig", detail: `${taught} taught gates; a ${stage} holds ${TAUGHT_BUDGET[stage]}` };
   return { ok: true, program, gates };
 }
 

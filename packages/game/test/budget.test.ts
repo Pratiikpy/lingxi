@@ -2,11 +2,15 @@ import { describe, expect, it } from "vitest";
 import { compileProgram, gateCount } from "@lingxi/brain";
 import { MAX_GATES, PET_SCHOOL, composeProgram } from "../src/lessons";
 import { brainSize, lessonCost } from "../src/budget";
+import { TAUGHT_BUDGET } from "../src/skills";
 
 describe("gate budget", () => {
   it("measures the brain the pet really has", () => {
     const spec = { line: "gentle" as const, lessons: [PET_SCHOOL[0]!.rule], instincts: 1 };
-    expect(brainSize(spec)).toEqual({ gates: gateCount(compileProgram(composeProgram("gentle", spec.lessons, 1))), max: MAX_GATES });
+    const gates = gateCount(compileProgram(composeProgram("gentle", spec.lessons, 1)));
+    // G7: and what its lessons add, against its stage's taught budget (an elder's when no stage is given)
+    const taught = gates - gateCount(compileProgram(composeProgram("gentle", [], 1)));
+    expect(brainSize(spec)).toEqual({ gates, max: MAX_GATES, taught, taughtMax: TAUGHT_BUDGET.elder });
   });
 
   it("a lesson's cost is the real growth, and sharing logic shows as gates saved", () => {

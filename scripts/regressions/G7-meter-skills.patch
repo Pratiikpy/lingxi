@@ -1,0 +1,11 @@
+--- a/apps/web/src/play/Teach.tsx
++++ b/apps/web/src/play/Teach.tsx
+@@ -159,7 +159,7 @@ const specOf = (pet: Pet) => ({ line: pet.line, lessons: pet.lessons, family: pe
+ function useSpec(pet: Pet) {
+   const { line, lessons, family, instincts, outside, growth } = pet;
+   // the pet's skills too: its Mind skills widen the budget it is measured against (G7)
+-  return useMemo(() => ({ line, lessons, family, instincts, outside, growth }), [line, lessons, family, instincts, outside, growth]);
++  return useMemo(() => ({ line, lessons, family, instincts, outside }), [line, lessons, family, instincts, outside, growth]);
+ }
+ 
+ /** What a lesson costs in gates against the stage's taught budget, and what sharing logic saves (PRD F6, G7). */

@@ -1,0 +1,11 @@
+--- a/packages/game/src/skills.ts
++++ b/packages/game/src/skills.ts
+@@ -353,7 +353,7 @@ export const gateBudget = (g: Growth | undefined): number => BASE_GATES + effect
+  * fourth often has to be chosen.
+  */
+ export const TAUGHT_BUDGET: Readonly<Record<"baby" | "child" | "teen" | "adult" | "elder", number>> = { baby: 20, child: 26, teen: 34, adult: 54, elder: 78 };
+-export const taughtBudget = (stage: keyof typeof TAUGHT_BUDGET, g: Growth | undefined): number => TAUGHT_BUDGET[stage] + effectOf(g, "GATES");
++export const taughtBudget = (stage: keyof typeof TAUGHT_BUDGET, g: Growth | undefined): number => TAUGHT_BUDGET[stage];
+ export const extraLessons = (g: Growth | undefined): number => effectOf(g, "LESSONS") + Math.floor(effectOf(g, "LESSON_TENTHS") / 10);
+ /** The most gates any pet can hold with every gate skill taken: the relayer accepts no more than this. */
+ export const MAX_GATES_SKILLED =

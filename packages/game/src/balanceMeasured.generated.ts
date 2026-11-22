@@ -31,15 +31,15 @@ export const BALANCE_MEASURED: BalanceMeasured = {
       "status": "met"
     },
     "level-not-by-tapping": {
-      "value": "petTalk: level 99 never, day 30 level 35; play3: level 99 never, day 30 level 37; clean: level 99 never, day 30 level 35; feed: level 99 never, day 30 level 40; three visits day 30 level 47",
+      "value": "petTalk: level 99 never, day 30 level 35; play3: level 99 never, day 30 level 33; clean: level 99 never, day 30 level 34; feed: level 99 never, day 30 level 40; three visits day 30 level 44",
       "status": "met"
     },
     "trees-by-90": {
-      "value": "three visits: level 83 on day 90, level 64 on day 53",
+      "value": "three visits: level 84 on day 90, level 64 on day 52",
       "status": "met"
     },
     "coins-bounded": {
-      "value": "once 92 (day 7), three 97 (day 28), weekend 87 (day 72), tapper 97 (day 8), grinder 127 (day 1)",
+      "value": "once 92 (day 7), three 92 (day 7), weekend 92 (day 47), tapper 97 (day 8), grinder 127 (day 1)",
       "status": "met"
     },
     "coins-worth-saving": {
@@ -67,12 +67,12 @@ export const BALANCE_MEASURED: BalanceMeasured = {
       "status": "met"
     },
     "new-every-day": {
-      "value": "once 65 empty days, three 68 empty days, weekend 66 empty days, tapper 68 empty days, grinder 70 empty days",
+      "value": "once 63 empty days, three 69 empty days, weekend 68 empty days, tapper 68 empty days, grinder 68 empty days",
       "status": "open"
     },
     "gate-budget-binds": {
-      "value": "first refusal never; at most 67% of the budget used by day 7",
-      "status": "open"
+      "value": "first refusal day 4; at most 66% of the budget used by day 7",
+      "status": "met"
     }
   }
 };

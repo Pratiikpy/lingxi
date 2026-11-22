@@ -47,6 +47,8 @@ import {
   withGrowth,
   visibleMeters,
   type Pet,
+  taughtBudget,
+  taughtGates,
 } from "../src";
 import { gainXp, work } from "../src/sim";
 import { BEAT_MS, DAY_MS, HIBERNATE_AFTER, SICK_AFTER } from "../src/pet";
@@ -296,21 +298,20 @@ describe("Mind skills widen the budget the circuit lives in", () => {
     expect(MAX_GATES_SKILLED).toBe(BASE_GATES + 200 + 50 + 100);
   });
 
-  it("Room to Learn and Room to Grow hold more lessons; then Wide Mind's gates are what let a full brain take one more", () => {
+  it("Room to Learn and Room to Grow hold more lessons; then Wide Mind's gates are what let a brain at its taught budget take one more", () => {
     // the effect, not the road to it: two growths that differ only in their gate skills
     const roomy = holding({ 231: 1, 261: 1, 243: 5, 253: 5 });
     const gated = holding({ 231: 1, 261: 1, 243: 5, 253: 5, 211: 5, 221: 5 });
     expect(extraLessons(roomy)).toBe(5);
     expect(gateBudget(gated) - gateBudget(roomy)).toBe(100);
-    // grow a brain with distinct, many-condition lessons until the next would pass 500 gates
+    // G7: grow a brain with distinct, many-condition lessons until the next would pass an elder's taught budget
     const lessonAt = (i: number) => ({ when: { hunger: [i % 4, (i + 1) % 4], joy: [(i >> 2) % 4], energy: [(i >> 4) % 4, (i + 3) % 4], clean: [(i + 1) % 4], time: [(i + 2) % 4], action: [i % 8], event: [(i >> 1) % 4] }, then: { want: (i % 7) + 1, mood: i % 4 } });
     const lessons: ReturnType<typeof lessonAt>[] = [];
     let i = 0;
-    while (gateCount(compileProgram(composeProgram("gentle", [lessonAt(i), ...lessons]))) <= BASE_GATES) lessons.unshift(lessonAt(i++));
+    while (taughtGates({ line: "gentle", lessons: [lessonAt(i), ...lessons] }) <= taughtBudget("elder", roomy)) lessons.unshift(lessonAt(i++));
     const next = lessonAt(i);
-    expect(lessons.length + 1).toBeLessThanOrEqual(LESSON_CAPACITY.elder + 5);
-    expect(lessons.length + 1).toBeGreaterThan(LESSON_CAPACITY.elder);
-    expect(checkMindLesson({ line: "gentle", lessons }, "elder", next)).toMatchObject({ ok: false, reason: "full" });
+    expect(lessons.length + 1).toBeLessThanOrEqual(LESSON_CAPACITY.elder + extraLessons(roomy));
+    expect(gateCount(compileProgram(composeProgram("gentle", [next, ...lessons])))).toBeLessThanOrEqual(BASE_GATES);
     expect(checkMindLesson({ line: "gentle", lessons, growth: roomy }, "elder", next)).toMatchObject({ ok: false, reason: "tooBig" });
     expect(checkMindLesson({ line: "gentle", lessons, growth: gated }, "elder", next).ok).toBe(true);
   });

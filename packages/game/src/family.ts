@@ -14,7 +14,7 @@
 
 import { type FastBrain, type Program, type Rule, type StarterLine, REF, circuitBrain, circuitFromParts, compileProgram, composeChild, composeInstinct, fastBrain, gateCount, inputField, stateBits } from "@lingxi/brain";
 import { LESSON_CAPACITY, type MindExtra, cleanInstincts, composeProgram } from "./lessons";
-import { type Growth, MAX_GATES_SKILLED, extraLessons, gateBudget, legalGrowth, ruleGrowth, ruleSkillIds, skillRules } from "./skills";
+import { type Growth, MAX_GATES_SKILLED, extraLessons, gateBudget, legalGrowth, ruleGrowth, ruleSkillIds, skillRules, taughtBudget } from "./skills";
 import { shownName } from "./names";
 import type { Family, OutsideInstinct, ParentInfo, Stage } from "./pet";
 import type { Brain } from "./sim";
@@ -168,6 +168,16 @@ export function lessonCapacity(stage: Exclude<Stage, "egg">, growth?: Growth, sl
   return LESSON_CAPACITY[stage] + extraLessons(growth) + Math.min(QUEST_SLOTS_MAX, Math.max(0, Math.floor(slots) || 0));
 }
 
+/**
+ * G7: gates these lessons add to the pet's circuit (its starter, instincts and skill rules with no lesson taught); for a
+ * child, the larger of its two halves' additions.
+ */
+export function taughtGates(spec: MindSpec, lessons: readonly Rule[] = spec.lessons): number {
+  const programsFor = (ls: readonly Rule[]): Program[] => (spec.family ? halvesOf(spec.family, ls, skillRules(spec.growth)) : [composeProgram(spec.line, ls, spec.instincts, mindExtra(spec.growth))]);
+  const bare = programsFor([]).map((p) => gateCount(compileProgram(p)));
+  return Math.max(0, ...programsFor(lessons).map((p, i) => gateCount(compileProgram(p)) - bare[i]!));
+}
+
 /** Whether a lesson fits this pet's mind; for a child, both halves must fit. */
 export function checkMindLesson(spec: MindSpec, stage: Exclude<Stage, "egg">, candidate: Rule): MindCheck {
   const capacity = lessonCapacity(stage, spec.growth, spec.slots);
@@ -185,6 +195,10 @@ export function checkMindLesson(spec: MindSpec, stage: Exclude<Stage, "egg">, ca
   const over = sizes.findIndex((g, i) => g > budgets[i]!);
   const gates = Math.max(...sizes);
   if (over >= 0) return { ok: false, reason: "tooBig", detail: `${sizes[over]} gates; the limit is ${budgets[over]}` };
+  // G7: what the taught lessons add, against the stage's taught budget
+  const taught = taughtGates(spec, lessons);
+  const allowed = taughtBudget(stage, spec.growth);
+  if (taught > allowed) return { ok: false, reason: "tooBig", detail: `${taught} taught gates; a ${stage} holds ${allowed}` };
   // an owned instinct keeps its own memory beside the pet's; together they must fit the registry's 64 bits
   if (spec.outside) {
     const memory = programs.reduce((t, p) => t + stateBits(p), 0) + (instinctBrain(spec.outside)?.nState ?? 0);

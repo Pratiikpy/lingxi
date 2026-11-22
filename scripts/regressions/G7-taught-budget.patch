@@ -1,0 +1,10 @@
+--- a/packages/game/src/family.ts
++++ b/packages/game/src/family.ts
+@@ -198,7 +198,6 @@ export function checkMindLesson(spec: MindSpec, stage: Exclude<Stage, "egg">, ca
+   // G7: what the taught lessons add, against the stage's taught budget
+   const taught = taughtGates(spec, lessons);
+   const allowed = taughtBudget(stage, spec.growth);
+-  if (taught > allowed) return { ok: false, reason: "tooBig", detail: `${taught} taught gates; a ${stage} holds ${allowed}` };
+   // an owned instinct keeps its own memory beside the pet's; together they must fit the registry's 64 bits
+   if (spec.outside) {
+     const memory = programs.reduce((t, p) => t + stateBits(p), 0) + (instinctBrain(spec.outside)?.nState ?? 0);

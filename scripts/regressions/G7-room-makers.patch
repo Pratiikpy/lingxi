@@ -1,0 +1,11 @@
+--- a/packages/game/src/budget.ts
++++ b/packages/game/src/budget.ts
+@@ -65,7 +65,7 @@ export function roomMakers(spec: MindSpec, candidate: Rule, stage: Exclude<Stage
+   const out: number[] = [];
+   spec.lessons.forEach((_, i) => {
+     const rest = { ...spec, lessons: spec.lessons.filter((__, k) => k !== i) };
+-    if (lessonCost(rest, candidate, stage).fits) out.push(i);
++    if (lessonCost(rest, candidate, stage).fits && i < 0) out.push(i);
+   });
+   return out;
+ }

@@ -346,6 +346,14 @@ export const boosted = (value: number, pct: number): number => Math.floor((value
 /** Mind: the budget the circuit lives in, from the pet's stage capacity and its skills. */
 export const BASE_GATES = 500;
 export const gateBudget = (g: Growth | undefined): number => BASE_GATES + effectOf(g, "GATES");
+/**
+ * G7: gates a pet's taught lessons may add to its starter circuit, by stage (the PRD's capacity growing with age, M12),
+ * widened by every Mind gate skill. The whole circuit still has to fit gateBudget, the on-chain limit; this is the budget
+ * a player spends lesson by lesson. A school lesson costs 5 to 14 gates, so a teen's 34 hold three or four and a
+ * fourth often has to be chosen.
+ */
+export const TAUGHT_BUDGET: Readonly<Record<"baby" | "child" | "teen" | "adult" | "elder", number>> = { baby: 20, child: 26, teen: 34, adult: 54, elder: 78 };
+export const taughtBudget = (stage: keyof typeof TAUGHT_BUDGET, g: Growth | undefined): number => TAUGHT_BUDGET[stage] + effectOf(g, "GATES");
 export const extraLessons = (g: Growth | undefined): number => effectOf(g, "LESSONS") + Math.floor(effectOf(g, "LESSON_TENTHS") / 10);
 /** The most gates any pet can hold with every gate skill taken: the relayer accepts no more than this. */
 export const MAX_GATES_SKILLED =
