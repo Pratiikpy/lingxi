@@ -112,7 +112,7 @@ test("the numbers page counts the week, tells a free keep from an own-wallet kee
     writeFileSync(file, JSON.stringify({ ...d, rpc: run.fork.rpc, outfitMarketBlock: run.fork.block, outfitMarketV2Block: run.fork.block }));
     const r = spawnSync(process.execPath, [join(ROOT, "node_modules/tsx/dist/cli.mjs"), "scripts/recount-numbers.ts", "--deployment", file, "--api", run.api, "--rpc", run.fork.rpc, "--registry-from", String(run.fork.block)], { cwd: join(ROOT, "packages/chain"), encoding: "utf8", timeout: 1_500_000 });
     const out = `${r.stdout}\n${r.stderr}`;
-    for (const line of [/same {2}pets kept by their owner's own wallet/, /same {2}pets kept by Lingxi's relayer/, /same {2}pets hatched in the last 7 days/, /same {2}circuits minted on the processor/, /same {2}circuits taped out in the last 7 days/, /same {2}circuits taped out \(the processor's nextId less one\)/, /same {2}every circuit minted since block/])
+    for (const line of [/same {2}pets kept by their owner's own wallet/, /same {2}pets kept by Lingxi's relayer/, /same {2}pets hatched in the last 7 days/, /same {2}circuits minted on the processor/, /same {2}circuits taped out in the last 7 days/, /same {2}circuits taped out \(the processor's nextId, its latest circuit id\)/, /same {2}every circuit minted since block/])
       expect(out, `the recount checks: ${line.source}`).toMatch(line);
     expect(out.split("\n").filter((l) => l.startsWith("DIFFERENT")), out.slice(-3000)).toEqual([]);
     expect(r.status, out.slice(-2000)).toBe(0);

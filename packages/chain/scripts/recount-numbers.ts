@@ -183,10 +183,11 @@ async function main() {
     else console.log("not yet  circuits in the last 7 days: the server's walk has not reached the head");
     if (live.week && live.week.circuits !== null) check("circuits in the week's activity", recent, live.week.circuits);
     const next = Number(await pub.readContract({ address: d.processor, abi: views, functionName: "nextId" }));
-    check("circuits taped out (the processor's nextId less one)", next - 1, live.circuits.total);
-    // every mint in the walked span was found: nextId at its end less nextId just before its start (1 before deployment)
+    // nextId is the id of the processor's latest circuit (ids start at 1), so it is the count itself
+    check("circuits taped out (the processor's nextId, its latest circuit id)", next, live.circuits.total);
+    // every mint in the walked span was found: nextId at its end less nextId just before its start (none before deployment)
     const atEnd = Number(await pub.readContract({ address: d.processor, abi: views, functionName: "nextId", blockNumber: BigInt(live.circuits.indexedTo) }));
-    const before = await pub.readContract({ address: d.processor, abi: views, functionName: "nextId", blockNumber: BigInt(from - 1) }).then(Number, () => 1);
+    const before = await pub.readContract({ address: d.processor, abi: views, functionName: "nextId", blockNumber: BigInt(from - 1) }).then(Number, () => 0);
     check(`every circuit minted since block ${from} was walked (mints = nextId then - nextId before)`, minted, atEnd - before);
   }
 

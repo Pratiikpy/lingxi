@@ -245,8 +245,9 @@ export async function readNumbers(d: NumbersDeps, nowMs = Date.now()): Promise<N
     },
     week: d.activity ? { since, ...d.activity(since), circuits: walked && Number(head) - walked.indexedTo <= CAUGHT_UP_BLOCKS ? walked.since : null } : null,
     kept: d.keepers ? { ...d.keepers(), sponsors: d.sponsors ?? [] } : null,
-    // circuit ids start at 1, so the processor has taped nextId - 1 of them
-    circuits: d.circuits && walked ? { total: nextId - 1, minted: walked.minted, last7d: Number(head) - walked.indexedTo <= CAUGHT_UP_BLOCKS ? walked.since : null, indexedTo: walked.indexedTo, fromBlock: d.circuits.fromBlock ?? null, processor: d.circuits.processor } : null,
+    // the processor's nextId is the id of its latest circuit (ids start at 1: 23 means circuits 1 to 23, read back
+    // with ownerOf on mainnet), so it is the count itself
+    circuits: d.circuits && walked ? { total: nextId, minted: walked.minted, last7d: Number(head) - walked.indexedTo <= CAUGHT_UP_BLOCKS ? walked.since : null, indexedTo: walked.indexedTo, fromBlock: d.circuits.fromBlock ?? null, processor: d.circuits.processor } : null,
     earned: ((e) => (e && d.contracts.marketOkb ? { ...e, indexedTo: d.sales.head(d.contracts.marketOkb) } : null))(d.contracts.marketOkb ? d.sales.earned(d.contracts.marketOkb) : null),
     extras: extrasSold ? { room: Number(extrasSold[0]), looks: Number(extrasSold[1]), colours: Number(extrasSold[2]) } : null,
     pins: pins === null ? null : Number(pins),

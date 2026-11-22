@@ -160,7 +160,8 @@ describe("live numbers", () => {
     );
     expect(n.week).toEqual({ since: 1_800_000_000 - 7 * 86_400, hatched: 2, children: 1, saves: 5, petsSaved: 3, hatchers: 2, circuits: 7 });
     expect(n.kept).toEqual({ own: 4, sponsored: 6, other: 0, sponsors: ["0x00000000000000000000000000000000000000ee"] });
-    expect(n.circuits).toEqual({ total: 22, minted: 22, last7d: 7, indexedTo: 2_100, fromBlock: null, processor: PROC });
+    // nextId is the processor's latest circuit id (ids start at 1), so 23 means 23 circuits
+    expect(n.circuits).toEqual({ total: 23, minted: 22, last7d: 7, indexedTo: 2_100, fromBlock: null, processor: PROC });
     expect(n.contracts.processor).toEqual({ address: PROC, url: `https://x/address/${PROC}` });
 
     // while the walk of mints is still far behind the head, the newest mints are unread: no 7-day count is given
@@ -170,7 +171,7 @@ describe("live numbers", () => {
     );
     expect(behind.circuits?.last7d).toBeNull();
     expect(behind.week?.circuits).toBeNull();
-    expect(behind.circuits?.total).toBe(22);
+    expect(behind.circuits?.total).toBe(23);
   });
 
   it("before the BEM contracts exist, their numbers are absent rather than invented", async () => {

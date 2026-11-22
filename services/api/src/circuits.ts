@@ -2,7 +2,8 @@
  * Circuits Lingxi has taped out (H10): every circuit on Lingxi's processor is an ERC-721 token minted when it is taped
  * out, so its mint (a Transfer from the zero address) dates it. The counter walks the processor's mints from its deploy
  * block in the same 100-block windows as the other walkers, keeps its place in a file, and says how many were minted
- * in all and since a time. The page's total is the processor's own `nextId - 1`; this count must equal it.
+ * in all and since a time. The page's total is the processor's own `nextId` (the id of its latest circuit, ids starting
+ * at 1); walked from the deploy block, this count must equal it.
  */
 
 import { type Address, type PublicClient, createPublicClient, http, parseAbiItem } from "viem";
