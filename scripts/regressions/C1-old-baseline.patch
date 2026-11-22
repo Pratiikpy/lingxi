@@ -1,0 +1,10 @@
+--- a/services/api/src/lane.ts
++++ b/services/api/src/lane.ts
+@@ -37,7 +37,6 @@ export function createTapeoutCounter(read: TapeoutReader, file?: string, now: ()
+     try {
+       saved = readStore(file) as Saved;
+       // a baseline counted the old way is 325 short of today's way: subtracting it would invent circuits (C1)
+-      if (saved.v !== COUNTED) saved = null;
+     } catch {
+       saved = null;
+     }

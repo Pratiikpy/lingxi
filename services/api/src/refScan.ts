@@ -79,34 +79,41 @@ export function createRefScanner(o: { rpc?: string; client?: PublicClient; facto
         cpus.push(...got.map((a) => String(a).toLowerCase()));
       }
       data.cpus = cpus;
-      // every other processor's next id, in batches: which ones have circuits not yet read
+      // every other processor's latest circuit id, in batches: `nextId` names its newest circuit (ids start at 1, so a
+      // processor with three circuits answers 3; read back on mainnet, C1), and a processor that does not answer is
+      // left unfinished rather than taken for empty
       const others = cpus.filter((c) => c !== ours) as Address[];
-      const nextIds = new Map<string, number>();
+      const latestIds = new Map<string, number>();
       for (let i = 0; i < others.length; i += BATCH) {
         const part = others.slice(i, i + BATCH);
         const got = await pub.multicall({ allowFailure: true, contracts: part.map((cpu) => ({ address: cpu, abi: processorAbi, functionName: "nextId" as const })) });
-        got.forEach((g, k) => g.status === "success" && nextIds.set(part[k]!, Number(g.result)));
+        got.forEach((g, k) => g.status === "success" && latestIds.set(part[k]!, Number(g.result)));
       }
       let behind = false;
       for (const cpu of others) {
-        if (budget <= 0) {
-          if ((data.next[cpu] ?? 1) < (nextIds.get(cpu) ?? 1)) behind = true;
+        const latest = latestIds.get(cpu);
+        if (latest === undefined) {
+          behind = true;
           continue;
         }
-        const nextId = nextIds.get(cpu) ?? 1;
+        // the next circuit to read; every id up to and including the latest is read
         let from = data.next[cpu] ?? 1;
-        while (from < nextId && budget > 0) {
-          const ids = Array.from({ length: Math.min(BATCH, nextId - from, budget) }, (_, k) => from + k);
+        while (from <= latest && budget > 0) {
+          const ids = Array.from({ length: Math.min(BATCH, latest - from + 1, budget) }, (_, k) => from + k);
           const got = await pub.multicall({ allowFailure: true, contracts: ids.map((id) => ({ address: cpu, abi: processorAbi, functionName: "netlist" as const, args: [BigInt(id)] })) });
-          got.forEach((g, k) => {
-            if (g.status !== "success") return;
+          // stop at the first netlist that could not be read: it is read again next pass, never stepped past
+          let read = 0;
+          for (const [k, g] of got.entries()) {
+            if (g.status !== "success") break;
             for (const t of refTargets(g.result as Hex)) if (t.cpu === ours) data.refs.push({ cpu, id: ids[k]!, target: Number(t.id) });
-          });
-          from += ids.length;
+            read++;
+          }
+          from += read;
           budget -= ids.length;
+          if (read < ids.length) break;
         }
         data.next[cpu] = from;
-        if (from < nextId) behind = true;
+        if (from <= latest) behind = true;
       }
       complete = !behind && budget > 0;
       save();

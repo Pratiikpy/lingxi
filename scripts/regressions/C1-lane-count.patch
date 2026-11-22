@@ -1,0 +1,11 @@
+--- a/services/api/src/laneReader.ts
++++ b/services/api/src/laneReader.ts
+@@ -16,7 +16,7 @@ type Answer = { status: "success"; result: bigint } | { status: "failure"; error
+ export function circuitsTotal(cpus: readonly string[], answers: readonly Answer[], known: Map<string, number>): { total: number; complete: boolean } {
+   cpus.forEach((cpu, k) => {
+     const a = answers[k];
+-    if (a?.status === "success") known.set(cpu, Number(a.result));
++    if (a?.status === "success") known.set(cpu, Math.max(0, Number(a.result) - 1));
+   });
+   // a processor never read yet would count as empty and then jump once read: the reading says it is incomplete
+   return { total: cpus.reduce((n, cpu) => n + (known.get(cpu) ?? 0), 0), complete: cpus.every((cpu) => known.has(cpu)) };

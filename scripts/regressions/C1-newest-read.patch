@@ -1,0 +1,11 @@
+--- a/services/api/src/refScan.ts
++++ b/services/api/src/refScan.ts
+@@ -98,7 +98,7 @@ export function createRefScanner(o: { rpc?: string; client?: PublicClient; facto
+         }
+         // the next circuit to read; every id up to and including the latest is read
+         let from = data.next[cpu] ?? 1;
+-        while (from <= latest && budget > 0) {
++        while (from < latest && budget > 0) {
+           const ids = Array.from({ length: Math.min(BATCH, latest - from + 1, budget) }, (_, k) => from + k);
+           const got = await pub.multicall({ allowFailure: true, contracts: ids.map((id) => ({ address: cpu, abi: processorAbi, functionName: "netlist" as const, args: [BigInt(id)] })) });
+           // stop at the first netlist that could not be read: it is read again next pass, never stepped past

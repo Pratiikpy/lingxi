@@ -1,7 +1,7 @@
 /**
  * Little Mars's count on Builders' Lane (PRD R2): how many circuits were taped
  * out on X Layer today. Every few minutes the server reads every processor in
- * TapeOut's factory and sums how many circuits each has made (nextId − 1). The
+ * TapeOut's factory and sums how many circuits each has made (its nextId, the id of its latest circuit). The
  * first reading of each UTC day is that day's baseline, so today's count is the
  * latest total minus the baseline. A day with no baseline (the server started
  * mid-day) counts from its first reading and says so.
@@ -17,9 +17,13 @@ export interface TapeoutReading {
 }
 
 /** Reads the whole factory: how many processors, and how many circuits they have made in all. */
-export type TapeoutReader = () => Promise<{ total: number; processors: number }>;
+export type TapeoutReader = () => Promise<{ total: number; processors: number; complete?: boolean }>;
+
+/** How a total is counted: 2 since C1, each processor's nextId (its latest circuit id), where 1 took one off each. */
+const COUNTED = 2;
 
 interface Saved {
+  v?: number;
   day: string;
   baseline: TapeoutReading;
   latest: TapeoutReading;
@@ -32,6 +36,8 @@ export function createTapeoutCounter(read: TapeoutReader, file?: string, now: ()
   if (file && hasStore(file)) {
     try {
       saved = readStore(file) as Saved;
+      // a baseline counted the old way is 325 short of today's way: subtracting it would invent circuits (C1)
+      if (saved.v !== COUNTED) saved = null;
     } catch {
       saved = null;
     }
@@ -44,12 +50,14 @@ export function createTapeoutCounter(read: TapeoutReader, file?: string, now: ()
     /** Takes one reading; a new UTC day starts a new baseline. */
     async tick(): Promise<void> {
       const r = await read();
-      const reading = { at: now(), ...r };
+      // a reading that missed a processor would undercount, then jump once it answers: it is not taken
+      if (r.complete === false) return;
+      const reading = { at: now(), total: r.total, processors: r.processors };
       const day = dayOf(reading.at);
       if (!saved || saved.day !== day) {
         // the previous day's last reading is the best baseline for the new day, when it is recent
         const carry = saved && reading.at - saved.latest.at < 30 * 60_000 ? saved.latest : reading;
-        saved = { day, baseline: carry, latest: reading };
+        saved = { v: COUNTED, day, baseline: carry, latest: reading };
       } else saved = { ...saved, latest: reading };
       persist();
     },

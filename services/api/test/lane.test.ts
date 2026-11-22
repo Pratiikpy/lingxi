@@ -1,4 +1,4 @@
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -25,6 +25,21 @@ describe("Little Mars's tape-out count", () => {
     // and a reader that has not run today says nothing rather than a stale number
     t = Date.UTC(2026, 10, 18, 9);
     expect(c.view()).toEqual({ ok: false });
+  });
+
+  it("never takes a baseline counted the old way (C1), nor a reading that missed a processor", async () => {
+    const t = Date.UTC(2026, 10, 22, 11);
+    const file = join(mkdtempSync(join(tmpdir(), "lane-")), "t.json");
+    // saved before C1, when each processor was counted one short: 325 fewer than the same chain counted now
+    writeFileSync(file, JSON.stringify({ day: "2026-11-22", baseline: { at: t - 3600_000, total: 11_805, processors: 440 }, latest: { at: t - 60_000, total: 11_805, processors: 440 } }));
+    let reading: { total: number; processors: number; complete?: boolean } = { total: 12_130, processors: 440, complete: true };
+    const c = createTapeoutCounter(async () => reading, file, () => t);
+    await c.tick();
+    expect(c.view(), "the old baseline is set aside: today counts from this reading, not +325").toMatchObject({ ok: true, today: 0, total: 12_130 });
+    // a reading in which some processor has never answered would undercount, then jump: it is not taken
+    reading = { total: 12_000, processors: 440, complete: false };
+    await c.tick();
+    expect(c.view()).toMatchObject({ today: 0, total: 12_130 });
   });
 
   it("carries yesterday's last reading over midnight when it is recent", async () => {
