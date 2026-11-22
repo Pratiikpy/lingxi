@@ -18,6 +18,8 @@ export const Letter = z.object({
   gift: z.object({ item: z.number().int().positive(), n: z.number().int().min(1).max(20) }).optional(),
   /** a letter every newcomer should find unread, however long ago it was sent (the welcome, G8) */
   greets: z.boolean().optional(),
+  /** about something only the web version's server offers (seasons): the on-chain copy leaves it out (H11) */
+  needsServer: z.boolean().optional(),
 });
 export type Letter = z.infer<typeof Letter>;
 

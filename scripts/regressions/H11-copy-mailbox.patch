@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/mail.ts
++++ b/apps/web/src/game/mail.ts
+@@ -114,7 +114,7 @@ export const useMail = create<MailStore>((set, get) => {
+ });
+ 
+ /** Where the letters to everyone come from: the server, or in the on-chain copy the file shipped beside the page. */
+-export const mailUrl = (base: string): string => (base ? `${base}/api/mail` : "./mail.json");
++export const mailUrl = (base: string): string => `${base}/api/mail`;
+ 
+ const isText = (t: unknown): t is { en: string; zh: string } => !!t && typeof (t as { en?: unknown }).en === "string" && typeof (t as { zh?: unknown }).zh === "string";
+ const isLetter = (l: unknown): l is Letter => {

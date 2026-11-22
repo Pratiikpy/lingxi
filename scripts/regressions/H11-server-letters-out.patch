@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/mail.ts
++++ b/apps/web/src/game/mail.ts
+@@ -133,7 +133,7 @@ export function lettersFrom(body: unknown, now: number, fromServer: boolean): Le
+     return j?.ok && Array.isArray(j.letters) ? j.letters.filter(isLetter) : [];
+   }
+   if (!Array.isArray(body)) return [];
+-  return body.filter(isLetter).filter((l) => l.at <= now && (!l.until || l.until > now) && !l.needsServer).sort((a, b) => b.at - a.at);
++  return body.filter(isLetter).filter((l) => l.at <= now && (!l.until || l.until > now)).sort((a, b) => b.at - a.at);
+ }
+ 
+ /** Everything in the mailbox, newest first. */

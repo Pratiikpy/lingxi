@@ -1,6 +1,6 @@
 --- a/services/api/src/circuits.ts
 +++ b/services/api/src/circuits.ts
-@@ -55,7 +55,6 @@ export function createCircuitCounter(opts: { rpc: string; processor: Address; fr
+@@ -62,7 +62,6 @@ export function createCircuitCounter(opts: { rpc: string; processor: Address; fr
          for (const l of logs) {
            const a = l.args as { from: string; tokenId: bigint };
            // the query asks for mints only; a node that ignores the filter still cannot add a transfer here

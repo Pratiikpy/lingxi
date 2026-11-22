@@ -14,6 +14,10 @@ const KEY = "lingxi.mail.v1";
 export interface Letter {
   id: string;
   at: number;
+  /** when it stops being current (the server leaves it out after this) */
+  until?: number;
+  /** about something only the web version's server offers (seasons): left out of the on-chain copy (H11) */
+  needsServer?: boolean;
   subject: { en: string; zh: string };
   body: { en: string; zh: string };
   gift?: { item: number; n: number };
@@ -85,12 +89,10 @@ export const useMail = create<MailStore>((set, get) => {
     fetch: async () => {
       // a newcomer's arrival is kept the first time the mailbox loads, so a later visit does not move it
       if (get().since !== undefined && !hasKept()) keep({});
-      // the on-chain (DeWEB) build has no server: only the letters the game writes itself
-      if (!BASE) return set({ loaded: true });
+      // the on-chain (DeWEB) build has no server: it reads the letters shipped beside the page (H11)
       try {
-        const r = await fetch(`${BASE}/api/mail`);
-        const j = (await r.json()) as { ok: boolean; letters: Letter[] };
-        set({ letters: j.ok ? j.letters : [], loaded: true });
+        const r = await fetch(mailUrl(BASE));
+        set({ letters: lettersFrom(await r.json(), Date.now(), BASE !== ""), loaded: true });
       } catch {
         set({ loaded: true });
       }
@@ -110,6 +112,29 @@ export const useMail = create<MailStore>((set, get) => {
     },
   };
 });
+
+/** Where the letters to everyone come from: the server, or in the on-chain copy the file shipped beside the page. */
+export const mailUrl = (base: string): string => (base ? `${base}/api/mail` : "./mail.json");
+
+const isText = (t: unknown): t is { en: string; zh: string } => !!t && typeof (t as { en?: unknown }).en === "string" && typeof (t as { zh?: unknown }).zh === "string";
+const isLetter = (l: unknown): l is Letter => {
+  const x = l as Partial<Letter> | null;
+  return !!x && typeof x.id === "string" && /^[a-z0-9-]{1,40}$/.test(x.id) && typeof x.at === "number" && isText(x.subject) && isText(x.body) && (x.gift === undefined || (typeof x.gift.item === "number" && typeof x.gift.n === "number" && x.gift.n >= 1 && x.gift.n <= 20));
+};
+
+/**
+ * The letters to everyone, from what was read: the server's answer is taken as it is (the server already keeps only the
+ * current ones); the on-chain copy's file holds every letter, so only well-formed ones current now are kept, and none
+ * about what only the web version's server offers (H11). Newest first.
+ */
+export function lettersFrom(body: unknown, now: number, fromServer: boolean): Letter[] {
+  if (fromServer) {
+    const j = body as { ok?: boolean; letters?: unknown } | null;
+    return j?.ok && Array.isArray(j.letters) ? j.letters.filter(isLetter) : [];
+  }
+  if (!Array.isArray(body)) return [];
+  return body.filter(isLetter).filter((l) => l.at <= now && (!l.until || l.until > now) && !l.needsServer).sort((a, b) => b.at - a.at);
+}
 
 /** Everything in the mailbox, newest first. */
 export const allLetters = (s: Pick<MailStore, "letters" | "local">): Letter[] => [...s.local, ...s.letters].sort((a, b) => b.at - a.at);

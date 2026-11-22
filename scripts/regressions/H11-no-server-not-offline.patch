@@ -1,0 +1,10 @@
+--- a/apps/web/src/game/api.ts
++++ b/apps/web/src/game/api.ts
+@@ -17,7 +17,6 @@ export type TeachResponse =
+ export type TeachingState = "ready" | "noServer" | "offline" | "unreachable" | "off";
+ 
+ export async function readTeachingState(base: string, online: boolean, get: typeof fetch = fetch): Promise<TeachingState> {
+-  if (!base) return "noServer";
+   if (!online) return "offline";
+   let r: Response;
+   try {

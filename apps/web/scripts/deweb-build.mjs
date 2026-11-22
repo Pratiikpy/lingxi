@@ -7,6 +7,9 @@
  * What changes from the web build, and why:
  *   - no API or live-room address, so teaching by words, live rooms and reminders
  *     stay off (they need a server; Pet School lessons and hand-built rules still work);
+ *   - the letters to every player ship beside the page as mail.json (the server's own
+ *     file), so the copy has its mailbox and welcome gift; the game leaves out letters
+ *     marked as needing the server;
  *   - art files no script, stylesheet or page names are left out (the public folder
  *     holds the whole source art set, most of which the game never shows);
  *   - big animated rooms are re-encoded with a smaller palette, and sounds as 64 kbps
@@ -16,7 +19,7 @@
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { copyFileSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -49,6 +52,8 @@ for (const f of walk(join(out, "art"))) {
 }
 // the service worker exists only for reminders, which this build does not offer
 rmSync(join(out, "sw.js"), { force: true });
+// the letters to every player, from the server's own file: the copy's mailbox and welcome gift (H11)
+copyFileSync(join(root, "..", "..", "services", "api", "mail", "letters.json"), join(out, "mail.json"));
 
 // 2. smaller heavy files, same names
 let saved = 0;

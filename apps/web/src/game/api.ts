@@ -9,14 +9,37 @@ export type TeachResponse =
   | { ok: true; rule: Rule; gates: number; reply: { en: string; zh: string } }
   | { ok: false; reason: string; reply?: { en: string; zh: string }; detail?: string };
 
-let health: Promise<boolean> | null = null;
-export function teachingAvailable(): Promise<boolean> {
-  if (!BASE) return Promise.resolve(false);
-  health ??= fetch(`${BASE}/api/health`, { signal: AbortSignal.timeout(4000) })
-    .then((r) => r.json() as Promise<{ teach?: boolean }>)
-    .then((j) => j.teach === true)
-    .catch(() => false);
-  return health;
+/**
+ * Whether teaching in words is on offer, and if not, why (H11): the on-chain copy has no server (it is not offline, and
+ * says so), a device with no connection is offline, and a server that does not answer is told from one that has teaching
+ * switched off.
+ */
+export type TeachingState = "ready" | "noServer" | "offline" | "unreachable" | "off";
+
+export async function readTeachingState(base: string, online: boolean, get: typeof fetch = fetch): Promise<TeachingState> {
+  if (!base) return "noServer";
+  if (!online) return "offline";
+  let r: Response;
+  try {
+    r = await get(`${base}/api/health`, { signal: AbortSignal.timeout(4000) });
+  } catch {
+    return "unreachable";
+  }
+  try {
+    return ((await r.json()) as { teach?: boolean } | null)?.teach === true ? "ready" : "off";
+  } catch {
+    return "off";
+  }
+}
+
+let state: Promise<TeachingState> | null = null;
+/** Asked once per visit; a visit that could not reach the server asks again next time the screen opens. */
+export function teachingState(): Promise<TeachingState> {
+  const asking = (state ??= readTeachingState(BASE, typeof navigator === "undefined" || navigator.onLine !== false));
+  void asking.then((s) => {
+    if (s === "unreachable" || s === "offline") state = null;
+  });
+  return asking;
 }
 
 /** Teaching in plain words; build the body with requests.ts teachBody. */

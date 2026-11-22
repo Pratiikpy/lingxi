@@ -4,7 +4,7 @@
  * but only the welcome letter counts as unread; a player who had the mailbox before keeps their count.
  */
 import { afterEach, describe, expect, it } from "vitest";
-import { type Letter, unreadCount } from "./mail";
+import { type Letter, lettersFrom, mailUrl, unreadCount } from "./mail";
 import { leave, reload, visit } from "./testGame";
 
 const letter = (id: string, at: number, greets = false): Letter => ({ id, at, subject: { en: id, zh: id }, body: { en: id, zh: id }, ...(greets ? { greets } : {}) });
@@ -42,5 +42,37 @@ describe("a newcomer's arrival", () => {
     expect(again.getState().since).toBe(5_000);
     await again.getState().fetch();
     expect(unreadCount(again.getState())).toBe(2);
+  });
+});
+
+describe("the on-chain copy's mailbox, with no server (H11)", () => {
+  const day = 86_400_000;
+  const now = 1_800_000_000_000;
+  const file = [
+    { id: "welcome", at: now - 30 * day, subject: { en: "Welcome", zh: "欢迎" }, body: { en: "Hi", zh: "你好" }, gift: { item: 11130, n: 2 }, greets: true },
+    { id: "seasons", at: now - 20 * day, subject: { en: "Seasons", zh: "赛季" }, body: { en: "Spar", zh: "切磋" }, needsServer: true },
+    { id: "later", at: now + day, subject: { en: "Soon", zh: "很快" }, body: { en: "Soon", zh: "很快" } },
+    { id: "over", at: now - 10 * day, until: now - day, subject: { en: "Over", zh: "结束" }, body: { en: "Over", zh: "结束" } },
+    { id: "garden", at: now - 5 * day, subject: { en: "Garden", zh: "花园" }, body: { en: "Plots", zh: "地块" }, gift: { item: 7102, n: 2 } },
+    { id: "Bad id!", at: now - day, subject: { en: "x", zh: "x" }, body: { en: "x", zh: "x" } },
+    "junk",
+  ];
+
+  it("reads the letters shipped beside the page, not a server", () => {
+    expect(mailUrl("")).toBe("./mail.json");
+    expect(mailUrl("https://lingxi.knole.me")).toBe("https://lingxi.knole.me/api/mail");
+  });
+
+  it("keeps the letters current now, newest first, and leaves out those about what only the website's server offers", () => {
+    const got = lettersFrom(file, now, false);
+    expect(got.map((l) => l.id)).toEqual(["garden", "welcome"]);
+    expect(got[1]!.gift).toEqual({ item: 11130, n: 2 });
+    expect(got[1]!.greets).toBe(true);
+  });
+
+  it("takes the server's answer as it is, and nothing from a broken one", () => {
+    expect(lettersFrom({ ok: true, letters: [file[0]] }, now, true).map((l) => l.id)).toEqual(["welcome"]);
+    expect(lettersFrom({ ok: false }, now, true)).toEqual([]);
+    expect(lettersFrom("<html>", now, false)).toEqual([]);
   });
 });

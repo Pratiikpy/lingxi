@@ -10,7 +10,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { INPUT_FIELDS, type Rule } from "@lingxi/brain";
 import { type Frame, PET_SCHOOL, type Pet, lessonCapacity, lessonTrigger, type Trap, brainSize, checkLesson, lessonCost, levelOpen, schoolReport, stageOf, trapsAfter } from "@lingxi/game";
 import { useLang, useT, type Key } from "../i18n";
-import { teachInWords, teachingAvailable } from "../game/api";
+import { type TeachingState, teachInWords, teachingState } from "../game/api";
 import { teachBody } from "../game/requests";
 import { questSlots } from "../game/tally";
 import { type LibraryLesson, libraryAvailable, listLessons, reportLesson, shareLesson, usedLesson } from "../game/library";
@@ -38,6 +38,14 @@ const REASON_KEY: Record<string, Key> = {
   yourShare: "teach.yourShare",
   offline: "teach.offline",
   error: "teach.error",
+};
+
+/** Why teaching in words is not on offer, in the player's language (H11). */
+const NOT_ON_OFFER: Record<Exclude<TeachingState, "ready">, Key> = {
+  noServer: "teach.noServer",
+  offline: "teach.offline",
+  unreachable: "teach.unreachable",
+  off: "teach.off",
 };
 
 function RulePreview({ pet, rule }: { pet: Pet; rule: Rule }) {
@@ -333,18 +341,19 @@ function Learned({ pet }: { pet: Pet }) {
 function Words({ pet, onPropose }: { pet: Pet; onPropose: (rule: Rule, reply: string) => void }) {
   const t = useT();
   const { lang } = useLang();
-  const [available, setAvailable] = useState<boolean | null>(null);
+  const [teaching, setTeaching] = useState<TeachingState | null>(null);
+  const available = teaching === null ? null : teaching === "ready";
   const [words, setWords] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   useEffect(() => {
     let live = true;
-    teachingAvailable().then((ok) => live && setAvailable(ok));
+    teachingState().then((s) => live && setTeaching(s));
     return () => {
       live = false;
     };
   }, []);
-  if (available === false) return <CuteState who={{ cat: "nap" }} text={t("teach.offline")} />;
+  if (teaching !== null && teaching !== "ready") return <CuteState who={{ cat: "nap" }} text={t(NOT_ON_OFFER[teaching])} />;
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!words.trim() || busy) return;
