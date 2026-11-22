@@ -1,0 +1,11 @@
+--- a/apps/web/src/play/Studio.tsx
++++ b/apps/web/src/play/Studio.tsx
+@@ -48,7 +48,7 @@ export function StudioPanel({ pet }: { pet: Pet }) {
+   // a creator chooses the coin (H8): BEM, whose 3% is burned, or OKB on the first market, whose 3% goes to the project
+   const markets = deployment ? marketsOf(deployment) : [];
+   const [coin, setCoin] = useState<"bem" | "okb">(markets.some((m) => m.v === 2) ? "bem" : "okb");
+-  const market = markets.find((m) => m.v === (coin === "bem" ? 2 : 1)) ?? null;
++  const market = markets[0] ?? null;
+   const bemMarket = market?.v === 2;
+   const painting = useRef(false);
+ 

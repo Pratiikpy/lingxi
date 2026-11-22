@@ -1,0 +1,10 @@
+--- a/services/api/src/numbers.ts
++++ b/services/api/src/numbers.ts
+@@ -118,7 +118,6 @@ export function createSalesCounter(opts: { rpc: string; markets: Array<{ address
+           for (const l of ordered) {
+             if ((l as { eventName?: string }).eventName === "FeeChanged") {
+               const f = l.args as { feeBps: number; treasury: Address };
+-              if (e) Object.assign(e, { feeBps: Number(f.feeBps), treasury: f.treasury });
+               continue;
+             }
+             const a = l.args as { quantity: number; paid: bigint };

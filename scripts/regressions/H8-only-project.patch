@@ -1,0 +1,11 @@
+--- a/services/api/src/numbers.ts
++++ b/services/api/src/numbers.ts
+@@ -126,7 +126,7 @@ export function createSalesCounter(opts: { rpc: string; markets: Array<{ address
+             t.paid = (BigInt(t.paid) + a.paid).toString();
+             t.sales += 1;
+             // the contract rounds each fee down: (total * feeBps) / 10_000
+-            if (e && e.treasury.toLowerCase() === project) e.okb = (BigInt(e.okb) + (a.paid * BigInt(e.feeBps)) / BPS).toString();
++            if (e) e.okb = (BigInt(e.okb) + (a.paid * BigInt(e.feeBps)) / BPS).toString();
+           }
+           data.next[k] = to + 1;
+           await sleep(opts.paceMs ?? 300);
