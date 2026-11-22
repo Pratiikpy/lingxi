@@ -1,0 +1,11 @@
+--- a/apps/web/src/play/parts.tsx
++++ b/apps/web/src/play/parts.tsx
+@@ -170,7 +170,7 @@ function TodayCard({ onToday, onCollection }: { onToday: () => void; onCollectio
+   const ledger = useBadges((s) => s.ledger);
+   const offered = today?.offered ?? [];
+   const done = today ? today.done.length : 0;
+-  const next = offered.map((id) => QUESTLINE.find((q) => q.id === id)).find((q) => q && !today!.done.includes(q.id));
++  const next = undefined as (typeof QUESTLINE)[number] | undefined;
+   const met = VISITORS.filter((v) => album[v.id]).length;
+   const badges = BADGES.filter((b) => tierOf(b, ledger) > 0).length;
+   const pieces = DECOR.length;

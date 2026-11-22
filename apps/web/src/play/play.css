@@ -3116,3 +3116,45 @@
   color: #2f8a4c;
   white-space: nowrap;
 }
+/* G10: today's errands and the collection, on the first screen */
+.today-card {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+}
+.today-card button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 10px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+.today-card button:active {
+  transform: scale(0.97);
+}
+.today-card b {
+  flex: none;
+  font-family: var(--round);
+}
+.today-card .tcard-errands span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-soft);
+}
+.today-card .tcard-collect span {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: #c9542f;
+}

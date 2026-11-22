@@ -30,7 +30,7 @@ import { EvolutionChart, MeSheetBody, MindPanel, Sheet } from "./Sheets";
 import { BagPanel, MapPanel, noticeText } from "./WorldPanels";
 import { HintRing, PetQuestBubble, QuestBook, QuestDialog, QuestToast } from "./Quests";
 import { RulesMark } from "./RulesMark";
-import { questsOf, useQuestStatuses } from "../game/quests";
+import { questsOf, useQuestStatuses, useQuestUi } from "../game/quests";
 import { useWorld } from "../game/world";
 import { recordOf, useChain } from "../game/chain";
 import { liveAvailable, playerId, useLive, visitingFrom } from "../game/live";
@@ -736,7 +736,7 @@ export function PlayApp() {
           )}
           <Meters pet={pet} />
           {/* feeding is care: Feed opens the bag on day 1 too, though the Bag tab waits for day 2 (H5b) */}
-          <Actions pet={pet} absent={travelling} onFeed={() => pick("bag", true)} onPlay={playBall} onClean={clean} onSleep={sleep} onMedicine={() => (play("sparkle"), act({ kind: "medicine" }))} />
+          <Actions pet={pet} absent={travelling} onFeed={() => pick("bag", true)} onPlay={playBall} onClean={clean} onSleep={sleep} onMedicine={() => (play("sparkle"), act({ kind: "medicine" }))} onToday={() => (useQuestUi.getState().setBookTab("today"), pick("quests"))} onCollection={() => pick("me")} />
           <section className="card mindcard" aria-label={t("mind.title", { name: pet.name })}>
             <div className="cardbar" aria-hidden="true">
               <i />

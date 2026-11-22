@@ -1,0 +1,10 @@
+--- a/apps/web/src/play/parts.tsx
++++ b/apps/web/src/play/parts.tsx
+@@ -149,7 +149,6 @@ export function Actions({ pet, absent = false, onFeed, onPlay, onClean, onSleep,
+       {btn("sparkle", t("act.clean"), onClean, m.clean < 250 && !pet.asleep, pet.asleep, "clean")}
+       {btn(pet.asleep ? "sun" : "moon", pet.asleep ? t("act.wake") : t("act.sleep"), onSleep, m.energy < 250 && !pet.asleep, false, "sleep")}
+       <EnjoyBar pet={pet} />
+-      {onToday && onCollection && <TodayCard onToday={onToday} onCollection={onCollection} />}
+       <TodayChoices pet={pet} />
+       <SeasonLine />
+     </div>

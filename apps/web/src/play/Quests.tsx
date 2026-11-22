@@ -255,7 +255,7 @@ export function QuestBook() {
               {gifts > 0 ? L("Open it", "打开") : L("Not yet", "还没到")}
             </button>
           </div>
-          <p className="small qb-note">{L(`${DAILIES.length} small things rotate, three a day: one care, one social, one explore. A new three each morning; missing a day costs nothing.`, `${DAILIES.length} 件小事轮流出现，每天三件：照顾、交朋友、探索各一件。每天早上换新的三件；错过一天也没关系。`)}</p>
+          <p className="small qb-note">{L(`Three a day: one care, one social, one explore, from ${DAILIES.filter((q) => q.group !== "request").length} small things that rotate. On about half the days the social one is a resident asking for something (${DAILIES.filter((q) => q.group === "request").length} errands, the residents taking turns). A new three each morning; missing a day costs nothing.`, `每天三件：照顾、交朋友、探索各一件，从 ${DAILIES.filter((q) => q.group !== "request").length} 件小事里轮换。大约一半的日子，交朋友那件会换成居民托你办的事（共 ${DAILIES.filter((q) => q.group === "request").length} 件，居民轮流来托）。每天早上换新的三件；错过一天也没关系。`)}</p>
         </>
       )}
       {tab === "together" && <TogetherPanel />}

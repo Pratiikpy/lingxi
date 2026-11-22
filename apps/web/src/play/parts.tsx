@@ -4,10 +4,14 @@ import { type ReactNode, useEffect, useMemo } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useVoice } from "../game/voice";
 import { decidingPart, mindForPet } from "../game/store";
-import { ENJOY_MAX, ENJOY_PER_CARE, type Pet, beatOf, dayChoices, nextWorldSeason, rewind, worldSeasonAt, canLevelUp, dayOf, growthOf, kinshipNow, stageOf, visibleMeters } from "@lingxi/game";
+import { useWorld } from "../game/world";
+import { useBadges } from "../game/badges";
+import { useAlbum } from "./Album";
+import { DECOR, QUESTLINE } from "@lingxi/world";
+import { BADGES, ENJOY_MAX, ENJOY_PER_CARE, type Pet, VISITORS, tierOf, beatOf, dayChoices, nextWorldSeason, rewind, worldSeasonAt, canLevelUp, dayOf, growthOf, kinshipNow, stageOf, visibleMeters } from "@lingxi/game";
 import { levelUpNow, useSkillsUi } from "./Skills";
 import { useLang, useT, type Key } from "../i18n";
-import { useSound } from "../game/sound";
+import { play, useSound } from "../game/sound";
 import type { Daily, Toast } from "../game/store";
 import { Icon, type IconName } from "./icons";
 import { WANT_COLORS, decidingChips, WANT_NAMES } from "./ruleText";
@@ -127,7 +131,7 @@ export function Meters({ pet }: { pet: Pet }) {
   );
 }
 
-export function Actions({ pet, absent = false, onFeed, onPlay, onClean, onSleep, onMedicine }: { pet: Pet; absent?: boolean; onFeed: () => void; onPlay: () => void; onClean: () => void; onSleep: () => void; onMedicine: () => void }) {
+export function Actions({ pet, absent = false, onFeed, onPlay, onClean, onSleep, onMedicine, onToday, onCollection }: { pet: Pet; absent?: boolean; onFeed: () => void; onPlay: () => void; onClean: () => void; onSleep: () => void; onMedicine: () => void; onToday?: () => void; onCollection?: () => void }) {
   const t = useT();
   const m = visibleMeters(pet);
   // a pet staying with a friend is cared for there, and a pet on a trip is not home
@@ -145,8 +149,46 @@ export function Actions({ pet, absent = false, onFeed, onPlay, onClean, onSleep,
       {btn("sparkle", t("act.clean"), onClean, m.clean < 250 && !pet.asleep, pet.asleep, "clean")}
       {btn(pet.asleep ? "sun" : "moon", pet.asleep ? t("act.wake") : t("act.sleep"), onSleep, m.energy < 250 && !pet.asleep, false, "sleep")}
       <EnjoyBar pet={pet} />
+      {onToday && onCollection && <TodayCard onToday={onToday} onCollection={onCollection} />}
       <TodayChoices pet={pet} />
       <SeasonLine />
+    </div>
+  );
+}
+
+/**
+ * G10: the first screen says what there is to do today and how much has been collected (after Chipet's home page): how
+ * many of today's errands are done and the next one, and one count of visitors met, badges earned and home pieces
+ * owned. Each opens where it lives.
+ */
+function TodayCard({ onToday, onCollection }: { onToday: () => void; onCollection: () => void }) {
+  const { lang } = useLang();
+  const zh = lang === "zh";
+  const today = useWorld((s) => s.world.quests?.today);
+  const owned = useWorld((s) => s.world.decor?.owned.length ?? 0);
+  const album = useAlbum((s) => s.album);
+  const ledger = useBadges((s) => s.ledger);
+  const offered = today?.offered ?? [];
+  const done = today ? today.done.length : 0;
+  const next = offered.map((id) => QUESTLINE.find((q) => q.id === id)).find((q) => q && !today!.done.includes(q.id));
+  const met = VISITORS.filter((v) => album[v.id]).length;
+  const badges = BADGES.filter((b) => tierOf(b, ledger) > 0).length;
+  const pieces = DECOR.length;
+  const have = met + badges + owned;
+  const all = VISITORS.length + BADGES.length + pieces;
+  const parts = zh ? `访客 ${met}/${VISITORS.length}、徽章 ${badges}/${BADGES.length}、家具 ${owned}/${pieces}` : `visitors ${met}/${VISITORS.length}, badges ${badges}/${BADGES.length}, home pieces ${owned}/${pieces}`;
+  return (
+    <div className="today-card">
+      <button type="button" className="tcard-errands" onClick={() => (play("tap"), onToday())}>
+        <b>{zh ? `今天 ${done}/${offered.length || 3}` : `Today ${done}/${offered.length || 3}`}</b>
+        <span>{next ? next.title[zh ? "zh" : "en"] : offered.length ? (zh ? "今天的都做完了！" : "All done for today!") : zh ? "打开看看今天的事" : "See today's errands"}</span>
+      </button>
+      <button type="button" className="tcard-collect" onClick={() => (play("tap"), onCollection())} aria-label={zh ? `收藏 ${have}/${all}：${parts}` : `Collection ${have} of ${all}: ${parts}`} title={parts}>
+        <b>{zh ? "收藏" : "Collection"}</b>
+        <span>
+          {have}/{all}
+        </span>
+      </button>
     </div>
   );
 }
