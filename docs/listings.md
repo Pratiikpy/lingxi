@@ -3,6 +3,9 @@
 The text, images and facts for each place Lingxi is listed, kept here so a listing always says what the product does
 today. Every request is sent by the project owner from their own accounts; this page only holds what to send.
 
+**Send these only after the final on-chain publish.** The texts describe the on-chain copy (`1-2-419.tapekit.org`) as
+that publish leaves it, with its mailbox and the circuit catalogue; the copy on chain before it is an older build.
+
 ## TapeCode: App Charts and TapeTape
 
 Where: [tapecode.ai](https://tapecode.ai/), **Charts** → **Publish app**. The form takes the app's container
@@ -56,9 +59,9 @@ site does, where its data comes from, whether a wallet is needed and how it rela
 Name: Lingxi 灵犀
 Link: https://1-2-419.tapekit.org/  (web version with its server: https://lingxi.knole.me)
 
-EN: A virtual pet whose mind is a NAND-gate circuit taped out on its own TapeOut processor (#419) on X Layer. Raise it, teach it in plain words or through Pet School, spar, and replay any day against the chain. Data: its pets, saves and sales are read from its contracts on X Layer; the live-numbers page links every figure to the contract it comes from. Wallet: not needed to play or to send letters between pets (they are signed on the device); needed only to keep a pet on chain or to trade outfits. Relation: an independent hackathon project built on TapeOut, not made by the TapeOut team.
+EN: A virtual pet whose mind is a NAND-gate circuit taped out on its own TapeOut processor (#419) on X Layer. Raise it, teach it through Pet School or with the rule builder, spar, and replay any day against the chain; teaching in plain words and letters between pets need the web version, which has the server and live rooms. Data: its pets, saves and sales are read from its contracts on X Layer; the live-numbers page links every figure to the contract it comes from. Wallet: not needed to play, nor for letters on the web version (they are signed on the device); needed only to keep a pet on chain or to trade outfits. Relation: an independent hackathon project built on TapeOut, not made by the TapeOut team.
 
-中文：一只心智是与非门电路的宠物，电路流片在它自己的 TapeOut 处理器（#419）上，运行于 X Layer。养它、用话语或宠物学堂教它、切磋，任何一天都能对照链上重放。数据：宠物、存档和交易都从它在 X Layer 上的合约读出，实时数字页每个数字都链接到来源合约。钱包：玩和宠物之间寄信都不需要（信在设备上签名）；只有把宠物留在链上或买卖衣服时需要。关系：基于 TapeOut 的独立黑客松项目，不是 TapeOut 团队出品。
+中文：一只心智是与非门电路的宠物，电路流片在它自己的 TapeOut 处理器（#419）上，运行于 X Layer。养它、用宠物学堂或规则拼装教它、切磋，任何一天都能对照链上重放；用话语教和宠物之间寄信要用网页版，它有服务器和实时房间。数据：宠物、存档和交易都从它在 X Layer 上的合约读出，实时数字页每个数字都链接到来源合约。钱包：玩不需要，网页版上寄信也不需要（信在设备上签名）；只有把宠物留在链上或买卖衣服时需要。关系：基于 TapeOut 的独立黑客松项目，不是 TapeOut 团队出品。
 ```
 
 ## Builder roll call (TapeOut_X)
