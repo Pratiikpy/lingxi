@@ -50,9 +50,9 @@
       "name": "spar",
       "priceBEM": "0",
       "params": {
-        "program": "string?",
-        "p1": "string?",
-        "chips": "string?",
+        "program": "string? (one brain: program, p1 or chips)",
+        "p1": "string? (one brain: program, p1 or chips)",
+        "chips": "string? (one brain: program, p1 or chips)",
         "vs": "string",
         "seed": "uint32?"
       },
@@ -62,7 +62,7 @@
         "digest": "string",
         "rounds": "array"
       },
-      "description": "Spar a brain against a partner or fly:<rival>; a fixed seed gives a fixed fight"
+      "description": "Spar a brain against a partner or fly:<rival>; give exactly one brain: program (a Lingxi program code), p1 or chips (a TapeFly brain); a fixed seed gives a fixed fight"
     },
     {
       "name": "pet",
@@ -78,7 +78,7 @@
         "logHash": "bytes32",
         "image": "string"
       },
-      "description": "A pet on X Layer: owner, line, brain circuit, day, log hash and its picture as drawn on chain"
+      "description": "A pet on X Layer: owner, line, brain circuit, day, log hash and its picture as drawn on chain; a pet that does not exist answers { ok: false, reason: \"unknown\" }"
     },
     {
       "name": "brain",

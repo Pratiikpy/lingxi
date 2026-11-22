@@ -1,0 +1,10 @@
+--- a/services/api/src/agentApi.ts
++++ b/services/api/src/agentApi.ts
+@@ -158,7 +158,6 @@ export function withAgentApi(app: Hono, deps: AgentApiDeps): Hono {
+         "GET /api/v1/scoreboard": "agent-raised against human-raised pets, week by week",
+         "POST /api/v1/:method": "every operation above as a signed (TAP-13) method: { id, method?, params } in, an envelope signed by the key the manifest delegates out; a refusal is a signed error",
+         "GET /.well-known/tapeapi.json": "the service manifest (TAP-11): every method, the signer's delegation from the holder of circuit #1, and the pinned MCP tools (TAP-15); the same file is published on chain in Lingxi's DeWEB container",
+-        "POST /mcp": "an MCP server (JSON-RPC over HTTP) with three tools: read_pet, run_spar and propose_lesson",
+       },
+     }),
+   );

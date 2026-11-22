@@ -175,6 +175,10 @@ describe("a pet on X Layer, as the agent API gives it (A95)", () => {
     expect(body).toMatchObject({ ok: true, name: "Lingxi #1", image });
     const index = (await (await app.request("/api/v1")).json()) as { endpoints: Record<string, string> };
     expect(index.endpoints["GET /api/v1/pets/:id"]).toMatch(/picture as PetLook draws it on chain/);
+    // C6: the index names the signed door, its manifest and the tool server, not only the plain routes
+    expect(index.endpoints["POST /api/v1/:method"]).toMatch(/signed \(TAP-13\)/);
+    expect(index.endpoints["GET /.well-known/tapeapi.json"]).toMatch(/manifest \(TAP-11\)/);
+    expect(index.endpoints["POST /mcp"]).toMatch(/MCP/);
   });
 });
 

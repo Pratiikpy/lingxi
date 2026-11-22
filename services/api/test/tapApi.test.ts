@@ -101,6 +101,22 @@ describe("TAP-13 answers from the agent API", () => {
     expect(bad.json().error.code).toBe("BAD_REQUEST");
   });
 
+  it("a spar with no brain is refused before the route, naming the three ways to give one (C6)", async () => {
+    const { tap } = setup();
+    const a = await tap("spar", { vs: "pip", seed: 7 });
+    expect(a.json().error.code).toBe("BAD_REQUEST");
+    expect(a.json().error.message).toBe("give exactly one brain: program (a Lingxi program code), p1 or chips (a TapeFly brain)");
+    const two = await tap("spar", { program, chips: "a,b", vs: "pip" });
+    expect(two.json().error.code).toBe("BAD_REQUEST");
+  });
+
+  it("the descriptors say what a caller must give and what a missing pet answers (C6)", () => {
+    const spar = TAP_METHODS.find((m) => m.name === "spar")!;
+    expect(spar.description).toMatch(/exactly one brain: program .*, p1 or chips/);
+    const pet = TAP_METHODS.find((m) => m.name === "pet")!;
+    expect(pet.description).toMatch(/a pet that does not exist answers \{ ok: false, reason: "unknown" \}/);
+  });
+
   it("an operation the server cannot reach is a signed INTERNAL that names no upstream", async () => {
     const { tap } = setup();
     const a = await tap("pet", { id: "1" });

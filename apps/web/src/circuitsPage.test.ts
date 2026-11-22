@@ -40,7 +40,7 @@ function load(): { refused: number } {
 describe("the circuit catalogue page asks X Layer one request at a time (C5)", () => {
   it("every check pressed at once gets its answer; none is turned away", async () => {
     const seen = load();
-    const checks = () => [...document.querySelectorAll("button")].filter((b) => b.textContent === "Check every vector on X Layer");
+    const checks = () => Array.from(document.querySelectorAll("button")).filter((b) => b.textContent === "Check every vector on X Layer");
     // the page renders once circuits.json is read: wait for its buttons
     for (let waited = 0; checks().length === 0 && waited < 10_000; waited += 20) await new Promise((r) => setTimeout(r, 20));
     const buttons = checks();

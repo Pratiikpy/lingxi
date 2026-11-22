@@ -177,13 +177,21 @@ import { createTapeAPI, rpcUrlsFor } from '@tapeapi/sdk'
 const api = createTapeAPI({ rpcUrls: rpcUrlsFor(196), quiet: true })
 const lingxi = await api.resolve('1.2.419.tape')
 const { result, verified } = await api.call(lingxi, 'pet', { id: '1' })
-console.log(result.name, result.owner, verified)`}</pre>
+// a pet that does not exist is a signed answer too: { ok: false, reason: 'unknown' }
+if (result.ok === false) console.log('no such pet:', result.reason, verified)
+else console.log(result.name, result.owner, verified)`}</pre>
         <p className="small">
           {L(
             "verified is true only when the signature checks out against the signer the chain names; a changed answer is refused. A signature proves who answered and to which question, not that the answer is right: pets and brains can still be checked against X Layer itself. The manifest, with every method:",
             "只有签名和链上指定的签名者对得上时，verified 才是 true；回答被改过就会被拒绝。签名证明的是谁回答、回答的是哪个问题，而不是回答一定对：宠物和大脑仍然可以直接对照 X Layer 核对。服务清单和全部方法：",
           )}{" "}
           <a href={`${PUBLIC}/.well-known/tapeapi.json`}>/.well-known/tapeapi.json</a>.
+        </p>
+        <p className="small">
+          {L(
+            "Before the answer, the client may print a warning, [tapeapi] IMPL_UNKNOWN, naming TapeOut's DeWEB hub: the hub was upgraded to code TapeKit has not published or approved, and TapeAPI says so whenever it reads it. It does not touch Lingxi's answers: the signer comes from our container and our manifest, and verified stays true.",
+            "在回答之前，客户端可能会打印一条警告 [tapeapi] IMPL_UNKNOWN，指的是 TapeOut 的 DeWEB 中枢：它升级成了 TapeKit 没有公开、也没有认可的代码，TapeAPI 每次读到都会提醒。这不影响灵犀的回答：签名者来自我们的容器和服务清单，verified 仍然是 true。",
+          )}
         </p>
         <p className="small">
           {L(

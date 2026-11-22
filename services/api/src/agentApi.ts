@@ -156,6 +156,9 @@ export function withAgentApi(app: Hono, deps: AgentApiDeps): Hono {
         "POST /api/v1/agents/me/teach": "{ rule: { when: {...}, then: { want, mood } } } in the PET-16x8/1 rule language",
         "POST /api/v1/agents/me/season": "enter your pet in this week's season, marked as raised by an agent: at most 3 entries per address a week, and agent-raised pets may take at most 16 of the week's 64 places; players may fill all 64",
         "GET /api/v1/scoreboard": "agent-raised against human-raised pets, week by week",
+        "POST /api/v1/:method": "every operation above as a signed (TAP-13) method: { id, method?, params } in, an envelope signed by the key the manifest delegates out; a refusal is a signed error",
+        "GET /.well-known/tapeapi.json": "the service manifest (TAP-11): every method, the signer's delegation from the holder of circuit #1, and the pinned MCP tools (TAP-15); the same file is published on chain in Lingxi's DeWEB container",
+        "POST /mcp": "an MCP server (JSON-RPC over HTTP) with three tools: read_pet, run_spar and propose_lesson",
       },
     }),
   );

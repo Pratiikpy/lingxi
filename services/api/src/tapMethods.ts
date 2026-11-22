@@ -32,10 +32,12 @@ export const TAP_METHODS: readonly TapMethod[] = [
   { name: "partners", params: {}, returns: { partners: "array", flyRivals: "array" }, description: "Sparring partners and TapeFly's ladder rivals, with their programs", route: plain("GET", "/api/v1/partners") },
   {
     name: "spar",
-    params: { program: "string?", p1: "string?", chips: "string?", vs: "string", seed: "uint32?" },
+    params: { program: "string? (one brain: program, p1 or chips)", p1: "string? (one brain: program, p1 or chips)", chips: "string? (one brain: program, p1 or chips)", vs: "string", seed: "uint32?" },
     returns: { winner: "string", seed: "uint32", digest: "string", rounds: "array" },
-    description: "Spar a brain against a partner or fly:<rival>; a fixed seed gives a fixed fight",
+    description: "Spar a brain against a partner or fly:<rival>; give exactly one brain: program (a Lingxi program code), p1 or chips (a TapeFly brain); a fixed seed gives a fixed fight",
     route: (p) => {
+      // exactly one brain, said before the route runs (C6): the REST route would refuse it too, with less to go on
+      if (["program", "p1", "chips"].filter((k) => p[k] !== undefined).length !== 1) return "give exactly one brain: program (a Lingxi program code), p1 or chips (a TapeFly brain)";
       const q = new URLSearchParams();
       for (const k of ["program", "p1", "chips", "vs"]) {
         const v = str(p, k);
@@ -54,7 +56,7 @@ export const TAP_METHODS: readonly TapMethod[] = [
     name: "pet",
     params: { id: "string" },
     returns: { owner: "address", line: "string", brainId: "string", day: "number", logHash: "bytes32", image: "string" },
-    description: "A pet on X Layer: owner, line, brain circuit, day, log hash and its picture as drawn on chain",
+    description: 'A pet on X Layer: owner, line, brain circuit, day, log hash and its picture as drawn on chain; a pet that does not exist answers { ok: false, reason: "unknown" }',
     route: (p) => (petId(p) ? { verb: "GET", path: `/api/v1/pets/${petId(p)}` } : "id must be a pet number from 1 to 999999999"),
   },
   {

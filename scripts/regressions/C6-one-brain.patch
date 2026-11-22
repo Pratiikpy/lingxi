@@ -1,0 +1,10 @@
+--- a/services/api/src/tapMethods.ts
++++ b/services/api/src/tapMethods.ts
+@@ -37,7 +37,6 @@ export const TAP_METHODS: readonly TapMethod[] = [
+     description: "Spar a brain against a partner or fly:<rival>; give exactly one brain: program (a Lingxi program code), p1 or chips (a TapeFly brain); a fixed seed gives a fixed fight",
+     route: (p) => {
+       // exactly one brain, said before the route runs (C6): the REST route would refuse it too, with less to go on
+-      if (["program", "p1", "chips"].filter((k) => p[k] !== undefined).length !== 1) return "give exactly one brain: program (a Lingxi program code), p1 or chips (a TapeFly brain)";
+       const q = new URLSearchParams();
+       for (const k of ["program", "p1", "chips", "vs"]) {
+         const v = str(p, k);
