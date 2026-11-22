@@ -97,3 +97,24 @@ describe("residents' requests are offered (G4)", () => {
     expect(offered.size).toBe(27);
   });
 });
+
+describe("no daily sends a player to a lock (D9)", () => {
+  it("every daily that needs the map or the bag says so, and a day with them closed offers none of them", async () => {
+    const { DAILIES, pickDailies } = await import("../src");
+    const needs = (id: string) => DAILIES.find((q) => q.id === id)?.needs ?? [];
+    for (const id of ["d-hello", "d-friend", "d-behemoth", "d-diver", "d-walk", "d-rooms"]) expect(needs(id), id).toContain("map");
+    expect(needs("d-gift")).toContain("bag");
+    for (const q of DAILIES.filter((x) => x.group === "request")) expect(q.needs, q.id).toEqual(["map", "bag"]);
+    for (const id of ["d-breakfast", "d-bath", "d-pats", "d-nap", "d-game", "d-look", "d-evening", "d-bring"]) expect(needs(id), id).toEqual([]);
+    let offered = 0;
+    for (let k = 0; k < 120; k++) {
+      const day = new Date(Date.UTC(2026, 10, 1) + k * 86_400_000).toISOString().slice(0, 10);
+      const picked = pickDailies(DAILIES, `seed-${k}`, day, ["map", "bag", "spar"]);
+      offered += picked.length;
+      for (const id of picked) expect(needs(id), `${day} ${id}`).toEqual([]);
+      // with everything open, the social slot and the requests come back
+      expect(pickDailies(DAILIES, `seed-${k}`, day)).toHaveLength(3);
+    }
+    expect(offered).toBe(240);
+  });
+});

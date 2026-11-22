@@ -31,6 +31,8 @@ const request = (who: string, k: number, a: Ask): QuestDef =>
     id: `r-${who}-${k}`,
     group: "request",
     giver: who,
+    // D9: found, grown, bought or made, and handed to a resident in another room
+    needs: ["map", "bag"],
     title: a.title,
     intro: [a.intro],
     outro: [a.outro],

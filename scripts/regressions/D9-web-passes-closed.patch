@@ -1,0 +1,11 @@
+--- a/apps/web/src/game/quests.ts
++++ b/apps/web/src/game/quests.ts
+@@ -165,7 +165,7 @@ export function rollToday(): void {
+   // D9: a day offers no daily behind a part that has not opened yet (the map and bag on day 2, spars on day 3)
+   const all = useReveal.getState().all;
+   const closed = (Object.keys(OPENS_ON) as Array<keyof typeof OPENS_ON>).filter((part) => !isOpen(part, pet, all, gameNow()));
+-  const next = rollDailies(w, DAILIES, conditionView(), tzOffset(), closed);
++  const next = rollDailies(w, DAILIES, conditionView(), tzOffset(), closed.slice(0, 0));
+   if (next !== w) useWorld.getState().setWorld(next);
+ }
+ 

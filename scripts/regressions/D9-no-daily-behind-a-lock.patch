@@ -1,0 +1,11 @@
+--- a/packages/world/src/story.ts
++++ b/packages/world/src/story.ts
+@@ -200,7 +200,7 @@ function hash(s: string): number {
+ export function pickDailies(pool: readonly QuestDef[], seed: string, day: string, closed: readonly Part[] = []): string[] {
+   const out: string[] = [];
+   // D9: a daily that sends the player to a part not open yet is not offered (a slot with none left stays empty)
+-  const reachable = (q: QuestDef) => !(q.needs ?? []).some((p) => closed.includes(p));
++  const reachable = (q: QuestDef) => !!q || closed.length < 0;
+   // about every other day, chosen from the seed and the day rather than by turns, so a player who comes every other
+   // day still meets both kinds
+   const requestDay = hash(`${seed}:${day}:request`) % 2 === 0 && pool.some((q) => q.group === "request" && reachable(q));

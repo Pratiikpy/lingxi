@@ -32,6 +32,7 @@ import { useGame } from "./store";
 import { useWorld } from "./world";
 import { goalsDone, useGoals } from "./goals";
 import { now as gameNow } from "./gameClock";
+import { OPENS_ON, isOpen, useReveal } from "./reveal";
 
 const tzOffset = () => useGame.getState().pet?.tzOffsetMin ?? -new Date(gameNow()).getTimezoneOffset();
 
@@ -158,9 +159,13 @@ export function takeWeeklyGift(): boolean {
 
 /** Start today's dailies the first time today is seen (and again after midnight while the game is open). */
 export function rollToday(): void {
-  if (!useGame.getState().pet) return;
+  const pet = useGame.getState().pet;
+  if (!pet) return;
   const w = useWorld.getState().world;
-  const next = rollDailies(w, DAILIES, conditionView(), tzOffset());
+  // D9: a day offers no daily behind a part that has not opened yet (the map and bag on day 2, spars on day 3)
+  const all = useReveal.getState().all;
+  const closed = (Object.keys(OPENS_ON) as Array<keyof typeof OPENS_ON>).filter((part) => !isOpen(part, pet, all, gameNow()));
+  const next = rollDailies(w, DAILIES, conditionView(), tzOffset(), closed);
   if (next !== w) useWorld.getState().setWorld(next);
 }
 

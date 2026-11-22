@@ -721,3 +721,20 @@ describe("the world store: what the game counts on its own", () => {
     expect(together()).toBe(1);
   });
 });
+
+describe("today's dailies on a new pet's first day (D9)", () => {
+  it("offer nothing behind the map or the bag; a player who opened everything gets the full three", async () => {
+    const { DAILIES } = await import("@lingxi/world");
+    const needs = (id: string) => DAILIES.find((q) => q.id === id)?.needs ?? [];
+    const { quests, w, arrange } = await open();
+    quests.rollToday();
+    const first = w().world.quests?.today?.offered ?? [];
+    expect(first.length).toBeGreaterThan(0);
+    for (const id of first) expect(needs(id), id).toEqual([]);
+    const { useReveal } = await import("./reveal");
+    useReveal.getState().openAll();
+    arrange((x) => ({ ...x, quests: { ...x.quests!, today: undefined, active: {} } }) as never);
+    quests.rollToday();
+    expect(w().world.quests?.today?.offered).toHaveLength(3);
+  });
+});

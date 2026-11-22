@@ -48,6 +48,7 @@ export const DAILIES: QuestDef[] = [
   }),
   // ── social ──
   d("hello", "social", {
+    needs: ["map"],
     title: T("Say hello", "打个招呼"),
     intro: [say("happy", "Let's say hello to someone today. Anyone who lives around here.", "今天去跟人打个招呼吧。住在附近的谁都行。")],
     outro: [say("sparkly", "They said hello back!", "他们也跟我们打招呼了！")],
@@ -55,6 +56,7 @@ export const DAILIES: QuestDef[] = [
     rewards: [coins(12)],
   }),
   d("gift", "social", {
+    needs: ["bag"],
     title: T("A small gift", "小小礼物"),
     intro: [say("shy", "Can we give someone a little something today? From the bag.", "今天能送谁一点小东西吗？从背包里拿。")],
     outro: [say("love", "Their face! Giving is nice.", "看他们的表情！送东西真好。")],
@@ -62,6 +64,7 @@ export const DAILIES: QuestDef[] = [
     rewards: [coins(12)],
   }),
   d("friend", "social", {
+    needs: ["map"],
     title: T("Visit a friend", "看望朋友"),
     intro: [say("happy", "I miss my friends. Can a friend's pet visit, or can we go and see the pets on Builders' Lane?", "我想朋友了。能让朋友的宠物来玩吗？或者我们去建设者小巷看看那里的宠物？")],
     outro: [say("love", "That was the best part of today.", "这是今天最开心的事。")],
@@ -69,6 +72,7 @@ export const DAILIES: QuestDef[] = [
     rewards: [coins(12)],
   }),
   d("behemoth", "social", {
+    needs: ["map"],
     title: T("Check on Behemoth", "去看看巨兽"),
     intro: [say("neutral", "I wonder what number Behemoth is on right now.", "不知道巨兽现在数到几了。")],
     outro: [say("happy", "Still counting. It never gets tired.", "还在数。它从来不会累。")],
@@ -76,6 +80,7 @@ export const DAILIES: QuestDef[] = [
     rewards: [coins(12)],
   }),
   d("diver", "social", {
+    needs: ["map"],
     title: T("Tell Diver about today", "跟潜水员说说今天"),
     intro: [say("happy", "Let's tell Diver what we did today. Diver likes stories.", "我们去跟潜水员说说今天做了什么吧。潜水员喜欢听故事。")],
     outro: [say("sparkly", "Diver listened to every word.", "潜水员每个字都听了。")],
@@ -91,6 +96,7 @@ export const DAILIES: QuestDef[] = [
     rewards: [coins(10)],
   }),
   d("walk", "explore", {
+    needs: ["map"],
     title: T("A short walk", "散散步"),
     intro: [say("happy", "A short walk? My legs want to go.", "散一小会儿步好吗？我的腿想出门。")],
     outro: [say("happy", "Good walk. I counted the trees. I lost count.", "走得真好。我数了树。数着数着就忘了。")],
@@ -98,6 +104,7 @@ export const DAILIES: QuestDef[] = [
     rewards: [coins(12)],
   }),
   d("rooms", "explore", {
+    needs: ["map"],
     title: T("Somewhere new, somewhere old", "新地方，老地方"),
     intro: [say("neutral", "Three rooms today. Somewhere new, or somewhere we love.", "今天走三个房间。新的地方，或者我们喜欢的老地方。")],
     outro: [say("happy", "Three! My paws are happy.", "三个！我的爪子很开心。")],

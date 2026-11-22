@@ -56,7 +56,12 @@ export interface QuestDef {
   opensWhen?: Text;
   /** for the first quests: the id of the control to point at */
   hint?: string;
+  /** D9: the parts of the game a daily sends the player to (the map, the bag), so a day offers none behind a lock */
+  needs?: readonly Part[];
 }
+
+/** A part of the game that opens on a later day (the web's reveal: the map and bag on day 2, spars on day 3). */
+export type Part = "map" | "bag" | "spar";
 
 export interface QuestBook {
   /** accepted and not yet handed in: when, and the snapshot of its INC objectives */
@@ -192,14 +197,16 @@ function hash(s: string): number {
  * Today's three: one care, one social, one explore, picked from the player's seed and the day. On about half the days
  * the social one is a resident's request instead (G4), so the residents keep asking after their stories end.
  */
-export function pickDailies(pool: readonly QuestDef[], seed: string, day: string): string[] {
+export function pickDailies(pool: readonly QuestDef[], seed: string, day: string, closed: readonly Part[] = []): string[] {
   const out: string[] = [];
+  // D9: a daily that sends the player to a part not open yet is not offered (a slot with none left stays empty)
+  const reachable = (q: QuestDef) => !(q.needs ?? []).some((p) => closed.includes(p));
   // about every other day, chosen from the seed and the day rather than by turns, so a player who comes every other
   // day still meets both kinds
-  const requestDay = hash(`${seed}:${day}:request`) % 2 === 0 && pool.some((q) => q.group === "request");
+  const requestDay = hash(`${seed}:${day}:request`) % 2 === 0 && pool.some((q) => q.group === "request" && reachable(q));
   for (const slot of ["care", "social", "explore"] as const) {
     const g = slot === "social" && requestDay ? "request" : slot;
-    const of = pool.filter((q) => q.kind === "daily" && q.group === g);
+    const of = pool.filter((q) => q.kind === "daily" && q.group === g && reachable(q));
     if (!of.length) continue;
     // requests go round the residents in turn from a place the seed picks, so each day's asker differs from the last
     const dayNo = Math.floor(Date.parse(`${day}T00:00:00Z`) / 86_400_000);
@@ -213,13 +220,13 @@ export function pickDailies(pool: readonly QuestDef[], seed: string, day: string
  * (no accept tap: missing a day costs nothing, and the day's counts start when the day does). The day before
  * keeps its history in `days`. Seeing the same day again changes nothing.
  */
-export function rollDailies(w: WorldState, pool: readonly QuestDef[], v: ConditionView, tzOffsetMin: number): WorldState {
+export function rollDailies(w: WorldState, pool: readonly QuestDef[], v: ConditionView, tzOffsetMin: number, closed: readonly Part[] = []): WorldState {
   const day = localDay(v.now, tzOffsetMin);
   const b = bookOf(w);
   // a day only moves forward: a clock turned back keeps today's dailies rather than offering an earlier day's again; the
   // player's time zone is kept current all the same, so the village follows their own day (D2)
   if (b.today && b.today.day >= day) return w.tz === tzOffsetMin ? w : { ...w, tz: tzOffsetMin };
-  const offered = pickDailies(pool, w.seed, day);
+  const offered = pickDailies(pool, w.seed, day, closed);
   const active = { ...b.active };
   // yesterday's unfinished dailies lapse quietly
   for (const id of b.today?.offered ?? []) delete active[id];

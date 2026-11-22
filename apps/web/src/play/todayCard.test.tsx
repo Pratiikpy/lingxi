@@ -41,6 +41,10 @@ describe("today's errands and the collection on the first screen (G10)", () => {
     // D2: today's village happening, in words, under the card
     const { happeningAt } = await import("@lingxi/world");
     const h = happeningAt(useWorld.getState().world, Date.UTC(2026, 10, 23, 9));
+    // D9: on the pet's first day the map is closed, so the happening (somewhere the map reaches) is not told yet
+    expect(host.querySelector(".village-line")).toBeNull();
+    const { useReveal } = await import("../game/reveal");
+    await act(async () => useReveal.getState().openAll());
     const village = host.querySelector(".village-line")!.textContent!;
     expect(village).toContain("Today in the village");
     expect(village).toMatch(h.kind === "market" ? /Market day/ : h.kind === "lucky" ? /Lucky day/ : /little gift/);

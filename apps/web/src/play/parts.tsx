@@ -1,5 +1,6 @@
 /** The pieces of the game screen: top bar, meters, care buttons, thinking strip, tabs. */
 
+import { isOpen, useReveal } from "../game/reveal";
 import { type ReactNode, useEffect, useMemo } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useVoice } from "../game/voice";
@@ -152,7 +153,7 @@ export function Actions({ pet, absent = false, onFeed, onPlay, onClean, onSleep,
       <EnjoyBar pet={pet} />
       {onToday && onCollection && <TodayCard onToday={onToday} onCollection={onCollection} />}
       <TodayChoices pet={pet} />
-      <VillageLine />
+      <VillageLine pet={pet} />
       <SeasonLine />
     </div>
   );
@@ -238,11 +239,15 @@ function TodayChoices({ pet }: { pet: Pet }) {
 }
 
 /** D2: today's village happening, a different one every day, with what to do about it. */
-function VillageLine() {
+function VillageLine({ pet }: { pet: Pet }) {
   const { lang } = useLang();
   const zh = lang === "zh";
   const world = useWorld((s) => s.world);
+  const all = useReveal((s) => s.all);
   const at = gameNow();
+  // D9: the day's happening is in a room the map reaches (a shop, a lucky room, a resident's house), so it is told
+  // from the day the map opens, never pointing a new player at a lock
+  if (!isOpen("map", pet, all, at)) return null;
   const h = happeningAt(world, at);
   const done = happeningUsed(world, at);
   const name = (i: number) => ITEM[i]?.name[zh ? "zh" : "en"] ?? "";

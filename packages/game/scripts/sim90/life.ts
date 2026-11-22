@@ -59,6 +59,7 @@ import {
 import type { StarterLine } from "@lingxi/brain";
 import {
   type Brain,
+  dayOf,
   type Care,
   type CareResult,
   type Fighter,
@@ -476,7 +477,10 @@ export class Life {
   quests(t: number): void {
     this.flush();
     const tz = this.pet.tzOffsetMin;
-    this.world = rollDailies(this.world, DAILIES, viewOf(this.world, this.pet, t), tz);
+    // D9: as the web does, no daily behind a part not open yet (the map and bag on the pet's day 2, spars on day 3)
+    const petDay = dayOf(this.pet, t);
+    const closed = ([["map", 2], ["bag", 2], ["spar", 3]] as const).filter(([, d]) => petDay < d).map(([p]) => p);
+    this.world = rollDailies(this.world, DAILIES, viewOf(this.world, this.pet, t), tz, closed);
     if (weeklyGiftsWaiting(this.world) > 0) {
       const r = claimWeekly(this.world, WEEKLY_GIFT);
       if (r.ok) this.world = r.world;
