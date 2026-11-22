@@ -145,6 +145,7 @@ export function playType(type: PlayerType, seed: number, days: number, tap?: Tap
   const seenRecipes = new Set<number>();
   const seenFinds = new Set<string>();
   const seenRequests = new Set<string>();
+  const seenHappenings = new Set<string>();
   const thingsLeft: number[] = [];
   let last = { xp: 0, met: 0, keepsakes: 0, season: "", earned: life.coinsEarned(), spent: life.coinsSpent(), visited: life.world.visited.length, stage: "", capacity: 0, tiers: 0, form: false };
   let level99Day: number | null = null;
@@ -188,8 +189,12 @@ export function playType(type: PlayerType, seed: number, days: number, tap?: Tap
     const freshRequest = request !== null && !seenRequests.has(request);
     if (request) seenRequests.add(request);
     const season = worldSeasonAt(midnight).id;
+    // D2: the village's happening, a different one every day
+    const happening = life.happeningId(midnight + 12 * 3_600_000);
+    const freshHappening = !seenHappenings.has(happening);
+    seenHappenings.add(happening);
     thingsLeft.push(life.thingsLeft(end));
-    const g4 = met - last.met + (life.keepsakes - last.keepsakes) + (freshRequest ? 1 : 0) + (last.season && season !== last.season ? 1 : 0);
+    const g4 = met - last.met + (life.keepsakes - last.keepsakes) + (freshRequest ? 1 : 0) + (last.season && season !== last.season ? 1 : 0) + (freshHappening ? 1 : 0);
     const newThings = g4 + quests.length + recipes.length + finds.length + (visited - last.visited) + (stage !== last.stage ? 1 : 0) + (capacity > last.capacity ? 1 : 0) + Math.max(0, tiers - last.tiers) + (form && !last.form ? 1 : 0);
     const xp = life.xpTotal();
     const earned = life.coinsEarned();

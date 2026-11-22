@@ -3158,3 +3158,28 @@
   font-weight: 700;
   color: #c9542f;
 }
+/* D2: the village's gift in a resident's talk */
+.talk-gift {
+  margin: 6px 0 0;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, #ffd45e 26%, var(--card));
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+/* D2: today's village happening */
+.village-line {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+.village-line b {
+  color: var(--ink);
+}
+.village-line.done {
+  opacity: 0.7;
+}

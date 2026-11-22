@@ -21,3 +21,4 @@ export * from "./folk";
 export * from "./greeting";
 export * from "./legacy";
 export * from "./worth";
+export * from "./village";

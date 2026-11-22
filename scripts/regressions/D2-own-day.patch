@@ -1,0 +1,11 @@
+--- a/packages/world/src/story.ts
++++ b/packages/world/src/story.ts
+@@ -232,7 +232,7 @@ export function rollDailies(w: WorldState, pool: readonly QuestDef[], v: Conditi
+       ),
+     };
+   }
+-  return { ...w, tz: tzOffsetMin, quests: { ...b, active, today: { day, offered, done: [] } } };
++  return { ...w, quests: { ...b, active, today: { day, offered, done: [] } } };
+ }
+ 
+ /** Weekly gifts waiting: one for every seven days with a finished daily, any seven, never a streak. */

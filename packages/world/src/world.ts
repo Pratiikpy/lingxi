@@ -240,6 +240,9 @@ export interface WorldState {
   walk?: { startedAt: number; steps: number; sensor: boolean; finds: Array<{ item: number; n: number }> };
   walksDay?: number;
   walksToday?: number;
+  /** D2: the player's time zone (minutes east of UTC), saved when the day's errands are rolled, and the day's happening used */
+  tz?: number;
+  village?: { day: string; used: boolean };
   /** the day (UTC day number) and the rooms entered on it, for Wanderer's and Rich Finds' first-entry find (G6) */
   roomsDay?: number;
   roomsToday?: number[];

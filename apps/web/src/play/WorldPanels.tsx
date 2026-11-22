@@ -6,7 +6,7 @@ import { play } from "../game/sound";
 import { FRESH_START_TEA, useSkillsUi } from "./Skills";
 import { useMemo, useState } from "react";
 import { stageOf } from "@lingxi/game";
-import { BOX_TABLES, CORNER_SHOP, DECOR_BY_ID, HOME, ITEM, MAKE_RECIPES, PIECE_PRICES, QUESTS, RECIPES, ROOMS, STORY, type Buff, type Recipe, craftBlocker, has, knownTravelRecipes, neighbours, ownedPieces, questState, usedOf } from "@lingxi/world";
+import { BOX_TABLES, CORNER_SHOP, DECOR_BY_ID, HOME, ITEM, MAKE_RECIPES, PIECE_PRICES, QUESTS, RECIPES, ROOMS, STORY, type Buff, type Recipe, craftBlocker, has, knownTravelRecipes, neighbours, ownedPieces, questState, usedOf, MARKET_ROOM, happeningAt, happeningUsed } from "@lingxi/world";
 import { WEARABLE } from "@lingxi/art";
 import { useLang, useT, type Key } from "../i18n";
 import { useChain } from "../game/chain";
@@ -30,6 +30,8 @@ export function noticeText(nt: WorldNotice, t: ReturnType<typeof useT>, lang: "e
   }
   if (nt.kind === "found" && nt.secret)
     return lang === "zh" ? `找到了 ${itemList(nt.items, lang)}。这里越来越熟悉了，还发现了一样藏着的东西！` : `Found ${itemList(nt.items, lang)}. This place knows you now, and showed you something hidden!`;
+  if (nt.kind === "found" && nt.text === "lucky")
+    return lang === "zh" ? `找到了 ${itemList(nt.items, lang)}。今天是这里的幸运日，多找到了一样！` : `Found ${itemList(nt.items, lang)}. It's this room's lucky day: one more find!`;
   if (nt.kind === "found") return t("world.found", { items: itemList(nt.items, lang) });
   if (nt.kind === "readied") return lang === "zh" ? `${itemList(nt.items, lang)}准备好了，下次会用上。` : `${itemList(nt.items, lang)} is ready for next time.`;
   if (nt.kind === "made" && nt.xp) return lang === "zh" ? `做好了 ${itemList(nt.items, lang)}。经验 +${nt.xp}。` : `Made ${itemList(nt.items, lang)}. +${nt.xp} experience.`;
@@ -187,6 +189,7 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
     <div className="bag">
       <p className="coins">{t("bag.coins", { n: world.coins })}</p>
       <GardenPanel />
+      <MarketStall />
       {room.shop.length > 0 && (
         <section>
           <p className="label">{t("bag.shop")}</p>
@@ -409,3 +412,32 @@ export function QuestPanel() {
 }
 
 export const HOME_ROOM = HOME;
+
+/** D2: on a market day, the Corner Shop's stall with the day's rare thing (sold once, while the day lasts). */
+function MarketStall() {
+  const { lang } = useLang();
+  const zh = lang === "zh";
+  const world = useWorld((s) => s.world);
+  const buyMarket = useWorld((s) => s.buyMarket);
+  const h = happeningAt(world, now());
+  if (h.kind !== "market" || world.room !== MARKET_ROOM) return null;
+  const it = ITEM[h.item]!;
+  const sold = happeningUsed(world, now());
+  return (
+    <section className="market-stall">
+      <p className="label">{zh ? "今天的集市摊" : "Today's market stall"}</p>
+      <ul className="bag-list">
+        <li className="bag-item">
+          <img className="pixel" src={it.art} alt="" width={40} height={40} />
+          <div className="bag-text">
+            <b>{it.name[zh ? "zh" : "en"]}</b>
+            <span>{zh ? "只在今天卖，平时只能找到。" : "On sale today only; any other day it has to be found."}</span>
+          </div>
+          <button type="button" className="btn primary" disabled={sold || world.coins < h.price} onClick={() => buyMarket()}>
+            {sold ? (zh ? "已买" : "Bought") : `${zh ? "买" : "Buy"} · ${h.price}`}
+          </button>
+        </li>
+      </ul>
+    </section>
+  );
+}

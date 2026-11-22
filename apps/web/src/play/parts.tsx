@@ -7,7 +7,7 @@ import { decidingPart, mindForPet } from "../game/store";
 import { useWorld } from "../game/world";
 import { useBadges } from "../game/badges";
 import { useAlbum } from "./Album";
-import { DECOR, QUESTLINE } from "@lingxi/world";
+import { CHARACTERS, DECOR, ITEM, QUESTLINE, ROOMS, happeningAt, happeningUsed } from "@lingxi/world";
 import { BADGES, ENJOY_MAX, ENJOY_PER_CARE, type Pet, VISITORS, tierOf, beatOf, dayChoices, nextWorldSeason, rewind, worldSeasonAt, canLevelUp, dayOf, growthOf, kinshipNow, stageOf, visibleMeters } from "@lingxi/game";
 import { levelUpNow, useSkillsUi } from "./Skills";
 import { useLang, useT, type Key } from "../i18n";
@@ -151,6 +151,7 @@ export function Actions({ pet, absent = false, onFeed, onPlay, onClean, onSleep,
       <EnjoyBar pet={pet} />
       {onToday && onCollection && <TodayCard onToday={onToday} onCollection={onCollection} />}
       <TodayChoices pet={pet} />
+      <VillageLine />
       <SeasonLine />
     </div>
   );
@@ -223,6 +224,35 @@ function TodayChoices({ pet }: { pet: Pet }) {
         </span>
       ))}
       {day.taught > 0 && <span className="tc-taught">{zh ? `其中 ${day.taught} 次是因为你教过` : `${day.taught} because you taught it`}</span>}
+    </p>
+  );
+}
+
+/** D2: today's village happening, a different one every day, with what to do about it. */
+function VillageLine() {
+  const { lang } = useLang();
+  const zh = lang === "zh";
+  const world = useWorld((s) => s.world);
+  const at = gameNow();
+  const h = happeningAt(world, at);
+  const done = happeningUsed(world, at);
+  const name = (i: number) => ITEM[i]?.name[zh ? "zh" : "en"] ?? "";
+  const text =
+    h.kind === "market"
+      ? zh
+        ? `集市日：街角小店今天卖${name(h.item)}，${h.price} 金币。`
+        : `Market day: the Corner Shop sells ${name(h.item)} today, ${h.price} coins.`
+      : h.kind === "lucky"
+        ? zh
+          ? `${ROOMS[h.room]?.name.zh ?? ""}的幸运日：今天第一次在那里四处找找会多找到一样。`
+          : `Lucky day at the ${ROOMS[h.room]?.name.en ?? ""}: your first look around there today finds one more thing.`
+        : zh
+          ? `${CHARACTERS.find((c) => c.id === h.who)?.name.zh ?? ""}今天给你准备了小礼物，去说说话吧。`
+          : `${CHARACTERS.find((c) => c.id === h.who)?.name.en ?? ""} has a little gift for you today. Go and say hello.`;
+  return (
+    <p className={`village-line${done ? " done" : ""}`}>
+      <b>{zh ? "今天的村子" : "Today in the village"}</b> · {text}
+      {done && <span>{zh ? "（已经领到了）" : " (done)"}</span>}
     </p>
   );
 }

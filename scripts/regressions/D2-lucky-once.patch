@@ -1,0 +1,11 @@
+--- a/packages/world/src/village.ts
++++ b/packages/world/src/village.ts
+@@ -116,7 +116,7 @@ export function takeVillageGift(w: WorldState, who: string, now: number): WorldR
+ /** Whether a look around here and now gets the lucky room's extra find (and so uses the day's happening). */
+ export const luckyHere = (w: WorldState, now: number): boolean => {
+   const h = happeningAt(w, now);
+-  return h.kind === "lucky" && h.room === w.room && !happeningUsed(w, now);
++  return h.kind === "lucky" && h.room === w.room;
+ };
+ 
+ /** A small, stable hash (FNV-1a) of the seed, room and day, for the lucky room's extra find. */

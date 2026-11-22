@@ -330,12 +330,12 @@ export const BALANCE_TARGETS: readonly BalanceTarget[] = [
     met: (n) => !!n.alone?.length && n.alone.every((a) => a.firstSickHours === null || a.firstSickHours >= 96),
   },
   {
-    id: "things-left-every-day",
-    what: "Something left to do every day through day 90",
-    target: "for every player type, the things left to do (open story quests and dailies, Builder's commissions and garden plots the pet is old enough for) stay above zero at the end of every day from 1 to 90; the days that brought nothing new are shown beside",
+    id: "new-every-day",
+    what: "Something new or changing every day through day 90",
+    target: "for every player type, every day from 1 to 90 brings at least one new or changing thing (plan 38 section 2), and something left that can be done that day (open story quests and dailies, today's village happening, a commission or plot the pet is old enough for and the player can pay for)",
     owner: "G4",
-    value: (n) => types(n).map((p) => `${p.type} at least ${p.fewestThingsLeft ?? "?"} left (${p.daysWithNothingNew} days with nothing new)`).join(", "),
-    met: (n) => types(n).every((p) => (p.fewestThingsLeft ?? 0) > 0),
+    value: (n) => types(n).map((p) => `${p.type} ${p.daysWithNothingNew} days with nothing new, at least ${p.fewestThingsLeft ?? "?"} left`).join(", "),
+    met: (n) => types(n).every((p) => p.daysWithNothingNew === 0 && (p.fewestThingsLeft ?? 0) > 0),
   },
   {
     id: "gate-budget-binds",

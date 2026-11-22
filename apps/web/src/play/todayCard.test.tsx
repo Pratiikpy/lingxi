@@ -38,6 +38,12 @@ describe("today's errands and the collection on the first screen (G10)", () => {
     const collect = host.querySelector(".tcard-collect")!;
     expect(collect.textContent).toContain(`${2 + 0 + 2}/${VISITORS.length + BADGES.length + DECOR.length}`);
     expect(collect.getAttribute("aria-label")).toContain("visitors 2/");
+    // D2: today's village happening, in words, under the card
+    const { happeningAt } = await import("@lingxi/world");
+    const h = happeningAt(useWorld.getState().world, Date.UTC(2026, 10, 23, 9));
+    const village = host.querySelector(".village-line")!.textContent!;
+    expect(village).toContain("Today in the village");
+    expect(village).toMatch(h.kind === "market" ? /Market day/ : h.kind === "lucky" ? /Lucky day/ : /little gift/);
     await act(async () => (errands as HTMLButtonElement).click());
     expect(opened).toBe("today");
     await act(async () => (collect as HTMLButtonElement).click());

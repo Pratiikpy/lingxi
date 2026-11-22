@@ -99,6 +99,11 @@ export function Talk({ who, visiting = false, onFace, onAction, onClose }: { who
   useEffect(() => {
     noteTallies(talkTally(who.id));
   }, [who.id]);
+  // D2: on a gift day, the resident whose day it is hands over a little something
+  const [villageGift, setVillageGift] = useState<number | null>(null);
+  useEffect(() => {
+    setVillageGift(useWorld.getState().villageGift(who.id));
+  }, [who.id]);
   const text = line ? line[lang] : "";
 
   useEffect(() => {
@@ -201,6 +206,11 @@ export function Talk({ who, visiting = false, onFace, onAction, onClose }: { who
         </span>
         {done && (!lastLine || ending) && <span className="talk-more" aria-hidden="true">▼</span>}
       </button>
+      {villageGift !== null && (
+        <p className="talk-gift" role="status">
+          {lang === "zh" ? `${who.name.zh}送了你今天的小礼物：${ITEM[villageGift]?.name.zh ?? ""}。` : `${who.name.en} gave you today's little gift: ${ITEM[villageGift]?.name.en ?? ""}.`}
+        </p>
+      )}
       {showChoices && offering && (
         <div className="talk-choices">
           <button type="button" className="talk-choice go" onClick={() => accept(true)}>

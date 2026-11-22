@@ -36,6 +36,9 @@ import {
   craftBlocker,
   earn,
   paySpar,
+  happeningAt,
+  happeningUsed,
+  luckyFind,
   COMMISSIONS,
   nextPlot,
   stageReached,
@@ -402,14 +405,21 @@ export class Life {
     return true;
   }
   /** Look around the room the pet is in (the client's forage); what was found, or null when the room would not allow it. */
+  /** today's village happening (D2): its id, for the simulator's "something new or changing" */
+  happeningId(t: number): string {
+    return happeningAt(this.world, t).id;
+  }
   lookAround(t: number): Array<{ item: number; n: number }> | null {
     const mods = exploreMods(this.pet.growth);
     const kin = affinitiesOf(this.pet.line, ((this.pet.instincts ?? 0) & 1) === 1);
     const r = forage(this.world, t, this.energy(), mods, kin);
     if (!r.ok) return null;
     this.world = r.world;
+    // the village's lucky room, as the client's forage takes it (D2)
+    const lucky = luckyFind(this.world, t, mods);
+    if (lucky.ok) this.world = lucky.world;
     this.set(exert(this.pet, mods.forageEnergy, t, this.brain()));
-    return r.found;
+    return lucky.ok ? [...r.found, { item: lucky.item, n: 1 }] : r.found;
   }
 
   /** To Praline's for meals and home again, if the pet has the energy for both ways; the most food per coin first. */
@@ -617,9 +627,13 @@ export class Life {
     const story = STORY.filter((q) => ["available", "active", "ready"].includes(questStatus(q, this.world, v))).length;
     const stage = stageOf(this.pet, t);
     const owned = this.world.decor?.owned ?? [];
-    const commissions = COMMISSIONS.filter((d) => !owned.includes(d.id) && stageReached(stage, d.commission!.stage)).length;
+    // D2: only what can be done today: a commission or plot the pet is old enough for and the player can pay for, and
+    // today's village happening while it is unused
+    const coins = this.world.coins;
+    const commissions = COMMISSIONS.filter((d) => !owned.includes(d.id) && stageReached(stage, d.commission!.stage) && coins >= d.price).length;
     const plot = nextPlot(this.world);
-    return story + this.dailiesOpen() + commissions + (plot && stageReached(stage, plot.stage) ? 1 : 0);
+    const village = happeningUsed(this.world, t) ? 0 : 1;
+    return story + this.dailiesOpen() + commissions + (plot && stageReached(stage, plot.stage) && coins >= plot.price ? 1 : 0) + village;
   }
   /** today's resident request, if today offers one (G4) */
   requestToday(): string | null {

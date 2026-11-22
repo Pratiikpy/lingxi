@@ -1,0 +1,10 @@
+--- a/packages/world/src/village.ts
++++ b/packages/world/src/village.ts
+@@ -108,7 +108,6 @@ export function buyMarket(w: WorldState, now: number): WorldResult<{ item: numbe
+ export function takeVillageGift(w: WorldState, who: string, now: number): WorldResult<{ item: number }> {
+   const h = happeningAt(w, now);
+   if (h.kind !== "gift" || h.who !== who) return { ok: false, reason: "noGift" };
+-  if (happeningUsed(w, now)) return { ok: false, reason: "already" };
+   const bag = { ...w.bag, [h.item]: (w.bag[h.item] ?? 0) + 1 };
+   return { ok: true, item: h.item, world: bumpAll(used({ ...w, bag }, now), [["VILLAGE", 0, 1]]) };
+ }

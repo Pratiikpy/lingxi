@@ -70,8 +70,8 @@ export const BALANCE_MEASURED: BalanceMeasured = {
       "value": "gentle 168 h, bold 168 h, curious 168 h",
       "status": "met"
     },
-    "things-left-every-day": {
-      "value": "once at least 3 left (26 days with nothing new), three at least 1 left (26 days with nothing new), weekend at least 2 left (32 days with nothing new), tapper at least 1 left (28 days with nothing new), grinder at least 1 left (25 days with nothing new)",
+    "new-every-day": {
+      "value": "once 0 days with nothing new, at least 4 left, three 0 days with nothing new, at least 2 left, weekend 0 days with nothing new, at least 3 left, tapper 0 days with nothing new, at least 2 left, grinder 0 days with nothing new, at least 2 left",
       "status": "met"
     },
     "gate-budget-binds": {

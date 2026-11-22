@@ -4,7 +4,7 @@
  * pet; food from the bag goes through the game rules like any care.
  */
 
-import { deleteLook as deleteLookRule, renameLook as renameLookRule, saveLook as saveLookRule, wearLook as wearLookRule, buyDecor as buyDecorRule, payReward as payRewardRule, commissionDecor as commissionDecorRule, digPlot as digPlotRule, placeDecor as placeDecorRule, removeDecor as removeDecorRule, COMPOST, compostFromClean, harvest as harvestRule, plant as plantRule, startWalk as startWalkRule, stepWalk as stepWalkRule, endWalk as endWalkRule, startTrip as startTripRule, endTrip as endTripRule, make as makeRule, buyPiece as buyPieceRule, wear as wearRule, giveLaurel as giveLaurelRule } from "@lingxi/world";
+import { deleteLook as deleteLookRule, renameLook as renameLookRule, saveLook as saveLookRule, wearLook as wearLookRule, buyDecor as buyDecorRule, payReward as payRewardRule, buyMarket as buyMarketRule, luckyFind as luckyFindRule, takeVillageGift as takeVillageGiftRule, commissionDecor as commissionDecorRule, digPlot as digPlotRule, placeDecor as placeDecorRule, removeDecor as removeDecorRule, COMPOST, compostFromClean, harvest as harvestRule, plant as plantRule, startWalk as startWalkRule, stepWalk as stepWalkRule, endWalk as endWalkRule, startTrip as startTripRule, endTrip as endTripRule, make as makeRule, buyPiece as buyPieceRule, wear as wearRule, giveLaurel as giveLaurelRule } from "@lingxi/world";
 import { useBadges } from "./badges";
 import { create } from "zustand";
 import { wearableOf } from "@lingxi/art";
@@ -94,6 +94,10 @@ interface WorldStore {
   move: (to: number) => boolean;
   forage: () => void;
   buy: (item: number) => void;
+  /** D2: today's market item at the Corner Shop */
+  buyMarket: () => void;
+  /** D2: today's resident gift, when talking to that resident; the item given, or null */
+  villageGift: (who: string) => number | null;
   craft: (recipe: number) => void;
   use: (item: number) => void;
   openBox: (box?: number) => void;
@@ -204,9 +208,31 @@ export const useWorld = create<WorldStore>((set, get) => ({
       return set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
     }
     tirePet(mods.forageEnergy);
-    save(r.world);
+    // D2: on the village's lucky day, the first look around in its room finds one more thing
+    const lucky = luckyFindRule(r.world, now(), mods);
+    const after = lucky.ok ? lucky.world : r.world;
+    const found = lucky.ok ? [...r.found.filter((f) => f.item !== lucky.item), { item: lucky.item, n: (r.found.find((f) => f.item === lucky.item)?.n ?? 0) + 1 }] : r.found;
+    save(after);
     play("success");
-    set({ world: r.world, notice: { id: ++n, kind: "found", items: r.found, ...(r.familiar?.filled ? { secret: true } : {}) } });
+    set({ world: after, notice: { id: ++n, kind: "found", items: found, ...(r.familiar?.filled ? { secret: true } : {}), ...(lucky.ok ? { text: "lucky" } : {}) } });
+  },
+  buyMarket: () => {
+    const r = buyMarketRule(get().world, now());
+    if (!r.ok) {
+      play("error");
+      return set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
+    }
+    save(r.world);
+    play("pop");
+    set({ world: r.world, notice: { id: ++n, kind: "bought", items: [{ item: r.item, n: 1 }] } });
+  },
+  villageGift: (who) => {
+    const r = takeVillageGiftRule(get().world, who, now());
+    if (!r.ok) return null;
+    save(r.world);
+    play("sparkle");
+    set({ world: r.world });
+    return r.item;
   },
   buy: (item) => {
     const r = buyItem(get().world, item);

@@ -1,0 +1,11 @@
+--- a/packages/world/src/village.ts
++++ b/packages/world/src/village.ts
+@@ -73,7 +73,7 @@ export const VILLAGE_GIFTS: ReadonlyArray<{ who: string; item: number }> = (() =
+ export function happeningOn(day: string): Happening {
+   const n = Math.floor((Date.parse(`${day}T00:00:00Z`) - EPOCH) / DAY);
+   const kind = (["market", "lucky", "gift"] as const)[((n % 3) + 3) % 3]!;
+-  const k = ((Math.floor(n / 3) % VILLAGE_VARIETY) + VILLAGE_VARIETY) % VILLAGE_VARIETY;
++  const k = 0;
+   if (kind === "market") {
+     const m = MARKET_ITEMS[k % MARKET_ITEMS.length]!;
+     return { kind, id: `market:${m.item}`, day, item: m.item, price: m.price };
