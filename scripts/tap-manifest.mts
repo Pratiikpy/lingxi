@@ -22,7 +22,9 @@ import { type Address, type Hex, createPublicClient, createWalletClient, formatE
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { xLayer } from "viem/chains";
 import { MAX_DELEGATION_S, delegationDigest, recoverDigest } from "../services/api/src/tap";
-import { manifestMethods } from "../services/api/src/tapMethods";
+import { manifestMethods, toolMethods } from "../services/api/src/tapMethods";
+import { MCP_TOOLS } from "../services/api/src/mcpToolDefs";
+import { hiddenText, toolsDigest } from "../services/api/src/tapTools";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "..");
@@ -30,6 +32,17 @@ const secrets = resolve(root, "../.secrets");
 const OUT = resolve(root, "apps/web/public/.well-known/tapeapi.json");
 export const MANIFEST_KEY = ".well-known/tapeapi.json";
 const LIVE = "https://lingxi.knole.me/api/v1";
+const MCP_ENDPOINT = "https://lingxi.knole.me/mcp";
+/** A delegation with at least this long left is kept when the manifest is rewritten, so the holder signs rarely. */
+const KEEP_DELEGATION_DAYS = 90;
+const allMethods = () => [...manifestMethods(), ...toolMethods(MCP_TOOLS as never)];
+function toolsPin(): string {
+  const problems = hiddenText(MCP_TOOLS);
+  if (problems.length) throw new Error(`the MCP tools carry hidden text (TAP-15 §3.4): ${problems.join("; ")}`);
+  const sha = toolsDigest(MCP_TOOLS);
+  if (!sha) throw new Error("the MCP tools have no digest (TAP-15 §3.2)");
+  return sha;
+}
 const CIRCUIT = 1n;
 /** How long a delegation runs before it is renewed: half a year, inside TAP-11's 366 days. */
 const DELEGATION_DAYS = 183;
@@ -70,13 +83,22 @@ function signerKey(): Hex {
 async function write(): Promise<void> {
   const { container, holder } = await identity();
   const signer = privateKeyToAccount(signerKey()).address;
-  const deployer = privateKeyToAccount(readEnv(resolve(secrets, "deployer.env")).DEPLOYER_PRIVATE_KEY as Hex);
-  if (deployer.address !== holder) throw new Error(`circuit #${CIRCUIT}'s holder is ${holder}, not the project wallet: the holder must sign the delegation`);
-  const expires = Math.floor(Date.now() / 1000) + DELEGATION_DAYS * 86_400;
-  const digest = delegationDigest(xLayer.id, container, signer, expires);
-  // TAP-11 §4.2: the holder signs the EIP-712 digest itself, with no personal_sign prefix
-  const sig = await deployer.sign({ hash: digest });
-  if ((await recoverDigest(digest, sig)) !== holder) throw new Error("the delegation does not recover to the holder");
+  // a delegation already written for this container and signer, with long enough left, is kept
+  const now = Math.floor(Date.now() / 1000);
+  const old = existsSync(OUT) ? (JSON.parse(readFileSync(OUT, "utf8")) as Partial<Manifest>) : {};
+  let expires: number;
+  let sig: Hex;
+  if (old.container === container && old.signer === signer && old.delegation && old.delegation.expires > now + KEEP_DELEGATION_DAYS * 86_400 && (await recoverDigest(delegationDigest(xLayer.id, container, signer, old.delegation.expires), old.delegation.sig)) === holder) {
+    ({ expires, sig } = old.delegation);
+  } else {
+    const deployer = privateKeyToAccount(readEnv(resolve(secrets, "deployer.env")).DEPLOYER_PRIVATE_KEY as Hex);
+    if (deployer.address !== holder) throw new Error(`circuit #${CIRCUIT}'s holder is ${holder}, not the project wallet: the holder must sign the delegation`);
+    expires = now + DELEGATION_DAYS * 86_400;
+    const digest = delegationDigest(xLayer.id, container, signer, expires);
+    // TAP-11 §4.2: the holder signs the EIP-712 digest itself, with no personal_sign prefix
+    sig = await deployer.sign({ hash: digest });
+    if ((await recoverDigest(digest, sig)) !== holder) throw new Error("the delegation does not recover to the holder");
+  }
   const manifest = {
     tapeapi: "0.1",
     name: "Lingxi agent API",
@@ -86,13 +108,14 @@ async function write(): Promise<void> {
     signer,
     delegation: { expires, sig },
     endpoints: { live: [LIVE], async: false },
-    methods: manifestMethods(),
+    methods: allMethods(),
+    mcp: { endpoint: MCP_ENDPOINT, toolsSha256: toolsPin() },
   };
   const text = `${JSON.stringify(manifest, null, 2)}\n`;
   if (Buffer.byteLength(text) > 65_536) throw new Error("the manifest is over 64 KiB");
   mkdirSync(dirname(OUT), { recursive: true });
   writeFileSync(OUT, text);
-  console.log(`wrote ${OUT}: container ${container}, signer ${signer}, delegation until ${new Date(expires * 1000).toISOString().slice(0, 10)}, ${manifest.methods.length} methods`);
+  console.log(`wrote ${OUT}: container ${container}, signer ${signer}, delegation until ${new Date(expires * 1000).toISOString().slice(0, 10)}, ${manifest.methods.length} methods, tools ${manifest.mcp.toolsSha256}`);
 }
 
 interface Manifest {
@@ -103,6 +126,7 @@ interface Manifest {
   delegation: { expires: number; sig: Hex };
   endpoints: { live: string[] };
   methods: Array<{ name: string }>;
+  mcp?: { endpoint: string; toolsSha256: string };
 }
 
 async function check(): Promise<Manifest> {
@@ -115,8 +139,9 @@ async function check(): Promise<Manifest> {
   if (!(now < m.delegation.expires && m.delegation.expires <= now + MAX_DELEGATION_S)) bad.push("the delegation has expired or runs too far ahead");
   if ((await recoverDigest(delegationDigest(xLayer.id, container, m.signer, m.delegation.expires), m.delegation.sig)) !== holder) bad.push("the delegation is not the holder's");
   if (privateKeyToAccount(signerKey()).address !== m.signer) bad.push("the signing key in .secrets is not the manifest's signer");
-  const names = manifestMethods().map((x) => x.name);
+  const names = allMethods().map((x) => x.name);
   if (JSON.stringify(m.methods.map((x) => x.name)) !== JSON.stringify(names)) bad.push("the methods differ from the API's");
+  if (m.mcp?.endpoint !== MCP_ENDPOINT || m.mcp.toolsSha256 !== toolsPin()) bad.push("mcp.toolsSha256 is not the digest of the tools the server lists");
   if (bad.length) throw new Error(bad.join("; "));
   console.log(`manifest checks against X Layer: container ${container}, holder ${holder}, signer ${m.signer}, ${m.methods.length} methods`);
   return m;

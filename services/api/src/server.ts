@@ -56,6 +56,8 @@ import { type HomeChain, createHomes } from "./homes";
 import { createAgentStore } from "./agents";
 import { withAgentApi } from "./agentApi";
 import { withTapApi } from "./tapApi";
+import { handleMcp, withMcp } from "./mcp";
+import { MCP_TOOLS } from "./mcpToolDefs";
 import { type Letter, currentLetters, loadLetters } from "./mail";
 import { createPusher, type Pusher } from "./push";
 import { createVoice } from "./voice";
@@ -1122,16 +1124,22 @@ if (isMain) {
     const rpc = rpcMain;
     const chain = chainCtx;
     withAgentApi(app, { agents: createAgentStore(process.env.LINGXI_AGENT_STORE), seasons, ...(chain ? { chain: { ...chain, pub: visitorPub } } : {}) });
+    // the MCP server (TAP-15): reading a pet, running a spar, proposing a lesson
+    const toolDeps = chain ? { chain: { ...chain, pub: visitorPub } } : {};
+    withMcp(app, toolDeps);
     // the same operations as TAP-13 methods, every answer signed by the key the published manifest names (H7)
     const tapKey = readEnvFile(process.env.LINGXI_TAP_KEY_FILE).TAP_SIGNER_PRIVATE_KEY;
     if (tapKey) {
       try {
         const file = process.env.LINGXI_TAP_MANIFEST ?? resolve(dirname(fileURLToPath(import.meta.url)), "../../../apps/web/public/.well-known/tapeapi.json");
-        const manifest = JSON.parse(readFileSync(file, "utf8")) as { container: `0x${string}`; signer: string; delegation: { expires: number } };
+        const manifest = JSON.parse(readFileSync(file, "utf8")) as { container: `0x${string}`; signer: string; delegation: { expires: number }; methods: Array<{ name: string }>; mcp?: { toolsSha256: string } };
         const signer = privateKeyToAccount(tapKey as `0x${string}`);
         if (signer.address !== manifest.signer) throw new Error("the signing key is not the manifest's signer");
         if (manifest.delegation.expires <= Date.now() / 1000) throw new Error("the manifest's delegation has expired");
-        withTapApi(app, { signer, container: manifest.container });
+        // a tool is bound when the manifest lists a method of its name (TAP-15 §4.1); calls are held to its digest
+        const names = manifest.methods.map((m) => m.name).filter((n) => MCP_TOOLS.some((t) => t.name === n));
+        const tools = manifest.mcp ? { sha256: manifest.mcp.toolsSha256, names, mcp: (m: object) => handleMcp(m, toolDeps) } : undefined;
+        withTapApi(app, { signer, container: manifest.container, ...(tools ? { tools } : {}) });
       } catch (e) {
         process.stderr.write(`signed answers off: ${(e as Error).message}
 `);

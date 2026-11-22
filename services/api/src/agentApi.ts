@@ -80,6 +80,61 @@ function summary(r: SparResult) {
   };
 }
 
+type Answer = { status: 200 | 400 | 404 | 503; body: Record<string, unknown> };
+
+/** A spar as the API runs it (GET /api/v1/spar and the MCP tool run_spar): one brain against a partner or rival. */
+export function runSpar(q: { program?: string; p1?: string; chips?: string; vs?: string; seed?: string }): Answer {
+  let me: Fighter;
+  try {
+    if (q.program) {
+      const program = decodeProgram(q.program);
+      const gates = gateCount(compileProgram(program));
+      if (gates > Math.min(MAX_GATES, BRAIN_MAX)) return { status: 400, body: { ok: false, reason: "tooBig", detail: `${gates} gates; the most a pet brain may have is ${MAX_GATES}` } };
+      me = fighterFrom("you", program, SPAR_LEVEL);
+    } else if (q.p1 || q.chips) {
+      me = flyFighter("you", parseFlyBrain(q.p1 ?? q.chips!), SPAR_LEVEL);
+    } else return { status: 400, body: { ok: false, reason: "invalid", detail: "give program=lx1.… or p1=… or chips=a,b,c" } };
+  } catch (e) {
+    return { status: 400, body: { ok: false, reason: "invalid", detail: (e as Error).message } };
+  }
+  const them = opponent(q.vs ?? "");
+  if (!them) return { status: 400, body: { ok: false, reason: "invalid", detail: "vs must be a partner id or fly:<rival>; see /api/v1/partners" } };
+  const seed = q.seed !== undefined ? Number(q.seed) >>> 0 : (Math.random() * 2 ** 32) >>> 0;
+  return { status: 200, body: { ok: true, vs: q.vs, ...summary(fight(CURRENT_SPAR, me, them, seed)) } };
+}
+
+/** A pet on X Layer as the API shows it (GET /api/v1/pets/:id and the MCP tool read_pet). */
+export async function petView(chain: { pub: PublicClient; deployment: Deployment }, id: string): Promise<Answer> {
+  try {
+    const p = await readPet(chain.pub, chain.deployment, BigInt(id));
+    const meta = await readMetadata(chain.pub, chain.deployment, BigInt(id)).catch(() => null);
+    return {
+      status: 200,
+      body: {
+        ok: true,
+        id,
+        owner: p.owner,
+        name: meta?.name ?? "",
+        line: ["gentle", "bold", "curious"][p.line] ?? p.line,
+        processor: p.processor,
+        brainId: p.brainId.toString(),
+        brainBits: p.brainBits,
+        day: p.day,
+        born: p.born,
+        logHash: p.logHash,
+        // the picture PetLook draws on chain, from the registry's own token URI (null if it could not be read)
+        image: meta?.image ?? null,
+        parents: p.parentA ? [p.parentA.toString(), p.parentB.toString()] : [],
+        proof: `${SITE}/verify.html#${id}`,
+        history: `${SITE}/api/pets/${id}/history`,
+        brain: `${SITE}/api/v1/pets/${id}/brain`,
+      },
+    };
+  } catch {
+    return { status: 404, body: { ok: false, reason: "unknown", detail: "no pet with that number" } };
+  }
+}
+
 export function withAgentApi(app: Hono, deps: AgentApiDeps): Hono {
   const limiter = deps.limiter ?? new RateLimiter(240, 3_600_000);
   const guard = (c: Context) => (limiter.take(who(c)) ? null : c.json({ ok: false, reason: "busy" }, 200));
@@ -120,24 +175,8 @@ export function withAgentApi(app: Hono, deps: AgentApiDeps): Hono {
     if (busy) return busy;
     const parsed = SparQuery.safeParse(c.req.query());
     if (!parsed.success) return c.json({ ok: false, reason: "invalid" }, 400);
-    const q = parsed.data;
-    let me: Fighter;
-    try {
-      if (q.program) {
-        const program = decodeProgram(q.program);
-        const gates = gateCount(compileProgram(program));
-        if (gates > Math.min(MAX_GATES, BRAIN_MAX)) return c.json({ ok: false, reason: "tooBig", detail: `${gates} gates; the most a pet brain may have is ${MAX_GATES}` }, 400);
-        me = fighterFrom("you", program, SPAR_LEVEL);
-      } else if (q.p1 || q.chips) {
-        me = flyFighter("you", parseFlyBrain(q.p1 ?? q.chips!), SPAR_LEVEL);
-      } else return c.json({ ok: false, reason: "invalid", detail: "give program=lx1.… or p1=… or chips=a,b,c" }, 400);
-    } catch (e) {
-      return c.json({ ok: false, reason: "invalid", detail: (e as Error).message }, 400);
-    }
-    const them = opponent(q.vs ?? "");
-    if (!them) return c.json({ ok: false, reason: "invalid", detail: "vs must be a partner id or fly:<rival>; see /api/v1/partners" }, 400);
-    const seed = q.seed !== undefined ? Number(q.seed) >>> 0 : (Math.random() * 2 ** 32) >>> 0;
-    return c.json({ ok: true, vs: q.vs, ...summary(fight(CURRENT_SPAR, me, them, seed)) });
+    const r = runSpar(parsed.data);
+    return c.json(r.body, r.status);
   });
 
   app.get("/api/v1/pets/:id", async (c) => {
@@ -146,31 +185,8 @@ export function withAgentApi(app: Hono, deps: AgentApiDeps): Hono {
     if (busy) return busy;
     const id = c.req.param("id");
     if (!/^\d{1,9}$/.test(id) || id === "0") return c.json({ ok: false, reason: "invalid" }, 400);
-    try {
-      const p = await readPet(deps.chain.pub, deps.chain.deployment, BigInt(id));
-      const meta = await readMetadata(deps.chain.pub, deps.chain.deployment, BigInt(id)).catch(() => null);
-      return c.json({
-        ok: true,
-        id,
-        owner: p.owner,
-        name: meta?.name ?? "",
-        line: ["gentle", "bold", "curious"][p.line] ?? p.line,
-        processor: p.processor,
-        brainId: p.brainId.toString(),
-        brainBits: p.brainBits,
-        day: p.day,
-        born: p.born,
-        logHash: p.logHash,
-        // the picture PetLook draws on chain, from the registry's own token URI (null if it could not be read)
-        image: meta?.image ?? null,
-        parents: p.parentA ? [p.parentA.toString(), p.parentB.toString()] : [],
-        proof: `${SITE}/verify.html#${id}`,
-        history: `${SITE}/api/pets/${id}/history`,
-        brain: `${SITE}/api/v1/pets/${id}/brain`,
-      });
-    } catch {
-      return c.json({ ok: false, reason: "unknown", detail: "no pet with that number" }, 404);
-    }
+    const r = await petView(deps.chain, id);
+    return c.json(r.body, r.status);
   });
 
   app.get("/api/v1/pets/:id/brain", async (c) => {

@@ -72,5 +72,16 @@ export const TAP_METHODS: readonly TapMethod[] = [
   { name: "season", params: {}, returns: { ok: "boolean" }, description: "Enter your pet in this week's season, marked as raised by an agent", route: plain("POST", "/api/v1/agents/me/season") },
 ];
 
+/** The descriptors of the MCP tools bound as methods (TAP-15 §4.1): informative; the pinned definitions rule. */
+export const toolMethods = (tools: ReadonlyArray<{ name: string; title: string; description: string; inputSchema: { properties: Record<string, { type?: string }> } }>) =>
+  tools.map((t) => ({
+    name: t.name,
+    priceBEM: "0",
+    params: Object.fromEntries(Object.entries(t.inputSchema.properties).map(([k, v]) => [k, v.type ?? "any"])),
+    returns: { content: "array", structuredContent: "object" },
+    // TAP-11 allows 256 code points: the definition's first sentence, or its title when that is longer
+    description: ((first) => (Array.from(first).length <= 256 ? first : t.title))(t.description.split(/(?<=\.)\s/)[0]!),
+  }));
+
 /** The method descriptors of the manifest (TAP-11 §3.3): every price "0". */
 export const manifestMethods = () => TAP_METHODS.map((m) => ({ name: m.name, priceBEM: "0", params: m.params, returns: m.returns, description: m.description }));

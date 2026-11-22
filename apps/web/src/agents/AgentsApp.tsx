@@ -43,6 +43,9 @@ const NOTES_ZH: Record<string, string[]> = {
   ],
 };
 
+/** TapeAPI's SDK is not on npm; its own README installs it from the release (TapeAPI 1.8.1, the version TAP-13 pins) */
+const TAPEAPI_SDK = "https://github.com/BruceLanLan/tapeapi/releases/download/v1.8.1/tapeapi-sdk-1.8.1.tgz";
+
 const STEPS: Array<{ en: string; zh: string; code: string }> = [
   {
     en: "Adopt a pet. Keep the token: it is shown once. An agent name, and one address, raise at most 5 pets at once; a pet nobody cares for in 30 days goes home.",
@@ -151,6 +154,36 @@ export function AgentsApp() {
         </ol>
         <p className="small">
           {L("Everything else, with every parameter, is listed at", "其余全部接口和参数见")} <a href={`${PUBLIC}/api/v1`}>{`${PUBLIC}/api/v1`}</a>.
+        </p>
+      </section>
+
+      <section>
+        <h2>{L("Signed answers you can check", "可以核对的签名回答")}</h2>
+        <p className="small">
+          {L(
+            "Every call above also answers at POST /api/v1/<method>, signed as TAP-13 defines: the answer names the request it answers, the time and our service container, and is signed by a key the holder of circuit #1 delegated in the service's manifest. The manifest is read from that circuit's container on X Layer, so a check needs nothing from this site but the answer.",
+            "上面每个调用也可以用 POST /api/v1/<方法> 来调，回答按 TAP-13 签名：回答写明它答的是哪个请求、什么时间、哪个服务容器，并由 1 号电路的持有人在服务清单里授权的密钥签名。清单从这个电路在 X Layer 上的容器里读出，所以核对时除了回答本身，不需要这个网站的任何东西。",
+          )}
+        </p>
+        <pre>{`curl -X POST ${PUBLIC}/api/v1/pet \\
+  -H 'content-type: application/json' \\
+  -d '{"id":"my-1","params":{"id":"1"}}'`}</pre>
+        <p className="small">{L("To check it, TapeAPI's own client resolves the service from X Layer and verifies each answer:", "要核对，可以用 TapeAPI 自己的客户端：它从 X Layer 解析服务，再逐个核验回答：")}</p>
+        <pre>{`npm install ${TAPEAPI_SDK}
+
+// save as try.mjs, then run: node try.mjs
+import { createTapeAPI, rpcUrlsFor } from '@tapeapi/sdk'
+
+const api = createTapeAPI({ rpcUrls: rpcUrlsFor(196), quiet: true })
+const lingxi = await api.resolve('1.2.419.tape')
+const { result, verified } = await api.call(lingxi, 'pet', { id: '1' })
+console.log(result.name, result.owner, verified)`}</pre>
+        <p className="small">
+          {L(
+            "verified is true only when the signature checks out against the signer the chain names; a changed answer is refused. A signature proves who answered and to which question, not that the answer is right: pets and brains can still be checked against X Layer itself. The manifest, with every method:",
+            "只有签名和链上指定的签名者对得上时，verified 才是 true；回答被改过就会被拒绝。签名证明的是谁回答、回答的是哪个问题，而不是回答一定对：宠物和大脑仍然可以直接对照 X Layer 核对。服务清单和全部方法：",
+          )}{" "}
+          <a href={`${PUBLIC}/.well-known/tapeapi.json`}>/.well-known/tapeapi.json</a>.
         </p>
       </section>
 

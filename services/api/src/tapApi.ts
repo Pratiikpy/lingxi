@@ -16,6 +16,7 @@ import type { LocalAccount } from "viem/accounts";
 import { CanonError, type Statement, canonical, signStatement, strictParse, wellFormed } from "./tap";
 import { RateLimiter } from "./limit";
 import { TAP_METHODS } from "./tapMethods";
+import { hiddenText, toolsDigest } from "./tapTools";
 import { clientIp } from "./clientIp";
 
 /** The largest request body a method reads; the agent API's own routes take the same (bodyLimits.ts). */
@@ -37,13 +38,22 @@ export interface TapApiDeps {
   container: Address;
   limiter?: RateLimiter;
   now?: () => number;
+  /**
+   * The MCP tools bound as methods (TAP-15 §4): the `toolsSha256` the manifest publishes, which every call is held to,
+   * and the MCP server's message handler (the one /mcp serves).
+   */
+  tools?: { sha256: string; names: readonly string[]; mcp: (msg: object) => Promise<object | null> };
 }
 
-type ErrorCode = "BAD_REQUEST" | "METHOD_NOT_FOUND" | "INTERNAL";
-const STATUS: Record<ErrorCode, number> = { BAD_REQUEST: 400, METHOD_NOT_FOUND: 404, INTERNAL: 500 };
+type ErrorCode = "BAD_REQUEST" | "METHOD_NOT_FOUND" | "INTERNAL" | "TOOLS_CHANGED";
+const STATUS: Record<ErrorCode, number> = { BAD_REQUEST: 400, METHOD_NOT_FOUND: 404, INTERNAL: 500, TOOLS_CHANGED: 409 };
+/** TAP-15 §5.1: the tool list is read again before a call once the last read is older than this. */
+const TOOLS_FRESH_MS = 60_000;
+type Failure = { ok: false; code: ErrorCode; message: string; data?: Record<string, unknown> };
+type Outcome = { ok: true; result: unknown } | Failure;
 
 /** Reads at most `max` bytes of the body: null when it is longer (the rest is never read). */
-async function readCapped(c: Context, max: number): Promise<string | null> {
+export async function readCapped(c: Context, max: number): Promise<string | null> {
   const stream = c.req.raw.body;
   if (!stream) return "";
   const reader = stream.getReader();
@@ -72,6 +82,53 @@ const validId = (v: unknown): v is string => typeof v === "string" && v.length >
 
 export { TAP_METHODS } from "./tapMethods";
 
+/** The last successful read of the MCP server's tool list (TAP-15 §5.1). */
+interface ToolRead {
+  at: number;
+  digest: string | null;
+  hidden: boolean;
+}
+
+/**
+ * A bound tool's call (TAP-15 §4.2, §5.1): held to the published digest, refused while the list carries hidden text,
+ * then `tools/call` on the MCP server, its result signed as `{ content, structuredContent?, isError? }`.
+ */
+async function callBound(tools: NonNullable<TapApiDeps["tools"]>, name: string, args: Record<string, unknown>): Promise<Outcome> {
+  const read = await readTools(tools);
+  if (!read) return { ok: false, code: "INTERNAL", message: "the tool list could not be read" };
+  if (read.digest !== tools.sha256) return { ok: false, code: "TOOLS_CHANGED", message: "the tools differ from the ones the manifest publishes", data: { published: tools.sha256, current: read.digest } };
+  if (read.hidden) return { ok: false, code: "INTERNAL", message: "the tool list carries hidden text" };
+  let out: unknown;
+  try {
+    out = await tools.mcp({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name, arguments: args } });
+  } catch {
+    return { ok: false, code: "INTERNAL", message: "internal error" };
+  }
+  const o = out as { error?: { code?: unknown; message?: unknown }; result?: Record<string, unknown> } | null;
+  if (o?.error) return o.error.code === -32602 ? { ok: false, code: "BAD_REQUEST", message: typeof o.error.message === "string" ? o.error.message : "invalid arguments" } : { ok: false, code: "INTERNAL", message: "internal error" };
+  const r = o?.result;
+  if (!r || !Array.isArray(r.content) || (r.isError !== undefined && typeof r.isError !== "boolean")) return { ok: false, code: "INTERNAL", message: "internal error" };
+  return { ok: true, result: { content: r.content, ...(r.structuredContent !== undefined ? { structuredContent: r.structuredContent } : {}), ...(r.isError !== undefined ? { isError: r.isError } : {}) } };
+}
+
+const toolReads = new WeakMap<object, ToolRead>();
+async function readTools(tools: NonNullable<TapApiDeps["tools"]>): Promise<ToolRead | null> {
+  const last = toolReads.get(tools);
+  if (last && Date.now() - last.at < TOOLS_FRESH_MS) return last;
+  let out: unknown;
+  try {
+    out = await tools.mcp({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} });
+  } catch {
+    // a failed read leaves the state as it was
+    return last ?? null;
+  }
+  const r = (out as { result?: { tools?: unknown } } | null)?.result;
+  if (!r) return last ?? null;
+  const read: ToolRead = { at: Date.now(), digest: toolsDigest(r.tools), hidden: hiddenText(r.tools).length > 0 };
+  toolReads.set(tools, read);
+  return read;
+}
+
 export function withTapApi(app: Hono, deps: TapApiDeps): Hono {
   const limiter = deps.limiter ?? new RateLimiter(240, 3_600_000);
   const now = deps.now ?? (() => Math.floor(Date.now() / 1000));
@@ -79,9 +136,9 @@ export function withTapApi(app: Hono, deps: TapApiDeps): Hono {
     c.json({ ok: false, error: { code: "RATE_LIMITED", message: "too many requests; try again later", data: { retryAfterS: RETRY_AFTER_S } } }, 429, { "retry-after": String(RETRY_AFTER_S) });
 
   /** Signs and sends one envelope; an answer over the cap becomes a signed INTERNAL. */
-  const answer = async (c: Context, id: string, request: Statement["request"], out: { ok: true; result: unknown } | { ok: false; code: ErrorCode; message: string }, sizeLimited = false): Promise<Response> => {
+  const answer = async (c: Context, id: string, request: Statement["request"], out: Outcome, sizeLimited = false): Promise<Response> => {
     const ts = now();
-    const body = out.ok ? out.result : { code: out.code, message: out.message };
+    const body = out.ok ? out.result : { code: out.code, message: out.message, ...(out.data ? { data: out.data } : {}) };
     const st: Statement = { container: deps.container, id, request, ok: out.ok, body, ts };
     const sig = await signStatement(deps.signer, st);
     const env = out.ok ? { id, ok: true, result: body, container: deps.container, ts, sig } : { id, ok: false, error: body, container: deps.container, ts, sig };
@@ -115,6 +172,7 @@ export function withTapApi(app: Hono, deps: TapApiDeps): Hono {
     if (typeof params !== "object" || params === null || Array.isArray(params) || !canonical(params)) return answer(c, id, blank, { ok: false, code: "BAD_REQUEST", message: "params must be a JSON object with a canonical form" });
     const request = { method, params: params as Params };
     if (r.method !== undefined && r.method !== method) return answer(c, id, request, { ok: false, code: "BAD_REQUEST", message: "method differs from the path" });
+    if (deps.tools && deps.tools.names.includes(method)) return answer(c, id, request, await callBound(deps.tools, method, request.params));
     const m = BY_NAME.get(method);
     if (!m) return answer(c, id, request, { ok: false, code: "METHOD_NOT_FOUND", message: `no method ${method}; see the manifest at /.well-known/tapeapi.json` });
     const route = m.route(request.params);

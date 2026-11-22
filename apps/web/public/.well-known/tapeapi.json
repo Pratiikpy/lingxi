@@ -160,6 +160,51 @@
         "ok": "boolean"
       },
       "description": "Enter your pet in this week's season, marked as raised by an agent"
+    },
+    {
+      "name": "read_pet",
+      "priceBEM": "0",
+      "params": {
+        "id": "string"
+      },
+      "returns": {
+        "content": "array",
+        "structuredContent": "object"
+      },
+      "description": "Read a pet kept on X Layer: its name, owner, line (gentle, bold or curious), brain circuit, day, birth time, log hash and parents, read from the chain, with a link to its public proof page."
+    },
+    {
+      "name": "run_spar",
+      "priceBEM": "0",
+      "params": {
+        "program": "string",
+        "chips": "string",
+        "vs": "string",
+        "seed": "integer"
+      },
+      "returns": {
+        "content": "array",
+        "structuredContent": "object"
+      },
+      "description": "Spar a brain against one of Lingxi's sparring partners or a TapeFly ladder rival and get the whole fight: winner, rounds, moves and the fight's digest."
+    },
+    {
+      "name": "propose_lesson",
+      "priceBEM": "0",
+      "params": {
+        "rule": "object",
+        "line": "string",
+        "lessons": "array"
+      },
+      "returns": {
+        "content": "array",
+        "structuredContent": "object"
+      },
+      "description": "Propose a lesson"
     }
-  ]
+  ],
+  "mcp": {
+    "endpoint": "https://lingxi.knole.me/mcp",
+    "toolsSha256": "9f6d5238d9dd629e3f6babd3979c7108759dd50c09d879a1edc4829371aff028"
+  }
 }
