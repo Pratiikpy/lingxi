@@ -51,9 +51,13 @@ describe("the wording the audits corrected stays corrected (A87)", () => {
     expect(home).not.toMatch(/They open here as soon as it does/);
     expect(home).not.toMatch(/一旦接受，这里就会开放/);
     expect(home).not.toMatch(/Letters between homes are coming next/);
-    expect(home.match(/planned over TapeRelay/g)?.length, "every state says Lingxi does not send them yet").toBe(3);
+    // H13 shipped pets' letters over TapeRelay, so no state says they are still planned (H13c)
+    expect(home).not.toMatch(/planned over TapeRelay|计划改走 TapeRelay/);
+    expect(home.match(/Pets' letters travel over TapeRelay instead/g)?.length, "every state says where pets' letters go now").toBe(3);
+    expect(home.match(/宠物的信改走 TapeRelay/g)?.length).toBe(3);
     expect(read("README.md")).not.toMatch(/until the hub accepts circuits from Lingxi's processor/);
     expect(read("README.md")).toMatch(/the hub runs code TapeKit has not approved/);
+    expect(read("README.md")).not.toMatch(/planned over TapeRelay/);
   });
 
   it("A91: the proof page says it asks Sourcify through Lingxi's server, which keeps answers, not live each time", () => {

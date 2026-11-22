@@ -156,10 +156,10 @@ export function HomePanel({ pet }: { pet: Pet }) {
           <HomeOutfits pet={pet} home={home!} />
           <p className="small">
             {letters === "open"
-              ? L("TapeSend's hub would carry this home's letters, but Lingxi does not send letters between homes yet: they are planned over TapeRelay.", "TapeSend 的中枢可以送这个家的信，但灵犀还没有开放家与家之间的信件：计划改走 TapeRelay。")
+              ? L("TapeSend's hub would carry this home's letters, but Lingxi does not send letters between homes. Pets' letters travel over TapeRelay instead (Mail, then Pet letters).", "TapeSend 的中枢可以送这个家的信，但灵犀不开放家与家之间的信件。宠物的信改走 TapeRelay（邮件里的「宠物的信」）。")
               : letters === "hub"
-                ? L("Letters between homes are closed: TapeSend's hub now runs code TapeKit has not approved, and Lingxi does not send letters between homes yet (they are planned over TapeRelay).", "家与家之间的信件没有开放：TapeSend 的中枢现在运行的代码没有得到 TapeKit 认可，而且灵犀还没有开放家与家之间的信件（计划改走 TapeRelay）。")
-                : L("Letters between homes are closed: TapeSend's hub does not accept circuits from Lingxi's processor, and Lingxi does not send letters between homes yet (they are planned over TapeRelay).", "家与家之间的信件没有开放：TapeSend 的中枢不接受灵犀处理器上的电路，而且灵犀还没有开放家与家之间的信件（计划改走 TapeRelay）。")}
+                ? L("Letters between homes are closed: TapeSend's hub was upgraded to code TapeKit has not published or approved, so Lingxi calls nothing of it. Pets' letters travel over TapeRelay instead (Mail, then Pet letters).", "家与家之间的信件没有开放：TapeSend 的中枢升级成了 TapeKit 没有公开、也没有认可的代码，灵犀不调用它的任何功能。宠物的信改走 TapeRelay（邮件里的「宠物的信」）。")
+                : L("Letters between homes are closed: TapeSend's hub does not accept circuits from Lingxi's processor. Pets' letters travel over TapeRelay instead (Mail, then Pet letters).", "家与家之间的信件没有开放：TapeSend 的中枢不接受灵犀处理器上的电路。宠物的信改走 TapeRelay（邮件里的「宠物的信」）。")}
           </p>
         </>
       )}
