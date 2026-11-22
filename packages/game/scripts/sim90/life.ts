@@ -36,6 +36,10 @@ import {
   craftBlocker,
   earn,
   paySpar,
+  COMMISSIONS,
+  nextPlot,
+  stageReached,
+  payReward,
   PLOT_SALE,
   forage,
   knownTravelRecipes,
@@ -90,6 +94,11 @@ import {
   beatOf,
   localHour,
   watchEvent,
+  type Album,
+  addToAlbum,
+  keepsakesFrom,
+  schoolIdsOf,
+  visitorsDuring,
 } from "../../src";
 import { FIRST_ROUND_MS, FIRST_WIN_COINS, ROUND_MS, WIN_COINS, GIVER_ROOM, type TallyEntry, careTally, meetTally, talkTally, fedTally, minuteTally, sparLevel, viewOf, awayTally } from "./client";
 
@@ -210,6 +219,16 @@ export class Life {
   /** The player opens the game: every minute away is replayed with the away surprises, as the client's returnTo does. */
   arrive(t: number): void {
     const seed = this.seedOfPet;
+    // the travelling pets who came by while it was away, as the welcome card counts them, and their keepsakes (G4)
+    const p0 = this.pet;
+    const stage = stageOf(p0, t);
+    const visits = visitorsDuring(awaySeed(p0), p0.beat, beatOf(t), { lessons: schoolIdsOf(p0.lessons), traits: p0.traits, line: p0.line, stage, ...(p0.form ? { form: p0.form } : {}) });
+    if (visits.length) {
+      const kept = keepsakesFrom(this.album, visits);
+      for (const k of kept) this.world = payReward(this.world, k.gift);
+      this.keepsakes += kept.length;
+      this.album = addToAlbum(this.album, visits);
+    }
     // what the pet chose of its own accord, awake, while away counts as the client counts it (store.ts returnTo, G8)
     const wants: Record<string, number> = {};
     this.set(
@@ -585,6 +604,26 @@ export class Life {
   }
   finds(): string[] {
     return Object.keys(this.world.tally ?? {}).filter((k) => k.startsWith("FIND:") && k !== "FIND:0");
+  }
+  /** the visitor album and the keepsakes its visitors left (G4) */
+  album: Album = {};
+  keepsakes = 0;
+  /**
+   * G4: what is left to do at the end of a day: open story quests (taken or ready to take), today's dailies not done,
+   * the Builder's commissions and the garden's next plot the pet is old enough for and has not got.
+   */
+  thingsLeft(t: number): number {
+    const v = viewOf(this.world, this.pet, t);
+    const story = STORY.filter((q) => ["available", "active", "ready"].includes(questStatus(q, this.world, v))).length;
+    const stage = stageOf(this.pet, t);
+    const owned = this.world.decor?.owned ?? [];
+    const commissions = COMMISSIONS.filter((d) => !owned.includes(d.id) && stageReached(stage, d.commission!.stage)).length;
+    const plot = nextPlot(this.world);
+    return story + this.dailiesOpen() + commissions + (plot && stageReached(stage, plot.stage) ? 1 : 0);
+  }
+  /** today's resident request, if today offers one (G4) */
+  requestToday(): string | null {
+    return this.world.quests?.today?.offered.find((id) => id.startsWith("r-")) ?? null;
   }
   coinsEarned(): number {
     return tallyOf(this.world, "COINS_EARNED");

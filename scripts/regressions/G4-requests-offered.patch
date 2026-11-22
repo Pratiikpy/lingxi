@@ -1,0 +1,11 @@
+--- a/packages/world/src/story.ts
++++ b/packages/world/src/story.ts
+@@ -196,7 +196,7 @@ export function pickDailies(pool: readonly QuestDef[], seed: string, day: string
+   const out: string[] = [];
+   // about every other day, chosen from the seed and the day rather than by turns, so a player who comes every other
+   // day still meets both kinds
+-  const requestDay = hash(`${seed}:${day}:request`) % 2 === 0 && pool.some((q) => q.group === "request");
++  const requestDay = hash(`${seed}:${day}:request`) % 2 === 2 && pool.some((q) => q.group === "request");
+   for (const slot of ["care", "social", "explore"] as const) {
+     const g = slot === "social" && requestDay ? "request" : slot;
+     const of = pool.filter((q) => q.kind === "daily" && q.group === g);

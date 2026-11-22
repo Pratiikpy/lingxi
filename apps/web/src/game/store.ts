@@ -50,7 +50,7 @@ export function countCare(kind: Care["kind"], wasAsleep: boolean, r: CareResult)
 }
 import { create } from "zustand";
 import { type Program, type Rule, STARTERS, WANTS, compileProgram, fastBrain, inputField, stateBits } from "@lingxi/brain";
-import { FOODS, careTally, firstThought, lessonTrigger, stagedEvent, type Brain, type Care, type CareResult, type Growth, type Pet, type UpgradeRefusal, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, learnSkill, levelUpPet, liveBeat, mindBrain, respecPet, ruleSkillIds, settleForm, skillRules, stageOf, teach as teachRule, awayEvent, awaySeed, beatOf, watchEvent, instinctBrain, instinctGates, INSTINCT_MAX_GATES, MAX_MIND_STATE, type OutsideInstinct, instinctFits, stripHidden, withSegment, boundLog, ruleGrowth, type Mind } from "@lingxi/game";
+import { FOODS, careTally, firstThought, lessonTrigger, stagedEvent, type Brain, type Care, type CareResult, type Growth, type Pet, type UpgradeRefusal, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, learnSkill, levelUpPet, liveBeat, mindBrain, respecPet, ruleSkillIds, settleForm, skillRules, stageOf, teach as teachRule, mentorLesson, awayEvent, awaySeed, beatOf, watchEvent, instinctBrain, instinctGates, INSTINCT_MAX_GATES, MAX_MIND_STATE, type OutsideInstinct, instinctFits, stripHidden, withSegment, boundLog, ruleGrowth, type Mind } from "@lingxi/game";
 import type { StarterLine } from "@lingxi/brain";
 import { takeComfort } from "./comfort";
 
@@ -219,6 +219,8 @@ interface GameState {
   /** add a lesson; returns why not when refused */
   /** teach a lesson; it goes on top (asked first) unless placed at the bottom */
   learn: (rule: Rule, at?: "top" | "bottom") => { ok: true } | { ok: false; reason: string; detail: string };
+  /** G4: the active pet, an elder, passes one of its lessons to one of its own children (by roster index) */
+  mentor: (childIndex: number, lessonIndex: number) => { ok: true } | { ok: false; reason: string; detail: string };
   /** a full pet learns a lesson in place of one it knows (H5): all or nothing, so a refusal changes nothing */
   swapLesson: (index: number, rule: Rule) => { ok: true } | { ok: false; reason: string; detail: string };
   arrange: (index: number, move: "up" | "down" | "forget") => void;
@@ -448,6 +450,21 @@ export const useGame = create<GameState>((set, get) => ({
     const trigger = lessonTrigger(rule);
     set({ pet: after, pets: roster.pets, lastCare: { kind: "learn", at: performance.now() }, toast: { id: ++toastId, note: "learned" }, lightBulb: trigger.kind === "event" ? { event: trigger.event, from: after.beat } : null });
     useBadges.getState().note("lessons");
+    noteTally("LESSON");
+    return { ok: true };
+  },
+  mentor: (childIndex, lessonIndex) => {
+    const { pet } = get();
+    const child = roster.pets[childIndex];
+    if (!pet || !child || childIndex === roster.active) return { ok: false, reason: "invalid", detail: "no such child" };
+    if (pet.away || pet.sitting || child.away || child.sitting) return { ok: false, reason: "notYours", detail: "both must be home" };
+    const r = mentorLesson(catchUp(pet, gameNow(), brainOf(pet)), catchUp(child, gameNow(), brainOf(child)), lessonIndex, gameNow(), questSlots());
+    if (!r.ok) return r;
+    const pets = roster.pets.slice();
+    pets[childIndex] = keptOnChain(r.pet) ? r.pet : boundLog(r.pet, mindForPet(r.pet));
+    roster = { ...roster, pets };
+    persist();
+    set({ pets: roster.pets, toast: { id: ++toastId, note: "learned" } });
     noteTally("LESSON");
     return { ok: true };
   },

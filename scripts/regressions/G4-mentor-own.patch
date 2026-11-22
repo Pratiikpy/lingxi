@@ -1,0 +1,10 @@
+--- a/packages/game/src/lessons.ts
++++ b/packages/game/src/lessons.ts
+@@ -164,7 +164,6 @@ export const childOf = (elder: Pick<Pet, "bornAt">, child: Pick<Pet, "family">):
+  */
+ export function mentorLesson(elder: Pet, child: Pet, lessonIndex: number, now: number, slots = 0): { ok: true; pet: Pet } | { ok: false; reason: "notElder" | "notChild" | "noLesson" | LessonCheckReason; detail: string } {
+   if (stageOf(elder, now) !== "elder") return { ok: false, reason: "notElder", detail: "only an elder mentors" };
+-  if (!childOf(elder, child)) return { ok: false, reason: "notChild", detail: "an elder mentors only its own children" };
+   const rule = elder.lessons[lessonIndex];
+   if (!rule) return { ok: false, reason: "noLesson", detail: "no such lesson" };
+   const r = teach(child, rule, now, slots);

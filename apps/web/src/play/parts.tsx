@@ -4,7 +4,7 @@ import { type ReactNode, useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useVoice } from "../game/voice";
 import { decidingPart } from "../game/store";
-import { ENJOY_MAX, ENJOY_PER_CARE, type Pet, beatOf, canLevelUp, dayOf, growthOf, kinshipNow, stageOf, visibleMeters } from "@lingxi/game";
+import { ENJOY_MAX, ENJOY_PER_CARE, type Pet, beatOf, nextWorldSeason, worldSeasonAt, canLevelUp, dayOf, growthOf, kinshipNow, stageOf, visibleMeters } from "@lingxi/game";
 import { levelUpNow, useSkillsUi } from "./Skills";
 import { useLang, useT, type Key } from "../i18n";
 import { useSound } from "../game/sound";
@@ -145,7 +145,24 @@ export function Actions({ pet, absent = false, onFeed, onPlay, onClean, onSleep,
       {btn("sparkle", t("act.clean"), onClean, m.clean < 250 && !pet.asleep, pet.asleep, "clean")}
       {btn(pet.asleep ? "sun" : "moon", pet.asleep ? t("act.wake") : t("act.sleep"), onSleep, m.energy < 250 && !pet.asleep, false, "sleep")}
       <EnjoyBar pet={pet} />
+      <SeasonLine />
     </div>
+  );
+}
+
+/** G4: the world's season now and the next one, so there is always something on its way, never a countdown to miss. */
+function SeasonLine() {
+  const { lang } = useLang();
+  const at = gameNow();
+  const season = worldSeasonAt(at);
+  const next = nextWorldSeason(at);
+  const days = Math.max(1, Math.ceil((next.at - at) / 86_400_000));
+  const zh = lang === "zh";
+  return (
+    <p className={`season-line season-${season.id}`}>
+      <b>{season.name[zh ? "zh" : "en"]}</b> · {season.air[zh ? "zh" : "en"]}{" "}
+      <span>{zh ? `${days} 天后是${next.season.name.zh}` : `${next.season.name.en} in ${days} ${days === 1 ? "day" : "days"}`}</span>
+    </p>
   );
 }
 

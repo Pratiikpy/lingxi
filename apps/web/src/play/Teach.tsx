@@ -8,7 +8,7 @@ import { CuteState } from "./CuteState";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { INPUT_FIELDS, type Rule } from "@lingxi/brain";
-import { type Frame, PET_SCHOOL, type Pet, lessonCapacity, lessonTrigger, type Trap, brainSize, checkLesson, lessonCost, levelOpen, roomMakers, schoolReport, stageOf, trapsAfter } from "@lingxi/game";
+import { type Frame, PET_SCHOOL, type Pet, lessonCapacity, lessonTrigger, type Trap, brainSize, checkLesson, childOf, lessonCost, levelOpen, roomMakers, schoolReport, stageOf, trapsAfter } from "@lingxi/game";
 import { useLang, useT, type Key } from "../i18n";
 import { type TeachingState, teachInWords, teachingState } from "../game/api";
 import { teachBody } from "../game/requests";
@@ -530,6 +530,62 @@ function Library({ pet, onPropose }: { pet: Pet; onPropose: (l: LibraryLesson) =
   );
 }
 
+/**
+ * Elders mentor (G4): an elder passes one of its lessons to one of its own children. Shown only to an elder that has a
+ * child on this device; the child learns it as any lesson, within its own slots and budget.
+ */
+function Mentor({ pet }: { pet: Pet }) {
+  const { lang } = useLang();
+  const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
+  const pets = useGame((s) => s.pets);
+  const mentor = useGame((s) => s.mentor);
+  const [child, setChild] = useState(0);
+  const [said, setSaid] = useState<string | null>(null);
+  const children = pets.map((p, i) => ({ p, i })).filter(({ p }) => childOf(pet, p));
+  if (stageOf(pet, now()) !== "elder" || !children.length || !pet.lessons.length) return null;
+  const picked = children[Math.min(child, children.length - 1)]!;
+  const program = programFor(pet.line, pet.lessons, pet.instincts ?? 0, pet.growth);
+  return (
+    <section className="mentor" aria-label={L("Pass a lesson on", "把一课传下去")}>
+      <p className="label">{L("Pass a lesson on", "把一课传下去")}</p>
+      <p className="small">{L(`${pet.name} is an elder now. It can teach one of its lessons to its child, the way it learned them.`, `${pet.name}已经是长者了，可以把自己的一课教给它的孩子，就像当初它学会时那样。`)}</p>
+      {children.length > 1 && (
+        <div className="row mentor-kids">
+          {children.map(({ p }, k) => (
+            <button key={p.bornAt} type="button" className={`btn${k === child ? " primary" : ""}`} aria-pressed={k === child} onClick={() => (play("tap"), setChild(k), setSaid(null))}>
+              {p.name}
+            </button>
+          ))}
+        </div>
+      )}
+      <ul className="mentor-lessons">
+        {pet.lessons.map((l, i) => {
+          const c = chipsFor(program, l, lang);
+          const known = picked.p.lessons.some((x) => JSON.stringify([x.when, x.then]) === JSON.stringify([l.when, l.then]));
+          return (
+            <li key={i}>
+              <Chips when={c.when} then={c.then} want={c.want} />
+              <button
+                type="button"
+                className="btn"
+                disabled={known}
+                onClick={() => {
+                  const r = mentor(picked.i, i);
+                  play(r.ok ? "success" : "error");
+                  setSaid(r.ok ? L(`${picked.p.name} learned it from ${pet.name}.`, `${picked.p.name}跟着${pet.name}学会了。`) : r.reason === "full" ? L(`${picked.p.name} has no room for another lesson.`, `${picked.p.name}装不下更多课了。`) : r.reason === "tooBig" ? L(`That lesson is too big for ${picked.p.name}'s budget.`, `这一课超出了${picked.p.name}的预算。`) : L("That lesson cannot be passed on now.", "这一课现在传不了。"));
+                }}
+              >
+                {known ? L(`${picked.p.name} knows it`, `${picked.p.name}会了`) : L(`Teach ${picked.p.name}`, `教给${picked.p.name}`)}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      {said && <p className="small" role="status">{said}</p>}
+    </section>
+  );
+}
+
 export function TeachPanel({ pet }: { pet: Pet }) {
   const t = useT();
   const { lang } = useLang();
@@ -561,6 +617,7 @@ export function TeachPanel({ pet }: { pet: Pet }) {
       {learned && !proposal && <TryIt pet={pet} lesson={learned} onDone={() => setLearned(null)} />}
       <GateMeter pet={pet} />
       <Learned pet={pet} />
+      <Mentor pet={pet} />
       <SchoolLevels pet={pet} canLearn={!proposal} onPropose={(rule) => propose(rule, undefined, { kind: "school" })} />
       <Sandbox pet={pet} trying={proposal?.rule ?? null} />
       <AnimatePresence mode="wait">

@@ -76,7 +76,7 @@ export const RESIDENT_FRIENDS: readonly FriendSheet[] = [
       },
       s6: {
         title: T("A lantern of your own", "属于你的灯"),
-        lines: [say(A.hands, "You've lit as many evenings as I have. Carry this one; it's yours to keep lit.", "你点亮的夜晚和我一样多了。拿着这盏灯，由你来让它亮着。")],
+        lines: [say(A.hands, "You've lit as many evenings as I have. Carry this one; it's yours to keep lit.", "你点亮的夜晚和我一样多了。拿着这盏灯，由你来让它亮着。"), say(A.hands, "You'll forget to light it some nights. That's allowed. A lantern waits.", "有些晚上你会忘了点它。没关系。灯会等你。"), say(A.hands, "And when your pet is old and slow, it will still find its way home by this one.", "等你的宠物老了、走慢了，它还是能跟着这盏灯找到家。")],
         unlock: { kind: "gift", rewards: [{ kind: "piece", id: "lantern" }] },
       },
     },
@@ -136,7 +136,7 @@ export const RESIDENT_FRIENDS: readonly FriendSheet[] = [
       },
       s6: {
         title: T("Partner's bow", "合伙人的蝴蝶结"),
-        lines: [say(M.laugh, "You've been more help than my investors. Wear this. It means you're in the business now.", "你帮的忙比我的投资人还多。戴上这个，意思是你入伙了。")],
+        lines: [say(M.laugh, "You've been more help than my investors. Wear this. It means you're in the business now.", "你帮的忙比我的投资人还多。戴上这个，意思是你入伙了。"), say(M.laugh, "Byakuya chose you weeks ago. I'm only catching up.", "白夜几周前就选中你了。我只是现在才跟上。"), say(M.laugh, "Wear the bow when you come in. I'll pretend not to notice and give you the good price.", "来店里时戴着这个蝴蝶结。我会假装没看见，然后给你好价钱。")],
         unlock: { kind: "gift", rewards: [{ kind: "piece", id: "bow" }] },
       },
     },
@@ -196,7 +196,7 @@ export const RESIDENT_FRIENDS: readonly FriendSheet[] = [
       },
       s6: {
         title: T("A wayfinder's flag", "引路人的旗"),
-        lines: [say(Z.pose, "Plant this wherever you've been. Others will know the way is walkable.", "走到哪儿就把它插在哪儿。别人就知道那条路走得通。")],
+        lines: [say(Z.pose, "Plant this wherever you've been. Others will know the way is walkable.", "走到哪儿就把它插在哪儿。别人就知道那条路走得通。"), say(Z.pose, "Every road I mapped, I mapped so someone could come back along it.", "我画的每一条路，都是为了让人能沿着它回来。"), say(Z.pose, "Plant this where the lane forks. Then I'll always know which way you went.", "把它插在小巷分岔的地方。这样我总能知道你往哪边走了。")],
         unlock: { kind: "gift", rewards: [{ kind: "piece", id: "flag" }] },
       },
     },
@@ -256,7 +256,7 @@ export const RESIDENT_FRIENDS: readonly FriendSheet[] = [
       },
       s6: {
         title: T("Glasses for seeing twice", "看两遍的眼镜"),
-        lines: [say(D.laugh, "Wear these and look at everything twice, as we do. You'll miss half as much.", "戴上它，什么都看两遍，像我们一样。你会少错过一半。")],
+        lines: [say(D.laugh, "Wear these and look at everything twice, as we do. You'll miss half as much.", "戴上它，什么都看两遍，像我们一样。你会少错过一半。"), say(D.laugh, "One lens to read the book, the other to read the reader. I learned that late.", "一片镜片读书，另一片读读书的人。这个我学得晚了。"), say(D.laugh, "Look at your pet through them. You'll see it is learning you back.", "透过它看你的宠物。你会发现它也在学你。")],
         unlock: { kind: "gift", rewards: [{ kind: "piece", id: "glasses" }] },
       },
     },
@@ -316,7 +316,7 @@ export const RESIDENT_FRIENDS: readonly FriendSheet[] = [
       },
       s6: {
         title: T("Tinker's shades", "修补匠的墨镜"),
-        lines: [say(R.two, "Welding shades. Now we're both very well organised and very cool.", "焊接墨镜。现在我们俩都非常有条理，也非常酷。")],
+        lines: [say(R.two, "Welding shades. Now we're both very well organised and very cool.", "焊接墨镜。现在我们俩都非常有条理，也非常酷。"), say(R.two, "These are the shades I wear when a thing finally works. I've worn them four times.", "这是东西终于修好时我戴的墨镜。我一共戴过四次。"), say(R.two, "Now you can wear them when your pet does something clever. It will happen more than four times.", "现在你的宠物做了聪明事，你就可以戴上。肯定不止四次。")],
         unlock: { kind: "gift", rewards: [{ kind: "piece", id: "shades" }] },
       },
     },
@@ -376,7 +376,7 @@ export const RESIDENT_FRIENDS: readonly FriendSheet[] = [
       },
       s6: {
         title: T("A sunflower to hold", "捧着的向日葵"),
-        lines: [say(I.only, "Hold this out and stand still. They'll land on you. They trust you now. So do I.", "举着它，别动。它们会落在你身上。它们现在信任你了。我也是。")],
+        lines: [say(I.only, "Hold this out and stand still. They'll land on you. They trust you now. So do I.", "举着它，别动。它们会落在你身上。它们现在信任你了。我也是。"), say(I.only, "Sunflowers turn to follow the light. Butterflies follow the sunflowers.", "向日葵跟着光转，蝴蝶跟着向日葵飞。"), say(I.only, "Hold it up on a grey day and see who comes. Someone always does.", "阴天的时候举起来，看看谁会来。总会有谁来的。")],
         unlock: { kind: "gift", rewards: [{ kind: "piece", id: "sunflower" }] },
       },
     },
@@ -436,7 +436,7 @@ export const RESIDENT_FRIENDS: readonly FriendSheet[] = [
       },
       s6: {
         title: T("Hearts for the eyes", "眼里的心"),
-        lines: [say(W.cradle, "Wear these. Then everyone can see what I see when I look at the two of you.", "戴上这个。这样大家都能看到我看你们俩时看到的。")],
+        lines: [say(W.cradle, "Wear these. Then everyone can see what I see when I look at the two of you.", "戴上这个。这样大家都能看到我看你们俩时看到的。"), say(W.cradle, "I've checked on your pet a hundred times. I never once had to worry. That's you.", "我给你的宠物检查过一百次，一次都没担心过。这是你的功劳。"), say(W.cradle, "Wear these on a gloomy day. Doctor's orders: look at it all with a little love.", "阴沉的日子戴上它。医嘱：用一点点爱去看一切。")],
         unlock: { kind: "gift", rewards: [{ kind: "piece", id: "hearts" }] },
       },
     },
@@ -496,7 +496,7 @@ export const RESIDENT_FRIENDS: readonly FriendSheet[] = [
       },
       s6: {
         title: T("A champion's laurel", "冠军的桂冠"),
-        lines: [say(AR.fierce, "You didn't win it in a spar. You won it by showing up. Wear it!", "这不是你切磋赢来的。是你一次次来赢来的。戴上！")],
+        lines: [say(AR.fierce, "You didn't win it in a spar. You won it by showing up. Wear it!", "这不是你切磋赢来的。是你一次次来赢来的。戴上！"), say(AR.fierce, "I've coached a lot of pets. Yours listens. That's rarer than winning.", "我教过很多宠物。你的会听。这比赢还难得。"), say(AR.fierce, "The laurel isn't for winning, it's for coming back after losing. You always did.", "桂冠不是给赢的，是给输了还回来的。你每次都回来了。")],
         unlock: { kind: "gift", rewards: [{ kind: "piece", id: "laurel" }] },
       },
     },
@@ -556,7 +556,7 @@ export const RESIDENT_FRIENDS: readonly FriendSheet[] = [
       },
       s6: {
         title: T("A crown for dreamers", "做梦者的王冠"),
-        lines: [say(L.smile, "Every dream I've had of you, you were wearing this. Now you can, awake.", "我梦里的你，每次都戴着它。现在醒着也能戴了。")],
+        lines: [say(L.smile, "Every dream I've had of you, you were wearing this. Now you can, awake.", "我梦里的你，每次都戴着它。现在醒着也能戴了。"), say(L.smile, "Every cloud I've named, I named for someone who stopped to look up with me.", "我给每朵云起的名字，都是给那些停下来陪我抬头看的人。"), say(L.smile, "There's one up there now with your pet's name. It's the round one. Obviously.", "现在天上有一朵叫你宠物的名字。圆的那朵。当然了。")],
         unlock: { kind: "gift", rewards: [{ kind: "piece", id: "crown" }] },
       },
     },

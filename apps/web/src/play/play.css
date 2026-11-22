@@ -1801,6 +1801,19 @@
 .album-card.rarity-rare:not(.is-unknown) {
   box-shadow: inset 0 0 0 2px #ffc83d;
 }
+/* G4: a once-a-season visitor, and the hint and keepsake lines on every card */
+.album-card.rarity-epic:not(.is-unknown) {
+  box-shadow:
+    inset 0 0 0 2px #ff7a59,
+    0 0 0 2px #ffc83d;
+}
+.album-card .album-hint {
+  font-style: italic;
+}
+.album-card .album-keep {
+  font-weight: 700;
+  color: #2f8a4c;
+}
 .album-card.is-unknown {
   background: transparent;
   border-style: dashed;
@@ -3046,4 +3059,19 @@
 }
 .pl-checked {
   color: var(--ink-soft);
+}
+/* G4: the world's season under the care buttons */
+.season-line {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+.season-line b {
+  color: var(--ink);
+}
+.season-line span {
+  white-space: nowrap;
 }

@@ -631,3 +631,24 @@
   font-weight: 800;
   color: #2f8a4c;
 }
+/* G4: an elder passes a lesson to its child */
+.mentor {
+  display: grid;
+  gap: var(--s2);
+}
+.mentor-lessons {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.mentor-lessons li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.mentor-lessons li > .btn {
+  margin-left: auto;
+}

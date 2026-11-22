@@ -10,7 +10,8 @@ import { T, coins, decor, item, say } from "./helpers";
 const START = Date.UTC(2026, 10, 17) / 1000; // 17 November 2026, 00:00 UTC
 const END = Date.UTC(2026, 11, 1) / 1000; // 1 December 2026, 00:00 UTC
 
-export const GOALS: readonly GoalDef[] = [
+/** The first round: the four goals, their stories and keepsakes as first told. */
+const ROUND_ONE: readonly GoalDef[] = [
   {
     id: "g1",
     title: T("A lantern for every night", "每个夜晚一盏灯"),
@@ -96,5 +97,44 @@ export const GOALS: readonly GoalDef[] = [
     everyone: { text: T("The forge glows: everyone gets a bag of Sparkle Dust.", "熔炉亮起来了：每个人都能得到一袋闪粉。"), rewards: [item(1103, 5)] },
   },
 ];
+
+/**
+ * G4: the goals keep a monthly rhythm. After the first round, the same four goals start again on the first of each
+ * month for a year, each round its own goal (its own id, window and claims), told by the same giver. Their rewards are
+ * coins and things for the bag; the home pieces and the on-chain keepsakes belong to the first round.
+ */
+export const LATER_ROUNDS = 12;
+const ROUND_LINES: Readonly<Record<string, { face: string; en: string; zh: string }>> = {
+  g1: { face: "wick_clasping_hands.png", en: "A new month, and the lantern count starts again. Shall we light the lane once more?", zh: "新的一个月，灯又从头数起。我们再把整条路点亮一次好吗？" },
+  g2: { face: "nurse_smiling.png", en: "A new month of new eggs. Let's welcome another crowd of pets together.", zh: "又一个月的新蛋。我们一起再迎来一群新宠物吧。" },
+  g3: { face: "nimbus_smiling.png", en: "A new month, and the sky has room for more little families. Let's fill the lane again.", zh: "新的一个月，天上还容得下更多小家庭。我们再把小巷填满吧。" },
+  g4: { face: "bolt_clear2.png", en: "The forge cooled overnight. A new month: let's warm it up again. Beep.", zh: "熔炉一夜就凉了。新的一个月：我们再把它烧暖。哔。" },
+};
+const ROUND_TIERS = (g: GoalDef): GoalDef["tiers"] => ({ 25: [coins(30)], 50: [coins(40), item(11405)], 75: [coins(60)], 100: [coins(80), ...g.everyone.rewards] });
+const monthStart = (k: number): number => Date.UTC(2026, 11 + k, 1) / 1000;
+
+function laterRound(g: GoalDef, k: number): GoalDef {
+  const line = ROUND_LINES[g.id]!;
+  return {
+    ...g,
+    id: `${g.id}-${k + 2}`,
+    story: [say(line.face, line.en, line.zh)],
+    start: monthStart(k),
+    end: monthStart(k + 1),
+    tiers: ROUND_TIERS(g),
+  };
+}
+
+export const GOALS: readonly GoalDef[] = [...ROUND_ONE, ...Array.from({ length: LATER_ROUNDS }, (_, k) => ROUND_ONE.map((g) => laterRound(g, k))).flat()];
+
+/** The round running at a moment (seconds), or the last one to end when none is; and when the next round begins. */
+export function goalRoundAt(nowSec: number): { goals: GoalDef[]; next: number | null } {
+  const running = GOALS.filter((g) => g.start <= nowSec && nowSec < g.end);
+  const ended = GOALS.filter((g) => g.end <= nowSec);
+  const lastEnd = Math.max(0, ...ended.map((g) => g.end));
+  const goals = running.length ? running : ended.filter((g) => g.end === lastEnd);
+  const upcoming = GOALS.filter((g) => g.start > nowSec).map((g) => g.start);
+  return { goals: goals.length ? goals : GOALS.filter((g) => g.start === Math.min(...GOALS.map((x) => x.start))), next: upcoming.length ? Math.min(...upcoming) : null };
+}
 
 export const GOAL_BY_ID: Readonly<Record<string, GoalDef>> = Object.fromEntries(GOALS.map((g) => [g.id, g]));

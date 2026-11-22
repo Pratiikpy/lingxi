@@ -1,0 +1,11 @@
+--- a/packages/game/src/worldSeason.ts
++++ b/packages/game/src/worldSeason.ts
+@@ -25,7 +25,7 @@ export const SEASON_DAYS = 28;
+ export const SEASON_EPOCH = Date.UTC(2026, 10, 16);
+ const DAY_MS = 86_400_000;
+ 
+-const indexAt = (ms: number): number => Math.floor((ms - SEASON_EPOCH) / (SEASON_DAYS * DAY_MS));
++const indexAt = (ms: number): number => Math.floor((ms - SEASON_EPOCH) / (SEASON_DAYS * DAY_MS)) * 0;
+ 
+ /** The world's season at a moment. */
+ export function worldSeasonAt(ms: number): WorldSeason {

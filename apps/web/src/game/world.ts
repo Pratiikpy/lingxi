@@ -4,7 +4,7 @@
  * pet; food from the bag goes through the game rules like any care.
  */
 
-import { deleteLook as deleteLookRule, renameLook as renameLookRule, saveLook as saveLookRule, wearLook as wearLookRule, buyDecor as buyDecorRule, commissionDecor as commissionDecorRule, digPlot as digPlotRule, placeDecor as placeDecorRule, removeDecor as removeDecorRule, COMPOST, compostFromClean, harvest as harvestRule, plant as plantRule, startWalk as startWalkRule, stepWalk as stepWalkRule, endWalk as endWalkRule, startTrip as startTripRule, endTrip as endTripRule, make as makeRule, buyPiece as buyPieceRule, wear as wearRule, giveLaurel as giveLaurelRule } from "@lingxi/world";
+import { deleteLook as deleteLookRule, renameLook as renameLookRule, saveLook as saveLookRule, wearLook as wearLookRule, buyDecor as buyDecorRule, payReward as payRewardRule, commissionDecor as commissionDecorRule, digPlot as digPlotRule, placeDecor as placeDecorRule, removeDecor as removeDecorRule, COMPOST, compostFromClean, harvest as harvestRule, plant as plantRule, startWalk as startWalkRule, stepWalk as stepWalkRule, endWalk as endWalkRule, startTrip as startTripRule, endTrip as endTripRule, make as makeRule, buyPiece as buyPieceRule, wear as wearRule, giveLaurel as giveLaurelRule } from "@lingxi/world";
 import { useBadges } from "./badges";
 import { create } from "zustand";
 import { wearableOf } from "@lingxi/art";
@@ -102,6 +102,8 @@ interface WorldStore {
   claim: (id: string) => void;
   /** coins won outside the world (spars) */
   reward: (coins: number) => void;
+  /** keepsakes visitors left (G4): items, coins or a home piece, paid into the world */
+  payGifts: (gifts: ReadonlyArray<{ kind: "item"; item: number; n: number } | { kind: "coins"; n: number } | { kind: "decor"; id: string }>) => void;
   /** a spar's coins, paid while the day still has paid spars left (G6); returns what was paid */
   paySpar: (coins: number) => number;
   /** decorations for the home room */
@@ -516,6 +518,13 @@ export const useWorld = create<WorldStore>((set, get) => ({
   },
   reward: (coins) => {
     const w = earn(get().world, coins);
+    save(w);
+    set({ world: w });
+  },
+  payGifts: (gifts) => {
+    if (!gifts.length) return;
+    let w = get().world;
+    for (const g of gifts) w = payRewardRule(w, g);
     save(w);
     set({ world: w });
   },

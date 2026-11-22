@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  LATER_ROUNDS,
+  goalRoundAt,
   GOALS,
   type GoalDef,
   canClaimEveryone,
@@ -98,7 +100,16 @@ describe("community goals", () => {
 
   it("keeps the shipped goals honest", () => {
     expect(goalErrors(GOALS)).toEqual([]);
-    expect(GOALS.map((g) => g.metric)).toEqual(["saves", "hatched", "children", "burned"]);
+    // the first round, then a round of the same four each month (G4)
+    expect(GOALS.slice(0, 4).map((g) => g.metric)).toEqual(["saves", "hatched", "children", "burned"]);
+    expect(GOALS).toHaveLength(4 * (1 + LATER_ROUNDS));
+    for (let k = 1; k <= LATER_ROUNDS; k++) {
+      const round = GOALS.slice(4 * k, 4 * k + 4);
+      expect(round.map((g) => g.metric)).toEqual(["saves", "hatched", "children", "burned"]);
+      expect(new Set(round.map((g) => g.start)).size).toBe(1);
+      // each round starts as the one before ends, so there is always a round
+      expect(round[0]!.start).toBe(GOALS[4 * (k - 1)]!.end);
+    }
     // rewards are game things, never BEM: no reward kind carries a token
     for (const g of GOALS) for (const r of [...Object.values(g.tiers).flat(), ...g.everyone.rewards]) expect(["coins", "item", "decor", "piece"]).toContain(r.kind);
   });
@@ -107,5 +118,16 @@ describe("community goals", () => {
     const bad: GoalDef = { ...goal, giver: "nobody", end: goal.start, target: 2, tiers: { ...goal.tiers, 50: [] }, story: [{ face: "x.png", en: "a".repeat(141), zh: "好" }] };
     const errs = goalErrors([bad, bad]).join("\n");
     for (const want of ["used twice", "no resident nobody", "start and a later deadline", "at least 4", "tier 50% gives nothing", "English is 141"]) expect(errs).toContain(want);
+  });
+});
+
+describe("the goals keep a monthly rhythm (G4)", () => {
+  it("names the round running now and when the next begins, every month for a year", () => {
+    const first = goalRoundAt(GOALS[0]!.start + 60);
+    expect(first.goals.map((g) => g.id)).toEqual(["g1", "g2", "g3", "g4"]);
+    expect(first.next).toBe(GOALS[0]!.end);
+    const later = goalRoundAt(GOALS[4]!.start + 86_400);
+    expect(later.goals.map((g) => g.id)).toEqual(["g1-2", "g2-2", "g3-2", "g4-2"]);
+    expect(later.next).toBe(GOALS[8]!.start);
   });
 });

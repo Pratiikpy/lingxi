@@ -7,7 +7,7 @@
 import { useEffect, useState } from "react";
 import { formatBem } from "@lingxi/chain";
 import { formatEther } from "viem";
-import { GOALS, GOAL_METHOD, goalAmountText } from "@lingxi/world";
+import { GOAL_METHOD, goalAmountText, goalRoundAt } from "@lingxi/world";
 import { useLang } from "../i18n";
 import { usePageMeta } from "../i18n/pageMeta";
 import "../agents/agents.css";
@@ -75,7 +75,8 @@ function goalRows(g: GoalsBody, lang: Lang): { title: [string, string]; readTo: 
   return {
     title: ["Community goals", "共同目标"],
     readTo: g.indexedTo,
-    items: GOALS.map((d) => {
+    // the round running now (G4); a round that has ended keeps its totals in its own row until the next begins
+    items: goalRoundAt(Math.floor(Date.now() / 1000)).goals.map((d) => {
       const r = g.goals.find((x) => x.id === d.id);
       const when = `${dateText(d.start, lang)} – ${dateText(d.end, lang)} (UTC)`;
       return {

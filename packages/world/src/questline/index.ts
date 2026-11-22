@@ -13,13 +13,17 @@ import { ARC_1 } from "./arc01-first-days";
 import { ARC_2_TO_5 } from "./arc02-05";
 import { ARC_6_TO_10 } from "./arc06-10";
 import { ARC_11_12 } from "./arc11-12";
-import { DAILIES, WEEKLY_GIFT } from "./dailies";
+import { DAILIES as EVERYDAY, WEEKLY_GIFT } from "./dailies";
+import { REQUESTS } from "./requests";
+
+/** The daily pool: the everyday dailies and the residents' requests (G4). */
+const DAILIES = [...EVERYDAY, ...REQUESTS];
 import type { FriendSheet, Unlock } from "../friendship";
 import { GOAL_METRICS, type GoalDef, TIER_PCTS } from "../goals";
 
 export { ARC_1, ONBOARDING } from "./arc01-first-days";
 export { DAILIES, WEEKLY_GIFT };
-export { GOALS, GOAL_BY_ID } from "./goals";
+export { GOALS, GOAL_BY_ID, LATER_ROUNDS, goalRoundAt } from "./goals";
 export { FRIENDS, FRIEND_BY_ID } from "../friends";
 
 export const STORY: readonly QuestDef[] = [...ARC_1, ...ARC_2_TO_5, ...ARC_6_TO_10, ...ARC_11_12];
@@ -116,7 +120,8 @@ export function goalErrors(defs: readonly GoalDef[]): string[] {
     const at = `goal ${g.id}`;
     if (ids.has(g.id)) out.push(`${at}: the id is used twice`);
     ids.add(g.id);
-    if (!/^g[0-9]{1,3}$/.test(g.id)) out.push(`${at}: ids are g and a number`);
+    // a later round (G4) adds its number: g1-2 is the second round of g1
+    if (!/^g[0-9]{1,3}(-[0-9]{1,3})?$/.test(g.id)) out.push(`${at}: ids are g and a number, and a round's number after a dash`);
     if (!g.title.en || !g.title.zh || !g.unit.en || !g.unit.zh) out.push(`${at}: needs its title and unit in both languages`);
     if (!PORTRAITS.has(g.giver)) out.push(`${at}: no resident ${g.giver}`);
     if (!g.story.length) out.push(`${at}: needs its story`);

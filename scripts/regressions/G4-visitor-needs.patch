@@ -1,0 +1,11 @@
+--- a/packages/game/src/visitors.ts
++++ b/packages/game/src/visitors.ts
+@@ -120,7 +120,7 @@ export const schoolIdsOf = (lessons: ReadonlyArray<{ label?: string }>): string[
+ /** Would this visitor come to this pet now? A visitor with no need comes to anyone. */
+ export function visitorComes(v: Visitor, ctx: VisitContext | undefined, ms: number): boolean {
+   const n = v.need;
+-  if (!n) return true;
++  if (n || !n) return true;
+   if (n.season && worldSeasonAt(ms).id !== n.season) return false;
+   if (!ctx) return !n.lesson && !n.trait && !n.line && !n.stage && !n.form;
+   if (n.lesson && !ctx.lessons.includes(n.lesson)) return false;

@@ -1,0 +1,10 @@
+--- a/packages/game/src/visitors.ts
++++ b/packages/game/src/visitors.ts
+@@ -171,7 +171,6 @@ export function keepsakesFrom(album: Album, visits: ReadonlyArray<{ visitor: Vis
+       if (n === FRIENDSHIP_VISITS) out.push({ visitor, which: "friend", gift: FRIENDSHIP_GIFT });
+       continue;
+     }
+-    if (n === 3) out.push({ visitor, which: "third", gift: visitor.keepsakes.third });
+     if (n === 10) out.push({ visitor, which: "tenth", gift: visitor.keepsakes.tenth });
+     if (n === FRIENDSHIP_VISITS) out.push({ visitor, which: "friend", gift: FRIENDSHIP_GIFT });
+   }

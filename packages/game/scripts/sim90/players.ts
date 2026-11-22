@@ -11,7 +11,7 @@
 
 import type { StarterLine } from "@lingxi/brain";
 import { HOME, ROOMS } from "@lingxi/world";
-import { DAY_MS, PARTNERS, type Partner, type PlayerDay, type PlayerNumbers, type PlayerType, type Tree, dailyPartnerIndex, dayIndex, growthOf, stageOf } from "../../src";
+import { DAY_MS, PARTNERS, type Partner, type PlayerDay, type PlayerNumbers, type PlayerType, type Tree, dailyPartnerIndex, dayIndex, growthOf, stageOf, worldSeasonAt } from "../../src";
 import { Life, MIN, costOfEverything } from "./life";
 
 /** China's clock (UTC+8): the first audience. Day 1 is a Monday. */
@@ -144,7 +144,9 @@ export function playType(type: PlayerType, seed: number, days: number, tap?: Tap
   const seenQuests = new Set<string>();
   const seenRecipes = new Set<number>();
   const seenFinds = new Set<string>();
-  let last = { xp: 0, earned: life.coinsEarned(), spent: life.coinsSpent(), visited: life.world.visited.length, stage: "", capacity: 0, tiers: 0, form: false };
+  const seenRequests = new Set<string>();
+  const thingsLeft: number[] = [];
+  let last = { xp: 0, met: 0, keepsakes: 0, season: "", earned: life.coinsEarned(), spent: life.coinsSpent(), visited: life.world.visited.length, stage: "", capacity: 0, tiers: 0, form: false };
   let level99Day: number | null = null;
   let allAffordableDay: number | null = null;
   let sickAfterWeekend = 0;
@@ -180,7 +182,15 @@ export function playType(type: PlayerType, seed: number, days: number, tap?: Tap
     const tiers = life.tiersOpen();
     const form = life.pet.form !== undefined;
     const visited = life.world.visited.length;
-    const newThings = quests.length + recipes.length + finds.length + (visited - last.visited) + (stage !== last.stage ? 1 : 0) + (capacity > last.capacity ? 1 : 0) + Math.max(0, tiers - last.tiers) + (form && !last.form ? 1 : 0);
+    // G4: a visitor met for the first time, a keepsake left, a resident's request first asked, a season turned
+    const met = Object.keys(life.album).length;
+    const request = life.requestToday();
+    const freshRequest = request !== null && !seenRequests.has(request);
+    if (request) seenRequests.add(request);
+    const season = worldSeasonAt(midnight).id;
+    thingsLeft.push(life.thingsLeft(end));
+    const g4 = met - last.met + (life.keepsakes - last.keepsakes) + (freshRequest ? 1 : 0) + (last.season && season !== last.season ? 1 : 0);
+    const newThings = g4 + quests.length + recipes.length + finds.length + (visited - last.visited) + (stage !== last.stage ? 1 : 0) + (capacity > last.capacity ? 1 : 0) + Math.max(0, tiers - last.tiers) + (form && !last.form ? 1 : 0);
     const xp = life.xpTotal();
     const earned = life.coinsEarned();
     const spent = life.coinsSpent();
@@ -208,7 +218,7 @@ export function playType(type: PlayerType, seed: number, days: number, tap?: Tap
       spars: today.spars,
       sparWins: today.sparWins,
     });
-    last = { xp, earned, spent, visited, stage, capacity, tiers, form };
+    last = { xp, met, keepsakes: life.keepsakes, season, earned, spent, visited, stage, capacity, tiers, form };
     if (level >= 99) level99Day ??= day;
     if (life.world.coins >= everything) allAffordableDay ??= day;
     if (day <= 7) teenGateShare = Math.max(teenGateShare, life.gates() / life.gateBudget());
@@ -224,6 +234,7 @@ export function playType(type: PlayerType, seed: number, days: number, tap?: Tap
     maxDailyCoinsIn: Math.max(...rows.map((r) => r.coinsIn)),
     allAffordableDay,
     daysWithNothingNew: rows.filter((r) => r.newThings === 0).length,
+    fewestThingsLeft: Math.min(...thingsLeft),
     lessonFiresPerWatchedMinute: watched ? rows.reduce((s, r) => s + r.lessonFires, 0) / watched : 0,
     byLesson: life.byLesson,
     firstTooBigDay: state.firstTooBigDay,

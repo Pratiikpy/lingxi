@@ -12,14 +12,16 @@ describe("the visitor album", () => {
     expect(visitorsDuring(seed, 1000, 1000 + 3 * 24 * 60)).toEqual(v);
   });
 
-  it("over many absences every visitor turns up, rare ones least", () => {
+  it("over many absences every visitor who comes to anyone turns up, rare ones least", () => {
     const tally: Record<string, number> = {};
     for (let b = 0; b < 200_000; b++) {
       const id = visitorOn(42, b).id;
       tally[id] = (tally[id] ?? 0) + 1;
     }
-    for (const v of VISITORS) expect(tally[v.id], v.id).toBeGreaterThan(0);
-    const avg = (r: string) => VISITORS.filter((v) => v.rarity === r).reduce((t, v) => t + tally[v.id]!, 0) / VISITORS.filter((v) => v.rarity === r).length;
+    // with nothing known about the pet, those who come to anyone (G4 adds visitors who need something)
+    const anyone = VISITORS.filter((v) => !v.need);
+    for (const v of anyone) expect(tally[v.id], v.id).toBeGreaterThan(0);
+    const avg = (r: string) => anyone.filter((v) => v.rarity === r).reduce((t, v) => t + tally[v.id]!, 0) / anyone.filter((v) => v.rarity === r).length;
     expect(avg("common")).toBeGreaterThan(avg("uncommon"));
     expect(avg("uncommon")).toBeGreaterThan(avg("rare"));
   });

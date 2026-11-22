@@ -7,8 +7,8 @@
 
 import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { HOME, ITEM, ROOMS } from "@lingxi/world";
-import { type Frame, type Pet, awayFind, awayNeeds, awaySeed, rewind, ruleSource, tellMoment, visitorsDuring } from "@lingxi/game";
+import { DECOR_BY_ID, HOME, ITEM, ROOMS } from "@lingxi/world";
+import { type Frame, type Pet, type VisitorGift, awayFind, awayNeeds, awaySeed, rewind, ruleSource, schoolIdsOf, stageOf, tellMoment, visitorsDuring } from "@lingxi/game";
 import { VisitorArt, useAlbum } from "./Album";
 import { useLang } from "../i18n";
 import { mindForPet, useGame } from "../game/store";
@@ -77,6 +77,20 @@ function leadWithTaught(frames: Frame[]): Frame[] {
 }
 
 /** What happened while the player was away, read once from the pet's log when the absence is first shown. */
+/** What a visitor may notice about this pet (G4): the lessons it knows, its habits, its line, stage and form. */
+function visitContextOf(pet: Pet, ms: number) {
+  const stage = stageOf(pet, ms);
+  return { lessons: schoolIdsOf(pet.lessons), traits: pet.traits, line: pet.line, stage, ...(pet.form ? { form: pet.form } : {}) };
+}
+
+/** A visitor's keepsake in words (G4). */
+function giftText(g: VisitorGift, lang: Lang): string {
+  if (g.kind === "coins") return lang === "zh" ? `${g.n} 金币` : `${g.n} coins`;
+  if (g.kind === "decor") return DECOR_BY_ID[g.id]?.name[lang] ?? g.id;
+  const name = ITEM[g.item]?.name[lang] ?? "?";
+  return g.n > 1 ? `${name} ×${g.n}` : name;
+}
+
 function report(pet: Pet, absence: { from: number; to: number }) {
   const frames = rewind(pet, mindForPet(pet), absence.to - absence.from + 1);
   const window = frames.filter((f) => f.at !== null && f.at >= absence.from * 60_000 && f.at <= absence.to * 60_000);
@@ -86,7 +100,7 @@ function report(pet: Pet, absence: { from: number; to: number }) {
     napped: window.some((f) => f.want === 3),
     find: awayFind(awaySeed(pet), absence.from, absence.to, ROOMS[HOME]?.drops ?? []),
     // the travelling pets who came by, for the album (M9)
-    visits: visitorsDuring(awaySeed(pet), absence.from, absence.to),
+    visits: visitorsDuring(awaySeed(pet), absence.from, absence.to, visitContextOf(pet, absence.to * 60_000)),
   };
 }
 
@@ -100,8 +114,9 @@ function AwayCard({ pet, absence }: { pet: Pet; absence: { petKey: string; from:
   const key = `${absence.petKey}:${absence.to}`;
   const [{ events, napped, find, visits }] = useState(() => report(pet, absence));
   const story = { events, napped };
+  const [kept, setKept] = useState<ReturnType<typeof addVisits>>([]);
   useEffect(() => {
-    if (visits.length) addVisits(key, visits);
+    if (visits.length) setKept(addVisits(key, visits));
   }, [key, visits, addVisits]);
   useEffect(() => {
     // the find goes into the bag once per absence, even if the card is shown again
@@ -131,6 +146,15 @@ function AwayCard({ pet, absence }: { pet: Pet; absence: { petKey: string; from:
               ))}
             </ul>
           </div>
+        )}
+        {kept.length > 0 && (
+          <ul className="welcome-keepsakes">
+            {kept.map((k, i) => (
+              <li key={i} className="small">
+                {lang === "zh" ? `${k.visitor.name.zh}留下了纪念品：${giftText(k.gift, lang)}。` : `${k.visitor.name.en} left a keepsake: ${giftText(k.gift, lang)}.`}
+              </li>
+            ))}
+          </ul>
         )}
         {story.events.length ? (
           <ul className="welcome-list">

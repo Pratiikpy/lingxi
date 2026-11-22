@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { CHARACTERS, GOALS, GOAL_METHOD, type GoalDef, goalAmountText, type Reward, TIER_PCTS, type TierPct, claimsOf, goalProgress, nextTier, tierAt } from "@lingxi/world";
+import { CHARACTERS, GOALS, GOAL_METHOD, goalRoundAt, type GoalDef, goalAmountText, type Reward, TIER_PCTS, type TierPct, claimsOf, goalProgress, nextTier, tierAt } from "@lingxi/world";
 import { useLang } from "../i18n";
 import { play } from "../game/sound";
 import { useWorld } from "../game/world";
@@ -198,6 +198,8 @@ export function TogetherPanel() {
   const lang = useLang((s) => s.lang) as Lang;
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
   const { status, refresh } = useGoals();
+  // the round of goals running now, and when the next one begins (G4)
+  const round = goalRoundAt(Math.floor(gameNow() / 1000));
   useEffect(() => {
     void refresh();
   }, [refresh]);
@@ -224,10 +226,15 @@ export function TogetherPanel() {
     <>
       <p className="small qb-note">{L("Everyone on X Layer works towards these together. What counts is read from the chain, so it is the same for every player.", "X Layer 上的每个人一起完成这些目标。统计的数都从链上读，对每个玩家都一样。")}</p>
       <ul className="gl-list">
-        {GOALS.map((g) => (
+        {round.goals.map((g) => (
           <GoalCard key={g.id} g={g} />
         ))}
       </ul>
+      {round.next !== null && (
+        <p className="small qb-note">
+          {L(`The next round of goals starts ${new Date(round.next * 1000).toLocaleDateString("en", { month: "long", day: "numeric" })}. A new round begins each month.`, `下一轮目标 ${new Date(round.next * 1000).toLocaleDateString("zh-CN", { month: "long", day: "numeric" })} 开始，每个月都有新的一轮。`)}
+        </p>
+      )}
     </>
   );
 }

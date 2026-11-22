@@ -289,7 +289,11 @@ class Player {
     const recipe = RECIPES.find((r) => r.out === item);
     const dropped = Object.values(ROOMS).some((r) => r.drops.some((d) => d.item === item));
     const shop = Object.values(ROOMS).find((r) => r.shop.includes(item));
-    if (dropped) return this.find(item, need());
+    // a found food can be eaten by the care between looks (tend feeds from the bag), so look until it is in hand
+    if (dropped) {
+      for (let k = 0; k < 6 && need() > 0; k++) this.find(item, need());
+      return;
+    }
     if (shop) {
       this.goTo(shop.index);
       this.afford(need() * ITEM[item]!.price!);
@@ -787,7 +791,9 @@ describe("the automated playthrough", () => {
     const seen = new Set<string>();
     const faults: string[] = [];
     const outOfReach = new Map<string, string>();
-    for (let day = 0; seen.size < DAILIES.length && day < 120; day += 2) {
+    // the everyday dailies; the residents' requests (G4) are played in the test below
+    const everyday = DAILIES.filter((q) => q.group !== "request");
+    for (let day = 0; everyday.some((q) => !seen.has(q.id)) && day < 120; day += 2) {
       // every other day: a missed day never costs a daily (the pet, being real, misses its owner meanwhile)
       p.away(Math.max(0, START + day * 86_400_000 - p.now) / MIN);
       p.tend();
@@ -813,11 +819,23 @@ describe("the automated playthrough", () => {
       }
     }
     expect(Object.fromEntries(outOfReach), "dailies out of the real pet's reach").toEqual({});
-    expect(DAILIES.filter((q) => !seen.has(q.id)).map((q) => q.id)).toEqual([]);
+    expect(everyday.filter((q) => !seen.has(q.id)).map((q) => q.id)).toEqual([]);
     expect(faults, "daily text a player could not read").toEqual([]);
     expect(weeklyGiftsWaiting(p.w)).toBeGreaterThanOrEqual(1);
     const coins = p.w.coins;
     p.must(claimWeekly(p.w, WEEKLY_GIFT), "weekly gift");
     expect(p.w.coins).toBe(coins + 60);
+  }, 600_000);
+
+  it("does every resident's request alone (G4): each errand can be gathered and handed over", () => {
+    const p = new Player();
+    const requests = DAILIES.filter((q) => q.group === "request");
+    expect(requests).toHaveLength(27);
+    for (const q of requests) {
+      p.tend();
+      const before = tallyOf(p.w, "GIVE_TO", q.objectives[0]!.cond.index as string);
+      for (const o of q.objectives) satisfy(p, o.cond, q);
+      expect(tallyOf(p.w, "GIVE_TO", q.objectives[0]!.cond.index as string) - before, q.id).toBeGreaterThanOrEqual(q.objectives[0]!.cond.value ?? 1);
+    }
   }, 600_000);
 });

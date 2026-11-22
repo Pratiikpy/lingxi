@@ -1,0 +1,11 @@
+--- a/packages/world/src/questline/goals.ts
++++ b/packages/world/src/questline/goals.ts
+@@ -103,7 +103,7 @@ const ROUND_ONE: readonly GoalDef[] = [
+  * month for a year, each round its own goal (its own id, window and claims), told by the same giver. Their rewards are
+  * coins and things for the bag; the home pieces and the on-chain keepsakes belong to the first round.
+  */
+-export const LATER_ROUNDS = 12;
++export const LATER_ROUNDS = 0;
+ const ROUND_LINES: Readonly<Record<string, { face: string; en: string; zh: string }>> = {
+   g1: { face: "wick_clasping_hands.png", en: "A new month, and the lantern count starts again. Shall we light the lane once more?", zh: "新的一个月，灯又从头数起。我们再把整条路点亮一次好吗？" },
+   g2: { face: "nurse_smiling.png", en: "A new month of new eggs. Let's welcome another crowd of pets together.", zh: "又一个月的新蛋。我们一起再迎来一群新宠物吧。" },

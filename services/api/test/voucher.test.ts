@@ -67,7 +67,8 @@ describe("keepsake vouchers (plan 4.6)", () => {
 
   it("the voucher key signs only goal keepsakes, one each, whatever a request adds", async () => {
     const keepsakeIds = new Set(CHAIN_DECOR.filter((p) => p.chain?.kind === "keepsake").map((p) => deployment.items[p.id as keyof typeof deployment.items]));
-    for (const g of GOALS) {
+    // a keepsake belongs to each goal of the first round; the monthly rounds after it (G4) have none and get no voucher
+    for (const g of GOALS.filter((x) => !x.id.includes("-"))) {
       // saves come one entry each, eight a day at most counting for a wallet (A64); the rest may come in one entry
       const of = (w: string): Entry[] =>
         g.metric === "saves"
@@ -83,5 +84,8 @@ describe("keepsake vouchers (plan 4.6)", () => {
       expect(keepsakeIds.has(v.id), `${g.id} signs item ${v.id}`).toBe(true);
       expect([v.to, v.quantity]).toEqual([alice, 1]);
     }
+    const later = GOALS.find((x) => x.id.includes("-"))!;
+    const b = withVouchers(new Hono(), { entries: () => [], signer, deployment, now: () => (later.start + 60) * 1000 });
+    expect((await ask(b, `wallet=${alice}&goal=${later.id}`)).status, "a later round has no keepsake").toBe(404);
   });
 });

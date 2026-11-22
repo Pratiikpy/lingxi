@@ -59,6 +59,16 @@ export type CareMiss = "food" | "joy" | "clean" | "energy" | "sick";
 
 export const TRAITS = ["brave", "curious", "greedy", "calm", "playful", "gentle", "shy"] as const;
 export type Trait = (typeof TRAITS)[number];
+/** Each trait's name as the pet page and the visitor album say it. */
+export const TRAIT_NAMES: Readonly<Record<Trait, { en: string; zh: string }>> = {
+  brave: { en: "brave", zh: "勇敢" },
+  curious: { en: "curious", zh: "好奇" },
+  greedy: { en: "greedy", zh: "嘴馋" },
+  calm: { en: "calm", zh: "沉稳" },
+  playful: { en: "playful", zh: "贪玩" },
+  gentle: { en: "gentle", zh: "温柔" },
+  shy: { en: "shy", zh: "害羞" },
+};
 export const TRAIT_MAX = 15;
 
 export type Stage = "egg" | "baby" | "child" | "teen" | "adult" | "elder";

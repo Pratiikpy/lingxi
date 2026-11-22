@@ -5,12 +5,15 @@ const base = STORY[0]!;
 const bad = (over: Partial<QuestDef>): string[] => questLineErrors([{ ...base, ...over }]);
 
 describe("the quest line", () => {
-  it("has the 80 story quests in 12 arcs and the 15 dailies of 36-QUEST-LINE.md, and passes every check", () => {
+  it("has the 80 story quests in 12 arcs, the 15 dailies of 36-QUEST-LINE.md and the residents' 27 requests (G4), and passes every check", () => {
     expect(STORY).toHaveLength(80);
     expect(STORY.map((q) => q.id)).toEqual(Array.from({ length: 80 }, (_, i) => `q${String(i + 1).padStart(2, "0")}`));
     const perArc = [11, 7, 8, 7, 7, 6, 6, 6, 8, 5, 5, 4];
     perArc.forEach((n, i) => expect(STORY.filter((q) => q.arc === i + 1), `arc ${i + 1}`).toHaveLength(n));
-    expect(DAILIES).toHaveLength(15);
+    expect(DAILIES).toHaveLength(15 + 27);
+    // three requests for each of the nine residents, each given by that resident
+    expect(DAILIES.filter((q) => q.group === "request")).toHaveLength(27);
+    for (const q of DAILIES.filter((x) => x.group === "request")) expect(q.id.startsWith(`r-${q.giver}-`), q.id).toBe(true);
     for (const g of ["care", "social", "explore"]) expect(DAILIES.filter((q) => q.group === g)).toHaveLength(5);
     expect(ONBOARDING).toHaveLength(11);
     expect(() => checkGame()).not.toThrow();
@@ -70,5 +73,27 @@ describe("the first-lesson quest (B9)", () => {
     const q = STORY.find((x) => x.id === FIRST_LESSON_QUEST)!;
     expect(q.title.en).toBe("First lesson");
     expect(q.objectives.map((o) => o.cond.type)).toEqual(["LESSON"]);
+  });
+});
+
+describe("residents' requests are offered (G4)", () => {
+  it("on about half the days the social daily is a resident's request, and every request comes round within four months", async () => {
+    const { pickDailies } = await import("../src/story");
+    const offered = new Set<string>();
+    let requestDays = 0;
+    const days = 120;
+    for (let d = 0; d < days; d++) {
+      const day = new Date(Date.UTC(2026, 10, 23) + d * 86_400_000).toISOString().slice(0, 10);
+      const ids = pickDailies(DAILIES, "seed-g4", day);
+      expect(ids).toHaveLength(3);
+      const r = ids.find((id) => id.startsWith("r-"));
+      if (r) {
+        requestDays++;
+        offered.add(r);
+      }
+    }
+    expect(requestDays / days).toBeGreaterThan(0.35);
+    expect(requestDays / days).toBeLessThan(0.65);
+    expect(offered.size).toBe(27);
   });
 });

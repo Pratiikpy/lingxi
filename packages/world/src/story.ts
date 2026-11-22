@@ -41,7 +41,8 @@ export interface QuestDef {
   kind: "story" | "daily";
   /** story arc (1 to 12); dailies have a group instead */
   arc?: number;
-  group?: "care" | "social" | "explore";
+  /** a daily's slot; "request" is a resident's errand, offered in the social slot every other day (G4) */
+  group?: "care" | "social" | "explore" | "request";
   /** "pet", a resident id, or a Builders' Lane resident (`lane:<id>`) */
   giver: string;
   title: Text;
@@ -187,12 +188,22 @@ function hash(s: string): number {
   return h >>> 0;
 }
 
-/** Today's three: one care, one social, one explore, picked from the player's seed and the day. */
+/**
+ * Today's three: one care, one social, one explore, picked from the player's seed and the day. On about half the days
+ * the social one is a resident's request instead (G4), so the residents keep asking after their stories end.
+ */
 export function pickDailies(pool: readonly QuestDef[], seed: string, day: string): string[] {
   const out: string[] = [];
-  for (const g of ["care", "social", "explore"] as const) {
+  // about every other day, chosen from the seed and the day rather than by turns, so a player who comes every other
+  // day still meets both kinds
+  const requestDay = hash(`${seed}:${day}:request`) % 2 === 0 && pool.some((q) => q.group === "request");
+  for (const slot of ["care", "social", "explore"] as const) {
+    const g = slot === "social" && requestDay ? "request" : slot;
     const of = pool.filter((q) => q.kind === "daily" && q.group === g);
-    if (of.length) out.push(of[hash(`${seed}:${day}:${g}`) % of.length]!.id);
+    if (!of.length) continue;
+    // requests go round the residents in turn from a place the seed picks, so each day's asker differs from the last
+    const dayNo = Math.floor(Date.parse(`${day}T00:00:00Z`) / 86_400_000);
+    out.push(of[g === "request" ? (hash(`${seed}:request`) + dayNo) % of.length : hash(`${seed}:${day}:${g}`) % of.length]!.id);
   }
   return out;
 }

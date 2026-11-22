@@ -6,7 +6,7 @@ import { PALETTE_OF } from "../scene/textures";
 import { Sprite } from "./Sprite";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { type MindPart, mindParts } from "../game/store";
-import { DIETS, FOODS, FORMS, FORM_NAMES, TRAITS, type Pet, beatOf, dayOf, evolutionInputs, evolve, growthOf, instinctsOf, kinshipNow, levelCost, stageOf } from "@lingxi/game";
+import { DIETS, FOODS, FORMS, FORM_NAMES, TRAITS, TRAIT_NAMES, type Pet, beatOf, dayOf, evolutionInputs, evolve, growthOf, instinctsOf, kinshipNow, levelCost, stageOf } from "@lingxi/game";
 import { useSkillsUi } from "./Skills";
 import { useLang, useT, type Key } from "../i18n";
 import { Icon } from "./icons";
@@ -165,15 +165,6 @@ export function MeSheetBody({ pet }: { pet: Pet }) {
   const t = useT();
   const { lang } = useLang();
   const top = [...TRAITS].sort((a, b) => pet.traits[b] - pet.traits[a]).slice(0, 2);
-  const TRAIT_NAMES: Record<string, { en: string; zh: string }> = {
-    brave: { en: "brave", zh: "勇敢" },
-    curious: { en: "curious", zh: "好奇" },
-    greedy: { en: "greedy", zh: "嘴馋" },
-    calm: { en: "calm", zh: "沉稳" },
-    playful: { en: "playful", zh: "贪玩" },
-    gentle: { en: "gentle", zh: "温柔" },
-    shy: { en: "shy", zh: "害羞" },
-  };
   const nature = pet.traits[top[0]!] === 0 ? t(`line.${pet.line}`) : top.filter((x) => pet.traits[x] > 0).map((x) => TRAIT_NAMES[x]![lang]).join(lang === "zh" ? "、" : ", ");
   const fav = [...DIETS].sort((a, b) => pet.diet[b] - pet.diet[a])[0]!;
   const favFood = FOODS.find((f) => f.diet === fav);

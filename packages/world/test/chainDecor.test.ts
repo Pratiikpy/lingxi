@@ -7,7 +7,8 @@ describe("on-chain decorations (plan 4.6)", () => {
   it("draws eight pieces: four for the shop, one keepsake for each community goal", () => {
     expect(CHAIN_DECOR.filter((p) => p.chain?.kind === "shop")).toHaveLength(4);
     const keepsakes = CHAIN_DECOR.filter((p) => p.chain?.kind === "keepsake").map((p) => (p.chain as { goal: string }).goal);
-    expect(keepsakes.sort()).toEqual(GOALS.map((g) => g.id).sort());
+    // one for each goal of the first round; the monthly rounds after it (G4) pay coins and things for the bag
+    expect(keepsakes.sort()).toEqual(GOALS.filter((g) => !g.id.includes("-")).map((g) => g.id).sort());
     for (const p of CHAIN_DECOR) {
       expect(DECOR.some((d) => d.id === p.id), p.id).toBe(false);
       expect(DECOR_BY_ID[p.id]).toBe(p);

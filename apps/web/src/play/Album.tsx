@@ -6,7 +6,8 @@
 import { useMemo } from "react";
 import { create } from "zustand";
 import { CORAL, LILAC, MINT, NIGHT, PEACH, SKY, SUNNY, type Palette, boundingBox, drawPet, wearOverlay } from "@lingxi/art";
-import { type Album, VISITORS, type Visitor, addToAlbum } from "@lingxi/game";
+import { type Album, FORM_NAMES, FRIENDSHIP_VISITS, TRAIT_NAMES, VISITORS, type Visitor, type VisitorGift, WORLD_SEASONS, addToAlbum, keepsakesFrom, visitorHint } from "@lingxi/game";
+import { useT } from "../i18n";
 import { useLang } from "../i18n";
 import { Sprite } from "./Sprite";
 import { noteTally } from "../game/tally";
@@ -21,7 +22,8 @@ interface AlbumStore {
   album: Album;
   /** absences already counted (petKey:to), so a reload never counts twice */
   counted: string[];
-  add: (key: string, visits: Parameters<typeof addToAlbum>[1]) => void;
+  /** records an absence's visits once; returns the keepsakes they earned (each visitor's 3rd and 10th), already paid */
+  add: (key: string, visits: Parameters<typeof addToAlbum>[1]) => Array<{ visitor: Visitor; gift: VisitorGift }>;
 }
 
 function load(): Pick<AlbumStore, "album" | "counted"> {
@@ -37,8 +39,10 @@ function load(): Pick<AlbumStore, "album" | "counted"> {
 export const useAlbum = create<AlbumStore>((set, get) => ({
   ...load(),
   add: (key, visits) => {
-    if (get().counted.includes(key) || !visits.length) return;
+    if (get().counted.includes(key) || !visits.length) return [];
+    const kept = keepsakesFrom(get().album, visits);
     const next = { album: addToAlbum(get().album, visits), counted: [...get().counted, key].slice(-200) };
+    useWorld.getState().payGifts(kept.map((k) => k.gift));
     noteTally("EVENT", "visitor-met", visits.length);
     try {
       saveWrite(KEY, JSON.stringify(next));
@@ -46,8 +50,21 @@ export const useAlbum = create<AlbumStore>((set, get) => ({
       // private mode: lasts for this visit
     }
     set(next);
+    return kept;
   },
 }));
+
+/** The words for a visitor's hint, in the player's language (G4). */
+export function useHintNames(lang: "en" | "zh") {
+  const t = useT();
+  return {
+    trait: (x: keyof typeof TRAIT_NAMES) => TRAIT_NAMES[x][lang],
+    season: (s: string) => WORLD_SEASONS.find((w) => w.id === s)?.name[lang] ?? s,
+    stage: (s: string) => t(`stage.${s}` as never),
+    line: (l: string) => t(`line.${l}` as never).toLowerCase(),
+    form: (f: string) => FORM_NAMES[f as keyof typeof FORM_NAMES]?.[lang] ?? f,
+  };
+}
 
 export function VisitorArt({ v, scale, hidden = false }: { v: Visitor; scale: number; hidden?: boolean }) {
   const { canvas, overlay, crop } = useMemo(() => {
@@ -123,11 +140,12 @@ export function AlbumPanel() {
   const lang = useLang((s) => s.lang) as "en" | "zh";
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
   const album = useAlbum((s) => s.album);
+  const names = useHintNames(lang);
   const met = VISITORS.filter((v) => album[v.id]).length;
   return (
     <div className="chainpanel album">
       <p className="label">{L(`Visitor album · ${met} of ${VISITORS.length}`, `访客相册 · ${met} / ${VISITORS.length}`)}</p>
-      <p className="small">{L("Travelling pets drop by while you're away. Each one met is kept here.", "你不在的时候，会有旅行中的宠物来串门。见过的都会留在这里。")}</p>
+      <p className="small">{L("Travelling pets drop by while you're away. Many come only for what your pet has learned or become, or in one season of the world. Most leave a keepsake on their 3rd and 10th visit, and every one becomes an old friend on its 25th.", "你不在的时候，会有旅行中的宠物来串门。很多只会来看学过某一课、养成某种性子的宠物，或只在某个时节来。多数会在第 3 次和第 10 次来时留下纪念品，来到第 25 次就成了老朋友。")}</p>
       <ul className="album-grid">
         {VISITORS.map((v) => {
           const e = album[v.id];
@@ -140,13 +158,16 @@ export function AlbumPanel() {
               <span className="small">
                 {e
                   ? L(`${e.count} ${e.count === 1 ? "visit" : "visits"} · first ${new Date(e.first).toLocaleDateString("en", { month: "short", day: "numeric" })}`, `来过 ${e.count} 次 · 第一次 ${new Date(e.first).toLocaleDateString("zh-CN", { month: "short", day: "numeric" })}`)
-                  : v.rarity === "rare"
+                  : v.rarity === "epic"
+                    ? L("once a season", "一季一遇")
+                    : v.rarity === "rare"
                     ? L("rare", "稀有")
                     : v.rarity === "uncommon"
                       ? L("uncommon", "少见")
                       : L("not met yet", "还没见过")}
               </span>
-              {e && <span className="small album-note">{v.note[lang]}</span>}
+              {e ? <span className="small album-note">{v.note[lang]}</span> : <span className="small album-hint">{visitorHint(v, lang, names)}</span>}
+              {e && e.count < FRIENDSHIP_VISITS && <span className="small album-keep">{v.keepsakes && e.count < 10 ? (e.count < 3 ? L(`keepsake at visit 3`, `第 3 次来时留纪念品`) : L(`another at visit 10`, `第 10 次来时再留一件`)) : L(`old friends at visit ${FRIENDSHIP_VISITS}`, `第 ${FRIENDSHIP_VISITS} 次来就是老朋友了`)}</span>}
             </li>
           );
         })}
