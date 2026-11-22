@@ -8,7 +8,7 @@
  * names the rule that fired.
  */
 
-import { type DayChoices, HABIT_LINES } from "./personality";
+import { type DayChoices, habitLine } from "./personality";
 import type { Trait } from "./pet";
 import type { OutsideInstinct } from "./pet";
 import { instinctBrain } from "./family";
@@ -147,7 +147,8 @@ const WANT_KEY = Object.fromEntries(Object.entries(WANT).map(([k, v]) => [v, k])
 /** The pet's own line about a moment, in its voice: its strongest habit's when it has one (G9). */
 export function momentText(f: Frame, lang: "en" | "zh", habit: Trait | null = null): string {
   const key = WANT_KEY[f.want] ?? "idle";
-  if (habit) return HABIT_LINES[habit][key][lang];
+  // D6: one of the habit's two lines, picked by the moment, so several moments do not repeat one sentence
+  if (habit) return habitLine(habit, key, lang, f.index ?? (f.at === null ? 0 : Math.floor(f.at / 60_000)));
   const en: Record<MomentKey, string> = {
     idle: "I just sat and thought for a bit.",
     eat: "I wanted something to eat.",

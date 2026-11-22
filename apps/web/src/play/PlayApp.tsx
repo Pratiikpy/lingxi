@@ -5,7 +5,7 @@ import { useCallback, useEffect, useEffectEvent, useMemo, useState } from "react
 import { useReducedMotion } from "motion/react";
 import { NIGHT, boundingBox, drawPet } from "@lingxi/art";
 import { STARTERS, timeOfDay } from "@lingxi/brain";
-import { type Pet, visitorsNow, friendPartner, petCard, stageOf, visibleMeters, bondLevel } from "@lingxi/game";
+import { type Pet, visitorsNow, friendPartner, petCard, stageOf, strongestHabit, visibleMeters, bondLevel } from "@lingxi/game";
 import { type Key, useT, useLang } from "../i18n";
 import { usePageMeta } from "../i18n/pageMeta";
 import { decidingPart, useGame } from "../game/store";
@@ -538,6 +538,7 @@ export function PlayApp() {
             outfit={outfitOf(worldFull, String(pet.bornAt))}
             sick={!!pet.sick}
             want={trial ? trial.want : pet.last.want}
+            habit={strongestHabit(pet.traits)}
             mood={trial ? trial.mood : pet.last.mood}
             {...roomEventProps}
             taught={trial ? trial.fired : !pet.last.instinct && ruleKindOf(pet, decidingPart(pet).program, pet.last.rule) === "taught"}

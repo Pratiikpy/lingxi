@@ -97,6 +97,96 @@ export const HABIT_LINES: Readonly<Record<Trait, Lines>> = {
   },
 };
 
+/** D6: a second line for every habit and choice, so a story of several moments is not one sentence repeated. */
+export const HABIT_LINES_2: Readonly<Record<Trait, Lines>> = {
+  brave: {
+    idle: { en: "I stood tall and looked around, just in case.", zh: "我挺直身子四处看看，以防万一。" },
+    eat: { en: "I ate like a hero after a long day.", zh: "我像忙了一天的英雄一样大口吃。" },
+    play: { en: "I wanted to play something with a bit of danger!", zh: "我想玩点有挑战的！" },
+    sleep: { en: "I slept with one ear up.", zh: "我睡觉时竖着一只耳朵。" },
+    explore: { en: "I marched off to the far corner first.", zh: "我先大步走到最远的角落。" },
+    sulk: { en: "I sulked, but bravely.", zh: "我闹别扭了，不过很勇敢地闹。" },
+    cuddle: { en: "I leaned on you. Guarding you, really.", zh: "我靠在你身上。其实是在保护你。" },
+    share: { en: "I shared, and stood between my friend and the dark.", zh: "我分享了，还挡在朋友和黑暗中间。" },
+  },
+  curious: {
+    idle: { en: "I counted the spots on the floor.", zh: "我数了数地板上的斑点。" },
+    eat: { en: "I sniffed my food from every side first.", zh: "我先从每个方向闻了闻吃的。" },
+    play: { en: "I wanted to play a game I had never played!", zh: "我想玩一个从没玩过的游戏！" },
+    sleep: { en: "I dreamed about where the wind goes.", zh: "我梦见风会吹到哪里去。" },
+    explore: { en: "I went to find out what was behind the door.", zh: "我去看看门后面有什么。" },
+    sulk: { en: "I sulked and wondered why I was sulking.", zh: "我闹着别扭，又想知道自己为什么闹别扭。" },
+    cuddle: { en: "I came over to ask you something. I forgot what.", zh: "我过来想问你点事。忘了要问什么。" },
+    share: { en: "I shared to find out if sharing feels nice. It does.", zh: "我分享了，想知道分享是什么感觉。很好。" },
+  },
+  greedy: {
+    idle: { en: "I sat by my bowl, waiting politely.", zh: "我坐在碗旁边，很有礼貌地等着。" },
+    eat: { en: "I ate, then checked for seconds.", zh: "我吃完了，又看看还有没有。" },
+    play: { en: "I wanted to play the game where you win a treat.", zh: "我想玩能赢零食的那种游戏。" },
+    sleep: { en: "I fell asleep thinking about breakfast.", zh: "我想着早饭睡着了。" },
+    explore: { en: "I followed my nose. It led to crumbs.", zh: "我跟着鼻子走，找到了面包屑。" },
+    sulk: { en: "I sulked. Nobody gave me a biscuit.", zh: "我闹别扭了。没人给我饼干。" },
+    cuddle: { en: "I cuddled up. You smell like snacks.", zh: "我凑过来抱抱。你身上有零食的味道。" },
+    share: { en: "I shared half. The smaller half, but still.", zh: "我分了一半。小的那半，不过也算分了。" },
+  },
+  calm: {
+    idle: { en: "I watched the light move across the wall.", zh: "我看着光慢慢移过墙面。" },
+    eat: { en: "I ate quietly and enjoyed every bite.", zh: "我安安静静地吃，每一口都很享受。" },
+    play: { en: "I wanted to play, nice and slow.", zh: "我想慢悠悠地玩一会儿。" },
+    sleep: { en: "I closed my eyes and let the day go.", zh: "我闭上眼睛，让这一天过去。" },
+    explore: { en: "I wandered, in no hurry at all.", zh: "我慢慢地转，一点也不急。" },
+    sulk: { en: "I was a little cross, then it passed.", zh: "我有点不高兴，然后就过去了。" },
+    cuddle: { en: "I rested my head on you for a while.", zh: "我把头靠在你身上歇了一会儿。" },
+    share: { en: "I shared, and we sat together a while.", zh: "我分享了，然后我们一起坐了一会儿。" },
+  },
+  playful: {
+    idle: { en: "I chased my own tail for a bit.", zh: "我追了一会儿自己的尾巴。" },
+    eat: { en: "I ate in three big happy gulps.", zh: "我开心地三大口吃完了。" },
+    play: { en: "Again! I wanted to play again!", zh: "再来！我还想玩！" },
+    sleep: { en: "I napped, then woke up ready to play.", zh: "我打了个盹，醒来又想玩了。" },
+    explore: { en: "I zoomed off to see who wanted to play.", zh: "我冲出去看看谁想一起玩。" },
+    sulk: { en: "I sulked for a moment. Then I bounced.", zh: "我闹了一下下别扭，然后又蹦起来了。" },
+    cuddle: { en: "I pounced on you for a cuddle!", zh: "我扑过来要抱抱！" },
+    share: { en: "I shared my ball and we played catch!", zh: "我把球分给朋友，我们玩了接球！" },
+  },
+  gentle: {
+    idle: { en: "I hummed a little song to myself.", zh: "我轻轻哼了一首小歌。" },
+    eat: { en: "I ate softly and said thank you.", zh: "我轻轻地吃，还说了谢谢。" },
+    play: { en: "I wanted to play something kind.", zh: "我想玩一个温柔的游戏。" },
+    sleep: { en: "I tucked my paws in and slept.", zh: "我把爪子收好，睡着了。" },
+    explore: { en: "I went to say hello to the flowers.", zh: "我去跟花儿打招呼。" },
+    sulk: { en: "I felt a bit down, and hugged my tail.", zh: "我有点低落，就抱着自己的尾巴。" },
+    cuddle: { en: "I nuzzled in close and stayed.", zh: "我轻轻蹭过来，就待在那儿。" },
+    share: { en: "I shared, so my friend wouldn't feel left out.", zh: "我分享了，这样朋友就不会觉得被冷落。" },
+  },
+  shy: {
+    idle: { en: "I peeked out, then tucked back in.", zh: "我探出头看看，又缩了回去。" },
+    eat: { en: "I took my food somewhere quiet.", zh: "我把吃的带到安静的地方。" },
+    play: { en: "I wanted to play, a little bit.", zh: "我想玩，就一小会儿。" },
+    sleep: { en: "I curled up where no one could see.", zh: "我缩在没人看得见的地方睡了。" },
+    explore: { en: "I went exploring, keeping close to the wall.", zh: "我贴着墙边去探险。" },
+    sulk: { en: "I hid and hoped you'd find me.", zh: "我躲起来，希望你能找到我。" },
+    cuddle: { en: "I came close. Very close. Shh.", zh: "我靠近了。很近很近。嘘。" },
+    share: { en: "I left something for my friend and ran.", zh: "我给朋友留了点东西就跑开了。" },
+  },
+};
+
+/** The habit's line for a choice: one of its two, picked by the moment (no randomness). */
+export function habitLine(habit: Trait, key: MomentKey, lang: "en" | "zh", moment: number): string {
+  return ((moment % 2) + 2) % 2 === 0 ? HABIT_LINES[habit][key][lang] : HABIT_LINES_2[habit][key][lang];
+}
+
+/** D6: how each habit rests, for the "what I chose today" strip: the circuit's rest, in the pet's own way. */
+export const HABIT_REST: Readonly<Record<Trait, { en: string; zh: string }>> = {
+  brave: { en: "keep watch", zh: "站岗" },
+  curious: { en: "wonder", zh: "发呆琢磨" },
+  greedy: { en: "wait for snacks", zh: "等零食" },
+  calm: { en: "quiet time", zh: "静静待着" },
+  playful: { en: "bounce about", zh: "蹦蹦跳跳" },
+  gentle: { en: "hum softly", zh: "轻轻哼歌" },
+  shy: { en: "hide away", zh: "躲起来" },
+};
+
 /** How many of each choice, and how many a taught lesson made, among today's decisions (the "what I chose today" strip). */
 export interface DayChoices {
   counts: Partial<Record<MomentKey, number>>;

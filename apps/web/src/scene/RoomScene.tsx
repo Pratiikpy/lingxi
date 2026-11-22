@@ -7,6 +7,7 @@
  * so the scene never rebuilds on a state change.
  */
 
+import { habitPose } from "./habitPose";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { Application, Assets, Container, Graphics, Sprite, Text, Texture } from "pixi.js";
 // the site sends a script policy without eval; this module gives Pixi the code paths that never need it
@@ -59,6 +60,8 @@ export interface SceneProps {
   eventAt?: number;
   /** G1: the rule deciding now is one the player taught: a light bulb over the pet */
   taught?: boolean;
+  /** D6: the pet's strongest habit, shown now and then while it rests */
+  habit?: string | null;
   phase: DayPhase;
   /** performance.now() of the last care and what it was (and the food's picture, when fed) */
   lastCare: { kind: string; at: number; food?: string } | null;
@@ -570,9 +573,19 @@ export function RoomScene(props: SceneProps) {
         }
         if (now > blinkAt) blinkAt = now + 2400 + Math.random() * 2400;
         const blinking = now > blinkAt - 140;
-        const { e, lit } = expressionFor(p, now, blinking);
+        let { e, lit } = expressionFor(p, now, blinking);
         let squash: -1 | 0 | 1 = 0;
         let lift = 0;
+        // D6: a small habit while its circuit chooses to rest (habitPose: timed by the clock, never at random)
+        const resting = !p.asleep && !p.sick && p.want === 0 && !(p.lastCare && now - p.lastCare.at < 2600) && !p.reduceMotion;
+        const pose = habitPose(p.habit, now, resting);
+        const habitShift = pose?.shift ?? 0;
+        if (pose) {
+          if (pose.expression) e = pose.expression;
+          if (pose.squash) squash = 1;
+          if (pose.face) pet.scale.x = pose.face;
+          if (pose.hop && hopAt < 0) hopAt = now;
+        }
         if (hopAt >= 0) {
           const k = (now - hopAt) / 520;
           if (k > 1) hopAt = -1;
@@ -584,7 +597,7 @@ export function RoomScene(props: SceneProps) {
         }
         const breath: 0 | 1 = p.reduceMotion ? 0 : Math.sin(now / (p.asleep ? 900 : 620)) > 0.35 ? 1 : 0;
         pet.texture = petTexture(p.line, { stage: p.stage, expression: e, breath, squash, lit, ...(p.form ? { form: p.form } : {}), ...(p.outfit ? { outfit: p.outfit } : {}) });
-        pet.x = PET_X;
+        pet.x = PET_X + habitShift;
         pet.y = PET_FEET - lift;
         pet.visible = !p.absent;
         if (!p.covered) {
@@ -618,7 +631,7 @@ export function RoomScene(props: SceneProps) {
             pet.scale.x = bx < PET_X ? -1 : 1;
             if (hopAt < 0 && Math.random() < 0.03) hopAt = now;
           }
-        } else if (!p.asleep && !busyCare && Math.abs(lookX - PET_X) > 8) {
+        } else if (!p.asleep && !busyCare && Math.abs(lookX - PET_X) > 8 && !pose?.face) {
           // otherwise it turns toward your pointer
           pet.scale.x = lookX < PET_X ? -1 : 1;
         }

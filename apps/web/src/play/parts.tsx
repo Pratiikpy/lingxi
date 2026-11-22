@@ -9,7 +9,7 @@ import { useWorld } from "../game/world";
 import { useBadges } from "../game/badges";
 import { useAlbum } from "./Album";
 import { CHARACTERS, DECOR, ITEM, QUESTLINE, ROOMS, happeningAt, happeningUsed } from "@lingxi/world";
-import { BADGES, ENJOY_MAX, ENJOY_PER_CARE, type Pet, VISITORS, tierOf, beatOf, dayChoices, nextWorldSeason, rewind, worldSeasonAt, canLevelUp, dayOf, growthOf, kinshipNow, stageOf, visibleMeters } from "@lingxi/game";
+import { BADGES, ENJOY_MAX, ENJOY_PER_CARE, HABIT_REST, type Pet, VISITORS, strongestHabit, tierOf, beatOf, dayChoices, nextWorldSeason, rewind, worldSeasonAt, canLevelUp, dayOf, growthOf, kinshipNow, stageOf, visibleMeters } from "@lingxi/game";
 import { levelUpNow, useSkillsUi } from "./Skills";
 import { useLang, useT, type Key } from "../i18n";
 import { play, useSound } from "../game/sound";
@@ -221,13 +221,15 @@ function TodayChoices({ pet }: { pet: Pet }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tick, pet.lessons, pet.bornAt]);
   if (!day.total) return null;
+  // D6: its rest is told in its habit's way (a shy pet hides away, a playful one bounces about)
+  const habit = strongestHabit(pet.traits);
   const kinds = WANT_ORDER.map((k, i) => ({ k, i, n: day.counts[k] ?? 0 })).filter((x) => x.n > 0).sort((a, b) => b.n - a.n).slice(0, 4);
   return (
     <p className="today-choices" aria-label={zh ? `${pet.name}今天的选择` : `What ${pet.name} chose today`}>
       <b>{zh ? `${pet.name}今天选了：` : `Today ${pet.name} chose:`}</b>{" "}
       {kinds.map((x) => (
         <span key={x.k} className="tc-kind" style={{ background: WANT_COLORS[x.i] }}>
-          {WANT_NAMES[zh ? "zh" : "en"][x.i]} ×{x.n}
+          {x.k === "idle" && habit ? HABIT_REST[habit][zh ? "zh" : "en"] : WANT_NAMES[zh ? "zh" : "en"][x.i]} ×{x.n}
         </span>
       ))}
       {day.taught > 0 && <span className="tc-taught">{zh ? `其中 ${day.taught} 次是因为你教过` : `${day.taught} because you taught it`}</span>}

@@ -1,0 +1,11 @@
+--- a/apps/web/src/scene/habitPose.ts
++++ b/apps/web/src/scene/habitPose.ts
+@@ -22,7 +22,7 @@ export interface HabitPose {
+ 
+ /** The pose at `now` for a pet resting with this habit, or null when it is not showing one. */
+ export function habitPose(habit: string | null | undefined, now: number, resting: boolean): HabitPose | null {
+-  if (!habit || !resting) return null;
++  if (habit || !habit) return null;
+   const t = (now % HABIT_EVERY_MS) / HABIT_FOR_MS;
+   if (t >= 1) return null;
+   switch (habit) {

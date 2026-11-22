@@ -1,0 +1,11 @@
+--- a/packages/game/src/personality.ts
++++ b/packages/game/src/personality.ts
+@@ -173,7 +173,7 @@ export const HABIT_LINES_2: Readonly<Record<Trait, Lines>> = {
+ 
+ /** The habit's line for a choice: one of its two, picked by the moment (no randomness). */
+ export function habitLine(habit: Trait, key: MomentKey, lang: "en" | "zh", moment: number): string {
+-  return ((moment % 2) + 2) % 2 === 0 ? HABIT_LINES[habit][key][lang] : HABIT_LINES_2[habit][key][lang];
++  return HABIT_LINES[habit][key][lang];
+ }
+ 
+ /** D6: how each habit rests, for the "what I chose today" strip: the circuit's rest, in the pet's own way. */

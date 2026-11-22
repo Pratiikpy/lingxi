@@ -53,7 +53,7 @@ export const useVoice = create<VoiceState>((set, get) => ({
       const now = gameNow();
       const s = get();
       if (pet.asleep || now - s.lastAt < (tapped ? TAP_EVERY_MS : AUTO_EVERY_MS) || (!tapped && sig === s.lastSig)) return;
-      const line = tellMoment({ want: pet.last.want, rule: pet.last.rule, program: part.program } as Frame, lang, strongestHabit(pet.traits));
+      const line = tellMoment({ index: pet.beat, at: null, want: pet.last.want, rule: pet.last.rule, program: part.program } as unknown as Frame, lang, strongestHabit(pet.traits));
       set((x) => ({ lastAt: now, lastSig: sig, line, id: x.id + 1 }));
       return;
     }

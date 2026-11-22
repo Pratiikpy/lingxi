@@ -38,4 +38,20 @@ describe("personality every day (G9)", () => {
     expect(day.total).toBe(2);
     expect(day.taught).toBe(0);
   });
+
+  it("has two lines for every habit and choice, and a story of moments does not repeat one sentence (D6)", async () => {
+    const { HABIT_LINES_2, HABIT_REST, habitLine } = await import("../src");
+    const keys = ["idle", "eat", "play", "sleep", "explore", "sulk", "cuddle", "share"] as const;
+    for (const t of TRAITS) {
+      expect(HABIT_REST[t].en && HABIT_REST[t].zh, t).toBeTruthy();
+      for (const k of keys) {
+        expect(HABIT_LINES_2[t][k].en && HABIT_LINES_2[t][k].zh, `${t} ${k}`).toBeTruthy();
+        expect(HABIT_LINES_2[t][k].en, `${t} ${k}`).not.toBe(HABIT_LINES[t][k].en);
+      }
+    }
+    expect(habitLine("shy", "eat", "en", 4)).not.toBe(habitLine("shy", "eat", "en", 5));
+    // three eating moments in a row: never the same sentence three times
+    const told = [7, 8, 9].map((i) => momentText({ ...frame(1, 0), index: i } as Frame, "en", "shy"));
+    expect(new Set(told).size).toBeGreaterThan(1);
+  });
 });
