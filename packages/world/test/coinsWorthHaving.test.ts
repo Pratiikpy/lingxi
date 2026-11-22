@@ -27,6 +27,23 @@ describe("paid spars are capped per day (G6)", () => {
     expect(next.paid).toBe(5);
   });
 
+  it("resets on the player's own day, not at UTC midnight (D10)", () => {
+    // a UTC+8 player: 07:00 and 09:00 local are one day, though UTC midnight (08:00 local) falls between them
+    let w: WorldState = { ...newWorld("purse"), tz: 480 };
+    const at7 = Date.UTC(2026, 10, 23, 23, 0); // 24 Nov 07:00 in UTC+8
+    const at9 = Date.UTC(2026, 10, 24, 1, 0); // 24 Nov 09:00 in UTC+8
+    for (let i = 0; i < PAID_SPARS_PER_DAY; i++) w = paySpar(w, at7 + i * 60_000, 30).world;
+    expect(paidSparsLeft(w, at9)).toBe(0);
+    expect(paySpar(w, at9, 30).paid).toBe(0);
+    // its own midnight (16:00 UTC) brings the next three
+    expect(paidSparsLeft(w, Date.UTC(2026, 10, 24, 16, 0))).toBe(PAID_SPARS_PER_DAY);
+    // and a UTC-5 player's day ends at 05:00 UTC
+    let v: WorldState = { ...newWorld("purse"), tz: -300 };
+    for (let i = 0; i < PAID_SPARS_PER_DAY; i++) v = paySpar(v, Date.UTC(2026, 10, 24, 3, i), 30).world;
+    expect(paidSparsLeft(v, Date.UTC(2026, 10, 24, 4, 59))).toBe(0);
+    expect(paidSparsLeft(v, Date.UTC(2026, 10, 24, 5, 0))).toBe(PAID_SPARS_PER_DAY);
+  });
+
   it("a spar that pays nothing does not use up a paid spar", () => {
     const w = newWorld("purse");
     const r = paySpar(w, T0, 0);

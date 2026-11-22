@@ -246,7 +246,7 @@ export interface WorldState {
   /** the day (UTC day number) and the rooms entered on it, for Wanderer's and Rich Finds' first-entry find (G6) */
   roomsDay?: number;
   roomsToday?: number[];
-  /** G6: the day (UTC day number) and how many spars have paid coins on it; after PAID_SPARS_PER_DAY they are practice */
+  /** G6: the day (the player's own day, D10) and how many spars have paid coins on it; after PAID_SPARS_PER_DAY they are practice */
   sparPayDay?: number;
   sparPaidToday?: number;
   /** the pet away on a trip, travel recipes it has brought back, and trips taken */
@@ -571,13 +571,15 @@ export const earn = (w: WorldState, coins: number): WorldState => bump({ ...w, c
  */
 export const PAID_SPARS_PER_DAY = 3;
 const SPAR_DAY_MS = 24 * 60 * 60 * 1000;
-const sparDay = (now: number) => Math.floor(now / SPAR_DAY_MS);
+/** D10: the player's own day number (their time zone, as the dailies and the village keep it), so "more pay tomorrow"
+ * means their tomorrow: at UTC midnight a UTC+8 player at 08:00 used to get three more */
+const sparDay = (w: WorldState, now: number) => Math.floor((now + (w.tz ?? 0) * 60_000) / SPAR_DAY_MS);
 export const paidSparsLeft = (w: WorldState, now: number): number =>
-  Math.max(0, PAID_SPARS_PER_DAY - (w.sparPayDay === sparDay(now) ? (w.sparPaidToday ?? 0) : 0));
+  Math.max(0, PAID_SPARS_PER_DAY - (w.sparPayDay === sparDay(w, now) ? (w.sparPaidToday ?? 0) : 0));
 /** Pays a spar's coins if the day still has a paid spar left; `paid` is what was paid (0 once the day's are used). */
 export function paySpar(w: WorldState, now: number, coins: number): { world: WorldState; paid: number } {
   if (coins <= 0 || paidSparsLeft(w, now) === 0) return { world: w, paid: 0 };
-  const day = sparDay(now);
+  const day = sparDay(w, now);
   const used = w.sparPayDay === day ? (w.sparPaidToday ?? 0) : 0;
   return { world: { ...earn(w, coins), sparPayDay: day, sparPaidToday: used + 1 }, paid: coins };
 }
