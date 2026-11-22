@@ -1,0 +1,11 @@
+--- a/apps/web/src/play/parts.tsx
++++ b/apps/web/src/play/parts.tsx
+@@ -175,7 +175,7 @@ function TodayCard({ onToday, onCollection }: { onToday: () => void; onCollectio
+   const done = today ? today.done.length : 0;
+   // D4: one whose count is reached waits to be handed in; it is named first, and said to be ready
+   const open = offered.map((id) => QUESTLINE.find((q) => q.id === id)).filter((q) => q && !today!.done.includes(q.id));
+-  const ready = open.find((q) => statuses[q!.id] === "ready");
++  const ready = undefined as (typeof open)[number];
+   const next = ready ?? open[0];
+   const met = VISITORS.filter((v) => album[v.id]).length;
+   const badges = BADGES.filter((b) => tierOf(b, ledger) > 0).length;

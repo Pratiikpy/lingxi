@@ -4,6 +4,7 @@ import { type ReactNode, useEffect, useMemo } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useVoice } from "../game/voice";
 import { decidingPart, mindForPet } from "../game/store";
+import { useQuestStatuses } from "../game/quests";
 import { useWorld } from "../game/world";
 import { useBadges } from "../game/badges";
 import { useAlbum } from "./Album";
@@ -169,9 +170,13 @@ function TodayCard({ onToday, onCollection }: { onToday: () => void; onCollectio
   const owned = useWorld((s) => s.world.decor?.owned.length ?? 0);
   const album = useAlbum((s) => s.album);
   const ledger = useBadges((s) => s.ledger);
+  const statuses = useQuestStatuses();
   const offered = today?.offered ?? [];
   const done = today ? today.done.length : 0;
-  const next = offered.map((id) => QUESTLINE.find((q) => q.id === id)).find((q) => q && !today!.done.includes(q.id));
+  // D4: one whose count is reached waits to be handed in; it is named first, and said to be ready
+  const open = offered.map((id) => QUESTLINE.find((q) => q.id === id)).filter((q) => q && !today!.done.includes(q.id));
+  const ready = open.find((q) => statuses[q!.id] === "ready");
+  const next = ready ?? open[0];
   const met = VISITORS.filter((v) => album[v.id]).length;
   const badges = BADGES.filter((b) => tierOf(b, ledger) > 0).length;
   const pieces = DECOR.length;
@@ -182,7 +187,9 @@ function TodayCard({ onToday, onCollection }: { onToday: () => void; onCollectio
     <div className="today-card">
       <button type="button" className="tcard-errands" onClick={() => (play("tap"), onToday())}>
         <b>{zh ? `今天 ${done}/${offered.length || 3}` : `Today ${done}/${offered.length || 3}`}</b>
-        <span>{next ? next.title[zh ? "zh" : "en"] : offered.length ? (zh ? "今天的都做完了！" : "All done for today!") : zh ? "打开看看今天的事" : "See today's errands"}</span>
+        <span className={ready ? "tcard-ready" : undefined}>
+          {ready ? (zh ? `可以交了：${ready.title.zh}` : `Ready: ${ready.title.en}`) : next ? next.title[zh ? "zh" : "en"] : offered.length ? (zh ? "今天的都做完了！" : "All done for today!") : zh ? "打开看看今天的事" : "See today's errands"}
+        </span>
       </button>
       <button type="button" className="tcard-collect" onClick={() => (play("tap"), onCollection())} aria-label={zh ? `收藏 ${have}/${all}：${parts}` : `Collection ${have} of ${all}: ${parts}`} title={parts}>
         <b>{zh ? "收藏" : "Collection"}</b>

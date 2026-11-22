@@ -3183,3 +3183,8 @@
 .village-line.done {
   opacity: 0.7;
 }
+/* D4: an errand ready to hand in */
+.today-card .tcard-errands .tcard-ready {
+  color: #2f8a4c;
+  font-weight: 700;
+}
