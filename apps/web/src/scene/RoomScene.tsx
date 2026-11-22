@@ -149,6 +149,8 @@ async function makeBg(url: string, still: boolean): Promise<Sprite> {
 /** where the pet stands when nothing else shares its floor */
 /** half the drawn width of each stage, to keep two pets apart */
 const PET_FEET = 104;
+/** CSS pixels at the room's foot the thinking strip lies over; the pet's feet stay above them. */
+const STRIP_ROOM = 76;
 const CAT_FEET = 96;
 
 interface Particle {
@@ -434,7 +436,9 @@ export function RoomScene(props: SceneProps) {
         scale = sceneScale(w, h);
         world.scale.set(scale);
         world.x = Math.round((w - ROOM * scale) / 2);
-        world.y = Math.round((h - ROOM * scale) / 2);
+        // cropped evenly, but never so the pet's feet sink under the thinking strip along the room's foot (a shorter
+        // room on a phone, with more lines in the care panel below it, otherwise lost the pet's lower half)
+        world.y = Math.round(Math.min((h - ROOM * scale) / 2, h - STRIP_ROOM - PET_FEET * scale));
       };
       layout();
       const ro = new ResizeObserver(layout);
