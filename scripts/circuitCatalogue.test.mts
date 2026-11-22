@@ -13,12 +13,28 @@ import { RULES } from "@lingxi/chain";
 const root = join(import.meta.dirname, "..");
 const cat = JSON.parse(readFileSync(join(root, "apps/web/public/circuits.json"), "utf8")) as {
   processor: string;
+  encoding: Record<string, string>;
+  encodingZh: Record<string, string>;
+  brainPins: unknown;
   rules: Array<{ name: string; id: string; nIn: number; inBits: number; netlistKeccak: string; fields: unknown; vectors: Array<[number, number]> }>;
   brains: Array<{ line: "gentle" | "bold" | "curious"; id: string; nState: number; netlistKeccak: string; vectors: Array<{ input: number; output: number; nextState: number }>; walk: Array<{ state: number; input: number; output: number; nextState: number }> }>;
 };
 const d = JSON.parse(readFileSync(join(root, "packages/chain/deployments/xlayer.json"), "utf8")) as { processor: string; rules: Record<string, { id: string }>; circuits: Record<string, { id: string }> };
 
 describe("the circuit catalogue (H6)", () => {
+  it("says how to call a circuit and what each pin means in Chinese too, beside the English (C5)", () => {
+    const encoding = cat.encoding as Record<string, string>;
+    const encodingZh = cat.encodingZh as Record<string, string>;
+    expect(Object.keys(encodingZh).sort()).toEqual(Object.keys(encoding).sort());
+    for (const v of Object.values(encodingZh)) expect(v).toMatch(/[一-鿿]/);
+    const pins = cat.brainPins as { inputs: Array<{ name: string; values: string[]; nameZh: string; valuesZh: string[] }>; outputs: Array<{ name: string; values: string[]; nameZh: string; valuesZh: string[] }> };
+    for (const p of [...pins.inputs, ...pins.outputs]) {
+      expect(p.nameZh, p.name).toMatch(/[一-鿿]/);
+      expect(p.valuesZh.length, p.name).toBe(p.values.length);
+      for (const v of p.valuesZh) expect(v, p.name).toMatch(/[一-鿿]/);
+    }
+  });
+
   it("lists every rule circuit with its id, its netlist's hash and the reference's answers", () => {
     expect(cat.processor).toBe(d.processor);
     expect(cat.rules.map((r) => r.name)).toEqual(RULES.map((r) => r.name));

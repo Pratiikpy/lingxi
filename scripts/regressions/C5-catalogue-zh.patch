@@ -1,0 +1,11 @@
+--- a/scripts/circuit-catalogue.mts
++++ b/scripts/circuit-catalogue.mts
+@@ -157,7 +157,7 @@ const catalogue = {
+   brainPins: {
+     standard: "LX-PET/1",
+     // the Chinese names are the game's own (ruleText.ts, the duel's natures), so the catalogue says what the game says
+-    inputs: INPUT_FIELDS.map((f) => ({ name: f.name, lo: f.lo, bits: f.bits, values: [...f.values], nameZh: FIELD_ZH[f.name]!, valuesZh: [...VALUE_NAMES[f.name]!.zh] })),
++    inputs: INPUT_FIELDS.map((f) => ({ name: f.name, lo: f.lo, bits: f.bits, values: [...f.values] })),
+     outputs: [
+       { name: "want", lo: 0, bits: 3, values: [...WANTS], nameZh: "想做", valuesZh: [...WANT_NAMES.zh] },
+       { name: "mood", lo: 3, bits: 2, values: [...MOODS], nameZh: "心情", valuesZh: [...MOOD_NAMES.zh] },

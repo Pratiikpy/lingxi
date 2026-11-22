@@ -13,6 +13,12 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { createPublicClient, http, keccak256, type Address, type Hex } from "viem";
 import { INPUT_FIELDS, MOODS, NUDGES, STARTERS, WANTS, beat, bitsToWord, compileProgram, load, netlistBytes, ruleBytes, stateBits, wordToBits } from "@lingxi/brain";
 import { RULES, processorAbi, xLayer, type Deployment } from "@lingxi/chain";
+import { MOOD_NAMES, VALUE_NAMES, WANT_NAMES } from "../apps/web/src/play/ruleText";
+
+/** Each input pin's name in Chinese, as the game's screens speak of it (C5). */
+const FIELD_ZH: Record<string, string> = { hunger: "饱饿", joy: "快乐", energy: "精力", clean: "干净", time: "时间", action: "你做的事", event: "身边发生的事", owner: "你在不在" };
+/** The nudge pin's values in Chinese: "none", then the game's own words for the seven natures (the duel screen's). */
+const NUDGE_ZH = ["没有", "勇敢", "好奇", "嘴馋", "沉稳", "贪玩", "温柔", "害羞"];
 
 const OUT = new URL("../apps/web/public/circuits.json", import.meta.url);
 const RPCS = ["https://rpc.xlayer.tech", "https://xlayerrpc.okx.com"];
@@ -136,13 +142,26 @@ const catalogue = {
     eval: "processor.eval(uint256 id, bytes inputs) view returns (bytes outputs)",
     step: "processor.step(uint256 id, bytes state, bytes inputs) view returns (bytes newState, bytes outputs)",
   },
+  // the same notes in Chinese (C5), beside the English so a reader of either can call a circuit; keys match `encoding`
+  encodingZh: {
+    abi: "标准 Solidity ABI：eval 的调用数据依次是 4 字节选择器、32 字节的 id、inputs 的偏移量（0x40）、inputs 的字节长度，再是补齐到 32 字节的 inputs；step 的依次是选择器、id、state 的偏移量（0x60）、inputs 的偏移量（0x60 加上 state 长度占的 32 字节和补齐后的 state），然后是 state 的长度和补齐后的字节，再是 inputs 的长度和补齐后的字节。返回值也按同样方式 ABI 编码：eval 返回一个 bytes（偏移量、长度、数据）；step 返回两个，先 newState 后 outputs。选择器：eval 0x934d06ea，step 0xe8281a1a（签名的 keccak256）。",
+    ids: "这里每个电路的 id 都是 uint256，写成十进制字符串",
+    nState: "nState 数的是位数；state 占 ceil(nState / 8) 个字节（初始大脑是 1 个字节）",
+    brains: "大脑按它的系别列出（gentle 温柔、bold 勇敢、curious 好奇）；name 只是标签",
+    inputs: "字节，小端序：输入字的第 0 位就是第一个字节的第 0 位；共 ceil(nIn / 8) 个字节（这里每个电路都是 2 个：每个都有 16 个输入引脚，规则只读低 inBits 位，其余为 0）",
+    outputs: "字节，小端序，方式相同：第一个字节存输出的第 0 到 7 位",
+    state: "大脑的记忆，按和 inputs 一样的方式打包（processor.step 传入并返回它）",
+    eval: "processor.eval(uint256 id, bytes inputs) view returns (bytes outputs)，只读调用，免费",
+    step: "processor.step(uint256 id, bytes state, bytes inputs) view returns (bytes newState, bytes outputs)，只读调用，免费",
+  },
   brainPins: {
     standard: "LX-PET/1",
-    inputs: INPUT_FIELDS.map((f) => ({ name: f.name, lo: f.lo, bits: f.bits, values: [...f.values] })),
+    // the Chinese names are the game's own (ruleText.ts, the duel's natures), so the catalogue says what the game says
+    inputs: INPUT_FIELDS.map((f) => ({ name: f.name, lo: f.lo, bits: f.bits, values: [...f.values], nameZh: FIELD_ZH[f.name]!, valuesZh: [...VALUE_NAMES[f.name]!.zh] })),
     outputs: [
-      { name: "want", lo: 0, bits: 3, values: [...WANTS] },
-      { name: "mood", lo: 3, bits: 2, values: [...MOODS] },
-      { name: "nudge", lo: 5, bits: 3, values: [...NUDGES] },
+      { name: "want", lo: 0, bits: 3, values: [...WANTS], nameZh: "想做", valuesZh: [...WANT_NAMES.zh] },
+      { name: "mood", lo: 3, bits: 2, values: [...MOODS], nameZh: "心情", valuesZh: [...MOOD_NAMES.zh] },
+      { name: "nudge", lo: 5, bits: 3, values: [...NUDGES], nameZh: "性格推动", valuesZh: NUDGE_ZH },
     ],
   },
   rules,

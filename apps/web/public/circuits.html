@@ -41,7 +41,7 @@
   </div>
   <p id="about" class="soft"></p>
   <p class="soft" id="note"></p>
-  <p><a id="json" href="circuits.json">circuits.json</a> · <span id="proc"></span></p>
+  <p><a id="json" href="circuits.json">circuits.json</a> · <span id="proc" class="mono"></span></p>
 
   <h2 id="h-enc">How to call one</h2>
   <div class="card mono" id="enc"></div>
@@ -94,7 +94,13 @@ function callStep(id, stateHex, inputHex) {
 function bytesAt(ret, n) { const r = ret.slice(2); const off = parseInt(r.slice(64 * n, 64 * n + 64), 16) * 2; const len = parseInt(r.slice(off, off + 64), 16) * 2; return r.slice(off + 64, off + 64 + len); }
 
 let rpc = 0;
-async function ethCall(calls) {
+// one request to X Layer at a time, whoever asks (C5): pressing several checks at once used to send them all together,
+// and the public node turned every one away
+let line = Promise.resolve();
+const inTurn = (fn) => { const p = line.then(fn, fn); line = p.catch(() => undefined); return p; };
+const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+async function ethCall(calls) { return inTurn(() => askRound(calls).catch(async () => { await pause(1500); return askRound(calls); })); }
+async function askRound(calls) {
   for (let tries = 0; tries < cat.rpcs.length; tries++) {
     const url = cat.rpcs[(rpc + tries) % cat.rpcs.length];
     try {
@@ -121,12 +127,12 @@ function render() {
   $("note").textContent = t.note;
   $("proc").textContent = `${t.processor} ${cat.processor} · chain ${cat.chainId}`;
   $("h-enc").textContent = t.enc; $("h-pins").textContent = t.pins; $("h-rules").textContent = t.rules; $("h-brains").textContent = t.brains;
-  $("enc").replaceChildren(...Object.entries(cat.encoding).map(([k, v]) => el("p", {}, el("b", {}, `${k}: `), v)));
+  $("enc").replaceChildren(...Object.entries(cat.encoding).map(([k, v]) => el("p", {}, el("b", {}, `${k}: `), lang === "zh" && cat.encodingZh?.[k] ? cat.encodingZh[k] : v)));
   const pins = $("pins");
   pins.replaceChildren(el("tr", {}, el("th", {}, t.field), el("th", {}, t.pin), el("th", {}, t.values)));
   for (const [kind, list] of [[t.inputs, cat.brainPins.inputs], [t.outputs, cat.brainPins.outputs]]) {
     pins.append(el("tr", {}, el("th", { colspan: "3" }, kind)));
-    for (const f of list) pins.append(el("tr", {}, el("td", {}, f.name), el("td", { class: "mono" }, f.bits > 1 ? `${f.lo}-${f.lo + f.bits - 1}` : `${f.lo}`), el("td", {}, f.values.map((v, i) => `${i} ${v}`).join(" · "))));
+    for (const f of list) pins.append(el("tr", {}, el("td", {}, pinName(f)), el("td", { class: "mono" }, f.bits > 1 ? `${f.lo}-${f.lo + f.bits - 1}` : `${f.lo}`), el("td", {}, pinValues(f).map((v, i) => `${i} ${v}`).join(" · "))));
   }
   $("rules").replaceChildren(...cat.rules.map(ruleCard));
   $("brains").replaceChildren(...cat.brains.map(brainCard));
@@ -164,9 +170,13 @@ function ruleCard(r) {
     el("div", { class: "row" }, input, run, all), out);
 }
 
+/** A pin's name and values in the reader's language (C5): the catalogue carries the game's own Chinese beside the English. */
+const pinName = (f) => (lang === "zh" && f.nameZh ? `${f.nameZh} (${f.name})` : f.name);
+const pinValues = (f) => (lang === "zh" && f.valuesZh ? f.valuesZh : f.values);
+
 function brainCard(b) {
   const t = T[lang];
-  const selects = cat.brainPins.inputs.map((f) => { const s = el("select", { "aria-label": f.name }); f.values.forEach((v, i) => s.append(el("option", { value: String(i) }, `${i} ${v}`))); return [f, s]; });
+  const selects = cat.brainPins.inputs.map((f) => { const s = el("select", { "aria-label": pinName(f) }); pinValues(f).forEach((v, i) => s.append(el("option", { value: String(i) }, `${i} ${v}`))); return [f, s]; });
   const out = el("p", { "aria-live": "polite" });
   const run = el("button", { type: "button", class: "primary" }, t.run);
   const all = el("button", { type: "button" }, t.all);
@@ -177,7 +187,7 @@ function brainCard(b) {
     try {
       const [ret] = await ethCall([callStep(b.id, packInput(0, b.nState), packInput(w, 16))]);
       const next = Number(unpack(bytesAt(ret, 0))); const o = Number(unpack(bytesAt(ret, 1)) & 0xffn);
-      const [want, mood, nudge] = cat.brainPins.outputs.map((f) => f.values[field(o, f)]);
+      const [want, mood, nudge] = cat.brainPins.outputs.map((f) => pinValues(f)[field(o, f)]);
       const doc = b.vectors.find((v) => v.input === w);
       out.replaceChildren(`${t.input} ${w} → ${t.want} ${want} · ${t.mood} ${mood} · ${t.nudge} ${nudge} · ${t.next} ${next} (${decode(next, b.memory)})`, doc ? el("span", { class: doc.output === o && doc.nextState === next ? "ok" : "bad" }, ` · ${doc.output === o && doc.nextState === next ? t.agree : t.differ}`) : "");
     } catch { out.textContent = t.unreach; }
@@ -196,7 +206,7 @@ function brainCard(b) {
     el("h3", {}, `${lang === "zh" ? `${LINE_ZH[b.line] ?? b.line}初始大脑` : b.name} · ${t.circuit} #${b.id}`),
     el("p", { class: "soft mono" }, `${b.nIn} → ${b.nOut} · ${t.memory} ${b.nState} ${t.bitsWord} (${b.memory.map((m) => `${m.name} ${m.bits > 1 ? `${m.lo}-${m.lo + m.bits - 1}` : m.lo}`).join(", ")}) · ${t.hash} ${b.netlistKeccak}`),
     el("p", { class: "soft" }, t.state),
-    el("div", { class: "pins" }, ...selects.map(([f, s]) => el("label", {}, f.name, s))),
+    el("div", { class: "pins" }, ...selects.map(([f, s]) => el("label", {}, pinName(f), s))),
     el("div", { class: "row" }, run, all), out);
 }
 

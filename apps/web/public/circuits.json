@@ -22,6 +22,17 @@
   "eval": "processor.eval(uint256 id, bytes inputs) view returns (bytes outputs)",
   "step": "processor.step(uint256 id, bytes state, bytes inputs) view returns (bytes newState, bytes outputs)"
  },
+ "encodingZh": {
+  "abi": "标准 Solidity ABI：eval 的调用数据依次是 4 字节选择器、32 字节的 id、inputs 的偏移量（0x40）、inputs 的字节长度，再是补齐到 32 字节的 inputs；step 的依次是选择器、id、state 的偏移量（0x60）、inputs 的偏移量（0x60 加上 state 长度占的 32 字节和补齐后的 state），然后是 state 的长度和补齐后的字节，再是 inputs 的长度和补齐后的字节。返回值也按同样方式 ABI 编码：eval 返回一个 bytes（偏移量、长度、数据）；step 返回两个，先 newState 后 outputs。选择器：eval 0x934d06ea，step 0xe8281a1a（签名的 keccak256）。",
+  "ids": "这里每个电路的 id 都是 uint256，写成十进制字符串",
+  "nState": "nState 数的是位数；state 占 ceil(nState / 8) 个字节（初始大脑是 1 个字节）",
+  "brains": "大脑按它的系别列出（gentle 温柔、bold 勇敢、curious 好奇）；name 只是标签",
+  "inputs": "字节，小端序：输入字的第 0 位就是第一个字节的第 0 位；共 ceil(nIn / 8) 个字节（这里每个电路都是 2 个：每个都有 16 个输入引脚，规则只读低 inBits 位，其余为 0）",
+  "outputs": "字节，小端序，方式相同：第一个字节存输出的第 0 到 7 位",
+  "state": "大脑的记忆，按和 inputs 一样的方式打包（processor.step 传入并返回它）",
+  "eval": "processor.eval(uint256 id, bytes inputs) view returns (bytes outputs)，只读调用，免费",
+  "step": "processor.step(uint256 id, bytes state, bytes inputs) view returns (bytes newState, bytes outputs)，只读调用，免费"
+ },
  "brainPins": {
   "standard": "LX-PET/1",
   "inputs": [
@@ -34,6 +45,13 @@
      "peckish",
      "hungry",
      "starving"
+    ],
+    "nameZh": "饱饿",
+    "valuesZh": [
+     "饱饱的",
+     "有点饿",
+     "饿了",
+     "饿坏了"
     ]
    },
    {
@@ -45,6 +63,13 @@
      "low",
      "happy",
      "joyful"
+    ],
+    "nameZh": "快乐",
+    "valuesZh": [
+     "难过",
+     "闷闷的",
+     "开心",
+     "超开心"
     ]
    },
    {
@@ -56,6 +81,13 @@
      "tired",
      "fine",
      "rested"
+    ],
+    "nameZh": "精力",
+    "valuesZh": [
+     "累瘫了",
+     "有点累",
+     "还好",
+     "精神足"
     ]
    },
    {
@@ -67,6 +99,13 @@
      "dusty",
      "tidy",
      "spotless"
+    ],
+    "nameZh": "干净",
+    "valuesZh": [
+     "脏兮兮",
+     "灰扑扑",
+     "干净",
+     "闪闪亮"
     ]
    },
    {
@@ -78,6 +117,13 @@
      "morning",
      "day",
      "evening"
+    ],
+    "nameZh": "时间",
+    "valuesZh": [
+     "夜里",
+     "早上",
+     "白天",
+     "傍晚"
     ]
    },
    {
@@ -93,6 +139,17 @@
      "pet",
      "medicine",
      "talk"
+    ],
+    "nameZh": "你做的事",
+    "valuesZh": [
+     "没动静",
+     "被喂",
+     "被陪玩",
+     "洗澡",
+     "关灯",
+     "被摸摸",
+     "吃药",
+     "被说话"
     ]
    },
    {
@@ -104,6 +161,13 @@
      "friend",
      "toy",
      "scary"
+    ],
+    "nameZh": "身边发生的事",
+    "valuesZh": [
+     "安安静静",
+     "朋友在旁边",
+     "玩具在旁边",
+     "有可怕的东西"
     ]
    },
    {
@@ -113,6 +177,11 @@
     "values": [
      "away",
      "here"
+    ],
+    "nameZh": "你在不在",
+    "valuesZh": [
+     "你不在",
+     "你在身边"
     ]
    }
   ],
@@ -130,6 +199,17 @@
      "sulk",
      "cuddle",
      "share"
+    ],
+    "nameZh": "想做",
+    "valuesZh": [
+     "发呆",
+     "吃东西",
+     "玩",
+     "睡觉",
+     "到处看看",
+     "闹别扭",
+     "撒娇",
+     "分享"
     ]
    },
    {
@@ -141,6 +221,13 @@
      "calm",
      "happy",
      "excited"
+    ],
+    "nameZh": "心情",
+    "valuesZh": [
+     "不高兴",
+     "平静",
+     "开心",
+     "兴奋"
     ]
    },
    {
@@ -156,6 +243,17 @@
      "playful",
      "gentle",
      "shy"
+    ],
+    "nameZh": "性格推动",
+    "valuesZh": [
+     "没有",
+     "勇敢",
+     "好奇",
+     "嘴馋",
+     "沉稳",
+     "贪玩",
+     "温柔",
+     "害羞"
     ]
    }
   ]

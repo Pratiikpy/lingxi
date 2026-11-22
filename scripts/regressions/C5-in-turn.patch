@@ -1,0 +1,11 @@
+--- a/apps/web/public/circuits.html
++++ b/apps/web/public/circuits.html
+@@ -99,7 +99,7 @@ let rpc = 0;
+ let line = Promise.resolve();
+ const inTurn = (fn) => { const p = line.then(fn, fn); line = p.catch(() => undefined); return p; };
+ const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+-async function ethCall(calls) { return inTurn(() => askRound(calls).catch(async () => { await pause(1500); return askRound(calls); })); }
++async function ethCall(calls) { return askRound(calls); }
+ async function askRound(calls) {
+   for (let tries = 0; tries < cat.rpcs.length; tries++) {
+     const url = cat.rpcs[(rpc + tries) % cat.rpcs.length];
