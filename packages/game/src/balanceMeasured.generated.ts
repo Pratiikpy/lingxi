@@ -31,19 +31,19 @@ export const BALANCE_MEASURED: BalanceMeasured = {
       "status": "met"
     },
     "level-not-by-tapping": {
-      "value": "petTalk: level 99 never, day 30 level 29; play3: level 99 never, day 30 level 33; clean: level 99 never, day 30 level 27; feed: level 99 never, day 30 level 33; three visits day 30 level 36",
+      "value": "petTalk: level 99 never, day 30 level 35; play3: level 99 never, day 30 level 37; clean: level 99 never, day 30 level 35; feed: level 99 never, day 30 level 40; three visits day 30 level 46",
       "status": "met"
     },
     "trees-by-90": {
-      "value": "three visits: level 67 on day 90, level 64 on day 83",
+      "value": "three visits: level 83 on day 90, level 64 on day 53",
       "status": "met"
     },
     "coins-bounded": {
-      "value": "once 92, three 97, weekend 87, tapper 97, grinder 2162",
+      "value": "once 92, three 97, weekend 97, tapper 97, grinder 2162",
       "status": "open"
     },
     "coins-worth-saving": {
-      "value": "everything costs 840; once day 88, three never, weekend never, tapper never, grinder day 1",
+      "value": "everything costs 840; once never, three day 78, weekend never, tapper never, grinder day 1",
       "status": "open"
     },
     "once-a-day-safe": {
@@ -55,15 +55,15 @@ export const BALANCE_MEASURED: BalanceMeasured = {
       "status": "met"
     },
     "first-absence-floor": {
-      "value": "gentle 250, bold 250, curious 250",
+      "value": "gentle 240, bold 240, curious 240",
       "status": "met"
     },
     "sick-only-after-days": {
-      "value": "gentle 146 h, bold 146 h, curious 146 h",
+      "value": "gentle 168 h, bold 168 h, curious 168 h",
       "status": "met"
     },
     "new-every-day": {
-      "value": "once 66 empty days, three 71 empty days, weekend 67 empty days, tapper 70 empty days, grinder 68 empty days",
+      "value": "once 65 empty days, three 71 empty days, weekend 70 empty days, tapper 68 empty days, grinder 70 empty days",
       "status": "open"
     },
     "gate-budget-binds": {

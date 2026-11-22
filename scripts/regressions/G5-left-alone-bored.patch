@@ -1,0 +1,11 @@
+--- a/packages/game/src/sim.ts
++++ b/packages/game/src/sim.ts
+@@ -217,7 +217,7 @@ function decay(p: Pet, beat = p.beat, alone = false): void {
+     return holding && v >= floor ? Math.max(next, floor) : next;
+   };
+   p.meters.food = fall(p.meters.food, less("food"));
+-  p.meters.joy = fall(p.meters.joy, less("joy") * ill * (alone && !p.asleep ? 2 : 1));
++  p.meters.joy = fall(p.meters.joy, less("joy") * ill);
+   p.meters.clean = fall(p.meters.clean, less("clean"));
+   p.meters.energy = p.asleep ? clampMeter(p.meters.energy + boosted(SLEEP_GAIN_PER_HOUR, effectOf(g, "SLEEP_GAIN"))) : fall(p.meters.energy, less("energy") * ill);
+   for (const k of ["food", "joy", "clean", "energy"] as const) if (was[k] > 0 && p.meters[k] === 0) miss(p, k, beat);

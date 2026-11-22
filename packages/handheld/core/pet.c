@@ -77,24 +77,42 @@ static int32_t less(const lx_pet *p, int m) { return (DECAY[m] * (int32_t)p->fx.
 #define LX_ENJOY_PER_CARE 25
 #define LX_ENJOY_EMPTY_BEATS 20
 
-static void decay(lx_pet *p, int32_t beat) {
-  if (p->hibernating) return;
+/* G5: a need above the floor falls by `amount`; at the floor it holds while `holding`, then falls at an eighth */
+static int32_t fall(int32_t v, int32_t amount, int holding) {
+  int32_t floor = LX_NEED_FLOOR * LX_SUB;
+  if (amount <= 0) return v;
+  int32_t share = v > floor ? amount : holding ? 0 : imax(1, amount / LX_LOW_DECAY_DIVISOR);
+  int32_t next = clamp_meter(v - share);
+  return holding && v >= floor ? imax(next, floor) : next;
+}
+
+/* `alone`: the owner is away; a pet alone and awake loses joy twice as fast (G5) */
+static void decay(lx_pet *p, int32_t beat, int alone) {
+  /* a hibernating pet's food is empty: its sleep does not count toward growing up either */
+  if (p->hibernating) {
+    p->stalledBeats++;
+    return;
+  }
   /* the enjoyment bar empties a little every beat */
   if (p->enjoy) p->enjoy = imax(0, p->enjoy - (LX_ENJOY_PER_CARE + LX_ENJOY_EMPTY_BEATS - 1) / LX_ENJOY_EMPTY_BEATS);
   int32_t was[4];
   for (int i = 0; i < 4; i++) was[i] = p->meters[i];
   int32_t ill = p->sick ? 2 : 1;
-  p->meters[LX_FOOD] = clamp_meter(p->meters[LX_FOOD] - less(p, LX_FOOD));
-  p->meters[LX_JOY] = clamp_meter(p->meters[LX_JOY] - less(p, LX_JOY) * ill);
-  p->meters[LX_CLEAN] = clamp_meter(p->meters[LX_CLEAN] - less(p, LX_CLEAN));
-  p->meters[LX_ENERGY] = clamp_meter(p->meters[LX_ENERGY] +
-                                     (p->asleep ? boosted(SLEEP_GAIN_PER_HOUR, p->fx.sleepGain) : -less(p, LX_ENERGY) * ill));
+  p->uncaredBeats++;
+  int holding = p->uncaredBeats <= LX_FLOOR_HOLDS;
+  p->meters[LX_FOOD] = fall(p->meters[LX_FOOD], less(p, LX_FOOD), holding);
+  p->meters[LX_JOY] = fall(p->meters[LX_JOY], less(p, LX_JOY) * ill * (alone && !p->asleep ? 2 : 1), holding);
+  p->meters[LX_CLEAN] = fall(p->meters[LX_CLEAN], less(p, LX_CLEAN), holding);
+  p->meters[LX_ENERGY] = p->asleep ? clamp_meter(p->meters[LX_ENERGY] + boosted(SLEEP_GAIN_PER_HOUR, p->fx.sleepGain))
+                                   : fall(p->meters[LX_ENERGY], less(p, LX_ENERGY) * ill, holding);
   /* in the game's order: food, joy, clean, energy */
   static const int order[4] = {LX_FOOD, LX_JOY, LX_CLEAN, LX_ENERGY};
   static const int kind[4] = {LX_MISS_FOOD, LX_MISS_JOY, LX_MISS_CLEAN, LX_MISS_ENERGY};
   for (int i = 0; i < 4; i++)
     if (was[order[i]] > 0 && p->meters[order[i]] == 0) miss(p, kind[i], beat);
-  /* neglect: an empty food bowl or a filthy pet, six hours running, makes it ill */
+  /* time with a need at zero does not count toward growing up */
+  if (p->meters[LX_FOOD] == 0 || p->meters[LX_JOY] == 0 || p->meters[LX_CLEAN] == 0 || p->meters[LX_ENERGY] == 0) p->stalledBeats++;
+  /* neglect: an empty food bowl or a filthy pet, a full day running, makes it ill */
   p->dirtyBeats = (p->meters[LX_CLEAN] == 0 || p->meters[LX_FOOD] == 0) ? p->dirtyBeats + 1 : 0;
   if (!p->sick && p->dirtyBeats >= boosted(LX_SICK_AFTER, p->fx.sickGrace)) {
     p->sick = 1;
@@ -144,14 +162,30 @@ static void think(lx_pet *p, lx_circuit *brain, uint8_t *scratch, int32_t beat, 
   }
 }
 
+/* while the floor holds, a need at the floor or above when the beat began ends it no lower (G5) */
+static void hold_floor(lx_pet *p, const int32_t before[4]) {
+  if (p->uncaredBeats > LX_FLOOR_HOLDS) return;
+  int32_t floor = LX_NEED_FLOOR * LX_SUB;
+  for (int i = 0; i < 4; i++)
+    if (before[i] >= floor && p->meters[i] < floor) p->meters[i] = floor;
+}
+
 void lx_away_to(lx_pet *p, lx_circuit *brain, uint8_t *scratch, int32_t target) {
   if (target <= p->beat) return;
   int32_t gap = target - p->beat;
-  int32_t b = p->beat + imax(0, gap - LX_MAX_CATCH_UP);
+  int32_t skipped = imax(0, gap - LX_MAX_CATCH_UP);
+  /* the needs decay through the whole absence (up to DECAY_SPAN), the brain thinks only through its last beats */
+  for (int32_t k = imax(0, skipped - (LX_DECAY_SPAN - LX_MAX_CATCH_UP)); k < skipped; k++) decay(p, p->beat + k + 1, 1);
+  int32_t b = p->beat + skipped;
   while (b < target) {
     b++;
-    decay(p, b);
-    if (!p->hibernating) think(p, brain, scratch, b, LX_A_NONE, 0, 0);
+    decay(p, b, 1);
+    if (!p->hibernating) {
+      int32_t before[4];
+      for (int i = 0; i < 4; i++) before[i] = p->meters[i];
+      think(p, brain, scratch, b, LX_A_NONE, 0, 0);
+      hold_floor(p, before);
+    }
   }
   p->beat = target;
 }
@@ -159,7 +193,7 @@ void lx_away_to(lx_pet *p, lx_circuit *brain, uint8_t *scratch, int32_t target) 
 void lx_live(lx_pet *p, lx_circuit *brain, uint8_t *scratch) {
   int32_t target = p->beat + 1;
   p->beat = target;
-  decay(p, target);
+  decay(p, target, 0);
   if (!p->hibernating) think(p, brain, scratch, target, LX_A_NONE, 0, 1);
 }
 
@@ -180,6 +214,8 @@ lx_note lx_care(lx_pet *p, lx_circuit *brain, uint8_t *scratch, int kind, const 
   int action = LX_A_NONE;
   lx_note note = LX_N_LISTENED;
   int needed, rewarded;
+  /* any care starts the floor's four days again (G5) */
+  p->uncaredBeats = 0;
   if (p->hibernating && (kind == LX_C_FEED || kind == LX_C_PET || kind == LX_C_WAKE)) {
     p->hibernating = 0;
     p->asleep = 0;
@@ -198,6 +234,8 @@ lx_note lx_care(lx_pet *p, lx_circuit *brain, uint8_t *scratch, int kind, const 
     }
     p->needs[at] = imin(255, p->needs[at] + 1);
   }
+  /* a meal is thought about with the hunger the pet had when it came (G5) */
+  int32_t foodWhenFed = p->meters[LX_FOOD];
   switch (kind) {
     case LX_C_FEED: {
       int wasFull = visible(p->meters[LX_FOOD]) >= 900;
@@ -278,7 +316,13 @@ lx_note lx_care(lx_pet *p, lx_circuit *brain, uint8_t *scratch, int kind, const 
   }
   /* taps inside one beat are one thought: the first is thought about and logged, the rest change only the meters */
   if (!p->hasCareBeat || p->careBeat != p->beat) {
-    think(p, brain, scratch, p->beat, action, 0, 1);
+    if (kind == LX_C_FEED) {
+      int32_t fedTo = p->meters[LX_FOOD];
+      p->meters[LX_FOOD] = foodWhenFed;
+      think(p, brain, scratch, p->beat, action, 0, 1);
+      p->meters[LX_FOOD] = fedTo;
+    } else
+      think(p, brain, scratch, p->beat, action, 0, 1);
     p->hasCareBeat = 1;
     p->careBeat = p->beat;
   }
@@ -307,6 +351,8 @@ void lx_pet_digest(const lx_pet *p, uint8_t out[32]) {
   put8(&k, p->sick);
   put32(&k, p->starvingBeats);
   put32(&k, p->dirtyBeats);
+  put32(&k, p->uncaredBeats);
+  put32(&k, p->stalledBeats);
   put32(&k, p->mistakes);
   put8(&k, p->nMissed);
   for (int i = 0; i < p->nMissed; i++) {

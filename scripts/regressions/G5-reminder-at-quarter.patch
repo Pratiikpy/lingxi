@@ -1,8 +1,8 @@
 --- a/packages/game/src/reminders.ts
 +++ b/packages/game/src/reminders.ts
 @@ -20,7 +20,7 @@ export interface Need {
-  * or dusty and where its needs wait for the owner (G5). A pet left alone sits there for three days before anything
-  * worse can happen, so a reminder at the quarter comes long before a care mistake, and never nags above it.
+  * (G5). A pet left alone sits there for four days before anything worse can happen, so a reminder at the floor comes
+  * long before a care mistake, and never nags above it.
   */
 -export const NEED_AT = { hungry: NEED_FLOOR, bored: NEED_FLOOR, dirty: NEED_FLOOR } as const;
 +export const NEED_AT = { hungry: 200, bored: 150, dirty: 150 } as const;

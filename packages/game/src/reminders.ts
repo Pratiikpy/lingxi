@@ -16,9 +16,9 @@ export interface Need {
 }
 
 /**
- * Visible-unit levels (0..1000) at which a need is worth a reminder: the quarter at which the pet reads as hungry, low
- * or dusty and where its needs wait for the owner (G5). A pet left alone sits there for three days before anything
- * worse can happen, so a reminder at the quarter comes long before a care mistake, and never nags above it.
+ * Visible-unit levels (0..1000) at which a need is worth a reminder: the floor where a pet's needs wait for its owner
+ * (G5). A pet left alone sits there for four days before anything worse can happen, so a reminder at the floor comes
+ * long before a care mistake, and never nags above it.
  */
 export const NEED_AT = { hungry: NEED_FLOOR, bored: NEED_FLOOR, dirty: NEED_FLOOR } as const;
 /** How far ahead to look. A day and a half covers a night's sleep and a busy day. */

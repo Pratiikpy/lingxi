@@ -18,7 +18,7 @@
 #include "pet.h"
 
 /* 2: the pet carries G3's enjoyment bar, last care beat and need tally */
-#define LX_TRIP_VERSION 2
+#define LX_TRIP_VERSION 3
 #define LX_MAX_PARTS 32
 #define LX_MAX_SNACKS 4
 #define LX_NAME_MAX 48

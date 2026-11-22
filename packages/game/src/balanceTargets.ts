@@ -293,11 +293,11 @@ export const BALANCE_TARGETS: readonly BalanceTarget[] = [
   },
   {
     id: "first-absence-floor",
-    what: "A first long absence leaves every need at a quarter",
-    target: "a pet of every line, cared for once and left 72 hours, has every need at a quarter (250 of 1,000) or more",
+    what: "A first long absence leaves every need at its floor or above",
+    target: "a pet of every line, cared for once and left 72 hours, has every need at its floor (240 of 1,000, just inside the lowest band the brain reads) or above",
     owner: "G5",
     value: (n) => (n.alone ?? []).map((a) => `${a.line} ${a.lowestAt72h}`).join(", ") || "not measured",
-    met: (n) => !!n.alone?.length && n.alone.every((a) => a.lowestAt72h >= 250),
+    met: (n) => !!n.alone?.length && n.alone.every((a) => a.lowestAt72h >= 240),
   },
   {
     id: "sick-only-after-days",

@@ -13,7 +13,9 @@ describe("reminders: when the pet will next need you", () => {
     const needs = upcomingNeeds(pet, T0, brain);
     expect(needs.length).toBeGreaterThan(0);
     expect(needs[0]!.at).toBeGreaterThan(T0);
-    expect(needs[0]!.kind).toBe("hungry");
+    // which comes first depends on what the pet does alone (exploring dusts it): any of the three needs, never sickness
+    expect(["hungry", "bored", "dirty"]).toContain(needs[0]!.kind);
+    expect(needs.some((n) => n.kind === "hungry")).toBe(true);
     expect(needs.every((n) => n.at <= T0 + HORIZON_MS)).toBe(true);
     expect(needs.map((n) => n.at)).toEqual([...needs.map((n) => n.at)].sort((a, b) => a - b));
   });
@@ -21,9 +23,9 @@ describe("reminders: when the pet will next need you", () => {
   it("the predicted moment matches what the game itself shows then (to within one step)", () => {
     const pet = createPet({ name: "M", line: "gentle", now: T0, tzOffsetMin: 0, brain });
     const hungry = upcomingNeeds(pet, T0, brain).find((n) => n.kind === "hungry")!;
-    // G5: the reminder comes as food reaches the quarter at which the pet reads as hungry
-    expect(toVisible(catchUp(pet, hungry.at, brain).meters.food)).toBeLessThanOrEqual(250);
-    expect(toVisible(catchUp(pet, hungry.at - 20 * 60_000, brain).meters.food)).toBeGreaterThan(250);
+    // G5: the reminder comes as food reaches the floor where the pet's needs wait
+    expect(toVisible(catchUp(pet, hungry.at, brain).meters.food)).toBeLessThanOrEqual(240);
+    expect(toVisible(catchUp(pet, hungry.at - 20 * 60_000, brain).meters.food)).toBeGreaterThan(240);
   });
 
   it("feeding pushes the hunger reminder later", () => {

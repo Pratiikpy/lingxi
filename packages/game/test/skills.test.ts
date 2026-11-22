@@ -218,12 +218,13 @@ describe("Care skills change the pet's life", () => {
   const hours = (p: Pet, h: number) => catchUp(p, T0 + h * 3_600_000, gentle);
 
   it("Full Belly, Good Spirits, Tidy Habits, Stamina and Evergreen slow each meter", () => {
-    const base = visibleMeters(hours(newPet(), 6));
+    // three hours alone: past that, a gentle pet's joy settles where boredom sends it exploring (G5), skill or not
+    const base = visibleMeters(hours(newPet(), 3));
     for (const [id, meter] of [[111, "food"], [112, "joy"], [113, "clean"], [122, "energy"]] as const) {
-      const m = visibleMeters(hours(withSkills(newPet(), { [id]: 5 }), 6));
+      const m = visibleMeters(hours(withSkills(newPet(), { [id]: 5 }), 3));
       expect(m[meter]).toBeGreaterThan(base[meter]);
     }
-    const ever = visibleMeters(hours(withSkills(newPet(), { 161: 1 }), 6));
+    const ever = visibleMeters(hours(withSkills(newPet(), { 161: 1 }), 3));
     for (const k of ["food", "joy", "clean"] as const) expect(ever[k]).toBeGreaterThan(base[k]);
   });
 

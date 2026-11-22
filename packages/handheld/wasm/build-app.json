@@ -16,13 +16,13 @@
   ],
   "module": {
     "path": "wasm/lingxi-handheld.wasm",
-    "sha256": "70f49844bd87de049864b369e4d97595adfb3d5f1ffd8edace228c2f48e6b75e"
+    "sha256": "45bbc9b318517d3a197cae0ff185d2d322a87c1d6f16ce82c48ba8415d9ecde6"
   },
   "sources": {
     "core/keccak.c": "0143a2ebaaa7fb37c0b04f227c475d5494d9ff6fe419296a49ff2ae2988e6505",
     "core/tap02.c": "a927f5ff71e19633f5a7135405e55fd402486d5ff6789244132a953faf7ab840",
-    "core/pet.c": "d171323890de98ab2c52d042d8eaf4af6d058ac5cbb0bbbe5c3702b668209b21",
-    "core/trip.c": "968e7f1ca67fa640ee86c33466b0417649043bdcac408540bd6b2cd4a12790fd",
+    "core/pet.c": "85b6142969689765c678e5c1ad9da9c09906bf4df4787286ff033b269644dff1",
+    "core/trip.c": "f1b291603d4953d4f75bdd0d6733bb9aec2b1cdb228f9daf504e79a88d74872c",
     "core/draw.c": "fb6956f2f25e4aa52830f40e8ea57b3708382a4ca55142973038c4a4851d6332",
     "core/font_data.c": "1f6086ee7c198ee3d3ca8a2bcc57f82d3d30f7798857b8a69cae5af741f64ab7",
     "core/art_data.c": "4a61c511bf10c2526fd566dca1a205c21e85c8238bc425a3e5de125e47f142b2",
@@ -35,8 +35,8 @@
   "headers": {
     "core/lx.h": "e346ada5576d1810aec804e67a23bba1f738b8fdc74124f1da2b7a7cc197ee94",
     "core/tap02.h": "1cf1161b4aa9f5c05ebe438205edf0800c34a508be56c53b607be0e68a1c5244",
-    "core/pet.h": "04c6a6f93b526984a4309c7dc8c4b7b636827539b3719b6688122f085e7c6924",
-    "core/trip.h": "1a641c2fd5afb7edaab5cbe16ed0e632f7d0addb9445a758d3041bba99da6fcd",
+    "core/pet.h": "5f944c5fd7ce4ff85200d5240365e19afba5b419028b1a934cdacf1b5a44730d",
+    "core/trip.h": "dcf092ea6166b1e8e693852a1f181418d4d5d0ba6a5fcd26d7471c331763b3ed",
     "core/draw.h": "8317f8c1dfe7d850ec3b5a13bc700e44b5a7dafcdb78b8341047bfaf73a0eab5",
     "core/art.h": "f4cd80ad77b41eac3a53c72a347a56cb424a7ba4bfd13580e45e5dfb1e54ef24",
     "core/selftest.h": "5524f8bcbbb1036adbdf8aa645b685f886985735d5e4131904bf394453bd6841",

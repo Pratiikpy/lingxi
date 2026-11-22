@@ -77,8 +77,8 @@ export function awayFind(petSeed: number, fromBeat: number, toBeat: number, drop
 }
 
 /**
- * How the pet's needs held up while its owner was away (G5), for the welcome-back card: well; waiting at the quarter
- * floor (and which ones); ill after days without care; or in a long sleep because its food ran out. Hibernation is told
+ * How the pet's needs held up while its owner was away (G5), for the welcome-back card: well; waiting at the floor (and
+ * which ones); ill after days without care; or in a long sleep because its food ran out. Hibernation is told
  * first: a pet asleep from hunger needs waking before anything else.
  */
 export function awayNeeds(p: Pick<Pet, "meters" | "sick" | "hibernating">): { kind: "fine" | "waiting" | "sick" | "hibernating"; low: Array<"food" | "joy" | "energy" | "clean"> } {

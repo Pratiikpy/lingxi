@@ -84,14 +84,14 @@ describe("the pet's life, bit for bit", () => {
     const core = await loadCore();
     const tb = starterBrain("gentle");
     const ops: TripOp[] = [
-      { op: "away", n: 900 }, // food runs out: a care mistake
-      { op: "away", n: 400 }, // six hours empty: ill
+      { op: "away", n: 8000 }, // G5: the floor holds four days, then food runs out: a care mistake
+      { op: "away", n: 2600 }, // a full day empty: ill
       { op: "care", kind: 2, arg: 3 }, // too sick to play
       { op: "care", kind: 7, arg: 0 }, // medicine
-      { op: "away", n: 3000 }, // a day empty: hibernates
+      { op: "away", n: 3500 }, // two days empty: hibernates
       { op: "live", n: 3 },
       { op: "care", kind: 1, arg: 0 }, // food ends hibernation
-      { op: "away", n: 6000 }, // longer than three days: only the last three are lived
+      { op: "away", n: 12000 }, // longer than three days: decays in full, the brain lives only the last three
       { op: "care", kind: 6, arg: 0 },
       { op: "care", kind: 6, arg: 0 },
       { op: "care", kind: 4, arg: 0 },

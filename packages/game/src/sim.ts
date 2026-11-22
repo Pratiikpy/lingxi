@@ -188,7 +188,12 @@ function answersNeed(p: Pet, c: Care): boolean {
   }
 }
 
-function decay(p: Pet, beat = p.beat): void {
+/**
+ * One beat of decay. `alone`: the owner is away (catch-up). A pet left on its own and awake grows bored twice as fast
+ * (G5): its joy falls at double rate, down to the floor and never past it while the floor holds, so a content pet left in
+ * the forest still gets restless enough to explore, and being left costs nothing worse.
+ */
+function decay(p: Pet, beat = p.beat, alone = false): void {
   // a hibernating pet's food is empty: its sleep does not count toward growing up either (G5)
   if (p.hibernating) {
     p.stalledBeats = (p.stalledBeats ?? 0) + 1;
@@ -201,18 +206,18 @@ function decay(p: Pet, beat = p.beat): void {
   // the Care skills (plan 4.4) slow each meter's decay and strengthen sleep; integer maths, so a replay agrees
   const g = p.growth;
   const less = (m: "food" | "joy" | "clean" | "energy") => Math.floor((DECAY_PER_HOUR[m] * decayLeft(g, m)) / 1000);
-  // G5: gentler as a need runs low, held at a quarter until the pet has gone FLOOR_HOLDS beats without care
+  // G5: held at the floor until the pet has gone FLOOR_HOLDS beats without care, then falling at an eighth of the rate
   p.uncaredBeats = (p.uncaredBeats ?? 0) + 1;
   const holding = p.uncaredBeats <= FLOOR_HOLDS;
   const floor = NEED_FLOOR * SUB;
   const fall = (v: number, amount: number) => {
     if (amount <= 0) return v;
-    const share = v > 2 * floor ? amount : v > floor ? Math.max(1, Math.floor(amount / 2)) : holding ? 0 : Math.max(1, Math.floor(amount / LOW_DECAY_DIVISOR));
+    const share = v > floor ? amount : holding ? 0 : Math.max(1, Math.floor(amount / LOW_DECAY_DIVISOR));
     const next = clampMeter(v - share);
     return holding && v >= floor ? Math.max(next, floor) : next;
   };
   p.meters.food = fall(p.meters.food, less("food"));
-  p.meters.joy = fall(p.meters.joy, less("joy") * ill);
+  p.meters.joy = fall(p.meters.joy, less("joy") * ill * (alone && !p.asleep ? 2 : 1));
   p.meters.clean = fall(p.meters.clean, less("clean"));
   p.meters.energy = p.asleep ? clampMeter(p.meters.energy + boosted(SLEEP_GAIN_PER_HOUR, effectOf(g, "SLEEP_GAIN"))) : fall(p.meters.energy, less("energy") * ill);
   for (const k of ["food", "joy", "clean", "energy"] as const) if (was[k] > 0 && p.meters[k] === 0) miss(p, k, beat);
@@ -295,7 +300,7 @@ function think(p: Pet, brain: Brain, beat: number, action: number, event: number
   }
 }
 
-/** While the floor holds, a need that was at a quarter or more when the beat began ends it no lower than a quarter (G5). */
+/** While the floor holds, a need that was at the floor or above when the beat began ends it no lower than the floor (G5). */
 function holdFloor(p: Pet, before: Pet["meters"]): void {
   if ((p.uncaredBeats ?? 0) > FLOOR_HOLDS) return;
   const floor = NEED_FLOOR * SUB;
@@ -330,16 +335,16 @@ export function catchUp(p0: Pet, now: number, brain: Brain, eventAt: (beat: numb
   const skipped = Math.max(0, gap - MAX_CATCH_UP);
   // the needs decay through the whole absence (up to DECAY_SPAN), the brain thinks only through its last MAX_CATCH_UP
   // beats (G5): ten days alone is ten days of neglect, not three
-  for (let k = Math.max(0, skipped - (DECAY_SPAN - MAX_CATCH_UP)); k < skipped; k++) decay(p, p.beat + k + 1);
+  for (let k = Math.max(0, skipped - (DECAY_SPAN - MAX_CATCH_UP)); k < skipped; k++) decay(p, p.beat + k + 1, true);
   let b = p.beat + skipped;
   while (b < target) {
     b += 1;
-    decay(p, b);
+    decay(p, b, true);
     if (p.hibernating) continue;
     const awake = !p.asleep;
     const before = { ...p.meters };
     think(p, brain, b, ACTION.none, eventAt(b), false);
-    // the quarter floor holds against what the pet does on its own too, a sulk or a romp, while its owner is away (G5)
+    // the floor holds against what the pet does on its own too, a sulk or a romp, while its owner is away (G5)
     holdFloor(p, before);
     if (chose && awake) chose(p.last.want, b);
   }
@@ -381,7 +386,7 @@ export interface CareResult {
  */
 export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.none): CareResult {
   const p = cloneForEdit(catchUp(p0, now, brain));
-  // any care starts the quarter floor's three days again (G5)
+  // any care starts the floor's four days again (G5)
   p.uncaredBeats = 0;
   let action: number = ACTION.none;
   let note: CareResult["note"] = "listened";

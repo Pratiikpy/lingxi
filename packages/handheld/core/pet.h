@@ -14,9 +14,16 @@
 #define LX_SUB 60
 #define LX_METER_MAX 1000
 #define LX_BEAT_MS 60000
-#define LX_HIBERNATE_AFTER (24 * 60)
+#define LX_HIBERNATE_AFTER (48 * 60)
 #define LX_MAX_CATCH_UP (3 * 24 * 60)
-#define LX_SICK_AFTER (6 * 60)
+#define LX_SICK_AFTER (24 * 60)
+/* G5 (packages/game pet.ts): needs stop at the floor until the pet has gone FLOOR_HOLDS beats without care, then fall
+   at an eighth of the rate; an absence decays in full up to DECAY_SPAN beats, the brain thinking only its last
+   MAX_CATCH_UP */
+#define LX_NEED_FLOOR 240
+#define LX_FLOOR_HOLDS (4 * 24 * 60)
+#define LX_LOW_DECAY_DIVISOR 8
+#define LX_DECAY_SPAN (30 * 24 * 60)
 #define LX_KINSHIP_EVERY (12 * 60)
 #define LX_KINSHIP_DECAY (24 * 60)
 #define LX_KINSHIP_MAX 255
@@ -61,6 +68,8 @@ typedef struct {
   int32_t meters[4];
   uint8_t asleep, hibernating, sick;
   int32_t starvingBeats, dirtyBeats, mistakes;
+  /* G5: beats since the owner last cared, and beats spent with a need at zero (they do not count toward growing up) */
+  int32_t uncaredBeats, stalledBeats;
   uint8_t nMissed;
   uint8_t missedKind[LX_MISSED_KEPT];
   int32_t missedBeat[LX_MISSED_KEPT];

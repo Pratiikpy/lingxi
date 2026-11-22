@@ -30,13 +30,14 @@ export const MAX_CATCH_UP = 3 * 24 * 60;
 /** beats of neglect (food or cleanliness at zero) before the pet falls ill: a full day, never a few hours (G5) */
 export const SICK_AFTER = 24 * 60;
 /**
- * Kind to a once-a-day player (G5): a need decays at its full rate above half, at half the rate between a quarter and
- * half, and stops at a quarter (NEED_FLOOR, visible units) until the pet has gone FLOOR_HOLDS beats without any care;
- * after that it falls on, at an eighth of the rate. So one visit a day keeps a pet well, a weekend away finds it hungry
- * but well, and only days of real neglect empty a need.
+ * Kind to a once-a-day player (G5): a need decays at its own rate down to NEED_FLOOR (visible units) and stops there
+ * until the pet has gone FLOOR_HOLDS beats without any care; after that it falls on, at an eighth of the rate. The floor
+ * sits just inside the lowest of the four bands the brain reads (below 250), so a waiting pet still feels its need and
+ * acts on it (starving, it chooses to eat; bored, it explores) while nothing worse can happen. So one visit a day keeps a
+ * pet well, a long weekend away finds it hungry but well, and only days of real neglect empty a need.
  */
-export const NEED_FLOOR = 250;
-export const FLOOR_HOLDS = 3 * 24 * 60;
+export const NEED_FLOOR = 240;
+export const FLOOR_HOLDS = 4 * 24 * 60;
 export const LOW_DECAY_DIVISOR = 8;
 /** The longest absence whose decay is counted beat by beat (the brain thinks only through the last MAX_CATCH_UP of it). */
 export const DECAY_SPAN = 30 * 24 * 60;

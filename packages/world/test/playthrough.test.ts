@@ -348,6 +348,8 @@ class Player {
    */
   choose(want: string, room: number | undefined, n: number) {
     if (room !== undefined) this.goTo(room);
+    // settled first with a pat, as a player greets it: a pet still shaken by a fright only cuddles while watched
+    if (!this.pet.asleep && !this.pet.hibernating) this.life.care({ kind: "pet" }, this.now);
     const key = room !== undefined ? `${want}-${room}` : want;
     const goal = tallyOf(this.w, "CHOOSE", key) + n;
     const since = this.now;
@@ -358,13 +360,18 @@ class Player {
       // (to see it choose to eat, it is left unfed)
       if (watched % 120 === 119) {
         this.ready(700);
+        // a pat before setting off, as a player gives one: it also settles a pet still shaken by a fright (the "scared"
+        // memory clears only on a pat or a word), which otherwise cuddles whenever it is watched and never gets bored
+        this.life.care({ kind: "pet" }, this.now);
         if (want !== "eat") {
           this.stock();
           for (let i = 0; i < 3 && this.life.food() < 800; i++) if (!this.feed()) break;
           this.tend();
         }
         if (room !== undefined) this.goTo(room);
-        this.away(4 * 60);
+        // four hours at first; then, as a player would once that has not worked, left there for half a day (a pet
+        // that is well looked after takes a while to grow bored, and since G5 a long absence is safe)
+        this.away(watched > 240 ? 12 * 60 : 4 * 60);
         if (want !== "eat") this.tend();
         if (room !== undefined) this.goTo(room);
         continue;

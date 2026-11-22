@@ -1,7 +1,8 @@
 /**
- * G5: kind to a once-a-day player. One visit a day keeps a pet well; during a first long absence no need falls below a
- * quarter; a pet falls ill only after real neglect (days, not hours); an absence longer than the catch-up's three days of
- * thought still counts in full; and time spent with a need at zero does not count toward growing up. No death.
+ * G5: kind to a once-a-day player. One visit a day keeps a pet well; during a first long absence no need falls below its
+ * floor (240, just inside the lowest band the brain reads, so a waiting pet still acts on its need); a pet falls ill only
+ * after real neglect (days, not hours); an absence longer than the catch-up's three days of thought still counts in full;
+ * and time spent with a need at zero does not count toward growing up. No death.
  */
 import { describe, expect, it } from "vitest";
 import { WANTS } from "@lingxi/brain";
@@ -17,9 +18,9 @@ const needs = (p: ReturnType<typeof createPet>) => ({ food: visible(p.meters.foo
 const fresh = () => createPet({ name: "Pip", line: "gentle", now: T0, tzOffsetMin: 480, brain });
 
 describe("kind to a once-a-day player (G5)", () => {
-  it("keeps every need at a quarter or more through a first absence of three days", () => {
-    const p = catchUp(fresh(), T0 + 72 * H, brain);
-    for (const [k, v] of Object.entries(needs(p))) expect(v, k).toBeGreaterThanOrEqual(250);
+  it("keeps every need at its floor or above through a first absence of a long weekend", () => {
+    const p = catchUp(fresh(), T0 + 90 * H, brain);
+    for (const [k, v] of Object.entries(needs(p))) expect(v, k).toBeGreaterThanOrEqual(240);
     expect(p.sick ?? false).toBe(false);
     expect(p.mistakes ?? 0).toBe(0);
   });
@@ -41,11 +42,11 @@ describe("kind to a once-a-day player (G5)", () => {
     expect(needs(p).food).toBeLessThan(250);
   });
 
-  it("a care starts the three days again", () => {
-    let p = catchUp(fresh(), T0 + 60 * H, brain);
-    p = care(p, { kind: "pet" }, T0 + 60 * H, brain).pet;
-    p = catchUp(p, T0 + 120 * H, brain);
-    for (const [k, v] of Object.entries(needs(p))) expect(v, k).toBeGreaterThanOrEqual(250);
+  it("a care starts the four days again", () => {
+    let p = catchUp(fresh(), T0 + 80 * H, brain);
+    p = care(p, { kind: "pet" }, T0 + 80 * H, brain).pet;
+    p = catchUp(p, T0 + 160 * H, brain);
+    for (const [k, v] of Object.entries(needs(p))) expect(v, k).toBeGreaterThanOrEqual(240);
   });
 
   it("a pet fed when hungry reads the hunger it had when the food came, and chooses to eat", () => {
@@ -54,7 +55,7 @@ describe("kind to a once-a-day player (G5)", () => {
       const b = mindBrain({ line, lessons: [] });
       const p0 = createPet({ name: "Pip", line, now: T0, tzOffsetMin: 480, brain: b });
       const hungry = catchUp(p0, T0 + 24 * H, b);
-      expect(visible(hungry.meters.food), line).toBeLessThan(500);
+      expect(visible(hungry.meters.food), line).toBeLessThan(250);
       const fed = care(hungry, { kind: "feed", food: "mochi" }, T0 + 24 * H, b).pet;
       expect(visible(fed.meters.food), "the meal still counts").toBeGreaterThan(visible(hungry.meters.food));
       expect(WANTS[fed.last.want], line).toBe("eat");
@@ -73,7 +74,7 @@ describe("kind to a once-a-day player (G5)", () => {
 });
 
 describe("what a returning player is told about the needs (G5)", () => {
-  it("names the needs that waited at a quarter, the illness of real neglect, and the long sleep", async () => {
+  it("names the needs that waited at the floor, the illness of real neglect, and the long sleep", async () => {
     const { awayNeeds } = await import("../src/away");
     expect(awayNeeds(fresh())).toEqual({ kind: "fine", low: [] });
     const weekend = catchUp(fresh(), T0 + 60 * H, brain);
@@ -82,7 +83,7 @@ describe("what a returning player is told about the needs (G5)", () => {
     expect(told.low).toContain("food");
     const month = catchUp(fresh(), T0 + 30 * 24 * H, brain);
     expect(awayNeeds(month).kind).toBe("hibernating");
-    const ill = catchUp(fresh(), T0 + 150 * H, brain);
+    const ill = catchUp(fresh(), T0 + 175 * H, brain);
     expect(awayNeeds(ill).kind).toBe("sick");
   });
 });

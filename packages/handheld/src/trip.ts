@@ -13,8 +13,8 @@
 import { keccak_256 } from "@noble/hashes/sha3";
 import { type Brain, type Care, type CareResult, type ItemEffect, type Pet, BEAT_MS, DIETS, TRAITS, care, catchUp, decayLeft, effectOf, liveBeat } from "@lingxi/game";
 
-/** 2: the pet carries G3's enjoyment bar, last care beat and need tally */
-export const TRIP_VERSION = 2;
+/** 2: the pet carries G3's enjoyment bar, last care beat and need tally; 3: G5's beats since care and beats stalled */
+export const TRIP_VERSION = 3;
 export const MAX_SNACKS = 4;
 export const NAME_MAX = 48;
 export const MAX_PARTS = 32;
@@ -128,6 +128,9 @@ export function petDigest(p: Pet, logLength: number): string {
   w.u8(p.sick ? 1 : 0);
   w.i32(p.starvingBeats);
   w.i32(p.dirtyBeats ?? 0);
+  // G5: beats since the last care, and beats spent with a need at zero
+  w.i32(p.uncaredBeats ?? 0);
+  w.i32(p.stalledBeats ?? 0);
   w.i32(p.mistakes ?? 0);
   const missed = p.missed ?? [];
   w.u8(missed.length);
@@ -180,6 +183,9 @@ export function tripPacket(p: Pet, brain: TripBrain, snacks: readonly Snack[], s
   w.u8(p.sick ? 1 : 0);
   w.i32(p.starvingBeats);
   w.i32(p.dirtyBeats ?? 0);
+  // G5: beats since the last care, and beats spent with a need at zero
+  w.i32(p.uncaredBeats ?? 0);
+  w.i32(p.stalledBeats ?? 0);
   w.i32(p.mistakes ?? 0);
   const missed = p.missed ?? [];
   w.u8(missed.length);

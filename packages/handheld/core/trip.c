@@ -57,6 +57,9 @@ lx_err lx_trip_open(lx_trip *t, lx_arena *a, const uint8_t *bytes, uint32_t len)
   p->sick = r8(&r);
   p->starvingBeats = r32(&r);
   p->dirtyBeats = r32(&r);
+  /* G5: beats since the last care, and beats spent with a need at zero */
+  p->uncaredBeats = r32(&r);
+  p->stalledBeats = r32(&r);
   p->mistakes = r32(&r);
   p->nMissed = r8(&r);
   if (p->nMissed > LX_MISSED_KEPT) return LX_BAD_VALUE;
