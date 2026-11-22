@@ -223,7 +223,7 @@ function TodayChoices({ pet }: { pet: Pet }) {
   if (!day.total) return null;
   // D6: its rest is told in its habit's way (a shy pet hides away, a playful one bounces about)
   const habit = strongestHabit(pet.traits);
-  const kinds = WANT_ORDER.map((k, i) => ({ k, i, n: day.counts[k] ?? 0 })).filter((x) => x.n > 0).sort((a, b) => b.n - a.n).slice(0, 4);
+  const kinds = WANT_ORDER.map((k, i) => ({ k, i, n: day.counts[k] ?? 0 })).filter((x) => x.n > 0).sort((a, b) => b.n - a.n).slice(0, 3);
   return (
     <p className="today-choices" aria-label={zh ? `${pet.name}今天的选择` : `What ${pet.name} chose today`}>
       <b>{zh ? `${pet.name}今天选了：` : `Today ${pet.name} chose:`}</b>{" "}
