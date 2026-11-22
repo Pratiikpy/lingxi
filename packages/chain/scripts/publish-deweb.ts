@@ -154,6 +154,8 @@ const total = Number((await pub.readContract({ address: SITES, abi: sitesAbi, fu
 const onChain: string[] = [];
 for (let from = 0; from < total; from += 200) onChain.push(...((await pub.readContract({ address: SITES, abi: sitesAbi, functionName: "pathsRange", args: [container, BigInt(from), 200n] })) as string[]));
 const stale = onChain.filter((p) => !wanted.has(p));
+// the agent API's service manifest (TAP-11) lives here too: a build without it must never delete it from chain
+if (stale.includes(".well-known/tapeapi.json")) throw new Error("the build has no .well-known/tapeapi.json: publishing it would remove the agent API's service manifest from chain (scripts/tap-manifest.mts)");
 for (const p of stale) await send(`remove ${p}`, { address: SITES, abi: sitesAbi, functionName: "removeFile", args: [container, p], account, chain });
 if (stale.length) console.log(`removed ${stale.length} files the build no longer has`);
 
