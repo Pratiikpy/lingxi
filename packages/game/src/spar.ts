@@ -42,7 +42,8 @@ export const MAX_HP = 100;
 export const MAX_STAMINA = 10;
 /** What a practice spar won pays, and the first win against each partner on top; how long the arena shows a round. */
 export const SPAR_WIN_COINS = 5;
-export const SPAR_FIRST_WIN_COINS = 25;
+/** G6: 20 (was 25), so even a first-win spree on the busiest early day stays under the daily coin cap */
+export const SPAR_FIRST_WIN_COINS = 20;
 export const SPAR_ROUND_MS = 950;
 /** The arena shows the first round after this long. */
 export const SPAR_FIRST_ROUND_MS = 500;

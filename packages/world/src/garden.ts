@@ -6,10 +6,24 @@
  */
 
 import type { WorldResult, WorldState } from "./world";
-import { bump, bumpFinds } from "./tally";
+import { bump, bumpAll, bumpFinds } from "./tally";
+import { stageReached } from "./decor";
 
 export const GARDEN_ROOM = 76;
+/** The plots every garden starts with; more are dug for coins as the pet grows (PLOT_SALE, G6). */
 export const PLOTS = 4;
+/** G6: each further plot, dug by the gardener for coins once the pet has reached its stage. */
+export const PLOT_SALE: ReadonlyArray<{ stage: "child" | "teen" | "adult" | "elder"; price: number }> = [
+  { stage: "child", price: 80 },
+  { stage: "teen", price: 160 },
+  { stage: "adult", price: 280 },
+  { stage: "elder", price: 450 },
+];
+export const MAX_PLOTS = PLOTS + PLOT_SALE.length;
+/** How many plots this garden has: the four it started with and every one dug since. */
+export const plotCount = (w: WorldState): number => PLOTS + Math.max(0, Math.min(PLOT_SALE.length, w.garden?.dug ?? 0));
+/** The next plot for sale, or null when every one is dug. */
+export const nextPlot = (w: WorldState): { stage: string; price: number } | null => PLOT_SALE[plotCount(w) - PLOTS] ?? null;
 export const COMPOST = 7001;
 const HOUR = 3_600_000;
 
@@ -40,7 +54,7 @@ export type Garden = Array<Plot | null>;
 
 export const gardenOf = (w: WorldState): Garden => {
   const g = w.garden?.plots ?? [];
-  return Array.from({ length: PLOTS }, (_, i) => g[i] ?? null);
+  return Array.from({ length: plotCount(w) }, (_, i) => g[i] ?? null);
 };
 
 /** How long a plot takes, and where it is now: 0 bare, 1 sprout, 2 leafy, 3 ripe. */
@@ -61,7 +75,7 @@ const bagAdd = (bag: Record<number, number>, item: number, n: number) => {
 
 export function plant(w: WorldState, plot: number, crop: string, withCompost: boolean, now: number): WorldResult {
   if (w.room !== GARDEN_ROOM) return { ok: false, reason: "notHere" };
-  if (!Number.isInteger(plot) || plot < 0 || plot >= PLOTS) return { ok: false, reason: "noPlot" };
+  if (!Number.isInteger(plot) || plot < 0 || plot >= plotCount(w)) return { ok: false, reason: "noPlot" };
   const c = CROP[crop];
   if (!c) return { ok: false, reason: "noCrop" };
   const g = gardenOf(w);
@@ -71,7 +85,7 @@ export function plant(w: WorldState, plot: number, crop: string, withCompost: bo
   let bag = bagAdd(w.bag, c.seed, -1);
   if (withCompost) bag = bagAdd(bag, COMPOST, -1);
   const plots = g.map((p, i) => (i === plot ? { crop, at: now, compost: withCompost } : p));
-  return { ok: true, world: { ...w, bag, garden: { plots, harvested: w.garden?.harvested ?? 0 } } };
+  return { ok: true, world: { ...w, bag, garden: { ...w.garden, plots, harvested: w.garden?.harvested ?? 0 } } };
 }
 
 export function harvest(w: WorldState, plot: number, now: number): WorldResult<{ item: number; n: number }> {
@@ -83,8 +97,19 @@ export function harvest(w: WorldState, plot: number, now: number): WorldResult<{
   const c = CROP[p.crop]!;
   const n = c.amount + (p.compost ? 1 : 0);
   const plots = g.map((x, i) => (i === plot ? null : x));
-  const picked: WorldState = { ...w, bag: bagAdd(w.bag, c.yields, n), garden: { plots, harvested: (w.garden?.harvested ?? 0) + 1 } };
+  const picked: WorldState = { ...w, bag: bagAdd(w.bag, c.yields, n), garden: { ...w.garden, plots, harvested: (w.garden?.harvested ?? 0) + 1 } };
   return { ok: true, item: c.yields, n, world: bumpFinds(bump(picked, "HARVEST", c.id), [{ item: c.yields, n }]) };
+}
+
+/** Dig the next plot (G6): its coins, once the pet has reached its stage, in the garden. */
+export function digPlot(w: WorldState, stage: string): WorldResult {
+  if (w.room !== GARDEN_ROOM) return { ok: false, reason: "notHere" };
+  const next = nextPlot(w);
+  if (!next) return { ok: false, reason: "allDug" };
+  if (!stageReached(stage, next.stage)) return { ok: false, reason: "stage" };
+  if (w.coins < next.price) return { ok: false, reason: "coins" };
+  const dug = plotCount(w) - PLOTS + 1;
+  return { ok: true, world: bumpAll({ ...w, coins: w.coins - next.price, garden: { plots: gardenOf(w), harvested: w.garden?.harvested ?? 0, dug } }, [["DIG", 0, 1], ["COINS_SPENT", 0, next.price]]) };
 }
 
 /** Cleaning a messy pet (clean meter under half) leaves one bag of compost. */

@@ -1,0 +1,11 @@
+--- a/packages/world/src/world.ts
++++ b/packages/world/src/world.ts
+@@ -573,7 +573,7 @@ export const paidSparsLeft = (w: WorldState, now: number): number =>
+   Math.max(0, PAID_SPARS_PER_DAY - (w.sparPayDay === sparDay(now) ? (w.sparPaidToday ?? 0) : 0));
+ /** Pays a spar's coins if the day still has a paid spar left; `paid` is what was paid (0 once the day's are used). */
+ export function paySpar(w: WorldState, now: number, coins: number): { world: WorldState; paid: number } {
+-  if (coins <= 0 || paidSparsLeft(w, now) === 0) return { world: w, paid: 0 };
++  if (coins <= 0) return { world: w, paid: 0 };
+   const day = sparDay(now);
+   const used = w.sparPayDay === day ? (w.sparPaidToday ?? 0) : 0;
+   return { world: { ...earn(w, coins), sparPayDay: day, sparPaidToday: used + 1 }, paid: coins };

@@ -22,7 +22,12 @@ export function itemList(items: Array<{ item: number; n: number }> | undefined, 
 }
 
 export function noticeText(nt: WorldNotice, t: ReturnType<typeof useT>, lang: "en" | "zh"): string | null {
-  if (nt.kind === "moved") return nt.coins ? t("world.firstVisit", { n: nt.coins }) : null;
+  if (nt.kind === "moved") {
+    // Wanderer and Rich Finds (G6): the first entry today into this room picked something up
+    const picked = nt.items?.length ? (lang === "zh" ? `进门时捡到了${itemList(nt.items, lang)}。` : `Picked up ${itemList(nt.items, lang)} on the way in.`) : "";
+    const first = nt.coins ? t("world.firstVisit", { n: nt.coins }) : "";
+    return [first, picked].filter(Boolean).join(lang === "zh" ? "" : " ") || null;
+  }
   if (nt.kind === "found" && nt.secret)
     return lang === "zh" ? `找到了 ${itemList(nt.items, lang)}。这里越来越熟悉了，还发现了一样藏着的东西！` : `Found ${itemList(nt.items, lang)}. This place knows you now, and showed you something hidden!`;
   if (nt.kind === "found") return t("world.found", { items: itemList(nt.items, lang) });
@@ -43,6 +48,8 @@ export function noticeText(nt: WorldNotice, t: ReturnType<typeof useT>, lang: "e
     limit: ["Your pet has had as many of those as it ever can.", "这个宠物已经用到上限了。"],
     notABox: ["That doesn't open.", "这个打不开。"],
     none: ["You don't have one of those.", "你没有这个。"],
+    stage: ["Your pet needs to grow up a little more for that.", "宠物还要再长大一些才行。"],
+    allDug: ["Every plot is already dug.", "所有地块都已经开出来了。"],
   };
   const m = more[nt.reason ?? ""];
   if (m) return lang === "zh" ? m[1] : m[0];

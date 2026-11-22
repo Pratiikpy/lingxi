@@ -33,10 +33,11 @@ const ok = (r: { ok: true; world: WorldState } | { ok: false; reason: string }):
 /** a world that owns every coin-bought decoration and every quest keepsake, as a player who finished the story does */
 function furnished(): WorldState {
   let w: WorldState = { ...newWorld("x"), coins: 100_000 };
-  for (const d of DECOR.filter((p) => !p.gift)) w = ok(buyDecor(w, d.id));
+  for (const d of DECOR.filter((p) => !p.gift && !p.commission)) w = ok(buyDecor(w, d.id));
   return { ...w, decor: { ...decorOf(w), owned: [...decorOf(w).owned, ...DECOR.filter((p) => p.gift).map((p) => p.id)] } };
 }
-const sold = DECOR;
+// the shelf's pieces: the Builder's commissions (G6) are made to order, not bought
+const sold = DECOR.filter((d) => !d.commission);
 
 describe("room space (plan 4.9)", () => {
   it("a home holds 12 pieces free, 4 more per pack, at most three packs", () => {

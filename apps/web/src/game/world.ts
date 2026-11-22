@@ -4,7 +4,7 @@
  * pet; food from the bag goes through the game rules like any care.
  */
 
-import { deleteLook as deleteLookRule, renameLook as renameLookRule, saveLook as saveLookRule, wearLook as wearLookRule, buyDecor as buyDecorRule, placeDecor as placeDecorRule, removeDecor as removeDecorRule, COMPOST, compostFromClean, harvest as harvestRule, plant as plantRule, startWalk as startWalkRule, stepWalk as stepWalkRule, endWalk as endWalkRule, startTrip as startTripRule, endTrip as endTripRule, make as makeRule, buyPiece as buyPieceRule, wear as wearRule, giveLaurel as giveLaurelRule } from "@lingxi/world";
+import { deleteLook as deleteLookRule, renameLook as renameLookRule, saveLook as saveLookRule, wearLook as wearLookRule, buyDecor as buyDecorRule, commissionDecor as commissionDecorRule, digPlot as digPlotRule, placeDecor as placeDecorRule, removeDecor as removeDecorRule, COMPOST, compostFromClean, harvest as harvestRule, plant as plantRule, startWalk as startWalkRule, stepWalk as stepWalkRule, endWalk as endWalkRule, startTrip as startTripRule, endTrip as endTripRule, make as makeRule, buyPiece as buyPieceRule, wear as wearRule, giveLaurel as giveLaurelRule } from "@lingxi/world";
 import { useBadges } from "./badges";
 import { create } from "zustand";
 import { wearableOf } from "@lingxi/art";
@@ -17,6 +17,7 @@ import {
   claim as claimQuest,
   craft as craftRecipe,
   earn,
+  paySpar as paySparWin,
   give as giveItem,
   forage as forageHere,
   move as moveTo,
@@ -101,8 +102,14 @@ interface WorldStore {
   claim: (id: string) => void;
   /** coins won outside the world (spars) */
   reward: (coins: number) => void;
+  /** a spar's coins, paid while the day still has paid spars left (G6); returns what was paid */
+  paySpar: (coins: number) => number;
   /** decorations for the home room */
   buyDecor: (id: string) => boolean;
+  /** a Builder's commission for the home (G6), paid in coins and materials once the pet is old enough */
+  commission: (id: string) => boolean;
+  /** dig the garden's next plot (G6) */
+  digPlot: () => boolean;
   placeDecor: (id: string, x: number, y: number) => void;
   removeDecor: (id: string) => void;
   /** take items out of the bag to wrap them as a gift; false if there are not enough */
@@ -168,7 +175,7 @@ export const useWorld = create<WorldStore>((set, get) => ({
       return false;
     }
     const mods = petMods();
-    const r = moveTo(get().world, to, petEnergy(), mods);
+    const r = moveTo(get().world, to, petEnergy(), mods, now());
     if (!r.ok) {
       play("error");
       set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
@@ -181,7 +188,7 @@ export const useWorld = create<WorldStore>((set, get) => ({
     save(moved);
     useBadges.getState().visit(to);
     play("tap");
-    set({ world: moved, notice: { id: ++n, kind: "moved", coins: r.coins } });
+    set({ world: moved, notice: { id: ++n, kind: "moved", coins: r.coins, ...(r.found ? { items: [r.found] } : {}) } });
     return true;
   },
   forage: () => {
@@ -452,6 +459,32 @@ export const useWorld = create<WorldStore>((set, get) => ({
     save(next);
     set({ world: next });
   },
+  commission: (id) => {
+    const p = useGame.getState().pet;
+    const r = commissionDecorRule(get().world, id, p ? stageOf(p, now()) : "baby");
+    if (!r.ok) {
+      play("error");
+      set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
+      return false;
+    }
+    save(r.world);
+    play("success");
+    set({ world: r.world, notice: { id: ++n, kind: "built", text: id } });
+    return true;
+  },
+  digPlot: () => {
+    const p = useGame.getState().pet;
+    const r = digPlotRule(get().world, p ? stageOf(p, now()) : "baby");
+    if (!r.ok) {
+      play("error");
+      set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
+      return false;
+    }
+    save(r.world);
+    play("success");
+    set({ world: r.world });
+    return true;
+  },
   buyDecor: (id) => {
     const r = buyDecorRule(get().world, id);
     if (!r.ok) {
@@ -485,6 +518,14 @@ export const useWorld = create<WorldStore>((set, get) => ({
     const w = earn(get().world, coins);
     save(w);
     set({ world: w });
+  },
+  paySpar: (coins) => {
+    const r = paySparWin(get().world, now(), coins);
+    if (r.paid > 0) {
+      save(r.world);
+      set({ world: r.world });
+    }
+    return r.paid;
   },
   claim: (id) => {
     const p = useGame.getState().pet;

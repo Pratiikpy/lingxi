@@ -1,0 +1,11 @@
+--- a/packages/world/src/world.ts
++++ b/packages/world/src/world.ts
+@@ -197,7 +197,7 @@ export const TRAVEL_RECIPES: readonly Recipe[] = [
+   { index: 20005, name: { en: "Pound Taro Mochi", zh: "捣芋泥麻薯" }, out: 11110, outAmount: 2, ins: [{ item: 7201, amount: 2 }, { item: 1201, amount: 100 }], energy: 30, xp: 5 },
+   { index: 20006, name: { en: "Yonder's Lucky Tea", zh: "阿远的好运茶" }, out: 11405, outAmount: 1, ins: [{ item: 1111, amount: 100 }, { item: 1104, amount: 100 }], energy: 30, xp: 5 },
+   // G6: two from two candies (25 each at the shop), so it beats Twain's shelf price of 45
+-  { index: 20007, name: { en: "Double Wisdom Candy", zh: "炼大智慧糖" }, out: 11202, outAmount: 2, ins: [{ item: 11201, amount: 2 }, { item: 1103, amount: 100 }], energy: 30, xp: 5 },
++  { index: 20007, name: { en: "Double Wisdom Candy", zh: "炼大智慧糖" }, out: 11202, outAmount: 1, ins: [{ item: 11201, amount: 2 }, { item: 1103, amount: 100 }], energy: 30, xp: 5 },
+   // G6: Bolt's trick beats three scrap by hand and needs no burner (it used to need thirty and an Old Coin for one bar)
+   { index: 20008, name: { en: "Bolt's Quick Melt", zh: "阿栓的快熔法" }, out: 1303, outAmount: 5, ins: [{ item: 1005, amount: 12 }], energy: 30, xp: 5 },
+   { index: 20009, name: { en: "Warm Honeydrops", zh: "捂蜜露" }, out: 11312, outAmount: 2, ins: [{ item: 11311, amount: 1 }, { item: 1011, amount: 1 }], energy: 30, xp: 5 },

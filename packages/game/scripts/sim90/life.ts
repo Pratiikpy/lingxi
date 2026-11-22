@@ -35,6 +35,8 @@ import {
   completeQuest,
   craftBlocker,
   earn,
+  paySpar,
+  PLOT_SALE,
   forage,
   knownTravelRecipes,
   move,
@@ -102,7 +104,9 @@ export function costOfEverything(): number {
   const decor = DECOR.filter((d) => !d.gift && !d.chain).reduce((s, d) => s + d.price, 0);
   const pieces = Object.values(PIECE_PRICES).reduce((s, n) => s + n, 0);
   const tools = new Set(Object.values(ROOMS).flatMap((r) => r.shop.filter((i) => ITEM[i]?.kind === "tool")));
-  return decor + pieces + [...tools].reduce((s, i) => s + (ITEM[i]?.price ?? 0), 0);
+  // G6: the Builder's commissions are in DECOR (priced in coins, plus materials); the garden's extra plots too
+  const plots = PLOT_SALE.reduce((s, p) => s + p.price, 0);
+  return decor + pieces + plots + [...tools].reduce((s, i) => s + (ITEM[i]?.price ?? 0), 0);
 }
 
 function xorshift(seed: number): () => number {
@@ -372,7 +376,7 @@ export class Life {
   step(to: number, t: number): boolean {
     if (this.pet.asleep) return false;
     const mods = exploreMods(this.pet.growth);
-    const r = move(this.world, to, this.energy(), mods);
+    const r = move(this.world, to, this.energy(), mods, t);
     if (!r.ok) return false;
     this.world = r.world;
     this.set(exert(this.pet, mods.moveEnergy, t, this.brain()));
@@ -431,8 +435,8 @@ export class Life {
     if (outcome === "w") {
       this.note([["SPAR_WIN", 0, 1, true]]);
       this.today.sparWins++;
-      this.reward(WIN_COINS + (first ? FIRST_WIN_COINS : 0) + skill.winCoins);
-    } else if (outcome === "l") this.reward(skill.lossCoins);
+      this.world = paySpar(this.world, t, WIN_COINS + (first ? FIRST_WIN_COINS : 0) + skill.winCoins).world;
+    } else if (outcome === "l") this.world = paySpar(this.world, t, skill.lossCoins).world;
     return { won: outcome === "w", ms: FIRST_ROUND_MS + (r.rounds.length - 1) * ROUND_MS + BETWEEN_SPARS_MS };
   }
 

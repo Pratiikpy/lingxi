@@ -542,3 +542,14 @@
   gap: 4px;
   font-size: 14px;
 }
+/* G6: the gardener's next plot */
+.garden-dig {
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  margin-top: var(--s2);
+}
+.garden-dig p {
+  margin: 0;
+  flex: 1 1 12rem;
+}

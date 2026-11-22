@@ -7,15 +7,42 @@ const T = Date.UTC(2026, 10, 20, 0, 0, 0);
 
 describe("Explore skills in the world's rules", () => {
   it("leave every number as it was for a pet with no skills", () => {
-    expect(NO_EXPLORE_MODS).toEqual({ moveEnergy: 15, forageEnergy: 10, extraFind: 0, rareBoost: 0, forageWaitOff: 0, walksWithFinds: 0, stepsOff: 0, visitCoins: 0, tripExtra: 0 });
+    expect(NO_EXPLORE_MODS).toEqual({ moveEnergy: 15, forageEnergy: 10, extraFind: 0, rareBoost: 0, forageWaitOff: 0, walksWithFinds: 0, stepsOff: 0, dayFind: 0, tripExtra: 0 });
   });
 
-  it("Light Feet: a tired pet can still walk when the move costs less; Wanderer pays more for a new room", () => {
+  it("Light Feet: a tired pet can still walk when the move costs less", () => {
     const w = newWorld("move");
     const to = neighbours(w.room)[0]!;
     expect(move(w, to, 10)).toEqual({ ok: false, reason: "tired" });
-    const r = move(w, to, 10, mods({ moveEnergy: 5, visitCoins: 10 }));
-    expect(r.ok && r.coins).toBe(15);
+    const r = move(w, to, 10, mods({ moveEnergy: 5 }));
+    expect(r.ok && r.coins).toBe(5);
+  });
+
+  it("Wanderer and Rich Finds (G6): the first entry each day into a room may pick something up, long after every room is seen", () => {
+    const D = 24 * 3_600_000;
+    // a well-travelled pet: every room already seen, so first visits pay nothing more
+    const base = { ...newWorld("wander"), visited: Object.keys(ROOMS).map(Number) };
+    const rooms = Object.values(ROOMS).filter((r) => r.drops.length && neighbours(r.index).length);
+    let picked = 0;
+    let tries = 0;
+    for (let d = 0; d < 20; d++)
+      for (const r of rooms) {
+        const from = { ...base, room: neighbours(r.index)[0]! };
+        const m = move(from, r.index, 100, mods({ dayFind: 40 }), T + d * D);
+        tries++;
+        if (m.ok && m.found) {
+          picked++;
+          expect(m.world.bag[m.found.item]).toBe((from.bag[m.found.item] ?? 0) + 1);
+          // a second entry the same day picks nothing up
+          const back = move({ ...m.world, room: from.room }, r.index, 100, mods({ dayFind: 100 }), T + d * D + 60_000);
+          expect(back.ok && back.found).toBeFalsy();
+        }
+      }
+    // about 40% of first entries, and none without the skill
+    expect(picked / tries).toBeGreaterThan(0.3);
+    expect(picked / tries).toBeLessThan(0.5);
+    const none = move({ ...base, room: neighbours(rooms[0]!.index)[0]! }, rooms[0]!.index, 100, mods({}), T);
+    expect(none.ok && none.found).toBeFalsy();
   });
 
   it("Sharp Eyes: looking around costs less; Explorer's Map: a room can be looked around again sooner", () => {

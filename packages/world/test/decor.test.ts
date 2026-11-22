@@ -15,7 +15,7 @@ describe("decorating the home", () => {
 
   it("places owned pieces inside the room, moves a placed piece, removes it, and caps the count", () => {
     let w = rich();
-    for (const d of DECOR.filter((x) => !x.gift)) w = (buyDecor(w, d.id) as { world: typeof w }).world;
+    for (const d of DECOR.filter((x) => !x.gift && !x.commission)) w = (buyDecor(w, d.id) as { world: typeof w }).world;
     expect(placeDecor(newWorld("s"), "fern", 10, 10)).toEqual({ ok: false, reason: "notOwned" });
     w = (placeDecor(w, "fern", -50, 500) as { world: typeof w }).world;
     expect(decorOf(w).placed).toEqual([{ id: "fern", x: 6, y: 124 }]);
@@ -23,7 +23,7 @@ describe("decorating the home", () => {
     expect(decorOf(w).placed).toEqual([{ id: "fern", x: 60, y: 100 }]);
     w = (removeDecor(w, "fern") as { world: typeof w }).world;
     expect(decorOf(w).placed).toHaveLength(0);
-    const sold = DECOR.filter((x) => !x.gift);
+    const sold = DECOR.filter((x) => !x.gift && !x.commission);
     for (const d of sold.slice(0, MAX_PLACED)) w = (placeDecor(w, d.id, 50, 100) as { world: typeof w }).world;
     expect(decorOf(w).placed).toHaveLength(Math.min(MAX_PLACED, sold.length));
   });

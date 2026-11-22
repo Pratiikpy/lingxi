@@ -35,8 +35,8 @@ export type Unlock =
   | { kind: "topic"; topic: Topic }
   /** something they sell you from now on, for coins */
   | { kind: "shelf"; item: number; price: number }
-  /** a recipe they teach you (a travel recipe) */
-  | { kind: "recipe"; index: number }
+  /** a recipe they teach you (a travel recipe), and anything they hand over with it to start you off */
+  | { kind: "recipe"; index: number; rewards?: readonly Reward[] }
   /** a resident comes to your home and, when you meet them there, leaves these */
   | { kind: "visit"; rewards: readonly Reward[]; lines: readonly QuestLine[] }
   /** something given at once */
@@ -121,7 +121,10 @@ export function takeStep(w: WorldState, sheet: FriendSheet, stepId: string): Wor
   let next: WorldState = { ...w, friends: { ...f, steps: { ...f.steps, [sheet.id]: [...(f.steps[sheet.id] ?? []), step.id] } } };
   const u = step.unlock;
   if (u.kind === "gift") for (const r of u.rewards) next = payReward(next, r);
-  if (u.kind === "recipe") next = payReward(next, { kind: "recipe", index: u.index });
+  if (u.kind === "recipe") {
+    next = payReward(next, { kind: "recipe", index: u.index });
+    for (const r of u.rewards ?? []) next = payReward(next, r);
+  }
   if (u.kind === "visit") {
     const nf = friendsOf(next);
     next = { ...next, friends: { ...nf, visits: nf.visits.includes(sheet.id) ? nf.visits : [...nf.visits, sheet.id] } };

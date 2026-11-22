@@ -85,3 +85,25 @@
   height: 36px;
   object-fit: contain;
 }
+/* G6: the Builder's commissions, wider tiles so the price and materials read in full */
+.decor-commissions {
+  display: grid;
+  gap: 4px;
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 2px dashed #d9cdea;
+}
+.decor-commissions .decor-piece {
+  width: 112px;
+}
+.decor-commissions .decor-piece small {
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+}
+.decor-piece.locked {
+  opacity: 0.72;
+}
+.decor-piece.locked small {
+  color: #6f6386;
+}

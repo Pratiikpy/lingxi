@@ -1,0 +1,11 @@
+--- a/packages/world/src/friends/residents.ts
++++ b/packages/world/src/friends/residents.ts
+@@ -55,7 +55,7 @@ export const RESIDENT_FRIENDS: readonly FriendSheet[] = [
+         choice: LEARN,
+         title: T("How the tonic is made", "补剂是怎么做的"),
+         lines: [say(A.thinking, "Glow paste and mint, stirred under the moon. Here, two of my glow roots to start you off.", "荧光膏加薄荷，在月光下搅匀。先拿我两根荧光根去试试。")],
+-        unlock: { kind: "recipe", index: 20004, rewards: [{ kind: "item", item: 1021, n: 2 }] },
++        unlock: { kind: "recipe", index: 20004 },
+       },
+       s4: {
+         title: T("The lantern that went out", "熄灭的那盏灯"),

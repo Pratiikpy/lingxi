@@ -7,7 +7,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PLOT_COLORS, plotRows } from "@lingxi/art";
-import { COMPOST, CROP, CROPS, GARDEN_ROOM, ITEM, ROOMS, gardenOf, plotStage } from "@lingxi/world";
+import { COMPOST, CROP, CROPS, GARDEN_ROOM, ITEM, ROOMS, gardenOf, nextPlot, plotStage, stageReached } from "@lingxi/world";
+import { stageOf } from "@lingxi/game";
+import { useGame } from "../game/store";
 import { useLang } from "../i18n";
 import { useWorld } from "../game/world";
 import { play } from "../game/sound";
@@ -45,7 +47,8 @@ function left(ms: number, lang: string): string {
 export function GardenPanel() {
   const lang = useLang((s) => s.lang);
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
-  const { world, plant, harvest } = useWorld();
+  const { world, plant, harvest, digPlot } = useWorld();
+  const pet = useGame((s) => s.pet);
   const [now, setNow] = useState(gameNow());
   const [picking, setPicking] = useState<number | null>(null);
   const [useCompost, setUseCompost] = useState(true);
@@ -96,6 +99,7 @@ export function GardenPanel() {
           );
         })}
       </ul>
+      <DigPlot next={nextPlot(world)} stage={pet ? stageOf(pet, now) : "baby"} coins={world.coins} onDig={() => digPlot()} lang={lang} />
       {!seeds.length && plots.some((p) => !p) && <p className="small">{L("No seeds in your bag. The market sells them.", "包里没有种子，集市有卖。")}</p>}
       {picking !== null && seeds.length > 0 && (
         <div className="garden-pick">
@@ -128,5 +132,33 @@ export function GardenPanel() {
         </div>
       )}
     </section>
+  );
+}
+
+const STAGE_LABEL: Record<string, [string, string]> = { child: ["a child", "幼年"], teen: ["a teen", "少年"], adult: ["an adult", "成年"], elder: ["an elder", "老年"] };
+
+/** The gardener digs one more plot (G6), for coins, once the pet has reached that plot's stage. */
+function DigPlot({ next, stage, coins, onDig, lang }: { next: { stage: string; price: number } | null; stage: string; coins: number; onDig: () => void; lang: "en" | "zh" }) {
+  const zh = lang === "zh";
+  if (!next) return <p className="small garden-dig">{zh ? "八块地都开出来了。" : "All eight plots are dug."}</p>;
+  const open = stageReached(stage, next.stage);
+  const label = STAGE_LABEL[next.stage]!;
+  return (
+    <div className="garden-dig row">
+      <p className="small">
+        {open
+          ? zh
+            ? `园丁可以再开一块地：${next.price} 金币。`
+            : `The gardener can dig one more plot for ${next.price} coins.`
+          : zh
+            ? `宠物长到${label[1]}，园丁就能再开一块地（${next.price} 金币）。`
+            : `When your pet is ${label[0]}, the gardener can dig one more plot (${next.price} coins).`}
+      </p>
+      {open && (
+        <button type="button" className="btn" disabled={coins < next.price} onClick={onDig}>
+          {zh ? `开地 · ${next.price}` : `Dig · ${next.price}`}
+        </button>
+      )}
+    </div>
   );
 }

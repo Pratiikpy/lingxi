@@ -1,0 +1,11 @@
+--- a/packages/world/src/world.ts
++++ b/packages/world/src/world.ts
+@@ -176,7 +176,7 @@ const SOURCE_RECIPES: Recipe[] = (data.recipes as Array<{ index: number; out: nu
+     index: r.index,
+     name: RECIPE_NAMES[r.index]!,
+     out: r.out,
+-    outAmount: BULK_RECIPES.has(r.index) ? BULK_YIELD : Math.max(1, r.outAmount),
++    outAmount: Math.max(1, r.outAmount),
+     ins: r.ins.map((x) => ({ item: x.item, amount: x.amount })),
+     ...(r.tool !== null ? { tool: r.tool } : {}),
+     energy: craftEnergy(r.stamina),

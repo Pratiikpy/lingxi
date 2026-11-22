@@ -3,6 +3,7 @@
 import { PLAYER_TYPES, type PlayerNumbers, type PlayerType, type SimNumbers } from "../../src";
 import { sparField } from "./field";
 import { costOfEverything } from "./life";
+import { worthFindings } from "@lingxi/world";
 import { TAP_PATHS, type TapPath, playType } from "./players";
 import { lessonsSeen } from "./seen";
 import { catchUp, care, createPet, mindBrain } from "../../src";
@@ -60,7 +61,7 @@ export async function runSimYielding(o: { seed?: number; days?: number } = {}): 
   }
   const field = sparField(seed, FIELD_SEEDS);
   await tick();
-  return { seed, days, players, tapPaths, field, lessons: lessonsSeen(), costOfEverything: costOfEverything(), alone: leftAlone() };
+  return { seed, days, players, tapPaths, field, lessons: lessonsSeen(), costOfEverything: costOfEverything(), alone: leftAlone(), worth: worthFindings().map((f) => f.why) };
 }
 
 export function runSim(o: { seed?: number; days?: number } = {}): SimNumbers {
@@ -69,5 +70,5 @@ export function runSim(o: { seed?: number; days?: number } = {}): SimNumbers {
   const players = Object.fromEntries(PLAYER_TYPES.map((t) => [t, playType(t, seed, days)])) as Record<PlayerType, PlayerNumbers>;
   // B8: the tapper down each tapping path, for level-not-by-tapping
   const tapPaths = Object.fromEntries(TAP_PATHS.map((path) => [path, tapPathNumbers(players, seed, days, path)]));
-  return { seed, days, players, tapPaths, field: sparField(seed, FIELD_SEEDS), lessons: lessonsSeen(), costOfEverything: costOfEverything(), alone: leftAlone() };
+  return { seed, days, players, tapPaths, field: sparField(seed, FIELD_SEEDS), lessons: lessonsSeen(), costOfEverything: costOfEverything(), alone: leftAlone(), worth: worthFindings().map((f) => f.why) };
 }

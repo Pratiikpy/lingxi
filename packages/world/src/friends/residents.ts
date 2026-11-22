@@ -54,8 +54,8 @@ export const RESIDENT_FRIENDS: readonly FriendSheet[] = [
       s3b: {
         choice: LEARN,
         title: T("How the tonic is made", "补剂是怎么做的"),
-        lines: [say(A.thinking, "Glow paste and mint, stirred under the moon. The moon part is optional. Don't tell anyone.", "荧光膏加薄荷，在月光下搅匀。月光那步可有可无，别告诉别人。")],
-        unlock: { kind: "recipe", index: 20004 },
+        lines: [say(A.thinking, "Glow paste and mint, stirred under the moon. Here, two of my glow roots to start you off.", "荧光膏加薄荷，在月光下搅匀。先拿我两根荧光根去试试。")],
+        unlock: { kind: "recipe", index: 20004, rewards: [{ kind: "item", item: 1021, n: 2 }] },
       },
       s4: {
         title: T("The lantern that went out", "熄灭的那盏灯"),
@@ -294,7 +294,7 @@ export const RESIDENT_FRIENDS: readonly FriendSheet[] = [
       s3b: {
         choice: LEARN,
         title: T("Melting scrap", "熔铁片"),
-        lines: [say(R.three, "Scrap and an old coin for the alloy. Heat, patience, and don't stand downwind.", "铁片加一枚古钱币做合金。加热，耐心，别站在下风口。")],
+        lines: [say(R.three, "Twelve scrap, a low heat, and five bars. No burner needed. Don't stand downwind.", "十二片铁片，小火慢熔，出五根金属条。不用炉子。别站在下风口。")],
         unlock: { kind: "recipe", index: 20008 },
       },
       s4: {

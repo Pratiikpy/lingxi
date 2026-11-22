@@ -1,0 +1,14 @@
+--- a/packages/world/src/world.ts
++++ b/packages/world/src/world.ts
+@@ -155,11 +155,6 @@ export const craftXp = (sourceXp: number) => Math.round(Math.sqrt(Math.max(0, so
+ const small = (index: number, en: string, zh: string, out: number, item: number): Recipe => ({ index, name: { en, zh }, out, outAmount: 1, ins: [{ item, amount: 3 }], energy: craftEnergy(10), xp: craftXp(9) });
+ export const SMALL_BATCH_RECIPES: readonly Recipe[] = [
+   small(30001, "Shape a Stone Block", "拼一个石块", 1301, 1002),
+-  small(30002, "Chip a Stone Block from Fossil", "用化石凿一个石块", 1301, 1020),
+-  small(30003, "Lash a Plank", "绑一块木板", 1302, 1001),
+-  small(30004, "Weave a Plank from Stems", "用干茎编一块木板", 1302, 1016),
+-  small(30005, "Hammer a Metal Bar", "敲一根金属条", 1303, 1005),
+-  small(30006, "Bend a Bar from Pipe", "用旧管子弯一根金属条", 1303, 1017),
+ ];
+ 
+ /**

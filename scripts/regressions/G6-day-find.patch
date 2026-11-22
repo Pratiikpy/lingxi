@@ -1,0 +1,11 @@
+--- a/packages/world/src/world.ts
++++ b/packages/world/src/world.ts
+@@ -359,7 +359,7 @@ export function move(
+     const today = w.roomsDay === day ? (w.roomsToday ?? []) : [];
+     if (!today.includes(to)) {
+       next = { ...next, roomsDay: day, roomsToday: [...today, to] };
+-      if (mods.dayFind > 0 && room.drops.length && roll(w.seed, to, day, 77) % 100 < mods.dayFind) {
++      if (mods.dayFind < 0) {
+         found = { item: pickDrop(boostRare(room.drops, mods.rareBoost), roll(w.seed, to, day, 78)), n: 1 };
+         next = bumpFinds({ ...next, bag: add(next.bag, found.item, 1) }, [found]);
+       }

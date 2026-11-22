@@ -24,7 +24,17 @@ export interface Decor {
    * community goal (the goal named here).
    */
   chain?: { kind: "shop"; supply: number } | { kind: "keepsake"; goal: string };
+  /**
+   * a Builder's commission (G6): made to order for `price` coins and the materials, once the pet has reached `stage`;
+   * never sold off the shelf. Long-lived things to save for at every stage of a pet's life.
+   */
+  commission?: { stage: CommissionStage; ins: ReadonlyArray<{ item: number; amount: number }> };
 }
+
+export type CommissionStage = "child" | "teen" | "adult" | "elder";
+const STAGES = ["baby", "child", "teen", "adult", "elder"] as const;
+/** Has a pet at `stage` reached `need`? */
+export const stageReached = (stage: string, need: string): boolean => STAGES.indexOf(stage as (typeof STAGES)[number]) >= STAGES.indexOf(need as (typeof STAGES)[number]);
 
 const OUT = "#2B2140";
 
@@ -215,7 +225,67 @@ export const DECOR: readonly Decor[] = [
     rows: ["oooooooooo", "ogggbbgggo", "oggrbbgggo", "ogggbgggro", "oyggbbgggo", "oooooooooo"],
     colors: { o: OUT, g: "#9ED29B", b: "#7FB7F0", r: "#E5486C", y: "#FFD45E" },
   },
+  // ── Builder's commissions (G6): made to order from planks, metal bars and stone blocks, one or two per stage ──
+  {
+    id: "bench",
+    name: { en: "Garden bench", zh: "花园长椅" },
+    price: 120,
+    commission: { stage: "child", ins: [{ item: 1302, amount: 4 }] },
+    rows: ["oooooooooooooo", "obbbbbbbbbbbbo", "oBBBBBBBBBBBBo", "oooooooooooooo", ".o..........o.", "oooooooooooooo", "osssssssssssso", "oooooooooooooo", ".oo........oo.", ".oo........oo."],
+    colors: { o: OUT, b: "#D99A62", B: "#B87A48", s: "#C98A5A" },
+  },
+  {
+    id: "birdbath",
+    name: { en: "Bird bath", zh: "小鸟浴盆" },
+    price: 220,
+    commission: { stage: "teen", ins: [{ item: 1301, amount: 6 }] },
+    rows: ["......oo...", ".....oyo...", ".ooooooRooo", "owwWwwwwwwo", "ogggggggggo", ".ooooooooo.", "....ogo....", "....oGo....", "....ogo....", "..ooooooo..", ".ogggGgggo.", ".ooooooooo."],
+    colors: { o: OUT, w: "#8FC8F0", W: "#FFFFFF", g: "#C9C4D8", G: "#A9A3BC", y: "#F2C14E", R: "#E8604A" },
+  },
+  {
+    id: "weathervane",
+    name: { en: "Weathervane", zh: "风向标" },
+    price: 260,
+    commission: { stage: "teen", ins: [{ item: 1303, amount: 4 }, { item: 1302, amount: 2 }] },
+    rows: ["....o....", "...oyo...", ".o..o..o.", "oyoooooyo", ".o..o..o.", "....o....", "...oyo...", "....o....", "....o....", "...ooo...", "..obbbo..", "..ooooo.."],
+    colors: { o: OUT, y: "#F2C14E", b: "#B87A48" },
+  },
+  {
+    id: "fountain",
+    name: { en: "Stone fountain", zh: "石头喷泉" },
+    price: 420,
+    commission: { stage: "adult", ins: [{ item: 1301, amount: 10 }, { item: 1303, amount: 2 }] },
+    rows: ["......ww......", ".....wWWw.....", "....w.oo.w....", "...w.oggo.w...", "..w..oggo..w..", ".....oggo.....", ".oooooooooooo.", "owwwwWwwwWwwwo", "owWwwwwwwwwWwo", "oggggggggggggo", "ogGggGggGggGgo", ".oooooooooooo."],
+    colors: { o: OUT, w: "#8FC8F0", W: "#FFFFFF", g: "#C9C4D8", G: "#A9A3BC" },
+  },
+  {
+    id: "nook",
+    name: { en: "Reading nook", zh: "读书角" },
+    price: 480,
+    commission: { stage: "adult", ins: [{ item: 1302, amount: 8 }, { item: 1303, amount: 2 }] },
+    rows: ["..........ooo.", ".........oyyyo", "..........ooo.", "...........o..", ".ooooooo...o..", "orrrrrrro..o..", "orRrrrRro..o..", "orrrrrrro..o..", "oooooooooo.o..", "orrrrrrrro.o..", "oooooooooo.o..", ".o......o.ooo."],
+    colors: { o: OUT, r: "#7FA6D9", R: "#5B82B8", y: "#FFE08A" },
+  },
+  {
+    id: "arch",
+    name: { en: "Lantern arch", zh: "灯笼拱门" },
+    price: 700,
+    commission: { stage: "elder", ins: [{ item: 1303, amount: 6 }, { item: 1301, amount: 6 }, { item: 1302, amount: 4 }] },
+    rows: ["....oooooo....", "..oogggggggoo.", ".ogoo....oogo.", ".go........og.", "og..........go", "og.o......o.go", "og.y......y.go", "og.o......o.go", "og..........go", "og..........go", "og..........go", "og..........go", "oGo........oGo", "ooo........ooo"],
+    colors: { o: OUT, g: "#C9C4D8", G: "#A9A3BC", y: "#FFC857" },
+  },
+  {
+    id: "clock",
+    name: { en: "Star clock", zh: "星星落地钟" },
+    price: 900,
+    commission: { stage: "elder", ins: [{ item: 1303, amount: 8 }, { item: 1302, amount: 4 }] },
+    rows: ["...oooo...", "..obbbbo..", ".obwwwwbo.", ".owwywwwo.", ".owwyywwo.", ".obwwwwbo.", "..obbbbo..", "..obddbo..", "..obdyBo..", "..obdBbo..", "..obddbo..", "..obbbbo..", ".obbbbbbo.", ".oooooooo."],
+    colors: { o: OUT, b: "#8A5A3C", B: "#F2C14E", w: "#FFF7E8", y: "#3A2E5C", d: "#5C3B28" },
+  },
 ];
+
+/** The Builder's commissions, cheapest first. */
+export const COMMISSIONS: readonly Decor[] = DECOR.filter((d) => d.commission);
 
 /** The on-chain pieces (plan 4.6), drawn for Lingxi: four in the BEM shop, four keepsakes of the community goals. */
 export const CHAIN_DECOR: readonly Decor[] = [
@@ -332,11 +402,35 @@ export const decorOf = (w: WorldState): DecorState => w.decor ?? { owned: [], pl
 export function buyDecor(w: WorldState, id: string): WorldResult {
   const d = DECOR_BY_ID[id];
   // keepsakes are given, on-chain pieces are bought for BEM on chain: neither for coins
-  if (!d || d.gift || d.chain) return { ok: false, reason: "notSold" };
+  if (!d || d.gift || d.chain || d.commission) return { ok: false, reason: "notSold" };
   const s = decorOf(w);
   if (s.owned.includes(id)) return { ok: false, reason: "owned" };
   if (w.coins < d.price) return { ok: false, reason: "coins" };
   return { ok: true, world: bumpAll({ ...w, coins: w.coins - d.price, decor: { ...s, owned: [...s.owned, id] } }, [["BUY", 0, 1], ["COINS_SPENT", 0, d.price]]) };
+}
+
+/** Commission a piece from the Builder (G6): its coins and materials, once the pet has reached the piece's stage. */
+export function commissionDecor(w: WorldState, id: string, stage: string): WorldResult {
+  const d = DECOR_BY_ID[id];
+  const c = d?.commission;
+  if (!d || !c) return { ok: false, reason: "notSold" };
+  const s = decorOf(w);
+  if (s.owned.includes(id)) return { ok: false, reason: "owned" };
+  if (!stageReached(stage, c.stage)) return { ok: false, reason: "stage" };
+  if (!c.ins.every((x) => (w.bag[x.item] ?? 0) >= x.amount)) return { ok: false, reason: "missing" };
+  if (w.coins < d.price) return { ok: false, reason: "coins" };
+  const bag = { ...w.bag };
+  for (const x of c.ins) {
+    bag[x.item] = (bag[x.item] ?? 0) - x.amount;
+    if (bag[x.item]! <= 0) delete bag[x.item];
+  }
+  return {
+    ok: true,
+    world: bumpAll({ ...w, bag, coins: w.coins - d.price, decor: { ...s, owned: [...s.owned, id] } }, [
+      ["COMMISSION", 0, 1],
+      ["COINS_SPENT", 0, d.price],
+    ]),
+  };
 }
 
 export function placeDecor(w: WorldState, id: string, x: number, y: number): WorldResult {

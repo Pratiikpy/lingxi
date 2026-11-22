@@ -99,7 +99,8 @@ describe("shop, workbench, bag", () => {
   });
 
   it("quest 37 says what the bench does: three pebbles make a stone block, no tool needed (G8, small batch beside the bulk)", () => {
-    const small = RECIPES.filter((r) => r.out === 1301 && r.tool === undefined && r.room === undefined);
+    // G6 adds small batches from fossil too; quest 37's is the pebble one
+    const small = RECIPES.filter((r) => r.out === 1301 && r.tool === undefined && r.room === undefined && r.ins.some((x) => x.item === 1002));
     expect(small.map((r) => r.ins)).toEqual([[{ item: 1002, amount: 3 }]]);
     let w: WorldState = { ...newWorld("s"), bag: {} };
     w = give(w, 1002, 3);

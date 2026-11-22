@@ -149,11 +149,26 @@ export const craftXp = (sourceXp: number) => Math.round(Math.sqrt(Math.max(0, so
 
 /**
  * Small batches beside the source's bulk recipes (G6, G8): a handful made by hand at the bench, no tool, for a player
- * who needs one now. Quest 37's "three pebbles make a stone block" is this recipe.
+ * who needs one now. Quest 37's "three pebbles make a stone block" is the first. Every building material (plank, metal
+ * bar, stone block, from either source) has one.
  */
+const small = (index: number, en: string, zh: string, out: number, item: number): Recipe => ({ index, name: { en, zh }, out, outAmount: 1, ins: [{ item, amount: 3 }], energy: craftEnergy(10), xp: craftXp(9) });
 export const SMALL_BATCH_RECIPES: readonly Recipe[] = [
-  { index: 30001, name: { en: "Shape a Stone Block", zh: "拼一个石块" }, out: 1301, outAmount: 1, ins: [{ item: 1002, amount: 3 }], energy: craftEnergy(10), xp: craftXp(9) },
+  small(30001, "Shape a Stone Block", "拼一个石块", 1301, 1002),
+  small(30002, "Chip a Stone Block from Fossil", "用化石凿一个石块", 1301, 1020),
+  small(30003, "Lash a Plank", "绑一块木板", 1302, 1001),
+  small(30004, "Weave a Plank from Stems", "用干茎编一块木板", 1302, 1016),
+  small(30005, "Hammer a Metal Bar", "敲一根金属条", 1303, 1005),
+  small(30006, "Bend a Bar from Pipe", "用旧管子弯一根金属条", 1303, 1017),
 ];
+
+/**
+ * The source's bulk recipes turn 100 of a material into one plank, bar or block with a tool and 150 energy: worse in
+ * every way than three of it by hand (G6). A bulk batch now yields BULK_YIELD, so a player who gathered a hundred and
+ * owns the tool makes more per piece and per energy than by hand.
+ */
+export const BULK_YIELD = 50;
+const BULK_RECIPES = new Set([31, 32, 33, 34, 35, 36]);
 
 const SOURCE_RECIPES: Recipe[] = (data.recipes as Array<{ index: number; out: number; outAmount: number; ins: Array<{ item: number; amount: number }>; stamina: number; xp: number; tool: number | null; room: number | null }>)
   .filter((r) => RECIPE_NAMES[r.index] && ITEM[r.out] && r.ins.every((x) => ITEM[x.item]) && (r.tool === null || ITEM[r.tool]))
@@ -161,7 +176,7 @@ const SOURCE_RECIPES: Recipe[] = (data.recipes as Array<{ index: number; out: nu
     index: r.index,
     name: RECIPE_NAMES[r.index]!,
     out: r.out,
-    outAmount: Math.max(1, r.outAmount),
+    outAmount: BULK_RECIPES.has(r.index) ? BULK_YIELD : Math.max(1, r.outAmount),
     ins: r.ins.map((x) => ({ item: x.item, amount: x.amount })),
     ...(r.tool !== null ? { tool: r.tool } : {}),
     energy: craftEnergy(r.stamina),
@@ -177,11 +192,14 @@ export const TRAVEL_RECIPES: readonly Recipe[] = [
   { index: 20002, name: { en: "Fold Apple Jam Mochi", zh: "包苹果酱麻薯" }, out: 11120, outAmount: 2, ins: [{ item: 11313, amount: 2 }, { item: 7201, amount: 1 }], energy: 30, xp: 5 },
   { index: 20003, name: { en: "Roll Honey Mochi", zh: "滚蜂蜜麻薯" }, out: 11140, outAmount: 2, ins: [{ item: 11312, amount: 2 }, { item: 7201, amount: 1 }], energy: 30, xp: 5 },
   // taught by friends at trust level 3 (friends/residents.ts), each the thing their shelf would otherwise sell
-  { index: 20004, name: { en: "Stir Moon Tonic", zh: "调月光补剂" }, out: 11004, outAmount: 1, ins: [{ item: 1121, amount: 150 }, { item: 1112, amount: 100 }], energy: 30, xp: 5 },
+  // G6: two a stir, and Wick hands over two Glow Roots with the recipe (a root is a 0.19% find; the shelf sells one tonic for 60)
+  { index: 20004, name: { en: "Stir Moon Tonic", zh: "调月光补剂" }, out: 11004, outAmount: 2, ins: [{ item: 1121, amount: 150 }, { item: 1112, amount: 100 }], energy: 30, xp: 5 },
   { index: 20005, name: { en: "Pound Taro Mochi", zh: "捣芋泥麻薯" }, out: 11110, outAmount: 2, ins: [{ item: 7201, amount: 2 }, { item: 1201, amount: 100 }], energy: 30, xp: 5 },
   { index: 20006, name: { en: "Yonder's Lucky Tea", zh: "阿远的好运茶" }, out: 11405, outAmount: 1, ins: [{ item: 1111, amount: 100 }, { item: 1104, amount: 100 }], energy: 30, xp: 5 },
-  { index: 20007, name: { en: "Double Wisdom Candy", zh: "炼大智慧糖" }, out: 11202, outAmount: 1, ins: [{ item: 11201, amount: 2 }, { item: 1103, amount: 100 }], energy: 30, xp: 5 },
-  { index: 20008, name: { en: "Melt a Metal Bar", zh: "熔金属条" }, out: 1303, outAmount: 1, ins: [{ item: 1005, amount: 30 }, { item: 1015, amount: 1 }], energy: 30, xp: 5 },
+  // G6: two from two candies (25 each at the shop), so it beats Twain's shelf price of 45
+  { index: 20007, name: { en: "Double Wisdom Candy", zh: "炼大智慧糖" }, out: 11202, outAmount: 2, ins: [{ item: 11201, amount: 2 }, { item: 1103, amount: 100 }], energy: 30, xp: 5 },
+  // G6: Bolt's trick beats three scrap by hand and needs no burner (it used to need thirty and an Old Coin for one bar)
+  { index: 20008, name: { en: "Bolt's Quick Melt", zh: "阿栓的快熔法" }, out: 1303, outAmount: 5, ins: [{ item: 1005, amount: 12 }], energy: 30, xp: 5 },
   { index: 20009, name: { en: "Warm Honeydrops", zh: "捂蜜露" }, out: 11312, outAmount: 2, ins: [{ item: 11311, amount: 1 }, { item: 1011, amount: 1 }], energy: 30, xp: 5 },
   { index: 20010, name: { en: "Nurse Why's Calm Tea", zh: "小慧的安神茶" }, out: 11404, outAmount: 1, ins: [{ item: 1111, amount: 100 }, { item: 1110, amount: 50 }], energy: 30, xp: 5 },
   { index: 20011, name: { en: "Grill a Burger", zh: "烤汉堡" }, out: 11302, outAmount: 1, ins: [{ item: 7202, amount: 1 }, { item: 7201, amount: 1 }], energy: 30, xp: 5 },
@@ -222,6 +240,12 @@ export interface WorldState {
   walk?: { startedAt: number; steps: number; sensor: boolean; finds: Array<{ item: number; n: number }> };
   walksDay?: number;
   walksToday?: number;
+  /** the day (UTC day number) and the rooms entered on it, for Wanderer's and Rich Finds' first-entry find (G6) */
+  roomsDay?: number;
+  roomsToday?: number[];
+  /** G6: the day (UTC day number) and how many spars have paid coins on it; after PAID_SPARS_PER_DAY they are practice */
+  sparPayDay?: number;
+  sparPaidToday?: number;
   /** the pet away on a trip, travel recipes it has brought back, and trips taken */
   trip?: { to: string; leftAt: number; backAt: number };
   recipes?: number[];
@@ -234,7 +258,7 @@ export interface WorldState {
   looks?: Array<{ id: string; name: string; outfit: Partial<Record<"head" | "face" | "held", string>> }>;
   looksMade?: number;
   /** the Mushroom Garden's plots (see garden.ts) */
-  garden?: { plots: Array<{ crop: string; at: number; compost: boolean } | null>; harvested: number };
+  garden?: { plots: Array<{ crop: string; at: number; compost: boolean } | null>; harvested: number; /** G6: plots dug beyond the first four */ dug?: number };
   /** decorations bought and where they stand in the home room */
   decor?: { owned: string[]; placed: Array<{ id: string; x: number; y: number }>; chainHeld?: string[] };
   /** lifetime counters keyed TYPE:index (see tally.ts); `tallied` marks an older save already counted in once */
@@ -298,11 +322,12 @@ export interface ExploreMods {
   forageWaitOff: number;
   walksWithFinds: number;
   stepsOff: number;
-  visitCoins: number;
+  /** percent chance that the first entry each day into a room picks up something there (Wanderer, Rich Finds; G6) */
+  dayFind: number;
   /** percent chance of one more find on a trip */
   tripExtra: number;
 }
-export const NO_EXPLORE_MODS: ExploreMods = { moveEnergy: MOVE_ENERGY, forageEnergy: FORAGE_ENERGY, extraFind: 0, rareBoost: 0, forageWaitOff: 0, walksWithFinds: 0, stepsOff: 0, visitCoins: 0, tripExtra: 0 };
+export const NO_EXPLORE_MODS: ExploreMods = { moveEnergy: MOVE_ENERGY, forageEnergy: FORAGE_ENERGY, extraFind: 0, rareBoost: 0, forageWaitOff: 0, walksWithFinds: 0, stepsOff: 0, dayFind: 0, tripExtra: 0 };
 
 /** Drop weights with rare finds (tiers 1 to 4) made more likely, in hundredths so small weights still move. */
 export function boostRare<T extends { item: number; weight: number; tier?: number }>(drops: readonly T[], pct: number): T[] {
@@ -310,24 +335,49 @@ export function boostRare<T extends { item: number; weight: number; tier?: numbe
   return drops.map((d) => ({ ...d, weight: d.weight * (d.tier !== undefined && isRareTier(d.tier) ? 100 + pct : 100) }));
 }
 
-/** Walk to a neighbouring room. The caller spends the move's energy (mods.moveEnergy) from the pet. */
-export function move(w: WorldState, to: number, petEnergy: number, mods: ExploreMods = NO_EXPLORE_MODS): WorldResult<{ firstVisit: boolean; coins: number }> {
-  if (!ROOMS[to]) return { ok: false, reason: "noRoom" };
+/**
+ * Walk to a neighbouring room. The caller spends the move's energy (mods.moveEnergy) from the pet. With `now`, the
+ * first entry each day into a room may pick something up there (`mods.dayFind` percent; G6's Wanderer and Rich Finds).
+ */
+export function move(
+  w: WorldState,
+  to: number,
+  petEnergy: number,
+  mods: ExploreMods = NO_EXPLORE_MODS,
+  now?: number,
+): WorldResult<{ firstVisit: boolean; coins: number; found?: { item: number; n: number } }> {
+  const room = ROOMS[to];
+  if (!room) return { ok: false, reason: "noRoom" };
   if (!neighbours(w.room).includes(to)) return { ok: false, reason: "notNear" };
   if (petEnergy < mods.moveEnergy) return { ok: false, reason: "tired" };
   const firstVisit = !w.visited.includes(to);
-  const coins = firstVisit ? FIRST_VISIT_COINS + mods.visitCoins : 0;
+  const coins = firstVisit ? FIRST_VISIT_COINS : 0;
+  let next: WorldState = { ...w, room: to, visited: firstVisit ? [...w.visited, to] : w.visited, coins: w.coins + coins };
+  let found: { item: number; n: number } | undefined;
+  if (now !== undefined) {
+    const day = Math.floor(now / DAY_MS);
+    const today = w.roomsDay === day ? (w.roomsToday ?? []) : [];
+    if (!today.includes(to)) {
+      next = { ...next, roomsDay: day, roomsToday: [...today, to] };
+      if (mods.dayFind > 0 && room.drops.length && roll(w.seed, to, day, 77) % 100 < mods.dayFind) {
+        found = { item: pickDrop(boostRare(room.drops, mods.rareBoost), roll(w.seed, to, day, 78)), n: 1 };
+        next = bumpFinds({ ...next, bag: add(next.bag, found.item, 1) }, [found]);
+      }
+    }
+  }
   return {
     ok: true,
     firstVisit,
     coins,
-    world: bumpAll({ ...w, room: to, visited: firstVisit ? [...w.visited, to] : w.visited, coins: w.coins + coins }, [
+    ...(found ? { found } : {}),
+    world: bumpAll(next, [
       ["MOVE", 0, 1],
       ["VISIT", to, 1],
       ["COINS_EARNED", 0, coins],
     ]),
   };
 }
+const DAY_MS = 24 * 3_600_000;
 
 const hourKey = (now: number) => Math.floor(now / 3_600_000);
 /** The look-around window: an hour, shortened by Explore skills (never under 15 minutes); keys of a shorter window never equal an hour's. */
@@ -510,6 +560,24 @@ export function openBox(w: WorldState, now: number, box = 21007): WorldResult<{ 
 }
 
 export const earn = (w: WorldState, coins: number): WorldState => bump({ ...w, coins: w.coins + coins }, "COINS_EARNED", 0, coins);
+
+/**
+ * G6: a day's paid spars. The first PAID_SPARS_PER_DAY spars that would pay (a win, or a loss a skill or snack pays
+ * for) pay their coins; after that a spar is free practice that still counts for quests, badges and the record. Spars
+ * cost no energy, so without this a pet watched fighting for an hour earned about 1,000 coins.
+ */
+export const PAID_SPARS_PER_DAY = 3;
+const SPAR_DAY_MS = 24 * 60 * 60 * 1000;
+const sparDay = (now: number) => Math.floor(now / SPAR_DAY_MS);
+export const paidSparsLeft = (w: WorldState, now: number): number =>
+  Math.max(0, PAID_SPARS_PER_DAY - (w.sparPayDay === sparDay(now) ? (w.sparPaidToday ?? 0) : 0));
+/** Pays a spar's coins if the day still has a paid spar left; `paid` is what was paid (0 once the day's are used). */
+export function paySpar(w: WorldState, now: number, coins: number): { world: WorldState; paid: number } {
+  if (coins <= 0 || paidSparsLeft(w, now) === 0) return { world: w, paid: 0 };
+  const day = sparDay(now);
+  const used = w.sparPayDay === day ? (w.sparPaidToday ?? 0) : 0;
+  return { world: { ...earn(w, coins), sparPayDay: day, sparPaidToday: used + 1 }, paid: coins };
+}
 export const give = (w: WorldState, item: number, n = 1): WorldState => ({ ...w, bag: add(w.bag, item, n) });
 
 import { QUESTS, type QuestView, questState } from "./quests";

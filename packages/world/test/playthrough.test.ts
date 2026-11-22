@@ -27,6 +27,7 @@ import { describe, expect, it } from "vitest";
 import { timeOfDay } from "@lingxi/brain";
 import { PARTNERS, arrangeLessons, beatOf, exploreMods, localHour, needsMinOf, stageOf, work } from "@lingxi/game";
 import {
+  paidSparsLeft,
   type Condition,
   type ConditionView,
   DAILIES,
@@ -172,10 +173,20 @@ class Player {
     if (this.pet.asleep) this.life.care({ kind: "wake" }, this.now);
     if (this.life.energy() < n) throw new Error(`the pet could not get its energy back (${this.life.energy()} of ${n})`);
   }
-  /** Coins enough for `n`: sparring the softest partner for wins until there are (Arena.tsx's pay for a win). */
+  /**
+   * Coins enough for `n`: sparring the softest partner for wins until there are (Arena.tsx's pay for a win). Only the
+   * day's paid spars pay (G6), so once they are used the player comes back the next day.
+   */
   afford(n: number) {
     for (let i = 0; this.w.coins < n; i++) {
       if (i > 400) throw new Error(`could not earn ${n} coins in ${i} spars`);
+      if (paidSparsLeft(this.w, this.now) === 0) {
+        const nextDay = (Math.floor(this.now / (24 * HOUR)) + 1) * 24 * HOUR;
+        while (this.now < nextDay) {
+          this.away(Math.min(60, Math.ceil((nextDay - this.now) / MIN)));
+          this.tend();
+        }
+      }
       const before = this.w.coins;
       const r = this.life.spar(PARTNERS[0]!, this.now);
       this.spars++;
@@ -793,6 +804,8 @@ describe("the automated playthrough", () => {
         }
         // the day can run out while the pet sleeps or the player waits for the evening: the next offer tries again
         if (localDay(p.now, 0) !== p.w.quests!.today!.day) continue;
+        // earning coins over several days of paid spars (G6) can carry the player into a day it already finished
+        if (questStatus(q, p.w, p.view()) === "done") continue;
         expect(questStatus(q, p.w, p.view()), `${id} on day ${day}`).toBe("ready");
         p.must(completeQuest(p.w, q, p.view()), `hand in ${id}`);
         faults.push(...readBoth(q));

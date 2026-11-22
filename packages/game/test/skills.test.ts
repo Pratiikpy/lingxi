@@ -394,9 +394,9 @@ describe("Mind skills widen the budget the circuit lives in", () => {
 
 describe("Explore skills give the world its numbers for this pet (the world applies them: world/test/explore.test.ts)", () => {
   it("maps each Explore skill to the world's numbers", () => {
-    expect(exploreMods(undefined)).toEqual({ moveEnergy: 15, forageEnergy: 10, extraFind: 0, rareBoost: 0, forageWaitOff: 0, walksWithFinds: 0, stepsOff: 0, visitCoins: 0, tripExtra: 0 });
+    expect(exploreMods(undefined)).toEqual({ moveEnergy: 15, forageEnergy: 10, extraFind: 0, rareBoost: 0, forageWaitOff: 0, walksWithFinds: 0, stepsOff: 0, dayFind: 0, tripExtra: 0 });
     const all = exploreMods(holding({ 311: 5, 312: 5, 313: 5, 321: 5, 322: 5, 323: 5, 331: 1, 341: 5, 342: 5, 343: 5, 351: 5, 352: 5, 353: 5, 361: 1 }));
-    expect(all).toEqual({ moveEnergy: 5, forageEnergy: 2, extraFind: 50, rareBoost: 80, forageWaitOff: 50, walksWithFinds: 0, stepsOff: 100, visitCoins: 20, tripExtra: 50 });
+    expect(all).toEqual({ moveEnergy: 5, forageEnergy: 2, extraFind: 50, rareBoost: 80, forageWaitOff: 50, walksWithFinds: 0, stepsOff: 100, dayFind: 40, tripExtra: 50 });
     expect(exploreMods(holding({ 332: 1, 363: 1, 362: 1 }))).toMatchObject({ walksWithFinds: 3, rareBoost: 40 });
   });
 });

@@ -1,0 +1,11 @@
+--- a/packages/world/src/decor.ts
++++ b/packages/world/src/decor.ts
+@@ -402,7 +402,7 @@ export const decorOf = (w: WorldState): DecorState => w.decor ?? { owned: [], pl
+ export function buyDecor(w: WorldState, id: string): WorldResult {
+   const d = DECOR_BY_ID[id];
+   // keepsakes are given, on-chain pieces are bought for BEM on chain: neither for coins
+-  if (!d || d.gift || d.chain || d.commission) return { ok: false, reason: "notSold" };
++  if (!d || d.gift || d.chain) return { ok: false, reason: "notSold" };
+   const s = decorOf(w);
+   if (s.owned.includes(id)) return { ok: false, reason: "owned" };
+   if (w.coins < d.price) return { ok: false, reason: "coins" };

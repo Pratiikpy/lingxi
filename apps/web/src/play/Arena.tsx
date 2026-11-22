@@ -10,7 +10,7 @@ import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { create } from "zustand";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { FLY, type OverlayPixel, type Palette, type PixelCanvas, boundingBox, drawFly, drawPet, type Expression, type Outfit, wearOverlay } from "@lingxi/art";
-import { outfitOf } from "@lingxi/world";
+import { PAID_SPARS_PER_DAY, outfitOf, paidSparsLeft } from "@lingxi/world";
 import { STARTERS, chipName, programOfChips } from "@lingxi/brain";
 import { DESIGNED_PARTNERS, composeProgram, type Challenge, type CoachNote, type DuelPet, type Fighter, MAX_HP, MOVES, type Move, PARTNERS, type Partner, type Pet, type SparResult, type SparVersion, CURRENT_SPAR, dailySparVersion, fight as fightSpar, TRAITS, coach, dayOf, duel as runDuel, duelFighter, encodeChallenge, encodeResult, fighterOfMind, fighterOfPartner, halvesOf, petCard, rewindFight, ruleSource, stageOf, type Exchange, type Mind, PRACTICE_SEEDS, SPAR_PUNISH, duelPetMind, exchangesOf, partnerMind, FLY_RIVALS, type FlyRival, FlyLinkError, flyFighter, parseFlyBrain, skillRules, sparMods } from "@lingxi/game";
 import { linkPrefix } from "../game/links";
@@ -193,6 +193,7 @@ export function ArenaPanel({ pet }: { pet: Pet }) {
   const [cheer, setCheer] = useState(false);
   const [running, setRunning] = useState(false);
   const fighting = fight !== null || running;
+  const paidLeft = useWorld((s) => paidSparsLeft(s.world, now()));
   useEffect(() => {
     if (!fighting) return;
     useMusic.getState().want("spar");
@@ -272,6 +273,15 @@ export function ArenaPanel({ pet }: { pet: Pet }) {
           {lang === "zh" ? "切磋" : "Spar"}
         </button>
       </section>
+      <p className="small sp-purse" role="status">
+        {paidLeft > 0
+          ? lang === "zh"
+            ? `今天还有 ${paidLeft}/${PAID_SPARS_PER_DAY} 场有奖切磋：赢了（或技能保底的输）就发金币。之后的切磋是练习，不限次数，照样算任务和徽章。`
+            : `${paidLeft} of ${PAID_SPARS_PER_DAY} paid spars left today: a win (or a loss a skill pays for) earns coins. After that, spars are free practice, as many as you like, and still count for quests and badges.`
+          : lang === "zh"
+            ? `今天 ${PAID_SPARS_PER_DAY} 场有奖切磋已经用完。现在切磋是练习：不发金币，任务、徽章和战绩照样算。明天再发。`
+            : `Today's ${PAID_SPARS_PER_DAY} paid spars are used. Spars now are practice: no coins, but quests, badges and the record still count. More pay tomorrow.`}
+      </p>
       <ul className="sp-partners">
         {PARTNERS.map((p, i) => (
           <PartnerCard key={p.id} partner={p} index={i} lang={lang} onPick={() => start(p)} />
@@ -627,6 +637,7 @@ export function FightView({
   const settled = useRef(false);
   const growth = pet?.growth;
   const [reward, setReward] = useState(0);
+  const [practice, setPractice] = useState(false);
   const [dailyNote, setDailyNote] = useState<"best" | "same" | null>(null);
   // a replay watched to its end (quests count it)
   const replaySeen = useRef(false);
@@ -656,16 +667,13 @@ export function FightView({
     if (outcome === "w" && partner.look === "behemoth") useBadges.getState().note("behemothWins");
     // Spar skills (plan 4.4): more for a win, and something even for a loss; friendly matches pay nothing, as before
     const skill = sparMods(growth);
-    if (outcome === "w" && !partner.id.startsWith("friend:")) {
-      const coins = SPAR_WIN_COINS + (first ? SPAR_FIRST_WIN_COINS : 0) + skill.winCoins;
-      useWorld.getState().reward(coins);
-      setReward(coins);
-      play("success");
-    }
-    const lossCoins = skill.lossCoins + boostCoins;
-    if (outcome === "l" && !partner.id.startsWith("friend:") && lossCoins > 0) {
-      useWorld.getState().reward(lossCoins);
-      setReward(lossCoins);
+    // G6: the day's first PAID_SPARS_PER_DAY paying spars pay; after that a spar is practice, counted but unpaid
+    const owed = partner.id.startsWith("friend:") ? 0 : outcome === "w" ? SPAR_WIN_COINS + (first ? SPAR_FIRST_WIN_COINS : 0) + skill.winCoins : outcome === "l" ? skill.lossCoins + boostCoins : 0;
+    if (owed > 0) {
+      const paid = useWorld.getState().paySpar(owed);
+      setReward(paid);
+      setPractice(paid === 0);
+      if (paid > 0 && outcome === "w") play("success");
     }
   };
 
@@ -765,12 +773,12 @@ export function FightView({
           {lang === "zh" ? " 每日挑战对同一个心智永远是同一场；教了新东西后，从每日挑战卡片再来。" : " The daily is the same fight for the same mind; after teaching it something, try again from the daily card."}
         </p>
       )}
-      {finished && (replay || !pet ? <ReplayResult self={self} partner={partner} result={result} onDone={onDone} /> : <Result pet={pet} partner={partner} result={result} reward={reward} opponent={opponent} duel={duel} cheer={cheer} instinct={instinct} daily={daily} onDone={onDone} onRematch={onRematch} {...(onWatchAgain ? { onWatchAgain } : {})} />)}
+      {finished && (replay || !pet ? <ReplayResult self={self} partner={partner} result={result} onDone={onDone} /> : <Result pet={pet} partner={partner} result={result} reward={reward} practice={practice} opponent={opponent} duel={duel} cheer={cheer} instinct={instinct} daily={daily} onDone={onDone} onRematch={onRematch} {...(onWatchAgain ? { onWatchAgain } : {})} />)}
     </div>
   );
 }
 
-function Result({ pet, partner, result, reward, opponent, duel, cheer, instinct, daily = false, onDone, onRematch, onWatchAgain }: { pet: Pet; partner: Partner; result: SparResult; reward: number; opponent?: Fighter; duel?: FightState["duel"]; cheer: boolean; instinct?: string; daily?: boolean; onDone: () => void; onRematch: () => void; onWatchAgain?: () => void }) {
+function Result({ pet, partner, result, reward, practice = false, opponent, duel, cheer, instinct, daily = false, onDone, onRematch, onWatchAgain }: { pet: Pet; partner: Partner; result: SparResult; reward: number; practice?: boolean; opponent?: Fighter; duel?: FightState["duel"]; cheer: boolean; instinct?: string; daily?: boolean; onDone: () => void; onRematch: () => void; onWatchAgain?: () => void }) {
   const [backLink, setBackLink] = useState("");
   const lang = useLang((s) => s.lang) as Lang;
   const learn = useGame((s) => s.learn);
@@ -812,6 +820,7 @@ function Result({ pet, partner, result, reward, opponent, duel, cheer, instinct,
       <h3>{title}</h3>
       {partner.id.startsWith("friend:") && <p className="small">{lang === "zh" ? "和朋友的友谊赛，不发金币。" : "A friendly match with a friend's pet: no coins."}</p>}
       {reward > 0 && <p className="sp-coins">{lang === "zh" ? `+${reward} 金币` : `+${reward} coins`}</p>}
+      {practice && <p className="small sp-practice">{lang === "zh" ? `今天 ${PAID_SPARS_PER_DAY} 场有奖切磋已经用完，这场算练习：不发金币，但任务、徽章和战绩照样记。明天再来。` : `Today's ${PAID_SPARS_PER_DAY} paid spars are used, so this one was practice: no coins, but it still counts for quests, badges and the record. More pay tomorrow.`}</p>}
       {instinct && (
         <p className="small">
           {lang === "zh"

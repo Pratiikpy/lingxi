@@ -1,0 +1,10 @@
+--- a/packages/world/src/garden.ts
++++ b/packages/world/src/garden.ts
+@@ -106,7 +106,6 @@ export function digPlot(w: WorldState, stage: string): WorldResult {
+   if (w.room !== GARDEN_ROOM) return { ok: false, reason: "notHere" };
+   const next = nextPlot(w);
+   if (!next) return { ok: false, reason: "allDug" };
+-  if (!stageReached(stage, next.stage)) return { ok: false, reason: "stage" };
+   if (w.coins < next.price) return { ok: false, reason: "coins" };
+   const dug = plotCount(w) - PLOTS + 1;
+   return { ok: true, world: bumpAll({ ...w, coins: w.coins - next.price, garden: { plots: gardenOf(w), harvested: w.garden?.harvested ?? 0, dug } }, [["DIG", 0, 1], ["COINS_SPENT", 0, next.price]]) };

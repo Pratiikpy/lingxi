@@ -130,8 +130,10 @@ export interface SimNumbers {
   tapPaths?: Record<string, { level99Day: number | null; day30Level: number | null }>;
   field: FieldNumbers;
   lessons: LessonSeen[];
-  /** coins to buy every permanent thing sold for coins: decorations, outfit pieces and tools */
+  /** coins to buy every permanent thing sold for coins: decorations, the Builder's commissions, outfit pieces, tools and the garden's extra plots */
   costOfEverything: number;
+  /** G6: recipes and trust branches strictly worse than their alternative (worthFindings in @lingxi/world) */
+  worth?: string[];
   /**
    * G5: a pet of each line hatched and left alone, as the game's own catch-up lives it: its lowest need at 72 hours, and
    * the hours until it first falls ill (null if not within ten days)
@@ -264,7 +266,7 @@ export const BALANCE_TARGETS: readonly BalanceTarget[] = [
     what: "Coin income is bounded per day",
     target: `no player type earns more than ${DAILY_COIN_CAP} coins in a day`,
     owner: "G6",
-    value: (n) => types(n).map((p) => `${p.type} ${p.maxDailyCoinsIn}`).join(", "),
+    value: (n) => types(n).map((p) => `${p.type} ${p.maxDailyCoinsIn}${p.days?.length ? ` (day ${p.days.findIndex((r) => r.coinsIn === p.maxDailyCoinsIn) + 1})` : ""}`).join(", "),
     met: (n) => types(n).every((p) => p.maxDailyCoinsIn <= DAILY_COIN_CAP),
   },
   {
@@ -274,6 +276,14 @@ export const BALANCE_TARGETS: readonly BalanceTarget[] = [
     owner: "G6",
     value: (n) => `everything costs ${n.costOfEverything}; ` + types(n).map((p) => `${p.type} ${p.allAffordableDay === null ? "never" : `day ${p.allAffordableDay}`}`).join(", "),
     met: (n) => types(n).every((p) => p.allAffordableDay === null),
+  },
+  {
+    id: "recipes-worth",
+    what: "No recipe or trust branch is strictly worse than its alternative",
+    target: "no everyday recipe is beaten in every input by another, none costs more in bought inputs than the shop price of what it makes, and no friend's recipe branch needs a rare find or costs more than that friend's shelf",
+    owner: "G6",
+    value: (n) => (n.worth === undefined ? "not measured" : n.worth.length ? n.worth.join("; ") : "none strictly worse"),
+    met: (n) => n.worth !== undefined && n.worth.length === 0,
   },
   {
     id: "once-a-day-safe",

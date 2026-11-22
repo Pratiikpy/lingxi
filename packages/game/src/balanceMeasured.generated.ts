@@ -31,7 +31,7 @@ export const BALANCE_MEASURED: BalanceMeasured = {
       "status": "met"
     },
     "level-not-by-tapping": {
-      "value": "petTalk: level 99 never, day 30 level 35; play3: level 99 never, day 30 level 37; clean: level 99 never, day 30 level 35; feed: level 99 never, day 30 level 40; three visits day 30 level 46",
+      "value": "petTalk: level 99 never, day 30 level 35; play3: level 99 never, day 30 level 37; clean: level 99 never, day 30 level 35; feed: level 99 never, day 30 level 40; three visits day 30 level 47",
       "status": "met"
     },
     "trees-by-90": {
@@ -39,12 +39,16 @@ export const BALANCE_MEASURED: BalanceMeasured = {
       "status": "met"
     },
     "coins-bounded": {
-      "value": "once 92, three 97, weekend 97, tapper 97, grinder 2162",
-      "status": "open"
+      "value": "once 92 (day 7), three 97 (day 28), weekend 87 (day 72), tapper 97 (day 8), grinder 127 (day 1)",
+      "status": "met"
     },
     "coins-worth-saving": {
-      "value": "everything costs 840; once never, three day 78, weekend never, tapper never, grinder day 1",
-      "status": "open"
+      "value": "everything costs 4910; once never, three never, weekend never, tapper never, grinder never",
+      "status": "met"
+    },
+    "recipes-worth": {
+      "value": "none strictly worse",
+      "status": "met"
     },
     "once-a-day-safe": {
       "value": "0 care mistakes in 90 days",
@@ -63,7 +67,7 @@ export const BALANCE_MEASURED: BalanceMeasured = {
       "status": "met"
     },
     "new-every-day": {
-      "value": "once 65 empty days, three 71 empty days, weekend 70 empty days, tapper 68 empty days, grinder 70 empty days",
+      "value": "once 65 empty days, three 68 empty days, weekend 66 empty days, tapper 68 empty days, grinder 70 empty days",
       "status": "open"
     },
     "gate-budget-binds": {

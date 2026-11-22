@@ -88,7 +88,7 @@ export type Effect =
   | "FORAGE_WAIT"
   | "WALK_FINDS"
   | "WALK_STEPS"
-  | "VISIT_COINS"
+  | "DAY_FIND"
   | "TRIP_EXTRA"
   // Spar (POWER and STAMINA in tenths, so five points of a 2 make one whole; spar2.ts says how LX-SPAR/2 reads each)
   | "SPAR_POWER"
@@ -173,7 +173,7 @@ const ROWS: Row[] = [
   [312, T("Sharp Eyes", "眼尖"), T("Looking around costs 1 less energy per point.", "每点让四处找找少花 1 精神。"), "FORAGE_ENERGY", 1],
   [313, T("Lucky Paws", "好运爪"), T("5% more chance per point of a second find.", "每点多 5% 机会找到第二样。"), "FIND_EXTRA", 5],
   [321, T("Treasure Nose", "寻宝鼻"), T("Rare things turn up 8% more often per point, looking around and on walks.", "每点让四处找找和散步时稀有东西多出现 8%。"), "FIND_RARE", 8],
-  [322, T("Wanderer", "爱游荡"), T("2 more coins per point for a room seen for the first time.", "每点让第一次到的房间多给 2 金币。"), "VISIT_COINS", 2],
+  [322, T("Wanderer", "爱游荡"), T("The first time each day it walks into a room, 4% chance per point that it picks something up there.", "每天第一次走进一个房间时，每点有 4% 机会在那里捡到东西。"), "DAY_FIND", 4],
   [323, T("Strider", "大步走"), T("A walk finds something 20 steps sooner per point.", "每点让散步早 20 步找到东西。"), "WALK_STEPS", 20],
   [331, T("Explorer's Map", "探险地图"), T("Can look around a room again 20 minutes sooner.", "同一个房间能早 20 分钟再找。"), "FORAGE_WAIT", 20],
   [332, T("Second Wind", "第二口气"), T("One more walk a day brings finds.", "每天多一次散步能找到东西。"), "WALK_FINDS", 1],
@@ -183,7 +183,7 @@ const ROWS: Row[] = [
   [343, T("Pathfinder", "开路人"), T("10% chance per point of one more find on a trip.", "每点让远行多 10% 机会多找到一样。"), "TRIP_EXTRA", 10],
   [351, T("Long Legs", "长腿"), T("Looking around costs 1 less energy per point.", "每点让四处找找再少花 1 精神。"), "FORAGE_ENERGY", 1],
   [352, T("Lucky Star", "幸运星"), T("5% more chance per point of a second find.", "每点再多 5% 机会找到第二样。"), "FIND_EXTRA", 5],
-  [353, T("Rich Finds", "满载而归"), T("2 more coins per point for a room seen for the first time.", "每点让第一次到的房间再多给 2 金币。"), "VISIT_COINS", 2],
+  [353, T("Rich Finds", "满载而归"), T("4% more chance per point of picking something up the first time each day it walks into a room.", "每天第一次走进一个房间时，每点再多 4% 机会捡到东西。"), "DAY_FIND", 4],
   [361, T("Born Explorer", "天生探险家"), T("Can look around a room again 30 minutes sooner.", "同一个房间能早 30 分钟再找。"), "FORAGE_WAIT", 30],
   [362, T("Dowser", "探宝人"), T("Rare things turn up 40% more often, looking around and on walks.", "四处找找和散步时稀有东西多出现 40%。"), "FIND_RARE", 40],
   [363, T("Trailblazer", "开拓者"), T("Two more walks a day bring finds.", "每天多两次散步能找到东西。"), "WALK_FINDS", 2],
@@ -196,16 +196,16 @@ const ROWS: Row[] = [
   [423, T("Snack Pack", "零食包"), T("A snack mid-spar heals 1 more per point.", "每点让切磋中吃零食多回 1 点。"), "SPAR_HEAL", 1],
   [431, T("Champion's Heart", "冠军之心"), T("One more damage every five pounces in spars.", "切磋里每扑 5 次多 1 点伤害。"), "SPAR_POWER", 10],
   [432, T("Iron Will", "钢铁意志"), T("2 more health in spars.", "切磋里多 2 点体力。"), "SPAR_HP", 20],
-  [433, T("Good Sport", "好风度"), T("10 coins even when a spar is lost.", "切磋输了也得 10 金币。"), "SPAR_LOSS_COINS", 10],
+  [433, T("Good Sport", "好风度"), T("10 coins even when one of the day's paid spars is lost.", "当天的有奖切磋输了也得 10 金币。"), "SPAR_LOSS_COINS", 10],
   [441, T("Power Up", "力量提升"), T("Every five points: one more damage every five pounces again.", "每 5 点：切磋里每扑 5 次再多 1 点伤害。"), "SPAR_POWER", 2],
   [442, T("Endurance", "持久"), T("Each point adds a quarter of a stamina more in spars, counted in whole points with Second Breath.", "每点在切磋里再加四分之一点耐力，和「缓口气」合起来按整数算。"), "SPAR_STAMINA", 5],
   [443, T("Guard Up", "加强防守"), T("Guarding stops another 1% of what gets through per point.", "每点让防守再多挡下 1% 漏过来的伤害。"), "SPAR_GUARD", 4],
   [451, T("Agile", "灵巧"), T("Dodges succeed another 0.5% more often per point.", "每点让闪避再多成功 0.5%。"), "SPAR_DODGE", 2],
   [452, T("Bigger Snacks", "大零食"), T("A snack mid-spar heals 1 more per point.", "每点让切磋中吃零食再多回 1 点。"), "SPAR_HEAL", 1],
-  [453, T("Prize Hunter", "猎奖者"), T("3 more coins per point for a spar won.", "每点让赢一场切磋多得 3 金币。"), "SPAR_WIN_COINS", 3],
+  [453, T("Prize Hunter", "猎奖者"), T("1 more coin per point for each of the day's paid spars won.", "每点让当天每场有奖切磋赢了多得 1 金币。"), "SPAR_WIN_COINS", 1],
   [461, T("Legend", "传奇"), T("Two more damage every five pounces in spars.", "切磋里每扑 5 次多 2 点伤害。"), "SPAR_POWER", 20],
   [462, T("Unbreakable", "坚不可摧"), T("4 more health in spars.", "切磋里多 4 点体力。"), "SPAR_HP", 40],
-  [463, T("Generous Victor", "大方的赢家"), T("25 more coins for a spar won.", "赢一场切磋多得 25 金币。"), "SPAR_WIN_COINS", 25],
+  [463, T("Generous Victor", "大方的赢家"), T("8 more coins for each of the day's paid spars won.", "当天每场有奖切磋赢了多得 8 金币。"), "SPAR_WIN_COINS", 8],
 ];
 
 const capstoneTier = (tier: number) => tier === 3 || tier === 6;
@@ -366,7 +366,7 @@ export interface ExploreMods {
   forageWaitOff: number;
   walksWithFinds: number;
   stepsOff: number;
-  visitCoins: number;
+  dayFind: number;
   tripExtra: number;
 }
 export function exploreMods(g: Growth | undefined): ExploreMods {
@@ -378,7 +378,7 @@ export function exploreMods(g: Growth | undefined): ExploreMods {
     forageWaitOff: effectOf(g, "FORAGE_WAIT"),
     walksWithFinds: effectOf(g, "WALK_FINDS"),
     stepsOff: effectOf(g, "WALK_STEPS"),
-    visitCoins: effectOf(g, "VISIT_COINS"),
+    dayFind: effectOf(g, "DAY_FIND"),
     tripExtra: effectOf(g, "TRIP_EXTRA"),
   };
 }
