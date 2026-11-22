@@ -68,8 +68,10 @@ typedef struct {
   int32_t meters[4];
   uint8_t asleep, hibernating, sick;
   int32_t starvingBeats, dirtyBeats, mistakes;
-  /* G5: beats since the owner last cared, and beats spent with a need at zero (they do not count toward growing up) */
-  int32_t uncaredBeats, stalledBeats;
+  /* G5, D1: beats since each need was answered (food, joy, clean, energy), and beats spent with a need at zero (they do
+     not count toward growing up) */
+  int32_t sinceCared[4];
+  int32_t stalledBeats;
   uint8_t nMissed;
   uint8_t missedKind[LX_MISSED_KEPT];
   int32_t missedBeat[LX_MISSED_KEPT];

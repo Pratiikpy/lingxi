@@ -141,6 +141,8 @@ export interface SimNumbers {
    * the hours until it first falls ill (null if not within ten days)
    */
   alone?: Array<{ line: string; lowestAt72h: number; firstSickHours: number | null }>;
+  /** D1: a pet only ever patted (every 93.6 hours, never fed or cleaned): its stage on day 62, whether it fell ill, its mistakes */
+  patOnly?: { stageDay62: string; ill: boolean; mistakes: number };
 }
 
 /* ── the targets ─────────────────────────────────────────────────────────── */
@@ -286,6 +288,14 @@ export const BALANCE_TARGETS: readonly BalanceTarget[] = [
     owner: "G6",
     value: (n) => (n.worth === undefined ? "not measured" : n.worth.length ? n.worth.join("; ") : "none strictly worse"),
     met: (n) => n.worth !== undefined && n.worth.length === 0,
+  },
+  {
+    id: "neglect-costs",
+    what: "Neglect is never rewarded",
+    target: "a pet only ever patted, once every 93.6 hours, never fed or cleaned, falls ill, makes care mistakes and is not an elder on day 62",
+    owner: "G5",
+    value: (n) => (n.patOnly ? `${n.patOnly.stageDay62} on day 62, ${n.patOnly.ill ? "fell ill" : "never ill"}, ${n.patOnly.mistakes} mistakes` : "not measured"),
+    met: (n) => !!n.patOnly && n.patOnly.ill && n.patOnly.mistakes > 0 && n.patOnly.stageDay62 !== "elder",
   },
   {
     id: "once-a-day-safe",

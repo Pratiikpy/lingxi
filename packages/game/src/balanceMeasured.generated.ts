@@ -50,6 +50,10 @@ export const BALANCE_MEASURED: BalanceMeasured = {
       "value": "none strictly worse",
       "status": "met"
     },
+    "neglect-costs": {
+      "value": "teen on day 62, fell ill, 17 mistakes",
+      "status": "met"
+    },
     "once-a-day-safe": {
       "value": "0 care mistakes in 90 days",
       "status": "met"

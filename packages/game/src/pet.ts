@@ -38,6 +38,11 @@ export const SICK_AFTER = 24 * 60;
  */
 export const NEED_FLOOR = 240;
 export const FLOOR_HOLDS = 4 * 24 * 60;
+/** The order of the four needs in sinceCared (and in the handheld's copy of it). */
+export const NEED_ORDER = ["food", "joy", "clean", "energy"] as const;
+/** Each need's beats since it was answered; a save from before D1 gives every need its one count. */
+export const sinceCaredOf = (p: { sinceCared?: [number, number, number, number]; uncaredBeats?: number }): [number, number, number, number] =>
+  p.sinceCared ? [...p.sinceCared] : [p.uncaredBeats ?? 0, p.uncaredBeats ?? 0, p.uncaredBeats ?? 0, p.uncaredBeats ?? 0];
 export const LOW_DECAY_DIVISOR = 8;
 /** The longest absence whose decay is counted beat by beat (the brain thinks only through the last MAX_CATCH_UP of it). */
 export const DECAY_SPAN = 30 * 24 * 60;
@@ -103,8 +108,14 @@ export interface PetState {
   sick?: boolean;
   /** consecutive beats with food or cleanliness at zero */
   dirtyBeats?: number;
-  /** beats since the owner last cared for the pet in any way: the quarter floor holds for FLOOR_HOLDS of them (G5) */
+  /** saves before D1: beats since any care at all, read once as every need's count (sinceCaredOf) */
   uncaredBeats?: number;
+  /**
+   * D1: beats since each need was last answered, in NEED_ORDER (food by a meal, joy by play or a pat, cleanliness by a
+   * bath, energy by sleep or any care); each need's floor holds for FLOOR_HOLDS of its own beats, so a pat alone never
+   * holds hunger or dirt
+   */
+  sinceCared?: [number, number, number, number];
   /** beats spent with any need at zero: they do not count toward growing up (G5) */
   stalledBeats?: number;
   /** care mistakes so far (a meter running out, falling ill), shown kindly, never punished */

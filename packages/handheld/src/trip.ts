@@ -11,10 +11,11 @@
  */
 
 import { keccak_256 } from "@noble/hashes/sha3";
-import { type Brain, type Care, type CareResult, type ItemEffect, type Pet, BEAT_MS, DIETS, TRAITS, care, catchUp, decayLeft, effectOf, liveBeat } from "@lingxi/game";
+import { type Brain, type Care, type CareResult, type ItemEffect, type Pet, BEAT_MS, DIETS, TRAITS, care, catchUp, decayLeft, effectOf, liveBeat, sinceCaredOf } from "@lingxi/game";
 
-/** 2: the pet carries G3's enjoyment bar, last care beat and need tally; 3: G5's beats since care and beats stalled */
-export const TRIP_VERSION = 3;
+/** 2: the pet carries G3's enjoyment bar, last care beat and need tally; 3: G5's beats since care and beats stalled;
+ * 4: D1's beats since each need was answered (four in place of one) */
+export const TRIP_VERSION = 4;
 export const MAX_SNACKS = 4;
 export const NAME_MAX = 48;
 export const MAX_PARTS = 32;
@@ -128,8 +129,8 @@ export function petDigest(p: Pet, logLength: number): string {
   w.u8(p.sick ? 1 : 0);
   w.i32(p.starvingBeats);
   w.i32(p.dirtyBeats ?? 0);
-  // G5: beats since the last care, and beats spent with a need at zero
-  w.i32(p.uncaredBeats ?? 0);
+  // G5, D1: beats since each need was answered, and beats spent with a need at zero
+  for (const v of sinceCaredOf(p)) w.i32(v);
   w.i32(p.stalledBeats ?? 0);
   w.i32(p.mistakes ?? 0);
   const missed = p.missed ?? [];
@@ -183,8 +184,8 @@ export function tripPacket(p: Pet, brain: TripBrain, snacks: readonly Snack[], s
   w.u8(p.sick ? 1 : 0);
   w.i32(p.starvingBeats);
   w.i32(p.dirtyBeats ?? 0);
-  // G5: beats since the last care, and beats spent with a need at zero
-  w.i32(p.uncaredBeats ?? 0);
+  // G5, D1: beats since each need was answered, and beats spent with a need at zero
+  for (const v of sinceCaredOf(p)) w.i32(v);
   w.i32(p.stalledBeats ?? 0);
   w.i32(p.mistakes ?? 0);
   const missed = p.missed ?? [];

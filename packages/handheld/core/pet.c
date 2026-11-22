@@ -98,13 +98,14 @@ static void decay(lx_pet *p, int32_t beat, int alone) {
   int32_t was[4];
   for (int i = 0; i < 4; i++) was[i] = p->meters[i];
   int32_t ill = p->sick ? 2 : 1;
-  p->uncaredBeats++;
-  int holding = p->uncaredBeats <= LX_FLOOR_HOLDS;
-  p->meters[LX_FOOD] = fall(p->meters[LX_FOOD], less(p, LX_FOOD), holding);
-  p->meters[LX_JOY] = fall(p->meters[LX_JOY], less(p, LX_JOY) * ill * (alone && !p->asleep ? 2 : 1), holding);
-  p->meters[LX_CLEAN] = fall(p->meters[LX_CLEAN], less(p, LX_CLEAN), holding);
+  /* G5, D1: each need held until LX_FLOOR_HOLDS beats pass without the care that answers it; sleep answers tiredness */
+  for (int i = 0; i < 4; i++) p->sinceCared[i]++;
+  if (p->asleep) p->sinceCared[3] = 0;
+  p->meters[LX_FOOD] = fall(p->meters[LX_FOOD], less(p, LX_FOOD), p->sinceCared[0] <= LX_FLOOR_HOLDS);
+  p->meters[LX_JOY] = fall(p->meters[LX_JOY], less(p, LX_JOY) * ill * (alone && !p->asleep ? 2 : 1), p->sinceCared[1] <= LX_FLOOR_HOLDS);
+  p->meters[LX_CLEAN] = fall(p->meters[LX_CLEAN], less(p, LX_CLEAN), p->sinceCared[2] <= LX_FLOOR_HOLDS);
   p->meters[LX_ENERGY] = p->asleep ? clamp_meter(p->meters[LX_ENERGY] + boosted(SLEEP_GAIN_PER_HOUR, p->fx.sleepGain))
-                                   : fall(p->meters[LX_ENERGY], less(p, LX_ENERGY) * ill, holding);
+                                   : fall(p->meters[LX_ENERGY], less(p, LX_ENERGY) * ill, p->sinceCared[3] <= LX_FLOOR_HOLDS);
   /* in the game's order: food, joy, clean, energy */
   static const int order[4] = {LX_FOOD, LX_JOY, LX_CLEAN, LX_ENERGY};
   static const int kind[4] = {LX_MISS_FOOD, LX_MISS_JOY, LX_MISS_CLEAN, LX_MISS_ENERGY};
@@ -164,10 +165,13 @@ static void think(lx_pet *p, lx_circuit *brain, uint8_t *scratch, int32_t beat, 
 
 /* while the floor holds, a need at the floor or above when the beat began ends it no lower (G5) */
 static void hold_floor(lx_pet *p, const int32_t before[4]) {
-  if (p->uncaredBeats > LX_FLOOR_HOLDS) return;
   int32_t floor = LX_NEED_FLOOR * LX_SUB;
-  for (int i = 0; i < 4; i++)
-    if (before[i] >= floor && p->meters[i] < floor) p->meters[i] = floor;
+  /* meters are indexed LX_FOOD..; sinceCared is food, joy, clean, energy */
+  static const int need_of[4] = {LX_FOOD, LX_JOY, LX_CLEAN, LX_ENERGY};
+  for (int n = 0; n < 4; n++) {
+    int i = need_of[n];
+    if (p->sinceCared[n] <= LX_FLOOR_HOLDS && before[i] >= floor && p->meters[i] < floor) p->meters[i] = floor;
+  }
 }
 
 void lx_away_to(lx_pet *p, lx_circuit *brain, uint8_t *scratch, int32_t target) {
@@ -214,9 +218,10 @@ lx_note lx_care(lx_pet *p, lx_circuit *brain, uint8_t *scratch, int kind, const 
   int action = LX_A_NONE;
   lx_note note = LX_N_LISTENED;
   int needed, rewarded;
-  /* any care starts the floor's four days again (G5) */
-  p->uncaredBeats = 0;
   if (p->hibernating && (kind == LX_C_FEED || kind == LX_C_PET || kind == LX_C_WAKE)) {
+    /* D1: a meal answers hunger, a pat boredom */
+    if (kind == LX_C_FEED) p->sinceCared[0] = 0;
+    if (kind == LX_C_PET) p->sinceCared[1] = 0;
     p->hibernating = 0;
     p->asleep = 0;
     p->starvingBeats = 0;
@@ -314,6 +319,11 @@ lx_note lx_care(lx_pet *p, lx_circuit *brain, uint8_t *scratch, int kind, const 
       action = LX_A_TALK;
       break;
   }
+  /* D1: only the care that answers a need holds its floor; any care (an owner looking in) holds tiredness */
+  p->sinceCared[3] = 0;
+  if (note == LX_N_ATE || note == LX_N_OVERFED || note == LX_N_WOKE) p->sinceCared[0] = 0;
+  if (note == LX_N_PLAYED || note == LX_N_PETTED) p->sinceCared[1] = 0;
+  if (note == LX_N_CLEANED) p->sinceCared[2] = 0;
   /* taps inside one beat are one thought: the first is thought about and logged, the rest change only the meters */
   if (!p->hasCareBeat || p->careBeat != p->beat) {
     if (kind == LX_C_FEED) {
@@ -351,7 +361,7 @@ void lx_pet_digest(const lx_pet *p, uint8_t out[32]) {
   put8(&k, p->sick);
   put32(&k, p->starvingBeats);
   put32(&k, p->dirtyBeats);
-  put32(&k, p->uncaredBeats);
+  for (int i = 0; i < 4; i++) put32(&k, p->sinceCared[i]);
   put32(&k, p->stalledBeats);
   put32(&k, p->mistakes);
   put8(&k, p->nMissed);

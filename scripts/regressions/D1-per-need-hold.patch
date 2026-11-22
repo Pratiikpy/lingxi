@@ -1,0 +1,11 @@
+--- a/packages/game/src/sim.ts
++++ b/packages/game/src/sim.ts
+@@ -217,7 +217,7 @@ function decay(p: Pet, beat = p.beat, alone = false): void {
+   delete p.uncaredBeats;
+   const floor = NEED_FLOOR * SUB;
+   const fall = (v: number, amount: number, need: number) => {
+-    const holding = since[need]! <= FLOOR_HOLDS;
++    const holding = Math.min(...since) <= FLOOR_HOLDS;
+     if (amount <= 0) return v;
+     const share = v > floor ? amount : holding ? 0 : Math.max(1, Math.floor(amount / LOW_DECAY_DIVISOR));
+     const next = clampMeter(v - share);

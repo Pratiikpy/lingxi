@@ -1,0 +1,10 @@
+--- a/packages/game/src/sim.ts
++++ b/packages/game/src/sim.ts
+@@ -528,6 +528,7 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
+   // D1: only the care that answers a need holds that need's floor; tiredness is the pet's own to sleep off, so any care
+   // (an owner looking in) and its own sleep hold that one. Hunger and dirt, which make it ill, need a meal and a bath.
+   answered(p, [3]);
++  answered(p, [0, 1, 2]);
+   if (note === "ate" || note === "overfed" || note === "woke") answered(p, [0]);
+   if (note === "played" || note === "petted") answered(p, [1]);
+   if (note === "cleaned") answered(p, [2]);

@@ -23,6 +23,8 @@ import {
   DECAY_PER_HOUR,
   DECAY_SPAN,
   FLOOR_HOLDS,
+  NEED_ORDER,
+  sinceCaredOf,
   LOW_DECAY_DIVISOR,
   NEED_FLOOR,
   HIBERNATE_AFTER,
@@ -206,20 +208,25 @@ function decay(p: Pet, beat = p.beat, alone = false): void {
   // the Care skills (plan 4.4) slow each meter's decay and strengthen sleep; integer maths, so a replay agrees
   const g = p.growth;
   const less = (m: "food" | "joy" | "clean" | "energy") => Math.floor((DECAY_PER_HOUR[m] * decayLeft(g, m)) / 1000);
-  // G5: held at the floor until the pet has gone FLOOR_HOLDS beats without care, then falling at an eighth of the rate
-  p.uncaredBeats = (p.uncaredBeats ?? 0) + 1;
-  const holding = p.uncaredBeats <= FLOOR_HOLDS;
+  // G5 and D1: each need held at the floor until FLOOR_HOLDS beats have passed without the care that answers it, then
+  // falling at an eighth of the rate; sleeping answers tiredness
+  const since = sinceCaredOf(p);
+  for (let i = 0; i < 4; i++) since[i] = since[i]! + 1;
+  if (p.asleep) since[3] = 0;
+  p.sinceCared = since;
+  delete p.uncaredBeats;
   const floor = NEED_FLOOR * SUB;
-  const fall = (v: number, amount: number) => {
+  const fall = (v: number, amount: number, need: number) => {
+    const holding = since[need]! <= FLOOR_HOLDS;
     if (amount <= 0) return v;
     const share = v > floor ? amount : holding ? 0 : Math.max(1, Math.floor(amount / LOW_DECAY_DIVISOR));
     const next = clampMeter(v - share);
     return holding && v >= floor ? Math.max(next, floor) : next;
   };
-  p.meters.food = fall(p.meters.food, less("food"));
-  p.meters.joy = fall(p.meters.joy, less("joy") * ill * (alone && !p.asleep ? 2 : 1));
-  p.meters.clean = fall(p.meters.clean, less("clean"));
-  p.meters.energy = p.asleep ? clampMeter(p.meters.energy + boosted(SLEEP_GAIN_PER_HOUR, effectOf(g, "SLEEP_GAIN"))) : fall(p.meters.energy, less("energy") * ill);
+  p.meters.food = fall(p.meters.food, less("food"), 0);
+  p.meters.joy = fall(p.meters.joy, less("joy") * ill * (alone && !p.asleep ? 2 : 1), 1);
+  p.meters.clean = fall(p.meters.clean, less("clean"), 2);
+  p.meters.energy = p.asleep ? clampMeter(p.meters.energy + boosted(SLEEP_GAIN_PER_HOUR, effectOf(g, "SLEEP_GAIN"))) : fall(p.meters.energy, less("energy") * ill, 3);
   for (const k of ["food", "joy", "clean", "energy"] as const) if (was[k] > 0 && p.meters[k] === 0) miss(p, k, beat);
   // time with a need at zero does not count toward growing up (G5)
   if (p.meters.food === 0 || p.meters.joy === 0 || p.meters.clean === 0 || p.meters.energy === 0) p.stalledBeats = (p.stalledBeats ?? 0) + 1;
@@ -300,11 +307,22 @@ function think(p: Pet, brain: Brain, beat: number, action: number, event: number
   }
 }
 
-/** While the floor holds, a need that was at the floor or above when the beat began ends it no lower than the floor (G5). */
+/** While a need's floor holds, a need that was at the floor or above when the beat began ends it no lower (G5, D1). */
 function holdFloor(p: Pet, before: Pet["meters"]): void {
-  if ((p.uncaredBeats ?? 0) > FLOOR_HOLDS) return;
+  const since = sinceCaredOf(p);
   const floor = NEED_FLOOR * SUB;
-  for (const k of ["food", "joy", "clean", "energy"] as const) if (before[k] >= floor && p.meters[k] < floor) p.meters[k] = floor;
+  NEED_ORDER.forEach((k, i) => {
+    if (since[i]! <= FLOOR_HOLDS && before[k] >= floor && p.meters[k] < floor) p.meters[k] = floor;
+  });
+}
+
+/** D1: the care that answers a need starts that need's floor days again (a meal food, play or a pat joy, a bath cleanliness, sleep or any care tiredness). */
+function answered(p: Pet, needs: ReadonlyArray<0 | 1 | 2 | 3>): void {
+  if (!needs.length) return;
+  const since = sinceCaredOf(p);
+  for (const i of needs) since[i] = 0;
+  p.sinceCared = since;
+  delete p.uncaredBeats;
 }
 
 /** Replay every beat from the pet's last beat up to `now`, the owner away. */
@@ -386,13 +404,12 @@ export interface CareResult {
  */
 export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.none): CareResult {
   const p = cloneForEdit(catchUp(p0, now, brain));
-  // any care starts the floor's four days again (G5)
-  p.uncaredBeats = 0;
   let action: number = ACTION.none;
   let note: CareResult["note"] = "listened";
   const wakes = c.kind === "use" && c.item.wake === true;
   if (p.hibernating) {
     if (c.kind === "feed" || c.kind === "pet" || c.kind === "wake" || wakes) {
+      answered(p, c.kind === "feed" ? [0] : c.kind === "pet" ? [1] : []);
       p.hibernating = false;
       p.asleep = false;
       p.starvingBeats = 0;
@@ -508,6 +525,14 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
       action = ACTION.talk;
       break;
   }
+  // D1: only the care that answers a need holds that need's floor; tiredness is the pet's own to sleep off, so any care
+  // (an owner looking in) and its own sleep hold that one. Hunger and dirt, which make it ill, need a meal and a bath.
+  answered(p, [3]);
+  if (note === "ate" || note === "overfed" || note === "woke") answered(p, [0]);
+  if (note === "played" || note === "petted") answered(p, [1]);
+  if (note === "cleaned") answered(p, [2]);
+  if (note === "sleeping") answered(p, [3]);
+  if (c.kind === "use") answered(p, [...(c.item.food ? [0 as const] : []), ...(c.item.joy ? [1 as const] : []), ...(c.item.clean ? [2 as const] : []), ...(c.item.energy ? [3 as const] : [])]);
   // taps inside one beat are one thought: the first is thought about and logged, the rest change only the meters (G3)
   if (p.careBeat !== p.beat) {
     if (c.kind === "feed") {

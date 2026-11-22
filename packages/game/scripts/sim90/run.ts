@@ -6,13 +6,28 @@ import { costOfEverything } from "./life";
 import { worthFindings } from "@lingxi/world";
 import { TAP_PATHS, type TapPath, playType } from "./players";
 import { lessonsSeen } from "./seen";
-import { catchUp, care, createPet, mindBrain } from "../../src";
+import { catchUp, care, createPet, mindBrain, stageOf } from "../../src";
 import { DAY1 } from "./players";
 
 /**
  * G5: a pet of each line hatched on day 1's morning, cared for once (a pat), then left alone, lived by the game's own
  * catch-up hour by hour: its lowest need 72 hours later, and when it first falls ill (within ten days).
  */
+/** D1: the review's probe, a pet patted every 93.6 hours and nothing else, for 62 days. */
+function patOnly(): { stageDay62: string; ill: boolean; mistakes: number } {
+  const H = 3_600_000;
+  const start = DAY1 + 8 * H;
+  const brain = mindBrain({ line: "gentle", lessons: [] });
+  let p = createPet({ name: "Patted", line: "gentle", now: start, tzOffsetMin: 480, brain });
+  let ill = false;
+  for (let t = 93.6 * H; t <= 62 * 24 * H; t += 93.6 * H) {
+    p = care(p, { kind: "pet" }, start + Math.round(t), brain).pet;
+    ill ||= !!p.sick;
+  }
+  p = catchUp(p, start + 62 * 24 * H, brain);
+  return { stageDay62: stageOf(p, start + 62 * 24 * H), ill: ill || !!p.sick, mistakes: p.mistakes ?? 0 };
+}
+
 function leftAlone(): Array<{ line: string; lowestAt72h: number; firstSickHours: number | null }> {
   const H = 3_600_000;
   const start = DAY1 + 8 * H;
@@ -61,7 +76,7 @@ export async function runSimYielding(o: { seed?: number; days?: number } = {}): 
   }
   const field = sparField(seed, FIELD_SEEDS);
   await tick();
-  return { seed, days, players, tapPaths, field, lessons: lessonsSeen(), costOfEverything: costOfEverything(), alone: leftAlone(), worth: worthFindings().map((f) => f.why) };
+  return { seed, days, players, tapPaths, field, lessons: lessonsSeen(), costOfEverything: costOfEverything(), alone: leftAlone(), patOnly: patOnly(), worth: worthFindings().map((f) => f.why) };
 }
 
 export function runSim(o: { seed?: number; days?: number } = {}): SimNumbers {
@@ -70,5 +85,5 @@ export function runSim(o: { seed?: number; days?: number } = {}): SimNumbers {
   const players = Object.fromEntries(PLAYER_TYPES.map((t) => [t, playType(t, seed, days)])) as Record<PlayerType, PlayerNumbers>;
   // B8: the tapper down each tapping path, for level-not-by-tapping
   const tapPaths = Object.fromEntries(TAP_PATHS.map((path) => [path, tapPathNumbers(players, seed, days, path)]));
-  return { seed, days, players, tapPaths, field: sparField(seed, FIELD_SEEDS), lessons: lessonsSeen(), costOfEverything: costOfEverything(), alone: leftAlone(), worth: worthFindings().map((f) => f.why) };
+  return { seed, days, players, tapPaths, field: sparField(seed, FIELD_SEEDS), lessons: lessonsSeen(), costOfEverything: costOfEverything(), alone: leftAlone(), patOnly: patOnly(), worth: worthFindings().map((f) => f.why) };
 }

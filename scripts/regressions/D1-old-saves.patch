@@ -1,0 +1,11 @@
+--- a/packages/game/src/pet.ts
++++ b/packages/game/src/pet.ts
+@@ -42,7 +42,7 @@ export const FLOOR_HOLDS = 4 * 24 * 60;
+ export const NEED_ORDER = ["food", "joy", "clean", "energy"] as const;
+ /** Each need's beats since it was answered; a save from before D1 gives every need its one count. */
+ export const sinceCaredOf = (p: { sinceCared?: [number, number, number, number]; uncaredBeats?: number }): [number, number, number, number] =>
+-  p.sinceCared ? [...p.sinceCared] : [p.uncaredBeats ?? 0, p.uncaredBeats ?? 0, p.uncaredBeats ?? 0, p.uncaredBeats ?? 0];
++  p.sinceCared ? [...p.sinceCared] : [FLOOR_HOLDS + 1, FLOOR_HOLDS + 1, FLOOR_HOLDS + 1, FLOOR_HOLDS + 1];
+ export const LOW_DECAY_DIVISOR = 8;
+ /** The longest absence whose decay is counted beat by beat (the brain thinks only through the last MAX_CATCH_UP of it). */
+ export const DECAY_SPAN = 30 * 24 * 60;
