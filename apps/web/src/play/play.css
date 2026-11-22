@@ -2303,6 +2303,13 @@
   flex: 1 1 140px;
   font: 700 0.75rem var(--round);
 }
+.studio-coin {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 8px 0;
+}
 .studio-publish summary {
   cursor: pointer;
   font: 800 0.9rem var(--round);

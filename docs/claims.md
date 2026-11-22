@@ -16,6 +16,8 @@ Kinds of check:
 | Id | Where | Claim | Check |
 |---|---|---|---|
 | fee-two-rails | README, fashion market | Every fee paid in BEM is burned; the first outfit market takes 3% of OKB sales for the project. | auto:fees-markets |
+| fee-coin-choice | Studio, fashion market, README | A creator prices a piece in BEM or in OKB when publishing it; on a BEM sale the market's 3% is burned, on an OKB sale it goes to the project. | test:apps/web/src/play/Studio.test.tsx |
+| fee-earned | numbers page, README | The project's earnings on the numbers page are each OKB sale's fee at the rate in force when it was paid, counted only while the treasury is the project wallet. | test:services/api/test/numbers.test.ts |
 | fee-breed | README, family screen | Breeding a child costs 0.1 BEM, burned. | auto:fees-breed |
 | fee-adopt | README, adoption centre | Adoption: price 0.01 to 100 BEM; 3% burned, 10% to the other parent's owner, the rest to the breeder. | auto:fees-adopt |
 | fee-items | README, item shop | Four decorations, 0.05 BEM each, 500 copies, the whole price burned. | auto:fees-items |

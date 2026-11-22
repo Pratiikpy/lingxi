@@ -78,16 +78,17 @@ The game does not run its rules as code: it reads the answers of compiled circui
 
 **Other projects can call them.** The [circuit catalogue](https://lingxi.knole.me/circuits.html) lists every rule circuit and the starter brains with their pins, what each bit means, the netlist's hash and test vectors, and runs any of them on X Layer from a page that uses none of the game's code (it calls the processor through X Layer's public RPC itself). The pet-brain interface is written down as [LX-PET/1](docs/pet-brain-interface.md), and [`scripts/ref-example.mts`](scripts/ref-example.mts) is a worked example of a circuit that uses one of Lingxi's rules by REF, proved on every input. The catalogue is regenerated only if every vector agrees with X Layer, and the live-numbers page counts circuits on other processors that REF Lingxi's.
 
-## BEM in, BEM burned
+## Two fee rails: BEM burned, OKB to the project
 
 The core game is free and has no token of its own. The extras that cost something are paid in BEM, and the contracts burn the fee in the same transaction. Lingxi takes no share of any BEM payment.
 
-There is one other rail, in OKB: designs listed on the first outfit market, before BEM pricing, still sell there, and that market pays a 3% fee on each sale to the project wallet (`feeBps` 300 and `treasury` read from [the contract](https://www.oklink.com/xlayer/address/0xb9f6b18edd21933582ec69fb1e718d9629e684cd)). Both rails are counted on the live-numbers page.
+There is one other rail, in OKB: a creator may price a design in OKB instead, and it sells on the first outfit market, which pays a 3% fee on each sale to the project wallet (`feeBps` 300 and `treasury` read from [the contract](https://www.oklink.com/xlayer/address/0xb9f6b18edd21933582ec69fb1e718d9629e684cd)). Both rails are counted on the live-numbers page.
 
-| What | Price | Where the BEM goes |
+| What | Price | Where the fee goes |
 |---|---|---|
 | Breeding a child | 0.1 BEM | burned |
-| A creator's outfit (player fashion market) | set by the creator | 3% fee burned · up to 10% royalty to the creator · the rest to the seller |
+| A creator's outfit priced in BEM (player fashion market) | set by the creator | 3% fee burned · up to 10% royalty to the creator · the rest to the seller |
+| A creator's outfit priced in OKB (the first fashion market) | set by the creator | 3% fee to the project wallet · up to 10% royalty to the creator · the rest to the seller |
 | Item shop: on-chain decorations (Star lamp, Circuit rug, Tape reel shelf, Moon window) | 0.05 BEM each, 500 copies | the whole price burned |
 | Adopting a little one | set by the breeder (0.01–100 BEM) | 3% burned · 10% to the other parent's owner · the rest to the breeder |
 | Keepsakes of the community goals | free, by signed voucher | nothing |

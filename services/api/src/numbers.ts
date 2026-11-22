@@ -15,6 +15,9 @@ const SALES = [
   parseAbiItem("event Minted(uint256 indexed id, address indexed buyer, uint32 quantity, uint256 paid)"),
   parseAbiItem("event Sold(uint256 indexed listingId, address indexed buyer, uint32 quantity, uint256 paid)"),
 ] as const;
+/** The OKB market's fee: a sale emits no fee event, so the fee is each payment at the rate in force (OutfitMarket.sol). */
+const FEE_CHANGED = parseAbiItem("event FeeChanged(uint16 feeBps, address indexed treasury)");
+const BPS = 10_000n;
 const views = parseAbi([
   "function totalBurned() view returns (uint256)",
   "function total() view returns (uint256)",
@@ -30,13 +33,33 @@ export interface MarketTotals {
   sales: number;
 }
 
+/** What a market that pays a fee to a treasury has paid the project (H8). */
+export interface Earned {
+  /** OKB paid to the project's treasury, in wei: each sale's fee at the rate in force when it was paid */
+  okb: string;
+  /** the rate now, and the treasury it is paid to now */
+  feeBps: number;
+  treasury: Address;
+  /** whether that treasury is the project's wallet */
+  toProject: boolean;
+}
+
 interface Stored {
   next: Record<string, number>;
   totals: Record<string, { copies: number; paid: string; sales: number }>;
+  /** per earning market: what it has paid the project, and the rate and treasury its walk has reached */
+  earned?: Record<string, { okb: string; feeBps: number; treasury: string }>;
+}
+
+/** A market whose fee goes to a treasury (the first, OKB market): its rate and treasury at its first block. */
+export interface EarningTerms {
+  project: Address;
+  feeBps: number;
+  treasury: Address;
 }
 
 /** Counts every sale on the given markets, walking forward from each market's deploy block. */
-export function createSalesCounter(opts: { rpc: string; markets: Array<{ address: Address; fromBlock: number }>; store?: string; client?: PublicClient; paceMs?: number }) {
+export function createSalesCounter(opts: { rpc: string; markets: Array<{ address: Address; fromBlock: number; earns?: EarningTerms }>; store?: string; client?: PublicClient; paceMs?: number }) {
   const pub = opts.client ?? (createPublicClient({ transport: http(opts.rpc, { timeout: 20_000, retryCount: 0 }) }) as PublicClient);
   let data: Stored = { next: {}, totals: {} };
   if (opts.store && hasStore(opts.store)) {
@@ -46,11 +69,19 @@ export function createSalesCounter(opts: { rpc: string; markets: Array<{ address
       // a damaged file starts again from the deploy blocks
     }
   }
+  data.earned ??= {};
   for (const m of opts.markets) {
     const k = m.address.toLowerCase();
+    // a market whose earnings were never counted is walked again from its first block, so every fee is in them
+    if (m.earns && !data.earned[k]) {
+      data.next[k] = m.fromBlock;
+      data.totals[k] = { copies: 0, paid: "0", sales: 0 };
+      data.earned[k] = { okb: "0", feeBps: m.earns.feeBps, treasury: m.earns.treasury };
+    }
     data.next[k] ??= m.fromBlock;
     data.totals[k] ??= { copies: 0, paid: "0", sales: 0 };
   }
+  const terms = new Map(opts.markets.filter((m) => m.earns).map((m) => [m.address.toLowerCase(), m.earns!]));
   const save = () => {
     if (!opts.store) return;
     saveJson(opts.store, undefined, JSON.stringify(data));
@@ -72,7 +103,7 @@ export function createSalesCounter(opts: { rpc: string; markets: Array<{ address
           let logs;
           for (let attempt = 0; ; attempt++) {
             try {
-              logs = await pub.getLogs({ address: m.address, events: SALES, fromBlock: BigInt(from), toBlock: BigInt(to) });
+              logs = await pub.getLogs({ address: m.address, events: terms.has(k) ? [...SALES, FEE_CHANGED] : SALES, fromBlock: BigInt(from), toBlock: BigInt(to) });
               break;
             } catch (e) {
               if (attempt >= 6) throw e;
@@ -80,11 +111,22 @@ export function createSalesCounter(opts: { rpc: string; markets: Array<{ address
             }
           }
           const t = data.totals[k]!;
-          for (const l of logs) {
+          const e = data.earned![k];
+          const project = terms.get(k)?.project.toLowerCase();
+          // in chain order, so a sale is charged the rate in force when it was paid
+          const ordered = [...logs].sort((x, y) => Number(x.blockNumber! - y.blockNumber!) || (x.logIndex ?? 0) - (y.logIndex ?? 0));
+          for (const l of ordered) {
+            if ((l as { eventName?: string }).eventName === "FeeChanged") {
+              const f = l.args as { feeBps: number; treasury: Address };
+              if (e) Object.assign(e, { feeBps: Number(f.feeBps), treasury: f.treasury });
+              continue;
+            }
             const a = l.args as { quantity: number; paid: bigint };
             t.copies += Number(a.quantity);
             t.paid = (BigInt(t.paid) + a.paid).toString();
             t.sales += 1;
+            // the contract rounds each fee down: (total * feeBps) / 10_000
+            if (e && e.treasury.toLowerCase() === project) e.okb = (BigInt(e.okb) + (a.paid * BigInt(e.feeBps)) / BPS).toString();
           }
           data.next[k] = to + 1;
           await sleep(opts.paceMs ?? 300);
@@ -100,6 +142,13 @@ export function createSalesCounter(opts: { rpc: string; markets: Array<{ address
   return {
     catchUp,
     totals: (market: Address): MarketTotals => ({ ...data.totals[market.toLowerCase()]! }),
+    /** what an earning market has paid the project, or null for a market whose fee is burned */
+    earned: (market: Address): Earned | null => {
+      const k = market.toLowerCase();
+      const e = data.earned?.[k];
+      const t = terms.get(k);
+      return e && t ? { okb: e.okb, feeBps: e.feeBps, treasury: e.treasury as Address, toProject: e.treasury.toLowerCase() === t.project.toLowerCase() } : null;
+    },
     head: (market: Address) => (data.next[market.toLowerCase()] ?? 0) - 1,
   };
 }
@@ -124,6 +173,8 @@ export interface Numbers {
   pets: { hatched: number; children: number; daysSaved: number; savedLast24h: number; hatchers: number; nextPetId: number; indexedTo: number };
   outfits: { okb: (MarketTotals & { indexedTo: number }) | null; bem: (MarketTotals & { indexedTo: number }) | null };
   burned: { market: string; breeding: string; shop: string; adoption: string; extras: string; total: string };
+  /** what the first (OKB) market's 3% has paid the project (H8); null where no market pays a treasury */
+  earned: (Earned & { indexedTo: number }) | null;
   /** paid extras bought (plan 4.9): room packs, look packs and name colours; null before the contract exists */
   extras: { room: number; looks: number; colours: number } | null;
   pins: number | null;
@@ -165,6 +216,7 @@ export async function readNumbers(d: NumbersDeps, nowMs = Date.now()): Promise<N
       extras: extrasBurned.toString(),
       total: (marketBurned + breedingBurned + shopBurned + adoptionBurned + extrasBurned).toString(),
     },
+    earned: ((e) => (e && d.contracts.marketOkb ? { ...e, indexedTo: d.sales.head(d.contracts.marketOkb) } : null))(d.contracts.marketOkb ? d.sales.earned(d.contracts.marketOkb) : null),
     extras: extrasSold ? { room: Number(extrasSold[0]), looks: Number(extrasSold[1]), colours: Number(extrasSold[2]) } : null,
     pins: pins === null ? null : Number(pins),
     usedByOthers: d.refs ? d.refs.totals() : null,

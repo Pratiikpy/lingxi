@@ -48,7 +48,49 @@ function fakeChain(head: number) {
 
 const counts = () => ({ hatched: 9, children: 2, saves: 40, savedSince: 3, hatchers: 5 });
 
+const PROJECT = "0x00000000000000000000000000000000000000f6" as const;
+
+/** The OKB market with fee changes among its sales: 3% at first, 5% from block 1,100, a stranger's treasury from 1,300. */
+function feeChain() {
+  const logs = [
+    { block: 1_005, eventName: "Minted", args: { quantity: 2, paid: 2_000_000_000_000_000n } },
+    { block: 1_100, eventName: "FeeChanged", args: { feeBps: 500, treasury: PROJECT } },
+    { block: 1_250, eventName: "Sold", args: { quantity: 1, paid: 3_000_000_000_000_000n } },
+    { block: 1_300, eventName: "FeeChanged", args: { feeBps: 500, treasury: "0x00000000000000000000000000000000000000aa" } },
+    { block: 1_350, eventName: "Sold", args: { quantity: 1, paid: 1_000_000_000_000_000n } },
+  ];
+  return {
+    getBlockNumber: async () => 1_400n,
+    getLogs: async ({ fromBlock, toBlock }: { fromBlock: bigint; toBlock: bigint }) =>
+      logs.filter((l) => l.block >= Number(fromBlock) && l.block <= Number(toBlock)).map((l, i) => ({ ...l, blockNumber: BigInt(l.block), logIndex: i })),
+  } as unknown as PublicClient;
+}
+
 describe("live numbers", () => {
+  it("counts what the OKB market paid the project: each sale's fee at the rate in force, only while the treasury is the project's (H8)", async () => {
+    const store = join(mkdtempSync(join(tmpdir(), "earn-")), "sales.json");
+    const s = createSalesCounter({ rpc: "", markets: [{ address: OKB, fromBlock: 1_000, earns: { project: PROJECT, feeBps: 300, treasury: PROJECT } }], store, client: feeChain(), paceMs: 0 });
+    await s.catchUp();
+    // 3% of 0.002 OKB, then 5% of 0.003 OKB; the last sale's fee went to someone else's treasury
+    expect(s.totals(OKB)).toEqual({ copies: 4, paid: "6000000000000000", sales: 3 });
+    expect(s.earned(OKB)).toEqual({ okb: (60_000_000_000_000n + 150_000_000_000_000n).toString(), feeBps: 500, treasury: "0x00000000000000000000000000000000000000aa", toProject: false });
+    // a restart resumes with the rate and treasury it had reached
+    const again = createSalesCounter({ rpc: "", markets: [{ address: OKB, fromBlock: 1_000, earns: { project: PROJECT, feeBps: 300, treasury: PROJECT } }], store, client: feeChain(), paceMs: 0 });
+    await again.catchUp();
+    expect(again.earned(OKB)).toEqual(s.earned(OKB));
+  });
+
+  it("a file counted before earnings were counted is counted again from the market's first block", async () => {
+    const store = join(mkdtempSync(join(tmpdir(), "earn-")), "sales.json");
+    const { writeFileSync } = await import("node:fs");
+    writeFileSync(store, JSON.stringify({ next: { [OKB]: 1_401 }, totals: { [OKB]: { copies: 4, paid: "6000000000000000", sales: 3 } } }));
+    const s = createSalesCounter({ rpc: "", markets: [{ address: OKB, fromBlock: 1_000, earns: { project: PROJECT, feeBps: 300, treasury: PROJECT } }], store, client: feeChain(), paceMs: 0 });
+    await s.catchUp();
+    expect(s.earned(OKB)?.okb).toBe("210000000000000");
+    expect(s.totals(OKB).sales).toBe(3);
+  });
+
+
   it("counts every sale on both markets in windows of at most 100 blocks, and resumes from its file", async () => {
     const store = join(mkdtempSync(join(tmpdir(), "sales-")), "sales.json");
     const { client, calls } = fakeChain(2_150);
@@ -83,6 +125,17 @@ describe("live numbers", () => {
     expect(n.pins).toBe(7);
     expect(n.outfits.bem?.copies).toBe(5);
     expect(n.contracts.marketBem).toEqual({ address: BEM, url: `https://x/address/${BEM}` });
+  });
+
+  it("serves the project's earnings beside the burns, with the rate and the wallet they go to (H8)", async () => {
+    const { client } = fakeChain(2_150);
+    const sales = createSalesCounter({ rpc: "", markets: [{ address: OKB, fromBlock: 1_000, earns: { project: PROJECT, feeBps: 300, treasury: PROJECT } }, { address: BEM, fromBlock: 2_000 }], client, paceMs: 0 });
+    await sales.catchUp();
+    const n = await readNumbers({ pub: client, counts, petsIndexedTo: () => 2_140, sales, contracts: { registry: REG, marketOkb: OKB, marketBem: BEM }, explorer: "https://x" });
+    // 3% of the 0.005 OKB the two sales paid
+    expect(n.earned).toEqual({ okb: "150000000000000", feeBps: 300, treasury: PROJECT, toProject: true, indexedTo: 2_150 });
+    const none = await readNumbers({ pub: client, counts, petsIndexedTo: () => 2_140, sales: createSalesCounter({ rpc: "", markets: [{ address: OKB, fromBlock: 1_000 }], client, paceMs: 0 }), contracts: { registry: REG, marketOkb: OKB }, explorer: "https://x" });
+    expect(none.earned).toBeNull();
   });
 
   it("before the BEM contracts exist, their numbers are absent rather than invented", async () => {

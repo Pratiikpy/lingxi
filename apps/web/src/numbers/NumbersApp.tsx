@@ -32,6 +32,8 @@ interface Numbers {
   pets: { hatched: number; children: number; daysSaved: number; savedLast24h: number; hatchers: number; nextPetId: number; indexedTo: number };
   outfits: { okb: Market | null; bem: Market | null };
   burned: { market: string; breeding: string; shop?: string; adoption?: string; extras?: string; total: string };
+  /** what the OKB market's fee has paid the project (H8) */
+  earned?: { okb: string; feeBps: number; treasury: string; toProject: boolean; indexedTo: number } | null;
   extras?: { room: number; looks: number; colours: number } | null;
   pins: number | null;
   usedByOthers?: { circuits: number; processors: number; scannedProcessors: number; cpuCount: number; complete: boolean } | null;
@@ -91,7 +93,7 @@ function rows(n: Numbers): Array<{ title: [string, string]; readTo?: number; ite
           ? [{ label: ["Outfit copies sold for BEM", "用 BEM 卖出的衣服"] as [string, string], value: `${fmt(bem.copies)} · ${formatBem(BigInt(bem.paid))} BEM`, counts: ["Copies bought from creators and from resellers on the BEM market, and what buyers paid (Minted and Sold events).", "BEM 市场上从作者和转卖者那里买走的份数，以及买家付了多少（Minted 和 Sold 事件）。"] as [string, string], source: "marketBem" }]
           : []),
         ...(okb
-          ? [{ label: ["Outfit copies sold for OKB", "用 OKB 卖出的衣服"] as [string, string], value: `${fmt(okb.copies)} · ${formatEther(BigInt(okb.paid))} OKB`, counts: ["The first market, from before BEM pricing (Minted and Sold events).", "BEM 定价之前的第一个市场（Minted 和 Sold 事件）。"] as [string, string], source: "marketOkb" }]
+          ? [{ label: ["Outfit copies sold for OKB", "用 OKB 卖出的衣服"] as [string, string], value: `${fmt(okb.copies)} · ${formatEther(BigInt(okb.paid))} OKB`, counts: ["Copies bought from creators and from resellers on the OKB market, and what buyers paid (Minted and Sold events).", "OKB 市场上从作者和转卖者那里买走的份数，以及买家付了多少（Minted 和 Sold 事件）。"] as [string, string], source: "marketOkb" }]
           : []),
         ...(n.pins !== null ? [{ label: ["Holder pins claimed", "领取的持有人徽章"] as [string, string], value: fmt(n.pins), counts: ["Free pins given to Test1, Rig, BEM and FAB holders (the gift contract's own count).", "送给 Test1、矿机、BEM 和 FAB 持有人的免费徽章（礼物合约自己的计数）。"] as [string, string], source: "gift" }] : []),
       ],
@@ -140,6 +142,24 @@ function rows(n: Numbers): Array<{ title: [string, string]; readTo?: number; ite
         { label: ["Burned in total", "合计销毁"], value: `${formatBem(BigInt(n.burned.total))} BEM`, counts: ["The totals above added together: every one was sent straight to the dead address, none of it to Lingxi.", "上面各项之和：每一笔都直接送到销毁地址，没有一枚给灵犀。"] },
       ],
     },
+    ...(n.earned && okb
+      ? [
+          {
+            title: ["Earned by the project", "项目的收入"] as [string, string],
+            items: [
+              {
+                label: ["From the OKB outfit market", "来自 OKB 衣服市场"] as [string, string],
+                value: `${formatEther(BigInt(n.earned.okb))} OKB`,
+                counts: [
+                  `The OKB market's fee, ${n.earned.feeBps / 100}% of every sale, paid to the project wallet ${n.earned.treasury} to fund the game; counted sale by sale at the rate in force (the market keeps no fee total), out of ${formatEther(BigInt(okb.paid))} OKB in sales.${n.earned.toProject ? "" : " The fee now goes to another wallet, so sales from now on add nothing here."} BEM fees are never earned: they are burned.`,
+                  `OKB 市场的手续费：每笔交易的 ${n.earned.feeBps / 100}%，付给项目钱包 ${n.earned.treasury}，用来维持游戏；按每笔交易当时的费率逐笔计算（市场合约不记手续费总额），来自共 ${formatEther(BigInt(okb.paid))} OKB 的交易。${n.earned.toProject ? "" : "手续费现在付给另一个钱包，之后的交易不再计入这里。"}BEM 的费用从不是收入：全部销毁。`,
+                ] as [string, string],
+                source: "marketOkb",
+              },
+            ],
+          },
+        ]
+      : []),
   ];
 }
 

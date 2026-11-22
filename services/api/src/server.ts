@@ -75,7 +75,7 @@ import { budgetedRequest } from "./visitorBudget";
 import { createSourcifyRelay, withSourcify } from "./sourcify";
 import { withRpcProxy } from "./rpc";
 import { privateKeyToAccount } from "viem/accounts";
-import { createSalesCounter, withNumbers } from "./numbers";
+import { type EarningTerms, createSalesCounter, withNumbers } from "./numbers";
 import { createRefScanner } from "./refScan";
 import { createListingWatch, withRetiredListings } from "./marketV1";
 import { createDuelStore, withDuels } from "./duels";
@@ -1266,9 +1266,15 @@ if (isMain) {
     const rpc = process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech";
     const env = (k: string) => (process.env[k] ? (process.env[k] as `0x${string}`) : undefined);
     const markets = [
-      { address: env("LINGXI_MARKET_OKB"), fromBlock: Number(process.env.LINGXI_MARKET_OKB_FROM ?? 0) },
+      // the first market pays 3% of each sale to its treasury: deployed with the project wallet as treasury at 300 bps
+      // (deploy-outfits.ts); a FeeChanged event on the walk moves either (H8)
+      {
+        address: env("LINGXI_MARKET_OKB"),
+        fromBlock: Number(process.env.LINGXI_MARKET_OKB_FROM ?? 0),
+        ...(chainCtx?.deployment.deployer ? { earns: { project: chainCtx.deployment.deployer, feeBps: 300, treasury: chainCtx.deployment.deployer } } : {}),
+      },
       { address: env("LINGXI_MARKET_BEM"), fromBlock: Number(process.env.LINGXI_MARKET_BEM_FROM ?? 0) },
-    ].filter((m): m is { address: `0x${string}`; fromBlock: number } => !!m.address && m.fromBlock > 0);
+    ].filter((m): m is { address: `0x${string}`; fromBlock: number; earns?: EarningTerms } => !!m.address && m.fromBlock > 0);
     const sales = createSalesCounter({ rpc, markets, store: process.env.LINGXI_SALES_STORE });
     jobs.loop("sales", () => sales.catchUp(), 20_000);
     // the OKB market's listings a sale retired, which V1 itself would still sell (A23); the game shows none without it
