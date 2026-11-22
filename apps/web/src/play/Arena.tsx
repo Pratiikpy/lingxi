@@ -122,7 +122,9 @@ export function startFight(pet: Pet, partner: Partner, o: { daily?: { seed: numb
   // the daily challenge is the same fight for everyone, so it is always fought with the pet's own mind
   const adopted = useAdopted.getState().byPet[String(pet.bornAt)];
   const me = !daily && adopted?.on ? fighterOf(adopted, pet.name, levelOf(stage)) : own;
-  const them = opponent ?? fighterOfPartner(partner);
+  // the daily challenge switches version on a set day; a partner fights with its brain for that version (B3b)
+  const version = daily ? dailySparVersion(daily.day) : CURRENT_SPAR;
+  const them = opponent ?? fighterOfPartner(partner, version);
   // practice spars roll a private seed; the daily challenge uses the day's block, with no cheering, so it is the same for everyone
   const seed = daily ? daily.seed : crypto.getRandomValues(new Uint32Array(1))[0]!;
   const cheering = daily ? false : (o.cheer ?? false);
@@ -137,7 +139,7 @@ export function startFight(pet: Pet, partner: Partner, o: { daily?: { seed: numb
     fight: {
       partner,
       // the daily challenge switches version on a set day, so one day is one fight for everyone; practice uses today's
-      result: fightSpar(daily ? dailySparVersion(daily.day) : CURRENT_SPAR, fighter, them, seed, () => [cheering, false]),
+      result: fightSpar(version, fighter, them, seed, () => [cheering, false]),
       cheer: cheering,
       ...(opponent ? { opponent } : {}),
       ...(daily ? { daily: true } : {}),
@@ -797,7 +799,7 @@ function Result({ pet, partner, result, reward, opponent, duel, cheer, instinct,
           outside: pet.outside,
           growth: pet.growth,
           slots: questSlots(),
-          opponent: opponent ?? fighterOfPartner(partner),
+          opponent: opponent ?? fighterOfPartner(partner, result.version),
         }),
       );
     }, 60);
@@ -928,7 +930,7 @@ function Result({ pet, partner, result, reward, opponent, duel, cheer, instinct,
       </p>
       {/* both replay the pet's own mind, which did not fight this one */}
       {!instinct && <SparChainCheck pet={asFought} partner={partner} opponent={opponent} result={result} cheer={cheer} />}
-      {!instinct && <FightRewind pet={asFought} result={result} other={otherSide(partner, opponent, duel)} />}
+      {!instinct && <FightRewind pet={asFought} result={result} other={otherSide(partner, opponent, duel, result.version)} />}
     </motion.div>
   );
 }
@@ -941,7 +943,7 @@ function SparChainCheck({ pet, partner, opponent, result, cheer }: { pet: Pet; p
       rounds={result.rounds.length}
       run={(petId, onProgress) => {
         const me = fighterOfMind(pet.name, { line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts, outside: pet.outside, growth: pet.growth }, levelOf(stageOf(pet, now())), pet.brain);
-        return checkSparOnChain({ petId, me, them: () => opponent ?? fighterOfPartner(partner), result, cheer, onProgress });
+        return checkSparOnChain({ petId, me, them: () => opponent ?? fighterOfPartner(partner, result.version), result, cheer, onProgress });
       }}
     />
   );
@@ -963,13 +965,13 @@ function changedNote(chose: number, made: Move, lang: Lang): string {
 }
 
 /** The other side of a fight as the rewind reads it: its name, and its mind when it is a pet's (not a fly's or Behemoth's). */
-function otherSide(partner: Partner, opponent: Fighter | undefined, duel: FightState["duel"]): { name: { en: string; zh: string }; mind: Mind | null; memory?: number[] } {
+function otherSide(partner: Partner, opponent: Fighter | undefined, duel: FightState["duel"], version: SparVersion): { name: { en: string; zh: string }; mind: Mind | null; memory?: number[] } {
   if (duel) {
     const m = duelPetMind(duel.challenge.from);
     return { name: partner.name, mind: m?.mind ?? null, ...(m?.memory ? { memory: m.memory } : {}) };
   }
   // a fighter brought in from elsewhere (a fly link, Behemoth) has no pet mind to rewind
-  return { name: partner.name, mind: opponent ? null : partnerMind(partner) };
+  return { name: partner.name, mind: opponent ? null : partnerMind(partner, version) };
 }
 
 const OPEN: Record<"rest" | "snack" | "charm", { en: string; zh: string }> = {

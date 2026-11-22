@@ -6,11 +6,11 @@
 import { describe, expect, it } from "vitest";
 import { type FastBrain, inputField } from "@lingxi/brain";
 import { type Rule, STARTERS } from "@lingxi/brain";
-import { MOVES, SPAR_VERSION, type Fighter, type Move, spar } from "../src/spar";
+import { MOVES, SPAR_VERSION, type Fighter, type Move, type SparVersion, spar } from "../src/spar";
 import { CURRENT_SPAR, SPAR_V2, SPAR_V3, allowedMove, fight, spar2 } from "../src/spar2";
 import V2_DESIGNED_JSON from "./fixtures/v2-designed-partners.json";
 import { DESIGNED_PARTNERS as DESIGNED } from "../src/designedPartners";
-import { PARTNERS } from "../src/partners";
+import { PARTNERS, partnerProgram } from "../src/partners";
 import { fighterOfPartner } from "../src/coach";
 import { SKILLS, sparMods } from "../src/skills";
 import { SPAR_V3_FROM_WEEK, seasonSparVersion } from "../src/season";
@@ -152,7 +152,7 @@ describe("LX-SPAR/1 is kept for the spars already fought (G2)", () => {
   it("replays every recorded fight to the same fingerprint, directly and through the version switch", () => {
     const skilled = (): Fighter => ({ ...fighterFrom("s", STARTERS.bold, 1), mods: sparMods({ level: 40, points: 0, skills: { 411: 5, 412: 5, 421: 5, 422: 5, 423: 5, 431: 1 } }) });
     for (const [who, line, seed, digest] of V1_PINS) {
-      const [a, b] = who === "skilled" ? [skilled(), fighterOfPartner(PARTNERS[1]!)] : [fighterFrom(line, STARTERS[line], 1), fighterOfPartner(PARTNERS.find((p) => p.id === who)!)];
+      const [a, b] = who === "skilled" ? [skilled(), fighterOfPartner(PARTNERS[1]!, SPAR_VERSION)] : [fighterFrom(line, STARTERS[line], 1), fighterOfPartner(PARTNERS.find((p) => p.id === who)!, SPAR_VERSION)];
       expect(spar(a, b, seed).digest, `${who} ${line} ${seed}`).toBe(digest);
       expect(fight(SPAR_VERSION, a, b, seed).digest).toBe(digest);
       expect(fight(SPAR_VERSION, a, b, seed).version).toBe(SPAR_VERSION);
@@ -377,7 +377,7 @@ const V2_PINS: [number, number, number, string][] = [
 describe("LX-SPAR/2 is kept for the spars fought in it (B1)", () => {
   it("replays every recorded v2 fight to the same fingerprint", () => {
     const pets = [...(["gentle", "bold", "curious"] as const).map((l) => fighterFrom(l, STARTERS[l], 1)), fighterFrom("reader", READER, 1), { ...fighterFrom("sk", STARTERS.bold, 1), mods: sparMods({ level: 60, points: 0, skills: { 411: 5, 412: 5, 413: 5, 421: 5, 422: 5, 423: 5, 431: 1, 462: 1 } }) }];
-    const opps = [...PARTNERS.map(fighterOfPartner), ...V2_DESIGNED.map(fighterOfPartner), behemothAtLevel(2)];
+    const opps = [...PARTNERS.map((p) => fighterOfPartner(p, SPAR_V2)), ...V2_DESIGNED.map((p) => fighterOfPartner(p, SPAR_V2)), behemothAtLevel(2)];
     for (const [i, j, seed, digest] of V2_PINS) {
       expect(spar2(pets[i]!, opps[j]!, seed, () => [seed === 7, false]).digest, `${i} ${j} ${seed}`).toBe(digest);
       expect(fight(SPAR_V2, pets[i]!, opps[j]!, seed, () => [seed === 7, false]).version).toBe(SPAR_V2);
@@ -385,6 +385,38 @@ describe("LX-SPAR/2 is kept for the spars fought in it (B1)", () => {
   });
 });
 
+
+describe("Juniper charms you early (B3b)", () => {
+  const juniper = PARTNERS.find((p) => p.id === "juniper")!;
+  const foes = (["gentle", "bold", "curious"] as const).map((l) => fighterFrom(l, STARTERS[l], 1));
+  const movesOf = (version: SparVersion) => {
+    const open: string[] = [];
+    const later: string[] = [];
+    for (const foe of foes) for (let s = 0; s < 60; s++) fight(version, fighterOfPartner(juniper, version), foe, 7000 + s).rounds.forEach((r, i) => (i < 3 ? open : later).push(r.moves[0]!));
+    return { open, later };
+  };
+
+  it("in LX-SPAR/3 it charms in the opening rounds, dodges a pounce there, and never charms after round 3", () => {
+    const { open, later } = movesOf(SPAR_V3);
+    expect(open.filter((m) => m === "charm").length / open.length).toBeGreaterThan(0.5);
+    expect(new Set(open)).toEqual(new Set(["charm", "dodge"]));
+    expect(later).not.toContain("charm");
+  });
+
+  it("in fights before LX-SPAR/3 it fights with its old brain, which never charmed, so those fights replay", () => {
+    expect(movesOf(SPAR_VERSION).open).not.toContain("charm");
+    expect(partnerProgram(juniper, SPAR_VERSION)).toBe(juniper.programBefore3);
+    expect(partnerProgram(juniper, SPAR_V2)).toBe(juniper.programBefore3);
+    expect(partnerProgram(juniper, SPAR_V3)).toBe(juniper.program);
+    // every other partner has one brain for every version
+    for (const p of PARTNERS.filter((x) => x.id !== "juniper")) expect(partnerProgram(p, SPAR_VERSION)).toBe(p.program);
+  });
+
+  it("its blurb says so, in both languages", () => {
+    expect(juniper.blurb.en).toMatch(/^Charms you in the first rounds/);
+    expect(juniper.blurb.zh).toMatch(/卖萌/);
+  });
+});
 
 describe("the coach with a full mind (B2)", () => {
   it("names a lesson to swap out when nothing it has room for helps, and the swap wins more on fresh seeds", () => {

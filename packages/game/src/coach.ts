@@ -13,6 +13,7 @@ import { checkMindLesson, mindBrain } from "./family";
 import type { Family } from "./pet";
 import { type Fighter, type FighterMods, type SparResult, type SparVersion } from "./spar";
 import { CURRENT_SPAR, MOVE_COST, fight, rulesOf } from "./spar2";
+import { partnerProgram } from "./partners";
 
 export type CoachKey = "tooPassive" | "noDefence" | "ranOut" | "noHealing" | "outmatched" | "wellDone";
 
@@ -85,8 +86,9 @@ export function fighterMods(growth: Growth | undefined): FighterMods | undefined
 }
 
 /** The fighter for a sparring partner: its program, or both halves of a friend's child. */
-export function fighterOfPartner(p: { name: { en: string }; line: StarterLine; level: number; program: import("@lingxi/brain").Program; family?: Family; lessons?: Rule[]; instincts?: number; outside?: OutsideInstinct }): Fighter {
-  return p.family || p.outside ? fighterOfMind(p.name.en, { line: p.line, lessons: p.lessons ?? [], family: p.family, instincts: p.instincts, outside: p.outside }, p.level) : fighterFrom(p.name.en, p.program, p.level);
+/** A partner as a fighter, with its brain for the fight's version (B3b). */
+export function fighterOfPartner(p: { name: { en: string }; line: StarterLine; level: number; program: import("@lingxi/brain").Program; programBefore3?: import("@lingxi/brain").Program; family?: Family; lessons?: Rule[]; instincts?: number; outside?: OutsideInstinct }, version: SparVersion = CURRENT_SPAR): Fighter {
+  return p.family || p.outside ? fighterOfMind(p.name.en, { line: p.line, lessons: p.lessons ?? [], family: p.family, instincts: p.instincts, outside: p.outside }, p.level) : fighterFrom(p.name.en, partnerProgram(p, version), p.level);
 }
 
 export function fighterFrom(name: string, program: import("@lingxi/brain").Program, level: number, memory?: readonly number[]): Fighter {

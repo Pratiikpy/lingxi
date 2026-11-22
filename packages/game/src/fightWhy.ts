@@ -6,10 +6,10 @@
 import type { Rule } from "@lingxi/brain";
 import type { DuelPet } from "./duel";
 import { type MindSpec, mindBrain, parseCard } from "./family";
-import type { Partner } from "./partners";
+import { type Partner, partnerProgram } from "./partners";
 import type { Mind } from "./replay";
 import type { Move, Round, SparVersion } from "./spar";
-import { rulesOf } from "./spar2";
+import { CURRENT_SPAR, rulesOf } from "./spar2";
 
 /** A mind as the rewind reads it, built by the same function a fighter's brain is built with. */
 export function mindOfSpec(spec: MindSpec): Mind {
@@ -19,10 +19,10 @@ export function mindOfSpec(spec: MindSpec): Mind {
 }
 
 /** A sparring partner's mind, or null for one whose brain is not a pet's (a fruit fly, Behemoth). */
-export function partnerMind(p: Partner): Mind | null {
+export function partnerMind(p: Partner, version: SparVersion = CURRENT_SPAR): Mind | null {
   if (p.look) return null;
   if (p.family || p.outside) return mindOfSpec({ line: p.line, lessons: (p.lessons ?? []) as Rule[], family: p.family, instincts: p.instincts, outside: p.outside });
-  return { program: p.program };
+  return { program: partnerProgram(p, version) };
 }
 
 /** A pet's mind from a duel link, with the memory it fought with (as duelFighter takes it). */

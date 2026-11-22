@@ -10,6 +10,7 @@ import { shownName } from "./names";
 import { gateBudget, skillRules } from "./skills";
 import { halvesOf, mindExtra, parseCard } from "./family";
 import type { Family } from "./pet";
+import type { SparVersion } from "./spar";
 
 export interface Partner {
   id: string;
@@ -22,7 +23,13 @@ export interface Partner {
   stage: "baby" | "child" | "teen" | "adult";
   level: number;
   blurb: { en: string; zh: string };
+  /** its brain in LX-SPAR/3 and every later fight version */
   program: Program;
+  /**
+   * The brain it fought with before LX-SPAR/3, when that differs, so a fight already fought in an earlier version
+   * replays exactly (B3b). Use `partnerProgram` rather than reading either directly.
+   */
+  programBefore3?: Program;
   /** a friend's pet that was born of two parents fights with both halves of its mind */
   family?: Family;
   /** a friend's own taught lessons (needed with family to rebuild both halves) */
@@ -34,6 +41,9 @@ export interface Partner {
 }
 
 const P = (rules: unknown[], otherwise: { want: number; mood: number }) => validateProgram({ version: "LX-PET/1", memory: [], rules, otherwise });
+
+/** A partner's brain for a fight version: its earlier brain in fights before LX-SPAR/3, when it has one (B3b). */
+export const partnerProgram = (p: Pick<Partner, "program" | "programBefore3">, version: SparVersion): Program => (p.programBefore3 && (version === "LX-SPAR/1" || version === "LX-SPAR/2") ? p.programBefore3 : p.program);
 
 export const PARTNERS: readonly Partner[] = [
   {
@@ -61,8 +71,20 @@ export const PARTNERS: readonly Partner[] = [
     line: "curious",
     stage: "teen",
     level: 0,
-    blurb: { en: "Dodges your pounces, pounces the rest of the time, and finishes you off when you are worn down.", zh: "躲开你的扑击，其余时候扑过来，你快不行时就收尾。" },
+    blurb: { en: "Charms you in the first rounds, dodges your pounces, pounces the rest of the time, and finishes you off when you are worn down.", zh: "开局几回合先对你卖萌，躲开你的扑击，其余时候扑过来，你快不行时就收尾。" },
     program: P(
+      [
+        { when: { clean: [0, 1] }, then: { want: 2, mood: 3 } },
+        { when: { action: [2] }, then: { want: 4, mood: 2 } },
+        // charms you in the opening rounds; the fight sends the phase as time 1 for rounds 1-3 (B3b)
+        { when: { time: [1] }, then: { want: 6, mood: 2 } },
+        { when: { energy: [0, 1] }, then: { want: 3, mood: 1 } },
+        { when: { hunger: [3] }, then: { want: 1, mood: 1 } },
+      ],
+      { want: 2, mood: 2 },
+    ),
+    // before LX-SPAR/3 the charm waited for time 0, which no fight sends, so it never charmed; kept for those fights
+    programBefore3: P(
       [
         { when: { clean: [0, 1] }, then: { want: 2, mood: 3 } },
         { when: { action: [2] }, then: { want: 4, mood: 2 } },
