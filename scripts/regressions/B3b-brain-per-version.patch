@@ -1,0 +1,11 @@
+--- a/packages/game/src/partners.ts
++++ b/packages/game/src/partners.ts
+@@ -43,7 +43,7 @@ export interface Partner {
+ const P = (rules: unknown[], otherwise: { want: number; mood: number }) => validateProgram({ version: "LX-PET/1", memory: [], rules, otherwise });
+ 
+ /** A partner's brain for a fight version: its earlier brain in fights before LX-SPAR/3, when it has one (B3b). */
+-export const partnerProgram = (p: Pick<Partner, "program" | "programBefore3">, version: SparVersion): Program => (p.programBefore3 && (version === "LX-SPAR/1" || version === "LX-SPAR/2") ? p.programBefore3 : p.program);
++export const partnerProgram = (p: Pick<Partner, "program" | "programBefore3">, version: SparVersion): Program => (p.program);
+ 
+ export const PARTNERS: readonly Partner[] = [
+   {
