@@ -104,7 +104,7 @@ function Commissions({ selected, onSelect }: { selected: string | null; onSelect
           const owned = d.owned.includes(p.id);
           const placed = d.placed.some((x) => x.id === p.id);
           const open = stageReached(stage, c.stage);
-          const mats = c.ins.map((x) => `${x.amount} ${ITEM[x.item]?.name[zh ? "zh" : "en"] ?? ""}`).join(zh ? "、" : ", ");
+          const mats = c.ins.map((x) => `${ITEM[x.item]?.name[zh ? "zh" : "en"] ?? ""} ×${x.amount}`).join(zh ? "、" : ", ");
           const have = c.ins.every((x) => (world.bag[x.item] ?? 0) >= x.amount) && world.coins >= p.price;
           const status = owned ? (placed ? "✓" : "") : !open ? (zh ? `${STAGE_NAME[c.stage]![1]}起` : `from ${STAGE_NAME[c.stage]![0]}`) : zh ? `${p.price} 金币 + ${mats}` : `${p.price} coins + ${mats}`;
           return (
