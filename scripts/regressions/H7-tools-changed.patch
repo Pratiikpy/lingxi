@@ -1,0 +1,10 @@
+--- a/services/api/src/tapApi.ts
++++ b/services/api/src/tapApi.ts
+@@ -96,7 +96,6 @@ interface ToolRead {
+ async function callBound(tools: NonNullable<TapApiDeps["tools"]>, name: string, args: Record<string, unknown>): Promise<Outcome> {
+   const read = await readTools(tools);
+   if (!read) return { ok: false, code: "INTERNAL", message: "the tool list could not be read" };
+-  if (read.digest !== tools.sha256) return { ok: false, code: "TOOLS_CHANGED", message: "the tools differ from the ones the manifest publishes", data: { published: tools.sha256, current: read.digest } };
+   if (read.hidden) return { ok: false, code: "INTERNAL", message: "the tool list carries hidden text" };
+   let out: unknown;
+   try {

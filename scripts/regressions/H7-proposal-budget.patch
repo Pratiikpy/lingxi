@@ -1,0 +1,10 @@
+--- a/services/api/src/mcpTools.ts
++++ b/services/api/src/mcpTools.ts
+@@ -143,7 +143,6 @@ function proposeLessonTool(args: Record<string, unknown>, deps: ToolDeps): ToolR
+     const why = { full: `a pet holds at most ${LESSON_CAPACITY.elder} lessons`, duplicate: "the pet already has this lesson", tooBig: check.detail, invalid: check.detail }[check.reason];
+     return text(`A ${line} pet cannot learn this lesson: ${why}.`, { learnable: false, reason: check.reason, detail: check.detail }, true);
+   }
+-  if (!(deps.proposals ?? sharedProposals).take("everyone")) return text("Lingxi is checking many lessons right now; try again in a minute.", { learnable: null, reason: "busy" }, true);
+   const before = composeProgram(line, lessons);
+   const gatesBefore = gateCount(compileProgram(before));
+   const diff = differences(before, check.program);

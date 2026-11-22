@@ -1,0 +1,10 @@
+--- a/services/api/src/tapApi.ts
++++ b/services/api/src/tapApi.ts
+@@ -152,7 +152,6 @@ export function withTapApi(app: Hono, deps: TapApiDeps): Hono {
+     const method = c.req.param("method");
+     // a path that is not a method name is a route error, deliberately unsigned (TAP-13 §7)
+     if (!METHOD_RE.test(method)) return c.json({ ok: false, reason: "unknown" }, 404);
+-    if (!limiter.take(clientIp(c))) return rateLimited(c);
+     const blank = { method, params: {} };
+     // binding rule 1: nothing in an unparseable or oversized body can be trusted, so the refusal names id ""
+     const text = await readCapped(c, TAP_BODY_LIMIT);

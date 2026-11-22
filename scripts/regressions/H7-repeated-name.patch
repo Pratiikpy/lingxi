@@ -1,0 +1,10 @@
+--- a/services/api/src/tap.ts
++++ b/services/api/src/tap.ts
+@@ -98,7 +98,6 @@ export function strictParse(text: string): unknown {
+     throw new CanonError("invalid JSON");
+   }
+   const dup = findDuplicateKey(text);
+-  if (dup !== null) throw new CanonError(`repeated member name "${dup}"`);
+   return parsed;
+ }
+ 

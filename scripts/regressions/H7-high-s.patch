@@ -1,0 +1,11 @@
+--- a/services/api/src/tap.ts
++++ b/services/api/src/tap.ts
+@@ -211,7 +211,7 @@ export function normaliseSignature(sig: string): Hex | null {
+   let v = bytes[64]!;
+   if (v === 0 || v === 1) v += 27;
+   if (v !== 27 && v !== 28) return null;
+-  if (r < 1n || r >= N || s < 1n || s > N / 2n) return null;
++  if (r < 1n || r >= N || s < 1n || s >= N) return null;
+   return concat([toHex(bytes.slice(0, 64)), toHex(v, { size: 1 })]);
+ }
+ 
