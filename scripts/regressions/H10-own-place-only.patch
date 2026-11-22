@@ -1,0 +1,11 @@
+--- a/services/api/src/circuits.ts
++++ b/services/api/src/circuits.ts
+@@ -30,7 +30,7 @@ export function createCircuitCounter(opts: { rpc: string; processor: Address; fr
+       const held = readStore(opts.store) as Partial<Stored>;
+       // a place saved by a walk of another processor, or one started from another block (a fork of the chain starts at
+       // its own block, so its mints before that were never read), would give a wrong count: start again instead
+-      if (held.processor === data.processor && held.from === opts.fromBlock && typeof held.next === "number" && Array.isArray(held.mints)) data = held as Stored;
++      data = held as Stored;
+     } catch {
+       // a damaged file starts again from the deploy block
+     }

@@ -13,6 +13,9 @@ const TRANSFER = parseAbiItem("event Transfer(address indexed from, address inde
 const ZERO = "0x0000000000000000000000000000000000000000";
 
 interface Stored {
+  /** the processor and the block this walk started from: a saved place from another walk is never resumed */
+  processor: string;
+  from: number;
   next: number;
   /** each circuit's mint: [id, block, time in seconds] */
   mints: Array<[string, number, number]>;
@@ -20,10 +23,14 @@ interface Stored {
 
 export function createCircuitCounter(opts: { rpc: string; processor: Address; fromBlock: number; store?: string; client?: PublicClient; paceMs?: number }) {
   const pub = opts.client ?? (createPublicClient({ transport: http(opts.rpc, { timeout: 20_000, retryCount: 0 }) }) as PublicClient);
-  let data: Stored = { next: opts.fromBlock, mints: [] };
+  const start = (): Stored => ({ processor: opts.processor.toLowerCase(), from: opts.fromBlock, next: opts.fromBlock, mints: [] });
+  let data = start();
   if (opts.store && hasStore(opts.store)) {
     try {
-      data = readStore(opts.store) as Stored;
+      const held = readStore(opts.store) as Partial<Stored>;
+      // a place saved by a walk of another processor, or one started from another block (a fork of the chain starts at
+      // its own block, so its mints before that were never read), would give a wrong count: start again instead
+      if (held.processor === data.processor && held.from === opts.fromBlock && typeof held.next === "number" && Array.isArray(held.mints)) data = held as Stored;
     } catch {
       // a damaged file starts again from the deploy block
     }

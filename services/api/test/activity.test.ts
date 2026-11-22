@@ -88,4 +88,28 @@ describe("circuits Lingxi has taped out (H10)", () => {
     await cc.catchUp();
     expect(cc.totals(NOW - 7 * DAY)).toEqual({ minted: 3, since: 2, indexedTo: 3000 });
   });
+
+  it("reads again from the deploy block when its saved place belongs to another start or processor", async () => {
+    const store = join(mkdtempSync(join(tmpdir(), "cc-")), "circuits.json");
+    const mints = [{ block: 1000, id: 1n }, { block: 2000, id: 2n }];
+    const client = {
+      getBlockNumber: async () => 3000n,
+      getLogs: async ({ fromBlock, toBlock }: { fromBlock: bigint; toBlock: bigint }) =>
+        mints.filter((m) => m.block >= Number(fromBlock) && m.block <= Number(toBlock)).map((m) => ({ blockNumber: BigInt(m.block), args: { from: ZERO, to: B, tokenId: m.id } })),
+      getBlock: async ({ blockNumber }: { blockNumber: bigint }) => ({ timestamp: BigInt(TIME[Number(blockNumber)] ?? NOW) }),
+    } as unknown as PublicClient;
+    // a place saved by a walk that started later (a fork of the chain): its mints before that start were never read
+    writeFileSync(store, JSON.stringify({ processor: PROC, from: 2500, next: 2601, mints: [] }));
+    const fresh = createCircuitCounter({ rpc: "", processor: PROC, fromBlock: 900, store, client, paceMs: 0 });
+    await fresh.catchUp();
+    expect(fresh.totals(0).minted).toBe(2);
+    // and one saved for another processor
+    writeFileSync(store, JSON.stringify({ processor: B, from: 900, next: 3001, mints: [] }));
+    const other = createCircuitCounter({ rpc: "", processor: PROC, fromBlock: 900, store, client, paceMs: 0 });
+    await other.catchUp();
+    expect(other.totals(0).minted).toBe(2);
+    // its own place is kept: nothing is read twice
+    const again = createCircuitCounter({ rpc: "", processor: PROC, fromBlock: 900, store, client, paceMs: 0 });
+    expect(again.totals(0)).toEqual({ minted: 2, since: 2, indexedTo: 3000 });
+  });
 });
