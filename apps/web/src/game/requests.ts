@@ -24,7 +24,7 @@ import type {
 } from "@lingxi/api-schema";
 import type { Rule } from "@lingxi/brain";
 import type { SignedRelay } from "@lingxi/chain";
-import { type DuelPet, type Meters, type NeedKind, type Pet, type Stage, petCard } from "@lingxi/game";
+import { type DuelPet, type Meters, type NeedKind, type Pet, type Stage, habitsOf, petCard } from "@lingxi/game";
 
 type Hatched = Exclude<Stage, "egg">;
 
@@ -49,7 +49,7 @@ export const teachBody = (words: string, pet: Pick<Pet, "name" | "line" | "lesso
 });
 
 /** POST /api/voice: what the pet's circuit decided and why, for one line in its own words. */
-export function voiceBody(o: { pet: Pick<Pet, "name" | "line" | "sick" | "asleep">; lang: "en" | "zh"; stage: Hatched; chips: { then: string; when: string[] }; meters: Meters; tapped: boolean }): VoiceBody {
+export function voiceBody(o: { pet: Pick<Pet, "name" | "line" | "sick" | "asleep"> & { traits?: Pet["traits"] }; lang: "en" | "zh"; stage: Hatched; chips: { then: string; when: string[] }; meters: Meters; tapped: boolean; taught?: boolean }): VoiceBody {
   return {
     name: o.pet.name.slice(0, 24),
     lang: o.lang,
@@ -61,6 +61,9 @@ export function voiceBody(o: { pet: Pick<Pet, "name" | "line" | "sick" | "asleep
     sick: Boolean(o.pet.sick),
     asleep: o.pet.asleep,
     moment: o.tapped ? "petted" : "decided",
+    // G9: its habits and whether a lesson its owner taught decided, so the line sounds like this pet
+    habits: habitsOf(o.pet.traits).slice(0, 3),
+    taught: o.taught ?? false,
   };
 }
 

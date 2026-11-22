@@ -6,7 +6,7 @@
  */
 
 import { useMemo, useState } from "react";
-import { type Frame, type Pet, momentsOf, rewind, ruleSource, tellMoment } from "@lingxi/game";
+import { type Frame, type Pet, momentsOf, rewind, ruleSource, strongestHabit, tellMoment } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { play } from "../game/sound";
 import { mindForPet } from "../game/store";
@@ -138,7 +138,7 @@ export function RewindPanel({ pet }: { pet: Pet }) {
       </div>
       <div className="rw-card" aria-live="polite">
         <p className="rw-say" style={{ borderColor: WANT_COLORS[f.want] }}>
-          “{tellMoment(f, lang)}”
+          “{tellMoment(f, lang, strongestHabit(pet.traits))}”
           <span>
             {lang === "zh" ? "心情" : "Mood"}: {MOOD_NAMES[lang][f.mood]}
             {f.half !== undefined && ` · ${f.half === 0 ? (lang === "zh" ? "白天那一半" : "its day half") : lang === "zh" ? "夜里那一半" : "its night half"}`}

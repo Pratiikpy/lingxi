@@ -108,6 +108,9 @@ export const VoiceBody = z.object({
   asleep: z.boolean(),
   /** "decided": its circuit just chose this; "petted": its owner just petted it */
   moment: z.enum(["decided", "petted"]).default("decided"),
+  /** G9: the pet's habits, strongest first (traits at the habit level), and whether a lesson its owner taught decided */
+  habits: z.array(z.enum(["brave", "curious", "greedy", "calm", "playful", "gentle", "shy"])).max(3).default([]),
+  taught: z.boolean().default(false),
 });
 export type VoiceBody = z.input<typeof VoiceBody>;
 export type ParsedVoiceBody = z.output<typeof VoiceBody>;

@@ -25,21 +25,25 @@ const MAX_CHARS = { en: 70, zh: 30 } as const;
 /** A situation's cache key: what makes two moments sound the same. */
 export function voiceKey(r: VoiceRequest): string {
   const m = r.meters;
-  return [r.lang, r.moment, r.line, r.stage, r.decision, [...r.because].sort().join("+"), level(m.food), level(m.joy), level(m.energy), level(m.clean), r.sick, r.asleep, r.name].join("|");
+  return [r.lang, r.moment, r.line, r.stage, r.decision, [...r.because].sort().join("+"), level(m.food), level(m.joy), level(m.energy), level(m.clean), r.sick, r.asleep, r.name, r.habits.join("+"), r.taught].join("|");
 }
 
 export function voicePrompt(r: VoiceRequest, avoid: string[] = []): { system: string; user: string } {
   const lang = r.lang === "zh" ? "simplified Chinese, at most 20 characters" : "English, at most 12 words";
   const system = [
     `You give a voice to ${r.name}, a small pixel pet in the game Lingxi. ${r.name} is a ${r.stage} with a ${PERSONALITY[r.line]} nature.`,
+    r.habits.length ? `Its habits, grown from how it has lived: ${r.habits.join(", ")}. Let the strongest colour how it speaks (a shy pet speaks softly and hesitates, a greedy one thinks of food, a playful one bounces, a calm one is unhurried, a brave one is bold, a curious one wonders, a gentle one is tender).` : "",
     `Its mind is a circuit that has ALREADY decided what it does. Your only job is to say that decision out loud, as ${r.name}, in one short line.`,
     `Rules: speak as "I" (never say your own name or "Mochi is"); one sentence; no emoji, no quotation marks, no stage directions; never suggest doing something other than the decision; never mention circuits, rules or games; only mention feelings that are true from the list given (do not call yourself tired or hungry unless the list says so); "rest" with nothing special happening is calm contentment, not sleepiness; match its age (babies use very simple words); vary the wording and avoid the pattern "so I will"; if it is asleep, it is mumbling a few drowsy words in its sleep.`,
     `Write in ${lang}.`,
-  ].join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
   const user = [
     r.moment === "petted" ? "Your owner has just petted you." : "",
     `Decision: ${r.decision}.`,
     r.because.length ? `Because: ${r.because.join(", ")}.` : "",
+    r.taught ? "Your owner taught you to do this; you may let that show." : "",
     `Feelings: hunger satisfied ${level(r.meters.food)}, happiness ${level(r.meters.joy)}, energy ${level(r.meters.energy)}, cleanliness ${level(r.meters.clean)}${r.sick ? ", feeling ill" : ""}${r.asleep ? ", asleep (talking in its sleep)" : ""}.`,
     avoid.length ? `Say it differently from: ${avoid.join(" / ")}` : "",
     'Reply as JSON: {"line": "..."}',

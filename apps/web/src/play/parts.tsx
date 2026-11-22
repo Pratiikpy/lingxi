@@ -1,10 +1,10 @@
 /** The pieces of the game screen: top bar, meters, care buttons, thinking strip, tabs. */
 
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode, useEffect, useMemo } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useVoice } from "../game/voice";
-import { decidingPart } from "../game/store";
-import { ENJOY_MAX, ENJOY_PER_CARE, type Pet, beatOf, nextWorldSeason, worldSeasonAt, canLevelUp, dayOf, growthOf, kinshipNow, stageOf, visibleMeters } from "@lingxi/game";
+import { decidingPart, mindForPet } from "../game/store";
+import { ENJOY_MAX, ENJOY_PER_CARE, type Pet, beatOf, dayChoices, nextWorldSeason, rewind, worldSeasonAt, canLevelUp, dayOf, growthOf, kinshipNow, stageOf, visibleMeters } from "@lingxi/game";
 import { levelUpNow, useSkillsUi } from "./Skills";
 import { useLang, useT, type Key } from "../i18n";
 import { useSound } from "../game/sound";
@@ -145,8 +145,43 @@ export function Actions({ pet, absent = false, onFeed, onPlay, onClean, onSleep,
       {btn("sparkle", t("act.clean"), onClean, m.clean < 250 && !pet.asleep, pet.asleep, "clean")}
       {btn(pet.asleep ? "sun" : "moon", pet.asleep ? t("act.wake") : t("act.sleep"), onSleep, m.energy < 250 && !pet.asleep, false, "sleep")}
       <EnjoyBar pet={pet} />
+      <TodayChoices pet={pet} />
       <SeasonLine />
     </div>
+  );
+}
+
+const WANT_ORDER = ["idle", "eat", "play", "sleep", "explore", "sulk", "cuddle", "share"] as const;
+
+/**
+ * G9: what the pet chose today, replayed from its own log (the Rewind's record): how many of each choice and how many
+ * a lesson its owner taught made. Worked out again only every ten beats, so a live pet stays light.
+ */
+function TodayChoices({ pet }: { pet: Pet }) {
+  const { lang } = useLang();
+  const zh = lang === "zh";
+  const tick = Math.floor(pet.beat / 10);
+  const day = useMemo(() => {
+    const at = gameNow();
+    const local = at + pet.tzOffsetMin * 60_000;
+    const midnight = local - (local % 86_400_000) - pet.tzOffsetMin * 60_000;
+    const back = Math.min(pet.pendingLog.length, Math.ceil((at - midnight) / 60_000) + 1);
+    return dayChoices(rewind(pet, mindForPet(pet), back), midnight);
+    // the pet changes every beat; today's choices only need working out again every ten
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tick, pet.lessons, pet.bornAt]);
+  if (!day.total) return null;
+  const kinds = WANT_ORDER.map((k, i) => ({ k, i, n: day.counts[k] ?? 0 })).filter((x) => x.n > 0).sort((a, b) => b.n - a.n).slice(0, 4);
+  return (
+    <p className="today-choices" aria-label={zh ? `${pet.name}今天的选择` : `What ${pet.name} chose today`}>
+      <b>{zh ? `${pet.name}今天选了：` : `Today ${pet.name} chose:`}</b>{" "}
+      {kinds.map((x) => (
+        <span key={x.k} className="tc-kind" style={{ background: WANT_COLORS[x.i] }}>
+          {WANT_NAMES[zh ? "zh" : "en"][x.i]} ×{x.n}
+        </span>
+      ))}
+      {day.taught > 0 && <span className="tc-taught">{zh ? `其中 ${day.taught} 次是因为你教过` : `${day.taught} because you taught it`}</span>}
+    </p>
   );
 }
 

@@ -1,0 +1,10 @@
+--- a/packages/game/src/replay.ts
++++ b/packages/game/src/replay.ts
+@@ -194,7 +194,6 @@ export function dayChoices(frames: readonly Frame[], fromMs: number): DayChoices
+     const f = frames[k]!;
+     if (f.at === null || f.at < fromMs) continue;
+     const prev = frames[k - 1];
+-    if (prev && prev.want === f.want) continue;
+     const key = WANT_KEY[f.want] ?? "idle";
+     counts[key] = (counts[key] ?? 0) + 1;
+     total++;

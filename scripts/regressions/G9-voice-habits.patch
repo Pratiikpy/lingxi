@@ -1,0 +1,10 @@
+--- a/services/api/src/voice.ts
++++ b/services/api/src/voice.ts
+@@ -43,7 +43,6 @@ export function voicePrompt(r: VoiceRequest, avoid: string[] = []): { system: st
+     r.moment === "petted" ? "Your owner has just petted you." : "",
+     `Decision: ${r.decision}.`,
+     r.because.length ? `Because: ${r.because.join(", ")}.` : "",
+-    r.taught ? "Your owner taught you to do this; you may let that show." : "",
+     `Feelings: hunger satisfied ${level(r.meters.food)}, happiness ${level(r.meters.joy)}, energy ${level(r.meters.energy)}, cleanliness ${level(r.meters.clean)}${r.sick ? ", feeling ill" : ""}${r.asleep ? ", asleep (talking in its sleep)" : ""}.`,
+     avoid.length ? `Say it differently from: ${avoid.join(" / ")}` : "",
+     'Reply as JSON: {"line": "..."}',

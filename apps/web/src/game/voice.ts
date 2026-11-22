@@ -2,11 +2,12 @@
  * The pet's voice (web build): when its circuit makes a new decision, or when the
  * player taps it, the pet says one short line about that decision. The line is
  * written by Lingxi's server from the decision itself, so it never disagrees with
- * the brain. Quiet when there is no server (the on-chain build) or it is busy.
+ * the brain. With no server (the on-chain build) it says the choice in its strongest
+ * habit's own words (G9); quiet while the server is busy.
  */
 
 import { create } from "zustand";
-import { type Pet, stageOf, visibleMeters } from "@lingxi/game";
+import { type Frame, type Pet, ruleSource, stageOf, strongestHabit, tellMoment, visibleMeters } from "@lingxi/game";
 import { decidingChips } from "../play/ruleText";
 import { decidingPart } from "./store";
 import { now as gameNow } from "./gameClock";
@@ -44,8 +45,19 @@ export const useVoice = create<VoiceState>((set, get) => ({
   hush: () => set({ line: null }),
   speak: async (pet, lang, tapped = false) => {
     const stage = stageOf(pet, gameNow());
-    if (!(await voiceAvailable())) return;
-    const chips = decidingChips(decidingPart(pet).program, pet.last.rule, "en");
+    const part = decidingPart(pet);
+    const taught = ruleSource({ rule: pet.last.rule, program: part.program }) === "taught";
+    if (!(await voiceAvailable())) {
+      // G9: with no server (the on-chain copy) the pet still says its choice, in its strongest habit's words
+      const sig = `${lang}|local|${pet.last.want}|${pet.asleep}`;
+      const now = gameNow();
+      const s = get();
+      if (pet.asleep || now - s.lastAt < (tapped ? TAP_EVERY_MS : AUTO_EVERY_MS) || (!tapped && sig === s.lastSig)) return;
+      const line = tellMoment({ want: pet.last.want, rule: pet.last.rule, program: part.program } as Frame, lang, strongestHabit(pet.traits));
+      set((x) => ({ lastAt: now, lastSig: sig, line, id: x.id + 1 }));
+      return;
+    }
+    const chips = decidingChips(part.program, pet.last.rule, "en");
     const sig = `${lang}|${chips.then}|${chips.when.join("+")}|${pet.asleep}|${pet.sick}`;
     const now = gameNow();
     const s = get();
@@ -56,7 +68,7 @@ export const useVoice = create<VoiceState>((set, get) => ({
       const r = await fetch(`${BASE}/api/voice`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(voiceBody({ pet, lang, stage, chips, meters: visibleMeters(pet), tapped })),
+        body: JSON.stringify(voiceBody({ pet, lang, stage, chips, meters: visibleMeters(pet), tapped, taught })),
         signal: AbortSignal.timeout(10_000),
       });
       const j = (await r.json()) as { ok: boolean; line?: string };

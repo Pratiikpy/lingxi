@@ -8,7 +8,7 @@
 import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { DECOR_BY_ID, HOME, ITEM, ROOMS } from "@lingxi/world";
-import { type Frame, type Pet, type VisitorGift, awayFind, awayNeeds, awaySeed, rewind, ruleSource, schoolIdsOf, stageOf, tellMoment, visitorsDuring } from "@lingxi/game";
+import { type Frame, type Pet, type VisitorGift, awayFind, awayNeeds, awaySeed, rewind, ruleSource, schoolIdsOf, stageOf, strongestHabit, tellMoment, visitorsDuring } from "@lingxi/game";
 import { VisitorArt, useAlbum } from "./Album";
 import { useLang } from "../i18n";
 import { mindForPet, useGame } from "../game/store";
@@ -160,7 +160,7 @@ function AwayCard({ pet, absence }: { pet: Pet; absence: { petKey: string; from:
           <ul className="welcome-list">
             {story.events.map((f) => (
               <li key={f.index}>
-                <b>{clock(f, lang)}</b> {EVENT_TEXT[f.senses.event]![lang]} <span>{lang === "zh" ? `${pet.name}：` : `${pet.name}: `}“{tellMoment(f, lang)}”</span>
+                <b>{clock(f, lang)}</b> {EVENT_TEXT[f.senses.event]![lang]} <span>{lang === "zh" ? `${pet.name}：` : `${pet.name}: `}“{tellMoment(f, lang, strongestHabit(pet.traits))}”</span>
               </li>
             ))}
           </ul>

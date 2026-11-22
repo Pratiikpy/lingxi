@@ -1,0 +1,10 @@
+--- a/packages/game/src/replay.ts
++++ b/packages/game/src/replay.ts
+@@ -147,7 +147,6 @@ const WANT_KEY = Object.fromEntries(Object.entries(WANT).map(([k, v]) => [v, k])
+ /** The pet's own line about a moment, in its voice: its strongest habit's when it has one (G9). */
+ export function momentText(f: Frame, lang: "en" | "zh", habit: Trait | null = null): string {
+   const key = WANT_KEY[f.want] ?? "idle";
+-  if (habit) return HABIT_LINES[habit][key][lang];
+   const en: Record<MomentKey, string> = {
+     idle: "I just sat and thought for a bit.",
+     eat: "I wanted something to eat.",

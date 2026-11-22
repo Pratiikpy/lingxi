@@ -47,3 +47,4 @@ export * from "./behemothCounter.generated";
 export * from "./lightBulb";
 export * from "./letters";
 export * from "./worldSeason";
+export * from "./personality";

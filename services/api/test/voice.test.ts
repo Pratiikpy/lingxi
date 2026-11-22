@@ -31,6 +31,18 @@ describe("the pet's voice", () => {
     expect(voicePrompt(req({ moment: "petted" })).user).toContain("just petted you");
   });
 
+  it("is told the pet's habits and whether its owner taught the choice (G9), and keeps those moments apart", () => {
+    const shy = req({ habits: ["shy", "calm"], taught: true });
+    const { system, user } = voicePrompt(shy);
+    expect(system).toContain("Its habits, grown from how it has lived: shy, calm.");
+    expect(user).toContain("Your owner taught you to do this");
+    expect(voicePrompt(req()).system).not.toContain("Its habits");
+    expect(voiceKey(shy)).not.toBe(voiceKey(req()));
+    expect(voiceKey(req({ habits: ["greedy"] }))).not.toBe(voiceKey(req({ habits: ["shy"] })));
+    // an older game that sends neither still parses, with no habits and nothing taught
+    expect([req().habits, req().taught]).toEqual([[], false]);
+  });
+
   it("accepts only short, single-line, markup-free lines", () => {
     expect(cleanLine({ line: '  "Food, please?"  ' }, "en")).toBe("Food, please?");
     expect(cleanLine({ line: "x".repeat(80) }, "en")).toBeNull();

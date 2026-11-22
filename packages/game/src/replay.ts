@@ -8,6 +8,8 @@
  * names the rule that fired.
  */
 
+import { type DayChoices, HABIT_LINES } from "./personality";
+import type { Trait } from "./pet";
 import type { OutsideInstinct } from "./pet";
 import { instinctBrain } from "./family";
 import { type Program, type Rule, STARTERS, type Senses, decodeSenses, fastBrain, compileProgram, inputField, runBeat, stateBits } from "@lingxi/brain";
@@ -142,9 +144,10 @@ export function momentsOf(frames: readonly Frame[]): number[] {
 export type MomentKey = keyof typeof WANT;
 const WANT_KEY = Object.fromEntries(Object.entries(WANT).map(([k, v]) => [v, k])) as Record<number, MomentKey>;
 
-/** The pet's own line about a moment, in its voice. */
-export function momentText(f: Frame, lang: "en" | "zh"): string {
+/** The pet's own line about a moment, in its voice: its strongest habit's when it has one (G9). */
+export function momentText(f: Frame, lang: "en" | "zh", habit: Trait | null = null): string {
   const key = WANT_KEY[f.want] ?? "idle";
+  if (habit) return HABIT_LINES[habit][key][lang];
   const en: Record<MomentKey, string> = {
     idle: "I just sat and thought for a bit.",
     eat: "I wanted something to eat.",
@@ -172,11 +175,32 @@ export function momentText(f: Frame, lang: "en" | "zh"): string {
  * A moment told for the diary and the away story (G1): one a taught lesson decided is told as the lesson's doing, so
  * the player reads what their teaching made the pet do; any other is the pet's own line.
  */
-export function tellMoment(f: Frame, lang: "en" | "zh"): string {
-  const line = momentText(f, lang);
+export function tellMoment(f: Frame, lang: "en" | "zh", habit: Trait | null = null): string {
+  const line = momentText(f, lang, habit);
   if (ruleSource(f) !== "taught") return line;
   // every line is the pet speaking ("I ..."), so it follows the clause as it stands
   return lang === "zh" ? `因为你教过我，${line}` : `Because you taught me, ${line}`;
+}
+
+/**
+ * What the pet chose today (G9): each change of mind since `fromMs` in its replayed log, by kind, and how many a
+ * taught lesson made. The same replay the Rewind shows, so it is the circuit's own record.
+ */
+export function dayChoices(frames: readonly Frame[], fromMs: number): DayChoices {
+  const counts: Partial<Record<MomentKey, number>> = {};
+  let taught = 0;
+  let total = 0;
+  for (let k = 0; k < frames.length; k++) {
+    const f = frames[k]!;
+    if (f.at === null || f.at < fromMs) continue;
+    const prev = frames[k - 1];
+    if (prev && prev.want === f.want) continue;
+    const key = WANT_KEY[f.want] ?? "idle";
+    counts[key] = (counts[key] ?? 0) + 1;
+    total++;
+    if (ruleSource(f) === "taught") taught++;
+  }
+  return { counts, taught, total };
 }
 
 const BORN = new Set(Object.values(STARTERS).flatMap((p) => p.rules.map((r) => JSON.stringify([r.when, r.then]))));
