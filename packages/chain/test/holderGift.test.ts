@@ -92,7 +92,8 @@ describe("finding a holder's TapeCode-Test1 (H9)", () => {
   });
 
   it("a batch the node fails is asked again; one that keeps failing is reported, never read as holding nothing", async () => {
-    const c = chain({ supply: 2_000, mine: [1500] });
+    // the token sits in the batch that fails, so only asking again can find it
+    const c = chain({ supply: 2_000, mine: [500] });
     let fails = 1;
     const flaky = {
       ...c.client,
@@ -103,7 +104,7 @@ describe("finding a holder's TapeCode-Test1 (H9)", () => {
         return c.client.multicall(args as never);
       },
     } as unknown as PublicClient;
-    expect(await test1TokensOf(flaky, terms, ME)).toEqual({ unused: [1500n], used: [] });
+    expect(await test1TokensOf(flaky, terms, ME)).toEqual({ unused: [500n], used: [] });
     const dead = { ...c.client, readContract: c.client.readContract, multicall: async () => Promise.reject(new Error("rate limited")) } as unknown as PublicClient;
     await expect(test1TokensOf(dead, terms, ME)).rejects.toBeInstanceOf(Test1Unreadable);
     expect(await giftWaysOf(dead, terms, ME, null)).toEqual({ ways: [], test1: "unreadable" });
