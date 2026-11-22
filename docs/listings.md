@@ -17,7 +17,7 @@ The form's limits, read from its own code: app name up to 100 characters, introd
 Lingxi 灵犀: a pet whose mind is a circuit on X Layer
 ```
 
-**Introduction** (English then Chinese, 1,895 characters in all)
+**Introduction** (English then Chinese, 1,991 characters in all)
 
 ```text
 Lingxi is a virtual pet whose brain is a circuit you can read. Every pet's mind is a circuit of NAND gates and memory latches. Once you keep your pet on X Layer, that circuit is taped out on Lingxi's processor and anyone can read it gate by gate; each reaction comes from its own gates, and its memory is saved on chain on the days you keep it there, so anyone with its log or its published diary can replay it and check it matches.
@@ -26,7 +26,7 @@ Raise it from one of three eggs and wire in instincts for life. Teach it in plai
 
 This copy runs entirely on chain. Teaching in your own words, live rooms and seasons need the web version at lingxi.knole.me; Pet School, the rule builder, spars, mail and the world all work here.
 
-Free to play, no token of its own. Every fee paid in BEM is burned. Holders of TapeCode-Test1, Rig, BEM and FAB get a free pin, and a Test1 gilds your eggs.
+Free to play, no token of its own. Every fee paid in BEM is burned. Holders of a TapeCode-Test1 or a Rig, and wallets that held BEM or FAB at the snapshot (block 76,052,000), get a free pin; a Test1 also gilds your eggs.
 
 Proof page, live numbers and source: lingxi.knole.me · github.com/Pratiikpy/lingxi
 
@@ -36,7 +36,7 @@ Proof page, live numbers and source: lingxi.knole.me · github.com/Pratiikpy/lin
 
 这个副本完全运行在链上。用自己的话教宠物、实时房间和赛季要用网页版 lingxi.knole.me；宠物学堂、规则拼装、切磋、邮件和整个世界在这里都能用。
 
-免费游玩，没有自己的代币。所有用 BEM 支付的费用全部销毁。TapeCode-Test1、矿机、BEM 和 FAB 的持有人可以领一枚免费徽章，持有 Test1 还会让你的蛋镀金。
+免费游玩，没有自己的代币。所有用 BEM 支付的费用全部销毁。TapeCode-Test1 和矿机的持有人，以及在快照时（第 76,052,000 个区块）持有 BEM 或 FAB 的钱包，可以领一枚免费徽章；持有 Test1 还会让你的蛋镀金。
 
 证明页、实时数字和源代码：lingxi.knole.me · github.com/Pratiikpy/lingxi
 ```

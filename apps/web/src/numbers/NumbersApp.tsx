@@ -157,7 +157,7 @@ function rows(n: Numbers, lang: Lang): Array<{ title: [string, string]; readTo?:
         ...(okb
           ? [{ label: ["Outfit copies sold for OKB", "用 OKB 卖出的衣服"] as [string, string], value: `${fmt(okb.copies)} · ${formatEther(BigInt(okb.paid))} OKB`, counts: ["Copies bought from creators and from resellers on the OKB market, and what buyers paid (Minted and Sold events).", "OKB 市场上从作者和转卖者那里买走的份数，以及买家付了多少（Minted 和 Sold 事件）。"] as [string, string], source: "marketOkb", team: buyersLine(okb, "OKB") }]
           : []),
-        ...(n.pins !== null ? [{ label: ["Holder pins claimed", "领取的持有人徽章"] as [string, string], value: fmt(n.pins), counts: ["Free pins given to Test1, Rig, BEM and FAB holders (the gift contract's own count).", "送给 Test1、矿机、BEM 和 FAB 持有人的免费徽章（礼物合约自己的计数）。"] as [string, string], source: "gift" }] : []),
+        ...(n.pins !== null ? [{ label: ["Holder pins claimed", "领取的持有人徽章"] as [string, string], value: fmt(n.pins), counts: ["Free pins claimed by TapeCode-Test1 and Rig holders, and by wallets that held BEM or FAB at the snapshot (block 76,052,000); the gift contract's own count.", "TapeCode-Test1 和矿机的持有人，以及在快照时（第 76,052,000 个区块）持有 BEM 或 FAB 的钱包领取的免费徽章（礼物合约自己的计数）。"] as [string, string], source: "gift" }] : []),
       ],
     },
     ...(n.usedByOthers

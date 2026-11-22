@@ -1,0 +1,10 @@
+--- a/apps/web/src/game/chain.ts
++++ b/apps/web/src/game/chain.ts
+@@ -93,6 +93,7 @@ export async function walletAddress(): Promise<Hex> {
+   }
+   const [address] = (await provider.request({ method: "eth_requestAccounts" })) as Hex[];
+   if (!address) throw new Error("noAccount");
++  await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0xc4" }] });
+   return address;
+ }
+ 

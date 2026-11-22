@@ -8,7 +8,8 @@
 
 import { create } from "zustand";
 import { type Address, parseAbi } from "viem";
-import { publicClient } from "./chain";
+import { type SnapshotFile, giftClaimed, giftTerms, loadSnapshot, snapshotWay } from "@lingxi/chain";
+import { deployment, publicClient } from "./chain";
 import { saveWrite } from "./saveRuntime";
 import { now } from "./gameClock";
 
@@ -32,6 +33,10 @@ export interface Holdings {
   bem: boolean;
   fab: boolean;
   test1: boolean;
+  /** held at least one minimum of BEM or FAB at the gift's snapshot block (C3); absent when it could not be read */
+  snapshot?: boolean;
+  /** this wallet has already claimed its holder pin (C3); absent when it could not be read */
+  pinClaimed?: boolean;
   at: number;
 }
 
@@ -40,6 +45,30 @@ export async function readHoldings(wallet: Address): Promise<Holdings> {
   const bal = async (token: string) => ((await publicClient.readContract({ address: token as Address, abi: balanceAbi, functionName: "balanceOf", args: [wallet] })) as bigint) > 0n;
   const [rig, bem, fab, test1] = await Promise.all([bal(HOLDINGS.rig), bal(HOLDINGS.bem), bal(HOLDINGS.fab), bal(HOLDINGS.test1)]);
   return { wallet: wallet.toLowerCase(), rig, bem, fab, test1, at: now() };
+}
+
+/**
+ * The holder pin's standing for this wallet (C3), read as the claim panel reads it: whether the wallet is in the BEM and
+ * FAB snapshot that ships with the site (checked against the gift contract's root), and whether it has claimed already.
+ * Either is left out when it cannot be read, so the screen never promises or refuses on a guess.
+ */
+export async function readPinStatus(wallet: Address): Promise<{ snapshot?: boolean; pinClaimed?: boolean }> {
+  if (!deployment?.holderGift) return {};
+  try {
+    const t = await giftTerms(publicClient, deployment);
+    if (!t) return {};
+    const claimed = await giftClaimed(publicClient, t, wallet).catch(() => undefined);
+    let snapshot: boolean | undefined;
+    try {
+      const file = (await (await fetch(new URL("holder-snapshot.json", document.baseURI))).json()) as SnapshotFile;
+      snapshot = snapshotWay(loadSnapshot(file, t), t, wallet) !== null;
+    } catch {
+      snapshot = undefined;
+    }
+    return { ...(snapshot !== undefined ? { snapshot } : {}), ...(claimed !== undefined ? { pinClaimed: claimed } : {}) };
+  } catch {
+    return {};
+  }
 }
 
 const KEY = "lingxi.holdings.v1";

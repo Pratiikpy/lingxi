@@ -79,6 +79,23 @@ function injected(): Eip1193 | null {
   return w.okxwallet ?? w.ethereum ?? null;
 }
 
+/**
+ * The wallet's address, for a check that only reads (C3): it asks for the accounts and nothing else, so the wallet shows
+ * no network switch and nothing to sign. Anything that sends a transaction uses connectWallet.
+ */
+export async function walletAddress(): Promise<Hex> {
+  const devKey = import.meta.env.DEV ? (import.meta.env.VITE_DEV_KEY as Hex | undefined) : undefined;
+  if (devKey) return privateKeyToAccount(devKey).address;
+  const provider = injected();
+  if (!provider) {
+    walletNeeded();
+    throw new Error("noWallet");
+  }
+  const [address] = (await provider.request({ method: "eth_requestAccounts" })) as Hex[];
+  if (!address) throw new Error("noAccount");
+  return address;
+}
+
 export async function connectWallet(): Promise<WalletClient> {
   const devKey = import.meta.env.DEV ? (import.meta.env.VITE_DEV_KEY as Hex | undefined) : undefined;
   if (devKey) return createWalletClient({ chain, transport: http(rpc), account: privateKeyToAccount(devKey) });

@@ -5,8 +5,8 @@
  */
 import { useState } from "react";
 import { useLang } from "../i18n";
-import { connectWallet } from "../game/chain";
-import { readHoldings, useHoldings } from "../game/holders";
+import { walletAddress } from "../game/chain";
+import { readHoldings, readPinStatus, useHoldings } from "../game/holders";
 import { play } from "../game/sound";
 import { errorText } from "../game/errorText";
 
@@ -22,8 +22,10 @@ export function HolderPerkNote() {
     setBusy(true);
     setNote("");
     try {
-      const w = await connectWallet();
-      set(await readHoldings(w.account!.address));
+      // only the address is asked for: no network switch, nothing to sign (C3)
+      const who = await walletAddress();
+      const [h, pin] = await Promise.all([readHoldings(who), readPinStatus(who)]);
+      set({ ...h, ...pin });
       play("success");
     } catch (e) {
       setNote(errorText(e) === "noWallet" ? L("No wallet found in this browser. Open Lingxi in the OKX Wallet app, or a browser with a wallet.", "这个浏览器里没有钱包。请在 OKX 钱包应用里打开灵犀，或用装了钱包的浏览器。") : L("Couldn't read the wallet just now.", "暂时读不到这个钱包。"));
@@ -35,7 +37,9 @@ export function HolderPerkNote() {
     ? [
         held.test1 && L("your eggs hatch from a gilded shell (you hold a TapeCode-Test1)", "你的蛋从镀金蛋壳里孵出来（你持有 TapeCode-Test1）"),
         held.rig && L("your home can wear the rig bay (you hold a TapeOut Rig)", "你的家能换上矿机间（你持有 TapeOut 矿机）"),
-        (held.test1 || held.rig) && L("a free holder pin, to claim in the Pet tab once your pet has hatched", "一枚免费的持有人徽章，宠物孵出来后在宠物页领取"),
+        held.snapshot && L("you held BEM or FAB at the snapshot (block 76,052,000)", "你在快照时（第 76,052,000 个区块）持有 BEM 或 FAB"),
+        !held.pinClaimed && (held.test1 || held.rig || held.snapshot) && L("a free holder pin, to claim in the Pet tab once your pet has hatched", "一枚免费的持有人徽章，宠物孵出来后在宠物页领取"),
+        held.pinClaimed && L("this wallet's holder pin is already claimed", "这个钱包的持有人徽章已经领过了"),
         held.bem && L("the BEM holder mark", "BEM 持有人标记"),
         held.fab && L("the FAB holder mark", "FAB 持有人标记"),
       ].filter((x): x is string => !!x)
@@ -49,8 +53,8 @@ export function HolderPerkNote() {
       {!held ? (
         <p className="hatch-perk-p">
           {L(
-            "A TapeCode-Test1 gilds your eggs, and Test1, Rig, BEM and FAB holders get a free pin for their pet. Checking reads your wallet's balances only: nothing to sign, nothing to pay.",
-            "持有 TapeCode-Test1，你的蛋就是镀金的；Test1、矿机、BEM 和 FAB 持有人还能给宠物领一枚免费徽章。查看只读钱包余额：不用签名，不花钱。",
+            "A TapeCode-Test1 gilds your eggs, and Test1 and Rig holders, and wallets that held BEM or FAB at the snapshot (block 76,052,000), get a free pin for their pet. Checking reads your wallet only: nothing to sign, nothing to pay.",
+            "持有 TapeCode-Test1，你的蛋就是镀金的；Test1 和矿机的持有人，以及在快照时（第 76,052,000 个区块）持有 BEM 或 FAB 的钱包，都能给宠物领一枚免费徽章。查看只读钱包：不用签名，不花钱。",
           )}
         </p>
       ) : gives.length ? (

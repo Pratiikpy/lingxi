@@ -24,17 +24,36 @@ async function open(lang: "en" | "zh" = "en") {
   const root = createRoot(host);
   await act(async () => root.render(createElement(HolderPerkNote)));
   const text = () => host.textContent ?? "";
-  const hold = async (h: { test1?: boolean; rig?: boolean; bem?: boolean; fab?: boolean }) =>
+  const hold = async (h: { test1?: boolean; rig?: boolean; bem?: boolean; fab?: boolean; snapshot?: boolean; pinClaimed?: boolean }) =>
     act(async () => useHoldings.getState().set({ wallet, test1: false, rig: false, bem: false, fab: false, at: 0, ...h }));
   return { host, text, hold, close: () => (act(() => root.unmount()), host.remove()) };
 }
 
 describe("the holder perks on the hatch screen (H9)", () => {
+  it("tells a wallet in the snapshot that a pin waits, though it holds no BEM or FAB today (C3)", async () => {
+    const s = await open();
+    await s.hold({ snapshot: true });
+    expect(s.text()).toMatch(/you held BEM or FAB at the snapshot \(block 76,052,000\)/);
+    expect(s.text()).toMatch(/a free holder pin, to claim in the Pet tab once your pet has hatched/);
+    expect(s.text()).not.toMatch(/nothing to claim/);
+    s.close();
+  });
+
+  it("says a pin already claimed is claimed, and promises no second one (C3)", async () => {
+    const s = await open();
+    await s.hold({ test1: true, pinClaimed: true });
+    expect(s.text()).toMatch(/this wallet's holder pin is already claimed/);
+    expect(s.text()).not.toMatch(/a free holder pin, to claim/);
+    s.close();
+  });
+
   it("names the perks and who gets them before any check, and the check signs nothing", async () => {
     const s = await open();
     expect(s.text()).toMatch(/A TapeCode-Test1 gilds your eggs/);
-    expect(s.text()).toMatch(/Test1, Rig, BEM and FAB holders get a free pin/);
-    expect(s.text()).toMatch(/balances only: nothing to sign, nothing to pay/);
+    // C3: BEM and FAB give the pin by the snapshot, never by today's balance
+    expect(s.text()).toMatch(/Test1 and Rig holders, and wallets that held BEM or FAB at the snapshot \(block 76,052,000\), get a free pin/);
+    expect(s.text()).not.toMatch(/Test1, Rig, BEM and FAB holders get a free pin/);
+    expect(s.text()).toMatch(/Checking reads your wallet only: nothing to sign, nothing to pay/);
     expect(s.host.querySelector(".hatch-perk-btn")!.textContent).toBe("Check my wallet");
     s.close();
   });
