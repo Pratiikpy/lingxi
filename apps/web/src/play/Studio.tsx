@@ -9,6 +9,9 @@ import { type Design, DesignError, DESIGN_FACE_MAX_W, DESIGN_MAX_H, DESIGN_MAX_W
 import { marketsOf, parseBem, publishDesign } from "@lingxi/chain";
 import { now } from "../game/gameClock";
 
+/** The price a new piece starts at, in each coin. */
+const BEM_DEFAULT = "0.1";
+const OKB_DEFAULT = "0.001";
 /** The BEM market's smallest price per copy (its MIN_PRICE: 0.0001 BEM). */
 const MIN_BEM_PRICE = 10_000n;
 import { type Pet, stageOf } from "@lingxi/game";
@@ -41,13 +44,18 @@ export function StudioPanel({ pet }: { pet: Pet }) {
   const [ink, setInk] = useState(1);
   const [name, setName] = useState("");
   const [note, setNote] = useState("");
-  const [price, setPrice] = useState("0.1");
+  const [price, setPrice] = useState(BEM_DEFAULT);
   const [supply, setSupply] = useState("100");
   const [royalty, setRoyalty] = useState("5");
   const [busy, setBusy] = useState(false);
   // a creator chooses the coin (H8): BEM, whose 3% is burned, or OKB on the first market, whose 3% goes to the project
   const markets = deployment ? marketsOf(deployment) : [];
   const [coin, setCoin] = useState<"bem" | "okb">(markets.some((m) => m.v === 2) ? "bem" : "okb");
+  // each coin starts at its own price: 0.1 OKB is far more than 0.1 BEM, so a price nobody typed follows the coin
+  const chooseCoin = (k: "bem" | "okb") => {
+    setCoin(k);
+    setPrice((p) => (p === BEM_DEFAULT || p === OKB_DEFAULT ? (k === "bem" ? BEM_DEFAULT : OKB_DEFAULT) : p));
+  };
   const market = markets.find((m) => m.v === (coin === "bem" ? 2 : 1)) ?? null;
   const bemMarket = market?.v === 2;
   const painting = useRef(false);
@@ -208,7 +216,7 @@ export function StudioPanel({ pet }: { pet: Pet }) {
             <div className="studio-coin" role="radiogroup" aria-label={L("Price it in", "用什么定价")}>
               <span className="small">{L("Price it in", "用什么定价")}</span>
               {(["bem", "okb"] as const).map((k) => (
-                <button key={k} type="button" role="radio" aria-checked={coin === k} className={`wd-chip${coin === k ? " is-on" : ""}`} onClick={() => (play("tap"), setCoin(k))}>
+                <button key={k} type="button" role="radio" aria-checked={coin === k} className={`wd-chip${coin === k ? " is-on" : ""}`} onClick={() => (play("tap"), chooseCoin(k))}>
                   {k === "bem" ? "BEM" : "OKB"}
                 </button>
               ))}

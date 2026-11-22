@@ -14,6 +14,8 @@ import "../agents/agents.css";
 import "../tree/tree.css";
 import "./numbers.css";
 
+/** An address short enough to wrap on a phone; the market's own link beside it leads to the full record. */
+const shortAddr = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 const API = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
 
 interface Market {
@@ -151,8 +153,8 @@ function rows(n: Numbers): Array<{ title: [string, string]; readTo?: number; ite
                 label: ["From the OKB outfit market", "来自 OKB 衣服市场"] as [string, string],
                 value: `${formatEther(BigInt(n.earned.okb))} OKB`,
                 counts: [
-                  `The OKB market's fee, ${n.earned.feeBps / 100}% of every sale, paid to the project wallet ${n.earned.treasury} to fund the game; counted sale by sale at the rate in force (the market keeps no fee total), out of ${formatEther(BigInt(okb.paid))} OKB in sales.${n.earned.toProject ? "" : " The fee now goes to another wallet, so sales from now on add nothing here."} BEM fees are never earned: they are burned.`,
-                  `OKB 市场的手续费：每笔交易的 ${n.earned.feeBps / 100}%，付给项目钱包 ${n.earned.treasury}，用来维持游戏；按每笔交易当时的费率逐笔计算（市场合约不记手续费总额），来自共 ${formatEther(BigInt(okb.paid))} OKB 的交易。${n.earned.toProject ? "" : "手续费现在付给另一个钱包，之后的交易不再计入这里。"}BEM 的费用从不是收入：全部销毁。`,
+                  `The OKB market's fee, ${n.earned.feeBps / 100}% of every sale, paid to the project wallet ${shortAddr(n.earned.treasury)} to fund the game; counted sale by sale at the rate in force (the market keeps no fee total), out of ${formatEther(BigInt(okb.paid))} OKB in sales.${n.earned.toProject ? "" : " The fee now goes to another wallet, so sales from now on add nothing here."} BEM fees are never earned: they are burned.`,
+                  `OKB 市场的手续费：每笔交易的 ${n.earned.feeBps / 100}%，付给项目钱包 ${shortAddr(n.earned.treasury)}，用来维持游戏；按每笔交易当时的费率逐笔计算（市场合约不记手续费总额），来自共 ${formatEther(BigInt(okb.paid))} OKB 的交易。${n.earned.toProject ? "" : "手续费现在付给另一个钱包，之后的交易不再计入这里。"}BEM 的费用从不是收入：全部销毁。`,
                 ] as [string, string],
                 source: "marketOkb",
               },

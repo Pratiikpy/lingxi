@@ -13,7 +13,7 @@ async function openStudio(lang: "en" | "zh" = "en") {
   await visit({ at: Date.UTC(2026, 10, 22, 9) });
   // the pet preview paints a canvas, which this test does not look at: a 2D context that draws nothing
   const ctx = { createImageData: (w: number, h: number) => ({ width: w, height: h, data: new Uint8ClampedArray(w * h * 4) }), putImageData: () => undefined, clearRect: () => undefined, drawImage: () => undefined, fillRect: () => undefined, imageSmoothingEnabled: false };
-  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(() => ctx as unknown as CanvasRenderingContext2D);
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation((() => ctx) as never);
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   const { useLang } = await import("../i18n");
   if (useLang.getState().lang !== lang) useLang.getState().toggle();
@@ -24,7 +24,7 @@ async function openStudio(lang: "en" | "zh" = "en") {
   document.body.append(host);
   const root = createRoot(host);
   await act(async () => root.render(createElement(StudioPanel, { pet: useGame.getState().pet! })));
-  const radios = () => [...host.querySelectorAll<HTMLButtonElement>(".studio-coin [role=radio]")];
+  const radios = () => Array.from(host.querySelectorAll<HTMLButtonElement>(".studio-coin [role=radio]"));
   const terms = () => host.querySelector(".studio-publish")!.textContent ?? "";
   return { host, radios, terms, close: () => (act(() => root.unmount()), host.remove()) };
 }
@@ -41,6 +41,11 @@ describe("publishing a design (H8)", () => {
     expect(s.terms()).toContain("Price per copy (OKB)");
     expect(s.terms()).toMatch(/3% of every sale goes to the project, which keeps the game running/);
     expect(s.terms()).not.toMatch(/burned/);
+    // a price nobody typed follows the coin: 0.1 OKB is far more than 0.1 BEM
+    const price = () => (s.host.querySelector(".studio-terms input") as HTMLInputElement).value;
+    expect(price()).toBe("0.001");
+    await act(async () => s.radios()[0]!.click());
+    expect(price()).toBe("0.1");
     s.close();
   });
 
