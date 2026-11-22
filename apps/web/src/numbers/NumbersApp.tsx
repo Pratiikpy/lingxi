@@ -59,7 +59,7 @@ type Row = { label: [string, string]; value: string; counts: [string, string]; s
 
 /** "of which the team's: n" for a count, or nothing when the team list is not served */
 const teamLine = (n: number | undefined, total: number): [string, string] | undefined =>
-  n === undefined ? undefined : n === total && total > 0 ? ["All of it the team's own testing", "全部是团队自己的测试"] : [`The team's own: ${fmt(n)} · everyone else: ${fmt(Math.max(0, total - n))}`, `团队自己的：${fmt(n)} · 其他人：${fmt(Math.max(0, total - n))}`];
+  n === undefined || total === 0 ? undefined : n === total ? ["All of it the team's own testing", "全部是团队自己的测试"] : [`The team's own: ${fmt(n)} · everyone else: ${fmt(Math.max(0, total - n))}`, `团队自己的：${fmt(n)} · 其他人：${fmt(Math.max(0, total - n))}`];
 
 const fmt = (n: number) => n.toLocaleString("en");
 
@@ -255,7 +255,7 @@ function TeamCard({ data, lang }: { data: Numbers; lang: Lang }) {
   const playerPets = data.pets.hatched + data.pets.children - teamPets;
   const playerCopies = (data.outfits.okb?.byPlayers?.copies ?? 0) + (data.outfits.bem?.byPlayers?.copies ?? 0);
   const onlyTeam = playerPets === 0 && playerCopies === 0;
-  const named = t.wallets.map(shortAddr).join(lang === "zh" ? "、" : ", ");
+  const sep = lang === "zh" ? "、" : ", ";
   return (
     <section className="ag-card nb-team-card" aria-label={L("Whose activity this is", "这些是谁的活动")}>
       <h2>{L("Whose activity this is", "这些是谁的活动")}</h2>
@@ -265,7 +265,13 @@ function TeamCard({ data, lang }: { data: Numbers; lang: Lang }) {
           : L(`Players outside the team have hatched ${fmt(playerPets)} pet${playerPets === 1 ? "" : "s"} and bought ${fmt(playerCopies)} outfit cop${playerCopies === 1 ? "y" : "ies"}; each figure below shows the team's own share apart.`, `团队以外的玩家已经孵化了 ${fmt(playerPets)} 只宠物，买了 ${fmt(playerCopies)} 份衣服；下面每个数字都把团队自己的部分分开列出。`)}
       </p>
       <p className="small">
-        {L(`The team's wallets: ${named}`, `团队的钱包：${named}`)}
+        {L("The team's wallets: ", "团队的钱包：")}
+        {t.wallets.map((w, i) => (
+          <span key={w}>
+            {i > 0 && sep}
+            <span className="nb-addr">{shortAddr(w)}</span>
+          </span>
+        ))}
         {t.hidden > 0 ? L(`, and ${t.hidden} more kept private, counted with them.`, `，另有 ${t.hidden} 个不公开，同样计入团队。`) : "."}
       </p>
     </section>

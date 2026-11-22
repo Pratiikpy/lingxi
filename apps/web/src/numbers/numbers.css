@@ -70,7 +70,11 @@
 }
 .nb-team-card p {
   margin: 0;
-  overflow-wrap: anywhere;
+}
+/* an address never breaks across lines */
+.nb-addr {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 .nb-team-card p + p {
   margin-top: var(--s1);
