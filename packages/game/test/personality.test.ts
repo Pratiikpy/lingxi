@@ -53,5 +53,8 @@ describe("personality every day (G9)", () => {
     // three eating moments in a row: never the same sentence three times
     const told = [7, 8, 9].map((i) => momentText({ ...frame(1, 0), index: i } as Frame, "en", "shy"));
     expect(new Set(told).size).toBeGreaterThan(1);
+    // told in a list, the same choice twice in a row reads two ways whatever the moments' own numbers
+    const listed = [10, 12].map((ix, pos) => momentText({ ...frame(1, 0), index: ix } as Frame, "en", "shy", pos));
+    expect(listed[0]).not.toBe(listed[1]);
   });
 });

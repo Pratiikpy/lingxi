@@ -145,10 +145,11 @@ export type MomentKey = keyof typeof WANT;
 const WANT_KEY = Object.fromEntries(Object.entries(WANT).map(([k, v]) => [v, k])) as Record<number, MomentKey>;
 
 /** The pet's own line about a moment, in its voice: its strongest habit's when it has one (G9). */
-export function momentText(f: Frame, lang: "en" | "zh", habit: Trait | null = null): string {
+export function momentText(f: Frame, lang: "en" | "zh", habit: Trait | null = null, moment?: number): string {
   const key = WANT_KEY[f.want] ?? "idle";
   // D6: one of the habit's two lines, picked by the moment, so several moments do not repeat one sentence
-  if (habit) return habitLine(habit, key, lang, f.index ?? (f.at === null ? 0 : Math.floor(f.at / 60_000)));
+  // (`moment`: the line's place in a list being told, so the same choice twice in a row reads two ways)
+  if (habit) return habitLine(habit, key, lang, moment ?? f.index ?? (f.at === null ? 0 : Math.floor(f.at / 60_000)));
   const en: Record<MomentKey, string> = {
     idle: "I just sat and thought for a bit.",
     eat: "I wanted something to eat.",
@@ -176,8 +177,8 @@ export function momentText(f: Frame, lang: "en" | "zh", habit: Trait | null = nu
  * A moment told for the diary and the away story (G1): one a taught lesson decided is told as the lesson's doing, so
  * the player reads what their teaching made the pet do; any other is the pet's own line.
  */
-export function tellMoment(f: Frame, lang: "en" | "zh", habit: Trait | null = null): string {
-  const line = momentText(f, lang, habit);
+export function tellMoment(f: Frame, lang: "en" | "zh", habit: Trait | null = null, moment?: number): string {
+  const line = momentText(f, lang, habit, moment);
   if (ruleSource(f) !== "taught") return line;
   // every line is the pet speaking ("I ..."), so it follows the clause as it stands
   return lang === "zh" ? `因为你教过我，${line}` : `Because you taught me, ${line}`;

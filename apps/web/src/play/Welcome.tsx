@@ -158,9 +158,9 @@ function AwayCard({ pet, absence }: { pet: Pet; absence: { petKey: string; from:
         )}
         {story.events.length ? (
           <ul className="welcome-list">
-            {story.events.map((f) => (
+            {story.events.map((f, i) => (
               <li key={f.index}>
-                <b>{clock(f, lang)}</b> {EVENT_TEXT[f.senses.event]![lang]} <span>{lang === "zh" ? `${pet.name}：` : `${pet.name}: `}“{tellMoment(f, lang, strongestHabit(pet.traits))}”</span>
+                <b>{clock(f, lang)}</b> {EVENT_TEXT[f.senses.event]![lang]} <span>{lang === "zh" ? `${pet.name}：` : `${pet.name}: `}“{tellMoment(f, lang, strongestHabit(pet.traits), i)}”</span>
               </li>
             ))}
           </ul>
