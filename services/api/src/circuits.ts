@@ -11,6 +11,7 @@ import { WINDOW } from "./indexer";
 import { hasStore, readStore, saveJson } from "./durable";
 
 const TRANSFER = parseAbiItem("event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)");
+const NEXT_ID = parseAbiItem("function nextId() view returns (uint256)");
 const ZERO = "0x0000000000000000000000000000000000000000";
 
 interface Stored {
@@ -78,8 +79,37 @@ export function createCircuitCounter(opts: { rpc: string; processor: Address; fr
     }
   }
 
+  /** The first block at or after `sinceSec`, searched by its time between the deploy block and the head. */
+  async function firstBlockSince(sinceSec: number, head: number): Promise<number> {
+    const timeOf = async (b: number) => Number((await pub.getBlock({ blockNumber: BigInt(b) })).timestamp);
+    let lo = opts.fromBlock;
+    let hi = head;
+    if ((await timeOf(lo)) >= sinceSec) return lo;
+    while (lo + 1 < hi) {
+      const mid = Math.floor((lo + hi) / 2);
+      if ((await timeOf(mid)) >= sinceSec) hi = mid;
+      else lo = mid;
+    }
+    return hi;
+  }
+  const nextIdAt = async (b: number) => Number(await pub.readContract({ address: opts.processor, abi: [NEXT_ID], functionName: "nextId", blockNumber: BigInt(b) }));
+
+  /**
+   * Circuits taped out since `sinceSec`, from the processor's own count (C7): `nextId` is the id of its latest circuit, so
+   * the window's circuits are `nextId` at the head less `nextId` just before the window's first block (none before the
+   * processor existed). Two state reads and a search by block time, so the figure never waits on the walk of mints, which
+   * a restart sends back to the deploy block; the walk stays as the recount's independent count.
+   */
+  async function week(sinceSec: number): Promise<number> {
+    const head = Number(await pub.getBlockNumber({ cacheTime: 0 }));
+    const first = await firstBlockSince(sinceSec, head);
+    const before = first <= opts.fromBlock ? 0 : await nextIdAt(first - 1);
+    return (await nextIdAt(head)) - before;
+  }
+
   return {
     catchUp,
+    week,
     /** circuits minted in all and since `sinceSec`, and the block the walk has read to */
     totals: (sinceSec: number) => ({ minted: data.mints.length, since: data.mints.filter((m) => m[2] >= sinceSec).length, indexedTo: data.next - 1 }),
   };

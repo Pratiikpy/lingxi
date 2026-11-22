@@ -103,6 +103,27 @@ describe("circuits Lingxi has taped out (H10)", () => {
     expect(cc.totals(NOW - 7 * DAY)).toEqual({ minted: 3, since: 2, indexedTo: 3000 });
   });
 
+  it("counts the week's circuits from the processor's own count, without waiting for the walk (C7)", async () => {
+    // one block a second; circuits 1 to 5 before block 400, 6 to 9 after it; nextId is the latest id at each block
+    const T0 = NOW - 1_000;
+    const client = {
+      getBlockNumber: async () => 1_000n,
+      getLogs: async () => [],
+      getBlock: async ({ blockNumber }: { blockNumber: bigint }) => ({ timestamp: BigInt(T0 + Number(blockNumber)) }),
+      readContract: async ({ functionName, blockNumber }: { functionName: string; blockNumber?: bigint }) => {
+        if (functionName !== "nextId") throw new Error(functionName);
+        const b = Number(blockNumber ?? 1_000n);
+        return BigInt(b < 400 ? 5 : b < 700 ? 7 : 9);
+      },
+    } as unknown as PublicClient;
+    const cc = createCircuitCounter({ rpc: "", processor: PROC, fromBlock: 100, client, paceMs: 0 });
+    // since block 400's time: circuits 6 to 9 are this window's
+    expect(await cc.week(T0 + 400)).toBe(4);
+    expect(await cc.week(T0 + 700)).toBe(2);
+    // a window opening before the processor existed counts every circuit
+    expect(await cc.week(T0 + 50)).toBe(9);
+  });
+
   it("reads again from the deploy block when its saved place belongs to another start or processor", async () => {
     const store = join(mkdtempSync(join(tmpdir(), "cc-")), "circuits.json");
     const mints = [{ block: 1000, id: 1n }, { block: 2000, id: 2n }];

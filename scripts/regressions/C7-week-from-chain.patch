@@ -1,0 +1,11 @@
+--- a/services/api/src/numbers.ts
++++ b/services/api/src/numbers.ts
+@@ -301,7 +301,7 @@ export async function readNumbers(d: NumbersDeps, nowMs = Date.now()): Promise<N
+   const split = d.team ? d.team.byTeam(since) : null;
+   // the week's circuits from the processor's own count (C7); if that read fails, the walk's count once it is caught up
+   const walkWeek = walked && Number(head) - walked.indexedTo <= CAUGHT_UP_BLOCKS ? walked.since : null;
+-  const chainWeek = d.circuits?.counter.week ? await d.circuits.counter.week(since).catch(() => null) : null;
++  const chainWeek = null;
+   const circuitsWeek = chainWeek ?? walkWeek;
+   const split24 = d.team ? d.team.byTeam(Math.floor(nowMs / 1000) - 86_400) : null;
+   const market = (a?: Address) => (a ? { ...d.sales.totals(a), indexedTo: d.sales.head(a) } : null);

@@ -237,6 +237,20 @@ describe("live numbers", () => {
     expect(behind.circuits?.last7d).toBeNull();
     expect(behind.week?.circuits).toBeNull();
     expect(behind.circuits?.total).toBe(23);
+
+    // C7: with the processor's own count to ask, the week's figure never waits on the walk
+    const told7 = await readNumbers(
+      { pub: withNext, counts, petsIndexedTo: () => 2_140, sales, activity: () => ({ hatched: 0, children: 0, saves: 0, petsSaved: 0, hatchers: 0 }), circuits: { processor: PROC, counter: { totals: () => ({ minted: 5, since: 0, indexedTo: 1_000 }), week: async () => 4 } }, contracts: { registry: REG }, explorer: "https://x" },
+      1_800_000_000_000,
+    );
+    expect(told7.circuits?.last7d).toBe(4);
+    expect(told7.week?.circuits).toBe(4);
+    // and when that read fails while the walk is behind, nothing is guessed
+    const failing = await readNumbers(
+      { pub: withNext, counts, petsIndexedTo: () => 2_140, sales, activity: () => ({ hatched: 0, children: 0, saves: 0, petsSaved: 0, hatchers: 0 }), circuits: { processor: PROC, counter: { totals: () => ({ minted: 5, since: 0, indexedTo: 1_000 }), week: async () => Promise.reject(new Error("node down")) } }, contracts: { registry: REG }, explorer: "https://x" },
+      1_800_000_000_000,
+    );
+    expect(failing.circuits?.last7d).toBeNull();
   });
 
   it("before the BEM contracts exist, their numbers are absent rather than invented", async () => {

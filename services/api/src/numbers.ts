@@ -247,7 +247,7 @@ export interface NumbersDeps {
     byTeam: (sinceSec: number) => { all: { hatched: number; children: number; saves: number; hatchers: number }; week: { hatched: number; children: number; saves: number; petsSaved: number; hatchers: number } };
   };
   /** Lingxi's processor and the walk of its mints (H10) */
-  circuits?: { processor: Address; fromBlock?: number; counter: { totals: (sinceSec: number) => { minted: number; since: number; indexedTo: number } } };
+  circuits?: { processor: Address; fromBlock?: number; counter: { totals: (sinceSec: number) => { minted: number; since: number; indexedTo: number }; week?: (sinceSec: number) => Promise<number> } };
   contracts: { registry: Address; marketOkb?: Address; marketBem?: Address; breeder?: Address; gift?: Address; itemShop?: Address; adoption?: Address; extras?: Address };
   explorer: string;
 }
@@ -299,6 +299,10 @@ export async function readNumbers(d: NumbersDeps, nowMs = Date.now()): Promise<N
   const nextId = d.circuits ? Number((await d.pub.readContract({ address: d.circuits.processor, abi: views, functionName: "nextId" })) as bigint) : 0;
   const walked = d.circuits ? d.circuits.counter.totals(since) : null;
   const split = d.team ? d.team.byTeam(since) : null;
+  // the week's circuits from the processor's own count (C7); if that read fails, the walk's count once it is caught up
+  const walkWeek = walked && Number(head) - walked.indexedTo <= CAUGHT_UP_BLOCKS ? walked.since : null;
+  const chainWeek = d.circuits?.counter.week ? await d.circuits.counter.week(since).catch(() => null) : null;
+  const circuitsWeek = chainWeek ?? walkWeek;
   const split24 = d.team ? d.team.byTeam(Math.floor(nowMs / 1000) - 86_400) : null;
   const market = (a?: Address) => (a ? { ...d.sales.totals(a), indexedTo: d.sales.head(a) } : null);
   const contracts: Numbers["contracts"] = {};
@@ -319,11 +323,11 @@ export async function readNumbers(d: NumbersDeps, nowMs = Date.now()): Promise<N
       extras: extrasBurned.toString(),
       total: (marketBurned + breedingBurned + shopBurned + adoptionBurned + extrasBurned).toString(),
     },
-    week: d.activity ? { since, ...d.activity(since), ...(split ? { byTeam: split.week } : {}), circuits: walked && Number(head) - walked.indexedTo <= CAUGHT_UP_BLOCKS ? walked.since : null } : null,
+    week: d.activity ? { since, ...d.activity(since), ...(split ? { byTeam: split.week } : {}), circuits: walked ? circuitsWeek : null } : null,
     kept: d.keepers ? { ...d.keepers(), sponsors: d.sponsors ?? [], ...(d.sponsorOn ? { sponsorOn: d.sponsorOn() } : {}) } : null,
     // the processor's nextId is the id of its latest circuit (ids start at 1: 23 means circuits 1 to 23, read back
     // with ownerOf on mainnet), so it is the count itself
-    circuits: d.circuits && walked ? { total: nextId, minted: walked.minted, last7d: Number(head) - walked.indexedTo <= CAUGHT_UP_BLOCKS ? walked.since : null, indexedTo: walked.indexedTo, fromBlock: d.circuits.fromBlock ?? null, processor: d.circuits.processor } : null,
+    circuits: d.circuits && walked ? { total: nextId, minted: walked.minted, last7d: circuitsWeek, indexedTo: walked.indexedTo, fromBlock: d.circuits.fromBlock ?? null, processor: d.circuits.processor } : null,
     earned: ((e) => (e && d.contracts.marketOkb ? { ...e, indexedTo: d.sales.head(d.contracts.marketOkb) } : null))(d.contracts.marketOkb ? d.sales.earned(d.contracts.marketOkb) : null),
     extras: extrasSold ? { room: Number(extrasSold[0]), looks: Number(extrasSold[1]), colours: Number(extrasSold[2]) } : null,
     pins: pins === null ? null : Number(pins),
