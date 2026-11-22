@@ -33,6 +33,7 @@ const NAMED: Record<string, [string, string]> = {
   lane: ["Builders' Lane's tape-out count", "建设者小巷的流片计数"],
   goals: ["goals", "目标"],
   numbers: ["the numbers", "各项数字"],
+  holders: ["which TapeCode-Test1 a wallet holds", "一个钱包持有哪些 TapeCode-Test1"],
   // what the player sends, and the forwarded chain reads, are named on the note's other lines
   rpc: ["The game's reads of X Layer", "游戏对 X Layer 的读取"],
   move: ["a save moved to another device", "搬到另一台设备的存档"],

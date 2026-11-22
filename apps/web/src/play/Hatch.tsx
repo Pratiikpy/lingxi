@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { SHELL, drawEgg, drawPet } from "@lingxi/art";
 import { useHoldings } from "../game/holders";
+import { HolderPerkNote } from "./HolderPerk";
 
 /** The gilded shell a TapeCode Test1 holder's eggs wear. */
 const GILDED = { O: "#7A4E1A", o: "#B07A2A", D: "#E0A93A", d: "#F5C85A", m: "#FFE39A" };
@@ -104,6 +105,7 @@ export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string, 
               </button>
             ))}
           </div>
+          <HolderPerkNote />
           <fieldset className="instincts">
             <legend>{t("hatch.instincts")}</legend>
             <p>{t("hatch.instincts.sub")}</p>

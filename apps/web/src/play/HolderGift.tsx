@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useEffectEvent, useState } from "react";
-import { type GiftTerms, type GiftWay, type Snapshot, type SnapshotFile, checkTest1, claimGift, formatBem, giftClaimed, giftTerms, giftWays, loadSnapshot } from "@lingxi/chain";
+import { type GiftTerms, type GiftWay, type Snapshot, type SnapshotFile, checkTest1, claimGift, formatBem, giftClaimed, giftTerms, giftWaysOf, loadSnapshot } from "@lingxi/chain";
 import type { Pet } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { connectWallet, deployment, publicClient } from "../game/chain";
@@ -14,6 +14,7 @@ import { useDesigns } from "../game/designs";
 import { play } from "../game/sound";
 import { OnPet } from "./FashionMarket";
 import { firstLine } from "../game/errorText";
+import { test1Lookup } from "../game/test1Lookup";
 
 type Lang = "en" | "zh";
 const WAY_NAME: Record<GiftWay["label"], { en: string; zh: string }> = {
@@ -32,7 +33,9 @@ export function HolderGiftPanel({ pet, wallet }: { pet: Pet; wallet: string }) {
   const refreshDesigns = useDesigns((s) => s.refresh);
   const [terms, setTerms] = useState<GiftTerms | null>(null);
   const [claimed, setClaimed] = useState<boolean | null>(null);
-  const [ways, setWays] = useState<GiftWay[]>([]);
+  // null while the wallet is being read (a Test1's number is found by reading every owner: a few seconds)
+  const [ways, setWays] = useState<GiftWay[] | null>(null);
+  const [test1Unread, setTest1Unread] = useState(false);
   const [snapDate, setSnapDate] = useState<Date | null>(null);
   const [number, setNumber] = useState("");
   const [busy, setBusy] = useState(false);
@@ -55,12 +58,19 @@ export function HolderGiftPanel({ pet, wallet }: { pet: Pet; wallet: string }) {
         } catch {
           snap = null;
         }
-        const [c, w, blk] = await Promise.all([giftClaimed(publicClient, t, who), giftWays(publicClient, t, who, snap), publicClient.getBlock({ blockNumber: t.snapshotBlock }).catch(() => null)]);
+        // the terms show at once; the ways follow, since finding a Test1 reads every token's owner
+        const [c, blk] = await Promise.all([giftClaimed(publicClient, t, who), publicClient.getBlock({ blockNumber: t.snapshotBlock }).catch(() => null)]);
         if (!live) return;
         setSnapDate(blk ? new Date(Number(blk.timestamp) * 1000) : null);
         setTerms(t);
         setClaimed(c);
-        setWays(w);
+        if (c) setWays([]);
+        else {
+          const w = await giftWaysOf(publicClient, t, who, snap, await test1Lookup(who));
+          if (!live) return;
+          setWays(w.ways);
+          setTest1Unread(w.test1 === "unreadable");
+        }
         // a pin claimed earlier, or on another device, belongs in the wardrobe too: read this wallet's pieces
         if (c && useDesigns.getState().wallet?.toLowerCase() !== who.toLowerCase()) void refreshDesigns(who);
       } catch {
@@ -130,27 +140,40 @@ export function HolderGiftPanel({ pet, wallet }: { pet: Pet; wallet: string }) {
         !note && <p className="small fashion-have">{L("You've claimed your holder pin. Wear it from the wardrobe.", "你已经领过持有人徽章了。去衣橱里穿上它吧。")}</p>
       ) : (
         <>
-          {ways[0] && (
+          {ways === null && (
+            <p className="small" role="status">
+              {L("Reading this wallet's TapeCode-Test1, Rig and snapshot entry…", "正在读取这个钱包的 TapeCode-Test1、矿机和快照记录……")}
+            </p>
+          )}
+          {ways?.[0] && (
             <button type="button" className="btn primary" disabled={busy} onClick={() => (play("tap"), void claim(ways[0]!))}>
-              {busy ? L("Claiming…", "领取中……") : L(`Claim it with ${WAY_NAME[ways[0].label].en}`, zhAround("凭", WAY_NAME[ways[0].label].zh, "领取"))}
+              {busy ? L("Claiming…", "领取中……") : ways[0].kind === "nft" && ways[0].label === "test1" ? L(`Claim it with your TapeCode-Test1 #${ways[0].tokenId}`, `凭你的 TapeCode-Test1 #${ways[0].tokenId} 领取`) : L(`Claim it with ${WAY_NAME[ways[0].label].en}`, zhAround("凭", WAY_NAME[ways[0].label].zh, "领取"))}
             </button>
           )}
-          <form
-            className="holder-gift-test1"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void claimWithNumber();
-            }}
-          >
-            <label className="small">
-              {L("Or claim with your TapeCode-Test1: its number", "或者凭你的 TapeCode-Test1 领取：编号")}
-              <input inputMode="numeric" value={number} placeholder="#" onChange={(e) => setNumber(e.target.value.replace(/\D/g, "").slice(0, 7))} />
-            </label>
-            <button type="submit" className="btn" disabled={busy || !number}>
-              {L("Check and claim", "查看并领取")}
-            </button>
-          </form>
-          {!ways.length && <p className="small">{L("This wallet holds no Rig and wasn't in the BEM or FAB snapshot; a TapeCode-Test1 number still works.", "这个钱包没有矿机，也不在 BEM 或 FAB 快照里；填 TapeCode-Test1 编号也可以。")}</p>}
+          {test1Unread && <p className="small sp-warn">{L("This wallet's TapeCode-Test1 couldn't be looked up just now: type its number below.", "暂时查不到这个钱包的 TapeCode-Test1：请在下面填它的编号。")}</p>}
+          {ways !== null && !ways.length && !test1Unread && (
+            <p className="small">{L("This wallet holds no unused TapeCode-Test1 or Rig and wasn't in the BEM or FAB snapshot, so there is nothing to claim and nothing was spent.", "这个钱包没有还没用过的 TapeCode-Test1 或矿机，也不在 BEM 或 FAB 快照里，所以没有可领的东西，也没花钱。")}</p>
+          )}
+          {ways !== null && (
+            <details className="holder-gift-test1-box" open={test1Unread || undefined}>
+              <summary className="small">{L("Claim with a TapeCode-Test1 by its number", "用 TapeCode-Test1 的编号领取")}</summary>
+              <form
+                className="holder-gift-test1"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void claimWithNumber();
+                }}
+              >
+                <label className="small">
+                  {L("Its number, as your wallet shows it", "编号（钱包里能看到）")}
+                  <input inputMode="numeric" value={number} placeholder="#" onChange={(e) => setNumber(e.target.value.replace(/\D/g, "").slice(0, 7))} />
+                </label>
+                <button type="submit" className="btn" disabled={busy || !number}>
+                  {L("Check and claim", "查看并领取")}
+                </button>
+              </form>
+            </details>
+          )}
         </>
       )}
       {note && (

@@ -51,11 +51,12 @@ import { type SeasonStore, createSeasonStore, settleAwards } from "./season";
 import { dayIndex, weekOf } from "@lingxi/game";
 import { parseCard } from "@lingxi/game";
 import { createPublicClient, custom, fallback, http, parseEther, type Address, type PublicClient } from "viem";
-import { FACTORY, type Deployment, type SignedRelay, adoptionCentreAbi, createNetlistCache, loadCircuitFromChain, nameColours, packsHeld, petRegistryAbi, piecesHeld, readPet, xLayer } from "@lingxi/chain";
+import { FACTORY, type Deployment, type SignedRelay, adoptionCentreAbi, createNetlistCache, holderGiftAbi, loadCircuitFromChain, nameColours, packsHeld, petRegistryAbi, piecesHeld, readPet, xLayer } from "@lingxi/chain";
 import { type HomeChain, createHomes } from "./homes";
 import { createAgentStore } from "./agents";
 import { withAgentApi } from "./agentApi";
 import { withTapApi } from "./tapApi";
+import { TEST1_REFRESH_MS, createTest1Index, withTest1Owners } from "./test1Owners";
 import { handleMcp, withMcp } from "./mcp";
 import { MCP_TOOLS } from "./mcpToolDefs";
 import { type Letter, currentLetters, loadLetters } from "./mail";
@@ -1289,6 +1290,15 @@ if (isMain) {
     const processor = (process.env.LINGXI_PROCESSOR ?? chainCtx?.deployment.processor) as `0x${string}` | undefined;
     const refs = processor ? createRefScanner({ rpc, factory: FACTORY, ours: processor, store: process.env.LINGXI_REFS_STORE ?? join(dataDir, "refs.json") }) : undefined;
     if (refs) jobs.loop("refs", () => refs.catchUp(), 120_000);
+    // who holds each TapeCode-Test1, so a holder claims the holder pin without typing a number (H9); the collection is
+    // the one the gift contract itself names
+    if (chainCtx?.deployment.holderGift) {
+      const giftPub = chainCtx.pub;
+      const gift = chainCtx.deployment.holderGift;
+      const test1 = createTest1Index({ pub: giftPub, collection: async () => (await giftPub.readContract({ address: gift, abi: holderGiftAbi, functionName: "test1" })) as `0x${string}` });
+      withTest1Owners(app, test1);
+      jobs.loop("test1 owners", () => test1.refresh(), TEST1_REFRESH_MS);
+    }
     withNumbers(app, {
       pub: visitorPub,
       counts: (since) => indexer.counts(since),

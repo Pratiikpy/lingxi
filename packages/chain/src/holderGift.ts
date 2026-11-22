@@ -16,7 +16,16 @@ const nftAbi = parseAbi([
   "function ownerOf(uint256) view returns (address)",
   "function balanceOf(address) view returns (uint256)",
   "function tokenOfOwnerByIndex(address,uint256) view returns (uint256)",
+  "function totalSupply() view returns (uint256)",
 ]);
+/** Owners read per multicall when looking for a wallet's Test1 tokens, and how many such calls run at once. */
+const OWNERS_PER_CALL = 1000;
+const LANES = 4;
+/** Tries for a batch of owners before the lookup is reported unreadable. */
+const OWNER_TRIES = 3;
+
+/** The node could not answer the owner lookup (every read of a batch failed, however often it was asked). */
+export class Test1Unreadable extends Error {}
 
 export interface GiftTerms {
   gift: Address;
@@ -98,12 +107,83 @@ export function snapshotWay(s: Snapshot, t: GiftTerms, who: Address): GiftWay | 
 }
 
 /**
- * Ways this wallet can claim: a Rig it owns and has not used (Rigs list their tokens by owner), then its
- * snapshot entry. A Test1 token cannot be found this way (the collection does not list tokens by owner), so
- * the player names its number and `checkTest1` confirms it.
+ * The Test1 tokens a wallet holds, those that have not given the gift first. The collection does not list tokens by
+ * owner (it is not ERC-721 Enumerable), so every token's owner is read from the chain, a thousand to a multicall and
+ * four calls at a time: its 10,000 tokens in about ten calls, a few seconds. A wallet holding none is asked nothing
+ * more, and the walk stops once it has found as many tokens as the wallet holds.
+ */
+export interface Test1Lookup {
+  /** tokens an index says the wallet holds; each is confirmed on chain, and a short list falls back to the full read */
+  candidates?: readonly bigint[];
+  /** owners per multicall: 1000 to a public node, fewer through a door with a smaller request limit */
+  perCall?: number;
+}
+
+export async function test1TokensOf(pub: PublicClient, t: GiftTerms, who: Address, o: Test1Lookup = {}): Promise<{ unused: bigint[]; used: bigint[] }> {
+  const held = Number((await pub.readContract({ address: t.test1, abi: nftAbi, functionName: "balanceOf", args: [who] })) as bigint);
+  if (held === 0) return { unused: [], used: [] };
+  const me = who.toLowerCase();
+  let mine: bigint[] = [];
+  // an index's answer is only a hint: each token is checked against the chain, and the full read runs when the hint
+  // does not account for every token the wallet holds (a token bought since the index last looked)
+  if (o.candidates?.length) {
+    const owners = await pub.multicall({ allowFailure: true, contracts: o.candidates.map((id) => ({ address: t.test1, abi: nftAbi, functionName: "ownerOf" as const, args: [id] as const })) });
+    mine = o.candidates.filter((_, k) => owners[k]!.status === "success" && String(owners[k]!.result).toLowerCase() === me);
+  }
+  if (mine.length < held) {
+    mine = [];
+    const perCall = o.perCall ?? OWNERS_PER_CALL;
+    const supply = Number((await pub.readContract({ address: t.test1, abi: nftAbi, functionName: "totalSupply" })) as bigint);
+    // tokens are numbered from 1; a missing one (none on mainnet) is simply skipped
+    const starts = Array.from({ length: Math.ceil(supply / perCall) }, (_, k) => 1 + k * perCall);
+    for (let i = 0; i < starts.length && mine.length < held; i += LANES) {
+      const lanes = await Promise.all(starts.slice(i, i + LANES).map((from) => ownersFrom(pub, t, from, Math.min(perCall, supply - from + 1))));
+      lanes.forEach((results, lane) =>
+        results.forEach((r, k) => {
+          if (r.status === "success" && String(r.result).toLowerCase() === me) mine.push(BigInt(starts[i + lane]! + k));
+        }),
+      );
+    }
+  }
+  if (!mine.length) return { unused: [], used: [] };
+  const usedFlags = await pub.multicall({ allowFailure: false, contracts: mine.map((id) => ({ address: t.gift, abi: holderGiftAbi, functionName: "tokenUsed" as const, args: [t.test1, id] as const })) });
+  return { unused: mine.filter((_, k) => !usedFlags[k]), used: mine.filter((_, k) => usedFlags[k]) };
+}
+
+/**
+ * The owners of `count` Test1 tokens from `from`, as multicall results. With failures allowed, viem marks every call of
+ * a batch failed when the batch itself fails (a timeout, a rate limit), which would read as "holds nothing": such a
+ * batch is asked again, and one that still fails throws, so the player is told the lookup failed rather than nothing.
+ */
+async function ownersFrom(pub: PublicClient, t: GiftTerms, from: number, count: number) {
+  for (let attempt = 1; ; attempt++) {
+    const results = await pub
+      .multicall({
+        allowFailure: true,
+        batchSize: 1 << 20,
+        contracts: Array.from({ length: count }, (_, k) => ({ address: t.test1, abi: nftAbi, functionName: "ownerOf" as const, args: [BigInt(from + k)] as const })),
+      })
+      .catch(() => null);
+    if (results && results.some((r) => r.status === "success")) return results;
+    if (attempt >= OWNER_TRIES) throw new Test1Unreadable(`the owners of TapeCode-Test1 #${from} to #${from + count - 1} could not be read`);
+  }
+}
+
+/**
+ * Ways this wallet can claim, each found from the chain so the player only taps: its snapshot entry first, then a Rig
+ * it owns and has not used (Rigs list their tokens by owner), then a Test1 it owns and has not used (found by
+ * `test1TokensOf`). The snapshot comes first because it uses up no NFT's one gift, so a wallet that qualifies by its
+ * balance keeps its NFTs able to give the pin to whoever holds them next. `checkTest1` still confirms a typed number.
  */
 export async function giftWays(pub: PublicClient, t: GiftTerms, who: Address, s: Snapshot | null): Promise<GiftWay[]> {
+  return (await giftWaysOf(pub, t, who, s)).ways;
+}
+
+/** The ways, and whether the wallet's Test1 tokens could be looked up (when not, the player can still type a number). */
+export async function giftWaysOf(pub: PublicClient, t: GiftTerms, who: Address, s: Snapshot | null, lookup: Test1Lookup = {}): Promise<{ ways: GiftWay[]; test1: "read" | "unreadable" }> {
   const ways: GiftWay[] = [];
+  const snap = s ? snapshotWay(s, t, who) : null;
+  if (snap) ways.push(snap);
   const rigs = (await pub.readContract({ address: t.rig, abi: nftAbi, functionName: "balanceOf", args: [who] })) as bigint;
   for (let i = 0n; i < rigs && i < 20n; i++) {
     const id = (await pub.readContract({ address: t.rig, abi: nftAbi, functionName: "tokenOfOwnerByIndex", args: [who, i] })) as bigint;
@@ -112,9 +192,14 @@ export async function giftWays(pub: PublicClient, t: GiftTerms, who: Address, s:
       break;
     }
   }
-  const snap = s ? snapshotWay(s, t, who) : null;
-  if (snap) ways.push(snap);
-  return ways;
+  try {
+    const test1 = await test1TokensOf(pub, t, who, lookup);
+    if (test1.unused[0] !== undefined) ways.push({ kind: "nft", collection: t.test1, tokenId: test1.unused[0], label: "test1" });
+  } catch (e) {
+    if (!(e instanceof Test1Unreadable)) throw e;
+    return { ways, test1: "unreadable" };
+  }
+  return { ways, test1: "read" };
 }
 
 /** Confirm a Test1 number the player typed: theirs, and not used for a gift before. */

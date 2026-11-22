@@ -425,6 +425,33 @@
   font-size: 14px;
   color: var(--ink-soft);
 }
+.l-perks {
+  list-style: none;
+  margin: var(--s3) 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s3);
+}
+.l-perks li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--s4);
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--card);
+  min-width: 0;
+}
+.l-perks b {
+  font-family: var(--round);
+  font-weight: 800;
+  font-size: 17px;
+}
+.l-perks span {
+  font-size: 14px;
+  color: var(--ink-soft);
+}
 .l-start {
   align-items: center;
   text-align: center;
@@ -462,6 +489,9 @@
   }
   .proof-steps {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .l-perks {
+    grid-template-columns: minmax(0, 1fr);
   }
   .residents {
     grid-template-columns: repeat(3, minmax(0, 1fr));

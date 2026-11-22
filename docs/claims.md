@@ -24,6 +24,7 @@ Kinds of check:
 | fee-limited | README, wardrobe | The Tape-out set: three outfits, 0.1 BEM each, 300 copies each, the whole price burned. | auto:fees-limited |
 | fee-extras | README, extras panel | Room space, saved looks and a name colour: 0.05 BEM each, the whole price burned; room and looks up to three times. | auto:fees-extras |
 | fee-holder | README, numbers, proof page | The holder outfit is free: TapeCode-Test1 and Rig holders by the token held (each once), BEM and FAB holders by a snapshot of balances at block 76,052,000. | auto:holder-gift |
+| holder-perks-seen | landing (EN, ZH), hatch screen (EN, ZH) | TapeCode-Test1 holders hatch gilded eggs; Test1 and Rig holders, and wallets with at least 0.1 BEM or 10 FAB at block 76,052,000, claim a free pin, one per wallet, for the gas alone; Rig holders' homes can wear the rig bay; checking reads balances only. | auto:holder-gift |
 | keeps-no-bem | README, extras | Lingxi takes no share of any BEM payment; no contract keeps a fee, and a contract holds only what it owes others until they take it. | auto:no-bem-held |
 | no-token | README | Lingxi has no token of its own. | manual: the deployment record lists every contract Lingxi deployed (`packages/chain/deployments/xlayer.json`); none is a token. BEM is TapeOut's. |
 | owner-powers | README | Where a fee goes cannot change: it is burned. Its size moves only within fixed bounds: the second outfit market up to 5%. | test:contracts/test/OutfitMarketV2.t.sol |

@@ -382,6 +382,23 @@ export function LandingApp() {
           </a>
         </section>
 
+        <section id="holders" className="l-sec l-holders" aria-labelledby="holders-h">
+          <p className="l-label">{c.holdLabel}</p>
+          <h2 id="holders-h">{c.holdH}</h2>
+          <p className="l-p">{c.holdP}</p>
+          <ul className="l-perks">
+            {c.holdPerks.map((x) => (
+              <li key={x[0]}>
+                <b>{x[0]}</b>
+                <span>{x[1]}</span>
+              </li>
+            ))}
+          </ul>
+          <a className="l-cta ghost" href="play.html">
+            {c.holdCta}
+          </a>
+        </section>
+
         <section id="start" className="l-sec l-start" aria-labelledby="start-h">
           <h2 id="start-h">{c.startH}</h2>
           <p className="l-p">{c.startP}</p>

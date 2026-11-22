@@ -192,6 +192,61 @@
     text-wrap: pretty;
   }
 }
+/* the holder perks (H9): a quiet card under the eggs, the check a text button so it never competes with Hatch */
+.hatch-perk {
+  width: 100%;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: var(--s3);
+  border: 2px dashed var(--line);
+  border-radius: var(--r-md);
+  text-align: center;
+}
+.hatch-perk-h {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.hatch-perk-p {
+  margin: 0;
+  max-width: 52ch;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+.hatch-perk-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.hatch-perk-list li::before {
+  content: "✦ ";
+  color: var(--coral);
+}
+.hatch-perk-btn {
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: 700 14px var(--round);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.hatch-perk-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
 .instincts {
   width: 100%;
   margin: 0;
