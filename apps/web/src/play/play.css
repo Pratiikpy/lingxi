@@ -3075,3 +3075,17 @@
 .season-line span {
   white-space: nowrap;
 }
+/* G4: what visitors left, as plain lines under who came by */
+.welcome-keepsakes {
+  margin: 0;
+  padding: 6px 10px;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+  border-radius: 10px;
+  background: color-mix(in srgb, #ffd45e 22%, transparent);
+}
+.welcome-keepsakes li {
+  font-size: 13px;
+  font-weight: 600;
+}
