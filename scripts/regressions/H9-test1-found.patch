@@ -1,0 +1,10 @@
+--- a/packages/chain/src/holderGift.ts
++++ b/packages/chain/src/holderGift.ts
+@@ -194,7 +194,6 @@ export async function giftWaysOf(pub: PublicClient, t: GiftTerms, who: Address,
+   }
+   try {
+     const test1 = await test1TokensOf(pub, t, who, lookup);
+-    if (test1.unused[0] !== undefined) ways.push({ kind: "nft", collection: t.test1, tokenId: test1.unused[0], label: "test1" });
+   } catch (e) {
+     if (!(e instanceof Test1Unreadable)) throw e;
+     return { ways, test1: "unreadable" };

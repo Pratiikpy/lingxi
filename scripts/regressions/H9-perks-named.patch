@@ -1,0 +1,10 @@
+--- a/apps/web/src/play/Hatch.tsx
++++ b/apps/web/src/play/Hatch.tsx
+@@ -105,7 +105,6 @@ export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string,
+               </button>
+             ))}
+           </div>
+-          <HolderPerkNote />
+           <fieldset className="instincts">
+             <legend>{t("hatch.instincts")}</legend>
+             <p>{t("hatch.instincts.sub")}</p>

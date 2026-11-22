@@ -203,12 +203,12 @@
   border-radius: var(--r-md);
   text-align: center;
 }
+/* a question with a name in it, so the name keeps its own case (TapeOut, not TAPEOUT) */
 .hatch-perk-h {
   margin: 0;
   font-family: var(--display);
-  font-size: 14px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: 15px;
+  letter-spacing: 0.04em;
   color: var(--ink-soft);
 }
 .hatch-perk-p {
