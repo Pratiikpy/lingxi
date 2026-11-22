@@ -23,6 +23,8 @@ import { XLAYER_ENDPOINTS, createPacedLogs } from "./lib/paced-logs";
 import { xLayer } from "../src/tapeout";
 import { GOALS, type GoalMetric, SETTLED_DAYS, goalCounts } from "@lingxi/world";
 
+type Split = { copies: number; paid: string };
+type PageMarket = { copies: number; paid: string; indexedTo: number; byTeam?: Split; selfBuys?: Split; byPlayers?: Split & { buyers: number } };
 const arg = (n: string, f?: string) => {
   const i = process.argv.indexOf(`--${n}`);
   return i > 0 ? process.argv[i + 1] : f;
@@ -58,7 +60,12 @@ const T = {
   burned: topic("Burned(address,uint256)"),
   bought: topic("Bought(address,uint8,uint256,uint256)"),
   feeChanged: topic("FeeChanged(uint16,address)"),
+  // who made each design and who listed each copy (C2): read from the indexed topics, the same in both markets
+  created: topic("Created(uint256,address,uint8,uint96,uint32,uint16,string)"),
+  listedV1: topic("Listed(uint256,address,uint256,uint32,uint96)"),
+  listedV2: topic("Listed(uint256,address,uint256,uint32,uint96,uint64,address)"),
 };
+const topicAddr = (t: string | undefined) => `0x${(t ?? "").slice(26)}`.toLowerCase();
 const ZERO_TOPIC = `0x${"0".repeat(64)}`;
 const views = parseAbi(["function totalBurned() view returns (uint256)", "function total() view returns (uint256)", "function nextPetId() view returns (uint256)", "function feeBps() view returns (uint16)", "function treasury() view returns (address)", "function nextId() view returns (uint256)"]);
 /**
@@ -85,13 +92,14 @@ async function logsOf(address: Address, from: number, to: number) {
 
 async function main() {
   const live = (await (await fetch(`${api}/api/numbers`, { cache: "no-store" })).json()) as {
-    pets: { hatched: number; children: number; daysSaved: number; indexedTo: number; nextPetId: number };
-    outfits: { okb: { copies: number; paid: string; indexedTo: number } | null; bem: { copies: number; paid: string; indexedTo: number } | null };
+    pets: { hatched: number; children: number; daysSaved: number; indexedTo: number; nextPetId: number; savedLast24h?: number; byTeam?: { hatched: number; children: number; saves: number; hatchers: number; savedLast24h: number } };
+    outfits: { okb: PageMarket | null; bem: PageMarket | null };
+    team?: { wallets: string[]; hidden: number } | null;
     burned: { market: string; breeding: string; shop?: string; adoption?: string; extras?: string; total: string };
     extras?: { room: number; looks: number; colours: number } | null;
     pins: number | null;
-    earned?: { okb: string; feeBps: number; treasury: string; toProject: boolean; indexedTo: number } | null;
-    week?: { since: number; hatched: number; children: number; saves: number; petsSaved: number; hatchers: number; circuits: number | null } | null;
+    earned?: { okb: string; feeBps: number; treasury: string; toProject: boolean; indexedTo: number; fromTeam?: string } | null;
+    week?: { since: number; hatched: number; children: number; saves: number; petsSaved: number; hatchers: number; circuits: number | null; byTeam?: { hatched: number; children: number; saves: number; petsSaved: number; hatchers: number } } | null;
     kept?: { own: number; sponsored: number; other: number; sponsors: string[] } | null;
     circuits?: { total: number; minted: number; last7d: number | null; indexedTo: number; fromBlock: number | null; processor: string } | null;
   };
@@ -192,7 +200,19 @@ async function main() {
   }
 
   // sales, each market up to the block the page has read it to
-  const markets: Array<[string, Address | undefined, number | undefined, { copies: number; paid: string; indexedTo: number } | null]> = [
+  // the team's wallets (C2): those the page names, and those in the server's private file on this machine
+  const teamFile = arg("team-file", "../../services/api/data/team.json")!;
+  const privateTeam = (() => {
+    try {
+      const w = (JSON.parse(readFileSync(teamFile, "utf8")) as { wallets?: unknown }).wallets;
+      return Array.isArray(w) ? [...new Set(w.filter((x): x is string => typeof x === "string" && /^0x[0-9a-fA-F]{40}$/.test(x)).map((x) => x.toLowerCase()))] : [];
+    } catch {
+      return [];
+    }
+  })();
+  const team = new Set([...(live.team?.wallets ?? []).map((x) => x.toLowerCase()), ...privateTeam]);
+  if (live.team) check("team wallets kept private (the server's file on this machine)", privateTeam.filter((x) => !live.team!.wallets.map((w) => w.toLowerCase()).includes(x)).length, live.team.hidden);
+  const markets: Array<[string, Address | undefined, number | undefined, PageMarket | null]> = [
     ["OKB market", d.outfitMarket, d.outfitMarketBlock, live.outfits.okb],
     ["BEM market", d.outfitMarketV2, d.outfitMarketV2Block, live.outfits.bem],
   ];
@@ -207,6 +227,11 @@ async function main() {
     let treasury = earning ? ((await pub.readContract({ address, abi: views, functionName: "treasury", blockNumber: BigInt(from) })) as Address).toLowerCase() : "";
     const project = (d.deployer ?? "").toLowerCase();
     let earned = 0n;
+    let earnedFromTeam = 0n;
+    const creators = new Map<string, string>();
+    const sellers = new Map<string, string>();
+    const split = { team: { copies: 0, paid: 0n }, self: { copies: 0, paid: 0n }, players: { copies: 0, paid: 0n } };
+    const buyers = new Set<string>();
     const logs = (await logsOf(address, from, page.indexedTo)).slice().sort((x, y) => Number(BigInt(x.blockNumber) - BigInt(y.blockNumber)) || Number(BigInt(x.logIndex) - BigInt(y.logIndex)));
     for (const l of logs) {
       if (earning && l.topics[0] === T.feeChanged) {
@@ -215,13 +240,38 @@ async function main() {
         treasury = ev.treasury.toLowerCase();
         continue;
       }
+      if (l.topics[0] === T.created) {
+        creators.set(BigInt(l.topics[1]!).toString(), topicAddr(l.topics[2]));
+        continue;
+      }
+      if (l.topics[0] === T.listedV1 || l.topics[0] === T.listedV2) {
+        sellers.set(BigInt(l.topics[1]!).toString(), topicAddr(l.topics[2]));
+        continue;
+      }
       if (l.topics[0] !== T.minted && l.topics[0] !== T.sold) continue;
       const ev = decodeEventLog({ abi: events, data: l.data, topics: l.topics });
       const a = ev.args as { quantity: number; paid: bigint };
       copies += Number(a.quantity);
       paid += a.paid;
-      if (earning && treasury === project) earned += (a.paid * fee) / 10_000n;
+      // the buyer and the design's creator, or the listing's seller, from the topics
+      const buyer = topicAddr(l.topics[2]);
+      const maker = l.topics[0] === T.minted ? creators.get(BigInt(l.topics[1]!).toString()) : sellers.get(BigInt(l.topics[1]!).toString());
+      const into = team.has(buyer) ? split.team : buyer === maker ? split.self : split.players;
+      into.copies += Number(a.quantity);
+      into.paid += a.paid;
+      if (into === split.players) buyers.add(buyer);
+      if (earning && treasury === project) {
+        earned += (a.paid * fee) / 10_000n;
+        if (team.has(buyer)) earnedFromTeam += (a.paid * fee) / 10_000n;
+      }
     }
+    if (page.byTeam && page.selfBuys && page.byPlayers) {
+      check(`${name} copies bought by the team's own wallets`, `${split.team.copies} / ${split.team.paid}`, `${page.byTeam.copies} / ${page.byTeam.paid}`);
+      check(`${name} copies a creator or seller bought of their own`, `${split.self.copies} / ${split.self.paid}`, `${page.selfBuys.copies} / ${page.selfBuys.paid}`);
+      check(`${name} copies bought by players outside the team`, `${split.players.copies} / ${split.players.paid}`, `${page.byPlayers.copies} / ${page.byPlayers.paid}`);
+      check(`${name} distinct player wallets that bought`, buyers.size, page.byPlayers.buyers);
+    }
+    if (earning && live.earned?.fromTeam !== undefined) check("OKB earned from the team's own purchases (the team paying itself)", earnedFromTeam.toString(), live.earned.fromTeam);
     check(`${name} copies`, copies, page.copies);
     check(`${name} paid`, paid.toString(), page.paid);
     if (earning) {
@@ -229,6 +279,50 @@ async function main() {
       check("the OKB market's fee rate now", Number(fee), live.earned?.feeBps ?? "absent");
       check("the treasury it is paid to now", treasury, (live.earned?.treasury ?? "absent").toLowerCase());
     }
+  }
+
+  // the team's share of the pet figures (C2), from the registry's own logs: each pet's owner from its Hatched event
+  if (live.pets.byTeam && live.week?.byTeam) {
+    const owner = new Map<string, string>();
+    for (const l of reg) if (l.topics[0] === T.hatched) owner.set(BigInt(l.topics[1]!).toString(), topicAddr(l.topics[2]));
+    const nowSec = Math.floor(Date.now() / 1000);
+    const all = { hatched: 0, children: 0, saves: 0, hatchers: new Set<string>() };
+    const wk = { hatched: 0, children: 0, saves: 0, petsSaved: new Set<string>(), hatchers: new Set<string>() };
+    const day = new Set<string>();
+    for (const l of reg) {
+      const id = l.topics[1] ? BigInt(l.topics[1]).toString() : "";
+      const o = owner.get(id);
+      if (!o || !team.has(o)) continue;
+      if (l.topics[0] === T.hatched) {
+        if (bredIds.has(id)) all.children++;
+        else all.hatched++;
+        all.hatchers.add(o);
+        if ((await timeOfBlock(l.blockNumber)) >= live.week.since) {
+          if (bredIds.has(id)) wk.children++;
+          else wk.hatched++;
+          wk.hatchers.add(o);
+        }
+      } else if (l.topics[0] === T.checkpoint) {
+        all.saves++;
+        const at = await timeOfBlock(l.blockNumber);
+        if (at >= live.week.since) {
+          wk.saves++;
+          wk.petsSaved.add(id);
+        }
+        // the page reads its 24 hours a moment before this script: a save in that moment shows as a difference
+        if (at >= nowSec - 86_400) day.add(id);
+      }
+    }
+    check("the team's pets hatched", all.hatched, live.pets.byTeam.hatched);
+    check("the team's little ones born", all.children, live.pets.byTeam.children);
+    check("the team's days saved", all.saves, live.pets.byTeam.saves);
+    check("the team's wallets that hatched", all.hatchers.size, live.pets.byTeam.hatchers);
+    check("the team's pets saved in the last 24 hours", day.size, live.pets.byTeam.savedLast24h);
+    check("the team's pets hatched in the last 7 days", wk.hatched, live.week.byTeam.hatched);
+    check("the team's little ones born in the last 7 days", wk.children, live.week.byTeam.children);
+    check("the team's days saved in the last 7 days", wk.saves, live.week.byTeam.saves);
+    check("the team's pets saved in the last 7 days", wk.petsSaved.size, live.week.byTeam.petsSaved);
+    check("the team's wallets that hatched in the last 7 days", wk.hatchers.size, live.week.byTeam.hatchers);
   }
 
   // contract totals, read fresh; a sale between the page's read and this one shows as a difference, so read twice

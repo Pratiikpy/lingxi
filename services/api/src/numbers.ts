@@ -15,6 +15,18 @@ const SALES = [
   parseAbiItem("event Minted(uint256 indexed id, address indexed buyer, uint32 quantity, uint256 paid)"),
   parseAbiItem("event Sold(uint256 indexed listingId, address indexed buyer, uint32 quantity, uint256 paid)"),
 ] as const;
+/**
+ * Who made each design and who listed each copy (C2), so a creator buying their own design, or a seller their own
+ * listing, is told from a player's purchase. Both markets index the creator and the seller; `Listed` differs in its other
+ * fields between the first market and the second, so both forms are read.
+ */
+const WHO = [
+  parseAbiItem("event Created(uint256 indexed id, address indexed creator, uint8 slot, uint96 price, uint32 maxSupply, uint16 royaltyBps, string name)"),
+  parseAbiItem("event Listed(uint256 indexed listingId, address indexed seller, uint256 indexed id, uint32 quantity, uint96 priceEach)"),
+  parseAbiItem("event Listed(uint256 indexed listingId, address indexed seller, uint256 indexed id, uint32 quantity, uint96 priceEach, uint64 expiresAt, address buyer)"),
+] as const;
+/** Bumped when the stored totals gain a field only a fresh walk can fill (C2: who bought). */
+const SALES_STORE_VERSION = 2;
 /** The OKB market's fee: a sale emits no fee event, so the fee is each payment at the rate in force (OutfitMarket.sol). */
 const FEE_CHANGED = parseAbiItem("event FeeChanged(uint16 feeBps, address indexed treasury)");
 const BPS = 10_000n;
@@ -39,7 +51,16 @@ export interface MarketTotals {
   /** what buyers paid, in the market's own currency's base units */
   paid: string;
   sales: number;
+  /** bought by the team's own wallets (C2) */
+  byTeam: { copies: number; paid: string };
+  /** a creator buying their own design, or a seller their own listing, outside the team (C2) */
+  selfBuys: { copies: number; paid: string };
+  /** bought by everyone else, and how many distinct wallets bought (plan 37's H10 addendum) */
+  byPlayers: { copies: number; paid: string; buyers: number };
 }
+
+type Split = { copies: number; paid: string };
+const emptySplit = (): Split => ({ copies: 0, paid: "0" });
 
 /** What a market that pays a fee to a treasury has paid the project (H8). */
 export interface Earned {
@@ -50,13 +71,19 @@ export interface Earned {
   treasury: Address;
   /** whether that treasury is the project's wallet */
   toProject: boolean;
+  /** of `okb`, what came from the team's own purchases: the team paying itself (C2) */
+  fromTeam: string;
 }
 
 interface Stored {
+  v?: number;
   next: Record<string, number>;
-  totals: Record<string, { copies: number; paid: string; sales: number }>;
+  totals: Record<string, { copies: number; paid: string; sales: number; byTeam: Split; selfBuys: Split; byPlayers: Split; buyers: string[] }>;
+  /** per market: each design's creator and each listing's seller, lower-cased */
+  creators: Record<string, Record<string, string>>;
+  sellers: Record<string, Record<string, string>>;
   /** per earning market: what it has paid the project, and the rate and treasury its walk has reached */
-  earned?: Record<string, { okb: string; feeBps: number; treasury: string }>;
+  earned?: Record<string, { okb: string; feeBps: number; treasury: string; fromTeam: string }>;
 }
 
 /** A market whose fee goes to a treasury (the first, OKB market): its rate and treasury at its first block. */
@@ -67,12 +94,15 @@ export interface EarningTerms {
 }
 
 /** Counts every sale on the given markets, walking forward from each market's deploy block. */
-export function createSalesCounter(opts: { rpc: string; markets: Array<{ address: Address; fromBlock: number; earns?: EarningTerms }>; store?: string; client?: PublicClient; paceMs?: number }) {
+export function createSalesCounter(opts: { rpc: string; markets: Array<{ address: Address; fromBlock: number; earns?: EarningTerms }>; team?: readonly string[]; store?: string; client?: PublicClient; paceMs?: number }) {
   const pub = opts.client ?? (createPublicClient({ transport: http(opts.rpc, { timeout: 20_000, retryCount: 0 }) }) as PublicClient);
-  let data: Stored = { next: {}, totals: {} };
+  const team = new Set((opts.team ?? []).map((a) => a.toLowerCase()));
+  let data: Stored = { v: SALES_STORE_VERSION, next: {}, totals: {}, creators: {}, sellers: {} };
   if (opts.store && hasStore(opts.store)) {
     try {
-      data = readStore(opts.store) as Stored;
+      const held = readStore(opts.store) as Stored;
+      // a store from before C2 knows no buyers: the markets are read again from their first blocks
+      if (held.v === SALES_STORE_VERSION) data = held;
     } catch {
       // a damaged file starts again from the deploy blocks
     }
@@ -81,13 +111,18 @@ export function createSalesCounter(opts: { rpc: string; markets: Array<{ address
   for (const m of opts.markets) {
     const k = m.address.toLowerCase();
     // a market whose earnings were never counted is walked again from its first block, so every fee is in them
+    const fresh = () => ({ copies: 0, paid: "0", sales: 0, byTeam: emptySplit(), selfBuys: emptySplit(), byPlayers: emptySplit(), buyers: [] as string[] });
     if (m.earns && !data.earned[k]) {
       data.next[k] = m.fromBlock;
-      data.totals[k] = { copies: 0, paid: "0", sales: 0 };
-      data.earned[k] = { okb: "0", feeBps: m.earns.feeBps, treasury: m.earns.treasury };
+      data.totals[k] = fresh();
+      data.creators[k] = {};
+      data.sellers[k] = {};
+      data.earned[k] = { okb: "0", feeBps: m.earns.feeBps, treasury: m.earns.treasury, fromTeam: "0" };
     }
     data.next[k] ??= m.fromBlock;
-    data.totals[k] ??= { copies: 0, paid: "0", sales: 0 };
+    data.totals[k] ??= fresh();
+    data.creators[k] ??= {};
+    data.sellers[k] ??= {};
   }
   const terms = new Map(opts.markets.filter((m) => m.earns).map((m) => [m.address.toLowerCase(), m.earns!]));
   const save = () => {
@@ -111,7 +146,7 @@ export function createSalesCounter(opts: { rpc: string; markets: Array<{ address
           let logs;
           for (let attempt = 0; ; attempt++) {
             try {
-              logs = await pub.getLogs({ address: m.address, events: terms.has(k) ? [...SALES, FEE_CHANGED] : SALES, fromBlock: BigInt(from), toBlock: BigInt(to) });
+              logs = await pub.getLogs({ address: m.address, events: terms.has(k) ? [...SALES, ...WHO, FEE_CHANGED] : [...SALES, ...WHO], fromBlock: BigInt(from), toBlock: BigInt(to) });
               break;
             } catch (e) {
               if (attempt >= 6) throw e;
@@ -124,17 +159,39 @@ export function createSalesCounter(opts: { rpc: string; markets: Array<{ address
           // in chain order, so a sale is charged the rate in force when it was paid
           const ordered = [...logs].sort((x, y) => Number(x.blockNumber! - y.blockNumber!) || (x.logIndex ?? 0) - (y.logIndex ?? 0));
           for (const l of ordered) {
-            if ((l as { eventName?: string }).eventName === "FeeChanged") {
+            const name = (l as { eventName?: string }).eventName;
+            if (name === "FeeChanged") {
               const f = l.args as { feeBps: number; treasury: Address };
               if (e) Object.assign(e, { feeBps: Number(f.feeBps), treasury: f.treasury });
               continue;
             }
-            const a = l.args as { quantity: number; paid: bigint };
+            if (name === "Created") {
+              const c = l.args as { id: bigint; creator: Address };
+              data.creators[k]![String(c.id)] = String(c.creator).toLowerCase();
+              continue;
+            }
+            if (name === "Listed") {
+              const c = l.args as { listingId: bigint; seller: Address };
+              data.sellers[k]![String(c.listingId)] = String(c.seller).toLowerCase();
+              continue;
+            }
+            const a = l.args as { quantity: number; paid: bigint; buyer?: Address; id?: bigint; listingId?: bigint };
             t.copies += Number(a.quantity);
             t.paid = (BigInt(t.paid) + a.paid).toString();
             t.sales += 1;
+            // who bought (C2): the team's own wallets, a creator or seller buying their own, or a player
+            const buyer = String(a.buyer ?? "").toLowerCase();
+            const maker = name === "Minted" ? data.creators[k]![String(a.id)] : data.sellers[k]![String(a.listingId)];
+            const split = team.has(buyer) ? t.byTeam : buyer && buyer === maker ? t.selfBuys : t.byPlayers;
+            split.copies += Number(a.quantity);
+            split.paid = (BigInt(split.paid) + a.paid).toString();
+            if (split === t.byPlayers && buyer && !t.buyers.includes(buyer)) t.buyers.push(buyer);
             // the contract rounds each fee down: (total * feeBps) / 10_000
-            if (e && e.treasury.toLowerCase() === project) e.okb = (BigInt(e.okb) + (a.paid * BigInt(e.feeBps)) / BPS).toString();
+            if (e && e.treasury.toLowerCase() === project) {
+              const fee = (a.paid * BigInt(e.feeBps)) / BPS;
+              e.okb = (BigInt(e.okb) + fee).toString();
+              if (team.has(buyer)) e.fromTeam = (BigInt(e.fromTeam) + fee).toString();
+            }
           }
           data.next[k] = to + 1;
           await sleep(opts.paceMs ?? 300);
@@ -149,13 +206,16 @@ export function createSalesCounter(opts: { rpc: string; markets: Array<{ address
 
   return {
     catchUp,
-    totals: (market: Address): MarketTotals => ({ ...data.totals[market.toLowerCase()]! }),
+    totals: (market: Address): MarketTotals => {
+      const t = data.totals[market.toLowerCase()]!;
+      return { copies: t.copies, paid: t.paid, sales: t.sales, byTeam: { ...t.byTeam }, selfBuys: { ...t.selfBuys }, byPlayers: { ...t.byPlayers, buyers: t.buyers.length } };
+    },
     /** what an earning market has paid the project, or null for a market whose fee is burned */
     earned: (market: Address): Earned | null => {
       const k = market.toLowerCase();
       const e = data.earned?.[k];
       const t = terms.get(k);
-      return e && t ? { okb: e.okb, feeBps: e.feeBps, treasury: e.treasury as Address, toProject: e.treasury.toLowerCase() === t.project.toLowerCase() } : null;
+      return e && t ? { okb: e.okb, feeBps: e.feeBps, treasury: e.treasury as Address, toProject: e.treasury.toLowerCase() === t.project.toLowerCase(), fromTeam: e.fromTeam } : null;
     },
     head: (market: Address) => (data.next[market.toLowerCase()] ?? 0) - 1,
   };
@@ -175,6 +235,17 @@ export interface NumbersDeps {
   keepers?: () => { own: number; sponsored: number; other: number };
   /** Lingxi's relayer, whose hatches are sponsored keeps */
   sponsors?: string[];
+  /** whether the free keep is switched on for players now (C2: the page says when it is off) */
+  sponsorOn?: () => boolean;
+  /**
+   * The team's own wallets (C2): those named publicly, how many more are kept in the server's config, and the share of
+   * the pet figures that belongs to all of them. The sales counter is given the same full list.
+   */
+  team?: {
+    wallets: string[];
+    hidden: number;
+    byTeam: (sinceSec: number) => { all: { hatched: number; children: number; saves: number; hatchers: number }; week: { hatched: number; children: number; saves: number; petsSaved: number; hatchers: number } };
+  };
   /** Lingxi's processor and the walk of its mints (H10) */
   circuits?: { processor: Address; fromBlock?: number; counter: { totals: (sinceSec: number) => { minted: number; since: number; indexedTo: number } } };
   contracts: { registry: Address; marketOkb?: Address; marketBem?: Address; breeder?: Address; gift?: Address; itemShop?: Address; adoption?: Address; extras?: Address };
@@ -186,13 +257,15 @@ export interface Numbers {
   at: number;
   /** the chain's latest block when read: a count whose indexedTo is far behind it is still catching up */
   head: number;
-  pets: { hatched: number; children: number; daysSaved: number; savedLast24h: number; hatchers: number; nextPetId: number; indexedTo: number };
+  pets: { hatched: number; children: number; daysSaved: number; savedLast24h: number; hatchers: number; nextPetId: number; indexedTo: number; byTeam?: { hatched: number; children: number; saves: number; hatchers: number; savedLast24h: number } };
+  /** the team's own wallets, named and kept private (C2); every figure says how much of it is theirs */
+  team: { wallets: string[]; hidden: number } | null;
   outfits: { okb: (MarketTotals & { indexedTo: number }) | null; bem: (MarketTotals & { indexedTo: number }) | null };
   burned: { market: string; breeding: string; shop: string; adoption: string; extras: string; total: string };
   /** the last 7 days (H10): pets hatched and born, days saved, pets saved, wallets that hatched, circuits taped */
-  week: { since: number; hatched: number; children: number; saves: number; petsSaved: number; hatchers: number; circuits: number | null } | null;
+  week: { since: number; hatched: number; children: number; saves: number; petsSaved: number; hatchers: number; circuits: number | null; byTeam?: { hatched: number; children: number; saves: number; petsSaved: number; hatchers: number } } | null;
   /** who kept the pets on X Layer (H10): their owner's own wallet, Lingxi's relayer (sponsored), or another wallet */
-  kept: { own: number; sponsored: number; other: number; sponsors: string[] } | null;
+  kept: { own: number; sponsored: number; other: number; sponsors: string[]; sponsorOn?: boolean } | null;
   /** circuits Lingxi has taped out (H10): the processor's own count, the walk's count of mints, and the last 7 days */
   /** `fromBlock` is where the walk of mints starts: the processor's deploy block, so `minted` equals `total` once read */
   circuits: { total: number; minted: number; last7d: number | null; indexedTo: number; fromBlock: number | null; processor: Address } | null;
@@ -225,6 +298,8 @@ export async function readNumbers(d: NumbersDeps, nowMs = Date.now()): Promise<N
   const since = Math.floor(nowMs / 1000) - WEEK_SEC;
   const nextId = d.circuits ? Number((await d.pub.readContract({ address: d.circuits.processor, abi: views, functionName: "nextId" })) as bigint) : 0;
   const walked = d.circuits ? d.circuits.counter.totals(since) : null;
+  const split = d.team ? d.team.byTeam(since) : null;
+  const split24 = d.team ? d.team.byTeam(Math.floor(nowMs / 1000) - 86_400) : null;
   const market = (a?: Address) => (a ? { ...d.sales.totals(a), indexedTo: d.sales.head(a) } : null);
   const contracts: Numbers["contracts"] = {};
   for (const [k, a] of Object.entries(d.contracts)) if (a) contracts[k] = { address: a, url: `${d.explorer}/address/${a}` };
@@ -233,7 +308,8 @@ export async function readNumbers(d: NumbersDeps, nowMs = Date.now()): Promise<N
     ok: true,
     at: nowMs,
     head: Number(head),
-    pets: { hatched: c.hatched, children: c.children, daysSaved: c.saves, savedLast24h: c.savedSince, hatchers: c.hatchers, nextPetId: Number(nextPetId), indexedTo: d.petsIndexedTo() },
+    pets: { hatched: c.hatched, children: c.children, daysSaved: c.saves, savedLast24h: c.savedSince, hatchers: c.hatchers, nextPetId: Number(nextPetId), indexedTo: d.petsIndexedTo(), ...(split && split24 ? { byTeam: { ...split.all, savedLast24h: split24.week.petsSaved } } : {}) },
+    team: d.team ? { wallets: d.team.wallets, hidden: d.team.hidden } : null,
     outfits: { okb: market(d.contracts.marketOkb), bem: market(d.contracts.marketBem) },
     burned: {
       market: marketBurned.toString(),
@@ -243,8 +319,8 @@ export async function readNumbers(d: NumbersDeps, nowMs = Date.now()): Promise<N
       extras: extrasBurned.toString(),
       total: (marketBurned + breedingBurned + shopBurned + adoptionBurned + extrasBurned).toString(),
     },
-    week: d.activity ? { since, ...d.activity(since), circuits: walked && Number(head) - walked.indexedTo <= CAUGHT_UP_BLOCKS ? walked.since : null } : null,
-    kept: d.keepers ? { ...d.keepers(), sponsors: d.sponsors ?? [] } : null,
+    week: d.activity ? { since, ...d.activity(since), ...(split ? { byTeam: split.week } : {}), circuits: walked && Number(head) - walked.indexedTo <= CAUGHT_UP_BLOCKS ? walked.since : null } : null,
+    kept: d.keepers ? { ...d.keepers(), sponsors: d.sponsors ?? [], ...(d.sponsorOn ? { sponsorOn: d.sponsorOn() } : {}) } : null,
     // the processor's nextId is the id of its latest circuit (ids start at 1: 23 means circuits 1 to 23, read back
     // with ownerOf on mainnet), so it is the count itself
     circuits: d.circuits && walked ? { total: nextId, minted: walked.minted, last7d: Number(head) - walked.indexedTo <= CAUGHT_UP_BLOCKS ? walked.since : null, indexedTo: walked.indexedTo, fromBlock: d.circuits.fromBlock ?? null, processor: d.circuits.processor } : null,

@@ -70,6 +70,20 @@ describe("activity and who kept each pet (H10)", () => {
   });
 });
 
+describe("the team's own pets, told apart (C2)", () => {
+  it("counts the pets, saves and hatching wallets that belong to the team's wallets, all time and this week", async () => {
+    const c = registryChain();
+    const ix = createIndexer({ rpc: "", registry: REG, fromBlock: 900, client: c.client, paceMs: 0 });
+    await ix.catchUp();
+    // A (the team here) owns pets 1 and 3; B owns pet 2
+    expect(ix.byTeam([A], NOW - 7 * DAY)).toEqual({
+      all: { hatched: 1, children: 1, saves: 2, hatchers: 1 },
+      week: { hatched: 0, children: 1, saves: 1, petsSaved: 1, hatchers: 1 },
+    });
+    expect(ix.byTeam([], NOW - 7 * DAY)).toEqual({ all: { hatched: 0, children: 0, saves: 0, hatchers: 0 }, week: { hatched: 0, children: 0, saves: 0, petsSaved: 0, hatchers: 0 } });
+  });
+});
+
 describe("circuits Lingxi has taped out (H10)", () => {
   it("dates each circuit by its mint and counts those of the last 7 days; transfers are not new circuits", async () => {
     const mints = [

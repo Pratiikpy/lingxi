@@ -56,3 +56,22 @@
   border-radius: var(--r-md);
   color: var(--ink);
 }
+/* how much of a figure is the team's own activity (C2): under the value, across the row, a quiet but readable line */
+.nb-team {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-weight: 700;
+  color: var(--ink);
+}
+/* whose activity the figures are (C2), right under the lede */
+.nb-team-card h2 {
+  margin: 0 0 var(--s1);
+  font: 800 1.1rem var(--round);
+}
+.nb-team-card p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.nb-team-card p + p {
+  margin-top: var(--s1);
+}

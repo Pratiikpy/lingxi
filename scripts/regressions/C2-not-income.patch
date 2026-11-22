@@ -1,0 +1,11 @@
+--- a/apps/web/src/numbers/NumbersApp.tsx
++++ b/apps/web/src/numbers/NumbersApp.tsx
+@@ -220,7 +220,7 @@ function rows(n: Numbers, lang: Lang): Array<{ title: [string, string]; readTo?:
+                 ...(n.earned.fromTeam !== undefined
+                   ? {
+                       team:
+-                        BigInt(n.earned.fromTeam) === BigInt(n.earned.okb) && BigInt(n.earned.okb) > 0n
++                        false
+                           ? (["All of it from the team's own test purchases: the team paying itself, not income.", "全部来自团队自己的测试购买：团队付给自己，不是收入。"] as [string, string])
+                           : ([`From players: ${formatEther(BigInt(n.earned.okb) - BigInt(n.earned.fromTeam))} OKB · from the team's own test purchases: ${formatEther(BigInt(n.earned.fromTeam))} OKB`, `来自玩家：${formatEther(BigInt(n.earned.okb) - BigInt(n.earned.fromTeam))} OKB · 来自团队自己的测试购买：${formatEther(BigInt(n.earned.fromTeam))} OKB`] as [string, string]),
+                     }

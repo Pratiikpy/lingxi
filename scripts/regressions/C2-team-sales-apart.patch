@@ -1,0 +1,11 @@
+--- a/services/api/src/numbers.ts
++++ b/services/api/src/numbers.ts
+@@ -182,7 +182,7 @@ export function createSalesCounter(opts: { rpc: string; markets: Array<{ address
+             // who bought (C2): the team's own wallets, a creator or seller buying their own, or a player
+             const buyer = String(a.buyer ?? "").toLowerCase();
+             const maker = name === "Minted" ? data.creators[k]![String(a.id)] : data.sellers[k]![String(a.listingId)];
+-            const split = team.has(buyer) ? t.byTeam : buyer && buyer === maker ? t.selfBuys : t.byPlayers;
++            const split = buyer && buyer === maker ? t.selfBuys : t.byPlayers;
+             split.copies += Number(a.quantity);
+             split.paid = (BigInt(split.paid) + a.paid).toString();
+             if (split === t.byPlayers && buyer && !t.buyers.includes(buyer)) t.buyers.push(buyer);

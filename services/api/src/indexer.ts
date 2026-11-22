@@ -189,6 +189,34 @@ export function createIndexer(opts: { rpc: string; registry: Address; fromBlock:
       }
       return { own, sponsored, other };
     },
+    /**
+     * The share of every pet figure that belongs to the team's own wallets (C2), all time and since `sinceSec`: pets
+     * hatched and born to them, their days saved, and how many of them hatched a pet. Everyone else's is the rest.
+     */
+    byTeam(teamWallets: readonly string[], sinceSec: number) {
+      const team = new Set(teamWallets.map((x) => x.toLowerCase()));
+      const all = { hatched: 0, children: 0, saves: 0, hatchers: 0 };
+      const week = { hatched: 0, children: 0, saves: 0, petsSaved: 0, hatchers: 0 };
+      const hatchersAll = new Set<string>();
+      const hatchersWeek = new Set<string>();
+      for (const h of Object.values(data.pets)) {
+        const owner = h.hatched?.to?.toLowerCase();
+        if (!owner || !team.has(owner)) continue;
+        if (h.parents) all.children++;
+        else all.hatched++;
+        hatchersAll.add(owner);
+        all.saves += h.saves.length;
+        if ((data.times[h.hatched!.block] ?? 0) >= sinceSec) {
+          if (h.parents) week.children++;
+          else week.hatched++;
+          hatchersWeek.add(owner);
+        }
+        const recent = h.saves.filter((x) => (data.times[x.block] ?? 0) >= sinceSec).length;
+        week.saves += recent;
+        if (recent) week.petsSaved++;
+      }
+      return { all: { ...all, hatchers: hatchersAll.size }, week: { ...week, hatchers: hatchersWeek.size } };
+    },
     history(id: string): (PetHistory & { at: Record<string, number> }) | null {
       const h = data.pets[id];
       if (!h) return null;

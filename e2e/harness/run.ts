@@ -122,6 +122,7 @@ export async function startRun(): Promise<Run> {
           ["LINGXI_BRAIN_STORE", "brains.json"],
           ["LINGXI_PACKETS_STORE", "packets.json"],
           ["LINGXI_CIRCUITS_STORE", "circuits.json"],
+          ["LINGXI_TEAM_FILE", "team.json"],
           ["LINGXI_CONSENTS_STORE", "consents.json"],
           ["LINGXI_PUSH_STORE", "push.json"],
           ["LINGXI_LANE_FILE", "lane.json"],

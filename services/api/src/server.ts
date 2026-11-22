@@ -78,6 +78,7 @@ import { withRpcProxy } from "./rpc";
 import { privateKeyToAccount } from "viem/accounts";
 import { type EarningTerms, createSalesCounter, withNumbers } from "./numbers";
 import { createCircuitCounter } from "./circuits";
+import { readTeamFile } from "./team";
 import { createRefScanner } from "./refScan";
 import { createListingWatch, withRetiredListings } from "./marketV1";
 import { createDuelStore, withDuels } from "./duels";
@@ -1073,10 +1074,13 @@ if (isMain) {
     const letters = loadLetters(file);
     withMail(app, () => letters);
   }
+  // whether the free keep is on, for the numbers page (C2): set where the gate is made
+  let sponsorOn = () => false;
   {
     // a pet kept on X Layer for a player with no wallet (H4): it spends the relayer's OKB, so it is off unless the
     // server is started with LINGXI_SPONSOR=on; a store that cannot be read turns it off rather than forget who had one
     let sponsoring: Sponsoring | null = null;
+    sponsorOn = () => !!sponsoring?.gate.enabled;
     try {
       const gate = new SponsorGate({
         file: process.env.LINGXI_SPONSOR_STORE ?? join(dataDir, "sponsored.json"),
@@ -1277,7 +1281,12 @@ if (isMain) {
       },
       { address: env("LINGXI_MARKET_BEM"), fromBlock: Number(process.env.LINGXI_MARKET_BEM_FROM ?? 0) },
     ].filter((m): m is { address: `0x${string}`; fromBlock: number; earns?: EarningTerms } => !!m.address && m.fromBlock > 0);
-    const sales = createSalesCounter({ rpc, markets, store: process.env.LINGXI_SALES_STORE });
+    // the team's own wallets (C2): the deployer and the relayer, named on the page; any further wallet of the team's
+    // is listed in data/team.json (kept out of the repo) and counted apart without being named
+    const teamPublic = [chainCtx?.deployment.deployer, relayer?.address].filter((a): a is `0x${string}` => !!a).map((a) => a.toLowerCase());
+    const teamPrivate = readTeamFile(process.env.LINGXI_TEAM_FILE ?? join(dataDir, "team.json")).filter((a) => !teamPublic.includes(a));
+    const teamAll = [...teamPublic, ...teamPrivate];
+    const sales = createSalesCounter({ rpc, markets, team: teamAll, store: process.env.LINGXI_SALES_STORE });
     jobs.loop("sales", () => sales.catchUp(), 20_000);
     // the OKB market's listings a sale retired, which V1 itself would still sell (A23); the game shows none without it
     const okb = markets.find((m) => m.address === env("LINGXI_MARKET_OKB"));
@@ -1314,6 +1323,8 @@ if (isMain) {
       sales,
       ...(refs ? { refs } : {}),
       activity: (since) => indexer.activity(since),
+      team: { wallets: teamPublic, hidden: teamPrivate.length, byTeam: (since) => indexer.byTeam(teamAll, since) },
+      sponsorOn,
       keepers: () => indexer.keepers(sponsors),
       sponsors,
       ...(circuitCounter && processor && processorBlock ? { circuits: { processor, counter: circuitCounter, fromBlock: processorBlock } } : {}),

@@ -96,6 +96,9 @@ test("the numbers page counts the week, tells a free keep from an own-wallet kee
     await expect(free.page.getByText("Kept by their owner's own wallet", { exact: true })).toBeVisible();
     await expect(free.page.getByText("Kept for them by Lingxi (free)", { exact: true })).toBeVisible();
     await expect(free.page.getByRole("heading", { name: "Circuits on Lingxi's processor" })).toBeVisible();
+    // C2: on the fork the players are the harness's wallets, not the team's: the page tells their activity apart
+    await expect(free.page.getByRole("heading", { name: "Whose activity this is" })).toBeVisible();
+    await expect(free.page.getByText(/Players outside the team have hatched \d+ pets?/)).toBeVisible();
     await free.page.screenshot({ path: test.info().outputPath("numbers-week-en-light-phone.png"), fullPage: true });
     await own.page.goto(`${own.web}/numbers.html`);
     await expect(own.page.getByRole("heading", { name: "过去 7 天" })).toBeVisible({ timeout: 60_000 });
@@ -110,9 +113,9 @@ test("the numbers page counts the week, tells a free keep from an own-wallet kee
     const d = JSON.parse(readFileSync(join(ROOT, "packages/chain/deployments/xlayer.json"), "utf8")) as Record<string, unknown>;
     const file = join(run.dir, "recount-deployment-h10.json");
     writeFileSync(file, JSON.stringify({ ...d, rpc: run.fork.rpc, outfitMarketBlock: run.fork.block, outfitMarketV2Block: run.fork.block }));
-    const r = spawnSync(process.execPath, [join(ROOT, "node_modules/tsx/dist/cli.mjs"), "scripts/recount-numbers.ts", "--deployment", file, "--api", run.api, "--rpc", run.fork.rpc, "--registry-from", String(run.fork.block)], { cwd: join(ROOT, "packages/chain"), encoding: "utf8", timeout: 1_500_000 });
+    const r = spawnSync(process.execPath, [join(ROOT, "node_modules/tsx/dist/cli.mjs"), "scripts/recount-numbers.ts", "--deployment", file, "--api", run.api, "--rpc", run.fork.rpc, "--registry-from", String(run.fork.block), "--team-file", join(run.dir, "stores", "team.json")], { cwd: join(ROOT, "packages/chain"), encoding: "utf8", timeout: 1_500_000 });
     const out = `${r.stdout}\n${r.stderr}`;
-    for (const line of [/same {2}pets kept by their owner's own wallet/, /same {2}pets kept by Lingxi's relayer/, /same {2}pets hatched in the last 7 days/, /same {2}circuits minted on the processor/, /same {2}circuits taped out in the last 7 days/, /same {2}circuits taped out \(the processor's nextId, its latest circuit id\)/, /same {2}every circuit minted since block/])
+    for (const line of [/same {2}the team's pets hatched/, /same {2}OKB market distinct player wallets that bought/, /same {2}pets kept by their owner's own wallet/, /same {2}pets kept by Lingxi's relayer/, /same {2}pets hatched in the last 7 days/, /same {2}circuits minted on the processor/, /same {2}circuits taped out in the last 7 days/, /same {2}circuits taped out \(the processor's nextId, its latest circuit id\)/, /same {2}every circuit minted since block/])
       expect(out, `the recount checks: ${line.source}`).toMatch(line);
     expect(out.split("\n").filter((l) => l.startsWith("DIFFERENT")), out.slice(-3000)).toEqual([]);
     expect(r.status, out.slice(-2000)).toBe(0);

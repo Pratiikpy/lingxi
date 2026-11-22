@@ -66,14 +66,58 @@ function feeChain() {
   } as unknown as PublicClient;
 }
 
+const TEAM = "0x00000000000000000000000000000000000000f6";
+const ALICE = "0x0000000000000000000000000000000000000a1c";
+const BOB = "0x0000000000000000000000000000000000000b0b";
+
+/** C2: designs, listings and sales on the OKB market, by the team, by a creator buying their own, and by players. */
+function whoChain() {
+  const logs = [
+    { block: 1_001, eventName: "Created", args: { id: 1n, creator: TEAM } },
+    { block: 1_002, eventName: "Created", args: { id: 2n, creator: ALICE } },
+    // the team buys its own design: the team's
+    { block: 1_010, eventName: "Minted", args: { id: 1n, buyer: TEAM, quantity: 1, paid: 1_000_000_000_000_000n } },
+    // Alice buys her own design: a self-buy, not a player's purchase
+    { block: 1_020, eventName: "Minted", args: { id: 2n, buyer: ALICE, quantity: 2, paid: 2_000_000_000_000_000n } },
+    // Bob buys the team's design twice and Alice's once: one distinct player buyer
+    { block: 1_030, eventName: "Minted", args: { id: 1n, buyer: BOB, quantity: 1, paid: 1_000_000_000_000_000n } },
+    { block: 1_040, eventName: "Minted", args: { id: 2n, buyer: BOB, quantity: 1, paid: 1_000_000_000_000_000n } },
+    // Bob lists his copy; Bob buying back his own listing is a self-buy; Alice buying it is a player's purchase
+    { block: 1_050, eventName: "Listed", args: { listingId: 7n, seller: BOB, id: 1n } },
+    { block: 1_060, eventName: "Sold", args: { listingId: 7n, buyer: ALICE, quantity: 1, paid: 4_000_000_000_000_000n } },
+  ];
+  return {
+    getBlockNumber: async () => 1_100n,
+    getLogs: async ({ fromBlock, toBlock }: { fromBlock: bigint; toBlock: bigint }) =>
+      logs.filter((l) => l.block >= Number(fromBlock) && l.block <= Number(toBlock)).map((l, i) => ({ ...l, blockNumber: BigInt(l.block), logIndex: i })),
+  } as unknown as PublicClient;
+}
+
+describe("the team's own activity, told apart (C2)", () => {
+  it("splits every sale into the team's, a creator's or seller's own, and players', and counts distinct player buyers", async () => {
+    const s = createSalesCounter({ rpc: "", markets: [{ address: OKB, fromBlock: 1_000, earns: { project: TEAM, feeBps: 300, treasury: TEAM } }], team: [TEAM], client: whoChain(), paceMs: 0 });
+    await s.catchUp();
+    expect(s.totals(OKB)).toEqual({
+      copies: 6,
+      paid: "9000000000000000",
+      sales: 5,
+      byTeam: { copies: 1, paid: "1000000000000000" },
+      selfBuys: { copies: 2, paid: "2000000000000000" },
+      byPlayers: { copies: 3, paid: "6000000000000000", buyers: 2 },
+    });
+    // 3% of every sale to the project; of it, 3% of the team's own purchase is the team paying itself
+    expect(s.earned(OKB)).toMatchObject({ okb: "270000000000000", fromTeam: "30000000000000" });
+  });
+});
+
 describe("live numbers", () => {
   it("counts what the OKB market paid the project: each sale's fee at the rate in force, only while the treasury is the project's (H8)", async () => {
     const store = join(mkdtempSync(join(tmpdir(), "earn-")), "sales.json");
     const s = createSalesCounter({ rpc: "", markets: [{ address: OKB, fromBlock: 1_000, earns: { project: PROJECT, feeBps: 300, treasury: PROJECT } }], store, client: feeChain(), paceMs: 0 });
     await s.catchUp();
     // 3% of 0.002 OKB, then 5% of 0.003 OKB; the last sale's fee went to someone else's treasury
-    expect(s.totals(OKB)).toEqual({ copies: 4, paid: "6000000000000000", sales: 3 });
-    expect(s.earned(OKB)).toEqual({ okb: (60_000_000_000_000n + 150_000_000_000_000n).toString(), feeBps: 500, treasury: "0x00000000000000000000000000000000000000aa", toProject: false });
+    expect(s.totals(OKB)).toMatchObject({ copies: 4, paid: "6000000000000000", sales: 3 });
+    expect(s.earned(OKB)).toEqual({ okb: (60_000_000_000_000n + 150_000_000_000_000n).toString(), feeBps: 500, treasury: "0x00000000000000000000000000000000000000aa", toProject: false, fromTeam: "0" });
     // a restart resumes with the rate and treasury it had reached
     const again = createSalesCounter({ rpc: "", markets: [{ address: OKB, fromBlock: 1_000, earns: { project: PROJECT, feeBps: 300, treasury: PROJECT } }], store, client: feeChain(), paceMs: 0 });
     await again.catchUp();
@@ -100,14 +144,14 @@ describe("live numbers", () => {
     ];
     const s = createSalesCounter({ rpc: "", markets, store, client, paceMs: 0 });
     await s.catchUp();
-    expect(s.totals(OKB)).toEqual({ copies: 3, paid: "5000000000000000", sales: 2 });
-    expect(s.totals(BEM)).toEqual({ copies: 5, paid: "130000000", sales: 3 });
+    expect(s.totals(OKB)).toMatchObject({ copies: 3, paid: "5000000000000000", sales: 2 });
+    expect(s.totals(BEM)).toMatchObject({ copies: 5, paid: "130000000", sales: 3 });
     expect(calls.every(([a, b]) => b - a < 100)).toBe(true);
     expect(s.head(BEM)).toBe(2_150);
     // a restart reads its place back and counts nothing twice
     const again = createSalesCounter({ rpc: "", markets, store, client: fakeChain(2_150).client, paceMs: 0 });
     await again.catchUp();
-    expect(again.totals(BEM)).toEqual({ copies: 5, paid: "130000000", sales: 3 });
+    expect(again.totals(BEM)).toMatchObject({ copies: 5, paid: "130000000", sales: 3 });
   });
 
   it("reads contract totals from the contracts and links every source", async () => {
@@ -133,7 +177,7 @@ describe("live numbers", () => {
     await sales.catchUp();
     const n = await readNumbers({ pub: client, counts, petsIndexedTo: () => 2_140, sales, contracts: { registry: REG, marketOkb: OKB, marketBem: BEM }, explorer: "https://x" });
     // 3% of the 0.005 OKB the two sales paid
-    expect(n.earned).toEqual({ okb: "150000000000000", feeBps: 300, treasury: PROJECT, toProject: true, indexedTo: 2_150 });
+    expect(n.earned).toEqual({ okb: "150000000000000", feeBps: 300, treasury: PROJECT, toProject: true, fromTeam: "0", indexedTo: 2_150 });
     const none = await readNumbers({ pub: client, counts, petsIndexedTo: () => 2_140, sales: createSalesCounter({ rpc: "", markets: [{ address: OKB, fromBlock: 1_000 }], client, paceMs: 0 }), contracts: { registry: REG, marketOkb: OKB }, explorer: "https://x" });
     expect(none.earned).toBeNull();
   });
@@ -163,6 +207,27 @@ describe("live numbers", () => {
     // nextId is the processor's latest circuit id (ids start at 1), so 23 means 23 circuits
     expect(n.circuits).toEqual({ total: 23, minted: 22, last7d: 7, indexedTo: 2_100, fromBlock: null, processor: PROC });
     expect(n.contracts.processor).toEqual({ address: PROC, url: `https://x/address/${PROC}` });
+
+    // C2: the team's wallets, its share of the pets, and whether the free keep is on, served beside the figures
+    const told = await readNumbers(
+      {
+        pub: withNext,
+        counts,
+        petsIndexedTo: () => 2_140,
+        sales,
+        activity: () => ({ hatched: 2, children: 1, saves: 5, petsSaved: 3, hatchers: 2 }),
+        keepers: () => ({ own: 4, sponsored: 6, other: 0 }),
+        sponsorOn: () => false,
+        team: { wallets: [PROJECT], hidden: 1, byTeam: () => ({ all: { hatched: 9, children: 2, saves: 40, hatchers: 3 }, week: { hatched: 2, children: 1, saves: 5, petsSaved: 3, hatchers: 2 } }) },
+        contracts: { registry: REG },
+        explorer: "https://x",
+      },
+      1_800_000_000_000,
+    );
+    expect(told.team).toEqual({ wallets: [PROJECT], hidden: 1 });
+    expect(told.pets.byTeam).toEqual({ hatched: 9, children: 2, saves: 40, hatchers: 3, savedLast24h: 3 });
+    expect(told.week?.byTeam).toEqual({ hatched: 2, children: 1, saves: 5, petsSaved: 3, hatchers: 2 });
+    expect(told.kept?.sponsorOn).toBe(false);
 
     // while the walk of mints is still far behind the head, the newest mints are unread: no 7-day count is given
     const behind = await readNumbers(

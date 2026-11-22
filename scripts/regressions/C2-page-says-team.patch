@@ -1,0 +1,11 @@
+--- a/apps/web/src/numbers/NumbersApp.tsx
++++ b/apps/web/src/numbers/NumbersApp.tsx
+@@ -254,7 +254,7 @@ function TeamCard({ data, lang }: { data: Numbers; lang: Lang }) {
+   const teamPets = (data.pets.byTeam?.hatched ?? 0) + (data.pets.byTeam?.children ?? 0);
+   const playerPets = data.pets.hatched + data.pets.children - teamPets;
+   const playerCopies = (data.outfits.okb?.byPlayers?.copies ?? 0) + (data.outfits.bem?.byPlayers?.copies ?? 0);
+-  const onlyTeam = playerPets === 0 && playerCopies === 0;
++  const onlyTeam = false;
+   const named = t.wallets.map(shortAddr).join(", ");
+   return (
+     <section className="ag-card nb-team-card" aria-label={L("Whose activity this is", "这些是谁的活动")}>
