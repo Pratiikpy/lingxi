@@ -138,6 +138,41 @@ describe("live numbers", () => {
     expect(none.earned).toBeNull();
   });
 
+  it("serves the week's activity, who kept the pets, and the circuits taped out (H10)", async () => {
+    const { client } = fakeChain(2_150);
+    const PROC = "0x00000000000000000000000000000000000000f9" as const;
+    const withNext = { ...client, readContract: async (r: { address: string; functionName: string }) => (r.functionName === "nextId" ? 23n : (client.readContract as (x: unknown) => Promise<unknown>)(r)) } as unknown as typeof client;
+    const sales = createSalesCounter({ rpc: "", markets: [{ address: OKB, fromBlock: 1_000 }], client, paceMs: 0 });
+    const n = await readNumbers(
+      {
+        pub: withNext,
+        counts,
+        petsIndexedTo: () => 2_140,
+        sales,
+        activity: (since) => ({ hatched: since > 0 ? 2 : 9, children: 1, saves: 5, petsSaved: 3, hatchers: 2 }),
+        keepers: () => ({ own: 4, sponsored: 6, other: 0 }),
+        sponsors: ["0x00000000000000000000000000000000000000ee"],
+        circuits: { processor: PROC, counter: { totals: () => ({ minted: 22, since: 7, indexedTo: 2_100 }) } },
+        contracts: { registry: REG, marketOkb: OKB },
+        explorer: "https://x",
+      },
+      1_800_000_000_000,
+    );
+    expect(n.week).toEqual({ since: 1_800_000_000 - 7 * 86_400, hatched: 2, children: 1, saves: 5, petsSaved: 3, hatchers: 2, circuits: 7 });
+    expect(n.kept).toEqual({ own: 4, sponsored: 6, other: 0, sponsors: ["0x00000000000000000000000000000000000000ee"] });
+    expect(n.circuits).toEqual({ total: 22, minted: 22, last7d: 7, indexedTo: 2_100, fromBlock: null, processor: PROC });
+    expect(n.contracts.processor).toEqual({ address: PROC, url: `https://x/address/${PROC}` });
+
+    // while the walk of mints is still far behind the head, the newest mints are unread: no 7-day count is given
+    const behind = await readNumbers(
+      { pub: withNext, counts, petsIndexedTo: () => 2_140, sales, activity: () => ({ hatched: 0, children: 0, saves: 0, petsSaved: 0, hatchers: 0 }), circuits: { processor: PROC, counter: { totals: () => ({ minted: 5, since: 0, indexedTo: 1_000 }) } }, contracts: { registry: REG }, explorer: "https://x" },
+      1_800_000_000_000,
+    );
+    expect(behind.circuits?.last7d).toBeNull();
+    expect(behind.week?.circuits).toBeNull();
+    expect(behind.circuits?.total).toBe(22);
+  });
+
   it("before the BEM contracts exist, their numbers are absent rather than invented", async () => {
     const { client } = fakeChain(1_300);
     const sales = createSalesCounter({ rpc: "", markets: [{ address: OKB, fromBlock: 1_000 }], client, paceMs: 0 });

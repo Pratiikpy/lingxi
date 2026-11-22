@@ -1,0 +1,11 @@
+--- a/services/api/src/indexer.ts
++++ b/services/api/src/indexer.ts
+@@ -160,7 +160,7 @@ export function createIndexer(opts: { rpc: string; registry: Address; fromBlock:
+       let petsSaved = 0;
+       const hatchers = new Set<string>();
+       for (const h of Object.values(data.pets)) {
+-        if (h.hatched && (data.times[h.hatched.block] ?? 0) >= sinceSec) {
++        if (h.hatched) {
+           if (h.parents) children++;
+           else hatched++;
+           if (h.hatched.to) hatchers.add(h.hatched.to.toLowerCase());

@@ -23,7 +23,15 @@ const views = parseAbi([
   "function total() view returns (uint256)",
   "function nextPetId() view returns (uint256)",
   "function sold(uint8) view returns (uint256)",
+  "function nextId() view returns (uint256)",
 ]);
+/** The span of the page's activity line (H10). */
+const WEEK_SEC = 7 * 86_400;
+/**
+ * The walk of circuit mints reads forward from the processor's deploy block, so the newest mints are read last: until it
+ * is within this many blocks (about ten minutes) of the head, a count of the last 7 days would be too low, and is null.
+ */
+const CAUGHT_UP_BLOCKS = 600;
 
 export interface MarketTotals {
   /** copies sold by creators and by resellers */
@@ -161,6 +169,14 @@ export interface NumbersDeps {
   sales: SalesCounter;
   /** circuits on other processors that REF a Lingxi circuit (H6), counted from chain */
   refs?: RefScanner;
+  /** what happened on chain since a time, from PetRegistry's events (H10) */
+  activity?: (sinceSec: number) => { hatched: number; children: number; saves: number; petsSaved: number; hatchers: number };
+  /** who kept each pet, by the hatch's sender (H10) */
+  keepers?: () => { own: number; sponsored: number; other: number };
+  /** Lingxi's relayer, whose hatches are sponsored keeps */
+  sponsors?: string[];
+  /** Lingxi's processor and the walk of its mints (H10) */
+  circuits?: { processor: Address; fromBlock?: number; counter: { totals: (sinceSec: number) => { minted: number; since: number; indexedTo: number } } };
   contracts: { registry: Address; marketOkb?: Address; marketBem?: Address; breeder?: Address; gift?: Address; itemShop?: Address; adoption?: Address; extras?: Address };
   explorer: string;
 }
@@ -173,6 +189,13 @@ export interface Numbers {
   pets: { hatched: number; children: number; daysSaved: number; savedLast24h: number; hatchers: number; nextPetId: number; indexedTo: number };
   outfits: { okb: (MarketTotals & { indexedTo: number }) | null; bem: (MarketTotals & { indexedTo: number }) | null };
   burned: { market: string; breeding: string; shop: string; adoption: string; extras: string; total: string };
+  /** the last 7 days (H10): pets hatched and born, days saved, pets saved, wallets that hatched, circuits taped */
+  week: { since: number; hatched: number; children: number; saves: number; petsSaved: number; hatchers: number; circuits: number | null } | null;
+  /** who kept the pets on X Layer (H10): their owner's own wallet, Lingxi's relayer (sponsored), or another wallet */
+  kept: { own: number; sponsored: number; other: number; sponsors: string[] } | null;
+  /** circuits Lingxi has taped out (H10): the processor's own count, the walk's count of mints, and the last 7 days */
+  /** `fromBlock` is where the walk of mints starts: the processor's deploy block, so `minted` equals `total` once read */
+  circuits: { total: number; minted: number; last7d: number | null; indexedTo: number; fromBlock: number | null; processor: Address } | null;
   /** what the first (OKB) market's 3% has paid the project (H8); null where no market pays a treasury */
   earned: (Earned & { indexedTo: number }) | null;
   /** paid extras bought (plan 4.9): room packs, look packs and name colours; null before the contract exists */
@@ -199,9 +222,13 @@ export async function readNumbers(d: NumbersDeps, nowMs = Date.now()): Promise<N
     d.contracts.extras ? Promise.all([sold(0), sold(1), sold(2)]) : Promise.resolve(null),
   ]);
   const c = d.counts(Math.floor(nowMs / 1000) - 86_400);
+  const since = Math.floor(nowMs / 1000) - WEEK_SEC;
+  const nextId = d.circuits ? Number((await d.pub.readContract({ address: d.circuits.processor, abi: views, functionName: "nextId" })) as bigint) : 0;
+  const walked = d.circuits ? d.circuits.counter.totals(since) : null;
   const market = (a?: Address) => (a ? { ...d.sales.totals(a), indexedTo: d.sales.head(a) } : null);
   const contracts: Numbers["contracts"] = {};
   for (const [k, a] of Object.entries(d.contracts)) if (a) contracts[k] = { address: a, url: `${d.explorer}/address/${a}` };
+  if (d.circuits) contracts.processor = { address: d.circuits.processor, url: `${d.explorer}/address/${d.circuits.processor}` };
   return {
     ok: true,
     at: nowMs,
@@ -216,6 +243,10 @@ export async function readNumbers(d: NumbersDeps, nowMs = Date.now()): Promise<N
       extras: extrasBurned.toString(),
       total: (marketBurned + breedingBurned + shopBurned + adoptionBurned + extrasBurned).toString(),
     },
+    week: d.activity ? { since, ...d.activity(since), circuits: walked && Number(head) - walked.indexedTo <= CAUGHT_UP_BLOCKS ? walked.since : null } : null,
+    kept: d.keepers ? { ...d.keepers(), sponsors: d.sponsors ?? [] } : null,
+    // circuit ids start at 1, so the processor has taped nextId - 1 of them
+    circuits: d.circuits && walked ? { total: nextId - 1, minted: walked.minted, last7d: Number(head) - walked.indexedTo <= CAUGHT_UP_BLOCKS ? walked.since : null, indexedTo: walked.indexedTo, fromBlock: d.circuits.fromBlock ?? null, processor: d.circuits.processor } : null,
     earned: ((e) => (e && d.contracts.marketOkb ? { ...e, indexedTo: d.sales.head(d.contracts.marketOkb) } : null))(d.contracts.marketOkb ? d.sales.earned(d.contracts.marketOkb) : null),
     extras: extrasSold ? { room: Number(extrasSold[0]), looks: Number(extrasSold[1]), colours: Number(extrasSold[2]) } : null,
     pins: pins === null ? null : Number(pins),

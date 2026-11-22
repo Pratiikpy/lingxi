@@ -17,7 +17,8 @@ const EVENTS = [
 ] as const;
 
 export interface PetHistory {
-  hatched?: { block: number; tx: string; line: number; brainId: string; state: string; to?: string };
+  /** `by` is who sent the hatch: the owner's own wallet when it equals `to`, Lingxi's relayer for a sponsored keep (H10) */
+  hatched?: { block: number; tx: string; line: number; brainId: string; state: string; to?: string; by?: string };
   parents?: [string, string];
   children: string[];
   saves: Array<{ day: number; state: string; logHash: string; block: number; tx: string }>;
@@ -75,12 +76,23 @@ export function createIndexer(opts: { rpc: string; registry: Address; fromBlock:
     }
   }
 
+  /** Who sent a transaction (the hatch's sender says who kept the pet). */
+  const senderOf = async (tx: string): Promise<string> => String((await pub.getTransaction({ hash: tx as `0x${string}` })).from).toLowerCase();
+
   /** Read forward to the chain's head; returns how many events were added. Saves as it goes. */
   async function catchUp(maxWindows = 400): Promise<number> {
     if (running) return 0;
     running = true;
     let added = 0;
     try {
+      // pets indexed before the hatch's sender was recorded get it now, from their own transactions
+      let filled = false;
+      for (const h of Object.values(data.pets))
+        if (h.hatched && !h.hatched.by) {
+          h.hatched.by = await senderOf(h.hatched.tx);
+          filled = true;
+        }
+      if (filled) save();
       // the head as it is now: viem keeps a block number it has read for a few seconds, which would stop a catch-up short
       const head = Number(await pub.getBlockNumber({ cacheTime: 0 }));
       for (let i = 0; i < maxWindows && data.next <= head; i++) {
@@ -91,7 +103,7 @@ export function createIndexer(opts: { rpc: string; registry: Address; fromBlock:
           const tx = l.transactionHash!;
           const a = l.args as Record<string, bigint | number | string>;
           const id = String(a.petId);
-          if (l.eventName === "Hatched") pet(id).hatched = { block, tx, line: Number(a.line), brainId: String(a.brainId), state: String(a.state), to: String(a.to) };
+          if (l.eventName === "Hatched") pet(id).hatched = { block, tx, line: Number(a.line), brainId: String(a.brainId), state: String(a.state), to: String(a.to), by: await senderOf(tx) };
           else if (l.eventName === "Bred") {
             pet(id).parents = [String(a.parentA), String(a.parentB)];
             for (const p of [String(a.parentA), String(a.parentB)]) if (!pet(p).children.includes(id)) pet(p).children.push(id);
@@ -139,6 +151,43 @@ export function createIndexer(opts: { rpc: string; registry: Address; fromBlock:
         if (h.saves.some((x) => (data.times[x.block] ?? 0) >= sinceSec)) savedSince++;
       }
       return { hatched, children, saves, savedSince, hatchers: hatchers.size };
+    },
+    /** What happened on chain since `sinceSec` (H10): pets hatched and born, days saved, pets saved, wallets that hatched. */
+    activity(sinceSec: number): { hatched: number; children: number; saves: number; petsSaved: number; hatchers: number } {
+      let hatched = 0;
+      let children = 0;
+      let saves = 0;
+      let petsSaved = 0;
+      const hatchers = new Set<string>();
+      for (const h of Object.values(data.pets)) {
+        if (h.hatched && (data.times[h.hatched.block] ?? 0) >= sinceSec) {
+          if (h.parents) children++;
+          else hatched++;
+          if (h.hatched.to) hatchers.add(h.hatched.to.toLowerCase());
+        }
+        const recent = h.saves.filter((x) => (data.times[x.block] ?? 0) >= sinceSec).length;
+        saves += recent;
+        if (recent) petsSaved++;
+      }
+      return { hatched, children, saves, petsSaved, hatchers: hatchers.size };
+    },
+    /**
+     * Who kept each pet on X Layer (H10), by the hatch's sender: its owner's own wallet (the sender is the wallet it was
+     * hatched for), Lingxi's relayer (a sponsored keep), or another wallet. A pet whose sender is not known yet is in none.
+     */
+    keepers(sponsors: readonly string[]): { own: number; sponsored: number; other: number } {
+      const relay = new Set(sponsors.map((x) => x.toLowerCase()));
+      let own = 0;
+      let sponsored = 0;
+      let other = 0;
+      for (const h of Object.values(data.pets)) {
+        const k = h.hatched;
+        if (!k?.by) continue;
+        if (relay.has(k.by)) sponsored++;
+        else if (k.to && k.by === k.to.toLowerCase()) own++;
+        else other++;
+      }
+      return { own, sponsored, other };
     },
     history(id: string): (PetHistory & { at: Record<string, number> }) | null {
       const h = data.pets[id];

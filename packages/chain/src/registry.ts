@@ -13,6 +13,8 @@ import { type Circuit, REF, decode, hexToBytes, load, refKey } from "@lingxi/bra
 import { MAX_RUN_GATES } from "@lingxi/game";
 
 export interface Deployment {
+  /** the block Lingxi's processor was deployed in, where a count of its circuits starts (H10) */
+  processorBlock?: number;
   /** the project wallet that deployed the contracts; the first market's treasury (H8) */
   deployer?: Address;
   /** the block PetRegistry was deployed at, where an index of its events starts */

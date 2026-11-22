@@ -59,7 +59,8 @@ const T = {
   bought: topic("Bought(address,uint8,uint256,uint256)"),
   feeChanged: topic("FeeChanged(uint16,address)"),
 };
-const views = parseAbi(["function totalBurned() view returns (uint256)", "function total() view returns (uint256)", "function nextPetId() view returns (uint256)", "function feeBps() view returns (uint16)", "function treasury() view returns (address)"]);
+const ZERO_TOPIC = `0x${"0".repeat(64)}`;
+const views = parseAbi(["function totalBurned() view returns (uint256)", "function total() view returns (uint256)", "function nextPetId() view returns (uint256)", "function feeBps() view returns (uint16)", "function treasury() view returns (address)", "function nextId() view returns (uint256)"]);
 /**
  * Every log of `address` from `from` to `to`, raw (no ABI filter in the query). A span already read for that address is
  * served from what was read: the goals walk the burners again over the same history, which through public nodes (or
@@ -90,6 +91,9 @@ async function main() {
     extras?: { room: number; looks: number; colours: number } | null;
     pins: number | null;
     earned?: { okb: string; feeBps: number; treasury: string; toProject: boolean; indexedTo: number } | null;
+    week?: { since: number; hatched: number; children: number; saves: number; petsSaved: number; hatchers: number; circuits: number | null } | null;
+    kept?: { own: number; sponsored: number; other: number; sponsors: string[] } | null;
+    circuits?: { total: number; minted: number; last7d: number | null; indexedTo: number; fromBlock: number | null; processor: string } | null;
   };
   const diffs: string[] = [];
   const check = (what: string, mine: string | number, theirs: string | number) => {
@@ -121,6 +125,70 @@ async function main() {
   const before = registryFrom > (d.registryBlock ?? 0) ? Number(await pub.readContract({ address: d.registry, abi: views, functionName: "nextPetId", blockNumber: BigInt(registryFrom - 1) })) : 1;
   check(before === 1 ? "every pet ever made was counted (hatched + born = nextPetId - 1)" : `every pet made since block ${registryFrom} was counted (hatched + born = nextPetId now - nextPetId then)`, hatched + children, nextPetId - before);
   check("nextPetId", Number(await pub.readContract({ address: d.registry, abi: views, functionName: "nextPetId" })), live.pets.nextPetId);
+
+  // the last 7 days and who kept each pet (H10), from the same logs, each block's own time and each hatch's own sender
+  const blockTime = new Map<string, number>();
+  const timeOfBlock = async (hex: string) => {
+    if (!blockTime.has(hex)) blockTime.set(hex, Number((await pub.getBlock({ blockNumber: BigInt(hex) })).timestamp));
+    return blockTime.get(hex)!;
+  };
+  if (live.week || live.kept) {
+    const since = live.week?.since ?? 0;
+    const relay = new Set((live.kept?.sponsors ?? []).map((x) => x.toLowerCase()));
+    const w = { hatched: 0, children: 0, saves: 0, petsSaved: new Set<string>(), hatchers: new Set<string>() };
+    const k = { own: 0, sponsored: 0, other: 0 };
+    for (const l of reg) {
+      if (l.topics[0] === T.hatched) {
+        const ev = decodeEventLog({ abi: events, data: l.data, topics: l.topics }).args as { petId: bigint; to: Address };
+        const from = String((await pub.getTransaction({ hash: l.transactionHash })).from).toLowerCase();
+        if (relay.has(from)) k.sponsored++;
+        else if (from === ev.to.toLowerCase()) k.own++;
+        else k.other++;
+        if ((await timeOfBlock(l.blockNumber)) >= since) {
+          if (bredIds.has(String(ev.petId))) w.children++;
+          else w.hatched++;
+          w.hatchers.add(ev.to.toLowerCase());
+        }
+      } else if (l.topics[0] === T.checkpoint && (await timeOfBlock(l.blockNumber)) >= since) {
+        w.saves++;
+        w.petsSaved.add(BigInt(l.topics[1]!).toString());
+      }
+    }
+    if (live.week) {
+      check("pets hatched in the last 7 days", w.hatched, live.week.hatched);
+      check("little ones born in the last 7 days", w.children, live.week.children);
+      check("days saved in the last 7 days", w.saves, live.week.saves);
+      check("pets saved in the last 7 days", w.petsSaved.size, live.week.petsSaved);
+      check("wallets that hatched in the last 7 days", w.hatchers.size, live.week.hatchers);
+    }
+    if (live.kept) {
+      check("pets kept by their owner's own wallet (the hatch's sender is the owner)", k.own, live.kept.own);
+      check("pets kept by Lingxi's relayer (sponsored)", k.sponsored, live.kept.sponsored);
+      check("pets kept by another wallet", k.other, live.kept.other);
+    }
+  }
+
+  // circuits Lingxi has taped out (H10): the processor's mints, walked by this script, and its own count
+  if (live.circuits && (live.circuits.fromBlock ?? d.processorBlock)) {
+    const from = live.circuits.fromBlock ?? d.processorBlock!;
+    let minted = 0;
+    let recent = 0;
+    for (const l of await logsOf(d.processor, from, live.circuits.indexedTo)) {
+      if (l.topics[0] !== T.transfer || l.topics[1] !== ZERO_TOPIC) continue;
+      minted++;
+      if ((await timeOfBlock(l.blockNumber)) >= (live.week?.since ?? 0)) recent++;
+    }
+    check("circuits minted on the processor (Transfer events from nobody)", minted, live.circuits.minted);
+    if (live.circuits.last7d !== null) check("circuits taped out in the last 7 days", recent, live.circuits.last7d);
+    else console.log("not yet  circuits in the last 7 days: the server's walk has not reached the head");
+    if (live.week && live.week.circuits !== null) check("circuits in the week's activity", recent, live.week.circuits);
+    const next = Number(await pub.readContract({ address: d.processor, abi: views, functionName: "nextId" }));
+    check("circuits taped out (the processor's nextId less one)", next - 1, live.circuits.total);
+    // every mint in the walked span was found: nextId at its end less nextId just before its start (1 before deployment)
+    const atEnd = Number(await pub.readContract({ address: d.processor, abi: views, functionName: "nextId", blockNumber: BigInt(live.circuits.indexedTo) }));
+    const before = await pub.readContract({ address: d.processor, abi: views, functionName: "nextId", blockNumber: BigInt(from - 1) }).then(Number, () => 1);
+    check(`every circuit minted since block ${from} was walked (mints = nextId then - nextId before)`, minted, atEnd - before);
+  }
 
   // sales, each market up to the block the page has read it to
   const markets: Array<[string, Address | undefined, number | undefined, { copies: number; paid: string; indexedTo: number } | null]> = [

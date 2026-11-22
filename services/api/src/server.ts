@@ -77,6 +77,7 @@ import { createSourcifyRelay, withSourcify } from "./sourcify";
 import { withRpcProxy } from "./rpc";
 import { privateKeyToAccount } from "viem/accounts";
 import { type EarningTerms, createSalesCounter, withNumbers } from "./numbers";
+import { createCircuitCounter } from "./circuits";
 import { createRefScanner } from "./refScan";
 import { createListingWatch, withRetiredListings } from "./marketV1";
 import { createDuelStore, withDuels } from "./duels";
@@ -1299,12 +1300,23 @@ if (isMain) {
       withTest1Owners(app, test1);
       jobs.loop("test1 owners", () => test1.refresh(), TEST1_REFRESH_MS);
     }
+    // circuits Lingxi has taped out: the processor's mints, walked from its deploy block (H10)
+    // LINGXI_PROCESSOR_FROM starts the walk later (a fork of mainnet starts at its own block)
+    const processorBlock = Number(process.env.LINGXI_PROCESSOR_FROM ?? chainCtx?.deployment.processorBlock ?? 0) || undefined;
+    const circuitCounter = processor && processorBlock ? createCircuitCounter({ rpc, processor, fromBlock: processorBlock, store: process.env.LINGXI_CIRCUITS_STORE ?? join(dataDir, "circuits.json") }) : null;
+    if (circuitCounter) jobs.loop("circuits", () => circuitCounter.catchUp(), 20_000);
+    // the relayer's hatches are sponsored keeps; every other pet was kept by its owner's wallet or another (H10)
+    const sponsors = relayer ? [relayer.address] : [];
     withNumbers(app, {
       pub: visitorPub,
       counts: (since) => indexer.counts(since),
       petsIndexedTo: () => indexer.head(),
       sales,
       ...(refs ? { refs } : {}),
+      activity: (since) => indexer.activity(since),
+      keepers: () => indexer.keepers(sponsors),
+      sponsors,
+      ...(circuitCounter && processor && processorBlock ? { circuits: { processor, counter: circuitCounter, fromBlock: processorBlock } } : {}),
       contracts: { registry: process.env.LINGXI_REGISTRY as `0x${string}`, marketOkb: env("LINGXI_MARKET_OKB"), marketBem: env("LINGXI_MARKET_BEM"), breeder: env("LINGXI_BREEDER"), gift: env("LINGXI_GIFT"), itemShop: env("LINGXI_ITEM_SHOP"), adoption: env("LINGXI_ADOPTION"), extras: env("LINGXI_EXTRAS") ?? chainCtx?.deployment.extras },
       explorer: "https://www.oklink.com/xlayer",
     });

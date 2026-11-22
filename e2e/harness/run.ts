@@ -103,6 +103,7 @@ export async function startRun(): Promise<Run> {
       LINGXI_PACKETS_FROM: String(FORK.block),
       LINGXI_MARKET_OKB_FROM: String(FORK.block),
       LINGXI_MARKET_BEM_FROM: String(FORK.block),
+      LINGXI_PROCESSOR_FROM: String(FORK.block),
       LINGXI_CONSENTS_FROM: String(FORK.block),
       LINGXI_SOURCIFY_URL: `http://127.0.0.1:${sourcifyPort}/server`,
       ...Object.fromEntries(
@@ -120,6 +121,7 @@ export async function startRun(): Promise<Run> {
           ["LINGXI_LIBRARY_STORE", "library.json"],
           ["LINGXI_BRAIN_STORE", "brains.json"],
           ["LINGXI_PACKETS_STORE", "packets.json"],
+          ["LINGXI_CIRCUITS_STORE", "circuits.json"],
           ["LINGXI_CONSENTS_STORE", "consents.json"],
           ["LINGXI_PUSH_STORE", "push.json"],
           ["LINGXI_LANE_FILE", "lane.json"],
