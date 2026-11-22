@@ -1,11 +1,12 @@
 --- a/services/api/src/indexer.ts
 +++ b/services/api/src/indexer.ts
-@@ -184,7 +184,7 @@ export function createIndexer(opts: { rpc: string; registry: Address; fromBlock:
+@@ -184,8 +184,7 @@ export function createIndexer(opts: { rpc: string; registry: Address; fromBlock:
          const k = h.hatched;
          if (!k?.by) continue;
          if (relay.has(k.by)) sponsored++;
 -        else if (k.to && k.by === k.to.toLowerCase()) own++;
+-        else other++;
 +        else own++;
-         else other++;
        }
        return { own, sponsored, other };
+     },
