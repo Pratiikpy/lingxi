@@ -6,10 +6,11 @@
  */
 
 import type { PublicClient } from "viem";
-import { INPUT_FIELDS, MOODS, NUDGES, type Program, type Rule, WANTS, compileProgram, decodeOutput, decodeSenses, gateCount, runBeat, stateBits, validateProgram } from "@lingxi/brain";
+import { INPUT_FIELDS, MOODS, NUDGES, type Program, type Rule, WANTS, compileProgram, decodeOutput, decodeSenses, fastBrain, gateCount, validateProgram } from "@lingxi/brain";
 import type { Deployment } from "@lingxi/chain";
 import { LESSON_CAPACITY, MAX_GATES, checkLesson, composeProgram } from "@lingxi/game";
 import { petView, runSpar } from "./agentApi";
+import { RateLimiter } from "./limit";
 import type { McpToolName } from "./mcpToolDefs";
 
 export class ToolArgsError extends Error {}
@@ -22,7 +23,13 @@ export interface ToolResult {
 
 export interface ToolDeps {
   chain?: { pub: PublicClient; deployment: Deployment };
+  /** proposals across every caller: each reads 65,536 situations twice (about 0.1 s on the shared event loop) */
+  proposals?: RateLimiter;
 }
+
+/** At most this many proposals a minute from everyone together, so no crowd can hold the game's server. */
+export const PROPOSALS_PER_MINUTE = 60;
+const sharedProposals = new RateLimiter(PROPOSALS_PER_MINUTE, 60_000);
 
 const LINES = ["gentle", "bold", "curious"] as const;
 type Line = (typeof LINES)[number];
@@ -83,13 +90,18 @@ const act = (out: number): { want: string; mood: string; nudge: string } => {
  * typical one rather than the lowest-numbered (which is always the most extreme: starving, filthy, at night).
  */
 function differences(before: Program, after: Program): { count: number; examples: Array<{ situation: string; before: ReturnType<typeof act>; after: ReturnType<typeof act> }> } {
-  const zeroA = new Array<number>(stateBits(before)).fill(0);
-  const zeroB = new Array<number>(stateBits(after)).fill(0);
+  // the compiled netlists themselves, the gates that would be taped out, each beat from a fresh memory
+  const brainA = fastBrain(compileProgram(before));
+  const brainB = fastBrain(compileProgram(after));
+  const stateA = new Uint8Array(brainA.nState);
+  const stateB = new Uint8Array(brainB.nState);
   const byChange = new Map<string, number[]>();
   let count = 0;
   for (let w = 0; w < 1 << 16; w++) {
-    const a = runBeat(before, zeroA, w).out;
-    const b = runBeat(after, zeroB, w).out;
+    stateA.fill(0);
+    stateB.fill(0);
+    const a = brainA.step(stateA, w);
+    const b = brainB.step(stateB, w);
     if (a === b) continue;
     count++;
     const key = `${a}:${b}`;
@@ -118,7 +130,7 @@ function cleanRule(v: unknown, what: string): Rule {
   }
 }
 
-function proposeLessonTool(args: Record<string, unknown>): ToolResult {
+function proposeLessonTool(args: Record<string, unknown>, deps: ToolDeps): ToolResult {
   only(args, ["rule", "line", "lessons"]);
   const line: Line = args.line === undefined ? "gentle" : (args.line as Line);
   if (!LINES.includes(line)) throw new ToolArgsError("line must be gentle, bold or curious");
@@ -131,6 +143,7 @@ function proposeLessonTool(args: Record<string, unknown>): ToolResult {
     const why = { full: `a pet holds at most ${LESSON_CAPACITY.elder} lessons`, duplicate: "the pet already has this lesson", tooBig: check.detail, invalid: check.detail }[check.reason];
     return text(`A ${line} pet cannot learn this lesson: ${why}.`, { learnable: false, reason: check.reason, detail: check.detail }, true);
   }
+  if (!(deps.proposals ?? sharedProposals).take("everyone")) return text("Lingxi is checking many lessons right now; try again in a minute.", { learnable: null, reason: "busy" }, true);
   const before = composeProgram(line, lessons);
   const gatesBefore = gateCount(compileProgram(before));
   const diff = differences(before, check.program);
@@ -154,7 +167,7 @@ export async function callTool(name: McpToolName | string, args: Record<string, 
     case "run_spar":
       return runSparTool(args);
     case "propose_lesson":
-      return proposeLessonTool(args);
+      return proposeLessonTool(args, deps);
     default:
       throw new ToolArgsError(`no tool ${String(name).slice(0, 64)}`);
   }

@@ -191,7 +191,15 @@ console.log(result.name, result.owner, verified)`}</pre>
             "给模型用：读取宠物、切磋、提议一课（检查一条规则、说明它会改变哪些情况，不会真的教）是 /mcp 上 MCP 服务器的工具。服务清单用 SHA-256 钉住这些工具的定义（TAP-15），每个工具同时也是一个签名方法。在 MCP 客户端里，TapeAPI 的 tapeapi-mcp 会对照这个摘要检查工具，并对照链上核验每个回答：",
           )}
         </p>
-        <pre>{`{ "command": "npx", "args": ["-y", "--package=${TAPEAPI_SDK}", "tapeapi-mcp", "1.2.419.tape"] }`}</pre>
+        <pre>{`{
+  "command": "npx",
+  "args": [
+    "-y",
+    "--package=${TAPEAPI_SDK}",
+    "tapeapi-mcp",
+    "1.2.419.tape"
+  ]
+}`}</pre>
       </section>
 
       <section>

@@ -68,6 +68,12 @@ describe("the MCP server at /mcp (Streamable HTTP, 2025-11-25)", () => {
     expect(r.structuredContent).toMatchObject({ learnable: false, reason: "duplicate" });
   });
 
+  it("proposals across all callers share a budget; past it, a readable tool error and nothing computed", async () => {
+    const r1 = (await handleMcp({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "propose_lesson", arguments: { rule: brave } } }, { proposals: new RateLimiter(0, 60_000) })) as { result: { isError: boolean; structuredContent: { reason: string } } };
+    expect(r1.result.isError).toBe(true);
+    expect(r1.result.structuredContent.reason).toBe("busy");
+  });
+
   it("runs a spar, the same fight for the same seed", async () => {
     const { rpc } = server();
     const a = (await rpc("tools/call", { name: "run_spar", arguments: { chips: "berserk", vs: "pip", seed: 7 } })).body.result;
