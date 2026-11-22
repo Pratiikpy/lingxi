@@ -173,7 +173,9 @@ async function onChain(c: typeof catalogue): Promise<string[]> {
       allowFailure: false,
       batchSize: 1 << 20,
       contracts: all.map((v) => ({ address: c.processor, abi: processorAbi, functionName: "step", args: [BigInt(b.id), packWord(v.state, b.nState), packWord(v.input, 16)] })),
-    })) as Array<readonly [Hex, Hex]>;
+      // viem types a multicall over this ABI as the union of every function's result; every call here is `step`,
+      // which returns (bytes newState, bytes outputs)
+    })) as unknown as Array<readonly [Hex, Hex]>;
     got.forEach(([next, out], k) => {
       const v = all[k]!;
       if ((unpackWord(out) & 0xff) !== v.output || unpackWord(next) !== v.nextState) wrong.push(`brain ${b.line}: state ${v.state} input ${v.input} gives ${unpackWord(out)}/${unpackWord(next)} on chain, ${v.output}/${v.nextState} here`);
