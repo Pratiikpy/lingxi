@@ -44,15 +44,23 @@ export function obtainable(item: number, seen: ReadonlySet<number> = new Set()):
   return ALL.some((r) => r.out === item && r.outAmount >= 100 && r.ins.every((x) => obtainable(x.item, next)));
 }
 
-/** Coins to buy every input of one piece of a recipe's output, or null when some input is not sold. */
+/**
+ * The least coins one piece of a recipe's output can cost: its bought inputs at their shop price, anything that can be
+ * found or grown counted as free. Null when an input cannot be had at all, or when nothing in it is bought (then no
+ * coin comparison means anything). Because found inputs count as free, a recipe whose cost here still reaches a shop
+ * price is worse than buying, whatever the finding takes.
+ */
 export function boughtCostPerPiece(r: Recipe): number | null {
   let total = 0;
+  let bought = false;
   for (const x of r.ins) {
     const p = shopPrice(x.item);
-    if (p === null) return null;
-    total += p * x.amount;
+    if (p !== null) {
+      total += p * x.amount;
+      bought = true;
+    } else if (!obtainable(x.item)) return null;
   }
-  return total / r.outAmount;
+  return bought ? total / r.outAmount : null;
 }
 
 function dominates(a: Recipe, b: Recipe): boolean {
