@@ -39,3 +39,34 @@ describe("the visitor album", () => {
     for (const v of VISITORS) expect(v.name.zh && v.note.zh && v.note.en).toBeTruthy();
   });
 });
+
+describe("what visitors say about themselves is true (D11)", () => {
+  it("Moonwalker comes only at the pet's own night, and its hint says so", async () => {
+    const { VISITORS, visitorComes, visitorHint } = await import("../src/visitors");
+    const moon = VISITORS.find((v) => v.id === "moonwalker")!;
+    const ctx = (tz: number) => ({ lessons: [], traits: {} as never, line: "gentle" as const, stage: "adult" as const, tzOffsetMin: tz });
+    const at = (h: number) => Date.UTC(2026, 10, 24, h, 30);
+    // UTC+8: 14:30 UTC is 22:30 there (night), 04:30 UTC is 12:30 there (day)
+    expect(visitorComes(moon, ctx(480), at(14))).toBe(true);
+    expect(visitorComes(moon, ctx(480), at(4))).toBe(false);
+    // the same moments for a pet in UTC: day at 14:30, night at 04:30
+    expect(visitorComes(moon, ctx(0), at(14))).toBe(false);
+    expect(visitorComes(moon, ctx(0), at(4))).toBe(true);
+    const names = { trait: String, line: String, stage: String, form: String, season: String } as never;
+    expect(visitorHint(moon, "en", names)).toContain("night");
+    expect(visitorHint(moon, "zh", names)).toContain("夜里");
+  });
+
+  it("the seasonal game follows the world's season, the one the home screen names", async () => {
+    const { gameSeasonAt } = await import("../src/games");
+    const { WORLD_SEASONS, worldSeasonAt } = await import("../src/worldSeason");
+    const want = { blossom: "spring", lantern: "summer", harvest: "autumn", frost: "winter" } as const;
+    for (let d = 0; d < 120; d += 3) {
+      const ms = Date.UTC(2026, 10, 16) + d * 86_400_000;
+      expect(gameSeasonAt(ms)).toBe(want[worldSeasonAt(ms).id]);
+    }
+    expect(WORLD_SEASONS).toHaveLength(4);
+    // late November is Blossom Weeks in the world, so the game is spring, not the calendar's autumn
+    expect(gameSeasonAt(Date.UTC(2026, 10, 23, 12))).toBe(want[worldSeasonAt(Date.UTC(2026, 10, 23, 12)).id]);
+  });
+});

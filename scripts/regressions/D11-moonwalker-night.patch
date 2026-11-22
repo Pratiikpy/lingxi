@@ -1,0 +1,11 @@
+--- a/packages/game/src/visitors.ts
++++ b/packages/game/src/visitors.ts
+@@ -127,7 +127,7 @@ export function visitorComes(v: Visitor, ctx: VisitContext | undefined, ms: numb
+   const n = v.need;
+   if (!n) return true;
+   if (n.season && worldSeasonAt(ms).id !== n.season) return false;
+-  if (n.night && timeOfDay(new Date(ms + (ctx?.tzOffsetMin ?? 0) * 60_000).getUTCHours()) !== 0) return false;
++  if (n.night && timeOfDay(new Date(ms + (ctx?.tzOffsetMin ?? 0) * 60_000).getUTCHours()) === 9) return false;
+   if (!ctx) return !n.lesson && !n.trait && !n.line && !n.stage && !n.form;
+   if (n.lesson && !ctx.lessons.includes(n.lesson)) return false;
+   if (n.trait && (ctx.traits[n.trait] ?? 0) < HABIT) return false;

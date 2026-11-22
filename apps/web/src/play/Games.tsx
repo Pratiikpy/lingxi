@@ -8,7 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { drawPet } from "@lingxi/art";
 import { resultLine } from "./gameResult";
-import { type GameId, type Pet, SEASONAL, afterSwaps, nextPattern, seasonOf, shuffles, stageOf, starsFor, toVisible } from "@lingxi/game";
+import { type GameId, type Pet, SEASONAL, afterSwaps, gameSeasonAt, nextPattern, shuffles, stageOf, starsFor, toVisible } from "@lingxi/game";
 import { HOME, ITEM, ROOMS } from "@lingxi/world";
 import { useWorld } from "../game/world";
 import { PRESS_MS, showSteps } from "../game/patternShow";
@@ -31,7 +31,8 @@ export function GamesPanel({ pet, onDone, onSchool }: { pet: Pet; onDone: () => 
   const act = useGame((s) => s.act);
   const [game, setGame] = useState<GameId | null>(null);
   const [result, setResult] = useState<{ game: GameId; score: number; stars: number } | null>(null);
-  const season = seasonOf(new Date(now()));
+  // D11: the world's season, the one the home screen names
+  const season = gameSeasonAt(now());
   const seasonal = SEASONAL[season];
   const block = pet.asleep
     ? lang === "zh"

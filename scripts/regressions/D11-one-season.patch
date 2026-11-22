@@ -1,0 +1,11 @@
+--- a/packages/game/src/games.ts
++++ b/packages/game/src/games.ts
+@@ -23,7 +23,7 @@ export function seasonOf(date: Date, south = false): Season {
+  * the shore), Harvest Weeks autumn, Frost Weeks winter. `seasonOf` (the calendar) is kept for anything that means it.
+  */
+ export function gameSeasonAt(ms: number): Season {
+-  return ({ blossom: "spring", lantern: "summer", harvest: "autumn", frost: "winter" } as const)[worldSeasonAt(ms).id];
++  return worldSeasonAt(ms) ? seasonOf(new Date(ms)) : "spring";
+ }
+ 
+ /** The rotating game's theme: same rules (find the hidden pet), different dress. */

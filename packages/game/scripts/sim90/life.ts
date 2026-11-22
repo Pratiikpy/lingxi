@@ -226,7 +226,7 @@ export class Life {
     // the travelling pets who came by while it was away, as the welcome card counts them, and their keepsakes (G4)
     const p0 = this.pet;
     const stage = stageOf(p0, t);
-    const visits = visitorsDuring(awaySeed(p0), p0.beat, beatOf(t), { lessons: schoolIdsOf(p0.lessons), traits: p0.traits, line: p0.line, stage, ...(p0.form ? { form: p0.form } : {}) });
+    const visits = visitorsDuring(awaySeed(p0), p0.beat, beatOf(t), { lessons: schoolIdsOf(p0.lessons), traits: p0.traits, line: p0.line, stage, tzOffsetMin: p0.tzOffsetMin, ...(p0.form ? { form: p0.form } : {}) });
     if (visits.length) {
       const kept = keepsakesFrom(this.album, visits);
       for (const k of kept) this.world = payReward(this.world, k.gift);

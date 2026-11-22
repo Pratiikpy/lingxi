@@ -4,6 +4,8 @@
  * the screens live in the app.
  */
 
+import { worldSeasonAt } from "./worldSeason";
+
 export type Season = "spring" | "summer" | "autumn" | "winter";
 export type GameId = "catch" | "pattern" | "seasonal";
 
@@ -13,6 +15,15 @@ export function seasonOf(date: Date, south = false): Season {
   const north: Season = m >= 2 && m <= 4 ? "spring" : m >= 5 && m <= 7 ? "summer" : m >= 8 && m <= 10 ? "autumn" : "winter";
   if (!south) return north;
   return ({ spring: "autumn", summer: "winter", autumn: "spring", winter: "summer" } as const)[north];
+}
+
+/**
+ * D11: the rotating game follows the world's own season (worldSeason.ts, four 28-day seasons), so the home screen's
+ * "Blossom Weeks" and the game's dress never disagree: Blossom Weeks are spring, Lantern Weeks summer (lantern nights at
+ * the shore), Harvest Weeks autumn, Frost Weeks winter. `seasonOf` (the calendar) is kept for anything that means it.
+ */
+export function gameSeasonAt(ms: number): Season {
+  return ({ blossom: "spring", lantern: "summer", harvest: "autumn", frost: "winter" } as const)[worldSeasonAt(ms).id];
 }
 
 /** The rotating game's theme: same rules (find the hidden pet), different dress. */

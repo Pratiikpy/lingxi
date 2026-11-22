@@ -7,6 +7,7 @@
  * has been, how often, and when first.
  */
 
+import { timeOfDay } from "@lingxi/brain";
 import { awayEvent } from "./away";
 import { PET_SCHOOL } from "./lessons";
 import type { Stage, Trait } from "./pet";
@@ -37,6 +38,8 @@ export interface VisitorNeed {
   stage?: Exclude<Stage, "egg">;
   form?: "puff" | "blossom" | "dumpling" | "scholar" | "moonpetal";
   season?: WorldSeasonId;
+  /** D11: only at night where the pet lives (21:00 to 06:00 its local time, the brain's night) */
+  night?: true;
 }
 
 export type VisitorGift = { kind: "item"; item: number; n: number } | { kind: "coins"; n: number } | { kind: "decor"; id: string };
@@ -55,6 +58,8 @@ export interface VisitContext {
   line: "gentle" | "bold" | "curious";
   stage: Exclude<Stage, "egg">;
   form?: string;
+  /** the pet's time zone, minutes east of UTC, for a visitor who keeps the night (UTC when not known) */
+  tzOffsetMin?: number;
 }
 
 export const VISITORS: readonly Visitor[] = [
@@ -69,7 +74,7 @@ export const VISITORS: readonly Visitor[] = [
   { id: "snow", rarity: "uncommon", name: { en: "Snowcap", zh: "雪帽" }, note: { en: "Smelled of pine and cold air.", zh: "身上有松树和冷空气的味道。" }, look: { line: "bold", stage: "teen", palette: "sky", outfit: { head: "beanie" } } },
   { id: "bloom", rarity: "uncommon", name: { en: "Bloom", zh: "花开" }, note: { en: "Every step left a petal.", zh: "每走一步都落下一片花瓣。" }, look: { line: "gentle", stage: "adult", palette: "coral", form: "blossom" } },
   { id: "monarch", rarity: "rare", name: { en: "The Little Monarch", zh: "小小君主" }, note: { en: "Inspected the room, approved, departed.", zh: "巡视了一圈，点头，离开。" }, look: { line: "bold", stage: "adult", palette: "sunny", outfit: { head: "crown", face: "shades", held: "lantern" } } },
-  { id: "moonwalker", rarity: "rare", name: { en: "Moonwalker", zh: "月行者" }, note: { en: "Only ever comes at night, and only for a moment.", zh: "只在夜里来，而且只待一会儿。" }, look: { line: "curious", stage: "adult", palette: "night", form: "moonpetal" } },
+  { id: "moonwalker", rarity: "rare", name: { en: "Moonwalker", zh: "月行者" }, note: { en: "Only ever comes at night, and only for a moment.", zh: "只在夜里来，而且只待一会儿。" }, look: { line: "curious", stage: "adult", palette: "night", form: "moonpetal" }, need: { night: true } },
   // ── G4: visitors who come for what a pet is: a lesson it knows, a habit, its line, stage or form, or the season ──
   { id: "tansy", rarity: "uncommon", name: { en: "Tansy the Trader", zh: "交换小能手丹西" }, note: { en: "Swapped a ribbon for a bottle cap, and both left happy.", zh: "用一根丝带换了个瓶盖，两边都很开心。" }, look: { line: "gentle", stage: "child", palette: "coral", outfit: { held: "balloon" } }, need: { lesson: "share" }, keepsakes: { third: { kind: "item", item: 1011, n: 3 }, tenth: { kind: "item", item: 11313, n: 1 } } },
   { id: "burr", rarity: "uncommon", name: { en: "Captain Burr", zh: "刺球船长" }, note: { en: "Stood guard at the door until your pet said thank you.", zh: "在门口站岗，直到你的宠物说了谢谢。" }, look: { line: "bold", stage: "teen", palette: "sunny", outfit: { held: "flag" } }, need: { lesson: "brave" }, keepsakes: { third: { kind: "item", item: 1002, n: 6 }, tenth: { kind: "item", item: 11313, n: 1 } } },
@@ -122,6 +127,7 @@ export function visitorComes(v: Visitor, ctx: VisitContext | undefined, ms: numb
   const n = v.need;
   if (!n) return true;
   if (n.season && worldSeasonAt(ms).id !== n.season) return false;
+  if (n.night && timeOfDay(new Date(ms + (ctx?.tzOffsetMin ?? 0) * 60_000).getUTCHours()) !== 0) return false;
   if (!ctx) return !n.lesson && !n.trait && !n.line && !n.stage && !n.form;
   if (n.lesson && !ctx.lessons.includes(n.lesson)) return false;
   if (n.trait && (ctx.traits[n.trait] ?? 0) < HABIT) return false;
@@ -204,6 +210,10 @@ export function visitorHint(v: Visitor, lang: "en" | "zh", names: HintNames): st
     const when = names.season(n.season);
     if (lang === "zh") return who ? `${when}来看${who}。` : `只在${when}来。`;
     return who ? `Comes to ${who} in ${when}.` : `Comes only in ${when}.`;
+  }
+  if (n.night) {
+    if (lang === "zh") return who ? `夜里来看${who}。` : "只在夜里来（晚上 9 点到早上 6 点）。";
+    return who ? `Comes to ${who} at night.` : "Comes only at night (9 pm to 6 am).";
   }
   return lang === "zh" ? `会来看${who}。` : `Comes to ${who}.`;
 }

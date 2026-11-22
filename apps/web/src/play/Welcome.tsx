@@ -80,7 +80,7 @@ function leadWithTaught(frames: Frame[]): Frame[] {
 /** What a visitor may notice about this pet (G4): the lessons it knows, its habits, its line, stage and form. */
 function visitContextOf(pet: Pet, ms: number) {
   const stage = stageOf(pet, ms);
-  return { lessons: schoolIdsOf(pet.lessons), traits: pet.traits, line: pet.line, stage, ...(pet.form ? { form: pet.form } : {}) };
+  return { lessons: schoolIdsOf(pet.lessons), traits: pet.traits, line: pet.line, stage, tzOffsetMin: pet.tzOffsetMin, ...(pet.form ? { form: pet.form } : {}) };
 }
 
 /** A visitor's keepsake in words (G4). */
