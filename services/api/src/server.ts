@@ -50,7 +50,7 @@ import { type ArenaStore, createArenaStore } from "./arena";
 import { type SeasonStore, createSeasonStore, settleAwards } from "./season";
 import { dayIndex, weekOf } from "@lingxi/game";
 import { parseCard } from "@lingxi/game";
-import { createPublicClient, custom, fallback, http, parseEther, type Address, type PublicClient } from "viem";
+import { createPublicClient, custom, fallback, getAddress, http, parseEther, type Address, type PublicClient } from "viem";
 import { FACTORY, type Deployment, type SignedRelay, adoptionCentreAbi, createNetlistCache, holderGiftAbi, loadCircuitFromChain, nameColours, packsHeld, petRegistryAbi, piecesHeld, readPet, xLayer } from "@lingxi/chain";
 import { type HomeChain, createHomes } from "./homes";
 import { createAgentStore } from "./agents";
@@ -1323,7 +1323,7 @@ if (isMain) {
       sales,
       ...(refs ? { refs } : {}),
       activity: (since) => indexer.activity(since),
-      team: { wallets: teamPublic, hidden: teamPrivate.length, byTeam: (since) => indexer.byTeam(teamAll, since) },
+      team: { wallets: teamPublic.map((a) => getAddress(a)), hidden: teamPrivate.length, byTeam: (since) => indexer.byTeam(teamAll, since) },
       sponsorOn,
       keepers: () => indexer.keepers(sponsors),
       sponsors,

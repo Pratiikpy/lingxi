@@ -255,7 +255,7 @@ function TeamCard({ data, lang }: { data: Numbers; lang: Lang }) {
   const playerPets = data.pets.hatched + data.pets.children - teamPets;
   const playerCopies = (data.outfits.okb?.byPlayers?.copies ?? 0) + (data.outfits.bem?.byPlayers?.copies ?? 0);
   const onlyTeam = playerPets === 0 && playerCopies === 0;
-  const named = t.wallets.map(shortAddr).join(", ");
+  const named = t.wallets.map(shortAddr).join(lang === "zh" ? "、" : ", ");
   return (
     <section className="ag-card nb-team-card" aria-label={L("Whose activity this is", "这些是谁的活动")}>
       <h2>{L("Whose activity this is", "这些是谁的活动")}</h2>

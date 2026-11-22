@@ -83,7 +83,7 @@ describe("whose activity the numbers are (C2)", () => {
   it("says it in Chinese", async () => {
     const p = await open(numbers(), "zh");
     expect(p.text()).toMatch(/到目前为止，这里的每个数字都是团队自己的测试/);
-    expect(p.text()).toMatch(/另有 1 个不公开，同样计入团队/);
+    expect(p.text()).toMatch(/团队的钱包：0xA551…aaD8、0x20A0…85A1，另有 1 个不公开，同样计入团队/);
     expect(p.text()).toMatch(/全部来自团队自己的测试购买：团队付给自己，不是收入/);
     expect(p.text()).toMatch(/目前已关闭：灵犀暂时不免费代为上链/);
     p.close();
