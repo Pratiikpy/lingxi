@@ -48,7 +48,10 @@ describe("families", () => {
     const [a, b] = halvesOf(family, r.pet.lessons);
     expect(a.rules[0]).toEqual(share);
     expect(b.rules[0]).toEqual(share);
-    expect(checkMindLesson({ line: "gentle", lessons: r.pet.lessons, family }, "baby", napper)).toMatchObject({ ok: false, reason: "full" });
+    // D7: a baby child holds two; with a second taught, a third is refused as full
+    const two = [...r.pet.lessons, napper];
+    expect(checkMindLesson({ line: "gentle", lessons: r.pet.lessons, family }, "baby", napper)).not.toMatchObject({ reason: "full" });
+    expect(checkMindLesson({ line: "gentle", lessons: two as never, family }, "baby", { when: { hunger: [3] }, then: { want: 1, mood: 1 } })).toMatchObject({ ok: false, reason: "full" });
   });
 
   it("only grown pets that have rested can have a child", () => {

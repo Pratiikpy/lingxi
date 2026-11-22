@@ -28,7 +28,8 @@ import { type Pet, gainXp } from "./sim";
 export const MAX_GATES = 500;
 
 /** How many lessons a pet can hold at each stage; capacity grows as it grows. */
-export const LESSON_CAPACITY: Record<Exclude<Stage, "egg">, number> = { baby: 1, child: 2, teen: 4, adult: 6, elder: 8 };
+/** D7: a baby holds two, the school's first and one of its owner's own, so teaching is there from the first minutes */
+export const LESSON_CAPACITY: Record<Exclude<Stage, "egg">, number> = { baby: 2, child: 2, teen: 4, adult: 6, elder: 8 };
 
 /* ── Instincts: four switches chosen at hatching, fixed for life ─────────────
  * Each switch that is on adds one rule to the circuit, below everything the

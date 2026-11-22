@@ -36,7 +36,8 @@ describe("checking what the model proposes", () => {
     }
   });
   it("respects lesson capacity", () => {
-    const r = finishProposal(good, { line: "gentle", lessons: [{ when: { owner: [1] }, then: { want: 2, mood: 3 } }] }, "baby");
+    // D7: a baby holds two
+    const r = finishProposal(good, { line: "gentle", lessons: [{ when: { owner: [1] }, then: { want: 2, mood: 3 } }, { when: { owner: [0] }, then: { want: 3, mood: 1 } }] }, "baby");
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.reason).toBe("full");
   });

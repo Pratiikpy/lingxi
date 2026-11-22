@@ -38,7 +38,8 @@ const proposal = (rule: Rule) => ({ understood: true, rule: { label: "a lesson",
 
 const MINDS: Array<{ name: string; stage: Stage; spec: MindSpec }> = [
   { name: "a baby with room", stage: "baby", spec: { line: "gentle", lessons: [] } },
-  { name: "a full baby", stage: "baby", spec: { line: "gentle", lessons: lessons(1) } },
+  { name: "a baby with one, room for its own", stage: "baby", spec: { line: "gentle", lessons: lessons(1) } },
+  { name: "a full baby", stage: "baby", spec: { line: "gentle", lessons: lessons(2) } },
   { name: "a teen with lesson skills, one slot left", stage: "teen", spec: { line: "bold", lessons: lessons(lessonCapacity("teen", GROWN) - 1), growth: GROWN } },
   { name: "a teen with lesson skills, full", stage: "teen", spec: { line: "bold", lessons: lessons(lessonCapacity("teen", GROWN)), growth: GROWN } },
   { name: "an elder with skills and quest 65's slot, one left", stage: "elder", spec: { line: "curious", lessons: lessons(MAX_LESSONS - 1), growth: GROWN, slots: 1 } },

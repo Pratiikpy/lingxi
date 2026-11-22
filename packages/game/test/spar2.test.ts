@@ -423,17 +423,18 @@ describe("the coach with a full mind (B2)", () => {
     const fresh = Array.from({ length: 120 }, (_, i) => 500_009 + i * 7919);
     let swaps = 0;
     for (const p of PARTNERS) for (const line of ["gentle", "bold", "curious"] as const) {
-      // a baby holds one lesson: give it one that is no help in a fight
-      const lessons: Rule[] = [{ when: { time: [0], owner: [1] }, then: { want: 1, mood: 0 } } as Rule];
+      // a baby holds two lessons (D7): give it two that are no help in a fight
+      const lessons: Rule[] = [{ when: { time: [0], owner: [1] }, then: { want: 1, mood: 0 } } as Rule, { when: { time: [1], owner: [1] }, then: { want: 3, mood: 0 } } as Rule];
       const opp = () => fighterOfPartner(p);
       const result = fight(CURRENT_SPAR, fighterOfMind("me", { line, lessons }, 0), opp(), 4242);
       if (result.winner === 0) continue;
       const note = coach({ result, side: 0, line, stage: "baby", lessons, level: 0, opponent: opp() });
       if (!note.lesson) continue;
-      expect(note.replace, `${line} vs ${p.id}`).toBe(0);
+      expect(note.replace, `${line} vs ${p.id}`).toBeDefined();
       swaps++;
+      const swapped = lessons.map((l, i) => (i === note.replace ? note.lesson!.rule : l));
       const wins = (ls: Rule[]) => fresh.filter((s) => fight(CURRENT_SPAR, fighterOfMind("me", { line, lessons: ls }, 0), opp(), s).winner === 0).length;
-      expect(wins([note.lesson.rule]), `${line} vs ${p.id}`).toBeGreaterThan(wins(lessons));
+      expect(wins(swapped), `${line} vs ${p.id}`).toBeGreaterThan(wins(lessons));
     }
     expect(swaps).toBeGreaterThan(3);
   }, 120_000);

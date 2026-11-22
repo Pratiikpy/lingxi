@@ -600,6 +600,7 @@ describe("the light-bulb moment (B4)", () => {
 describe("the game store: teaching and growing", () => {
   const lesson: Rule = { when: { event: [2] }, then: { want: 2, mood: 3 } };
   const another: Rule = { when: { event: [1] }, then: { want: 6, mood: 2 } };
+  const third: Rule = { when: { event: [3] }, then: { want: 3, mood: 1 } };
 
   it("a lesson is learned at once: the pet answers with its new mind and the toast says so", async () => {
     const { useGame, useWorld, useBadges, storage } = await open();
@@ -635,12 +636,13 @@ describe("the game store: teaching and growing", () => {
     expect(useGame.getState().pet).toEqual(before);
   });
 
-  it("a baby holds one lesson; a refused lesson says why and leaves the pet as it was", async () => {
+  it("a baby holds two lessons (D7); a refused lesson says why and leaves the pet as it was", async () => {
     const { useGame } = await open();
     useGame.getState().hatch("gentle", "Kiri");
     useGame.getState().learn(lesson);
+    expect(useGame.getState().learn(another)).toEqual({ ok: true });
     const before = useGame.getState().pet;
-    expect(useGame.getState().learn(another)).toEqual({ ok: false, reason: "full", detail: "a baby can hold 1 lessons" });
+    expect(useGame.getState().learn(third)).toEqual({ ok: false, reason: "full", detail: "a baby can hold 2 lessons" });
     expect(useGame.getState().pet).toBe(before);
   });
 
@@ -648,9 +650,12 @@ describe("the game store: teaching and growing", () => {
     const { useGame, useWorld } = await open();
     useGame.getState().hatch("gentle", "Kiri");
     useGame.getState().learn(lesson);
+    useGame.getState().learn(another);
     useWorld.getState().flag("lesson-slot");
-    expect(useGame.getState().learn(another, "bottom")).toEqual({ ok: true });
-    expect(useGame.getState().pet?.lessons).toEqual([lesson, another]);
+    expect(useGame.getState().learn(third, "bottom")).toEqual({ ok: true });
+    const held = useGame.getState().pet?.lessons ?? [];
+    expect(held).toHaveLength(3);
+    expect(held[2]).toEqual(third);
   });
 
   it("lessons can be moved up and down, and forgotten", async () => {

@@ -7,7 +7,7 @@ const allLessonSkills = { level: 99, points: 0, skills: Object.fromEntries(SKILL
 
 describe("lesson capacity: stage, skills and quest 65's slot", () => {
   it("adds the skills' slots and at most one quest slot", () => {
-    expect(lessonCapacity("baby")).toBe(1);
+    expect(lessonCapacity("baby")).toBe(2); // D7: the school's first and one of its own
     expect(lessonCapacity("elder", allLessonSkills)).toBe(13);
     expect(lessonCapacity("elder", allLessonSkills, 1)).toBe(14);
     expect(lessonCapacity("elder", allLessonSkills, 5)).toBe(13 + QUEST_SLOTS_MAX);
@@ -20,9 +20,9 @@ describe("lesson capacity: stage, skills and quest 65's slot", () => {
     expect(parseCard(petCard({ lessons } as never))).not.toBeNull();
   });
 
-  it("a baby with quest 65's slot can learn a second lesson; without it, it is full", () => {
-    const one = [PET_SCHOOL[0]!.rule];
-    expect(checkMindLesson({ line: "gentle", lessons: one }, "baby", PET_SCHOOL[1]!.rule)).toMatchObject({ ok: false, reason: "full" });
-    expect(checkMindLesson({ line: "gentle", lessons: one, slots: 1 }, "baby", PET_SCHOOL[1]!.rule)).toMatchObject({ ok: true });
+  it("a baby with quest 65's slot can learn a third lesson; without it, it is full", () => {
+    const two = [PET_SCHOOL[0]!.rule, PET_SCHOOL[1]!.rule];
+    expect(checkMindLesson({ line: "gentle", lessons: two }, "baby", PET_SCHOOL[2]!.rule)).toMatchObject({ ok: false, reason: "full" });
+    expect(checkMindLesson({ line: "gentle", lessons: two, slots: 1 }, "baby", PET_SCHOOL[2]!.rule)).not.toMatchObject({ reason: "full" });
   });
 });

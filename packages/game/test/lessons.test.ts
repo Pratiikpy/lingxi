@@ -20,6 +20,18 @@ describe("teaching", () => {
     }
   });
 
+  it("a baby holds the school's first and any one of its own, within slots and its taught budget, on every line (D7)", async () => {
+    const { TAUGHT_BUDGET } = await import("../src/skills");
+    expect(LESSON_CAPACITY.baby).toBe(2);
+    expect(TAUGHT_BUDGET.child).toBeGreaterThanOrEqual(TAUGHT_BUDGET.baby);
+    for (const line of ["gentle", "bold", "curious"] as const) {
+      for (const own of PET_SCHOOL.slice(1)) {
+        const r = checkLesson(line, "baby", [PET_SCHOOL[0]!.rule], own.rule);
+        expect(r.ok, `${line}/${own.id}: ${JSON.stringify(r)}`).toBe(true);
+      }
+    }
+  });
+
   it("a full adult brain (6 lessons) still compiles under the budget for every line", () => {
     for (const line of ["gentle", "bold", "curious"] as const) {
       const p = composeProgram(line, PET_SCHOOL.slice(0, LESSON_CAPACITY.adult).map((l) => l.rule));
@@ -40,14 +52,19 @@ describe("teaching", () => {
     if (!a.ok) return;
     p = a.pet;
     expect(p.counts.lessons).toBe(1);
-    const full = teach(p, PET_SCHOOL[1]!.rule, T0); // a baby holds one lesson
+    const dup = teach(p, PET_SCHOOL[0]!.rule, T0);
+    expect(dup.ok).toBe(false);
+    if (!dup.ok) expect(dup.reason).toBe("duplicate");
+    // D7: a baby holds two, the school's first and one of its own
+    const b = teach(p, PET_SCHOOL[1]!.rule, T0);
+    expect(b.ok).toBe(true);
+    if (!b.ok) return;
+    p = b.pet;
+    const full = teach(p, PET_SCHOOL[2]!.rule, T0);
     expect(full.ok).toBe(false);
     if (!full.ok) expect(full.reason).toBe("full");
-    const later = teach(p, PET_SCHOOL[0]!.rule, T0 + 2 * DAY_MS);
-    expect(later.ok).toBe(false);
-    if (!later.ok) expect(later.reason).toBe("duplicate");
-    const child = teach(p, PET_SCHOOL[1]!.rule, T0 + 2 * DAY_MS);
-    expect(child.ok).toBe(true);
+    const teen = teach(p, PET_SCHOOL[2]!.rule, T0 + 6 * DAY_MS);
+    expect(teen.ok, JSON.stringify(teen)).toBe(true);
   });
 
   it("refuses rules that name unknown pins or impossible values", () => {
