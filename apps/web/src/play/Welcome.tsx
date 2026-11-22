@@ -8,7 +8,7 @@
 import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { HOME, ITEM, ROOMS } from "@lingxi/world";
-import { type Frame, type Pet, awayFind, awaySeed, rewind, ruleSource, tellMoment, visitorsDuring } from "@lingxi/game";
+import { type Frame, type Pet, awayFind, awayNeeds, awaySeed, rewind, ruleSource, tellMoment, visitorsDuring } from "@lingxi/game";
 import { VisitorArt, useAlbum } from "./Album";
 import { useLang } from "../i18n";
 import { mindForPet, useGame } from "../game/store";
@@ -41,6 +41,25 @@ function claim(key: string): void {
 }
 
 const clock = (f: Frame, lang: Lang) => (f.at === null ? "" : new Date(f.at).toLocaleTimeString(lang === "zh" ? "zh-CN" : "en-GB", { hour: "2-digit", minute: "2-digit" }));
+
+const LOW: Record<"food" | "joy" | "energy" | "clean", { en: string; zh: string }> = {
+  food: { en: "hungry", zh: "饿了" },
+  joy: { en: "a little low", zh: "有点闷" },
+  energy: { en: "tired", zh: "累了" },
+  clean: { en: "dusty", zh: "灰扑扑的" },
+};
+
+/** How its needs held up while the player was away (G5): said plainly, never as blame. */
+export function needsText(pet: Pick<Pet, "name" | "meters" | "sick" | "hibernating">, lang: Lang): string {
+  const n = awayNeeds(pet);
+  const list = n.low.map((k) => LOW[k][lang]);
+  const join = (xs: string[]) => (lang === "zh" ? xs.join("、") : xs.length > 1 ? `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}` : (xs[0] ?? ""));
+  if (n.kind === "hibernating")
+    return lang === "zh" ? `${pet.name}的食物吃完了，沉沉睡着了。喂它或摸摸它就会醒。` : `${pet.name}'s food ran out and it fell into a long sleep. Feed it or give it a pat to wake it.`;
+  if (n.kind === "sick") return lang === "zh" ? `好几天没人照顾，${pet.name}生病了。吃药就会好。` : `After days without care, ${pet.name} fell ill. Medicine makes it well.`;
+  if (n.kind === "waiting") return lang === "zh" ? `它的需求停在四分之一等你回来：现在${join(list)}。` : `Its needs waited for you at a quarter: it is ${join(list)} now.`;
+  return lang === "zh" ? `它的需求都还好好的。` : `Its needs held up well.`;
+}
 
 /** The card for the last long absence, if it belongs to the pet on screen; one card per absence. */
 export function WelcomeBack({ pet }: { pet: Pet }) {
@@ -124,6 +143,7 @@ function AwayCard({ pet, absence }: { pet: Pet; absence: { petKey: string; from:
         ) : (
           <p>{lang === "zh" ? `一切都很安静。${pet.name}${story.napped ? "睡了一会儿，" : ""}自己玩了一阵。` : `All quiet. ${pet.name}${story.napped ? " napped a while and" : ""} kept itself busy.`}</p>
         )}
+        <p className="welcome-needs">{needsText(pet, lang)}</p>
         {item && (
           <p className="welcome-find">
             <img className="pixel" src={item.art} alt="" width={32} height={32} />

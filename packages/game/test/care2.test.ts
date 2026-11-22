@@ -8,21 +8,22 @@ const H = 3_600_000;
 const T0 = Date.UTC(2026, 10, 15, 8);
 
 describe("care: sickness, mistakes, kinship, levels", () => {
-  it("falls ill after six hours of neglect, can't play while ill, and medicine cures it", () => {
+  it("falls ill after real neglect (G5: days, not hours), can't play while ill, and medicine cures it", () => {
     let pet = createPet({ name: "M", line: "gentle", now: T0, tzOffsetMin: 0, brain });
-    pet = catchUp(pet, T0 + 30 * H, brain);
+    pet = catchUp(pet, T0 + 8 * 24 * H, brain);
     expect(pet.sick).toBe(true);
     expect(pet.missed?.some((m) => m.kind === "sick")).toBe(true);
-    expect(care(pet, { kind: "play" }, T0 + 30 * H, brain).note).toBe("tooSick");
-    const healed = care(pet, { kind: "medicine" }, T0 + 30 * H, brain);
+    expect(care(pet, { kind: "play" }, T0 + 8 * 24 * H, brain).note).toBe("tooSick");
+    const healed = care(pet, { kind: "medicine" }, T0 + 8 * 24 * H, brain);
     expect(healed.note).toBe("healed");
     expect(healed.pet.sick).toBe(false);
-    expect(care(healed.pet, { kind: "medicine" }, T0 + 30 * H + 60_000, brain).note).toBe("notSick");
+    expect(care(healed.pet, { kind: "medicine" }, T0 + 8 * 24 * H + 60_000, brain).note).toBe("notSick");
   });
 
   it("counts a care mistake when a meter runs out, once per running out", () => {
     let pet = createPet({ name: "M", line: "gentle", now: T0, tzOffsetMin: 0, brain });
-    pet = catchUp(pet, T0 + 30 * H, brain);
+    pet = catchUp(pet, T0 + 8 * 24 * H, brain);
+    expect(pet.mistakes, "eight days alone runs needs out").toBeGreaterThan(0);
     const kinds = pet.missed?.map((m) => m.kind) ?? [];
     expect(pet.mistakes).toBe(kinds.length);
     expect(new Set(kinds.filter((k) => k !== "sick")).size).toBe(kinds.filter((k) => k !== "sick").length);
@@ -47,7 +48,8 @@ describe("care: sickness, mistakes, kinship, levels", () => {
     expect(levelOf(75).level).toBe(3);
     let pet = createPet({ name: "M", line: "gentle", now: T0, tzOffsetMin: 0, brain });
     pet = care(pet, { kind: "pet" }, T0, brain).pet;
-    pet = catchUp(pet, T0 + 30 * H, brain);
+    // G5: sick only after days alone
+    pet = catchUp(pet, T0 + 8 * 24 * H, brain);
     const u = unpackState(packState(pet, "baby"), brain.nState);
     expect(u.sick).toBe(true);
     expect(u.mistakes).toBe(pet.mistakes);

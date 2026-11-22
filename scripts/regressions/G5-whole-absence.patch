@@ -1,0 +1,10 @@
+--- a/packages/game/src/sim.ts
++++ b/packages/game/src/sim.ts
+@@ -330,7 +330,6 @@ export function catchUp(p0: Pet, now: number, brain: Brain, eventAt: (beat: numb
+   const skipped = Math.max(0, gap - MAX_CATCH_UP);
+   // the needs decay through the whole absence (up to DECAY_SPAN), the brain thinks only through its last MAX_CATCH_UP
+   // beats (G5): ten days alone is ten days of neglect, not three
+-  for (let k = Math.max(0, skipped - (DECAY_SPAN - MAX_CATCH_UP)); k < skipped; k++) decay(p, p.beat + k + 1);
+   let b = p.beat + skipped;
+   while (b < target) {
+     b += 1;

@@ -11,6 +11,8 @@
  */
 
 import { EVENT } from "./sim";
+import { NEED_FLOOR, toVisible } from "./pet";
+import type { Pet } from "./sim";
 
 /** Chance per minute, out of 10,000: a friend about every 4 hours, a toy every 5, a fright about once a day. */
 const ODDS = { friend: 42, toy: 33, scary: 7 } as const;
@@ -72,4 +74,16 @@ export function awayFind(petSeed: number, fromBeat: number, toBeat: number, drop
     r -= d.weight;
   }
   return drops[drops.length - 1]!.item;
+}
+
+/**
+ * How the pet's needs held up while its owner was away (G5), for the welcome-back card: well; waiting at the quarter
+ * floor (and which ones); ill after days without care; or in a long sleep because its food ran out. Hibernation is told
+ * first: a pet asleep from hunger needs waking before anything else.
+ */
+export function awayNeeds(p: Pick<Pet, "meters" | "sick" | "hibernating">): { kind: "fine" | "waiting" | "sick" | "hibernating"; low: Array<"food" | "joy" | "energy" | "clean"> } {
+  const low = (["food", "joy", "energy", "clean"] as const).filter((k) => toVisible(p.meters[k]) <= NEED_FLOOR);
+  if (p.hibernating) return { kind: "hibernating", low };
+  if (p.sick) return { kind: "sick", low };
+  return { kind: low.length ? "waiting" : "fine", low };
 }

@@ -23,12 +23,23 @@ export const METERS: readonly MeterName[] = ["food", "joy", "energy", "clean"];
 export const DECAY_PER_HOUR = { food: 45, joy: 30, energy: 28, clean: 18 } as const;
 /** Energy regained per hour while asleep. */
 export const SLEEP_GAIN_PER_HOUR = 90;
-/** Beats of an empty food meter before the pet hibernates (a day). */
-export const HIBERNATE_AFTER = 24 * 60;
-/** The longest absence replayed beat by beat; anything longer is replayed as this many beats. */
+/** Beats of an empty food meter before the pet hibernates (two days: after it has fallen ill, G5). */
+export const HIBERNATE_AFTER = 48 * 60;
+/** The longest absence the brain thinks through beat by beat; the needs decay through more (DECAY_SPAN). */
 export const MAX_CATCH_UP = 3 * 24 * 60;
-/** beats of neglect (food or cleanliness at zero) before the pet falls ill */
-export const SICK_AFTER = 6 * 60;
+/** beats of neglect (food or cleanliness at zero) before the pet falls ill: a full day, never a few hours (G5) */
+export const SICK_AFTER = 24 * 60;
+/**
+ * Kind to a once-a-day player (G5): a need decays at its full rate above half, at half the rate between a quarter and
+ * half, and stops at a quarter (NEED_FLOOR, visible units) until the pet has gone FLOOR_HOLDS beats without any care;
+ * after that it falls on, at an eighth of the rate. So one visit a day keeps a pet well, a weekend away finds it hungry
+ * but well, and only days of real neglect empty a need.
+ */
+export const NEED_FLOOR = 250;
+export const FLOOR_HOLDS = 3 * 24 * 60;
+export const LOW_DECAY_DIVISOR = 8;
+/** The longest absence whose decay is counted beat by beat (the brain thinks only through the last MAX_CATCH_UP of it). */
+export const DECAY_SPAN = 30 * 24 * 60;
 /** kinship: petting counts once per 12 hours; a full day unpetted costs one */
 export const KINSHIP_EVERY = 12 * 60;
 export const KINSHIP_DECAY = 24 * 60;
@@ -81,6 +92,10 @@ export interface PetState {
   sick?: boolean;
   /** consecutive beats with food or cleanliness at zero */
   dirtyBeats?: number;
+  /** beats since the owner last cared for the pet in any way: the quarter floor holds for FLOOR_HOLDS of them (G5) */
+  uncaredBeats?: number;
+  /** beats spent with any need at zero: they do not count toward growing up (G5) */
+  stalledBeats?: number;
   /** care mistakes so far (a meter running out, falling ill), shown kindly, never punished */
   mistakes?: number;
   /** the latest few, for the screen */
@@ -172,8 +187,13 @@ export function dayOf(p: Pick<PetState, "bornAt">, now: number): number {
   return Math.floor((now - p.bornAt) / DAY_MS) + 1;
 }
 
-export function stageOf(p: Pick<PetState, "bornAt">, now: number): Exclude<Stage, "egg"> {
-  const d = dayOf(p, now);
+/** How far a pet has grown, in days: its age less the time it spent with a need at zero (G5). */
+export function growthDayOf(p: Pick<PetState, "bornAt"> & { stalledBeats?: number }, now: number): number {
+  return Math.floor((now - p.bornAt - (p.stalledBeats ?? 0) * BEAT_MS) / DAY_MS) + 1;
+}
+
+export function stageOf(p: Pick<PetState, "bornAt"> & { stalledBeats?: number }, now: number): Exclude<Stage, "egg"> {
+  const d = growthDayOf(p, now);
   if (d >= STAGE_DAYS.elder) return "elder";
   if (d >= STAGE_DAYS.adult) return "adult";
   if (d >= STAGE_DAYS.teen) return "teen";

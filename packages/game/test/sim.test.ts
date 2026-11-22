@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { STARTERS, compileProgram, fastBrain, stateBits, runBeat, decodeSenses } from "@lingxi/brain";
 import { keccak_256 } from "@noble/hashes/sha3";
 import { ACTION, type Brain, care, catchUp, createPet, inputWord, liveBeat, localHour } from "../src/sim";
-import { BEAT_MS, DAY_MS, HIBERNATE_AFTER, MAX_CATCH_UP, dayOf, stageOf, visibleMeters } from "../src/pet";
+import { BEAT_MS, DAY_MS, MAX_CATCH_UP, dayOf, stageOf, visibleMeters } from "../src/pet";
 import { chainAll, chainLog, ZERO_HASH } from "../src/log";
 import { packState, unpackState } from "../src/pack";
 
@@ -43,8 +43,10 @@ describe("a pet's day", () => {
   it("caps very long absences and hibernates instead of dying", () => {
     const p = catchUp(newPet(), T0 + 30 * DAY_MS, gentle);
     expect(p.hibernating).toBe(true);
+    // the brain thinks through at most the last three days; since G5 the needs decay through the whole absence, so a pet
+    // left a month has been hibernating (and thinking nothing) since about its sixth day alone
     expect(p.pendingLog.length).toBeLessThanOrEqual(MAX_CATCH_UP);
-    expect(p.pendingLog.length).toBeGreaterThan(HIBERNATE_AFTER);
+    expect(p.sick).toBe(true);
     const woke = care(p, { kind: "feed", food: "mochi" }, T0 + 30 * DAY_MS, gentle);
     expect(woke.note).toBe("hibernationEnded");
     expect(woke.pet.hibernating).toBe(false);

@@ -1,0 +1,11 @@
+--- a/packages/game/src/sim.ts
++++ b/packages/game/src/sim.ts
+@@ -381,8 +381,6 @@ export interface CareResult {
+  */
+ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.none): CareResult {
+   const p = cloneForEdit(catchUp(p0, now, brain));
+-  // any care starts the quarter floor's three days again (G5)
+-  p.uncaredBeats = 0;
+   let action: number = ACTION.none;
+   let note: CareResult["note"] = "listened";
+   const wakes = c.kind === "use" && c.item.wake === true;

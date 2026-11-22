@@ -21,8 +21,9 @@ describe("reminders: when the pet will next need you", () => {
   it("the predicted moment matches what the game itself shows then (to within one step)", () => {
     const pet = createPet({ name: "M", line: "gentle", now: T0, tzOffsetMin: 0, brain });
     const hungry = upcomingNeeds(pet, T0, brain).find((n) => n.kind === "hungry")!;
-    expect(toVisible(catchUp(pet, hungry.at, brain).meters.food)).toBeLessThan(200);
-    expect(toVisible(catchUp(pet, hungry.at - 20 * 60_000, brain).meters.food)).toBeGreaterThanOrEqual(200);
+    // G5: the reminder comes as food reaches the quarter at which the pet reads as hungry
+    expect(toVisible(catchUp(pet, hungry.at, brain).meters.food)).toBeLessThanOrEqual(250);
+    expect(toVisible(catchUp(pet, hungry.at - 20 * 60_000, brain).meters.food)).toBeGreaterThan(250);
   });
 
   it("feeding pushes the hunger reminder later", () => {
@@ -34,9 +35,10 @@ describe("reminders: when the pet will next need you", () => {
   });
 
   it("a long-neglected pet reports its needs right away, sickness included", () => {
-    const pet = catchUp(createPet({ name: "M", line: "gentle", now: T0, tzOffsetMin: 0, brain }), T0 + 30 * H, brain);
-    const needs = upcomingNeeds(pet, T0 + 30 * H, brain);
-    expect(needs.filter((n) => n.at === T0 + 30 * H).map((n) => n.kind)).toEqual(expect.arrayContaining(["hungry", "sick"]));
+    // G5: a pet falls ill only after days of neglect: eight days alone
+    const pet = catchUp(createPet({ name: "M", line: "gentle", now: T0, tzOffsetMin: 0, brain }), T0 + 8 * 24 * H, brain);
+    const needs = upcomingNeeds(pet, T0 + 8 * 24 * H, brain);
+    expect(needs.filter((n) => n.at === T0 + 8 * 24 * H).map((n) => n.kind)).toEqual(expect.arrayContaining(["hungry", "sick"]));
   });
 });
 

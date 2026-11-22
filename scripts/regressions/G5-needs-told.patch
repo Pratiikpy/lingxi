@@ -1,0 +1,10 @@
+--- a/apps/web/src/play/Welcome.tsx
++++ b/apps/web/src/play/Welcome.tsx
+@@ -57,7 +57,6 @@ export function needsText(pet: Pick<Pet, "name" | "meters" | "sick" | "hibernati
+   if (n.kind === "hibernating")
+     return lang === "zh" ? `${pet.name}的食物吃完了，沉沉睡着了。喂它或摸摸它就会醒。` : `${pet.name}'s food ran out and it fell into a long sleep. Feed it or give it a pat to wake it.`;
+   if (n.kind === "sick") return lang === "zh" ? `好几天没人照顾，${pet.name}生病了。吃药就会好。` : `After days without care, ${pet.name} fell ill. Medicine makes it well.`;
+-  if (n.kind === "waiting") return lang === "zh" ? `它的需求停在四分之一等你回来：现在${join(list)}。` : `Its needs waited for you at a quarter: it is ${join(list)} now.`;
+   return lang === "zh" ? `它的需求都还好好的。` : `Its needs held up well.`;
+ }
+ 

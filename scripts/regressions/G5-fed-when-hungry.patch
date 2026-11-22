@@ -1,0 +1,10 @@
+--- a/packages/game/src/sim.ts
++++ b/packages/game/src/sim.ts
+@@ -507,7 +507,6 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
+   if (p.careBeat !== p.beat) {
+     if (c.kind === "feed") {
+       const fedTo = p.meters.food;
+-      p.meters.food = foodWhenFed;
+       think(p, brain, p.beat, action, event, true);
+       p.meters.food = fedTo;
+     } else think(p, brain, p.beat, action, event, true);

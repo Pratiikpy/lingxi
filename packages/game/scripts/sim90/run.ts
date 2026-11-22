@@ -5,6 +5,29 @@ import { sparField } from "./field";
 import { costOfEverything } from "./life";
 import { TAP_PATHS, type TapPath, playType } from "./players";
 import { lessonsSeen } from "./seen";
+import { catchUp, care, createPet, mindBrain } from "../../src";
+import { DAY1 } from "./players";
+
+/**
+ * G5: a pet of each line hatched on day 1's morning, cared for once (a pat), then left alone, lived by the game's own
+ * catch-up hour by hour: its lowest need 72 hours later, and when it first falls ill (within ten days).
+ */
+function leftAlone(): Array<{ line: string; lowestAt72h: number; firstSickHours: number | null }> {
+  const H = 3_600_000;
+  const start = DAY1 + 8 * H;
+  return (["gentle", "bold", "curious"] as const).map((line) => {
+    const brain = mindBrain({ line, lessons: [] });
+    let p = care(createPet({ name: "Alone", line, now: start, tzOffsetMin: 480, brain }), { kind: "pet" }, start, brain).pet;
+    let lowestAt72h = 1000;
+    let firstSickHours: number | null = null;
+    for (let h = 1; h <= 240 && firstSickHours === null; h++) {
+      p = catchUp(p, start + h * H, brain);
+      if (h === 72) lowestAt72h = Math.min(...(["food", "joy", "energy", "clean"] as const).map((k) => Math.floor(p.meters[k] / 60)));
+      if (p.sick) firstSickHours = h;
+    }
+    return { line, lowestAt72h, firstSickHours };
+  });
+}
 
 /** Seeds per pairing in the spar field (two fights each): 16 left a field total of ~90% decided by noise. */
 const FIELD_SEEDS = 32;
@@ -37,7 +60,7 @@ export async function runSimYielding(o: { seed?: number; days?: number } = {}): 
   }
   const field = sparField(seed, FIELD_SEEDS);
   await tick();
-  return { seed, days, players, tapPaths, field, lessons: lessonsSeen(), costOfEverything: costOfEverything() };
+  return { seed, days, players, tapPaths, field, lessons: lessonsSeen(), costOfEverything: costOfEverything(), alone: leftAlone() };
 }
 
 export function runSim(o: { seed?: number; days?: number } = {}): SimNumbers {
@@ -46,5 +69,5 @@ export function runSim(o: { seed?: number; days?: number } = {}): SimNumbers {
   const players = Object.fromEntries(PLAYER_TYPES.map((t) => [t, playType(t, seed, days)])) as Record<PlayerType, PlayerNumbers>;
   // B8: the tapper down each tapping path, for level-not-by-tapping
   const tapPaths = Object.fromEntries(TAP_PATHS.map((path) => [path, tapPathNumbers(players, seed, days, path)]));
-  return { seed, days, players, tapPaths, field: sparField(seed, FIELD_SEEDS), lessons: lessonsSeen(), costOfEverything: costOfEverything() };
+  return { seed, days, players, tapPaths, field: sparField(seed, FIELD_SEEDS), lessons: lessonsSeen(), costOfEverything: costOfEverything(), alone: leftAlone() };
 }

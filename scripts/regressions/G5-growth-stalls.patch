@@ -1,0 +1,11 @@
+--- a/packages/game/src/pet.ts
++++ b/packages/game/src/pet.ts
+@@ -189,7 +189,7 @@ export function dayOf(p: Pick<PetState, "bornAt">, now: number): number {
+ 
+ /** How far a pet has grown, in days: its age less the time it spent with a need at zero (G5). */
+ export function growthDayOf(p: Pick<PetState, "bornAt"> & { stalledBeats?: number }, now: number): number {
+-  return Math.floor((now - p.bornAt - (p.stalledBeats ?? 0) * BEAT_MS) / DAY_MS) + 1;
++  return Math.floor((now - p.bornAt) / DAY_MS) + 1;
+ }
+ 
+ export function stageOf(p: Pick<PetState, "bornAt"> & { stalledBeats?: number }, now: number): Exclude<Stage, "egg"> {

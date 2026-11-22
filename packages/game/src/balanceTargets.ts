@@ -132,6 +132,11 @@ export interface SimNumbers {
   lessons: LessonSeen[];
   /** coins to buy every permanent thing sold for coins: decorations, outfit pieces and tools */
   costOfEverything: number;
+  /**
+   * G5: a pet of each line hatched and left alone, as the game's own catch-up lives it: its lowest need at 72 hours, and
+   * the hours until it first falls ill (null if not within ten days)
+   */
+  alone?: Array<{ line: string; lowestAt72h: number; firstSickHours: number | null }>;
 }
 
 /* ── the targets ─────────────────────────────────────────────────────────── */
@@ -285,6 +290,22 @@ export const BALANCE_TARGETS: readonly BalanceTarget[] = [
     owner: "G5",
     value: (n) => `${n.players.weekend.sickAfterWeekend} of ${n.players.weekend.weekends} weekends end with the pet ill; ${n.players.weekend.mistakes} care mistakes`,
     met: (n) => n.players.weekend.weekends > 0 && n.players.weekend.sickAfterWeekend === 0,
+  },
+  {
+    id: "first-absence-floor",
+    what: "A first long absence leaves every need at a quarter",
+    target: "a pet of every line, cared for once and left 72 hours, has every need at a quarter (250 of 1,000) or more",
+    owner: "G5",
+    value: (n) => (n.alone ?? []).map((a) => `${a.line} ${a.lowestAt72h}`).join(", ") || "not measured",
+    met: (n) => !!n.alone?.length && n.alone.every((a) => a.lowestAt72h >= 250),
+  },
+  {
+    id: "sick-only-after-days",
+    what: "A pet falls ill only after days of neglect",
+    target: "a pet of every line, cared for once and left alone, first falls ill no sooner than 96 hours later",
+    owner: "G5",
+    value: (n) => (n.alone ?? []).map((a) => `${a.line} ${a.firstSickHours === null ? "not in 10 days" : `${a.firstSickHours} h`}`).join(", ") || "not measured",
+    met: (n) => !!n.alone?.length && n.alone.every((a) => a.firstSickHours === null || a.firstSickHours >= 96),
   },
   {
     id: "new-every-day",

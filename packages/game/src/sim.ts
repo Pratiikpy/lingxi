@@ -21,6 +21,10 @@ import { chainLog, ZERO_HASH } from "./log";
 import {
   BEAT_MS,
   DECAY_PER_HOUR,
+  DECAY_SPAN,
+  FLOOR_HOLDS,
+  LOW_DECAY_DIVISOR,
+  NEED_FLOOR,
   HIBERNATE_AFTER,
   KINSHIP_DECAY,
   KINSHIP_EVERY,
@@ -185,7 +189,11 @@ function answersNeed(p: Pet, c: Care): boolean {
 }
 
 function decay(p: Pet, beat = p.beat): void {
-  if (p.hibernating) return;
+  // a hibernating pet's food is empty: its sleep does not count toward growing up either (G5)
+  if (p.hibernating) {
+    p.stalledBeats = (p.stalledBeats ?? 0) + 1;
+    return;
+  }
   // the enjoyment bar empties a little every beat (G3)
   if (p.enjoy) p.enjoy = Math.max(0, p.enjoy - Math.ceil(ENJOY_PER_CARE / ENJOY_EMPTY_BEATS));
   const was = { food: p.meters.food, joy: p.meters.joy, clean: p.meters.clean, energy: p.meters.energy };
@@ -193,11 +201,23 @@ function decay(p: Pet, beat = p.beat): void {
   // the Care skills (plan 4.4) slow each meter's decay and strengthen sleep; integer maths, so a replay agrees
   const g = p.growth;
   const less = (m: "food" | "joy" | "clean" | "energy") => Math.floor((DECAY_PER_HOUR[m] * decayLeft(g, m)) / 1000);
-  p.meters.food = clampMeter(p.meters.food - less("food"));
-  p.meters.joy = clampMeter(p.meters.joy - less("joy") * ill);
-  p.meters.clean = clampMeter(p.meters.clean - less("clean"));
-  p.meters.energy = clampMeter(p.meters.energy + (p.asleep ? boosted(SLEEP_GAIN_PER_HOUR, effectOf(g, "SLEEP_GAIN")) : -less("energy") * ill));
+  // G5: gentler as a need runs low, held at a quarter until the pet has gone FLOOR_HOLDS beats without care
+  p.uncaredBeats = (p.uncaredBeats ?? 0) + 1;
+  const holding = p.uncaredBeats <= FLOOR_HOLDS;
+  const floor = NEED_FLOOR * SUB;
+  const fall = (v: number, amount: number) => {
+    if (amount <= 0) return v;
+    const share = v > 2 * floor ? amount : v > floor ? Math.max(1, Math.floor(amount / 2)) : holding ? 0 : Math.max(1, Math.floor(amount / LOW_DECAY_DIVISOR));
+    const next = clampMeter(v - share);
+    return holding && v >= floor ? Math.max(next, floor) : next;
+  };
+  p.meters.food = fall(p.meters.food, less("food"));
+  p.meters.joy = fall(p.meters.joy, less("joy") * ill);
+  p.meters.clean = fall(p.meters.clean, less("clean"));
+  p.meters.energy = p.asleep ? clampMeter(p.meters.energy + boosted(SLEEP_GAIN_PER_HOUR, effectOf(g, "SLEEP_GAIN"))) : fall(p.meters.energy, less("energy") * ill);
   for (const k of ["food", "joy", "clean", "energy"] as const) if (was[k] > 0 && p.meters[k] === 0) miss(p, k, beat);
+  // time with a need at zero does not count toward growing up (G5)
+  if (p.meters.food === 0 || p.meters.joy === 0 || p.meters.clean === 0 || p.meters.energy === 0) p.stalledBeats = (p.stalledBeats ?? 0) + 1;
   // neglect: an empty food bowl or a filthy pet, six hours running, makes it ill
   p.dirtyBeats = p.meters.clean === 0 || p.meters.food === 0 ? (p.dirtyBeats ?? 0) + 1 : 0;
   if (!p.sick && p.dirtyBeats >= boosted(SICK_AFTER, effectOf(g, "SICK_GRACE"))) {
@@ -275,6 +295,13 @@ function think(p: Pet, brain: Brain, beat: number, action: number, event: number
   }
 }
 
+/** While the floor holds, a need that was at a quarter or more when the beat began ends it no lower than a quarter (G5). */
+function holdFloor(p: Pet, before: Pet["meters"]): void {
+  if ((p.uncaredBeats ?? 0) > FLOOR_HOLDS) return;
+  const floor = NEED_FLOOR * SUB;
+  for (const k of ["food", "joy", "clean", "energy"] as const) if (before[k] >= floor && p.meters[k] < floor) p.meters[k] = floor;
+}
+
 /** Replay every beat from the pet's last beat up to `now`, the owner away. */
 /**
  * A pet whose last beat is ahead of `beat` (the game's clock ran ahead and has come back to real time) moved back to it
@@ -301,13 +328,19 @@ export function catchUp(p0: Pet, now: number, brain: Brain, eventAt: (beat: numb
   const p = cloneForEdit(p0);
   const gap = target - p.beat;
   const skipped = Math.max(0, gap - MAX_CATCH_UP);
+  // the needs decay through the whole absence (up to DECAY_SPAN), the brain thinks only through its last MAX_CATCH_UP
+  // beats (G5): ten days alone is ten days of neglect, not three
+  for (let k = Math.max(0, skipped - (DECAY_SPAN - MAX_CATCH_UP)); k < skipped; k++) decay(p, p.beat + k + 1);
   let b = p.beat + skipped;
   while (b < target) {
     b += 1;
     decay(p, b);
     if (p.hibernating) continue;
     const awake = !p.asleep;
+    const before = { ...p.meters };
     think(p, brain, b, ACTION.none, eventAt(b), false);
+    // the quarter floor holds against what the pet does on its own too, a sulk or a romp, while its owner is away (G5)
+    holdFloor(p, before);
     if (chose && awake) chose(p.last.want, b);
   }
   p.beat = target;
@@ -348,6 +381,8 @@ export interface CareResult {
  */
 export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.none): CareResult {
   const p = cloneForEdit(catchUp(p0, now, brain));
+  // any care starts the quarter floor's three days again (G5)
+  p.uncaredBeats = 0;
   let action: number = ACTION.none;
   let note: CareResult["note"] = "listened";
   const wakes = c.kind === "use" && c.item.wake === true;
@@ -371,6 +406,8 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
     const was = p.needs ?? { feed: 0, play: 0, clean: 0, pet: 0 };
     p.needs = { ...was, [c.kind]: Math.min(255, was[c.kind] + 1) };
   }
+  // a meal is thought about with the hunger the pet had when it came (G5): "fed when hungry" means hungry before eating
+  const foodWhenFed = p.meters.food;
   switch (c.kind) {
     case "feed": {
       const f: ItemEffect = typeof c.food === "string" ? foodById(c.food) : c.food;
@@ -468,7 +505,12 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
   }
   // taps inside one beat are one thought: the first is thought about and logged, the rest change only the meters (G3)
   if (p.careBeat !== p.beat) {
-    think(p, brain, p.beat, action, event, true);
+    if (c.kind === "feed") {
+      const fedTo = p.meters.food;
+      p.meters.food = foodWhenFed;
+      think(p, brain, p.beat, action, event, true);
+      p.meters.food = fedTo;
+    } else think(p, brain, p.beat, action, event, true);
     p.careBeat = p.beat;
   }
   if (rewarded) {

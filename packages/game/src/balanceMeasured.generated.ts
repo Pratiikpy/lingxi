@@ -19,7 +19,7 @@ export const BALANCE_MEASURED: BalanceMeasured = {
       "status": "met"
     },
     "spar-reading-pays": {
-      "value": "reader 85%; best other partner:pip 86%",
+      "value": "reader 85%; best other partner:pip 87%",
       "status": "open"
     },
     "spar-guard-answers": {
@@ -27,35 +27,43 @@ export const BALANCE_MEASURED: BalanceMeasured = {
       "status": "met"
     },
     "spar-dodge-answers": {
-      "value": "dodge-only 47% against pounce-only, 10% against the field",
+      "value": "dodge-only 47% against pounce-only, 11% against the field",
       "status": "met"
     },
     "level-not-by-tapping": {
-      "value": "petTalk: level 99 never, day 30 level 29; play3: level 99 never, day 30 level 35; clean: level 99 never, day 30 level 29; feed: level 99 never, day 30 level 40; three visits day 30 level 37",
+      "value": "petTalk: level 99 never, day 30 level 29; play3: level 99 never, day 30 level 33; clean: level 99 never, day 30 level 27; feed: level 99 never, day 30 level 33; three visits day 30 level 36",
       "status": "met"
     },
     "trees-by-90": {
-      "value": "three visits: level 69 on day 90, level 64 on day 77",
+      "value": "three visits: level 67 on day 90, level 64 on day 83",
       "status": "met"
     },
     "coins-bounded": {
-      "value": "once 92, three 97, weekend 87, tapper 107, grinder 2162",
+      "value": "once 92, three 97, weekend 87, tapper 97, grinder 2162",
       "status": "open"
     },
     "coins-worth-saving": {
-      "value": "everything costs 840; once never, three never, weekend never, tapper never, grinder day 1",
+      "value": "everything costs 840; once day 88, three never, weekend never, tapper never, grinder day 1",
       "status": "open"
     },
     "once-a-day-safe": {
-      "value": "170 care mistakes in 90 days",
-      "status": "open"
+      "value": "0 care mistakes in 90 days",
+      "status": "met"
     },
     "weekend-not-sick": {
-      "value": "12 of 12 weekends end with the pet ill; 152 care mistakes",
-      "status": "open"
+      "value": "0 of 12 weekends end with the pet ill; 0 care mistakes",
+      "status": "met"
+    },
+    "first-absence-floor": {
+      "value": "gentle 250, bold 250, curious 250",
+      "status": "met"
+    },
+    "sick-only-after-days": {
+      "value": "gentle 146 h, bold 146 h, curious 146 h",
+      "status": "met"
     },
     "new-every-day": {
-      "value": "once 66 empty days, three 71 empty days, weekend 70 empty days, tapper 72 empty days, grinder 72 empty days",
+      "value": "once 66 empty days, three 71 empty days, weekend 67 empty days, tapper 70 empty days, grinder 68 empty days",
       "status": "open"
     },
     "gate-budget-binds": {
