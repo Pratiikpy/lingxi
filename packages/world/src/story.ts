@@ -216,8 +216,9 @@ export function pickDailies(pool: readonly QuestDef[], seed: string, day: string
 export function rollDailies(w: WorldState, pool: readonly QuestDef[], v: ConditionView, tzOffsetMin: number): WorldState {
   const day = localDay(v.now, tzOffsetMin);
   const b = bookOf(w);
-  // a day only moves forward: a clock turned back keeps today's dailies rather than offering an earlier day's again
-  if (b.today && b.today.day >= day) return w;
+  // a day only moves forward: a clock turned back keeps today's dailies rather than offering an earlier day's again; the
+  // player's time zone is kept current all the same, so the village follows their own day (D2)
+  if (b.today && b.today.day >= day) return w.tz === tzOffsetMin ? w : { ...w, tz: tzOffsetMin };
   const offered = pickDailies(pool, w.seed, day);
   const active = { ...b.active };
   // yesterday's unfinished dailies lapse quietly

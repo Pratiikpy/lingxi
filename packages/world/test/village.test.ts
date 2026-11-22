@@ -65,5 +65,8 @@ describe("village happenings (D2)", () => {
     const v = { world, pet: { level: 1, stage: "baby" as const, onChain: false, needsMin: 500 }, pets: 1, now: Date.UTC(2026, 10, 23, 20), timeOfDay: 2 as const, day: "2026-11-24", bondLevel: 0, goalsDone: [] as string[] };
     const w = rollDailies(world, DAILIES, v, 480);
     expect(w.tz).toBe(480);
+    // a save whose day was rolled before it kept a time zone gets one on the same day
+    const { tz: _drop, ...old } = w;
+    expect(rollDailies(old, DAILIES, { ...v, world: old }, 480).tz).toBe(480);
   });
 });
