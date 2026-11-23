@@ -35,6 +35,19 @@ jobs:
       - uses: foundry-rs/foundry-toolchain@dba66c27052e63476d886f22216e119ba7e615bf # v1.9.2
         with:
           version: v1.7.1
+          # the fork's cache is kept by the steps below, saved even when a test fails (P3a)
+          cache: false
+      # P3a: what the fork has fetched from X Layer, kept between runs whatever their result (the toolchain's own cache
+      # is saved only when a job passes, so a red run left the next to fetch everything again from an endpoint that
+      # answers a burst from one address with 403)
+      - name: The fork's cache from earlier runs
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.foundry/cache/rpc
+          key: check-fork-${{ github.run_id }}
+          restore-keys: |
+            check-fork-
+            linux-foundry-chain-fork-check-
       - run: pnpm install --frozen-lockfile
       - name: Type check
         run: pnpm typecheck
@@ -50,6 +63,12 @@ jobs:
         working-directory: contracts
       - name: Server tests with its fork tests, on a pinned fork (reads X Layer only)
         run: pnpm test:fork
+      - name: Keep the fork's cache
+        if: always()
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.foundry/cache/rpc
+          key: check-fork-${{ github.run_id }}
       - name: README numbers, repo hygiene
         run: pnpm status:check --only promises,hygiene && pnpm exec tsx scripts/readme-facts.mts --check --no-tests
       - name: The web build, with its name guard
@@ -71,6 +90,17 @@ jobs:
       - uses: foundry-rs/foundry-toolchain@dba66c27052e63476d886f22216e119ba7e615bf # v1.9.2
         with:
           version: v1.7.1
+          # the fork's cache is kept by the steps below, saved even when a test fails (P3a)
+          cache: false
+      - name: The fork's cache from earlier runs
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.foundry/cache/rpc
+          key: coverage-fork-${{ github.run_id }}
+          restore-keys: |
+            coverage-fork-
+            check-fork-
+            linux-foundry-chain-fork-coverage-
       - run: pnpm install --frozen-lockfile
       # the chain package's fork tests deploy contracts from their compiled artifacts (contracts/out)
       - name: Compile the contracts
@@ -78,13 +108,19 @@ jobs:
         working-directory: contracts
       - name: Coverage, every part at or above 80%
         run: pnpm coverage
+      - name: Keep the fork's cache
+        if: always()
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.foundry/cache/rpc
+          key: coverage-fork-${{ github.run_id }}
 
   e2e:
     # the game played in a browser against a fork of X Layer mainnet, with the server and the game started by the
     # suite itself (e2e/harness/run.ts); a failure keeps its report, traces and videos. The suite is split in four,
     # each part with its own fork, server and game, so it stays well inside the job's time as specs are added (the
-    # whole suite in one job passed 45 minutes on 0c27429; three parts passed 45 once the fork's reads were paced
-    # against the endpoints' traffic limit, P3a)
+    # whole suite in one job passed 45 minutes on 0c27429; three parts did too once the specs began waiting for the
+    # server's first readings of the fork, P3a)
     name: e2e ${{ matrix.shard }} of 4
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -102,11 +138,31 @@ jobs:
       - uses: foundry-rs/foundry-toolchain@dba66c27052e63476d886f22216e119ba7e615bf # v1.9.2
         with:
           version: v1.7.1
+          # the fork's cache is kept by the steps below, saved even when a test fails (P3a)
+          cache: false
+      # P3a: what the fork has fetched from X Layer, kept between runs whatever their result (the toolchain's own cache
+      # is saved only when a job passes, so a red run left the next to fetch everything again from an endpoint that
+      # answers a burst from one address with 403)
+      - name: The fork's cache from earlier runs
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.foundry/cache/rpc
+          key: e2e-fork-${{ matrix.shard }}-${{ github.run_id }}
+          restore-keys: |
+            e2e-fork-${{ matrix.shard }}-
+            e2e-fork-
+            linux-foundry-chain-fork-e2e-
       - run: pnpm install --frozen-lockfile
       - name: The browser the suite plays in
         run: pnpm exec playwright install --with-deps chromium
       - name: End-to-end, on a fork of X Layer mainnet
         run: pnpm e2e --shard=${{ matrix.shard }}/4
+      - name: Keep the fork's cache
+        if: always()
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.foundry/cache/rpc
+          key: e2e-fork-${{ matrix.shard }}-${{ github.run_id }}
       - name: Keep the report, traces and videos
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

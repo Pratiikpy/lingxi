@@ -121,20 +121,15 @@ export async function answers(url: string, init?: RequestInit): Promise<boolean>
 export interface PinnedFork {
   block: number;
   rpc: string;
-  rpcs?: string[];
 }
 
 /**
- * anvil's arguments for a fork at the pinned block (P3a). The official endpoints sit behind CloudFront, which answers a
- * burst from one address with "403 too much traffic"; anvil does not retry a 403, so a read of state the fork had not
- * fetched failed mid-block, the block was never mined, and the player's transaction waited in the pool for good. The
- * fork's reads are therefore spread over every official endpoint in turn, rotating to the next on a failure, with more
- * retries than anvil's five, and its cache is kept between runs (stopSaving), so most reads never leave the machine.
- * (Pacing anvil's reads below its default instead made the suites' own requests time out.) anvil logs what it does
- * (no --silent), so a run's anvil.log shows any such failure. LINGXI_E2E_UPSTREAM (comma-separated) overrides the
- * endpoints.
+ * anvil's arguments for a fork at the pinned block (P3a). One endpoint, with anvil's own retries and timeout: reading
+ * from both official endpoints with longer timeouts and more retries was tried, and on CI it made the fork tests' own
+ * requests time out. anvil logs what it does (no --silent), so a run's anvil.log shows a failed read of X Layer (the
+ * endpoint answers a burst from one address with CloudFront 403, which anvil does not retry); its cache is kept between
+ * CI runs (stopSaving), so few reads leave the machine. LINGXI_E2E_UPSTREAM overrides the endpoint.
  */
 export function forkArgs(fork: PinnedFork, port: number): string[] {
-  const urls = process.env.LINGXI_E2E_UPSTREAM ? process.env.LINGXI_E2E_UPSTREAM.split(",").map((u) => u.trim()).filter(Boolean) : (fork.rpcs ?? [fork.rpc]);
-  return [...urls.flatMap((u) => ["--fork-url", u]), "--fork-block-number", String(fork.block), "--retries", "12", "--fork-retry-backoff", "1000", "--timeout", "60000", "--port", String(port), "--chain-id", "196"];
+  return ["--fork-url", process.env.LINGXI_E2E_UPSTREAM ?? fork.rpc, "--fork-block-number", String(fork.block), "--port", String(port), "--chain-id", "196"];
 }
