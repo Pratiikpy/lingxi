@@ -3,7 +3,7 @@
  * byte for byte the netlist stored on Lingxi's processor on X Layer.
  */
 
-import { type RuleCircuit, bytesToHex, gateCount, ruleBytes, ruleNetlist } from "@lingxi/brain";
+import { type RuleCircuit, bytesToHex, gateCount, netlistBytes, ruleBytes, ruleNetlist } from "@lingxi/brain";
 import { BUILDER_RULES, SKILL_RULE } from "@lingxi/game";
 import { DROP_RULE, FOLK_RULES, TRUST_RULE } from "@lingxi/world";
 import type { Address, Hex, PublicClient } from "viem";
@@ -28,6 +28,9 @@ export interface RuleCheck {
 }
 
 export const ruleHex = (rule: RuleCircuit): Hex => bytesToHex(ruleBytes(rule)) as Hex;
+
+/** A turn of the event loop: whatever else is waiting (a tap, a paint) runs before the next piece of work. */
+const nextTask = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
 export const ruleGates = (rule: RuleCircuit): number => gateCount(ruleNetlist(rule));
 
 /**
@@ -39,11 +42,15 @@ export async function checkRules(pub: PublicClient, processor: Address, records:
   return Promise.all(
     rules.map(async (rule): Promise<RuleCheck> => {
       const rec = records[rule.name];
-      const gates = ruleGates(rule);
+      // P3: each rule is compiled once, in a task of its own, so a page checking all of them keeps answering meanwhile
+      await nextTask();
+      const netlist = ruleNetlist(rule);
+      const gates = gateCount(netlist);
       if (!rec) return { name: rule.name, id: null, status: "missing", gates };
+      const here = (bytesToHex(netlistBytes(netlist)) as Hex).toLowerCase();
       try {
         const stored = (await pub.readContract({ address: processor, abi: processorAbi, functionName: "netlist", args: [BigInt(rec.id)] })) as Hex;
-        return { name: rule.name, id: rec.id, status: stored.toLowerCase() === ruleHex(rule).toLowerCase() ? "match" : "differs", gates };
+        return { name: rule.name, id: rec.id, status: stored.toLowerCase() === here ? "match" : "differs", gates };
       } catch {
         return { name: rule.name, id: rec.id, status: "unreachable", gates };
       }
