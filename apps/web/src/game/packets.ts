@@ -7,7 +7,7 @@
 
 import { create } from "zustand";
 import { type Address, type Hex, formatUnits, parseUnits, TransactionReceiptNotFoundError } from "viem";
-import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+import { viem } from "./chainClient";
 import { type ClaimView, XLAYER_USDT, claimPacket, collectPacket, createPacket, createdIn, nextPacketId, owedOf, pendingOf, readPacket, refundPacket, revealPacket, signClaim, tokenBalance } from "@lingxi/chain";
 import { b64urlDecode, b64urlEncode } from "@lingxi/brain";
 import { connectWallet, deployment, publicClient } from "./chain";
@@ -215,6 +215,8 @@ export const usePackets = create<PacketStore>((set, get) => {
     let asked = false;
     try {
       const wallet = await connectWallet();
+      // the packet's own key, with viem's key half loaded only now (P3)
+      const { generatePrivateKey, privateKeyToAccount } = await viem();
       const pk = generatePrivateKey();
       const keyAddress = privateKeyToAccount(pk).address;
       const total = parseUnits(o.amount, USDT_DECIMALS);

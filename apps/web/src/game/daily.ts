@@ -11,7 +11,8 @@
  */
 
 import { create } from "zustand";
-import { createPublicClient, http } from "viem";
+import type { PublicClient } from "viem";
+import { lazyPublicClient, viem } from "./chainClient";
 import { xLayer } from "@lingxi/chain";
 import { DAY_MS, dailyPartnerIndex, dailySeed, dayIndex, firstBlockAtOrAfter } from "@lingxi/game";
 import { saveWrite } from "./saveRuntime";
@@ -65,7 +66,8 @@ export interface DailySources {
 }
 
 function sources(): DailySources {
-  const door = API && ON_MAINNET ? createPublicClient({ chain: xLayer, transport: http(`${API}/api/rpc`, { timeout: 8000 }) }) : null;
+  // built the first time a block is checked, with viem's client half (P3)
+  const door = API && ON_MAINNET ? lazyPublicClient(({ createPublicClient, http }) => createPublicClient({ chain: xLayer, transport: http(`${API}/api/rpc`, { timeout: 8000 }) }) as PublicClient) : null;
   return {
     server: API ? async (day) => (await fetch(`${API}/api/daily/${day}`)).json() as Promise<ServerAnswer> : null,
     check: door
@@ -96,6 +98,7 @@ export async function findBlock(day: number, from: DailySources = sources()): Pr
 /** The first block of the day, searched from the public nodes (the on-chain copy has no server to ask). */
 async function searchPublicNodes(day: number): Promise<DailyBlock> {
   let last: unknown;
+  const { createPublicClient, http } = await viem();
   for (const url of RPCS) {
     try {
       const client = createPublicClient({ chain: { ...xLayer, rpcUrls: { default: { http: [url] } } }, transport: http(url, { timeout: 8000 }) });

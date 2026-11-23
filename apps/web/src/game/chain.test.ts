@@ -261,7 +261,9 @@ async function open(o: { storage?: Storage; wallet?: boolean; relay?: Relay; at?
   if (o.hatch !== false) useGame.getState().hatch("gentle", "Kiri", o.hatch?.instincts ?? 0);
   const pet = () => useGame.getState().pet!;
   const c = () => chain.useChain.getState();
-  return { ...v, x, xl, wallet, relayed, sponsored, useGame, useWorld, useBadges, chain, c, pet, session: () => sessionAccount().address, AUTO_FUND, AUTO_LOW };
+  // this device's key is fixed for the visit, so its address is read once (the account itself loads on demand, P3)
+  const sessionAddress = (await sessionAccount()).address;
+  return { ...v, x, xl, wallet, relayed, sponsored, useGame, useWorld, useBadges, chain, c, pet, session: () => sessionAddress, AUTO_FUND, AUTO_LOW };
 }
 type Page = Awaited<ReturnType<typeof open>>;
 

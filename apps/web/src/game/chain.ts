@@ -10,8 +10,8 @@
 import { walletNeeded } from "./move";
 import { useBadges } from "./badges";
 import { create } from "zustand";
-import { createPublicClient, createWalletClient, custom, erc20Abi, http, isAddress, type Address, type Hex, type PublicClient, type WalletClient, fallback } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
+import { erc20Abi, isAddress, type Address, type Hex, type PublicClient, type WalletClient } from "viem";
+import { lazyPublicClient, viem } from "./chainClient";
 import { petRegistryAbi, type Deployment, type TapeQuote, type TapeStep, allowPartnerOnChain, consentStands, withdrawConsentOnChain, breedOnChain, breedingTerms, checkPartner, hasConsent, checkpointOnChain, hatchOnChain, quoteTapeout, readKeeping, readPet, setBrainOnChain, setSitterOnChain, signRelay, type SignedRelay, tapeOutYourself, xLayer, refusesTokens, LineMismatchError, RevertedOnChain, StillPending, hatchOutcome, birthOutcome, revertName, breederV2Abi , signSponsorRequest } from "@lingxi/chain";
 import { compileProgram, netlistBytes } from "@lingxi/brain";
 import { AUTO_DAYS, AUTO_FUND, AUTO_LOW, sessionAccount, sessionWallet } from "./session";
@@ -63,12 +63,8 @@ export const rpcs: string[] = (import.meta.env.VITE_RPC as string | undefined)
     : [deployment?.rpc ?? "https://xlayerrpc.okx.com"];
 const rpc = rpcs[0] ?? "https://xlayerrpc.okx.com";
 const chain = { ...xLayer, rpcUrls: { default: { http: rpcs } } };
-export const publicClient: PublicClient = createPublicClient({ chain, transport: fallback(rpcs.map((u) => http(u))) }) as PublicClient;
-/** One client per official RPC, for spreading heavy read loads (the proof page's full check). */
-export const readClients: PublicClient[] =
-  NETWORK === "xlayer"
-    ? OFFICIAL_RPCS.map((u) => createPublicClient({ chain: { ...xLayer, rpcUrls: { default: { http: [u] } } }, transport: http(u) }) as PublicClient)
-    : [publicClient];
+// P3: the client is built, and viem's client half loaded, the first time the game reads X Layer (chainClient.ts)
+export const publicClient: PublicClient = lazyPublicClient(({ createPublicClient, fallback, http }) => createPublicClient({ chain, transport: fallback(rpcs.map((u) => http(u))) }) as PublicClient);
 
 interface Eip1193 {
   request(args: { method: string; params?: unknown[] }): Promise<unknown>;
@@ -85,7 +81,7 @@ function injected(): Eip1193 | null {
  */
 export async function walletAddress(): Promise<Hex> {
   const devKey = import.meta.env.DEV ? (import.meta.env.VITE_DEV_KEY as Hex | undefined) : undefined;
-  if (devKey) return privateKeyToAccount(devKey).address;
+  if (devKey) return (await viem()).privateKeyToAccount(devKey).address;
   const provider = injected();
   if (!provider) {
     walletNeeded();
@@ -98,6 +94,7 @@ export async function walletAddress(): Promise<Hex> {
 
 export async function connectWallet(): Promise<WalletClient> {
   const devKey = import.meta.env.DEV ? (import.meta.env.VITE_DEV_KEY as Hex | undefined) : undefined;
+  const { createWalletClient, custom, http, privateKeyToAccount } = await viem();
   if (devKey) return createWalletClient({ chain, transport: http(rpc), account: privateKeyToAccount(devKey) });
   const provider = injected();
   if (!provider) {
@@ -332,7 +329,7 @@ const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (locati
 type KeptFree = { ok: true; petId: string | null; hatchTx: string | null; grantTx: string | null } | { ok: false; reason: string };
 
 /** Asks the server to keep this pet on X Layer for this device's key (H4), signed by that key. */
-async function askToKeep(key: ReturnType<typeof sessionAccount>, pet: Pet): Promise<KeptFree> {
+async function askToKeep(key: Awaited<ReturnType<typeof sessionAccount>>, pet: Pet): Promise<KeptFree> {
   const { request, signature } = await signSponsorRequest(key, { line: pet.line, state: packState(pet, stageOf(pet, gameNow())).toString(), at: Math.round(gameNow()) });
   const res = await fetch(`${API_BASE}/api/sponsor/hatch`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...request, signature }) });
   const body = (await res.json()) as Partial<KeptFree> & { ok?: boolean; reason?: string };
@@ -433,7 +430,7 @@ interface ChainState {
  * chain (no prompt at all), otherwise the owner's wallet, once, with no fee and no transaction.
  */
 async function relaySigner(petId: string, wallet?: WalletClient): Promise<{ address: Address; signMessage: (m: { message: string }) => Promise<Hex> }> {
-  const key = sessionAccount();
+  const key = await sessionAccount();
   if (deployment && (await readKeeping(publicClient, deployment, BigInt(petId), key.address).catch(() => null))?.keeper) return key;
   const w = wallet ?? (await connectWallet());
   const account = w.account;
@@ -455,11 +452,11 @@ async function autoWallet(pet: Pet, record: ChainRecord): Promise<WalletClient |
   if (!deployment || autoStatus(record, gameNow()) === "off") return null;
   // kept for free: this device's key owns the pet and saves it as its owner, while it has gas
   if (record.device) {
-    const key = sessionAccount().address;
+    const key = (await sessionAccount()).address;
     if (record.owner.toLowerCase() !== key.toLowerCase()) return null;
     return (await publicClient.getBalance({ address: key })) < AUTO_LOW ? null : sessionWallet(chain, rpc);
   }
-  const key = sessionAccount().address;
+  const key = (await sessionAccount()).address;
   const [k, balance] = await Promise.all([readKeeping(publicClient, deployment, BigInt(record.petId), key), publicClient.getBalance({ address: key })]);
   if (!k.keeper) {
     store(pet, { ...record, autoUntil: undefined });
@@ -472,7 +469,7 @@ async function autoWallet(pet: Pet, record: ChainRecord): Promise<WalletClient |
 
 /** Whether the auto-save key is running low on gas. */
 export async function autoGasLow(): Promise<boolean> {
-  return (await publicClient.getBalance({ address: sessionAccount().address })) < AUTO_LOW;
+  return (await publicClient.getBalance({ address: (await sessionAccount()).address })) < AUTO_LOW;
 }
 
 /**
@@ -512,7 +509,7 @@ export const useChain = create<ChainState>((set, get) => ({
     if (get().busy !== "idle" || pet.family) return;
     set({ busy: "hatching", error: null });
     try {
-      const key = sessionAccount();
+      const key = await sessionAccount();
       let record = records[petKey(pet)] ?? null;
       // the state the hatch records and the log's length at that moment, taken together from the same pet
       const start = { n: pet.pendingLog.length, memory: pet.brain.slice() };
@@ -543,7 +540,7 @@ export const useChain = create<ChainState>((set, get) => ({
         const r = await relayBrain(await signRelayRequest(key, "brain", record.petId, body));
         if (!r.ok) throw new Error(r.reason);
         set({ busy: "saving" });
-        await setBrainOnChain(publicClient, sessionWallet(chain, rpc), deployment, BigInt(record.petId), deployment.processor, BigInt(r.brainId));
+        await setBrainOnChain(publicClient, await sessionWallet(chain, rpc), deployment, BigInt(record.petId), deployment.processor, BigInt(r.brainId));
         store(pet, { ...record, brains: { ...record.brains, [mind]: r.brainId }, brainKey: mind });
       }
       set({ record: activeRecord(), busy: "idle" });
@@ -558,10 +555,10 @@ export const useChain = create<ChainState>((set, get) => ({
     try {
       const to = (await connectWallet()).account!.address;
       set({ busy: "saving" });
-      const key = sessionAccount();
+      const key = await sessionAccount();
       // a plain transfer from this device's key: the wallet signs nothing and pays nothing
       const { request } = await publicClient.simulateContract({ address: deployment.registry, abi: petRegistryAbi, functionName: "transferFrom", args: [key.address, to, BigInt(r.petId)], account: key });
-      const tx = await sessionWallet(chain, rpc).writeContract(request);
+      const tx = await (await sessionWallet(chain, rpc)).writeContract(request);
       const mined = await publicClient.waitForTransactionReceipt({ hash: tx });
       if (mined.status !== "success") throw new Error("the move was turned down on chain");
       const { device: _device, ...rest } = r;
@@ -840,7 +837,7 @@ export const useChain = create<ChainState>((set, get) => ({
     try {
       const wallet = await connectWallet();
       set({ busy: "saving" });
-      const key = sessionAccount().address;
+      const key = (await sessionAccount()).address;
       const now = Number((await publicClient.getBlock()).timestamp);
       // a little under the contract's 30-day limit, so the block that includes it is never past it
       const until = now + AUTO_DAYS * 86_400 - 600;

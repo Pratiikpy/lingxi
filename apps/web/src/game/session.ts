@@ -8,9 +8,10 @@
  * do is write checkpoints until the sitting ends, and spend the gas it holds.
  */
 
-import { createWalletClient, http, parseEther, type Hex, type WalletClient } from "viem";
-import { generatePrivateKey, privateKeyToAccount, type PrivateKeyAccount } from "viem/accounts";
+import { type Chain, type Hex, type WalletClient, parseEther } from "viem";
+import type { PrivateKeyAccount } from "viem/accounts";
 import { saveWrite } from "./saveRuntime";
+import { viem } from "./chainClient";
 
 const KEY = "lingxi.session.v1";
 
@@ -21,10 +22,27 @@ export const AUTO_LOW = parseEther("0.00002");
 /** How long a sitting lasts when the owner turns auto-save on (the contract's limit is 30 days). */
 export const AUTO_DAYS = 30;
 
-let account: PrivateKeyAccount | null = null;
+/** secp256k1's group order: a private key is a number from 1 to n - 1. */
+const N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141n;
 
-export function sessionAccount(): PrivateKeyAccount {
-  if (account) return account;
+/** A fresh private key from the browser's own random source, redrawn in the (about 1 in 2^128) case it is out of range. */
+function newKey(): Hex {
+  for (;;) {
+    const bytes = crypto.getRandomValues(new Uint8Array(32));
+    const hex = `0x${Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("")}` as Hex;
+    const n = BigInt(hex);
+    if (n > 0n && n < N) return hex;
+  }
+}
+
+let key: Hex | null = null;
+
+/**
+ * This device's key, made the first time it is needed and kept in this browser. It needs no curve maths: the account
+ * that signs with it (sessionAccount) is built from it when a signature or an address is first needed (P3).
+ */
+function deviceKey(): Hex {
+  if (key) return key;
   let k: Hex | null = null;
   try {
     const raw = localStorage.getItem(KEY);
@@ -33,15 +51,22 @@ export function sessionAccount(): PrivateKeyAccount {
     // storage blocked: a key for this visit only
   }
   if (!k) {
-    k = generatePrivateKey();
+    k = newKey();
     try {
       saveWrite(KEY, k);
     } catch {
       // kept in memory for this visit
     }
   }
-  account = privateKeyToAccount(k);
-  return account;
+  key = k;
+  return k;
+}
+
+let account: Promise<PrivateKeyAccount> | null = null;
+
+/** The device key as an account that signs, built once. */
+export function sessionAccount(): Promise<PrivateKeyAccount> {
+  return (account ??= viem().then(({ privateKeyToAccount }) => privateKeyToAccount(deviceKey())));
 }
 
 /**
@@ -49,7 +74,7 @@ export function sessionAccount(): PrivateKeyAccount {
  * these 64 characters holds the pet. Shown only when the player asks, with that said beside it.
  */
 export function exportSessionKey(): Hex {
-  sessionAccount();
+  deviceKey();
   let raw: string | null = null;
   try {
     raw = localStorage.getItem(KEY);
@@ -60,6 +85,7 @@ export function exportSessionKey(): Hex {
   return raw as Hex;
 }
 
-export function sessionWallet(chain: Parameters<typeof createWalletClient>[0]["chain"], rpc: string): WalletClient {
-  return createWalletClient({ chain, transport: http(rpc), account: sessionAccount() });
+export async function sessionWallet(chain: Chain, rpc: string): Promise<WalletClient> {
+  const [{ createWalletClient, http }, account] = await Promise.all([viem(), sessionAccount()]);
+  return createWalletClient({ chain, transport: http(rpc), account });
 }

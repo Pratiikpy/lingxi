@@ -5,6 +5,7 @@
  */
 
 import { type ComponentType, type ReactElement, Suspense, lazy, useEffect, useRef, useState, type ReactNode } from "react";
+import { warmLater } from "../game/warm";
 
 export function Lazy({ children, height = 240 }: { children: ReactNode; height?: number }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -22,38 +23,8 @@ export function Lazy({ children, height = 240 }: { children: ReactNode; height?:
   return shown ? <Suspense fallback={hold}>{children}</Suspense> : hold;
 }
 
-const waiting: Array<() => Promise<unknown>> = [];
-
-/** How long after the game is up its deferred code starts to arrive, unless the player touches the screen first. */
-export const WARM_AFTER_MS = 6000;
-
-/**
- * Fetches every deferred component's code, one at a time in idle moments, once the game has been up a while or the
- * player first touches it, so a tap later opens its panel at once even on a slow phone. Returns a stop function.
- */
-export function warmDeferred(): () => void {
-  let stopped = false;
-  let started = false;
-  const idle = (f: () => void) => ("requestIdleCallback" in window ? requestIdleCallback(() => f(), { timeout: 2000 }) : setTimeout(f, 50));
-  const next = () => {
-    if (stopped) return;
-    const load = waiting.shift();
-    if (load) load().then(() => idle(next), () => idle(next));
-  };
-  const start = () => {
-    if (started || stopped) return;
-    started = true;
-    window.removeEventListener("pointerdown", start);
-    idle(next);
-  };
-  const timer = setTimeout(start, WARM_AFTER_MS);
-  window.addEventListener("pointerdown", start, { once: true });
-  return () => {
-    stopped = true;
-    clearTimeout(timer);
-    window.removeEventListener("pointerdown", start);
-  };
-}
+// the warm-up of code loaded on first use lives in game/warm.ts, shared with the X Layer client (chainClient.ts)
+export { WARM_AFTER_MS, warmDeferred } from "../game/warm";
 
 /**
  * P3: a component whose code loads the first time it is drawn, so the game's start-up does not carry it. It draws
@@ -61,7 +32,7 @@ export function warmDeferred(): () => void {
  * sheet goes in <Lazy> instead, which holds its place.
  */
 export function deferred<P extends object>(load: () => Promise<ComponentType<P>>): (props: P) => ReactElement {
-  waiting.push(load);
+  warmLater(load);
   const Inner = lazy(async () => ({ default: await load() }));
   return function Deferred(props: P) {
     return (

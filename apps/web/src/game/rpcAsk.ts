@@ -1,4 +1,5 @@
-import { type Chain, type PublicClient, createPublicClient, custom } from "viem";
+import type { Chain, PublicClient } from "viem";
+import { lazyPublicClient } from "./chainClient";
 import { now as gameNow } from "./gameClock";
 /**
  * One JSON-RPC request for a verification, tried endpoint by endpoint: the judge's own RPC first, then X Layer's public
@@ -88,7 +89,8 @@ export async function proofRequest(ends: Endpoints, call: { method: string; para
  */
 export function makeProofClient(chain: Chain, endpointsFor: (n: number) => Endpoints, start: number, answered: (a: Answer) => void, fetcher?: typeof fetch): PublicClient {
   let asked = start;
-  return createPublicClient({
+  // built, with viem's client half, the first time a verification reads (P3)
+  return lazyPublicClient(({ createPublicClient, custom }) => createPublicClient({
     chain,
     batch: { multicall: { wait: 16 } },
     transport: custom({
@@ -98,6 +100,6 @@ export function makeProofClient(chain: Chain, endpointsFor: (n: number) => Endpo
         return a.result;
       },
     }),
-  }) as PublicClient;
+  }) as PublicClient);
 }
 

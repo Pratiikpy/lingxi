@@ -76,6 +76,9 @@ async function open(o: { storage?: Parameters<typeof reload>[0]; chain?: ReturnT
   // the game server answers only its time; everything else the page asks of it fails as offline
   const net = xl.fetchVia(async (url, init) => (String(url).endsWith("/api/time") ? new Response(JSON.stringify({ now: Date.now() })) : offline(url, init)));
   const v = o.storage ? await reload(o.storage, { at, net }) : await visit({ at, net });
+  // a game that has been up a while has viem's client half loaded (its warm-up, P3); the receipt waits below run on fake
+  // time, which a module still loading in real time would outlast
+  await (await import("./chainClient")).viem();
   const wallet = fakeWallet(xl, { account: SENDER });
   Object.defineProperty(window, "ethereum", { value: wallet, configurable: true });
   const { usePackets } = await import("./packets");
