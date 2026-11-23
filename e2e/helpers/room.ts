@@ -1,6 +1,6 @@
 /** Reaching another pet in a room from a test: where the room puts it, and a tap on the scene there. */
 import { type Page } from "@playwright/test";
-import { HALF, PET_HOME, floorSpot, laneOf, viewOf } from "../../apps/web/src/scene/floor";
+import { HALF, PET_HOME, floorSpot, laneOf, roomOrigin, viewOf } from "../../apps/web/src/scene/floor";
 
 /** A visiting pet's lane in the whole room, from its id (the room keeps it within what shows: `visitorPoint`). */
 export const spotFor = laneOf;
@@ -37,10 +37,9 @@ export async function tapScene(page: Page, x: number, y: number): Promise<string
   // a tap before the room has drawn its first frame finds no body to land on
   await page.locator(".room-scene[data-ready]").waitFor();
   const box = (await page.locator(".room-scene").boundingBox())!;
-  const scale = Math.max(1, Math.ceil(Math.max(box.width, box.height) / 128));
-  const left = box.x + Math.round((box.width - 128 * scale) / 2);
-  const top = box.y + Math.round((box.height - 128 * scale) / 2);
-  const at = { x: left + x * scale, y: top + y * scale };
+  // where the room draws itself, by its own rule (floor.ts roomOrigin)
+  const origin = roomOrigin(box.width, box.height);
+  const at = { x: box.x + origin.x + x * origin.scale, y: box.y + origin.y + y * origin.scale };
   const under = await page.evaluate(({ x, y }) => {
     const e = document.elementFromPoint(x, y);
     return e ? `${e.tagName}.${e.className}` : "nothing";

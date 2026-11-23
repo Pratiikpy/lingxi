@@ -27,6 +27,22 @@ export function sceneScale(w: number, h: number): number {
   return Math.max(1, Math.ceil(Math.max(w, h) / ROOM));
 }
 
+/** Where pets' feet rest, in room pixels from the top. */
+export const PET_FEET = 104;
+/** CSS pixels at the room's foot the thinking strip lies over; the pet's feet stay above them. */
+export const STRIP_ROOM = 76;
+
+/**
+ * Where the scaled room's top-left corner sits in a box of `w` by `h`, in CSS pixels from the box's own corner: cropped
+ * evenly, but never so the pet's feet sink under the thinking strip along the room's foot (a shorter room on a phone,
+ * with more lines in the care panel below it, otherwise lost the pet's lower half). The room draws itself here, and the
+ * browser tests tap its pets from here, so the two can never drift apart.
+ */
+export function roomOrigin(w: number, h: number): { x: number; y: number; scale: number } {
+  const scale = sceneScale(w, h);
+  return { scale, x: Math.round((w - ROOM * scale) / 2), y: Math.round(Math.min((h - ROOM * scale) / 2, h - STRIP_ROOM - PET_FEET * scale)) };
+}
+
 /** What a box of `w` by `h` shows of the room. */
 export function viewOf(w: number, h: number): FloorView {
   const scale = sceneScale(w, h);

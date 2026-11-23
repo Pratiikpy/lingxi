@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { HALF, LANES, ROOM, WANDER, floorSpot, laneOf, viewOf } from "./floor";
+import { HALF, LANES, PET_FEET, ROOM, STRIP_ROOM, WANDER, floorSpot, laneOf, roomOrigin, viewOf } from "./floor";
 
 // the room's box on the phone the e2e tests use (390 wide) and on a desktop; a phone crops the sides (A69)
 const PHONE = viewOf(355, 560);
@@ -45,5 +45,23 @@ describe("where a visiting pet stands (A69)", () => {
       expect(LANES).toContain(laneOf(id));
       expect(laneOf(id)).toBe(laneOf(id));
     }
+  });
+});
+
+describe("where the room draws itself in its box (roomOrigin)", () => {
+  it("crops evenly when the box is tall enough for the pet to stand clear of the thinking strip", () => {
+    const o = roomOrigin(355, 560);
+    expect(o.scale).toBe(5);
+    expect(o.x).toBe(Math.round((355 - ROOM * 5) / 2));
+    expect(o.y).toBe(Math.round((560 - ROOM * 5) / 2));
+  });
+
+  it("lifts the room on a short phone box so the pet's feet stay above the strip", () => {
+    // the box the failing phone test measured: 354 wide, 354 tall
+    const o = roomOrigin(354, 354);
+    expect(o.scale).toBe(3);
+    expect(o.y).toBe(354 - STRIP_ROOM - PET_FEET * 3);
+    expect(o.y).toBeLessThan(Math.round((354 - ROOM * 3) / 2));
+    expect(o.y + PET_FEET * o.scale, "the feet end above the strip").toBeLessThanOrEqual(354 - STRIP_ROOM);
   });
 });

@@ -5,6 +5,7 @@
  */
 import { test as base, expect, type BrowserContext, type Locator, type Page } from "@playwright/test";
 import { currentRun, type Run } from "./harness/run";
+import { PET_FEET, PET_HOME, roomOrigin } from "../apps/web/src/scene/floor";
 
 export { expect };
 
@@ -129,18 +130,16 @@ export const careCount = async (page: Page, kind: string): Promise<number> => {
 };
 
 /**
- * Pats the pet: a tap on the pet in the room's picture (a 128-pixel room scaled to cover its box, the pet standing at
- * (64, 104) when no visitor has moved it aside), then waits for the save to count it.
+ * Pats the pet: a tap on the pet in the room's picture (a 128-pixel room scaled to cover its box and placed by the
+ * scene's own rule, the pet standing at (64, 104) when no visitor has moved it aside), then waits for the save to count it.
  */
 export async function patPet(page: Page): Promise<void> {
   // a tap before the room has drawn its first frame finds no body to land on
   await page.locator(".room-scene[data-ready]").waitFor();
   const box = (await page.locator(".room-scene").boundingBox())!;
-  const scale = Math.max(1, Math.ceil(Math.max(box.width, box.height) / 128));
-  const left = box.x + Math.round((box.width - 128 * scale) / 2);
-  const top = box.y + Math.round((box.height - 128 * scale) / 2);
+  const at = roomOrigin(box.width, box.height);
   const before = await careCount(page, "pet");
-  await page.mouse.click(left + 64 * scale, top + (104 - 8) * scale);
+  await page.mouse.click(box.x + at.x + PET_HOME * at.scale, box.y + at.y + (PET_FEET - 8) * at.scale);
   await expect.poll(() => careCount(page, "pet"), { message: "the pat is counted in the save" }).toBe(before + 1);
 }
 

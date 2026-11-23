@@ -17,7 +17,7 @@ import type { Expression } from "@lingxi/art";
 import type { StarterLine } from "@lingxi/brain";
 import { DECOR_BY_ID, NAME_COLOUR_BY_ID } from "@lingxi/world";
 import { BITS, type PetStage, catTexture, glowTexture, glyphTexture, petTexture, pixelTexture, vignetteTexture } from "./textures";
-import { HALF, PET_HOME, ROOM, WANDER, floorSpot, laneOf, sceneScale, type FloorView } from "./floor";
+import { HALF, PET_FEET, PET_HOME, ROOM, WANDER, floorSpot, laneOf, roomOrigin, type FloorView } from "./floor";
 import { bodyHitArea } from "./hitArea";
 
 export type DayPhase = "day" | "evening" | "night";
@@ -135,9 +135,6 @@ async function makeBg(url: string, still: boolean): Promise<Sprite> {
 }
 /** where the pet stands when nothing else shares its floor */
 /** half the drawn width of each stage, to keep two pets apart */
-const PET_FEET = 104;
-/** CSS pixels at the room's foot the thinking strip lies over; the pet's feet stay above them. */
-const STRIP_ROOM = 76;
 const CAT_FEET = 96;
 
 interface Particle {
@@ -419,13 +416,13 @@ export function RoomScene(props: SceneProps) {
       const layout = () => {
         const w = el.clientWidth;
         const h = el.clientHeight;
-        // the largest whole-number scale that covers the box, cropped evenly
-        scale = sceneScale(w, h);
+        // the largest whole-number scale that covers the box, cropped evenly with the pet kept above the thinking
+        // strip (floor.ts roomOrigin, which the browser tests tap from too)
+        const origin = roomOrigin(w, h);
+        scale = origin.scale;
         world.scale.set(scale);
-        world.x = Math.round((w - ROOM * scale) / 2);
-        // cropped evenly, but never so the pet's feet sink under the thinking strip along the room's foot (a shorter
-        // room on a phone, with more lines in the care panel below it, otherwise lost the pet's lower half)
-        world.y = Math.round(Math.min((h - ROOM * scale) / 2, h - STRIP_ROOM - PET_FEET * scale));
+        world.x = origin.x;
+        world.y = origin.y;
       };
       layout();
       const ro = new ResizeObserver(layout);
