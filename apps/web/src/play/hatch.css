@@ -356,3 +356,17 @@
   color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
 }
+
+/* P3: below the eggs on a phone, the instincts and the name are laid out only as they come near the screen, so the
+   hatch screen's first layout (prerendered, then the game's own) does not pay for them; they keep their place, and stay
+   in the accessibility tree and in find-in-page */
+.hatch .instincts {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 330px;
+  /* the containment clips what paints outside the box: room for the cards' drop shadow below them */
+  padding-bottom: 6px;
+}
+.hatch .name-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 150px;
+}

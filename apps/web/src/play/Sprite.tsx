@@ -38,18 +38,24 @@ export function Sprite({ canvas, palette, scale, crop, label, overlay }: { canva
   );
 }
 
-/** The sprite as an SVG of its pixels, each row's runs of one colour as one rectangle: for pages rendered at build time. */
+/**
+ * The sprite as an SVG of its pixels, for pages rendered at build time: one path per colour, each row's run of that colour
+ * a subpath, so a sprite is a few layout objects however many pixels it has (a rectangle each made the prerendered hatch
+ * screen's first layout several times slower).
+ */
 function SpriteSvg({ canvas, palette, scale, c, label, overlay }: { canvas: PixelCanvas; palette: Palette; scale: number; c: { x: number; y: number; w: number; h: number }; label?: string | undefined; overlay?: readonly OverlayPixel[] | undefined }) {
   const rgba = toRgba(canvas, palette, 1);
   if (overlay?.length) paintOverlay(rgba, canvas.w, overlay);
-  const rects: Array<{ x: number; y: number; w: number; fill: string }> = [];
+  const paths = new Map<string, string[]>();
   for (let y = 0; y < c.h; y++) {
     let run: { x: number; fill: string } | null = null;
     for (let x = 0; x <= c.w; x++) {
       const i = ((c.y + y) * canvas.w + (c.x + x)) * 4;
       const fill = x < c.w && rgba[i + 3]! > 0 ? `rgba(${rgba[i]},${rgba[i + 1]},${rgba[i + 2]},${(rgba[i + 3]! / 255).toFixed(3)})` : null;
       if (run && fill !== run.fill) {
-        rects.push({ x: run.x, y, w: x - run.x, fill: run.fill });
+        const d = paths.get(run.fill) ?? [];
+        d.push(`M${run.x} ${y}h${x - run.x}v1h${run.x - x}z`);
+        paths.set(run.fill, d);
         run = null;
       }
       if (fill && !run) run = { x, fill };
@@ -57,8 +63,8 @@ function SpriteSvg({ canvas, palette, scale, c, label, overlay }: { canvas: Pixe
   }
   return (
     <svg className="pixel" width={c.w * scale} height={c.h * scale} viewBox={`0 0 ${c.w} ${c.h}`} shapeRendering="crispEdges" style={{ display: "block" }} role={label ? "img" : undefined} aria-label={label} aria-hidden={label ? undefined : true}>
-      {rects.map((r) => (
-        <rect key={`${r.x}-${r.y}`} x={r.x} y={r.y} width={r.w} height={1} fill={r.fill} />
+      {[...paths].map(([fill, d]) => (
+        <path key={fill} d={d.join("")} fill={fill} />
       ))}
     </svg>
   );

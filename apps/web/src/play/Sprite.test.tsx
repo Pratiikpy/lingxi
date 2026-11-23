@@ -1,21 +1,24 @@
 // @vitest-environment node
 /**
  * P3: a sprite rendered at build time (the prerendered hatch screen) has no canvas to draw on, so it is drawn as an SVG
- * of the same pixels: every painted pixel inside the crop is covered once, in its colour, and nothing else is.
+ * of the same pixels, one path per colour: every painted pixel inside the crop is covered once, in its colour, and
+ * nothing else is.
  */
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { CORAL, drawEgg, drawPet, toRgba } from "@lingxi/art";
 import { Sprite } from "./Sprite";
 
-/** The SVG's rectangles back as painted pixels: "x,y" to the fill colour. */
+/** The SVG's paths back as painted pixels: "x,y" to the fill colour (each subpath is one row's run of one colour). */
 function pixelsOf(html: string): Map<string, string> {
   const out = new Map<string, string>();
-  for (const m of html.matchAll(/<rect x="(\d+)" y="(\d+)" width="(\d+)" height="1" fill="([^"]+)"/g)) {
-    for (let k = 0; k < Number(m[3]); k++) {
-      const key = `${Number(m[1]) + k},${m[2]}`;
-      expect(out.has(key), `pixel ${key} covered once`).toBe(false);
-      out.set(key, m[4]!);
+  for (const m of html.matchAll(/<path d="([^"]+)" fill="([^"]+)"/g)) {
+    for (const r of m[1]!.matchAll(/M(\d+) (\d+)h(\d+)v1h-\d+z/g)) {
+      for (let k = 0; k < Number(r[3]); k++) {
+        const key = `${Number(r[1]) + k},${r[2]}`;
+        expect(out.has(key), `pixel ${key} covered once`).toBe(false);
+        out.set(key, m[2]!);
+      }
     }
   }
   return out;
@@ -43,6 +46,9 @@ describe("a sprite rendered at build time (P3)", () => {
       }
     expect(drawn.size).toBe(painted);
     expect(painted).toBeGreaterThan(20);
+    // one path per colour, however many pixels: a few layout objects for the page's first layout
+    const colours = new Set([...drawn.values()]);
+    expect((html.match(/<path /g) ?? []).length).toBe(colours.size);
   });
 
   it("draws only the crop, shifted to its corner", () => {
