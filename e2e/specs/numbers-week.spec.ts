@@ -40,7 +40,9 @@ async function firstLessonHandedIn(page: Page): Promise<void> {
 
 test("the numbers page counts the week, tells a free keep from an own-wallet keep, and the recount agrees (H10)", async ({ player, run }) => {
   test.setTimeout(40 * 60_000);
-  const before = await live(run.api);
+  // the baseline, once the processor's week count has been read (it is null only while that first read is under way)
+  let before = await live(run.api);
+  await expect.poll(async () => ((before = await live(run.api)), before.circuits?.last7d ?? null), { message: "the week's circuits are counted", timeout: 120_000, intervals: [5_000] }).not.toBeNull();
   expect(before.kept, "who kept each pet is served").not.toBeNull();
   expect(before.circuits, "the circuits taped out are served").not.toBeNull();
 
@@ -86,7 +88,10 @@ test("the numbers page counts the week, tells a free keep from an own-wallet kee
     expect(after.week!.hatchers, "two wallets hatched this week").toBeGreaterThanOrEqual(2);
     await expect.poll(async () => ((after = await live(run.api)), after.circuits!.minted - before.circuits!.minted), { message: "the keeps' circuits were walked", timeout: 300_000, intervals: [10_000] }).toBeGreaterThanOrEqual(1);
     expect(after.circuits!.total, "the processor's own count is at least the circuits walked since the fork").toBeGreaterThanOrEqual(after.circuits!.minted);
-    expect(after.circuits!.last7d, "the walk is at the head, so the week's count is given").toBe(after.circuits!.minted);
+    // the week's count is the processor's own (C7): on a fork of mainnet it holds the real week's circuits too, so it
+    // grows by exactly the circuits taped out here, and is never below them (P3a)
+    expect(after.circuits!.last7d! - before.circuits!.last7d!, "the week's count grows by the circuits taped out here").toBe(after.circuits!.minted - before.circuits!.minted);
+    expect(after.circuits!.last7d!, "the week holds at least what was walked since the fork").toBeGreaterThanOrEqual(after.circuits!.minted);
     expect(after.week!.circuits).toBe(after.circuits!.last7d);
   });
 

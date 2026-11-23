@@ -100,7 +100,10 @@ describe.skipIf(!RPC || !RELAY_KEY_FILE || !FILE)("community goals, counted from
     expect(by("burned")).toEqual({ [C]: 10_000_000, [A]: 600_000 });
 
     const now = Number((await pub.getBlock()).timestamp);
-    const r = Object.fromEntries(reportGoals(ledger.entries(), goals, now, [A]).map((g) => [g.metric, g]));
+    // the round this test plays in: the first, whose goals all open with the saves goal (later rounds follow it monthly)
+    const round = goals.filter((g) => g.start === g1.start);
+    expect(round.map((g) => g.metric).sort()).toEqual(["burned", "children", "hatched", "saves"]);
+    const r = Object.fromEntries(reportGoals(ledger.entries(), round, now, [A]).map((g) => [g.metric, g]));
     expect(r.saves).toMatchObject({ total: 4, contributors: 3, mine: 2, state: "open" });
     expect(r.hatched).toMatchObject({ total: 1, contributors: 1, mine: 1 });
     expect(r.children).toMatchObject({ total: 1, contributors: 1, tiers: [] });

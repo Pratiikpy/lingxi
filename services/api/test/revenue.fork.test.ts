@@ -67,10 +67,19 @@ describe.skipIf(!RPC || !d?.outfitMarket || !d?.outfitMarketV2 || !d?.deployer)(
     expect(await proceedsOwed(pub, V1, c!.address)).toBe(priceOkb * 3n - feeMint + (parseEther("0.01") * 500n) / 10_000n);
     expect(await proceedsOwed(pub, V1, a!.address)).toBe(parseEther("0.01") - feeResale - (parseEther("0.01") * 500n) / 10_000n);
 
-    // the live numbers' counter, walking these blocks, reports exactly what the chain now owes the project for them
-    const counter = createSalesCounter({ rpc: RPC!, markets: [{ address: V1.address, fromBlock: from, earns: { project: d!.deployer!, feeBps: 300, treasury: d!.deployer! } }], client: pub, paceMs: 0 });
+    // the live numbers' counter, walking these blocks, reports exactly what the chain now owes the project for them, and
+    // (C2) tells the team's own buying apart: Bob is named as a team wallet here, so the resale he bought is the team
+    // paying itself, while Alice's three copies of Carol's design are a player's
+    const counter = createSalesCounter({ rpc: RPC!, markets: [{ address: V1.address, fromBlock: from, earns: { project: d!.deployer!, feeBps: 300, treasury: d!.deployer! } }], team: [bob!.account!.address], client: pub, paceMs: 0 });
     await counter.catchUp();
-    expect(counter.earned(V1.address)).toEqual({ okb: (feeMint + feeResale).toString(), feeBps: 300, treasury, toProject: true });
-    expect(counter.totals(V1.address)).toEqual({ copies: 4, paid: (priceOkb * 3n + parseEther("0.01")).toString(), sales: 2 });
+    expect(counter.earned(V1.address)).toEqual({ okb: (feeMint + feeResale).toString(), feeBps: 300, treasury, toProject: true, fromTeam: feeResale.toString() });
+    expect(counter.totals(V1.address)).toEqual({
+      copies: 4,
+      paid: (priceOkb * 3n + parseEther("0.01")).toString(),
+      sales: 2,
+      byTeam: { copies: 1, paid: parseEther("0.01").toString() },
+      selfBuys: { copies: 0, paid: "0" },
+      byPlayers: { copies: 3, paid: (priceOkb * 3n).toString(), buyers: 1 },
+    });
   });
 });

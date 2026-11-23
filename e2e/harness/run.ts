@@ -132,6 +132,9 @@ export async function startRun(): Promise<Run> {
           ["LINGXI_STANDINGS_FILE", "standings.json"],
           ["LINGXI_RELAY_QUOTA_FILE", "relay-quota.json"],
           ["LINGXI_SPONSOR_STORE", "sponsored.json"],
+          // P3a: the OKB market's listings and the processors' references, once written into the repo's own data folder
+          ["LINGXI_MARKET_V1_STORE", "market-v1.json"],
+          ["LINGXI_REFS_STORE", "refs.json"],
         ].map(([k, f]) => [k, s(f!)]),
       ),
     };
@@ -160,6 +163,22 @@ export async function startRun(): Promise<Run> {
     // the server's first reading of Builders' Lane loads hundreds of processors the fork has never touched, and the
     // fork answers nothing else quickly until it is done: specs start after it
     await waitFor("the server's first reading of the chain", async () => ((await (await fetch(`${api}/api/lane/tapeouts`)).json()) as { ok?: boolean }).ok === true, 300_000, server.log);
+    // P3a: and so does every other background reading (who holds each Test1, the processors' references, the markets): on
+    // a fork each first pass fetches thousands of storage slots from X Layer one by one, and a player's transaction waits
+    // behind them, so the first spec of a run timed out on CI. Specs start once every job has finished a first pass
+    let slow: string[] = [];
+    await waitFor(
+      "every background reading's first pass",
+      async () => {
+        const h = (await (await fetch(`${api}/api/health`)).json()) as { detail?: { jobsRan?: Record<string, boolean> } };
+        slow = Object.entries(h.detail?.jobsRan ?? { "the health report": false }).filter(([, ran]) => !ran).map(([name]) => name);
+        return slow.length === 0;
+      },
+      900_000,
+      server.log,
+    ).catch((e: unknown) => {
+      throw new Error(`${e instanceof Error ? e.message : String(e)}; still on their first pass: ${slow.join(", ")}`);
+    });
 
     // the game, once per player's wallet
     const players: Player[] = [];

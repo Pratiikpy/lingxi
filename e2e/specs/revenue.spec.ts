@@ -89,10 +89,11 @@ test("the two fee rails: an OKB piece pays the project, a BEM piece is burned, a
   await test.step("the recount, by its own path from this fork, agrees with every number on the page", async () => {
     const d = JSON.parse(readFileSync(join(ROOT, "packages/chain/deployments/xlayer.json"), "utf8")) as Record<string, unknown>;
     const file = join(run.dir, "recount-deployment.json");
-    // the server counts the markets from the fork's block, so the recount does too; the shops' burns are summed over
+    // the server counts the markets from the fork's block, so the recount does too, and it reads the test server's team
+    // file, not this machine's (P3a); the shops' burns are summed over
     // their whole history (to equal each contract's total), which through a fork can take a quarter of an hour
     writeFileSync(file, JSON.stringify({ ...d, rpc: run.fork.rpc, outfitMarketBlock: run.fork.block, outfitMarketV2Block: run.fork.block }));
-    const r = spawnSync(process.execPath, [join(ROOT, "node_modules/tsx/dist/cli.mjs"), "scripts/recount-numbers.ts", "--deployment", file, "--api", run.api, "--rpc", run.fork.rpc, "--registry-from", String(run.fork.block)], { cwd: join(ROOT, "packages/chain"), encoding: "utf8", timeout: 1_200_000 });
+    const r = spawnSync(process.execPath, [join(ROOT, "node_modules/tsx/dist/cli.mjs"), "scripts/recount-numbers.ts", "--deployment", file, "--api", run.api, "--rpc", run.fork.rpc, "--registry-from", String(run.fork.block), "--team-file", join(run.dir, "stores", "team.json")], { cwd: join(ROOT, "packages/chain"), encoding: "utf8", timeout: 1_200_000 });
     const out = `${r.stdout}\n${r.stderr}`;
     expect(out, "the recount checks the project's earnings").toMatch(/same {2}OKB earned by the project/);
     expect(out.split("\n").filter((l) => l.startsWith("DIFFERENT")), out.slice(-3000)).toEqual([]);

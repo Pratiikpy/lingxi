@@ -11,10 +11,15 @@ test("a new player's album draws on the first visit, and the game stays (A2)", a
   await hatch(p, "Pip");
   await sheet(page, "me");
   // the pet's page draws each panel as it comes near the screen: scroll down, panel by panel, to the album
+  // a held place is replaced by its panel the moment it comes near, so it is scrolled to inside the page in one step:
+  // finding it first and scrolling after can find a place that is already gone (P3a)
   for (let i = 0; i < 40 && !(await page.locator(".sheet .album").count()); i++) {
-    const held = page.locator(".sheet .lazy-hold").first();
-    if (!(await held.count())) break;
-    await held.scrollIntoViewIfNeeded();
+    const more = await page.evaluate(() => {
+      const held = document.querySelector(".sheet .lazy-hold");
+      held?.scrollIntoView({ block: "center" });
+      return !!held;
+    });
+    if (!more) break;
     await page.waitForTimeout(250);
   }
   await expect(page.locator(".sheet .album")).toBeVisible();

@@ -21,6 +21,10 @@ test("on a phone, visitors at the room's outermost lanes stand where it shows an
   const p = await player({ lang: "en", scheme: "light", size: "phone", reducedMotion: true });
   const { page } = p;
   await hatch(p, "Kiri");
+  // a tall phone (390 by 932): its room is cropped to the middle, which is what this checks. On a shorter phone the home
+  // screen's lines below the room leave it under 384 pixels tall, and the room is drawn smaller and shows almost whole
+  // (pixels 5 to 123), so no lane would be outside it (P3a)
+  await page.setViewportSize({ width: 390, height: 932 });
   const home = `home:${(await stored(page, "lingxi.player.v1"))!}`;
   const card = page.locator(".visitor-card");
   const friends: RoomSocket[] = [];

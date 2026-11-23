@@ -203,7 +203,7 @@ test("the shops on the fork, settled on chain, and what a visiting friend sees",
     const after = await worldOf(buyer);
     expect(after.decor.placed.length, "a thirteenth piece is refused without room space").toBe(12);
     expect(after.decor.placed.some((x) => x.id === "star-lamp"), "the Star lamp is not placed").toBe(false);
-    await expect(page.locator(".decor-bar .decor-hint").nth(1), "the bar reads 12 of 12").toContainText("12 of 12");
+    await expect(page.locator(".decor-bar .decor-count"), "the bar reads 12 of 12").toContainText("12 of 12");
     await page.screenshot({ path: test.info().outputPath("room-full-en-light-phone.png") });
     await page.locator(".decor-bar .btn.primary", { hasText: "Done" }).click();
   });
@@ -224,7 +224,7 @@ test("the shops on the fork, settled on chain, and what a visiting friend sees",
     await placeAt(buyer, 13);
     await expect.poll(async () => (await worldOf(buyer)).decor.placed.some((x) => x.id === "star-lamp"), { message: "the Star lamp is placed as the thirteenth piece" }).toBe(true);
     expect(await placedOf(buyer)).toBe(13);
-    await expect(page.locator(".decor-bar .decor-hint").nth(1), "the bar reads 13 of 16").toContainText("13 of 16");
+    await expect(page.locator(".decor-bar .decor-count"), "the bar reads 13 of 16").toContainText("13 of 16");
     await page.screenshot({ path: test.info().outputPath("room-13-en-light-phone.png") });
     await page.locator(".decor-bar .btn.primary", { hasText: "Done" }).click();
   });
