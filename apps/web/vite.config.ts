@@ -68,6 +68,13 @@ function namesGuard(): Plugin {
 const PRELOADED: ReadonlyArray<{ page: string; entries: readonly string[]; saved?: readonly string[] }> = [
   { page: "play.html", entries: ["/src/play/main.tsx", "/src/play/FirstVisit.tsx", "/src/play/Crash.tsx"], saved: ["/src/play/PlayApp.tsx"] },
   { page: "index.html", entries: ["/src/landing/main.tsx"] },
+  // the other pages load their code from the page itself; what they gain here is their two web fonts from the start, so
+  // the page is not restyled and laid out again when the fonts arrive after it has drawn (P3)
+  { page: "verify.html", entries: [] },
+  { page: "numbers.html", entries: [] },
+  { page: "tree.html", entries: [] },
+  { page: "agents.html", entries: [] },
+  { page: "handheld.html", entries: [] },
 ];
 
 function preloadPages(): Plugin {
