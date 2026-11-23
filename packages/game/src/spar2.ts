@@ -86,6 +86,8 @@ export interface SparRules {
   skillDodgeShare: number;
   /** the share of the snack skills' heal a snack adds (LX-SPAR/2 and /3: all of it) */
   skillHealShare: number;
+  /** D14: a bag item's bonus is applied at face value (`Fighter.boost`); before LX-SPAR/4 it was folded into the skills */
+  boostAtFaceValue?: true;
 }
 
 /**
@@ -187,6 +189,7 @@ export const V4_RULES: SparRules = {
   version: "LX-SPAR/4",
   skillHpShare: 0.05,
   skillHealShare: 0.2,
+  boostAtFaceValue: true,
 };
 
 /** The rules of each version this engine plays (LX-SPAR/1 has its own engine, spar.ts). */
@@ -213,7 +216,7 @@ export function spar2(a: Fighter, b: Fighter, seed: number, cheer?: (round: numb
 export function sparWith(r: SparRules, a: Fighter, b: Fighter, seed: number, cheer: (round: number) => [boolean, boolean] = () => [false, false]): SparResult {
   const rnd = xorshift(seed);
   const start = (f: Fighter): Side => {
-    const maxHp = MAX_HP + Math.floor((f.mods?.hp ?? 0) * r.skillHpShare);
+    const maxHp = MAX_HP + Math.floor((f.mods?.hp ?? 0) * r.skillHpShare) + (r.boostAtFaceValue ? Math.max(0, f.boost?.hp ?? 0) : 0);
     const maxStamina = MAX_STAMINA + Math.floor((f.mods?.stamina ?? 0) * r.skillStaminaShare);
     return { hp: maxHp, stamina: maxStamina, maxHp, maxStamina, weakened: 0, memory: f.memory.slice(), last: "tap", momentum: 0 };
   };
@@ -254,7 +257,7 @@ export function sparWith(r: SparRules, a: Fighter, b: Fighter, seed: number, che
     let moves = outs.map((o, i) => allowedMove(r.version, o, sides[i]!.stamina)) as [Move, Move];
     moves = moves.map((m) => (m === "pounce" && rnd() % 8 === 0 ? "tap" : m)) as [Move, Move];
     // level tilts: half a point of power a level
-    const power = moods.map((m, i) => r.moodPower[m]! + Math.floor(fighters[i]!.level / r.levelDivisor)) as [number, number];
+    const power = moods.map((m, i) => r.moodPower[m]! + Math.floor(fighters[i]!.level / r.levelDivisor) + (r.boostAtFaceValue ? Math.max(0, fighters[i]!.boost?.power ?? 0) : 0)) as [number, number];
     const hits: [number, number] = [0, 0];
     const heal: [number, number] = [0, 0];
     const stagger: [number, number] = [0, 0];
@@ -327,5 +330,5 @@ export function sparWith(r: SparRules, a: Fighter, b: Fighter, seed: number, che
   }
   const [h0, h1] = [sides[0].hp, sides[1].hp];
   const winner: 0 | 1 | -1 = h0 === h1 ? -1 : h0 > h1 ? 0 : 1;
-  return { version: r.version, seed, rounds, winner, digest: digestOf(rounds, seed) };
+  return { version: r.version, seed, rounds, winner, digest: digestOf(rounds, seed), maxHp: [sides[0].maxHp, sides[1].maxHp] };
 }

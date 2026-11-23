@@ -12,7 +12,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { FLY, type OverlayPixel, type Palette, type PixelCanvas, boundingBox, drawFly, drawPet, type Expression, type Outfit, wearOverlay } from "@lingxi/art";
 import { PAID_SPARS_PER_DAY, outfitOf, paidSparsLeft } from "@lingxi/world";
 import { STARTERS, chipName, programOfChips } from "@lingxi/brain";
-import { DESIGNED_PARTNERS, composeProgram, type Challenge, type CoachNote, type DuelPet, type Fighter, MAX_HP, MOVES, type Move, PARTNERS, type Partner, type Pet, type SparResult, type SparVersion, CURRENT_SPAR, dailySparVersion, fight as fightSpar, TRAITS, coach, dayOf, duel as runDuel, duelFighter, encodeChallenge, encodeResult, fighterOfMind, fighterOfPartner, halvesOf, petCard, rewindFight, ruleSource, stageOf, type Exchange, type Mind, PRACTICE_SEEDS, SPAR_PUNISH, duelPetMind, exchangesOf, partnerMind, FLY_RIVALS, type FlyRival, FlyLinkError, flyFighter, parseFlyBrain, skillRules, sparMods } from "@lingxi/game";
+import { DESIGNED_PARTNERS, composeProgram, type Challenge, type CoachNote, type DuelPet, type Fighter, MAX_HP, MOVES, type Move, PARTNERS, type Partner, type Pet, type SparResult, type SparVersion, CURRENT_SPAR, dailySparVersion, rulesOf, fight as fightSpar, TRAITS, coach, dayOf, duel as runDuel, duelFighter, encodeChallenge, encodeResult, fighterOfMind, fighterOfPartner, halvesOf, petCard, rewindFight, ruleSource, stageOf, type Exchange, type Mind, PRACTICE_SEEDS, SPAR_PUNISH, duelPetMind, exchangesOf, partnerMind, FLY_RIVALS, type FlyRival, FlyLinkError, flyFighter, parseFlyBrain, skillRules, sparMods } from "@lingxi/game";
 import { linkPrefix } from "../game/links";
 import { LILAC, MINT, PEACH, SILICON } from "@lingxi/art";
 import { BEHEMOTH_LEVEL, BEHEMOTH_STEPS_PER_ROUND, SPAR_FIRST_ROUND_MS, SPAR_FIRST_WIN_COINS, SPAR_ROUND_MS, SPAR_WIN_COINS, behemothAt, behemothFighter } from "@lingxi/game";
@@ -131,9 +131,13 @@ export function startFight(pet: Pet, partner: Partner, o: { daily?: { seed: numb
   // bonuses readied from the bag (a Wild Jewel, a tonic) are spent on the next practice spar; never on the shared daily
   const boost = daily ? { power: 0, hp: 0, lossCoins: 0 } : useWorld.getState().spendSparBuffs();
   const boosted = boost.power > 0 || boost.hp > 0;
-  const fighter: Fighter = boosted
-    ? { ...me, mods: { stamina: 0, guard: 0, dodge: 0, heal: 0, ...me.mods, power: (me.mods?.power ?? 0) + boost.power, hp: (me.mods?.hp ?? 0) + boost.hp } }
-    : me;
+  // D14: from LX-SPAR/4 a bag bonus is applied at face value ("+15 health" is 15 health); earlier versions folded it into
+  // the skills, where it all but vanished
+  const fighter: Fighter = !boosted
+    ? me
+    : rulesOf(version)?.boostAtFaceValue
+      ? { ...me, boost: { hp: boost.hp, power: boost.power } }
+      : { ...me, mods: { stamina: 0, guard: 0, dodge: 0, heal: 0, ...me.mods, power: (me.mods?.power ?? 0) + boost.power, hp: (me.mods?.hp ?? 0) + boost.hp } };
   play("tap");
   useArena.setState({
     fight: {
@@ -627,7 +631,9 @@ export function FightView({
   const [shown, setShown] = useState(0);
   const finished = shown >= result.rounds.length;
   const round = shown > 0 ? result.rounds[shown - 1]! : null;
-  const hp: [number, number] = round ? round.hp : [MAX_HP, MAX_HP];
+  // each side's own full health (a skill or a bag item can make it more than MAX_HP), so the bar never runs past its end
+  const full: [number, number] = result.maxHp ?? [MAX_HP, MAX_HP];
+  const hp: [number, number] = round ? round.hp : full;
   const stage = self.stage;
   const otherName = partner.name[lang];
   const roomIndex = useWorld((s) => s.world.room);
@@ -737,8 +743,8 @@ export function FightView({
           <div key={side} className={`sp-fighter side-${side}`}>
             <div className="sp-bar">
               <b>{side === 0 ? self.name : otherName}</b>
-              <span className="sp-hp" role="meter" aria-valuemin={0} aria-valuemax={MAX_HP} aria-valuenow={hp[side]} aria-label={lang === "zh" ? "体力" : "health"}>
-                <i style={{ transform: `scaleX(${hp[side] / MAX_HP})` }} />
+              <span className="sp-hp" role="meter" aria-valuemin={0} aria-valuemax={full[side]} aria-valuenow={hp[side]} aria-label={lang === "zh" ? "体力" : "health"}>
+                <i style={{ transform: `scaleX(${Math.min(1, hp[side] / full[side])})` }} />
               </span>
             </div>
             <motion.div

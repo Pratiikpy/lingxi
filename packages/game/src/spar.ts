@@ -65,6 +65,11 @@ export interface Fighter {
   level: number;
   /** what its Spar skills bring (plan 4.4); absent = none, and the fight is exactly as before skills */
   mods?: FighterMods;
+  /**
+   * D14: a bonus readied from the bag for this one spar, at face value (health added to its full health, power to every
+   * hit), in versions whose rules say so (LX-SPAR/4 on); earlier versions fold it into `mods`, as they did then
+   */
+  boost?: { hp: number; power: number };
 }
 
 /** The Spar tree's effect on one fighter (see skills.ts sparMods; coins are paid by the game, not here). */
@@ -108,6 +113,8 @@ export interface SparResult {
   winner: 0 | 1 | -1;
   /** a fingerprint of the whole fight, for sharing and checking */
   digest: string;
+  /** D14: each side's full health (more than MAX_HP with skills or a bag item), so a health bar is drawn to its own scale */
+  maxHp?: [number, number];
 }
 
 export const bucketUp = (v: number, max: number) => Math.min(3, Math.floor((v * 4) / (max + 1)));

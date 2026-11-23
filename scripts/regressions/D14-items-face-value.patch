@@ -1,0 +1,10 @@
+--- a/packages/game/src/spar2.ts
++++ b/packages/game/src/spar2.ts
+@@ -189,7 +189,6 @@ export const V4_RULES: SparRules = {
+   version: "LX-SPAR/4",
+   skillHpShare: 0.05,
+   skillHealShare: 0.2,
+-  boostAtFaceValue: true,
+ };
+ 
+ /** The rules of each version this engine plays (LX-SPAR/1 has its own engine, spar.ts). */

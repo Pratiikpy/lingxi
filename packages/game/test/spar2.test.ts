@@ -469,3 +469,22 @@ describe("reading pays across the field (D8, target spar-reading-pays)", () => {
     expect(rateOf("reader")).toBeGreaterThan(rateOf("partner:pip"));
   }, 600_000);
 });
+
+describe("a bag item's spar bonus is what its label says (D14)", () => {
+  it("every spar item changes fights in the current version, at face value; earlier versions never read the bonus", async () => {
+    const { ITEM } = await import("@lingxi/world");
+    const items = Object.values(ITEM).filter((i) => i.buff && (i.buff.sparHp || i.buff.sparPower));
+    expect(items.length).toBeGreaterThanOrEqual(5);
+    const me = fighterFrom("gentle", STARTERS.gentle, 1);
+    const opp = fighterOfPartner(PARTNERS[0]!, CURRENT_SPAR);
+    for (const it of items) {
+      const boost = { hp: it.buff!.sparHp ?? 0, power: it.buff!.sparPower ?? 0 };
+      let changed = 0;
+      for (let s = 0; s < 60; s++) if (JSON.stringify(fight(CURRENT_SPAR, { ...me, boost }, opp, s).rounds) !== JSON.stringify(fight(CURRENT_SPAR, me, opp, s).rounds)) changed++;
+      expect(changed, it.name.en).toBeGreaterThan(30);
+      // "+15 health" is 15 health
+      if (boost.hp) expect(fight(CURRENT_SPAR, { ...me, boost }, opp, 7).rounds[0]!.hp[0]).toBeGreaterThan(fight(CURRENT_SPAR, me, opp, 7).rounds[0]!.hp[0]);
+      for (const old of [SPAR_V2, SPAR_V3]) expect(fight(old, { ...me, boost }, opp, 7)).toEqual(fight(old, me, opp, 7));
+    }
+  });
+});
