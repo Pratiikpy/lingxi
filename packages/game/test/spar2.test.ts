@@ -7,14 +7,14 @@ import { describe, expect, it } from "vitest";
 import { type FastBrain, inputField } from "@lingxi/brain";
 import { type Rule, STARTERS } from "@lingxi/brain";
 import { MOVES, SPAR_VERSION, type Fighter, type Move, type SparVersion, spar } from "../src/spar";
-import { CURRENT_SPAR, SPAR_V2, SPAR_V3, SPAR_V4, allowedMove, fight, spar2 } from "../src/spar2";
+import { CURRENT_SPAR, SPAR_V2, SPAR_V3, SPAR_V4, SPAR_V5, allowedMove, fight, spar2 } from "../src/spar2";
 import V2_DESIGNED_JSON from "./fixtures/v2-designed-partners.json";
 import { DESIGNED_PARTNERS as DESIGNED } from "../src/designedPartners";
 import { PARTNERS, partnerProgram } from "../src/partners";
 import { fighterOfPartner } from "../src/coach";
 import { SKILLS, sparMods } from "../src/skills";
-import { SPAR_V3_FROM_WEEK, SPAR_V4_FROM_WEEK, seasonSparVersion } from "../src/season";
-import { SPAR_V3_FROM_DAY, SPAR_V4_FROM_DAY, dailySparVersion } from "../src/daily";
+import { SPAR_V3_FROM_WEEK, SPAR_V5_FROM_WEEK, seasonSparVersion } from "../src/season";
+import { SPAR_V3_FROM_DAY, SPAR_V5_FROM_DAY, dailySparVersion } from "../src/daily";
 import { coach, fighterFrom, fighterOfMind } from "../src/coach";
 import { composeProgram } from "../src/lessons";
 import { behemothFighter } from "../src/builders";
@@ -35,6 +35,9 @@ const winRate = (a: Fighter, b: Fighter, n = 200) => {
 /** the fight new spars are fought in (LX-SPAR/3 since row B1) */
 const now = (a: Fighter, b: Fighter, seed: number) => fight(CURRENT_SPAR, a, b, seed);
 
+/** A long test hands the event loop back between cases, so the test worker can answer its runner while it works. */
+const breathe = () => new Promise<void>((r) => setTimeout(r, 0));
+
 describe("the fight new spars are fought in (G2, B1)", () => {
   it("shows every move apart on the action pins, so a guard is not read as a rest", () => {
     const seen: number[] = [];
@@ -43,7 +46,7 @@ describe("the fight new spars are fought in (G2, B1)", () => {
   });
 
   it("names its own version", () => {
-    expect(now(always("tap"), always("tap"), 1).version).toBe(SPAR_V4);
+    expect(now(always("tap"), always("tap"), 1).version).toBe(SPAR_V5);
   });
 
   it("is strict about stamina: no move without its full cost", () => {
@@ -173,12 +176,12 @@ describe("LX-SPAR/1 is kept for the spars already fought (G2)", () => {
     expect(seasonSparVersion("2026-W47")).toBe(SPAR_VERSION);
     expect(seasonSparVersion(SPAR_V3_FROM_WEEK)).toBe(SPAR_V3);
     expect(seasonSparVersion("2026-W48")).toBe(SPAR_V3);
-    expect(seasonSparVersion(SPAR_V4_FROM_WEEK)).toBe(SPAR_V4);
-    expect(seasonSparVersion("2027-W02")).toBe(SPAR_V4);
+    expect(seasonSparVersion(SPAR_V5_FROM_WEEK)).toBe(SPAR_V5);
+    expect(seasonSparVersion("2027-W02")).toBe(SPAR_V5);
     expect(dailySparVersion(SPAR_V3_FROM_DAY - 1)).toBe(SPAR_VERSION);
     expect(dailySparVersion(SPAR_V3_FROM_DAY)).toBe(SPAR_V3);
-    expect(SPAR_V4_FROM_DAY).toBe(SPAR_V3_FROM_DAY + 1);
-    expect(dailySparVersion(SPAR_V4_FROM_DAY)).toBe(SPAR_V4);
+    expect(SPAR_V5_FROM_DAY).toBe(SPAR_V3_FROM_DAY + 1);
+    expect(dailySparVersion(SPAR_V5_FROM_DAY)).toBe(SPAR_V5);
   });
 
   it("LX-SPAR/4 changes only what the Spar skills bring: a fight without skills is the same fight (D8)", () => {
@@ -250,11 +253,12 @@ describe("the coach's advice wins in practice (G2)", () => {
 });
 
 describe("the coach's suggestion never makes a pet worse (G2, B3)", () => {
-  it("holds where a coach of 24 practice spars and no margin made a pet worse (curious against Mallow fell from 142 to 106 of 200)", () => {
+  it("holds where a coach of 24 practice spars and no margin made a pet worse (curious against Mallow fell from 142 to 106 of 200)", async () => {
     const fresh = Array.from({ length: 200 }, (_, i) => 300_007 + i * 7919);
     const oppOf = (id: string): Fighter => (id === "behemoth" ? behemothFighter("Behemoth") : fighterOfPartner([...PARTNERS, ...DESIGNED].find((p) => p.id === id)!));
     const cases = [["mallow", "curious", "child", 8], ["mallow", "curious", "adult", 8], ["velvet", "bold", "child", 10], ["behemoth", "gentle", "child", 16], ["behemoth", "bold", "child", 3], ["behemoth", "bold", "adult", 24], ["behemoth", "bold", "child", 27]] as const;
     for (const [id, line, stage, seed] of cases) {
+      await breathe();
       const level = stage === "adult" ? 1 : 0;
       const me = fighterOfMind("me", { line, lessons: [] }, level);
       const result = fight(CURRENT_SPAR, me, oppOf(id), seed);
@@ -265,7 +269,7 @@ describe("the coach's suggestion never makes a pet worse (G2, B3)", () => {
     }
   }, 120_000);
 
-  it("against every partner and Behemoth, for every line as a child and an adult, a suggested lesson keeps or raises the wins on 200 unseen seeds", () => {
+  it("against every partner and Behemoth, for every line as a child and an adult, a suggested lesson keeps or raises the wins on 200 unseen seeds", async () => {
     const fresh = Array.from({ length: 200 }, (_, i) => 300_007 + i * 7919);
     const opps: [string, () => Fighter][] = [...PARTNERS, ...DESIGNED].map((p) => [p.id, () => fighterOfPartner(p)] as [string, () => Fighter]);
     opps.push(["behemoth", () => behemothFighter("Behemoth")]);
@@ -274,6 +278,7 @@ describe("the coach's suggestion never makes a pet worse (G2, B3)", () => {
     for (const [id, opp] of opps)
       for (const line of ["gentle", "bold", "curious"] as const)
         for (const [stage, level] of [["child", 0], ["adult", 1]] as const) {
+          await breathe();
           const me = fighterOfMind("me", { line, lessons: [] }, level);
           // the coach is asked after a lost spar: the first of these seeds the pet loses
           const result = [4242, 4243, 4244, 4245, 4246].map((seed) => fight(CURRENT_SPAR, me, opp(), seed)).find((r) => r.winner !== 0);
@@ -487,4 +492,28 @@ describe("a bag item's spar bonus is what its label says (D14)", () => {
       for (const old of [SPAR_V2, SPAR_V3] as const) expect(fight(old, { ...me, boost }, opp, 7)).toEqual(fight(old, me, opp, 7));
     }
   });
+});
+
+describe("against the opponents players meet, reading beats tapping (D20, LX-SPAR/5)", () => {
+  it("the reader wins more of its spars against the partners and taught pets than any tap-only brain; in LX-SPAR/4 tapping won", async () => {
+    const { field } = await import("../scripts/sim90/field");
+    const all = field();
+    // every opponent a player can spar: the partners, the designed partners, and taught pets
+    const real = [...all.filter((e) => e.kind === "partner" || e.kind === "taught"), ...DESIGNED.map((p) => ({ fighter: fighterOfPartner(p, SPAR_V5) }))];
+    const seeds = Array.from({ length: 24 }, (_, i) => (20261121 + i * 104_729) >>> 0);
+    const rate = (version: SparVersion, id: string) => {
+      const me = all.find((e) => e.id === id)!.fighter;
+      let w = 0;
+      for (const o of real) for (const s of seeds) {
+        if (fight(version, me, o.fighter, s).winner === 0) w++;
+        if (fight(version, o.fighter, me, s ^ 0x2545f491).winner === 1) w++;
+      }
+      return w / (2 * seeds.length * real.length);
+    };
+    const taps = all.filter((e) => e.id.startsWith("tap-only/")).map((e) => e.id);
+    expect(taps.length).toBe(4);
+    const reader5 = rate(SPAR_V5, "reader");
+    for (const t of taps) expect(rate(SPAR_V5, t), t).toBeLessThan(reader5);
+    expect(Math.max(...taps.map((t) => rate(SPAR_V4, t)))).toBeGreaterThan(rate(SPAR_V4, "reader"));
+  }, 300_000);
 });

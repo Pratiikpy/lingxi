@@ -7,13 +7,17 @@
  * are kept too, as the partner's hint.
  *
  *   npx tsx scripts/design-partners.ts
+ *   npx tsx scripts/design-partners.ts --remeasure   re-scores each kept counter in the current fight version and
+ *                                                    rewrites only its recorded win rate (D20: a new fight version
+ *                                                    changes how often a counter wins, not who the partners are)
  */
 
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import type { Program } from "@lingxi/brain";
 import { LESSON_CAPACITY, MAX_GATES, composeProgram } from "../src/lessons";
 import { PARTNERS } from "../src/partners";
-import { type DesignStage, STAGE_LEVEL, design, moveShares } from "../src/designer";
+import { type DesignStage, STAGE_LEVEL, design, moveShares, strength } from "../src/designer";
+import { DESIGNED } from "../src/designed.generated";
 
 const STAGES: DesignStage[] = ["baby", "child", "teen", "adult"];
 const LINES = ["gentle", "bold", "curious"] as const;
@@ -28,6 +32,23 @@ const STYLE: Record<DesignStage, { move: string; share: number }> = {
   teen: { move: "charm", share: 0.3 },
   adult: { move: "guard", share: 0.35 },
 };
+
+if (process.argv.includes("--remeasure")) {
+  const file = new URL("../src/designed.generated.ts", import.meta.url);
+  let text = readFileSync(file, "utf8");
+  for (const [stage, rec] of Object.entries(DESIGNED)) {
+    const lvl = STAGE_LEVEL[stage as DesignStage];
+    const wins = Number(strength(composeProgram(rec.counter.line, rec.counter.lessons), lvl, [{ name: `designed-${stage}`, program: rec.program, level: lvl }], TEST).toFixed(4));
+    if (wins < BEATABLE) throw new Error(`${stage}: its counter now wins ${wins}, under ${BEATABLE}; run a full search`);
+    const old = `"wins":${rec.counter.wins}},"moves"`;
+    if (!text.includes(old)) throw new Error(`${stage}: recorded counter not found`);
+    text = text.replace(old, `"wins":${wins}},"moves"`);
+    process.stdout.write(`${stage}: counter wins ${rec.counter.wins} -> ${wins}
+`);
+  }
+  writeFileSync(file, text);
+  process.exit(0);
+}
 
 type Entry = { name: string; program: Program; level: number };
 const pool: Entry[] = [...PARTNERS.map((p) => ({ name: p.id, program: p.program, level: p.level })), ...LINES.map((l) => ({ name: `starter-${l}`, program: composeProgram(l, []), level: 0 }))];

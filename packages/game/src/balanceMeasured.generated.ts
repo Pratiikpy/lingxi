@@ -15,7 +15,7 @@ export const BALANCE_MEASURED: BalanceMeasured = {
       "status": "met"
     },
     "spar-best-single": {
-      "value": "least answered: fight:fresh/gentle, beaten 73% by coached/curious/pip; none beats the reader; best tap-only/excited wins 85% of the field",
+      "value": "least answered: fight:fresh/gentle, beaten 77% by reader; none beats the reader; best tap-only/calm wins 84% of the field; against real opponents the reader 67%, best one-rule tap-only/excited 64%",
       "status": "met"
     },
     "spar-reading-pays": {
@@ -23,11 +23,11 @@ export const BALANCE_MEASURED: BalanceMeasured = {
       "status": "met"
     },
     "spar-guard-answers": {
-      "value": "guard-only 55% against pounce-only, 10% against the field",
+      "value": "guard-only 59% against pounce-only, 12% against the field",
       "status": "met"
     },
     "spar-dodge-answers": {
-      "value": "dodge-only 47% against pounce-only, 11% against the field",
+      "value": "dodge-only 47% against pounce-only, 12% against the field",
       "status": "met"
     },
     "level-not-by-tapping": {

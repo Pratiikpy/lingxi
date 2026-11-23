@@ -13,7 +13,7 @@ import { compileProgram, gateCount } from "@lingxi/brain";
 import { type DuelPet, duelFighter } from "./duel";
 import { halvesOf, instinctBrain, mindBrain, parseCard } from "./family";
 import { type Fighter, SPAR_VERSION, type SparVersion } from "./spar";
-import { SPAR_V3, SPAR_V4, fight } from "./spar2";
+import { SPAR_V3, SPAR_V5, fight } from "./spar2";
 
 export const SEASON_VERSION = "LX-SEASON/1";
 export const MAX_ENTRIES = 64;
@@ -93,9 +93,9 @@ function fnv(s: string): number {
  * keepsake its winner was sent, read the same forever; from this week the ranking is by results alone (points, wins).
  */
 export const SPAR_V3_FROM_WEEK = "2026-W48";
-/** The first week fought in LX-SPAR/4 (row D8), so a week is fought in one version from its first bout to its last. */
-export const SPAR_V4_FROM_WEEK = "2026-W49";
-export const seasonSparVersion = (week: string): SparVersion => (week >= SPAR_V4_FROM_WEEK ? SPAR_V4 : week >= SPAR_V3_FROM_WEEK ? SPAR_V3 : SPAR_VERSION);
+/** The first week fought in LX-SPAR/5 (rows D8, D20), so a week is fought in one version from its first bout to its last. */
+export const SPAR_V5_FROM_WEEK = "2026-W49";
+export const seasonSparVersion = (week: string): SparVersion => (week >= SPAR_V5_FROM_WEEK ? SPAR_V5 : week >= SPAR_V3_FROM_WEEK ? SPAR_V3 : SPAR_VERSION);
 
 export const boutSeed = (week: string, a: string, b: string): number => fnv(`${SEASON_VERSION}|${week}|${a}|${b}`);
 

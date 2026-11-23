@@ -26,8 +26,9 @@ import { type Fighter, MAX_HP, MAX_STAMINA, MOVES, type Move, ROUNDS, type Round
 export const SPAR_V2 = "LX-SPAR/2";
 export const SPAR_V3 = "LX-SPAR/3";
 export const SPAR_V4 = "LX-SPAR/4";
+export const SPAR_V5 = "LX-SPAR/5";
 /** The version new fights are fought in. */
-export const CURRENT_SPAR: SparVersion = SPAR_V4;
+export const CURRENT_SPAR: SparVersion = SPAR_V5;
 
 /** A fight in the version given: each version replays with its own engine, so past spars verify as they were fought. */
 export function fight(version: SparVersion, a: Fighter, b: Fighter, seed: number, cheer?: (round: number) => [boolean, boolean]): SparResult {
@@ -192,8 +193,19 @@ export const V4_RULES: SparRules = {
   boostAtFaceValue: true,
 };
 
+/**
+ * LX-SPAR/5 (row D20). A tap cost nothing and hit for 6, so a brain that only ever tapped beat the opponents players
+ * actually meet (the sparring partners, the designed partners, coached and school-taught pets) more often than the brain
+ * that reads the fight (69.7% against 66.7%, 24 seeds): the laziest play was the best. A tap now hits for 4: the reader
+ * leads (65.7% against 64.2%) and guard and dodge stay fair answers to a pounce (58% and 48%). A hard 60% for one-rule
+ * brains was not reachable without making the tap useless (at any damage tap-only stays near 61%), and Prateek left the
+ * choice to the product. Everything else is LX-SPAR/4's; LX-SPAR/4 is kept for the practice spars and duels fought in it
+ * on 23 November 2026, and no daily or season fight was ever fought in it.
+ */
+export const V5_RULES: SparRules = { ...V4_RULES, version: "LX-SPAR/5", tapHit: 4 };
+
 /** The rules of each version this engine plays (LX-SPAR/1 has its own engine, spar.ts). */
-const RULES_OF: Partial<Record<SparVersion, SparRules>> = { "LX-SPAR/2": V2_RULES, "LX-SPAR/3": V3_RULES, "LX-SPAR/4": V4_RULES };
+const RULES_OF: Partial<Record<SparVersion, SparRules>> = { "LX-SPAR/2": V2_RULES, "LX-SPAR/3": V3_RULES, "LX-SPAR/4": V4_RULES, "LX-SPAR/5": V5_RULES };
 export const rulesOf = (version: SparVersion): SparRules | undefined => RULES_OF[version];
 
 /**

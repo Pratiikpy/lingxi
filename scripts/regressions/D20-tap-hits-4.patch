@@ -1,0 +1,11 @@
+--- a/packages/game/src/spar2.ts
++++ b/packages/game/src/spar2.ts
+@@ -202,7 +202,7 @@ export const V4_RULES: SparRules = {
+  * choice to the product. Everything else is LX-SPAR/4's; LX-SPAR/4 is kept for the practice spars and duels fought in it
+  * on 23 November 2026, and no daily or season fight was ever fought in it.
+  */
+-export const V5_RULES: SparRules = { ...V4_RULES, version: "LX-SPAR/5", tapHit: 4 };
++export const V5_RULES: SparRules = { ...V4_RULES, version: "LX-SPAR/5" };
+ 
+ /** The rules of each version this engine plays (LX-SPAR/1 has its own engine, spar.ts). */
+ const RULES_OF: Partial<Record<SparVersion, SparRules>> = { "LX-SPAR/2": V2_RULES, "LX-SPAR/3": V3_RULES, "LX-SPAR/4": V4_RULES, "LX-SPAR/5": V5_RULES };

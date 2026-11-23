@@ -10,6 +10,8 @@
  *   --seed <n>  --days <n>                    another seed or length (--check and --write keep the recorded ones)
  */
 
+import { budgetChoiceKey, writeBudgetChoiceCache } from "./sim90/budgetChoice";
+import { BUDGET_CHOICE_CACHE } from "./sim90/budgetChoice.generated";
 import { writeFileSync } from "node:fs";
 import { BALANCE_MEASURED, evaluateTargets, staleTargets } from "../src";
 import { report } from "./sim90/report";
@@ -30,6 +32,8 @@ const number = (name: string, fallback: number) => {
 };
 
 if (flag("--check") || flag("--write")) {
+  // D13: the exhaustive gate-budget measure is cached; --write brings the cache current first
+  if (flag("--write") && BUDGET_CHOICE_CACHE.key !== budgetChoiceKey()) writeBudgetChoiceCache();
   const n = runSim({ seed: DEFAULT_SEED, days: DEFAULT_DAYS });
   const now = evaluateTargets(n);
   if (flag("--write")) {

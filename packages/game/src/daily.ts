@@ -10,7 +10,7 @@
 
 import { PARTNERS } from "./partners";
 import { SPAR_VERSION, type SparVersion } from "./spar";
-import { SPAR_V3, SPAR_V4 } from "./spar2";
+import { SPAR_V3, SPAR_V5 } from "./spar2";
 
 import { DAY_MS } from "./pet";
 
@@ -23,9 +23,13 @@ export const dayIndex = (ms: number): number => Math.floor(ms / DAY_MS);
  * the new version. (LX-SPAR/2 was never used for the daily challenge.)
  */
 export const SPAR_V3_FROM_DAY = dayIndex(Date.UTC(2026, 10, 23));
-/** The first day fought in LX-SPAR/4 (row D8: the Spar skills tilt and no longer decide), Tuesday 24 November 2026, UTC. */
-export const SPAR_V4_FROM_DAY = dayIndex(Date.UTC(2026, 10, 24));
-export const dailySparVersion = (day: number): SparVersion => (day >= SPAR_V4_FROM_DAY ? SPAR_V4 : day >= SPAR_V3_FROM_DAY ? SPAR_V3 : SPAR_VERSION);
+/**
+ * The first day fought in the next rules, Tuesday 24 November 2026, UTC: LX-SPAR/5 (rows D8 and D20: the Spar skills tilt
+ * and no longer decide; a tap hits for 4). LX-SPAR/4 lived one day, for practice and duels only, so the daily goes from
+ * LX-SPAR/3 straight to LX-SPAR/5.
+ */
+export const SPAR_V5_FROM_DAY = dayIndex(Date.UTC(2026, 10, 24));
+export const dailySparVersion = (day: number): SparVersion => (day >= SPAR_V5_FROM_DAY ? SPAR_V5 : day >= SPAR_V3_FROM_DAY ? SPAR_V3 : SPAR_VERSION);
 
 /** The partner for a day: every partner in turn. */
 export const dailyPartnerIndex = (day: number): number => ((day % PARTNERS.length) + PARTNERS.length) % PARTNERS.length;

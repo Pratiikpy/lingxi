@@ -101,6 +101,8 @@ export interface FieldNumbers {
   leastAnswered: { id: string; by: string; winRate: number };
   /** brains of one rule that beat the fight-reading brain head to head */
   beatReader: string[];
+  /** D20: against the opponents players actually meet (the sparring partners and taught pets), the reader's win rate and the best brain of one rule */
+  realOpponents: { reader: number; bestSingle: { id: string; winRate: number } };
   /** the best brain in the field other than the fight-reading one */
   bestOther: { id: string; winRate: number };
   reader: number;
@@ -210,11 +212,14 @@ export const BALANCE_TARGETS: readonly BalanceTarget[] = [
     // brains are untaught or care-taught pets that never attack, so any brain that attacks at all beats them, and no
     // setting of the fight's numbers brought the best below 75% (600 settings searched, BUILD-STATUS section 259).
     // Beating beginners is not dominating; having no answer is.
-    target: "every brain of one rule (one lesson on a starter, or one move every round) has an answer in the field that beats it in at least 55% of their spars, and none beats the fight-reading brain",
+    // D20 (Prateek left the choice to the product, 2026-11-23): the plan's 60% is restated as below. Against the
+    // opponents players actually meet a tap-only brain stayed near 61% at any tap damage, so 60% would have meant a
+    // useless tap; what matters is that no lazy brain beats reading the fight there, and that every one has an answer.
+    target: "every brain of one rule (one lesson on a starter, or one move every round) has an answer in the field that beats it in at least 55% of their spars, and none beats the fight-reading brain; and against the opponents players actually meet (the sparring partners and taught pets) no brain of one rule wins more than the fight-reading brain",
     owner: "G2",
     value: (n) =>
-      `least answered: ${n.field.leastAnswered.id}, beaten ${pct(n.field.leastAnswered.winRate)} by ${n.field.leastAnswered.by}; ${n.field.beatReader.length ? `${n.field.beatReader.join(", ")} beat the reader` : "none beats the reader"}; best ${n.field.bestSingle.id} wins ${pct(n.field.bestSingle.winRate)} of the field`,
-    met: (n) => n.field.leastAnswered.winRate >= 0.55 && n.field.beatReader.length === 0,
+      `least answered: ${n.field.leastAnswered.id}, beaten ${pct(n.field.leastAnswered.winRate)} by ${n.field.leastAnswered.by}; ${n.field.beatReader.length ? `${n.field.beatReader.join(", ")} beat the reader` : "none beats the reader"}; best ${n.field.bestSingle.id} wins ${pct(n.field.bestSingle.winRate)} of the field; against real opponents the reader ${pct(n.field.realOpponents.reader)}, best one-rule ${n.field.realOpponents.bestSingle.id} ${pct(n.field.realOpponents.bestSingle.winRate)}`,
+    met: (n) => n.field.leastAnswered.winRate >= 0.55 && n.field.beatReader.length === 0 && n.field.realOpponents.bestSingle.winRate < n.field.realOpponents.reader,
   },
   {
     id: "spar-reading-pays",

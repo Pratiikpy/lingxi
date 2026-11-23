@@ -15,7 +15,7 @@ import { composeProgram } from "./lessons";
 import { shownName } from "./names";
 import { gateBudget, skillRules } from "./skills";
 import { type Fighter, SPAR_VERSION, type SparResult, type SparVersion } from "./spar";
-import { CURRENT_SPAR, SPAR_V2, SPAR_V3, SPAR_V4, fight } from "./spar2";
+import { CURRENT_SPAR, SPAR_V2, SPAR_V3, SPAR_V4, SPAR_V5, fight } from "./spar2";
 
 const CHALLENGE = "lxc1.";
 const RESULT = "lxr1.";
@@ -134,7 +134,7 @@ export function encodeResult(r: DuelResult): string {
 
 export function decodeResult(code: string): DuelResult {
   const v = unpack(code, RESULT, MAX_DUEL_RESULT_CODE);
-  return { challenge: readChallenge((v.challenge ?? {}) as Record<string, unknown>), reply: strip(readPet(v.reply)), version: v.version === SPAR_V4 ? SPAR_V4 : v.version === SPAR_V3 ? SPAR_V3 : v.version === SPAR_V2 ? SPAR_V2 : SPAR_VERSION };
+  return { challenge: readChallenge((v.challenge ?? {}) as Record<string, unknown>), reply: strip(readPet(v.reply)), version: v.version === SPAR_V5 ? SPAR_V5 : v.version === SPAR_V4 ? SPAR_V4 : v.version === SPAR_V3 ? SPAR_V3 : v.version === SPAR_V2 ? SPAR_V2 : SPAR_VERSION };
 }
 
 /** The spar's seed, fixed by the challenge so every replay is the same fight. */

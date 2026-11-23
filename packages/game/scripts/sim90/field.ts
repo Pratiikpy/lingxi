@@ -11,7 +11,7 @@
  */
 
 import { type Program, type Rule, STARTERS, compileProgram, gateCount, validateProgram } from "@lingxi/brain";
-import { FIGHT_LESSONS, type FieldBrain, type FieldNumbers, type Fighter, LESSON_CAPACITY, MAX_GATES, MOVES, PARTNERS, type Partner, PET_SCHOOL, coach, composeProgram, fighterFrom, fighterOfMind, fighterOfPartner, CURRENT_SPAR, fight } from "../../src";
+import { DESIGNED_PARTNERS, FIGHT_LESSONS, type FieldBrain, type FieldNumbers, type Fighter, LESSON_CAPACITY, MAX_GATES, MOVES, PARTNERS, type Partner, PET_SCHOOL, coach, composeProgram, fighterFrom, fighterOfMind, fighterOfPartner, CURRENT_SPAR, fight } from "../../src";
 
 const LINES = ["gentle", "bold", "curious"] as const;
 const MOODS = ["grumpy", "calm", "happy", "excited"] as const;
@@ -24,7 +24,8 @@ const only = (want: number, mood: number): Program => validateProgram({ version:
  * when spent and snacks when hurt. Written for G0 from the fight's pins (spar.ts). One rule was changed after
  * measuring (D8): it snacked only when nearly beaten and lost the field to Pip, a plain pouncer, so it now snacks once
  * hurt (hunger 2), before chasing an opening; Pip's resting pace and excited late pounces were tried first and did not
- * help. That is the one change made to win; the rest is as written.
+ * help. A second (D20): with LX-SPAR/5's lighter tap it answers a dodger with an excited tap, not a calm one (a pounce or
+ * a charm there were tried and did worse). Those are the two changes made to win; the rest is as written.
  * G2: from LX-SPAR/2 a guard shows on the action pins (spar2.ts), so the reader answers as the fight's triangle says: a
  * charm for a guard, a light tap for a dodger, and a pounce for a charm (in LX-SPAR/1 it guarded).
  */
@@ -39,7 +40,8 @@ export const READER: Program = validateProgram({
     { label: "an opening: pounce", when: { event: [2] }, then: { want: 2, mood: 2 } },
     { label: "it pounced: guard", when: { action: [2] }, then: { want: 5, mood: 1 } },
     { label: "it guarded: charm", when: { action: [3] }, then: { want: 6, mood: 1 } },
-    { label: "it dodged: tap", when: { action: [6] }, then: { want: 0, mood: 1 } },
+    // D20: a dodger is answered with an excited tap (it was calm); with LX-SPAR/5's lighter tap a calm one no longer told
+    { label: "it dodged: tap", when: { action: [6] }, then: { want: 0, mood: 3 } },
     { label: "it is worn down: pounce", when: { clean: [0, 1] }, then: { want: 2, mood: 2 } },
     { label: "charmed: pounce", when: { action: [5] }, then: { want: 2, mood: 1 } },
   ],
@@ -49,7 +51,7 @@ export const READER: Program = validateProgram({
 /** The reader as it was written before row D8 (a snack only when nearly beaten), kept for the fights recorded with it. */
 export const READER_BEFORE_D8: Program = validateProgram({
   ...READER,
-  rules: [READER.rules[0]!, READER.rules[2]!, { ...READER.rules[1]!, when: { hunger: [3] } }, ...READER.rules.slice(3)],
+  rules: [READER.rules[0]!, READER.rules[2]!, { ...READER.rules[1]!, when: { hunger: [3] } }, ...READER.rules.slice(3).map((x) => (x.label === "it dodged: tap" ? { ...x, then: { want: 0, mood: 1 } } : x))],
 } as unknown);
 
 interface Entry {
@@ -118,7 +120,8 @@ export function bout(a: Fighter, b: Fighter, seeds: readonly number[]): [number,
 /** Head-to-head targets are read over this many seeds (two fights each), so a coin-flip dodge is not judged on noise. */
 const HEAD_SEEDS = 100;
 
-export function sparField(seed: number, nSeeds = 8): FieldNumbers {
+/** The field's numbers, a row of fights at a time: a step pauses after each brain's row, so a caller can yield. */
+function* sparFieldSteps(seed: number, nSeeds = 8): Generator<void, FieldNumbers> {
   const seeds = Array.from({ length: nSeeds }, (_, i) => (seed + i * 104_729) >>> 0);
   const headSeeds = Array.from({ length: HEAD_SEEDS }, (_, i) => (seed ^ 0x5bd1e995) + i * 7919 >>> 0);
   const all = field();
@@ -136,6 +139,7 @@ export function sparField(seed: number, nSeeds = 8): FieldNumbers {
       beat[i]![j] = aw / (2 * nSeeds);
       beat[j]![i] = bw / (2 * nSeeds);
     }
+    yield;
   }
   const brains: FieldBrain[] = all.map((e) => ({ id: e.id, kind: e.kind, winRate: won.get(e.id)! / played }));
   const best = (of: FieldBrain[]) => [...of].sort((a, b) => b.winRate - a.winRate)[0]!;
@@ -156,12 +160,28 @@ export function sparField(seed: number, nSeeds = 8): FieldNumbers {
   });
   const leastAnswered = answers.reduce((m, a) => (a.winRate < m.winRate ? a : m));
   const beatReader = all.filter((e, i) => isSingle(e.kind) && beat[i]![r]! > beat[r]![i]!).map((e) => e.id);
+  // D20: against every opponent a player can actually spar: the sparring partners, the designed partners, and taught
+  // pets (school sets, coached)
+  const realFighters = [...all.filter((e) => e.kind === "partner" || e.kind === "taught").map((e) => e.fighter), ...DESIGNED_PARTNERS.map((p) => fighterOfPartner(p))];
+  const realRate = (i: number) => {
+    const me = all[i]!.fighter;
+    const opp = realFighters.filter((f) => f !== me);
+    return opp.reduce((s, f) => s + bout(me, f, seeds)[0] / (2 * seeds.length), 0) / opp.length;
+  };
+  const singlesReal: Array<{ id: string; winRate: number }> = [];
+  for (let i = 0; i < all.length; i++) {
+    if (!isSingle(all[i]!.kind)) continue;
+    singlesReal.push({ id: all[i]!.id, winRate: realRate(i) });
+    yield;
+  }
+  const realBest = singlesReal.sort((a, b) => b.winRate - a.winRate)[0]!;
   return {
     brains,
     seeds: nSeeds,
     bestSingle: { id: single.id, winRate: single.winRate },
     leastAnswered,
     beatReader,
+    realOpponents: { reader: realRate(r), bestSingle: realBest },
     bestOther: { id: other.id, winRate: other.winRate },
     reader: rate("reader"),
     guardVsPounce: head("guard-only", "pounce-only"),
@@ -169,4 +189,23 @@ export function sparField(seed: number, nSeeds = 8): FieldNumbers {
     guardVsField: rate("guard-only"),
     dodgeVsField: rate("dodge-only"),
   };
+}
+
+/** The field's numbers in one go. */
+export function sparField(seed: number, nSeeds = 8): FieldNumbers {
+  const steps = sparFieldSteps(seed, nSeeds);
+  for (;;) {
+    const r = steps.next();
+    if (r.done) return r.value;
+  }
+}
+
+/** The same, yielding to the event loop between rows (a test runner's worker must answer while it runs). */
+export async function sparFieldYielding(seed: number, nSeeds = 8, tick: () => Promise<void> = () => new Promise((r) => setTimeout(r, 0))): Promise<FieldNumbers> {
+  const steps = sparFieldSteps(seed, nSeeds);
+  for (;;) {
+    const r = steps.next();
+    if (r.done) return r.value;
+    await tick();
+  }
 }
