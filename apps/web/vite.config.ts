@@ -51,46 +51,52 @@ function namesGuard(): Plugin {
 }
 
 /**
- * P3: the game page fetches its app (PlayApp and everything it imports) only after the save is claimed and the clock is
- * asked, so on a slow phone the download waited about two seconds for nothing. `modulepreload` hints for those chunks are
- * written into play.html: the browser fetches and parses them from the start without running them, so nothing reads
- * the save before this tab holds the game (P1).
+ * P3: a page's entry starts once its first frame has painted (play.html and index.html import it from a small inline
+ * module), and the game page fetches its app (PlayApp and everything it imports) only after the save is claimed and the
+ * clock is asked. Neither is a script tag Vite would preload, so this writes `modulepreload` hints for each page's entries
+ * and their import closures: the browser fetches and parses them from the start without running them, so nothing reads
+ * the save before this tab holds the game (P1). The two latin web fonts the first screen is set in are preloaded, so the
+ * prerendered screen paints in them (a later swap re-set its words a little larger, which counted as a second, later
+ * first screen), and the pages' stylesheets are applied from the start, since the prerendered screens paint with them
+ * (the page's own loader skips a stylesheet already on it).
  */
-function preloadGame(): Plugin {
+const PRELOADED: ReadonlyArray<{ page: string; entries: readonly string[] }> = [
+  { page: "play.html", entries: ["/src/play/main.tsx", "/src/play/PlayApp.tsx"] },
+  { page: "index.html", entries: ["/src/landing/main.tsx"] },
+];
+
+function preloadPages(): Plugin {
   return {
-    name: "lingxi-preload-game",
+    name: "lingxi-preload-pages",
     apply: "build",
     writeBundle(options, bundle) {
       const chunks = Object.values(bundle).filter((c): c is Extract<typeof c, { type: "chunk" }> => c.type === "chunk");
-      // the game app's own chunk: a dynamic entry holding src/play/PlayApp.tsx (its facade id is gone by this hook)
-      const app = chunks.find((c) => c.isDynamicEntry && c.moduleIds.some((id) => id.split("\\").join("/").endsWith("/src/play/PlayApp.tsx")));
-      const file = join(options.dir ?? "", "play.html");
-      if (!app || !existsSync(file)) return this.warn("play.html or the PlayApp chunk not found: no preload written");
-      const files = new Set<string>();
-      const walk = (name: string) => {
-        if (files.has(name)) return;
-        files.add(name);
-        for (const dep of chunks.find((c) => c.fileName === name)?.imports ?? []) walk(dep);
-      };
-      walk(app.fileName);
-      // and the page's own entry, which play.html imports once its first frame has painted (prerenderPlay)
-      const entry = chunks.find((c) => c.isDynamicEntry && c.moduleIds.some((id) => id.split("\\").join("/").endsWith("/src/play/main.tsx")));
-      if (entry) walk(entry.fileName);
-      const html = readFileSync(file, "utf8");
-      const already = new Set([...html.matchAll(/href="\.\/([^"]+)"/g)].map((m) => m[1]));
-      // the two latin web fonts the first screen's words are set in (P3): fetched with the stylesheets rather than after
-      // them, so the prerendered hatch screen paints in them; a later swap from the fallback font re-sets its words a
-      // little larger, which counted as a second, later first screen
       const fonts = Object.keys(bundle).filter((f) => /\/(pixelify-sans|baloo-2)-latin-wght-normal-[^/]+\.woff2$/.test(`/${f}`));
-      const css = [...files].flatMap((f) => [...(chunks.find((c) => c.fileName === f)?.viteMetadata?.importedCss ?? [])]);
-      // the game's stylesheets are applied from the start, not only fetched: the prerendered hatch screen (prerenderPlay)
-      // paints with them, and the game's own loader skips a stylesheet already on the page
-      const links = [
-        ...fonts.map((f) => `<link rel="preload" as="font" type="font/woff2" crossorigin href="./${f}">`),
-        ...[...files].filter((f) => !already.has(f)).map((f) => `<link rel="modulepreload" crossorigin href="./${f}">`),
-        ...css.filter((f) => !already.has(f)).map((f) => `<link rel="stylesheet" crossorigin href="./${f}">`),
-      ];
-      writeFileSync(file, html.replace("</head>", `  ${links.join("\n    ")}\n  </head>`));
+      for (const { page, entries } of PRELOADED) {
+        const file = join(options.dir ?? "", page);
+        // each entry is a dynamic one by this hook (its facade id is gone), found by the module it holds
+        const found = entries.map((e) => chunks.find((c) => c.isDynamicEntry && c.moduleIds.some((id) => id.split("\\").join("/").endsWith(e))));
+        if (!existsSync(file) || found.some((c) => !c)) {
+          this.warn(`${page} or one of its entries (${entries.join(", ")}) not found: no preload written`);
+          continue;
+        }
+        const files = new Set<string>();
+        const walk = (name: string) => {
+          if (files.has(name)) return;
+          files.add(name);
+          for (const dep of chunks.find((c) => c.fileName === name)?.imports ?? []) walk(dep);
+        };
+        for (const c of found) walk(c!.fileName);
+        const html = readFileSync(file, "utf8");
+        const already = new Set([...html.matchAll(/href="\.\/([^"]+)"/g)].map((m) => m[1]));
+        const css = [...new Set([...files].flatMap((f) => [...(chunks.find((c) => c.fileName === f)?.viteMetadata?.importedCss ?? [])]))];
+        const links = [
+          ...fonts.map((f) => `<link rel="preload" as="font" type="font/woff2" crossorigin href="./${f}">`),
+          ...[...files].filter((f) => !already.has(f)).map((f) => `<link rel="modulepreload" crossorigin href="./${f}">`),
+          ...css.filter((f) => !already.has(f)).map((f) => `<link rel="stylesheet" crossorigin href="./${f}">`),
+        ];
+        writeFileSync(file, html.replace("</head>", `  ${links.join("\n    ")}\n  </head>`));
+      }
     },
   };
 }
@@ -220,7 +226,7 @@ function prerenderPlay(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), buildStamp(), namesGuard(), preloadGame(), prerenderLanding(), prerenderPlay(), shipLetters()],
+  plugins: [react(), buildStamp(), namesGuard(), preloadPages(), prerenderLanding(), prerenderPlay(), shipLetters()],
   base: "./",
   build: {
     target: "es2022",

@@ -75,6 +75,9 @@ jobs:
         run: pnpm --filter @lingxi/web build
         env:
           VITE_CHAIN: xlayer
+      # P3: what each page loads before it runs, held to its budget (scripts/perf-budget.json)
+      - name: Each page within its size budget
+        run: pnpm perf:budget apps/web/dist
 
   coverage:
     # how much of each part's code its tests run, held to 80% of lines and branches (scripts/coverage.mts)

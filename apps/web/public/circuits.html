@@ -31,6 +31,7 @@
   .bad { color: var(--bad); font-weight: 700; }
   .pins { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; margin-top: 8px; }
   .pins label { display: grid; gap: 2px; font-size: 13px; }
+  .pending { visibility: hidden; }
 </style>
 </head>
 <body>
@@ -39,6 +40,8 @@
     <h1 id="title">Lingxi circuits</h1>
     <button type="button" id="lang">中文</button>
   </div>
+  <!-- P3: filled in from circuits.json; kept invisible (in place) until then, so nothing on screen moves as it fills -->
+  <div id="filled" class="pending">
   <p id="about" class="soft"></p>
   <p class="soft" id="note"></p>
   <p><a id="json" href="circuits.json">circuits.json</a> · <span id="proc" class="mono"></span></p>
@@ -54,6 +57,7 @@
 
   <h2 id="h-brains">Starter pet brains</h2>
   <div id="brains"></div>
+  </div>
 </main>
 <script>
 // A second, independent client (H6): no Lingxi game code and no library. It reads the catalogue, calls X Layer's
@@ -211,7 +215,8 @@ function brainCard(b) {
 }
 
 $("lang").onclick = () => { lang = lang === "zh" ? "en" : "zh"; render(); };
-fetch("circuits.json").then((r) => r.json()).then((c) => { cat = c; render(); }).catch(() => { $("about").textContent = "circuits.json could not be read."; });
+const shown = () => $("filled").classList.remove("pending");
+fetch("circuits.json").then((r) => r.json()).then((c) => { cat = c; render(); shown(); }).catch(() => { $("about").textContent = "circuits.json could not be read."; shown(); });
 </script>
 </body>
 </html>

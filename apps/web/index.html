@@ -12,6 +12,18 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/landing/main.tsx"></script>
+    <script type="module">
+      // P3: the first screen (the prerendered landing) paints before the page's code starts running, so a slow phone
+      // never holds that paint back behind script; a tab opened in the background, which draws no frames, starts on the
+      // timer instead
+      let started = false;
+      const start = () => {
+        if (started) return;
+        started = true;
+        import("/src/landing/main.tsx");
+      };
+      requestAnimationFrame(() => requestAnimationFrame(start));
+      setTimeout(start, 250);
+    </script>
   </body>
 </html>
