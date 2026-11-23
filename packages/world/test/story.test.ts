@@ -199,3 +199,25 @@ describe("dailies", () => {
     expect(claimWeekly(w, [{ kind: "coins", n: 50 }])).toEqual({ ok: false, reason: "none" });
   });
 });
+
+describe("a slot closed this morning is filled once its part opens (D22)", () => {
+  it("an evening hatch's second day starts with two errands and gets the third the same day the map opens, keeping the first two", async () => {
+    const { DAILIES, newWorld: fresh } = await import("../src");
+    let found = false;
+    for (let k = 0; k < 60 && !found; k++) {
+      let w = fresh(`evening-${k}`);
+      w = rollDailies(w, DAILIES, view(w), 0, ["map", "bag", "spar"]);
+      const morning = w.quests!.today!.offered;
+      if (morning.length !== 2) continue;
+      found = true;
+      const kept = morning.map((id) => w.quests!.active[id]);
+      const later = rollDailies(w, DAILIES, view(w, T0 + 5 * 3_600_000), 0, ["spar"]);
+      expect(later.quests!.today!.offered).toHaveLength(3);
+      expect(later.quests!.today!.offered.slice(0, 2)).toEqual(morning);
+      expect(morning.map((id) => later.quests!.active[id])).toEqual(kept);
+      // nothing more to add: the same object back
+      expect(rollDailies(later, DAILIES, view(later, T0 + 6 * 3_600_000), 0, ["spar"])).toBe(later);
+    }
+    expect(found).toBe(true);
+  });
+});

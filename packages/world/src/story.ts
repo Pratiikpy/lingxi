@@ -251,7 +251,18 @@ export function rollDailies(w: WorldState, pool: readonly QuestDef[], v: Conditi
   const b = bookOf(w);
   // a day only moves forward: a clock turned back keeps today's dailies rather than offering an earlier day's again; the
   // player's time zone is kept current all the same, so the village follows their own day (D2)
-  if (b.today && b.today.day >= day) return w.tz === tzOffsetMin ? w : { ...w, tz: tzOffsetMin };
+  if (b.today && b.today.day > day) return w.tz === tzOffsetMin ? w : { ...w, tz: tzOffsetMin };
+  if (b.today && b.today.day === day) {
+    // D22: a slot left empty this morning because its part was closed is filled once the part opens (the map at the pet's
+    // day 2, an "open everything" tap), the same day; the errands already offered keep their counts
+    const slotOf = (id: string) => (pool.find((x) => x.id === id)?.group === "request" ? "social" : pool.find((x) => x.id === id)?.group);
+    const filled = new Set(b.today.offered.map(slotOf));
+    const add = pickDailies(pool, w.seed, day, closed).filter((id) => !b.today!.offered.includes(id) && !filled.has(slotOf(id)));
+    if (!add.length) return w.tz === tzOffsetMin ? w : { ...w, tz: tzOffsetMin };
+    const active = { ...b.active };
+    for (const id of add) active[id] = { at: v.now, snap: snapshotOf(pool.find((x) => x.id === id)!.objectives.map((o) => o.cond), v) };
+    return { ...w, tz: tzOffsetMin, quests: { ...b, active, today: { ...b.today, offered: [...b.today.offered, ...add] } } };
+  }
   const offered = pickDailies(pool, w.seed, day, closed);
   const active = { ...b.active };
   // yesterday's unfinished dailies lapse quietly

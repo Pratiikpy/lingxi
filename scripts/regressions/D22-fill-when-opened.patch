@@ -1,0 +1,11 @@
+--- a/packages/world/src/story.ts
++++ b/packages/world/src/story.ts
+@@ -258,7 +258,7 @@ export function rollDailies(w: WorldState, pool: readonly QuestDef[], v: Conditi
+     const slotOf = (id: string) => (pool.find((x) => x.id === id)?.group === "request" ? "social" : pool.find((x) => x.id === id)?.group);
+     const filled = new Set(b.today.offered.map(slotOf));
+     const add = pickDailies(pool, w.seed, day, closed).filter((id) => !b.today!.offered.includes(id) && !filled.has(slotOf(id)));
+-    if (!add.length) return w.tz === tzOffsetMin ? w : { ...w, tz: tzOffsetMin };
++    if (add.length >= 0) return w.tz === tzOffsetMin ? w : { ...w, tz: tzOffsetMin };
+     const active = { ...b.active };
+     for (const id of add) active[id] = { at: v.now, snap: snapshotOf(pool.find((x) => x.id === id)!.objectives.map((o) => o.cond), v) };
+     return { ...w, tz: tzOffsetMin, quests: { ...b, active, today: { ...b.today, offered: [...b.today.offered, ...add] } } };
