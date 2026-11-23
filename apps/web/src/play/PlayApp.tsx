@@ -17,6 +17,8 @@ import { DecorBar } from "./DecorBar";
 import { NoticeLane } from "./NoticeLane";
 import { Familiar } from "./Familiar";
 import { MoreBehind } from "./MoreBehind";
+// Collection is loaded on first use (P3); its styles still load with the game, in their place (P3a)
+import "./badges.css";
 import { useTrial, type Trial } from "../game/tryIt";
 import type { Rule } from "@lingxi/brain";
 import { BadgeShelf, BadgeToast } from "./Badges";
@@ -27,6 +29,12 @@ import { Hatch } from "./Hatch";
 import { Actions, Meters, TabBar, ThinkStrip, ToastView, TopBar, VoiceBubble, type Tab } from "./parts";
 import { useVoice } from "../game/voice";
 import { EvolutionChart, MeSheetBody, MindPanel, Sheet } from "./Sheets";
+// WorldPanels is loaded on first use (P3); its styles still load with the game, in their place (P3a)
+import "./cute.css";
+import "./world.css";
+// Quests is loaded on first use (P3); its styles still load with the game, in their place (P3a)
+import "./goals.css";
+import "./quests.css";
 import { noticeText } from "../game/noticeText";
 import { RulesMark } from "./RulesMark";
 import { questsOf, useQuestStatuses, useQuestUi } from "../game/quests";
@@ -34,10 +42,31 @@ import { useWorld } from "../game/world";
 import { recordOf, useChain } from "../game/chain";
 import { liveAvailable, playerId, useLive, visitingFrom } from "../game/live";
 import { type Action, CHARACTERS, CHARACTER_IN_ROOM, FRIEND_BY_ID, HOME, INDOOR_ROOMS, ROOMS, decorOf, neighbours, openSteps, visitorOf } from "@lingxi/world";
+// Talk is loaded on first use (P3); its styles still load with the game, in their place (P3a)
+import "./talk.css";
+import "./neighbours.css";
+// Games is loaded on first use (P3); its styles still load with the game, in their place (P3a)
+import "./games.css";
+// Duel is loaded on first use (P3); its styles still load with the game, in their place (P3a)
+import "./arena.css";
+import "./rewind.css";
+import "./arenarun.css";
+import "./season.css";
 import { WelcomeBack } from "./Welcome";
+// Sitting is loaded on first use (P3); its styles still load with the game, in their place (P3a)
+import "./handheld.css";
+import "./adoption.css";
 import { type Gated, OPENS_ON, isOpen, openedByQuests, useReveal } from "../game/reveal";
+// Gift is loaded on first use (P3); its styles still load with the game, in their place (P3a)
+import "./gift.css";
+// RedPacket is loaded on first use (P3); its styles still load with the game, in their place (P3a)
+import "./redpacket.css";
+// Family is loaded on first use (P3); its styles still load with the game, in their place (P3a)
+import "./family.css";
 import { bondBlock, familyBlock } from "../game/familyRules";
 import { AnimatePresence, motion } from "motion/react";
+// Teach is loaded on first use (P3); its styles still load with the game, in their place (P3a)
+import "./teach.css";
 import { BEHEMOTH, startDuel, startFight, useArena } from "../game/arenaFight";
 import { LevelUpMoment, SkillsPanel, useSkillsUi } from "./Skills";
 import { watchLetters } from "../game/letters";
@@ -579,7 +608,8 @@ export function PlayApp() {
               decor={worldRoom !== HOME ? [] : !visiting ? decorOf(worldFull).placed : homeDecor?.owner === visiting ? homeDecor.placed : []}
               decorating={decorating !== null && worldRoom === HOME && !visiting}
               onPlace={(x, y) => {
-                if (decorating) useWorld.getState().placeDecor(decorating, x, y);
+                // a piece put down leaves the player's hand, and the bar opens again for the next (P3a)
+                if (decorating && useWorld.getState().placeDecor(decorating, x, y)) setDecorating("");
               }}
               onDecorTap={(id) => {
                 useWorld.getState().removeDecor(id);

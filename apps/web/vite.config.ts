@@ -83,6 +83,23 @@ function preloadGame(): Plugin {
 }
 
 /**
+ * A build with no server (an empty `VITE_API_URL`: the on-chain copy, or a site served on its own) reads the letters to
+ * every player from `mail.json` beside its pages, since there is no server to ask (H11). The file is the server's own
+ * (services/api/mail/letters.json), shipped by every such build: it was once copied only by the DeWEB script, so another
+ * server-less build asked for a file it did not have (P3a).
+ */
+function shipLetters(): Plugin {
+  return {
+    name: "lingxi-ship-letters",
+    apply: "build",
+    generateBundle() {
+      if (process.env.VITE_API_URL !== "") return;
+      this.emitFile({ type: "asset", fileName: "mail.json", source: readFileSync(resolve(__dirname, "../../services/api/mail/letters.json"), "utf8") });
+    },
+  };
+}
+
+/**
  * P3: the landing's HTML rendered at build time in both languages, so a slow phone paints the headline and copy before
  * any of the page's script arrives. A second, server-side build of src/landing/prerender.tsx (kept inside apps/web so
  * Node resolves React from here) renders each language; both are written into the built index.html, a small inline
@@ -125,7 +142,7 @@ function prerenderLanding(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), buildStamp(), namesGuard(), preloadGame(), prerenderLanding()],
+  plugins: [react(), buildStamp(), namesGuard(), preloadGame(), prerenderLanding(), shipLetters()],
   base: "./",
   build: {
     target: "es2022",

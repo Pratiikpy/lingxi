@@ -119,7 +119,8 @@ interface WorldStore {
   commission: (id: string) => boolean;
   /** dig the garden's next plot (G6) */
   digPlot: () => boolean;
-  placeDecor: (id: string, x: number, y: number) => void;
+  /** puts a piece down in the home; true when it went down (a refusal says why in a notice) */
+  placeDecor: (id: string, x: number, y: number) => boolean;
   removeDecor: (id: string) => void;
   /** take items out of the bag to wrap them as a gift; false if there are not enough */
   wrap: (item: number, n: number) => boolean;
@@ -532,11 +533,13 @@ export const useWorld = create<WorldStore>((set, get) => ({
     const r = placeDecorRule(get().world, id, x, y);
     if (!r.ok) {
       play("error");
-      return set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
+      set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
+      return false;
     }
     save(r.world);
     play("pop");
     set({ world: r.world });
+    return true;
   },
   removeDecor: (id) => {
     const r = removeDecorRule(get().world, id);

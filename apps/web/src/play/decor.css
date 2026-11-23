@@ -89,9 +89,6 @@
 .decor-commissions {
   display: grid;
   gap: 4px;
-  margin-top: 4px;
-  padding-top: 6px;
-  border-top: 2px dashed #d9cdea;
 }
 .decor-commissions .decor-piece {
   width: 112px;
@@ -106,4 +103,62 @@
 }
 .decor-piece.locked small {
   color: #6f6386;
+}
+
+/* the count of pieces placed, beside the coins; it stays while a piece is in hand */
+.decor-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: #5b4e73;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.decor-head .decor-count {
+  flex: none;
+}
+/* P3a: one shelf at a time (the pieces, or the Builder's commissions), so the bar leaves the room in view */
+.decor-shelves {
+  display: flex;
+  gap: 6px;
+}
+.decor-shelf {
+  padding: 4px 10px;
+  border: 2px solid #2b2140;
+  border-radius: 999px;
+  background: #fffdf8;
+  color: #2b2140;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.decor-shelf.on {
+  background: #2b2140;
+  color: #fffdf8;
+}
+.decor-shelf:focus-visible,
+.decor-piece:focus-visible {
+  outline: 3px solid #ff7a59;
+  outline-offset: 2px;
+}
+/* a piece in hand: the bar folds to one strip, and the room below is free to tap */
+.decor-bar.placing {
+  gap: 2px;
+  padding: 6px 10px;
+}
+.decor-bar.placing .decor-head b {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+.decor-bar.placing .decor-icon {
+  width: 28px;
+  height: 28px;
+}
+.decor-bar.placing .btn {
+  padding: 4px 10px;
+  font-size: 13px;
 }

@@ -1,6 +1,6 @@
 /** The decorate bar over the home room: buy pieces with coins, pick one, tap the room to place it. */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CHAIN_DECOR, COMMISSIONS, DECOR, ITEM, decorOf, roomCapacity, stageReached } from "@lingxi/world";
 import { stageOf } from "@lingxi/game";
 import { useGame } from "../game/store";
@@ -33,50 +33,85 @@ export function DecorIcon({ rows, colors }: { rows: readonly string[]; colors: R
   return <canvas ref={ref} className="pixel decor-icon" aria-hidden="true" />;
 }
 
+/**
+ * The Decorate bar over the top of the room. With no piece in hand it shows one shelf at a time (the pieces, or the
+ * Builder's commissions); once a piece is picked it folds into a slim strip, so the room below is free to tap (P3a: on
+ * a phone the full bar once covered the whole room, and nothing could be placed).
+ */
 export function DecorBar({ selected, onSelect, onDone }: { selected: string | null; onSelect: (id: string | null) => void; onDone: () => void }) {
   const t = useT();
   const { lang } = useLang();
   const world = useWorld((s) => s.world);
   const buy = useWorld((s) => s.buyDecor);
+  const [shelf, setShelf] = useState<"pieces" | "commissions">("pieces");
   const d = decorOf(world);
+  const count = <span className="decor-count">{t("decor.count" as Key, { n: d.placed.length, cap: roomCapacity(world) })}</span>;
+  const done = (
+    <button type="button" className="btn primary" onClick={() => (play("tap"), onDone())}>
+      {t("decor.done")}
+    </button>
+  );
+  const inHand = selected ? [...DECOR, ...CHAIN_DECOR].find((p) => p.id === selected) : undefined;
+  if (inHand)
+    return (
+      <div className="decor-bar placing" role="toolbar" aria-label={t("decor.title")}>
+        <div className="decor-head">
+          <DecorIcon rows={inHand.rows} colors={inHand.colors} />
+          <b>{t("decor.placing" as Key, { name: inHand.name[lang as "en" | "zh"] })}</b>
+          {count}
+          <button type="button" className="btn" onClick={() => (play("tap"), onSelect(null))}>
+            {t("decor.change" as Key)}
+          </button>
+          {done}
+        </div>
+        <p className="decor-hint">{t("decor.tapRoom" as Key)}</p>
+      </div>
+    );
   return (
     <div className="decor-bar" role="toolbar" aria-label={t("decor.title")}>
       <div className="decor-head">
         <b>{t("decor.title")}</b>
         <span>{t("decor.coins" as Key, { n: world.coins })}</span>
-        <button type="button" className="btn primary" onClick={() => (play("tap"), onDone())}>
-          {t("decor.done")}
-        </button>
+        {count}
+        {done}
       </div>
       <p className="decor-hint">{t("decor.hint")}</p>
-      <p className="decor-hint">{lang === "zh" ? `已摆 ${d.placed.length}/${roomCapacity(world)} 件` : `${d.placed.length} of ${roomCapacity(world)} pieces placed`}</p>
-      <ul className="decor-list">
-        {[...DECOR.filter((p) => !p.commission && (!p.gift || d.owned.includes(p.id))), ...CHAIN_DECOR.filter((p) => (d.chainHeld ?? []).includes(p.id))].map((p) => {
-          // an on-chain piece is placed while a wallet holds it (plan 4.6); it is never bought here
-          const owned = d.owned.includes(p.id) || (!!p.chain && (d.chainHeld ?? []).includes(p.id));
-          const placed = d.placed.some((x) => x.id === p.id);
-          return (
-            <li key={p.id}>
-              <button
-                type="button"
-                className={`decor-piece${selected === p.id ? " on" : ""}${owned ? "" : " shop"}`}
-                aria-pressed={selected === p.id}
-                onClick={() => {
-                  if (owned) {
-                    play("tap");
-                    onSelect(selected === p.id ? null : p.id);
-                  } else if (buy(p.id)) onSelect(p.id);
-                }}
-              >
-                <DecorIcon rows={p.rows} colors={p.colors} />
-                <span>{p.name[lang as "en" | "zh"]}</span>
-                <small>{owned ? (placed ? "✓" : p.chain ? "⛓" : "") : t("decor.buy" as Key, { price: p.price })}</small>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-      <Commissions selected={selected} onSelect={onSelect} />
+      <div className="decor-shelves" role="tablist">
+        {(["pieces", "commissions"] as const).map((k) => (
+          <button key={k} type="button" role="tab" aria-selected={shelf === k} className={`decor-shelf${shelf === k ? " on" : ""}`} onClick={() => (play("tap"), setShelf(k))}>
+            {t((k === "pieces" ? "decor.tabPieces" : "decor.tabCommissions") as Key)}
+          </button>
+        ))}
+      </div>
+      {shelf === "pieces" ? (
+        <ul className="decor-list" role="tabpanel">
+          {[...DECOR.filter((p) => !p.commission && (!p.gift || d.owned.includes(p.id))), ...CHAIN_DECOR.filter((p) => (d.chainHeld ?? []).includes(p.id))].map((p) => {
+            // an on-chain piece is placed while a wallet holds it (plan 4.6); it is never bought here
+            const owned = d.owned.includes(p.id) || (!!p.chain && (d.chainHeld ?? []).includes(p.id));
+            const placed = d.placed.some((x) => x.id === p.id);
+            return (
+              <li key={p.id}>
+                <button
+                  type="button"
+                  className={`decor-piece${owned ? "" : " shop"}`}
+                  onClick={() => {
+                    if (owned) {
+                      play("tap");
+                      onSelect(p.id);
+                    } else if (buy(p.id)) onSelect(p.id);
+                  }}
+                >
+                  <DecorIcon rows={p.rows} colors={p.colors} />
+                  <span>{p.name[lang as "en" | "zh"]}</span>
+                  <small>{owned ? (placed ? "✓" : p.chain ? "⛓" : "") : t("decor.buy" as Key, { price: p.price })}</small>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <Commissions onSelect={onSelect} />
+      )}
     </div>
   );
 }
@@ -84,7 +119,7 @@ export function DecorBar({ selected, onSelect, onDone }: { selected: string | nu
 const STAGE_NAME: Record<string, [string, string]> = { child: ["child", "幼年"], teen: ["teen", "少年"], adult: ["adult", "成年"], elder: ["elder", "老年"] };
 
 /** The Builder's commissions (G6): made to order from planks, bars and stone blocks, one or two for each stage. */
-function Commissions({ selected, onSelect }: { selected: string | null; onSelect: (id: string | null) => void }) {
+function Commissions({ onSelect }: { onSelect: (id: string | null) => void }) {
   const { lang } = useLang();
   const zh = lang === "zh";
   const world = useWorld((s) => s.world);
@@ -93,10 +128,9 @@ function Commissions({ selected, onSelect }: { selected: string | null; onSelect
   const stage = pet ? stageOf(pet, now()) : "baby";
   const d = decorOf(world);
   return (
-    <section className="decor-commissions" aria-label={zh ? "建设者的委托" : "Builder's commissions"}>
+    <section className="decor-commissions" role="tabpanel" aria-label={zh ? "建设者的委托" : "Builder's commissions"}>
       <p className="decor-hint">
-        <b>{zh ? "建设者的委托" : "Builder's commissions"}</b>
-        {zh ? "：用金币和材料（木板、金属条、石块）定做，宠物长大一个阶段就多一件可以做。" : ": made to order for coins and materials (planks, metal bars, stone blocks). Each stage your pet reaches opens more."}
+        {zh ? "用金币和材料（木板、金属条、石块）定做，宠物长大一个阶段就多一件可以做。" : "Made to order for coins and materials (planks, metal bars, stone blocks). Each stage your pet reaches opens more."}
       </p>
       <ul className="decor-list">
         {COMMISSIONS.map((p) => {
@@ -111,13 +145,12 @@ function Commissions({ selected, onSelect }: { selected: string | null; onSelect
             <li key={p.id}>
               <button
                 type="button"
-                className={`decor-piece${selected === p.id ? " on" : ""}${owned ? "" : " shop"}${!owned && (!open || !have) ? " locked" : ""}`}
-                aria-pressed={selected === p.id}
+                className={`decor-piece${owned ? "" : " shop"}${!owned && (!open || !have) ? " locked" : ""}`}
                 aria-label={owned ? p.name[zh ? "zh" : "en"] : `${p.name[zh ? "zh" : "en"]}: ${status}`}
                 onClick={() => {
                   if (owned) {
                     play("tap");
-                    onSelect(selected === p.id ? null : p.id);
+                    onSelect(p.id);
                   } else if (commission(p.id)) onSelect(p.id);
                 }}
               >

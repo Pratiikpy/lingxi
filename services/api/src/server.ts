@@ -993,6 +993,8 @@ if (isMain) {
     const bemTapeouts = fees && fees.feeIn === "bem" && fees.protocolFee > 0n ? Number(fees.bem / (fees.protocolFee * 2n)) : null;
     const value = {
       jobs: Object.fromEntries(jobs.status().map((j) => [j.name, j.healthy ? "ok" : `failing: ${j.lastError?.message ?? "?"}`])),
+      // which background jobs have finished a first pass (P3a): a fresh fork answers slowly until they have
+      jobsRan: Object.fromEntries(jobs.status().map((j) => [j.name, j.lastOk !== undefined || j.failures > 0])),
       indexerLagBlocks: head !== null && watch.indexed ? Number(head) - watch.indexed() : null,
       packetsLagBlocks: head !== null && watch.packets ? Number(head) - watch.packets() : null,
       relayerOkb: relayerWei === null ? null : Number(relayerWei) / 1e18,
@@ -1312,7 +1314,7 @@ if (isMain) {
     // circuits Lingxi has taped out: the processor's mints, walked from its deploy block (H10)
     // LINGXI_PROCESSOR_FROM starts the walk later (a fork of mainnet starts at its own block)
     const processorBlock = Number(process.env.LINGXI_PROCESSOR_FROM ?? chainCtx?.deployment.processorBlock ?? 0) || undefined;
-    const circuitCounter = processor && processorBlock ? createCircuitCounter({ rpc, processor, fromBlock: processorBlock, store: process.env.LINGXI_CIRCUITS_STORE ?? join(dataDir, "circuits.json") }) : null;
+    const circuitCounter = processor && processorBlock ? createCircuitCounter({ rpc, processor, fromBlock: processorBlock, ...(chainCtx?.deployment.processorBlock ? { deployBlock: Number(chainCtx.deployment.processorBlock) } : {}), store: process.env.LINGXI_CIRCUITS_STORE ?? join(dataDir, "circuits.json") }) : null;
     if (circuitCounter) jobs.loop("circuits", () => circuitCounter.catchUp(), 20_000);
     // the relayer's hatches are sponsored keeps; every other pet was kept by its owner's wallet or another (H10)
     const sponsors = relayer ? [relayer.address] : [];
