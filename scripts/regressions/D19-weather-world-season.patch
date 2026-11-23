@@ -1,0 +1,12 @@
+--- a/apps/web/src/scene/weather.ts
++++ b/apps/web/src/scene/weather.ts
+@@ -11,7 +11,8 @@ export function weatherFor(date: Date): Weather {
+   const r = (h % 1000) / 1000;
+   // D19: the world's own season, the one the home screen names (Blossom Weeks spring, Lantern summer, Harvest autumn,
+   // Frost winter), not the calendar's
+-  const season = gameSeasonAt(date.getTime());
++  const m = date.getMonth();
++  const season = gameSeasonAt(0) && (m >= 2 && m <= 4 ? "spring" : m >= 5 && m <= 7 ? "summer" : m >= 8 && m <= 10 ? "autumn" : "winter");
+   if (season === "winter") return r < 0.45 ? "snow" : "clear";
+   if (season === "spring") return r < 0.4 ? "petals" : r < 0.6 ? "rain" : "clear";
+   if (season === "autumn") return r < 0.4 ? "leaves" : r < 0.6 ? "rain" : "clear";

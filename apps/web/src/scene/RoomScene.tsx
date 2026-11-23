@@ -22,21 +22,8 @@ import { bodyHitArea } from "./hitArea";
 
 export type DayPhase = "day" | "evening" | "night";
 
-export type Weather = "clear" | "rain" | "snow" | "petals" | "leaves";
-
-/** Today's weather: the same all day for everyone in the same season, changing day to day. */
-export function weatherFor(date: Date): Weather {
-  const day = date.getFullYear() * 400 + date.getMonth() * 32 + date.getDate();
-  let h = day * 2654435761;
-  h = (h ^ (h >>> 15)) >>> 0;
-  const r = (h % 1000) / 1000;
-  const m = date.getMonth();
-  const season = m >= 2 && m <= 4 ? "spring" : m >= 5 && m <= 7 ? "summer" : m >= 8 && m <= 10 ? "autumn" : "winter";
-  if (season === "winter") return r < 0.45 ? "snow" : "clear";
-  if (season === "spring") return r < 0.4 ? "petals" : r < 0.6 ? "rain" : "clear";
-  if (season === "autumn") return r < 0.4 ? "leaves" : r < 0.6 ? "rain" : "clear";
-  return r < 0.25 ? "rain" : "clear";
-}
+export { type Weather, weatherFor } from "./weather";
+import { weatherFor } from "./weather";
 
 /** How tall each stage stands, to put things above its head. */
 const HEAD = { baby: 15, child: 22, teen: 28, adult: 34 } as const;
