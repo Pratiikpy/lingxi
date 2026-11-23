@@ -11,7 +11,7 @@ import { useLang } from "../i18n";
 import { useWorld } from "../game/world";
 import { allowMotion, countSteps, probeMotion } from "../game/steps";
 import { play } from "../game/sound";
-import { itemList } from "./WorldPanels";
+import { itemList } from "../game/noticeText";
 import { now as gameNow } from "../game/gameClock";
 
 function clock(ms: number, lang: string): string {

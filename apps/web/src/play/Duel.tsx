@@ -11,7 +11,8 @@ import { type Challenge, type DuelResult, decodeChallenge, decodeResult, duel } 
 import { useLang } from "../i18n";
 import { play } from "../game/sound";
 import { PALETTE_OF, type PetStage } from "../scene/palette";
-import { FightView, partnerOfDuel } from "./Arena";
+import { FightView } from "./Arena";
+import { partnerOfDuel } from "../game/arenaFight";
 import { Sprite } from "./Sprite";
 import { tokenCode } from "../game/duelLinks";
 

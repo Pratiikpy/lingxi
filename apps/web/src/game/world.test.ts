@@ -6,7 +6,7 @@ import { COMPOST, FIRST_VISIT_COINS, GARDEN_ROOM, HOME, ITEM, QUEST_BY_ID, type 
 import { type Storage, leave, visit } from "./testGame";
 import { memoryStorage } from "./testStorage";
 import { translate } from "../i18n";
-import { noticeText } from "../play/WorldPanels";
+import { noticeText } from "./noticeText";
 
 const MIN = 60_000;
 const H = 60 * MIN;
