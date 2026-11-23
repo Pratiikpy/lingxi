@@ -1,3 +1,4 @@
 dist-deweb/
 dist-deweb.manifest.json
 .prerender/
+.prerender-play/

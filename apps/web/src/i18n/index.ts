@@ -6,6 +6,9 @@ export type Lang = "en" | "zh";
 const KEY = "lingxi.lang";
 
 function initialLang(): Lang {
+  // a page rendered at build time names its language (P3: the prerendered hatch screen); a browser never sets this
+  const prerender = (globalThis as { __lingxiPrerenderLang?: unknown }).__lingxiPrerenderLang;
+  if (prerender === "en" || prerender === "zh") return prerender;
   try {
     const saved = localStorage.getItem(KEY);
     if (saved === "en" || saved === "zh") return saved;

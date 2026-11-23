@@ -76,7 +76,9 @@ function preloadGame(): Plugin {
       const html = readFileSync(file, "utf8");
       const already = new Set([...html.matchAll(/href="\.\/([^"]+)"/g)].map((m) => m[1]));
       const css = [...files].flatMap((f) => [...(chunks.find((c) => c.fileName === f)?.viteMetadata?.importedCss ?? [])]);
-      const links = [...[...files].filter((f) => !already.has(f)).map((f) => `<link rel="modulepreload" crossorigin href="./${f}">`), ...css.filter((f) => !already.has(f)).map((f) => `<link rel="preload" as="style" href="./${f}">`)];
+      // the game's stylesheets are applied from the start, not only fetched: the prerendered hatch screen (prerenderPlay)
+      // paints with them, and the game's own loader skips a stylesheet already on the page
+      const links = [...[...files].filter((f) => !already.has(f)).map((f) => `<link rel="modulepreload" crossorigin href="./${f}">`), ...css.filter((f) => !already.has(f)).map((f) => `<link rel="stylesheet" crossorigin href="./${f}">`)];
       writeFileSync(file, html.replace("</head>", `  ${links.join("\n    ")}\n  </head>`));
     },
   };
@@ -147,8 +149,65 @@ function prerenderLanding(): Plugin {
   };
 }
 
+/**
+ * P3: the game's first screen for a first visit (the hatch screen), rendered at build time in both languages and written
+ * into play.html, so a new player sees it before any of the game's script has arrived on a slow phone. Each language is
+ * rendered in its own copy of the modules (imported under its own query), whose language store starts in that language
+ * (i18n's `initialLang` reads `__lingxiPrerenderLang`). A small inline script shows the reader's screen only when this
+ * browser holds no save: a returning player keeps the splash, since their game, not the hatch, is coming. The screen is
+ * inert, with a note that the game is getting ready, until the game renders over it, so a tap is never silently lost.
+ */
+function prerenderPlay(): Plugin {
+  let outDir = "";
+  return {
+    name: "lingxi-prerender-play",
+    apply: "build",
+    configResolved(c) {
+      outDir = resolve(c.root, c.build.outDir);
+    },
+    async closeBundle() {
+      const page = join(outDir, "play.html");
+      if (!existsSync(page)) return;
+      const tmp = resolve(__dirname, ".prerender-play");
+      const { build } = await import("vite");
+      await build({
+        root: __dirname,
+        configFile: false,
+        logLevel: "warn",
+        plugins: [react()],
+        build: { ssr: resolve(__dirname, "src/play/prerender.tsx"), outDir: tmp, emptyOutDir: true, rollupOptions: { output: { entryFileNames: "prerender.mjs", format: "esm" } } },
+        ssr: { noExternal: [/^@lingxi\//] },
+      });
+      const g = globalThis as { location?: unknown; __lingxiPrerenderLang?: string };
+      const hadLocation = "location" in g;
+      if (!hadLocation) g.location = new URL("https://lingxi.invalid/");
+      try {
+        const screens: Record<string, string> = {};
+        for (const lang of ["en", "zh"] as const) {
+          g.__lingxiPrerenderLang = lang;
+          const mod = (await import(`${pathToFileURL(join(tmp, "prerender.mjs")).href}?lang=${lang}`)) as { render: () => string };
+          screens[lang] = mod.render();
+        }
+        const ready = { en: "Getting the game ready…", zh: "游戏准备中……" };
+        const shown = (lang: "en" | "zh") =>
+          `<div data-prerender="${lang}" hidden inert aria-busy="true">${screens[lang]}<p class="pre-ready" role="status">${ready[lang]}</p></div>`;
+        const pick = `<script>(function(){var s=null;try{s=localStorage.getItem("lingxi.pets.v2")||localStorage.getItem("lingxi.pet.v1")}catch(e){s="?"}if(s!==null)return;var l=null;try{l=localStorage.getItem("lingxi.lang")}catch(e){}if(l!=="en"&&l!=="zh")l=(navigator.language||"").toLowerCase().indexOf("zh")===0?"zh":"en";var r=document.getElementById("root");r.querySelector(".boot-splash").hidden=true;r.querySelector('[data-prerender="'+l+'"]').hidden=false;if(l==="zh")document.documentElement.lang="zh-CN"})()</script>`;
+        const style = `<style>.pre-ready{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);margin:0;padding:6px 14px;border:2px solid #2b2140;border-radius:999px;background:#fffdf8;color:#2b2140;font:600 13px/1.3 system-ui,sans-serif;z-index:10}</style>`;
+        const html = readFileSync(page, "utf8");
+        const splash = html.match(/<div id="root">(<div class="boot-splash"[\s\S]*?<\/div>)<\/div>/);
+        if (!splash) throw new Error("play.html has no splash inside #root to keep beside the hatch screen");
+        writeFileSync(page, html.replace(splash[0], `<div id="root">${splash[1]}${shown("en")}${shown("zh")}</div>${pick}${style}`));
+      } finally {
+        delete g.__lingxiPrerenderLang;
+        if (!hadLocation) delete g.location;
+        rmSync(tmp, { recursive: true, force: true });
+      }
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), buildStamp(), namesGuard(), preloadGame(), prerenderLanding(), shipLetters()],
+  plugins: [react(), buildStamp(), namesGuard(), preloadGame(), prerenderLanding(), prerenderPlay(), shipLetters()],
   base: "./",
   build: {
     target: "es2022",

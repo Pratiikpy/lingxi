@@ -23,6 +23,7 @@
     <!-- P3: painted at once while the game's code arrives; React replaces it -->
     <div id="root"><div class="boot-splash" role="status" aria-live="polite"><b>Lingxi · 灵犀</b><span class="boot-dot" aria-hidden="true"></span></div></div>
     <style>
+      .boot-splash[hidden] { display: none; }
       .boot-splash { min-height: 100dvh; display: grid; place-content: center; justify-items: center; gap: 14px; background: #fff7e8; color: #2b2140; font: 600 22px/1.2 system-ui, sans-serif; }
       .boot-dot { width: 14px; height: 14px; border-radius: 50%; background: #ff7a59; animation: boot-pulse 1s ease-in-out infinite alternate; }
       @keyframes boot-pulse { to { transform: scale(0.55); opacity: 0.5; } }
