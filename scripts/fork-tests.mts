@@ -21,9 +21,9 @@ import { mnemonicToAccount } from "viem/accounts";
 import * as harness from "../e2e/harness/procs.ts";
 import { assertLocal, giveOkb, giveToken } from "../packages/chain/scripts/lib/forkFund.ts";
 
-const { answers, freePort, start, stop, waitFor } = (harness as unknown as { default: typeof harness }).default;
+const { answers, forkArgs, freePort, start, stopSaving, waitFor } = (harness as unknown as { default: typeof harness }).default;
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const fork = JSON.parse(readFileSync(join(root, "e2e/fork.json"), "utf8")) as { block: number; rpc: string };
+const fork = JSON.parse(readFileSync(join(root, "e2e/fork.json"), "utf8")) as harness.PinnedFork;
 /** Foundry's and Hardhat's public test mnemonic: its keys hold nothing anywhere real. */
 const relayer = mnemonicToAccount("test test test test test test test test test test test junk", { addressIndex: 7 });
 const vitest = join(root, "node_modules/vitest/vitest.mjs");
@@ -45,7 +45,7 @@ async function forkTestsIn(pkg: string): Promise<boolean> {
   const port = await freePort();
   const rpc = `http://127.0.0.1:${port}`;
   assertLocal(rpc);
-  const anvil = start("anvil", process.env.ANVIL_BIN ?? "anvil", ["--fork-url", process.env.LINGXI_E2E_UPSTREAM ?? fork.rpc, "--fork-block-number", String(fork.block), "--port", String(port), "--chain-id", "196", "--silent"], { cwd: dir, env: process.env, log: join(dir, "anvil.log") });
+  const anvil = start("anvil", process.env.ANVIL_BIN ?? "anvil", forkArgs(fork, port), { cwd: dir, env: process.env, log: join(dir, "anvil.log") });
   let ok = false;
   try {
     await waitFor("the fork", () => answers(rpc, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_chainId", params: [] }) }), 60_000, anvil.log);
@@ -70,7 +70,7 @@ async function forkTestsIn(pkg: string): Promise<boolean> {
     });
     ok = run.status === 0;
   } finally {
-    stop(anvil);
+    await stopSaving(anvil);
     if (ok) rmSync(dir, { recursive: true, force: true, maxRetries: 3 });
     else console.error(`fork tests in ${pkg} failed; the fork's log and files are in ${dir}`);
   }

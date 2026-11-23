@@ -12,10 +12,10 @@ import { join, resolve } from "node:path";
 import { createPublicClient, http, toHex, type Address, type PublicClient } from "viem";
 import { mnemonicToAccount } from "viem/accounts";
 import { assertLocal, giveOkb, giveToken } from "../../packages/chain/scripts/lib/forkFund";
-import { type Started, answers, freePort, start, stop, waitFor } from "./procs";
+import { type PinnedFork, type Started, answers, forkArgs, freePort, start, stop, stopSaving, waitFor } from "./procs";
 
 export const ROOT = resolve(__dirname, "../..");
-const FORK = JSON.parse(readFileSync(join(ROOT, "e2e/fork.json"), "utf8")) as { block: number; rpc: string };
+const FORK = JSON.parse(readFileSync(join(ROOT, "e2e/fork.json"), "utf8")) as PinnedFork;
 /** Foundry's and Hardhat's public test mnemonic: its keys hold nothing anywhere real. */
 const TEST_MNEMONIC = "test test test test test test test test test test test junk";
 const PLAYERS = 4;
@@ -61,8 +61,7 @@ export async function startRun(): Promise<Run> {
     const forkPort = await freePort();
     const rpc = `http://127.0.0.1:${forkPort}`;
     assertLocal(rpc);
-    const upstream = process.env.LINGXI_E2E_UPSTREAM ?? FORK.rpc;
-    const anvil = keep(start("anvil", process.env.ANVIL_BIN ?? "anvil", ["--fork-url", upstream, "--fork-block-number", String(FORK.block), "--port", String(forkPort), "--chain-id", "196", "--silent"], { cwd: dir, env: process.env, log: join(dir, "anvil.log") }));
+    const anvil = keep(start("anvil", process.env.ANVIL_BIN ?? "anvil", forkArgs(FORK, forkPort), { cwd: dir, env: process.env, log: join(dir, "anvil.log") }));
     await waitFor("the fork", () => answers(rpc, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_chainId", params: [] }) }), 60_000, anvil.log);
     const pub = createPublicClient({ transport: http(rpc) }) as PublicClient;
 
@@ -228,8 +227,12 @@ async function warmUp(web: string, log: string): Promise<void> {
   }
 }
 
-export function stopRun(run: Pick<Run, "procs" | "dir">): void {
-  for (const p of [...run.procs].reverse()) stop(p);
+export async function stopRun(run: Pick<Run, "procs" | "dir">): Promise<void> {
+  // anvil last, and gently, so it saves the state it fetched for the next run (stopSaving)
+  for (const p of [...run.procs].reverse()) {
+    if (p.name === "anvil") await stopSaving(p);
+    else stop(p);
+  }
   // the logs and stores stay for a look; the dev servers' bundled dependencies (most of a run's size) do not
   for (const name of readdirSync(run.dir)) if (name.startsWith("vite-cache-")) rmSync(join(run.dir, name), { recursive: true, force: true, maxRetries: 3 });
 }
