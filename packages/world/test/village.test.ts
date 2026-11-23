@@ -70,3 +70,51 @@ describe("village happenings (D2)", () => {
     expect(rollDailies(old, DAILIES, { ...v, world: old }, 480).tz).toBe(480);
   });
 });
+
+describe("in the evening the village comes home (D24)", () => {
+  const dayOf = async (kind: "market" | "lucky" | "gift") => {
+    const { happeningOn } = await import("../src");
+    for (let d = 0; d < 9; d++) {
+      const day = new Date(Date.UTC(2026, 10, 20) + d * 86_400_000).toISOString().slice(0, 10);
+      if (happeningOn(day).kind === kind) return day;
+    }
+    throw new Error(kind);
+  };
+  // a UTC+8 player: 10:00 and 19:00 local on that day
+  const at = (day: string, hour: number) => Date.parse(`${day}T00:00:00Z`) + (hour - 8) * 3_600_000;
+
+  it("a resident's gift waits at the door from 6 pm, at home only, once", async () => {
+    const { newWorld, takeVillageGift, giftAtDoor, HOME } = await import("../src");
+    const day = await dayOf("gift");
+    const w = { ...newWorld("door"), tz: 480, room: HOME };
+    expect(giftAtDoor(w, at(day, 10))).toBe(false);
+    expect(takeVillageGift(w, "door", at(day, 10)).ok).toBe(false);
+    expect(giftAtDoor({ ...w, room: 13 }, at(day, 19))).toBe(false);
+    const r = takeVillageGift(w, "door", at(day, 19));
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(takeVillageGift(r.world, "door", at(day, 20)).ok).toBe(false);
+  });
+
+  it("the lucky find drifts home in the evening, still from the lucky room's own drops", async () => {
+    const { newWorld, luckyHere, luckyFind, happeningOn, ROOMS, HOME } = await import("../src");
+    const day = await dayOf("lucky");
+    const w = { ...newWorld("luck"), tz: 480, room: HOME };
+    expect(luckyHere(w, at(day, 10))).toBe(false);
+    expect(luckyHere(w, at(day, 19))).toBe(true);
+    const r = luckyFind(w, at(day, 19));
+    expect(r.ok).toBe(true);
+    const room = (happeningOn(day) as { room: number }).room;
+    if (r.ok) expect(ROOMS[room]!.drops.map((d) => d.item)).toContain(r.item);
+  });
+
+  it("the market's find is half price (rounded up) from 6 pm, and buying charges that", async () => {
+    const { newWorld, marketPrice, buyMarket, happeningOn, MARKET_ROOM } = await import("../src");
+    const day = await dayOf("market");
+    const full = (happeningOn(day) as { price: number }).price;
+    const w = { ...newWorld("sale"), tz: 480, room: MARKET_ROOM, coins: 500 };
+    expect(marketPrice(w, at(day, 10))).toBe(full);
+    expect(marketPrice(w, at(day, 19))).toBe(Math.ceil(full / 2));
+    const r = buyMarket(w, at(day, 19));
+    expect(r.ok && r.world.coins).toBe(500 - Math.ceil(full / 2));
+  });
+});

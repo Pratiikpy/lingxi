@@ -9,7 +9,7 @@ import { useQuestStatuses } from "../game/quests";
 import { useWorld } from "../game/world";
 import { useBadges } from "../game/badges";
 import { useAlbum } from "./Album";
-import { CHARACTERS, DECOR, ITEM, QUESTLINE, ROOMS, happeningAt, happeningUsed } from "@lingxi/world";
+import { CHARACTERS, DECOR, ITEM, QUESTLINE, ROOMS, giftAtDoor, happeningAt, happeningUsed, marketPrice, villageEvening } from "@lingxi/world";
 import { BADGES, ENJOY_MAX, ENJOY_PER_CARE, HABIT_REST, type Pet, VISITORS, strongestHabit, tierOf, beatOf, dayChoices, nextWorldSeason, rewind, worldSeasonAt, canLevelUp, dayOf, growthOf, kinshipNow, stageOf, visibleMeters } from "@lingxi/game";
 import { levelUpNow, useSkillsUi } from "./Skills";
 import { useLang, useT, type Key } from "../i18n";
@@ -251,6 +251,30 @@ function VillageLine({ pet }: { pet: Pet }) {
   const h = happeningAt(world, at);
   const done = happeningUsed(world, at);
   const name = (i: number) => ITEM[i]?.name[zh ? "zh" : "en"] ?? "";
+  // D24: from 6 pm the village comes home: the gift waits at the door, the lucky find drifts home, the market halves
+  const evening = villageEvening(world, at);
+  const door = giftAtDoor(world, at);
+  const takeGift = () => {
+    const item = useWorld.getState().villageGift("door");
+    if (item !== null) useWorld.setState({ notice: { id: Date.now(), kind: "bought", items: [{ item, n: 1 }] } } as never);
+  };
+  const eveningNote = done
+    ? ""
+    : evening
+      ? h.kind === "market"
+        ? zh
+          ? `傍晚了，最后一个半价：${marketPrice(world, at)} 金币。`
+          : ` It is evening: the last one is half price, ${marketPrice(world, at)} coins.`
+        : h.kind === "lucky"
+          ? zh
+            ? "傍晚了，好运飘回了家：在家四处找找也会多找到一样。"
+            : " It is evening: the luck has drifted home, so a look around at home finds one more too."
+          : zh
+            ? "傍晚了，礼物放在你家门口。"
+            : " It is evening: the gift is waiting at your door."
+      : zh
+        ? "（傍晚 6 点后它会来到你家。）"
+        : " (From 6 pm it comes to your home.)";
   const text =
     h.kind === "market"
       ? zh
@@ -266,7 +290,13 @@ function VillageLine({ pet }: { pet: Pet }) {
   return (
     <p className={`village-line${done ? " done" : ""}`}>
       <b>{zh ? "今天的村子" : "Today in the village"}</b> · {text}
+      {eveningNote}
       {done && <span>{zh ? "（已经领到了）" : " (done)"}</span>}
+      {door && (
+        <button type="button" className="link village-door" onClick={takeGift}>
+          {zh ? "从门口拿进来" : "Take it in from the door"}
+        </button>
+      )}
     </p>
   );
 }

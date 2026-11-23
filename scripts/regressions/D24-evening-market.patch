@@ -1,0 +1,11 @@
+--- a/packages/world/src/village.ts
++++ b/packages/world/src/village.ts
+@@ -109,7 +109,7 @@ export const villageEvening = (w: WorldState, now: number): boolean => new Date(
+ export function marketPrice(w: WorldState, now: number): number {
+   const h = happeningAt(w, now);
+   if (h.kind !== "market") return 0;
+-  return villageEvening(w, now) ? Math.ceil(h.price / 2) : h.price;
++  return h.price;
+ }
+ 
+ /** Whether today's resident gift is waiting at the door (an evening at home, not yet taken). */

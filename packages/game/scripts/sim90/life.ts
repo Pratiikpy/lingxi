@@ -39,6 +39,8 @@ import {
   happeningAt,
   happeningUsed,
   luckyFind,
+  villageEvening,
+  marketPrice,
   CHARACTERS,
   MARKET_ROOM,
   takeVillageGift,
@@ -418,7 +420,7 @@ export class Life {
   happeningReachable(t: number): boolean {
     if (dayOf(this.pet, t) < 2) return false;
     const h = happeningAt(this.world, t);
-    return h.kind !== "market" || this.world.coins >= h.price;
+    return h.kind !== "market" || this.world.coins >= marketPrice(this.world, t);
   }
   /** D16: whether today's happening has been made use of (bought, looked around in, or the gift taken) */
   happeningMet(t: number): boolean {
@@ -433,8 +435,16 @@ export class Life {
     if (!this.happeningReachable(t) || happeningUsed(this.world, t) || this.pet.asleep) return;
     const h = happeningAt(this.world, t);
     const home = this.world.room;
+    // D24: in the evening the village comes home: the gift at the door, the lucky find at home's first look around
+    if (villageEvening(this.world, t) && home === HOME && h.kind !== "market") {
+      if (h.kind === "gift") {
+        const r = takeVillageGift(this.world, "door", t);
+        if (r.ok) this.world = r.world;
+      } else this.lookAround(t);
+      if (happeningUsed(this.world, t)) return;
+    }
     if (h.kind === "market") {
-      if (this.world.coins < h.price || !this.walkTo(MARKET_ROOM, t)) return void this.walkTo(home, t);
+      if (this.world.coins < marketPrice(this.world, t) || !this.walkTo(MARKET_ROOM, t)) return void this.walkTo(home, t);
       const r = buyMarket(this.world, t);
       if (r.ok) this.world = r.world;
     } else if (h.kind === "lucky") {

@@ -102,12 +102,14 @@ function visit(life: Life, spec: PlayerSpec, start: number, minutes: number, hou
   life.arrive(start);
   const routine = (t: number, h: number) => {
     life.quests(t);
+    // D16, D24: today's village happening first, as a player who reads the home screen's village line goes to it before
+    // spending on anything else; then again after care, in case the pet was asleep or tired the first time
+    life.villageErrand(t);
     life.openBoxes(t);
     careFor(life, t, h);
     life.teachNext(t, day, (d) => (state.firstTooBigDay ??= d));
     life.levelUp();
     if (!life.pet.asleep && life.energy() >= 100 && ROOMS[life.world.room]?.drops.length) life.lookAround(t);
-    // D16: today's village happening, once the map is open
     life.villageErrand(t);
     for (let i = 0; i < ERRANDS && life.errand(t, () => (spec.minute === "spar" ? grinderPick(life) : dailyPartner(t))); i++);
     if (life.world.room !== HOME) life.walkTo(HOME, t);

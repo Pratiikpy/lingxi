@@ -6,7 +6,7 @@ import { play } from "../game/sound";
 import { FRESH_START_TEA, useSkillsUi } from "./Skills";
 import { useMemo, useState } from "react";
 import { stageOf } from "@lingxi/game";
-import { BOX_TABLES, CORNER_SHOP, DECOR_BY_ID, HOME, ITEM, MAKE_RECIPES, PIECE_PRICES, QUESTS, RECIPES, ROOMS, STORY, type Buff, type Recipe, craftBlocker, has, knownTravelRecipes, neighbours, ownedPieces, questState, usedOf, MARKET_ROOM, happeningAt, happeningUsed } from "@lingxi/world";
+import { BOX_TABLES, CORNER_SHOP, DECOR_BY_ID, HOME, ITEM, MAKE_RECIPES, PIECE_PRICES, QUESTS, RECIPES, ROOMS, STORY, type Buff, type Recipe, craftBlocker, has, knownTravelRecipes, neighbours, ownedPieces, questState, usedOf, MARKET_ROOM, happeningAt, villageEvening, marketPrice, happeningUsed } from "@lingxi/world";
 import { WEARABLE } from "@lingxi/art";
 import { useLang, useT, type Key } from "../i18n";
 import { useChain } from "../game/chain";
@@ -423,6 +423,9 @@ function MarketStall() {
   if (h.kind !== "market" || world.room !== MARKET_ROOM) return null;
   const it = ITEM[h.item]!;
   const sold = happeningUsed(world, now());
+  // D24: the last one goes at half price in the evening
+  const price = marketPrice(world, now());
+  const evening = villageEvening(world, now());
   return (
     <section className="market-stall">
       <p className="label">{zh ? "今天的集市摊" : "Today's market stall"}</p>
@@ -431,10 +434,13 @@ function MarketStall() {
           <img className="pixel" src={it.art} alt="" width={40} height={40} />
           <div className="bag-text">
             <b>{it.name[zh ? "zh" : "en"]}</b>
-            <span>{zh ? "只在今天卖，平时只能找到。" : "On sale today only; any other day it has to be found."}</span>
+            <span>
+              {zh ? "只在今天卖，平时只能找到。" : "On sale today only; any other day it has to be found."}
+              {evening ? (zh ? " 傍晚了，最后一个半价。" : " It is evening: the last one is half price.") : ""}
+            </span>
           </div>
-          <button type="button" className="btn primary" disabled={sold || world.coins < h.price} onClick={() => buyMarket()}>
-            {sold ? (zh ? "已买" : "Bought") : `${zh ? "买" : "Buy"} · ${h.price}`}
+          <button type="button" className="btn primary" disabled={sold || world.coins < price} onClick={() => buyMarket()}>
+            {sold ? (zh ? "已买" : "Bought") : `${zh ? "买" : "Buy"} · ${price}`}
           </button>
         </li>
       </ul>

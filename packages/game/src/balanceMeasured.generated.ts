@@ -31,7 +31,7 @@ export const BALANCE_MEASURED: BalanceMeasured = {
       "status": "met"
     },
     "level-not-by-tapping": {
-      "value": "petTalk: level 99 never, day 30 level 34; play3: level 99 never, day 30 level 38; clean: level 99 never, day 30 level 35; feed: level 99 never, day 30 level 40; three visits day 30 level 44",
+      "value": "petTalk: level 99 never, day 30 level 32; play3: level 99 never, day 30 level 35; clean: level 99 never, day 30 level 34; feed: level 99 never, day 30 level 40; three visits day 30 level 44",
       "status": "met"
     },
     "trees-by-90": {
@@ -39,7 +39,7 @@ export const BALANCE_MEASURED: BalanceMeasured = {
       "status": "met"
     },
     "coins-bounded": {
-      "value": "once 115 (day 7), three 127 (day 7), weekend 117 (day 4), tapper 117 (day 8), grinder 127 (day 85)",
+      "value": "once 90 (day 7), three 117 (day 7), weekend 97 (day 50), tapper 117 (day 8), grinder 127 (day 85)",
       "status": "met"
     },
     "coins-worth-saving": {
@@ -71,8 +71,8 @@ export const BALANCE_MEASURED: BalanceMeasured = {
       "status": "met"
     },
     "new-every-day": {
-      "value": "once 4 days with nothing new, at least 1 left, three 0 days with nothing new, at least 1 left, weekend 3 days with nothing new, at least 1 left, tapper 2 days with nothing new, at least 1 left, grinder 4 days with nothing new, at least 1 left",
-      "status": "open"
+      "value": "once 0 days with nothing new, at least 1 left, three 0 days with nothing new, at least 1 left, weekend 0 days with nothing new, at least 1 left, tapper 0 days with nothing new, at least 1 left, grinder 0 days with nothing new, at least 1 left",
+      "status": "met"
     },
     "gate-budget-binds": {
       "value": "first refusal day 4; at most 65% of the budget used by day 7; sets that fit with no Mind points: gentle: teen 13/70 (5 points 70), adult 5/28, all eight 65 of 60; bold: teen 25/70 (5 points 70), adult 14/28, all eight 61 of 60; curious: teen 4/70 (5 points 70), adult 3/28, all eight 66 of 60",
