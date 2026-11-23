@@ -1,5 +1,5 @@
 import "../boot/staleBuild";
-import { StrictMode } from "react";
+import { StrictMode, startTransition } from "react";
 import { createRoot } from "react-dom/client";
 import "@fontsource-variable/pixelify-sans";
 import "@fontsource-variable/baloo-2";
@@ -21,12 +21,16 @@ async function play(): Promise<void> {
   // for the time meanwhile, so a pet catches up to real time even on a device whose clock is wrong (gameClock.ts)
   await Promise.all([receivePets(), startClock()]);
   const [{ PlayApp }, { CrashGuard }] = await Promise.all([import("./PlayApp"), import("./Crash")]);
-  root.render(
-    <StrictMode>
-      <CrashGuard>
-        <PlayApp />
-      </CrashGuard>
-    </StrictMode>,
+  // P3: the game's first render is a transition, so React renders it in short slices and the page stays responsive
+  // while it does; what shows meanwhile (the prerendered hatch screen, or the splash) stays until it is ready
+  startTransition(() =>
+    root.render(
+      <StrictMode>
+        <CrashGuard>
+          <PlayApp />
+        </CrashGuard>
+      </StrictMode>,
+    ),
   );
 }
 
