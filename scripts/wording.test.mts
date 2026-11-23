@@ -142,7 +142,7 @@ describe("the wording the audits corrected stays corrected (A87)", () => {
     expect(readme).toMatch(/best-placed pet proven to be on X Layer has its brain taped out/);
     expect(readme).not.toMatch(/\(listed here;/);
     expect(read("scripts/claims-check.mts")).not.toMatch(/a cent is far above this at any OKB price/);
-    const demo = read("apps/web/src/landing/LandingApp.tsx");
+    const demo = read("apps/web/src/landing/LandingDemos.tsx");
     expect(demo).toMatch(/Pet School lessons: the words and the rule are written together/);
     expect(demo).toMatch(/宠物学堂的课：话和规则是一起写好的/);
   });

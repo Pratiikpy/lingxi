@@ -798,3 +798,26 @@
   color: var(--ink);
   font-weight: 800;
 }
+
+/* P3: each living demo's place, held at the size it draws at (measured at 360-1280 px, both languages), so the page does
+   not move when a demo loads as it comes near the screen */
+.demo-slot {
+  display: block;
+}
+.demo-mind {
+  min-height: 368px;
+}
+.demo-teach {
+  min-height: 184px;
+}
+.demo-spar {
+  min-height: 248px;
+}
+@media (max-width: 767px) {
+  .demo-mind {
+    min-height: 387px;
+  }
+  html:lang(en) .demo-teach {
+    min-height: 203px;
+  }
+}
