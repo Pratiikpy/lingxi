@@ -1,0 +1,11 @@
+--- a/apps/web/src/scene/textures.ts
++++ b/apps/web/src/scene/textures.ts
+@@ -66,8 +66,6 @@ export function petTexture(line: StarterLine, f: PetFrame): Texture {
+   const key = `pet:${line}:${f.stage}:${f.expression}:${f.breath}:${f.squash}:${f.lit ? 1 : 0}:${f.form ?? ""}:${o.head ?? ""}:${o.face ?? ""}:${o.held ?? ""}:${f.palette?.key ?? ""}`;
+   // P3: a frame already drawn is not drawn again (the scene asks for one every frame; drawing the polygons first and
+   // looking in the cache after cost about 190 ms in every few seconds of a 4x-slowed phone)
+-  const hit = cache.get(key);
+-  if (hit) return hit;
+   const c = drawPet(line, f.stage, f);
+   const worn = o.head || o.face || o.held;
+   return canvasTexture(key, c, f.palette?.colors ?? PALETTE_OF[line], worn ? (rgba) => paintOverlay(rgba, c.w, wearOverlay(c, line, f.stage, o, f.squash, f.form)) : undefined);

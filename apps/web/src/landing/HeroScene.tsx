@@ -137,6 +137,8 @@ export function HeroScene({ reduceMotion, phase }: { reduceMotion: boolean; phas
       let blinkAt = performance.now() + 1500;
       const tick = () => {
         const now = performance.now();
+        // movement is per 60th of a second, scaled by the frames that passed (the ticker runs at 30, P3)
+        const frames = Math.min(4, app.ticker.deltaTime);
         if (!reduceMotion) {
           if (now > state.nextWander && Math.abs(state.target - state.x) < 1) {
             // wander on either side of the middle, where the headline's buttons sit
@@ -148,7 +150,7 @@ export function HeroScene({ reduceMotion, phase }: { reduceMotion: boolean; phas
           }
           const dx = state.target - state.x;
           if (Math.abs(dx) > 0.5) {
-            state.x += Math.sign(dx) * 0.22;
+            state.x += Math.sign(dx) * Math.min(Math.abs(dx), 0.22 * frames);
             state.dir = Math.sign(dx);
           }
         }
@@ -181,7 +183,7 @@ export function HeroScene({ reduceMotion, phase }: { reduceMotion: boolean; phas
 
         if (!reduceMotion) {
           if (catState.mode === "walk") {
-            catState.x += catState.dir * 0.16;
+            catState.x += catState.dir * 0.16 * frames;
             if (catState.x > span - 10 || catState.x < 10) catState.dir *= -1;
           }
           if (now > catState.until) {
@@ -196,8 +198,8 @@ export function HeroScene({ reduceMotion, phase }: { reduceMotion: boolean; phas
         cat.y = ground + 5;
         for (let i = hearts.length - 1; i >= 0; i--) {
           const h = hearts[i]!;
-          h.s.y += h.vy;
-          h.life -= 0.016;
+          h.s.y += h.vy * frames;
+          h.life -= 0.016 * frames;
           h.s.alpha = Math.min(1, h.life * 1.6);
           if (h.life <= 0) {
             h.s.removeFromParent();
@@ -206,6 +208,8 @@ export function HeroScene({ reduceMotion, phase }: { reduceMotion: boolean; phas
           }
         }
       };
+      // P3: a pixel-art scene reads the same at 30 frames a second, at half the main-thread time on a phone
+      app.ticker.maxFPS = 30;
       app.ticker.add(tick);
       const onVis = () => (document.hidden ? app.ticker.stop() : app.ticker.start());
       document.addEventListener("visibilitychange", onVis);
