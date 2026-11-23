@@ -31,7 +31,7 @@ export const BALANCE_MEASURED: BalanceMeasured = {
       "status": "met"
     },
     "level-not-by-tapping": {
-      "value": "petTalk: level 99 never, day 30 level 35; play3: level 99 never, day 30 level 38; clean: level 99 never, day 30 level 33; feed: level 99 never, day 30 level 39; three visits day 30 level 45",
+      "value": "petTalk: level 99 never, day 30 level 35; play3: level 99 never, day 30 level 38; clean: level 99 never, day 30 level 33; feed: level 99 never, day 30 level 41; three visits day 30 level 46",
       "status": "met"
     },
     "trees-by-90": {
@@ -39,7 +39,7 @@ export const BALANCE_MEASURED: BalanceMeasured = {
       "status": "met"
     },
     "coins-bounded": {
-      "value": "once 90 (day 7), three 97 (day 28), weekend 90 (day 89), tapper 107 (day 8), grinder 127 (day 1)",
+      "value": "once 95 (day 23), three 112 (day 7), weekend 102 (day 18), tapper 107 (day 8), grinder 122 (day 78)",
       "status": "met"
     },
     "coins-worth-saving": {
@@ -71,11 +71,11 @@ export const BALANCE_MEASURED: BalanceMeasured = {
       "status": "met"
     },
     "new-every-day": {
-      "value": "once 0 days with nothing new, at least 4 left, three 0 days with nothing new, at least 2 left, weekend 0 days with nothing new, at least 3 left, tapper 0 days with nothing new, at least 2 left, grinder 0 days with nothing new, at least 2 left",
+      "value": "once 0 days with nothing new, at least 2 left, three 0 days with nothing new, at least 3 left, weekend 0 days with nothing new, at least 3 left, tapper 0 days with nothing new, at least 2 left, grinder 0 days with nothing new, at least 2 left",
       "status": "met"
     },
     "gate-budget-binds": {
-      "value": "first refusal day 4; at most 65% of the budget used by day 7; Mind-first teen: gentle refused, bold refused, curious refused",
+      "value": "first refusal day 4; at most 65% of the budget used by day 7; sets that fit with no Mind points: gentle: teen 13/70 (5 points 70), adult 5/28, all eight 65 of 60; bold: teen 25/70 (5 points 70), adult 14/28, all eight 61 of 60; curious: teen 4/70 (5 points 70), adult 3/28, all eight 66 of 60",
       "status": "met"
     }
   }

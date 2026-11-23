@@ -1,0 +1,11 @@
+--- a/packages/game/src/skills.ts
++++ b/packages/game/src/skills.ts
+@@ -352,7 +352,7 @@ export const gateBudget = (g: Growth | undefined): number => BASE_GATES + effect
+  * a player spends lesson by lesson. A school lesson costs 5 to 14 gates, so a teen's 32 hold three school lessons and rarely a fourth and a
+  * fourth often has to be chosen.
+  */
+-export const TAUGHT_BUDGET: Readonly<Record<"baby" | "child" | "teen" | "adult" | "elder", number>> = { baby: 28, child: 30, teen: 32, adult: 48, elder: 60 };
++export const TAUGHT_BUDGET: Readonly<Record<"baby" | "child" | "teen" | "adult" | "elder", number>> = { baby: 28, child: 30, teen: 40, adult: 48, elder: 60 };
+ /**
+  * D3: a gate skill widens the lesson budget by a third of what it adds to the whole brain (Wide Mind's 10 gates a point
+  * are 3 for lessons), so each point is a number a player sees without one point ending the choice, and an elder with

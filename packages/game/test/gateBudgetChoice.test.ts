@@ -42,7 +42,7 @@ describe("a budget per stage, counted over taught gates (G7)", () => {
     expect(gateSkills.map((s) => s.id).sort()).toEqual([211, 221, 233, 241, 251, 263]);
     for (const s of gateSkills) {
       const g = { level: 99, points: 0, skills: { [s.id]: 1 } };
-      // D3: a fifth of what it adds to the whole brain, still a number the player sees
+      // D3: a third of what it adds to the whole brain, still a number the player sees
       expect(taughtBudget("teen", g), s.name.en).toBe(TAUGHT_BUDGET.teen + Math.floor(s.value / TAUGHT_SHARE));
       expect(taughtBudget("teen", g)).toBeGreaterThan(TAUGHT_BUDGET.teen);
       expect(brainSize({ line: "gentle", lessons: [], growth: g }, "teen").taughtMax).toBe(TAUGHT_BUDGET.teen + Math.floor(s.value / TAUGHT_SHARE));
@@ -60,31 +60,34 @@ describe("a budget per stage, counted over taught gates (G7)", () => {
     for (const i of makers) expect(lessonCost({ ...spec, lessons: spec.lessons.filter((_, k) => k !== i) }, tooMuch, "teen").fits).toBe(true);
   });
 
-  it("stays a choice with an early Mind point too (D3): a teen holds no four school lessons with Wide Mind, an elder no eight with nothing", () => {
-    const fits = (line: "gentle" | "bold" | "curious", instincts: number, stage: "teen" | "adult" | "elder", n: number, growth?: { level: number; points: number; skills: Record<number, number> }) => {
-      let lessons: (typeof school)[number][] = [];
-      for (const r of school.slice(0, n)) {
-        if (!checkMindLesson({ line, lessons, instincts, ...(growth ? { growth } : {}) }, stage, r).ok) return false;
-        lessons = [r, ...lessons];
-      }
-      return true;
-    };
-    const wide = { level: 10, points: 0, skills: { 211: 1 } };
+  it("stays a choice over every set and order (D13): with no Mind points at most half of a teen's four-lesson school sets fit, even in their cheapest order (not all, with every instinct); five points of Wide Mind fit them all", () => {
+    const sets: number[][] = [];
+    for (let a = 0; a < 8; a++) for (let b = a + 1; b < 8; b++) for (let c = b + 1; c < 8; c++) for (let d = c + 1; d < 8; d++) sets.push([a, b, c, d]);
+    const orders = (x: number[]): number[][] => (x.length <= 1 ? [x] : x.flatMap((v, i) => orders([...x.slice(0, i), ...x.slice(i + 1)]).map((o) => [v, ...o])));
+    const five = { level: 99, points: 0, skills: { 211: 5 } };
     for (const line of ["gentle", "bold", "curious"] as const)
-      for (const inst of [0, 15]) {
-        expect(fits(line, inst, "teen", 3), `${line} ${inst}: a teen holds three`).toBe(true);
-        expect(fits(line, inst, "teen", 4, wide), `${line} ${inst}: not four with one point of Wide Mind`).toBe(false);
-        expect(fits(line, inst, "adult", 6, wide), `${line} ${inst}: an adult not six with it`).toBe(false);
-        expect(fits(line, inst, "elder", 8), `${line} ${inst}: an elder not all eight with nothing`).toBe(false);
+      for (const instincts of [0, 15]) {
+        const cheapest = sets.map((set) => Math.min(...orders(set).map((o) => taughtGates({ line, instincts, lessons: o.map((i) => school[i]!) }))));
+        const fit = cheapest.filter((g) => g <= taughtBudget("teen", undefined)).length;
+        // a pet with every instinct pays less for a lesson (it shares the instincts' gates): not every set fits it, though
+        // most do; without instincts at most half do
+        if (instincts) expect(fit, `${line} ${instincts}: ${fit} of ${sets.length} fit with no Mind points`).toBeLessThan(sets.length);
+        else expect(fit * 2, `${line}: ${fit} of ${sets.length} fit with no Mind points`).toBeLessThanOrEqual(sets.length);
+        expect(cheapest.every((g) => g <= taughtBudget("teen", five)), `${line} ${instincts}: five points fit every set`).toBe(true);
       }
-  });
+    // the elder's eight in every order (40,320 a line) are counted by the simulator (gate-budget-binds: 65, 61, 66 gates
+    // against 60); here, the order taught by the school and its reverse
+    for (const line of ["gentle", "bold", "curious"] as const)
+      for (const o of [school, [...school].reverse()]) expect(taughtGates({ line, lessons: o })).toBeGreaterThan(TAUGHT_BUDGET.elder);
+  }, 120_000);
 
   it("a pet already over its budget keeps every lesson; only adding one is refused", () => {
     const lessons = school.slice(0, 6);
     const spec = { line: "gentle" as const, lessons };
     expect(taughtGates(spec)).toBeGreaterThan(TAUGHT_BUDGET.teen);
     expect(brainSize(spec, "teen").taught).toBeGreaterThan(brainSize(spec, "teen").taughtMax);
-    const r = checkMindLesson(spec, "elder", school[7]!);
-    expect(r.ok).toBe(true);
+    // an elder with two points of Wide Mind has room for a seventh (D13: with none, 60 gates hold no seven of these)
+    const r = checkMindLesson({ ...spec, growth: { level: 40, points: 0, skills: { 211: 2 } } }, "elder", school[7]!);
+    expect(r.ok, JSON.stringify(r)).toBe(true);
   });
 });

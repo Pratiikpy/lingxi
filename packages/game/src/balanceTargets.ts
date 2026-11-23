@@ -23,6 +23,9 @@ export const PLAYER_TYPES = ["once", "three", "weekend", "tapper", "grinder"] as
 export type PlayerType = (typeof PLAYER_TYPES)[number];
 
 /** One player's pet and world at the end of one local day. */
+/** D13: the gate budget over every set of school lessons, per line (see the simulator's budgetChoice). */
+export type BudgetChoice = Record<string, { teenSets: number; teenNoMind: number; teenFiveMind: number; adultSets: number; adultNoMind: number; adultFiveMind: number; elderAllEight: number; elderBudget: number }>;
+
 export interface PlayerDay {
   day: number;
   stage: string;
@@ -144,7 +147,8 @@ export interface SimNumbers {
   /** D1: a pet only ever patted (every 93.6 hours, never fed or cleaned): its stage on day 62, whether it fell ill, its mistakes */
   patOnly?: { stageDay62: string; ill: boolean; mistakes: number };
   /** D3: for each line, whether a teen with one point of Wide Mind (a Mind-first player) is still refused a fourth school lesson */
-  mindFirstTeenRefused?: Record<string, boolean>;
+  /** D13: per line, the school-lesson sets that fill a teen's and an adult's slots that fit (cheapest order), and the elder's eight */
+  budgetChoice?: BudgetChoice;
 }
 
 /* ── the targets ─────────────────────────────────────────────────────────── */
@@ -342,14 +346,22 @@ export const BALANCE_TARGETS: readonly BalanceTarget[] = [
   {
     id: "gate-budget-binds",
     what: "The gate budget is a choice the player meets by the teen stage",
-    target: "the three-visit player has a lesson refused for the gate budget by the end of the teen stage (day 7), and a player who takes Mind skills first (a teen with one point of Wide Mind) is still refused a fourth school lesson, on every line",
+    target: "the three-visit player has a lesson refused for the gate budget by the end of the teen stage (day 7); and over every set of school lessons in its cheapest order, on every line: with no Mind points at most half the sets that fill a teen's slots and at most half that fill an adult's fit, and an elder cannot hold all eight; five points of Wide Mind let every teen set fit (the skill's visible effect)",
     owner: "G7",
     value: (n) => {
       const p = n.players.three;
-      const mf = n.mindFirstTeenRefused ? Object.entries(n.mindFirstTeenRefused).map(([l, r]) => `${l} ${r ? "refused" : "fits"}`).join(", ") : "not measured";
-      return `first refusal ${p.firstTooBigDay === null ? "never" : `day ${p.firstTooBigDay}`}; at most ${pct(p.teenGateShare)} of the budget used by day 7; Mind-first teen: ${mf}`;
+      const bc = n.budgetChoice
+        ? Object.entries(n.budgetChoice)
+            .map(([l, b]) => `${l}: teen ${b.teenNoMind}/${b.teenSets} (5 points ${b.teenFiveMind}), adult ${b.adultNoMind}/${b.adultSets}, all eight ${b.elderAllEight} of ${b.elderBudget}`)
+            .join("; ")
+        : "not measured";
+      return `first refusal ${p.firstTooBigDay === null ? "never" : `day ${p.firstTooBigDay}`}; at most ${pct(p.teenGateShare)} of the budget used by day 7; sets that fit with no Mind points: ${bc}`;
     },
-    met: (n) => n.players.three.firstTooBigDay !== null && n.players.three.firstTooBigDay <= 7 && !!n.mindFirstTeenRefused && Object.values(n.mindFirstTeenRefused).every(Boolean),
+    met: (n) =>
+      n.players.three.firstTooBigDay !== null &&
+      n.players.three.firstTooBigDay <= 7 &&
+      !!n.budgetChoice &&
+      Object.values(n.budgetChoice).every((b) => b.teenNoMind * 2 <= b.teenSets && b.adultNoMind * 2 <= b.adultSets && b.elderAllEight > b.elderBudget && b.teenFiveMind === b.teenSets),
   },
 ];
 

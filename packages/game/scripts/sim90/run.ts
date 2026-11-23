@@ -6,7 +6,7 @@ import { costOfEverything } from "./life";
 import { worthFindings } from "@lingxi/world";
 import { TAP_PATHS, type TapPath, playType } from "./players";
 import { lessonsSeen } from "./seen";
-import { PET_SCHOOL, catchUp, care, checkMindLesson, createPet, mindBrain, stageOf } from "../../src";
+import { type BudgetChoice, LESSON_CAPACITY, PET_SCHOOL, catchUp, care, createPet, mindBrain, stageOf, taughtBudget, taughtGates } from "../../src";
 import { DAY1 } from "./players";
 
 /**
@@ -28,18 +28,44 @@ function patOnly(): { stageDay62: string; ill: boolean; mistakes: number } {
   return { stageDay62: stageOf(p, start + 62 * 24 * H), ill: ill || !!p.sick, mistakes: p.mistakes ?? 0 };
 }
 
-/** D3: a Mind-first teen (one point of Wide Mind) of each line, teaching the school's lessons in order: is a fourth refused? */
-function mindFirstTeen(): Record<string, boolean> {
+/**
+ * D13: the gate budget as a choice, over every set of school lessons and every order they could be taught in (a set is
+ * counted as fitting if its cheapest order fits): how many of the sets that fill a teen's four slots and an adult's six
+ * fit with no Mind points and with five, and whether an elder can hold all eight with none. The first measure (D3) tried
+ * one order only, and an order chosen well holds more (the reviewer's F1).
+ */
+function budgetChoice(): BudgetChoice {
   const school = PET_SCHOOL.map((s) => s.rule);
-  const growth = { level: 10, points: 0, skills: { 211: 1 } };
+  const subsets = (k: number): number[][] => {
+    const out: number[][] = [];
+    const rec = (i: number, cur: number[]) => {
+      if (cur.length === k) return void out.push([...cur]);
+      for (let j = i; j < school.length; j++) rec(j + 1, [...cur, j]);
+    };
+    rec(0, []);
+    return out;
+  };
+  const orders = (a: number[]): number[][] => (a.length <= 1 ? [a] : a.flatMap((x, i) => orders([...a.slice(0, i), ...a.slice(i + 1)]).map((p) => [x, ...p])));
+  const cheapest = (line: "gentle" | "bold" | "curious", set: number[]) => Math.min(...orders(set).map((o) => taughtGates({ line, lessons: o.map((i) => school[i]!) })));
+  const mind = (points: number) => (points ? { level: 99, points: 0, skills: { 211: points } } : undefined);
   return Object.fromEntries(
     (["gentle", "bold", "curious"] as const).map((line) => {
-      let lessons: (typeof school)[number][] = [];
-      for (const r of school.slice(0, 4)) {
-        if (!checkMindLesson({ line, lessons, growth }, "teen", r).ok) return [line, true];
-        lessons = [r, ...lessons];
-      }
-      return [line, false];
+      const teen = subsets(LESSON_CAPACITY.teen).map((s) => cheapest(line, s));
+      const adult = subsets(LESSON_CAPACITY.adult).map((s) => cheapest(line, s));
+      const fit = (costs: number[], stage: "teen" | "adult", points: number) => costs.filter((c) => c <= taughtBudget(stage, mind(points))).length;
+      return [
+        line,
+        {
+          teenSets: teen.length,
+          teenNoMind: fit(teen, "teen", 0),
+          teenFiveMind: fit(teen, "teen", 5),
+          adultSets: adult.length,
+          adultNoMind: fit(adult, "adult", 0),
+          adultFiveMind: fit(adult, "adult", 5),
+          elderAllEight: cheapest(line, school.map((_, i) => i)),
+          elderBudget: taughtBudget("elder", undefined),
+        },
+      ];
     }),
   );
 }
@@ -92,7 +118,7 @@ export async function runSimYielding(o: { seed?: number; days?: number } = {}): 
   }
   const field = sparField(seed, FIELD_SEEDS);
   await tick();
-  return { seed, days, players, tapPaths, field, lessons: lessonsSeen(), costOfEverything: costOfEverything(), alone: leftAlone(), patOnly: patOnly(), mindFirstTeenRefused: mindFirstTeen(), worth: worthFindings().map((f) => f.why) };
+  return { seed, days, players, tapPaths, field, lessons: lessonsSeen(), costOfEverything: costOfEverything(), alone: leftAlone(), patOnly: patOnly(), budgetChoice: budgetChoice(), worth: worthFindings().map((f) => f.why) };
 }
 
 export function runSim(o: { seed?: number; days?: number } = {}): SimNumbers {
@@ -101,5 +127,5 @@ export function runSim(o: { seed?: number; days?: number } = {}): SimNumbers {
   const players = Object.fromEntries(PLAYER_TYPES.map((t) => [t, playType(t, seed, days)])) as Record<PlayerType, PlayerNumbers>;
   // B8: the tapper down each tapping path, for level-not-by-tapping
   const tapPaths = Object.fromEntries(TAP_PATHS.map((path) => [path, tapPathNumbers(players, seed, days, path)]));
-  return { seed, days, players, tapPaths, field: sparField(seed, FIELD_SEEDS), lessons: lessonsSeen(), costOfEverything: costOfEverything(), alone: leftAlone(), patOnly: patOnly(), mindFirstTeenRefused: mindFirstTeen(), worth: worthFindings().map((f) => f.why) };
+  return { seed, days, players, tapPaths, field: sparField(seed, FIELD_SEEDS), lessons: lessonsSeen(), costOfEverything: costOfEverything(), alone: leftAlone(), patOnly: patOnly(), budgetChoice: budgetChoice(), worth: worthFindings().map((f) => f.why) };
 }
