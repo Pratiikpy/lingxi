@@ -338,7 +338,7 @@ export const BALANCE_TARGETS: readonly BalanceTarget[] = [
   {
     id: "new-every-day",
     what: "Something new or changing every day through day 90",
-    target: "for every player type, every day from 1 to 90 brings at least one new or changing thing (plan 38 section 2), and something left that can be done that day (open story quests and dailies, today's village happening, a commission or plot the pet is old enough for and the player can pay for)",
+    target: "for every player type, every day from 1 to 90 that the player opens the game brings at least one new or changing thing it actually meets (plan 38 section 2; D16: the village happening counts only once used), and something left that can be done that day (open story quests and dailies, today's village happening, a commission or plot the pet is old enough for and the player can pay for)",
     owner: "G4",
     value: (n) => types(n).map((p) => `${p.type} ${p.daysWithNothingNew} days with nothing new, at least ${p.fewestThingsLeft ?? "?"} left`).join(", "),
     met: (n) => types(n).every((p) => p.daysWithNothingNew === 0 && (p.fewestThingsLeft ?? 0) > 0),

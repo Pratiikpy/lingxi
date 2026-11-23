@@ -31,15 +31,15 @@ export const BALANCE_MEASURED: BalanceMeasured = {
       "status": "met"
     },
     "level-not-by-tapping": {
-      "value": "petTalk: level 99 never, day 30 level 35; play3: level 99 never, day 30 level 38; clean: level 99 never, day 30 level 33; feed: level 99 never, day 30 level 41; three visits day 30 level 46",
+      "value": "petTalk: level 99 never, day 30 level 34; play3: level 99 never, day 30 level 38; clean: level 99 never, day 30 level 35; feed: level 99 never, day 30 level 40; three visits day 30 level 44",
       "status": "met"
     },
     "trees-by-90": {
-      "value": "three visits: level 80 on day 90, level 64 on day 51",
+      "value": "three visits: level 80 on day 90, level 64 on day 55",
       "status": "met"
     },
     "coins-bounded": {
-      "value": "once 95 (day 23), three 112 (day 7), weekend 102 (day 18), tapper 107 (day 8), grinder 122 (day 78)",
+      "value": "once 115 (day 7), three 127 (day 7), weekend 117 (day 4), tapper 117 (day 8), grinder 127 (day 85)",
       "status": "met"
     },
     "coins-worth-saving": {
@@ -71,8 +71,8 @@ export const BALANCE_MEASURED: BalanceMeasured = {
       "status": "met"
     },
     "new-every-day": {
-      "value": "once 0 days with nothing new, at least 2 left, three 0 days with nothing new, at least 3 left, weekend 0 days with nothing new, at least 3 left, tapper 0 days with nothing new, at least 2 left, grinder 0 days with nothing new, at least 2 left",
-      "status": "met"
+      "value": "once 4 days with nothing new, at least 1 left, three 0 days with nothing new, at least 1 left, weekend 3 days with nothing new, at least 1 left, tapper 2 days with nothing new, at least 1 left, grinder 4 days with nothing new, at least 1 left",
+      "status": "open"
     },
     "gate-budget-binds": {
       "value": "first refusal day 4; at most 65% of the budget used by day 7; sets that fit with no Mind points: gentle: teen 13/70 (5 points 70), adult 5/28, all eight 65 of 60; bold: teen 25/70 (5 points 70), adult 14/28, all eight 61 of 60; curious: teen 4/70 (5 points 70), adult 3/28, all eight 66 of 60",

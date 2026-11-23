@@ -107,6 +107,8 @@ function visit(life: Life, spec: PlayerSpec, start: number, minutes: number, hou
     life.teachNext(t, day, (d) => (state.firstTooBigDay ??= d));
     life.levelUp();
     if (!life.pet.asleep && life.energy() >= 100 && ROOMS[life.world.room]?.drops.length) life.lookAround(t);
+    // D16: today's village happening, once the map is open
+    life.villageErrand(t);
     for (let i = 0; i < ERRANDS && life.errand(t, () => (spec.minute === "spar" ? grinderPick(life) : dailyPartner(t))); i++);
     if (life.world.room !== HOME) life.walkTo(HOME, t);
     life.quests(t);
@@ -189,10 +191,11 @@ export function playType(type: PlayerType, seed: number, days: number, tap?: Tap
     const freshRequest = request !== null && !seenRequests.has(request);
     if (request) seenRequests.add(request);
     const season = worldSeasonAt(midnight).id;
-    // D2: the village's happening, a different one every day
+    // D2, D16: the village's happening counts as something new only on a day the player met it (bought, looked around
+    // in the lucky room, or took the gift), never by its id alone
     const happening = life.happeningId(midnight + 12 * 3_600_000);
-    const freshHappening = !seenHappenings.has(happening);
-    seenHappenings.add(happening);
+    const freshHappening = life.happeningMet(end) && !seenHappenings.has(happening);
+    if (freshHappening) seenHappenings.add(happening);
     thingsLeft.push(life.thingsLeft(end));
     const g4 = met - last.met + (life.keepsakes - last.keepsakes) + (freshRequest ? 1 : 0) + (last.season && season !== last.season ? 1 : 0) + (freshHappening ? 1 : 0);
     const newThings = g4 + quests.length + recipes.length + finds.length + (visited - last.visited) + (stage !== last.stage ? 1 : 0) + (capacity > last.capacity ? 1 : 0) + Math.max(0, tiers - last.tiers) + (form && !last.form ? 1 : 0);
@@ -238,7 +241,8 @@ export function playType(type: PlayerType, seed: number, days: number, tap?: Tap
     weekends,
     maxDailyCoinsIn: Math.max(...rows.map((r) => r.coinsIn)),
     allAffordableDay,
-    daysWithNothingNew: rows.filter((r) => r.newThings === 0).length,
+    // D16: a day the player opens the game; a day it stays away holds nothing to meet (what came by waits for its return)
+    daysWithNothingNew: rows.filter((r) => r.watched > 0 && r.newThings === 0).length,
     fewestThingsLeft: Math.min(...thingsLeft),
     lessonFiresPerWatchedMinute: watched ? rows.reduce((s, r) => s + r.lessonFires, 0) / watched : 0,
     byLesson: life.byLesson,

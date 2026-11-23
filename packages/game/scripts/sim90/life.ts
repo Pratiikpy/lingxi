@@ -39,6 +39,10 @@ import {
   happeningAt,
   happeningUsed,
   luckyFind,
+  CHARACTERS,
+  MARKET_ROOM,
+  takeVillageGift,
+  buyMarket,
   COMMISSIONS,
   nextPlot,
   stageReached,
@@ -410,6 +414,40 @@ export class Life {
   happeningId(t: number): string {
     return happeningAt(this.world, t).id;
   }
+  /** D16: whether the player can reach today's happening: the map is open (the pet's day 2) and, at the market, it can pay */
+  happeningReachable(t: number): boolean {
+    if (dayOf(this.pet, t) < 2) return false;
+    const h = happeningAt(this.world, t);
+    return h.kind !== "market" || this.world.coins >= h.price;
+  }
+  /** D16: whether today's happening has been made use of (bought, looked around in, or the gift taken) */
+  happeningMet(t: number): boolean {
+    return happeningUsed(this.world, t);
+  }
+  /**
+   * D16: go to today's happening once the map is open and use it, as a player who reads the home screen's village line
+   * does: buy the market's find when it can pay, look around in the lucky room (as far as its energy allows), or talk to the
+   * resident with a gift; then home.
+   */
+  villageErrand(t: number): void {
+    if (!this.happeningReachable(t) || happeningUsed(this.world, t) || this.pet.asleep) return;
+    const h = happeningAt(this.world, t);
+    const home = this.world.room;
+    if (h.kind === "market") {
+      if (this.world.coins < h.price || !this.walkTo(MARKET_ROOM, t)) return void this.walkTo(home, t);
+      const r = buyMarket(this.world, t);
+      if (r.ok) this.world = r.world;
+    } else if (h.kind === "lucky") {
+      if (!this.walkTo(h.room, t)) return void this.walkTo(home, t);
+      this.lookAround(t);
+    } else {
+      const room = CHARACTERS.find((c) => c.id === h.who)?.room;
+      if (room === undefined || !this.walkTo(room, t)) return void this.walkTo(home, t);
+      const r = takeVillageGift(this.world, h.who, t);
+      if (r.ok) this.world = r.world;
+    }
+    this.walkTo(home, t);
+  }
   lookAround(t: number): Array<{ item: number; n: number }> | null {
     const mods = exploreMods(this.pet.growth);
     const kin = affinitiesOf(this.pet.line, ((this.pet.instincts ?? 0) & 1) === 1);
@@ -636,7 +674,8 @@ export class Life {
     const coins = this.world.coins;
     const commissions = COMMISSIONS.filter((d) => !owned.includes(d.id) && stageReached(stage, d.commission!.stage) && coins >= d.price).length;
     const plot = nextPlot(this.world);
-    const village = happeningUsed(this.world, t) ? 0 : 1;
+    // D16: the happening only while the player can reach it (the map open, the market's price in hand) and has not used it
+    const village = !happeningUsed(this.world, t) && this.happeningReachable(t) ? 1 : 0;
     return story + this.dailiesOpen() + commissions + (plot && stageReached(stage, plot.stage) && coins >= plot.price ? 1 : 0) + village;
   }
   /** today's resident request, if today offers one (G4) */
