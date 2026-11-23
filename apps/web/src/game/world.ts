@@ -4,7 +4,7 @@
  * pet; food from the bag goes through the game rules like any care.
  */
 
-import { deleteLook as deleteLookRule, renameLook as renameLookRule, saveLook as saveLookRule, wearLook as wearLookRule, buyDecor as buyDecorRule, payReward as payRewardRule, buyMarket as buyMarketRule, luckyFind as luckyFindRule, takeVillageGift as takeVillageGiftRule, commissionDecor as commissionDecorRule, digPlot as digPlotRule, placeDecor as placeDecorRule, removeDecor as removeDecorRule, COMPOST, compostFromClean, harvest as harvestRule, plant as plantRule, startWalk as startWalkRule, stepWalk as stepWalkRule, endWalk as endWalkRule, startTrip as startTripRule, endTrip as endTripRule, make as makeRule, buyPiece as buyPieceRule, wear as wearRule, giveLaurel as giveLaurelRule } from "@lingxi/world";
+import { deleteLook as deleteLookRule, renameLook as renameLookRule, saveLook as saveLookRule, wearLook as wearLookRule, buyDecor as buyDecorRule, payReward as payRewardRule, buyMarket as buyMarketRule, happeningAt, luckyFind as luckyFindRule, takeVillageGift as takeVillageGiftRule, commissionDecor as commissionDecorRule, digPlot as digPlotRule, placeDecor as placeDecorRule, removeDecor as removeDecorRule, COMPOST, compostFromClean, harvest as harvestRule, plant as plantRule, startWalk as startWalkRule, stepWalk as stepWalkRule, endWalk as endWalkRule, startTrip as startTripRule, endTrip as endTripRule, make as makeRule, buyPiece as buyPieceRule, wear as wearRule, giveLaurel as giveLaurelRule } from "@lingxi/world";
 import { useBadges } from "./badges";
 import { create } from "zustand";
 import { wearableOf } from "@lingxi/art";
@@ -74,6 +74,9 @@ function save(w: WorldState): void {
     // keeps working in memory
   }
 }
+
+/** D24: the room today's lucky happening is in (or -1 on another kind of day). */
+const happeningRoom = (w: import("@lingxi/world").WorldState): number => { const h = happeningAt(w, now()); return h.kind === "lucky" ? h.room : -1; };
 
 export interface WorldNotice {
   id: number;
@@ -214,7 +217,7 @@ export const useWorld = create<WorldStore>((set, get) => ({
     const found = lucky.ok ? [...r.found.filter((f) => f.item !== lucky.item), { item: lucky.item, n: (r.found.find((f) => f.item === lucky.item)?.n ?? 0) + 1 }] : r.found;
     save(after);
     play("success");
-    set({ world: after, notice: { id: ++n, kind: "found", items: found, ...(r.familiar?.filled ? { secret: true } : {}), ...(lucky.ok ? { text: "lucky" } : {}) } });
+    set({ world: after, notice: { id: ++n, kind: "found", items: found, ...(r.familiar?.filled ? { secret: true } : {}), ...(lucky.ok ? { text: get().world.room === happeningRoom(get().world) ? "lucky" : "luckyHome" } : {}) } });
   },
   buyMarket: () => {
     const r = buyMarketRule(get().world, now());

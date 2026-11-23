@@ -32,6 +32,9 @@ export function noticeText(nt: WorldNotice, t: ReturnType<typeof useT>, lang: "e
     return lang === "zh" ? `找到了 ${itemList(nt.items, lang)}。这里越来越熟悉了，还发现了一样藏着的东西！` : `Found ${itemList(nt.items, lang)}. This place knows you now, and showed you something hidden!`;
   if (nt.kind === "found" && nt.text === "lucky")
     return lang === "zh" ? `找到了 ${itemList(nt.items, lang)}。今天是这里的幸运日，多找到了一样！` : `Found ${itemList(nt.items, lang)}. It's this room's lucky day: one more find!`;
+  // D24: in the evening the lucky room's luck drifts home
+  if (nt.kind === "found" && nt.text === "luckyHome")
+    return lang === "zh" ? `找到了 ${itemList(nt.items, lang)}。今天的好运飘回了家，多找到了一样！` : `Found ${itemList(nt.items, lang)}. Today's luck drifted home: one more find!`;
   if (nt.kind === "found") return t("world.found", { items: itemList(nt.items, lang) });
   if (nt.kind === "readied") return lang === "zh" ? `${itemList(nt.items, lang)}准备好了，下次会用上。` : `${itemList(nt.items, lang)} is ready for next time.`;
   if (nt.kind === "made" && nt.xp) return lang === "zh" ? `做好了 ${itemList(nt.items, lang)}。经验 +${nt.xp}。` : `Made ${itemList(nt.items, lang)}. +${nt.xp} experience.`;
