@@ -44,6 +44,10 @@ export function HeroScene({ reduceMotion, phase }: { reduceMotion: boolean; phas
     let cleanup = () => {};
     const app = new Application();
     (async () => {
+      // P3: the scene starts once the browser is idle after the first paint (at most 1.5 s later), so the headline and
+      // its buttons are drawn and answer taps before the animation's setup runs
+      await new Promise<void>((r) => ("requestIdleCallback" in window ? requestIdleCallback(() => r(), { timeout: 1500 }) : setTimeout(r, 200)));
+      if (disposed) return;
       await app.init({ backgroundAlpha: 0, antialias: false, resizeTo: el, autoDensity: true, resolution: window.devicePixelRatio || 1 });
       ready = true;
       if (disposed) {

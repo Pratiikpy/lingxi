@@ -7,19 +7,16 @@
 
 import { OnChainNote } from "../OnChainNote";
 import { type ReactNode, Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
-import { motion, useReducedMotion } from "motion/react";
-import { CORAL, SHELL, SUNNY, drawEgg, drawPet } from "@lingxi/art";
+import { useReducedMotion } from "motion/react";
 import { STARTERS, compileProgram, gateCount } from "@lingxi/brain";
 import { CHARACTERS } from "@lingxi/world";
 import { useLang } from "../i18n";
 import { usePageMeta } from "../i18n/pageMeta";
-import { Sprite } from "../play/Sprite";
 import { HeroScene, type HeroPhase, phaseNow } from "./HeroScene";
 import { COPY } from "./copy";
 import "../play/play.css";
 import "./landing.css";
 
-const STAGES = ["egg", "baby", "child", "teen", "adult"] as const;
 const ROOMS = [
   ["65_forest-hut/backgrounds/room65a.png", "home", "家"],
   ["53_blooming-tree/backgrounds/playtest-a.png", "the blooming tree", "开花的树"],
@@ -28,26 +25,6 @@ const ROOMS = [
   ["13_giftshop/backgrounds/original.png", "gift shop", "礼品店"],
   ["90_scenic-view/backgrounds/room90.png", "the window", "窗边"],
 ] as const;
-
-function GrowStrip() {
-  const { lang } = useLang();
-  const c = COPY[lang];
-  const egg = useMemo(() => drawEgg("coral"), []);
-  const pets = useMemo(() => (["baby", "child", "teen", "adult"] as const).map((s) => drawPet("gentle", s, { expression: s === "adult" ? "sparkly" : s === "teen" ? "proud" : "happy", lit: s === "adult" || s === "teen" })), []);
-  return (
-    <ol className="grow">
-      {STAGES.map((s, i) => (
-        <li key={s}>
-          {i === 0 ? <Sprite canvas={egg} palette={{ ...SHELL, x: CORAL.m, X: CORAL.d }} scale={2.5} /> : <Sprite canvas={pets[i - 1]!} palette={CORAL} scale={2.5} />}
-          <b>{c.stages[i]![0]}</b>
-          <span>{c.stages[i]![1]}</span>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-
 
 /** The residents, with their own portraits and roles. */
 function Residents() {
@@ -66,45 +43,17 @@ function Residents() {
   );
 }
 
-/** Two pets sharing a room live, with a wave, a heart and a gift in flight. */
-function FriendsScene({ reduce }: { reduce: boolean }) {
-  const { lang } = useLang();
-  const a = useMemo(() => drawPet("gentle", "child", { expression: "happy" }), []);
-  const b = useMemo(() => drawPet("bold", "teen", { expression: "love" }), []);
-  return (
-    <div className="friends-scene" style={{ backgroundImage: "url(art/rooms/65_forest-hut/backgrounds/room65a.png)" }}>
-      <div className="fs-pet fs-a">
-        <motion.div animate={reduce ? {} : { y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 1.6 }}>
-          <Sprite canvas={a} palette={CORAL} scale={3} />
-        </motion.div>
-        <b>Mochi</b>
-      </div>
-      <div className="fs-pet fs-b">
-        <span className="fs-bubble">{lang === "zh" ? "嗨！" : "hi!"}</span>
-        <Sprite canvas={b} palette={SUNNY} scale={3} />
-        <b>Tofu</b>
-      </div>
-      {!reduce &&
-        [0, 1, 2].map((i) => (
-          <motion.span key={i} className="fs-heart" initial={{ opacity: 0, y: 0 }} animate={{ opacity: [0, 1, 0], y: -60 }} transition={{ repeat: Infinity, duration: 2.4, delay: i * 0.8 }} aria-hidden="true">
-            ♥
-          </motion.span>
-        ))}
-    </div>
-  );
-}
-
-
-
 const MindDemo = lazy(() => import("./LandingDemos").then((m) => ({ default: m.MindDemo })));
 const TeachDemo = lazy(() => import("./LandingDemos").then((m) => ({ default: m.TeachDemo })));
 const SparDemo = lazy(() => import("./LandingDemos").then((m) => ({ default: m.SparDemo })));
+const GrowStrip = lazy(() => import("./LandingDemos").then((m) => ({ default: m.GrowStrip })));
+const FriendsScene = lazy(() => import("./LandingDemos").then((m) => ({ default: m.FriendsScene })));
 
 /**
  * P3: a demo's place, held at its size, mounting the demo only once it comes within 200 px of view (or at once
  * without IntersectionObserver), so the first screen loads none of the game and nothing below moves when it arrives.
  */
-function Near({ kind, children }: { kind: "mind" | "teach" | "spar"; children: ReactNode }) {
+function Near({ kind, children }: { kind: "mind" | "teach" | "spar" | "grow" | "friends"; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const [near, setNear] = useState(false);
   useEffect(() => {
@@ -182,7 +131,9 @@ export function LandingApp() {
           <p className="l-label">{c.growLabel}</p>
           <h2 id="grow-h">{c.growH}</h2>
           <p className="l-p">{c.growP}</p>
-          <GrowStrip />
+          <Near kind="grow">
+            <GrowStrip />
+          </Near>
         </section>
 
         <section id="mind" className="l-sec l-split" aria-labelledby="mind-h">
@@ -264,7 +215,9 @@ export function LandingApp() {
               ))}
             </ul>
           </div>
-          <FriendsScene reduce={reduce} />
+          <Near kind="friends">
+            <FriendsScene reduce={reduce} />
+          </Near>
         </section>
 
         <section id="spars" className="l-sec l-split l-flip" aria-labelledby="spars-h">

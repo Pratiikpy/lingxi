@@ -821,3 +821,21 @@
     min-height: 203px;
   }
 }
+/* the growing strip and the two friends, held at their size the same way */
+.demo-grow {
+  min-height: 216px;
+}
+.demo-friends {
+  aspect-ratio: 1;
+  max-width: 520px;
+  width: 100%;
+  justify-self: center;
+}
+@media (max-width: 767px) {
+  .demo-grow {
+    min-height: 150px;
+  }
+  html:lang(en) .demo-grow {
+    min-height: 167px;
+  }
+}
