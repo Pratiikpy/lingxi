@@ -78,10 +78,18 @@ function preloadGame(): Plugin {
       if (entry) walk(entry.fileName);
       const html = readFileSync(file, "utf8");
       const already = new Set([...html.matchAll(/href="\.\/([^"]+)"/g)].map((m) => m[1]));
+      // the two latin web fonts the first screen's words are set in (P3): fetched with the stylesheets rather than after
+      // them, so the prerendered hatch screen paints in them; a later swap from the fallback font re-sets its words a
+      // little larger, which counted as a second, later first screen
+      const fonts = Object.keys(bundle).filter((f) => /\/(pixelify-sans|baloo-2)-latin-wght-normal-[^/]+\.woff2$/.test(`/${f}`));
       const css = [...files].flatMap((f) => [...(chunks.find((c) => c.fileName === f)?.viteMetadata?.importedCss ?? [])]);
       // the game's stylesheets are applied from the start, not only fetched: the prerendered hatch screen (prerenderPlay)
       // paints with them, and the game's own loader skips a stylesheet already on the page
-      const links = [...[...files].filter((f) => !already.has(f)).map((f) => `<link rel="modulepreload" crossorigin href="./${f}">`), ...css.filter((f) => !already.has(f)).map((f) => `<link rel="stylesheet" crossorigin href="./${f}">`)];
+      const links = [
+        ...fonts.map((f) => `<link rel="preload" as="font" type="font/woff2" crossorigin href="./${f}">`),
+        ...[...files].filter((f) => !already.has(f)).map((f) => `<link rel="modulepreload" crossorigin href="./${f}">`),
+        ...css.filter((f) => !already.has(f)).map((f) => `<link rel="stylesheet" crossorigin href="./${f}">`),
+      ];
       writeFileSync(file, html.replace("</head>", `  ${links.join("\n    ")}\n  </head>`));
     },
   };
