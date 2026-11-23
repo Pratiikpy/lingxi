@@ -1,7 +1,7 @@
 /** The game: hatch on first visit, then the pet's room with care, mind, spar and profile. */
 
 import { OnChainNote } from "../OnChainNote";
-import { useCallback, useEffect, useEffectEvent, useMemo, useState } from "react";
+import { lazy, useCallback, useEffect, useEffectEvent, useMemo, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { NIGHT, boundingBox, drawPet } from "@lingxi/art";
 import { STARTERS, timeOfDay } from "@lingxi/brain";
@@ -39,8 +39,6 @@ import { InvitePanel, SocialBar } from "./Social";
 import { type Action, CHARACTERS, CHARACTER_IN_ROOM, FRIEND_BY_ID, HOME, INDOOR_ROOMS, ROOMS, decorOf, neighbours, openSteps, visitorOf } from "@lingxi/world";
 import { Talk } from "./Talk";
 import { GamesPanel } from "./Games";
-import { DiaryPanel } from "./Diary";
-import { RewindPanel } from "./Rewind";
 import { DuelArrival } from "./Duel";
 import { WelcomeBack } from "./Welcome";
 import { AwayCard, SitArrival, SitPanel } from "./Sitting";
@@ -61,9 +59,6 @@ import { MailboxPanel } from "./Mailbox";
 import { PetLetters } from "./PetLetters";
 import { watchLetters } from "../game/letters";
 import { AlbumPanel, SHY_ONE } from "./Album";
-import { FriendsPanel } from "./Friends";
-import { HoldersPanel } from "./Holders";
-import { StudioPanel } from "./Studio";
 import { needsOf, showNeeds } from "../game/badge";
 import { BUILDER_PETS, builderIn } from "@lingxi/game";
 import { BuilderCard, builderInScene } from "./Builders";
@@ -71,9 +66,6 @@ import { telegramBack } from "../game/telegram";
 import { useMove } from "../game/move";
 import { MoveNotes, MoveSheet, TelegramCard } from "./Move";
 import { Lazy } from "./Lazy";
-import { FashionMarketPanel } from "./FashionMarket";
-import { ItemShopPanel } from "./ItemShop";
-import { ExtrasPanel } from "./Extras";
 import { AdoptionPanel, FarewellNote } from "./Adoption";
 import { HandheldPanel, HandheldReturn } from "./Handheld";
 import { syncChainPieces } from "../game/chainDecor";
@@ -89,6 +81,16 @@ import "./play.css";
 import { ElsewhereOverlay, SaveBanner } from "./SaveScreens";
 import { SaveFileCard, SaveFileSheet, useSaveFileUi } from "./SaveFile";
 import { now } from "../game/gameClock";
+
+/** P3: panels behind `Lazy` whose code loads only when their place comes near (each module holds only that panel). */
+const DiaryPanel = lazy(() => import("./Diary").then((x) => ({ default: x.DiaryPanel })));
+const ExtrasPanel = lazy(() => import("./Extras").then((x) => ({ default: x.ExtrasPanel })));
+const FashionMarketPanel = lazy(() => import("./FashionMarket").then((x) => ({ default: x.FashionMarketPanel })));
+const FriendsPanel = lazy(() => import("./Friends").then((x) => ({ default: x.FriendsPanel })));
+const HoldersPanel = lazy(() => import("./Holders").then((x) => ({ default: x.HoldersPanel })));
+const ItemShopPanel = lazy(() => import("./ItemShop").then((x) => ({ default: x.ItemShopPanel })));
+const RewindPanel = lazy(() => import("./Rewind").then((x) => ({ default: x.RewindPanel })));
+const StudioPanel = lazy(() => import("./Studio").then((x) => ({ default: x.StudioPanel })));
 
 /** where Flit's shy visitor lives (room 56) */
 const BUTTERFLY_FOREST = 56;

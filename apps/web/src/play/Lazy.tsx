@@ -4,7 +4,7 @@
  * a light placeholder until it is scrolled to.
  */
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 
 export function Lazy({ children, height = 240 }: { children: ReactNode; height?: number }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -17,5 +17,7 @@ export function Lazy({ children, height = 240 }: { children: ReactNode; height?:
     io.observe(el);
     return () => io.disconnect();
   }, [shown]);
-  return shown ? <>{children}</> : <div ref={ref} className="lazy-hold" style={{ minHeight: height }} aria-hidden="true" />;
+  const hold = <div ref={ref} className="lazy-hold" style={{ minHeight: height }} aria-hidden="true" />;
+  // P3: a panel whose code is itself loaded lazily keeps the held place until its code arrives
+  return shown ? <Suspense fallback={hold}>{children}</Suspense> : hold;
 }
