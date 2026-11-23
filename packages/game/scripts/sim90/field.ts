@@ -21,7 +21,10 @@ const only = (want: number, mood: number): Program => validateProgram({ version:
 
 /**
  * A brain that reads the fight: it guards after the other pounced, pounces at an opening or a tired foe, rests
- * when spent and snacks when hurt. Written for G0 from the fight's pins (spar.ts); nothing in it is tuned to win.
+ * when spent and snacks when hurt. Written for G0 from the fight's pins (spar.ts). One rule was changed after
+ * measuring (D8): it snacked only when nearly beaten and lost the field to Pip, a plain pouncer, so it now snacks once
+ * hurt (hunger 2), before chasing an opening; Pip's resting pace and excited late pounces were tried first and did not
+ * help. That is the one change made to win; the rest is as written.
  * G2: from LX-SPAR/2 a guard shows on the action pins (spar2.ts), so the reader answers as the fight's triangle says: a
  * charm for a guard, a light tap for a dodger, and a pounce for a charm (in LX-SPAR/1 it guarded).
  */
