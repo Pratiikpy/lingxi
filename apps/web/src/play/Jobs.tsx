@@ -12,7 +12,7 @@ import { useLang } from "../i18n";
 import { mindParts, useGame } from "../game/store";
 import { useWorld } from "../game/world";
 import { play } from "../game/sound";
-import { PALETTE_OF } from "../scene/textures";
+import { PALETTE_OF } from "../scene/palette";
 import { VisitorArt } from "./Album";
 import { Icon } from "./icons";
 import { WANT_NAMES } from "./ruleText";

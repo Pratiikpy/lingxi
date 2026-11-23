@@ -5,7 +5,7 @@ import { boundingBox, drawPet } from "@lingxi/art";
 import { BOND_LEVELS, FAMILY_BOND_LEVEL, type Pet, bondLevel, bondProgress, friendsByCloseness } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { bondName, bondsOf, useFriends } from "../game/friends";
-import { PALETTE_OF } from "../scene/textures";
+import { PALETTE_OF } from "../scene/palette";
 import { Sprite } from "./Sprite";
 
 const LINES = ["gentle", "bold", "curious"] as const;

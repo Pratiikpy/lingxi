@@ -32,7 +32,7 @@ import { useWorld } from "../game/world";
 import { HOME, ROOMS } from "@lingxi/world";
 import { play } from "../game/sound";
 import { songForHour, useMusic } from "../game/music";
-import { PALETTE_OF, type PetStage } from "../scene/textures";
+import { PALETTE_OF, type PetStage } from "../scene/palette";
 import { Sprite } from "./Sprite";
 import "./arena.css";
 import "./rewind.css";

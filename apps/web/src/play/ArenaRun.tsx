@@ -51,7 +51,7 @@ import { ChainCheck } from "./ChainCheck";
 import { useWorld } from "../game/world";
 import { useBadges } from "../game/badges";
 import { play } from "../game/sound";
-import { PALETTE_OF } from "../scene/textures";
+import { PALETTE_OF } from "../scene/palette";
 import { Sprite } from "./Sprite";
 import { boundingBox, type PixelCanvas } from "@lingxi/art";
 import "./arenarun.css";

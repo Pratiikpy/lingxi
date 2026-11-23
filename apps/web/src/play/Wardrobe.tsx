@@ -10,7 +10,7 @@ import { type Pet, stageOf } from "@lingxi/game";
 import { lookLimit, outfitOf, ownedPieces, savedLooks, setOf } from "@lingxi/world";
 import { useLang } from "../i18n";
 import { useWorld } from "../game/world";
-import { PALETTE_OF } from "../scene/textures";
+import { PALETTE_OF } from "../scene/palette";
 import { Sprite } from "./Sprite";
 import { now } from "../game/gameClock";
 

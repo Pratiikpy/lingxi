@@ -16,7 +16,7 @@ import { LifePanel } from "./Jobs";
 import { useLang } from "../i18n";
 import { useGame } from "../game/store";
 import { play } from "../game/sound";
-import { PALETTE_OF, type PetStage } from "../scene/textures";
+import { PALETTE_OF, type PetStage } from "../scene/palette";
 import { Sprite } from "./Sprite";
 import { Icon, type IconName } from "./icons";
 import "./games.css";

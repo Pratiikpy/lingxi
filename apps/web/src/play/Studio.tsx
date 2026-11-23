@@ -21,7 +21,7 @@ import { connectWallet, deployment, publicClient } from "../game/chain";
 import { marketAvailable, useDesigns } from "../game/designs";
 import { useWorld } from "../game/world";
 import { play } from "../game/sound";
-import { PALETTE_OF } from "../scene/textures";
+import { PALETTE_OF } from "../scene/palette";
 import { Sprite } from "./Sprite";
 import { errorText, firstLine } from "../game/errorText";
 

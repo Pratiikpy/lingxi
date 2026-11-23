@@ -7,7 +7,7 @@
 import { useMemo } from "react";
 import { CAT, type CatPose, boundingBox, drawCat, drawPet } from "@lingxi/art";
 import type { Pet } from "@lingxi/game";
-import { PALETTE_OF } from "../scene/textures";
+import { PALETTE_OF } from "../scene/palette";
 import { Sprite } from "./Sprite";
 import "./cute.css";
 

@@ -1,7 +1,7 @@
 /** The game: hatch on first visit, then the pet's room with care, mind, spar and profile. */
 
 import { OnChainNote } from "../OnChainNote";
-import { lazy, useCallback, useEffect, useEffectEvent, useMemo, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useEffectEvent, useMemo, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { NIGHT, boundingBox, drawPet } from "@lingxi/art";
 import { STARTERS, timeOfDay } from "@lingxi/brain";
@@ -22,8 +22,9 @@ import { CollectionPanel } from "./Collection";
 import { useTrial, type Trial } from "../game/tryIt";
 import type { Rule } from "@lingxi/brain";
 import { BadgeShelf, BadgeToast } from "./Badges";
-import { type DayPhase, RoomScene, weatherFor } from "../scene/RoomScene";
-import { PALETTE_OF, type PetStage } from "../scene/textures";
+import type { DayPhase } from "../scene/RoomScene";
+import { weatherFor } from "../scene/weather";
+import { PALETTE_OF, type PetStage } from "../scene/palette";
 import { Hatch } from "./Hatch";
 import { Actions, Meters, TabBar, ThinkStrip, ToastView, TopBar, VoiceBubble, type Tab } from "./parts";
 import { useVoice } from "../game/voice";
@@ -81,6 +82,9 @@ import "./play.css";
 import { ElsewhereOverlay, SaveBanner } from "./SaveScreens";
 import { SaveFileCard, SaveFileSheet, useSaveFileUi } from "./SaveFile";
 import { now } from "../game/gameClock";
+
+// P3: the room scene and its engine (PIXI) load beside the game, not before it: the screens paint first
+const RoomScene = lazy(() => import("../scene/RoomScene").then((m) => ({ default: m.RoomScene })));
 
 /** P3: panels behind `Lazy` whose code loads only when their place comes near (each module holds only that panel). */
 const DiaryPanel = lazy(() => import("./Diary").then((x) => ({ default: x.DiaryPanel })));
@@ -531,43 +535,45 @@ export function PlayApp() {
       <TopBar pet={pet} daily={daily} face={face && <FaceSprite canvas={face} line={pet.line} />} onQuests={() => pick("quests")} onPets={() => pick("pets")} petCount={petCount} onMail={() => pick("mail")} unread={unread} />
       <div className="main">
         <section className="stage" aria-label={pet.name} data-hint="pet">
-          <RoomScene
-            line={pet.line}
-            stage={stage}
-            {...(pet.form ? { form: pet.form } : {})}
-            asleep={pet.asleep}
-            absent={travelling}
-            outfit={outfitOf(worldFull, String(pet.bornAt))}
-            sick={!!pet.sick}
-            want={trial ? trial.want : pet.last.want}
-            habit={strongestHabit(pet.traits)}
-            mood={trial ? trial.mood : pet.last.mood}
-            {...roomEventProps}
-            taught={trial ? trial.fired : !pet.last.instinct && ruleKindOf(pet, decidingPart(pet).program, pet.last.rule) === "taught"}
-            phase={phase}
-            lastCare={lastCare}
-            clean={visibleMeters(pet).clean}
-            food={visibleMeters(pet).food}
-            outdoors={!INDOOR_ROOMS.has(worldRoom)}
-            covered={tab !== "home"}
-            decor={worldRoom !== HOME ? [] : !visiting ? decorOf(worldFull).placed : homeDecor?.owner === visiting ? homeDecor.placed : []}
-            decorating={decorating !== null && worldRoom === HOME && !visiting}
-            onPlace={(x, y) => {
-              if (decorating) useWorld.getState().placeDecor(decorating, x, y);
-            }}
-            onDecorTap={(id) => {
-              useWorld.getState().removeDecor(id);
-              setDecorating(id);
-            }}
-            onPetTap={onPetTap}
-            reduceMotion={reduce}
-            bgs={worldRoom === HOME && rigSkin && !visiting ? RIG_HOME_BGS : room.bgs}
-            others={[...Object.values(others), ...kinVisitors, ...(shyOne ? [shyOne] : []), ...(resident ? [builderInScene(resident, lang, residentSaid)] : [])]}
-            onOtherTap={(id) => (play("tap"), setPicked(id))}
-            npc={who ? (talking && npcFace ? npcFace : who.stand) : null}
-            npcMark={npcMark}
-            onNpcTap={() => (setPicked(null), startTalk())}
-          />
+          <Suspense fallback={null}>
+            <RoomScene
+              line={pet.line}
+              stage={stage}
+              {...(pet.form ? { form: pet.form } : {})}
+              asleep={pet.asleep}
+              absent={travelling}
+              outfit={outfitOf(worldFull, String(pet.bornAt))}
+              sick={!!pet.sick}
+              want={trial ? trial.want : pet.last.want}
+              habit={strongestHabit(pet.traits)}
+              mood={trial ? trial.mood : pet.last.mood}
+              {...roomEventProps}
+              taught={trial ? trial.fired : !pet.last.instinct && ruleKindOf(pet, decidingPart(pet).program, pet.last.rule) === "taught"}
+              phase={phase}
+              lastCare={lastCare}
+              clean={visibleMeters(pet).clean}
+              food={visibleMeters(pet).food}
+              outdoors={!INDOOR_ROOMS.has(worldRoom)}
+              covered={tab !== "home"}
+              decor={worldRoom !== HOME ? [] : !visiting ? decorOf(worldFull).placed : homeDecor?.owner === visiting ? homeDecor.placed : []}
+              decorating={decorating !== null && worldRoom === HOME && !visiting}
+              onPlace={(x, y) => {
+                if (decorating) useWorld.getState().placeDecor(decorating, x, y);
+              }}
+              onDecorTap={(id) => {
+                useWorld.getState().removeDecor(id);
+                setDecorating(id);
+              }}
+              onPetTap={onPetTap}
+              reduceMotion={reduce}
+              bgs={worldRoom === HOME && rigSkin && !visiting ? RIG_HOME_BGS : room.bgs}
+              others={[...Object.values(others), ...kinVisitors, ...(shyOne ? [shyOne] : []), ...(resident ? [builderInScene(resident, lang, residentSaid)] : [])]}
+              onOtherTap={(id) => (play("tap"), setPicked(id))}
+              npc={who ? (talking && npcFace ? npcFace : who.stand) : null}
+              npcMark={npcMark}
+              onNpcTap={() => (setPicked(null), startTalk())}
+            />
+          </Suspense>
           <div className="room-pill">
             <b>{visiting && worldRoom === HOME ? (lang === "zh" ? "朋友家" : "A friend's home") : room.name[lang]}</b>
             {who && !talking && (

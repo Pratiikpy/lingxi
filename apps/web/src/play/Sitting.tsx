@@ -16,7 +16,7 @@ import { useLang } from "../i18n";
 import { play } from "../game/sound";
 import { bringHomeNow, checkHome, collect, sendHome, sendToSitter, sitLink, sittingAvailable, takeIn } from "../game/sitting";
 import { TooBig, sizeNote } from "../game/sendSize";
-import { PALETTE_OF, type PetStage } from "../scene/textures";
+import { PALETTE_OF, type PetStage } from "../scene/palette";
 import { Sprite } from "./Sprite";
 import { now } from "../game/gameClock";
 

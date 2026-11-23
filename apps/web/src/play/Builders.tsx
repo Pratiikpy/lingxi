@@ -38,7 +38,7 @@ import { useLang } from "../i18n";
 import { useBadges } from "../game/badges";
 import { useWorld } from "../game/world";
 import { play } from "../game/sound";
-import { PALETTE_OF } from "../scene/textures";
+import { PALETTE_OF } from "../scene/palette";
 import { Chips } from "./parts";
 import { chipsFor } from "./ruleText";
 import { Sprite } from "./Sprite";

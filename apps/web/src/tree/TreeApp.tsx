@@ -10,7 +10,7 @@ import { boundingBox, drawPet } from "@lingxi/art";
 import { revealHidden } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { usePageMeta } from "../i18n/pageMeta";
-import { PALETTE_OF } from "../scene/textures";
+import { PALETTE_OF } from "../scene/palette";
 import { Sprite } from "../play/Sprite";
 import { Named } from "../play/Named";
 import "../agents/agents.css";

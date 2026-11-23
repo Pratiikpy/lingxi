@@ -15,7 +15,7 @@ import { type ClaimsRead, type PacketLink, claimsOf, decodePacketLink, packetsAv
 import { deployment, explorerTx, publicClient, useChain } from "../game/chain";
 import { useGame } from "../game/store";
 import { play } from "../game/sound";
-import { PALETTE_OF } from "../scene/textures";
+import { PALETTE_OF } from "../scene/palette";
 import { Sprite } from "./Sprite";
 import "./redpacket.css";
 import { now } from "../game/gameClock";

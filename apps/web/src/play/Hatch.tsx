@@ -14,7 +14,7 @@ import { compileProgram, netlistBytes } from "@lingxi/brain";
 import { INSTINCTS, type Instinct, composeProgram, instinctBits, nameFromBrain } from "@lingxi/game";
 import { useLang, useT, type Key } from "../i18n";
 import { play } from "../game/sound";
-import { PALETTE_OF } from "../scene/textures";
+import { PALETTE_OF } from "../scene/palette";
 import { Sprite } from "./Sprite";
 import { useSaveFileUi } from "./SaveFile";
 import "./hatch.css";

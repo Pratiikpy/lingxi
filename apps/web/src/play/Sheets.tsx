@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { type Palette, ROLES, drawPet } from "@lingxi/art";
-import { PALETTE_OF } from "../scene/textures";
+import { PALETTE_OF } from "../scene/palette";
 import { Sprite } from "./Sprite";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { type MindPart, mindParts } from "../game/store";

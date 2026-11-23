@@ -15,7 +15,7 @@ import { type PartnerCheck, breedingTerms, checkPartner, formatBem } from "@ling
 import { useLive } from "../game/live";
 import { bondName, bondsOf, friendKey, useFriends } from "../game/friends";
 import { play } from "../game/sound";
-import { PALETTE_OF, type PetStage } from "../scene/textures";
+import { PALETTE_OF, type PetStage } from "../scene/palette";
 import { Sprite } from "./Sprite";
 import "./family.css";
 import { now } from "../game/gameClock";

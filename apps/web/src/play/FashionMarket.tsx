@@ -32,7 +32,7 @@ import { connectWallet, deployment, publicClient } from "../game/chain";
 import { marketAvailable, marketOf, safeDecode, useDesigns } from "../game/designs";
 import { useWorld } from "../game/world";
 import { play } from "../game/sound";
-import { PALETTE_OF } from "../scene/textures";
+import { PALETTE_OF } from "../scene/palette";
 import { Sprite } from "./Sprite";
 import { now } from "../game/gameClock";
 import { errorText } from "../game/errorText";

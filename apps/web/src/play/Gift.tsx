@@ -15,7 +15,7 @@ import { useLang } from "../i18n";
 import { useGame } from "../game/store";
 import { useWorld } from "../game/world";
 import { play } from "../game/sound";
-import { PALETTE_OF, type PetStage } from "../scene/textures";
+import { PALETTE_OF, type PetStage } from "../scene/palette";
 import { Sprite } from "./Sprite";
 import { Icon } from "./icons";
 import "./gift.css";

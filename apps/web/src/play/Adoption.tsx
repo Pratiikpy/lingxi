@@ -12,7 +12,7 @@ import { useLang, useT } from "../i18n";
 import { recordOf } from "../game/chain";
 import { type CheckedOffer, type Farewell, adoptFromCentre, takeFarewells, adoptionAvailable, atCentre, browseOffers, centreTerms, checkCentre, offerForAdoption, papersAvailable, withdrawFromCentre } from "../game/adoption";
 import { play } from "../game/sound";
-import { PALETTE_OF } from "../scene/textures";
+import { PALETTE_OF } from "../scene/palette";
 import { Sprite } from "./Sprite";
 import "./adoption.css";
 import { now } from "../game/gameClock";

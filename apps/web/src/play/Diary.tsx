@@ -11,7 +11,7 @@ import { play } from "../game/sound";
 import { useWorld } from "../game/world";
 import { noteEvent } from "../game/tally";
 import { HOME, ROOMS } from "@lingxi/world";
-import { PALETTE_OF, type PetStage } from "../scene/textures";
+import { PALETTE_OF, type PetStage } from "../scene/palette";
 import { now } from "../game/gameClock";
 import { recordOf } from "../game/chain";
 import { diaryFooter } from "./diaryFooter";

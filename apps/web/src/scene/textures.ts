@@ -6,14 +6,11 @@
 import { Texture } from "pixi.js";
 import {
   CAT,
-  CORAL,
   type CatPose,
   type Expression,
   type Form,
   type Palette,
   type PixelCanvas,
-  SKY,
-  SUNNY,
   drawCat,
   drawPet,
   type Outfit,
@@ -25,7 +22,7 @@ import type { StarterLine } from "@lingxi/brain";
 
 const cache = new Map<string, Texture>();
 
-export const PALETTE_OF: Record<StarterLine, Palette> = { gentle: CORAL, bold: SUNNY, curious: SKY };
+export { PALETTE_OF, type PetStage } from "./palette";
 
 function canvasTexture(key: string, c: PixelCanvas, pal: Palette, paint?: (rgba: Uint8ClampedArray) => void): Texture {
   const hit = cache.get(key);
@@ -45,7 +42,7 @@ function canvasTexture(key: string, c: PixelCanvas, pal: Palette, paint?: (rgba:
   return t;
 }
 
-export type PetStage = "baby" | "child" | "teen" | "adult";
+import { PALETTE_OF, type PetStage } from "./palette";
 
 export interface PetFrame {
   stage: PetStage;
