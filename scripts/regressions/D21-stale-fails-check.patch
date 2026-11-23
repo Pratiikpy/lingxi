@@ -1,0 +1,9 @@
+--- a/packages/game/src/balanceTargets.ts
++++ b/packages/game/src/balanceTargets.ts
+@@ -384,5 +384,5 @@ export const balanceTargets = (): Array<BalanceTarget & { measured: string; stat
+  * reported on its own); any of these makes the simulator's check fail, so the record cannot drift from the game.
+  */
+ export function staleTargets(now: ReadonlyArray<{ id: string; value: string; met: boolean }>, recorded: Readonly<Record<string, { value: string; status: "met" | "open" }>>): string[] {
+-  return now.filter((t) => recorded[t.id] && recorded[t.id]!.value !== t.value && !(recorded[t.id]!.status === "met" && !t.met)).map((t) => t.id);
++  return now.filter((t) => recorded[t.id] && recorded[t.id]!.status !== "met" && t.met && recorded[t.id]!.value !== t.value).map((t) => t.id);
+ }

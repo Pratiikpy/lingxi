@@ -378,3 +378,11 @@ export const balanceTargets = (): Array<BalanceTarget & { measured: string; stat
     const m = BALANCE_MEASURED.targets[t.id];
     return { ...t, measured: m?.value ?? "not measured yet", status: m?.status ?? "open" };
   });
+
+/**
+ * D21: the targets whose recorded value no longer matches what the simulator measures (a status that regressed is
+ * reported on its own); any of these makes the simulator's check fail, so the record cannot drift from the game.
+ */
+export function staleTargets(now: ReadonlyArray<{ id: string; value: string; met: boolean }>, recorded: Readonly<Record<string, { value: string; status: "met" | "open" }>>): string[] {
+  return now.filter((t) => recorded[t.id] && recorded[t.id]!.value !== t.value && !(recorded[t.id]!.status === "met" && !t.met)).map((t) => t.id);
+}
