@@ -1,5 +1,5 @@
 import "../boot/staleBuild";
-import { StrictMode } from "react";
+import { StrictMode, startTransition } from "react";
 import { followGoLink } from "../game/links";
 import { createRoot } from "react-dom/client";
 import "@fontsource-variable/pixelify-sans";
@@ -9,9 +9,14 @@ import { LandingApp } from "./LandingApp";
 
 // a shared link to a game page that had to start here (see links.ts) goes on at once
 if (!followGoLink()) {
-  createRoot(document.getElementById("root")!).render(
-    <StrictMode>
-      <LandingApp />
-    </StrictMode>,
+  // P3: the first render is a transition, so React renders it in short slices and the page answers while it does; the
+  // prerendered landing stays on screen until it is ready
+  const root = createRoot(document.getElementById("root")!);
+  startTransition(() =>
+    root.render(
+      <StrictMode>
+        <LandingApp />
+      </StrictMode>,
+    ),
   );
 }

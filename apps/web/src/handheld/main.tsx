@@ -1,5 +1,5 @@
 import "../boot/staleBuild";
-import { StrictMode } from "react";
+import { StrictMode, startTransition } from "react";
 import { createRoot } from "react-dom/client";
 import "@fontsource-variable/pixelify-sans";
 import "@fontsource-variable/baloo-2";
@@ -33,10 +33,13 @@ void claimHandheld()
   .then(async (mine) => {
     if (!mine) return elsewhere();
     const { HandheldApp } = await import("./HandheldApp");
-    root.render(
-      <StrictMode>
-        <HandheldApp />
-      </StrictMode>,
+    // P3: the first render is a transition, so React renders it in short slices and the page answers while it does
+    startTransition(() =>
+      root.render(
+        <StrictMode>
+          <HandheldApp />
+        </StrictMode>,
+      ),
     );
   })
   .catch(failedToLoad);
