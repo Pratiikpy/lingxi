@@ -1,7 +1,8 @@
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 import { join, relative, resolve } from "node:path";
 import { hasBannedName, scanNames } from "../../packages/world/src/names";
 
@@ -81,8 +82,50 @@ function preloadGame(): Plugin {
   };
 }
 
+/**
+ * P3: the landing's HTML rendered at build time in both languages, so a slow phone paints the headline and copy before
+ * any of the page's script arrives. A second, server-side build of src/landing/prerender.tsx (kept inside apps/web so
+ * Node resolves React from here) renders each language; both are written into the built index.html, a small inline
+ * script shows the reader's one (saved choice, else the browser's language, as i18n's own first guess), and React then
+ * renders the same page over it.
+ */
+function prerenderLanding(): Plugin {
+  let outDir = "";
+  return {
+    name: "lingxi-prerender-landing",
+    apply: "build",
+    configResolved(c) {
+      outDir = resolve(c.root, c.build.outDir);
+    },
+    async closeBundle() {
+      const page = join(outDir, "index.html");
+      if (!existsSync(page)) return;
+      const tmp = resolve(__dirname, ".prerender");
+      const { build } = await import("vite");
+      await build({
+        root: __dirname,
+        configFile: false,
+        logLevel: "warn",
+        plugins: [react()],
+        build: { ssr: resolve(__dirname, "src/landing/prerender.tsx"), outDir: tmp, emptyOutDir: true, rollupOptions: { output: { entryFileNames: "prerender.mjs", format: "esm" } } },
+        ssr: { noExternal: [/^@lingxi\//] },
+      });
+      try {
+        const mod = (await import(pathToFileURL(join(tmp, "prerender.mjs")).href)) as { render: (lang: "en" | "zh") => string };
+        const [en, zh] = [mod.render("en"), mod.render("zh")];
+        const pick = `<script>(function(){var l;try{l=localStorage.getItem("lingxi.lang")}catch(e){}if(l!=="en"&&l!=="zh")l=(navigator.language||"").toLowerCase().indexOf("zh")===0?"zh":"en";if(l==="zh"){var r=document.getElementById("root").children;r[0].hidden=true;r[1].hidden=false;document.documentElement.lang="zh-CN"}})()</script>`;
+        const html = readFileSync(page, "utf8");
+        if (!html.includes('<div id="root"></div>')) throw new Error("index.html has no empty #root to fill");
+        writeFileSync(page, html.replace('<div id="root"></div>', `<div id="root"><div data-prerender="en">${en}</div><div data-prerender="zh" hidden>${zh}</div></div>${pick}`));
+      } finally {
+        rmSync(tmp, { recursive: true, force: true });
+      }
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), buildStamp(), namesGuard(), preloadGame()],
+  plugins: [react(), buildStamp(), namesGuard(), preloadGame(), prerenderLanding()],
   base: "./",
   build: {
     target: "es2022",

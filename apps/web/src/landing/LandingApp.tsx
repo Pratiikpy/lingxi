@@ -10,7 +10,7 @@ import { type ReactNode, Suspense, lazy, useEffect, useMemo, useRef, useState } 
 import { useReducedMotion } from "motion/react";
 import { STARTERS, compileProgram, gateCount } from "@lingxi/brain";
 import { CHARACTERS } from "@lingxi/world";
-import { useLang } from "../i18n";
+import { useLandingLang } from "./landingLang";
 import { usePageMeta } from "../i18n/pageMeta";
 import { type HeroPhase, phaseNow } from "./heroPhase";
 import { COPY } from "./copy";
@@ -28,7 +28,7 @@ const ROOMS = [
 
 /** The residents, with their own portraits and roles. */
 function Residents() {
-  const { lang } = useLang();
+  const { lang } = useLandingLang();
   const who = CHARACTERS.filter((c) => ["wick", "praline", "twain", "jab", "why", "yonder"].includes(c.id));
   return (
     <ul className="residents">
@@ -73,7 +73,7 @@ function Near({ kind, children }: { kind: "mind" | "teach" | "spar" | "grow" | "
 }
 
 export function LandingApp() {
-  const { lang, toggle } = useLang();
+  const { lang, toggle } = useLandingLang();
   const reduce = useReducedMotion() ?? false;
   const c = COPY[lang];
   const [phase, setPhase] = useState<HeroPhase>(phaseNow);
