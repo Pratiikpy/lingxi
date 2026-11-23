@@ -8,7 +8,7 @@
 import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { DECOR_BY_ID, HOME, ITEM, ROOMS } from "@lingxi/world";
-import { type Frame, type Pet, type VisitorGift, awayFind, awayNeeds, awaySeed, rewind, ruleSource, schoolIdsOf, stageOf, strongestHabit, tellMoment, visitorsDuring } from "@lingxi/game";
+import { type Frame, type Pet, type VisitorGift, awayFind, awayNeeds, awaySeed, rewind, ruleSource, schoolIdsOf, stageOf, strongestHabit, tellMoments, visitorsDuring } from "@lingxi/game";
 import { VisitorArt, useAlbum } from "./Album";
 import { useLang } from "../i18n";
 import { mindForPet, useGame } from "../game/store";
@@ -158,11 +158,16 @@ function AwayCard({ pet, absence }: { pet: Pet; absence: { petKey: string; from:
         )}
         {story.events.length ? (
           <ul className="welcome-list">
-            {story.events.map((f, i) => (
-              <li key={f.index}>
-                <b>{clock(f, lang)}</b> {EVENT_TEXT[f.senses.event]![lang]} <span>{lang === "zh" ? `${pet.name}：` : `${pet.name}: `}“{tellMoment(f, lang, strongestHabit(pet.traits), i)}”</span>
-              </li>
-            ))}
+            {/* D18: told together, so no sentence is said twice in one card; a moment past its lines is told without quotes */}
+            {tellMoments(story.events, lang, strongestHabit(pet.traits)).map((said, i) => {
+              const f = story.events[i]!;
+              return (
+                <li key={f.index}>
+                  <b>{clock(f, lang)}</b> {EVENT_TEXT[f.senses.event]![lang]}
+                  {said && <span> {lang === "zh" ? `${pet.name}：` : `${pet.name}: `}“{said}”</span>}
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <p>{lang === "zh" ? `一切都很安静。${pet.name}${story.napped ? "睡了一会儿，" : ""}自己玩了一阵。` : `All quiet. ${pet.name}${story.napped ? " napped a while and" : ""} kept itself busy.`}</p>

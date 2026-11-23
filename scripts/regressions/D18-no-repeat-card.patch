@@ -1,0 +1,11 @@
+--- a/packages/game/src/replay.ts
++++ b/packages/game/src/replay.ts
+@@ -189,7 +189,7 @@ export function tellMoments(frames: readonly Frame[], lang: "en" | "zh", habit:
+     const taught = ruleSource(f) === "taught";
+     for (const w of ways) {
+       const line = taught ? (lang === "zh" ? `因为你教过我，${w}` : `Because you taught me, ${w}`) : w;
+-      if (!said.has(line)) {
++      if (!said.has(line) || line.length > 0) {
+         said.add(line);
+         return line;
+       }

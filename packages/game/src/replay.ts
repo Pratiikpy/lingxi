@@ -177,6 +177,27 @@ export function momentText(f: Frame, lang: "en" | "zh", habit: Trait | null = nu
  * A moment told for the diary and the away story (G1): one a taught lesson decided is told as the lesson's doing, so
  * the player reads what their teaching made the pet do; any other is the pet's own line.
  */
+/**
+ * D18: a list of moments told in one card, with no sentence said twice: each choice has its habit's two lines and the
+ * plain line to say it with (a pet with no habit, the plain line only); once those are used, the moment is told without
+ * the pet's words (null), so the card never repeats itself however long the absence was.
+ */
+export function tellMoments(frames: readonly Frame[], lang: "en" | "zh", habit: Trait | null = null): Array<string | null> {
+  const said = new Set<string>();
+  return frames.map((f, i) => {
+    const ways = habit ? [momentText(f, lang, habit, i), momentText(f, lang, habit, i + 1), momentText(f, lang, null)] : [momentText(f, lang, null)];
+    const taught = ruleSource(f) === "taught";
+    for (const w of ways) {
+      const line = taught ? (lang === "zh" ? `因为你教过我，${w}` : `Because you taught me, ${w}`) : w;
+      if (!said.has(line)) {
+        said.add(line);
+        return line;
+      }
+    }
+    return null;
+  });
+}
+
 export function tellMoment(f: Frame, lang: "en" | "zh", habit: Trait | null = null, moment?: number): string {
   const line = momentText(f, lang, habit, moment);
   if (ruleSource(f) !== "taught") return line;

@@ -58,3 +58,18 @@ describe("personality every day (G9)", () => {
     expect(listed[0]).not.toBe(listed[1]);
   });
 });
+
+describe("one card never says a sentence twice (D18)", () => {
+  it("many moments of one choice, with a habit or without, are told with no sentence repeated; past its lines a moment is told without words", async () => {
+    const { tellMoments } = await import("../src");
+    for (const habit of ["shy", "playful", null] as const)
+      for (const lang of ["en", "zh"] as const) {
+        const frames = Array.from({ length: 8 }, (_, i) => ({ ...frame(1, 0), index: 10 + i }) as Frame);
+        const told = tellMoments(frames, lang, habit);
+        const said = told.filter((x): x is string => x !== null);
+        expect(new Set(said).size, `${habit} ${lang}`).toBe(said.length);
+        expect(said.length, `${habit} ${lang}`).toBe(habit ? 3 : 1);
+        expect(told[0]).not.toBeNull();
+      }
+  });
+});
