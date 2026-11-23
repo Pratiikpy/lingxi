@@ -29,7 +29,9 @@ describe("wearables", () => {
         }
       }
     }
-  });
+    // every piece on every pet: under 1 s alone, but it draws thousands of pets, so a busy machine is given room (it
+    // once timed out at the default 5 s while other suites ran beside it)
+  }, 30_000);
 
   it("the limited tape-out pieces make a full set with a title", () => {
     const drop = setPieces("drop");
