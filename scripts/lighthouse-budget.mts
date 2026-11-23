@@ -38,7 +38,9 @@ try {
   await up();
   for (const page of pages) {
     const file = join(out, `${page}.json`);
-    const r = spawnSync("npx", ["-y", LIGHTHOUSE, `http://localhost:${PORT}/${page}`, "--quiet", "--only-categories=performance", "--output=json", `--output-path=${file}`, "--chrome-flags=--headless=new --no-sandbox"], {
+    const args = ["-y", LIGHTHOUSE, `http://localhost:${PORT}/${page}`, "--quiet", "--only-categories=performance", "--output=json", `--output-path=${file}`, "--chrome-flags=--headless=new --no-sandbox"];
+    // Windows runs npx through its shell (npx.cmd), which takes one command line (each argument with a space quoted) rather than an argument list
+    const r = spawnSync(process.platform === "win32" ? ["npx", ...args].map((a) => (/[\s"&|<>^]/.test(a) ? `"${a}"` : a)).join(" ") : "npx", process.platform === "win32" ? [] : args, {
       env: { ...process.env, CHROME_PATH: chromium.executablePath() },
       shell: process.platform === "win32",
       encoding: "utf8",

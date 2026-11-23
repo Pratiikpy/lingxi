@@ -78,6 +78,11 @@ jobs:
       # P3: what each page loads before it runs, held to its budget (scripts/perf-budget.json)
       - name: Each page within its size budget
         run: pnpm perf:budget apps/web/dist
+      # P3: every page's Lighthouse score held to a floor of 85 with layout shift under 0.1 (scripts/lighthouse-budget.mts)
+      - name: A browser for Lighthouse
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Each page's Lighthouse score above its floor
+        run: pnpm perf:lighthouse apps/web/dist
 
   coverage:
     # how much of each part's code its tests run, held to 80% of lines and branches (scripts/coverage.mts)
