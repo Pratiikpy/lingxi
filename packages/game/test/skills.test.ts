@@ -164,7 +164,9 @@ describe("levels", () => {
     expect(withGrowth(p)).toBe(p);
   });
 
-  it("a caring day earns the same steady experience through the game's own care rules, a first level within two days (G3)", () => {
+  // it plays every caring day of the climb to level 56 through the game's own care rules: about 4 s on a laptop, and
+  // several times that under coverage on CI, where the default 30 s ran out (P3a)
+  it("a caring day earns the same steady experience through the game's own care rules, a first level within two days (G3)", { timeout: 120_000 }, () => {
     // a caring player's day, through the game's own care rules
     let p = newPet();
     let firstLevelDay = 0;
