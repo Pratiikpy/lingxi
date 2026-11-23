@@ -187,9 +187,26 @@ async function main() {
       if ((await timeOfBlock(l.blockNumber)) >= (live.week?.since ?? 0)) recent++;
     }
     check("circuits minted on the processor (Transfer events from nobody)", minted, live.circuits.minted);
-    if (live.circuits.last7d !== null) check("circuits taped out in the last 7 days", recent, live.circuits.last7d);
-    else console.log("not yet  circuits in the last 7 days: the server's walk has not reached the head");
-    if (live.week && live.week.circuits !== null) check("circuits in the week's activity", recent, live.week.circuits);
+    // the week's circuits, by this script's own reads of the processor's ids (P3a): nextId at the walk's end less nextId
+    // just before the week's first block, found by block time. The walk can count the week itself only when it starts
+    // at or before the week (a recount from a later block, as on a fork, does not), and where it can, the two must agree
+    const since = live.week?.since ?? 0;
+    const end = live.circuits.indexedTo;
+    let lo = d.processorBlock ?? from;
+    let hi = end;
+    if ((await timeOfBlock(String(lo))) < since) {
+      while (lo + 1 < hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        if ((await timeOfBlock(String(mid))) >= since) hi = mid;
+        else lo = mid;
+      }
+    } else hi = lo;
+    const nextAt = (b: number) => pub.readContract({ address: d.processor, abi: views, functionName: "nextId", blockNumber: BigInt(b) }).then(Number, () => 0);
+    const week = (await nextAt(end)) - (await nextAt(hi - 1));
+    if (from <= hi) check(`every circuit of the last 7 days was walked (from block ${hi})`, recent, week);
+    if (live.circuits.last7d !== null) check("circuits taped out in the last 7 days", week, live.circuits.last7d);
+    else console.log("not yet  circuits in the last 7 days: the server has not read the processor's count yet");
+    if (live.week && live.week.circuits !== null) check("circuits in the week's activity", week, live.week.circuits);
     const next = Number(await pub.readContract({ address: d.processor, abi: views, functionName: "nextId" }));
     // nextId is the id of the processor's latest circuit (ids start at 1), so it is the count itself
     check("circuits taped out (the processor's nextId, its latest circuit id)", next, live.circuits.total);

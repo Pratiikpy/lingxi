@@ -124,6 +124,28 @@ describe("circuits Lingxi has taped out (H10)", () => {
     expect(await cc.week(T0 + 50)).toBe(9);
   });
 
+  it("counts only the week's circuits when its walk starts after the week began (P3a)", async () => {
+    // the processor was deployed at block 100; the walk starts at block 800 (an operator's LINGXI_PROCESSOR_FROM, or a
+    // fork's own block); the week opens at block 400. Circuits 1 to 5 came before it: they are not the week's
+    const T0 = NOW - 1_000;
+    const client = {
+      getBlockNumber: async () => 1_000n,
+      getLogs: async () => [],
+      getBlock: async ({ blockNumber }: { blockNumber: bigint }) => ({ timestamp: BigInt(T0 + Number(blockNumber)) }),
+      readContract: async ({ functionName, blockNumber }: { functionName: string; blockNumber?: bigint }) => {
+        if (functionName !== "nextId") throw new Error(functionName);
+        const b = Number(blockNumber ?? 1_000n);
+        if (b < 100) throw new Error("no contract at this block");
+        return BigInt(b < 400 ? 5 : b < 700 ? 7 : 9);
+      },
+    } as unknown as PublicClient;
+    const cc = createCircuitCounter({ rpc: "", processor: PROC, fromBlock: 800, deployBlock: 100, client, paceMs: 0 });
+    expect(await cc.week(T0 + 400)).toBe(4);
+    expect(await cc.week(T0 + 900)).toBe(0);
+    // the deployment inside the window: every circuit is the week's
+    expect(await cc.week(T0 + 50)).toBe(9);
+  });
+
   it("reads again from the deploy block when its saved place belongs to another start or processor", async () => {
     const store = join(mkdtempSync(join(tmpdir(), "cc-")), "circuits.json");
     const mints = [{ block: 1000, id: 1n }, { block: 2000, id: 2n }];

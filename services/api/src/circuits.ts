@@ -23,7 +23,13 @@ interface Stored {
   mints: Array<[string, number, number]>;
 }
 
-export function createCircuitCounter(opts: { rpc: string; processor: Address; fromBlock: number; store?: string; client?: PublicClient; paceMs?: number }) {
+/**
+ * `fromBlock` is where the walk of mints starts; `deployBlock` is the processor's deployment (the same unless the walk is
+ * told to start later, as LINGXI_PROCESSOR_FROM does). The week's count searches from the deployment, so a walk that
+ * starts after the week began still counts only the week's circuits (P3a).
+ */
+export function createCircuitCounter(opts: { rpc: string; processor: Address; fromBlock: number; deployBlock?: number; store?: string; client?: PublicClient; paceMs?: number }) {
+  const deployBlock = Math.min(opts.deployBlock ?? opts.fromBlock, opts.fromBlock);
   const pub = opts.client ?? (createPublicClient({ transport: http(opts.rpc, { timeout: 20_000, retryCount: 0 }) }) as PublicClient);
   const start = (): Stored => ({ processor: opts.processor.toLowerCase(), from: opts.fromBlock, next: opts.fromBlock, mints: [] });
   let data = start();
@@ -82,7 +88,7 @@ export function createCircuitCounter(opts: { rpc: string; processor: Address; fr
   /** The first block at or after `sinceSec`, searched by its time between the deploy block and the head. */
   async function firstBlockSince(sinceSec: number, head: number): Promise<number> {
     const timeOf = async (b: number) => Number((await pub.getBlock({ blockNumber: BigInt(b) })).timestamp);
-    let lo = opts.fromBlock;
+    let lo = deployBlock;
     let hi = head;
     if ((await timeOf(lo)) >= sinceSec) return lo;
     while (lo + 1 < hi) {
@@ -103,7 +109,7 @@ export function createCircuitCounter(opts: { rpc: string; processor: Address; fr
   async function week(sinceSec: number): Promise<number> {
     const head = Number(await pub.getBlockNumber({ cacheTime: 0 }));
     const first = await firstBlockSince(sinceSec, head);
-    const before = first <= opts.fromBlock ? 0 : await nextIdAt(first - 1);
+    const before = first <= deployBlock ? 0 : await nextIdAt(first - 1);
     return (await nextIdAt(head)) - before;
   }
 
