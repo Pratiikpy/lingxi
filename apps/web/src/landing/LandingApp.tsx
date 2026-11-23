@@ -101,7 +101,7 @@ const TeachDemo = lazy(() => import("./LandingDemos").then((m) => ({ default: m.
 const SparDemo = lazy(() => import("./LandingDemos").then((m) => ({ default: m.SparDemo })));
 
 /**
- * P3: a demo's place, held at its size, mounting the demo only once it comes within a screen of view (or at once
+ * P3: a demo's place, held at its size, mounting the demo only once it comes within 200 px of view (or at once
  * without IntersectionObserver), so the first screen loads none of the game and nothing below moves when it arrives.
  */
 function Near({ kind, children }: { kind: "mind" | "teach" | "spar"; children: ReactNode }) {
@@ -110,7 +110,7 @@ function Near({ kind, children }: { kind: "mind" | "teach" | "spar"; children: R
   useEffect(() => {
     const el = ref.current;
     if (!el || typeof IntersectionObserver === "undefined") return void setNear(true);
-    const io = new IntersectionObserver((es) => es.some((e) => e.isIntersecting) && setNear(true), { rootMargin: "100% 0px" });
+    const io = new IntersectionObserver((es) => es.some((e) => e.isIntersecting) && setNear(true), { rootMargin: "200px 0px" });
     io.observe(el);
     return () => io.disconnect();
   }, []);
