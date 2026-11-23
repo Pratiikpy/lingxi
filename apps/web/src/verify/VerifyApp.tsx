@@ -12,7 +12,7 @@ import { OnChainNote } from "../OnChainNote";
 import { ProofTable } from "./ProofTable";
 import { RuleTable } from "./RuleTable";
 import { ContractTable } from "./ContractTable";
-import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
+import { startTransition, useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import { type Hex } from "viem";
 import { beat, bitsToWord, circuitBrain, type Circuit, wordToBits, decodeSenses } from "@lingxi/brain";
 import { PetHistory } from "./History";
@@ -215,9 +215,12 @@ export function VerifyApp() {
   // a pet read from X Layer is shown with everything about it read alongside: its name colour, its picture, its circuit
   const show = useCallback(
     async (forId: string, p: ChainPet) => {
-      setPet(p);
-      setMeta(undefined);
-      setColour(0);
+      // P3: what is read from X Layer renders in transitions, in short slices, so the page answers while it draws
+      startTransition(() => {
+        setPet(p);
+        setMeta(undefined);
+        setColour(0);
+      });
       // its name colour (plan 4.9), from the extras contract
       if (deployment!.extras)
         void nameColours(pc, deployment!, [BigInt(forId)])
@@ -226,7 +229,8 @@ export function VerifyApp() {
       void readMetadata(pc, deployment!, BigInt(forId))
         .then((m) => {
           const svg = m.image?.startsWith("data:image/svg+xml;base64,") ? atob(m.image.slice(26)) : null;
-          setMeta({ name: m.name, image: m.image, same: svg ? JSON.stringify(canvasOfSvg(svg).px) === JSON.stringify(gameSprite(lookOf(p.state)).px) : undefined });
+          const same = svg ? JSON.stringify(canvasOfSvg(svg).px) === JSON.stringify(gameSprite(lookOf(p.state)).px) : undefined;
+          startTransition(() => setMeta({ name: m.name, image: m.image, same }));
         })
         .catch(() => setMeta(null));
       // a child's circuit REFs its parents' circuits; those are read from the chain too. A brain no pet's mind could be
@@ -234,8 +238,10 @@ export function VerifyApp() {
       setCircuitError(null);
       try {
         const c = await loadCircuitFromChain(pc, p.processor, p.brainId);
-        setCircuit(c);
-        setGates(c.nGates);
+        startTransition(() => {
+          setCircuit(c);
+          setGates(c.nGates);
+        });
       } catch (e) {
         setCircuit(null);
         setCircuitError(e instanceof BrainTooBigError ? { tooBig: { gates: e.gates, max: e.max } } : { unread: true });

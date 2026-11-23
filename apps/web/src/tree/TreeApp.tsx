@@ -5,7 +5,7 @@
  * owners credited down the generations.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useState } from "react";
 import { boundingBox, drawPet } from "@lingxi/art";
 import { revealHidden } from "@lingxi/game";
 import { useLang } from "../i18n";
@@ -82,7 +82,8 @@ export function TreeApp() {
     if (!API) return;
     fetch(`${API}/api/tree`, { cache: "no-store" })
       .then((r) => r.json())
-      .then((j: TreeData & { ok: boolean }) => (j.ok ? setData(j) : setErr(true)))
+      // P3: the family's cards render in a transition, in short slices, so the page answers while they draw
+      .then((j: TreeData & { ok: boolean }) => startTransition(() => (j.ok ? setData(j) : setErr(true))))
       .catch(() => setErr(true));
   }, []);
 
