@@ -127,6 +127,11 @@ function prerenderLanding(): Plugin {
         build: { ssr: resolve(__dirname, "src/landing/prerender.tsx"), outDir: tmp, emptyOutDir: true, rollupOptions: { output: { entryFileNames: "prerender.mjs", format: "esm" } } },
         ssr: { noExternal: [/^@lingxi\//] },
       });
+      // the landing's modules read `location` as they load when no API address is built in (a plain build, as CI's):
+      // the render gets a neutral one for as long as it runs, so no module takes it for a local or live host
+      const g = globalThis as { location?: unknown };
+      const hadLocation = "location" in g;
+      if (!hadLocation) g.location = new URL("https://lingxi.invalid/");
       try {
         const mod = (await import(pathToFileURL(join(tmp, "prerender.mjs")).href)) as { render: (lang: "en" | "zh") => string };
         const [en, zh] = [mod.render("en"), mod.render("zh")];
@@ -135,6 +140,7 @@ function prerenderLanding(): Plugin {
         if (!html.includes('<div id="root"></div>')) throw new Error("index.html has no empty #root to fill");
         writeFileSync(page, html.replace('<div id="root"></div>', `<div id="root"><div data-prerender="en">${en}</div><div data-prerender="zh" hidden>${zh}</div></div>${pick}`));
       } finally {
+        if (!hadLocation) delete g.location;
         rmSync(tmp, { recursive: true, force: true });
       }
     },
