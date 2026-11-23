@@ -12,7 +12,7 @@ import { STARTERS, compileProgram, gateCount } from "@lingxi/brain";
 import { CHARACTERS } from "@lingxi/world";
 import { useLang } from "../i18n";
 import { usePageMeta } from "../i18n/pageMeta";
-import { HeroScene, type HeroPhase, phaseNow } from "./HeroScene";
+import { type HeroPhase, phaseNow } from "./heroPhase";
 import { COPY } from "./copy";
 import "../play/play.css";
 import "./landing.css";
@@ -43,6 +43,8 @@ function Residents() {
   );
 }
 
+/** P3: the hero's living scene (PIXI) loads after the first paint; it lies over the header, so nothing moves when it does. */
+const HeroScene = lazy(() => import("./HeroScene").then((m) => ({ default: m.HeroScene })));
 const MindDemo = lazy(() => import("./LandingDemos").then((m) => ({ default: m.MindDemo })));
 const TeachDemo = lazy(() => import("./LandingDemos").then((m) => ({ default: m.TeachDemo })));
 const SparDemo = lazy(() => import("./LandingDemos").then((m) => ({ default: m.SparDemo })));
@@ -81,7 +83,9 @@ export function LandingApp() {
   return (
     <>
       <header className="l-hero">
-        <HeroScene reduceMotion={reduce} phase={phase} />
+        <Suspense fallback={null}>
+          <HeroScene reduceMotion={reduce} phase={phase} />
+        </Suspense>
         <div className="l-phase" role="radiogroup" aria-label={lang === "zh" ? "时间" : "Time of day"}>
           {(["day", "evening", "night"] as const).map((p) => (
             <button key={p} type="button" role="radio" aria-checked={phase === p} onClick={() => setPhase(p)}>

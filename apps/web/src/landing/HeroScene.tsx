@@ -6,26 +6,21 @@
  * visitor prefers reduced motion.
  */
 
+import type { HeroPhase } from "./heroPhase";
 import { useEffect, useRef } from "react";
 import { Application, Assets, Container, Sprite, type Texture } from "pixi.js";
 // the site sends a script policy without eval; this module gives Pixi the code paths that never need it
 import "pixi.js/unsafe-eval";
-import { timeOfDay } from "@lingxi/brain";
 import { catTexture, glyphTexture, petTexture } from "../scene/textures";
 
 const ROOM = 128;
-const BG = {
+const BG: Record<HeroPhase, string> = {
   day: "art/rooms/49_clearing/backgrounds/playtest-a.png",
   evening: "art/rooms/49_clearing/backgrounds/playtest-b.png",
   night: "art/rooms/49_clearing/backgrounds/playtest-c.png",
-} as const;
+};
 
-export function phaseNow(): keyof typeof BG {
-  const t = timeOfDay(new Date().getHours());
-  return t === 0 ? "night" : t === 3 ? "evening" : "day";
-}
-
-export type HeroPhase = keyof typeof BG;
+export { type HeroPhase, phaseNow } from "./heroPhase";
 
 export function HeroScene({ reduceMotion, phase }: { reduceMotion: boolean; phase: HeroPhase }) {
   const host = useRef<HTMLDivElement>(null);
