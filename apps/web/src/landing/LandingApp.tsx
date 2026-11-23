@@ -13,6 +13,7 @@ import { CHARACTERS } from "@lingxi/world";
 import { useLandingLang } from "./landingLang";
 import { usePageMeta } from "../i18n/pageMeta";
 import { type HeroPhase, phaseNow } from "./heroPhase";
+import { hardwareWebGl } from "./heroArt";
 import { COPY } from "./copy";
 import "../play/play.css";
 import "./landing.css";
@@ -43,8 +44,12 @@ function Residents() {
   );
 }
 
-/** P3: the hero's living scene (PIXI) loads after the first paint; it lies over the header, so nothing moves when it does. */
+/**
+ * P3: the hero's living scene (PIXI) loads after the first paint; it lies over the header, so nothing moves when it does.
+ * A device whose WebGL is software only gets the same landscape as a still instead (heroArt.ts), and never loads PIXI.
+ */
 const HeroScene = lazy(() => import("./HeroScene").then((m) => ({ default: m.HeroScene })));
+const HeroStill = lazy(() => import("./HeroStill").then((m) => ({ default: m.HeroStill })));
 const MindDemo = lazy(() => import("./LandingDemos").then((m) => ({ default: m.MindDemo })));
 const TeachDemo = lazy(() => import("./LandingDemos").then((m) => ({ default: m.TeachDemo })));
 const SparDemo = lazy(() => import("./LandingDemos").then((m) => ({ default: m.SparDemo })));
@@ -77,6 +82,9 @@ export function LandingApp() {
   const reduce = useReducedMotion() ?? false;
   const c = COPY[lang];
   const [phase, setPhase] = useState<HeroPhase>(phaseNow);
+  // asked once: whether the hero can be the living scene (the prerender, which has no canvas, draws it as living, so
+  // the page it writes is the one most visitors get)
+  const [living] = useState(() => typeof document === "undefined" || hardwareWebGl());
   const gates = useMemo(() => gateCount(compileProgram(STARTERS.gentle)), []);
   // the page's language, title and description, in the reader's language (A111)
   usePageMeta("index");
@@ -84,7 +92,7 @@ export function LandingApp() {
     <>
       <header className="l-hero">
         <Suspense fallback={null}>
-          <HeroScene reduceMotion={reduce} phase={phase} />
+          {living ? <HeroScene reduceMotion={reduce} phase={phase} /> : <HeroStill phase={phase} />}
         </Suspense>
         <div className="l-phase" role="radiogroup" aria-label={lang === "zh" ? "时间" : "Time of day"}>
           {(["day", "evening", "night"] as const).map((p) => (
@@ -127,7 +135,8 @@ export function LandingApp() {
             </a>
           </div>
         </div>
-        <p className="l-hint">{c.hint}</p>
+        {/* the hint invites taps on the living scene; the still has nothing to tap */}
+        {living && <p className="l-hint">{c.hint}</p>}
       </header>
 
       <main className="l-main">

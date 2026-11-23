@@ -11,14 +11,8 @@ import { useEffect, useRef } from "react";
 import { Application, Assets, Container, Sprite, type Texture } from "pixi.js";
 // the site sends a script policy without eval; this module gives Pixi the code paths that never need it
 import "pixi.js/unsafe-eval";
+import { BG, GROUND, PET_AT, ROOM, heroScale } from "./heroArt";
 import { catTexture, glyphTexture, petTexture } from "../scene/textures";
-
-const ROOM = 128;
-const BG: Record<HeroPhase, string> = {
-  day: "art/rooms/49_clearing/backgrounds/playtest-a.png",
-  evening: "art/rooms/49_clearing/backgrounds/playtest-b.png",
-  night: "art/rooms/49_clearing/backgrounds/playtest-c.png",
-};
 
 export { type HeroPhase, phaseNow } from "./heroPhase";
 
@@ -75,12 +69,12 @@ export function HeroScene({ reduceMotion, phase }: { reduceMotion: boolean; phas
 
       // the band shows the lower part of the scene; scale covers the width
       let scale = 1;
-      let ground = 121;
+      let ground = GROUND;
       let span = ROOM;
       const layout = () => {
         const w = el.clientWidth;
         const h = el.clientHeight;
-        scale = Math.max(2, Math.ceil(h / ROOM));
+        scale = heroScale(h);
         world.scale.set(scale);
         const need = Math.ceil(w / (ROOM * scale)) + 1;
         tiles.removeChildren().forEach((c) => c.destroy());
@@ -95,7 +89,7 @@ export function HeroScene({ reduceMotion, phase }: { reduceMotion: boolean; phas
         span = Math.ceil(w / scale);
         world.x = 0;
         world.y = Math.round(h - ROOM * scale);
-        ground = 121;
+        ground = GROUND;
       };
       layout();
       swap.current = (p) => {
@@ -111,7 +105,7 @@ export function HeroScene({ reduceMotion, phase }: { reduceMotion: boolean; phas
 
       const state = { x: 0, target: 0, dir: 1, hopAt: -1, nextWander: performance.now() + 2500 };
       const catState = { x: 30, dir: 1, mode: "walk" as "walk" | "sit" | "nap", until: performance.now() + 6000 };
-      state.x = state.target = Math.round(span * 0.68);
+      state.x = state.target = Math.round(span * PET_AT);
       catState.x = Math.round(span * 0.22);
       const hearts: Array<{ s: Sprite; vy: number; life: number }> = [];
       pet.on("pointertap", () => {
