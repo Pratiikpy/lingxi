@@ -73,6 +73,9 @@ function preloadGame(): Plugin {
         for (const dep of chunks.find((c) => c.fileName === name)?.imports ?? []) walk(dep);
       };
       walk(app.fileName);
+      // and the page's own entry, which play.html imports once its first frame has painted (prerenderPlay)
+      const entry = chunks.find((c) => c.isDynamicEntry && c.moduleIds.some((id) => id.split("\\").join("/").endsWith("/src/play/main.tsx")));
+      if (entry) walk(entry.fileName);
       const html = readFileSync(file, "utf8");
       const already = new Set([...html.matchAll(/href="\.\/([^"]+)"/g)].map((m) => m[1]));
       const css = [...files].flatMap((f) => [...(chunks.find((c) => c.fileName === f)?.viteMetadata?.importedCss ?? [])]);
