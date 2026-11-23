@@ -64,9 +64,25 @@ describe("boxes open by their own tables (plan 4.5)", () => {
     expect(r.world.bag[21008] ?? 0).toBe(0);
   });
 
-  it("the same box on the same hour gives the same thing, so a reload cannot reroll it", () => {
+  it("a box holds what it holds: neither a reload, nor waiting an hour or a day, nor crafting or finding first re-rolls it (D12)", () => {
     const w = give(world("same"), 21003, 1);
-    expect(openBox(w, T0, 21003)).toEqual(openBox(w, T0 + 1000, 21003));
+    const first = openBox(w, T0, 21003);
+    expect(openBox(w, T0 + 1000, 21003)).toEqual(first);
+    expect(openBox(w, T0 + 3_600_000, 21003)).toEqual(first);
+    expect(openBox(w, T0 + 86_400_000, 21003)).toEqual(first);
+    const busier = openBox({ ...w, crafted: w.crafted + 1, foragedCount: w.foragedCount + 3 }, T0 + 7_200_000, 21003);
+    expect(busier.ok && first.ok && busier.found).toEqual(first.ok && first.found);
+    // the next box of the kind is its own: two in a row are not one result twice
+    if (!first.ok) throw new Error(first.reason);
+    const seen = new Set<string>();
+    let cur = give(first.world, 21003, 12);
+    for (let k = 0; k < 12; k++) {
+      const r = openBox(cur, T0, 21003);
+      if (!r.ok) throw new Error(r.reason);
+      seen.add(JSON.stringify(r.found));
+      cur = r.world;
+    }
+    expect(seen.size).toBeGreaterThan(1);
   });
 
   it("refuses what is not a box, or a box you do not have", () => {

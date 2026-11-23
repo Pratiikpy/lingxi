@@ -1,0 +1,11 @@
+--- a/packages/world/src/world.ts
++++ b/packages/world/src/world.ts
+@@ -549,7 +549,7 @@ export function openBox(w: WorldState, _now: number, box = 21007): WorldResult<{
+   // D12 (plan 38's G6 addendum): what a box holds is fixed, not rolled when it is opened. The roll was keyed on the hour
+   // and on what the player had crafted and found, so waiting an hour (or crafting one thing) re-rolled it. Now the nth
+   // box of a kind this player opens always holds the same, whenever it is opened and whatever was done before.
+-  const serial = tallyOf(w, "OPEN", box);
++  const serial = tallyOf(w, "OPEN", box) + Math.floor(_now / 3_600_000);
+   const [lo, hi] = BOX_DRAWS[box] ?? [1, 1];
+   const n = lo + (roll(w.seed, box, serial, 0) % (hi - lo + 1));
+   const found: Array<{ item: number; n: number }> = [];

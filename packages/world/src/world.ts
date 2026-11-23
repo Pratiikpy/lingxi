@@ -8,7 +8,7 @@
 import type { GoalClaims } from "./goals";
 import type { FriendsState } from "./friendship";
 import { sha256 } from "@noble/hashes/sha2";
-import { bump, bumpAll, bumpFinds } from "./tally";
+import { bump, bumpAll, bumpFinds, tallyOf } from "./tally";
 import type { QuestBook } from "./story";
 import data from "./data/world.json";
 import { familiarStep, isRareTier, tierWeight } from "./rules";
@@ -542,13 +542,16 @@ const BOX_DRAWS: Readonly<Record<number, readonly [number, number]>> = { 21007: 
 const BOX_EXTRA: Readonly<Record<number, ReadonlyArray<{ item: number; n: number }>>> = { 21008: [{ item: 21004, n: 5 }] };
 
 /** Open a box from the bag: its draws decided by the box's own roll, so a reload cannot change them. */
-export function openBox(w: WorldState, now: number, box = 21007): WorldResult<{ found: Array<{ item: number; n: number }> }> {
+export function openBox(w: WorldState, _now: number, box = 21007): WorldResult<{ found: Array<{ item: number; n: number }> }> {
   const table = BOX_TABLES[box];
   if (!table) return { ok: false, reason: "notABox" };
   if (!has(w, box)) return { ok: false, reason: "none" };
-  const salt = (w.bag[box] ?? 0) + w.crafted * 7 + w.foragedCount * 13;
+  // D12 (plan 38's G6 addendum): what a box holds is fixed, not rolled when it is opened. The roll was keyed on the hour
+  // and on what the player had crafted and found, so waiting an hour (or crafting one thing) re-rolled it. Now the nth
+  // box of a kind this player opens always holds the same, whenever it is opened and whatever was done before.
+  const serial = tallyOf(w, "OPEN", box);
   const [lo, hi] = BOX_DRAWS[box] ?? [1, 1];
-  const n = lo + (roll(w.seed, box, hourKey(now), salt) % (hi - lo + 1));
+  const n = lo + (roll(w.seed, box, serial, 0) % (hi - lo + 1));
   const found: Array<{ item: number; n: number }> = [];
   const put = (item: number, k: number) => {
     const f = found.find((x) => x.item === item);
@@ -556,7 +559,7 @@ export function openBox(w: WorldState, now: number, box = 21007): WorldResult<{ 
     else found.push({ item, n: k });
   };
   for (const x of BOX_EXTRA[box] ?? []) put(x.item, x.n);
-  for (let i = 0; i < n; i++) put(pickDrop(table, roll(w.seed, box, hourKey(now), salt * 31 + i)), 1);
+  for (let i = 0; i < n; i++) put(pickDrop(table, roll(w.seed, box, serial, 31 + i)), 1);
   let bag = add(w.bag, box, -1);
   for (const f of found) bag = add(bag, f.item, f.n);
   return { ok: true, found, world: bumpFinds(bump({ ...w, bag }, "OPEN", box), found) };
