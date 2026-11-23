@@ -350,6 +350,10 @@
 }
 .v-proof-table {
   margin-top: 24px;
+  /* P3: the three long tables below the first screen are laid out only as they near the view, so the page's first
+     layout is not the whole proof at once; the placeholder size is replaced by the real one once each has been shown */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 900px;
 }
 .v-proof-table h2 {
   margin: 0;
