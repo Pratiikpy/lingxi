@@ -116,7 +116,14 @@ function AwayCard({ pet, absence }: { pet: Pet; absence: { petKey: string; from:
   const story = { events, napped };
   const [kept, setKept] = useState<ReturnType<typeof addVisits>>([]);
   useEffect(() => {
-    if (visits.length) setKept(addVisits(key, visits));
+    if (!visits.length) return;
+    // adding the visits to the album is a change to the album (once per absence); the keepsakes it gave show after
+    const gave = addVisits(key, visits);
+    let live = true;
+    void Promise.resolve().then(() => live && setKept(gave));
+    return () => {
+      live = false;
+    };
   }, [key, visits, addVisits]);
   useEffect(() => {
     // the find goes into the bag once per absence, even if the card is shown again

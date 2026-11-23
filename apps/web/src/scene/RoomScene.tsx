@@ -564,7 +564,9 @@ export function RoomScene(props: SceneProps) {
         }
         if (now > blinkAt) blinkAt = now + 2400 + Math.random() * 2400;
         const blinking = now > blinkAt - 140;
-        let { e, lit } = expressionFor(p, now, blinking);
+        const face = expressionFor(p, now, blinking);
+        let e = face.e;
+        const lit = face.lit;
         let squash: -1 | 0 | 1 = 0;
         let lift = 0;
         // D6: a small habit while its circuit chooses to rest (habitPose: timed by the clock, never at random)

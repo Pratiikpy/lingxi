@@ -102,7 +102,13 @@ export function Talk({ who, visiting = false, onFace, onAction, onClose }: { who
   // D2: on a gift day, the resident whose day it is hands over a little something
   const [villageGift, setVillageGift] = useState<number | null>(null);
   useEffect(() => {
-    setVillageGift(useWorld.getState().villageGift(who.id));
+    // taking the gift is a change to the world (once a day); what was taken is shown once that has settled
+    const item = useWorld.getState().villageGift(who.id);
+    let live = true;
+    void Promise.resolve().then(() => live && setVillageGift(item));
+    return () => {
+      live = false;
+    };
   }, [who.id]);
   const text = line ? line[lang] : "";
 
