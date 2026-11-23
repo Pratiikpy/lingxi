@@ -83,9 +83,18 @@ export async function dismiss(page: Page): Promise<void> {
 }
 
 /** Opens the game and hatches a pet called `name`. */
+/**
+ * Waits for the game's own hatch screen. A built site first shows a copy rendered at build time (P3), inert inside
+ * `[data-prerender]` until the game renders over it; a spec acts on the game's screen, never on that copy.
+ */
+export async function liveHatch(page: Page, timeout = 60_000): Promise<void> {
+  await page.locator(".hatch").first().waitFor({ timeout });
+  await page.locator("div[data-prerender]").waitFor({ state: "detached", timeout });
+}
+
 export async function hatch(p: Opened, name = "Pip"): Promise<void> {
   await p.page.goto(`${p.web}/play.html`);
-  await p.page.locator(".hatch").waitFor({ timeout: 60_000 });
+  await liveHatch(p.page);
   await p.page.fill("#pet-name", name);
   await p.page.click(".hatch-go");
   await p.page.locator(".stage").waitFor();

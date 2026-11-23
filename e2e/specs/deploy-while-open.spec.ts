@@ -9,7 +9,7 @@
  */
 import { rmSync } from "node:fs";
 import { join } from "node:path";
-import { expect, test } from "../fixtures";
+import { expect, liveHatch, test } from "../fixtures";
 import { buildSite, entryOf, expectedErrors, serveSite, siteFolder } from "../helpers/browser";
 
 const PART = "**/assets/PlayApp-*.js";
@@ -52,7 +52,7 @@ for (const { kept, look } of [
 
       const res = await page.goto(`${site.url}/play.html`);
       expect(res?.headers()["cache-control"], "the page is sent with no-cache").toBe("no-cache");
-      await page.locator(".hatch").waitFor({ timeout: 120_000 });
+      await liveHatch(page, 120_000);
       await page.waitForTimeout(1_500);
       const nowEntry = (await page.evaluate(() => document.querySelector("script[type=module][src]")?.getAttribute("src"))) ?? "";
       const entryB = entryOf(f.site);

@@ -7,7 +7,7 @@
  */
 import { rmSync } from "node:fs";
 import { type Page } from "@playwright/test";
-import { type Opened, dismiss, expect, test } from "../fixtures";
+import { dismiss, expect, liveHatch, type Opened, test } from "../fixtures";
 import { currentRun } from "../harness/run";
 import { buildSite, expectedErrors, petOf, serveSite, siteFolder } from "../helpers/browser";
 
@@ -75,7 +75,7 @@ test("a first visit whose game never arrives says so, then plays once connected 
   // the connection is back: Reload, and the game opens
   await net.back();
   await page.locator(".save-btn.primary", { hasText: "Reload" }).click();
-  await page.locator(".hatch").waitFor({ timeout: 60_000 });
+  await liveHatch(page);
   await page.fill("#pet-name", "Pip");
   await page.click(".hatch-go");
   await page.locator(".stage").waitFor();
@@ -86,7 +86,7 @@ test("a returning player's pet is safe through a dropped connection (zh, dark, p
   const p = await player({ lang: "zh", scheme: "dark", size: "phone" });
   const { page } = p;
   await page.goto(`${site!.url}/play.html`);
-  await page.locator(".hatch").waitFor({ timeout: 60_000 });
+  await liveHatch(page);
   await page.fill("#pet-name", "团团");
   await page.click(".hatch-go");
   await page.locator(".stage").waitFor();
