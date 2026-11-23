@@ -45,6 +45,7 @@ const T = {
     lede: "Every Lingxi pet's mind is a circuit of NAND gates and latches; once its owner keeps it on X Layer, that circuit is taped out there. This page reads the chain from your browser through X Layer's public RPCs (or your own) and checks the pet's thoughts with an open evaluator, so you never have to trust the game.",
     id: "Pet number",
     load: "Read from X Layer",
+    reading: "Reading this pet from X Layer…",
     owner: "Owner",
     brain: "Brain circuit",
     gates: "gates",
@@ -99,6 +100,7 @@ const T = {
     lede: "每只灵犀宠物的心智都是一块由与非门和锁存器组成的电路；主人把它留在 X Layer 上之后，这块电路就在链上流片。本页由你的浏览器通过 X Layer 的公共 RPC（或你自己的）读取链上数据，用开源求值器核对它的念头，你不需要相信游戏本身。",
     id: "宠物编号",
     load: "从 X Layer 读取",
+    reading: "正在从 X Layer 读取这只宠物…",
     owner: "主人",
     brain: "大脑电路",
     gates: "个门",
@@ -206,14 +208,15 @@ export function VerifyApp() {
   // the exhaustive check: every one of the 65,536 inputs at the pet's saved memory
   const [all, setAll] = useState<{ done: number; bad: number; first?: string; secs?: number; stopped?: boolean } | null>(null);
   const stopAll = useRef(false);
-  // the picture and name the registry serves for this pet, drawn by PetLook
-  const [meta, setMeta] = useState<{ name: string; image?: string; same?: boolean } | null>(null);
+  // the picture and name the registry serves for this pet, drawn by PetLook; undefined while it is being read (P3: its
+  // place is kept so the card does not jump when it arrives), null when there is none
+  const [meta, setMeta] = useState<{ name: string; image?: string; same?: boolean } | null | undefined>(undefined);
 
   // a pet read from X Layer is shown with everything about it read alongside: its name colour, its picture, its circuit
   const show = useCallback(
     async (forId: string, p: ChainPet) => {
       setPet(p);
-      setMeta(null);
+      setMeta(undefined);
       setColour(0);
       // its name colour (plan 4.9), from the extras contract
       if (deployment!.extras)
@@ -516,8 +519,19 @@ export function VerifyApp() {
       </form>
       {err && <p className="v-err">{err}</p>}
       {!err && circuitError && <p className="v-err">{"tooBig" in circuitError ? tooBigText(circuitError.tooBig.gates, circuitError.tooBig.max) : t.circuitUnread}</p>}
+      {/* P3: while the pet is read, its card's place is held, so the sections below do not jump when it arrives */}
+      {!pet && !err && deployment && (
+        <section className="v-card v-card-wait" aria-busy="true" aria-label={t.brain}>
+          <p className="v-note">{t.reading}</p>
+        </section>
+      )}
       {pet && u && (
         <section className="v-card" aria-label={t.brain}>
+          {meta === undefined && (
+            <figure className="v-picture v-picture-wait" aria-hidden="true">
+              <span className="v-picture-box" />
+            </figure>
+          )}
           {meta?.image && (
             <figure className="v-picture">
               <img src={meta.image} alt={meta.name} width={144} height={144} />

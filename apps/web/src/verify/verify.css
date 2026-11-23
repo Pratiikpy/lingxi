@@ -219,6 +219,24 @@
   min-height: 32px;
 }
 
+/* P3: the pet card's place while it is read (no layout shift when it arrives) and its picture's place while that is */
+.v-card-wait {
+  min-height: 100svh;
+}
+.v-picture-wait .v-picture-box {
+  display: block;
+  width: 144px;
+  height: 148px;
+  border: 2px dashed var(--line, #2b2140);
+  border-radius: 14px;
+  opacity: 0.25;
+}
+@media (max-width: 480px) {
+  .v-picture-wait .v-picture-box {
+    width: 96px;
+    height: 100px;
+  }
+}
 .v-picture {
   display: flex;
   gap: 16px;
