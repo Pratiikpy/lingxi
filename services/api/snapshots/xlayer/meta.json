@@ -1,0 +1,22 @@
+{
+  "takenAt": "2026-11-23T19:23:04.504Z",
+  "block": 76692727,
+  "registry": {
+    "address": "0x103d7252eb6b2fec22b3f65a6bb605945f280e99",
+    "fromBlock": 75968151
+  },
+  "processor": {
+    "address": "0xf70d324da8c1c4cb0de3ff147e53e7e9db543c4e",
+    "fromBlock": 75968095
+  },
+  "markets": [
+    {
+      "address": "0xb9f6b18edd21933582ec69fb1e718d9629e684cd",
+      "fromBlock": 76011196
+    },
+    {
+      "address": "0xa292c12b0414bbfc14994f93bcff8bd58c921e55",
+      "fromBlock": 76063126
+    }
+  ]
+}

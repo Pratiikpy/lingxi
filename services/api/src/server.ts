@@ -78,6 +78,7 @@ import { withRpcProxy } from "./rpc";
 import { privateKeyToAccount } from "viem/accounts";
 import { type EarningTerms, createSalesCounter, withNumbers } from "./numbers";
 import { createCircuitCounter } from "./circuits";
+import { seedStore, snapshotFits } from "./snapshot";
 import { readTeamFile } from "./team";
 import { createRefScanner } from "./refScan";
 import { createListingWatch, withRetiredListings } from "./marketV1";
@@ -96,6 +97,9 @@ import { withBodyLimits } from "./bodyLimits";
 import { proveSeasonEntry } from "./seasonProof";
 import { budgetedClient, createTokenBudget, modelCaller } from "./tokenBudget";
 import { createJobs } from "./jobs";
+
+/** The numbers snapshot shipped in the repo (snapshot.ts, `pnpm numbers:snapshot`). */
+const SNAPSHOT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "../snapshots/xlayer");
 
 function loadKey(): string | undefined {
   if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
@@ -1229,6 +1233,8 @@ if (isMain) {
     jobs.every("season keepsakes", 10 * 60_000, giveKeepsakes);
   }
   if (process.env.LINGXI_REGISTRY && process.env.LINGXI_REGISTRY_FROM) {
+    // P3: a fresh server's pet history starts from the snapshot in the repo when it walks the same registry (snapshot.ts)
+    seedStore(SNAPSHOT_DIR, "history", process.env.LINGXI_HISTORY_STORE, (m) => snapshotFits(m, "history", { registry: process.env.LINGXI_REGISTRY, registryFrom: Number(process.env.LINGXI_REGISTRY_FROM) }), (l) => console.log(l));
     const indexer = createIndexer({ rpc: process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech", registry: process.env.LINGXI_REGISTRY as `0x${string}`, fromBlock: Number(process.env.LINGXI_REGISTRY_FROM), store: process.env.LINGXI_HISTORY_STORE });
     withHistory(app, indexer);
     watch.indexed = () => indexer.head();
@@ -1288,6 +1294,7 @@ if (isMain) {
     const teamPublic = [chainCtx?.deployment.deployer, relayer?.address].filter((a): a is `0x${string}` => !!a).map((a) => a.toLowerCase());
     const teamPrivate = readTeamFile(process.env.LINGXI_TEAM_FILE ?? join(dataDir, "team.json")).filter((a) => !teamPublic.includes(a));
     const teamAll = [...teamPublic, ...teamPrivate];
+    seedStore(SNAPSHOT_DIR, "sales", process.env.LINGXI_SALES_STORE, (m) => snapshotFits(m, "sales", { markets }), (l) => console.log(l));
     const sales = createSalesCounter({ rpc, markets, team: teamAll, store: process.env.LINGXI_SALES_STORE });
     jobs.loop("sales", () => sales.catchUp(), 20_000);
     // the OKB market's listings a sale retired, which V1 itself would still sell (A23); the game shows none without it
@@ -1314,7 +1321,9 @@ if (isMain) {
     // circuits Lingxi has taped out: the processor's mints, walked from its deploy block (H10)
     // LINGXI_PROCESSOR_FROM starts the walk later (a fork of mainnet starts at its own block)
     const processorBlock = Number(process.env.LINGXI_PROCESSOR_FROM ?? chainCtx?.deployment.processorBlock ?? 0) || undefined;
-    const circuitCounter = processor && processorBlock ? createCircuitCounter({ rpc, processor, fromBlock: processorBlock, ...(chainCtx?.deployment.processorBlock ? { deployBlock: Number(chainCtx.deployment.processorBlock) } : {}), store: process.env.LINGXI_CIRCUITS_STORE ?? join(dataDir, "circuits.json") }) : null;
+    const circuitsStore = process.env.LINGXI_CIRCUITS_STORE ?? join(dataDir, "circuits.json");
+    if (processor && processorBlock) seedStore(SNAPSHOT_DIR, "circuits", circuitsStore, (m) => snapshotFits(m, "circuits", { processor, processorFrom: processorBlock }), (l) => console.log(l));
+    const circuitCounter = processor && processorBlock ? createCircuitCounter({ rpc, processor, fromBlock: processorBlock, ...(chainCtx?.deployment.processorBlock ? { deployBlock: Number(chainCtx.deployment.processorBlock) } : {}), store: circuitsStore }) : null;
     if (circuitCounter) jobs.loop("circuits", () => circuitCounter.catchUp(), 20_000);
     // the relayer's hatches are sponsored keeps; every other pet was kept by its owner's wallet or another (H10)
     const sponsors = relayer ? [relayer.address] : [];
@@ -1335,6 +1344,7 @@ if (isMain) {
     });
     // community goals: every contribution read from the registry and every BEM burner
     const burners = [env("LINGXI_BREEDER"), env("LINGXI_MARKET_BEM"), env("LINGXI_ITEM_SHOP"), env("LINGXI_ADOPTION"), env("LINGXI_EXTRAS") ?? chainCtx?.deployment.extras].filter((a): a is `0x${string}` => !!a);
+    seedStore(SNAPSHOT_DIR, "goals", process.env.LINGXI_GOALS_STORE, (m) => snapshotFits(m, "goals", { registry: process.env.LINGXI_REGISTRY, registryFrom: Number(process.env.LINGXI_REGISTRY_FROM) }), (l) => console.log(l));
     const ledger = createGoalLedger({ rpc, registry: process.env.LINGXI_REGISTRY as `0x${string}`, burners, fromBlock: Number(process.env.LINGXI_REGISTRY_FROM), store: process.env.LINGXI_GOALS_STORE });
     withGoals(app, ledger);
     // keepsake vouchers (plan 4.6): signed only for contributors to a completed goal, with the voucher key

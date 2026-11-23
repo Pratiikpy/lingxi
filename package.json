@@ -19,7 +19,8 @@
     "readme:shots": "tsx scripts/readme-shots.mts",
     "readme:phones": "tsx scripts/readme-phones.mts",
     "perf:budget": "tsx scripts/perf-budget.mts",
-    "perf:lighthouse": "tsx scripts/lighthouse-budget.mts"
+    "perf:lighthouse": "tsx scripts/lighthouse-budget.mts",
+    "numbers:snapshot": "tsx services/api/scripts/numbers-snapshot.mts"
   },
   "devDependencies": {
     "@eslint/js": "9.17.0",
