@@ -46,8 +46,8 @@ function Residents() {
 const MindDemo = lazy(() => import("./LandingDemos").then((m) => ({ default: m.MindDemo })));
 const TeachDemo = lazy(() => import("./LandingDemos").then((m) => ({ default: m.TeachDemo })));
 const SparDemo = lazy(() => import("./LandingDemos").then((m) => ({ default: m.SparDemo })));
-const GrowStrip = lazy(() => import("./LandingDemos").then((m) => ({ default: m.GrowStrip })));
-const FriendsScene = lazy(() => import("./LandingDemos").then((m) => ({ default: m.FriendsScene })));
+const GrowStrip = lazy(() => import("./LandingScenes").then((m) => ({ default: m.GrowStrip })));
+const FriendsScene = lazy(() => import("./LandingScenes").then((m) => ({ default: m.FriendsScene })));
 
 /**
  * P3: a demo's place, held at its size, mounting the demo only once it comes within 200 px of view (or at once

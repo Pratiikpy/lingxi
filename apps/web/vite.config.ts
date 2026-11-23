@@ -1,7 +1,7 @@
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { execFileSync } from "node:child_process";
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { hasBannedName, scanNames } from "../../packages/world/src/names";
 
@@ -49,8 +49,40 @@ function namesGuard(): Plugin {
   };
 }
 
+/**
+ * P3: the game page fetches its app (PlayApp and everything it imports) only after the save is claimed and the clock is
+ * asked, so on a slow phone the download waited about two seconds for nothing. `modulepreload` hints for those chunks are
+ * written into play.html: the browser fetches and parses them from the start without running them, so nothing reads
+ * the save before this tab holds the game (P1).
+ */
+function preloadGame(): Plugin {
+  return {
+    name: "lingxi-preload-game",
+    apply: "build",
+    writeBundle(options, bundle) {
+      const chunks = Object.values(bundle).filter((c): c is Extract<typeof c, { type: "chunk" }> => c.type === "chunk");
+      // the game app's own chunk: a dynamic entry holding src/play/PlayApp.tsx (its facade id is gone by this hook)
+      const app = chunks.find((c) => c.isDynamicEntry && c.moduleIds.some((id) => id.split("\\").join("/").endsWith("/src/play/PlayApp.tsx")));
+      const file = join(options.dir ?? "", "play.html");
+      if (!app || !existsSync(file)) return this.warn("play.html or the PlayApp chunk not found: no preload written");
+      const files = new Set<string>();
+      const walk = (name: string) => {
+        if (files.has(name)) return;
+        files.add(name);
+        for (const dep of chunks.find((c) => c.fileName === name)?.imports ?? []) walk(dep);
+      };
+      walk(app.fileName);
+      const html = readFileSync(file, "utf8");
+      const already = new Set([...html.matchAll(/href="\.\/([^"]+)"/g)].map((m) => m[1]));
+      const css = [...files].flatMap((f) => [...(chunks.find((c) => c.fileName === f)?.viteMetadata?.importedCss ?? [])]);
+      const links = [...[...files].filter((f) => !already.has(f)).map((f) => `<link rel="modulepreload" crossorigin href="./${f}">`), ...css.filter((f) => !already.has(f)).map((f) => `<link rel="preload" as="style" href="./${f}">`)];
+      writeFileSync(file, html.replace("</head>", `  ${links.join("\n    ")}\n  </head>`));
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), buildStamp(), namesGuard()],
+  plugins: [react(), buildStamp(), namesGuard(), preloadGame()],
   base: "./",
   build: {
     target: "es2022",
