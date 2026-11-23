@@ -484,7 +484,7 @@ describe("a bag item's spar bonus is what its label says (D14)", () => {
       expect(changed, it.name.en).toBeGreaterThan(30);
       // "+15 health" is 15 health
       if (boost.hp) expect(fight(CURRENT_SPAR, { ...me, boost }, opp, 7).rounds[0]!.hp[0]).toBeGreaterThan(fight(CURRENT_SPAR, me, opp, 7).rounds[0]!.hp[0]);
-      for (const old of [SPAR_V2, SPAR_V3]) expect(fight(old, { ...me, boost }, opp, 7)).toEqual(fight(old, me, opp, 7));
+      for (const old of [SPAR_V2, SPAR_V3] as const) expect(fight(old, { ...me, boost }, opp, 7)).toEqual(fight(old, me, opp, 7));
     }
   });
 });
