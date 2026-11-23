@@ -9,7 +9,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { chromium } from "playwright";
+import { chromium } from "@playwright/test";
 
 const FLOOR = 85;
 const MAX_SHIFT = 0.1;
