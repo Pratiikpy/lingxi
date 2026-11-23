@@ -40,16 +40,17 @@ export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string, 
     setInstincts((on) => (on.includes(k) ? on.filter((x) => x !== k) : [...on, k]));
   };
   const test1 = useHoldings((h) => h.held?.test1 === true);
+  // the egg's shape and crack frames are the same for every line (only the palette differs), so they are drawn once (P3)
+  const shape = useMemo(() => ({ idle: drawEgg("coral", 0), cracks: [0, 1, 2, 3].map((k) => drawEgg("coral", 0, k)) }), []);
   const eggs = useMemo(
     () =>
       LINES.map((l) => ({
         l,
         // X2: a TapeCode Test1 holder's eggs come in a gilded shell (cosmetic only)
         pal: test1 ? { ...SHELL, ...GILDED, x: PALETTE_OF[l].m, X: PALETTE_OF[l].d } : { ...SHELL, x: PALETTE_OF[l].m, X: PALETTE_OF[l].d },
-        idle: drawEgg("coral", 0),
-        cracks: [0, 1, 2, 3].map((k) => drawEgg("coral", 0, k)),
+        ...shape,
       })),
-    [test1],
+    [test1, shape],
   );
   const shuffle = () => {
     setTyped(null);

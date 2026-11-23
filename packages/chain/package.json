@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./player": "./src/player.ts",
-    "./limits": "./src/limits.ts"
+    "./limits": "./src/limits.ts",
+    "./holderGift": "./src/holderGift.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

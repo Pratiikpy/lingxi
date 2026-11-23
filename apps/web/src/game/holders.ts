@@ -8,7 +8,7 @@
 
 import { create } from "zustand";
 import { type Address, parseAbi } from "viem";
-import { type SnapshotFile, giftClaimed, giftTerms, loadSnapshot, snapshotWay } from "@lingxi/chain";
+import type { SnapshotFile } from "@lingxi/chain";
 import { deployment, publicClient } from "./chain";
 import { saveWrite } from "./saveRuntime";
 import { now } from "./gameClock";
@@ -55,6 +55,8 @@ export async function readHoldings(wallet: Address): Promise<Holdings> {
 export async function readPinStatus(wallet: Address): Promise<{ snapshot?: boolean; pinClaimed?: boolean }> {
   if (!deployment?.holderGift) return {};
   try {
+    // P3: the gift's code (with the Merkle-tree library) is fetched only when a wallet's pin is read, not with the game
+    const { giftClaimed, giftTerms, loadSnapshot, snapshotWay } = await import("@lingxi/chain/holderGift");
     const t = await giftTerms(publicClient, deployment);
     if (!t) return {};
     const claimed = await giftClaimed(publicClient, t, wallet).catch(() => undefined);
