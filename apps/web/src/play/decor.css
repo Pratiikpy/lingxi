@@ -5,6 +5,9 @@
   top: 10px;
   z-index: 4;
   display: grid;
+  /* one column the bar's own width: a child wider than the bar (a long piece name, the count) wraps or ellipsises inside
+     it, never pushes past its edge (P3a) */
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
   padding: 10px;
   border: 2px solid #2b2140;
@@ -161,4 +164,19 @@
 .decor-bar.placing .btn {
   padding: 4px 10px;
   font-size: 13px;
+}
+/* the strip's second line: what to do, and the count */
+.decor-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  column-gap: 8px;
+}
+/* the bar is a light card in either theme, so its plain buttons take its colours, not the page's */
+.decor-bar .btn:not(.primary) {
+  background: #fffdf8;
+  color: #2b2140;
+  border-color: #2b2140;
+  box-shadow: 0 3px 0 #2b2140;
 }

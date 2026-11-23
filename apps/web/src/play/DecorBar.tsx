@@ -58,13 +58,15 @@ export function DecorBar({ selected, onSelect, onDone }: { selected: string | nu
         <div className="decor-head">
           <DecorIcon rows={inHand.rows} colors={inHand.colors} />
           <b>{t("decor.placing" as Key, { name: inHand.name[lang as "en" | "zh"] })}</b>
-          {count}
           <button type="button" className="btn" onClick={() => (play("tap"), onSelect(null))}>
             {t("decor.change" as Key)}
           </button>
           {done}
         </div>
-        <p className="decor-hint">{t("decor.tapRoom" as Key)}</p>
+        <div className="decor-line">
+          <p className="decor-hint">{t("decor.tapRoom" as Key)}</p>
+          {count}
+        </div>
       </div>
     );
   return (
