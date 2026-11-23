@@ -63,6 +63,32 @@ export interface QuestDef {
 /** A part of the game that opens on a later day (the web's reveal: the map and bag on day 2, spars on day 3). */
 export type Part = "map" | "bag" | "spar";
 
+/**
+ * D15: the parts a condition sends the player to, worked out from what it counts rather than a hand-written list.
+ * Talking to a resident, meeting one, walking, moving between rooms and time outdoors (home counts as inside) need the
+ * map; giving from the bag needs the bag; handing a resident something needs both. Of a choice of ways (ANY), a way that
+ * waits on another player (a friend's pet visiting) is not one a player can take alone, so it does not count; the rest
+ * need only what they all need.
+ */
+export function partsOf(c: Condition): Part[] {
+  if (c.type === "ANY") {
+    const solo = (c.of ?? []).filter((x) => !(x.type === "EVENT" && x.index === "visited-by-friend"));
+    if (!solo.length) return [];
+    const each = solo.map(partsOf);
+    return each[0]!.filter((p) => each.every((e) => e.includes(p)));
+  }
+  const out = new Set<Part>();
+  if (c.type === "TALK" || c.type === "MEET" || c.type === "MOVE" || c.type === "WALK" || c.type === "GIVE_TO") out.add("map");
+  if (c.type === "GIVE" || c.type === "GIVE_TO") out.add("bag");
+  if (c.type === "TOGETHER_WHEN" && typeof c.index === "string" && c.index.endsWith("-outside")) out.add("map");
+  return [...out];
+}
+
+/** Every part a quest needs: what its objectives count, and any it names itself. */
+export function partsNeeded(q: QuestDef): Part[] {
+  return [...new Set<Part>([...(q.needs ?? []), ...q.objectives.flatMap((o) => partsOf(o.cond))])];
+}
+
 export interface QuestBook {
   /** accepted and not yet handed in: when, and the snapshot of its INC objectives */
   active: Record<string, { at: number; snap: Record<string, number> }>;
@@ -200,7 +226,7 @@ function hash(s: string): number {
 export function pickDailies(pool: readonly QuestDef[], seed: string, day: string, closed: readonly Part[] = []): string[] {
   const out: string[] = [];
   // D9: a daily that sends the player to a part not open yet is not offered (a slot with none left stays empty)
-  const reachable = (q: QuestDef) => !(q.needs ?? []).some((p) => closed.includes(p));
+  const reachable = (q: QuestDef) => !partsNeeded(q).some((p) => closed.includes(p));
   // about every other day, chosen from the seed and the day rather than by turns, so a player who comes every other
   // day still meets both kinds
   const requestDay = hash(`${seed}:${day}:request`) % 2 === 0 && pool.some((q) => q.group === "request" && reachable(q));

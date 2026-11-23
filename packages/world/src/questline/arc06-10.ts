@@ -230,7 +230,7 @@ export const ARC_6_TO_10: QuestDef[] = [
     title: T("Stargazing", "看星星"),
     intro: [say(L.dream, "Take your pet outside one night and just look up. Ten minutes.", "找个晚上带宠物到外面去，就抬头看。十分钟。")],
     outro: [say(L.smile, "Did you see the one that blinked? I drew them for you.", "你看见那颗一闪一闪的了吗？我把它们画下来给你。")],
-    objectives: [obj(from("TOGETHER_WHEN", "night-outside", 10), "Spend 10 night minutes together outdoors", "夜里在户外一起待 10 分钟")],
+    objectives: [obj(from("TOGETHER_WHEN", "night-outside", 10), "Spend 10 night minutes together outdoors, away from home", "离开家，夜里在户外一起待 10 分钟")],
     rewards: [coins(20), decor("starmap"), trust("nimbus", 6)],
   }),
   quest(70, 10, "nimbus", [done("q69")], {

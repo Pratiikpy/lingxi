@@ -118,3 +118,21 @@ describe("no daily sends a player to a lock (D9)", () => {
     expect(offered).toBe(240);
   });
 });
+
+describe("each daily's parts are worked out from what it counts (D15)", () => {
+  it("time outdoors needs the map (home counts as inside), a friend's visit is not a way in alone, and no hand-written list says less than the objective", async () => {
+    const { DAILIES, STORY, partsNeeded, partsOf, pickDailies } = await import("../src");
+    const of = (id: string) => partsNeeded(DAILIES.find((q) => q.id === id)!);
+    expect(of("d-evening")).toContain("map");
+    expect(of("d-friend")).toContain("map");
+    expect(of("d-gift")).toEqual(["bag"]);
+    for (const id of ["d-breakfast", "d-bath", "d-pats", "d-nap", "d-game", "d-look", "d-bring"]) expect(of(id), id).toEqual([]);
+    for (const q of DAILIES) for (const p of q.needs ?? []) expect(q.objectives.flatMap((o) => partsOf(o.cond)), `${q.id} names ${p}`).toContain(p);
+    // the story's night-outdoors quest is worked out the same way
+    expect(partsNeeded(STORY.find((q) => q.objectives.some((o) => o.cond.index === "night-outside"))!)).toContain("map");
+    for (let k = 0; k < 200; k++) {
+      const day = new Date(Date.UTC(2026, 10, 1) + k * 86_400_000).toISOString().slice(0, 10);
+      expect(pickDailies(DAILIES, `s${k}`, day, ["map", "bag", "spar"])).not.toContain("d-evening");
+    }
+  });
+});

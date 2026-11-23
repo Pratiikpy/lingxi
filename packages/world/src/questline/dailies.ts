@@ -115,7 +115,7 @@ export const DAILIES: QuestDef[] = [
     title: T("Evening air", "傍晚的风"),
     intro: [say("neutral", "The air smells different in the evening. Can we be outside for a bit?", "傍晚的空气闻起来不一样。我们能在外面待一会儿吗？")],
     outro: [say("love", "Orange sky. Thank you for staying.", "橘色的天空。谢谢你陪着我。")],
-    objectives: [obj(from("TOGETHER_WHEN", "evening-outside", 5), "Spend 5 evening minutes together outdoors", "傍晚在户外一起待 5 分钟")],
+    objectives: [obj(from("TOGETHER_WHEN", "evening-outside", 5), "Spend 5 evening minutes together outdoors, away from home", "离开家，傍晚在户外一起待 5 分钟")],
     rewards: [coins(12)],
   }),
   d("bring", "explore", {
