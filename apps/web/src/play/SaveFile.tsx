@@ -5,7 +5,6 @@
  */
 
 import { useState } from "react";
-import { create } from "zustand";
 import { useLang } from "../i18n";
 import { restoreFrom } from "../game/move";
 import { READERS, useSaveState } from "../game/saveRuntime";
@@ -19,11 +18,8 @@ import { now } from "../game/gameClock";
 /** A save file larger than this is not one of ours (a full browser storage locked and encoded is far smaller). */
 const MAX_FILE_BYTES = 12 * 1024 * 1024;
 
-export const useSaveFileUi = create<{ open: boolean; show: () => void; hide: () => void }>((set) => ({
-  open: false,
-  show: () => set({ open: true }),
-  hide: () => set({ open: false }),
-}));
+export { useSaveFileUi } from "./saveFileUi";
+import { useSaveFileUi } from "./saveFileUi";
 
 type Lang = "en" | "zh";
 const L = (lang: Lang, en: string, zh: string) => (lang === "zh" ? zh : en);

@@ -1,11 +1,11 @@
 {
-  "why": "P3: what each page loads before it runs, gzip-compressed, in KB (scripts/page-weights.mts): the weights measured 2026-11-24 after 64bbdc3b, plus 10 percent, rounded up. A page past its budget fails the build; raise a budget only with its reason written in BUILD-STATUS. index.html raised 142 to 190 on 2026-11-24: its two web fonts (45 KB) are now preloaded in its HTML, so the measure counts them (the page always loaded them); the game page's budget already counted them.",
+  "why": "P3: what each page loads before it runs, gzip-compressed, in KB (scripts/page-weights.mts): the weights measured 2026-11-24 after 64bbdc3b, plus 10 percent, rounded up. A page past its budget fails the build; raise a budget only with its reason written in BUILD-STATUS. index.html raised 142 to 190 on 2026-11-24: its two web fonts (45 KB) are now preloaded in its HTML, so the measure counts them (the page always loaded them); the game page's budget already counted them. play.html lowered 572 to 297 on 2026-11-24: a first visit preloads only the entry and the standalone hatch screen (FirstVisit.tsx), 270 KB; the rest of the game is preloaded only where a pet is saved, which this measure does not count.",
   "pages": {
     "agents.html": 147,
     "handheld.html": 92,
     "index.html": 190,
     "numbers.html": 190,
-    "play.html": 572,
+    "play.html": 297,
     "tree.html": 121,
     "verify.html": 301
   }

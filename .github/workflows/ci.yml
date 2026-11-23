@@ -58,17 +58,6 @@ jobs:
       - name: Contract tests
         run: forge test
         working-directory: contracts
-      - name: Contract tests on a fork of X Layer mainnet (reads only)
-        run: forge test --fork-url xlayer --match-path 'test/*.fork.t.sol'
-        working-directory: contracts
-      - name: Server tests with its fork tests, on a pinned fork (reads X Layer only)
-        run: pnpm test:fork
-      - name: Keep the fork's cache
-        if: always()
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.foundry/cache/rpc
-          key: check-fork-${{ github.run_id }}
       - name: README numbers, repo hygiene
         run: pnpm status:check --only promises,hygiene && pnpm exec tsx scripts/readme-facts.mts --check --no-tests
       - name: The web build, with its name guard
@@ -83,6 +72,18 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
       - name: Each page's Lighthouse score above its floor
         run: pnpm perf:lighthouse apps/web/dist
+      # the steps that read X Layer through a fork come last, so a slow upstream RPC never skips the checks above (P3a)
+      - name: Contract tests on a fork of X Layer mainnet (reads only)
+        run: forge test --fork-url xlayer --match-path 'test/*.fork.t.sol'
+        working-directory: contracts
+      - name: Server tests with its fork tests, on a pinned fork (reads X Layer only)
+        run: pnpm test:fork
+      - name: Keep the fork's cache
+        if: always()
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.foundry/cache/rpc
+          key: check-fork-${{ github.run_id }}
 
   coverage:
     # how much of each part's code its tests run, held to 80% of lines and branches (scripts/coverage.mts)

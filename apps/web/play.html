@@ -31,17 +31,27 @@
       @media (prefers-reduced-motion: reduce) { .boot-dot { animation: none; } }
     </style>
     <script type="module">
-      // P3: the first screen (the prerendered hatch, or the splash) paints before the game's code starts running, so a
-      // slow phone never holds that paint back behind script; a tab opened in the background, which draws no frames,
-      // starts on the timer instead
+      // P3: the first screen (the prerendered hatch, or the splash) is painted before the game's code is even fetched, so
+      // on a slow phone that paint never waits behind script download or parsing. The code starts once the browser
+      // reports the page's largest paint (or, where it reports no such thing, its first contentful paint, then two
+      // frames); a tab opened in the background, which paints nothing, starts on the timer instead
       let started = false;
       const start = () => {
         if (started) return;
         started = true;
         import("/src/play/main.tsx");
       };
-      requestAnimationFrame(() => requestAnimationFrame(start));
-      setTimeout(start, 250);
+      const kinds = (typeof PerformanceObserver !== "undefined" && PerformanceObserver.supportedEntryTypes) || [];
+      const kind = kinds.includes("largest-contentful-paint") ? "largest-contentful-paint" : kinds.includes("paint") ? "paint" : "";
+      if (kind) {
+        const seen = new PerformanceObserver((list) => {
+          if (!list.getEntries().some((e) => kind !== "paint" || e.name === "first-contentful-paint")) return;
+          seen.disconnect();
+          requestAnimationFrame(() => setTimeout(start, 0));
+        });
+        seen.observe({ type: kind, buffered: true });
+      } else requestAnimationFrame(() => requestAnimationFrame(start));
+      setTimeout(start, 1500);
     </script>
   </body>
 </html>

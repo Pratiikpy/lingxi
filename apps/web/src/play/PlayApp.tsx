@@ -26,6 +26,7 @@ import type { DayPhase } from "../scene/RoomScene";
 import { weatherFor } from "../scene/weather";
 import { PALETTE_OF, type PetStage } from "../scene/palette";
 import { Hatch } from "./Hatch";
+import { useHatchDraft } from "./hatchDraft";
 import { Actions, Meters, TabBar, ThinkStrip, ToastView, TopBar, VoiceBubble, type Tab } from "./parts";
 import { useVoice } from "../game/voice";
 import { EvolutionChart, MeSheetBody, MindPanel, Sheet } from "./Sheets";
@@ -509,6 +510,7 @@ export function PlayApp() {
         <Hatch
           onHatch={(line, name, instincts) => {
             hatch(line, name, instincts);
+            useHatchDraft.getState().reset();
             play("success");
           }}
         />

@@ -7,9 +7,10 @@ import "../styles/tokens.css";
 import { migrateLegacyNames } from "../boot/legacyNames";
 import { claimTheGame } from "../game/saveRuntime";
 import { startClock } from "../game/gameClock";
-import { startTelegram } from "../game/telegram";
+import { inTelegram, startTelegram } from "../game/telegram";
 import { receivePets } from "../game/move";
 import { LoadFailed } from "./LoadFailed";
+import { type GameParts, isFirstVisit, loadGame } from "./gameParts";
 
 startTelegram();
 const root = createRoot(document.getElementById("root")!);
@@ -20,9 +21,37 @@ async function play(): Promise<void> {
   // pets arriving from Telegram or another browser land before the game reads its save; the clock asks the server
   // for the time meanwhile, so a pet catches up to real time even on a device whose clock is wrong (gameClock.ts)
   await Promise.all([receivePets(), startClock()]);
-  const [{ PlayApp }, { CrashGuard }] = await Promise.all([import("./PlayApp"), import("./Crash")]);
+  let storage: Storage | null = null;
+  try {
+    storage = localStorage;
+  } catch {
+    storage = null;
+  }
+  // P3: a first visit gets a working hatch screen at once and the rest of the game behind it (FirstVisit.tsx)
+  if (isFirstVisit(storage, location, inTelegram())) {
+    const [{ FirstVisit }, { CrashGuard }] = await Promise.all([import("./FirstVisit"), import("./Crash")]);
+    startTransition(() =>
+      root.render(
+        <StrictMode>
+          <CrashGuard>
+            <FirstVisit handOver={showGame} onFail={failedToLoad} />
+          </CrashGuard>
+        </StrictMode>,
+      ),
+    );
+    return;
+  }
+  showGame(await loadGame());
+}
+
+let shown = false;
+/** The full game on the page, once. */
+function showGame({ PlayApp, CrashGuard }: GameParts): void {
+  if (shown) return;
+  shown = true;
   // P3: the game's first render is a transition, so React renders it in short slices and the page stays responsive
-  // while it does; what shows meanwhile (the prerendered hatch screen, or the splash) stays until it is ready
+  // while it does; what shows meanwhile (the prerendered hatch screen, the first visit's own one, or the splash) stays
+  // until it is ready
   startTransition(() =>
     root.render(
       <StrictMode>

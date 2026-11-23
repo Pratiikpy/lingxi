@@ -1,7 +1,7 @@
 /** First run: pick one of three eggs, name it, watch it hatch. */
 
 import { OnChainNote } from "../OnChainNote";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { SHELL, drawEgg, drawPet } from "@lingxi/art";
 import { useHoldings } from "../game/holders";
@@ -16,7 +16,8 @@ import { useLang, useT, type Key } from "../i18n";
 import { play } from "../game/sound";
 import { PALETTE_OF } from "../scene/palette";
 import { Sprite } from "./Sprite";
-import { useSaveFileUi } from "./SaveFile";
+import { useSaveFileUi } from "./saveFileUi";
+import { useHatchDraft } from "./hatchDraft";
 import "./hatch.css";
 
 const LINES: readonly StarterLine[] = ["gentle", "bold", "curious"];
@@ -25,19 +26,19 @@ export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string, 
   const t = useT();
   const { lang } = useLang();
   const reduce = useReducedMotion();
-  const [line, setLine] = useState<StarterLine>("gentle");
+  // the choices live in a store of their own (hatchDraft.ts), so a first visit's hand-over to the full game keeps them
+  const { line, draw, typed, cracking, instincts, update } = useHatchDraft();
+  const setLine = (l: StarterLine) => update({ line: l });
   // the suggested name is read from the chosen egg's own circuit (PRD F14); once the player types, it is theirs
-  const [draw, setDraw] = useState(0);
-  const [typed, setTyped] = useState<string | null>(null);
-  const [cracking, setCracking] = useState(-1);
-  const [instincts, setInstincts] = useState<Instinct[]>([]);
+  const setCracking = (k: number) => update({ cracking: k });
   const circuit = useMemo(() => netlistBytes(compileProgram(composeProgram(line, [], instinctBits(instincts)))), [line, instincts]);
   const suggested = useMemo(() => nameFromBrain(circuit, draw), [circuit, draw]);
   const name = typed ?? suggested[lang === "zh" ? "zh" : "en"];
-  const setName = (v: string) => setTyped(v);
+  const setName = (v: string) => update({ typed: v });
   const toggle = (k: Instinct) => {
     play("tap");
-    setInstincts((on) => (on.includes(k) ? on.filter((x) => x !== k) : [...on, k]));
+    const on = useHatchDraft.getState().instincts;
+    update({ instincts: on.includes(k) ? on.filter((x) => x !== k) : [...on, k] });
   };
   const test1 = useHoldings((h) => h.held?.test1 === true);
   // the egg's shape and crack frames are the same for every line (only the palette differs), so they are drawn once (P3)
@@ -53,15 +54,16 @@ export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string, 
     [test1, shape],
   );
   const shuffle = () => {
-    setTyped(null);
-    setDraw((d) => d + 1);
+    update({ typed: null, draw: useHatchDraft.getState().draw + 1 });
     play("tap");
   };
   const hatch = () => {
     play("hatch");
     const bits = instinctBits(instincts);
+    // whoever receives the pet clears the draft once the pet exists, so the last crack frame stays until then
+    const done = () => onHatch(line, name, bits);
     if (reduce) {
-      onHatch(line, name, bits);
+      done();
       return;
     }
     let k = 0;
@@ -70,7 +72,7 @@ export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string, 
       k += 1;
       if (k > 4) {
         clearInterval(id);
-        onHatch(line, name, bits);
+        done();
       } else setCracking(k);
     }, 420);
   };

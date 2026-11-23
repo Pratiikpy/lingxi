@@ -9,7 +9,7 @@
 import { create } from "zustand";
 import { type Address, parseAbi } from "viem";
 import type { SnapshotFile } from "@lingxi/chain";
-import { deployment, publicClient } from "./chain";
+import { deployment, publicClient } from "./network";
 import { saveWrite } from "./saveRuntime";
 import { now } from "./gameClock";
 

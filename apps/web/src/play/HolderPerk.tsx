@@ -5,7 +5,7 @@
  */
 import { useState } from "react";
 import { useLang } from "../i18n";
-import { walletAddress } from "../game/chain";
+import { walletAddress } from "../game/network";
 import { readHoldings, readPinStatus, useHoldings } from "../game/holders";
 import { play } from "../game/sound";
 import { errorText } from "../game/errorText";

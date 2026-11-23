@@ -59,9 +59,14 @@ function namesGuard(): Plugin {
  * prerendered screen paints in them (a later swap re-set its words a little larger, which counted as a second, later
  * first screen), and the pages' stylesheets are applied from the start, since the prerendered screens paint with them
  * (the page's own loader skips a stylesheet already on it).
+ *
+ * `saved` entries are preloaded only for a visitor with a pet saved on this device (a small script in the page checks the
+ * save, as the hatch screen's own picker does): a first visit runs the standalone hatch screen and fetches the rest of
+ * the game behind it (FirstVisit.tsx), so preloading all of it would make the first screen wait on code it never runs.
+ * Every stylesheet of both lists is applied from the start for everyone, so the cascade is the same on every visit.
  */
-const PRELOADED: ReadonlyArray<{ page: string; entries: readonly string[] }> = [
-  { page: "play.html", entries: ["/src/play/main.tsx", "/src/play/PlayApp.tsx"] },
+const PRELOADED: ReadonlyArray<{ page: string; entries: readonly string[]; saved?: readonly string[] }> = [
+  { page: "play.html", entries: ["/src/play/main.tsx", "/src/play/FirstVisit.tsx", "/src/play/Crash.tsx"], saved: ["/src/play/PlayApp.tsx"] },
   { page: "index.html", entries: ["/src/landing/main.tsx"] },
 ];
 
@@ -72,28 +77,40 @@ function preloadPages(): Plugin {
     writeBundle(options, bundle) {
       const chunks = Object.values(bundle).filter((c): c is Extract<typeof c, { type: "chunk" }> => c.type === "chunk");
       const fonts = Object.keys(bundle).filter((f) => /\/(pixelify-sans|baloo-2)-latin-wght-normal-[^/]+\.woff2$/.test(`/${f}`));
-      for (const { page, entries } of PRELOADED) {
+      for (const { page, entries, saved = [] } of PRELOADED) {
         const file = join(options.dir ?? "", page);
         // each entry is a dynamic one by this hook (its facade id is gone), found by the module it holds
-        const found = entries.map((e) => chunks.find((c) => c.isDynamicEntry && c.moduleIds.some((id) => id.split("\\").join("/").endsWith(e))));
-        if (!existsSync(file) || found.some((c) => !c)) {
-          this.warn(`${page} or one of its entries (${entries.join(", ")}) not found: no preload written`);
+        const find = (list: readonly string[]) => list.map((e) => chunks.find((c) => c.isDynamicEntry && c.moduleIds.some((id) => id.split("\\").join("/").endsWith(e))));
+        const found = find(entries);
+        const foundSaved = find(saved);
+        if (!existsSync(file) || [...found, ...foundSaved].some((c) => !c)) {
+          this.warn(`${page} or one of its entries (${[...entries, ...saved].join(", ")}) not found: no preload written`);
           continue;
         }
-        const files = new Set<string>();
-        const walk = (name: string) => {
-          if (files.has(name)) return;
-          files.add(name);
-          for (const dep of chunks.find((c) => c.fileName === name)?.imports ?? []) walk(dep);
+        const closure = (roots: typeof found, files = new Set<string>()) => {
+          const walk = (name: string) => {
+            if (files.has(name)) return;
+            files.add(name);
+            for (const dep of chunks.find((c) => c.fileName === name)?.imports ?? []) walk(dep);
+          };
+          for (const c of roots) walk(c!.fileName);
+          return files;
         };
-        for (const c of found) walk(c!.fileName);
+        const files = closure(found);
+        const later = [...closure(foundSaved)].filter((f) => !files.has(f));
         const html = readFileSync(file, "utf8");
         const already = new Set([...html.matchAll(/href="\.\/([^"]+)"/g)].map((m) => m[1]));
-        const css = [...new Set([...files].flatMap((f) => [...(chunks.find((c) => c.fileName === f)?.viteMetadata?.importedCss ?? [])]))];
+        const css = [...new Set([...files, ...later].flatMap((f) => [...(chunks.find((c) => c.fileName === f)?.viteMetadata?.importedCss ?? [])]))];
+        // a visitor with a pet saved fetches the rest of the game from the start too (the check is the hatch screen
+        // picker's own; a storage that cannot be read counts as a save, so the full game is never starved)
+        const forSaved = later.length
+          ? `<script>(function(){try{if(!(localStorage.getItem("lingxi.pets.v2")||localStorage.getItem("lingxi.pet.v1")))return}catch(e){}${JSON.stringify(later.filter((f) => !already.has(f)))}.forEach(function(f){var l=document.createElement("link");l.rel="modulepreload";l.crossOrigin="";l.href="./"+f;document.head.appendChild(l)})})()</script>`
+          : "";
         const links = [
           ...fonts.map((f) => `<link rel="preload" as="font" type="font/woff2" crossorigin href="./${f}">`),
           ...[...files].filter((f) => !already.has(f)).map((f) => `<link rel="modulepreload" crossorigin href="./${f}">`),
           ...css.filter((f) => !already.has(f)).map((f) => `<link rel="stylesheet" crossorigin href="./${f}">`),
+          ...(forSaved ? [forSaved] : []),
         ];
         writeFileSync(file, html.replace("</head>", `  ${links.join("\n    ")}\n  </head>`));
       }
