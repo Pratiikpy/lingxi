@@ -224,11 +224,11 @@ Every number below is counted by `scripts/readme-facts.mts` from the suites them
 
 | Suite | Command | Passing |
 |---|---|---|
-| TypeScript, every package | `pnpm test` | <!--f:tests-->1194<!--/f--> (game <!--f:tests-game-->215<!--/f--> · world <!--f:tests-world-->165<!--/f--> · api <!--f:tests-api-->208<!--/f--> · api-schema <!--f:tests-api-schema-->45<!--/f--> · brain <!--f:tests-brain-->57<!--/f--> · handheld <!--f:tests-handheld-->41<!--/f--> · chain <!--f:tests-chain-->51<!--/f--> · send <!--f:tests-send-->30<!--/f--> · web <!--f:tests-web-->372<!--/f--> · art <!--f:tests-art-->10<!--/f-->) |
+| TypeScript, every package | `pnpm test` | <!--f:tests-->2045<!--/f--> (game <!--f:tests-game-->371<!--/f--> · world <!--f:tests-world-->195<!--/f--> · api <!--f:tests-api-->582<!--/f--> · api-schema <!--f:tests-api-schema-->46<!--/f--> · brain <!--f:tests-brain-->59<!--/f--> · handheld <!--f:tests-handheld-->41<!--/f--> · chain <!--f:tests-chain-->94<!--/f--> · send <!--f:tests-send-->30<!--/f--> · web <!--f:tests-web-->617<!--/f--> · art <!--f:tests-art-->10<!--/f-->) |
 | Contracts, unit, fuzz and invariant | `cd contracts && forge test` | <!--f:forge-unit-->254<!--/f--> |
-| Contracts on a fork of X Layer mainnet (reads only) | `cd contracts && forge test --fork-url xlayer --match-path 'test/*.fork.t.sol'` | <!--f:forge-fork-->75<!--/f--> |
-| The server, with its fork tests on a pinned fork of X Layer (reads only) | `pnpm test:fork` | <!--f:tests-api-fork-->214<!--/f--> |
-| End to end: the game in real browsers, against a fork of X Layer | `pnpm e2e` | <!--f:e2e-->143<!--/f--> tests in <!--f:e2e-specs-->54<!--/f--> specs (each a file in `e2e/specs/`; CI runs every one on each push) |
+| Contracts on a fork of X Layer mainnet (reads only) | `cd contracts && forge test --fork-url xlayer --match-path 'test/*.fork.t.sol'` | <!--f:forge-fork-->76<!--/f--> |
+| The server and the chain package, with their fork tests, each on a pinned fork of X Layer (reads only) | `pnpm test:fork` | <!--f:tests-api-fork-->700<!--/f--> |
+| End to end: the game in real browsers, against a fork of X Layer | `pnpm e2e` | <!--f:e2e-->159<!--/f--> tests in <!--f:e2e-specs-->58<!--/f--> specs (each a file in `e2e/specs/`; CI runs every one on each push) |
 
 `pnpm status:check` runs all of it, plus lint, the type check, the repo's hygiene checks and whether the live site serves the current commit.
 

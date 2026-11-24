@@ -55,18 +55,26 @@ function forgePassed(args: string[]): number {
   return Object.values(suites).flatMap((s) => Object.values(s.test_results)).filter((t) => t.status === "Success").length;
 }
 
-/** The server's tests with its fork tests switched on (`pnpm test:fork`): a pinned fork of X Layer, reads only. */
+/**
+ * The tests `pnpm test:fork` runs, the server's and the chain package's, each on its own pinned fork of X Layer (reads
+ * only), counted per package and added: one run of both wrote one result file, so the second package's count replaced
+ * the first's (the README showed the chain package's 109 as the server's, found 2026-11-24).
+ */
 function forkTestsPassed(): number {
-  const dir = mkdtempSync(join(tmpdir(), "lingxi-facts-"));
-  const out = join(dir, "r.json");
-  try {
-    const p = spawnSync(process.execPath, [join(root, "node_modules/tsx/dist/cli.mjs"), "scripts/fork-tests.mts", "--reporter=json", `--outputFile=${out}`], { cwd: root, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
-    const r = resultOf(out, "the server's fork tests", p);
-    if (p.status !== 0 || r.numFailedTests > 0) throw new Error(`the server's fork tests: ${r.numFailedTests} fail; no count is written for a failing suite`);
-    return r.numPassedTests;
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
+  let passed = 0;
+  for (const pkg of ["services/api", "packages/chain"]) {
+    const dir = mkdtempSync(join(tmpdir(), "lingxi-facts-"));
+    const out = join(dir, "r.json");
+    try {
+      const p = spawnSync(process.execPath, [join(root, "node_modules/tsx/dist/cli.mjs"), "scripts/fork-tests.mts", "--only", pkg, "--reporter=json", `--outputFile=${out}`], { cwd: root, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
+      const r = resultOf(out, `the fork tests in ${pkg}`, p);
+      if (p.status !== 0 || r.numFailedTests > 0) throw new Error(`the fork tests in ${pkg}: ${r.numFailedTests} fail; no count is written for a failing suite`);
+      passed += r.numPassedTests;
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   }
+  return passed;
 }
 
 /** The end-to-end suite's tests, as Playwright lists them (listing starts nothing; CI runs them on every push). */
