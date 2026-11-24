@@ -224,7 +224,7 @@ Every number below is counted by `scripts/readme-facts.mts` from the suites them
 
 | Suite | Command | Passing |
 |---|---|---|
-| TypeScript, every package | `pnpm test` | <!--f:tests-->2058<!--/f--> (game <!--f:tests-game-->371<!--/f--> · world <!--f:tests-world-->195<!--/f--> · api <!--f:tests-api-->583<!--/f--> · api-schema <!--f:tests-api-schema-->46<!--/f--> · brain <!--f:tests-brain-->59<!--/f--> · handheld <!--f:tests-handheld-->41<!--/f--> · chain <!--f:tests-chain-->95<!--/f--> · send <!--f:tests-send-->30<!--/f--> · web <!--f:tests-web-->628<!--/f--> · art <!--f:tests-art-->10<!--/f-->) |
+| TypeScript, every package | `pnpm test` | <!--f:tests-->2060<!--/f--> (game <!--f:tests-game-->371<!--/f--> · world <!--f:tests-world-->195<!--/f--> · api <!--f:tests-api-->583<!--/f--> · api-schema <!--f:tests-api-schema-->46<!--/f--> · brain <!--f:tests-brain-->59<!--/f--> · handheld <!--f:tests-handheld-->41<!--/f--> · chain <!--f:tests-chain-->95<!--/f--> · send <!--f:tests-send-->30<!--/f--> · web <!--f:tests-web-->630<!--/f--> · art <!--f:tests-art-->10<!--/f-->) |
 | Contracts, unit, fuzz and invariant | `cd contracts && forge test` | <!--f:forge-unit-->254<!--/f--> |
 | Contracts on a fork of X Layer mainnet (reads only) | `cd contracts && forge test --fork-url xlayer --match-path 'test/*.fork.t.sol'` | <!--f:forge-fork-->76<!--/f--> |
 | The server and the chain package, with their fork tests, each on a pinned fork of X Layer (reads only) | `pnpm test:fork` | <!--f:tests-api-fork-->702<!--/f--> |
