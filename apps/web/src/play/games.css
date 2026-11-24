@@ -133,6 +133,13 @@
   border-radius: 16px;
   background: linear-gradient(#d8f0e3, #b6e2c4);
 }
+/* P6: the game's little meadow follows the time of day, as the room does */
+.seek-area[data-phase="evening"] {
+  background: linear-gradient(#f6c7a0, #c9a7c9);
+}
+.seek-area[data-phase="night"] {
+  background: linear-gradient(#2b2f5c, #1f3b45);
+}
 .spot {
   position: absolute;
   top: 0;

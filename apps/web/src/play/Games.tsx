@@ -21,6 +21,7 @@ import { Sprite } from "./Sprite";
 import { Icon, type IconName } from "./icons";
 import "./games.css";
 import { now } from "../game/gameClock";
+import { phaseNow } from "../scene/dayPhase";
 
 type Lang = "en" | "zh";
 const drawn = (s: string): PetStage => (s === "elder" ? "adult" : (s as PetStage));
@@ -126,7 +127,8 @@ function CatchGame({ pet, onEnd }: { pet: Pet; onEnd: (score: number) => void })
   const st = useRef({ x: 50, drops: [] as Drop[], score: 0, next: 0, id: 0, start: 0, ended: false });
   const art = useMemo(() => drawPet(pet.line, drawn(stageOf(pet, now())), { expression: "happy", ...(pet.form ? { form: pet.form } : {}) }), [pet]);
   const room = useWorld((s) => s.world.room);
-  const backdrop = (ROOMS[room] ?? ROOMS[HOME]!).bgs.day;
+  // the room as it looks now: its evening or night picture after dark, as the room itself shows (P6)
+  const backdrop = (ROOMS[room] ?? ROOMS[HOME]!).bgs[phaseNow()];
 
   useEffect(() => {
     let raf = 0;
@@ -371,7 +373,7 @@ function SeekGame({ pet, season, onEnd }: { pet: Pet; season: keyof typeof SEASO
         <span>{lang === "zh" ? `第 ${round + 1} / 3 轮 · 找到 ${score}` : `Round ${round + 1} of 3 · found ${score}`}</span>
         <span>{phase === "pick" ? (lang === "zh" ? "它在哪儿？" : "Where is it?") : phase === "mix" ? (lang === "zh" ? "盯紧了……" : "Keep watching…") : ""}</span>
       </div>
-      <div className="seek-area">
+      <div className="seek-area" data-phase={phaseNow()}>
         {[0, 1, 2].map((cup) => {
           const position = slots[cup]!;
           // the pet hides under the cup that started where it stood

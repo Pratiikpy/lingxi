@@ -4,7 +4,7 @@ import { OnChainNote } from "../OnChainNote";
 import { Suspense, lazy, useCallback, useEffect, useEffectEvent, useMemo, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { NIGHT, boundingBox, drawPet } from "@lingxi/art";
-import { STARTERS, timeOfDay } from "@lingxi/brain";
+import { STARTERS } from "@lingxi/brain";
 import { type Pet, visitorsNow, friendPartner, petCard, stageOf, strongestHabit, visibleMeters, bondLevel } from "@lingxi/game";
 import { type Key, useT, useLang } from "../i18n";
 import { usePageMeta } from "../i18n/pageMeta";
@@ -22,7 +22,7 @@ import "./badges.css";
 import { useTrial, type Trial } from "../game/tryIt";
 import type { Rule } from "@lingxi/brain";
 import { BadgeShelf, BadgeToast } from "./Badges";
-import type { DayPhase } from "../scene/RoomScene";
+import { type DayPhase, phaseNow } from "../scene/dayPhase";
 import { weatherFor } from "../scene/weather";
 import { PALETTE_OF, type PetStage } from "../scene/palette";
 import { Hatch } from "./Hatch";
@@ -151,11 +151,6 @@ const Outings = deferred(() => import("./Outings").then((x) => x.Outings));
 
 /** where Flit's shy visitor lives (room 56) */
 const BUTTERFLY_FOREST = 56;
-
-function phaseNow(): DayPhase {
-  const t = timeOfDay(new Date(now()).getHours());
-  return t === 0 ? "night" : t === 3 ? "evening" : "day";
-}
 
 function drawnStage(s: string): PetStage {
   return s === "elder" ? "adult" : (s as PetStage);

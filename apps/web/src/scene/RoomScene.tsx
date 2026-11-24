@@ -20,7 +20,8 @@ import { BITS, type PetStage, catTexture, glowTexture, glyphTexture, petTexture,
 import { HALF, PET_FEET, PET_HOME, ROOM, WANDER, floorSpot, laneOf, roomOrigin, type FloorView } from "./floor";
 import { bodyHitArea } from "./hitArea";
 
-export type DayPhase = "day" | "evening" | "night";
+export type { DayPhase } from "./dayPhase";
+import type { DayPhase } from "./dayPhase";
 
 export { type Weather, weatherFor } from "./weather";
 import { weatherFor } from "./weather";
