@@ -19,6 +19,7 @@ import { coach, fighterFrom, fighterOfMind } from "../src/coach";
 import { composeProgram } from "../src/lessons";
 import { behemothFighter } from "../src/builders";
 import { READER, READER_BEFORE_D8 } from "../scripts/sim90/field";
+import { slow } from "./slow";
 
 /** a brain that answers `pick(word)` as a move, at a mood (0 grumpy .. 3 excited) */
 const brain = (pick: (word: number) => Move, mood = 1): FastBrain => ({ step: (_st: Uint8Array, word: number) => MOVES.indexOf(pick(word)) | (mood << 3) }) as unknown as FastBrain;
@@ -267,7 +268,7 @@ describe("the coach's suggestion never makes a pet worse (G2, B3)", () => {
       const wins = (f: Fighter) => fresh.filter((s) => fight(CURRENT_SPAR, f, oppOf(id), s).winner === 0).length;
       expect(wins(fighterOfMind("me", { line, lessons: [note.lesson.rule] }, level)), `${line} ${stage} vs ${id}, seed ${seed}: ${note.lesson.id}`).toBeGreaterThanOrEqual(wins(me));
     }
-  }, 120_000);
+  }, slow(120_000));
 
   it("against every partner and Behemoth, for every line as a child and an adult, a suggested lesson keeps or raises the wins on 200 unseen seeds", async () => {
     const fresh = Array.from({ length: 200 }, (_, i) => 300_007 + i * 7919);
@@ -289,7 +290,7 @@ describe("the coach's suggestion never makes a pet worse (G2, B3)", () => {
           expect(wins(fighterOfMind("me", { line, lessons: [note.lesson.rule] }, level), opp), `${line} ${stage} vs ${id}: ${note.lesson.id}`).toBeGreaterThanOrEqual(wins(me, opp));
         }
     expect(suggested).toBeGreaterThan(20);
-  }, 120_000);
+  }, slow(120_000));
 });
 
 /** LX-SPAR/2 fingerprints recorded before the rules table (row B1) and found identical after it: duel links answered in v2 replay. */
@@ -457,7 +458,7 @@ describe("the coach with a full mind (B2)", () => {
       expect(wins(swapped), `${line} vs ${p.id}`).toBeGreaterThan(wins(lessons));
     }
     expect(swaps).toBeGreaterThan(3);
-  }, 120_000);
+  }, slow(120_000));
 });
 
 describe("reading pays across the field (D8, target spar-reading-pays)", () => {
@@ -472,7 +473,7 @@ describe("reading pays across the field (D8, target spar-reading-pays)", () => {
       return w / (2 * seeds.length * (all.length - 1));
     };
     expect(rateOf("reader")).toBeGreaterThan(rateOf("partner:pip"));
-  }, 600_000);
+  }, slow(600_000));
 });
 
 describe("a bag item's spar bonus is what its label says (D14)", () => {
@@ -515,5 +516,5 @@ describe("against the opponents players meet, reading beats tapping (D20, LX-SPA
     const reader5 = rate(SPAR_V5, "reader");
     for (const t of taps) expect(rate(SPAR_V5, t), t).toBeLessThan(reader5);
     expect(Math.max(...taps.map((t) => rate(SPAR_V4, t)))).toBeGreaterThan(rate(SPAR_V4, "reader"));
-  }, 300_000);
+  }, slow(300_000));
 });

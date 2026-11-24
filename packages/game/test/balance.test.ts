@@ -9,12 +9,13 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { BALANCE_MEASURED, BALANCE_TARGETS, type SimNumbers, balanceTargets } from "../src";
 import { playType } from "../scripts/sim90/players";
 import { DEFAULT_DAYS, DEFAULT_SEED, runSimYielding } from "../scripts/sim90/run";
+import { slow } from "./slow";
 
 let n: SimNumbers;
 // the whole 90 days for all five players, the spar field and the lesson watch: about 40 seconds on one core
 beforeAll(async () => {
   n = await runSimYielding({ seed: DEFAULT_SEED, days: DEFAULT_DAYS });
-}, 480_000);
+}, slow(480_000));
 
 describe("the balance targets (38-PLAN-GAME-DESIGN.md section 2)", () => {
   for (const t of balanceTargets()) {

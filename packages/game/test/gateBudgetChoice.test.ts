@@ -5,6 +5,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { PET_SCHOOL, SKILLS, TAUGHT_BUDGET, TAUGHT_SHARE, brainSize, checkMindLesson, lessonCost, roomMakers, taughtBudget, taughtGates } from "../src";
+import { slow } from "./slow";
 
 const school = PET_SCHOOL.map((s) => s.rule);
 
@@ -79,7 +80,7 @@ describe("a budget per stage, counted over taught gates (G7)", () => {
     // against 60); here, the order taught by the school and its reverse
     for (const line of ["gentle", "bold", "curious"] as const)
       for (const o of [school, [...school].reverse()]) expect(taughtGates({ line, lessons: o })).toBeGreaterThan(TAUGHT_BUDGET.elder);
-  }, 120_000);
+  }, slow(120_000));
 
   it("a pet already over its budget keeps every lesson; only adding one is refused", () => {
     const lessons = school.slice(0, 6);

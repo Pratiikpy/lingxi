@@ -17,13 +17,20 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const BAR = 80;
 const vitest = join(root, "node_modules/vitest/vitest.mjs");
+/**
+ * Coverage instruments every line, and the simulation suites run several times slower under it: on CI the game's
+ * balance setup passed its 480 s limit while it takes 106 s uninstrumented (P6b). Each suite's long limits and its
+ * defaults are multiplied by this (tests' slow(), the packages' vitest configs); a plain run is unchanged.
+ */
+const SLOWED = { ...process.env, LINGXI_SLOW_TESTS: "5" };
+
 const rows: Array<{ part: string; lines: number; branches: number; ok: boolean }> = [];
 
 /** Reads the totals vitest wrote (`json-summary`) after a run in `dir`. */
 const totals = (dir: string) => (JSON.parse(readFileSync(join(dir, "coverage/coverage-summary.json"), "utf8")) as { total: { lines: { pct: number }; branches: { pct: number } } }).total;
 
 for (const pkg of ["packages/brain", "packages/game", "packages/world"]) {
-  const run = spawnSync(process.execPath, [vitest, "run", "--coverage"], { cwd: join(root, pkg), stdio: ["ignore", "ignore", "inherit"] });
+  const run = spawnSync(process.execPath, [vitest, "run", "--coverage"], { env: SLOWED, cwd: join(root, pkg), stdio: ["ignore", "ignore", "inherit"] });
   const t = totals(join(root, pkg));
   rows.push({ part: pkg, lines: t.lines.pct, branches: t.branches.pct, ok: run.status === 0 });
 }
@@ -31,7 +38,7 @@ for (const pkg of ["packages/brain", "packages/game", "packages/world"]) {
 {
   // the game's stores: the bar is given here, since the web package's config is its build's
   const stores = ["store", "world", "chain", "saveRuntime"].map((f) => `--coverage.include=src/game/${f}.ts`);
-  const run = spawnSync(process.execPath, [vitest, "run", "--coverage", "--coverage.provider=v8", ...stores, `--coverage.thresholds.lines=${BAR}`, `--coverage.thresholds.branches=${BAR}`, "--coverage.reporter=json-summary", "--coverage.reporter=text-summary"], { cwd: join(root, "apps/web"), stdio: ["ignore", "ignore", "inherit"] });
+  const run = spawnSync(process.execPath, [vitest, "run", "--coverage", "--coverage.provider=v8", ...stores, `--coverage.thresholds.lines=${BAR}`, `--coverage.thresholds.branches=${BAR}`, "--coverage.reporter=json-summary", "--coverage.reporter=text-summary"], { env: SLOWED, cwd: join(root, "apps/web"), stdio: ["ignore", "ignore", "inherit"] });
   const t = totals(join(root, "apps/web"));
   rows.push({ part: "apps/web game stores", lines: t.lines.pct, branches: t.branches.pct, ok: run.status === 0 });
 }
@@ -39,7 +46,7 @@ for (const pkg of ["packages/brain", "packages/game", "packages/world"]) {
 {
   // the server, with its fork tests switched on; its config holds the bar (the chain package's fork tests run in CI's
   // check job, and are not part of this measure)
-  const run = spawnSync(process.execPath, [join(root, "node_modules/tsx/dist/cli.mjs"), "scripts/fork-tests.mts", "--only", "services/api", "--coverage"], { cwd: root, stdio: ["ignore", "ignore", "inherit"] });
+  const run = spawnSync(process.execPath, [join(root, "node_modules/tsx/dist/cli.mjs"), "scripts/fork-tests.mts", "--only", "services/api", "--coverage"], { env: SLOWED, cwd: root, stdio: ["ignore", "ignore", "inherit"] });
   const t = totals(join(root, "services/api"));
   rows.push({ part: "services/api (with fork tests)", lines: t.lines.pct, branches: t.branches.pct, ok: run.status === 0 });
 }

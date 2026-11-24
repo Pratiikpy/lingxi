@@ -5,6 +5,7 @@ import { INPUT_FIELDS, N_IN, N_OUT } from "../src/pins";
 import { type Clause, type Program, runBeat, stateBits, validateProgram } from "../src/program";
 import { STARTERS } from "../src/starters";
 import { beat, load } from "../src/tap02";
+import { slow } from "./slow";
 
 /** Small deterministic PRNG so failures reproduce. */
 function rng(seed: number) {
@@ -232,7 +233,7 @@ function randomProgram(r: () => number): Program {
 }
 
 describe("fuzz: 300 random programs", () => {
-  it("every compiled circuit equals its program on 3,000 random beats", { timeout: 60_000 }, () => {
+  it("every compiled circuit equals its program on 3,000 random beats", { timeout: slow(60_000) }, () => {
     const r = rng(20261115);
     for (let k = 0; k < 300; k++) {
       const p = randomProgram(r);

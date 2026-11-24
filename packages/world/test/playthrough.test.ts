@@ -66,6 +66,7 @@ import {
 } from "../src";
 import { Life, MIN } from "../../game/scripts/sim90/life";
 import { viewOf } from "../../game/scripts/sim90/client";
+import { slow } from "./slow";
 
 const HOUR = 3_600_000;
 const START = Date.UTC(2026, 10, 16, 8);
@@ -784,7 +785,7 @@ describe("the automated playthrough", () => {
     expect(residents.filter((who) => (p.w.trust?.[who] ?? 0) < 30), "residents whose arc waits on a quest out of reach").toEqual(KEPT_BACK.trust);
     // the coins were earned, never granted: everything held was paid in by the world or by spar wins
     expect(tallyOf(p.w, "COINS_EARNED") - tallyOf(p.w, "COINS_SPENT") + 30).toBe(p.w.coins);
-  }, 600_000);
+  }, slow(600_000));
 
   it("finishes every daily, across real days, and earns the weekly gift without a streak", () => {
     const p = new Player();
@@ -825,7 +826,7 @@ describe("the automated playthrough", () => {
     const coins = p.w.coins;
     p.must(claimWeekly(p.w, WEEKLY_GIFT), "weekly gift");
     expect(p.w.coins).toBe(coins + 60);
-  }, 600_000);
+  }, slow(600_000));
 
   it("does every resident's request alone (G4): each errand can be gathered and handed over", () => {
     const p = new Player();
@@ -837,5 +838,5 @@ describe("the automated playthrough", () => {
       for (const o of q.objectives) satisfy(p, o.cond, q);
       expect(tallyOf(p.w, "GIVE_TO", q.objectives[0]!.cond.index as string) - before, q.id).toBeGreaterThanOrEqual(q.objectives[0]!.cond.value ?? 1);
     }
-  }, 600_000);
+  }, slow(600_000));
 });

@@ -25,6 +25,7 @@ import {
   type RunState,
   type RunStep,
 } from "../src/arenarun";
+import { slow } from "./slow";
 
 const ok = (r: RunStep): RunState => {
   if (!r.ok) throw new Error(r.why);
@@ -139,5 +140,5 @@ describe("arena runs stay fair on the spar's rules (B3c)", () => {
     }
     expect(won / N).toBeGreaterThan(0.2);
     expect(won / N).toBeLessThan(0.5);
-  }, 120_000);
+  }, slow(120_000));
 });
