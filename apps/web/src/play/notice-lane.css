@@ -52,7 +52,9 @@
    rules mark, the pet's own words) and each is there only while it has something to say, so the first is the one
    that matters most. The others are not shown meanwhile, and each keeps its own few seconds, so a lighter one may pass
    unseen behind a heavier one rather than pile on top of it. Each notice sets its own display in its own sheet, at
-   the same weight and later in the cascade, so this one rule has to outrank them all. */
-.notice-lane > * ~ * {
+   the same weight and later in the cascade, so this one rule has to outrank them all. A notice's live region (P5:
+   the words a screen reader hears, kept on the page in .sr-only) is not a notice: it neither counts as the first one
+   nor is hidden, or the notice after it never showed and its words were never read. */
+.notice-lane > :not(.sr-only) ~ :not(.sr-only) {
   display: none !important;
 }
