@@ -29,6 +29,7 @@ import { useGameServices } from "./app/useGameServices";
 import { useWorldMessage } from "./app/worldMessage";
 import { useWorldNotices } from "./app/useWorldNotices";
 import { useLiveRoom } from "./app/useLiveRoom";
+import { useResidentTalk } from "./app/useResidentTalk";
 import { PetButton } from "./PetButton";
 import { OfflineNote } from "./OfflineNote";
 import { SiteFoot } from "../SiteFoot";
@@ -43,23 +44,11 @@ import "./world.css";
 import "./goals.css";
 import "./quests.css";
 import { RulesMark } from "./RulesMark";
-import { questsOf, useQuestStatuses, useQuestUi } from "../game/quests";
+import { useQuestUi } from "../game/quests";
 import { useWorld } from "../game/world";
 import { useChain } from "../game/chain";
 import { playerId, useLive, visitingFrom } from "../game/live";
-import {
-  type Action,
-  CHARACTERS,
-  CHARACTER_IN_ROOM,
-  FRIEND_BY_ID,
-  HOME,
-  INDOOR_ROOMS,
-  ROOMS,
-  decorOf,
-  neighbours,
-  openSteps,
-  visitorOf,
-} from "@lingxi/world";
+import { type Action, CHARACTER_IN_ROOM, HOME, INDOOR_ROOMS, ROOMS, decorOf, neighbours } from "@lingxi/world";
 // Talk is loaded on first use (P3); its styles still load with the game, in their place (P3a)
 import "./talk.css";
 import "./neighbours.css";
@@ -244,43 +233,10 @@ export function PlayApp() {
     );
     return () => setAmbience("quiet");
   }, [outdoors, phase]);
-  // over the resident's head: a quest to hand in, or one to offer
-  const worldState = useWorld((s) => s.world);
-  const [talking, setTalking] = useState(false);
+  // who the pet can talk to here, the mark over their head, and the talk ending when the room changes
+  const { who, visitor, guest, talking, setTalking, startTalk, npcMark, npcFace, setNpcFace, questStatuses } =
+    useResidentTalk(worldRoom);
   const skillsOpen = useSkillsUi((s) => s.open);
-  // a resident who has come to visit stands in your home until you meet them (plan 4.3)
-  const visitorId = worldRoom === HOME ? visitorOf(worldState) : null;
-  const visitor = visitorId ? (CHARACTERS.find((c) => c.id === visitorId) ?? null) : null;
-  // meeting them sends them home, but not mid-sentence: whoever was visiting when the talk began stays until it ends
-  const [guest, setGuest] = useState<typeof visitor>(null);
-  const startTalk = () => {
-    play("tap");
-    setGuest(visitor);
-    setTalking(true);
-  };
-  const who = CHARACTER_IN_ROOM[worldRoom] ?? visitor ?? (talking && worldRoom === HOME ? guest : null);
-  const questStatuses = useQuestStatuses();
-  const npcMark = useMemo<"!" | "✓" | "★" | null>(() => {
-    if (!who) return null;
-    const q = questsOf(who.id, questStatuses);
-    const friend = FRIEND_BY_ID[who.id];
-    // quests first; then a visitor waiting, or a friendship step open
-    return q.ready.length
-      ? "✓"
-      : q.offer.length
-        ? "!"
-        : who === visitor || (friend && openSteps(worldState, friend).length)
-          ? "★"
-          : null;
-  }, [who, questStatuses, visitor, worldState]);
-  const [npcFace, setNpcFace] = useState<string | null>(null);
-  // leaving a room ends a conversation in it
-  const [talkRoom, setTalkRoom] = useState(worldRoom);
-  if (talkRoom !== worldRoom) {
-    setTalkRoom(worldRoom);
-    setTalking(false);
-    setNpcFace(null);
-  }
   const [visiting, setVisiting] = useState<string | null>(() => visitingFrom());
   const revealAll = useReveal((s) => s.all);
   const [lockedAsk, setLockedAsk] = useState<Gated | null>(null);
