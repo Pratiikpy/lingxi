@@ -141,11 +141,17 @@ async function moving(page: import("@playwright/test").Page, ms = 1_200): Promis
       document.body.dataset.mvNext = String(next);
       return seen;
     });
-  const before = await read();
-  await page.waitForTimeout(ms);
-  const after = await read();
-  return Object.entries(after)
-    .filter(([id, x]) => before[id] !== undefined && before[id] !== x)
+  // three looks, half the time apart: an element moves when it changed in both halves. A value that steps once in the
+  // window (a care meter filling as the pet is fed, its bar set at once under reduced motion) is content, not motion
+  const first = await read();
+  await page.waitForTimeout(ms / 2);
+  const middle = await read();
+  await page.waitForTimeout(ms / 2);
+  const last = await read();
+  return Object.entries(last)
+    .filter(
+      ([id, x]) => first[id] !== undefined && middle[id] !== undefined && first[id] !== middle[id] && middle[id] !== x,
+    )
     .map(([, x]) => x);
 }
 
