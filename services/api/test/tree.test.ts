@@ -86,11 +86,14 @@ describe("the tree stays cheap as it grows (A147)", () => {
     return out;
   };
 
-  it("one bred line of 1,500 pets builds in well under a second, with every ancestor once", () => {
+  it("one bred line of 1,500 pets builds in seconds, not ages, with every ancestor once", () => {
     const t0 = performance.now();
     const t = buildTree(line(1_500));
     const took = performance.now() - t0;
-    expect(took, `${Math.round(took)} ms`).toBeLessThan(1_000);
+    // the fault this guards walks every path to an ancestor, about 2^1500 of them in this line: it never finishes.
+    // Built once per ancestor, the line takes about 0.3 s here and up to 1 s on a CI runner busy with every other
+    // package's tests (1,045 ms seen 2026-11-24), so the limit is far above that and still nowhere near the fault
+    expect(took, `${Math.round(took)} ms`).toBeLessThan(5_000);
     const last = t.pets.find((p) => p.id === "1500")!;
     expect(last.ancestors.length).toBe(1_499);
     expect(new Set(last.ancestors).size).toBe(1_499);
