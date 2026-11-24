@@ -1,7 +1,8 @@
 /**
  * A deploy while a page is open. Release A is made live with the release command and served as the live site serves
- * its releases; a page opens on it, and its request for the game's main part (loaded on demand by play/main.tsx) is
- * held while release B is built and made live, then let go. With A still kept (releases stay 14 days after they stop
+ * its releases; a page opens on it as a first visit, the player picks an egg, and the page's request for the game's main
+ * part (fetched behind the hatch screen at the first touch, FirstVisit.tsx) is held while release B is built and made
+ * live, then let go. With A still kept (releases stay 14 days after they stop
  * being live), A's part still arrives and the game starts on A without a reload; a fresh page then gets B. With A gone,
  * the part is missing, the page reloads itself once (boot/staleBuild.ts) and the game starts on B. Pages are sent with
  * Cache-Control no-cache. And while a release is built and made live, no page and no file a page names is ever
@@ -53,7 +54,14 @@ for (const { kept, look } of [
       const res = await page.goto(`${site.url}/play.html`);
       expect(res?.headers()["cache-control"], "the page is sent with no-cache").toBe("no-cache");
       await liveHatch(page, 120_000);
-      await page.waitForTimeout(1_500);
+      // a first visit fetches the rest of the game behind its hatch screen at the player's first touch (FirstVisit.tsx):
+      // the player picks an egg, the part is asked for and held while B goes live
+      await page.locator(".egg").nth(1).click();
+      await expect.poll(() => held, { message: "the page asked for the game's part", timeout: 120_000 }).toBe(true);
+      if (kept) await expect.poll(() => [...answered.entries()].some(([n, status]) => n.startsWith("PlayApp-") && n.endsWith(".js") && status === 200), { message: "A's part arrived", timeout: 120_000 }).toBe(true);
+      else await expect.poll(() => loads, { message: "the page reloaded once", timeout: 120_000 }).toBe(2);
+      await liveHatch(page, 120_000);
+      await page.waitForTimeout(2_000);
       const nowEntry = (await page.evaluate(() => document.querySelector("script[type=module][src]")?.getAttribute("src"))) ?? "";
       const entryB = entryOf(f.site);
       expect(entryB, "the two releases really differ").not.toBe(entryA);
