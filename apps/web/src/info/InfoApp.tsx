@@ -51,8 +51,8 @@ const PRIVACY: Section[] = [
       ["Lessons you choose to share in the library, and diaries you choose to publish.", "你选择分享到课程库的课，以及你选择发布的日记。"],
       ["If you turn reminders on: the address your browser gives for notifications and the times you chose, until you turn them off.", "如果你打开提醒：浏览器提供的通知地址和你选的时间，直到你关闭提醒。"],
       [
-        "To keep the service fair (how often a network may ask for things, how much of the day's language model it may use), a code made from your network address with a key only our server holds. The code cannot be turned back into the address, and the counts kept under it are for the day only.",
-        "为了让服务公平（一个网络多久能请求一次、能用掉当天多少语言模型额度），我们保存一个由你的网络地址加上只有我们服务器才有的密钥算出的代码。这个代码无法还原成地址，在它名下记的次数只保留当天。",
+        "To keep the service fair (how often a network may ask for things, how much of the day's language model it may use), a code made from your network address with a key only our server holds. The code cannot be turned back into the address. It is kept only beside what it limits (an arena or season entry, a pet left with a sitter, a reminder, the day's model use) and goes when that does.",
+        "为了让服务公平（一个网络多久能请求一次、能用掉当天多少语言模型额度），我们保存一个由你的网络地址加上只有我们服务器才有的密钥算出的代码。这个代码无法还原成地址。它只和它所限制的东西放在一起（切磋场或赛季的报名、托付照看的宠物、提醒、当天的模型额度），那些东西没了，它也就没了。",
       ],
     ],
   },
