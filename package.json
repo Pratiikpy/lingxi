@@ -22,6 +22,7 @@
     "perf:lighthouse": "tsx scripts/lighthouse-budget.mts",
     "numbers:snapshot": "tsx services/api/scripts/numbers-snapshot.mts",
     "server:release": "pnpm --filter @lingxi/api build && npx pm2 startOrReload deploy/pm2.config.cjs --only lingxi-server --update-env",
+    "screens:inventory": "tsx scripts/screen-inventory.mts",
     "share:cards": "tsx scripts/share-cards.mts"
   },
   "devDependencies": {
