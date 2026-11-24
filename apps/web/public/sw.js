@@ -9,6 +9,7 @@
  * - the API and live rooms: never kept; the game says what needs the internet
  * The on-chain copy never registers this worker: its gateway's own verifier stays in charge of its pages.
  */
+/* global PRECACHE -- written in by the build, on the line below */
 /*__PRECACHE__*/
 const KEEP = typeof PRECACHE !== "undefined" ? PRECACHE : { version: "dev", files: [] };
 const CACHE = `lingxi-${KEEP.version}`;
