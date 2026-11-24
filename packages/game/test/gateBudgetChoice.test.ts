@@ -61,13 +61,16 @@ describe("a budget per stage, counted over taught gates (G7)", () => {
     for (const i of makers) expect(lessonCost({ ...spec, lessons: spec.lessons.filter((_, k) => k !== i) }, tooMuch, "teen").fits).toBe(true);
   });
 
-  it("stays a choice over every set and order (D13): with no Mind points at most half of a teen's four-lesson school sets fit, even in their cheapest order (not all, with every instinct); five points of Wide Mind fit them all", () => {
+  it("stays a choice over every set and order (D13): with no Mind points at most half of a teen's four-lesson school sets fit, even in their cheapest order (not all, with every instinct); five points of Wide Mind fit them all", async () => {
     const sets: number[][] = [];
     for (let a = 0; a < 8; a++) for (let b = a + 1; b < 8; b++) for (let c = b + 1; c < 8; c++) for (let d = c + 1; d < 8; d++) sets.push([a, b, c, d]);
     const orders = (x: number[]): number[][] => (x.length <= 1 ? [x] : x.flatMap((v, i) => orders([...x.slice(0, i), ...x.slice(i + 1)]).map((o) => [v, ...o])));
     const five = { level: 99, points: 0, skills: { 211: 5 } };
     for (const line of ["gentle", "bold", "curious"] as const)
       for (const instincts of [0, 15]) {
+        // a turn of the event loop between the six passes, so no stretch holds the worker past its runner's one-minute
+        // wait under coverage (P7)
+        await new Promise<void>((r) => setTimeout(r, 0));
         const cheapest = sets.map((set) => Math.min(...orders(set).map((o) => taughtGates({ line, instincts, lessons: o.map((i) => school[i]!) }))));
         const fit = cheapest.filter((g) => g <= taughtBudget("teen", undefined)).length;
         // a pet with every instinct pays less for a lesson (it shares the instincts' gates): not every set fits it, though

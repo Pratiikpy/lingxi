@@ -38,6 +38,19 @@ const now = (a: Fighter, b: Fighter, seed: number) => fight(CURRENT_SPAR, a, b, 
 
 /** A long test hands the event loop back between cases, so the test worker can answer its runner while it works. */
 const breathe = () => new Promise<void>((r) => setTimeout(r, 0));
+/**
+ * How many of `seeds` `me` wins against `opp`, letting the event loop run every 20 fights: under coverage a few hundred
+ * fights in one stretch kept the test worker from answering its runner for over a minute ("Timeout calling
+ * onTaskUpdate", P7), so the long tests count their wins in short stretches.
+ */
+async function winsOver(seeds: readonly number[], me: Fighter, opp: () => Fighter): Promise<number> {
+  let w = 0;
+  for (let i = 0; i < seeds.length; i++) {
+    if (i % 20 === 0) await breathe();
+    if (fight(CURRENT_SPAR, me, opp(), seeds[i]!).winner === 0) w++;
+  }
+  return w;
+}
 
 describe("the fight new spars are fought in (G2, B1)", () => {
   it("shows every move apart on the action pins, so a guard is not read as a rest", () => {
@@ -265,8 +278,8 @@ describe("the coach's suggestion never makes a pet worse (G2, B3)", () => {
       const result = fight(CURRENT_SPAR, me, oppOf(id), seed);
       const note = coach({ result, side: 0, line, stage, lessons: [], level, opponent: oppOf(id) });
       if (!note.lesson) continue;
-      const wins = (f: Fighter) => fresh.filter((s) => fight(CURRENT_SPAR, f, oppOf(id), s).winner === 0).length;
-      expect(wins(fighterOfMind("me", { line, lessons: [note.lesson.rule] }, level)), `${line} ${stage} vs ${id}, seed ${seed}: ${note.lesson.id}`).toBeGreaterThanOrEqual(wins(me));
+      const wins = (f: Fighter) => winsOver(fresh, f, () => oppOf(id));
+      expect(await wins(fighterOfMind("me", { line, lessons: [note.lesson.rule] }, level)), `${line} ${stage} vs ${id}, seed ${seed}: ${note.lesson.id}`).toBeGreaterThanOrEqual(await wins(me));
     }
   }, slow(120_000));
 
@@ -274,7 +287,7 @@ describe("the coach's suggestion never makes a pet worse (G2, B3)", () => {
     const fresh = Array.from({ length: 200 }, (_, i) => 300_007 + i * 7919);
     const opps: [string, () => Fighter][] = [...PARTNERS, ...DESIGNED].map((p) => [p.id, () => fighterOfPartner(p)] as [string, () => Fighter]);
     opps.push(["behemoth", () => behemothFighter("Behemoth")]);
-    const wins = (me: Fighter, opp: () => Fighter) => fresh.filter((s) => fight(CURRENT_SPAR, me, opp(), s).winner === 0).length;
+    const wins = (me: Fighter, opp: () => Fighter) => winsOver(fresh, me, opp);
     let suggested = 0;
     for (const [id, opp] of opps)
       for (const line of ["gentle", "bold", "curious"] as const)
@@ -287,7 +300,7 @@ describe("the coach's suggestion never makes a pet worse (G2, B3)", () => {
           const note = coach({ result, side: 0, line, stage, lessons: [], level, opponent: opp() });
           if (!note.lesson) continue;
           suggested++;
-          expect(wins(fighterOfMind("me", { line, lessons: [note.lesson.rule] }, level), opp), `${line} ${stage} vs ${id}: ${note.lesson.id}`).toBeGreaterThanOrEqual(wins(me, opp));
+          expect(await wins(fighterOfMind("me", { line, lessons: [note.lesson.rule] }, level), opp), `${line} ${stage} vs ${id}: ${note.lesson.id}`).toBeGreaterThanOrEqual(await wins(me, opp));
         }
     expect(suggested).toBeGreaterThan(20);
   }, slow(120_000));
@@ -440,7 +453,7 @@ describe("Juniper charms you early (B3b)", () => {
 });
 
 describe("the coach with a full mind (B2)", () => {
-  it("names a lesson to swap out when nothing it has room for helps, and the swap wins more on fresh seeds", () => {
+  it("names a lesson to swap out when nothing it has room for helps, and the swap wins more on fresh seeds", async () => {
     const fresh = Array.from({ length: 120 }, (_, i) => 500_009 + i * 7919);
     let swaps = 0;
     for (const p of PARTNERS) for (const line of ["gentle", "bold", "curious"] as const) {
@@ -454,8 +467,8 @@ describe("the coach with a full mind (B2)", () => {
       expect(note.replace, `${line} vs ${p.id}`).toBeDefined();
       swaps++;
       const swapped = lessons.map((l, i) => (i === note.replace ? note.lesson!.rule : l));
-      const wins = (ls: Rule[]) => fresh.filter((s) => fight(CURRENT_SPAR, fighterOfMind("me", { line, lessons: ls }, 0), opp(), s).winner === 0).length;
-      expect(wins(swapped), `${line} vs ${p.id}`).toBeGreaterThan(wins(lessons));
+      const wins = (ls: Rule[]) => winsOver(fresh, fighterOfMind("me", { line, lessons: ls }, 0), opp);
+      expect(await wins(swapped), `${line} vs ${p.id}`).toBeGreaterThan(await wins(lessons));
     }
     expect(swaps).toBeGreaterThan(3);
   }, slow(120_000));

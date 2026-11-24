@@ -167,7 +167,7 @@ describe("levels", () => {
 
   // it plays every caring day of the climb to level 56 through the game's own care rules: about 4 s on a laptop, and
   // several times that under coverage on CI, where the default 30 s ran out (P3a)
-  it("a caring day earns the same steady experience through the game's own care rules, a first level within two days (G3)", { timeout: slow(120_000) }, () => {
+  it("a caring day earns the same steady experience through the game's own care rules, a first level within two days (G3)", { timeout: slow(120_000) }, async () => {
     // a caring player's day, through the game's own care rules
     let p = newPet();
     let firstLevelDay = 0;
@@ -195,6 +195,9 @@ describe("levels", () => {
     };
     const perDay: number[] = [];
     while (level < 56 && days < 365) {
+      // a turn of the event loop each simulated day: run whole, the year of days held the worker past the runner's
+      // one-minute wait under coverage ("Timeout calling onTaskUpdate", P7)
+      await new Promise<void>((r) => setTimeout(r, 0));
       const before = p.xp;
       day(days);
       perDay.push(p.xp - before);
