@@ -9,7 +9,8 @@
  * other address. Subscriptions are kept in one JSON file.
  */
 
-import { heldOver } from "./limit";
+import { basename, dirname } from "node:path";
+import { CODE, type Coded, codeOf, heldOverCoded, recoded, scrubAsides } from "./pseudonym";
 import webpush from "web-push";
 import type { PushPlanBody } from "@lingxi/api-schema";
 import { hasStore, readStore, saveJson } from "./durable";
@@ -35,9 +36,16 @@ interface Entry {
   tz: number;
   reminders: Array<{ kind: ReminderKind; at: number }>;
   lastSent: number;
-  /** the address that planned it (A83); entries kept before this have none and count against no one */
+  /**
+   * the code of the address that planned it (A83; never the address, P6a); entries kept before this have none and count
+   * against no one
+   */
   by?: string;
+  /** the code of that address's IPv6 /48, when it has one */
+  net?: string;
 }
+
+const plannerOf = (e: Entry): Coded[] => (e.by === undefined ? [] : [e.net !== undefined ? { by: e.by, net: e.net } : { by: e.by }]);
 
 export const isPushEndpoint = (url: string): boolean => {
   try {
@@ -105,9 +113,19 @@ export function createPusher(opts: { publicKey: string; privateKey: string; subj
     lastSentOf.delete(endpoint);
     if (now - at < MIN_GAP_MS) lastSentOf.set(endpoint, at);
   };
+  let raw = false;
   if (opts.store && hasStore(opts.store)) {
     try {
-      for (const e of readStore(opts.store) as Entry[]) if (isPushEndpoint(e.sub.endpoint)) subs.set(e.sub.endpoint, e);
+      for (const e of readStore(opts.store) as Entry[]) {
+        if (!isPushEndpoint(e.sub.endpoint)) continue;
+        // a plan kept before addresses were coded held its planner's address: it is coded now (P6a)
+        if (e.by === undefined || CODE.test(e.by)) subs.set(e.sub.endpoint, e);
+        else {
+          const c = recoded(e.by);
+          subs.set(e.sub.endpoint, { ...e, by: c.by, ...(c.net !== undefined ? { net: c.net } : {}) });
+          raw = true;
+        }
+      }
     } catch {
       // a damaged file starts empty rather than stopping the server
     }
@@ -116,6 +134,12 @@ export function createPusher(opts: { publicKey: string; privateKey: string; subj
     if (!opts.store) return;
     saveJson(opts.store, [...subs.values()]);
   };
+  if (opts.store && raw) {
+    // written twice, so the .bak each write keeps holds no address either
+    save();
+    save();
+  }
+  if (opts.store) scrubAsides(dirname(opts.store), basename(opts.store));
   const send: Send =
     opts.send ??
     (async (sub, payload) => {
@@ -136,7 +160,8 @@ export function createPusher(opts: { publicKey: string; privateKey: string; subj
       if (!isPushEndpoint(endpoint)) return { ok: false, reason: "badEndpoint" };
       const prev = subs.get(endpoint);
       if (!prev && subs.size >= MAX_SUBS) return { ok: false, reason: "full" };
-      if (!prev && from !== undefined && heldOver([...subs.values()].flatMap((e) => (e.by ? [e.by] : [])), from, MAX_DEVICES_PER_ADDRESS)) return { ok: false, reason: "tooMany" };
+      const who = from !== undefined ? codeOf(from) : undefined;
+      if (!prev && who && heldOverCoded([...subs.values()].flatMap(plannerOf), who, MAX_DEVICES_PER_ADDRESS)) return { ok: false, reason: "tooMany" };
       const reminders = p.reminders
         .filter((r) => r.at >= now - 60_000 && r.at <= now + HORIZON_MS)
         .map((r) => ({ kind: r.kind, at: outOfQuietHours(Math.max(r.at, now), p.tz) }))
@@ -146,7 +171,7 @@ export function createPusher(opts: { publicKey: string; privateKey: string; subj
       if (reminders.length === 0) {
         if (prev) subs.delete(endpoint);
         rememberSent(endpoint, lastSent, now);
-      } else subs.set(endpoint, { sub: p.subscription, lang: p.lang, name: p.name, tz: p.tz, reminders, lastSent, ...(from !== undefined ? { by: from } : prev?.by ? { by: prev.by } : {}) });
+      } else subs.set(endpoint, { sub: p.subscription, lang: p.lang, name: p.name, tz: p.tz, reminders, lastSent, ...(who ? { by: who.by, ...(who.net !== undefined ? { net: who.net } : {}) } : prev?.by ? { by: prev.by, ...(prev.net !== undefined ? { net: prev.net } : {}) } : {}) });
       save();
       return { ok: true };
     },

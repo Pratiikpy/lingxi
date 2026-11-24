@@ -16,6 +16,11 @@ export interface SeenSet {
   ids: string[];
   /** the filter, base64; null while the set is exact */
   bloom: string | null;
+  /**
+   * a filter filled before ids were keyed (P6a): it holds the old ids' bits, which cannot be turned into the new ids',
+   * so whoever it saw is looked for by their old id as well (library.ts)
+   */
+  legacy?: true;
 }
 
 export const emptySeen = (): SeenSet => ({ ids: [], bloom: null });
@@ -47,14 +52,15 @@ export function addSeen(s: SeenSet, id: string): SeenSet {
   // moving to the filter, everyone already listed goes into it
   if (!s.bloom) for (const x of s.ids) withBit(bits, x);
   withBit(bits, id);
-  return { ids: [], bloom: encode(bits) };
+  return { ids: [], bloom: encode(bits), ...(s.legacy ? { legacy: true as const } : {}) };
 }
 
 /** A set from before this one existed: a plain list of ids. */
 export function seenFrom(list: unknown): SeenSet {
   if (list && typeof list === "object" && !Array.isArray(list)) {
     const s = list as Partial<SeenSet>;
-    return { ids: Array.isArray(s.ids) ? s.ids.filter((x): x is string => typeof x === "string") : [], bloom: typeof s.bloom === "string" ? s.bloom : null };
+    const bloom = typeof s.bloom === "string" ? s.bloom : null;
+    return { ids: Array.isArray(s.ids) ? s.ids.filter((x): x is string => typeof x === "string") : [], bloom, ...(bloom && s.legacy === true ? { legacy: true as const } : {}) };
   }
   let s = emptySeen();
   for (const x of Array.isArray(list) ? list : []) if (typeof x === "string") s = addSeen(s, x);

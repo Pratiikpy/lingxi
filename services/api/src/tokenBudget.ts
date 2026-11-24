@@ -9,9 +9,10 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { mkdirSync } from "node:fs";
-import { dirname } from "node:path";
-import { PREFIX_SHARE, prefixOf } from "./limit";
+import { basename, dirname } from "node:path";
+import { PREFIX_SHARE } from "./limit";
 import { loadJson, saveJson } from "./durable";
+import { CODE, addressCode, codeOf, prefixCode, scrubAsides } from "./pseudonym";
 
 export class BudgetSpent extends Error {
   constructor() {
@@ -46,7 +47,21 @@ interface DayState {
   day: string;
   used: number;
   calls: number;
+  /** what each caller and each IPv6 /48 spent, by code (never by address, P6a), and "(others)" past MAX_ADDRESSES */
   by: Record<string, number>;
+}
+
+const OTHERS = "(others)";
+
+/** A day's spend kept before addresses were coded, by code; null when it held no address (P6a). */
+function codedSpend(by: Record<string, number>): Record<string, number> | null {
+  if (Object.keys(by).every((k) => k === OTHERS || CODE.test(k))) return null;
+  const out: Record<string, number> = {};
+  for (const [k, n] of Object.entries(by)) {
+    const code = k === OTHERS || CODE.test(k) ? k : k.endsWith("::/48") ? prefixCode(k) : addressCode(k);
+    out[code] = (out[code] ?? 0) + n;
+  }
+  return out;
 }
 
 export function createTokenBudget(opts: { perDay: number; perAddress?: number; file?: string; now?: () => number }) {
@@ -54,12 +69,17 @@ export function createTokenBudget(opts: { perDay: number; perAddress?: number; f
   const today = () => new Date(now()).toISOString().slice(0, 10);
   const fresh = (): DayState => ({ day: today(), used: 0, calls: 0, by: {} });
   let state = fresh();
+  let raw = false;
   if (opts.file) {
     const got = loadJson(opts.file);
     if (got.state === "ok") {
       const saved = got.value as Partial<DayState>;
       if (got.from === "bak") process.stderr.write(`${opts.file} could not be read: kept aside, read ${opts.file}.bak instead\n`);
-      if (saved.day === state.day && Number.isFinite(saved.used)) state = { ...fresh(), ...saved, by: saved.by ?? {}, calls: saved.calls ?? 0 } as DayState;
+      if (saved.day === state.day && Number.isFinite(saved.used)) {
+        const coded = codedSpend(saved.by ?? {});
+        raw = coded !== null;
+        state = { ...fresh(), ...saved, by: coded ?? saved.by ?? {}, calls: saved.calls ?? 0 } as DayState;
+      } else raw = codedSpend(saved.by ?? {}) !== null;
     } else if (got.state === "damaged") {
       // the day's spend cannot be read: the day is taken as spent, never started again (A139); tomorrow starts afresh
       process.stderr.write(`${opts.file} and its .bak could not be read: both kept aside, today's model budget is taken as spent\n`);
@@ -69,7 +89,7 @@ export function createTokenBudget(opts: { perDay: number; perAddress?: number; f
   const roll = () => {
     if (state.day !== today()) state = fresh();
   };
-  const keyOf = (address: string) => (address in state.by || Object.keys(state.by).length < MAX_ADDRESSES ? address : "(others)");
+  const keyOf = (code: string) => (code in state.by || Object.keys(state.by).length < MAX_ADDRESSES ? code : OTHERS);
   /** tokens held by calls in flight: the day's, and each address's and /48's (A121) */
   const held = { used: 0, by: new Map<string, number>() };
   const hold = (key: string, tokens: number) => {
@@ -77,14 +97,25 @@ export function createTokenBudget(opts: { perDay: number; perAddress?: number; f
     if (n > 0) held.by.set(key, n);
     else held.by.delete(key);
   };
-  /** what an address (or /48) has spent today and holds in flight */
+  /** what a caller (or /48), by code, has spent today and holds in flight */
   const spentBy = (key: string) => (state.by[keyOf(key)] ?? 0) + (held.by.get(key) ?? 0);
-  const keysFor = (address: string | undefined) => (address === undefined ? [] : [address, ...(prefixOf(address) !== null ? [prefixOf(address)!] : [])]);
+  /** the codes an address's spend counts under: its own, and its /48's */
+  const keysFor = (address: string | undefined) => {
+    if (address === undefined) return [];
+    const c = codeOf(address);
+    return c.net !== undefined ? [c.by, c.net] : [c.by];
+  };
   const save = () => {
     if (!opts.file) return;
     mkdirSync(dirname(opts.file), { recursive: true });
     saveJson(opts.file, undefined, JSON.stringify(state));
   };
+  if (opts.file && raw) {
+    // written twice, so the .bak each write keeps holds no address either
+    save();
+    save();
+  }
+  if (opts.file) scrubAsides(dirname(opts.file), basename(opts.file));
   return {
     allow(): boolean {
       roll();
@@ -94,10 +125,10 @@ export function createTokenBudget(opts: { perDay: number; perAddress?: number; f
     allowFor(address: string | undefined): boolean {
       roll();
       if (!opts.perAddress || address === undefined) return true;
-      const mine = spentBy(address);
-      const prefix = prefixOf(address);
+      const who = codeOf(address);
+      const mine = spentBy(who.by);
       if (mine >= opts.perAddress) return false;
-      if (prefix !== null && spentBy(prefix) >= opts.perAddress * PREFIX_SHARE) return false;
+      if (who.net !== undefined && spentBy(who.net) >= opts.perAddress * PREFIX_SHARE) return false;
       return state.used + held.used < opts.perDay * (1 - KEPT_FOR_LIGHT) || mine < opts.perAddress * LIGHT;
     },
     /**
@@ -124,14 +155,9 @@ export function createTokenBudget(opts: { perDay: number; perAddress?: number; f
       roll();
       state.used += tokens;
       state.calls += 1;
-      if (address !== undefined) {
-        const k = keyOf(address);
+      for (const code of keysFor(address)) {
+        const k = keyOf(code);
         state.by[k] = (state.by[k] ?? 0) + tokens;
-        const prefix = prefixOf(address);
-        if (prefix !== null) {
-          const n = keyOf(prefix);
-          state.by[n] = (state.by[n] ?? 0) + tokens;
-        }
       }
       save();
     },

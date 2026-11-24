@@ -21,6 +21,8 @@ import { type SeenSet, addSeen, emptySeen, hasSeen, seenFrom } from "./seenSet";
 import { BLOCKED_WORDS } from "./words";
 import { prefixOf } from "./limit";
 import { hasStore, readStore, saveJson } from "./durable";
+import { pseudonym, scrubAsides } from "./pseudonym";
+import { basename, dirname } from "node:path";
 
 export interface LibraryEntry {
   key: string;
@@ -29,13 +31,15 @@ export interface LibraryEntry {
   by: string;
   firstAt: number;
   uses: number;
-  /** who reported it, as hashed ids (never the raw address), in a set of fixed size */
+  /** who reported it, as keyed ids (never the raw address), in a set of fixed size */
   reports: SeenSet;
   reportCount: number;
   /** who already counted a use, so one player can't inflate it, in a set of fixed size */
   users: SeenSet;
-  /** who shared it, as a hashed id; absent on lessons shared before it was kept */
+  /** who shared it, as a keyed id; absent on lessons shared before it was kept */
   from?: string;
+  /** "keyed" once its ids are keyed codes (P6a); absent on a lesson kept before, whose ids are coded on load */
+  ids?: "keyed";
   /** when it was last shared or learned (A79); absent on lessons kept before, which count from `firstAt` */
   lastAt?: number;
 }
@@ -71,25 +75,62 @@ export function cleanAuthor(name: string): string | null {
   return n;
 }
 
-/** A player as the library counts them: an IPv6 caller is its /48, so one network is one learner and one reporter (A120). */
-export const hashId = (id: string) => createHash("sha256").update(`lingxi-library:${prefixOf(id) ?? id}`).digest("hex").slice(0, 16);
+/** The id a player had before ids were keyed: a plain hash, which anyone can work out for a guessed address. */
+const plainId = (id: string) => createHash("sha256").update(`lingxi-library:${prefixOf(id) ?? id}`).digest("hex").slice(0, 16);
+/** A plain id as the keyed id the same player has now (P6a). */
+const keyedFrom = (plain: string) => pseudonym("library", plain);
+
+/**
+ * A player as the library counts them: an IPv6 caller is its /48, so one network is one learner and one reporter
+ * (A120). The id is keyed with the server's address key (pseudonym.ts), so it cannot be checked against a guessed
+ * address; it is the keyed code of the plain id a player had before, so ids kept then are coded into the same ids.
+ */
+export const hashId = (id: string) => keyedFrom(plainId(id));
+
+/** A set kept before ids were keyed, its ids keyed; a filter cannot be, and is marked to be read by plain ids too. */
+function keyedSet(s: SeenSet): SeenSet {
+  if (!s.bloom) return { ids: s.ids.map(keyedFrom), bloom: null };
+  return { ...s, legacy: true };
+}
+
+/** Whether `who` is in `s`, by its keyed id or, in a filter filled before ids were keyed, by its plain id. */
+const seenIn = (s: SeenSet, who: string) => hasSeen(s, hashId(who)) || (s.legacy === true && hasSeen(s, plainId(who)));
 
 export function createLibrary(store?: string, limits: { max?: number; perSharer?: number } = {}) {
   const max = limits.max ?? MAX_ENTRIES;
   const perSharer = limits.perSharer ?? MAX_PER_SHARER;
   const entries = new Map<string, LibraryEntry>();
+  let plain = false;
   if (store && hasStore(store)) {
     try {
       // labels stored before they were dropped are dropped on load, and plain lists become fixed-size sets
       for (const e of readStore(store) as Array<LibraryEntry & { reports: unknown; users: unknown }>) {
-        const reports = seenFrom(e.reports);
+        let reports = seenFrom(e.reports);
+        let users = seenFrom(e.users);
+        let from = e.from;
+        // ids kept before they were keyed are keyed now (P6a), so each player keeps counting once
+        if (e.ids !== "keyed") {
+          plain = true;
+          reports = keyedSet(reports);
+          users = keyedSet(users);
+          if (from !== undefined) from = keyedFrom(from);
+        }
         const reportCount = typeof e.reportCount === "number" ? e.reportCount : Array.isArray(e.reports) ? e.reports.length : 0;
-        entries.set(e.key, { ...e, rule: { when: e.rule.when, then: e.rule.then } as Rule, reports, reportCount, users: seenFrom(e.users) });
+        entries.set(e.key, { ...e, rule: { when: e.rule.when, then: e.rule.then } as Rule, reports, reportCount, users, ...(from !== undefined ? { from } : {}), ids: "keyed" });
       }
     } catch {
       // a damaged file starts empty
     }
   }
+  if (store && plain) {
+    // written twice, so the .bak each write keeps holds no plain id either
+    try {
+      for (let i = 0; i < 2; i++) saveJson(store, undefined, JSON.stringify([...entries.values()]));
+    } catch (e) {
+      process.stderr.write(`library not saved: ${(e as Error).message}\n`);
+    }
+  }
+  if (store) scrubAsides(dirname(store), basename(store));
   let timer: NodeJS.Timeout | null = null;
   const save = () => {
     if (!store || timer) return;
@@ -144,7 +185,7 @@ export function createLibrary(store?: string, limits: { max?: number; perSharer?
       const room = roomFor(from);
       if (!room.ok) return { ok: false, reason: "full" };
       if (room.drop) entries.delete(room.drop);
-      entries.set(key, { key, rule: { when: rule.when, then: rule.then } as Rule, by: author, firstAt: now, uses: 1, reports: emptySeen(), reportCount: 0, users: addSeen(emptySeen(), from), from, lastAt: now });
+      entries.set(key, { key, rule: { when: rule.when, then: rule.then } as Rule, by: author, firstAt: now, uses: 1, reports: emptySeen(), reportCount: 0, users: addSeen(emptySeen(), from), from, lastAt: now, ids: "keyed" });
       save();
       return { ok: true, key, isNew: true };
     },
@@ -153,7 +194,7 @@ export function createLibrary(store?: string, limits: { max?: number; perSharer?
       const e = entries.get(key);
       if (!e) return false;
       const h = hashId(who);
-      if (hasSeen(e.users, h)) return true;
+      if (seenIn(e.users, who)) return true;
       entries.set(key, { ...e, users: addSeen(e.users, h), uses: e.uses + 1, lastAt: now });
       save();
       return true;
@@ -162,7 +203,7 @@ export function createLibrary(store?: string, limits: { max?: number; perSharer?
       const e = entries.get(key);
       if (!e) return false;
       const h = hashId(who);
-      if (!hasSeen(e.reports, h)) {
+      if (!seenIn(e.reports, who)) {
         entries.set(key, { ...e, reports: addSeen(e.reports, h), reportCount: e.reportCount + 1 });
         save();
       }

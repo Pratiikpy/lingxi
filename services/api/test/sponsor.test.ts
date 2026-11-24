@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { signSponsorRequest } from "@lingxi/chain";
 import { SponsorGate } from "../src/sponsor";
+import { addressCode } from "../src/pseudonym";
 
 const NOW = 1_800_000_000_000;
 /** a starting state whose line bits (152-153) say `line` */
@@ -146,7 +147,7 @@ describe("who may have a pet kept for them (H4)", () => {
     if (!r.ok) throw new Error("refused");
     g.finish(r.slot, { petId: "9", hatchTx: "0x1", grantTx: "0x2", spentWei: 61_000_000_000_000n });
     const later = new SponsorGate({ file: f, enabled: true, now: () => NOW });
-    expect(later.pets()).toEqual([{ to: body.to.toLowerCase(), petId: "9", network: "198.51.100.1", at: NOW, hatchTx: "0x1", grantTx: "0x2", spentWei: "61000000000000" }]);
+    expect(later.pets()).toEqual([{ to: body.to.toLowerCase(), petId: "9", network: addressCode("198.51.100.1"), at: NOW, hatchTx: "0x1", grantTx: "0x2", spentWei: "61000000000000" }]);
     expect(later.spentToday(), "the day's spend survives a restart").toBe(61_000_000_000_000n);
     expect(await later.check(body, "198.51.100.9")).toMatchObject({ ok: false, reason: "had" });
   });

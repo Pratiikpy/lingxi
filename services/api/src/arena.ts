@@ -10,7 +10,8 @@
 import { createHash } from "node:crypto";
 import { COMPANION, MAX_COMPANIONS, type DuelPet, duelFighter, canonicalCard, shownName } from "@lingxi/game";
 import { openShards } from "./shards";
-import { heldOver, prefixOf } from "./limit";
+import { basename, dirname } from "node:path";
+import { CODE, type Coded, codeOf, heldOverCoded, networkOf, recoded, scrubAsides } from "./pseudonym";
 import { BLOCKED_WORDS } from "./words";
 
 export const MAX_ROUND = 30;
@@ -26,8 +27,13 @@ export interface Snapshot {
   /** a one-way tag of the device that saved it, so it is never served back to that device */
   by: string;
   at: number;
-  /** the address that sent it, kept here and never served: what holds a sender to its share of a round (A144) */
+  /**
+   * the code of the address that sent it (never the address, P6a), kept here and never served: what holds a sender to
+   * its share of a round (A144)
+   */
   from?: string;
+  /** the code of that address's IPv6 /48, when it has one */
+  net?: string;
 }
 
 export interface ArenaStore {
@@ -65,9 +71,26 @@ export function createArenaStore(file?: string, now: () => number = Date.now, op
   const rounds = new Map<number, Snapshot[]>();
   // one file a round (A123): the timer writes the rounds that changed, never all thirty
   const shards = file ? openShards(file, ".before-rounds", "arena round") : null;
+  /** rounds kept before addresses were coded, whose senders' addresses are coded on load (P6a) */
+  const raw = new Set<number>();
   for (const [r, list] of shards?.all() ?? []) {
     const n = Number(r);
-    if (Number.isInteger(n) && n >= 0 && n <= MAX_ROUND && Array.isArray(list)) rounds.set(n, (list as Snapshot[]).slice(-PER_ROUND));
+    if (!Number.isInteger(n) || n < 0 || n > MAX_ROUND || !Array.isArray(list)) continue;
+    rounds.set(
+      n,
+      (list as Snapshot[]).slice(-PER_ROUND).map((s) => {
+        if (s.from === undefined || CODE.test(s.from)) return s;
+        raw.add(n);
+        const c = recoded(s.from);
+        return { ...s, from: c.by, ...(c.net !== undefined ? { net: c.net } : {}) };
+      }),
+    );
+  }
+  if (shards && file) {
+    // written twice, so the .bak each write keeps holds no address either
+    for (const n of raw) for (let i = 0; i < 2; i++) shards.write(String(n), rounds.get(n) ?? []);
+    scrubAsides(dirname(file), basename(file));
+    scrubAsides(`${file}.d`, "");
   }
   const dirty = new Set<number>();
   const save = () => {
@@ -78,25 +101,27 @@ export function createArenaStore(file?: string, now: () => number = Date.now, op
   const every = opts.every ?? 30_000;
   if (shards && every > 0) setInterval(save, every).unref();
   return {
-    save: (round, pet, team, device, from = "unknown") => {
+    save: (round, pet, team, device, address = "unknown") => {
       if (!Number.isInteger(round) || round < 0 || round > MAX_ROUND || typeof device !== "string" || device.length < 8 || device.length > 64) return { ok: false, reason: "invalid" };
       const v = validSnapshot(pet, team);
       if (!v) return { ok: false, reason: "invalid" };
       const by = tag(device);
+      const from = codeOf(address);
+      const sender = (s: Snapshot): Coded => ({ by: s.from ?? "", ...(s.net !== undefined ? { net: s.net } : {}) });
       // one line per device per round: a newer run replaces the older line
       const list = (rounds.get(round) ?? []).filter((s) => s.by !== by);
       // a sender holds two lines a round, and its IPv6 /48 eight (A144)
-      if (heldOver(list.map((s) => s.from ?? ""), from, LINES_PER_SENDER)) return { ok: false, reason: "busy" };
+      if (heldOverCoded(list.map(sender), from, LINES_PER_SENDER)) return { ok: false, reason: "busy" };
       // a full round lets go of the oldest line of the sender holding the most, never a quiet sender's (A144)
       if (list.length >= PER_ROUND) {
-        const network = (s: Snapshot) => (s.from ? (prefixOf(s.from) ?? s.from) : `line:${s.by}`);
+        const network = (s: Snapshot) => (s.from ? networkOf(sender(s)) : `line:${s.by}`);
         const held = new Map<string, number>();
         for (const s of list) held.set(network(s), (held.get(network(s)) ?? 0) + 1);
         const most = Math.max(...held.values());
         const out = list.findIndex((s) => held.get(network(s)) === most);
         list.splice(out, 1);
       }
-      list.push({ ...v, by, at: now(), from });
+      list.push({ ...v, by, at: now(), from: from.by, ...(from.net !== undefined ? { net: from.net } : {}) });
       rounds.set(round, list.slice(-PER_ROUND));
       dirty.add(round);
       return { ok: true };

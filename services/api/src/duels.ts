@@ -14,6 +14,7 @@ import { MAX_DUEL_RESULT_CODE, decodeChallenge, decodeResult, duelLinkId } from 
 import { clientIp } from "./clientIp";
 import { PREFIX_SHARE, RateLimiter, prefixOf } from "./limit";
 import { writeFlushed } from "./durable";
+import { pseudonym } from "./pseudonym";
 
 /** How many codes are kept, and how many characters in all; past either, those nobody has opened for longest go first. */
 const MAX_KEPT = 50_000;
@@ -26,13 +27,21 @@ const ID = /^[A-Za-z0-9_-]{16}$/;
 /**
  * The part of the shelf one maker may hold, in links and in characters (A83): past it the maker's own least opened
  * link goes, so opening one's own links cannot hold the shelf against everyone else's; an IPv6 /48 holds four makers'
- * worth (limit.ts). Who made a link is in its file's name (short hashes of the address and its /48), so a restart keeps
- * it with no index to rewrite.
+ * worth (limit.ts). Who made a link is in its file's name (keyed codes of the address and its /48, pseudonym.ts), so a
+ * restart keeps it with no index to rewrite.
  */
 export const MAKER_SHARE = 1 / 200;
-/** `<id>.txt` (made before A83: no maker), or `<id>.<maker>.<network or ->.txt` */
-const FILE = /^([A-Za-z0-9_-]{16})(?:\.([0-9a-f]{12})\.([0-9a-f]{12}|-))?\.txt$/;
-const tag = (s: string) => createHash("sha256").update(s).digest("hex").slice(0, 12);
+/**
+ * `<id>.txt` (made before A83: no maker), or `<id>.<maker>.<network or ->.txt`: the maker and network as 16-character
+ * keyed codes, or (made before P6a) as 12-character plain hashes, which are renamed to codes on open
+ */
+const FILE = /^([A-Za-z0-9_-]{16})(?:\.([0-9a-f]{12}|[0-9a-f]{16})\.([0-9a-f]{12}|[0-9a-f]{16}|-))?\.txt$/;
+/** the plain hash a maker had before P6a: anyone could work it out for a guessed address */
+const plainTag = (s: string) => createHash("sha256").update(s).digest("hex").slice(0, 12);
+/** a plain hash as the keyed code the same maker has now, so links made before keep counting against their maker */
+const keyedTag = (plain: string) => pseudonym("duel", plain);
+const tag = (s: string) => keyedTag(plainTag(s));
+const PLAIN = /^[0-9a-f]{12}$/;
 
 /**
  * The codes, one file each in `dir` (named by id, so a code is written once and read by its name), or in memory when no
@@ -58,7 +67,11 @@ export function createDuelStore(dir?: string, limits: { count: number; chars: nu
       const m = FILE.exec(name);
       if (!m) continue;
       const st = statSync(join(dir, name));
-      kept.set(m[1]!, { at: st.mtimeMs, size: st.size, ...(m[2] ? { by: m[2] } : {}), ...(m[3] && m[3] !== "-" ? { net: m[3] } : {}) });
+      const by = m[2] && PLAIN.test(m[2]) ? keyedTag(m[2]) : m[2];
+      const net = m[3] && m[3] !== "-" ? (PLAIN.test(m[3]) ? keyedTag(m[3]) : m[3]) : undefined;
+      kept.set(m[1]!, { at: st.mtimeMs, size: st.size, ...(by ? { by } : {}), ...(net ? { net } : {}) });
+      // a name from before P6a takes its keyed codes; a rename keeps the file's time, so the order survives
+      if (join(dir, name) !== fileOf(m[1]!)) renameSync(join(dir, name), fileOf(m[1]!));
       chars += st.size;
     }
   }

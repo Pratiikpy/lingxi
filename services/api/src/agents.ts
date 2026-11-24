@@ -7,7 +7,7 @@
  * what the public scoreboard compares.
  */
 
-import { heldOver } from "./limit";
+import { CODE, codeOf, heldOverCoded, recoded, scrubAsides } from "./pseudonym";
 import { createHash, randomBytes } from "node:crypto";
 import { MOODS, type Rule, type StarterLine, WANTS, compileProgram, gateCount, validateProgram } from "@lingxi/brain";
 import {
@@ -30,6 +30,7 @@ import {
   toVisible,
 } from "@lingxi/game";
 import { hasStore, readStore, saveJson } from "./durable";
+import { basename, dirname } from "node:path";
 
 const MAX_PETS = 5_000;
 const MAX_PER_AGENT = 5;
@@ -45,8 +46,10 @@ interface Kept {
   agent: string;
   pet: Pet;
   created: number;
-  /** the address that adopted it, for the per-address cap */
+  /** the code of the address that adopted it (never the address, P6a), for the per-address cap */
   from?: string;
+  /** the code of that address's IPv6 /48, when it has one */
+  net?: string;
   /** when it was last looked at or cared for */
   seen?: number;
 }
@@ -115,9 +118,18 @@ export interface AgentStore {
 
 export function createAgentStore(file?: string, now: () => number = Date.now): AgentStore {
   const pets = new Map<string, Kept>();
+  /** a pet kept before addresses were coded held its adopter's address: it is coded on load (P6a) */
+  let raw = false;
   if (file && hasStore(file)) {
     try {
-      for (const [h, k] of Object.entries(readStore(file) as Record<string, Kept>)) if (/^[0-9a-f]{64}$/.test(h)) pets.set(h, k);
+      for (const [h, k] of Object.entries(readStore(file) as Record<string, Kept>)) {
+        if (!/^[0-9a-f]{64}$/.test(h)) continue;
+        if (k.from !== undefined && !CODE.test(k.from)) {
+          const c = recoded(k.from);
+          pets.set(h, { ...k, from: c.by, ...(c.net !== undefined ? { net: c.net } : {}) });
+          raw = true;
+        } else pets.set(h, k);
+      }
     } catch {
       // a damaged file starts empty rather than stopping the server
     }
@@ -133,6 +145,14 @@ export function createAgentStore(file?: string, now: () => number = Date.now): A
     }
   };
   if (file) setInterval(save, 15_000).unref();
+  if (file && raw) {
+    // written twice, so the .bak each write keeps holds no address either
+    dirty = true;
+    save();
+    dirty = true;
+    save();
+  }
+  if (file) scrubAsides(dirname(file), basename(file));
   /** pets idle past `AGENT_IDLE_MS` go home */
   const letIdleGo = (t: number) => {
     for (const [h, k] of pets)
@@ -169,12 +189,13 @@ export function createAgentStore(file?: string, now: () => number = Date.now): A
       if (pets.size >= MAX_PETS) return { ok: false, reason: "full" };
       if ([...pets.values()].filter((k) => k.agent === agent).length >= MAX_PER_AGENT) return { ok: false, reason: "tooMany", detail: `an agent may raise at most ${MAX_PER_AGENT} pets` };
       // an IPv6 /48 raises four addresses' worth (A83)
-      if (from && heldOver([...pets.values()].flatMap((k) => (k.from ? [k.from] : [])), from, MAX_PER_ADDRESS)) return { ok: false, reason: "tooMany", detail: `at most ${MAX_PER_ADDRESS} pets at once from one address, whatever agent names it uses; a pet nobody cares for in 30 days goes home` };
+      const who = from ? codeOf(from) : null;
+      if (who && heldOverCoded([...pets.values()].flatMap((k) => (k.from ? [{ by: k.from, ...(k.net ? { net: k.net } : {}) }] : [])), who, MAX_PER_ADDRESS)) return { ok: false, reason: "tooMany", detail: `at most ${MAX_PER_ADDRESS} pets at once from one address, whatever agent names it uses; a pet nobody cares for in 30 days goes home` };
       const inst = cleanInstincts(instincts);
       const brain = mindBrain({ line: line as StarterLine, lessons: [], instincts: inst });
       const pet = createPet({ name: name.trim(), line: line as StarterLine, now: t, tzOffsetMin: 0, brain, instincts: inst });
       const token = randomBytes(24).toString("hex");
-      const k: Kept = { agent, pet, created: t, seen: t, ...(from ? { from } : {}) };
+      const k: Kept = { agent, pet, created: t, seen: t, ...(who ? { from: who.by, ...(who.net ? { net: who.net } : {}) } : {}) };
       touch(hash(token), k);
       save();
       return { ok: true, token, pet: viewOf(k, t) };

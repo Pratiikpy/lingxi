@@ -16,13 +16,14 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync } 
 import { open, readFile, rename, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { SEND_LIMITS } from "@lingxi/chain/limits";
-import { heldOver, prefixOf, shareOf } from "./limit";
+import { shareOf } from "./limit";
+import { CODE, type Coded, codeOf, heldOverCoded, networkOf, recoded, scrubAsides } from "./pseudonym";
 import { hasStore, loadJson, saveJson } from "./durable";
 
 const MAX_PACK = SEND_LIMITS.sitPackChars;
 const KEEP_AFTER_MS = 7 * 86_400_000;
 const MAX_SITTING_MS = 31 * 86_400_000;
-const CODE = /^[a-f0-9]{24}$/;
+const SIT_CODE = /^[a-f0-9]{24}$/;
 const KEY = /^[a-f0-9]{32}$/;
 /** all packs and their homecomings together */
 export const MAX_SITTING_BYTES = 256 * 1024 * 1024;
@@ -35,11 +36,22 @@ interface Entry {
   keyHash: string;
   until: number;
   created: number;
+  /** the code of the address that left it (never the address, P6a) */
   owner: string;
+  /** the code of that address's IPv6 /48, when it has one */
+  net?: string;
   size: number;
   backSize?: number;
   backAt?: number;
 }
+
+/** Who left a pack, as the index keeps it. */
+const ownerOf = (e: Entry): Coded => (e.net !== undefined ? { by: e.owner, net: e.net } : { by: e.owner });
+/** The bytes the network of `who` holds on the shelf, packs and homecomings. */
+const heldBy = (index: Map<string, Entry>, who: Coded) => {
+  const network = networkOf(who);
+  return [...index.values()].filter((e) => networkOf(ownerOf(e)) === network).reduce((n, e) => n + e.size + (e.backSize ?? 0), 0);
+};
 
 const hash = (k: string) => createHash("sha256").update(`lingxi-sit:${k}`).digest("hex");
 
@@ -119,6 +131,8 @@ export function createSittingStore(dir?: string, now: () => number = Date.now, l
   const blobs = folder ? folderBlobs(folder) : memoryBlobs();
   const index = new Map<string, Entry>();
   let bytes = 0;
+  /** an index kept before addresses were coded held its owners' addresses: they are coded on load (P6a) */
+  let raw = false;
 
   // the index, or its .bak when a crash cut it short; one that cannot be read is kept aside, never written over (A139)
   if (folder && hasStore(join(folder, "index.json"))) {
@@ -126,8 +140,13 @@ export function createSittingStore(dir?: string, now: () => number = Date.now, l
     if (got.state === "ok") {
       if (got.from === "bak") process.stderr.write(`sitting index could not be read: kept aside, read its .bak instead\n`);
       for (const [code, e] of Object.entries(got.value as Record<string, Entry>)) {
-        if (!CODE.test(code)) continue;
-        index.set(code, e);
+        if (!SIT_CODE.test(code)) continue;
+        if (CODE.test(e.owner)) index.set(code, e);
+        else {
+          const c = recoded(e.owner);
+          index.set(code, { ...e, owner: c.by, ...(c.net !== undefined ? { net: c.net } : {}) });
+          raw = true;
+        }
         bytes += e.size + (e.backSize ?? 0);
       }
     } else if (got.state === "damaged") process.stderr.write(`sitting index and its .bak could not be read: both kept aside\n`);
@@ -150,19 +169,25 @@ export function createSittingStore(dir?: string, now: () => number = Date.now, l
   // ready once every file is written, the index saved and the old file set aside, and every call waits for that, so a
   // pack asked for in the first moments after a start is never missed
   let ready: Promise<void> = Promise.resolve();
+  if (folder) {
+    // written twice, so the .bak each write keeps holds no address either
+    if (raw) ready = saveIndex().then(saveIndex);
+    scrubAsides(folder, "index.json");
+  }
   if (legacy && existsSync(legacy)) {
     // the old layout: one JSON file holding every pack; moved in once, then kept as .migrated
     try {
       const old = JSON.parse(readFileSync(legacy, "utf8")) as Record<string, { pack: string; keyHash: string; until: number; created: number; back?: string; backAt?: number }>;
       const moves: Promise<void>[] = [];
       for (const [code, e] of Object.entries(old)) {
-        if (!CODE.test(code) || index.has(code)) continue;
-        index.set(code, { keyHash: e.keyHash, until: e.until, created: e.created, owner: "before-migration", size: e.pack.length, ...(e.back ? { backSize: e.back.length, backAt: e.backAt } : {}) });
+        if (!SIT_CODE.test(code) || index.has(code)) continue;
+        index.set(code, { keyHash: e.keyHash, until: e.until, created: e.created, owner: codeOf("before-migration").by, size: e.pack.length, ...(e.back ? { backSize: e.back.length, backAt: e.backAt } : {}) });
         bytes += e.pack.length + (e.back?.length ?? 0);
         moves.push(blobs.write(`${code}.pack`, e.pack));
         if (e.back) moves.push(blobs.write(`${code}.back`, e.back));
       }
-      ready = Promise.all(moves)
+      const coded = ready;
+      ready = Promise.all([coded, ...moves])
         .then(saveIndex)
         .then(() => renameSync(legacy, `${legacy}.migrated`))
         .catch((e: Error) => void process.stderr.write(`sitting migration: ${e.message}\n`));
@@ -187,7 +212,7 @@ export function createSittingStore(dir?: string, now: () => number = Date.now, l
   };
 
   return {
-    async leave(pack, keyHash, until, owner = "unknown") {
+    async leave(pack, keyHash, until, address = "unknown") {
       await ready;
       await sweep();
       if (typeof pack !== "string" || pack.length > MAX_PACK) return { ok: false, reason: "tooBig" };
@@ -203,16 +228,16 @@ export function createSittingStore(dir?: string, now: () => number = Date.now, l
       // every pack this address still has on the shelf counts, past its end date too: each is kept a week after it
       // ends, and a short end date must not slip past the cap (A50)
       // an IPv6 /48 holds four addresses' worth of packs, and no sender more than its share of the bytes (A118)
-      if (heldOver([...index.values()].map((e) => e.owner), owner, limits.perOwner)) return { ok: false, reason: "tooMany" };
-      const network = prefixOf(owner) ?? owner;
-      const theirs = [...index.values()].filter((e) => (prefixOf(e.owner) ?? e.owner) === network).reduce((n, e) => n + e.size + (e.backSize ?? 0), 0);
+      const owner = codeOf(address);
+      if (heldOverCoded([...index.values()].map(ownerOf), owner, limits.perOwner)) return { ok: false, reason: "tooMany" };
+      const theirs = heldBy(index, owner);
       if (bytes + pack.length > limits.maxBytes) return { ok: false, reason: "full" };
       // and that share shrinks as the shelf fills, so a few networks cannot fill it (A141)
       if (theirs + pack.length > shareOf(limits.perNetworkBytes ?? MAX_SITTING_BYTES_PER_NETWORK, limits.maxBytes - bytes, theirs, limits.freeShare)) return { ok: false, reason: "tooMany" };
       // the place and the bytes are taken before the write, so requests in flight together cannot all pass the caps
       // above (A76); a write that fails gives them back
       const code = randomBytes(12).toString("hex");
-      index.set(code, { keyHash, until, created: t, owner, size: pack.length });
+      index.set(code, { keyHash, until, created: t, owner: owner.by, ...(owner.net !== undefined ? { net: owner.net } : {}), size: pack.length });
       bytes += pack.length;
       try {
         await blobs.write(`${code}.pack`, pack);
@@ -225,7 +250,7 @@ export function createSittingStore(dir?: string, now: () => number = Date.now, l
       return { ok: true, code };
     },
     async collect(code) {
-      if (!CODE.test(code)) return null;
+      if (!SIT_CODE.test(code)) return null;
       await ready;
       const e = index.get(code);
       if (!e) return null;
@@ -235,7 +260,7 @@ export function createSittingStore(dir?: string, now: () => number = Date.now, l
       return { pack, ...(back !== null ? { back, backAt: e.backAt } : {}) };
     },
     async sendHome(code, key, pet) {
-      if (!CODE.test(code) || typeof key !== "string" || !KEY.test(key) || typeof pet !== "string" || pet.length > MAX_PACK) return false;
+      if (!SIT_CODE.test(code) || typeof key !== "string" || !KEY.test(key) || typeof pet !== "string" || pet.length > MAX_PACK) return false;
       await ready;
       const e = index.get(code);
       if (!e || e.keyHash !== hash(key)) return false;
@@ -246,8 +271,7 @@ export function createSittingStore(dir?: string, now: () => number = Date.now, l
       }
       if (bytes - (e.backSize ?? 0) + pet.length > limits.maxBytes) return false;
       // a homecoming counts against the pack owner's network share, as its pack did (A146)
-      const network = prefixOf(e.owner) ?? e.owner;
-      const theirs = [...index.values()].filter((x) => (prefixOf(x.owner) ?? x.owner) === network).reduce((n, x) => n + x.size + (x.backSize ?? 0), 0);
+      const theirs = heldBy(index, ownerOf(e));
       const grows = pet.length - (e.backSize ?? 0);
       if (grows > 0 && theirs + grows > shareOf(limits.perNetworkBytes ?? MAX_SITTING_BYTES_PER_NETWORK, limits.maxBytes - bytes, theirs, limits.freeShare)) return false;
       // taken before the write, as for a pack left, and the entry's size with it, so a second sending home at once
