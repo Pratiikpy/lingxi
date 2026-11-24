@@ -37,3 +37,11 @@ jobs:
             ' "$p" | tee -a summary.txt
           done
           cat summary.txt >> "$GITHUB_STEP_SUMMARY"
+      # every run's full report, so a bad run can be traced to its long tasks
+      - name: Keep the reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: lighthouse-live
+          path: lh-*.json
+          retention-days: 14
