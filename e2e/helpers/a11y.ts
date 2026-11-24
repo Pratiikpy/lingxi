@@ -16,6 +16,20 @@ export interface Finding {
 
 /** axe's serious and critical findings on what the page shows now, each with the elements it names. */
 export async function seriousFindings(page: Page): Promise<Finding[]> {
+  // contrast is judged at rest: wait for every animation that ends to end, whether the browser runs it or a script
+  // writes it into an inline style (a panel fading in measured mid-fade on a slow CI runner read 3.7:1, P6b)
+  await page.waitForFunction(
+    () =>
+      document.getAnimations().every((a) => a.playState !== "running" || !Number.isFinite(Number(a.effect?.getComputedTiming().endTime))) &&
+      [...document.querySelectorAll<HTMLElement>("[style*='opacity']")].every((el) => {
+        // decoration hidden from assistive technology may loop its fade for ever (the landing's hearts); it is not read
+        if (el.closest("[aria-hidden='true']")) return true;
+        const o = Number(el.style.opacity);
+        return !(o > 0 && o < 1);
+      }),
+    undefined,
+    { timeout: 10_000 },
+  );
   await page.evaluate(AXE);
   const all = await page.evaluate(async () => {
     const axe = (window as unknown as { axe: { run: (ctx: Document, o: object) => Promise<{ violations: Array<{ id: string; impact: string | null; nodes: Array<{ target: string[]; failureSummary?: string }> }> }> } }).axe;
