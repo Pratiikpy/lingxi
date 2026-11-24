@@ -64,7 +64,11 @@ function offlineWorker(): Plugin {
     writeBundle(options, bundle) {
       outDir = options.dir ?? "";
       const chunks = Object.values(bundle).filter((c): c is Extract<typeof c, { type: "chunk" }> => c.type === "chunk");
-      const roots = ["/src/play/main.tsx", "/src/play/FirstVisit.tsx", "/src/play/Crash.tsx", "/src/play/PlayApp.tsx"].map((e) => chunks.find((c) => c.moduleIds.some((id) => id.split("\\").join("/").endsWith(e))));
+      const norm = (id: string) => id.split("\\").join("/");
+      // the game's entry is the chunk Vite builds for play.html (found by name, a module can sit in a shared chunk
+      // that is not the one the page loads); then the chunks it reaches without the network
+      const entry = chunks.find((c) => c.isEntry && !!c.facadeModuleId && norm(c.facadeModuleId).endsWith("/play.html"));
+      const roots = [entry, ...["/src/play/FirstVisit.tsx", "/src/play/Crash.tsx", "/src/play/PlayApp.tsx"].map((e) => chunks.find((c) => c.moduleIds.some((id) => norm(id).endsWith(e))))];
       if (roots.some((c) => !c)) {
         this.warn("the game's entry chunks were not found: the offline list is empty");
         return;
