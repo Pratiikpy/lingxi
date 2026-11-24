@@ -7,7 +7,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { createReadStream, readFileSync, statSync } from "node:fs";
+import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { type SiteSource, folderSource, releaseSource } from "./releases";
@@ -397,6 +397,14 @@ export function withSite(app: Hono, site: string | SiteSource): Hono {
       if ((e as { code?: string }).code === "ERR_OUT_OF_RANGE") return c.body(null, 416);
       throw e;
     }
+  });
+  // P6: a page the site does not have is answered with the release's own not-found page, status 404; the API and a
+  // release without the page keep the plain answer
+  app.notFound((c) => {
+    const root = rootOf.get(c.req.raw) ?? null;
+    const page = root && c.req.method === "GET" && !c.req.path.startsWith("/api/") ? join(root, "404.html") : null;
+    if (page && existsSync(page)) return c.html(readFileSync(page, "utf8"), 404);
+    return c.text("404 Not Found", 404);
   });
   return app;
 }

@@ -18,3 +18,5 @@ apps/web/site/
 e2e/.run/
 test-results/
 playwright-report/
+# agents' working copies of the repo, made beside it
+.claude/worktrees/
