@@ -16,6 +16,9 @@ type Op = { kind: "push" } | { kind: "back" };
 const ops: Op[] = [];
 let backing = false;
 let listening = false;
+/** the address's hash when our back left, and the one it landed on when that differs (it fires a hashchange) */
+let hashBefore = "";
+let landed: string | null = null;
 
 function pump(): void {
   while (!backing && ops.length > 0) {
@@ -23,6 +26,7 @@ function pump(): void {
     if (op.kind === "push") history.pushState({ lingxiBack: stack.length }, "");
     else {
       backing = true;
+      hashBefore = location.hash;
       history.back();
     }
   }
@@ -35,6 +39,7 @@ function listen(): void {
     // our own back, for something already closed, has arrived: what waited for it goes now
     if (backing) {
       backing = false;
+      if (location.hash !== hashBefore) landed = location.hash;
       pump();
       return;
     }
@@ -69,6 +74,16 @@ export function onBack(close: () => void): () => void {
     ops.push({ kind: "back" });
     pump();
   };
+}
+
+/**
+ * Whether the address's `hash` is one our own back landed on (taken once): a link reader reads a link the player
+ * followed, not one that history handed back because something closed (P6: a duel link already answered reopened).
+ */
+export function takeOwnLanding(hash: string): boolean {
+  if (landed === null || landed !== hash) return false;
+  landed = null;
+  return true;
 }
 
 /** How many open things Back would close, for tests. */

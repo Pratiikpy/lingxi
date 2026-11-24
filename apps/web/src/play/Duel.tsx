@@ -15,6 +15,7 @@ import { FightView } from "./Arena";
 import { partnerOfDuel } from "../game/arenaFight";
 import { Sprite } from "./Sprite";
 import { tokenCode } from "../game/duelLinks";
+import { watchLinks } from "../game/linkWatch";
 
 type Lang = "en" | "zh";
 const drawn = (s: string): PetStage => (s === "elder" ? "adult" : (s as PetStage));
@@ -86,10 +87,13 @@ export function DuelArrival({ hasPet, petName, onAccept }: { hasPet: boolean; pe
       }
     };
     read();
-    window.addEventListener("hashchange", read);
+    // a link followed is read; one returned to through Back or Forward was read when it came, and is only cleared (P6)
+    const stop = watchLinks(read, () => {
+      if (hashToken()) clearHash();
+    });
     return () => {
       live = false;
-      window.removeEventListener("hashchange", read);
+      stop();
     };
   }, [hasPet]);
 

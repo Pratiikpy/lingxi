@@ -24,6 +24,7 @@ import { noteTally } from "../game/tally";
 import { saveWrite } from "../game/saveRuntime";
 import { now } from "../game/gameClock";
 import { errorText } from "../game/errorText";
+import { watchLinks } from "../game/linkWatch";
 
 type Lang = "en" | "zh";
 const OPENED_KEY = "lingxi.gifts.opened.v1";
@@ -191,9 +192,9 @@ export function GiftArrival() {
       }
     };
     read();
-    // a link opened in a tab that already shows the game only changes the hash
-    window.addEventListener("hashchange", read);
-    return () => window.removeEventListener("hashchange", read);
+    // a link opened in a tab that already shows the game only changes the hash; Back or Forward onto a gift's link
+    // that was already opened does not open it again (P6)
+    return watchLinks(read, () => {});
   }, []);
   useEffect(() => {
     if (step !== "arrive" || !state || "error" in state) return;

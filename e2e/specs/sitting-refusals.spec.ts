@@ -8,7 +8,7 @@ import { reach } from "../helpers/chain";
 
 for (const look of [
   { lang: "en", scheme: "light", size: "phone", send: "Send to a friend", said: { tooMany: "This address already has 8 pets' saves waiting with friends", full: "Lingxi's shelf for pets with friends is full for now", busy: "Too many sends from this address this hour" } },
-  { lang: "zh", scheme: "dark", size: "desktop", send: "送去朋友家", said: { tooMany: "这个网络地址已经有 8 只宠物的存档放在朋友那里", full: "灵犀存放托管宠物的空间暂时满了", busy: "这个网络地址这一小时送得太多了" } },
+  { lang: "zh", scheme: "dark", size: "desktop", send: "送去朋友家", said: { tooMany: "这个网络地址已经有 8 只宠物的存档放在朋友那里", full: "灵犀存放托人照看的宠物的空间暂时满了", busy: "这个网络地址这一小时送得太多了" } },
 ] as const) {
   test(`a send to a friend the server refuses says why (${look.lang}, ${look.scheme}, ${look.size})`, async ({ player }) => {
     test.setTimeout(180_000);

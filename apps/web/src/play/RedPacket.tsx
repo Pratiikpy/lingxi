@@ -19,6 +19,7 @@ import { PALETTE_OF } from "../scene/palette";
 import { Sprite } from "./Sprite";
 import "./redpacket.css";
 import { now } from "../game/gameClock";
+import { watchLinks } from "../game/linkWatch";
 
 type Lang = "en" | "zh";
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -308,9 +309,9 @@ export function PacketArrival() {
       void owedFn(l.id).then(setOwed);
     };
     read();
-    // a link opened in a tab that already shows the game only changes the hash
-    window.addEventListener("hashchange", read);
-    return () => window.removeEventListener("hashchange", read);
+    // a link opened in a tab that already shows the game only changes the hash; Back or Forward onto a packet's link
+    // that was already opened does not open it again (P6)
+    return watchLinks(read, () => {});
     // the store's action keeps one identity, so this runs once, as a page's link handler should
   }, [owedFn]);
   const carrier = useMemo(() => drawPet(link?.from.line ?? "gentle", "child", { expression: "proud" }), [link?.from.line]);

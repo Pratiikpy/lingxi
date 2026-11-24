@@ -10,10 +10,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 function fakeHistory() {
   const target = new EventTarget();
   const h = {
+    hashes: [""] as string[],
     entries: ["game"],
     at: 0,
     pushState(_s: unknown, _t: string) {
       h.entries = [...h.entries.slice(0, h.at + 1), `entry${h.entries.length}`];
+      h.hashes = [...h.hashes.slice(0, h.at + 1), h.hashes[h.at]!];
       h.at = h.entries.length - 1;
     },
     // as Chrome does it (traced 2026-11-24): the entry back() goes to is fixed when back() is called, and the move
@@ -43,6 +45,7 @@ let backStack: typeof import("./backStack");
 beforeEach(async () => {
   env = fakeHistory();
   vi.stubGlobal("history", env.h);
+  vi.stubGlobal("location", { get hash() { return env.h.hashes[env.h.at] ?? ""; } });
   vi.stubGlobal("window", env.target);
   vi.resetModules();
   backStack = await import("./backStack");
@@ -124,4 +127,22 @@ describe("the back stack (P6)", () => {
     expect(env.h.at).toBe(0);
     expect(env.h.left).toBe(false);
   });
+
+  it("names the hash its own back landed on, once, and only when the hash changed (P6)", async () => {
+    // the game's entry holds a link the player followed (its reader cleared nothing, as a gift's does)
+    env.h.hashes = ["#gift=lxg1.x"];
+    const end = backStack.onBack(() => {});
+    env.h.hashes[1] = "";
+    end();
+    await settle();
+    expect(env.h.at).toBe(0);
+    expect(backStack.takeOwnLanding("#gift=lxg1.x")).toBe(true);
+    expect(backStack.takeOwnLanding("#gift=lxg1.x"), "taken once").toBe(false);
+    // a back that lands on the same hash fires no hashchange, so nothing waits to be taken
+    const again = backStack.onBack(() => {});
+    again();
+    await settle();
+    expect(backStack.takeOwnLanding("#gift=lxg1.x")).toBe(false);
+  });
 });
+

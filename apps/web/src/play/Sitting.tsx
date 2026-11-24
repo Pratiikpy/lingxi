@@ -19,6 +19,7 @@ import { TooBig, sizeNote } from "../game/sendSize";
 import { PALETTE_OF, type PetStage } from "../scene/palette";
 import { Sprite } from "./Sprite";
 import { now } from "../game/gameClock";
+import { watchLinks } from "../game/linkWatch";
 
 type Lang = "en" | "zh";
 const drawn = (s: string): PetStage => (s === "elder" ? "adult" : s === "egg" ? "baby" : (s as PetStage));
@@ -238,8 +239,10 @@ export function SitArrival() {
       setArrival(pack ? { pack, code: m[1]!, key: m[2]! } : { error: true });
     };
     void read();
-    window.addEventListener("hashchange", read);
-    return () => window.removeEventListener("hashchange", read);
+    // Back or Forward onto a sitting link already taken in only clears it: the pet is not collected twice (P6)
+    return watchLinks(() => void read(), () => {
+      if (/^#sit=/.test(location.hash)) history.replaceState(null, "", location.pathname + location.search);
+    });
   }, []);
   const art = useMemo(() => (arrival && "pack" in arrival ? drawPet(arrival.pack.pet.line, drawn(stageOf(arrival.pack.pet, now())), { expression: "happy" }) : null), [arrival]);
   if (!arrival) return null;
