@@ -21,7 +21,9 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # every stage passing takes about 32 minutes (2026-11-24: the server's fork tests end at 27, the chain package's
+    # follow); runs used to fail before the fork stages and never reached the old 30-minute limit
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
