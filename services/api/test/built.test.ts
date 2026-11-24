@@ -4,9 +4,9 @@
  * built server starts and answers with every path it reads from its own file resolved.
  */
 import { spawn } from "node:child_process";
-import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 import { Worker } from "node:worker_threads";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -19,6 +19,20 @@ const API = join(import.meta.dirname, "..");
 const OUT = join(API, "dist-test");
 const LINES = ["gentle", "bold", "curious"] as const;
 
+/**
+ * A releases folder of the test's own, one release live, named relative to the server's folder as the live server's
+ * LINGXI_SITE is: the test proves the built server finds a site from its folder, so it must not lean on a build of the
+ * web app being there (a fresh checkout, as in CI, has none).
+ */
+function siteOfItsOwn(dir: string): string {
+  const site = join(dir, "site");
+  const release = "20261124T000000Z-0000000";
+  mkdirSync(join(site, "releases", release), { recursive: true });
+  writeFileSync(join(site, "releases", release, "handheld.html"), "<!doctype html><title>handheld</title>");
+  writeFileSync(join(site, "current.json"), JSON.stringify({ release }));
+  return relative(API, site);
+}
+
 /** A server's settings with every store in a scratch folder of its own and no keys, on `port`. */
 function quietEnv(port: number): NodeJS.ProcessEnv {
   const dir = mkdtempSync(join(tmpdir(), "lx-built-"));
@@ -26,7 +40,7 @@ function quietEnv(port: number): NodeJS.ProcessEnv {
     ...process.env,
     PORT: String(port),
     LINGXI_SECRETS: join(dir, "none.env"),
-    LINGXI_SITE: "../../apps/web/site",
+    LINGXI_SITE: siteOfItsOwn(dir),
     ...Object.fromEntries(
       ["AGENT_STORE", "ARENA_STORE", "BRAIN_STORE", "DECOR_STORE", "DIARY_DIR", "DUELS_DIR", "HOMES_STORE", "LANE_FILE", "LIBRARY_STORE", "PAPERS_STORE", "PUSH_STORE", "SEASON_STORE", "SIT_STORE", "SPONSOR_STORE", "STANDINGS_FILE", "DAILY_FILE", "PACKETS_STORE", "RELAY_QUOTA_FILE", "CONSENTS_STORE", "MARKET_V1_STORE", "REFS_STORE", "CIRCUITS_STORE", "TEAM_FILE"].map((k) => [`LINGXI_${k}`, join(dir, k.toLowerCase())]),
     ),
