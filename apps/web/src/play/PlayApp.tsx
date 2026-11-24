@@ -35,6 +35,8 @@ import { weatherFor } from "../scene/weather";
 import { PALETTE_OF, type PetStage } from "../scene/palette";
 import { Hatch } from "./Hatch";
 import { useGameServices } from "./app/useGameServices";
+import { useWorldMessage } from "./app/worldMessage";
+import { useWorldNotices } from "./app/useWorldNotices";
 import { PetButton } from "./PetButton";
 import { OfflineNote } from "./OfflineNote";
 import { SiteFoot } from "../SiteFoot";
@@ -48,7 +50,6 @@ import "./world.css";
 // Quests is loaded on first use (P3); its styles still load with the game, in their place (P3a)
 import "./goals.css";
 import "./quests.css";
-import { noticeText } from "../game/noticeText";
 import { RulesMark } from "./RulesMark";
 import { questsOf, useQuestStatuses, useQuestUi } from "../game/quests";
 import { useWorld } from "../game/world";
@@ -220,65 +221,18 @@ export function PlayApp() {
   const [phase, setPhase] = useState<DayPhase>(phaseNow);
   const [circuit, setCircuit] = useState(false);
   const worldRoom = useWorld((s) => s.world.room);
-  // one message over the world at a time, each for as long as it takes to read; a newer one replaces it
-  const [worldMsg, setWorldMsg] = useState<{ id: number | string; text: string; ms: number } | null>(null);
-  useEffect(() => {
-    if (!worldMsg) return;
-    const id = setTimeout(() => setWorldMsg(null), worldMsg.ms);
-    return () => clearTimeout(id);
-  }, [worldMsg]);
-  // a birth sent before the page closed and found on X Layer since: its little one comes home now (A48)
-  const welcomeFound = useEffectEvent((found: Array<{ child: Pet }>) => {
-    for (const { child } of found) if (useGame.getState().adopt(child)) play("success");
-    if (found.length)
-      setWorldMsg({
-        id: `births:${found.map((f) => f.child.bornAt).join(",")}`,
-        text:
-          lang === "zh"
-            ? `${found.map((f) => f.child.name).join("、")}在 X Layer 上出生了，已经回到你的宠物里。`
-            : `${found.map((f) => f.child.name).join(" and ")} was born on X Layer and has joined your pets.`,
-        ms: 6000,
-      });
-  });
-  useEffect(() => {
-    void useChain.getState().finishBirths().then(welcomeFound);
-  }, []);
+  // one message over the world at a time (play/app/worldMessage.ts); what raises one on its own is in useWorldNotices
+  const worldMsg = useWorldMessage((s) => s.msg);
+  const setWorldMsg = useWorldMessage((s) => s.show);
+  useWorldNotices();
   const worldFull = useWorld((s) => s.world);
   const travelling = !!worldFull.trip;
   const mailState = useMail();
   const unread = unreadCount(mailState);
   const homeDecor = useLive((s) => s.homeDecor);
-  // the server didn't keep our decorations: say so, since visitors will not see them
-  // shown once per refusal, in the language of that moment
-  const sayDecorRefused = useEffectEvent(
-    (refused: NonNullable<ReturnType<typeof useLive.getState>["decorRefused"]>) => {
-      const text =
-        refused.reason === "tooMany"
-          ? lang === "zh"
-            ? "访客明天才能看到你的新布置：这个网络地址今天开的新家够多了。"
-            : "Visitors will see your new decorations from tomorrow: this address has started enough new homes today."
-          : lang === "zh"
-            ? "访客暂时看不到你的布置，下次改动时会再发送。"
-            : "Visitors can't see your decorations for now; they'll be sent again on your next change.";
-      setWorldMsg({ id: Math.round(refused.at), text, ms: 6000 });
-    },
-  );
-  useEffect(
-    () =>
-      useLive.subscribe(
-        (s, before) => s.decorRefused && s.decorRefused !== before.decorRefused && sayDecorRefused(s.decorRefused),
-      ),
-    [],
-  );
   const worldMove = useWorld((s) => s.move);
   const worldForage = useWorld((s) => s.forage);
   const familiar = useWorld((s) => s.world.familiar);
-  // a new notice on every event, in the words and language of that moment
-  const sayNotice = useEffectEvent((notice: NonNullable<ReturnType<typeof useWorld.getState>["notice"]>) => {
-    const text = noticeText(notice, t, lang);
-    if (text) setWorldMsg({ id: notice.id, text, ms: 2800 });
-  });
-  useEffect(() => useWorld.subscribe((s, before) => s.notice && s.notice !== before.notice && sayNotice(s.notice)), []);
   const room = ROOMS[worldRoom] ?? ROOMS[HOME]!;
   // X2: a rig holder's own home wears the rig-bay skin (a friend's home keeps its own look)
   const rigSkin = useHoldings((s) => !!s.held?.rig && s.skinOn);
