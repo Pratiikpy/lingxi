@@ -36,7 +36,7 @@ import { noteTallies, setQuestSlots, setTallySink } from "./tally";
 import { cleanWorld } from "./saveClean";
 import { PROOF_KEY, takeProofChecks } from "./proofMark";
 import { useChain } from "./chain";
-import { type Chose, brainOf, useGame } from "./store";
+import { type Chose, brainOf, onCleaned, useGame } from "./store";
 import { play } from "./sound";
 import { saveWrite } from "./saveRuntime";
 import { now } from "./gameClock";
@@ -578,6 +578,9 @@ export const useWorld = create<WorldStore>((set, get) => ({
     set({ world: r.world, notice: { id: ++n, kind: "claimed", coins: r.coins, items: r.items } });
   },
 }));
+
+// cleaning up after a messy pet leaves compost for the garden (C4): the store announces the clean, the world takes it
+onCleaned((cleanBefore) => useWorld.getState().compost(cleanBefore));
 
 // the pet's events (care, lessons, spars, saves) are counted into the tally the world store owns
 setTallySink((type, index, count, opts) => useWorld.getState().tally(type, index, count, opts));

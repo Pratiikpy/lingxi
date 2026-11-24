@@ -8,13 +8,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { BUILDER_PET, type BuilderId } from "@lingxi/game";
-import { wearableOf } from "@lingxi/art";
 import {
   CHARACTERS,
   DAILIES,
-  DECOR_BY_ID,
   GOAL_BY_ID,
-  ITEM,
   ONBOARDING,
   QUEST_BY_ID,
   type QuestDef,
@@ -22,7 +19,6 @@ import {
   ROOMS,
   type Reward,
   STORY,
-  TRAVEL_RECIPES,
   WEEKLY_DAYS,
   questProgress,
   weeklyGiftsWaiting,
@@ -34,6 +30,7 @@ import { useWorld } from "../game/world";
 import { allStatuses, conditionView, giverRoom, handIn, putDown, takeQuest, takeWeeklyGift, useQuestStatuses, useQuestUi } from "../game/quests";
 import { QuestPanel } from "./WorldPanels";
 import { TogetherPanel, togetherWaiting } from "./Goals";
+import { rewardText } from "./rewardText";
 import "./quests.css";
 
 type Lang = "en" | "zh";
@@ -58,29 +55,6 @@ function whereText(q: QuestDef, lang: Lang): string | null {
   return name ? (lang === "zh" ? `在${name}` : `at ${name}`) : null;
 }
 
-export function rewardText(r: Reward, lang: Lang): string | null {
-  const zh = lang === "zh";
-  switch (r.kind) {
-    case "coins":
-      return zh ? `${r.n} 金币` : `${r.n} coins`;
-    case "item":
-      return `${ITEM[r.item]?.name[lang] ?? r.item}${r.n > 1 ? ` ×${r.n}` : ""}`;
-    case "trust":
-      return zh ? `${residentName(r.who)?.zh ?? r.who}的信任 +${r.n}` : `+${r.n} trust with ${residentName(r.who)?.en ?? r.who}`;
-    case "piece":
-      return wearableOf(r.id)?.name[lang] ?? r.id;
-    case "decor":
-      return DECOR_BY_ID[r.id]?.name[lang] ?? r.id;
-    case "recipe": {
-      // named by what it makes, the way the quest's own lines talk about it
-      const t = TRAVEL_RECIPES.find((x) => x.index === r.index);
-      const made = t ? ITEM[t.out]?.name : undefined;
-      return made ? (zh ? `配方：${made.zh}` : `Recipe: ${made.en}`) : null;
-    }
-    case "flag":
-      return null; // a flag opens something in the story; the closing lines say what
-  }
-}
 
 function Rewards({ rewards, lang }: { rewards: readonly Reward[]; lang: Lang }) {
   const shown = rewards.map((r) => rewardText(r, lang)).filter((x): x is string => !!x);

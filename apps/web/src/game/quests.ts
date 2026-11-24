@@ -5,7 +5,6 @@
  */
 
 import { useMemo } from "react";
-import { create } from "zustand";
 import { GIVER_ROOM, bondLevel, questView } from "@lingxi/game";
 import {
   type ConditionView,
@@ -76,46 +75,8 @@ export const statusOf = (q: QuestDef, v = conditionView()): QuestStatus => quest
 /** Where a giver can be found: a resident's room, Builders' Lane, or the pet itself. */
 export const giverRoom: Readonly<Record<string, number>> = GIVER_ROOM;
 
-export interface QuestNote {
-  id: number;
-  quest: string;
-  /** a quest that opened, became ready or was handed in; or a community goal with something to take (quest = goal id) */
-  kind: "new" | "ready" | "done" | "goal";
-  rewards?: readonly Reward[];
-}
-
-interface QuestUi {
-  /** a quest that just opened, became ready, or was handed in: one toast at a time, the rest wait their turn */
-  note: QuestNote | null;
-  queue: QuestNote[];
-  push: (n: Omit<QuestNote, "id">) => void;
-  dismiss: () => void;
-  /** the quest whose card is open from the pet's bubble or the book */
-  open: string | null;
-  setOpen: (id: string | null) => void;
-  /** the book's tab to show when it next opens (a goal's toast opens Together) */
-  bookTab: "story" | "today" | "together" | "milestones" | null;
-  setBookTab: (t: QuestUi["bookTab"]) => void;
-}
-
-let noteId = 0;
-export const useQuestUi = create<QuestUi>((set, get) => ({
-  note: null,
-  queue: [],
-  push: (n) => {
-    const next = { ...n, id: ++noteId };
-    if (get().note) set({ queue: [...get().queue, next].slice(-4) });
-    else set({ note: next });
-  },
-  dismiss: () => {
-    const [head, ...rest] = get().queue;
-    set({ note: head ?? null, queue: rest });
-  },
-  open: null,
-  setOpen: (open) => set({ open }),
-  bookTab: null,
-  setBookTab: (bookTab) => set({ bookTab }),
-}));
+export { type QuestNote, useQuestUi } from "./questUi";
+import { useQuestUi } from "./questUi";
 
 /** Take a quest on. The giver's own rules decide where (a resident's talk, the pet's bubble, a lane card). */
 export function takeQuest(id: string): boolean {

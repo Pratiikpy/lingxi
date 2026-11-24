@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { compileProgram, fastBrain, stateBits } from "@lingxi/brain";
 import { BEAT_MS } from "../src/pet";
 import { type Pet, care, catchUp, createPet } from "../src/sim";
-import { PET_SCHOOL, composeProgram, teach } from "../src/lessons";
+import { PET_SCHOOL, composeProgram } from "../src/lessons";
+import { teach } from "../src/teaching";
 import { familyOf, halvesOf, mindBrain } from "../src/family";
 import { beatsOfLog, momentText, momentsOf, rewind } from "../src/replay";
 

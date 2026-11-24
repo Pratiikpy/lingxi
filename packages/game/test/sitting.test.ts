@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { care, catchUp, createPet } from "../src/sim";
 import { mindBrain } from "../src/family";
-import { PET_SCHOOL, teach } from "../src/lessons";
+import { PET_SCHOOL } from "../src/lessons";
+import { teach } from "../src/teaching";
 import { checkReturn } from "../src/sitting";
 
 const T0 = Date.UTC(2026, 10, 15, 8, 0);

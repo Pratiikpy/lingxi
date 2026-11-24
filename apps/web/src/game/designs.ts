@@ -11,7 +11,7 @@ import { create } from "zustand";
 import type { Address, Hex } from "viem";
 import { type Design, type Wearable, decodeDesign, designWearable, encodeDesign, registeredWearables, registerWearables } from "@lingxi/art";
 import { type Market, type OutfitDesign, type OutfitListing, copiesHeld, marketsOf, parseWearKey, readDesigns, readListings, wearKey } from "@lingxi/chain";
-import { deployment, publicClient } from "./chain";
+import { deployment, publicClient } from "./network";
 import { saveWrite } from "./saveRuntime";
 import { now } from "./gameClock";
 import { firstLine } from "./errorText";

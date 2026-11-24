@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { STARTERS, compileProgram, fastBrain, gateCount, stateBits } from "@lingxi/brain";
 import { DAY_MS } from "../src/pet";
 import { createPet } from "../src/sim";
-import { LESSON_CAPACITY, MAX_GATES, PET_SCHOOL, arrangeLessons, checkLesson, composeProgram, logSegments, teach } from "../src/lessons";
+import { LESSON_CAPACITY, MAX_GATES, PET_SCHOOL, arrangeLessons, checkLesson, composeProgram, logSegments } from "../src/lessons";
+import { teach } from "../src/teaching";
 import { catchUp } from "../src/sim";
 import { runBeat } from "@lingxi/brain";
 

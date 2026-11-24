@@ -5,6 +5,7 @@ export * from "./keepLog";
 export * from "./sim";
 export * from "./pack";
 export * from "./lessons";
+export * from "./teaching";
 export * from "./evolution";
 export * from "./spar";
 export * from "./spar2";

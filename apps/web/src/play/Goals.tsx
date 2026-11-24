@@ -11,7 +11,7 @@ import { useLang } from "../i18n";
 import { play } from "../game/sound";
 import { useWorld } from "../game/world";
 import { type GoalReport, takeGoalEveryone, takeGoalTiers, useGoals, waitingIn } from "../game/goals";
-import { rewardText } from "./Quests";
+import { rewardText } from "./rewardText";
 import "./goals.css";
 import { now as gameNow } from "../game/gameClock";
 

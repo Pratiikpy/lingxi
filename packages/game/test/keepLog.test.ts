@@ -6,7 +6,8 @@
 import { describe, expect, it } from "vitest";
 import { ZERO_HASH, chainAll } from "../src/log";
 import { type Pet, care, catchUp, createPet } from "../src/sim";
-import { PET_SCHOOL, composeProgram, logSegments, teach } from "../src/lessons";
+import { PET_SCHOOL, composeProgram, logSegments } from "../src/lessons";
+import { teach } from "../src/teaching";
 import { mindBrain } from "../src/family";
 import { beatsOfLog, rewind } from "../src/replay";
 import { restartLog } from "../src/keepLog";

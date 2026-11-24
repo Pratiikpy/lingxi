@@ -30,7 +30,7 @@ import { useLang } from "../i18n";
 import { play } from "../game/sound";
 import { useWorld } from "../game/world";
 import { giftNeighbour, takeNeighbourStep, useNeighbourNote } from "../game/neighbours";
-import { rewardText } from "./Quests";
+import { rewardText } from "./rewardText";
 import "./neighbours.css";
 
 type Lang = "en" | "zh";

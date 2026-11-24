@@ -250,6 +250,16 @@ function loadDaily(): Daily {
 }
 const saveDaily = (d: Daily): void => void saveWrite(CARE_KEY, JSON.stringify(d));
 
+/**
+ * Who hears that the pet was cleaned, with how dirty it was before: the world's garden takes the compost (C4). The world
+ * listens rather than being imported here, so the store does not reach back into the world that reads it (P7: a cycle).
+ */
+const cleanedListeners = new Set<(cleanBefore: number) => void>();
+export function onCleaned(listen: (cleanBefore: number) => void): () => void {
+  cleanedListeners.add(listen);
+  return () => cleanedListeners.delete(listen);
+}
+
 /** At least this long away (minutes) before the pet has a "while you were away" to tell. */
 const AWAY_STORY_BEATS = 60;
 
@@ -397,7 +407,7 @@ export const useGame = create<GameState>((set, get) => ({
     const r = care(pet, c, gameNow(), brainOf(pet));
     save(r.pet);
     // cleaning up after a messy pet leaves compost for the garden (C4)
-    if (c.kind === "clean" && r.note === "cleaned") void import("./world").then((m) => m.useWorld.getState().compost(cleanBefore));
+    if (c.kind === "clean" && r.note === "cleaned") for (const f of cleanedListeners) f(cleanBefore);
     countCare(c.kind, pet.asleep, r);
     set({
       pet: r.pet,

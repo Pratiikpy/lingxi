@@ -9,7 +9,7 @@ import { create } from "zustand";
 import { GOALS, GOAL_BY_ID, type GoalStanding, type Reward, type TierPct, claimGoalEveryone, claimGoalTiers, claimableTiers, canClaimEveryone } from "@lingxi/world";
 import { deviceWallets, useChain } from "./chain";
 import { play } from "./sound";
-import { useQuestUi } from "./quests";
+import { useQuestUi } from "./questUi";
 import { useWorld } from "./world";
 import { goalsQuery, withQuery } from "./requests";
 
