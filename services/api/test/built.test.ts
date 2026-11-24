@@ -4,9 +4,10 @@
  * built server starts and answers with every path it reads from its own file resolved.
  */
 import { spawn } from "node:child_process";
-import { existsSync, mkdtempSync } from "node:fs";
+import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { Worker } from "node:worker_threads";
 import { beforeAll, describe, expect, it } from "vitest";
 import { STARTERS, compileProgram, load, netlistBytes } from "@lingxi/brain";
@@ -17,6 +18,34 @@ const API = join(import.meta.dirname, "..");
 // beside src, as dist is, so the paths the built server resolves from its own file are the ones dist resolves
 const OUT = join(API, "dist-test");
 const LINES = ["gentle", "bold", "curious"] as const;
+
+/** A server's settings with every store in a scratch folder of its own and no keys, on `port`. */
+function quietEnv(port: number): NodeJS.ProcessEnv {
+  const dir = mkdtempSync(join(tmpdir(), "lx-built-"));
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    PORT: String(port),
+    LINGXI_SECRETS: join(dir, "none.env"),
+    LINGXI_SITE: "../../apps/web/site",
+    ...Object.fromEntries(
+      ["AGENT_STORE", "ARENA_STORE", "BRAIN_STORE", "DECOR_STORE", "DIARY_DIR", "DUELS_DIR", "HOMES_STORE", "LANE_FILE", "LIBRARY_STORE", "PAPERS_STORE", "PUSH_STORE", "SEASON_STORE", "SIT_STORE", "SPONSOR_STORE", "STANDINGS_FILE", "DAILY_FILE", "PACKETS_STORE", "RELAY_QUOTA_FILE", "CONSENTS_STORE", "MARKET_V1_STORE", "REFS_STORE", "CIRCUITS_STORE", "TEAM_FILE"].map((k) => [`LINGXI_${k}`, join(dir, k.toLowerCase())]),
+    ),
+  };
+  for (const k of ["LINGXI_REGISTRY", "LINGXI_PROCESSOR", "LINGXI_RELAYER_KEY_FILE", "LINGXI_VOUCHER_KEY_FILE", "LINGXI_PUSH_KEY_FILE", "ANTHROPIC_API_KEY", "pm_exec_path"]) delete env[k];
+  return env;
+}
+
+/** The status of the server's health once it answers on `port`, or 0 when nothing answers within `tries` quarter seconds. */
+async function answersOn(port: number, tries = 120): Promise<number> {
+  for (let i = 0; i < tries; i++) {
+    try {
+      return (await fetch(`http://127.0.0.1:${port}/api/health`)).status;
+    } catch {
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  }
+  return 0;
+}
 
 /** The first message a built worker sends back. */
 function ask<T>(boot: string, init: { workerData?: unknown; post?: unknown }): Promise<T> {
@@ -60,31 +89,39 @@ describe("the built server answers as the source does (P3b)", () => {
     expect(m.standings).toEqual(seasonStandings("2026-W47", entries));
   }, 60_000);
 
-  it("the built server starts on its own and answers, its site and its letters found", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "lx-built-"));
-    const port = 18_000 + Math.floor(Math.random() * 2_000);
-    const store = (n: string) => join(dir, n);
-    const env = {
-      ...process.env,
-      PORT: String(port),
-      LINGXI_SECRETS: store("none.env"),
-      LINGXI_SITE: "../../apps/web/site",
-      ...Object.fromEntries(
-        ["AGENT_STORE", "ARENA_STORE", "BRAIN_STORE", "DECOR_STORE", "DIARY_DIR", "DUELS_DIR", "HOMES_STORE", "LANE_FILE", "LIBRARY_STORE", "PAPERS_STORE", "PUSH_STORE", "SEASON_STORE", "SIT_STORE", "SPONSOR_STORE", "STANDINGS_FILE", "DAILY_FILE", "PACKETS_STORE", "RELAY_QUOTA_FILE", "CONSENTS_STORE", "MARKET_V1_STORE", "REFS_STORE", "CIRCUITS_STORE", "TEAM_FILE"].map((k) => [`LINGXI_${k}`, store(k.toLowerCase())]),
-      ),
-    };
-    for (const k of ["LINGXI_REGISTRY", "LINGXI_PROCESSOR", "LINGXI_RELAYER_KEY_FILE", "LINGXI_VOUCHER_KEY_FILE", "LINGXI_PUSH_KEY_FILE", "ANTHROPIC_API_KEY"]) delete (env as Record<string, string | undefined>)[k];
-    const p = spawn(process.execPath, [join(OUT, "server.mjs")], { cwd: API, env, stdio: "ignore" });
+  it("the built server starts when pm2 runs it through a wrapper, naming it only in pm_exec_path", async () => {
+    // pm2 starts a script from its own ProcessContainerFork, so the server's file is not the first argument
+    const wrapper = join(mkdtempSync(join(tmpdir(), "lx-pm2-")), "container.mjs");
+    writeFileSync(wrapper, `await import(${JSON.stringify(pathToFileURL(join(OUT, "server.mjs")).href)});
+`);
+    const port = 20_000 + Math.floor(Math.random() * 2_000);
+    const p = spawn(process.execPath, [wrapper], { cwd: API, env: { ...quietEnv(port), pm_exec_path: join(OUT, "server.mjs") }, stdio: "ignore" });
     try {
-      let health: Response | null = null;
-      for (let i = 0; i < 120 && !health; i++) {
-        try {
-          health = await fetch(`http://127.0.0.1:${port}/api/health`);
-        } catch {
-          await new Promise((r) => setTimeout(r, 250));
-        }
-      }
-      expect(health?.status, "it answers").toBe(200);
+      expect(await answersOn(port), "it listens under a wrapper").toBe(200);
+    } finally {
+      p.kill();
+    }
+  }, 120_000);
+
+  it("the built server does not start when another program merely imports it", async () => {
+    const wrapper = join(mkdtempSync(join(tmpdir(), "lx-import-")), "importer.mjs");
+    writeFileSync(wrapper, `await import(${JSON.stringify(pathToFileURL(join(OUT, "server.mjs")).href)});
+setTimeout(() => process.exit(0), 3000);
+`);
+    const port = 22_000 + Math.floor(Math.random() * 2_000);
+    const p = spawn(process.execPath, [wrapper], { cwd: API, env: quietEnv(port), stdio: "ignore" });
+    try {
+      expect(await answersOn(port, 12), "nothing listens").toBe(0);
+    } finally {
+      p.kill();
+    }
+  }, 120_000);
+
+  it("the built server starts on its own and answers, its site and its letters found", async () => {
+    const port = 18_000 + Math.floor(Math.random() * 2_000);
+    const p = spawn(process.execPath, [join(OUT, "server.mjs")], { cwd: API, env: quietEnv(port), stdio: "ignore" });
+    try {
+      expect(await answersOn(port), "it answers").toBe(200);
       const mail = (await (await fetch(`http://127.0.0.1:${port}/api/mail`)).json()) as { letters?: unknown[] };
       expect(mail.letters?.length, "its letters are found beside it (../mail)").toBeGreaterThan(0);
       const page = await fetch(`http://127.0.0.1:${port}/handheld.html`);

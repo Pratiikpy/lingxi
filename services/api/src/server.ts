@@ -919,7 +919,12 @@ function storeSizes(dir: string): Promise<Record<string, number>> {
   return value;
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+// the server starts when it is the program being run: directly (node or tsx name it as the first argument), or by pm2,
+// which runs it through a wrapper of its own and names it in pm_exec_path (P3b: the built server, started by pm2, never
+// listened while only the first argument was looked at). Imported by a test, it does not start.
+const self = fileURLToPath(import.meta.url);
+const samePath = (p: string | undefined) => !!p && (process.platform === "win32" ? resolve(p).toLowerCase() === self.toLowerCase() : resolve(p) === self);
+const isMain = samePath(process.argv[1]) || samePath(process.env.pm_exec_path);
 if (isMain) {
   // a stray rejection is logged and the server keeps serving; an exception means state may be broken, so it exits and
   // pm2 starts it clean (every timer runs through `jobs`, which catches its own errors, so neither should happen)
