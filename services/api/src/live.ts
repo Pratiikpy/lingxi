@@ -13,14 +13,13 @@
  */
 
 import type { IncomingMessage } from "node:http";
-import { isIP } from "node:net";
 import { WebSocketServer, type WebSocket } from "ws";
 import { type DecorStore, type Placed, createDecorStore } from "./decor";
 import { type Homes, visible } from "./homes";
 import { CARD_MAX, canonicalCard, isRelayAddress, shownName } from "@lingxi/game";
 import { MAX_PLACED } from "@lingxi/world";
 import { PREFIX_SHARE, RateLimiter, prefixOf } from "./limit";
-import { callerOf } from "./clientIp";
+import { callerFrom } from "./clientIp";
 import { BLOCKED_WORDS as BLOCKED } from "./words";
 
 export const CAPACITY = 24;
@@ -489,9 +488,8 @@ export class LiveRooms {
  */
 export function addressOf(req: IncomingMessage): string {
   const cf = req.headers["cf-connecting-ip"];
-  if (typeof cf === "string" && isIP(cf.trim())) return callerOf(cf.trim());
-  const remote = req.socket.remoteAddress;
-  return remote && isIP(remote) ? callerOf(remote) : "local";
+  // a header sent twice is not one address
+  return callerFrom(Array.isArray(cf) ? "" : cf, req.socket.remoteAddress);
 }
 
 /** Attaches live rooms to an HTTP server at /live, accepting only allowed origins and a few connections per address. */

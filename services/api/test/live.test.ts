@@ -447,6 +447,15 @@ describe("live rooms key their limits as every route does (A74)", () => {
     expect(addressOf(req("198.51.100.9"))).toBe("198.51.100.9");
   });
 
+  it("a header that is not an address is \"invalid\" here as on every HTTP route, never the socket's address (P7)", () => {
+    const req = (ip: string) => ({ headers: { "cf-connecting-ip": ip }, socket: { remoteAddress: "198.51.100.77" } }) as never;
+    expect(addressOf(req("not an address"))).toBe("invalid");
+    expect(addressOf(req("9".repeat(80)))).toBe("invalid");
+    // no header at all: the socket's own address, as on HTTP
+    expect(addressOf({ headers: {}, socket: { remoteAddress: "198.51.100.77" } } as never)).toBe("198.51.100.77");
+    expect(addressOf({ headers: {}, socket: {} } as never)).toBe("local");
+  });
+
   it("thirteen connections from one /64, each from its own address in it, get twelve and a refusal", async () => {
     const opened: WebSocket[] = [];
     let refused = 0;

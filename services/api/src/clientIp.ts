@@ -14,15 +14,23 @@ import { getConnInfo } from "@hono/node-server/conninfo";
 import { isIP } from "node:net";
 
 export function clientIp(c: Context): string {
-  const cf = c.req.header("cf-connecting-ip");
-  if (cf !== undefined) return cf.length <= 45 && isIP(cf.trim()) ? callerOf(cf.trim()) : "invalid";
+  let remote: string | undefined;
   try {
-    const remote = getConnInfo(c).remote.address;
-    return remote && isIP(remote) ? callerOf(remote) : "local";
+    remote = getConnInfo(c).remote.address;
   } catch {
     // an in-process request (tests) has no socket
-    return "local";
   }
+  return callerFrom(c.req.header("cf-connecting-ip"), remote);
+}
+
+/**
+ * The caller, from Cloudflare's header and the socket's address: the one rule every HTTP route and the live rooms'
+ * websocket key their limits by (P7: the websocket once fell back to the socket when the header was not an address).
+ * A header that is present but is not an address is "invalid", never the socket's address.
+ */
+export function callerFrom(cf: string | undefined, remote: string | undefined): string {
+  if (cf !== undefined) return cf.length <= 45 && isIP(cf.trim()) ? callerOf(cf.trim()) : "invalid";
+  return remote && isIP(remote) ? callerOf(remote) : "local";
 }
 
 /**
