@@ -1,6 +1,5 @@
 /** The game: hatch on first visit, then the pet's room with care, mind, spar and profile. */
 
-import { OnChainNote } from "../OnChainNote";
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { NIGHT, boundingBox, drawPet } from "@lingxi/art";
@@ -15,12 +14,11 @@ import { setAmbience } from "../game/music";
 import { DecorBar } from "./DecorBar";
 import { NoticeLane } from "./NoticeLane";
 import { Familiar } from "./Familiar";
-import { MoreBehind } from "./MoreBehind";
 // Collection is loaded on first use (P3); its styles still load with the game, in their place (P3a)
 import "./badges.css";
 import { useTrial, type Trial } from "../game/tryIt";
 import type { Rule } from "@lingxi/brain";
-import { BadgeShelf, BadgeToast } from "./Badges";
+import { BadgeToast } from "./Badges";
 import { type DayPhase, phaseNow } from "../scene/dayPhase";
 import { weatherFor } from "../scene/weather";
 import { PALETTE_OF, type PetStage } from "../scene/palette";
@@ -30,13 +28,13 @@ import { useWorldMessage } from "./app/worldMessage";
 import { useWorldNotices } from "./app/useWorldNotices";
 import { useLiveRoom } from "./app/useLiveRoom";
 import { useResidentTalk } from "./app/useResidentTalk";
+import { TabSheets } from "./app/TabSheets";
 import { PetButton } from "./PetButton";
 import { OfflineNote } from "./OfflineNote";
-import { SiteFoot } from "../SiteFoot";
 import { useHatchDraft } from "./hatchDraft";
 import { Actions, Meters, TabBar, ThinkStrip, ToastView, TopBar, VoiceBubble, type Tab } from "./parts";
 import { useVoice } from "../game/voice";
-import { EvolutionChart, MeSheetBody, MindPanel, Sheet } from "./Sheets";
+import { MindPanel, Sheet } from "./Sheets";
 // WorldPanels is loaded on first use (P3); its styles still load with the game, in their place (P3a)
 import "./cute.css";
 import "./world.css";
@@ -76,14 +74,14 @@ import { AnimatePresence, motion } from "motion/react";
 import "./teach.css";
 import { BEHEMOTH, startDuel, startFight, useArena } from "../game/arenaFight";
 import { LevelUpMoment, SkillsPanel, useSkillsUi } from "./Skills";
-import { AlbumPanel, SHY_ONE } from "./Album";
+import { SHY_ONE } from "./Album";
 import { needsOf, showNeeds } from "../game/badge";
 import { BUILDER_PETS, builderIn } from "@lingxi/game";
 import { builderInScene } from "../game/builderScene";
 import { telegramBack } from "../game/telegram";
 import { useMove } from "../game/move";
-import { MoveNotes, MoveSheet, TelegramCard } from "./Move";
-import { Lazy, deferred } from "./Lazy";
+import { MoveNotes, MoveSheet } from "./Move";
+import { deferred } from "./Lazy";
 import { RIG_HOME_BGS, useHoldings } from "../game/holders";
 import { bondName, bondsOf, friendKey, useFriends } from "../game/friends";
 import { unreadCount, useMail } from "../game/mail";
@@ -92,61 +90,30 @@ import { Icon } from "./icons";
 import { Sprite } from "./Sprite";
 import "./play.css";
 import { ElsewhereOverlay, SaveBanner } from "./SaveScreens";
-import { SaveFileCard, SaveFileSheet, useSaveFileUi } from "./SaveFile";
+import { SaveFileSheet, useSaveFileUi } from "./SaveFile";
 import { now } from "../game/gameClock";
 
 // P3: the room scene and its engine (PIXI) load beside the game, not before it: the screens paint first
 const RoomScene = lazy(() => import("../scene/RoomScene").then((m) => ({ default: m.RoomScene })));
 
 /** P3: panels behind `Lazy` whose code loads only when their place comes near (each module holds only that panel). */
-const DiaryPanel = lazy(() => import("./Diary").then((x) => ({ default: x.DiaryPanel })));
-const ExtrasPanel = lazy(() => import("./Extras").then((x) => ({ default: x.ExtrasPanel })));
-const FashionMarketPanel = lazy(() => import("./FashionMarket").then((x) => ({ default: x.FashionMarketPanel })));
-const FriendsPanel = lazy(() => import("./Friends").then((x) => ({ default: x.FriendsPanel })));
-const HoldersPanel = lazy(() => import("./Holders").then((x) => ({ default: x.HoldersPanel })));
-const ItemShopPanel = lazy(() => import("./ItemShop").then((x) => ({ default: x.ItemShopPanel })));
-const RewindPanel = lazy(() => import("./Rewind").then((x) => ({ default: x.RewindPanel })));
-const StudioPanel = lazy(() => import("./Studio").then((x) => ({ default: x.StudioPanel })));
-const RemindersPanel = deferred(() => import("./Reminders").then((x) => x.RemindersPanel));
-const CollectionPanel = lazy(() => import("./Collection").then((x) => ({ default: x.CollectionPanel })));
-const BagPanel = deferred(() => import("./WorldPanels").then((x) => x.BagPanel));
-const MapPanel = deferred(() => import("./WorldPanels").then((x) => x.MapPanel));
 const HintRing = deferred(() => import("./Quests").then((x) => x.HintRing));
 const PetQuestBubble = deferred(() => import("./Quests").then((x) => x.PetQuestBubble));
-const QuestBook = deferred(() => import("./Quests").then((x) => x.QuestBook));
 const QuestDialog = deferred(() => import("./Quests").then((x) => x.QuestDialog));
 const QuestToast = deferred(() => import("./Quests").then((x) => x.QuestToast));
-const InvitePanel = lazy(() => import("./Social").then((x) => ({ default: x.InvitePanel })));
 const SocialBar = deferred(() => import("./Social").then((x) => x.SocialBar));
 const Talk = deferred(() => import("./Talk").then((x) => x.Talk));
-const GamesPanel = deferred(() => import("./Games").then((x) => x.GamesPanel));
 const DuelArrival = deferred(() => import("./Duel").then((x) => x.DuelArrival));
 const AwayCard = deferred(() => import("./Sitting").then((x) => x.AwayCard));
 const SitArrival = deferred(() => import("./Sitting").then((x) => x.SitArrival));
-const SitPanel = lazy(() => import("./Sitting").then((x) => ({ default: x.SitPanel })));
 const GiftArrival = deferred(() => import("./Gift").then((x) => x.GiftArrival));
-const SendGiftPanel = lazy(() => import("./Gift").then((x) => ({ default: x.SendGiftPanel })));
 const PacketArrival = deferred(() => import("./RedPacket").then((x) => x.PacketArrival));
-const RedPacketPanel = lazy(() => import("./RedPacket").then((x) => ({ default: x.RedPacketPanel })));
-const FamilyTree = lazy(() => import("./Family").then((x) => ({ default: x.FamilyTree })));
 const NewbornDialog = deferred(() => import("./Family").then((x) => x.NewbornDialog));
-const PetsPanel = deferred(() => import("./Family").then((x) => x.PetsPanel));
 const ProposalDialog = deferred(() => import("./Family").then((x) => x.ProposalDialog));
-const TeachPanel = deferred(() => import("./Teach").then((x) => x.TeachPanel));
-const ArenaPanel = deferred(() => import("./Arena").then((x) => x.ArenaPanel));
 const CircuitOverlay = deferred(() => import("./CircuitOverlay").then((x) => x.CircuitOverlay));
-const ChainPanel = deferred(() => import("./ChainPanel").then((x) => x.ChainPanel));
-const NeighboursPanel = deferred(() => import("./Neighbours").then((x) => x.NeighboursPanel));
-const HomePanel = deferred(() => import("./Home").then((x) => x.HomePanel));
-const WardrobePanel = deferred(() => import("./Wardrobe").then((x) => x.WardrobePanel));
-const MailboxPanel = deferred(() => import("./Mailbox").then((x) => x.MailboxPanel));
-const PetLetters = deferred(() => import("./PetLetters").then((x) => x.PetLetters));
 const BuilderCard = deferred(() => import("./Builders").then((x) => x.BuilderCard));
-const AdoptionPanel = lazy(() => import("./Adoption").then((x) => ({ default: x.AdoptionPanel })));
 const FarewellNote = deferred(() => import("./Adoption").then((x) => x.FarewellNote));
-const HandheldPanel = lazy(() => import("./Handheld").then((x) => ({ default: x.HandheldPanel })));
 const HandheldReturn = deferred(() => import("./Handheld").then((x) => x.HandheldReturn));
-const Outings = deferred(() => import("./Outings").then((x) => x.Outings));
 
 /** where Flit's shy visitor lives (room 56) */
 const BUTTERFLY_FOREST = 56;
@@ -848,42 +815,7 @@ export function PlayApp() {
       <WelcomeBack pet={pet} />
       <SitArrival />
 
-      <Sheet open={tab === "bag"} title={t("bag.title")} onClose={close}>
-        <BagPanel onFed={close} />
-      </Sheet>
-      <Sheet open={tab === "mail"} title={lang === "zh" ? "邮件" : "Mail"} onClose={close}>
-        <MailTabs />
-      </Sheet>
-      <Sheet open={tab === "map"} title={t("map.title")} onClose={close}>
-        <Outings pet={pet} />
-        <MapPanel onGone={close} />
-      </Sheet>
-      <Sheet open={tab === "collection"} title={lang === "zh" ? "收藏" : "Collection"} onClose={close}>
-        <Lazy>
-          <CollectionPanel />
-        </Lazy>
-      </Sheet>
-      <Sheet open={tab === "quests"} title={t("quest.title")} onClose={close}>
-        <QuestBook />
-      </Sheet>
-      <Sheet open={tab === "mind"} title={t("teach.title", { name: pet.name })} onClose={close}>
-        <TeachPanel pet={pet} />
-        <hr className="divider" />
-        <p className="small">{t("mind.title", { name: pet.name })}</p>
-        <MindPanel pet={pet} />
-      </Sheet>
-
-      <Sheet open={tab === "spar"} title={lang === "zh" ? "切磋" : "Spar"} onClose={close}>
-        <ArenaPanel pet={pet} />
-      </Sheet>
-
-      <Sheet open={tab === "games"} title={lang === "zh" ? "一起玩" : "Play together"} onClose={close}>
-        <GamesPanel pet={pet} onDone={close} onSchool={() => pick("mind")} />
-      </Sheet>
-
-      <Sheet open={tab === "pets"} title={lang === "zh" ? "你的宠物" : "Your pets"} onClose={close}>
-        <PetsPanel onPicked={close} />
-      </Sheet>
+      <TabSheets tab={tab} close={close} pick={pick} pet={pet} />
 
       {/* the room's notices, stacked in one lane under its top row (A15) */}
       <NoticeLane>
@@ -913,102 +845,6 @@ export function PlayApp() {
         {skillsOpen && <SkillsPanel />}
       </Sheet>
       <LevelUpMoment />
-      <Sheet open={tab === "me"} title={t("me.title", { name: pet.name })} onClose={close}>
-        {/* H5: the pet first (who it is, keeping it on X Layer, its days, its growth and family); everything else behind one entry */}
-        <Lazy>
-          <MeSheetBody pet={pet} />
-        </Lazy>
-        <hr className="divider" />
-        <ChainPanel pet={pet} />
-        <hr className="divider" />
-        <Lazy>
-          <DiaryPanel pet={pet} />
-        </Lazy>
-        <hr className="divider" />
-        <Lazy>
-          <RewindPanel pet={pet} />
-        </Lazy>
-        <hr className="divider" />
-        <Lazy>
-          <EvolutionChart pet={pet} />
-        </Lazy>
-        <hr className="divider" />
-        <Lazy>
-          <FamilyTree pet={pet} />
-        </Lazy>
-        <hr className="divider" />
-        <MoreBehind>
-          <SaveFileCard />
-          <TelegramCard />
-          <WardrobePanel pet={pet} />
-          <hr className="divider" />
-          <Lazy>
-            <StudioPanel pet={pet} />
-          </Lazy>
-          <hr className="divider" />
-          <Lazy>
-            <FashionMarketPanel pet={pet} />
-          </Lazy>
-          <hr className="divider" />
-          <Lazy>
-            <ItemShopPanel />
-          </Lazy>
-          <hr className="divider" />
-          <Lazy>
-            <ExtrasPanel pet={pet} />
-          </Lazy>
-          <hr className="divider" />
-          <Lazy>
-            <AdoptionPanel pet={pet} />
-          </Lazy>
-          <hr className="divider" />
-          <Lazy>
-            <FriendsPanel pet={pet} />
-          </Lazy>
-          <hr className="divider" />
-          <NeighboursPanel />
-          <hr className="divider" />
-          <Lazy>
-            <HoldersPanel pet={pet} />
-          </Lazy>
-          <hr className="divider" />
-          <Lazy>
-            <AlbumPanel />
-          </Lazy>
-          <hr className="divider" />
-          <Lazy>
-            <InvitePanel />
-          </Lazy>
-          <hr className="divider" />
-          <Lazy>
-            <SitPanel pet={pet} />
-          </Lazy>
-          <hr className="divider" />
-          <Lazy>
-            <HandheldPanel pet={pet} />
-          </Lazy>
-          <hr className="divider" />
-          <Lazy>
-            <OnChainNote lang={lang} />
-          </Lazy>
-          <hr className="divider" />
-          <Lazy>
-            <SendGiftPanel pet={pet} />
-          </Lazy>
-          <hr className="divider" />
-          <Lazy>
-            <RedPacketPanel pet={pet} />
-          </Lazy>
-          <hr className="divider" />
-          <BadgeShelf />
-          <hr className="divider" />
-          <RemindersPanel pet={pet} />
-          <hr className="divider" />
-          <HomePanel pet={pet} />
-        </MoreBehind>
-        {/* P6: privacy, terms and a contact, at the foot of the Pet sheet as at the foot of every page */}
-        <SiteFoot lang={lang} />
-      </Sheet>
       <Sheet
         open={!!pickedBuilder}
         title={pickedBuilder ? pickedBuilder.name[lang] : ""}
@@ -1051,32 +887,3 @@ function FaceSprite({ canvas, line }: { canvas: ReturnType<typeof drawPet>; line
 export const STARTER_COUNT = Object.keys(STARTERS).length;
 
 /** The mailbox: letters from Lingxi, and pet letters between friends over TapeRelay (H13). */
-function MailTabs() {
-  const lang = useLang((s) => s.lang) === "zh" ? "zh" : "en";
-  const [which, setWhich] = useState<"lingxi" | "pets">("lingxi");
-  return (
-    <>
-      <div className="mail-tabs" role="tablist" aria-label={lang === "zh" ? "邮件" : "Mail"}>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={which === "lingxi"}
-          className={which === "lingxi" ? "on" : ""}
-          onClick={() => (play("tap"), setWhich("lingxi"))}
-        >
-          {lang === "zh" ? "灵犀的来信" : "From Lingxi"}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={which === "pets"}
-          className={which === "pets" ? "on" : ""}
-          onClick={() => (play("tap"), setWhich("pets"))}
-        >
-          {lang === "zh" ? "宠物的信" : "Pet letters"}
-        </button>
-      </div>
-      {which === "lingxi" ? <MailboxPanel /> : <PetLetters />}
-    </>
-  );
-}
