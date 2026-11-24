@@ -28,17 +28,38 @@ export function HolderPerkNote() {
       set({ ...h, ...pin });
       play("success");
     } catch (e) {
-      setNote(errorText(e) === "noWallet" ? L("No wallet found in this browser. Open Lingxi in the OKX Wallet app, or a browser with a wallet.", "这个浏览器里没有钱包。请在 OKX 钱包应用里打开灵犀，或用装了钱包的浏览器。") : L("Couldn't read the wallet just now.", "暂时读不到这个钱包。"));
+      setNote(
+        errorText(e) === "noWallet"
+          ? L(
+              "No wallet found in this browser. Open Lingxi in the OKX Wallet app, or a browser with a wallet.",
+              "这个浏览器里没有钱包。请在 OKX 钱包应用里打开灵犀，或用装了钱包的浏览器。",
+            )
+          : L("Couldn't read the wallet just now.", "暂时读不到这个钱包。"),
+      );
     }
     setBusy(false);
   };
 
   const gives = held
     ? [
-        held.test1 && L("your eggs hatch from a gilded shell (you hold a TapeCode-Test1)", "你的蛋从镀金蛋壳里孵出来（你持有 TapeCode-Test1）"),
-        held.rig && L("your home can wear the rig bay (you hold a TapeOut Rig)", "你的家能换上矿机间（你持有 TapeOut 矿机）"),
-        held.snapshot && L("you held BEM or FAB at the snapshot (block 76,052,000)", "你在快照时（第 76,052,000 个区块）持有 BEM 或 FAB"),
-        !held.pinClaimed && (held.test1 || held.rig || held.snapshot) && L("a free holder pin, to claim in the Pet tab once your pet has hatched", "一枚免费的持有人徽章，宠物孵出来后在宠物页领取"),
+        held.test1 &&
+          L(
+            "your eggs hatch from a gilded shell (you hold a TapeCode-Test1)",
+            "你的蛋从镀金蛋壳里孵出来（你持有 TapeCode-Test1）",
+          ),
+        held.rig &&
+          L("your home can wear the rig bay (you hold a TapeOut Rig)", "你的家能换上矿机间（你持有 TapeOut 矿机）"),
+        held.snapshot &&
+          L(
+            "you held BEM or FAB at the snapshot (block 76,052,000)",
+            "你在快照时（第 76,052,000 个区块）持有 BEM 或 FAB",
+          ),
+        !held.pinClaimed &&
+          (held.test1 || held.rig || held.snapshot) &&
+          L(
+            "a free holder pin, to claim in the Pet tab once your pet has hatched",
+            "一枚免费的持有人徽章，宠物孵出来后在宠物页领取",
+          ),
         held.pinClaimed && L("this wallet's holder pin is already claimed", "这个钱包的持有人徽章已经领过了"),
         held.bem && L("the BEM holder mark", "BEM 持有人标记"),
         held.fab && L("the FAB holder mark", "FAB 持有人标记"),

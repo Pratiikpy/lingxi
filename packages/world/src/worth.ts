@@ -19,7 +19,8 @@ const ALL: readonly Recipe[] = [...RECIPES, ...TRAVEL_RECIPES];
 /** The lowest coin price of an item in any shop, or null when no shop sells it. */
 export function shopPrice(item: number): number | null {
   let best: number | null = null;
-  for (const r of Object.values(ROOMS)) if ((r.shop ?? []).includes(item)) best = Math.min(best ?? Infinity, ITEM[item]?.price ?? Infinity);
+  for (const r of Object.values(ROOMS))
+    if ((r.shop ?? []).includes(item)) best = Math.min(best ?? Infinity, ITEM[item]?.price ?? Infinity);
   return best;
 }
 
@@ -92,7 +93,11 @@ export function worthFindings(): WorthFinding[] {
     if (better) out.push({ recipe: b.index, why: `${b.name.en} is dominated by ${better.name.en}` });
     const cost = boughtCostPerPiece(b);
     const price = shopPrice(b.out);
-    if (cost !== null && price !== null && cost >= price) out.push({ recipe: b.index, why: `${b.name.en} costs ${cost} a piece in bought inputs; the shop sells it for ${price}` });
+    if (cost !== null && price !== null && cost >= price)
+      out.push({
+        recipe: b.index,
+        why: `${b.name.en} costs ${cost} a piece in bought inputs; the shop sells it for ${price}`,
+      });
   }
   for (const f of FRIENDS) {
     const steps = f.steps;
@@ -107,11 +112,19 @@ export function worthFindings(): WorthFinding[] {
       const given = new Set((u.rewards ?? []).flatMap((g) => (g.kind === "item" ? [g.item] : [])));
       for (const x of r.ins) {
         const viaGift = ALL.some((y) => y.out === x.item && y.ins.every((i) => given.has(i.item)));
-        if (!obtainable(x.item) && !given.has(x.item) && !viaGift) out.push({ recipe: r.index, why: `${f.id}'s ${r.name.en} needs ${ITEM[x.item]?.name.en ?? x.item}, which cannot be had except as a rare find` });
+        if (!obtainable(x.item) && !given.has(x.item) && !viaGift)
+          out.push({
+            recipe: r.index,
+            why: `${f.id}'s ${r.name.en} needs ${ITEM[x.item]?.name.en ?? x.item}, which cannot be had except as a rare find`,
+          });
       }
       const shelf = steps.map((t) => t.unlock).find((t) => t.kind === "shelf" && t.item === r.out);
       const cost = boughtCostPerPiece(r);
-      if (shelf && shelf.kind === "shelf" && cost !== null && cost >= shelf.price) out.push({ recipe: r.index, why: `${f.id}'s ${r.name.en} costs ${cost} a piece in bought inputs against the shelf's ${shelf.price}` });
+      if (shelf && shelf.kind === "shelf" && cost !== null && cost >= shelf.price)
+        out.push({
+          recipe: r.index,
+          why: `${f.id}'s ${r.name.en} costs ${cost} a piece in bought inputs against the shelf's ${shelf.price}`,
+        });
     }
   }
   return out;

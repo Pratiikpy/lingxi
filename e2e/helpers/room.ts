@@ -13,7 +13,11 @@ type Stage = keyof typeof HALF;
  * answers only on a body, A25). Bodies are taken as 0.7 of a pet's half-width, inside its outline. `nth` moves along
  * that part, for another try.
  */
-export async function visitorPoint(page: Page, lane: number, opts: { visitor?: Stage; own?: Stage; nth?: number } = {}): Promise<number> {
+export async function visitorPoint(
+  page: Page,
+  lane: number,
+  opts: { visitor?: Stage; own?: Stage; nth?: number } = {},
+): Promise<number> {
   const { visitor = "adult", own = "baby", nth = 0 } = opts;
   const box = (await page.locator(".room-scene").boundingBox())!;
   const x = floorSpot(lane, viewOf(box.width, box.height), HALF[visitor]);
@@ -28,7 +32,11 @@ export async function visitorPoint(page: Page, lane: number, opts: { visitor?: S
 }
 
 /** Taps a visitor whose lane is `lane` (see `visitorPoint`); returns where, and what was under the tap. */
-export async function tapVisitor(page: Page, lane: number, opts: { visitor?: Stage; own?: Stage; nth?: number } = {}): Promise<string> {
+export async function tapVisitor(
+  page: Page,
+  lane: number,
+  opts: { visitor?: Stage; own?: Stage; nth?: number } = {},
+): Promise<string> {
   return tapScene(page, await visitorPoint(page, lane, opts), 96);
 }
 

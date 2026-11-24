@@ -20,7 +20,14 @@ interface FakeLog {
   transactionHash: string;
   args: { petId: bigint; partnerOwner: string; allowed: boolean };
 }
-const consent = (address: string, pet: number, partner: string, allowed: boolean, block: number, logIndex = 0): FakeLog => ({
+const consent = (
+  address: string,
+  pet: number,
+  partner: string,
+  allowed: boolean,
+  block: number,
+  logIndex = 0,
+): FakeLog => ({
   address,
   eventName: "Consent",
   blockNumber: BigInt(block),
@@ -88,7 +95,12 @@ describe("the breeding consent index (A63)", () => {
     await index.catchUp();
     const app = withConsents(new Hono(), index);
     const r = await (await app.request("/api/consents/7")).json();
-    expect(r).toEqual({ ok: true, petId: "7", indexedTo: 1_050, consents: [{ breeder: V2, partner: W, block: 1_010, tx: "0x3f20" }] });
+    expect(r).toEqual({
+      ok: true,
+      petId: "7",
+      indexedTo: 1_050,
+      consents: [{ breeder: V2, partner: W, block: 1_010, tx: "0x3f20" }],
+    });
     expect((await app.request("/api/consents/abc")).status).toBe(400);
     expect((await app.request("/api/consents/123456789012345678901")).status).toBe(400);
   });

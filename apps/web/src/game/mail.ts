@@ -8,7 +8,9 @@ import { create } from "zustand";
 import { useWorld } from "./world";
 import { saveWrite } from "./saveRuntime";
 
-const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const BASE =
+  (import.meta.env.VITE_API_URL as string | undefined) ??
+  (location.hostname === "localhost" ? "http://localhost:8787" : "");
 const KEY = "lingxi.mail.v1";
 
 export interface Letter {
@@ -43,7 +45,12 @@ function load(): Kept {
     const raw = localStorage.getItem(KEY);
     // a mailbox opened for the first time starts now; one kept from before keeps what it had
     const k = raw ? (JSON.parse(raw) as Partial<Kept>) : { since: Date.now() };
-    return { read: k.read ?? [], claimed: k.claimed ?? [], local: k.local ?? [], ...(typeof k.since === "number" ? { since: k.since } : {}) };
+    return {
+      read: k.read ?? [],
+      claimed: k.claimed ?? [],
+      local: k.local ?? [],
+      ...(typeof k.since === "number" ? { since: k.since } : {}),
+    };
   } catch {
     return { read: [], claimed: [], local: [] };
   }
@@ -78,7 +85,13 @@ interface MailStore extends Kept {
 export const useMail = create<MailStore>((set, get) => {
   const keep = (patch: Partial<Kept>) => {
     const since = get().since;
-    const next = { read: get().read, claimed: get().claimed, local: get().local, ...(since !== undefined ? { since } : {}), ...patch };
+    const next = {
+      read: get().read,
+      claimed: get().claimed,
+      local: get().local,
+      ...(since !== undefined ? { since } : {}),
+      ...patch,
+    };
     save(next);
     set(next);
   };
@@ -116,10 +129,20 @@ export const useMail = create<MailStore>((set, get) => {
 /** Where the letters to everyone come from: the server, or in the on-chain copy the file shipped beside the page. */
 export const mailUrl = (base: string): string => (base ? `${base}/api/mail` : "./mail.json");
 
-const isText = (t: unknown): t is { en: string; zh: string } => !!t && typeof (t as { en?: unknown }).en === "string" && typeof (t as { zh?: unknown }).zh === "string";
+const isText = (t: unknown): t is { en: string; zh: string } =>
+  !!t && typeof (t as { en?: unknown }).en === "string" && typeof (t as { zh?: unknown }).zh === "string";
 const isLetter = (l: unknown): l is Letter => {
   const x = l as Partial<Letter> | null;
-  return !!x && typeof x.id === "string" && /^[a-z0-9-]{1,40}$/.test(x.id) && typeof x.at === "number" && isText(x.subject) && isText(x.body) && (x.gift === undefined || (typeof x.gift.item === "number" && typeof x.gift.n === "number" && x.gift.n >= 1 && x.gift.n <= 20));
+  return (
+    !!x &&
+    typeof x.id === "string" &&
+    /^[a-z0-9-]{1,40}$/.test(x.id) &&
+    typeof x.at === "number" &&
+    isText(x.subject) &&
+    isText(x.body) &&
+    (x.gift === undefined ||
+      (typeof x.gift.item === "number" && typeof x.gift.n === "number" && x.gift.n >= 1 && x.gift.n <= 20))
+  );
 };
 
 /**
@@ -133,11 +156,17 @@ export function lettersFrom(body: unknown, now: number, fromServer: boolean): Le
     return j?.ok && Array.isArray(j.letters) ? j.letters.filter(isLetter) : [];
   }
   if (!Array.isArray(body)) return [];
-  return body.filter(isLetter).filter((l) => l.at <= now && (!l.until || l.until > now) && !l.needsServer).sort((a, b) => b.at - a.at);
+  return body
+    .filter(isLetter)
+    .filter((l) => l.at <= now && (!l.until || l.until > now) && !l.needsServer)
+    .sort((a, b) => b.at - a.at);
 }
 
 /** Everything in the mailbox, newest first. */
-export const allLetters = (s: Pick<MailStore, "letters" | "local">): Letter[] => [...s.local, ...s.letters].sort((a, b) => b.at - a.at);
+export const allLetters = (s: Pick<MailStore, "letters" | "local">): Letter[] =>
+  [...s.local, ...s.letters].sort((a, b) => b.at - a.at);
 /** Letters waiting to be read: not opened yet, and sent since the mailbox was first opened or greeting a newcomer (G8). */
-export const isUnread = (s: Pick<MailStore, "read" | "since">, l: Letter): boolean => !s.read.includes(l.id) && (s.since === undefined || l.at >= s.since || l.greets === true);
-export const unreadCount = (s: Pick<MailStore, "letters" | "local" | "read" | "since">): number => allLetters(s).filter((l) => isUnread(s, l)).length;
+export const isUnread = (s: Pick<MailStore, "read" | "since">, l: Letter): boolean =>
+  !s.read.includes(l.id) && (s.since === undefined || l.at >= s.since || l.greets === true);
+export const unreadCount = (s: Pick<MailStore, "letters" | "local" | "read" | "since">): number =>
+  allLetters(s).filter((l) => isUnread(s, l)).length;

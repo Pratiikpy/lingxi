@@ -15,8 +15,17 @@ for (const st of ["baby", "child", "teen", "adult"] as const) {
   frames.push({ id: `${st}-b1`, c: drawPet("gentle", st, { breath: 1 }), pal: CORAL });
   frames.push({ id: `${st}-blink`, c: drawPet("gentle", st, { expression: "asleep" }), pal: CORAL });
   frames.push({ id: `${st}-hop`, c: drawPet("gentle", st, { squash: 1, expression: "happy", lit: true }), pal: CORAL });
-  frames.push({ id: `${st}-land`, c: drawPet("gentle", st, { squash: -1, expression: "happy", lit: true }), pal: CORAL });
-  for (const e of EXPRESSIONS) frames.push({ id: `${st}-${e}`, c: drawPet("gentle", st, { expression: e, lit: e === "sparkly" || e === "proud" || e === "happy" }), pal: CORAL });
+  frames.push({
+    id: `${st}-land`,
+    c: drawPet("gentle", st, { squash: -1, expression: "happy", lit: true }),
+    pal: CORAL,
+  });
+  for (const e of EXPRESSIONS)
+    frames.push({
+      id: `${st}-${e}`,
+      c: drawPet("gentle", st, { expression: e, lit: e === "sparkly" || e === "proud" || e === "happy" }),
+      pal: CORAL,
+    });
 }
 const cols = 16;
 const rows = Math.ceil(frames.length / cols);
@@ -24,15 +33,21 @@ const png = new PNG({ width: cols * SIZE, height: rows * SIZE });
 png.data.fill(0);
 const index: Record<string, [number, number]> = {};
 frames.forEach((f, k) => {
-  const ox = (k % cols) * SIZE, oy = Math.floor(k / cols) * SIZE;
+  const ox = (k % cols) * SIZE,
+    oy = Math.floor(k / cols) * SIZE;
   index[f.id] = [ox, oy];
   const rgba = toRgba(f.c, f.pal, 1);
-  for (let y = 0; y < SIZE; y++) for (let x = 0; x < SIZE; x++) {
-    const s = (y * SIZE + x) * 4, d = ((oy + y) * png.width + ox + x) * 4;
-    for (let ch = 0; ch < 4; ch++) png.data[d + ch] = rgba[s + ch]!;
-  }
+  for (let y = 0; y < SIZE; y++)
+    for (let x = 0; x < SIZE; x++) {
+      const s = (y * SIZE + x) * 4,
+        d = ((oy + y) * png.width + ox + x) * 4;
+      for (let ch = 0; ch < 4; ch++) png.data[d + ch] = rgba[s + ch]!;
+    }
 });
 const b64 = PNG.sync.write(png).toString("base64");
-writeFileSync(new URL("../out/sample-atlas.json", import.meta.url), JSON.stringify({ size: SIZE, index, png: b64, expressions: EXPRESSIONS }));
+writeFileSync(
+  new URL("../out/sample-atlas.json", import.meta.url),
+  JSON.stringify({ size: SIZE, index, png: b64, expressions: EXPRESSIONS }),
+);
 writeFileSync(new URL("../out/sample-atlas.png", import.meta.url), PNG.sync.write(png));
 console.log(frames.length, "frames", b64.length, "b64 chars");

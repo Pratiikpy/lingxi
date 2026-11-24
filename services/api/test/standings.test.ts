@@ -13,7 +13,17 @@ import { type SeasonEntry, type Standing, petCard, seasonStandings, standingsDig
 const LINES = ["gentle", "bold", "curious"] as const;
 import { type Compute, createStandingsRunner, workerCompute } from "../src/standings";
 
-const entry = (i: number): SeasonEntry => ({ key: `k${i}`, pet: { name: `Pet${i}`, line: LINES[i % 3]!, stage: "child", card: petCard({ lessons: [] }), story: { days: 1, lessons: 0, nature: [] } }, at: i });
+const entry = (i: number): SeasonEntry => ({
+  key: `k${i}`,
+  pet: {
+    name: `Pet${i}`,
+    line: LINES[i % 3]!,
+    stage: "child",
+    card: petCard({ lessons: [] }),
+    story: { days: 1, lessons: 0, nature: [] },
+  },
+  at: i,
+});
 const WEEK = "2026-W47";
 
 /** A compute that fights only when told to (or, once `flow` is called, at once), counting what it was asked. */
@@ -50,7 +60,11 @@ describe("season standings, fought off the request thread (A38)", () => {
     h.release();
     await runner.idle();
     const fresh = runner.get(WEEK, entries);
-    expect(fresh).toEqual({ standings: seasonStandings(WEEK, entries), digest: standingsDigest(seasonStandings(WEEK, entries)), pending: false });
+    expect(fresh).toEqual({
+      standings: seasonStandings(WEEK, entries),
+      digest: standingsDigest(seasonStandings(WEEK, entries)),
+      pending: false,
+    });
     expect(h.asked).toEqual(["k1,k2"]);
   });
 

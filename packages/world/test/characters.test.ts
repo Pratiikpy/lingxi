@@ -16,7 +16,12 @@ describe("characters", () => {
 
   it("every portrait they use exists", () => {
     for (const c of CHARACTERS) {
-      const faces = [c.stand, ...c.greeting.map((l) => l.face), c.bye.face, ...c.topics.flatMap((t) => t.lines.map((l) => l.face))];
+      const faces = [
+        c.stand,
+        ...c.greeting.map((l) => l.face),
+        c.bye.face,
+        ...c.topics.flatMap((t) => t.lines.map((l) => l.face)),
+      ];
       for (const f of faces) expect(existsSync(join(ART, f)), `${c.id}: ${f}`).toBe(true);
     }
   });

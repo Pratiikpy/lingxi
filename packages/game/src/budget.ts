@@ -12,7 +12,9 @@ import { gateBudget, skillRules, taughtBudget } from "./skills";
 import type { Stage } from "./pet";
 
 function programsOf(spec: MindSpec, lessons: readonly Rule[]): Program[] {
-  return spec.family ? halvesOf(spec.family, lessons, skillRules(spec.growth)) : [composeProgram(spec.line, lessons, spec.instincts, mindExtra(spec.growth))];
+  return spec.family
+    ? halvesOf(spec.family, lessons, skillRules(spec.growth))
+    : [composeProgram(spec.line, lessons, spec.instincts, mindExtra(spec.growth))];
 }
 
 /** Gates of the larger program (a child's two halves are separate circuits). */
@@ -28,7 +30,12 @@ export interface BrainSize {
 }
 
 export function brainSize(spec: MindSpec, stage: Exclude<Stage, "egg"> = "elder"): BrainSize {
-  return { gates: gatesOf(programsOf(spec, spec.lessons)), max: gateBudget(spec.growth), taught: taughtGates(spec), taughtMax: taughtBudget(stage, spec.growth) };
+  return {
+    gates: gatesOf(programsOf(spec, spec.lessons)),
+    max: gateBudget(spec.growth),
+    taught: taughtGates(spec),
+    taughtMax: taughtBudget(stage, spec.growth),
+  };
 }
 
 export interface LessonCost {
@@ -54,7 +61,15 @@ export function lessonCost(spec: MindSpec, candidate: Rule, stage: Exclude<Stage
   const adds = after - before;
   const taught = taughtGates(spec, [candidate, ...spec.lessons]);
   const taughtMax = taughtBudget(stage, spec.growth);
-  return { adds, alone, saved: Math.max(0, alone - adds), total: after, taught, taughtMax, fits: after <= gateBudget(spec.growth) && taught <= taughtMax };
+  return {
+    adds,
+    alone,
+    saved: Math.max(0, alone - adds),
+    total: after,
+    taught,
+    taughtMax,
+    fits: after <= gateBudget(spec.growth) && taught <= taughtMax,
+  };
 }
 
 /**

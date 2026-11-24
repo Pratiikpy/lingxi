@@ -11,20 +11,83 @@ import type { Deployment } from "@lingxi/chain";
 import { deployment } from "../game/chain";
 import { type SourceState, sourcifyPage, sourcifyState } from "../game/sourcify";
 
-type Key = "registry" | "breeder" | "adoptionCentre" | "outfitMarketV2" | "itemShop" | "extras" | "holderGift" | "look" | "redPacket" | "outfitMarket" | "breederFree";
+type Key =
+  | "registry"
+  | "breeder"
+  | "adoptionCentre"
+  | "outfitMarketV2"
+  | "itemShop"
+  | "extras"
+  | "holderGift"
+  | "look"
+  | "redPacket"
+  | "outfitMarket"
+  | "breederFree";
 
 const CONTRACTS: Array<{ key: Key; name: string; about: { en: string; zh: string } }> = [
-  { key: "registry", name: "PetRegistry", about: { en: "pets, daily saves, sitters and parents", zh: "宠物、每日存档、代养和父母" } },
-  { key: "breeder", name: "BreederV2", about: { en: "children of two pets; 0.1 BEM burned", zh: "两只宠物的孩子；销毁 0.1 BEM" } },
-  { key: "adoptionCentre", name: "AdoptionCentre", about: { en: "young bred pets offered for adoption; 3% burned", zh: "可领养的小宝宝；销毁 3%" } },
-  { key: "outfitMarketV2", name: "OutfitMarketV2", about: { en: "player outfits and on-chain items for BEM; fees burned", zh: "玩家时装和链上道具，用 BEM 买卖；手续费销毁" } },
-  { key: "itemShop", name: "ItemShop", about: { en: "decorations and limited outfits for BEM, the whole price burned", zh: "用 BEM 买摆设和限量服饰，全价销毁" } },
-  { key: "extras", name: "Extras", about: { en: "room space, saved looks and name colours; every price burned", zh: "房间空间、存搭配和名字颜色；全价销毁" } },
-  { key: "holderGift", name: "HolderGift", about: { en: "the free holder outfit: Test1 and Rig by the token held, BEM and FAB by a snapshot at a fixed block", zh: "持有人免费外观：Test1 和矿机按持有的代币，BEM 和 FAB 按固定区块的快照" } },
-  { key: "look", name: "PetLook", about: { en: "each pet's picture and name, drawn on chain", zh: "每只宠物的画像和名字，在链上绘制" } },
+  {
+    key: "registry",
+    name: "PetRegistry",
+    about: { en: "pets, daily saves, sitters and parents", zh: "宠物、每日存档、代养和父母" },
+  },
+  {
+    key: "breeder",
+    name: "BreederV2",
+    about: { en: "children of two pets; 0.1 BEM burned", zh: "两只宠物的孩子；销毁 0.1 BEM" },
+  },
+  {
+    key: "adoptionCentre",
+    name: "AdoptionCentre",
+    about: { en: "young bred pets offered for adoption; 3% burned", zh: "可领养的小宝宝；销毁 3%" },
+  },
+  {
+    key: "outfitMarketV2",
+    name: "OutfitMarketV2",
+    about: {
+      en: "player outfits and on-chain items for BEM; fees burned",
+      zh: "玩家时装和链上道具，用 BEM 买卖；手续费销毁",
+    },
+  },
+  {
+    key: "itemShop",
+    name: "ItemShop",
+    about: {
+      en: "decorations and limited outfits for BEM, the whole price burned",
+      zh: "用 BEM 买摆设和限量服饰，全价销毁",
+    },
+  },
+  {
+    key: "extras",
+    name: "Extras",
+    about: {
+      en: "room space, saved looks and name colours; every price burned",
+      zh: "房间空间、存搭配和名字颜色；全价销毁",
+    },
+  },
+  {
+    key: "holderGift",
+    name: "HolderGift",
+    about: {
+      en: "the free holder outfit: Test1 and Rig by the token held, BEM and FAB by a snapshot at a fixed block",
+      zh: "持有人免费外观：Test1 和矿机按持有的代币，BEM 和 FAB 按固定区块的快照",
+    },
+  },
+  {
+    key: "look",
+    name: "PetLook",
+    about: { en: "each pet's picture and name, drawn on chain", zh: "每只宠物的画像和名字，在链上绘制" },
+  },
   { key: "redPacket", name: "RedPacket", about: { en: "gift packets sealed by a circuit", zh: "由电路封口的红包" } },
-  { key: "outfitMarket", name: "OutfitMarket", about: { en: "the first market, priced in OKB", zh: "最早的时装市场，用 OKB 定价" } },
-  { key: "breederFree", name: "Breeder", about: { en: "the first breeder, before the BEM fee", zh: "最早的繁育合约，收 BEM 费之前" } },
+  {
+    key: "outfitMarket",
+    name: "OutfitMarket",
+    about: { en: "the first market, priced in OKB", zh: "最早的时装市场，用 OKB 定价" },
+  },
+  {
+    key: "breederFree",
+    name: "Breeder",
+    about: { en: "the first breeder, before the BEM fee", zh: "最早的繁育合约，收 BEM 费之前" },
+  },
 ];
 
 const WORD: Record<SourceState, { en: string; zh: string }> = {
@@ -35,7 +98,10 @@ const WORD: Record<SourceState, { en: string; zh: string }> = {
 };
 
 /** The live site asks Sourcify through its own server (A71); the on-chain copy, which has none, asks it directly. */
-const VIA_SERVER = Boolean((import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : ""));
+const VIA_SERVER = Boolean(
+  (import.meta.env.VITE_API_URL as string | undefined) ??
+    (location.hostname === "localhost" ? "http://localhost:8787" : ""),
+);
 
 export function ContractTable({ lang }: { lang: "en" | "zh" }) {
   const d = deployment as Deployment | undefined;
@@ -68,7 +134,9 @@ export function ContractTable({ lang }: { lang: "en" | "zh" }) {
           : `Every Lingxi contract on X Layer has its Solidity source published on Sourcify, so anyone can see that the code running on chain is this source. ${VIA_SERVER ? "This column asks Sourcify through Lingxi's server, which keeps each answer for up to ten minutes; each row links to Sourcify's own page to check it there and then." : "This column asks Sourcify directly each time the page opens."}`}
       </p>
       {rows.length === 0 ? (
-        <p className="v-note">{lang === "zh" ? "这个版本还没有连接到链上合约。" : "This build is not connected to deployed contracts."}</p>
+        <p className="v-note">
+          {lang === "zh" ? "这个版本还没有连接到链上合约。" : "This build is not connected to deployed contracts."}
+        </p>
       ) : (
         <>
           <p className="v-note" role="status">
@@ -104,7 +172,12 @@ export function ContractTable({ lang }: { lang: "en" | "zh" }) {
                         <span className="v-rule-about">{r.about[lang]}</span>
                       </td>
                       <td>
-                        <a className="mono" href={`https://www.oklink.com/xlayer/address/${r.address}`} target="_blank" rel="noopener noreferrer">
+                        <a
+                          className="mono"
+                          href={`https://www.oklink.com/xlayer/address/${r.address}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
                           {r.address.slice(0, 6)}…{r.address.slice(-4)}
                         </a>
                       </td>

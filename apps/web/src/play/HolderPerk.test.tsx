@@ -24,8 +24,17 @@ async function open(lang: "en" | "zh" = "en") {
   const root = createRoot(host);
   await act(async () => root.render(createElement(HolderPerkNote)));
   const text = () => host.textContent ?? "";
-  const hold = async (h: { test1?: boolean; rig?: boolean; bem?: boolean; fab?: boolean; snapshot?: boolean; pinClaimed?: boolean }) =>
-    act(async () => useHoldings.getState().set({ wallet, test1: false, rig: false, bem: false, fab: false, at: 0, ...h }));
+  const hold = async (h: {
+    test1?: boolean;
+    rig?: boolean;
+    bem?: boolean;
+    fab?: boolean;
+    snapshot?: boolean;
+    pinClaimed?: boolean;
+  }) =>
+    act(async () =>
+      useHoldings.getState().set({ wallet, test1: false, rig: false, bem: false, fab: false, at: 0, ...h }),
+    );
   return { host, text, hold, close: () => (act(() => root.unmount()), host.remove()) };
 }
 
@@ -51,7 +60,9 @@ describe("the holder perks on the hatch screen (H9)", () => {
     const s = await open();
     expect(s.text()).toMatch(/A TapeCode-Test1 gilds your eggs/);
     // C3: BEM and FAB give the pin by the snapshot, never by today's balance
-    expect(s.text()).toMatch(/Test1 and Rig holders, and wallets that held BEM or FAB at the snapshot \(block 76,052,000\), get a free pin/);
+    expect(s.text()).toMatch(
+      /Test1 and Rig holders, and wallets that held BEM or FAB at the snapshot \(block 76,052,000\), get a free pin/,
+    );
     expect(s.text()).not.toMatch(/Test1, Rig, BEM and FAB holders get a free pin/);
     expect(s.text()).toMatch(/Checking reads your wallet only: nothing to sign, nothing to pay/);
     expect(s.host.querySelector(".hatch-perk-btn")!.textContent).toBe("Check my wallet");
@@ -90,7 +101,12 @@ describe("the holder perks on the hatch screen (H9)", () => {
 
   it("is on the hatch screen", async () => {
     await visit({ at: Date.UTC(2026, 10, 22, 9) });
-    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation((() => ({ createImageData: (w: number, h: number) => ({ width: w, height: h, data: new Uint8ClampedArray(w * h * 4) }), putImageData: () => undefined, clearRect: () => undefined, drawImage: () => undefined })) as never);
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation((() => ({
+      createImageData: (w: number, h: number) => ({ width: w, height: h, data: new Uint8ClampedArray(w * h * 4) }),
+      putImageData: () => undefined,
+      clearRect: () => undefined,
+      drawImage: () => undefined,
+    })) as never);
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     const { Hatch } = await import("./Hatch");
     const host = document.createElement("div");

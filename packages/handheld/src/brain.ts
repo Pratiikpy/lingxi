@@ -7,7 +7,19 @@
  * address no processor has, so a packet can never name a local circuit as though it were on chain.
  */
 
-import { type Circuit, type PetNetlist, STARTERS, circuitBrain, compileProgram, composeChild, composeInstinct, hexToBytes, load, netlistBytes, refKey } from "@lingxi/brain";
+import {
+  type Circuit,
+  type PetNetlist,
+  STARTERS,
+  circuitBrain,
+  compileProgram,
+  composeChild,
+  composeInstinct,
+  hexToBytes,
+  load,
+  netlistBytes,
+  refKey,
+} from "@lingxi/brain";
 import { type Brain, type Pet, composeProgram, halvesOf, mindExtra, skillRules } from "@lingxi/game";
 import type { BrainPart, TripBrain } from "./trip";
 
@@ -22,10 +34,18 @@ function ownProgram(pet: Pet) {
   // a pet with an owned instinct is built by the game's mind builder; one without, by its brain cache
   if (pet.outside) return composeProgram(pet.line, lessons, instincts, mindExtra(pet.growth));
   const rules = skillRules(pet.growth);
-  return lessons.length || instincts || rules.length ? composeProgram(pet.line, lessons, instincts, { rules }) : STARTERS[pet.line];
+  return lessons.length || instincts || rules.length
+    ? composeProgram(pet.line, lessons, instincts, { rules })
+    : STARTERS[pet.line];
 }
 
-const local = (id: bigint, n: PetNetlist): BrainPart => ({ processor: LOCAL, id, nIn: n.nIn, nOut: n.nOut, bytes: netlistBytes(n) });
+const local = (id: bigint, n: PetNetlist): BrainPart => ({
+  processor: LOCAL,
+  id,
+  nIn: n.nIn,
+  nOut: n.nOut,
+  bytes: netlistBytes(n),
+});
 
 /** The circuit the game runs for this pet, composed by REF as it would be taped out. */
 export function gameCircuit(pet: Pet): TripBrain {
@@ -42,11 +62,18 @@ export function gameCircuit(pet: Pet): TripBrain {
     own = { processor: LOCAL, id: IDS.own, bytes: netlistBytes(compileProgram(ownProgram(pet))), parts: [] };
   }
   if (!pet.outside) return own;
-  const instinct = pet.outside.parts.map((q) => ({ processor: q.processor, id: BigInt(q.id), nIn: q.nIn, nOut: q.nOut, bytes: hexToBytes(q.hex) }));
+  const instinct = pet.outside.parts.map((q) => ({
+    processor: q.processor,
+    id: BigInt(q.id),
+    nIn: q.nIn,
+    nOut: q.nOut,
+    bytes: hexToBytes(q.hex),
+  }));
   return {
     processor: LOCAL,
     id: IDS.withInstinct,
-    bytes: composeInstinct({ cpu: LOCAL, id: IDS.own }, { cpu: pet.outside.processor, id: BigInt(pet.outside.id) }).bytes,
+    bytes: composeInstinct({ cpu: LOCAL, id: IDS.own }, { cpu: pet.outside.processor, id: BigInt(pet.outside.id) })
+      .bytes,
     parts: [...own.parts, { processor: LOCAL, id: IDS.own, nIn: 16, nOut: 8, bytes: own.bytes }, ...instinct],
   };
 }

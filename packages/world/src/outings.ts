@@ -8,7 +8,18 @@
  * not change on a reload.
  */
 
-import { type ExploreMods, ITEM, NO_EXPLORE_MODS, ROOMS, type Recipe, TRAVEL_RECIPES, type WorldResult, type WorldState, boostRare, pickDrop } from "./world";
+import {
+  type ExploreMods,
+  ITEM,
+  NO_EXPLORE_MODS,
+  ROOMS,
+  type Recipe,
+  TRAVEL_RECIPES,
+  type WorldResult,
+  type WorldState,
+  boostRare,
+  pickDrop,
+} from "./world";
 import { bump, bumpFinds } from "./tally";
 
 const MIN = 60_000;
@@ -40,7 +51,8 @@ function mix(seed: string, a: number, b: number): number {
 /** what a walk can turn up: everything foraged in rooms the player has visited (rare finds boosted by skills) */
 function walkPool(w: WorldState, rareBoost = 0): Array<{ item: number; weight: number }> {
   const out = new Map<number, number>();
-  for (const r of w.visited) for (const d of boostRare(ROOMS[r]?.drops ?? [], rareBoost)) out.set(d.item, (out.get(d.item) ?? 0) + d.weight);
+  for (const r of w.visited)
+    for (const d of boostRare(ROOMS[r]?.drops ?? [], rareBoost)) out.set(d.item, (out.get(d.item) ?? 0) + d.weight);
   if (!out.size) for (const d of boostRare(ROOMS[1]?.drops ?? [], rareBoost)) out.set(d.item, d.weight);
   return [...out].map(([item, weight]) => ({ item, weight }));
 }
@@ -65,7 +77,12 @@ export function walkSteps(walk: Walk, now: number): number {
 export const walkDone = (walk: Walk, now: number): boolean => now - walk.startedAt >= WALK_MINUTES * MIN;
 
 /** Adds sensor steps (ignored without a sensor or after the walk), and collects any finds they reach. */
-export function stepWalk(w: WorldState, steps: number, now: number, mods: ExploreMods = NO_EXPLORE_MODS): WorldResult<{ found: Array<{ item: number; n: number }> }> {
+export function stepWalk(
+  w: WorldState,
+  steps: number,
+  now: number,
+  mods: ExploreMods = NO_EXPLORE_MODS,
+): WorldResult<{ found: Array<{ item: number; n: number }> }> {
   const walk = w.walk;
   if (!walk) return { ok: false, reason: "notWalking" };
   // a step sensor cannot add more than a brisk walker manages: 3 steps a second
@@ -73,7 +90,10 @@ export function stepWalk(w: WorldState, steps: number, now: number, mods: Explor
   const counted = walk.sensor ? Math.min(cap, walk.steps + Math.max(0, Math.floor(steps))) : walk.steps;
   const next = { ...walk, steps: counted };
   const total = walkSteps(next, now);
-  const earned = walksToday(w, now) < WALKS_WITH_FINDS + mods.walksWithFinds ? Math.min(MAX_WALK_FINDS, Math.floor(total / Math.max(100, STEPS_PER_FIND - mods.stepsOff))) : 0;
+  const earned =
+    walksToday(w, now) < WALKS_WITH_FINDS + mods.walksWithFinds
+      ? Math.min(MAX_WALK_FINDS, Math.floor(total / Math.max(100, STEPS_PER_FIND - mods.stepsOff)))
+      : 0;
   const have = walk.finds.reduce((t, f) => t + f.n, 0);
   const found: Array<{ item: number; n: number }> = [];
   const pool = walkPool(w, mods.rareBoost);
@@ -96,7 +116,11 @@ export function stepWalk(w: WorldState, steps: number, now: number, mods: Explor
 /** a walk shorter than this, with nothing found, does not use up one of the day's walks */
 export const WALK_COUNTS_AFTER_MINUTES = 5;
 
-export function endWalk(w: WorldState, now: number, mods: ExploreMods = NO_EXPLORE_MODS): WorldResult<{ steps: number; minutes: number; finds: Array<{ item: number; n: number }>; capped: boolean }> {
+export function endWalk(
+  w: WorldState,
+  now: number,
+  mods: ExploreMods = NO_EXPLORE_MODS,
+): WorldResult<{ steps: number; minutes: number; finds: Array<{ item: number; n: number }>; capped: boolean }> {
   const settled = stepWalk(w, 0, now, mods);
   if (!settled.ok) return settled;
   const walk = settled.world.walk!;
@@ -109,9 +133,25 @@ export function endWalk(w: WorldState, now: number, mods: ExploreMods = NO_EXPLO
   const { walk: _done, ...rest } = settled.world;
   // a walk with finds makes the place it set out from a little more familiar (plan 4.5); the secret shows on the next look there
   const size = ROOMS[w.room]?.drops.length ? (ROOMS[w.room]?.familiarSize ?? 0) : 0;
-  const familiar = size && walk.finds.length ? { ...(w.familiar ?? {}), [w.room]: Math.min(size, (w.familiar?.[w.room] ?? 0) + 1) } : w.familiar;
-  const done: WorldState = { ...rest, bag, walksDay: day, walksToday: walksToday(w, now) + (counts ? 1 : 0), ...(familiar ? { familiar } : {}) };
-  return { ok: true, steps: walkSteps(walk, now), minutes, finds: walk.finds, capped, world: bumpFinds(counts ? bump(done, "WALK") : done, walk.finds) };
+  const familiar =
+    size && walk.finds.length
+      ? { ...(w.familiar ?? {}), [w.room]: Math.min(size, (w.familiar?.[w.room] ?? 0) + 1) }
+      : w.familiar;
+  const done: WorldState = {
+    ...rest,
+    bag,
+    walksDay: day,
+    walksToday: walksToday(w, now) + (counts ? 1 : 0),
+    ...(familiar ? { familiar } : {}),
+  };
+  return {
+    ok: true,
+    steps: walkSteps(walk, now),
+    minutes,
+    finds: walk.finds,
+    capped,
+    world: bumpFinds(counts ? bump(done, "WALK") : done, walk.finds),
+  };
 }
 
 /* ── trips ─────────────────────────────────────────────────────────────── */
@@ -132,7 +172,10 @@ export const DESTINATIONS: readonly Destination[] = [
     id: "seaside",
     hours: 2,
     name: { en: "The seaside", zh: "海边" },
-    postcard: { en: "The sea was very big and very wet. Brought you something shiny.", zh: "大海好大，好湿。给你带了点亮亮的东西。" },
+    postcard: {
+      en: "The sea was very big and very wet. Brought you something shiny.",
+      zh: "大海好大，好湿。给你带了点亮亮的东西。",
+    },
     drops: [
       { item: 1002, weight: 6 },
       { item: 1006, weight: 3 },
@@ -158,7 +201,10 @@ export const DESTINATIONS: readonly Destination[] = [
     id: "oldtown",
     hours: 6,
     name: { en: "The old town", zh: "老城" },
-    postcard: { en: "Old streets, old coins, a very old cat who was nice to me.", zh: "老街、老钱币，还有一只很老的猫对我很好。" },
+    postcard: {
+      en: "Old streets, old coins, a very old cat who was nice to me.",
+      zh: "老街、老钱币，还有一只很老的猫对我很好。",
+    },
     drops: [
       { item: 1015, weight: 4 },
       { item: 1021, weight: 2 },
@@ -168,7 +214,9 @@ export const DESTINATIONS: readonly Destination[] = [
     teaches: 20003,
   },
 ];
-export const DESTINATION: Readonly<Record<string, Destination>> = Object.fromEntries(DESTINATIONS.map((d) => [d.id, d]));
+export const DESTINATION: Readonly<Record<string, Destination>> = Object.fromEntries(
+  DESTINATIONS.map((d) => [d.id, d]),
+);
 
 export interface Trip {
   to: string;
@@ -187,13 +235,18 @@ export function startTrip(w: WorldState, to: string, now: number): WorldResult {
 export const tripBack = (t: Trip, now: number): boolean => now >= t.backAt;
 
 /** The pet comes home: three or four finds from the place, and its recipe the first time. */
-export function endTrip(w: WorldState, now: number, mods: ExploreMods = NO_EXPLORE_MODS): WorldResult<{ to: string; found: Array<{ item: number; n: number }>; learned: number | null }> {
+export function endTrip(
+  w: WorldState,
+  now: number,
+  mods: ExploreMods = NO_EXPLORE_MODS,
+): WorldResult<{ to: string; found: Array<{ item: number; n: number }>; learned: number | null }> {
   const t = w.trip;
   if (!t) return { ok: false, reason: "notTravelling" };
   if (!tripBack(t, now)) return { ok: false, reason: "notBack" };
   const d = DESTINATION[t.to]!;
   // Pathfinder skills: a percent chance of one more find
-  const count = 3 + (mix(w.seed, t.leftAt, 99) % 2) + (mods.tripExtra && mix(w.seed, t.leftAt, 98) % 100 < mods.tripExtra ? 1 : 0);
+  const count =
+    3 + (mix(w.seed, t.leftAt, 99) % 2) + (mods.tripExtra && mix(w.seed, t.leftAt, 98) % 100 < mods.tripExtra ? 1 : 0);
   const found: Array<{ item: number; n: number }> = [];
   for (let k = 0; k < count; k++) {
     const item = pick(d.drops, mix(w.seed, t.leftAt, k));
@@ -213,4 +266,5 @@ export function endTrip(w: WorldState, now: number, mods: ExploreMods = NO_EXPLO
 /** Travel recipes the player knows, ready for the workbench. */
 export { TRAVEL_RECIPES };
 
-export const knownTravelRecipes = (w: WorldState): Recipe[] => TRAVEL_RECIPES.filter((r) => (w.recipes ?? []).includes(r.index) && ITEM[r.out]);
+export const knownTravelRecipes = (w: WorldState): Recipe[] =>
+  TRAVEL_RECIPES.filter((r) => (w.recipes ?? []).includes(r.index) && ITEM[r.out]);

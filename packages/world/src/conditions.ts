@@ -20,8 +20,25 @@ import { ITEM, ROOMS, type WorldState } from "./world";
 
 export type Handler = "CURR" | "INC" | "BOOL";
 export type Operator = "MIN" | "MAX" | "EQUAL" | "IS" | "NOT";
-export type Logic = "CURR_MIN" | "CURR_MAX" | "CURR_EQUAL" | "INC_MIN" | "INC_MAX" | "INC_EQUAL" | "BOOL_IS" | "BOOL_NOT";
-export const LOGICS: readonly Logic[] = ["CURR_MIN", "CURR_MAX", "CURR_EQUAL", "INC_MIN", "INC_MAX", "INC_EQUAL", "BOOL_IS", "BOOL_NOT"];
+export type Logic =
+  | "CURR_MIN"
+  | "CURR_MAX"
+  | "CURR_EQUAL"
+  | "INC_MIN"
+  | "INC_MAX"
+  | "INC_EQUAL"
+  | "BOOL_IS"
+  | "BOOL_NOT";
+export const LOGICS: readonly Logic[] = [
+  "CURR_MIN",
+  "CURR_MAX",
+  "CURR_EQUAL",
+  "INC_MIN",
+  "INC_MAX",
+  "INC_EQUAL",
+  "BOOL_IS",
+  "BOOL_NOT",
+];
 
 export interface Condition {
   type: ConditionType;
@@ -57,7 +74,18 @@ export const STAGE_ORDER: readonly StageName[] = ["baby", "child", "teen", "adul
 export const TIMES_OF_DAY = ["night", "morning", "day", "evening"] as const;
 
 /** What an index names; "any" counters accept no index (the total) or one of that kind. */
-type IndexKind = "none" | "item" | "room" | "resident" | "quest" | "giveTo" | "time" | "word" | "event" | "lane" | "counter";
+type IndexKind =
+  | "none"
+  | "item"
+  | "room"
+  | "resident"
+  | "quest"
+  | "giveTo"
+  | "time"
+  | "word"
+  | "event"
+  | "lane"
+  | "counter";
 
 interface TypeSpec {
   kind: "count" | "bool";
@@ -69,7 +97,8 @@ interface TypeSpec {
   source?: string;
 }
 
-const t = (type: string) => (v: ConditionView, index: number | string | undefined) => tallyOf(v.world, type, index ?? 0);
+const t = (type: string) => (v: ConditionView, index: number | string | undefined) =>
+  tallyOf(v.world, type, index ?? 0);
 
 /**
  * One-off things the game reports by name (EVENT:<name>), checked against this list so a sheet cannot ask for
@@ -162,7 +191,12 @@ export const TYPES = {
   NOW: { kind: "count", index: "none", read: (v) => v.now, source: "BLOCKTIME" },
   ROOM: { kind: "bool", index: "room", read: (v, i) => v.world.room === Number(i), source: "ROOM" },
   TIME_OF_DAY: { kind: "bool", index: "time", read: (v, i) => TIMES_OF_DAY[v.timeOfDay] === i, source: "PHASE" },
-  QUEST: { kind: "bool", index: "quest", read: (v, i) => v.world.quests?.done[String(i)] !== undefined, source: "QUEST" },
+  QUEST: {
+    kind: "bool",
+    index: "quest",
+    read: (v, i) => v.world.quests?.done[String(i)] !== undefined,
+    source: "QUEST",
+  },
   QUEST_DELAY: {
     kind: "bool",
     index: "quest",
@@ -249,8 +283,11 @@ export function progressOf(c: Condition, v: ConditionView, snapshot: Readonly<Re
 }
 
 /** Every condition passes (an empty list passes). */
-export const checkAll = (list: readonly Condition[], v: ConditionView, snapshot: Readonly<Record<string, number>> = {}): boolean =>
-  list.every((c) => progressOf(c, v, snapshot).met);
+export const checkAll = (
+  list: readonly Condition[],
+  v: ConditionView,
+  snapshot: Readonly<Record<string, number>> = {},
+): boolean => list.every((c) => progressOf(c, v, snapshot).met);
 
 /* ── validation: a sheet is checked before it ships ─────────────────────────── */
 
@@ -291,7 +328,9 @@ function checkIndex(kind: IndexKind, index: number | string | undefined, refs: S
     case "lane":
       return typeof index === "string" && LANE_SET.has(index) ? null : `no Builders' Lane resident ${index}`;
     case "counter":
-      return typeof index === "string" && /^[A-Z_]{2,24}(:[a-z0-9-]{1,32})?$/.test(index) ? null : "index must be a counter like FIND or MEET_DAY:tapboy";
+      return typeof index === "string" && /^[A-Z_]{2,24}(:[a-z0-9-]{1,32})?$/.test(index)
+        ? null
+        : "index must be a counter like FIND or MEET_DAY:tapboy";
   }
 }
 
@@ -317,7 +356,11 @@ export function conditionErrors(c: Condition, refs: SheetRefs = {}): string[] {
 }
 
 /** Check every row of a sheet; throws one error naming the sheet and each bad row. */
-export function assertSheet(sheet: string, rows: ReadonlyArray<{ id: string; conditions: readonly Condition[] }>, refs: SheetRefs = {}): void {
+export function assertSheet(
+  sheet: string,
+  rows: ReadonlyArray<{ id: string; conditions: readonly Condition[] }>,
+  refs: SheetRefs = {},
+): void {
   const problems: string[] = [];
   const seen = new Set<string>();
   for (const row of rows) {

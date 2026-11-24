@@ -5,11 +5,20 @@
 
 import { encodeAbiParameters, keccak256, numberToHex, pad, type Address, type Hex, type PublicClient } from "viem";
 
-const balanceOfAbi = [{ type: "function", name: "balanceOf", stateMutability: "view", inputs: [{ type: "address" }], outputs: [{ type: "uint256" }] }] as const;
+const balanceOfAbi = [
+  {
+    type: "function",
+    name: "balanceOf",
+    stateMutability: "view",
+    inputs: [{ type: "address" }],
+    outputs: [{ type: "uint256" }],
+  },
+] as const;
 
 /** Refuses anything but a node on this machine: these calls rewrite chain state. */
 export function assertLocal(rpc: string): void {
-  if (!/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?(\/|$)/.test(rpc)) throw new Error(`fork funding only runs against a local node, not ${rpc}`);
+  if (!/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?(\/|$)/.test(rpc))
+    throw new Error(`fork funding only runs against a local node, not ${rpc}`);
 }
 
 /** Sets an address's native balance (OKB), in wei. */
@@ -25,10 +34,16 @@ export async function giveToken(pub: PublicClient, token: Address, to: Address, 
   for (let slot = 0n; slot < 60n; slot++) {
     const key = keccak256(encodeAbiParameters([{ type: "address" }, { type: "uint256" }], [to, slot]));
     const before = await pub.getStorageAt({ address: token, slot: key });
-    await pub.request({ method: "anvil_setStorageAt" as never, params: [token, key, pad(numberToHex(amount), { size: 32 })] as never });
+    await pub.request({
+      method: "anvil_setStorageAt" as never,
+      params: [token, key, pad(numberToHex(amount), { size: 32 })] as never,
+    });
     const bal = await pub.readContract({ address: token, abi: balanceOfAbi, functionName: "balanceOf", args: [to] });
     if (bal === amount) return slot;
-    await pub.request({ method: "anvil_setStorageAt" as never, params: [token, key, (before ?? pad("0x0", { size: 32 })) as Hex] as never });
+    await pub.request({
+      method: "anvil_setStorageAt" as never,
+      params: [token, key, (before ?? pad("0x0", { size: 32 })) as Hex] as never,
+    });
   }
   throw new Error(`could not find the balances slot of ${token}`);
 }

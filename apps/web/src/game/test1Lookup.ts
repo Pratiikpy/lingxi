@@ -6,7 +6,9 @@
 import type { Test1Lookup } from "@lingxi/chain";
 import { API_RPC } from "./chain";
 
-const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (typeof location !== "undefined" && location.hostname === "localhost" ? "http://localhost:8787" : "");
+const BASE =
+  (import.meta.env.VITE_API_URL as string | undefined) ??
+  (typeof location !== "undefined" && location.hostname === "localhost" ? "http://localhost:8787" : "");
 
 /**
  * Owners per multicall when the game reads them itself: through the server's door (`/api/rpc`, which takes requests up
@@ -21,7 +23,12 @@ export async function test1Lookup(wallet: string, fetchFn: typeof fetch = fetch)
   try {
     const r = await fetchFn(`${BASE}/api/holders/test1/${wallet}`);
     const body = (await r.json()) as { ok?: boolean; tokens?: unknown };
-    if (body.ok !== true || !Array.isArray(body.tokens) || !body.tokens.every((x) => typeof x === "string" && /^\d{1,6}$/.test(x))) return lookup;
+    if (
+      body.ok !== true ||
+      !Array.isArray(body.tokens) ||
+      !body.tokens.every((x) => typeof x === "string" && /^\d{1,6}$/.test(x))
+    )
+      return lookup;
     return { ...lookup, candidates: (body.tokens as string[]).map((x) => BigInt(x)) };
   } catch {
     return lookup;

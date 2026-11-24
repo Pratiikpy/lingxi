@@ -21,7 +21,8 @@ function ownerFunctions(): Map<string, string[]> {
     const names = new Set<string>();
     for (const m of text.matchAll(/function (\w+)\([^)]*\)[^{;]*\bonlyOwner\b/g)) names.add(m[1]!);
     // a function that checks the owner itself, through a helper that compares msg.sender with owner()
-    if (/msg\.sender != owner\(\)/.test(text)) for (const m of text.matchAll(/function (\w+)\([^)]*\)[^{]*\{\s*_creatorsDesign\(/g)) names.add(m[1]!);
+    if (/msg\.sender != owner\(\)/.test(text))
+      for (const m of text.matchAll(/function (\w+)\([^)]*\)[^{]*\{\s*_creatorsDesign\(/g)) names.add(m[1]!);
     if (names.size) found.set(contract, [...names].sort());
   }
   return found;
@@ -55,6 +56,7 @@ describe("every owner power is in the README (A89)", () => {
 
   it("says which contracts give their owner nothing", () => {
     const rows = readmeRows();
-    for (const contract of ["HolderGift", "Breeder"]) expect(rows.get(contract), `${contract}'s row`).toMatch(/nothing/i);
+    for (const contract of ["HolderGift", "Breeder"])
+      expect(rows.get(contract), `${contract}'s row`).toMatch(/nothing/i);
   });
 });

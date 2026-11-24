@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { REF, compileFlyProgram, compileProgram, encode, flyCircuitBytes, programOfChips, toElements } from "@lingxi/brain";
+import {
+  REF,
+  compileFlyProgram,
+  compileProgram,
+  encode,
+  flyCircuitBytes,
+  programOfChips,
+  toElements,
+} from "@lingxi/brain";
 import type { CircuitPart } from "@lingxi/chain";
 import { PARTNERS, composeProgram, fighterFrom, fighterOfPartner, flyFighter, spar } from "@lingxi/game";
 import { fighterOf, profileOf } from "./adoptBrain";
@@ -18,14 +26,26 @@ describe("adopted outside brains", () => {
 
   it("a pet-format circuit read as bytes fights exactly as the program it was compiled from", () => {
     const program = composeProgram("bold", [{ when: { event: [2] }, then: { want: 2, mood: 3 } }]);
-    const parts: CircuitPart[] = [{ processor: CPU, id: "7", nIn: 16, nOut: 8, hex: hex(encode(toElements(compileProgram(program)))) }];
-    expect(fight(fighterOf({ source: { kind: "chain", processor: CPU, id: "7", parts }, profile: "PET-16x8/1" }, "Mochi", 1))).toEqual(fight(fighterFrom("Mochi", program, 1)));
+    const parts: CircuitPart[] = [
+      { processor: CPU, id: "7", nIn: 16, nOut: 8, hex: hex(encode(toElements(compileProgram(program)))) },
+    ];
+    expect(
+      fight(
+        fighterOf({ source: { kind: "chain", processor: CPU, id: "7", parts }, profile: "PET-16x8/1" }, "Mochi", 1),
+      ),
+    ).toEqual(fight(fighterFrom("Mochi", program, 1)));
   });
 
   it("a TapeFly brain on chain fights exactly as the same brain from a brawl link", () => {
     const program = programOfChips(["punish", "block", "bite"]);
-    const parts: CircuitPart[] = [{ processor: CPU, id: "9", nIn: 12, nOut: 3, hex: hex(flyCircuitBytes(compileFlyProgram(program))) }];
-    const fromChain = fighterOf({ source: { kind: "chain", processor: CPU, id: "9", parts }, profile: "DUEL-12x3/1" }, "Mochi", 1);
+    const parts: CircuitPart[] = [
+      { processor: CPU, id: "9", nIn: 12, nOut: 3, hex: hex(flyCircuitBytes(compileFlyProgram(program))) },
+    ];
+    const fromChain = fighterOf(
+      { source: { kind: "chain", processor: CPU, id: "9", parts }, profile: "DUEL-12x3/1" },
+      "Mochi",
+      1,
+    );
     expect(fight(fromChain)).toEqual(fight(flyFighter("Mochi", program, 1)));
   });
 
@@ -37,9 +57,19 @@ describe("adopted outside brains", () => {
       { processor: CPU, id: "2", nIn: 16, nOut: 8, hex: hex(wrapper) },
       { processor: CPU, id: "1", nIn: 16, nOut: 8, hex: hex(encode(toElements(inner))) },
     ];
-    const viaRef = fighterOf({ source: { kind: "chain", processor: CPU, id: "2", parts }, profile: "PET-16x8/1" }, "Mochi", 1);
+    const viaRef = fighterOf(
+      { source: { kind: "chain", processor: CPU, id: "2", parts }, profile: "PET-16x8/1" },
+      "Mochi",
+      1,
+    );
     expect(fight(viaRef)).toEqual(fight(fighterFrom("Mochi", composeProgram("gentle", []), 1)));
     // without the part it REFs, it does not load
-    expect(() => fighterOf({ source: { kind: "chain", processor: CPU, id: "2", parts: parts.slice(0, 1) }, profile: "PET-16x8/1" }, "x", 1)).toThrow();
+    expect(() =>
+      fighterOf(
+        { source: { kind: "chain", processor: CPU, id: "2", parts: parts.slice(0, 1) }, profile: "PET-16x8/1" },
+        "x",
+        1,
+      ),
+    ).toThrow();
   });
 });

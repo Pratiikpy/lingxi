@@ -39,9 +39,20 @@ function usePreparedCode(active: boolean): { code: string | null; failed: boolea
   return { code, failed, big };
 }
 
-function MoveButton({ to, code, failed, big }: { to: MoveTo; code: string | null; failed: boolean; big: TooBig | null }) {
+function MoveButton({
+  to,
+  code,
+  failed,
+  big,
+}: {
+  to: MoveTo;
+  code: string | null;
+  failed: boolean;
+  big: TooBig | null;
+}) {
   const zh = useLang((s) => s.lang) === "zh";
-  const label = to === "browser" ? (zh ? "在浏览器里打开" : "Open in my browser") : zh ? "在 Telegram 里打开" : "Open in Telegram";
+  const label =
+    to === "browser" ? (zh ? "在浏览器里打开" : "Open in my browser") : zh ? "在 Telegram 里打开" : "Open in Telegram";
   if (big) {
     // too large to move by the server: nothing was sent; from a browser, a save file carries it into Telegram instead
     const size = sizeNote(big, zh ? "zh" : "en");
@@ -57,15 +68,28 @@ function MoveButton({ to, code, failed, big }: { to: MoveTo; code: string | null
         </button>
       </>
     ) : (
-      <p className="small">{zh ? `你的存档太大，没法这样搬${size}。什么都没有发出去，宠物都还在这里。` : `Your save is too large to move this way ${size}. Nothing was sent; your pets are all still here.`}</p>
+      <p className="small">
+        {zh
+          ? `你的存档太大，没法这样搬${size}。什么都没有发出去，宠物都还在这里。`
+          : `Your save is too large to move this way ${size}. Nothing was sent; your pets are all still here.`}
+      </p>
     );
   }
   return (
     <>
-      <button type="button" className="btn primary" disabled={!code} onClick={() => code && (play("success"), openMove(to, code))}>
+      <button
+        type="button"
+        className="btn primary"
+        disabled={!code}
+        onClick={() => code && (play("success"), openMove(to, code))}
+      >
         {code ? label : failed ? (zh ? "暂时无法搬家" : "Can't move right now") : zh ? "准备中……" : "Getting ready…"}
       </button>
-      {failed && <p className="small">{zh ? "服务器没有回应。稍后再打开这里试试。" : "The server didn't answer. Open this again in a little while."}</p>}
+      {failed && (
+        <p className="small">
+          {zh ? "服务器没有回应。稍后再打开这里试试。" : "The server didn't answer. Open this again in a little while."}
+        </p>
+      )}
     </>
   );
 }
@@ -86,8 +110,16 @@ export function MoveSheet() {
         </p>
         <ul className="move-facts">
           <li>{zh ? "搬家链接只能用一次，15 分钟内有效。" : "The move link works once, within 15 minutes."}</li>
-          <li>{zh ? "浏览器里原来的宠物会留一份备份，可以撤销。" : "Any pets already in that browser are kept as a backup you can undo to."}</li>
-          <li>{zh ? "自动保存的钥匙留在这台设备上，在浏览器里需要重新开启。" : "The auto-save key stays on this device; switch auto-save on again in the browser."}</li>
+          <li>
+            {zh
+              ? "浏览器里原来的宠物会留一份备份，可以撤销。"
+              : "Any pets already in that browser are kept as a backup you can undo to."}
+          </li>
+          <li>
+            {zh
+              ? "自动保存的钥匙留在这台设备上，在浏览器里需要重新开启。"
+              : "The auto-save key stays on this device; switch auto-save on again in the browser."}
+          </li>
         </ul>
         <MoveButton to="browser" code={code} failed={failed} big={big} />
       </div>
@@ -112,7 +144,11 @@ export function TelegramCard() {
       <p className="label">Telegram</p>
       {tg ? (
         <>
-          <p className="small">{zh ? "要用钱包的步骤在手机浏览器里完成，宠物可以一起搬过去。" : "Steps that need a wallet happen in your phone's browser, and your pets can move there."}</p>
+          <p className="small">
+            {zh
+              ? "要用钱包的步骤在手机浏览器里完成，宠物可以一起搬过去。"
+              : "Steps that need a wallet happen in your phone's browser, and your pets can move there."}
+          </p>
           <div className="row">
             {moveAvailable("browser") && (
               <button type="button" className="btn" onClick={() => (play("tap"), offer())}>
@@ -128,12 +164,20 @@ export function TelegramCard() {
         </>
       ) : toTelegram ? (
         <>
-          <p className="small">{zh ? "宠物会搬进 Telegram 小程序。链接只能用一次，15 分钟内有效。" : "Your pets move into the Telegram Mini App. The link works once, within 15 minutes."}</p>
+          <p className="small">
+            {zh
+              ? "宠物会搬进 Telegram 小程序。链接只能用一次，15 分钟内有效。"
+              : "Your pets move into the Telegram Mini App. The link works once, within 15 minutes."}
+          </p>
           <MoveButton to="telegram" code={code} failed={failed} big={big} />
         </>
       ) : (
         <>
-          <p className="small">{zh ? "在 Telegram 里照顾宠物：通知、手势和聊天里随时打开。" : "Look after your pets inside Telegram, a tap away in any chat."}</p>
+          <p className="small">
+            {zh
+              ? "在 Telegram 里照顾宠物：通知、手势和聊天里随时打开。"
+              : "Look after your pets inside Telegram, a tap away in any chat."}
+          </p>
           <button type="button" className="btn" onClick={() => (play("tap"), setToTelegram(true))}>
             {zh ? "搬到 Telegram" : "Move my pets to Telegram"}
           </button>
@@ -184,7 +228,11 @@ export function MoveNotes() {
   const where = moved.to === "browser" ? (zh ? "你的浏览器" : "your browser") : "Telegram";
   return (
     <div className="move-note" role="status">
-      <p>{zh ? `这些宠物已经搬到${where}了。在这里做的改动不会跟过去。` : `These pets moved to ${where}. Changes made here won't follow them.`}</p>
+      <p>
+        {zh
+          ? `这些宠物已经搬到${where}了。在这里做的改动不会跟过去。`
+          : `These pets moved to ${where}. Changes made here won't follow them.`}
+      </p>
       <div className="row">
         <button type="button" className="btn" onClick={() => (play("tap"), stayHere())}>
           {zh ? "继续在这里玩" : "Keep playing here"}

@@ -7,7 +7,16 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import WebSocket from "ws";
 import { createHash } from "node:crypto";
 import { playerIdFor } from "@lingxi/chain";
-import { CAPACITY, DAMAGED_CARD, MAX_NEW_HOMES_PER_DAY, MAX_PER_ADDRESS, LiveRooms, addressOf, attachLive, validSpace } from "../src/live";
+import {
+  CAPACITY,
+  DAMAGED_CARD,
+  MAX_NEW_HOMES_PER_DAY,
+  MAX_PER_ADDRESS,
+  LiveRooms,
+  addressOf,
+  attachLive,
+  validSpace,
+} from "../src/live";
 import { PREFIX_SHARE } from "../src/limit";
 
 let port = 0;
@@ -86,7 +95,19 @@ async function eventually<T>(attempt: () => Promise<T>, tries = 50, gapMs = 100)
   }
 }
 
-const hello = (p: Peer, who: string, space: string, name = "Mochi") => p.ws.send(JSON.stringify({ t: "hello", id: idOf(who), key: keyOf(who), name, line: "gentle", stage: "child", mood: 2, space }));
+const hello = (p: Peer, who: string, space: string, name = "Mochi") =>
+  p.ws.send(
+    JSON.stringify({
+      t: "hello",
+      id: idOf(who),
+      key: keyOf(who),
+      name,
+      line: "gentle",
+      stage: "child",
+      mood: 2,
+      space,
+    }),
+  );
 
 describe("live rooms", () => {
   it("only allows known space names", () => {
@@ -130,15 +151,54 @@ describe("live rooms", () => {
     const b = await connect();
     const c = await connect();
     const good = "key:0x0123456789abcdef0123456789abcdef01234567@relay2.taperelay.com";
-    a.ws.send(JSON.stringify({ t: "hello", id: idOf("relay01"), key: keyOf("relay01"), name: "Mochi", line: "gentle", stage: "child", mood: 2, space: "room:66", relay: good }));
+    a.ws.send(
+      JSON.stringify({
+        t: "hello",
+        id: idOf("relay01"),
+        key: keyOf("relay01"),
+        name: "Mochi",
+        line: "gentle",
+        stage: "child",
+        mood: 2,
+        space: "room:66",
+        relay: good,
+      }),
+    );
     await a.next("room");
-    b.ws.send(JSON.stringify({ t: "hello", id: idOf("relay02"), key: keyOf("relay02"), name: "Tofu", line: "gentle", stage: "child", mood: 2, space: "room:66", relay: "https://evil.test/x" }));
+    b.ws.send(
+      JSON.stringify({
+        t: "hello",
+        id: idOf("relay02"),
+        key: keyOf("relay02"),
+        name: "Tofu",
+        line: "gentle",
+        stage: "child",
+        mood: 2,
+        space: "room:66",
+        relay: "https://evil.test/x",
+      }),
+    );
     const seen = await b.next("room");
     expect((seen.members as Array<{ name: string; relay?: string }>).find((m) => m.name === "Mochi")?.relay).toBe(good);
     const joined = await a.next("joined");
     expect((joined.member as { relay?: string }).relay, "a URL is never passed on").toBeUndefined();
-    c.ws.send(JSON.stringify({ t: "hello", id: idOf("relay03"), key: keyOf("relay03"), name: "Bun", line: "gentle", stage: "child", mood: 2, space: "room:66", relay: good.replace("relay2", "relay9") }));
-    expect(((await a.next("joined")).member as { relay?: string }).relay, "nor a node that is not official").toBeUndefined();
+    c.ws.send(
+      JSON.stringify({
+        t: "hello",
+        id: idOf("relay03"),
+        key: keyOf("relay03"),
+        name: "Bun",
+        line: "gentle",
+        stage: "child",
+        mood: 2,
+        space: "room:66",
+        relay: good.replace("relay2", "relay9"),
+      }),
+    );
+    expect(
+      ((await a.next("joined")).member as { relay?: string }).relay,
+      "nor a node that is not official",
+    ).toBeUndefined();
     for (const p of [a, b, c]) p.ws.close();
   });
 
@@ -222,8 +282,16 @@ describe("live rooms", () => {
     // the heaviest card a pet can carry: an owned instinct of 1,700 gates (23,800 characters, under its 24,000) and
     // fourteen lessons
     const cpu = `0x${"ab".repeat(20)}`;
-    const gates = Array.from({ length: 1_700 }, (_, i) => ({ op: NAND, ins: [i % 16, (i + 1) % 16], nOut: 1, firstOut: 16 + i }) as Element);
-    const outside = { processor: cpu, id: "1", owner: "", parts: [{ processor: cpu, id: "1", nIn: 16, nOut: 8, hex: bytesToHex(encode(gates)).slice(2) }] };
+    const gates = Array.from(
+      { length: 1_700 },
+      (_, i) => ({ op: NAND, ins: [i % 16, (i + 1) % 16], nOut: 1, firstOut: 16 + i }) as Element,
+    );
+    const outside = {
+      processor: cpu,
+      id: "1",
+      owner: "",
+      parts: [{ processor: cpu, id: "1", nIn: 16, nOut: 8, hex: bytesToHex(encode(gates)).slice(2) }],
+    };
     const full = canonicalCard(JSON.stringify({ lessons: Array(14).fill(rule), outside }))!;
     expect(full, "a card the game itself accepts").toBeTruthy();
     expect(full.length, "near the whole card budget").toBeGreaterThan(24_000);
@@ -233,7 +301,12 @@ describe("live rooms", () => {
     b.ws.send(JSON.stringify({ t: "ask", to: idOf("cardbig1") }));
     expect((await b.next("card")).lessons).toBe(full);
     // a card over the budget is refused: the card kept is the one before it, which the friend already has (A61)
-    a.ws.send(JSON.stringify({ t: "card", lessons: JSON.stringify({ lessons: [rule], outside: { parts: [{ hex: "0".repeat(CARD_MAX) }] } }) }));
+    a.ws.send(
+      JSON.stringify({
+        t: "card",
+        lessons: JSON.stringify({ lessons: [rule], outside: { parts: [{ hex: "0".repeat(CARD_MAX) }] } }),
+      }),
+    );
     await handled(a, b, 53);
     b.ws.send(JSON.stringify({ t: "ask", to: idOf("cardbig1") }));
     expect(await b.next("card")).toMatchObject({ id: idOf("cardbig1"), unchanged: true });
@@ -261,13 +334,26 @@ describe("live rooms", () => {
     await owner.next("room");
     const impostor = await connect();
     // the impostor knows the id (every room shows it) but not the secret behind it
-    impostor.ws.send(JSON.stringify({ t: "hello", id: idOf("realowner"), key: keyOf("someone else"), name: "Mochi", line: "gentle", stage: "child", mood: 2, space: "room:21" }));
+    impostor.ws.send(
+      JSON.stringify({
+        t: "hello",
+        id: idOf("realowner"),
+        key: keyOf("someone else"),
+        name: "Mochi",
+        line: "gentle",
+        stage: "child",
+        mood: 2,
+        space: "room:21",
+      }),
+    );
     expect(await impostor.next("refused")).toEqual({ t: "refused", reason: "id" });
     await expect(owner.next("joined", 300)).rejects.toThrow();
     // without a key, or with an id that is not the key's, nobody gets in
     impostor.ws.send(JSON.stringify({ t: "hello", id: idOf("realowner"), name: "Mochi", space: "room:21" }));
     expect((await impostor.next("refused")).reason).toBe("id");
-    impostor.ws.send(JSON.stringify({ t: "hello", id: "abcdef123456", key: keyOf("x"), name: "Mochi", space: "room:21" }));
+    impostor.ws.send(
+      JSON.stringify({ t: "hello", id: "abcdef123456", key: keyOf("x"), name: "Mochi", space: "room:21" }),
+    );
     expect((await impostor.next("refused")).reason).toBe("id");
     // nothing it says reaches the room as the owner
     impostor.ws.send(JSON.stringify({ t: "say", text: "I am Mochi" }));
@@ -295,7 +381,9 @@ describe("live rooms", () => {
     const open: Peer[] = [];
     for (let i = 0; i < MAX_PER_ADDRESS; i++) open.push(await connect(undefined, same));
     const answer = await new Promise<import("node:http").IncomingMessage>((resolve, reject) => {
-      const ws = new WebSocket(`ws://127.0.0.1:${port}/live`, { headers: { origin: "http://ok.test", "cf-connecting-ip": same } });
+      const ws = new WebSocket(`ws://127.0.0.1:${port}/live`, {
+        headers: { origin: "http://ok.test", "cf-connecting-ip": same },
+      });
       ws.on("unexpected-response", (_req, res) => resolve(res));
       ws.on("open", () => reject(new Error("let in")));
     });
@@ -401,11 +489,16 @@ describe("live rooms send a card once per change, limit asks, and let quiet conn
     attachLive(server, quiet, ["http://ok.test"]);
     await new Promise<void>((r) => server.listen(0, r));
     const at = (server.address() as AddressInfo).port;
-    const ws = new WebSocket(`ws://127.0.0.1:${at}/live`, { headers: { origin: "http://ok.test", "cf-connecting-ip": "203.0.113.61" } });
+    const ws = new WebSocket(`ws://127.0.0.1:${at}/live`, {
+      headers: { origin: "http://ok.test", "cf-connecting-ip": "203.0.113.61" },
+    });
     const code = await new Promise<number>((r) => ws.on("close", (c) => r(c)));
     expect(code, "closed as idle").toBe(4001);
     // a socket that stops answering pings (its pong handler removed, as a dead peer would) is dropped before the idle time
-    const dead = new WebSocket(`ws://127.0.0.1:${at}/live`, { headers: { origin: "http://ok.test", "cf-connecting-ip": "203.0.113.62" }, autoPong: false } as never);
+    const dead = new WebSocket(`ws://127.0.0.1:${at}/live`, {
+      headers: { origin: "http://ok.test", "cf-connecting-ip": "203.0.113.62" },
+      autoPong: false,
+    } as never);
     const deadCode = await new Promise<number>((r) => dead.on("close", (c) => r(c)));
     expect(deadCode, "dropped for not answering pings, before the idle time could close it").not.toBe(4001);
     server.close();
@@ -440,15 +533,17 @@ describe("a pet's proposals stay few and fresh (A64)", () => {
 
 describe("live rooms key their limits as every route does (A74)", () => {
   it("an IPv6 caller is its /64 and a mapped IPv4 its IPv4", () => {
-    const req = (ip: string) => ({ headers: { "cf-connecting-ip": ip }, socket: { remoteAddress: "127.0.0.1" } }) as never;
+    const req = (ip: string) =>
+      ({ headers: { "cf-connecting-ip": ip }, socket: { remoteAddress: "127.0.0.1" } }) as never;
     expect(addressOf(req("2001:db8:1:2::7"))).toBe("2001:db8:1:2::/64");
     expect(addressOf(req("2001:db8:1:2:ffff::1"))).toBe("2001:db8:1:2::/64");
     expect(addressOf(req("::ffff:198.51.100.9"))).toBe("198.51.100.9");
     expect(addressOf(req("198.51.100.9"))).toBe("198.51.100.9");
   });
 
-  it("a header that is not an address is \"invalid\" here as on every HTTP route, never the socket's address (P7)", () => {
-    const req = (ip: string) => ({ headers: { "cf-connecting-ip": ip }, socket: { remoteAddress: "198.51.100.77" } }) as never;
+  it('a header that is not an address is "invalid" here as on every HTTP route, never the socket\'s address (P7)', () => {
+    const req = (ip: string) =>
+      ({ headers: { "cf-connecting-ip": ip }, socket: { remoteAddress: "198.51.100.77" } }) as never;
     expect(addressOf(req("not an address"))).toBe("invalid");
     expect(addressOf(req("9".repeat(80)))).toBe("invalid");
     // no header at all: the socket's own address, as on HTTP
@@ -460,7 +555,9 @@ describe("live rooms key their limits as every route does (A74)", () => {
     const opened: WebSocket[] = [];
     let refused = 0;
     for (let i = 1; i <= 13; i++) {
-      const ws = new WebSocket(`ws://127.0.0.1:${port}/live`, { headers: { origin: "http://ok.test", "cf-connecting-ip": `2001:db8:74:1::${i.toString(16)}` } });
+      const ws = new WebSocket(`ws://127.0.0.1:${port}/live`, {
+        headers: { origin: "http://ok.test", "cf-connecting-ip": `2001:db8:74:1::${i.toString(16)}` },
+      });
       const ok = await new Promise<boolean>((r) => {
         ws.on("open", () => r(true));
         ws.on("error", () => r(false));
@@ -477,7 +574,9 @@ describe("live rooms key their limits as every route does (A74)", () => {
   it("one /48, spread over many /64s, holds four addresses' worth, and another network still gets in (A112)", async () => {
     const tryOpen = (ip: string) =>
       new Promise<WebSocket | null>((r) => {
-        const ws = new WebSocket(`ws://127.0.0.1:${port}/live`, { headers: { origin: "http://ok.test", "cf-connecting-ip": ip } });
+        const ws = new WebSocket(`ws://127.0.0.1:${port}/live`, {
+          headers: { origin: "http://ok.test", "cf-connecting-ip": ip },
+        });
         ws.on("open", () => r(ws));
         ws.on("error", () => r(null));
         ws.on("unexpected-response", () => r(null));
@@ -542,7 +641,12 @@ describe("a card travels small, and once per change on every path (A77)", () => 
     hello(b, "bad0002", "room:78", "Tofu");
     await b.next("room");
     await a.next("joined");
-    b.ws.send(JSON.stringify({ t: "card", lessons: JSON.stringify({ lessons: [], outside: { parts: [{ hex: "0".repeat(20_000) }] } }) }));
+    b.ws.send(
+      JSON.stringify({
+        t: "card",
+        lessons: JSON.stringify({ lessons: [], outside: { parts: [{ hex: "0".repeat(20_000) }] } }),
+      }),
+    );
     await handled(b, a, 78);
     a.ws.send(JSON.stringify({ t: "ask", to: idOf("bad0002") }));
     const got = await a.next("card");
@@ -551,4 +655,3 @@ describe("a card travels small, and once per change on every path (A77)", () => 
     for (const x of [a, b]) x.ws.close();
   });
 });
-

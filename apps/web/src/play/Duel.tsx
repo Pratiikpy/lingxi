@@ -35,7 +35,11 @@ const clearHash = () => history.replaceState(null, "", location.pathname + locat
 
 type Token = { kind: "challenge" | "result"; token: string };
 /** `lost`: a short link whose code could not be had (the server no longer keeps it, or cannot be reached). */
-type Arrival = { kind: "challenge"; challenge: Challenge; code: string } | { kind: "result"; result: DuelResult } | { kind: "error" } | { kind: "lost"; token: Token };
+type Arrival =
+  | { kind: "challenge"; challenge: Challenge; code: string }
+  | { kind: "result"; result: DuelResult }
+  | { kind: "error" }
+  | { kind: "lost"; token: Token };
 
 /** The link in the address: a challenge or a result, as its code or as a short token the server keeps (A32). */
 function hashToken(): Token | null {
@@ -49,7 +53,8 @@ async function arrivalOf(t: Token): Promise<Arrival> {
   const code = await tokenCode(t.token);
   if (!code && t.token.startsWith("s.")) return { kind: "lost", token: t };
   try {
-    if (code && t.kind === "challenge" && code.startsWith("lxc1.")) return { kind: "challenge", challenge: decodeChallenge(code), code };
+    if (code && t.kind === "challenge" && code.startsWith("lxc1."))
+      return { kind: "challenge", challenge: decodeChallenge(code), code };
     if (code && t.kind === "result" && code.startsWith("lxr1.")) return { kind: "result", result: decodeResult(code) };
   } catch {
     // a damaged code reads as an error below
@@ -57,7 +62,15 @@ async function arrivalOf(t: Token): Promise<Arrival> {
   return { kind: "error" };
 }
 
-export function DuelArrival({ hasPet, petName, onAccept }: { hasPet: boolean; petName?: string; onAccept?: (c: Challenge) => void }) {
+export function DuelArrival({
+  hasPet,
+  petName,
+  onAccept,
+}: {
+  hasPet: boolean;
+  petName?: string;
+  onAccept?: (c: Challenge) => void;
+}) {
   const lang = useLang((s) => s.lang) as Lang;
   const reduce = useReducedMotion() ?? false;
   const [arrival, setArrival] = useState<Arrival | null>(null);
@@ -102,8 +115,15 @@ export function DuelArrival({ hasPet, petName, onAccept }: { hasPet: boolean; pe
     setArrival(null);
   };
   const challenger = arrival?.kind === "challenge" ? arrival.challenge.from : null;
-  const art = useMemo(() => (challenger ? drawPet(challenger.line, drawn(challenger.stage), { expression: "proud" }) : null), [challenger]);
-  const replay = useMemo(() => (arrival?.kind === "result" ? duel(arrival.result.challenge, arrival.result.reply, arrival.result.version) : null), [arrival]);
+  const art = useMemo(
+    () => (challenger ? drawPet(challenger.line, drawn(challenger.stage), { expression: "proud" }) : null),
+    [challenger],
+  );
+  const replay = useMemo(
+    () =>
+      arrival?.kind === "result" ? duel(arrival.result.challenge, arrival.result.reply, arrival.result.version) : null,
+    [arrival],
+  );
 
   if (!arrival) return null;
   if (arrival.kind === "lost") {
@@ -117,12 +137,16 @@ export function DuelArrival({ hasPet, petName, onAccept }: { hasPet: boolean; pe
               : "This spar link can't be found: it may have expired, or the server can't be reached right now. Try again, or ask your friend for a new one."}
           </p>
           <div className="row">
-            <button type="button" className="btn primary" onClick={() =>
+            <button
+              type="button"
+              className="btn primary"
+              onClick={() =>
                 void arrivalOf(token).then((a) => {
                   setArrival(a);
                   if (a.kind === "challenge") sessionStorage.setItem(PENDING, a.code);
                 })
-              }>
+              }
+            >
               {lang === "zh" ? "再试一次" : "Try again"}
             </button>
             <button type="button" className="btn" onClick={close}>
@@ -148,10 +172,25 @@ export function DuelArrival({ hasPet, petName, onAccept }: { hasPet: boolean; pe
   if (arrival.kind === "result" && replay) {
     const { challenge, reply } = arrival.result;
     return (
-      <div className="fam-modal" role="dialog" aria-modal="true" aria-label={lang === "zh" ? "切磋回放" : "Spar replay"}>
+      <div
+        className="fam-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label={lang === "zh" ? "切磋回放" : "Spar replay"}
+      >
         <div className="fam-card duel-replay">
-          <p className="label">{lang === "zh" ? `${reply.name} 对 ${challenge.from.name}` : `${reply.name} vs ${challenge.from.name}`}</p>
-          <FightView self={{ name: reply.name, line: reply.line, stage: drawn(reply.stage) }} partner={partnerOfDuel(challenge)} result={replay} cheer={false} replay onDone={close} onRematch={close} />
+          <p className="label">
+            {lang === "zh" ? `${reply.name} 对 ${challenge.from.name}` : `${reply.name} vs ${challenge.from.name}`}
+          </p>
+          <FightView
+            self={{ name: reply.name, line: reply.line, stage: drawn(reply.stage) }}
+            partner={partnerOfDuel(challenge)}
+            result={replay}
+            cheer={false}
+            replay
+            onDone={close}
+            onRematch={close}
+          />
         </div>
       </div>
     );
@@ -160,12 +199,24 @@ export function DuelArrival({ hasPet, petName, onAccept }: { hasPet: boolean; pe
   const story = c.from.story;
   const facts = [
     lang === "zh" ? `${story.days} 天大` : `${story.days} ${story.days === 1 ? "day" : "days"} old`,
-    lang === "zh" ? `学过 ${story.lessons} 课` : `taught ${story.lessons} ${story.lessons === 1 ? "lesson" : "lessons"}`,
+    lang === "zh"
+      ? `学过 ${story.lessons} 课`
+      : `taught ${story.lessons} ${story.lessons === 1 ? "lesson" : "lessons"}`,
     ...story.nature.map((n) => NATURE[n]?.[lang] ?? n),
   ];
   return (
-    <div className="fam-modal" role="dialog" aria-modal="true" aria-label={lang === "zh" ? "切磋邀请" : "A spar challenge"}>
-      <motion.div className="fam-card duel-card" initial={reduce ? false : { y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: "spring", stiffness: 320, damping: 26 }}>
+    <div
+      className="fam-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label={lang === "zh" ? "切磋邀请" : "A spar challenge"}
+    >
+      <motion.div
+        className="fam-card duel-card"
+        initial={reduce ? false : { y: 24, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 320, damping: 26 }}
+      >
         <motion.div animate={reduce ? {} : { y: [0, -6, 0] }} transition={{ duration: 0.6, repeat: 2 }}>
           {art && <Sprite canvas={art} palette={PALETTE_OF[c.from.line]} scale={5} label={c.from.name} />}
         </motion.div>
@@ -195,7 +246,11 @@ export function DuelArrival({ hasPet, petName, onAccept }: { hasPet: boolean; pe
           </div>
         ) : (
           <>
-            <p className="small">{lang === "zh" ? "先孵一只宠物，它就能应战。邀请会等着你。" : "Hatch a pet first and it can answer. The challenge will wait for you."}</p>
+            <p className="small">
+              {lang === "zh"
+                ? "先孵一只宠物，它就能应战。邀请会等着你。"
+                : "Hatch a pet first and it can answer. The challenge will wait for you."}
+            </p>
             <button type="button" className="btn primary" onClick={() => setArrival(null)}>
               {lang === "zh" ? "去孵蛋" : "Hatch a pet"}
             </button>

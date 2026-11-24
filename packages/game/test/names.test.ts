@@ -5,13 +5,15 @@ import { NAME_MAX, nameFromBrain, shownName, takeVisible, visibleLength } from "
 import { friendPartner } from "../src/partners";
 import { parseCard } from "../src/family";
 
-const bytes = (line: "gentle" | "bold" | "curious", instincts = 0) => netlistBytes(compileProgram(composeProgram(line, [], instincts)));
+const bytes = (line: "gentle" | "bold" | "curious", instincts = 0) =>
+  netlistBytes(compileProgram(composeProgram(line, [], instincts)));
 
 describe("names from the brain", () => {
   it("the same circuit always gives the same name, a different circuit a different one", () => {
     expect(nameFromBrain(bytes("gentle"))).toEqual(nameFromBrain(bytes("gentle")));
     const names = new Set<string>();
-    for (const line of ["gentle", "bold", "curious"] as const) for (let i = 0; i < 16; i++) names.add(nameFromBrain(bytes(line, i)).en);
+    for (const line of ["gentle", "bold", "curious"] as const)
+      for (let i = 0; i < 16; i++) names.add(nameFromBrain(bytes(line, i)).en);
     expect(names.size).toBeGreaterThan(30);
   });
 
@@ -42,7 +44,13 @@ describe("another player's pet name, as the game shows it (A16)", () => {
 
   it("shows visible punctuation and emoji as they are: only what draws as nothing is marked", () => {
     for (const name of ["Mo\u2026", "Pip \u2014 Tofu", "\u2018Mochi\u2019"]) expect(shownName(name, 12)).toBe(name);
-    const emoji = ["Pip \u2764\ufe0f", "\u{1f468}\u200d\u{1f469}\u200d\u{1f467}", "1\ufe0f\u20e3", "\u{1f3f4}\u{e0067}\u{e0062}\u{e0065}\u{e006e}\u{e0067}\u{e007f}", "\u{1f44b}\u{1f3fd}"];
+    const emoji = [
+      "Pip \u2764\ufe0f",
+      "\u{1f468}\u200d\u{1f469}\u200d\u{1f467}",
+      "1\ufe0f\u20e3",
+      "\u{1f3f4}\u{e0067}\u{e0062}\u{e0065}\u{e006e}\u{e0067}\u{e007f}",
+      "\u{1f44b}\u{1f3fd}",
+    ];
     for (const name of emoji) expect(shownName(name, 24), name).toBe(name);
   });
 
@@ -75,12 +83,20 @@ describe("another player's pet name, as the game shows it (A16)", () => {
     const friend = friendPartner({ id: "abc", name: "Tofu\u061c", line: "bold", stage: "teen", lessons: "[]" });
     expect(friend?.name.en).toBe("Tofu\ufffd");
     const papers = parseCard(
-      JSON.stringify({ lessons: [], family: { generation: 1, parents: [{ name: "Mochi\u180b", line: "gentle", lessons: [] }, { name: "Pip", line: "bold", lessons: [] }] } }),
+      JSON.stringify({
+        lessons: [],
+        family: {
+          generation: 1,
+          parents: [
+            { name: "Mochi\u180b", line: "gentle", lessons: [] },
+            { name: "Pip", line: "bold", lessons: [] },
+          ],
+        },
+      }),
     );
     expect(papers?.family?.parents.map((p) => p.name)).toEqual(["Mochi\ufffd", "Pip"]);
   });
 });
-
 
 // P5: a name is limited and cut by the characters a reader sees, never inside one
 describe("names measured in visible characters (P5)", () => {

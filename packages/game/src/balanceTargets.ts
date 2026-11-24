@@ -24,7 +24,19 @@ export type PlayerType = (typeof PLAYER_TYPES)[number];
 
 /** One player's pet and world at the end of one local day. */
 /** D13: the gate budget over every set of school lessons, per line (see the simulator's budgetChoice). */
-export type BudgetChoice = Record<string, { teenSets: number; teenNoMind: number; teenFiveMind: number; adultSets: number; adultNoMind: number; adultFiveMind: number; elderAllEight: number; elderBudget: number }>;
+export type BudgetChoice = Record<
+  string,
+  {
+    teenSets: number;
+    teenNoMind: number;
+    teenFiveMind: number;
+    adultSets: number;
+    adultNoMind: number;
+    adultFiveMind: number;
+    elderAllEight: number;
+    elderBudget: number;
+  }
+>;
 
 export interface PlayerDay {
   day: number;
@@ -178,10 +190,16 @@ const pct = (x: number) => `${Math.round(x * 100)}%`;
 const types = (n: SimNumbers) => PLAYER_TYPES.map((t) => n.players[t]);
 const lessonIds = (n: SimNumbers) => [...new Set(n.lessons.map((l) => l.id))];
 const seen = (l: LessonSeen) =>
-  l.trigger === "moment" ? l.inMoment === true : l.firstFire !== null && l.firstFire <= SEEN_WITHIN && l.fires >= (l.trigger === "care" ? (l.cares ?? SEEN_IN_TEN) : SEEN_IN_TEN);
+  l.trigger === "moment"
+    ? l.inMoment === true
+    : l.firstFire !== null &&
+      l.firstFire <= SEEN_WITHIN &&
+      l.fires >= (l.trigger === "care" ? (l.cares ?? SEEN_IN_TEN) : SEEN_IN_TEN);
 /** Every tapping path measured, or the pats-and-words tapper alone in a record from before B8. */
 const tapPathsOf = (n: SimNumbers): Array<[string, { level99Day: number | null; day30Level: number | null }]> =>
-  n.tapPaths ? Object.entries(n.tapPaths) : [["petTalk", { level99Day: n.players.tapper.level99Day, day30Level: day(n.players.tapper, 30)?.level ?? null }]];
+  n.tapPaths
+    ? Object.entries(n.tapPaths)
+    : [["petTalk", { level99Day: n.players.tapper.level99Day, day30Level: day(n.players.tapper, 30)?.level ?? null }]];
 const day = (p: PlayerNumbers, d: number) => p.days[Math.min(d, p.days.length) - 1];
 
 export const BALANCE_TARGETS: readonly BalanceTarget[] = [
@@ -198,7 +216,14 @@ export const BALANCE_TARGETS: readonly BalanceTarget[] = [
       const ok = ids.filter((id) => n.lessons.filter((l) => l.id === id).every(seen));
       const rare = ids.filter((id) => {
         const ls = n.lessons.filter((l) => l.id === id);
-        return ls.reduce((s, l) => s + l.fires, 0) / Math.max(1, ls.reduce((s, l) => s + l.beats, 0)) < 0.05;
+        return (
+          ls.reduce((s, l) => s + l.fires, 0) /
+            Math.max(
+              1,
+              ls.reduce((s, l) => s + l.beats, 0),
+            ) <
+          0.05
+        );
       });
       const moments = ids.filter((id) => n.lessons.find((l) => l.id === id)?.trigger === "moment");
       return `${ok.length} of ${ids.length} lessons seen everywhere; ${rare.filter((id) => !moments.includes(id)).length} of ${ids.length - moments.length} brought about at once decide under 5% of watched minutes (${rare.filter((id) => !moments.includes(id)).join(", ") || "none"}); ${moments.length} wait for their moment (${moments.join(", ")})`;
@@ -215,11 +240,15 @@ export const BALANCE_TARGETS: readonly BalanceTarget[] = [
     // D20 (Prateek left the choice to the product, 2026-11-23): the plan's 60% is restated as below. Against the
     // opponents players actually meet a tap-only brain stayed near 61% at any tap damage, so 60% would have meant a
     // useless tap; what matters is that no lazy brain beats reading the fight there, and that every one has an answer.
-    target: "every brain of one rule (one lesson on a starter, or one move every round) has an answer in the field that beats it in at least 55% of their spars, and none beats the fight-reading brain; and against the opponents players actually meet (the sparring partners and taught pets) no brain of one rule wins more than the fight-reading brain",
+    target:
+      "every brain of one rule (one lesson on a starter, or one move every round) has an answer in the field that beats it in at least 55% of their spars, and none beats the fight-reading brain; and against the opponents players actually meet (the sparring partners and taught pets) no brain of one rule wins more than the fight-reading brain",
     owner: "G2",
     value: (n) =>
       `least answered: ${n.field.leastAnswered.id}, beaten ${pct(n.field.leastAnswered.winRate)} by ${n.field.leastAnswered.by}; ${n.field.beatReader.length ? `${n.field.beatReader.join(", ")} beat the reader` : "none beats the reader"}; best ${n.field.bestSingle.id} wins ${pct(n.field.bestSingle.winRate)} of the field; against real opponents the reader ${pct(n.field.realOpponents.reader)}, best one-rule ${n.field.realOpponents.bestSingle.id} ${pct(n.field.realOpponents.bestSingle.winRate)}`,
-    met: (n) => n.field.leastAnswered.winRate >= 0.55 && n.field.beatReader.length === 0 && n.field.realOpponents.bestSingle.winRate < n.field.realOpponents.reader,
+    met: (n) =>
+      n.field.leastAnswered.winRate >= 0.55 &&
+      n.field.beatReader.length === 0 &&
+      n.field.realOpponents.bestSingle.winRate < n.field.realOpponents.reader,
   },
   {
     id: "spar-reading-pays",
@@ -234,7 +263,8 @@ export const BALANCE_TARGETS: readonly BalanceTarget[] = [
     what: "Guarding is a real answer to something",
     target: "a guard-only brain wins 40% to 60% against a pounce-only brain, what guarding is meant to counter",
     owner: "G2",
-    value: (n) => `guard-only ${pct(n.field.guardVsPounce)} against pounce-only, ${pct(n.field.guardVsField)} against the field`,
+    value: (n) =>
+      `guard-only ${pct(n.field.guardVsPounce)} against pounce-only, ${pct(n.field.guardVsField)} against the field`,
     met: (n) => n.field.guardVsPounce >= 0.4 && n.field.guardVsPounce <= 0.6,
   },
   {
@@ -242,14 +272,16 @@ export const BALANCE_TARGETS: readonly BalanceTarget[] = [
     what: "Dodging is a real answer to something",
     target: "a dodge-only brain wins 40% to 60% against a pounce-only brain",
     owner: "G2",
-    value: (n) => `dodge-only ${pct(n.field.dodgeVsPounce)} against pounce-only, ${pct(n.field.dodgeVsField)} against the field`,
+    value: (n) =>
+      `dodge-only ${pct(n.field.dodgeVsPounce)} against pounce-only, ${pct(n.field.dodgeVsField)} against the field`,
     met: (n) => n.field.dodgeVsPounce >= 0.4 && n.field.dodgeVsPounce <= 0.6,
   },
   {
     id: "level-not-by-tapping",
     what: "Level 99 is paced by days of real care, not by tapping",
     // B8: a tapper down every tapping path (pats and words, three-star play, baths, meals), so the fastest decides
-    target: "a tapper, down whichever tapping path is fastest (pats and words, three-star play, baths or meals), never reaches level 99 in 90 days, and on day 30 stands no more than a quarter above the three-visit player",
+    target:
+      "a tapper, down whichever tapping path is fastest (pats and words, three-star play, baths or meals), never reaches level 99 in 90 days, and on day 30 stands no more than a quarter above the three-visit player",
     owner: "G3",
     value: (n) => {
       const c = n.players.three;
@@ -264,7 +296,8 @@ export const BALANCE_TARGETS: readonly BalanceTarget[] = [
   {
     id: "trees-by-90",
     what: "Skill points worth choosing: one tree finished and a second begun by day 90, never every tree full",
-    target: "the three-visit player reaches level 64 (63 points: one tree of 62 and a first point in another) by day 90, and level 64 not before day 50",
+    target:
+      "the three-visit player reaches level 64 (63 points: one tree of 62 and a first point in another) by day 90, and level 64 not before day 50",
     owner: "G3",
     value: (n) => {
       const c = n.players.three;
@@ -281,7 +314,13 @@ export const BALANCE_TARGETS: readonly BalanceTarget[] = [
     what: "Coin income is bounded per day",
     target: `no player type earns more than ${DAILY_COIN_CAP} coins in a day`,
     owner: "G6",
-    value: (n) => types(n).map((p) => `${p.type} ${p.maxDailyCoinsIn}${p.days?.length ? ` (day ${p.days.findIndex((r) => r.coinsIn === p.maxDailyCoinsIn) + 1})` : ""}`).join(", "),
+    value: (n) =>
+      types(n)
+        .map(
+          (p) =>
+            `${p.type} ${p.maxDailyCoinsIn}${p.days?.length ? ` (day ${p.days.findIndex((r) => r.coinsIn === p.maxDailyCoinsIn) + 1})` : ""}`,
+        )
+        .join(", "),
     met: (n) => types(n).every((p) => p.maxDailyCoinsIn <= DAILY_COIN_CAP),
   },
   {
@@ -289,23 +328,33 @@ export const BALANCE_TARGETS: readonly BalanceTarget[] = [
     what: "Something is worth saving for at every stage through day 90",
     target: "no player type holds enough coins to buy every permanent thing sold for coins before day 90",
     owner: "G6",
-    value: (n) => `everything costs ${n.costOfEverything}; ` + types(n).map((p) => `${p.type} ${p.allAffordableDay === null ? "never" : `day ${p.allAffordableDay}`}`).join(", "),
+    value: (n) =>
+      `everything costs ${n.costOfEverything}; ` +
+      types(n)
+        .map((p) => `${p.type} ${p.allAffordableDay === null ? "never" : `day ${p.allAffordableDay}`}`)
+        .join(", "),
     met: (n) => types(n).every((p) => p.allAffordableDay === null),
   },
   {
     id: "recipes-worth",
     what: "No recipe or trust branch is strictly worse than its alternative",
-    target: "no everyday recipe is beaten in every input by another, none costs more in bought inputs than the shop price of what it makes, and no friend's recipe branch needs a rare find or costs more than that friend's shelf",
+    target:
+      "no everyday recipe is beaten in every input by another, none costs more in bought inputs than the shop price of what it makes, and no friend's recipe branch needs a rare find or costs more than that friend's shelf",
     owner: "G6",
-    value: (n) => (n.worth === undefined ? "not measured" : n.worth.length ? n.worth.join("; ") : "none strictly worse"),
+    value: (n) =>
+      n.worth === undefined ? "not measured" : n.worth.length ? n.worth.join("; ") : "none strictly worse",
     met: (n) => n.worth !== undefined && n.worth.length === 0,
   },
   {
     id: "neglect-costs",
     what: "Neglect is never rewarded",
-    target: "a pet only ever patted, once every 93.6 hours, never fed or cleaned, falls ill, makes care mistakes and is not an elder on day 62",
+    target:
+      "a pet only ever patted, once every 93.6 hours, never fed or cleaned, falls ill, makes care mistakes and is not an elder on day 62",
     owner: "G5",
-    value: (n) => (n.patOnly ? `${n.patOnly.stageDay62} on day 62, ${n.patOnly.ill ? "fell ill" : "never ill"}, ${n.patOnly.mistakes} mistakes` : "not measured"),
+    value: (n) =>
+      n.patOnly
+        ? `${n.patOnly.stageDay62} on day 62, ${n.patOnly.ill ? "fell ill" : "never ill"}, ${n.patOnly.mistakes} mistakes`
+        : "not measured",
     met: (n) => !!n.patOnly && n.patOnly.ill && n.patOnly.mistakes > 0 && n.patOnly.stageDay62 !== "elder",
   },
   {
@@ -321,13 +370,15 @@ export const BALANCE_TARGETS: readonly BalanceTarget[] = [
     what: "A weekend away never ends in a sick pet",
     target: "the weekend-away player never comes back on Monday to an ill pet",
     owner: "G5",
-    value: (n) => `${n.players.weekend.sickAfterWeekend} of ${n.players.weekend.weekends} weekends end with the pet ill; ${n.players.weekend.mistakes} care mistakes`,
+    value: (n) =>
+      `${n.players.weekend.sickAfterWeekend} of ${n.players.weekend.weekends} weekends end with the pet ill; ${n.players.weekend.mistakes} care mistakes`,
     met: (n) => n.players.weekend.weekends > 0 && n.players.weekend.sickAfterWeekend === 0,
   },
   {
     id: "first-absence-floor",
     what: "A first long absence leaves every need at its floor or above",
-    target: "a pet of every line, cared for once and left 72 hours, has every need at its floor (240 of 1,000, just inside the lowest band the brain reads) or above",
+    target:
+      "a pet of every line, cared for once and left 72 hours, has every need at its floor (240 of 1,000, just inside the lowest band the brain reads) or above",
     owner: "G5",
     value: (n) => (n.alone ?? []).map((a) => `${a.line} ${a.lowestAt72h}`).join(", ") || "not measured",
     met: (n) => !!n.alone?.length && n.alone.every((a) => a.lowestAt72h >= 240),
@@ -337,27 +388,40 @@ export const BALANCE_TARGETS: readonly BalanceTarget[] = [
     what: "A pet falls ill only after days of neglect",
     target: "a pet of every line, cared for once and left alone, first falls ill no sooner than 96 hours later",
     owner: "G5",
-    value: (n) => (n.alone ?? []).map((a) => `${a.line} ${a.firstSickHours === null ? "not in 10 days" : `${a.firstSickHours} h`}`).join(", ") || "not measured",
+    value: (n) =>
+      (n.alone ?? [])
+        .map((a) => `${a.line} ${a.firstSickHours === null ? "not in 10 days" : `${a.firstSickHours} h`}`)
+        .join(", ") || "not measured",
     met: (n) => !!n.alone?.length && n.alone.every((a) => a.firstSickHours === null || a.firstSickHours >= 96),
   },
   {
     id: "new-every-day",
     what: "Something new or changing every day through day 90",
-    target: "for every player type, every day from 1 to 90 that the player opens the game brings at least one new or changing thing it actually meets (plan 38 section 2; D16: the village happening counts only once used), and something left that can be done that day (open story quests and dailies, today's village happening, a commission or plot the pet is old enough for and the player can pay for)",
+    target:
+      "for every player type, every day from 1 to 90 that the player opens the game brings at least one new or changing thing it actually meets (plan 38 section 2; D16: the village happening counts only once used), and something left that can be done that day (open story quests and dailies, today's village happening, a commission or plot the pet is old enough for and the player can pay for)",
     owner: "G4",
-    value: (n) => types(n).map((p) => `${p.type} ${p.daysWithNothingNew} days with nothing new, at least ${p.fewestThingsLeft ?? "?"} left`).join(", "),
+    value: (n) =>
+      types(n)
+        .map(
+          (p) => `${p.type} ${p.daysWithNothingNew} days with nothing new, at least ${p.fewestThingsLeft ?? "?"} left`,
+        )
+        .join(", "),
     met: (n) => types(n).every((p) => p.daysWithNothingNew === 0 && (p.fewestThingsLeft ?? 0) > 0),
   },
   {
     id: "gate-budget-binds",
     what: "The gate budget is a choice the player meets by the teen stage",
-    target: "the three-visit player has a lesson refused for the gate budget by the end of the teen stage (day 7); and over every set of school lessons in its cheapest order, on every line: with no Mind points at most half the sets that fill a teen's slots and at most half that fill an adult's fit, and an elder cannot hold all eight; five points of Wide Mind let every teen set fit (the skill's visible effect)",
+    target:
+      "the three-visit player has a lesson refused for the gate budget by the end of the teen stage (day 7); and over every set of school lessons in its cheapest order, on every line: with no Mind points at most half the sets that fill a teen's slots and at most half that fill an adult's fit, and an elder cannot hold all eight; five points of Wide Mind let every teen set fit (the skill's visible effect)",
     owner: "G7",
     value: (n) => {
       const p = n.players.three;
       const bc = n.budgetChoice
         ? Object.entries(n.budgetChoice)
-            .map(([l, b]) => `${l}: teen ${b.teenNoMind}/${b.teenSets} (5 points ${b.teenFiveMind}), adult ${b.adultNoMind}/${b.adultSets}, all eight ${b.elderAllEight} of ${b.elderBudget}`)
+            .map(
+              ([l, b]) =>
+                `${l}: teen ${b.teenNoMind}/${b.teenSets} (5 points ${b.teenFiveMind}), adult ${b.adultNoMind}/${b.adultSets}, all eight ${b.elderAllEight} of ${b.elderBudget}`,
+            )
             .join("; ")
         : "not measured";
       return `first refusal ${p.firstTooBigDay === null ? "never" : `day ${p.firstTooBigDay}`}; at most ${pct(p.teenGateShare)} of the budget used by day 7; sets that fit with no Mind points: ${bc}`;
@@ -366,7 +430,13 @@ export const BALANCE_TARGETS: readonly BalanceTarget[] = [
       n.players.three.firstTooBigDay !== null &&
       n.players.three.firstTooBigDay <= 7 &&
       !!n.budgetChoice &&
-      Object.values(n.budgetChoice).every((b) => b.teenNoMind * 2 <= b.teenSets && b.adultNoMind * 2 <= b.adultSets && b.elderAllEight > b.elderBudget && b.teenFiveMind === b.teenSets),
+      Object.values(n.budgetChoice).every(
+        (b) =>
+          b.teenNoMind * 2 <= b.teenSets &&
+          b.adultNoMind * 2 <= b.adultSets &&
+          b.elderAllEight > b.elderBudget &&
+          b.teenFiveMind === b.teenSets,
+      ),
   },
 ];
 
@@ -388,6 +458,11 @@ export const balanceTargets = (): Array<BalanceTarget & { measured: string; stat
  * D21: the targets whose recorded value no longer matches what the simulator measures (a status that regressed is
  * reported on its own); any of these makes the simulator's check fail, so the record cannot drift from the game.
  */
-export function staleTargets(now: ReadonlyArray<{ id: string; value: string; met: boolean }>, recorded: Readonly<Record<string, { value: string; status: "met" | "open" }>>): string[] {
-  return now.filter((t) => recorded[t.id] && recorded[t.id]!.value !== t.value && !(recorded[t.id]!.status === "met" && !t.met)).map((t) => t.id);
+export function staleTargets(
+  now: ReadonlyArray<{ id: string; value: string; met: boolean }>,
+  recorded: Readonly<Record<string, { value: string; status: "met" | "open" }>>,
+): string[] {
+  return now
+    .filter((t) => recorded[t.id] && recorded[t.id]!.value !== t.value && !(recorded[t.id]!.status === "met" && !t.met))
+    .map((t) => t.id);
 }

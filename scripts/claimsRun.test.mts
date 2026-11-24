@@ -18,18 +18,26 @@ const deps = (over: Partial<RunDeps> = {}): RunDeps => ({
 describe("a test row runs its test (A56)", () => {
   it("fails when the test fails, though the file exists", () => {
     const failing = deps({ spawn: () => ({ status: 1, stdout: "Tests  1 failed | 2 passed (3)" }) });
-    expect(runTest("apps/web/src/game/x.test.ts", failing)).toEqual({ ok: false, why: "Tests  1 failed | 2 passed (3)" });
+    expect(runTest("apps/web/src/game/x.test.ts", failing)).toEqual({
+      ok: false,
+      why: "Tests  1 failed | 2 passed (3)",
+    });
   });
 
   it("passes when the test passes, run in the package that owns it", () => {
     let ranIn = "";
-    const passing = deps({ spawn: (_cmd, _args, cwd) => ((ranIn = cwd), { status: 0, stdout: "Tests  3 passed (3)" }) });
+    const passing = deps({
+      spawn: (_cmd, _args, cwd) => ((ranIn = cwd), { status: 0, stdout: "Tests  3 passed (3)" }),
+    });
     expect(runTest("apps/web/src/game/x.test.ts", passing)).toEqual({ ok: true, why: "Tests  3 passed (3)" });
     expect(ranIn).toBe("/repo/apps/web");
   });
 
   it("fails a row whose test file is not there", () => {
-    expect(runTest("apps/web/src/game/gone.test.ts", deps({ exists: () => false }))).toEqual({ ok: false, why: "does not exist" });
+    expect(runTest("apps/web/src/game/gone.test.ts", deps({ exists: () => false }))).toEqual({
+      ok: false,
+      why: "does not exist",
+    });
   });
 });
 

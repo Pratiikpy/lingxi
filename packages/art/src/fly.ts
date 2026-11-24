@@ -26,11 +26,7 @@ const BODY = [
 ];
 
 /** A wing beat: the wings lift one row. */
-const WINGS_UP = [
-  "hhh.OOmmllmmOO.hhh",
-  "hnhhOmmmmmmmmOhhnh",
-  ".hnhOmmmllmmmOhnh.",
-];
+const WINGS_UP = ["hhh.OOmmllmmOO.hhh", "hnhhOmmmmmmmmOhhnh", ".hnhOmmmllmmmOhnh."];
 
 export function drawFly(opt: { flap?: boolean; hurt?: boolean } = {}): PixelCanvas {
   const c = new PixelCanvas(18, 17);

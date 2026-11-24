@@ -104,85 +104,264 @@ export async function marketBem(pub: PublicClient, m: Market): Promise<Address> 
 }
 
 /** What a payment needs from the wallet: the BEM held, and whether an approval comes first. */
-export async function bemReadiness(pub: PublicClient, m: Market, who: Address, amount: bigint): Promise<{ balance: bigint; allowance: bigint; needsApproval: boolean; enough: boolean }> {
+export async function bemReadiness(
+  pub: PublicClient,
+  m: Market,
+  who: Address,
+  amount: bigint,
+): Promise<{ balance: bigint; allowance: bigint; needsApproval: boolean; enough: boolean }> {
   const bem = await marketBem(pub, m);
   const [balance, allowance] = await Promise.all([
     pub.readContract({ address: bem, abi: erc20Abi, functionName: "balanceOf", args: [who] }) as Promise<bigint>,
-    pub.readContract({ address: bem, abi: erc20Abi, functionName: "allowance", args: [who, m.address] }) as Promise<bigint>,
+    pub.readContract({
+      address: bem,
+      abi: erc20Abi,
+      functionName: "allowance",
+      args: [who, m.address],
+    }) as Promise<bigint>,
   ]);
   return { balance, allowance, needsApproval: allowance < amount, enough: balance >= amount };
 }
 
 /** Approve the market for exactly `amount` when the current allowance is short. Returns the approval's hash, or null. */
-export async function approveBem(pub: PublicClient, wallet: WalletClient, m: Market, amount: bigint): Promise<Hex | null> {
+export async function approveBem(
+  pub: PublicClient,
+  wallet: WalletClient,
+  m: Market,
+  amount: bigint,
+): Promise<Hex | null> {
   const who = acct(wallet).address;
   const r = await bemReadiness(pub, m, who, amount);
   if (!r.enough) throw new Error("not enough BEM");
   if (!r.needsApproval) return null;
   const bem = await marketBem(pub, m);
-  const { request } = await pub.simulateContract({ address: bem, abi: erc20Abi, functionName: "approve", args: [m.address, amount], account: acct(wallet) });
+  const { request } = await pub.simulateContract({
+    address: bem,
+    abi: erc20Abi,
+    functionName: "approve",
+    args: [m.address, amount],
+    account: acct(wallet),
+  });
   const tx = await wallet.writeContract(request);
   const rc = await pub.waitForTransactionReceipt({ hash: tx });
   if (rc.status !== "success") throw new RevertedOnChain("approve", rc.transactionHash);
   return tx;
 }
 
-export async function publishDesign(pub: PublicClient, wallet: WalletClient, m: Market, o: { pixels: Uint8Array; name: string; price: bigint; maxSupply: number; royaltyBps: number }): Promise<{ id: bigint; tx: Hex }> {
+export async function publishDesign(
+  pub: PublicClient,
+  wallet: WalletClient,
+  m: Market,
+  o: { pixels: Uint8Array; name: string; price: bigint; maxSupply: number; royaltyBps: number },
+): Promise<{ id: bigint; tx: Hex }> {
   const hex = `0x${Array.from(o.pixels, (b) => b.toString(16).padStart(2, "0")).join("")}` as Hex;
   const account = acct(wallet);
   const args = [hex, o.name, o.price, o.maxSupply, o.royaltyBps] as const;
   const { tx, logs } = await confirmed(pub, "create", async () =>
     m.v === 2
-      ? wallet.writeContract((await pub.simulateContract({ address: m.address, abi: outfitMarketV2Abi, functionName: "create", args, account })).request)
-      : wallet.writeContract((await pub.simulateContract({ address: m.address, abi: outfitMarketAbi, functionName: "create", args, account })).request),
+      ? wallet.writeContract(
+          (
+            await pub.simulateContract({
+              address: m.address,
+              abi: outfitMarketV2Abi,
+              functionName: "create",
+              args,
+              account,
+            })
+          ).request,
+        )
+      : wallet.writeContract(
+          (
+            await pub.simulateContract({
+              address: m.address,
+              abi: outfitMarketAbi,
+              functionName: "create",
+              args,
+              account,
+            })
+          ).request,
+        ),
   );
-  const ev = (m.v === 2 ? parseEventLogs({ abi: outfitMarketV2Abi, logs, eventName: "Created" }) : parseEventLogs({ abi: outfitMarketAbi, logs, eventName: "Created" }))[0];
+  const ev = (
+    m.v === 2
+      ? parseEventLogs({ abi: outfitMarketV2Abi, logs, eventName: "Created" })
+      : parseEventLogs({ abi: outfitMarketAbi, logs, eventName: "Created" })
+  )[0];
   if (!ev) throw new Error("no Created event");
   return { id: ev.args.id, tx };
 }
 
 /** Buy copies from the creator. On market 2 the BEM is approved first when needed. */
-export async function buyDesign(pub: PublicClient, wallet: WalletClient, m: Market, id: bigint, quantity: number, price: bigint): Promise<Hex> {
+export async function buyDesign(
+  pub: PublicClient,
+  wallet: WalletClient,
+  m: Market,
+  id: bigint,
+  quantity: number,
+  price: bigint,
+): Promise<Hex> {
   const total = price * BigInt(quantity);
   const args = [id, quantity, price] as const;
   if (m.v === 2) {
     await approveBem(pub, wallet, m, total);
-    return (await confirmed(pub, "mint", async () => wallet.writeContract((await pub.simulateContract({ address: m.address, abi: outfitMarketV2Abi, functionName: "mint", args, account: acct(wallet) })).request))).tx;
+    return (
+      await confirmed(pub, "mint", async () =>
+        wallet.writeContract(
+          (
+            await pub.simulateContract({
+              address: m.address,
+              abi: outfitMarketV2Abi,
+              functionName: "mint",
+              args,
+              account: acct(wallet),
+            })
+          ).request,
+        ),
+      )
+    ).tx;
   }
-  return (await confirmed(pub, "mint", async () => wallet.writeContract((await pub.simulateContract({ address: m.address, abi: outfitMarketAbi, functionName: "mint", args, value: total, account: acct(wallet) })).request))).tx;
+  return (
+    await confirmed(pub, "mint", async () =>
+      wallet.writeContract(
+        (
+          await pub.simulateContract({
+            address: m.address,
+            abi: outfitMarketAbi,
+            functionName: "mint",
+            args,
+            value: total,
+            account: acct(wallet),
+          })
+        ).request,
+      ),
+    )
+  ).tx;
 }
 
 /** List copies for resale. Market 2 listings last `days` (1 to 180) and may name one buyer. */
-export async function listCopies(pub: PublicClient, wallet: WalletClient, m: Market, id: bigint, quantity: number, priceEach: bigint, opts: { days?: number; buyer?: Address } = {}): Promise<{ listingId: bigint; tx: Hex }> {
+export async function listCopies(
+  pub: PublicClient,
+  wallet: WalletClient,
+  m: Market,
+  id: bigint,
+  quantity: number,
+  priceEach: bigint,
+  opts: { days?: number; buyer?: Address } = {},
+): Promise<{ listingId: bigint; tx: Hex }> {
   const account = acct(wallet);
   const expiresAt = BigInt(Math.floor(Date.now() / 1000) + Math.min(180, Math.max(1, opts.days ?? 30)) * DAY);
   const { tx, logs } = await confirmed(pub, "list", async () =>
     m.v === 2
-      ? wallet.writeContract((await pub.simulateContract({ address: m.address, abi: outfitMarketV2Abi, functionName: "list", args: [id, quantity, priceEach, expiresAt, opts.buyer ?? ZERO], account })).request)
-      : wallet.writeContract((await pub.simulateContract({ address: m.address, abi: outfitMarketAbi, functionName: "list", args: [id, quantity, priceEach], account })).request),
+      ? wallet.writeContract(
+          (
+            await pub.simulateContract({
+              address: m.address,
+              abi: outfitMarketV2Abi,
+              functionName: "list",
+              args: [id, quantity, priceEach, expiresAt, opts.buyer ?? ZERO],
+              account,
+            })
+          ).request,
+        )
+      : wallet.writeContract(
+          (
+            await pub.simulateContract({
+              address: m.address,
+              abi: outfitMarketAbi,
+              functionName: "list",
+              args: [id, quantity, priceEach],
+              account,
+            })
+          ).request,
+        ),
   );
-  const ev = (m.v === 2 ? parseEventLogs({ abi: outfitMarketV2Abi, logs, eventName: "Listed" }) : parseEventLogs({ abi: outfitMarketAbi, logs, eventName: "Listed" }))[0];
+  const ev = (
+    m.v === 2
+      ? parseEventLogs({ abi: outfitMarketV2Abi, logs, eventName: "Listed" })
+      : parseEventLogs({ abi: outfitMarketAbi, logs, eventName: "Listed" })
+  )[0];
   if (!ev) throw new Error("no Listed event");
   return { listingId: ev.args.listingId, tx };
 }
 
-export async function buyListing(pub: PublicClient, wallet: WalletClient, m: Market, listingId: bigint, quantity: number, priceEach: bigint): Promise<Hex> {
+export async function buyListing(
+  pub: PublicClient,
+  wallet: WalletClient,
+  m: Market,
+  listingId: bigint,
+  quantity: number,
+  priceEach: bigint,
+): Promise<Hex> {
   const total = priceEach * BigInt(quantity);
   const args = [listingId, quantity, priceEach] as const;
   if (m.v === 2) {
     await approveBem(pub, wallet, m, total);
-    return (await confirmed(pub, "buy", async () => wallet.writeContract((await pub.simulateContract({ address: m.address, abi: outfitMarketV2Abi, functionName: "buy", args, account: acct(wallet) })).request))).tx;
+    return (
+      await confirmed(pub, "buy", async () =>
+        wallet.writeContract(
+          (
+            await pub.simulateContract({
+              address: m.address,
+              abi: outfitMarketV2Abi,
+              functionName: "buy",
+              args,
+              account: acct(wallet),
+            })
+          ).request,
+        ),
+      )
+    ).tx;
   }
-  return (await confirmed(pub, "buy", async () => wallet.writeContract((await pub.simulateContract({ address: m.address, abi: outfitMarketAbi, functionName: "buy", args, value: total, account: acct(wallet) })).request))).tx;
+  return (
+    await confirmed(pub, "buy", async () =>
+      wallet.writeContract(
+        (
+          await pub.simulateContract({
+            address: m.address,
+            abi: outfitMarketAbi,
+            functionName: "buy",
+            args,
+            value: total,
+            account: acct(wallet),
+          })
+        ).request,
+      ),
+    )
+  ).tx;
 }
 
-export async function cancelListing(pub: PublicClient, wallet: WalletClient, m: Market, listingId: bigint): Promise<Hex> {
+export async function cancelListing(
+  pub: PublicClient,
+  wallet: WalletClient,
+  m: Market,
+  listingId: bigint,
+): Promise<Hex> {
   const account = acct(wallet);
   return (
     await confirmed(pub, "cancel", async () =>
       m.v === 2
-        ? wallet.writeContract((await pub.simulateContract({ address: m.address, abi: outfitMarketV2Abi, functionName: "cancel", args: [listingId], account })).request)
-        : wallet.writeContract((await pub.simulateContract({ address: m.address, abi: outfitMarketAbi, functionName: "cancel", args: [listingId], account })).request),
+        ? wallet.writeContract(
+            (
+              await pub.simulateContract({
+                address: m.address,
+                abi: outfitMarketV2Abi,
+                functionName: "cancel",
+                args: [listingId],
+                account,
+              })
+            ).request,
+          )
+        : wallet.writeContract(
+            (
+              await pub.simulateContract({
+                address: m.address,
+                abi: outfitMarketAbi,
+                functionName: "cancel",
+                args: [listingId],
+                account,
+              })
+            ).request,
+          ),
     )
   ).tx;
 }
@@ -192,8 +371,26 @@ export async function withdrawProceeds(pub: PublicClient, wallet: WalletClient, 
   return (
     await confirmed(pub, "withdraw", async () =>
       m.v === 2
-        ? wallet.writeContract((await pub.simulateContract({ address: m.address, abi: outfitMarketV2Abi, functionName: "withdraw", account })).request)
-        : wallet.writeContract((await pub.simulateContract({ address: m.address, abi: outfitMarketAbi, functionName: "withdraw", account })).request),
+        ? wallet.writeContract(
+            (
+              await pub.simulateContract({
+                address: m.address,
+                abi: outfitMarketV2Abi,
+                functionName: "withdraw",
+                account,
+              })
+            ).request,
+          )
+        : wallet.writeContract(
+            (
+              await pub.simulateContract({
+                address: m.address,
+                abi: outfitMarketAbi,
+                functionName: "withdraw",
+                account,
+              })
+            ).request,
+          ),
     )
   ).tx;
 }
@@ -210,7 +407,19 @@ export async function readDesign(pub: PublicClient, m: Market, id: bigint): Prom
     name: string;
     pixels: Hex;
   };
-  return { market: m.v, id, creator: r.creator, price: r.price, maxSupply: Number(r.maxSupply), minted: Number(r.minted), royaltyBps: Number(r.royaltyBps), closed: r.closed, item: r.item === true, name: r.name, pixels: r.pixels };
+  return {
+    market: m.v,
+    id,
+    creator: r.creator,
+    price: r.price,
+    maxSupply: Number(r.maxSupply),
+    minted: Number(r.minted),
+    royaltyBps: Number(r.royaltyBps),
+    closed: r.closed,
+    item: r.item === true,
+    name: r.name,
+    pixels: r.pixels,
+  };
 }
 
 /** Every design of one market, newest first (up to `limit`). */
@@ -231,15 +440,30 @@ export async function readListings(pub: PublicClient, m: Market, limit = 300): P
   const now = Math.floor(Date.now() / 1000);
   const out: OutfitListing[] = [];
   for (let i = next - 1n; i >= 1n && next - i <= BigInt(limit); i--) {
-    const row = (await pub.readContract({ address: m.address, abi, functionName: "listings", args: [i] })) as readonly unknown[];
+    const row = (await pub.readContract({
+      address: m.address,
+      abi,
+      functionName: "listings",
+      args: [i],
+    })) as readonly unknown[];
     const [seller, design, quantity, priceEach, nonce] = row as readonly [Address, bigint, number, bigint, number];
     if (seller === ZERO) continue;
     const expiresAt = m.v === 2 ? Number(row[5] as bigint) : null;
     const buyer = m.v === 2 && (row[6] as Address) !== ZERO ? (row[6] as Address) : null;
     if (expiresAt !== null && expiresAt <= now) continue;
     const [live, held] = await Promise.all([
-      pub.readContract({ address: m.address, abi, functionName: "listNonce", args: [seller, design] }) as Promise<number>,
-      pub.readContract({ address: m.address, abi, functionName: "balanceOf", args: [seller, design] }) as Promise<bigint>,
+      pub.readContract({
+        address: m.address,
+        abi,
+        functionName: "listNonce",
+        args: [seller, design],
+      }) as Promise<number>,
+      pub.readContract({
+        address: m.address,
+        abi,
+        functionName: "balanceOf",
+        args: [seller, design],
+      }) as Promise<bigint>,
     ]);
     if (Number(live) !== Number(nonce) || held < BigInt(quantity)) continue;
     out.push({ market: m.v, id: i, seller, design, quantity: Number(quantity), priceEach, expiresAt, buyer });
@@ -247,9 +471,19 @@ export async function readListings(pub: PublicClient, m: Market, limit = 300): P
   return out;
 }
 
-export async function copiesHeld(pub: PublicClient, m: Market, who: Address, ids: readonly bigint[]): Promise<bigint[]> {
+export async function copiesHeld(
+  pub: PublicClient,
+  m: Market,
+  who: Address,
+  ids: readonly bigint[],
+): Promise<bigint[]> {
   if (!ids.length) return [];
-  return (await pub.readContract({ address: m.address, abi: abiOf(m), functionName: "balanceOfBatch", args: [ids.map(() => who), [...ids]] })) as bigint[];
+  return (await pub.readContract({
+    address: m.address,
+    abi: abiOf(m),
+    functionName: "balanceOfBatch",
+    args: [ids.map(() => who), [...ids]],
+  })) as bigint[];
 }
 
 export async function proceedsOwed(pub: PublicClient, m: Market, who: Address): Promise<bigint> {
@@ -263,7 +497,11 @@ export async function marketFeeBps(pub: PublicClient, m: Market): Promise<number
 /** BEM burned by a version-2 market so far, read from the contract's own total. */
 export async function bemBurned(pub: PublicClient, m: Market): Promise<bigint> {
   if (m.v !== 2) return 0n;
-  return (await pub.readContract({ address: m.address, abi: outfitMarketV2Abi, functionName: "totalBurned" })) as bigint;
+  return (await pub.readContract({
+    address: m.address,
+    abi: outfitMarketV2Abi,
+    functionName: "totalBurned",
+  })) as bigint;
 }
 
 /** Format BEM base units (8 decimals) without trailing zeros. */

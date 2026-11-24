@@ -10,7 +10,9 @@ import { createPublicClient, http, parseAbiItem, type Address, type PublicClient
 import { hasStore, readStore, saveJson } from "./durable";
 
 const EVENTS = [
-  parseAbiItem("event Hatched(uint256 indexed petId, address indexed to, uint8 line, address processor, uint64 brainId, uint256 state)"),
+  parseAbiItem(
+    "event Hatched(uint256 indexed petId, address indexed to, uint8 line, address processor, uint64 brainId, uint256 state)",
+  ),
   parseAbiItem("event Bred(uint256 indexed petId, uint128 indexed parentA, uint128 indexed parentB)"),
   parseAbiItem("event BrainChanged(uint256 indexed petId, address processor, uint64 brainId, uint8 brainBits)"),
   parseAbiItem("event Checkpoint(uint256 indexed petId, uint32 indexed day, uint256 state, bytes32 logHash)"),
@@ -39,10 +41,26 @@ interface Stored {
 /** Blocks per log query: X Layer's public nodes refuse ranges over 100 ("block range greater than 100 max"). */
 export const WINDOW = 100;
 
-export function createIndexer(opts: { rpc: string; registry: Address; fromBlock: number; store?: string; client?: PublicClient; paceMs?: number }) {
-  const pub = opts.client ?? (createPublicClient({ transport: http(opts.rpc, { timeout: 20_000, retryCount: 0 }) }) as PublicClient);
+export function createIndexer(opts: {
+  rpc: string;
+  registry: Address;
+  fromBlock: number;
+  store?: string;
+  client?: PublicClient;
+  paceMs?: number;
+}) {
+  const pub =
+    opts.client ??
+    (createPublicClient({ transport: http(opts.rpc, { timeout: 20_000, retryCount: 0 }) }) as PublicClient);
   // the two official X Layer nodes take turns, halving the load on each
-  const pubs: PublicClient[] = opts.client ? [opts.client] : [opts.rpc, ...["https://xlayerrpc.okx.com", "https://rpc.xlayer.tech"].filter((u) => u !== opts.rpc && opts.rpc.includes("xlayer"))].map((u) => createPublicClient({ transport: http(u, { timeout: 20_000, retryCount: 0 }) }) as PublicClient);
+  const pubs: PublicClient[] = opts.client
+    ? [opts.client]
+    : [
+        opts.rpc,
+        ...["https://xlayerrpc.okx.com", "https://rpc.xlayer.tech"].filter(
+          (u) => u !== opts.rpc && opts.rpc.includes("xlayer"),
+        ),
+      ].map((u) => createPublicClient({ transport: http(u, { timeout: 20_000, retryCount: 0 }) }) as PublicClient);
   let data: Stored = { v: STORE_VERSION, next: opts.fromBlock, pets: {}, times: {} };
   if (opts.store && hasStore(opts.store)) {
     try {
@@ -66,7 +84,12 @@ export function createIndexer(opts: { rpc: string; registry: Address; fromBlock:
     for (let attempt = 0; ; attempt++) {
       try {
         const client = pubs[(from / WINDOW) % pubs.length | 0]!;
-        const logs = await client.getLogs({ address: opts.registry, events: EVENTS, fromBlock: BigInt(from), toBlock: BigInt(to) });
+        const logs = await client.getLogs({
+          address: opts.registry,
+          events: EVENTS,
+          fromBlock: BigInt(from),
+          toBlock: BigInt(to),
+        });
         await sleep(opts.paceMs ?? 400);
         return logs;
       } catch (e) {
@@ -77,7 +100,8 @@ export function createIndexer(opts: { rpc: string; registry: Address; fromBlock:
   }
 
   /** Who sent a transaction (the hatch's sender says who kept the pet). */
-  const senderOf = async (tx: string): Promise<string> => String((await pub.getTransaction({ hash: tx as `0x${string}` })).from).toLowerCase();
+  const senderOf = async (tx: string): Promise<string> =>
+    String((await pub.getTransaction({ hash: tx as `0x${string}` })).from).toLowerCase();
 
   /** Read forward to the chain's head; returns how many events were added. Saves as it goes. */
   async function catchUp(maxWindows = 400): Promise<number> {
@@ -103,13 +127,26 @@ export function createIndexer(opts: { rpc: string; registry: Address; fromBlock:
           const tx = l.transactionHash!;
           const a = l.args as Record<string, bigint | number | string>;
           const id = String(a.petId);
-          if (l.eventName === "Hatched") pet(id).hatched = { block, tx, line: Number(a.line), brainId: String(a.brainId), state: String(a.state), to: String(a.to), by: await senderOf(tx) };
+          if (l.eventName === "Hatched")
+            pet(id).hatched = {
+              block,
+              tx,
+              line: Number(a.line),
+              brainId: String(a.brainId),
+              state: String(a.state),
+              to: String(a.to),
+              by: await senderOf(tx),
+            };
           else if (l.eventName === "Bred") {
             pet(id).parents = [String(a.parentA), String(a.parentB)];
-            for (const p of [String(a.parentA), String(a.parentB)]) if (!pet(p).children.includes(id)) pet(p).children.push(id);
-          } else if (l.eventName === "BrainChanged") pet(id).brains.push({ brainId: String(a.brainId), bits: Number(a.brainBits), block, tx });
-          else if (l.eventName === "Checkpoint") pet(id).saves.push({ day: Number(a.day), state: String(a.state), logHash: String(a.logHash), block, tx });
-          if (!data.times[block]) data.times[block] = Number((await pub.getBlock({ blockNumber: BigInt(block) })).timestamp);
+            for (const p of [String(a.parentA), String(a.parentB)])
+              if (!pet(p).children.includes(id)) pet(p).children.push(id);
+          } else if (l.eventName === "BrainChanged")
+            pet(id).brains.push({ brainId: String(a.brainId), bits: Number(a.brainBits), block, tx });
+          else if (l.eventName === "Checkpoint")
+            pet(id).saves.push({ day: Number(a.day), state: String(a.state), logHash: String(a.logHash), block, tx });
+          if (!data.times[block])
+            data.times[block] = Number((await pub.getBlock({ blockNumber: BigInt(block) })).timestamp);
           added++;
         }
         data.next = to + 1;
@@ -126,16 +163,40 @@ export function createIndexer(opts: { rpc: string; registry: Address; fromBlock:
     catchUp,
     head: () => data.next - 1,
     /** Every pet hatched or bred, for the tree of life. */
-    pets(): Array<{ id: string; line: number; owner: string | null; parents: [string, string] | null; children: string[]; block: number; tx: string; at: number }> {
+    pets(): Array<{
+      id: string;
+      line: number;
+      owner: string | null;
+      parents: [string, string] | null;
+      children: string[];
+      block: number;
+      tx: string;
+      at: number;
+    }> {
       return Object.entries(data.pets)
         .filter(([, h]) => h.hatched)
-        .map(([id, h]) => ({ id, line: h.hatched!.line, owner: h.hatched!.to ?? null, parents: h.parents ?? null, children: [...h.children], block: h.hatched!.block, tx: h.hatched!.tx, at: data.times[h.hatched!.block] ?? 0 }));
+        .map(([id, h]) => ({
+          id,
+          line: h.hatched!.line,
+          owner: h.hatched!.to ?? null,
+          parents: h.parents ?? null,
+          children: [...h.children],
+          block: h.hatched!.block,
+          tx: h.hatched!.tx,
+          at: data.times[h.hatched!.block] ?? 0,
+        }));
     },
     /**
      * Counts for the live-numbers page, all from PetRegistry's own events: pets hatched (from starters),
      * children born, days saved, distinct pets saved since `sinceSec`, and distinct wallets pets were hatched for.
      */
-    counts(sinceSec: number): { hatched: number; children: number; saves: number; savedSince: number; hatchers: number } {
+    counts(sinceSec: number): {
+      hatched: number;
+      children: number;
+      saves: number;
+      savedSince: number;
+      hatchers: number;
+    } {
       let hatched = 0;
       let children = 0;
       let saves = 0;
@@ -153,7 +214,13 @@ export function createIndexer(opts: { rpc: string; registry: Address; fromBlock:
       return { hatched, children, saves, savedSince, hatchers: hatchers.size };
     },
     /** What happened on chain since `sinceSec` (H10): pets hatched and born, days saved, pets saved, wallets that hatched. */
-    activity(sinceSec: number): { hatched: number; children: number; saves: number; petsSaved: number; hatchers: number } {
+    activity(sinceSec: number): {
+      hatched: number;
+      children: number;
+      saves: number;
+      petsSaved: number;
+      hatchers: number;
+    } {
       let hatched = 0;
       let children = 0;
       let saves = 0;
@@ -220,7 +287,9 @@ export function createIndexer(opts: { rpc: string; registry: Address; fromBlock:
     history(id: string): (PetHistory & { at: Record<string, number> }) | null {
       const h = data.pets[id];
       if (!h) return null;
-      const blocks = [h.hatched?.block, ...h.saves.map((s) => s.block), ...h.brains.map((b) => b.block)].filter((b): b is number => b !== undefined);
+      const blocks = [h.hatched?.block, ...h.saves.map((s) => s.block), ...h.brains.map((b) => b.block)].filter(
+        (b): b is number => b !== undefined,
+      );
       return { ...h, at: Object.fromEntries(blocks.map((b) => [b, data.times[b] ?? 0])) };
     },
   };

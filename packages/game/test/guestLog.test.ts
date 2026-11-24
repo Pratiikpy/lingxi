@@ -12,7 +12,13 @@ const mindFor = (): Mind => ({ program: STARTERS.gentle });
 const brain = mindBrain({ line: "gentle", lessons: [] });
 /** a pet with a log of `words` input words, one a beat from beat 1,000 (Rewind replays any words the same way) */
 const withLog = (words: number) => {
-  const p = createPet({ name: "Mochi", line: "gentle", now: T0, tzOffsetMin: 0, brain: { fast: brain.fast, nState: brain.nState, program: STARTERS.gentle } });
+  const p = createPet({
+    name: "Mochi",
+    line: "gentle",
+    now: T0,
+    tzOffsetMin: 0,
+    brain: { fast: brain.fast, nState: brain.nState, program: STARTERS.gentle },
+  });
   const pendingLog = Array.from({ length: words }, (_, i) => (i * 40_503 + 17) & 0xffff);
   return { ...p, pendingLog, logMarks: [[0, 1_000]] as Array<[number, number]> };
 };
@@ -31,7 +37,8 @@ describe("a guest pet's input log is bounded (A148)", () => {
     expect(bounded.pendingLog).toEqual(pet.pendingLog.slice(-GUEST_LOG_KEEP));
     // the latest day and the day ten days back replay to the same moments, memory and choices
     for (const back of [0, 10 * 1440]) {
-      const strip = (fs: ReturnType<typeof rewind>) => fs.map((f) => ({ want: f.want, mood: f.mood, rule: f.rule, memory: f.memory, at: f.at }));
+      const strip = (fs: ReturnType<typeof rewind>) =>
+        fs.map((f) => ({ want: f.want, mood: f.mood, rule: f.rule, memory: f.memory, at: f.at }));
       expect(strip(rewind(bounded, mindFor, 1440, back))).toEqual(strip(rewind(pet, mindFor, 1440, back)));
     }
   });

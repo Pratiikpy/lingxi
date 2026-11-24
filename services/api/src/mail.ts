@@ -39,10 +39,14 @@ export function loadLetters(file: string): Letter[] {
     if (r.success && !seen.has(r.data.id)) {
       seen.add(r.data.id);
       out.push(r.data);
-    } else process.stderr.write(`mail: a letter was left out (${r.success ? "duplicate id" : r.error.issues[0]?.message})\n`);
+    } else
+      process.stderr.write(
+        `mail: a letter was left out (${r.success ? "duplicate id" : r.error.issues[0]?.message})\n`,
+      );
   }
   return out.sort((a, b) => b.at - a.at);
 }
 
 /** Letters current at a moment: sent already and not past their end. */
-export const currentLetters = (letters: readonly Letter[], now: number): Letter[] => letters.filter((l) => l.at <= now && (!l.until || l.until > now));
+export const currentLetters = (letters: readonly Letter[], now: number): Letter[] =>
+  letters.filter((l) => l.at <= now && (!l.until || l.until > now));

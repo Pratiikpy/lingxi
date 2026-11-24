@@ -18,7 +18,8 @@ const root = join(import.meta.dirname, "..");
 const web = join(root, "apps", "web");
 const out = join(web, "public", "cards");
 mkdirSync(out, { recursive: true });
-const font = (pkg: string, file: string) => pathToFileURL(join(web, "node_modules", "@fontsource-variable", pkg, "files", file)).href;
+const font = (pkg: string, file: string) =>
+  pathToFileURL(join(web, "node_modules", "@fontsource-variable", pkg, "files", file)).href;
 const art = pathToFileURL(join(web, "public", "art", "rooms", "49_clearing", "backgrounds", "playtest-a.png")).href;
 
 /** The pet as a PNG file, drawn by the game's own sprite code. */
@@ -59,14 +60,17 @@ try {
     writeFileSync(file, html(c));
     await page.goto(pathToFileURL(file).href);
     await page.evaluate(() => document.fonts.ready);
-    if (!(await page.evaluate(() => document.fonts.check('700 56px "Pixelify Sans Variable"')))) throw new Error(`the card for ${c.page} was drawn without its font`);
+    if (!(await page.evaluate(() => document.fonts.check('700 56px "Pixelify Sans Variable"'))))
+      throw new Error(`the card for ${c.page} was drawn without its font`);
     await page.screenshot({ path: join(out, `${c.page.replace(/\.html$/, "")}.png`) });
     // the page's card tags, between two marks in its head, written fresh each time
     const pageFile = c.page === "circuits.html" ? join(web, "public", "circuits.html") : join(web, c.page);
     const text = readFileSync(pageFile, "utf8");
     const tags = cardTags(c);
     const marked = /\n?\s*<!-- share card -->[\s\S]*?<!-- \/share card -->/;
-    const next = marked.test(text) ? text.replace(marked, `\n    ${tags}`) : text.replace("</head>", `  ${tags}\n  </head>`);
+    const next = marked.test(text)
+      ? text.replace(marked, `\n    ${tags}`)
+      : text.replace("</head>", `  ${tags}\n  </head>`);
     writeFileSync(pageFile, next);
     process.stdout.write(`${c.page}: card and tags written\n`);
   }

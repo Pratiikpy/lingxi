@@ -10,7 +10,12 @@ for (const [name, p] of Object.entries(STARTERS)) {
   const st = new Uint8Array(stateBits(p));
   let w = 12345;
   const t0 = performance.now();
-  for (let i = 0; i < 14_400; i++) { w = (w * 1103515245 + 12345) & 0xffff; f.step(st, w); }
+  for (let i = 0; i < 14_400; i++) {
+    w = (w * 1103515245 + 12345) & 0xffff;
+    f.step(st, w);
+  }
   const ms = performance.now() - t0;
-  console.log(`${name}: ${gateCount(net)} gates (${net.latches.length} latch), depth ${netDepth(net)}, cost ${cost(net)}, ${netlistBytes(net).length} bytes; 14,400 beats in ${ms.toFixed(2)} ms`);
+  console.log(
+    `${name}: ${gateCount(net)} gates (${net.latches.length} latch), depth ${netDepth(net)}, cost ${cost(net)}, ${netlistBytes(net).length} bytes; 14,400 beats in ${ms.toFixed(2)} ms`,
+  );
 }

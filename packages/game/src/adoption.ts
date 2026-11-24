@@ -67,7 +67,11 @@ export function checkPapers(papers: Pet, chain: ChainPetView): PapersProblem | n
   if (papers.outside) return "outsideInstinct";
   if (LINES[chain.line] !== papers.line) return "line";
   const [pa, pb] = f.parents;
-  if ((pa.petId !== undefined && BigInt(pa.petId) !== chain.parentA) || (pb.petId !== undefined && BigInt(pb.petId) !== chain.parentB)) return "parents";
+  if (
+    (pa.petId !== undefined && BigInt(pa.petId) !== chain.parentA) ||
+    (pb.petId !== undefined && BigInt(pb.petId) !== chain.parentB)
+  )
+    return "parents";
 
   // the brain: a child circuit over two halves, each recompiled from the papers
   if (chain.parts.length !== 3) return "brain";
@@ -77,13 +81,20 @@ export function checkPapers(papers: Pet, chain: ChainPetView): PapersProblem | n
   } catch {
     return "brain";
   }
-  const [glue, refA, refB] = chain.parts as [ChainPetView["parts"][0], ChainPetView["parts"][0], ChainPetView["parts"][0]];
+  const [glue, refA, refB] = chain.parts as [
+    ChainPetView["parts"][0],
+    ChainPetView["parts"][0],
+    ChainPetView["parts"][0],
+  ];
   // compared without a 0x prefix, which some readers keep and some drop
   const norm = (h: string) => h.toLowerCase().replace(/^0x/, "");
   const hex = (b: Uint8Array) => norm(bytesToHex(b));
   if (hex(netlistBytes(compileProgram(halves[0]))) !== norm(refA.hex)) return "brain";
   if (hex(netlistBytes(compileProgram(halves[1]))) !== norm(refB.hex)) return "brain";
-  const composed = composeChild({ cpu: refA.processor as `0x${string}`, id: BigInt(refA.id) }, { cpu: refB.processor as `0x${string}`, id: BigInt(refB.id) });
+  const composed = composeChild(
+    { cpu: refA.processor as `0x${string}`, id: BigInt(refA.id) },
+    { cpu: refB.processor as `0x${string}`, id: BigInt(refB.id) },
+  );
   if (hex(composed.bytes) !== norm(glue.hex)) return "brain";
 
   // the log: the chain's saved log is the start of the papers' log
@@ -107,12 +118,26 @@ export function checkPapers(papers: Pet, chain: ChainPetView): PapersProblem | n
   const level = growthOf(papers).level;
   const fresh = saved === log.length && chain.day > 0;
   const same = <T>(a: T, b: T) => JSON.stringify(a) === JSON.stringify(b);
-  const counts = { feed: papers.counts.feed, play: papers.counts.play, clean: papers.counts.clean, pet: papers.counts.pet, lessons: papers.counts.lessons };
+  const counts = {
+    feed: papers.counts.feed,
+    play: papers.counts.play,
+    clean: papers.counts.clean,
+    pet: papers.counts.pet,
+    lessons: papers.counts.lessons,
+  };
   if (fresh) {
-    if (papers.xp !== onChain.xp || level !== onChain.level || !same(papers.traits, onChain.traits) || !same(counts, onChain.counts) || !same(papers.diet, onChain.diet)) return "record";
+    if (
+      papers.xp !== onChain.xp ||
+      level !== onChain.level ||
+      !same(papers.traits, onChain.traits) ||
+      !same(counts, onChain.counts) ||
+      !same(papers.diet, onChain.diet)
+    )
+      return "record";
   } else {
     if (papers.xp < onChain.xp || level < onChain.level || level > onChain.level + 1) return "record";
-    for (const k of Object.keys(onChain.counts) as Array<keyof typeof counts>) if (counts[k] < onChain.counts[k]) return "record";
+    for (const k of Object.keys(onChain.counts) as Array<keyof typeof counts>)
+      if (counts[k] < onChain.counts[k]) return "record";
   }
   return null;
 }

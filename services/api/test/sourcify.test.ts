@@ -19,7 +19,8 @@ function sourcify(answers: Record<string, () => Promise<Response> | Response>) {
   }) as typeof fetch;
   return { fetcher, asked };
 }
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 
 describe("the Sourcify relay (A71)", () => {
   it("words each kind of answer as the page does", async () => {
@@ -45,7 +46,12 @@ describe("the Sourcify relay (A71)", () => {
   it("keeps an answer ten minutes and a failure one, and asks once per address at a time", async () => {
     let now = 1_000_000;
     let up = false;
-    const s = sourcify({ [A]: () => (up ? json({ match: "exact_match", creationMatch: "exact_match", runtimeMatch: "exact_match" }) : new Response("", { status: 503 })) });
+    const s = sourcify({
+      [A]: () =>
+        up
+          ? json({ match: "exact_match", creationMatch: "exact_match", runtimeMatch: "exact_match" })
+          : new Response("", { status: 503 }),
+    });
     const relay = createSourcifyRelay({ allowed: [A], fetch: s.fetcher, now: () => now });
     const [x, y] = await Promise.all([relay.state(A), relay.state(A)]);
     expect([x, y]).toEqual(["unreachable", "unreachable"]);
@@ -62,9 +68,15 @@ describe("the Sourcify relay (A71)", () => {
   });
 
   it("answers over HTTP for the deployment's contracts only", async () => {
-    const s = sourcify({ [A]: () => json({ match: "exact_match", creationMatch: "exact_match", runtimeMatch: "exact_match" }) });
+    const s = sourcify({
+      [A]: () => json({ match: "exact_match", creationMatch: "exact_match", runtimeMatch: "exact_match" }),
+    });
     const app = withSourcify(new Hono(), createSourcifyRelay({ allowed: [A], fetch: s.fetcher }));
-    expect(await (await app.request(`/api/sourcify/${A.toUpperCase().replace("0X", "0x")}`)).json()).toEqual({ ok: true, address: A, state: "exact" });
+    expect(await (await app.request(`/api/sourcify/${A.toUpperCase().replace("0X", "0x")}`)).json()).toEqual({
+      ok: true,
+      address: A,
+      state: "exact",
+    });
     const stranger = await app.request(`/api/sourcify/${STRANGER}`);
     expect(stranger.status, "never an open proxy").toBe(404);
     expect((await app.request("/api/sourcify/0x12")).status).toBe(400);

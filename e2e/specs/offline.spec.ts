@@ -59,7 +59,9 @@ async function couldNotLoad(page: Page, loads: () => number): Promise<string> {
   return page.locator(".save-card").innerText();
 }
 
-test("a first visit whose game never arrives says so, then plays once connected (en, light, phone)", async ({ player }) => {
+test("a first visit whose game never arrives says so, then plays once connected (en, light, phone)", async ({
+  player,
+}) => {
   const p = await player({ lang: "en", scheme: "light", size: "phone" });
   const { page } = p;
   const loads = loadsOf(page);

@@ -35,7 +35,11 @@ describe("team spars", () => {
   });
 
   it("only the front unit takes damage, and the next steps up when it faints", () => {
-    const r = teamSpar([comp("pebble"), comp("pebble"), comp("pebble")], [comp("bolt"), comp("nova"), comp("ember")], 11);
+    const r = teamSpar(
+      [comp("pebble"), comp("pebble"), comp("pebble")],
+      [comp("bolt"), comp("nova"), comp("ember")],
+      11,
+    );
     for (let i = 1; i < r.rounds.length; i++) {
       const prev = r.rounds[i - 1]!;
       const cur = r.rounds[i]!;
@@ -51,24 +55,35 @@ describe("team spars", () => {
 
   it("fainted units make no moves", () => {
     const r = teamSpar([comp("sprig")], [comp("bolt"), comp("nova"), comp("ember")], 3);
-    for (const round of r.rounds) for (const s of [0, 1] as const) round.moves[s].forEach((m, u) => {
-      const before = round.n === 0 ? 1 : r.rounds[round.n - 1]!.hp[s][u]!;
-      if (before === 0) expect(m).toBeNull();
-    });
+    for (const round of r.rounds)
+      for (const s of [0, 1] as const)
+        round.moves[s].forEach((m, u) => {
+          const before = round.n === 0 ? 1 : r.rounds[round.n - 1]!.hp[s][u]!;
+          if (before === 0) expect(m).toBeNull();
+        });
   });
 
   it("a bigger team beats a lone weak unit almost always", () => {
     let wins = 0;
-    for (let s = 0; s < 40; s++) if (teamSpar([comp("bolt"), comp("shell"), comp("sprig")], [comp("sprig")], s * 97).winner === 0) wins++;
+    for (let s = 0; s < 40; s++)
+      if (teamSpar([comp("bolt"), comp("shell"), comp("sprig")], [comp("sprig")], s * 97).winner === 0) wins++;
     expect(wins).toBeGreaterThanOrEqual(36);
   });
 
   it("a medic behind the front keeps it standing longer than an idle helper", () => {
-    let healed = 0, plain = 0;
+    let healed = 0,
+      plain = 0;
     for (let s = 0; s < 40; s++) {
       const foe = [comp("bolt"), comp("nova")];
       healed += teamSpar([comp("pebble"), comp("sprig")], foe, s).rounds.length;
-      plain += teamSpar([comp("pebble"), unit("idle", { version: "LX-PET/1", memory: [], rules: [], otherwise: { want: 3, mood: 0 } } as never, 55)], foe, s).rounds.length;
+      plain += teamSpar(
+        [
+          comp("pebble"),
+          unit("idle", { version: "LX-PET/1", memory: [], rules: [], otherwise: { want: 3, mood: 0 } } as never, 55),
+        ],
+        foe,
+        s,
+      ).rounds.length;
     }
     expect(healed).toBeGreaterThan(plain);
   });
@@ -87,12 +102,20 @@ describe("companions", () => {
   });
 
   it("each companion plays its role: moves it uses most match what it says it does", () => {
-    const want: Record<string, string[]> = { sprig: ["gift", "snack", "rest"], bolt: ["pounce", "rest"], wisp: ["charm", "dodge", "pounce"], pebble: ["tap", "snack"] };
+    const want: Record<string, string[]> = {
+      sprig: ["gift", "snack", "rest"],
+      bolt: ["pounce", "rest"],
+      wisp: ["charm", "dodge", "pounce"],
+      pebble: ["tap", "snack"],
+    };
     for (const [id, moves] of Object.entries(want)) {
       const tally: Record<string, number> = {};
       for (let s = 0; s < 10; s++) {
         const r = teamSpar([comp(id), comp("pebble")], [comp("bolt"), comp("shell")], s);
-        for (const round of r.rounds) { const m = round.moves[0][0]; if (m) tally[m] = (tally[m] ?? 0) + 1; }
+        for (const round of r.rounds) {
+          const m = round.moves[0][0];
+          if (m) tally[m] = (tally[m] ?? 0) + 1;
+        }
       }
       const top = Object.entries(tally).sort((a, b) => b[1] - a[1])[0]![0];
       expect(moves).toContain(top);
@@ -147,7 +170,7 @@ const TEAM_V1_PINS: [number, string][] = [
   [26, "70cb8ab3"],
   [27, "17600dd6"],
   [28, "12cd1ab2"],
-  [29, "7ca33bec"]
+  [29, "7ca33bec"],
 ];
 
 describe("team battle versions (B3c)", () => {
@@ -157,7 +180,10 @@ describe("team battle versions (B3c)", () => {
   };
   it("LX-TEAM/1 replays every recorded battle to the same fingerprint", () => {
     for (const [s, digest] of TEAM_V1_PINS) {
-      const a = [unitOf("pet", STARTERS[(["gentle", "bold", "curious"] as const)[s % 3]!], 100, s % 2), ...COMPANIONS.slice(0, s % 4).map((c) => unitOf(c.id, c.program, c.hp, c.level))];
+      const a = [
+        unitOf("pet", STARTERS[(["gentle", "bold", "curious"] as const)[s % 3]!], 100, s % 2),
+        ...COMPANIONS.slice(0, s % 4).map((c) => unitOf(c.id, c.program, c.hp, c.level)),
+      ];
       const b = COMPANIONS.slice(s % 3, (s % 3) + 1 + (s % 4)).map((c) => unitOf(c.id, c.program, c.hp, c.level));
       const r = teamSpar(a, b, s * 101 + 7, TEAM_VERSION);
       expect(r.version).toBe(TEAM_VERSION);
@@ -166,17 +192,21 @@ describe("team battle versions (B3c)", () => {
   });
 
   it("new battles are LX-TEAM/2, where a guarding or dodging front can beat a pouncing one (the spar's triangle)", () => {
-    const only = (want: number) => ({ version: "LX-PET/1", memory: [], rules: [], otherwise: { want, mood: 1 } }) as never;
+    const only = (want: number) =>
+      ({ version: "LX-PET/1", memory: [], rules: [], otherwise: { want, mood: 1 } }) as never;
     const rate = (want: number) => {
       let w = 0;
-      for (let s = 0; s < 200; s++) if (teamSpar([unitOf("me", only(want), 100)], [unitOf("pouncer", only(2), 100)], s).winner === 0) w++;
+      for (let s = 0; s < 200; s++)
+        if (teamSpar([unitOf("me", only(want), 100)], [unitOf("pouncer", only(2), 100)], s).winner === 0) w++;
       return w / 200;
     };
     expect(teamSpar([unitOf("a", only(0), 100)], [unitOf("b", only(0), 100)], 1).version).toBe(TEAM_V2);
-    for (const [move, want] of [["guard", 5], ["dodge", 4]] as const) {
+    for (const [move, want] of [
+      ["guard", 5],
+      ["dodge", 4],
+    ] as const) {
       expect(rate(want), move).toBeGreaterThan(0.25);
       expect(rate(want), move).toBeLessThan(0.75);
     }
   });
 });
-

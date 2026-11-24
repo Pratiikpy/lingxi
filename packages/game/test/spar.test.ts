@@ -35,7 +35,9 @@ describe("spars", () => {
       const out = replay.brain.step(mem, round.words[0]);
       const want = ["tap", "snack", "pounce", "rest", "dodge", "guard", "charm", "gift"][out & 7];
       // moves only differ when an exhausted pet is forced to rest, or a pounce slips to a tap
-      expect(round.moves[0] === want || round.moves[0] === "rest" || (want === "pounce" && round.moves[0] === "tap")).toBe(true);
+      expect(
+        round.moves[0] === want || round.moves[0] === "rest" || (want === "pounce" && round.moves[0] === "tap"),
+      ).toBe(true);
     }
   });
 
@@ -52,7 +54,15 @@ describe("spars", () => {
     const base = fighter("Mochi", STARTERS.gentle);
     const lost = [...Array(30)].map((_, s) => spar(base, partner("pip"), s + 1)).find((r) => r.winner === 1);
     expect(lost).toBeTruthy();
-    const note = coach({ result: lost!, side: 0, line: "gentle", stage: "adult", lessons: [], level: 0, opponent: partner("pip") });
+    const note = coach({
+      result: lost!,
+      side: 0,
+      line: "gentle",
+      stage: "adult",
+      lessons: [],
+      level: 0,
+      opponent: partner("pip"),
+    });
     expect(note.lesson).toBeTruthy();
     expect(note.after).toBeGreaterThan(note.before);
     const taught = fighter("Mochi", composeProgram("gentle", [note.lesson!.rule]));
@@ -61,12 +71,26 @@ describe("spars", () => {
   });
 
   it("builds a friend partner only from a valid card", () => {
-    const ok = friendPartner({ id: "abc", name: "Tofu", line: "bold", stage: "teen", lessons: JSON.stringify([{ when: { event: [3] }, then: { want: 5, mood: 1 } }]) });
+    const ok = friendPartner({
+      id: "abc",
+      name: "Tofu",
+      line: "bold",
+      stage: "teen",
+      lessons: JSON.stringify([{ when: { event: [3] }, then: { want: 5, mood: 1 } }]),
+    });
     expect(ok).not.toBeNull();
     expect(ok!.program.rules[0]!.then.want).toBe(5);
     expect(ok?.level).toBe(1);
     expect(friendPartner({ id: "abc", name: "x", line: "evil", stage: "teen", lessons: "[]" })).toBeNull();
     expect(friendPartner({ id: "abc", name: "x", line: "bold", stage: "teen", lessons: "not json" })).toBeNull();
-    expect(friendPartner({ id: "abc", name: "x", line: "bold", stage: "teen", lessons: JSON.stringify([{ when: { nonsense: [9] }, then: { want: 99 } }]) })).toBeNull();
+    expect(
+      friendPartner({
+        id: "abc",
+        name: "x",
+        line: "bold",
+        stage: "teen",
+        lessons: JSON.stringify([{ when: { nonsense: [9] }, then: { want: 99 } }]),
+      }),
+    ).toBeNull();
   });
 });

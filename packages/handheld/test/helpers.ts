@@ -1,6 +1,17 @@
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { type Circuit, type PetNetlist, STARTERS, circuitBrain, compileProgram, composeChild, fastBrain, load, netlistBytes, refKey } from "@lingxi/brain";
+import {
+  type Circuit,
+  type PetNetlist,
+  STARTERS,
+  circuitBrain,
+  compileProgram,
+  composeChild,
+  fastBrain,
+  load,
+  netlistBytes,
+  refKey,
+} from "@lingxi/brain";
 import { type Brain } from "@lingxi/game";
 import { HandheldCore } from "../src/core";
 import type { BrainPart, TripBrain } from "../src/trip";
@@ -37,15 +48,28 @@ export interface TestBrain {
 export function starterBrain(line: keyof typeof STARTERS): TestBrain {
   const n = compileProgram(STARTERS[line]);
   const bytes = netlistBytes(n);
-  return { brain: { fast: fastBrain(n), nState: n.latches.length }, trip: { processor: PROCESSOR, id: STARTER_ID[line], bytes, parts: [] }, netlist: n };
+  return {
+    brain: { fast: fastBrain(n), nState: n.latches.length },
+    trip: { processor: PROCESSOR, id: STARTER_ID[line], bytes, parts: [] },
+    netlist: n,
+  };
 }
 
 /** A child of two starters: its circuit REFs both parents, as a bred pet's does. */
 export function childBrain(a: keyof typeof STARTERS, b: keyof typeof STARTERS): TestBrain {
-  const parts: BrainPart[] = [a, b].map((l) => ({ processor: PROCESSOR, id: STARTER_ID[l as keyof typeof STARTER_ID], nIn: 16, nOut: 8, bytes: netlistBytes(compileProgram(STARTERS[l as keyof typeof STARTERS])) }));
+  const parts: BrainPart[] = [a, b].map((l) => ({
+    processor: PROCESSOR,
+    id: STARTER_ID[l as keyof typeof STARTER_ID],
+    nIn: 16,
+    nOut: 8,
+    bytes: netlistBytes(compileProgram(STARTERS[l as keyof typeof STARTERS])),
+  }));
   const child = composeChild({ cpu: PROCESSOR, id: STARTER_ID[a] }, { cpu: PROCESSOR, id: STARTER_ID[b] });
   const subs = new Map<string, Circuit>(parts.map((q) => [refKey(q.processor, q.id), load(q.bytes, 16, 8)]));
   const c = load(child.bytes, 16, 8, (cpu, id) => subs.get(refKey(cpu, id)));
   // a child's id is its own; any id the packet names is fine for the handheld, which checks the bytes' keccak
-  return { brain: { fast: circuitBrain(c), nState: c.nState }, trip: { processor: PROCESSOR, id: 1000n, bytes: child.bytes, parts } };
+  return {
+    brain: { fast: circuitBrain(c), nState: c.nState },
+    trip: { processor: PROCESSOR, id: 1000n, bytes: child.bytes, parts },
+  };
 }

@@ -46,7 +46,15 @@ export interface SealParams {
 export function encodePublic(content: Uint8Array): Uint8Array;
 export function seal(p: SealParams): Uint8Array;
 export function parsePayload(payload: Uint8Array): { kind: "public"; content: Uint8Array } | { kind: "sealed" };
-export function openPayload(p: { payload: Uint8Array; secretKey: Uint8Array; to: string; from: string; hub: string; ref?: string | Uint8Array; chainId?: number }): { kind: "public" | "sealed"; content: Uint8Array };
+export function openPayload(p: {
+  payload: Uint8Array;
+  secretKey: Uint8Array;
+  to: string;
+  from: string;
+  hub: string;
+  ref?: string | Uint8Array;
+  chainId?: number;
+}): { kind: "public" | "sealed"; content: Uint8Array };
 export function assertValidPublicKey(publicKey: Uint8Array): void;
 
 export const SUBJECT_MAX: number;
@@ -55,6 +63,10 @@ export const IMAGE_MAX_BYTES: number;
 export const IMAGE_MIME: readonly string[];
 export function checkAttachment(a: unknown): unknown;
 export function encodeContent(m: { subject?: string; body: string; ts?: number; attachments?: object[] }): Uint8Array;
-export function decodeContent(bytes: Uint8Array): { kind: "message"; subject: string; body: string; ts: number | null; attachments: object[]; badAttachments: number } | { kind: "unsupported"; value: object };
+export function decodeContent(
+  bytes: Uint8Array,
+):
+  | { kind: "message"; subject: string; body: string; ts: number | null; attachments: object[]; badAttachments: number }
+  | { kind: "unsupported"; value: object };
 export function displayText(s: string): string;
 export function messageId(chainId: number, hub: string, to: string, inboxIndex: number | bigint): string;

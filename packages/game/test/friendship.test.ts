@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { BOND_DAILY_CAP, BOND_LEVELS, FAMILY_BOND_LEVEL, addBond, bondLevel, bondProgress, canStartFamily, friendsByCloseness, type Bonds } from "../src/friendship";
+import {
+  BOND_DAILY_CAP,
+  BOND_LEVELS,
+  FAMILY_BOND_LEVEL,
+  addBond,
+  bondLevel,
+  bondProgress,
+  canStartFamily,
+  friendsByCloseness,
+  type Bonds,
+} from "../src/friendship";
 
 const DAY = 86_400_000;
 const who = { name: "Rex", line: "bold" };

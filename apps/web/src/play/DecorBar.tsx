@@ -38,14 +38,24 @@ export function DecorIcon({ rows, colors }: { rows: readonly string[]; colors: R
  * Builder's commissions); once a piece is picked it folds into a slim strip, so the room below is free to tap (P3a: on
  * a phone the full bar once covered the whole room, and nothing could be placed).
  */
-export function DecorBar({ selected, onSelect, onDone }: { selected: string | null; onSelect: (id: string | null) => void; onDone: () => void }) {
+export function DecorBar({
+  selected,
+  onSelect,
+  onDone,
+}: {
+  selected: string | null;
+  onSelect: (id: string | null) => void;
+  onDone: () => void;
+}) {
   const t = useT();
   const { lang } = useLang();
   const world = useWorld((s) => s.world);
   const buy = useWorld((s) => s.buyDecor);
   const [shelf, setShelf] = useState<"pieces" | "commissions">("pieces");
   const d = decorOf(world);
-  const count = <span className="decor-count">{t("decor.count" as Key, { n: d.placed.length, cap: roomCapacity(world) })}</span>;
+  const count = (
+    <span className="decor-count">{t("decor.count" as Key, { n: d.placed.length, cap: roomCapacity(world) })}</span>
+  );
   const done = (
     <button type="button" className="btn primary" onClick={() => (play("tap"), onDone())}>
       {t("decor.done")}
@@ -80,14 +90,24 @@ export function DecorBar({ selected, onSelect, onDone }: { selected: string | nu
       <p className="decor-hint">{t("decor.hint")}</p>
       <div className="decor-shelves" role="tablist">
         {(["pieces", "commissions"] as const).map((k) => (
-          <button key={k} type="button" role="tab" aria-selected={shelf === k} className={`decor-shelf${shelf === k ? " on" : ""}`} onClick={() => (play("tap"), setShelf(k))}>
+          <button
+            key={k}
+            type="button"
+            role="tab"
+            aria-selected={shelf === k}
+            className={`decor-shelf${shelf === k ? " on" : ""}`}
+            onClick={() => (play("tap"), setShelf(k))}
+          >
             {t((k === "pieces" ? "decor.tabPieces" : "decor.tabCommissions") as Key)}
           </button>
         ))}
       </div>
       {shelf === "pieces" ? (
         <ul className="decor-list" role="tabpanel">
-          {[...DECOR.filter((p) => !p.commission && (!p.gift || d.owned.includes(p.id))), ...CHAIN_DECOR.filter((p) => (d.chainHeld ?? []).includes(p.id))].map((p) => {
+          {[
+            ...DECOR.filter((p) => !p.commission && (!p.gift || d.owned.includes(p.id))),
+            ...CHAIN_DECOR.filter((p) => (d.chainHeld ?? []).includes(p.id)),
+          ].map((p) => {
             // an on-chain piece is placed while a wallet holds it (plan 4.6); it is never bought here
             const owned = d.owned.includes(p.id) || (!!p.chain && (d.chainHeld ?? []).includes(p.id));
             const placed = d.placed.some((x) => x.id === p.id);
@@ -105,7 +125,9 @@ export function DecorBar({ selected, onSelect, onDone }: { selected: string | nu
                 >
                   <DecorIcon rows={p.rows} colors={p.colors} />
                   <span>{p.name[lang as "en" | "zh"]}</span>
-                  <small>{owned ? (placed ? "✓" : p.chain ? "⛓" : "") : t("decor.buy" as Key, { price: p.price })}</small>
+                  <small>
+                    {owned ? (placed ? "✓" : p.chain ? "⛓" : "") : t("decor.buy" as Key, { price: p.price })}
+                  </small>
                 </button>
               </li>
             );
@@ -118,7 +140,12 @@ export function DecorBar({ selected, onSelect, onDone }: { selected: string | nu
   );
 }
 
-const STAGE_NAME: Record<string, [string, string]> = { child: ["child", "幼年"], teen: ["teen", "少年"], adult: ["adult", "成年"], elder: ["elder", "老年"] };
+const STAGE_NAME: Record<string, [string, string]> = {
+  child: ["child", "幼年"],
+  teen: ["teen", "少年"],
+  adult: ["adult", "成年"],
+  elder: ["elder", "老年"],
+};
 
 /** The Builder's commissions (G6): made to order from planks, bars and stone blocks, one or two for each stage. */
 function Commissions({ onSelect }: { onSelect: (id: string | null) => void }) {
@@ -132,7 +159,9 @@ function Commissions({ onSelect }: { onSelect: (id: string | null) => void }) {
   return (
     <section className="decor-commissions" role="tabpanel" aria-label={zh ? "建设者的委托" : "Builder's commissions"}>
       <p className="decor-hint">
-        {zh ? "用金币和材料（木板、金属条、石块）定做，宠物长大一个阶段就多一件可以做。" : "Made to order for coins and materials (planks, metal bars, stone blocks). Each stage your pet reaches opens more."}
+        {zh
+          ? "用金币和材料（木板、金属条、石块）定做，宠物长大一个阶段就多一件可以做。"
+          : "Made to order for coins and materials (planks, metal bars, stone blocks). Each stage your pet reaches opens more."}
       </p>
       <ul className="decor-list">
         {COMMISSIONS.map((p) => {
@@ -140,9 +169,21 @@ function Commissions({ onSelect }: { onSelect: (id: string | null) => void }) {
           const owned = d.owned.includes(p.id);
           const placed = d.placed.some((x) => x.id === p.id);
           const open = stageReached(stage, c.stage);
-          const mats = c.ins.map((x) => `${ITEM[x.item]?.name[zh ? "zh" : "en"] ?? ""} ×${x.amount}`).join(zh ? "、" : ", ");
+          const mats = c.ins
+            .map((x) => `${ITEM[x.item]?.name[zh ? "zh" : "en"] ?? ""} ×${x.amount}`)
+            .join(zh ? "、" : ", ");
           const have = c.ins.every((x) => (world.bag[x.item] ?? 0) >= x.amount) && world.coins >= p.price;
-          const status = owned ? (placed ? "✓" : "") : !open ? (zh ? `${STAGE_NAME[c.stage]![1]}起` : `from ${STAGE_NAME[c.stage]![0]}`) : zh ? `${p.price} 金币 + ${mats}` : `${p.price} coins + ${mats}`;
+          const status = owned
+            ? placed
+              ? "✓"
+              : ""
+            : !open
+              ? zh
+                ? `${STAGE_NAME[c.stage]![1]}起`
+                : `from ${STAGE_NAME[c.stage]![0]}`
+              : zh
+                ? `${p.price} 金币 + ${mats}`
+                : `${p.price} coins + ${mats}`;
           return (
             <li key={p.id}>
               <button

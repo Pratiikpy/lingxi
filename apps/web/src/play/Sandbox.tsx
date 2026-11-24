@@ -44,7 +44,19 @@ function ask(p: Program, senses: Senses, mem: Record<string, number>) {
   return { rule: r.rule, mood: (r.out >> 3) & 3 };
 }
 
-function Answer({ title, program, senses, mem, lang }: { title: string; program: Program; senses: Senses; mem: Record<string, number>; lang: Lang }) {
+function Answer({
+  title,
+  program,
+  senses,
+  mem,
+  lang,
+}: {
+  title: string;
+  program: Program;
+  senses: Senses;
+  mem: Record<string, number>;
+  lang: Lang;
+}) {
   const a = ask(program, senses, mem);
   const c = decidingChips(program, a.rule, lang);
   return (
@@ -79,7 +91,11 @@ export function Sandbox({ pet, trying }: { pet: Pet; trying?: Rule | null }) {
   const withLesson = useMemo(() => (trying ? programOf([trying, ...lessons]) : null), [programOf, trying, lessons]);
   return (
     <details className="sandbox">
-      <summary>{lang === "zh" ? "沙盒：随便设个情况，看它会怎么做（不会改变它）" : "Sandbox: set up any situation and see what it would do (nothing changes)"}</summary>
+      <summary>
+        {lang === "zh"
+          ? "沙盒：随便设个情况，看它会怎么做（不会改变它）"
+          : "Sandbox: set up any situation and see what it would do (nothing changes)"}
+      </summary>
       <div className="sb-grid">
         {INPUT_FIELDS.map((f) => (
           <label key={f.name}>
@@ -110,8 +126,22 @@ export function Sandbox({ pet, trying }: { pet: Pet; trying?: Rule | null }) {
         })}
       </div>
       <div className="sb-answers">
-        <Answer title={lang === "zh" ? "它现在会" : "As it is now"} program={now} senses={senses} mem={mem} lang={lang} />
-        {withLesson && <Answer title={lang === "zh" ? "学了这一课以后" : "With this lesson"} program={withLesson} senses={senses} mem={mem} lang={lang} />}
+        <Answer
+          title={lang === "zh" ? "它现在会" : "As it is now"}
+          program={now}
+          senses={senses}
+          mem={mem}
+          lang={lang}
+        />
+        {withLesson && (
+          <Answer
+            title={lang === "zh" ? "学了这一课以后" : "With this lesson"}
+            program={withLesson}
+            senses={senses}
+            mem={mem}
+            lang={lang}
+          />
+        )}
       </div>
     </details>
   );

@@ -42,7 +42,9 @@ describe("a sprite rendered at build time (P3)", () => {
           continue;
         }
         painted++;
-        expect(drawn.get(`${x},${y}`)).toBe(`rgba(${rgba[i]},${rgba[i + 1]},${rgba[i + 2]},${(rgba[i + 3]! / 255).toFixed(3)})`);
+        expect(drawn.get(`${x},${y}`)).toBe(
+          `rgba(${rgba[i]},${rgba[i + 1]},${rgba[i + 2]},${(rgba[i + 3]! / 255).toFixed(3)})`,
+        );
       }
     expect(drawn.size).toBe(painted);
     expect(painted).toBeGreaterThan(20);
@@ -60,7 +62,11 @@ describe("a sprite rendered at build time (P3)", () => {
       expect(x >= 0 && x < crop.w && y >= 0 && y < crop.h, `${key} inside the crop`).toBe(true);
     }
     const rgba = toRgba(canvas, CORAL, 1);
-    const inCrop = Array.from({ length: crop.h }, (_, y) => Array.from({ length: crop.w }, (_, x) => rgba[((crop.y + y) * canvas.w + crop.x + x) * 4 + 3]! > 0)).flat().filter(Boolean).length;
+    const inCrop = Array.from({ length: crop.h }, (_, y) =>
+      Array.from({ length: crop.w }, (_, x) => rgba[((crop.y + y) * canvas.w + crop.x + x) * 4 + 3]! > 0),
+    )
+      .flat()
+      .filter(Boolean).length;
     expect(drawn.size).toBe(inCrop);
   });
 });

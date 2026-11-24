@@ -10,7 +10,15 @@ const LOOKS = [
   { lang: "en", scheme: "light", size: "phone" },
   { lang: "zh", scheme: "dark", size: "desktop" },
 ] as const;
-const PAGES = ["index.html", "verify.html", "numbers.html", "tree.html", "agents.html", "handheld.html", "circuits.html"];
+const PAGES = [
+  "index.html",
+  "verify.html",
+  "numbers.html",
+  "tree.html",
+  "agents.html",
+  "handheld.html",
+  "circuits.html",
+];
 
 for (const look of LOOKS) {
   test(`axe finds nothing serious on any page (${look.lang}, ${look.scheme}, ${look.size})`, async ({ player }) => {
@@ -27,7 +35,9 @@ for (const look of LOOKS) {
     expect(found).toEqual({});
   });
 
-  test(`axe finds nothing serious in the game, the room has its landmark and heading (${look.lang}, ${look.scheme}, ${look.size})`, async ({ player }) => {
+  test(`axe finds nothing serious in the game, the room has its landmark and heading (${look.lang}, ${look.scheme}, ${look.size})`, async ({
+    player,
+  }) => {
     test.setTimeout(240_000);
     const p = await player(look);
     const { page } = p;
@@ -54,7 +64,9 @@ for (const look of LOOKS) {
     expect(found).toEqual({});
   });
 
-  test(`every control a player taps is at least 44 px (${look.lang}, ${look.scheme}, ${look.size})`, async ({ player }) => {
+  test(`every control a player taps is at least 44 px (${look.lang}, ${look.scheme}, ${look.size})`, async ({
+    player,
+  }) => {
     test.setTimeout(240_000);
     const p = await player(look);
     const { page } = p;
@@ -74,11 +86,16 @@ for (const look of LOOKS) {
     await page.waitForTimeout(600);
     const sheetSmall = await smallTargets(page, ".sheet");
     if (sheetSmall.length) small.sheet = sheetSmall;
-    await expect(page.locator(".sheet .lv-skills"), "the level chip's full-size twin is on the Pet sheet").toBeVisible();
+    await expect(
+      page.locator(".sheet .lv-skills"),
+      "the level chip's full-size twin is on the Pet sheet",
+    ).toBeVisible();
     expect(small).toEqual({});
   });
 
-  test(`an open sheet keeps the focus and gives it back (${look.lang}, ${look.scheme}, ${look.size})`, async ({ player }) => {
+  test(`an open sheet keeps the focus and gives it back (${look.lang}, ${look.scheme}, ${look.size})`, async ({
+    player,
+  }) => {
     test.setTimeout(240_000);
     const p = await player(look);
     const { page } = p;
@@ -92,12 +109,18 @@ for (const look of LOOKS) {
     for (const key of ["Tab", "Shift+Tab"]) {
       for (let i = 0; i < 40; i++) {
         await page.keyboard.press(key);
-        expect(await page.evaluate(() => !!document.activeElement?.closest(".sheet")), `${key} ${i + 1} stays in the sheet`).toBe(true);
+        expect(
+          await page.evaluate(() => !!document.activeElement?.closest(".sheet")),
+          `${key} ${i + 1} stays in the sheet`,
+        ).toBe(true);
       }
     }
     await page.keyboard.press("Escape");
     await expect(page.locator(".sheet")).toHaveCount(0);
-    expect(await page.evaluate(() => document.activeElement?.getAttribute("data-hint")), "the focus is back on the tab that opened it").toBe("tab-me");
+    expect(
+      await page.evaluate(() => document.activeElement?.getAttribute("data-hint")),
+      "the focus is back on the tab that opened it",
+    ).toBe("tab-me");
   });
 }
 
@@ -112,7 +135,8 @@ async function moving(page: import("@playwright/test").Page, ms = 1_200): Promis
       for (const el of Array.from(document.querySelectorAll<HTMLElement>("body *"))) {
         if (el.getClientRects().length === 0) continue;
         if (!el.dataset.mv) el.dataset.mv = String(next++);
-        seen[el.dataset.mv] = `${el.tagName.toLowerCase()}.${(el.className || "").toString().split(" ")[0]}|${getComputedStyle(el).transform}`;
+        seen[el.dataset.mv] =
+          `${el.tagName.toLowerCase()}.${(el.className || "").toString().split(" ")[0]}|${getComputedStyle(el).transform}`;
       }
       document.body.dataset.mvNext = String(next);
       return seen;
@@ -125,8 +149,13 @@ async function moving(page: import("@playwright/test").Page, ms = 1_200): Promis
     .map(([, x]) => x);
 }
 
-for (const look of [{ lang: "en", scheme: "light", size: "phone" }, { lang: "zh", scheme: "dark", size: "desktop" }] as const) {
-  test(`with reduced motion asked for, nothing on the page keeps moving (${look.lang}, ${look.scheme}, ${look.size})`, async ({ player }) => {
+for (const look of [
+  { lang: "en", scheme: "light", size: "phone" },
+  { lang: "zh", scheme: "dark", size: "desktop" },
+] as const) {
+  test(`with reduced motion asked for, nothing on the page keeps moving (${look.lang}, ${look.scheme}, ${look.size})`, async ({
+    player,
+  }) => {
     test.setTimeout(240_000);
     const p = await player(look);
     const { page } = p;
@@ -148,4 +177,3 @@ for (const look of [{ lang: "en", scheme: "light", size: "phone" }, { lang: "zh"
     expect(found).toEqual({});
   });
 }
-

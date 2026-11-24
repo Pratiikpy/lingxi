@@ -18,7 +18,9 @@ export * from "./adoptBrain";
 
 const KEY = "lingxi.adopted.v1";
 
-export type ReadResult = { ok: true; circuit: OutsideCircuit; profile: Profile } | { ok: false; reason: "notProcessor" | "noCircuit" | "tooDeep" | "tooBig" | "illFormed" | "pins" | "offline" };
+export type ReadResult =
+  | { ok: true; circuit: OutsideCircuit; profile: Profile }
+  | { ok: false; reason: "notProcessor" | "noCircuit" | "tooDeep" | "tooBig" | "illFormed" | "pins" | "offline" };
 
 /** Read a circuit on X Layer and check that its pins fit a fight. */
 export async function readCircuit(processor: string, id: string): Promise<ReadResult> {

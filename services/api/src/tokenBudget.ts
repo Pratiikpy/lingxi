@@ -74,7 +74,8 @@ export function createTokenBudget(opts: { perDay: number; perAddress?: number; f
     const got = loadJson(opts.file);
     if (got.state === "ok") {
       const saved = got.value as Partial<DayState>;
-      if (got.from === "bak") process.stderr.write(`${opts.file} could not be read: kept aside, read ${opts.file}.bak instead\n`);
+      if (got.from === "bak")
+        process.stderr.write(`${opts.file} could not be read: kept aside, read ${opts.file}.bak instead\n`);
       if (saved.day === state.day && Number.isFinite(saved.used)) {
         const coded = codedSpend(saved.by ?? {});
         raw = coded !== null;
@@ -82,7 +83,9 @@ export function createTokenBudget(opts: { perDay: number; perAddress?: number; f
       } else raw = codedSpend(saved.by ?? {}) !== null;
     } else if (got.state === "damaged") {
       // the day's spend cannot be read: the day is taken as spent, never started again (A139); tomorrow starts afresh
-      process.stderr.write(`${opts.file} and its .bak could not be read: both kept aside, today's model budget is taken as spent\n`);
+      process.stderr.write(
+        `${opts.file} and its .bak could not be read: both kept aside, today's model budget is taken as spent\n`,
+      );
       state = { ...fresh(), used: opts.perDay };
     }
   }
@@ -210,7 +213,10 @@ export function budgetedClient(client: Anthropic, budget: TokenBudget): Anthropi
       return res;
     }) as F;
   const messages = { ...client.messages, create: wrap(client.messages.create.bind(client.messages)) };
-  const beta = { ...client.beta, messages: { ...client.beta.messages, create: wrap(client.beta.messages.create.bind(client.beta.messages)) } };
+  const beta = {
+    ...client.beta,
+    messages: { ...client.beta.messages, create: wrap(client.beta.messages.create.bind(client.beta.messages)) },
+  };
   return new Proxy(client, {
     get(target, prop, receiver) {
       if (prop === "messages") return messages;

@@ -31,7 +31,10 @@ const browserWorker = (): WorkerLike | null => {
 };
 
 /** Refights `job`; `done` gives the fingerprint, and `stop` ends the work (its `done` then rejects as stopped). */
-export function refight(job: RefightJob, makeWorker: () => WorkerLike | null = browserWorker): { done: Promise<string>; stop: () => void } {
+export function refight(
+  job: RefightJob,
+  makeWorker: () => WorkerLike | null = browserWorker,
+): { done: Promise<string>; stop: () => void } {
   let stop = () => {};
   const done = new Promise<string>((resolve, reject) => {
     const worker = makeWorker();

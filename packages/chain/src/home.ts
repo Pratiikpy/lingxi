@@ -7,8 +7,26 @@
  * and written to the hub, where only the two homes can read them.
  */
 
-import { type Address, type Hex, type PublicClient, type WalletClient, encodeFunctionData, getAddress, keccak256, parseAbi, toHex } from "viem";
-import { decodeContent, deriveKeyPair, encodeContent, hexToBytes, keyDerivationText, openPayload, seal } from "@lingxi/send";
+import {
+  type Address,
+  type Hex,
+  type PublicClient,
+  type WalletClient,
+  encodeFunctionData,
+  getAddress,
+  keccak256,
+  parseAbi,
+  toHex,
+} from "viem";
+import {
+  decodeContent,
+  deriveKeyPair,
+  encodeContent,
+  hexToBytes,
+  keyDerivationText,
+  openPayload,
+  seal,
+} from "@lingxi/send";
 
 export const OPENER: Address = "0x536adD8F30f03b69f6fbF29d425A816A0dC50106";
 export const HUB: Address = "0xe61A9C7213a6Aa616C246a2B569e555B417b25ee";
@@ -75,11 +93,17 @@ export interface Home {
 export async function checkHub(pub: PublicClient): Promise<void> {
   const raw = await pub.getStorageAt({ address: HUB, slot: IMPL_SLOT });
   const impl = `0x${(raw ?? "0x").slice(-40)}`.toLowerCase();
-  if (!HUB_IMPLEMENTATIONS_XLAYER.includes(impl)) throw new HomeError("hubUnknown", `the DeWEB hub runs ${impl}, which is not on the accepted list`);
+  if (!HUB_IMPLEMENTATIONS_XLAYER.includes(impl))
+    throw new HomeError("hubUnknown", `the DeWEB hub runs ${impl}, which is not on the accepted list`);
 }
 
 export async function readHome(pub: PublicClient, processor: Address, circuit: bigint): Promise<Home> {
-  const v = (await pub.readContract({ address: HUB, abi: hubAbi, functionName: "keyFor", args: [processor, circuit] })) as {
+  const v = (await pub.readContract({
+    address: HUB,
+    abi: hubAbi,
+    functionName: "keyFor",
+    args: [processor, circuit],
+  })) as {
     container: Address;
     endpoint: Hex;
     opened: boolean;
@@ -88,18 +112,47 @@ export async function readHome(pub: PublicClient, processor: Address, circuit: b
     key: Hex;
     keyIndex: number;
   };
-  return { processor, circuit, container: getAddress(v.container), endpoint: v.endpoint, opened: v.opened, holder: v.current, mailbox: v.usable, key: v.key, keyIndex: Number(v.keyIndex) };
+  return {
+    processor,
+    circuit,
+    container: getAddress(v.container),
+    endpoint: v.endpoint,
+    opened: v.opened,
+    holder: v.current,
+    mailbox: v.usable,
+    key: v.key,
+    keyIndex: Number(v.keyIndex),
+  };
 }
 
-export const openingFee = (pub: PublicClient): Promise<bigint> => pub.readContract({ address: OPENER, abi: openerAbi, functionName: "FEE" }) as Promise<bigint>;
+export const openingFee = (pub: PublicClient): Promise<bigint> =>
+  pub.readContract({ address: OPENER, abi: openerAbi, functionName: "FEE" }) as Promise<bigint>;
 
 /** Opens the home: TapeOut's container opener, paid by the circuit's holder. */
-export async function openHome(pub: PublicClient, wallet: WalletClient, processor: Address, circuit: bigint): Promise<Hex> {
+export async function openHome(
+  pub: PublicClient,
+  wallet: WalletClient,
+  processor: Address,
+  circuit: bigint,
+): Promise<Hex> {
   const me = wallet.account!.address;
-  const holder = (await pub.readContract({ address: processor, abi: ownerAbi, functionName: "ownerOf", args: [circuit] })) as Address;
-  if (holder.toLowerCase() !== me.toLowerCase()) throw new HomeError("notHolder", "only the circuit's holder can open its home");
+  const holder = (await pub.readContract({
+    address: processor,
+    abi: ownerAbi,
+    functionName: "ownerOf",
+    args: [circuit],
+  })) as Address;
+  if (holder.toLowerCase() !== me.toLowerCase())
+    throw new HomeError("notHolder", "only the circuit's holder can open its home");
   const fee = await openingFee(pub);
-  const sim = await pub.simulateContract({ address: OPENER, abi: openerAbi, functionName: "open", args: [processor, circuit], value: fee, account: wallet.account! });
+  const sim = await pub.simulateContract({
+    address: OPENER,
+    abi: openerAbi,
+    functionName: "open",
+    args: [processor, circuit],
+    value: fee,
+    account: wallet.account!,
+  });
   const tx = await wallet.writeContract(sim.request);
   const r = await pub.waitForTransactionReceipt({ hash: tx });
   if (r.status !== "success") throw new HomeError("notOpened", "opening the home reverted");
@@ -112,9 +165,22 @@ export interface MailKey {
 }
 
 /** The mailbox key: derived from one fixed wallet signature, so the same wallet always gets the same key back. */
-export async function mailKey(wallet: WalletClient, home: Home, cpuIndex: number, keyIndex = home.keyIndex): Promise<MailKey> {
+export async function mailKey(
+  wallet: WalletClient,
+  home: Home,
+  cpuIndex: number,
+  keyIndex = home.keyIndex,
+): Promise<MailKey> {
   const holder = wallet.account!.address;
-  const p = { tokenId: home.circuit, cpuIndex, container: home.container, holder, hub: HUB, chainId: XLAYER_ID, keyIndex };
+  const p = {
+    tokenId: home.circuit,
+    cpuIndex,
+    container: home.container,
+    holder,
+    hub: HUB,
+    chainId: XLAYER_ID,
+    keyIndex,
+  };
   const signature = await wallet.signMessage({ account: wallet.account!, message: keyDerivationText(p) });
   return deriveKeyPair({ ...p, signature });
 }
@@ -140,20 +206,45 @@ export interface Letter {
 }
 
 /** Seals a letter for the other home (and a copy for our own) and writes it to the hub. */
-export async function sendLetter(pub: PublicClient, wallet: WalletClient, from: Home, to: Home, letter: Letter, mine: MailKey): Promise<{ tx: Hex; inboxIndex: bigint }> {
+export async function sendLetter(
+  pub: PublicClient,
+  wallet: WalletClient,
+  from: Home,
+  to: Home,
+  letter: Letter,
+  mine: MailKey,
+): Promise<{ tx: Hex; inboxIndex: bigint }> {
   if (!from.opened) throw new HomeError("notOpened", "this home is not open");
   if (!to.opened || !to.mailbox) throw new HomeError("theirNoKey", "that home has no mailbox yet");
   if (!from.mailbox) throw new HomeError("noKey", "open your mailbox first");
-  const content = encodeContent({ ...(letter.subject ? { subject: letter.subject } : {}), body: letter.body, ts: Math.floor(Date.now() / 1000) });
+  const content = encodeContent({
+    ...(letter.subject ? { subject: letter.subject } : {}),
+    body: letter.body,
+    ts: Math.floor(Date.now() / 1000),
+  });
   const ref = keccak256(toHex(crypto.getRandomValues(new Uint8Array(32))));
   const theirs = hexToBytes(to.key, 32);
   let payload: Uint8Array;
   try {
-    payload = seal({ content, recipients: [theirs, mine.publicKey], to: to.endpoint, from: from.endpoint, hub: HUB, ref, chainId: XLAYER_ID });
+    payload = seal({
+      content,
+      recipients: [theirs, mine.publicKey],
+      to: to.endpoint,
+      from: from.endpoint,
+      hub: HUB,
+      ref,
+      chainId: XLAYER_ID,
+    });
   } catch (e) {
     throw new HomeError("tooLong", (e as Error).message);
   }
-  const sim = await pub.simulateContract({ address: HUB, abi: hubAbi, functionName: "send", args: [from.processor, from.circuit, to.endpoint, ref, toHex(payload)], account: wallet.account! });
+  const sim = await pub.simulateContract({
+    address: HUB,
+    abi: hubAbi,
+    functionName: "send",
+    args: [from.processor, from.circuit, to.endpoint, ref, toHex(payload)],
+    account: wallet.account!,
+  });
   const tx = await wallet.writeContract(sim.request);
   await pub.waitForTransactionReceipt({ hash: tx });
   return { tx, inboxIndex: sim.result as bigint };
@@ -172,27 +263,76 @@ export interface ReceivedLetter {
 
 /** Reads and opens a home's letters, newest last; every payload is checked against the hub's digest. */
 export async function readLetters(pub: PublicClient, home: Home, key: MailKey, start = 0n): Promise<ReceivedLetter[]> {
-  const count = (await pub.readContract({ address: HUB, abi: hubAbi, functionName: "inboxCount", args: [home.endpoint] })) as bigint;
+  const count = (await pub.readContract({
+    address: HUB,
+    abi: hubAbi,
+    functionName: "inboxCount",
+    args: [home.endpoint],
+  })) as bigint;
   const out: ReceivedLetter[] = [];
   for (let s = start; s < count; s += MAX_PAGE) {
-    const page = (await pub.readContract({ address: HUB, abi: hubAbi, functionName: "inboxPage", args: [home.endpoint, s, MAX_PAGE] })) as Array<{ from: Address; blockNumber: bigint; timestamp: number; digest: Hex }>;
+    const page = (await pub.readContract({
+      address: HUB,
+      abi: hubAbi,
+      functionName: "inboxPage",
+      args: [home.endpoint, s, MAX_PAGE],
+    })) as Array<{ from: Address; blockNumber: bigint; timestamp: number; digest: Hex }>;
     for (let k = 0; k < page.length; k++) {
       const e = page[k]!;
       const index = Number(s) + k;
-      const logs = await pub.getContractEvents({ address: HUB, abi: hubAbi, eventName: "Sent", args: { to: home.endpoint, from: e.from }, fromBlock: BigInt(e.blockNumber), toBlock: BigInt(e.blockNumber) });
+      const logs = await pub.getContractEvents({
+        address: HUB,
+        abi: hubAbi,
+        eventName: "Sent",
+        args: { to: home.endpoint, from: e.from },
+        fromBlock: BigInt(e.blockNumber),
+        toBlock: BigInt(e.blockNumber),
+      });
       const log = logs.find((l) => Number((l.args as { inboxIndex: bigint }).inboxIndex) === index);
       if (!log) {
-        out.push({ index, from: e.from, at: Number(e.timestamp), block: BigInt(e.blockNumber), subject: "", body: "", verified: false });
+        out.push({
+          index,
+          from: e.from,
+          at: Number(e.timestamp),
+          block: BigInt(e.blockNumber),
+          subject: "",
+          body: "",
+          verified: false,
+        });
         continue;
       }
       const args = log.args as { ref: Hex; payload: Hex };
       const verified = keccak256(`0x${args.ref.slice(2)}${keccak256(args.payload).slice(2)}` as Hex) === e.digest;
       try {
-        const opened = openPayload({ payload: hexToBytes(args.payload), secretKey: key.secretKey, to: home.endpoint, from: endpointId(e.from), hub: HUB, ref: args.ref, chainId: XLAYER_ID });
+        const opened = openPayload({
+          payload: hexToBytes(args.payload),
+          secretKey: key.secretKey,
+          to: home.endpoint,
+          from: endpointId(e.from),
+          hub: HUB,
+          ref: args.ref,
+          chainId: XLAYER_ID,
+        });
         const c = decodeContent(opened.content);
-        out.push({ index, from: e.from, at: Number(e.timestamp), block: BigInt(e.blockNumber), subject: c.kind === "message" ? c.subject : "", body: c.kind === "message" ? c.body : "", verified });
+        out.push({
+          index,
+          from: e.from,
+          at: Number(e.timestamp),
+          block: BigInt(e.blockNumber),
+          subject: c.kind === "message" ? c.subject : "",
+          body: c.kind === "message" ? c.body : "",
+          verified,
+        });
       } catch {
-        out.push({ index, from: e.from, at: Number(e.timestamp), block: BigInt(e.blockNumber), subject: "", body: "", verified: false });
+        out.push({
+          index,
+          from: e.from,
+          at: Number(e.timestamp),
+          block: BigInt(e.blockNumber),
+          subject: "",
+          body: "",
+          verified: false,
+        });
       }
     }
   }
@@ -200,23 +340,52 @@ export async function readLetters(pub: PublicClient, home: Home, key: MailKey, s
 }
 
 export const containerOf = (pub: PublicClient, processor: Address, circuit: bigint): Promise<Address> =>
-  pub.readContract({ address: OPENER, abi: openerAbi, functionName: "accountOf", args: [processor, circuit] }) as Promise<Address>;
+  pub.readContract({
+    address: OPENER,
+    abi: openerAbi,
+    functionName: "accountOf",
+    args: [processor, circuit],
+  }) as Promise<Address>;
 
-const transferAbi = parseAbi(["function transferFrom(address from, address to, uint256 id)", "function ownerOf(uint256 id) view returns (address)"]);
+const transferAbi = parseAbi([
+  "function transferFrom(address from, address to, uint256 id)",
+  "function ownerOf(uint256 id) view returns (address)",
+]);
 
 /** Puts a circuit the owner holds (a season keepsake, say) into the pet's home. */
-export async function moveIntoHome(pub: PublicClient, wallet: WalletClient, processor: Address, circuit: bigint, home: Home): Promise<Hex> {
+export async function moveIntoHome(
+  pub: PublicClient,
+  wallet: WalletClient,
+  processor: Address,
+  circuit: bigint,
+  home: Home,
+): Promise<Hex> {
   if (!home.opened) throw new HomeError("notOpened", "open the home first");
   if (circuit === home.circuit) throw new HomeError("damaged", "a home cannot hold its own deed");
   const me = wallet.account!.address;
   // a circuit that does not exist has no holder, which is the same answer: not yours to move
-  const holder = (await pub.readContract({ address: processor, abi: transferAbi, functionName: "ownerOf", args: [circuit] }).catch(() => null)) as Address | null;
-  if (!holder || holder.toLowerCase() !== me.toLowerCase()) throw new HomeError("notHolder", "you do not hold that circuit");
-  const sim = await pub.simulateContract({ address: processor, abi: transferAbi, functionName: "transferFrom", args: [me, home.container, circuit], account: wallet.account! });
+  const holder = (await pub
+    .readContract({ address: processor, abi: transferAbi, functionName: "ownerOf", args: [circuit] })
+    .catch(() => null)) as Address | null;
+  if (!holder || holder.toLowerCase() !== me.toLowerCase())
+    throw new HomeError("notHolder", "you do not hold that circuit");
+  const sim = await pub.simulateContract({
+    address: processor,
+    abi: transferAbi,
+    functionName: "transferFrom",
+    args: [me, home.container, circuit],
+    account: wallet.account!,
+  });
   const tx = await wallet.writeContract(sim.request);
   await pub.waitForTransactionReceipt({ hash: tx });
-  const after = (await pub.readContract({ address: processor, abi: transferAbi, functionName: "ownerOf", args: [circuit] })) as Address;
-  if (after.toLowerCase() !== home.container.toLowerCase()) throw new HomeError("damaged", "the circuit did not arrive");
+  const after = (await pub.readContract({
+    address: processor,
+    abi: transferAbi,
+    functionName: "ownerOf",
+    args: [circuit],
+  })) as Address;
+  if (after.toLowerCase() !== home.container.toLowerCase())
+    throw new HomeError("damaged", "the circuit did not arrive");
   return tx;
 }
 
@@ -231,7 +400,11 @@ export async function lettersStatus(pub: PublicClient, processor: Address): Prom
   if (!HUB_IMPLEMENTATIONS_XLAYER.includes(impl)) return "hub";
   let pinned: Hex;
   try {
-    pinned = (await pub.readContract({ address: impl, abi: parseAbi(["function circuitCodehash() view returns (bytes32)"]), functionName: "circuitCodehash" })) as Hex;
+    pinned = (await pub.readContract({
+      address: impl,
+      abi: parseAbi(["function circuitCodehash() view returns (bytes32)"]),
+      functionName: "circuitCodehash",
+    })) as Hex;
   } catch {
     return "hub";
   }
@@ -239,8 +412,13 @@ export async function lettersStatus(pub: PublicClient, processor: Address): Prom
   return code && keccak256(code) === pinned ? "open" : "processor";
 }
 
-const outfitAbi = parseAbi(["function safeTransferFrom(address from, address to, uint256 id, uint256 value, bytes data)", "function balanceOf(address who, uint256 id) view returns (uint256)"]);
-const accountAbi = parseAbi(["function execute(address to, uint256 value, bytes data, uint8 operation) payable returns (bytes)"]);
+const outfitAbi = parseAbi([
+  "function safeTransferFrom(address from, address to, uint256 id, uint256 value, bytes data)",
+  "function balanceOf(address who, uint256 id) view returns (uint256)",
+]);
+const accountAbi = parseAbi([
+  "function execute(address to, uint256 value, bytes data, uint8 operation) payable returns (bytes)",
+]);
 /** TapeOut's container reverts `ProtocolFeeTooLow(paid, required)` when `execute` is sent without its fee. */
 const FEE_TOO_LOW = "0xafd49700";
 
@@ -258,7 +436,12 @@ export async function homeCallFee(pub: PublicClient, home: Home): Promise<bigint
     let raw = "";
     for (let err: unknown = e; err && !raw; err = (err as { cause?: unknown }).cause) {
       const d = (err as { data?: unknown }).data;
-      const hex = typeof d === "string" ? d : typeof (d as { data?: unknown })?.data === "string" ? (d as { data: string }).data : "";
+      const hex =
+        typeof d === "string"
+          ? d
+          : typeof (d as { data?: unknown })?.data === "string"
+            ? (d as { data: string }).data
+            : "";
       if (hex.toLowerCase().startsWith(FEE_TOO_LOW)) raw = hex;
     }
     const m = new RegExp(`^${FEE_TOO_LOW}([0-9a-f]{64})([0-9a-f]{64})`, "i").exec(raw);
@@ -268,33 +451,93 @@ export async function homeCallFee(pub: PublicClient, home: Home): Promise<bigint
 }
 
 /** Puts an outfit the owner holds (one copy) into the pet's home; it stays wearable from there. */
-export async function keepOutfitAtHome(pub: PublicClient, wallet: WalletClient, market: Address, id: bigint, home: Home): Promise<Hex> {
+export async function keepOutfitAtHome(
+  pub: PublicClient,
+  wallet: WalletClient,
+  market: Address,
+  id: bigint,
+  home: Home,
+): Promise<Hex> {
   if (!home.opened) throw new HomeError("notOpened", "open the home first");
   const me = wallet.account!.address;
-  const held = (await pub.readContract({ address: market, abi: outfitAbi, functionName: "balanceOf", args: [me, id] })) as bigint;
+  const held = (await pub.readContract({
+    address: market,
+    abi: outfitAbi,
+    functionName: "balanceOf",
+    args: [me, id],
+  })) as bigint;
   if (held === 0n) throw new HomeError("notHolder", "you do not hold a copy of that outfit");
-  const before = (await pub.readContract({ address: market, abi: outfitAbi, functionName: "balanceOf", args: [home.container, id] })) as bigint;
-  const sim = await pub.simulateContract({ address: market, abi: outfitAbi, functionName: "safeTransferFrom", args: [me, home.container, id, 1n, "0x"], account: wallet.account! });
+  const before = (await pub.readContract({
+    address: market,
+    abi: outfitAbi,
+    functionName: "balanceOf",
+    args: [home.container, id],
+  })) as bigint;
+  const sim = await pub.simulateContract({
+    address: market,
+    abi: outfitAbi,
+    functionName: "safeTransferFrom",
+    args: [me, home.container, id, 1n, "0x"],
+    account: wallet.account!,
+  });
   const tx = await wallet.writeContract(sim.request);
   await pub.waitForTransactionReceipt({ hash: tx });
-  const after = (await pub.readContract({ address: market, abi: outfitAbi, functionName: "balanceOf", args: [home.container, id] })) as bigint;
+  const after = (await pub.readContract({
+    address: market,
+    abi: outfitAbi,
+    functionName: "balanceOf",
+    args: [home.container, id],
+  })) as bigint;
   if (after !== before + 1n) throw new HomeError("damaged", "the outfit did not arrive");
   return tx;
 }
 
 /** Takes one copy of an outfit back out of the home to the deed's holder, paying TapeOut's call fee. */
-export async function takeOutfitFromHome(pub: PublicClient, wallet: WalletClient, market: Address, id: bigint, home: Home): Promise<Hex> {
+export async function takeOutfitFromHome(
+  pub: PublicClient,
+  wallet: WalletClient,
+  market: Address,
+  id: bigint,
+  home: Home,
+): Promise<Hex> {
   const me = wallet.account!.address;
-  if (home.holder.toLowerCase() !== me.toLowerCase()) throw new HomeError("notHolder", "only the deed's holder speaks for the home");
-  const inside = (await pub.readContract({ address: market, abi: outfitAbi, functionName: "balanceOf", args: [home.container, id] })) as bigint;
+  if (home.holder.toLowerCase() !== me.toLowerCase())
+    throw new HomeError("notHolder", "only the deed's holder speaks for the home");
+  const inside = (await pub.readContract({
+    address: market,
+    abi: outfitAbi,
+    functionName: "balanceOf",
+    args: [home.container, id],
+  })) as bigint;
   if (inside === 0n) throw new HomeError("notHolder", "that outfit is not in the home");
-  const before = (await pub.readContract({ address: market, abi: outfitAbi, functionName: "balanceOf", args: [me, id] })) as bigint;
+  const before = (await pub.readContract({
+    address: market,
+    abi: outfitAbi,
+    functionName: "balanceOf",
+    args: [me, id],
+  })) as bigint;
   const fee = await homeCallFee(pub, home);
-  const move = encodeFunctionData({ abi: outfitAbi, functionName: "safeTransferFrom", args: [home.container, me, id, 1n, "0x"] });
-  const sim = await pub.simulateContract({ address: home.container, abi: accountAbi, functionName: "execute", args: [market, 0n, move, 0], value: fee, account: wallet.account! });
+  const move = encodeFunctionData({
+    abi: outfitAbi,
+    functionName: "safeTransferFrom",
+    args: [home.container, me, id, 1n, "0x"],
+  });
+  const sim = await pub.simulateContract({
+    address: home.container,
+    abi: accountAbi,
+    functionName: "execute",
+    args: [market, 0n, move, 0],
+    value: fee,
+    account: wallet.account!,
+  });
   const tx = await wallet.writeContract(sim.request);
   await pub.waitForTransactionReceipt({ hash: tx });
-  const after = (await pub.readContract({ address: market, abi: outfitAbi, functionName: "balanceOf", args: [me, id] })) as bigint;
+  const after = (await pub.readContract({
+    address: market,
+    abi: outfitAbi,
+    functionName: "balanceOf",
+    args: [me, id],
+  })) as bigint;
   if (after !== before + 1n) throw new HomeError("damaged", "the outfit did not come back");
   return tx;
 }

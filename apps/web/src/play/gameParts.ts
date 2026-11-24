@@ -14,11 +14,13 @@ export interface GameParts {
 let loading: Promise<GameParts> | null = null;
 
 export function loadGame(): Promise<GameParts> {
-  loading ??= Promise.all([import("./PlayApp"), import("./Crash"), import("../game/store")]).then(([app, crash, store]) => ({
-    PlayApp: app.PlayApp,
-    CrashGuard: crash.CrashGuard,
-    useGame: store.useGame,
-  }));
+  loading ??= Promise.all([import("./PlayApp"), import("./Crash"), import("../game/store")]).then(
+    ([app, crash, store]) => ({
+      PlayApp: app.PlayApp,
+      CrashGuard: crash.CrashGuard,
+      useGame: store.useGame,
+    }),
+  );
   // a failed load is not remembered, so a later attempt (the player's next tap) asks again
   loading.catch(() => {
     loading = null;
@@ -32,7 +34,11 @@ export function loadGame(): Promise<GameParts> {
  * read from the address), and not inside Telegram, whose launch carries its own start data. Anything else starts the full
  * game at once, as before.
  */
-export function isFirstVisit(storage: Pick<Storage, "getItem"> | null, address: Pick<Location, "search" | "hash">, telegram: boolean): boolean {
+export function isFirstVisit(
+  storage: Pick<Storage, "getItem"> | null,
+  address: Pick<Location, "search" | "hash">,
+  telegram: boolean,
+): boolean {
   if (telegram || address.search || address.hash || !storage) return false;
   try {
     if (storage.getItem("lingxi.pet.v1")) return false;

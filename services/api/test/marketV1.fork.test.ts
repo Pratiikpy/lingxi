@@ -23,18 +23,38 @@ describe.skipIf(!RPC || !d?.outfitMarket)("a listing that came back on the OKB m
     const rpc = (m: string, p: unknown[]) => pub.request({ method: m as never, params: p as never });
     const [c, a, b] = [0, 1, 2].map(() => privateKeyToAccount(generatePrivateKey()));
     for (const x of [c, a, b]) await rpc("anvil_setBalance", [x!.address, "0x56BC75E2D63100000"]);
-    const [creator, alice, bob] = [c, a, b].map((account) => createWalletClient({ chain, transport: http(RPC), account }));
+    const [creator, alice, bob] = [c, a, b].map((account) =>
+      createWalletClient({ chain, transport: http(RPC), account }),
+    );
     const from = Number(await pub.getBlockNumber());
 
-    const drawing = { slot: "held" as const, cells: [[0, 1, 0], [1, 2, 1], [0, 3, 0], [0, 3, 0]], colours: ["#2b2140", "#ffc83d", "#7a5236"] };
-    const { id } = await publishDesign(pub, creator!, V1, { pixels: encodeDesign(drawing), name: "Moon staff", price: parseEther("0.001"), maxSupply: 50, royaltyBps: 0 });
+    const drawing = {
+      slot: "held" as const,
+      cells: [
+        [0, 1, 0],
+        [1, 2, 1],
+        [0, 3, 0],
+        [0, 3, 0],
+      ],
+      colours: ["#2b2140", "#ffc83d", "#7a5236"],
+    };
+    const { id } = await publishDesign(pub, creator!, V1, {
+      pixels: encodeDesign(drawing),
+      name: "Moon staff",
+      price: parseEther("0.001"),
+      maxSupply: 50,
+      royaltyBps: 0,
+    });
     await buyDesign(pub, alice!, V1, id, 1, parseEther("0.001"));
     const { listingId: cheap } = await listCopies(pub, alice!, V1, id, 1, parseEther("0.0001"));
     const { listingId: dear } = await listCopies(pub, alice!, V1, id, 1, parseEther("0.01"));
     await buyListing(pub, bob!, V1, dear, 1, parseEther("0.01"));
     // the cheap listing cannot be bought while Alice holds nothing; once she buys a copy for herself it is live again
     await buyDesign(pub, alice!, V1, id, 1, parseEther("0.001"));
-    expect((await readListings(pub, V1)).some((l) => l.id === cheap), "V1 would sell the forgotten listing").toBe(true);
+    expect(
+      (await readListings(pub, V1)).some((l) => l.id === cheap),
+      "V1 would sell the forgotten listing",
+    ).toBe(true);
 
     const watch = createListingWatch({ rpc: RPC!, market: V1.address, fromBlock: from, client: pub, paceMs: 0 });
     await watch.catchUp();

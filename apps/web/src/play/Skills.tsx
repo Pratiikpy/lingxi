@@ -7,7 +7,21 @@
 import { useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { create } from "zustand";
-import { type Growth, SKILLS, SKILL_BY_ID, type SkillDef, type Tree, TREES, canLevelUp, growthOf, levelCost, tierNeed, tierOpen, treePoints, upgradeRefusal } from "@lingxi/game";
+import {
+  type Growth,
+  SKILLS,
+  SKILL_BY_ID,
+  type SkillDef,
+  type Tree,
+  TREES,
+  canLevelUp,
+  growthOf,
+  levelCost,
+  tierNeed,
+  tierOpen,
+  treePoints,
+  upgradeRefusal,
+} from "@lingxi/game";
 import { ITEM } from "@lingxi/world";
 import { useLang } from "../i18n";
 import { play } from "../game/sound";
@@ -19,16 +33,37 @@ type Lang = "en" | "zh";
 /** The Fresh Start Tea (respec) in the bag. */
 export const FRESH_START_TEA = 11403;
 
-const TREE_NAME: Record<Tree, [string, string]> = { care: ["Care", "照顾"], mind: ["Mind", "心智"], explore: ["Explore", "探索"], spar: ["Spar", "切磋"] };
+const TREE_NAME: Record<Tree, [string, string]> = {
+  care: ["Care", "照顾"],
+  mind: ["Mind", "心智"],
+  explore: ["Explore", "探索"],
+  spar: ["Spar", "切磋"],
+};
 const TREE_SAYS: Record<Tree, [string, string]> = {
-  care: ["How it lives: slower needs, deeper sleep, more from food and play.", "它怎么过日子：需求变慢、睡得更香、吃和玩收获更多。"],
-  mind: ["How it thinks: more lessons, room for more gates, rules of its own.", "它怎么思考：装更多课、给更多门留空间、长出自己的规则。"],
+  care: [
+    "How it lives: slower needs, deeper sleep, more from food and play.",
+    "它怎么过日子：需求变慢、睡得更香、吃和玩收获更多。",
+  ],
+  mind: [
+    "How it thinks: more lessons, room for more gates, rules of its own.",
+    "它怎么思考：装更多课、给更多门留空间、长出自己的规则。",
+  ],
   explore: ["How it explores: cheaper walks, more and rarer finds.", "它怎么探索：走路更省力，找到的更多、更稀有。"],
-  spar: ["How it spars: power, health, stamina, guard and dodge, and the prize.", "它怎么切磋：力量、体力、耐力、防守、闪避，还有奖金。"],
+  spar: [
+    "How it spars: power, health, stamina, guard and dodge, and the prize.",
+    "它怎么切磋：力量、体力、耐力、防守、闪避，还有奖金。",
+  ],
 };
 
 /** The skills sheet is opened from the level chip, the level-up moment, the Pet sheet and the bag's Fresh Start Tea. */
-export const useSkillsUi = create<{ open: boolean; respec: boolean; show: (o?: { respec?: boolean }) => void; hide: () => void; celebrate: number | null; setCelebrate: (level: number | null) => void }>((set) => ({
+export const useSkillsUi = create<{
+  open: boolean;
+  respec: boolean;
+  show: (o?: { respec?: boolean }) => void;
+  hide: () => void;
+  celebrate: number | null;
+  setCelebrate: (level: number | null) => void;
+}>((set) => ({
   open: false,
   respec: false,
   show: (o) => set({ open: true, respec: !!o?.respec }),
@@ -54,9 +89,13 @@ function refusalText(g: Growth, s: SkillDef, lang: Lang): string | null {
     case "maxed":
       return zh ? "已经学满了。" : "Learned in full.";
     case "tier":
-      return zh ? `${tree}树里要先有 ${no.need} 点（现在 ${no.have}）。` : `Needs ${no.need} points in the ${tree} tree first (now ${no.have}).`;
+      return zh
+        ? `${tree}树里要先有 ${no.need} 点（现在 ${no.have}）。`
+        : `Needs ${no.need} points in the ${tree} tree first (now ${no.have}).`;
     case "excluded":
-      return zh ? `和「${SKILL_BY_ID[no.by!]!.name.zh}」二选一，已经选了那个。` : `One or the other with ${SKILL_BY_ID[no.by!]!.name.en}, which it already has.`;
+      return zh
+        ? `和「${SKILL_BY_ID[no.by!]!.name.zh}」二选一，已经选了那个。`
+        : `One or the other with ${SKILL_BY_ID[no.by!]!.name.en}, which it already has.`;
     case "points":
       return zh ? "没有技能点了。升级就会得到一点。" : "No skill points left. Each level gives one.";
     default:
@@ -68,7 +107,18 @@ function Node({ s, g, picked, onPick }: { s: SkillDef; g: Growth; picked: boolea
   const lang = useLang((x) => x.lang) as Lang;
   const have = g.skills[s.id] ?? 0;
   const no = upgradeRefusal(g, s.id);
-  const state = have >= s.max ? "full" : no?.reason === "tier" ? "locked" : no?.reason === "excluded" ? "excluded" : have > 0 ? "some" : no?.reason === "points" ? "waiting" : "open";
+  const state =
+    have >= s.max
+      ? "full"
+      : no?.reason === "tier"
+        ? "locked"
+        : no?.reason === "excluded"
+          ? "excluded"
+          : have > 0
+            ? "some"
+            : no?.reason === "points"
+              ? "waiting"
+              : "open";
   return (
     <button
       type="button"
@@ -109,10 +159,21 @@ export function SkillsPanel() {
       <div className="sk-head">
         <div className="sk-level">
           <b>{L(`Level ${g.level}`, `${g.level} 级`)}</b>
-          <span className="sk-xp" role="meter" aria-valuemin={0} aria-valuemax={need} aria-valuenow={Math.min(need, pet.xp)} aria-label={L("Experience to the next level", "距下一级的经验")}>
+          <span
+            className="sk-xp"
+            role="meter"
+            aria-valuemin={0}
+            aria-valuemax={need}
+            aria-valuenow={Math.min(need, pet.xp)}
+            aria-label={L("Experience to the next level", "距下一级的经验")}
+          >
             <i style={{ transform: `scaleX(${Math.min(1, pet.xp / need)})` }} />
           </span>
-          <span className="small">{ready ? L("Ready to level up!", "可以升级了！") : L(`${pet.xp} / ${need} XP to level ${g.level + 1}`, `${pet.xp} / ${need} 经验升到 ${g.level + 1} 级`)}</span>
+          <span className="small">
+            {ready
+              ? L("Ready to level up!", "可以升级了！")
+              : L(`${pet.xp} / ${need} XP to level ${g.level + 1}`, `${pet.xp} / ${need} 经验升到 ${g.level + 1} 级`)}
+          </span>
         </div>
         <div className="sk-points">
           <b>{g.points}</b>
@@ -127,7 +188,14 @@ export function SkillsPanel() {
 
       <div className="sk-tabs" role="tablist">
         {TREES.map((t) => (
-          <button key={t} type="button" role="tab" aria-selected={tree === t} className={`sk-tab sk-t-${t}${tree === t ? " on" : ""}`} onClick={() => (play("tap"), setTree(t), setPick(SKILLS.find((x) => x.tree === t && x.tier === 1)!.id))}>
+          <button
+            key={t}
+            type="button"
+            role="tab"
+            aria-selected={tree === t}
+            className={`sk-tab sk-t-${t}${tree === t ? " on" : ""}`}
+            onClick={() => (play("tap"), setTree(t), setPick(SKILLS.find((x) => x.tree === t && x.tier === 1)!.id))}
+          >
             {TREE_NAME[t][lang === "zh" ? 1 : 0]}
             <small>{treePoints(g, t)}</small>
           </button>
@@ -160,8 +228,19 @@ export function SkillsPanel() {
           </span>
         </div>
         <p>{s.desc[lang]}</p>
-        {s.max === 1 && <p className="small sk-note">{L("A capstone: only one of the three in this row.", "顶级技能：这一排三个只能选一个。")}</p>}
-        {s.rule && <p className="small sk-note">{L("It joins the pet's circuit; save its brain on X Layer and the chain carries it too.", "它会加进宠物的电路；在 X Layer 上保存大脑，链上也会带着它。")}</p>}
+        {s.max === 1 && (
+          <p className="small sk-note">
+            {L("A capstone: only one of the three in this row.", "顶级技能：这一排三个只能选一个。")}
+          </p>
+        )}
+        {s.rule && (
+          <p className="small sk-note">
+            {L(
+              "It joins the pet's circuit; save its brain on X Layer and the chain carries it too.",
+              "它会加进宠物的电路；在 X Layer 上保存大脑，链上也会带着它。",
+            )}
+          </p>
+        )}
         {reason ? (
           <p className="small sk-why">{reason}</p>
         ) : (
@@ -183,8 +262,14 @@ export function SkillsPanel() {
           <b>{ITEM[FRESH_START_TEA]?.name[lang]}</b>
           <span className="small">
             {teas
-              ? L(`${teas} in the bag. Drinking one forgets every skill; all ${spent} points come back.`, `包里有 ${teas} 杯。喝一杯就会忘掉所有技能，${spent} 点全部回来。`)
-              : L("Brew one at the workbench (an old bottle and mint leaves) to choose again.", "在工作台泡一杯（旧瓶子加薄荷叶），就能重新选择。")}
+              ? L(
+                  `${teas} in the bag. Drinking one forgets every skill; all ${spent} points come back.`,
+                  `包里有 ${teas} 杯。喝一杯就会忘掉所有技能，${spent} 点全部回来。`,
+                )
+              : L(
+                  "Brew one at the workbench (an old bottle and mint leaves) to choose again.",
+                  "在工作台泡一杯（旧瓶子加薄荷叶），就能重新选择。",
+                )}
           </span>
         </div>
         {teas > 0 && spent > 0 && !confirm && (
@@ -194,7 +279,9 @@ export function SkillsPanel() {
         )}
         {confirm && teas > 0 && spent > 0 && (
           <div className="sk-confirm" role="alertdialog" aria-label={L("Forget every skill?", "忘掉所有技能？")}>
-            <span>{L(`Forget every skill? All ${spent} points come back.`, `忘掉所有技能？${spent} 点全部回来。`)}</span>
+            <span>
+              {L(`Forget every skill? All ${spent} points come back.`, `忘掉所有技能？${spent} 点全部回来。`)}
+            </span>
             <button
               type="button"
               className="btn primary"
@@ -228,8 +315,21 @@ export function LevelUpMoment() {
   return (
     <AnimatePresence>
       {celebrate !== null && pet && (
-        <motion.div className="fam-modal sk-moment" role="dialog" aria-modal="true" aria-label={L(`Level ${celebrate}`, `${celebrate} 级`)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-          <motion.div className="fam-card sk-moment-card" initial={reduce ? { opacity: 0 } : { scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 260, damping: 18 }}>
+        <motion.div
+          className="fam-modal sk-moment"
+          role="dialog"
+          aria-modal="true"
+          aria-label={L(`Level ${celebrate}`, `${celebrate} 级`)}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <motion.div
+            className="fam-card sk-moment-card"
+            initial={reduce ? { opacity: 0 } : { scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 260, damping: 18 }}
+          >
             <div className="sk-burst" aria-hidden="true">
               {Array.from({ length: 10 }, (_, i) => (
                 <i key={i} style={{ ["--a" as string]: `${i * 36}deg` }} />

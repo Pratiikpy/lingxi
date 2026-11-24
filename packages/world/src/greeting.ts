@@ -19,7 +19,11 @@ export interface GreetingNow {
 const GIFT_CODE = { love: 1, like: 1, neutral: 2, dislike: 3 } as const;
 
 /** What the circuit reads for a resident: the hour, trust, today's gift, the pet and whether a quest of theirs is ready. */
-export function folkViewOf(w: WorldState, id: string, at: { hour: number; day: string; petHappy: boolean; petHungry: boolean; questReady: boolean }): FolkView {
+export function folkViewOf(
+  w: WorldState,
+  id: string,
+  at: { hour: number; day: string; petHappy: boolean; petHungry: boolean; questReady: boolean },
+): FolkView {
   const g = friendsOf(w).lastGift?.[id];
   return {
     timeOfDay: timeOfDay(at.hour),

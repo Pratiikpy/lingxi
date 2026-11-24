@@ -45,7 +45,16 @@ export async function readOutsideCircuit(pub: PublicClient, processor: Address, 
   const registered = new Map<string, boolean>();
   const isCPU = async (cpu: string) => {
     const k = cpu.toLowerCase();
-    if (!registered.has(k)) registered.set(k, (await pub.readContract({ address: FACTORY, abi: factoryAbi, functionName: "isCPU", args: [cpu as Address] })) as boolean);
+    if (!registered.has(k))
+      registered.set(
+        k,
+        (await pub.readContract({
+          address: FACTORY,
+          abi: factoryAbi,
+          functionName: "isCPU",
+          args: [cpu as Address],
+        })) as boolean,
+      );
     return registered.get(k)!;
   };
   if (!(await isCPU(processor))) throw new AdoptError("notProcessor");
@@ -62,22 +71,39 @@ export async function readOutsideCircuit(pub: PublicClient, processor: Address, 
     let info: readonly [bigint, bigint, bigint, bigint];
     let bytes: `0x${string}`;
     try {
-      info = (await pub.readContract({ address: cpu as Address, abi: processorAbi, functionName: "circuitInfo", args: [cid] })) as readonly [bigint, bigint, bigint, bigint];
-      bytes = (await pub.readContract({ address: cpu as Address, abi: processorAbi, functionName: "netlist", args: [cid] })) as `0x${string}`;
+      info = (await pub.readContract({
+        address: cpu as Address,
+        abi: processorAbi,
+        functionName: "circuitInfo",
+        args: [cid],
+      })) as readonly [bigint, bigint, bigint, bigint];
+      bytes = (await pub.readContract({
+        address: cpu as Address,
+        abi: processorAbi,
+        functionName: "netlist",
+        args: [cid],
+      })) as `0x${string}`;
     } catch {
       throw new AdoptError("noCircuit");
     }
     if (info[3] > BigInt(ADOPT_MAX_GATES)) throw new AdoptError("tooBig");
     const data = fromHex(bytes);
     if (!data.length) throw new AdoptError("noCircuit");
-    parts.push({ processor: cpu.toLowerCase(), id: cid.toString(), nIn: Number(info[0]), nOut: Number(info[1]), hex: toHex(data) });
+    parts.push({
+      processor: cpu.toLowerCase(),
+      id: cid.toString(),
+      nIn: Number(info[0]),
+      nOut: Number(info[1]),
+      hex: toHex(data),
+    });
     let els;
     try {
       els = decode(data, Number(info[0]));
     } catch {
       throw new AdoptError("illFormed");
     }
-    for (const e of els) if ("cpu" in e && e.cpu && e.id !== undefined) await fetchPart(e.cpu as string, e.id as bigint, depth + 1);
+    for (const e of els)
+      if ("cpu" in e && e.cpu && e.id !== undefined) await fetchPart(e.cpu as string, e.id as bigint, depth + 1);
   };
   await fetchPart(processor, id, 0);
 
@@ -88,6 +114,17 @@ export async function readOutsideCircuit(pub: PublicClient, processor: Address, 
     throw new AdoptError("illFormed");
   }
   if (circuit.nGates > ADOPT_MAX_GATES) throw new AdoptError("tooBig");
-  const owner = (await pub.readContract({ address: processor, abi: processorAbi, functionName: "ownerOf", args: [id] }).catch(() => "")) as string;
-  return { processor: processor.toLowerCase(), id: id.toString(), owner, nIn: circuit.nIn, nOut: circuit.nOut, nState: circuit.nState, gates: circuit.nGates, parts };
+  const owner = (await pub
+    .readContract({ address: processor, abi: processorAbi, functionName: "ownerOf", args: [id] })
+    .catch(() => "")) as string;
+  return {
+    processor: processor.toLowerCase(),
+    id: id.toString(),
+    owner,
+    nIn: circuit.nIn,
+    nOut: circuit.nOut,
+    nState: circuit.nState,
+    gates: circuit.nGates,
+    parts,
+  };
 }

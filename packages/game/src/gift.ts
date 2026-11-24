@@ -27,7 +27,13 @@ export interface Gift {
   at: number;
 }
 
-const clean = (s: unknown, max: number) => (typeof s === "string" ? s.replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, max) : "");
+const clean = (s: unknown, max: number) =>
+  typeof s === "string"
+    ? s
+        .replace(/[\u0000-\u001f\u007f]/g, " ")
+        .trim()
+        .slice(0, max)
+    : "";
 
 export function encodeGift(g: Gift): string {
   return PREFIX + b64urlEncode(JSON.stringify(g));
@@ -82,7 +88,8 @@ export function decodeGift(code: string): Gift {
   if (raw.egg !== undefined) {
     const egg = raw.egg as Record<string, unknown>;
     const line = LINES.find((l) => l === egg.line);
-    if (!line || !Array.isArray(egg.lessons) || egg.lessons.length > EGG_LESSONS) throw new GiftError("the egg is damaged");
+    if (!line || !Array.isArray(egg.lessons) || egg.lessons.length > EGG_LESSONS)
+      throw new GiftError("the egg is damaged");
     let gates: number;
     try {
       // whoever hatches it picks its instincts then, so the egg must fit with all four switched on
@@ -95,7 +102,14 @@ export function decodeGift(code: string): Gift {
   }
   if (raw.item !== undefined) {
     const item = raw.item as Record<string, unknown>;
-    if (!Number.isInteger(item.id) || !Number.isInteger(item.n) || (item.id as number) < 0 || (item.id as number) > 100_000 || (item.n as number) < 1 || (item.n as number) > 5) {
+    if (
+      !Number.isInteger(item.id) ||
+      !Number.isInteger(item.n) ||
+      (item.id as number) < 0 ||
+      (item.id as number) > 100_000 ||
+      (item.n as number) < 1 ||
+      (item.n as number) > 5
+    ) {
       throw new GiftError("the item is damaged");
     }
     gift.item = { id: item.id as number, n: item.n as number };
@@ -107,5 +121,7 @@ export function decodeGift(code: string): Gift {
 export function newGiftId(): string {
   const bytes = new Uint8Array(10);
   crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => b.toString(36).padStart(2, "0")).join("").slice(0, 16);
+  return Array.from(bytes, (b) => b.toString(36).padStart(2, "0"))
+    .join("")
+    .slice(0, 16);
 }

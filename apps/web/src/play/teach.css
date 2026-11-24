@@ -104,7 +104,9 @@
   font-size: 14px;
   text-align: left;
   cursor: pointer;
-  transition: background var(--t-std) var(--ease), transform var(--t-micro) var(--ease);
+  transition:
+    background var(--t-std) var(--ease),
+    transform var(--t-micro) var(--ease);
 }
 .say:hover {
   background: var(--band);
@@ -140,7 +142,9 @@
   font-size: 14px;
   cursor: pointer;
   box-shadow: 0 3px 0 var(--line);
-  transition: transform var(--t-micro) var(--ease), box-shadow var(--t-micro) var(--ease);
+  transition:
+    transform var(--t-micro) var(--ease),
+    box-shadow var(--t-micro) var(--ease);
   white-space: nowrap;
 }
 .btn:active {
@@ -398,7 +402,9 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background var(--t-std) var(--ease), transform var(--t-micro) var(--ease);
+  transition:
+    background var(--t-std) var(--ease),
+    transform var(--t-micro) var(--ease);
 }
 .level-head:hover:not(:disabled) {
   background: var(--band);

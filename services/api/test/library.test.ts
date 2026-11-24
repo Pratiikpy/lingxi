@@ -9,7 +9,15 @@ const other = PET_SCHOOL[1]!.rule;
 
 describe("the lesson library", () => {
   it("treats the same rule written in any order as one lesson", () => {
-    const shuffled = { ...share, when: Object.fromEntries(Object.entries(share.when).reverse().map(([k, v]) => [k, [...v].reverse()])), label: "different words" };
+    const shuffled = {
+      ...share,
+      when: Object.fromEntries(
+        Object.entries(share.when)
+          .reverse()
+          .map(([k, v]) => [k, [...v].reverse()]),
+      ),
+      label: "different words",
+    };
     expect(lessonKey(shuffled)).toBe(lessonKey(share));
     expect(lessonKey(other)).not.toBe(lessonKey(share));
   });
@@ -29,7 +37,10 @@ describe("the lesson library", () => {
 
   it("refuses rules no pet can hold and names that aren't safe to show", () => {
     const lib = createLibrary();
-    expect(lib.share({ when: { nope: [1] }, then: { want: 1, mood: 1 } } as never, "Bao", "ip", 1)).toEqual({ ok: false, reason: "invalid" });
+    expect(lib.share({ when: { nope: [1] }, then: { want: 1, mood: 1 } } as never, "Bao", "ip", 1)).toEqual({
+      ok: false,
+      reason: "invalid",
+    });
     expect(lib.share(share, "<script>", "ip", 1)).toEqual({ ok: false, reason: "name" });
     expect(cleanAuthor("Bo​b")).toBeNull();
     expect(cleanAuthor("包子")).toBe("包子");
@@ -60,9 +71,16 @@ describe("the lesson library", () => {
 
   it("serves it over HTTP with validation", async () => {
     const app = withLibrary(new Hono(), createLibrary());
-    const post = (path: string, body: unknown) => app.request(path, { method: "POST", headers: { "content-type": "application/json", "x-forwarded-for": "1.2.3.4" }, body: JSON.stringify(body) });
+    const post = (path: string, body: unknown) =>
+      app.request(path, {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-forwarded-for": "1.2.3.4" },
+        body: JSON.stringify(body),
+      });
     expect((await post("/api/lessons/share", { rule: share, by: "Bao" })).status).toBe(200);
-    expect((await post("/api/lessons/share", { rule: { when: {}, then: { want: 99, mood: 1 } }, by: "Bao" })).status).toBe(400);
+    expect(
+      (await post("/api/lessons/share", { rule: { when: {}, then: { want: 99, mood: 1 } }, by: "Bao" })).status,
+    ).toBe(400);
     expect((await post("/api/lessons/use", { key: "nothex" })).status).toBe(400);
     const list = (await (await app.request("/api/lessons")).json()) as { lessons: Array<{ by: string; uses: number }> };
     expect(list.lessons).toEqual([expect.objectContaining({ by: "Bao", uses: 1 })]);

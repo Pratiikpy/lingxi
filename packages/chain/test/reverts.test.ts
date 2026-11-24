@@ -10,7 +10,9 @@ import { revertName } from "../src/reverts";
 
 const reverted = (errorName: string, args: readonly unknown[]) => {
   const data = encodeErrorResult({ abi: breederV2Abi, errorName: errorName as never, args: args as never });
-  return new BaseError('The contract function "breed" reverted.', { cause: new ContractFunctionRevertedError({ abi: breederV2Abi, data, functionName: "breed" }) });
+  return new BaseError('The contract function "breed" reverted.', {
+    cause: new ContractFunctionRevertedError({ abi: breederV2Abi, data, functionName: "breed" }),
+  });
 };
 
 describe("the contract's own reason for a refusal (A19)", () => {
@@ -22,10 +24,17 @@ describe("the contract's own reason for a refusal (A19)", () => {
   });
 
   it("is read from a wallet's own message, by name on any line or by the error's selector", () => {
-    expect(revertName(new Error("execution reverted\nreason: TooManyChildren(7)"), breederV2Abi)).toBe("TooManyChildren");
+    expect(revertName(new Error("execution reverted\nreason: TooManyChildren(7)"), breederV2Abi)).toBe(
+      "TooManyChildren",
+    );
     const selector = toFunctionSelector("NoConsent()");
     expect(revertName(new Error(`execution reverted: ${selector}`), breederV2Abi)).toBe("NoConsent");
-    expect(revertName({ message: "failed", data: `${toFunctionSelector("FeeMoved(uint256)")}${"00".repeat(32)}` }, breederV2Abi)).toBe("FeeMoved");
+    expect(
+      revertName(
+        { message: "failed", data: `${toFunctionSelector("FeeMoved(uint256)")}${"00".repeat(32)}` },
+        breederV2Abi,
+      ),
+    ).toBe("FeeMoved");
   });
 
   it("is null for a failure that is not the contract's, or a name the contract does not have", () => {

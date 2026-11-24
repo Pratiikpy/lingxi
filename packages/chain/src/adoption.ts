@@ -41,35 +41,83 @@ const centreOf = (d: Deployment): Address => {
 
 export async function adoptionTerms(pub: PublicClient, d: Deployment): Promise<AdoptionTerms> {
   const c = centreOf(d);
-  const read = (functionName: "feeBps" | "COPARENT_BPS" | "YOUNG_AGE" | "MIN_PRICE" | "MAX_PRICE") => pub.readContract({ address: c, abi: adoptionCentreAbi, functionName });
-  const [fee, co, young, min, max] = await Promise.all([read("feeBps"), read("COPARENT_BPS"), read("YOUNG_AGE"), read("MIN_PRICE"), read("MAX_PRICE")]);
-  return { feeBps: Number(fee), coParentBps: Number(co), youngAge: Number(young), minPrice: BigInt(min as bigint), maxPrice: BigInt(max as bigint) };
+  const read = (functionName: "feeBps" | "COPARENT_BPS" | "YOUNG_AGE" | "MIN_PRICE" | "MAX_PRICE") =>
+    pub.readContract({ address: c, abi: adoptionCentreAbi, functionName });
+  const [fee, co, young, min, max] = await Promise.all([
+    read("feeBps"),
+    read("COPARENT_BPS"),
+    read("YOUNG_AGE"),
+    read("MIN_PRICE"),
+    read("MAX_PRICE"),
+  ]);
+  return {
+    feeBps: Number(fee),
+    coParentBps: Number(co),
+    youngAge: Number(young),
+    minPrice: BigInt(min as bigint),
+    maxPrice: BigInt(max as bigint),
+  };
 }
 
 /** Every offer the centre holds, newest pets first, with whether it can be adopted now. */
 export async function readOffers(pub: PublicClient, d: Deployment): Promise<Offer[]> {
   const c = centreOf(d);
-  const ids = (await pub.readContract({ address: c, abi: adoptionCentreAbi, functionName: "open" })) as readonly bigint[];
+  const ids = (await pub.readContract({
+    address: c,
+    abi: adoptionCentreAbi,
+    functionName: "open",
+  })) as readonly bigint[];
   const offers = await Promise.all(
     ids.map(async (petId) => {
       const [row, live, pet] = await Promise.all([
-        pub.readContract({ address: c, abi: adoptionCentreAbi, functionName: "listings", args: [petId] }) as Promise<readonly [Address, bigint, bigint, Hex]>,
-        pub.readContract({ address: c, abi: adoptionCentreAbi, functionName: "isLive", args: [petId] }) as Promise<boolean>,
+        pub.readContract({ address: c, abi: adoptionCentreAbi, functionName: "listings", args: [petId] }) as Promise<
+          readonly [Address, bigint, bigint, Hex]
+        >,
+        pub.readContract({
+          address: c,
+          abi: adoptionCentreAbi,
+          functionName: "isLive",
+          args: [petId],
+        }) as Promise<boolean>,
         readPet(pub, d, petId),
       ]);
       const [seller, price, expiresAt] = row;
-      const co = (await pub.readContract({ address: c, abi: adoptionCentreAbi, functionName: "coParentOf", args: [petId, seller] })) as Address;
-      return { petId, seller, price: BigInt(price), expiresAt: Number(expiresAt), live, pet, coParent: co === ZERO ? null : co };
+      const co = (await pub.readContract({
+        address: c,
+        abi: adoptionCentreAbi,
+        functionName: "coParentOf",
+        args: [petId, seller],
+      })) as Address;
+      return {
+        petId,
+        seller,
+        price: BigInt(price),
+        expiresAt: Number(expiresAt),
+        live,
+        pet,
+        coParent: co === ZERO ? null : co,
+      };
     }),
   );
   return offers.filter((o) => o.seller !== ZERO).sort((a, b) => Number(b.petId - a.petId));
 }
 
 /** Can this pet be offered now: bred, never moved, young, and the wallet's. Returns the reason it cannot. */
-export async function offerable(pub: PublicClient, d: Deployment, petId: bigint, who: Address, nowSec: number): Promise<"ok" | "notYours" | "notBred" | "moved" | "grown"> {
+export async function offerable(
+  pub: PublicClient,
+  d: Deployment,
+  petId: bigint,
+  who: Address,
+  nowSec: number,
+): Promise<"ok" | "notYours" | "notBred" | "moved" | "grown"> {
   const [pet, moved, terms] = await Promise.all([
     readPet(pub, d, petId),
-    pub.readContract({ address: d.registry, abi: petRegistryAbi, functionName: "transferCount", args: [petId] }) as Promise<bigint>,
+    pub.readContract({
+      address: d.registry,
+      abi: petRegistryAbi,
+      functionName: "transferCount",
+      args: [petId],
+    }) as Promise<bigint>,
     adoptionTerms(pub, d),
   ]);
   if (pet.owner.toLowerCase() !== who.toLowerCase()) return "notYours";
@@ -80,29 +128,72 @@ export async function offerable(pub: PublicClient, d: Deployment, petId: bigint,
 }
 
 /** Offer a little one: allow the centre to move this one pet, then list it. */
-export async function offerChild(pub: PublicClient, wallet: WalletClient, d: Deployment, petId: bigint, price: bigint, expiresAt: number): Promise<Hex> {
+export async function offerChild(
+  pub: PublicClient,
+  wallet: WalletClient,
+  d: Deployment,
+  petId: bigint,
+  price: bigint,
+  expiresAt: number,
+): Promise<Hex> {
   const c = centreOf(d);
-  const approved = (await pub.readContract({ address: d.registry, abi: petRegistryAbi, functionName: "getApproved", args: [petId] })) as Address;
+  const approved = (await pub.readContract({
+    address: d.registry,
+    abi: petRegistryAbi,
+    functionName: "getApproved",
+    args: [petId],
+  })) as Address;
   if (approved.toLowerCase() !== c.toLowerCase()) {
-    const { request } = await pub.simulateContract({ address: d.registry, abi: petRegistryAbi, functionName: "approve", args: [c, petId], account: acct(wallet) });
+    const { request } = await pub.simulateContract({
+      address: d.registry,
+      abi: petRegistryAbi,
+      functionName: "approve",
+      args: [c, petId],
+      account: acct(wallet),
+    });
     const a = await wallet.writeContract(request);
-    if ((await pub.waitForTransactionReceipt({ hash: a })).status !== "success") throw new RevertedOnChain("approve", a);
+    if ((await pub.waitForTransactionReceipt({ hash: a })).status !== "success")
+      throw new RevertedOnChain("approve", a);
   }
-  const { request } = await pub.simulateContract({ address: c, abi: adoptionCentreAbi, functionName: "list", args: [petId, price, BigInt(expiresAt)], account: acct(wallet) });
+  const { request } = await pub.simulateContract({
+    address: c,
+    abi: adoptionCentreAbi,
+    functionName: "list",
+    args: [petId, price, BigInt(expiresAt)],
+    account: acct(wallet),
+  });
   const tx = await wallet.writeContract(request);
   if ((await pub.waitForTransactionReceipt({ hash: tx })).status !== "success") throw new RevertedOnChain("list", tx);
   return tx;
 }
 
-export async function withdrawOffer(pub: PublicClient, wallet: WalletClient, d: Deployment, petId: bigint): Promise<Hex> {
-  const { request } = await pub.simulateContract({ address: centreOf(d), abi: adoptionCentreAbi, functionName: "withdraw", args: [petId], account: acct(wallet) });
+export async function withdrawOffer(
+  pub: PublicClient,
+  wallet: WalletClient,
+  d: Deployment,
+  petId: bigint,
+): Promise<Hex> {
+  const { request } = await pub.simulateContract({
+    address: centreOf(d),
+    abi: adoptionCentreAbi,
+    functionName: "withdraw",
+    args: [petId],
+    account: acct(wallet),
+  });
   const tx = await wallet.writeContract(request);
-  if ((await pub.waitForTransactionReceipt({ hash: tx })).status !== "success") throw new RevertedOnChain("withdraw", tx);
+  if ((await pub.waitForTransactionReceipt({ hash: tx })).status !== "success")
+    throw new RevertedOnChain("withdraw", tx);
   return tx;
 }
 
 /** Adopt at the price the buyer saw: approve exactly that much BEM if needed, then adopt. */
-export async function adoptChild(pub: PublicClient, wallet: WalletClient, d: Deployment, petId: bigint, price: bigint): Promise<Hex> {
+export async function adoptChild(
+  pub: PublicClient,
+  wallet: WalletClient,
+  d: Deployment,
+  petId: bigint,
+  price: bigint,
+): Promise<Hex> {
   const c = centreOf(d);
   const who = acct(wallet).address;
   const bem = (await pub.readContract({ address: c, abi: adoptionCentreAbi, functionName: "bem" })) as Address;
@@ -112,11 +203,24 @@ export async function adoptChild(pub: PublicClient, wallet: WalletClient, d: Dep
   ]);
   if (balance < price) throw new Error("notEnoughBem");
   if (allowance < price) {
-    const { request } = await pub.simulateContract({ address: bem, abi: erc20Abi, functionName: "approve", args: [c, price], account: acct(wallet) });
+    const { request } = await pub.simulateContract({
+      address: bem,
+      abi: erc20Abi,
+      functionName: "approve",
+      args: [c, price],
+      account: acct(wallet),
+    });
     const a = await wallet.writeContract(request);
-    if ((await pub.waitForTransactionReceipt({ hash: a })).status !== "success") throw new RevertedOnChain("approve", a);
+    if ((await pub.waitForTransactionReceipt({ hash: a })).status !== "success")
+      throw new RevertedOnChain("approve", a);
   }
-  const { request } = await pub.simulateContract({ address: c, abi: adoptionCentreAbi, functionName: "adopt", args: [petId, price], account: acct(wallet) });
+  const { request } = await pub.simulateContract({
+    address: c,
+    abi: adoptionCentreAbi,
+    functionName: "adopt",
+    args: [petId, price],
+    account: acct(wallet),
+  });
   const tx = await wallet.writeContract(request);
   if ((await pub.waitForTransactionReceipt({ hash: tx })).status !== "success") throw new RevertedOnChain("adopt", tx);
   return tx;

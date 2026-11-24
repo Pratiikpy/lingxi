@@ -38,8 +38,16 @@ if (process.argv.includes("--remeasure")) {
   let text = readFileSync(file, "utf8");
   for (const [stage, rec] of Object.entries(DESIGNED)) {
     const lvl = STAGE_LEVEL[stage as DesignStage];
-    const wins = Number(strength(composeProgram(rec.counter.line, rec.counter.lessons), lvl, [{ name: `designed-${stage}`, program: rec.program, level: lvl }], TEST).toFixed(4));
-    if (wins < BEATABLE) throw new Error(`${stage}: its counter now wins ${wins}, under ${BEATABLE}; run a full search`);
+    const wins = Number(
+      strength(
+        composeProgram(rec.counter.line, rec.counter.lessons),
+        lvl,
+        [{ name: `designed-${stage}`, program: rec.program, level: lvl }],
+        TEST,
+      ).toFixed(4),
+    );
+    if (wins < BEATABLE)
+      throw new Error(`${stage}: its counter now wins ${wins}, under ${BEATABLE}; run a full search`);
     const old = `"wins":${rec.counter.wins}},"moves"`;
     if (!text.includes(old)) throw new Error(`${stage}: recorded counter not found`);
     text = text.replace(old, `"wins":${wins}},"moves"`);
@@ -51,7 +59,10 @@ if (process.argv.includes("--remeasure")) {
 }
 
 type Entry = { name: string; program: Program; level: number };
-const pool: Entry[] = [...PARTNERS.map((p) => ({ name: p.id, program: p.program, level: p.level })), ...LINES.map((l) => ({ name: `starter-${l}`, program: composeProgram(l, []), level: 0 }))];
+const pool: Entry[] = [
+  ...PARTNERS.map((p) => ({ name: p.id, program: p.program, level: p.level })),
+  ...LINES.map((l) => ({ name: `starter-${l}`, program: composeProgram(l, []), level: 0 })),
+];
 const starters = pool.slice();
 
 const out: string[] = [];
@@ -59,18 +70,47 @@ for (const stage of STAGES) {
   for (let attempt = 0; attempt < 6; attempt++) {
     const seed = 0x1a2b + STAGES.indexOf(stage) * 1000 + attempt;
     const t = Date.now();
-    const d = design({ stage, seed, generations: 50, population: 16, pool, trainSeeds: TRAIN, testSeeds: TEST, hallEvery: 10, style: STYLE[stage] });
+    const d = design({
+      stage,
+      seed,
+      generations: 50,
+      population: 16,
+      pool,
+      trainSeeds: TRAIN,
+      testSeeds: TEST,
+      hallEvery: 10,
+      style: STYLE[stage],
+    });
     // can a pet of this stage be taught to beat it?
     let counter = { line: "gentle" as (typeof LINES)[number], lessons: [] as Program["rules"], wins: 0 };
     for (const line of LINES) {
-      const c = design({ stage, seed: seed ^ 0x77, generations: 40, population: 16, pool: [{ name: "partner", program: d.program, level: STAGE_LEVEL[stage] }], trainSeeds: TRAIN, testSeeds: TEST, compose: (p) => composeProgram(line, p.rules), gates: MAX_GATES, rules: LESSON_CAPACITY[stage], level: STAGE_LEVEL[stage] });
+      const c = design({
+        stage,
+        seed: seed ^ 0x77,
+        generations: 40,
+        population: 16,
+        pool: [{ name: "partner", program: d.program, level: STAGE_LEVEL[stage] }],
+        trainSeeds: TRAIN,
+        testSeeds: TEST,
+        compose: (p) => composeProgram(line, p.rules),
+        gates: MAX_GATES,
+        rules: LESSON_CAPACITY[stage],
+        level: STAGE_LEVEL[stage],
+      });
       if (c.test > counter.wins) counter = { line, lessons: c.program.rules, wins: c.test };
     }
     const vsStarters = d.test;
     const moves = moveShares(d.program, STAGE_LEVEL[stage], starters, TEST.slice(0, 8));
-    process.stdout.write(`${stage} seed ${seed}: ${d.gates} gates, ${d.program.rules.length} rules, train ${d.train.toFixed(3)}, test ${vsStarters.toFixed(3)}, beatable ${counter.wins.toFixed(3)} (${counter.line}, ${counter.lessons.length} lessons), moves ${moves.slice(0, 3).map(([m, s]) => `${m} ${(s * 100).toFixed(0)}%`).join(" ")} [${Date.now() - t} ms]\n`);
+    process.stdout.write(
+      `${stage} seed ${seed}: ${d.gates} gates, ${d.program.rules.length} rules, train ${d.train.toFixed(3)}, test ${vsStarters.toFixed(3)}, beatable ${counter.wins.toFixed(3)} (${counter.line}, ${counter.lessons.length} lessons), moves ${moves
+        .slice(0, 3)
+        .map(([m, s]) => `${m} ${(s * 100).toFixed(0)}%`)
+        .join(" ")} [${Date.now() - t} ms]\n`,
+    );
     if (counter.wins < BEATABLE) continue;
-    out.push(`  ${stage}: ${JSON.stringify({ seed, style: STYLE[stage], generations: d.generations, hall: d.hall, gates: d.gates, train: Number(d.train.toFixed(4)), test: Number(d.test.toFixed(4)), program: d.program, counter: { line: counter.line, lessons: counter.lessons, wins: Number(counter.wins.toFixed(4)) }, moves: moves.map(([m, s]) => [m, Number(s.toFixed(3))]) })},`);
+    out.push(
+      `  ${stage}: ${JSON.stringify({ seed, style: STYLE[stage], generations: d.generations, hall: d.hall, gates: d.gates, train: Number(d.train.toFixed(4)), test: Number(d.test.toFixed(4)), program: d.program, counter: { line: counter.line, lessons: counter.lessons, wins: Number(counter.wins.toFixed(4)) }, moves: moves.map(([m, s]) => [m, Number(s.toFixed(3))]) })},`,
+    );
     pool.push({ name: `designed-${stage}`, program: d.program, level: STAGE_LEVEL[stage] });
     break;
   }

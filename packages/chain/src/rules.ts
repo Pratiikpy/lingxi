@@ -38,7 +38,12 @@ export const ruleGates = (rule: RuleCircuit): number => gateCount(ruleNetlist(ru
  * circuit on record; `differs` means the rule here is not the one taped out; `unreachable` means X Layer could not be
  * read, which says nothing either way.
  */
-export async function checkRules(pub: PublicClient, processor: Address, records: Readonly<Record<string, RuleRecord>>, rules: readonly RuleCircuit[] = RULES): Promise<RuleCheck[]> {
+export async function checkRules(
+  pub: PublicClient,
+  processor: Address,
+  records: Readonly<Record<string, RuleRecord>>,
+  rules: readonly RuleCircuit[] = RULES,
+): Promise<RuleCheck[]> {
   return Promise.all(
     rules.map(async (rule): Promise<RuleCheck> => {
       const rec = records[rule.name];
@@ -49,7 +54,12 @@ export async function checkRules(pub: PublicClient, processor: Address, records:
       if (!rec) return { name: rule.name, id: null, status: "missing", gates };
       const here = (bytesToHex(netlistBytes(netlist)) as Hex).toLowerCase();
       try {
-        const stored = (await pub.readContract({ address: processor, abi: processorAbi, functionName: "netlist", args: [BigInt(rec.id)] })) as Hex;
+        const stored = (await pub.readContract({
+          address: processor,
+          abi: processorAbi,
+          functionName: "netlist",
+          args: [BigInt(rec.id)],
+        })) as Hex;
         return { name: rule.name, id: rec.id, status: stored.toLowerCase() === here ? "match" : "differs", gates };
       } catch {
         return { name: rule.name, id: rec.id, status: "unreachable", gates };

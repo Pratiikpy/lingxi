@@ -40,10 +40,12 @@ export interface Partner {
   outside?: import("./pet").OutsideInstinct;
 }
 
-const P = (rules: unknown[], otherwise: { want: number; mood: number }) => validateProgram({ version: "LX-PET/1", memory: [], rules, otherwise });
+const P = (rules: unknown[], otherwise: { want: number; mood: number }) =>
+  validateProgram({ version: "LX-PET/1", memory: [], rules, otherwise });
 
 /** A partner's brain for a fight version: its earlier brain in fights before LX-SPAR/3, when it has one (B3b). */
-export const partnerProgram = (p: Pick<Partner, "program" | "programBefore3">, version: SparVersion): Program => (p.programBefore3 && (version === "LX-SPAR/1" || version === "LX-SPAR/2") ? p.programBefore3 : p.program);
+export const partnerProgram = (p: Pick<Partner, "program" | "programBefore3">, version: SparVersion): Program =>
+  p.programBefore3 && (version === "LX-SPAR/1" || version === "LX-SPAR/2") ? p.programBefore3 : p.program;
 
 export const PARTNERS: readonly Partner[] = [
   {
@@ -54,7 +56,13 @@ export const PARTNERS: readonly Partner[] = [
     stage: "baby",
     level: 0,
     blurb: { en: "A soft practice partner. Mostly sits there.", zh: "软软的陪练布偶，大多数时候只是坐着。" },
-    program: P([{ when: { hunger: [2, 3] }, then: { want: 1, mood: 0 } }, { when: { time: [3] }, then: { want: 0, mood: 0 } }], { want: 3, mood: 0 }),
+    program: P(
+      [
+        { when: { hunger: [2, 3] }, then: { want: 1, mood: 0 } },
+        { when: { time: [3] }, then: { want: 0, mood: 0 } },
+      ],
+      { want: 3, mood: 0 },
+    ),
   },
   {
     id: "pip",
@@ -62,8 +70,18 @@ export const PARTNERS: readonly Partner[] = [
     line: "bold",
     stage: "child",
     level: 0,
-    blurb: { en: "Pounces whenever it has the energy. A pet that guards every round beats it more often than not.", zh: "一有力气就扑过来。每回合都防守的宠物多半能赢它。" },
-    program: P([{ when: { energy: [0, 1] }, then: { want: 3, mood: 1 } }, { when: { time: [3] }, then: { want: 2, mood: 2 } }, { when: { hunger: [2, 3] }, then: { want: 1, mood: 1 } }], { want: 2, mood: 1 }),
+    blurb: {
+      en: "Pounces whenever it has the energy. A pet that guards every round beats it more often than not.",
+      zh: "一有力气就扑过来。每回合都防守的宠物多半能赢它。",
+    },
+    program: P(
+      [
+        { when: { energy: [0, 1] }, then: { want: 3, mood: 1 } },
+        { when: { time: [3] }, then: { want: 2, mood: 2 } },
+        { when: { hunger: [2, 3] }, then: { want: 1, mood: 1 } },
+      ],
+      { want: 2, mood: 1 },
+    ),
   },
   {
     id: "juniper",
@@ -71,7 +89,10 @@ export const PARTNERS: readonly Partner[] = [
     line: "curious",
     stage: "teen",
     level: 0,
-    blurb: { en: "Charms you in the first rounds, dodges your pounces, pounces the rest of the time, and finishes you off when you are worn down.", zh: "开局几回合先对你卖萌，躲开你的扑击，其余时候扑过来，你快不行时就收尾。" },
+    blurb: {
+      en: "Charms you in the first rounds, dodges your pounces, pounces the rest of the time, and finishes you off when you are worn down.",
+      zh: "开局几回合先对你卖萌，躲开你的扑击，其余时候扑过来，你快不行时就收尾。",
+    },
     program: P(
       [
         { when: { clean: [0, 1] }, then: { want: 2, mood: 3 } },
@@ -122,7 +143,13 @@ const STAGES = ["baby", "child", "teen", "adult"] as const;
  * Everything in the card is untrusted: the lessons must validate as a program
  * and compile within the brain's size budget, or there is no spar.
  */
-export function friendPartner(card: { id: string; name: string; line: string; stage: string; lessons: string }): Partner | null {
+export function friendPartner(card: {
+  id: string;
+  name: string;
+  line: string;
+  stage: string;
+  lessons: string;
+}): Partner | null {
   const line = (["gentle", "bold", "curious"] as const).find((l) => l === card.line);
   const parsed = parseCard(card.lessons);
   if (!line || !parsed) return null;
@@ -139,7 +166,10 @@ export function friendPartner(card: { id: string; name: string; line: string; st
       line,
       stage,
       level: card.stage === "elder" ? 2 : stage === "teen" || stage === "adult" ? 1 : 0,
-      blurb: { en: `${name}'s real brain, with everything it has been taught.`, zh: `${name}真实的大脑，带着它学过的一切。` },
+      blurb: {
+        en: `${name}'s real brain, with everything it has been taught.`,
+        zh: `${name}真实的大脑，带着它学过的一切。`,
+      },
       program,
       lessons: parsed.lessons,
       ...(parsed.instincts ? { instincts: parsed.instincts } : {}),

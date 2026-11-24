@@ -18,16 +18,92 @@ export interface Card {
 }
 
 export const CARDS: readonly Card[] = [
-  { page: "index.html", en: "Raise a little mind", zh: "养一个小小的心智", line: "A pet whose brain is a real circuit of NAND gates, taped out on X Layer.", pet: "gentle", description: "Raise a little mind: a pet whose brain is a real circuit of NAND gates, taped out on X Layer once you keep it there." },
-  { page: "play.html", en: "Hatch your pet", zh: "孵出你的宠物", line: "Pick an egg, name it, and teach it in your own words.", pet: "bold", description: "Hatch a Lingxi pet: pick an egg, name it, and raise a mind that is a real circuit of NAND gates." },
-  { page: "verify.html", en: "Verify a pet", zh: "验证一只宠物", line: "Check its brain and its memory against X Layer, from your own browser.", pet: "curious", description: "Check a Lingxi pet against X Layer from your own browser: its brain, its saved memory and its published diary." },
-  { page: "numbers.html", en: "Live numbers", zh: "链上数字", line: "Pets, days saved, outfit sales and BEM burned, read from the chain.", pet: "gentle", description: "What Lingxi has done on X Layer, read from the chain: pets, days saved, outfit sales and BEM burned." },
-  { page: "tree.html", en: "The tree of life", zh: "生命之树", line: "Every pet hatched or bred on X Layer, as one family tree.", pet: "bold", description: "Every Lingxi pet ever hatched or bred on X Layer, as one family tree read from the chain." },
-  { page: "agents.html", en: "For AI agents", zh: "给 AI 智能体", line: "An open API: read any pet's circuit brain, spar it, raise one.", pet: "curious", description: "An open API for AI agents: read any Lingxi pet kept on X Layer and its circuit brain, spar any brain, raise a pet and enter the weekly season." },
-  { page: "handheld.html", en: "The handheld", zh: "灵犀掌机", line: "Your pet's circuit, running on the handheld's own firmware.", pet: "gentle", description: "Take your Lingxi pet along: the handheld's own firmware in your browser, running your pet's circuit." },
-  { page: "privacy.html", en: "Privacy", zh: "隐私", line: "No accounts, no cookies: your pet lives in your browser.", pet: "gentle", description: "What Lingxi keeps and why: your pet lives in your browser; no accounts, no cookies; what the server keeps and what goes to others." },
-  { page: "terms.html", en: "Terms", zh: "条款", line: "Free to play, in plain words: what happens on X Layer and what you write.", pet: "bold", description: "Lingxi's terms in plain words: free to play, what happens on X Layer, what you write, and the service." },
-  { page: "circuits.html", en: "Lingxi circuits", zh: "灵犀电路", line: "Every circuit on X Layer, its pins and its test vectors.", pet: "curious", description: "Every Lingxi circuit on X Layer, its pins, what each bit means, and test vectors. Run any of them on X Layer from this page." },
+  {
+    page: "index.html",
+    en: "Raise a little mind",
+    zh: "养一个小小的心智",
+    line: "A pet whose brain is a real circuit of NAND gates, taped out on X Layer.",
+    pet: "gentle",
+    description:
+      "Raise a little mind: a pet whose brain is a real circuit of NAND gates, taped out on X Layer once you keep it there.",
+  },
+  {
+    page: "play.html",
+    en: "Hatch your pet",
+    zh: "孵出你的宠物",
+    line: "Pick an egg, name it, and teach it in your own words.",
+    pet: "bold",
+    description: "Hatch a Lingxi pet: pick an egg, name it, and raise a mind that is a real circuit of NAND gates.",
+  },
+  {
+    page: "verify.html",
+    en: "Verify a pet",
+    zh: "验证一只宠物",
+    line: "Check its brain and its memory against X Layer, from your own browser.",
+    pet: "curious",
+    description:
+      "Check a Lingxi pet against X Layer from your own browser: its brain, its saved memory and its published diary.",
+  },
+  {
+    page: "numbers.html",
+    en: "Live numbers",
+    zh: "链上数字",
+    line: "Pets, days saved, outfit sales and BEM burned, read from the chain.",
+    pet: "gentle",
+    description: "What Lingxi has done on X Layer, read from the chain: pets, days saved, outfit sales and BEM burned.",
+  },
+  {
+    page: "tree.html",
+    en: "The tree of life",
+    zh: "生命之树",
+    line: "Every pet hatched or bred on X Layer, as one family tree.",
+    pet: "bold",
+    description: "Every Lingxi pet ever hatched or bred on X Layer, as one family tree read from the chain.",
+  },
+  {
+    page: "agents.html",
+    en: "For AI agents",
+    zh: "给 AI 智能体",
+    line: "An open API: read any pet's circuit brain, spar it, raise one.",
+    pet: "curious",
+    description:
+      "An open API for AI agents: read any Lingxi pet kept on X Layer and its circuit brain, spar any brain, raise a pet and enter the weekly season.",
+  },
+  {
+    page: "handheld.html",
+    en: "The handheld",
+    zh: "灵犀掌机",
+    line: "Your pet's circuit, running on the handheld's own firmware.",
+    pet: "gentle",
+    description: "Take your Lingxi pet along: the handheld's own firmware in your browser, running your pet's circuit.",
+  },
+  {
+    page: "privacy.html",
+    en: "Privacy",
+    zh: "隐私",
+    line: "No accounts, no cookies: your pet lives in your browser.",
+    pet: "gentle",
+    description:
+      "What Lingxi keeps and why: your pet lives in your browser; no accounts, no cookies; what the server keeps and what goes to others.",
+  },
+  {
+    page: "terms.html",
+    en: "Terms",
+    zh: "条款",
+    line: "Free to play, in plain words: what happens on X Layer and what you write.",
+    pet: "bold",
+    description:
+      "Lingxi's terms in plain words: free to play, what happens on X Layer, what you write, and the service.",
+  },
+  {
+    page: "circuits.html",
+    en: "Lingxi circuits",
+    zh: "灵犀电路",
+    line: "Every circuit on X Layer, its pins and its test vectors.",
+    pet: "curious",
+    description:
+      "Every Lingxi circuit on X Layer, its pins, what each bit means, and test vectors. Run any of them on X Layer from this page.",
+  },
 ];
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");

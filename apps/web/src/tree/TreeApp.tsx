@@ -18,7 +18,9 @@ import "../agents/agents.css";
 import "./tree.css";
 import { sitePage } from "@lingxi/chain/site";
 
-const API = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const API =
+  (import.meta.env.VITE_API_URL as string | undefined) ??
+  (location.hostname === "localhost" ? "http://localhost:8787" : "");
 const TX = (tx: string) => `https://www.oklink.com/xlayer/tx/${tx}`;
 const LINES = ["gentle", "bold", "curious"] as const;
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -51,14 +53,22 @@ function PetArt({ line, generation }: { line: number; generation: number }) {
   const { canvas, crop } = useMemo(() => {
     const c = drawPet(l, generation ? "child" : "adult", { expression: "happy" });
     const b = boundingBox(c);
-    return { canvas: c, crop: { x: Math.max(0, b.x - 1), y: Math.max(0, b.y - 1), w: Math.min(c.w, b.w + 2), h: Math.min(c.h, b.h + 2) } };
+    return {
+      canvas: c,
+      crop: { x: Math.max(0, b.x - 1), y: Math.max(0, b.y - 1), w: Math.min(c.w, b.w + 2), h: Math.min(c.h, b.h + 2) },
+    };
   }, [l, generation]);
   return <Sprite canvas={canvas} palette={PALETTE_OF[l]} scale={2} crop={crop} />;
 }
 
 function Chip({ n, onPick, picked }: { n: Node; onPick: (id: string) => void; picked: boolean }) {
   return (
-    <button type="button" className={`tl-chip${picked ? " is-picked" : ""}`} onClick={() => onPick(n.id)} aria-pressed={picked}>
+    <button
+      type="button"
+      className={`tl-chip${picked ? " is-picked" : ""}`}
+      onClick={() => onPick(n.id)}
+      aria-pressed={picked}
+    >
       <PetArt line={n.line} generation={n.generation} />
       <Named name={n.name || `#${n.id}`} colour={n.colour} />
       <span>
@@ -92,7 +102,12 @@ export function TreeApp() {
   const byId = useMemo(() => new Map((data?.pets ?? []).map((p) => [p.id, p])), [data]);
   const families = useMemo(() => {
     const groups = new Map<string, Node[]>();
-    for (const p of data?.pets ?? []) if (p.parents) groups.set([...p.parents].sort((a, b) => Number(a) - Number(b)).join("+"), [...(groups.get([...p.parents].sort((a, b) => Number(a) - Number(b)).join("+")) ?? []), p]);
+    for (const p of data?.pets ?? [])
+      if (p.parents)
+        groups.set([...p.parents].sort((a, b) => Number(a) - Number(b)).join("+"), [
+          ...(groups.get([...p.parents].sort((a, b) => Number(a) - Number(b)).join("+")) ?? []),
+          p,
+        ]);
     return [...groups.entries()];
   }, [data]);
   const pick = (id: string) => {
@@ -124,8 +139,14 @@ export function TreeApp() {
       {err && (
         <p className="ag-card">
           {API
-            ? L("The tree couldn't be read just now. The chain's events are still there: try again in a moment.", "暂时读不到这棵树。链上事件还在，请稍后再试。")
-            : L("The tree is read from PetRegistry's events by Lingxi's indexer, which this on-chain copy doesn't use. ", "这棵树由灵犀的索引器从 PetRegistry 的事件读出，这份链上版本不使用它。")}
+            ? L(
+                "The tree couldn't be read just now. The chain's events are still there: try again in a moment.",
+                "暂时读不到这棵树。链上事件还在，请稍后再试。",
+              )
+            : L(
+                "The tree is read from PetRegistry's events by Lingxi's indexer, which this on-chain copy doesn't use. ",
+                "这棵树由灵犀的索引器从 PetRegistry 的事件读出，这份链上版本不使用它。",
+              )}
           {!API && (
             <a href={sitePage("tree.html")} target="_blank" rel="noopener noreferrer">
               {L("See it on lingxi.knole.me", "到 lingxi.knole.me 查看")}
@@ -155,7 +176,12 @@ export function TreeApp() {
               <dd>{data.generations}</dd>
             </div>
           </dl>
-          <p className="small tl-indexed">{L(`Read up to X Layer block ${data.indexedTo.toLocaleString("en")}.`, `已读到 X Layer 第 ${data.indexedTo.toLocaleString("en")} 个区块。`)}</p>
+          <p className="small tl-indexed">
+            {L(
+              `Read up to X Layer block ${data.indexedTo.toLocaleString("en")}.`,
+              `已读到 X Layer 第 ${data.indexedTo.toLocaleString("en")} 个区块。`,
+            )}
+          </p>
 
           <form
             className="ag-card tl-find"
@@ -167,18 +193,27 @@ export function TreeApp() {
           >
             <label htmlFor="tl-q">{L("Find a pet by its number", "按编号查找宠物")}</label>
             <div className="ag-row">
-              <input id="tl-q" inputMode="numeric" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="1" />
+              <input
+                id="tl-q"
+                inputMode="numeric"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="1"
+              />
               <button type="submit" className="ag-run">
                 {L("Find", "查找")}
               </button>
             </div>
-            {picked && !chosen && <p className="small">{L(`No pet #${picked} on chain yet.`, `链上还没有 #${picked} 号宠物。`)}</p>}
+            {picked && !chosen && (
+              <p className="small">{L(`No pet #${picked} on chain yet.`, `链上还没有 #${picked} 号宠物。`)}</p>
+            )}
             {chosen && (
               <div className="tl-chosen">
                 <PetArt line={chosen.line} generation={chosen.generation} />
                 <div>
                   <h2>
-                    <Named as="strong" name={chosen.name || `#${chosen.id}`} colour={chosen.colour} /> <span>#{chosen.id}</span>
+                    <Named as="strong" name={chosen.name || `#${chosen.id}`} colour={chosen.colour} />{" "}
+                    <span>#{chosen.id}</span>
                   </h2>
                   <p>
                     {chosen.parents
@@ -186,9 +221,22 @@ export function TreeApp() {
                           `Generation ${chosen.generation + 1}, the little one of ${nameOf(chosen.parents[0])} and ${nameOf(chosen.parents[1])}.`,
                           `第 ${chosen.generation + 1} 代，是${nameOf(chosen.parents[0])}和${nameOf(chosen.parents[1])}的小宝宝。`,
                         )
-                      : L(`A founder: generation 1, hatched from a ${LINES[chosen.line] ?? "gentle"} egg.`, `始祖：第 1 代，从${["温柔", "勇敢", "好奇"][chosen.line] ?? "温柔"}的蛋里孵出来。`)}
-                    {chosen.ancestors.length > 2 ? L(` Descended from ${chosen.ancestors.map(nameOf).join(", ")}.`, ` 祖先：${chosen.ancestors.map(nameOf).join("、")}。`) : ""}
-                    {chosen.children.length ? L(` Parent of ${chosen.children.map(nameOf).join(", ")}.`, ` 孩子：${chosen.children.map(nameOf).join("、")}。`) : ""}
+                      : L(
+                          `A founder: generation 1, hatched from a ${LINES[chosen.line] ?? "gentle"} egg.`,
+                          `始祖：第 1 代，从${["温柔", "勇敢", "好奇"][chosen.line] ?? "温柔"}的蛋里孵出来。`,
+                        )}
+                    {chosen.ancestors.length > 2
+                      ? L(
+                          ` Descended from ${chosen.ancestors.map(nameOf).join(", ")}.`,
+                          ` 祖先：${chosen.ancestors.map(nameOf).join("、")}。`,
+                        )
+                      : ""}
+                    {chosen.children.length
+                      ? L(
+                          ` Parent of ${chosen.children.map(nameOf).join(", ")}.`,
+                          ` 孩子：${chosen.children.map(nameOf).join("、")}。`,
+                        )
+                      : ""}
                   </p>
                   {chosen.designers.length > 0 && (
                     <p className="small">
@@ -197,9 +245,14 @@ export function TreeApp() {
                     </p>
                   )}
                   <p className="ag-row small">
-                    <a href={`verify.html#${chosen.id}`}>{L("Check its brain on the proof page", "在证明页核对它的大脑")}</a>
+                    <a href={`verify.html#${chosen.id}`}>
+                      {L("Check its brain on the proof page", "在证明页核对它的大脑")}
+                    </a>
                     <a href={TX(chosen.tx)} target="_blank" rel="noopener noreferrer">
-                      {L(chosen.parents ? "Its birth on the explorer" : "Its hatching on the explorer", chosen.parents ? "在浏览器看它的出生" : "在浏览器看它的孵化")}
+                      {L(
+                        chosen.parents ? "Its birth on the explorer" : "Its hatching on the explorer",
+                        chosen.parents ? "在浏览器看它的出生" : "在浏览器看它的孵化",
+                      )}
                     </a>
                   </p>
                 </div>
@@ -209,7 +262,12 @@ export function TreeApp() {
 
           <section className="ag-card">
             <h2>{L("Founders", "始祖")}</h2>
-            <p className="small">{L("Pets hatched from an egg. Every family starts with two of them.", "从蛋里孵出来的宠物。每个家庭都从其中两只开始。")}</p>
+            <p className="small">
+              {L(
+                "Pets hatched from an egg. Every family starts with two of them.",
+                "从蛋里孵出来的宠物。每个家庭都从其中两只开始。",
+              )}
+            </p>
             {data.founders ? (
               <div className="tl-grid">
                 {data.pets
@@ -232,7 +290,15 @@ export function TreeApp() {
                   return (
                     <li key={pair} className="tl-family">
                       <div className="tl-parents">
-                        {[a, b].map((id) => (byId.get(id) ? <Chip key={id} n={byId.get(id)!} onPick={pick} picked={picked === id} /> : <span key={id} className="tl-chip is-missing">#{id}</span>))}
+                        {[a, b].map((id) =>
+                          byId.get(id) ? (
+                            <Chip key={id} n={byId.get(id)!} onPick={pick} picked={picked === id} />
+                          ) : (
+                            <span key={id} className="tl-chip is-missing">
+                              #{id}
+                            </span>
+                          ),
+                        )}
                       </div>
                       <span className="tl-branch" aria-hidden="true" />
                       <div className="tl-kids">
@@ -254,7 +320,10 @@ export function TreeApp() {
             )}
           </section>
           <p className="small">
-            {L("Names are the ones owners gave in PetLook. Pets that live only on a device, never taped out, are not on this tree.", "名字来自主人在 PetLook 里起的名字。只活在设备上、没有上链的宠物不在这棵树上。")}{" "}
+            {L(
+              "Names are the ones owners gave in PetLook. Pets that live only on a device, never taped out, are not on this tree.",
+              "名字来自主人在 PetLook 里起的名字。只活在设备上、没有上链的宠物不在这棵树上。",
+            )}{" "}
             <a href="play.html">{L("Raise a pet", "养一只宠物")}</a>
           </p>
         </>

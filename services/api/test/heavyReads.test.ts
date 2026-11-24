@@ -10,7 +10,13 @@ import { withSeason } from "../src/server";
 const T = Date.UTC(2026, 10, 18, 12);
 const real = petCard({ lessons: [{ when: { event: [3] }, then: { want: 5, mood: 1 } }] } as never);
 const padded = JSON.stringify({ ...(JSON.parse(real) as object), pad: "x".repeat(20_000) });
-const pet = (name: string, card: string) => ({ name, line: "gentle", stage: "child", card, story: { days: 1, lessons: 1, nature: [] } });
+const pet = (name: string, card: string) => ({
+  name,
+  line: "gentle",
+  stage: "child",
+  card,
+  story: { days: 1, lessons: 1, nature: [] },
+});
 
 describe("cards kept small, the season served from one text (A78)", () => {
   it("a padded card entered in the season or the arena is kept in its own shape", () => {
@@ -53,7 +59,8 @@ describe("heavy reads are limited per caller (A78)", () => {
       app.get(route, (c) => c.json({ ok: true }));
       const limit = READ_LIMITS.find(([re]) => re.test(path))![1];
       const get = (ip: string) => app.request(path, { headers: { "cf-connecting-ip": ip } });
-      for (let i = 0; i < limit; i++) expect(((await (await get("198.51.100.1")).json()) as { ok: boolean }).ok).toBe(true);
+      for (let i = 0; i < limit; i++)
+        expect(((await (await get("198.51.100.1")).json()) as { ok: boolean }).ok).toBe(true);
       expect(await (await get("198.51.100.1")).json()).toEqual({ ok: false, reason: "busy" });
       expect(((await (await get("198.51.100.2")).json()) as { ok: boolean }).ok).toBe(true);
     });

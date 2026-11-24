@@ -17,10 +17,18 @@ import { MOVE_WORDS, chipsFor } from "../play/ruleText";
 export function MindDemo({ reduce }: { reduce: boolean }) {
   const { lang } = useLang();
   const brain = brainFor("gentle");
-  const [pet, setPet] = useState(() => createPet({ name: "Mochi", line: "gentle", now: Date.now(), tzOffsetMin: -new Date().getTimezoneOffset(), brain }));
+  const [pet, setPet] = useState(() =>
+    createPet({ name: "Mochi", line: "gentle", now: Date.now(), tzOffsetMin: -new Date().getTimezoneOffset(), brain }),
+  );
   useEffect(() => {
     if (reduce) return;
-    const kinds = [{ kind: "pet" }, { kind: "play" }, { kind: "feed", food: "apple" }, { kind: "talk" }, { kind: "clean" }] as const;
+    const kinds = [
+      { kind: "pet" },
+      { kind: "play" },
+      { kind: "feed", food: "apple" },
+      { kind: "talk" },
+      { kind: "clean" },
+    ] as const;
     let i = 0;
     const id = setInterval(() => {
       setPet((p) => care(p, kinds[i++ % kinds.length]!, Date.now(), brain).pet);
@@ -34,7 +42,11 @@ export function MindDemo({ reduce }: { reduce: boolean }) {
       <BrainView pet={pet} reduceMotion={reduce} />
       <div className="think-line" aria-live="off">
         <em>{lang === "zh" ? "刚刚在想" : "just thought"}</em>
-        {chips ? <Chips when={chips.when} then={chips.then} want={chips.want} /> : <span className="chip">{lang === "zh" ? "发呆" : "rest"}</span>}
+        {chips ? (
+          <Chips when={chips.when} then={chips.then} want={chips.want} />
+        ) : (
+          <span className="chip">{lang === "zh" ? "发呆" : "rest"}</span>
+        )}
       </div>
     </div>
   );
@@ -68,12 +80,20 @@ export function TeachDemo({ reduce }: { reduce: boolean }) {
         <span>{text.slice(0, shown)}</span>
         <i className="caret" aria-hidden="true" />
       </div>
-      <motion.div className="rule-out" animate={{ opacity: done ? 1 : 0.25, y: done ? 0 : 4 }} transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}>
+      <motion.div
+        className="rule-out"
+        animate={{ opacity: done ? 1 : 0.25, y: done ? 0 : 4 }}
+        transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+      >
         <Chips when={chips.when} then={chips.then} want={chips.want} />
       </motion.div>
       {/* these are Pet School lessons, words and rule written together; words a player types are turned into a rule
           when they teach (A110) */}
-      <p className="teach-note">{lang === "zh" ? "宠物学堂的课：话和规则是一起写好的。你自己写的话，会在教它时变成规则。" : "Pet School lessons: the words and the rule are written together. Words you write yourself become a rule when you teach."}</p>
+      <p className="teach-note">
+        {lang === "zh"
+          ? "宠物学堂的课：话和规则是一起写好的。你自己写的话，会在教它时变成规则。"
+          : "Pet School lessons: the words and the rule are written together. Words you write yourself become a rule when you teach."}
+      </p>
     </div>
   );
 }
@@ -84,7 +104,12 @@ export function SparDemo({ reduce }: { reduce: boolean }) {
   const result = useMemo(() => {
     const pip = PARTNERS.find((p) => p.id === "pip")!;
     for (let seed = 1; seed < 200; seed++) {
-      const r = fight(CURRENT_SPAR, fighterFrom("Mochi", STARTERS.gentle, 0), fighterFrom("Pip", pip.program, pip.level), seed);
+      const r = fight(
+        CURRENT_SPAR,
+        fighterFrom("Mochi", STARTERS.gentle, 0),
+        fighterFrom("Pip", pip.program, pip.level),
+        seed,
+      );
       if (r.rounds.length >= 8) return r;
     }
     return fight(CURRENT_SPAR, fighterFrom("Mochi", STARTERS.gentle, 0), fighterFrom("Pip", pip.program, pip.level), 1);
@@ -97,13 +122,19 @@ export function SparDemo({ reduce }: { reduce: boolean }) {
   }, [reduce, result.rounds.length]);
   const r = result.rounds[Math.min(n, result.rounds.length) - 1]!;
   // the spar's own words for each move (B7), lower case in the running text of this demo
-  const MOVES: Record<string, [string, string]> = Object.fromEntries(Object.entries(MOVE_WORDS).map(([k, [en, zh]]) => [k, [en.toLowerCase(), zh]]));
+  const MOVES: Record<string, [string, string]> = Object.fromEntries(
+    Object.entries(MOVE_WORDS).map(([k, [en, zh]]) => [k, [en.toLowerCase(), zh]]),
+  );
   const pa = useMemo(() => drawPet("gentle", "child", { expression: "happy" }), []);
   const pb = useMemo(() => drawPet("curious", "child", { expression: "proud" }), []);
   return (
     <div className="spar-demo">
       <div className="sd-head">
-        <span>{lang === "zh" ? `第 ${Math.min(n, result.rounds.length)} 回合` : `Round ${Math.min(n, result.rounds.length)}`}</span>
+        <span>
+          {lang === "zh"
+            ? `第 ${Math.min(n, result.rounds.length)} 回合`
+            : `Round ${Math.min(n, result.rounds.length)}`}
+        </span>
         <span className="mono">{lang === "zh" ? `回放 ${result.digest}` : `replay ${result.digest}`}</span>
       </div>
       <div className="sd-ring" style={{ backgroundImage: "url(art/rooms/49_clearing/backgrounds/playtest-a.png)" }}>

@@ -8,7 +8,14 @@ import { describe, expect, it } from "vitest";
 import { GLOSSARY } from "./glossary";
 
 const repo = join(import.meta.dirname, "..", "..", "..", "..");
-const SOURCES = ["apps/web/src", "packages/world/src", "packages/game/src", "apps/web/public/404.html", "apps/web/public/circuits.html", "scripts/lib/shareCards.mts"];
+const SOURCES = [
+  "apps/web/src",
+  "packages/world/src",
+  "packages/game/src",
+  "apps/web/public/404.html",
+  "apps/web/public/circuits.html",
+  "scripts/lib/shareCards.mts",
+];
 
 function files(path: string): string[] {
   const full = join(repo, path);
@@ -18,7 +25,10 @@ function files(path: string): string[] {
     .map((f) => join(full, f));
 }
 
-const texts = SOURCES.flatMap(files).map((f) => ({ file: relative(repo, f).split("\\").join("/"), lines: readFileSync(f, "utf8").split("\n") }));
+const texts = SOURCES.flatMap(files).map((f) => ({
+  file: relative(repo, f).split("\\").join("/"),
+  lines: readFileSync(f, "utf8").split("\n"),
+}));
 
 describe("the glossary (P6)", () => {
   it("reads the game's text", () => {
@@ -26,13 +36,17 @@ describe("the glossary (P6)", () => {
   });
 
   for (const term of GLOSSARY) {
-    const ruledOut = [...(term.notZh ?? []).map((r) => ({ r, use: term.zh })), ...(term.notEn ?? []).map((r) => ({ r, use: term.en }))];
+    const ruledOut = [
+      ...(term.notZh ?? []).map((r) => ({ r, use: term.zh })),
+      ...(term.notEn ?? []).map((r) => ({ r, use: term.en })),
+    ];
     if (ruledOut.length === 0) continue;
     it(`"${term.en}" is "${term.zh}" in Chinese, one word each way`, () => {
       const hits: string[] = [];
       for (const { file, lines } of texts)
         lines.forEach((line, i) => {
-          for (const { r, use } of ruledOut) if (r.test(line)) hits.push(`${file}:${i + 1}: ${line.match(r)?.[0]} (use ${use})`);
+          for (const { r, use } of ruledOut)
+            if (r.test(line)) hits.push(`${file}:${i + 1}: ${line.match(r)?.[0]} (use ${use})`);
         });
       expect(hits).toEqual([]);
     });

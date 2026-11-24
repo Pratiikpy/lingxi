@@ -13,7 +13,18 @@
  * for byte, and the tests run every vector of TAP-11 and TAP-13 through them.
  */
 
-import { type Address, type Hex, concat, getAddress, hashTypedData, keccak256, recoverAddress, stringToBytes, toBytes, toHex } from "viem";
+import {
+  type Address,
+  type Hex,
+  concat,
+  getAddress,
+  hashTypedData,
+  keccak256,
+  recoverAddress,
+  stringToBytes,
+  toBytes,
+  toHex,
+} from "viem";
 import type { LocalAccount } from "viem/accounts";
 
 export class CanonError extends Error {}
@@ -43,7 +54,10 @@ export function findDuplicateKey(text: string): string | null {
           out += String.fromCharCode(parseInt(text.slice(i + 2, i + 6), 16));
           i += 6;
         } else {
-          out += ({ '"': '"', "\\": "\\", "/": "/", b: "\b", f: "\f", n: "\n", r: "\r", t: "\t" } as Record<string, string>)[e] ?? e;
+          out +=
+            ({ '"': '"', "\\": "\\", "/": "/", b: "\b", f: "\f", n: "\n", r: "\r", t: "\t" } as Record<string, string>)[
+              e
+            ] ?? e;
           i += 2;
         }
         continue;
@@ -120,7 +134,8 @@ export function canonicalJSON(value: unknown, path = "$"): string {
       return JSON.stringify(value);
     case "number":
       if (!Number.isFinite(value)) throw new CanonError(`non-finite number at ${path}`);
-      if (Number.isInteger(value) && !Number.isSafeInteger(value)) throw new CanonError(`integer past 2^53 - 1 at ${path}`);
+      if (Number.isInteger(value) && !Number.isSafeInteger(value))
+        throw new CanonError(`integer past 2^53 - 1 at ${path}`);
       if (Object.is(value, -0)) throw new CanonError(`negative zero at ${path}`);
       return JSON.stringify(value);
     case "object":
@@ -134,7 +149,8 @@ export function canonicalJSON(value: unknown, path = "$"): string {
     for (let i = 0; i < value.length; i++) items.push(canonicalJSON(value[i], `${path}[${i}]`));
     return `[${items.join(",")}]`;
   }
-  if (typeof (value as { toJSON?: unknown }).toJSON === "function") throw new CanonError(`value with toJSON() at ${path}`);
+  if (typeof (value as { toJSON?: unknown }).toJSON === "function")
+    throw new CanonError(`value with toJSON() at ${path}`);
   // the default sort compares UTF-16 code units, as RFC 8785 §3.2.3 requires
   const parts: string[] = [];
   for (const k of Object.keys(value).sort()) {
@@ -189,7 +205,8 @@ export function responseDigest(s: Statement): { preimage: Hex; digest: Hex } {
 }
 
 /** keccak256(0x19 ‖ "Ethereum Signed Message:\n32" ‖ digest): EIP-191 personal_sign over 32 bytes. */
-export const personalDigest = (digest: Hex): Hex => keccak256(concat([toHex(stringToBytes("\x19Ethereum Signed Message:\n32")), digest]));
+export const personalDigest = (digest: Hex): Hex =>
+  keccak256(concat([toHex(stringToBytes("\x19Ethereum Signed Message:\n32")), digest]));
 
 /** Signs a statement as TAP-13 §5 says: EIP-191 over the digest, low s, v 27 or 28. */
 export async function signStatement(account: LocalAccount, s: Statement): Promise<Hex> {
@@ -246,7 +263,13 @@ export const MAX_DELEGATION_S = 31_622_400;
 export function delegationDigest(chainId: number, container: Address, signer: Address, expires: number): Hex {
   return hashTypedData({
     domain: { name: "TapeAPI", version: "1", chainId, verifyingContract: DELEGATION_HUB },
-    types: { Delegation: [{ name: "container", type: "address" }, { name: "signer", type: "address" }, { name: "expires", type: "uint64" }] },
+    types: {
+      Delegation: [
+        { name: "container", type: "address" },
+        { name: "signer", type: "address" },
+        { name: "expires", type: "uint64" },
+      ],
+    },
     primaryType: "Delegation",
     message: { container, signer, expires: BigInt(expires) },
   });
@@ -275,7 +298,8 @@ export async function verifyEnvelope(
   let env: Record<string, unknown>;
   try {
     const v = strictParse(answer.text);
-    if (typeof v !== "object" || v === null || Array.isArray(v) || typeof (v as { sig?: unknown }).sig !== "string") return { kind: "transport" };
+    if (typeof v !== "object" || v === null || Array.isArray(v) || typeof (v as { sig?: unknown }).sig !== "string")
+      return { kind: "transport" };
     env = v as Record<string, unknown>;
   } catch {
     return { kind: "transport" };
@@ -286,7 +310,14 @@ export async function verifyEnvelope(
   const err = env.error as { code?: unknown } | undefined;
   if (env.ok === false && err && err.code === "BAD_REQUEST" && Number.isSafeInteger(env.ts)) {
     for (const id of ["", sent.id]) {
-      const st = { container: sent.container, id, request: { method: sent.method, params: {} }, ok: false, body: env.error, ts: env.ts as number };
+      const st = {
+        container: sent.container,
+        id,
+        request: { method: sent.method, params: {} },
+        ok: false,
+        body: env.error,
+        ts: env.ts as number,
+      };
       if (canonical(env.error) && same(await recoverStatement(st, sig), sent.signer)) return { kind: "ownMalformed" };
     }
   }
@@ -294,15 +325,27 @@ export async function verifyEnvelope(
   if (env.id !== sent.id) return { kind: "binding", why: "another id" };
   if (typeof env.ok !== "boolean") return { kind: "binding", why: "ok is not a boolean" };
   const body = env.ok ? env.result : env.error;
-  if (body === undefined || (env.ok ? "error" in env : "result" in env)) return { kind: "binding", why: "result or error missing" };
-  if (typeof env.container !== "string" || env.container.toLowerCase() !== sent.container.toLowerCase()) return { kind: "binding", why: "another container" };
-  if (!Number.isSafeInteger(env.ts) || (env.ts as number) < 0) return { kind: "binding", why: "ts is not an integer in range" };
+  if (body === undefined || (env.ok ? "error" in env : "result" in env))
+    return { kind: "binding", why: "result or error missing" };
+  if (typeof env.container !== "string" || env.container.toLowerCase() !== sent.container.toLowerCase())
+    return { kind: "binding", why: "another container" };
+  if (!Number.isSafeInteger(env.ts) || (env.ts as number) < 0)
+    return { kind: "binding", why: "ts is not an integer in range" };
   // step 5: fresh
   const now = opts.now ?? Math.floor(Date.now() / 1000);
-  if (Math.abs(now - (env.ts as number)) > (opts.maxSkew ?? 300)) return { kind: "binding", why: "ts outside the window" };
+  if (Math.abs(now - (env.ts as number)) > (opts.maxSkew ?? 300))
+    return { kind: "binding", why: "ts outside the window" };
   // step 6: recomputed from what was sent
   if (!canonical(body)) return { kind: "binding", why: "body has no canonical form" };
-  const st: Statement = { container: sent.container, id: sent.id, request: { method: sent.method, params: sent.params }, ok: env.ok, body, ts: env.ts as number };
-  if (!same(await recoverStatement(st, sig), sent.signer)) return { kind: "binding", why: "signature does not recover to the signer" };
+  const st: Statement = {
+    container: sent.container,
+    id: sent.id,
+    request: { method: sent.method, params: sent.params },
+    ok: env.ok,
+    body,
+    ts: env.ts as number,
+  };
+  if (!same(await recoverStatement(st, sig), sent.signer))
+    return { kind: "binding", why: "signature does not recover to the signer" };
   return { kind: "accepted", ok: env.ok, body };
 }

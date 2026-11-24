@@ -37,7 +37,15 @@ describe("GET /api/arena/opponent", () => {
     expect(await ask(`round=1e3&device=${DEVICE}`)).toEqual({ status: 200, body: { ok: false, reason: "none" } });
   });
   it("refuses a missing, negative or fractional round and a device outside 8-64 characters", async () => {
-    for (const q of [`device=${DEVICE}`, `round=-1&device=${DEVICE}`, `round=1.5&device=${DEVICE}`, `round=Infinity&device=${DEVICE}`, "round=1", "round=1&device=1234567", `round=1&device=${"d".repeat(65)}`]) {
+    for (const q of [
+      `device=${DEVICE}`,
+      `round=-1&device=${DEVICE}`,
+      `round=1.5&device=${DEVICE}`,
+      `round=Infinity&device=${DEVICE}`,
+      "round=1",
+      "round=1&device=1234567",
+      `round=1&device=${"d".repeat(65)}`,
+    ]) {
       expect(await ask(q), q).toEqual({ status: 400, body: { ok: false, reason: "invalid" } });
     }
   });
@@ -53,25 +61,44 @@ describe("GET /api/goals", () => {
   });
   it("answers without a wallet, and refuses a bad one as `wallet`", async () => {
     expect((await json(app.request("/api/goals"))).status).toBe(200);
-    expect(await json(app.request(`/api/goals?wallet=${ALICE},0x12`))).toEqual({ status: 400, body: { ok: false, reason: "wallet" } });
+    expect(await json(app.request(`/api/goals?wallet=${ALICE},0x12`))).toEqual({
+      status: 400,
+      body: { ok: false, reason: "wallet" },
+    });
   });
 });
 
 describe("GET /api/voucher", () => {
   const app = withVouchers(new Hono(), { entries: () => [], signer: owner, deployment: { chainId: 196 } });
   it("refuses a missing or bad wallet first, then an unknown or missing goal", async () => {
-    expect(await json(app.request("/api/voucher?goal=g1"))).toEqual({ status: 400, body: { ok: false, reason: "wallet" } });
-    expect(await json(app.request("/api/voucher?wallet=0x12&goal=g1"))).toEqual({ status: 400, body: { ok: false, reason: "wallet" } });
-    expect(await json(app.request(`/api/voucher?wallet=${ALICE}&goal=nope`))).toEqual({ status: 404, body: { ok: false, reason: "goal" } });
-    expect(await json(app.request(`/api/voucher?wallet=${ALICE}`))).toEqual({ status: 404, body: { ok: false, reason: "goal" } });
+    expect(await json(app.request("/api/voucher?goal=g1"))).toEqual({
+      status: 400,
+      body: { ok: false, reason: "wallet" },
+    });
+    expect(await json(app.request("/api/voucher?wallet=0x12&goal=g1"))).toEqual({
+      status: 400,
+      body: { ok: false, reason: "wallet" },
+    });
+    expect(await json(app.request(`/api/voucher?wallet=${ALICE}&goal=nope`))).toEqual({
+      status: 404,
+      body: { ok: false, reason: "goal" },
+    });
+    expect(await json(app.request(`/api/voucher?wallet=${ALICE}`))).toEqual({
+      status: 404,
+      body: { ok: false, reason: "goal" },
+    });
   });
 });
 
 describe("POST /api/papers/:petId", () => {
-  const app = withPapers(new Hono(), createPapersStore(), { ownerOf: async () => owner.address as Address, sellerOf: async () => owner.address as Address });
+  const app = withPapers(new Hono(), createPapersStore(), {
+    ownerOf: async () => owner.address as Address,
+    sellerOf: async () => owner.address as Address,
+  });
   const post = (body: string) => json(app.request("/api/papers/7", { method: "POST", body }));
   it("answers a body that is JSON but not an object as invalid, not as a server error", async () => {
-    for (const body of ["null", "5", '"papers"', "[]"]) expect(await post(body), body).toEqual({ status: 400, body: { ok: false, reason: "invalid" } });
+    for (const body of ["null", "5", '"papers"', "[]"])
+      expect(await post(body), body).toEqual({ status: 400, body: { ok: false, reason: "invalid" } });
     expect(await post("{not json")).toEqual({ status: 400, body: { ok: false, reason: "json" } });
   });
   it("still keeps papers the owner signed", async () => {
@@ -83,9 +110,11 @@ describe("POST /api/papers/:petId", () => {
 
 describe("POST /api/move", () => {
   const app = withMove(new Hono(), createMoveStore());
-  const post = (body: string) => json(app.request("/api/move", { method: "POST", headers: { "content-type": "application/json" }, body }));
+  const post = (body: string) =>
+    json(app.request("/api/move", { method: "POST", headers: { "content-type": "application/json" }, body }));
   it("refuses a body without a save as invalid, and takes one with a save", async () => {
-    for (const body of ["null", "[]", "{}", '{"save":5}']) expect(await post(body), body).toEqual({ status: 400, body: { ok: false, reason: "invalid" } });
+    for (const body of ["null", "[]", "{}", '{"save":5}'])
+      expect(await post(body), body).toEqual({ status: 400, body: { ok: false, reason: "invalid" } });
     const ok = await post(JSON.stringify({ save: { "lingxi.pets.v2": "[]" }, other: 1 }));
     expect(ok.status).toBe(200);
     expect(ok.body).toMatchObject({ ok: true });
@@ -93,18 +122,40 @@ describe("POST /api/move", () => {
 });
 
 describe("POST /api/v1/agents/adopt, /me/care, /me/teach", () => {
-  const app = withAgentApi(new Hono(), { agents: createAgentStore(), seasons: createSeasonStore(), limiter: new RateLimiter(10_000, 60_000) });
-  const post = (path: string, body: string, token?: string) => json(app.request(path, { method: "POST", body, headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) } }));
+  const app = withAgentApi(new Hono(), {
+    agents: createAgentStore(),
+    seasons: createSeasonStore(),
+    limiter: new RateLimiter(10_000, 60_000),
+  });
+  const post = (path: string, body: string, token?: string) =>
+    json(
+      app.request(path, {
+        method: "POST",
+        body,
+        headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) },
+      }),
+    );
   it("read a body that is JSON but not an object as an empty one, as they read any other such body", async () => {
-    for (const body of ["null", "5", "[]"]) expect(await post("/api/v1/agents/adopt", body), body).toMatchObject({ status: 400, body: { ok: false, reason: "invalid" } });
+    for (const body of ["null", "5", "[]"])
+      expect(await post("/api/v1/agents/adopt", body), body).toMatchObject({
+        status: 400,
+        body: { ok: false, reason: "invalid" },
+      });
     const adopted = await post("/api/v1/agents/adopt", JSON.stringify({ agent: "probe-1", name: "Bit", line: "bold" }));
     const token = adopted.body.token as string;
     expect(token).toMatch(/^[0-9a-f]{48}$/);
     for (const body of ["null", "5", "[]"]) {
-      expect(await post("/api/v1/agents/me/care", body, token), body).toEqual(await post("/api/v1/agents/me/care", "{}", token));
-      expect(await post("/api/v1/agents/me/teach", body, token), body).toEqual(await post("/api/v1/agents/me/teach", "{}", token));
+      expect(await post("/api/v1/agents/me/care", body, token), body).toEqual(
+        await post("/api/v1/agents/me/care", "{}", token),
+      );
+      expect(await post("/api/v1/agents/me/teach", body, token), body).toEqual(
+        await post("/api/v1/agents/me/teach", "{}", token),
+      );
       expect(await post("/api/v1/agents/me/care", body, "ab".repeat(24)), body).toMatchObject({ status: 401 });
     }
-    expect(await post("/api/v1/agents/me/care", "{not json", token)).toEqual({ status: 400, body: { ok: false, reason: "invalid" } });
+    expect(await post("/api/v1/agents/me/care", "{not json", token)).toEqual({
+      status: 400,
+      body: { ok: false, reason: "invalid" },
+    });
   });
 });

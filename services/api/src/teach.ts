@@ -58,7 +58,11 @@ export const ProposalSchema = z.object({
     .object({
       label: z.string().max(60),
       when: z.array(z.object({ field: z.string(), values: z.array(z.number().int().min(0).max(15)).min(1) })),
-      then: z.object({ want: z.number().int().min(0).max(7), mood: z.number().int().min(0).max(3), nudge: z.number().int().min(0).max(7) }),
+      then: z.object({
+        want: z.number().int().min(0).max(7),
+        mood: z.number().int().min(0).max(3),
+        nudge: z.number().int().min(0).max(7),
+      }),
     })
     .nullable(),
   reply_en: z.string().max(300),
@@ -108,13 +112,30 @@ export const PROPOSAL_JSON_SCHEMA = {
 
 /** Pet names reach the prompt only as plain letters, digits, spaces and CJK, at most 12 characters. */
 export function cleanName(name: string | undefined): string {
-  const n = (name ?? "").replace(/[^\p{L}\p{N} ]/gu, "").trim().slice(0, 12);
+  const n = (name ?? "")
+    .replace(/[^\p{L}\p{N} ]/gu, "")
+    .trim()
+    .slice(0, 12);
   return n || "the pet";
 }
 
 export type TeachResult =
   | { ok: true; rule: Rule; gates: number; reply: { en: string; zh: string } }
-  | { ok: false; reason: "notUnderstood" | "invalid" | "full" | "tooBig" | "duplicate" | "busy" | "resting" | "yourShare" | "error"; reply?: { en: string; zh: string }; detail?: string };
+  | {
+      ok: false;
+      reason:
+        | "notUnderstood"
+        | "invalid"
+        | "full"
+        | "tooBig"
+        | "duplicate"
+        | "busy"
+        | "resting"
+        | "yourShare"
+        | "error";
+      reply?: { en: string; zh: string };
+      detail?: string;
+    };
 
 /**
  * The pet's mind a lesson is checked against: its card when the game sent one (lessons, skills, instincts, family,
@@ -148,12 +169,17 @@ export function finishProposal(raw: unknown, mind: MindSpec, stage: Exclude<Stag
   const memoryNames = STARTERS[line].memory.map((m) => m.name);
   const when: Record<string, number[]> = {};
   for (const c of p.rule.when) {
-    if (!fieldNames.includes(c.field) && !memoryNames.includes(c.field)) return { ok: false, reason: "invalid", reply, detail: `unknown field ${c.field}` };
+    if (!fieldNames.includes(c.field) && !memoryNames.includes(c.field))
+      return { ok: false, reason: "invalid", reply, detail: `unknown field ${c.field}` };
     when[c.field] = [...new Set([...(when[c.field] ?? []), ...c.values])].sort((a, b) => a - b);
   }
   const rule: Rule = {
     when,
-    then: { want: p.rule.then.want, mood: p.rule.then.mood, ...(p.rule.then.nudge ? { nudge: p.rule.then.nudge } : {}) },
+    then: {
+      want: p.rule.then.want,
+      mood: p.rule.then.mood,
+      ...(p.rule.then.nudge ? { nudge: p.rule.then.nudge } : {}),
+    },
     label: p.rule.label.slice(0, 60),
   };
   const check = checkMindLesson(mind, stage, rule);
@@ -174,7 +200,8 @@ export async function teachInWords(client: Anthropic, req: TeachRequest): Promis
   if (!words) return { ok: false, reason: "notUnderstood" };
   // a pet with no room left is told so before any model is asked
   const room = lessonCapacity(req.stage, req.mind.growth, req.mind.slots);
-  if (req.mind.lessons.length >= room) return { ok: false, reason: "full", detail: `a ${req.stage} can hold ${room} lessons` };
+  if (req.mind.lessons.length >= room)
+    return { ok: false, reason: "full", detail: `a ${req.stage} can hold ${room} lessons` };
   let response;
   try {
     response = await client.beta.messages.create({
@@ -195,7 +222,8 @@ export async function teachInWords(client: Anthropic, req: TeachRequest): Promis
     if (e instanceof Anthropic.APIError) return { ok: false, reason: "error", detail: `api ${e.status}` };
     return { ok: false, reason: "error", detail: "network" };
   }
-  if (response.stop_reason === "refusal" || response.stop_reason === "max_tokens") return { ok: false, reason: "notUnderstood" };
+  if (response.stop_reason === "refusal" || response.stop_reason === "max_tokens")
+    return { ok: false, reason: "notUnderstood" };
   const text = response.content.find((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text")?.text;
   if (!text) return { ok: false, reason: "error", detail: "empty answer" };
   let raw: unknown;

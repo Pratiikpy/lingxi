@@ -16,7 +16,9 @@ export function rewardText(r: Reward, lang: Lang): string | null {
     case "item":
       return `${ITEM[r.item]?.name[lang] ?? r.item}${r.n > 1 ? ` ×${r.n}` : ""}`;
     case "trust":
-      return zh ? `${residentName(r.who)?.zh ?? r.who}的信任 +${r.n}` : `+${r.n} trust with ${residentName(r.who)?.en ?? r.who}`;
+      return zh
+        ? `${residentName(r.who)?.zh ?? r.who}的信任 +${r.n}`
+        : `+${r.n} trust with ${residentName(r.who)?.en ?? r.who}`;
     case "piece":
       return wearableOf(r.id)?.name[lang] ?? r.id;
     case "decor":

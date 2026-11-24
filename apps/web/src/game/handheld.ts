@@ -18,7 +18,20 @@
 import { REF, decode, hexToBytes, refKey } from "@lingxi/brain";
 import { type Pet, BEAT_MS, stageOf, ruleSkillIds } from "@lingxi/game";
 import { readNetlist } from "@lingxi/chain";
-import { type BrainPart, type HomeRefusal, type Snack, type TripBrain, arrivingIn, bringHome, gameCircuit, petDigest, returnEndBeat, sameMind, tripBrainOf, tripPacket } from "@lingxi/handheld";
+import {
+  type BrainPart,
+  type HomeRefusal,
+  type Snack,
+  type TripBrain,
+  arrivingIn,
+  bringHome,
+  gameCircuit,
+  petDigest,
+  returnEndBeat,
+  sameMind,
+  tripBrainOf,
+  tripPacket,
+} from "@lingxi/handheld";
 import { ITEM } from "@lingxi/world";
 import type { Address } from "viem";
 import { deployment, mindKey, publicClient, recordOf } from "./chain";
@@ -33,7 +46,6 @@ export { DEVICE_KEY, INBOX_KEY, RETURN_KEY, TRIP_KEY, fromB64 };
 
 export const HANDHELD = "handheld";
 
-
 export const MAX_SNACK_KINDS = 4;
 export const MAX_SNACKS_EACH = 9;
 
@@ -44,7 +56,13 @@ export interface Trip {
   start: Pet;
   packet: string;
   snacks: Array<Snack & { item: number }>;
-  brain: { source: "chain" | "game"; processor: string; id: string; root: string; parts: Array<{ processor: string; id: string; nIn: number; nOut: number; hex: string }> };
+  brain: {
+    source: "chain" | "game";
+    processor: string;
+    id: string;
+    root: string;
+    parts: Array<{ processor: string; id: string; nIn: number; nOut: number; hex: string }>;
+  };
   sentAt: number;
 }
 
@@ -134,9 +152,11 @@ export async function takeAlong(
 ): Promise<{ ok: true; source: "chain" | "game" } | { ok: false; reason: TakeRefusal; detail?: string }> {
   if (pet.away || pet.sitting || readTrip()) return { ok: false, reason: "busy" };
   const chosen = picks.filter((p) => p.n > 0);
-  if (chosen.length > MAX_SNACK_KINDS || chosen.some((p) => p.n > MAX_SNACKS_EACH)) return { ok: false, reason: "tooMany" };
+  if (chosen.length > MAX_SNACK_KINDS || chosen.some((p) => p.n > MAX_SNACKS_EACH))
+    return { ok: false, reason: "tooMany" };
   const bag = useWorld.getState().world.bag;
-  if (chosen.some((p) => (bag[p.item] ?? 0) < p.n || ITEM[p.item]?.kind !== "food" || !ITEM[p.item]!.use)) return { ok: false, reason: "noSnacks" };
+  if (chosen.some((p) => (bag[p.item] ?? 0) < p.n || ITEM[p.item]?.kind !== "food" || !ITEM[p.item]!.use))
+    return { ok: false, reason: "noSnacks" };
 
   const { trip: brainOut, source } = await travellingBrain(pet);
   const travelling = tripBrainOf(brainOut);
@@ -147,7 +167,13 @@ export async function takeAlong(
   const r = recordOf(current);
   const snacks = chosen.map((p) => {
     const def = ITEM[p.item]!;
-    return { item: p.item, id: String(p.item), count: p.n, effect: { ...def.use! }, name: { en: def.name.en.slice(0, 24), zh: def.name.zh.slice(0, 8) } };
+    return {
+      item: p.item,
+      id: String(p.item),
+      count: p.n,
+      effect: { ...def.use! },
+      name: { en: def.name.en.slice(0, 24), zh: def.name.zh.slice(0, 8) },
+    };
   });
   const packet = tripPacket(current, brainOut, snacks, {
     name: current.name,
@@ -178,7 +204,13 @@ export async function takeAlong(
       processor: brainOut.processor,
       id: brainOut.id.toString(),
       root: hex(brainOut.bytes),
-      parts: brainOut.parts.map((q) => ({ processor: q.processor, id: q.id.toString(), nIn: q.nIn, nOut: q.nOut, hex: hex(q.bytes) })),
+      parts: brainOut.parts.map((q) => ({
+        processor: q.processor,
+        id: q.id.toString(),
+        nIn: q.nIn,
+        nOut: q.nOut,
+        hex: hex(q.bytes),
+      })),
     },
     sentAt: now(),
   };
@@ -196,7 +228,13 @@ function tripBrain(t: Trip): TripBrain {
     processor: t.brain.processor,
     id: BigInt(t.brain.id),
     bytes: hexToBytes(t.brain.root),
-    parts: t.brain.parts.map((q) => ({ processor: q.processor, id: BigInt(q.id), nIn: q.nIn, nOut: q.nOut, bytes: hexToBytes(q.hex) })),
+    parts: t.brain.parts.map((q) => ({
+      processor: q.processor,
+      id: BigInt(q.id),
+      nIn: q.nIn,
+      nOut: q.nOut,
+      bytes: hexToBytes(q.hex),
+    })),
   };
 }
 
@@ -220,7 +258,9 @@ function finish(home: Pet, snacksLeft: ReadonlyArray<{ item: number; count: numb
   useGame.getState().wakeUp();
 }
 
-export type HomeResult = { ok: true; minutes: number; cares: number; words: number } | { ok: false; reason: HomeRefusal | "noTrip" };
+export type HomeResult =
+  | { ok: true; minutes: number; cares: number; words: number }
+  | { ok: false; reason: HomeRefusal | "noTrip" };
 
 /** Past the minute's boundary by this much before a waited-for log is checked again. */
 const ARRIVAL_MARGIN_MS = 50;
@@ -252,14 +292,22 @@ let homecoming: Promise<HomeResult> | null = null;
  * that ends a moment ahead of the game's clock is waited for first (`onArriving` hears for how long). A call made
  * while one is under way (the page starting as the packet lands, say) gets that one's result.
  */
-export function bringPetHome(packet: Uint8Array, release?: () => Promise<void>, onArriving?: (ms: number) => void): Promise<HomeResult> {
+export function bringPetHome(
+  packet: Uint8Array,
+  release?: () => Promise<void>,
+  onArriving?: (ms: number) => void,
+): Promise<HomeResult> {
   homecoming ??= homecomingOf(packet, release, onArriving).finally(() => {
     homecoming = null;
   });
   return homecoming;
 }
 
-async function homecomingOf(packet: Uint8Array, release?: () => Promise<void>, onArriving?: (ms: number) => void): Promise<HomeResult> {
+async function homecomingOf(
+  packet: Uint8Array,
+  release?: () => Promise<void>,
+  onArriving?: (ms: number) => void,
+): Promise<HomeResult> {
   const first = readTrip();
   if (!first) return { ok: false, reason: "noTrip" };
   await untilArrived(first.start, packet, onArriving);
@@ -271,7 +319,10 @@ async function homecomingOf(packet: Uint8Array, release?: () => Promise<void>, o
   if (!r.ok) return r;
   if (release) await release();
   for (const c of r.cares) countCare(c.kind, c.wasAsleep, c.result);
-  finish(r.pet, t.snacks.map((s, i) => ({ item: s.item, count: r.snacks[i]?.count ?? 0 })));
+  finish(
+    r.pet,
+    t.snacks.map((s, i) => ({ item: s.item, count: r.snacks[i]?.count ?? 0 })),
+  );
   return { ok: true, minutes: r.pet.beat - t.start.beat, cares: r.cares.length, words: r.words };
 }
 
@@ -293,7 +344,10 @@ export function callBack(): boolean {
     writeTrip(null);
     return true;
   }
-  finish(t.start, t.snacks.map((s) => ({ item: s.item, count: s.count })));
+  finish(
+    t.start,
+    t.snacks.map((s) => ({ item: s.item, count: s.count })),
+  );
   return true;
 }
 
@@ -318,5 +372,9 @@ export function settleOwed(startDigest: string): void {
 }
 
 /** For the screen: what this trip took and where its brain came from. */
-export const tripSummary = (t: Trip) => ({ snacks: t.snacks, source: t.brain.source, sentAt: t.sentAt, startDigest: petDigest(t.start, 0) });
-
+export const tripSummary = (t: Trip) => ({
+  snacks: t.snacks,
+  source: t.brain.source,
+  sentAt: t.sentAt,
+  startDigest: petDigest(t.start, 0),
+});

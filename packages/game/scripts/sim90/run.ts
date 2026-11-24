@@ -34,12 +34,20 @@ function leftAlone(): Array<{ line: string; lowestAt72h: number; firstSickHours:
   const start = DAY1 + 8 * H;
   return (["gentle", "bold", "curious"] as const).map((line) => {
     const brain = mindBrain({ line, lessons: [] });
-    let p = care(createPet({ name: "Alone", line, now: start, tzOffsetMin: 480, brain }), { kind: "pet" }, start, brain).pet;
+    let p = care(
+      createPet({ name: "Alone", line, now: start, tzOffsetMin: 480, brain }),
+      { kind: "pet" },
+      start,
+      brain,
+    ).pet;
     let lowestAt72h = 1000;
     let firstSickHours: number | null = null;
     for (let h = 1; h <= 240 && firstSickHours === null; h++) {
       p = catchUp(p, start + h * H, brain);
-      if (h === 72) lowestAt72h = Math.min(...(["food", "joy", "energy", "clean"] as const).map((k) => Math.floor(p.meters[k] / 60)));
+      if (h === 72)
+        lowestAt72h = Math.min(
+          ...(["food", "joy", "energy", "clean"] as const).map((k) => Math.floor(p.meters[k] / 60)),
+        );
       if (p.sick) firstSickHours = h;
     }
     return { line, lowestAt72h, firstSickHours };
@@ -52,7 +60,12 @@ export const DEFAULT_SEED = 20261121;
 export const DEFAULT_DAYS = 90;
 
 /** The tapper down one tapping path (the pats-and-words tapper is the players' own). */
-function tapPathNumbers(players: Record<PlayerType, PlayerNumbers>, seed: number, days: number, path: TapPath): { level99Day: number | null; day30Level: number | null } {
+function tapPathNumbers(
+  players: Record<PlayerType, PlayerNumbers>,
+  seed: number,
+  days: number,
+  path: TapPath,
+): { level99Day: number | null; day30Level: number | null } {
   const p = path === "petTalk" ? players.tapper : playType("tapper", seed, days, path);
   return { level99Day: p.level99Day, day30Level: p.days[Math.min(30, p.days.length) - 1]?.level ?? null };
 }
@@ -76,14 +89,41 @@ export async function runSimYielding(o: { seed?: number; days?: number } = {}): 
     await tick();
   }
   const field = await sparFieldYielding(seed, FIELD_SEEDS, tick);
-  return { seed, days, players, tapPaths, field, lessons: lessonsSeen(), costOfEverything: costOfEverything(), alone: leftAlone(), patOnly: patOnly(), budgetChoice: budgetChoice(), worth: worthFindings().map((f) => f.why) };
+  return {
+    seed,
+    days,
+    players,
+    tapPaths,
+    field,
+    lessons: lessonsSeen(),
+    costOfEverything: costOfEverything(),
+    alone: leftAlone(),
+    patOnly: patOnly(),
+    budgetChoice: budgetChoice(),
+    worth: worthFindings().map((f) => f.why),
+  };
 }
 
 export function runSim(o: { seed?: number; days?: number } = {}): SimNumbers {
   const seed = o.seed ?? DEFAULT_SEED;
   const days = o.days ?? DEFAULT_DAYS;
-  const players = Object.fromEntries(PLAYER_TYPES.map((t) => [t, playType(t, seed, days)])) as Record<PlayerType, PlayerNumbers>;
+  const players = Object.fromEntries(PLAYER_TYPES.map((t) => [t, playType(t, seed, days)])) as Record<
+    PlayerType,
+    PlayerNumbers
+  >;
   // B8: the tapper down each tapping path, for level-not-by-tapping
   const tapPaths = Object.fromEntries(TAP_PATHS.map((path) => [path, tapPathNumbers(players, seed, days, path)]));
-  return { seed, days, players, tapPaths, field: sparField(seed, FIELD_SEEDS), lessons: lessonsSeen(), costOfEverything: costOfEverything(), alone: leftAlone(), patOnly: patOnly(), budgetChoice: budgetChoice(), worth: worthFindings().map((f) => f.why) };
+  return {
+    seed,
+    days,
+    players,
+    tapPaths,
+    field: sparField(seed, FIELD_SEEDS),
+    lessons: lessonsSeen(),
+    costOfEverything: costOfEverything(),
+    alone: leftAlone(),
+    patOnly: patOnly(),
+    budgetChoice: budgetChoice(),
+    worth: worthFindings().map((f) => f.why),
+  };
 }

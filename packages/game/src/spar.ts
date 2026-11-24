@@ -52,7 +52,16 @@ export const MOVES = ["tap", "snack", "pounce", "rest", "dodge", "guard", "charm
 export type Move = (typeof MOVES)[number];
 
 /** A move's number when another pet's brain reads it on the action pins. */
-const MOVE_AS_ACTION: Record<Move, number> = { tap: 0, snack: 1, pounce: 2, rest: 0, dodge: 0, guard: 0, charm: 5, gift: 7 };
+const MOVE_AS_ACTION: Record<Move, number> = {
+  tap: 0,
+  snack: 1,
+  pounce: 2,
+  rest: 0,
+  dodge: 0,
+  guard: 0,
+  charm: 5,
+  gift: 7,
+};
 
 export interface Fighter {
   name: string;
@@ -133,12 +142,35 @@ export function xorshift(seed: number): () => number {
   };
 }
 
-const AS_DUEL_PREV: Record<Move, number> = { tap: 0, pounce: 0, charm: 0, gift: 0, rest: 0, snack: 1, dodge: 2, guard: 3 };
+const AS_DUEL_PREV: Record<Move, number> = {
+  tap: 0,
+  pounce: 0,
+  charm: 0,
+  gift: 0,
+  rest: 0,
+  snack: 1,
+  dodge: 2,
+  guard: 3,
+};
 
 /** The fight on a TapeFly-format brain's 12 pins (DUEL-12x3/1). */
 export function duelWord(me: Side, them: Side, round: number): number {
-  const foe = them.last === "guard" ? 1 : them.last === "pounce" ? 2 : round > 0 && (them.last === "rest" || them.last === "snack") ? 3 : 0;
-  return 3 | (foe << 2) | (bucketUp(me.hp, me.maxHp) << 4) | (bucketUp(them.hp, them.maxHp) << 6) | (bucketUp(me.stamina, me.maxStamina) << 8) | (AS_DUEL_PREV[me.last] << 10);
+  const foe =
+    them.last === "guard"
+      ? 1
+      : them.last === "pounce"
+        ? 2
+        : round > 0 && (them.last === "rest" || them.last === "snack")
+          ? 3
+          : 0;
+  return (
+    3 |
+    (foe << 2) |
+    (bucketUp(me.hp, me.maxHp) << 4) |
+    (bucketUp(them.hp, them.maxHp) << 6) |
+    (bucketUp(me.stamina, me.maxStamina) << 8) |
+    (AS_DUEL_PREV[me.last] << 10)
+  );
 }
 
 /** A DUEL-12x3/1 answer as a move and mood, in the pet brain's output layout (want | mood << 3). */
@@ -166,16 +198,32 @@ function word(me: Side, them: Side, round: number, cheering: boolean, hitHard: b
 /** djb2 over the round data, as a short hex fingerprint. */
 export function digestOf(rounds: Round[], seed: number): string {
   let h = 5381 ^ seed;
-  for (const r of rounds) for (const v of [r.words[0], r.words[1], MOVES.indexOf(r.moves[0]), MOVES.indexOf(r.moves[1]), r.hp[0], r.hp[1]]) h = ((h * 33) ^ v) >>> 0;
+  for (const r of rounds)
+    for (const v of [r.words[0], r.words[1], MOVES.indexOf(r.moves[0]), MOVES.indexOf(r.moves[1]), r.hp[0], r.hp[1]])
+      h = ((h * 33) ^ v) >>> 0;
   return h.toString(16).padStart(8, "0");
 }
 
-export function spar(a: Fighter, b: Fighter, seed: number, cheer: (round: number) => [boolean, boolean] = () => [false, false]): SparResult {
+export function spar(
+  a: Fighter,
+  b: Fighter,
+  seed: number,
+  cheer: (round: number) => [boolean, boolean] = () => [false, false],
+): SparResult {
   const rnd = xorshift(seed);
   const start = (f: Fighter): Side => {
     const maxHp = MAX_HP + (f.mods?.hp ?? 0);
     const maxStamina = MAX_STAMINA + (f.mods?.stamina ?? 0);
-    return { hp: maxHp, stamina: maxStamina, maxHp, maxStamina, weakened: 0, memory: f.memory.slice(), last: "tap", momentum: 0 };
+    return {
+      hp: maxHp,
+      stamina: maxStamina,
+      maxHp,
+      maxStamina,
+      weakened: 0,
+      memory: f.memory.slice(),
+      last: "tap",
+      momentum: 0,
+    };
   };
   const sides: [Side, Side] = [start(a), start(b)];
   const fighters: [Fighter, Fighter] = [a, b];
@@ -185,7 +233,9 @@ export function spar(a: Fighter, b: Fighter, seed: number, cheer: (round: number
     const cheering = cheer(n);
     const words: [number, number] = [0, 1].map((i) => {
       const [me, them] = i === 0 ? [sides[0], sides[1]] : [sides[1], sides[0]];
-      return fighters[i]!.profile === "DUEL-12x3/1" ? duelWord(me, them, n) : word(me, them, n, cheering[i]!, hitHard[i]!);
+      return fighters[i]!.profile === "DUEL-12x3/1"
+        ? duelWord(me, them, n)
+        : word(me, them, n, cheering[i]!, hitHard[i]!);
     }) as [number, number];
     const outs = [0, 1].map((i) => {
       const st = Uint8Array.from(sides[i]!.memory);
@@ -205,7 +255,14 @@ export function spar(a: Fighter, b: Fighter, seed: number, cheer: (round: number
       const j = (1 - i) as 0 | 1;
       const me = sides[i];
       const m = moves[i];
-      const cost = m === "pounce" ? 3 : m === "dodge" || m === "charm" ? 2 : m === "guard" || m === "snack" || m === "gift" ? 1 : 0;
+      const cost =
+        m === "pounce"
+          ? 3
+          : m === "dodge" || m === "charm"
+            ? 2
+            : m === "guard" || m === "snack" || m === "gift"
+              ? 1
+              : 0;
       me.stamina = Math.max(0, me.stamina - cost);
       if (m === "rest") me.stamina = Math.min(me.maxStamina, me.stamina + 4);
       if (m === "snack") heal[i] += 12 + power[i] * 2 + (fighters[i]!.mods?.heal ?? 0);
@@ -215,7 +272,8 @@ export function spar(a: Fighter, b: Fighter, seed: number, cheer: (round: number
       }
       if (m === "charm") sides[j].weakened = 2;
       if (m === "pounce" || m === "tap") {
-        let dmg = m === "tap" ? 5 + power[i] + (rnd() % 3) : 12 + power[i] * 3 + (rnd() % 5) + (rnd() % 6 === 0 ? 8 : 0);
+        let dmg =
+          m === "tap" ? 5 + power[i] + (rnd() % 3) : 12 + power[i] * 3 + (rnd() % 5) + (rnd() % 6 === 0 ? 8 : 0);
         if (me.weakened > 0) dmg = Math.floor(dmg / 2);
         const def = moves[j];
         const them = fighters[j]!.mods;
@@ -241,7 +299,15 @@ export function spar(a: Fighter, b: Fighter, seed: number, cheer: (round: number
       sides[i].momentum = Math.max(-1, Math.min(2, sides[i].momentum + swing));
     }
     hitHard = [hits[1] >= 18, hits[0] >= 18];
-    rounds.push({ n, words, moves, moods, hp: [sides[0].hp, sides[1].hp], stamina: [sides[0].stamina, sides[1].stamina], hits });
+    rounds.push({
+      n,
+      words,
+      moves,
+      moods,
+      hp: [sides[0].hp, sides[1].hp],
+      stamina: [sides[0].stamina, sides[1].stamina],
+      hits,
+    });
     if (sides[0].hp === 0 || sides[1].hp === 0) break;
   }
   const [h0, h1] = [sides[0].hp, sides[1].hp];

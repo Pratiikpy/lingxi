@@ -49,7 +49,7 @@ import {
 
 const T0 = Date.UTC(2026, 10, 16, 9);
 const MIN = 60_000;
-const ok = <T,>(r: ({ ok: true; world: WorldState } & T) | { ok: false; reason: string }) => {
+const ok = <T>(r: ({ ok: true; world: WorldState } & T) | { ok: false; reason: string }) => {
   if (!r.ok) throw new Error(r.reason);
   return r;
 };
@@ -75,24 +75,70 @@ describe("the condition engine", () => {
   it("maps every one of the source's objective types but the two left out on purpose", () => {
     // note A §8.3: 24 rows, of which gacha rerolls and the launch flag are left out
     const sourceTypes = [
-      "ITEM_BURN", "HARVEST_TIME", "HARVEST_TIME_MOONSIDE", "SCAV_CLAIM_NODE", "DROPTABLE_ITEM_TOTAL", "CRAFT_ITEM", "ROOM", "MOVE",
-      "LISTING_BUY_TOTAL", "ITEM_SPEND", "ITEM_TOTAL", "PETS_OWNED", "PET_LEVELS_TOTAL", "PET_LEVEL_HIGHEST", "SKILL_POINTS_USE",
-      "PET_NAME", "PET_ITEM_USE", "LIQUIDATE_TOTAL", "TRADE_EXECUTE", "PHASE", "QUEST", "QUEST_COMPLETED_DELAY", "BLOCKTIME",
-      "REPUTATION", "COMPLETE_COMP",
+      "ITEM_BURN",
+      "HARVEST_TIME",
+      "HARVEST_TIME_MOONSIDE",
+      "SCAV_CLAIM_NODE",
+      "DROPTABLE_ITEM_TOTAL",
+      "CRAFT_ITEM",
+      "ROOM",
+      "MOVE",
+      "LISTING_BUY_TOTAL",
+      "ITEM_SPEND",
+      "ITEM_TOTAL",
+      "PETS_OWNED",
+      "PET_LEVELS_TOTAL",
+      "PET_LEVEL_HIGHEST",
+      "SKILL_POINTS_USE",
+      "PET_NAME",
+      "PET_ITEM_USE",
+      "LIQUIDATE_TOTAL",
+      "TRADE_EXECUTE",
+      "PHASE",
+      "QUEST",
+      "QUEST_COMPLETED_DELAY",
+      "BLOCKTIME",
+      "REPUTATION",
+      "COMPLETE_COMP",
     ];
-    const mapped = new Set<string | undefined>(Object.values(TYPES).map((s) => ("source" in s ? s.source : undefined)).filter(Boolean));
+    const mapped = new Set<string | undefined>(
+      Object.values(TYPES)
+        .map((s) => ("source" in s ? s.source : undefined))
+        .filter(Boolean),
+    );
     for (const s of sourceTypes) expect(mapped, s).toContain(s);
     for (const s of LEFT_OUT) expect(mapped.has(s)).toBe(false);
   });
 
   it("each mapped type reads the right value", () => {
-    let w: WorldState = { ...newWorld("seed-cond"), room: 13, coins: 77, visited: [65, 13, 14], bag: { 11130: 5 }, flags: ["named"] };
+    let w: WorldState = {
+      ...newWorld("seed-cond"),
+      room: 13,
+      coins: 77,
+      visited: [65, 13, 14],
+      bag: { 11130: 5 },
+      flags: ["named"],
+    };
     w = bump(bump(bump(w, "GIVE", 11130, 3), "GIVE_TO", "praline", 2), "GIVE_TO", "praline:11130", 2, { total: false });
     for (const [type, index, n] of [
-      ["TOGETHER", 13, 40], ["TOGETHER_NIGHT", 0, 25], ["FORAGE", 13, 6], ["FIND", 11130, 9], ["CRAFT", 11313, 2], ["MOVE", 0, 11],
-      ["BUY", 11130, 4], ["COINS_SPENT", 0, 120], ["COINS_EARNED", 0, 300], ["USE", 11130, 7], ["LESSON", 0, 5], ["SPAR_WIN", 0, 3],
-      ["GIFT", 0, 8], ["SAVE", 0, 12], ["CARE", "feed", 21], ["CHOOSE", "share", 2],
-    ] as const) w = bump(w, type, index, n);
+      ["TOGETHER", 13, 40],
+      ["TOGETHER_NIGHT", 0, 25],
+      ["FORAGE", 13, 6],
+      ["FIND", 11130, 9],
+      ["CRAFT", 11313, 2],
+      ["MOVE", 0, 11],
+      ["BUY", 11130, 4],
+      ["COINS_SPENT", 0, 120],
+      ["COINS_EARNED", 0, 300],
+      ["USE", 11130, 7],
+      ["LESSON", 0, 5],
+      ["SPAR_WIN", 0, 3],
+      ["GIFT", 0, 8],
+      ["SAVE", 0, 12],
+      ["CARE", "feed", 21],
+      ["CHOOSE", "share", 2],
+    ] as const)
+      w = bump(w, type, index, n);
     w = { ...w, quests: { active: {}, done: { hello: T0 - 2 * 86_400_000 } }, trust: { praline: 14 } };
     const v = view(w, { goalsDone: ["lanterns"], bondLevel: 3, timeOfDay: 0 });
     const read = (cond: Condition) => progressOf(cond, v).have;
@@ -208,7 +254,10 @@ describe("every action bumps its counter", () => {
     expect(tallyOf(b.world, "BUY", item)).toBe(1);
     expect(tallyOf(b.world, "COINS_SPENT")).toBe(ITEM[item]!.price);
     const recipe = RECIPES[0]!;
-    const bag = Object.fromEntries([...recipe.ins.map((x) => [x.item, x.amount]), ...(recipe.tool !== undefined ? [[recipe.tool, 1]] : [])]);
+    const bag = Object.fromEntries([
+      ...recipe.ins.map((x) => [x.item, x.amount]),
+      ...(recipe.tool !== undefined ? [[recipe.tool, 1]] : []),
+    ]);
     const m = ok(craft({ ...w0(), bag, room: recipe.room ?? w0().room }, recipe.index));
     expect(tallyOf(m.world, "CRAFT", recipe.out)).toBe(1);
     const u = ok(take(w0(), 11130));
@@ -270,8 +319,12 @@ describe("sheets are checked before they ship", () => {
   });
 
   it("each kind of mistake is named", () => {
-    expect(conditionErrors({ type: "NOPE" as Condition["type"], logic: "CURR_MIN", value: 1 })).toEqual(["unknown type NOPE"]);
-    expect(conditionErrors({ type: "MOVE", logic: "CURR_MOST" as Condition["logic"], value: 1 })).toEqual(["unknown logic CURR_MOST"]);
+    expect(conditionErrors({ type: "NOPE" as Condition["type"], logic: "CURR_MIN", value: 1 })).toEqual([
+      "unknown type NOPE",
+    ]);
+    expect(conditionErrors({ type: "MOVE", logic: "CURR_MOST" as Condition["logic"], value: 1 })).toEqual([
+      "unknown logic CURR_MOST",
+    ]);
     expect(conditionErrors(c("ROOM", "CURR_MIN", 13, 1))[0]).toMatch(/yes\/no/);
     expect(conditionErrors(c("MOVE", "BOOL_IS"))[0]).toMatch(/is a count/);
     expect(conditionErrors(c("FIND", "CURR_MIN", 424242, 1))).toEqual(["FIND no item 424242"]);
@@ -283,8 +336,12 @@ describe("sheets are checked before they ship", () => {
     expect(conditionErrors(c("MOVE", "CURR_MIN", 3, 1))[0]).toMatch(/takes no index/);
     expect(conditionErrors(c("ITEM", "CURR_MIN", undefined, 1))[0]).toMatch(/needs an index/);
     expect(conditionErrors(c("TIME_OF_DAY", "BOOL_IS", "noon"))[0]).toMatch(/no time of day/);
-    expect(conditionErrors(c("QUEST", "BOOL_IS", "ghost"), { quests: new Set(["hello"]) })).toEqual(["QUEST no quest ghost"]);
-    expect(conditionErrors(c("QUEST_DELAY", "BOOL_IS", "hello"))).toEqual(["QUEST_DELAY needs the delay in whole seconds"]);
+    expect(conditionErrors(c("QUEST", "BOOL_IS", "ghost"), { quests: new Set(["hello"]) })).toEqual([
+      "QUEST no quest ghost",
+    ]);
+    expect(conditionErrors(c("QUEST_DELAY", "BOOL_IS", "hello"))).toEqual([
+      "QUEST_DELAY needs the delay in whole seconds",
+    ]);
     expect(conditionErrors(c("CHOOSE", "CURR_MIN", "Share!", 1))[0]).toMatch(/lower-case word/);
   });
 
@@ -294,7 +351,9 @@ describe("sheets are checked before they ship", () => {
       { id: "bad", conditions: [c("MOVE", "CURR_MIN", undefined, 1), c("FIND", "CURR_MIN", 424242, 1)] },
       { id: "fine", conditions: [] },
     ];
-    expect(() => assertSheet("quests", rows)).toThrow(/quests bad condition 2: FIND no item 424242[\s\S]*quests fine: the id is used twice/);
+    expect(() => assertSheet("quests", rows)).toThrow(
+      /quests bad condition 2: FIND no item 424242[\s\S]*quests fine: the id is used twice/,
+    );
     expect(() => assertSheet("quests", rows.slice(0, 1))).not.toThrow();
   });
 
@@ -306,10 +365,27 @@ describe("sheets are checked before they ship", () => {
 
 describe("older saves", () => {
   it("are counted in once from what they record, and never twice", () => {
-    const old: WorldState = { ...newWorld("s"), visited: [65, 1, 2, 3], foragedCount: 7, crafted: 2, trips: 1, garden: { plots: [], harvested: 3 } };
+    const old: WorldState = {
+      ...newWorld("s"),
+      visited: [65, 1, 2, 3],
+      foragedCount: 7,
+      crafted: 2,
+      trips: 1,
+      garden: { plots: [], harvested: 3 },
+    };
     delete old.tallied;
     delete old.tally;
-    const ledger = { feed: 30, play: 12, clean: 4, petting: 9, medicine: 1, lessons: 5, sparWins: 2, gifts: 3, chainDays: 6 };
+    const ledger = {
+      feed: 30,
+      play: 12,
+      clean: 4,
+      petting: 9,
+      medicine: 1,
+      lessons: 5,
+      sparWins: 2,
+      gifts: 3,
+      chainDays: 6,
+    };
     const once = backfillTally(old, ledger);
     expect(tallyOf(once, "MOVE")).toBe(3);
     expect(tallyOf(once, "FORAGE")).toBe(7);
@@ -351,19 +427,46 @@ describe("the shipped sheets", () => {
   });
   it("one bad row anywhere fails the whole check, naming each sheet and row", () => {
     const bad = [
-      { name: "story", rows: [{ id: "q1", conditions: [{ type: "ROOM", logic: "BOOL_IS", index: 9999 } as Condition] }] },
-      { name: "daily", rows: [{ id: "d1", conditions: [{ type: "TRUST", logic: "CURR_MIN", index: "nobody", value: 1 } as Condition] }] },
+      {
+        name: "story",
+        rows: [{ id: "q1", conditions: [{ type: "ROOM", logic: "BOOL_IS", index: 9999 } as Condition] }],
+      },
+      {
+        name: "daily",
+        rows: [
+          { id: "d1", conditions: [{ type: "TRUST", logic: "CURR_MIN", index: "nobody", value: 1 } as Condition] },
+        ],
+      },
     ];
-    expect(() => checkSheets(bad)).toThrow(/story q1 condition 1: ROOM no room 9999\ndaily d1 condition 1: TRUST no resident nobody/);
+    expect(() => checkSheets(bad)).toThrow(
+      /story q1 condition 1: ROOM no room 9999\ndaily d1 condition 1: TRUST no resident nobody/,
+    );
   });
 });
 
 describe("solo paths, distinct counts, events and trust", () => {
   const T1 = Date.UTC(2026, 10, 16, 9);
-  const v1 = (world: WorldState, over: Partial<ConditionView> = {}): ConditionView => ({ world, pet: { level: 1, stage: "baby", onChain: false, needsMin: 300 }, pets: 1, now: T1, timeOfDay: 2, day: "2026-11-16", bondLevel: 0, goalsDone: [], ...over });
+  const v1 = (world: WorldState, over: Partial<ConditionView> = {}): ConditionView => ({
+    world,
+    pet: { level: 1, stage: "baby", onChain: false, needsMin: 300 },
+    pets: 1,
+    now: T1,
+    timeOfDay: 2,
+    day: "2026-11-16",
+    bondLevel: 0,
+    goalsDone: [],
+    ...over,
+  });
 
   it("ANY passes when one path passes, and snapshots each path's from-now counts", () => {
-    const solo: Condition = { type: "ANY", logic: "BOOL_IS", of: [{ type: "EVENT", logic: "INC_MIN", index: "pet-sat", value: 1 }, { type: "TALK", logic: "INC_MIN", index: "why", value: 2 }] };
+    const solo: Condition = {
+      type: "ANY",
+      logic: "BOOL_IS",
+      of: [
+        { type: "EVENT", logic: "INC_MIN", index: "pet-sat", value: 1 },
+        { type: "TALK", logic: "INC_MIN", index: "why", value: 2 },
+      ],
+    };
     let w = bump(bump(newWorld("s"), "TALK", "why", 9), "EVENT", "pet-sat", 4);
     const snap = snapshotOf([solo], v1(w));
     expect(snap).toEqual({ "EVENT:pet-sat": 4, "TALK:why": 9 });
@@ -371,29 +474,69 @@ describe("solo paths, distinct counts, events and trust", () => {
     w = bump(w, "TALK", "why", 2);
     expect(progressOf(solo, v1(w), snap).met).toBe(true);
     expect(conditionErrors(solo)).toEqual([]);
-    expect(conditionErrors({ type: "ANY", logic: "BOOL_IS", of: [] })).toEqual(["ANY needs at least one condition in of"]);
-    expect(conditionErrors({ type: "ANY", logic: "BOOL_IS", of: [{ type: "EVENT", logic: "INC_MIN", index: "flying", value: 1 }] })).toEqual(["ANY: EVENT no event flying"]);
+    expect(conditionErrors({ type: "ANY", logic: "BOOL_IS", of: [] })).toEqual([
+      "ANY needs at least one condition in of",
+    ]);
+    expect(
+      conditionErrors({
+        type: "ANY",
+        logic: "BOOL_IS",
+        of: [{ type: "EVENT", logic: "INC_MIN", index: "flying", value: 1 }],
+      }),
+    ).toEqual(["ANY: EVENT no event flying"]);
     expect(conditionErrors({ type: "MOVE", logic: "CURR_MIN", value: 1, of: [] })).toEqual(["MOVE takes no of"]);
   });
 
   it("DISTINCT counts kinds, and DISTINCT_TODAY only today's", () => {
-    let w = bumpFinds(newWorld("s"), [{ item: 1001, n: 5 }, { item: 1004, n: 1 }, { item: 1011, n: 2 }]);
-    w = bump(bump(bump(w, "MEET_DAY", "tapboy-2026-11-14"), "MEET_DAY", "tapboy-2026-11-16"), "MEET_DAY", "mars-2026-11-16");
-    w = bump(bump(bump(w, "FED_GROUP", "2026-11-16-sweet", 1), "FED_GROUP", "2026-11-16-fruit", 1), "FED_GROUP", "2026-11-15-grain", 1);
+    let w = bumpFinds(newWorld("s"), [
+      { item: 1001, n: 5 },
+      { item: 1004, n: 1 },
+      { item: 1011, n: 2 },
+    ]);
+    w = bump(
+      bump(bump(w, "MEET_DAY", "tapboy-2026-11-14"), "MEET_DAY", "tapboy-2026-11-16"),
+      "MEET_DAY",
+      "mars-2026-11-16",
+    );
+    w = bump(
+      bump(bump(w, "FED_GROUP", "2026-11-16-sweet", 1), "FED_GROUP", "2026-11-16-fruit", 1),
+      "FED_GROUP",
+      "2026-11-15-grain",
+      1,
+    );
     expect(progressOf({ type: "DISTINCT", logic: "CURR_MIN", index: "FIND", value: 3 }, v1(w)).have).toBe(3);
     expect(progressOf({ type: "DISTINCT", logic: "CURR_MIN", index: "MEET_DAY:tapboy", value: 2 }, v1(w)).have).toBe(2);
     expect(progressOf({ type: "DISTINCT_TODAY", logic: "CURR_MIN", index: "FED_GROUP", value: 2 }, v1(w)).have).toBe(2);
-    expect(progressOf({ type: "DISTINCT_TODAY", logic: "CURR_MIN", index: "FED_GROUP", value: 2 }, v1(w, { day: "2026-11-15" })).have).toBe(1);
+    expect(
+      progressOf(
+        { type: "DISTINCT_TODAY", logic: "CURR_MIN", index: "FED_GROUP", value: 2 },
+        v1(w, { day: "2026-11-15" }),
+      ).have,
+    ).toBe(1);
     // INC on a distinct count: new kinds since accepting
     const snap = snapshotOf([{ type: "DISTINCT", logic: "INC_MIN", index: "FIND", value: 2 }], v1(w));
-    w = bumpFinds(w, [{ item: 1001, n: 3 }, { item: 1013, n: 1 }]);
+    w = bumpFinds(w, [
+      { item: 1001, n: 3 },
+      { item: 1013, n: 1 },
+    ]);
     expect(progressOf({ type: "DISTINCT", logic: "INC_MIN", index: "FIND", value: 2 }, v1(w), snap).have).toBe(1);
-    expect(conditionErrors({ type: "DISTINCT", logic: "CURR_MIN", index: "find", value: 1 })[0]).toMatch(/counter like FIND/);
+    expect(conditionErrors({ type: "DISTINCT", logic: "CURR_MIN", index: "find", value: 1 })[0]).toMatch(
+      /counter like FIND/,
+    );
   });
 
   it("events, Builders' Lane meetings, needs, placed decor, visits", () => {
     let w = bump(bump(newWorld("s"), "EVENT", "replay-watched"), "MEET", "behemoth", 2);
-    w = { ...w, decor: { owned: ["fern", "ball"], placed: [{ id: "fern", x: 10, y: 10 }, { id: "ball", x: 20, y: 10 }] } };
+    w = {
+      ...w,
+      decor: {
+        owned: ["fern", "ball"],
+        placed: [
+          { id: "fern", x: 10, y: 10 },
+          { id: "ball", x: 20, y: 10 },
+        ],
+      },
+    };
     w = ok(move(w, neighbours(HOME)[0]!, 900)).world;
     expect(progressOf({ type: "EVENT", logic: "CURR_MIN", index: "replay-watched", value: 1 }, v1(w)).met).toBe(true);
     expect(progressOf({ type: "MEET", logic: "CURR_MIN", index: "behemoth", value: 2 }, v1(w)).met).toBe(true);
@@ -401,12 +544,18 @@ describe("solo paths, distinct counts, events and trust", () => {
     expect(progressOf({ type: "NEEDS", logic: "CURR_MIN", value: 500 }, v1(w)).met).toBe(false);
     expect(progressOf({ type: "PLACED", logic: "CURR_MIN", value: 2 }, v1(w)).met).toBe(true);
     expect(tallyOf(w, "VISIT", neighbours(HOME)[0]!)).toBe(1);
-    expect(conditionErrors({ type: "MEET", logic: "CURR_MIN", index: "santa", value: 1 })).toEqual(["MEET no Builders' Lane resident santa"]);
-    expect(conditionErrors({ type: "EVENT", logic: "CURR_MIN", index: "nope", value: 1 })).toEqual(["EVENT no event nope"]);
+    expect(conditionErrors({ type: "MEET", logic: "CURR_MIN", index: "santa", value: 1 })).toEqual([
+      "MEET no Builders' Lane resident santa",
+    ]);
+    expect(conditionErrors({ type: "EVENT", logic: "CURR_MIN", index: "nope", value: 1 })).toEqual([
+      "EVENT no event nope",
+    ]);
   });
 
   it("trust climbs six levels at 0, 5, 15, 30, 50 and 80 points", () => {
-    expect([0, 4, 5, 14, 15, 29, 30, 49, 50, 79, 80, 500].map(trustLevel)).toEqual([0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5]);
+    expect([0, 4, 5, 14, 15, 29, 30, 49, 50, 79, 80, 500].map(trustLevel)).toEqual([
+      0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5,
+    ]);
     const w = { ...newWorld("s"), trust: { praline: 31 } };
     expect(progressOf({ type: "TRUST_LEVEL", logic: "CURR_MIN", index: "praline", value: 3 }, v1(w)).met).toBe(true);
     expect(progressOf({ type: "TRUST_LEVEL", logic: "CURR_MIN", index: "bolt", value: 1 }, v1(w)).met).toBe(false);

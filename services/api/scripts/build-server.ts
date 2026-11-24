@@ -40,7 +40,9 @@ export async function buildServer(out = join(api, "dist")): Promise<string> {
     // ws loads these only when they are installed, and they are not
     external: ["bufferutil", "utf-8-validate"],
     // bundled CommonJS packages call require; ESM output has none of its own
-    banner: { js: 'import { createRequire as __lingxiRequire } from "node:module"; const require = __lingxiRequire(import.meta.url);' },
+    banner: {
+      js: 'import { createRequire as __lingxiRequire } from "node:module"; const require = __lingxiRequire(import.meta.url);',
+    },
     logLevel: "warning",
   });
   // the commit the build came from, which the running server reports in its health detail and the status check
@@ -54,8 +56,11 @@ export async function buildServer(out = join(api, "dist")): Promise<string> {
   } catch {
     console.warn("no git checkout: the server's build.json records an unknown commit");
   }
-  writeFileSync(join(out, "build.json"), `${JSON.stringify({ commit, dirty, builtAt: new Date().toISOString() })}
-`);
+  writeFileSync(
+    join(out, "build.json"),
+    `${JSON.stringify({ commit, dirty, builtAt: new Date().toISOString() })}
+`,
+  );
   return out;
 }
 
@@ -71,4 +76,5 @@ export async function releaseServer(): Promise<string> {
   return dist;
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === resolve(import.meta.filename)) console.log(`server built: ${await releaseServer()}`);
+if (process.argv[1] && resolve(process.argv[1]) === resolve(import.meta.filename))
+  console.log(`server built: ${await releaseServer()}`);

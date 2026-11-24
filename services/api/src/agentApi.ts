@@ -90,16 +90,32 @@ export function runSpar(q: { program?: string; p1?: string; chips?: string; vs?:
     if (q.program) {
       const program = decodeProgram(q.program);
       const gates = gateCount(compileProgram(program));
-      if (gates > Math.min(MAX_GATES, BRAIN_MAX)) return { status: 400, body: { ok: false, reason: "tooBig", detail: `${gates} gates; the most a pet brain may have is ${MAX_GATES}` } };
+      if (gates > Math.min(MAX_GATES, BRAIN_MAX))
+        return {
+          status: 400,
+          body: {
+            ok: false,
+            reason: "tooBig",
+            detail: `${gates} gates; the most a pet brain may have is ${MAX_GATES}`,
+          },
+        };
       me = fighterFrom("you", program, SPAR_LEVEL);
     } else if (q.p1 || q.chips) {
       me = flyFighter("you", parseFlyBrain(q.p1 ?? q.chips!), SPAR_LEVEL);
-    } else return { status: 400, body: { ok: false, reason: "invalid", detail: "give program=lx1.… or p1=… or chips=a,b,c" } };
+    } else
+      return {
+        status: 400,
+        body: { ok: false, reason: "invalid", detail: "give program=lx1.… or p1=… or chips=a,b,c" },
+      };
   } catch (e) {
     return { status: 400, body: { ok: false, reason: "invalid", detail: (e as Error).message } };
   }
   const them = opponent(q.vs ?? "");
-  if (!them) return { status: 400, body: { ok: false, reason: "invalid", detail: "vs must be a partner id or fly:<rival>; see /api/v1/partners" } };
+  if (!them)
+    return {
+      status: 400,
+      body: { ok: false, reason: "invalid", detail: "vs must be a partner id or fly:<rival>; see /api/v1/partners" },
+    };
   const seed = q.seed !== undefined ? Number(q.seed) >>> 0 : (Math.random() * 2 ** 32) >>> 0;
   return { status: 200, body: { ok: true, vs: q.vs, ...summary(fight(CURRENT_SPAR, me, them, seed)) } };
 }
@@ -146,19 +162,27 @@ export function withAgentApi(app: Hono, deps: AgentApiDeps): Hono {
       what: "Lingxi: pets whose minds are circuits of NAND gates and latches, taped out on X Layer once their owners keep them there. An agent can read any pet kept on X Layer and its brain netlist (the proof data is at /api/pets/:id/history and /api/pets/:id/log), and can raise its own pet.",
       docs: `${SITE}/agents.html`,
       endpoints: {
-        "GET /api/v1/profiles": "interface manifests: what every input and output bit of a pet brain (PET-16x8/1) and a TapeFly brawl brain (DUEL-12x3/1) means",
+        "GET /api/v1/profiles":
+          "interface manifests: what every input and output bit of a pet brain (PET-16x8/1) and a TapeFly brawl brain (DUEL-12x3/1) means",
         "GET /api/v1/partners": "sparring partners, arena companions and TapeFly's ladder rivals, with their programs",
-        "GET /api/v1/spar?program=lx1.…&vs=pip": "spar a brain (a Lingxi program code, or p1=… / chips=… for a TapeFly brain) against a partner or fly:<rival>; &seed= for a fixed fight",
-        "GET /api/v1/pets/:id": "a pet on X Layer: owner, line, brain circuit, day, log hash, and its picture as PetLook draws it on chain (an SVG data URI)",
+        "GET /api/v1/spar?program=lx1.…&vs=pip":
+          "spar a brain (a Lingxi program code, or p1=… / chips=… for a TapeFly brain) against a partner or fly:<rival>; &seed= for a fixed fight",
+        "GET /api/v1/pets/:id":
+          "a pet on X Layer: owner, line, brain circuit, day, log hash, and its picture as PetLook draws it on chain (an SVG data URI)",
         "GET /api/v1/pets/:id/brain": "the pet's brain netlist as stored on chain (TAP-02 bytes)",
-        "POST /api/v1/agents/adopt": "{ agent, name, line, instincts? } → a token; keep it, it is shown once. At most 5 pets at once per agent name and per address; a pet nobody cares for in 30 days goes home",
+        "POST /api/v1/agents/adopt":
+          "{ agent, name, line, instincts? } → a token; keep it, it is shown once. At most 5 pets at once per agent name and per address; a pet nobody cares for in 30 days goes home",
         "GET /api/v1/agents/me": "your pet now (Authorization: Bearer <token>)",
         "POST /api/v1/agents/me/care": "{ action: feed|play|clean|pet|medicine|lightsOff|wake|talk, food? }",
-        "POST /api/v1/agents/me/teach": "{ rule: { when: {...}, then: { want, mood } } } in the PET-16x8/1 rule language",
-        "POST /api/v1/agents/me/season": "enter your pet in this week's season, marked as raised by an agent: at most 3 entries per address a week, and agent-raised pets may take at most 16 of the week's 64 places; players may fill all 64",
+        "POST /api/v1/agents/me/teach":
+          "{ rule: { when: {...}, then: { want, mood } } } in the PET-16x8/1 rule language",
+        "POST /api/v1/agents/me/season":
+          "enter your pet in this week's season, marked as raised by an agent: at most 3 entries per address a week, and agent-raised pets may take at most 16 of the week's 64 places; players may fill all 64",
         "GET /api/v1/scoreboard": "agent-raised against human-raised pets, week by week",
-        "POST /api/v1/:method": "every operation above as a signed (TAP-13) method: { id, method?, params } in, an envelope signed by the key the manifest delegates out; a refusal is a signed error",
-        "GET /.well-known/tapeapi.json": "the service manifest (TAP-11): every method, the signer's delegation from the holder of circuit #1, and the pinned MCP tools (TAP-15); the same file is published on chain in Lingxi's DeWEB container",
+        "POST /api/v1/:method":
+          "every operation above as a signed (TAP-13) method: { id, method?, params } in, an envelope signed by the key the manifest delegates out; a refusal is a signed error",
+        "GET /.well-known/tapeapi.json":
+          "the service manifest (TAP-11): every method, the signer's delegation from the holder of circuit #1, and the pinned MCP tools (TAP-15); the same file is published on chain in Lingxi's DeWEB container",
         "POST /mcp": "an MCP server (JSON-RPC over HTTP) with three tools: read_pet, run_spar and propose_lesson",
       },
     }),
@@ -169,8 +193,21 @@ export function withAgentApi(app: Hono, deps: AgentApiDeps): Hono {
   app.get("/api/v1/partners", (c) =>
     c.json({
       ok: true,
-      partners: PARTNERS.map((p) => ({ id: p.id, name: p.name, line: p.line, level: p.level, profile: "PET-16x8/1", program: p.program })),
-      flyRivals: FLY_RIVALS.map((r) => ({ id: `fly:${r.id}`, name: r.name, profile: "DUEL-12x3/1", chips: r.chips, program: programOfChips(r.chips) })),
+      partners: PARTNERS.map((p) => ({
+        id: p.id,
+        name: p.name,
+        line: p.line,
+        level: p.level,
+        profile: "PET-16x8/1",
+        program: p.program,
+      })),
+      flyRivals: FLY_RIVALS.map((r) => ({
+        id: `fly:${r.id}`,
+        name: r.name,
+        profile: "DUEL-12x3/1",
+        chips: r.chips,
+        program: programOfChips(r.chips),
+      })),
     }),
   );
 
@@ -202,7 +239,18 @@ export function withAgentApi(app: Hono, deps: AgentApiDeps): Hono {
     try {
       const p = await readPet(deps.chain.pub, deps.chain.deployment, BigInt(id));
       const nl = await readNetlist(deps.chain.pub, p.processor as Address, p.brainId);
-      return c.json({ ok: true, id, profile: "PET-16x8/1", processor: p.processor, brainId: p.brainId.toString(), netlist: nl.bytes, nIn: nl.nIn, nOut: nl.nOut, nState: nl.nState, gates: nl.gates });
+      return c.json({
+        ok: true,
+        id,
+        profile: "PET-16x8/1",
+        processor: p.processor,
+        brainId: p.brainId.toString(),
+        netlist: nl.bytes,
+        nIn: nl.nIn,
+        nOut: nl.nOut,
+        nState: nl.nState,
+        gates: nl.gates,
+      });
     } catch {
       return c.json({ ok: false, reason: "unknown", detail: "no pet with that number" }, 404);
     }
@@ -213,9 +261,32 @@ export function withAgentApi(app: Hono, deps: AgentApiDeps): Hono {
     if (busy) return busy;
     const body = await lenient(c, AgentAdoptBody);
     if (!body) return c.json({ ok: false, reason: "invalid" }, 400);
-    const r = deps.agents.adopt(String(body.agent ?? ""), String(body.name ?? ""), String(body.line ?? ""), body.instincts === undefined ? 0 : Number(body.instincts), who(c));
-    if (!r.ok) return c.json({ ok: false, reason: r.reason, detail: r.detail ?? (r.reason === "invalid" ? "agent: 2-32 letters, digits, space, dot or dash; name: 1-16 characters; line: gentle, bold or curious; instincts: 0-15" : undefined) }, r.reason === "invalid" ? 400 : 200);
-    return c.json({ ok: true, token: r.token, note: "Keep this token: send it as Authorization: Bearer <token>. It is shown only once.", pet: r.pet });
+    const r = deps.agents.adopt(
+      String(body.agent ?? ""),
+      String(body.name ?? ""),
+      String(body.line ?? ""),
+      body.instincts === undefined ? 0 : Number(body.instincts),
+      who(c),
+    );
+    if (!r.ok)
+      return c.json(
+        {
+          ok: false,
+          reason: r.reason,
+          detail:
+            r.detail ??
+            (r.reason === "invalid"
+              ? "agent: 2-32 letters, digits, space, dot or dash; name: 1-16 characters; line: gentle, bold or curious; instincts: 0-15"
+              : undefined),
+        },
+        r.reason === "invalid" ? 400 : 200,
+      );
+    return c.json({
+      ok: true,
+      token: r.token,
+      note: "Keep this token: send it as Authorization: Bearer <token>. It is shown only once.",
+      pet: r.pet,
+    });
   });
 
   const mine = (c: Context) => {
@@ -226,7 +297,12 @@ export function withAgentApi(app: Hono, deps: AgentApiDeps): Hono {
   app.get("/api/v1/agents/me", (c) => {
     const t = mine(c);
     const v = t ? deps.agents.view(t) : null;
-    return v ? c.json({ ok: true, pet: v }) : c.json({ ok: false, reason: "unknown", detail: "send Authorization: Bearer <token> from /api/v1/agents/adopt" }, 401);
+    return v
+      ? c.json({ ok: true, pet: v })
+      : c.json(
+          { ok: false, reason: "unknown", detail: "send Authorization: Bearer <token> from /api/v1/agents/adopt" },
+          401,
+        );
   });
 
   app.post("/api/v1/agents/me/care", async (c) => {
@@ -261,7 +337,12 @@ export function withAgentApi(app: Hono, deps: AgentApiDeps): Hono {
     if (!t || !sp) return c.json({ ok: false, reason: "unknown" }, 401);
     // an agent's entry counts against its address like a player's, and agents share a quarter of the week (A41)
     const r = deps.seasons.enter(sp.pet, `agent-${t.slice(0, 40)}`, { agent: sp.agent, from: who(c) });
-    if (!r.ok && r.reason === "agentsFull") return c.json({ ok: false, reason: r.reason, detail: `agent-raised pets may take at most ${MAX_AGENT_ENTRIES} of the week's ${MAX_ENTRIES} places, and those are taken; players may still enter` });
+    if (!r.ok && r.reason === "agentsFull")
+      return c.json({
+        ok: false,
+        reason: r.reason,
+        detail: `agent-raised pets may take at most ${MAX_AGENT_ENTRIES} of the week's ${MAX_ENTRIES} places, and those are taken; players may still enter`,
+      });
     return c.json(r, r.ok || r.reason === "full" || r.reason === "tooMany" ? 200 : 400);
   });
 

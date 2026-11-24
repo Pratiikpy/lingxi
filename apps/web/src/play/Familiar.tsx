@@ -30,7 +30,14 @@ export function Familiar({ known, size }: { known: number; size: number }) {
         aria-label={zh ? `对这里的熟悉程度：${n}/${size}` : `How well your pet knows this place: ${n} of ${size}`}
         onClick={() => (play("tap"), setOpen((o) => !o))}
       >
-        <span className="familiar-bar" role="meter" aria-valuemin={0} aria-valuemax={size} aria-valuenow={n} aria-hidden="true">
+        <span
+          className="familiar-bar"
+          role="meter"
+          aria-valuemin={0}
+          aria-valuemax={size}
+          aria-valuenow={n}
+          aria-hidden="true"
+        >
           <i style={{ width: `${Math.round((100 * n) / size)}%` }} />
         </span>
         <span>{zh ? `熟悉 ${n}/${size}` : `Known ${n}/${size}`}</span>

@@ -23,18 +23,35 @@ function server() {
   const app = withMcp(new Hono(), { limiter: new RateLimiter(10_000, 60_000) });
   let n = 0;
   const rpc = async (method: string, params?: unknown, headers: Record<string, string> = {}) => {
-    const res = await app.request("/mcp", { method: "POST", headers: { "content-type": "application/json", accept: "application/json, text/event-stream", ...headers }, body: JSON.stringify({ jsonrpc: "2.0", id: ++n, method, ...(params !== undefined ? { params } : {}) }) });
+    const res = await app.request("/mcp", {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json, text/event-stream", ...headers },
+      body: JSON.stringify({ jsonrpc: "2.0", id: ++n, method, ...(params !== undefined ? { params } : {}) }),
+    });
     return { status: res.status, body: res.status === 202 ? null : await res.json() };
   };
-  const raw = (body: string, init: { method?: string; headers?: Record<string, string> } = {}) => app.request("/mcp", { method: init.method ?? "POST", headers: { "content-type": "application/json", ...init.headers }, ...(init.method === "GET" || init.method === "DELETE" ? {} : { body }) });
+  const raw = (body: string, init: { method?: string; headers?: Record<string, string> } = {}) =>
+    app.request("/mcp", {
+      method: init.method ?? "POST",
+      headers: { "content-type": "application/json", ...init.headers },
+      ...(init.method === "GET" || init.method === "DELETE" ? {} : { body }),
+    });
   return { rpc, raw };
 }
 
 describe("the MCP server at /mcp (Streamable HTTP, 2025-11-25)", () => {
   it("initializes, answering with the client's version when it knows it", async () => {
     const { rpc } = server();
-    const r = await rpc("initialize", { protocolVersion: "2025-11-25", capabilities: {}, clientInfo: { name: "t", version: "1" } });
-    expect(r.body.result).toMatchObject({ protocolVersion: "2025-11-25", capabilities: { tools: { listChanged: false } }, serverInfo: { name: "lingxi" } });
+    const r = await rpc("initialize", {
+      protocolVersion: "2025-11-25",
+      capabilities: {},
+      clientInfo: { name: "t", version: "1" },
+    });
+    expect(r.body.result).toMatchObject({
+      protocolVersion: "2025-11-25",
+      capabilities: { tools: { listChanged: false } },
+      serverInfo: { name: "lingxi" },
+    });
     expect((await rpc("initialize", { protocolVersion: "1999-01-01" })).body.result.protocolVersion).toBe("2025-11-25");
     expect(r.body.result.instructions).toBeUndefined();
   });
@@ -63,34 +80,51 @@ describe("the MCP server at /mcp (Streamable HTTP, 2025-11-25)", () => {
 
   it("a lesson the pet already has is a tool error a model can read, not a protocol error", async () => {
     const { rpc } = server();
-    const r = (await rpc("tools/call", { name: "propose_lesson", arguments: { rule: brave, lessons: [brave] } })).body.result;
+    const r = (await rpc("tools/call", { name: "propose_lesson", arguments: { rule: brave, lessons: [brave] } })).body
+      .result;
     expect(r.isError).toBe(true);
     expect(r.structuredContent).toMatchObject({ learnable: false, reason: "duplicate" });
   });
 
   it("proposals across all callers share a budget; past it, a readable tool error and nothing computed", async () => {
-    const r1 = (await handleMcp({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "propose_lesson", arguments: { rule: brave } } }, { proposals: new RateLimiter(0, 60_000) })) as { result: { isError: boolean; structuredContent: { reason: string } } };
+    const r1 = (await handleMcp(
+      { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "propose_lesson", arguments: { rule: brave } } },
+      { proposals: new RateLimiter(0, 60_000) },
+    )) as { result: { isError: boolean; structuredContent: { reason: string } } };
     expect(r1.result.isError).toBe(true);
     expect(r1.result.structuredContent.reason).toBe("busy");
   });
 
   it("runs a spar, the same fight for the same seed", async () => {
     const { rpc } = server();
-    const a = (await rpc("tools/call", { name: "run_spar", arguments: { chips: "berserk", vs: "pip", seed: 7 } })).body.result;
-    const b = (await rpc("tools/call", { name: "run_spar", arguments: { chips: "berserk", vs: "pip", seed: 7 } })).body.result;
+    const a = (await rpc("tools/call", { name: "run_spar", arguments: { chips: "berserk", vs: "pip", seed: 7 } })).body
+      .result;
+    const b = (await rpc("tools/call", { name: "run_spar", arguments: { chips: "berserk", vs: "pip", seed: 7 } })).body
+      .result;
     expect(a).toEqual(b);
     expect(a.structuredContent).toMatchObject({ ran: true, seed: 7 });
   });
 
   it("arguments that break the schema are -32602; an unknown method -32601; read_pet with no chain -32603", async () => {
     const { rpc } = server();
-    for (const args of [{ rule: 5 }, { rule: brave, line: "fierce" }, { rule: { when: { nope: [1] }, then: { want: 1, mood: 1 } } }, { rule: brave, extra: 1 }]) {
-      expect((await rpc("tools/call", { name: "propose_lesson", arguments: args })).body.error.code, JSON.stringify(args)).toBe(-32602);
+    for (const args of [
+      { rule: 5 },
+      { rule: brave, line: "fierce" },
+      { rule: { when: { nope: [1] }, then: { want: 1, mood: 1 } } },
+      { rule: brave, extra: 1 },
+    ]) {
+      expect(
+        (await rpc("tools/call", { name: "propose_lesson", arguments: args })).body.error.code,
+        JSON.stringify(args),
+      ).toBe(-32602);
     }
     expect((await rpc("tools/call", { name: "read_pet", arguments: { id: "0" } })).body.error.code).toBe(-32602);
     expect((await rpc("tools/call", { name: "transfer", arguments: {} })).body.error.code).toBe(-32602);
     expect((await rpc("resources/subscribe")).body.error.code).toBe(-32601);
-    expect((await rpc("tools/call", { name: "read_pet", arguments: { id: "1" } })).body.error).toEqual({ code: -32603, message: "internal error" });
+    expect((await rpc("tools/call", { name: "read_pet", arguments: { id: "1" } })).body.error).toEqual({
+      code: -32603,
+      message: "internal error",
+    });
   });
 
   it("transport: notifications 202, GET and DELETE 405, batches and bad JSON 400, an unknown protocol version 400", async () => {
@@ -102,19 +136,46 @@ describe("the MCP server at /mcp (Streamable HTTP, 2025-11-25)", () => {
     expect(batch.status).toBe(400);
     expect((await raw("{not json")).status).toBe(400);
     expect((await raw('{"jsonrpc":"2.0","id":1,"method":"ping","method":"tools/list"}')).status).toBe(400);
-    expect((await raw(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "ping" }), { headers: { "mcp-protocol-version": "2099-01-01" } })).status).toBe(400);
-    expect((await raw(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "ping", params: { pad: "x".repeat(70_000) } }))).status).toBe(413);
+    expect(
+      (
+        await raw(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "ping" }), {
+          headers: { "mcp-protocol-version": "2099-01-01" },
+        })
+      ).status,
+    ).toBe(400);
+    expect(
+      (await raw(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "ping", params: { pad: "x".repeat(70_000) } })))
+        .status,
+    ).toBe(413);
   });
 });
 
 describe("tools bound as signed methods (TAP-15 §4, §5)", () => {
   const sha = toolsDigest(MCP_TOOLS)!;
   const bound = (published: string, now = () => 1_790_000_000) => {
-    const app = withTapApi(new Hono(), { signer, container, limiter: new RateLimiter(10_000, 60_000), now, tools: { sha256: published, names: MCP_TOOLS.map((t) => t.name), mcp: (m) => handleMcp(m, {}) } });
+    const app = withTapApi(new Hono(), {
+      signer,
+      container,
+      limiter: new RateLimiter(10_000, 60_000),
+      now,
+      tools: { sha256: published, names: MCP_TOOLS.map((t) => t.name), mcp: (m) => handleMcp(m, {}) },
+    });
     return async (method: string, params: Record<string, unknown>, id = "c1") => {
-      const res = await app.request(`/api/v1/${method}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id, params }) });
+      const res = await app.request(`/api/v1/${method}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id, params }),
+      });
       const text = await res.text();
-      return { status: res.status, env: JSON.parse(text), out: await verifyEnvelope({ status: res.status, text }, { container, signer: signer.address, id, method, params }, { now: now() }) };
+      return {
+        status: res.status,
+        env: JSON.parse(text),
+        out: await verifyEnvelope(
+          { status: res.status, text },
+          { container, signer: signer.address, id, method, params },
+          { now: now() },
+        ),
+      };
     };
   };
 
@@ -150,14 +211,37 @@ describe("tools bound as signed methods (TAP-15 §4, §5)", () => {
     const upstream = async (m: object): Promise<object> => {
       const msg = m as { method: string; params: { name?: string } };
       if (msg.method === "tools/list") return { jsonrpc: "2.0", id: 1, result: { tools: served } };
-      const c = (v.cases as Array<{ method: string; envelope: { result?: Record<string, unknown> } }>).find((x) => x.method === msg.params.name && x.envelope.result)!;
+      const c = (v.cases as Array<{ method: string; envelope: { result?: Record<string, unknown> } }>).find(
+        (x) => x.method === msg.params.name && x.envelope.result,
+      )!;
       // the upstream server's own _meta is dropped from the signed result
       return { jsonrpc: "2.0", id: 1, result: { ...c.envelope.result, _meta: { upstream: true } } };
     };
-    for (const c of v.cases as Array<{ name: string; httpStatus: number; id: string; method: string; params: Record<string, unknown>; envelope: Record<string, unknown> & { ts: number; sig: string; error?: { code: string; data: unknown } } }>) {
-      served = c.name.startsWith("upstream description changed") ? v.driftedTools : c.name.startsWith("upstream list has no digest") ? v.undigestibleTools : v.upstreamTools;
-      const app = withTapApi(new Hono(), { signer, container, limiter: new RateLimiter(10_000, 60_000), now: () => c.envelope.ts, tools: { sha256: v.toolsSha256, names: v.upstreamTools.map((t: { name: string }) => t.name), mcp: upstream } });
-      const res = await app.request(`/api/v1/${c.method}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: c.id, params: c.params }) });
+    for (const c of v.cases as Array<{
+      name: string;
+      httpStatus: number;
+      id: string;
+      method: string;
+      params: Record<string, unknown>;
+      envelope: Record<string, unknown> & { ts: number; sig: string; error?: { code: string; data: unknown } };
+    }>) {
+      served = c.name.startsWith("upstream description changed")
+        ? v.driftedTools
+        : c.name.startsWith("upstream list has no digest")
+          ? v.undigestibleTools
+          : v.upstreamTools;
+      const app = withTapApi(new Hono(), {
+        signer,
+        container,
+        limiter: new RateLimiter(10_000, 60_000),
+        now: () => c.envelope.ts,
+        tools: { sha256: v.toolsSha256, names: v.upstreamTools.map((t: { name: string }) => t.name), mcp: upstream },
+      });
+      const res = await app.request(`/api/v1/${c.method}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id: c.id, params: c.params }),
+      });
       const env = await res.json();
       expect(res.status, c.name).toBe(c.httpStatus);
       if (c.envelope.error) {

@@ -23,7 +23,8 @@ const arg = (n: string, f?: string) => {
 const file = arg("deployment")!;
 const d = JSON.parse(readFileSync(file, "utf8")) as Deployment;
 const rpc = arg("rpc", d.rpc)!;
-if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(rpc) && !process.argv.includes("--mainnet-yes")) throw new Error("refusing a non-local node without --mainnet-yes");
+if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(rpc) && !process.argv.includes("--mainnet-yes"))
+  throw new Error("refusing a non-local node without --mainnet-yes");
 const env = Object.fromEntries(
   readFileSync(arg("key-file", resolve(here, "../../../../.secrets/deployer.env"))!, "utf8")
     .split(/\r?\n/)
@@ -34,11 +35,17 @@ const account = privateKeyToAccount((env.DEPLOYER_PRIVATE_KEY ?? env.K) as Hex);
 const chain = { ...xLayer, rpcUrls: { default: { http: [rpc] } } };
 const pub = createPublicClient({ chain, transport: http(rpc) });
 const wallet = createWalletClient({ chain, transport: http(rpc), account });
-const art = JSON.parse(readFileSync(resolve(here, "../../../contracts/out/OutfitMarket.sol/OutfitMarket.json"), "utf8")) as { bytecode: { object: Hex } };
+const art = JSON.parse(
+  readFileSync(resolve(here, "../../../contracts/out/OutfitMarket.sol/OutfitMarket.json"), "utf8"),
+) as { bytecode: { object: Hex } };
 
 async function main() {
   const before = await pub.getBalance({ address: account.address });
-  const hash = await wallet.deployContract({ abi: outfitMarketAbi, bytecode: art.bytecode.object, args: [account.address, account.address] });
+  const hash = await wallet.deployContract({
+    abi: outfitMarketAbi,
+    bytecode: art.bytecode.object,
+    args: [account.address, account.address],
+  });
   const r = await pub.waitForTransactionReceipt({ hash });
   if (r.status !== "success" || !r.contractAddress) throw new Error("deploy failed");
   const market = r.contractAddress;
@@ -48,9 +55,15 @@ async function main() {
     pub.readContract({ address: market, abi: outfitMarketAbi, functionName: "treasury" }),
     pub.readContract({ address: market, abi: outfitMarketAbi, functionName: "feeBps" }),
   ]);
-  if (owner !== account.address || treasury !== account.address || Number(fee) !== 300) throw new Error("the deployed market does not read back as configured");
-  writeFileSync(file, JSON.stringify({ ...d, outfitMarket: market, outfitMarketBlock: Number(r.blockNumber) }, null, 2) + "\n");
+  if (owner !== account.address || treasury !== account.address || Number(fee) !== 300)
+    throw new Error("the deployed market does not read back as configured");
+  writeFileSync(
+    file,
+    JSON.stringify({ ...d, outfitMarket: market, outfitMarketBlock: Number(r.blockNumber) }, null, 2) + "\n",
+  );
   const after = await pub.getBalance({ address: account.address });
-  console.log(`OutfitMarket ${market} at block ${r.blockNumber} (tx ${hash}); owner and treasury ${account.address}; fee 3%; cost ${formatEther(before - after)} OKB`);
+  console.log(
+    `OutfitMarket ${market} at block ${r.blockNumber} (tx ${hash}); owner and treasury ${account.address}; fee 3%; cost ${formatEther(before - after)} OKB`,
+  );
 }
 main().catch((e) => (console.error(e), process.exit(1)));

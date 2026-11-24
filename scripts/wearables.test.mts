@@ -9,7 +9,9 @@ const root = join(import.meta.dirname, "..");
 
 describe("the wardrobe the README counts (A126)", () => {
   it("the README's count is the number of pieces in the player's wardrobe", () => {
-    const said = /<!--f:wearables-->(\d+)<!--\/f--> pieces to wear/.exec(readFileSync(join(root, "README.md"), "utf8"))?.[1];
+    const said = /<!--f:wearables-->(\d+)<!--\/f--> pieces to wear/.exec(
+      readFileSync(join(root, "README.md"), "utf8"),
+    )?.[1];
     expect(Number(said)).toBe(Object.keys(PIECES).length);
   });
 

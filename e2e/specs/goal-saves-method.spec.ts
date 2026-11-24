@@ -8,7 +8,9 @@ for (const look of [
   { lang: "en", scheme: "light", size: "phone", said: "at most 8 a day for one wallet (the most pets a player keeps)" },
   { lang: "zh", scheme: "dark", size: "desktop", said: "一个钱包一天最多算 8 次（一个玩家最多养的宠物数）" },
 ] as const) {
-  test(`the saves goal says a wallet counts at most 8 a day (${look.lang}, ${look.scheme}, ${look.size})`, async ({ player }) => {
+  test(`the saves goal says a wallet counts at most 8 a day (${look.lang}, ${look.scheme}, ${look.size})`, async ({
+    player,
+  }) => {
     test.setTimeout(180_000);
     const p = await player({ lang: look.lang, scheme: look.scheme, size: look.size });
     const { page } = p;

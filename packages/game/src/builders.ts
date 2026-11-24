@@ -11,11 +11,28 @@
  * overflows its four bits, and starts again, exactly as the chain's copy does.
  */
 
-import { type Circuit, type FastBrain, type Rule, type RuleCircuit, beat, hexToBytes, load, ruleFromCircuit, timeOfDay } from "@lingxi/brain";
+import {
+  type Circuit,
+  type FastBrain,
+  type Rule,
+  type RuleCircuit,
+  beat,
+  hexToBytes,
+  load,
+  ruleFromCircuit,
+  timeOfDay,
+} from "@lingxi/brain";
 import { BEHEMOTH_NETLIST, BEHEMOTH_PINS } from "./behemoth.generated";
 import type { Fighter } from "./spar";
 
-export { BEHEMOTH_CIRCUIT, BEHEMOTH_NETLIST, BEHEMOTH_NETLIST_KECCAK, BEHEMOTH_PINS, BEHEMOTH_PROCESSOR, BEHEMOTH_PROCESSOR_NAME } from "./behemoth.generated";
+export {
+  BEHEMOTH_CIRCUIT,
+  BEHEMOTH_NETLIST,
+  BEHEMOTH_NETLIST_KECCAK,
+  BEHEMOTH_PINS,
+  BEHEMOTH_PROCESSOR,
+  BEHEMOTH_PROCESSOR_NAME,
+} from "./behemoth.generated";
 
 /* ── Behemoth's CPU ──────────────────────────────────────────────────────── */
 
@@ -27,7 +44,8 @@ export function behemothCircuit(): Circuit {
 /** The CPU's output pins, as found by running it: the accumulator and the program counter, low bit first. */
 const ACC = [0, 1, 2, 3] as const;
 const PC = [8, 9, 10, 11, 12, 13, 14, 15] as const;
-const num = (bits: readonly number[], pins: readonly number[]) => pins.reduce((n, p, i) => n | ((bits[p] ?? 0) << i), 0);
+const num = (bits: readonly number[], pins: readonly number[]) =>
+  pins.reduce((n, p, i) => n | ((bits[p] ?? 0) << i), 0);
 
 export interface CpuFrame {
   /** how many steps after power-on */
@@ -120,7 +138,15 @@ function labelMoments(frames: readonly CpuFrame[], loopFrom: number): CpuMoment[
       index++;
       if (index === FIBONACCI.length - 1) peakAt = k;
     }
-    out.push(index < 0 ? { kind: "boot" } : peakAt < 0 ? { kind: "count", n: FIBONACCI[index]!, index } : k - peakAt < BEHEMOTH_STEPS_PER_ROUND ? { kind: "peak" } : { kind: "overflow", n: f.acc });
+    out.push(
+      index < 0
+        ? { kind: "boot" }
+        : peakAt < 0
+          ? { kind: "count", n: FIBONACCI[index]!, index }
+          : k - peakAt < BEHEMOTH_STEPS_PER_ROUND
+            ? { kind: "peak" }
+            : { kind: "overflow", n: f.acc },
+    );
   });
   return out;
 }
@@ -184,7 +210,12 @@ export interface BuilderPet {
   room: number;
   /** where it stands in its room, in room pixels (128 wide) */
   spot: { x: number; y: number };
-  look: { line: "gentle" | "bold" | "curious"; stage: "child" | "teen" | "adult"; palette: "silicon" | "mars" | "sky" | "sunny" | "mint"; outfit: { head?: string; face?: string; held?: string } };
+  look: {
+    line: "gentle" | "bold" | "curious";
+    stage: "child" | "teen" | "adult";
+    palette: "silicon" | "mars" | "sky" | "sunny" | "mint";
+    outfit: { head?: string; face?: string; held?: string };
+  };
   /** what it says, in its person's own public words where quoted */
   lines: Array<{ en: string; zh: string }>;
   about: { en: string; zh: string };
@@ -192,7 +223,11 @@ export interface BuilderPet {
   mind: { kind: "cpu" } | { kind: "pet"; lessons: Rule[] };
 }
 
-const rule = (label: string, when: Rule["when"], want: number, mood: number): Rule => ({ label, when, then: { want, mood } });
+const rule = (label: string, when: Rule["when"], want: number, mood: number): Rule => ({
+  label,
+  when,
+  then: { want, mood },
+});
 
 export const BUILDER_PETS: readonly BuilderPet[] = [
   {
@@ -217,7 +252,10 @@ export const BUILDER_PETS: readonly BuilderPet[] = [
   {
     id: "mars",
     name: { en: "Little Mars", zh: "小火星" },
-    tribute: { handle: "bitcoin2themars", as: { en: "Mars, who cheers every builder on", zh: "为每个建设者加油的火星大哥" } },
+    tribute: {
+      handle: "bitcoin2themars",
+      as: { en: "Mars, who cheers every builder on", zh: "为每个建设者加油的火星大哥" },
+    },
     room: 29,
     spot: { x: 26, y: 108 },
     look: { line: "bold", stage: "adult", palette: "mars", outfit: { held: "b:telescope" } },
@@ -227,13 +265,25 @@ export const BUILDER_PETS: readonly BuilderPet[] = [
       { en: "gBEM!", zh: "gBEM！" },
       { en: "I watch the sky for new circuits.", zh: "我守着天空，等新的电路出现。" },
     ],
-    about: { en: "Little Mars keeps watch over the misty path and counts the circuits taped out on X Layer today.", zh: "小火星守在雾蒙蒙的小路上，数着今天 X Layer 上流片了多少块电路。" },
-    mind: { kind: "pet", lessons: [rule("cheer when a friend comes", { event: [1] }, 2, 3), rule("look when you're here", { owner: [1], event: [0] }, 4, 2)] },
+    about: {
+      en: "Little Mars keeps watch over the misty path and counts the circuits taped out on X Layer today.",
+      zh: "小火星守在雾蒙蒙的小路上，数着今天 X Layer 上流片了多少块电路。",
+    },
+    mind: {
+      kind: "pet",
+      lessons: [
+        rule("cheer when a friend comes", { event: [1] }, 2, 3),
+        rule("look when you're here", { owner: [1], event: [0] }, 4, 2),
+      ],
+    },
   },
   {
     id: "tapboy",
     name: { en: "Tapboy", zh: "掌机仔" },
-    tribute: { handle: "BruceBlue", as: { en: "Bruce, who put a TapeOut CPU in a handheld", zh: "把 TapeOut 处理器装进掌机的 Bruce" } },
+    tribute: {
+      handle: "BruceBlue",
+      as: { en: "Bruce, who put a TapeOut CPU in a handheld", zh: "把 TapeOut 处理器装进掌机的 Bruce" },
+    },
     room: 55,
     spot: { x: 102, y: 106 },
     look: { line: "curious", stage: "teen", palette: "sky", outfit: { held: "b:handheld" } },
@@ -242,8 +292,17 @@ export const BUILDER_PETS: readonly BuilderPet[] = [
       { en: "Build. Prove. Grow.", zh: "Build. Prove. Grow." },
       { en: "Shut out the noise. Focus on now.", zh: "摒弃杂音，专注当下。" },
     ],
-    about: { en: "Tapboy studies quietly in the shade and counts its days out of a thousand.", zh: "掌机仔在树荫下安静修炼，数着一千天里的第几天。" },
-    mind: { kind: "pet", lessons: [rule("stay calm when startled", { event: [3] }, 0, 2), rule("play in the evening", { time: [3], energy: [1, 2, 3] }, 2, 2)] },
+    about: {
+      en: "Tapboy studies quietly in the shade and counts its days out of a thousand.",
+      zh: "掌机仔在树荫下安静修炼，数着一千天里的第几天。",
+    },
+    mind: {
+      kind: "pet",
+      lessons: [
+        rule("stay calm when startled", { event: [3] }, 0, 2),
+        rule("play in the evening", { time: [3], energy: [1, 2, 3] }, 2, 2),
+      ],
+    },
   },
   {
     id: "builder",
@@ -258,12 +317,18 @@ export const BUILDER_PETS: readonly BuilderPet[] = [
       { en: "Builders attract builders.", zh: "Builders attract builders." },
     ],
     about: { en: "Hardhat ignores the noise and goes to work.", zh: "安全帽不理会噪音，只管开工。" },
-    mind: { kind: "pet", lessons: [rule("go to work when startled", { event: [3] }, 4, 2), rule("start early", { time: [1] }, 4, 3)] },
+    mind: {
+      kind: "pet",
+      lessons: [rule("go to work when startled", { event: [3] }, 4, 2), rule("start early", { time: [1] }, 4, 3)],
+    },
   },
   {
     id: "diver",
     name: { en: "Diver", zh: "潜水员" },
-    tribute: { handle: "connectfarm1", as: { en: "the diving observer and his daily diary", zh: "每天写观察日记的潜水观察员" } },
+    tribute: {
+      handle: "connectfarm1",
+      as: { en: "the diving observer and his daily diary", zh: "每天写观察日记的潜水观察员" },
+    },
     room: 57,
     spot: { x: 26, y: 108 },
     look: { line: "curious", stage: "child", palette: "mint", outfit: { face: "b:snorkel", held: "b:notebook" } },
@@ -272,12 +337,23 @@ export const BUILDER_PETS: readonly BuilderPet[] = [
       { en: "I watch first. Then I write it down.", zh: "我先看，再记下来。" },
       { en: "Blub.", zh: "咕噜。" },
     ],
-    about: { en: "Diver watches the river crossing and writes one line in its diary a day.", zh: "潜水员守着渡口看河水，每天在日记里写一行。" },
-    mind: { kind: "pet", lessons: [rule("watch a visitor first", { event: [1] }, 0, 1), rule("explore by day", { time: [2], energy: [2, 3] }, 4, 2)] },
+    about: {
+      en: "Diver watches the river crossing and writes one line in its diary a day.",
+      zh: "潜水员守着渡口看河水，每天在日记里写一行。",
+    },
+    mind: {
+      kind: "pet",
+      lessons: [
+        rule("watch a visitor first", { event: [1] }, 0, 1),
+        rule("explore by day", { time: [2], energy: [2, 3] }, 4, 2),
+      ],
+    },
   },
 ];
 
-export const BUILDER_PET: Readonly<Record<BuilderId, BuilderPet>> = Object.fromEntries(BUILDER_PETS.map((b) => [b.id, b])) as Record<BuilderId, BuilderPet>;
+export const BUILDER_PET: Readonly<Record<BuilderId, BuilderPet>> = Object.fromEntries(
+  BUILDER_PETS.map((b) => [b.id, b]),
+) as Record<BuilderId, BuilderPet>;
 export const BUILDER_ROOMS: readonly number[] = BUILDER_PETS.map((b) => b.room);
 export const builderIn = (room: number): BuilderPet | null => BUILDER_PETS.find((b) => b.room === room) ?? null;
 /** The lane runs along the road out of home: Hardhat first, Behemoth at the far end (65 → 63 → 57 → 56 → 55 → 2 → 29 → 66). */
@@ -292,7 +368,9 @@ export const LANE_ORDER: readonly BuilderId[] = ["builder", "diver", "tapboy", "
  * Each starts its lines at its own place for each time of day, so the same slot reads differently by morning and
  * by night; the moods follow when each is most awake.
  */
-const BUILDER_TEMPER: Readonly<Record<BuilderId, { base: number; morning: number; night: number; start: readonly [number, number, number, number] }>> = {
+const BUILDER_TEMPER: Readonly<
+  Record<BuilderId, { base: number; morning: number; night: number; start: readonly [number, number, number, number] }>
+> = {
   behemoth: { base: 1, morning: 0, night: 1, start: [3, 0, 1, 2] },
   mars: { base: 2, morning: 1, night: -1, start: [5, 0, 2, 4] },
   tapboy: { base: 2, morning: 1, night: 0, start: [4, 0, 1, 3] },
@@ -306,18 +384,40 @@ export function builderReference(b: BuilderPet, word: number): number {
   const tod = (word >> 6) & 3;
   const met = (word >> 8) & 1;
   const line = (slot + t.start[tod]!) % b.lines.length;
-  const mood = Math.max(0, Math.min(3, t.base + (tod === 1 ? t.morning : 0) + (tod === 0 || tod === 3 ? t.night : 0) + met));
+  const mood = Math.max(
+    0,
+    Math.min(3, t.base + (tod === 1 ? t.morning : 0) + (tod === 0 || tod === 3 ? t.night : 0) + met),
+  );
   return mood | (line << 2);
 }
 
 export const builderRule = (b: BuilderPet): RuleCircuit => ({
   name: `builder:${b.id}`,
-  about: { en: "Which of this builder pet's lines it says now, and its mood: by the four-minute slot, the time of day and whether you have met.", zh: "这只建造者宠物现在说哪句话、心情如何：取决于四分钟一格的时段、一天中的时间，以及你们是否见过。" },
+  about: {
+    en: "Which of this builder pet's lines it says now, and its mood: by the four-minute slot, the time of day and whether you have met.",
+    zh: "这只建造者宠物现在说哪句话、心情如何：取决于四分钟一格的时段、一天中的时间，以及你们是否见过。",
+  },
   inBits: 9,
   fields: {
     inputs: [
-      { name: "slot", lo: 0, bits: 6, meaning: { en: "the four-minute slot of the day (the same for everyone, so a line is shared by all who visit)", zh: "一天中的四分钟时段（人人相同，所以来访的人听到同一句）" } },
-      { name: "time", lo: 6, bits: 2, meaning: { en: "time of day: 0 night, 1 morning, 2 day, 3 evening", zh: "一天中的时间：0 夜里，1 早上，2 白天，3 傍晚" } },
+      {
+        name: "slot",
+        lo: 0,
+        bits: 6,
+        meaning: {
+          en: "the four-minute slot of the day (the same for everyone, so a line is shared by all who visit)",
+          zh: "一天中的四分钟时段（人人相同，所以来访的人听到同一句）",
+        },
+      },
+      {
+        name: "time",
+        lo: 6,
+        bits: 2,
+        meaning: {
+          en: "time of day: 0 night, 1 morning, 2 day, 3 evening",
+          zh: "一天中的时间：0 夜里，1 早上，2 白天，3 傍晚",
+        },
+      },
       { name: "met", lo: 8, bits: 1, meaning: { en: "1 when you have met it before", zh: "你们见过时为 1" } },
     ],
     outputs: [
@@ -332,18 +432,30 @@ export const BUILDER_RULES: readonly RuleCircuit[] = BUILDER_PETS.map(builderRul
 const builderAnswers = new Map(BUILDER_PETS.map((b, i) => [b.id, ruleFromCircuit(BUILDER_RULES[i]!)]));
 
 /** The circuit's answer for a builder pet now: its line and mood. */
-export function builderNow(b: BuilderPet, ms: number, hour: number, met: boolean): { line: { en: string; zh: string }; mood: number } {
-  const word = (Math.floor(ms / 240_000) % 64) | (timeOfDay(hour) << 6) | (met ? 256 : 0);
+export function builderNow(
+  b: BuilderPet,
+  ms: number,
+  hour: number,
+  met: boolean,
+): { line: { en: string; zh: string }; mood: number } {
+  const word = Math.floor(ms / 240_000) % 64 | (timeOfDay(hour) << 6) | (met ? 256 : 0);
   const a = builderAnswers.get(b.id)!(word);
   return { line: b.lines[(a >> 2) & 7]!, mood: a & 3 };
 }
 
 /** The line a builder pet says now: it changes every few minutes, the same for everyone at the same hour. */
-export function builderLine(b: BuilderPet, ms: number, hour = new Date(ms).getHours(), met = false): { en: string; zh: string } {
+export function builderLine(
+  b: BuilderPet,
+  ms: number,
+  hour = new Date(ms).getHours(),
+  met = false,
+): { en: string; zh: string } {
   return builderNow(b, ms, hour, met).line;
 }
 
 /** Tapboy counts real days out of a thousand, as its person does each morning (day 91 was 2026-11-15). */
 export function tapboyDay(now: Date): number {
-  return 91 + Math.round((Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) - Date.UTC(2026, 10, 15)) / 86_400_000);
+  return (
+    91 + Math.round((Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) - Date.UTC(2026, 10, 15)) / 86_400_000)
+  );
 }

@@ -13,10 +13,19 @@ type StoredWeek = { entries: Array<{ key: string }>; pets?: Record<string, strin
 /** The season store the server writes, one file a week (A123): week → its entries and its proven pets (key → pet id). */
 const stored = (dir: string): Record<string, StoredWeek> => {
   const weeks = join(dir, "stores", "season.json.d");
-  return Object.fromEntries(readdirSync(weeks).filter((n) => n.endsWith(".json")).map((n) => [n.slice(0, -5), JSON.parse(readFileSync(join(weeks, n), "utf8")) as StoredWeek]));
+  return Object.fromEntries(
+    readdirSync(weeks)
+      .filter((n) => n.endsWith(".json"))
+      .map((n) => [n.slice(0, -5), JSON.parse(readFileSync(join(weeks, n), "utf8")) as StoredWeek]),
+  );
 };
 /** This device's entry key for `week`, as the game remembers it. */
-const myKey = (page: Opened["page"], week: string) => page.evaluate((w) => (JSON.parse(localStorage.getItem("lingxi.season.v1") ?? "{}") as { keys?: Record<string, string> }).keys?.[w], week);
+const myKey = (page: Opened["page"], week: string) =>
+  page.evaluate(
+    (w) =>
+      (JSON.parse(localStorage.getItem("lingxi.season.v1") ?? "{}") as { keys?: Record<string, string> }).keys?.[w],
+    week,
+  );
 
 /** Opens the Spar tab, where the season lives, and returns its line about the keepsake. */
 async function openSeason(page: Opened["page"]) {
@@ -40,7 +49,10 @@ async function enter(page: Opened["page"]): Promise<string> {
   return note.innerText();
 }
 
-test("a pet on X Layer enters the season proven, then honestly unproven (en, light, phone)", async ({ player, run }) => {
+test("a pet on X Layer enters the season proven, then honestly unproven (en, light, phone)", async ({
+  player,
+  run,
+}) => {
   test.setTimeout(5 * 60_000);
   await forkOf(run);
   const p = await player({ lang: "en", scheme: "light", size: "phone" });
@@ -69,7 +81,10 @@ test("a pet on X Layer enters the season proven, then honestly unproven (en, lig
   const note2 = await enter(page);
   expect(note2, "a mind behind the chain is entered with the reason it can't win").toContain("behind");
   const after = stored(run.dir)[week];
-  expect(after?.entries.map((e) => e.key), "the server still holds the entry").toContain(await myKey(page, week));
+  expect(
+    after?.entries.map((e) => e.key),
+    "the server still holds the entry",
+  ).toContain(await myKey(page, week));
   expect(Object.values(after?.pets ?? {}), "but no longer as this pet, proven").not.toContain(petId);
   await page.screenshot({ path: test.info().outputPath("season-behind-en-light-phone.png") });
 });
@@ -86,16 +101,27 @@ test("a pet kept only in the browser enters the season openly (zh, light, phone)
   const weeks = stored(run.dir);
   const week = Object.keys(weeks).sort().at(-1)!;
   const key = await myKey(page, week);
-  expect(weeks[week]?.entries.map((e) => e.key), "the server holds this entry").toContain(key);
+  expect(
+    weeks[week]?.entries.map((e) => e.key),
+    "the server holds this entry",
+  ).toContain(key);
   expect(Object.keys(weeks[week]?.pets ?? {}), "and holds it as open, not proven").not.toContain(key);
   await page.screenshot({ path: test.info().outputPath("season-zh-light-phone.png") });
 });
 
 for (const look of [
-  { lang: "en", scheme: "light", size: "phone", said: "Lingxi is checking many pets against X Layer just now, so nothing was entered." },
+  {
+    lang: "en",
+    scheme: "light",
+    size: "phone",
+    said: "Lingxi is checking many pets against X Layer just now, so nothing was entered.",
+  },
   { lang: "zh", scheme: "dark", size: "desktop", said: "灵犀正在对照 X Layer 核对很多只宠物，所以这次没有参赛。" },
 ] as const) {
-  test(`a proof the server cannot check just now enters nothing and says to try again (${look.lang}, ${look.scheme}, ${look.size}) (A62)`, async ({ player, run }) => {
+  test(`a proof the server cannot check just now enters nothing and says to try again (${look.lang}, ${look.scheme}, ${look.size}) (A62)`, async ({
+    player,
+    run,
+  }) => {
     test.setTimeout(5 * 60_000);
     await forkOf(run);
     const p = await player({ lang: look.lang, scheme: look.scheme, size: look.size });
@@ -108,7 +134,14 @@ for (const look of [
     const sent: string[] = [];
     await page.route(
       (u) => u.pathname === "/api/season/enter",
-      (route) => (sent.push(route.request().postData() ?? ""), route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: false, reason: "notProven", detail: "busy" }) })),
+      (route) => (
+        sent.push(route.request().postData() ?? ""),
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ ok: false, reason: "notProven", detail: "busy" }),
+        })
+      ),
     );
     const note = await enter(page);
     expect(note).toContain(look.said);

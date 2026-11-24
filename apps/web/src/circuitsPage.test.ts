@@ -23,7 +23,9 @@ function load(): { refused: number } {
     if (String(url).endsWith("circuits.json")) return { json: async () => JSON.parse(catalogue) };
     if (inFlight > 0) {
       seen.refused++;
-      return { json: async () => ({ jsonrpc: "2.0", id: null, error: { code: -32005, message: "too many requests" } }) };
+      return {
+        json: async () => ({ jsonrpc: "2.0", id: null, error: { code: -32005, message: "too many requests" } }),
+      };
     }
     inFlight++;
     await new Promise((r) => setTimeout(r, 3));
@@ -40,14 +42,18 @@ function load(): { refused: number } {
 describe("the circuit catalogue page asks X Layer one request at a time (C5)", () => {
   it("every check pressed at once gets its answer; none is turned away", async () => {
     const seen = load();
-    const checks = () => Array.from(document.querySelectorAll("button")).filter((b) => b.textContent === "Check every vector on X Layer");
+    const checks = () =>
+      Array.from(document.querySelectorAll("button")).filter((b) => b.textContent === "Check every vector on X Layer");
     // the page renders once circuits.json is read: wait for its buttons
-    for (let waited = 0; checks().length === 0 && waited < 10_000; waited += 20) await new Promise((r) => setTimeout(r, 20));
+    for (let waited = 0; checks().length === 0 && waited < 10_000; waited += 20)
+      await new Promise((r) => setTimeout(r, 20));
     const buttons = checks();
     expect(buttons.length).toBeGreaterThan(10);
     for (const b of buttons) b.click();
     // wait for every check's answer (or a refusal), never a fixed time: under load the queue takes longer
-    const settled = () => ((document.body.textContent ?? "").match(/vectors agree with X Layer|could not be reached/g) ?? []).length >= buttons.length;
+    const settled = () =>
+      ((document.body.textContent ?? "").match(/vectors agree with X Layer|could not be reached/g) ?? []).length >=
+      buttons.length;
     for (let waited = 0; !settled() && waited < 50_000; waited += 50) await new Promise((r) => setTimeout(r, 50));
     const text = document.body.textContent ?? "";
     expect(text).not.toMatch(/could not be reached/);

@@ -8,7 +8,8 @@
 const RELOADED_FOR = "lingxi.reloadedFor";
 
 /** This page's own build, named by the file its entry script came from (each build's names differ). */
-const thisBuild = (): string => document.querySelector<HTMLScriptElement>('script[type="module"][src]')?.src ?? location.pathname;
+const thisBuild = (): string =>
+  document.querySelector<HTMLScriptElement>('script[type="module"][src]')?.src ?? location.pathname;
 
 window.addEventListener("vite:preloadError", (event) => {
   const build = thisBuild();

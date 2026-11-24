@@ -44,8 +44,10 @@ import {
   VoucherQuery,
 } from "../src/index";
 
-const accepts = (schema: z.ZodType, value: unknown) => expect(schema.safeParse(value).success, JSON.stringify(value)?.slice(0, 200)).toBe(true);
-const refuses = (schema: z.ZodType, value: unknown) => expect(schema.safeParse(value).success, JSON.stringify(value)?.slice(0, 200)).toBe(false);
+const accepts = (schema: z.ZodType, value: unknown) =>
+  expect(schema.safeParse(value).success, JSON.stringify(value)?.slice(0, 200)).toBe(true);
+const refuses = (schema: z.ZodType, value: unknown) =>
+  expect(schema.safeParse(value).success, JSON.stringify(value)?.slice(0, 200)).toBe(false);
 const text = (n: number, ch = "a") => ch.repeat(n);
 const range = (n: number) => Array.from({ length: n }, (_, i) => i);
 const ADDRESS = `0x${"ab".repeat(20)}`;
@@ -74,7 +76,13 @@ describe("a lesson the pet holds (teaching and tape-outs)", () => {
 });
 
 describe("POST /api/teach", () => {
-  const body = { words: "when you are hungry, ask for food", name: "Mochi", line: "gentle", stage: "baby", lessons: [] };
+  const body = {
+    words: "when you are hungry, ask for food",
+    name: "Mochi",
+    line: "gentle",
+    stage: "baby",
+    lessons: [],
+  };
   it("takes a request the game sends", () => accepts(TeachBody, body));
   it(`takes 1 to ${MAX_WORDS} characters of words`, () => {
     refuses(TeachBody, { ...body, words: "" });
@@ -116,7 +124,12 @@ describe("POST /api/teach", () => {
 });
 
 describe("the relay routes", () => {
-  const envelope = { kind: "brain", petId: "7", payload: "{}", auth: { signer: ADDRESS, nonce: "ab".repeat(16), time: 1_700_000_000, signature: SIG } };
+  const envelope = {
+    kind: "brain",
+    petId: "7",
+    payload: "{}",
+    auth: { signer: ADDRESS, nonce: "ab".repeat(16), time: 1_700_000_000, signature: SIG },
+  };
   it("take a signed envelope of kind brain, child or instinct, never a season entry", () => {
     for (const kind of ["brain", "child", "instinct"]) accepts(RelayEnvelope, { ...envelope, kind });
     refuses(RelayEnvelope, { ...envelope, kind: "season" });
@@ -177,7 +190,17 @@ describe("the relay routes", () => {
 });
 
 describe("POST /api/voice", () => {
-  const body = { name: "Mochi", lang: "en", stage: "baby", line: "gentle", decision: "ask for food", because: ["very hungry"], meters: { food: 100, joy: 500, energy: 800, clean: 800 }, sick: false, asleep: false };
+  const body = {
+    name: "Mochi",
+    lang: "en",
+    stage: "baby",
+    line: "gentle",
+    decision: "ask for food",
+    because: ["very hungry"],
+    meters: { food: 100, joy: 500, energy: 800, clean: 800 },
+    sick: false,
+    asleep: false,
+  };
   it("takes a request the game sends, the moment defaulting to decided", () => {
     const parsed = VoiceBody.parse(body);
     expect(parsed.moment).toBe("decided");
@@ -321,7 +344,10 @@ describe("POST /api/pets/:id/log", () => {
     refuses(PublishedLog, { ...log, segments: [] });
     accepts(PublishedLog, { ...log, segments: range(64).map(() => ({ brainId: null, words: [] })) });
     refuses(PublishedLog, { ...log, segments: range(65).map(() => ({ brainId: null, words: [] })) });
-    refuses(PublishedLog, { ...log, segments: [{ brainId: null, words: range(SEND_LIMITS.logWords + 1).map(() => 0) }] });
+    refuses(PublishedLog, {
+      ...log,
+      segments: [{ brainId: null, words: range(SEND_LIMITS.logWords + 1).map(() => 0) }],
+    });
     expect(SEND_LIMITS.logWords).toBe(100_000);
   });
 });
@@ -351,8 +377,17 @@ describe("POST /api/move", () => {
 });
 
 describe("reminders", () => {
-  const sub = { endpoint: "https://fcm.googleapis.com/fcm/send/abc", keys: { p256dh: text(87, "B"), auth: text(22, "C") } };
-  const plan = { subscription: sub, lang: "zh", name: "Mochi", tz: 480, reminders: [{ kind: "hungry", at: 1_700_000_000_000 }] };
+  const sub = {
+    endpoint: "https://fcm.googleapis.com/fcm/send/abc",
+    keys: { p256dh: text(87, "B"), auth: text(22, "C") },
+  };
+  const plan = {
+    subscription: sub,
+    lang: "zh",
+    name: "Mochi",
+    tz: 480,
+    reminders: [{ kind: "hungry", at: 1_700_000_000_000 }],
+  };
   it("POST /api/push/plan: takes a plan the game sends", () => accepts(PushPlanBody, plan));
   it("holds the endpoint to a URL of 800 characters and the keys to their sizes", () => {
     const url = (n: number) => `https://fcm.googleapis.com/${text(n - "https://fcm.googleapis.com/".length)}`;
@@ -380,7 +415,8 @@ describe("reminders", () => {
   it(`takes ${MAX_REMINDERS} reminders at most, of the four needs, at whole milliseconds`, () => {
     accepts(PushPlanBody, { ...plan, reminders: range(MAX_REMINDERS).map(() => ({ kind: "sick", at: 1 })) });
     refuses(PushPlanBody, { ...plan, reminders: range(MAX_REMINDERS + 1).map(() => ({ kind: "sick", at: 1 })) });
-    for (const kind of ["hungry", "bored", "dirty", "sick"]) accepts(PushPlanBody, { ...plan, reminders: [{ kind, at: 1 }] });
+    for (const kind of ["hungry", "bored", "dirty", "sick"])
+      accepts(PushPlanBody, { ...plan, reminders: [{ kind, at: 1 }] });
     refuses(PushPlanBody, { ...plan, reminders: [{ kind: "sleepy", at: 1 }] });
     refuses(PushPlanBody, { ...plan, reminders: [{ kind: "hungry", at: 1.5 }] });
     expect(MAX_REMINDERS).toBe(6);
@@ -429,7 +465,11 @@ describe("POST /api/papers/:petId", () => {
 describe("GET /api/v1/spar", () => {
   it("reads every part as text, all of them optional", () => {
     accepts(SparQuery, {});
-    expect(SparQuery.parse({ chips: "punish,block,bite", vs: "pip", seed: "7", other: "x" })).toEqual({ chips: "punish,block,bite", vs: "pip", seed: "7" });
+    expect(SparQuery.parse({ chips: "punish,block,bite", vs: "pip", seed: "7", other: "x" })).toEqual({
+      chips: "punish,block,bite",
+      vs: "pip",
+      seed: "7",
+    });
     refuses(SparQuery, { seed: 7 });
   });
 });
@@ -443,9 +483,16 @@ describe("the agents' bodies", () => {
       refuses(schema, "body");
       refuses(schema, []);
     }
-    expect(AgentAdoptBody.parse({ agent: 12345, name: "Bit", line: "bold", instincts: "3", extra: 1 })).toEqual({ agent: 12345, name: "Bit", line: "bold", instincts: "3" });
+    expect(AgentAdoptBody.parse({ agent: 12345, name: "Bit", line: "bold", instincts: "3", extra: 1 })).toEqual({
+      agent: 12345,
+      name: "Bit",
+      line: "bold",
+      instincts: "3",
+    });
     expect(AgentCareBody.parse({ action: "feed", food: "mochi" })).toEqual({ action: "feed", food: "mochi" });
-    expect(AgentTeachBody.parse({ rule: { when: {}, then: { want: 1, mood: 0 } } })).toEqual({ rule: { when: {}, then: { want: 1, mood: 0 } } });
+    expect(AgentTeachBody.parse({ rule: { when: {}, then: { want: 1, mood: 0 } } })).toEqual({
+      rule: { when: {}, then: { want: 1, mood: 0 } },
+    });
   });
 });
 

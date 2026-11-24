@@ -12,20 +12,32 @@
 
 import { type Address, type Hex, keccak256, toBytes } from "viem";
 import { type ChainPetView, type PapersProblem, type Pet, checkPapers, savedLength, shownName } from "@lingxi/game";
-import { type Offer, adoptChild, adoptionTerms, childView, offerChild, offerable, readOffers, withdrawOffer } from "@lingxi/chain";
+import {
+  type Offer,
+  adoptChild,
+  adoptionTerms,
+  childView,
+  offerChild,
+  offerable,
+  readOffers,
+  withdrawOffer,
+} from "@lingxi/chain";
 import { type ChainRecord, connectWallet, deployment, publicClient, recordOf, setRecordOf, useChain } from "./chain";
 import { useGame } from "./store";
 import { saveRemove, saveWrite } from "./saveRuntime";
 import { now as gameNow } from "./gameClock";
 import { papersBody } from "./requests";
 
-const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const BASE =
+  (import.meta.env.VITE_API_URL as string | undefined) ??
+  (location.hostname === "localhost" ? "http://localhost:8787" : "");
 export const adoptionAvailable = () => !!deployment?.adoptionCentre;
 /** Papers live on our server, so offering and adopting need the web version. */
 export const papersAvailable = () => BASE !== "";
 
 const CENTRE = "centre:";
-export const atCentre = (pet: Pet): string | null => (pet.away?.code.startsWith(CENTRE) ? pet.away.code.slice(CENTRE.length) : null);
+export const atCentre = (pet: Pet): string | null =>
+  pet.away?.code.startsWith(CENTRE) ? pet.away.code.slice(CENTRE.length) : null;
 
 /** What travels with the little one: the pet itself and its chain record on the breeder's device. */
 interface Papers {
@@ -37,7 +49,10 @@ interface Papers {
 /** The message the owner signs; the server checks the same text. */
 /** Another player's papers as this game shows them: the pet's name and its parents' as shownName shows them (A16). */
 function shownPapers(p: Papers): Papers {
-  const family = p.pet.family && { ...p.pet.family, parents: p.pet.family.parents.map((x) => ({ ...x, name: shownName(x.name, 12) })) as typeof p.pet.family.parents };
+  const family = p.pet.family && {
+    ...p.pet.family,
+    parents: p.pet.family.parents.map((x) => ({ ...x, name: shownName(x.name, 12) })) as typeof p.pet.family.parents,
+  };
   return { ...p, pet: { ...p.pet, name: shownName(p.pet.name, 12) || "Mochi", ...(family ? { family } : {}) } };
 }
 
@@ -46,10 +61,29 @@ ${keccak256(toBytes(papers))}`;
 
 /* ── the breeder's side ─────────────────────────────────────────────────── */
 
-export type OfferResult = { ok: true } | { ok: false; reason: "notOnChain" | "notYours" | "notBred" | "moved" | "grown" | "busy" | "outsideInstinct" | "papers" | string };
+export type OfferResult =
+  | { ok: true }
+  | {
+      ok: false;
+      reason:
+        | "notOnChain"
+        | "notYours"
+        | "notBred"
+        | "moved"
+        | "grown"
+        | "busy"
+        | "outsideInstinct"
+        | "papers"
+        | string;
+    };
 
 /** Offer a little one for `priceUnits` BEM base units, until `untilSec` (it must still be young then). */
-export async function offerForAdoption(pet: Pet, priceUnits: bigint, untilSec: number, onStep: (s: "saving" | "listing" | "signing" | "papers") => void): Promise<OfferResult> {
+export async function offerForAdoption(
+  pet: Pet,
+  priceUnits: bigint,
+  untilSec: number,
+  onStep: (s: "saving" | "listing" | "signing" | "papers") => void,
+): Promise<OfferResult> {
   const record = recordOf(pet);
   if (!deployment?.adoptionCentre || !record) return { ok: false, reason: "notOnChain" };
   if (pet.away || pet.sitting) return { ok: false, reason: "busy" };
@@ -66,12 +100,20 @@ export async function offerForAdoption(pet: Pet, priceUnits: bigint, untilSec: n
   await offerChild(publicClient, wallet, deployment, BigInt(record.petId), priceUnits, untilSec);
   onStep("signing");
   const papers = JSON.stringify({ v: 1, pet: current, record: recordOf(current) ?? record } satisfies Papers);
-  const signature = await wallet.signMessage({ account: wallet.account!, message: papersMessage(record.petId, papers) });
+  const signature = await wallet.signMessage({
+    account: wallet.account!,
+    message: papersMessage(record.petId, papers),
+  });
   onStep("papers");
-  const res = await fetch(`${BASE}/api/papers/${record.petId}`, { method: "POST", body: JSON.stringify(papersBody(papers, signature)) });
+  const res = await fetch(`${BASE}/api/papers/${record.petId}`, {
+    method: "POST",
+    body: JSON.stringify(papersBody(papers, signature)),
+  });
   if (!res.ok) return { ok: false, reason: "papers" };
   // the device copy waits at the centre, frozen, until it is adopted or comes back
-  useGame.getState().replace({ ...current, away: { code: `${CENTRE}${record.petId}`, key: "", until: untilSec * 1000, sitter: null } });
+  useGame
+    .getState()
+    .replace({ ...current, away: { code: `${CENTRE}${record.petId}`, key: "", until: untilSec * 1000, sitter: null } });
   return { ok: true };
 }
 
@@ -83,7 +125,10 @@ export async function checkCentre(pet: Pet): Promise<"waiting" | "adopted" | "ba
   let offer: Offer | undefined;
   let owner: Address;
   try {
-    const [offers, view] = await Promise.all([readOffers(publicClient, deployment), childView(publicClient, deployment, BigInt(petId))]);
+    const [offers, view] = await Promise.all([
+      readOffers(publicClient, deployment),
+      childView(publicClient, deployment, BigInt(petId)),
+    ]);
     offer = offers.find((o) => o.petId === BigInt(petId));
     owner = view.pet.owner;
   } catch {
@@ -96,7 +141,11 @@ export async function checkCentre(pet: Pet): Promise<"waiting" | "adopted" | "ba
     useGame.getState().release(pet.bornAt);
     return "adopted";
   }
-  const stillOffered = offer && offer.live && offer.seller.toLowerCase() === record.owner.toLowerCase() && gameNow() < offer.expiresAt * 1000;
+  const stillOffered =
+    offer &&
+    offer.live &&
+    offer.seller.toLowerCase() === record.owner.toLowerCase() &&
+    gameNow() < offer.expiresAt * 1000;
   if (stillOffered) return "waiting";
   comeBack(pet);
   return "back";
@@ -164,7 +213,8 @@ export async function browseOffers(): Promise<CheckedOffer[]> {
         const r = await fetch(`${BASE}/api/papers/${offer.petId}`);
         const body = (await r.json()) as { ok: boolean; papers: string; signer: string };
         if (!r.ok || !body.ok) return { offer, papers: null, problem: "noPapers" };
-        if (body.signer.toLowerCase() !== offer.seller.toLowerCase()) return { offer, papers: null, problem: "noPapers" };
+        if (body.signer.toLowerCase() !== offer.seller.toLowerCase())
+          return { offer, papers: null, problem: "noPapers" };
         papers = shownPapers(JSON.parse(body.papers) as Papers);
       } catch {
         return { offer, papers: null, problem: BASE ? "noPapers" : "unreachable" };
@@ -188,7 +238,9 @@ const withoutAway = (p: Pet): Pet => {
 const CARED = { food: 800, joy: 800, energy: 900, clean: 900 };
 
 /** Adopt, then bring the little one home with its history. */
-export async function adoptFromCentre(c: CheckedOffer): Promise<{ ok: true; pet: Pet } | { ok: false; reason: string }> {
+export async function adoptFromCentre(
+  c: CheckedOffer,
+): Promise<{ ok: true; pet: Pet } | { ok: false; reason: string }> {
   if (!deployment || !c.papers || c.problem) return { ok: false, reason: c.problem ?? "noPapers" };
   if (useGame.getState().pets.length >= 8) return { ok: false, reason: "full" };
   const wallet = await connectWallet();
@@ -230,4 +282,5 @@ export async function adoptFromCentre(c: CheckedOffer): Promise<{ ok: true; pet:
 }
 
 /** The centre's terms, for the screen. */
-export const centreTerms = () => (deployment?.adoptionCentre ? adoptionTerms(publicClient, deployment) : Promise.resolve(null));
+export const centreTerms = () =>
+  deployment?.adoptionCentre ? adoptionTerms(publicClient, deployment) : Promise.resolve(null);

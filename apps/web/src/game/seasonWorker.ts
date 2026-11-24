@@ -5,7 +5,10 @@
  */
 import { type SeasonEntry, seasonStandings, standingsDigest } from "@lingxi/game";
 
-const scope = self as unknown as { onmessage: ((e: MessageEvent<{ week: string; entries: SeasonEntry[] }>) => void) | null; postMessage: (m: unknown) => void };
+const scope = self as unknown as {
+  onmessage: ((e: MessageEvent<{ week: string; entries: SeasonEntry[] }>) => void) | null;
+  postMessage: (m: unknown) => void;
+};
 
 scope.onmessage = (e) => {
   scope.postMessage({ digest: standingsDigest(seasonStandings(e.data.week, e.data.entries)) });

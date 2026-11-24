@@ -11,13 +11,33 @@
  */
 
 import { type Program, type Rule, STARTERS, compileProgram, gateCount, validateProgram } from "@lingxi/brain";
-import { DESIGNED_PARTNERS, FIGHT_LESSONS, type FieldBrain, type FieldNumbers, type Fighter, LESSON_CAPACITY, MAX_GATES, MOVES, PARTNERS, type Partner, PET_SCHOOL, coach, composeProgram, fighterFrom, fighterOfMind, fighterOfPartner, CURRENT_SPAR, fight } from "../../src";
+import {
+  DESIGNED_PARTNERS,
+  FIGHT_LESSONS,
+  type FieldBrain,
+  type FieldNumbers,
+  type Fighter,
+  LESSON_CAPACITY,
+  MAX_GATES,
+  MOVES,
+  PARTNERS,
+  type Partner,
+  PET_SCHOOL,
+  coach,
+  composeProgram,
+  fighterFrom,
+  fighterOfMind,
+  fighterOfPartner,
+  CURRENT_SPAR,
+  fight,
+} from "../../src";
 
 const LINES = ["gentle", "bold", "curious"] as const;
 const MOODS = ["grumpy", "calm", "happy", "excited"] as const;
 const LEVEL = 1;
 
-const only = (want: number, mood: number): Program => validateProgram({ version: "LX-PET/1", memory: [], rules: [], otherwise: { want, mood } });
+const only = (want: number, mood: number): Program =>
+  validateProgram({ version: "LX-PET/1", memory: [], rules: [], otherwise: { want, mood } });
 
 /**
  * A brain that reads the fight: it guards after the other pounced, pounces at an opening or a tired foe, rests
@@ -51,7 +71,12 @@ export const READER: Program = validateProgram({
 /** The reader as it was written before row D8 (a snack only when nearly beaten), kept for the fights recorded with it. */
 export const READER_BEFORE_D8: Program = validateProgram({
   ...READER,
-  rules: [READER.rules[0]!, READER.rules[2]!, { ...READER.rules[1]!, when: { hunger: [3] } }, ...READER.rules.slice(3).map((x) => (x.label === "it dodged: tap" ? { ...x, then: { want: 0, mood: 1 } } : x))],
+  rules: [
+    READER.rules[0]!,
+    READER.rules[2]!,
+    { ...READER.rules[1]!, when: { hunger: [3] } },
+    ...READER.rules.slice(3).map((x) => (x.label === "it dodged: tap" ? { ...x, then: { want: 0, mood: 1 } } : x)),
+  ],
 } as unknown);
 
 interface Entry {
@@ -63,7 +88,8 @@ interface Entry {
 /** A line taught the school lessons in order, as many as fit a brain's gate budget. */
 function schoolSet(line: (typeof LINES)[number]): Rule[] {
   const taught: Rule[] = [];
-  for (const l of PET_SCHOOL) if (gateCount(compileProgram(composeProgram(line, [...taught, l.rule]))) <= MAX_GATES) taught.push(l.rule);
+  for (const l of PET_SCHOOL)
+    if (gateCount(compileProgram(composeProgram(line, [...taught, l.rule]))) <= MAX_GATES) taught.push(l.rule);
   return taught;
 }
 
@@ -74,7 +100,16 @@ function coached(line: (typeof LINES)[number], partner: Partner): Rule[] {
     let lesson: Rule | undefined;
     for (let s = 0; s < 6 && !lesson; s++) {
       const r = fight(CURRENT_SPAR, fighterOfMind("me", { line, lessons }, LEVEL), fighterOfPartner(partner), 1000 + s);
-      if (r.winner !== 0) lesson = coach({ result: r, side: 0, line, stage: "adult", lessons, level: LEVEL, opponent: fighterOfPartner(partner) }).lesson?.rule;
+      if (r.winner !== 0)
+        lesson = coach({
+          result: r,
+          side: 0,
+          line,
+          stage: "adult",
+          lessons,
+          level: LEVEL,
+          opponent: fighterOfPartner(partner),
+        }).lesson?.rule;
     }
     if (!lesson) break;
     lessons.unshift(lesson);
@@ -83,18 +118,32 @@ function coached(line: (typeof LINES)[number], partner: Partner): Rule[] {
 }
 
 export function field(): Entry[] {
-  const one = (id: string, line: (typeof LINES)[number], rule: Rule): Entry => ({ id: `${id}/${line}`, kind: "single", fighter: fighterFrom(id, composeProgram(line, [rule]), LEVEL) });
-  const taught = (id: string, line: (typeof LINES)[number], lessons: Rule[]): Entry => ({ id, kind: "taught", fighter: fighterOfMind(id, { line, lessons }, LEVEL) });
+  const one = (id: string, line: (typeof LINES)[number], rule: Rule): Entry => ({
+    id: `${id}/${line}`,
+    kind: "single",
+    fighter: fighterFrom(id, composeProgram(line, [rule]), LEVEL),
+  });
+  const taught = (id: string, line: (typeof LINES)[number], lessons: Rule[]): Entry => ({
+    id,
+    kind: "taught",
+    fighter: fighterOfMind(id, { line, lessons }, LEVEL),
+  });
   return [
     ...LINES.flatMap((line) => FIGHT_LESSONS.map((l) => one(`fight:${l.id}`, line, l.rule))),
     ...LINES.flatMap((line) => PET_SCHOOL.map((l) => one(`school:${l.id}`, line, l.rule))),
-    ...LINES.map((line): Entry => ({ id: `starter/${line}`, kind: "starter", fighter: fighterFrom(line, STARTERS[line], LEVEL) })),
+    ...LINES.map(
+      (line): Entry => ({ id: `starter/${line}`, kind: "starter", fighter: fighterFrom(line, STARTERS[line], LEVEL) }),
+    ),
     { id: "guard-only", kind: "guard", fighter: fighterFrom("guard", only(5, 1), LEVEL) },
     { id: "dodge-only", kind: "dodge", fighter: fighterFrom("dodge", only(4, 1), LEVEL) },
     { id: "pounce-only", kind: "pounce", fighter: fighterFrom("pounce", only(2, 1), LEVEL) },
     // row B1: every other one-move brain, every move at every mood (mood is part of what a brain answers)
     ...MOVES.flatMap((move, want) =>
-      MOODS.flatMap((mood, m): Entry[] => (m === 1 && (want === 2 || want === 4 || want === 5) ? [] : [{ id: `${move}-only/${mood}`, kind: "single", fighter: fighterFrom(move, only(want, m), LEVEL) }])),
+      MOODS.flatMap((mood, m): Entry[] =>
+        m === 1 && (want === 2 || want === 4 || want === 5)
+          ? []
+          : [{ id: `${move}-only/${mood}`, kind: "single", fighter: fighterFrom(move, only(want, m), LEVEL) }],
+      ),
     ),
     { id: "reader", kind: "reader", fighter: fighterFrom("reader", READER, LEVEL) },
     ...PARTNERS.map((p): Entry => ({ id: `partner:${p.id}`, kind: "partner", fighter: fighterOfPartner(p) })),
@@ -123,7 +172,7 @@ const HEAD_SEEDS = 100;
 /** The field's numbers, a row of fights at a time: a step pauses after each brain's row, so a caller can yield. */
 function* sparFieldSteps(seed: number, nSeeds = 8): Generator<void, FieldNumbers> {
   const seeds = Array.from({ length: nSeeds }, (_, i) => (seed + i * 104_729) >>> 0);
-  const headSeeds = Array.from({ length: HEAD_SEEDS }, (_, i) => (seed ^ 0x5bd1e995) + i * 7919 >>> 0);
+  const headSeeds = Array.from({ length: HEAD_SEEDS }, (_, i) => ((seed ^ 0x5bd1e995) + i * 7919) >>> 0);
   const all = field();
   const won = new Map<string, number>(all.map((e) => [e.id, 0]));
   const played = 2 * nSeeds * (all.length - 1);
@@ -155,14 +204,19 @@ function* sparFieldSteps(seed: number, nSeeds = 8): Generator<void, FieldNumbers
   const r = all.findIndex((e) => e.id === "reader");
   const answers = all.flatMap((e, i) => {
     if (!isSingle(e.kind)) return [];
-    const by = all.map((_, j) => (j === i ? -1 : beat[j]![i]!)).reduce((bj, v, j, arr) => (v > arr[bj]! ? j : bj), i === 0 ? 1 : 0);
+    const by = all
+      .map((_, j) => (j === i ? -1 : beat[j]![i]!))
+      .reduce((bj, v, j, arr) => (v > arr[bj]! ? j : bj), i === 0 ? 1 : 0);
     return [{ id: e.id, by: all[by]!.id, winRate: beat[by]![i]! }];
   });
   const leastAnswered = answers.reduce((m, a) => (a.winRate < m.winRate ? a : m));
   const beatReader = all.filter((e, i) => isSingle(e.kind) && beat[i]![r]! > beat[r]![i]!).map((e) => e.id);
   // D20: against every opponent a player can actually spar: the sparring partners, the designed partners, and taught
   // pets (school sets, coached)
-  const realFighters = [...all.filter((e) => e.kind === "partner" || e.kind === "taught").map((e) => e.fighter), ...DESIGNED_PARTNERS.map((p) => fighterOfPartner(p))];
+  const realFighters = [
+    ...all.filter((e) => e.kind === "partner" || e.kind === "taught").map((e) => e.fighter),
+    ...DESIGNED_PARTNERS.map((p) => fighterOfPartner(p)),
+  ];
   const realRate = (i: number) => {
     const me = all[i]!.fighter;
     const opp = realFighters.filter((f) => f !== me);
@@ -201,7 +255,11 @@ export function sparField(seed: number, nSeeds = 8): FieldNumbers {
 }
 
 /** The same, yielding to the event loop between rows (a test runner's worker must answer while it runs). */
-export async function sparFieldYielding(seed: number, nSeeds = 8, tick: () => Promise<void> = () => new Promise((r) => setTimeout(r, 0))): Promise<FieldNumbers> {
+export async function sparFieldYielding(
+  seed: number,
+  nSeeds = 8,
+  tick: () => Promise<void> = () => new Promise((r) => setTimeout(r, 0)),
+): Promise<FieldNumbers> {
   const steps = sparFieldSteps(seed, nSeeds);
   for (;;) {
     const r = steps.next();

@@ -32,7 +32,9 @@ export function hardwareWebGl(): boolean {
   if (typeof document === "undefined") return false;
   try {
     const canvas = document.createElement("canvas");
-    const gl = canvas.getContext("webgl2", { failIfMajorPerformanceCaveat: true }) ?? canvas.getContext("webgl", { failIfMajorPerformanceCaveat: true });
+    const gl =
+      canvas.getContext("webgl2", { failIfMajorPerformanceCaveat: true }) ??
+      canvas.getContext("webgl", { failIfMajorPerformanceCaveat: true });
     if (!gl) return false;
     const info = gl.getExtension("WEBGL_debug_renderer_info");
     const renderer = String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER) ?? "");

@@ -14,7 +14,15 @@ export interface FriendInput {
   kind: FriendSheet["kind"];
   likes: FriendSheet["likes"];
   reactions: Readonly<Record<Taste, QuestLine>>;
-  steps: { s1: StepInput; s2: StepInput; s3a: StepInput & { choice: Text }; s3b: StepInput & { choice: Text }; s4: StepInput; s5: StepInput; s6: StepInput };
+  steps: {
+    s1: StepInput;
+    s2: StepInput;
+    s3a: StepInput & { choice: Text };
+    s3b: StepInput & { choice: Text };
+    s4: StepInput;
+    s5: StepInput;
+    s6: StepInput;
+  };
 }
 
 export function friend(f: FriendInput): FriendSheet {
@@ -33,5 +41,9 @@ export function friend(f: FriendInput): FriendSheet {
 }
 
 export const T = (en: string, zh: string): Text => ({ en, zh });
-export const say = (face: string | undefined, en: string, zh: string): QuestLine => (face ? { face, en, zh } : { en, zh });
-export const topic = (ask: Text, lines: Array<{ face: string; en: string; zh: string }>): Unlock => ({ kind: "topic", topic: { ask, lines } });
+export const say = (face: string | undefined, en: string, zh: string): QuestLine =>
+  face ? { face, en, zh } : { en, zh };
+export const topic = (ask: Text, lines: Array<{ face: string; en: string; zh: string }>): Unlock => ({
+  kind: "topic",
+  topic: { ask, lines },
+});

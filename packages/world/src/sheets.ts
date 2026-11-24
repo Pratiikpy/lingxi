@@ -15,7 +15,8 @@ export interface Sheet {
 
 const QUEST_IDS = new Set(QUESTLINE.map((q) => q.id));
 const GOAL_IDS = new Set(GOALS.map((g) => g.id));
-const rowsOf = (defs: typeof STORY) => defs.map((q) => ({ id: q.id, conditions: [...q.requires, ...q.objectives.map((o) => o.cond)] }));
+const rowsOf = (defs: typeof STORY) =>
+  defs.map((q) => ({ id: q.id, conditions: [...q.requires, ...q.objectives.map((o) => o.cond)] }));
 
 /** The sheets in the game: story quests and dailies (plan 4.2). Community goals count chain events, not conditions; their own check is goalErrors. */
 export const SHEETS: Sheet[] = [

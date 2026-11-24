@@ -67,7 +67,12 @@ export function petTexture(line: StarterLine, f: PetFrame): Texture {
   if (hit) return hit;
   const c = drawPet(line, f.stage, f);
   const worn = o.head || o.face || o.held;
-  return canvasTexture(key, c, f.palette?.colors ?? PALETTE_OF[line], worn ? (rgba) => paintOverlay(rgba, c.w, wearOverlay(c, line, f.stage, o, f.squash, f.form)) : undefined);
+  return canvasTexture(
+    key,
+    c,
+    f.palette?.colors ?? PALETTE_OF[line],
+    worn ? (rgba) => paintOverlay(rgba, c.w, wearOverlay(c, line, f.stage, o, f.squash, f.form)) : undefined,
+  );
 }
 
 export function catTexture(pose: CatPose): Texture {
@@ -125,14 +130,32 @@ export function pixelTexture(key: string, rows: readonly string[], colors: Recor
 const INK = "#2B2140";
 export const BITS = {
   z: () => pixelTexture("z", ["wwww", "..w.", ".w..", "wwww"], { w: "#FFF7E8" }),
-  ball: () => pixelTexture("ball", [".ooooo.", "obbbbbo", "owwwwwo", "obbbbbo", "obbbbbo", ".ooooo."], { o: INK, b: "#2F7FD6", w: "#FFFFFF" }),
+  ball: () =>
+    pixelTexture("ball", [".ooooo.", "obbbbbo", "owwwwwo", "obbbbbo", "obbbbbo", ".ooooo."], {
+      o: INK,
+      b: "#2F7FD6",
+      w: "#FFFFFF",
+    }),
   bunny: (blink: boolean) =>
-    pixelTexture(`bunny:${blink}`, ["..g.g.g..", ".ggggggg.", "gglgglggg", blink ? "ggggggggg" : "ggogggogg", "gggggggg.", ".ggggggg."], { g: "#8E86A6", l: "#B7B0CC", o: INK }),
+    pixelTexture(
+      `bunny:${blink}`,
+      ["..g.g.g..", ".ggggggg.", "gglgglggg", blink ? "ggggggggg" : "ggogggogg", "gggggggg.", ".ggggggg."],
+      { g: "#8E86A6", l: "#B7B0CC", o: INK },
+    ),
   firefly: () => pixelTexture("firefly", [".y.", "yYy", ".y."], { y: "#E8F59A", Y: "#FFFFFF" }),
   // G1: a lesson deciding shows as a light bulb over the pet; a friend that wanders up; a noise's "!"
-  bulb: () => pixelTexture("bulb", [".ooo.", "oyYyo", "oyyyo", ".oyo.", ".ogo.", "..o.."], { o: INK, y: "#FFD84D", Y: "#FFFFFF", g: "#8E86A6" }),
+  bulb: () =>
+    pixelTexture("bulb", [".ooo.", "oyYyo", "oyyyo", ".oyo.", ".ogo.", "..o.."], {
+      o: INK,
+      y: "#FFD84D",
+      Y: "#FFFFFF",
+      g: "#8E86A6",
+    }),
   friend: (step: boolean) =>
-    pixelTexture(`friend:${step}`, [".o...o.", "ooooooo", "owowowo", "ooooooo", step ? "o.o.o.o" : ".o.o.o."], { o: "#C9805A", w: INK }),
+    pixelTexture(`friend:${step}`, [".o...o.", "ooooooo", "owowowo", "ooooooo", step ? "o.o.o.o" : ".o.o.o."], {
+      o: "#C9805A",
+      w: INK,
+    }),
   alarm: () => pixelTexture("alarm", [".rr.", ".rr.", ".rr.", "....", ".rr."], { r: "#E0443A" }),
   mote: (c: string) => pixelTexture(`mote:${c}`, ["m"], { m: c }),
   drop: () => pixelTexture("drop", ["d", "d", "D"], { d: "#BFD9F5", D: "#E8F2FF" }),

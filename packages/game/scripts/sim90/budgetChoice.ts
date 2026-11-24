@@ -8,14 +8,33 @@
 
 import { writeFileSync } from "node:fs";
 import { compileProgram, gateCount } from "@lingxi/brain";
-import { type BudgetChoice, LESSON_CAPACITY, PET_SCHOOL, TAUGHT_BUDGET, TAUGHT_SHARE, composeProgram, taughtBudget, taughtGates } from "../../src";
+import {
+  type BudgetChoice,
+  LESSON_CAPACITY,
+  PET_SCHOOL,
+  TAUGHT_BUDGET,
+  TAUGHT_SHARE,
+  composeProgram,
+  taughtBudget,
+  taughtGates,
+} from "../../src";
 import { BUDGET_CHOICE_CACHE } from "./budgetChoice.generated";
 
 /** What the measure depends on, as one string: change any of it and the cache is stale. */
 export function budgetChoiceKey(): string {
   const school = PET_SCHOOL.map((s) => s.rule);
-  const compiler = (["gentle", "bold", "curious"] as const).map((l) => [gateCount(compileProgram(composeProgram(l, []))), gateCount(compileProgram(composeProgram(l, school)))]);
-  return JSON.stringify({ school, budget: TAUGHT_BUDGET, slots: LESSON_CAPACITY, share: TAUGHT_SHARE, wide: taughtBudget("teen", { level: 99, points: 0, skills: { 211: 1 } }), compiler });
+  const compiler = (["gentle", "bold", "curious"] as const).map((l) => [
+    gateCount(compileProgram(composeProgram(l, []))),
+    gateCount(compileProgram(composeProgram(l, school))),
+  ]);
+  return JSON.stringify({
+    school,
+    budget: TAUGHT_BUDGET,
+    slots: LESSON_CAPACITY,
+    share: TAUGHT_SHARE,
+    wide: taughtBudget("teen", { level: 99, points: 0, skills: { 211: 1 } }),
+    compiler,
+  });
 }
 
 /**
@@ -35,14 +54,17 @@ export function computeBudgetChoice(): BudgetChoice {
     rec(0, []);
     return out;
   };
-  const orders = (a: number[]): number[][] => (a.length <= 1 ? [a] : a.flatMap((x, i) => orders([...a.slice(0, i), ...a.slice(i + 1)]).map((p) => [x, ...p])));
-  const cheapest = (line: "gentle" | "bold" | "curious", set: number[]) => Math.min(...orders(set).map((o) => taughtGates({ line, lessons: o.map((i) => school[i]!) })));
+  const orders = (a: number[]): number[][] =>
+    a.length <= 1 ? [a] : a.flatMap((x, i) => orders([...a.slice(0, i), ...a.slice(i + 1)]).map((p) => [x, ...p]));
+  const cheapest = (line: "gentle" | "bold" | "curious", set: number[]) =>
+    Math.min(...orders(set).map((o) => taughtGates({ line, lessons: o.map((i) => school[i]!) })));
   const mind = (points: number) => (points ? { level: 99, points: 0, skills: { 211: points } } : undefined);
   return Object.fromEntries(
     (["gentle", "bold", "curious"] as const).map((line) => {
       const teen = subsets(LESSON_CAPACITY.teen).map((s) => cheapest(line, s));
       const adult = subsets(LESSON_CAPACITY.adult).map((s) => cheapest(line, s));
-      const fit = (costs: number[], stage: "teen" | "adult", points: number) => costs.filter((c) => c <= taughtBudget(stage, mind(points))).length;
+      const fit = (costs: number[], stage: "teen" | "adult", points: number) =>
+        costs.filter((c) => c <= taughtBudget(stage, mind(points))).length;
       return [
         line,
         {
@@ -52,7 +74,10 @@ export function computeBudgetChoice(): BudgetChoice {
           adultSets: adult.length,
           adultNoMind: fit(adult, "adult", 0),
           adultFiveMind: fit(adult, "adult", 5),
-          elderAllEight: cheapest(line, school.map((_, i) => i)),
+          elderAllEight: cheapest(
+            line,
+            school.map((_, i) => i),
+          ),
           elderBudget: taughtBudget("elder", undefined),
         },
       ];

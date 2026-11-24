@@ -3,7 +3,9 @@
 import type { Rule } from "@lingxi/brain";
 import { lessonKeyBody, lessonShareBody } from "./requests";
 
-const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const BASE =
+  (import.meta.env.VITE_API_URL as string | undefined) ??
+  (location.hostname === "localhost" ? "http://localhost:8787" : "");
 
 export interface LibraryLesson {
   key: string;
@@ -29,7 +31,12 @@ export async function listLessons(): Promise<LibraryLesson[]> {
 async function post(path: string, body: unknown): Promise<{ ok: boolean; reason?: string; isNew?: boolean }> {
   if (!BASE) return { ok: false, reason: "offline" };
   try {
-    const r = await fetch(`${BASE}${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(6000) });
+    const r = await fetch(`${BASE}${path}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(6000),
+    });
     return (await r.json()) as { ok: boolean; reason?: string; isNew?: boolean };
   } catch {
     return { ok: false, reason: "offline" };

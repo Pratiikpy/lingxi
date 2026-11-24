@@ -11,7 +11,10 @@ import { type Address, type PublicClient, parseAbi } from "viem";
 import { RateLimiter } from "./limit";
 import { clientIp } from "./clientIp";
 
-const nft = parseAbi(["function ownerOf(uint256) view returns (address)", "function totalSupply() view returns (uint256)"]);
+const nft = parseAbi([
+  "function ownerOf(uint256) view returns (address)",
+  "function totalSupply() view returns (uint256)",
+]);
 const OWNERS_PER_CALL = 1000;
 const LANES = 4;
 const TRIES = 3;
@@ -28,7 +31,11 @@ export interface Test1Index {
  * `collection` may be found on the first read (the gift contract names it), so the route can be registered at start:
  * the server's router takes no routes once it has answered a request.
  */
-export function createTest1Index(opts: { pub: PublicClient; collection: Address | (() => Promise<Address>); now?: () => number }): Test1Index {
+export function createTest1Index(opts: {
+  pub: PublicClient;
+  collection: Address | (() => Promise<Address>);
+  now?: () => number;
+}): Test1Index {
   const now = opts.now ?? Date.now;
   let collection: Address | null = typeof opts.collection === "string" ? opts.collection : null;
   const collectionOf = async () => (collection ??= await (opts.collection as () => Promise<Address>)());
@@ -40,7 +47,16 @@ export function createTest1Index(opts: { pub: PublicClient; collection: Address 
   const batch = async (address: Address, from: number, count: number) => {
     for (let attempt = 1; ; attempt++) {
       const r = await opts.pub
-        .multicall({ allowFailure: true, batchSize: 1 << 20, contracts: Array.from({ length: count }, (_, k) => ({ address, abi: nft, functionName: "ownerOf" as const, args: [BigInt(from + k)] as const })) })
+        .multicall({
+          allowFailure: true,
+          batchSize: 1 << 20,
+          contracts: Array.from({ length: count }, (_, k) => ({
+            address,
+            abi: nft,
+            functionName: "ownerOf" as const,
+            args: [BigInt(from + k)] as const,
+          })),
+        })
         .catch(() => null);
       // a batch whose every call failed is the node failing, not 1,000 missing tokens
       if (r && r.some((x) => x.status === "success")) return r;
@@ -55,7 +71,9 @@ export function createTest1Index(opts: { pub: PublicClient; collection: Address 
     const next = new Map<string, number[]>();
     const starts = Array.from({ length: Math.ceil(supply / OWNERS_PER_CALL) }, (_, k) => 1 + k * OWNERS_PER_CALL);
     for (let i = 0; i < starts.length; i += LANES) {
-      const lanes = await Promise.all(starts.slice(i, i + LANES).map((from) => batch(address, from, Math.min(OWNERS_PER_CALL, supply - from + 1))));
+      const lanes = await Promise.all(
+        starts.slice(i, i + LANES).map((from) => batch(address, from, Math.min(OWNERS_PER_CALL, supply - from + 1))),
+      );
       lanes.forEach((results, lane) =>
         results.forEach((r, k) => {
           if (r.status !== "success") return;

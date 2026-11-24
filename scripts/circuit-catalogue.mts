@@ -11,12 +11,35 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { createPublicClient, http, keccak256, type Address, type Hex } from "viem";
-import { INPUT_FIELDS, MOODS, NUDGES, STARTERS, WANTS, beat, bitsToWord, compileProgram, load, netlistBytes, ruleBytes, stateBits, wordToBits } from "@lingxi/brain";
+import {
+  INPUT_FIELDS,
+  MOODS,
+  NUDGES,
+  STARTERS,
+  WANTS,
+  beat,
+  bitsToWord,
+  compileProgram,
+  load,
+  netlistBytes,
+  ruleBytes,
+  stateBits,
+  wordToBits,
+} from "@lingxi/brain";
 import { RULES, processorAbi, xLayer, type Deployment } from "@lingxi/chain";
 import { MOOD_NAMES, VALUE_NAMES, WANT_NAMES } from "../apps/web/src/play/ruleText";
 
 /** Each input pin's name in Chinese, as the game's screens speak of it (C5). */
-const FIELD_ZH: Record<string, string> = { hunger: "饱饿", joy: "快乐", energy: "精力", clean: "干净", time: "时间", action: "你做的事", event: "身边发生的事", owner: "你在不在" };
+const FIELD_ZH: Record<string, string> = {
+  hunger: "饱饿",
+  joy: "快乐",
+  energy: "精力",
+  clean: "干净",
+  time: "时间",
+  action: "你做的事",
+  event: "身边发生的事",
+  owner: "你在不在",
+};
 /** The nudge pin's values in Chinese: "none", then the game's own words for the seven natures (the duel screen's). */
 const NUDGE_ZH = ["没有", "勇敢", "好奇", "嘴馋", "沉稳", "贪玩", "温柔", "害羞"];
 
@@ -29,11 +52,16 @@ const VECTORS_WIDE = 96;
 const BRAIN_VECTORS = 48;
 const CATALOGUE = "LX-CIRCUITS/1";
 
-const d = JSON.parse(readFileSync(new URL("../packages/chain/deployments/xlayer.json", import.meta.url), "utf8")) as Deployment & {
+const d = JSON.parse(
+  readFileSync(new URL("../packages/chain/deployments/xlayer.json", import.meta.url), "utf8"),
+) as Deployment & {
   circuits: Record<string, { id: string }>;
   rules: Record<string, { id: string; tx: string; gates: number }>;
 };
-const pub = createPublicClient({ chain: { ...xLayer, rpcUrls: { default: { http: [RPCS[0]!] } } }, transport: http(RPCS[0]) });
+const pub = createPublicClient({
+  chain: { ...xLayer, rpcUrls: { default: { http: [RPCS[0]!] } } },
+  transport: http(RPCS[0]),
+});
 
 /** Inputs as the processor takes them: little-endian bytes, bit 0 of the word in bit 0 of the first byte. */
 const packWord = (word: number, bits: number): Hex => {
@@ -50,14 +78,19 @@ const unpackWord = (h: Hex): number => {
 /** A deterministic spread of a wide input range: both ends, then evenly apart. */
 const spread = (bits: number, n: number): number[] => {
   const top = 2 ** bits - 1;
-  return [...new Set([0, top, ...Array.from({ length: n - 2 }, (_, i) => Math.round(((i + 1) * top) / (n - 1)))])].sort((a, b) => a - b);
+  return [...new Set([0, top, ...Array.from({ length: n - 2 }, (_, i) => Math.round(((i + 1) * top) / (n - 1)))])].sort(
+    (a, b) => a - b,
+  );
 };
 
 const rules = RULES.map((rule) => {
   const rec = d.rules[rule.name];
   if (!rec) throw new Error(`rule ${rule.name} has no circuit on record`);
   const bytes = ruleBytes(rule);
-  const inputs = rule.inBits <= ALL_UP_TO_BITS ? Array.from({ length: 2 ** rule.inBits }, (_, i) => i) : spread(rule.inBits, VECTORS_WIDE);
+  const inputs =
+    rule.inBits <= ALL_UP_TO_BITS
+      ? Array.from({ length: 2 ** rule.inBits }, (_, i) => i)
+      : spread(rule.inBits, VECTORS_WIDE);
   return {
     name: rule.name,
     about: rule.about,
@@ -85,7 +118,12 @@ function walkOf(circuit: ReturnType<typeof load>, nState: number) {
   return Array.from({ length: WALK_BEATS }, (_, k) => {
     const input = (k * 40503 + 0x6a5) & 0xffff;
     const [next, outs] = beat(circuit, state, wordToBits(input, 16));
-    const step = { state: Number(bitsToWord(state)), input, output: Number(bitsToWord(outs)), nextState: Number(bitsToWord(next)) };
+    const step = {
+      state: Number(bitsToWord(state)),
+      input,
+      output: Number(bitsToWord(outs)),
+      nextState: Number(bitsToWord(next)),
+    };
     state = next;
     return step;
   });
@@ -110,10 +148,22 @@ const brains = BRAINS.map((line) => {
     netlistBytes: bytes.length,
     netlistKeccak: keccak256(bytes),
     // memory bits in declaration order from bit 0 of the state
-    memory: program.memory.reduce<Array<{ name: string; label?: string; kind: string; lo: number; bits: number }>>((acc, m) => {
-      const lo = acc.reduce((n, x) => n + x.bits, 0);
-      return [...acc, { name: m.name, ...(m.label ? { label: m.label } : {}), kind: m.kind, lo, bits: m.kind === "flag" ? 1 : (m as { bits: number }).bits }];
-    }, []),
+    memory: program.memory.reduce<Array<{ name: string; label?: string; kind: string; lo: number; bits: number }>>(
+      (acc, m) => {
+        const lo = acc.reduce((n, x) => n + x.bits, 0);
+        return [
+          ...acc,
+          {
+            name: m.name,
+            ...(m.label ? { label: m.label } : {}),
+            kind: m.kind,
+            lo,
+            bits: m.kind === "flag" ? 1 : (m as { bits: number }).bits,
+          },
+        ];
+      },
+      [],
+    ),
     stateFromZero: 0,
     vectors,
     // a short life: each beat starts from the memory the last one left, so memory carried between beats is documented too
@@ -136,7 +186,8 @@ const catalogue = {
     ids: "every circuit id here is a uint256 written as a decimal string",
     nState: "nState counts bits; the state is ceil(nState / 8) bytes (1 byte for the starter brains)",
     brains: "brains are listed by their line (gentle, bold, curious); name is a label",
-    inputs: "bytes, little-endian: bit 0 of the input word is bit 0 of the first byte; ceil(nIn / 8) bytes (2 for every circuit here: each has 16 input pins, and a rule reads only its low inBits, the rest 0)",
+    inputs:
+      "bytes, little-endian: bit 0 of the input word is bit 0 of the first byte; ceil(nIn / 8) bytes (2 for every circuit here: each has 16 input pins, and a rule reads only its low inBits, the rest 0)",
     outputs: "bytes, little-endian, the same way: the first byte holds output bits 0 to 7",
     state: "a brain's memory, packed the same way as inputs (processor.step takes and returns it)",
     eval: "processor.eval(uint256 id, bytes inputs) view returns (bytes outputs)",
@@ -148,7 +199,8 @@ const catalogue = {
     ids: "这里每个电路的 id 都是 uint256，写成十进制字符串",
     nState: "nState 数的是位数；state 占 ceil(nState / 8) 个字节（初始大脑是 1 个字节）",
     brains: "大脑按它的系别列出（gentle 温柔、bold 勇敢、curious 好奇）；name 只是标签",
-    inputs: "字节，小端序：输入字的第 0 位就是第一个字节的第 0 位；共 ceil(nIn / 8) 个字节（这里每个电路都是 2 个：每个都有 16 个输入引脚，规则只读低 inBits 位，其余为 0）",
+    inputs:
+      "字节，小端序：输入字的第 0 位就是第一个字节的第 0 位；共 ceil(nIn / 8) 个字节（这里每个电路都是 2 个：每个都有 16 个输入引脚，规则只读低 inBits 位，其余为 0）",
     outputs: "字节，小端序，方式相同：第一个字节存输出的第 0 到 7 位",
     state: "大脑的记忆，按和 inputs 一样的方式打包（processor.step 传入并返回它）",
     eval: "processor.eval(uint256 id, bytes inputs) view returns (bytes outputs)，只读调用，免费",
@@ -157,7 +209,14 @@ const catalogue = {
   brainPins: {
     standard: "LX-PET/1",
     // the Chinese names are the game's own (ruleText.ts, the duel's natures), so the catalogue says what the game says
-    inputs: INPUT_FIELDS.map((f) => ({ name: f.name, lo: f.lo, bits: f.bits, values: [...f.values], nameZh: FIELD_ZH[f.name]!, valuesZh: [...VALUE_NAMES[f.name]!.zh] })),
+    inputs: INPUT_FIELDS.map((f) => ({
+      name: f.name,
+      lo: f.lo,
+      bits: f.bits,
+      values: [...f.values],
+      nameZh: FIELD_ZH[f.name]!,
+      valuesZh: [...VALUE_NAMES[f.name]!.zh],
+    })),
     outputs: [
       { name: "want", lo: 0, bits: 3, values: [...WANTS], nameZh: "想做", valuesZh: [...WANT_NAMES.zh] },
       { name: "mood", lo: 3, bits: 2, values: [...MOODS], nameZh: "心情", valuesZh: [...MOOD_NAMES.zh] },
@@ -172,32 +231,58 @@ const catalogue = {
 async function onChain(c: typeof catalogue): Promise<string[]> {
   const wrong: string[] = [];
   for (const r of c.rules) {
-    const stored = (await pub.readContract({ address: c.processor, abi: processorAbi, functionName: "netlist", args: [BigInt(r.id)] })) as Hex;
-    if (keccak256(stored) !== r.netlistKeccak) wrong.push(`rule ${r.name} (#${r.id}): the netlist on chain hashes to ${keccak256(stored)}`);
+    const stored = (await pub.readContract({
+      address: c.processor,
+      abi: processorAbi,
+      functionName: "netlist",
+      args: [BigInt(r.id)],
+    })) as Hex;
+    if (keccak256(stored) !== r.netlistKeccak)
+      wrong.push(`rule ${r.name} (#${r.id}): the netlist on chain hashes to ${keccak256(stored)}`);
     const got = (await pub.multicall({
       allowFailure: false,
       batchSize: 1 << 20,
-      contracts: r.vectors.map(([i]) => ({ address: c.processor, abi: processorAbi, functionName: "eval", args: [BigInt(r.id), packWord(i, r.nIn)] })),
+      contracts: r.vectors.map(([i]) => ({
+        address: c.processor,
+        abi: processorAbi,
+        functionName: "eval",
+        args: [BigInt(r.id), packWord(i, r.nIn)],
+      })),
     })) as Hex[];
     got.forEach((h, k) => {
       const [i, want] = r.vectors[k]!;
-      if ((unpackWord(h) & 0xff) !== want) wrong.push(`rule ${r.name}: input ${i} gives ${unpackWord(h) & 0xff} on chain, ${want} here`);
+      if ((unpackWord(h) & 0xff) !== want)
+        wrong.push(`rule ${r.name}: input ${i} gives ${unpackWord(h) & 0xff} on chain, ${want} here`);
     });
   }
   for (const b of c.brains) {
-    const stored = (await pub.readContract({ address: c.processor, abi: processorAbi, functionName: "netlist", args: [BigInt(b.id)] })) as Hex;
-    if (keccak256(stored) !== b.netlistKeccak) wrong.push(`brain ${b.line} (#${b.id}): the netlist on chain hashes to ${keccak256(stored)}`);
+    const stored = (await pub.readContract({
+      address: c.processor,
+      abi: processorAbi,
+      functionName: "netlist",
+      args: [BigInt(b.id)],
+    })) as Hex;
+    if (keccak256(stored) !== b.netlistKeccak)
+      wrong.push(`brain ${b.line} (#${b.id}): the netlist on chain hashes to ${keccak256(stored)}`);
     const all = [...b.vectors.map((v) => ({ ...v, state: 0 })), ...b.walk];
     const got = (await pub.multicall({
       allowFailure: false,
       batchSize: 1 << 20,
-      contracts: all.map((v) => ({ address: c.processor, abi: processorAbi, functionName: "step", args: [BigInt(b.id), packWord(v.state, b.nState), packWord(v.input, 16)] })),
+      contracts: all.map((v) => ({
+        address: c.processor,
+        abi: processorAbi,
+        functionName: "step",
+        args: [BigInt(b.id), packWord(v.state, b.nState), packWord(v.input, 16)],
+      })),
       // viem types a multicall over this ABI as the union of every function's result; every call here is `step`,
       // which returns (bytes newState, bytes outputs)
     })) as unknown as Array<readonly [Hex, Hex]>;
     got.forEach(([next, out], k) => {
       const v = all[k]!;
-      if ((unpackWord(out) & 0xff) !== v.output || unpackWord(next) !== v.nextState) wrong.push(`brain ${b.line}: state ${v.state} input ${v.input} gives ${unpackWord(out)}/${unpackWord(next)} on chain, ${v.output}/${v.nextState} here`);
+      if ((unpackWord(out) & 0xff) !== v.output || unpackWord(next) !== v.nextState)
+        wrong.push(
+          `brain ${b.line}: state ${v.state} input ${v.input} gives ${unpackWord(out)}/${unpackWord(next)} on chain, ${v.output}/${v.nextState} here`,
+        );
     });
   }
   return wrong;
@@ -210,12 +295,16 @@ if (checking && JSON.stringify(target) !== JSON.stringify(catalogue)) {
   process.exit(1);
 }
 const wrong = await onChain(target);
-const vectorCount = target.rules.reduce((n, r) => n + r.vectors.length, 0) + target.brains.reduce((n, b) => n + b.vectors.length + b.walk.length, 0);
+const vectorCount =
+  target.rules.reduce((n, r) => n + r.vectors.length, 0) +
+  target.brains.reduce((n, b) => n + b.vectors.length + b.walk.length, 0);
 if (wrong.length) {
   console.error(`${wrong.length} disagreement(s) with X Layer:\n${wrong.slice(0, 20).join("\n")}`);
   process.exit(1);
 }
-console.log(`${target.rules.length} rule circuits and ${target.brains.length} brains, ${vectorCount} vectors: every one agrees with X Layer, every netlist hash matches`);
+console.log(
+  `${target.rules.length} rule circuits and ${target.brains.length} brains, ${vectorCount} vectors: every one agrees with X Layer, every netlist hash matches`,
+);
 if (!checking) {
   writeFileSync(OUT, `${JSON.stringify(catalogue, null, 1)}\n`);
   console.log(`written ${OUT.pathname}`);

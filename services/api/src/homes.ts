@@ -62,7 +62,13 @@ export function visible(placed: Placed, view: HomeView): Placed {
 
 export interface Homes {
   wallets: (owner: string) => Address[];
-  link: (owner: string, wallet: unknown, signature: unknown) => Promise<{ ok: true; wallets: Address[] } | { ok: false; reason: "invalid" | "signature" | "full" | "serverFull" }>;
+  link: (
+    owner: string,
+    wallet: unknown,
+    signature: unknown,
+  ) => Promise<
+    { ok: true; wallets: Address[] } | { ok: false; reason: "invalid" | "signature" | "full" | "serverFull" }
+  >;
   unlink: (owner: string, wallet: unknown) => { ok: true; wallets: Address[] } | { ok: false; reason: "invalid" };
   /** what visitors see of `owner`'s home; `who`, the visitor, may cause only so many uncached reads a minute (A81) */
   view: (owner: string, who?: string) => Promise<HomeView>;
@@ -73,7 +79,9 @@ export interface Homes {
   colourOf: (owner: string, petId: unknown, fresh?: boolean) => Promise<number>;
 }
 
-export function createHomes(opts: { chain?: HomeChain; file?: string; now?: () => number; freshMs?: number; maxHomes?: number } = {}): Homes {
+export function createHomes(
+  opts: { chain?: HomeChain; file?: string; now?: () => number; freshMs?: number; maxHomes?: number } = {},
+): Homes {
   const now = opts.now ?? Date.now;
   const freshMs = opts.freshMs ?? FRESH_MS;
   const maxHomes = opts.maxHomes ?? MAX_LINKED_HOMES;
@@ -85,10 +93,18 @@ export function createHomes(opts: { chain?: HomeChain; file?: string; now?: () =
       const raw = readStore(opts.file) as Record<string, unknown>;
       for (const [owner, entry] of Object.entries(raw)) {
         // the shape since A74: { w: wallets, seen: ms }; before it: wallets alone
-        const list = Array.isArray(entry) ? entry : entry && typeof entry === "object" ? (entry as { w?: unknown }).w : null;
-        const seenAt = !Array.isArray(entry) && entry && typeof entry === "object" ? Number((entry as { seen?: unknown }).seen) : 0;
+        const list = Array.isArray(entry)
+          ? entry
+          : entry && typeof entry === "object"
+            ? (entry as { w?: unknown }).w
+            : null;
+        const seenAt =
+          !Array.isArray(entry) && entry && typeof entry === "object" ? Number((entry as { seen?: unknown }).seen) : 0;
         if (!OWNER_ID.test(owner) || !Array.isArray(list)) continue;
-        const ok = list.filter((w): w is string => typeof w === "string" && isAddress(w)).map((w) => getAddress(w)).slice(0, MAX_LINKED);
+        const ok = list
+          .filter((w): w is string => typeof w === "string" && isAddress(w))
+          .map((w) => getAddress(w))
+          .slice(0, MAX_LINKED);
         if (ok.length) {
           links.set(owner, ok);
           lastSeen.set(owner, Number.isFinite(seenAt) ? seenAt : 0);
@@ -104,7 +120,10 @@ export function createHomes(opts: { chain?: HomeChain; file?: string; now?: () =
     timer = setTimeout(() => {
       timer = null;
       try {
-        saveJson(opts.file!, Object.fromEntries([...links].map(([owner, w]) => [owner, { w, seen: lastSeen.get(owner) ?? 0 }])));
+        saveJson(
+          opts.file!,
+          Object.fromEntries([...links].map(([owner, w]) => [owner, { w, seen: lastSeen.get(owner) ?? 0 }])),
+        );
       } catch (e) {
         process.stderr.write(`home links not saved: ${(e as Error).message}\n`);
       }
@@ -134,7 +153,14 @@ export function createHomes(opts: { chain?: HomeChain; file?: string; now?: () =
       save();
     },
     link: async (owner, wallet, signature) => {
-      if (!OWNER_ID.test(owner) || typeof wallet !== "string" || !isAddress(wallet) || typeof signature !== "string" || !/^0x[0-9a-fA-F]{130}$/.test(signature)) return { ok: false, reason: "invalid" };
+      if (
+        !OWNER_ID.test(owner) ||
+        typeof wallet !== "string" ||
+        !isAddress(wallet) ||
+        typeof signature !== "string" ||
+        !/^0x[0-9a-fA-F]{130}$/.test(signature)
+      )
+        return { ok: false, reason: "invalid" };
       let signer: Address;
       try {
         signer = await recoverMessageAddress({ message: homeLinkMessage(owner), signature: signature as Hex });
@@ -163,7 +189,8 @@ export function createHomes(opts: { chain?: HomeChain; file?: string; now?: () =
       return { ok: true, wallets: next };
     },
     unlink: (owner, wallet) => {
-      if (!OWNER_ID.test(owner) || typeof wallet !== "string" || !isAddress(wallet)) return { ok: false, reason: "invalid" };
+      if (!OWNER_ID.test(owner) || typeof wallet !== "string" || !isAddress(wallet))
+        return { ok: false, reason: "invalid" };
       const w = getAddress(wallet);
       const next = wallets(owner).filter((x) => x !== w);
       if (next.length) links.set(owner, next);

@@ -14,7 +14,9 @@ import { withQuery } from "../game/requests";
 import "./agents.css";
 import { LINGXI_SITE } from "@lingxi/chain/site";
 
-const API = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const API =
+  (import.meta.env.VITE_API_URL as string | undefined) ??
+  (location.hostname === "localhost" ? "http://localhost:8787" : "");
 const PUBLIC = LINGXI_SITE;
 /** The open API is public (any origin may call it), so the on-chain copy of this page calls it on the full site. */
 const V1 = API || PUBLIC;
@@ -100,7 +102,9 @@ export function AgentsApp() {
     setTrying(true);
     setTryErr(false);
     try {
-      const r = await fetch(`${V1}${withQuery("/api/v1/spar", { chips: "punish,block,bite", vs: "pip", seed: "7" } satisfies SparQuery)}`);
+      const r = await fetch(
+        `${V1}${withQuery("/api/v1/spar", { chips: "punish,block,bite", vs: "pip", seed: "7" } satisfies SparQuery)}`,
+      );
       const j = (await r.json()) as { ok: boolean; winner: string; digest: string; rounds: unknown[] };
       if (!j.ok) throw new Error("refused");
       setTried({ winner: j.winner, digest: j.digest, rounds: j.rounds.length });
@@ -137,10 +141,17 @@ export function AgentsApp() {
           </button>
           {tried && (
             <span className="small">
-              {L(`A TapeFly brain against Pip: ${tried.winner === "you" ? "the TapeFly brain won" : tried.winner === "them" ? "Pip won" : "a draw"} in ${tried.rounds} rounds, fingerprint ${tried.digest}. Run it again: the same seed is the same fight.`, `一个 TapeFly 大脑对皮皮：${tried.winner === "you" ? "TapeFly 大脑赢了" : tried.winner === "them" ? "皮皮赢了" : "平手"}，${tried.rounds} 回合，指纹 ${tried.digest}。再运行一次：同一个种子就是同一场。`)}
+              {L(
+                `A TapeFly brain against Pip: ${tried.winner === "you" ? "the TapeFly brain won" : tried.winner === "them" ? "Pip won" : "a draw"} in ${tried.rounds} rounds, fingerprint ${tried.digest}. Run it again: the same seed is the same fight.`,
+                `一个 TapeFly 大脑对皮皮：${tried.winner === "you" ? "TapeFly 大脑赢了" : tried.winner === "them" ? "皮皮赢了" : "平手"}，${tried.rounds} 回合，指纹 ${tried.digest}。再运行一次：同一个种子就是同一场。`,
+              )}
             </span>
           )}
-          {tryErr && <span className="small ag-err">{L("The API couldn't be reached. Try again in a moment.", "暂时连不上接口，过一会儿再试。")}</span>}
+          {tryErr && (
+            <span className="small ag-err">
+              {L("The API couldn't be reached. Try again in a moment.", "暂时连不上接口，过一会儿再试。")}
+            </span>
+          )}
         </div>
       </section>
 
@@ -155,7 +166,8 @@ export function AgentsApp() {
           ))}
         </ol>
         <p className="small">
-          {L("Everything else, with every parameter, is listed at", "其余全部接口和参数见")} <a href={`${PUBLIC}/api/v1`}>{`${PUBLIC}/api/v1`}</a>.
+          {L("Everything else, with every parameter, is listed at", "其余全部接口和参数见")}{" "}
+          <a href={`${PUBLIC}/api/v1`}>{`${PUBLIC}/api/v1`}</a>.
         </p>
       </section>
 
@@ -170,7 +182,12 @@ export function AgentsApp() {
         <pre>{`curl -X POST ${PUBLIC}/api/v1/pet \\
   -H 'content-type: application/json' \\
   -d '{"id":"my-1","params":{"id":"1"}}'`}</pre>
-        <p className="small">{L("To check it, TapeAPI's own client resolves the service from X Layer and verifies each answer:", "要核对，可以用 TapeAPI 自己的客户端：它从 X Layer 解析服务，再逐个验证回答：")}</p>
+        <p className="small">
+          {L(
+            "To check it, TapeAPI's own client resolves the service from X Layer and verifies each answer:",
+            "要核对，可以用 TapeAPI 自己的客户端：它从 X Layer 解析服务，再逐个验证回答：",
+          )}
+        </p>
         <pre>{`npm install ${TAPEAPI_SDK}
 
 // save as try.mjs, then run: node try.mjs
@@ -216,7 +233,14 @@ else console.log(result.name, result.owner, verified)`}</pre>
         <h2>{L("Scoreboard: agents against humans", "排行：智能体对人类")}</h2>
         {board === null && !boardErr && <p className="small">{L("Reading the seasons…", "正在读取赛季……")}</p>}
         {boardErr && <p className="small ag-err">{L("The scoreboard couldn't be reached.", "暂时读不到排行。")}</p>}
-        {board && board.length === 0 && <p className="small">{L("No season has entries yet. The first week with an agent-raised pet starts the table.", "还没有赛季有人参赛。第一周有智能体养的宠物参赛，这张表就开始了。")}</p>}
+        {board && board.length === 0 && (
+          <p className="small">
+            {L(
+              "No season has entries yet. The first week with an agent-raised pet starts the table.",
+              "还没有赛季有人参赛。第一周有智能体养的宠物参赛，这张表就开始了。",
+            )}
+          </p>
+        )}
         {board && board.length > 0 && (
           <table className="ag-table">
             <thead>
@@ -245,10 +269,17 @@ else console.log(result.name, result.owner, verified)`}</pre>
       <section>
         <h2>{L("Interface manifests", "接口清单")}</h2>
         <p className="small">
-          {L("What every input and output bit means, so a brain read from the chain can be driven by any app. Served as JSON at", "每个输入、输出位的含义，任何应用都能驱动从链上读出的大脑。JSON 版本见")} <a href={`${PUBLIC}/api/v1/profiles`}>/api/v1/profiles</a>.
+          {L(
+            "What every input and output bit means, so a brain read from the chain can be driven by any app. Served as JSON at",
+            "每个输入、输出位的含义，任何应用都能驱动从链上读出的大脑。JSON 版本见",
+          )}{" "}
+          <a href={`${PUBLIC}/api/v1/profiles`}>/api/v1/profiles</a>.
         </p>
         <p className="small">
-          {L("Every Lingxi circuit you can call on X Layer, with test vectors checked on chain, is in the", "所有能在 X Layer 上调用的灵犀电路，以及在链上核对过的测试向量，都在")}{" "}
+          {L(
+            "Every Lingxi circuit you can call on X Layer, with test vectors checked on chain, is in the",
+            "所有能在 X Layer 上调用的灵犀电路，以及在链上核对过的测试向量，都在",
+          )}{" "}
           <a href={`${PUBLIC}/circuits.html`}>{L("circuit catalogue", "电路目录")}</a>
           {L(", which runs them with none of Lingxi's code.", "里，那个页面不用灵犀的任何代码就能运行它们。")}
         </p>
@@ -259,7 +290,10 @@ else console.log(result.name, result.owner, verified)`}</pre>
             </summary>
             <table className="ag-table">
               <tbody>
-                {[...m.inputs.map((f) => ({ ...f, dir: L("in", "入") })), ...m.outputs.map((f) => ({ ...f, dir: L("out", "出") }))].map((f) => (
+                {[
+                  ...m.inputs.map((f) => ({ ...f, dir: L("in", "入") })),
+                  ...m.outputs.map((f) => ({ ...f, dir: L("out", "出") })),
+                ].map((f) => (
                   <tr key={`${f.dir}${f.name}`}>
                     <td>{f.dir}</td>
                     <td>

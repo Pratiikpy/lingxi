@@ -45,21 +45,43 @@ const TIME_HOUR = [1, 8, 14, 20]; // night, morning, day, evening → a represen
  * Today's diary: the last `beats` logged words (one per minute), replayed from
  * the start of the log so the memory is exactly what it was.
  */
-export function diaryOf(pet: Pet, brainFor: (lessons: Rule[], outside?: OutsideInstinct, skills?: number[]) => Brain, beats = 24 * 60): DiaryLine[] {
-  return diaryOfStretches(logSegments(pet).map((s) => ({ brain: brainFor(s.lessons, s.outside, s.skills), words: s.words })), beats);
+export function diaryOf(
+  pet: Pet,
+  brainFor: (lessons: Rule[], outside?: OutsideInstinct, skills?: number[]) => Brain,
+  beats = 24 * 60,
+): DiaryLine[] {
+  return diaryOfStretches(
+    logSegments(pet).map((s) => ({ brain: brainFor(s.lessons, s.outside, s.skills), words: s.words })),
+    beats,
+  );
 }
 
 /**
  * The same diary from stretches of a log, each with the brain it ran on (for
  * example brains read from the chain, for a pet's public page).
  */
-export function diaryOfStretches(segs: ReadonlyArray<{ brain: Brain; words: readonly number[] }>, beats = 24 * 60): DiaryLine[] {
+export function diaryOfStretches(
+  segs: ReadonlyArray<{ brain: Brain; words: readonly number[] }>,
+  beats = 24 * 60,
+): DiaryLine[] {
   const total = segs.reduce((n, s) => n + s.words.length, 0);
   const from = Math.max(0, total - beats);
   let mem: Uint8Array | null = null;
   let i = 0;
   const lines: DiaryLine[] = [];
-  const count = { fed: 0, played: 0, cleaned: 0, petted: 0, medicine: 0, talked: 0, cuddled: 0, shared: 0, excited: 0, friend: 0, scared: 0 };
+  const count = {
+    fed: 0,
+    played: 0,
+    cleaned: 0,
+    petted: 0,
+    medicine: 0,
+    talked: 0,
+    cuddled: 0,
+    shared: 0,
+    excited: 0,
+    friend: 0,
+    scared: 0,
+  };
   let nap: number | null = null;
   let wander = 0;
   let wanderBest = 0;
@@ -141,8 +163,15 @@ export function beatsOutrunChain(words: number, bornSec: number, savedSec: numbe
  */
 export function diaryText(l: DiaryLine, lang: "en" | "zh", opts: { untimed?: boolean } = {}): string {
   const n = l.n ?? 0;
-  const span = opts.untimed ? { en: `for a while (${n} beats of my log)`, zh: `一阵（日志里的 ${n} 拍）` } : { en: `for ${n} minutes`, zh: `${n} 分钟` };
-  const why = { hungry: ["my tummy was rumbling", "肚子饿得咕咕叫"], dirty: ["I felt grubby", "身上脏兮兮的"], tired: ["I was so tired", "我太累了"], lonely: ["nobody was around", "身边没人陪"] } as const;
+  const span = opts.untimed
+    ? { en: `for a while (${n} beats of my log)`, zh: `一阵（日志里的 ${n} 拍）` }
+    : { en: `for ${n} minutes`, zh: `${n} 分钟` };
+  const why = {
+    hungry: ["my tummy was rumbling", "肚子饿得咕咕叫"],
+    dirty: ["I felt grubby", "身上脏兮兮的"],
+    tired: ["I was so tired", "我太累了"],
+    lonely: ["nobody was around", "身边没人陪"],
+  } as const;
   const en: Record<DiaryKey, string> = {
     fed: n > 1 ? `You fed me ${n} times. Yum.` : "You fed me. Yum.",
     played: n > 1 ? `We played ${n} times!` : "We played together!",

@@ -4,21 +4,44 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { keccak_256 } from "@noble/hashes/sha3";
-import { type Circuit, STARTERS, beat, compileProgram, compileSeal, composeChild, composeInstinct, fastBrain, load, netlistBytes, refKey, ruleNetlist, wordToBits } from "@lingxi/brain";
+import {
+  type Circuit,
+  STARTERS,
+  beat,
+  compileProgram,
+  compileSeal,
+  composeChild,
+  composeInstinct,
+  fastBrain,
+  load,
+  netlistBytes,
+  refKey,
+  ruleNetlist,
+  wordToBits,
+} from "@lingxi/brain";
 import { EVOLUTION, ZERO_HASH, chainAll, chainLog } from "@lingxi/game";
 import { RULES } from "@lingxi/chain";
 import { type HandheldCore, circuitBlob } from "../src/core";
 import { PROCESSOR, STARTER_ID, loadCore, rng, root, sha256 } from "./helpers";
 
 const hex = (b: Uint8Array) => `0x${Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("")}`;
-const hexBytes = (h: string) => Uint8Array.from({ length: (h.length - 2) / 2 }, (_, i) => parseInt(h.slice(2 + 2 * i, 4 + 2 * i), 16));
+const hexBytes = (h: string) =>
+  Uint8Array.from({ length: (h.length - 2) / 2 }, (_, i) => parseInt(h.slice(2 + 2 * i, 4 + 2 * i), 16));
 
 describe("the committed WebAssembly module", () => {
   it("were built from the sources as they are now", () => {
     for (const target of ["core", "app"]) {
-      const rec = JSON.parse(readFileSync(`${root}/wasm/build-${target}.json`, "utf8")) as { module: { path: string; sha256: string }; sources: Record<string, string>; headers: Record<string, string> };
+      const rec = JSON.parse(readFileSync(`${root}/wasm/build-${target}.json`, "utf8")) as {
+        module: { path: string; sha256: string };
+        sources: Record<string, string>;
+        headers: Record<string, string>;
+      };
       expect(sha256(readFileSync(`${root}/${rec.module.path}`)), target).toBe(rec.module.sha256);
-      for (const [f, h] of Object.entries({ ...rec.sources, ...rec.headers })) expect(sha256(readFileSync(`${root}/${f}`)), `${f} changed since the ${target} module was built: run pnpm build:wasm`).toBe(h);
+      for (const [f, h] of Object.entries({ ...rec.sources, ...rec.headers }))
+        expect(
+          sha256(readFileSync(`${root}/${f}`)),
+          `${f} changed since the ${target} module was built: run pnpm build:wasm`,
+        ).toBe(h);
     }
   });
 });
@@ -47,7 +70,9 @@ describe("keccak-256 and the log chain", () => {
 
   it("reproduce pet #1's saved mainnet log hash and memory", async () => {
     const core = await loadCore();
-    const log = JSON.parse(readFileSync(`${root}/../chain/deployments/pet-1-log.json`, "utf8")) as { segments: Array<{ brainId: string; words: number[] }> };
+    const log = JSON.parse(readFileSync(`${root}/../chain/deployments/pet-1-log.json`, "utf8")) as {
+      segments: Array<{ brainId: string; words: number[] }>;
+    };
     const words = log.segments.flatMap((s) => s.words);
     let h = hexBytes(ZERO_HASH);
     for (const w of words) h = hexBytes(core.chain(h, w));
@@ -119,7 +144,8 @@ describe("the TAP-02 evaluator", () => {
         const got = core.beat(state, Uint8Array.from(wordToBits(w, 16)));
         let o = 0;
         for (let i = 0; i < 8; i++) o |= got.outputs[i]! << i;
-        if (o !== out || Array.from(got.state).join() !== Array.from(ref).join()) throw new Error(`differs at state ${s}, input ${w}`);
+        if (o !== out || Array.from(got.state).join() !== Array.from(ref).join())
+          throw new Error(`differs at state ${s}, input ${w}`);
       }
     }
   }, 1_200_000);
@@ -146,7 +172,13 @@ describe("the TAP-02 evaluator", () => {
   it("runs composed children and instincts, REFs and all, as packages/brain does", async () => {
     const core = await loadCore();
     const lines = ["gentle", "bold", "curious"] as const;
-    const parts = lines.map((l) => ({ processor: PROCESSOR, id: STARTER_ID[l], nIn: 16, nOut: 8, bytes: netlistBytes(compileProgram(STARTERS[l])) }));
+    const parts = lines.map((l) => ({
+      processor: PROCESSOR,
+      id: STARTER_ID[l],
+      nIn: 16,
+      nOut: 8,
+      bytes: netlistBytes(compileProgram(STARTERS[l])),
+    }));
     const subs = new Map<string, Circuit>(parts.map((q) => [refKey(q.processor, q.id), load(q.bytes, 16, 8)]));
     const resolve = (cpu: string, id: bigint) => subs.get(refKey(cpu, id));
     const pairs: Array<[string, Uint8Array]> = [
@@ -178,7 +210,19 @@ describe("the TAP-02 evaluator", () => {
     ];
     for (const [name, bytes, nIn, nOut, parts, want] of cases) {
       expect(core.loadCircuit(circuitBlob(bytes, nIn, nOut, parts)), name).toBe(want);
-      expect(() => load(bytes, nIn, nOut, (cpu, id) => (parts ?? []).filter((q) => refKey(q.processor, q.id) === refKey(cpu, id) && q.nOut === 8).map((q) => load(q.bytes, 16, 8))[0]), name).toThrow();
+      expect(
+        () =>
+          load(
+            bytes,
+            nIn,
+            nOut,
+            (cpu, id) =>
+              (parts ?? [])
+                .filter((q) => refKey(q.processor, q.id) === refKey(cpu, id) && q.nOut === 8)
+                .map((q) => load(q.bytes, 16, 8))[0],
+          ),
+        name,
+      ).toThrow();
     }
   });
 });

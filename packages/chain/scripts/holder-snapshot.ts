@@ -42,7 +42,12 @@ const cacheDir = resolve(arg("cache", "../../../research/run/holder-snapshot-cac
 const out = resolve(arg("out", "../../apps/web/public/holder-snapshot.json")!);
 mkdirSync(cacheDir, { recursive: true });
 
-const clients = RPCS.map((url) => createPublicClient({ chain: { ...xLayer, rpcUrls: { default: { http: [url] } } }, transport: http(url, { timeout: 30_000 }) }));
+const clients = RPCS.map((url) =>
+  createPublicClient({
+    chain: { ...xLayer, rpcUrls: { default: { http: [url] } } },
+    transport: http(url, { timeout: 30_000 }),
+  }),
+);
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
@@ -85,7 +90,9 @@ async function chunk(name: string, token: Address, start: bigint, end: bigint, l
   const rows: Row[] = [];
   for (let a = start; a <= end; a += WINDOW) {
     const b = a + WINDOW - 1n < end ? a + WINDOW - 1n : end;
-    for (const l of (await window(token, a, b, lane)) as Array<Log & { args: { from: Address; to: Address; value: bigint } }>) {
+    for (const l of (await window(token, a, b, lane)) as Array<
+      Log & { args: { from: Address; to: Address; value: bigint } }
+    >) {
       rows.push([l.args.from.toLowerCase(), l.args.to.toLowerCase(), l.args.value.toString()]);
     }
   }
@@ -140,19 +147,44 @@ async function withRetry<T>(what: string, read: (c: (typeof clients)[number]) =>
 async function main() {
   const [bem, fab] = [await balancesOf("bem"), await balancesOf("fab")];
   // every rebuilt balance must equal the token's own balanceOf at the snapshot block
-  for (const [name, m] of [["bem", bem], ["fab", fab]] as const) {
+  for (const [name, m] of [
+    ["bem", bem],
+    ["fab", fab],
+  ] as const) {
     const addrs = [...m.keys()];
     for (let i = 0; i < addrs.length; i += 50) {
       const part = addrs.slice(i, i + 50);
       const got = await Promise.all(
-        part.map((a) => withRetry(`balanceOf ${a}`, async (c) => (await c.readContract({ address: TOKENS[name].address, abi: erc20Abi, functionName: "balanceOf", args: [a as Address], blockNumber: block })) as bigint)),
+        part.map((a) =>
+          withRetry(
+            `balanceOf ${a}`,
+            async (c) =>
+              (await c.readContract({
+                address: TOKENS[name].address,
+                abi: erc20Abi,
+                functionName: "balanceOf",
+                args: [a as Address],
+                blockNumber: block,
+              })) as bigint,
+          ),
+        ),
       );
       part.forEach((a, j) => {
-        if (got[j] !== m.get(a)) throw new Error(`${name} balance of ${a} rebuilt as ${m.get(a)} but the token says ${got[j]}`);
+        if (got[j] !== m.get(a))
+          throw new Error(`${name} balance of ${a} rebuilt as ${m.get(a)} but the token says ${got[j]}`);
       });
     }
     const sum = [...m.values()].reduce((s, v) => s + v, 0n);
-    const supply = await withRetry(`${name} totalSupply`, async (c) => (await c.readContract({ address: TOKENS[name].address, abi: erc20Abi, functionName: "totalSupply", blockNumber: block })) as bigint);
+    const supply = await withRetry(
+      `${name} totalSupply`,
+      async (c) =>
+        (await c.readContract({
+          address: TOKENS[name].address,
+          abi: erc20Abi,
+          functionName: "totalSupply",
+          blockNumber: block,
+        })) as bigint,
+    );
     if (sum !== supply) throw new Error(`${name}: rebuilt balances sum to ${sum} but totalSupply is ${supply}`);
     console.log(`${name}: ${m.size} holders, balances sum to totalSupply ${supply}`);
   }
@@ -160,12 +192,27 @@ async function main() {
   const bemMin = BigInt(Math.round(Number(arg("bem-min", "0.1")) * 1e8));
   const fabMin = BigInt(Math.round(Number(arg("fab-min", "10")) * 1e8));
   const wallets = [...new Set([...bem.keys(), ...fab.keys()])]
-    .filter((a) => a !== "0x000000000000000000000000000000000000dead" && ((bem.get(a) ?? 0n) >= bemMin || (fab.get(a) ?? 0n) >= fabMin))
+    .filter(
+      (a) =>
+        a !== "0x000000000000000000000000000000000000dead" &&
+        ((bem.get(a) ?? 0n) >= bemMin || (fab.get(a) ?? 0n) >= fabMin),
+    )
     .sort();
   const entries = wallets.map((a) => [a, (bem.get(a) ?? 0n).toString(), (fab.get(a) ?? 0n).toString()]);
   const tree = StandardMerkleTree.of(entries, ["address", "uint256", "uint256"]);
-  writeFileSync(out, JSON.stringify({ block: block.toString(), bemMin: bemMin.toString(), fabMin: fabMin.toString(), root: tree.root, entries }) + "\n");
-  console.log(`snapshot at block ${block}: ${entries.length} wallets at or above the minimums, root ${tree.root}, written to ${out}`);
+  writeFileSync(
+    out,
+    JSON.stringify({
+      block: block.toString(),
+      bemMin: bemMin.toString(),
+      fabMin: fabMin.toString(),
+      root: tree.root,
+      entries,
+    }) + "\n",
+  );
+  console.log(
+    `snapshot at block ${block}: ${entries.length} wallets at or above the minimums, root ${tree.root}, written to ${out}`,
+  );
 }
 
 main().catch((e) => (console.error(e), process.exit(1)));

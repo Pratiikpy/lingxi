@@ -9,7 +9,9 @@ for (const look of [
   { lang: "en", scheme: "light", size: "phone", recorded: "gentle", state: "bold" },
   { lang: "zh", scheme: "dark", size: "desktop", recorded: "温柔", state: "勇敢" },
 ] as const) {
-  test(`the proof page says a pet's recorded line differs from its state (${look.lang}, ${look.scheme}, ${look.size})`, async ({ player }) => {
+  test(`the proof page says a pet's recorded line differs from its state (${look.lang}, ${look.scheme}, ${look.size})`, async ({
+    player,
+  }) => {
     test.setTimeout(240_000);
     const p = await player(look);
     const { page } = p;

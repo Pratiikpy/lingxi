@@ -1,10 +1,30 @@
 import { describe, expect, it } from "vitest";
-import { MAX_DEVICES_PER_ADDRESS, createPusher, isPushEndpoint, outOfQuietHours, reminderText, type Plan } from "../src/push";
+import {
+  MAX_DEVICES_PER_ADDRESS,
+  createPusher,
+  isPushEndpoint,
+  outOfQuietHours,
+  reminderText,
+  type Plan,
+} from "../src/push";
 
 const H = 3_600_000;
 const NOON_UTC = Date.UTC(2026, 10, 16, 12);
-const sub = (endpoint = "https://fcm.googleapis.com/fcm/send/abc") => ({ endpoint, keys: { p256dh: "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM", auth: "tBHItJI5svbpez7KI4CCXg" } });
-const plan = (over: Partial<Plan> = {}): Plan => ({ subscription: sub(), lang: "en", name: "Mochi", tz: 0, reminders: [{ kind: "hungry", at: NOON_UTC + H }], ...over });
+const sub = (endpoint = "https://fcm.googleapis.com/fcm/send/abc") => ({
+  endpoint,
+  keys: {
+    p256dh: "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM",
+    auth: "tBHItJI5svbpez7KI4CCXg",
+  },
+});
+const plan = (over: Partial<Plan> = {}): Plan => ({
+  subscription: sub(),
+  lang: "en",
+  name: "Mochi",
+  tz: 0,
+  reminders: [{ kind: "hungry", at: NOON_UTC + H }],
+  ...over,
+});
 
 function fake() {
   const sent: Array<{ endpoint: string; payload: { title: string; kind: string } }> = [];
@@ -32,7 +52,10 @@ describe("reminders by web push", () => {
     expect(isPushEndpoint("https://fcm.googleapis.com.evil.example/x")).toBe(false);
     expect(isPushEndpoint("https://169.254.169.254/latest")).toBe(false);
     const { pusher } = fake();
-    expect(pusher.plan(plan({ subscription: sub("https://127.0.0.1/x") }), NOON_UTC)).toEqual({ ok: false, reason: "badEndpoint" });
+    expect(pusher.plan(plan({ subscription: sub("https://127.0.0.1/x") }), NOON_UTC)).toEqual({
+      ok: false,
+      reason: "badEndpoint",
+    });
   });
 
   it("keeps the player's nights quiet: 22:00-8:00 local moves to 8:00", () => {
@@ -54,7 +77,16 @@ describe("reminders by web push", () => {
 
   it("never sends more than one every three hours, and the most pressing need wins", async () => {
     const { pusher, sent } = fake();
-    pusher.plan(plan({ reminders: [{ kind: "bored", at: NOON_UTC + H }, { kind: "sick", at: NOON_UTC + H }, { kind: "dirty", at: NOON_UTC + 2 * H }] }), NOON_UTC);
+    pusher.plan(
+      plan({
+        reminders: [
+          { kind: "bored", at: NOON_UTC + H },
+          { kind: "sick", at: NOON_UTC + H },
+          { kind: "dirty", at: NOON_UTC + 2 * H },
+        ],
+      }),
+      NOON_UTC,
+    );
     await pusher.tick(NOON_UTC + H);
     await pusher.tick(NOON_UTC + 2 * H);
     expect(sent.map((s) => s.payload.kind)).toEqual(["sick"]);
@@ -92,18 +124,30 @@ describe("reminders by web push", () => {
   it("one address holds a few devices' subscriptions, and a /48 four addresses' worth (A83)", () => {
     const { pusher } = fake();
     const device = (i: number) => plan({ subscription: sub(`https://fcm.googleapis.com/fcm/send/d${i}`) });
-    for (let i = 0; i < MAX_DEVICES_PER_ADDRESS; i++) expect(pusher.plan(device(i), NOON_UTC, "203.0.113.9").ok).toBe(true);
+    for (let i = 0; i < MAX_DEVICES_PER_ADDRESS; i++)
+      expect(pusher.plan(device(i), NOON_UTC, "203.0.113.9").ok).toBe(true);
     expect(pusher.plan(device(99), NOON_UTC, "203.0.113.9")).toEqual({ ok: false, reason: "tooMany" });
-    expect(pusher.plan(device(0), NOON_UTC, "203.0.113.9").ok, "a device already there may always plan again").toBe(true);
+    expect(pusher.plan(device(0), NOON_UTC, "203.0.113.9").ok, "a device already there may always plan again").toBe(
+      true,
+    );
     expect(pusher.plan(device(100), NOON_UTC, "198.51.100.1").ok, "another address is not affected").toBe(true);
     let fromNetwork = 0;
-    for (let i = 0; i < 200; i++) if (pusher.plan(device(1_000 + i), NOON_UTC, `2001:db8:7:${i.toString(16)}::/64`).ok) fromNetwork++;
+    for (let i = 0; i < 200; i++)
+      if (pusher.plan(device(1_000 + i), NOON_UTC, `2001:db8:7:${i.toString(16)}::/64`).ok) fromNetwork++;
     expect(fromNetwork).toBe(MAX_DEVICES_PER_ADDRESS * 4);
   });
 
   it("ignores reminders in the past or more than two days out", async () => {
     const { pusher } = fake();
-    pusher.plan(plan({ reminders: [{ kind: "hungry", at: NOON_UTC - 5 * H }, { kind: "bored", at: NOON_UTC + 60 * H }] }), NOON_UTC);
+    pusher.plan(
+      plan({
+        reminders: [
+          { kind: "hungry", at: NOON_UTC - 5 * H },
+          { kind: "bored", at: NOON_UTC + 60 * H },
+        ],
+      }),
+      NOON_UTC,
+    );
     expect(await pusher.tick(NOON_UTC + 70 * H)).toBe(0);
   });
 });

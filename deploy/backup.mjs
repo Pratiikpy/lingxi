@@ -21,7 +21,8 @@ const DIR = process.env.LINGXI_BACKUP_DIR ?? join(homedir(), "lingxi-backups");
 const REMOTE = process.env.LINGXI_BACKUP_REMOTE ?? "gdrive:lingxi-backups";
 const KEEP_DAYS = 14;
 
-const walk = (d) => readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(d, e.name)) : [join(d, e.name)]));
+const walk = (d) =>
+  readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(d, e.name)) : [join(d, e.name)]));
 const sizeOf = (d) => walk(d).reduce((n, f) => n + statSync(f).size, 0);
 const pause = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 /** a file that lives only inside a save: written, flushed, then renamed into place (services/api/src/durable.ts) */
@@ -86,16 +87,27 @@ try {
   }
   const left = walk(DATA).filter((x) => !transient(x) && !existsSync(join(dest, relative(DATA, x))));
   status.local = left.length === 0;
-  if (left.length) throw new Error(`not copied: ${left.slice(0, 5).map((x) => relative(DATA, x)).join(", ")}`);
+  if (left.length)
+    throw new Error(
+      `not copied: ${left
+        .slice(0, 5)
+        .map((x) => relative(DATA, x))
+        .join(", ")}`,
+    );
   // older copies than two weeks go; Drive keeps every day
   const cutoff = Date.now() - KEEP_DAYS * 86_400_000;
-  for (const d of readdirSync(DIR)) if (/^\d{4}-\d{2}-\d{2}$/.test(d) && Date.parse(d) < cutoff) rmSync(join(DIR, d), { recursive: true, force: true });
+  for (const d of readdirSync(DIR))
+    if (/^\d{4}-\d{2}-\d{2}$/.test(d) && Date.parse(d) < cutoff) rmSync(join(DIR, d), { recursive: true, force: true });
   execFileSync("rclone", ["copy", dest, `${REMOTE}/${date}`], { stdio: "pipe" });
   // the same files, the same sizes, or it does not count
   execFileSync("rclone", ["check", dest, `${REMOTE}/${date}`, "--size-only", "--one-way"], { stdio: "pipe" });
   status.drive = true;
 } catch (e) {
-  status.error = String(e.stderr ?? e.message ?? e).split("\n").filter((l) => !/NOTICE/.test(l)).join(" ").slice(0, 300);
+  status.error = String(e.stderr ?? e.message ?? e)
+    .split("\n")
+    .filter((l) => !/NOTICE/.test(l))
+    .join(" ")
+    .slice(0, 300);
 }
 writeFileSync(join(DIR, "last.json"), JSON.stringify(status, null, 1));
 process.stdout.write(`${JSON.stringify(status)}\n`);

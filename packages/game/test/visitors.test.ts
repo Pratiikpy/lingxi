@@ -7,7 +7,9 @@ describe("the visitor album", () => {
   it("visitors are exactly the friend surprises of an absence, the same every time", () => {
     const seed = 123456;
     const v = visitorsDuring(seed, 1000, 1000 + 3 * 24 * 60);
-    const friends = Array.from({ length: 3 * 24 * 60 }, (_, i) => 1001 + i).filter((b) => awayEvent(seed, b) === EVENT.friend);
+    const friends = Array.from({ length: 3 * 24 * 60 }, (_, i) => 1001 + i).filter(
+      (b) => awayEvent(seed, b) === EVENT.friend,
+    );
     expect(v.map((x) => x.beat)).toEqual(friends);
     expect(visitorsDuring(seed, 1000, 1000 + 3 * 24 * 60)).toEqual(v);
   });
@@ -21,7 +23,9 @@ describe("the visitor album", () => {
     // with nothing known about the pet, those who come to anyone (G4 adds visitors who need something)
     const anyone = VISITORS.filter((v) => !v.need);
     for (const v of anyone) expect(tally[v.id], v.id).toBeGreaterThan(0);
-    const avg = (r: string) => anyone.filter((v) => v.rarity === r).reduce((t, v) => t + tally[v.id]!, 0) / anyone.filter((v) => v.rarity === r).length;
+    const avg = (r: string) =>
+      anyone.filter((v) => v.rarity === r).reduce((t, v) => t + tally[v.id]!, 0) /
+      anyone.filter((v) => v.rarity === r).length;
     expect(avg("common")).toBeGreaterThan(avg("uncommon"));
     expect(avg("uncommon")).toBeGreaterThan(avg("rare"));
   });
@@ -29,7 +33,10 @@ describe("the visitor album", () => {
   it("the album counts visits and keeps the first", () => {
     const a = VISITORS[0]!;
     let album = addToAlbum({}, [{ beat: 100, visitor: a }]);
-    album = addToAlbum(album, [{ beat: 50, visitor: a }, { beat: 200, visitor: VISITORS[1]! }]);
+    album = addToAlbum(album, [
+      { beat: 50, visitor: a },
+      { beat: 200, visitor: VISITORS[1]! },
+    ]);
     expect(album[a.id]).toEqual({ count: 2, first: 50 * 60_000 });
     expect(album[VISITORS[1]!.id]!.count).toBe(1);
   });
@@ -44,7 +51,13 @@ describe("what visitors say about themselves is true (D11)", () => {
   it("Moonwalker comes only at the pet's own night, and its hint says so", async () => {
     const { VISITORS, visitorComes, visitorHint } = await import("../src/visitors");
     const moon = VISITORS.find((v) => v.id === "moonwalker")!;
-    const ctx = (tz: number) => ({ lessons: [], traits: {} as never, line: "gentle" as const, stage: "adult" as const, tzOffsetMin: tz });
+    const ctx = (tz: number) => ({
+      lessons: [],
+      traits: {} as never,
+      line: "gentle" as const,
+      stage: "adult" as const,
+      tzOffsetMin: tz,
+    });
     const at = (h: number) => Date.UTC(2026, 10, 24, h, 30);
     // UTC+8: 14:30 UTC is 22:30 there (night), 04:30 UTC is 12:30 there (day)
     expect(visitorComes(moon, ctx(480), at(14))).toBe(true);

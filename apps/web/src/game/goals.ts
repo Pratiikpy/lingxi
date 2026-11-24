@@ -6,14 +6,26 @@
  */
 
 import { create } from "zustand";
-import { GOALS, GOAL_BY_ID, type GoalStanding, type Reward, type TierPct, claimGoalEveryone, claimGoalTiers, claimableTiers, canClaimEveryone } from "@lingxi/world";
+import {
+  GOALS,
+  GOAL_BY_ID,
+  type GoalStanding,
+  type Reward,
+  type TierPct,
+  claimGoalEveryone,
+  claimGoalTiers,
+  claimableTiers,
+  canClaimEveryone,
+} from "@lingxi/world";
 import { deviceWallets, useChain } from "./chain";
 import { play } from "./sound";
 import { useQuestUi } from "./questUi";
 import { useWorld } from "./world";
 import { goalsQuery, withQuery } from "./requests";
 
-const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const BASE =
+  (import.meta.env.VITE_API_URL as string | undefined) ??
+  (location.hostname === "localhost" ? "http://localhost:8787" : "");
 
 export interface GoalReport {
   id: string;
@@ -52,7 +64,13 @@ export const useGoals = create<GoalsState>((set, get) => ({
       const res = await fetch(`${BASE}${withQuery("/api/goals", goalsQuery(wallets))}`);
       const body = (await res.json()) as { ok: boolean; now: number; indexedTo: number; goals: GoalReport[] };
       if (!body.ok) throw new Error("goals");
-      set({ status: "ready", reports: Object.fromEntries(body.goals.map((g) => [g.id, g])), indexedTo: body.indexedTo, now: body.now, wallets });
+      set({
+        status: "ready",
+        reports: Object.fromEntries(body.goals.map((g) => [g.id, g])),
+        indexedTo: body.indexedTo,
+        now: body.now,
+        wallets,
+      });
       announce();
     } catch {
       set({ status: get().status === "ready" ? "ready" : "error" });
@@ -66,7 +84,8 @@ export const standingOf = (id: string): GoalStanding => {
 };
 
 /** Complete goals, for the GOAL_DONE condition: from the reports given, or the store's. */
-export const goalsDone = (reports = useGoals.getState().reports): string[] => GOALS.filter((g) => (reports[g.id]?.total ?? 0) >= g.target).map((g) => g.id);
+export const goalsDone = (reports = useGoals.getState().reports): string[] =>
+  GOALS.filter((g) => (reports[g.id]?.total ?? 0) >= g.target).map((g) => g.id);
 
 /** Anything this world can take from a goal now: its tiers, or the reward for everyone. */
 export function waitingIn(id: string): { tiers: TierPct[]; everyone: boolean } {
@@ -79,10 +98,12 @@ export function waitingIn(id: string): { tiers: TierPct[]; everyone: boolean } {
 
 /** A toast the first time something can be taken from a goal (not on the first look after loading). */
 function announce(): void {
-  const now = new Set(GOALS.filter((g) => {
-    const x = waitingIn(g.id);
-    return x.tiers.length > 0 || x.everyone;
-  }).map((g) => g.id));
+  const now = new Set(
+    GOALS.filter((g) => {
+      const x = waitingIn(g.id);
+      return x.tiers.length > 0 || x.everyone;
+    }).map((g) => g.id),
+  );
   if (waiting) for (const id of now) if (!waiting.has(id)) useQuestUi.getState().push({ quest: id, kind: "goal" });
   waiting = now;
 }

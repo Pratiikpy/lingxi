@@ -48,12 +48,24 @@ const key = (h: HH, k: string | number) => h.hh_key(typeof k === "number" ? k : 
 const T0 = Date.UTC(2026, 10, 17, 2, 0);
 function setOut(): { pet: Pet; tb: ReturnType<typeof starterBrain>; snacks: Snack[]; packet: Uint8Array } {
   const tb = starterBrain("curious");
-  const pet = { ...createPet({ name: "Sora", line: "curious", now: T0 - 86_400_000, tzOffsetMin: 330, brain: tb.brain }), beat: Math.floor(T0 / BEAT_MS), growth: newGrowth() };
+  const pet = {
+    ...createPet({ name: "Sora", line: "curious", now: T0 - 86_400_000, tzOffsetMin: 330, brain: tb.brain }),
+    beat: Math.floor(T0 / BEAT_MS),
+    growth: newGrowth(),
+  };
   const snacks: Snack[] = [
     { id: "apple", count: 2, effect: { food: 180, joy: 60, diet: "fruit" } },
     { id: "sundae", count: 1, effect: { food: 140, joy: 160, diet: "sweet" } },
   ];
-  const screen: TripScreen = { name: "Sora", line: "curious", stage: 1, form: 0, colour: 0, lang: "en", bornBeat: Math.floor((T0 - 86_400_000) / BEAT_MS) };
+  const screen: TripScreen = {
+    name: "Sora",
+    line: "curious",
+    stage: 1,
+    form: 0,
+    colour: 0,
+    lang: "en",
+    bornBeat: Math.floor((T0 - 86_400_000) / BEAT_MS),
+  };
   return { pet, tb, snacks, packet: tripPacket(pet, tb.trip, snacks, screen) };
 }
 

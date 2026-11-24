@@ -66,10 +66,16 @@ export function buildTree(pets: readonly TreePet[]): Tree {
     .map((p) => {
       const ancestors = ancestorsOf(p.id);
       const designers = new Set<string>();
-      for (const who of [p.owner, ...ancestors.map((a) => byId.get(a)?.owner ?? null)]) if (who) designers.add(who.toLowerCase());
+      for (const who of [p.owner, ...ancestors.map((a) => byId.get(a)?.owner ?? null)])
+        if (who) designers.add(who.toLowerCase());
       return { ...p, generation: genOf(p.id), ancestors, designers: [...designers] };
     })
     .sort((a, b) => a.block - b.block || Number(a.id) - Number(b.id));
   const pairs = new Set(nodes.filter((n) => n.parents).map((n) => [...n.parents!].sort().join("+")));
-  return { pets: nodes, founders: nodes.filter((n) => !n.parents).length, families: pairs.size, generations: nodes.reduce((m, n) => Math.max(m, n.generation), 0) + (nodes.length ? 1 : 0) };
+  return {
+    pets: nodes,
+    founders: nodes.filter((n) => !n.parents).length,
+    families: pairs.size,
+    generations: nodes.reduce((m, n) => Math.max(m, n.generation), 0) + (nodes.length ? 1 : 0),
+  };
 }

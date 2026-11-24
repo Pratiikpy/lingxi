@@ -8,7 +8,10 @@ describe("a page left open across a deploy whose part fails to load (A4)", () =>
     const reload = vi.fn();
     vi.stubGlobal("window", page);
     vi.stubGlobal("document", { querySelector: () => ({ src: "https://lingxi.knole.me/assets/play-A.js" }) });
-    vi.stubGlobal("sessionStorage", { getItem: (k: string) => session.get(k) ?? null, setItem: (k: string, v: string) => void session.set(k, v) });
+    vi.stubGlobal("sessionStorage", {
+      getItem: (k: string) => session.get(k) ?? null,
+      setItem: (k: string, v: string) => void session.set(k, v),
+    });
     vi.stubGlobal("location", { reload, pathname: "/play.html" });
     try {
       await import("./staleBuild");

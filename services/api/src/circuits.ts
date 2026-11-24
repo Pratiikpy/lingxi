@@ -28,17 +28,38 @@ interface Stored {
  * told to start later, as LINGXI_PROCESSOR_FROM does). The week's count searches from the deployment, so a walk that
  * starts after the week began still counts only the week's circuits (P3a).
  */
-export function createCircuitCounter(opts: { rpc: string; processor: Address; fromBlock: number; deployBlock?: number; store?: string; client?: PublicClient; paceMs?: number }) {
+export function createCircuitCounter(opts: {
+  rpc: string;
+  processor: Address;
+  fromBlock: number;
+  deployBlock?: number;
+  store?: string;
+  client?: PublicClient;
+  paceMs?: number;
+}) {
   const deployBlock = Math.min(opts.deployBlock ?? opts.fromBlock, opts.fromBlock);
-  const pub = opts.client ?? (createPublicClient({ transport: http(opts.rpc, { timeout: 20_000, retryCount: 0 }) }) as PublicClient);
-  const start = (): Stored => ({ processor: opts.processor.toLowerCase(), from: opts.fromBlock, next: opts.fromBlock, mints: [] });
+  const pub =
+    opts.client ??
+    (createPublicClient({ transport: http(opts.rpc, { timeout: 20_000, retryCount: 0 }) }) as PublicClient);
+  const start = (): Stored => ({
+    processor: opts.processor.toLowerCase(),
+    from: opts.fromBlock,
+    next: opts.fromBlock,
+    mints: [],
+  });
   let data = start();
   if (opts.store && hasStore(opts.store)) {
     try {
       const held = readStore(opts.store) as Partial<Stored>;
       // a place saved by a walk of another processor, or one started from another block (a fork of the chain starts at
       // its own block, so its mints before that were never read), would give a wrong count: start again instead
-      if (held.processor === data.processor && held.from === opts.fromBlock && typeof held.next === "number" && Array.isArray(held.mints)) data = held as Stored;
+      if (
+        held.processor === data.processor &&
+        held.from === opts.fromBlock &&
+        typeof held.next === "number" &&
+        Array.isArray(held.mints)
+      )
+        data = held as Stored;
     } catch {
       // a damaged file starts again from the deploy block
     }
@@ -60,7 +81,13 @@ export function createCircuitCounter(opts: { rpc: string; processor: Address; fr
         let logs;
         for (let attempt = 0; ; attempt++) {
           try {
-            logs = await pub.getLogs({ address: opts.processor, event: TRANSFER, args: { from: ZERO }, fromBlock: BigInt(data.next), toBlock: BigInt(to) });
+            logs = await pub.getLogs({
+              address: opts.processor,
+              event: TRANSFER,
+              args: { from: ZERO },
+              fromBlock: BigInt(data.next),
+              toBlock: BigInt(to),
+            });
             break;
           } catch (e) {
             if (attempt >= 6) throw e;
@@ -98,7 +125,15 @@ export function createCircuitCounter(opts: { rpc: string; processor: Address; fr
     }
     return hi;
   }
-  const nextIdAt = async (b: number) => Number(await pub.readContract({ address: opts.processor, abi: [NEXT_ID], functionName: "nextId", blockNumber: BigInt(b) }));
+  const nextIdAt = async (b: number) =>
+    Number(
+      await pub.readContract({
+        address: opts.processor,
+        abi: [NEXT_ID],
+        functionName: "nextId",
+        blockNumber: BigInt(b),
+      }),
+    );
 
   /**
    * Circuits taped out since `sinceSec`, from the processor's own count (C7): `nextId` is the id of its latest circuit, so
@@ -117,7 +152,11 @@ export function createCircuitCounter(opts: { rpc: string; processor: Address; fr
     catchUp,
     week,
     /** circuits minted in all and since `sinceSec`, and the block the walk has read to */
-    totals: (sinceSec: number) => ({ minted: data.mints.length, since: data.mints.filter((m) => m[2] >= sinceSec).length, indexedTo: data.next - 1 }),
+    totals: (sinceSec: number) => ({
+      minted: data.mints.length,
+      since: data.mints.filter((m) => m[2] >= sinceSec).length,
+      indexedTo: data.next - 1,
+    }),
   };
 }
 export type CircuitCounter = ReturnType<typeof createCircuitCounter>;

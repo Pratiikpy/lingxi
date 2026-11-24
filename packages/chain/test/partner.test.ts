@@ -11,15 +11,39 @@ const pub = (owner: string, brainId: bigint, fail = false) =>
     readContract: async ({ functionName }: { functionName: string }) => {
       if (fail) throw new Error("rpc down");
       if (functionName === "ownerOf") return owner;
-      return { processor: "0x0", brainId, line: 0, brainBits: 8, day: 3, born: 1, checkedAt: 1, logHash: "0x", state: 0n, parentA: 0n, parentB: 0n };
+      return {
+        processor: "0x0",
+        brainId,
+        line: 0,
+        brainBits: 8,
+        day: 3,
+        born: 1,
+        checkedAt: 1,
+        logHash: "0x",
+        state: 0n,
+        parentA: 0n,
+        parentB: 0n,
+      };
     },
   }) as unknown as PublicClient;
 
 describe("a family partner, checked on X Layer before anything is signed or spent", () => {
   it("passes only when the address owns the pet and the pet's brain is the one named", async () => {
-    expect(await checkPartner(pub(OWNER, 42n), d, { petId: "7", owner: OWNER.toUpperCase().replace("0X", "0x"), brain: "42" })).toBe("ok");
+    expect(
+      await checkPartner(pub(OWNER, 42n), d, {
+        petId: "7",
+        owner: OWNER.toUpperCase().replace("0X", "0x"),
+        brain: "42",
+      }),
+    ).toBe("ok");
     // someone names their own wallet beside a pet that is not theirs, to be given consent for it
-    expect(await checkPartner(pub(OWNER, 42n), d, { petId: "7", owner: "0x2222222222222222222222222222222222222222", brain: "42" })).toBe("notOwner");
+    expect(
+      await checkPartner(pub(OWNER, 42n), d, {
+        petId: "7",
+        owner: "0x2222222222222222222222222222222222222222",
+        brain: "42",
+      }),
+    ).toBe("notOwner");
     expect(await checkPartner(pub(OWNER, 42n), d, { petId: "7", owner: OWNER, brain: "43" })).toBe("notBrain");
     expect(await checkPartner(pub(OWNER, 42n, true), d, { petId: "7", owner: OWNER, brain: "42" })).toBe("unreadable");
     expect(await checkPartner(pub(OWNER, 42n), d, { petId: "-1", owner: OWNER, brain: "42" })).toBe("notOwner");

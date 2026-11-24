@@ -32,7 +32,11 @@ export { OFFICIAL_RPCS };
 // With a server of our own (VITE_API_URL), the browser reads X Layer through it, same origin, so a public RPC's
 // rate-limit reply can never surface as a blocked request; the public RPCs stay behind it as fallbacks. The
 // on-chain copy on DeWEB has no server and talks to the public RPCs directly.
-export const API_RPC = (import.meta.env.VITE_API_URL as string | undefined) ? `${import.meta.env.VITE_API_URL as string}/api/rpc` : location.hostname === "localhost" ? "http://localhost:8787/api/rpc" : null;
+export const API_RPC = (import.meta.env.VITE_API_URL as string | undefined)
+  ? `${import.meta.env.VITE_API_URL as string}/api/rpc`
+  : location.hostname === "localhost"
+    ? "http://localhost:8787/api/rpc"
+    : null;
 export const rpcs: string[] = (import.meta.env.VITE_RPC as string | undefined)
   ? [import.meta.env.VITE_RPC as string]
   : NETWORK === "xlayer"
@@ -41,7 +45,10 @@ export const rpcs: string[] = (import.meta.env.VITE_RPC as string | undefined)
 export const rpc = rpcs[0] ?? "https://xlayerrpc.okx.com";
 export const chain = { ...xLayer, rpcUrls: { default: { http: rpcs } } };
 // P3: the client is built, and viem's client half loaded, the first time the game reads X Layer (chainClient.ts)
-export const publicClient: PublicClient = lazyPublicClient(({ createPublicClient, fallback, http }) => createPublicClient({ chain, transport: fallback(rpcs.map((u) => http(u))) }) as PublicClient);
+export const publicClient: PublicClient = lazyPublicClient(
+  ({ createPublicClient, fallback, http }) =>
+    createPublicClient({ chain, transport: fallback(rpcs.map((u) => http(u))) }) as PublicClient,
+);
 
 interface Eip1193 {
   request(args: { method: string; params?: unknown[] }): Promise<unknown>;
@@ -69,4 +76,3 @@ export async function walletAddress(): Promise<Hex> {
   if (!address) throw new Error("noAccount");
   return address;
 }
-

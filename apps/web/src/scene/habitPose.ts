@@ -33,7 +33,12 @@ export function habitPose(habit: string | null | undefined, now: number, resting
     case "calm":
       return { expression: "asleep", shift: 0, squash: 0, hop: false };
     case "greedy":
-      return { expression: Math.floor((now % HABIT_EVERY_MS) / 200) % 2 ? "munchShut" : "happy", shift: 0, squash: 0, hop: false };
+      return {
+        expression: Math.floor((now % HABIT_EVERY_MS) / 200) % 2 ? "munchShut" : "happy",
+        shift: 0,
+        squash: 0,
+        hop: false,
+      };
     case "brave":
       return { expression: "sparkly", shift: 0, squash: t > 0.2 && t < 0.8 ? 1 : 0, hop: false };
     case "gentle":

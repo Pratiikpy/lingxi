@@ -31,13 +31,16 @@ async function clearDialogs(page: Page): Promise<void> {
   }
 }
 
-const quests = async (page: Page) => ((await savedWorld(page)).quests ?? {}) as { active?: Record<string, unknown>; done?: Record<string, unknown> };
+const quests = async (page: Page) =>
+  ((await savedWorld(page)).quests ?? {}) as { active?: Record<string, unknown>; done?: Record<string, unknown> };
 
 for (const look of [
   { lang: "en", scheme: "light", size: "phone" },
   { lang: "zh", scheme: "dark", size: "desktop" },
 ] as const) {
-  test(`the first ten minutes with the keyboard alone (${look.lang}, ${look.scheme}, ${look.size})`, async ({ player }) => {
+  test(`the first ten minutes with the keyboard alone (${look.lang}, ${look.scheme}, ${look.size})`, async ({
+    player,
+  }) => {
     test.setTimeout(300_000);
     const p = await player(look);
     const { page } = p;
@@ -112,7 +115,9 @@ for (const look of [
     }
     await tabTo(page, ".fam-card.qd .btn.primary");
     await page.keyboard.press("Enter");
-    await expect.poll(async () => Object.keys((await quests(page)).active ?? {}), { message: "the quest is taken" }).toContain("q01");
+    await expect
+      .poll(async () => Object.keys((await quests(page)).active ?? {}), { message: "the quest is taken" })
+      .toContain("q01");
     for (let i = 0; i < 3; i++) {
       await tabTo(page, ".pet-button");
       await page.keyboard.press("Enter");
@@ -130,7 +135,9 @@ for (const look of [
     }
     await tabTo(page, ".fam-card.qd .btn.primary");
     await page.keyboard.press("Enter");
-    await expect.poll(async () => Object.keys((await quests(page)).done ?? {}), { message: "the quest is handed in" }).toContain("q01");
+    await expect
+      .poll(async () => Object.keys((await quests(page)).done ?? {}), { message: "the quest is handed in" })
+      .toContain("q01");
     await clearDialogs(page);
 
     // a letter, read

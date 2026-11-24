@@ -40,7 +40,11 @@ export const STRIP_ROOM = 76;
  */
 export function roomOrigin(w: number, h: number): { x: number; y: number; scale: number } {
   const scale = sceneScale(w, h);
-  return { scale, x: Math.round((w - ROOM * scale) / 2), y: Math.round(Math.min((h - ROOM * scale) / 2, h - STRIP_ROOM - PET_FEET * scale)) };
+  return {
+    scale,
+    x: Math.round((w - ROOM * scale) / 2),
+    y: Math.round(Math.min((h - ROOM * scale) / 2, h - STRIP_ROOM - PET_FEET * scale)),
+  };
 }
 
 /** What a box of `w` by `h` shows of the room. */

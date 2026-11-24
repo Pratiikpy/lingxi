@@ -7,7 +7,9 @@
 import type { Clock } from "./clock";
 import { OFFICIAL_RPCS } from "./nodes";
 
-const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (typeof location !== "undefined" && location.hostname === "localhost" ? "http://localhost:8787" : "");
+const BASE =
+  (import.meta.env.VITE_API_URL as string | undefined) ??
+  (typeof location !== "undefined" && location.hostname === "localhost" ? "http://localhost:8787" : "");
 const RPC = (import.meta.env.VITE_RPC as string | undefined) || null;
 
 /** The game server's time. */
@@ -28,7 +30,10 @@ async function chainClock(): Promise<number> {
         cache: "no-store",
         signal: AbortSignal.timeout(8_000),
       });
-      const seconds = Number.parseInt(((await r.json()) as { result?: { timestamp?: string } }).result?.timestamp ?? "", 16);
+      const seconds = Number.parseInt(
+        ((await r.json()) as { result?: { timestamp?: string } }).result?.timestamp ?? "",
+        16,
+      );
       if (Number.isFinite(seconds) && seconds > 0) return seconds * 1000;
     } catch (e) {
       last = e;
@@ -68,7 +73,9 @@ export function keepInTime(clock: Clock): () => Promise<void> {
       document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible") void clock.sync();
       });
-      return Promise.race([clock.sync().then(() => undefined), new Promise<void>((r) => setTimeout(r, FIRST_ANSWER_MS))]);
+      return Promise.race([
+        clock.sync().then(() => undefined),
+        new Promise<void>((r) => setTimeout(r, FIRST_ANSWER_MS)),
+      ]);
     })());
 }
-

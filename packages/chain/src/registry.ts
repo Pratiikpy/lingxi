@@ -3,7 +3,17 @@
  * any viem wallet client (an injected wallet, Privy, or a local key in tests).
  */
 
-import { WaitForTransactionReceiptTimeoutError, keccak256, type Address, type Hex, type PublicClient, type WalletClient, TransactionNotFoundError, TransactionReceiptNotFoundError, type TransactionReceipt } from "viem";
+import {
+  WaitForTransactionReceiptTimeoutError,
+  keccak256,
+  type Address,
+  type Hex,
+  type PublicClient,
+  type WalletClient,
+  TransactionNotFoundError,
+  TransactionReceiptNotFoundError,
+  type TransactionReceipt,
+} from "viem";
 import { LOOK_LINES } from "./look";
 import { petLookAbi } from "./lookAbi";
 import { hatchedPetIdFrom, RevertedOnChain } from "./receipts";
@@ -104,7 +114,13 @@ export async function readPet(pub: PublicClient, d: Deployment, id: bigint): Pro
   };
 }
 
-export async function replayStep(pub: PublicClient, d: Deployment, id: bigint, brainState: bigint, inputs: number): Promise<{ next: bigint; outputs: number }> {
+export async function replayStep(
+  pub: PublicClient,
+  d: Deployment,
+  id: bigint,
+  brainState: bigint,
+  inputs: number,
+): Promise<{ next: bigint; outputs: number }> {
   const [next, outputs] = (await pub.readContract({
     address: d.registry,
     abi: petRegistryAbi,
@@ -114,7 +130,11 @@ export async function replayStep(pub: PublicClient, d: Deployment, id: bigint, b
   return { next: BigInt(next), outputs: Number(outputs) };
 }
 
-export async function readNetlist(pub: PublicClient, processor: Address, id: bigint): Promise<{ bytes: Hex; nIn: number; nOut: number; nState: number; gates: number }> {
+export async function readNetlist(
+  pub: PublicClient,
+  processor: Address,
+  id: bigint,
+): Promise<{ bytes: Hex; nIn: number; nOut: number; nState: number; gates: number }> {
   const [bytes, info] = await Promise.all([
     pub.readContract({ address: processor, abi: processorAbi, functionName: "netlist", args: [id] }),
     pub.readContract({ address: processor, abi: processorAbi, functionName: "circuitInfo", args: [id] }),
@@ -184,7 +204,12 @@ export async function sentState(pub: PublicClient, tx: Hex): Promise<Transaction
  * the node knows the transaction but has not mined it, "unknown" when the node knows nothing of it (not yet seen, or
  * dropped).
  */
-export async function hatchOutcome(pub: PublicClient, d: Deployment, tx: Hex, owner: Address): Promise<{ petId: bigint } | "failed" | "pending" | "unknown"> {
+export async function hatchOutcome(
+  pub: PublicClient,
+  d: Deployment,
+  tx: Hex,
+  owner: Address,
+): Promise<{ petId: bigint } | "failed" | "pending" | "unknown"> {
   const r = await sentState(pub, tx);
   if (r === "pending" || r === "unknown") return r;
   if (r.status !== "success") return "failed";
@@ -200,7 +225,15 @@ export async function hatchOutcome(pub: PublicClient, d: Deployment, tx: Hex, ow
  * Hatches a pet with its line's starter brain. `to` owns it: the signer by default, or another address when the
  * relayer hatches for a player's device key (H4); the id is read from the event mined for that owner.
  */
-export async function hatchOnChain(pub: PublicClient, wallet: WalletClient, d: Deployment, line: Line, initialState: bigint, onSent?: (tx: Hex) => void, to?: Address): Promise<{ petId: bigint; tx: Hex }> {
+export async function hatchOnChain(
+  pub: PublicClient,
+  wallet: WalletClient,
+  d: Deployment,
+  line: Line,
+  initialState: bigint,
+  onSent?: (tx: Hex) => void,
+  to?: Address,
+): Promise<{ petId: bigint; tx: Hex }> {
   const account = wallet.account;
   if (!account) throw new Error("wallet has no account");
   const owner = to ?? account.address;
@@ -231,11 +264,25 @@ export async function hatchOnChain(pub: PublicClient, wallet: WalletClient, d: D
 }
 
 /** Saves a day: refused, before any wallet prompt, when the state is not of the pet's recorded line (A18). */
-export async function checkpointOnChain(pub: PublicClient, wallet: WalletClient, d: Deployment, petId: bigint, day: number, state: bigint, logHash: Hex): Promise<Hex> {
+export async function checkpointOnChain(
+  pub: PublicClient,
+  wallet: WalletClient,
+  d: Deployment,
+  petId: bigint,
+  day: number,
+  state: bigint,
+  logHash: Hex,
+): Promise<Hex> {
   const account = wallet.account;
   if (!account) throw new Error("wallet has no account");
-  const recorded = (await pub.readContract({ address: d.registry, abi: petRegistryAbi, functionName: "pet", args: [petId] })) as { line: number };
-  if (lineOfState(state) !== Number(recorded.line)) throw new LineMismatchError(lineName(Number(recorded.line)), lineName(lineOfState(state)));
+  const recorded = (await pub.readContract({
+    address: d.registry,
+    abi: petRegistryAbi,
+    functionName: "pet",
+    args: [petId],
+  })) as { line: number };
+  if (lineOfState(state) !== Number(recorded.line))
+    throw new LineMismatchError(lineName(Number(recorded.line)), lineName(lineOfState(state)));
   const { request } = await pub.simulateContract({
     address: d.registry,
     abi: petRegistryAbi,
@@ -250,10 +297,23 @@ export async function checkpointOnChain(pub: PublicClient, wallet: WalletClient,
 }
 
 /** Let `who` keep the pet (write checkpoints) until `until` (seconds); owner only, at most 30 days. */
-export async function setSitterOnChain(pub: PublicClient, wallet: WalletClient, d: Deployment, petId: bigint, who: Address, until: bigint): Promise<Hex> {
+export async function setSitterOnChain(
+  pub: PublicClient,
+  wallet: WalletClient,
+  d: Deployment,
+  petId: bigint,
+  who: Address,
+  until: bigint,
+): Promise<Hex> {
   const account = wallet.account;
   if (!account) throw new Error("wallet has no account");
-  const { request } = await pub.simulateContract({ address: d.registry, abi: petRegistryAbi, functionName: "setSitter", args: [petId, who, until], account });
+  const { request } = await pub.simulateContract({
+    address: d.registry,
+    abi: petRegistryAbi,
+    functionName: "setSitter",
+    args: [petId, who, until],
+    account,
+  });
   const tx = await wallet.writeContract(request);
   const r = await pub.waitForTransactionReceipt({ hash: tx });
   if (r.status !== "success") throw new RevertedOnChain("setSitter", r.transactionHash);
@@ -261,15 +321,34 @@ export async function setSitterOnChain(pub: PublicClient, wallet: WalletClient, 
 }
 
 /** Who sits the pet and until when (seconds), and whether `who` may write its checkpoints right now. */
-export async function readKeeping(pub: PublicClient, d: Deployment, petId: bigint, who: Address): Promise<{ sitter: Address; until: number; keeper: boolean }> {
+export async function readKeeping(
+  pub: PublicClient,
+  d: Deployment,
+  petId: bigint,
+  who: Address,
+): Promise<{ sitter: Address; until: number; keeper: boolean }> {
   const [s, keeper] = await Promise.all([
-    pub.readContract({ address: d.registry, abi: petRegistryAbi, functionName: "sitters", args: [petId] }) as Promise<readonly [Address, bigint, Address]>,
-    pub.readContract({ address: d.registry, abi: petRegistryAbi, functionName: "isKeeper", args: [petId, who] }) as Promise<boolean>,
+    pub.readContract({ address: d.registry, abi: petRegistryAbi, functionName: "sitters", args: [petId] }) as Promise<
+      readonly [Address, bigint, Address]
+    >,
+    pub.readContract({
+      address: d.registry,
+      abi: petRegistryAbi,
+      functionName: "isKeeper",
+      args: [petId, who],
+    }) as Promise<boolean>,
   ]);
   return { sitter: s[0], until: Number(s[1]), keeper };
 }
 
-export async function setBrainOnChain(pub: PublicClient, wallet: WalletClient, d: Deployment, petId: bigint, processor: Address, brainId: bigint): Promise<Hex> {
+export async function setBrainOnChain(
+  pub: PublicClient,
+  wallet: WalletClient,
+  d: Deployment,
+  petId: bigint,
+  processor: Address,
+  brainId: bigint,
+): Promise<Hex> {
   const account = wallet.account;
   if (!account) throw new Error("wallet has no account");
   const { request } = await pub.simulateContract({
@@ -316,7 +395,11 @@ type Netlist = Awaited<ReturnType<typeof readNetlist>>;
  * write is `tapeout`, which makes a new circuit), so a cache never goes stale; it is bounded, least recently used out.
  * One per chain: a fork and mainnet share addresses and ids, never netlists.
  */
-export function createNetlistCache(max = 512): { get(key: string): Promise<Netlist> | undefined; set(key: string, value: Promise<Netlist>): void; size(): number } {
+export function createNetlistCache(max = 512): {
+  get(key: string): Promise<Netlist> | undefined;
+  set(key: string, value: Promise<Netlist>): void;
+  size(): number;
+} {
   const held = new Map<string, Promise<Netlist>>();
   return {
     get(key) {
@@ -349,7 +432,13 @@ export type NetlistCache = ReturnType<typeof createNetlistCache>;
  * and a brain that would run more than `maxGates` gates a beat is refused before
  * anyone runs it (A38): any pet can be pointed at any circuit on the processor.
  */
-export async function loadCircuitFromChain(pub: PublicClient, processor: Address, id: bigint, maxGates = MAX_RUN_GATES, opts: { maxCircuits?: number; cache?: NetlistCache } = {}): Promise<Circuit> {
+export async function loadCircuitFromChain(
+  pub: PublicClient,
+  processor: Address,
+  id: bigint,
+  maxGates = MAX_RUN_GATES,
+  opts: { maxCircuits?: number; cache?: NetlistCache } = {},
+): Promise<Circuit> {
   const maxCircuits = opts.maxCircuits ?? MAX_CIRCUIT_READS;
   const loading = new Map<string, Promise<Circuit>>();
   const netlist = (cpu: Address, cid: bigint): Promise<Netlist> => {
@@ -370,7 +459,8 @@ export async function loadCircuitFromChain(pub: PublicClient, processor: Address
       const nl = await netlist(cpu, cid);
       const bytes = hexToBytes(nl.bytes);
       const wanted = new Map<string, { cpu: Address; id: bigint }>();
-      for (const e of decode(bytes, nl.nIn)) if (e.op === REF) wanted.set(refKey(e.cpu, e.id), { cpu: e.cpu as Address, id: e.id });
+      for (const e of decode(bytes, nl.nIn))
+        if (e.op === REF) wanted.set(refKey(e.cpu, e.id), { cpu: e.cpu as Address, id: e.id });
       const subs = new Map<string, Circuit>();
       const got = await Promise.all([...wanted].map(async ([k, w]) => [k, await one(w.cpu, w.id, depth + 1)] as const));
       for (const [k, c] of got) subs.set(k, c);
@@ -385,41 +475,84 @@ export async function loadCircuitFromChain(pub: PublicClient, processor: Address
 }
 
 /** One beat for many inputs at once, through Multicall3 (64 per call fits X Layer's call gas cap). */
-export async function replayMany(pub: PublicClient, d: Deployment, id: bigint, brainState: bigint, words: number[]): Promise<Array<{ next: bigint; outputs: number }>> {
-  const res = (await pub.multicall({
+export async function replayMany(
+  pub: PublicClient,
+  d: Deployment,
+  id: bigint,
+  brainState: bigint,
+  words: number[],
+): Promise<Array<{ next: bigint; outputs: number }>> {
+  const res = await pub.multicall({
     allowFailure: false,
     batchSize: 1 << 22,
-    contracts: words.map((w) => ({ address: d.registry, abi: petRegistryAbi, functionName: "replayStep" as const, args: [id, brainState, w] as const })),
-  }));
+    contracts: words.map((w) => ({
+      address: d.registry,
+      abi: petRegistryAbi,
+      functionName: "replayStep" as const,
+      args: [id, brainState, w] as const,
+    })),
+  });
   return res.map(([next, outputs]) => ({ next: BigInt(next), outputs: Number(outputs) }));
 }
 
 /** The pet's name on chain ("" if none) and which pet, if any, holds a given name (case-insensitive for ASCII). */
 export async function readName(pub: PublicClient, d: Deployment, petId: bigint): Promise<string> {
   if (!d.look) return "";
-  return (await pub.readContract({ address: d.look, abi: petLookAbi, functionName: "nameOf", args: [petId] })) as string;
+  return (await pub.readContract({
+    address: d.look,
+    abi: petLookAbi,
+    functionName: "nameOf",
+    args: [petId],
+  })) as string;
 }
 
 export async function nameHolderOf(pub: PublicClient, d: Deployment, name: string): Promise<bigint | null> {
   if (!d.look) return null;
   const low = new TextEncoder().encode(name).map((c) => (c >= 0x41 && c <= 0x5a ? c + 32 : c));
-  const h = (await pub.readContract({ address: d.look, abi: petLookAbi, functionName: "nameHolder", args: [keccak256(low)] })) as bigint;
+  const h = (await pub.readContract({
+    address: d.look,
+    abi: petLookAbi,
+    functionName: "nameHolder",
+    args: [keccak256(low)],
+  })) as bigint;
   return h === 0n ? null : h - 1n;
 }
 
-export async function setNameOnChain(pub: PublicClient, wallet: WalletClient, d: Deployment, petId: bigint, name: string): Promise<Hex> {
+export async function setNameOnChain(
+  pub: PublicClient,
+  wallet: WalletClient,
+  d: Deployment,
+  petId: bigint,
+  name: string,
+): Promise<Hex> {
   if (!d.look) throw new Error("names are not deployed");
   const account = wallet.account;
   if (!account) throw new Error("wallet has no account");
-  const { request } = await pub.simulateContract({ address: d.look, abi: petLookAbi, functionName: "setName", args: [petId, name], account });
+  const { request } = await pub.simulateContract({
+    address: d.look,
+    abi: petLookAbi,
+    functionName: "setName",
+    args: [petId, name],
+    account,
+  });
   const tx = await wallet.writeContract(request);
-  if ((await pub.waitForTransactionReceipt({ hash: tx })).status !== "success") throw new RevertedOnChain("setName", tx);
+  if ((await pub.waitForTransactionReceipt({ hash: tx })).status !== "success")
+    throw new RevertedOnChain("setName", tx);
   return tx;
 }
 
 /** The pet's ERC-721 metadata as the registry serves it (the picture is drawn on chain once PetLook is the renderer). */
-export async function readMetadata(pub: PublicClient, d: Deployment, petId: bigint): Promise<{ name: string; image?: string; attributes?: Array<{ trait_type: string; value: unknown }> }> {
-  const uri = (await pub.readContract({ address: d.registry, abi: petRegistryAbi, functionName: "tokenURI", args: [petId] })) as string;
+export async function readMetadata(
+  pub: PublicClient,
+  d: Deployment,
+  petId: bigint,
+): Promise<{ name: string; image?: string; attributes?: Array<{ trait_type: string; value: unknown }> }> {
+  const uri = (await pub.readContract({
+    address: d.registry,
+    abi: petRegistryAbi,
+    functionName: "tokenURI",
+    args: [petId],
+  })) as string;
   const b64 = uri.slice(uri.indexOf(",") + 1);
   return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))));
 }

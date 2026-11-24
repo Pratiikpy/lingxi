@@ -60,14 +60,23 @@ export function workerCompute(budgetMs = STANDINGS_BUDGET_MS): Compute {
         void w.terminate();
         f();
       };
-      const timer = setTimeout(() => finish(() => reject(new Error(`the standings for ${week} ran past their budget of ${budgetMs} ms`))), budgetMs);
-      w.once("message", (m: { standings?: Standing[]; error?: string }) => finish(() => (m.standings ? resolve(m.standings) : reject(new Error(m.error ?? "the standings worker failed")))));
+      const timer = setTimeout(
+        () => finish(() => reject(new Error(`the standings for ${week} ran past their budget of ${budgetMs} ms`))),
+        budgetMs,
+      );
+      w.once("message", (m: { standings?: Standing[]; error?: string }) =>
+        finish(() =>
+          m.standings ? resolve(m.standings) : reject(new Error(m.error ?? "the standings worker failed")),
+        ),
+      );
       w.once("error", (e) => finish(() => reject(e)));
       w.once("exit", (code) => finish(() => reject(new Error(`the standings worker stopped (${code})`))));
     });
 }
 
-export function createStandingsRunner(opts: { compute?: Compute; file?: string; budgetMs?: number; now?: () => number; log?: (m: string) => void } = {}) {
+export function createStandingsRunner(
+  opts: { compute?: Compute; file?: string; budgetMs?: number; now?: () => number; log?: (m: string) => void } = {},
+) {
   const budgetMs = opts.budgetMs ?? STANDINGS_BUDGET_MS;
   const compute = opts.compute ?? workerCompute(budgetMs);
   const now = opts.now ?? Date.now;
@@ -75,7 +84,9 @@ export function createStandingsRunner(opts: { compute?: Compute; file?: string; 
   const fought = new Map<string, Fought>();
   if (opts.file && hasStore(opts.file)) {
     try {
-      for (const f of readStore(opts.file) as Fought[]) if (f && typeof f.week === "string" && typeof f.key === "string" && Array.isArray(f.standings)) fought.set(f.week, f);
+      for (const f of readStore(opts.file) as Fought[])
+        if (f && typeof f.week === "string" && typeof f.key === "string" && Array.isArray(f.standings))
+          fought.set(f.week, f);
     } catch {
       // a damaged file is fought again, week by week, as asked
     }
@@ -103,7 +114,10 @@ export function createStandingsRunner(opts: { compute?: Compute; file?: string; 
     // a fight that never settles is ended by the budget here as well as in the worker
     let timer: ReturnType<typeof setTimeout> | undefined;
     const overBudget = new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(new Error(`the standings for ${week} ran past their budget of ${budgetMs} ms`)), budgetMs);
+      timer = setTimeout(
+        () => reject(new Error(`the standings for ${week} ran past their budget of ${budgetMs} ms`)),
+        budgetMs,
+      );
     });
     void Promise.race([compute(week, job.entries), overBudget])
       .then((standings) => {
@@ -129,7 +143,11 @@ export function createStandingsRunner(opts: { compute?: Compute; file?: string; 
       const key = entriesKey(week, entries);
       if (have?.key === key) return { standings: have.standings, digest: have.digest, pending: false };
       const lastFailed = failed.get(key);
-      if (running !== key && waiting.get(week)?.key !== key && (lastFailed === undefined || now() - lastFailed >= RETRY_AFTER_MS)) {
+      if (
+        running !== key &&
+        waiting.get(week)?.key !== key &&
+        (lastFailed === undefined || now() - lastFailed >= RETRY_AFTER_MS)
+      ) {
         waiting.set(week, { entries, key });
         next();
       }

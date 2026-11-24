@@ -25,16 +25,40 @@ export function DiaryPanel({ pet }: { pet: Pet }) {
   const room = useWorld((s) => s.world.room);
   const backdrop = (ROOMS[room] ?? ROOMS[HOME]!).bgs.day;
   // the log grows by a word every beat, so the pet changing and the log changing come at the same pace
-  const lines = useMemo(() => diaryOf(pet, (lessons, outside, skills) => mindBrain({ line: pet.line, lessons, family: pet.family, instincts: pet.instincts, outside, growth: ruleGrowth(skills) })), [pet]);
-  const date = new Date(now()).toLocaleDateString(lang === "zh" ? "zh-CN" : "en-GB", { month: "long", day: "numeric", weekday: "long" });
+  const lines = useMemo(
+    () =>
+      diaryOf(pet, (lessons, outside, skills) =>
+        mindBrain({
+          line: pet.line,
+          lessons,
+          family: pet.family,
+          instincts: pet.instincts,
+          outside,
+          growth: ruleGrowth(skills),
+        }),
+      ),
+    [pet],
+  );
+  const date = new Date(now()).toLocaleDateString(lang === "zh" ? "zh-CN" : "en-GB", {
+    month: "long",
+    day: "numeric",
+    weekday: "long",
+  });
 
   const share = async () => {
     setBusy(true);
     try {
-      const blob = await card(pet, lines.map((l) => diaryText(l, lang)), date, lang, backdrop.endsWith(".gif") ? (ROOMS[HOME]!.bgs.day) : backdrop);
+      const blob = await card(
+        pet,
+        lines.map((l) => diaryText(l, lang)),
+        date,
+        lang,
+        backdrop.endsWith(".gif") ? ROOMS[HOME]!.bgs.day : backdrop,
+      );
       const file = new File([blob], `${pet.name}-diary.png`, { type: "image/png" });
       const nav = navigator as Navigator & { canShare?: (d: { files: File[] }) => boolean };
-      if (nav.share && nav.canShare?.({ files: [file] })) await nav.share({ files: [file], title: lang === "zh" ? `${pet.name}的日记` : `${pet.name}'s diary` });
+      if (nav.share && nav.canShare?.({ files: [file] }))
+        await nav.share({ files: [file], title: lang === "zh" ? `${pet.name}的日记` : `${pet.name}'s diary` });
       else {
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
@@ -74,7 +98,11 @@ export function DiaryPanel({ pet }: { pet: Pet }) {
           <li key={i}>{diaryText(l, lang)}</li>
         ))}
       </ul>
-      <p className="small">{lang === "zh" ? "每一句都来自它今天真实的念头，重放它的电路得出。" : "Every line comes from its real thoughts today, replayed through its circuit."}</p>
+      <p className="small">
+        {lang === "zh"
+          ? "每一句都来自它今天真实的念头，重放它的电路得出。"
+          : "Every line comes from its real thoughts today, replayed through its circuit."}
+      </p>
       <button type="button" className="btn" disabled={busy} onClick={share}>
         {lang === "zh" ? "分享今天这页" : "Share today's page"}
       </button>
@@ -113,7 +141,10 @@ async function card(pet: Pet, lines: string[], date: string, lang: Lang, backdro
   g.lineWidth = 8;
   g.stroke();
   // the pet, pixel-crisp
-  const art = drawPet(pet.line, drawn(stageOf(pet, now())), { expression: "happy", ...(pet.form ? { form: pet.form } : {}) });
+  const art = drawPet(pet.line, drawn(stageOf(pet, now())), {
+    expression: "happy",
+    ...(pet.form ? { form: pet.form } : {}),
+  });
   const img = new ImageData(new Uint8ClampedArray(toRgba(art, PALETTE_OF[pet.line], 1)), art.w, art.h);
   const tmp = document.createElement("canvas");
   tmp.width = art.w;
@@ -146,7 +177,9 @@ async function card(pet: Pet, lines: string[], date: string, lang: Lang, backdro
   g.font = `600 28px "Baloo 2 Variable", "Noto Sans SC", sans-serif`;
   g.fillStyle = "#5B4E73";
   g.fillText(diaryFooter(!!recordOf(pet), lang), 80, H - 70);
-  return await new Promise<Blob>((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("no image"))), "image/png"));
+  return await new Promise<Blob>((resolve, reject) =>
+    c.toBlob((b) => (b ? resolve(b) : reject(new Error("no image"))), "image/png"),
+  );
 }
 
 function wrap(g: CanvasRenderingContext2D, text: string, max: number): string[] {

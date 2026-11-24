@@ -27,11 +27,17 @@ const withTests = !process.argv.includes("--no-tests");
 const PACKAGES = ["game", "world", "api", "api-schema", "brain", "handheld", "chain", "send", "web", "art"] as const;
 
 /** A suite's JSON result; a suite that wrote none did not run to its end (killed, out of memory), which is said as such. */
-function resultOf(out: string, suite: string, p: { status: number | null; stdout: string; stderr: string }): { numPassedTests: number; numFailedTests: number } {
+function resultOf(
+  out: string,
+  suite: string,
+  p: { status: number | null; stdout: string; stderr: string },
+): { numPassedTests: number; numFailedTests: number } {
   try {
     return JSON.parse(readFileSync(out, "utf8")) as { numPassedTests: number; numFailedTests: number };
   } catch {
-    throw new Error(`${suite} gave no result (exit ${p.status}); it did not run to its end, so nothing is counted:\n${(p.stdout + p.stderr).slice(-2000)}`);
+    throw new Error(
+      `${suite} gave no result (exit ${p.status}); it did not run to its end, so nothing is counted:\n${(p.stdout + p.stderr).slice(-2000)}`,
+    );
   }
 }
 
@@ -39,9 +45,15 @@ function vitestPassed(pkg: string): number {
   const dir = mkdtempSync(join(tmpdir(), "lingxi-facts-"));
   const out = join(dir, "r.json");
   try {
-    const p = spawnSync(`pnpm --filter @lingxi/${pkg} exec vitest run --reporter=json "--outputFile=${out}"`, { cwd: root, encoding: "utf8", shell: true, maxBuffer: 256 * 1024 * 1024 });
+    const p = spawnSync(`pnpm --filter @lingxi/${pkg} exec vitest run --reporter=json "--outputFile=${out}"`, {
+      cwd: root,
+      encoding: "utf8",
+      shell: true,
+      maxBuffer: 256 * 1024 * 1024,
+    });
     const r = resultOf(out, `@lingxi/${pkg}`, p);
-    if (p.status !== 0 || r.numFailedTests > 0) throw new Error(`@lingxi/${pkg}: ${r.numFailedTests} tests fail; no count is written for a failing suite`);
+    if (p.status !== 0 || r.numFailedTests > 0)
+      throw new Error(`@lingxi/${pkg}: ${r.numFailedTests} tests fail; no count is written for a failing suite`);
     return r.numPassedTests;
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -49,10 +61,20 @@ function vitestPassed(pkg: string): number {
 }
 
 function forgePassed(args: string[]): number {
-  const p = spawnSync(`forge test --json ${args.map((a) => `"${a}"`).join(" ")}`, { cwd: join(root, "contracts"), encoding: "utf8", shell: true, maxBuffer: 256 * 1024 * 1024 });
+  const p = spawnSync(`forge test --json ${args.map((a) => `"${a}"`).join(" ")}`, {
+    cwd: join(root, "contracts"),
+    encoding: "utf8",
+    shell: true,
+    maxBuffer: 256 * 1024 * 1024,
+  });
   if (p.status !== 0) throw new Error(`forge test ${args.join(" ")} failed:\n${p.stderr.slice(-2000)}`);
-  const suites = JSON.parse(p.stdout.slice(p.stdout.indexOf("{"))) as Record<string, { test_results: Record<string, { status: string }> }>;
-  return Object.values(suites).flatMap((s) => Object.values(s.test_results)).filter((t) => t.status === "Success").length;
+  const suites = JSON.parse(p.stdout.slice(p.stdout.indexOf("{"))) as Record<
+    string,
+    { test_results: Record<string, { status: string }> }
+  >;
+  return Object.values(suites)
+    .flatMap((s) => Object.values(s.test_results))
+    .filter((t) => t.status === "Success").length;
 }
 
 /**
@@ -66,9 +88,21 @@ function forkTestsPassed(): number {
     const dir = mkdtempSync(join(tmpdir(), "lingxi-facts-"));
     const out = join(dir, "r.json");
     try {
-      const p = spawnSync(process.execPath, [join(root, "node_modules/tsx/dist/cli.mjs"), "scripts/fork-tests.mts", "--only", pkg, "--reporter=json", `--outputFile=${out}`], { cwd: root, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 });
+      const p = spawnSync(
+        process.execPath,
+        [
+          join(root, "node_modules/tsx/dist/cli.mjs"),
+          "scripts/fork-tests.mts",
+          "--only",
+          pkg,
+          "--reporter=json",
+          `--outputFile=${out}`,
+        ],
+        { cwd: root, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 },
+      );
       const r = resultOf(out, `the fork tests in ${pkg}`, p);
-      if (p.status !== 0 || r.numFailedTests > 0) throw new Error(`the fork tests in ${pkg}: ${r.numFailedTests} fail; no count is written for a failing suite`);
+      if (p.status !== 0 || r.numFailedTests > 0)
+        throw new Error(`the fork tests in ${pkg}: ${r.numFailedTests} fail; no count is written for a failing suite`);
       passed += r.numPassedTests;
     } finally {
       rmSync(dir, { recursive: true, force: true });
@@ -79,15 +113,34 @@ function forkTestsPassed(): number {
 
 /** The end-to-end suite's tests, as Playwright lists them (listing starts nothing; CI runs them on every push). */
 function e2eListed(): { tests: number; specs: number } {
-  const p = spawnSync(process.execPath, [join(root, "node_modules/@playwright/test/cli.js"), "test", "-c", "e2e/playwright.config.ts", "--list"], { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+  const p = spawnSync(
+    process.execPath,
+    [join(root, "node_modules/@playwright/test/cli.js"), "test", "-c", "e2e/playwright.config.ts", "--list"],
+    { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+  );
   const m = /Total: (\d+) tests? in (\d+) files?/.exec(p.stdout);
   if (p.status !== 0 || !m) throw new Error(`playwright --list failed:\n${(p.stdout + p.stderr).slice(-2000)}`);
   return { tests: Number(m[1]), specs: Number(m[2]) };
 }
 
-const deployment = JSON.parse(readFileSync(join(root, "packages/chain/deployments/xlayer.json"), "utf8")) as Record<string, unknown>;
+const deployment = JSON.parse(readFileSync(join(root, "packages/chain/deployments/xlayer.json"), "utf8")) as Record<
+  string,
+  unknown
+>;
 /** The eleven contracts the README's table lists, by their deployment keys. */
-const CONTRACT_KEYS = ["registry", "breeder", "adoptionCentre", "outfitMarketV2", "itemShop", "extras", "holderGift", "look", "redPacket", "outfitMarket", "breederFree"];
+const CONTRACT_KEYS = [
+  "registry",
+  "breeder",
+  "adoptionCentre",
+  "outfitMarketV2",
+  "itemShop",
+  "extras",
+  "holderGift",
+  "look",
+  "redPacket",
+  "outfitMarket",
+  "breederFree",
+];
 
 const facts: Record<string, string> = {
   rooms: String(Object.keys(ROOMS).length),
@@ -104,9 +157,15 @@ const facts: Record<string, string> = {
   builders: String(LANE.length),
   contracts: String(CONTRACT_KEYS.filter((k) => typeof deployment[k] === "string").length),
   // each fix with a patch that undoes it and the test that must then fail (`pnpm revert:check` proves the pairs)
-  regressions: String((JSON.parse(readFileSync(join(root, "scripts/regressions/list.json"), "utf8")) as unknown[]).length),
+  regressions: String(
+    (JSON.parse(readFileSync(join(root, "scripts/regressions/list.json"), "utf8")) as unknown[]).length,
+  ),
   // the rows without a revert pair, each with its reason in that file (A106)
-  "revert-without": Object.keys(JSON.parse(readFileSync(join(root, "scripts/regressions/without.json"), "utf8")) as Record<string, string>).sort((x, y) => Number(x.slice(1)) - Number(y.slice(1))).join(", "),
+  "revert-without": Object.keys(
+    JSON.parse(readFileSync(join(root, "scripts/regressions/without.json"), "utf8")) as Record<string, string>,
+  )
+    .sort((x, y) => Number(x.slice(1)) - Number(y.slice(1)))
+    .join(", "),
 };
 {
   const e2e = e2eListed();
@@ -146,10 +205,16 @@ const unused = Object.keys(facts).filter((k) => !seen.has(k));
 
 if (write) {
   writeFileSync(README, next);
-  console.log(`README facts written: ${Object.entries(facts).map(([k, v]) => `${k} ${v}`).join(", ")}`);
+  console.log(
+    `README facts written: ${Object.entries(facts)
+      .map(([k, v]) => `${k} ${v}`)
+      .join(", ")}`,
+  );
 } else if (stale.length) {
   console.log(`README facts out of date:\n  ${stale.join("\n  ")}`);
   process.exit(1);
 } else {
-  console.log(`README facts match the repo (${seen.size} checked)${unused.length ? `; not quoted in the README: ${unused.join(", ")}` : ""}`);
+  console.log(
+    `README facts match the repo (${seen.size} checked)${unused.length ? `; not quoted in the README: ${unused.join(", ")}` : ""}`,
+  );
 }

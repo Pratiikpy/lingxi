@@ -34,7 +34,8 @@ const markSeen = (set: string): void => {
 const OVERLAY = '[role="dialog"], [aria-modal="true"], .circuit-overlay';
 
 /** A set of rules, as the circuits it was checked against. */
-const ruleSet = (checks: readonly { name: string; id: string | null }[]): string => checks.map((c) => `${c.name}:${c.id ?? ""}`).join(",");
+const ruleSet = (checks: readonly { name: string; id: string | null }[]): string =>
+  checks.map((c) => `${c.name}:${c.id ?? ""}`).join(",");
 
 /** Whether a sheet or a dialog is open, kept current as they open and close. */
 function useOverlayOpen(): boolean {
@@ -87,7 +88,10 @@ export function RulesMark() {
   const bad = checks.filter((c) => c.status === "differs" || c.status === "missing");
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
   const proof = "verify.html#rules";
-  const verified = L(`Rules verified on X Layer · ${checks.length} circuits`, `规则已在 X Layer 上核对 · ${checks.length} 个电路`);
+  const verified = L(
+    `Rules verified on X Layer · ${checks.length} circuits`,
+    `规则已在 X Layer 上核对 · ${checks.length} 个电路`,
+  );
   return (
     <>
       {/* P5: the news is read out from a live region that is always on the page; the mark itself stays a plain link
@@ -96,43 +100,55 @@ export function RulesMark() {
         {state === "verified" && shown ? verified : ""}
       </span>
       <AnimatePresence>
-      {state === "verified" && shown && (
-        <motion.a
-          key="ok"
-          className="rules-mark"
-          href={proof}
-          target="_blank"
-          rel="noopener"
-          initial={reduce ? false : { opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={reduce ? { opacity: 0 } : { opacity: 0, y: 12 }}
-          transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
-        >
-          <span className="rules-tick" aria-hidden="true">
-            ✓
-          </span>
-          {verified}
-        </motion.a>
-      )}
-      {state === "broken" && !closed && !covered && (
-        <motion.div key="bad" className="rules-mark is-bad" role="alert" initial={reduce ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-          <span className="rules-tick" aria-hidden="true">
-            !
-          </span>
-          <span>
-            {L(
-              `${bad.length === 1 ? "A rule here differs" : `${bad.length} rules here differ`} from ${bad.length === 1 ? "its circuit" : "their circuits"} on X Layer: ${bad.map((c) => c.name).join(", ")}. `,
-              `这里有 ${bad.length} 条规则和 X Layer 上的电路不一致：${bad.map((c) => c.name).join("、")}。`,
-            )}
-            <a href={proof} target="_blank" rel="noopener">
-              {L("See which", "查看详情")}
-            </a>
-          </span>
-          <button type="button" className="rules-close" aria-label={L("Close", "关闭")} onClick={() => setClosed(true)}>
-            ✕
-          </button>
-        </motion.div>
-      )}
+        {state === "verified" && shown && (
+          <motion.a
+            key="ok"
+            className="rules-mark"
+            href={proof}
+            target="_blank"
+            rel="noopener"
+            initial={reduce ? false : { opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduce ? { opacity: 0 } : { opacity: 0, y: 12 }}
+            transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
+          >
+            <span className="rules-tick" aria-hidden="true">
+              ✓
+            </span>
+            {verified}
+          </motion.a>
+        )}
+        {state === "broken" && !closed && !covered && (
+          <motion.div
+            key="bad"
+            className="rules-mark is-bad"
+            role="alert"
+            initial={reduce ? false : { opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+          >
+            <span className="rules-tick" aria-hidden="true">
+              !
+            </span>
+            <span>
+              {L(
+                `${bad.length === 1 ? "A rule here differs" : `${bad.length} rules here differ`} from ${bad.length === 1 ? "its circuit" : "their circuits"} on X Layer: ${bad.map((c) => c.name).join(", ")}. `,
+                `这里有 ${bad.length} 条规则和 X Layer 上的电路不一致：${bad.map((c) => c.name).join("、")}。`,
+              )}
+              <a href={proof} target="_blank" rel="noopener">
+                {L("See which", "查看详情")}
+              </a>
+            </span>
+            <button
+              type="button"
+              className="rules-close"
+              aria-label={L("Close", "关闭")}
+              onClick={() => setClosed(true)}
+            >
+              ✕
+            </button>
+          </motion.div>
+        )}
       </AnimatePresence>
     </>
   );

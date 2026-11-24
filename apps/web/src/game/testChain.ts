@@ -5,7 +5,21 @@
  * talk to it through `fetch` and `window.ethereum`, so nothing here stands in for the code under test.
  */
 
-import { type Abi, type Address, type Hex, decodeFunctionData, encodeAbiParameters, encodeErrorResult, encodeEventTopics, encodeFunctionResult, keccak256, numberToHex, parseTransaction, recoverTransactionAddress, stringToHex } from "viem";
+import {
+  type Abi,
+  type Address,
+  type Hex,
+  decodeFunctionData,
+  encodeAbiParameters,
+  encodeErrorResult,
+  encodeEventTopics,
+  encodeFunctionResult,
+  keccak256,
+  numberToHex,
+  parseTransaction,
+  recoverTransactionAddress,
+  stringToHex,
+} from "viem";
 import type { AbiEvent } from "viem";
 import { errorText } from "./errorText";
 import { type Net, json } from "./testGame";
@@ -98,13 +112,31 @@ export function fakeXLayer(o: { contracts: Record<string, FakeContract>; balance
       const item = contract.abi.find((x): x is AbiEvent => x.type === "event" && x.name === eventName)!;
       const topics = encodeEventTopics({ abi: [item], eventName, args: eventArgs } as never) as Hex[];
       const plain = item.inputs.filter((i) => !i.indexed);
-      logs.push({ address: to as Address, topics, data: encodeAbiParameters(plain, plain.map((i) => eventArgs[i.name!])) });
+      logs.push({
+        address: to as Address,
+        topics,
+        data: encodeAbiParameters(
+          plain,
+          plain.map((i) => eventArgs[i.name!]),
+        ),
+      });
     };
     try {
       const out = handler(args, { from: c.from ?? ("0x" as Address), value, dry, now: seconds(), emit });
-      return { functionName, args, result: encodeFunctionResult({ abi: contract.abi, functionName, result: out } as never) as Hex, logs, value };
+      return {
+        functionName,
+        args,
+        result: encodeFunctionResult({ abi: contract.abi, functionName, result: out } as never) as Hex,
+        logs,
+        value,
+      };
     } catch (e) {
-      if (e instanceof Revert) throw new RpcError(3, "execution reverted", encodeErrorResult({ abi: contract.abi, errorName: e.errorName, args: e.args } as never));
+      if (e instanceof Revert)
+        throw new RpcError(
+          3,
+          "execution reverted",
+          encodeErrorResult({ abi: contract.abi, errorName: e.errorName, args: e.args } as never),
+        );
       throw e;
     }
   }
@@ -115,7 +147,8 @@ export function fakeXLayer(o: { contracts: Record<string, FakeContract>; balance
     let status: Mined["status"] = "success";
     let r: ReturnType<typeof run> | null = null;
     const contract = contracts.get(lower(c.to));
-    const called = contract && c.data && c.data !== "0x" ? decodeFunctionData({ abi: contract.abi, data: c.data }) : null;
+    const called =
+      contract && c.data && c.data !== "0x" ? decodeFunctionData({ abi: contract.abi, data: c.data }) : null;
     try {
       r = run(c, false);
       if (r.value > 0n) {
@@ -138,12 +171,28 @@ export function fakeXLayer(o: { contracts: Record<string, FakeContract>; balance
       gasUsed: "0x30d40",
       effectiveGasPrice: "0x3b9aca00",
       contractAddress: null,
-      logs: (r?.logs ?? []).map((l, i) => ({ ...l, blockNumber: block, blockHash: keccak256(block), transactionHash: hash, transactionIndex: "0x0", logIndex: numberToHex(i), removed: false })),
+      logs: (r?.logs ?? []).map((l, i) => ({
+        ...l,
+        blockNumber: block,
+        blockHash: keccak256(block),
+        transactionHash: hash,
+        transactionIndex: "0x0",
+        logIndex: numberToHex(i),
+        removed: false,
+      })),
       logsBloom: BLOOM,
       status: status === "success" ? "0x1" : "0x0",
       type: "0x2",
     });
-    mined.push({ hash, from: c.from, to: c.to, functionName: called?.functionName ?? "", args: called?.args ?? [], value: r?.value ?? 0n, status });
+    mined.push({
+      hash,
+      from: c.from,
+      to: c.to,
+      functionName: called?.functionName ?? "",
+      args: called?.args ?? [],
+      value: r?.value ?? 0n,
+      status,
+    });
     sentTxs.set(hash, { from: c.from, to: c.to, data: c.data ?? "0x", nonce: sent });
     return hash;
   }
@@ -198,7 +247,12 @@ export function fakeXLayer(o: { contracts: Record<string, FakeContract>; balance
       case "eth_sendRawTransaction": {
         const raw = params[0] as Hex;
         const tx = parseTransaction(raw);
-        return mine({ from: await recoverTransactionAddress({ serializedTransaction: raw as never }), to: tx.to!, data: tx.data ?? "0x", value: tx.value ?? 0n });
+        return mine({
+          from: await recoverTransactionAddress({ serializedTransaction: raw as never }),
+          to: tx.to!,
+          data: tx.data ?? "0x",
+          value: tx.value ?? 0n,
+        });
       }
       case "eth_getTransactionReceipt":
         return node.holdReceipts ? null : (receipts.get(params[0] as string) ?? null);
@@ -237,7 +291,10 @@ export function fakeXLayer(o: { contracts: Record<string, FakeContract>; balance
 
   /** a node URL as the page names it (viem adds a trailing slash to a bare host) */
   const nodeUrl = (url: string) => url.replace(/\/$/, "");
-  const isNode = (url: string) => /\/api\/rpc$/.test(nodeUrl(url)) || nodeUrl(url) === "https://xlayerrpc.okx.com" || nodeUrl(url) === "https://rpc.xlayer.tech";
+  const isNode = (url: string) =>
+    /\/api\/rpc$/.test(nodeUrl(url)) ||
+    nodeUrl(url) === "https://xlayerrpc.okx.com" ||
+    nodeUrl(url) === "https://rpc.xlayer.tech";
 
   /** The page's fetch: node URLs reach the node, anything else goes to `rest` (the game's server, the clock). */
   const fetchVia =
@@ -245,12 +302,20 @@ export function fakeXLayer(o: { contracts: Record<string, FakeContract>; balance
     async (url, init) => {
       if (!isNode(url)) return rest(url, init);
       if (node.down || node.silent.has(nodeUrl(url))) throw new TypeError("Failed to fetch");
-      const { id, method, params } = JSON.parse(String(init?.body)) as { id: number; method: string; params: unknown[] };
+      const { id, method, params } = JSON.parse(String(init?.body)) as {
+        id: number;
+        method: string;
+        params: unknown[];
+      };
       try {
         return json({ jsonrpc: "2.0", id, result: await rpc(method, params ?? []) });
       } catch (e) {
         if (!(e instanceof RpcError)) throw e;
-        return json({ jsonrpc: "2.0", id, error: { code: e.code, message: e.message, ...(e.data ? { data: e.data } : {}) } });
+        return json({
+          jsonrpc: "2.0",
+          id,
+          error: { code: e.code, message: e.message, ...(e.data ? { data: e.data } : {}) },
+        });
       }
     };
 
@@ -293,7 +358,10 @@ export function fakeWallet(chain: FakeXLayer, o: { account: Address }) {
           try {
             return await chain.rpc(method, params);
           } catch (e) {
-            throw Object.assign(new Error(errorText(e)), { code: (e as { code?: number }).code, data: (e as { data?: Hex }).data });
+            throw Object.assign(new Error(errorText(e)), {
+              code: (e as { code?: number }).code,
+              data: (e as { data?: Hex }).data,
+            });
           }
       }
     },

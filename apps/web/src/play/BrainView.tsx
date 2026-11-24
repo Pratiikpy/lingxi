@@ -7,7 +7,16 @@
  */
 
 import { useEffect, useMemo, useRef } from "react";
-import { INPUT_FIELDS, compileProgram, gateCount, layout, netDepth, netlistBytes, toVerilog, traceBeat } from "@lingxi/brain";
+import {
+  INPUT_FIELDS,
+  compileProgram,
+  gateCount,
+  layout,
+  netDepth,
+  netlistBytes,
+  toVerilog,
+  traceBeat,
+} from "@lingxi/brain";
 import type { Pet } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { decidingPart } from "../game/store";
@@ -15,7 +24,16 @@ import { noteEvent } from "../game/tally";
 import { useRulesCheck } from "../game/rulesCheck";
 import { MOOD_NAMES, WANT_COLORS, WANT_NAMES } from "./ruleText";
 
-const FIELD_ZH: Record<string, string> = { hunger: "饥饿", joy: "心情", energy: "精神", clean: "清洁", time: "时间", action: "动作", event: "事件", owner: "主人" };
+const FIELD_ZH: Record<string, string> = {
+  hunger: "饥饿",
+  joy: "心情",
+  energy: "精神",
+  clean: "清洁",
+  time: "时间",
+  action: "动作",
+  event: "事件",
+  owner: "主人",
+};
 
 export function BrainView({ pet, reduceMotion }: { pet: Pet; reduceMotion: boolean }) {
   const { lang } = useLang();
@@ -28,7 +46,10 @@ export function BrainView({ pet, reduceMotion }: { pet: Pet; reduceMotion: boole
   const lay = useMemo(() => layout(net), [net]);
   // a child shows the half that decided this beat, with that half's own memory
   const memory = pet.last.before ?? pet.brain;
-  const trace = useMemo(() => traceBeat(net, memory.slice(part.offset, part.offset + net.latches.length), pet.last.word), [net, memory, part.offset, pet.last.word]);
+  const trace = useMemo(
+    () => traceBeat(net, memory.slice(part.offset, part.offset + net.latches.length), pet.last.word),
+    [net, memory, part.offset, pet.last.word],
+  );
 
   useEffect(() => {
     const el = ref.current;
@@ -159,17 +180,31 @@ export function BrainView({ pet, reduceMotion }: { pet: Pet; reduceMotion: boole
   const gates = gateCount(net);
   return (
     <figure className="brainview">
-      <canvas ref={ref} role="img" aria-label={lang === "zh" ? `${pet.name}的电路：${gates} 个门` : `${pet.name}'s circuit: ${gates} gates`} />
+      <canvas
+        ref={ref}
+        role="img"
+        aria-label={lang === "zh" ? `${pet.name}的电路：${gates} 个门` : `${pet.name}'s circuit: ${gates} gates`}
+      />
       <figcaption>
         {lang === "zh"
           ? `${gates} 个门 · ${net.latches.length} 位记忆 · 深度 ${netDepth(net)}`
           : `${gates} gates · ${net.latches.length} memory bits · depth ${netDepth(net)}`}
         <RulesLine />
         <span className="bv-export">
-          <button type="button" className="link" onClick={() => download(`${fileName(pet.name)}.tapeout.bin`, netlistBytes(net), "application/octet-stream")}>
+          <button
+            type="button"
+            className="link"
+            onClick={() => download(`${fileName(pet.name)}.tapeout.bin`, netlistBytes(net), "application/octet-stream")}
+          >
             {lang === "zh" ? "下载 TapeOut 字节" : "TapeOut bytes"}
           </button>
-          <button type="button" className="link" onClick={() => download(`${fileName(pet.name)}.v`, toVerilog(net, `lingxi_${fileName(pet.name)}`), "text/plain")}>
+          <button
+            type="button"
+            className="link"
+            onClick={() =>
+              download(`${fileName(pet.name)}.v`, toVerilog(net, `lingxi_${fileName(pet.name)}`), "text/plain")
+            }
+          >
             {lang === "zh" ? "下载 Verilog" : "Verilog"}
           </button>
         </span>
@@ -179,7 +214,12 @@ export function BrainView({ pet, reduceMotion }: { pet: Pet; reduceMotion: boole
 }
 
 /** A safe file and module name from the pet's name (letters, digits, underscores). */
-const fileName = (name: string) => name.normalize("NFKD").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "").toLowerCase() || "pet";
+const fileName = (name: string) =>
+  name
+    .normalize("NFKD")
+    .replace(/[^A-Za-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .toLowerCase() || "pet";
 
 function download(name: string, data: Uint8Array | string, type: string): void {
   const blob = new Blob([typeof data === "string" ? data : new Uint8Array(data)], { type });
@@ -198,7 +238,12 @@ function RulesLine() {
   if (state !== "verified" && state !== "broken") return null;
   const bad = checks.filter((c) => c.status === "differs" || c.status === "missing").length;
   return (
-    <a className={`bv-rules${state === "broken" ? " is-bad" : ""}`} href="verify.html#rules" target="_blank" rel="noopener">
+    <a
+      className={`bv-rules${state === "broken" ? " is-bad" : ""}`}
+      href="verify.html#rules"
+      target="_blank"
+      rel="noopener"
+    >
       {state === "verified"
         ? zh
           ? `✓ 规则已在 X Layer 上核对 · ${checks.length} 个电路`

@@ -19,20 +19,42 @@ export type VoiceRequest = ParsedVoiceBody;
 export type VoiceResult = { ok: true; line: string; cached: boolean } | { ok: false; reason: "busy" | "error" };
 
 const level = (v: number) => (v < 200 ? "very low" : v < 450 ? "low" : v < 750 ? "fine" : "full");
-const PERSONALITY = { gentle: "soft and affectionate", bold: "brave and a bit cheeky", curious: "wide-eyed and full of questions" } as const;
+const PERSONALITY = {
+  gentle: "soft and affectionate",
+  bold: "brave and a bit cheeky",
+  curious: "wide-eyed and full of questions",
+} as const;
 const MAX_CHARS = { en: 70, zh: 30 } as const;
 
 /** A situation's cache key: what makes two moments sound the same. */
 export function voiceKey(r: VoiceRequest): string {
   const m = r.meters;
-  return [r.lang, r.moment, r.line, r.stage, r.decision, [...r.because].sort().join("+"), level(m.food), level(m.joy), level(m.energy), level(m.clean), r.sick, r.asleep, r.name, r.habits.join("+"), r.taught].join("|");
+  return [
+    r.lang,
+    r.moment,
+    r.line,
+    r.stage,
+    r.decision,
+    [...r.because].sort().join("+"),
+    level(m.food),
+    level(m.joy),
+    level(m.energy),
+    level(m.clean),
+    r.sick,
+    r.asleep,
+    r.name,
+    r.habits.join("+"),
+    r.taught,
+  ].join("|");
 }
 
 export function voicePrompt(r: VoiceRequest, avoid: string[] = []): { system: string; user: string } {
   const lang = r.lang === "zh" ? "simplified Chinese, at most 20 characters" : "English, at most 12 words";
   const system = [
     `You give a voice to ${r.name}, a small pixel pet in the game Lingxi. ${r.name} is a ${r.stage} with a ${PERSONALITY[r.line]} nature.`,
-    r.habits.length ? `Its habits, grown from how it has lived: ${r.habits.join(", ")}. Let the strongest colour how it speaks (a shy pet speaks softly and hesitates, a greedy one thinks of food, a playful one bounces, a calm one is unhurried, a brave one is bold, a curious one wonders, a gentle one is tender).` : "",
+    r.habits.length
+      ? `Its habits, grown from how it has lived: ${r.habits.join(", ")}. Let the strongest colour how it speaks (a shy pet speaks softly and hesitates, a greedy one thinks of food, a playful one bounces, a calm one is unhurried, a brave one is bold, a curious one wonders, a gentle one is tender).`
+      : "",
     `Its mind is a circuit that has ALREADY decided what it does. Your only job is to say that decision out loud, as ${r.name}, in one short line.`,
     `Rules: speak as "I" (never say your own name or "Mochi is"); one sentence; no emoji, no quotation marks, no stage directions; never suggest doing something other than the decision; never mention circuits, rules or games; only mention feelings that are true from the list given (do not call yourself tired or hungry unless the list says so); "rest" with nothing special happening is calm contentment, not sleepiness; match its age (babies use very simple words); vary the wording and avoid the pattern "so I will"; if it is asleep, it is mumbling a few drowsy words in its sleep.`,
     `Write in ${lang}.`,
@@ -57,12 +79,20 @@ export function voicePrompt(r: VoiceRequest, avoid: string[] = []): { system: st
 export function cleanLine(raw: unknown, lang: VoiceRequest["lang"]): string | null {
   const line = typeof raw === "object" && raw && "line" in raw ? (raw as { line: unknown }).line : null;
   if (typeof line !== "string") return null;
-  const s = line.replace(/[\r\n]+/g, " ").replace(/^["'“”「」『』\s]+|["'“”「」『』\s]+$/g, "").trim();
+  const s = line
+    .replace(/[\r\n]+/g, " ")
+    .replace(/^["'“”「」『』\s]+|["'“”「」『』\s]+$/g, "")
+    .trim();
   if (!s || s.length > MAX_CHARS[lang] || /[<>{}]|https?:/i.test(s)) return null;
   return s;
 }
 
-const VOICE_SCHEMA = { type: "object", properties: { line: { type: "string" } }, required: ["line"], additionalProperties: false } as const;
+const VOICE_SCHEMA = {
+  type: "object",
+  properties: { line: { type: "string" } },
+  required: ["line"],
+  additionalProperties: false,
+} as const;
 
 /** Up to this many different lines are kept for one situation, then they take turns. */
 const VARIANTS = 3;
@@ -103,7 +133,9 @@ export function createVoice(client: Anthropic, capacity = 2000) {
         output_config: { format: { type: "json_schema", schema: VOICE_SCHEMA } },
       });
     } catch (e) {
-      return e instanceof Anthropic.RateLimitError || e instanceof BudgetSpent || e instanceof ShareSpent ? "busy" : null;
+      return e instanceof Anthropic.RateLimitError || e instanceof BudgetSpent || e instanceof ShareSpent
+        ? "busy"
+        : null;
     }
     if (msg.stop_reason === "refusal") return null;
     const text = msg.content.find((b): b is Anthropic.TextBlock => b.type === "text")?.text ?? "";

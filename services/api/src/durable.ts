@@ -30,7 +30,8 @@ export function saveJson(file: string, value: unknown, text = JSON.stringify(val
 }
 
 const aside = (path: string) => {
-  if (existsSync(path)) renameSync(path, `${path.replace(/\.bak$/, "")}.damaged-${Date.now()}${path.endsWith(".bak") ? "-bak" : ""}`);
+  if (existsSync(path))
+    renameSync(path, `${path.replace(/\.bak$/, "")}.damaged-${Date.now()}${path.endsWith(".bak") ? "-bak" : ""}`);
 };
 
 const parse = (path: string): { ok: true; value: unknown } | { ok: false } | null => {
@@ -69,7 +70,7 @@ export function readStore(file: string): unknown {
     if (r.from === "bak") process.stderr.write(`${file} could not be read: kept aside, read ${file}.bak instead\n`);
     return r.value;
   }
-  if (r.state === "damaged") process.stderr.write(`${file} and its .bak could not be read: both kept aside, starting empty\n`);
+  if (r.state === "damaged")
+    process.stderr.write(`${file} and its .bak could not be read: both kept aside, starting empty\n`);
   throw new Error(`no readable ${file}`);
 }
-

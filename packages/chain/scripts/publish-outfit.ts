@@ -20,7 +20,8 @@ const arg = (n: string, f?: string) => {
 };
 const d = JSON.parse(readFileSync(arg("deployment")!, "utf8")) as Deployment;
 const rpc = arg("rpc", d.rpc)!;
-if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(rpc) && !process.argv.includes("--mainnet-yes")) throw new Error("refusing a non-local node without --mainnet-yes");
+if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(rpc) && !process.argv.includes("--mainnet-yes"))
+  throw new Error("refusing a non-local node without --mainnet-yes");
 const env = Object.fromEntries(
   readFileSync(arg("key-file", resolve(here, "../../../../.secrets/deployer.env"))!, "utf8")
     .split(/\r?\n/)
@@ -49,7 +50,19 @@ const hat = {
 };
 const price = parseEther("0.001");
 const v1 = { v: 1 as const, address: d.outfitMarket! };
-const { id, tx } = await publishDesign(pub, wallet, v1, { pixels: encodeDesign(hat), name: "Hundred-day party hat", price, maxSupply: 100, royaltyBps: 500 });
+const { id, tx } = await publishDesign(pub, wallet, v1, {
+  pixels: encodeDesign(hat),
+  name: "Hundred-day party hat",
+  price,
+  maxSupply: 100,
+  royaltyBps: 500,
+});
 const back = await readDesign(pub, v1, id);
-if (JSON.stringify(decodeDesign(Uint8Array.from(Buffer.from(back.pixels.slice(2), "hex"))).cells) !== JSON.stringify(hat.cells)) throw new Error("the design on chain differs");
-console.log(`design #${id} "${back.name}" published: ${tx}; ${formatEther(back.price)} OKB a copy, ${back.maxSupply} copies, creator ${back.creator}`);
+if (
+  JSON.stringify(decodeDesign(Uint8Array.from(Buffer.from(back.pixels.slice(2), "hex"))).cells) !==
+  JSON.stringify(hat.cells)
+)
+  throw new Error("the design on chain differs");
+console.log(
+  `design #${id} "${back.name}" published: ${tx}; ${formatEther(back.price)} OKB a copy, ${back.maxSupply} copies, creator ${back.creator}`,
+);

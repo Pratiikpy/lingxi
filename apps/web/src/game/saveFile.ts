@@ -33,7 +33,9 @@ export interface SaveContents {
   keys: Record<string, string>;
 }
 
-export type OpenResult = { ok: true; contents: SaveContents } | { ok: false; reason: "notASave" | "newer" | "locked" | "damaged" };
+export type OpenResult =
+  | { ok: true; contents: SaveContents }
+  | { ok: false; reason: "notASave" | "newer" | "locked" | "damaged" };
 
 interface Header {
   kind: typeof SAVE_FILE_KIND;
@@ -45,7 +47,9 @@ interface Header {
 
 /** The header as associated data: rebuilt field by field in one order, so it reads the same however it was stored. */
 const headerBytes = (h: Header) =>
-  new TextEncoder().encode(JSON.stringify([h.kind, h.v, h.zip, h.kdf.name, h.kdf.hash, h.kdf.rounds, h.kdf.salt, h.cipher.name, h.cipher.iv]));
+  new TextEncoder().encode(
+    JSON.stringify([h.kind, h.v, h.zip, h.kdf.name, h.kdf.hash, h.kdf.rounds, h.kdf.salt, h.cipher.name, h.cipher.iv]),
+  );
 
 /** Bytes in memory of their own (what WebCrypto takes). */
 type Bytes = Uint8Array<ArrayBuffer>;
@@ -70,7 +74,8 @@ function fromB64(text: string): Bytes | null {
 const normalise = (p: string) => p.normalize("NFKC").trim();
 
 /** Why a passphrase will not do, or null when it will. */
-export const passphraseProblem = (p: string): "short" | null => ([...normalise(p)].length < MIN_PASSPHRASE ? "short" : null);
+export const passphraseProblem = (p: string): "short" | null =>
+  [...normalise(p)].length < MIN_PASSPHRASE ? "short" : null;
 
 /** 32 letters and digits that cannot be mistaken for each other (no 0/o, 1/l). */
 const ALPHABET = "abcdefghijkmnpqrstuvwxyz23456789";
@@ -82,8 +87,16 @@ export function makePassphrase(): string {
 }
 
 async function keyFrom(passphrase: string, salt: Bytes, rounds: number): Promise<CryptoKey> {
-  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(normalise(passphrase)), "PBKDF2", false, ["deriveKey"]);
-  return crypto.subtle.deriveKey({ name: "PBKDF2", hash: "SHA-256", salt, iterations: rounds }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(normalise(passphrase)), "PBKDF2", false, [
+    "deriveKey",
+  ]);
+  return crypto.subtle.deriveKey(
+    { name: "PBKDF2", hash: "SHA-256", salt, iterations: rounds },
+    base,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"],
+  );
 }
 
 const canZip = () => typeof CompressionStream !== "undefined" && typeof DecompressionStream !== "undefined";
@@ -93,16 +106,28 @@ async function through(bytes: Bytes, stream: CompressionStream | DecompressionSt
 }
 
 /** Locks the game's contents with a passphrase, returning the file's text. */
-export async function sealSave(contents: SaveContents, passphrase: string, o: { rounds?: number } = {}): Promise<string> {
+export async function sealSave(
+  contents: SaveContents,
+  passphrase: string,
+  o: { rounds?: number } = {},
+): Promise<string> {
   if (passphraseProblem(passphrase)) throw new Error("passphrase too short");
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const zip = canZip() ? "gzip" : "none";
-  const header: Header = { kind: SAVE_FILE_KIND, v: SAVE_FILE_VERSION, zip, kdf: { name: "PBKDF2", hash: "SHA-256", rounds: o.rounds ?? KDF_ROUNDS, salt: toB64(salt) }, cipher: { name: "AES-GCM", iv: toB64(iv) } };
+  const header: Header = {
+    kind: SAVE_FILE_KIND,
+    v: SAVE_FILE_VERSION,
+    zip,
+    kdf: { name: "PBKDF2", hash: "SHA-256", rounds: o.rounds ?? KDF_ROUNDS, salt: toB64(salt) },
+    cipher: { name: "AES-GCM", iv: toB64(iv) },
+  };
   const plain = new TextEncoder().encode(JSON.stringify(contents));
   const body = zip === "gzip" ? await through(plain, new CompressionStream("gzip")) : plain;
   const key = await keyFrom(passphrase, salt, header.kdf.rounds);
-  const sealed = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv, additionalData: headerBytes(header) }, key, body));
+  const sealed = new Uint8Array(
+    await crypto.subtle.encrypt({ name: "AES-GCM", iv, additionalData: headerBytes(header) }, key, body),
+  );
   return JSON.stringify({ ...header, data: toB64(sealed) });
 }
 
@@ -119,9 +144,25 @@ function readHeader(text: string): (Header & { data: string }) | "newer" | null 
   if (f.v > SAVE_FILE_VERSION) return "newer";
   const { kdf, cipher, zip, data } = f;
   if (f.v !== SAVE_FILE_VERSION || (zip !== "gzip" && zip !== "none") || typeof data !== "string") return null;
-  if (!kdf || kdf.name !== "PBKDF2" || kdf.hash !== "SHA-256" || typeof kdf.salt !== "string" || !Number.isInteger(kdf.rounds) || kdf.rounds < MIN_ROUNDS || kdf.rounds > MAX_ROUNDS) return null;
+  if (
+    !kdf ||
+    kdf.name !== "PBKDF2" ||
+    kdf.hash !== "SHA-256" ||
+    typeof kdf.salt !== "string" ||
+    !Number.isInteger(kdf.rounds) ||
+    kdf.rounds < MIN_ROUNDS ||
+    kdf.rounds > MAX_ROUNDS
+  )
+    return null;
   if (!cipher || cipher.name !== "AES-GCM" || typeof cipher.iv !== "string") return null;
-  return { kind: SAVE_FILE_KIND, v: f.v, zip, kdf: { name: "PBKDF2", hash: "SHA-256", rounds: kdf.rounds, salt: kdf.salt }, cipher: { name: "AES-GCM", iv: cipher.iv }, data };
+  return {
+    kind: SAVE_FILE_KIND,
+    v: f.v,
+    zip,
+    kdf: { name: "PBKDF2", hash: "SHA-256", rounds: kdf.rounds, salt: kdf.salt },
+    cipher: { name: "AES-GCM", iv: cipher.iv },
+    data,
+  };
 }
 
 /** Contents that are the game's and nothing else: every key one of the game's, every value text, within a storage's size. */
@@ -149,7 +190,9 @@ export async function openSave(text: string, passphrase: string): Promise<OpenRe
   let body: Bytes;
   try {
     const key = await keyFrom(passphrase, salt, h.kdf.rounds);
-    body = new Uint8Array(await crypto.subtle.decrypt({ name: "AES-GCM", iv, additionalData: headerBytes(h) }, key, sealed));
+    body = new Uint8Array(
+      await crypto.subtle.decrypt({ name: "AES-GCM", iv, additionalData: headerBytes(h) }, key, sealed),
+    );
   } catch {
     return { ok: false, reason: "locked" };
   }

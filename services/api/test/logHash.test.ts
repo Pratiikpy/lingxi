@@ -56,13 +56,20 @@ describe("a diary's hash is worked out off the request thread (A114)", () => {
       stall = Math.max(stall, t - last);
       last = t;
     }, 5);
-    const post = app.request("/api/pets/5/log", { method: "POST", headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.5" }, body });
+    const post = app.request("/api/pets/5/log", {
+      method: "POST",
+      headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.5" },
+      body,
+    });
     const answer = await post;
     clearInterval(tick);
     // the gap up to the answer counts too: a check that never yields leaves no tick at all
     stall = Math.max(stall, performance.now() - last);
     // checked on this thread the post would stall it for the whole hash; off it, for a fraction (its parse and copy)
-    expect(stall, `the thread stalled ${Math.round(stall)} ms; the hash alone takes ${Math.round(hashMs)} ms here`).toBeLessThan(hashMs / 2);
+    expect(
+      stall,
+      `the thread stalled ${Math.round(stall)} ms; the hash alone takes ${Math.round(hashMs)} ms here`,
+    ).toBeLessThan(hashMs / 2);
     expect(await answer.json()).toEqual({ ok: false, reason: "mismatch" });
   });
 });
@@ -78,7 +85,10 @@ describe("the hash queue is shared fairly, and the worker is kept (A145)", () =>
     const hash = createLogHasher({ run, atOnce: 1, waiting: 4 });
     const flood = [1, 2, 3, 4, 5].map((i) => hash([i], `2001:db8:145:${i}::/64`));
     const honest = hash([9], "198.51.100.145");
-    const settled = await Promise.race([Promise.all(flood.slice(2)), new Promise((r) => setTimeout(() => r("waiting"), 50))]);
+    const settled = await Promise.race([
+      Promise.all(flood.slice(2)),
+      new Promise((r) => setTimeout(() => r("waiting"), 50)),
+    ]);
     expect(settled, "the flood's extra asks are answered at once").not.toBe("waiting");
     release();
     expect(await honest, "the honest publish was kept in line").toBe("0x00");
@@ -115,14 +125,22 @@ describe("cheap bounds come before the hash, and junk is charged (A114)", () => 
     const store = createDiaryStore(tmp(), { now: () => NOW, perAddressBytesPerDay: 50_000 });
     const hash = vi.fn(hashHere);
     const good = junk("3", 4_000);
-    expect(await store.publishLog(good, onChain(chainAll(ZERO_HASH, good.words)), "a", hash)).toEqual({ ok: true, beats: 4_000 });
+    expect(await store.publishLog(good, onChain(chainAll(ZERO_HASH, good.words)), "a", hash)).toEqual({
+      ok: true,
+      beats: 4_000,
+    });
     hash.mockClear();
     // too long for a pet hatched a minute ago
-    expect(await store.publishLog(junk("4", 9_000), { logHash: "0x00", born: Math.floor(NOW / 1000) - 60 }, "a", hash)).toEqual({ ok: false, reason: "tooLong" });
+    expect(
+      await store.publishLog(junk("4", 9_000), { logHash: "0x00", born: Math.floor(NOW / 1000) - 60 }, "a", hash),
+    ).toEqual({ ok: false, reason: "tooLong" });
     // shorter than the diary kept
     expect(await store.publishLog(junk("3", 100), onChain("0x00"), "b", hash)).toEqual({ ok: false, reason: "older" });
     // more than the sender may send today
-    expect(await store.publishLog(junk("6", 20_000), onChain("0x00"), "a", hash)).toEqual({ ok: false, reason: "busy" });
+    expect(await store.publishLog(junk("6", 20_000), onChain("0x00"), "a", hash)).toEqual({
+      ok: false,
+      reason: "busy",
+    });
     expect(hash).not.toHaveBeenCalled();
   });
 
@@ -136,10 +154,17 @@ describe("cheap bounds come before the hash, and junk is charged (A114)", () => 
     }
     expect(results.filter((x) => x === "mismatch").length).toBeLessThan(6);
     expect(results.at(-1)).toBe("busy");
-    expect(hash.mock.calls.length, "only the posts within the budget were hashed").toBe(results.filter((x) => x === "mismatch").length);
+    expect(hash.mock.calls.length, "only the posts within the budget were hashed").toBe(
+      results.filter((x) => x === "mismatch").length,
+    );
     // another sender is not held up
     const good = junk("8", 5_000);
-    const fair = await store.publishLog({ ...good, words: good.words.slice(0, 10), segments: [{ brainId: "1", words: good.words.slice(0, 10) }] }, onChain(chainAll(ZERO_HASH, good.words.slice(0, 10))), "someone-else", hash);
+    const fair = await store.publishLog(
+      { ...good, words: good.words.slice(0, 10), segments: [{ brainId: "1", words: good.words.slice(0, 10) }] },
+      onChain(chainAll(ZERO_HASH, good.words.slice(0, 10))),
+      "someone-else",
+      hash,
+    );
     expect(fair).toEqual({ ok: true, beats: 10 });
   });
 });

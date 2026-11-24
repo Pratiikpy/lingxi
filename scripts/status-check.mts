@@ -41,7 +41,9 @@ const release = args.includes("--release");
 /** at a milestone's close the on-chain copy must be current too (between closes it is published once per milestone) */
 const milestone = args.includes("--milestone") || release;
 const onlyArg = args.find((a) => a.startsWith("--only"));
-const only = onlyArg ? (onlyArg.includes("=") ? onlyArg.split("=")[1]! : args[args.indexOf(onlyArg) + 1]!).split(",") : null;
+const only = onlyArg
+  ? (onlyArg.includes("=") ? onlyArg.split("=")[1]! : args[args.indexOf(onlyArg) + 1]!).split(",")
+  : null;
 
 const LIVE = process.env.LINGXI_LIVE_URL ?? LINGXI_SITE;
 /** The live server on this machine, answered directly: only it gives the health detail (A64). */
@@ -71,7 +73,12 @@ function run(cmd: string, cmdArgs: string[], cwd = root, timeoutMs = 30 * 60_000
 }
 
 function tail(out: string): string {
-  return out.trim().split(/\r?\n/).slice(-TAIL_LINES).map((l) => `          ${l}`).join("\n");
+  return out
+    .trim()
+    .split(/\r?\n/)
+    .slice(-TAIL_LINES)
+    .map((l) => `          ${l}`)
+    .join("\n");
 }
 
 /** Where a failing step's whole output is kept, so a failure that does not come back can still be read. */
@@ -107,18 +114,35 @@ function codeChecks(): void {
   step("code", "lint", "pnpm", ["lint"]);
   step("code", "tests, every package", "pnpm", ["-r", "test"]);
   step("code", "contract tests", "forge", ["test"], join(root, "contracts"));
-  step("code", "README numbers match the repo", "pnpm", ["exec", "tsx", "scripts/readme-facts.mts", "--check", ...(quick ? ["--no-tests"] : [])]);
+  step("code", "README numbers match the repo", "pnpm", [
+    "exec",
+    "tsx",
+    "scripts/readme-facts.mts",
+    "--check",
+    ...(quick ? ["--no-tests"] : []),
+  ]);
   if (quick) {
     record("code", "contract tests on a mainnet fork", "PENDING", "skipped by --quick", Date.now());
   } else {
-    step("code", "contract tests on a mainnet fork (reads X Layer only)", "forge", ["test", "--fork-url", "xlayer", "--match-path", "test/*.fork.t.sol"], join(root, "contracts"));
+    step(
+      "code",
+      "contract tests on a mainnet fork (reads X Layer only)",
+      "forge",
+      ["test", "--fork-url", "xlayer", "--match-path", "test/*.fork.t.sol"],
+      join(root, "contracts"),
+    );
   }
 }
 
 // ---------------------------------------------------------------- hygiene
 
 const TRAILERS = [/^Co-Authored-By:/im, /^Claude-Session:/im, /Generated with \[?Claude/i];
-const SECRET = [/-----BEGIN [A-Z ]*PRIVATE KEY-----/, /\b0x[0-9a-fA-F]{64}\b(?=[^\n]*(?:key|secret|private|mnemonic))/i, /\bsk-ant-[A-Za-z0-9_-]{20,}/, /\bsk-[A-Za-z0-9]{32,}/];
+const SECRET = [
+  /-----BEGIN [A-Z ]*PRIVATE KEY-----/,
+  /\b0x[0-9a-fA-F]{64}\b(?=[^\n]*(?:key|secret|private|mnemonic))/i,
+  /\bsk-ant-[A-Za-z0-9_-]{20,}/,
+  /\bsk-[A-Za-z0-9]{32,}/,
+];
 /** Files read as bytes, not text. */
 const BINARY = /\.(png|jpe?g|gif|webp|wav|mp3|ogg|mp4|webm|wasm|bin|woff2?|ttf|ico)$/i;
 /** Lockfiles: generated, and their integrity hashes are random letters that can spell anything. */
@@ -127,7 +151,9 @@ const LOCKFILE = /(^|\/)pnpm-lock\.yaml$/;
 const VENDORED = /^contracts\/lib\//;
 
 function hygieneChecks(): void {
-  const files = git("ls-files").split("\n").filter((f) => f && !VENDORED.test(f));
+  const files = git("ls-files")
+    .split("\n")
+    .filter((f) => f && !VENDORED.test(f));
 
   let t = Date.now();
   const named = files.filter((f) => hasBannedName(f));
@@ -140,14 +166,38 @@ function hygieneChecks(): void {
     if (hit) inside.push(`${f}:${hit.line} "${hit.context}"`);
   }
   const hits = [...named.map((f) => `file name ${f}`), ...inside];
-  record("hygiene", "no source-game names in tracked files", hits.length ? "FAIL" : "PASS", hits.length ? `${hits.length} files, first: ${hits.slice(0, 8).join("; ")}` : `${files.length} files`, t);
+  record(
+    "hygiene",
+    "no source-game names in tracked files",
+    hits.length ? "FAIL" : "PASS",
+    hits.length ? `${hits.length} files, first: ${hits.slice(0, 8).join("; ")}` : `${files.length} files`,
+    t,
+  );
 
   t = Date.now();
-  const messages = git("log", "--all", "--format=%H%x00%an <%ae>%x00%B%x01").split("\x01").filter((m) => m.trim());
-  const bad = messages.filter((m) => TRAILERS.some((re) => re.test(m)) || scanNames(m.split("\x00")[2] ?? "", 1).length > 0);
+  const messages = git("log", "--all", "--format=%H%x00%an <%ae>%x00%B%x01")
+    .split("\x01")
+    .filter((m) => m.trim());
+  const bad = messages.filter(
+    (m) => TRAILERS.some((re) => re.test(m)) || scanNames(m.split("\x00")[2] ?? "", 1).length > 0,
+  );
   const authors = new Set(messages.map((m) => m.split("\x00")[1]!.trim()));
-  record("hygiene", "commit messages carry no AI trailers or forbidden names", bad.length ? "FAIL" : "PASS", bad.length ? `${bad.length} of ${messages.length} commits, first ${bad[0]!.trim().slice(0, 12)}` : `${messages.length} commits`, t);
-  record("hygiene", "one public author identity", authors.size === 1 ? "PASS" : "FAIL", [...authors].map((a) => a.replace(/<.*>/, "<…>")).join(", "), Date.now());
+  record(
+    "hygiene",
+    "commit messages carry no AI trailers or forbidden names",
+    bad.length ? "FAIL" : "PASS",
+    bad.length
+      ? `${bad.length} of ${messages.length} commits, first ${bad[0]!.trim().slice(0, 12)}`
+      : `${messages.length} commits`,
+    t,
+  );
+  record(
+    "hygiene",
+    "one public author identity",
+    authors.size === 1 ? "PASS" : "FAIL",
+    [...authors].map((a) => a.replace(/<.*>/, "<…>")).join(", "),
+    Date.now(),
+  );
 
   t = Date.now();
   const leaks: string[] = [];
@@ -174,9 +224,28 @@ function promised(name: string, script: string, cmd: string, cmdArgs: string[], 
 }
 
 function promiseChecks(): void {
-  promised("balance targets", "packages/game/test/balance.test.ts", "pnpm", ["--filter", "@lingxi/game", "exec", "vitest", "run", "test/balance.test.ts"]);
-  promised("the 90-day simulator inside its targets", "packages/game/scripts/sim90.ts", "pnpm", ["--filter", "@lingxi/game", "exec", "tsx", "scripts/sim90.ts", "--check"]);
-  promised("every public claim checked", "scripts/claims-check.mts", "pnpm", ["exec", "tsx", "scripts/claims-check.mts", ...(milestone ? ["--milestone"] : [])]);
+  promised("balance targets", "packages/game/test/balance.test.ts", "pnpm", [
+    "--filter",
+    "@lingxi/game",
+    "exec",
+    "vitest",
+    "run",
+    "test/balance.test.ts",
+  ]);
+  promised("the 90-day simulator inside its targets", "packages/game/scripts/sim90.ts", "pnpm", [
+    "--filter",
+    "@lingxi/game",
+    "exec",
+    "tsx",
+    "scripts/sim90.ts",
+    "--check",
+  ]);
+  promised("every public claim checked", "scripts/claims-check.mts", "pnpm", [
+    "exec",
+    "tsx",
+    "scripts/claims-check.mts",
+    ...(milestone ? ["--milestone"] : []),
+  ]);
 }
 
 // ---------------------------------------------------------------- sites
@@ -201,9 +270,18 @@ async function served(base: string): Promise<{ commit: string; dirty: boolean; b
 async function siteChecks(): Promise<void> {
   const head = git("rev-parse", "HEAD").trim();
   const dirty = git("status", "--porcelain", "--untracked-files=no").trim().length > 0;
-  record("sites", "this checkout is committed", dirty ? "FAIL" : "PASS", dirty ? "uncommitted changes: a site cannot be serving them honestly" : head.slice(0, 12), Date.now());
+  record(
+    "sites",
+    "this checkout is committed",
+    dirty ? "FAIL" : "PASS",
+    dirty ? "uncommitted changes: a site cannot be serving them honestly" : head.slice(0, 12),
+    Date.now(),
+  );
 
-  for (const [name, base] of [["live site", LIVE], ["on-chain copy (read from X Layer)", DEWEB_URL]] as const) {
+  for (const [name, base] of [
+    ["live site", LIVE],
+    ["on-chain copy (read from X Layer)", DEWEB_URL],
+  ] as const) {
     const t = Date.now();
     const s = await served(base);
     if (typeof s === "string") {
@@ -212,11 +290,21 @@ async function siteChecks(): Promise<void> {
     }
     // a site built from an older commit is still current when nothing it is made of changed since
     const inputs = base === DEWEB_URL ? SITE_INPUTS : [...SITE_INPUTS, ...SERVER_INPUTS];
-    const { current: same, why } = currentness(s, head, (commit) => spawnSync("git", ["diff", "--quiet", commit, head, "--", ...inputs], { cwd: root }).status === 0);
+    const { current: same, why } = currentness(
+      s,
+      head,
+      (commit) => spawnSync("git", ["diff", "--quiet", commit, head, "--", ...inputs], { cwd: root }).status === 0,
+    );
     // the on-chain copy is published at the end of each milestone (about 0.01 OKB a time, see the plan), so between
     // those it may lag; it is pending then, and a failure at a milestone's close or a release
     const lagsByDesign = !same && base === DEWEB_URL && !s.dirty && !milestone;
-    record("sites", `${name} is current`, same ? "PASS" : lagsByDesign ? "PENDING" : "FAIL", lagsByDesign ? `${why} (published at the milestone's close)` : why, t);
+    record(
+      "sites",
+      `${name} is current`,
+      same ? "PASS" : lagsByDesign ? "PENDING" : "FAIL",
+      lagsByDesign ? `${why} (published at the milestone's close)` : why,
+      t,
+    );
   }
 
   // the README's images show the game as it is (A100): each was taken from a live build (`pnpm readme:shots` and
@@ -231,9 +319,27 @@ async function siteChecks(): Promise<void> {
     }
     const taken = ["proof.png", "numbers.png", "tree.png", "play.png", "world.png", "chain.png"];
     const missing = taken.filter((f) => !shots[f]);
-    const stale = taken.filter((f) => shots[f] && !currentness({ commit: shots[f].commit, dirty: false, builtAt: "" }, head, (c) => spawnSync("git", ["diff", "--quiet", c, head, "--", ...SITE_INPUTS], { cwd: root }).status === 0).current);
-    const why = missing.length ? `not recorded as taken from a live build: ${missing.join(", ")}` : stale.length ? `taken from a build the game has changed since: ${stale.join(", ")} (retake with pnpm readme:shots / readme:phones)` : `all ${taken.length} taken from a build the game has not changed since`;
-    record("sites", "README images show the current game", missing.length ? "FAIL" : !stale.length ? "PASS" : milestone ? "FAIL" : "PENDING", why, t);
+    const stale = taken.filter(
+      (f) =>
+        shots[f] &&
+        !currentness(
+          { commit: shots[f].commit, dirty: false, builtAt: "" },
+          head,
+          (c) => spawnSync("git", ["diff", "--quiet", c, head, "--", ...SITE_INPUTS], { cwd: root }).status === 0,
+        ).current,
+    );
+    const why = missing.length
+      ? `not recorded as taken from a live build: ${missing.join(", ")}`
+      : stale.length
+        ? `taken from a build the game has changed since: ${stale.join(", ")} (retake with pnpm readme:shots / readme:phones)`
+        : `all ${taken.length} taken from a build the game has not changed since`;
+    record(
+      "sites",
+      "README images show the current game",
+      missing.length ? "FAIL" : !stale.length ? "PASS" : milestone ? "FAIL" : "PENDING",
+      why,
+      t,
+    );
   }
 
   const t = Date.now();
@@ -241,36 +347,97 @@ async function siteChecks(): Promise<void> {
     // the switches through the tunnel, as the world sees them; the detail only from this machine directly (A64)
     const { res: r, retried } = await steadyFetch(`${LIVE}/api/health`);
     const pub = (await r.json()) as Record<string, unknown>;
-    const local = (await (await fetch(`${LOCAL_API}/api/health`, { signal: AbortSignal.timeout(20_000) })).json()) as { detail?: unknown };
-    if (pub.detail !== undefined) throw new Error("the public health answer carries its detail: it must go to this machine only");
+    const local = (await (await fetch(`${LOCAL_API}/api/health`, { signal: AbortSignal.timeout(20_000) })).json()) as {
+      detail?: unknown;
+    };
+    if (pub.detail !== undefined)
+      throw new Error("the public health answer carries its detail: it must go to this machine only");
     const j = { ...pub, detail: local.detail } as Record<string, unknown> & {
-      detail?: { jobs?: Record<string, string>; relayerOkb?: number | null; relayerLow?: boolean; relayerBem?: number | null; relayerBemTapeouts?: number | null; relayerBemLow?: boolean; indexerLagBlocks?: number | null; backup?: { ageHours: number; local: boolean; drive: boolean; error: string | null } | null; watchdog?: { ageSeconds: number } | null };
+      detail?: {
+        jobs?: Record<string, string>;
+        relayerOkb?: number | null;
+        relayerLow?: boolean;
+        relayerBem?: number | null;
+        relayerBemTapeouts?: number | null;
+        relayerBemLow?: boolean;
+        indexerLagBlocks?: number | null;
+        backup?: { ageHours: number; local: boolean; drive: boolean; error: string | null } | null;
+        watchdog?: { ageSeconds: number } | null;
+      };
     };
     // the switches are booleans; every background job must also be healthy
-    const down = Object.entries(j).filter(([k, v]) => k !== "detail" && v !== true).map(([k]) => k);
-    const failing = Object.entries(j.detail?.jobs ?? {}).filter(([, v]) => v !== "ok").map(([k, v]) => `${k} ${v}`);
+    const down = Object.entries(j)
+      .filter(([k, v]) => k !== "detail" && v !== true)
+      .map(([k]) => k);
+    const failing = Object.entries(j.detail?.jobs ?? {})
+      .filter(([, v]) => v !== "ok")
+      .map(([k, v]) => `${k} ${v}`);
     // a day's backup must have reached both places, and the relayer must not be running low
     const b = j.detail?.backup;
-    if (j.detail && (!b || b.ageHours > 26 || !b.local || !b.drive)) failing.push(`backup ${b ? `${b.ageHours}h old, local ${b.local}, drive ${b.drive}${b.error ? `: ${b.error}` : ""}` : "never ran"}`);
+    if (j.detail && (!b || b.ageHours > 26 || !b.local || !b.drive))
+      failing.push(
+        `backup ${b ? `${b.ageHours}h old, local ${b.local}, drive ${b.drive}${b.error ? `: ${b.error}` : ""}` : "never ran"}`,
+      );
     if (j.detail?.relayerLow) failing.push(`relayer low: ${j.detail.relayerOkb} OKB`);
     // the processor takes the transistor fee in BEM: below ten tape-outs' worth, players would soon be refused (A40)
-    if (j.detail?.relayerBemLow) failing.push(`relayer's BEM low: ${j.detail.relayerBem} BEM, ${j.detail.relayerBemTapeouts} tape-outs' fees`);
+    if (j.detail?.relayerBemLow)
+      failing.push(`relayer's BEM low: ${j.detail.relayerBem} BEM, ${j.detail.relayerBemTapeouts} tape-outs' fees`);
     // the watchdog beats every minute; three minutes without one means nothing is watching the site
     const wd = j.detail?.watchdog;
-    if (j.detail && (!wd || wd.ageSeconds > 180)) failing.push(`watchdog ${wd ? `silent for ${wd.ageSeconds}s` : "not running"}`);
+    if (j.detail && (!wd || wd.ageSeconds > 180))
+      failing.push(`watchdog ${wd ? `silent for ${wd.ageSeconds}s` : "not running"}`);
     const facts = `${j.detail ? `; relayer ${j.detail.relayerOkb ?? "?"} OKB and ${j.detail.relayerBem ?? "?"} BEM (${j.detail.relayerBemTapeouts ?? "?"} tape-outs' fees), indexer ${j.detail.indexerLagBlocks ?? "?"} blocks behind` : ""}${retried.length ? `; ${retryNote("health", retried)}` : ""}`;
     // P3b: the server runs from a build; that build must come from this checkout, or from a commit whose server code
     // (the server, its packages, its settings) has not changed since
-    const sb = (local.detail as { server?: { commit: string; dirty: boolean; builtAt: string } | "source" } | undefined)?.server;
-    const serverInputs = [...SERVER_INPUTS, ...["brain", "game", "world", "art", "send", "chain"].map((p) => `packages/${p}/src`), "pnpm-lock.yaml", ":(exclude)**/*.test.ts"];
-    if (!sb) record("sites", "live server runs this checkout's server code", "FAIL", "the server does not say which build it runs", t);
-    else if (sb === "source") record("sites", "live server runs this checkout's server code", "FAIL", "it runs from source through tsx, not from its build (pnpm server:release)", t);
+    const sb = (local.detail as { server?: { commit: string; dirty: boolean; builtAt: string } | "source" } | undefined)
+      ?.server;
+    const serverInputs = [
+      ...SERVER_INPUTS,
+      ...["brain", "game", "world", "art", "send", "chain"].map((p) => `packages/${p}/src`),
+      "pnpm-lock.yaml",
+      ":(exclude)**/*.test.ts",
+    ];
+    if (!sb)
+      record(
+        "sites",
+        "live server runs this checkout's server code",
+        "FAIL",
+        "the server does not say which build it runs",
+        t,
+      );
+    else if (sb === "source")
+      record(
+        "sites",
+        "live server runs this checkout's server code",
+        "FAIL",
+        "it runs from source through tsx, not from its build (pnpm server:release)",
+        t,
+      );
     else {
       const head = git("rev-parse", "HEAD").trim();
-      const { current, why } = currentness(sb, head, (commit) => spawnSync("git", ["diff", "--quiet", commit, head, "--", ...serverInputs], { cwd: root }).status === 0);
-      record("sites", "live server runs this checkout's server code", current ? "PASS" : "FAIL", current ? why : `${why} (pnpm server:release)`, t);
+      const { current, why } = currentness(
+        sb,
+        head,
+        (commit) =>
+          spawnSync("git", ["diff", "--quiet", commit, head, "--", ...serverInputs], { cwd: root }).status === 0,
+      );
+      record(
+        "sites",
+        "live server runs this checkout's server code",
+        current ? "PASS" : "FAIL",
+        current ? why : `${why} (pnpm server:release)`,
+        t,
+      );
     }
-    record("sites", "live server's parts and jobs are all up", r.ok && !down.length && !failing.length ? "PASS" : "FAIL", [down.length ? `down: ${down.join(", ")}` : "", failing.length ? `failing: ${failing.join("; ")}` : ""].filter(Boolean).join(" ") || `${Object.keys(j.detail?.jobs ?? {}).length} jobs ok${facts}`, t);
+    record(
+      "sites",
+      "live server's parts and jobs are all up",
+      r.ok && !down.length && !failing.length ? "PASS" : "FAIL",
+      [down.length ? `down: ${down.join(", ")}` : "", failing.length ? `failing: ${failing.join("; ")}` : ""]
+        .filter(Boolean)
+        .join(" ") || `${Object.keys(j.detail?.jobs ?? {}).length} jobs ok${facts}`,
+      t,
+    );
   } catch (e) {
     record("sites", "live server's parts are all up", "FAIL", e instanceof Error ? e.message : String(e), t);
   }
@@ -295,7 +462,13 @@ function planChecks(): void {
     .filter((m): m is RegExpExecArray => m !== null)
     .map((m) => ({ id: m[1]!, status: m[2]! }));
   const inProgress = rows.filter((r) => /in progress/i.test(r.status));
-  record("plan", "at most one row in progress", inProgress.length <= 1 ? "PASS" : "FAIL", `${rows.length} rows; in progress: ${inProgress.map((r) => r.id).join(", ") || "none"}`, t);
+  record(
+    "plan",
+    "at most one row in progress",
+    inProgress.length <= 1 ? "PASS" : "FAIL",
+    `${rows.length} rows; in progress: ${inProgress.map((r) => r.id).join(", ") || "none"}`,
+    t,
+  );
 
   const proof = existsSync(STATUS) ? readFileSync(STATUS, "utf8") : "";
   const done = rows.filter((r) => /^done\b/i.test(r.status));
@@ -303,15 +476,36 @@ function planChecks(): void {
     const section = /section\s+(\d+)/i.exec(r.status)?.[1];
     return !section || !new RegExp(`^#{1,4}\\s*${section}[.\\s]`, "m").test(proof);
   });
-  record("plan", "every done row names its proof section, and the section exists", unproven.length ? "FAIL" : "PASS", unproven.length ? `unproven: ${unproven.map((r) => r.id).join(", ")}` : `${done.length} done`, Date.now());
+  record(
+    "plan",
+    "every done row names its proof section, and the section exists",
+    unproven.length ? "FAIL" : "PASS",
+    unproven.length ? `unproven: ${unproven.map((r) => r.id).join(", ")}` : `${done.length} done`,
+    Date.now(),
+  );
 
   // every done row has a patch that undoes it and the test that must then fail, or its reason for none is written down
   // (scripts/regressions/without.json), so the README's sentence about them stays true (A106)
   {
-    const pairs = new Set((JSON.parse(readFileSync(join(root, "scripts/regressions/list.json"), "utf8")) as Array<{ row: string }>).map((e) => e.row));
-    const without = JSON.parse(readFileSync(join(root, "scripts/regressions/without.json"), "utf8")) as Record<string, string>;
+    const pairs = new Set(
+      (JSON.parse(readFileSync(join(root, "scripts/regressions/list.json"), "utf8")) as Array<{ row: string }>).map(
+        (e) => e.row,
+      ),
+    );
+    const without = JSON.parse(readFileSync(join(root, "scripts/regressions/without.json"), "utf8")) as Record<
+      string,
+      string
+    >;
     const bare = done.filter((r) => /^A\d+$/.test(r.id) && !pairs.has(r.id) && !without[r.id]).map((r) => r.id);
-    record("plan", "every done row has a revert pair, or a reason for none", bare.length ? "FAIL" : "PASS", bare.length ? `no pair and no reason: ${bare.join(", ")}` : `${Object.keys(without).length} rows without a pair, each with its reason`, Date.now());
+    record(
+      "plan",
+      "every done row has a revert pair, or a reason for none",
+      bare.length ? "FAIL" : "PASS",
+      bare.length
+        ? `no pair and no reason: ${bare.join(", ")}`
+        : `${Object.keys(without).length} rows without a pair, each with its reason`,
+      Date.now(),
+    );
   }
 
   const open = rows.filter((r) => !/^(done|waiting|later)\b/i.test(r.status));
@@ -329,5 +523,7 @@ if (wanted("plan")) planChecks();
 
 const count = (v: Verdict) => results.filter((r) => r.verdict === v).length;
 const failed = count("FAIL") + (release ? count("PENDING") : 0);
-console.log(`\n${count("PASS")} pass, ${count("FAIL")} fail, ${count("PENDING")} pending${failed ? " — NOT GREEN" : " — green"}`);
+console.log(
+  `\n${count("PASS")} pass, ${count("FAIL")} fail, ${count("PENDING")} pending${failed ? " — NOT GREEN" : " — green"}`,
+);
 process.exit(failed ? 1 : 0);

@@ -19,7 +19,9 @@
   border: 2px solid var(--line);
   border-radius: var(--r-sm);
   background: var(--card);
-  transition: background var(--t-micro) var(--ease), transform var(--t-micro) var(--ease);
+  transition:
+    background var(--t-micro) var(--ease),
+    transform var(--t-micro) var(--ease);
 }
 .handheld-snacks li.on {
   background: var(--tint);

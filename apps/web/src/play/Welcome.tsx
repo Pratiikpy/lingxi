@@ -8,7 +8,21 @@
 import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { DECOR_BY_ID, HOME, ITEM, ROOMS } from "@lingxi/world";
-import { type Frame, type Pet, type VisitorGift, awayFind, awayNeeds, awaySeed, rewind, ruleSource, schoolIdsOf, stageOf, strongestHabit, tellMoments, visitorsDuring } from "@lingxi/game";
+import {
+  type Frame,
+  type Pet,
+  type VisitorGift,
+  awayFind,
+  awayNeeds,
+  awaySeed,
+  rewind,
+  ruleSource,
+  schoolIdsOf,
+  stageOf,
+  strongestHabit,
+  tellMoments,
+  visitorsDuring,
+} from "@lingxi/game";
 import { VisitorArt, useAlbum } from "./Album";
 import { useLang } from "../i18n";
 import { mindForPet, useGame } from "../game/store";
@@ -40,7 +54,10 @@ function claim(key: string): void {
   }
 }
 
-const clock = (f: Frame, lang: Lang) => (f.at === null ? "" : new Date(f.at).toLocaleTimeString(lang === "zh" ? "zh-CN" : "en-GB", { hour: "2-digit", minute: "2-digit" }));
+const clock = (f: Frame, lang: Lang) =>
+  f.at === null
+    ? ""
+    : new Date(f.at).toLocaleTimeString(lang === "zh" ? "zh-CN" : "en-GB", { hour: "2-digit", minute: "2-digit" });
 
 const LOW: Record<"food" | "joy" | "energy" | "clean", { en: string; zh: string }> = {
   food: { en: "hungry", zh: "饿了" },
@@ -53,11 +70,20 @@ const LOW: Record<"food" | "joy" | "energy" | "clean", { en: string; zh: string 
 export function needsText(pet: Pick<Pet, "name" | "meters" | "sick" | "hibernating">, lang: Lang): string {
   const n = awayNeeds(pet);
   const list = n.low.map((k) => LOW[k][lang]);
-  const join = (xs: string[]) => (lang === "zh" ? xs.join("、") : xs.length > 1 ? `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}` : (xs[0] ?? ""));
+  const join = (xs: string[]) =>
+    lang === "zh" ? xs.join("、") : xs.length > 1 ? `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}` : (xs[0] ?? "");
   if (n.kind === "hibernating")
-    return lang === "zh" ? `${pet.name}的食物吃完了，沉沉睡着了。喂它或摸摸它就会醒。` : `${pet.name}'s food ran out and it fell into a long sleep. Feed it or give it a pat to wake it.`;
-  if (n.kind === "sick") return lang === "zh" ? `好几天没人照顾，${pet.name}生病了。吃药就会好。` : `After days without care, ${pet.name} fell ill. Medicine makes it well.`;
-  if (n.kind === "waiting") return lang === "zh" ? `它的需求停在最低处等你回来：现在${join(list)}。` : `Its needs waited for you at their lowest: it is ${join(list)} now.`;
+    return lang === "zh"
+      ? `${pet.name}的食物吃完了，沉沉睡着了。喂它或摸摸它就会醒。`
+      : `${pet.name}'s food ran out and it fell into a long sleep. Feed it or give it a pat to wake it.`;
+  if (n.kind === "sick")
+    return lang === "zh"
+      ? `好几天没人照顾，${pet.name}生病了。吃药就会好。`
+      : `After days without care, ${pet.name} fell ill. Medicine makes it well.`;
+  if (n.kind === "waiting")
+    return lang === "zh"
+      ? `它的需求停在最低处等你回来：现在${join(list)}。`
+      : `Its needs waited for you at their lowest: it is ${join(list)} now.`;
   return lang === "zh" ? `它的需求都还好好的。` : `Its needs held up well.`;
 }
 
@@ -80,7 +106,14 @@ function leadWithTaught(frames: Frame[]): Frame[] {
 /** What a visitor may notice about this pet (G4): the lessons it knows, its habits, its line, stage and form. */
 function visitContextOf(pet: Pet, ms: number) {
   const stage = stageOf(pet, ms);
-  return { lessons: schoolIdsOf(pet.lessons), traits: pet.traits, line: pet.line, stage, tzOffsetMin: pet.tzOffsetMin, ...(pet.form ? { form: pet.form } : {}) };
+  return {
+    lessons: schoolIdsOf(pet.lessons),
+    traits: pet.traits,
+    line: pet.line,
+    stage,
+    tzOffsetMin: pet.tzOffsetMin,
+    ...(pet.form ? { form: pet.form } : {}),
+  };
 }
 
 /** A visitor's keepsake in words (G4). */
@@ -135,9 +168,23 @@ function AwayCard({ pet, absence }: { pet: Pet; absence: { petKey: string; from:
   const hours = Math.max(1, Math.round((absence.to - absence.from) / 60));
   const item = find !== null ? ITEM[find] : undefined;
   return (
-    <div className="fam-modal" role="dialog" aria-modal="true" aria-label={lang === "zh" ? "你不在的时候" : "While you were away"}>
-      <motion.div className="fam-card welcome-card" initial={reduce ? false : { y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: "spring", stiffness: 320, damping: 26 }}>
-        <p className="label">{lang === "zh" ? `你不在的这 ${hours} 小时` : `While you were away · ${hours} ${hours === 1 ? "hour" : "hours"}`}</p>
+    <div
+      className="fam-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label={lang === "zh" ? "你不在的时候" : "While you were away"}
+    >
+      <motion.div
+        className="fam-card welcome-card"
+        initial={reduce ? false : { y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 320, damping: 26 }}
+      >
+        <p className="label">
+          {lang === "zh"
+            ? `你不在的这 ${hours} 小时`
+            : `While you were away · ${hours} ${hours === 1 ? "hour" : "hours"}`}
+        </p>
         {visits.length > 0 && (
           <div className="welcome-visitors">
             <p className="small">{lang === "zh" ? "来串门的：" : "Who came by:"}</p>
@@ -147,7 +194,9 @@ function AwayCard({ pet, absence }: { pet: Pet; absence: { petKey: string; from:
                   <VisitorArt v={v} scale={2} />
                   <span>
                     {v.name[lang]}
-                    {visits.filter((x) => x.visitor.id === v.id).length > 1 ? ` ×${visits.filter((x) => x.visitor.id === v.id).length}` : ""}
+                    {visits.filter((x) => x.visitor.id === v.id).length > 1
+                      ? ` ×${visits.filter((x) => x.visitor.id === v.id).length}`
+                      : ""}
                   </span>
                 </li>
               ))}
@@ -158,7 +207,9 @@ function AwayCard({ pet, absence }: { pet: Pet; absence: { petKey: string; from:
           <ul className="welcome-keepsakes">
             {kept.map((k, i) => (
               <li key={i} className="small">
-                {lang === "zh" ? `${k.visitor.name.zh}留下了纪念品：${giftText(k.gift, lang)}。` : `${k.visitor.name.en} left a keepsake: ${giftText(k.gift, lang)}.`}
+                {lang === "zh"
+                  ? `${k.visitor.name.zh}留下了纪念品：${giftText(k.gift, lang)}。`
+                  : `${k.visitor.name.en} left a keepsake: ${giftText(k.gift, lang)}.`}
               </li>
             ))}
           </ul>
@@ -171,22 +222,37 @@ function AwayCard({ pet, absence }: { pet: Pet; absence: { petKey: string; from:
               return (
                 <li key={f.index}>
                   <b>{clock(f, lang)}</b> {EVENT_TEXT[f.senses.event]![lang]}
-                  {said && <span> {lang === "zh" ? `${pet.name}：` : `${pet.name}: `}“{said}”</span>}
+                  {said && (
+                    <span>
+                      {" "}
+                      {lang === "zh" ? `${pet.name}：` : `${pet.name}: `}“{said}”
+                    </span>
+                  )}
                 </li>
               );
             })}
           </ul>
         ) : (
-          <p>{lang === "zh" ? `一切都很安静。${pet.name}${story.napped ? "睡了一会儿，" : ""}自己玩了一阵。` : `All quiet. ${pet.name}${story.napped ? " napped a while and" : ""} kept itself busy.`}</p>
+          <p>
+            {lang === "zh"
+              ? `一切都很安静。${pet.name}${story.napped ? "睡了一会儿，" : ""}自己玩了一阵。`
+              : `All quiet. ${pet.name}${story.napped ? " napped a while and" : ""} kept itself busy.`}
+          </p>
         )}
         <p className="welcome-needs">{needsText(pet, lang)}</p>
         {item && (
           <p className="welcome-find">
             <img className="pixel" src={item.art} alt="" width={32} height={32} />
-            {lang === "zh" ? `它找到了「${item.name.zh}」，放进了背包。` : `It found something: ${item.name.en}. It is in your bag.`}
+            {lang === "zh"
+              ? `它找到了「${item.name.zh}」，放进了背包。`
+              : `It found something: ${item.name.en}. It is in your bag.`}
           </p>
         )}
-        <p className="small">{lang === "zh" ? "每一刻都是它的大脑在你离开时真实做出的决定，可以在倒带里看。" : "Every moment is what its brain really decided while you were gone; see them all in the rewind."}</p>
+        <p className="small">
+          {lang === "zh"
+            ? "每一刻都是它的大脑在你离开时真实做出的决定，可以在倒带里看。"
+            : "Every moment is what its brain really decided while you were gone; see them all in the rewind."}
+        </p>
         <button
           type="button"
           className="btn primary"

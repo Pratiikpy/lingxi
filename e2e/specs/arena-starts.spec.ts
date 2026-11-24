@@ -21,7 +21,9 @@ async function leaveMidFight(page: Page): Promise<void> {
   await expect(page.locator(".sheet")).toHaveCount(0);
 }
 
-test("a friend's duel link opens straight onto the fight, and leaving ends it (en light phone, zh dark desktop)", async ({ player }) => {
+test("a friend's duel link opens straight onto the fight, and leaving ends it (en light phone, zh dark desktop)", async ({
+  player,
+}) => {
   test.setTimeout(240_000);
   const a = await player({ lang: "en", scheme: "light", size: "phone" });
   await hatch(a, "Ari");
@@ -44,7 +46,9 @@ test("a friend's duel link opens straight onto the fight, and leaving ends it (e
   await leaveMidFight(b.page);
 });
 
-test("a duel's result comes back by a short link; a link the server does not keep says so (en light desktop challenges, zh dark phone answers)", async ({ player }) => {
+test("a duel's result comes back by a short link; a link the server does not keep says so (en light desktop challenges, zh dark phone answers)", async ({
+  player,
+}) => {
   test.setTimeout(240_000);
   const a = await player({ lang: "en", scheme: "light", size: "desktop" });
   await hatch(a, "Ari");
@@ -81,7 +85,10 @@ test("a duel's result comes back by a short link; a link the server does not kee
   await expect(lost).toHaveCount(0);
 });
 
-test("a friend's card starts a spar; a damaged one says so for a moment (en, light, phone)", async ({ player, run }) => {
+test("a friend's card starts a spar; a damaged one says so for a moment (en, light, phone)", async ({
+  player,
+  run,
+}) => {
   test.setTimeout(240_000);
   const p = await player({ lang: "en", scheme: "light", size: "phone", reducedMotion: true });
   const { page } = p;
@@ -109,7 +116,9 @@ test("a friend's card starts a spar; a damaged one says so for a moment (en, lig
   };
 
   await askSpar();
-  await expect(page.locator(".sp-fight"), "the spar screen opens onto a fight with the friend's pet").toContainText("Mallory");
+  await expect(page.locator(".sp-fight"), "the spar screen opens onto a fight with the friend's pet").toContainText(
+    "Mallory",
+  );
   await page.screenshot({ path: test.info().outputPath("card-fight-en-light-phone.png") });
   await leaveMidFight(page);
 

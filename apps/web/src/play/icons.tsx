@@ -317,7 +317,17 @@ const GRID: Record<string, readonly string[]> = {
 
 export type IconName = keyof typeof GRID;
 
-export function Icon({ name, size = 24, title, className }: { name: IconName; size?: number; title?: string; className?: string }) {
+export function Icon({
+  name,
+  size = 24,
+  title,
+  className,
+}: {
+  name: IconName;
+  size?: number;
+  title?: string;
+  className?: string;
+}) {
   const rows = GRID[name]!;
   const rects: string[] = [];
   rows.forEach((r, y) => {

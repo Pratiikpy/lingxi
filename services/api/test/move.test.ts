@@ -30,13 +30,23 @@ describe("moving pets between Telegram and a browser", () => {
 
   it("works over HTTP and rejects a malformed code", async () => {
     const app = withMove(new Hono(), createMoveStore());
-    const put = await app.request("/api/move", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ save }) });
+    const put = await app.request("/api/move", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ save }),
+    });
     const { code } = (await put.json()) as { code: string };
     expect((await app.request("/api/move/../claim", { method: "POST" })).status).toBe(404);
     expect((await app.request("/api/move/short/claim", { method: "POST" })).status).toBe(400);
-    const got = (await (await app.request(`/api/move/${code}/claim`, { method: "POST" })).json()) as { ok: boolean; save: unknown };
+    const got = (await (await app.request(`/api/move/${code}/claim`, { method: "POST" })).json()) as {
+      ok: boolean;
+      save: unknown;
+    };
     expect(got).toEqual({ ok: true, save });
-    expect(await (await app.request(`/api/move/${code}/claim`, { method: "POST" })).json()).toEqual({ ok: false, reason: "gone" });
+    expect(await (await app.request(`/api/move/${code}/claim`, { method: "POST" })).json()).toEqual({
+      ok: false,
+      reason: "gone",
+    });
   });
 });
 
@@ -71,7 +81,10 @@ describe("moves waiting at once", () => {
     const store = createMoveStore();
     const big = { "lingxi.pets.v2": "x".repeat(MAX_MOVE_CHARS - 20) };
     expect(store.put(big, "203.0.113.9").ok).toBe(true);
-    expect(store.put(big, "203.0.113.9"), "a second largest save is past one address's share").toEqual({ ok: false, reason: "busy" });
+    expect(store.put(big, "203.0.113.9"), "a second largest save is past one address's share").toEqual({
+      ok: false,
+      reason: "busy",
+    });
     expect(store.put(save, "203.0.113.9").ok, "a small one still fits beside it").toBe(true);
     // a /48 holds four addresses' worth across its /64s, then the rest of them wait
     let fromNetwork = 0;
@@ -91,7 +104,8 @@ describe("moves waiting at once", () => {
     // each network posts largest saves, then small ones, from many /64s, as one filling the shelf would
     const small = { "lingxi.pets.v2": "z".repeat(2_000) };
     for (let net = 0; net < 60; net++)
-      for (const save of [big, small]) for (let i = 0; i < 16; i++) store.put(save, `2001:db8:${(0x1410 + net).toString(16)}:${i.toString(16)}::/64`);
+      for (const save of [big, small])
+        for (let i = 0; i < 16; i++) store.put(save, `2001:db8:${(0x1410 + net).toString(16)}:${i.toString(16)}::/64`);
     const honest = { "lingxi.pets.v2": "y".repeat(20_000) };
     expect(store.put(honest, "203.0.113.141").ok, "a 20 KB move from someone new").toBe(true);
   });

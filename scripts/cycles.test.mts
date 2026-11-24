@@ -24,13 +24,17 @@ const SOURCES = [
 
 describe("no import cycles at run time (P7)", () => {
   for (const dir of SOURCES) {
-    it(dir, async () => {
-      const graph = await madge(join(root, dir), {
-        fileExtensions: ["ts", "tsx"],
-        tsConfig: dir === "apps/web/src" ? join(root, "apps/web/tsconfig.json") : undefined,
-        detectiveOptions: { ts: { skipTypeImports: true }, tsx: { skipTypeImports: true } },
-      });
-      expect(graph.circular().map((c: string[]) => c.join(" > "))).toEqual([]);
-    }, 120_000);
+    it(
+      dir,
+      async () => {
+        const graph = await madge(join(root, dir), {
+          fileExtensions: ["ts", "tsx"],
+          tsConfig: dir === "apps/web/src" ? join(root, "apps/web/tsconfig.json") : undefined,
+          detectiveOptions: { ts: { skipTypeImports: true }, tsx: { skipTypeImports: true } },
+        });
+        expect(graph.circular().map((c: string[]) => c.join(" > "))).toEqual([]);
+      },
+      120_000,
+    );
   }
 });

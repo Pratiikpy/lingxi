@@ -10,7 +10,12 @@ import type { ConditionView, WorldState } from "@lingxi/world";
 import { type Pet, friendPartner, petCard, questView } from "../../src";
 
 /** What a spar won pays and how long a round is shown: the game's own numbers, shared with the arena (spar.ts). */
-export { SPAR_WIN_COINS as WIN_COINS, SPAR_FIRST_WIN_COINS as FIRST_WIN_COINS, SPAR_ROUND_MS as ROUND_MS, SPAR_FIRST_ROUND_MS as FIRST_ROUND_MS } from "../../src";
+export {
+  SPAR_WIN_COINS as WIN_COINS,
+  SPAR_FIRST_WIN_COINS as FIRST_WIN_COINS,
+  SPAR_ROUND_MS as ROUND_MS,
+  SPAR_FIRST_ROUND_MS as FIRST_ROUND_MS,
+} from "../../src";
 
 /**
  * A pet's level in a spar by its stage. The client's Arena.tsx `levelOf` has a shared twin: the level a friend's
@@ -31,7 +36,26 @@ export function sparLevel(stage: string): number {
  * What a care, a food, a watched minute, the pet's choices while away, a talk and a look at a builder's pet count
  * toward, where each giver is found, and the view a quest condition reads: the client's own rules (G11), shared.
  */
-export { GIVER_ROOM, type TallyEntry, awayTally, careTally, fedTally, meetTally, minuteTally, talkTally } from "../../src";
+export {
+  GIVER_ROOM,
+  type TallyEntry,
+  awayTally,
+  careTally,
+  fedTally,
+  meetTally,
+  minuteTally,
+  talkTally,
+} from "../../src";
 
 /** The quest view for one pet raised alone, off chain, with no friends' pets (the client's conditionViewFrom). */
-export const viewOf = (w: WorldState, p: Pet, now: number): ConditionView => questView({ world: w, pet: p, pets: 1, onChain: false, bondLevel: 0, goalsDone: [], now, tzOffsetMin: p.tzOffsetMin });
+export const viewOf = (w: WorldState, p: Pet, now: number): ConditionView =>
+  questView({
+    world: w,
+    pet: p,
+    pets: 1,
+    onChain: false,
+    bondLevel: 0,
+    goalsDone: [],
+    now,
+    tzOffsetMin: p.tzOffsetMin,
+  });

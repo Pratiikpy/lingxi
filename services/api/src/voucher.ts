@@ -14,7 +14,8 @@ import { type Entry, reportGoals } from "./goals";
 /** A voucher is good for thirty days; asking again later gives a fresh one with the same nonce. */
 export const VOUCHER_DAYS = 30;
 
-export const keepsakeNonce = (goal: string, wallet: string): bigint => BigInt(keccak256(toBytes(`lingxi:keepsake:${goal}:${wallet.toLowerCase()}`)));
+export const keepsakeNonce = (goal: string, wallet: string): bigint =>
+  BigInt(keccak256(toBytes(`lingxi:keepsake:${goal}:${wallet.toLowerCase()}`)));
 
 export interface VoucherOptions {
   entries: () => readonly Entry[];
@@ -42,12 +43,24 @@ export function withVouchers(app: Hono, o: VoucherOptions): Hono {
     const [report] = reportGoals(o.entries(), [goal], now, [wallet]);
     if (!report || report.state !== "complete") return c.json({ ok: false, reason: "notComplete" }, 409);
     if (report.mine <= 0) return c.json({ ok: false, reason: "notContributor" }, 403);
-    const voucher = { to: wallet as Address, id: BigInt(itemId), quantity: 1, nonce: keepsakeNonce(goal.id, wallet), expiresAt: BigInt(now + VOUCHER_DAYS * 86_400) };
+    const voucher = {
+      to: wallet as Address,
+      id: BigInt(itemId),
+      quantity: 1,
+      nonce: keepsakeNonce(goal.id, wallet),
+      expiresAt: BigInt(now + VOUCHER_DAYS * 86_400),
+    };
     const signature: Hex = await o.signer.signTypedData(voucherTypedData(o.deployment as Deployment, voucher));
     return c.json({
       ok: true,
       piece: piece.id,
-      voucher: { to: voucher.to, id: voucher.id.toString(), quantity: voucher.quantity, nonce: voucher.nonce.toString(), expiresAt: voucher.expiresAt.toString() },
+      voucher: {
+        to: voucher.to,
+        id: voucher.id.toString(),
+        quantity: voucher.quantity,
+        nonce: voucher.nonce.toString(),
+        expiresAt: voucher.expiresAt.toString(),
+      },
       signature,
     });
   });

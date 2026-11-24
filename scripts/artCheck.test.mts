@@ -11,7 +11,9 @@ describe("the installed palettes, before the art is frozen (A17)", () => {
   });
 
   it("fails one with alpha 254, naming the role", () => {
-    expect(checkPalette(3, palette([...Array(4).fill("ff"), "fe", ...Array(11).fill("ff")])).problems).toEqual(["role 5 has alpha 254, written as broken CSS"]);
+    expect(checkPalette(3, palette([...Array(4).fill("ff"), "fe", ...Array(11).fill("ff")])).problems).toEqual([
+      "role 5 has alpha 254, written as broken CSS",
+    ]);
   });
 
   it("fails one that is missing or the wrong size", () => {

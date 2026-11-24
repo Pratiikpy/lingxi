@@ -13,7 +13,9 @@ describe("who is asking", () => {
   it("is the address Cloudflare saw, and never a header the caller wrote", async () => {
     expect(await ipOf({ "cf-connecting-ip": "203.0.113.9" })).toBe("203.0.113.9");
     expect(await ipOf({ "cf-connecting-ip": "2001:db8::1" })).toBe("2001:db8:0:0::/64");
-    expect(await ipOf({ "cf-connecting-ip": "203.0.113.9", "x-forwarded-for": "198.51.100.1", "x-real-ip": "198.51.100.2" })).toBe("203.0.113.9");
+    expect(
+      await ipOf({ "cf-connecting-ip": "203.0.113.9", "x-forwarded-for": "198.51.100.1", "x-real-ip": "198.51.100.2" }),
+    ).toBe("203.0.113.9");
     expect(await ipOf({ "x-forwarded-for": "198.51.100.1", "x-real-ip": "198.51.100.2" })).toBe("local");
   });
 
@@ -29,8 +31,16 @@ describe("who is asking", () => {
     for (let i = 0; i < 80; i++) {
       const r = await app.request("/api/season/enter", {
         method: "POST",
-        headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.9", "x-forwarded-for": `10.9.${i >> 8}.${i & 255}` },
-        body: JSON.stringify({ pet: pet(i), device: `device-rot-${i}`, wallet: "0x000000000000000000000000000000000000bEEF" }),
+        headers: {
+          "content-type": "application/json",
+          "cf-connecting-ip": "203.0.113.9",
+          "x-forwarded-for": `10.9.${i >> 8}.${i & 255}`,
+        },
+        body: JSON.stringify({
+          pet: pet(i),
+          device: `device-rot-${i}`,
+          wallet: "0x000000000000000000000000000000000000bEEF",
+        }),
       });
       if (((await r.json()) as { ok: boolean }).ok) accepted++;
     }
@@ -62,11 +72,14 @@ describe("an IPv6 network counts as one caller (A54)", () => {
       const r = await app.request("/api/season/enter", {
         method: "POST",
         headers: { "content-type": "application/json", "cf-connecting-ip": `2001:db8:1:2:${(i + 1).toString(16)}::1` },
-        body: JSON.stringify({ pet: pet(i), device: `device-six-${i}`, wallet: "0x000000000000000000000000000000000000bEEF" }),
+        body: JSON.stringify({
+          pet: pet(i),
+          device: `device-six-${i}`,
+          wallet: "0x000000000000000000000000000000000000bEEF",
+        }),
       });
       if (((await r.json()) as { ok: boolean }).ok) accepted++;
     }
     expect(accepted).toBeLessThanOrEqual(30);
   });
 });
-

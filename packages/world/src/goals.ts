@@ -53,7 +53,10 @@ export interface GoalCredit {
  * What each wallet counts for in goal `g`: its credits in the goal's window, its saves at most SAVES_PER_WALLET_DAY a
  * day, and the whole at most walletCap(g). The server's ledger and the recount script both count with this.
  */
-export function goalCounts(g: Pick<GoalDef, "metric" | "start" | "end" | "target">, credits: readonly GoalCredit[]): Map<string, number> {
+export function goalCounts(
+  g: Pick<GoalDef, "metric" | "start" | "end" | "target">,
+  credits: readonly GoalCredit[],
+): Map<string, number> {
   const by = new Map<string, number>();
   const daily = new Map<string, number>();
   for (const c of credits) {
@@ -178,10 +181,15 @@ export function claimableTiers(w: WorldState, g: GoalDef, s: GoalStanding): Tier
   return tiersReached(g, s.total).filter((p) => !taken.includes(p));
 }
 
-export const canClaimEveryone = (w: WorldState, g: GoalDef, s: GoalStanding): boolean => s.total >= g.target && !claimsOf(w).everyone.includes(g.id);
+export const canClaimEveryone = (w: WorldState, g: GoalDef, s: GoalStanding): boolean =>
+  s.total >= g.target && !claimsOf(w).everyone.includes(g.id);
 
 /** Take every tier waiting (they stack), paying each tier's rewards once. */
-export function claimGoalTiers(w: WorldState, g: GoalDef, s: GoalStanding): WorldResult<{ tiers: TierPct[]; rewards: Reward[] }> {
+export function claimGoalTiers(
+  w: WorldState,
+  g: GoalDef,
+  s: GoalStanding,
+): WorldResult<{ tiers: TierPct[]; rewards: Reward[] }> {
   if (!(s.mine > 0)) return { ok: false, reason: "notContributed" };
   const tiers = claimableTiers(w, g, s);
   if (!tiers.length) return { ok: false, reason: tiersReached(g, s.total).length ? "claimed" : "noTier" };
@@ -193,7 +201,11 @@ export function claimGoalTiers(w: WorldState, g: GoalDef, s: GoalStanding): Worl
 }
 
 /** Take the reward for everyone, once the goal is complete. */
-export function claimGoalEveryone(w: WorldState, g: GoalDef, s: GoalStanding): WorldResult<{ rewards: readonly Reward[] }> {
+export function claimGoalEveryone(
+  w: WorldState,
+  g: GoalDef,
+  s: GoalStanding,
+): WorldResult<{ rewards: readonly Reward[] }> {
   if (s.total < g.target) return { ok: false, reason: "notComplete" };
   const c = claimsOf(w);
   if (c.everyone.includes(g.id)) return { ok: false, reason: "claimed" };

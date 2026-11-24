@@ -22,7 +22,11 @@ export const LIGHT_BULB_BEATS = 3;
 const CARE_OF_ACTION = ["", "feed", "play", "clean", "lightsOff", "pet", "medicine", "talk"] as const;
 export type LessonCare = Exclude<(typeof CARE_OF_ACTION)[number], "">;
 
-export type LessonTrigger = { kind: "event"; event: number } | { kind: "care"; care: LessonCare } | { kind: "watched" } | { kind: "moment" };
+export type LessonTrigger =
+  | { kind: "event"; event: number }
+  | { kind: "care"; care: LessonCare }
+  | { kind: "watched" }
+  | { kind: "moment" };
 
 const allowed = (rule: Rule, pin: keyof Senses): readonly number[] | undefined => {
   const v = (rule.when as Record<string, number[] | undefined>)[pin];

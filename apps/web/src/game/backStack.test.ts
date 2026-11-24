@@ -45,7 +45,11 @@ let backStack: typeof import("./backStack");
 beforeEach(async () => {
   env = fakeHistory();
   vi.stubGlobal("history", env.h);
-  vi.stubGlobal("location", { get hash() { return env.h.hashes[env.h.at] ?? ""; } });
+  vi.stubGlobal("location", {
+    get hash() {
+      return env.h.hashes[env.h.at] ?? "";
+    },
+  });
   vi.stubGlobal("window", env.target);
   vi.resetModules();
   backStack = await import("./backStack");
@@ -148,4 +152,3 @@ describe("the back stack (P6)", () => {
     expect(backStack.isOwnLanding("#gift=lxg1.x")).toBe(false);
   });
 });
-

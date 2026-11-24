@@ -13,7 +13,8 @@ const stored = (w: WorldState): WorldState => JSON.parse(JSON.stringify(w)) as W
 /** A save from before the paid extras with a bit of everything: decorations, outfits, quests, counters, a garden. */
 function richOldSave(): WorldState {
   let w: WorldState = { ...newWorld("0123456789abcdef"), coins: 5000 };
-  for (const d of DECOR.filter((p) => !p.gift).slice(0, 12)) w = ok(placeDecor(ok(buyDecor(w, d.id)), d.id, 30 + (d.id.length % 50), 90));
+  for (const d of DECOR.filter((p) => !p.gift).slice(0, 12))
+    w = ok(placeDecor(ok(buyDecor(w, d.id)), d.id, 30 + (d.id.length % 50), 90));
   w = { ...w, wardrobe: { owned: ["sunhat", "glasses", "balloon"], worn: {} } };
   w = ok(wear(ok(wear(w, "1790000000000", "head", "sunhat")), "1790000000000", "face", "glasses"));
   return stored({
@@ -47,7 +48,15 @@ describe("old saves load with nothing lost (plan 4.9)", () => {
   });
 
   it("a save made after the extras keeps its looks and its last reading of the packs", () => {
-    const w = stored({ ...richOldSave(), extras: { room: 2, looks: 1 }, looks: [{ id: "l1", name: "Picnic", outfit: { head: "sunhat" } }, { id: "l4", name: "Mine", outfit: { head: "c2:7" } }], looksMade: 4 });
+    const w = stored({
+      ...richOldSave(),
+      extras: { room: 2, looks: 1 },
+      looks: [
+        { id: "l1", name: "Picnic", outfit: { head: "sunhat" } },
+        { id: "l4", name: "Mine", outfit: { head: "c2:7" } },
+      ],
+      looksMade: 4,
+    });
     expect(cleanWorld(w)).toEqual(w);
   });
 });
@@ -56,7 +65,10 @@ describe("an edited save cannot give itself what it never had (plan 4.9)", () =>
   it("packs beyond the contract's limit, negative or not whole, are clamped", () => {
     const w = stored({ ...richOldSave(), extras: { room: 99, looks: -1 } });
     expect(cleanWorld(w).extras).toEqual({ room: 3, looks: 0 });
-    expect(cleanWorld(stored({ ...richOldSave(), extras: { room: 1.5, looks: "2" } as never })).extras).toEqual({ room: 0, looks: 0 });
+    expect(cleanWorld(stored({ ...richOldSave(), extras: { room: 1.5, looks: "2" } as never })).extras).toEqual({
+      room: 0,
+      looks: 0,
+    });
   });
 
   it("a room is cut to the space its packs give, and on-chain pieces are never owned by the game", () => {
@@ -93,7 +105,10 @@ describe("an edited save cannot give itself what it never had (plan 4.9)", () =>
   });
 
   it("the wardrobe keeps only real limited pieces as held on chain, and never as owned", () => {
-    const w = stored({ ...richOldSave(), wardrobe: { owned: ["sunhat", "nand-crown"], worn: {}, chainHeld: ["probe-visor", "sunhat", "nope"] } });
+    const w = stored({
+      ...richOldSave(),
+      wardrobe: { owned: ["sunhat", "nand-crown"], worn: {}, chainHeld: ["probe-visor", "sunhat", "nope"] },
+    });
     expect(cleanWorld(w).wardrobe).toEqual({ owned: ["sunhat"], worn: {}, chainHeld: ["probe-visor"] });
   });
 });

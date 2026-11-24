@@ -2,7 +2,14 @@ import { describe, expect, it } from "vitest";
 import { decodeFunctionData, parseAbi, stringToBytes } from "viem";
 import { CHUNK_BYTES, homePageHtml, homeSiteName, homeSiteUrl } from "../src/homepage";
 
-const base = { petId: 7n, name: "Mochi", registry: "0x103d7252eb6b2fec22b3f65a6bb605945f280e99" as const, rpc: "https://rpc.xlayer.tech", proofUrl: "https://lingxi.knole.me/verify.html#7", siteName: "12.2.419.tape" };
+const base = {
+  petId: 7n,
+  name: "Mochi",
+  registry: "0x103d7252eb6b2fec22b3f65a6bb605945f280e99" as const,
+  rpc: "https://rpc.xlayer.tech",
+  proofUrl: "https://lingxi.knole.me/verify.html#7",
+  siteName: "12.2.419.tape",
+};
 
 describe("a home's own page", () => {
   it("names the site the way TapeKit resolves it", () => {
@@ -19,7 +26,12 @@ describe("a home's own page", () => {
   });
 
   it("never lets a name, picture or link inject markup", () => {
-    const html = homePageHtml({ ...base, name: '<script>alert(1)</script>"x', image: "javascript:alert(1)", proofUrl: 'javascript:alert(1)"' });
+    const html = homePageHtml({
+      ...base,
+      name: '<script>alert(1)</script>"x',
+      image: "javascript:alert(1)",
+      proofUrl: 'javascript:alert(1)"',
+    });
     expect(html).not.toContain("<script>alert");
     expect(html).toContain("&lt;script&gt;");
     expect(html).not.toContain("javascript:");

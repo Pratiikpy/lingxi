@@ -10,7 +10,20 @@ import type { Pet, PapersProblem } from "@lingxi/game";
 import { boundingBox, drawPet } from "@lingxi/art";
 import { useLang, useT } from "../i18n";
 import { recordOf } from "../game/chain";
-import { type CheckedOffer, type Farewell, adoptFromCentre, takeFarewells, adoptionAvailable, atCentre, browseOffers, centreTerms, checkCentre, offerForAdoption, papersAvailable, withdrawFromCentre } from "../game/adoption";
+import {
+  type CheckedOffer,
+  type Farewell,
+  adoptFromCentre,
+  takeFarewells,
+  adoptionAvailable,
+  atCentre,
+  browseOffers,
+  centreTerms,
+  checkCentre,
+  offerForAdoption,
+  papersAvailable,
+  withdrawFromCentre,
+} from "../game/adoption";
 import { play } from "../game/sound";
 import { PALETTE_OF } from "../scene/palette";
 import { Sprite } from "./Sprite";
@@ -32,14 +45,26 @@ function Little({ line, ageDays }: { line: Pet["line"]; ageDays: number }) {
 }
 
 const PROBLEM: Record<PapersProblem | "noPapers" | "unreachable", [string, string]> = {
-  noPapers: ["Its papers are not at the centre yet, so it cannot be adopted.", "它的资料还没送到领养中心，暂时不能领养。"],
+  noPapers: [
+    "Its papers are not at the centre yet, so it cannot be adopted.",
+    "它的资料还没送到领养中心，暂时不能领养。",
+  ],
   unreachable: ["X Layer could not be read just now.", "暂时读不到 X Layer。"],
   notAChild: ["Its papers are not a bred little one's.", "它的资料不是一个出生的小宝宝的。"],
-  outsideInstinct: ["A little one with a borrowed instinct cannot be adopted here.", "带有借来本能的小宝宝不能在这里领养。"],
+  outsideInstinct: [
+    "A little one with a borrowed instinct cannot be adopted here.",
+    "带有借来本能的小宝宝不能在这里领养。",
+  ],
   line: ["Its papers name a different line than X Layer.", "它的资料和 X Layer 上的品种不一样。"],
   parents: ["Its papers name different parents than X Layer.", "它的资料和 X Layer 上的父母不一样。"],
-  brain: ["Its papers describe a different mind than the circuit on X Layer.", "它的资料描述的心智和 X Layer 上的电路不一样。"],
-  log: ["Its papers' thoughts do not follow on from the ones saved on X Layer.", "它资料里的念头接不上 X Layer 上存下的念头。"],
+  brain: [
+    "Its papers describe a different mind than the circuit on X Layer.",
+    "它的资料描述的心智和 X Layer 上的电路不一样。",
+  ],
+  log: [
+    "Its papers' thoughts do not follow on from the ones saved on X Layer.",
+    "它资料里的念头接不上 X Layer 上存下的念头。",
+  ],
   memory: ["Its papers' memory is not what its thoughts lead to.", "它资料里的记忆和它的念头对不上。"],
   record: ["Its papers claim more than X Layer saved.", "它的资料比 X Layer 上存下的多。"],
   growth: ["Its papers' level and skills are not possible.", "它资料里的等级和技能不可能存在。"],
@@ -73,10 +98,14 @@ export function AdoptionPanel({ pet }: { pet: Pet }) {
   const bornSec = record?.bornChain ?? 0;
   const nowSec = Math.floor(now() / 1000);
   const youngLeft = terms ? bornSec + terms.youngAge - nowSec : 0;
-  const canOffer = !!record && !!pet.family && !pet.away && !pet.sitting && !pet.outside && youngLeft > 3600 && papersAvailable();
+  const canOffer =
+    !!record && !!pet.family && !pet.away && !pet.sitting && !pet.outside && youngLeft > 3600 && papersAvailable();
   const units = parseBem(price);
   const priceOk = !!terms && units !== null && units >= terms.minPrice && units <= terms.maxPrice;
-  const split = (p: bigint) => (terms ? { burned: (p * BigInt(terms.feeBps) + 9_999n) / 10_000n, share: (p * BigInt(terms.coParentBps)) / 10_000n } : { burned: 0n, share: 0n });
+  const split = (p: bigint) =>
+    terms
+      ? { burned: (p * BigInt(terms.feeBps) + 9_999n) / 10_000n, share: (p * BigInt(terms.coParentBps)) / 10_000n }
+      : { burned: 0n, share: 0n };
 
   const run = async (key: string, fn: () => Promise<string>) => {
     setBusy(key);
@@ -89,7 +118,10 @@ export function AdoptionPanel({ pet }: { pet: Pet }) {
       const m = errorText(e);
       setNote(
         m === "noWallet"
-          ? L("No wallet found in this browser. Open Lingxi in the OKX Wallet app, or a browser with a wallet.", "这个浏览器里没有钱包。请在 OKX 钱包应用里打开灵犀，或用装了钱包的浏览器。")
+          ? L(
+              "No wallet found in this browser. Open Lingxi in the OKX Wallet app, or a browser with a wallet.",
+              "这个浏览器里没有钱包。请在 OKX 钱包应用里打开灵犀，或用装了钱包的浏览器。",
+            )
           : m === "notEnoughBem"
             ? L("This wallet doesn't hold enough BEM on X Layer for that.", "这个钱包在 X Layer 上的 BEM 不够。")
             : refusesTokens(e)
@@ -108,7 +140,10 @@ export function AdoptionPanel({ pet }: { pet: Pet }) {
           s === "saving"
             ? L("Saving today first…", "先存一下今天……")
             : s === "listing"
-              ? L("Allow the centre to move this one pet, then confirm the offer in your wallet.", "请在钱包里允许领养中心移动这一只宠物，再确认挂出。")
+              ? L(
+                  "Allow the centre to move this one pet, then confirm the offer in your wallet.",
+                  "请在钱包里允许领养中心移动这一只宠物，再确认挂出。",
+                )
               : s === "signing"
                 ? L("Sign its papers in your wallet (no fee).", "请在钱包里签署它的资料（不花钱）。")
                 : L("Leaving its papers at the centre…", "正在把资料送到领养中心……"),
@@ -122,7 +157,14 @@ export function AdoptionPanel({ pet }: { pet: Pet }) {
   const adopt = (c: CheckedOffer) =>
     run(`adopt:${c.offer.petId}`, async () => {
       const r = await adoptFromCentre(c);
-      if (!r.ok) throw new Error(r.reason === "full" ? L("You already have eight pets.", "你已经有八只宠物了。") : r.reason === "own" ? L("That one is yours.", "这只是你的。") : r.reason);
+      if (!r.ok)
+        throw new Error(
+          r.reason === "full"
+            ? L("You already have eight pets.", "你已经有八只宠物了。")
+            : r.reason === "own"
+              ? L("That one is yours.", "这只是你的。")
+              : r.reason,
+        );
       await read();
       return L(`${r.pet.name} came home with you.`, `${r.pet.name}跟你回家了。`);
     });
@@ -137,7 +179,14 @@ export function AdoptionPanel({ pet }: { pet: Pet }) {
           "饲养者孵出、还没养大的小宝宝，趁它们还小的时候送出领养。被人养大的宠物永远不会在这里出售。价格的 3% 会被销毁，10% 给另一位父母的主人，其余归饲养者。每个小宝宝的资料都会先在你的浏览器里和 X Layer 核对，然后才能领养。名字颜色不算在价格里：领养完成之前，饲养者都可以改它。",
         )}
       </p>
-      {!papersAvailable() && <p className="small sp-warn">{L("Offering and adopting need the web version at lingxi.knole.me, which keeps the papers.", "送养和领养需要用网页版 lingxi.knole.me，由它保管资料。")}</p>}
+      {!papersAvailable() && (
+        <p className="small sp-warn">
+          {L(
+            "Offering and adopting need the web version at lingxi.knole.me, which keeps the papers.",
+            "送养和领养需要用网页版 lingxi.knole.me，由它保管资料。",
+          )}
+        </p>
+      )}
 
       {canOffer && terms && (
         <form
@@ -156,7 +205,11 @@ export function AdoptionPanel({ pet }: { pet: Pet }) {
           </span>
           <label className="adoption-price">
             <span>{L("Price (BEM)", "价格（BEM）")}</span>
-            <input inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value.replace(/[^0-9.]/g, ""))} />
+            <input
+              inputMode="decimal"
+              value={price}
+              onChange={(e) => setPrice(e.target.value.replace(/[^0-9.]/g, ""))}
+            />
           </label>
           {priceOk && (
             <span className="small">
@@ -166,7 +219,14 @@ export function AdoptionPanel({ pet }: { pet: Pet }) {
               )}
             </span>
           )}
-          {!priceOk && <span className="small sp-warn">{L(`Between ${formatBem(terms.minPrice)} and ${formatBem(terms.maxPrice)} BEM.`, `在 ${formatBem(terms.minPrice)} 到 ${formatBem(terms.maxPrice)} BEM 之间。`)}</span>}
+          {!priceOk && (
+            <span className="small sp-warn">
+              {L(
+                `Between ${formatBem(terms.minPrice)} and ${formatBem(terms.maxPrice)} BEM.`,
+                `在 ${formatBem(terms.minPrice)} 到 ${formatBem(terms.maxPrice)} BEM 之间。`,
+              )}
+            </span>
+          )}
           <button type="submit" className="btn primary" disabled={!priceOk || busy !== null}>
             {busy === "offer" ? L("Offering…", "送养中……") : L("Offer", "送养")}
           </button>
@@ -186,13 +246,28 @@ export function AdoptionPanel({ pet }: { pet: Pet }) {
             const mine = record && c.offer.seller.toLowerCase() === record.owner.toLowerCase();
             return (
               <li key={c.offer.petId.toString()} className="adoption-card">
-                <Little line={(["gentle", "bold", "curious"] as const)[c.offer.pet.line] ?? "gentle"} ageDays={age / 24} />
+                <Little
+                  line={(["gentle", "bold", "curious"] as const)[c.offer.pet.line] ?? "gentle"}
+                  ageDays={age / 24}
+                />
                 <b>{p?.name ?? `#${c.offer.petId}`}</b>
-                <span className="small">{L(`${age} hours old · pet #${c.offer.petId}`, `出生 ${age} 小时 · 宠物 #${c.offer.petId}`)}</span>
-                {p?.family && <span className="small">{L(`child of ${p.family.parents[0].name} and ${p.family.parents[1].name}`, `${p.family.parents[0].name}和${p.family.parents[1].name}的孩子`)}</span>}
+                <span className="small">
+                  {L(`${age} hours old · pet #${c.offer.petId}`, `出生 ${age} 小时 · 宠物 #${c.offer.petId}`)}
+                </span>
+                {p?.family && (
+                  <span className="small">
+                    {L(
+                      `child of ${p.family.parents[0].name} and ${p.family.parents[1].name}`,
+                      `${p.family.parents[0].name}和${p.family.parents[1].name}的孩子`,
+                    )}
+                  </span>
+                )}
                 <span className="adoption-price-tag">{formatBem(c.offer.price)} BEM</span>
                 <span className="small">
-                  {L(`${formatBem(s.burned)} burned · ${c.offer.coParent ? `${formatBem(s.share)} to ${short(c.offer.coParent)}` : "no co-parent share"} · from ${short(c.offer.seller)}`, `销毁 ${formatBem(s.burned)} · ${c.offer.coParent ? `${formatBem(s.share)} 给 ${short(c.offer.coParent)}` : "没有另一位父母的分成"} · 来自 ${short(c.offer.seller)}`)}
+                  {L(
+                    `${formatBem(s.burned)} burned · ${c.offer.coParent ? `${formatBem(s.share)} to ${short(c.offer.coParent)}` : "no co-parent share"} · from ${short(c.offer.seller)}`,
+                    `销毁 ${formatBem(s.burned)} · ${c.offer.coParent ? `${formatBem(s.share)} 给 ${short(c.offer.coParent)}` : "没有另一位父母的分成"} · 来自 ${short(c.offer.seller)}`,
+                  )}
                 </span>
                 {c.problem === null ? (
                   <span className="small adoption-ok">{L("✓ Papers match X Layer", "✓ 资料与 X Layer 一致")}</span>
@@ -251,7 +326,11 @@ export function CentreCard({ pet }: { pet: Pet }) {
     return () => clearInterval(id);
   }, [petId, settled]);
   if (!petId || !pet.away) return null;
-  const until = new Date(pet.away.until).toLocaleString(lang === "zh" ? "zh-CN" : "en-GB", { weekday: "short", hour: "2-digit", minute: "2-digit" });
+  const until = new Date(pet.away.until).toLocaleString(lang === "zh" ? "zh-CN" : "en-GB", {
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
   return (
     <div className="away-card" role="status">
       <p className="label">{L("At the adoption centre", "在领养中心")}</p>
@@ -262,9 +341,18 @@ export function CentreCard({ pet }: { pet: Pet }) {
         )}
       </p>
       {state === "waiting" && <p className="small">{L("Still waiting.", "还在等待。")}</p>}
-      {state === "unreachable" && <p className="small">{L("X Layer couldn't be read just now; try again soon.", "暂时读不到 X Layer，稍后再试。")}</p>}
+      {state === "unreachable" && (
+        <p className="small">
+          {L("X Layer couldn't be read just now; try again soon.", "暂时读不到 X Layer，稍后再试。")}
+        </p>
+      )}
       <div className="row">
-        <button type="button" className="btn primary" disabled={state === "checking"} onClick={() => (play("tap"), void check())}>
+        <button
+          type="button"
+          className="btn primary"
+          disabled={state === "checking"}
+          onClick={() => (play("tap"), void check())}
+        >
           {L("Check on it", "看看情况")}
         </button>
         <button

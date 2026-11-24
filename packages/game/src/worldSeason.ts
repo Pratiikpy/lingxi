@@ -14,10 +14,26 @@ export interface WorldSeason {
 }
 
 export const WORLD_SEASONS: readonly WorldSeason[] = [
-  { id: "blossom", name: { en: "Blossom Weeks", zh: "花开时节" }, air: { en: "Petals drift past the window.", zh: "窗外飘过花瓣。" } },
-  { id: "lantern", name: { en: "Lantern Weeks", zh: "灯笼时节" }, air: { en: "Paper lanterns glow along the lanes.", zh: "小巷里亮起了纸灯笼。" } },
-  { id: "harvest", name: { en: "Harvest Weeks", zh: "丰收时节" }, air: { en: "The fields smell of apples and hay.", zh: "田野里有苹果和干草的味道。" } },
-  { id: "frost", name: { en: "Frost Weeks", zh: "霜雪时节" }, air: { en: "A little frost sparkles on every step.", zh: "每级台阶上都闪着一点霜。" } },
+  {
+    id: "blossom",
+    name: { en: "Blossom Weeks", zh: "花开时节" },
+    air: { en: "Petals drift past the window.", zh: "窗外飘过花瓣。" },
+  },
+  {
+    id: "lantern",
+    name: { en: "Lantern Weeks", zh: "灯笼时节" },
+    air: { en: "Paper lanterns glow along the lanes.", zh: "小巷里亮起了纸灯笼。" },
+  },
+  {
+    id: "harvest",
+    name: { en: "Harvest Weeks", zh: "丰收时节" },
+    air: { en: "The fields smell of apples and hay.", zh: "田野里有苹果和干草的味道。" },
+  },
+  {
+    id: "frost",
+    name: { en: "Frost Weeks", zh: "霜雪时节" },
+    air: { en: "A little frost sparkles on every step.", zh: "每级台阶上都闪着一点霜。" },
+  },
 ];
 
 /** Four weeks a season. The cycle began on Monday 16 November 2026 (UTC), with Blossom. */

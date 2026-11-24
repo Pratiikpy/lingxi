@@ -25,10 +25,17 @@ describe("LX-SEAL/1", () => {
   });
 
   it("even splits weigh 8; lucky weights stay in 1..15 and average near 8.5", () => {
-    expect((sealReference(sealWord({ index: 3, seed: 200, open: true, member: true, lucky: false, petOwnersOnly: false })) >> 1) & 15).toBe(8);
+    expect(
+      (sealReference(sealWord({ index: 3, seed: 200, open: true, member: true, lucky: false, petOwnersOnly: false })) >>
+        1) &
+        15,
+    ).toBe(8);
     let sum = 0;
     for (let s = 0; s < 256; s++) {
-      const w = (sealReference(sealWord({ index: 0, seed: s, open: true, member: true, lucky: true, petOwnersOnly: false })) >> 1) & 15;
+      const w =
+        (sealReference(sealWord({ index: 0, seed: s, open: true, member: true, lucky: true, petOwnersOnly: false })) >>
+          1) &
+        15;
       expect(w).toBeGreaterThanOrEqual(1);
       expect(w).toBeLessThanOrEqual(15);
       sum += w;

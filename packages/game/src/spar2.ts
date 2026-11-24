@@ -21,7 +21,24 @@
  */
 
 import { encodeSenses } from "@lingxi/brain";
-import { type Fighter, MAX_HP, MAX_STAMINA, MOVES, type Move, ROUNDS, type Round, type Side, type SparResult, type SparVersion, bucketUp, digestOf, duelAnswer, duelWord, spar, xorshift } from "./spar";
+import {
+  type Fighter,
+  MAX_HP,
+  MAX_STAMINA,
+  MOVES,
+  type Move,
+  ROUNDS,
+  type Round,
+  type Side,
+  type SparResult,
+  type SparVersion,
+  bucketUp,
+  digestOf,
+  duelAnswer,
+  duelWord,
+  spar,
+  xorshift,
+} from "./spar";
 
 export const SPAR_V2 = "LX-SPAR/2";
 export const SPAR_V3 = "LX-SPAR/3";
@@ -31,7 +48,13 @@ export const SPAR_V5 = "LX-SPAR/5";
 export const CURRENT_SPAR: SparVersion = SPAR_V5;
 
 /** A fight in the version given: each version replays with its own engine, so past spars verify as they were fought. */
-export function fight(version: SparVersion, a: Fighter, b: Fighter, seed: number, cheer?: (round: number) => [boolean, boolean]): SparResult {
+export function fight(
+  version: SparVersion,
+  a: Fighter,
+  b: Fighter,
+  seed: number,
+  cheer?: (round: number) => [boolean, boolean],
+): SparResult {
   const r = rulesOf(version);
   return r ? sparWith(r, a, b, seed, cheer) : spar(a, b, seed, cheer);
 }
@@ -205,7 +228,12 @@ export const V4_RULES: SparRules = {
 export const V5_RULES: SparRules = { ...V4_RULES, version: "LX-SPAR/5", tapHit: 4 };
 
 /** The rules of each version this engine plays (LX-SPAR/1 has its own engine, spar.ts). */
-const RULES_OF: Partial<Record<SparVersion, SparRules>> = { "LX-SPAR/2": V2_RULES, "LX-SPAR/3": V3_RULES, "LX-SPAR/4": V4_RULES, "LX-SPAR/5": V5_RULES };
+const RULES_OF: Partial<Record<SparVersion, SparRules>> = {
+  "LX-SPAR/2": V2_RULES,
+  "LX-SPAR/3": V3_RULES,
+  "LX-SPAR/4": V4_RULES,
+  "LX-SPAR/5": V5_RULES,
+};
 export const rulesOf = (version: SparVersion): SparRules | undefined => RULES_OF[version];
 
 /**
@@ -225,12 +253,30 @@ export function spar2(a: Fighter, b: Fighter, seed: number, cheer?: (round: numb
 }
 
 /** A fight played by a version's rules. */
-export function sparWith(r: SparRules, a: Fighter, b: Fighter, seed: number, cheer: (round: number) => [boolean, boolean] = () => [false, false]): SparResult {
+export function sparWith(
+  r: SparRules,
+  a: Fighter,
+  b: Fighter,
+  seed: number,
+  cheer: (round: number) => [boolean, boolean] = () => [false, false],
+): SparResult {
   const rnd = xorshift(seed);
   const start = (f: Fighter): Side => {
-    const maxHp = MAX_HP + Math.floor((f.mods?.hp ?? 0) * r.skillHpShare) + (r.boostAtFaceValue ? Math.max(0, f.boost?.hp ?? 0) : 0);
+    const maxHp =
+      MAX_HP +
+      Math.floor((f.mods?.hp ?? 0) * r.skillHpShare) +
+      (r.boostAtFaceValue ? Math.max(0, f.boost?.hp ?? 0) : 0);
     const maxStamina = MAX_STAMINA + Math.floor((f.mods?.stamina ?? 0) * r.skillStaminaShare);
-    return { hp: maxHp, stamina: maxStamina, maxHp, maxStamina, weakened: 0, memory: f.memory.slice(), last: "tap", momentum: 0 };
+    return {
+      hp: maxHp,
+      stamina: maxStamina,
+      maxHp,
+      maxStamina,
+      weakened: 0,
+      memory: f.memory.slice(),
+      last: "tap",
+      momentum: 0,
+    };
   };
   const sides: [Side, Side] = [start(a), start(b)];
   const fighters: [Fighter, Fighter] = [a, b];
@@ -256,7 +302,9 @@ export function sparWith(r: SparRules, a: Fighter, b: Fighter, seed: number, che
     const cheering = cheer(n);
     const words = [0, 1].map((i) => {
       const [me, them] = i === 0 ? [sides[0], sides[1]] : [sides[1], sides[0]];
-      return fighters[i]!.profile === "DUEL-12x3/1" ? duelWord(me, them, n) : wordOf(r, me, them, n, cheering[i]!, hitHard[i]!);
+      return fighters[i]!.profile === "DUEL-12x3/1"
+        ? duelWord(me, them, n)
+        : wordOf(r, me, them, n, cheering[i]!, hitHard[i]!);
     }) as [number, number];
     const outs = [0, 1].map((i) => {
       const st = Uint8Array.from(sides[i]!.memory);
@@ -269,7 +317,12 @@ export function sparWith(r: SparRules, a: Fighter, b: Fighter, seed: number, che
     let moves = outs.map((o, i) => allowedMove(r.version, o, sides[i]!.stamina)) as [Move, Move];
     moves = moves.map((m) => (m === "pounce" && rnd() % 8 === 0 ? "tap" : m)) as [Move, Move];
     // level tilts: half a point of power a level
-    const power = moods.map((m, i) => r.moodPower[m]! + Math.floor(fighters[i]!.level / r.levelDivisor) + (r.boostAtFaceValue ? Math.max(0, fighters[i]!.boost?.power ?? 0) : 0)) as [number, number];
+    const power = moods.map(
+      (m, i) =>
+        r.moodPower[m]! +
+        Math.floor(fighters[i]!.level / r.levelDivisor) +
+        (r.boostAtFaceValue ? Math.max(0, fighters[i]!.boost?.power ?? 0) : 0),
+    ) as [number, number];
     const hits: [number, number] = [0, 0];
     const heal: [number, number] = [0, 0];
     const stagger: [number, number] = [0, 0];
@@ -281,7 +334,8 @@ export function sparWith(r: SparRules, a: Fighter, b: Fighter, seed: number, che
       if (m === "rest") me.stamina = Math.min(me.maxStamina, me.stamina + r.restGain);
       // calm recovers, while it only taps
       else if (moods[i] === 1 && r.moveCost[m] === 0) me.stamina = Math.min(me.maxStamina, me.stamina + r.calmRecover);
-      if (m === "snack") heal[i] += r.snackHeal + power[i] * 2 + Math.floor((fighters[i]!.mods?.heal ?? 0) * r.skillHealShare);
+      if (m === "snack")
+        heal[i] += r.snackHeal + power[i] * 2 + Math.floor((fighters[i]!.mods?.heal ?? 0) * r.skillHealShare);
       if (m === "gift") {
         heal[i] += 6;
         heal[j] += 6;
@@ -293,12 +347,17 @@ export function sparWith(r: SparRules, a: Fighter, b: Fighter, seed: number, che
         if (def === "guard") hits[i] = r.feint + Math.max(0, power[i]);
       }
       if (m === "pounce" || m === "tap") {
-        let dmg = m === "tap" ? r.tapHit + power[i] + (rnd() % 3) : r.pounceHit + power[i] * r.pouncePower + skillHit(i) + (rnd() % 5) + (rnd() % 6 === 0 ? 8 : 0);
+        let dmg =
+          m === "tap"
+            ? r.tapHit + power[i] + (rnd() % 3)
+            : r.pounceHit + power[i] * r.pouncePower + skillHit(i) + (rnd() % 5) + (rnd() % 6 === 0 ? 8 : 0);
         if (me.weakened > 0) dmg = Math.floor(dmg / 2);
         const them = fighters[j]!.mods;
         if (def === "guard") {
           // a guard takes the sting out of a pounce (a quarter gets through, a fifth when grumpy), a tap a third
-          dmg = Math.floor(dmg / ((m === "pounce" ? r.guardPounce : r.guardTap) + (moods[j] === 0 ? r.grumpyGuard : 0)));
+          dmg = Math.floor(
+            dmg / ((m === "pounce" ? r.guardPounce : r.guardTap) + (moods[j] === 0 ? r.grumpyGuard : 0)),
+          );
           dmg -= guardStops(j, dmg);
           // a guarded pounce staggers the attacker and costs it a recoil; a guard thrown up in time (after a different
           // move) throws it back harder than one held round after round, so a pet that reads beats one that only guards
@@ -323,7 +382,9 @@ export function sparWith(r: SparRules, a: Fighter, b: Fighter, seed: number, che
       }
     }
     // a reckless mood is easier to hurt: each hit it takes is heavier, unless it is braced in a guard or a dodge
-    for (const i of [0, 1] as const) if (hits[1 - i]! > 0 && moves[i] !== "guard" && moves[i] !== "dodge") hits[1 - i] = hits[1 - i]! + r.moodTaken[moods[i]]!;
+    for (const i of [0, 1] as const)
+      if (hits[1 - i]! > 0 && moves[i] !== "guard" && moves[i] !== "dodge")
+        hits[1 - i] = hits[1 - i]! + r.moodTaken[moods[i]]!;
     for (const i of [0, 1] as const) {
       const j = (1 - i) as 0 | 1;
       sides[i].stamina = Math.max(0, Math.min(sides[i].maxStamina, sides[i].stamina - stagger[i]));
@@ -337,10 +398,25 @@ export function sparWith(r: SparRules, a: Fighter, b: Fighter, seed: number, che
       sides[i].momentum = Math.max(-1, Math.min(2, sides[i].momentum + Math.sign(hits[i] - hits[j])));
     }
     hitHard = [hits[1] >= 18, hits[0] >= 18];
-    rounds.push({ n, words, moves, moods, hp: [sides[0].hp, sides[1].hp], stamina: [sides[0].stamina, sides[1].stamina], hits });
+    rounds.push({
+      n,
+      words,
+      moves,
+      moods,
+      hp: [sides[0].hp, sides[1].hp],
+      stamina: [sides[0].stamina, sides[1].stamina],
+      hits,
+    });
     if (sides[0].hp === 0 || sides[1].hp === 0) break;
   }
   const [h0, h1] = [sides[0].hp, sides[1].hp];
   const winner: 0 | 1 | -1 = h0 === h1 ? -1 : h0 > h1 ? 0 : 1;
-  return { version: r.version, seed, rounds, winner, digest: digestOf(rounds, seed), maxHp: [sides[0].maxHp, sides[1].maxHp] };
+  return {
+    version: r.version,
+    seed,
+    rounds,
+    winner,
+    digest: digestOf(rounds, seed),
+    maxHp: [sides[0].maxHp, sides[1].maxHp],
+  };
 }

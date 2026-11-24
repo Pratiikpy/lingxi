@@ -55,27 +55,47 @@ export function SelfTape({ pet, behind }: { pet: Pet; behind: boolean }) {
       </button>
     );
 
-  const steps: Step[] = [...(quote.bemNeeded > 0n ? (["approve"] as const) : []), ...(quote.mint.nand > 0n ? (["mintNand"] as const) : []), ...(quote.mint.latch > 0n ? (["mintLatch"] as const) : []), "tapeout", "verify", "setBrain"];
+  const steps: Step[] = [
+    ...(quote.bemNeeded > 0n ? (["approve"] as const) : []),
+    ...(quote.mint.nand > 0n ? (["mintNand"] as const) : []),
+    ...(quote.mint.latch > 0n ? (["mintLatch"] as const) : []),
+    "tapeout",
+    "verify",
+    "setBrain",
+  ];
   const running = current !== null && result === null;
   return (
     <div className="selftape">
       <p className="label">{lang === "zh" ? "流片费用" : "What it costs"}</p>
       <dl className="st-rows">
         <dt>{lang === "zh" ? "电路" : "Circuit"}</dt>
-        <dd>{lang === "zh" ? `${quote.nands} 个与非门 · ${quote.latches} 个锁存器` : `${quote.nands} NAND gates · ${quote.latches} latches`}</dd>
+        <dd>
+          {lang === "zh"
+            ? `${quote.nands} 个与非门 · ${quote.latches} 个锁存器`
+            : `${quote.nands} NAND gates · ${quote.latches} latches`}
+        </dd>
         <dt>{lang === "zh" ? "要铸造的门" : "Gates to mint"}</dt>
         <dd>{`${quote.mint.nand} + ${quote.mint.latch}`}</dd>
         <dt>OKB</dt>
         <dd>
-          {fmt(quote.okbTotal)} {lang === "zh" ? `（含约 ${fmt(quote.gasEstimate)} 网络费）` : `(including about ${fmt(quote.gasEstimate)} in network fees)`}
-          <span className={quote.okbBalance >= quote.okbTotal ? "st-ok" : "st-short"}> · {lang === "zh" ? `你有 ${fmt(quote.okbBalance)}` : `you have ${fmt(quote.okbBalance)}`}</span>
+          {fmt(quote.okbTotal)}{" "}
+          {lang === "zh"
+            ? `（含约 ${fmt(quote.gasEstimate)} 网络费）`
+            : `(including about ${fmt(quote.gasEstimate)} in network fees)`}
+          <span className={quote.okbBalance >= quote.okbTotal ? "st-ok" : "st-short"}>
+            {" "}
+            · {lang === "zh" ? `你有 ${fmt(quote.okbBalance)}` : `you have ${fmt(quote.okbBalance)}`}
+          </span>
         </dd>
         {quote.bemNeeded > 0n && (
           <>
             <dt>BEM</dt>
             <dd>
               {fmt(quote.bemNeeded)} {lang === "zh" ? "（TapeOut 协议费）" : "(TapeOut's protocol fee)"}
-              <span className={quote.bemBalance >= quote.bemNeeded ? "st-ok" : "st-short"}> · {lang === "zh" ? `你有 ${fmt(quote.bemBalance)}` : `you have ${fmt(quote.bemBalance)}`}</span>
+              <span className={quote.bemBalance >= quote.bemNeeded ? "st-ok" : "st-short"}>
+                {" "}
+                · {lang === "zh" ? `你有 ${fmt(quote.bemBalance)}` : `you have ${fmt(quote.bemBalance)}`}
+              </span>
             </dd>
           </>
         )}
@@ -103,8 +123,20 @@ export function SelfTape({ pet, behind }: { pet: Pet; behind: boolean }) {
           </li>
         ))}
       </ol>
-      {result === "ok" && <p className="st-ok st-result">{lang === "zh" ? `成功！${pet.name}现在用的是链上这颗新大脑。` : `Done. ${pet.name} now runs on its new brain on chain.`}</p>}
-      {result === "failed" && <p className="st-short st-result">{lang === "zh" ? "中途停下了，没有扣到的费用不会扣。可以再试一次。" : "It stopped partway; nothing further was spent. You can try again."}</p>}
+      {result === "ok" && (
+        <p className="st-ok st-result">
+          {lang === "zh"
+            ? `成功！${pet.name}现在用的是链上这颗新大脑。`
+            : `Done. ${pet.name} now runs on its new brain on chain.`}
+        </p>
+      )}
+      {result === "failed" && (
+        <p className="st-short st-result">
+          {lang === "zh"
+            ? "中途停下了，没有扣到的费用不会扣。可以再试一次。"
+            : "It stopped partway; nothing further was spent. You can try again."}
+        </p>
+      )}
       <div className="row">
         <button
           type="button"
@@ -130,7 +162,12 @@ export function SelfTape({ pet, behind }: { pet: Pet; behind: boolean }) {
         >
           {lang === "zh" ? "确认流片" : "Confirm tape-out"}
         </button>
-        <button type="button" className="btn" disabled={running} onClick={() => (setQuote(null), setDone([]), setCurrent(null), setResult(null))}>
+        <button
+          type="button"
+          className="btn"
+          disabled={running}
+          onClick={() => (setQuote(null), setDone([]), setCurrent(null), setResult(null))}
+        >
           {lang === "zh" ? "关闭" : "Close"}
         </button>
       </div>

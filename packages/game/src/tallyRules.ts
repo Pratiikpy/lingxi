@@ -15,7 +15,18 @@ import { type CareResult, type Pet, localHour } from "./sim";
 export type TallyEntry = [type: string, index: number | string, n: number, total: boolean];
 
 /** What each care result counts as: CARE:<index>. */
-export const CARE_INDEX: Readonly<Partial<Record<CareResult["note"], string>>> = { ate: "feed", woke: "feed", played: "play", cleaned: "clean", sleeping: "sleep", awake: "wake", petted: "pet", healed: "medicine", listened: "talk", used: "use" };
+export const CARE_INDEX: Readonly<Partial<Record<CareResult["note"], string>>> = {
+  ate: "feed",
+  woke: "feed",
+  played: "play",
+  cleaned: "clean",
+  sleeping: "sleep",
+  awake: "wake",
+  petted: "pet",
+  healed: "medicine",
+  listened: "talk",
+  used: "use",
+};
 
 /**
  * A care, as what it actually did: CARE:<index>, and the same by the pet's time of day ("put it to bed at night").
@@ -32,7 +43,10 @@ export function careTally(kind: string, wasAsleep: boolean, r: CareResult): Tall
 
 /** A food the pet ate: which one, and its food group on the player's day ("three foods", "a balanced plate"). */
 export function fedTally(item: number, diet: string | undefined, tzOffsetMin: number, now: number): TallyEntry[] {
-  return [["FED", String(item), 1, true], ...(diet ? [["FED_GROUP", `${localDay(now, tzOffsetMin)}-${diet}`, 1, false] as TallyEntry] : [])];
+  return [
+    ["FED", String(item), 1, true],
+    ...(diet ? [["FED_GROUP", `${localDay(now, tzOffsetMin)}-${diet}`, 1, false] as TallyEntry] : []),
+  ];
 }
 
 /**
@@ -75,10 +89,29 @@ export const meetTally = (id: string, now: number, tzOffsetMin: number): TallyEn
 ];
 
 /** Where each quest giver who is a resident can be found. */
-export const GIVER_ROOM: Readonly<Record<string, number>> = { wick: 64, praline: 13, yonder: 3, bolt: 5, flit: 56, why: 59, jab: 89, twain: 19, nimbus: 53 };
+export const GIVER_ROOM: Readonly<Record<string, number>> = {
+  wick: 64,
+  praline: 13,
+  yonder: 3,
+  bolt: 5,
+  flit: 56,
+  why: 59,
+  jab: 89,
+  twain: 19,
+  nimbus: 53,
+};
 
 /** Everything a quest condition reads, from the player's state: the active pet (or none yet), and what only the client knows. */
-export function questView(i: { world: WorldState; pet: Pet | null; pets: number; onChain: boolean; bondLevel: number; goalsDone: readonly string[]; now: number; tzOffsetMin: number }): ConditionView {
+export function questView(i: {
+  world: WorldState;
+  pet: Pet | null;
+  pets: number;
+  onChain: boolean;
+  bondLevel: number;
+  goalsDone: readonly string[];
+  now: number;
+  tzOffsetMin: number;
+}): ConditionView {
   const { pet, now } = i;
   const stage = pet ? stageOf(pet, now) : null;
   return {

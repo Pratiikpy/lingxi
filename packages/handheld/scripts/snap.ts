@@ -34,19 +34,33 @@ interface HH {
 class Handheld {
   now = 1000;
   beat = 0;
-  constructor(private x: HH, private lang: "en" | "zh") {
+  constructor(
+    private x: HH,
+    private lang: "en" | "zh",
+  ) {
     if (!x.hh_init(this.now)) throw new Error("self-test failed");
   }
   open(lang: "en" | "zh") {
     const n = compileProgram(STARTERS.gentle);
     const t0 = Date.UTC(2026, 10, 17, 9, 30);
-    const p = createPet({ name: lang === "zh" ? "团团" : "Mochi", line: "gentle", now: t0 - 2 * 86_400_000, tzOffsetMin: 480, brain: { fast: fastBrain(n), nState: n.latches.length } });
+    const p = createPet({
+      name: lang === "zh" ? "团团" : "Mochi",
+      line: "gentle",
+      now: t0 - 2 * 86_400_000,
+      tzOffsetMin: 480,
+      brain: { fast: fastBrain(n), nState: n.latches.length },
+    });
     const pet = { ...p, beat: Math.floor(t0 / BEAT_MS), growth: newGrowth() };
     this.beat = pet.beat;
     const packet = tripPacket(
       pet,
       { processor: "0xf70d324da8c1c4cb0de3ff147e53e7e9db543c4e", id: 1n, bytes: netlistBytes(n), parts: [] },
-      FOODS.slice(0, 3).map((f, i) => ({ id: f.id, count: 1 + i, effect: { food: f.food, joy: f.joy, diet: f.diet }, name: f.name })),
+      FOODS.slice(0, 3).map((f, i) => ({
+        id: f.id,
+        count: 1 + i,
+        effect: { food: f.food, joy: f.joy, diet: f.diet },
+        name: f.name,
+      })),
       { name: pet.name, line: "gentle", stage: 2, form: 0, colour: 4, lang, bornBeat: Math.floor(p.bornAt / BEAT_MS) },
     );
     new Uint8Array(this.x.memory.buffer).set(packet, this.x.hh_in());

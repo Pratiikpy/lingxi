@@ -10,9 +10,15 @@ export interface Entry {
 }
 
 /** The entries of `after` that differ from `before` or whose patch is among `changedFiles` (repo paths). */
-export function changedEntries<E extends Entry>(before: readonly E[] | null, after: readonly E[], changedFiles: readonly string[]): E[] {
+export function changedEntries<E extends Entry>(
+  before: readonly E[] | null,
+  after: readonly E[],
+  changedFiles: readonly string[],
+): E[] {
   if (!before) return [...after];
   const was = new Map(before.map((e) => [e.id, JSON.stringify(e)]));
-  const patched = new Set(changedFiles.map((f) => /^scripts\/regressions\/(.+)\.patch$/.exec(f)?.[1]).filter((id): id is string => !!id));
+  const patched = new Set(
+    changedFiles.map((f) => /^scripts\/regressions\/(.+)\.patch$/.exec(f)?.[1]).filter((id): id is string => !!id),
+  );
   return after.filter((e) => was.get(e.id) !== JSON.stringify(e) || patched.has(e.id));
 }

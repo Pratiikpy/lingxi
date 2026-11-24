@@ -39,19 +39,52 @@ function strictNode(head: number, logs: FakeLog[] = []) {
   return { client: client as unknown as PublicClient, asked };
 }
 
-const created = (id: number, block: number, expiry: number, count = 3): FakeLog => ({ eventName: "Created", blockNumber: BigInt(block), transactionHash: `0xc${id}${block}`, args: { id: BigInt(id), sender: "0xS", token: "0xT", total: 300n, count, lucky: false, petOwnersOnly: false, expiry: BigInt(expiry) } });
-const claimed = (id: number, block: number, index: number, who = `0xA${index}`): FakeLog => ({ eventName: "Claimed", blockNumber: BigInt(block), transactionHash: `0xd${id}${block}${index}`, args: { id: BigInt(id), claimer: who, amount: 100n, index, sealInput: 7, sealOutput: 1 } });
+const created = (id: number, block: number, expiry: number, count = 3): FakeLog => ({
+  eventName: "Created",
+  blockNumber: BigInt(block),
+  transactionHash: `0xc${id}${block}`,
+  args: {
+    id: BigInt(id),
+    sender: "0xS",
+    token: "0xT",
+    total: 300n,
+    count,
+    lucky: false,
+    petOwnersOnly: false,
+    expiry: BigInt(expiry),
+  },
+});
+const claimed = (id: number, block: number, index: number, who = `0xA${index}`): FakeLog => ({
+  eventName: "Claimed",
+  blockNumber: BigInt(block),
+  transactionHash: `0xd${id}${block}${index}`,
+  args: { id: BigInt(id), claimer: who, amount: 100n, index, sealInput: 7, sealOutput: 1 },
+});
 
 describe("the red packet claims index (A1)", () => {
   it("reads to the head in windows of at most 100 blocks and lists each packet's claims in order", async () => {
-    const { client, asked } = strictNode(1_950, [created(1, 1_010, 2_000_000_000), claimed(1, 1_500, 1), claimed(1, 1_420, 0), created(2, 1_900, 2_000_000_000), claimed(2, 1_949, 0)]);
+    const { client, asked } = strictNode(1_950, [
+      created(1, 1_010, 2_000_000_000),
+      claimed(1, 1_500, 1),
+      claimed(1, 1_420, 0),
+      created(2, 1_900, 2_000_000_000),
+      claimed(2, 1_949, 0),
+    ]);
     const index = createPacketIndex({ address: ADDR, fromBlock: 1_000, client, paceMs: 0 });
     expect(await index.catchUp()).toBe(5);
     expect(asked.every(([f, t]) => t - f + 1 <= 100)).toBe(true);
     expect(index.head()).toBe(1_950);
     const one = index.claimsOf("1")!;
     expect(one.claims.map((c) => c.index)).toEqual([0, 1]);
-    expect(one.claims[0]).toEqual({ claimer: "0xA0", amount: "100", index: 0, sealInput: 7, sealOutput: 1, tx: "0xd114200", block: 1_420 });
+    expect(one.claims[0]).toEqual({
+      claimer: "0xA0",
+      amount: "100",
+      index: 0,
+      sealInput: 7,
+      sealOutput: 1,
+      tx: "0xd114200",
+      block: 1_420,
+    });
     expect(one.created?.count).toBe(3);
     expect(index.claimsOf("9")).toBeNull();
   });
@@ -59,7 +92,13 @@ describe("the red packet claims index (A1)", () => {
   it("keeps its place across a restart and never lists a claim twice", async () => {
     const store = join(mkdtempSync(join(tmpdir(), "packets-")), "packets.json");
     const logs = [created(1, 1_010, 2_000_000_000), claimed(1, 1_050, 0)];
-    const first = createPacketIndex({ address: ADDR, fromBlock: 1_000, client: strictNode(1_060, logs).client, paceMs: 0, store });
+    const first = createPacketIndex({
+      address: ADDR,
+      fromBlock: 1_000,
+      client: strictNode(1_060, logs).client,
+      paceMs: 0,
+      store,
+    });
     await first.catchUp();
     // the next run starts where the last one stopped, and reading a window again changes nothing
     const again = strictNode(1_200, [...logs, claimed(1, 1_150, 1)]);
@@ -71,8 +110,24 @@ describe("the red packet claims index (A1)", () => {
 
   it("forgets a packet 30 days after it closes, never one still open, and keeps within its claim budget", async () => {
     const t = 1_800_000_000;
-    const logs = [created(1, 1_010, t - 40 * DAY), claimed(1, 1_011, 0), created(2, 1_020, t - 5 * DAY), claimed(2, 1_021, 0), claimed(2, 1_022, 1), created(3, 1_030, t + DAY), claimed(3, 1_031, 0), claimed(3, 1_032, 1)];
-    const index = createPacketIndex({ address: ADDR, fromBlock: 1_000, client: strictNode(1_040, logs).client, paceMs: 0, now: () => t, maxClaims: 3 });
+    const logs = [
+      created(1, 1_010, t - 40 * DAY),
+      claimed(1, 1_011, 0),
+      created(2, 1_020, t - 5 * DAY),
+      claimed(2, 1_021, 0),
+      claimed(2, 1_022, 1),
+      created(3, 1_030, t + DAY),
+      claimed(3, 1_031, 0),
+      claimed(3, 1_032, 1),
+    ];
+    const index = createPacketIndex({
+      address: ADDR,
+      fromBlock: 1_000,
+      client: strictNode(1_040, logs).client,
+      paceMs: 0,
+      now: () => t,
+      maxClaims: 3,
+    });
     await index.catchUp();
     // 1 closed 40 days ago: forgotten. 2 closed 5 days ago and 3 still open: kept, but four claims exceed a budget of
     // three, so the closed one goes; the open one is never dropped
@@ -84,8 +139,19 @@ describe("the red packet claims index (A1)", () => {
 
   it("forgets a closed packet's claims 30 days after it closes, however much room is left", async () => {
     const t = 1_800_000_000;
-    const logs = [created(1, 1_010, t - 31 * DAY), claimed(1, 1_011, 0), created(2, 1_020, t - 29 * DAY), claimed(2, 1_021, 0)];
-    const index = createPacketIndex({ address: ADDR, fromBlock: 1_000, client: strictNode(1_040, logs).client, paceMs: 0, now: () => t });
+    const logs = [
+      created(1, 1_010, t - 31 * DAY),
+      claimed(1, 1_011, 0),
+      created(2, 1_020, t - 29 * DAY),
+      claimed(2, 1_021, 0),
+    ];
+    const index = createPacketIndex({
+      address: ADDR,
+      fromBlock: 1_000,
+      client: strictNode(1_040, logs).client,
+      paceMs: 0,
+      now: () => t,
+    });
     await index.catchUp();
     expect(index.claimsOf("1")).toBeNull();
     expect(index.claimsOf("2")!.claims).toHaveLength(1);
@@ -97,12 +163,27 @@ describe("every log read stays within the public nodes' 100-block limit (A1)", (
     const histories = strictNode(2_000);
     await createIndexer({ rpc: "", registry: ADDR, fromBlock: 1_000, client: histories.client, paceMs: 0 }).catchUp();
     const goals = strictNode(2_000);
-    await createGoalLedger({ rpc: "", registry: ADDR, burners: [], fromBlock: 1_000, client: goals.client, paceMs: 0 }).catchUp();
+    await createGoalLedger({
+      rpc: "",
+      registry: ADDR,
+      burners: [],
+      fromBlock: 1_000,
+      client: goals.client,
+      paceMs: 0,
+    }).catchUp();
     const sales = strictNode(2_000);
-    await createSalesCounter({ rpc: "", markets: [{ address: ADDR, fromBlock: 1_000 }], client: sales.client, paceMs: 0 }).catchUp();
+    await createSalesCounter({
+      rpc: "",
+      markets: [{ address: ADDR, fromBlock: 1_000 }],
+      client: sales.client,
+      paceMs: 0,
+    }).catchUp();
     for (const [name, node] of Object.entries({ histories, goals, sales })) {
       expect(node.asked.length, name).toBeGreaterThanOrEqual(10);
-      expect(node.asked.every(([f, t]) => t - f + 1 <= 100), name).toBe(true);
+      expect(
+        node.asked.every(([f, t]) => t - f + 1 <= 100),
+        name,
+      ).toBe(true);
     }
   });
 });
@@ -115,10 +196,18 @@ describe("the claims route (A1)", () => {
     const index = createPacketIndex({ address: ADDR, fromBlock: 1_000, client, paceMs: 0 });
     await index.catchUp();
     const app = withPackets(new Hono(), index);
-    const ok = (await (await app.request("/api/packets/5/claims")).json()) as { ok: boolean; indexedTo: number; claims: unknown[] };
+    const ok = (await (await app.request("/api/packets/5/claims")).json()) as {
+      ok: boolean;
+      indexedTo: number;
+      claims: unknown[];
+    };
     expect(ok).toMatchObject({ ok: true, indexedTo: 1_100 });
     expect(ok.claims).toHaveLength(1);
-    expect(await (await app.request("/api/packets/6/claims")).json()).toEqual({ ok: false, reason: "unknown", indexedTo: 1_100 });
+    expect(await (await app.request("/api/packets/6/claims")).json()).toEqual({
+      ok: false,
+      reason: "unknown",
+      indexedTo: 1_100,
+    });
     expect((await app.request("/api/packets/x/claims")).status).toBe(400);
   });
 });

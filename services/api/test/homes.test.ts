@@ -66,9 +66,14 @@ describe("linking a wallet to a home (plan 4.9)", () => {
     const homes = createHomes({ chain: fakeChain().chain });
     for (let i = 0; i < MAX_LINKED; i++) {
       const w = privateKeyToAccount(`0x${(i + 1).toString(16).padStart(64, "0")}`);
-      expect((await homes.link(HOME, w.address, await w.signMessage({ message: homeLinkMessage(HOME) }))).ok).toBe(true);
+      expect((await homes.link(HOME, w.address, await w.signMessage({ message: homeLinkMessage(HOME) }))).ok).toBe(
+        true,
+      );
     }
-    expect(await homes.link(HOME, alice.address, await alice.signMessage({ message: homeLinkMessage(HOME) }))).toEqual({ ok: false, reason: "full" });
+    expect(await homes.link(HOME, alice.address, await alice.signMessage({ message: homeLinkMessage(HOME) }))).toEqual({
+      ok: false,
+      reason: "full",
+    });
     const first = homes.wallets(HOME)[0]!;
     expect(homes.unlink(HOME, first)).toEqual({ ok: true, wallets: homes.wallets(HOME) });
     expect(homes.wallets(HOME)).toHaveLength(MAX_LINKED - 1);
@@ -85,7 +90,33 @@ describe("linking a wallet to a home (plan 4.9)", () => {
 });
 
 describe("what visitors see (plan 4.9)", () => {
-  const placed = (n: number, chainPieces: string[] = []) => [...chainPieces.map((id) => ({ id, x: 30, y: 80 })), ...["fern", "lantern", "mushroom", "flowers", "star", "heart", "bunting", "rug", "books", "crystal", "globe", "ball", "postcard", "starmap", "photo", "portrait", "firstaid", "pillow", "cloud", "dreamjar"].slice(0, n).map((id) => ({ id, x: 40, y: 90 }))];
+  const placed = (n: number, chainPieces: string[] = []) => [
+    ...chainPieces.map((id) => ({ id, x: 30, y: 80 })),
+    ...[
+      "fern",
+      "lantern",
+      "mushroom",
+      "flowers",
+      "star",
+      "heart",
+      "bunting",
+      "rug",
+      "books",
+      "crystal",
+      "globe",
+      "ball",
+      "postcard",
+      "starmap",
+      "photo",
+      "portrait",
+      "firstaid",
+      "pillow",
+      "cloud",
+      "dreamjar",
+    ]
+      .slice(0, n)
+      .map((id) => ({ id, x: 40, y: 90 })),
+  ];
 
   it("a home with no linked wallet shows its game pieces, up to 12, and no on-chain piece", async () => {
     const homes = createHomes({ chain: fakeChain().chain });
@@ -103,7 +134,11 @@ describe("what visitors see (plan 4.9)", () => {
     state.pieces[alice.address] = ["star-lamp", "fern", "nope"];
     const view = await homes.view(HOME);
     expect(view).toEqual({ capacity: 20, held: ["star-lamp"] });
-    expect(visible(placed(19, ["star-lamp", "moon-window"]), view).map((p) => p.id)).toEqual(placed(19, ["star-lamp"]).slice(0, 20).map((p) => p.id));
+    expect(visible(placed(19, ["star-lamp", "moon-window"]), view).map((p) => p.id)).toEqual(
+      placed(19, ["star-lamp"])
+        .slice(0, 20)
+        .map((p) => p.id),
+    );
     // the wallet sells its lamp: after the short cache the lamp is gone for visitors
     state.pieces[alice.address] = [];
     expect((await homes.view(HOME)).held).toEqual(["star-lamp"]);
@@ -219,11 +254,40 @@ describe("the live room with linked homes (plan 4.9)", () => {
     state.pieces[alice.address] = ["star-lamp"];
     state.packs[alice.address] = 1;
     const owner = await connect();
-    send(owner, { t: "hello", id: idOf("ownerhome1"), key: keyOf("ownerhome1"), name: "Mochi", line: "gentle", stage: "child", mood: 2, space: `home:${idOf("ownerhome1")}` });
+    send(owner, {
+      t: "hello",
+      id: idOf("ownerhome1"),
+      key: keyOf("ownerhome1"),
+      name: "Mochi",
+      line: "gentle",
+      stage: "child",
+      mood: 2,
+      space: `home:${idOf("ownerhome1")}`,
+    });
     await owner.next("room");
     // entering a home sends its pieces; this one has none yet
     expect((await owner.next("decor")).placed).toEqual([]);
-    const many = [{ id: "star-lamp", x: 30, y: 80 }, ...["fern", "lantern", "mushroom", "flowers", "star", "heart", "bunting", "rug", "books", "crystal", "globe", "ball", "postcard", "starmap", "photo", "portrait"].map((id) => ({ id, x: 40, y: 90 }))];
+    const many = [
+      { id: "star-lamp", x: 30, y: 80 },
+      ...[
+        "fern",
+        "lantern",
+        "mushroom",
+        "flowers",
+        "star",
+        "heart",
+        "bunting",
+        "rug",
+        "books",
+        "crystal",
+        "globe",
+        "ball",
+        "postcard",
+        "starmap",
+        "photo",
+        "portrait",
+      ].map((id) => ({ id, x: 40, y: 90 })),
+    ];
     expect(many).toHaveLength(17);
     send(owner, { t: "decor", key: keyOf("ownerhome1"), placed: many });
     const before = await owner.next("decor");
@@ -231,18 +295,46 @@ describe("the live room with linked homes (plan 4.9)", () => {
 
     // someone holding the home's link but not its key cannot link a wallet to it
     const stranger = await connect();
-    send(stranger, { t: "hello", id: idOf("ownerhome1"), key: OTHER_KEY, name: "Fake", line: "gentle", stage: "child", mood: 2, space: "room:65" });
+    send(stranger, {
+      t: "hello",
+      id: idOf("ownerhome1"),
+      key: OTHER_KEY,
+      name: "Fake",
+      line: "gentle",
+      stage: "child",
+      mood: 2,
+      space: "room:65",
+    });
     expect(await stranger.next("refused")).toEqual({ t: "refused", reason: "id" });
-    send(stranger, { t: "link", key: OTHER_KEY, wallet: bob.address, signature: await bob.signMessage({ message: homeLinkMessage(idOf("ownerhome1")) }) });
+    send(stranger, {
+      t: "link",
+      key: OTHER_KEY,
+      wallet: bob.address,
+      signature: await bob.signMessage({ message: homeLinkMessage(idOf("ownerhome1")) }),
+    });
     await expect(stranger.next("linked", 300)).rejects.toThrow();
 
-    send(owner, { t: "link", key: keyOf("ownerhome1"), wallet: alice.address, signature: await alice.signMessage({ message: homeLinkMessage(idOf("ownerhome1")) }) });
+    send(owner, {
+      t: "link",
+      key: keyOf("ownerhome1"),
+      wallet: alice.address,
+      signature: await alice.signMessage({ message: homeLinkMessage(idOf("ownerhome1")) }),
+    });
     expect(await owner.next("linked")).toEqual({ t: "linked", ok: true, wallets: [alice.address] });
     const after = await owner.next("decor");
     expect((after.placed as Array<{ id: string }>).map((p) => p.id)).toEqual(many.slice(0, 16).map((p) => p.id));
 
     const visitor = await connect();
-    send(visitor, { t: "hello", id: idOf("visitor22"), key: keyOf("visitor22"), name: "Tofu", line: "bold", stage: "child", mood: 2, space: `home:${idOf("ownerhome1")}` });
+    send(visitor, {
+      t: "hello",
+      id: idOf("visitor22"),
+      key: keyOf("visitor22"),
+      name: "Tofu",
+      line: "bold",
+      stage: "child",
+      mood: 2,
+      space: `home:${idOf("ownerhome1")}`,
+    });
     await visitor.next("room");
     expect(((await visitor.next("decor")).placed as unknown[]).length).toBe(16);
 
@@ -250,7 +342,9 @@ describe("the live room with linked homes (plan 4.9)", () => {
     expect((await owner.next("linked")).wallets).toEqual([alice.address]);
     send(owner, { t: "unlink", key: keyOf("ownerhome1"), wallet: alice.address });
     expect(await owner.next("linked")).toEqual({ t: "linked", ok: true, wallets: [] });
-    expect(((await visitor.next("decor")).placed as Array<{ id: string }>).map((p) => p.id)).toEqual(many.slice(1, 13).map((p) => p.id));
+    expect(((await visitor.next("decor")).placed as Array<{ id: string }>).map((p) => p.id)).toEqual(
+      many.slice(1, 13).map((p) => p.id),
+    );
     for (const p of [owner, stranger, visitor]) p.ws.close();
   });
 
@@ -258,14 +352,47 @@ describe("the live room with linked homes (plan 4.9)", () => {
     state.owners["41"] = alice.address;
     state.colours["41"] = 6;
     const a = await connect();
-    send(a, { t: "hello", id: idOf("colourful1"), key: keyOf("colourful1"), name: "Mochi", line: "gentle", stage: "child", mood: 2, space: `home:${idOf("colourful1")}` });
+    send(a, {
+      t: "hello",
+      id: idOf("colourful1"),
+      key: keyOf("colourful1"),
+      name: "Mochi",
+      line: "gentle",
+      stage: "child",
+      mood: 2,
+      space: `home:${idOf("colourful1")}`,
+    });
     await a.next("room");
-    send(a, { t: "link", key: keyOf("colourful1"), wallet: alice.address, signature: await alice.signMessage({ message: homeLinkMessage(idOf("colourful1")) }) });
+    send(a, {
+      t: "link",
+      key: keyOf("colourful1"),
+      wallet: alice.address,
+      signature: await alice.signMessage({ message: homeLinkMessage(idOf("colourful1")) }),
+    });
     await a.next("linked");
     const b = await connect();
-    send(b, { t: "hello", id: idOf("watcher33"), key: keyOf("watcher33"), name: "Tofu", line: "bold", stage: "child", mood: 2, space: "room:70" });
+    send(b, {
+      t: "hello",
+      id: idOf("watcher33"),
+      key: keyOf("watcher33"),
+      name: "Tofu",
+      line: "bold",
+      stage: "child",
+      mood: 2,
+      space: "room:70",
+    });
     await b.next("room");
-    send(a, { t: "hello", id: idOf("colourful1"), key: keyOf("colourful1"), name: "Mochi", line: "gentle", stage: "child", mood: 2, space: "room:70", petId: "41" });
+    send(a, {
+      t: "hello",
+      id: idOf("colourful1"),
+      key: keyOf("colourful1"),
+      name: "Mochi",
+      line: "gentle",
+      stage: "child",
+      mood: 2,
+      space: "room:70",
+      petId: "41",
+    });
     await b.next("joined");
     expect(await b.next("colour")).toEqual({ t: "colour", id: idOf("colourful1"), colour: 6 });
     a.ws.close();
@@ -276,20 +403,58 @@ describe("the live room with linked homes (plan 4.9)", () => {
     state.owners["52"] = bob.address;
     state.colours["52"] = 4;
     const a = await connect();
-    send(a, { t: "hello", id: idOf("linklater1"), key: keyOf("linklater1"), name: "Pip", line: "gentle", stage: "baby", mood: 1, space: "room:71", petId: "52" });
+    send(a, {
+      t: "hello",
+      id: idOf("linklater1"),
+      key: keyOf("linklater1"),
+      name: "Pip",
+      line: "gentle",
+      stage: "baby",
+      mood: 1,
+      space: "room:71",
+      petId: "52",
+    });
     await a.next("room");
     const b = await connect();
-    send(b, { t: "hello", id: idOf("watcher44"), key: keyOf("watcher44"), name: "Tofu", line: "bold", stage: "child", mood: 2, space: "room:71" });
+    send(b, {
+      t: "hello",
+      id: idOf("watcher44"),
+      key: keyOf("watcher44"),
+      name: "Tofu",
+      line: "bold",
+      stage: "child",
+      mood: 2,
+      space: "room:71",
+    });
     const room = await b.next("room");
     // not linked yet: the pet is in the room with a plain name
-    expect((room.members as Array<Record<string, unknown>>).find((m) => m.id === idOf("linklater1"))?.colour).toBeUndefined();
-    send(a, { t: "link", key: keyOf("linklater1"), wallet: bob.address, signature: await bob.signMessage({ message: homeLinkMessage(idOf("linklater1")) }) });
+    expect(
+      (room.members as Array<Record<string, unknown>>).find((m) => m.id === idOf("linklater1"))?.colour,
+    ).toBeUndefined();
+    send(a, {
+      t: "link",
+      key: keyOf("linklater1"),
+      wallet: bob.address,
+      signature: await bob.signMessage({ message: homeLinkMessage(idOf("linklater1")) }),
+    });
     await a.next("linked");
     expect(await b.next("colour")).toEqual({ t: "colour", id: idOf("linklater1"), colour: 4 });
     // someone arriving now sees the colour in the room list itself
     const c = await connect();
-    send(c, { t: "hello", id: idOf("watcher55"), key: keyOf("watcher55"), name: "Bean", line: "curious", stage: "child", mood: 2, space: "room:71" });
-    expect(((await c.next("room")).members as Array<Record<string, unknown>>).find((m) => m.id === idOf("linklater1"))?.colour).toBe(4);
+    send(c, {
+      t: "hello",
+      id: idOf("watcher55"),
+      key: keyOf("watcher55"),
+      name: "Bean",
+      line: "curious",
+      stage: "child",
+      mood: 2,
+      space: "room:71",
+    });
+    expect(
+      ((await c.next("room")).members as Array<Record<string, unknown>>).find((m) => m.id === idOf("linklater1"))
+        ?.colour,
+    ).toBe(4);
     send(a, { t: "unlink", key: keyOf("linklater1"), wallet: bob.address });
     await a.next("linked");
     expect(await b.next("colour")).toEqual({ t: "colour", id: idOf("linklater1"), colour: 0 });
@@ -301,14 +466,47 @@ describe("the live room with linked homes (plan 4.9)", () => {
     state.owners["53"] = alice.address;
     state.colours["53"] = 2;
     const a = await connect();
-    send(a, { t: "hello", id: idOf("recolour01"), key: keyOf("recolour01"), name: "Pip", line: "gentle", stage: "baby", mood: 1, space: `home:${idOf("recolour01")}` });
+    send(a, {
+      t: "hello",
+      id: idOf("recolour01"),
+      key: keyOf("recolour01"),
+      name: "Pip",
+      line: "gentle",
+      stage: "baby",
+      mood: 1,
+      space: `home:${idOf("recolour01")}`,
+    });
     await a.next("room");
-    send(a, { t: "link", key: keyOf("recolour01"), wallet: alice.address, signature: await alice.signMessage({ message: homeLinkMessage(idOf("recolour01")) }) });
+    send(a, {
+      t: "link",
+      key: keyOf("recolour01"),
+      wallet: alice.address,
+      signature: await alice.signMessage({ message: homeLinkMessage(idOf("recolour01")) }),
+    });
     await a.next("linked");
     const b = await connect();
-    send(b, { t: "hello", id: idOf("watcher66"), key: keyOf("watcher66"), name: "Tofu", line: "bold", stage: "child", mood: 2, space: "room:72" });
+    send(b, {
+      t: "hello",
+      id: idOf("watcher66"),
+      key: keyOf("watcher66"),
+      name: "Tofu",
+      line: "bold",
+      stage: "child",
+      mood: 2,
+      space: "room:72",
+    });
     await b.next("room");
-    send(a, { t: "hello", id: idOf("recolour01"), key: keyOf("recolour01"), name: "Pip", line: "gentle", stage: "baby", mood: 1, space: "room:72", petId: "53" });
+    send(a, {
+      t: "hello",
+      id: idOf("recolour01"),
+      key: keyOf("recolour01"),
+      name: "Pip",
+      line: "gentle",
+      stage: "baby",
+      mood: 1,
+      space: "room:72",
+      petId: "53",
+    });
     expect(await b.next("colour")).toEqual({ t: "colour", id: idOf("recolour01"), colour: 2 });
     state.colours["53"] = 7;
     send(a, { t: "recolour" });
@@ -359,7 +557,10 @@ describe("a full set of linked homes lets go of the one seen longest ago (A74)",
     // the first home's player comes back: it is now the most recently seen
     homes.seen("homeaaaa");
     now += 1_000;
-    expect(await homes.link("homedddd", alice.address, await sign("homedddd")), "a full store makes room").toMatchObject({ ok: true });
+    expect(
+      await homes.link("homedddd", alice.address, await sign("homedddd")),
+      "a full store makes room",
+    ).toMatchObject({ ok: true });
     expect(homes.wallets("homebbbb"), "the home seen longest ago goes").toEqual([]);
     expect(homes.wallets("homeaaaa"), "the one in use stays").toEqual([alice.address]);
     expect(homes.wallets("homecccc")).toEqual([alice.address]);
@@ -399,9 +600,22 @@ describe("a player in a room keeps their home's links (A74)", () => {
     await new Promise<void>((r) => server.listen(0, r));
     const port = (server.address() as AddressInfo).port;
     const key = createHash("sha256").update("a74-seen").digest("hex").slice(0, 32);
-    const ws = new WebSocket(`ws://127.0.0.1:${port}/live`, { headers: { origin: "http://ok.test", "cf-connecting-ip": "203.0.113.74" } });
+    const ws = new WebSocket(`ws://127.0.0.1:${port}/live`, {
+      headers: { origin: "http://ok.test", "cf-connecting-ip": "203.0.113.74" },
+    });
     await new Promise((r) => ws.on("open", r));
-    ws.send(JSON.stringify({ t: "hello", id: playerIdFor(key), key, name: "Mochi", line: "gentle", stage: "baby", mood: 1, space: "room:74" }));
+    ws.send(
+      JSON.stringify({
+        t: "hello",
+        id: playerIdFor(key),
+        key,
+        name: "Mochi",
+        line: "gentle",
+        stage: "baby",
+        mood: 1,
+        space: "room:74",
+      }),
+    );
     await new Promise((r) => setTimeout(r, 300));
     expect(seen).toEqual([playerIdFor(key)]);
     ws.close();
@@ -409,13 +623,13 @@ describe("a player in a room keeps their home's links (A74)", () => {
   });
 });
 
-
 describe("home views have a limit per player (A81)", () => {
   it("one player's 21st uncached home view in a minute reads nothing; another player still reads; cached views are free", async () => {
     const { state, chain } = fakeChain();
     const homes = createHomes({ chain, now: () => 1_000 });
     const owners = Array.from({ length: 22 }, (_, i) => `homeview${String(i).padStart(2, "0")}`);
-    for (const o of owners) await homes.link(o, alice.address, await alice.signMessage({ message: homeLinkMessage(o) }));
+    for (const o of owners)
+      await homes.link(o, alice.address, await alice.signMessage({ message: homeLinkMessage(o) }));
     state.reads = 0;
     for (let i = 0; i < 20; i++) await homes.view(owners[i]!, "visitor-a");
     const used = state.reads;

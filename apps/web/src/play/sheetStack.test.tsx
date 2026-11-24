@@ -29,7 +29,8 @@ describe("stacked sheets (A124)", () => {
     // the pet's sheet is open; the skills sheet is opened from it
     await act(async () => root.render(page(false)));
     await act(async () => root.render(page(true)));
-    const z = (el: Element | null | undefined) => Number((el as HTMLElement | null)?.style.zIndex || getComputedStyle(el as Element).zIndex || 0);
+    const z = (el: Element | null | undefined) =>
+      Number((el as HTMLElement | null)?.style.zIndex || getComputedStyle(el as Element).zIndex || 0);
     const sheet = (title: string) => host.querySelector(`.sheet[aria-label="${title}"]`);
     expect(z(sheet("Skills")), "the skills sheet is on top").toBeGreaterThan(z(sheet("About")));
     const scrims = Array.from(host.querySelectorAll(".scrim")).map(z);

@@ -6,7 +6,14 @@
  * fight through the DUEL-12x3/1 pins (see spar.ts).
  */
 
-import { type FlyProgram, circuitBrain, compileFlyProgram, decodeFlyProgram, flyCircuit, programOfChips } from "@lingxi/brain";
+import {
+  type FlyProgram,
+  circuitBrain,
+  compileFlyProgram,
+  decodeFlyProgram,
+  flyCircuit,
+  programOfChips,
+} from "@lingxi/brain";
 import type { Fighter } from "./spar";
 
 export interface FlyRival {
@@ -52,7 +59,13 @@ export function parseFlyBrain(text: string): FlyProgram {
     } else if (t.startsWith("p1.")) program = t;
     else chips = t;
     if (program) return decodeFlyProgram(program);
-    if (chips) return programOfChips(chips.split(",").map((c) => c.trim().toLowerCase()).filter(Boolean));
+    if (chips)
+      return programOfChips(
+        chips
+          .split(",")
+          .map((c) => c.trim().toLowerCase())
+          .filter(Boolean),
+      );
   } catch (e) {
     throw new FlyLinkError((e as Error).message);
   }
@@ -61,5 +74,12 @@ export function parseFlyBrain(text: string): FlyProgram {
 
 export function flyFighter(name: string, program: FlyProgram, level = 0): Fighter & { gates: number } {
   const gates = compileFlyProgram(program);
-  return { name, brain: circuitBrain(flyCircuit(gates)), memory: [], level, profile: "DUEL-12x3/1", gates: gates.length };
+  return {
+    name,
+    brain: circuitBrain(flyCircuit(gates)),
+    memory: [],
+    level,
+    profile: "DUEL-12x3/1",
+    gates: gates.length,
+  };
 }

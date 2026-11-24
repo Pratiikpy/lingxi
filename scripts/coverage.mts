@@ -27,10 +27,19 @@ const SLOWED = { ...process.env, LINGXI_SLOW_TESTS: "5" };
 const rows: Array<{ part: string; lines: number; branches: number; ok: boolean }> = [];
 
 /** Reads the totals vitest wrote (`json-summary`) after a run in `dir`. */
-const totals = (dir: string) => (JSON.parse(readFileSync(join(dir, "coverage/coverage-summary.json"), "utf8")) as { total: { lines: { pct: number }; branches: { pct: number } } }).total;
+const totals = (dir: string) =>
+  (
+    JSON.parse(readFileSync(join(dir, "coverage/coverage-summary.json"), "utf8")) as {
+      total: { lines: { pct: number }; branches: { pct: number } };
+    }
+  ).total;
 
 for (const pkg of ["packages/brain", "packages/game", "packages/world"]) {
-  const run = spawnSync(process.execPath, [vitest, "run", "--coverage"], { env: SLOWED, cwd: join(root, pkg), stdio: ["ignore", "ignore", "inherit"] });
+  const run = spawnSync(process.execPath, [vitest, "run", "--coverage"], {
+    env: SLOWED,
+    cwd: join(root, pkg),
+    stdio: ["ignore", "ignore", "inherit"],
+  });
   const t = totals(join(root, pkg));
   rows.push({ part: pkg, lines: t.lines.pct, branches: t.branches.pct, ok: run.status === 0 });
 }
@@ -38,7 +47,21 @@ for (const pkg of ["packages/brain", "packages/game", "packages/world"]) {
 {
   // the game's stores: the bar is given here, since the web package's config is its build's
   const stores = ["store", "world", "chain", "saveRuntime"].map((f) => `--coverage.include=src/game/${f}.ts`);
-  const run = spawnSync(process.execPath, [vitest, "run", "--coverage", "--coverage.provider=v8", ...stores, `--coverage.thresholds.lines=${BAR}`, `--coverage.thresholds.branches=${BAR}`, "--coverage.reporter=json-summary", "--coverage.reporter=text-summary"], { env: SLOWED, cwd: join(root, "apps/web"), stdio: ["ignore", "ignore", "inherit"] });
+  const run = spawnSync(
+    process.execPath,
+    [
+      vitest,
+      "run",
+      "--coverage",
+      "--coverage.provider=v8",
+      ...stores,
+      `--coverage.thresholds.lines=${BAR}`,
+      `--coverage.thresholds.branches=${BAR}`,
+      "--coverage.reporter=json-summary",
+      "--coverage.reporter=text-summary",
+    ],
+    { env: SLOWED, cwd: join(root, "apps/web"), stdio: ["ignore", "ignore", "inherit"] },
+  );
   const t = totals(join(root, "apps/web"));
   rows.push({ part: "apps/web game stores", lines: t.lines.pct, branches: t.branches.pct, ok: run.status === 0 });
 }
@@ -46,15 +69,28 @@ for (const pkg of ["packages/brain", "packages/game", "packages/world"]) {
 {
   // the server, with its fork tests switched on; its config holds the bar (the chain package's fork tests run in CI's
   // check job, and are not part of this measure)
-  const run = spawnSync(process.execPath, [join(root, "node_modules/tsx/dist/cli.mjs"), "scripts/fork-tests.mts", "--only", "services/api", "--coverage"], { env: SLOWED, cwd: root, stdio: ["ignore", "ignore", "inherit"] });
+  const run = spawnSync(
+    process.execPath,
+    [join(root, "node_modules/tsx/dist/cli.mjs"), "scripts/fork-tests.mts", "--only", "services/api", "--coverage"],
+    { env: SLOWED, cwd: root, stdio: ["ignore", "ignore", "inherit"] },
+  );
   const t = totals(join(root, "services/api"));
-  rows.push({ part: "services/api (with fork tests)", lines: t.lines.pct, branches: t.branches.pct, ok: run.status === 0 });
+  rows.push({
+    part: "services/api (with fork tests)",
+    lines: t.lines.pct,
+    branches: t.branches.pct,
+    ok: run.status === 0,
+  });
 }
 
 {
   // invariant tests are left out of this one run: on a fork their fuzzing looks up so many accounts that the public
   // node refuses them (HTTP 403); `forge test` runs them as always
-  const run = spawnSync("forge", ["coverage", "--fork-url", "xlayer", "--no-match-test", "invariant", "--report", "summary"], { cwd: join(root, "contracts"), encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+  const run = spawnSync(
+    "forge",
+    ["coverage", "--fork-url", "xlayer", "--no-match-test", "invariant", "--report", "summary"],
+    { cwd: join(root, "contracts"), encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+  );
   const lines = (run.stdout ?? "").split("\n").filter((l) => /^\| src\//.test(l));
   if (run.status !== 0 || !lines.length) rows.push({ part: "contracts", lines: 0, branches: 0, ok: false });
   for (const l of lines) {
@@ -69,7 +105,14 @@ for (const pkg of ["packages/brain", "packages/game", "packages/world"]) {
 }
 
 const width = Math.max(...rows.map((r) => r.part.length));
-for (const r of rows) console.log(`${r.ok ? "PASS" : "FAIL"}  ${r.part.padEnd(width)}  lines ${r.lines.toFixed(1).padStart(5)}%  branches ${r.branches.toFixed(1).padStart(5)}%`);
+for (const r of rows)
+  console.log(
+    `${r.ok ? "PASS" : "FAIL"}  ${r.part.padEnd(width)}  lines ${r.lines.toFixed(1).padStart(5)}%  branches ${r.branches.toFixed(1).padStart(5)}%`,
+  );
 const short = rows.filter((r) => !r.ok);
-console.log(short.length ? `\n${short.length} part(s) below ${BAR}% of lines or branches, or not measured` : `\nevery part at or above ${BAR}% of lines and branches`);
+console.log(
+  short.length
+    ? `\n${short.length} part(s) below ${BAR}% of lines or branches, or not measured`
+    : `\nevery part at or above ${BAR}% of lines and branches`,
+);
 process.exitCode = short.length ? 1 : 0;

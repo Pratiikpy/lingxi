@@ -17,7 +17,16 @@ import { type MindSpec, halvesOf, mindExtra } from "./family";
 import { skillRules } from "./skills";
 import { PET_SCHOOL, composeProgram } from "./lessons";
 
-type Senses = { hunger: number; joy: number; energy: number; clean: number; time: number; action: number; event: number; owner: number };
+type Senses = {
+  hunger: number;
+  joy: number;
+  energy: number;
+  clean: number;
+  time: number;
+  action: number;
+  event: number;
+  owner: number;
+};
 
 export interface Goal {
   say: { en: string; zh: string };
@@ -33,29 +42,76 @@ const CALM: Senses = { hunger: 0, joy: 2, energy: 2, clean: 2, time: 2, action: 
 
 export const SCHOOL_GOALS: Readonly<Record<string, readonly [Goal, Goal, Goal]>> = {
   share: [
-    { say: { en: "A friend comes by while it's happy: it shares", zh: "开心的时候朋友来了：它会分享" }, senses: { event: 1, joy: 2 }, want: 7 },
-    { say: { en: "A friend comes by on a low day: it still shares", zh: "心情低落时朋友来了：它还是分享" }, senses: { event: 1, joy: 1 }, want: 7 },
-    { say: { en: "It shares even when you're away", zh: "你不在的时候也会分享" }, senses: { event: 1, joy: 3, owner: 0 }, want: 7 },
+    {
+      say: { en: "A friend comes by while it's happy: it shares", zh: "开心的时候朋友来了：它会分享" },
+      senses: { event: 1, joy: 2 },
+      want: 7,
+    },
+    {
+      say: { en: "A friend comes by on a low day: it still shares", zh: "心情低落时朋友来了：它还是分享" },
+      senses: { event: 1, joy: 1 },
+      want: 7,
+    },
+    {
+      say: { en: "It shares even when you're away", zh: "你不在的时候也会分享" },
+      senses: { event: 1, joy: 3, owner: 0 },
+      want: 7,
+    },
   ],
   brave: [
-    { say: { en: "Something scary with you there: it comes to you", zh: "有你在时遇到可怕的事：它来找你" }, senses: { event: 3 }, want: 6 },
+    {
+      say: { en: "Something scary with you there: it comes to you", zh: "有你在时遇到可怕的事：它来找你" },
+      senses: { event: 3 },
+      want: 6,
+    },
     { say: { en: "Even at night", zh: "夜里也一样" }, senses: { event: 3, time: 0 }, want: 6 },
-    { say: { en: "Even before it trusts you", zh: "就算还不太信任你" }, senses: { event: 3 }, memory: { trust: 0 }, want: 6 },
+    {
+      say: { en: "Even before it trusts you", zh: "就算还不太信任你" },
+      senses: { event: 3 },
+      memory: { trust: 0 },
+      want: 6,
+    },
   ],
   nap: [
-    { say: { en: "Tired in the afternoon: it naps", zh: "下午累了：它会睡午觉" }, senses: { time: 2, energy: 1 }, want: 3 },
-    { say: { en: "Worn out in the afternoon: it naps", zh: "下午累坏了：它会睡午觉" }, senses: { time: 2, energy: 0 }, want: 3 },
-    { say: { en: "Tired in the morning: no nap yet", zh: "早上有点累：还不睡" }, senses: { time: 1, energy: 1 }, want: 3, not: true },
+    {
+      say: { en: "Tired in the afternoon: it naps", zh: "下午累了：它会睡午觉" },
+      senses: { time: 2, energy: 1 },
+      want: 3,
+    },
+    {
+      say: { en: "Worn out in the afternoon: it naps", zh: "下午累坏了：它会睡午觉" },
+      senses: { time: 2, energy: 0 },
+      want: 3,
+    },
+    {
+      say: { en: "Tired in the morning: no nap yet", zh: "早上有点累：还不睡" },
+      senses: { time: 1, energy: 1 },
+      want: 3,
+      not: true,
+    },
   ],
   greet: [
-    { say: { en: "You come to see it: it gets excited to play", zh: "你来看它：它兴奋地想玩" }, senses: { owner: 1, joy: 2 }, want: 2 },
+    {
+      say: { en: "You come to see it: it gets excited to play", zh: "你来看它：它兴奋地想玩" },
+      senses: { owner: 1, joy: 2 },
+      want: 2,
+    },
     { say: { en: "Even on a low day", zh: "心情低落时也一样" }, senses: { owner: 1, joy: 1 }, want: 2 },
     { say: { en: "Not when you're away", zh: "你不在时不会" }, senses: { owner: 0, joy: 2 }, want: 2, not: true },
   ],
   patient: [
     { say: { en: "A little peckish: it waits calmly", zh: "有点饿：它耐心等" }, senses: { hunger: 1 }, want: 0 },
-    { say: { en: "Hungry but in high spirits with you: it still waits", zh: "饿了但和你玩得正开心：它还是等" }, senses: { hunger: 2, joy: 3 }, want: 0 },
-    { say: { en: "Starving: it asks for food after all", zh: "饿坏了：还是会要吃的" }, senses: { hunger: 3 }, want: 0, not: true },
+    {
+      say: { en: "Hungry but in high spirits with you: it still waits", zh: "饿了但和你玩得正开心：它还是等" },
+      senses: { hunger: 2, joy: 3 },
+      want: 0,
+    },
+    {
+      say: { en: "Starving: it asks for food after all", zh: "饿坏了：还是会要吃的" },
+      senses: { hunger: 3 },
+      want: 0,
+      not: true,
+    },
   ],
   tidy: [
     { say: { en: "Dusty: it asks for a bath", zh: "灰扑扑的：它要洗澡" }, senses: { clean: 1 }, want: 5 },
@@ -63,14 +119,41 @@ export const SCHOOL_GOALS: Readonly<Record<string, readonly [Goal, Goal, Goal]>>
     { say: { en: "Tidy: no fuss", zh: "干干净净：不闹" }, senses: { clean: 2 }, want: 5, not: true },
   ],
   explore: [
-    { say: { en: "A fresh morning: off it goes exploring", zh: "精神好的早上：出去探险" }, senses: { time: 1, energy: 3 }, want: 4 },
-    { say: { en: "A fine morning: still exploring", zh: "还不错的早上：也去探险" }, senses: { time: 1, energy: 2 }, want: 4 },
-    { say: { en: "A fresh morning with a toy nearby: exploring still wins", zh: "精神好的早上旁边有玩具：还是先去探险" }, senses: { time: 1, energy: 3, event: 2 }, want: 4 },
+    {
+      say: { en: "A fresh morning: off it goes exploring", zh: "精神好的早上：出去探险" },
+      senses: { time: 1, energy: 3 },
+      want: 4,
+    },
+    {
+      say: { en: "A fine morning: still exploring", zh: "还不错的早上：也去探险" },
+      senses: { time: 1, energy: 2 },
+      want: 4,
+    },
+    {
+      say: {
+        en: "A fresh morning with a toy nearby: exploring still wins",
+        zh: "精神好的早上旁边有玩具：还是先去探险",
+      },
+      senses: { time: 1, energy: 3, event: 2 },
+      want: 4,
+    },
   ],
   thanks: [
-    { say: { en: "Fed when hungry: it comes for a cuddle", zh: "饿的时候被喂：它来撒娇" }, senses: { action: 1, hunger: 2 }, want: 6 },
-    { say: { en: "Fed when full: still a cuddle", zh: "饱的时候被喂：也来撒娇" }, senses: { action: 1, hunger: 0 }, want: 6 },
-    { say: { en: "Fed when starving: a cuddle first", zh: "饿坏了被喂：也先撒娇" }, senses: { action: 1, hunger: 3 }, want: 6 },
+    {
+      say: { en: "Fed when hungry: it comes for a cuddle", zh: "饿的时候被喂：它来撒娇" },
+      senses: { action: 1, hunger: 2 },
+      want: 6,
+    },
+    {
+      say: { en: "Fed when full: still a cuddle", zh: "饱的时候被喂：也来撒娇" },
+      senses: { action: 1, hunger: 0 },
+      want: 6,
+    },
+    {
+      say: { en: "Fed when starving: a cuddle first", zh: "饿坏了被喂：也先撒娇" },
+      senses: { action: 1, hunger: 3 },
+      want: 6,
+    },
   ],
 };
 
@@ -94,7 +177,11 @@ function memoryFor(p: Program, set: Record<string, number> = {}): number[] {
 }
 
 /** How a goal turns out on this mind: met or not, and which rule answered. */
-export function checkGoal(spec: MindSpec, lessons: readonly Rule[], g: Goal): { met: boolean; rule: number; program: Program } {
+export function checkGoal(
+  spec: MindSpec,
+  lessons: readonly Rule[],
+  g: Goal,
+): { met: boolean; rule: number; program: Program } {
   const senses = { ...CALM, ...g.senses };
   const p = decidingProgram(spec, lessons, senses.time);
   const r = runBeat(p, memoryFor(p, g.memory), encodeSenses(senses));
@@ -118,7 +205,8 @@ export function schoolReport(spec: MindSpec): LevelResult[] {
       const r = checkGoal(spec, lessons, goal);
       const fired = r.rule >= 0 ? r.program.rules[r.rule] : undefined;
       // a goal missed because another taught lesson answered first is a trap order
-      const blockedBy = !r.met && fired && !sameRule(fired, l.rule) && spec.lessons.some((x) => sameRule(x, fired)) ? fired : undefined;
+      const blockedBy =
+        !r.met && fired && !sameRule(fired, l.rule) && spec.lessons.some((x) => sameRule(x, fired)) ? fired : undefined;
       return { goal, met: r.met, ...(blockedBy ? { blockedBy } : {}) };
     });
     return { id: l.id, learned, stars: learned ? goals.filter((g) => g.met).length : 0, goals };
@@ -142,7 +230,11 @@ export interface Trap {
 
 /** Stars a learned lesson has lost to a lesson above it. */
 export function trapsOf(spec: MindSpec): Trap[] {
-  return schoolReport(spec).flatMap((lv) => (lv.learned ? lv.goals.filter((g) => g.blockedBy).map((g) => ({ victim: lv.id, goal: g.goal, blocker: g.blockedBy! })) : []));
+  return schoolReport(spec).flatMap((lv) =>
+    lv.learned
+      ? lv.goals.filter((g) => g.blockedBy).map((g) => ({ victim: lv.id, goal: g.goal, blocker: g.blockedBy! }))
+      : [],
+  );
 }
 
 /** What would happen to the stars if a lesson moved: the traps the new order creates. */

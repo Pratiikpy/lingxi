@@ -15,7 +15,16 @@
  * same program.
  */
 
-import { type Clause, type Out, type Program, type Rule, INPUT_FIELDS, compileProgram, gateCount, validateProgram } from "@lingxi/brain";
+import {
+  type Clause,
+  type Out,
+  type Program,
+  type Rule,
+  INPUT_FIELDS,
+  compileProgram,
+  gateCount,
+  validateProgram,
+} from "@lingxi/brain";
 import { fighterFrom } from "./coach";
 import { type Fighter } from "./spar";
 import { CURRENT_SPAR, fight } from "./spar2";
@@ -106,7 +115,10 @@ export function seedProgram(rnd: () => number, maxRules: number): Program {
 
 /** One small change to a program: a nudged range, a different move or mood, a rule added, dropped or moved. */
 export function mutateProgram(p: Program, rnd: () => number, maxRules: number): Program {
-  const rules = p.rules.map((r) => ({ when: Object.fromEntries(Object.entries(r.when).map(([k, v]) => [k, [...v]])), then: { ...r.then } }));
+  const rules = p.rules.map((r) => ({
+    when: Object.fromEntries(Object.entries(r.when).map(([k, v]) => [k, [...v]])),
+    then: { ...r.then },
+  }));
   let otherwise = { ...p.otherwise };
   const op = rnd() % 8;
   const i = rules.length ? rnd() % rules.length : 0;
@@ -151,7 +163,12 @@ export function mutateProgram(p: Program, rnd: () => number, maxRules: number): 
 export const gatesOf = (p: Program): number => gateCount(compileProgram(p));
 
 /** Share of fights won against these opponents on these seeds, playing each from both sides. */
-export function strength(p: Program, level: number, pool: ReadonlyArray<{ name: string; program: Program; level: number }>, seeds: readonly number[]): number {
+export function strength(
+  p: Program,
+  level: number,
+  pool: ReadonlyArray<{ name: string; program: Program; level: number }>,
+  seeds: readonly number[],
+): number {
   const me: Fighter = fighterFrom("designed", p, level);
   let score = 0;
   let fights = 0;
@@ -218,11 +235,25 @@ export function design(o: DesignOptions): Design {
   }
   pop.sort((a, b) => b.f - a.f);
   const best = pop[0]!.p;
-  return { stage: o.stage, seed: o.seed, program: best, gates: gatesOf(brain(best)), train: strength(brain(best), level, pool, o.trainSeeds), test: strength(brain(best), level, o.pool, o.testSeeds), generations: o.generations, hall };
+  return {
+    stage: o.stage,
+    seed: o.seed,
+    program: best,
+    gates: gatesOf(brain(best)),
+    train: strength(brain(best), level, pool, o.trainSeeds),
+    test: strength(brain(best), level, o.pool, o.testSeeds),
+    generations: o.generations,
+    hall,
+  };
 }
 
 /** How a fighter spends its turns over some fights: each move's share, most used first. */
-export function moveShares(p: Program, level: number, pool: ReadonlyArray<{ name: string; program: Program; level: number }>, seeds: readonly number[]): Array<[string, number]> {
+export function moveShares(
+  p: Program,
+  level: number,
+  pool: ReadonlyArray<{ name: string; program: Program; level: number }>,
+  seeds: readonly number[],
+): Array<[string, number]> {
   const me = fighterFrom("designed", p, level);
   const tally: Record<string, number> = {};
   let n = 0;

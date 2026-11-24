@@ -67,7 +67,9 @@ function Near({ kind, children }: { kind: "mind" | "teach" | "spar" | "grow" | "
   useEffect(() => {
     const el = ref.current;
     if (!el || typeof IntersectionObserver === "undefined") return void setNear(true);
-    const io = new IntersectionObserver((es) => es.some((e) => e.isIntersecting) && setNear(true), { rootMargin: "200px 0px" });
+    const io = new IntersectionObserver((es) => es.some((e) => e.isIntersecting) && setNear(true), {
+      rootMargin: "200px 0px",
+    });
     io.observe(el);
     return () => io.disconnect();
   }, []);
@@ -98,7 +100,9 @@ export function LandingApp() {
         <div className="l-phase" role="radiogroup" aria-label={lang === "zh" ? "时间" : "Time of day"}>
           {(["day", "evening", "night"] as const).map((p) => (
             <button key={p} type="button" role="radio" aria-checked={phase === p} onClick={() => setPhase(p)}>
-              {lang === "zh" ? { day: "白天", evening: "黄昏", night: "夜晚" }[p] : { day: "Day", evening: "Dusk", night: "Night" }[p]}
+              {lang === "zh"
+                ? { day: "白天", evening: "黄昏", night: "夜晚" }[p]
+                : { day: "Day", evening: "Dusk", night: "Night" }[p]}
             </button>
           ))}
         </div>

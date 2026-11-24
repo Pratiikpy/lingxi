@@ -24,7 +24,8 @@ const arg = (n: string, f?: string) => {
 const depFile = arg("deployment")!;
 const d = JSON.parse(readFileSync(depFile, "utf8")) as Deployment;
 const rpc = arg("rpc", d.rpc)!;
-if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(rpc) && !process.argv.includes("--mainnet-yes")) throw new Error("refusing a non-local node without --mainnet-yes");
+if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(rpc) && !process.argv.includes("--mainnet-yes"))
+  throw new Error("refusing a non-local node without --mainnet-yes");
 const env = Object.fromEntries(
   readFileSync(arg("key-file", resolve(here, "../../../../.secrets/deployer.env"))!, "utf8")
     .split(/\r?\n/)
@@ -56,5 +57,8 @@ if (onChain.logHash !== pet.logHash) throw new Error("log hash on chain differs"
 console.log(`saved day 1: ${cp} (${pet.pendingLog.length} thoughts, log hash ${pet.logHash})`);
 const brainId = onChain.brainId.toString();
 const out = resolve(here, `../deployments/pet-${petId}-log.json`);
-writeFileSync(out, JSON.stringify({ petId: petId.toString(), words: pet.pendingLog, segments: [{ brainId, words: pet.pendingLog }] }));
+writeFileSync(
+  out,
+  JSON.stringify({ petId: petId.toString(), words: pet.pendingLog, segments: [{ brainId, words: pet.pendingLog }] }),
+);
 console.log(`log for the proof page: ${out}`);

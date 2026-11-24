@@ -21,8 +21,17 @@ describe.skipIf(!RPC)("a delegated wallet keeping a pet, on an X Layer fork (A13
     const code = await pub.getCode({ address: DELEGATED.address });
     if (!code?.startsWith("0xef0100")) return; // the delegation was lifted on mainnet: nothing to show here
     const failure = await pub
-      .simulateContract({ address: d.registry as `0x${string}`, abi: petRegistryAbi, functionName: "hatch", args: [DELEGATED.address, 0, d.processor as `0x${string}`, BigInt(d.circuits.gentle.id), 0n], account: DELEGATED })
-      .then(() => null, (e: unknown) => e);
+      .simulateContract({
+        address: d.registry as `0x${string}`,
+        abi: petRegistryAbi,
+        functionName: "hatch",
+        args: [DELEGATED.address, 0, d.processor as `0x${string}`, BigInt(d.circuits.gentle.id), 0n],
+        account: DELEGATED,
+      })
+      .then(
+        () => null,
+        (e: unknown) => e,
+      );
     expect(failure, "the mint is refused").not.toBeNull();
     expect(refusesTokens(failure)).toBe(true);
   });

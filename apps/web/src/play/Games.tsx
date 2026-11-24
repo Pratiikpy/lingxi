@@ -8,7 +8,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { drawPet } from "@lingxi/art";
 import { resultLine } from "./gameResult";
-import { type GameId, type Pet, SEASONAL, afterSwaps, gameSeasonAt, nextPattern, shuffles, stageOf, starsFor, toVisible } from "@lingxi/game";
+import {
+  type GameId,
+  type Pet,
+  SEASONAL,
+  afterSwaps,
+  gameSeasonAt,
+  nextPattern,
+  shuffles,
+  stageOf,
+  starsFor,
+  toVisible,
+} from "@lingxi/game";
 import { HOME, ITEM, ROOMS } from "@lingxi/world";
 import { useWorld } from "../game/world";
 import { PRESS_MS, showSteps } from "../game/patternShow";
@@ -65,9 +76,27 @@ export function GamesPanel({ pet, onDone, onSchool }: { pet: Pet; onDone: () => 
   if (game === "seasonal") return <SeekGame pet={pet} season={season} onEnd={(s) => finish("seasonal", s)} />;
 
   const games: Array<[GameId, IconName, { en: string; zh: string }, { en: string; zh: string }]> = [
-    ["catch", "bowl", { en: "Catch the Treats", zh: "接零食" }, { en: "Move to catch what falls. 20 seconds.", zh: "左右移动接住掉下来的零食，20 秒。" }],
-    ["pattern", "note", { en: "Follow the Pattern", zh: "跟着节奏" }, { en: "Watch the lights, then repeat them.", zh: "看灯亮的顺序，再照着按一遍。" }],
-    ["seasonal", "star", { en: seasonal.en, zh: seasonal.zh }, { en: `Watch which of the ${seasonal.hideIn.en} it hides in. Changes with the season.`, zh: `看它躲进哪个${seasonal.hideIn.zh}里。随季节变换。` }],
+    [
+      "catch",
+      "bowl",
+      { en: "Catch the Treats", zh: "接零食" },
+      { en: "Move to catch what falls. 20 seconds.", zh: "左右移动接住掉下来的零食，20 秒。" },
+    ],
+    [
+      "pattern",
+      "note",
+      { en: "Follow the Pattern", zh: "跟着节奏" },
+      { en: "Watch the lights, then repeat them.", zh: "看灯亮的顺序，再照着按一遍。" },
+    ],
+    [
+      "seasonal",
+      "star",
+      { en: seasonal.en, zh: seasonal.zh },
+      {
+        en: `Watch which of the ${seasonal.hideIn.en} it hides in. Changes with the season.`,
+        zh: `看它躲进哪个${seasonal.hideIn.zh}里。随季节变换。`,
+      },
+    ],
   ];
   return (
     <div className="games">
@@ -79,16 +108,19 @@ export function GamesPanel({ pet, onDone, onSchool }: { pet: Pet; onDone: () => 
               <Icon key={i} name="star" size={22} className={i < result.stars ? "on" : ""} />
             ))}
           </span>
-          <p>
-            {resultLine(result.score, result.stars, pet.name, lang === "zh" ? "zh" : "en")}
-          </p>
+          <p>{resultLine(result.score, result.stars, pet.name, lang === "zh" ? "zh" : "en")}</p>
         </div>
       )}
       {block && <p className="small warn">{block}</p>}
       <ul className="game-list">
         {games.map(([id, icon, name, how]) => (
           <li key={id}>
-            <button type="button" className="game-card" disabled={!!block} onClick={() => (play("tap"), setResult(null), setGame(id))}>
+            <button
+              type="button"
+              className="game-card"
+              disabled={!!block}
+              onClick={() => (play("tap"), setResult(null), setGame(id))}
+            >
               <Icon name={icon} size={26} />
               <span>
                 <b>{name[lang]}</b>
@@ -125,7 +157,11 @@ function CatchGame({ pet, onEnd }: { pet: Pet; onEnd: (score: number) => void })
   const [score, setScore] = useState(0);
   const [left, setLeft] = useState(20);
   const st = useRef({ x: 50, drops: [] as Drop[], score: 0, next: 0, id: 0, start: 0, ended: false });
-  const art = useMemo(() => drawPet(pet.line, drawn(stageOf(pet, now())), { expression: "happy", ...(pet.form ? { form: pet.form } : {}) }), [pet]);
+  const art = useMemo(
+    () =>
+      drawPet(pet.line, drawn(stageOf(pet, now())), { expression: "happy", ...(pet.form ? { form: pet.form } : {}) }),
+    [pet],
+  );
   const room = useWorld((s) => s.world.room);
   // the room as it looks now: its evening or night picture after dark, as the room itself shows (P6)
   const backdrop = (ROOMS[room] ?? ROOMS[HOME]!).bgs[phaseNow()];
@@ -147,7 +183,13 @@ function CatchGame({ pet, onEnd }: { pet: Pet; onEnd: (score: number) => void })
         return;
       }
       if (now >= s.next) {
-        s.drops.push({ id: s.id++, x: 8 + Math.random() * 84, y: -8, vy: 30 + t * 2.5 + Math.random() * 12, item: TREATS[Math.floor(Math.random() * TREATS.length)] ?? 11301 });
+        s.drops.push({
+          id: s.id++,
+          x: 8 + Math.random() * 84,
+          y: -8,
+          vy: 30 + t * 2.5 + Math.random() * 12,
+          item: TREATS[Math.floor(Math.random() * TREATS.length)] ?? 11301,
+        });
         s.next = now + Math.max(420, 900 - t * 20);
       }
       const kept: Drop[] = [];
@@ -196,12 +238,22 @@ function CatchGame({ pet, onEnd }: { pet: Pet; onEnd: (score: number) => void })
         className="catch-area"
         style={{ backgroundImage: `url(${backdrop})` }}
         role="application"
-        aria-label={lang === "zh" ? "左右移动来接零食，也可以用方向键" : "Move left and right to catch treats; arrow keys work too"}
+        aria-label={
+          lang === "zh"
+            ? "左右移动来接零食，也可以用方向键"
+            : "Move left and right to catch treats; arrow keys work too"
+        }
         onPointerMove={(e) => move(e.clientX)}
         onPointerDown={(e) => move(e.clientX)}
       >
         {drops.map((d) => (
-          <img key={d.id} className="pixel drop" src={ITEM[d.item]?.art} alt="" style={{ left: `${d.x}%`, top: `${d.y}%` }} />
+          <img
+            key={d.id}
+            className="pixel drop"
+            src={ITEM[d.item]?.art}
+            alt=""
+            style={{ left: `${d.x}%`, top: `${d.y}%` }}
+          />
         ))}
         <div className="catcher" style={{ left: `${x}%` }}>
           <Sprite canvas={art} palette={PALETTE_OF[pet.line]} scale={3} />
@@ -284,11 +336,21 @@ function PatternGame({ onEnd }: { onEnd: (score: number) => void }) {
     <div className="game">
       <div className="game-hud">
         <span>{lang === "zh" ? `长度 ${seq.length}` : `Length ${seq.length}`}</span>
-        <span>{phase === "show" ? (lang === "zh" ? "看好……" : "Watch…") : lang === "zh" ? "轮到你了" : "Your turn"}</span>
+        <span>
+          {phase === "show" ? (lang === "zh" ? "看好……" : "Watch…") : lang === "zh" ? "轮到你了" : "Your turn"}
+        </span>
       </div>
       <div className="pads">
         {PADS.map(([icon, color], k) => (
-          <button key={k} type="button" className={`pad${litPad === k ? " lit" : ""}`} style={{ ["--pad" as string]: color }} onClick={() => press(k)} disabled={phase !== "input"} aria-label={icon}>
+          <button
+            key={k}
+            type="button"
+            className={`pad${litPad === k ? " lit" : ""}`}
+            style={{ ["--pad" as string]: color }}
+            onClick={() => press(k)}
+            disabled={phase !== "input"}
+            aria-label={icon}
+          >
             <Icon name={icon} size={30} />
           </button>
         ))}
@@ -316,7 +378,11 @@ function SeekGame({ pet, season, onEnd }: { pet: Pet; season: keyof typeof SEASO
   const [phase, setPhase] = useState<"peek" | "mix" | "pick" | "reveal">("peek");
   const [hidden] = useState(() => (seed >>> 3) % 3);
   const [picked, setPicked] = useState<number | null>(null);
-  const art = useMemo(() => drawPet(pet.line, drawn(stageOf(pet, now())), { expression: "sparkly", ...(pet.form ? { form: pet.form } : {}) }), [pet]);
+  const art = useMemo(
+    () =>
+      drawPet(pet.line, drawn(stageOf(pet, now())), { expression: "sparkly", ...(pet.form ? { form: pet.form } : {}) }),
+    [pet],
+  );
   const swaps = useMemo(() => shuffles(round, seed + round * 7919), [round, seed]);
   const [c1, c2] = SPOT_COLOURS[season]!;
 
@@ -370,8 +436,20 @@ function SeekGame({ pet, season, onEnd }: { pet: Pet; season: keyof typeof SEASO
   return (
     <div className="game">
       <div className="game-hud">
-        <span>{lang === "zh" ? `第 ${round + 1} / 3 轮 · 找到 ${score}` : `Round ${round + 1} of 3 · found ${score}`}</span>
-        <span>{phase === "pick" ? (lang === "zh" ? "它在哪儿？" : "Where is it?") : phase === "mix" ? (lang === "zh" ? "盯紧了……" : "Keep watching…") : ""}</span>
+        <span>
+          {lang === "zh" ? `第 ${round + 1} / 3 轮 · 找到 ${score}` : `Round ${round + 1} of 3 · found ${score}`}
+        </span>
+        <span>
+          {phase === "pick"
+            ? lang === "zh"
+              ? "它在哪儿？"
+              : "Where is it?"
+            : phase === "mix"
+              ? lang === "zh"
+                ? "盯紧了……"
+                : "Keep watching…"
+              : ""}
+        </span>
       </div>
       <div className="seek-area" data-phase={phaseNow()}>
         {[0, 1, 2].map((cup) => {
@@ -387,7 +465,11 @@ function SeekGame({ pet, season, onEnd }: { pet: Pet; season: keyof typeof SEASO
               className={`spot${wrong ? " wrong" : ""}`}
               onClick={() => pick(position)}
               disabled={phase !== "pick"}
-              aria-label={lang === "zh" ? `第 ${position + 1} 个${SEASONAL[season].hideIn.zh}` : `${SEASONAL[season].hideIn.en} ${position + 1}`}
+              aria-label={
+                lang === "zh"
+                  ? `第 ${position + 1} 个${SEASONAL[season].hideIn.zh}`
+                  : `${SEASONAL[season].hideIn.en} ${position + 1}`
+              }
               initial={false}
               animate={{ left: `${position * 33.33}%` }}
               transition={{ duration: reduce ? 0 : 0.22, ease: "easeInOut" }}
@@ -395,13 +477,21 @@ function SeekGame({ pet, season, onEnd }: { pet: Pet; season: keyof typeof SEASO
               <span className="spot-pet" style={{ opacity: showPet ? 1 : 0 }}>
                 <Sprite canvas={art} palette={PALETTE_OF[pet.line]} scale={1.5} />
               </span>
-              <span className="spot-cover" style={{ background: `radial-gradient(circle at 40% 35%, ${c1}, ${c2})`, transform: showPet ? "translateY(-46px)" : "none" }} />
+              <span
+                className="spot-cover"
+                style={{
+                  background: `radial-gradient(circle at 40% 35%, ${c1}, ${c2})`,
+                  transform: showPet ? "translateY(-46px)" : "none",
+                }}
+              />
             </motion.button>
           );
         })}
       </div>
       <p className="small">
-        {lang === "zh" ? `${SEASONAL[season].zh}：看准它躲进哪个${SEASONAL[season].hideIn.zh}。` : `${SEASONAL[season].en}: keep your eye on its hiding place.`}
+        {lang === "zh"
+          ? `${SEASONAL[season].zh}：看准它躲进哪个${SEASONAL[season].hideIn.zh}。`
+          : `${SEASONAL[season].en}: keep your eye on its hiding place.`}
       </p>
     </div>
   );

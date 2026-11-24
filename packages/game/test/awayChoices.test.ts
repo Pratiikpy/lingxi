@@ -13,7 +13,8 @@ import { awayEvent, awaySeed, care, catchUp, createPet, mindBrain } from "../src
 import { STORY, type Condition } from "@lingxi/world";
 
 /** every want a story objective asks the pet to choose by itself (CHOOSE:<want> or CHOOSE:<want>-<room>) */
-const asked = (c: Condition): string[] => (c.type === "CHOOSE" ? [String(c.index).split("-")[0]!] : (c.of ?? []).flatMap(asked));
+const asked = (c: Condition): string[] =>
+  c.type === "CHOOSE" ? [String(c.index).split("-")[0]!] : (c.of ?? []).flatMap(asked);
 const WANTED = [...new Set(STORY.flatMap((q) => q.objectives.flatMap((o) => asked(o.cond))))].sort();
 
 const T0 = Date.UTC(2026, 10, 1, 0);
@@ -21,14 +22,26 @@ const T0 = Date.UTC(2026, 10, 1, 0);
 /** an untaught pet of `line`, fed and played with twice a day, away between: the wants it chose, away and watched */
 const chosenAway = (line: StarterLine, days: number) => {
   const brain = mindBrain({ line, lessons: [] });
-  let p = createPet({ name: "Mochi", line, now: T0, tzOffsetMin: 480, brain: { fast: brain.fast, nState: brain.nState, program: STARTERS[line] } });
+  let p = createPet({
+    name: "Mochi",
+    line,
+    now: T0,
+    tzOffsetMin: 480,
+    brain: { fast: brain.fast, nState: brain.nState, program: STARTERS[line] },
+  });
   const chose: Record<string, number> = {};
   for (let half = 1; half <= days * 2; half++) {
     const seed = awaySeed(p);
-    p = catchUp(p, T0 + half * 12 * 3_600_000, brain, (b) => awayEvent(seed, b), (want) => {
-      const w = WANTS[want];
-      if (w && w !== "idle") chose[w] = (chose[w] ?? 0) + 1;
-    });
+    p = catchUp(
+      p,
+      T0 + half * 12 * 3_600_000,
+      brain,
+      (b) => awayEvent(seed, b),
+      (want) => {
+        const w = WANTS[want];
+        if (w && w !== "idle") chose[w] = (chose[w] ?? 0) + 1;
+      },
+    );
     for (const kind of ["feed", "play"] as const) {
       p = care(p, kind === "feed" ? { kind, food: "mochi" } : { kind }, T0 + half * 12 * 3_600_000, brain).pet;
       // the watched minute's choice, as minuteTally counts it

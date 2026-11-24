@@ -9,7 +9,20 @@ import { useBadges } from "../game/badges";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { drawEgg, drawPet } from "@lingxi/art";
-import { type Gift, type Pet, LETTER_MAX, createPet, decodeGift, eggOf, encodeGift, mindBrain, NAME_MAX, newGiftId, stageOf, takeVisible } from "@lingxi/game";
+import {
+  type Gift,
+  type Pet,
+  LETTER_MAX,
+  createPet,
+  decodeGift,
+  eggOf,
+  encodeGift,
+  mindBrain,
+  NAME_MAX,
+  newGiftId,
+  stageOf,
+  takeVisible,
+} from "@lingxi/game";
 import { nameAfterChange, nameAfterComposition } from "./nameInput";
 import { ITEM } from "@lingxi/world";
 import { useLang } from "../i18n";
@@ -29,7 +42,8 @@ import { watchLinks } from "../game/linkWatch";
 type Lang = "en" | "zh";
 const OPENED_KEY = "lingxi.gifts.opened.v1";
 const EGG_SPOTS = { gentle: "coral", bold: "sky", curious: "sunny" } as const;
-const drawn = (s: string): PetStage => (s === "elder" ? "adult" : (["baby", "child", "teen", "adult"].includes(s) ? s : "baby") as PetStage);
+const drawn = (s: string): PetStage =>
+  s === "elder" ? "adult" : ((["baby", "child", "teen", "adult"].includes(s) ? s : "baby") as PetStage);
 
 function openedIds(): string[] {
   try {
@@ -88,16 +102,28 @@ export function SendGiftPanel({ pet }: { pet: Pet }) {
       <div className="chainpanel gift-send">
         <p className="label">{lang === "zh" ? "礼物包好了" : "Gift wrapped"}</p>
         <p className="small">
-          {lang === "zh" ? `把这个链接发给朋友，${pet.name}会把礼物送过去。` : `Send this link to a friend and ${pet.name} will carry the gift to them.`}
+          {lang === "zh"
+            ? `把这个链接发给朋友，${pet.name}会把礼物送过去。`
+            : `Send this link to a friend and ${pet.name} will carry the gift to them.`}
         </p>
         <div className="row">
-          <input className="invite" readOnly value={link} onFocus={(e) => e.currentTarget.select()} aria-label={lang === "zh" ? "礼物链接" : "Gift link"} />
+          <input
+            className="invite"
+            readOnly
+            value={link}
+            onFocus={(e) => e.currentTarget.select()}
+            aria-label={lang === "zh" ? "礼物链接" : "Gift link"}
+          />
           <button
             type="button"
             className="btn primary"
             onClick={async () => {
               try {
-                if (navigator.share) await navigator.share({ title: lang === "zh" ? `${pet.name}送来的礼物` : `A gift from ${pet.name}`, url: link });
+                if (navigator.share)
+                  await navigator.share({
+                    title: lang === "zh" ? `${pet.name}送来的礼物` : `A gift from ${pet.name}`,
+                    url: link,
+                  });
                 else {
                   await navigator.clipboard.writeText(link);
                   setCopied(true);
@@ -123,13 +149,24 @@ export function SendGiftPanel({ pet }: { pet: Pet }) {
       <p className="label">{lang === "zh" ? "送礼物" : "Send a gift"}</p>
       <label className="gift-letter">
         <span className="small">{lang === "zh" ? "写一封信" : "Write a letter"}</span>
-        <textarea value={letter} maxLength={LETTER_MAX} rows={3} onChange={(e) => setLetter(e.target.value)} placeholder={lang === "zh" ? "生日快乐！这是我的宠物送你的。" : "Happy birthday! This comes from my pet."} />
+        <textarea
+          value={letter}
+          maxLength={LETTER_MAX}
+          rows={3}
+          onChange={(e) => setLetter(e.target.value)}
+          placeholder={lang === "zh" ? "生日快乐！这是我的宠物送你的。" : "Happy birthday! This comes from my pet."}
+        />
         <em>
           {letter.length}/{LETTER_MAX}
         </em>
       </label>
       <label className="gift-check" hidden={!!pet.sitting}>
-        <input type="checkbox" checked={egg && !pet.sitting} disabled={!!pet.sitting} onChange={(e) => setEgg(e.target.checked)} />
+        <input
+          type="checkbox"
+          checked={egg && !pet.sitting}
+          disabled={!!pet.sitting}
+          onChange={(e) => setEgg(e.target.checked)}
+        />
         <span>
           {carried === 0
             ? lang === "zh"
@@ -152,10 +189,21 @@ export function SendGiftPanel({ pet }: { pet: Pet }) {
               const def = ITEM[Number(id)]!;
               const on = item === Number(id);
               return (
-                <button key={id} type="button" className={`gift-item${on ? " on" : ""}`} aria-pressed={on} aria-label={`${def.name[lang]} ×${n}`} onClick={() => setItem(on ? null : Number(id))}>
+                <button
+                  key={id}
+                  type="button"
+                  className={`gift-item${on ? " on" : ""}`}
+                  aria-pressed={on}
+                  aria-label={`${def.name[lang]} ×${n}`}
+                  onClick={() => setItem(on ? null : Number(id))}
+                >
                   <img className="pixel" src={def.art} alt="" width={32} height={32} />
                   <i>{n}</i>
-                  {def.friend && <b className="gift-treat" aria-hidden="true">♥</b>}
+                  {def.friend && (
+                    <b className="gift-treat" aria-hidden="true">
+                      ♥
+                    </b>
+                  )}
                 </button>
               );
             })}
@@ -206,7 +254,13 @@ export function GiftArrival() {
     history.replaceState(null, "", location.pathname + location.search);
     setState(null);
   };
-  const carrier = useMemo(() => (state && "gift" in state ? drawPet(state.gift.from.line, drawn(state.gift.from.stage), { expression: "sparkly" }) : null), [state]);
+  const carrier = useMemo(
+    () =>
+      state && "gift" in state
+        ? drawPet(state.gift.from.line, drawn(state.gift.from.stage), { expression: "sparkly" })
+        : null,
+    [state],
+  );
   if (!state) return null;
   if ("error" in state) {
     return (
@@ -239,9 +293,19 @@ export function GiftArrival() {
   const hatch = () => {
     const egg = gift.egg!;
     const brain = mindBrain({ line: egg.line, lessons: egg.lessons });
-    const born = createPet({ name: takeVisible(name.trim(), NAME_MAX) || (lang === "zh" ? "小礼" : "Present"), line: egg.line, now: now(), tzOffsetMin: -new Date(now()).getTimezoneOffset(), brain });
+    const born = createPet({
+      name: takeVisible(name.trim(), NAME_MAX) || (lang === "zh" ? "小礼" : "Present"),
+      line: egg.line,
+      now: now(),
+      tzOffsetMin: -new Date(now()).getTimezoneOffset(),
+      brain,
+    });
     // the sibling starts with the lessons the sender taught; its log replays on that brain from the first beat
-    const sibling: Pet = { ...born, lessons: egg.lessons.slice(), segments: [{ from: 0, lessons: egg.lessons.slice() }] };
+    const sibling: Pet = {
+      ...born,
+      lessons: egg.lessons.slice(),
+      segments: [{ from: 0, lessons: egg.lessons.slice() }],
+    };
     markOpened(gift.id);
     if (adopt(sibling)) play("success");
     setStep("done");
@@ -249,42 +313,108 @@ export function GiftArrival() {
 
   return (
     <div className="fam-modal gift-modal" role="dialog" aria-label={lang === "zh" ? "一份礼物" : "A gift"}>
-      <motion.div className="fam-card gift-card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+      <motion.div
+        className="fam-card gift-card"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+      >
         <h3>{lang === "zh" ? `${gift.from.name}送来一份礼物` : `${gift.from.name} brought you a gift`}</h3>
         <div className="gift-stage">
-          <motion.div className="gift-carrier" initial={reduce ? false : { x: -140 }} animate={{ x: 0 }} transition={{ duration: 1.2, ease: [0.23, 1, 0.32, 1] }}>
-            {carrier && <Sprite canvas={carrier} palette={PALETTE_OF[gift.from.line]} scale={2.5} label={gift.from.name} />}
-            <motion.span className="gift-parcel" aria-hidden="true" animate={reduce ? {} : { y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.9 }}>
+          <motion.div
+            className="gift-carrier"
+            initial={reduce ? false : { x: -140 }}
+            animate={{ x: 0 }}
+            transition={{ duration: 1.2, ease: [0.23, 1, 0.32, 1] }}
+          >
+            {carrier && (
+              <Sprite canvas={carrier} palette={PALETTE_OF[gift.from.line]} scale={2.5} label={gift.from.name} />
+            )}
+            <motion.span
+              className="gift-parcel"
+              aria-hidden="true"
+              animate={reduce ? {} : { y: [0, -4, 0] }}
+              transition={{ repeat: Infinity, duration: 0.9 }}
+            >
               <Icon name="gift" size={30} />
             </motion.span>
           </motion.div>
         </div>
         <AnimatePresence mode="wait">
           {step === "letter" && (
-            <motion.div key="letter" className="gift-body" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div
+              key="letter"
+              className="gift-body"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
               {gift.letter && <blockquote className="gift-letter-card">{gift.letter}</blockquote>}
               <ul className="gift-contents">
-                {gift.egg && <li>{lang === "zh" ? `一颗蛋：${gift.from.name}的弟弟妹妹` : `An egg: a little sibling of ${gift.from.name}`}</li>}
-                {def && <li>{lang === "zh" ? `${def.name.zh} ×${gift.item!.n}` : `${def.name.en} ×${gift.item!.n}`}</li>}
-                {def?.friend && <li>{lang === "zh" ? "这是送给你宠物的小礼物，拆开时它就会收到一个。" : "A treat for your pet: it gets one the moment you open this."}</li>}
+                {gift.egg && (
+                  <li>
+                    {lang === "zh"
+                      ? `一颗蛋：${gift.from.name}的弟弟妹妹`
+                      : `An egg: a little sibling of ${gift.from.name}`}
+                  </li>
+                )}
+                {def && (
+                  <li>{lang === "zh" ? `${def.name.zh} ×${gift.item!.n}` : `${def.name.en} ×${gift.item!.n}`}</li>
+                )}
+                {def?.friend && (
+                  <li>
+                    {lang === "zh"
+                      ? "这是送给你宠物的小礼物，拆开时它就会收到一个。"
+                      : "A treat for your pet: it gets one the moment you open this."}
+                  </li>
+                )}
               </ul>
-              {seen && <p className="small">{lang === "zh" ? "这份礼物在这台设备上已经拆过了。" : "This gift was already opened on this device."}</p>}
+              {seen && (
+                <p className="small">
+                  {lang === "zh" ? "这份礼物在这台设备上已经拆过了。" : "This gift was already opened on this device."}
+                </p>
+              )}
               <button type="button" className="btn primary" onClick={seen ? close : unwrap}>
                 {seen ? (lang === "zh" ? "好的" : "OK") : lang === "zh" ? "拆开" : "Open it"}
               </button>
             </motion.div>
           )}
           {step === "egg" && (
-            <motion.div key="egg" className="gift-body" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <motion.button type="button" className="gift-egg" onClick={() => (play("pop"), setStep("name"))} animate={reduce ? {} : { rotate: [0, -6, 6, -4, 0] }} transition={{ repeat: Infinity, duration: 1.4 }} aria-label={lang === "zh" ? "点一下孵蛋" : "Tap to hatch"}>
+            <motion.div
+              key="egg"
+              className="gift-body"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <motion.button
+                type="button"
+                className="gift-egg"
+                onClick={() => (play("pop"), setStep("name"))}
+                animate={reduce ? {} : { rotate: [0, -6, 6, -4, 0] }}
+                transition={{ repeat: Infinity, duration: 1.4 }}
+                aria-label={lang === "zh" ? "点一下孵蛋" : "Tap to hatch"}
+              >
                 <Sprite canvas={drawEgg(EGG_SPOTS[gift.egg!.line])} palette={PALETTE_OF[gift.egg!.line]} scale={3} />
               </motion.button>
-              <p className="small">{lang === "zh" ? "蛋在晃！点一下孵出来。" : "The egg is wobbling! Tap it to hatch."}</p>
+              <p className="small">
+                {lang === "zh" ? "蛋在晃！点一下孵出来。" : "The egg is wobbling! Tap it to hatch."}
+              </p>
             </motion.div>
           )}
           {step === "name" && (
-            <motion.div key="name" className="gift-body" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <Sprite canvas={drawPet(gift.egg!.line, "baby", { expression: "sparkly" })} palette={PALETTE_OF[gift.egg!.line]} scale={3} />
+            <motion.div
+              key="name"
+              className="gift-body"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <Sprite
+                canvas={drawPet(gift.egg!.line, "baby", { expression: "sparkly" })}
+                palette={PALETTE_OF[gift.egg!.line]}
+                scale={3}
+              />
               <p className="small">
                 {gift.egg!.lessons.length
                   ? lang === "zh"
@@ -296,7 +426,13 @@ export function GiftArrival() {
               </p>
               <label className="fam-name">
                 <span>{lang === "zh" ? "给它起个名字" : "Give it a name"}</span>
-                <input value={name} onChange={(e) => setName(nameAfterChange(e))} onCompositionEnd={(e) => setName(nameAfterComposition(e))} placeholder={lang === "zh" ? "小礼" : "Present"} autoFocus />
+                <input
+                  value={name}
+                  onChange={(e) => setName(nameAfterChange(e))}
+                  onCompositionEnd={(e) => setName(nameAfterComposition(e))}
+                  placeholder={lang === "zh" ? "小礼" : "Present"}
+                  autoFocus
+                />
               </label>
               <button type="button" className="btn primary" onClick={hatch}>
                 {lang === "zh" ? "欢迎回家" : "Welcome home"}

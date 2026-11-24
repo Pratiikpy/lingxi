@@ -38,7 +38,12 @@ export function withQuery(path: string, query: Record<string, string | undefined
  * POST /api/teach: the owner's words, and the pet as the lesson is checked against it: its whole mind as its card
  * (skills, instincts, family, owned instinct) and the lesson slots the player's quests gave (A11).
  */
-export const teachBody = (words: string, pet: Pick<Pet, "name" | "line" | "lessons" | "growth" | "instincts" | "family" | "outside">, stage: Hatched, slots: number): TeachBody => ({
+export const teachBody = (
+  words: string,
+  pet: Pick<Pet, "name" | "line" | "lessons" | "growth" | "instincts" | "family" | "outside">,
+  stage: Hatched,
+  slots: number,
+): TeachBody => ({
   words,
   name: pet.name,
   line: pet.line,
@@ -49,7 +54,15 @@ export const teachBody = (words: string, pet: Pick<Pet, "name" | "line" | "lesso
 });
 
 /** POST /api/voice: what the pet's circuit decided and why, for one line in its own words. */
-export function voiceBody(o: { pet: Pick<Pet, "name" | "line" | "sick" | "asleep"> & { traits?: Pet["traits"] }; lang: "en" | "zh"; stage: Hatched; chips: { then: string; when: string[] }; meters: Meters; tapped: boolean; taught?: boolean }): VoiceBody {
+export function voiceBody(o: {
+  pet: Pick<Pet, "name" | "line" | "sick" | "asleep"> & { traits?: Pet["traits"] };
+  lang: "en" | "zh";
+  stage: Hatched;
+  chips: { then: string; when: string[] };
+  meters: Meters;
+  tapped: boolean;
+  taught?: boolean;
+}): VoiceBody {
   return {
     name: o.pet.name.slice(0, 24),
     lang: o.lang,
@@ -74,28 +87,53 @@ export const sitLeaveBody = (pack: string, keyHash: string, until: number): SitL
 export const sitHomeBody = (key: string, pet: string): SitHomeBody => ({ key, pet });
 
 /** POST /api/arena/snapshot: the line this device fielded at a round. */
-export const arenaSnapshotBody = (round: number, pet: DuelPet, team: string[], device: string): ArenaSnapshotBody => ({ round, pet, team, device });
+export const arenaSnapshotBody = (round: number, pet: DuelPet, team: string[], device: string): ArenaSnapshotBody => ({
+  round,
+  pet,
+  team,
+  device,
+});
 
 /** GET /api/arena/opponent: another player's line at the same round, never this device's own. */
-export const arenaOpponentQuery = (round: number, device: string): ArenaOpponentQuery => ({ round: String(round), device });
+export const arenaOpponentQuery = (round: number, device: string): ArenaOpponentQuery => ({
+  round: String(round),
+  device,
+});
 
 /** POST /api/season/enter: the pet, this device, and for a pet on X Layer its signed proof (chain.ts signSeasonEntry). */
-export const seasonEnterBody = (pet: DuelPet, device: string, proof?: SignedRelay<"season">): SeasonEnterBody => ({ pet, device, ...(proof ? { proof } : {}) });
+export const seasonEnterBody = (pet: DuelPet, device: string, proof?: SignedRelay<"season">): SeasonEnterBody => ({
+  pet,
+  device,
+  ...(proof ? { proof } : {}),
+});
 
 /** POST /api/lessons/share. Only the rule's structure is shared: the library shows no player's own words, so a lesson's label stays on this device. */
-export const lessonShareBody = (rule: Rule, by: string): LessonShareBody => ({ rule: { when: rule.when, then: rule.then }, by: by.slice(0, 24) });
+export const lessonShareBody = (rule: Rule, by: string): LessonShareBody => ({
+  rule: { when: rule.when, then: rule.then },
+  by: by.slice(0, 24),
+});
 
 /** POST /api/lessons/use and /api/lessons/report. */
 export const lessonKeyBody = (key: string): LessonKeyBody => ({ key });
 
 /** POST /api/pets/:id/log: the log the last checkpoint committed to, whole and by brain. */
-export const diaryBody = (petId: string, words: number[], segments: Array<{ brainId: string | null; words: number[] }>): PublishedLog => ({ petId, words, segments });
+export const diaryBody = (
+  petId: string,
+  words: number[],
+  segments: Array<{ brainId: string | null; words: number[] }>,
+): PublishedLog => ({ petId, words, segments });
 
 /** POST /api/move: this device's save, each store as text. */
 export const moveBody = (save: Record<string, string>): MoveBody => ({ save });
 
 /** POST /api/push/plan: where to reach this browser, and the reminders the pet will need. */
-export const pushPlanBody = (subscription: { endpoint: string; keys: { p256dh: string; auth: string } }, lang: "en" | "zh", name: string, tz: number, reminders: Array<{ kind: NeedKind; at: number }>): PushPlanBody => ({
+export const pushPlanBody = (
+  subscription: { endpoint: string; keys: { p256dh: string; auth: string } },
+  lang: "en" | "zh",
+  name: string,
+  tz: number,
+  reminders: Array<{ kind: NeedKind; at: number }>,
+): PushPlanBody => ({
   subscription,
   lang,
   name: name.slice(0, 24),
@@ -107,7 +145,8 @@ export const pushPlanBody = (subscription: { endpoint: string; keys: { p256dh: s
 export const pushStopBody = (endpoint: string): PushStopBody => ({ endpoint });
 
 /** GET /api/goals: every goal, with each of these wallets' share. */
-export const goalsQuery = (wallets: readonly string[]): GoalsQuery => (wallets.length ? { wallet: wallets.join(",") } : {});
+export const goalsQuery = (wallets: readonly string[]): GoalsQuery =>
+  wallets.length ? { wallet: wallets.join(",") } : {};
 
 /** GET /api/voucher: the wallet's voucher for a goal's keepsake. */
 export const voucherQuery = (wallet: string, goal: string): VoucherQuery => ({ wallet, goal });

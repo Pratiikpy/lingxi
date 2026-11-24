@@ -24,7 +24,11 @@ interface TgWebApp {
   addToHomeScreen?(): void;
   checkHomeScreenStatus?(cb: (status: "unsupported" | "unknown" | "added" | "missed") => void): void;
   BackButton: { show(): void; hide(): void; onClick(cb: () => void): void; offClick(cb: () => void): void };
-  HapticFeedback: { impactOccurred(s: "light" | "medium" | "heavy" | "rigid" | "soft"): void; notificationOccurred(t: "error" | "success" | "warning"): void; selectionChanged(): void };
+  HapticFeedback: {
+    impactOccurred(s: "light" | "medium" | "heavy" | "rigid" | "soft"): void;
+    notificationOccurred(t: "error" | "success" | "warning"): void;
+    selectionChanged(): void;
+  };
 }
 
 function app(): TgWebApp | null {

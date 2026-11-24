@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { type Circuit, beat, bitsToWord, compileProgram, composeInstinct, load, netlistBytes, refKey, validateProgram, wordToBits } from "../src/index";
+import {
+  type Circuit,
+  beat,
+  bitsToWord,
+  compileProgram,
+  composeInstinct,
+  load,
+  netlistBytes,
+  refKey,
+  validateProgram,
+  wordToBits,
+} from "../src/index";
 import { STARTERS } from "../src/starters";
 
 const CPU = "0x00000000000000000000000000000000000000cc";
@@ -9,9 +20,25 @@ describe("an owned circuit as an everyday instinct", () => {
   it("the instinct answers when it wants something, the pet's own brain otherwise, beat for beat", () => {
     const own = STARTERS.gentle;
     // an instinct with memory: it shares when a friend is near, and stays quiet otherwise
-    const inst = validateProgram({ version: "LX-PET/1", memory: [{ kind: "counter", name: "seen", bits: 2, inc: [{ event: [1] }] }], rules: [{ when: { event: [1] }, then: { want: 7, mood: 3, nudge: 6 } }, { when: { seen: [3] }, then: { want: 2, mood: 2 } }], otherwise: { want: 0, mood: 1 } });
-    const subs = new Map<string, Circuit>([[refKey(CPU, 1n), circuitOf(own)], [refKey(CPU, 2n), circuitOf(inst)]]);
-    const c = load(composeInstinct({ cpu: CPU, id: 1n }, { cpu: CPU, id: 2n }).bytes, 16, 8, (cpu, id) => subs.get(refKey(cpu, id)) ?? null);
+    const inst = validateProgram({
+      version: "LX-PET/1",
+      memory: [{ kind: "counter", name: "seen", bits: 2, inc: [{ event: [1] }] }],
+      rules: [
+        { when: { event: [1] }, then: { want: 7, mood: 3, nudge: 6 } },
+        { when: { seen: [3] }, then: { want: 2, mood: 2 } },
+      ],
+      otherwise: { want: 0, mood: 1 },
+    });
+    const subs = new Map<string, Circuit>([
+      [refKey(CPU, 1n), circuitOf(own)],
+      [refKey(CPU, 2n), circuitOf(inst)],
+    ]);
+    const c = load(
+      composeInstinct({ cpu: CPU, id: 1n }, { cpu: CPU, id: 2n }).bytes,
+      16,
+      8,
+      (cpu, id) => subs.get(refKey(cpu, id)) ?? null,
+    );
     const a = subs.get(refKey(CPU, 1n))!;
     const b = subs.get(refKey(CPU, 2n))!;
     expect(c.nState).toBe(a.nState + b.nState);

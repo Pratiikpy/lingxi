@@ -43,7 +43,13 @@ describe("a deferred component (P3)", () => {
     document.body.append(host);
     const root = createRoot(host);
     await act(async () =>
-      root.render(createElement(Suspense, { fallback: createElement("b", { className: "splash" }, "loading") }, createElement("main", null, "game", createElement(Lazy, { word: "hello" })))),
+      root.render(
+        createElement(
+          Suspense,
+          { fallback: createElement("b", { className: "splash" }, "loading") },
+          createElement("main", null, "game", createElement(Lazy, { word: "hello" })),
+        ),
+      ),
     );
     expect(host.querySelector(".splash")).toBeNull();
     expect(host.querySelector("main")?.textContent).toBe("game");

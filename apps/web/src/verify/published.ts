@@ -24,7 +24,8 @@ async function readOnce(base: string, id: string, ask: typeof fetch): Promise<Pu
     const res = await ask(`${base}/api/pets/${id}/log`, { signal: AbortSignal.timeout(READ_MS) });
     if (!res.ok) return { kind: "unread" };
     const r = (await res.json()) as { ok?: boolean; reason?: string; log?: PublishedLog };
-    if (r.ok === true && r.log && Array.isArray(r.log.words) && Array.isArray(r.log.segments)) return { kind: "log", log: r.log };
+    if (r.ok === true && r.log && Array.isArray(r.log.words) && Array.isArray(r.log.segments))
+      return { kind: "log", log: r.log };
     if (r.ok === false && r.reason === "none") return { kind: "none" };
     return { kind: "unread" };
   } catch {
@@ -32,7 +33,12 @@ async function readOnce(base: string, id: string, ask: typeof fetch): Promise<Pu
   }
 }
 
-export async function readPublished(base: string, id: string, ask: typeof fetch = fetch, opts: { pauseMs?: number } = {}): Promise<Published> {
+export async function readPublished(
+  base: string,
+  id: string,
+  ask: typeof fetch = fetch,
+  opts: { pauseMs?: number } = {},
+): Promise<Published> {
   let got: Published = { kind: "unread" };
   for (let i = 0; i < TRIES; i++) {
     if (i > 0) await new Promise((r) => setTimeout(r, opts.pauseMs ?? PAUSE_MS));

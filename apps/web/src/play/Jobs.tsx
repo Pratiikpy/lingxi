@@ -7,7 +7,24 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { drawPet } from "@lingxi/art";
 import { ITEM } from "@lingxi/world";
-import { JOBS, type Job, type Pet, SHIFTS_PER_DAY, SHIFT_SECONDS, VISITORS, type WorkLog, PATIENCE_SECONDS, canWork, fitBonus, jobFit, lifeOf, logShift, shiftPay, shiftRounds, stageOf } from "@lingxi/game";
+import {
+  JOBS,
+  type Job,
+  type Pet,
+  SHIFTS_PER_DAY,
+  SHIFT_SECONDS,
+  VISITORS,
+  type WorkLog,
+  PATIENCE_SECONDS,
+  canWork,
+  fitBonus,
+  jobFit,
+  lifeOf,
+  logShift,
+  shiftPay,
+  shiftRounds,
+  stageOf,
+} from "@lingxi/game";
 import { useLang } from "../i18n";
 import { mindParts, useGame } from "../game/store";
 import { useWorld } from "../game/world";
@@ -124,7 +141,10 @@ export function LifePanel({ pet, onSchool, blocked }: { pet: Pet; onSchool: () =
       </p>
       {done && (
         <p className="life-done" role="status">
-          {L(`${done.job.name.en}: ${done.right} right, ${done.wrong} missed or wrong, ${done.pay} coins.`, `${done.job.name.zh}：做对 ${done.right} 次，错过或做错 ${done.wrong} 次，赚了 ${done.pay} 金币。`)}
+          {L(
+            `${done.job.name.en}: ${done.right} right, ${done.wrong} missed or wrong, ${done.pay} coins.`,
+            `${done.job.name.zh}：做对 ${done.right} 次，错过或做错 ${done.wrong} 次，赚了 ${done.pay} 金币。`,
+          )}
         </p>
       )}
       {blocked && <p className="small warn">{blocked}</p>}
@@ -133,22 +153,42 @@ export function LifePanel({ pet, onSchool, blocked }: { pet: Pet; onSchool: () =
           const fit = jobFit(program, j);
           return (
             <li key={j.id}>
-              <button type="button" className="job-card" disabled={!!blocked || !canWork(log, jobDay(log))} onClick={() => (play("tap"), setDone(null), setShift(j))}>
+              <button
+                type="button"
+                className="job-card"
+                disabled={!!blocked || !canWork(log, jobDay(log))}
+                onClick={() => (play("tap"), setDone(null), setShift(j))}
+              >
                 <b>{j.name[lang]}</b>
                 <small>{j.how[lang]}</small>
-                <small>{L(`Suits a pet that wants to ${j.suits.map((w) => WANT_NAMES.en[w]).join(" or ")} at work: teach it that, and it earns more.`, `适合在工作中想要${j.suits.map((w) => WANT_NAMES.zh[w]).join("或")}的宠物：教会它，就能多赚。`)}</small>
+                <small>
+                  {L(
+                    `Suits a pet that wants to ${j.suits.map((w) => WANT_NAMES.en[w]).join(" or ")} at work: teach it that, and it earns more.`,
+                    `适合在工作中想要${j.suits.map((w) => WANT_NAMES.zh[w]).join("或")}的宠物：教会它，就能多赚。`,
+                  )}
+                </small>
                 <span className="job-fit">
                   <span className="job-fit-bar" aria-hidden="true">
                     <i style={{ width: `${fit * 100}%` }} />
                   </span>
-                  {L(`Suits ${pet.name}: ${Math.round(fit * 100)}% · pay ×${fitBonus(fit)}`, `适合${pet.name}：${Math.round(fit * 100)}% · 工钱 ×${fitBonus(fit)}`)}
+                  {L(
+                    `Suits ${pet.name}: ${Math.round(fit * 100)}% · pay ×${fitBonus(fit)}`,
+                    `适合${pet.name}：${Math.round(fit * 100)}% · 工钱 ×${fitBonus(fit)}`,
+                  )}
                 </span>
               </button>
             </li>
           );
         })}
       </ul>
-      {!canWork(log, jobDay(log)) && <p className="small">{L(`That's all the shifts for today. ${pet.name} can work again tomorrow.`, `今天的班都上完了，${pet.name}明天还能再来。`)}</p>}
+      {!canWork(log, jobDay(log)) && (
+        <p className="small">
+          {L(
+            `That's all the shifts for today. ${pet.name} can work again tomorrow.`,
+            `今天的班都上完了，${pet.name}明天还能再来。`,
+          )}
+        </p>
+      )}
     </section>
   );
 }
@@ -165,7 +205,10 @@ function Shift({ pet, job, onEnd }: { pet: Pet; job: Job; onEnd: (right: number,
   const [left, setLeft] = useState(SHIFT_SECONDS);
   const [flash, setFlash] = useState<"ok" | "no" | null>(null);
   const ended = useRef(false);
-  const art = useMemo(() => drawPet(pet.line, "adult", { expression: "happy", ...(pet.form ? { form: pet.form } : {}) }), [pet.line, pet.form]);
+  const art = useMemo(
+    () => drawPet(pet.line, "adult", { expression: "happy", ...(pet.form ? { form: pet.form } : {}) }),
+    [pet.line, pet.form],
+  );
   useEffect(() => {
     const id = setInterval(() => setLeft((s) => s - 1), 1000);
     return () => clearInterval(id);
@@ -227,13 +270,23 @@ function Shift({ pet, job, onEnd }: { pet: Pet; job: Job; onEnd: (right: number,
         {job.id === "cafe" && (
           <div className="shift-ask">
             <span className="small">{L("This guest would like:", "这位客人想要：")}</span>
-            <img className="pixel" src={ITEM[DISHES[answer]!]!.art} alt={ITEM[DISHES[answer]!]!.name[lang]} width={48} height={48} />
+            <img
+              className="pixel"
+              src={ITEM[DISHES[answer]!]!.art}
+              alt={ITEM[DISHES[answer]!]!.name[lang]}
+              width={48}
+              height={48}
+            />
           </div>
         )}
         {job.id === "courier" && (
           <div className="shift-ask">
             <span className="small">{L("Deliver this parcel to the", "把包裹送到")}</span>
-            <span className="shift-parcel" style={{ background: HOUSES[answer]!.color }} aria-label={L(`${HOUSES[answer]!.en} parcel`, `${HOUSES[answer]!.zh}色包裹`)}>
+            <span
+              className="shift-parcel"
+              style={{ background: HOUSES[answer]!.color }}
+              aria-label={L(`${HOUSES[answer]!.en} parcel`, `${HOUSES[answer]!.zh}色包裹`)}
+            >
               <Icon name="gift" size={28} />
             </span>
           </div>
@@ -242,7 +295,9 @@ function Shift({ pet, job, onEnd }: { pet: Pet; job: Job; onEnd: (right: number,
           <div className="shift-ask">
             <span className="small">{L("Someone at the gate:", "门口有人：")}</span>
             <VisitorArt v={guest} scale={2} hidden={answer === 1} />
-            <span className="small">{answer === 1 ? L("a stranger in the dark", "黑暗中的陌生身影") : guest.name[lang]}</span>
+            <span className="small">
+              {answer === 1 ? L("a stranger in the dark", "黑暗中的陌生身影") : guest.name[lang]}
+            </span>
           </div>
         )}
       </div>

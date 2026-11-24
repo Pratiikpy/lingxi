@@ -16,7 +16,16 @@ import { AnimatedGIF } from "@pixi/gif";
 import type { Expression } from "@lingxi/art";
 import type { StarterLine } from "@lingxi/brain";
 import { DECOR_BY_ID, NAME_COLOUR_BY_ID } from "@lingxi/world";
-import { BITS, type PetStage, catTexture, glowTexture, glyphTexture, petTexture, pixelTexture, vignetteTexture } from "./textures";
+import {
+  BITS,
+  type PetStage,
+  catTexture,
+  glowTexture,
+  glyphTexture,
+  petTexture,
+  pixelTexture,
+  vignetteTexture,
+} from "./textures";
 import { HALF, PET_FEET, PET_HOME, ROOM, WANDER, floorSpot, laneOf, roomOrigin, type FloorView } from "./floor";
 import { bodyHitArea } from "./hitArea";
 
@@ -83,7 +92,12 @@ export interface SceneProps {
     emote?: { kind: string; at: number };
     say?: { text: string; at: number };
     /** a resident: its own colours and props, a fixed place to stand, and whether its trace glows */
-    look?: { palette: { key: string; colors: import("@lingxi/art").Palette }; outfitAt: (ms: number) => import("@lingxi/art").Outfit; x: number; lit?: boolean };
+    look?: {
+      palette: { key: string; colors: import("@lingxi/art").Palette };
+      outfitAt: (ms: number) => import("@lingxi/art").Outfit;
+      x: number;
+      lit?: boolean;
+    };
   }>;
   onOtherTap: (id: string) => void;
   /** the character standing in this room (portrait file), if any */
@@ -95,10 +109,52 @@ export interface SceneProps {
 
 /** The quest mark: a little pixel sign, "!" in gold for a quest to take, a tick in green for one to hand in. */
 const MARKS: Record<"!" | "✓" | "★", { rows: string[]; fill: string }> = {
-  "!": { rows: [".OOOOOOO.", "OyyyKyyyO", "OyyyKyyyO", "OyyyKyyyO", "OyyyyyyyO", "OyyyKyyyO", "OyyyyyyyO", ".OOOOOOO.", "...OyO...", "....O...."], fill: "#FFC83D" },
-  "✓": { rows: [".OOOOOOO.", "OyyyyyyyO", "OyyyyyyKO", "OyKyyyKyO", "OyyKyKyyO", "OyyyKyyyO", "OyyyyyyyO", ".OOOOOOO.", "...OyO...", "....O...."], fill: "#7FD48A" },
+  "!": {
+    rows: [
+      ".OOOOOOO.",
+      "OyyyKyyyO",
+      "OyyyKyyyO",
+      "OyyyKyyyO",
+      "OyyyyyyyO",
+      "OyyyKyyyO",
+      "OyyyyyyyO",
+      ".OOOOOOO.",
+      "...OyO...",
+      "....O....",
+    ],
+    fill: "#FFC83D",
+  },
+  "✓": {
+    rows: [
+      ".OOOOOOO.",
+      "OyyyyyyyO",
+      "OyyyyyyKO",
+      "OyKyyyKyO",
+      "OyyKyKyyO",
+      "OyyyKyyyO",
+      "OyyyyyyyO",
+      ".OOOOOOO.",
+      "...OyO...",
+      "....O....",
+    ],
+    fill: "#7FD48A",
+  },
   // a friendship step is waiting (plan 4.3)
-  "★": { rows: [".OOOOOOO.", "OyyyKyyyO", "OyyKKKyyO", "OKKKKKKKO", "OyKKKKKyO", "OyKKyKKyO", "OyyyyyyyO", ".OOOOOOO.", "...OyO...", "....O...."], fill: "#F49AC1" },
+  "★": {
+    rows: [
+      ".OOOOOOO.",
+      "OyyyKyyyO",
+      "OyyKKKyyO",
+      "OKKKKKKKO",
+      "OyKKKKKyO",
+      "OyKKyKKyO",
+      "OyyyyyyyO",
+      ".OOOOOOO.",
+      "...OyO...",
+      "....O....",
+    ],
+    fill: "#F49AC1",
+  },
 };
 function drawMark(g: Graphics, kind: "!" | "✓" | "★"): void {
   const m = MARKS[kind];
@@ -202,7 +258,13 @@ export function RoomScene(props: SceneProps) {
     };
 
     (async () => {
-      await app.init({ backgroundAlpha: 0, antialias: false, resizeTo: el, autoDensity: true, resolution: window.devicePixelRatio || 1 });
+      await app.init({
+        backgroundAlpha: 0,
+        antialias: false,
+        resizeTo: el,
+        autoDensity: true,
+        resolution: window.devicePixelRatio || 1,
+      });
       ready = true;
       if (disposed) {
         destroyApp();
@@ -289,7 +351,9 @@ export function RoomScene(props: SceneProps) {
       const showDecor = (list: SceneProps["decor"]) => {
         for (const c of [...decorBack.removeChildren(), ...decorFront.removeChildren()]) c.destroy();
         // flat pieces first, then by depth, so a rug never covers a lamp standing on it
-        for (const d of [...list].sort((a, b) => Number(!!DECOR_BY_ID[b.id]?.flat) - Number(!!DECOR_BY_ID[a.id]?.flat) || a.y - b.y)) {
+        for (const d of [...list].sort(
+          (a, b) => Number(!!DECOR_BY_ID[b.id]?.flat) - Number(!!DECOR_BY_ID[a.id]?.flat) || a.y - b.y,
+        )) {
           const def = DECOR_BY_ID[d.id];
           if (!def) continue;
           const sp = new Sprite(pixelTexture(`decor:${d.id}`, def.rows, def.colors));
@@ -450,7 +514,12 @@ export function RoomScene(props: SceneProps) {
         if (!latest.current.asleep) burst("heart", 5, ["#FF7A9A", "#FFC83D"]);
       });
 
-      const catState = { x: 24, dir: 1, mode: "walk" as "walk" | "sit" | "nap" | "run" | "groom", until: performance.now() + 5000 };
+      const catState = {
+        x: 24,
+        dir: 1,
+        mode: "walk" as "walk" | "sit" | "nap" | "run" | "groom",
+        until: performance.now() + 5000,
+      };
       cat.on("pointertap", (e) => {
         const local = world.toLocal(e.global);
         catState.mode = "run";
@@ -549,7 +618,8 @@ export function RoomScene(props: SceneProps) {
               void bgTexture(art.startsWith("/") ? art : `/${art}`).then((t) => {
                 if (food.destroyed) return;
                 food.texture = t;
-                foodScale = { baby: 8, child: 10, teen: 12, adult: 13 }[latest.current.stage] / Math.max(t.width, t.height);
+                foodScale =
+                  { baby: 8, child: 10, teen: 12, adult: 13 }[latest.current.stage] / Math.max(t.width, t.height);
                 food.scale.set(foodScale);
               });
             }
@@ -568,7 +638,8 @@ export function RoomScene(props: SceneProps) {
         let squash: -1 | 0 | 1 = 0;
         let lift = 0;
         // D6: a small habit while its circuit chooses to rest (habitPose: timed by the clock, never at random)
-        const resting = !p.asleep && !p.sick && p.want === 0 && !(p.lastCare && now - p.lastCare.at < 2600) && !p.reduceMotion;
+        const resting =
+          !p.asleep && !p.sick && p.want === 0 && !(p.lastCare && now - p.lastCare.at < 2600) && !p.reduceMotion;
         const pose = habitPose(p.habit, now, resting);
         const habitShift = pose?.shift ?? 0;
         if (pose) {
@@ -587,7 +658,15 @@ export function RoomScene(props: SceneProps) {
           }
         }
         const breath: 0 | 1 = p.reduceMotion ? 0 : Math.sin(now / (p.asleep ? 900 : 620)) > 0.35 ? 1 : 0;
-        pet.texture = petTexture(p.line, { stage: p.stage, expression: e, breath, squash, lit, ...(p.form ? { form: p.form } : {}), ...(p.outfit ? { outfit: p.outfit } : {}) });
+        pet.texture = petTexture(p.line, {
+          stage: p.stage,
+          expression: e,
+          breath,
+          squash,
+          lit,
+          ...(p.form ? { form: p.form } : {}),
+          ...(p.outfit ? { outfit: p.outfit } : {}),
+        });
         pet.x = PET_X + habitShift;
         pet.y = PET_FEET - lift;
         pet.visible = !p.absent;
@@ -690,7 +769,11 @@ export function RoomScene(props: SceneProps) {
         bulb.y = head - 4 + (p.reduceMotion ? 0 : Math.round(Math.sin(now / 300)));
 
         // hungry: a little thought of food above its head
-        const hungry = (p.want === 1 || p.food < 250) && !p.asleep && !busyCare && (p.reduceMotion || Math.floor(now / 2600) % 2 === 0);
+        const hungry =
+          (p.want === 1 || p.food < 250) &&
+          !p.asleep &&
+          !busyCare &&
+          (p.reduceMotion || Math.floor(now / 2600) % 2 === 0);
         thought.visible = hungry;
         thoughtFood.visible = hungry && thoughtFood.texture.width > 1;
         thought.x = PET_X + 14;
@@ -708,7 +791,8 @@ export function RoomScene(props: SceneProps) {
           fx.addChild(z);
           particles.push({ s: z, vx: 0.08, vy: -0.16, life: 1 });
         }
-        if (p.mood === 3 && !p.asleep && !busyCare && !p.reduceMotion && Math.random() < 0.005) burst("note", 1, ["#2F7FD6"]);
+        if (p.mood === 3 && !p.asleep && !busyCare && !p.reduceMotion && Math.random() < 0.005)
+          burst("note", 1, ["#2F7FD6"]);
 
         // dust bunnies gather when it hasn't been cleaned in a while
         bunnies[0]!.visible = p.clean < 300;
@@ -742,11 +826,23 @@ export function RoomScene(props: SceneProps) {
             const have = drifts.filter((d) => d.kind === kind).length;
             if (have < count && Math.random() < 0.2) {
               const tex =
-                kind === "firefly" ? BITS.firefly()
-                : kind === "mote" ? BITS.mote(p.phase === "evening" ? "#FFB86B" : "#FFF7D6")
-                : kind === "drop" ? BITS.drop()
-                : kind === "flake" ? BITS.flake()
-                : BITS.petal(weather === "leaves" ? (Math.random() < 0.5 ? "#E8803A" : "#C9542F") : Math.random() < 0.5 ? "#FFB3C7" : "#FFD9E2");
+                kind === "firefly"
+                  ? BITS.firefly()
+                  : kind === "mote"
+                    ? BITS.mote(p.phase === "evening" ? "#FFB86B" : "#FFF7D6")
+                    : kind === "drop"
+                      ? BITS.drop()
+                      : kind === "flake"
+                        ? BITS.flake()
+                        : BITS.petal(
+                            weather === "leaves"
+                              ? Math.random() < 0.5
+                                ? "#E8803A"
+                                : "#C9542F"
+                              : Math.random() < 0.5
+                                ? "#FFB3C7"
+                                : "#FFD9E2",
+                          );
               const s = new Sprite(tex);
               s.anchor.set(0.5);
               s.x = Math.random() * ROOM;
@@ -757,7 +853,14 @@ export function RoomScene(props: SceneProps) {
                 s,
                 kind,
                 vx: kind === "drop" ? 0.45 : kind === "petal" ? 0.25 : (Math.random() - 0.5) * 0.12,
-                vy: kind === "drop" ? 2.4 : kind === "flake" ? 0.22 + Math.random() * 0.12 : kind === "petal" ? 0.3 : -0.04 - Math.random() * 0.05,
+                vy:
+                  kind === "drop"
+                    ? 2.4
+                    : kind === "flake"
+                      ? 0.22 + Math.random() * 0.12
+                      : kind === "petal"
+                        ? 0.3
+                        : -0.04 - Math.random() * 0.05,
                 ph: Math.random() * 6.28,
               };
               drifts.push(d);
@@ -766,7 +869,13 @@ export function RoomScene(props: SceneProps) {
           for (let i = drifts.length - 1; i >= 0; i--) {
             const d = drifts[i]!;
             d.ph += 0.03;
-            d.s.x += d.vx + (d.kind === "flake" || d.kind === "petal" ? Math.sin(d.ph) * 0.18 : d.kind === "firefly" ? Math.sin(d.ph * 0.7) * 0.15 : 0);
+            d.s.x +=
+              d.vx +
+              (d.kind === "flake" || d.kind === "petal"
+                ? Math.sin(d.ph) * 0.18
+                : d.kind === "firefly"
+                  ? Math.sin(d.ph * 0.7) * 0.15
+                  : 0);
             d.s.y += d.vy + (d.kind === "firefly" ? Math.cos(d.ph * 0.9) * 0.08 : 0);
             if (d.kind === "firefly") d.s.alpha = 0.35 + 0.65 * Math.max(0, Math.sin(d.ph * 1.6));
             const gone = d.s.y > ROOM + 4 || d.s.y < 30 || d.s.x < -6 || d.s.x > ROOM + 6;
@@ -795,12 +904,14 @@ export function RoomScene(props: SceneProps) {
             const napChance = p.phase === "night" || p.asleep ? 0.55 : 0.18;
             const r = Math.random();
             if (catState.mode === "run") catState.mode = "walk";
-            else if (catState.mode === "walk") catState.mode = r < napChance ? "nap" : r < napChance + 0.15 ? "groom" : "sit";
+            else if (catState.mode === "walk")
+              catState.mode = r < napChance ? "nap" : r < napChance + 0.15 ? "groom" : "sit";
             else {
               catState.mode = "walk";
               if (Math.random() < 0.5) catState.dir *= -1;
             }
-            catState.until = now + (catState.mode === "nap" ? 9000 : catState.mode === "walk" ? 6000 : 3500) + Math.random() * 4000;
+            catState.until =
+              now + (catState.mode === "nap" ? 9000 : catState.mode === "walk" ? 6000 : 3500) + Math.random() * 4000;
           }
         } else catState.mode = "sit";
         const step = Math.floor(now / (catState.mode === "run" ? 90 : 170)) % 2;
@@ -834,9 +945,29 @@ export function RoomScene(props: SceneProps) {
             sprite.hitArea = bodyHitArea(sprite);
             sprite.on("pointertap", () => latest.current.onOtherTap(o.id));
             world.addChildAt(sprite, world.getChildIndex(pet));
-            const tag = new Text({ text: o.name, style: { fontFamily: "Baloo 2 Variable, sans-serif", fontWeight: "800", fontSize: 12, fill: "#2B2140", stroke: { color: "#FFF7E8", width: 4 } } });
+            const tag = new Text({
+              text: o.name,
+              style: {
+                fontFamily: "Baloo 2 Variable, sans-serif",
+                fontWeight: "800",
+                fontSize: 12,
+                fill: "#2B2140",
+                stroke: { color: "#FFF7E8", width: 4 },
+              },
+            });
             tag.anchor.set(0.5, 1);
-            const bubble = new Text({ text: "", style: { fontFamily: "Baloo 2 Variable, sans-serif", fontWeight: "700", fontSize: 13, fill: "#2B2140", wordWrap: true, wordWrapWidth: 150, align: "center" } });
+            const bubble = new Text({
+              text: "",
+              style: {
+                fontFamily: "Baloo 2 Variable, sans-serif",
+                fontWeight: "700",
+                fontSize: 13,
+                fill: "#2B2140",
+                wordWrap: true,
+                wordWrapWidth: 150,
+                align: "center",
+              },
+            });
             bubble.anchor.set(0.5, 1);
             const bubbleBg = new Graphics();
             ui.addChild(tag, bubbleBg, bubble);
@@ -847,25 +978,38 @@ export function RoomScene(props: SceneProps) {
           }
           // a resident keeps to its spot, visitors wander near their lane; every pet stands within what shows, which moves
           // when the view is resized (A69)
-          if (!o.look && !p.reduceMotion && Math.random() < 0.004) v.lane = Math.max(WANDER.min, Math.min(WANDER.max, laneOf(o.id) + (Math.random() * 24 - 12)));
+          if (!o.look && !p.reduceMotion && Math.random() < 0.004)
+            v.lane = Math.max(WANDER.min, Math.min(WANDER.max, laneOf(o.id) + (Math.random() * 24 - 12)));
           v.target = residentSpot.get(o.id) ?? floorSpot(o.look ? o.look.x : v.lane, view, halfOf(o.stage));
           if (Math.abs(v.target - v.x) > 0.5) v.x += Math.sign(v.target - v.x) * 0.15;
           const stageName = o.stage === "elder" ? "adult" : o.stage;
           const expr = o.mood === 3 ? "sparkly" : o.mood === 2 ? "happy" : o.mood === 0 ? "sulk" : "neutral";
-          v.sprite.texture = petTexture((["gentle", "bold", "curious"].includes(o.line) ? o.line : "gentle") as SceneProps["line"], {
-            stage: (["baby", "child", "teen", "adult"].includes(stageName) ? stageName : "baby") as PetStage,
-            expression: (o.emote && now - o.emote.at < 2000 ? (o.emote.kind === "heart" ? "love" : "happy") : expr) as Expression,
-            breath: p.reduceMotion ? 0 : Math.sin(now / 640 + v.x) > 0.35 ? 1 : 0,
-            squash: 0,
-            lit: !!o.look?.lit,
-            ...(o.look ? { palette: o.look.palette, outfit: o.look.outfitAt(Date.now()) } : {}),
-          });
+          v.sprite.texture = petTexture(
+            (["gentle", "bold", "curious"].includes(o.line) ? o.line : "gentle") as SceneProps["line"],
+            {
+              stage: (["baby", "child", "teen", "adult"].includes(stageName) ? stageName : "baby") as PetStage,
+              expression: (o.emote && now - o.emote.at < 2000
+                ? o.emote.kind === "heart"
+                  ? "love"
+                  : "happy"
+                : expr) as Expression,
+              breath: p.reduceMotion ? 0 : Math.sin(now / 640 + v.x) > 0.35 ? 1 : 0,
+              squash: 0,
+              lit: !!o.look?.lit,
+              ...(o.look ? { palette: o.look.palette, outfit: o.look.outfitAt(Date.now()) } : {}),
+            },
+          );
           v.sprite.scale.x = v.target < v.x ? -1 : 1;
           v.sprite.x = Math.round(v.x);
           v.sprite.y = PET_FEET + 2;
           if (o.emote && o.emote.at !== v.lastEmote) {
             v.lastEmote = o.emote.at;
-            const kind = o.emote.kind === "heart" || o.emote.kind === "gift" ? "heart" : o.emote.kind === "laugh" || o.emote.kind === "dance" ? "note" : "spark";
+            const kind =
+              o.emote.kind === "heart" || o.emote.kind === "gift"
+                ? "heart"
+                : o.emote.kind === "laugh" || o.emote.kind === "dance"
+                  ? "note"
+                  : "spark";
             for (let i = 0; i < 4; i++) {
               const sp = new Sprite(glyphTexture(kind, i % 2 ? "#FFC83D" : "#FF7A9A"));
               sp.anchor.set(0.5);
@@ -899,7 +1043,11 @@ export function RoomScene(props: SceneProps) {
             const y0 = top + scale * 10 - 24 - b.height - 5;
             v.bubble.position.set(x0 + w / 2, y0 + b.height + 5);
             v.bubbleBg.roundRect(x0, y0, w, h, 10).fill({ color: 0xfffdf8 }).stroke({ color: 0x2b2140, width: 2 });
-            v.bubbleBg.moveTo(tail - 5, y0 + h).lineTo(tail, y0 + h + 6).lineTo(tail + 5, y0 + h).fill({ color: 0xfffdf8 });
+            v.bubbleBg
+              .moveTo(tail - 5, y0 + h)
+              .lineTo(tail, y0 + h + 6)
+              .lineTo(tail + 5, y0 + h)
+              .fill({ color: 0xfffdf8 });
           }
         }
         for (const [id, v] of visitors) {

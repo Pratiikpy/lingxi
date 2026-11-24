@@ -18,9 +18,18 @@ const READ_MS = 40;
 
 describe("an instinct relay holds up no tape-out (A115)", () => {
   it("its slow reads run apart from the queue, and a 300-REF circuit is refused after at most the cap", async () => {
-    const relayer = new BrainRelayer({ rpc: "http://127.0.0.1:9", processor: CPU, key: generatePrivateKey(), storeFile: join(mkdtempSync(join(tmpdir(), "lx-q-")), "brains.json"), maxPerDay: 50 });
+    const relayer = new BrainRelayer({
+      rpc: "http://127.0.0.1:9",
+      processor: CPU,
+      key: generatePrivateKey(),
+      storeFile: join(mkdtempSync(join(tmpdir(), "lx-q-")), "brains.json"),
+      maxPerDay: 50,
+    });
     // circuit 7 REFs 300 distinct one-gate circuits; every read takes READ_MS, as a busy node does
-    const top: Element[] = Array.from({ length: 300 }, (_, i) => ({ op: REF, ins: [2], cpu: CPU, id: BigInt(1000 + i), nOut: 1, firstOut: 18 + i }) as Element);
+    const top: Element[] = Array.from(
+      { length: 300 },
+      (_, i) => ({ op: REF, ins: [2], cpu: CPU, id: BigInt(1000 + i), nOut: 1, firstOut: 18 + i }) as Element,
+    );
     const leaf: Element[] = [{ op: NAND, ins: [2, 2], nOut: 1, firstOut: 3 } as Element];
     let netlistReads = 0;
     const fake = {
@@ -42,7 +51,9 @@ describe("an instinct relay holds up no tape-out (A115)", () => {
     inner.tapeBytes = async () => ({ ok: true, processor: CPU, brainId: "42", reused: true });
 
     const finished: string[] = [];
-    const instinct = relayer.relayInstinct({ own: "1", processor: CPU, id: "7" }).then((r) => (finished.push("instinct"), r));
+    const instinct = relayer
+      .relayInstinct({ own: "1", processor: CPU, id: "7" })
+      .then((r) => (finished.push("instinct"), r));
     await new Promise((r) => setTimeout(r, READ_MS));
     // a paid tape-out asked while the instinct is still being read finishes first: it never waits for those reads
     const paid = await relayer.relayProgram(STARTERS.gentle).then((r) => (finished.push("paid"), r));

@@ -18,7 +18,24 @@
  */
 
 import { hiddenCodePoint } from "@lingxi/game";
-import { CORAL, EXPRESSIONS, FACES_L, FACES_S, ROLES, SHELL, SKY, SUNNY, PixelCanvas, boundingBox, drawBody, drawEgg, drawPet, faceAnchor, type Expression, type Role } from "@lingxi/art";
+import {
+  CORAL,
+  EXPRESSIONS,
+  FACES_L,
+  FACES_S,
+  ROLES,
+  SHELL,
+  SKY,
+  SUNNY,
+  PixelCanvas,
+  boundingBox,
+  drawBody,
+  drawEgg,
+  drawPet,
+  faceAnchor,
+  type Expression,
+  type Role,
+} from "@lingxi/art";
 
 export const LOOK_STAGES = ["egg", "baby", "child", "teen", "adult"] as const;
 type PetStage = Exclude<(typeof LOOK_STAGES)[number], "egg">;
@@ -101,7 +118,10 @@ export function buildLayers(): LookLayers {
     if (runs.length) layers.push({ key, data: hex(runs), runs: runs.length / 4 });
   };
   const egg = drawEgg("coral");
-  add(BODY(0, 0), runsOf((x, y) => egg.get(x, y)));
+  add(
+    BODY(0, 0),
+    runsOf((x, y) => egg.get(x, y)),
+  );
   const anchors: LookLayers["anchors"] = [];
   const frames: LookLayers["frames"] = [{ slot: 0, ...frameFor(egg) }];
   LOOK_LINES.forEach((line, l) => {
@@ -109,18 +129,28 @@ export function buildLayers(): LookLayers {
       const s = i + 1;
       const body = drawBody(line, stage, { lit: false });
       const lit = drawBody(line, stage, { lit: true });
-      add(BODY(l, s), runsOf((x, y) => body.get(x, y)));
-      add(LIT(l, s), runsOf((x, y) => (lit.get(x, y) !== body.get(x, y) ? lit.get(x, y) : null)));
+      add(
+        BODY(l, s),
+        runsOf((x, y) => body.get(x, y)),
+      );
+      add(
+        LIT(l, s),
+        runsOf((x, y) => (lit.get(x, y) !== body.get(x, y) ? lit.get(x, y) : null)),
+      );
       const a = faceAnchor(line, stage);
       const set = a.size === "L" ? FACES_L : FACES_S;
       // stampCentered's own placement, face by face
-      const at = EXPRESSIONS.map((e): [number, number] => [Math.round(a.x - Math.max(...set[e].map((r) => r.length)) / 2), Math.round(a.y - set[e].length / 2)]);
+      const at = EXPRESSIONS.map((e): [number, number] => [
+        Math.round(a.x - Math.max(...set[e].map((r) => r.length)) / 2),
+        Math.round(a.y - set[e].length / 2),
+      ]);
       if (at.some(([x, y]) => x < 0 || y < 0 || x > 47 || y > 47)) throw new Error("face outside the canvas");
       anchors.push({ slot: SLOT(l, s), large: a.size === "L", at });
       frames.push({ slot: SLOT(l, s), ...frameFor(drawPet(line, stage, { expression: "sparkly", lit: true })) });
     });
   });
-  for (const large of [false, true]) EXPRESSIONS.forEach((e, i) => add(FACE(large, i), stampRuns((large ? FACES_L : FACES_S)[e])));
+  for (const large of [false, true])
+    EXPRESSIONS.forEach((e, i) => add(FACE(large, i), stampRuns((large ? FACES_L : FACES_S)[e])));
   return { layers, anchors, frames };
 }
 
@@ -160,8 +190,13 @@ export function composeLook(look: Look, built: LookLayers = buildLayers()): Pixe
   const paint = (key: number, dx = 0, dy = 0) => {
     const l = built.layers.find((x) => x.key === key);
     if (!l) return;
-    const b = l.data.slice(2).match(/../g)?.map((h) => parseInt(h, 16)) ?? [];
-    for (let i = 0; i < b.length; i += 4) for (let k = 0; k < b[i + 2]!; k++) c.set(b[i]! + k + dx, b[i + 1]! + dy, ROLES[b[i + 3]!]!);
+    const b =
+      l.data
+        .slice(2)
+        .match(/../g)
+        ?.map((h) => parseInt(h, 16)) ?? [];
+    for (let i = 0; i < b.length; i += 4)
+      for (let k = 0; k < b[i + 2]!; k++) c.set(b[i]! + k + dx, b[i + 1]! + dy, ROLES[b[i + 3]!]!);
   };
   paint(BODY(look.line, look.stage));
   if (look.stage === 0) return c;
@@ -174,7 +209,9 @@ export function composeLook(look: Look, built: LookLayers = buildLayers()): Pixe
 
 /** The game's own sprite for a look, for comparison. */
 export function gameSprite(look: Look): PixelCanvas {
-  return look.stage === 0 ? drawEgg("coral") : drawPet(LOOK_LINES[look.line]!, PET_STAGES[look.stage - 1]!, { expression: look.expression, lit: look.lit });
+  return look.stage === 0
+    ? drawEgg("coral")
+    : drawPet(LOOK_LINES[look.line]!, PET_STAGES[look.stage - 1]!, { expression: look.expression, lit: look.lit });
 }
 
 /* ── installing the art ───────────────────────────────────────────────────── */
@@ -195,10 +232,12 @@ export function paletteBytes(pal: Partial<Record<Role, string>>): `0x${string}` 
   for (let r = 1; r <= 16; r++) {
     const role = ROLES[r]!;
     const c = pal[role] ?? "#00000000";
-    if (!/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(c)) throw new Error(`palette role ${role}: ${c} is not #rrggbb or #rrggbbaa`);
+    if (!/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(c))
+      throw new Error(`palette role ${role}: ${c} is not #rrggbb or #rrggbbaa`);
     const full = c.length === 7 ? `${c.slice(1)}ff` : c.slice(1);
     const rgba = [0, 1, 2, 3].map((k) => parseInt(full.slice(k * 2, k * 2 + 2), 16));
-    if (rgba[3] === UNWRITABLE_ALPHA) throw new Error(`palette role ${role}: ${c} has alpha ${UNWRITABLE_ALPHA}, which PetLook writes as broken CSS`);
+    if (rgba[3] === UNWRITABLE_ALPHA)
+      throw new Error(`palette role ${role}: ${c} has alpha ${UNWRITABLE_ALPHA}, which PetLook writes as broken CSS`);
     out.push(...rgba);
   }
   return hex(out);
@@ -212,7 +251,11 @@ export function lookPalettes() {
 }
 
 /** The calls that install the art: layer batches, face positions, frames, and six palettes (pets by line, then eggs by line). */
-export function installCalls(built: LookLayers, petPalettes: ReadonlyArray<Partial<Record<Role, string>>>, eggPalettes: ReadonlyArray<Partial<Record<Role, string>>>) {
+export function installCalls(
+  built: LookLayers,
+  petPalettes: ReadonlyArray<Partial<Record<Role, string>>>,
+  eggPalettes: ReadonlyArray<Partial<Record<Role, string>>>,
+) {
   const batches: Array<{ keys: bigint[]; data: `0x${string}`[] }> = [];
   let cur: { keys: bigint[]; data: `0x${string}`[] } = { keys: [], data: [] };
   let size = 0;

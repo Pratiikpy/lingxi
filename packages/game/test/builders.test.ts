@@ -1,7 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { keccak256 } from "viem";
 import { STARTERS, compileProgram, gateCount } from "@lingxi/brain";
-import { BEHEMOTH_NETLIST, BEHEMOTH_NETLIST_KECCAK, BEHEMOTH_PINS, BUILDER_PETS, FIBONACCI, behemothAt, behemothCircuit, behemothFighter, behemothMoment, behemothTape, daysSinceBehemoth, laneParty, tapboyDay } from "../src/builders";
+import {
+  BEHEMOTH_NETLIST,
+  BEHEMOTH_NETLIST_KECCAK,
+  BEHEMOTH_PINS,
+  BUILDER_PETS,
+  FIBONACCI,
+  behemothAt,
+  behemothCircuit,
+  behemothFighter,
+  behemothMoment,
+  behemothTape,
+  daysSinceBehemoth,
+  laneParty,
+  tapboyDay,
+} from "../src/builders";
 import { MAX_GATES, composeProgram } from "../src/lessons";
 import { PARTNERS } from "../src/partners";
 import { fighterFrom, fighterOfMind } from "../src/coach";
@@ -49,9 +63,18 @@ describe("Behemoth, the founder's CPU", () => {
     expect(new Set(moves).size).toBeGreaterThan(2);
     // a hard partner, not an unbeatable one: starters mostly lose, and a pet taught to read it wins (its moves are a
     // fixed sequence; the lessons that do it were found by search, scripts/behemoth-counter.ts)
-    const rate = (f: () => ReturnType<typeof partnerFighter>) => Array.from({ length: 20 }, (_, s) => spar(f(), behemothFighter("Behemoth"), s * 31 + 5).winner === 0).filter(Boolean).length;
-    for (const line of ["gentle", "bold", "curious"] as const) expect(rate(() => fighterFrom("starter", STARTERS[line], 0)), line).toBeLessThan(8);
-    expect(rate(() => fighterOfMind("me", { line: BEHEMOTH_COUNTER.line, lessons: BEHEMOTH_COUNTER.lessons }, 1))).toBeGreaterThanOrEqual(15);
+    const rate = (f: () => ReturnType<typeof partnerFighter>) =>
+      Array.from({ length: 20 }, (_, s) => spar(f(), behemothFighter("Behemoth"), s * 31 + 5).winner === 0).filter(
+        Boolean,
+      ).length;
+    for (const line of ["gentle", "bold", "curious"] as const)
+      expect(
+        rate(() => fighterFrom("starter", STARTERS[line], 0)),
+        line,
+      ).toBeLessThan(8);
+    expect(
+      rate(() => fighterOfMind("me", { line: BEHEMOTH_COUNTER.line, lessons: BEHEMOTH_COUNTER.lessons }, 1)),
+    ).toBeGreaterThanOrEqual(15);
   });
 });
 
@@ -61,7 +84,8 @@ describe("the residents of Builders' Lane", () => {
     for (const b of BUILDER_PETS) {
       expect(b.lines.length).toBeGreaterThanOrEqual(3);
       for (const l of [...b.lines, b.about, b.name, b.tribute.as]) expect(l.en && l.zh).toBeTruthy();
-      if (b.mind.kind === "pet") expect(gateCount(compileProgram(composeProgram(b.look.line, b.mind.lessons)))).toBeLessThanOrEqual(MAX_GATES);
+      if (b.mind.kind === "pet")
+        expect(gateCount(compileProgram(composeProgram(b.look.line, b.mind.lessons)))).toBeLessThanOrEqual(MAX_GATES);
     }
   });
 

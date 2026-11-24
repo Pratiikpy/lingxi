@@ -13,7 +13,15 @@ const at = (body: string) => {
 
 describe("the team's further wallets (C2)", () => {
   it("reads well-formed addresses, lower-cased and once each", () => {
-    expect(readTeamFile(at(JSON.stringify({ wallets: ["0xCCF02beaaa91068f9173dfacf7b5197f3ed4447c", "0xccf02beaaa91068f9173dfacf7b5197f3ed4447c"] })))).toEqual(["0xccf02beaaa91068f9173dfacf7b5197f3ed4447c"]);
+    expect(
+      readTeamFile(
+        at(
+          JSON.stringify({
+            wallets: ["0xCCF02beaaa91068f9173dfacf7b5197f3ed4447c", "0xccf02beaaa91068f9173dfacf7b5197f3ed4447c"],
+          }),
+        ),
+      ),
+    ).toEqual(["0xccf02beaaa91068f9173dfacf7b5197f3ed4447c"]);
   });
 
   it("counts nothing from a missing file, a damaged one, or entries that are not addresses", () => {

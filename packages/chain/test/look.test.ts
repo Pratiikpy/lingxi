@@ -12,7 +12,9 @@ describe("the on-chain picture is the game's own art", () => {
         for (const expression of EXPRESSIONS)
           for (const lit of [false, true]) {
             const look = { line, stage, expression, lit };
-            expect(composeLook(look, built).px, `${LOOK_LINES[line]} ${stage} ${expression} ${lit}`).toEqual(gameSprite(look).px);
+            expect(composeLook(look, built).px, `${LOOK_LINES[line]} ${stage} ${expression} ${lit}`).toEqual(
+              gameSprite(look).px,
+            );
             checked++;
           }
     const egg = { line: 0, stage: 0, expression: "neutral" as const, lit: false };
@@ -29,7 +31,12 @@ describe("the on-chain picture is the game's own art", () => {
 
   it("chooses line, stage and face from the saved state the way the contract does", () => {
     const m = (stage: number, food: number, joy: number, energy: number, extra = 0n, line = 0) =>
-      (BigInt(food) << 64n) | (BigInt(joy) << 74n) | (BigInt(energy) << 84n) | (BigInt(stage) << 148n) | (BigInt(line) << 152n) | extra;
+      (BigInt(food) << 64n) |
+      (BigInt(joy) << 74n) |
+      (BigInt(energy) << 84n) |
+      (BigInt(stage) << 148n) |
+      (BigInt(line) << 152n) |
+      extra;
     expect(lookOf(m(2, 800, 900, 900))).toEqual({ line: 0, stage: 2, expression: "sparkly", lit: true });
     expect(lookOf(m(3, 800, 600, 900, 0n, 1))).toEqual({ line: 1, stage: 3, expression: "happy", lit: false });
     expect(lookOf(m(3, 100, 900, 900, 0n, 2)).expression).toBe("sad");

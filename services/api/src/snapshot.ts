@@ -32,12 +32,29 @@ export function readSnapshotMeta(dir: string): SnapshotMeta | null {
   }
 }
 
-const same = (a: string | undefined | null, b: string | undefined | null) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
+const same = (a: string | undefined | null, b: string | undefined | null) =>
+  !!a && !!b && a.toLowerCase() === b.toLowerCase();
 
 /** Whether a store with these settings walks exactly what the snapshot was taken from. */
-export function snapshotFits(meta: SnapshotMeta, store: SnapshotStore, walk: { registry?: string; registryFrom?: number; processor?: string; processorFrom?: number; markets?: Array<{ address: string; fromBlock: number }> }): boolean {
-  if (store === "history" || store === "goals") return same(walk.registry, meta.registry.address) && walk.registryFrom === meta.registry.fromBlock;
-  if (store === "circuits") return !!meta.processor && same(walk.processor, meta.processor.address) && walk.processorFrom === meta.processor.fromBlock;
+export function snapshotFits(
+  meta: SnapshotMeta,
+  store: SnapshotStore,
+  walk: {
+    registry?: string;
+    registryFrom?: number;
+    processor?: string;
+    processorFrom?: number;
+    markets?: Array<{ address: string; fromBlock: number }>;
+  },
+): boolean {
+  if (store === "history" || store === "goals")
+    return same(walk.registry, meta.registry.address) && walk.registryFrom === meta.registry.fromBlock;
+  if (store === "circuits")
+    return (
+      !!meta.processor &&
+      same(walk.processor, meta.processor.address) &&
+      walk.processorFrom === meta.processor.fromBlock
+    );
   const mine = [...(walk.markets ?? [])].map((m) => `${m.address.toLowerCase()}@${m.fromBlock}`).sort();
   const theirs = meta.markets.map((m) => `${m.address.toLowerCase()}@${m.fromBlock}`).sort();
   return mine.length > 0 && mine.join() === theirs.join();
@@ -47,7 +64,13 @@ export function snapshotFits(meta: SnapshotMeta, store: SnapshotStore, walk: { r
  * Puts the snapshot's copy of `store` at `file` when there is no file there yet and the snapshot fits; true when it did.
  * `log` hears what was done, so a server's log says where its numbers started.
  */
-export function seedStore(dir: string, store: SnapshotStore, file: string | undefined, fits: (meta: SnapshotMeta) => boolean, log: (line: string) => void = () => undefined): boolean {
+export function seedStore(
+  dir: string,
+  store: SnapshotStore,
+  file: string | undefined,
+  fits: (meta: SnapshotMeta) => boolean,
+  log: (line: string) => void = () => undefined,
+): boolean {
   if (!file || existsSync(file)) return false;
   const meta = readSnapshotMeta(dir);
   const from = join(dir, `${store}.json`);

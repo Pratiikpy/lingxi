@@ -55,6 +55,7 @@ export const useFriends = create<FriendsStore>((set, get) => ({
 }));
 
 /** The active pet's friendships. */
-export const bondsOf = (all: All, petBornAt: number | undefined): Bonds => (petBornAt === undefined ? {} : (all[String(petBornAt)] ?? {}));
+export const bondsOf = (all: All, petBornAt: number | undefined): Bonds =>
+  petBornAt === undefined ? {} : (all[String(petBornAt)] ?? {});
 
 export const bondName = (level: number, lang: "en" | "zh") => BOND_NAMES[level]?.[lang] ?? "";

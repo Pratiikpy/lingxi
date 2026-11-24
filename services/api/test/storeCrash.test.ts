@@ -17,7 +17,13 @@ import { BrainRelayer } from "../src/relayer";
 const tmp = () => mkdtempSync(join(tmpdir(), "lx-crash-"));
 const cut = (file: string) => writeFileSync(file, readFileSync(file, "utf8").slice(0, 20));
 const T = Date.UTC(2026, 10, 18, 12);
-const pet = (name: string) => ({ name, line: "gentle", stage: "child", card: petCard({ lessons: [] }), story: { days: 1, lessons: 0, nature: [] } });
+const pet = (name: string) => ({
+  name,
+  line: "gentle",
+  stage: "child",
+  card: petCard({ lessons: [] }),
+  story: { days: 1, lessons: 0, nature: [] },
+});
 
 describe("a store's file cut short by a crash (A139)", () => {
   afterEach(() => vi.useRealTimers());
@@ -61,7 +67,13 @@ describe("a store's file cut short by a crash (A139)", () => {
   it("the relayer refuses to start on a store it cannot read, and starts from its .bak when there is one", () => {
     const dir = tmp();
     const storeFile = join(dir, "brains.json");
-    const cfg = { rpc: "http://127.0.0.1:9", processor: "0x00000000000000000000000000000000000000cc" as const, key: generatePrivateKey(), storeFile, maxPerDay: 50 };
+    const cfg = {
+      rpc: "http://127.0.0.1:9",
+      processor: "0x00000000000000000000000000000000000000cc" as const,
+      key: generatePrivateKey(),
+      storeFile,
+      maxPerDay: 50,
+    };
     writeFileSync(storeFile, '{"brains": {"ab": "7"}, "day": "2026-11-21", "used": 4');
     expect(() => new BrainRelayer(cfg)).toThrow(/could not be read/);
     expect(existsSync(storeFile), "the cut store is kept aside, not left to be written over").toBe(false);

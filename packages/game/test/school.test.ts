@@ -18,7 +18,10 @@ describe("Pet School goals", () => {
       for (const instincts of [0, 15])
         for (const l of PET_SCHOOL) {
           const r = schoolReport({ line, lessons: [l.rule], instincts }).find((x) => x.id === l.id)!;
-          expect(r.stars, `${line} ${instincts} ${l.id}: ${r.goals.filter((g) => !g.met).map((g) => g.goal.say.en)}`).toBe(3);
+          expect(
+            r.stars,
+            `${line} ${instincts} ${l.id}: ${r.goals.filter((g) => !g.met).map((g) => g.goal.say.en)}`,
+          ).toBe(3);
         }
   });
 
@@ -65,7 +68,10 @@ describe("a perfect order exists", () => {
   it("all eight lessons can earn all 24 stars on every line, and the newest-on-top order does not", () => {
     const order = ["share", "brave", "nap", "patient", "tidy", "explore", "greet", "thanks"].map(rule);
     for (const line of LINES) {
-      expect(schoolReport({ line, lessons: order }).reduce((n, r) => n + r.stars, 0), line).toBe(24);
+      expect(
+        schoolReport({ line, lessons: order }).reduce((n, r) => n + r.stars, 0),
+        line,
+      ).toBe(24);
       const newestOnTop = PET_SCHOOL.map((l) => l.rule).reverse();
       expect(schoolReport({ line, lessons: newestOnTop }).reduce((n, r) => n + r.stars, 0)).toBeLessThan(24);
     }

@@ -62,7 +62,9 @@ export function pool(round: number): string[] {
 
 function rollShop(s: RunState): Array<string | null> {
   const ids = pool(s.round);
-  return s.shop.map((cur, i) => (s.frozen[i] && cur ? cur : ids[mix(s.seed, s.round * 1000 + s.rolls, i) % ids.length]!));
+  return s.shop.map((cur, i) =>
+    s.frozen[i] && cur ? cur : ids[mix(s.seed, s.round * 1000 + s.rolls, i) % ids.length]!,
+  );
 }
 
 export function startRun(seed: number): RunState {
@@ -166,7 +168,15 @@ export const battleSeed = (s: RunState): number => mix(s.seed, s.round, 0xbeef);
 export function settle(s: RunState, result: 1 | 0 | -1): RunState {
   const trophies = s.trophies + (result === 1 ? 1 : 0);
   const hearts = s.hearts - (result === -1 ? 1 : 0);
-  const next: RunState = { ...s, round: s.round + 1, trophies, hearts, coins: ROUND_COINS, rolls: 0, history: [...s.history, result] };
+  const next: RunState = {
+    ...s,
+    round: s.round + 1,
+    trophies,
+    hearts,
+    coins: ROUND_COINS,
+    rolls: 0,
+    history: [...s.history, result],
+  };
   return outcome(next) === "playing" ? { ...next, shop: rollShop(next) } : next;
 }
 

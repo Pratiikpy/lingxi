@@ -86,7 +86,9 @@
   font-size: 18px;
   text-decoration: none;
   box-shadow: 0 4px 0 #2b2140;
-  transition: transform var(--t-micro) var(--ease), box-shadow var(--t-micro) var(--ease);
+  transition:
+    transform var(--t-micro) var(--ease),
+    box-shadow var(--t-micro) var(--ease);
 }
 .l-cta:hover {
   transform: translateY(-1px);
@@ -642,7 +644,9 @@
   bottom: 34%;
   color: #ff7a9a;
   font-size: 20px;
-  text-shadow: 0 0 0 #2b2140, 1px 1px 0 #2b2140;
+  text-shadow:
+    0 0 0 #2b2140,
+    1px 1px 0 #2b2140;
 }
 .l-coach {
   margin: 0;

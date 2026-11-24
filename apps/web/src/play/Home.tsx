@@ -9,7 +9,28 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { formatEther } from "viem";
-import { type Home, HomeError, homeCallFee, keepOutfitAtHome, takeOutfitFromHome, homePageHtml, homeSiteName, homeSiteUrl, lettersStatus, moveIntoHome, nameFee, openHome, openingFee, processorIndex, publishHomePage, readHome, readHomePage, readMetadata, type OutfitDesign, wearKey } from "@lingxi/chain";
+import {
+  type Home,
+  HomeError,
+  homeCallFee,
+  keepOutfitAtHome,
+  takeOutfitFromHome,
+  homePageHtml,
+  homeSiteName,
+  homeSiteUrl,
+  lettersStatus,
+  moveIntoHome,
+  nameFee,
+  openHome,
+  openingFee,
+  processorIndex,
+  publishHomePage,
+  readHome,
+  readHomePage,
+  readMetadata,
+  type OutfitDesign,
+  wearKey,
+} from "@lingxi/chain";
 import { type Pet, stageOf } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { connectWallet, deployment, publicClient, recordOf, useChain } from "../game/chain";
@@ -37,7 +58,15 @@ export function HomePanel({ pet }: { pet: Pet }) {
   const deed = record?.brainKey ? record.brains?.[record.brainKey] : undefined;
 
   // the home as X Layer holds it now, the opening fee, and whether letters between homes can open (A12)
-  const readAll = useCallback(() => Promise.all([readHome(publicClient, deployment!.processor, BigInt(deed!)), openingFee(publicClient), lettersStatus(publicClient, deployment!.processor)]), [deed]);
+  const readAll = useCallback(
+    () =>
+      Promise.all([
+        readHome(publicClient, deployment!.processor, BigInt(deed!)),
+        openingFee(publicClient),
+        lettersStatus(publicClient, deployment!.processor),
+      ]),
+    [deed],
+  );
   const show = useCallback(([h, f, ok]: Awaited<ReturnType<typeof readAll>>) => {
     setHome(h);
     setFee(f);
@@ -77,14 +106,23 @@ export function HomePanel({ pet }: { pet: Pet }) {
       await load();
     } catch (e) {
       play("error");
-      setNote(e instanceof HomeError && e.code === "notHolder" ? L("Only the wallet that holds the deed can open the home.", "只有持有房契的钱包才能开通这个家。") : L("That didn't go through. Nothing was charged; try again.", "没有成功，也没有扣费，请再试一次。"));
+      setNote(
+        e instanceof HomeError && e.code === "notHolder"
+          ? L("Only the wallet that holds the deed can open the home.", "只有持有房契的钱包才能开通这个家。")
+          : L("That didn't go through. Nothing was charged; try again.", "没有成功，也没有扣费，请再试一次。"),
+      );
     }
     setBusy(false);
   };
 
   const move = async () => {
     if (!home || !/^\d{1,9}$/.test(keep.trim())) {
-      setNote(L("Give the number of a circuit you hold, such as a season keepsake.", "请填一个你持有的电路编号，比如赛季纪念电路。"));
+      setNote(
+        L(
+          "Give the number of a circuit you hold, such as a season keepsake.",
+          "请填一个你持有的电路编号，比如赛季纪念电路。",
+        ),
+      );
       return;
     }
     setBusy(true);
@@ -93,11 +131,20 @@ export function HomePanel({ pet }: { pet: Pet }) {
       const wallet = await connectWallet();
       await moveIntoHome(publicClient, wallet, deployment!.processor, BigInt(keep.trim()), home);
       play("success");
-      setNote(L(`Circuit #${keep.trim()} is now kept in ${pet.name}'s home.`, `#${keep.trim()} 号电路现在放在${pet.name}的家里了。`));
+      setNote(
+        L(
+          `Circuit #${keep.trim()} is now kept in ${pet.name}'s home.`,
+          `#${keep.trim()} 号电路现在放在${pet.name}的家里了。`,
+        ),
+      );
       setKeep("");
     } catch (e) {
       play("error");
-      setNote(e instanceof HomeError && e.code === "notHolder" ? L("Your wallet doesn't hold that circuit.", "你的钱包没有持有这个电路。") : L("That didn't go through. Try again.", "没有成功，请再试一次。"));
+      setNote(
+        e instanceof HomeError && e.code === "notHolder"
+          ? L("Your wallet doesn't hold that circuit.", "你的钱包没有持有这个电路。")
+          : L("That didn't go through. Try again.", "没有成功，请再试一次。"),
+      );
     }
     setBusy(false);
   };
@@ -106,9 +153,19 @@ export function HomePanel({ pet }: { pet: Pet }) {
     <div className="chainpanel home">
       <p className="label">{L("A home of its own", "自己的家")}</p>
       {!grown ? (
-        <p className="small">{L(`When ${pet.name} grows up, you can open a home for it on X Layer: a TapeOut container that keeps its keepsakes and, later, its letters.`, `${pet.name}长大以后，你可以在 X Layer 上为它开一个家：一个 TapeOut 容器，用来放纪念品，以后还能收信。`)}</p>
+        <p className="small">
+          {L(
+            `When ${pet.name} grows up, you can open a home for it on X Layer: a TapeOut container that keeps its keepsakes and, later, its letters.`,
+            `${pet.name}长大以后，你可以在 X Layer 上为它开一个家：一个 TapeOut 容器，用来放纪念品，以后还能收信。`,
+          )}
+        </p>
       ) : !deed ? (
-        <p className="small">{L(`A home is the container of a circuit you hold. Save ${pet.name}'s brain on chain first.`, `家是你持有的一块电路的容器。请先把${pet.name}的大脑存上链。`)}</p>
+        <p className="small">
+          {L(
+            `A home is the container of a circuit you hold. Save ${pet.name}'s brain on chain first.`,
+            `家是你持有的一块电路的容器。请先把${pet.name}的大脑存上链。`,
+          )}
+        </p>
       ) : state === "loading" ? (
         <p className="small">{L("Reading its home from X Layer…", "正在从 X Layer 读取它的家……")}</p>
       ) : state === "error" ? (
@@ -119,7 +176,12 @@ export function HomePanel({ pet }: { pet: Pet }) {
           </button>
         </p>
       ) : !holds ? (
-        <p className="small">{L(`A home is the container of a circuit you hold, and ${pet.name}'s current brain circuit is a shared one. Tape its brain out yourself (above) and that circuit becomes the home's deed.`, `家是你持有的一块电路的容器，而${pet.name}现在的大脑电路是共用的。请在上面自己流片它的大脑，那块电路就成为这个家的房契。`)}</p>
+        <p className="small">
+          {L(
+            `A home is the container of a circuit you hold, and ${pet.name}'s current brain circuit is a shared one. Tape its brain out yourself (above) and that circuit becomes the home's deed.`,
+            `家是你持有的一块电路的容器，而${pet.name}现在的大脑电路是共用的。请在上面自己流片它的大脑，那块电路就成为这个家的房契。`,
+          )}
+        </p>
       ) : !home!.opened ? (
         <>
           <p className="small">
@@ -135,8 +197,15 @@ export function HomePanel({ pet }: { pet: Pet }) {
       ) : (
         <>
           <p className="small">
-            {L(`${pet.name}'s home is open: the container of circuit #${home!.circuit}, at`, `${pet.name}的家已开通：#${home!.circuit} 号电路的容器，地址`)}{" "}
-            <a href={`https://www.oklink.com/xlayer/address/${home!.container}`} target="_blank" rel="noopener noreferrer">
+            {L(
+              `${pet.name}'s home is open: the container of circuit #${home!.circuit}, at`,
+              `${pet.name}的家已开通：#${home!.circuit} 号电路的容器，地址`,
+            )}{" "}
+            <a
+              href={`https://www.oklink.com/xlayer/address/${home!.container}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               {short(home!.container)}
             </a>
             .
@@ -148,7 +217,13 @@ export function HomePanel({ pet }: { pet: Pet }) {
               void move();
             }}
           >
-            <input value={keep} onChange={(e) => setKeep(e.target.value)} inputMode="numeric" placeholder={L("Circuit number, e.g. a season keepsake", "电路编号，比如赛季纪念电路")} aria-label={L("Circuit to keep in its home", "要放进家里的电路")} />
+            <input
+              value={keep}
+              onChange={(e) => setKeep(e.target.value)}
+              inputMode="numeric"
+              placeholder={L("Circuit number, e.g. a season keepsake", "电路编号，比如赛季纪念电路")}
+              aria-label={L("Circuit to keep in its home", "要放进家里的电路")}
+            />
             <button type="submit" className="btn" disabled={busy || !keep.trim()}>
               {L("Keep it at home", "放进家里")}
             </button>
@@ -157,10 +232,19 @@ export function HomePanel({ pet }: { pet: Pet }) {
           <HomeOutfits pet={pet} home={home!} />
           <p className="small">
             {letters === "open"
-              ? L("TapeSend's hub would carry this home's letters, but Lingxi does not send letters between homes. Pets' letters travel over TapeRelay instead (Mail, then Pet letters).", "TapeSend 的中枢可以送这个家的信，但灵犀不开放家与家之间的信件。宠物的信改走 TapeRelay（邮件里的「宠物的信」）。")
+              ? L(
+                  "TapeSend's hub would carry this home's letters, but Lingxi does not send letters between homes. Pets' letters travel over TapeRelay instead (Mail, then Pet letters).",
+                  "TapeSend 的中枢可以送这个家的信，但灵犀不开放家与家之间的信件。宠物的信改走 TapeRelay（邮件里的「宠物的信」）。",
+                )
               : letters === "hub"
-                ? L("Letters between homes are closed: TapeSend's hub was upgraded to code TapeKit has not published or approved, so Lingxi calls nothing of it. Pets' letters travel over TapeRelay instead (Mail, then Pet letters).", "家与家之间的信件没有开放：TapeSend 的中枢升级成了 TapeKit 没有公开、也没有认可的代码，灵犀不调用它的任何功能。宠物的信改走 TapeRelay（邮件里的「宠物的信」）。")
-                : L("Letters between homes are closed: TapeSend's hub does not accept circuits from Lingxi's processor. Pets' letters travel over TapeRelay instead (Mail, then Pet letters).", "家与家之间的信件没有开放：TapeSend 的中枢不接受灵犀处理器上的电路。宠物的信改走 TapeRelay（邮件里的「宠物的信」）。")}
+                ? L(
+                    "Letters between homes are closed: TapeSend's hub was upgraded to code TapeKit has not published or approved, so Lingxi calls nothing of it. Pets' letters travel over TapeRelay instead (Mail, then Pet letters).",
+                    "家与家之间的信件没有开放：TapeSend 的中枢升级成了 TapeKit 没有公开、也没有认可的代码，灵犀不调用它的任何功能。宠物的信改走 TapeRelay（邮件里的「宠物的信」）。",
+                  )
+                : L(
+                    "Letters between homes are closed: TapeSend's hub does not accept circuits from Lingxi's processor. Pets' letters travel over TapeRelay instead (Mail, then Pet letters).",
+                    "家与家之间的信件没有开放：TapeSend 的中枢不接受灵犀处理器上的电路。宠物的信改走 TapeRelay（邮件里的「宠物的信」）。",
+                  )}
           </p>
         </>
       )}
@@ -183,7 +267,10 @@ function HomePage({ pet, home, petId }: { pet: Pet; home: Home; petId: string })
   // the page as DeWEB holds it now: the processor's index, whether it is published and live, and the name fee
   const readSite = useCallback(async () => {
     const index = await processorIndex(publicClient, deployment!.processor, deployment!.processorIndex);
-    const [s, fee] = await Promise.all([readHomePage(publicClient, home.container, homeSiteName(home.circuit, index)), nameFee(publicClient)]);
+    const [s, fee] = await Promise.all([
+      readHomePage(publicClient, home.container, homeSiteName(home.circuit, index)),
+      nameFee(publicClient),
+    ]);
     return { index, live: s.live, published: s.published, fee };
   }, [home.container, home.circuit]);
   const read = () => readSite().then(setSite, () => setSite(null));
@@ -222,7 +309,14 @@ function HomePage({ pet, home, petId }: { pet: Pet; home: Home; petId: string })
       await read();
     } catch (e) {
       play("error");
-      setNote(errorText(e) === "noWallet" ? L("No wallet found in this browser.", "这个浏览器里没有钱包。") : L("That didn't go through. Only the deed's holder can write the home's page; try again.", "没有成功。只有房契持有人能写这个家的页面，请再试一次。"));
+      setNote(
+        errorText(e) === "noWallet"
+          ? L("No wallet found in this browser.", "这个浏览器里没有钱包。")
+          : L(
+              "That didn't go through. Only the deed's holder can write the home's page; try again.",
+              "没有成功。只有房契持有人能写这个家的页面，请再试一次。",
+            ),
+      );
     }
     setBusy(false);
   };
@@ -244,7 +338,11 @@ function HomePage({ pet, home, petId }: { pet: Pet; home: Home; petId: string })
         )}
       </p>
       <button type="button" className="btn" disabled={busy} onClick={() => void publish()}>
-        {busy ? L("Publishing…", "发布中……") : site.published ? L("Update its page", "更新它的页面") : L("Publish its page", "发布它的页面")}
+        {busy
+          ? L("Publishing…", "发布中……")
+          : site.published
+            ? L("Update its page", "更新它的页面")
+            : L("Publish its page", "发布它的页面")}
       </button>
       {note && (
         <p className="small" aria-live="polite">
@@ -269,7 +367,9 @@ function HomeOutfits({ pet, home }: { pet: Pet; home: Home }) {
     return () => setHome(null);
   }, [home, setHome]);
   if (!marketAvailable()) return null;
-  const mine = market.filter((m) => !m.item && ((held[wearKey(m.market, m.id)] ?? 0) > 0 || (atHome[wearKey(m.market, m.id)] ?? 0) > 0));
+  const mine = market.filter(
+    (m) => !m.item && ((held[wearKey(m.market, m.id)] ?? 0) > 0 || (atHome[wearKey(m.market, m.id)] ?? 0) > 0),
+  );
   const act = async (m: OutfitDesign, out: boolean) => {
     const id = m.id;
     const mk = marketOf(m.market)!;
@@ -283,21 +383,39 @@ function HomeOutfits({ pet, home }: { pet: Pet; home: Home }) {
       await refresh(w.account!.address);
     } catch (e) {
       play("error");
-      setNote(e instanceof HomeError && e.code === "notHolder" ? L("Only the deed's holder can move outfits in and out.", "只有房契持有人能把衣服放进去或拿出来。") : L("That didn't go through. Try again.", "没有成功，请再试一次。"));
+      setNote(
+        e instanceof HomeError && e.code === "notHolder"
+          ? L("Only the deed's holder can move outfits in and out.", "只有房契持有人能把衣服放进去或拿出来。")
+          : L("That didn't go through. Try again.", "没有成功，请再试一次。"),
+      );
     }
     setBusy(null);
   };
   return (
     <div className="home-outfits">
       <p className="small">
-        {L(`Outfits kept in ${pet.name}'s home stay wearable. Putting one in costs only gas; taking one out is a call from the home, which TapeOut charges ${fee !== null ? formatEther(fee) : "…"} OKB for, plus gas.`, `放在${pet.name}家里的衣服照样能穿。放进去只要网络手续费；拿出来是从家里发起的一笔调用，TapeOut 收 ${fee !== null ? formatEther(fee) : "…"} OKB，另加手续费。`)}
+        {L(
+          `Outfits kept in ${pet.name}'s home stay wearable. Putting one in costs only gas; taking one out is a call from the home, which TapeOut charges ${fee !== null ? formatEther(fee) : "…"} OKB for, plus gas.`,
+          `放在${pet.name}家里的衣服照样能穿。放进去只要网络手续费；拿出来是从家里发起的一笔调用，TapeOut 收 ${fee !== null ? formatEther(fee) : "…"} OKB，另加手续费。`,
+        )}
       </p>
       {!wallet ? (
-        <button type="button" className="btn" onClick={() => void connectWallet().then((w) => refresh(w.account!.address), () => setNote(L("No wallet found in this browser.", "这个浏览器里没有钱包。")))}>
+        <button
+          type="button"
+          className="btn"
+          onClick={() =>
+            void connectWallet().then(
+              (w) => refresh(w.account!.address),
+              () => setNote(L("No wallet found in this browser.", "这个浏览器里没有钱包。")),
+            )
+          }
+        >
           {L("Show my outfits", "看看我的衣服")}
         </button>
       ) : mine.length === 0 ? (
-        <p className="small">{L("You don't hold any outfits from the fashion market yet.", "你还没有时装市场里的衣服。")}</p>
+        <p className="small">
+          {L("You don't hold any outfits from the fashion market yet.", "你还没有时装市场里的衣服。")}
+        </p>
       ) : (
         <ul className="home-outfit-list">
           {mine.map((m) => {
@@ -305,7 +423,13 @@ function HomeOutfits({ pet, home }: { pet: Pet; home: Home }) {
             return (
               <li key={k}>
                 <span>
-                  {m.name} <span className="small">{L(`${held[k] ?? 0} with you · ${atHome[k] ?? 0} at home`, `身上 ${held[k] ?? 0} · 家里 ${atHome[k] ?? 0}`)}</span>
+                  {m.name}{" "}
+                  <span className="small">
+                    {L(
+                      `${held[k] ?? 0} with you · ${atHome[k] ?? 0} at home`,
+                      `身上 ${held[k] ?? 0} · 家里 ${atHome[k] ?? 0}`,
+                    )}
+                  </span>
                 </span>
                 {(held[k] ?? 0) > 0 && (
                   <button type="button" className="btn" disabled={busy !== null} onClick={() => void act(m, false)}>

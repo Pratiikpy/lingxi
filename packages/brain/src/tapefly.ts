@@ -60,7 +60,8 @@ export function validateFlyProgram(p: unknown): FlyProgram {
     for (const s of SLOTS) {
       const rg = (r.when ?? {})[s];
       if (rg === undefined) continue;
-      if (!Array.isArray(rg) || rg.length !== 2 || !lvl(rg[0]) || !lvl(rg[1]) || rg[0] > rg[1]) fail(`rule ${i}: bad range for ${s}`);
+      if (!Array.isArray(rg) || rg.length !== 2 || !lvl(rg[0]) || !lvl(rg[1]) || rg[0] > rg[1])
+        fail(`rule ${i}: bad range for ${s}`);
       if (!(rg[0] === 0 && rg[1] === 3)) when[s] = [rg[0], rg[1]];
     }
     let prev: number[] | undefined;
@@ -137,7 +138,8 @@ export function encodeFlyProgram(p: FlyProgram): string {
 }
 
 export function decodeFlyProgram(code: string): FlyProgram {
-  if (typeof code !== "string" || !code.startsWith("p1.") || code.length > 200) throw new Error("program: unknown encoding");
+  if (typeof code !== "string" || !code.startsWith("p1.") || code.length > 200)
+    throw new Error("program: unknown encoding");
   const bytes = unb64url(code.slice(3));
   const n = bytes[0] ?? 0;
   if (bytes.length !== 1 + 4 * n + 1) throw new Error("program: wrong length");
@@ -150,7 +152,12 @@ export function decodeFlyProgram(code: string): FlyProgram {
       when[s] = [(v >> (4 * k)) & 3, (v >> (4 * k + 2)) & 3];
     });
     const mask = (v >> 20) & 15;
-    rules.push({ when, prev: [0, 1, 2, 3].filter((b) => (mask >> b) & 1), then: (v >> 24) & 3, gf: ((v >> 26) & 1) === 1 });
+    rules.push({
+      when,
+      prev: [0, 1, 2, 3].filter((b) => (mask >> b) & 1),
+      then: (v >> 24) & 3,
+      gf: ((v >> 26) & 1) === 1,
+    });
   }
   const last = bytes[bytes.length - 1]!;
   return validateFlyProgram({ rules, otherwise: { then: last & 3, gf: (last & 4) !== 0 } });
@@ -165,8 +172,16 @@ export interface DuelChip {
 }
 
 export const DUEL_CHIPS: readonly DuelChip[] = [
-  { id: "bite", name: { en: "Bite", zh: "先咬" }, rule: { when: { dist: [3, 3], energy: [1, 3] }, then: 0, bite: true } },
-  { id: "punish", name: { en: "Punish", zh: "抓破绽" }, rule: { when: { foe: [3, 3], dist: [2, 3] }, then: 0, bite: true } },
+  {
+    id: "bite",
+    name: { en: "Bite", zh: "先咬" },
+    rule: { when: { dist: [3, 3], energy: [1, 3] }, then: 0, bite: true },
+  },
+  {
+    id: "punish",
+    name: { en: "Punish", zh: "抓破绽" },
+    rule: { when: { foe: [3, 3], dist: [2, 3] }, then: 0, bite: true },
+  },
   { id: "block", name: { en: "Block", zh: "格挡" }, rule: { when: { foe: [2, 2], dist: [2, 3] }, then: 3 } },
   { id: "sidestep", name: { en: "Sidestep", zh: "闪身" }, rule: { when: { foe: [2, 2] }, then: 2 } },
   { id: "hop", name: { en: "Hop back", zh: "后跳" }, rule: { when: { foe: [2, 2], dist: [3, 3] }, then: 1 } },
@@ -179,7 +194,8 @@ export const DUEL_CHIPS: readonly DuelChip[] = [
 ];
 
 /** A chip's name as a player reads it (G8: the ids are TapeFly's, in English); an unknown id is shown as it came. */
-export const chipName = (id: string, lang: "en" | "zh"): string => DUEL_CHIPS.find((c) => c.id === id)?.name[lang] ?? id;
+export const chipName = (id: string, lang: "en" | "zh"): string =>
+  DUEL_CHIPS.find((c) => c.id === id)?.name[lang] ?? id;
 
 /** A chip list, top to bottom, as a program; with nothing matched, press at the rival. */
 export function programOfChips(ids: readonly string[]): FlyProgram {
@@ -404,7 +420,9 @@ const flyCost = (g: FlyGates) => g.length * flyDepth(g) ** 3;
 /** Compile like TapeFly: three encodings, the lowest TapeOut cost A×d³ wins. */
 export function compileFlyProgram(p: FlyProgram): FlyGates {
   const tries = (["chain", "tree", "mux"] as const).map((s) => buildFly(p, s));
-  return tries.reduce((best, n) => (flyCost(n) < flyCost(best) || (flyCost(n) === flyCost(best) && n.length < best.length) ? n : best));
+  return tries.reduce((best, n) =>
+    flyCost(n) < flyCost(best) || (flyCost(n) === flyCost(best) && n.length < best.length) ? n : best,
+  );
 }
 
 /** The gates as TAP-02 bytes, ready to tape out or to evaluate as a circuit. */

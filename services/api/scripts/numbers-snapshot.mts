@@ -12,9 +12,14 @@ import type { SnapshotMeta } from "../src/snapshot.ts";
 
 const root = resolve(import.meta.dirname, "..", "..", "..");
 const require = createRequire(import.meta.url);
-const pm2 = require(join(root, "deploy", "pm2.config.cjs")) as { apps: Array<{ name: string; env?: Record<string, string> }> };
+const pm2 = require(join(root, "deploy", "pm2.config.cjs")) as {
+  apps: Array<{ name: string; env?: Record<string, string> }>;
+};
 const env = pm2.apps.find((a) => a.name === "lingxi-server")?.env ?? {};
-const deployment = JSON.parse(readFileSync(join(root, "packages", "chain", "deployments", "xlayer.json"), "utf8")) as { processor?: string; processorBlock?: number };
+const deployment = JSON.parse(readFileSync(join(root, "packages", "chain", "deployments", "xlayer.json"), "utf8")) as {
+  processor?: string;
+  processorBlock?: number;
+};
 const out = join(root, "services", "api", "snapshots", "xlayer");
 const need = (k: string) => {
   const v = env[k];
@@ -28,7 +33,8 @@ const stores = {
   sales: need("LINGXI_SALES_STORE"),
   circuits: env.LINGXI_CIRCUITS_STORE ?? join(root, "services", "api", "data", "circuits.json"),
 };
-for (const [name, file] of Object.entries(stores)) if (!existsSync(file)) throw new Error(`no ${name} store at ${file}: take a snapshot where the server has run`);
+for (const [name, file] of Object.entries(stores))
+  if (!existsSync(file)) throw new Error(`no ${name} store at ${file}: take a snapshot where the server has run`);
 
 // the lowest block every store has reached: the snapshot is complete up to it
 const read = (f: string) => JSON.parse(readFileSync(f, "utf8")) as { next?: number | Record<string, number> };
@@ -40,7 +46,13 @@ const meta: SnapshotMeta = {
   takenAt: new Date().toISOString(),
   block: Math.min(...nexts) - 1,
   registry: { address: need("LINGXI_REGISTRY").toLowerCase(), fromBlock: Number(need("LINGXI_REGISTRY_FROM")) },
-  processor: deployment.processor && deployment.processorBlock ? { address: deployment.processor.toLowerCase(), fromBlock: Number(env.LINGXI_PROCESSOR_FROM ?? deployment.processorBlock) } : null,
+  processor:
+    deployment.processor && deployment.processorBlock
+      ? {
+          address: deployment.processor.toLowerCase(),
+          fromBlock: Number(env.LINGXI_PROCESSOR_FROM ?? deployment.processorBlock),
+        }
+      : null,
   markets: [
     { address: env.LINGXI_MARKET_OKB, fromBlock: Number(env.LINGXI_MARKET_OKB_FROM ?? 0) },
     { address: env.LINGXI_MARKET_BEM, fromBlock: Number(env.LINGXI_MARKET_BEM_FROM ?? 0) },

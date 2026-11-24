@@ -9,8 +9,39 @@ import { useQuestStatuses } from "../game/quests";
 import { useWorld } from "../game/world";
 import { useBadges } from "../game/badges";
 import { useAlbum } from "./Album";
-import { CHARACTERS, DECOR, ITEM, QUESTLINE, ROOMS, giftAtDoor, happeningAt, happeningUsed, marketPrice, villageEvening } from "@lingxi/world";
-import { BADGES, ENJOY_MAX, ENJOY_PER_CARE, HABIT_REST, type Pet, VISITORS, strongestHabit, tierOf, beatOf, dayChoices, nextWorldSeason, rewind, worldSeasonAt, canLevelUp, dayOf, growthOf, kinshipNow, stageOf, visibleMeters } from "@lingxi/game";
+import {
+  CHARACTERS,
+  DECOR,
+  ITEM,
+  QUESTLINE,
+  ROOMS,
+  giftAtDoor,
+  happeningAt,
+  happeningUsed,
+  marketPrice,
+  villageEvening,
+} from "@lingxi/world";
+import {
+  BADGES,
+  ENJOY_MAX,
+  ENJOY_PER_CARE,
+  HABIT_REST,
+  type Pet,
+  VISITORS,
+  strongestHabit,
+  tierOf,
+  beatOf,
+  dayChoices,
+  nextWorldSeason,
+  rewind,
+  worldSeasonAt,
+  canLevelUp,
+  dayOf,
+  growthOf,
+  kinshipNow,
+  stageOf,
+  visibleMeters,
+} from "@lingxi/game";
 import { levelUpNow, useSkillsUi } from "./Skills";
 import { useLang, useT, type Key } from "../i18n";
 import { play, useSound } from "../game/sound";
@@ -45,7 +76,25 @@ export function Chips({ when, then, want }: { when: string[]; then: string; want
 /** Today's four cares, in the order of the header's marks. */
 const DAILY_ICONS = ["bowl", "ball", "sparkle", "hand"] as const;
 
-export function TopBar({ pet, daily, face, onQuests, onPets, petCount, onMail, unread = 0 }: { pet: Pet; daily: Daily; face: React.ReactNode; onQuests: () => void; onPets: () => void; petCount: number; onMail: () => void; unread?: number }) {
+export function TopBar({
+  pet,
+  daily,
+  face,
+  onQuests,
+  onPets,
+  petCount,
+  onMail,
+  unread = 0,
+}: {
+  pet: Pet;
+  daily: Daily;
+  face: React.ReactNode;
+  onQuests: () => void;
+  onPets: () => void;
+  petCount: number;
+  onMail: () => void;
+  unread?: number;
+}) {
   const t = useT();
   const toggleLang = useLang((s) => s.toggle);
   const sound = useSound();
@@ -56,7 +105,12 @@ export function TopBar({ pet, daily, face, onQuests, onPets, petCount, onMail, u
     <header className="top">
       <div className="who">
         <div className="who-face-wrap">
-          <button type="button" className="who-face who-face-btn" onClick={onPets} aria-label={petCount > 1 ? `${pet.name} · ${petCount}` : pet.name}>
+          <button
+            type="button"
+            className="who-face who-face-btn"
+            onClick={onPets}
+            aria-label={petCount > 1 ? `${pet.name} · ${petCount}` : pet.name}
+          >
             {face}
             {petCount > 1 && <i className="pet-count">{petCount}</i>}
           </button>
@@ -91,11 +145,30 @@ export function TopBar({ pet, daily, face, onQuests, onPets, petCount, onMail, u
             <small>{t("daily.label")}</small>
           </div>
         </button>
-        <button type="button" className="round-btn mail-btn" onClick={onMail} aria-label={unread ? (t("lang") === "EN" ? `邮件，${unread} 封未读` : `Mail, ${unread} unread`) : t("lang") === "EN" ? "邮件" : "Mail"}>
+        <button
+          type="button"
+          className="round-btn mail-btn"
+          onClick={onMail}
+          aria-label={
+            unread
+              ? t("lang") === "EN"
+                ? `邮件，${unread} 封未读`
+                : `Mail, ${unread} unread`
+              : t("lang") === "EN"
+                ? "邮件"
+                : "Mail"
+          }
+        >
           <Icon name="mail" size={20} />
           {unread > 0 && <i className="mail-badge">{unread}</i>}
         </button>
-        <button type="button" className="round-btn" onClick={sound.toggle} aria-label={sound.on ? t("sound.on") : t("sound.off")} aria-pressed={sound.on}>
+        <button
+          type="button"
+          className="round-btn"
+          onClick={sound.toggle}
+          aria-label={sound.on ? t("sound.on") : t("sound.off")}
+          aria-pressed={sound.on}
+        >
           <Icon name={sound.on ? "sound" : "mute"} size={20} />
         </button>
         <button type="button" className="round-btn" onClick={toggleLang} lang={t("lang") === "EN" ? "en" : "zh-CN"}>
@@ -126,7 +199,14 @@ export function Meters({ pet }: { pet: Pet }) {
             <div className="meter-head">
               {t(label)} <span>{low ? t("meter.low") : Math.round(v / 10)}</span>
             </div>
-            <div className="bar" role="meter" aria-valuemin={0} aria-valuemax={1000} aria-valuenow={v} aria-label={t(label)}>
+            <div
+              className="bar"
+              role="meter"
+              aria-valuemin={0}
+              aria-valuemax={1000}
+              aria-valuenow={v}
+              aria-label={t(label)}
+            >
               <b style={{ transform: `scaleX(${v / 1000})` }} />
             </div>
           </div>
@@ -136,13 +216,39 @@ export function Meters({ pet }: { pet: Pet }) {
   );
 }
 
-export function Actions({ pet, absent = false, onFeed, onPlay, onClean, onSleep, onMedicine, onToday, onCollection }: { pet: Pet; absent?: boolean; onFeed: () => void; onPlay: () => void; onClean: () => void; onSleep: () => void; onMedicine: () => void; onToday?: () => void; onCollection?: () => void }) {
+export function Actions({
+  pet,
+  absent = false,
+  onFeed,
+  onPlay,
+  onClean,
+  onSleep,
+  onMedicine,
+  onToday,
+  onCollection,
+}: {
+  pet: Pet;
+  absent?: boolean;
+  onFeed: () => void;
+  onPlay: () => void;
+  onClean: () => void;
+  onSleep: () => void;
+  onMedicine: () => void;
+  onToday?: () => void;
+  onCollection?: () => void;
+}) {
   const t = useT();
   const m = visibleMeters(pet);
   // a pet staying with a friend is cared for there, and a pet on a trip is not home
   const away = !!pet.away || absent;
   const btn = (icon: IconName, label: string, on: () => void, hint: boolean, disabled = false, id?: string) => (
-    <button type="button" className={`act${hint && !away ? " hint" : ""}`} onClick={on} disabled={disabled || away} data-hint={id}>
+    <button
+      type="button"
+      className={`act${hint && !away ? " hint" : ""}`}
+      onClick={on}
+      disabled={disabled || away}
+      data-hint={id}
+    >
       <Icon name={icon} size={24} />
       {label}
     </button>
@@ -150,9 +256,18 @@ export function Actions({ pet, absent = false, onFeed, onPlay, onClean, onSleep,
   return (
     <div className="actions">
       {btn("bowl", t("act.feed"), onFeed, m.food < 350 && !pet.asleep, false, "feed")}
-      {pet.sick ? btn("pill", t("act.medicine"), onMedicine, true, false, "medicine") : btn("ball", t("act.play"), onPlay, false, pet.asleep, "play")}
+      {pet.sick
+        ? btn("pill", t("act.medicine"), onMedicine, true, false, "medicine")
+        : btn("ball", t("act.play"), onPlay, false, pet.asleep, "play")}
       {btn("sparkle", t("act.clean"), onClean, m.clean < 250 && !pet.asleep, pet.asleep, "clean")}
-      {btn(pet.asleep ? "sun" : "moon", pet.asleep ? t("act.wake") : t("act.sleep"), onSleep, m.energy < 250 && !pet.asleep, false, "sleep")}
+      {btn(
+        pet.asleep ? "sun" : "moon",
+        pet.asleep ? t("act.wake") : t("act.sleep"),
+        onSleep,
+        m.energy < 250 && !pet.asleep,
+        false,
+        "sleep",
+      )}
       <EnjoyBar pet={pet} />
       {onToday && onCollection && <TodayCard onToday={onToday} onCollection={onCollection} />}
       <TodayChoices pet={pet} />
@@ -186,16 +301,36 @@ function TodayCard({ onToday, onCollection }: { onToday: () => void; onCollectio
   const pieces = DECOR.length;
   const have = met + badges + owned;
   const all = VISITORS.length + BADGES.length + pieces;
-  const parts = zh ? `访客 ${met}/${VISITORS.length}、徽章 ${badges}/${BADGES.length}、家具 ${owned}/${pieces}` : `visitors ${met}/${VISITORS.length}, badges ${badges}/${BADGES.length}, home pieces ${owned}/${pieces}`;
+  const parts = zh
+    ? `访客 ${met}/${VISITORS.length}、徽章 ${badges}/${BADGES.length}、家具 ${owned}/${pieces}`
+    : `visitors ${met}/${VISITORS.length}, badges ${badges}/${BADGES.length}, home pieces ${owned}/${pieces}`;
   return (
     <div className="today-card">
       <button type="button" className="tcard-errands" onClick={() => (play("tap"), onToday())}>
         <b>{zh ? `今天 ${done}/${offered.length || 3}` : `Today ${done}/${offered.length || 3}`}</b>
         <span className={ready ? "tcard-ready" : undefined}>
-          {ready ? (zh ? `可以交了：${ready.title.zh}` : `Ready: ${ready.title.en}`) : next ? next.title[zh ? "zh" : "en"] : offered.length ? (zh ? "今天的都做完了！" : "All done for today!") : zh ? "打开看看今天的事" : "See today's errands"}
+          {ready
+            ? zh
+              ? `可以交了：${ready.title.zh}`
+              : `Ready: ${ready.title.en}`
+            : next
+              ? next.title[zh ? "zh" : "en"]
+              : offered.length
+                ? zh
+                  ? "今天的都做完了！"
+                  : "All done for today!"
+                : zh
+                  ? "打开看看今天的事"
+                  : "See today's errands"}
         </span>
       </button>
-      <button type="button" className="tcard-collect" onClick={() => (play("tap"), onCollection())} aria-label={zh ? `收藏 ${have}/${all}：${parts}` : `Collection ${have} of ${all}: ${parts}`} title={parts}>
+      <button
+        type="button"
+        className="tcard-collect"
+        onClick={() => (play("tap"), onCollection())}
+        aria-label={zh ? `收藏 ${have}/${all}：${parts}` : `Collection ${have} of ${all}: ${parts}`}
+        title={parts}
+      >
         <b>{zh ? "收藏" : "Collection"}</b>
         <span>
           {have}/{all}
@@ -227,7 +362,10 @@ function TodayChoices({ pet }: { pet: Pet }) {
   if (!day.total) return null;
   // D6: its rest is told in its habit's way (a shy pet hides away, a playful one bounces about)
   const habit = strongestHabit(pet.traits);
-  const kinds = WANT_ORDER.map((k, i) => ({ k, i, n: day.counts[k] ?? 0 })).filter((x) => x.n > 0).sort((a, b) => b.n - a.n).slice(0, 3);
+  const kinds = WANT_ORDER.map((k, i) => ({ k, i, n: day.counts[k] ?? 0 }))
+    .filter((x) => x.n > 0)
+    .sort((a, b) => b.n - a.n)
+    .slice(0, 3);
   return (
     <p className="today-choices" aria-label={zh ? `${pet.name}今天的选择` : `What ${pet.name} chose today`}>
       <b>{zh ? `${pet.name}今天选了：` : `Today ${pet.name} chose:`}</b>{" "}
@@ -236,7 +374,11 @@ function TodayChoices({ pet }: { pet: Pet }) {
           {x.k === "idle" && habit ? HABIT_REST[habit][zh ? "zh" : "en"] : WANT_NAMES[zh ? "zh" : "en"][x.i]} ×{x.n}
         </span>
       ))}
-      {day.taught > 0 && <span className="tc-taught">{zh ? `其中 ${day.taught} 次是因为你教过` : `${day.taught} because you taught it`}</span>}
+      {day.taught > 0 && (
+        <span className="tc-taught">
+          {zh ? `其中 ${day.taught} 次是因为你教过` : `${day.taught} because you taught it`}
+        </span>
+      )}
     </p>
   );
 }
@@ -259,7 +401,8 @@ function VillageLine({ pet }: { pet: Pet }) {
   const door = giftAtDoor(world, at);
   const takeGift = () => {
     const item = useWorld.getState().villageGift("door");
-    if (item !== null) useWorld.setState({ notice: { id: Date.now(), kind: "bought", items: [{ item, n: 1 }] } } as never);
+    if (item !== null)
+      useWorld.setState({ notice: { id: Date.now(), kind: "bought", items: [{ item, n: 1 }] } } as never);
   };
   const eveningNote = done
     ? ""
@@ -315,7 +458,11 @@ function SeasonLine() {
   return (
     <p className={`season-line season-${season.id}`}>
       <b>{season.name[zh ? "zh" : "en"]}</b> · {season.air[zh ? "zh" : "en"]}{" "}
-      <span>{zh ? `${days} 天后是${next.season.name.zh}` : `${next.season.name.en} in ${days} ${days === 1 ? "day" : "days"}`}</span>
+      <span>
+        {zh
+          ? `${days} 天后是${next.season.name.zh}`
+          : `${next.season.name.en} in ${days} ${days === 1 ? "day" : "days"}`}
+      </span>
     </p>
   );
 }
@@ -331,7 +478,14 @@ function EnjoyBar({ pet }: { pet: Pet }) {
   return (
     <div className={`enjoy${full ? " full" : ""}`}>
       <span className="small">{full ? t("enjoy.full", { name: pet.name }) : t("enjoy.label")}</span>
-      <i className="enjoy-bar" role="meter" aria-label={t("enjoy.label")} aria-valuemin={0} aria-valuemax={ENJOY_MAX} aria-valuenow={enjoy}>
+      <i
+        className="enjoy-bar"
+        role="meter"
+        aria-label={t("enjoy.label")}
+        aria-valuemin={0}
+        aria-valuemax={ENJOY_MAX}
+        aria-valuenow={enjoy}
+      >
         <i style={{ transform: `scaleX(${enjoy / ENJOY_MAX})` }} />
       </i>
     </div>
@@ -342,7 +496,15 @@ export function ThinkStrip({ pet, taught = false }: { pet: Pet; taught?: boolean
   const t = useT();
   const { lang } = useLang();
   const kind = pet.last.instinct ? "instinct" : ruleKindOf(pet, decidingPart(pet).program, pet.last.rule);
-  const c = pet.last.instinct ? (lang === "zh" ? { when: ["它学会的本能电路想做点什么"], then: WANT_NAMES.zh[pet.last.want] ?? "", want: pet.last.want } : { when: ["its taught instinct circuit wanted something"], then: WANT_NAMES.en[pet.last.want] ?? "", want: pet.last.want }) : decidingChips(decidingPart(pet).program, pet.last.rule, lang);
+  const c = pet.last.instinct
+    ? lang === "zh"
+      ? { when: ["它学会的本能电路想做点什么"], then: WANT_NAMES.zh[pet.last.want] ?? "", want: pet.last.want }
+      : {
+          when: ["its taught instinct circuit wanted something"],
+          then: WANT_NAMES.en[pet.last.want] ?? "",
+          want: pet.last.want,
+        }
+    : decidingChips(decidingPart(pet).program, pet.last.rule, lang);
   return (
     <div className={`think${taught ? " taught" : ""}`} aria-live="off">
       <em>{t(taught ? "try.mark" : "think.label")}</em>
@@ -369,7 +531,15 @@ export function VoiceBubble({ face }: { face?: ReactNode }) {
   return (
     <AnimatePresence>
       {line && (
-        <motion.p key={id} className="voice" role="status" initial={{ opacity: 0, y: 6, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}>
+        <motion.p
+          key={id}
+          className="voice"
+          role="status"
+          initial={{ opacity: 0, y: 6, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+        >
           {face && (
             <span className="voice-face" aria-hidden="true">
               {face}
@@ -413,12 +583,27 @@ const TABS: ReadonlyArray<[Tab, IconName, Key]> = [
   ["me", "pet", "tab.me"],
 ];
 
-export function TabBar({ current, onPick, locked = [] }: { current: Tab; onPick: (t: Tab) => void; locked?: readonly Tab[] }) {
+export function TabBar({
+  current,
+  onPick,
+  locked = [],
+}: {
+  current: Tab;
+  onPick: (t: Tab) => void;
+  locked?: readonly Tab[];
+}) {
   const t = useT();
   return (
     <nav className="tabs" aria-label={t("lang") === "EN" ? "主菜单" : "Main"}>
       {TABS.map(([id, icon, label]) => (
-        <button key={id} type="button" className={`tab${locked.includes(id) ? " tab-locked" : ""}`} aria-current={current === id ? "page" : undefined} onClick={() => onPick(id)} data-hint={`tab-${id}`}>
+        <button
+          key={id}
+          type="button"
+          className={`tab${locked.includes(id) ? " tab-locked" : ""}`}
+          aria-current={current === id ? "page" : undefined}
+          onClick={() => onPick(id)}
+          data-hint={`tab-${id}`}
+        >
           <Icon name={icon} size={22} />
           {t(label)}
           {locked.includes(id) && (
@@ -438,7 +623,20 @@ function LevelBadge({ pet }: { pet: Pet }) {
   const g = growthOf(pet);
   const ready = canLevelUp(g, pet.xp);
   return (
-    <button type="button" className={`lv-chip${ready ? " ready" : ""}`} onClick={() => (ready ? levelUpNow() : useSkillsUi.getState().show())} aria-label={zh ? (ready ? `${g.level} 级 · 升级` : `${g.level} 级 · 技能`) : ready ? `Lv ${g.level} · level up` : `Lv ${g.level} · skills`}>
+    <button
+      type="button"
+      className={`lv-chip${ready ? " ready" : ""}`}
+      onClick={() => (ready ? levelUpNow() : useSkillsUi.getState().show())}
+      aria-label={
+        zh
+          ? ready
+            ? `${g.level} 级 · 升级`
+            : `${g.level} 级 · 技能`
+          : ready
+            ? `Lv ${g.level} · level up`
+            : `Lv ${g.level} · skills`
+      }
+    >
       {ready ? "▲" : ""}
       {g.level}
       {!ready && g.points > 0 && <b aria-hidden="true" />}

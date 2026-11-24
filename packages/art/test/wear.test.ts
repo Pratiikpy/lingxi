@@ -1,12 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { BUILDER_WEARABLES, FORMS, LINES, SETS, WEARABLES, drawPet, registeredWearables, registerWearables, setPieces, wearOverlay, wearableOf, type Line, type Wearable } from "../src/index";
+import {
+  BUILDER_WEARABLES,
+  FORMS,
+  LINES,
+  SETS,
+  WEARABLES,
+  drawPet,
+  registeredWearables,
+  registerWearables,
+  setPieces,
+  wearOverlay,
+  wearableOf,
+  type Line,
+  type Wearable,
+} from "../src/index";
 
 const STAGES = ["baby", "child", "teen", "adult"] as const;
 
 describe("wearables", () => {
   it("every piece uses only colours it names, and a face piece has a small drawing too", () => {
     for (const w of WEARABLES) {
-      for (const rows of [w.rows, w.rowsSmall ?? []]) for (const row of rows) for (const ch of row) if (ch !== ".") expect(w.colors[ch], `${w.id} colour ${ch}`).toBeDefined();
+      for (const rows of [w.rows, w.rowsSmall ?? []])
+        for (const row of rows)
+          for (const ch of row) if (ch !== ".") expect(w.colors[ch], `${w.id} colour ${ch}`).toBeDefined();
       if (w.slot === "face") expect(w.rowsSmall, w.id).toBeDefined();
       expect(w.name.en.length * w.name.zh.length, w.id).toBeGreaterThan(0);
     }
@@ -23,7 +39,10 @@ describe("wearables", () => {
             const px = wearOverlay(pet, line, stage, { [w.slot]: w.id }, 0, form);
             expect(px.length, `${w.id} on ${line} ${stage} ${form ?? ""}`).toBeGreaterThan(0);
             for (const [x, y] of px) {
-              expect(x >= 0 && x < pet.w && y >= 0 && y < pet.h, `${w.id} on ${line} ${stage} ${form ?? ""} at ${x},${y}`).toBe(true);
+              expect(
+                x >= 0 && x < pet.w && y >= 0 && y < pet.h,
+                `${w.id} on ${line} ${stage} ${form ?? ""} at ${x},${y}`,
+              ).toBe(true);
             }
           }
         }
@@ -41,10 +60,17 @@ describe("wearables", () => {
 });
 
 describe("player-made pieces: the registered set", () => {
-  const piece = (id: string): Wearable => ({ id, slot: "head", name: { en: id, zh: id }, rows: ["OO"], colors: { O: "#000000" } });
+  const piece = (id: string): Wearable => ({
+    id,
+    slot: "head",
+    name: { en: id, zh: id },
+    rows: ["OO"],
+    colors: { O: "#000000" },
+  });
 
   it("holds the builders' pieces as soon as the package is loaded, so a quest reward draws on a pet", () => {
-    for (const id of ["b:lamps13", "b:telescope", "b:hardhat", "b:handheld"]) expect(registeredWearables().has(id), id).toBe(true);
+    for (const id of ["b:lamps13", "b:telescope", "b:hardhat", "b:handheld"])
+      expect(registeredWearables().has(id), id).toBe(true);
   });
 
   it("is a new set after each registration, and a set already read never changes", () => {

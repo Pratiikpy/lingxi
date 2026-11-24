@@ -12,11 +12,23 @@ const anObject: SaveReader = (v) => (isObject(v) ? "ok" : "unreadable");
 const versioned =
   (version: number): SaveReader =>
   (v) =>
-    !isObject(v) ? "unreadable" : v.version === version ? "ok" : typeof v.version === "number" && v.version > version ? "newer" : "unreadable";
+    !isObject(v)
+      ? "unreadable"
+      : v.version === version
+        ? "ok"
+        : typeof v.version === "number" && v.version > version
+          ? "newer"
+          : "unreadable";
 
 /** The pet letters save (H13), stamped `v`: its identity's keys must be there, or the letters cannot be read. */
 const letters: SaveReader = (v) =>
-  !isObject(v) ? "unreadable" : v.v === 1 && typeof v.account === "string" && typeof v.privateKey === "string" && typeof v.secretKey === "string" ? "ok" : typeof v.v === "number" && v.v > 1 ? "newer" : "unreadable";
+  !isObject(v)
+    ? "unreadable"
+    : v.v === 1 && typeof v.account === "string" && typeof v.privateKey === "string" && typeof v.secretKey === "string"
+      ? "ok"
+      : typeof v.v === "number" && v.v > 1
+        ? "newer"
+        : "unreadable";
 
 export const READERS: Readonly<Record<string, SaveReader>> = {
   "lingxi.pets.v2": (v) => (isObject(v) && Array.isArray(v.pets) ? "ok" : "unreadable"),

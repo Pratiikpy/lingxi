@@ -24,10 +24,26 @@ export const EVOLUTION: Program = validateProgram({
   version: "LX-PET/1",
   memory: [],
   rules: [
-    { label: "rare: devoted, trusted, well taught and gentle at heart", when: { clean: [3], energy: [3], joy: [2, 3], action: [4, 6] }, then: { want: 4, mood: 1 } },
-    { label: "scholar: taught a lot, brave or curious", when: { clean: [2, 3], action: [1, 2] }, then: { want: 3, mood: 0 } },
-    { label: "blossom: fruit-fed and soft-natured", when: { hunger: [1], action: [4, 6, 7] }, then: { want: 1, mood: 0 } },
-    { label: "dumpling: hearty food and a big appetite for fun", when: { hunger: [2, 3], action: [3, 5] }, then: { want: 2, mood: 0 } },
+    {
+      label: "rare: devoted, trusted, well taught and gentle at heart",
+      when: { clean: [3], energy: [3], joy: [2, 3], action: [4, 6] },
+      then: { want: 4, mood: 1 },
+    },
+    {
+      label: "scholar: taught a lot, brave or curious",
+      when: { clean: [2, 3], action: [1, 2] },
+      then: { want: 3, mood: 0 },
+    },
+    {
+      label: "blossom: fruit-fed and soft-natured",
+      when: { hunger: [1], action: [4, 6, 7] },
+      then: { want: 1, mood: 0 },
+    },
+    {
+      label: "dumpling: hearty food and a big appetite for fun",
+      when: { hunger: [2, 3], action: [3, 5] },
+      then: { want: 2, mood: 0 },
+    },
     { label: "sweet tooth turns playful", when: { hunger: [0], action: [5] }, then: { want: 2, mood: 0 } },
   ],
   otherwise: { want: 0, mood: 0 },
@@ -38,10 +54,29 @@ export type Form = (typeof FORMS)[number];
 
 export const FORM_NAMES: Record<Form, { en: string; zh: string; how: { en: string; zh: string } }> = {
   puff: { en: "Puff", zh: "团团", how: { en: "the shape every pet can grow into", zh: "每只宠物都能长成的样子" } },
-  blossom: { en: "Blossom", zh: "花苞", how: { en: "mostly fruit, and a calm, gentle or shy heart", zh: "多吃水果，性格温和、沉稳或害羞" } },
-  dumpling: { en: "Dumpling", zh: "包子", how: { en: "hearty food and a greedy or playful streak", zh: "吃得实在，又馋又爱玩" } },
-  scholar: { en: "Scholar", zh: "学者", how: { en: "three or more lessons, and brave or curious", zh: "学了三课以上，又勇敢或好奇" } },
-  moonpetal: { en: "Moonpetal", zh: "月瓣", how: { en: "rare: devoted care, full trust, five lessons, a calm or gentle heart", zh: "稀有：悉心照顾、完全信任、学满五课、心地沉稳或温柔" } },
+  blossom: {
+    en: "Blossom",
+    zh: "花苞",
+    how: { en: "mostly fruit, and a calm, gentle or shy heart", zh: "多吃水果，性格温和、沉稳或害羞" },
+  },
+  dumpling: {
+    en: "Dumpling",
+    zh: "包子",
+    how: { en: "hearty food and a greedy or playful streak", zh: "吃得实在，又馋又爱玩" },
+  },
+  scholar: {
+    en: "Scholar",
+    zh: "学者",
+    how: { en: "three or more lessons, and brave or curious", zh: "学了三课以上，又勇敢或好奇" },
+  },
+  moonpetal: {
+    en: "Moonpetal",
+    zh: "月瓣",
+    how: {
+      en: "rare: devoted care, full trust, five lessons, a calm or gentle heart",
+      zh: "稀有：悉心照顾、完全信任、学满五课、心地沉稳或温柔",
+    },
+  },
 };
 
 const argmax = <T extends string>(keys: readonly T[], score: (k: T) => number): T =>
@@ -56,7 +91,11 @@ export interface EvolutionInputs {
 }
 
 /** What the evolution circuit reads from a pet, computed only from its saved state. */
-export function evolutionInputs(p: Pet, now: number, trustBits: readonly number[] = p.brain.slice(0, 3)): EvolutionInputs {
+export function evolutionInputs(
+  p: Pet,
+  now: number,
+  trustBits: readonly number[] = p.brain.slice(0, 3),
+): EvolutionInputs {
   const days = Math.max(1, dayOf(p, now));
   const diet = DIETS.indexOf(argmax(DIETS, (d) => p.diet[d]));
   // care that answered a need (G3); a pet from before that was kept counts all its care, as it always did
@@ -64,7 +103,7 @@ export function evolutionInputs(p: Pet, now: number, trustBits: readonly number[
   const cares = n0.feed + n0.play + n0.clean + n0.pet;
   const perDay = cares / days;
   const care = perDay >= 8 ? 3 : perDay >= 4 ? 2 : perDay >= 1 ? 1 : 0;
-  const trust = Math.min(3, (trustBits.reduce((v, b, i) => v | ((b ? 1 : 0) << i), 0) >> 1));
+  const trust = Math.min(3, trustBits.reduce((v, b, i) => v | ((b ? 1 : 0) << i), 0) >> 1);
   const n = p.lessons.length;
   const lessons = n >= 5 ? 3 : n >= 3 ? 2 : n >= 1 ? 1 : 0;
   const strongest = argmax(TRAITS, (t) => p.traits[t]);
@@ -73,7 +112,16 @@ export function evolutionInputs(p: Pet, now: number, trustBits: readonly number[
 }
 
 export function evolutionWord(i: EvolutionInputs): number {
-  return encodeSenses({ hunger: i.diet, joy: i.care, energy: i.trust, clean: i.lessons, time: 0, action: i.trait, event: 0, owner: 0 });
+  return encodeSenses({
+    hunger: i.diet,
+    joy: i.care,
+    energy: i.trust,
+    clean: i.lessons,
+    time: 0,
+    action: i.trait,
+    event: 0,
+    owner: 0,
+  });
 }
 
 const circuit = fastBrain(compileProgram(EVOLUTION));

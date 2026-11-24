@@ -14,7 +14,10 @@ afterEach(() => leave());
 const AT = Date.UTC(2026, 10, 21, 9);
 const DAY = 86_400_000;
 
-async function teachScreen(lang: "en" | "zh", growth?: { level: number; points: number; skills: Record<number, number> }) {
+async function teachScreen(
+  lang: "en" | "zh",
+  growth?: { level: number; points: number; skills: Record<number, number> },
+) {
   await visit({ at: AT });
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   const { useGame } = await import("../game/store");
@@ -25,7 +28,8 @@ async function teachScreen(lang: "en" | "zh", growth?: { level: number; points: 
   // a teen: five days old by its birth time (its clock is not moved)
   const p0 = useGame.getState().pet!;
   useGame.setState({ pet: { ...p0, bornAt: p0.bornAt - 5 * DAY, ...(growth ? { growth } : {}) } });
-  for (const id of ["share", "nap"]) expect(useGame.getState().learn(PET_SCHOOL.find((l) => l.id === id)!.rule).ok).toBe(true);
+  for (const id of ["share", "nap"])
+    expect(useGame.getState().learn(PET_SCHOOL.find((l) => l.id === id)!.rule).ok).toBe(true);
   const pet = useGame.getState().pet!;
   const host = document.createElement("div");
   document.body.append(host);
@@ -45,7 +49,11 @@ describe("the Teach screen shows the taught budget (G7)", () => {
       const used = taughtGates({ line: pet.line, lessons: pet.lessons, instincts: pet.instincts });
       expect(used).toBeGreaterThan(0);
       const text = host.querySelector(".gates")!.textContent!;
-      expect(text).toContain(lang === "en" ? `Lessons use ${used} of ${TAUGHT_BUDGET.teen} gates` : `课程用了 ${used}/${TAUGHT_BUDGET.teen} 个门`);
+      expect(text).toContain(
+        lang === "en"
+          ? `Lessons use ${used} of ${TAUGHT_BUDGET.teen} gates`
+          : `课程用了 ${used}/${TAUGHT_BUDGET.teen} 个门`,
+      );
       close();
       leave();
     }

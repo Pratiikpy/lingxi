@@ -40,14 +40,24 @@ export function createMoveStore(now: () => number = Date.now) {
     for (const [k, v] of held) if (v.until <= t) drop(k);
   };
   return {
-    put(raw: unknown, owner = "unknown"): { ok: true; code: string; expiresAt: number } | { ok: false; reason: "invalid" | "tooBig" | "busy" } {
+    put(
+      raw: unknown,
+      owner = "unknown",
+    ): { ok: true; code: string; expiresAt: number } | { ok: false; reason: "invalid" | "tooBig" | "busy" } {
       const parsed = MoveSave.safeParse(raw);
       if (!parsed.success) return { ok: false, reason: "invalid" };
       const size = Object.entries(parsed.data).reduce((n, [k, v]) => n + k.length + v.length, 0);
       if (size > MAX_MOVE_CHARS) return { ok: false, reason: "tooBig" };
       sweep();
       if (held.size >= MAX_HELD || heldChars + size > MAX_HELD_CHARS) return { ok: false, reason: "busy" };
-      if (heldOver([...held.values()].map((v) => v.owner), owner, MAX_WAITING_PER_OWNER)) return { ok: false, reason: "busy" };
+      if (
+        heldOver(
+          [...held.values()].map((v) => v.owner),
+          owner,
+          MAX_WAITING_PER_OWNER,
+        )
+      )
+        return { ok: false, reason: "busy" };
       const prefix = prefixOf(owner);
       let mine = 0;
       let network = 0;
@@ -60,8 +70,10 @@ export function createMoveStore(now: () => number = Date.now) {
       // a sender's share shrinks as the shelf fills, in characters and in places, so a few networks cannot fill it (A141)
       const free = MAX_HELD_CHARS - heldChars;
       if (mine + size > shareOf(MAX_OWNER_CHARS, free, mine)) return { ok: false, reason: "busy" };
-      if (prefix !== null && network + size > shareOf(MAX_OWNER_CHARS * PREFIX_SHARE, free, network)) return { ok: false, reason: "busy" };
-      if (places + 1 > Math.max(1, shareOf(MAX_WAITING_PER_OWNER * PREFIX_SHARE, MAX_HELD - held.size, places))) return { ok: false, reason: "busy" };
+      if (prefix !== null && network + size > shareOf(MAX_OWNER_CHARS * PREFIX_SHARE, free, network))
+        return { ok: false, reason: "busy" };
+      if (places + 1 > Math.max(1, shareOf(MAX_WAITING_PER_OWNER * PREFIX_SHARE, MAX_HELD - held.size, places)))
+        return { ok: false, reason: "busy" };
       const code = randomBytes(16).toString("base64url");
       const until = now() + MOVE_TTL_MS;
       held.set(code, { save: parsed.data, until, size, owner });

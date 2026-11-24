@@ -7,14 +7,20 @@
  */
 import { duelLinkId, isDuelCode } from "@lingxi/game";
 
-const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (typeof location !== "undefined" && location.hostname === "localhost" ? "http://localhost:8787" : "");
+const BASE =
+  (import.meta.env.VITE_API_URL as string | undefined) ??
+  (typeof location !== "undefined" && location.hostname === "localhost" ? "http://localhost:8787" : "");
 const TOKEN = /^s\.([A-Za-z0-9_-]{16})$/;
 
 /** The short token for a code when the server keeps it, else the code itself. */
 export async function linkToken(code: string, fetchFn: typeof fetch = fetch): Promise<string> {
   if (!BASE && fetchFn === fetch) return code;
   try {
-    const r = await fetchFn(`${BASE}/api/duels`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ code }) });
+    const r = await fetchFn(`${BASE}/api/duels`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ code }),
+    });
     if (!r.ok) return code;
     const { id } = (await r.json()) as { id?: unknown };
     return typeof id === "string" && id === (await duelLinkId(code)) ? `s.${id}` : code;

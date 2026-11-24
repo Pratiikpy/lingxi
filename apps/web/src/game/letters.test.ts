@@ -26,8 +26,18 @@ vi.mock("@taperelay/client", () => {
   };
   const hexOf = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
   return {
-    newSelfIdentity: ({ host, privateKey = new Uint8Array(32).fill(7) }: { host: string; privateKey?: Uint8Array }) => ({ privateKey, account: `key:0x${hexOf(privateKey).slice(0, 40)}@${host}` }),
-    selfAuth: (_k: Uint8Array, host: string) => ({ account: `me@${host}`, sign: async () => "0x", delegationHeader: null }),
+    newSelfIdentity: ({
+      host,
+      privateKey = new Uint8Array(32).fill(7),
+    }: {
+      host: string;
+      privateKey?: Uint8Array;
+    }) => ({ privateKey, account: `key:0x${hexOf(privateKey).slice(0, 40)}@${host}` }),
+    selfAuth: (_k: Uint8Array, host: string) => ({
+      account: `me@${host}`,
+      sign: async () => "0x",
+      delegationHeader: null,
+    }),
     nodeOf: (a: string) => `${a.slice(a.indexOf("@") + 1)}:443`,
     generateKeyPair: () => ({ publicKey: new Uint8Array(32).fill(1), secretKey: new Uint8Array(32).fill(2) }),
     publicKeyOf: () => new Uint8Array(32).fill(1),
@@ -36,14 +46,30 @@ vi.mock("@taperelay/client", () => {
     publishSelfKey: async () => (net(), relay.published++, { createdAt: 1 }),
     fetchSelfKey: async () => (net(), { key: new Uint8Array(32).fill(3) }),
     makeSelfNotice: (o: { to: string; message: string }) => o,
-    signSelfNotice: async (_a: unknown, n: { to: string; message: string }) => ({ id: "ab".repeat(32), body: JSON.stringify(n) }),
+    signSelfNotice: async (_a: unknown, n: { to: string; message: string }) => ({
+      id: "ab".repeat(32),
+      body: JSON.stringify(n),
+    }),
     submitSelfNotice: async (_h: unknown, _a: unknown, s: { id: string; body: string }) => {
       net();
       relay.sent.push(JSON.parse(s.body) as { to: string; message: string });
       return { id: s.id, server: "relay1.taperelay.com:443" };
     },
-    openSelfNotice: (it: { id: string; from: string; text: string }) => ({ ok: true, id: it.id, from: it.from, to: "me", createdAt: 1_800_000_000, message: new Uint8Array(), text: it.text }),
-    updateSenders: async (_h: unknown, _a: unknown, o: { allow?: string[]; deny?: string[] }) => (net(), relay.allowed.push(...(o.allow ?? [])), relay.denied.push(...(o.deny ?? [])), {}),
+    openSelfNotice: (it: { id: string; from: string; text: string }) => ({
+      ok: true,
+      id: it.id,
+      from: it.from,
+      to: "me",
+      createdAt: 1_800_000_000,
+      message: new Uint8Array(),
+      text: it.text,
+    }),
+    updateSenders: async (_h: unknown, _a: unknown, o: { allow?: string[]; deny?: string[] }) => (
+      net(),
+      relay.allowed.push(...(o.allow ?? [])),
+      relay.denied.push(...(o.deny ?? [])),
+      {}
+    ),
     listSenders: async () => ({ items: [] }),
     subscribeNotices: () => () => {},
     createClient: () => ({
@@ -55,7 +81,8 @@ vi.mock("@taperelay/client", () => {
   };
 });
 
-const letterFrom = (player: string, pet: string, text: string) => JSON.stringify({ lx: 1, from: { pet, player }, toPet: "Kiri", text });
+const letterFrom = (player: string, pet: string, text: string) =>
+  JSON.stringify({ lx: 1, from: { pet, player }, toPet: "Kiri", text });
 
 beforeEach(() => {
   Object.assign(relay, { down: false, allowed: [], denied: [], sent: [], inbox: [], read: [], published: 0 });
@@ -83,7 +110,11 @@ describe("pet letters (H13)", () => {
 
   it("makes exactly one identity when several parts of the game ask for it at the same moment", async () => {
     const { useLetters } = await open();
-    const [a, b, c] = await Promise.all([useLetters.getState().ensure(), useLetters.getState().ensure(), useLetters.getState().learnFriend("friend01", FRIEND)]);
+    const [a, b, c] = await Promise.all([
+      useLetters.getState().ensure(),
+      useLetters.getState().ensure(),
+      useLetters.getState().learnFriend("friend01", FRIEND),
+    ]);
     expect(relay.published, "one identity published, never two").toBe(1);
     expect(a?.account).toBe(b?.account);
     expect(c).toBeUndefined();
@@ -105,17 +136,34 @@ describe("pet letters (H13)", () => {
     // visit() runs the page on fake timers: the delivery check four seconds later is reached by moving the clock on
     const { useLetters } = await open();
     await useLetters.getState().learnFriend("friend01", FRIEND);
-    const r = await useLetters.getState().send({ player: "friend01", pet: "Lulu" }, "Kiri", "me000001", "  Hello Lulu  ");
+    const r = await useLetters
+      .getState()
+      .send({ player: "friend01", pet: "Lulu" }, "Kiri", "me000001", "  Hello Lulu  ");
     expect(r).toEqual({ ok: true });
     expect(relay.sent).toHaveLength(1);
     expect(relay.sent[0]!.to).toBe(FRIEND);
-    expect(JSON.parse(relay.sent[0]!.message)).toEqual({ lx: 1, from: { pet: "Kiri", player: "me000001" }, toPet: "Lulu", text: "Hello Lulu" });
-    expect(useLetters.getState().saved!.kept[0]).toMatchObject({ dir: "out", pet: "Lulu", text: "Hello Lulu", state: "waiting" });
+    expect(JSON.parse(relay.sent[0]!.message)).toEqual({
+      lx: 1,
+      from: { pet: "Kiri", player: "me000001" },
+      toPet: "Lulu",
+      text: "Hello Lulu",
+    });
+    expect(useLetters.getState().saved!.kept[0]).toMatchObject({
+      dir: "out",
+      pet: "Lulu",
+      text: "Hello Lulu",
+      state: "waiting",
+    });
     await vi.advanceTimersByTimeAsync(5_000);
     expect(useLetters.getState().saved!.kept[0]!.state).toBe("delivered");
     // too long, empty, or to someone with no address: refused before anything is sent
-    expect(await useLetters.getState().send({ player: "friend01", pet: "Lulu" }, "Kiri", "me000001", "x".repeat(601))).toEqual({ ok: false, reason: "tooLong" });
-    expect(await useLetters.getState().send({ player: "nobody01", pet: "Bun" }, "Kiri", "me000001", "hi")).toEqual({ ok: false, reason: "noAddress" });
+    expect(
+      await useLetters.getState().send({ player: "friend01", pet: "Lulu" }, "Kiri", "me000001", "x".repeat(601)),
+    ).toEqual({ ok: false, reason: "tooLong" });
+    expect(await useLetters.getState().send({ player: "nobody01", pet: "Bun" }, "Kiri", "me000001", "hi")).toEqual({
+      ok: false,
+      reason: "noAddress",
+    });
     expect(relay.sent).toHaveLength(1);
   });
 
@@ -123,7 +171,11 @@ describe("pet letters (H13)", () => {
     const { useLetters, useSaveState } = await open();
     await useLetters.getState().learnFriend("friend01", FRIEND);
     relay.inbox.push({ id: "11".repeat(32), from: FRIEND, text: letterFrom("friend01", "Lulu", "Hi Kiri!") });
-    relay.inbox.push({ id: "22".repeat(32), from: STRANGER, text: letterFrom("strang01", "Bun", "Can we be friends?") });
+    relay.inbox.push({
+      id: "22".repeat(32),
+      from: STRANGER,
+      text: letterFrom("strang01", "Bun", "Can we be friends?"),
+    });
     // another tab plays the game: this one leaves the inbox alone (a letter goes only to the first reader)
     useSaveState.setState({ role: "elsewhere" });
     await useLetters.getState().pull();
@@ -147,7 +199,10 @@ describe("pet letters (H13)", () => {
     const { useLetters } = await open();
     await useLetters.getState().learnFriend("friend01", FRIEND);
     relay.down = true;
-    expect(await useLetters.getState().send({ player: "friend01", pet: "Lulu" }, "Kiri", "me000001", "Hello")).toEqual({ ok: false, reason: "down" });
+    expect(await useLetters.getState().send({ player: "friend01", pet: "Lulu" }, "Kiri", "me000001", "Hello")).toEqual({
+      ok: false,
+      reason: "down",
+    });
     expect(useLetters.getState().trouble).toBe("down");
     expect(useLetters.getState().saved!.kept[0]).toMatchObject({ state: "failed", text: "Hello" });
     relay.down = false;
@@ -196,7 +251,9 @@ describe("the letters identity travels in the save file, never to our server (H1
       at: Date.UTC(2026, 10, 22, 11),
       net: async (url, init) => {
         if (String(url).endsWith("/api/move")) sent = String(init?.body ?? "");
-        return new Response(JSON.stringify({ ok: true, code: "a".repeat(22) }), { headers: { "content-type": "application/json" } });
+        return new Response(JSON.stringify({ ok: true, code: "a".repeat(22) }), {
+          headers: { "content-type": "application/json" },
+        });
       },
     });
     for (const [k, v] of Object.entries(opened.contents.keys)) localStorage.setItem(k, v);

@@ -4,7 +4,35 @@
  * pet; food from the bag goes through the game rules like any care.
  */
 
-import { deleteLook as deleteLookRule, renameLook as renameLookRule, saveLook as saveLookRule, wearLook as wearLookRule, buyDecor as buyDecorRule, payReward as payRewardRule, buyMarket as buyMarketRule, happeningAt, luckyFind as luckyFindRule, takeVillageGift as takeVillageGiftRule, commissionDecor as commissionDecorRule, digPlot as digPlotRule, placeDecor as placeDecorRule, removeDecor as removeDecorRule, COMPOST, compostFromClean, harvest as harvestRule, plant as plantRule, startWalk as startWalkRule, stepWalk as stepWalkRule, endWalk as endWalkRule, startTrip as startTripRule, endTrip as endTripRule, make as makeRule, buyPiece as buyPieceRule, wear as wearRule, giveLaurel as giveLaurelRule } from "@lingxi/world";
+import {
+  deleteLook as deleteLookRule,
+  renameLook as renameLookRule,
+  saveLook as saveLookRule,
+  wearLook as wearLookRule,
+  buyDecor as buyDecorRule,
+  payReward as payRewardRule,
+  buyMarket as buyMarketRule,
+  happeningAt,
+  luckyFind as luckyFindRule,
+  takeVillageGift as takeVillageGiftRule,
+  commissionDecor as commissionDecorRule,
+  digPlot as digPlotRule,
+  placeDecor as placeDecorRule,
+  removeDecor as removeDecorRule,
+  COMPOST,
+  compostFromClean,
+  harvest as harvestRule,
+  plant as plantRule,
+  startWalk as startWalkRule,
+  stepWalk as stepWalkRule,
+  endWalk as endWalkRule,
+  startTrip as startTripRule,
+  endTrip as endTripRule,
+  make as makeRule,
+  buyPiece as buyPieceRule,
+  wear as wearRule,
+  giveLaurel as giveLaurelRule,
+} from "@lingxi/world";
 import { useBadges } from "./badges";
 import { create } from "zustand";
 import { wearableOf } from "@lingxi/art";
@@ -51,9 +79,17 @@ function load(): WorldState {
       if (w.version === 1) {
         const clean = cleanWorld(w);
         // a save from before tools (plan 4.5) that already took the pebbles gets the screwdriver that quest now gives, once
-        const screwdriver = clean.claimed.includes("q07") && !(clean.flags ?? []).includes("tools-given") && !(clean.bag[23102] ?? 0) ? withFlag(giveItem(clean, 23102, 1), "tools-given") : clean;
+        const screwdriver =
+          clean.claimed.includes("q07") && !(clean.flags ?? []).includes("tools-given") && !(clean.bag[23102] ?? 0)
+            ? withFlag(giveItem(clean, 23102, 1), "tools-given")
+            : clean;
         // and one that already finished Praline's apprentice quest gets the burner it now gives (2026-11-18), once
-        const tooled = screwdriver.claimed.includes("q22") && !(screwdriver.flags ?? []).includes("burner-given") && !(screwdriver.bag[23101] ?? 0) ? withFlag(giveItem(screwdriver, 23101, 1), "burner-given") : screwdriver;
+        const tooled =
+          screwdriver.claimed.includes("q22") &&
+          !(screwdriver.flags ?? []).includes("burner-given") &&
+          !(screwdriver.bag[23101] ?? 0)
+            ? withFlag(giveItem(screwdriver, 23101, 1), "burner-given")
+            : screwdriver;
         // an older save is counted into the tally once, from what it and the badge ledger already record
         const counted = backfillTally(tooled, useBadges.getState().ledger);
         if (counted !== clean) save(counted);
@@ -76,11 +112,27 @@ function save(w: WorldState): void {
 }
 
 /** D24: the room today's lucky happening is in (or -1 on another kind of day). */
-const happeningRoom = (w: import("@lingxi/world").WorldState): number => { const h = happeningAt(w, now()); return h.kind === "lucky" ? h.room : -1; };
+const happeningRoom = (w: import("@lingxi/world").WorldState): number => {
+  const h = happeningAt(w, now());
+  return h.kind === "lucky" ? h.room : -1;
+};
 
 export interface WorldNotice {
   id: number;
-  kind: "moved" | "found" | "bought" | "made" | "claimed" | "fail" | "opened" | "planted" | "harvested" | "compost" | "sewn" | "built" | "readied";
+  kind:
+    | "moved"
+    | "found"
+    | "bought"
+    | "made"
+    | "claimed"
+    | "fail"
+    | "opened"
+    | "planted"
+    | "harvested"
+    | "compost"
+    | "sewn"
+    | "built"
+    | "readied";
   text?: string;
   items?: Array<{ item: number; n: number }>;
   reason?: string;
@@ -110,7 +162,11 @@ interface WorldStore {
   /** coins won outside the world (spars) */
   reward: (coins: number) => void;
   /** keepsakes visitors left (G4): items, coins or a home piece, paid into the world */
-  payGifts: (gifts: ReadonlyArray<{ kind: "item"; item: number; n: number } | { kind: "coins"; n: number } | { kind: "decor"; id: string }>) => void;
+  payGifts: (
+    gifts: ReadonlyArray<
+      { kind: "item"; item: number; n: number } | { kind: "coins"; n: number } | { kind: "decor"; id: string }
+    >,
+  ) => void;
   /** a spar's coins, paid while the day still has paid spars left (G6); returns what was paid */
   paySpar: (coins: number) => number;
   /** decorations for the home room */
@@ -157,7 +213,10 @@ interface WorldStore {
   /** use up items that act outside the pet's meters (the Fresh Start Tea); false when there are not enough */
   consume: (item: number, n?: number) => boolean;
   /** what the last walk or trip came to, for the card that welcomes the pet back */
-  lastOuting: { kind: "walk"; steps: number; minutes: number; found: Array<{ item: number; n: number }>; capped: boolean } | { kind: "trip"; to: string; found: Array<{ item: number; n: number }>; learned: number | null } | null;
+  lastOuting:
+    | { kind: "walk"; steps: number; minutes: number; found: Array<{ item: number; n: number }>; capped: boolean }
+    | { kind: "trip"; to: string; found: Array<{ item: number; n: number }>; learned: number | null }
+    | null;
 }
 
 let n = 0;
@@ -194,7 +253,9 @@ export const useWorld = create<WorldStore>((set, get) => ({
     tirePet(mods.moveEnergy);
     // a walk taken wearing something ("visit three rooms carrying a lantern"); market ids keep to one word
     let moved = r.world;
-    if (p) for (const piece of Object.values(outfitOf(moved, String(p.bornAt)))) if (piece) moved = bump(moved, "MOVE_WEARING", piece.replace(/:/g, "-"));
+    if (p)
+      for (const piece of Object.values(outfitOf(moved, String(p.bornAt))))
+        if (piece) moved = bump(moved, "MOVE_WEARING", piece.replace(/:/g, "-"));
     save(moved);
     useBadges.getState().visit(to);
     play("tap");
@@ -215,10 +276,24 @@ export const useWorld = create<WorldStore>((set, get) => ({
     // D2: on the village's lucky day, the first look around in its room finds one more thing
     const lucky = luckyFindRule(r.world, now(), mods);
     const after = lucky.ok ? lucky.world : r.world;
-    const found = lucky.ok ? [...r.found.filter((f) => f.item !== lucky.item), { item: lucky.item, n: (r.found.find((f) => f.item === lucky.item)?.n ?? 0) + 1 }] : r.found;
+    const found = lucky.ok
+      ? [
+          ...r.found.filter((f) => f.item !== lucky.item),
+          { item: lucky.item, n: (r.found.find((f) => f.item === lucky.item)?.n ?? 0) + 1 },
+        ]
+      : r.found;
     save(after);
     play("success");
-    set({ world: after, notice: { id: ++n, kind: "found", items: found, ...(r.familiar?.filled ? { secret: true } : {}), ...(lucky.ok ? { text: get().world.room === happeningRoom(get().world) ? "lucky" : "luckyHome" } : {}) } });
+    set({
+      world: after,
+      notice: {
+        id: ++n,
+        kind: "found",
+        items: found,
+        ...(r.familiar?.filled ? { secret: true } : {}),
+        ...(lucky.ok ? { text: get().world.room === happeningRoom(get().world) ? "lucky" : "luckyHome" } : {}),
+      },
+    });
   },
   buyMarket: () => {
     const r = buyMarketRule(get().world, now());
@@ -286,7 +361,13 @@ export const useWorld = create<WorldStore>((set, get) => ({
     else g.act({ kind: "use", item: r.use }, def.art);
     // a food the pet actually ate: which one, and its food group today (for "three foods", "a balanced plate")
     const after = useGame.getState();
-    if (def.kind === "food" && after.pet && after.toast && after.toast.id !== before && (after.toast.note === "ate" || after.toast.note === "woke")) {
+    if (
+      def.kind === "food" &&
+      after.pet &&
+      after.toast &&
+      after.toast.id !== before &&
+      (after.toast.note === "ate" || after.toast.note === "woke")
+    ) {
       noteTallies(fedTally(item, r.use.diet, after.pet.tzOffsetMin, now()));
     }
   },
@@ -380,7 +461,8 @@ export const useWorld = create<WorldStore>((set, get) => ({
   },
   wearLook: (petKey, id) => {
     // a player-made piece goes on only when this player may wear it, in the slot it was drawn for
-    const mayWear = (piece: string, slot: string) => useDesigns.getState().canWear(piece) && wearableOf(piece)?.slot === slot;
+    const mayWear = (piece: string, slot: string) =>
+      useDesigns.getState().canWear(piece) && wearableOf(piece)?.slot === slot;
     const r = wearLookRule(get().world, petKey, id, mayWear);
     if (!r.ok) {
       play("error");
@@ -469,7 +551,10 @@ export const useWorld = create<WorldStore>((set, get) => ({
     const r = endWalkRule(get().world, now(), petMods());
     if (!r.ok) return;
     save(r.world);
-    set({ world: r.world, lastOuting: { kind: "walk", steps: r.steps, minutes: r.minutes, found: r.finds, capped: r.capped } });
+    set({
+      world: r.world,
+      lastOuting: { kind: "walk", steps: r.steps, minutes: r.minutes, found: r.finds, capped: r.capped },
+    });
     // a walk together is play: joy for the pet, and it tires
     if (r.minutes >= 5) useGame.getState().act({ kind: "play" });
   },
@@ -571,7 +656,11 @@ export const useWorld = create<WorldStore>((set, get) => ({
   claim: (id) => {
     const p = useGame.getState().pet;
     if (!p) return;
-    const r = claimQuest(get().world, id, { counts: p.counts, stage: stageOf(p, now()), onChain: useChain.getState().record !== null });
+    const r = claimQuest(get().world, id, {
+      counts: p.counts,
+      stage: stageOf(p, now()),
+      onChain: useChain.getState().record !== null,
+    });
     if (!r.ok) return set({ notice: { id: ++n, kind: "fail", reason: r.reason } });
     save(r.world);
     play("success");
@@ -621,4 +710,3 @@ useGame.subscribe((s, prev) => {
   // what the minutes count toward is the shared rule (G11); whether they count at all (in view, consecutive) is ours
   noteTallies(minuteTally(useWorld.getState().world.room, p, now(), p.beat - q.beat));
 });
-

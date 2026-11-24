@@ -8,7 +8,17 @@ import { retiredOkbListings, shownListings } from "./marketRetired";
 
 const ME = "0x00000000000000000000000000000000000000a1";
 const SELLER = "0x00000000000000000000000000000000000000b2";
-const listing = (market: 1 | 2, id: number, seller = SELLER): OutfitListing => ({ market, id: BigInt(id), seller, design: 5n, quantity: 1, priceEach: 10n, expiresAt: null, buyer: null }) as OutfitListing;
+const listing = (market: 1 | 2, id: number, seller = SELLER): OutfitListing =>
+  ({
+    market,
+    id: BigInt(id),
+    seller,
+    design: 5n,
+    quantity: 1,
+    priceEach: 10n,
+    expiresAt: null,
+    buyer: null,
+  }) as OutfitListing;
 const answer = (body: unknown, ok = true) => (async () => ({ ok, json: async () => body })) as unknown as typeof fetch;
 
 describe("OKB-market listings a sale retired (A23)", () => {
@@ -27,7 +37,10 @@ describe("OKB-market listings a sale retired (A23)", () => {
     expect(await retiredOkbListings(answer({ ready: true, retired: ["3"] }))).toEqual(new Set(["3"]));
     expect(await retiredOkbListings(answer({ ready: false, retired: [] }))).toBeNull();
     expect(await retiredOkbListings(answer({}, false))).toBeNull();
-    expect(await retiredOkbListings((async () => Promise.reject(new TypeError("Failed to fetch"))) as unknown as typeof fetch)).toBeNull();
+    expect(
+      await retiredOkbListings((async () =>
+        Promise.reject(new TypeError("Failed to fetch"))) as unknown as typeof fetch),
+    ).toBeNull();
     expect(await retiredOkbListings(answer({ ready: true, retired: "nonsense" }))).toBeNull();
   });
 });

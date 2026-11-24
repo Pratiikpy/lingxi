@@ -4,7 +4,17 @@
  * fourteen days after it stopped being live, which is how long a page left open may still ask for its files (A4).
  */
 
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { listReleases, readPointer, releasesDir, writePointer } from "../../services/api/src/releases.ts";
 
@@ -13,11 +23,24 @@ export const KEEP_DAYS = 14;
 const DAY_MS = 86_400_000;
 
 /** Every page the site has (apps/web/vite.config.ts builds exactly these; scripts/release.test.mts checks the two agree). */
-export const PAGES = ["index.html", "play.html", "verify.html", "agents.html", "tree.html", "numbers.html", "handheld.html", "privacy.html", "terms.html"] as const;
+export const PAGES = [
+  "index.html",
+  "play.html",
+  "verify.html",
+  "agents.html",
+  "tree.html",
+  "numbers.html",
+  "handheld.html",
+  "privacy.html",
+  "terms.html",
+] as const;
 
 /** A release's name: when it was built (UTC, to the second) and the commit, `-dirty` when built from uncommitted work. */
 export function releaseName(builtAt: number, commit: string, dirty: boolean): string {
-  const stamp = new Date(builtAt).toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
+  const stamp = new Date(builtAt)
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\.\d+Z$/, "Z");
   return `${stamp}-${commit.slice(0, 12).toLowerCase()}${dirty ? "-dirty" : ""}`;
 }
 
@@ -87,7 +110,8 @@ function renameHeld(from: string, to: string): void {
 /** Makes a built release live, once it passes the check; throws, leaving the live release as it was, when it does not. */
 export function makeLive(site: string, name: string, now: number): void {
   const problems = checkRelease(join(releasesDir(site), name));
-  if (problems.length) throw new Error(`release ${name} is incomplete, so it was not made live:\n  ${problems.join("\n  ")}`);
+  if (problems.length)
+    throw new Error(`release ${name} is incomplete, so it was not made live:\n  ${problems.join("\n  ")}`);
   point(site, name, now);
 }
 
@@ -128,7 +152,11 @@ export function prune(site: string, now: number, keepDays = KEEP_DAYS): string[]
  * `assets/`), as a release, and makes it live: the pages open today keep finding their files.
  */
 export function adopt(site: string, dist: string, kept: string | null, now: number): string {
-  const info = JSON.parse(readFileSync(join(dist, "build.json"), "utf8")) as { commit: string; dirty?: boolean; builtAt: string };
+  const info = JSON.parse(readFileSync(join(dist, "build.json"), "utf8")) as {
+    commit: string;
+    dirty?: boolean;
+    builtAt: string;
+  };
   const name = releaseName(Date.parse(info.builtAt), info.commit, info.dirty === true);
   const into = join(releasesDir(site), name);
   if (existsSync(into)) throw new Error(`release ${name} already exists`);

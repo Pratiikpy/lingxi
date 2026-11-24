@@ -14,5 +14,9 @@ const [dir, port = "5245"] = process.argv.slice(2);
 if (!dir) throw new Error("usage: serve-site.mts <site> [port]");
 const site = resolve(dir);
 const releases = existsSync(join(site, "releases"));
-serve({ fetch: withSite(new Hono(), releases ? releaseSource(site) : relative(process.cwd(), site)).fetch, port: Number(port), hostname: "127.0.0.1" });
+serve({
+  fetch: withSite(new Hono(), releases ? releaseSource(site) : relative(process.cwd(), site)).fetch,
+  port: Number(port),
+  hostname: "127.0.0.1",
+});
 console.log(`${releases ? "releases" : "site"} ${site} on 127.0.0.1:${port}`);

@@ -9,8 +9,26 @@
 
 import { create } from "zustand";
 import type { Address, Hex } from "viem";
-import { type Design, type Wearable, decodeDesign, designWearable, encodeDesign, registeredWearables, registerWearables } from "@lingxi/art";
-import { type Market, type OutfitDesign, type OutfitListing, copiesHeld, marketsOf, parseWearKey, readDesigns, readListings, wearKey } from "@lingxi/chain";
+import {
+  type Design,
+  type Wearable,
+  decodeDesign,
+  designWearable,
+  encodeDesign,
+  registeredWearables,
+  registerWearables,
+} from "@lingxi/art";
+import {
+  type Market,
+  type OutfitDesign,
+  type OutfitListing,
+  copiesHeld,
+  marketsOf,
+  parseWearKey,
+  readDesigns,
+  readListings,
+  wearKey,
+} from "@lingxi/chain";
 import { deployment, publicClient } from "./network";
 import { saveWrite } from "./saveRuntime";
 import { now } from "./gameClock";
@@ -20,7 +38,8 @@ import { retiredOkbListings, shownListings } from "./marketRetired";
 const KEY = "lingxi.designs.v1";
 export const marketAvailable = () => !!deployment && marketsOf(deployment).length > 0;
 /** The market a design or wear key belongs to, in this deployment. */
-export const marketOf = (v: 1 | 2): Market | null => (deployment ? (marketsOf(deployment).find((m) => m.v === v) ?? null) : null);
+export const marketOf = (v: 1 | 2): Market | null =>
+  deployment ? (marketsOf(deployment).find((m) => m.v === v) ?? null) : null;
 
 export interface LocalDesign {
   id: string;
@@ -32,7 +51,8 @@ export interface LocalDesign {
 }
 
 const toHex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
-export const bytesOf = (hex: string) => Uint8Array.from((hex.replace(/^0x/, "").match(/../g) ?? []).map((x) => parseInt(x, 16)));
+export const bytesOf = (hex: string) =>
+  Uint8Array.from((hex.replace(/^0x/, "").match(/../g) ?? []).map((x) => parseInt(x, 16)));
 
 function load(): LocalDesign[] {
   try {
@@ -139,7 +159,10 @@ export const useDesigns = create<DesignsStore>((set, get) => {
           markets.map(async (mk) => {
             const [designs, open] = await Promise.all([readDesigns(publicClient, mk), readListings(publicClient, mk)]);
             const ids = designs.map((m) => m.id);
-            const [counts, homeCounts] = await Promise.all([who ? copiesHeld(publicClient, mk, who as Address, ids) : [], home ? copiesHeld(publicClient, mk, home as Address, ids) : []]);
+            const [counts, homeCounts] = await Promise.all([
+              who ? copiesHeld(publicClient, mk, who as Address, ids) : [],
+              home ? copiesHeld(publicClient, mk, home as Address, ids) : [],
+            ]);
             designs.forEach((m, i) => {
               const k = wearKey(m.market, m.id);
               if ((counts[i] ?? 0n) > 0n) held[k] = Number(counts[i]);

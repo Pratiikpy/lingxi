@@ -18,7 +18,9 @@ const relayField = (): { relay?: string } => {
 import { noteEvent } from "./tally";
 import { saveWrite } from "./saveRuntime";
 
-const LIVE_URL = (import.meta.env.VITE_LIVE_URL as string | undefined) ?? (location.hostname === "localhost" ? "ws://localhost:8787/live" : "");
+const LIVE_URL =
+  (import.meta.env.VITE_LIVE_URL as string | undefined) ??
+  (location.hostname === "localhost" ? "ws://localhost:8787/live" : "");
 /** The server's longest pet name; every name that arrives is shown as shownName shows it (A16), whatever a server sent. */
 const NAME_MAX = 12;
 const nameIn = (m: Record<string, unknown>): string => shownName(m.name, NAME_MAX) || "Pet";
@@ -76,7 +78,9 @@ export interface ChainInfo {
 
 const asChain = (v: unknown): ChainInfo | undefined => {
   const c = v as Partial<ChainInfo> | undefined;
-  return c && typeof c.petId === "string" && typeof c.owner === "string" && typeof c.brain === "string" ? { petId: c.petId, owner: c.owner, brain: c.brain } : undefined;
+  return c && typeof c.petId === "string" && typeof c.owner === "string" && typeof c.brain === "string"
+    ? { petId: c.petId, owner: c.owner, brain: c.brain }
+    : undefined;
 };
 
 export interface LiveMember {
@@ -133,7 +137,16 @@ interface LiveState {
   /** a family proposal another owner sent us */
   proposal: { from: string; name: string; stage: string; line: string; chain?: ChainInfo; at: number } | null;
   /** the answer to our proposal */
-  answer: { from: string; name: string; yes: boolean; line?: string; stage?: string; card?: string; chain?: ChainInfo; at: number } | null;
+  answer: {
+    from: string;
+    name: string;
+    yes: boolean;
+    line?: string;
+    stage?: string;
+    card?: string;
+    chain?: ChainInfo;
+    at: number;
+  } | null;
   propose: (to: string, chain?: ChainInfo) => void;
   /** tells the room this player's letters address, made after it came in (H13) */
   shareRelay: (relay: string) => void;
@@ -169,7 +182,8 @@ let wakeUp: (() => void) | null = null;
 
 /** A key made for this page only, when the browser keeps no storage: never one shared by every such player. */
 let sessionKey: string | null = null;
-const freshKey = () => Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
+const freshKey = () =>
+  Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
 
 /** This device's secret key: its player id comes from it, and it proves to the server that the id and home are ours. */
 function decorKey(): string {
@@ -225,7 +239,10 @@ export const useLive = create<LiveState>((set, get) => {
           return;
         }
         case "room":
-          set({ space: m.space as string, members: Object.fromEntries((m.members as LiveMember[]).map((x) => [x.id, named(x)])) });
+          set({
+            space: m.space as string,
+            members: Object.fromEntries((m.members as LiveMember[]).map((x) => [x.id, named(x)])),
+          });
           return;
         case "joined": {
           const x = named(m.member as LiveMember);
@@ -249,11 +266,17 @@ export const useLive = create<LiveState>((set, get) => {
           if (from === playerId()) return;
           const x = members[from];
           if (x) members[from] = { ...x, emote: { kind: m.kind as string, at: performance.now() } };
-          set({ members, ...(m.to === playerId() || !m.to ? { incoming: { from, kind: m.kind as string, at: performance.now() } } : {}) });
+          set({
+            members,
+            ...(m.to === playerId() || !m.to
+              ? { incoming: { from, kind: m.kind as string, at: performance.now() } }
+              : {}),
+          });
           return;
         }
         case "decor":
-          if (typeof m.owner === "string" && Array.isArray(m.placed)) set({ homeDecor: { owner: m.owner, placed: m.placed as Array<{ id: string; x: number; y: number }> } });
+          if (typeof m.owner === "string" && Array.isArray(m.placed))
+            set({ homeDecor: { owner: m.owner, placed: m.placed as Array<{ id: string; x: number; y: number }> } });
           return;
         case "relay": {
           // a pet in the room made its letters address after it came in (H13)
@@ -276,20 +299,46 @@ export const useLive = create<LiveState>((set, get) => {
           set({ decorRefused: { reason: typeof m.reason === "string" ? m.reason : "refused", at: performance.now() } });
           return;
         case "linked":
-          if (m.ok === true && Array.isArray(m.wallets)) set({ links: (m.wallets as unknown[]).filter((w): w is string => typeof w === "string") });
-          set({ linkAnswer: { ok: m.ok === true, ...(typeof m.reason === "string" ? { reason: m.reason } : {}), at: performance.now() } });
+          if (m.ok === true && Array.isArray(m.wallets))
+            set({ links: (m.wallets as unknown[]).filter((w): w is string => typeof w === "string") });
+          set({
+            linkAnswer: {
+              ok: m.ok === true,
+              ...(typeof m.reason === "string" ? { reason: m.reason } : {}),
+              at: performance.now(),
+            },
+          });
           return;
         case "card": {
           // an "unchanged" answer means the card this game was sent before still stands (A61)
           const id = m.id as string;
-          const lessons = m.unchanged === true ? keptCards.get(id) : typeof m.lessons === "string" ? m.lessons : undefined;
+          const lessons =
+            m.unchanged === true ? keptCards.get(id) : typeof m.lessons === "string" ? m.lessons : undefined;
           if (lessons === undefined) return;
           if (m.unchanged !== true) keep(id, lessons);
-          set({ card: { id, name: nameIn(m), line: m.line as string, stage: m.stage as string, lessons, at: performance.now() } });
+          set({
+            card: {
+              id,
+              name: nameIn(m),
+              line: m.line as string,
+              stage: m.stage as string,
+              lessons,
+              at: performance.now(),
+            },
+          });
           return;
         }
         case "proposal":
-          set({ proposal: { from: m.from as string, name: nameIn(m), stage: m.stage as string, line: m.line as string, ...(asChain(m.chain) ? { chain: asChain(m.chain)! } : {}), at: performance.now() } });
+          set({
+            proposal: {
+              from: m.from as string,
+              name: nameIn(m),
+              stage: m.stage as string,
+              line: m.line as string,
+              ...(asChain(m.chain) ? { chain: asChain(m.chain)! } : {}),
+              at: performance.now(),
+            },
+          });
           return;
         case "answer":
           set({
@@ -300,7 +349,11 @@ export const useLive = create<LiveState>((set, get) => {
               ...(typeof m.line === "string" ? { line: m.line } : {}),
               ...(typeof m.stage === "string" ? { stage: m.stage } : {}),
               // a card sent whole is kept; "unchanged" means the one kept from this pet before (A77)
-              ...(typeof m.card === "string" ? { card: keep(m.from as string, m.card) } : m.cardUnchanged === true && keptCards.has(m.from as string) ? { card: keptCards.get(m.from as string)! } : {}),
+              ...(typeof m.card === "string"
+                ? { card: keep(m.from as string, m.card) }
+                : m.cardUnchanged === true && keptCards.has(m.from as string)
+                  ? { card: keptCards.get(m.from as string)! }
+                  : {}),
               ...(asChain(m.chain) ? { chain: asChain(m.chain)! } : {}),
               at: performance.now(),
             },
@@ -380,7 +433,8 @@ export const useLive = create<LiveState>((set, get) => {
     clearFamily: () => set({ proposal: null, answer: null }),
     ask: (id) => send({ t: "ask", to: id }),
     connect: (who, space) => {
-      const changed = !me || me.name !== who.name || me.petId !== who.petId || me.line !== who.line || me.stage !== who.stage;
+      const changed =
+        !me || me.name !== who.name || me.petId !== who.petId || me.line !== who.line || me.stage !== who.stage;
       me = who;
       want = space;
       if (!ws) open();

@@ -19,7 +19,9 @@ describe("where a visiting pet stands (A69)", () => {
       for (const half of Object.values(HALF))
         for (const lane of [...LANES, WANDER.min, WANDER.max]) {
           const x = floorSpot(lane, view, half);
-          expect(x - half, `lane ${lane}, half ${half}, view ${view.left}..${view.right}`).toBeGreaterThanOrEqual(view.left);
+          expect(x - half, `lane ${lane}, half ${half}, view ${view.left}..${view.right}`).toBeGreaterThanOrEqual(
+            view.left,
+          );
           expect(x + half).toBeLessThanOrEqual(view.right);
         }
   });
@@ -32,7 +34,8 @@ describe("where a visiting pet stands (A69)", () => {
   it("leaves a room that shows whole as it was, and moves a desktop's lanes only a few pixels", () => {
     for (const lane of LANES) expect(floorSpot(lane, { left: 0, right: ROOM }, HALF.adult)).toBe(lane);
     // moved at most by the crop (6 room pixels a side here)
-    for (const lane of LANES) expect(Math.abs(floorSpot(lane, DESKTOP, HALF.adult) - lane)).toBeLessThanOrEqual(DESKTOP.left);
+    for (const lane of LANES)
+      expect(Math.abs(floorSpot(lane, DESKTOP, HALF.adult) - lane)).toBeLessThanOrEqual(DESKTOP.left);
   });
 
   it("stands a pet in the middle when what shows is narrower than its body", () => {

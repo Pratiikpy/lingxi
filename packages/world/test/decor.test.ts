@@ -30,7 +30,8 @@ describe("decorating the home", () => {
 
   it("every piece is drawn with known colours and a fair price", () => {
     for (const d of DECOR) {
-      for (const row of d.rows) for (const ch of row) if (ch !== ".") expect(d.colors[ch], `${d.id} ${ch}`).toBeTruthy();
+      for (const row of d.rows)
+        for (const ch of row) if (ch !== ".") expect(d.colors[ch], `${d.id} ${ch}`).toBeTruthy();
       expect(d.name.en && d.name.zh).toBeTruthy();
       // the shop's pieces have a fair price; a quest keepsake is never sold
       if (d.gift) {

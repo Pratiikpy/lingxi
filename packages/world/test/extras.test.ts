@@ -34,7 +34,10 @@ const ok = (r: { ok: true; world: WorldState } | { ok: false; reason: string }):
 function furnished(): WorldState {
   let w: WorldState = { ...newWorld("x"), coins: 100_000 };
   for (const d of DECOR.filter((p) => !p.gift && !p.commission)) w = ok(buyDecor(w, d.id));
-  return { ...w, decor: { ...decorOf(w), owned: [...decorOf(w).owned, ...DECOR.filter((p) => p.gift).map((p) => p.id)] } };
+  return {
+    ...w,
+    decor: { ...decorOf(w), owned: [...decorOf(w).owned, ...DECOR.filter((p) => p.gift).map((p) => p.id)] },
+  };
 }
 // the shelf's pieces: the Builder's commissions (G6) are made to order, not bought
 const sold = DECOR.filter((d) => !d.commission);
@@ -86,7 +89,9 @@ describe("saved looks (plan 4.9)", () => {
 
   it("keeps a whole outfit under a name and puts it on in one go", () => {
     let w = ok(saveLook(dressed(), "Picnic day", outfitOf(dressed(), "p1")));
-    expect(savedLooks(w)).toEqual([{ id: "l1", name: "Picnic day", outfit: { head: "sunhat", face: "glasses", held: "balloon" } }]);
+    expect(savedLooks(w)).toEqual([
+      { id: "l1", name: "Picnic day", outfit: { head: "sunhat", face: "glasses", held: "balloon" } },
+    ]);
     w = ok(wear(w, "p1", "head", "crown"));
     w = ok(wear(w, "p1", "held", null));
     const r = wearLook(w, "p1", "l1");
@@ -209,7 +214,9 @@ describe("name colours (plan 4.9)", () => {
 
   it("every colour reads clearly on the game's light and dark backgrounds (contrast at least 4.5:1)", () => {
     const lum = (hex: string) => {
-      const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+      const [r, g, b] = [1, 3, 5]
+        .map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+        .map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
       return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
     };
     const contrast = (a: string, b: string) => {
@@ -218,8 +225,10 @@ describe("name colours (plan 4.9)", () => {
     };
     // every surface a name sits on: page, card, tint and band, light (tokens.css :root) and dark
     for (const c of NAME_COLOURS) {
-      for (const bg of ["#FFF7E8", "#FFFDF8", "#EDE4FA", "#FFE3EA"]) expect(contrast(c.light, bg), `${c.name.en} on ${bg}`).toBeGreaterThanOrEqual(4.5);
-      for (const bg of ["#1B1630", "#231C3D", "#33295A", "#2A2147"]) expect(contrast(c.dark, bg), `${c.name.en} on ${bg}`).toBeGreaterThanOrEqual(4.5);
+      for (const bg of ["#FFF7E8", "#FFFDF8", "#EDE4FA", "#FFE3EA"])
+        expect(contrast(c.light, bg), `${c.name.en} on ${bg}`).toBeGreaterThanOrEqual(4.5);
+      for (const bg of ["#1B1630", "#231C3D", "#33295A", "#2A2147"])
+        expect(contrast(c.dark, bg), `${c.name.en} on ${bg}`).toBeGreaterThanOrEqual(4.5);
     }
   });
 });

@@ -22,10 +22,21 @@ const cpu = `0x${"ab".repeat(20)}`;
 function heavyCard(): string {
   const k = 55;
   const hex = (els: Element[]) => bytesToHex(encode(els)).slice(2);
-  const refs = (nIn: number, to: bigint): Element[] => Array.from({ length: k }, (_, i) => ({ op: REF, ins: [2], cpu, id: to, nOut: 1, firstOut: 2 + nIn + i }) as Element);
+  const refs = (nIn: number, to: bigint): Element[] =>
+    Array.from(
+      { length: k },
+      (_, i) => ({ op: REF, ins: [2], cpu, id: to, nOut: 1, firstOut: 2 + nIn + i }) as Element,
+    );
   const parts = [{ processor: cpu, id: "1", nIn: 16, nOut: 8, hex: hex(refs(16, 2n)) }];
-  for (let lvl = 2; lvl <= 4; lvl++) parts.push({ processor: cpu, id: String(lvl), nIn: 1, nOut: 1, hex: hex(refs(1, BigInt(lvl + 1))) });
-  parts.push({ processor: cpu, id: "5", nIn: 1, nOut: 1, hex: hex([{ op: NAND, ins: [2, 2], nOut: 1, firstOut: 3 } as Element]) });
+  for (let lvl = 2; lvl <= 4; lvl++)
+    parts.push({ processor: cpu, id: String(lvl), nIn: 1, nOut: 1, hex: hex(refs(1, BigInt(lvl + 1))) });
+  parts.push({
+    processor: cpu,
+    id: "5",
+    nIn: 1,
+    nOut: 1,
+    hex: hex([{ op: NAND, ins: [2, 2], nOut: 1, firstOut: 3 } as Element]),
+  });
   return JSON.stringify({ lessons: [], outside: { processor: cpu, id: "1", owner: "", parts } });
 }
 
@@ -44,7 +55,10 @@ const watchFrames = (page: Page) =>
   });
 const longestPause = (page: Page) => page.evaluate(() => (window as unknown as { longestPause: number }).longestPause);
 
-test("a friend's card with a brain too big to run is said to be damaged, and the page keeps drawing (en, light, desktop)", async ({ player, run }) => {
+test("a friend's card with a brain too big to run is said to be damaged, and the page keeps drawing (en, light, desktop)", async ({
+  player,
+  run,
+}) => {
   test.setTimeout(240_000);
   const p = await player({ lang: "en", scheme: "light", size: "desktop", reducedMotion: true });
   const { page } = p;
@@ -66,19 +80,34 @@ test("a friend's card with a brain too big to run is said to be damaged, and the
   await expect(card, "the friend's pet is picked").toBeVisible();
   await watchFrames(page);
   await card.getByRole("button", { name: "Spar" }).click();
-  await expect(page.locator(".world-toast", { hasText: "Can't spar with that pet" }), "the card is said to be damaged").toBeVisible({ timeout: 5_000 });
+  await expect(
+    page.locator(".world-toast", { hasText: "Can't spar with that pet" }),
+    "the card is said to be damaged",
+  ).toBeVisible({ timeout: 5_000 });
   await expect(page.locator(".sp-fight"), "and no fight is started with it").toHaveCount(0);
   expect(await longestPause(page), "the page never stopped drawing for long").toBeLessThan(1_000);
   await page.screenshot({ path: test.info().outputPath("heavy-card-en-light-desktop.png") });
   friend.close();
 });
 
-test("a duel link carrying a brain too big to run is said to be damaged, and the page keeps drawing (zh, dark, phone)", async ({ player }) => {
+test("a duel link carrying a brain too big to run is said to be damaged, and the page keeps drawing (zh, dark, phone)", async ({
+  player,
+}) => {
   test.setTimeout(240_000);
   const p = await player({ lang: "zh", scheme: "dark", size: "phone", reducedMotion: true });
   const { page } = p;
   await hatch(p, "Momo");
-  const code = encodeChallenge({ id: "abcdef0123456789", from: { name: "Evil", line: "gentle", stage: "adult", card: heavyCard(), story: { days: 9, lessons: 0, nature: [] } }, at: 1 });
+  const code = encodeChallenge({
+    id: "abcdef0123456789",
+    from: {
+      name: "Evil",
+      line: "gentle",
+      stage: "adult",
+      card: heavyCard(),
+      story: { days: 9, lessons: 0, nature: [] },
+    },
+    at: 1,
+  });
   await watchFrames(page);
   // the link arrives on an open page, as one tapped in a chat does
   await page.evaluate((c) => (location.hash = `#duel=${c}`), code);
@@ -90,7 +119,10 @@ test("a duel link carrying a brain too big to run is said to be damaged, and the
   await expect(said).toHaveCount(0);
 });
 
-test("an owned circuit that runs more gates than an instinct may is not taught, and the screen says why (en light phone, then zh)", async ({ player, run }) => {
+test("an owned circuit that runs more gates than an instinct may is not taught, and the screen says why (en light phone, then zh)", async ({
+  player,
+  run,
+}) => {
   test.setTimeout(480_000);
   const p = await player({ lang: "en", scheme: "light", size: "phone" });
   const { page } = p;
@@ -101,14 +133,36 @@ test("an owned circuit that runs more gates than an instinct may is not taught, 
   const wallet = fork.wallet(me.index);
 
   // with the player's own wallet: a pet-shaped chain of NANDs, and a pet-shaped circuit that REFs it eight times
-  const leafEls = Array.from({ length: INSTINCT_MAX_GATES / 8 + 1 }, (_, i) => ({ op: NAND, ins: i === 0 ? [2, 3] : [17 + i, 17 + i], nOut: 1, firstOut: 18 + i }) as Element);
+  const leafEls = Array.from(
+    { length: INSTINCT_MAX_GATES / 8 + 1 },
+    (_, i) => ({ op: NAND, ins: i === 0 ? [2, 3] : [17 + i, 17 + i], nOut: 1, firstOut: 18 + i }) as Element,
+  );
   const leafBytes = encode(leafEls);
   const qLeaf = await quoteTapeout(fork.pub, PROCESSOR, me.address as Address, leafEls.length, 0, leafBytes.length);
   expect(qLeaf.enough, "the player's wallet can pay for a tape-out on the fork").toBe(true);
   const leaf = await tapeOutYourself(fork.pub, wallet, PROCESSOR, leafBytes, qLeaf);
   const inputs = Array.from({ length: 16 }, (_, i) => 2 + i);
-  const topBytes = encode(Array.from({ length: 8 }, (_, i) => ({ op: REF, ins: inputs, cpu: PROCESSOR.toLowerCase(), id: leaf.brainId, nOut: 8, firstOut: 18 + 8 * i }) as Element));
-  const top = await tapeOutYourself(fork.pub, wallet, PROCESSOR, topBytes, await quoteTapeout(fork.pub, PROCESSOR, me.address as Address, 0, 0, topBytes.length));
+  const topBytes = encode(
+    Array.from(
+      { length: 8 },
+      (_, i) =>
+        ({
+          op: REF,
+          ins: inputs,
+          cpu: PROCESSOR.toLowerCase(),
+          id: leaf.brainId,
+          nOut: 8,
+          firstOut: 18 + 8 * i,
+        }) as Element,
+    ),
+  );
+  const top = await tapeOutYourself(
+    fork.pub,
+    wallet,
+    PROCESSOR,
+    topBytes,
+    await quoteTapeout(fork.pub, PROCESSOR, me.address as Address, 0, 0, topBytes.length),
+  );
 
   await sheet(page, "mind");
   const panel = page.locator(".owned-instinct");
@@ -123,7 +177,9 @@ test("an owned circuit that runs more gates than an instinct may is not taught, 
   // the processor's own count marks it in the list when it counts the REFs; when it does not, teaching refuses it
   if (await teachIt.isEnabled()) {
     await teachIt.click();
-    await expect(panel.locator(".sp-warn"), "teaching it is refused, and the screen says why").toHaveText(said, { timeout: 60_000 });
+    await expect(panel.locator(".sp-warn"), "teaching it is refused, and the screen says why").toHaveText(said, {
+      timeout: 60_000,
+    });
   } else {
     await expect(teachIt, "the list marks it").toHaveText("Too many gates");
     await expect(row.locator(".owned-why"), "and says why, on the page").toHaveText(said);
@@ -136,11 +192,15 @@ test("an owned circuit that runs more gates than an instinct may is not taught, 
   await page.locator("button.round-btn[lang]").dispatchEvent("click");
   if (await teachIt.isEnabled()) {
     await teachIt.click();
-    await expect(panel.locator(".sp-warn")).toContainText(`超过本能的上限（${INSTINCT_MAX_GATES.toLocaleString("zh-CN")} 个）`, { timeout: 60_000 });
+    await expect(panel.locator(".sp-warn")).toContainText(
+      `超过本能的上限（${INSTINCT_MAX_GATES.toLocaleString("zh-CN")} 个）`,
+      { timeout: 60_000 },
+    );
   } else {
     await expect(teachIt).toHaveText("门太多");
-    await expect(row.locator(".owned-why")).toContainText(`超过本能的上限（${INSTINCT_MAX_GATES.toLocaleString("zh-CN")} 个）`);
+    await expect(row.locator(".owned-why")).toContainText(
+      `超过本能的上限（${INSTINCT_MAX_GATES.toLocaleString("zh-CN")} 个）`,
+    );
   }
   await page.screenshot({ path: test.info().outputPath("owned-too-many-gates-zh-light-phone.png") });
 });
-

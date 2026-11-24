@@ -54,4 +54,10 @@ export const useBadges = create<BadgeState>((set, get) => {
 });
 
 /** Which care results count, and for which badge. */
-export const CARE_METRIC: Partial<Record<string, Metric>> = { ate: "feed", played: "play", cleaned: "clean", petted: "petting", healed: "medicine" };
+export const CARE_METRIC: Partial<Record<string, Metric>> = {
+  ate: "feed",
+  played: "play",
+  cleaned: "clean",
+  petted: "petting",
+  healed: "medicine",
+};

@@ -21,8 +21,10 @@ export interface HatchDraft {
 
 const FRESH: HatchDraft = { line: "gentle", draw: 0, typed: null, instincts: [], cracking: -1 };
 
-export const useHatchDraft = create<HatchDraft & { update: (part: Partial<HatchDraft>) => void; reset: () => void }>((set) => ({
-  ...FRESH,
-  update: (part) => set(part),
-  reset: () => set(FRESH),
-}));
+export const useHatchDraft = create<HatchDraft & { update: (part: Partial<HatchDraft>) => void; reset: () => void }>(
+  (set) => ({
+    ...FRESH,
+    update: (part) => set(part),
+    reset: () => set(FRESH),
+  }),
+);

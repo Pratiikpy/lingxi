@@ -18,12 +18,25 @@ const save = (name: string, c: PixelCanvas, pal: Palette, paint?: (rgba: Uint8Cl
   png.data.set(rgba);
   writeFileSync(new URL(`${name}.png`, out), PNG.sync.write(png));
 };
-const pet = (name: string, line: "gentle" | "bold" | "curious", stage: "baby" | "child" | "teen" | "adult", pal: Palette, expression: Expression, o: { breath?: 0 | 1; squash?: -1 | 0 | 1; lit?: boolean; outfit?: Outfit } = {}) => {
+const pet = (
+  name: string,
+  line: "gentle" | "bold" | "curious",
+  stage: "baby" | "child" | "teen" | "adult",
+  pal: Palette,
+  expression: Expression,
+  o: { breath?: 0 | 1; squash?: -1 | 0 | 1; lit?: boolean; outfit?: Outfit } = {},
+) => {
   const c = drawPet(line, stage, { expression, breath: o.breath ?? 0, squash: o.squash ?? 0, lit: o.lit ?? false });
-  save(name, c, pal, o.outfit ? (rgba) => paintOverlay(rgba, c.w, wearOverlay(c, line, stage, o.outfit!, o.squash ?? 0)) : undefined);
+  save(
+    name,
+    c,
+    pal,
+    o.outfit ? (rgba) => paintOverlay(rgba, c.w, wearOverlay(c, line, stage, o.outfit!, o.squash ?? 0)) : undefined,
+  );
 };
 
-for (const w of [-1, 0, 1] as const) for (const k of [0, 1, 2, 3]) save(`egg_${w + 1}_${k}`, drawEgg("coral", w, k), CORAL);
+for (const w of [-1, 0, 1] as const)
+  for (const k of [0, 1, 2, 3]) save(`egg_${w + 1}_${k}`, drawEgg("coral", w, k), CORAL);
 for (const e of ["neutral", "happy", "sparkly", "munch", "munchShut", "sneeze", "love", "proud", "startled"] as const) {
   pet(`mochi_${e}`, "gentle", "baby", CORAL, e);
   pet(`mochi_${e}_lit`, "gentle", "baby", CORAL, e, { lit: true });
@@ -33,7 +46,11 @@ pet("mochi_happy_down", "gentle", "baby", CORAL, "happy", { squash: -1 });
 pet("mochi_love_up", "gentle", "baby", CORAL, "love", { squash: 1 });
 pet("hoshi_happy", "bold", "child", SUNNY, "happy");
 pet("sora_happy", "curious", "child", SKY, "happy");
-for (const v of [0, 1, 2, 3, 5, 8, 13]) pet(`behemoth_${v}`, "gentle", "adult", SILICON, v === 13 ? "sparkly" : "happy", { lit: true, outfit: { head: `b:lamps${v}` } });
+for (const v of [0, 1, 2, 3, 5, 8, 13])
+  pet(`behemoth_${v}`, "gentle", "adult", SILICON, v === 13 ? "sparkly" : "happy", {
+    lit: true,
+    outfit: { head: `b:lamps${v}` },
+  });
 pet("mars", "bold", "adult", MARS, "happy", { outfit: { held: "b:telescope" } });
 pet("tapboy", "curious", "teen", SKY, "happy", { outfit: { held: "b:handheld" } });
 pet("hardhat", "bold", "child", SUNNY, "happy", { outfit: { head: "b:hardhat" } });

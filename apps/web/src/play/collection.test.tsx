@@ -10,7 +10,10 @@ import { BADGES, VISITORS } from "@lingxi/game";
 import { DECOR } from "@lingxi/world";
 import { leave, visit } from "../game/testGame";
 
-vi.mock("./Album", async (orig) => ({ ...(await orig<typeof import("./Album")>()), AlbumPanel: () => createElement("section", { className: "album-stand-in" }, "album") }));
+vi.mock("./Album", async (orig) => ({
+  ...(await orig<typeof import("./Album")>()),
+  AlbumPanel: () => createElement("section", { className: "album-stand-in" }, "album"),
+}));
 vi.mock("./DecorBar", async (orig) => ({ ...(await orig<typeof import("./DecorBar")>()), DecorIcon: () => null }));
 
 afterEach(() => leave());
@@ -32,7 +35,9 @@ describe("the collection sheet (D5)", () => {
     const root = createRoot(host);
     await act(async () => root.render(createElement(CollectionPanel)));
     const text = host.textContent!;
-    expect(text).toContain(`3 of ${VISITORS.length + BADGES.length + DECOR.length} collected: 1 visitors, 0 badges, 2 home pieces.`);
+    expect(text).toContain(
+      `3 of ${VISITORS.length + BADGES.length + DECOR.length} collected: 1 visitors, 0 badges, 2 home pieces.`,
+    );
     expect(host.querySelector(".album-stand-in")).not.toBeNull();
     expect(text).toContain("Care badges");
     expect(host.querySelectorAll(".collection-pieces li")).toHaveLength(DECOR.length);

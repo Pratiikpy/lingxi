@@ -34,6 +34,5 @@ describe("daily challenge", () => {
         expect(reads).toBeLessThan(40);
       }
     }
-
   });
 });

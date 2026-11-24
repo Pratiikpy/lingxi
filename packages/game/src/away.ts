@@ -58,13 +58,19 @@ export function watchEvent(petSeed: number, beat: number): number {
 }
 
 /** A pet's seed for away surprises: its birth time, folded to 32 bits. */
-export const awaySeed = (p: { bornAt: number }): number => (Math.floor(p.bornAt / 1000) ^ Math.floor(p.bornAt / 4_294_967_296_000)) >>> 0;
+export const awaySeed = (p: { bornAt: number }): number =>
+  (Math.floor(p.bornAt / 1000) ^ Math.floor(p.bornAt / 4_294_967_296_000)) >>> 0;
 
 /** At least this long away before anything is found to bring back. */
 export const FIND_AFTER_MS = 2 * 3_600_000;
 
 /** What the pet found while you were away: one item from its home room's finds, picked by the absence. */
-export function awayFind(petSeed: number, fromBeat: number, toBeat: number, drops: ReadonlyArray<{ item: number; weight: number }>): number | null {
+export function awayFind(
+  petSeed: number,
+  fromBeat: number,
+  toBeat: number,
+  drops: ReadonlyArray<{ item: number; weight: number }>,
+): number | null {
   if ((toBeat - fromBeat) * 60_000 < FIND_AFTER_MS || drops.length === 0) return null;
   const total = drops.reduce((n, d) => n + d.weight, 0);
   if (total <= 0) return null;
@@ -81,7 +87,10 @@ export function awayFind(petSeed: number, fromBeat: number, toBeat: number, drop
  * which ones); ill after days without care; or in a long sleep because its food ran out. Hibernation is told
  * first: a pet asleep from hunger needs waking before anything else.
  */
-export function awayNeeds(p: Pick<Pet, "meters" | "sick" | "hibernating">): { kind: "fine" | "waiting" | "sick" | "hibernating"; low: Array<"food" | "joy" | "energy" | "clean"> } {
+export function awayNeeds(p: Pick<Pet, "meters" | "sick" | "hibernating">): {
+  kind: "fine" | "waiting" | "sick" | "hibernating";
+  low: Array<"food" | "joy" | "energy" | "clean">;
+} {
   const low = (["food", "joy", "energy", "clean"] as const).filter((k) => toVisible(p.meters[k]) <= NEED_FLOOR);
   if (p.hibernating) return { kind: "hibernating", low };
   if (p.sick) return { kind: "sick", low };

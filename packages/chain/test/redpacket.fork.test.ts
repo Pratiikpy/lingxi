@@ -7,9 +7,28 @@
 
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { createPublicClient, createWalletClient, encodeAbiParameters, http, keccak256, numberToHex, pad, type Address } from "viem";
+import {
+  createPublicClient,
+  createWalletClient,
+  encodeAbiParameters,
+  http,
+  keccak256,
+  numberToHex,
+  pad,
+  type Address,
+} from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { XLAYER_USDT, claimPacket, collectPacket, createPacket, owedOf, readPacket, revealPacket, signClaim, tokenBalance } from "../src/redpacket";
+import {
+  XLAYER_USDT,
+  claimPacket,
+  collectPacket,
+  createPacket,
+  owedOf,
+  readPacket,
+  revealPacket,
+  signClaim,
+  tokenBalance,
+} from "../src/redpacket";
 import type { Deployment } from "../src/registry";
 import { xLayer } from "../src/tapeout";
 
@@ -26,12 +45,22 @@ describe.skipIf(!RPC || !FILE)("a lucky red packet on the deployment under test"
     for (const a of people) await rpc("anvil_setBalance", [a.address, "0x56BC75E2D63100000"]);
     const [sender, ...friends] = people.map((account) => createWalletClient({ chain, transport: http(RPC), account }));
     // fork-only: give the sender 9 USDT by writing its balance slot (slot 0 for this token)
-    const slot = keccak256(encodeAbiParameters([{ type: "address" }, { type: "uint256" }], [sender!.account!.address, 0n]));
+    const slot = keccak256(
+      encodeAbiParameters([{ type: "address" }, { type: "uint256" }], [sender!.account!.address, 0n]),
+    );
     await rpc("anvil_setStorageAt", [XLAYER_USDT, slot, pad(numberToHex(9_000_000n), { size: 32 })]);
     expect(await tokenBalance(pub, XLAYER_USDT, sender!.account!.address)).toBe(9_000_000n);
 
     const key = generatePrivateKey();
-    const { id } = await createPacket(pub, sender!, d, { token: XLAYER_USDT, total: 9_000_000n, count: 3, lifetimeSec: 86_400, key: privateKeyToAccount(key).address, lucky: true, petOwnersOnly: false });
+    const { id } = await createPacket(pub, sender!, d, {
+      token: XLAYER_USDT,
+      total: 9_000_000n,
+      count: 3,
+      lifetimeSec: 86_400,
+      key: privateKeyToAccount(key).address,
+      lucky: true,
+      petOwnersOnly: false,
+    });
     for (const f of friends) {
       const sig = await signClaim(pub, d, key, id, f.account!.address as Address);
       const r = await claimPacket(pub, f, d, id, sig);

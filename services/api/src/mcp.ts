@@ -22,7 +22,13 @@ export const MCP_VERSIONS = ["2025-11-25", "2025-06-18", "2025-03-26"] as const;
 /** The version a request without an MCP-Protocol-Version header is taken to speak (MCP 2025-11-25, transports). */
 const DEFAULT_VERSION = "2025-03-26";
 const MAX_BODY = 64 * 1024;
-const RPC = { PARSE: -32700, INVALID_REQUEST: -32600, METHOD_NOT_FOUND: -32601, INVALID_PARAMS: -32602, INTERNAL: -32603 } as const;
+const RPC = {
+  PARSE: -32700,
+  INVALID_REQUEST: -32600,
+  METHOD_NOT_FOUND: -32601,
+  INVALID_PARAMS: -32602,
+  INTERNAL: -32603,
+} as const;
 export const MCP_SERVER_INFO = { name: "lingxi", title: "Lingxi", version: "1.0.0" };
 
 type Id = string | number | null;
@@ -32,12 +38,19 @@ const rpcResult = (id: Id, result: unknown) => ({ jsonrpc: "2.0", id, result });
 
 /** One JSON-RPC message in, one out (null for a notification or a response, which get nothing back). */
 export async function handleMcp(msg: unknown, deps: ToolDeps): Promise<object | null> {
-  if (!isObj(msg) || msg.jsonrpc !== "2.0") return rpcError(isObj(msg) && (typeof msg.id === "string" || typeof msg.id === "number") ? msg.id : null, RPC.INVALID_REQUEST, "not a JSON-RPC 2.0 message");
+  if (!isObj(msg) || msg.jsonrpc !== "2.0")
+    return rpcError(
+      isObj(msg) && (typeof msg.id === "string" || typeof msg.id === "number") ? msg.id : null,
+      RPC.INVALID_REQUEST,
+      "not a JSON-RPC 2.0 message",
+    );
   // a response from the client (to a request we never send) or a notification: nothing to answer
-  if (typeof msg.method !== "string") return "result" in msg || "error" in msg ? null : rpcError(null, RPC.INVALID_REQUEST, "no method");
+  if (typeof msg.method !== "string")
+    return "result" in msg || "error" in msg ? null : rpcError(null, RPC.INVALID_REQUEST, "no method");
   if (msg.id === undefined) return null;
   const id = msg.id;
-  if (typeof id !== "string" && typeof id !== "number") return rpcError(null, RPC.INVALID_REQUEST, "id must be a string or a number");
+  if (typeof id !== "string" && typeof id !== "number")
+    return rpcError(null, RPC.INVALID_REQUEST, "id must be a string or a number");
   const params = msg.params === undefined ? {} : msg.params;
   if (!isObj(params)) return rpcError(id, RPC.INVALID_PARAMS, "params must be an object");
   try {
@@ -45,14 +58,19 @@ export async function handleMcp(msg: unknown, deps: ToolDeps): Promise<object | 
       case "initialize": {
         const asked = typeof params.protocolVersion === "string" ? params.protocolVersion : "";
         const protocolVersion = (MCP_VERSIONS as readonly string[]).includes(asked) ? asked : MCP_VERSIONS[0];
-        return rpcResult(id, { protocolVersion, capabilities: { tools: { listChanged: false } }, serverInfo: MCP_SERVER_INFO });
+        return rpcResult(id, {
+          protocolVersion,
+          capabilities: { tools: { listChanged: false } },
+          serverInfo: MCP_SERVER_INFO,
+        });
       }
       case "ping":
         return rpcResult(id, {});
       case "tools/list":
         return rpcResult(id, { tools: MCP_TOOLS });
       case "tools/call": {
-        if (typeof params.name !== "string") return rpcError(id, RPC.INVALID_PARAMS, "params.name must be the tool name");
+        if (typeof params.name !== "string")
+          return rpcError(id, RPC.INVALID_PARAMS, "params.name must be the tool name");
         const args = params.arguments === undefined ? {} : params.arguments;
         if (!isObj(args)) return rpcError(id, RPC.INVALID_PARAMS, "params.arguments must be an object");
         try {
@@ -84,15 +102,23 @@ export interface McpDeps extends ToolDeps {
 export function withMcp(app: Hono, deps: McpDeps): Hono {
   // a proposal reads all 65,536 situations twice (about half a second), so the door is narrower than the REST API's
   const limiter = deps.limiter ?? new RateLimiter(120, 3_600_000);
-  const json = (c: Context, body: unknown, status = 200, extra: Record<string, string> = {}) => c.body(JSON.stringify(body), status as 200, { "content-type": "application/json", ...extra });
+  const json = (c: Context, body: unknown, status = 200, extra: Record<string, string> = {}) =>
+    c.body(JSON.stringify(body), status as 200, { "content-type": "application/json", ...extra });
 
   app.post("/mcp", async (c) => {
-    if (!limiter.take(clientIp(c))) return json(c, rpcError(null, RPC.INTERNAL, "too many requests; try again later"), 429);
+    if (!limiter.take(clientIp(c)))
+      return json(c, rpcError(null, RPC.INTERNAL, "too many requests; try again later"), 429);
     const version = c.req.header("mcp-protocol-version") ?? DEFAULT_VERSION;
-    if (!(MCP_VERSIONS as readonly string[]).includes(version)) return json(c, rpcError(null, RPC.INVALID_REQUEST, `unsupported MCP-Protocol-Version ${version.slice(0, 32)}`), 400);
+    if (!(MCP_VERSIONS as readonly string[]).includes(version))
+      return json(
+        c,
+        rpcError(null, RPC.INVALID_REQUEST, `unsupported MCP-Protocol-Version ${version.slice(0, 32)}`),
+        400,
+      );
     // read with a cap: the rest of a longer body is never read
     const text = await readCapped(c, MAX_BODY).catch(() => null);
-    if (text === null) return json(c, rpcError(null, RPC.INVALID_REQUEST, `body over ${MAX_BODY} bytes`), 413, { connection: "close" });
+    if (text === null)
+      return json(c, rpcError(null, RPC.INVALID_REQUEST, `body over ${MAX_BODY} bytes`), 413, { connection: "close" });
     let msg: unknown;
     try {
       msg = strictParse(text);

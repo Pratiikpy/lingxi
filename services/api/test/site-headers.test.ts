@@ -10,8 +10,14 @@ import { scriptPolicy, withSite } from "../src/server";
 const INLINE = "\n  console.info('telegram check');\n";
 function site() {
   const root = mkdtempSync(join(tmpdir(), "site-"));
-  writeFileSync(join(root, "index.html"), `<!doctype html><script type="module" src="./assets/a.js"></script><title>x</title>`);
-  writeFileSync(join(root, "play.html"), `<!doctype html><script>${INLINE}</script><script type="module" src="./assets/b.js"></script>`);
+  writeFileSync(
+    join(root, "index.html"),
+    `<!doctype html><script type="module" src="./assets/a.js"></script><title>x</title>`,
+  );
+  writeFileSync(
+    join(root, "play.html"),
+    `<!doctype html><script>${INLINE}</script><script type="module" src="./assets/b.js"></script>`,
+  );
   return withSite(new Hono(), relative(process.cwd(), root));
 }
 
@@ -21,7 +27,9 @@ describe("site headers", () => {
     const home = await app.request("/");
     expect(home.headers.get("strict-transport-security")).toBe("max-age=63072000; includeSubDomains");
     const csp = home.headers.get("content-security-policy") ?? "";
-    expect(csp).toContain("script-src 'self' 'wasm-unsafe-eval' https://telegram.org https://static.cloudflareinsights.com");
+    expect(csp).toContain(
+      "script-src 'self' 'wasm-unsafe-eval' https://telegram.org https://static.cloudflareinsights.com",
+    );
     expect(csp).toContain("object-src 'none'");
     expect(csp).toContain("worker-src 'self' blob:");
     expect(csp).toContain("base-uri 'self'");
@@ -32,7 +40,9 @@ describe("site headers", () => {
     expect(play).toContain(`'sha256-${hash}'`);
     // the game alone may sit inside Telegram Web's frame
     expect(play).toContain("frame-ancestors 'self' https://web.telegram.org https://*.web.telegram.org");
-    expect(scriptPolicy("<script>a</script><script src=x></script><script type=module>b</script>").hashes).toHaveLength(2);
+    expect(scriptPolicy("<script>a</script><script src=x></script><script type=module>b</script>").hashes).toHaveLength(
+      2,
+    );
     // a file written with Windows line ends is hashed as the browser sees it, with LF
     expect(scriptPolicy("<script>a\r\nb</script>").hashes).toEqual(scriptPolicy("<script>a\nb</script>").hashes);
   });

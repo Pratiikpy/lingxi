@@ -15,7 +15,9 @@ import { type Address, type PublicClient, createPublicClient, http, parseAbiItem
 import { WINDOW } from "./indexer";
 import { hasStore, readStore, saveJson } from "./durable";
 
-const EVENTS = [parseAbiItem("event Consent(uint256 indexed petId, address indexed partnerOwner, bool allowed)")] as const;
+const EVENTS = [
+  parseAbiItem("event Consent(uint256 indexed petId, address indexed partnerOwner, bool allowed)"),
+] as const;
 const STORE_VERSION = 1;
 /** The most consents listed for one pet, newest kept: each is confirmed on chain by the page that asks. */
 export const MAX_LISTED = 50;
@@ -53,7 +55,11 @@ export interface ConsentIndexOptions {
 }
 
 export function createConsentIndex(opts: ConsentIndexOptions) {
-  const pub = opts.client ?? (createPublicClient({ transport: http(opts.rpc ?? "https://xlayerrpc.okx.com", { timeout: 20_000, retryCount: 0 }) }) as PublicClient);
+  const pub =
+    opts.client ??
+    (createPublicClient({
+      transport: http(opts.rpc ?? "https://xlayerrpc.okx.com", { timeout: 20_000, retryCount: 0 }),
+    }) as PublicClient);
   const breeders = opts.breeders.map((a) => a.toLowerCase() as Address);
   let data: Stored = { v: STORE_VERSION, next: opts.fromBlock, pets: {} };
   if (opts.store && hasStore(opts.store)) {
@@ -74,7 +80,12 @@ export function createConsentIndex(opts: ConsentIndexOptions) {
   async function logsIn(from: number, to: number) {
     for (let attempt = 0; ; attempt++) {
       try {
-        const logs = await pub.getLogs({ address: breeders, events: EVENTS, fromBlock: BigInt(from), toBlock: BigInt(to) });
+        const logs = await pub.getLogs({
+          address: breeders,
+          events: EVENTS,
+          fromBlock: BigInt(from),
+          toBlock: BigInt(to),
+        });
         await sleep(opts.paceMs ?? 400);
         return logs;
       } catch (e) {
@@ -96,13 +107,16 @@ export function createConsentIndex(opts: ConsentIndexOptions) {
       for (let i = 0; i < maxWindows && data.next <= head; i++) {
         const to = Math.min(head, data.next + WINDOW - 1);
         // the last event for a pet and partner decides, so they are taken in the chain's order
-        const logs = [...(await logsIn(data.next, to))].sort((a, b) => Number(a.blockNumber) - Number(b.blockNumber) || Number(a.logIndex) - Number(b.logIndex));
+        const logs = [...(await logsIn(data.next, to))].sort(
+          (a, b) => Number(a.blockNumber) - Number(b.blockNumber) || Number(a.logIndex) - Number(b.logIndex),
+        );
         for (const l of logs) {
           const a = l.args as { petId: bigint; partnerOwner: string; allowed: boolean };
           const pet = String(a.petId);
           const key = `${l.address.toLowerCase()} ${a.partnerOwner.toLowerCase()}`;
           const given = (data.pets[pet] ??= {});
-          if (a.allowed) given[key] = { block: Number(l.blockNumber), index: Number(l.logIndex), tx: l.transactionHash! };
+          if (a.allowed)
+            given[key] = { block: Number(l.blockNumber), index: Number(l.logIndex), tx: l.transactionHash! };
           else {
             delete given[key];
             if (!Object.keys(given).length) delete data.pets[pet];

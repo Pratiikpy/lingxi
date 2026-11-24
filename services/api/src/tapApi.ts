@@ -46,7 +46,12 @@ export interface TapApiDeps {
 }
 
 type ErrorCode = "BAD_REQUEST" | "METHOD_NOT_FOUND" | "INTERNAL" | "TOOLS_CHANGED";
-const STATUS: Record<ErrorCode, number> = { BAD_REQUEST: 400, METHOD_NOT_FOUND: 404, INTERNAL: 500, TOOLS_CHANGED: 409 };
+const STATUS: Record<ErrorCode, number> = {
+  BAD_REQUEST: 400,
+  METHOD_NOT_FOUND: 404,
+  INTERNAL: 500,
+  TOOLS_CHANGED: 409,
+};
 /** TAP-15 §5.1: the tool list is read again before a call once the last read is older than this. */
 const TOOLS_FRESH_MS = 60_000;
 type Failure = { ok: false; code: ErrorCode; message: string; data?: Record<string, unknown> };
@@ -93,10 +98,20 @@ interface ToolRead {
  * A bound tool's call (TAP-15 §4.2, §5.1): held to the published digest, refused while the list carries hidden text,
  * then `tools/call` on the MCP server, its result signed as `{ content, structuredContent?, isError? }`.
  */
-async function callBound(tools: NonNullable<TapApiDeps["tools"]>, name: string, args: Record<string, unknown>): Promise<Outcome> {
+async function callBound(
+  tools: NonNullable<TapApiDeps["tools"]>,
+  name: string,
+  args: Record<string, unknown>,
+): Promise<Outcome> {
   const read = await readTools(tools);
   if (!read) return { ok: false, code: "INTERNAL", message: "the tool list could not be read" };
-  if (read.digest !== tools.sha256) return { ok: false, code: "TOOLS_CHANGED", message: "the tools differ from the ones the manifest publishes", data: { published: tools.sha256, current: read.digest } };
+  if (read.digest !== tools.sha256)
+    return {
+      ok: false,
+      code: "TOOLS_CHANGED",
+      message: "the tools differ from the ones the manifest publishes",
+      data: { published: tools.sha256, current: read.digest },
+    };
   if (read.hidden) return { ok: false, code: "INTERNAL", message: "the tool list carries hidden text" };
   let out: unknown;
   try {
@@ -105,10 +120,25 @@ async function callBound(tools: NonNullable<TapApiDeps["tools"]>, name: string, 
     return { ok: false, code: "INTERNAL", message: "internal error" };
   }
   const o = out as { error?: { code?: unknown; message?: unknown }; result?: Record<string, unknown> } | null;
-  if (o?.error) return o.error.code === -32602 ? { ok: false, code: "BAD_REQUEST", message: typeof o.error.message === "string" ? o.error.message : "invalid arguments" } : { ok: false, code: "INTERNAL", message: "internal error" };
+  if (o?.error)
+    return o.error.code === -32602
+      ? {
+          ok: false,
+          code: "BAD_REQUEST",
+          message: typeof o.error.message === "string" ? o.error.message : "invalid arguments",
+        }
+      : { ok: false, code: "INTERNAL", message: "internal error" };
   const r = o?.result;
-  if (!r || !Array.isArray(r.content) || (r.isError !== undefined && typeof r.isError !== "boolean")) return { ok: false, code: "INTERNAL", message: "internal error" };
-  return { ok: true, result: { content: r.content, ...(r.structuredContent !== undefined ? { structuredContent: r.structuredContent } : {}), ...(r.isError !== undefined ? { isError: r.isError } : {}) } };
+  if (!r || !Array.isArray(r.content) || (r.isError !== undefined && typeof r.isError !== "boolean"))
+    return { ok: false, code: "INTERNAL", message: "internal error" };
+  return {
+    ok: true,
+    result: {
+      content: r.content,
+      ...(r.structuredContent !== undefined ? { structuredContent: r.structuredContent } : {}),
+      ...(r.isError !== undefined ? { isError: r.isError } : {}),
+    },
+  };
 }
 
 const toolReads = new WeakMap<object, ToolRead>();
@@ -133,19 +163,44 @@ export function withTapApi(app: Hono, deps: TapApiDeps): Hono {
   const limiter = deps.limiter ?? new RateLimiter(240, 3_600_000);
   const now = deps.now ?? (() => Math.floor(Date.now() / 1000));
   const rateLimited = (c: Context) =>
-    c.json({ ok: false, error: { code: "RATE_LIMITED", message: "too many requests; try again later", data: { retryAfterS: RETRY_AFTER_S } } }, 429, { "retry-after": String(RETRY_AFTER_S) });
+    c.json(
+      {
+        ok: false,
+        error: {
+          code: "RATE_LIMITED",
+          message: "too many requests; try again later",
+          data: { retryAfterS: RETRY_AFTER_S },
+        },
+      },
+      429,
+      { "retry-after": String(RETRY_AFTER_S) },
+    );
 
   /** Signs and sends one envelope; an answer over the cap becomes a signed INTERNAL. */
-  const answer = async (c: Context, id: string, request: Statement["request"], out: Outcome, sizeLimited = false): Promise<Response> => {
+  const answer = async (
+    c: Context,
+    id: string,
+    request: Statement["request"],
+    out: Outcome,
+    sizeLimited = false,
+  ): Promise<Response> => {
     const ts = now();
-    const body = out.ok ? out.result : { code: out.code, message: out.message, ...(out.data ? { data: out.data } : {}) };
+    const body = out.ok
+      ? out.result
+      : { code: out.code, message: out.message, ...(out.data ? { data: out.data } : {}) };
     const st: Statement = { container: deps.container, id, request, ok: out.ok, body, ts };
     const sig = await signStatement(deps.signer, st);
-    const env = out.ok ? { id, ok: true, result: body, container: deps.container, ts, sig } : { id, ok: false, error: body, container: deps.container, ts, sig };
+    const env = out.ok
+      ? { id, ok: true, result: body, container: deps.container, ts, sig }
+      : { id, ok: false, error: body, container: deps.container, ts, sig };
     const text = JSON.stringify(env);
-    if (out.ok && new TextEncoder().encode(text).length > MAX_ANSWER) return answer(c, id, request, { ok: false, code: "INTERNAL", message: "answer too large" });
+    if (out.ok && new TextEncoder().encode(text).length > MAX_ANSWER)
+      return answer(c, id, request, { ok: false, code: "INTERNAL", message: "answer too large" });
     const status = out.ok ? 200 : sizeLimited ? 413 : STATUS[out.code];
-    return c.body(text, status as 200, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
+    return c.body(text, status as 200, {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store",
+    });
   };
 
   app.post("/api/v1/:method", async (c) => {
@@ -156,25 +211,54 @@ export function withTapApi(app: Hono, deps: TapApiDeps): Hono {
     const blank = { method, params: {} };
     // binding rule 1: nothing in an unparseable or oversized body can be trusted, so the refusal names id ""
     const text = await readCapped(c, TAP_BODY_LIMIT);
-    if (text === null) return answer(c, "", blank, { ok: false, code: "BAD_REQUEST", message: `body over ${TAP_BODY_LIMIT} bytes` }, true);
+    if (text === null)
+      return answer(
+        c,
+        "",
+        blank,
+        { ok: false, code: "BAD_REQUEST", message: `body over ${TAP_BODY_LIMIT} bytes` },
+        true,
+      );
     let req: unknown;
     try {
       req = strictParse(text);
     } catch (e) {
-      return answer(c, "", blank, { ok: false, code: "BAD_REQUEST", message: e instanceof CanonError ? e.message : "invalid JSON" });
+      return answer(c, "", blank, {
+        ok: false,
+        code: "BAD_REQUEST",
+        message: e instanceof CanonError ? e.message : "invalid JSON",
+      });
     }
-    if (typeof req !== "object" || req === null || Array.isArray(req)) return answer(c, "", blank, { ok: false, code: "BAD_REQUEST", message: "the body must be a JSON object" });
+    if (typeof req !== "object" || req === null || Array.isArray(req))
+      return answer(c, "", blank, { ok: false, code: "BAD_REQUEST", message: "the body must be a JSON object" });
     const r = req as Record<string, unknown>;
-    if (!validId(r.id)) return answer(c, "", blank, { ok: false, code: "BAD_REQUEST", message: "id must be a string of 1 to 128 UTF-16 code units" });
+    if (!validId(r.id))
+      return answer(c, "", blank, {
+        ok: false,
+        code: "BAD_REQUEST",
+        message: "id must be a string of 1 to 128 UTF-16 code units",
+      });
     const id = r.id;
     // binding rule 2: params that are present but not an object, or have no canonical form
     const params = r.params === undefined ? {} : r.params;
-    if (typeof params !== "object" || params === null || Array.isArray(params) || !canonical(params)) return answer(c, id, blank, { ok: false, code: "BAD_REQUEST", message: "params must be a JSON object with a canonical form" });
+    if (typeof params !== "object" || params === null || Array.isArray(params) || !canonical(params))
+      return answer(c, id, blank, {
+        ok: false,
+        code: "BAD_REQUEST",
+        message: "params must be a JSON object with a canonical form",
+      });
     const request = { method, params: params as Params };
-    if (r.method !== undefined && r.method !== method) return answer(c, id, request, { ok: false, code: "BAD_REQUEST", message: "method differs from the path" });
-    if (deps.tools && deps.tools.names.includes(method)) return answer(c, id, request, await callBound(deps.tools, method, request.params));
+    if (r.method !== undefined && r.method !== method)
+      return answer(c, id, request, { ok: false, code: "BAD_REQUEST", message: "method differs from the path" });
+    if (deps.tools && deps.tools.names.includes(method))
+      return answer(c, id, request, await callBound(deps.tools, method, request.params));
     const m = BY_NAME.get(method);
-    if (!m) return answer(c, id, request, { ok: false, code: "METHOD_NOT_FOUND", message: `no method ${method}; see the manifest at /.well-known/tapeapi.json` });
+    if (!m)
+      return answer(c, id, request, {
+        ok: false,
+        code: "METHOD_NOT_FOUND",
+        message: `no method ${method}; see the manifest at /.well-known/tapeapi.json`,
+      });
     const route = m.route(request.params);
     if (typeof route === "string") return answer(c, id, request, { ok: false, code: "BAD_REQUEST", message: route });
     // the same route a REST caller reaches, in this process, as this caller
@@ -185,7 +269,11 @@ export function withTapApi(app: Hono, deps: TapApiDeps): Hono {
     }
     let res: Response;
     try {
-      const run = app.request(route.path, { method: route.verb, headers, ...(route.body !== undefined ? { body: JSON.stringify(route.body) } : {}) }, c.env);
+      const run = app.request(
+        route.path,
+        { method: route.verb, headers, ...(route.body !== undefined ? { body: JSON.stringify(route.body) } : {}) },
+        c.env,
+      );
       let timer: ReturnType<typeof setTimeout> | undefined;
       const late = new Promise<"late">((ok) => (timer = setTimeout(() => ok("late"), TIME_BOUND_MS)));
       const got = await Promise.race([Promise.resolve(run), late]);
@@ -205,7 +293,12 @@ export function withTapApi(app: Hono, deps: TapApiDeps): Hono {
     // the route's own rate limit refuses before doing any work: unsigned, as §7 says
     if (o.ok === false && o.reason === "busy") return rateLimited(c);
     if (res.status >= 500) return answer(c, id, request, { ok: false, code: "INTERNAL", message: "unavailable" });
-    if (res.status === 400 || res.status === 413) return answer(c, id, request, { ok: false, code: "BAD_REQUEST", message: typeof o.detail === "string" ? o.detail : typeof o.reason === "string" ? o.reason : "invalid" });
+    if (res.status === 400 || res.status === 413)
+      return answer(c, id, request, {
+        ok: false,
+        code: "BAD_REQUEST",
+        message: typeof o.detail === "string" ? o.detail : typeof o.reason === "string" ? o.reason : "invalid",
+      });
     if (!canonical(out)) return answer(c, id, request, { ok: false, code: "INTERNAL", message: "internal error" });
     return answer(c, id, request, { ok: true, result: out });
   });

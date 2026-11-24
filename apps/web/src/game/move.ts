@@ -18,7 +18,9 @@ import { SEND_LIMITS, checkSize } from "./sendSize";
 import { now as gameNow } from "./gameClock";
 import { moveBody } from "./requests";
 
-const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const BASE =
+  (import.meta.env.VITE_API_URL as string | undefined) ??
+  (location.hostname === "localhost" ? "http://localhost:8787" : "");
 /** The Telegram bot that hosts the Mini App, once it exists (for moving pets into Telegram). */
 export const TG_BOT = ((import.meta.env.VITE_TG_BOT as string | undefined) ?? "LingxiPetBot").replace(/^@/, "");
 /** Keys that stay with this device on a move (which passes through our server); a save file carries them, sealed by its
@@ -36,14 +38,25 @@ type Arrival = "ok" | "restored" | "gone" | "failed";
 const CODE = /^[A-Za-z0-9_-]{22}$/;
 
 export type MoveTo = "browser" | "telegram";
-export const moveAvailable = (to: MoveTo): boolean => !!BASE && (to === "browser" ? inTelegram() : !!TG_BOT && !inTelegram());
+export const moveAvailable = (to: MoveTo): boolean =>
+  !!BASE && (to === "browser" ? inTelegram() : !!TG_BOT && !inTelegram());
 
 /** This device's save; with `keys`, the keys that stay with the device too (a save file carries them). */
 function snapshot(keys = false): Record<string, string> {
   const out: Record<string, string> = {};
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
-    if (!k || !k.startsWith("lingxi.") || (!keys && STAY.has(k)) || k === BEFORE || k === MOVED || NEVER.has(k) || k.endsWith("~copy") || k.endsWith("~damaged")) continue;
+    if (
+      !k ||
+      !k.startsWith("lingxi.") ||
+      (!keys && STAY.has(k)) ||
+      k === BEFORE ||
+      k === MOVED ||
+      NEVER.has(k) ||
+      k.endsWith("~copy") ||
+      k.endsWith("~damaged")
+    )
+      continue;
     const v = localStorage.getItem(k);
     if (v !== null) out[k] = v;
   }
@@ -56,7 +69,12 @@ export async function prepareMove(): Promise<string> {
   const body = JSON.stringify(moveBody(save));
   const chars = Object.entries(save).reduce((n, [k, v]) => n + k.length + v.length, 0);
   checkSize(body, SEND_LIMITS.moveBodyBytes, { unit: "bytes", have: chars, most: SEND_LIMITS.moveChars });
-  const r = await fetch(`${BASE}/api/move`, { method: "POST", headers: { "content-type": "application/json" }, body, signal: AbortSignal.timeout(20000) });
+  const r = await fetch(`${BASE}/api/move`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body,
+    signal: AbortSignal.timeout(20000),
+  });
   const j = (await r.json()) as { ok: boolean; code?: string; reason?: string };
   if (!j.ok || !j.code) throw new Error(j.reason ?? "failed");
   return j.code;
@@ -146,12 +164,16 @@ async function takeArriving(): Promise<void> {
   }
   let arrived: { ok: boolean; save?: Record<string, string> };
   try {
-    arrived = (await (await fetch(`${BASE}/api/move/${code}/claim`, { method: "POST", signal: AbortSignal.timeout(20000) })).json()) as typeof arrived;
+    arrived = (await (
+      await fetch(`${BASE}/api/move/${code}/claim`, { method: "POST", signal: AbortSignal.timeout(20000) })
+    ).json()) as typeof arrived;
   } catch {
     return note("failed");
   }
   if (!arrived.ok || !arrived.save) return note("gone");
-  const save = Object.fromEntries(Object.entries(arrived.save).filter(([k, v]) => k.startsWith("lingxi.") && !STAY.has(k) && typeof v === "string"));
+  const save = Object.fromEntries(
+    Object.entries(arrived.save).filter(([k, v]) => k.startsWith("lingxi.") && !STAY.has(k) && typeof v === "string"),
+  );
   note(land(save, false) ? "ok" : "failed");
 }
 
@@ -159,20 +181,32 @@ async function takeArriving(): Promise<void> {
 function readReplaced(raw: string | null | undefined): Array<{ at: number; keys: Record<string, string> }> {
   try {
     const v = JSON.parse(raw ?? "[]") as unknown;
-    return Array.isArray(v) ? v.filter((e): e is { at: number; keys: Record<string, string> } => !!e && typeof e === "object" && typeof (e as { at?: unknown }).at === "number" && !!(e as { keys?: unknown }).keys) : [];
+    return Array.isArray(v)
+      ? v.filter(
+          (e): e is { at: number; keys: Record<string, string> } =>
+            !!e &&
+            typeof e === "object" &&
+            typeof (e as { at?: unknown }).at === "number" &&
+            !!(e as { keys?: unknown }).keys,
+        )
+      : [];
   } catch {
     return [];
   }
 }
 
 /** What the device holds after `next` lands without touching the keys that stay with it. */
-const withStaying = (now: Record<string, string>, next: Record<string, string>) => ({ ...Object.fromEntries(Object.entries(now).filter(([k]) => STAY.has(k))), ...next });
+const withStaying = (now: Record<string, string>, next: Record<string, string>) => ({
+  ...Object.fromEntries(Object.entries(now).filter(([k]) => STAY.has(k))),
+  ...next,
+});
 
 /** The kept keys after `next` replaces `now`: every device key that would be lost is added, none ever dropped. */
 function keptKeys(now: Record<string, string>, next: Record<string, string>): string | null {
   const all = [...readReplaced(now[REPLACED]), ...readReplaced(next[REPLACED])];
   const lost: Record<string, string> = {};
-  for (const k of DEVICE_KEYS) if (now[k] && next[k] !== now[k] && !all.some((e) => e.keys[k] === now[k])) lost[k] = now[k]!;
+  for (const k of DEVICE_KEYS)
+    if (now[k] && next[k] !== now[k] && !all.some((e) => e.keys[k] === now[k])) lost[k] = now[k]!;
   if (Object.keys(lost).length) all.push({ at: gameNow(), keys: lost });
   const seen = new Set<string>();
   const unique = all.filter((e) => {

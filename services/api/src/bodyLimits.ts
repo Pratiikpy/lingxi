@@ -43,13 +43,23 @@ export function withBodyLimits(app: Hono): Hono {
     let mw = cache.get(max);
     if (!mw) {
       // the rest of an oversized body is never read, so the connection cannot carry another request: say so
-      mw = bodyLimit({ maxSize: max, onError: (c: Context) => c.json({ ok: false, reason: "tooBig" }, 413, { connection: "close" }) });
+      mw = bodyLimit({
+        maxSize: max,
+        onError: (c: Context) => c.json({ ok: false, reason: "tooBig" }, 413, { connection: "close" }),
+      });
       cache.set(max, mw);
     }
     return mw;
   };
   // a TAP-13 method reads its own body with the same cap, so that an oversized one gets a signed refusal (tapApi.ts)
   const tapMethod = /^\/api\/v1\/[A-Za-z_][A-Za-z0-9_]{0,63}$/;
-  app.use("/api/*", async (c, next) => (c.req.method === "GET" || c.req.method === "HEAD" || c.req.method === "OPTIONS" || (c.req.method === "POST" && tapMethod.test(c.req.path)) ? next() : of(limitFor(c.req.path))(c, next)));
+  app.use("/api/*", async (c, next) =>
+    c.req.method === "GET" ||
+    c.req.method === "HEAD" ||
+    c.req.method === "OPTIONS" ||
+    (c.req.method === "POST" && tapMethod.test(c.req.path))
+      ? next()
+      : of(limitFor(c.req.path))(c, next),
+  );
   return app;
 }

@@ -30,7 +30,16 @@ const SUBSTRINGS: ReadonlyArray<readonly [number, string]> = [
   [2, "5e4a473231ac0f61"],
   [4, "9d351382545aa458"],
 ];
-const TOKENS = new Set(["9bb840df7f699d65", "84313ef39b0a979f", "2b5998a8611fae51", "4bc0edfe86e36c02", "6ab84705e5d695ef", "f818afa52287db76", "47acf82a48cfa5c3", "870051a4cdc4cda1"]);
+const TOKENS = new Set([
+  "9bb840df7f699d65",
+  "84313ef39b0a979f",
+  "2b5998a8611fae51",
+  "4bc0edfe86e36c02",
+  "6ab84705e5d695ef",
+  "f818afa52287db76",
+  "47acf82a48cfa5c3",
+  "870051a4cdc4cda1",
+]);
 
 const hash = (s: string): string => createHash("sha256").update(s).digest("hex").slice(0, 16);
 const BY_LENGTH = new Map<number, Set<string>>();
@@ -38,7 +47,21 @@ for (const [n, h] of SUBSTRINGS) BY_LENGTH.set(n, (BY_LENGTH.get(n) ?? new Set()
 const LENGTHS = [...BY_LENGTH.keys()].sort((a, b) => a - b);
 
 /** hashes of every banned substring's first two code points: a cheap gate before the longer windows */
-const PREFIXES = new Set(["3ebb1c99b12b7746", "19503ea6785ee124", "6351825030155836", "33129567e0bd787e", "225ed6562f6887b1", "ac0b52a2ae6ef999", "e4107ae79a5e3acb", "f74168ed3576eec7", "88c40923c1ae5344", "e33716be735e7af6", "dabe85c8ec1d427b", "5e4a473231ac0f61", "2c03a8c2af9d1533"]);
+const PREFIXES = new Set([
+  "3ebb1c99b12b7746",
+  "19503ea6785ee124",
+  "6351825030155836",
+  "33129567e0bd787e",
+  "225ed6562f6887b1",
+  "ac0b52a2ae6ef999",
+  "e4107ae79a5e3acb",
+  "f74168ed3576eec7",
+  "88c40923c1ae5344",
+  "e33716be735e7af6",
+  "dabe85c8ec1d427b",
+  "5e4a473231ac0f61",
+  "2c03a8c2af9d1533",
+]);
 /** two code points take few distinct values, so their verdicts are remembered */
 const seenPrefix = new Map<string, boolean>();
 function prefixBanned(pair: string): boolean {
@@ -73,7 +96,11 @@ export interface Hit {
 function mask(line: string, from: number, length: number): string {
   const cps = [...line];
   const start = Math.max(0, from - 30);
-  return (cps.slice(start, from).join("") + "•".repeat(length) + cps.slice(from + length, from + length + 30).join("")).trim();
+  return (
+    cps.slice(start, from).join("") +
+    "•".repeat(length) +
+    cps.slice(from + length, from + length + 30).join("")
+  ).trim();
 }
 
 /** Every banned name in `text`, at most `limit` of them. */

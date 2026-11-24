@@ -23,7 +23,8 @@ export const MAX_PLOTS = PLOTS + PLOT_SALE.length;
 /** How many plots this garden has: the four it started with and every one dug since. */
 export const plotCount = (w: WorldState): number => PLOTS + Math.max(0, Math.min(PLOT_SALE.length, w.garden?.dug ?? 0));
 /** The next plot for sale, or null when every one is dug. */
-export const nextPlot = (w: WorldState): { stage: string; price: number } | null => PLOT_SALE[plotCount(w) - PLOTS] ?? null;
+export const nextPlot = (w: WorldState): { stage: string; price: number } | null =>
+  PLOT_SALE[plotCount(w) - PLOTS] ?? null;
 export const COMPOST = 7001;
 const HOUR = 3_600_000;
 
@@ -97,7 +98,11 @@ export function harvest(w: WorldState, plot: number, now: number): WorldResult<{
   const c = CROP[p.crop]!;
   const n = c.amount + (p.compost ? 1 : 0);
   const plots = g.map((x, i) => (i === plot ? null : x));
-  const picked: WorldState = { ...w, bag: bagAdd(w.bag, c.yields, n), garden: { ...w.garden, plots, harvested: (w.garden?.harvested ?? 0) + 1 } };
+  const picked: WorldState = {
+    ...w,
+    bag: bagAdd(w.bag, c.yields, n),
+    garden: { ...w.garden, plots, harvested: (w.garden?.harvested ?? 0) + 1 },
+  };
   return { ok: true, item: c.yields, n, world: bumpFinds(bump(picked, "HARVEST", c.id), [{ item: c.yields, n }]) };
 }
 
@@ -109,7 +114,16 @@ export function digPlot(w: WorldState, stage: string): WorldResult {
   if (!stageReached(stage, next.stage)) return { ok: false, reason: "stage" };
   if (w.coins < next.price) return { ok: false, reason: "coins" };
   const dug = plotCount(w) - PLOTS + 1;
-  return { ok: true, world: bumpAll({ ...w, coins: w.coins - next.price, garden: { plots: gardenOf(w), harvested: w.garden?.harvested ?? 0, dug } }, [["DIG", 0, 1], ["COINS_SPENT", 0, next.price]]) };
+  return {
+    ok: true,
+    world: bumpAll(
+      { ...w, coins: w.coins - next.price, garden: { plots: gardenOf(w), harvested: w.garden?.harvested ?? 0, dug } },
+      [
+        ["DIG", 0, 1],
+        ["COINS_SPENT", 0, next.price],
+      ],
+    ),
+  };
 }
 
 /** Cleaning a messy pet (clean meter under half) leaves one bag of compost. */

@@ -9,12 +9,15 @@ import "./onchain-note.css";
 type Lang = "en" | "zh";
 
 // the on-chain (DeWEB) build ships with no server address; the web build has one
-const SERVER = ((import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "")) !== "";
+const SERVER =
+  ((import.meta.env.VITE_API_URL as string | undefined) ??
+    (location.hostname === "localhost" ? "http://localhost:8787" : "")) !== "";
 
 const TEXT = {
   en: {
     title: "What is on chain, and what is not",
-    independent: "Lingxi is an independent project built on X Layer and TapeOut. It is not made or endorsed by OKX or TapeOut.",
+    independent:
+      "Lingxi is an independent project built on X Layer and TapeOut. It is not made or endorsed by OKX or TapeOut.",
     chainHead: "On X Layer, for anyone to check",
     chain: [
       "Once you keep a pet there: its brain, a real circuit of NAND and LATCH gates, taped out on TapeOut processor #419 and readable by anyone forever.",
@@ -37,7 +40,8 @@ const TEXT = {
       "What you choose to send: a save moved to another device (held 15 minutes), a published diary, short duel links, arena and season entries (your pet's card), a pet left with a friend, adoption papers, new minds for Lingxi to tape out, and a request for Lingxi to keep your pet on X Layer for you (signed by this device's own key, with your pet's line and state).",
       "What the game reads from it: the time, mail, whether it is up, the weekly season, arena opponents and sparring partners, duel links, lessons from the library, a pet left with a friend, adoption papers, published diaries and each pet's history, breeding consents, red-packet claims, item vouchers, retired market listings and Sourcify's verdicts on the contracts; and, read by the server from X Layer, the daily challenge's block, the family tree, Builders' Lane's tape-out count, goals, the numbers and which TapeCode-Test1 a wallet holds (a hint the game checks on chain).",
     ],
-    noServer: "This on-chain version runs without a server of its own: AI teaching, voices and live rooms are off. Its proof page asks Lingxi's indexer only for public things (which transactions to read, an owner's published log) and proves each one on X Layer before it is shown.",
+    noServer:
+      "This on-chain version runs without a server of its own: AI teaching, voices and live rooms are off. Its proof page asks Lingxi's indexer only for public things (which transactions to read, an owner's published log) and proves each one on X Layer before it is shown.",
   },
   zh: {
     title: "哪些在链上，哪些不在",
@@ -52,7 +56,10 @@ const TEXT = {
       "本网站在链上的副本 1.2.419.tape（DeWEB）。",
     ],
     deviceHead: "只在你的设备上",
-    device: ["两次存档之间的照顾、倒带，以及你发布之前的日记（由你设备上的念头记录算出）。", "金币、物品、装饰、徽章、切磋和每日挑战的记录。"],
+    device: [
+      "两次存档之间的照顾、倒带，以及你发布之前的日记（由你设备上的念头记录算出）。",
+      "金币、物品、装饰、徽章、切磋和每日挑战的记录。",
+    ],
     serverHead: "经过我们的服务器（仅网页版）",
     server: [
       "用自己的话教它、宠物说的话，用到 AI 模型（Claude）；它提出的规则在改动之前一定先给你看。",
@@ -61,7 +68,8 @@ const TEXT = {
       "你选择发送的：搬到另一台设备的存档（保留 15 分钟）、发布的日记、短的切磋链接、竞技场和赛季的参赛（宠物的卡片）、托朋友照看的宠物、领养文书、请灵犀流片的新心智，以及请灵犀替你把宠物留在链上的请求（由这台设备自己的密钥签名，附上宠物的品种和状态）。",
       "游戏从它读取的：时间、邮件、它是否在线、每周赛季、竞技场对手和陪练、切磋链接、课程库里的课、托朋友照看的宠物、领养文书、发布的日记和每只宠物的经历、繁育同意、红包领取记录、道具兑换券、下架的市场挂单，以及 Sourcify 对合约的验证结果；还有服务器从 X Layer 读来的每日挑战区块、家族树、建设者小巷的流片计数、目标、各项数字，以及一个钱包持有哪些 TapeCode-Test1（游戏会在链上核对的提示）。",
     ],
-    noServer: "这个链上版本不带自己的服务器：AI 教学、说话和实时房间都关掉了。它的验证页只向灵犀的索引服务要公开的东西（该读哪些交易、主人发布的日志），每一样都先在 X Layer 上核对再显示。",
+    noServer:
+      "这个链上版本不带自己的服务器：AI 教学、说话和实时房间都关掉了。它的验证页只向灵犀的索引服务要公开的东西（该读哪些交易、主人发布的日志），每一样都先在 X Layer 上核对再显示。",
   },
 } as const;
 

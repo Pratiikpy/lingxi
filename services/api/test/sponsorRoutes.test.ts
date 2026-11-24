@@ -16,15 +16,38 @@ const NOW = 1_800_000_000_000;
 const d = { registry: "0x00000000000000000000000000000000000000bb" } as unknown as Deployment;
 const gentle = ((0n << 152n) | 0x1234n).toString();
 
-function app(o: { enabled?: boolean; hatch?: Sponsoring["relayer"]["sponsorHatch"]; grant?: Sponsoring["relayer"]["sponsorGrant"]; ip?: string } = {}) {
-  const gate = new SponsorGate({ file: join(mkdtempSync(join(tmpdir(), "lx-")), "s.json"), enabled: o.enabled ?? true, now: () => NOW });
-  const hatch = vi.fn(o.hatch ?? (async () => ({ ok: true as const, petId: "41", hatchTx: "0xh", grantTx: "0xg", spentWei: 60_000_000_000_000n })));
+function app(
+  o: {
+    enabled?: boolean;
+    hatch?: Sponsoring["relayer"]["sponsorHatch"];
+    grant?: Sponsoring["relayer"]["sponsorGrant"];
+    ip?: string;
+  } = {},
+) {
+  const gate = new SponsorGate({
+    file: join(mkdtempSync(join(tmpdir(), "lx-")), "s.json"),
+    enabled: o.enabled ?? true,
+    now: () => NOW,
+  });
+  const hatch = vi.fn(
+    o.hatch ??
+      (async () => ({ ok: true as const, petId: "41", hatchTx: "0xh", grantTx: "0xg", spentWei: 60_000_000_000_000n })),
+  );
   const grant = vi.fn(o.grant ?? (async () => ({ ok: true as const, grantTx: "0xg2", spentWei: 51_000_000_000_000n })));
-  const a = withSponsor(new Hono(), { gate, relayer: { sponsorHatch: hatch, sponsorGrant: grant }, deployment: d, who: () => o.ip ?? "198.51.100.1" });
+  const a = withSponsor(new Hono(), {
+    gate,
+    relayer: { sponsorHatch: hatch, sponsorGrant: grant },
+    deployment: d,
+    who: () => o.ip ?? "198.51.100.1",
+  });
   return { a, gate, hatch, grant };
 }
 const post = async (a: Hono, body: unknown) => {
-  const r = await a.request("/api/sponsor/hatch", { method: "POST", body: JSON.stringify(body), headers: { "content-type": "application/json" } });
+  const r = await a.request("/api/sponsor/hatch", {
+    method: "POST",
+    body: JSON.stringify(body),
+    headers: { "content-type": "application/json" },
+  });
   return { status: r.status, json: (await r.json()) as Record<string, unknown> };
 };
 const ask = async (key = privateKeyToAccount(generatePrivateKey())) => {
@@ -54,7 +77,10 @@ describe("the sponsor route (H4)", () => {
     const { a, hatch } = app();
     expect(await post(a, { to: "x" })).toMatchObject({ status: 400, json: { reason: "invalid" } });
     const body = await ask();
-    expect(await post(a, { ...body, to: privateKeyToAccount(generatePrivateKey()).address })).toMatchObject({ status: 401, json: { reason: "badSignature" } });
+    expect(await post(a, { ...body, to: privateKeyToAccount(generatePrivateKey()).address })).toMatchObject({
+      status: 401,
+      json: { reason: "badSignature" },
+    });
     expect(hatch).not.toHaveBeenCalled();
     await post(a, body);
     expect(await post(a, body)).toMatchObject({ status: 200, json: { ok: false, reason: "had" } });
@@ -71,7 +97,9 @@ describe("the sponsor route (H4)", () => {
 
   it("a pet whose gas never came gets the gas alone when its key asks again", async () => {
     const key = privateKeyToAccount(generatePrivateKey());
-    const { a, grant, hatch } = app({ hatch: async () => ({ ok: true, petId: "41", hatchTx: "0xh", grantTx: null, spentWei: 10_000_000_000_000n }) });
+    const { a, grant, hatch } = app({
+      hatch: async () => ({ ok: true, petId: "41", hatchTx: "0xh", grantTx: null, spentWei: 10_000_000_000_000n }),
+    });
     expect((await post(a, await ask(key))).json).toEqual({ ok: true, petId: "41", hatchTx: "0xh", grantTx: null });
     expect((await post(a, await ask(key))).json).toEqual({ ok: true, petId: "41", hatchTx: null, grantTx: "0xg2" });
     expect(hatch).toHaveBeenCalledTimes(1);
@@ -88,7 +116,12 @@ describe("the sponsor route (H4)", () => {
     const { a } = app();
     const body = await ask();
     await post(a, body);
-    expect(await (await a.request(`/api/sponsor/of/${body.to}`)).json()).toEqual({ ok: true, petId: "41", hatchTx: "0xh", grantTx: "0xg" });
+    expect(await (await a.request(`/api/sponsor/of/${body.to}`)).json()).toEqual({
+      ok: true,
+      petId: "41",
+      hatchTx: "0xh",
+      grantTx: "0xg",
+    });
     expect((await a.request(`/api/sponsor/of/${privateKeyToAccount(generatePrivateKey()).address}`)).status).toBe(404);
     expect((await a.request("/api/sponsor/of/nope")).status).toBe(400);
   });

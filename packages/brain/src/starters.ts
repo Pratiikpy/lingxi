@@ -20,12 +20,11 @@ const shared = {
       label: "How much it trusts you",
       kind: "counter" as const,
       bits: 3,
-      inc: [
-        { action: [5], owner: [1] },
-        { action: [1], hunger: [2, 3] },
-        { action: [6] },
+      inc: [{ action: [5], owner: [1] }, { action: [1], hunger: [2, 3] }, { action: [6] }],
+      dec: [
+        { hunger: [3], owner: [0] },
+        { clean: [0], owner: [0] },
       ],
-      dec: [{ hunger: [3], owner: [0] }, { clean: [0], owner: [0] }],
     },
     {
       name: "likesToys",
@@ -54,7 +53,11 @@ const shared = {
 export const STARTER_GENTLE: Program = validateProgram({
   ...shared,
   rules: [
-    { label: "frightened and unsure of you", when: { event: [3], trust: [0, 1, 2] }, then: { want: 5, mood: 0, nudge: 7 } },
+    {
+      label: "frightened and unsure of you",
+      when: { event: [3], trust: [0, 1, 2] },
+      then: { want: 5, mood: 0, nudge: 7 },
+    },
     { label: "frightened, comes to you", when: { event: [3] }, then: { want: 6, mood: 1, nudge: 1 } },
     { label: "starving", when: { hunger: [3] }, then: { want: 1, mood: 0 } },
     { label: "worn out", when: { energy: [0] }, then: { want: 3, mood: 1 } },
@@ -62,10 +65,18 @@ export const STARTER_GENTLE: Program = validateProgram({
     { label: "up too long", when: { awake: [7], energy: [0, 1] }, then: { want: 3, mood: 0 } },
     { label: "fed when hungry", when: { action: [1], hunger: [2] }, then: { want: 1, mood: 2 } },
     { label: "still shaken", when: { scared: [1], owner: [1] }, then: { want: 6, mood: 1 } },
-    { label: "shares with a friend", when: { event: [1], likesToys: [1], joy: [2, 3] }, then: { want: 7, mood: 2, nudge: 6 } },
+    {
+      label: "shares with a friend",
+      when: { event: [1], likesToys: [1], joy: [2, 3] },
+      then: { want: 7, mood: 2, nudge: 6 },
+    },
     { label: "a toy!", when: { event: [2] }, then: { want: 2, mood: 3, nudge: 5 } },
     { label: "too dirty", when: { clean: [0] }, then: { want: 5, mood: 0 } },
-    { label: "petted by someone it trusts", when: { action: [5], trust: [4, 5, 6, 7] }, then: { want: 6, mood: 2, nudge: 6 } },
+    {
+      label: "petted by someone it trusts",
+      when: { action: [5], trust: [4, 5, 6, 7] },
+      then: { want: 6, mood: 2, nudge: 6 },
+    },
     { label: "petted", when: { action: [5] }, then: { want: 0, mood: 1, nudge: 7 } },
     { label: "joyful with you", when: { owner: [1], joy: [3] }, then: { want: 2, mood: 3 } },
     { label: "night", when: { time: [0] }, then: { want: 3, mood: 1 } },

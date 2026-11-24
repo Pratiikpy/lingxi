@@ -14,10 +14,29 @@ const REGISTRY = parseAbi([
 ]);
 
 for (const look of [
-  { lang: "en", scheme: "light", size: "phone", busy: "many requests", left: "its instincts are not yet", update: "Put its new mind on chain", keep: "Keep Pip on X Layer" },
-  { lang: "zh", scheme: "dark", size: "desktop", busy: "请求太多", left: "它的本能还没有放上去", update: "把新心智放上链", keep: "把Pip放上 X Layer" },
+  {
+    lang: "en",
+    scheme: "light",
+    size: "phone",
+    busy: "many requests",
+    left: "its instincts are not yet",
+    update: "Put its new mind on chain",
+    keep: "Keep Pip on X Layer",
+  },
+  {
+    lang: "zh",
+    scheme: "dark",
+    size: "desktop",
+    busy: "请求太多",
+    left: "它的本能还没有放上去",
+    update: "把新心智放上链",
+    keep: "把Pip放上 X Layer",
+  },
 ] as const) {
-  test(`a kept pet whose circuit is turned down is never kept twice (${look.lang}, ${look.scheme}, ${look.size})`, async ({ player, run }) => {
+  test(`a kept pet whose circuit is turned down is never kept twice (${look.lang}, ${look.scheme}, ${look.size})`, async ({
+    player,
+    run,
+  }) => {
     test.setTimeout(420_000);
     const p = await player(look);
     const { page } = p;
@@ -32,15 +51,32 @@ for (const look of [
 
     const { pub, registry } = forkOf(run);
     const wallet = walletOf(run, p);
-    const before = await pub.readContract({ address: registry, abi: REGISTRY, functionName: "balanceOf", args: [wallet] });
+    const before = await pub.readContract({
+      address: registry,
+      abi: REGISTRY,
+      functionName: "balanceOf",
+      args: [wallet],
+    });
     let refused = 0;
-    await page.route("**/api/tapeout", (route) => (refused++, route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: false, reason: "busy" }) })));
+    await page.route(
+      "**/api/tapeout",
+      (route) => (
+        refused++,
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ ok: false, reason: "busy" }),
+        })
+      ),
+    );
 
     await sheet(page, "me");
     await (await reach(page, "[data-hint=keep]")).click();
     const panel = page.locator(".mind-behind").first();
     // the hatch lands, then the relayer turns the circuit down: the panel says why
-    await expect(page.getByText(look.busy).first(), "the panel says why the move did not finish").toBeVisible({ timeout: 240_000 });
+    await expect(page.getByText(look.busy).first(), "the panel says why the move did not finish").toBeVisible({
+      timeout: 240_000,
+    });
     expect(refused, "the relayer was asked once and refused").toBe(1);
     await expect(panel, "it shows the pet as kept and says what is left").toContainText(look.left);
     // ("Save today" carries the same hint for the quest ring, so the Keep button is found by its words)
@@ -51,11 +87,29 @@ for (const look of [
     await page.unroute("**/api/tapeout");
     await page.locator(".mind-behind .btn.primary", { hasText: look.update }).click();
     await expect(page.locator(".mind-behind"), "the move finishes").toHaveCount(0, { timeout: 240_000 });
-    const record = (await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem("lingxi.chain.v2") ?? "{}") as Record<string, { petId: string; brainKey: string }>)[0]))!;
+    const record = (await page.evaluate(
+      () =>
+        Object.values(
+          JSON.parse(localStorage.getItem("lingxi.chain.v2") ?? "{}") as Record<
+            string,
+            { petId: string; brainKey: string }
+          >,
+        )[0],
+    ))!;
     expect(record.brainKey, "its own circuit is recorded").not.toBe("[]");
-    const after = await pub.readContract({ address: registry, abi: REGISTRY, functionName: "balanceOf", args: [wallet] });
+    const after = await pub.readContract({
+      address: registry,
+      abi: REGISTRY,
+      functionName: "balanceOf",
+      args: [wallet],
+    });
     expect(after - before, "one pet on chain, not two").toBe(1n);
-    const onChain = await pub.readContract({ address: registry, abi: REGISTRY, functionName: "pet", args: [BigInt(record.petId)] });
+    const onChain = await pub.readContract({
+      address: registry,
+      abi: REGISTRY,
+      functionName: "pet",
+      args: [BigInt(record.petId)],
+    });
     expect(onChain.brainId, "the registry points at its own circuit, not the starter").not.toBe(1n);
   });
 }

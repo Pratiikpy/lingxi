@@ -37,7 +37,13 @@ export interface Snapshot {
 }
 
 export interface ArenaStore {
-  save: (round: number, pet: unknown, team: unknown, device: string, from?: string) => { ok: true } | { ok: false; reason: "invalid" | "busy" };
+  save: (
+    round: number,
+    pet: unknown,
+    team: unknown,
+    device: string,
+    from?: string,
+  ) => { ok: true } | { ok: false; reason: "invalid" | "busy" };
   pick: (round: number, device: string, roll?: number) => Omit<Snapshot, "by"> | null;
   count: (round: number) => number;
   /** writes every round that changed since the last write (A123) */
@@ -48,7 +54,12 @@ const tag = (device: string) => createHash("sha256").update(`lingxi-arena:${devi
 
 /** Accepts only a line a real run could field: known companions, a pet whose card builds a brain. */
 export function validSnapshot(pet: unknown, team: unknown): { pet: DuelPet; team: string[] } | null {
-  if (!Array.isArray(team) || team.length > MAX_COMPANIONS || !team.every((id) => typeof id === "string" && COMPANION[id])) return null;
+  if (
+    !Array.isArray(team) ||
+    team.length > MAX_COMPANIONS ||
+    !team.every((id) => typeof id === "string" && COMPANION[id])
+  )
+    return null;
   const p = pet as Partial<DuelPet> | null;
   if (!p || typeof p.name !== "string" || p.name.length < 1 || p.name.length > 24) return null;
   // the name as every player is shown it: no direction overrides or hidden characters, and no blocked words (A144)
@@ -58,7 +69,13 @@ export function validSnapshot(pet: unknown, team: unknown): { pet: DuelPet; team
   // the card in its own shape: nothing a sender adds is kept or served to others (A78)
   const card = canonicalCard(p.card);
   if (!card) return null;
-  const clean: DuelPet = { name: BLOCKED_WORDS.test(name) ? "Pet" : name, line: p.line!, stage: p.stage!, card, story: { days: 0, lessons: 0, nature: [] } };
+  const clean: DuelPet = {
+    name: BLOCKED_WORDS.test(name) ? "Pet" : name,
+    line: p.line!,
+    stage: p.stage!,
+    card,
+    story: { days: 0, lessons: 0, nature: [] },
+  };
   try {
     duelFighter(clean);
   } catch {
@@ -67,7 +84,11 @@ export function validSnapshot(pet: unknown, team: unknown): { pet: DuelPet; team
   return { pet: clean, team: team as string[] };
 }
 
-export function createArenaStore(file?: string, now: () => number = Date.now, opts: { every?: number } = {}): ArenaStore {
+export function createArenaStore(
+  file?: string,
+  now: () => number = Date.now,
+  opts: { every?: number } = {},
+): ArenaStore {
   const rounds = new Map<number, Snapshot[]>();
   // one file a round (A123): the timer writes the rounds that changed, never all thirty
   const shards = file ? openShards(file, ".before-rounds", "arena round") : null;
@@ -102,7 +123,15 @@ export function createArenaStore(file?: string, now: () => number = Date.now, op
   if (shards && every > 0) setInterval(save, every).unref();
   return {
     save: (round, pet, team, device, address = "unknown") => {
-      if (!Number.isInteger(round) || round < 0 || round > MAX_ROUND || typeof device !== "string" || device.length < 8 || device.length > 64) return { ok: false, reason: "invalid" };
+      if (
+        !Number.isInteger(round) ||
+        round < 0 ||
+        round > MAX_ROUND ||
+        typeof device !== "string" ||
+        device.length < 8 ||
+        device.length > 64
+      )
+        return { ok: false, reason: "invalid" };
       const v = validSnapshot(pet, team);
       if (!v) return { ok: false, reason: "invalid" };
       const by = tag(device);

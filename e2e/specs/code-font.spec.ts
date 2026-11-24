@@ -9,7 +9,9 @@ for (const look of [
   { lang: "zh", scheme: "dark", size: "phone" },
   { lang: "en", scheme: "light", size: "desktop" },
 ] as const) {
-  test(`the agents page's calls are set in a monospace face (${look.lang}, ${look.scheme}, ${look.size}) (A99)`, async ({ player }) => {
+  test(`the agents page's calls are set in a monospace face (${look.lang}, ${look.scheme}, ${look.size}) (A99)`, async ({
+    player,
+  }) => {
     test.setTimeout(120_000);
     const p = await player({ lang: look.lang, scheme: look.scheme, size: look.size });
     const { page } = p;

@@ -39,7 +39,8 @@ interface World {
   decor: { placed: Array<{ id: string }> };
   wardrobe: { worn: Record<string, Record<string, string | undefined>> };
 }
-const worldOf = (p: Opened) => p.page.evaluate(() => JSON.parse(localStorage.getItem("lingxi.world.v1") ?? "{}") as World);
+const worldOf = (p: Opened) =>
+  p.page.evaluate(() => JSON.parse(localStorage.getItem("lingxi.world.v1") ?? "{}") as World);
 const placedOf = async (p: Opened) => (await worldOf(p)).decor?.placed.length ?? 0;
 
 /**
@@ -49,10 +50,14 @@ const placedOf = async (p: Opened) => (await worldOf(p)).decor?.placed.length ??
 function watchNetwork(p: Opened): string[] {
   const bad: string[] = [];
   const page = p.page;
-  page.on("response", (r) => r.status() >= 400 && !r.url().includes("favicon") && bad.push(`HTTP ${r.status()} ${r.url().slice(0, 120)}`));
+  page.on(
+    "response",
+    (r) => r.status() >= 400 && !r.url().includes("favicon") && bad.push(`HTTP ${r.status()} ${r.url().slice(0, 120)}`),
+  );
   page.on("requestfailed", (r) => {
     const why = r.failure()?.errorText ?? "";
-    if (!why.includes("ERR_ABORTED") && !r.url().includes("favicon")) bad.push(`failed ${r.url().slice(0, 100)} ${why}`);
+    if (!why.includes("ERR_ABORTED") && !r.url().includes("favicon"))
+      bad.push(`failed ${r.url().slice(0, 100)} ${why}`);
   });
   return bad;
 }
@@ -74,7 +79,10 @@ async function openDecorate(p: Opened) {
 async function buyPiece(p: Opened, name: string) {
   const card = await reach(p.page, `.itemshop-card:has-text('${name}')`);
   await card.locator(".btn.primary").click();
-  await expect(p.page.locator(".itemshop-card", { hasText: name }), `${name} is shown in the wallet`).toContainText("In your wallet", { timeout: 180_000 });
+  await expect(p.page.locator(".itemshop-card", { hasText: name }), `${name} is shown in the wallet`).toContainText(
+    "In your wallet",
+    { timeout: 180_000 },
+  );
 }
 
 /** Picks a colour for the pet's name in Extras and confirms it; returns the panel's message. */
@@ -97,7 +105,8 @@ class Visitor {
   ) {
     p.page.on("websocket", (ws) =>
       ws.on("framereceived", (f) => {
-        if (typeof f.payload === "string" && f.payload.startsWith("{")) this.frames.push(JSON.parse(f.payload) as Record<string, unknown>);
+        if (typeof f.payload === "string" && f.payload.startsWith("{"))
+          this.frames.push(JSON.parse(f.payload) as Record<string, unknown>);
       }),
     );
   }
@@ -114,7 +123,8 @@ class Visitor {
       if (f.t === "room") {
         const m = (f.members as Array<{ id: string; colour?: number }>).find((x) => x.id === this.home);
         c = m ? (m.colour ?? 0) : null;
-      } else if (f.t === "joined" && (f.member as { id: string }).id === this.home) c = (f.member as { colour?: number }).colour ?? 0;
+      } else if (f.t === "joined" && (f.member as { id: string }).id === this.home)
+        c = (f.member as { colour?: number }).colour ?? 0;
       else if (f.t === "colour" && f.id === this.home && c !== null) c = (f.colour as number | undefined) ?? 0;
       else if (f.t === "left" && f.id === this.home) c = null;
     }
@@ -131,11 +141,18 @@ test("the shops on the fork, settled on chain, and what a visiting friend sees",
   test.setTimeout(15 * 60_000);
   const fork: Fork = await forkOf(run);
   const me = run.players[0]!.address as Address;
-  const spent = async () => ({ dead: await fork.bemOf(DEAD), mine: await fork.bemOf(me), burned: await fork.extrasBurned() });
+  const spent = async () => ({
+    dead: await fork.bemOf(DEAD),
+    mine: await fork.bemOf(me),
+    burned: await fork.extrasBurned(),
+  });
   /** asserts what one purchase cost: `cost` gone from the wallet, all of it at the dead address */
   const paid = async (before: Awaited<ReturnType<typeof spent>>, cost: bigint, what: string) => {
     const now = await spent();
-    expect([now.dead - before.dead, before.mine - now.mine], `${what}: ${cost} burned, ${cost} from the wallet`).toEqual([cost, cost]);
+    expect(
+      [now.dead - before.dead, before.mine - now.mine],
+      `${what}: ${cost} burned, ${cost} from the wallet`,
+    ).toEqual([cost, cost]);
     return now;
   };
   expect(await fork.packsOf(me), "the player's wallet starts with no extras").toEqual({ room: 0, looks: 0 });
@@ -173,7 +190,9 @@ test("the shops on the fork, settled on chain, and what a visiting friend sees",
       const held0 = await fork.heldOf(me, item);
       const b = await spent();
       const card = page.locator(".itemshop-card", { hasText: name });
-      const left0 = Number((await (await reach(page, `.itemshop-card:has-text('${name}')`)).innerText()).match(/(\d+) of 300 left/)?.[1]);
+      const left0 = Number(
+        (await (await reach(page, `.itemshop-card:has-text('${name}')`)).innerText()).match(/(\d+) of 300 left/)?.[1],
+      );
       expect(left0, `${name}: copies left are shown`).toBeGreaterThan(0);
       await buyPiece(buyer, name);
       expect(await fork.heldOf(me, item), `${name} bought: one copy held`).toBe(held0 + 1n);
@@ -202,7 +221,10 @@ test("the shops on the fork, settled on chain, and what a visiting friend sees",
     await expect(page.locator(".world-toast"), "the room says it is full").toContainText("The room is full");
     const after = await worldOf(buyer);
     expect(after.decor.placed.length, "a thirteenth piece is refused without room space").toBe(12);
-    expect(after.decor.placed.some((x) => x.id === "star-lamp"), "the Star lamp is not placed").toBe(false);
+    expect(
+      after.decor.placed.some((x) => x.id === "star-lamp"),
+      "the Star lamp is not placed",
+    ).toBe(false);
     await expect(page.locator(".decor-bar .decor-count"), "the bar reads 12 of 12").toContainText("12 of 12");
     await page.screenshot({ path: test.info().outputPath("room-full-en-light-phone.png") });
     await page.locator(".decor-bar .btn.primary", { hasText: "Done" }).click();
@@ -222,7 +244,11 @@ test("the shops on the fork, settled on chain, and what a visiting friend sees",
     await openDecorate(buyer);
     await page.locator(".decor-bar .decor-piece", { hasText: "Star lamp" }).click();
     await placeAt(buyer, 13);
-    await expect.poll(async () => (await worldOf(buyer)).decor.placed.some((x) => x.id === "star-lamp"), { message: "the Star lamp is placed as the thirteenth piece" }).toBe(true);
+    await expect
+      .poll(async () => (await worldOf(buyer)).decor.placed.some((x) => x.id === "star-lamp"), {
+        message: "the Star lamp is placed as the thirteenth piece",
+      })
+      .toBe(true);
     expect(await placedOf(buyer)).toBe(13);
     await expect(page.locator(".decor-bar .decor-count"), "the bar reads 13 of 16").toContainText("13 of 16");
     await page.screenshot({ path: test.info().outputPath("room-13-en-light-phone.png") });
@@ -233,7 +259,8 @@ test("the shops on the fork, settled on chain, and what a visiting friend sees",
     await sheet(page, "me");
     await reach(page, ".wd-looks");
     const looks = page.locator(".wd-looks").first();
-    const chip = (slot: string, piece: string) => page.locator(`.wd-slot[aria-label='${slot}'] .wd-chip`, { hasText: piece }).first().click();
+    const chip = (slot: string, piece: string) =>
+      page.locator(`.wd-slot[aria-label='${slot}'] .wd-chip`, { hasText: piece }).first().click();
     const saveLook = async (name: string, count: string) => {
       const form = looks.locator("form.wd-look-edit");
       await form.locator("input").fill(name);
@@ -245,7 +272,9 @@ test("the shops on the fork, settled on chain, and what a visiting friend sees",
     await chip("Face", "Probe visor");
     await saveLook("Crown and visor", "2 of 3");
     await chip("Held", "Wafer wand");
-    await expect(page.locator(".wd-title").first(), "the full Tape-out set gives its title").toContainText("Tape-out engineer");
+    await expect(page.locator(".wd-title").first(), "the full Tape-out set gives its title").toContainText(
+      "Tape-out engineer",
+    );
     await saveLook("Full set", "3 of 3");
     await chip("Head", "None");
     await expect(looks, "a fourth look is refused at the free limit of 3").toContainText("All 3 looks are used");
@@ -263,7 +292,9 @@ test("the shops on the fork, settled on chain, and what a visiting friend sees",
     await saveLook("Lab day", "4 of 6");
     await looks.locator(".wd-look", { hasText: "Crown" }).first().locator(".btn.primary", { hasText: "Wear" }).click();
     await expect
-      .poll(async () => Object.values((await worldOf(buyer)).wardrobe.worn)[0], { message: "wearing a saved look puts the whole outfit on" })
+      .poll(async () => Object.values((await worldOf(buyer)).wardrobe.worn)[0], {
+        message: "wearing a saved look puts the whole outfit on",
+      })
       .toEqual(expect.objectContaining({ head: "nand-crown" }));
     const worn = Object.values((await worldOf(buyer)).wardrobe.worn)[0]!;
     expect([worn.face ?? null, worn.held ?? null], "and nothing else").toEqual([null, null]);
@@ -335,14 +366,20 @@ test("the shops on the fork, settled on chain, and what a visiting friend sees",
     const extras = await reach(page, ".extras");
     await extras.locator(".extras-wallets button", { hasText: "Unlink" }).click();
     await statusNote(page, ".extras", "Unlinked");
-    await v.until((x) => x.colour() === 0 && x.pieces() !== null && !x.pieces()!.includes("star-lamp"), "unlinked: the friend sees no Star lamp and a plain name");
+    await v.until(
+      (x) => x.colour() === 0 && x.pieces() !== null && !x.pieces()!.includes("star-lamp"),
+      "unlinked: the friend sees no Star lamp and a plain name",
+    );
     expect(v.pieces()!.length, "unlinked: the friend sees the twelve game pieces").toBe(12);
     await friend.page.screenshot({ path: test.info().outputPath("visit-unlinked-zh-dark-desktop.png") });
 
     // linked again: both come back
     await (await reach(page, ".extras")).getByRole("button", { name: "Link a wallet" }).click();
     await statusNote(page, ".extras", `Linked ${me.slice(0, 6)}`);
-    await v.until((x) => x.colour() === 5 && (x.pieces() ?? []).includes("star-lamp"), "linked again: the friend sees the Star lamp and Violet again");
+    await v.until(
+      (x) => x.colour() === 5 && (x.pieces() ?? []).includes("star-lamp"),
+      "linked again: the friend sees the Star lamp and Violet again",
+    );
     await friend.page.screenshot({ path: test.info().outputPath("visit-relinked-zh-dark-desktop.png") });
     expect([...friend.errors, ...friendNet], "the friend's pages are clean").toEqual([]);
     await page.keyboard.press("Escape");
@@ -360,20 +397,31 @@ test("the shops on the fork, settled on chain, and what a visiting friend sees",
 
     await dp.goto(`${desk.web}/numbers.html`);
     const row = dp.locator(".nb-row", { hasText: "小额外销毁" });
-    await expect(row.locator(".nb-value"), "the live numbers show what extras burned").toContainText("BEM", { timeout: 90_000 });
+    await expect(row.locator(".nb-value"), "the live numbers show what extras burned").toContainText("BEM", {
+      timeout: 90_000,
+    });
     const burned = await fork.extrasBurned();
     const shown = Number((await row.locator(".nb-value").innerText()).replace(/[^0-9.]/g, ""));
-    expect(shown, `live numbers: burned by extras equals the chain's own total (${Number(burned) / 1e8} BEM)`).toBeCloseTo(Number(burned) / 1e8, 9);
+    expect(
+      shown,
+      `live numbers: burned by extras equals the chain's own total (${Number(burned) / 1e8} BEM)`,
+    ).toBeCloseTo(Number(burned) / 1e8, 9);
     await dp.screenshot({ path: test.info().outputPath("numbers-zh-dark-desktop.png"), fullPage: true });
 
     await dp.goto(`${desk.web}/verify.html#${petId}`);
     await dp.locator(".v-card").first().waitFor({ timeout: 90_000 });
-    await expect(dp.locator("#contracts [role=status]"), "the proof page has asked every contract").not.toContainText("正在询问", { timeout: 90_000 });
+    await expect(dp.locator("#contracts [role=status]"), "the proof page has asked every contract").not.toContainText(
+      "正在询问",
+      { timeout: 90_000 },
+    );
     await dp.locator(".pet-named").first().waitFor({ timeout: 60_000 });
     const named = dp.locator(".pet-named").first();
     await expect(named, "proof page shows the pet's name").toContainText(`#${petId}`);
     await expect(named, "in Violet").toHaveCSS("color", VIOLET_ON_DARK);
-    await expect(dp.locator("#contracts tr", { hasText: "Extras" }), "proof page lists Extras among the contracts").toHaveCount(1);
+    await expect(
+      dp.locator("#contracts tr", { hasText: "Extras" }),
+      "proof page lists Extras among the contracts",
+    ).toHaveCount(1);
     await dp.screenshot({ path: test.info().outputPath("verify-zh-dark-desktop.png") });
 
     await dp.goto(`${desk.web}/tree.html`);
@@ -403,19 +451,33 @@ test("the shops on the fork, settled on chain, and what a visiting friend sees",
     await hatch(fresh, "Bean");
     await sheet(fp, "me");
     const shop = await reach(fp, ".itemshop");
-    await expect(shop.locator(".itemshop-card").first(), "the shelf is read from the chain").not.toContainText("读取中", { timeout: 30_000 });
-    await expect(shop.locator(".fashion-have"), "before a wallet is connected, nothing is shown as held").toHaveCount(0);
+    await expect(shop.locator(".itemshop-card").first(), "the shelf is read from the chain").not.toContainText(
+      "读取中",
+      { timeout: 30_000 },
+    );
+    await expect(shop.locator(".fashion-have"), "before a wallet is connected, nothing is shown as held").toHaveCount(
+      0,
+    );
     // connected through the fashion market's button: the shop reads the wallet's pieces without buying anything
     await (await reach(fp, ".fashion")).getByRole("button", { name: "连接钱包" }).click();
-    await expect(fp.locator(".itemshop .fashion-have"), "the Star lamp and the three outfits are shown as held").toHaveCount(4, { timeout: 60_000 });
-    await (await reach(fp, ".itemshop")).screenshot({ path: test.info().outputPath("shop-connected-zh-dark-desktop.png") });
+    await expect(
+      fp.locator(".itemshop .fashion-have"),
+      "the Star lamp and the three outfits are shown as held",
+    ).toHaveCount(4, { timeout: 60_000 });
+    await (
+      await reach(fp, ".itemshop")
+    ).screenshot({ path: test.info().outputPath("shop-connected-zh-dark-desktop.png") });
     await fp.keyboard.press("Escape");
     await fp.waitForTimeout(600);
     await fp.locator(".room-pill button", { hasText: "布置" }).click();
     await fp.locator(".decor-bar").waitFor();
     await fp.locator(".decor-bar .decor-piece", { hasText: "星星灯" }).click();
     await placeAt(fresh, 0);
-    await expect.poll(async () => (await worldOf(fresh)).decor.placed.some((x) => x.id === "star-lamp"), { message: "the Star lamp the wallet holds is placed in this device's room" }).toBe(true);
+    await expect
+      .poll(async () => (await worldOf(fresh)).decor.placed.some((x) => x.id === "star-lamp"), {
+        message: "the Star lamp the wallet holds is placed in this device's room",
+      })
+      .toBe(true);
     await fp.screenshot({ path: test.info().outputPath("home-connected-zh-dark-desktop.png") });
     expect(freshNet, "the fresh device's requests are clean").toEqual([]);
   });

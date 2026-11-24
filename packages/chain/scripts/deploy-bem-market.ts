@@ -52,11 +52,16 @@ async function main() {
   const file = arg("deployment")!;
   const d = JSON.parse(readFileSync(file, "utf8")) as Deployment;
   const rpc = arg("rpc", d.rpc)!;
-  if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(rpc) && !process.argv.includes("--mainnet-yes")) throw new Error("refusing a non-local node without --mainnet-yes");
+  if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(rpc) && !process.argv.includes("--mainnet-yes"))
+    throw new Error("refusing a non-local node without --mainnet-yes");
   const snap = JSON.parse(readFileSync(arg("snapshot")!, "utf8")) as SnapshotFile;
   // the root is rebuilt here, never taken on trust from the file
-  const root = StandardMerkleTree.of(snap.entries.map((e) => [e[0].toLowerCase(), e[1], e[2]]), ["address", "uint256", "uint256"]).root as Hex;
-  if (root.toLowerCase() !== snap.root.toLowerCase()) throw new Error("the snapshot file's root does not match its entries");
+  const root = StandardMerkleTree.of(
+    snap.entries.map((e) => [e[0].toLowerCase(), e[1], e[2]]),
+    ["address", "uint256", "uint256"],
+  ).root as Hex;
+  if (root.toLowerCase() !== snap.root.toLowerCase())
+    throw new Error("the snapshot file's root does not match its entries");
   const env = Object.fromEntries(
     readFileSync(arg("key-file", resolve(here, "../../../../.secrets/deployer.env"))!, "utf8")
       .split(/\r?\n/)
@@ -67,7 +72,10 @@ async function main() {
   const chain = { ...xLayer, rpcUrls: { default: { http: [rpc] } } };
   const pub = createPublicClient({ chain, transport: http(rpc) });
   const wallet = createWalletClient({ chain, transport: http(rpc), account });
-  const art = (name: string) => JSON.parse(readFileSync(resolve(here, `../../../contracts/out/${name}.sol/${name}.json`), "utf8")) as { bytecode: { object: Hex } };
+  const art = (name: string) =>
+    JSON.parse(readFileSync(resolve(here, `../../../contracts/out/${name}.sol/${name}.json`), "utf8")) as {
+      bytecode: { object: Hex };
+    };
   const before = await pub.getBalance({ address: account.address });
   const wait = async (hash: Hex) => {
     const r = await pub.waitForTransactionReceipt({ hash });
@@ -76,27 +84,62 @@ async function main() {
   };
 
   // 1. the market
-  const mr = await wait(await wallet.deployContract({ abi: outfitMarketV2Abi, bytecode: art("OutfitMarketV2").bytecode.object, args: [account.address, BEM] }));
+  const mr = await wait(
+    await wallet.deployContract({
+      abi: outfitMarketV2Abi,
+      bytecode: art("OutfitMarketV2").bytecode.object,
+      args: [account.address, BEM],
+    }),
+  );
   const market = mr.contractAddress!;
   const m = { v: 2 as const, address: market };
-  const read = <T>(fn: string, args: unknown[] = []) => pub.readContract({ address: market, abi: outfitMarketV2Abi, functionName: fn as never, args: args as never }) as Promise<T>;
-  const [owner, bem, fee, burn] = await Promise.all([read<Address>("owner"), read<Address>("bem"), read<number>("feeBps"), read<Address>("BURN")]);
-  if (!same(owner, account.address) || !same(bem, BEM) || Number(fee) !== 300 || !same(burn, "0x000000000000000000000000000000000000dEaD")) throw new Error("the market does not read back as configured");
+  const read = <T>(fn: string, args: unknown[] = []) =>
+    pub.readContract({
+      address: market,
+      abi: outfitMarketV2Abi,
+      functionName: fn as never,
+      args: args as never,
+    }) as Promise<T>;
+  const [owner, bem, fee, burn] = await Promise.all([
+    read<Address>("owner"),
+    read<Address>("bem"),
+    read<number>("feeBps"),
+    read<Address>("BURN"),
+  ]);
+  if (
+    !same(owner, account.address) ||
+    !same(bem, BEM) ||
+    Number(fee) !== 300 ||
+    !same(burn, "0x000000000000000000000000000000000000dEaD")
+  )
+    throw new Error("the market does not read back as configured");
 
   // 2. the pin, with no primary sale; its pixels must read back exactly
-  const pin = await publishDesign(pub, wallet, m, { pixels: encodeDesign(HOLDER_PIN), name: "TapeOut chip pin", price: 0n, maxSupply: GIFTS + 1, royaltyBps: 500 });
+  const pin = await publishDesign(pub, wallet, m, {
+    pixels: encodeDesign(HOLDER_PIN),
+    name: "TapeOut chip pin",
+    price: 0n,
+    maxSupply: GIFTS + 1,
+    royaltyBps: 500,
+  });
   const back = await readDesign(pub, m, pin.id);
   const cells = decodeDesign(Uint8Array.from(Buffer.from(back.pixels.slice(2), "hex"))).cells;
-  if (JSON.stringify(cells) !== JSON.stringify(HOLDER_PIN.cells) || back.price !== 0n || back.maxSupply !== GIFTS + 1) throw new Error("the pin does not read back as drawn");
+  if (JSON.stringify(cells) !== JSON.stringify(HOLDER_PIN.cells) || back.price !== 0n || back.maxSupply !== GIFTS + 1)
+    throw new Error("the pin does not read back as drawn");
 
   // 3. the gift, committed to the snapshot
   const bemMin = BigInt(snap.bemMin);
   const fabMin = BigInt(snap.fabMin);
   const gr = await wait(
-    await wallet.deployContract({ abi: holderGiftAbi, bytecode: art("HolderGift").bytecode.object, args: [market, pin.id, TEST1, RIG, root, BigInt(snap.block), bemMin, fabMin] }),
+    await wallet.deployContract({
+      abi: holderGiftAbi,
+      bytecode: art("HolderGift").bytecode.object,
+      args: [market, pin.id, TEST1, RIG, root, BigInt(snap.block), bemMin, fabMin],
+    }),
   );
   const gift = gr.contractAddress!;
-  const g = <T>(fn: string) => pub.readContract({ address: gift, abi: holderGiftAbi, functionName: fn as never }) as Promise<T>;
+  const g = <T>(fn: string) =>
+    pub.readContract({ address: gift, abi: holderGiftAbi, functionName: fn as never }) as Promise<T>;
   const [gm, go, gt, gri, groot, gblock, gb, gf] = await Promise.all([
     g<Address>("market"),
     g<bigint>("outfit"),
@@ -107,17 +150,49 @@ async function main() {
     g<bigint>("bemMin"),
     g<bigint>("fabMin"),
   ]);
-  if (!same(gm, market) || go !== pin.id || !same(gt, TEST1) || !same(gri, RIG) || groot.toLowerCase() !== root.toLowerCase() || gblock !== BigInt(snap.block) || gb !== bemMin || gf !== fabMin) {
+  if (
+    !same(gm, market) ||
+    go !== pin.id ||
+    !same(gt, TEST1) ||
+    !same(gri, RIG) ||
+    groot.toLowerCase() !== root.toLowerCase() ||
+    gblock !== BigInt(snap.block) ||
+    gb !== bemMin ||
+    gf !== fabMin
+  ) {
     throw new Error("the gift does not read back as configured");
   }
 
   // 4. the grant
-  await wait(await wallet.writeContract({ address: market, abi: outfitMarketV2Abi, functionName: "setMinter", args: [pin.id, gift, GIFTS] }));
-  if (Number(await read<number>("minterCap", [pin.id, gift])) !== GIFTS) throw new Error("the grant does not read back");
+  await wait(
+    await wallet.writeContract({
+      address: market,
+      abi: outfitMarketV2Abi,
+      functionName: "setMinter",
+      args: [pin.id, gift, GIFTS],
+    }),
+  );
+  if (Number(await read<number>("minterCap", [pin.id, gift])) !== GIFTS)
+    throw new Error("the grant does not read back");
 
-  writeFileSync(file, JSON.stringify({ ...d, outfitMarketV2: market, outfitMarketV2Block: Number(mr.blockNumber), holderGift: gift, holderOutfit: Number(pin.id) }, null, 2) + "\n");
+  writeFileSync(
+    file,
+    JSON.stringify(
+      {
+        ...d,
+        outfitMarketV2: market,
+        outfitMarketV2Block: Number(mr.blockNumber),
+        holderGift: gift,
+        holderOutfit: Number(pin.id),
+      },
+      null,
+      2,
+    ) + "\n",
+  );
   const after = await pub.getBalance({ address: account.address });
-  console.log(`OutfitMarketV2 ${market} (block ${mr.blockNumber}); pin #${pin.id}; HolderGift ${gift} (snapshot block ${snap.block}, ${snap.entries.length} wallets, root ${root}); grant ${GIFTS}; cost ${formatEther(before - after)} OKB`);
+  console.log(
+    `OutfitMarketV2 ${market} (block ${mr.blockNumber}); pin #${pin.id}; HolderGift ${gift} (snapshot block ${snap.block}, ${snap.entries.length} wallets, root ${root}); grant ${GIFTS}; cost ${formatEther(before - after)} OKB`,
+  );
 }
 
 main().catch((e) => (console.error(e), process.exit(1)));

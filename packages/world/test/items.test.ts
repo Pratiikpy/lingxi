@@ -6,7 +6,22 @@ import { CROPS } from "../src/garden";
 import { STORY } from "../src/questline";
 import { DAILIES, WEEKLY_GIFT } from "../src/questline/dailies";
 import { RECIPES, ROOM_SECRETS, TRAVEL_RECIPES } from "../src/world";
-import { BOX_TABLES, ITEM, ROOMS, type WorldState, addBuff, affinitiesOf, familiarGain, forage, give, newWorld, openBox, spendSparBuffs, take, usedOf } from "../src/world";
+import {
+  BOX_TABLES,
+  ITEM,
+  ROOMS,
+  type WorldState,
+  addBuff,
+  affinitiesOf,
+  familiarGain,
+  forage,
+  give,
+  newWorld,
+  openBox,
+  spendSparBuffs,
+  take,
+  usedOf,
+} from "../src/world";
 
 const HOUR = 3_600_000;
 const T0 = Date.UTC(2026, 10, 16, 9);
@@ -41,7 +56,10 @@ describe("boxes open by their own tables (plan 4.5)", () => {
       const got = (seen.get(row.item) ?? 0) / draws;
       // four standard errors of a binomial share: a real bias fails, chance does not
       const se = Math.sqrt((want * (1 - want)) / draws);
-      expect(Math.abs(got - want), `${box}: ${ITEM[row.item]!.name.en} ${got.toFixed(4)} vs ${want.toFixed(4)}`).toBeLessThan(4 * se + 1e-9);
+      expect(
+        Math.abs(got - want),
+        `${box}: ${ITEM[row.item]!.name.en} ${got.toFixed(4)} vs ${want.toFixed(4)}`,
+      ).toBeLessThan(4 * se + 1e-9);
     }
   });
 
@@ -125,7 +143,9 @@ describe("item rules (plan 4.5)", () => {
   });
 
   it("a readied jewel adds one find to the next look around, then is gone", () => {
-    const room = Object.values(ROOMS).find((r) => r.drops.length && r.familiarSize === 0) ?? Object.values(ROOMS).find((r) => r.drops.length)!;
+    const room =
+      Object.values(ROOMS).find((r) => r.drops.length && r.familiarSize === 0) ??
+      Object.values(ROOMS).find((r) => r.drops.length)!;
     const base: WorldState = { ...world("j"), room: room.index };
     const plain = forage(base, T0, 1000);
     const jewelled = forage({ ...base, buffs: { forageExtra: 1 } }, T0, 1000);
@@ -161,13 +181,16 @@ describe("item rules (plan 4.5)", () => {
 });
 
 describe("room familiarity (plan 4.5)", () => {
-  const room = Object.values(ROOMS).find((r) => r.drops.length && r.familiarSize >= 4 && r.affinity.includes("Normal"))!;
+  const room = Object.values(ROOMS).find(
+    (r) => r.drops.length && r.familiarSize >= 4 && r.affinity.includes("Normal"),
+  )!;
 
   it("knows each room's kind and bar size from the sheet", () => {
     expect(room).toBeDefined();
     expect(Object.values(ROOMS).some((r) => r.affinity.length === 2)).toBe(true);
     // every room with finds has a bar of at least two looks
-    for (const r of Object.values(ROOMS)) if (r.drops.length) expect(r.familiarSize, r.name.en).toBeGreaterThanOrEqual(2);
+    for (const r of Object.values(ROOMS))
+      if (r.drops.length) expect(r.familiarSize, r.name.en).toBeGreaterThanOrEqual(2);
   });
 
   it("a gentle pet learns a Normal place twice as fast; a brave pet is at home in eerie ones too", () => {
@@ -217,7 +240,9 @@ describe("every item can be had (plan 4.5 audit)", () => {
     for (const i of Object.values(ROOM_SECRETS)) from.add(i);
     const quests = JSON.stringify([STORY, DAILIES, WEEKLY_GIFT]);
     const crops = JSON.stringify(CROPS);
-    const none = Object.keys(ITEM).map(Number).filter((i) => !from.has(i) && !quests.includes(String(i)) && !crops.includes(String(i)));
+    const none = Object.keys(ITEM)
+      .map(Number)
+      .filter((i) => !from.has(i) && !quests.includes(String(i)) && !crops.includes(String(i)));
     expect(none.map((i) => `${i} ${ITEM[i]!.name.en}`)).toEqual([]);
   });
 

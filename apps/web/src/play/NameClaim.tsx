@@ -9,7 +9,12 @@ import { play } from "../game/sound";
 import { useWorld } from "../game/world";
 import { errorText } from "../game/errorText";
 
-const PROBLEM: Record<string, Key> = { empty: "name.empty", long: "name.long", space: "name.space", chars: "name.chars" };
+const PROBLEM: Record<string, Key> = {
+  empty: "name.empty",
+  long: "name.long",
+  space: "name.space",
+  chars: "name.chars",
+};
 
 export function NameClaim({ pet, record }: { pet: Pet; record: ChainRecord }) {
   const t = useT();
@@ -26,7 +31,15 @@ export function NameClaim({ pet, record }: { pet: Pet; record: ChainRecord }) {
   useEffect(() => {
     if (!deployment?.look) return;
     let live = true;
-    void Promise.all([readName(publicClient, deployment, id), publicClient.readContract({ address: deployment.registry, abi: petRegistryAbi, functionName: "isSettled", args: [id] }) as Promise<boolean>])
+    void Promise.all([
+      readName(publicClient, deployment, id),
+      publicClient.readContract({
+        address: deployment.registry,
+        abi: petRegistryAbi,
+        functionName: "isSettled",
+        args: [id],
+      }) as Promise<boolean>,
+    ])
       .then(([n, s]) => live && (setOnChain(n), setSettled(s)))
       .catch(() => live && setErr(t("chain.failed")));
     return () => {
@@ -58,7 +71,15 @@ export function NameClaim({ pet, record }: { pet: Pet; record: ChainRecord }) {
       play("success");
     } catch (e) {
       const m = errorText(e);
-      setErr(/NameTaken/.test(m) ? t("name.taken", { id: "?" }) : /NotSettled/.test(m) ? t("name.notSettled") : /noWallet/.test(m) ? t("chain.noWallet") : t("chain.failed"));
+      setErr(
+        /NameTaken/.test(m)
+          ? t("name.taken", { id: "?" })
+          : /NotSettled/.test(m)
+            ? t("name.notSettled")
+            : /noWallet/.test(m)
+              ? t("chain.noWallet")
+              : t("chain.failed"),
+      );
     } finally {
       setBusy(false);
     }
@@ -66,7 +87,11 @@ export function NameClaim({ pet, record }: { pet: Pet; record: ChainRecord }) {
   return (
     <div className="keeping">
       <p className="label">{t("name.title")}</p>
-      {onChain ? <p className="small">{t("name.yours", { name: revealHidden(onChain).text })}</p> : <p className="small">{t("name.pitch", { name: pet.name })}</p>}
+      {onChain ? (
+        <p className="small">{t("name.yours", { name: revealHidden(onChain).text })}</p>
+      ) : (
+        <p className="small">{t("name.pitch", { name: pet.name })}</p>
+      )}
       {settled === false ? (
         <p className="small">{t("name.notSettled")}</p>
       ) : (
@@ -82,8 +107,19 @@ export function NameClaim({ pet, record }: { pet: Pet; record: ChainRecord }) {
             {t("name.title")}
           </label>
           <div className="row">
-            <input id="chain-name" className="input" value={name} maxLength={24} onChange={(e) => setName(e.target.value)} autoComplete="off" />
-            <button type="submit" className="btn primary" disabled={busy || settled !== true || !!problem || !!taken || name === onChain}>
+            <input
+              id="chain-name"
+              className="input"
+              value={name}
+              maxLength={24}
+              onChange={(e) => setName(e.target.value)}
+              autoComplete="off"
+            />
+            <button
+              type="submit"
+              className="btn primary"
+              disabled={busy || settled !== true || !!problem || !!taken || name === onChain}
+            >
               {onChain ? t("name.rename") : t("name.claim")}
             </button>
           </div>

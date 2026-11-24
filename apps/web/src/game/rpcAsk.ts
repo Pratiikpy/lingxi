@@ -53,15 +53,27 @@ async function paced(url: string): Promise<void> {
 const RATE_LIMITED = /rate|limit|too many|capacity|busy/i;
 
 /** One JSON-RPC request, tried endpoint by endpoint as described above. */
-export async function proofRequest(ends: Endpoints, call: { method: string; params?: unknown }, opts: { fetcher?: typeof fetch } = {}): Promise<Answer> {
+export async function proofRequest(
+  ends: Endpoints,
+  call: { method: string; params?: unknown },
+  opts: { fetcher?: typeof fetch } = {},
+): Promise<Answer> {
   const fetcher = opts.fetcher ?? fetch;
   const order = [...(ends.mine ? [ends.mine] : []), ...ends.publicRpcs];
-  const tries = [...order.map((url) => ({ url, fallback: false })), ...(ends.fallback ? [{ url: ends.fallback, fallback: true }] : [])];
+  const tries = [
+    ...order.map((url) => ({ url, fallback: false })),
+    ...(ends.fallback ? [{ url: ends.fallback, fallback: true }] : []),
+  ];
   for (const { url, fallback } of tries) {
     if (!opts.fetcher) await paced(url);
     let res: Response;
     try {
-      res = await fetcher(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: call.method, params: call.params ?? [] }), signal: AbortSignal.timeout(TIMEOUT_MS) });
+      res = await fetcher(url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: call.method, params: call.params ?? [] }),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      });
     } catch {
       continue;
     }
@@ -87,19 +99,27 @@ export async function proofRequest(ends: Endpoints, call: { method: string; para
  * takes the whole load, and a burst never meets a node's rate limit (whose reply carries no CORS headers, so the browser
  * reports it as a blocked request).
  */
-export function makeProofClient(chain: Chain, endpointsFor: (n: number) => Endpoints, start: number, answered: (a: Answer) => void, fetcher?: typeof fetch): PublicClient {
+export function makeProofClient(
+  chain: Chain,
+  endpointsFor: (n: number) => Endpoints,
+  start: number,
+  answered: (a: Answer) => void,
+  fetcher?: typeof fetch,
+): PublicClient {
   let asked = start;
   // built, with viem's client half, the first time a verification reads (P3)
-  return lazyPublicClient(({ createPublicClient, custom }) => createPublicClient({
-    chain,
-    batch: { multicall: { wait: 16 } },
-    transport: custom({
-      async request({ method, params }) {
-        const a = await proofRequest(endpointsFor(asked++), { method, params }, fetcher ? { fetcher } : {});
-        answered(a);
-        return a.result;
-      },
-    }),
-  }) as PublicClient);
+  return lazyPublicClient(
+    ({ createPublicClient, custom }) =>
+      createPublicClient({
+        chain,
+        batch: { multicall: { wait: 16 } },
+        transport: custom({
+          async request({ method, params }) {
+            const a = await proofRequest(endpointsFor(asked++), { method, params }, fetcher ? { fetcher } : {});
+            answered(a);
+            return a.result;
+          },
+        }),
+      }) as PublicClient,
+  );
 }
-

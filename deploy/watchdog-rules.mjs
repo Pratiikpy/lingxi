@@ -31,12 +31,15 @@ export function decide(w, beat, now) {
   const localOk = beat.local === true;
   const localFails = localOk ? 0 : w.localFails + 1;
   // whether every missed beat of the current streak was only slow
-  const localSlowOnly = localOk ? true : (w.localFails === 0 ? true : (w.localSlowOnly ?? true)) && beat.local === "slow";
+  const localSlowOnly = localOk
+    ? true
+    : (w.localFails === 0 ? true : (w.localSlowOnly ?? true)) && beat.local === "slow";
   const publicFails = beat.public ? 0 : w.publicFails + 1;
   const next = { localFails, localSlowOnly, publicFails, quietUntil: w.quietUntil };
   if (now < w.quietUntil) return { watch: next, action: null };
   const acted = { localFails: 0, localSlowOnly: true, publicFails: 0, quietUntil: now + QUIET_MS };
-  if (localFails >= (localSlowOnly ? SLOW_FAILS_TO_ACT : FAILS_TO_ACT)) return { watch: acted, action: "restart-server" };
+  if (localFails >= (localSlowOnly ? SLOW_FAILS_TO_ACT : FAILS_TO_ACT))
+    return { watch: acted, action: "restart-server" };
   if (localOk && publicFails >= FAILS_TO_ACT) return { watch: acted, action: "restart-tunnel" };
   return { watch: next, action: null };
 }

@@ -17,7 +17,13 @@ import { hasStore, readStore, saveJson } from "./durable";
 
 export type ReminderKind = "hungry" | "bored" | "dirty" | "sick";
 
-const PUSH_HOSTS = [/^fcm\.googleapis\.com$/, /^updates\.push\.services\.mozilla\.com$/, /(^|\.)push\.apple\.com$/, /(^|\.)notify\.windows\.com$/, /^android\.googleapis\.com$/];
+const PUSH_HOSTS = [
+  /^fcm\.googleapis\.com$/,
+  /^updates\.push\.services\.mozilla\.com$/,
+  /(^|\.)push\.apple\.com$/,
+  /(^|\.)notify\.windows\.com$/,
+  /^android\.googleapis\.com$/,
+];
 const MAX_SUBS = 20_000;
 /** Subscriptions one address may hold (its devices); an IPv6 /48 holds four addresses' worth (A83). */
 export const MAX_DEVICES_PER_ADDRESS = 8;
@@ -45,7 +51,8 @@ interface Entry {
   net?: string;
 }
 
-const plannerOf = (e: Entry): Coded[] => (e.by === undefined ? [] : [e.net !== undefined ? { by: e.by, net: e.net } : { by: e.by }]);
+const plannerOf = (e: Entry): Coded[] =>
+  e.by === undefined ? [] : [e.net !== undefined ? { by: e.by, net: e.net } : { by: e.by }];
 
 export const isPushEndpoint = (url: string): boolean => {
   try {
@@ -98,7 +105,13 @@ export interface Pusher {
 
 type Send = (sub: Plan["subscription"], payload: string) => Promise<{ gone: boolean }>;
 
-export function createPusher(opts: { publicKey: string; privateKey: string; subject: string; store?: string; send?: Send }): Pusher {
+export function createPusher(opts: {
+  publicKey: string;
+  privateKey: string;
+  subject: string;
+  store?: string;
+  send?: Send;
+}): Pusher {
   const subs = new Map<string, Entry>();
   /**
    * When each subscription let go for having nothing left to send was last sent to (A83), kept for the gap between
@@ -144,7 +157,11 @@ export function createPusher(opts: { publicKey: string; privateKey: string; subj
     opts.send ??
     (async (sub, payload) => {
       try {
-        await webpush.sendNotification(sub, payload, { vapidDetails: { subject: opts.subject, publicKey: opts.publicKey, privateKey: opts.privateKey }, TTL: 6 * 3600, urgency: "normal" });
+        await webpush.sendNotification(sub, payload, {
+          vapidDetails: { subject: opts.subject, publicKey: opts.publicKey, privateKey: opts.privateKey },
+          TTL: 6 * 3600,
+          urgency: "normal",
+        });
         return { gone: false };
       } catch (e) {
         const code = (e as { statusCode?: number }).statusCode;
@@ -161,7 +178,8 @@ export function createPusher(opts: { publicKey: string; privateKey: string; subj
       const prev = subs.get(endpoint);
       if (!prev && subs.size >= MAX_SUBS) return { ok: false, reason: "full" };
       const who = from !== undefined ? codeOf(from) : undefined;
-      if (!prev && who && heldOverCoded([...subs.values()].flatMap(plannerOf), who, MAX_DEVICES_PER_ADDRESS)) return { ok: false, reason: "tooMany" };
+      if (!prev && who && heldOverCoded([...subs.values()].flatMap(plannerOf), who, MAX_DEVICES_PER_ADDRESS))
+        return { ok: false, reason: "tooMany" };
       const reminders = p.reminders
         .filter((r) => r.at >= now - 60_000 && r.at <= now + HORIZON_MS)
         .map((r) => ({ kind: r.kind, at: outOfQuietHours(Math.max(r.at, now), p.tz) }))
@@ -171,7 +189,20 @@ export function createPusher(opts: { publicKey: string; privateKey: string; subj
       if (reminders.length === 0) {
         if (prev) subs.delete(endpoint);
         rememberSent(endpoint, lastSent, now);
-      } else subs.set(endpoint, { sub: p.subscription, lang: p.lang, name: p.name, tz: p.tz, reminders, lastSent, ...(who ? { by: who.by, ...(who.net !== undefined ? { net: who.net } : {}) } : prev?.by ? { by: prev.by, ...(prev.net !== undefined ? { net: prev.net } : {}) } : {}) });
+      } else
+        subs.set(endpoint, {
+          sub: p.subscription,
+          lang: p.lang,
+          name: p.name,
+          tz: p.tz,
+          reminders,
+          lastSent,
+          ...(who
+            ? { by: who.by, ...(who.net !== undefined ? { net: who.net } : {}) }
+            : prev?.by
+              ? { by: prev.by, ...(prev.net !== undefined ? { net: prev.net } : {}) }
+              : {}),
+        });
       save();
       return { ok: true };
     },

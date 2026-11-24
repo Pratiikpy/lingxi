@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { LEASE_MS, LOCK_NAME, type LockApi, RENEW_MS, STAMP_KEY, WATCH_MS, createWriter, heldElsewhere } from "./writer";
+import {
+  LEASE_MS,
+  LOCK_NAME,
+  type LockApi,
+  RENEW_MS,
+  STAMP_KEY,
+  WATCH_MS,
+  createWriter,
+  heldElsewhere,
+} from "./writer";
 import { memoryStorage } from "./testStorage";
 
 /** The browser's lock manager, in memory: one holder; `ifAvailable` gets null when held; `steal` takes it over. */
@@ -15,13 +24,10 @@ function memoryLocks(): LockApi {
         }
         const me = { reject };
         holder = me;
-        Promise.resolve(callback({ name: "lingxi-writer" })).then(
-          (v) => {
-            if (holder === me) holder = null;
-            resolve(v);
-          },
-          reject,
-        );
+        Promise.resolve(callback({ name: "lingxi-writer" })).then((v) => {
+          if (holder === me) holder = null;
+          resolve(v);
+        }, reject);
       });
     },
   };
@@ -88,7 +94,15 @@ describe("one writer across tabs, without Web Locks (a lease in storage)", () =>
     const told = new Set<(key: string) => void>();
     const watch = (fn: (key: string) => void) => (told.add(fn), () => void told.delete(fn));
     const said: boolean[] = [];
-    const a = createWriter({ storage, now: () => 0, every: () => () => undefined, wait: async () => undefined, id: "a", watch, onChange: (w) => said.push(w) });
+    const a = createWriter({
+      storage,
+      now: () => 0,
+      every: () => () => undefined,
+      wait: async () => undefined,
+      id: "a",
+      watch,
+      onChange: (w) => said.push(w),
+    });
     const b = open("b");
     expect(await a.acquire()).toBe(true);
     expect(told.size, "the first tab listens while it holds the game").toBe(1);

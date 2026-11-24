@@ -1,0 +1,19 @@
+# generated or vendored: written by tools, never by hand
+node_modules
+dist
+dist-test
+dist-next
+**/site
+**/coverage
+contracts/lib
+contracts/out
+contracts/cache
+apps/web/public
+.claude
+# formatted by their own tools, or checked byte for byte (the pages' share-card tags)
+*.md
+*.json
+*.html
+*.yml
+*.yaml
+dist-deweb

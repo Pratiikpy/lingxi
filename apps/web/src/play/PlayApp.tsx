@@ -5,7 +5,16 @@ import { Suspense, lazy, useCallback, useEffect, useEffectEvent, useMemo, useSta
 import { useReducedMotion } from "motion/react";
 import { NIGHT, boundingBox, drawPet } from "@lingxi/art";
 import { STARTERS } from "@lingxi/brain";
-import { type Pet, visitorsNow, friendPartner, petCard, stageOf, strongestHabit, visibleMeters, bondLevel } from "@lingxi/game";
+import {
+  type Pet,
+  visitorsNow,
+  friendPartner,
+  petCard,
+  stageOf,
+  strongestHabit,
+  visibleMeters,
+  bondLevel,
+} from "@lingxi/game";
 import { type Key, useT, useLang } from "../i18n";
 import { usePageMeta } from "../i18n/pageMeta";
 import { decidingPart, useGame } from "../game/store";
@@ -46,7 +55,19 @@ import { questsOf, useQuestStatuses, useQuestUi } from "../game/quests";
 import { useWorld } from "../game/world";
 import { recordOf, useChain } from "../game/chain";
 import { liveAvailable, playerId, useLive, visitingFrom } from "../game/live";
-import { type Action, CHARACTERS, CHARACTER_IN_ROOM, FRIEND_BY_ID, HOME, INDOOR_ROOMS, ROOMS, decorOf, neighbours, openSteps, visitorOf } from "@lingxi/world";
+import {
+  type Action,
+  CHARACTERS,
+  CHARACTER_IN_ROOM,
+  FRIEND_BY_ID,
+  HOME,
+  INDOOR_ROOMS,
+  ROOMS,
+  decorOf,
+  neighbours,
+  openSteps,
+  visitorOf,
+} from "@lingxi/world";
 // Talk is loaded on first use (P3); its styles still load with the game, in their place (P3a)
 import "./talk.css";
 import "./neighbours.css";
@@ -163,7 +184,16 @@ const KIN_HELLO: Record<string, number> = {};
 function trialPet(pet: Pet, trial: Trial & { lesson: Rule }): Pet {
   const { instinct: _instinct, half: _half, ...last } = pet.last;
   const time = trial.senses.time;
-  return { ...pet, last: { ...last, want: trial.want, mood: trial.mood, rule: trial.rule, ...(pet.family ? { half: time === 1 || time === 2 ? (0 as const) : (1 as const) } : {}) } };
+  return {
+    ...pet,
+    last: {
+      ...last,
+      want: trial.want,
+      mood: trial.mood,
+      rule: trial.rule,
+      ...(pet.family ? { half: time === 1 || time === 2 ? (0 as const) : (1 as const) } : {}),
+    },
+  };
 }
 
 export function PlayApp() {
@@ -176,9 +206,19 @@ export function PlayApp() {
   const trial = useTrial((s) => s.trial);
   // G1: what the room shows: a lesson being tried brings its own moment; otherwise the living room's last event
   const roomEvent = useGame((s) => s.roomEvent);
-  const roomEventProps = trial ? { event: trial.senses.event, eventAt: trial.shownAt } : roomEvent ? { event: roomEvent.event, eventAt: roomEvent.at } : {};
+  const roomEventProps = trial
+    ? { event: trial.senses.event, eventAt: trial.shownAt }
+    : roomEvent
+      ? { event: roomEvent.event, eventAt: roomEvent.at }
+      : {};
   // and the room comes back to show it, whatever sheet the lesson was taught from
-  useEffect(() => useTrial.subscribe((s, prev) => ((s.trial && s.trial !== prev.trial) || s.watching !== prev.watching) && setTab("home")), []);
+  useEffect(
+    () =>
+      useTrial.subscribe(
+        (s, prev) => ((s.trial && s.trial !== prev.trial) || s.watching !== prev.watching) && setTab("home"),
+      ),
+    [],
+  );
   // pet letters (H13): friends' addresses from the room, and the inbox read while the game is open
   useEffect(() => watchLetters(), []);
   // P3: the panels' code arrives in idle moments once the game is up, so a tap opens them at once
@@ -201,7 +241,10 @@ export function PlayApp() {
     if (found.length)
       setWorldMsg({
         id: `births:${found.map((f) => f.child.bornAt).join(",")}`,
-        text: lang === "zh" ? `${found.map((f) => f.child.name).join("、")}在 X Layer 上出生了，已经回到你的宠物里。` : `${found.map((f) => f.child.name).join(" and ")} was born on X Layer and has joined your pets.`,
+        text:
+          lang === "zh"
+            ? `${found.map((f) => f.child.name).join("、")}在 X Layer 上出生了，已经回到你的宠物里。`
+            : `${found.map((f) => f.child.name).join(" and ")} was born on X Layer and has joined your pets.`,
         ms: 6000,
       });
   });
@@ -224,18 +267,26 @@ export function PlayApp() {
   }, [placedDecor]);
   // the server didn't keep our decorations: say so, since visitors will not see them
   // shown once per refusal, in the language of that moment
-  const sayDecorRefused = useEffectEvent((refused: NonNullable<ReturnType<typeof useLive.getState>["decorRefused"]>) => {
-    const text =
-      refused.reason === "tooMany"
-        ? lang === "zh"
-          ? "访客明天才能看到你的新布置：这个网络地址今天开的新家够多了。"
-          : "Visitors will see your new decorations from tomorrow: this address has started enough new homes today."
-        : lang === "zh"
-          ? "访客暂时看不到你的布置，下次改动时会再发送。"
-          : "Visitors can't see your decorations for now; they'll be sent again on your next change.";
-    setWorldMsg({ id: Math.round(refused.at), text, ms: 6000 });
-  });
-  useEffect(() => useLive.subscribe((s, before) => s.decorRefused && s.decorRefused !== before.decorRefused && sayDecorRefused(s.decorRefused)), []);
+  const sayDecorRefused = useEffectEvent(
+    (refused: NonNullable<ReturnType<typeof useLive.getState>["decorRefused"]>) => {
+      const text =
+        refused.reason === "tooMany"
+          ? lang === "zh"
+            ? "访客明天才能看到你的新布置：这个网络地址今天开的新家够多了。"
+            : "Visitors will see your new decorations from tomorrow: this address has started enough new homes today."
+          : lang === "zh"
+            ? "访客暂时看不到你的布置，下次改动时会再发送。"
+            : "Visitors can't see your decorations for now; they'll be sent again on your next change.";
+      setWorldMsg({ id: Math.round(refused.at), text, ms: 6000 });
+    },
+  );
+  useEffect(
+    () =>
+      useLive.subscribe(
+        (s, before) => s.decorRefused && s.decorRefused !== before.decorRefused && sayDecorRefused(s.decorRefused),
+      ),
+    [],
+  );
   const worldMove = useWorld((s) => s.move);
   const worldForage = useWorld((s) => s.forage);
   const familiar = useWorld((s) => s.world.familiar);
@@ -245,7 +296,12 @@ export function PlayApp() {
   useEffect(() => {
     void syncChainPieces();
     void syncPacks();
-    void loadColours(useGame.getState().pets.map((p) => recordOf(p)?.petId ?? "").filter(Boolean));
+    void loadColours(
+      useGame
+        .getState()
+        .pets.map((p) => recordOf(p)?.petId ?? "")
+        .filter(Boolean),
+    );
   }, []);
   // the pet says something when its circuit makes a new decision
   const decision = pet ? `${pet.last.rule}|${pet.asleep}|${Boolean(pet.sick)}` : "";
@@ -297,7 +353,17 @@ export function PlayApp() {
   // what the room sounds like: rain outdoors on a rainy day, else birds by day and crickets at night
   const outdoors = !INDOOR_ROOMS.has(worldRoom);
   useEffect(() => {
-    setAmbience(outdoors && weatherFor(new Date(now())) === "rain" ? "rain" : !outdoors ? "quiet" : phase === "night" ? "crickets" : phase === "day" ? "birds" : "quiet");
+    setAmbience(
+      outdoors && weatherFor(new Date(now())) === "rain"
+        ? "rain"
+        : !outdoors
+          ? "quiet"
+          : phase === "night"
+            ? "crickets"
+            : phase === "day"
+              ? "birds"
+              : "quiet",
+    );
     return () => setAmbience("quiet");
   }, [outdoors, phase]);
   // over the resident's head: a quest to hand in, or one to offer
@@ -321,7 +387,13 @@ export function PlayApp() {
     const q = questsOf(who.id, questStatuses);
     const friend = FRIEND_BY_ID[who.id];
     // quests first; then a visitor waiting, or a friendship step open
-    return q.ready.length ? "✓" : q.offer.length ? "!" : who === visitor || (friend && openSteps(worldState, friend).length) ? "★" : null;
+    return q.ready.length
+      ? "✓"
+      : q.offer.length
+        ? "!"
+        : who === visitor || (friend && openSteps(worldState, friend).length)
+          ? "★"
+          : null;
   }, [who, questStatuses, visitor, worldState]);
   const [npcFace, setNpcFace] = useState<string | null>(null);
   // leaving a room ends a conversation in it
@@ -349,9 +421,19 @@ export function PlayApp() {
   const friendsAll = useFriends((s) => s.all);
   const sayLevelUp = useEffectEvent((up: NonNullable<ReturnType<typeof useFriends.getState>["levelUp"]>) => {
     play("success");
-    setWorldMsg({ id: up.at, text: lang === "zh" ? `${useGame.getState().pet?.name ?? ""}和${up.name}成了${bondName(up.level, "zh")}！` : `${useGame.getState().pet?.name ?? "Your pet"} and ${up.name} are now ${bondName(up.level, "en").toLowerCase()}!`, ms: 4500 });
+    setWorldMsg({
+      id: up.at,
+      text:
+        lang === "zh"
+          ? `${useGame.getState().pet?.name ?? ""}和${up.name}成了${bondName(up.level, "zh")}！`
+          : `${useGame.getState().pet?.name ?? "Your pet"} and ${up.name} are now ${bondName(up.level, "en").toLowerCase()}!`,
+      ms: 4500,
+    });
   });
-  useEffect(() => useFriends.subscribe((s, before) => s.levelUp && s.levelUp !== before.levelUp && sayLevelUp(s.levelUp)), []);
+  useEffect(
+    () => useFriends.subscribe((s, before) => s.levelUp && s.levelUp !== before.levelUp && sayLevelUp(s.levelUp)),
+    [],
+  );
   // ten minutes in the same room together is a moment shared with each pet there
   useEffect(() => {
     const id = setInterval(() => {
@@ -361,7 +443,9 @@ export function PlayApp() {
   }, [meet]);
   const petCount = useGame((s) => s.pets.length);
   const [picked, setPicked] = useState<string | null>(null);
-  const pickedBuilder = picked?.startsWith("builder:") ? (BUILDER_PETS.find((x) => `builder:${x.id}` === picked) ?? null) : null;
+  const pickedBuilder = picked?.startsWith("builder:")
+    ? (BUILDER_PETS.find((x) => `builder:${x.id}` === picked) ?? null)
+    : null;
   // a resident says hello when the room is entered
   const [residentSaid, setResidentSaid] = useState(() => performance.now() + 600);
   useEffect(
@@ -380,13 +464,25 @@ export function PlayApp() {
   const takeCard = useEffectEvent((card: NonNullable<ReturnType<typeof useLive.getState>["card"]>) => {
     const partner = friendPartner(card);
     const p = useGame.getState().pet;
-    if (!partner || !p) return setWorldMsg({ id: Math.round(card.at), text: lang === "zh" ? "没法和这只宠物切磋" : "Can't spar with that pet", ms: 3500 });
+    if (!partner || !p)
+      return setWorldMsg({
+        id: Math.round(card.at),
+        text: lang === "zh" ? "没法和这只宠物切磋" : "Can't spar with that pet",
+        ms: 3500,
+      });
     startFight(p, partner);
     setTab("spar");
   });
   useEffect(() => useLive.subscribe((s, before) => s.card && s.card !== before.card && takeCard(s.card)), []);
   const saySparred = useEffectEvent((by: NonNullable<ReturnType<typeof useLive.getState>["asked"]>) =>
-    setWorldMsg({ id: Math.round(by.at), text: lang === "zh" ? `${by.name}和${useGame.getState().pet?.name ?? ""}切磋了一场` : `${by.name} sparred with ${useGame.getState().pet?.name ?? "your pet"}`, ms: 4000 }),
+    setWorldMsg({
+      id: Math.round(by.at),
+      text:
+        lang === "zh"
+          ? `${by.name}和${useGame.getState().pet?.name ?? ""}切磋了一场`
+          : `${by.name} sparred with ${useGame.getState().pet?.name ?? "your pet"}`,
+      ms: 4000,
+    }),
   );
   useEffect(() => useLive.subscribe((s, before) => s.asked && s.asked !== before.asked && saySparred(s.asked)), []);
   const space = worldRoom === HOME ? `home:${visiting ?? playerId()}` : `room:${worldRoom}`;
@@ -401,7 +497,16 @@ export function PlayApp() {
   useEffect(() => {
     const p = useGame.getState().pet;
     if (!p || !liveAvailable()) return;
-    liveConnect({ name: p.name, line: p.line, stage: stageOf(p, now()), mood: p.last.mood, ...(chainPetId ? { petId: chainPetId } : {}) }, space);
+    liveConnect(
+      {
+        name: p.name,
+        line: p.line,
+        stage: stageOf(p, now()),
+        mood: p.last.mood,
+        ...(chainPetId ? { petId: chainPetId } : {}),
+      },
+      space,
+    );
   }, [space, liveConnect, petName, chainPetId]);
   const mood = pet?.last.mood;
   useEffect(() => {
@@ -421,10 +526,18 @@ export function PlayApp() {
     const v = verbs[incoming.kind];
     if (!v || !who) return;
     const from = others[incoming.from];
-    if (from) meet(from.id, { name: from.name, line: from.line }, incoming.kind === "heart" ? "heart" : incoming.kind === "gift" ? "gift" : "wave");
+    if (from)
+      meet(
+        from.id,
+        { name: from.name, line: from.line },
+        incoming.kind === "heart" ? "heart" : incoming.kind === "gift" ? "gift" : "wave",
+      );
     setWorldMsg({ id: Math.round(incoming.at), text: lang === "zh" ? `${who}${v[1]}` : `${who} ${v[0]}`, ms: 3500 });
   });
-  useEffect(() => useLive.subscribe((s, before) => s.incoming && s.incoming !== before.incoming && answerEmote(s.incoming)), []);
+  useEffect(
+    () => useLive.subscribe((s, before) => s.incoming && s.incoming !== before.incoming && answerEmote(s.incoming)),
+    [],
+  );
 
   // the page's language, title and description, in the reader's language (A111)
   usePageMeta("play");
@@ -475,16 +588,28 @@ export function PlayApp() {
   const stage = pet ? drawnStage(stageOf(pet, now())) : "baby";
   const petLine = pet?.line;
   const petForm = pet?.form;
-  const face = useMemo(() => (petLine ? drawPet(petLine, stage, { expression: "happy", ...(petForm ? { form: petForm } : {}) }) : null), [petLine, stage, petForm]);
+  const face = useMemo(
+    () => (petLine ? drawPet(petLine, stage, { expression: "happy", ...(petForm ? { form: petForm } : {}) }) : null),
+    [petLine, stage, petForm],
+  );
 
   // say so when a relative arrives (once per visit); the visitors themselves are drawn in the room
-  const kinArrivals = pet && worldRoom === HOME && !visiting ? visitorsNow(pet, roster, hourNow).map((k) => k.pet.name).join(", ") : "";
+  const kinArrivals =
+    pet && worldRoom === HOME && !visiting
+      ? visitorsNow(pet, roster, hourNow)
+          .map((k) => k.pet.name)
+          .join(", ")
+      : "";
   // once per hour and set of visitors, whatever else changes
   const kinVisit = kinArrivals && pet ? `${hourNow}:${pet.bornAt}:${kinArrivals}` : "";
   const [kinSeen, setKinSeen] = useState<ReadonlySet<string>>(() => new Set());
   if (kinVisit && pet && !kinSeen.has(kinVisit)) {
     setKinSeen(new Set(kinSeen).add(kinVisit));
-    setWorldMsg({ id: kinVisit, text: lang === "zh" ? `${kinArrivals}来看${pet.name}了。` : `${kinArrivals} dropped by to see ${pet.name}.`, ms: 4500 });
+    setWorldMsg({
+      id: kinVisit,
+      text: lang === "zh" ? `${kinArrivals}来看${pet.name}了。` : `${kinArrivals} dropped by to see ${pet.name}.`,
+      ms: 4500,
+    });
   }
 
   // S11: inside Telegram, its back button closes whichever sheet is open
@@ -522,7 +647,7 @@ export function PlayApp() {
         <FarewellNote />
         <HandheldReturn />
         <SaveBanner onSaveFile={() => useSaveFileUi.getState().show()} />
-      <OfflineNote />
+        <OfflineNote />
         <SaveFileSheet here={[]} />
         <MoveNotes />
         <ElsewhereOverlay />
@@ -542,10 +667,16 @@ export function PlayApp() {
   };
   // a quest taken that points at a part opens it, so no quest sends the player to a lock (H5)
   const questOpened = openedByQuests(questStatuses);
-  const lockedTabs = (["map", "bag", "spar"] as const).filter((x) => !isOpen(x, pet, revealAll, undefined, questOpened));
+  const lockedTabs = (["map", "bag", "spar"] as const).filter(
+    (x) => !isOpen(x, pet, revealAll, undefined, questOpened),
+  );
   /** `force` opens a tab even before its day, for flows the player chose (accepting a friend's challenge) */
   // relatives on this device drop by the home now and then (PRD G3)
-  const KIN_WORD = { parent: { en: "parent", zh: "爸爸妈妈" }, child: { en: "little one", zh: "孩子" }, sibling: { en: "sibling", zh: "兄弟姐妹" } } as const;
+  const KIN_WORD = {
+    parent: { en: "parent", zh: "爸爸妈妈" },
+    child: { en: "little one", zh: "孩子" },
+    sibling: { en: "sibling", zh: "兄弟姐妹" },
+  } as const;
   const kinVisitors =
     worldRoom === HOME && !visiting
       ? visitorsNow(pet, roster, hourNow).map((k, i) => ({
@@ -554,9 +685,15 @@ export function PlayApp() {
           line: k.pet.line,
           stage: stageOf(k.pet, now()),
           mood: 2,
-          who: lang === "zh" ? `${pet.name}的${KIN_WORD[k.kin].zh}，从你的宠物里过来串门。` : `${pet.name}'s ${KIN_WORD[k.kin].en}, dropping by from your other pets.`,
+          who:
+            lang === "zh"
+              ? `${pet.name}的${KIN_WORD[k.kin].zh}，从你的宠物里过来串门。`
+              : `${pet.name}'s ${KIN_WORD[k.kin].en}, dropping by from your other pets.`,
           // a hello when they arrive this hour
-          say: { text: lang === "zh" ? `来看看${pet.name}！` : `Came to see ${pet.name}!`, at: (KIN_HELLO[`${hourNow}:${k.pet.bornAt}`] ??= performance.now() + i * 400) },
+          say: {
+            text: lang === "zh" ? `来看看${pet.name}！` : `Came to see ${pet.name}!`,
+            at: (KIN_HELLO[`${hourNow}:${k.pet.bornAt}`] ??= performance.now() + i * 400),
+          },
         }))
       : [];
   // Flit's story (quests 42 and 43): at night something shy watches from the Butterfly Forest's trees; once it is a
@@ -566,11 +703,19 @@ export function PlayApp() {
     worldRoom === BUTTERFLY_FOREST && phase === "night" && !visiting && forestFlags.includes("shy-visitor")
       ? {
           id: "shy:one",
-          name: forestFlags.includes("shy-friend") ? SHY_ONE.name[lang] : lang === "zh" ? "某个害羞的家伙" : "Something shy",
+          name: forestFlags.includes("shy-friend")
+            ? SHY_ONE.name[lang]
+            : lang === "zh"
+              ? "某个害羞的家伙"
+              : "Something shy",
           line: SHY_ONE.look.line,
           stage: SHY_ONE.look.stage,
           mood: forestFlags.includes("shy-friend") ? 2 : 0,
-          look: { palette: { key: "night", colors: NIGHT }, outfitAt: () => ({}), x: forestFlags.includes("shy-friend") ? 42 : 18 },
+          look: {
+            palette: { key: "night", colors: NIGHT },
+            outfitAt: () => ({}),
+            x: forestFlags.includes("shy-friend") ? 42 : 18,
+          },
         }
       : null;
   // R2: a builder's pet lives in this room
@@ -586,7 +731,16 @@ export function PlayApp() {
 
   return (
     <div className="app">
-      <TopBar pet={pet} daily={daily} face={face && <FaceSprite canvas={face} line={pet.line} />} onQuests={() => pick("quests")} onPets={() => pick("pets")} petCount={petCount} onMail={() => pick("mail")} unread={unread} />
+      <TopBar
+        pet={pet}
+        daily={daily}
+        face={face && <FaceSprite canvas={face} line={pet.line} />}
+        onQuests={() => pick("quests")}
+        onPets={() => pick("pets")}
+        petCount={petCount}
+        onMail={() => pick("mail")}
+        unread={unread}
+      />
       {/* P5: the room's main landmark (the top bar is its header, the tab bar its navigation) */}
       <main className="main">
         <section className="stage" aria-label={pet.name} data-hint="pet">
@@ -603,14 +757,26 @@ export function PlayApp() {
               habit={strongestHabit(pet.traits)}
               mood={trial ? trial.mood : pet.last.mood}
               {...roomEventProps}
-              taught={trial ? trial.fired : !pet.last.instinct && ruleKindOf(pet, decidingPart(pet).program, pet.last.rule) === "taught"}
+              taught={
+                trial
+                  ? trial.fired
+                  : !pet.last.instinct && ruleKindOf(pet, decidingPart(pet).program, pet.last.rule) === "taught"
+              }
               phase={phase}
               lastCare={lastCare}
               clean={visibleMeters(pet).clean}
               food={visibleMeters(pet).food}
               outdoors={!INDOOR_ROOMS.has(worldRoom)}
               covered={tab !== "home"}
-              decor={worldRoom !== HOME ? [] : !visiting ? decorOf(worldFull).placed : homeDecor?.owner === visiting ? homeDecor.placed : []}
+              decor={
+                worldRoom !== HOME
+                  ? []
+                  : !visiting
+                    ? decorOf(worldFull).placed
+                    : homeDecor?.owner === visiting
+                      ? homeDecor.placed
+                      : []
+              }
               decorating={decorating !== null && worldRoom === HOME && !visiting}
               onPlace={(x, y) => {
                 // a piece put down leaves the player's hand, and the bar opens again for the next (P3a)
@@ -623,7 +789,12 @@ export function PlayApp() {
               onPetTap={onPetTap}
               reduceMotion={reduce}
               bgs={worldRoom === HOME && rigSkin && !visiting ? RIG_HOME_BGS : room.bgs}
-              others={[...Object.values(others), ...kinVisitors, ...(shyOne ? [shyOne] : []), ...(resident ? [builderInScene(resident, lang, residentSaid)] : [])]}
+              others={[
+                ...Object.values(others),
+                ...kinVisitors,
+                ...(shyOne ? [shyOne] : []),
+                ...(resident ? [builderInScene(resident, lang, residentSaid)] : []),
+              ]}
               onOtherTap={(id) => (play("tap"), setPicked(id))}
               npc={who ? (talking && npcFace ? npcFace : who.stand) : null}
               npcMark={npcMark}
@@ -669,16 +840,30 @@ export function PlayApp() {
             )}
           </div>
           {decorating !== null && worldRoom === HOME && (
-            <DecorBar selected={decorating || null} onSelect={(id) => setDecorating(id ?? "")} onDone={() => setDecorating(null)} />
+            <DecorBar
+              selected={decorating || null}
+              onSelect={(id) => setDecorating(id ?? "")}
+              onDone={() => setDecorating(null)}
+            />
           )}
           {circuit && <CircuitOverlay pet={pet} reduceMotion={reduce} />}
-          <button type="button" className="circuit-btn" aria-pressed={circuit} aria-label={lang === "zh" ? "看它的电路" : "See its circuit"} onClick={() => (play("tap"), setCircuit((v) => !v))}>
+          <button
+            type="button"
+            className="circuit-btn"
+            aria-pressed={circuit}
+            aria-label={lang === "zh" ? "看它的电路" : "See its circuit"}
+            onClick={() => (play("tap"), setCircuit((v) => !v))}
+          >
             <Icon name="mind" size={22} />
           </button>
           {pet.away && <AwayCard pet={pet} />}
           {travelling && worldFull.trip && (
             <div className="trip-note" role="status">
-              <p>{lang === "zh" ? `${pet.name}出门旅行了，在${DESTINATION[worldFull.trip.to]?.name.zh ?? ""}。` : `${pet.name} is away at ${DESTINATION[worldFull.trip.to]?.name.en.toLowerCase() ?? ""}.`}</p>
+              <p>
+                {lang === "zh"
+                  ? `${pet.name}出门旅行了，在${DESTINATION[worldFull.trip.to]?.name.zh ?? ""}。`
+                  : `${pet.name} is away at ${DESTINATION[worldFull.trip.to]?.name.en.toLowerCase() ?? ""}.`}
+              </p>
               <button type="button" className="btn" onClick={() => pick("map")}>
                 {lang === "zh" ? "看看它什么时候回来" : "See when it's back"}
               </button>
@@ -725,7 +910,12 @@ export function PlayApp() {
                     ? `在树影边上看着${pet.name}，从不靠近。`
                     : `At the edge of the trees, watching ${pet.name}. It never comes close.`}
               </span>
-              <button type="button" className="icon-x" aria-label={lang === "zh" ? "关闭" : "Close"} onClick={() => setPicked(null)}>
+              <button
+                type="button"
+                className="icon-x"
+                aria-label={lang === "zh" ? "关闭" : "Close"}
+                onClick={() => setPicked(null)}
+              >
                 <Icon name="close" size={14} />
               </button>
             </div>
@@ -749,7 +939,12 @@ export function PlayApp() {
               >
                 {lang === "zh" ? "换成它" : "Switch to it"}
               </button>
-              <button type="button" className="icon-x" aria-label={lang === "zh" ? "关闭" : "Close"} onClick={() => setPicked(null)}>
+              <button
+                type="button"
+                className="icon-x"
+                aria-label={lang === "zh" ? "关闭" : "Close"}
+                onClick={() => setPicked(null)}
+              >
                 <Icon name="close" size={14} />
               </button>
             </div>
@@ -757,11 +952,34 @@ export function PlayApp() {
           {picked && others[picked] && (
             <div className="visitor-card" role="dialog" aria-label={others[picked]!.name}>
               <b>{others[picked]!.name}</b>
-              <span className="small visitor-bond">{bondName(bondLevel(bondsOf(friendsAll, pet.bornAt)[friendKey(picked, others[picked]!.name)]?.points ?? 0), lang)}</span>
-              <button type="button" className="btn" onClick={() => (play("pop"), liveEmote("heart", picked), meet(picked, { name: others[picked]!.name, line: others[picked]!.line }, "heart"), setPicked(null))}>
+              <span className="small visitor-bond">
+                {bondName(
+                  bondLevel(bondsOf(friendsAll, pet.bornAt)[friendKey(picked, others[picked]!.name)]?.points ?? 0),
+                  lang,
+                )}
+              </span>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => (
+                  play("pop"),
+                  liveEmote("heart", picked),
+                  meet(picked, { name: others[picked]!.name, line: others[picked]!.line }, "heart"),
+                  setPicked(null)
+                )}
+              >
                 <Icon name="heart" size={16} /> {lang === "zh" ? "送心" : "Heart"}
               </button>
-              <button type="button" className="btn primary" onClick={() => (play("tap"), liveAsk(picked), meet(picked, { name: others[picked]!.name, line: others[picked]!.line }, "spar"), setPicked(null))}>
+              <button
+                type="button"
+                className="btn primary"
+                onClick={() => (
+                  play("tap"),
+                  liveAsk(picked),
+                  meet(picked, { name: others[picked]!.name, line: others[picked]!.line }, "spar"),
+                  setPicked(null)
+                )}
+              >
                 <Icon name="paw" size={16} /> {lang === "zh" ? "切磋" : "Spar"}
               </button>
               <button
@@ -769,17 +987,36 @@ export function PlayApp() {
                 className="btn"
                 onClick={() => {
                   const other = others[picked]!;
-                  const block = familyBlock(pet, other.stage, lang) ?? bondBlock(pet, bondsOf(friendsAll, pet.bornAt)[friendKey(other.id, other.name)]?.points ?? 0, other.name, lang);
+                  const block =
+                    familyBlock(pet, other.stage, lang) ??
+                    bondBlock(
+                      pet,
+                      bondsOf(friendsAll, pet.bornAt)[friendKey(other.id, other.name)]?.points ?? 0,
+                      other.name,
+                      lang,
+                    );
                   setPicked(null);
                   if (block) return setWorldMsg({ id: now(), text: block, ms: 4500 });
                   play("tap");
                   livePropose(other.id, useChain.getState().infoOf(pet) ?? undefined);
-                  setWorldMsg({ id: now(), text: lang === "zh" ? `问过${other.name}的主人了，等回复……` : `Asked ${other.name}'s owner. Waiting for an answer…`, ms: 4000 });
+                  setWorldMsg({
+                    id: now(),
+                    text:
+                      lang === "zh"
+                        ? `问过${other.name}的主人了，等回复……`
+                        : `Asked ${other.name}'s owner. Waiting for an answer…`,
+                    ms: 4000,
+                  });
                 }}
               >
                 <Icon name="heart" size={16} /> {lang === "zh" ? "家人" : "Family"}
               </button>
-              <button type="button" className="icon-x" aria-label={lang === "zh" ? "关闭" : "Close"} onClick={() => setPicked(null)}>
+              <button
+                type="button"
+                className="icon-x"
+                aria-label={lang === "zh" ? "关闭" : "Close"}
+                onClick={() => setPicked(null)}
+              >
                 <Icon name="close" size={14} />
               </button>
             </div>
@@ -788,7 +1025,10 @@ export function PlayApp() {
           {!talking && decorating === null && <PetQuestBubble />}
           {talking ? null : Object.keys(others).length > 0 ? (
             <SocialBar
-              here={[...Object.values(others), ...kinVisitors, ...(shyOne ? [shyOne] : [])].map((o) => ({ id: o.id, name: o.name }))}
+              here={[...Object.values(others), ...kinVisitors, ...(shyOne ? [shyOne] : [])].map((o) => ({
+                id: o.id,
+                name: o.name,
+              }))}
               onPick={(id) => setPicked(id)}
             />
           ) : (
@@ -804,7 +1044,17 @@ export function PlayApp() {
           )}
           <Meters pet={pet} />
           {/* feeding is care: Feed opens the bag on day 1 too, though the Bag tab waits for day 2 (H5b) */}
-          <Actions pet={pet} absent={travelling} onFeed={() => pick("bag", true)} onPlay={playBall} onClean={clean} onSleep={sleep} onMedicine={() => (play("sparkle"), act({ kind: "medicine" }))} onToday={() => (useQuestUi.getState().setBookTab("today"), pick("quests"))} onCollection={() => pick("collection")} />
+          <Actions
+            pet={pet}
+            absent={travelling}
+            onFeed={() => pick("bag", true)}
+            onPlay={playBall}
+            onClean={clean}
+            onSleep={sleep}
+            onMedicine={() => (play("sparkle"), act({ kind: "medicine" }))}
+            onToday={() => (useQuestUi.getState().setBookTab("today"), pick("quests"))}
+            onCollection={() => pick("collection")}
+          />
           <section className="card mindcard" aria-label={t("mind.title", { name: pet.name })}>
             <div className="cardbar" aria-hidden="true">
               <i />
@@ -904,71 +1154,117 @@ export function PlayApp() {
       {/* the room's notices, stacked in one lane under its top row (A15) */}
       <NoticeLane>
         {/* a lesson being tried out: the pet's words about it are the one thing shown (H5) */}
-        {trial && !talking && tab === "home" && <VoiceBubble face={face && <FaceSprite canvas={face} line={pet.line} />} />}
+        {trial && !talking && tab === "home" && (
+          <VoiceBubble face={face && <FaceSprite canvas={face} line={pet.line} />} />
+        )}
         <QuestToast onOpenBook={() => pick("quests")} />
         <BadgeToast />
         <ToastView toast={toast} name={pet.name} />
         <RulesMark />
         {/* the pet's own words, last: a quest, a badge, a care note or the rules mark is shown first (H5) */}
         {/* the pet speaks in the room: with a sheet open over it, its passing words wait */}
-        {!trial && !talking && !circuit && tab === "home" && <VoiceBubble face={face && <FaceSprite canvas={face} line={pet.line} />} />}
+        {!trial && !talking && !circuit && tab === "home" && (
+          <VoiceBubble face={face && <FaceSprite canvas={face} line={pet.line} />} />
+        )}
       </NoticeLane>
       <FarewellNote />
       <HandheldReturn />
       <QuestDialog />
       <HintRing />
-      <Sheet open={skillsOpen} title={lang === "zh" ? `${pet.name}的技能` : `${pet.name}'s skills`} onClose={() => useSkillsUi.getState().hide()}>
+      <Sheet
+        open={skillsOpen}
+        title={lang === "zh" ? `${pet.name}的技能` : `${pet.name}'s skills`}
+        onClose={() => useSkillsUi.getState().hide()}
+      >
         {skillsOpen && <SkillsPanel />}
       </Sheet>
       <LevelUpMoment />
       <Sheet open={tab === "me"} title={t("me.title", { name: pet.name })} onClose={close}>
         {/* H5: the pet first (who it is, keeping it on X Layer, its days, its growth and family); everything else behind one entry */}
-        <Lazy><MeSheetBody pet={pet} /></Lazy>
+        <Lazy>
+          <MeSheetBody pet={pet} />
+        </Lazy>
         <hr className="divider" />
         <ChainPanel pet={pet} />
         <hr className="divider" />
-        <Lazy><DiaryPanel pet={pet} /></Lazy>
+        <Lazy>
+          <DiaryPanel pet={pet} />
+        </Lazy>
         <hr className="divider" />
-        <Lazy><RewindPanel pet={pet} /></Lazy>
+        <Lazy>
+          <RewindPanel pet={pet} />
+        </Lazy>
         <hr className="divider" />
-        <Lazy><EvolutionChart pet={pet} /></Lazy>
+        <Lazy>
+          <EvolutionChart pet={pet} />
+        </Lazy>
         <hr className="divider" />
-        <Lazy><FamilyTree pet={pet} /></Lazy>
+        <Lazy>
+          <FamilyTree pet={pet} />
+        </Lazy>
         <hr className="divider" />
         <MoreBehind>
           <SaveFileCard />
           <TelegramCard />
           <WardrobePanel pet={pet} />
           <hr className="divider" />
-          <Lazy><StudioPanel pet={pet} /></Lazy>
+          <Lazy>
+            <StudioPanel pet={pet} />
+          </Lazy>
           <hr className="divider" />
-          <Lazy><FashionMarketPanel pet={pet} /></Lazy>
+          <Lazy>
+            <FashionMarketPanel pet={pet} />
+          </Lazy>
           <hr className="divider" />
-          <Lazy><ItemShopPanel /></Lazy>
+          <Lazy>
+            <ItemShopPanel />
+          </Lazy>
           <hr className="divider" />
-          <Lazy><ExtrasPanel pet={pet} /></Lazy>
+          <Lazy>
+            <ExtrasPanel pet={pet} />
+          </Lazy>
           <hr className="divider" />
-          <Lazy><AdoptionPanel pet={pet} /></Lazy>
+          <Lazy>
+            <AdoptionPanel pet={pet} />
+          </Lazy>
           <hr className="divider" />
-          <Lazy><FriendsPanel pet={pet} /></Lazy>
+          <Lazy>
+            <FriendsPanel pet={pet} />
+          </Lazy>
           <hr className="divider" />
           <NeighboursPanel />
           <hr className="divider" />
-          <Lazy><HoldersPanel pet={pet} /></Lazy>
+          <Lazy>
+            <HoldersPanel pet={pet} />
+          </Lazy>
           <hr className="divider" />
-          <Lazy><AlbumPanel /></Lazy>
+          <Lazy>
+            <AlbumPanel />
+          </Lazy>
           <hr className="divider" />
-          <Lazy><InvitePanel /></Lazy>
+          <Lazy>
+            <InvitePanel />
+          </Lazy>
           <hr className="divider" />
-          <Lazy><SitPanel pet={pet} /></Lazy>
+          <Lazy>
+            <SitPanel pet={pet} />
+          </Lazy>
           <hr className="divider" />
-          <Lazy><HandheldPanel pet={pet} /></Lazy>
+          <Lazy>
+            <HandheldPanel pet={pet} />
+          </Lazy>
           <hr className="divider" />
-          <Lazy><OnChainNote lang={lang} /></Lazy>
+          <Lazy>
+            <OnChainNote lang={lang} />
+          </Lazy>
           <hr className="divider" />
-          <Lazy><SendGiftPanel pet={pet} /></Lazy>
+          <Lazy>
+            <SendGiftPanel pet={pet} />
+          </Lazy>
           <hr className="divider" />
-          <Lazy><RedPacketPanel pet={pet} /></Lazy>
+          <Lazy>
+            <RedPacketPanel pet={pet} />
+          </Lazy>
           <hr className="divider" />
           <BadgeShelf />
           <hr className="divider" />
@@ -979,7 +1275,11 @@ export function PlayApp() {
         {/* P6: privacy, terms and a contact, at the foot of the Pet sheet as at the foot of every page */}
         <SiteFoot lang={lang} />
       </Sheet>
-      <Sheet open={!!pickedBuilder} title={pickedBuilder ? pickedBuilder.name[lang] : ""} onClose={() => setPicked(null)}>
+      <Sheet
+        open={!!pickedBuilder}
+        title={pickedBuilder ? pickedBuilder.name[lang] : ""}
+        onClose={() => setPicked(null)}
+      >
         {pickedBuilder && (
           <BuilderCard
             b={pickedBuilder}
@@ -1005,7 +1305,12 @@ export function PlayApp() {
 function FaceSprite({ canvas, line }: { canvas: ReturnType<typeof drawPet>; line: keyof typeof PALETTE_OF }) {
   const b = boundingBox(canvas);
   const side = Math.max(b.w, b.h);
-  const crop = { x: Math.max(0, Math.round(b.x + b.w / 2 - side / 2)), y: Math.max(0, b.y + b.h - side), w: side, h: side };
+  const crop = {
+    x: Math.max(0, Math.round(b.x + b.w / 2 - side / 2)),
+    y: Math.max(0, b.y + b.h - side),
+    w: side,
+    h: side,
+  };
   return <Sprite canvas={canvas} palette={PALETTE_OF[line]} scale={36 / side} crop={crop} />;
 }
 
@@ -1018,10 +1323,22 @@ function MailTabs() {
   return (
     <>
       <div className="mail-tabs" role="tablist" aria-label={lang === "zh" ? "邮件" : "Mail"}>
-        <button type="button" role="tab" aria-selected={which === "lingxi"} className={which === "lingxi" ? "on" : ""} onClick={() => (play("tap"), setWhich("lingxi"))}>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={which === "lingxi"}
+          className={which === "lingxi" ? "on" : ""}
+          onClick={() => (play("tap"), setWhich("lingxi"))}
+        >
           {lang === "zh" ? "灵犀的来信" : "From Lingxi"}
         </button>
-        <button type="button" role="tab" aria-selected={which === "pets"} className={which === "pets" ? "on" : ""} onClick={() => (play("tap"), setWhich("pets"))}>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={which === "pets"}
+          className={which === "pets" ? "on" : ""}
+          onClick={() => (play("tap"), setWhich("pets"))}
+        >
           {lang === "zh" ? "宠物的信" : "Pet letters"}
         </button>
       </div>

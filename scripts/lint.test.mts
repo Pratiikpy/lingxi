@@ -7,7 +7,9 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 /** The repo's own lint over `code`, as if it were a file of the game. */
 async function lintGame(code: string) {
-  const [result] = await new ESLint({ cwd: root }).lintText(code, { filePath: join(root, "apps/web/src/play/Example.tsx") });
+  const [result] = await new ESLint({ cwd: root }).lintText(code, {
+    filePath: join(root, "apps/web/src/play/Example.tsx"),
+  });
   return result!.messages.map((m) => ({ rule: m.ruleId, severity: m.severity }));
 }
 

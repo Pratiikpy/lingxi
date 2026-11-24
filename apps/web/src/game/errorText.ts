@@ -20,4 +20,5 @@ export function errorText(e: unknown): string {
 }
 
 /** The first line of what an error says, trimmed, for showing to the player; `fallback` when it says nothing. */
-export const firstLine = (e: unknown, fallback = "failed"): string => errorText(e).split(/\r?\n/)[0]!.trim() || fallback;
+export const firstLine = (e: unknown, fallback = "failed"): string =>
+  errorText(e).split(/\r?\n/)[0]!.trim() || fallback;

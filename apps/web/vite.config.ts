@@ -20,7 +20,11 @@ function buildStamp(): Plugin {
       } catch {
         this.warn("no git checkout: build.json records an unknown commit");
       }
-      this.emitFile({ type: "asset", fileName: "build.json", source: `${JSON.stringify({ commit, dirty, builtAt: new Date().toISOString() })}\n` });
+      this.emitFile({
+        type: "asset",
+        fileName: "build.json",
+        source: `${JSON.stringify({ commit, dirty, builtAt: new Date().toISOString() })}\n`,
+      });
     },
   };
 }
@@ -28,7 +32,10 @@ function buildStamp(): Plugin {
 /** The build fails if a name the project must never carry reached its output, in a file's name or its text. */
 function namesGuard(): Plugin {
   let outDir = "";
-  const walk = (d: string): string[] => readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(d, e.name)) : [join(d, e.name)]));
+  const walk = (d: string): string[] =>
+    readdirSync(d, { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory() ? walk(join(d, e.name)) : [join(d, e.name)],
+    );
   return {
     name: "lingxi-names-guard",
     apply: "build",
@@ -45,7 +52,8 @@ function namesGuard(): Plugin {
           if (hit) found.push(`${rel}:${hit.line} "${hit.context}"`);
         }
       }
-      if (found.length) throw new Error(`a banned name reached the build output:\n  ${found.slice(0, 20).join("\n  ")}`);
+      if (found.length)
+        throw new Error(`a banned name reached the build output:\n  ${found.slice(0, 20).join("\n  ")}`);
     },
   };
 }
@@ -67,8 +75,15 @@ function offlineWorker(): Plugin {
       const norm = (id: string) => id.split("\\").join("/");
       // the game's entry is the chunk Vite builds for play.html (found by name, a module can sit in a shared chunk
       // that is not the one the page loads); then the chunks it reaches without the network
-      const entry = chunks.find((c) => c.isEntry && !!c.facadeModuleId && norm(c.facadeModuleId).endsWith("/play.html"));
-      const roots = [entry, ...["/src/play/FirstVisit.tsx", "/src/play/Crash.tsx", "/src/play/PlayApp.tsx"].map((e) => chunks.find((c) => c.moduleIds.some((id) => norm(id).endsWith(e))))];
+      const entry = chunks.find(
+        (c) => c.isEntry && !!c.facadeModuleId && norm(c.facadeModuleId).endsWith("/play.html"),
+      );
+      const roots = [
+        entry,
+        ...["/src/play/FirstVisit.tsx", "/src/play/Crash.tsx", "/src/play/PlayApp.tsx"].map((e) =>
+          chunks.find((c) => c.moduleIds.some((id) => norm(id).endsWith(e))),
+        ),
+      ];
       if (roots.some((c) => !c)) {
         this.warn("the game's entry chunks were not found: the offline list is empty");
         return;
@@ -80,8 +95,12 @@ function offlineWorker(): Plugin {
         for (const dep of chunks.find((c) => c.fileName === name)?.imports ?? []) walk(dep);
       };
       for (const c of roots) walk(c!.fileName);
-      const css = [...seen].flatMap((f) => [...(chunks.find((c) => c.fileName === f)?.viteMetadata?.importedCss ?? [])]);
-      const fonts = Object.keys(bundle).filter((f) => /\.woff2$/.test(f) && /(pixelify-sans|baloo-2)-latin-wght-normal/.test(f));
+      const css = [...seen].flatMap((f) => [
+        ...(chunks.find((c) => c.fileName === f)?.viteMetadata?.importedCss ?? []),
+      ]);
+      const fonts = Object.keys(bundle).filter(
+        (f) => /\.woff2$/.test(f) && /(pixelify-sans|baloo-2)-latin-wght-normal/.test(f),
+      );
       files = ["play.html", "manifest.webmanifest", "favicon.png", ...seen, ...new Set(css), ...fonts];
     },
     closeBundle() {
@@ -94,7 +113,8 @@ function offlineWorker(): Plugin {
         version = Date.now().toString(36);
       }
       const text = readFileSync(sw, "utf8");
-      if (!text.includes("/*__PRECACHE__*/")) throw new Error("sw.js has no /*__PRECACHE__*/ mark for the offline list");
+      if (!text.includes("/*__PRECACHE__*/"))
+        throw new Error("sw.js has no /*__PRECACHE__*/ mark for the offline list");
       writeFileSync(sw, text.replace("/*__PRECACHE__*/", `const PRECACHE = ${JSON.stringify({ version, files })};`));
     },
   };
@@ -116,7 +136,11 @@ function offlineWorker(): Plugin {
  * Every stylesheet of both lists is applied from the start for everyone, so the cascade is the same on every visit.
  */
 const PRELOADED: ReadonlyArray<{ page: string; entries: readonly string[]; saved?: readonly string[] }> = [
-  { page: "play.html", entries: ["/src/play/main.tsx", "/src/play/FirstVisit.tsx", "/src/play/Crash.tsx"], saved: ["/src/play/PlayApp.tsx"] },
+  {
+    page: "play.html",
+    entries: ["/src/play/main.tsx", "/src/play/FirstVisit.tsx", "/src/play/Crash.tsx"],
+    saved: ["/src/play/PlayApp.tsx"],
+  },
   { page: "index.html", entries: ["/src/landing/main.tsx"] },
   // the other pages load their code from the page itself; what they gain here is their two web fonts from the start, so
   // the page is not restyled and laid out again when the fonts arrive after it has drawn (P3)
@@ -135,15 +159,22 @@ function preloadPages(): Plugin {
     apply: "build",
     writeBundle(options, bundle) {
       const chunks = Object.values(bundle).filter((c): c is Extract<typeof c, { type: "chunk" }> => c.type === "chunk");
-      const fonts = Object.keys(bundle).filter((f) => /\/(pixelify-sans|baloo-2)-latin-wght-normal-[^/]+\.woff2$/.test(`/${f}`));
+      const fonts = Object.keys(bundle).filter((f) =>
+        /\/(pixelify-sans|baloo-2)-latin-wght-normal-[^/]+\.woff2$/.test(`/${f}`),
+      );
       for (const { page, entries, saved = [] } of PRELOADED) {
         const file = join(options.dir ?? "", page);
         // each entry is a dynamic one by this hook (its facade id is gone), found by the module it holds
-        const find = (list: readonly string[]) => list.map((e) => chunks.find((c) => c.isDynamicEntry && c.moduleIds.some((id) => id.split("\\").join("/").endsWith(e))));
+        const find = (list: readonly string[]) =>
+          list.map((e) =>
+            chunks.find((c) => c.isDynamicEntry && c.moduleIds.some((id) => id.split("\\").join("/").endsWith(e))),
+          );
         const found = find(entries);
         const foundSaved = find(saved);
         if (!existsSync(file) || [...found, ...foundSaved].some((c) => !c)) {
-          this.warn(`${page} or one of its entries (${[...entries, ...saved].join(", ")}) not found: no preload written`);
+          this.warn(
+            `${page} or one of its entries (${[...entries, ...saved].join(", ")}) not found: no preload written`,
+          );
           continue;
         }
         const closure = (roots: typeof found, files = new Set<string>()) => {
@@ -159,7 +190,13 @@ function preloadPages(): Plugin {
         const later = [...closure(foundSaved)].filter((f) => !files.has(f));
         const html = readFileSync(file, "utf8");
         const already = new Set([...html.matchAll(/href="\.\/([^"]+)"/g)].map((m) => m[1]));
-        const css = [...new Set([...files, ...later].flatMap((f) => [...(chunks.find((c) => c.fileName === f)?.viteMetadata?.importedCss ?? [])]))];
+        const css = [
+          ...new Set(
+            [...files, ...later].flatMap((f) => [
+              ...(chunks.find((c) => c.fileName === f)?.viteMetadata?.importedCss ?? []),
+            ]),
+          ),
+        ];
         // a visitor with a pet saved fetches the rest of the game from the start too (the check is the hatch screen
         // picker's own; a storage that cannot be read counts as a save, so the full game is never starved)
         const forSaved = later.length
@@ -167,7 +204,9 @@ function preloadPages(): Plugin {
           : "";
         const links = [
           ...fonts.map((f) => `<link rel="preload" as="font" type="font/woff2" crossorigin href="./${f}">`),
-          ...[...files].filter((f) => !already.has(f)).map((f) => `<link rel="modulepreload" crossorigin href="./${f}">`),
+          ...[...files]
+            .filter((f) => !already.has(f))
+            .map((f) => `<link rel="modulepreload" crossorigin href="./${f}">`),
           ...css.filter((f) => !already.has(f)).map((f) => `<link rel="stylesheet" crossorigin href="./${f}">`),
           ...(forSaved ? [forSaved] : []),
         ];
@@ -189,7 +228,11 @@ function shipLetters(): Plugin {
     apply: "build",
     generateBundle() {
       if (process.env.VITE_API_URL !== "") return;
-      this.emitFile({ type: "asset", fileName: "mail.json", source: readFileSync(resolve(__dirname, "../../services/api/mail/letters.json"), "utf8") });
+      this.emitFile({
+        type: "asset",
+        fileName: "mail.json",
+        source: readFileSync(resolve(__dirname, "../../services/api/mail/letters.json"), "utf8"),
+      });
     },
   };
 }
@@ -219,7 +262,12 @@ function prerenderLanding(): Plugin {
         configFile: false,
         logLevel: "warn",
         plugins: [react()],
-        build: { ssr: resolve(__dirname, "src/landing/prerender.tsx"), outDir: tmp, emptyOutDir: true, rollupOptions: { output: { entryFileNames: "prerender.mjs", format: "esm" } } },
+        build: {
+          ssr: resolve(__dirname, "src/landing/prerender.tsx"),
+          outDir: tmp,
+          emptyOutDir: true,
+          rollupOptions: { output: { entryFileNames: "prerender.mjs", format: "esm" } },
+        },
         ssr: { noExternal: [/^@lingxi\//] },
       });
       // the landing's modules read `location` as they load when no API address is built in (a plain build, as CI's):
@@ -228,12 +276,20 @@ function prerenderLanding(): Plugin {
       const hadLocation = "location" in g;
       if (!hadLocation) g.location = new URL("https://lingxi.invalid/");
       try {
-        const mod = (await import(pathToFileURL(join(tmp, "prerender.mjs")).href)) as { render: (lang: "en" | "zh") => string };
+        const mod = (await import(pathToFileURL(join(tmp, "prerender.mjs")).href)) as {
+          render: (lang: "en" | "zh") => string;
+        };
         const [en, zh] = [mod.render("en"), mod.render("zh")];
         const pick = `<script>(function(){var l;try{l=localStorage.getItem("lingxi.lang")}catch(e){}if(l!=="en"&&l!=="zh")l=(navigator.language||"").toLowerCase().indexOf("zh")===0?"zh":"en";if(l==="zh"){var r=document.getElementById("root").children;r[0].hidden=true;r[1].hidden=false;document.documentElement.lang="zh-CN"}})()</script>`;
         const html = readFileSync(page, "utf8");
         if (!html.includes('<div id="root"></div>')) throw new Error("index.html has no empty #root to fill");
-        writeFileSync(page, html.replace('<div id="root"></div>', `<div id="root"><div data-prerender="en">${en}</div><div data-prerender="zh" hidden>${zh}</div></div>${pick}`));
+        writeFileSync(
+          page,
+          html.replace(
+            '<div id="root"></div>',
+            `<div id="root"><div data-prerender="en">${en}</div><div data-prerender="zh" hidden>${zh}</div></div>${pick}`,
+          ),
+        );
       } finally {
         if (!hadLocation) delete g.location;
         rmSync(tmp, { recursive: true, force: true });
@@ -269,7 +325,12 @@ function prerenderPlay(): Plugin {
         configFile: false,
         logLevel: "warn",
         plugins: [react()],
-        build: { ssr: resolve(__dirname, "src/play/prerender.tsx"), outDir: tmp, emptyOutDir: true, rollupOptions: { output: { entryFileNames: "prerender.mjs", format: "esm" } } },
+        build: {
+          ssr: resolve(__dirname, "src/play/prerender.tsx"),
+          outDir: tmp,
+          emptyOutDir: true,
+          rollupOptions: { output: { entryFileNames: "prerender.mjs", format: "esm" } },
+        },
         ssr: { noExternal: [/^@lingxi\//] },
       });
       const g = globalThis as { location?: unknown; __lingxiPrerenderLang?: string };
@@ -279,19 +340,25 @@ function prerenderPlay(): Plugin {
         const screens: Record<string, string> = {};
         for (const lang of ["en", "zh"] as const) {
           g.__lingxiPrerenderLang = lang;
-          const mod = (await import(`${pathToFileURL(join(tmp, "prerender.mjs")).href}?lang=${lang}`)) as { render: () => string };
+          const mod = (await import(`${pathToFileURL(join(tmp, "prerender.mjs")).href}?lang=${lang}`)) as {
+            render: () => string;
+          };
           screens[lang] = mod.render();
         }
         const ready = { en: "Getting the game ready…", zh: "游戏准备中……" };
         // each language waits in a template, which the page does not render, so only the reader's screen is ever in it
         // (two would repeat its ids and its landmark)
-        const shown = (lang: "en" | "zh") => `<template data-prerender="${lang}">${screens[lang]}<p class="pre-ready" role="status">${ready[lang]}</p></template>`;
+        const shown = (lang: "en" | "zh") =>
+          `<template data-prerender="${lang}">${screens[lang]}<p class="pre-ready" role="status">${ready[lang]}</p></template>`;
         const pick = `<script>(function(){var s=null;try{s=localStorage.getItem("lingxi.pets.v2")||localStorage.getItem("lingxi.pet.v1")}catch(e){s="?"}if(s!==null)return;var l=null;try{l=localStorage.getItem("lingxi.lang")}catch(e){}if(l!=="en"&&l!=="zh")l=(navigator.language||"").toLowerCase().indexOf("zh")===0?"zh":"en";var r=document.getElementById("root");var t=r.querySelector('template[data-prerender="'+l+'"]');var d=document.createElement("div");d.setAttribute("data-prerender",l);d.setAttribute("aria-busy","true");d.inert=true;d.appendChild(t.content.cloneNode(true));r.querySelector(".boot-splash").hidden=true;r.appendChild(d);if(l==="zh")document.documentElement.lang="zh-CN"})()</script>`;
         const style = `<style>.pre-ready{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);margin:0;padding:6px 14px;border:2px solid #2b2140;border-radius:999px;background:#fffdf8;color:#2b2140;font:600 13px/1.3 system-ui,sans-serif;z-index:10}</style>`;
         const html = readFileSync(page, "utf8");
         const splash = html.match(/<div id="root">(<div class="boot-splash"[\s\S]*?<\/div>)<\/div>/);
         if (!splash) throw new Error("play.html has no splash inside #root to keep beside the hatch screen");
-        writeFileSync(page, html.replace(splash[0], `<div id="root">${splash[1]}${shown("en")}${shown("zh")}</div>${pick}${style}`));
+        writeFileSync(
+          page,
+          html.replace(splash[0], `<div id="root">${splash[1]}${shown("en")}${shown("zh")}</div>${pick}${style}`),
+        );
       } finally {
         delete g.__lingxiPrerenderLang;
         if (!hadLocation) delete g.location;
@@ -302,19 +369,43 @@ function prerenderPlay(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), buildStamp(), namesGuard(), preloadPages(), offlineWorker(), prerenderLanding(), prerenderPlay(), shipLetters()],
+  plugins: [
+    react(),
+    buildStamp(),
+    namesGuard(),
+    preloadPages(),
+    offlineWorker(),
+    prerenderLanding(),
+    prerenderPlay(),
+    shipLetters(),
+  ],
   base: "./",
   build: {
     target: "es2022",
     rollupOptions: {
-      input: { index: resolve(__dirname, "index.html"), play: resolve(__dirname, "play.html"), verify: resolve(__dirname, "verify.html"), agents: resolve(__dirname, "agents.html"), tree: resolve(__dirname, "tree.html"), numbers: resolve(__dirname, "numbers.html"), handheld: resolve(__dirname, "handheld.html"), privacy: resolve(__dirname, "privacy.html"), terms: resolve(__dirname, "terms.html") },
+      input: {
+        index: resolve(__dirname, "index.html"),
+        play: resolve(__dirname, "play.html"),
+        verify: resolve(__dirname, "verify.html"),
+        agents: resolve(__dirname, "agents.html"),
+        tree: resolve(__dirname, "tree.html"),
+        numbers: resolve(__dirname, "numbers.html"),
+        handheld: resolve(__dirname, "handheld.html"),
+        privacy: resolve(__dirname, "privacy.html"),
+        terms: resolve(__dirname, "terms.html"),
+      },
     },
   },
   // the end-to-end suite (e2e/) plays a dev server that must not reload a page under a running test when a file is
   // saved; its reload channel stays, since Vite uses it to reload a page after bundling a newly found dependency
   // under the suite it also transforms the game's source as it starts, so a dependency it finds is bundled before any
   // test loads a page (a cold CI machine otherwise found one mid-load, and the page could not load)
-  server: { port: 5199, ...(process.env.LINGXI_E2E === "1" ? { watch: null, warmup: { clientFiles: ["./src/**/main.tsx", "./src/**/*.tsx", "!./src/**/*.test.tsx"] } } : {}) },
+  server: {
+    port: 5199,
+    ...(process.env.LINGXI_E2E === "1"
+      ? { watch: null, warmup: { clientFiles: ["./src/**/main.tsx", "./src/**/*.tsx", "!./src/**/*.test.tsx"] } }
+      : {}),
+  },
   // the end-to-end suite gives each run its own dependency cache, so runs never share one and each starts as CI does
   ...(process.env.LINGXI_VITE_CACHE ? { cacheDir: process.env.LINGXI_VITE_CACHE } : {}),
 });

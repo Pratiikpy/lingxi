@@ -21,7 +21,9 @@ export interface Job {
   /** the wants that suit this work (idle 0, eat 1, play 2, sleep 3, explore 4, sulk 5, cuddle 6, share 7) */
   suits: readonly number[];
   /** the situations the pet's mind is asked about before a shift */
-  situations: ReadonlyArray<Partial<Record<"hunger" | "joy" | "energy" | "clean" | "time" | "action" | "event" | "owner", number>>>;
+  situations: ReadonlyArray<
+    Partial<Record<"hunger" | "joy" | "energy" | "clean" | "time" | "action" | "event" | "owner", number>>
+  >;
   /** what a round asks for: one of `choices` is right */
   choices: number;
 }
@@ -30,7 +32,10 @@ export const JOBS: readonly Job[] = [
   {
     id: "cafe",
     name: { en: "Café helper", zh: "咖啡馆帮手" },
-    how: { en: "Each guest shows what they'd like. Bring the matching dish before they lose patience.", zh: "每位客人会显示想要什么。在他们等不及之前端上对的那一道。" },
+    how: {
+      en: "Each guest shows what they'd like. Bring the matching dish before they lose patience.",
+      zh: "每位客人会显示想要什么。在他们等不及之前端上对的那一道。",
+    },
     suits: [6, 7],
     situations: [{ event: 1 }, { event: 1, time: 2 }, { action: 5 }, { event: 1, owner: 1 }],
     choices: 4,
@@ -38,7 +43,10 @@ export const JOBS: readonly Job[] = [
   {
     id: "courier",
     name: { en: "Parcel runner", zh: "送包裹" },
-    how: { en: "A parcel comes with a colour. Take it to the house of the same colour.", zh: "每个包裹都有颜色，送到同样颜色的房子去。" },
+    how: {
+      en: "A parcel comes with a colour. Take it to the house of the same colour.",
+      zh: "每个包裹都有颜色，送到同样颜色的房子去。",
+    },
     suits: [2, 4],
     situations: [{ energy: 3 }, { energy: 2, time: 1 }, { event: 2 }, { action: 2 }],
     choices: 3,
@@ -46,7 +54,10 @@ export const JOBS: readonly Job[] = [
   {
     id: "watch",
     name: { en: "Night watch", zh: "守夜" },
-    how: { en: "Shapes appear at the gate. Let friends in; wave strangers away.", zh: "门口会出现身影。朋友请进，陌生的劝走。" },
+    how: {
+      en: "Shapes appear at the gate. Let friends in; wave strangers away.",
+      zh: "门口会出现身影。朋友请进，陌生的劝走。",
+    },
     suits: [4],
     situations: [{ time: 0 }, { time: 0, event: 3 }, { time: 3, event: 3 }, { time: 0, event: 1 }],
     choices: 2,
@@ -99,7 +110,7 @@ export function shiftPay(right: number, wrong: number, fit: number): number {
 
 /** The answer for each round of a shift: round i's right choice, from the seed. */
 export function shiftRounds(job: Job, seed: number, rounds: number): number[] {
-  let s = (seed >>> 0) || 0x9e3779b9;
+  let s = seed >>> 0 || 0x9e3779b9;
   const out: number[] = [];
   for (let i = 0; i < rounds; i++) {
     s ^= s << 13;

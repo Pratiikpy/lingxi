@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { type Address, type Hex, type PublicClient, createPublicClient, encodeAbiParameters, encodeEventTopics, http, pad, toHex } from "viem";
+import {
+  type Address,
+  type Hex,
+  type PublicClient,
+  createPublicClient,
+  encodeAbiParameters,
+  encodeEventTopics,
+  http,
+  pad,
+  toHex,
+} from "viem";
 import { anchorBrains } from "../src/anchor";
 import { petRegistryAbi } from "../src/registryAbi";
 
@@ -14,8 +24,15 @@ interface FakeLog {
 }
 const hatched = (petId: bigint, brainId: bigint, state: bigint, at: Address = REGISTRY): FakeLog => ({
   address: at,
-  topics: encodeEventTopics({ abi: petRegistryAbi, eventName: "Hatched", args: { petId, to: "0x0000000000000000000000000000000000000001" } }) as Hex[],
-  data: encodeAbiParameters([{ type: "uint8" }, { type: "address" }, { type: "uint64" }, { type: "uint256" }], [0, PROCESSOR, brainId, state]),
+  topics: encodeEventTopics({
+    abi: petRegistryAbi,
+    eventName: "Hatched",
+    args: { petId, to: "0x0000000000000000000000000000000000000001" },
+  }) as Hex[],
+  data: encodeAbiParameters(
+    [{ type: "uint8" }, { type: "address" }, { type: "uint64" }, { type: "uint256" }],
+    [0, PROCESSOR, brainId, state],
+  ),
 });
 const changed = (petId: bigint, brainId: bigint, at: Address = REGISTRY): FakeLog => ({
   address: at,
@@ -25,12 +42,18 @@ const changed = (petId: bigint, brainId: bigint, at: Address = REGISTRY): FakeLo
 const tx = (n: number) => pad(toHex(n), { size: 32 });
 
 /** A chain of receipts by transaction hash, as getTransactionReceipt returns them. */
-function chainOf(receipts: Record<string, { block: number; logs: FakeLog[]; status?: "success" | "reverted" }>): PublicClient {
+function chainOf(
+  receipts: Record<string, { block: number; logs: FakeLog[]; status?: "success" | "reverted" }>,
+): PublicClient {
   return {
     getTransactionReceipt: async ({ hash }: { hash: Hex }) => {
       const r = receipts[hash];
       if (!r) throw new Error("no such transaction");
-      return { status: r.status ?? "success", blockNumber: BigInt(r.block), logs: r.logs.map((l, i) => ({ ...l, logIndex: i })) };
+      return {
+        status: r.status ?? "success",
+        blockNumber: BigInt(r.block),
+        logs: r.logs.map((l, i) => ({ ...l, logIndex: i })),
+      };
     },
   } as unknown as PublicClient;
 }
@@ -107,8 +130,18 @@ describe.skipIf(!process.env.LIVE_XLAYER)("pet #1 on X Layer mainnet", () => {
   it("anchors its brain to its own Hatched event", async () => {
     const pub = createPublicClient({ transport: http("https://xlayerrpc.okx.com") }) as PublicClient;
     // the indexer only says which transactions to read; every one is proven from its receipt
-    const h = (await (await fetch("https://lingxi.knole.me/api/pets/1/history")).json()) as { hatched: { tx: Hex; brainId: string }; brains: Array<{ tx: Hex }> };
-    const r = await anchorBrains(pub, REGISTRY, 1n, [BigInt(h.hatched.brainId)], { hatched: h.hatched.tx, changes: h.brains.map((b) => b.tx) }, BigInt(h.hatched.brainId));
+    const h = (await (await fetch("https://lingxi.knole.me/api/pets/1/history")).json()) as {
+      hatched: { tx: Hex; brainId: string };
+      brains: Array<{ tx: Hex }>;
+    };
+    const r = await anchorBrains(
+      pub,
+      REGISTRY,
+      1n,
+      [BigInt(h.hatched.brainId)],
+      { hatched: h.hatched.tx, changes: h.brains.map((b) => b.tx) },
+      BigInt(h.hatched.brainId),
+    );
     expect(r.ok).toBe(true);
   }, 30_000);
 });

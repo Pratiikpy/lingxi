@@ -9,7 +9,10 @@ import { type LockApi, type LockQuery, browserStorageWatch, createWriter, heldEl
 const STEAL = "lingxi.handheldHere";
 let lost: (() => void) | null = null;
 
-const storage = typeof localStorage !== "undefined" ? localStorage : { getItem: () => null, setItem: () => undefined, removeItem: () => undefined };
+const storage =
+  typeof localStorage !== "undefined"
+    ? localStorage
+    : { getItem: () => null, setItem: () => undefined, removeItem: () => undefined };
 const writer = createWriter({
   lockName: "lingxi-handheld",
   stampKey: "lingxi.handheld.lease",
@@ -52,7 +55,13 @@ export const onHandheldLost = (fn: () => void): void => {
 
 /** Whether the game is open in another tab of this browser (A7): that tab brings a returned pet home by itself. */
 export const gameIsOpen = (): Promise<boolean> =>
-  heldElsewhere({ storage, now: () => Date.now(), ...(typeof navigator !== "undefined" && "locks" in navigator ? { locks: navigator.locks as unknown as LockQuery } : {}) });
+  heldElsewhere({
+    storage,
+    now: () => Date.now(),
+    ...(typeof navigator !== "undefined" && "locks" in navigator
+      ? { locks: navigator.locks as unknown as LockQuery }
+      : {}),
+  });
 
 /** Moves the handheld to this tab. */
 export function handheldHere(): void {

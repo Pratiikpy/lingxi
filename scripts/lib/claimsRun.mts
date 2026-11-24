@@ -22,7 +22,10 @@ export function judgeVerdict(steps: readonly Step[], arg: string): { ok: boolean
   if (!arg) return { ok: false, text: "a judge row must name its judge-check step" };
   const passed = steps.filter((l) => l.ok && l.what.includes(arg));
   const failed = steps.filter((l) => !l.ok && (l.what.includes(arg) || l.what.startsWith("judge-check stopped")));
-  return { ok: passed.length > 0 && !failed.length, text: failed[0]?.what ?? passed[0]?.what ?? `no judge-check step mentions "${arg}"` };
+  return {
+    ok: passed.length > 0 && !failed.length,
+    text: failed[0]?.what ?? passed[0]?.what ?? `no judge-check step mentions "${arg}"`,
+  };
 }
 
 /**
@@ -43,24 +46,61 @@ export function runTest(path: string, deps: RunDeps): { ok: boolean; why: string
       const r = deps.spawn("forge", ["test", "--match-path", file, ...args], `${deps.root}/contracts`);
       const tally = /(\d+) tests passed, (\d+) failed, (\d+) skipped/.exec(r.stdout);
       const [ran, bad, skipped] = tally ? tally.slice(1).map(Number) : [0, 0, 0];
-      return { ok: r.status === 0 && ran! > 0 && bad === 0 && skipped === 0, why: tally ? `${ran} passed, ${bad} failed, ${skipped} skipped` : `did not run (exit ${r.status})` };
+      return {
+        ok: r.status === 0 && ran! > 0 && bad === 0 && skipped === 0,
+        why: tally ? `${ran} passed, ${bad} failed, ${skipped} skipped` : `did not run (exit ${r.status})`,
+      };
     };
     // rpc.xlayer.tech: xlayerrpc.okx.com refuses the block hashes a test asks for once it rolls past the chain's head
     const onFork = ["--fork-url", "https://rpc.xlayer.tech"];
     const passes = whole
       ? [{ name: "on a fork", ...forge(onFork) }]
       : mixed
-        ? [{ name: "offline", ...forge(["--offline", "--no-match-contract", "ForkTest"]) }, { name: "on a fork", ...forge([...onFork, "--match-contract", "ForkTest"]) }]
+        ? [
+            { name: "offline", ...forge(["--offline", "--no-match-contract", "ForkTest"]) },
+            { name: "on a fork", ...forge([...onFork, "--match-contract", "ForkTest"]) },
+          ]
         : [{ name: "offline", ...forge(["--offline"]) }];
     return { ok: passes.every((x) => x.ok), why: `forge ${passes.map((x) => `${x.name}: ${x.why}`).join("; ")}` };
   }
   if (/\.spec\.ts$/.test(path)) {
     // the latest run that finished: a run cancelled by a newer push proves nothing either way
-    const gh = deps.spawn("gh", ["run", "list", "--workflow", "ci.yml", "--branch", "master", "--status", "completed", "--limit", "20", "--json", "databaseId,headSha,conclusion"], deps.root);
-    const run = (JSON.parse(gh.stdout || "[]") as Array<{ databaseId: number; headSha: string; conclusion: string }>).find((x) => x.conclusion === "success" || x.conclusion === "failure");
+    const gh = deps.spawn(
+      "gh",
+      [
+        "run",
+        "list",
+        "--workflow",
+        "ci.yml",
+        "--branch",
+        "master",
+        "--status",
+        "completed",
+        "--limit",
+        "20",
+        "--json",
+        "databaseId,headSha,conclusion",
+      ],
+      deps.root,
+    );
+    const run = (
+      JSON.parse(gh.stdout || "[]") as Array<{ databaseId: number; headSha: string; conclusion: string }>
+    ).find((x) => x.conclusion === "success" || x.conclusion === "failure");
     if (!run) return "pending";
     // the browser suite runs in parts ("e2e 1 of 3" …): every part must have passed
-    const jobs = deps.spawn("gh", ["run", "view", String(run.databaseId), "--json", "jobs", "--jq", '.jobs[] | select(.name|startswith("e2e")) | .conclusion'], deps.root);
+    const jobs = deps.spawn(
+      "gh",
+      [
+        "run",
+        "view",
+        String(run.databaseId),
+        "--json",
+        "jobs",
+        "--jq",
+        '.jobs[] | select(.name|startswith("e2e")) | .conclusion',
+      ],
+      deps.root,
+    );
     const parts = jobs.stdout.trim().split(/\s+/).filter(Boolean);
     const inCommit = deps.spawn("git", ["cat-file", "-e", `${run.headSha}:${path}`], deps.root).status === 0;
     if (!parts.length || parts.some((x) => x !== "success") || !inCommit) return "pending";
@@ -71,6 +111,11 @@ export function runTest(path: string, deps: RunDeps): { ok: boolean; why: string
   while (!deps.hasPackage(dir) && dir.length > deps.root.length) dir = posix.dirname(dir);
   const rel = full.slice(dir.length + 1);
   const r = deps.spawn(process.execPath, [`${deps.root}/node_modules/vitest/vitest.mjs`, "run", rel], dir);
-  const summary = r.stdout.replace(/\x1b\[[0-9;]*m/g, "").split(/\r?\n/).find((l) => /Tests\s+\d/.test(l))?.trim() ?? `exit ${r.status}`;
+  const summary =
+    r.stdout
+      .replace(/\x1b\[[0-9;]*m/g, "")
+      .split(/\r?\n/)
+      .find((l) => /Tests\s+\d/.test(l))
+      ?.trim() ?? `exit ${r.status}`;
   return { ok: r.status === 0, why: summary };
 }

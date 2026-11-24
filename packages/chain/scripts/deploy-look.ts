@@ -26,7 +26,8 @@ const arg = (n: string, f?: string) => {
 const file = arg("deployment")!;
 const d = JSON.parse(readFileSync(file, "utf8")) as Deployment;
 const rpc = arg("rpc", d.rpc)!;
-if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(rpc) && !process.argv.includes("--mainnet-yes")) throw new Error("refusing a non-local node without --mainnet-yes");
+if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(rpc) && !process.argv.includes("--mainnet-yes"))
+  throw new Error("refusing a non-local node without --mainnet-yes");
 const env = Object.fromEntries(
   readFileSync(arg("key-file", resolve(here, "../../../../.secrets/deployer.env"))!, "utf8")
     .split(/\r?\n/)
@@ -37,48 +38,94 @@ const account = privateKeyToAccount((env.DEPLOYER_PRIVATE_KEY ?? env.K) as Hex);
 const chain = { ...xLayer, rpcUrls: { default: { http: [rpc] } } };
 const pub = createPublicClient({ chain, transport: http(rpc) });
 const wallet = createWalletClient({ chain, transport: http(rpc), account });
-const art = JSON.parse(readFileSync(resolve(here, "../../../contracts/out/PetLook.sol/PetLook.json"), "utf8")) as { abi: never[]; bytecode: { object: Hex } };
+const art = JSON.parse(readFileSync(resolve(here, "../../../contracts/out/PetLook.sol/PetLook.json"), "utf8")) as {
+  abi: never[];
+  bytecode: { object: Hex };
+};
 function say(s: string) {
   console.log(s);
 }
 
-const regOwner = (await pub.readContract({ address: d.registry, abi: petRegistryAbi, functionName: "owner" })) as Address;
-if (regOwner.toLowerCase() !== account.address.toLowerCase()) throw new Error(`the registry is owned by ${regOwner}, not this key`);
+const regOwner = (await pub.readContract({
+  address: d.registry,
+  abi: petRegistryAbi,
+  functionName: "owner",
+})) as Address;
+if (regOwner.toLowerCase() !== account.address.toLowerCase())
+  throw new Error(`the registry is owned by ${regOwner}, not this key`);
 const start = await pub.getBalance({ address: account.address });
 say(`deployer ${account.address}, ${formatEther(start)} OKB`);
 
-const tx = await wallet.deployContract({ abi: art.abi, bytecode: art.bytecode.object, args: [d.registry, account.address] });
+const tx = await wallet.deployContract({
+  abi: art.abi,
+  bytecode: art.bytecode.object,
+  args: [d.registry, account.address],
+});
 const rc = await pub.waitForTransactionReceipt({ hash: tx });
 if (rc.status !== "success" || !rc.contractAddress) throw new Error("deploy failed");
 const look = rc.contractAddress;
 say(`PetLook ${look} (tx ${tx})`);
 const send = async (functionName: string, args: unknown[]) => {
-  const h = await wallet.writeContract({ address: look, abi: art.abi, functionName: functionName as never, args: args as never });
+  const h = await wallet.writeContract({
+    address: look,
+    abi: art.abi,
+    functionName: functionName as never,
+    args: args as never,
+  });
   const r = await pub.waitForTransactionReceipt({ hash: h });
   if (r.status !== "success") throw new Error(`${functionName} failed`);
   return h;
 };
-const read = (functionName: string, args: unknown[]) => pub.readContract({ address: look, abi: art.abi, functionName: functionName as never, args: args as never });
+const read = (functionName: string, args: unknown[]) =>
+  pub.readContract({ address: look, abi: art.abi, functionName: functionName as never, args: args as never });
 
 const built = buildLayers();
 const calls = installCalls(built, lookPalettes().pets, lookPalettes().eggs);
 for (const b of calls.batches) say(`  layers ${b.keys.join(",")}: ${await send("setLayers", [b.keys, b.data])}`);
 for (const f of calls.faces) say(`  faces for stage ${f.slot}: ${await send("setFaces", [f.slot, f.large, f.at])}`);
 for (const [i, p] of calls.palettes.entries()) say(`  palette ${i}: ${await send("setPalette", [BigInt(i), p])}`);
-for (const f of calls.frames) say(`  frame for stage ${f.slot} (${f.x},${f.y} ${f.size}): ${await send("setFrame", [f.slot, f.x, f.y, f.size])}`);
+for (const f of calls.frames)
+  say(`  frame for stage ${f.slot} (${f.x},${f.y} ${f.size}): ${await send("setFrame", [f.slot, f.x, f.y, f.size])}`);
 
 // read everything back
-for (const l of built.layers) if (((await read("layer", [BigInt(l.key)])) as string).toLowerCase() !== l.data.toLowerCase()) throw new Error(`layer ${l.key} differs`);
-for (const f of calls.faces) if (((await read("faceAt", [f.slot])) as string).toLowerCase() !== f.at.toLowerCase()) throw new Error(`faces ${f.slot} differ`);
-for (const f of calls.frames) if (((await read("frame", [f.slot])) as string).toLowerCase() !== `0x${[f.x, f.y, f.size].map((n) => n.toString(16).padStart(2, "0")).join("")}`) throw new Error(`frame ${f.slot} differs`);
-const pet1 = (await pub.readContract({ address: d.registry, abi: petRegistryAbi, functionName: "pet", args: [1n] })) as { state: bigint };
+for (const l of built.layers)
+  if (((await read("layer", [BigInt(l.key)])) as string).toLowerCase() !== l.data.toLowerCase())
+    throw new Error(`layer ${l.key} differs`);
+for (const f of calls.faces)
+  if (((await read("faceAt", [f.slot])) as string).toLowerCase() !== f.at.toLowerCase())
+    throw new Error(`faces ${f.slot} differ`);
+for (const f of calls.frames)
+  if (
+    ((await read("frame", [f.slot])) as string).toLowerCase() !==
+    `0x${[f.x, f.y, f.size].map((n) => n.toString(16).padStart(2, "0")).join("")}`
+  )
+    throw new Error(`frame ${f.slot} differs`);
+const pet1 = (await pub.readContract({
+  address: d.registry,
+  abi: petRegistryAbi,
+  functionName: "pet",
+  args: [1n],
+})) as { state: bigint };
 const drawn = canvasOfSvg((await read("svgOf", [pet1.state])) as string);
-if (JSON.stringify(drawn.px) !== JSON.stringify(gameSprite(lookOf(pet1.state)).px)) throw new Error("pet #1's on-chain picture differs from the game");
-say(`read back: ${built.layers.length} layers, ${calls.faces.length} face sets, ${calls.frames.length} frames, ${calls.palettes.length} palettes; pet #1 drawn exactly (${JSON.stringify(lookOf(pet1.state))})`);
+if (JSON.stringify(drawn.px) !== JSON.stringify(gameSprite(lookOf(pet1.state)).px))
+  throw new Error("pet #1's on-chain picture differs from the game");
+say(
+  `read back: ${built.layers.length} layers, ${calls.faces.length} face sets, ${calls.frames.length} frames, ${calls.palettes.length} palettes; pet #1 drawn exactly (${JSON.stringify(lookOf(pet1.state))})`,
+);
 
-const sr = await wallet.writeContract({ address: d.registry, abi: petRegistryAbi, functionName: "setRenderer", args: [look] });
+const sr = await wallet.writeContract({
+  address: d.registry,
+  abi: petRegistryAbi,
+  functionName: "setRenderer",
+  args: [look],
+});
 if ((await pub.waitForTransactionReceipt({ hash: sr })).status !== "success") throw new Error("setRenderer failed");
-const uri = (await pub.readContract({ address: d.registry, abi: petRegistryAbi, functionName: "tokenURI", args: [1n] })) as string;
+const uri = (await pub.readContract({
+  address: d.registry,
+  abi: petRegistryAbi,
+  functionName: "tokenURI",
+  args: [1n],
+})) as string;
 const meta = JSON.parse(Buffer.from(uri.split(",")[1]!, "base64").toString("utf8")) as { name: string; image: string };
 if (!meta.image.startsWith("data:image/svg+xml;base64,")) throw new Error("registry metadata has no picture");
 say(`registry renderer set (tx ${sr}); pet #1 metadata: "${meta.name}" with an on-chain picture`);

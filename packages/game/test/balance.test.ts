@@ -25,7 +25,9 @@ describe("the balance targets (38-PLAN-GAME-DESIGN.md section 2)", () => {
   }
 
   it("records each target as the simulator measures it now: a target met by a change is recorded met, and so guarded", () => {
-    const drift = BALANCE_TARGETS.filter((t) => BALANCE_MEASURED.targets[t.id]?.status !== (t.met(n) ? "met" : "open")).map((t) => `${t.id} is now ${t.met(n) ? "met" : "open"}`);
+    const drift = BALANCE_TARGETS.filter(
+      (t) => BALANCE_MEASURED.targets[t.id]?.status !== (t.met(n) ? "met" : "open"),
+    ).map((t) => `${t.id} is now ${t.met(n) ? "met" : "open"}`);
     expect(drift, "run `pnpm --filter @lingxi/game exec tsx scripts/sim90.ts --write`").toEqual([]);
   });
 
@@ -54,6 +56,7 @@ describe("the simulator", () => {
   });
 
   it("plays every day of every player type", () => {
-    for (const p of Object.values(n.players)) expect(p.days.map((d) => d.day)).toEqual(Array.from({ length: DEFAULT_DAYS }, (_, i) => i + 1));
+    for (const p of Object.values(n.players))
+      expect(p.days.map((d) => d.day)).toEqual(Array.from({ length: DEFAULT_DAYS }, (_, i) => i + 1));
   });
 });

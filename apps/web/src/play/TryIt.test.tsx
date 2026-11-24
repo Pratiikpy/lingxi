@@ -27,7 +27,9 @@ async function open(id: string) {
   document.body.append(host);
   const root = createRoot(host);
   let done = 0;
-  await act(async () => root.render(createElement(TryIt, { pet: useGame.getState().pet!, lesson, onDone: () => done++ })));
+  await act(async () =>
+    root.render(createElement(TryIt, { pet: useGame.getState().pet!, lesson, onDone: () => done++ })),
+  );
   const close = () => {
     act(() => root.unmount());
     host.remove();

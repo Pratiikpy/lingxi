@@ -31,7 +31,8 @@ export function petNeeds(pet: Pet, lang: Lang): string {
 /** The pet in one sentence: "Pip, baby: wants to play. Hungry, tired." / "Pip，宝宝：想玩。饿了、累了。" */
 export function petSpoken(pet: Pet, stageWord: string, lang: Lang): string {
   const needs = petNeeds(pet, lang);
-  if (lang === "zh") return `${pet.name}，${stageWord}：${petDoing(pet, lang)}。${needs ? `${needs}。` : "什么都不缺。"}`;
+  if (lang === "zh")
+    return `${pet.name}，${stageWord}：${petDoing(pet, lang)}。${needs ? `${needs}。` : "什么都不缺。"}`;
   const tail = needs ? `${needs.charAt(0).toUpperCase()}${needs.slice(1)}.` : "Needs nothing.";
   return `${pet.name}, ${stageWord}: ${petDoing(pet, lang)}. ${tail}`;
 }

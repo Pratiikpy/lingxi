@@ -8,7 +8,15 @@ describe("the line after a game (G8)", () => {
     expect(resultLine(0, 0, "Pip", "en")).not.toMatch(/great/);
   });
   it("grows with the stars", () => {
-    expect([1, 2, 3].map((s) => resultLine(9, s, "Pip", "en"))).toEqual(["Score 9. Pip had fun.", "Score 9. Pip had a great time!", "Score 9. Pip loved that one!"]);
-    expect([1, 2, 3].map((s) => resultLine(9, s, "Pip", "zh"))).toEqual(["得分 9。Pip玩得挺开心。", "得分 9。Pip玩得很开心！", "得分 9。Pip超爱这一局！"]);
+    expect([1, 2, 3].map((s) => resultLine(9, s, "Pip", "en"))).toEqual([
+      "Score 9. Pip had fun.",
+      "Score 9. Pip had a great time!",
+      "Score 9. Pip loved that one!",
+    ]);
+    expect([1, 2, 3].map((s) => resultLine(9, s, "Pip", "zh"))).toEqual([
+      "得分 9。Pip玩得挺开心。",
+      "得分 9。Pip玩得很开心！",
+      "得分 9。Pip超爱这一局！",
+    ]);
   });
 });

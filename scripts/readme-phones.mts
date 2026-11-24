@@ -45,74 +45,121 @@ const sheetTo = async (page: Page, text: RegExp) => {
 
 const PLAY: Scene[] = [
   { lang: "en", scheme: "light", go: async () => {} },
-  { lang: "en", scheme: "light", go: async (page) => {
-    await page.getByRole("button", { name: "See its circuit" }).click();
-    await settle(page, 1200);
-  } },
-  { lang: "en", scheme: "light", go: async (page) => {
-    await tab(page, "mind");
-    await sheetTo(page, /An instinct from a circuit you own/i);
-  } },
-  { lang: "en", scheme: "light", go: async (page) => {
-    await tab(page, "spar");
-    await page.getByRole("button", { name: /Pip the Pouncer/ }).click();
-    await page.getByText(/ won$| won\b|wins!/).first().waitFor({ timeout: 180_000 });
-    await settle(page, 1200);
-  } },
+  {
+    lang: "en",
+    scheme: "light",
+    go: async (page) => {
+      await page.getByRole("button", { name: "See its circuit" }).click();
+      await settle(page, 1200);
+    },
+  },
+  {
+    lang: "en",
+    scheme: "light",
+    go: async (page) => {
+      await tab(page, "mind");
+      await sheetTo(page, /An instinct from a circuit you own/i);
+    },
+  },
+  {
+    lang: "en",
+    scheme: "light",
+    go: async (page) => {
+      await tab(page, "spar");
+      await page.getByRole("button", { name: /Pip the Pouncer/ }).click();
+      await page
+        .getByText(/ won$| won\b|wins!/)
+        .first()
+        .waitFor({ timeout: 180_000 });
+      await settle(page, 1200);
+    },
+  },
 ];
 const WORLD: Scene[] = [
-  { lang: "en", scheme: "light", go: async (page) => {
-    await closeAll(page);
-    // the quest book, from the header's pill
-    await page.getByRole("button", { name: "Things to do" }).click();
-    await page.locator(".sheet").waitFor();
-    await settle(page, 900);
-  } },
-  { lang: "en", scheme: "light", go: async (page) => {
-    await tab(page, "map");
-  } },
-  { lang: "en", scheme: "light", go: async (page) => {
-    await tab(page, "me");
-    // the pet's details are drawn as the sheet is scrolled to them
-    const skills = page.locator(".lv-skills");
-    for (let i = 0; i < 120 && !(await skills.count()); i++) {
-      await page.mouse.move(195, 600);
-      // in steps a lazily drawn panel cannot be skipped over
-      await page.mouse.wheel(0, 300);
-      await settle(page, 300);
-    }
-    // its part of the game loads as it is reached
-    await skills.waitFor({ state: "attached", timeout: 30_000 });
-    // only up and down: the sheet must not shift sideways
-    await skills.evaluate((el) => el.scrollIntoView({ block: "center", inline: "nearest" }));
-    await settle(page, 500);
-    await skills.click();
-    await page.getByRole("heading", { name: "Mochi's skills" }).waitFor();
-    await settle(page, 900);
-  } },
-  { lang: "en", scheme: "light", go: async (page) => {
-    await tab(page, "bag");
-  } },
+  {
+    lang: "en",
+    scheme: "light",
+    go: async (page) => {
+      await closeAll(page);
+      // the quest book, from the header's pill
+      await page.getByRole("button", { name: "Things to do" }).click();
+      await page.locator(".sheet").waitFor();
+      await settle(page, 900);
+    },
+  },
+  {
+    lang: "en",
+    scheme: "light",
+    go: async (page) => {
+      await tab(page, "map");
+    },
+  },
+  {
+    lang: "en",
+    scheme: "light",
+    go: async (page) => {
+      await tab(page, "me");
+      // the pet's details are drawn as the sheet is scrolled to them
+      const skills = page.locator(".lv-skills");
+      for (let i = 0; i < 120 && !(await skills.count()); i++) {
+        await page.mouse.move(195, 600);
+        // in steps a lazily drawn panel cannot be skipped over
+        await page.mouse.wheel(0, 300);
+        await settle(page, 300);
+      }
+      // its part of the game loads as it is reached
+      await skills.waitFor({ state: "attached", timeout: 30_000 });
+      // only up and down: the sheet must not shift sideways
+      await skills.evaluate((el) => el.scrollIntoView({ block: "center", inline: "nearest" }));
+      await settle(page, 500);
+      await skills.click();
+      await page.getByRole("heading", { name: "Mochi's skills" }).waitFor();
+      await settle(page, 900);
+    },
+  },
+  {
+    lang: "en",
+    scheme: "light",
+    go: async (page) => {
+      await tab(page, "bag");
+    },
+  },
 ];
 const CHAIN: Scene[] = [
-  { lang: "en", scheme: "dark", go: async (page) => {
-    await tab(page, "me");
-    await sheetTo(page, /^Item shop$/i);
-    await settle(page, 2500);
-  } },
-  { lang: "en", scheme: "dark", go: async (page) => {
-    await tab(page, "me");
-    await sheetTo(page, /^Adoption centre$/i);
-    await settle(page, 2500);
-  } },
+  {
+    lang: "en",
+    scheme: "dark",
+    go: async (page) => {
+      await tab(page, "me");
+      await sheetTo(page, /^Item shop$/i);
+      await settle(page, 2500);
+    },
+  },
+  {
+    lang: "en",
+    scheme: "dark",
+    go: async (page) => {
+      await tab(page, "me");
+      await sheetTo(page, /^Adoption centre$/i);
+      await settle(page, 2500);
+    },
+  },
   { lang: "zh", scheme: "dark", go: async () => {} },
-  { lang: "zh", scheme: "dark", go: async (page) => {
-    await tab(page, "map");
-  } },
+  {
+    lang: "zh",
+    scheme: "dark",
+    go: async (page) => {
+      await tab(page, "map");
+    },
+  },
 ];
 
 async function shot(browser: Browser, s: Scene): Promise<string> {
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, colorScheme: s.scheme });
+  const ctx = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 2,
+    colorScheme: s.scheme,
+  });
   await ctx.addInitScript((lang) => {
     localStorage.setItem("lingxi.lang", lang);
     localStorage.setItem("lingxi.reveal.v1", "1");
@@ -148,11 +195,20 @@ const FRAMED = (shots: string[], dark: boolean) => `<!doctype html><html><head><
 
 const browser = await chromium.launch();
 try {
-  for (const [file, scenes] of [["play.png", PLAY], ["world.png", WORLD], ["chain.png", CHAIN]] as const) {
+  for (const [file, scenes] of [
+    ["play.png", PLAY],
+    ["world.png", WORLD],
+    ["chain.png", CHAIN],
+  ] as const) {
     const shots: string[] = [];
     for (const s of scenes) shots.push(await shot(browser, s));
     const frame = await browser.newPage({ viewport: { width: 2364, height: 1216 }, deviceScaleFactor: 1 });
-    await frame.setContent(FRAMED(shots, scenes.every((s) => s.scheme === "dark")));
+    await frame.setContent(
+      FRAMED(
+        shots,
+        scenes.every((s) => s.scheme === "dark"),
+      ),
+    );
     await frame.waitForTimeout(300);
     await frame.screenshot({ path: join(out, file) });
     await frame.close();

@@ -9,16 +9,30 @@ import { petRegistryAbi } from "../src/registryAbi";
 
 const RELAYER: Address = "0x00000000000000000000000000000000000000aa";
 const DEVICE: Address = "0x00000000000000000000000000000000000000dd";
-const d = { registry: "0x00000000000000000000000000000000000000bb", processor: "0x00000000000000000000000000000000000000cc", circuits: { gentle: { id: 1 }, bold: { id: 2 }, curious: { id: 3 } } } as unknown as Deployment;
+const d = {
+  registry: "0x00000000000000000000000000000000000000bb",
+  processor: "0x00000000000000000000000000000000000000cc",
+  circuits: { gentle: { id: 1 }, bold: { id: 2 }, curious: { id: 3 } },
+} as unknown as Deployment;
 const hatched = (petId: bigint, to: Address) => ({
   address: d.registry,
   topics: encodeEventTopics({ abi: petRegistryAbi, eventName: "Hatched", args: { petId, to } }) as Hex[],
-  data: encodeAbiParameters([{ type: "uint8" }, { type: "address" }, { type: "uint64" }, { type: "uint256" }], [0, d.processor, 1n, 0n]),
+  data: encodeAbiParameters(
+    [{ type: "uint8" }, { type: "address" }, { type: "uint64" }, { type: "uint256" }],
+    [0, d.processor, 1n, 0n],
+  ),
 });
 
 function chain(minedTo: Address) {
   const simulate = vi.fn(async (q: { args: readonly unknown[] }) => ({ request: q }));
-  const pub = { simulateContract: simulate, waitForTransactionReceipt: async () => ({ status: "success", transactionHash: "0x01", logs: [hatched(7n, minedTo)] }) };
+  const pub = {
+    simulateContract: simulate,
+    waitForTransactionReceipt: async () => ({
+      status: "success",
+      transactionHash: "0x01",
+      logs: [hatched(7n, minedTo)],
+    }),
+  };
   const wallet = { account: { address: RELAYER }, writeContract: async () => "0x01" as Hex };
   return { pub: pub as never, wallet: wallet as never, simulate };
 }

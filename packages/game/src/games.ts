@@ -12,7 +12,8 @@ export type GameId = "catch" | "pattern" | "seasonal";
 /** Season from the month in the player's own hemisphere (north by default). */
 export function seasonOf(date: Date, south = false): Season {
   const m = date.getMonth();
-  const north: Season = m >= 2 && m <= 4 ? "spring" : m >= 5 && m <= 7 ? "summer" : m >= 8 && m <= 10 ? "autumn" : "winter";
+  const north: Season =
+    m >= 2 && m <= 4 ? "spring" : m >= 5 && m <= 7 ? "summer" : m >= 8 && m <= 10 ? "autumn" : "winter";
   if (!south) return north;
   return ({ spring: "autumn", summer: "winter", autumn: "spring", winter: "summer" } as const)[north];
 }

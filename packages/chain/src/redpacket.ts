@@ -55,15 +55,34 @@ export async function createPacket(
   pub: PublicClient,
   wallet: WalletClient,
   d: Deployment,
-  o: { token: Address; total: bigint; count: number; lifetimeSec: number; key: Address; lucky: boolean; petOwnersOnly: boolean },
+  o: {
+    token: Address;
+    total: bigint;
+    count: number;
+    lifetimeSec: number;
+    key: Address;
+    lucky: boolean;
+    petOwnersOnly: boolean;
+  },
   /** told just before the wallet is asked to send the packet, and with its transaction the moment the wallet sent it */
   hooks: { sending?: () => void; sent?: (tx: Hex) => void } = {},
 ): Promise<{ id: bigint; tx: Hex }> {
   const rp = need(d);
   const account = acct(wallet);
-  const allowance = (await pub.readContract({ address: o.token, abi: erc20Abi, functionName: "allowance", args: [account.address, rp] })) as bigint;
+  const allowance = (await pub.readContract({
+    address: o.token,
+    abi: erc20Abi,
+    functionName: "allowance",
+    args: [account.address, rp],
+  })) as bigint;
   if (allowance < o.total) {
-    const { request } = await pub.simulateContract({ address: o.token, abi: erc20Abi, functionName: "approve", args: [rp, o.total], account });
+    const { request } = await pub.simulateContract({
+      address: o.token,
+      abi: erc20Abi,
+      functionName: "approve",
+      args: [rp, o.total],
+      account,
+    });
     const atx = await wallet.writeContract(request);
     const ar = await pub.waitForTransactionReceipt({ hash: atx });
     if (ar.status !== "success") throw new RevertedOnChain("approve", ar.transactionHash);
@@ -96,8 +115,19 @@ export async function nextPacketId(pub: PublicClient, d: Deployment): Promise<bi
 }
 
 /** The link key signs the claimer's address; the signature is useless to anyone else. */
-export async function signClaim(pub: PublicClient, d: Deployment, keyPk: Hex, id: bigint, claimer: Address): Promise<Hex> {
-  const digest = (await pub.readContract({ address: need(d), abi: redPacketAbi, functionName: "claimDigest", args: [id, claimer] })) as Hex;
+export async function signClaim(
+  pub: PublicClient,
+  d: Deployment,
+  keyPk: Hex,
+  id: bigint,
+  claimer: Address,
+): Promise<Hex> {
+  const digest = (await pub.readContract({
+    address: need(d),
+    abi: redPacketAbi,
+    functionName: "claimDigest",
+    args: [id, claimer],
+  })) as Hex;
   // claimDigest is already the eth-signed-message hash; sign it raw
   return privateKeyToAccount(keyPk).sign({ hash: digest });
 }
@@ -107,12 +137,32 @@ export async function signClaim(pub: PublicClient, d: Deployment, keyPk: Hex, id
 function claimIn(logs: Parameters<typeof parseEventLogs>[0]["logs"], tx: Hex): ClaimView | null {
   const paid = parseEventLogs({ abi: redPacketAbi, logs, eventName: "Claimed" })[0];
   if (!paid) return null;
-  return { claimer: paid.args.claimer, amount: paid.args.amount, index: Number(paid.args.index), sealInput: Number(paid.args.sealInput), sealOutput: Number(paid.args.sealOutput), tx };
+  return {
+    claimer: paid.args.claimer,
+    amount: paid.args.amount,
+    index: Number(paid.args.index),
+    sealInput: Number(paid.args.sealInput),
+    sealOutput: Number(paid.args.sealOutput),
+    tx,
+  };
 }
 
-export async function claimPacket(pub: PublicClient, wallet: WalletClient, d: Deployment, id: bigint, sig: Hex, petId = 0n): Promise<{ amount: bigint; reserved: boolean; tx: Hex; block: bigint; claim: ClaimView | null }> {
+export async function claimPacket(
+  pub: PublicClient,
+  wallet: WalletClient,
+  d: Deployment,
+  id: bigint,
+  sig: Hex,
+  petId = 0n,
+): Promise<{ amount: bigint; reserved: boolean; tx: Hex; block: bigint; claim: ClaimView | null }> {
   const account = acct(wallet);
-  const { request } = await pub.simulateContract({ address: need(d), abi: redPacketAbi, functionName: "claim", args: [id, sig, petId], account });
+  const { request } = await pub.simulateContract({
+    address: need(d),
+    abi: redPacketAbi,
+    functionName: "claim",
+    args: [id, sig, petId],
+    account,
+  });
   const tx = await wallet.writeContract(request);
   const r = await pub.waitForTransactionReceipt({ hash: tx });
   if (r.status !== "success") throw new RevertedOnChain("claim", r.transactionHash);
@@ -120,9 +170,20 @@ export async function claimPacket(pub: PublicClient, wallet: WalletClient, d: De
   return { amount: claim?.amount ?? 0n, reserved: !claim, tx, block: r.blockNumber, claim };
 }
 
-export async function revealPacket(pub: PublicClient, wallet: WalletClient, d: Deployment, id: bigint): Promise<{ amount: bigint; tx: Hex; claim: ClaimView | null }> {
+export async function revealPacket(
+  pub: PublicClient,
+  wallet: WalletClient,
+  d: Deployment,
+  id: bigint,
+): Promise<{ amount: bigint; tx: Hex; claim: ClaimView | null }> {
   const account = acct(wallet);
-  const { request } = await pub.simulateContract({ address: need(d), abi: redPacketAbi, functionName: "reveal", args: [id], account });
+  const { request } = await pub.simulateContract({
+    address: need(d),
+    abi: redPacketAbi,
+    functionName: "reveal",
+    args: [id],
+    account,
+  });
   const tx = await wallet.writeContract(request);
   const r = await pub.waitForTransactionReceipt({ hash: tx });
   if (r.status !== "success") throw new RevertedOnChain("reveal", r.transactionHash);
@@ -132,7 +193,13 @@ export async function revealPacket(pub: PublicClient, wallet: WalletClient, d: D
 
 export async function refundPacket(pub: PublicClient, wallet: WalletClient, d: Deployment, id: bigint): Promise<Hex> {
   const account = acct(wallet);
-  const { request } = await pub.simulateContract({ address: need(d), abi: redPacketAbi, functionName: "refund", args: [id], account });
+  const { request } = await pub.simulateContract({
+    address: need(d),
+    abi: redPacketAbi,
+    functionName: "refund",
+    args: [id],
+    account,
+  });
   const tx = await wallet.writeContract(request);
   const r = await pub.waitForTransactionReceipt({ hash: tx });
   if (r.status !== "success") throw new RevertedOnChain("refund", r.transactionHash);
@@ -144,19 +211,45 @@ export async function readPacket(pub: PublicClient, d: Deployment, id: bigint): 
   return { ...p, expiry: Number(p.expiry), count: Number(p.count), claimed: Number(p.claimed), paid: Number(p.paid) };
 }
 
-export async function pendingOf(pub: PublicClient, d: Deployment, id: bigint, who: Address): Promise<{ atBlock: bigint; index: number } | null> {
-  const [atBlock, index] = (await pub.readContract({ address: need(d), abi: redPacketAbi, functionName: "pending", args: [id, who] })) as readonly [bigint, number, boolean];
+export async function pendingOf(
+  pub: PublicClient,
+  d: Deployment,
+  id: bigint,
+  who: Address,
+): Promise<{ atBlock: bigint; index: number } | null> {
+  const [atBlock, index] = (await pub.readContract({
+    address: need(d),
+    abi: redPacketAbi,
+    functionName: "pending",
+    args: [id, who],
+  })) as readonly [bigint, number, boolean];
   return atBlock === 0n ? null : { atBlock, index: Number(index) };
 }
 
 /** A top-up owed to `who` once every share of a lucky packet is open (0 if none). */
 export async function owedOf(pub: PublicClient, d: Deployment, id: bigint, who: Address): Promise<bigint> {
-  return (await pub.readContract({ address: need(d), abi: redPacketAbi, functionName: "owed", args: [id, who] })) as bigint;
+  return (await pub.readContract({
+    address: need(d),
+    abi: redPacketAbi,
+    functionName: "owed",
+    args: [id, who],
+  })) as bigint;
 }
 
-export async function collectPacket(pub: PublicClient, wallet: WalletClient, d: Deployment, id: bigint): Promise<{ amount: bigint; tx: Hex }> {
+export async function collectPacket(
+  pub: PublicClient,
+  wallet: WalletClient,
+  d: Deployment,
+  id: bigint,
+): Promise<{ amount: bigint; tx: Hex }> {
   const account = acct(wallet);
-  const { request, result } = await pub.simulateContract({ address: need(d), abi: redPacketAbi, functionName: "collect", args: [id], account });
+  const { request, result } = await pub.simulateContract({
+    address: need(d),
+    abi: redPacketAbi,
+    functionName: "collect",
+    args: [id],
+    account,
+  });
   const tx = await wallet.writeContract(request);
   const r = await pub.waitForTransactionReceipt({ hash: tx });
   if (r.status !== "success") throw new RevertedOnChain("collect", r.transactionHash);

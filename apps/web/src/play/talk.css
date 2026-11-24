@@ -87,7 +87,9 @@
   font-size: 14px;
   box-shadow: 0 3px 0 #2b2140;
   cursor: pointer;
-  transition: transform var(--t-micro) var(--ease), box-shadow var(--t-micro) var(--ease);
+  transition:
+    transform var(--t-micro) var(--ease),
+    box-shadow var(--t-micro) var(--ease);
 }
 .talk-choice:active {
   transform: translateY(2px);

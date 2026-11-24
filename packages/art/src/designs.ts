@@ -52,7 +52,8 @@ export function encodeDesign(d: Design): Uint8Array {
   let k = 0;
   for (const row of t.cells)
     for (const v of row) {
-      if (!Number.isInteger(v) || v < 0 || v > colours.length) throw new DesignError("a cell uses a colour that is not there");
+      if (!Number.isInteger(v) || v < 0 || v > colours.length)
+        throw new DesignError("a cell uses a colour that is not there");
       out[base + (k >> 2)]! |= v << ((k & 3) * 2);
       k++;
     }
@@ -69,7 +70,10 @@ export function decodeDesign(b: Uint8Array): Design {
   if (!slot) throw new DesignError("bad slot");
   checkShape(slot, w, h, n);
   if (b.length !== 4 + n * 3 + Math.ceil((w * h * 2) / 8)) throw new DesignError("wrong length");
-  const colours = Array.from({ length: n }, (_, i) => `#${hex2(b[4 + i * 3]!)}${hex2(b[5 + i * 3]!)}${hex2(b[6 + i * 3]!)}`);
+  const colours = Array.from(
+    { length: n },
+    (_, i) => `#${hex2(b[4 + i * 3]!)}${hex2(b[5 + i * 3]!)}${hex2(b[6 + i * 3]!)}`,
+  );
   const base = 4 + n * 3;
   const cells: number[][] = [];
   let k = 0;
@@ -82,13 +86,16 @@ export function decodeDesign(b: Uint8Array): Design {
     }
     cells.push(row);
   }
-  for (; k < (b.length - base) * 4; k++) if ((b[base + (k >> 2)]! >> ((k & 3) * 2)) & 3) throw new DesignError("stray bits after the last cell");
+  for (; k < (b.length - base) * 4; k++)
+    if ((b[base + (k >> 2)]! >> ((k & 3) * 2)) & 3) throw new DesignError("stray bits after the last cell");
   return { slot, cells, colours };
 }
 
 function checkShape(slot: Slot, w: number, h: number, n: number) {
-  if (w < 1 || h < 1 || w > DESIGN_MAX_W || h > DESIGN_MAX_H) throw new DesignError(`size ${w}×${h} is outside 1-${DESIGN_MAX_W} by 1-${DESIGN_MAX_H}`);
-  if (slot === "face" && w > DESIGN_FACE_MAX_W) throw new DesignError(`a face piece is at most ${DESIGN_FACE_MAX_W} wide`);
+  if (w < 1 || h < 1 || w > DESIGN_MAX_W || h > DESIGN_MAX_H)
+    throw new DesignError(`size ${w}×${h} is outside 1-${DESIGN_MAX_W} by 1-${DESIGN_MAX_H}`);
+  if (slot === "face" && w > DESIGN_FACE_MAX_W)
+    throw new DesignError(`a face piece is at most ${DESIGN_FACE_MAX_W} wide`);
   if (n < 1 || n > DESIGN_MAX_COLOURS) throw new DesignError(`1 to ${DESIGN_MAX_COLOURS} colours`);
 }
 
@@ -107,7 +114,10 @@ export function trimDesign(d: Design): Design {
   while (!col(left)) left++;
   let right = width - 1;
   while (!col(right)) right--;
-  return { ...d, cells: rows.slice(top, bottom + 1).map((r) => Array.from({ length: right - left + 1 }, (_, i) => r[left + i] ?? 0)) };
+  return {
+    ...d,
+    cells: rows.slice(top, bottom + 1).map((r) => Array.from({ length: right - left + 1 }, (_, i) => r[left + i] ?? 0)),
+  };
 }
 
 const KEYS = [".", "a", "b", "c"] as const;

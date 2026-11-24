@@ -14,7 +14,12 @@ const T0 = Date.UTC(2026, 10, 23, 11, 0);
 const H = 3_600_000;
 const brain = mindBrain({ line: "gentle", lessons: [] });
 const visible = (v: number) => Math.floor(v / 60);
-const needs = (p: ReturnType<typeof createPet>) => ({ food: visible(p.meters.food), joy: visible(p.meters.joy), energy: visible(p.meters.energy), clean: visible(p.meters.clean) });
+const needs = (p: ReturnType<typeof createPet>) => ({
+  food: visible(p.meters.food),
+  joy: visible(p.meters.joy),
+  energy: visible(p.meters.energy),
+  clean: visible(p.meters.clean),
+});
 const fresh = () => createPet({ name: "Pip", line: "gentle", now: T0, tzOffsetMin: 480, brain });
 
 describe("kind to a once-a-day player (G5)", () => {

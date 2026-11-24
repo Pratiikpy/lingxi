@@ -61,22 +61,48 @@ export async function startRun(): Promise<Run> {
     const forkPort = await freePort();
     const rpc = `http://127.0.0.1:${forkPort}`;
     assertLocal(rpc);
-    const anvil = keep(start("anvil", process.env.ANVIL_BIN ?? "anvil", forkArgs(FORK, forkPort), { cwd: dir, env: process.env, log: join(dir, "anvil.log") }));
-    await waitFor("the fork", () => answers(rpc, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_chainId", params: [] }) }), 60_000, anvil.log);
+    const anvil = keep(
+      start("anvil", process.env.ANVIL_BIN ?? "anvil", forkArgs(FORK, forkPort), {
+        cwd: dir,
+        env: process.env,
+        log: join(dir, "anvil.log"),
+      }),
+    );
+    await waitFor(
+      "the fork",
+      () =>
+        answers(rpc, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_chainId", params: [] }),
+        }),
+      60_000,
+      anvil.log,
+    );
     const pub = createPublicClient({ transport: http(rpc) }) as PublicClient;
 
     // the deployment record, pointed at the fork
-    const deployment = JSON.parse(readFileSync(join(ROOT, "packages/chain/deployments/xlayer.json"), "utf8")) as Record<string, unknown> & { itemShop: Address };
+    const deployment = JSON.parse(readFileSync(join(ROOT, "packages/chain/deployments/xlayer.json"), "utf8")) as Record<
+      string,
+      unknown
+    > & { itemShop: Address };
     const deploymentFile = join(dir, "deployment.json");
     writeFileSync(deploymentFile, JSON.stringify({ ...deployment, rpc }, null, 2));
 
     // funded test wallets: OKB for gas and purchases, BEM for the shops
-    const bem = (await pub.readContract({ address: deployment.itemShop, abi: [{ type: "function", name: "bem", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] }] as const, functionName: "bem" })) as Address;
+    const bem = (await pub.readContract({
+      address: deployment.itemShop,
+      abi: [
+        { type: "function", name: "bem", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
+      ] as const,
+      functionName: "bem",
+    })) as Address;
     const addresses = Array.from({ length: PLAYERS }, (_, i) => testAccount(i).address);
     for (const a of addresses) {
       // the test mnemonic's addresses are public, and on X Layer some carry EIP-7702 delegation code a stranger set,
       // which refuses the pet a registry mints to them: on the fork they are made plain wallets again
-      if (((await pub.getCode({ address: a })) ?? "0x") !== "0x") await pub.request({ method: "anvil_setCode" as never, params: [a, "0x"] as never });
+      if (((await pub.getCode({ address: a })) ?? "0x") !== "0x")
+        await pub.request({ method: "anvil_setCode" as never, params: [a, "0x"] as never });
       await giveOkb(pub, a, OKB_EACH);
       await giveToken(pub, bem, a, BEM_EACH);
     }
@@ -90,7 +116,13 @@ export async function startRun(): Promise<Run> {
     mkdirSync(s("diaries"), { recursive: true });
     // a stand-in for Sourcify, so no spec depends on Sourcify being up (A71)
     const sourcifyPort = await freePort();
-    keep(start("sourcify", node, [join(ROOT, "e2e/harness/sourcify-standin.mjs"), String(sourcifyPort)], { cwd: dir, env: process.env, log: join(dir, "sourcify.log") }));
+    keep(
+      start("sourcify", node, [join(ROOT, "e2e/harness/sourcify-standin.mjs"), String(sourcifyPort)], {
+        cwd: dir,
+        env: process.env,
+        log: join(dir, "sourcify.log"),
+      }),
+    );
     const serverEnv: NodeJS.ProcessEnv = {
       ...process.env,
       PORT: String(apiPort),
@@ -140,8 +172,11 @@ export async function startRun(): Promise<Run> {
     for (const k of ["LINGXI_VOUCHER_KEY_FILE", "LINGXI_PUSH_KEY_FILE", "LINGXI_STATIC"]) delete serverEnv[k];
     // the relayer that tapes out players' brains: the last test wallet, funded on the fork; its key stays in the
     // scratch folder of this run
-    writeFileSync(s("relayer.env"), `K=${keyOf(RELAYER)}
-`);
+    writeFileSync(
+      s("relayer.env"),
+      `K=${keyOf(RELAYER)}
+`,
+    );
     serverEnv.LINGXI_RELAYER_KEY_FILE = s("relayer.env");
     // keeping a pet with no wallet (H4) is switched on here, on the fork, so its screens are played before it is on for
     // real players (B9); its own limits stay as they are: one free pet per network a day, every spec on 127.0.0.1
@@ -156,14 +191,29 @@ export async function startRun(): Promise<Run> {
     serverEnv.LINGXI_SECRETS = join(dir, "no-secrets.env");
     // the key that codes players' addresses (P6a) is the suite's own: its default sits beside the live server's stores
     serverEnv.LINGXI_IP_KEY_FILE = join(dir, "ip-key");
-    const server = keep(start("server", node, [tsx, "src/server.ts"], { cwd: join(ROOT, "services/api"), env: serverEnv, log: join(dir, "server.log") }));
+    const server = keep(
+      start("server", node, [tsx, "src/server.ts"], {
+        cwd: join(ROOT, "services/api"),
+        env: serverEnv,
+        log: join(dir, "server.log"),
+      }),
+    );
     await waitFor("the server", () => answers(`${api}/api/health`), 90_000, server.log);
-    const health = (await (await fetch(`${api}/api/health`)).json()) as { teach?: boolean; voice?: boolean; relay?: boolean };
+    const health = (await (await fetch(`${api}/api/health`)).json()) as {
+      teach?: boolean;
+      voice?: boolean;
+      relay?: boolean;
+    };
     if (health.teach || health.voice) throw new Error("the suite's server can reach a paid model; it must not");
     if (!health.relay) throw new Error("the suite's server has no relayer");
     // the server's first reading of Builders' Lane loads hundreds of processors the fork has never touched, and the
     // fork answers nothing else quickly until it is done: specs start after it
-    await waitFor("the server's first reading of the chain", async () => ((await (await fetch(`${api}/api/lane/tapeouts`)).json()) as { ok?: boolean }).ok === true, 300_000, server.log);
+    await waitFor(
+      "the server's first reading of the chain",
+      async () => ((await (await fetch(`${api}/api/lane/tapeouts`)).json()) as { ok?: boolean }).ok === true,
+      300_000,
+      server.log,
+    );
     // P3a: and so does every other background reading (who holds each Test1, the processors' references, the markets): on
     // a fork each first pass fetches thousands of storage slots from X Layer one by one, and a player's transaction waits
     // behind them, so the first spec of a run timed out on CI. Specs start once every job has finished a first pass
@@ -171,8 +221,12 @@ export async function startRun(): Promise<Run> {
     await waitFor(
       "every background reading's first pass",
       async () => {
-        const h = (await (await fetch(`${api}/api/health`)).json()) as { detail?: { jobsRan?: Record<string, boolean> } };
-        slow = Object.entries(h.detail?.jobsRan ?? { "the health report": false }).filter(([, ran]) => !ran).map(([name]) => name);
+        const h = (await (await fetch(`${api}/api/health`)).json()) as {
+          detail?: { jobsRan?: Record<string, boolean> };
+        };
+        slow = Object.entries(h.detail?.jobsRan ?? { "the health report": false })
+          .filter(([, ran]) => !ran)
+          .map(([name]) => name);
         return slow.length === 0;
       },
       900_000,
@@ -185,8 +239,23 @@ export async function startRun(): Promise<Run> {
     const players: Player[] = [];
     for (const [i, port] of webPorts.entries()) {
       const web = `http://localhost:${port}`;
-      const env: NodeJS.ProcessEnv = { ...process.env, LINGXI_E2E: "1", LINGXI_VITE_CACHE: join(dir, `vite-cache-${i}`), VITE_CHAIN: "rehearsal", VITE_RPC: rpc, VITE_API_URL: api, VITE_LIVE_URL: `${api.replace("http", "ws")}/live`, VITE_DEV_KEY: keyOf(i) };
-      const p = keep(start(`web${i}`, node, [vite, "--port", String(port), "--strictPort", "--host", "localhost"], { cwd: join(ROOT, "apps/web"), env, log: join(dir, `web${i}.log`) }));
+      const env: NodeJS.ProcessEnv = {
+        ...process.env,
+        LINGXI_E2E: "1",
+        LINGXI_VITE_CACHE: join(dir, `vite-cache-${i}`),
+        VITE_CHAIN: "rehearsal",
+        VITE_RPC: rpc,
+        VITE_API_URL: api,
+        VITE_LIVE_URL: `${api.replace("http", "ws")}/live`,
+        VITE_DEV_KEY: keyOf(i),
+      };
+      const p = keep(
+        start(`web${i}`, node, [vite, "--port", String(port), "--strictPort", "--host", "localhost"], {
+          cwd: join(ROOT, "apps/web"),
+          env,
+          log: join(dir, `web${i}.log`),
+        }),
+      );
       await waitFor(`the game for player ${i}`, () => answers(`${web}/play.html`), 90_000, p.log);
       await warmUp(web, p.log);
       players.push({ index: i, address: addresses[i]!, web });
@@ -217,10 +286,14 @@ async function warmUp(web: string, log: string): Promise<void> {
     const page = await browser.newPage();
     for (let attempt = 1; ; attempt++) {
       await page.goto(`${web}/play.html`, { timeout: 120_000 });
-      const shown = await page.locator(".hatch, #load-failed-title").first().waitFor({ timeout: 120_000 }).then(
-        async () => ((await page.locator(".hatch").count()) ? "game" : "failed"),
-        () => "nothing",
-      );
+      const shown = await page
+        .locator(".hatch, #load-failed-title")
+        .first()
+        .waitFor({ timeout: 120_000 })
+        .then(
+          async () => ((await page.locator(".hatch").count()) ? "game" : "failed"),
+          () => "nothing",
+        );
       if (shown === "game") return;
       if (attempt === 3) throw new Error(`the game at ${web} would not load in a browser (${shown}); see ${log}`);
     }
@@ -236,12 +309,14 @@ export async function stopRun(run: Pick<Run, "procs" | "dir">): Promise<void> {
     else stop(p);
   }
   // the logs and stores stay for a look; the dev servers' bundled dependencies (most of a run's size) do not
-  for (const name of readdirSync(run.dir)) if (name.startsWith("vite-cache-")) rmSync(join(run.dir, name), { recursive: true, force: true, maxRetries: 3 });
+  for (const name of readdirSync(run.dir))
+    if (name.startsWith("vite-cache-")) rmSync(join(run.dir, name), { recursive: true, force: true, maxRetries: 3 });
 }
 
 /** The run the global setup started, for a spec to read. */
 export function currentRun(): Run {
   const file = process.env.LINGXI_E2E_RUN;
-  if (!file) throw new Error("no run: start specs with `pnpm e2e`, whose global setup starts the fork, the server and the game");
+  if (!file)
+    throw new Error("no run: start specs with `pnpm e2e`, whose global setup starts the fork, the server and the game");
   return JSON.parse(readFileSync(file, "utf8")) as Run;
 }

@@ -14,11 +14,33 @@ const out = join(import.meta.dirname, "..", "docs", "readme");
 /** Each shot: its file, its page, and what must be on screen before it is taken. */
 const SHOTS: Array<{ file: string; path: string; ready: (page: Page) => Promise<unknown> }> = [
   // pet #1's proof, read from X Layer: its picture checked and its record shown
-  { file: "proof.png", path: "/verify.html#1", ready: (page) => page.getByText("Pixel for pixel", { exact: false }).first().waitFor({ timeout: 120_000 }) },
+  {
+    file: "proof.png",
+    path: "/verify.html#1",
+    ready: (page) => page.getByText("Pixel for pixel", { exact: false }).first().waitFor({ timeout: 120_000 }),
+  },
   // the tree of life, read from X Layer: its numbers shown, nothing still loading
-  { file: "tree.png", path: "/tree.html", ready: (page) => page.waitForFunction(() => !!document.querySelector(".tl-stats") && !document.querySelector(".tl-loading"), undefined, { timeout: 120_000 }) },
+  {
+    file: "tree.png",
+    path: "/tree.html",
+    ready: (page) =>
+      page.waitForFunction(
+        () => !!document.querySelector(".tl-stats") && !document.querySelector(".tl-loading"),
+        undefined,
+        { timeout: 120_000 },
+      ),
+  },
   // every number read: no row still waiting
-  { file: "numbers.png", path: "/numbers.html", ready: (page) => page.waitForFunction(() => document.querySelectorAll(".nb-row").length > 0 && !document.querySelector(".tl-loading"), undefined, { timeout: 120_000 }) },
+  {
+    file: "numbers.png",
+    path: "/numbers.html",
+    ready: (page) =>
+      page.waitForFunction(
+        () => document.querySelectorAll(".nb-row").length > 0 && !document.querySelector(".tl-loading"),
+        undefined,
+        { timeout: 120_000 },
+      ),
+  },
 ];
 
 const FRAME = (shot: string) => `<!doctype html><html><head><style>
@@ -31,7 +53,11 @@ const FRAME = (shot: string) => `<!doctype html><html><head><style>
 const browser = await chromium.launch();
 try {
   for (const s of SHOTS) {
-    const page = await browser.newPage({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 1, colorScheme: "light" });
+    const page = await browser.newPage({
+      viewport: { width: 1600, height: 1000 },
+      deviceScaleFactor: 1,
+      colorScheme: "light",
+    });
     await page.addInitScript(() => localStorage.setItem("lingxi.lang", "en"));
     const errors: string[] = [];
     page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
@@ -52,4 +78,8 @@ try {
   await browser.close();
 }
 // which live build these images show, for the status check (A100)
-await recordShots(join(import.meta.dirname, ".."), SITE, SHOTS.map((s) => s.file));
+await recordShots(
+  join(import.meta.dirname, ".."),
+  SITE,
+  SHOTS.map((s) => s.file),
+);

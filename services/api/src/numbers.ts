@@ -21,9 +21,15 @@ const SALES = [
  * fields between the first market and the second, so both forms are read.
  */
 const WHO = [
-  parseAbiItem("event Created(uint256 indexed id, address indexed creator, uint8 slot, uint96 price, uint32 maxSupply, uint16 royaltyBps, string name)"),
-  parseAbiItem("event Listed(uint256 indexed listingId, address indexed seller, uint256 indexed id, uint32 quantity, uint96 priceEach)"),
-  parseAbiItem("event Listed(uint256 indexed listingId, address indexed seller, uint256 indexed id, uint32 quantity, uint96 priceEach, uint64 expiresAt, address buyer)"),
+  parseAbiItem(
+    "event Created(uint256 indexed id, address indexed creator, uint8 slot, uint96 price, uint32 maxSupply, uint16 royaltyBps, string name)",
+  ),
+  parseAbiItem(
+    "event Listed(uint256 indexed listingId, address indexed seller, uint256 indexed id, uint32 quantity, uint96 priceEach)",
+  ),
+  parseAbiItem(
+    "event Listed(uint256 indexed listingId, address indexed seller, uint256 indexed id, uint32 quantity, uint96 priceEach, uint64 expiresAt, address buyer)",
+  ),
 ] as const;
 /** Bumped when the stored totals gain a field only a fresh walk can fill (C2: who bought). */
 const SALES_STORE_VERSION = 2;
@@ -78,7 +84,10 @@ export interface Earned {
 interface Stored {
   v?: number;
   next: Record<string, number>;
-  totals: Record<string, { copies: number; paid: string; sales: number; byTeam: Split; selfBuys: Split; byPlayers: Split; buyers: string[] }>;
+  totals: Record<
+    string,
+    { copies: number; paid: string; sales: number; byTeam: Split; selfBuys: Split; byPlayers: Split; buyers: string[] }
+  >;
   /** per market: each design's creator and each listing's seller, lower-cased */
   creators: Record<string, Record<string, string>>;
   sellers: Record<string, Record<string, string>>;
@@ -94,8 +103,17 @@ export interface EarningTerms {
 }
 
 /** Counts every sale on the given markets, walking forward from each market's deploy block. */
-export function createSalesCounter(opts: { rpc: string; markets: Array<{ address: Address; fromBlock: number; earns?: EarningTerms }>; team?: readonly string[]; store?: string; client?: PublicClient; paceMs?: number }) {
-  const pub = opts.client ?? (createPublicClient({ transport: http(opts.rpc, { timeout: 20_000, retryCount: 0 }) }) as PublicClient);
+export function createSalesCounter(opts: {
+  rpc: string;
+  markets: Array<{ address: Address; fromBlock: number; earns?: EarningTerms }>;
+  team?: readonly string[];
+  store?: string;
+  client?: PublicClient;
+  paceMs?: number;
+}) {
+  const pub =
+    opts.client ??
+    (createPublicClient({ transport: http(opts.rpc, { timeout: 20_000, retryCount: 0 }) }) as PublicClient);
   const team = new Set((opts.team ?? []).map((a) => a.toLowerCase()));
   let data: Stored = { v: SALES_STORE_VERSION, next: {}, totals: {}, creators: {}, sellers: {} };
   if (opts.store && hasStore(opts.store)) {
@@ -111,7 +129,15 @@ export function createSalesCounter(opts: { rpc: string; markets: Array<{ address
   for (const m of opts.markets) {
     const k = m.address.toLowerCase();
     // a market whose earnings were never counted is walked again from its first block, so every fee is in them
-    const fresh = () => ({ copies: 0, paid: "0", sales: 0, byTeam: emptySplit(), selfBuys: emptySplit(), byPlayers: emptySplit(), buyers: [] as string[] });
+    const fresh = () => ({
+      copies: 0,
+      paid: "0",
+      sales: 0,
+      byTeam: emptySplit(),
+      selfBuys: emptySplit(),
+      byPlayers: emptySplit(),
+      buyers: [] as string[],
+    });
     if (m.earns && !data.earned[k]) {
       data.next[k] = m.fromBlock;
       data.totals[k] = fresh();
@@ -146,7 +172,12 @@ export function createSalesCounter(opts: { rpc: string; markets: Array<{ address
           let logs;
           for (let attempt = 0; ; attempt++) {
             try {
-              logs = await pub.getLogs({ address: m.address, events: terms.has(k) ? [...SALES, ...WHO, FEE_CHANGED] : [...SALES, ...WHO], fromBlock: BigInt(from), toBlock: BigInt(to) });
+              logs = await pub.getLogs({
+                address: m.address,
+                events: terms.has(k) ? [...SALES, ...WHO, FEE_CHANGED] : [...SALES, ...WHO],
+                fromBlock: BigInt(from),
+                toBlock: BigInt(to),
+              });
               break;
             } catch (e) {
               if (attempt >= 6) throw e;
@@ -157,7 +188,9 @@ export function createSalesCounter(opts: { rpc: string; markets: Array<{ address
           const e = data.earned![k];
           const project = terms.get(k)?.project.toLowerCase();
           // in chain order, so a sale is charged the rate in force when it was paid
-          const ordered = [...logs].sort((x, y) => Number(x.blockNumber! - y.blockNumber!) || (x.logIndex ?? 0) - (y.logIndex ?? 0));
+          const ordered = [...logs].sort(
+            (x, y) => Number(x.blockNumber! - y.blockNumber!) || (x.logIndex ?? 0) - (y.logIndex ?? 0),
+          );
           for (const l of ordered) {
             const name = (l as { eventName?: string }).eventName;
             if (name === "FeeChanged") {
@@ -208,14 +241,29 @@ export function createSalesCounter(opts: { rpc: string; markets: Array<{ address
     catchUp,
     totals: (market: Address): MarketTotals => {
       const t = data.totals[market.toLowerCase()]!;
-      return { copies: t.copies, paid: t.paid, sales: t.sales, byTeam: { ...t.byTeam }, selfBuys: { ...t.selfBuys }, byPlayers: { ...t.byPlayers, buyers: t.buyers.length } };
+      return {
+        copies: t.copies,
+        paid: t.paid,
+        sales: t.sales,
+        byTeam: { ...t.byTeam },
+        selfBuys: { ...t.selfBuys },
+        byPlayers: { ...t.byPlayers, buyers: t.buyers.length },
+      };
     },
     /** what an earning market has paid the project, or null for a market whose fee is burned */
     earned: (market: Address): Earned | null => {
       const k = market.toLowerCase();
       const e = data.earned?.[k];
       const t = terms.get(k);
-      return e && t ? { okb: e.okb, feeBps: e.feeBps, treasury: e.treasury as Address, toProject: e.treasury.toLowerCase() === t.project.toLowerCase(), fromTeam: e.fromTeam } : null;
+      return e && t
+        ? {
+            okb: e.okb,
+            feeBps: e.feeBps,
+            treasury: e.treasury as Address,
+            toProject: e.treasury.toLowerCase() === t.project.toLowerCase(),
+            fromTeam: e.fromTeam,
+          }
+        : null;
     },
     head: (market: Address) => (data.next[market.toLowerCase()] ?? 0) - 1,
   };
@@ -224,13 +272,25 @@ export type SalesCounter = ReturnType<typeof createSalesCounter>;
 
 export interface NumbersDeps {
   pub: PublicClient;
-  counts: (sinceSec: number) => { hatched: number; children: number; saves: number; savedSince: number; hatchers: number };
+  counts: (sinceSec: number) => {
+    hatched: number;
+    children: number;
+    saves: number;
+    savedSince: number;
+    hatchers: number;
+  };
   petsIndexedTo: () => number;
   sales: SalesCounter;
   /** circuits on other processors that REF a Lingxi circuit (H6), counted from chain */
   refs?: RefScanner;
   /** what happened on chain since a time, from PetRegistry's events (H10) */
-  activity?: (sinceSec: number) => { hatched: number; children: number; saves: number; petsSaved: number; hatchers: number };
+  activity?: (sinceSec: number) => {
+    hatched: number;
+    children: number;
+    saves: number;
+    petsSaved: number;
+    hatchers: number;
+  };
   /** who kept each pet, by the hatch's sender (H10) */
   keepers?: () => { own: number; sponsored: number; other: number };
   /** Lingxi's relayer, whose hatches are sponsored keeps */
@@ -244,11 +304,30 @@ export interface NumbersDeps {
   team?: {
     wallets: string[];
     hidden: number;
-    byTeam: (sinceSec: number) => { all: { hatched: number; children: number; saves: number; hatchers: number }; week: { hatched: number; children: number; saves: number; petsSaved: number; hatchers: number } };
+    byTeam: (sinceSec: number) => {
+      all: { hatched: number; children: number; saves: number; hatchers: number };
+      week: { hatched: number; children: number; saves: number; petsSaved: number; hatchers: number };
+    };
   };
   /** Lingxi's processor and the walk of its mints (H10) */
-  circuits?: { processor: Address; fromBlock?: number; counter: { totals: (sinceSec: number) => { minted: number; since: number; indexedTo: number }; week?: (sinceSec: number) => Promise<number> } };
-  contracts: { registry: Address; marketOkb?: Address; marketBem?: Address; breeder?: Address; gift?: Address; itemShop?: Address; adoption?: Address; extras?: Address };
+  circuits?: {
+    processor: Address;
+    fromBlock?: number;
+    counter: {
+      totals: (sinceSec: number) => { minted: number; since: number; indexedTo: number };
+      week?: (sinceSec: number) => Promise<number>;
+    };
+  };
+  contracts: {
+    registry: Address;
+    marketOkb?: Address;
+    marketBem?: Address;
+    breeder?: Address;
+    gift?: Address;
+    itemShop?: Address;
+    adoption?: Address;
+    extras?: Address;
+  };
   explorer: string;
 }
 
@@ -257,46 +336,88 @@ export interface Numbers {
   at: number;
   /** the chain's latest block when read: a count whose indexedTo is far behind it is still catching up */
   head: number;
-  pets: { hatched: number; children: number; daysSaved: number; savedLast24h: number; hatchers: number; nextPetId: number; indexedTo: number; byTeam?: { hatched: number; children: number; saves: number; hatchers: number; savedLast24h: number } };
+  pets: {
+    hatched: number;
+    children: number;
+    daysSaved: number;
+    savedLast24h: number;
+    hatchers: number;
+    nextPetId: number;
+    indexedTo: number;
+    byTeam?: { hatched: number; children: number; saves: number; hatchers: number; savedLast24h: number };
+  };
   /** the team's own wallets, named and kept private (C2); every figure says how much of it is theirs */
   team: { wallets: string[]; hidden: number } | null;
   outfits: { okb: (MarketTotals & { indexedTo: number }) | null; bem: (MarketTotals & { indexedTo: number }) | null };
   burned: { market: string; breeding: string; shop: string; adoption: string; extras: string; total: string };
   /** the last 7 days (H10): pets hatched and born, days saved, pets saved, wallets that hatched, circuits taped */
-  week: { since: number; hatched: number; children: number; saves: number; petsSaved: number; hatchers: number; circuits: number | null; byTeam?: { hatched: number; children: number; saves: number; petsSaved: number; hatchers: number } } | null;
+  week: {
+    since: number;
+    hatched: number;
+    children: number;
+    saves: number;
+    petsSaved: number;
+    hatchers: number;
+    circuits: number | null;
+    byTeam?: { hatched: number; children: number; saves: number; petsSaved: number; hatchers: number };
+  } | null;
   /** who kept the pets on X Layer (H10): their owner's own wallet, Lingxi's relayer (sponsored), or another wallet */
   kept: { own: number; sponsored: number; other: number; sponsors: string[]; sponsorOn?: boolean } | null;
   /** circuits Lingxi has taped out (H10): the processor's own count, the walk's count of mints, and the last 7 days */
   /** `fromBlock` is where the walk of mints starts: the processor's deploy block, so `minted` equals `total` once read */
-  circuits: { total: number; minted: number; last7d: number | null; indexedTo: number; fromBlock: number | null; processor: Address } | null;
+  circuits: {
+    total: number;
+    minted: number;
+    last7d: number | null;
+    indexedTo: number;
+    fromBlock: number | null;
+    processor: Address;
+  } | null;
   /** what the first (OKB) market's 3% has paid the project (H8); null where no market pays a treasury */
   earned: (Earned & { indexedTo: number }) | null;
   /** paid extras bought (plan 4.9): room packs, look packs and name colours; null before the contract exists */
   extras: { room: number; looks: number; colours: number } | null;
   pins: number | null;
   /** circuits on other TapeOut processors whose netlists REF a Lingxi circuit (H6); complete once every processor is read */
-  usedByOthers: { circuits: number; processors: number; scannedProcessors: number; cpuCount: number; complete: boolean } | null;
+  usedByOthers: {
+    circuits: number;
+    processors: number;
+    scannedProcessors: number;
+    cpuCount: number;
+    complete: boolean;
+  } | null;
   contracts: Record<string, { address: Address; url: string }>;
 }
 
 export async function readNumbers(d: NumbersDeps, nowMs = Date.now()): Promise<Numbers> {
   const read = async (address: Address | undefined, fn: "totalBurned" | "total" | "nextPetId"): Promise<bigint> =>
     address ? ((await d.pub.readContract({ address, abi: views, functionName: fn })) as bigint) : 0n;
-  const sold = (f: number) => d.pub.readContract({ address: d.contracts.extras!, abi: views, functionName: "sold", args: [f] }) as Promise<bigint>;
-  const [head, nextPetId, marketBurned, breedingBurned, shopBurned, adoptionBurned, extrasBurned, pins, extrasSold] = await Promise.all([
-    d.pub.getBlockNumber({ cacheTime: 0 }),
-    read(d.contracts.registry, "nextPetId"),
-    read(d.contracts.marketBem, "totalBurned"),
-    read(d.contracts.breeder, "totalBurned"),
-    read(d.contracts.itemShop, "totalBurned"),
-    read(d.contracts.adoption, "totalBurned"),
-    read(d.contracts.extras, "totalBurned"),
-    d.contracts.gift ? read(d.contracts.gift, "total") : Promise.resolve(null),
-    d.contracts.extras ? Promise.all([sold(0), sold(1), sold(2)]) : Promise.resolve(null),
-  ]);
+  const sold = (f: number) =>
+    d.pub.readContract({
+      address: d.contracts.extras!,
+      abi: views,
+      functionName: "sold",
+      args: [f],
+    }) as Promise<bigint>;
+  const [head, nextPetId, marketBurned, breedingBurned, shopBurned, adoptionBurned, extrasBurned, pins, extrasSold] =
+    await Promise.all([
+      d.pub.getBlockNumber({ cacheTime: 0 }),
+      read(d.contracts.registry, "nextPetId"),
+      read(d.contracts.marketBem, "totalBurned"),
+      read(d.contracts.breeder, "totalBurned"),
+      read(d.contracts.itemShop, "totalBurned"),
+      read(d.contracts.adoption, "totalBurned"),
+      read(d.contracts.extras, "totalBurned"),
+      d.contracts.gift ? read(d.contracts.gift, "total") : Promise.resolve(null),
+      d.contracts.extras ? Promise.all([sold(0), sold(1), sold(2)]) : Promise.resolve(null),
+    ]);
   const c = d.counts(Math.floor(nowMs / 1000) - 86_400);
   const since = Math.floor(nowMs / 1000) - WEEK_SEC;
-  const nextId = d.circuits ? Number((await d.pub.readContract({ address: d.circuits.processor, abi: views, functionName: "nextId" })) as bigint) : 0;
+  const nextId = d.circuits
+    ? Number(
+        (await d.pub.readContract({ address: d.circuits.processor, abi: views, functionName: "nextId" })) as bigint,
+      )
+    : 0;
   const walked = d.circuits ? d.circuits.counter.totals(since) : null;
   const split = d.team ? d.team.byTeam(since) : null;
   // the week's circuits from the processor's own count (C7); if that read fails, the walk's count once it is caught up
@@ -306,13 +427,24 @@ export async function readNumbers(d: NumbersDeps, nowMs = Date.now()): Promise<N
   const split24 = d.team ? d.team.byTeam(Math.floor(nowMs / 1000) - 86_400) : null;
   const market = (a?: Address) => (a ? { ...d.sales.totals(a), indexedTo: d.sales.head(a) } : null);
   const contracts: Numbers["contracts"] = {};
-  for (const [k, a] of Object.entries(d.contracts)) if (a) contracts[k] = { address: a, url: `${d.explorer}/address/${a}` };
-  if (d.circuits) contracts.processor = { address: d.circuits.processor, url: `${d.explorer}/address/${d.circuits.processor}` };
+  for (const [k, a] of Object.entries(d.contracts))
+    if (a) contracts[k] = { address: a, url: `${d.explorer}/address/${a}` };
+  if (d.circuits)
+    contracts.processor = { address: d.circuits.processor, url: `${d.explorer}/address/${d.circuits.processor}` };
   return {
     ok: true,
     at: nowMs,
     head: Number(head),
-    pets: { hatched: c.hatched, children: c.children, daysSaved: c.saves, savedLast24h: c.savedSince, hatchers: c.hatchers, nextPetId: Number(nextPetId), indexedTo: d.petsIndexedTo(), ...(split && split24 ? { byTeam: { ...split.all, savedLast24h: split24.week.petsSaved } } : {}) },
+    pets: {
+      hatched: c.hatched,
+      children: c.children,
+      daysSaved: c.saves,
+      savedLast24h: c.savedSince,
+      hatchers: c.hatchers,
+      nextPetId: Number(nextPetId),
+      indexedTo: d.petsIndexedTo(),
+      ...(split && split24 ? { byTeam: { ...split.all, savedLast24h: split24.week.petsSaved } } : {}),
+    },
     team: d.team ? { wallets: d.team.wallets, hidden: d.team.hidden } : null,
     outfits: { okb: market(d.contracts.marketOkb), bem: market(d.contracts.marketBem) },
     burned: {
@@ -323,13 +455,36 @@ export async function readNumbers(d: NumbersDeps, nowMs = Date.now()): Promise<N
       extras: extrasBurned.toString(),
       total: (marketBurned + breedingBurned + shopBurned + adoptionBurned + extrasBurned).toString(),
     },
-    week: d.activity ? { since, ...d.activity(since), ...(split ? { byTeam: split.week } : {}), circuits: walked ? circuitsWeek : null } : null,
-    kept: d.keepers ? { ...d.keepers(), sponsors: d.sponsors ?? [], ...(d.sponsorOn ? { sponsorOn: d.sponsorOn() } : {}) } : null,
+    week: d.activity
+      ? {
+          since,
+          ...d.activity(since),
+          ...(split ? { byTeam: split.week } : {}),
+          circuits: walked ? circuitsWeek : null,
+        }
+      : null,
+    kept: d.keepers
+      ? { ...d.keepers(), sponsors: d.sponsors ?? [], ...(d.sponsorOn ? { sponsorOn: d.sponsorOn() } : {}) }
+      : null,
     // the processor's nextId is the id of its latest circuit (ids start at 1: 23 means circuits 1 to 23, read back
     // with ownerOf on mainnet), so it is the count itself
-    circuits: d.circuits && walked ? { total: nextId, minted: walked.minted, last7d: circuitsWeek, indexedTo: walked.indexedTo, fromBlock: d.circuits.fromBlock ?? null, processor: d.circuits.processor } : null,
-    earned: ((e) => (e && d.contracts.marketOkb ? { ...e, indexedTo: d.sales.head(d.contracts.marketOkb) } : null))(d.contracts.marketOkb ? d.sales.earned(d.contracts.marketOkb) : null),
-    extras: extrasSold ? { room: Number(extrasSold[0]), looks: Number(extrasSold[1]), colours: Number(extrasSold[2]) } : null,
+    circuits:
+      d.circuits && walked
+        ? {
+            total: nextId,
+            minted: walked.minted,
+            last7d: circuitsWeek,
+            indexedTo: walked.indexedTo,
+            fromBlock: d.circuits.fromBlock ?? null,
+            processor: d.circuits.processor,
+          }
+        : null,
+    earned: ((e) => (e && d.contracts.marketOkb ? { ...e, indexedTo: d.sales.head(d.contracts.marketOkb) } : null))(
+      d.contracts.marketOkb ? d.sales.earned(d.contracts.marketOkb) : null,
+    ),
+    extras: extrasSold
+      ? { room: Number(extrasSold[0]), looks: Number(extrasSold[1]), colours: Number(extrasSold[2]) }
+      : null,
     pins: pins === null ? null : Number(pins),
     usedByOthers: d.refs ? d.refs.totals() : null,
     contracts,

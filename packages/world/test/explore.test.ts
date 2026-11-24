@@ -1,5 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { DESTINATIONS, type ExploreMods, NO_EXPLORE_MODS, ROOMS, endTrip, endWalk, forage, move, neighbours, newWorld, startTrip, startWalk } from "../src";
+import {
+  DESTINATIONS,
+  type ExploreMods,
+  NO_EXPLORE_MODS,
+  ROOMS,
+  endTrip,
+  endWalk,
+  forage,
+  move,
+  neighbours,
+  newWorld,
+  startTrip,
+  startWalk,
+} from "../src";
 
 /** Explore skills (plan 4.4): the world applies the numbers the game builds from a pet's skills. */
 const mods = (m: Partial<ExploreMods>): ExploreMods => ({ ...NO_EXPLORE_MODS, ...m });
@@ -7,7 +20,17 @@ const T = Date.UTC(2026, 10, 20, 0, 0, 0);
 
 describe("Explore skills in the world's rules", () => {
   it("leave every number as it was for a pet with no skills", () => {
-    expect(NO_EXPLORE_MODS).toEqual({ moveEnergy: 15, forageEnergy: 10, extraFind: 0, rareBoost: 0, forageWaitOff: 0, walksWithFinds: 0, stepsOff: 0, dayFind: 0, tripExtra: 0 });
+    expect(NO_EXPLORE_MODS).toEqual({
+      moveEnergy: 15,
+      forageEnergy: 10,
+      extraFind: 0,
+      rareBoost: 0,
+      forageWaitOff: 0,
+      walksWithFinds: 0,
+      stepsOff: 0,
+      dayFind: 0,
+      tripExtra: 0,
+    });
   });
 
   it("Light Feet: a tired pet can still walk when the move costs less", () => {
@@ -58,7 +81,9 @@ describe("Explore skills in the world's rules", () => {
   });
 
   it("Lucky Paws: second finds come more often; Dowser: rare finds (tiers 1 to 4) come more often", () => {
-    const room = Object.values(ROOMS).find((r) => r.drops.length > 3 && r.drops.some((d) => d.tier <= 4) && r.drops.some((d) => d.tier > 4))!;
+    const room = Object.values(ROOMS).find(
+      (r) => r.drops.length > 3 && r.drops.some((d) => d.tier <= 4) && r.drops.some((d) => d.tier > 4),
+    )!;
     const rare = new Set(room.drops.filter((d) => d.tier <= 4).map((d) => d.item));
     const tally = (m = NO_EXPLORE_MODS) => {
       let seconds = 0;

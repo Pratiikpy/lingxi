@@ -20,9 +20,21 @@ describe("measuring a request before it is sent (P1)", () => {
   });
 
   it("refuses on the server's own count first: a save's characters, a diary's words", () => {
-    const e = refusal(() => checkSize("{}", SEND_LIMITS.logBodyBytes, { unit: "words", have: SEND_LIMITS.logWords + 1, most: SEND_LIMITS.logWords }));
+    const e = refusal(() =>
+      checkSize("{}", SEND_LIMITS.logBodyBytes, {
+        unit: "words",
+        have: SEND_LIMITS.logWords + 1,
+        most: SEND_LIMITS.logWords,
+      }),
+    );
     expect(e).toMatchObject({ unit: "words", have: 100_001, most: 100_000 });
-    expect(() => checkSize("{}", SEND_LIMITS.moveBodyBytes, { unit: "bytes", have: SEND_LIMITS.moveChars, most: SEND_LIMITS.moveChars })).not.toThrow();
+    expect(() =>
+      checkSize("{}", SEND_LIMITS.moveBodyBytes, {
+        unit: "bytes",
+        have: SEND_LIMITS.moveChars,
+        most: SEND_LIMITS.moveChars,
+      }),
+    ).not.toThrow();
   });
 
   it("says the size and the most allowed in the player's language", () => {

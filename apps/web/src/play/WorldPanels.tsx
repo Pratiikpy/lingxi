@@ -6,7 +6,33 @@ import { play } from "../game/sound";
 import { FRESH_START_TEA, useSkillsUi } from "./Skills";
 import { useMemo, useState } from "react";
 import { stageOf } from "@lingxi/game";
-import { BOX_TABLES, CORNER_SHOP, DECOR_BY_ID, HOME, ITEM, MAKE_RECIPES, PIECE_PRICES, QUESTS, RECIPES, ROOMS, STORY, type Buff, type Recipe, craftBlocker, has, knownTravelRecipes, neighbours, ownedPieces, questState, usedOf, MARKET_ROOM, happeningAt, villageEvening, marketPrice, happeningUsed } from "@lingxi/world";
+import {
+  BOX_TABLES,
+  CORNER_SHOP,
+  DECOR_BY_ID,
+  HOME,
+  ITEM,
+  MAKE_RECIPES,
+  PIECE_PRICES,
+  QUESTS,
+  RECIPES,
+  ROOMS,
+  STORY,
+  type Buff,
+  type Recipe,
+  craftBlocker,
+  has,
+  knownTravelRecipes,
+  neighbours,
+  ownedPieces,
+  questState,
+  usedOf,
+  MARKET_ROOM,
+  happeningAt,
+  villageEvening,
+  marketPrice,
+  happeningUsed,
+} from "@lingxi/world";
 import { WEARABLE } from "@lingxi/art";
 import { useLang, useT, type Key } from "../i18n";
 import { useChain } from "../game/chain";
@@ -17,7 +43,6 @@ import "./world.css";
 import { GardenPanel } from "./Garden";
 import { now } from "../game/gameClock";
 
-
 export function MapPanel({ onGone }: { onGone: () => void }) {
   const t = useT();
   const { lang } = useLang();
@@ -25,7 +50,17 @@ export function MapPanel({ onGone }: { onGone: () => void }) {
   const here = ROOMS[world.room]!;
   const [z, setZ] = useState(here.z);
   const near = useMemo(() => new Set(neighbours(world.room)), [world.room]);
-  const levels = useMemo(() => [...new Set(Object.values(ROOMS).filter((r) => world.visited.includes(r.index) || near.has(r.index)).map((r) => r.z))].sort(), [world.visited, near]);
+  const levels = useMemo(
+    () =>
+      [
+        ...new Set(
+          Object.values(ROOMS)
+            .filter((r) => world.visited.includes(r.index) || near.has(r.index))
+            .map((r) => r.z),
+        ),
+      ].sort(),
+    [world.visited, near],
+  );
   const rooms = Object.values(ROOMS).filter((r) => r.z === z);
   const xs = rooms.map((r) => r.x);
   const ys = rooms.map((r) => r.y);
@@ -51,10 +86,20 @@ export function MapPanel({ onGone }: { onGone: () => void }) {
       {levels.length > 1 && (
         <div className="map-levels" role="tablist">
           {levels.map((l) => (
-            <button key={l} type="button" role="tab" aria-selected={l === z} className={`val${l === z ? " on" : ""}`} onClick={() => setZ(l)}>
+            <button
+              key={l}
+              type="button"
+              role="tab"
+              aria-selected={l === z}
+              className={`val${l === z ? " on" : ""}`}
+              onClick={() => setZ(l)}
+            >
               {t(`map.level.${l}` as Key)}
               {/* a quest waits on this level: say so on its tab, so a mark on another floor is never missed */}
-              {Object.entries(marks).some(([room]) => ROOMS[Number(room)]?.z === l && (world.visited.includes(Number(room)) || near.has(Number(room)))) && (
+              {Object.entries(marks).some(
+                ([room]) =>
+                  ROOMS[Number(room)]?.z === l && (world.visited.includes(Number(room)) || near.has(Number(room))),
+              ) && (
                 <i className="map-quest inline" aria-label={lang === "zh" ? "这层有任务" : "a quest on this level"}>
                   !
                 </i>
@@ -63,7 +108,10 @@ export function MapPanel({ onGone }: { onGone: () => void }) {
           ))}
         </div>
       )}
-      <div className="map-grid" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows}, auto)` }}>
+      <div
+        className="map-grid"
+        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows}, auto)` }}
+      >
         {rooms.map((r) => {
           const visited = world.visited.includes(r.index);
           const isHere = r.index === world.room;
@@ -83,9 +131,22 @@ export function MapPanel({ onGone }: { onGone: () => void }) {
             >
               {visited || canGo ? <img className="pixel" src={r.bgs.day} alt="" loading="lazy" /> : <span>?</span>}
               {isHere && <i className="dot" aria-hidden="true" />}
-              {builderIn(r.index) && (visited || canGo) && <i className="lane-mark" title={builderIn(r.index)!.name[lang]} aria-hidden="true" />}
+              {builderIn(r.index) && (visited || canGo) && (
+                <i className="lane-mark" title={builderIn(r.index)!.name[lang]} aria-hidden="true" />
+              )}
               {marks[r.index] && (visited || canGo) && (
-                <i className={`map-quest${marks[r.index] === "✓" ? " ready" : ""}`} aria-label={marks[r.index] === "✓" ? (lang === "zh" ? "有任务可以交" : "a quest to hand in") : lang === "zh" ? "有新任务" : "a new quest"}>
+                <i
+                  className={`map-quest${marks[r.index] === "✓" ? " ready" : ""}`}
+                  aria-label={
+                    marks[r.index] === "✓"
+                      ? lang === "zh"
+                        ? "有任务可以交"
+                        : "a quest to hand in"
+                      : lang === "zh"
+                        ? "有新任务"
+                        : "a new quest"
+                  }
+                >
                   {marks[r.index]}
                 </i>
               )}
@@ -112,16 +173,26 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
     .map(([k, v]) => ({ item: ITEM[Number(k)], n: v }))
     .filter((e): e is { item: NonNullable<typeof e.item>; n: number } => !!e.item);
   const food = entries.filter((e) => e.item.kind === "food");
-  const drinks = entries.filter((e) => e.item.kind === "drink" || (e.item.kind === "box" && BOX_TABLES[e.item.index]) || (e.item.kind === "treasure" && (e.item.use || e.item.buff)));
+  const drinks = entries.filter(
+    (e) =>
+      e.item.kind === "drink" ||
+      (e.item.kind === "box" && BOX_TABLES[e.item.index]) ||
+      (e.item.kind === "treasure" && (e.item.use || e.item.buff)),
+  );
   const tools = entries.filter((e) => e.item.kind === "tool");
   const stuff = entries.filter((e) => !food.includes(e) && !drinks.includes(e) && !tools.includes(e));
   // every recipe whose ingredients are in the bag, even if a tool, the place or the pet's energy still stands in the way
-  const makeable = [...RECIPES, ...knownTravelRecipes(world)].filter((r) => r.ins.every((x) => has(world, x.item, x.amount)));
+  const makeable = [...RECIPES, ...knownTravelRecipes(world)].filter((r) =>
+    r.ins.every((x) => has(world, x.item, x.amount)),
+  );
   const energy = useGame((s) => (s.pet ? Math.floor(s.pet.meters.energy / 60) : 0));
   const blockText = (r: Recipe): string | null => {
     const b = craftBlocker(world, r, energy);
     if (b === "tool") return lang === "zh" ? `需要${ITEM[r.tool!]!.name.zh}` : `Needs a ${ITEM[r.tool!]!.name.en}`;
-    if (b === "room") return lang === "zh" ? `只能在${ROOMS[r.room!]?.name.zh ?? "那里"}做` : `Only at the ${ROOMS[r.room!]?.name.en ?? "right place"}`;
+    if (b === "room")
+      return lang === "zh"
+        ? `只能在${ROOMS[r.room!]?.name.zh ?? "那里"}做`
+        : `Only at the ${ROOMS[r.room!]?.name.en ?? "right place"}`;
     if (b === "tired") return lang === "zh" ? "宠物太累了" : "Your pet is too tired";
     return null;
   };
@@ -134,7 +205,11 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
         </b>
         <span>{e.item.desc[lang]}</span>
         {e.item.limit !== undefined && (
-          <span className="small">{lang === "zh" ? `已用 ${usedOf(world, e.item.index)}/${e.item.limit}` : `Used ${usedOf(world, e.item.index)} of ${e.item.limit}`}</span>
+          <span className="small">
+            {lang === "zh"
+              ? `已用 ${usedOf(world, e.item.index)}/${e.item.limit}`
+              : `Used ${usedOf(world, e.item.index)} of ${e.item.limit}`}
+          </span>
         )}
       </div>
       {action && (
@@ -162,7 +237,12 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
                     <b>{it.name[lang]}</b>
                     <span>{it.desc[lang]}</span>
                   </div>
-                  <button type="button" className="btn primary" disabled={world.coins < (it.price ?? 0)} onClick={() => buy(i)}>
+                  <button
+                    type="button"
+                    className="btn primary"
+                    disabled={world.coins < (it.price ?? 0)}
+                    onClick={() => buy(i)}
+                  >
                     {t("bag.buy")} · {it.price}
                   </button>
                 </li>
@@ -187,14 +267,32 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
         <section>
           <p className="label">{t("bag.drinks")}</p>
           <ul className="bag-list">
-            {drinks.map((e) => (
+            {drinks.map((e) =>
               e.item.index === FRESH_START_TEA ? (
                 // the Fresh Start Tea returns skill points: it opens the skills screen to confirm (plan 4.4)
-                <Row key={e.item.index} e={e} action={lang === "zh" ? "重新选择技能" : "Choose skills again"} onAct={() => (play("tap"), useSkillsUi.getState().show({ respec: true }))} />
+                <Row
+                  key={e.item.index}
+                  e={e}
+                  action={lang === "zh" ? "重新选择技能" : "Choose skills again"}
+                  onAct={() => (play("tap"), useSkillsUi.getState().show({ respec: true }))}
+                />
               ) : (
-                <Row key={e.item.index} e={e} action={e.item.kind === "box" ? t("bag.open") : e.item.buff && !e.item.use ? (lang === "zh" ? "备好" : "Ready it") : t("bag.use")} onAct={() => (e.item.kind === "box" ? openBox(e.item.index) : (use(e.item.index), onFed()))} />
-              )
-            ))}
+                <Row
+                  key={e.item.index}
+                  e={e}
+                  action={
+                    e.item.kind === "box"
+                      ? t("bag.open")
+                      : e.item.buff && !e.item.use
+                        ? lang === "zh"
+                          ? "备好"
+                          : "Ready it"
+                        : t("bag.use")
+                  }
+                  onAct={() => (e.item.kind === "box" ? openBox(e.item.index) : (use(e.item.index), onFed()))}
+                />
+              ),
+            )}
           </ul>
         </section>
       )}
@@ -235,9 +333,16 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
               <li key={id} className="bag-item no-art">
                 <div className="bag-text">
                   <b>{WEARABLE[id]!.name[lang]}</b>
-                  <span>{lang === "zh" ? "只是好看，不影响玩法。" : "Looks only; it never changes how your pet plays."}</span>
+                  <span>
+                    {lang === "zh" ? "只是好看，不影响玩法。" : "Looks only; it never changes how your pet plays."}
+                  </span>
                 </div>
-                <button type="button" className="btn primary" disabled={owned.includes(id) || world.coins < price} onClick={() => buyPiece(id)}>
+                <button
+                  type="button"
+                  className="btn primary"
+                  disabled={owned.includes(id) || world.coins < price}
+                  onClick={() => buyPiece(id)}
+                >
                   {owned.includes(id) ? (lang === "zh" ? "已拥有" : "Owned") : `${t("bag.buy")} · ${price}`}
                 </button>
               </li>
@@ -256,12 +361,34 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
               <li key={`${r.kind}:${r.id}`} className={`bag-item no-art${can || done ? "" : " is-dim"}`}>
                 <div className="bag-text">
                   <b>
-                    {name} <em>{r.kind === "outfit" ? (lang === "zh" ? "衣服" : "outfit") : lang === "zh" ? "家具" : "furniture"}</em>
+                    {name}{" "}
+                    <em>
+                      {r.kind === "outfit" ? (lang === "zh" ? "衣服" : "outfit") : lang === "zh" ? "家具" : "furniture"}
+                    </em>
                   </b>
-                  <span>{r.ins.map((x) => `${ITEM[x.item]!.name[lang]} ×${x.amount} (${world.bag[x.item] ?? 0})`).join(" + ")}</span>
+                  <span>
+                    {r.ins
+                      .map((x) => `${ITEM[x.item]!.name[lang]} ×${x.amount} (${world.bag[x.item] ?? 0})`)
+                      .join(" + ")}
+                  </span>
                 </div>
-                <button type="button" className="btn primary" disabled={done || !can} onClick={() => make(r.kind, r.id)}>
-                  {done ? (lang === "zh" ? "已有" : "Have it") : r.kind === "outfit" ? (lang === "zh" ? "缝" : "Sew") : lang === "zh" ? "做" : "Build"}
+                <button
+                  type="button"
+                  className="btn primary"
+                  disabled={done || !can}
+                  onClick={() => make(r.kind, r.id)}
+                >
+                  {done
+                    ? lang === "zh"
+                      ? "已有"
+                      : "Have it"
+                    : r.kind === "outfit"
+                      ? lang === "zh"
+                        ? "缝"
+                        : "Sew"
+                      : lang === "zh"
+                        ? "做"
+                        : "Build"}
                 </button>
               </li>
             );
@@ -285,7 +412,11 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
                     <span>{r.ins.map((x) => `${ITEM[x.item]!.name[lang]} ×${x.amount}`).join(" + ")}</span>
                     <span className="small craft-cost">
                       {[
-                        r.tool !== undefined ? (lang === "zh" ? `工具：${ITEM[r.tool]!.name.zh}` : `Tool: ${ITEM[r.tool]!.name.en}`) : null,
+                        r.tool !== undefined
+                          ? lang === "zh"
+                            ? `工具：${ITEM[r.tool]!.name.zh}`
+                            : `Tool: ${ITEM[r.tool]!.name.en}`
+                          : null,
                         r.energy ? (lang === "zh" ? `精神 −${r.energy}` : `Energy −${r.energy}`) : null,
                         r.xp ? (lang === "zh" ? `经验 +${r.xp}` : `+${r.xp} XP`) : null,
                       ]
@@ -302,7 +433,11 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
             })}
           </ul>
         ) : (
-          <p className="small">{lang === "zh" ? "收集更多材料，就能在这里做东西。" : "Collect more things on your walks to make something here."}</p>
+          <p className="small">
+            {lang === "zh"
+              ? "收集更多材料，就能在这里做东西。"
+              : "Collect more things on your walks to make something here."}
+          </p>
         )}
       </section>
     </div>
@@ -313,10 +448,18 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
 function WaitingBonuses({ buffs, lang }: { buffs: Buff | undefined; lang: "en" | "zh" }) {
   const b = buffs ?? {};
   const lines = [
-    b.forageExtra ? (lang === "zh" ? `下次四处找找多找到 ${b.forageExtra} 样` : `${b.forageExtra} more find${b.forageExtra > 1 ? "s" : ""} next time you look around`) : null,
+    b.forageExtra
+      ? lang === "zh"
+        ? `下次四处找找多找到 ${b.forageExtra} 样`
+        : `${b.forageExtra} more find${b.forageExtra > 1 ? "s" : ""} next time you look around`
+      : null,
     b.sparPower ? (lang === "zh" ? `下一场切磋力量 +${b.sparPower}` : `+${b.sparPower} power in the next spar`) : null,
     b.sparHp ? (lang === "zh" ? `下一场切磋体力 +${b.sparHp}` : `+${b.sparHp} health in the next spar`) : null,
-    b.sparLossCoins ? (lang === "zh" ? `下一场切磋输了也有 ${b.sparLossCoins} 金币` : `${b.sparLossCoins} coins even if the next spar is lost`) : null,
+    b.sparLossCoins
+      ? lang === "zh"
+        ? `下一场切磋输了也有 ${b.sparLossCoins} 金币`
+        : `${b.sparLossCoins} coins even if the next spar is lost`
+      : null,
   ].filter((x): x is string => !!x);
   if (!lines.length) return null;
   return (
@@ -361,7 +504,9 @@ export function QuestPanel() {
                 {t("quest.claim")}
               </button>
             ) : (
-              <span className="quest-state">{st === "claimed" ? t("quest.done") : q.story ? t("quest.inStory") : `+${q.reward.coins}`}</span>
+              <span className="quest-state">
+                {st === "claimed" ? t("quest.done") : q.story ? t("quest.inStory") : `+${q.reward.coins}`}
+              </span>
             )}
           </li>
         );
@@ -398,7 +543,12 @@ function MarketStall() {
               {evening ? (zh ? " 傍晚了，最后一个半价。" : " It is evening: the last one is half price.") : ""}
             </span>
           </div>
-          <button type="button" className="btn primary" disabled={sold || world.coins < price} onClick={() => buyMarket()}>
+          <button
+            type="button"
+            className="btn primary"
+            disabled={sold || world.coins < price}
+            onClick={() => buyMarket()}
+          >
             {sold ? (zh ? "已买" : "Bought") : `${zh ? "买" : "Buy"} · ${price}`}
           </button>
         </li>

@@ -112,7 +112,8 @@ function checkOut(o: unknown, where: string): Out {
   if (!o || typeof o !== "object") throw new ProgramError(`${where}: missing`);
   const x = o as Record<string, unknown>;
   const int = (v: unknown, max: number, k: string) => {
-    if (!Number.isInteger(v) || (v as number) < 0 || (v as number) > max) throw new ProgramError(`${where}: ${k} must be 0..${max}`);
+    if (!Number.isInteger(v) || (v as number) < 0 || (v as number) > max)
+      throw new ProgramError(`${where}: ${k} must be 0..${max}`);
     return v as number;
   };
   const out: Out = { want: int(x.want, 7, "want"), mood: int(x.mood, 3, "mood") };
@@ -187,7 +188,12 @@ export function validateProgram(input: unknown): Program {
       const inc = checkClauses(m.inc, fields, `${w}.inc`);
       const dec = checkClauses(m.dec, fields, `${w}.dec`);
       const reset = checkClauses(m.reset, fields, `${w}.reset`);
-      return { ...shell, ...(inc.length ? { inc } : {}), ...(dec.length ? { dec } : {}), ...(reset.length ? { reset } : {}) };
+      return {
+        ...shell,
+        ...(inc.length ? { inc } : {}),
+        ...(dec.length ? { dec } : {}),
+        ...(reset.length ? { reset } : {}),
+      };
     }
     const count = m.count === undefined ? undefined : checkClauses(m.count, fields, `${w}.count`);
     const reset = checkClauses(m.reset, fields, `${w}.reset`);
@@ -197,7 +203,10 @@ export function validateProgram(input: unknown): Program {
   const rules: Rule[] = p.rules.map((raw, i) => {
     if (!raw || typeof raw !== "object") throw new ProgramError(`rules[${i}]: must be an object`);
     const r = raw as Record<string, unknown>;
-    const rule: Rule = { when: checkClause(r.when ?? {}, fields, `rules[${i}].when`), then: checkOut(r.then, `rules[${i}].then`) };
+    const rule: Rule = {
+      when: checkClause(r.when ?? {}, fields, `rules[${i}].when`),
+      then: checkOut(r.then, `rules[${i}].then`),
+    };
     if (typeof r.label === "string" && r.label) rule.label = r.label.slice(0, 60);
     return rule;
   });
@@ -222,7 +231,12 @@ export function fieldValue(f: FieldInfo, word: number, state: readonly number[])
   return v;
 }
 
-export function clauseHolds(c: Clause, fields: Map<string, FieldInfo>, word: number, state: readonly number[]): boolean {
+export function clauseHolds(
+  c: Clause,
+  fields: Map<string, FieldInfo>,
+  word: number,
+  state: readonly number[],
+): boolean {
   for (const [k, allowed] of Object.entries(c)) {
     if (!allowed.includes(fieldValue(fields.get(k)!, word, state))) return false;
   }
@@ -233,7 +247,13 @@ const anyHolds = (cs: Clause[] | undefined, fields: Map<string, FieldInfo>, w: n
   (cs ?? []).some((c) => clauseHolds(c, fields, w, s));
 
 /** The next value of one memory field, from the state at the start of the beat. */
-export function nextMemoryValue(m: Memory, cur: number, fields: Map<string, FieldInfo>, w: number, s: readonly number[]): number {
+export function nextMemoryValue(
+  m: Memory,
+  cur: number,
+  fields: Map<string, FieldInfo>,
+  w: number,
+  s: readonly number[],
+): number {
   if (m.kind === "flag") {
     if (anyHolds(m.reset, fields, w, s)) return 0;
     if (anyHolds(m.set, fields, w, s)) return 1;
@@ -267,7 +287,8 @@ export function runBeat(p: Program, state: readonly number[], word: number): Bea
       break;
     }
   }
-  if (rule === -1) out = encodeOutput({ want: p.otherwise.want, mood: p.otherwise.mood, nudge: p.otherwise.nudge ?? 0 });
+  if (rule === -1)
+    out = encodeOutput({ want: p.otherwise.want, mood: p.otherwise.mood, nudge: p.otherwise.nudge ?? 0 });
   const next: number[] = state.slice();
   for (const m of p.memory) {
     const f = fields.get(m.name)!;

@@ -49,8 +49,64 @@ export function countCare(kind: Care["kind"], wasAsleep: boolean, r: CareResult)
   useGame.setState({ daily: d });
 }
 import { create } from "zustand";
-import { type Program, type Rule, STARTERS, WANTS, compileProgram, fastBrain, inputField, stateBits } from "@lingxi/brain";
-import { FOODS, careTally, firstThought, lessonTrigger, stagedEvent, type Brain, type Care, type CareResult, type Growth, type Pet, type UpgradeRefusal, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, learnSkill, levelUpPet, liveBeat, mindBrain, respecPet, ruleSkillIds, settleForm, skillRules, stageOf, teach as teachRule, mentorLesson, awayEvent, awaySeed, beatOf, watchEvent, instinctBrain, instinctGates, INSTINCT_MAX_GATES, MAX_MIND_STATE, type OutsideInstinct, instinctFits, stripHidden, withSegment, boundLog, ruleGrowth, type Mind, NAME_MAX, takeVisible } from "@lingxi/game";
+import {
+  type Program,
+  type Rule,
+  STARTERS,
+  WANTS,
+  compileProgram,
+  fastBrain,
+  inputField,
+  stateBits,
+} from "@lingxi/brain";
+import {
+  FOODS,
+  careTally,
+  firstThought,
+  lessonTrigger,
+  stagedEvent,
+  type Brain,
+  type Care,
+  type CareResult,
+  type Growth,
+  type Pet,
+  type UpgradeRefusal,
+  arrangeLessons,
+  care,
+  catchUp,
+  composeProgram,
+  createPet,
+  halvesOf,
+  kinshipNow,
+  learnSkill,
+  levelUpPet,
+  liveBeat,
+  mindBrain,
+  respecPet,
+  ruleSkillIds,
+  settleForm,
+  skillRules,
+  stageOf,
+  teach as teachRule,
+  mentorLesson,
+  awayEvent,
+  awaySeed,
+  beatOf,
+  watchEvent,
+  instinctBrain,
+  instinctGates,
+  INSTINCT_MAX_GATES,
+  MAX_MIND_STATE,
+  type OutsideInstinct,
+  instinctFits,
+  stripHidden,
+  withSegment,
+  boundLog,
+  ruleGrowth,
+  type Mind,
+  NAME_MAX,
+  takeVisible,
+} from "@lingxi/game";
 import type { StarterLine } from "@lingxi/brain";
 import { takeComfort } from "./comfort";
 
@@ -72,7 +128,9 @@ const brains = new Map<string, Brain>();
 export const mindForPet =
   (pet: Pet) =>
   (lessons: Rule[], outside?: OutsideInstinct, skills?: number[]): Mind => ({
-    ...(pet.family ? { halves: halvesOf(pet.family, lessons, skillRules(ruleGrowth(skills))) } : { program: programFor(pet.line, lessons, pet.instincts ?? 0, ruleGrowth(skills)) }),
+    ...(pet.family
+      ? { halves: halvesOf(pet.family, lessons, skillRules(ruleGrowth(skills))) }
+      : { program: programFor(pet.line, lessons, pet.instincts ?? 0, ruleGrowth(skills)) }),
     ...(outside ? { outside } : {}),
   });
 
@@ -87,7 +145,9 @@ export function whenKeptOnChain(check: (p: Pet) => boolean): void {
 
 export function programFor(line: StarterLine, lessons: readonly Rule[] = [], instincts = 0, growth?: Growth): Program {
   const rules = skillRules(growth);
-  return lessons.length || instincts || rules.length ? composeProgram(line, lessons, instincts, { rules }) : STARTERS[line];
+  return lessons.length || instincts || rules.length
+    ? composeProgram(line, lessons, instincts, { rules })
+    : STARTERS[line];
 }
 export function brainFor(line: StarterLine, lessons: readonly Rule[] = [], instincts = 0, growth?: Growth): Brain {
   const key = line + instincts + JSON.stringify(lessons) + ruleSkillIds(growth).join(",");
@@ -124,7 +184,17 @@ export function decidingPart(pet: Pet): MindPart {
 }
 
 /** Any pet's brain, including a child built from two parents. */
-export const brainOf = (p: Pet): Brain => (p.family || p.outside ? mindBrain({ line: p.line, lessons: p.lessons ?? [], family: p.family, instincts: p.instincts, outside: p.outside, growth: p.growth }) : brainFor(p.line, p.lessons ?? [], p.instincts ?? 0, p.growth));
+export const brainOf = (p: Pet): Brain =>
+  p.family || p.outside
+    ? mindBrain({
+        line: p.line,
+        lessons: p.lessons ?? [],
+        family: p.family,
+        instincts: p.instincts,
+        outside: p.outside,
+        growth: p.growth,
+      })
+    : brainFor(p.line, p.lessons ?? [], p.instincts ?? 0, p.growth);
 
 /** Pets this build cannot read, kept exactly as saved and written back with every save (roster.ts, P1). */
 let kept: unknown[] = [];
@@ -225,7 +295,12 @@ interface GameState {
   swapLesson: (index: number, rule: Rule) => { ok: true } | { ok: false; reason: string; detail: string };
   arrange: (index: number, move: "up" | "down" | "forget") => void;
   /** X1: teach an owned circuit as an everyday instinct (ownership is checked by the caller), or forget it */
-  teachInstinct: (o: OutsideInstinct) => { ok: true } | { ok: false; reason: "notYours" | "badCircuit" | "tooBig" | "tooLong" } | { ok: false; reason: "tooManyGates"; gates: number };
+  teachInstinct: (
+    o: OutsideInstinct,
+  ) =>
+    | { ok: true }
+    | { ok: false; reason: "notYours" | "badCircuit" | "tooBig" | "tooLong" }
+    | { ok: false; reason: "tooManyGates"; gates: number };
   forgetInstinct: () => void;
   /** levels and skills (plan 4.4): spend XP for a level and a point, take a skill, or forget them all */
   levelUp: () => { ok: true; level: number } | { ok: false; reason: "xp" | "max" };
@@ -238,7 +313,10 @@ const freshDaily = (): Daily => ({ day: todayKey(), fed: false, played: false, c
 /** Today's four care marks in the header, kept so a reload does not wipe them (B6). */
 const CARE_KEY = "lingxi.care.v1";
 const isDaily = (v: unknown): v is Daily =>
-  !!v && typeof v === "object" && typeof (v as Daily).day === "string" && (["fed", "played", "cleaned", "petted"] as const).every((k) => typeof (v as Daily)[k] === "boolean");
+  !!v &&
+  typeof v === "object" &&
+  typeof (v as Daily).day === "string" &&
+  (["fed", "played", "cleaned", "petted"] as const).every((k) => typeof (v as Daily)[k] === "boolean");
 /** The marks kept for today, or a fresh card when they belong to another day or cannot be read. */
 function loadDaily(): Daily {
   try {
@@ -290,10 +368,16 @@ function returnTo(p: Pet): { pet: Pet; away: Away | null; chose: Chose | null } 
   // the pet's own choices while away count as its choices while watched do (G8)
   const wants: Record<string, number> = {};
   const pet = settleForm(
-    catchUp(zoned(p), now, brainOf(p), (b) => awayEvent(seed, b), (want) => {
-      const w = WANTS[want];
-      if (w && w !== "idle") wants[w] = (wants[w] ?? 0) + 1;
-    }),
+    catchUp(
+      zoned(p),
+      now,
+      brainOf(p),
+      (b) => awayEvent(seed, b),
+      (want) => {
+        const w = WANTS[want];
+        if (w && w !== "idle") wants[w] = (wants[w] ?? 0) + 1;
+      },
+    ),
     now,
   );
   const to = beatOf(now);
@@ -330,7 +414,14 @@ export const useGame = create<GameState>((set, get) => ({
     roster = { ...roster, active: index };
     const r = returnTo(target);
     save(r.pet);
-    set({ pet: r.pet, pets: roster.pets, active: index, lastCare: null, away: r.away, ...(r.chose ? { chose: r.chose } : {}) });
+    set({
+      pet: r.pet,
+      pets: roster.pets,
+      active: index,
+      lastCare: null,
+      away: r.away,
+      ...(r.chose ? { chose: r.chose } : {}),
+    });
   },
   adopt: (child) => {
     if (roster.pets.length >= MAX_PETS) return false;
@@ -412,7 +503,11 @@ export const useGame = create<GameState>((set, get) => ({
     set({
       pet: r.pet,
       pets: roster.pets,
-      lastCare: { kind: c.kind === "use" ? "feed" : c.kind, at: performance.now(), ...(foodArt(c, art) ? { food: foodArt(c, art)! } : {}) },
+      lastCare: {
+        kind: c.kind === "use" ? "feed" : c.kind,
+        at: performance.now(),
+        ...(foodArt(c, art) ? { food: foodArt(c, art)! } : {}),
+      },
       toast: { id: ++toastId, note: r.note },
     });
   },
@@ -424,12 +519,16 @@ export const useGame = create<GameState>((set, get) => ({
     // a living room while you watch (G1): a friend, a toy or a noise now and then, the same input words the chain logs
     // right after a lesson that answers an event, that event is staged (B4); the word is logged like any other beat
     const staged = stagedEvent(get().lightBulb, beatOf(gameNow()));
-    const next = settleForm(liveBeat(zoned(pet), gameNow(), brainOf(pet), staged ?? watchEvent(awaySeed(pet), beatOf(gameNow()))), gameNow());
+    const next = settleForm(
+      liveBeat(zoned(pet), gameNow(), brainOf(pet), staged ?? watchEvent(awaySeed(pet), beatOf(gameNow()))),
+      gameNow(),
+    );
     // what the room shows of it: the event this beat brought, from now (performance time, as the scene keeps)
     const event = next !== pet ? (next.last.word >> inputField("event").lo) & 3 : 0;
     if (event) set({ roomEvent: { event, at: performance.now() } });
     if (next !== pet) {
-      if (stageOf(next, gameNow()) !== stageOf(pet, gameNow() - 60_000)) useBadges.getState().note("stage", STAGE_RANK[stageOf(next, gameNow())] ?? 0);
+      if (stageOf(next, gameNow()) !== stageOf(pet, gameNow() - 60_000))
+        useBadges.getState().note("stage", STAGE_RANK[stageOf(next, gameNow())] ?? 0);
       save(next);
       set({ pet: next, pets: roster.pets });
     }
@@ -440,7 +539,12 @@ export const useGame = create<GameState>((set, get) => ({
     const r = returnTo(pet);
     if (r.pet !== pet) {
       save(r.pet);
-      set({ pet: r.pet, pets: roster.pets, ...(r.away ? { away: r.away } : {}), ...(r.chose ? { chose: r.chose } : {}) });
+      set({
+        pet: r.pet,
+        pets: roster.pets,
+        ...(r.away ? { away: r.away } : {}),
+        ...(r.chose ? { chose: r.chose } : {}),
+      });
     }
   },
   say: (note) => set({ toast: { id: ++toastId, note } }),
@@ -458,7 +562,13 @@ export const useGame = create<GameState>((set, get) => ({
     save(after);
     // the light-bulb moment (B4): a lesson that answers a friend, a toy or a noise has it arrive in the next beats
     const trigger = lessonTrigger(rule);
-    set({ pet: after, pets: roster.pets, lastCare: { kind: "learn", at: performance.now() }, toast: { id: ++toastId, note: "learned" }, lightBulb: trigger.kind === "event" ? { event: trigger.event, from: after.beat } : null });
+    set({
+      pet: after,
+      pets: roster.pets,
+      lastCare: { kind: "learn", at: performance.now() },
+      toast: { id: ++toastId, note: "learned" },
+      lightBulb: trigger.kind === "event" ? { event: trigger.event, from: after.beat } : null,
+    });
     useBadges.getState().note("lessons");
     noteTally("LESSON");
     return { ok: true };
@@ -466,9 +576,17 @@ export const useGame = create<GameState>((set, get) => ({
   mentor: (childIndex, lessonIndex) => {
     const { pet } = get();
     const child = roster.pets[childIndex];
-    if (!pet || !child || childIndex === roster.active) return { ok: false, reason: "invalid", detail: "no such child" };
-    if (pet.away || pet.sitting || child.away || child.sitting) return { ok: false, reason: "notYours", detail: "both must be home" };
-    const r = mentorLesson(catchUp(pet, gameNow(), brainOf(pet)), catchUp(child, gameNow(), brainOf(child)), lessonIndex, gameNow(), questSlots());
+    if (!pet || !child || childIndex === roster.active)
+      return { ok: false, reason: "invalid", detail: "no such child" };
+    if (pet.away || pet.sitting || child.away || child.sitting)
+      return { ok: false, reason: "notYours", detail: "both must be home" };
+    const r = mentorLesson(
+      catchUp(pet, gameNow(), brainOf(pet)),
+      catchUp(child, gameNow(), brainOf(child)),
+      lessonIndex,
+      gameNow(),
+      questSlots(),
+    );
     if (!r.ok) return r;
     const pets = roster.pets.slice();
     pets[childIndex] = keptOnChain(r.pet) ? r.pet : boundLog(r.pet, mindForPet(r.pet));
@@ -514,10 +632,19 @@ export const useGame = create<GameState>((set, get) => ({
     const own = brainOf({ ...caught, outside: undefined }).nState;
     if (own + inst.nState > MAX_MIND_STATE) return { ok: false, reason: "tooBig" };
     // the pet's own memory stays; the instinct's starts empty after it
-    const taught = withSegment({ ...caught, outside: o, brain: [...caught.brain.slice(0, own), ...new Array(inst.nState).fill(0)] });
+    const taught = withSegment({
+      ...caught,
+      outside: o,
+      brain: [...caught.brain.slice(0, own), ...new Array(inst.nState).fill(0)],
+    });
     const after = care(taught, { kind: "talk" }, gameNow(), brainOf(taught)).pet;
     save(after);
-    set({ pet: after, pets: roster.pets, lastCare: { kind: "learn", at: performance.now() }, toast: { id: ++toastId, note: "learned" } });
+    set({
+      pet: after,
+      pets: roster.pets,
+      lastCare: { kind: "learn", at: performance.now() },
+      toast: { id: ++toastId, note: "learned" },
+    });
     return { ok: true };
   },
   forgetInstinct: () => {

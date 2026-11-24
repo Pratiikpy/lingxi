@@ -18,7 +18,8 @@ const LINES = ["gentle", "bold", "curious"] as const;
 
 /** What the proof reads of an entry: its line and its card. Null when either is missing or not one the game makes. */
 function mindOf(pet: unknown): { line: StarterLine; card: PetCard } | null {
-  if (typeof pet !== "object" || pet === null || !("line" in pet) || !("card" in pet) || typeof pet.card !== "string") return null;
+  if (typeof pet !== "object" || pet === null || !("line" in pet) || !("card" in pet) || typeof pet.card !== "string")
+    return null;
   const line = LINES.find((l) => l === pet.line);
   const card = parseCard(pet.card);
   return line && card ? { line, card } : null;
@@ -76,6 +77,15 @@ export async function proveSeasonEntry(
   } catch {
     return { ok: false, reason: "unreadable" };
   }
-  const mine = mindBrain({ line, lessons: card.lessons, family: card.family, instincts: card.instincts, outside: card.outside, growth: card.growth });
-  return sameBrain(onChain, mine, card.memory) ? { ok: true, petId: proof.petId } : { ok: false, reason: "notItsBrain" };
+  const mine = mindBrain({
+    line,
+    lessons: card.lessons,
+    family: card.family,
+    instincts: card.instincts,
+    outside: card.outside,
+    growth: card.growth,
+  });
+  return sameBrain(onChain, mine, card.memory)
+    ? { ok: true, petId: proof.petId }
+    : { ok: false, reason: "notItsBrain" };
 }

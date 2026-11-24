@@ -6,7 +6,13 @@ import { createSeasonStore } from "../src/season";
 import { PREFIX_SHARE } from "../src/limit";
 import { createStandingsRunner } from "../src/standings";
 
-const pet = (name: string, line = "gentle") => ({ name, line, stage: "child", card: petCard({ lessons: [] }), story: { days: 1, lessons: 0, nature: [] } });
+const pet = (name: string, line = "gentle") => ({
+  name,
+  line,
+  stage: "child",
+  card: petCard({ lessons: [] }),
+  story: { days: 1, lessons: 0, nature: [] },
+});
 const T = Date.UTC(2026, 10, 18, 12); // Wednesday of 2026-W47
 
 describe("weekly seasons", () => {
@@ -14,7 +20,12 @@ describe("weekly seasons", () => {
     let t = T;
     const store = createSeasonStore(undefined, () => t);
     const app = withSeason(new Hono(), store, undefined, () => t);
-    const enter = (body: unknown) => app.request("/api/season/enter", { method: "POST", body: JSON.stringify(body), headers: { "content-type": "application/json" } });
+    const enter = (body: unknown) =>
+      app.request("/api/season/enter", {
+        method: "POST",
+        body: JSON.stringify(body),
+        headers: { "content-type": "application/json" },
+      });
     const a = await (await enter({ pet: pet("Ana"), device: "device-aaaa-1111" })).json();
     expect(a).toMatchObject({ ok: true, week: "2026-W47" });
     await enter({ pet: pet("Bea", "bold"), device: "device-bbbb-2222" });
@@ -35,7 +46,8 @@ describe("weekly seasons", () => {
     const store = createSeasonStore(undefined, () => T);
     expect(store.enter({ ...pet("X"), card: "{nope" }, "device-cccc-3333")).toEqual({ ok: false, reason: "invalid" });
     expect(store.enter(pet("X"), "short")).toEqual({ ok: false, reason: "invalid" });
-    for (let i = 0; i < MAX_ENTRIES; i++) expect(store.enter(pet(`P${i}`), `device-${String(i).padStart(8, "0")}`).ok).toBe(true);
+    for (let i = 0; i < MAX_ENTRIES; i++)
+      expect(store.enter(pet(`P${i}`), `device-${String(i).padStart(8, "0")}`).ok).toBe(true);
     expect(store.enter(pet("Late"), "device-late-9999")).toEqual({ ok: false, reason: "full" });
     expect(store.enter(pet("P0 again"), "device-00000000").ok).toBe(true);
     const app = withSeason(new Hono(), store, undefined, () => T);
@@ -50,9 +62,15 @@ describe("no one fills the season", () => {
     // six /48s fill the week with unproven entries
     let n = 0;
     for (let net = 0; net < 6; net++)
-      for (let i = 0; i < 12 && n < MAX_ENTRIES; i++, n++) store.enter(pet(`N${n}`), `device-n-${String(n).padStart(4, "0")}`, { from: `2001:db8:${(0x1600 + net).toString(16)}:${(i % 4).toString(16)}::/64` });
+      for (let i = 0; i < 12 && n < MAX_ENTRIES; i++, n++)
+        store.enter(pet(`N${n}`), `device-n-${String(n).padStart(4, "0")}`, {
+          from: `2001:db8:${(0x1600 + net).toString(16)}:${(i % 4).toString(16)}::/64`,
+        });
     expect(store.view("2026-W47")!.entries.length).toBe(MAX_ENTRIES);
-    expect(store.enter(pet("Open"), "device-open-0001", { from: "198.51.100.30" }), "an unproven newcomer still finds the week full").toEqual({ ok: false, reason: "full" });
+    expect(
+      store.enter(pet("Open"), "device-open-0001", { from: "198.51.100.30" }),
+      "an unproven newcomer still finds the week full",
+    ).toEqual({ ok: false, reason: "full" });
     const proven = store.enter(pet("Proven"), "device-proven-01", { from: "198.51.100.31", petId: "42" });
     expect(proven.ok, "a proven pet gets in").toBe(true);
     const names = store.view("2026-W47")!.entries.map((e) => e.pet.name);
@@ -67,7 +85,9 @@ describe("no one fills the season", () => {
     const store = createSeasonStore(undefined, () => T);
     const results: string[] = [];
     for (let i = 0; i < 40; i++) {
-      const r = store.enter(pet(`Net${i}`), `device-net-${String(i).padStart(4, "0")}`, { from: `2001:db8:117:${(Math.floor(i / 2) + 1).toString(16)}::/64` });
+      const r = store.enter(pet(`Net${i}`), `device-net-${String(i).padStart(4, "0")}`, {
+        from: `2001:db8:117:${(Math.floor(i / 2) + 1).toString(16)}::/64`,
+      });
       results.push(r.ok ? "ok" : r.reason);
     }
     expect(results.filter((x) => x === "ok").length).toBe(3 * PREFIX_SHARE);
@@ -77,8 +97,12 @@ describe("no one fills the season", () => {
 
   it("one address holds only a few entries a week, and updating its own costs nothing", () => {
     const store = createSeasonStore(undefined, () => T);
-    for (let i = 0; i < 3; i++) expect(store.enter(pet(`Mine${i}`), `device-mine-000${i}`, { from: "203.0.113.9" }).ok).toBe(true);
-    expect(store.enter(pet("Mine3"), "device-mine-0003", { from: "203.0.113.9" })).toEqual({ ok: false, reason: "tooMany" });
+    for (let i = 0; i < 3; i++)
+      expect(store.enter(pet(`Mine${i}`), `device-mine-000${i}`, { from: "203.0.113.9" }).ok).toBe(true);
+    expect(store.enter(pet("Mine3"), "device-mine-0003", { from: "203.0.113.9" })).toEqual({
+      ok: false,
+      reason: "tooMany",
+    });
     expect(store.enter(pet("Mine0 again"), "device-mine-0000", { from: "203.0.113.9" }).ok).toBe(true);
     expect(store.enter(pet("Yours"), "device-your-0000", { from: "198.51.100.1" }).ok).toBe(true);
   });
@@ -103,7 +127,15 @@ describe("champion keepsakes", () => {
     let fail = true;
     const give = async (_e: unknown, petId: string) => {
       calls.push(petId);
-      return fail ? { ok: false as const, detail: "rpc down" } : { ok: true as const, brainId: "77", to: "0x2222222222222222222222222222222222222222", tapeTx: "0xaa", sendTx: "0xbb" };
+      return fail
+        ? { ok: false as const, detail: "rpc down" }
+        : {
+            ok: true as const,
+            brainId: "77",
+            to: "0x2222222222222222222222222222222222222222",
+            tapeTx: "0xaa",
+            sendTx: "0xbb",
+          };
     };
     await settleAwards(store, give);
     expect(calls).toHaveLength(0); // the week is still open
@@ -124,7 +156,9 @@ describe("champion keepsakes", () => {
   it("with standings fought off the request thread, a view says pending until they are fought, and no keepsake is chosen from them (A38)", async () => {
     let t = T;
     const go: Array<() => void> = [];
-    const runner = createStandingsRunner({ compute: (week, entries) => new Promise((r) => go.push(() => r(seasonStandings(week, entries)))) });
+    const runner = createStandingsRunner({
+      compute: (week, entries) => new Promise((r) => go.push(() => r(seasonStandings(week, entries)))),
+    });
     const store = createSeasonStore(undefined, () => t, runner);
     store.enter(pet("Ana"), "device-aaaa-1111", { petId: "11" });
     store.enter(pet("Bea", "bold"), "device-bbbb-2222", { petId: "22" });
@@ -142,7 +176,12 @@ describe("champion keepsakes", () => {
   it("skip an unproven champion for the best proven pet below it", async () => {
     let t = T;
     const store = createSeasonStore(undefined, () => t);
-    for (let i = 0; i < 6; i++) store.enter(pet(`Pet${i}`, ["gentle", "bold", "curious"][i % 3]), `device-pet0000${i}`, i === 5 ? { petId: "55" } : {});
+    for (let i = 0; i < 6; i++)
+      store.enter(
+        pet(`Pet${i}`, ["gentle", "bold", "curious"][i % 3]),
+        `device-pet0000${i}`,
+        i === 5 ? { petId: "55" } : {},
+      );
     t += 7 * 86_400_000;
     const { settleAwards } = await import("../src/season");
     const given: string[] = [];
@@ -161,16 +200,30 @@ describe("champion keepsakes", () => {
     const { settleAwards } = await import("../src/season");
     await settleAwards(store, async () => ({ ok: true as const, brainId: "1", to: "0x1", tapeTx: "", sendTx: "" }));
     expect(store.view("2026-W47")!.award).toMatchObject({ name: "Solo", none: "noWallet" });
-    expect(store.enter(pet("Bad"), "device-bad-00000", { petId: "not-a-pet" })).toEqual({ ok: false, reason: "invalid" });
+    expect(store.enter(pet("Bad"), "device-bad-00000", { petId: "not-a-pet" })).toEqual({
+      ok: false,
+      reason: "invalid",
+    });
   });
 });
 
 describe("POST /api/season/enter with a proof", () => {
-  const post = (app: Hono, body: unknown) => app.request("/api/season/enter", { method: "POST", body: JSON.stringify(body), headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.9" } });
+  const post = (app: Hono, body: unknown) =>
+    app.request("/api/season/enter", {
+      method: "POST",
+      body: JSON.stringify(body),
+      headers: { "content-type": "application/json", "cf-connecting-ip": "203.0.113.9" },
+    });
   it("enters a proven pet as that pet, refuses a proof that fails, and never enters it unproven instead", async () => {
     const store = createSeasonStore(undefined, () => T);
     let verdict: { ok: true; petId: string } | { ok: false; reason: string } = { ok: false, reason: "notItsBrain" };
-    const app = withSeason(new Hono(), store, undefined, () => T, async () => verdict);
+    const app = withSeason(
+      new Hono(),
+      store,
+      undefined,
+      () => T,
+      async () => verdict,
+    );
     const refused = await post(app, { pet: pet("Ana"), device: "device-aaaa-1111", proof: {} });
     expect(refused.status).toBe(200);
     expect(await refused.json()).toMatchObject({ ok: false, reason: "notProven", detail: "notItsBrain" });
@@ -181,11 +234,19 @@ describe("POST /api/season/enter with a proof", () => {
     expect(await ok.json()).toMatchObject({ ok: true, proven: true });
     expect(store.pending()).toEqual([]);
     // an entry without a proof is told it is not proven
-    expect(await (await post(app, { pet: pet("Bea"), device: "device-bbbb-2222" })).json()).toMatchObject({ ok: true, proven: false });
+    expect(await (await post(app, { pet: pet("Bea"), device: "device-bbbb-2222" })).json()).toMatchObject({
+      ok: true,
+      proven: false,
+    });
   });
 
   it("says plainly when the server cannot check pets on chain", async () => {
-    const app = withSeason(new Hono(), createSeasonStore(undefined, () => T), undefined, () => T);
+    const app = withSeason(
+      new Hono(),
+      createSeasonStore(undefined, () => T),
+      undefined,
+      () => T,
+    );
     expect((await post(app, { pet: pet("Ana"), device: "device-aaaa-1111", proof: {} })).status).toBe(503);
   });
 });

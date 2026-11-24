@@ -46,15 +46,20 @@ if (flag("--check") || flag("--write")) {
   } else {
     const regressed = now.filter((t) => BALANCE_MEASURED.targets[t.id]?.status === "met" && !t.met);
     const unrecorded = now.filter((t) => !BALANCE_MEASURED.targets[t.id]);
-    for (const t of now.filter((x) => !x.met && !regressed.includes(x))) process.stdout.write(`open ${t.id}: ${t.value}\n`);
-    for (const t of now.filter((x) => x.met && BALANCE_MEASURED.targets[x.id]?.status === "open")) process.stdout.write(`now met, not yet recorded (run --write): ${t.id}\n`);
+    for (const t of now.filter((x) => !x.met && !regressed.includes(x)))
+      process.stdout.write(`open ${t.id}: ${t.value}\n`);
+    for (const t of now.filter((x) => x.met && BALANCE_MEASURED.targets[x.id]?.status === "open"))
+      process.stdout.write(`now met, not yet recorded (run --write): ${t.id}\n`);
     for (const t of unrecorded) process.stdout.write(`not recorded (run --write): ${t.id}\n`);
     for (const t of regressed) process.stderr.write(`REGRESSED ${t.id}: recorded met, now ${t.value}\n`);
     // D21: a recorded value that no longer matches what the simulator measures is stale, whatever its status, so the
     // record cannot quietly drift from the game (it had, from D9 to D12, while every status still held)
     const staleIds = staleTargets(now, BALANCE_MEASURED.targets);
     const stale = now.filter((t) => staleIds.includes(t.id));
-    for (const t of stale) process.stderr.write(`STALE ${t.id}: recorded "${BALANCE_MEASURED.targets[t.id]!.value}", now "${t.value}" (run --write)\n`);
+    for (const t of stale)
+      process.stderr.write(
+        `STALE ${t.id}: recorded "${BALANCE_MEASURED.targets[t.id]!.value}", now "${t.value}" (run --write)\n`,
+      );
     process.exitCode = regressed.length || unrecorded.length || stale.length ? 1 : 0;
   }
 } else {

@@ -7,7 +7,23 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { drawPet } from "@lingxi/art";
-import { type Family, type ParentInfo, type Pet, BREED_COOLDOWN_DAYS, childMemory, childRoom, createPet, dayOf, familyOf, mindBrain, NAME_MAX, parseCard, ruleSkillIds, stageOf, takeVisible } from "@lingxi/game";
+import {
+  type Family,
+  type ParentInfo,
+  type Pet,
+  BREED_COOLDOWN_DAYS,
+  childMemory,
+  childRoom,
+  createPet,
+  dayOf,
+  familyOf,
+  mindBrain,
+  NAME_MAX,
+  parseCard,
+  ruleSkillIds,
+  stageOf,
+  takeVisible,
+} from "@lingxi/game";
 import { nameAfterChange, nameAfterComposition } from "./nameInput";
 import { useLang, useT } from "../i18n";
 import { keptPetNames, useGame } from "../game/store";
@@ -26,7 +42,8 @@ import { newbornInherits, proposalInherits } from "./inherits";
 type Lang = "en" | "zh";
 const LINES = ["gentle", "bold", "curious"] as const;
 type Line = (typeof LINES)[number];
-const drawn = (s: string): PetStage => (s === "elder" ? "adult" : (["baby", "child", "teen", "adult"].includes(s) ? s : "baby") as PetStage);
+const drawn = (s: string): PetStage =>
+  s === "elder" ? "adult" : ((["baby", "child", "teen", "adult"].includes(s) ? s : "baby") as PetStage);
 const today = (p: Pet) => dayOf(p, now());
 
 // a parent's capstone rules are part of the brain its half of the child REFs, so they travel with it
@@ -62,14 +79,21 @@ export function ProposalDialog({ pet }: { pet: Pet }) {
   }, [claimed, proposal]);
   if (!proposal) return null;
   const bonds = bondsOf(useFriends.getState().all, pet.bornAt);
-  const block = familyBlock(pet, proposal.stage, lang) ?? bondBlock(pet, bonds[friendKey(proposal.from, proposal.name)]?.points ?? 0, proposal.name, lang);
+  const block =
+    familyBlock(pet, proposal.stage, lang) ??
+    bondBlock(pet, bonds[friendKey(proposal.from, proposal.name)]?.points ?? 0, proposal.name, lang);
   const mine = useChain.getState().infoOf(pet);
   const claimsChain = !!(mine && proposal.chain);
   const check = partner?.at === proposal.at ? partner.check : null;
   const onChain = claimsChain && check === "ok";
   return (
     <div className="fam-modal" role="dialog" aria-label={lang === "zh" ? "家人请求" : "Family request"}>
-      <motion.div className="fam-card" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }}>
+      <motion.div
+        className="fam-card"
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.2 }}
+      >
         <h3>{lang === "zh" ? "一起养个小宝宝？" : "Raise a little one together?"}</h3>
         <p>
           {lang === "zh"
@@ -79,9 +103,15 @@ export function ProposalDialog({ pet }: { pet: Pet }) {
         {/* which of this pet's lessons go into the little one, said before the player agrees (A27) */}
         <p className="small fam-inherits">{proposalInherits(pet.name, pet.lessons.length, lang)}</p>
         <p className="small">
-          {lang === "zh" ? `之后${pet.name}要休息 ${BREED_COOLDOWN_DAYS} 天。` : `${pet.name} will rest for ${BREED_COOLDOWN_DAYS} days afterwards.`}
+          {lang === "zh"
+            ? `之后${pet.name}要休息 ${BREED_COOLDOWN_DAYS} 天。`
+            : `${pet.name} will rest for ${BREED_COOLDOWN_DAYS} days afterwards.`}
         </p>
-        {claimsChain && check === null && <p className="small">{lang === "zh" ? "正在 X Layer 上核对对方的宠物……" : "Checking their pet on X Layer…"}</p>}
+        {claimsChain && check === null && (
+          <p className="small">
+            {lang === "zh" ? "正在 X Layer 上核对对方的宠物……" : "Checking their pet on X Layer…"}
+          </p>
+        )}
         {onChain && (
           // who the consent is really for (A63): the wallet that owns that pet on X Layer, whoever is asking in the room
           <div className="fam-consent-to">
@@ -157,7 +187,10 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
   useEffect(() => {
     if (!deployment?.breederBem) return;
     let live = true;
-    void breedingTerms(publicClient, deployment).then((t) => live && setFee(t?.fee ?? null), () => undefined);
+    void breedingTerms(publicClient, deployment).then(
+      (t) => live && setFee(t?.fee ?? null),
+      () => undefined,
+    );
     return () => {
       live = false;
     };
@@ -171,7 +204,17 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
     const card = parseCard(answer.card);
     if (!line || !card) return null;
     try {
-      return familyOf(asParent({ name: petName, line: petLine, lessons, instincts, growth, family: petFamily, bornAt }), { name: answer.name, line, lessons: card.lessons, ...(card.instincts ? { instincts: card.instincts } : {}), ...(ruleSkillIds(card.growth).length ? { skills: ruleSkillIds(card.growth) } : {}), generation: card.family?.generation ?? 0 });
+      return familyOf(
+        asParent({ name: petName, line: petLine, lessons, instincts, growth, family: petFamily, bornAt }),
+        {
+          name: answer.name,
+          line,
+          lessons: card.lessons,
+          ...(card.instincts ? { instincts: card.instincts } : {}),
+          ...(ruleSkillIds(card.growth).length ? { skills: ruleSkillIds(card.growth) } : {}),
+          generation: card.family?.generation ?? 0,
+        },
+      );
     } catch {
       return null;
     }
@@ -232,8 +275,18 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
   const canChain = !!(partnerChain && useChain.getState().infoOf(pet));
   const welcome = async (offChain = false) => {
     const brain = mindBrain({ line: a.line, lessons: [], family });
-    const born = createPet({ name: takeVisible(name.trim(), NAME_MAX) || (lang === "zh" ? "小宝" : "Bean"), line: a.line, now: now(), tzOffsetMin: -new Date(now()).getTimezoneOffset(), brain });
-    let child: Pet = { ...born, family, brain: childMemory(brain.nState, pet.brain, parseCard(answer.card ?? "")?.memory) };
+    const born = createPet({
+      name: takeVisible(name.trim(), NAME_MAX) || (lang === "zh" ? "小宝" : "Bean"),
+      line: a.line,
+      now: now(),
+      tzOffsetMin: -new Date(now()).getTimezoneOffset(),
+      brain,
+    });
+    let child: Pet = {
+      ...born,
+      family,
+      brain: childMemory(brain.nState, pet.brain, parseCard(answer.card ?? "")?.memory),
+    };
     let firstDay = true;
     if (canChain && !offChain) {
       setHatching("busy");
@@ -252,12 +305,27 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
   const chainError = hatching !== "idle" && hatching !== "busy" ? hatching : null;
   return (
     <div className="fam-modal" role="dialog" aria-label={lang === "zh" ? "新生的小宝宝" : "A newborn"}>
-      <motion.div className="fam-card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+      <motion.div
+        className="fam-card"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+      >
         <h3>{lang === "zh" ? "一个小宝宝出生了！" : "A little one is born!"}</h3>
         <div className="fam-born">
           <ParentChip parent={a} when="day" lang={lang} />
-          <motion.div className="fam-baby" initial={{ scale: 0.6 }} animate={{ scale: [0.6, 1.08, 1] }} transition={{ duration: 0.6 }}>
-            <Sprite canvas={baby} palette={PALETTE_OF[a.line]} scale={3} label={lang === "zh" ? "小宝宝" : "the newborn"} />
+          <motion.div
+            className="fam-baby"
+            initial={{ scale: 0.6 }}
+            animate={{ scale: [0.6, 1.08, 1] }}
+            transition={{ duration: 0.6 }}
+          >
+            <Sprite
+              canvas={baby}
+              palette={PALETTE_OF[a.line]}
+              scale={3}
+              label={lang === "zh" ? "小宝宝" : "the newborn"}
+            />
           </motion.div>
           <ParentChip parent={b} when="night" lang={lang} />
         </div>
@@ -270,7 +338,13 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
         <p className="small fam-inherits">{newbornInherits(a, b, room, lang)}</p>
         <label className="fam-name">
           <span>{lang === "zh" ? "给它起个名字" : "Give it a name"}</span>
-          <input value={name} onChange={(e) => setName(nameAfterChange(e))} onCompositionEnd={(e) => setName(nameAfterComposition(e))} placeholder={lang === "zh" ? "小宝" : "Bean"} autoFocus />
+          <input
+            value={name}
+            onChange={(e) => setName(nameAfterChange(e))}
+            onCompositionEnd={(e) => setName(nameAfterComposition(e))}
+            placeholder={lang === "zh" ? "小宝" : "Bean"}
+            autoFocus
+          />
         </label>
         {canChain && !chainError && (
           <p className="small">
@@ -301,40 +375,54 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
                     ? lang === "zh"
                       ? "链上出生的费用刚刚变了，所以什么都没有花。再试一次，会按新的费用。"
                       : "The fee for being born on chain changed just now, so nothing was spent. Try again at the new fee."
-                  : chainError === "notYours"
-                    ? lang === "zh"
-                      ? "链上显示这只宠物已经不在这个钱包里了，所以小宝宝没法出生。请连接拥有它的钱包。"
-                      : "On chain this pet is no longer held by this wallet, so the little one can't be born. Connect the wallet that owns it."
-                  : chainError === "birthPending"
-                    ? lang === "zh"
-                      ? "出生已经发到 X Layer，还在确认。不会再发第二次：过一分钟再点“再试一次”，灵犀会把它认领回来；如果你先关了页面，下次打开时它也会自己回来。"
-                      : "The birth was sent to X Layer and isn't confirmed yet. Nothing will be sent twice: press Try again in a minute and Lingxi picks it up; if you close the page first, it comes home the next time you open the game."
-                  : chainError === "birthUnchecked"
-                    ? lang === "zh"
-                      ? "出生之前已经发到 X Layer，现在暂时连不上它查看结果。没有再发新的：过一分钟再点“再试一次”，灵犀会把它认领回来。"
-                      : "The birth was sent to X Layer earlier, and X Layer can't be reached to check on it right now. Nothing new was sent: press Try again in a minute and Lingxi picks it up."
-                  : chainError === "noConsent"
-                    ? lang === "zh"
-                      ? "对方还没在链上签下同意（或者那只宠物已经换了主人），所以小宝宝没法在链上出生。"
-                      : "The other owner's consent isn't on chain (or their pet has changed hands), so the little one can't be born on chain."
-                  : chainError === "partnerNotOnChain"
-                    ? lang === "zh"
-                      ? "对方宠物的信息和 X Layer 上的不符，所以没有花任何东西。"
-                      : "Their pet's details don't match X Layer, so nothing was spent."
-                  : chainError === "cannotReceive"
-                    ? t("chain.cannotReceive")
-                  : chainError === "notEnoughBem"
-                    ? lang === "zh"
-                      ? `这个钱包在 X Layer 上的 BEM 不够付 ${fee !== null ? formatBem(fee) : ""} BEM 的出生费用。`
-                      : `This wallet doesn't hold the ${fee !== null ? formatBem(fee) : ""} BEM for being born on chain.`
-                : lang === "zh"
-                  ? `链上出生没成功（${chainError}）。`
-                  : `Being born on chain didn't work (${chainError}).`}
+                    : chainError === "notYours"
+                      ? lang === "zh"
+                        ? "链上显示这只宠物已经不在这个钱包里了，所以小宝宝没法出生。请连接拥有它的钱包。"
+                        : "On chain this pet is no longer held by this wallet, so the little one can't be born. Connect the wallet that owns it."
+                      : chainError === "birthPending"
+                        ? lang === "zh"
+                          ? "出生已经发到 X Layer，还在确认。不会再发第二次：过一分钟再点“再试一次”，灵犀会把它认领回来；如果你先关了页面，下次打开时它也会自己回来。"
+                          : "The birth was sent to X Layer and isn't confirmed yet. Nothing will be sent twice: press Try again in a minute and Lingxi picks it up; if you close the page first, it comes home the next time you open the game."
+                        : chainError === "birthUnchecked"
+                          ? lang === "zh"
+                            ? "出生之前已经发到 X Layer，现在暂时连不上它查看结果。没有再发新的：过一分钟再点“再试一次”，灵犀会把它认领回来。"
+                            : "The birth was sent to X Layer earlier, and X Layer can't be reached to check on it right now. Nothing new was sent: press Try again in a minute and Lingxi picks it up."
+                          : chainError === "noConsent"
+                            ? lang === "zh"
+                              ? "对方还没在链上签下同意（或者那只宠物已经换了主人），所以小宝宝没法在链上出生。"
+                              : "The other owner's consent isn't on chain (or their pet has changed hands), so the little one can't be born on chain."
+                            : chainError === "partnerNotOnChain"
+                              ? lang === "zh"
+                                ? "对方宠物的信息和 X Layer 上的不符，所以没有花任何东西。"
+                                : "Their pet's details don't match X Layer, so nothing was spent."
+                              : chainError === "cannotReceive"
+                                ? t("chain.cannotReceive")
+                                : chainError === "notEnoughBem"
+                                  ? lang === "zh"
+                                    ? `这个钱包在 X Layer 上的 BEM 不够付 ${fee !== null ? formatBem(fee) : ""} BEM 的出生费用。`
+                                    : `This wallet doesn't hold the ${fee !== null ? formatBem(fee) : ""} BEM for being born on chain.`
+                                  : lang === "zh"
+                                    ? `链上出生没成功（${chainError}）。`
+                                    : `Being born on chain didn't work (${chainError}).`}
           </p>
         )}
         <div className="row">
           <button type="button" className="btn primary" disabled={hatching === "busy"} onClick={() => void welcome()}>
-            {hatching === "busy" ? (chainBusy === "saving" ? (lang === "zh" ? "正在保存它的第一天……" : "Saving its first day…") : lang === "zh" ? "正在链上出生……" : "Being born on chain…") : chainError ? (lang === "zh" ? "再试一次" : "Try again") : lang === "zh" ? "欢迎回家" : "Welcome home"}
+            {hatching === "busy"
+              ? chainBusy === "saving"
+                ? lang === "zh"
+                  ? "正在保存它的第一天……"
+                  : "Saving its first day…"
+                : lang === "zh"
+                  ? "正在链上出生……"
+                  : "Being born on chain…"
+              : chainError
+                ? lang === "zh"
+                  ? "再试一次"
+                  : "Try again"
+                : lang === "zh"
+                  ? "欢迎回家"
+                  : "Welcome home"}
           </button>
           {chainError && (
             <button type="button" className="btn" onClick={() => void welcome(true)}>
@@ -353,7 +441,15 @@ function ParentChip({ parent, when, lang }: { parent: ParentInfo; when: "day" | 
     <div className="fam-parent">
       <Sprite canvas={art} palette={PALETTE_OF[parent.line as Line]} scale={1.5} />
       <b>{parent.name}</b>
-      <small>{when === "day" ? (lang === "zh" ? "白天·心情" : "days · moods") : lang === "zh" ? "夜里·习惯" : "nights · habits"}</small>
+      <small>
+        {when === "day"
+          ? lang === "zh"
+            ? "白天·心情"
+            : "days · moods"
+          : lang === "zh"
+            ? "夜里·习惯"
+            : "nights · habits"}
+      </small>
     </div>
   );
 }
@@ -380,12 +476,23 @@ export function PetsPanel({ onPicked }: { onPicked: () => void }) {
                   onPicked();
                 }}
               >
-                <Sprite canvas={drawPet(p.line, drawn(stage), { expression: p.asleep ? "asleep" : "happy", ...(p.form ? { form: p.form } : {}) })} palette={PALETTE_OF[p.line]} scale={1.5} />
+                <Sprite
+                  canvas={drawPet(p.line, drawn(stage), {
+                    expression: p.asleep ? "asleep" : "happy",
+                    ...(p.form ? { form: p.form } : {}),
+                  })}
+                  palette={PALETTE_OF[p.line]}
+                  scale={1.5}
+                />
                 <span>
                   <b>{p.name}</b>
                   <small>
                     {lang === "zh" ? `第 ${p.family?.generation ?? 0} 代` : `Generation ${p.family?.generation ?? 0}`}
-                    {p.family ? (lang === "zh" ? ` · ${p.family.parents[0].name}和${p.family.parents[1].name}的孩子` : ` · child of ${p.family.parents[0].name} & ${p.family.parents[1].name}`) : ""}
+                    {p.family
+                      ? lang === "zh"
+                        ? ` · ${p.family.parents[0].name}和${p.family.parents[1].name}的孩子`
+                        : ` · child of ${p.family.parents[0].name} & ${p.family.parents[1].name}`
+                      : ""}
                   </small>
                 </span>
                 {i === active && <em>{lang === "zh" ? "正在照顾" : "Here now"}</em>}
@@ -415,7 +522,9 @@ function ConsentsOnChain({ pet, lang }: { pet: Pet; lang: Lang }) {
   const [read, setRead] = useState(0);
   // what was read, and for which pet and which reading: anything else on screen is still being read
   const reading = `${record?.petId ?? ""}:${read}`;
-  const [got, setGot] = useState<{ for: string; value: { consents: GivenConsent[]; partial: boolean } | null } | null>(null);
+  const [got, setGot] = useState<{ for: string; value: { consents: GivenConsent[]; partial: boolean } | null } | null>(
+    null,
+  );
   useEffect(() => {
     if (!record) return;
     let live = true;
@@ -438,10 +547,16 @@ function ConsentsOnChain({ pet, lang }: { pet: Pet; lang: Lang }) {
       {state === "reading" ? (
         <p className="small">{lang === "zh" ? "正在读取 X Layer 上的授权……" : "Reading the consents on X Layer…"}</p>
       ) : state === null ? (
-        <p className="small">{lang === "zh" ? "现在读不到 X Layer，所以列不出授权。过一会儿再看。" : "X Layer can't be read just now, so its consents can't be listed. Look again in a moment."}</p>
+        <p className="small">
+          {lang === "zh"
+            ? "现在读不到 X Layer，所以列不出授权。过一会儿再看。"
+            : "X Layer can't be read just now, so its consents can't be listed. Look again in a moment."}
+        </p>
       ) : state.consents.length === 0 ? (
         <p className="small">
-          {lang === "zh" ? `没有钱包能不经再次同意就和${pet.name}在链上养小宝宝。` : `No wallet may raise a little one with ${pet.name} on chain without asking again.`}
+          {lang === "zh"
+            ? `没有钱包能不经再次同意就和${pet.name}在链上养小宝宝。`
+            : `No wallet may raise a little one with ${pet.name} on chain without asking again.`}
         </p>
       ) : (
         <ul className="fam-consent-list">
@@ -452,11 +567,17 @@ function ConsentsOnChain({ pet, lang }: { pet: Pet; lang: Lang }) {
                 <span className="small">
                   {lang === "zh" ? (
                     <>
-                      <code className="fam-address" title={c.partner}>{short(c.partner)}</code> 可以和{pet.name}养一只小宝宝
+                      <code className="fam-address" title={c.partner}>
+                        {short(c.partner)}
+                      </code>{" "}
+                      可以和{pet.name}养一只小宝宝
                     </>
                   ) : (
                     <>
-                      <code className="fam-address" title={c.partner}>{short(c.partner)}</code> may raise one little one with {pet.name}
+                      <code className="fam-address" title={c.partner}>
+                        {short(c.partner)}
+                      </code>{" "}
+                      may raise one little one with {pet.name}
                     </>
                   )}
                 </span>
@@ -475,16 +596,32 @@ function ConsentsOnChain({ pet, lang }: { pet: Pet; lang: Lang }) {
                     setRead((n) => n + 1);
                   }}
                 >
-                  {withdrawing === id ? (lang === "zh" ? "撤回中……" : "Withdrawing…") : lang === "zh" ? "撤回" : "Withdraw"}
+                  {withdrawing === id
+                    ? lang === "zh"
+                      ? "撤回中……"
+                      : "Withdrawing…"
+                    : lang === "zh"
+                      ? "撤回"
+                      : "Withdraw"}
                 </button>
               </li>
             );
           })}
         </ul>
       )}
-      {failed && <p className="small warn">{lang === "zh" ? "授权没有撤回，它仍然有效。可以再试一次。" : "The consent wasn't withdrawn and still stands. You can try again."}</p>}
+      {failed && (
+        <p className="small warn">
+          {lang === "zh"
+            ? "授权没有撤回，它仍然有效。可以再试一次。"
+            : "The consent wasn't withdrawn and still stands. You can try again."}
+        </p>
+      )}
       {state !== "reading" && state?.partial && (
-        <p className="small">{lang === "zh" ? "服务器还在读取 X Layer 上较早的记录，以前在别的设备上给的授权可能还没列出。" : "The server is still reading X Layer's older records, so a consent given earlier on another device may not be listed yet."}</p>
+        <p className="small">
+          {lang === "zh"
+            ? "服务器还在读取 X Layer 上较早的记录，以前在别的设备上给的授权可能还没列出。"
+            : "The server is still reading X Layer's older records, so a consent given earlier on another device may not be listed yet."}
+        </p>
       )}
     </div>
   );
@@ -508,7 +645,11 @@ export function FamilyTree({ pet }: { pet: Pet }) {
           <ParentChip parent={pet.family.parents[1]} when="night" lang={lang} />
         </div>
       ) : (
-        <p className="small">{lang === "zh" ? `${pet.name}是第一代，从蛋里孵出来的。` : `${pet.name} is first generation, hatched from an egg.`}</p>
+        <p className="small">
+          {lang === "zh"
+            ? `${pet.name}是第一代，从蛋里孵出来的。`
+            : `${pet.name} is first generation, hatched from an egg.`}
+        </p>
       )}
       {children.length > 0 && (
         <p className="small">
@@ -522,12 +663,12 @@ export function FamilyTree({ pet }: { pet: Pet }) {
             ? "它的心智由父母两颗心智织成，所以它自己不会再有小宝宝。"
             : "Its mind is woven from both parents', so it won't have little ones of its own."
           : rest > 0
-          ? lang === "zh"
-            ? `还要休息 ${rest} 天才能再养小宝宝。`
-            : `Resting for ${rest} more day${rest === 1 ? "" : "s"} before another little one.`
-          : lang === "zh"
-            ? "长大后，和朋友的宠物在同一个房间时，点它就能问能不能一起养小宝宝。"
-            : "Once grown, tap a friend's pet in the same room to ask about raising a little one together."}
+            ? lang === "zh"
+              ? `还要休息 ${rest} 天才能再养小宝宝。`
+              : `Resting for ${rest} more day${rest === 1 ? "" : "s"} before another little one.`
+            : lang === "zh"
+              ? "长大后，和朋友的宠物在同一个房间时，点它就能问能不能一起养小宝宝。"
+              : "Once grown, tap a friend's pet in the same room to ask about raising a little one together."}
       </p>
       <ConsentsOnChain pet={pet} lang={lang} />
     </div>

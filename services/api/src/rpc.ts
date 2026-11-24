@@ -64,7 +64,11 @@ export interface RpcProxyOptions {
   timeoutMs?: number;
 }
 
-const refusal = (c: Call, code: number, message: string) => ({ jsonrpc: "2.0", id: c.id ?? null, error: { code, message } });
+const refusal = (c: Call, code: number, message: string) => ({
+  jsonrpc: "2.0",
+  id: c.id ?? null,
+  error: { code, message },
+});
 
 /**
  * Whether a log filter spans a short, stated range: a block hash, no range at all (the latest block), or two block
@@ -74,9 +78,18 @@ export function shortLogRange(params: unknown): boolean {
   const f = Array.isArray(params) ? params[0] : undefined;
   if (!f || typeof f !== "object") return false;
   const { blockHash, fromBlock, toBlock } = f as Record<string, unknown>;
-  if (blockHash !== undefined) return typeof blockHash === "string" && BLOCK_HASH.test(blockHash) && fromBlock === undefined && toBlock === undefined;
+  if (blockHash !== undefined)
+    return (
+      typeof blockHash === "string" && BLOCK_HASH.test(blockHash) && fromBlock === undefined && toBlock === undefined
+    );
   if (fromBlock === undefined && toBlock === undefined) return true;
-  if (typeof fromBlock !== "string" || typeof toBlock !== "string" || !BLOCK_NUMBER.test(fromBlock) || !BLOCK_NUMBER.test(toBlock)) return false;
+  if (
+    typeof fromBlock !== "string" ||
+    typeof toBlock !== "string" ||
+    !BLOCK_NUMBER.test(fromBlock) ||
+    !BLOCK_NUMBER.test(toBlock)
+  )
+    return false;
   const span = BigInt(toBlock) - BigInt(fromBlock);
   return span >= 0n && span < BigInt(MAX_LOG_BLOCKS);
 }
@@ -93,7 +106,14 @@ export function vetCalls(body: unknown): { calls: Call[]; batch: boolean; refuse
     const c = item as Call;
     if (typeof c.method !== "string") return null;
     if (!RPC_METHODS.has(c.method)) refused.push(refusal(c, -32601, `method not allowed here: ${c.method}`));
-    else if (c.method === "eth_getLogs" && !shortLogRange(c.params)) refused.push(refusal(c, -32602, `logs over at most ${MAX_LOG_BLOCKS} blocks: give fromBlock and toBlock as block numbers, or a blockHash`));
+    else if (c.method === "eth_getLogs" && !shortLogRange(c.params))
+      refused.push(
+        refusal(
+          c,
+          -32602,
+          `logs over at most ${MAX_LOG_BLOCKS} blocks: give fromBlock and toBlock as block numbers, or a blockHash`,
+        ),
+      );
     else calls.push(c);
   }
   return { calls, batch, refused };
@@ -102,7 +122,9 @@ export function vetCalls(body: unknown): { calls: Call[]; batch: boolean; refuse
 export function withRpcProxy(app: Hono, opts: RpcProxyOptions) {
   const limiter = opts.limiter ?? new RateLimiter(600, 60_000);
   const global = opts.global ?? new FairCeiling(1_800, 60_000);
-  const reserve = opts.reserve ? { url: opts.reserve.url, limiter: new RateLimiter(opts.reserve.perMinute, 60_000) } : null;
+  const reserve = opts.reserve
+    ? { url: opts.reserve.url, limiter: new RateLimiter(opts.reserve.perMinute, 60_000) }
+    : null;
   const doFetch = opts.fetch ?? fetch;
   const timeoutMs = opts.timeoutMs ?? 20_000;
   const who = (c: Context) => clientIp(c);
@@ -111,7 +133,8 @@ export function withRpcProxy(app: Hono, opts: RpcProxyOptions) {
     const busy = () => c.json({ jsonrpc: "2.0", id: null, error: { code: -32005, message: "too many requests" } }, 429);
     if (!limiter.take(who(c))) return busy();
     const text = await c.req.text();
-    if (text.length > RPC_BODY_MAX) return c.json({ jsonrpc: "2.0", id: null, error: { code: -32600, message: "request too large" } }, 413);
+    if (text.length > RPC_BODY_MAX)
+      return c.json({ jsonrpc: "2.0", id: null, error: { code: -32600, message: "request too large" } }, 413);
     let body: unknown;
     try {
       body = JSON.parse(text);
@@ -129,8 +152,10 @@ export function withRpcProxy(app: Hono, opts: RpcProxyOptions) {
     if (calls.length) {
       let forwarded = await forward(calls, opts.upstreams, doFetch, timeoutMs);
       // the jobs' upstream only when the door's own failed, and only within its small budget
-      if (!forwarded && reserve?.limiter.take("all")) forwarded = await forward(calls, [reserve.url], doFetch, timeoutMs);
-      if (!forwarded) return c.json({ jsonrpc: "2.0", id: null, error: { code: -32603, message: "no upstream answered" } }, 502);
+      if (!forwarded && reserve?.limiter.take("all"))
+        forwarded = await forward(calls, [reserve.url], doFetch, timeoutMs);
+      if (!forwarded)
+        return c.json({ jsonrpc: "2.0", id: null, error: { code: -32603, message: "no upstream answered" } }, 502);
       answers = forwarded;
     }
     const all = [...answers, ...refused];
@@ -139,13 +164,23 @@ export function withRpcProxy(app: Hono, opts: RpcProxyOptions) {
 }
 
 /** Sends the calls to each upstream in turn; the first well-formed JSON answer wins. */
-async function forward(calls: Call[], upstreams: string[], doFetch: typeof fetch, timeoutMs: number): Promise<unknown[] | null> {
+async function forward(
+  calls: Call[],
+  upstreams: string[],
+  doFetch: typeof fetch,
+  timeoutMs: number,
+): Promise<unknown[] | null> {
   const payload = JSON.stringify(calls.length === 1 ? calls[0] : calls);
   for (const url of upstreams) {
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), timeoutMs);
     try {
-      const r = await doFetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: payload, signal: ctl.signal });
+      const r = await doFetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: payload,
+        signal: ctl.signal,
+      });
       if (!r.ok) continue;
       const parsed = (await r.json()) as unknown;
       if (Array.isArray(parsed)) return parsed;

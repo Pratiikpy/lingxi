@@ -24,7 +24,10 @@ export interface SponsorRequest {
 export const sponsorMessage = (r: SponsorRequest): string =>
   `Lingxi: keep my pet on X Layer for me\naddress ${r.to.toLowerCase()}\nline ${r.line}\nstate ${r.state}\nat ${r.at}`;
 
-export async function signSponsorRequest(account: LocalAccount, r: Omit<SponsorRequest, "to">): Promise<{ request: SponsorRequest; signature: Hex }> {
+export async function signSponsorRequest(
+  account: LocalAccount,
+  r: Omit<SponsorRequest, "to">,
+): Promise<{ request: SponsorRequest; signature: Hex }> {
   const request = { ...r, to: account.address };
   return { request, signature: await account.signMessage({ message: sponsorMessage(request) }) };
 }

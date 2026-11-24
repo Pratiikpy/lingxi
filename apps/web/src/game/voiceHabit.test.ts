@@ -12,7 +12,12 @@ afterEach(() => leave());
 describe("the pet speaks without a server (G9)", () => {
   it("says its choice in its strongest habit's words", async () => {
     await visit({ at: Date.UTC(2026, 10, 23, 9) });
-    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("no server"); }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("no server");
+      }),
+    );
     const { useGame } = await import("./store");
     const { useVoice } = await import("./voice");
     useGame.getState().hatch("gentle", "Kiri");

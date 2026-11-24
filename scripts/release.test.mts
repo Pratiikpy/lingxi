@@ -12,10 +12,17 @@ const T0 = Date.UTC(2026, 10, 19, 5);
 /** A complete build, as `vite build` writes one: every page, each naming a part of its own, and build.json. */
 function complete(dir: string, tag: string): void {
   mkdirSync(join(dir, "assets"), { recursive: true });
-  for (const page of PAGES) writeFileSync(join(dir, page), `<!doctype html><link rel="stylesheet" href="./assets/style-${tag}.css"><script type="module" src="./assets/${page.replace(".html", "")}-${tag}.js"></script>`);
+  for (const page of PAGES)
+    writeFileSync(
+      join(dir, page),
+      `<!doctype html><link rel="stylesheet" href="./assets/style-${tag}.css"><script type="module" src="./assets/${page.replace(".html", "")}-${tag}.js"></script>`,
+    );
   for (const page of PAGES) writeFileSync(join(dir, "assets", `${page.replace(".html", "")}-${tag}.js`), `// ${tag}`);
   writeFileSync(join(dir, "assets", `style-${tag}.css`), "body{}");
-  writeFileSync(join(dir, "build.json"), JSON.stringify({ commit: "a".repeat(40), dirty: false, builtAt: new Date(T0).toISOString() }));
+  writeFileSync(
+    join(dir, "build.json"),
+    JSON.stringify({ commit: "a".repeat(40), dirty: false, builtAt: new Date(T0).toISOString() }),
+  );
 }
 
 /** A site with releases built at the given hours after T0, none live yet. */
@@ -29,7 +36,9 @@ function site(...hours: number[]): { dir: string; names: string[] } {
 describe("a release (A10)", () => {
   it("is named by when it was built and the commit it came from", () => {
     expect(releaseName(T0, "0123456789abcdef0123456789abcdef01234567", false)).toBe("20261119T050000Z-0123456789ab");
-    expect(releaseName(T0, "0123456789abcdef0123456789abcdef01234567", true)).toBe("20261119T050000Z-0123456789ab-dirty");
+    expect(releaseName(T0, "0123456789abcdef0123456789abcdef01234567", true)).toBe(
+      "20261119T050000Z-0123456789ab-dirty",
+    );
   });
 
   it("knows every page the site builds, as apps/web/vite.config.ts lists them", () => {

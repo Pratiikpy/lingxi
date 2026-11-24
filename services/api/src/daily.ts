@@ -26,7 +26,9 @@ export interface ChainReader {
   head: () => Promise<ChainHead>;
   block: (n: number) => Promise<{ number: number; timestamp: number; hash: `0x${string}` }>;
 }
-export type DailyAnswer = { ok: true; day: number; block: number; hash: `0x${string}` } | { ok: false; reason: "notYet" | "tooOld" | "unavailable" };
+export type DailyAnswer =
+  | { ok: true; day: number; block: number; hash: `0x${string}` }
+  | { ok: false; reason: "notYet" | "tooOld" | "unavailable" };
 type Found = Extract<DailyAnswer, { ok: true }>;
 
 /** Thrown by the search when the chain has not reached the day's midnight. */
@@ -37,7 +39,9 @@ export function createDailyBlocks(reader: ChainReader, opts: { now?: () => numbe
   const kept = new Map<number, Found>();
   if (opts.file && hasStore(opts.file)) {
     try {
-      for (const f of readStore(opts.file) as Found[]) if (f?.ok && Number.isInteger(f.day) && Number.isInteger(f.block) && /^0x[0-9a-f]{64}$/.test(f.hash)) kept.set(f.day, f);
+      for (const f of readStore(opts.file) as Found[])
+        if (f?.ok && Number.isInteger(f.day) && Number.isInteger(f.block) && /^0x[0-9a-f]{64}$/.test(f.hash))
+          kept.set(f.day, f);
     } catch {
       // a damaged file is searched again, day by day, as asked
     }

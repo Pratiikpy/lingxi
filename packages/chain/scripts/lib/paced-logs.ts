@@ -38,7 +38,12 @@ export const WINDOW = 100;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export function createPacedLogs(endpoints: Endpoint[]) {
-  const clients = endpoints.map((e) => createPublicClient({ chain: { ...xLayer, rpcUrls: { default: { http: [e.url] } } }, transport: http(e.url, { timeout: 30_000 }) }));
+  const clients = endpoints.map((e) =>
+    createPublicClient({
+      chain: { ...xLayer, rpcUrls: { default: { http: [e.url] } } },
+      transport: http(e.url, { timeout: 30_000 }),
+    }),
+  );
   const laneEndpoint = endpoints.flatMap((e, i) => Array.from({ length: e.lanes }, () => i));
   const gap = endpoints.map((e) => 1000 / e.rate);
   const nextAt = endpoints.map(() => 0);

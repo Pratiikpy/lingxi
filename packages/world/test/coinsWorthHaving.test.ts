@@ -80,7 +80,11 @@ describe("no recipe or trust branch is strictly worse than its alternative (G6)"
     const step = wick.steps.find((s) => s.unlock.kind === "recipe")!;
     // a friend of long standing who has taken every step before this one
     const before = wick.steps.filter((s) => s.level < step.level).map((s) => s.id);
-    const w0 = { ...newWorld("wick"), trust: { wick: 100 }, friends: { steps: { wick: before }, gifted: {}, known: {}, visits: [] } };
+    const w0 = {
+      ...newWorld("wick"),
+      trust: { wick: 100 },
+      friends: { steps: { wick: before }, gifted: {}, known: {}, visits: [] },
+    };
     const r = takeStep(w0, wick, step.id);
     if (!r.ok) throw new Error(r.reason);
     expect(r.world.bag[1021]).toBe(2);

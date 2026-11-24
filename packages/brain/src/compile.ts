@@ -19,15 +19,7 @@
 
 import { LATCH, NAND, type Element, encode } from "./tap02";
 import { N_IN, N_OUT, encodeOutput } from "./pins";
-import {
-  type Clause,
-  type FieldInfo,
-  type Memory,
-  type Program,
-  fieldTable,
-  memoryBits,
-  stateBits,
-} from "./program";
+import { type Clause, type FieldInfo, type Memory, type Program, fieldTable, memoryBits, stateBits } from "./program";
 
 const C0 = 0;
 const C1 = 1;

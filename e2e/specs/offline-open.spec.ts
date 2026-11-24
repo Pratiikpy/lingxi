@@ -11,7 +11,10 @@ for (const look of [
   { lang: "en", scheme: "light", size: "phone" },
   { lang: "zh", scheme: "dark", size: "desktop" },
 ] as const) {
-  test(`a visited game opens offline to the pet (${look.lang}, ${look.scheme}, ${look.size})`, async ({ player, run }) => {
+  test(`a visited game opens offline to the pet (${look.lang}, ${look.scheme}, ${look.size})`, async ({
+    player,
+    run,
+  }) => {
     test.setTimeout(360_000);
     const f = siteFolder(run, `offline-open-${look.lang}`);
     await buildSite(run, f.site, "A", { offline: true });
@@ -26,8 +29,19 @@ for (const look of [
       await page.locator(".stage").waitFor({ timeout: 60_000 });
       await dismiss(page);
       // the worker is installed and has kept the game
-      await expect.poll(() => page.evaluate(async () => !!(await navigator.serviceWorker.getRegistration())?.active), { message: "the worker is active", timeout: 60_000 }).toBe(true);
-      await expect.poll(() => page.evaluate(async () => (await caches.keys()).some((k) => k.startsWith("lingxi-") && k !== "lingxi-art")), { message: "the game is kept" }).toBe(true);
+      await expect
+        .poll(() => page.evaluate(async () => !!(await navigator.serviceWorker.getRegistration())?.active), {
+          message: "the worker is active",
+          timeout: 60_000,
+        })
+        .toBe(true);
+      await expect
+        .poll(
+          () =>
+            page.evaluate(async () => (await caches.keys()).some((k) => k.startsWith("lingxi-") && k !== "lingxi-art")),
+          { message: "the game is kept" },
+        )
+        .toBe(true);
       await page.waitForTimeout(1_500);
 
       // no network at all: the game opens again, to the same pet, and says it is offline
@@ -36,7 +50,9 @@ for (const look of [
       await page.locator(".stage").waitFor({ timeout: 60_000 });
       await expect(page.locator(".who-title")).toContainText("Lumi");
       await expect(page.locator(".offline-note"), "the offline note").toBeVisible();
-      await page.screenshot({ path: test.info().outputPath(`offline-open-${look.lang}-${look.scheme}-${look.size}.png`) });
+      await page.screenshot({
+        path: test.info().outputPath(`offline-open-${look.lang}-${look.scheme}-${look.size}.png`),
+      });
       // whatever needed the network was refused by the browser, and only that: read once the page has settled and the
       // connection is back, so a request still in flight when the check ran is counted too
       await page.waitForTimeout(3_000);

@@ -8,7 +8,13 @@ import * as req from "./requests";
 
 const WALLET = `0x${"ab".repeat(20)}`;
 const SIG = `0x${"cd".repeat(65)}`;
-const pet: DuelPet = { name: "Mochi", line: "gentle", stage: "baby", card: "[]", story: { days: 1, lessons: 0, nature: [] } };
+const pet: DuelPet = {
+  name: "Mochi",
+  line: "gentle",
+  stage: "baby",
+  card: "[]",
+  story: { days: 1, lessons: 0, nature: [] },
+};
 const rule: Rule = { when: { hunger: [3] }, then: { want: 2, mood: 1 }, label: "my own words" };
 /** A query as the server reads it: the URL's search parameters, first value of each. */
 const queryOf = (url: string) => Object.fromEntries(new URL(url, "http://localhost").searchParams);
@@ -49,7 +55,13 @@ describe("the game's requests are the server's own types", () => {
 
 describe("what the builders send is what the server accepts", () => {
   it("teaching, with the pet's whole mind as its card and the player's quest slots (A11)", () => {
-    const pet = { name: "Mochi", line: "bold" as const, lessons: [rule], instincts: 5, growth: { level: 2, points: 0, skills: { 211: 1, 212: 1 } } };
+    const pet = {
+      name: "Mochi",
+      line: "bold" as const,
+      lessons: [rule],
+      instincts: 5,
+      growth: { level: 2, points: 0, skills: { 211: 1, 212: 1 } },
+    };
     const body = req.teachBody("ask for food when hungry", pet, "teen", 1);
     expect(schema.TeachBody.safeParse(body).success).toBe(true);
     expect(body).toMatchObject({ lessons: [rule], slots: 1 });
@@ -59,15 +71,39 @@ describe("what the builders send is what the server accepts", () => {
   });
 
   it("the voice, with the decision and reasons cut to the server's lengths", () => {
-    const body = req.voiceBody({ pet: { name: "M".repeat(30), line: "curious", asleep: false }, lang: "zh", stage: "elder", chips: { then: "x".repeat(80), when: Array.from({ length: 9 }, () => "y".repeat(70)) }, meters: { food: 0, joy: 1000, energy: 500, clean: 999 }, tapped: true });
-    expect(schema.VoiceBody.parse(body)).toMatchObject({ name: "M".repeat(24), decision: "x".repeat(60), because: Array.from({ length: 6 }, () => "y".repeat(60)), sick: false, moment: "petted" });
-    expect(req.voiceBody({ pet: { name: "M", line: "gentle", asleep: true, sick: true }, lang: "en", stage: "baby", chips: { then: "", when: [] }, meters: { food: 1, joy: 1, energy: 1, clean: 1 }, tapped: false })).toMatchObject({ decision: "rest", sick: true, moment: "decided" });
+    const body = req.voiceBody({
+      pet: { name: "M".repeat(30), line: "curious", asleep: false },
+      lang: "zh",
+      stage: "elder",
+      chips: { then: "x".repeat(80), when: Array.from({ length: 9 }, () => "y".repeat(70)) },
+      meters: { food: 0, joy: 1000, energy: 500, clean: 999 },
+      tapped: true,
+    });
+    expect(schema.VoiceBody.parse(body)).toMatchObject({
+      name: "M".repeat(24),
+      decision: "x".repeat(60),
+      because: Array.from({ length: 6 }, () => "y".repeat(60)),
+      sick: false,
+      moment: "petted",
+    });
+    expect(
+      req.voiceBody({
+        pet: { name: "M", line: "gentle", asleep: true, sick: true },
+        lang: "en",
+        stage: "baby",
+        chips: { then: "", when: [] },
+        meters: { food: 1, joy: 1, energy: 1, clean: 1 },
+        tapped: false,
+      }),
+    ).toMatchObject({ decision: "rest", sick: true, moment: "decided" });
   });
 
   it("pet-sitting, the arena and the season", () => {
     expect(schema.SitLeaveBody.safeParse(req.sitLeaveBody("{}", "ab", Date.now())).success).toBe(true);
     expect(schema.SitHomeBody.safeParse(req.sitHomeBody("k", "{}")).success).toBe(true);
-    expect(schema.ArenaSnapshotBody.safeParse(req.arenaSnapshotBody(3, pet, ["pip"], "d".repeat(32))).success).toBe(true);
+    expect(schema.ArenaSnapshotBody.safeParse(req.arenaSnapshotBody(3, pet, ["pip"], "d".repeat(32))).success).toBe(
+      true,
+    );
     const opponent = req.withQuery("/api/arena/opponent", req.arenaOpponentQuery(3, "d".repeat(32)));
     expect(opponent).toBe(`/api/arena/opponent?round=3&device=${"d".repeat(32)}`);
     expect(schema.ArenaOpponentQuery.parse(queryOf(opponent))).toEqual({ round: 3, device: "d".repeat(32) });
@@ -83,9 +119,28 @@ describe("what the builders send is what the server accepts", () => {
   });
 
   it("a diary, a move and a reminder plan", () => {
-    expect(schema.PublishedLog.safeParse(req.diaryBody("4", [1, 2, 3], [{ brainId: "30", words: [1] }, { brainId: null, words: [2, 3] }])).success).toBe(true);
-    expect(schema.MoveBody.safeParse(req.moveBody({ "lingxi.pets.v2": "[]", "lingxi.world.v1": "{}" })).success).toBe(true);
-    const plan = req.pushPlanBody({ endpoint: "https://fcm.googleapis.com/fcm/send/x", keys: { p256dh: "B".repeat(87), auth: "C".repeat(22) } }, "en", "P".repeat(30), -300, [{ kind: "bored", at: 1_700_000_000_000 }]);
+    expect(
+      schema.PublishedLog.safeParse(
+        req.diaryBody(
+          "4",
+          [1, 2, 3],
+          [
+            { brainId: "30", words: [1] },
+            { brainId: null, words: [2, 3] },
+          ],
+        ),
+      ).success,
+    ).toBe(true);
+    expect(schema.MoveBody.safeParse(req.moveBody({ "lingxi.pets.v2": "[]", "lingxi.world.v1": "{}" })).success).toBe(
+      true,
+    );
+    const plan = req.pushPlanBody(
+      { endpoint: "https://fcm.googleapis.com/fcm/send/x", keys: { p256dh: "B".repeat(87), auth: "C".repeat(22) } },
+      "en",
+      "P".repeat(30),
+      -300,
+      [{ kind: "bored", at: 1_700_000_000_000 }],
+    );
     expect(plan.name).toBe("P".repeat(24));
     expect(schema.PushPlanBody.safeParse(plan).success).toBe(true);
     expect(schema.PushStopBody.safeParse(req.pushStopBody("https://fcm.googleapis.com/fcm/send/x")).success).toBe(true);
@@ -105,7 +160,11 @@ describe("what the builders send is what the server accepts", () => {
   });
 
   it("the agents' page sparring demo", () => {
-    const url = req.withQuery("/api/v1/spar", { chips: "punish,block,bite", vs: "pip", seed: "7" } satisfies schema.SparQuery);
+    const url = req.withQuery("/api/v1/spar", {
+      chips: "punish,block,bite",
+      vs: "pip",
+      seed: "7",
+    } satisfies schema.SparQuery);
     expect(schema.SparQuery.parse(queryOf(url))).toEqual({ chips: "punish,block,bite", vs: "pip", seed: "7" });
   });
 });

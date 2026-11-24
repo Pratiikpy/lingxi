@@ -21,7 +21,8 @@ import { mnemonicToAccount } from "viem/accounts";
 import * as harness from "../e2e/harness/procs.ts";
 import { assertLocal, giveOkb, giveToken } from "../packages/chain/scripts/lib/forkFund.ts";
 
-const { answers, forkArgs, freePort, start, stopSaving, waitFor } = (harness as unknown as { default: typeof harness }).default;
+const { answers, forkArgs, freePort, start, stopSaving, waitFor } = (harness as unknown as { default: typeof harness })
+  .default;
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const fork = JSON.parse(readFileSync(join(root, "e2e/fork.json"), "utf8")) as harness.PinnedFork;
 /** Foundry's and Hardhat's public test mnemonic: its keys hold nothing anywhere real. */
@@ -45,17 +46,41 @@ async function forkTestsIn(pkg: string): Promise<boolean> {
   const port = await freePort();
   const rpc = `http://127.0.0.1:${port}`;
   assertLocal(rpc);
-  const anvil = start("anvil", process.env.ANVIL_BIN ?? "anvil", forkArgs(fork, port), { cwd: dir, env: process.env, log: join(dir, "anvil.log") });
+  const anvil = start("anvil", process.env.ANVIL_BIN ?? "anvil", forkArgs(fork, port), {
+    cwd: dir,
+    env: process.env,
+    log: join(dir, "anvil.log"),
+  });
   let ok = false;
   try {
-    await waitFor("the fork", () => answers(rpc, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_chainId", params: [] }) }), 60_000, anvil.log);
+    await waitFor(
+      "the fork",
+      () =>
+        answers(rpc, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_chainId", params: [] }),
+        }),
+      60_000,
+      anvil.log,
+    );
     const pub = createPublicClient({ transport: http(rpc, { timeout: 60_000 }) }) as PublicClient;
-    const deployment = JSON.parse(readFileSync(join(root, "packages/chain/deployments/xlayer.json"), "utf8")) as Record<string, unknown> & { itemShop: Address };
+    const deployment = JSON.parse(readFileSync(join(root, "packages/chain/deployments/xlayer.json"), "utf8")) as Record<
+      string,
+      unknown
+    > & { itemShop: Address };
     const deploymentFile = join(dir, "deployment.json");
     writeFileSync(deploymentFile, JSON.stringify({ ...deployment, rpc }, null, 2));
-    const bem = (await pub.readContract({ address: deployment.itemShop, abi: [{ type: "function", name: "bem", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] }] as const, functionName: "bem" })) as Address;
+    const bem = (await pub.readContract({
+      address: deployment.itemShop,
+      abi: [
+        { type: "function", name: "bem", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
+      ] as const,
+      functionName: "bem",
+    })) as Address;
     // a public test address may carry delegation code on X Layer that a stranger set; on the fork it is a plain wallet
-    if (((await pub.getCode({ address: relayer.address })) ?? "0x") !== "0x") await pub.request({ method: "anvil_setCode" as never, params: [relayer.address, "0x"] as never });
+    if (((await pub.getCode({ address: relayer.address })) ?? "0x") !== "0x")
+      await pub.request({ method: "anvil_setCode" as never, params: [relayer.address, "0x"] as never });
     await giveOkb(pub, relayer.address, 100n * 10n ** 18n);
     await giveToken(pub, bem, relayer.address, 10_000n * 10n ** 18n);
     const keyFile = join(dir, "relayer.env");
@@ -71,7 +96,13 @@ async function forkTestsIn(pkg: string): Promise<boolean> {
       const run = spawn(process.execPath, [vitest, "run", "--no-file-parallelism", ...vitestArgs], {
         cwd: join(root, pkg),
         stdio: "inherit",
-        env: { ...process.env, FORK_RPC: rpc, RELAY_KEY_FILE: keyFile, FORK_KEY_FILE: keyFile, DEPLOYMENT_FILE: deploymentFile },
+        env: {
+          ...process.env,
+          FORK_RPC: rpc,
+          RELAY_KEY_FILE: keyFile,
+          FORK_KEY_FILE: keyFile,
+          DEPLOYMENT_FILE: deploymentFile,
+        },
       });
       run.on("error", fail);
       run.on("exit", (code) => done(code));

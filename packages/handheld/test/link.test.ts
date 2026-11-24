@@ -60,9 +60,28 @@ async function device(split = 0): Promise<{ h: HH; io: LinkIo; raw: (text: strin
 const T0 = Date.UTC(2026, 10, 17, 2, 0);
 function trip() {
   const tb = starterBrain("gentle");
-  const pet = { ...createPet({ name: "Mochi", line: "gentle", now: T0 - 86_400_000, tzOffsetMin: 480, brain: tb.brain }), beat: Math.floor(T0 / BEAT_MS), growth: newGrowth() };
-  const snacks: Snack[] = [{ id: "11110", count: 2, effect: { food: 260, joy: 60, diet: "grain" }, name: { en: "Taro Mochi", zh: "芋泥麻薯" } }];
-  const packet = tripPacket(pet, tb.trip, snacks, { name: "Mochi", line: "gentle", stage: 2, form: 0, colour: 0, lang: "en", bornBeat: Math.floor((T0 - 86_400_000) / BEAT_MS) });
+  const pet = {
+    ...createPet({ name: "Mochi", line: "gentle", now: T0 - 86_400_000, tzOffsetMin: 480, brain: tb.brain }),
+    beat: Math.floor(T0 / BEAT_MS),
+    growth: newGrowth(),
+  };
+  const snacks: Snack[] = [
+    {
+      id: "11110",
+      count: 2,
+      effect: { food: 260, joy: 60, diet: "grain" },
+      name: { en: "Taro Mochi", zh: "芋泥麻薯" },
+    },
+  ];
+  const packet = tripPacket(pet, tb.trip, snacks, {
+    name: "Mochi",
+    line: "gentle",
+    stage: 2,
+    form: 0,
+    colour: 0,
+    lang: "en",
+    bornBeat: Math.floor((T0 - 86_400_000) / BEAT_MS),
+  });
   return { pet, tb, snacks, packet };
 }
 

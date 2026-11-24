@@ -29,10 +29,17 @@ export interface Trial {
 }
 
 /** What the pet's mind does in the lesson's situation (or `senses`, one of them), from its memory as it is. */
-export function tryLesson(program: Program, state: readonly number[], lesson: Rule, senses: Senses = stageFor(lesson)): Trial {
+export function tryLesson(
+  program: Program,
+  state: readonly number[],
+  lesson: Rule,
+  senses: Senses = stageFor(lesson),
+): Trial {
   const word = encodeSenses(senses);
   const r = runBeat(program, state.slice(0, stateBits(program)), word);
-  const at = program.rules.findIndex((x) => JSON.stringify([x.when, x.then]) === JSON.stringify([lesson.when, lesson.then]));
+  const at = program.rules.findIndex(
+    (x) => JSON.stringify([x.when, x.then]) === JSON.stringify([lesson.when, lesson.then]),
+  );
   const decided = r.rule >= 0 ? program.rules[r.rule]!.then : program.otherwise;
   return { want: decided.want, mood: decided.mood, rule: r.rule, fired: at >= 0 && r.rule === at, senses };
 }

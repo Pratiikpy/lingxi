@@ -18,13 +18,22 @@ vi.mock("@lingxi/art", async (orig) => {
 
 beforeAll(() => {
   // happy-dom has no 2D canvas; the texture only needs somewhere to put its pixels
-  HTMLCanvasElement.prototype.getContext = (() => ({ createImageData: (w: number, h: number) => ({ data: new Uint8ClampedArray(w * h * 4) }), putImageData: () => {} })) as never;
+  HTMLCanvasElement.prototype.getContext = (() => ({
+    createImageData: (w: number, h: number) => ({ data: new Uint8ClampedArray(w * h * 4) }),
+    putImageData: () => {},
+  })) as never;
 });
 
 describe("pet and cat textures (P3)", () => {
   it("draw a frame once, however many times the scene asks for it", async () => {
     const { petTexture, catTexture } = await import("./textures");
-    const frame = { stage: "child" as const, expression: "happy" as const, breath: 0 as const, squash: 0 as const, lit: false };
+    const frame = {
+      stage: "child" as const,
+      expression: "happy" as const,
+      breath: 0 as const,
+      squash: 0 as const,
+      lit: false,
+    };
     const a = petTexture("gentle", frame);
     for (let i = 0; i < 30; i++) expect(petTexture("gentle", { ...frame })).toBe(a);
     expect(drawn.pet).toBe(1);

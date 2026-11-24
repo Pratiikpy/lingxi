@@ -5,7 +5,16 @@
 
 import { withSegment } from "./lessons";
 import type { Pet } from "./sim";
-import { type Growth, type UpgradeRefusal, levelUp, migrateGrowth, newGrowth, respec, ruleSkillIds, upgrade } from "./skills";
+import {
+  type Growth,
+  type UpgradeRefusal,
+  levelUp,
+  migrateGrowth,
+  newGrowth,
+  respec,
+  ruleSkillIds,
+  upgrade,
+} from "./skills";
 
 /** A pet from before levels were spent keeps the level it showed: its XP buys that level once, here. */
 export function withGrowth(p: Pet): Pet {

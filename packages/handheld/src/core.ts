@@ -21,7 +21,22 @@ export const LX_ERRORS = [
 ] as const;
 export type CoreError = (typeof LX_ERRORS)[number];
 
-export const NOTES = ["ate", "overfed", "woke", "played", "tooTired", "tooSick", "cleaned", "sleeping", "awake", "petted", "healed", "notSick", "listened", "hibernationEnded"] as const;
+export const NOTES = [
+  "ate",
+  "overfed",
+  "woke",
+  "played",
+  "tooTired",
+  "tooSick",
+  "cleaned",
+  "sleeping",
+  "awake",
+  "petted",
+  "healed",
+  "notSick",
+  "listened",
+  "hibernationEnded",
+] as const;
 
 interface Exports {
   memory: WebAssembly.Memory;
@@ -107,7 +122,12 @@ export class HandheldCore {
     return LX_ERRORS[this.x.lx_circ_load(blob.length)] ?? "badValue";
   }
   shape(): { nIn: number; nOut: number; nState: number; nGates: number } {
-    return { nIn: this.x.lx_circ_shape(0), nOut: this.x.lx_circ_shape(1), nState: this.x.lx_circ_shape(2), nGates: this.x.lx_circ_shape(3) };
+    return {
+      nIn: this.x.lx_circ_shape(0),
+      nOut: this.x.lx_circ_shape(1),
+      nState: this.x.lx_circ_shape(2),
+      nGates: this.x.lx_circ_shape(3),
+    };
   }
   beat(state: Uint8Array, inputs: Uint8Array): { state: Uint8Array; outputs: Uint8Array } {
     const at = this.x.lx_out();
@@ -121,7 +141,12 @@ export class HandheldCore {
 }
 
 /** A bare circuit's blob for `loadCircuit`. */
-export function circuitBlob(bytes: Uint8Array, nIn: number, nOut: number, parts: ReadonlyArray<{ processor: string; id: bigint; nIn: number; nOut: number; bytes: Uint8Array }> = []): Uint8Array {
+export function circuitBlob(
+  bytes: Uint8Array,
+  nIn: number,
+  nOut: number,
+  parts: ReadonlyArray<{ processor: string; id: bigint; nIn: number; nOut: number; bytes: Uint8Array }> = [],
+): Uint8Array {
   const out: number[] = [nIn & 0xff, nIn >> 8, nOut & 0xff, nOut >> 8];
   for (let i = 0; i < 4; i++) out.push((bytes.length >> (8 * i)) & 0xff);
   out.push(...bytes, parts.length);

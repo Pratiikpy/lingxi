@@ -9,8 +9,14 @@ import { type Address, type Hex, type PublicClient, createPublicClient, http, pa
 import { xLayer } from "@lingxi/chain";
 import { hasStore, readStore, saveJson } from "./durable";
 
-const factoryAbi = parseAbi(["function cpuCount() view returns (uint256)", "function cpuAt(uint256 i) view returns (address)"]);
-const processorAbi = parseAbi(["function nextId() view returns (uint256)", "function netlist(uint256 id) view returns (bytes)"]);
+const factoryAbi = parseAbi([
+  "function cpuCount() view returns (uint256)",
+  "function cpuAt(uint256 i) view returns (address)",
+]);
+const processorAbi = parseAbi([
+  "function nextId() view returns (uint256)",
+  "function netlist(uint256 id) view returns (bytes)",
+]);
 /** Netlists read in one call (X Layer's public RPCs limit how much one request may do). */
 const BATCH = 20;
 /** Circuits read in one pass, so a pass is short and the job loop stays responsive. */
@@ -48,9 +54,17 @@ interface Stored {
   cpuCount: number;
 }
 
-export function createRefScanner(o: { rpc?: string; client?: PublicClient; factory: Address; ours: Address; store?: string }) {
+export function createRefScanner(o: {
+  rpc?: string;
+  client?: PublicClient;
+  factory: Address;
+  ours: Address;
+  store?: string;
+}) {
   // X Layer's chain definition carries the Multicall3 address the batched reads go through
-  const pub = o.client ?? (createPublicClient({ chain: xLayer, transport: http(o.rpc, { timeout: 20_000, retryCount: 1 }) }) as PublicClient);
+  const pub =
+    o.client ??
+    (createPublicClient({ chain: xLayer, transport: http(o.rpc, { timeout: 20_000, retryCount: 1 }) }) as PublicClient);
   const ours = o.ours.toLowerCase();
   let data: Stored = { next: {}, refs: [], cpuCount: 0 };
   if (o.store && hasStore(o.store)) {
@@ -75,7 +89,15 @@ export function createRefScanner(o: { rpc?: string; client?: PublicClient; facto
       const cpus = data.cpus ?? [];
       for (let i = cpus.length; i < count; i += BATCH) {
         const idx = Array.from({ length: Math.min(BATCH, count - i) }, (_, k) => i + k);
-        const got = await pub.multicall({ allowFailure: false, contracts: idx.map((k) => ({ address: o.factory, abi: factoryAbi, functionName: "cpuAt" as const, args: [BigInt(k)] })) });
+        const got = await pub.multicall({
+          allowFailure: false,
+          contracts: idx.map((k) => ({
+            address: o.factory,
+            abi: factoryAbi,
+            functionName: "cpuAt" as const,
+            args: [BigInt(k)],
+          })),
+        });
         cpus.push(...got.map((a) => String(a).toLowerCase()));
       }
       data.cpus = cpus;
@@ -86,7 +108,10 @@ export function createRefScanner(o: { rpc?: string; client?: PublicClient; facto
       const latestIds = new Map<string, number>();
       for (let i = 0; i < others.length; i += BATCH) {
         const part = others.slice(i, i + BATCH);
-        const got = await pub.multicall({ allowFailure: true, contracts: part.map((cpu) => ({ address: cpu, abi: processorAbi, functionName: "nextId" as const })) });
+        const got = await pub.multicall({
+          allowFailure: true,
+          contracts: part.map((cpu) => ({ address: cpu, abi: processorAbi, functionName: "nextId" as const })),
+        });
         got.forEach((g, k) => g.status === "success" && latestIds.set(part[k]!, Number(g.result)));
       }
       let behind = false;
@@ -100,12 +125,21 @@ export function createRefScanner(o: { rpc?: string; client?: PublicClient; facto
         let from = data.next[cpu] ?? 1;
         while (from <= latest && budget > 0) {
           const ids = Array.from({ length: Math.min(BATCH, latest - from + 1, budget) }, (_, k) => from + k);
-          const got = await pub.multicall({ allowFailure: true, contracts: ids.map((id) => ({ address: cpu, abi: processorAbi, functionName: "netlist" as const, args: [BigInt(id)] })) });
+          const got = await pub.multicall({
+            allowFailure: true,
+            contracts: ids.map((id) => ({
+              address: cpu,
+              abi: processorAbi,
+              functionName: "netlist" as const,
+              args: [BigInt(id)],
+            })),
+          });
           // stop at the first netlist that could not be read: it is read again next pass, never stepped past
           let read = 0;
           for (const [k, g] of got.entries()) {
             if (g.status !== "success") break;
-            for (const t of refTargets(g.result as Hex)) if (t.cpu === ours) data.refs.push({ cpu, id: ids[k]!, target: Number(t.id) });
+            for (const t of refTargets(g.result as Hex))
+              if (t.cpu === ours) data.refs.push({ cpu, id: ids[k]!, target: Number(t.id) });
             read++;
           }
           from += read;

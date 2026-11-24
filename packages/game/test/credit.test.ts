@@ -5,7 +5,17 @@ import { composeProgram, tellMoment, type Frame } from "../src";
 
 const lesson: Rule = { when: { event: [2] }, then: { want: 7, mood: 3 } };
 const program = composeProgram("gentle", [lesson]);
-const frame = (rule: number, want: number): Frame => ({ index: 0, at: null, senses: {} as Frame["senses"], want, mood: 2, nudge: 0, rule, program, memory: [] });
+const frame = (rule: number, want: number): Frame => ({
+  index: 0,
+  at: null,
+  senses: {} as Frame["senses"],
+  want,
+  mood: 2,
+  nudge: 0,
+  rule,
+  program,
+  memory: [],
+});
 
 describe("the diary credits the player (G1)", () => {
   it("tells a taught moment as the lesson's doing", () => {

@@ -64,7 +64,8 @@ describe("serving releases (A10)", () => {
         const html = await page.text();
         const part = /src="\.\/(assets\/[^"]+)"/.exec(html)?.[1];
         const asset = part ? await app.request(`/${part}`) : null;
-        if (page.status !== 200 || !part || asset?.status !== 200) failures.push(`${page.status} ${part} ${asset?.status}`);
+        if (page.status !== 200 || !part || asset?.status !== 200)
+          failures.push(`${page.status} ${part} ${asset?.status}`);
       }
     })();
     await Promise.all([flipping, asking]);
@@ -99,7 +100,8 @@ describe("serving releases (A10)", () => {
   it("reads nothing outside the releases: a pointer naming a path, or a request climbing out, is refused", async () => {
     const dir = site({ [A]: build("A") });
     writeFileSync(join(dir, "secret.txt"), "secret");
-    for (const name of ["..", "../releases", "20261119T050000Z-aaaaaaa/../..", "C:\\Windows", ".hidden"]) expect(RELEASE_NAME.test(name), name).toBe(false);
+    for (const name of ["..", "../releases", "20261119T050000Z-aaaaaaa/../..", "C:\\Windows", ".hidden"])
+      expect(RELEASE_NAME.test(name), name).toBe(false);
     writePointer(dir, { release: A });
     const app = withSite(new Hono(), releaseSource(dir));
     for (const path of ["/assets/..%2f..%2f..%2fsecret.txt", "/..%2f..%2fsecret.txt", "/assets/..%2fplay.html"]) {
@@ -117,7 +119,10 @@ describe("serving releases (A10)", () => {
   });
 
   it("keeps serving correctly past more releases than it remembers at once", async () => {
-    const names = Array.from({ length: SITE_CACHE_MAX + 6 }, (_, i) => `20261119T${String(100000 + i).slice(-6)}Z-${"c".repeat(7)}`);
+    const names = Array.from(
+      { length: SITE_CACHE_MAX + 6 },
+      (_, i) => `20261119T${String(100000 + i).slice(-6)}Z-${"c".repeat(7)}`,
+    );
     const dir = site(Object.fromEntries(names.map((n, i) => [n, build(`r${i}`)])));
     const app = withSite(new Hono(), releaseSource(dir));
     for (const [i, name] of names.entries()) {

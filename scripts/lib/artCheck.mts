@@ -21,7 +21,8 @@ export function checkPalette(id: number, bytes: string): PaletteCheck {
   else
     for (let role = 1; role <= 16; role++) {
       const alpha = parseInt(raw.slice((role - 1) * 8 + 6, (role - 1) * 8 + 8), 16);
-      if (alpha === UNWRITABLE_ALPHA) problems.push(`role ${role} has alpha ${UNWRITABLE_ALPHA}, written as broken CSS`);
+      if (alpha === UNWRITABLE_ALPHA)
+        problems.push(`role ${role} has alpha ${UNWRITABLE_ALPHA}, written as broken CSS`);
       if (alpha !== 255) seeThrough.push({ role, alpha });
     }
   return { id, ok: problems.length === 0, problems, seeThrough };

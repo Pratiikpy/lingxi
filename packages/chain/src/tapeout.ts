@@ -30,49 +30,131 @@ export const ENTRYPOINT_V07: Address = "0x0000000071727De22E5E9d8BAf0edAc6f37da0
 export const NAND_ID = 0n;
 
 export const processorAbi = [
-  { type: "function", name: "tapeout", stateMutability: "payable", inputs: [{ name: "nl", type: "bytes" }, { name: "nIn", type: "uint32" }, { name: "nOut", type: "uint32" }], outputs: [{ type: "uint256" }] },
+  {
+    type: "function",
+    name: "tapeout",
+    stateMutability: "payable",
+    inputs: [
+      { name: "nl", type: "bytes" },
+      { name: "nIn", type: "uint32" },
+      { name: "nOut", type: "uint32" },
+    ],
+    outputs: [{ type: "uint256" }],
+  },
   { type: "function", name: "TAPEOUT_FEE", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
   { type: "function", name: "transistors", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
   { type: "function", name: "name", stateMutability: "view", inputs: [], outputs: [{ type: "string" }] },
   { type: "function", name: "nextId", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
-  { type: "function", name: "ownerOf", stateMutability: "view", inputs: [{ name: "id", type: "uint256" }], outputs: [{ type: "address" }] },
-  { type: "function", name: "netlist", stateMutability: "view", inputs: [{ name: "id", type: "uint256" }], outputs: [{ type: "bytes" }] },
+  {
+    type: "function",
+    name: "ownerOf",
+    stateMutability: "view",
+    inputs: [{ name: "id", type: "uint256" }],
+    outputs: [{ type: "address" }],
+  },
+  {
+    type: "function",
+    name: "netlist",
+    stateMutability: "view",
+    inputs: [{ name: "id", type: "uint256" }],
+    outputs: [{ type: "bytes" }],
+  },
   {
     type: "function",
     name: "circuitInfo",
     stateMutability: "view",
     inputs: [{ name: "id", type: "uint256" }],
-    outputs: [{ name: "nIn", type: "uint256" }, { name: "nOut", type: "uint256" }, { name: "nState", type: "uint256" }, { name: "gateCount", type: "uint256" }],
+    outputs: [
+      { name: "nIn", type: "uint256" },
+      { name: "nOut", type: "uint256" },
+      { name: "nState", type: "uint256" },
+      { name: "gateCount", type: "uint256" },
+    ],
   },
-  { type: "function", name: "eval", stateMutability: "view", inputs: [{ name: "id", type: "uint256" }, { name: "inputs", type: "bytes" }], outputs: [{ type: "bytes" }] },
+  {
+    type: "function",
+    name: "eval",
+    stateMutability: "view",
+    inputs: [
+      { name: "id", type: "uint256" },
+      { name: "inputs", type: "bytes" },
+    ],
+    outputs: [{ type: "bytes" }],
+  },
   {
     type: "function",
     name: "step",
     stateMutability: "view",
-    inputs: [{ name: "id", type: "uint256" }, { name: "state", type: "bytes" }, { name: "inputs", type: "bytes" }],
-    outputs: [{ name: "newState", type: "bytes" }, { name: "outputs", type: "bytes" }],
+    inputs: [
+      { name: "id", type: "uint256" },
+      { name: "state", type: "bytes" },
+      { name: "inputs", type: "bytes" },
+    ],
+    outputs: [
+      { name: "newState", type: "bytes" },
+      { name: "outputs", type: "bytes" },
+    ],
   },
 ] as const;
 
 export const transistorsAbi = [
-  { type: "function", name: "mint", stateMutability: "payable", inputs: [{ name: "id", type: "uint256" }, { name: "amount", type: "uint256" }], outputs: [] },
+  {
+    type: "function",
+    name: "mint",
+    stateMutability: "payable",
+    inputs: [
+      { name: "id", type: "uint256" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [],
+  },
   { type: "function", name: "mintPrice", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
   { type: "function", name: "protocolFee", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
   { type: "function", name: "minted", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
   { type: "function", name: "supplyCap", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
-  { type: "function", name: "balanceOf", stateMutability: "view", inputs: [{ name: "account", type: "address" }, { name: "id", type: "uint256" }], outputs: [{ type: "uint256" }] },
+  {
+    type: "function",
+    name: "balanceOf",
+    stateMutability: "view",
+    inputs: [
+      { name: "account", type: "address" },
+      { name: "id", type: "uint256" },
+    ],
+    outputs: [{ type: "uint256" }],
+  },
 ] as const;
 
 export const factoryAbi = [
-  { type: "function", name: "isCPU", stateMutability: "view", inputs: [{ name: "cpu", type: "address" }], outputs: [{ type: "bool" }] },
+  {
+    type: "function",
+    name: "isCPU",
+    stateMutability: "view",
+    inputs: [{ name: "cpu", type: "address" }],
+    outputs: [{ type: "bool" }],
+  },
   { type: "function", name: "cpuCount", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
-  { type: "function", name: "cpuAt", stateMutability: "view", inputs: [{ name: "i", type: "uint256" }], outputs: [{ type: "address" }] },
+  {
+    type: "function",
+    name: "cpuAt",
+    stateMutability: "view",
+    inputs: [{ name: "i", type: "uint256" }],
+    outputs: [{ type: "address" }],
+  },
   { type: "function", name: "deployFee", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
   {
     type: "function",
     name: "createCPU",
     stateMutability: "payable",
-    inputs: [{ name: "name", type: "string" }, { name: "symbol", type: "string" }, { name: "story", type: "string" }, { name: "transistorSupply", type: "uint256" }, { name: "mintPrice", type: "uint256" }],
-    outputs: [{ name: "transistors", type: "address" }, { name: "circuits", type: "address" }],
+    inputs: [
+      { name: "name", type: "string" },
+      { name: "symbol", type: "string" },
+      { name: "story", type: "string" },
+      { name: "transistorSupply", type: "uint256" },
+      { name: "mintPrice", type: "uint256" },
+    ],
+    outputs: [
+      { name: "transistors", type: "address" },
+      { name: "circuits", type: "address" },
+    ],
   },
 ] as const;

@@ -11,7 +11,11 @@ export const VISITOR_FALLBACK_PER_MINUTE = 120;
 type Request = (args: { method: string; params?: unknown }) => Promise<unknown>;
 
 /** `request`, refusing at once any call past `perMinute` in the last minute. */
-export function budgetedRequest(request: Request, perMinute = VISITOR_FALLBACK_PER_MINUTE, now: () => number = Date.now): Request {
+export function budgetedRequest(
+  request: Request,
+  perMinute = VISITOR_FALLBACK_PER_MINUTE,
+  now: () => number = Date.now,
+): Request {
   let calls: number[] = [];
   return async (args) => {
     const t = now();

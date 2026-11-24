@@ -42,7 +42,8 @@ const compiled = new WeakMap<RuleCircuit, PetNetlist>();
 export function ruleNetlist(rule: RuleCircuit): PetNetlist {
   const hit = compiled.get(rule);
   if (hit) return hit;
-  if (rule.inBits < 1 || rule.inBits > MAX_RULE_BITS) throw new Error(`${rule.name}: a rule reads 1 to ${MAX_RULE_BITS} bits`);
+  if (rule.inBits < 1 || rule.inBits > MAX_RULE_BITS)
+    throw new Error(`${rule.name}: a rule reads 1 to ${MAX_RULE_BITS} bits`);
   const size = 1 << rule.inBits;
   const answers = Array.from({ length: size }, (_, w) => {
     const a = rule.reference(w);
@@ -51,7 +52,12 @@ export function ruleNetlist(rule: RuleCircuit): PetNetlist {
   });
   const net = buildCircuit(N_IN, `${RULE_VERSION} ${rule.name}`, (b) => {
     const vars = Array.from({ length: rule.inBits }, (_, i) => b.input(i));
-    return Array.from({ length: N_OUT }, (_, k) => b.fn(vars, answers.map((a) => (a >> k) & 1)));
+    return Array.from({ length: N_OUT }, (_, k) =>
+      b.fn(
+        vars,
+        answers.map((a) => (a >> k) & 1),
+      ),
+    );
   });
   compiled.set(rule, net);
   return net;

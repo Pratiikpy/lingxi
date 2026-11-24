@@ -10,7 +10,8 @@ const chunked = (bytes: number) =>
   new ReadableStream({
     start(ctl) {
       const piece = new Uint8Array(16 * 1024).fill(97);
-      for (let sent = 0; sent < bytes; sent += piece.length) ctl.enqueue(piece.subarray(0, Math.min(piece.length, bytes - sent)));
+      for (let sent = 0; sent < bytes; sent += piece.length)
+        ctl.enqueue(piece.subarray(0, Math.min(piece.length, bytes - sent)));
       ctl.close();
     },
   });
@@ -21,7 +22,8 @@ const app = () => {
   a.post("/api/move", async (c) => c.json({ read: (await c.req.text()).length }));
   return a;
 };
-const send = (path: string, bytes: number) => app().request(path, { method: "POST", body: chunked(bytes), duplex: "half" } as RequestInit);
+const send = (path: string, bytes: number) =>
+  app().request(path, { method: "POST", body: chunked(bytes), duplex: "half" } as RequestInit);
 
 describe("how much a write may carry", () => {
   it("refuses an oversized body that comes in chunks with no length given", async () => {
@@ -48,7 +50,11 @@ describe("how much a write may carry", () => {
 
   it("holds the server's own routes to their sizes", async () => {
     const big = "a".repeat(limitFor("/api/teach") + 1);
-    const r = await createApp(null).request("/api/teach", { method: "POST", headers: { "content-type": "application/json", "content-length": String(big.length) }, body: big });
+    const r = await createApp(null).request("/api/teach", {
+      method: "POST",
+      headers: { "content-type": "application/json", "content-length": String(big.length) },
+      body: big,
+    });
     expect(r.status).toBe(413);
   });
 });
@@ -58,12 +64,23 @@ describe("every write route is held to the size it promises, on the bytes it rea
   const routes = () => withArena(withSeason(withBodyLimits(new Hono()), createSeasonStore()), createArenaStore());
   const entry = (bytes: number) => JSON.stringify({ device: "device-abcdefgh", pet: { name: "x".repeat(bytes) } });
   const post = (path: string, body: string, length: boolean) =>
-    routes().request(path, { method: "POST", headers: { "content-type": "application/json", ...(length ? { "content-length": String(body.length) } : {}) }, body } as RequestInit);
-  const postChunked = (path: string, bytes: number) => routes().request(path, { method: "POST", headers: { "content-type": "application/json" }, body: chunked(bytes), duplex: "half" } as RequestInit);
+    routes().request(path, {
+      method: "POST",
+      headers: { "content-type": "application/json", ...(length ? { "content-length": String(body.length) } : {}) },
+      body,
+    } as RequestInit);
+  const postChunked = (path: string, bytes: number) =>
+    routes().request(path, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: chunked(bytes),
+      duplex: "half",
+    } as RequestInit);
 
   for (const path of ["/api/season/enter", "/api/arena/snapshot"])
     it(`${path} takes a 20,000-byte card, with or without its length said, and refuses one over 48 KB either way`, async () => {
-      for (const length of [true, false]) expect((await post(path, entry(20_000), length)).status, `length given: ${length}`).not.toBe(413);
+      for (const length of [true, false])
+        expect((await post(path, entry(20_000), length)).status, `length given: ${length}`).not.toBe(413);
       expect((await post(path, entry(50 * 1024), true)).status).toBe(413);
       expect((await postChunked(path, 50 * 1024)).status).toBe(413);
     });
@@ -73,4 +90,3 @@ describe("every write route is held to the size it promises, on the bytes it rea
     expect(limitFor("/api/push/plan")).toBe(4 * 1024);
   });
 });
-

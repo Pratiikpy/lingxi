@@ -52,7 +52,8 @@ describe("experience for care that answers a need (G3)", () => {
 
   it("only care that answers a need counts toward evolution's care quality; goals still count every care", () => {
     let p = withFood(fresh(), 950);
-    for (let i = 0; i < 5; i++) p = care(withFood(p, 950), { kind: "feed", food: "mochi" }, T0 + (i + 1) * MIN, brain).pet;
+    for (let i = 0; i < 5; i++)
+      p = care(withFood(p, 950), { kind: "feed", food: "mochi" }, T0 + (i + 1) * MIN, brain).pet;
     expect(p.needs?.feed ?? 0).toBe(0);
     expect(p.counts.feed).toBe(5);
     p = care(withFood(p, 200), { kind: "feed", food: "mochi" }, T0 + 10 * MIN, brain).pet;

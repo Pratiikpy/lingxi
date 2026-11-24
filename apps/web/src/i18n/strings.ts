@@ -77,7 +77,7 @@ export const en = {
   "me.day1": "1 day",
   "me.lessons": "Lessons",
   "me.diet": "Favourite food",
-  "close": "Close",
+  close: "Close",
   "hatch.title": "Pick an egg",
   "hatch.sub": "Each one hatches a different little mind.",
   "hatch.name": "Name it",
@@ -86,7 +86,8 @@ export const en = {
   "mind.instinct": "instinct",
   "me.noInstincts": "none switched on",
   "hatch.instincts": "Its instincts",
-  "hatch.instincts.sub": "Switch on any of four. They are wired into its brain and stay for life; what you teach later still comes first.",
+  "hatch.instincts.sub":
+    "Switch on any of four. They are wired into its brain and stay for life; what you teach later still comes first.",
   "instinct.brave": "Brave",
   "instinct.brave.desc": "Walks toward scary things",
   "instinct.greedy": "Greedy",
@@ -101,7 +102,7 @@ export const en = {
   "line.gentle.desc": "Soft and loyal. Trusts you slowly, then completely.",
   "line.bold.desc": "Brave and greedy. Runs at anything new.",
   "line.curious.desc": "Watches, wonders, wanders off to look.",
-  "lang": "中文",
+  lang: "中文",
   "tab.map": "Map",
   "tab.bag": "Bag",
   "map.title": "Where to?",
@@ -177,17 +178,21 @@ export const en = {
   "decor.tapRoom": "Tap the room where it goes.",
   "decor.change": "Change",
   "chain.title": "On X Layer",
-  "chain.childOff": "{name} was born off chain. A little one joins the chain only at birth, through the Breeder, when both parents already live on chain.",
-  "chain.pitch": "Give {name} a twin on X Layer. Its mind is a real TapeOut circuit, and each day you can save its memory on chain: anyone can check the saved days, and every thought between them once you publish its diary.",
+  "chain.childOff":
+    "{name} was born off chain. A little one joins the chain only at birth, through the Breeder, when both parents already live on chain.",
+  "chain.pitch":
+    "Give {name} a twin on X Layer. Its mind is a real TapeOut circuit, and each day you can save its memory on chain: anyone can check the saved days, and every thought between them once you publish its diary.",
   "chain.cost": "Costs only network gas, well under a cent.",
   "chain.keep": "Keep {name} on X Layer",
   "free.keep": "Keep {name} on X Layer, free",
-  "free.pitch": "No wallet needed: Lingxi pays the fee, and {name} belongs to a key this browser keeps until you move it to a wallet.",
+  "free.pitch":
+    "No wallet needed: Lingxi pays the fee, and {name} belongs to a key this browser keeps until you move it to a wallet.",
   "free.later": "Keeping a pet for free opens after your first lesson.",
   "free.orWallet": "Or keep it with your own wallet:",
   "free.title": "Kept on this device",
   "free.lives": "{name} lives on X Layer, owned by a key this browser keeps. It saves itself each day you play.",
-  "free.risk": "Clearing this browser's data loses the key, and {name} with it. Move it to a wallet, or keep the key somewhere safe.",
+  "free.risk":
+    "Clearing this browser's data loses the key, and {name} with it. Move it to a wallet, or keep the key somewhere safe.",
   "free.gasUsed": "The gas this device was given is used up. Move {name} to a wallet to keep saving.",
   "free.move": "Move to my wallet",
   "free.showKey": "Show my key",
@@ -206,7 +211,8 @@ export const en = {
   "free.relayLow": "Lingxi cannot pay for more free pets right now. Try again later, or keep it with a wallet.",
   "free.error": "It did not go through. Nothing was kept; try again.",
   "free.notOurs": "The pet the server named is not this device's, so it was not kept. Try again.",
-  "free.noGas": "Kept on X Layer, but the gas for its saves has not arrived yet. Press keep again in a moment to ask for it.",
+  "free.noGas":
+    "Kept on X Layer, but the gas for its saves has not arrived yet. Press keep again in a moment to ask for it.",
   "chain.connecting": "Opening your wallet...",
   "chain.hatching": "Hatching on chain...",
   "chain.saving": "Saving today's memory...",
@@ -219,18 +225,29 @@ export const en = {
   "chain.noWallet": "No wallet found. Open this page in OKX Wallet, or install a browser wallet.",
   "chain.alreadySaved": "Today is already saved. Come back tomorrow.",
   "chain.failed": "That didn't go through. Nothing was charged; try again.",
-  "chain.revertedOnChain": "It was sent, but X Layer turned it down: only its network fee was spent (well under a cent), and nothing else changed. Try again.",
-  "chain.hatchPending": "The hatch was sent, but X Layer hasn't confirmed it yet. Nothing will be sent twice: try again in a minute and Lingxi will pick it up.",
-  "chain.hatchUnchecked": "The hatch was sent earlier, and X Layer can't be reached to check on it right now. Nothing new was sent: try again in a minute and Lingxi will pick it up.",
-  "chain.cannotReceive": "This wallet can't receive pets or items: its address runs code that refuses them (a smart-account setting). Nothing was taken. Use a plain wallet address, or a smart account that accepts NFTs.",
-  "chain.notThisPet": "Not saved: this day belongs to a pet of another line than the one on X Layer, and a saved day can never be undone. Nothing was sent. Open the pet this record belongs to and save from there.",
-  "chain.notKeeping": "This wallet no longer keeps this pet on chain (it was sold or given away, or the sitting ended). Nothing was sent. Connect the wallet that owns it.",
+  "chain.revertedOnChain":
+    "It was sent, but X Layer turned it down: only its network fee was spent (well under a cent), and nothing else changed. Try again.",
+  "chain.hatchPending":
+    "The hatch was sent, but X Layer hasn't confirmed it yet. Nothing will be sent twice: try again in a minute and Lingxi will pick it up.",
+  "chain.hatchUnchecked":
+    "The hatch was sent earlier, and X Layer can't be reached to check on it right now. Nothing new was sent: try again in a minute and Lingxi will pick it up.",
+  "chain.cannotReceive":
+    "This wallet can't receive pets or items: its address runs code that refuses them (a smart-account setting). Nothing was taken. Use a plain wallet address, or a smart account that accepts NFTs.",
+  "chain.notThisPet":
+    "Not saved: this day belongs to a pet of another line than the one on X Layer, and a saved day can never be undone. Nothing was sent. Open the pet this record belongs to and save from there.",
+  "chain.notKeeping":
+    "This wallet no longer keeps this pet on chain (it was sold or given away, or the sitting ended). Nothing was sent. Connect the wallet that owns it.",
   "relay.busy": "Lingxi's relayer has had many requests just now. Nothing was charged; try again in a little while.",
-  "relay.budget": "Lingxi's free tape-outs for today are used up; they come back tomorrow. Nothing was charged. You can tape it out with your own wallet instead.",
-  "relay.budgetHour": "Lingxi's free tape-outs for this hour are used up; more open within the hour. Nothing was charged. You can tape it out with your own wallet instead.",
-  "relay.relayLow": "Lingxi's free tape-outs are paused while its relayer is topped up. Nothing was charged. You can tape it out with your own wallet instead.",
-  "relay.newcomer": "Until a pet has lived on X Layer three days and saved its third, Lingxi sponsors only a share of its tape-outs, and that share is used for now. Nothing was charged. You can tape it out with your own wallet instead, or try again later.",
-  "relay.lifetime": "This pet has had every tape-out Lingxi sponsors for one pet: 3 before it has lived on X Layer three days and saved its third, 40 in its life. Nothing was charged. You can tape it out with your own wallet instead.",
+  "relay.budget":
+    "Lingxi's free tape-outs for today are used up; they come back tomorrow. Nothing was charged. You can tape it out with your own wallet instead.",
+  "relay.budgetHour":
+    "Lingxi's free tape-outs for this hour are used up; more open within the hour. Nothing was charged. You can tape it out with your own wallet instead.",
+  "relay.relayLow":
+    "Lingxi's free tape-outs are paused while its relayer is topped up. Nothing was charged. You can tape it out with your own wallet instead.",
+  "relay.newcomer":
+    "Until a pet has lived on X Layer three days and saved its third, Lingxi sponsors only a share of its tape-outs, and that share is used for now. Nothing was charged. You can tape it out with your own wallet instead, or try again later.",
+  "relay.lifetime":
+    "This pet has had every tape-out Lingxi sponsors for one pet: 3 before it has lived on X Layer three days and saved its third, 40 in its life. Nothing was charged. You can tape it out with your own wallet instead.",
   "relay.notKeeper": "Only this pet's owner, or its sitter, can ask for its new mind. Connect the wallet that owns it.",
   "relay.signature": "The signature didn't check out (it may have waited too long). Nothing was charged; try again.",
   "relay.offline": "Lingxi's server can't be reached right now. Nothing was charged; try again soon.",
@@ -238,7 +255,8 @@ export const en = {
   "chain.download": "Download log",
   "chain.taping": "Taping out its new mind...",
   "chain.mindBehind": "{name} has learned since its mind was last put on chain.",
-  "chain.instinctsBehind": "{name} is on chain, but its instincts are not yet: its twin still thinks with the starter mind.",
+  "chain.instinctsBehind":
+    "{name} is on chain, but its instincts are not yet: its twin still thinks with the starter mind.",
   "chain.updateMind": "Put its new mind on chain",
   "library.title": "Lesson library",
   "library.loading": "Opening the library...",
@@ -258,16 +276,20 @@ export const en = {
   "name.space": "No spaces at the start or end.",
   "name.chars": "Letters, numbers and ordinary punctuation only (no quotes, < > & or hidden characters).",
   "remind.title": "Reminders",
-  "remind.pitch": "A gentle note when {name} is about to get hungry, bored, grubby or ill, worked out from its own rules. At most one every three hours.",
+  "remind.pitch":
+    "A gentle note when {name} is about to get hungry, bored, grubby or ill, worked out from its own rules. At most one every three hours.",
   "remind.on": "Turn on reminders",
   "remind.off": "Turn off reminders",
   "remind.quiet": "Never between 10 pm and 8 am on your clock.",
-  "remind.homeScreen": "On iPhone, reminders work once Lingxi is on your Home Screen: tap Share, then Add to Home Screen, and open it from there.",
+  "remind.homeScreen":
+    "On iPhone, reminders work once Lingxi is on your Home Screen: tap Share, then Add to Home Screen, and open it from there.",
   "remind.unsupported": "This browser can't receive reminders. Try Chrome, Edge, Firefox or Safari.",
-  "remind.denied": "Notifications are blocked for this site. Allow them in the browser's site settings, then try again.",
+  "remind.denied":
+    "Notifications are blocked for this site. Allow them in the browser's site settings, then try again.",
   "remind.failed": "Couldn't turn reminders on. Try again in a moment.",
   "auto.title": "Auto-save",
-  "auto.pitch": "Let this device save {name}'s day on chain by itself for 30 days, with no wallet pop-ups. You approve once and send 0.0002 OKB for gas (about 160 saves). The device's key can only write saves: it can never move, sell or re-brain {name}.",
+  "auto.pitch":
+    "Let this device save {name}'s day on chain by itself for 30 days, with no wallet pop-ups. You approve once and send 0.0002 OKB for gas (about 160 saves). The device's key can only write saves: it can never move, sell or re-brain {name}.",
   "auto.on": "Turn on auto-save",
   "auto.until": "On until {date}. Each new day is saved while the game is open.",
   "auto.ending": "Ends on {date}. Renew it to keep saving without pop-ups.",
@@ -276,7 +298,8 @@ export const en = {
   "auto.off": "Turn off",
   "auto.saving": "Saving today on its own...",
   "sit.title": "Pet-sitting",
-  "sit.pitch": "Going away? A friend's wallet can keep {name}'s daily saves going. They can't move or sell {name}, and it ends on its own.",
+  "sit.pitch":
+    "Going away? A friend's wallet can keep {name}'s daily saves going. They can't move or sell {name}, and it ends on its own.",
   "sit.who": "Friend's wallet address",
   "sit.days": "For",
   "sit.dayN": "{n} days",
@@ -293,7 +316,8 @@ export const en = {
   "teach.stars": "{n} of {max} stars",
   "teach.starsOf": "{n} of 3 stars",
   "teach.level": "Level {n}",
-  "teach.coach1": "Start with level 1. Teach it, then {name}'s brain is tested on three situations: each one it gets right is a star.",
+  "teach.coach1":
+    "Start with level 1. Teach it, then {name}'s brain is tested on three situations: each one it gets right is a star.",
   "teach.trap": "This order costs stars ({n}):",
   "teach.trapWhy": "answers first when “{goal}”, so “{lesson}” never gets its turn.",
   "teach.keepOrder": "Keep the order",
@@ -302,19 +326,23 @@ export const en = {
   "reveal.map": "The wider world opens on day {day}.",
   "reveal.bag": "The bag and the shop open on day {day}.",
   "reveal.spar": "Spars open on day {day}, when {name} is a little sturdier.",
-  "reveal.why": "Lingxi opens a little at a time so the first day stays simple. You can open everything now if you'd rather.",
+  "reveal.why":
+    "Lingxi opens a little at a time so the first day stays simple. You can open everything now if you'd rather.",
   "reveal.wait": "I'll wait",
   "reveal.openAll": "Open everything now",
   "teach.confirmBelow": "Teach it below the others (no stars lost)",
   "teach.moveAnyway": "Move it anyway",
   "teach.gates": "Lessons use {n} of {max} gates",
   "teach.wholeBrain": "(whole brain {n} of {max})",
-  "teach.gatesWhy": "Every brain is a real circuit of NAND gates. What its lessons add comes out of a budget that grows as it grows up and with Mind skills, so choosing what to teach matters. Lessons that check things it already checks share those gates.",
+  "teach.gatesWhy":
+    "Every brain is a real circuit of NAND gates. What its lessons add comes out of a budget that grows as it grows up and with Mind skills, so choosing what to teach matters. Lessons that check things it already checks share those gates.",
   "teach.cost": "This lesson adds {adds} gates: its lessons would use {taught} of {max}.",
-  "teach.costShared": "On its own this lesson is {alone} gates; sharing logic it already has brings it to {adds}. Its lessons would use {taught} of {max}.",
+  "teach.costShared":
+    "On its own this lesson is {alone} gates; sharing logic it already has brings it to {adds}. Its lessons would use {taught} of {max}.",
   "teach.over": "That is {n} too many for a {stage}. Forget a lesson to make room, or teach it when it is older.",
   "teach.swapRoom": "Too big to fit: pick a lesson for {name} to forget. The ones marked make enough room.",
-  "teach.noRoom": "No single lesson makes enough room for this one yet. {name} holds more as it grows, and Mind skills widen it.",
+  "teach.noRoom":
+    "No single lesson makes enough room for this one yet. {name} holds more as it grows, and Mind skills widen it.",
   "teach.makesRoom": "makes room",
   "teach.saved": "{n} saved by sharing logic it already has.",
   "teach.learned": "Lessons {name} has learned",
@@ -331,7 +359,8 @@ export const en = {
   "teach.retry": "Try other words",
   "teach.learnedToast": "{name} learned something new.",
   "teach.full": "{name} can't hold more lessons yet. It can learn more as it grows.",
-  "teach.fullSwap": "{name} has no room for another lesson yet. Teach one anyway and it forgets its newest to make room; it holds more as it grows.",
+  "teach.fullSwap":
+    "{name} has no room for another lesson yet. Teach one anyway and it forgets its newest to make room; it holds more as it grows.",
   "teach.swapNote": "{name}'s mind is full: pick the lesson it forgets to learn this one.",
   "teach.confirmSwap": "Learn this one instead",
   "teach.fired": "decided {n} times today",
@@ -342,7 +371,8 @@ export const en = {
   "teach.lastSensed": "It sensed: {sensed}.",
   "teach.lastDid": "It chose to {then}.",
   "try.title": "Try it: see {name} use what you taught",
-  "try.how": "The room sets up your lesson's moment, and {name} decides with the mind it has now. Nothing about it changes.",
+  "try.how":
+    "The room sets up your lesson's moment, and {name} decides with the mind it has now. Nothing about it changes.",
   "try.go": "Try it now",
   "try.later": "Later",
   "try.did": "I'll {then}. You taught me that!",
@@ -360,7 +390,8 @@ export const en = {
   "try.care.pet": "Pat it",
   "try.care.medicine": "Give it medicine",
   "try.care.talk": "Talk to it",
-  "try.watched": "{name} learned it. It does this when you are near and nothing else is going on: watch it in the room.",
+  "try.watched":
+    "{name} learned it. It does this when you are near and nothing else is going on: watch it in the room.",
   "try.moment": "{name} will do this when it's {when}. See what it would do then.",
   "try.would": "When that moment comes I'll {then}.",
   "try.without": "Without this lesson I'd {then}.",
@@ -369,12 +400,17 @@ export const en = {
   "teach.tooBig": "That would make {name}'s brain too big. Forget a lesson first.",
   "teach.invalid": "That rule doesn't fit {name}'s mind.",
   "teach.busy": "Too many lessons at once. Try again in a minute.",
-  "teach.resting": "Teaching in words has used today's share. It comes back at 00:00 UTC; Pet School and lessons built from chips work meanwhile.",
-  "teach.yourShare": "You've taught a lot in words today: this connection has used its share of Lingxi's teaching. It comes back at 00:00 UTC; Pet School and lessons built from chips work meanwhile.",
+  "teach.resting":
+    "Teaching in words has used today's share. It comes back at 00:00 UTC; Pet School and lessons built from chips work meanwhile.",
+  "teach.yourShare":
+    "You've taught a lot in words today: this connection has used its share of Lingxi's teaching. It comes back at 00:00 UTC; Pet School and lessons built from chips work meanwhile.",
   "teach.offline": "Teaching in words needs the internet. Pet School and the builder work offline.",
-  "offline.note": "You're offline. Your pet is here as always; anything that needs the internet waits until you're back.",
-  "teach.noServer": "This copy lives entirely on chain, with no server behind it, so teaching in your own words happens on the web version at lingxi.knole.me. Pet School and the rule builder work right here.",
-  "teach.unreachable": "Lingxi's server is not answering right now, so teaching in words waits. Pet School and the builder still work; try again in a minute.",
+  "offline.note":
+    "You're offline. Your pet is here as always; anything that needs the internet waits until you're back.",
+  "teach.noServer":
+    "This copy lives entirely on chain, with no server behind it, so teaching in your own words happens on the web version at lingxi.knole.me. Pet School and the rule builder work right here.",
+  "teach.unreachable":
+    "Lingxi's server is not answering right now, so teaching in words waits. Pet School and the builder still work; try again in a minute.",
   "teach.off": "Teaching in words is resting on Lingxi's server right now. Pet School and the builder still work.",
   "teach.error": "Something went wrong. Your pet is fine; try again.",
   "teach.build": "Build a rule",
@@ -566,7 +602,8 @@ export const zh: Record<Key, string> = {
   "decor.change": "换一件",
   "chain.title": "上链",
   "chain.childOff": "{name}是在链下出生的。小宝宝只能在出生时、父母都已在链上的情况下，通过繁育合约上链。",
-  "chain.pitch": "给{name}在 X Layer 上留一个分身。它的心智是真正的 TapeOut 电路，每天都能把记忆存上链：任何人都能验证存档的每一天，你公开它的日记之后，还能验证其间的每一个念头。",
+  "chain.pitch":
+    "给{name}在 X Layer 上留一个分身。它的心智是真正的 TapeOut 电路，每天都能把记忆存上链：任何人都能验证存档的每一天，你公开它的日记之后，还能验证其间的每一个念头。",
   "chain.cost": "只需要网络手续费，不到一分钱。",
   "chain.keep": "把{name}放上 X Layer",
   "free.keep": "免费把{name}放上 X Layer",
@@ -607,18 +644,26 @@ export const zh: Record<Key, string> = {
   "chain.noWallet": "没有找到钱包。请在 OKX 钱包里打开本页，或安装浏览器钱包。",
   "chain.alreadySaved": "今天已经存过了，明天再来吧。",
   "chain.failed": "没有成功，也没有扣费。再试一次吧。",
-  "chain.revertedOnChain": "交易发出去了，但 X Layer 没有通过它：只花了网络手续费（不到一分钱），别的什么都没变。再试一次吧。",
-  "chain.hatchPending": "孵化已经发出去了，但 X Layer 还没有确认。它不会再发第二次：过一分钟再点一次，灵犀会接着把它认领回来。",
-  "chain.hatchUnchecked": "孵化之前已经发出去了，现在暂时连不上 X Layer 查看它。没有再发新的：过一分钟再点一次，灵犀会接着把它认领回来。",
-  "chain.cannotReceive": "这个钱包收不了宠物或道具：它的地址运行着会拒收的代码（智能账户的设置）。没有扣任何东西。请换一个普通钱包地址，或能接收 NFT 的智能账户。",
-  "chain.notThisPet": "没有保存：这一天属于另一个品种的宠物，和 X Layer 上记录的不一样，而保存过的日子永远改不回来。什么都没有发送。请打开这条记录对应的宠物，再从那里保存。",
-  "chain.notKeeping": "这个钱包在链上已经不再照看这只宠物了（它被卖掉、送人，或照看期已经结束）。没有发送任何东西。请连接拥有它的钱包。",
+  "chain.revertedOnChain":
+    "交易发出去了，但 X Layer 没有通过它：只花了网络手续费（不到一分钱），别的什么都没变。再试一次吧。",
+  "chain.hatchPending":
+    "孵化已经发出去了，但 X Layer 还没有确认。它不会再发第二次：过一分钟再点一次，灵犀会接着把它认领回来。",
+  "chain.hatchUnchecked":
+    "孵化之前已经发出去了，现在暂时连不上 X Layer 查看它。没有再发新的：过一分钟再点一次，灵犀会接着把它认领回来。",
+  "chain.cannotReceive":
+    "这个钱包收不了宠物或道具：它的地址运行着会拒收的代码（智能账户的设置）。没有扣任何东西。请换一个普通钱包地址，或能接收 NFT 的智能账户。",
+  "chain.notThisPet":
+    "没有保存：这一天属于另一个品种的宠物，和 X Layer 上记录的不一样，而保存过的日子永远改不回来。什么都没有发送。请打开这条记录对应的宠物，再从那里保存。",
+  "chain.notKeeping":
+    "这个钱包在链上已经不再照看这只宠物了（它被卖掉、送人，或照看期已经结束）。没有发送任何东西。请连接拥有它的钱包。",
   "relay.busy": "灵犀的中继刚才收到的请求太多。没有扣费，过一会儿再试吧。",
   "relay.budget": "灵犀今天的免费流片已经用完，明天会恢复。没有扣费。你也可以改用自己的钱包流片。",
   "relay.budgetHour": "灵犀这一小时的免费流片已经用完，一小时之内会再开放。没有扣费。你也可以改用自己的钱包流片。",
   "relay.relayLow": "灵犀的中继正在补充余额，免费流片暂停。没有扣费。你也可以改用自己的钱包流片。",
-  "relay.newcomer": "宠物上链满三天、存好第三天之前，灵犀只为它负担一部分流片，这部分名额暂时用完了。没有扣费。你可以改用自己的钱包流片，或稍后再试。",
-  "relay.lifetime": "灵犀为一只宠物负担的流片已经用完了：上链满三天、存好第三天之前 3 次，一生 40 次。没有扣费。你可以改用自己的钱包流片。",
+  "relay.newcomer":
+    "宠物上链满三天、存好第三天之前，灵犀只为它负担一部分流片，这部分名额暂时用完了。没有扣费。你可以改用自己的钱包流片，或稍后再试。",
+  "relay.lifetime":
+    "灵犀为一只宠物负担的流片已经用完了：上链满三天、存好第三天之前 3 次，一生 40 次。没有扣费。你可以改用自己的钱包流片。",
   "relay.notKeeper": "只有这只宠物的主人或照看人才能为它申请新心智。请连接拥有它的钱包。",
   "relay.signature": "签名没有通过核对（可能等得太久了）。没有扣费，再试一次吧。",
   "relay.offline": "现在连不上灵犀的服务器。没有扣费，稍后再试吧。",
@@ -655,7 +700,8 @@ export const zh: Record<Key, string> = {
   "remind.denied": "这个网站的通知被关掉了。请在浏览器的网站设置里允许通知，再试一次。",
   "remind.failed": "没能打开提醒，过一会儿再试试。",
   "auto.title": "自动保存",
-  "auto.pitch": "让这台设备在 30 天里自己把{name}的每一天存上链，不再弹出钱包。只需授权一次，并转入 0.0002 OKB 作手续费（大约够存 160 次）。这把设备钥匙只能写入存档，永远不能转走、卖掉或更换{name}的心智。",
+  "auto.pitch":
+    "让这台设备在 30 天里自己把{name}的每一天存上链，不再弹出钱包。只需授权一次，并转入 0.0002 OKB 作手续费（大约够存 160 次）。这把设备钥匙只能写入存档，永远不能转走、卖掉或更换{name}的心智。",
   "auto.on": "打开自动保存",
   "auto.until": "已开启，到 {date} 为止。游戏开着时，每个新的一天都会自动保存。",
   "auto.ending": "将在 {date} 结束。续期就能继续免弹窗保存。",
@@ -697,7 +743,8 @@ export const zh: Record<Key, string> = {
   "teach.moveAnyway": "还是要移动",
   "teach.gates": "课程用了 {n}/{max} 个门",
   "teach.wholeBrain": "（整个大脑 {n}/{max}）",
-  "teach.gatesWhy": "每个大脑都是由与非门组成的真实电路。课程增加的门要从预算里出，预算随长大和心智技能变多，所以教什么值得挑。新课如果检查的是它已经在检查的东西，就能共用那些门。",
+  "teach.gatesWhy":
+    "每个大脑都是由与非门组成的真实电路。课程增加的门要从预算里出，预算随长大和心智技能变多，所以教什么值得挑。新课如果检查的是它已经在检查的东西，就能共用那些门。",
   "teach.cost": "这一课会增加 {adds} 个门：课程会用掉 {taught}/{max}。",
   "teach.costShared": "这一课单独算是 {alone} 个门；和它已有的逻辑共用后只增加 {adds} 个。课程会用掉 {taught}/{max}。",
   "teach.over": "对{stage}来说多了 {n} 个。忘掉一课腾地方，或者等它长大再教。",
@@ -758,10 +805,12 @@ export const zh: Record<Key, string> = {
   "teach.invalid": "这条规则放不进{name}的心智里。",
   "teach.busy": "一下子教太多啦，过一分钟再试。",
   "teach.resting": "用说话教的今日额度已经用完，北京时间早上 8 点恢复。这期间宠物学校和用积木拼的课照常能用。",
-  "teach.yourShare": "你今天用说话教了很多：这个网络连接的教课额度已经用完，北京时间早上 8 点恢复。这期间宠物学校和用积木拼的课照常能用。",
+  "teach.yourShare":
+    "你今天用说话教了很多：这个网络连接的教课额度已经用完，北京时间早上 8 点恢复。这期间宠物学校和用积木拼的课照常能用。",
   "teach.offline": "用话语教需要联网。宠物学堂和规则拼装不联网也能用。",
   "offline.note": "现在没有联网。你的宠物一切照旧；需要联网的事等你回来再做。",
-  "teach.noServer": "这个副本完全放在链上，背后没有服务器，所以用自己的话教宠物要去网页版 lingxi.knole.me。宠物学堂和规则拼装在这里就能用。",
+  "teach.noServer":
+    "这个副本完全放在链上，背后没有服务器，所以用自己的话教宠物要去网页版 lingxi.knole.me。宠物学堂和规则拼装在这里就能用。",
   "teach.unreachable": "灵犀的服务器暂时没有回应，用话语教要等一等。宠物学堂和规则拼装照常能用，过一分钟再试。",
   "teach.off": "灵犀的服务器上，用话语教暂时在休息。宠物学堂和规则拼装照常能用。",
   "teach.error": "出了点问题。宠物没事，再试一次吧。",

@@ -78,7 +78,8 @@ export function partsOf(c: Condition): Part[] {
     return each[0]!.filter((p) => each.every((e) => e.includes(p)));
   }
   const out = new Set<Part>();
-  if (c.type === "TALK" || c.type === "MEET" || c.type === "MOVE" || c.type === "WALK" || c.type === "GIVE_TO") out.add("map");
+  if (c.type === "TALK" || c.type === "MEET" || c.type === "MOVE" || c.type === "WALK" || c.type === "GIVE_TO")
+    out.add("map");
   if (c.type === "GIVE" || c.type === "GIVE_TO") out.add("bag");
   if (c.type === "TOGETHER_WHEN" && typeof c.index === "string" && c.index.endsWith("-outside")) out.add("map");
   return [...out];
@@ -113,7 +114,14 @@ export function questStatus(q: QuestDef, w: WorldState, v: ConditionView): Quest
   if (q.kind === "story" && b.done[q.id] !== undefined) return "done";
   if (q.kind === "daily" && b.today?.done.includes(q.id)) return "done";
   const a = b.active[q.id];
-  if (a) return checkAll(q.objectives.map((o) => o.cond), v, a.snap) ? "ready" : "active";
+  if (a)
+    return checkAll(
+      q.objectives.map((o) => o.cond),
+      v,
+      a.snap,
+    )
+      ? "ready"
+      : "active";
   if (q.kind === "daily" && !b.today?.offered.includes(q.id)) return "locked";
   return checkAll(q.requires, v) ? "available" : "locked";
 }
@@ -172,7 +180,11 @@ export function payReward(w: WorldState, r: Reward): WorldState {
 }
 
 /** Hand a ready quest in: every reward is paid once; a story quest is then done for good, a daily for today. */
-export function completeQuest(w: WorldState, q: QuestDef, v: ConditionView): WorldResult<{ rewards: readonly Reward[] }> {
+export function completeQuest(
+  w: WorldState,
+  q: QuestDef,
+  v: ConditionView,
+): WorldResult<{ rewards: readonly Reward[] }> {
   const s = questStatus(q, w, v);
   if (s !== "ready") return { ok: false, reason: s === "done" ? "done" : s === "active" ? "notReady" : "notAccepted" };
   const b = bookOf(w);
@@ -183,7 +195,11 @@ export function completeQuest(w: WorldState, q: QuestDef, v: ConditionView): Wor
   else {
     const today = b.today!;
     const days = b.days ?? [];
-    book = { ...book, today: { ...today, done: [...today.done, q.id] }, days: days.includes(today.day) ? days : [...days, today.day] };
+    book = {
+      ...book,
+      today: { ...today, done: [...today.done, q.id] },
+      days: days.includes(today.day) ? days : [...days, today.day],
+    };
   }
   let next: WorldState = { ...w, quests: book };
   // a deed a milestone already paid for is not paid for in coins again; what the quest opens still opens (B6)
@@ -195,8 +211,17 @@ export function completeQuest(w: WorldState, q: QuestDef, v: ConditionView): Wor
 }
 
 /** The quest to show after this one is handed in: the lowest in the sheet that needs it and can be taken now. */
-export function nextInChain(sheet: readonly QuestDef[], done: QuestDef, w: WorldState, v: ConditionView): QuestDef | null {
-  return sheet.find((q) => q.requires.some((c) => c.type === "QUEST" && c.index === done.id) && questStatus(q, w, v) === "available") ?? null;
+export function nextInChain(
+  sheet: readonly QuestDef[],
+  done: QuestDef,
+  w: WorldState,
+  v: ConditionView,
+): QuestDef | null {
+  return (
+    sheet.find(
+      (q) => q.requires.some((c) => c.type === "QUEST" && c.index === done.id) && questStatus(q, w, v) === "available",
+    ) ?? null
+  );
 }
 
 /* ── dailies ─────────────────────────────────────────────────────────────── */
@@ -223,20 +248,28 @@ function hash(s: string): number {
  * Today's three: one care, one social, one explore, picked from the player's seed and the day. On about half the days
  * the social one is a resident's request instead (G4), so the residents keep asking after their stories end.
  */
-export function pickDailies(pool: readonly QuestDef[], seed: string, day: string, closed: readonly Part[] = []): string[] {
+export function pickDailies(
+  pool: readonly QuestDef[],
+  seed: string,
+  day: string,
+  closed: readonly Part[] = [],
+): string[] {
   const out: string[] = [];
   // D9: a daily that sends the player to a part not open yet is not offered (a slot with none left stays empty)
   const reachable = (q: QuestDef) => !partsNeeded(q).some((p) => closed.includes(p));
   // about every other day, chosen from the seed and the day rather than by turns, so a player who comes every other
   // day still meets both kinds
-  const requestDay = hash(`${seed}:${day}:request`) % 2 === 0 && pool.some((q) => q.group === "request" && reachable(q));
+  const requestDay =
+    hash(`${seed}:${day}:request`) % 2 === 0 && pool.some((q) => q.group === "request" && reachable(q));
   for (const slot of ["care", "social", "explore"] as const) {
     const g = slot === "social" && requestDay ? "request" : slot;
     const of = pool.filter((q) => q.kind === "daily" && q.group === g && reachable(q));
     if (!of.length) continue;
     // requests go round the residents in turn from a place the seed picks, so each day's asker differs from the last
     const dayNo = Math.floor(Date.parse(`${day}T00:00:00Z`) / 86_400_000);
-    out.push(of[g === "request" ? (hash(`${seed}:request`) + dayNo) % of.length : hash(`${seed}:${day}:${g}`) % of.length]!.id);
+    out.push(
+      of[g === "request" ? (hash(`${seed}:request`) + dayNo) % of.length : hash(`${seed}:${day}:${g}`) % of.length]!.id,
+    );
   }
   return out;
 }
@@ -246,7 +279,13 @@ export function pickDailies(pool: readonly QuestDef[], seed: string, day: string
  * (no accept tap: missing a day costs nothing, and the day's counts start when the day does). The day before
  * keeps its history in `days`. Seeing the same day again changes nothing.
  */
-export function rollDailies(w: WorldState, pool: readonly QuestDef[], v: ConditionView, tzOffsetMin: number, closed: readonly Part[] = []): WorldState {
+export function rollDailies(
+  w: WorldState,
+  pool: readonly QuestDef[],
+  v: ConditionView,
+  tzOffsetMin: number,
+  closed: readonly Part[] = [],
+): WorldState {
   const day = localDay(v.now, tzOffsetMin);
   const b = bookOf(w);
   // a day only moves forward: a clock turned back keeps today's dailies rather than offering an earlier day's again; the
@@ -255,13 +294,27 @@ export function rollDailies(w: WorldState, pool: readonly QuestDef[], v: Conditi
   if (b.today && b.today.day === day) {
     // D22: a slot left empty this morning because its part was closed is filled once the part opens (the map at the pet's
     // day 2, an "open everything" tap), the same day; the errands already offered keep their counts
-    const slotOf = (id: string) => (pool.find((x) => x.id === id)?.group === "request" ? "social" : pool.find((x) => x.id === id)?.group);
+    const slotOf = (id: string) =>
+      pool.find((x) => x.id === id)?.group === "request" ? "social" : pool.find((x) => x.id === id)?.group;
     const filled = new Set(b.today.offered.map(slotOf));
-    const add = pickDailies(pool, w.seed, day, closed).filter((id) => !b.today!.offered.includes(id) && !filled.has(slotOf(id)));
+    const add = pickDailies(pool, w.seed, day, closed).filter(
+      (id) => !b.today!.offered.includes(id) && !filled.has(slotOf(id)),
+    );
     if (!add.length) return w.tz === tzOffsetMin ? w : { ...w, tz: tzOffsetMin };
     const active = { ...b.active };
-    for (const id of add) active[id] = { at: v.now, snap: snapshotOf(pool.find((x) => x.id === id)!.objectives.map((o) => o.cond), v) };
-    return { ...w, tz: tzOffsetMin, quests: { ...b, active, today: { ...b.today, offered: [...b.today.offered, ...add] } } };
+    for (const id of add)
+      active[id] = {
+        at: v.now,
+        snap: snapshotOf(
+          pool.find((x) => x.id === id)!.objectives.map((o) => o.cond),
+          v,
+        ),
+      };
+    return {
+      ...w,
+      tz: tzOffsetMin,
+      quests: { ...b, active, today: { ...b.today, offered: [...b.today.offered, ...add] } },
+    };
   }
   const offered = pickDailies(pool, w.seed, day, closed);
   const active = { ...b.active };
@@ -281,7 +334,8 @@ export function rollDailies(w: WorldState, pool: readonly QuestDef[], v: Conditi
 }
 
 /** Weekly gifts waiting: one for every seven days with a finished daily, any seven, never a streak. */
-export const weeklyGiftsWaiting = (w: WorldState): number => Math.floor((bookOf(w).days?.length ?? 0) / WEEKLY_DAYS) - (bookOf(w).weekly ?? 0);
+export const weeklyGiftsWaiting = (w: WorldState): number =>
+  Math.floor((bookOf(w).days?.length ?? 0) / WEEKLY_DAYS) - (bookOf(w).weekly ?? 0);
 
 /** Take one weekly gift. */
 export function claimWeekly(w: WorldState, gift: readonly Reward[]): WorldResult {

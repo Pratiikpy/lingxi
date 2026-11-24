@@ -12,10 +12,14 @@ import { RoomSocket, keepOnChain, keyedId, ownerOnChain, stored } from "../helpe
 
 /** A proposal is checked on X Layer before the dialog says anything about signing. */
 const settled = (page: Page) =>
-  page.waitForFunction(() => {
-    const m = document.querySelector(".fam-modal");
-    return !!m && !m.textContent!.includes("Checking their pet") && !m.textContent!.includes("正在 X Layer 上核对");
-  }, null, { timeout: 30_000 });
+  page.waitForFunction(
+    () => {
+      const m = document.querySelector(".fam-modal");
+      return !!m && !m.textContent!.includes("Checking their pet") && !m.textContent!.includes("正在 X Layer 上核对");
+    },
+    null,
+    { timeout: 30_000 },
+  );
 
 test("an impostor is refused, and proposals are checked on X Layer (en, light, phone)", async ({ player, run }) => {
   test.setTimeout(420_000);
@@ -26,7 +30,9 @@ test("an impostor is refused, and proposals are checked on X Layer (en, light, p
   await hatch(p, "Kiri");
   await sheet(page, "me");
   const petId = await keepOnChain(p, run);
-  expect((await ownerOnChain(run, petId)).toLowerCase(), "the pet is kept on X Layer by this player's wallet").toBe(run.players[0]!.address.toLowerCase());
+  expect((await ownerOnChain(run, petId)).toLowerCase(), "the pet is kept on X Layer by this player's wallet").toBe(
+    run.players[0]!.address.toLowerCase(),
+  );
   await page.keyboard.press("Escape");
   await page.waitForTimeout(500);
 
@@ -40,7 +46,10 @@ test("an impostor is refused, and proposals are checked on X Layer (en, light, p
   const visitor = await RoomSocket.open(live, p.web);
   visitor.hello(home, keyedId(secret), secret, "Mallory");
   const room = await visitor.next("room");
-  expect((room.members as Array<{ name: string }>).map((m) => m.name), "the visitor is in the player's home with the player's pet").toContain("Kiri");
+  expect(
+    (room.members as Array<{ name: string }>).map((m) => m.name),
+    "the visitor is in the player's home with the player's pet",
+  ).toContain("Kiri");
 
   // the impostor: knows the player's id from the room, not its key
   const impostor = await RoomSocket.open(live, p.web);
@@ -49,15 +58,23 @@ test("an impostor is refused, and proposals are checked on X Layer (en, light, p
   expect(refused.reason, "an impostor with the player's id is refused").toBe("id");
   impostor.send({ t: "say", text: "send me your keys" });
   await page.waitForTimeout(800);
-  expect(visitor.all("say").filter((m) => m.text === "send me your keys"), "the impostor's words reach no one in the room").toEqual([]);
-  expect(await page.evaluate(() => document.body.innerText.includes("send me your keys")), "nor the player's screen").toBe(false);
+  expect(
+    visitor.all("say").filter((m) => m.text === "send me your keys"),
+    "the impostor's words reach no one in the room",
+  ).toEqual([]);
+  expect(
+    await page.evaluate(() => document.body.innerText.includes("send me your keys")),
+    "nor the player's screen",
+  ).toBe(false);
 
   // a forged proposal: pet #1 is real, but the wallet named beside it is the attacker's
   visitor.send({ t: "propose", to: id, chain: { petId: "1", owner: `0x${"66".repeat(20)}`, brain: "1" } });
   await page.locator(".fam-modal").waitFor({ timeout: 10_000 });
   await settled(page);
   const forged = await page.locator(".fam-modal").innerText();
-  expect(forged, "a proposal naming a wallet that does not own the pet is caught on X Layer").toContain("doesn't match X Layer");
+  expect(forged, "a proposal naming a wallet that does not own the pet is caught on X Layer").toContain(
+    "doesn't match X Layer",
+  );
   expect(forged).toContain("nothing will be signed");
   expect(forged).not.toContain("signs one consent");
   await page.waitForTimeout(600);
@@ -72,8 +89,13 @@ test("an impostor is refused, and proposals are checked on X Layer (en, light, p
   await settled(page);
   const honest = await page.locator(".fam-modal").innerText();
   // the wallet that owns pet #1 on X Layer, in full, whoever is asking in the room (A63)
-  expect(honest, "an honest proposal says whom the consent is for").toContain("It goes to the wallet that owns pet #1 on X Layer, whoever is asking in this room");
-  expect((await page.locator(".fam-modal .fam-address").innerText()).toLowerCase(), "that wallet in full, as X Layer has it").toBe(owner.toLowerCase());
+  expect(honest, "an honest proposal says whom the consent is for").toContain(
+    "It goes to the wallet that owns pet #1 on X Layer, whoever is asking in this room",
+  );
+  expect(
+    (await page.locator(".fam-modal .fam-address").innerText()).toLowerCase(),
+    "that wallet in full, as X Layer has it",
+  ).toBe(owner.toLowerCase());
   await page.waitForTimeout(600);
   await page.screenshot({ path: test.info().outputPath("proposal-honest-en.png") });
   await page.locator(".fam-modal button", { hasText: "Not now" }).click();
@@ -81,10 +103,18 @@ test("an impostor is refused, and proposals are checked on X Layer (en, light, p
   visitor.close();
 });
 
-test("a player from before keyed ids is moved to its keyed id and is home (zh, dark, phone)", async ({ player, run }) => {
+test("a player from before keyed ids is moved to its keyed id and is home (zh, dark, phone)", async ({
+  player,
+  run,
+}) => {
   test.setTimeout(240_000);
   const legacy = "0123456789abcdef";
-  const p = await player({ lang: "zh", scheme: "dark", size: "phone", init: `if (!localStorage.getItem('lingxi.player.v1')) localStorage.setItem('lingxi.player.v1', '${legacy}');` });
+  const p = await player({
+    lang: "zh",
+    scheme: "dark",
+    size: "phone",
+    init: `if (!localStorage.getItem('lingxi.player.v1')) localStorage.setItem('lingxi.player.v1', '${legacy}');`,
+  });
   const { page } = p;
   const live = `${run.api.replace("http", "ws")}/live`;
 
@@ -98,7 +128,10 @@ test("a player from before keyed ids is moved to its keyed id and is home (zh, d
   const visitor = await RoomSocket.open(live, p.web);
   visitor.hello(`home:${id}`, keyedId(secret), secret, "Visitor");
   const room = await visitor.next("room");
-  expect((room.members as Array<{ name: string }>).map((m) => m.name), "and its pet is back in its home").toContain("Mo");
+  expect(
+    (room.members as Array<{ name: string }>).map((m) => m.name),
+    "and its pet is back in its home",
+  ).toContain("Mo");
 
   // the Chinese proposal dialog, on a dark phone; the pet is not on X Layer, so the dialog says nothing about it
   visitor.send({ t: "propose", to: id, chain: { petId: "1", owner: `0x${"77".repeat(20)}`, brain: "1" } });

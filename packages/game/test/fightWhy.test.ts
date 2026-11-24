@@ -20,7 +20,10 @@ function agrees(result: SparResult, wants: number[], startStamina = 10) {
   result.rounds.forEach((r, k) => {
     const stamina = k === 0 ? startStamina : result.rounds[k - 1]!.stamina[1];
     const allowed = allowedMove(result.version, wants[k]!, stamina);
-    expect(r.moves[1] === allowed || (allowed === "pounce" && r.moves[1] === "tap"), `round ${k + 1}: made ${r.moves[1]}, wanted ${MOVES[wants[k]! & 7]}`).toBe(true);
+    expect(
+      r.moves[1] === allowed || (allowed === "pounce" && r.moves[1] === "tap"),
+      `round ${k + 1}: made ${r.moves[1]}, wanted ${MOVES[wants[k]! & 7]}`,
+    ).toBe(true);
   });
 }
 
@@ -28,7 +31,11 @@ describe("the other side's rule (G2)", () => {
   it("a sparring partner's rewound rule agrees with every move it made", () => {
     for (const p of PARTNERS) {
       const result = spar2(fighterFrom("me", STARTERS.bold, 1), fighterOfPartner(p), 1009);
-      const why = rewindFight(partnerMind(p)!, [], result.rounds.map((r) => r.words[1]));
+      const why = rewindFight(
+        partnerMind(p)!,
+        [],
+        result.rounds.map((r) => r.words[1]),
+      );
       // the rewind gives the want; its mood rides along for the excited cost
       const wants = why.map((w, k) => w.want | (result.rounds[k]!.moods[1] << 3));
       agrees(result, wants);
@@ -36,12 +43,25 @@ describe("the other side's rule (G2)", () => {
   });
 
   it("a duel challenger's rewound rule agrees with every move it made", () => {
-    const pet = (name: string, line: DuelPet["line"]): DuelPet => ({ name, line, stage: "adult", card: petCard({ lessons: [{ when: { action: [2] }, then: { want: 5, mood: 1 } }] as never, instincts: 1 }), story: { days: 3, lessons: 1, nature: [] } });
+    const pet = (name: string, line: DuelPet["line"]): DuelPet => ({
+      name,
+      line,
+      stage: "adult",
+      card: petCard({ lessons: [{ when: { action: [2] }, then: { want: 5, mood: 1 } }] as never, instincts: 1 }),
+      story: { days: 3, lessons: 1, nature: [] },
+    });
     const challenge: Challenge = { id: "whyduel01", from: pet("Mochi", "gentle"), at: 1 };
     const result = duel(challenge, pet("Rex", "bold"));
     const m = duelPetMind(challenge.from)!;
-    const why = rewindFight(m.mind, m.memory ?? [], result.rounds.map((r) => r.words[1]));
-    agrees(result, why.map((w, k) => w.want | (result.rounds[k]!.moods[1] << 3)));
+    const why = rewindFight(
+      m.mind,
+      m.memory ?? [],
+      result.rounds.map((r) => r.words[1]),
+    );
+    agrees(
+      result,
+      why.map((w, k) => w.want | (result.rounds[k]!.moods[1] << 3)),
+    );
   });
 
   it("a fruit fly or Behemoth has no pet mind to rewind", () => {
@@ -50,11 +70,18 @@ describe("the other side's rule (G2)", () => {
 });
 
 describe("what the fight's rules did (G2)", () => {
-  const only = (want: string) => fighterFrom(want, { ...composeProgram("gentle", []), rules: [], otherwise: { want: MOVES.indexOf(want as never), mood: 1 } }, 1);
+  const only = (want: string) =>
+    fighterFrom(
+      want,
+      { ...composeProgram("gentle", []), rules: [], otherwise: { want: MOVES.indexOf(want as never), mood: 1 } },
+      1,
+    );
 
   it("reads a guarded pounce, a clean dodge, a punished rest and a feint from the rounds", () => {
     const g = spar2(only("pounce"), only("guard"), 5);
-    expect(exchangesOf(SPAR_V2, g.rounds, 0)).toEqual([{ kind: "guarded", by: 1, back: g.rounds[0]!.hits[1], timed: true }]);
+    expect(exchangesOf(SPAR_V2, g.rounds, 0)).toEqual([
+      { kind: "guarded", by: 1, back: g.rounds[0]!.hits[1], timed: true },
+    ]);
     expect(exchangesOf(SPAR_V2, g.rounds, 1)[0]).toMatchObject({ kind: "guarded", timed: false });
     const r = spar2(only("pounce"), only("rest"), 5);
     expect(exchangesOf(SPAR_V2, r.rounds, 0)).toEqual([{ kind: "punished", by: 0, open: "rest" }]);

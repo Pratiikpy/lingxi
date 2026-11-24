@@ -69,7 +69,9 @@
   font-weight: 800;
   font-size: 0.8rem;
   cursor: pointer;
-  transition: transform var(--t-micro) var(--ease), box-shadow var(--t-micro) var(--ease);
+  transition:
+    transform var(--t-micro) var(--ease),
+    box-shadow var(--t-micro) var(--ease);
 }
 .extras-swatch:active {
   transform: translateY(1px) scale(0.97);

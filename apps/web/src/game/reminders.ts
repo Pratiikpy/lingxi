@@ -15,7 +15,9 @@ import { saveWrite } from "./saveRuntime";
 import { now as gameNow } from "./gameClock";
 import { pushPlanBody, pushStopBody } from "./requests";
 
-const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const BASE =
+  (import.meta.env.VITE_API_URL as string | undefined) ??
+  (location.hostname === "localhost" ? "http://localhost:8787" : "");
 const KEY = "lingxi.reminders.v1";
 
 export type Support = "ok" | "needsHomeScreen" | "unsupported" | "noServer";
@@ -23,8 +25,11 @@ export type Support = "ok" | "needsHomeScreen" | "unsupported" | "noServer";
 export function support(): Support {
   if (!BASE) return "noServer";
   const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
-  const standalone = window.matchMedia?.("(display-mode: standalone)").matches || (navigator as unknown as { standalone?: boolean }).standalone === true;
-  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) return ios && !standalone ? "needsHomeScreen" : "unsupported";
+  const standalone =
+    window.matchMedia?.("(display-mode: standalone)").matches ||
+    (navigator as unknown as { standalone?: boolean }).standalone === true;
+  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window))
+    return ios && !standalone ? "needsHomeScreen" : "unsupported";
   return "ok";
 }
 
@@ -39,7 +44,9 @@ async function subscription(create: boolean): Promise<PushSubscription | null> {
   await navigator.serviceWorker.ready;
   const existing = await reg.pushManager.getSubscription();
   if (existing || !create) return existing;
-  const { key } = (await (await fetch(`${BASE}/api/push/key`, { signal: AbortSignal.timeout(8000) })).json()) as { key: string };
+  const { key } = (await (await fetch(`${BASE}/api/push/key`, { signal: AbortSignal.timeout(8000) })).json()) as {
+    key: string;
+  };
   return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64urlToBytes(key) as BufferSource });
 }
 
@@ -74,7 +81,12 @@ let lastSentAt = 0;
 const RESEND_MS = 6 * 3_600_000;
 
 /** A plan's identity: each need and its time to the nearest ten minutes ("due" if the pet has it now). */
-export function planSignature(needs: Array<{ kind: string; at: number }>, now: number, lang: string, name: string): string {
+export function planSignature(
+  needs: Array<{ kind: string; at: number }>,
+  now: number,
+  lang: string,
+  name: string,
+): string {
   return [lang, name, ...needs.map((n) => `${n.kind}@${n.at <= now ? "due" : Math.round(n.at / 1_200_000)}`)].join("|");
 }
 
@@ -89,7 +101,15 @@ async function sendPlan(sub: PushSubscription, pet: Pet, lang: "en" | "zh", forc
   const r = await fetch(`${BASE}/api/push/plan`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify(pushPlanBody({ endpoint: json.endpoint, keys: json.keys }, lang, pet.name, -new Date(gameNow()).getTimezoneOffset(), reminders)),
+    body: JSON.stringify(
+      pushPlanBody(
+        { endpoint: json.endpoint, keys: json.keys },
+        lang,
+        pet.name,
+        -new Date(gameNow()).getTimezoneOffset(),
+        reminders,
+      ),
+    ),
     signal: AbortSignal.timeout(8000),
   });
   // a refusal (busy) comes back as ok:false in the body, not as an HTTP error
@@ -124,7 +144,12 @@ export const useReminders = create<RemindState>((set, get) => ({
     try {
       const sub = await subscription(false);
       if (sub) {
-        await fetch(`${BASE}/api/push/stop`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(pushStopBody(sub.endpoint)), signal: AbortSignal.timeout(8000) }).catch(() => {});
+        await fetch(`${BASE}/api/push/stop`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(pushStopBody(sub.endpoint)),
+          signal: AbortSignal.timeout(8000),
+        }).catch(() => {});
         await sub.unsubscribe();
       }
     } catch {

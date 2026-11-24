@@ -20,7 +20,8 @@ export function CircuitOverlay({ pet, reduceMotion }: { pet: Pet; reduceMotion: 
     const place = () => {
       // from the strip's top edge to the room's foot (both measured in the room); a strip moved under the room (a short
       // phone) is not over it, so only the gap is kept
-      const over = strip && getComputedStyle(strip).position === "absolute" ? Math.max(0, el.offsetHeight - strip.offsetTop) : 0;
+      const over =
+        strip && getComputedStyle(strip).position === "absolute" ? Math.max(0, el.offsetHeight - strip.offsetTop) : 0;
       el.style.setProperty("--strip-h", `${over + GAP}px`);
     };
     place();

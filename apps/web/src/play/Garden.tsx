@@ -7,7 +7,18 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PLOT_COLORS, plotRows } from "@lingxi/art";
-import { COMPOST, CROP, CROPS, GARDEN_ROOM, ITEM, ROOMS, gardenOf, nextPlot, plotStage, stageReached } from "@lingxi/world";
+import {
+  COMPOST,
+  CROP,
+  CROPS,
+  GARDEN_ROOM,
+  ITEM,
+  ROOMS,
+  gardenOf,
+  nextPlot,
+  plotStage,
+  stageReached,
+} from "@lingxi/world";
 import { stageOf } from "@lingxi/game";
 import { useGame } from "../game/store";
 import { useLang } from "../i18n";
@@ -15,7 +26,12 @@ import { useWorld } from "../game/world";
 import { play } from "../game/sound";
 import { now as gameNow } from "../game/gameClock";
 
-const CROP_COLORS: Record<string, [string, string]> = { apple: ["#E8C14A", "#C98A00"], rice: ["#FFE08A", "#E0A21F"], pepper: ["#E8604A", "#B24A45"], clover: ["#FF9FC0", "#E5486C"] };
+const CROP_COLORS: Record<string, [string, string]> = {
+  apple: ["#E8C14A", "#C98A00"],
+  rice: ["#FFE08A", "#E0A21F"],
+  pepper: ["#E8604A", "#B24A45"],
+  clover: ["#FF9FC0", "#E5486C"],
+};
 
 function PlotArt({ stage, crop, label }: { stage: 0 | 1 | 2 | 3; crop?: string; label: string }) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -67,7 +83,10 @@ export function GardenPanel() {
     if (!ripe && !growing) return null;
     return (
       <p className="small garden-away">
-        {L(`Your garden in the ${ROOMS[GARDEN_ROOM]!.name.en}: ${ripe} ripe, ${growing} growing. Walk there to tend it.`, `你在${ROOMS[GARDEN_ROOM]!.name.zh}的园子：${ripe} 块成熟，${growing} 块在长。走过去照料吧。`)}
+        {L(
+          `Your garden in the ${ROOMS[GARDEN_ROOM]!.name.en}: ${ripe} ripe, ${growing} growing. Walk there to tend it.`,
+          `你在${ROOMS[GARDEN_ROOM]!.name.zh}的园子：${ripe} 块成熟，${growing} 块在长。走过去照料吧。`,
+        )}
       </p>
     );
   }
@@ -84,14 +103,25 @@ export function GardenPanel() {
             <li key={i} className={`garden-plot stage-${st.stage}`}>
               <PlotArt stage={st.stage} crop={p?.crop} label={name} />
               <b>{name}</b>
-              {p && st.stage < 3 && <span className="small">{L(`ripe in ${left(st.readyAt! - now, lang)}`, `${left(st.readyAt! - now, lang)}后成熟`)}{p.compost ? L(" · composted", " · 加了堆肥") : ""}</span>}
+              {p && st.stage < 3 && (
+                <span className="small">
+                  {L(`ripe in ${left(st.readyAt! - now, lang)}`, `${left(st.readyAt! - now, lang)}后成熟`)}
+                  {p.compost ? L(" · composted", " · 加了堆肥") : ""}
+                </span>
+              )}
               {p && st.stage === 3 && (
                 <button type="button" className="btn primary" onClick={() => (harvest(i), play("success"))}>
                   {L("Harvest", "收获")}
                 </button>
               )}
               {!p && (
-                <button type="button" className="btn" disabled={!seeds.length} onClick={() => (play("tap"), setPicking(picking === i ? null : i))} aria-expanded={picking === i}>
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={!seeds.length}
+                  onClick={() => (play("tap"), setPicking(picking === i ? null : i))}
+                  aria-expanded={picking === i}
+                >
                   {L("Plant", "种下")}
                 </button>
               )}
@@ -99,13 +129,33 @@ export function GardenPanel() {
           );
         })}
       </ul>
-      <DigPlot next={nextPlot(world)} stage={pet ? stageOf(pet, now) : "baby"} coins={world.coins} onDig={() => digPlot()} lang={lang} />
-      {!seeds.length && plots.some((p) => !p) && <p className="small">{L("No seeds in your bag. The market sells them.", "包里没有种子，集市有卖。")}</p>}
+      <DigPlot
+        next={nextPlot(world)}
+        stage={pet ? stageOf(pet, now) : "baby"}
+        coins={world.coins}
+        onDig={() => digPlot()}
+        lang={lang}
+      />
+      {!seeds.length && plots.some((p) => !p) && (
+        <p className="small">{L("No seeds in your bag. The market sells them.", "包里没有种子，集市有卖。")}</p>
+      )}
       {picking !== null && seeds.length > 0 && (
         <div className="garden-pick">
           <label className="garden-compost">
-            <input type="checkbox" checked={useCompost && compost > 0} disabled={compost < 1} onChange={(e) => setUseCompost(e.target.checked)} />
-            <span>{compost > 0 ? L(`Use compost (${compost} in the bag): half the wait, one more to harvest`, `用堆肥（包里有 ${compost} 袋）：时间减半，多收一份`) : L("No compost yet: cleaning a messy pet makes some", "还没有堆肥：给脏兮兮的宠物洗澡就会有")}</span>
+            <input
+              type="checkbox"
+              checked={useCompost && compost > 0}
+              disabled={compost < 1}
+              onChange={(e) => setUseCompost(e.target.checked)}
+            />
+            <span>
+              {compost > 0
+                ? L(
+                    `Use compost (${compost} in the bag): half the wait, one more to harvest`,
+                    `用堆肥（包里有 ${compost} 袋）：时间减半，多收一份`,
+                  )
+                : L("No compost yet: cleaning a messy pet makes some", "还没有堆肥：给脏兮兮的宠物洗澡就会有")}
+            </span>
           </label>
           <ul className="garden-seeds">
             {seeds.map((c) => (
@@ -122,7 +172,10 @@ export function GardenPanel() {
                   <span>
                     <b>{c.name[lang]}</b>
                     <span className="small">
-                      {L(`×${world.bag[c.seed]} · ${c.hours}h · gives ${ITEM[c.yields]!.name.en} ×${c.amount}`, `×${world.bag[c.seed]} · ${c.hours} 小时 · 收 ${ITEM[c.yields]!.name.zh} ×${c.amount}`)}
+                      {L(
+                        `×${world.bag[c.seed]} · ${c.hours}h · gives ${ITEM[c.yields]!.name.en} ×${c.amount}`,
+                        `×${world.bag[c.seed]} · ${c.hours} 小时 · 收 ${ITEM[c.yields]!.name.zh} ×${c.amount}`,
+                      )}
                     </span>
                   </span>
                 </button>
@@ -135,10 +188,27 @@ export function GardenPanel() {
   );
 }
 
-const STAGE_LABEL: Record<string, [string, string]> = { child: ["a child", "幼年"], teen: ["a teen", "少年"], adult: ["an adult", "成年"], elder: ["an elder", "老年"] };
+const STAGE_LABEL: Record<string, [string, string]> = {
+  child: ["a child", "幼年"],
+  teen: ["a teen", "少年"],
+  adult: ["an adult", "成年"],
+  elder: ["an elder", "老年"],
+};
 
 /** The gardener digs one more plot (G6), for coins, once the pet has reached that plot's stage. */
-function DigPlot({ next, stage, coins, onDig, lang }: { next: { stage: string; price: number } | null; stage: string; coins: number; onDig: () => void; lang: "en" | "zh" }) {
+function DigPlot({
+  next,
+  stage,
+  coins,
+  onDig,
+  lang,
+}: {
+  next: { stage: string; price: number } | null;
+  stage: string;
+  coins: number;
+  onDig: () => void;
+  lang: "en" | "zh";
+}) {
   const zh = lang === "zh";
   if (!next) return <p className="small garden-dig">{zh ? "八块地都开出来了。" : "All eight plots are dug."}</p>;
   const open = stageReached(stage, next.stage);

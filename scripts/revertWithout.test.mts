@@ -4,12 +4,20 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const root = join(import.meta.dirname, "..");
-const without = JSON.parse(readFileSync(join(root, "scripts/regressions/without.json"), "utf8")) as Record<string, string>;
-const pairs = new Set((JSON.parse(readFileSync(join(root, "scripts/regressions/list.json"), "utf8")) as Array<{ row: string }>).map((e) => e.row));
+const without = JSON.parse(readFileSync(join(root, "scripts/regressions/without.json"), "utf8")) as Record<
+  string,
+  string
+>;
+const pairs = new Set(
+  (JSON.parse(readFileSync(join(root, "scripts/regressions/list.json"), "utf8")) as Array<{ row: string }>).map(
+    (e) => e.row,
+  ),
+);
 
 describe("the rows without a revert pair (A106)", () => {
   it("are named in the README exactly, each with a reason, and none of them has a pair", () => {
-    const named = /<!--f:revert-without-->([^<]*)<!--\/f-->/.exec(readFileSync(join(root, "README.md"), "utf8"))?.[1] ?? "";
+    const named =
+      /<!--f:revert-without-->([^<]*)<!--\/f-->/.exec(readFileSync(join(root, "README.md"), "utf8"))?.[1] ?? "";
     expect(named.split(", ").filter(Boolean).sort()).toEqual(Object.keys(without).sort());
     for (const [row, why] of Object.entries(without)) {
       expect(why.length, `${row} says why`).toBeGreaterThan(30);

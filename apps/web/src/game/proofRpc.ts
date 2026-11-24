@@ -47,7 +47,11 @@ export const useProofRpc = create<Tally>((set) => ({
     }
     set({ mine });
   },
-  answered: (host, fallback) => set((s) => ({ hosts: { ...s.hosts, [host]: (s.hosts[host] ?? 0) + 1 }, fallback: s.fallback + (fallback ? 1 : 0) })),
+  answered: (host, fallback) =>
+    set((s) => ({
+      hosts: { ...s.hosts, [host]: (s.hosts[host] ?? 0) + 1 },
+      fallback: s.fallback + (fallback ? 1 : 0),
+    })),
 }));
 
 /** The endpoints a verification asks now, with the public ones rotated so parallel workers spread across them. */
@@ -71,14 +75,17 @@ export function proofClient(start = 0, onAnswer?: (host: string, fallback: boole
 }
 
 /** Checks that an RPC a judge typed is an https X Layer node before any proof uses it. */
-export async function checkOwnRpc(url: string): Promise<{ ok: true } | { ok: false; reason: "address" | "unreachable" | "chain" }> {
+export async function checkOwnRpc(
+  url: string,
+): Promise<{ ok: true } | { ok: false; reason: "address" | "unreachable" | "chain" }> {
   let u: URL;
   try {
     u = new URL(url.trim());
   } catch {
     return { ok: false, reason: "address" };
   }
-  if (u.protocol !== "https:" && !(u.protocol === "http:" && /^(localhost|127\.0\.0\.1)$/.test(u.hostname))) return { ok: false, reason: "address" };
+  if (u.protocol !== "https:" && !(u.protocol === "http:" && /^(localhost|127\.0\.0\.1)$/.test(u.hostname)))
+    return { ok: false, reason: "address" };
   try {
     const a = await proofRequest({ mine: u.toString(), publicRpcs: [], fallback: null }, { method: "eth_chainId" });
     return Number(a.result) === xLayer.id ? { ok: true } : { ok: false, reason: "chain" };

@@ -40,7 +40,13 @@ function contracts() {
         const id = nextId;
         if (!c.dry) {
           const expiry = BigInt(c.now) + (lifetime as bigint);
-          packets.set(id, { sender: c.from, key: key as Address, total: total as bigint, count: count as number, expiry });
+          packets.set(id, {
+            sender: c.from,
+            key: key as Address,
+            total: total as bigint,
+            count: count as number,
+            expiry,
+          });
           held.set(lower(c.from), (held.get(lower(c.from)) ?? 0n) - (total as bigint));
           nextId++;
           c.emit("Created", { id, sender: c.from, token: XLAYER_USDT, total, count, lucky, petOwnersOnly, expiry });
@@ -51,7 +57,20 @@ function contracts() {
         if (rules.packetFails) throw new TypeError("Failed to fetch");
         const p = packets.get(id as bigint);
         if (!p) throw new Revert("Unknown");
-        return { sender: p.sender, expiry: p.expiry, count: p.count, claimed: 0, paid: 0, lucky: true, petOwnersOnly: false, token: XLAYER_USDT, key: p.key, remaining: p.total, floor: 0n, extra: 0n };
+        return {
+          sender: p.sender,
+          expiry: p.expiry,
+          count: p.count,
+          claimed: 0,
+          paid: 0,
+          lucky: true,
+          petOwnersOnly: false,
+          token: XLAYER_USDT,
+          key: p.key,
+          remaining: p.total,
+          floor: 0n,
+          extra: 0n,
+        };
       },
     },
   };
@@ -66,15 +85,29 @@ function contracts() {
       },
     },
   };
-  return { packets, rules, contracts: { [RED_PACKET]: redPacket, [XLAYER_USDT]: usdt }, made: (id: bigint) => (nextId = id + 1n) };
+  return {
+    packets,
+    rules,
+    contracts: { [RED_PACKET]: redPacket, [XLAYER_USDT]: usdt },
+    made: (id: bigint) => (nextId = id + 1n),
+  };
 }
 
-async function open(o: { storage?: Parameters<typeof reload>[0]; chain?: ReturnType<typeof contracts>; xl?: ReturnType<typeof fakeXLayer>; at?: number } = {}) {
+async function open(
+  o: {
+    storage?: Parameters<typeof reload>[0];
+    chain?: ReturnType<typeof contracts>;
+    xl?: ReturnType<typeof fakeXLayer>;
+    at?: number;
+  } = {},
+) {
   const x = o.chain ?? contracts();
   const xl = o.xl ?? fakeXLayer({ contracts: x.contracts, balances: { [SENDER]: 10n ** 18n } });
   const at = o.at ?? T0;
   // the game server answers only its time; everything else the page asks of it fails as offline
-  const net = xl.fetchVia(async (url, init) => (String(url).endsWith("/api/time") ? new Response(JSON.stringify({ now: Date.now() })) : offline(url, init)));
+  const net = xl.fetchVia(async (url, init) =>
+    String(url).endsWith("/api/time") ? new Response(JSON.stringify({ now: Date.now() })) : offline(url, init),
+  );
   const v = o.storage ? await reload(o.storage, { at, net }) : await visit({ at, net });
   // a game that has been up a while has viem's client half loaded (its warm-up, P3); the receipt waits below run on fake
   // time, which a module still loading in real time would outlast
@@ -86,7 +119,16 @@ async function open(o: { storage?: Parameters<typeof reload>[0]; chain?: ReturnT
   return { ...v, x, xl, wallet, s };
 }
 
-const order = { amount: "3", count: 3, lucky: true, petOwnersOnly: false, days: 1, from: { name: "Kiri", line: "gentle" as const }, letter: "Happy new year", origin: "https://lingxi.knole.me/play.html#" };
+const order = {
+  amount: "3",
+  count: 3,
+  lucky: true,
+  petOwnersOnly: false,
+  days: 1,
+  from: { name: "Kiri", line: "gentle" as const },
+  letter: "Happy new year",
+  origin: "https://lingxi.knole.me/play.html#",
+};
 const keyIn = (link: string) => {
   const code = link.slice(link.indexOf("packet=") + "packet=".length);
   return JSON.parse(atob(code.slice(5).replace(/-/g, "+").replace(/_/g, "/"))) as { id: string; key: string };
@@ -113,8 +155,13 @@ describe("a red packet's link key is kept before its money is sent (A42)", () =>
     expect(p.s().sent).toHaveLength(1);
     const found = keyIn(p.s().sent[0]!.link);
     expect(found.id).toBe("7");
-    expect(privateKeyToAccount(`0x${found.key}`).address, "the link carries the key the packet was made with").toBe(p.x.packets.get(7n)!.key);
-    expect(p.xl.mined.filter((m) => m.functionName === "create"), "and nothing was sent twice").toHaveLength(1);
+    expect(privateKeyToAccount(`0x${found.key}`).address, "the link carries the key the packet was made with").toBe(
+      p.x.packets.get(7n)!.key,
+    );
+    expect(
+      p.xl.mined.filter((m) => m.functionName === "create"),
+      "and nothing was sent twice",
+    ).toHaveLength(1);
   });
 
   it("a tab closed while the packet was being confirmed finds it on the next visit, with its link and letter", async () => {
@@ -139,8 +186,30 @@ describe("a red packet's link key is kept before its money is sent (A42)", () =>
     // the page closed after the wallet sent the packet and before it said which transaction: only the key was kept
     const pk = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d" as const;
     const keyAddress = privateKeyToAccount(pk).address;
-    p.storage.setItem(PENDING, JSON.stringify([{ key: pk.slice(2), keyAddress, fromId: "7", sender: SENDER, total: "5", count: 2, from: order.from, letter: "", origin: order.origin, at: T0 }]));
-    p.x.packets.set(7n, { sender: SENDER, key: "0x9999999999999999999999999999999999999999", total: 1n, count: 1, expiry: 0n });
+    p.storage.setItem(
+      PENDING,
+      JSON.stringify([
+        {
+          key: pk.slice(2),
+          keyAddress,
+          fromId: "7",
+          sender: SENDER,
+          total: "5",
+          count: 2,
+          from: order.from,
+          letter: "",
+          origin: order.origin,
+          at: T0,
+        },
+      ]),
+    );
+    p.x.packets.set(7n, {
+      sender: SENDER,
+      key: "0x9999999999999999999999999999999999999999",
+      total: 1n,
+      count: 1,
+      expiry: 0n,
+    });
     p.x.packets.set(8n, { sender: SENDER, key: keyAddress, total: 5_000_000n, count: 2, expiry: 0n });
     p.x.made(8n);
     const again = await open({ storage: p.storage, chain: p.x, xl: p.xl });
@@ -154,7 +223,23 @@ describe("a red packet's link key is kept before its money is sent (A42)", () =>
     const pk = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d" as const;
     const keyAddress = privateKeyToAccount(pk).address;
     // kept before its transaction was known; packet 7 carries the key
-    p.storage.setItem(PENDING, JSON.stringify([{ key: pk.slice(2), keyAddress, fromId: "7", sender: SENDER, total: "5", count: 2, from: order.from, letter: "", origin: order.origin, at: T0 }]));
+    p.storage.setItem(
+      PENDING,
+      JSON.stringify([
+        {
+          key: pk.slice(2),
+          keyAddress,
+          fromId: "7",
+          sender: SENDER,
+          total: "5",
+          count: 2,
+          from: order.from,
+          letter: "",
+          origin: order.origin,
+          at: T0,
+        },
+      ]),
+    );
     p.x.packets.set(7n, { sender: SENDER, key: keyAddress, total: 5_000_000n, count: 2, expiry: 0n });
     p.x.made(7n);
     // a day and more later, the node answers everything but the packet's own read: the key stays
@@ -176,8 +261,30 @@ describe("a red packet's link key is kept before its money is sent (A42)", () =>
     const p = await open();
     const pk = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d" as const;
     const keyAddress = privateKeyToAccount(pk).address;
-    p.storage.setItem(PENDING, JSON.stringify([{ key: pk.slice(2), keyAddress, fromId: "7", sender: SENDER, total: "5", count: 2, from: order.from, letter: "", origin: order.origin, at: T0 }]));
-    p.x.packets.set(7n, { sender: SENDER, key: "0x9999999999999999999999999999999999999999", total: 1n, count: 1, expiry: 0n });
+    p.storage.setItem(
+      PENDING,
+      JSON.stringify([
+        {
+          key: pk.slice(2),
+          keyAddress,
+          fromId: "7",
+          sender: SENDER,
+          total: "5",
+          count: 2,
+          from: order.from,
+          letter: "",
+          origin: order.origin,
+          at: T0,
+        },
+      ]),
+    );
+    p.x.packets.set(7n, {
+      sender: SENDER,
+      key: "0x9999999999999999999999999999999999999999",
+      total: 1n,
+      count: 1,
+      expiry: 0n,
+    });
     p.x.made(7n);
     const later = await open({ storage: p.storage, chain: p.x, xl: p.xl, at: T0 + 25 * 3_600_000 });
     const { clock } = await import("./gameClock");

@@ -29,7 +29,9 @@ async function live(api: string): Promise<Live> {
 /** Marks the story quest "First lesson" handed in, which is what makes a free keep on offer, then reloads. */
 async function firstLessonHandedIn(page: Page): Promise<void> {
   await page.evaluate(() => {
-    const w = JSON.parse(localStorage.getItem("lingxi.world.v1") ?? "{}") as { quests?: { active: Record<string, unknown>; done: Record<string, number> } };
+    const w = JSON.parse(localStorage.getItem("lingxi.world.v1") ?? "{}") as {
+      quests?: { active: Record<string, unknown>; done: Record<string, number> };
+    };
     const book = w.quests ?? { active: {}, done: {} };
     w.quests = { ...book, done: { ...book.done, q10: Date.now() } };
     localStorage.setItem("lingxi.world.v1", JSON.stringify(w));
@@ -38,11 +40,20 @@ async function firstLessonHandedIn(page: Page): Promise<void> {
   await page.locator(".stage").waitFor();
 }
 
-test("the numbers page counts the week, tells a free keep from an own-wallet keep, and the recount agrees (H10)", async ({ player, run }) => {
+test("the numbers page counts the week, tells a free keep from an own-wallet keep, and the recount agrees (H10)", async ({
+  player,
+  run,
+}) => {
   test.setTimeout(40 * 60_000);
   // the baseline, once the processor's week count has been read (it is null only while that first read is under way)
   let before = await live(run.api);
-  await expect.poll(async () => ((before = await live(run.api)), before.circuits?.last7d ?? null), { message: "the week's circuits are counted", timeout: 120_000, intervals: [5_000] }).not.toBeNull();
+  await expect
+    .poll(async () => ((before = await live(run.api)), before.circuits?.last7d ?? null), {
+      message: "the week's circuits are counted",
+      timeout: 120_000,
+      intervals: [5_000],
+    })
+    .not.toBeNull();
   expect(before.kept, "who kept each pet is served").not.toBeNull();
   expect(before.circuits, "the circuits taped out are served").not.toBeNull();
 
@@ -54,7 +65,14 @@ test("the numbers page counts the week, tells a free keep from an own-wallet kee
     const offer = await reach(free.page, "[data-hint=keep]");
     await expect(offer).toHaveText("Keep Momo on X Layer, free");
     await offer.click();
-    await free.page.waitForFunction(() => Object.values(JSON.parse(localStorage.getItem("lingxi.chain.v2") ?? "{}") as Record<string, { petId?: string } | null>).some((r) => r && r.petId), undefined, { timeout: 240_000 });
+    await free.page.waitForFunction(
+      () =>
+        Object.values(
+          JSON.parse(localStorage.getItem("lingxi.chain.v2") ?? "{}") as Record<string, { petId?: string } | null>,
+        ).some((r) => r && r.petId),
+      undefined,
+      { timeout: 240_000 },
+    );
     expect((await chainRecord(free.page))?.device, "kept for this device's key").toBe(true);
   });
 
@@ -73,7 +91,14 @@ test("the numbers page counts the week, tells a free keep from an own-wallet kee
     const net = compileProgram(STARTERS.gentle);
     const bytes = netlistBytes(net);
     const processor = fork.d.processor as Address;
-    const q = await quoteTapeout(fork.pub, processor, me.address as Address, net.gates.length, net.latches.length, bytes.length);
+    const q = await quoteTapeout(
+      fork.pub,
+      processor,
+      me.address as Address,
+      net.gates.length,
+      net.latches.length,
+      bytes.length,
+    );
     expect(q.enough, "the player's wallet can pay for a tape-out on the fork").toBe(true);
     await tapeOutYourself(fork.pub, fork.wallet(me.index), processor, bytes, q);
   });
@@ -81,17 +106,37 @@ test("the numbers page counts the week, tells a free keep from an own-wallet kee
   let after: Live = before;
   await test.step("the live numbers count both keeps apart, the week's hatches, and the circuits taped out", async () => {
     await expect
-      .poll(async () => ((after = await live(run.api)), [after.kept!.own - before.kept!.own, after.kept!.sponsored - before.kept!.sponsored]), { message: "one more own-wallet keep and one more sponsored keep", timeout: 300_000, intervals: [10_000] })
+      .poll(
+        async () => (
+          (after = await live(run.api)),
+          [after.kept!.own - before.kept!.own, after.kept!.sponsored - before.kept!.sponsored]
+        ),
+        { message: "one more own-wallet keep and one more sponsored keep", timeout: 300_000, intervals: [10_000] },
+      )
       .toEqual([1, 1]);
     expect(after.kept!.other, "no pet counted as kept by a stranger").toBe(before.kept!.other);
     expect(after.week!.hatched - before.week!.hatched, "both hatches fall in the last 7 days").toBe(2);
     expect(after.week!.hatchers, "two wallets hatched this week").toBeGreaterThanOrEqual(2);
-    await expect.poll(async () => ((after = await live(run.api)), after.circuits!.minted - before.circuits!.minted), { message: "the keeps' circuits were walked", timeout: 300_000, intervals: [10_000] }).toBeGreaterThanOrEqual(1);
-    expect(after.circuits!.total, "the processor's own count is at least the circuits walked since the fork").toBeGreaterThanOrEqual(after.circuits!.minted);
+    await expect
+      .poll(async () => ((after = await live(run.api)), after.circuits!.minted - before.circuits!.minted), {
+        message: "the keeps' circuits were walked",
+        timeout: 300_000,
+        intervals: [10_000],
+      })
+      .toBeGreaterThanOrEqual(1);
+    expect(
+      after.circuits!.total,
+      "the processor's own count is at least the circuits walked since the fork",
+    ).toBeGreaterThanOrEqual(after.circuits!.minted);
     // the week's count is the processor's own (C7): on a fork of mainnet it holds the real week's circuits too, so it
     // grows by exactly the circuits taped out here, and is never below them (P3a)
-    expect(after.circuits!.last7d! - before.circuits!.last7d!, "the week's count grows by the circuits taped out here").toBe(after.circuits!.minted - before.circuits!.minted);
-    expect(after.circuits!.last7d!, "the week holds at least what was walked since the fork").toBeGreaterThanOrEqual(after.circuits!.minted);
+    expect(
+      after.circuits!.last7d! - before.circuits!.last7d!,
+      "the week's count grows by the circuits taped out here",
+    ).toBe(after.circuits!.minted - before.circuits!.minted);
+    expect(after.circuits!.last7d!, "the week holds at least what was walked since the fork").toBeGreaterThanOrEqual(
+      after.circuits!.minted,
+    );
     expect(after.week!.circuits).toBe(after.circuits!.last7d);
   });
 
@@ -111,18 +156,63 @@ test("the numbers page counts the week, tells a free keep from an own-wallet kee
     await expect(own.page.getByText("由灵犀免费代为上链", { exact: true })).toBeVisible();
     await expect(own.page.getByRole("heading", { name: "灵犀处理器上的电路" })).toBeVisible();
     await own.page.screenshot({ path: test.info().outputPath("numbers-week-zh-dark-desktop.png"), fullPage: true });
-    for (const p of [free.page, own.page]) expect(await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "no sideways scroll").toBe(true);
+    for (const p of [free.page, own.page])
+      expect(
+        await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+        "no sideways scroll",
+      ).toBe(true);
   });
 
   await test.step("the recount, by its own path from this fork, agrees with every number", async () => {
-    const d = JSON.parse(readFileSync(join(ROOT, "packages/chain/deployments/xlayer.json"), "utf8")) as Record<string, unknown>;
+    const d = JSON.parse(readFileSync(join(ROOT, "packages/chain/deployments/xlayer.json"), "utf8")) as Record<
+      string,
+      unknown
+    >;
     const file = join(run.dir, "recount-deployment-h10.json");
-    writeFileSync(file, JSON.stringify({ ...d, rpc: run.fork.rpc, outfitMarketBlock: run.fork.block, outfitMarketV2Block: run.fork.block }));
-    const r = spawnSync(process.execPath, [join(ROOT, "node_modules/tsx/dist/cli.mjs"), "scripts/recount-numbers.ts", "--deployment", file, "--api", run.api, "--rpc", run.fork.rpc, "--registry-from", String(run.fork.block), "--team-file", join(run.dir, "stores", "team.json")], { cwd: join(ROOT, "packages/chain"), encoding: "utf8", timeout: 1_500_000 });
+    writeFileSync(
+      file,
+      JSON.stringify({
+        ...d,
+        rpc: run.fork.rpc,
+        outfitMarketBlock: run.fork.block,
+        outfitMarketV2Block: run.fork.block,
+      }),
+    );
+    const r = spawnSync(
+      process.execPath,
+      [
+        join(ROOT, "node_modules/tsx/dist/cli.mjs"),
+        "scripts/recount-numbers.ts",
+        "--deployment",
+        file,
+        "--api",
+        run.api,
+        "--rpc",
+        run.fork.rpc,
+        "--registry-from",
+        String(run.fork.block),
+        "--team-file",
+        join(run.dir, "stores", "team.json"),
+      ],
+      { cwd: join(ROOT, "packages/chain"), encoding: "utf8", timeout: 1_500_000 },
+    );
     const out = `${r.stdout}\n${r.stderr}`;
-    for (const line of [/same {2}the team's pets hatched/, /same {2}OKB market distinct player wallets that bought/, /same {2}pets kept by their owner's own wallet/, /same {2}pets kept by Lingxi's relayer/, /same {2}pets hatched in the last 7 days/, /same {2}circuits minted on the processor/, /same {2}circuits taped out in the last 7 days/, /same {2}circuits taped out \(the processor's nextId, its latest circuit id\)/, /same {2}every circuit minted since block/])
+    for (const line of [
+      /same {2}the team's pets hatched/,
+      /same {2}OKB market distinct player wallets that bought/,
+      /same {2}pets kept by their owner's own wallet/,
+      /same {2}pets kept by Lingxi's relayer/,
+      /same {2}pets hatched in the last 7 days/,
+      /same {2}circuits minted on the processor/,
+      /same {2}circuits taped out in the last 7 days/,
+      /same {2}circuits taped out \(the processor's nextId, its latest circuit id\)/,
+      /same {2}every circuit minted since block/,
+    ])
       expect(out, `the recount checks: ${line.source}`).toMatch(line);
-    expect(out.split("\n").filter((l) => l.startsWith("DIFFERENT")), out.slice(-3000)).toEqual([]);
+    expect(
+      out.split("\n").filter((l) => l.startsWith("DIFFERENT")),
+      out.slice(-3000),
+    ).toEqual([]);
     expect(r.status, out.slice(-2000)).toBe(0);
   });
 

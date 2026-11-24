@@ -8,7 +8,17 @@
 import { RESIDENT_FRIENDS } from "./friends/residents";
 import { localDay } from "./story";
 import { bumpAll } from "./tally";
-import { type ExploreMods, HOME, ITEM, NO_EXPLORE_MODS, ROOMS, type WorldResult, type WorldState, boostRare, pickDrop } from "./world";
+import {
+  type ExploreMods,
+  HOME,
+  ITEM,
+  NO_EXPLORE_MODS,
+  ROOMS,
+  type WorldResult,
+  type WorldState,
+  boostRare,
+  pickDrop,
+} from "./world";
 
 export type HappeningKind = "market" | "lucky" | "gift";
 export type Happening =
@@ -36,7 +46,9 @@ const bestChance = (item: number): number => {
 /** What the market offers: finds never on a shelf, the rarest first and dearer the rarer, then other shops' stock. */
 export const MARKET_ITEMS: ReadonlyArray<{ item: number; price: number }> = (() => {
   const sold = new Set(Object.values(ROOMS).flatMap((r) => r.shop ?? []));
-  const found = [...new Set(Object.values(ROOMS).flatMap((r) => r.drops.map((d) => d.item)))].filter((i) => ITEM[i] && !sold.has(i));
+  const found = [...new Set(Object.values(ROOMS).flatMap((r) => r.drops.map((d) => d.item)))].filter(
+    (i) => ITEM[i] && !sold.has(i),
+  );
   found.sort((a, b) => bestChance(a) - bestChance(b) || a - b);
   const finds = found.map((item) => {
     const c = bestChance(item);
@@ -46,7 +58,10 @@ export const MARKET_ITEMS: ReadonlyArray<{ item: number; price: number }> = (() 
   });
   // then things other shops keep and the Corner Shop does not, at their own price
   const corner = new Set(ROOMS[MARKET_ROOM]?.shop ?? []);
-  const elsewhere = [...sold].filter((i) => !corner.has(i) && ITEM[i]?.price !== undefined).sort((a, b) => a - b).map((item) => ({ item, price: ITEM[item]!.price! }));
+  const elsewhere = [...sold]
+    .filter((i) => !corner.has(i) && ITEM[i]?.price !== undefined)
+    .sort((a, b) => a - b)
+    .map((item) => ({ item, price: ITEM[item]!.price! }));
   return [...finds, ...elsewhere].slice(0, VILLAGE_VARIETY);
 })();
 
@@ -56,13 +71,19 @@ export const LUCKY_ROOMS: readonly number[] = (() => {
     .filter((r) => r.drops.length)
     .map((r) => r.index)
     .sort((a, b) => a - b);
-  return Array.from({ length: Math.min(VILLAGE_VARIETY, rooms.length) }, (_, k) => rooms[Math.floor((k * rooms.length) / VILLAGE_VARIETY)]!);
+  return Array.from(
+    { length: Math.min(VILLAGE_VARIETY, rooms.length) },
+    (_, k) => rooms[Math.floor((k * rooms.length) / VILLAGE_VARIETY)]!,
+  );
 })();
 
 /** The residents' gifts: each resident in turn, each time the next thing they like that is a real item. */
 export const VILLAGE_GIFTS: ReadonlyArray<{ who: string; item: number }> = (() => {
   const out: Array<{ who: string; item: number }> = [];
-  const likes = RESIDENT_FRIENDS.map((f) => ({ who: f.id, items: [...f.likes.love, ...f.likes.like].filter((i) => ITEM[i]) }));
+  const likes = RESIDENT_FRIENDS.map((f) => ({
+    who: f.id,
+    items: [...f.likes.love, ...f.likes.like].filter((i) => ITEM[i]),
+  }));
   for (let k = 0; out.length < VILLAGE_VARIETY && k < VILLAGE_VARIETY * 4; k++) {
     const r = likes[k % likes.length]!;
     if (!r.items.length) continue;
@@ -93,7 +114,8 @@ export const villageDay = (w: WorldState, now: number): string => localDay(now, 
 export const happeningAt = (w: WorldState, now: number): Happening => happeningOn(villageDay(w, now));
 
 /** Has today's happening been made use of (the market item bought, the lucky room looked around, the gift taken)? */
-export const happeningUsed = (w: WorldState, now: number): boolean => w.village?.day === villageDay(w, now) && w.village.used === true;
+export const happeningUsed = (w: WorldState, now: number): boolean =>
+  w.village?.day === villageDay(w, now) && w.village.used === true;
 
 const used = (w: WorldState, now: number): WorldState => ({ ...w, village: { day: villageDay(w, now), used: true } });
 
@@ -103,7 +125,8 @@ const used = (w: WorldState, now: number): WorldState => ({ ...w, village: { day
  * tired to walk, or a player who comes once in the evening, still meets the village that day.
  */
 export const VILLAGE_EVENING = 18;
-export const villageEvening = (w: WorldState, now: number): boolean => new Date(now + (w.tz ?? 0) * 60_000).getUTCHours() >= VILLAGE_EVENING;
+export const villageEvening = (w: WorldState, now: number): boolean =>
+  new Date(now + (w.tz ?? 0) * 60_000).getUTCHours() >= VILLAGE_EVENING;
 
 /** Today's market price: half (rounded up) in the evening. */
 export function marketPrice(w: WorldState, now: number): number {
@@ -113,7 +136,8 @@ export function marketPrice(w: WorldState, now: number): number {
 }
 
 /** Whether today's resident gift is waiting at the door (an evening at home, not yet taken). */
-export const giftAtDoor = (w: WorldState, now: number): boolean => happeningAt(w, now).kind === "gift" && !happeningUsed(w, now) && villageEvening(w, now) && w.room === HOME;
+export const giftAtDoor = (w: WorldState, now: number): boolean =>
+  happeningAt(w, now).kind === "gift" && !happeningUsed(w, now) && villageEvening(w, now) && w.room === HOME;
 
 /** Buy today's market item at the Corner Shop. */
 export function buyMarket(w: WorldState, now: number): WorldResult<{ item: number }> {
@@ -122,14 +146,23 @@ export function buyMarket(w: WorldState, now: number): WorldResult<{ item: numbe
   const price = marketPrice(w, now);
   if (w.coins < price) return { ok: false, reason: "coins" };
   const bag = { ...w.bag, [h.item]: (w.bag[h.item] ?? 0) + 1 };
-  return { ok: true, item: h.item, world: bumpAll(used({ ...w, coins: w.coins - price, bag }, now), [["BUY", h.item, 1], ["COINS_SPENT", 0, price], ["VILLAGE", 0, 1]]) };
+  return {
+    ok: true,
+    item: h.item,
+    world: bumpAll(used({ ...w, coins: w.coins - price, bag }, now), [
+      ["BUY", h.item, 1],
+      ["COINS_SPENT", 0, price],
+      ["VILLAGE", 0, 1],
+    ]),
+  };
 }
 
 /** Today's resident gift, taken by talking to that resident; once a day. */
 export function takeVillageGift(w: WorldState, who: string, now: number): WorldResult<{ item: number }> {
   const h = happeningAt(w, now);
   // the resident hands it over, or in the evening it waits at the door at home (who: "door")
-  if (h.kind !== "gift" || (h.who !== who && !(who === "door" && giftAtDoor(w, now)))) return { ok: false, reason: "noGift" };
+  if (h.kind !== "gift" || (h.who !== who && !(who === "door" && giftAtDoor(w, now))))
+    return { ok: false, reason: "noGift" };
   if (happeningUsed(w, now)) return { ok: false, reason: "already" };
   const bag = { ...w.bag, [h.item]: (w.bag[h.item] ?? 0) + 1 };
   return { ok: true, item: h.item, world: bumpAll(used({ ...w, bag }, now), [["VILLAGE", 0, 1]]) };
@@ -138,7 +171,9 @@ export function takeVillageGift(w: WorldState, who: string, now: number): WorldR
 /** Whether a look around here and now gets the lucky room's extra find (and so uses the day's happening). */
 export const luckyHere = (w: WorldState, now: number): boolean => {
   const h = happeningAt(w, now);
-  return h.kind === "lucky" && !happeningUsed(w, now) && (h.room === w.room || (w.room === HOME && villageEvening(w, now)));
+  return (
+    h.kind === "lucky" && !happeningUsed(w, now) && (h.room === w.room || (w.room === HOME && villageEvening(w, now)))
+  );
 };
 
 /** A small, stable hash (FNV-1a) of the seed, room and day, for the lucky room's extra find. */
@@ -155,12 +190,26 @@ function hash(s: string): number {
  * The lucky room's extra find, after a look around there (the caller has just looked around): one more thing from the
  * room, once on the lucky day. Null when today's happening is not this room or was used.
  */
-export function luckyFind(w: WorldState, now: number, mods: ExploreMods = NO_EXPLORE_MODS): WorldResult<{ item: number }> {
+export function luckyFind(
+  w: WorldState,
+  now: number,
+  mods: ExploreMods = NO_EXPLORE_MODS,
+): WorldResult<{ item: number }> {
   if (!luckyHere(w, now)) return { ok: false, reason: "notLucky" };
   // the lucky room's own drops, wherever the find is made (in the evening it drifts home)
   const h = happeningAt(w, now);
   const room = ROOMS[h.kind === "lucky" ? h.room : w.room]!;
-  const item = pickDrop(boostRare(room.drops, mods.rareBoost), hash(`${w.seed}:${h.kind === "lucky" ? h.room : w.room}:${villageDay(w, now)}:lucky`));
+  const item = pickDrop(
+    boostRare(room.drops, mods.rareBoost),
+    hash(`${w.seed}:${h.kind === "lucky" ? h.room : w.room}:${villageDay(w, now)}:lucky`),
+  );
   const bag = { ...w.bag, [item]: (w.bag[item] ?? 0) + 1 };
-  return { ok: true, item, world: bumpAll(used({ ...w, bag }, now), [["VILLAGE", 0, 1], ["FIND", item, 1]]) };
+  return {
+    ok: true,
+    item,
+    world: bumpAll(used({ ...w, bag }, now), [
+      ["VILLAGE", 0, 1],
+      ["FIND", item, 1],
+    ]),
+  };
 }

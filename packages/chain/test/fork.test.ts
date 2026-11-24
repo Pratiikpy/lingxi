@@ -9,7 +9,17 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { createPublicClient, createWalletClient, http, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { STARTERS, beat, compileProgram, fastBrain, hexToBytes, load, stateBits, wordToBits, bitsToWord } from "@lingxi/brain";
+import {
+  STARTERS,
+  beat,
+  compileProgram,
+  fastBrain,
+  hexToBytes,
+  load,
+  stateBits,
+  wordToBits,
+  bitsToWord,
+} from "@lingxi/brain";
 import { catchUp, care, createPet, packState, unpackState } from "@lingxi/game";
 import { checkpointOnChain, hatchOnChain, readNetlist, readPet, replayStep, type Deployment } from "../src/registry";
 import { xLayer } from "../src/tapeout";
@@ -19,7 +29,9 @@ const KEY_FILE = process.env.FORK_KEY_FILE;
 
 describe.skipIf(!RPC || !KEY_FILE)("a pet's day, proven on an X Layer fork", () => {
   it("hatches, checkpoints, and every thought replays identically", async () => {
-    const d = JSON.parse(readFileSync(process.env.DEPLOYMENT_FILE ?? new URL("../deployments/local.json", import.meta.url), "utf8")) as Deployment;
+    const d = JSON.parse(
+      readFileSync(process.env.DEPLOYMENT_FILE ?? new URL("../deployments/local.json", import.meta.url), "utf8"),
+    ) as Deployment;
     const key = readFileSync(KEY_FILE!, "utf8").match(/^K=(0x[0-9a-fA-F]{64})/m)![1] as Hex;
     const account = privateKeyToAccount(key);
     const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };

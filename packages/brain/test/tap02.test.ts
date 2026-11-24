@@ -66,9 +66,9 @@ describe("TAP-02 official vectors", () => {
   for (const v of vectors.illFormed as Array<Record<string, unknown>>) {
     it(`ill-formed: ${v.name as string}`, () => {
       const refs = (v.refs as RefSpec[]) ?? [];
-      expect(() =>
-        load(hexToBytes(v.netlist as string), v.nIn as number, v.nOut as number, resolverFor(refs)),
-      ).toThrow(IllFormed);
+      expect(() => load(hexToBytes(v.netlist as string), v.nIn as number, v.nOut as number, resolverFor(refs))).toThrow(
+        IllFormed,
+      );
       try {
         load(hexToBytes(v.netlist as string), v.nIn as number, v.nOut as number, resolverFor(refs));
       } catch (e) {

@@ -9,11 +9,21 @@ import { beatsOfLog, momentText, momentsOf, rewind } from "../src/replay";
 
 const T0 = Date.UTC(2026, 10, 15, 6, 0);
 const H = 3_600_000;
-const brainOf = (p: { line: "gentle" | "bold" | "curious"; lessons: never[] | ReturnType<typeof composeProgram>["rules"]; instincts?: number }) =>
-  mindBrain({ line: p.line, lessons: p.lessons as never, instincts: p.instincts });
+const brainOf = (p: {
+  line: "gentle" | "bold" | "curious";
+  lessons: never[] | ReturnType<typeof composeProgram>["rules"];
+  instincts?: number;
+}) => mindBrain({ line: p.line, lessons: p.lessons as never, instincts: p.instincts });
 
 function liveDay() {
-  let pet = createPet({ name: "Mochi", line: "gentle", now: T0, tzOffsetMin: 480, brain: mindBrain({ line: "gentle", lessons: [], instincts: 1 }), instincts: 1 });
+  let pet = createPet({
+    name: "Mochi",
+    line: "gentle",
+    now: T0,
+    tzOffsetMin: 480,
+    brain: mindBrain({ line: "gentle", lessons: [], instincts: 1 }),
+    instincts: 1,
+  });
   const b = () => mindBrain({ line: "gentle", lessons: pet.lessons, instincts: 1 });
   pet = catchUp(pet, T0 + 2 * H, b());
   pet = care(pet, { kind: "feed", food: "apple" } as never, T0 + 2 * H, b()).pet;
@@ -74,7 +84,10 @@ describe("rewind", () => {
   });
 
   it("a child's rewind uses the day half by day and the night half by night, ending at its live state", () => {
-    const fam = familyOf({ name: "A", line: "gentle", lessons: [], instincts: 1 }, { name: "B", line: "bold", lessons: [] });
+    const fam = familyOf(
+      { name: "A", line: "gentle", lessons: [], instincts: 1 },
+      { name: "B", line: "bold", lessons: [] },
+    );
     const brain = mindBrain({ line: "gentle", lessons: [], family: fam });
     let pet: Pet = { ...createPet({ name: "Bean", line: "gentle", now: T0, tzOffsetMin: 480, brain }), family: fam };
     pet = catchUp(pet, T0 + 20 * H, brain);
@@ -88,7 +101,10 @@ describe("rewind", () => {
     const night = frames.find((f) => f.senses.time === 0)!;
     expect(day.half).toBe(0);
     expect(night.half).toBe(1);
-    void fastBrain; void compileProgram; void stateBits; void brainOf;
+    void fastBrain;
+    void compileProgram;
+    void stateBits;
+    void brainOf;
   });
 
   it("a pet from before times were kept still rewinds, with unknown times", () => {
@@ -120,7 +136,11 @@ describe("rewinding a spar", () => {
     const me = fighterOfMind("Mochi", { line: "gentle", lessons, instincts: 1 }, 1);
     const them = fighterOfMind("Rex", { line: "bold", lessons: [] }, 1);
     const result = spar(me, them, 1234);
-    const why = rewindFight({ program: composeProgram("gentle", lessons, 1) }, me.memory, result.rounds.map((r) => r.words[0]));
+    const why = rewindFight(
+      { program: composeProgram("gentle", lessons, 1) },
+      me.memory,
+      result.rounds.map((r) => r.words[0]),
+    );
     expect(why).toHaveLength(result.rounds.length);
     result.rounds.forEach((r, i) => {
       // the move is the brain's want unless stamina or a slip changed it, which the screen says

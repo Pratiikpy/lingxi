@@ -18,7 +18,8 @@ export const offline: Net = async () => {
 };
 
 /** A JSON answer, as a server sends one. */
-export const json = (body: unknown, status = 200): Response => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+export const json = (body: unknown, status = 200): Response =>
+  new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 
 /** What a page put on `window` and `document`, taken down when the page goes, so an old page never hears a new one's events. */
 let listeners: Array<[EventTarget, string, EventListenerOrEventListenerObject | null]> = [];
@@ -26,10 +27,12 @@ let listeners: Array<[EventTarget, string, EventListenerOrEventListenerObject | 
 function track(): void {
   for (const target of [window, document]) {
     const add = target.addEventListener.bind(target);
-    vi.spyOn(target, "addEventListener").mockImplementation((type: string, fn: EventListenerOrEventListenerObject | null, opts?: boolean | AddEventListenerOptions) => {
-      listeners.push([target, type, fn]);
-      if (fn) add(type, fn, opts);
-    });
+    vi.spyOn(target, "addEventListener").mockImplementation(
+      (type: string, fn: EventListenerOrEventListenerObject | null, opts?: boolean | AddEventListenerOptions) => {
+        listeners.push([target, type, fn]);
+        if (fn) add(type, fn, opts);
+      },
+    );
   }
 }
 // from the start, so a page a test file loads with its own imports (a screen's module) is taken down at the first visit
@@ -64,7 +67,10 @@ export async function visit(o: VisitOptions) {
   // vitest ignores a second install while its fake timers run, which would keep the last page's time: a page opened
   // later must start at its own `at`
   vi.useRealTimers();
-  vi.useFakeTimers({ now: o.at, toFake: ["Date", "performance", "setTimeout", "clearTimeout", "setInterval", "clearInterval"] });
+  vi.useFakeTimers({
+    now: o.at,
+    toFake: ["Date", "performance", "setTimeout", "clearTimeout", "setInterval", "clearInterval"],
+  });
   const storage = o.storage ?? memoryStorage(o.limit);
   vi.stubGlobal("localStorage", "localStorage" in o ? o.localStorage : storage);
   const net = vi.fn(o.net ?? offline);

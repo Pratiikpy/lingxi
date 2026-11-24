@@ -1,11 +1,33 @@
 import { describe, expect, it } from "vitest";
-import { STARTERS, compileProgram, decodeOutput, encodeSenses, fastBrain, gateCount, runBeat, stateBits } from "@lingxi/brain";
-import { INSTINCTS, INSTINCT_RULES, MAX_GATES, PET_SCHOOL, cleanInstincts, composeProgram, instinctBits, instinctsOf } from "../src/lessons";
+import {
+  STARTERS,
+  compileProgram,
+  decodeOutput,
+  encodeSenses,
+  fastBrain,
+  gateCount,
+  runBeat,
+  stateBits,
+} from "@lingxi/brain";
+import {
+  INSTINCTS,
+  INSTINCT_RULES,
+  MAX_GATES,
+  PET_SCHOOL,
+  cleanInstincts,
+  composeProgram,
+  instinctBits,
+  instinctsOf,
+} from "../src/lessons";
 import { familyOf, halvesOf, mindBrain, parseCard, petCard } from "../src/family";
 import { decodeGift, encodeGift } from "../src/gift";
 
 const calmSenses = { hunger: 0, joy: 2, energy: 2, clean: 2, time: 1, action: 0, event: 0, owner: 1 };
-const decide = (instincts: number, senses: Partial<typeof calmSenses>, lessons = [] as typeof PET_SCHOOL[number]["rule"][]) => {
+const decide = (
+  instincts: number,
+  senses: Partial<typeof calmSenses>,
+  lessons = [] as (typeof PET_SCHOOL)[number]["rule"][],
+) => {
   const p = composeProgram("gentle", lessons, instincts);
   return decodeOutput(runBeat(p, new Array(stateBits(p)).fill(0), encodeSenses({ ...calmSenses, ...senses })).out);
 };
@@ -48,7 +70,9 @@ describe("instinct switches", () => {
       for (const senses of [{ event: 3 }, { hunger: 1 }, { event: 2 }, { clean: 0 }, {}]) {
         const word = encodeSenses({ ...calmSenses, ...senses });
         const zero = new Array(stateBits(p)).fill(0);
-        expect(fast.step(new Uint8Array(zero), word), `bits ${bits} ${JSON.stringify(senses)}`).toBe(runBeat(p, zero, word).out);
+        expect(fast.step(new Uint8Array(zero), word), `bits ${bits} ${JSON.stringify(senses)}`).toBe(
+          runBeat(p, zero, word).out,
+        );
       }
     }
   });
@@ -65,7 +89,10 @@ describe("instinct switches", () => {
     const card = parseCard(petCard({ lessons: [], instincts: 5 }));
     expect(card?.instincts).toBe(5);
     expect(parseCard(JSON.stringify({ lessons: [], instincts: 99 }))?.instincts).toBeUndefined();
-    const fam = familyOf({ name: "A", line: "gentle", lessons: [], instincts: 1 }, { name: "B", line: "bold", lessons: [], instincts: 8 });
+    const fam = familyOf(
+      { name: "A", line: "gentle", lessons: [], instincts: 1 },
+      { name: "B", line: "bold", lessons: [], instincts: 8 },
+    );
     const [a, b] = halvesOf(fam, []);
     expect(a.rules[0]).toEqual(INSTINCT_RULES.brave);
     expect(b.rules[0]).toEqual(INSTINCT_RULES.calm);
@@ -81,7 +108,13 @@ describe("instinct switches", () => {
 
   it("a gifted egg must leave room for all four switches", () => {
     const egg = { line: "bold", lessons: PET_SCHOOL.map((l) => l.rule).slice(0, 8) };
-    const code = encodeGift({ id: "abcd1234", from: { name: "A", line: "gentle", stage: "adult" }, letter: "", at: 0, egg } as never);
+    const code = encodeGift({
+      id: "abcd1234",
+      from: { name: "A", line: "gentle", stage: "adult" },
+      letter: "",
+      at: 0,
+      egg,
+    } as never);
     expect(decodeGift(code).egg?.lessons).toHaveLength(8);
   });
 });

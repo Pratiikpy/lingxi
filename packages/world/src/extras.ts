@@ -26,7 +26,8 @@ export interface SavedLook {
   outfit: Outfit;
 }
 
-const packs = (n: unknown): number => (typeof n === "number" && Number.isInteger(n) && n > 0 ? Math.min(MAX_PACKS, n) : 0);
+const packs = (n: unknown): number =>
+  typeof n === "number" && Number.isInteger(n) && n > 0 ? Math.min(MAX_PACKS, n) : 0;
 
 /** The packs last read from X Layer; none until a reading arrives. */
 export const extrasOf = (w: WorldState): Packs => ({ room: packs(w.extras?.room), looks: packs(w.extras?.looks) });
@@ -98,7 +99,12 @@ export function deleteLook(w: WorldState, id: string): WorldResult {
  * holds is skipped and named in `missing`. `mayWear` answers for player-made pieces (the game knows the designs and
  * which copies this player holds). A look beyond the current limit is locked, not lost.
  */
-export function wearLook(w: WorldState, petKey: string, id: string, mayWear: (piece: string, slot: WearSlot) => boolean = () => false): WorldResult<{ missing: string[] }> {
+export function wearLook(
+  w: WorldState,
+  petKey: string,
+  id: string,
+  mayWear: (piece: string, slot: WearSlot) => boolean = () => false,
+): WorldResult<{ missing: string[] }> {
   const looks = savedLooks(w);
   const at = looks.findIndex((l) => l.id === id);
   if (at < 0) return { ok: false, reason: "unknown" };
@@ -148,7 +154,9 @@ export const NAME_COLOURS: readonly NameColour[] = [
   { id: 7, name: { en: "Lagoon", zh: "湖水青" }, light: "#0C6A66", dark: "#6FE0D6" },
   { id: 8, name: { en: "Ember", zh: "余烬橙" }, light: "#9A4210", dark: "#FFB36B" },
 ];
-export const NAME_COLOUR_BY_ID: Readonly<Record<number, NameColour>> = Object.fromEntries(NAME_COLOURS.map((c) => [c.id, c]));
+export const NAME_COLOUR_BY_ID: Readonly<Record<number, NameColour>> = Object.fromEntries(
+  NAME_COLOURS.map((c) => [c.id, c]),
+);
 
 /**
  * The message a wallet signs to be linked to a player's home (plan 4.9): the game signs it, the server checks it.

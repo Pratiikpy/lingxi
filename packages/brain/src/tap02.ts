@@ -186,7 +186,8 @@ export function load(data: Uint8Array, nIn: number, nOut: number, resolve?: Reso
       if (!resolve) throw new IllFormed("REF without a resolver");
       const sub = resolve(e.cpu, e.id);
       if (!sub) throw new IllFormed("REF target is not a circuit of a registered processor");
-      if (sub.nIn !== e.ins.length || sub.nOut !== e.nOut) throw new IllFormed("REF arity does not match the target circuit");
+      if (sub.nIn !== e.ins.length || sub.nOut !== e.nOut)
+        throw new IllFormed("REF arity does not match the target circuit");
       if (sub.nState > MAX_SIGNALS) throw new IllFormed("REF size");
       c.subs.set(refKey(e.cpu, e.id), sub);
       c.nState += sub.nState;

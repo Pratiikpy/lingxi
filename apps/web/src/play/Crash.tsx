@@ -14,7 +14,11 @@ function CrashScreen() {
     <main className="save-screen" aria-labelledby="crash-title">
       <section className="save-card" role="alert">
         <h1 id="crash-title">{zh ? "这个画面出了点问题" : "Something went wrong on this screen"}</h1>
-        <p>{zh ? "你的宠物和存档都安全，画面出错不会改动存档。重新加载就能回到游戏。" : "Your pets and your save are safe: a screen failing to draw changes nothing saved. Reload to go back to the game."}</p>
+        <p>
+          {zh
+            ? "你的宠物和存档都安全，画面出错不会改动存档。重新加载就能回到游戏。"
+            : "Your pets and your save are safe: a screen failing to draw changes nothing saved. Reload to go back to the game."}
+        </p>
         <button type="button" className="save-btn primary" onClick={() => location.reload()} autoFocus>
           {zh ? "重新加载" : "Reload"}
         </button>

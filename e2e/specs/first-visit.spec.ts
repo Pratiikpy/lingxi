@@ -25,7 +25,9 @@ for (const look of [
   { lang: "en", scheme: "light", size: "phone" },
   { lang: "zh", scheme: "dark", size: "desktop" },
 ] as const) {
-  test(`a first visit's choices survive the hand-over to the full game (${look.lang}, ${look.scheme}, ${look.size})`, async ({ player }) => {
+  test(`a first visit's choices survive the hand-over to the full game (${look.lang}, ${look.scheme}, ${look.size})`, async ({
+    player,
+  }) => {
     test.setTimeout(180_000);
     const p = await player(look);
     const { page } = p;

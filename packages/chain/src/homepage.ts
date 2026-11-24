@@ -13,7 +13,17 @@
  * its site is frozen).
  */
 
-import { type Address, type Hex, type PublicClient, type WalletClient, bytesToHex, encodeFunctionData, parseAbi, sha256, stringToBytes } from "viem";
+import {
+  type Address,
+  type Hex,
+  type PublicClient,
+  type WalletClient,
+  bytesToHex,
+  encodeFunctionData,
+  parseAbi,
+  sha256,
+  stringToBytes,
+} from "viem";
 import { FACTORY } from "./tapeout";
 
 export const SITES: Address = "0xd6EFb7adCc9c83dC4924Ad56f6a8E4e969b9ADB6";
@@ -29,9 +39,19 @@ const sitesAbi = parseAbi([
   "function setFallback(address container, string path)",
   "function fileInfo(address container, string path) view returns (uint32 size, string contentType, bytes32 sha256Hash, uint40 updatedAt, uint256 chunkCount)",
 ]);
-const domainsAbi = parseAbi(["function bind(string name, address container, uint256 months) payable", "function monthlyFee() view returns (uint256)", "function isLive(string name, address container) view returns (bool)"]);
-const factoryAbi = parseAbi(["function cpuCount() view returns (uint256)", "function cpuAt(uint256 i) view returns (address)"]);
-const registryRead = parseAbi(["function pet(uint256 petId) view returns ((address,uint64,uint8,uint8,uint32,uint40,uint40,bytes32,uint256,uint128,uint128))", "function ownerOf(uint256) view returns (address)"]);
+const domainsAbi = parseAbi([
+  "function bind(string name, address container, uint256 months) payable",
+  "function monthlyFee() view returns (uint256)",
+  "function isLive(string name, address container) view returns (bool)",
+]);
+const factoryAbi = parseAbi([
+  "function cpuCount() view returns (uint256)",
+  "function cpuAt(uint256 i) view returns (address)",
+]);
+const registryRead = parseAbi([
+  "function pet(uint256 petId) view returns ((address,uint64,uint8,uint8,uint32,uint40,uint40,bytes32,uint256,uint128,uint128))",
+  "function ownerOf(uint256) view returns (address)",
+]);
 
 export class HomePageError extends Error {
   constructor(
@@ -44,7 +64,8 @@ export class HomePageError extends Error {
 
 /** The processor's number in TapeOut's factory, which names every site on it. `hint` is checked first. */
 export async function processorIndex(pub: PublicClient, processor: Address, hint?: number): Promise<number> {
-  const at = (i: bigint) => pub.readContract({ address: FACTORY, abi: factoryAbi, functionName: "cpuAt", args: [i] }) as Promise<Address>;
+  const at = (i: bigint) =>
+    pub.readContract({ address: FACTORY, abi: factoryAbi, functionName: "cpuAt", args: [i] }) as Promise<Address>;
   if (hint !== undefined && (await at(BigInt(hint))).toLowerCase() === processor.toLowerCase()) return hint;
   const count = (await pub.readContract({ address: FACTORY, abi: factoryAbi, functionName: "cpuCount" })) as bigint;
   for (let i = count - 1n; i >= 0n; i--) if ((await at(i)).toLowerCase() === processor.toLowerCase()) return Number(i);
@@ -66,7 +87,8 @@ export interface HomePageInput {
   siteName: string;
 }
 
-const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+const esc = (s: string) =>
+  s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
 /** The page published into the home. Everything it shows live is read from X Layer in the visitor's browser. */
 export function homePageHtml(p: HomePageInput): string {
@@ -136,25 +158,53 @@ export interface HomePageStatus {
   current: boolean;
 }
 
-export async function readHomePage(pub: PublicClient, container: Address, siteName: string, html?: string): Promise<HomePageStatus> {
+export async function readHomePage(
+  pub: PublicClient,
+  container: Address,
+  siteName: string,
+  html?: string,
+): Promise<HomePageStatus> {
   const [info, live] = await Promise.all([
-    pub.readContract({ address: SITES, abi: sitesAbi, functionName: "fileInfo", args: [container, "index.html"] }) as Promise<readonly [number, string, Hex, number, bigint]>,
-    pub.readContract({ address: DOMAINS, abi: domainsAbi, functionName: "isLive", args: [siteName, container] }) as Promise<boolean>,
+    pub.readContract({
+      address: SITES,
+      abi: sitesAbi,
+      functionName: "fileInfo",
+      args: [container, "index.html"],
+    }) as Promise<readonly [number, string, Hex, number, bigint]>,
+    pub.readContract({
+      address: DOMAINS,
+      abi: domainsAbi,
+      functionName: "isLive",
+      args: [siteName, container],
+    }) as Promise<boolean>,
   ]);
   const published = info[4] > 0n;
-  return { published, live, current: published && !!html && info[2].toLowerCase() === sha256(stringToBytes(html)).toLowerCase() };
+  return {
+    published,
+    live,
+    current: published && !!html && info[2].toLowerCase() === sha256(stringToBytes(html)).toLowerCase(),
+  };
 }
 
 /** What activating the name costs (TapeKit's monthly fee times the months), read from the chain. */
 export async function nameFee(pub: PublicClient, months = NAME_MONTHS): Promise<bigint> {
-  return ((await pub.readContract({ address: DOMAINS, abi: domainsAbi, functionName: "monthlyFee" })) as bigint) * months;
+  return (
+    ((await pub.readContract({ address: DOMAINS, abi: domainsAbi, functionName: "monthlyFee" })) as bigint) * months
+  );
 }
 
 /**
  * Writes the page into the home (in chunks when it is larger than one write), makes it the
  * fallback, activates the name if it is not live, and reads all of it back.
  */
-export async function publishHomePage(pub: PublicClient, wallet: WalletClient, container: Address, siteName: string, html: string, months = NAME_MONTHS): Promise<Hex[]> {
+export async function publishHomePage(
+  pub: PublicClient,
+  wallet: WalletClient,
+  container: Address,
+  siteName: string,
+  html: string,
+  months = NAME_MONTHS,
+): Promise<Hex[]> {
   const bytes = stringToBytes(html);
   if (bytes.length > CHUNK_BYTES * 8) throw new HomePageError("tooBig", "the page is larger than a home page may be");
   const account = wallet.account!;
@@ -168,14 +218,58 @@ export async function publishHomePage(pub: PublicClient, wallet: WalletClient, c
   };
   const hash = sha256(bytes);
   const sites = { address: SITES, abi: sitesAbi, account } as const;
-  await send(async () => wallet.writeContract((await pub.simulateContract({ ...sites, functionName: "putFile", args: [container, "index.html", "text/html; charset=utf-8", hash, bytesToHex(bytes.slice(0, CHUNK_BYTES))] })).request));
+  await send(async () =>
+    wallet.writeContract(
+      (
+        await pub.simulateContract({
+          ...sites,
+          functionName: "putFile",
+          args: [container, "index.html", "text/html; charset=utf-8", hash, bytesToHex(bytes.slice(0, CHUNK_BYTES))],
+        })
+      ).request,
+    ),
+  );
   for (let i = 1; i * CHUNK_BYTES < bytes.length; i++) {
-    await send(async () => wallet.writeContract((await pub.simulateContract({ ...sites, functionName: "appendChunk", args: [container, "index.html", BigInt(i), bytesToHex(bytes.slice(i * CHUNK_BYTES, (i + 1) * CHUNK_BYTES))] })).request));
+    await send(async () =>
+      wallet.writeContract(
+        (
+          await pub.simulateContract({
+            ...sites,
+            functionName: "appendChunk",
+            args: [container, "index.html", BigInt(i), bytesToHex(bytes.slice(i * CHUNK_BYTES, (i + 1) * CHUNK_BYTES))],
+          })
+        ).request,
+      ),
+    );
   }
-  await send(async () => wallet.writeContract((await pub.simulateContract({ ...sites, functionName: "setFallback", args: [container, "index.html"] })).request));
-  if (!((await pub.readContract({ address: DOMAINS, abi: domainsAbi, functionName: "isLive", args: [siteName, container] })) as boolean)) {
+  await send(async () =>
+    wallet.writeContract(
+      (await pub.simulateContract({ ...sites, functionName: "setFallback", args: [container, "index.html"] })).request,
+    ),
+  );
+  if (
+    !((await pub.readContract({
+      address: DOMAINS,
+      abi: domainsAbi,
+      functionName: "isLive",
+      args: [siteName, container],
+    })) as boolean)
+  ) {
     const value = await nameFee(pub, months);
-    await send(async () => wallet.writeContract((await pub.simulateContract({ address: DOMAINS, abi: domainsAbi, account, functionName: "bind", args: [siteName, container, months], value })).request));
+    await send(async () =>
+      wallet.writeContract(
+        (
+          await pub.simulateContract({
+            address: DOMAINS,
+            abi: domainsAbi,
+            account,
+            functionName: "bind",
+            args: [siteName, container, months],
+            value,
+          })
+        ).request,
+      ),
+    );
   }
   const s = await readHomePage(pub, container, siteName, html);
   if (!s.current) throw new HomePageError("notWritten", "the page on chain does not match what was written");

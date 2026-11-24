@@ -14,8 +14,12 @@ describe("a diary's time against the chain's (A94)", () => {
     const wandered = { key: "wandered" as const, n: 33 };
     const sulked = { key: "sulked" as const, n: 5, why: "hungry" as const };
     expect(diaryText(wandered, "en")).toBe("I wandered off exploring for 33 minutes.");
-    expect(diaryText(wandered, "en", { untimed: true })).toBe("I wandered off exploring for a while (33 beats of my log).");
-    expect(diaryText(sulked, "en", { untimed: true })).toBe("I sulked for a while (5 beats of my log) because my tummy was rumbling.");
+    expect(diaryText(wandered, "en", { untimed: true })).toBe(
+      "I wandered off exploring for a while (33 beats of my log).",
+    );
+    expect(diaryText(sulked, "en", { untimed: true })).toBe(
+      "I sulked for a while (5 beats of my log) because my tummy was rumbling.",
+    );
     expect(diaryText(wandered, "zh", { untimed: true })).toBe("我跑出去探险了一阵（日志里的 33 拍）。");
     for (const lang of ["en", "zh"] as const) {
       expect(diaryText(wandered, lang, { untimed: true })).not.toMatch(/minutes|分钟/);

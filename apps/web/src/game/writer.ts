@@ -22,7 +22,11 @@ export const RENEW_MS = 2_000;
 export const WATCH_MS = 3_000;
 
 export interface LockApi {
-  request(name: string, options: { ifAvailable?: boolean; steal?: boolean }, callback: (lock: unknown | null) => unknown): Promise<unknown>;
+  request(
+    name: string,
+    options: { ifAvailable?: boolean; steal?: boolean },
+    callback: (lock: unknown | null) => unknown,
+  ): Promise<unknown>;
 }
 
 interface Stamp {
@@ -70,11 +74,14 @@ export const browserStorageWatch: WriterOptions["watch"] =
       };
 
 export function createWriter(o: WriterOptions) {
-  const id = o.id ?? Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => b.toString(16).padStart(2, "0")).join("");
-  const every = o.every ?? ((fn, ms) => {
-    const t = setInterval(fn, ms);
-    return () => clearInterval(t);
-  });
+  const id =
+    o.id ?? Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => b.toString(16).padStart(2, "0")).join("");
+  const every =
+    o.every ??
+    ((fn, ms) => {
+      const t = setInterval(fn, ms);
+      return () => clearInterval(t);
+    });
   const wait = o.wait ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   const lockName = o.lockName ?? LOCK_NAME;
   const stampKey = o.stampKey ?? STAMP_KEY;
@@ -112,7 +119,8 @@ export function createWriter(o: WriterOptions) {
    * that claimed the same generation at once (no Web Locks) break the tie by id, so exactly one keeps it (A122); a page
    * that gave its lease up as it went yields to any claim, whatever its id, as its own reload is one.
    */
-  const newer = (s: Stamp | null) => s !== null && s.id !== id && (gaveUp || s.gen === undefined || s.gen > gen || (s.gen === gen && s.id > id));
+  const newer = (s: Stamp | null) =>
+    s !== null && s.id !== id && (gaveUp || s.gen === undefined || s.gen > gen || (s.gen === gen && s.id > id));
   const set = (w: boolean) => {
     if (held === w) return;
     held = w;
@@ -153,7 +161,8 @@ export function createWriter(o: WriterOptions) {
       // a live tab renews its lease; one that has not, within the watch, belonged to a page that is gone
       await wait(WATCH_MS);
       const now = readStamp();
-      const renewed = now !== null && now.id !== id && now.until > o.now() && (now.id !== stamp.id || now.until !== stamp.until);
+      const renewed =
+        now !== null && now.id !== id && now.until > o.now() && (now.id !== stamp.id || now.until !== stamp.until);
       if (renewed) return false;
     }
     // taking the game: a generation past the newest this tab has seen (A97)
@@ -183,7 +192,8 @@ export function createWriter(o: WriterOptions) {
   return {
     id,
     /** Tries to become the writer; with `steal`, takes the game over from whichever tab has it. */
-    acquire: async ({ steal = false }: { steal?: boolean } = {}): Promise<boolean> => (o.locks ? viaLocks(o.locks, steal) : viaLease(steal)),
+    acquire: async ({ steal = false }: { steal?: boolean } = {}): Promise<boolean> =>
+      o.locks ? viaLocks(o.locks, steal) : viaLease(steal),
     /**
      * Without Web Locks, the page is going (`pagehide`: a reload, a link, a closed tab, the back-forward cache): it
      * gives its lease up at once, so the next page plays without waiting for the lease to run out. A Web Lock is
@@ -233,7 +243,13 @@ export interface LockQuery {
  * own record of held Web Locks where it has them, else from a lease stamp still fresh. A writer with Web Locks stamps
  * once and never renews, so its stamp is read only when the browser cannot say.
  */
-export async function heldElsewhere(o: { lockName?: string; stampKey?: string; locks?: LockQuery; storage: { getItem(k: string): string | null }; now: () => number }): Promise<boolean> {
+export async function heldElsewhere(o: {
+  lockName?: string;
+  stampKey?: string;
+  locks?: LockQuery;
+  storage: { getItem(k: string): string | null };
+  now: () => number;
+}): Promise<boolean> {
   const lockName = o.lockName ?? LOCK_NAME;
   if (o.locks) {
     try {

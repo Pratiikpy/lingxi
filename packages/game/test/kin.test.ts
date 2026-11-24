@@ -7,7 +7,10 @@ const brain = mindBrain({ line: "gentle", lessons: [] });
 const pet = (name: string, at: number) => createPet({ name, line: "gentle", now: at, tzOffsetMin: 0, brain });
 const mum = pet("Mum", 1_000_000);
 const dad = { ...pet("Dad", 2_000_000), line: "bold" as const };
-const fam = familyOf({ name: mum.name, line: mum.line, lessons: [], key: String(mum.bornAt) }, { name: dad.name, line: dad.line, lessons: [], key: String(dad.bornAt) });
+const fam = familyOf(
+  { name: mum.name, line: mum.line, lessons: [], key: String(mum.bornAt) },
+  { name: dad.name, line: dad.line, lessons: [], key: String(dad.bornAt) },
+);
 const kid = { ...pet("Kid", 3_000_000), family: fam };
 const kid2 = { ...pet("Kid2", 4_000_000), family: fam };
 const stranger = pet("Stranger", 5_000_000);
@@ -15,8 +18,15 @@ const all = [mum, dad, kid, kid2, stranger];
 
 describe("family visits", () => {
   it("knows parents, children and siblings, and nobody else", () => {
-    expect(relatives(kid, all).map((r) => [r.pet.name, r.kin])).toEqual([["Mum", "parent"], ["Dad", "parent"], ["Kid2", "sibling"]]);
-    expect(relatives(mum, all).map((r) => [r.pet.name, r.kin])).toEqual([["Kid", "child"], ["Kid2", "child"]]);
+    expect(relatives(kid, all).map((r) => [r.pet.name, r.kin])).toEqual([
+      ["Mum", "parent"],
+      ["Dad", "parent"],
+      ["Kid2", "sibling"],
+    ]);
+    expect(relatives(mum, all).map((r) => [r.pet.name, r.kin])).toEqual([
+      ["Kid", "child"],
+      ["Kid2", "child"],
+    ]);
     expect(relatives(stranger, all)).toEqual([]);
   });
 

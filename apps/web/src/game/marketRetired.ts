@@ -6,7 +6,9 @@
  */
 import type { OutfitListing } from "@lingxi/chain";
 
-const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (typeof location !== "undefined" && location.hostname === "localhost" ? "http://localhost:8787" : "");
+const BASE =
+  (import.meta.env.VITE_API_URL as string | undefined) ??
+  (typeof location !== "undefined" && location.hostname === "localhost" ? "http://localhost:8787" : "");
 
 /**
  * The OKB-market listings the server says a sale retired, or null when it cannot say: no server (the on-chain copy),
@@ -17,7 +19,8 @@ export async function retiredOkbListings(fetchFn: typeof fetch = fetch): Promise
     const r = await fetchFn(`${BASE}/api/market/retired`);
     if (!r.ok) return null;
     const body = (await r.json()) as { ready?: unknown; retired?: unknown };
-    if (body.ready !== true || !Array.isArray(body.retired) || !body.retired.every((x) => typeof x === "string")) return null;
+    if (body.ready !== true || !Array.isArray(body.retired) || !body.retired.every((x) => typeof x === "string"))
+      return null;
     return new Set(body.retired as string[]);
   } catch {
     return null;
@@ -28,6 +31,14 @@ export async function retiredOkbListings(fetchFn: typeof fetch = fetch): Promise
  * The listings the market shows: every BEM-market listing; an OKB-market listing only when the server says no sale
  * retired it, and, when it cannot say, only the player's own, so they can still cancel it.
  */
-export function shownListings(listings: readonly OutfitListing[], retired: ReadonlySet<string> | null, who: string | null): OutfitListing[] {
-  return listings.filter((l) => l.market !== 1 || (retired ? !retired.has(l.id.toString()) : !!who && l.seller.toLowerCase() === who.toLowerCase()));
+export function shownListings(
+  listings: readonly OutfitListing[],
+  retired: ReadonlySet<string> | null,
+  who: string | null,
+): OutfitListing[] {
+  return listings.filter(
+    (l) =>
+      l.market !== 1 ||
+      (retired ? !retired.has(l.id.toString()) : !!who && l.seller.toLowerCase() === who.toLowerCase()),
+  );
 }

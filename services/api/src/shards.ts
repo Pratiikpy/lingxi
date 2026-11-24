@@ -54,7 +54,8 @@ export function openShards(file: string, aside: string, what: string): Shards {
       for (const key of keys) {
         const r = loadJson(path(key));
         if (r.state === "ok") out.set(key, r.value);
-        else if (r.state === "damaged") process.stderr.write(`${what} ${key}: its file and .bak could not be read; both kept aside\n`);
+        else if (r.state === "damaged")
+          process.stderr.write(`${what} ${key}: its file and .bak could not be read; both kept aside\n`);
       }
       return out;
     },

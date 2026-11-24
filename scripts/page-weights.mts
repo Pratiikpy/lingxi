@@ -24,7 +24,11 @@ function importsOf(site: string, file: string): string[] {
   const code = readFileSync(join(site, file), "utf8");
   const out: string[] = [];
   for (const m of code.matchAll(/(?:^|[;}\s])import\s*(?:[\w$*{}\s,]+from\s*)?["'](\.{1,2}\/[^"']+\.js)["']/g)) {
-    out.push(normalize(join(dirname(file), m[1]!)).split("\\").join("/"));
+    out.push(
+      normalize(join(dirname(file), m[1]!))
+        .split("\\")
+        .join("/"),
+    );
   }
   return out;
 }
@@ -46,12 +50,24 @@ export function pageWeights(site: string): PageWeight[] {
     for (const f of refs) walk(f);
     const files = [...seen].sort();
     const scripts = files.filter((f) => f.endsWith(".js")).reduce((n, f) => n + gz(join(site, f)), 0);
-    const styles = files.filter((f) => !f.endsWith(".js")).reduce((n, f) => n + (f.endsWith(".css") ? gz(join(site, f)) : readFileSync(join(site, f)).length), 0);
+    const styles = files
+      .filter((f) => !f.endsWith(".js"))
+      .reduce((n, f) => n + (f.endsWith(".css") ? gz(join(site, f)) : readFileSync(join(site, f)).length), 0);
     const htmlBytes = gz(join(site, page));
-    return { page, total: scripts + styles + htmlBytes, scripts, styles, html: htmlBytes, files: files.map((f) => relative(".", f)) };
+    return {
+      page,
+      total: scripts + styles + htmlBytes,
+      scripts,
+      styles,
+      html: htmlBytes,
+      files: files.map((f) => relative(".", f)),
+    };
   });
 }
 
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("\\").join("/").split("/").pop()!)) {
-  for (const w of pageWeights(process.argv[2] ?? "apps/web/dist")) console.log(`${w.page.padEnd(16)} ${(w.total / 1024).toFixed(1).padStart(7)} KB  scripts ${(w.scripts / 1024).toFixed(1)}  styles+fonts ${(w.styles / 1024).toFixed(1)}  html ${(w.html / 1024).toFixed(1)}  (${w.files.length} files)`);
+  for (const w of pageWeights(process.argv[2] ?? "apps/web/dist"))
+    console.log(
+      `${w.page.padEnd(16)} ${(w.total / 1024).toFixed(1).padStart(7)} KB  scripts ${(w.scripts / 1024).toFixed(1)}  styles+fonts ${(w.styles / 1024).toFixed(1)}  html ${(w.html / 1024).toFixed(1)}  (${w.files.length} files)`,
+    );
 }

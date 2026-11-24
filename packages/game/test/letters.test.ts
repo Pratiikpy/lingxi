@@ -35,15 +35,27 @@ describe("a pet's letter (H13)", () => {
   it("refuses an empty letter and one past the limit, counting characters, not bytes", () => {
     expect(writeLetter({ from, toPet: "Lulu", text: "   " })).toEqual({ ok: false, reason: "empty" });
     expect(writeLetter({ from, toPet: "Lulu", text: "字".repeat(PET_LETTER_MAX) }).ok).toBe(true);
-    expect(writeLetter({ from, toPet: "Lulu", text: "字".repeat(PET_LETTER_MAX + 1) })).toEqual({ ok: false, reason: "tooLong" });
-    expect(writeLetter({ from, toPet: "Lulu", text: "😀".repeat(PET_LETTER_MAX) }).ok, "an emoji is one character").toBe(true);
+    expect(writeLetter({ from, toPet: "Lulu", text: "字".repeat(PET_LETTER_MAX + 1) })).toEqual({
+      ok: false,
+      reason: "tooLong",
+    });
+    expect(
+      writeLetter({ from, toPet: "Lulu", text: "😀".repeat(PET_LETTER_MAX) }).ok,
+      "an emoji is one character",
+    ).toBe(true);
   });
   it("reads only a letter in its own form, and shows any name as it would be shown in the game", () => {
     expect(readLetter("not json").ok).toBe(false);
     expect(readLetter(JSON.stringify({ lx: 2, from, toPet: "Lulu", text: "hi" })).ok).toBe(false);
-    expect(readLetter(JSON.stringify({ lx: 1, from, toPet: "Lulu", text: "x".repeat(PET_LETTER_MAX + 1) })).ok).toBe(false);
-    expect(readLetter(JSON.stringify({ lx: 1, from: { pet: 5, player: "x" }, toPet: "Lulu", text: "hi" })).ok).toBe(false);
-    const hidden = readLetter(JSON.stringify({ lx: 1, from: { pet: "Mo​mo", player: "abc123def456" }, toPet: "Lulu", text: "hi" }));
+    expect(readLetter(JSON.stringify({ lx: 1, from, toPet: "Lulu", text: "x".repeat(PET_LETTER_MAX + 1) })).ok).toBe(
+      false,
+    );
+    expect(readLetter(JSON.stringify({ lx: 1, from: { pet: 5, player: "x" }, toPet: "Lulu", text: "hi" })).ok).toBe(
+      false,
+    );
+    const hidden = readLetter(
+      JSON.stringify({ lx: 1, from: { pet: "Mo​mo", player: "abc123def456" }, toPet: "Lulu", text: "hi" }),
+    );
     expect(hidden.ok && hidden.letter.from.pet).not.toBe("Momo");
   });
 });

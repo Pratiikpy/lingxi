@@ -36,7 +36,22 @@ class FakeSocket extends EventEmitter {
 const idOf = (who: string) => playerIdFor(keyOf(who));
 const join = (rooms: LiveRooms, ws: FakeSocket, who: string, address: string) => {
   rooms.handle(ws as never, address);
-  ws.emit("message", Buffer.from(JSON.stringify({ t: "hello", id: idOf(who), key: keyOf(who), name: who, line: "gentle", stage: "child", mood: 2, space: "room:65" })), false);
+  ws.emit(
+    "message",
+    Buffer.from(
+      JSON.stringify({
+        t: "hello",
+        id: idOf(who),
+        key: keyOf(who),
+        name: who,
+        line: "gentle",
+        stage: "child",
+        mood: 2,
+        space: "room:65",
+      }),
+    ),
+    false,
+  );
 };
 
 describe("live rooms keep no more than a little for a socket that stops reading (A143)", () => {

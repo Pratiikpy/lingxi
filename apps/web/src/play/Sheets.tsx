@@ -6,7 +6,24 @@ import { PALETTE_OF } from "../scene/palette";
 import { Sprite } from "./Sprite";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { type MindPart, mindParts } from "../game/store";
-import { DIETS, FOODS, FORMS, FORM_NAMES, TRAITS, TRAIT_NAMES, type Pet, beatOf, dayOf, evolutionInputs, evolve, growthOf, instinctsOf, kinshipNow, levelCost, stageOf } from "@lingxi/game";
+import {
+  DIETS,
+  FOODS,
+  FORMS,
+  FORM_NAMES,
+  TRAITS,
+  TRAIT_NAMES,
+  type Pet,
+  beatOf,
+  dayOf,
+  evolutionInputs,
+  evolve,
+  growthOf,
+  instinctsOf,
+  kinshipNow,
+  levelCost,
+  stageOf,
+} from "@lingxi/game";
 import { useSkillsUi } from "./Skills";
 import { useLang, useT, type Key } from "../i18n";
 import { Icon } from "./icons";
@@ -18,7 +35,17 @@ import { onBack } from "../game/backStack";
 /** Open sheets, newest last: Escape closes only the one on top when two are stacked. */
 const openSheets: object[] = [];
 
-export function Sheet({ open, title, onClose, children }: { open: boolean; title: string; onClose: () => void; children: React.ReactNode }) {
+export function Sheet({
+  open,
+  title,
+  onClose,
+  children,
+}: {
+  open: boolean;
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
   const t = useT();
   const reduce = useReducedMotion();
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -53,7 +80,15 @@ export function Sheet({ open, title, onClose, children }: { open: boolean; title
     <AnimatePresence>
       {open && (
         <>
-          <motion.div className="scrim" style={depth ? { zIndex: 20 + 2 * depth } : undefined} onClick={onClose} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.22 }} />
+          <motion.div
+            className="scrim"
+            style={depth ? { zIndex: 20 + 2 * depth } : undefined}
+            onClick={onClose}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.22 }}
+          />
           <motion.div
             className="sheet"
             style={depth ? { zIndex: 21 + 2 * depth } : undefined}
@@ -131,7 +166,12 @@ function MindPartView({ pet, part, firing }: { pet: Pet; part: MindPart; firing:
     return { name: m.name, v, max: (1 << bits) - 1, kind: m.kind };
   });
   const memName = (n: string) =>
-    ({ trust: { en: "trust", zh: "信任" }, likesToys: { en: "likes toys", zh: "喜欢玩具" }, scared: { en: "shaken", zh: "害怕" }, awake: { en: "awake", zh: "清醒" } })[n]?.[lang] ?? n;
+    ({
+      trust: { en: "trust", zh: "信任" },
+      likesToys: { en: "likes toys", zh: "喜欢玩具" },
+      scared: { en: "shaken", zh: "害怕" },
+      awake: { en: "awake", zh: "清醒" },
+    })[n]?.[lang] ?? n;
   return (
     <>
       {part.from && (
@@ -176,7 +216,13 @@ export function MeSheetBody({ pet }: { pet: Pet }) {
   const t = useT();
   const { lang } = useLang();
   const top = [...TRAITS].sort((a, b) => pet.traits[b] - pet.traits[a]).slice(0, 2);
-  const nature = pet.traits[top[0]!] === 0 ? t(`line.${pet.line}`) : top.filter((x) => pet.traits[x] > 0).map((x) => TRAIT_NAMES[x]![lang]).join(lang === "zh" ? "、" : ", ");
+  const nature =
+    pet.traits[top[0]!] === 0
+      ? t(`line.${pet.line}`)
+      : top
+          .filter((x) => pet.traits[x] > 0)
+          .map((x) => TRAIT_NAMES[x]![lang])
+          .join(lang === "zh" ? "、" : ", ");
   const fav = [...DIETS].sort((a, b) => pet.diet[b] - pet.diet[a])[0]!;
   const favFood = FOODS.find((f) => f.diet === fav);
   const kin = kinshipNow(pet, beatOf(gameNow()));
@@ -193,23 +239,47 @@ export function MeSheetBody({ pet }: { pet: Pet }) {
   };
   const ago = (beat: number) => {
     const h = Math.max(0, Math.round((beatOf(gameNow()) - beat) / 60));
-    return h < 1 ? (lang === "zh" ? "刚才" : "just now") : h < 48 ? (lang === "zh" ? `${h} 小时前` : `${h} h ago`) : lang === "zh" ? `${Math.round(h / 24)} 天前` : `${Math.round(h / 24)} days ago`;
+    return h < 1
+      ? lang === "zh"
+        ? "刚才"
+        : "just now"
+      : h < 48
+        ? lang === "zh"
+          ? `${h} 小时前`
+          : `${h} h ago`
+        : lang === "zh"
+          ? `${Math.round(h / 24)} 天前`
+          : `${Math.round(h / 24)} days ago`;
   };
   return (
     <dl className="rows">
       <dt>{t("me.nature")}</dt>
       <dd>{nature}</dd>
       <dt>{t("hatch.instincts")}</dt>
-      <dd>{instinctsOf(pet.instincts).map((k) => t(`instinct.${k}` as Key)).join(lang === "zh" ? "、" : ", ") || t("me.noInstincts")}</dd>
+      <dd>
+        {instinctsOf(pet.instincts)
+          .map((k) => t(`instinct.${k}` as Key))
+          .join(lang === "zh" ? "、" : ", ") || t("me.noInstincts")}
+      </dd>
       <dt>{lang === "zh" ? "等级" : "Level"}</dt>
       <dd>
         <span className="lv">
           {lang === "zh" ? `${lv.level} 级` : `Lv ${lv.level}`}
-          <i className="lv-bar" role="meter" aria-label={lang === "zh" ? "到下一级" : "To the next level"} aria-valuemin={0} aria-valuemax={lv.need} aria-valuenow={lv.into} aria-valuetext={lang === "zh" ? `${lv.into}/${lv.need}` : `${lv.into} of ${lv.need}`}>
+          <i
+            className="lv-bar"
+            role="meter"
+            aria-label={lang === "zh" ? "到下一级" : "To the next level"}
+            aria-valuemin={0}
+            aria-valuemax={lv.need}
+            aria-valuenow={lv.into}
+            aria-valuetext={lang === "zh" ? `${lv.into}/${lv.need}` : `${lv.into} of ${lv.need}`}
+          >
             <i style={{ transform: `scaleX(${lv.into / lv.need})` }} />
           </i>
           <button type="button" className="btn small-btn lv-skills" onClick={() => useSkillsUi.getState().show()}>
-            {lang === "zh" ? `技能${g.points ? ` · ${g.points} 点可用` : ""}` : `Skills${g.points ? ` · ${g.points} to spend` : ""}`}
+            {lang === "zh"
+              ? `技能${g.points ? ` · ${g.points} 点可用` : ""}`
+              : `Skills${g.points ? ` · ${g.points} to spend` : ""}`}
           </button>
         </span>
       </dd>
@@ -224,7 +294,11 @@ export function MeSheetBody({ pet }: { pet: Pet }) {
         </div>
         {kin > 10 ? ` ${kin}` : ""}
         {/* its own line under the hearts, so it never starts with a stray "·" (B7) */}
-        <span className="small kin-note">{lang === "zh" ? "每 12 小时摸一次 +1，一整天不摸会慢慢变淡" : "+1 for a pat every 12 hours; fades after a day without"}</span>
+        <span className="small kin-note">
+          {lang === "zh"
+            ? "每 12 小时摸一次 +1，一整天不摸会慢慢变淡"
+            : "+1 for a pat every 12 hours; fades after a day without"}
+        </span>
       </dd>
       {pet.sick && (
         <>
@@ -237,13 +311,19 @@ export function MeSheetBody({ pet }: { pet: Pet }) {
           <dt>{lang === "zh" ? "照顾小记" : "Care notes"}</dt>
           <dd>
             <ul className="care-notes">
-              {pet.missed!.slice(-4).reverse().map((m, i) => (
-                <li key={i}>
-                  {lang === "zh" ? `${pet.name}${MISS[m.kind]![1]}` : `${pet.name} ${MISS[m.kind]![0]}`} <span className="small">· {ago(m.beat)}</span>
-                </li>
-              ))}
+              {pet
+                .missed!.slice(-4)
+                .reverse()
+                .map((m, i) => (
+                  <li key={i}>
+                    {lang === "zh" ? `${pet.name}${MISS[m.kind]![1]}` : `${pet.name} ${MISS[m.kind]![0]}`}{" "}
+                    <span className="small">· {ago(m.beat)}</span>
+                  </li>
+                ))}
             </ul>
-            <span className="small">{lang === "zh" ? "没关系，宠物不会因此离开你。" : "No harm done: pets never leave over this."}</span>
+            <span className="small">
+              {lang === "zh" ? "没关系，宠物不会因此离开你。" : "No harm done: pets never leave over this."}
+            </span>
           </dd>
         </>
       )}
@@ -258,11 +338,16 @@ export function MeSheetBody({ pet }: { pet: Pet }) {
 }
 
 /** Every colour of a secret form painted one soft lavender, so only its outline shows. */
-const SILHOUETTE = Object.fromEntries(ROLES.filter((r) => r !== ".").map((r) => [r, r === "s" ? "#2B214022" : "#CFC6DA"])) as Palette;
+const SILHOUETTE = Object.fromEntries(
+  ROLES.filter((r) => r !== ".").map((r) => [r, r === "s" ? "#2B214022" : "#CFC6DA"]),
+) as Palette;
 
 /** A form's adult body, or its silhouette while it is still a secret. */
 function FormSprite({ line, form, shown }: { line: Pet["line"]; form: (typeof FORMS)[number]; shown: boolean }) {
-  const art = useMemo(() => drawPet(line, "adult", { form, expression: shown ? "happy" : "neutral" }), [line, form, shown]);
+  const art = useMemo(
+    () => drawPet(line, "adult", { form, expression: shown ? "happy" : "neutral" }),
+    [line, form, shown],
+  );
   const palette = useMemo(() => (shown ? PALETTE_OF[line] : SILHOUETTE), [line, shown]);
   return (
     <span className="evo-art" aria-hidden="true">
@@ -297,7 +382,11 @@ export function EvolutionChart({ pet }: { pet: Pet }) {
           </li>
         ))}
       </ul>
-      <p className="small">{lang === "zh" ? "这张进化表本身就是一个公开电路，谁都能验证。" : "This chart is itself a public circuit anyone can verify."}</p>
+      <p className="small">
+        {lang === "zh"
+          ? "这张进化表本身就是一个公开电路，谁都能验证。"
+          : "This chart is itself a public circuit anyone can verify."}
+      </p>
     </div>
   );
 }

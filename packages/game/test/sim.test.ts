@@ -178,10 +178,20 @@ describe("a clock that comes back from running ahead (P1 S6)", () => {
   });
 
   it("keeps a pet's other marks of time no later than its beat", () => {
-    const ahead = { ...catchUp(newPet(), T0 + 120 * BEAT_MS, gentle), kinBeat: Math.floor(T0 / BEAT_MS) + 110, missed: [{ kind: "food" as const, beat: Math.floor(T0 / BEAT_MS) + 100 }, { kind: "clean" as const, beat: Math.floor(T0 / BEAT_MS) + 10 }] };
+    const ahead = {
+      ...catchUp(newPet(), T0 + 120 * BEAT_MS, gentle),
+      kinBeat: Math.floor(T0 / BEAT_MS) + 110,
+      missed: [
+        { kind: "food" as const, beat: Math.floor(T0 / BEAT_MS) + 100 },
+        { kind: "clean" as const, beat: Math.floor(T0 / BEAT_MS) + 10 },
+      ],
+    };
     const back = catchUp(ahead, T0 + 50 * BEAT_MS, gentle);
     expect(back.kinBeat).toBe(back.beat);
-    expect(back.missed).toEqual([{ kind: "food", beat: back.beat }, { kind: "clean", beat: Math.floor(T0 / BEAT_MS) + 10 }]);
+    expect(back.missed).toEqual([
+      { kind: "food", beat: back.beat },
+      { kind: "clean", beat: Math.floor(T0 / BEAT_MS) + 10 },
+    ]);
   });
 
   it("returns the same pet when nothing is due", () => {

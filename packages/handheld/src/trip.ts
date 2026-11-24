@@ -11,7 +11,22 @@
  */
 
 import { keccak_256 } from "@noble/hashes/sha3";
-import { type Brain, type Care, type CareResult, type ItemEffect, type Pet, BEAT_MS, DIETS, TRAITS, care, catchUp, decayLeft, effectOf, liveBeat, sinceCaredOf } from "@lingxi/game";
+import {
+  type Brain,
+  type Care,
+  type CareResult,
+  type ItemEffect,
+  type Pet,
+  BEAT_MS,
+  DIETS,
+  TRAITS,
+  care,
+  catchUp,
+  decayLeft,
+  effectOf,
+  liveBeat,
+  sinceCaredOf,
+} from "@lingxi/game";
 
 /** 2: the pet carries G3's enjoyment bar, last care beat and need tally; 3: G5's beats since care and beats stalled;
  * 4: D1's beats since each need was answered (four in place of one) */
@@ -285,7 +300,8 @@ export type HomeRefusal = "notATrip" | "damaged" | "notThisTrip" | "badLog" | "n
 
 /** Read the packet the handheld sends back, checking its form only (the replay checks its meaning). */
 export function readReturn(b: Uint8Array): { ok: true; trip: TripReturn } | { ok: false; reason: HomeRefusal } {
-  if (b.length < 4 + 1 + 32 + 4 + 32 + 4 + 32 || new TextDecoder().decode(b.subarray(0, 4)) !== "LXR1") return { ok: false, reason: "notATrip" };
+  if (b.length < 4 + 1 + 32 + 4 + 32 + 4 + 32 || new TextDecoder().decode(b.subarray(0, 4)) !== "LXR1")
+    return { ok: false, reason: "notATrip" };
   if (b[4] !== TRIP_VERSION) return { ok: false, reason: "notATrip" };
   const body = b.subarray(0, b.length - 32);
   if (toHex(keccak_256(body)) !== toHex(b.subarray(b.length - 32))) return { ok: false, reason: "damaged" };
@@ -315,7 +331,10 @@ export function readReturn(b: Uint8Array): { ok: true; trip: TripReturn } | { ok
       p += 3;
     } else return { ok: false, reason: "badLog" };
   }
-  return { ok: true, trip: { startDigest, ops, endDigest: toHex(b.subarray(end, end + 32)), endBeat: dv.getInt32(end + 32, true) } };
+  return {
+    ok: true,
+    trip: { startDigest, ops, endDigest: toHex(b.subarray(end, end + 32)), endBeat: dv.getInt32(end + 32, true) },
+  };
 }
 
 function careOf(kind: number, arg: number, snacks: Snack[]): Care | null {
@@ -351,7 +370,12 @@ export interface ReplayedCare {
 }
 
 /** Replay a list of trip ops from `start` with the game's own functions. Returns the pet, the snacks left and each care. */
-export function replayOps(start: Pet, brain: Brain, ops: readonly TripOp[], snacks: readonly Snack[]): { ok: true; pet: Pet; snacks: Snack[]; cares: ReplayedCare[] } | { ok: false; reason: HomeRefusal } {
+export function replayOps(
+  start: Pet,
+  brain: Brain,
+  ops: readonly TripOp[],
+  snacks: readonly Snack[],
+): { ok: true; pet: Pet; snacks: Snack[]; cares: ReplayedCare[] } | { ok: false; reason: HomeRefusal } {
   const left = snacks.map((s) => ({ ...s }));
   const cares: ReplayedCare[] = [];
   let p = start;
@@ -387,11 +411,13 @@ export function bringHome(
   const t = r.trip;
   if (t.startDigest !== petDigest(start, 0)) return { ok: false, reason: "notThisTrip" };
   const beats = t.ops.reduce((n, o) => n + (o.op === "care" ? 0 : o.n), 0);
-  if (start.beat + beats > Math.floor(now / BEAT_MS) || t.endBeat > Math.floor(now / BEAT_MS)) return { ok: false, reason: "aheadOfTime" };
+  if (start.beat + beats > Math.floor(now / BEAT_MS) || t.endBeat > Math.floor(now / BEAT_MS))
+    return { ok: false, reason: "aheadOfTime" };
   const done = replayOps(start, brain, t.ops, snacks);
   if (!done.ok) return done;
   const words = done.pet.pendingLog.length - start.pendingLog.length;
-  if (done.pet.beat !== t.endBeat || petDigest(done.pet, words) !== t.endDigest) return { ok: false, reason: "differs" };
+  if (done.pet.beat !== t.endBeat || petDigest(done.pet, words) !== t.endDigest)
+    return { ok: false, reason: "differs" };
   return { ok: true, pet: done.pet, snacks: done.snacks, words, cares: done.cares };
 }
 

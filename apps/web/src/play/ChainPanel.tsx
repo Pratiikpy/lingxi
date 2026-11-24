@@ -59,12 +59,27 @@ const ERR: Record<string, Key> = {
 };
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
-const dateOf = (sec: number, lang: string) => new Date(sec * 1000).toLocaleDateString(lang === "zh" ? "zh-CN" : "en", { month: "short", day: "numeric" });
+const dateOf = (sec: number, lang: string) =>
+  new Date(sec * 1000).toLocaleDateString(lang === "zh" ? "zh-CN" : "en", { month: "short", day: "numeric" });
 
 export function ChainPanel({ pet }: { pet: Pet }) {
   const t = useT();
   const lang = useLang((s) => s.lang);
-  const { record, busy, error, keep, saveToday, updateMind, exportLog, enableAuto, endSitting, sitWith, freeOn, checkFree, keepFree } = useChain();
+  const {
+    record,
+    busy,
+    error,
+    keep,
+    saveToday,
+    updateMind,
+    exportLog,
+    enableAuto,
+    endSitting,
+    sitWith,
+    freeOn,
+    checkFree,
+    keepFree,
+  } = useChain();
   // keeping for free opens once the player has really played: the first lesson taught (H4); read at each render, which
   // the world store triggers when a quest is handed in
   useWorld((s) => s.world);
@@ -81,16 +96,33 @@ export function ChainPanel({ pet }: { pet: Pet }) {
   useEffect(() => {
     if (auto === "off") return;
     let live = true;
-    autoGasLow().then((low) => live && setLowGas(low), () => {});
+    autoGasLow().then(
+      (low) => live && setLowGas(low),
+      () => {},
+    );
     return () => {
       live = false;
     };
   }, [auto, record?.lastTx]);
   if (!deployment) return null;
-  const busyText = busy === "connecting" ? t("chain.connecting") : busy === "hatching" ? t("chain.hatching") : busy === "saving" ? t("chain.saving") : busy === "taping" ? t("chain.taping") : busy === "auto" ? t("auto.saving") : null;
-  const mindBehind = record && (record.brainKey ?? mindKey([])) !== mindKey(pet.lessons, pet.instincts, pet.outside, ruleSkillIds(pet.growth));
+  const busyText =
+    busy === "connecting"
+      ? t("chain.connecting")
+      : busy === "hatching"
+        ? t("chain.hatching")
+        : busy === "saving"
+          ? t("chain.saving")
+          : busy === "taping"
+            ? t("chain.taping")
+            : busy === "auto"
+              ? t("auto.saving")
+              : null;
+  const mindBehind =
+    record &&
+    (record.brainKey ?? mindKey([])) !== mindKey(pet.lessons, pet.instincts, pet.outside, ruleSkillIds(pet.growth));
   // kept, but the move onto its own instinct circuit did not finish (A20): it has not learned anything, so say what is left
-  const instinctsBehind = mindBehind && !!pet.instincts && pet.lessons.length === 0 && (record.brainKey ?? mindKey([])) === mindKey([]);
+  const instinctsBehind =
+    mindBehind && !!pet.instincts && pet.lessons.length === 0 && (record.brainKey ?? mindKey([])) === mindKey([]);
   const err = error ? t(ERR[error] ?? "chain.failed") : null;
   // a friend's pet: the sitter may save its day (PetRegistry lets the named sitter), and nothing else here
   if (pet.sitting || pet.away)
@@ -103,15 +135,32 @@ export function ChainPanel({ pet }: { pet: Pet }) {
               <b>{t("chain.id", { id: record.petId })}</b>
               <span>{record.lastDay ? t("chain.saved", { n: record.lastDay }) : t("chain.never")}</span>
             </div>
-            <p className="small">{lang === "zh" ? "如果主人把你的钱包设为了照看人，你可以帮它存今天的档。" : "If its owner named your wallet as its sitter on chain, you can save its day."}</p>
-            <button type="button" className="btn primary" disabled={busy !== "idle"} onClick={() => (play("tap"), saveToday(pet, () => (play("success"), say("saved"))))}>
+            <p className="small">
+              {lang === "zh"
+                ? "如果主人把你的钱包设为了照看人，你可以帮它存今天的档。"
+                : "If its owner named your wallet as its sitter on chain, you can save its day."}
+            </p>
+            <button
+              type="button"
+              className="btn primary"
+              disabled={busy !== "idle"}
+              onClick={() => (play("tap"), saveToday(pet, () => (play("success"), say("saved"))))}
+            >
               {t("chain.save")}
             </button>
             {busyText && <p className="small">{busyText}</p>}
             {err && <p className="small sp-warn">{err}</p>}
           </>
         ) : (
-          <p className="small">{pet.away ? (lang === "zh" ? "它不在家，回来后再存档。" : "It is away; saving waits until it is home.") : lang === "zh" ? "它还不在链上，这要由它的主人来做。" : "It isn't on chain yet; that is for its owner to do."}</p>
+          <p className="small">
+            {pet.away
+              ? lang === "zh"
+                ? "它不在家，回来后再存档。"
+                : "It is away; saving waits until it is home."
+              : lang === "zh"
+                ? "它还不在链上，这要由它的主人来做。"
+                : "It isn't on chain yet; that is for its owner to do."}
+          </p>
         )}
       </div>
     );
@@ -125,7 +174,13 @@ export function ChainPanel({ pet }: { pet: Pet }) {
             <span>{record.lastDay ? t("chain.saved", { n: record.lastDay }) : t("chain.never")}</span>
           </div>
           <div className="row">
-            <button type="button" className="btn primary" disabled={busy !== "idle"} onClick={() => (play("tap"), saveToday(pet, () => (play("success"), say("saved"))))} data-hint="keep">
+            <button
+              type="button"
+              className="btn primary"
+              disabled={busy !== "idle"}
+              onClick={() => (play("tap"), saveToday(pet, () => (play("success"), say("saved"))))}
+              data-hint="keep"
+            >
               {t("chain.save")}
             </button>
             <a className="btn" href={`verify.html#${record.petId}`}>
@@ -145,81 +200,125 @@ export function ChainPanel({ pet }: { pet: Pet }) {
             <DeviceKept pet={pet} lowGas={lowGas} />
           ) : (
             <>
-            <div className="keeping">
-              <p className="label">{t("auto.title")}</p>
-              {auto === "off" ? (
-                <>
-                  <p className="small">{t("auto.pitch", { name: pet.name })}</p>
-                  <button type="button" className="btn primary" disabled={busy !== "idle"} onClick={() => (play("tap"), enableAuto(pet))}>
-                    {t("auto.on")}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <p className="small">{t(auto === "ending" ? "auto.ending" : "auto.until", { date: dateOf(record.autoUntil!, lang) })}</p>
-                  {lowGas && <p className="err">{t("auto.lowGas")}</p>}
-                  <div className="row">
-                    {(auto === "ending" || lowGas) && (
-                      <button type="button" className="btn primary" disabled={busy !== "idle"} onClick={() => (play("tap"), enableAuto(pet))}>
-                        {t("auto.renew")}
+              <div className="keeping">
+                <p className="label">{t("auto.title")}</p>
+                {auto === "off" ? (
+                  <>
+                    <p className="small">{t("auto.pitch", { name: pet.name })}</p>
+                    <button
+                      type="button"
+                      className="btn primary"
+                      disabled={busy !== "idle"}
+                      onClick={() => (play("tap"), enableAuto(pet))}
+                    >
+                      {t("auto.on")}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="small">
+                      {t(auto === "ending" ? "auto.ending" : "auto.until", { date: dateOf(record.autoUntil!, lang) })}
+                    </p>
+                    {lowGas && <p className="err">{t("auto.lowGas")}</p>}
+                    <div className="row">
+                      {(auto === "ending" || lowGas) && (
+                        <button
+                          type="button"
+                          className="btn primary"
+                          disabled={busy !== "idle"}
+                          onClick={() => (play("tap"), enableAuto(pet))}
+                        >
+                          {t("auto.renew")}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="btn"
+                        disabled={busy !== "idle"}
+                        onClick={() => (play("tap"), endSitting(pet))}
+                      >
+                        {t("auto.off")}
                       </button>
-                    )}
-                    <button type="button" className="btn" disabled={busy !== "idle"} onClick={() => (play("tap"), endSitting(pet))}>
-                      {t("auto.off")}
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className="keeping">
+                <p className="label">{t("sit.title")}</p>
+                {record.sitter && record.sitter.until * 1000 > now() ? (
+                  <>
+                    <p className="small">
+                      {t("sit.now", { who: short(record.sitter.who), date: dateOf(record.sitter.until, lang) })}
+                    </p>
+                    <button
+                      type="button"
+                      className="btn"
+                      disabled={busy !== "idle"}
+                      onClick={() => (play("tap"), endSitting(pet))}
+                    >
+                      {t("sit.end")}
                     </button>
-                  </div>
-                </>
-              )}
-            </div>
-            <div className="keeping">
-              <p className="label">{t("sit.title")}</p>
-              {record.sitter && record.sitter.until * 1000 > now() ? (
-                <>
-                  <p className="small">{t("sit.now", { who: short(record.sitter.who), date: dateOf(record.sitter.until, lang) })}</p>
-                  <button type="button" className="btn" disabled={busy !== "idle"} onClick={() => (play("tap"), endSitting(pet))}>
-                    {t("sit.end")}
-                  </button>
-                </>
-              ) : (
-                <form
-                  className="sit-form"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    play("tap");
-                    void sitWith(pet, friend.trim(), days).then((ok) => ok && (setFriend(""), play("success")));
-                  }}
-                >
-                  <p className="small">{t("sit.pitch", { name: pet.name })}</p>
-                  <label className="sr" htmlFor="sit-who">
-                    {t("sit.who")}
-                  </label>
-                  <input id="sit-who" className="input mono" placeholder="0x…" value={friend} onChange={(e) => setFriend(e.target.value)} autoComplete="off" spellCheck={false} />
-                  <div className="row">
-                    <label className="small" htmlFor="sit-days">
-                      {t("sit.days")}
+                  </>
+                ) : (
+                  <form
+                    className="sit-form"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      play("tap");
+                      void sitWith(pet, friend.trim(), days).then((ok) => ok && (setFriend(""), play("success")));
+                    }}
+                  >
+                    <p className="small">{t("sit.pitch", { name: pet.name })}</p>
+                    <label className="sr" htmlFor="sit-who">
+                      {t("sit.who")}
                     </label>
-                    <select id="sit-days" className="input" value={days} onChange={(e) => setDays(Number(e.target.value))}>
-                      {[1, 3, 7, 14, 30].map((d) => (
-                        <option key={d} value={d}>
-                          {d === 1 ? t("sit.day1") : t("sit.dayN", { n: d })}
-                        </option>
-                      ))}
-                    </select>
-                    <button type="submit" className="btn primary" disabled={busy !== "idle" || !friend.trim()}>
-                      {t("sit.go")}
-                    </button>
-                  </div>
-                  {auto !== "off" && <p className="small">{t("sit.pausesAuto")}</p>}
-                </form>
-              )}
-            </div>
+                    <input
+                      id="sit-who"
+                      className="input mono"
+                      placeholder="0x…"
+                      value={friend}
+                      onChange={(e) => setFriend(e.target.value)}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                    <div className="row">
+                      <label className="small" htmlFor="sit-days">
+                        {t("sit.days")}
+                      </label>
+                      <select
+                        id="sit-days"
+                        className="input"
+                        value={days}
+                        onChange={(e) => setDays(Number(e.target.value))}
+                      >
+                        {[1, 3, 7, 14, 30].map((d) => (
+                          <option key={d} value={d}>
+                            {d === 1 ? t("sit.day1") : t("sit.dayN", { n: d })}
+                          </option>
+                        ))}
+                      </select>
+                      <button type="submit" className="btn primary" disabled={busy !== "idle" || !friend.trim()}>
+                        {t("sit.go")}
+                      </button>
+                    </div>
+                    {auto !== "off" && <p className="small">{t("sit.pausesAuto")}</p>}
+                  </form>
+                )}
+              </div>
             </>
           )}
           {mindBehind && (
             <div className="mind-behind">
-              <p className="small">{t(instinctsBehind ? "chain.instinctsBehind" : "chain.mindBehind", { name: pet.name })}</p>
+              <p className="small">
+                {t(instinctsBehind ? "chain.instinctsBehind" : "chain.mindBehind", { name: pet.name })}
+              </p>
               {relayAvailable() && (
-                <button type="button" className="btn primary" disabled={busy !== "idle"} onClick={() => (play("tap"), updateMind(pet))}>
+                <button
+                  type="button"
+                  className="btn primary"
+                  disabled={busy !== "idle"}
+                  onClick={() => (play("tap"), updateMind(pet))}
+                >
                   {t("chain.updateMind")}
                 </button>
               )}
@@ -241,7 +340,13 @@ export function ChainPanel({ pet }: { pet: Pet }) {
           {freeOn && firstLessonDone ? (
             <>
               <p className="small">{t("free.pitch", { name: pet.name })}</p>
-              <button type="button" className="btn primary" disabled={busy !== "idle"} onClick={() => (play("tap"), keepFree(pet))} data-hint="keep">
+              <button
+                type="button"
+                className="btn primary"
+                disabled={busy !== "idle"}
+                onClick={() => (play("tap"), keepFree(pet))}
+                data-hint="keep"
+              >
                 {t("free.keep", { name: pet.name })}
               </button>
               <p className="small">{t("free.orWallet")}</p>
@@ -253,20 +358,36 @@ export function ChainPanel({ pet }: { pet: Pet }) {
             <>
               {freeOn && <p className="small">{t("free.later")}</p>}
               <p className="small">{t("chain.cost")}</p>
-              <button type="button" className="btn primary" disabled={busy !== "idle"} onClick={() => (play("tap"), keep(pet))} data-hint="keep">
+              <button
+                type="button"
+                className="btn primary"
+                disabled={busy !== "idle"}
+                onClick={() => (play("tap"), keep(pet))}
+                data-hint="keep"
+              >
                 {t("chain.keep", { name: pet.name })}
               </button>
             </>
           )}
         </>
       )}
-      {busyText && <p className="small thinking-dots" aria-live="polite">{busyText}</p>}
-      {err && <p className="err" role="alert">{err}</p>}
+      {busyText && (
+        <p className="small thinking-dots" aria-live="polite">
+          {busyText}
+        </p>
+      )}
+      {err && (
+        <p className="err" role="alert">
+          {err}
+        </p>
+      )}
     </div>
   );
 }
 
-const DIARY_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const DIARY_BASE =
+  (import.meta.env.VITE_API_URL as string | undefined) ??
+  (location.hostname === "localhost" ? "http://localhost:8787" : "");
 
 /** Z1: put the diary on the pet's public page. The server keeps it only if it matches the log hash saved on chain. */
 function PublishDiary({ pet, petId, log }: { pet: Pet; petId: string; log: string | null }) {
@@ -294,29 +415,52 @@ function PublishDiary({ pet, petId, log }: { pet: Pet; petId: string; log: strin
           try {
             // measured before it leaves: a diary over the page's limit is never sent
             checkSize(log, SEND_LIMITS.logBodyBytes, { unit: "words", have: words, most: SEND_LIMITS.logWords });
-            const r = await fetch(`${DIARY_BASE}/api/pets/${petId}/log`, { method: "POST", headers: { "content-type": "application/json" }, body: log, signal: AbortSignal.timeout(20000) });
+            const r = await fetch(`${DIARY_BASE}/api/pets/${petId}/log`, {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: log,
+              signal: AbortSignal.timeout(20000),
+            });
             const j = (await r.json()) as { ok: boolean; beats?: number; reason?: string };
             play(j.ok ? "success" : "error");
             setNote(
               j.ok
-                ? L(`Published: ${j.beats} moments, checked against the chain. Its page shows them now.`, `已发布：${j.beats} 个时刻，已对照链上核对。它的页面现在会显示。`)
+                ? L(
+                    `Published: ${j.beats} moments, checked against the chain. Its page shows them now.`,
+                    `已发布：${j.beats} 个时刻，已对照链上核对。它的页面现在会显示。`,
+                  )
                 : j.reason === "mismatch"
-                  ? L("It doesn't match what is saved on chain yet. Save today first, then publish.", "和链上保存的还对不上。请先保存今天，再发布。")
+                  ? L(
+                      "It doesn't match what is saved on chain yet. Save today first, then publish.",
+                      "和链上保存的还对不上。请先保存今天，再发布。",
+                    )
                   : j.reason === "older"
                     ? L("A longer diary is already on its page.", "它的页面上已经有更长的日记了。")
                     : j.reason === "tooLong"
-                      ? L(`This diary has more moments than ${pet.name} has lived on X Layer, so it wasn't kept.`, `这本日记的时刻比${pet.name}在 X Layer 上活过的还多，所以没有收下。`)
+                      ? L(
+                          `This diary has more moments than ${pet.name} has lived on X Layer, so it wasn't kept.`,
+                          `这本日记的时刻比${pet.name}在 X Layer 上活过的还多，所以没有收下。`,
+                        )
                       : j.reason === "busy"
-                        ? L("Enough diaries have been published from here today. Try again tomorrow.", "今天从这里发布的日记已经够多了，明天再试。")
+                        ? L(
+                            "Enough diaries have been published from here today. Try again tomorrow.",
+                            "今天从这里发布的日记已经够多了，明天再试。",
+                          )
                         : j.reason === "full"
-                          ? L("The diary shelf is full just now, so nothing was kept. Try again later.", "日记架暂时满了，什么都没有收下。请稍后再试。")
+                          ? L(
+                              "The diary shelf is full just now, so nothing was kept. Try again later.",
+                              "日记架暂时满了，什么都没有收下。请稍后再试。",
+                            )
                           : L("That didn't go through. Try again later.", "没有成功，请稍后再试。"),
             );
           } catch (e) {
             play("error");
             setNote(
               e instanceof TooBig
-                ? L(`The diary is too long to publish in one go ${sizeNote(e, lang)}. Nothing was sent.`, `日记太长，一次发布不了${sizeNote(e, lang)}。什么都没有发出去。`)
+                ? L(
+                    `The diary is too long to publish in one go ${sizeNote(e, lang)}. Nothing was sent.`,
+                    `日记太长，一次发布不了${sizeNote(e, lang)}。什么都没有发出去。`,
+                  )
                 : L("That didn't go through. Try again later.", "没有成功，请稍后再试。"),
             );
           }
@@ -325,7 +469,11 @@ function PublishDiary({ pet, petId, log }: { pet: Pet; petId: string; log: strin
       >
         {busy ? L("Publishing…", "发布中……") : L("Publish its diary", "发布日记")}
       </button>
-      {note && <p className="small" role="status">{note}</p>}
+      {note && (
+        <p className="small" role="status">
+          {note}
+        </p>
+      )}
     </div>
   );
 }

@@ -1,5 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { HOME, ITEM, MOVE_ENERGY, RECIPES, ROOMS, type WorldState, buy, claim, craft, forage, give, move, neighbours, newWorld, openBox, take } from "../src/world";
+import {
+  HOME,
+  ITEM,
+  MOVE_ENERGY,
+  RECIPES,
+  ROOMS,
+  type WorldState,
+  buy,
+  claim,
+  craft,
+  forage,
+  give,
+  move,
+  neighbours,
+  newWorld,
+  openBox,
+  take,
+} from "../src/world";
 import { QUESTS, questState } from "../src/quests";
 
 const T0 = Date.UTC(2026, 10, 16, 2);
@@ -23,7 +40,9 @@ describe("the map", () => {
         queue.push(n);
       }
     }
-    const unreachable = Object.keys(ROOMS).map(Number).filter((r) => !seen.has(r));
+    const unreachable = Object.keys(ROOMS)
+      .map(Number)
+      .filter((r) => !seen.has(r));
     expect(unreachable).toEqual([]);
   });
   it("neighbours are symmetric", () => {
@@ -84,23 +103,34 @@ describe("shop, workbench, bag", () => {
       expect(made.ok, name).toBe(true);
       if (!made.ok) continue;
       expect(made.world.bag[r.out], name).toBe(r.outAmount);
-      for (const x of r.ins) if (x.item !== r.out) expect(made.world.bag[x.item] ?? 0, `${name}: ${x.item} used up`).toBe(0);
+      for (const x of r.ins)
+        if (x.item !== r.out) expect(made.world.bag[x.item] ?? 0, `${name}: ${x.item} used up`).toBe(0);
       if (r.tool !== undefined) expect(made.world.bag[r.tool], `${name}: the tool stays`).toBe(1);
       expect([made.energy, made.xp]).toEqual([r.energy, r.xp]);
       // work costs energy, except the offering at the shrine (no stamina in the source either)
       if (r.room === undefined) expect(r.energy, name).toBeGreaterThan(0);
       // each missing piece is named
-      if (r.tool !== undefined) expect(craft({ ...w, bag: { ...w.bag, [r.tool]: 0 } }, r.index, r.energy), name).toEqual({ ok: false, reason: "tool" });
-      if (r.room !== undefined) expect(craft({ ...w, room: HOME }, r.index, r.energy), name).toEqual({ ok: false, reason: "room" });
+      if (r.tool !== undefined)
+        expect(craft({ ...w, bag: { ...w.bag, [r.tool]: 0 } }, r.index, r.energy), name).toEqual({
+          ok: false,
+          reason: "tool",
+        });
+      if (r.room !== undefined)
+        expect(craft({ ...w, room: HOME }, r.index, r.energy), name).toEqual({ ok: false, reason: "room" });
       const first = r.ins[0]!;
-      expect(craft({ ...w, bag: { ...w.bag, [first.item]: first.amount - 1 } }, r.index, r.energy), name).toEqual({ ok: false, reason: "missing" });
+      expect(craft({ ...w, bag: { ...w.bag, [first.item]: first.amount - 1 } }, r.index, r.energy), name).toEqual({
+        ok: false,
+        reason: "missing",
+      });
       if (r.energy > 0) expect(craft(w, r.index, r.energy - 1), name).toEqual({ ok: false, reason: "tired" });
     }
   });
 
   it("quest 37 says what the bench does: three pebbles make a stone block, no tool needed (G8, small batch beside the bulk)", () => {
     // G6 adds small batches from fossil too; quest 37's is the pebble one
-    const small = RECIPES.filter((r) => r.out === 1301 && r.tool === undefined && r.room === undefined && r.ins.some((x) => x.item === 1002));
+    const small = RECIPES.filter(
+      (r) => r.out === 1301 && r.tool === undefined && r.room === undefined && r.ins.some((x) => x.item === 1002),
+    );
     expect(small.map((r) => r.ins)).toEqual([[{ item: 1002, amount: 3 }]]);
     let w: WorldState = { ...newWorld("s"), bag: {} };
     w = give(w, 1002, 3);
@@ -114,7 +144,10 @@ describe("shop, workbench, bag", () => {
     const pollen = RECIPES.find((r) => r.out === 1104)!;
     expect(pollen.outAmount).toBe(500);
     const study = RECIPES.find((r) => r.out === 11401)!;
-    expect(study.ins).toEqual([{ item: 1003, amount: 1 }, { item: 1104, amount: 1000 }]);
+    expect(study.ins).toEqual([
+      { item: 1003, amount: 1 },
+      { item: 1104, amount: 1000 },
+    ]);
     expect([study.tool, study.energy, study.xp]).toEqual([23101, 60, 7]);
     // the room-only recipe: an old coin offered at the shrine
     const offer = RECIPES.find((r) => r.room !== undefined)!;
@@ -158,10 +191,20 @@ describe("quests", () => {
   // B6: a milestone that repeats a story quest's deed pays nothing of its own: it is done when the story quest is
   it("a milestone that repeats a story quest is done with it, never paid twice", () => {
     const mirrored = QUESTS.filter((q) => q.story);
-    expect(mirrored.map((q) => q.id).sort()).toEqual(["bath", "explorer", "firstLesson", "firstMeal", "hello", "maker"]);
+    expect(mirrored.map((q) => q.id).sort()).toEqual([
+      "bath",
+      "explorer",
+      "firstLesson",
+      "firstMeal",
+      "hello",
+      "maker",
+    ]);
     const w = newWorld("s");
     const hello = QUESTS.find((q) => q.id === "hello")!;
-    expect(questState(hello, { ...view, world: w }, w.claimed), "the pats are given, but the story quest pays for them").toBe("active");
+    expect(
+      questState(hello, { ...view, world: w }, w.claimed),
+      "the pats are given, but the story quest pays for them",
+    ).toBe("active");
     expect(claim(w, "hello", view)).toEqual({ ok: false, reason: "notReady" });
     const told = { ...w, quests: { active: {}, done: { q01: T0 } } };
     expect(questState(hello, { ...view, world: told }, told.claimed)).toBe("claimed");

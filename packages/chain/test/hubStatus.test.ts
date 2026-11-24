@@ -17,7 +17,8 @@ const PROCESSOR_CODE: Hex = "0x6080604052";
 function chain(impl: Address, pin: Hex | "reverts") {
   const called: Address[] = [];
   const pub = {
-    getStorageAt: async ({ address, slot }: { address: Address; slot: Hex }) => (address === HUB && slot === IMPL_SLOT ? (`0x000000000000000000000000${impl.slice(2)}` as Hex) : ("0x" as Hex)),
+    getStorageAt: async ({ address, slot }: { address: Address; slot: Hex }) =>
+      address === HUB && slot === IMPL_SLOT ? (`0x000000000000000000000000${impl.slice(2)}` as Hex) : ("0x" as Hex),
     readContract: async ({ address }: { address: Address }) => {
       called.push(address);
       if (pin === "reverts") throw new Error(`The contract function "circuitCodehash" reverted.`);

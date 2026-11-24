@@ -12,7 +12,11 @@ import { useWorld } from "./world";
 
 /** The wallets to read: every wallet that owns a pet on this device, and the one connected to the market. */
 export function chainWallets(extra?: string | null): `0x${string}`[] {
-  const all = [...deviceWallets(), ...(extra ? [extra.toLowerCase()] : []), ...(useDesigns.getState().wallet ? [useDesigns.getState().wallet!.toLowerCase()] : [])];
+  const all = [
+    ...deviceWallets(),
+    ...(extra ? [extra.toLowerCase()] : []),
+    ...(useDesigns.getState().wallet ? [useDesigns.getState().wallet!.toLowerCase()] : []),
+  ];
   return [...new Set(all)].filter((w): w is `0x${string}` => /^0x[0-9a-f]{40}$/.test(w)).slice(0, 8);
 }
 

@@ -6,7 +6,11 @@
 const LINES = ["gentle", "bold", "curious"] as const;
 
 /** The line (0 gentle, 1 bold, 2 curious) whose starter `brainId` is, when that is not the pet's own `line`; else null. */
-export function otherStarter(line: number, brainId: bigint, circuits: Partial<Record<string, { id: string }>> | undefined): number | null {
+export function otherStarter(
+  line: number,
+  brainId: bigint,
+  circuits: Partial<Record<string, { id: string }>> | undefined,
+): number | null {
   if (!circuits) return null;
   const of = LINES.findIndex((l) => circuits[l]?.id === brainId.toString());
   return of >= 0 && of !== line ? of : null;

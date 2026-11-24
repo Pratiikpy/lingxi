@@ -9,7 +9,11 @@ import { withSite } from "../src/server";
 function site(withPage = true) {
   const root = mkdtempSync(join(tmpdir(), "site-"));
   writeFileSync(join(root, "index.html"), "<!doctype html><title>home</title>");
-  if (withPage) writeFileSync(join(root, "404.html"), "<!doctype html><title>Not here · Lingxi</title><h1>This page isn't here</h1>");
+  if (withPage)
+    writeFileSync(
+      join(root, "404.html"),
+      "<!doctype html><title>Not here · Lingxi</title><h1>This page isn't here</h1>",
+    );
   return withSite(new Hono(), relative(process.cwd(), root));
 }
 

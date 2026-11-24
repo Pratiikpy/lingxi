@@ -8,10 +8,77 @@
 
 import { keccak_256 } from "@noble/hashes/sha3";
 
-const EN_START = ["Mo", "Pi", "Ko", "Lu", "Na", "Bo", "Ri", "Su", "Ta", "Mi", "Po", "Ki", "Nu", "Ra", "Fi", "Yu"] as const;
-const EN_MID = ["chi", "po", "ri", "ko", "na", "mi", "lu", "bi", "ta", "su", "ni", "pa", "do", "ke", "mu", "le"] as const;
+const EN_START = [
+  "Mo",
+  "Pi",
+  "Ko",
+  "Lu",
+  "Na",
+  "Bo",
+  "Ri",
+  "Su",
+  "Ta",
+  "Mi",
+  "Po",
+  "Ki",
+  "Nu",
+  "Ra",
+  "Fi",
+  "Yu",
+] as const;
+const EN_MID = [
+  "chi",
+  "po",
+  "ri",
+  "ko",
+  "na",
+  "mi",
+  "lu",
+  "bi",
+  "ta",
+  "su",
+  "ni",
+  "pa",
+  "do",
+  "ke",
+  "mu",
+  "le",
+] as const;
 const EN_END = ["", "", "", "n", "s", "ko", "bo", "li"] as const;
-const ZH = ["团", "糖", "豆", "圆", "桃", "米", "球", "布", "丁", "麻", "薯", "果", "奶", "泡", "芝", "糯", "云", "星", "毛", "芽", "栗", "柚", "酥", "雪", "橙", "汤", "饼", "棉", "梨", "卷", "铃", "莓"] as const;
+const ZH = [
+  "团",
+  "糖",
+  "豆",
+  "圆",
+  "桃",
+  "米",
+  "球",
+  "布",
+  "丁",
+  "麻",
+  "薯",
+  "果",
+  "奶",
+  "泡",
+  "芝",
+  "糯",
+  "云",
+  "星",
+  "毛",
+  "芽",
+  "栗",
+  "柚",
+  "酥",
+  "雪",
+  "橙",
+  "汤",
+  "饼",
+  "棉",
+  "梨",
+  "卷",
+  "铃",
+  "莓",
+] as const;
 
 export interface BrainName {
   en: string;
@@ -45,9 +112,23 @@ export function nameFromBrain(netlist: Uint8Array, draw = 0): BrainName {
  */
 export function hiddenCodePoint(cp: number): boolean {
   return (
-    (cp >= 0x80 && cp <= 0xa0) || cp === 0xad || cp === 0x34f || cp === 0x61c || cp === 0x115f || cp === 0x1160 || (cp >= 0x17b4 && cp <= 0x17b5) ||
-    (cp >= 0x180b && cp <= 0x180f) || (cp >= 0x2000 && cp <= 0x206f) || cp === 0x3000 || cp === 0x3164 || (cp >= 0xfe00 && cp <= 0xfe0f) ||
-    cp === 0xfeff || cp === 0xffa0 || (cp >= 0xfff0 && cp <= 0xfffb) || (cp >= 0x1bca0 && cp <= 0x1bca3) || (cp >= 0x1d173 && cp <= 0x1d17a) ||
+    (cp >= 0x80 && cp <= 0xa0) ||
+    cp === 0xad ||
+    cp === 0x34f ||
+    cp === 0x61c ||
+    cp === 0x115f ||
+    cp === 0x1160 ||
+    (cp >= 0x17b4 && cp <= 0x17b5) ||
+    (cp >= 0x180b && cp <= 0x180f) ||
+    (cp >= 0x2000 && cp <= 0x206f) ||
+    cp === 0x3000 ||
+    cp === 0x3164 ||
+    (cp >= 0xfe00 && cp <= 0xfe0f) ||
+    cp === 0xfeff ||
+    cp === 0xffa0 ||
+    (cp >= 0xfff0 && cp <= 0xfffb) ||
+    (cp >= 0x1bca0 && cp <= 0x1bca3) ||
+    (cp >= 0x1d173 && cp <= 0x1d17a) ||
     (cp >= 0xe0000 && cp <= 0xe0fff)
   );
 }
@@ -60,10 +141,27 @@ export function hiddenCodePoint(cp: number): boolean {
  */
 export function invisibleCodePoint(cp: number): boolean {
   return (
-    (cp >= 0x80 && cp <= 0xa0) || cp === 0xad || cp === 0x34f || cp === 0x61c || cp === 0x115f || cp === 0x1160 || cp === 0x1680 ||
-    (cp >= 0x17b4 && cp <= 0x17b5) || (cp >= 0x180b && cp <= 0x180f) || (cp >= 0x2000 && cp <= 0x200f) || (cp >= 0x2028 && cp <= 0x202f) ||
-    (cp >= 0x205f && cp <= 0x206f) || cp === 0x3000 || cp === 0x3164 || (cp >= 0xfe00 && cp <= 0xfe0f) || cp === 0xfeff || cp === 0xffa0 ||
-    (cp >= 0xfff0 && cp <= 0xfffb) || (cp >= 0x1bca0 && cp <= 0x1bca3) || (cp >= 0x1d173 && cp <= 0x1d17a) || (cp >= 0xe0000 && cp <= 0xe0fff)
+    (cp >= 0x80 && cp <= 0xa0) ||
+    cp === 0xad ||
+    cp === 0x34f ||
+    cp === 0x61c ||
+    cp === 0x115f ||
+    cp === 0x1160 ||
+    cp === 0x1680 ||
+    (cp >= 0x17b4 && cp <= 0x17b5) ||
+    (cp >= 0x180b && cp <= 0x180f) ||
+    (cp >= 0x2000 && cp <= 0x200f) ||
+    (cp >= 0x2028 && cp <= 0x202f) ||
+    (cp >= 0x205f && cp <= 0x206f) ||
+    cp === 0x3000 ||
+    cp === 0x3164 ||
+    (cp >= 0xfe00 && cp <= 0xfe0f) ||
+    cp === 0xfeff ||
+    cp === 0xffa0 ||
+    (cp >= 0xfff0 && cp <= 0xfffb) ||
+    (cp >= 0x1bca0 && cp <= 0x1bca3) ||
+    (cp >= 0x1d173 && cp <= 0x1d17a) ||
+    (cp >= 0xe0000 && cp <= 0xe0fff)
   );
 }
 
@@ -81,7 +179,8 @@ const isSkinTone = (ch: string) => ch.codePointAt(0)! >= 0x1f3fb && ch.codePoint
 function inEmoji(chars: readonly string[], i: number): boolean {
   const cp = chars[i]!.codePointAt(0)!;
   const before = chars[i - 1];
-  if (cp === 0xfe0e || cp === 0xfe0f) return before !== undefined && (PICTOGRAPH.test(before) || (KEYCAP_BASE.test(before) && chars[i + 1] === "\u20e3"));
+  if (cp === 0xfe0e || cp === 0xfe0f)
+    return before !== undefined && (PICTOGRAPH.test(before) || (KEYCAP_BASE.test(before) && chars[i + 1] === "\u20e3"));
   if (cp === 0x200d) {
     let j = i - 1;
     while (j >= 0 && (chars[j] === "\ufe0f" || isSkinTone(chars[j]!))) j--;
@@ -96,7 +195,8 @@ function inEmoji(chars: readonly string[], i: number): boolean {
   return false;
 }
 
-const shows = (chars: readonly string[], i: number) => !invisibleCodePoint(chars[i]!.codePointAt(0)!) || inEmoji(chars, i);
+const shows = (chars: readonly string[], i: number) =>
+  !invisibleCodePoint(chars[i]!.codePointAt(0)!) || inEmoji(chars, i);
 
 /** A name with every character that draws as nothing taken out: what a player typed, as it can be seen (a pet's own name). */
 export function stripHidden(name: string): string {
@@ -124,7 +224,10 @@ export const NAME_MAX = 12;
 
 // one visible character is one grapheme cluster: an emoji with its skin tone, a family joined by ZWJ, a flag, a letter
 // with its accents. Every browser the game supports and Node have Intl.Segmenter; code points are the fallback
-const segmenter = typeof Intl !== "undefined" && "Segmenter" in Intl ? new Intl.Segmenter(undefined, { granularity: "grapheme" }) : null;
+const segmenter =
+  typeof Intl !== "undefined" && "Segmenter" in Intl
+    ? new Intl.Segmenter(undefined, { granularity: "grapheme" })
+    : null;
 
 /** The visible characters of `text`, in order (P5). */
 export function graphemes(text: string): string[] {

@@ -31,9 +31,15 @@ const partName = (key: string, lang: string) => {
 /** This tab does not play: another has the game (or, for the handheld page, the handheld). */
 export function ElsewhereScreen({ handheld = false, onHere = playHere }: { handheld?: boolean; onHere?: () => void }) {
   const { lang } = useLang();
-  const title = handheld ? L(lang, "The handheld is open in another tab", "掌机在另一个标签页里开着") : L(lang, "Lingxi is open in another tab", "灵犀在另一个标签页里开着");
+  const title = handheld
+    ? L(lang, "The handheld is open in another tab", "掌机在另一个标签页里开着")
+    : L(lang, "Lingxi is open in another tab", "灵犀在另一个标签页里开着");
   const text = handheld
-    ? L(lang, "The handheld runs in one tab at a time, so its memory is never written twice. Close the other tab, or move it here.", "掌机一次只在一个标签页里运行，这样它的记忆不会被写两次。关掉另一个标签页，或者把它挪到这里。")
+    ? L(
+        lang,
+        "The handheld runs in one tab at a time, so its memory is never written twice. Close the other tab, or move it here.",
+        "掌机一次只在一个标签页里运行，这样它的记忆不会被写两次。关掉另一个标签页，或者把它挪到这里。",
+      )
     : L(
         lang,
         "Your pet plays in one tab at a time, so nothing you do is ever written twice or lost. Close the other tab, or move the game here.",
@@ -97,7 +103,11 @@ export function RecoveryScreen({ damaged, onDone }: { damaged: Held[]; onDone: (
         </p>
         {newer && (
           <p>
-            {L(lang, "Part of it was saved by a newer Lingxi than this page. Reloading usually brings the newest version, which can read it.", "有一部分是比这个页面更新的灵犀保存的。刷新页面一般就会换到最新版本，它能读出来。")}
+            {L(
+              lang,
+              "Part of it was saved by a newer Lingxi than this page. Reloading usually brings the newest version, which can read it.",
+              "有一部分是比这个页面更新的灵犀保存的。刷新页面一般就会换到最新版本，它能读出来。",
+            )}
           </p>
         )}
         {newer && (
@@ -111,7 +121,11 @@ export function RecoveryScreen({ damaged, onDone }: { damaged: Held[]; onDone: (
             return (
               <li key={key}>
                 <b>{partName(key, lang)}</b>
-                <span className="small">{why === "newer" ? L(lang, " · saved by a newer Lingxi", " · 更新版本保存的") : L(lang, " · could not be read", " · 读不出来")}</span>
+                <span className="small">
+                  {why === "newer"
+                    ? L(lang, " · saved by a newer Lingxi", " · 更新版本保存的")
+                    : L(lang, " · could not be read", " · 读不出来")}
+                </span>
                 <div className="save-row">
                   {hasCopy && (
                     <button
@@ -119,13 +133,23 @@ export function RecoveryScreen({ damaged, onDone }: { damaged: Held[]; onDone: (
                       className="save-btn primary"
                       onClick={() => {
                         if (saves.useCopy(key)) settle(key);
-                        else setNote(L(lang, "The copy could not be put back. Try again.", "副本没能恢复，请再试一次。"));
+                        else
+                          setNote(L(lang, "The copy could not be put back. Try again.", "副本没能恢复，请再试一次。"));
                       }}
                     >
                       {L(lang, "Use the last good copy", "用上一个完好的副本")}
                     </button>
                   )}
-                  <button type="button" className="save-btn" onClick={() => download(`lingxi-${key.replace(/^lingxi\./, "")}-as-saved.json`, saves.read(key) ?? saves.read(`${key}~damaged`) ?? "")}>
+                  <button
+                    type="button"
+                    className="save-btn"
+                    onClick={() =>
+                      download(
+                        `lingxi-${key.replace(/^lingxi\./, "")}-as-saved.json`,
+                        saves.read(key) ?? saves.read(`${key}~damaged`) ?? "",
+                      )
+                    }
+                  >
                     {L(lang, "Download it as it is", "原样下载")}
                   </button>
                   <button
@@ -138,7 +162,15 @@ export function RecoveryScreen({ damaged, onDone }: { damaged: Held[]; onDone: (
                     {L(lang, "Start this part afresh", "这一部分重新开始")}
                   </button>
                 </div>
-                {!hasCopy && <p className="small">{L(lang, "There is no earlier copy of this part. Download it first if you want to keep it.", "这一部分没有更早的副本。想留着的话，请先下载。")}</p>}
+                {!hasCopy && (
+                  <p className="small">
+                    {L(
+                      lang,
+                      "There is no earlier copy of this part. Download it first if you want to keep it.",
+                      "这一部分没有更早的副本。想留着的话，请先下载。",
+                    )}
+                  </p>
+                )}
               </li>
             );
           })}
@@ -183,12 +215,28 @@ export function SaveBanner({ onSaveFile }: { onSaveFile?: () => void }) {
   if (!showing) return null;
   const text = failed
     ? failed.reason === "full"
-      ? L(lang, "Lingxi couldn't save: this browser's storage is full. Download your save file to keep everything safe.", "灵犀没能保存：这个浏览器的存储空间满了。请下载存档文件，把一切保存好。")
-      : L(lang, "Lingxi couldn't save: this browser is not letting it store anything. Download your save file to keep everything safe.", "灵犀没能保存：这个浏览器不允许存储。请下载存档文件，把一切保存好。")
-    : L(lang, "This browser's storage for Lingxi is nearly full. Download your save file to keep a copy.", "这个浏览器给灵犀的存储空间快满了。请下载存档文件留一份。");
+      ? L(
+          lang,
+          "Lingxi couldn't save: this browser's storage is full. Download your save file to keep everything safe.",
+          "灵犀没能保存：这个浏览器的存储空间满了。请下载存档文件，把一切保存好。",
+        )
+      : L(
+          lang,
+          "Lingxi couldn't save: this browser is not letting it store anything. Download your save file to keep everything safe.",
+          "灵犀没能保存：这个浏览器不允许存储。请下载存档文件，把一切保存好。",
+        )
+    : L(
+        lang,
+        "This browser's storage for Lingxi is nearly full. Download your save file to keep a copy.",
+        "这个浏览器给灵犀的存储空间快满了。请下载存档文件留一份。",
+      );
   const close = () => (failed ? setClosedFailure(failed.at) : setClosedWarning(true));
   return (
-    <div className={`save-banner${failed ? " bad" : ""}`} role={failed ? "alert" : "status"} style={lift ? { bottom: lift + 8 } : undefined}>
+    <div
+      className={`save-banner${failed ? " bad" : ""}`}
+      role={failed ? "alert" : "status"}
+      style={lift ? { bottom: lift + 8 } : undefined}
+    >
       <span>{text}</span>
       {onSaveFile && (
         <button type="button" className="save-btn primary" onClick={onSaveFile}>

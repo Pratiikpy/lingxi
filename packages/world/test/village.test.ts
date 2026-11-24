@@ -2,7 +2,20 @@
  * D2: a village happening every day, different every day for 90 days, each with an effect a player can use that day.
  */
 import { describe, expect, it } from "vitest";
-import { LUCKY_ROOMS, MARKET_ITEMS, MARKET_ROOM, VILLAGE_GIFTS, buyMarket, happeningAt, happeningOn, happeningUsed, luckyFind, newWorld, takeVillageGift, type WorldState } from "../src";
+import {
+  LUCKY_ROOMS,
+  MARKET_ITEMS,
+  MARKET_ROOM,
+  VILLAGE_GIFTS,
+  buyMarket,
+  happeningAt,
+  happeningOn,
+  happeningUsed,
+  luckyFind,
+  newWorld,
+  takeVillageGift,
+  type WorldState,
+} from "../src";
 
 const day = (n: number) => new Date(Date.UTC(2026, 10, 23) + n * 86_400_000).toISOString().slice(0, 10);
 const at = (d: string, hour = 10) => Date.parse(`${d}T00:00:00Z`) + hour * 3_600_000;
@@ -62,7 +75,16 @@ describe("village happenings (D2)", () => {
   it("rolling the day's errands saves the player's time zone, so the village follows their own day", async () => {
     const { rollDailies, DAILIES } = await import("../src");
     const world = newWorld("tz");
-    const v = { world, pet: { level: 1, stage: "baby" as const, onChain: false, needsMin: 500 }, pets: 1, now: Date.UTC(2026, 10, 23, 20), timeOfDay: 2 as const, day: "2026-11-24", bondLevel: 0, goalsDone: [] as string[] };
+    const v = {
+      world,
+      pet: { level: 1, stage: "baby" as const, onChain: false, needsMin: 500 },
+      pets: 1,
+      now: Date.UTC(2026, 10, 23, 20),
+      timeOfDay: 2 as const,
+      day: "2026-11-24",
+      bondLevel: 0,
+      goalsDone: [] as string[],
+    };
     const w = rollDailies(world, DAILIES, v, 480);
     expect(w.tz).toBe(480);
     // a save whose day was rolled before it kept a time zone gets one on the same day

@@ -8,7 +8,13 @@
 import { shownName } from "./names";
 
 /** The five official TapeRelay nodes, run by the TapeOut team during its test. */
-export const RELAY_NODES = ["relay1.taperelay.com", "relay2.taperelay.com", "relay3.taperelay.com", "relay4.taperelay.com", "relay5.taperelay.com"] as const;
+export const RELAY_NODES = [
+  "relay1.taperelay.com",
+  "relay2.taperelay.com",
+  "relay3.taperelay.com",
+  "relay4.taperelay.com",
+  "relay5.taperelay.com",
+] as const;
 
 /** The longest letter, in characters (a letter must fit the relay's small sealed body of about 2,870 bytes). */
 export const PET_LETTER_MAX = 600;
@@ -39,7 +45,10 @@ export function writeLetter(l: Letter): { ok: true; body: string } | { ok: false
   const text = l.text.trim();
   if (!text) return { ok: false, reason: "empty" };
   if (chars(text) > PET_LETTER_MAX) return { ok: false, reason: "tooLong" };
-  return { ok: true, body: JSON.stringify({ lx: LETTER_FORM, from: { pet: l.from.pet, player: l.from.player }, toPet: l.toPet, text }) };
+  return {
+    ok: true,
+    body: JSON.stringify({ lx: LETTER_FORM, from: { pet: l.from.pet, player: l.from.player }, toPet: l.toPet, text }),
+  };
 }
 
 /** A letter read back from a relay message that opened and verified: only in this form, names shown as the game shows them. */
@@ -51,7 +60,15 @@ export function readLetter(body: unknown): { ok: true; letter: Letter } | { ok: 
     return { ok: false };
   }
   const o = v as { lx?: unknown; from?: { pet?: unknown; player?: unknown }; toPet?: unknown; text?: unknown } | null;
-  if (!o || o.lx !== LETTER_FORM || typeof o.text !== "string" || typeof o.from?.pet !== "string" || typeof o.from.player !== "string" || typeof o.toPet !== "string") return { ok: false };
+  if (
+    !o ||
+    o.lx !== LETTER_FORM ||
+    typeof o.text !== "string" ||
+    typeof o.from?.pet !== "string" ||
+    typeof o.from.player !== "string" ||
+    typeof o.toPet !== "string"
+  )
+    return { ok: false };
   const text = o.text.trim();
   if (!text || chars(text) > PET_LETTER_MAX || !PLAYER_ID.test(o.from.player)) return { ok: false };
   const pet = shownName(o.from.pet, NAME_MAX);

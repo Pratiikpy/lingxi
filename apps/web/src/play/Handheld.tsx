@@ -9,7 +9,20 @@ import { ITEM } from "@lingxi/world";
 import { useLang } from "../i18n";
 import { useWorld } from "../game/world";
 import { play } from "../game/sound";
-import { type HomeResult, type TakeRefusal, MAX_SNACK_KINDS, MAX_SNACKS_EACH, RETURN_KEY, atHandheld, bringPetHome, callBack, pendingReturn, readTrip, takeAlong, travelFoods } from "../game/handheld";
+import {
+  type HomeResult,
+  type TakeRefusal,
+  MAX_SNACK_KINDS,
+  MAX_SNACKS_EACH,
+  RETURN_KEY,
+  atHandheld,
+  bringPetHome,
+  callBack,
+  pendingReturn,
+  readTrip,
+  takeAlong,
+  travelFoods,
+} from "../game/handheld";
 import { CardputerProblem, cardputerAvailable, cardputerWords, fromCardputer, toCardputer } from "../game/cardputer";
 import "./handheld.css";
 import { saveRemove } from "../game/saveRuntime";
@@ -24,21 +37,39 @@ const RESULT = "lingxi:handheld-result";
 const TAKE_REFUSAL: Record<TakeRefusal, [string, string]> = {
   busy: ["It is already away, or another pet is out on the handheld.", "它已经出门了，或者另一只宠物正在掌机上。"],
   noSnacks: ["Those snacks are no longer in your bag.", "包里已经没有这些零食了。"],
-  tooMany: [`Up to ${MAX_SNACK_KINDS} kinds, ${MAX_SNACKS_EACH} of each.`, `最多 ${MAX_SNACK_KINDS} 种，每种 ${MAX_SNACKS_EACH} 个。`],
-  different: ["The handheld's circuit did not think exactly as your pet does, so it stays home. Nothing was taken.", "掌机上的电路和宠物的想法不完全一样，所以它留在家里。什么都没带走。"],
+  tooMany: [
+    `Up to ${MAX_SNACK_KINDS} kinds, ${MAX_SNACKS_EACH} of each.`,
+    `最多 ${MAX_SNACK_KINDS} 种，每种 ${MAX_SNACKS_EACH} 个。`,
+  ],
+  different: [
+    "The handheld's circuit did not think exactly as your pet does, so it stays home. Nothing was taken.",
+    "掌机上的电路和宠物的想法不完全一样，所以它留在家里。什么都没带走。",
+  ],
   unreachable: ["X Layer could not be read just now.", "暂时读不到 X Layer。"],
-  device: ["The Cardputer did not take the pet, so it stays home. Nothing was taken.", "Cardputer 没有接收宠物，所以它留在家里。什么都没带走。"],
+  device: [
+    "The Cardputer did not take the pet, so it stays home. Nothing was taken.",
+    "Cardputer 没有接收宠物，所以它留在家里。什么都没带走。",
+  ],
 };
 
 const HOME_REFUSAL: Record<Exclude<HomeResult, { ok: true }>["reason"], [string, string]> = {
   noTrip: ["No pet is out on the handheld.", "没有宠物在掌机上。"],
   notATrip: ["That is not a pet coming home from the handheld.", "这不是从掌机回来的宠物。"],
-  damaged: ["The packet was damaged on the way. Send it again from the handheld.", "数据在路上坏了。请在掌机上再发一次。"],
+  damaged: [
+    "The packet was damaged on the way. Send it again from the handheld.",
+    "数据在路上坏了。请在掌机上再发一次。",
+  ],
   notThisTrip: ["That packet belongs to a different trip.", "这份数据属于另一次出门。"],
   badLog: ["The trip's log could not be read.", "旅程日志读不出来。"],
   noSnack: ["The log feeds a snack the pet never took along.", "日志里喂了一个没带出去的零食。"],
-  aheadOfTime: ["The log runs ahead of the clock, which no real trip can.", "日志里的时间跑到了现在之前，真实的旅程不可能这样。"],
-  differs: ["Replaying the trip did not arrive at the pet the handheld sent back, so it stays out.", "重放旅程得到的宠物和掌机送回来的不一样，所以它还在外面。"],
+  aheadOfTime: [
+    "The log runs ahead of the clock, which no real trip can.",
+    "日志里的时间跑到了现在之前，真实的旅程不可能这样。",
+  ],
+  differs: [
+    "Replaying the trip did not arrive at the pet the handheld sent back, so it stays out.",
+    "重放旅程得到的宠物和掌机送回来的不一样，所以它还在外面。",
+  ],
 };
 
 /** The Pet sheet's panel: pack snacks and send the pet to the handheld. */
@@ -63,7 +94,12 @@ export function HandheldPanel({ pet }: { pet: Pet }) {
     setNote(null);
     // the browser handheld opens now, in the same click, so no browser treats it as a pop-up
     const tab = via === "browser" ? window.open("about:blank", "lingxi-handheld") : null;
-    const r = await takeAlong(pet, Object.entries(picks).map(([k, n]) => ({ item: Number(k), n })), lang, via === "cardputer" ? toCardputer : undefined);
+    const r = await takeAlong(
+      pet,
+      Object.entries(picks).map(([k, n]) => ({ item: Number(k), n })),
+      lang,
+      via === "cardputer" ? toCardputer : undefined,
+    );
     setBusy(false);
     if (!r.ok) {
       tab?.close();
@@ -88,12 +124,24 @@ export function HandheldPanel({ pet }: { pet: Pet }) {
         )}
       </p>
       {out && !atHandheld(pet) ? (
-        <p className="small">{L("Another pet is out on the handheld. One at a time.", "另一只宠物正在掌机上。一次只能去一只。")}</p>
+        <p className="small">
+          {L("Another pet is out on the handheld. One at a time.", "另一只宠物正在掌机上。一次只能去一只。")}
+        </p>
       ) : (
         <>
-          <p className="small handheld-step">{L(`Pack snacks for the road (up to ${MAX_SNACK_KINDS} kinds):`, `带上路上吃的零食（最多 ${MAX_SNACK_KINDS} 种）：`)}</p>
+          <p className="small handheld-step">
+            {L(
+              `Pack snacks for the road (up to ${MAX_SNACK_KINDS} kinds):`,
+              `带上路上吃的零食（最多 ${MAX_SNACK_KINDS} 种）：`,
+            )}
+          </p>
           {foods.length === 0 ? (
-            <p className="small">{L("No food in your bag. It can still go; the handheld just has nothing to feed it.", "包里没有食物。它也能出门，只是掌机上没东西喂它。")}</p>
+            <p className="small">
+              {L(
+                "No food in your bag. It can still go; the handheld just has nothing to feed it.",
+                "包里没有食物。它也能出门，只是掌机上没东西喂它。",
+              )}
+            </p>
           ) : (
             <ul className="handheld-snacks">
               {foods.map(({ item, n }) => {
@@ -109,11 +157,23 @@ export function HandheldPanel({ pet }: { pet: Pet }) {
                       <span className="small">{L(`${n} in bag`, `包里 ${n} 个`)}</span>
                     </span>
                     <span className="handheld-stepper" role="group" aria-label={def.name[lang]}>
-                      <button type="button" className="btn" disabled={chosen === 0} onClick={() => set(item, chosen - 1)} aria-label={L("one fewer", "少一个")}>
+                      <button
+                        type="button"
+                        className="btn"
+                        disabled={chosen === 0}
+                        onClick={() => set(item, chosen - 1)}
+                        aria-label={L("one fewer", "少一个")}
+                      >
                         −
                       </button>
                       <output aria-live="polite">{chosen}</output>
-                      <button type="button" className="btn" disabled={chosen >= most || full} onClick={() => set(item, chosen + 1)} aria-label={L("one more", "多一个")}>
+                      <button
+                        type="button"
+                        className="btn"
+                        disabled={chosen >= most || full}
+                        onClick={() => set(item, chosen + 1)}
+                        aria-label={L("one more", "多一个")}
+                      >
                         +
                       </button>
                     </span>
@@ -132,7 +192,12 @@ export function HandheldPanel({ pet }: { pet: Pet }) {
               </button>
             )}
           </div>
-          <p className="small">{L("It is paused here while it is out. Snacks it does not eat come back to your bag.", "出门期间它在家里暂停。没吃完的零食会回到包里。")}</p>
+          <p className="small">
+            {L(
+              "It is paused here while it is out. Snacks it does not eat come back to your bag.",
+              "出门期间它在家里暂停。没吃完的零食会回到包里。",
+            )}
+          </p>
           {cardputerAvailable() && (
             <p className="small" data-cardputer="untried">
               {L(
@@ -169,21 +234,39 @@ export function HandheldAwayCard({ pet }: { pet: Pet }) {
       window.dispatchEvent(new CustomEvent<HomeResult>(RESULT, { detail: r }));
     } catch (e) {
       play("error");
-      setProblem(e instanceof CardputerProblem ? cardputerWords(e.message, lang) : L(`The Cardputer stopped answering: ${String(e)}`, `Cardputer 不再回应：${String(e)}`));
+      setProblem(
+        e instanceof CardputerProblem
+          ? cardputerWords(e.message, lang)
+          : L(`The Cardputer stopped answering: ${String(e)}`, `Cardputer 不再回应：${String(e)}`),
+      );
     } finally {
       setLinking(false);
     }
   };
-  const since = trip ? new Date(trip.sentAt).toLocaleString(lang === "zh" ? "zh-CN" : "en-GB", { weekday: "short", hour: "2-digit", minute: "2-digit" }) : "";
+  const since = trip
+    ? new Date(trip.sentAt).toLocaleString(lang === "zh" ? "zh-CN" : "en-GB", {
+        weekday: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "";
   const home = () => {
     const packet = pendingReturn();
-    if (!packet) return setProblem(L("The handheld has not sent it home yet. Open the handheld and press Bring home.", "掌机还没有把它送回来。打开掌机，按“带回家”。"));
+    if (!packet)
+      return setProblem(
+        L(
+          "The handheld has not sent it home yet. Open the handheld and press Bring home.",
+          "掌机还没有把它送回来。打开掌机，按“带回家”。",
+        ),
+      );
     setProblem(null);
     window.dispatchEvent(new Event(HOMECOMING));
   };
   return (
     <div className="away-card" role="status">
-      <p className="label">{onCardputer ? L("Out on the Cardputer", "在 Cardputer 上") : L("Out on the handheld", "在掌机上")}</p>
+      <p className="label">
+        {onCardputer ? L("Out on the Cardputer", "在 Cardputer 上") : L("Out on the handheld", "在掌机上")}
+      </p>
       <p>
         {onCardputer
           ? L(
@@ -195,14 +278,40 @@ export function HandheldAwayCard({ pet }: { pet: Pet }) {
               `${pet.name}${since ? `在${since}` : ""}跟着掌机出门了。它在家里暂停；在掌机上，它用自己的电路继续生活。`,
             )}
       </p>
-      {trip && <p className="small">{trip.brain.source === "chain" ? L("Its brain on the handheld is the circuit read from X Layer.", "它在掌机上的大脑是从 X Layer 读来的电路。") : L("Its brain on the handheld is the game's own circuit, checked against it on every input.", "它在掌机上的大脑是游戏自己的电路，每一种输入都核对过。")}</p>}
+      {trip && (
+        <p className="small">
+          {trip.brain.source === "chain"
+            ? L(
+                "Its brain on the handheld is the circuit read from X Layer.",
+                "它在掌机上的大脑是从 X Layer 读来的电路。",
+              )
+            : L(
+                "Its brain on the handheld is the game's own circuit, checked against it on every input.",
+                "它在掌机上的大脑是游戏自己的电路，每一种输入都核对过。",
+              )}
+        </p>
+      )}
       {problem && <p className="small sp-warn">{problem}</p>}
       {onCardputer ? (
         <div className="row">
-          <button type="button" className="btn primary" disabled={linking || !cardputerAvailable()} onClick={() => (play("tap"), void fromDevice())}>
-            {linking ? L("Replaying its trip…", "正在重放旅程……") : L("Bring it home from the Cardputer", "从 Cardputer 带它回家")}
+          <button
+            type="button"
+            className="btn primary"
+            disabled={linking || !cardputerAvailable()}
+            onClick={() => (play("tap"), void fromDevice())}
+          >
+            {linking
+              ? L("Replaying its trip…", "正在重放旅程……")
+              : L("Bring it home from the Cardputer", "从 Cardputer 带它回家")}
           </button>
-          {!cardputerAvailable() && <span className="small">{L("Use Chrome or Edge on a computer to reach the Cardputer.", "请在电脑上用 Chrome 或 Edge 连接 Cardputer。")}</span>}
+          {!cardputerAvailable() && (
+            <span className="small">
+              {L(
+                "Use Chrome or Edge on a computer to reach the Cardputer.",
+                "请在电脑上用 Chrome 或 Edge 连接 Cardputer。",
+              )}
+            </span>
+          )}
         </div>
       ) : (
         <div className="row">
@@ -220,7 +329,12 @@ export function HandheldAwayCard({ pet }: { pet: Pet }) {
         </button>
       ) : (
         <div className="row">
-          <span className="small">{L("It comes back as it left, with all its snacks. Whatever happened on the handheld is gone.", "它会以出门时的样子回来，零食全部带回。掌机上发生的一切都不算了。")}</span>
+          <span className="small">
+            {L(
+              "It comes back as it left, with all its snacks. Whatever happened on the handheld is gone.",
+              "它会以出门时的样子回来，零食全部带回。掌机上发生的一切都不算了。",
+            )}
+          </span>
           <button type="button" className="btn" onClick={() => (play("tap"), callBack())}>
             {L("Call it back", "叫它回来")}
           </button>
@@ -282,13 +396,25 @@ export function HandheldReturn() {
       <div className="fam-modal" role="dialog" aria-label={L("On its way home", "正在回家的路上")} aria-busy="true">
         <div className="fam-card">
           <p className="label">{L("On its way home", "正在回家的路上")}</p>
-          <p aria-live="polite">{L("Its trip ends a few seconds from now by the game's clock. It will be here in a moment.", "按游戏的时钟，它的旅程还有几秒才结束。马上就到。")}</p>
+          <p aria-live="polite">
+            {L(
+              "Its trip ends a few seconds from now by the game's clock. It will be here in a moment.",
+              "按游戏的时钟，它的旅程还有几秒才结束。马上就到。",
+            )}
+          </p>
         </div>
       </div>
     );
   if (!result) return null;
   const m = result.ok ? result.minutes : 0;
-  const span = (lang: Lang) => (m < 120 ? (lang === "zh" ? `${m} 分钟` : `${m} minute${m === 1 ? "" : "s"}`) : lang === "zh" ? `${Math.round(m / 6) / 10} 小时` : `${Math.round(m / 6) / 10} hours`);
+  const span = (lang: Lang) =>
+    m < 120
+      ? lang === "zh"
+        ? `${m} 分钟`
+        : `${m} minute${m === 1 ? "" : "s"}`
+      : lang === "zh"
+        ? `${Math.round(m / 6) / 10} 小时`
+        : `${Math.round(m / 6) / 10} hours`;
   return (
     <div className="fam-modal" role="dialog" aria-label={L("Home from the handheld", "从掌机回来了")}>
       <div className="fam-card">

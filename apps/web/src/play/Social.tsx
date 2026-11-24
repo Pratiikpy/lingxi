@@ -57,13 +57,25 @@ export function SocialBar({ here, onPick }: { here: HereOne[]; onPick: (id: stri
         play("tap");
       }}
     >
-      <button ref={opener} type="button" className="here" aria-expanded={open} aria-haspopup="dialog" onClick={() => (play("tap"), setOpen(!open))}>
+      <button
+        ref={opener}
+        type="button"
+        className="here"
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        onClick={() => (play("tap"), setOpen(!open))}
+      >
         {lang === "zh" ? `${here.length} 位朋友在这里` : `${here.length} here`}
       </button>
       {open && (
         <div ref={list} className="here-list" role="dialog" aria-label={title}>
           <b>{title}</b>
-          <button type="button" className="icon-x" aria-label={lang === "zh" ? "关闭" : "Close"} onClick={() => (setOpen(false), opener.current?.focus())}>
+          <button
+            type="button"
+            className="icon-x"
+            aria-label={lang === "zh" ? "关闭" : "Close"}
+            onClick={() => (setOpen(false), opener.current?.focus())}
+          >
             <Icon name="close" size={14} />
           </button>
           <ul>
@@ -78,11 +90,23 @@ export function SocialBar({ here, onPick }: { here: HereOne[]; onPick: (id: stri
         </div>
       )}
       {EMOTES.map(([kind, icon, label]) => (
-        <button key={kind} type="button" className="emote" aria-label={label} onClick={() => (emote(kind), play("pop"))}>
+        <button
+          key={kind}
+          type="button"
+          className="emote"
+          aria-label={label}
+          onClick={() => (emote(kind), play("pop"))}
+        >
           <Icon name={icon} size={16} />
         </button>
       ))}
-      <input value={text} maxLength={60} onChange={(e) => setText(e.target.value)} placeholder={lang === "zh" ? "打个招呼……" : "Say hi..."} aria-label={lang === "zh" ? "说点什么" : "Say something"} />
+      <input
+        value={text}
+        maxLength={60}
+        onChange={(e) => setText(e.target.value)}
+        placeholder={lang === "zh" ? "打个招呼……" : "Say hi..."}
+        aria-label={lang === "zh" ? "说点什么" : "Say something"}
+      />
     </form>
   );
 }
@@ -95,9 +119,19 @@ export function InvitePanel() {
   return (
     <div className="chainpanel">
       <p className="label">{lang === "zh" ? "朋友" : "Friends"}</p>
-      <p className="small">{lang === "zh" ? "把这个链接发给朋友，他们的宠物就能来你家玩。你在家的时候，大家会实时看到彼此。" : "Send this link to a friend and their pet can come over. When you're both home, you'll see each other live."}</p>
+      <p className="small">
+        {lang === "zh"
+          ? "把这个链接发给朋友，他们的宠物就能来你家玩。你在家的时候，大家会实时看到彼此。"
+          : "Send this link to a friend and their pet can come over. When you're both home, you'll see each other live."}
+      </p>
       <div className="row">
-        <input className="invite" readOnly value={link} onFocus={(e) => e.currentTarget.select()} aria-label={lang === "zh" ? "邀请链接" : "Invite link"} />
+        <input
+          className="invite"
+          readOnly
+          value={link}
+          onFocus={(e) => e.currentTarget.select()}
+          aria-label={lang === "zh" ? "邀请链接" : "Invite link"}
+        />
         <button
           type="button"
           className="btn primary"

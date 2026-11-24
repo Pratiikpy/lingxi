@@ -1,13 +1,29 @@
 import { describe, expect, it } from "vitest";
 import { bytesToHex, compileProgram, composeChild, netlistBytes } from "@lingxi/brain";
-import { type ChainPetView, type Pet, care, catchUp, checkPapers, createPet, familyOf, halvesOf, mindBrain, packState, savedLength, stageOf } from "../src";
+import {
+  type ChainPetView,
+  type Pet,
+  care,
+  catchUp,
+  checkPapers,
+  createPet,
+  familyOf,
+  halvesOf,
+  mindBrain,
+  packState,
+  savedLength,
+  stageOf,
+} from "../src";
 import { ZERO_HASH, chainAll } from "../src/log";
 
 const T0 = Date.UTC(2026, 10, 17, 9);
 const MIN = 60_000;
 const P = "0x00000000000000000000000000000000000000c1";
 const lessonA = { label: "eat when hungry", when: { hunger: [3] }, then: { want: 1, mood: 1 } };
-const family = familyOf({ name: "Ada", line: "gentle", lessons: [lessonA], skills: [132], petId: 1 }, { name: "Bo", line: "bold", lessons: [], petId: 2 });
+const family = familyOf(
+  { name: "Ada", line: "gentle", lessons: [lessonA], skills: [132], petId: 1 },
+  { name: "Bo", line: "bold", lessons: [], petId: 2 },
+);
 
 function newChild(): Pet {
   const brain = mindBrain({ line: "gentle", lessons: [], family });
@@ -28,7 +44,11 @@ function chainOf(p: Pet, opts: { day?: number } = {}): ChainPetView {
   const [ha, hb] = halvesOf(p.family!, p.lessons);
   const a = { processor: P, id: "11", hex: bytesToHex(netlistBytes(compileProgram(ha))) };
   const b = { processor: P, id: "12", hex: bytesToHex(netlistBytes(compileProgram(hb))) };
-  const glue = { processor: P, id: "13", hex: bytesToHex(composeChild({ cpu: P, id: 11n }, { cpu: P, id: 12n }).bytes) };
+  const glue = {
+    processor: P,
+    id: "13",
+    hex: bytesToHex(composeChild({ cpu: P, id: 11n }, { cpu: P, id: 12n }).bytes),
+  };
   return {
     line: 0,
     parentA: 1n,
@@ -68,14 +88,23 @@ describe("adoption papers (plan 4.8)", () => {
     const chain = chainOf(p);
     expect(checkPapers({ ...p, lessons: [lessonA] }, chain)).toBe("brain");
     // and a glue that is not the composition of those two halves
-    const bad = { ...chain, parts: [{ ...chain.parts[0]!, hex: chain.parts[0]!.hex.slice(0, -2) + "00" }, chain.parts[1]!, chain.parts[2]!] };
+    const bad = {
+      ...chain,
+      parts: [{ ...chain.parts[0]!, hex: chain.parts[0]!.hex.slice(0, -2) + "00" }, chain.parts[1]!, chain.parts[2]!],
+    };
     expect(checkPapers(p, bad)).toBe("brain");
   });
 
   it("refuses a parent's capstone left out of the papers (the halves no longer match)", () => {
     const p = live(newChild(), 60);
     const chain = chainOf(p);
-    const stripped = { ...p, family: { ...family, parents: [{ ...family.parents[0], skills: undefined }, family.parents[1]] as typeof family.parents } };
+    const stripped = {
+      ...p,
+      family: {
+        ...family,
+        parents: [{ ...family.parents[0], skills: undefined }, family.parents[1]] as typeof family.parents,
+      },
+    };
     expect(checkPapers(stripped, chain)).toBe("brain");
   });
 
@@ -110,6 +139,8 @@ describe("adoption papers (plan 4.8)", () => {
     expect(checkPapers(p, { ...chain, parentB: 7n })).toBe("parents");
     expect(checkPapers(p, { ...chain, parentA: 0n })).toBe("notAChild");
     expect(checkPapers({ ...p, family: undefined }, chain)).toBe("notAChild");
-    expect(checkPapers({ ...p, outside: { processor: P, id: "1", owner: P, parts: [] } }, chain)).toBe("outsideInstinct");
+    expect(checkPapers({ ...p, outside: { processor: P, id: "1", owner: P, parts: [] } }, chain)).toBe(
+      "outsideInstinct",
+    );
   });
 });

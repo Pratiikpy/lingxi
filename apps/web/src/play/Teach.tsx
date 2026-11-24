@@ -8,12 +8,35 @@ import { CuteState } from "./CuteState";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { INPUT_FIELDS, type Rule } from "@lingxi/brain";
-import { type Frame, PET_SCHOOL, type Pet, lessonCapacity, lessonTrigger, type Trap, brainSize, checkLesson, childOf, lessonCost, levelOpen, roomMakers, schoolReport, stageOf, trapsAfter } from "@lingxi/game";
+import {
+  type Frame,
+  PET_SCHOOL,
+  type Pet,
+  lessonCapacity,
+  lessonTrigger,
+  type Trap,
+  brainSize,
+  checkLesson,
+  childOf,
+  lessonCost,
+  levelOpen,
+  roomMakers,
+  schoolReport,
+  stageOf,
+  trapsAfter,
+} from "@lingxi/game";
 import { useLang, useT, type Key } from "../i18n";
 import { type TeachingState, teachInWords, teachingState } from "../game/api";
 import { teachBody } from "../game/requests";
 import { questSlots } from "../game/tally";
-import { type LibraryLesson, libraryAvailable, listLessons, reportLesson, shareLesson, usedLesson } from "../game/library";
+import {
+  type LibraryLesson,
+  libraryAvailable,
+  listLessons,
+  reportLesson,
+  shareLesson,
+  usedLesson,
+} from "../game/library";
 import { play } from "../game/sound";
 import { mindForPet, mindParts, programFor, useGame } from "../game/store";
 import { firesToday } from "../game/lessonScore";
@@ -61,7 +84,23 @@ function RulePreview({ pet, rule }: { pet: Pet; rule: Rule }) {
 /** Where a proposed lesson came from: Pet School, the library (by key), or the owner's own words or blocks. */
 type Source = { kind: "school" } | { kind: "library"; key: string } | { kind: "own" };
 
-function Proposal({ pet, rule, reply, source, swap: full, onDone, onLearned }: { pet: Pet; rule: Rule; reply?: string; source: Source; swap: boolean; onDone: () => void; onLearned: (rule: Rule) => void }) {
+function Proposal({
+  pet,
+  rule,
+  reply,
+  source,
+  swap: full,
+  onDone,
+  onLearned,
+}: {
+  pet: Pet;
+  rule: Rule;
+  reply?: string;
+  source: Source;
+  swap: boolean;
+  onDone: () => void;
+  onLearned: (rule: Rule) => void;
+}) {
   const t = useT();
   const { lang } = useLang();
   const learn = useGame((s) => s.learn);
@@ -84,7 +123,8 @@ function Proposal({ pet, rule, reply, source, swap: full, onDone, onLearned }: {
   // big, the first one whose place makes room
   const [drop, setDrop] = useState(() => (tooBig ? (fitCheck.makers[0] ?? 0) : 0));
   const onTopTraps = trapsAfter(specOf(pet), [rule, ...pet.lessons]);
-  const belowIsClean = onTopTraps.length > 0 && pet.lessons.length > 0 && trapsAfter(specOf(pet), [...pet.lessons, rule]).length === 0;
+  const belowIsClean =
+    onTopTraps.length > 0 && pet.lessons.length > 0 && trapsAfter(specOf(pet), [...pet.lessons, rule]).length === 0;
   const confirm = (at: "top" | "bottom" = "top") => {
     // Try it follows a lesson taught: a badge the teaching earns waits for it from this moment, not from Try it's first
     // paint, or it shows over Try it for a frame and leaves (B5); Try it clears the hold when it is answered
@@ -103,21 +143,44 @@ function Proposal({ pet, rule, reply, source, swap: full, onDone, onLearned }: {
     }
   };
   return (
-    <motion.div className="proposal" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}>
+    <motion.div
+      className="proposal"
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+    >
       {reply && <p className="reply">{reply}</p>}
-      <p className="small">{t(source.kind === "school" ? "teach.becameSchool" : source.kind === "library" ? "teach.becameLibrary" : "teach.became")}</p>
+      <p className="small">
+        {t(
+          source.kind === "school"
+            ? "teach.becameSchool"
+            : source.kind === "library"
+              ? "teach.becameLibrary"
+              : "teach.became",
+        )}
+      </p>
       <RulePreview pet={pet} rule={rule} />
       <CostLine pet={pet} rule={rule} />
       <TrapNote pet={pet} traps={onTopTraps} />
       {swap && (
         <fieldset className="swap-pick">
-          <legend className="small sp-warn">{t(tooBig ? (fitCheck.makers.length ? "teach.swapRoom" : "teach.noRoom") : "teach.swapNote", { name: pet.name })}</legend>
+          <legend className="small sp-warn">
+            {t(tooBig ? (fitCheck.makers.length ? "teach.swapRoom" : "teach.noRoom") : "teach.swapNote", {
+              name: pet.name,
+            })}
+          </legend>
           {pet.lessons.map((l, i) => {
             const c = chipsFor(programFor(pet.line, pet.lessons, pet.instincts ?? 0, pet.growth), l, lang);
             const makes = !tooBig || fitCheck.makers.includes(i);
             return (
               <label key={i} className={`swap-row${drop === i ? " on" : ""}${makes ? "" : " no-room"}`}>
-                <input type="radio" name="swap-drop" checked={drop === i} disabled={!makes} onChange={() => setDrop(i)} />
+                <input
+                  type="radio"
+                  name="swap-drop"
+                  checked={drop === i}
+                  disabled={!makes}
+                  onChange={() => setDrop(i)}
+                />
                 <Chips when={c.when} then={c.then} want={c.want} />
                 {tooBig && makes && <small className="makes-room">{t("teach.makesRoom")}</small>}
               </label>
@@ -125,7 +188,11 @@ function Proposal({ pet, rule, reply, source, swap: full, onDone, onLearned }: {
           })}
         </fieldset>
       )}
-      {err && <p className="err" role="alert">{err}</p>}
+      {err && (
+        <p className="err" role="alert">
+          {err}
+        </p>
+      )}
       {source.kind === "own" && libraryAvailable() && (
         <label className="share-opt">
           <input type="checkbox" checked={share} onChange={(e) => setShare(e.target.checked)} />
@@ -138,7 +205,13 @@ function Proposal({ pet, rule, reply, source, swap: full, onDone, onLearned }: {
             {t("teach.confirmBelow")}
           </button>
         )}
-        <button type="button" className={`btn${belowIsClean && !swap ? "" : " primary"}`} onClick={() => confirm()} disabled={tooBig && !fitCheck.makers.length} data-hint="teach">
+        <button
+          type="button"
+          className={`btn${belowIsClean && !swap ? "" : " primary"}`}
+          onClick={() => confirm()}
+          disabled={tooBig && !fitCheck.makers.length}
+          data-hint="teach"
+        >
           {t(swap ? "teach.confirmSwap" : "teach.confirm")}
         </button>
         <button type="button" className="btn" onClick={onDone}>
@@ -150,7 +223,14 @@ function Proposal({ pet, rule, reply, source, swap: full, onDone, onLearned }: {
 }
 
 /** The parts of a pet its brain is built from. */
-const specOf = (pet: Pet) => ({ line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts, outside: pet.outside, growth: pet.growth });
+const specOf = (pet: Pet) => ({
+  line: pet.line,
+  lessons: pet.lessons,
+  family: pet.family,
+  instincts: pet.instincts,
+  outside: pet.outside,
+  growth: pet.growth,
+});
 
 /**
  * The same parts as one object that stays the same while they do: a pet changes every beat, its brain only when one
@@ -159,7 +239,10 @@ const specOf = (pet: Pet) => ({ line: pet.line, lessons: pet.lessons, family: pe
 function useSpec(pet: Pet) {
   const { line, lessons, family, instincts, outside, growth } = pet;
   // the pet's skills too: its Mind skills widen the budget it is measured against (G7)
-  return useMemo(() => ({ line, lessons, family, instincts, outside, growth }), [line, lessons, family, instincts, outside, growth]);
+  return useMemo(
+    () => ({ line, lessons, family, instincts, outside, growth }),
+    [line, lessons, family, instincts, outside, growth],
+  );
 }
 
 /** What a lesson costs in gates against the stage's taught budget, and what sharing logic saves (PRD F6, G7). */
@@ -178,8 +261,12 @@ function CostLine({ pet, rule }: { pet: Pet; rule: Rule }) {
   return (
     <p className={`cost${c.fits ? "" : " over"}`}>
       {/* D3: when sharing saves gates, the line gives the lesson alone and what it adds, so its sums add up */}
-      {c.saved > 0 ? t("teach.costShared", { alone: c.alone, adds: c.adds, taught: c.taught, max: c.taughtMax }) : t("teach.cost", { adds: c.adds, taught: c.taught, max: c.taughtMax })}
-      {c.taught > c.taughtMax && <> {t("teach.over", { n: c.taught - c.taughtMax, stage: t(`stage.${stage}` as Key) })}</>}
+      {c.saved > 0
+        ? t("teach.costShared", { alone: c.alone, adds: c.adds, taught: c.taught, max: c.taughtMax })
+        : t("teach.cost", { adds: c.adds, taught: c.taught, max: c.taughtMax })}
+      {c.taught > c.taughtMax && (
+        <> {t("teach.over", { n: c.taught - c.taughtMax, stage: t(`stage.${stage}` as Key) })}</>
+      )}
     </p>
   );
 }
@@ -261,7 +348,15 @@ function SchoolLevels({ pet, canLearn, onPropose }: { pet: Pet; canLearn: boolea
                 <span className="level-n">{i + 1}</span>
                 <span className="level-say">“{lesson.say[lang]}”</span>
                 <span className="level-stars" aria-label={t("teach.starsOf", { n: lv.stars })}>
-                  {open ? [0, 1, 2].map((k) => <i key={k} className={k < lv.stars ? "on" : ""}>★</i>) : <Icon name="lock" size={14} />}
+                  {open ? (
+                    [0, 1, 2].map((k) => (
+                      <i key={k} className={k < lv.stars ? "on" : ""}>
+                        ★
+                      </i>
+                    ))
+                  ) : (
+                    <Icon name="lock" size={14} />
+                  )}
                 </span>
               </button>
               {lv.learned && (
@@ -306,56 +401,71 @@ function Learned({ pet }: { pet: Pet }) {
   if (!pet.lessons.length) return <CuteState who={{ pet, expression: "shy" }} text={t("teach.none")} />;
   return (
     <>
-    {pending && (
-      <div className="trap-confirm">
-        <TrapNote pet={pet} traps={pending.traps} />
-        <div className="row">
-          <button type="button" className="btn" onClick={() => setPending(null)}>
-            {t("teach.keepOrder")}
-          </button>
-          <button
-            type="button"
-            className="btn"
-            onClick={() => {
-              doArrange(pending.index, pending.move);
-              setPending(null);
-            }}
-          >
-            {t("teach.moveAnyway")}
-          </button>
+      {pending && (
+        <div className="trap-confirm">
+          <TrapNote pet={pet} traps={pending.traps} />
+          <div className="row">
+            <button type="button" className="btn" onClick={() => setPending(null)}>
+              {t("teach.keepOrder")}
+            </button>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                doArrange(pending.index, pending.move);
+                setPending(null);
+              }}
+            >
+              {t("teach.moveAnyway")}
+            </button>
+          </div>
         </div>
-      </div>
-    )}
-    <ol className="learned">
-      {pet.lessons.map((r, i) => {
-        const c = chipsFor(p, r, lang);
-        return (
-          <li key={`${r.label}-${i}`}>
-            <div className="rule-preview">
-              <Chips when={c.when} then={c.then} want={c.want} />
-              <span className="fires small">{fires[i]?.count ? t("teach.fired", { n: fires[i]!.count }) : lessonTrigger(r).kind === "moment" ? t("teach.firedWaits") : t("teach.firedNone")}</span>
-            </div>
-            {fires[i]?.last && <LastTime pet={pet} frame={fires[i]!.last!} />}
-            {!fires[i]?.last && lessonTrigger(r).kind === "moment" && (
-              <button type="button" className="text-link small see-moment" onClick={() => showMoment(pet, r, t, lang === "zh" ? "zh" : "en")}>
-                {t("teach.seeMoment")}
-              </button>
-            )}
-            <div className="mini">
-              <button type="button" aria-label={t("teach.up")} disabled={i === 0} onClick={() => arrange(i, "up")}>
-                ▲
-              </button>
-              <button type="button" aria-label={t("teach.down")} disabled={i === pet.lessons.length - 1} onClick={() => arrange(i, "down")}>
-                ▼
-              </button>
-              <button type="button" aria-label={t("teach.forget")} onClick={() => arrange(i, "forget")}>
-                <Icon name="close" size={12} />
-              </button>
-            </div>
-          </li>
-        );
-      })}
-    </ol>
+      )}
+      <ol className="learned">
+        {pet.lessons.map((r, i) => {
+          const c = chipsFor(p, r, lang);
+          return (
+            <li key={`${r.label}-${i}`}>
+              <div className="rule-preview">
+                <Chips when={c.when} then={c.then} want={c.want} />
+                <span className="fires small">
+                  {fires[i]?.count
+                    ? t("teach.fired", { n: fires[i]!.count })
+                    : lessonTrigger(r).kind === "moment"
+                      ? t("teach.firedWaits")
+                      : t("teach.firedNone")}
+                </span>
+              </div>
+              {fires[i]?.last && <LastTime pet={pet} frame={fires[i]!.last!} />}
+              {!fires[i]?.last && lessonTrigger(r).kind === "moment" && (
+                <button
+                  type="button"
+                  className="text-link small see-moment"
+                  onClick={() => showMoment(pet, r, t, lang === "zh" ? "zh" : "en")}
+                >
+                  {t("teach.seeMoment")}
+                </button>
+              )}
+              <div className="mini">
+                <button type="button" aria-label={t("teach.up")} disabled={i === 0} onClick={() => arrange(i, "up")}>
+                  ▲
+                </button>
+                <button
+                  type="button"
+                  aria-label={t("teach.down")}
+                  disabled={i === pet.lessons.length - 1}
+                  onClick={() => arrange(i, "down")}
+                >
+                  ▼
+                </button>
+                <button type="button" aria-label={t("teach.forget")} onClick={() => arrange(i, "forget")}>
+                  <Icon name="close" size={12} />
+                </button>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
     </>
   );
 }
@@ -375,7 +485,8 @@ function Words({ pet, onPropose }: { pet: Pet; onPropose: (rule: Rule, reply: st
       live = false;
     };
   }, []);
-  if (teaching !== null && teaching !== "ready") return <CuteState who={{ cat: "nap" }} text={t(NOT_ON_OFFER[teaching])} />;
+  if (teaching !== null && teaching !== "ready")
+    return <CuteState who={{ cat: "nap" }} text={t(NOT_ON_OFFER[teaching])} />;
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!words.trim() || busy) return;
@@ -393,7 +504,15 @@ function Words({ pet, onPropose }: { pet: Pet; onPropose: (rule: Rule, reply: st
         {t("teach.words")}
       </label>
       <div className="words-row">
-        <input id="teach-words" value={words} maxLength={240} placeholder={t("teach.wordsHint")} onChange={(e) => setWords(e.target.value)} autoComplete="off" disabled={busy || available === null} />
+        <input
+          id="teach-words"
+          value={words}
+          maxLength={240}
+          placeholder={t("teach.wordsHint")}
+          onChange={(e) => setWords(e.target.value)}
+          autoComplete="off"
+          disabled={busy || available === null}
+        />
         <button type="submit" className="btn primary" disabled={!words.trim() || busy || available === null}>
           {t("teach.ask")}
         </button>
@@ -431,18 +550,28 @@ function Builder({ pet, onPropose }: { pet: Pet; onPropose: (rule: Rule) => void
         <div key={f} className="cond">
           <div className="vals" role="group" aria-label={f}>
             {VALUE_NAMES[f]![lang].map((name, v) => (
-              <button key={v} type="button" className={`val${conds[f]!.includes(v) ? " on" : ""}`} aria-pressed={conds[f]!.includes(v)} onClick={() => toggle(f, v)}>
+              <button
+                key={v}
+                type="button"
+                className={`val${conds[f]!.includes(v) ? " on" : ""}`}
+                aria-pressed={conds[f]!.includes(v)}
+                onClick={() => toggle(f, v)}
+              >
                 {name}
               </button>
             ))}
           </div>
         </div>
       ))}
-      <select aria-label={t("teach.addCond")} value={adding} onChange={(e) => {
-        const f = e.target.value;
-        setAdding("");
-        if (f && !conds[f]) setConds((c) => ({ ...c, [f]: [VALUE_NAMES[f]![lang].length - 1] }));
-      }}>
+      <select
+        aria-label={t("teach.addCond")}
+        value={adding}
+        onChange={(e) => {
+          const f = e.target.value;
+          setAdding("");
+          if (f && !conds[f]) setConds((c) => ({ ...c, [f]: [VALUE_NAMES[f]![lang].length - 1] }));
+        }}
+      >
         <option value="">+ {t("teach.addCond")}</option>
         {BUILD_FIELDS.filter((f) => !conds[f]).map((f) => (
           <option key={f} value={f}>
@@ -453,14 +582,26 @@ function Builder({ pet, onPropose }: { pet: Pet; onPropose: (rule: Rule) => void
       <p className="label">{t("teach.then", { name: pet.name })}</p>
       <div className="vals">
         {WANT_NAMES[lang].map((w, i) => (
-          <button key={w} type="button" className={`val${want === i ? " on" : ""}`} aria-pressed={want === i} onClick={() => setWant(i)}>
+          <button
+            key={w}
+            type="button"
+            className={`val${want === i ? " on" : ""}`}
+            aria-pressed={want === i}
+            onClick={() => setWant(i)}
+          >
             {w}
           </button>
         ))}
       </div>
       <div className="vals">
         {MOOD_NAMES[lang].map((m, i) => (
-          <button key={m} type="button" className={`val${mood === i ? " on" : ""}`} aria-pressed={mood === i} onClick={() => setMood(i)}>
+          <button
+            key={m}
+            type="button"
+            className={`val${mood === i ? " on" : ""}`}
+            aria-pressed={mood === i}
+            onClick={() => setMood(i)}
+          >
             {m}
           </button>
         ))}
@@ -488,7 +629,10 @@ function Library({ pet, onPropose }: { pet: Pet; onPropose: (l: LibraryLesson) =
   }, []);
   if (!libraryAvailable()) return null;
   const program = mindParts(pet)[0]!.program;
-  const known = (r: Rule) => pet.lessons.some((x) => JSON.stringify(x.when) === JSON.stringify(r.when) && JSON.stringify(x.then) === JSON.stringify(r.then));
+  const known = (r: Rule) =>
+    pet.lessons.some(
+      (x) => JSON.stringify(x.when) === JSON.stringify(r.when) && JSON.stringify(x.then) === JSON.stringify(r.then),
+    );
   const shown = (lessons ?? []).filter((l) => !known(l.rule) && !reported.includes(l.key)).slice(0, 8);
   return (
     <div className="library">
@@ -548,11 +692,22 @@ function Mentor({ pet }: { pet: Pet }) {
   return (
     <section className="mentor" aria-label={L("Pass a lesson on", "把一课传下去")}>
       <p className="label">{L("Pass a lesson on", "把一课传下去")}</p>
-      <p className="small">{L(`${pet.name} is an elder now. It can teach one of its lessons to its child, the way it learned them.`, `${pet.name}已经是长者了，可以把自己的一课教给它的孩子，就像当初它学会时那样。`)}</p>
+      <p className="small">
+        {L(
+          `${pet.name} is an elder now. It can teach one of its lessons to its child, the way it learned them.`,
+          `${pet.name}已经是长者了，可以把自己的一课教给它的孩子，就像当初它学会时那样。`,
+        )}
+      </p>
       {children.length > 1 && (
         <div className="row mentor-kids">
           {children.map(({ p }, k) => (
-            <button key={p.bornAt} type="button" className={`btn${k === child ? " primary" : ""}`} aria-pressed={k === child} onClick={() => (play("tap"), setChild(k), setSaid(null))}>
+            <button
+              key={p.bornAt}
+              type="button"
+              className={`btn${k === child ? " primary" : ""}`}
+              aria-pressed={k === child}
+              onClick={() => (play("tap"), setChild(k), setSaid(null))}
+            >
               {p.name}
             </button>
           ))}
@@ -561,7 +716,9 @@ function Mentor({ pet }: { pet: Pet }) {
       <ul className="mentor-lessons">
         {pet.lessons.map((l, i) => {
           const c = chipsFor(program, l, lang);
-          const known = picked.p.lessons.some((x) => JSON.stringify([x.when, x.then]) === JSON.stringify([l.when, l.then]));
+          const known = picked.p.lessons.some(
+            (x) => JSON.stringify([x.when, x.then]) === JSON.stringify([l.when, l.then]),
+          );
           return (
             <li key={i}>
               <Chips when={c.when} then={c.then} want={c.want} />
@@ -572,16 +729,33 @@ function Mentor({ pet }: { pet: Pet }) {
                 onClick={() => {
                   const r = mentor(picked.i, i);
                   play(r.ok ? "success" : "error");
-                  setSaid(r.ok ? L(`${picked.p.name} learned it from ${pet.name}.`, `${picked.p.name}跟着${pet.name}学会了。`) : r.reason === "full" ? L(`${picked.p.name} has no room for another lesson.`, `${picked.p.name}装不下更多课了。`) : r.reason === "tooBig" ? L(`That lesson is too big for ${picked.p.name}'s budget.`, `这一课超出了${picked.p.name}的预算。`) : L("That lesson cannot be passed on now.", "这一课现在传不了。"));
+                  setSaid(
+                    r.ok
+                      ? L(`${picked.p.name} learned it from ${pet.name}.`, `${picked.p.name}跟着${pet.name}学会了。`)
+                      : r.reason === "full"
+                        ? L(`${picked.p.name} has no room for another lesson.`, `${picked.p.name}装不下更多课了。`)
+                        : r.reason === "tooBig"
+                          ? L(
+                              `That lesson is too big for ${picked.p.name}'s budget.`,
+                              `这一课超出了${picked.p.name}的预算。`,
+                            )
+                          : L("That lesson cannot be passed on now.", "这一课现在传不了。"),
+                  );
                 }}
               >
-                {known ? L(`${picked.p.name} knows it`, `${picked.p.name}会了`) : L(`Teach ${picked.p.name}`, `教给${picked.p.name}`)}
+                {known
+                  ? L(`${picked.p.name} knows it`, `${picked.p.name}会了`)
+                  : L(`Teach ${picked.p.name}`, `教给${picked.p.name}`)}
               </button>
             </li>
           );
         })}
       </ul>
-      {said && <p className="small" role="status">{said}</p>}
+      {said && (
+        <p className="small" role="status">
+          {said}
+        </p>
+      )}
     </section>
   );
 }
@@ -604,7 +778,14 @@ export function TeachPanel({ pet }: { pet: Pet }) {
   if (pet.sitting || pet.away)
     return (
       <div className="teach">
-        <CuteState who={{ pet, expression: "shy" }} text={lang === "zh" ? `${pet.name}是朋友托你照看的，只有它的主人能教它。` : `${pet.name} is a friend's pet staying with you; only its owner teaches it.`} />
+        <CuteState
+          who={{ pet, expression: "shy" }}
+          text={
+            lang === "zh"
+              ? `${pet.name}是朋友托你照看的，只有它的主人能教它。`
+              : `${pet.name} is a friend's pet staying with you; only its owner teaches it.`
+          }
+        />
         <Sandbox pet={pet} />
       </div>
     );
@@ -622,7 +803,16 @@ export function TeachPanel({ pet }: { pet: Pet }) {
       <Sandbox pet={pet} trying={proposal?.rule ?? null} />
       <AnimatePresence mode="wait">
         {proposal ? (
-          <Proposal key="p" pet={pet} rule={proposal.rule} source={proposal.source} swap={full} {...(proposal.reply ? { reply: proposal.reply } : {})} onDone={() => setProposal(null)} onLearned={setLearned} />
+          <Proposal
+            key="p"
+            pet={pet}
+            rule={proposal.rule}
+            source={proposal.source}
+            swap={full}
+            {...(proposal.reply ? { reply: proposal.reply } : {})}
+            onDone={() => setProposal(null)}
+            onLearned={setLearned}
+          />
         ) : (
           <motion.div key="choose" className="teach-choose" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             {/* full: the ways to teach stay, and a new lesson takes the newest one's place (H5) */}
@@ -651,14 +841,25 @@ function LastTime({ pet, frame }: { pet: Pet; frame: Frame }) {
   const { lang } = useLang();
   const [open, setOpen] = useState(false);
   // the time on the pet's own clock
-  const at = new Date(frame.at! + pet.tzOffsetMin * 60_000).toLocaleTimeString(lang === "zh" ? "zh-CN" : "en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
+  const at = new Date(frame.at! + pet.tzOffsetMin * 60_000).toLocaleTimeString(lang === "zh" ? "zh-CN" : "en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "UTC",
+  });
   // everything it sensed, leaving out "nothing happening" (no care, no event), which only says what was absent
-  const sensed = INPUT_FIELDS.filter((f) => !((f.name === "action" || f.name === "event") && frame.senses[f.name] === 0))
+  const sensed = INPUT_FIELDS.filter(
+    (f) => !((f.name === "action" || f.name === "event") && frame.senses[f.name] === 0),
+  )
     .map((f) => VALUE_NAMES[f.name]?.[lang][frame.senses[f.name as keyof typeof frame.senses]] ?? "")
     .filter(Boolean);
   return (
     <div className="last-time">
-      <button type="button" className="text-link small" aria-expanded={open} onClick={() => (play("tap"), setOpen((o) => !o))}>
+      <button
+        type="button"
+        className="text-link small"
+        aria-expanded={open}
+        onClick={() => (play("tap"), setOpen((o) => !o))}
+      >
         {t("teach.lastAt", { time: at })}
       </button>
       {open && (

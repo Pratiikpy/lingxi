@@ -42,8 +42,19 @@ export interface Holdings {
 
 /** Read the wallet's balances; any amount above zero counts. */
 export async function readHoldings(wallet: Address): Promise<Holdings> {
-  const bal = async (token: string) => ((await publicClient.readContract({ address: token as Address, abi: balanceAbi, functionName: "balanceOf", args: [wallet] })) as bigint) > 0n;
-  const [rig, bem, fab, test1] = await Promise.all([bal(HOLDINGS.rig), bal(HOLDINGS.bem), bal(HOLDINGS.fab), bal(HOLDINGS.test1)]);
+  const bal = async (token: string) =>
+    ((await publicClient.readContract({
+      address: token as Address,
+      abi: balanceAbi,
+      functionName: "balanceOf",
+      args: [wallet],
+    })) as bigint) > 0n;
+  const [rig, bem, fab, test1] = await Promise.all([
+    bal(HOLDINGS.rig),
+    bal(HOLDINGS.bem),
+    bal(HOLDINGS.fab),
+    bal(HOLDINGS.test1),
+  ]);
   return { wallet: wallet.toLowerCase(), rig, bem, fab, test1, at: now() };
 }
 
@@ -67,7 +78,10 @@ export async function readPinStatus(wallet: Address): Promise<{ snapshot?: boole
     } catch {
       snapshot = undefined;
     }
-    return { ...(snapshot !== undefined ? { snapshot } : {}), ...(claimed !== undefined ? { pinClaimed: claimed } : {}) };
+    return {
+      ...(snapshot !== undefined ? { snapshot } : {}),
+      ...(claimed !== undefined ? { pinClaimed: claimed } : {}),
+    };
   } catch {
     return {};
   }

@@ -37,8 +37,18 @@ describe("what a page loads before it runs (P3)", () => {
   it("follows static imports once each, leaves dynamic ones and other hosts out, and counts styles and fonts", () => {
     const dir = site(files);
     const w = pageWeights(dir).find((x) => x.page === "index.html")!;
-    expect(w.files.map((f) => f.split(/[\\/]/).slice(-2).join("/"))).toEqual(["assets/a.css", "assets/f.woff2", "assets/main.js", "assets/pre.js", "assets/shared.js", "assets/side.js"]);
-    const js = ["assets/main.js", "assets/pre.js", "assets/shared.js", "assets/side.js"].reduce((n, f) => n + gz(files[f as keyof typeof files]), 0);
+    expect(w.files.map((f) => f.split(/[\\/]/).slice(-2).join("/"))).toEqual([
+      "assets/a.css",
+      "assets/f.woff2",
+      "assets/main.js",
+      "assets/pre.js",
+      "assets/shared.js",
+      "assets/side.js",
+    ]);
+    const js = ["assets/main.js", "assets/pre.js", "assets/shared.js", "assets/side.js"].reduce(
+      (n, f) => n + gz(files[f as keyof typeof files]),
+      0,
+    );
     expect(w.scripts).toBe(js);
     expect(w.styles).toBe(gz(files["assets/a.css"]) + Buffer.byteLength(files["assets/f.woff2"]));
     expect(w.html).toBe(gz(files["index.html"]));

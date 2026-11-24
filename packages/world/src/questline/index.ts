@@ -34,11 +34,30 @@ export const QUESTLINE: readonly QuestDef[] = [...STORY, ...DAILIES];
 export const QUEST_BY_ID: Readonly<Record<string, QuestDef>> = Object.fromEntries(QUESTLINE.map((q) => [q.id, q]));
 
 /** The pet's faces (@lingxi/art faces.ts); the web tests check this list against the drawings. */
-export const PET_FACES = ["neutral", "happy", "sparkly", "sulk", "sleepy", "yawn", "shy", "proud", "startled", "munch", "munchShut", "sneeze", "dizzy", "sad", "asleep", "love"] as const;
+export const PET_FACES = [
+  "neutral",
+  "happy",
+  "sparkly",
+  "sulk",
+  "sleepy",
+  "yawn",
+  "shy",
+  "proud",
+  "startled",
+  "munch",
+  "munchShut",
+  "sneeze",
+  "dizzy",
+  "sad",
+  "asleep",
+  "love",
+] as const;
 const PET_FACE_SET = new Set<string>(PET_FACES);
 /** Each resident's portraits, as their own talk lines already use them. */
 const PORTRAITS: ReadonlyMap<string, ReadonlySet<string>> = new Map(
-  CHARACTERS.map((c) => [c.id, new Set([...c.greeting, ...c.topics.flatMap((t) => t.lines), c.bye].map((l) => l.face))] as const),
+  CHARACTERS.map(
+    (c) => [c.id, new Set([...c.greeting, ...c.topics.flatMap((t) => t.lines), c.bye].map((l) => l.face))] as const,
+  ),
 );
 const LANE_SET = new Set<string>(LANE);
 
@@ -80,19 +99,28 @@ export function questLineErrors(defs: readonly QuestDef[]): string[] {
     ids.add(q.id);
     if (!q.title.en || !q.title.zh) out.push(`${at}: needs a title in both languages`);
     if (q.kind === "daily" && !q.group) out.push(`${at}: a daily needs its group`);
-    if (q.kind === "story" && !(q.arc && q.arc >= 1 && q.arc <= 12)) out.push(`${at}: a story quest needs its arc (1 to 12)`);
+    if (q.kind === "story" && !(q.arc && q.arc >= 1 && q.arc <= 12))
+      out.push(`${at}: a story quest needs its arc (1 to 12)`);
     // the giver: the pet, a resident, or a Builders' Lane resident
     const lane = q.giver.startsWith("lane:") ? q.giver.slice(5) : null;
-    if (q.giver !== "pet" && !PORTRAITS.has(q.giver) && !(lane && LANE_SET.has(lane))) out.push(`${at}: no giver ${q.giver}`);
+    if (q.giver !== "pet" && !PORTRAITS.has(q.giver) && !(lane && LANE_SET.has(lane)))
+      out.push(`${at}: no giver ${q.giver}`);
     // every line in both languages, short enough for the bubble, with a face its speaker has
-    for (const [part, lines] of [["intro", q.intro], ["outro", q.outro]] as const) {
+    for (const [part, lines] of [
+      ["intro", q.intro],
+      ["outro", q.outro],
+    ] as const) {
       if (!lines.length) out.push(`${at}: needs an ${part}`);
       lines.forEach((l, i) => {
         if (!l.en || !l.zh) out.push(`${at} ${part} ${i + 1}: needs both languages`);
-        if (l.en.length > LINE_MAX.en) out.push(`${at} ${part} ${i + 1}: English is ${l.en.length} characters (at most ${LINE_MAX.en})`);
-        if ([...l.zh].length > LINE_MAX.zh) out.push(`${at} ${part} ${i + 1}: Chinese is ${[...l.zh].length} characters (at most ${LINE_MAX.zh})`);
-        if (q.giver === "pet" && (!l.face || !PET_FACE_SET.has(l.face))) out.push(`${at} ${part} ${i + 1}: the pet has no face ${l.face}`);
-        if (PORTRAITS.has(q.giver) && (!l.face || !PORTRAITS.get(q.giver)!.has(l.face))) out.push(`${at} ${part} ${i + 1}: ${q.giver} has no portrait ${l.face}`);
+        if (l.en.length > LINE_MAX.en)
+          out.push(`${at} ${part} ${i + 1}: English is ${l.en.length} characters (at most ${LINE_MAX.en})`);
+        if ([...l.zh].length > LINE_MAX.zh)
+          out.push(`${at} ${part} ${i + 1}: Chinese is ${[...l.zh].length} characters (at most ${LINE_MAX.zh})`);
+        if (q.giver === "pet" && (!l.face || !PET_FACE_SET.has(l.face)))
+          out.push(`${at} ${part} ${i + 1}: the pet has no face ${l.face}`);
+        if (PORTRAITS.has(q.giver) && (!l.face || !PORTRAITS.get(q.giver)!.has(l.face)))
+          out.push(`${at} ${part} ${i + 1}: ${q.giver} has no portrait ${l.face}`);
         if (lane && l.face) out.push(`${at} ${part} ${i + 1}: Builders' Lane residents speak without a portrait`);
       });
     }
@@ -121,19 +149,26 @@ export function goalErrors(defs: readonly GoalDef[]): string[] {
     if (ids.has(g.id)) out.push(`${at}: the id is used twice`);
     ids.add(g.id);
     // a later round (G4) adds its number: g1-2 is the second round of g1
-    if (!/^g[0-9]{1,3}(-[0-9]{1,3})?$/.test(g.id)) out.push(`${at}: ids are g and a number, and a round's number after a dash`);
-    if (!g.title.en || !g.title.zh || !g.unit.en || !g.unit.zh) out.push(`${at}: needs its title and unit in both languages`);
+    if (!/^g[0-9]{1,3}(-[0-9]{1,3})?$/.test(g.id))
+      out.push(`${at}: ids are g and a number, and a round's number after a dash`);
+    if (!g.title.en || !g.title.zh || !g.unit.en || !g.unit.zh)
+      out.push(`${at}: needs its title and unit in both languages`);
     if (!PORTRAITS.has(g.giver)) out.push(`${at}: no resident ${g.giver}`);
     if (!g.story.length) out.push(`${at}: needs its story`);
     g.story.forEach((l, i) => {
       if (!l.en || !l.zh) out.push(`${at} line ${i + 1}: needs both languages`);
-      if (l.en.length > GOAL_LINE_MAX.en) out.push(`${at} line ${i + 1}: English is ${l.en.length} characters (at most ${GOAL_LINE_MAX.en})`);
-      if ([...l.zh].length > GOAL_LINE_MAX.zh) out.push(`${at} line ${i + 1}: Chinese is ${[...l.zh].length} characters (at most ${GOAL_LINE_MAX.zh})`);
-      if (PORTRAITS.has(g.giver) && (!l.face || !PORTRAITS.get(g.giver)!.has(l.face))) out.push(`${at} line ${i + 1}: ${g.giver} has no portrait ${l.face}`);
+      if (l.en.length > GOAL_LINE_MAX.en)
+        out.push(`${at} line ${i + 1}: English is ${l.en.length} characters (at most ${GOAL_LINE_MAX.en})`);
+      if ([...l.zh].length > GOAL_LINE_MAX.zh)
+        out.push(`${at} line ${i + 1}: Chinese is ${[...l.zh].length} characters (at most ${GOAL_LINE_MAX.zh})`);
+      if (PORTRAITS.has(g.giver) && (!l.face || !PORTRAITS.get(g.giver)!.has(l.face)))
+        out.push(`${at} line ${i + 1}: ${g.giver} has no portrait ${l.face}`);
     });
     if (!GOAL_METRICS.includes(g.metric)) out.push(`${at}: no metric ${g.metric}`);
-    if (!(Number.isSafeInteger(g.target) && g.target >= 4)) out.push(`${at}: the target must be a whole number of at least 4, so every tier is its own step`);
-    if (!(Number.isInteger(g.start) && Number.isInteger(g.end) && g.end > g.start)) out.push(`${at}: needs a start and a later deadline`);
+    if (!(Number.isSafeInteger(g.target) && g.target >= 4))
+      out.push(`${at}: the target must be a whole number of at least 4, so every tier is its own step`);
+    if (!(Number.isInteger(g.start) && Number.isInteger(g.end) && g.end > g.start))
+      out.push(`${at}: needs a start and a later deadline`);
     for (const p of TIER_PCTS) {
       const rs = g.tiers[p];
       if (!rs?.length) out.push(`${at}: tier ${p}% gives nothing`);
@@ -142,7 +177,8 @@ export function goalErrors(defs: readonly GoalDef[]): string[] {
         if (e) out.push(`${at} tier ${p}%: ${e}`);
       }
     }
-    if (!g.everyone.text.en || !g.everyone.text.zh || !g.everyone.rewards.length) out.push(`${at}: the reward for everyone needs its words and something to give`);
+    if (!g.everyone.text.en || !g.everyone.text.zh || !g.everyone.rewards.length)
+      out.push(`${at}: the reward for everyone needs its words and something to give`);
     for (const r of g.everyone.rewards) {
       const e = rewardProblem(r);
       if (e) out.push(`${at} everyone: ${e}`);
@@ -156,38 +192,50 @@ export function friendErrors(defs: readonly FriendSheet[]): string[] {
   const out: string[] = [];
   const want = [...CHARACTERS.map((c) => c.id), ...LANE].sort();
   const have = defs.map((f) => f.id).sort();
-  if (JSON.stringify(have) !== JSON.stringify(want)) out.push(`friends: want ${want.join(", ")}, have ${have.join(", ")}`);
+  if (JSON.stringify(have) !== JSON.stringify(want))
+    out.push(`friends: want ${want.join(", ")}, have ${have.join(", ")}`);
   for (const f of defs) {
     const at = `friend ${f.id}`;
     const faces = f.kind === "resident" ? PORTRAITS.get(f.id) : null;
     if ((f.kind === "resident") !== PORTRAITS.has(f.id)) out.push(`${at}: kind ${f.kind} does not match`);
     const line = (where: string, l: { face?: string; en: string; zh: string }) => {
       if (!l.en || !l.zh) out.push(`${at} ${where}: needs both languages`);
-      if (l.en.length > LINE_MAX.en) out.push(`${at} ${where}: English is ${l.en.length} characters (at most ${LINE_MAX.en})`);
-      if ([...l.zh].length > LINE_MAX.zh) out.push(`${at} ${where}: Chinese is ${[...l.zh].length} characters (at most ${LINE_MAX.zh})`);
+      if (l.en.length > LINE_MAX.en)
+        out.push(`${at} ${where}: English is ${l.en.length} characters (at most ${LINE_MAX.en})`);
+      if ([...l.zh].length > LINE_MAX.zh)
+        out.push(`${at} ${where}: Chinese is ${[...l.zh].length} characters (at most ${LINE_MAX.zh})`);
       if (faces && !(l.face && faces.has(l.face))) out.push(`${at} ${where}: ${f.id} has no portrait ${l.face}`);
       if (!faces && l.face) out.push(`${at} ${where}: a lane pet speaks without a portrait`);
     };
     const all = [...f.likes.love, ...f.likes.like, ...f.likes.dislike];
     for (const i of all) if (!ITEM[i]) out.push(`${at}: no item ${i} in their tastes`);
     if (new Set(all).size !== all.length) out.push(`${at}: an item is in two tastes`);
-    if (!f.likes.love.length || !f.likes.like.length || !f.likes.dislike.length) out.push(`${at}: needs something loved, liked and disliked`);
+    if (!f.likes.love.length || !f.likes.like.length || !f.likes.dislike.length)
+      out.push(`${at}: needs something loved, liked and disliked`);
     for (const k of ["love", "like", "neutral", "dislike"] as const) line(`reaction ${k}`, f.reactions[k]);
     const ids = new Set(f.steps.map((s) => s.id));
-    for (let lvl = 1; lvl <= 6; lvl++) if (!f.steps.some((s) => s.level === lvl)) out.push(`${at}: level ${lvl} opens nothing`);
+    for (let lvl = 1; lvl <= 6; lvl++)
+      if (!f.steps.some((s) => s.level === lvl)) out.push(`${at}: level ${lvl} opens nothing`);
     const branch = f.steps.filter((s) => s.level === 3);
-    if (branch.length !== 2 || !branch.every((s) => s.choice && s.not?.length === 1 && branch.some((o) => o.id === s.not![0]))) out.push(`${at}: level 3 must be a branch of two steps that shut each other`);
+    if (
+      branch.length !== 2 ||
+      !branch.every((s) => s.choice && s.not?.length === 1 && branch.some((o) => o.id === s.not![0]))
+    )
+      out.push(`${at}: level 3 must be a branch of two steps that shut each other`);
     for (const s of f.steps) {
-      for (const ref of [...(s.after ?? []), ...(s.not ?? [])]) if (!ids.has(ref)) out.push(`${at} ${s.id}: no step ${ref}`);
+      for (const ref of [...(s.after ?? []), ...(s.not ?? [])])
+        if (!ids.has(ref)) out.push(`${at} ${s.id}: no step ${ref}`);
       if (!s.title.en || !s.title.zh) out.push(`${at} ${s.id}: needs a title`);
       if (s.choice && (!s.choice.en || !s.choice.zh)) out.push(`${at} ${s.id}: the choice needs both languages`);
       s.lines.forEach((l, i) => line(`${s.id} line ${i + 1}`, l));
       const u: Unlock = s.unlock;
       if (u.kind === "topic") {
-        if (!u.topic.ask.en || !u.topic.ask.zh || !u.topic.lines.length) out.push(`${at} ${s.id}: the topic needs its question and lines`);
+        if (!u.topic.ask.en || !u.topic.ask.zh || !u.topic.lines.length)
+          out.push(`${at} ${s.id}: the topic needs its question and lines`);
         u.topic.lines.forEach((l, i) => line(`${s.id} topic line ${i + 1}`, l.face ? l : { en: l.en, zh: l.zh }));
       } else if (u.kind === "shelf") {
-        if (!ITEM[u.item] || !(Number.isInteger(u.price) && u.price > 0)) out.push(`${at} ${s.id}: the shelf needs a real item and a price`);
+        if (!ITEM[u.item] || !(Number.isInteger(u.price) && u.price > 0))
+          out.push(`${at} ${s.id}: the shelf needs a real item and a price`);
       } else if (u.kind === "recipe") {
         if (!TRAVEL_RECIPES.some((t) => t.index === u.index)) out.push(`${at} ${s.id}: no travel recipe ${u.index}`);
       } else {

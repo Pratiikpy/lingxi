@@ -41,9 +41,13 @@ describe("background jobs", () => {
   it("call a job unhealthy after three failures in a row, and healthy again after a success", async () => {
     const jobs = createJobs(() => {});
     let fail = true;
-    jobs.loop("indexer", async () => {
-      if (fail) throw new Error("rpc down");
-    }, 500);
+    jobs.loop(
+      "indexer",
+      async () => {
+        if (fail) throw new Error("rpc down");
+      },
+      500,
+    );
     await vi.advanceTimersByTimeAsync(1600);
     expect(jobs.status()[0]).toMatchObject({ healthy: false });
     fail = false;
@@ -55,10 +59,14 @@ describe("background jobs", () => {
   it("run a loop again only after its previous run finished, with the pause between", async () => {
     const jobs = createJobs(() => {});
     const starts: number[] = [];
-    jobs.loop("sales", async () => {
-      starts.push(Date.now());
-      await new Promise((r) => setTimeout(r, 300));
-    }, 1000);
+    jobs.loop(
+      "sales",
+      async () => {
+        starts.push(Date.now());
+        await new Promise((r) => setTimeout(r, 300));
+      },
+      1000,
+    );
     await vi.advanceTimersByTimeAsync(3000);
     expect(starts.length).toBe(3);
     expect(starts[1]! - starts[0]!).toBe(1300);

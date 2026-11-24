@@ -3,8 +3,15 @@ import { STARTERS, compileProgram, fastBrain, stateBits } from "@lingxi/brain";
 import { createPet, type Pet } from "@lingxi/game";
 import { MAX_PETS, keptName, readRoster, rosterText } from "./roster";
 
-const gentle = { fast: fastBrain(compileProgram(STARTERS.gentle)), nState: stateBits(STARTERS.gentle), program: STARTERS.gentle };
-const pet = (name: string, bornAt: number): Pet => ({ ...createPet({ name, line: "gentle", now: bornAt, tzOffsetMin: 480, brain: gentle }), bornAt });
+const gentle = {
+  fast: fastBrain(compileProgram(STARTERS.gentle)),
+  nState: stateBits(STARTERS.gentle),
+  program: STARTERS.gentle,
+};
+const pet = (name: string, bornAt: number): Pet => ({
+  ...createPet({ name, line: "gentle", now: bornAt, tzOffsetMin: 480, brain: gentle }),
+  bornAt,
+});
 /** A pet as a newer Lingxi might save it: a version this build has never seen, with fields it does not know. */
 const fromTheFuture = { version: 2, name: "Nova", line: "gentle", bornAt: 7, wings: { span: 3 } };
 

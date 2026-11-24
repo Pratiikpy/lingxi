@@ -3,7 +3,16 @@ import { describe, expect, it } from "vitest";
 import { type Pet, SUB, createPet, mindBrain } from "@lingxi/game";
 import { petDoing, petNeeds, petSpoken } from "./petSpoken";
 
-const pet = (over: Partial<Pet> = {}): Pet => ({ ...createPet({ name: "Pip", line: "gentle", now: 0, tzOffsetMin: 0, brain: mindBrain({ line: "gentle", lessons: [] }) }), ...over });
+const pet = (over: Partial<Pet> = {}): Pet => ({
+  ...createPet({
+    name: "Pip",
+    line: "gentle",
+    now: 0,
+    tzOffsetMin: 0,
+    brain: mindBrain({ line: "gentle", lessons: [] }),
+  }),
+  ...over,
+});
 
 describe("the pet in words (P5)", () => {
   it("says what the circuit has the pet doing, or that it is asleep", () => {
@@ -24,7 +33,9 @@ describe("the pet in words (P5)", () => {
   it("puts it in one sentence with the name and stage", () => {
     const p = pet({ last: { want: 1, mood: 1, nudge: 0, rule: 0, word: 0 } });
     expect(petSpoken(p, "baby", "en")).toBe("Pip, baby: wants to eat. Needs nothing.");
-    expect(petSpoken({ ...p, meters: { ...p.meters, food: 100 * SUB } }, "baby", "en")).toBe("Pip, baby: wants to eat. Hungry.");
+    expect(petSpoken({ ...p, meters: { ...p.meters, food: 100 * SUB } }, "baby", "en")).toBe(
+      "Pip, baby: wants to eat. Hungry.",
+    );
     expect(petSpoken(p, "宝宝", "zh")).toBe("Pip，宝宝：想吃东西。什么都不缺。");
   });
 });

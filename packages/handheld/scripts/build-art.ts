@@ -15,18 +15,25 @@ const WANT_COLORS = ["#D9D1E6", "#FFB38A", "#FFD45E", "#A9BEF2", "#9BDDA6", "#C9
 
 const rgb565 = (hex: string): number => {
   const h = hex.replace("#", "");
-  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  const r = parseInt(h.slice(0, 2), 16),
+    g = parseInt(h.slice(2, 4), 16),
+    b = parseInt(h.slice(4, 6), 16);
   return ((r & 0xf8) << 8) | ((g & 0xfc) << 3) | (b >> 3);
 };
-const palette = (p: Partial<Record<Role, string>>): number[] => ROLES.map((r, i) => (i === 0 || !p[r] ? 0 : rgb565(p[r]!)));
-const opaque = (p: Partial<Record<Role, string>>): number => ROLES.reduce((m, r, i) => (i > 0 && p[r] && (p[r]!.length === 7 || p[r]!.endsWith("ff")) ? m | (1 << i) : m), 0);
+const palette = (p: Partial<Record<Role, string>>): number[] =>
+  ROLES.map((r, i) => (i === 0 || !p[r] ? 0 : rgb565(p[r]!)));
+const opaque = (p: Partial<Record<Role, string>>): number =>
+  ROLES.reduce((m, r, i) => (i > 0 && p[r] && (p[r]!.length === 7 || p[r]!.endsWith("ff")) ? m | (1 << i) : m), 0);
 
 const built = buildLayers();
 const pals = lookPalettes();
 const runs: number[] = [];
 const layers = built.layers.map((l) => {
   const at = runs.length / 4;
-  const b = l.data.slice(2).match(/../g)!.map((h) => parseInt(h, 16));
+  const b = l.data
+    .slice(2)
+    .match(/../g)!
+    .map((h) => parseInt(h, 16));
   runs.push(...b);
   return { key: l.key, at, n: b.length / 4 };
 });
@@ -48,7 +55,8 @@ list(runs, 32);
 w("};");
 w(`const uint32_t lx_anchor_count = ${built.anchors.length};`);
 w("const lx_anchor lx_anchors[] = {");
-for (const a of built.anchors) w(`  {${a.slot}, ${a.large ? 1 : 0}, {${a.at.map(([x, y]) => `{${x}, ${y}}`).join(", ")}}},`);
+for (const a of built.anchors)
+  w(`  {${a.slot}, ${a.large ? 1 : 0}, {${a.at.map(([x, y]) => `{${x}, ${y}}`).join(", ")}}},`);
 w("};");
 w(`const uint32_t lx_frame_count = ${built.frames.length};`);
 w("const lx_frame_box lx_frames[] = {");
@@ -95,4 +103,6 @@ const h = [
   "",
 ];
 writeFileSync(new URL("../core/art.h", import.meta.url), h.join("\n"));
-process.stdout.write(`art: ${layers.length} layers, ${runs.length / 4} runs, ${built.anchors.length} anchors, ${built.frames.length} frames\n`);
+process.stdout.write(
+  `art: ${layers.length} layers, ${runs.length / 4} runs, ${built.anchors.length} anchors, ${built.frames.length} frames\n`,
+);

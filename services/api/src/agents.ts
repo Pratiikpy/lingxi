@@ -76,7 +76,15 @@ export interface AgentPetView {
 export type AgentRefusal = "invalid" | "unknown" | "full" | "tooMany";
 
 const hash = (token: string) => createHash("sha256").update(`lingxi-agent:${token}`).digest("hex");
-const brainOf = (p: Pet) => mindBrain({ line: p.line, lessons: p.lessons, family: p.family, instincts: p.instincts, outside: p.outside, growth: p.growth });
+const brainOf = (p: Pet) =>
+  mindBrain({
+    line: p.line,
+    lessons: p.lessons,
+    family: p.family,
+    instincts: p.instincts,
+    outside: p.outside,
+    growth: p.growth,
+  });
 
 /** An agent's pet has no skills screen: it levels up by itself as its XP allows (plan 4.4), and its points wait. */
 function grown(p0: Pet): Pet {
@@ -95,7 +103,12 @@ export function viewOf(k: Kept, now: number): AgentPetView {
     stage: stageOf(p, now),
     day: dayOf(p, now),
     level: growthOf(p).level,
-    meters: { food: toVisible(p.meters.food), joy: toVisible(p.meters.joy), energy: toVisible(p.meters.energy), clean: toVisible(p.meters.clean) },
+    meters: {
+      food: toVisible(p.meters.food),
+      joy: toVisible(p.meters.joy),
+      energy: toVisible(p.meters.energy),
+      clean: toVisible(p.meters.clean),
+    },
     asleep: p.asleep,
     sick: !!p.sick,
     hibernating: p.hibernating,
@@ -108,10 +121,23 @@ export function viewOf(k: Kept, now: number): AgentPetView {
 }
 
 export interface AgentStore {
-  adopt: (agent: string, name: string, line: string, instincts?: number, from?: string) => { ok: true; token: string; pet: AgentPetView } | { ok: false; reason: AgentRefusal; detail?: string };
+  adopt: (
+    agent: string,
+    name: string,
+    line: string,
+    instincts?: number,
+    from?: string,
+  ) => { ok: true; token: string; pet: AgentPetView } | { ok: false; reason: AgentRefusal; detail?: string };
   view: (token: string) => AgentPetView | null;
-  act: (token: string, kind: string, food?: string) => { ok: true; note: string; pet: AgentPetView } | { ok: false; reason: AgentRefusal };
-  teach: (token: string, rule: unknown) => { ok: true; pet: AgentPetView } | { ok: false; reason: AgentRefusal | string; detail?: string };
+  act: (
+    token: string,
+    kind: string,
+    food?: string,
+  ) => { ok: true; note: string; pet: AgentPetView } | { ok: false; reason: AgentRefusal };
+  teach: (
+    token: string,
+    rule: unknown,
+  ) => { ok: true; pet: AgentPetView } | { ok: false; reason: AgentRefusal | string; detail?: string };
   /** the pet as it would enter a season, and who raised it */
   seasonPet: (token: string) => { pet: DuelPet; agent: string } | null;
 }
@@ -182,20 +208,54 @@ export function createAgentStore(file?: string, now: () => number = Date.now): A
   };
   return {
     adopt: (agent, name, line, instincts = 0, from) => {
-      if (typeof agent !== "string" || !/^[\w .-]{2,32}$/.test(agent) || typeof name !== "string" || name.trim().length < 1 || name.length > 16 || !LINES.has(line as StarterLine)) return { ok: false, reason: "invalid" };
+      if (
+        typeof agent !== "string" ||
+        !/^[\w .-]{2,32}$/.test(agent) ||
+        typeof name !== "string" ||
+        name.trim().length < 1 ||
+        name.length > 16 ||
+        !LINES.has(line as StarterLine)
+      )
+        return { ok: false, reason: "invalid" };
       if (!Number.isInteger(instincts) || instincts < 0 || instincts > 15) return { ok: false, reason: "invalid" };
       const t = now();
       letIdleGo(t);
       if (pets.size >= MAX_PETS) return { ok: false, reason: "full" };
-      if ([...pets.values()].filter((k) => k.agent === agent).length >= MAX_PER_AGENT) return { ok: false, reason: "tooMany", detail: `an agent may raise at most ${MAX_PER_AGENT} pets` };
+      if ([...pets.values()].filter((k) => k.agent === agent).length >= MAX_PER_AGENT)
+        return { ok: false, reason: "tooMany", detail: `an agent may raise at most ${MAX_PER_AGENT} pets` };
       // an IPv6 /48 raises four addresses' worth (A83)
       const who = from ? codeOf(from) : null;
-      if (who && heldOverCoded([...pets.values()].flatMap((k) => (k.from ? [{ by: k.from, ...(k.net ? { net: k.net } : {}) }] : [])), who, MAX_PER_ADDRESS)) return { ok: false, reason: "tooMany", detail: `at most ${MAX_PER_ADDRESS} pets at once from one address, whatever agent names it uses; a pet nobody cares for in 30 days goes home` };
+      if (
+        who &&
+        heldOverCoded(
+          [...pets.values()].flatMap((k) => (k.from ? [{ by: k.from, ...(k.net ? { net: k.net } : {}) }] : [])),
+          who,
+          MAX_PER_ADDRESS,
+        )
+      )
+        return {
+          ok: false,
+          reason: "tooMany",
+          detail: `at most ${MAX_PER_ADDRESS} pets at once from one address, whatever agent names it uses; a pet nobody cares for in 30 days goes home`,
+        };
       const inst = cleanInstincts(instincts);
       const brain = mindBrain({ line: line as StarterLine, lessons: [], instincts: inst });
-      const pet = createPet({ name: name.trim(), line: line as StarterLine, now: t, tzOffsetMin: 0, brain, instincts: inst });
+      const pet = createPet({
+        name: name.trim(),
+        line: line as StarterLine,
+        now: t,
+        tzOffsetMin: 0,
+        brain,
+        instincts: inst,
+      });
       const token = randomBytes(24).toString("hex");
-      const k: Kept = { agent, pet, created: t, seen: t, ...(who ? { from: who.by, ...(who.net ? { net: who.net } : {}) } : {}) };
+      const k: Kept = {
+        agent,
+        pet,
+        created: t,
+        seen: t,
+        ...(who ? { from: who.by, ...(who.net ? { net: who.net } : {}) } : {}),
+      };
       touch(hash(token), k);
       save();
       return { ok: true, token, pet: viewOf(k, t) };
@@ -208,7 +268,10 @@ export function createAgentStore(file?: string, now: () => number = Date.now): A
       const c = current(token, true);
       if (!c) return { ok: false, reason: "unknown" };
       if (!(AGENT_CARE as readonly string[]).includes(kind)) return { ok: false, reason: "invalid" };
-      const action: Care = kind === "feed" ? { kind: "feed", food: typeof food === "string" && food ? food : "mochi" } : ({ kind } as Care);
+      const action: Care =
+        kind === "feed"
+          ? { kind: "feed", food: typeof food === "string" && food ? food : "mochi" }
+          : ({ kind } as Care);
       let r;
       try {
         r = care(c[1].pet, action, now(), brainOf(c[1].pet));
@@ -225,7 +288,8 @@ export function createAgentStore(file?: string, now: () => number = Date.now): A
       // the rule's shape first, so a malformed rule is called malformed whatever room the mind has
       let clean: Rule;
       try {
-        clean = validateProgram({ version: "LX-PET/1", memory: [], rules: [rule], otherwise: { want: 0, mood: 1 } }).rules[0]!;
+        clean = validateProgram({ version: "LX-PET/1", memory: [], rules: [rule], otherwise: { want: 0, mood: 1 } })
+          .rules[0]!;
       } catch (e) {
         return { ok: false, reason: "invalid", detail: (e as Error).message };
       }
@@ -245,7 +309,16 @@ export function createAgentStore(file?: string, now: () => number = Date.now): A
       const c = current(token);
       if (!c) return null;
       const p = c[1].pet;
-      return { agent: c[1].agent, pet: { name: p.name, line: p.line, stage: stageOf(p, now()), card: petCard(p), story: { days: dayOf(p, now()), lessons: p.lessons.length, nature: [] } } };
+      return {
+        agent: c[1].agent,
+        pet: {
+          name: p.name,
+          line: p.line,
+          stage: stageOf(p, now()),
+          card: petCard(p),
+          story: { days: dayOf(p, now()), lessons: p.lessons.length, nature: [] },
+        },
+      };
     },
   };
 }

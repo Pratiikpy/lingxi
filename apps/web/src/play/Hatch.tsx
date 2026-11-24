@@ -32,7 +32,10 @@ export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string, 
   const setLine = (l: StarterLine) => update({ line: l });
   // the suggested name is read from the chosen egg's own circuit (PRD F14); once the player types, it is theirs
   const setCracking = (k: number) => update({ cracking: k });
-  const circuit = useMemo(() => netlistBytes(compileProgram(composeProgram(line, [], instinctBits(instincts)))), [line, instincts]);
+  const circuit = useMemo(
+    () => netlistBytes(compileProgram(composeProgram(line, [], instinctBits(instincts)))),
+    [line, instincts],
+  );
   const suggested = useMemo(() => nameFromBrain(circuit, draw), [circuit, draw]);
   const name = typed ?? suggested[lang === "zh" ? "zh" : "en"];
   const setName = (v: string) => update({ typed: v });
@@ -43,13 +46,18 @@ export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string, 
   };
   const test1 = useHoldings((h) => h.held?.test1 === true);
   // the egg's shape and crack frames are the same for every line (only the palette differs), so they are drawn once (P3)
-  const shape = useMemo(() => ({ idle: drawEgg("coral", 0), cracks: [0, 1, 2, 3].map((k) => drawEgg("coral", 0, k)) }), []);
+  const shape = useMemo(
+    () => ({ idle: drawEgg("coral", 0), cracks: [0, 1, 2, 3].map((k) => drawEgg("coral", 0, k)) }),
+    [],
+  );
   const eggs = useMemo(
     () =>
       LINES.map((l) => ({
         l,
         // X2: a TapeCode Test1 holder's eggs come in a gilded shell (cosmetic only)
-        pal: test1 ? { ...SHELL, ...GILDED, x: PALETTE_OF[l].m, X: PALETTE_OF[l].d } : { ...SHELL, x: PALETTE_OF[l].m, X: PALETTE_OF[l].d },
+        pal: test1
+          ? { ...SHELL, ...GILDED, x: PALETTE_OF[l].m, X: PALETTE_OF[l].d }
+          : { ...SHELL, x: PALETTE_OF[l].m, X: PALETTE_OF[l].d },
         ...shape,
       })),
     [test1, shape],
@@ -91,8 +99,17 @@ export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string, 
               <Sprite canvas={chosen.cracks[cracking]!} palette={chosen.pal} scale={5} />
             </motion.div>
           ) : (
-            <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 380, damping: 18 }}>
-              <Sprite canvas={drawPet(line, "baby", { expression: "sparkly" })} palette={PALETTE_OF[line]} scale={5} label={name} />
+            <motion.div
+              initial={{ scale: 0.6, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 380, damping: 18 }}
+            >
+              <Sprite
+                canvas={drawPet(line, "baby", { expression: "sparkly" })}
+                palette={PALETTE_OF[line]}
+                scale={5}
+                label={name}
+              />
             </motion.div>
           )}
         </div>
@@ -100,8 +117,18 @@ export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string, 
         <>
           <div className="eggs" role="radiogroup" aria-label={t("hatch.title")}>
             {eggs.map((e) => (
-              <button key={e.l} type="button" role="radio" aria-checked={line === e.l} className="egg" onClick={() => (setLine(e.l), play("tap"))}>
-                <motion.div animate={line === e.l && !reduce ? { rotate: [0, -4, 4, 0] } : { rotate: 0 }} transition={{ duration: 0.5, repeat: line === e.l ? Infinity : 0, repeatDelay: 1.4 }}>
+              <button
+                key={e.l}
+                type="button"
+                role="radio"
+                aria-checked={line === e.l}
+                className="egg"
+                onClick={() => (setLine(e.l), play("tap"))}
+              >
+                <motion.div
+                  animate={line === e.l && !reduce ? { rotate: [0, -4, 4, 0] } : { rotate: 0 }}
+                  transition={{ duration: 0.5, repeat: line === e.l ? Infinity : 0, repeatDelay: 1.4 }}
+                >
                   <Sprite canvas={e.idle} palette={e.pal} scale={3} />
                 </motion.div>
                 <b>{t(`line.${e.l}` as Key)}</b>
@@ -115,7 +142,14 @@ export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string, 
             <p>{t("hatch.instincts.sub")}</p>
             <div className="instinct-grid">
               {INSTINCTS.map((k) => (
-                <button key={k} type="button" role="switch" aria-checked={instincts.includes(k)} className="instinct" onClick={() => toggle(k)}>
+                <button
+                  key={k}
+                  type="button"
+                  role="switch"
+                  aria-checked={instincts.includes(k)}
+                  className="instinct"
+                  onClick={() => toggle(k)}
+                >
                   <span className="instinct-knob" aria-hidden="true" />
                   <b>{t(`instinct.${k}` as Key)}</b>
                   <small>{t(`instinct.${k}.desc` as Key)}</small>
@@ -125,9 +159,24 @@ export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string, 
           </fieldset>
           <div className="name-row">
             <label htmlFor="pet-name">{t("hatch.name")}</label>
-            <p className="name-from">{typed === null ? (lang === "zh" ? `从它的电路读出来的名字 · ${suggested.from}` : `Read from its circuit · ${suggested.from}`) : lang === "zh" ? "你起的名字" : "Your own name"}</p>
+            <p className="name-from">
+              {typed === null
+                ? lang === "zh"
+                  ? `从它的电路读出来的名字 · ${suggested.from}`
+                  : `Read from its circuit · ${suggested.from}`
+                : lang === "zh"
+                  ? "你起的名字"
+                  : "Your own name"}
+            </p>
             <div className="name-field">
-              <input id="pet-name" value={name} onChange={(e) => setName(nameAfterChange(e))} onCompositionEnd={(e) => setName(nameAfterComposition(e))} autoComplete="off" spellCheck={false} />
+              <input
+                id="pet-name"
+                value={name}
+                onChange={(e) => setName(nameAfterChange(e))}
+                onCompositionEnd={(e) => setName(nameAfterComposition(e))}
+                autoComplete="off"
+                spellCheck={false}
+              />
               <button type="button" className="shuffle" onClick={shuffle}>
                 {t("hatch.shuffle")}
               </button>

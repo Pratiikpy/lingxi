@@ -29,7 +29,10 @@ export async function syncPacks(extra?: string | null): Promise<boolean> {
   if (!deployment?.extras) return false;
   const wallets = chainWallets(extra);
   try {
-    const [packs, terms] = await Promise.all([packsHeld(publicClient, deployment, wallets), readExtras(publicClient, deployment, "0x000000000000000000000000000000000000dEaD")]);
+    const [packs, terms] = await Promise.all([
+      packsHeld(publicClient, deployment, wallets),
+      readExtras(publicClient, deployment, "0x000000000000000000000000000000000000dEaD"),
+    ]);
     useExtras.setState({ terms: { ...terms, room: packs.room, looks: packs.looks } });
     const w = useWorld.getState().world;
     const next = syncExtras(w, packs);
@@ -46,7 +49,11 @@ export async function loadColours(petIds: readonly string[]): Promise<void> {
   const ids = [...new Set(petIds.filter((x) => /^\d{1,20}$/.test(x) && x !== "0"))].slice(0, 200);
   if (!ids.length) return;
   try {
-    const got = await nameColours(publicClient, deployment, ids.map((x) => BigInt(x)));
+    const got = await nameColours(
+      publicClient,
+      deployment,
+      ids.map((x) => BigInt(x)),
+    );
     useExtras.setState((s) => ({ colours: { ...s.colours, ...got } }));
   } catch {
     // the names stay plain until the next reading
@@ -65,7 +72,12 @@ export async function buyRoomOrLooks(wallet: WalletClient, kind: "room" | "looks
   return tx;
 }
 
-export async function setNameColour(wallet: WalletClient, petId: string, colour: number, price: bigint): Promise<string> {
+export async function setNameColour(
+  wallet: WalletClient,
+  petId: string,
+  colour: number,
+  price: bigint,
+): Promise<string> {
   const tx = await colourName(publicClient, wallet, deployment!, BigInt(petId), colour, price);
   useExtras.setState((s) => ({ colours: { ...s.colours, [petId]: colour } }));
   // so friends in the same room see the new colour without waiting for the server's next reading

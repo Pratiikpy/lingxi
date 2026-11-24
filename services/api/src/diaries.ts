@@ -32,7 +32,9 @@ const DAY_MS = 86_400_000;
 const MIN_MISMATCH_CHARGE = 64 * 1024;
 const ID = /^\d{1,12}$/;
 
-export type PublishResult = { ok: true; beats: number } | { ok: false; reason: "invalid" | "mismatch" | "unknown" | "older" | "tooLong" | "busy" | "full" };
+export type PublishResult =
+  | { ok: true; beats: number }
+  | { ok: false; reason: "invalid" | "mismatch" | "unknown" | "older" | "tooLong" | "busy" | "full" };
 
 /**
  * What the chain says of a pet: the log hash it saved, when it hatched, and the chain's time now (seconds). The pet's
@@ -46,12 +48,19 @@ export interface PetOnChain {
 }
 
 /** The most words a pet hatched at `born` (seconds) may have logged by `now` (ms). */
-export const diaryMaxWords = (born: number, now: number) => Math.min(SEND_LIMITS.logWords, Math.max(DIARY_FLOOR_WORDS, Math.ceil(Math.max(0, now / 1000 - born) / 60) * DIARY_WORDS_PER_MINUTE));
+export const diaryMaxWords = (born: number, now: number) =>
+  Math.min(
+    SEND_LIMITS.logWords,
+    Math.max(DIARY_FLOOR_WORDS, Math.ceil(Math.max(0, now / 1000 - born) / 60) * DIARY_WORDS_PER_MINUTE),
+  );
 
 /** A read marks a diary at most this often, on its file too (A80). */
 const TOUCH_MS = 60_000;
 
-export function createDiaryStore(dir?: string, opts: { now?: () => number; totalBytes?: number; perAddressBytesPerDay?: number } = {}) {
+export function createDiaryStore(
+  dir?: string,
+  opts: { now?: () => number; totalBytes?: number; perAddressBytesPerDay?: number } = {},
+) {
   const now = opts.now ?? Date.now;
   const totalBytes = opts.totalBytes ?? TOTAL_BYTES;
   const perAddress = opts.perAddressBytesPerDay ?? PER_ADDRESS_BYTES_PER_DAY;
@@ -119,17 +128,20 @@ export function createDiaryStore(dir?: string, opts: { now?: () => number; total
   };
   /** spends `bytes` of `from`'s day, and of its IPv6 /48's (A123) */
   const addSpent = (from: string, day: number, bytes: number) => {
-    for (const k of [from, ...(prefixOf(from) !== null ? [prefixOf(from)!] : [])]) spent.set(k, { day, bytes: spentToday(k, day) + bytes });
+    for (const k of [from, ...(prefixOf(from) !== null ? [prefixOf(from)!] : [])])
+      spent.set(k, { day, bytes: spentToday(k, day) + bytes });
   };
   const charge = (from: string, bytes: number) => addSpent(from, Math.floor(now() / DAY_MS), bytes);
 
   /** Every bound that needs no hash: the log's shape, its pet's age, a longer kept diary, the sender's bytes, the shelf. */
   const check = (log: PublishedLog, chain: PetOnChain | null, from: string): Plan | Refusal => {
     const joined = log.segments.flatMap((x) => x.words);
-    if (joined.length !== log.words.length || joined.some((w, i) => w !== log.words[i])) return { ok: false, reason: "invalid" };
+    if (joined.length !== log.words.length || joined.some((w, i) => w !== log.words[i]))
+      return { ok: false, reason: "invalid" };
     if (!chain) return { ok: false, reason: "unknown" };
     const t = now();
-    if (log.words.length > diaryMaxWords(chain.born, chain.at !== undefined ? chain.at * 1000 : t)) return { ok: false, reason: "tooLong" };
+    if (log.words.length > diaryMaxWords(chain.born, chain.at !== undefined ? chain.at * 1000 : t))
+      return { ok: false, reason: "tooLong" };
     const held = index.get(log.petId);
     // the kept diary's length, read from its file the first time it is needed (A80)
     const heldWords = held ? (held.words ?? read(log.petId)?.words.length ?? 0) : 0;
@@ -140,7 +152,8 @@ export function createDiaryStore(dir?: string, opts: { now?: () => number; total
     const today = spentToday(from, day);
     const prefix = prefixOf(from);
     // an address publishes its day's bytes, and its IPv6 /48 four addresses' worth (A123)
-    if (today + grows > perAddress || (prefix !== null && spentToday(prefix, day) + grows > perAddress * PREFIX_SHARE)) return { ok: false, reason: "busy" };
+    if (today + grows > perAddress || (prefix !== null && spentToday(prefix, day) + grows > perAddress * PREFIX_SHARE))
+      return { ok: false, reason: "busy" };
     // a full shelf can let go of every other diary; one too big even for that is refused before it is hashed
     if (body.length > totalBytes) return { ok: false, reason: "full" };
     return { ok: true, body, held, t, day, grows };
@@ -208,7 +221,12 @@ export function createDiaryStore(dir?: string, opts: { now?: () => number; total
      * worker on the server), and the bounds are checked again after it, since another publish may have landed while it
      * ran. A log that does not match still spends its sender's daily bytes: junk costs the one who sends it.
      */
-    async publishLog(log: PublishedLog, chain: PetOnChain | null, from: string, hash: (words: readonly number[], who?: string) => Promise<string | null>): Promise<PublishResult> {
+    async publishLog(
+      log: PublishedLog,
+      chain: PetOnChain | null,
+      from: string,
+      hash: (words: readonly number[], who?: string) => Promise<string | null>,
+    ): Promise<PublishResult> {
       const first = check(log, chain, from);
       if (!first.ok) return first;
       const got = await hash(log.words, from);

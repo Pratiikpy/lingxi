@@ -63,7 +63,13 @@ export function createTapeoutCounter(read: TapeoutReader, file?: string, now: ()
     },
     view(): { ok: true; today: number; total: number; processors: number; since: string } | { ok: false } {
       if (!saved || saved.day !== dayOf(now())) return { ok: false };
-      return { ok: true, today: Math.max(0, saved.latest.total - saved.baseline.total), total: saved.latest.total, processors: saved.latest.processors, since: new Date(saved.baseline.at).toISOString().slice(11, 16) };
+      return {
+        ok: true,
+        today: Math.max(0, saved.latest.total - saved.baseline.total),
+        total: saved.latest.total,
+        processors: saved.latest.processors,
+        since: new Date(saved.baseline.at).toISOString().slice(11, 16),
+      };
     },
   };
 }

@@ -68,7 +68,9 @@ export function syncChainWear(w: WorldState, held: readonly string[]): WorldStat
   const worn: typeof wd.worn = {};
   let changed = JSON.stringify(wd.chainHeld ?? []) !== JSON.stringify(chainHeld);
   for (const [pet, outfit] of Object.entries(wd.worn)) {
-    const kept = Object.fromEntries(Object.entries(outfit).filter(([, id]) => !id || !isChainWear(id) || chainHeld.includes(id)));
+    const kept = Object.fromEntries(
+      Object.entries(outfit).filter(([, id]) => !id || !isChainWear(id) || chainHeld.includes(id)),
+    );
     if (Object.keys(kept).length !== Object.keys(outfit).length) changed = true;
     worn[pet] = kept;
   }
@@ -83,20 +85,111 @@ export interface MakeRecipe {
 
 /** Sewing and building at the workbench. Furniture ids are decor ids. */
 export const MAKE_RECIPES: readonly MakeRecipe[] = [
-  { id: "sunhat", kind: "outfit", ins: [{ item: 1016, amount: 2 }, { item: 1001, amount: 1 }] },
-  { id: "beanie", kind: "outfit", ins: [{ item: 1012, amount: 2 }, { item: 1002, amount: 1 }] },
-  { id: "bow", kind: "outfit", ins: [{ item: 1011, amount: 2 }, { item: 1003, amount: 1 }] },
-  { id: "crown", kind: "outfit", ins: [{ item: 1007, amount: 1 }, { item: 1005, amount: 2 }] },
-  { id: "glasses", kind: "outfit", ins: [{ item: 1006, amount: 1 }, { item: 1005, amount: 1 }] },
-  { id: "shades", kind: "outfit", ins: [{ item: 1006, amount: 1 }, { item: 1010, amount: 1 }] },
+  {
+    id: "sunhat",
+    kind: "outfit",
+    ins: [
+      { item: 1016, amount: 2 },
+      { item: 1001, amount: 1 },
+    ],
+  },
+  {
+    id: "beanie",
+    kind: "outfit",
+    ins: [
+      { item: 1012, amount: 2 },
+      { item: 1002, amount: 1 },
+    ],
+  },
+  {
+    id: "bow",
+    kind: "outfit",
+    ins: [
+      { item: 1011, amount: 2 },
+      { item: 1003, amount: 1 },
+    ],
+  },
+  {
+    id: "crown",
+    kind: "outfit",
+    ins: [
+      { item: 1007, amount: 1 },
+      { item: 1005, amount: 2 },
+    ],
+  },
+  {
+    id: "glasses",
+    kind: "outfit",
+    ins: [
+      { item: 1006, amount: 1 },
+      { item: 1005, amount: 1 },
+    ],
+  },
+  {
+    id: "shades",
+    kind: "outfit",
+    ins: [
+      { item: 1006, amount: 1 },
+      { item: 1010, amount: 1 },
+    ],
+  },
   { id: "hearts", kind: "outfit", ins: [{ item: 1014, amount: 2 }] },
-  { id: "balloon", kind: "outfit", ins: [{ item: 1003, amount: 1 }, { item: 1001, amount: 1 }] },
-  { id: "flag", kind: "outfit", ins: [{ item: 1001, amount: 2 }, { item: 1012, amount: 1 }] },
-  { id: "lantern", kind: "outfit", ins: [{ item: 1004, amount: 1 }, { item: 1013, amount: 1 }] },
-  { id: "sunflower", kind: "outfit", ins: [{ item: 1011, amount: 1 }, { item: 1004, amount: 1 }] },
-  { id: "books", kind: "furniture", ins: [{ item: 1016, amount: 3 }, { item: 1001, amount: 2 }] },
-  { id: "mushroom", kind: "furniture", ins: [{ item: 1013, amount: 2 }, { item: 1002, amount: 2 }] },
-  { id: "lantern", kind: "furniture", ins: [{ item: 1003, amount: 1 }, { item: 1001, amount: 3 }] },
+  {
+    id: "balloon",
+    kind: "outfit",
+    ins: [
+      { item: 1003, amount: 1 },
+      { item: 1001, amount: 1 },
+    ],
+  },
+  {
+    id: "flag",
+    kind: "outfit",
+    ins: [
+      { item: 1001, amount: 2 },
+      { item: 1012, amount: 1 },
+    ],
+  },
+  {
+    id: "lantern",
+    kind: "outfit",
+    ins: [
+      { item: 1004, amount: 1 },
+      { item: 1013, amount: 1 },
+    ],
+  },
+  {
+    id: "sunflower",
+    kind: "outfit",
+    ins: [
+      { item: 1011, amount: 1 },
+      { item: 1004, amount: 1 },
+    ],
+  },
+  {
+    id: "books",
+    kind: "furniture",
+    ins: [
+      { item: 1016, amount: 3 },
+      { item: 1001, amount: 2 },
+    ],
+  },
+  {
+    id: "mushroom",
+    kind: "furniture",
+    ins: [
+      { item: 1013, amount: 2 },
+      { item: 1002, amount: 2 },
+    ],
+  },
+  {
+    id: "lantern",
+    kind: "furniture",
+    ins: [
+      { item: 1003, amount: 1 },
+      { item: 1001, amount: 3 },
+    ],
+  },
 ];
 
 /** pieces the Corner Shop sells, for coins */
@@ -126,12 +219,24 @@ export function make(w: WorldState, kind: MakeRecipe["kind"], id: string): World
   if (kind === "outfit") {
     const wd = wardrobe(w);
     if (wd.owned.includes(id)) return { ok: false, reason: "owned" };
-    return { ok: true, world: bumpAll({ ...w, bag, wardrobe: { ...wd, owned: [...wd.owned, id] }, crafted: w.crafted + 1 }, [["CRAFT", 0, 1], ["MAKE", id, 1]]) };
+    return {
+      ok: true,
+      world: bumpAll({ ...w, bag, wardrobe: { ...wd, owned: [...wd.owned, id] }, crafted: w.crafted + 1 }, [
+        ["CRAFT", 0, 1],
+        ["MAKE", id, 1],
+      ]),
+    };
   }
   if (!DECOR_BY_ID[id]) return { ok: false, reason: "noRecipe" };
   const d = w.decor ?? { owned: [], placed: [] };
   if (d.owned.includes(id)) return { ok: false, reason: "owned" };
-  return { ok: true, world: bumpAll({ ...w, bag, decor: { ...d, owned: [...d.owned, id] }, crafted: w.crafted + 1 }, [["CRAFT", 0, 1], ["MAKE", id, 1]]) };
+  return {
+    ok: true,
+    world: bumpAll({ ...w, bag, decor: { ...d, owned: [...d.owned, id] }, crafted: w.crafted + 1 }, [
+      ["CRAFT", 0, 1],
+      ["MAKE", id, 1],
+    ]),
+  };
 }
 
 export const CORNER_SHOP = 4;
@@ -142,7 +247,13 @@ export function buyPiece(w: WorldState, id: string): WorldResult {
   const wd = wardrobe(w);
   if (wd.owned.includes(id)) return { ok: false, reason: "owned" };
   if (w.coins < price) return { ok: false, reason: "coins" };
-  return { ok: true, world: bumpAll({ ...w, coins: w.coins - price, wardrobe: { ...wd, owned: [...wd.owned, id] } }, [["BUY", 0, 1], ["COINS_SPENT", 0, price]]) };
+  return {
+    ok: true,
+    world: bumpAll({ ...w, coins: w.coins - price, wardrobe: { ...wd, owned: [...wd.owned, id] } }, [
+      ["BUY", 0, 1],
+      ["COINS_SPENT", 0, price],
+    ]),
+  };
 }
 
 /** Puts a piece on (or, with null, takes the slot's piece off) for one pet. */
@@ -156,7 +267,8 @@ export function wear(w: WorldState, petKey: string, slot: WearSlot, id: string |
   if (id !== null && !PLAYER_PIECE.test(id)) {
     const p = PIECES[id];
     if (!p || p.slot !== slot) return { ok: false, reason: "wrongSlot" };
-    if (!wd.owned.includes(id) && !(isChainWear(id) && (wd.chainHeld ?? []).includes(id))) return { ok: false, reason: "notOwned" };
+    if (!wd.owned.includes(id) && !(isChainWear(id) && (wd.chainHeld ?? []).includes(id)))
+      return { ok: false, reason: "notOwned" };
   }
   const current = { ...(wd.worn[petKey] ?? {}) };
   if (id === null) delete current[slot];

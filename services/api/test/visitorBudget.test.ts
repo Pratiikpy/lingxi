@@ -14,7 +14,11 @@ describe("the fallback to the jobs' node is budgeted (A81)", () => {
 
   it("gives the budget back a minute later", async () => {
     let t = 0;
-    const request = budgetedRequest(async () => "0x1", 1, () => t);
+    const request = budgetedRequest(
+      async () => "0x1",
+      1,
+      () => t,
+    );
     await request({ method: "eth_chainId" });
     await expect(request({ method: "eth_chainId" })).rejects.toThrow(/budget/);
     t += 61_000;

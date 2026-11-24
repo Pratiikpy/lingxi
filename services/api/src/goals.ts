@@ -19,13 +19,24 @@
 import type { Hono } from "hono";
 import { GoalsQuery } from "@lingxi/api-schema";
 import { type Address, type PublicClient, createPublicClient, http, parseAbiItem } from "viem";
-import { GOALS, type GoalDef, type GoalMetric, SETTLED_DAYS, goalCounts, goalState, tiersReached, walletCap } from "@lingxi/world";
+import {
+  GOALS,
+  type GoalDef,
+  type GoalMetric,
+  SETTLED_DAYS,
+  goalCounts,
+  goalState,
+  tiersReached,
+  walletCap,
+} from "@lingxi/world";
 import { WINDOW } from "./indexer";
 import { hasStore, readStore, saveJson } from "./durable";
 
 export const GOAL_EVENTS = [
   parseAbiItem("event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"),
-  parseAbiItem("event Hatched(uint256 indexed petId, address indexed to, uint8 line, address processor, uint64 brainId, uint256 state)"),
+  parseAbiItem(
+    "event Hatched(uint256 indexed petId, address indexed to, uint8 line, address processor, uint64 brainId, uint256 state)",
+  ),
   parseAbiItem("event Bred(uint256 indexed petId, uint128 indexed parentA, uint128 indexed parentB)"),
   parseAbiItem("event Checkpoint(uint256 indexed petId, uint32 indexed day, uint256 state, bytes32 logHash)"),
   parseAbiItem("event Burned(address indexed payer, uint256 amount)"),
@@ -70,7 +81,9 @@ export interface GoalLedgerOptions {
 }
 
 export function createGoalLedger(opts: GoalLedgerOptions) {
-  const pub = opts.client ?? (createPublicClient({ transport: http(opts.rpc, { timeout: 20_000, retryCount: 0 }) }) as PublicClient);
+  const pub =
+    opts.client ??
+    (createPublicClient({ transport: http(opts.rpc, { timeout: 20_000, retryCount: 0 }) }) as PublicClient);
   const registry = opts.registry.toLowerCase();
   const burners = new Set(opts.burners.map((a) => a.toLowerCase()));
   let data: Stored = { v: 2, next: opts.fromBlock, owners: {}, pets: {}, entries: [] };
@@ -97,7 +110,12 @@ export function createGoalLedger(opts: GoalLedgerOptions) {
   async function logsIn(from: number, to: number) {
     for (let attempt = 0; ; attempt++) {
       try {
-        return await pub.getLogs({ address: [opts.registry, ...opts.burners], events: GOAL_EVENTS, fromBlock: BigInt(from), toBlock: BigInt(to) });
+        return await pub.getLogs({
+          address: [opts.registry, ...opts.burners],
+          events: GOAL_EVENTS,
+          fromBlock: BigInt(from),
+          toBlock: BigInt(to),
+        });
       } catch (e) {
         if (attempt >= 6) throw e;
         await sleep(2000 * (attempt + 1));
@@ -115,7 +133,9 @@ export function createGoalLedger(opts: GoalLedgerOptions) {
       const head = Number(await pub.getBlockNumber({ cacheTime: 0 }));
       for (let i = 0; i < maxWindows && data.next <= head; i++) {
         const to = Math.min(head, data.next + WINDOW - 1);
-        const logs = [...(await logsIn(data.next, to))].sort((a, b) => Number(a.blockNumber) - Number(b.blockNumber) || Number(a.logIndex) - Number(b.logIndex));
+        const logs = [...(await logsIn(data.next, to))].sort(
+          (a, b) => Number(a.blockNumber) - Number(b.blockNumber) || Number(a.logIndex) - Number(b.logIndex),
+        );
         const owners = { ...data.owners };
         const pets = { ...data.pets };
         const fresh: Entry[] = [];
@@ -130,7 +150,8 @@ export function createGoalLedger(opts: GoalLedgerOptions) {
           };
           if (at === registry) {
             if (l.eventName === "Transfer") owners[String(a.tokenId)] = String(a.to).toLowerCase();
-            else if (l.eventName === "Hatched") pets[String(a.petId)] = { to: String(a.to).toLowerCase(), days: [], counted: false };
+            else if (l.eventName === "Hatched")
+              pets[String(a.petId)] = { to: String(a.to).toLowerCase(), days: [], counted: false };
             else if (l.eventName === "Bred") await add("children", owners[String(a.petId)], 1);
             else if (l.eventName === "Checkpoint") {
               const id = String(a.petId);
@@ -145,9 +166,16 @@ export function createGoalLedger(opts: GoalLedgerOptions) {
               if (settles) await add("hatched", seen.to, 1);
               pets[id] = { ...seen, days, counted: seen.counted || settles };
             }
-          } else if (burners.has(at) && l.eventName === "Burned") await add("burned", String(a.payer), Number(a.amount));
+          } else if (burners.has(at) && l.eventName === "Burned")
+            await add("burned", String(a.payer), Number(a.amount));
         }
-        data = { ...data, next: to + 1, owners, pets, entries: fresh.length ? [...data.entries, ...fresh] : data.entries };
+        data = {
+          ...data,
+          next: to + 1,
+          owners,
+          pets,
+          entries: fresh.length ? [...data.entries, ...fresh] : data.entries,
+        };
         added += fresh.length;
         await sleep(opts.paceMs ?? 400);
         if (fresh.length || i % 50 === 49) save();
@@ -187,7 +215,12 @@ export interface GoalReport {
 }
 
 /** Each goal's standing from the ledger, as of `nowSec`. */
-export function reportGoals(entries: readonly Entry[], goals: readonly GoalDef[], nowSec: number, wallets: readonly string[] = []): GoalReport[] {
+export function reportGoals(
+  entries: readonly Entry[],
+  goals: readonly GoalDef[],
+  nowSec: number,
+  wallets: readonly string[] = [],
+): GoalReport[] {
   const mineSet = new Set(wallets.map((w) => w.toLowerCase()));
   return goals.map((g) => {
     const cap = walletCap(g);
@@ -199,19 +232,41 @@ export function reportGoals(entries: readonly Entry[], goals: readonly GoalDef[]
       .slice(0, 10)
       .map(([wallet, n]) => ({ wallet, n, share: total ? n / total : 0 }));
     const mine = [...by.entries()].filter(([w]) => mineSet.has(w)).reduce((s, [, n]) => s + n, 0);
-    return { id: g.id, metric: g.metric, target: g.target, start: g.start, end: g.end, state: goalState(g, total, nowSec), total, cap, tiers: tiersReached(g, total), contributors: by.size, top, mine };
+    return {
+      id: g.id,
+      metric: g.metric,
+      target: g.target,
+      start: g.start,
+      end: g.end,
+      state: goalState(g, total, nowSec),
+      total,
+      cap,
+      tiers: tiersReached(g, total),
+      contributors: by.size,
+      top,
+      mine,
+    };
   });
 }
 
 /** GET /api/goals[?wallet=0x…,0x…]: every goal's standing, read from the chain; any origin may read it. */
-export function withGoals(app: Hono, ledger: Pick<GoalLedger, "entries" | "head">, goals: readonly GoalDef[] = GOALS): Hono {
+export function withGoals(
+  app: Hono,
+  ledger: Pick<GoalLedger, "entries" | "head">,
+  goals: readonly GoalDef[] = GOALS,
+): Hono {
   app.get("/api/goals", (c) => {
     c.header("access-control-allow-origin", "*");
     c.header("cache-control", "no-store");
     const q = GoalsQuery.safeParse(c.req.query());
     if (!q.success) return c.json({ ok: false, reason: "wallet" }, 400);
     const now = Math.floor(Date.now() / 1000);
-    return c.json({ ok: true, now, indexedTo: ledger.head(), goals: reportGoals(ledger.entries(), goals, now, q.data.wallet) });
+    return c.json({
+      ok: true,
+      now,
+      indexedTo: ledger.head(),
+      goals: reportGoals(ledger.entries(), goals, now, q.data.wallet),
+    });
   });
   return app;
 }

@@ -15,7 +15,10 @@ for (const look of [
   { lang: "en", scheme: "light", size: "phone", egg: 1, save: "Save today on chain" },
   { lang: "zh", scheme: "dark", size: "desktop", egg: 2, save: "把今天存上链" },
 ] as const) {
-  test(`a day is saved on chain from the game (${look.lang}, ${look.scheme}, ${look.size})`, async ({ player, run }) => {
+  test(`a day is saved on chain from the game (${look.lang}, ${look.scheme}, ${look.size})`, async ({
+    player,
+    run,
+  }) => {
     test.setTimeout(420_000);
     const p = await player(look);
     const { page } = p;
@@ -31,13 +34,30 @@ for (const look of [
     await sheet(page, "me");
     const record = await keepOnChain(page);
     const fork = await forkOf(run);
-    const before = await fork.pub.readContract({ address: fork.d.registry, abi: PET, functionName: "pet", args: [BigInt(record.petId)] });
+    const before = await fork.pub.readContract({
+      address: fork.d.registry,
+      abi: PET,
+      functionName: "pet",
+      args: [BigInt(record.petId)],
+    });
     expect(before.day, "kept, not saved yet").toBe(0);
     expect(before.line, "kept as the egg's line").toBe(look.egg);
 
     await (await reach(page, `.btn.primary:has-text("${look.save}")`)).click();
-    await page.waitForFunction(() => Object.values(JSON.parse(localStorage.getItem("lingxi.chain.v2") ?? "{}") as Record<string, { lastDay?: number } | null>).some((r) => (r?.lastDay ?? 0) >= 1), undefined, { timeout: 180_000 });
-    const after = await fork.pub.readContract({ address: fork.d.registry, abi: PET, functionName: "pet", args: [BigInt(record.petId)] });
+    await page.waitForFunction(
+      () =>
+        Object.values(
+          JSON.parse(localStorage.getItem("lingxi.chain.v2") ?? "{}") as Record<string, { lastDay?: number } | null>,
+        ).some((r) => (r?.lastDay ?? 0) >= 1),
+      undefined,
+      { timeout: 180_000 },
+    );
+    const after = await fork.pub.readContract({
+      address: fork.d.registry,
+      abi: PET,
+      functionName: "pet",
+      args: [BigInt(record.petId)],
+    });
     expect(after.day, "the chain holds day 1").toBe(1);
     expect(Number((after.state >> 152n) & 3n), "its saved state is its own line").toBe(after.line);
     await page.screenshot({ path: test.info().outputPath(`save-day-${look.lang}-${look.scheme}-${look.size}.png`) });

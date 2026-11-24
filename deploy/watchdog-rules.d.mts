@@ -9,5 +9,9 @@ export interface Watch {
   quietUntil: number;
 }
 export declare function initialWatch(): Watch;
-export declare function decide(w: Watch, beat: { local: boolean | "slow"; public: boolean }, now: number): { watch: Watch; action: "restart-server" | "restart-tunnel" | null };
+export declare function decide(
+  w: Watch,
+  beat: { local: boolean | "slow"; public: boolean },
+  now: number,
+): { watch: Watch; action: "restart-server" | "restart-tunnel" | null };
 export declare function describeBeat(why: { local: string; public: string }): string;

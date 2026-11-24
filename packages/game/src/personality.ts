@@ -21,7 +21,9 @@ export function strongestHabit(traits: Readonly<Record<Trait, number>> | undefin
 /** Every habit a pet has, strongest first (for the voice: up to three). */
 export function habitsOf(traits: Readonly<Record<Trait, number>> | undefined): Trait[] {
   if (!traits) return [];
-  return TRAITS.filter((t) => (traits[t] ?? 0) >= HABIT).sort((a, b) => traits[b]! - traits[a]! || TRAITS.indexOf(a) - TRAITS.indexOf(b));
+  return TRAITS.filter((t) => (traits[t] ?? 0) >= HABIT).sort(
+    (a, b) => traits[b]! - traits[a]! || TRAITS.indexOf(a) - TRAITS.indexOf(b),
+  );
 }
 
 export const HABIT_LINES: Readonly<Record<Trait, Lines>> = {
@@ -30,7 +32,10 @@ export const HABIT_LINES: Readonly<Record<Trait, Lines>> = {
     eat: { en: "I marched straight to my bowl.", zh: "我大步走到碗前面。" },
     play: { en: "I wanted a game, the rougher the better!", zh: "我想玩，越热闹越好！" },
     sleep: { en: "I slept where I could guard the door.", zh: "我睡在能守住门口的地方。" },
-    explore: { en: "I went to see what was out there. Nothing scared me.", zh: "我出去看看外面有什么。什么都吓不到我。" },
+    explore: {
+      en: "I went to see what was out there. Nothing scared me.",
+      zh: "我出去看看外面有什么。什么都吓不到我。",
+    },
     sulk: { en: "I huffed and stood my ground.", zh: "我哼了一声，站着不动。" },
     cuddle: { en: "I came over. Not because I was scared.", zh: "我过来了。才不是因为害怕。" },
     share: { en: "I gave my friend the best bit. Leaders do that.", zh: "我把最好的分给朋友。带头的都这样。" },

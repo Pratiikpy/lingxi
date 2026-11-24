@@ -6,7 +6,11 @@ import { describe, expect, it } from "vitest";
 import { type Mask, hitsBody } from "./hitArea";
 
 /** A 6×4 picture with one 2×2 block drawn at (2,1)-(3,2). */
-const mask: Mask = { w: 6, h: 4, alpha: Uint8Array.from([0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0]) };
+const mask: Mask = {
+  w: 6,
+  h: 4,
+  alpha: Uint8Array.from([0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0]),
+};
 /** Anchored at its feet's middle, as the room's pets are: local x runs -3..3, y -4..0. */
 const anchor = { x: 0.5, y: 1 };
 

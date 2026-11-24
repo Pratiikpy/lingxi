@@ -53,7 +53,10 @@ describe("the wording the audits corrected stays corrected (A87)", () => {
     expect(home).not.toMatch(/Letters between homes are coming next/);
     // H13 shipped pets' letters over TapeRelay, so no state says they are still planned (H13c)
     expect(home).not.toMatch(/planned over TapeRelay|计划改走 TapeRelay/);
-    expect(home.match(/Pets' letters travel over TapeRelay instead/g)?.length, "every state says where pets' letters go now").toBe(3);
+    expect(
+      home.match(/Pets' letters travel over TapeRelay instead/g)?.length,
+      "every state says where pets' letters go now",
+    ).toBe(3);
     expect(home.match(/宠物的信改走 TapeRelay/g)?.length).toBe(3);
     expect(read("README.md")).not.toMatch(/until the hub accepts circuits from Lingxi's processor/);
     expect(read("README.md")).toMatch(/the hub runs code TapeKit has not approved/);
@@ -87,7 +90,10 @@ describe("the wording the audits corrected stays corrected (A87)", () => {
     expect(read("services/api/src/agentApi.ts")).not.toMatch(/the rest are kept for players/);
     expect(read("README.md")).not.toMatch(/Any circuit you own on X Layer can be taught/);
     expect(read("apps/web/src/play/OwnedInstinct.tsx")).not.toMatch(/Any circuit you own on X Layer|任何电路/);
-    expect(read("apps/web/src/numbers/NumbersApp.tsx").match(/timeZoneName: "short"/g)?.length, "the numbers page's time says its zone").toBe(2);
+    expect(
+      read("apps/web/src/numbers/NumbersApp.tsx").match(/timeZoneName: "short"/g)?.length,
+      "the numbers page's time says its zone",
+    ).toBe(2);
     expect(read("scripts/claims-check.mts")).not.toMatch(/here they are only confirmed to exist/);
     expect(read("scripts/judge-check.mts")).not.toMatch(/at empty memory/);
     expect(read("apps/web/src/i18n/strings.ts")).toMatch(/"relay.budgetHour"/);
@@ -166,7 +172,9 @@ describe("the wording the audits corrected stays corrected (A87)", () => {
     expect(readme).not.toMatch(/all BEM moves straight from the buyer/);
     expect(readme).toMatch(/every BEM fee is burned in the same transaction as its purchase/);
     expect(readme).not.toMatch(/or change a burn\./);
-    expect(readme).toMatch(/or send a fee anywhere but the burn address; a fee's size moves only within the bounds listed/);
+    expect(readme).toMatch(
+      /or send a fee anywhere but the burn address; a fee's size moves only within the bounds listed/,
+    );
     expect(read("docs/claims.md")).not.toMatch(/burn shares cannot change/);
   });
 
@@ -193,7 +201,10 @@ describe("the wording the audits corrected stays corrected (A87)", () => {
   });
 
   it("A88: the README says what pet #1's home address is, not only that it is pet #1's", () => {
-    const row = read("README.md").split("\n").find((l) => l.startsWith("| Containers |")) ?? "";
+    const row =
+      read("README.md")
+        .split("\n")
+        .find((l) => l.startsWith("| Containers |")) ?? "";
     expect(row).not.toMatch(/a pet's home is a TapeOut container; pet #1's is/);
     expect(row).toMatch(/container of its brain circuit, once its owner holds that circuit/);
     expect(row).toMatch(/circuit #1, the gentle starter/);

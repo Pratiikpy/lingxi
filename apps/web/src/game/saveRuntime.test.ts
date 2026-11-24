@@ -12,8 +12,10 @@ const WORLD = "lingxi.world.v1";
 const PLAY_HERE = "lingxi.playHere";
 
 /** Another tab's lease, as a page without Web Locks leaves it (live until `until`). */
-const otherTab = (storage: Storage, until = Date.now() + LEASE_MS) => storage.setItem(STAMP_KEY, JSON.stringify({ id: "the-other-tab", until }));
-const stampOwner = (storage: Storage) => (JSON.parse(storage.getItem(STAMP_KEY) ?? "null") as { id: string } | null)?.id ?? null;
+const otherTab = (storage: Storage, until = Date.now() + LEASE_MS) =>
+  storage.setItem(STAMP_KEY, JSON.stringify({ id: "the-other-tab", until }));
+const stampOwner = (storage: Storage) =>
+  (JSON.parse(storage.getItem(STAMP_KEY) ?? "null") as { id: string } | null)?.id ?? null;
 
 /** The page shown again: from the back-forward cache (`persisted`) or freshly. */
 const pageshow = (persisted: boolean): Event => Object.assign(new Event("pageshow"), { persisted });
@@ -188,7 +190,9 @@ describe("the save runtime: storage that fails", () => {
     expect(runtime.saveWrite(WORLD, JSON.stringify({ notes: "x".repeat(500) }))).toBe(false);
     expect(runtime.useSaveState.getState().failed).toEqual({ key: WORLD, reason: "full", at: T0 });
     const en = await show(createElement((await saveScreens("en")).SaveBanner));
-    expect(en.text()).toContain("Lingxi couldn't save: this browser's storage is full. Download your save file to keep everything safe.");
+    expect(en.text()).toContain(
+      "Lingxi couldn't save: this browser's storage is full. Download your save file to keep everything safe.",
+    );
     en.unmount();
     const zh = await show(createElement((await saveScreens("zh")).SaveBanner));
     expect(zh.text()).toContain("灵犀没能保存：这个浏览器的存储空间满了。请下载存档文件，把一切保存好。");
@@ -218,7 +222,9 @@ describe("the save runtime: storage that fails", () => {
     expect(runtime.saveWrite(WORLD, "{}")).toBe(true);
     expect(runtime.useSaveState.getState()).toMatchObject({ nearlyFull: true, failed: null });
     const en = await show(createElement((await saveScreens("en")).SaveBanner));
-    expect(en.text()).toContain("This browser's storage for Lingxi is nearly full. Download your save file to keep a copy.");
+    expect(en.text()).toContain(
+      "This browser's storage for Lingxi is nearly full. Download your save file to keep a copy.",
+    );
     en.unmount();
   });
 

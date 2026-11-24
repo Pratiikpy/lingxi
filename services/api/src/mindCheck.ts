@@ -31,13 +31,17 @@ function inWorker(budgetMs: number): MindCheck {
       };
       const timer = setTimeout(() => finish("slow"), budgetMs);
       // a check that could not finish says nothing about the pet: it is "slow", answered as busy, never as a mismatch
-      w.once("message", (m: { same?: boolean; error?: string }) => finish(m.same === true ? "same" : m.same === false ? "different" : "slow"));
+      w.once("message", (m: { same?: boolean; error?: string }) =>
+        finish(m.same === true ? "same" : m.same === false ? "different" : "slow"),
+      );
       w.once("error", () => finish("slow"));
       w.once("exit", () => finish("slow"));
     });
 }
 
-export function createMindChecker(opts: { budgetMs?: number; atOnce?: number; waiting?: number; run?: MindCheck } = {}): MindCheck {
+export function createMindChecker(
+  opts: { budgetMs?: number; atOnce?: number; waiting?: number; run?: MindCheck } = {},
+): MindCheck {
   const run = opts.run ?? inWorker(opts.budgetMs ?? MIND_CHECK_BUDGET_MS);
   const atOnce = opts.atOnce ?? MIND_CHECKS_AT_ONCE;
   const room = opts.waiting ?? MIND_CHECKS_WAITING;

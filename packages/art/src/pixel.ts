@@ -28,7 +28,25 @@ export type Role =
   | "X" // accent shade
   | "s"; // ground shadow
 
-export const ROLES: readonly Role[] = [".", "O", "o", "D", "d", "m", "l", "h", "b", "e", "w", "p", "t", "n", "x", "X", "s"];
+export const ROLES: readonly Role[] = [
+  ".",
+  "O",
+  "o",
+  "D",
+  "d",
+  "m",
+  "l",
+  "h",
+  "b",
+  "e",
+  "w",
+  "p",
+  "t",
+  "n",
+  "x",
+  "X",
+  "s",
+];
 
 export type Palette = Record<Exclude<Role, ".">, string>;
 
@@ -150,8 +168,7 @@ export class Mask {
   }
   /** Mirror the left half onto the right, for symmetric bodies. */
   mirror(): this {
-    for (let y = 0; y < this.h; y++)
-      for (let x = 0; x < this.w >> 1; x++) this.set(this.w - 1 - x, y, this.get(x, y));
+    for (let y = 0; y < this.h; y++) for (let x = 0; x < this.w >> 1; x++) this.set(this.w - 1 - x, y, this.get(x, y));
     return this;
   }
   count(): number {
@@ -195,7 +212,8 @@ export function paintBody(c: PixelCanvas, m: Mask, opt: ShadeOptions = {}): void
       let far = false;
       for (let k = 1; k <= shade && !far; k++) if (out(x + k, y + k) || out(x, y + k + 1)) far = true;
       if (far) role = "d";
-      if (opt.deep && (out(x + 1, y + 1) || out(x, y + 2)) && (out(x + 2, y) || out(x, y + 1) || out(x + 1, y + 2))) role = "D";
+      if (opt.deep && (out(x + 1, y + 1) || out(x, y + 2)) && (out(x + 2, y) || out(x, y + 1) || out(x + 1, y + 2)))
+        role = "D";
       if (role === "m") {
         for (let k = 1; k <= light; k++) if (out(x - k, y - k) || out(x, y - k - 1)) role = "l";
       }
@@ -218,7 +236,11 @@ export function cleanOutline(c: PixelCanvas): void {
         const e = isLine(x + 1, y);
         const w = isLine(x - 1, y);
         // an L corner: two orthogonal line neighbours whose shared diagonal is also line
-        const corner = (n && e && isLine(x + 1, y - 1)) || (n && w && isLine(x - 1, y - 1)) || (s && e && isLine(x + 1, y + 1)) || (s && w && isLine(x - 1, y + 1));
+        const corner =
+          (n && e && isLine(x + 1, y - 1)) ||
+          (n && w && isLine(x - 1, y - 1)) ||
+          (s && e && isLine(x + 1, y + 1)) ||
+          (s && w && isLine(x - 1, y + 1));
         if (!corner) continue;
         const outside = [c.get(x - 1, y), c.get(x + 1, y), c.get(x, y - 1), c.get(x, y + 1)].includes(".");
         if (!outside) c.set(x, y, "m");
@@ -262,7 +284,10 @@ export function toRgba(c: PixelCanvas, pal: Palette, scale = 1): Uint8ClampedArr
 
 /** The smallest box holding every drawn pixel, ignoring the ground shadow. */
 export function boundingBox(c: PixelCanvas): { x: number; y: number; w: number; h: number } {
-  let x0 = c.w, y0 = c.h, x1 = -1, y1 = -1;
+  let x0 = c.w,
+    y0 = c.h,
+    x1 = -1,
+    y1 = -1;
   for (let y = 0; y < c.h; y++)
     for (let x = 0; x < c.w; x++) {
       const r = c.get(x, y);

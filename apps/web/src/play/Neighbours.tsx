@@ -39,7 +39,12 @@ export const neighbourName = (id: string, lang: Lang): string =>
   CHARACTERS.find((c) => c.id === id)?.name[lang] ?? BUILDER_PET[id as BuilderId]?.name[lang] ?? id;
 
 const TASTE_MARK: Record<Taste, string> = { love: "♥", like: "✓", neutral: "·", dislike: "✗" };
-const TASTE_WORD: Record<Taste, [string, string]> = { love: ["loves it", "超喜欢"], like: ["likes it", "喜欢"], neutral: ["takes it kindly", "收下了"], dislike: ["turns it down", "不要"] };
+const TASTE_WORD: Record<Taste, [string, string]> = {
+  love: ["loves it", "超喜欢"],
+  like: ["likes it", "喜欢"],
+  neutral: ["takes it kindly", "收下了"],
+  dislike: ["turns it down", "不要"],
+};
 
 /** What a step opened, in one line. */
 export function unlockText(u: Unlock, who: string, lang: Lang): string {
@@ -49,7 +54,9 @@ export function unlockText(u: Unlock, who: string, lang: Lang): string {
     case "topic":
       return zh ? `新话题：${u.topic.ask.zh}` : `New to ask about: ${u.topic.ask.en}`;
     case "shelf":
-      return zh ? `${name}以后会卖你${ITEM[u.item]?.name.zh}（${u.price} 金币）` : `${name} will sell you ${ITEM[u.item]?.name.en} (${u.price} coins)`;
+      return zh
+        ? `${name}以后会卖你${ITEM[u.item]?.name.zh}（${u.price} 金币）`
+        : `${name} will sell you ${ITEM[u.item]?.name.en} (${u.price} coins)`;
     case "recipe": {
       const r = TRAVEL_RECIPES.find((t) => t.index === u.index);
       return zh ? `学会了：${r?.name.zh}` : `Learned: ${r?.name.en}`;
@@ -57,7 +64,13 @@ export function unlockText(u: Unlock, who: string, lang: Lang): string {
     case "visit":
       return zh ? `${name}要来你家了，回家就能见到` : `${name} is on the way to your home; go home to meet them`;
     case "gift":
-      return (zh ? "你得到了：" : "You got: ") + u.rewards.map((r) => rewardText(r, lang)).filter(Boolean).join(zh ? "、" : ", ");
+      return (
+        (zh ? "你得到了：" : "You got: ") +
+        u.rewards
+          .map((r) => rewardText(r, lang))
+          .filter(Boolean)
+          .join(zh ? "、" : ", ")
+      );
   }
 }
 
@@ -70,7 +83,10 @@ export function TrustStrip({ who }: { who: string }) {
   const to = lvl < 6 ? pointsFor(lvl + 1) : null;
   const frac = to === null ? 1 : (points - from) / (to - from);
   return (
-    <div className="nb-trust" aria-label={lang === "zh" ? `信任：${LEVEL_NAMES[lvl - 1]!.zh}` : `Trust: ${LEVEL_NAMES[lvl - 1]!.en}`}>
+    <div
+      className="nb-trust"
+      aria-label={lang === "zh" ? `信任：${LEVEL_NAMES[lvl - 1]!.zh}` : `Trust: ${LEVEL_NAMES[lvl - 1]!.en}`}
+    >
       <span className="nb-level">
         <b>{lvl}</b> {LEVEL_NAMES[lvl - 1]![lang]}
       </span>
@@ -110,9 +126,16 @@ export function NeighbourNoteLine({ who }: { who: string }) {
             ? `${cn} · 今天的信任已经加过了（每天只有第一份礼物加信任）`
             : `${en[0]!.toUpperCase()}${en.slice(1)} · trust already rose today (only the day's first gift counts)`;
   } else if (note.kind === "step" && note.unlock) text = unlockText(note.unlock, who, lang);
-  else if (note.kind === "visit") text = (zh ? "留给你：" : "Left for you: ") + (note.rewards ?? []).map((r) => rewardText(r, lang)).filter(Boolean).join(zh ? "、" : ", ");
+  else if (note.kind === "visit")
+    text =
+      (zh ? "留给你：" : "Left for you: ") +
+      (note.rewards ?? [])
+        .map((r) => rewardText(r, lang))
+        .filter(Boolean)
+        .join(zh ? "、" : ", ");
   else if (note.kind === "buy") text = zh ? "买好了，在你包里。" : "Bought; it's in your bag.";
-  else if (note.kind === "fail") text = note.reason === "coins" ? (zh ? "金币不够。" : "Not enough coins.") : zh ? "现在还不行。" : "Not just now.";
+  else if (note.kind === "fail")
+    text = note.reason === "coins" ? (zh ? "金币不够。" : "Not enough coins.") : zh ? "现在还不行。" : "Not just now.";
   return (
     <p className={`nb-note nb-${note.kind}${note.taste ? ` nb-${note.taste}` : ""}`} role="status">
       {text}
@@ -124,7 +147,15 @@ export function NeighbourNoteLine({ who }: { who: string }) {
 const NOTHING_KNOWN: readonly number[] = [];
 
 /** Choose something from the bag to give; what you have learnt of their taste is marked. */
-export function GiftPicker({ sheet, onGive, onBack }: { sheet: FriendSheet; onGive: (item: number) => void; onBack: () => void }) {
+export function GiftPicker({
+  sheet,
+  onGive,
+  onBack,
+}: {
+  sheet: FriendSheet;
+  onGive: (item: number) => void;
+  onBack: () => void;
+}) {
   const lang = useLang((s) => s.lang) as Lang;
   const world = useWorld((s) => s.world);
   const known = friendsOf(world).known[sheet.id] ?? NOTHING_KNOWN;
@@ -132,18 +163,32 @@ export function GiftPicker({ sheet, onGive, onBack }: { sheet: FriendSheet; onGi
     const order: Record<Taste, number> = { love: 0, like: 1, neutral: 2, dislike: 3 };
     return Object.entries(world.bag)
       .filter(([id, n]) => n > 0 && ITEM[Number(id)])
-      .map(([id, n]) => ({ item: Number(id), n, taste: known.includes(Number(id)) ? tasteOf(sheet, Number(id)) : null }))
+      .map(([id, n]) => ({
+        item: Number(id),
+        n,
+        taste: known.includes(Number(id)) ? tasteOf(sheet, Number(id)) : null,
+      }))
       .sort((a, b) => (a.taste ? order[a.taste] : 2) - (b.taste ? order[b.taste] : 2) || a.item - b.item);
   }, [world.bag, known, sheet]);
   return (
     <div className="nb-picker" role="group" aria-label={lang === "zh" ? "选一份礼物" : "Choose a gift"}>
-      <p className="nb-picker-head">{lang === "zh" ? "送什么？♥ 超喜欢 ✓ 喜欢 ✗ 不要（送过才知道）" : "What will you give? ♥ loves ✓ likes ✗ turns down (learnt by giving)"}</p>
+      <p className="nb-picker-head">
+        {lang === "zh"
+          ? "送什么？♥ 超喜欢 ✓ 喜欢 ✗ 不要（送过才知道）"
+          : "What will you give? ♥ loves ✓ likes ✗ turns down (learnt by giving)"}
+      </p>
       {items.length ? (
         <ul>
           {items.map((x) => (
             <li key={x.item}>
-              <button type="button" className={`nb-item${x.taste ? ` t-${x.taste}` : ""}`} onClick={() => onGive(x.item)}>
-                {ITEM[x.item]?.art && <img src={ITEM[x.item]!.art} width={24} height={24} alt="" aria-hidden="true" className="pixel" />}
+              <button
+                type="button"
+                className={`nb-item${x.taste ? ` t-${x.taste}` : ""}`}
+                onClick={() => onGive(x.item)}
+              >
+                {ITEM[x.item]?.art && (
+                  <img src={ITEM[x.item]!.art} width={24} height={24} alt="" aria-hidden="true" className="pixel" />
+                )}
                 <span>{ITEM[x.item]!.name[lang]}</span>
                 <small>×{x.n}</small>
                 {x.taste && (
@@ -156,7 +201,9 @@ export function GiftPicker({ sheet, onGive, onBack }: { sheet: FriendSheet; onGi
           ))}
         </ul>
       ) : (
-        <p className="small">{lang === "zh" ? "包里是空的。出去找找吧。" : "Your bag is empty. Go and find something."}</p>
+        <p className="small">
+          {lang === "zh" ? "包里是空的。出去找找吧。" : "Your bag is empty. Go and find something."}
+        </p>
       )}
       <button type="button" className="talk-choice bye" onClick={onBack}>
         {lang === "zh" ? "返回" : "Back"}
@@ -193,10 +240,16 @@ export function LaneFriendship({ id }: { id: string }) {
         <GiftPicker sheet={sheet} onGive={give} onBack={() => (play("tap"), setPicking(false))} />
       ) : (
         <div className="talk-choices">
-          {steps.length === 2 && steps.every((s) => s.choice) && <span className="talk-branch">{lang === "zh" ? "选一个，另一个就不能再选了：" : "Choose one; the other closes for good:"}</span>}
+          {steps.length === 2 && steps.every((s) => s.choice) && (
+            <span className="talk-branch">
+              {lang === "zh" ? "选一个，另一个就不能再选了：" : "Choose one; the other closes for good:"}
+            </span>
+          )}
           {steps.map((s) => (
             <button key={s.id} type="button" className="talk-choice step" onClick={() => take(s)}>
-              <span className="tq-mark" aria-hidden="true">★</span>
+              <span className="tq-mark" aria-hidden="true">
+                ★
+              </span>
               {(s.choice ?? s.title)[lang]}
             </button>
           ))}
@@ -209,7 +262,11 @@ export function LaneFriendship({ id }: { id: string }) {
         <ul className="nb-topics">
           {topics.map((t, i) => (
             <li key={t.ask.en}>
-              <button type="button" aria-expanded={open === i} onClick={() => (play("tap"), setOpen(open === i ? null : i))}>
+              <button
+                type="button"
+                aria-expanded={open === i}
+                onClick={() => (play("tap"), setOpen(open === i ? null : i))}
+              >
                 {t.ask[lang]} {open === i ? "▴" : "▾"}
               </button>
               {open === i && t.lines.map((l) => <p key={l.en}>{l[lang]}</p>)}
@@ -241,11 +298,28 @@ export function NeighboursPanel() {
           const waiting = openSteps(world, f).length > 0;
           return (
             <li key={f.id} className={waiting ? "waiting" : ""}>
-              {c ? <img className="nb-face" src={`art/npcs/${c.greeting[0]!.face}`} width={36} height={36} alt="" aria-hidden="true" /> : <span className="nb-face nb-lane-face" aria-hidden="true">{f.id === "behemoth" ? "13" : "◆"}</span>}
+              {c ? (
+                <img
+                  className="nb-face"
+                  src={`art/npcs/${c.greeting[0]!.face}`}
+                  width={36}
+                  height={36}
+                  alt=""
+                  aria-hidden="true"
+                />
+              ) : (
+                <span className="nb-face nb-lane-face" aria-hidden="true">
+                  {f.id === "behemoth" ? "13" : "◆"}
+                </span>
+              )}
               <div className="nb-who">
                 <b>
                   {neighbourName(f.id, lang)}
-                  {waiting && <span className="nb-star" title={zh ? "有新的一步" : "A step is waiting"}>★</span>}
+                  {waiting && (
+                    <span className="nb-star" title={zh ? "有新的一步" : "A step is waiting"}>
+                      ★
+                    </span>
+                  )}
                 </b>
                 <TrustStrip who={f.id} />
                 <span className="small nb-next">
@@ -270,5 +344,23 @@ export function NeighboursPanel() {
 
 const unlockShort = (u: Unlock, lang: Lang): string => {
   const zh = lang === "zh";
-  return u.kind === "topic" ? (zh ? "新话题" : "a new topic") : u.kind === "shelf" ? (zh ? "专属货架" : "their shelf") : u.kind === "recipe" ? (zh ? "一个配方" : "a recipe") : u.kind === "visit" ? (zh ? "来你家做客" : "a visit to your home") : zh ? "一份纪念" : "a keepsake";
+  return u.kind === "topic"
+    ? zh
+      ? "新话题"
+      : "a new topic"
+    : u.kind === "shelf"
+      ? zh
+        ? "专属货架"
+        : "their shelf"
+      : u.kind === "recipe"
+        ? zh
+          ? "一个配方"
+          : "a recipe"
+        : u.kind === "visit"
+          ? zh
+            ? "来你家做客"
+            : "a visit to your home"
+          : zh
+            ? "一份纪念"
+            : "a keepsake";
 };

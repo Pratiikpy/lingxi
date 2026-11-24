@@ -72,8 +72,12 @@ export interface SponsorSlot {
 }
 
 export type SponsorCheck =
-  | ({ ok: true; slot: SponsorSlot; retryGrant: boolean; petId: string | null })
-  | { ok: false; reason: "off" | "invalid" | "expired" | "badSignature" | "had" | "busy" | "network" | "budget"; detail: string };
+  | { ok: true; slot: SponsorSlot; retryGrant: boolean; petId: string | null }
+  | {
+      ok: false;
+      reason: "off" | "invalid" | "expired" | "badSignature" | "had" | "busy" | "network" | "budget";
+      detail: string;
+    };
 
 export interface SponsorOptions {
   file: string;
@@ -100,7 +104,8 @@ export class SponsorGate {
     this.now = o.now ?? (() => Date.now());
     const got = loadJson(o.file);
     // with neither the store nor its .bak readable, sponsoring stops rather than forget who already had a pet
-    if (got.state === "damaged") throw new Error(`the sponsor store ${o.file} and its .bak could not be read (both kept aside)`);
+    if (got.state === "damaged")
+      throw new Error(`the sponsor store ${o.file} and its .bak could not be read (both kept aside)`);
     this.store = got.state === "ok" ? (got.value as Store) : { pets: [] };
     this.store.pets ??= [];
     // a pet kept before addresses were coded held the network that asked: it is coded now (P6a), and written twice so
@@ -130,35 +135,67 @@ export class SponsorGate {
   }
 
   async check(raw: unknown, address: string): Promise<SponsorCheck> {
-    if (!this.o.enabled) return { ok: false, reason: "off", detail: "keeping a pet without a wallet is not switched on" };
+    if (!this.o.enabled)
+      return { ok: false, reason: "off", detail: "keeping a pet without a wallet is not switched on" };
     const parsed = Body.safeParse(raw);
     if (!parsed.success) return { ok: false, reason: "invalid", detail: "bad request" };
     const b = parsed.data;
     const state = BigInt(b.state);
     if (state > UINT256_MAX) return { ok: false, reason: "invalid", detail: "bad request" };
-    if (Math.abs(this.now() - b.at) > SPONSOR_MAX_AGE_MS) return { ok: false, reason: "expired", detail: "the request is out of date; ask again" };
-    const signer = await sponsorSigner({ to: b.to as Address, line: b.line, state: b.state, at: b.at }, b.signature as Hex);
-    if (!signer || signer.toLowerCase() !== b.to.toLowerCase()) return { ok: false, reason: "badSignature", detail: "not signed by the address it names" };
-    if (lineOfState(state) !== SPONSOR_LINES.indexOf(b.line)) return { ok: false, reason: "invalid", detail: "the state is not of that line" };
+    if (Math.abs(this.now() - b.at) > SPONSOR_MAX_AGE_MS)
+      return { ok: false, reason: "expired", detail: "the request is out of date; ask again" };
+    const signer = await sponsorSigner(
+      { to: b.to as Address, line: b.line, state: b.state, at: b.at },
+      b.signature as Hex,
+    );
+    if (!signer || signer.toLowerCase() !== b.to.toLowerCase())
+      return { ok: false, reason: "badSignature", detail: "not signed by the address it names" };
+    if (lineOfState(state) !== SPONSOR_LINES.indexOf(b.line))
+      return { ok: false, reason: "invalid", detail: "the state is not of that line" };
 
     // from here on nothing awaits: the checks and the slot are one step, so two requests cannot both pass
     const to = b.to.toLowerCase();
     const who = codeOf(address);
     const network = who.by;
     const net = who.net;
-    if (this.inflight.has(to)) return { ok: false, reason: "busy", detail: "a request for this pet is already on its way" };
+    if (this.inflight.has(to))
+      return { ok: false, reason: "busy", detail: "a request for this pet is already on its way" };
     const had = this.store.pets.find((p) => p.to === to && p.petId !== null);
-    if (had && had.grantTx !== null) return { ok: false, reason: "had", detail: "this device already has a pet kept for it" };
+    if (had && had.grantTx !== null)
+      return { ok: false, reason: "had", detail: "this device already has a pet kept for it" };
     const today = dayOf(this.now());
     if (this.spentToday(today) + SPONSOR_SET_ASIDE_WEI > (this.o.okbPerDayWei ?? DEFAULT_OKB_PER_DAY_WEI))
       return { ok: false, reason: "budget", detail: "today's OKB for keeping pets is spent; try tomorrow" };
-    if (had) return this.take({ to, network, ...(net !== undefined ? { net } : {}), line: b.line, state, retryGrant: true, petId: had.petId });
+    if (had)
+      return this.take({
+        to,
+        network,
+        ...(net !== undefined ? { net } : {}),
+        line: b.line,
+        state,
+        retryGrant: true,
+        petId: had.petId,
+      });
 
-    const counted = [...this.store.pets.filter((p) => dayOf(p.at) === today), ...[...this.inflight.values()].filter((s) => !s.retryGrant)];
-    if (counted.filter((p) => p.network === network).length >= (this.o.perNetwork ?? 1)) return { ok: false, reason: "network", detail: "this network has had its pet today" };
-    if (net !== undefined && counted.filter((p) => p.net === net).length >= (this.o.perPrefix ?? 3)) return { ok: false, reason: "network", detail: "this network has had its pets today" };
-    if (counted.length >= (this.o.perDay ?? 25)) return { ok: false, reason: "budget", detail: "today's pets kept for players are all given; try tomorrow" };
-    return this.take({ to, network, ...(net !== undefined ? { net } : {}), line: b.line, state, retryGrant: false, petId: null });
+    const counted = [
+      ...this.store.pets.filter((p) => dayOf(p.at) === today),
+      ...[...this.inflight.values()].filter((s) => !s.retryGrant),
+    ];
+    if (counted.filter((p) => p.network === network).length >= (this.o.perNetwork ?? 1))
+      return { ok: false, reason: "network", detail: "this network has had its pet today" };
+    if (net !== undefined && counted.filter((p) => p.net === net).length >= (this.o.perPrefix ?? 3))
+      return { ok: false, reason: "network", detail: "this network has had its pets today" };
+    if (counted.length >= (this.o.perDay ?? 25))
+      return { ok: false, reason: "budget", detail: "today's pets kept for players are all given; try tomorrow" };
+    return this.take({
+      to,
+      network,
+      ...(net !== undefined ? { net } : {}),
+      line: b.line,
+      state,
+      retryGrant: false,
+      petId: null,
+    });
   }
 
   /**
@@ -166,8 +203,13 @@ export class SponsorGate {
    * and the set-aside for every request still on its way, since it may yet cost that much.
    */
   spentToday(today = dayOf(this.now())): bigint {
-    const kept = this.store.pets.filter((p) => dayOf(p.at) === today || (p.grantAt !== undefined && dayOf(p.grantAt) === today));
-    const sent = kept.reduce((sum, p) => sum + (p.spentWei !== undefined ? BigInt(p.spentWei) : SPONSOR_SET_ASIDE_WEI), 0n);
+    const kept = this.store.pets.filter(
+      (p) => dayOf(p.at) === today || (p.grantAt !== undefined && dayOf(p.grantAt) === today),
+    );
+    const sent = kept.reduce(
+      (sum, p) => sum + (p.spentWei !== undefined ? BigInt(p.spentWei) : SPONSOR_SET_ASIDE_WEI),
+      0n,
+    );
     return sent + BigInt(this.inflight.size) * SPONSOR_SET_ASIDE_WEI;
   }
 
@@ -177,16 +219,31 @@ export class SponsorGate {
   }
 
   /** The outcome of a slot that sent something: kept for good (a failed hatch too, since its gas was spent). */
-  finish(slot: SponsorSlot, outcome: { petId: string | null; hatchTx: string | null; grantTx: string | null; spentWei?: bigint }): void {
+  finish(
+    slot: SponsorSlot,
+    outcome: { petId: string | null; hatchTx: string | null; grantTx: string | null; spentWei?: bigint },
+  ): void {
     this.inflight.delete(slot.to);
     const spent = outcome.spentWei ?? SPONSOR_SET_ASIDE_WEI;
     const known = this.store.pets.find((p) => p.to === slot.to && p.petId !== null);
     if (slot.retryGrant && known) {
       // the gas alone, later: its cost is added to the pet's and counted on the day it was sent
       known.grantTx = outcome.grantTx;
-      known.spentWei = ((known.spentWei !== undefined ? BigInt(known.spentWei) : SPONSOR_SET_ASIDE_WEI) + spent).toString();
+      known.spentWei = (
+        (known.spentWei !== undefined ? BigInt(known.spentWei) : SPONSOR_SET_ASIDE_WEI) + spent
+      ).toString();
       known.grantAt = this.now();
-    } else this.store.pets.push({ to: slot.to, petId: outcome.petId, network: slot.network, ...(slot.net !== undefined ? { net: slot.net } : {}), at: this.now(), hatchTx: outcome.hatchTx, grantTx: outcome.grantTx, spentWei: spent.toString() });
+    } else
+      this.store.pets.push({
+        to: slot.to,
+        petId: outcome.petId,
+        network: slot.network,
+        ...(slot.net !== undefined ? { net: slot.net } : {}),
+        at: this.now(),
+        hatchTx: outcome.hatchTx,
+        grantTx: outcome.grantTx,
+        spentWei: spent.toString(),
+      });
     this.save();
   }
 

@@ -47,7 +47,11 @@ const PLAIN = /^[0-9a-f]{12}$/;
  * The codes, one file each in `dir` (named by id, so a code is written once and read by its name), or in memory when no
  * folder is given (tests).
  */
-export function createDuelStore(dir?: string, limits: { count: number; chars: number } = { count: MAX_KEPT, chars: MAX_KEPT_CHARS }, now: () => number = Date.now) {
+export function createDuelStore(
+  dir?: string,
+  limits: { count: number; chars: number } = { count: MAX_KEPT, chars: MAX_KEPT_CHARS },
+  now: () => number = Date.now,
+) {
   /** `at`: when it was made or last opened, whichever is later (its file's time, on disk); `by` and `net`: its maker */
   const kept = new Map<string, { at: number; size: number; by?: string; net?: string }>();
   const memory = new Map<string, string>();
@@ -118,7 +122,8 @@ export function createDuelStore(dir?: string, limits: { count: number; chars: nu
     put: (id: string, code: string, at: number, maker?: string) => {
       if (kept.has(id)) return;
       const prefix = maker === undefined ? null : prefixOf(maker);
-      const who: { by?: string; net?: string } = maker === undefined ? {} : { by: tag(maker), ...(prefix !== null ? { net: tag(prefix) } : {}) };
+      const who: { by?: string; net?: string } =
+        maker === undefined ? {} : { by: tag(maker), ...(prefix !== null ? { net: tag(prefix) } : {}) };
       kept.set(id, { at, size: code.length, ...who });
       if (dir) {
         writeFlushed(join(dir, `${id}.tmp`), code);
@@ -158,7 +163,13 @@ function readable(code: string): boolean {
 }
 
 /** POST /api/duels { code } → { ok, id }; GET /api/duels/:id → { ok, code }, or { ok: false } for a code not kept. */
-export function withDuels(app: Hono, store: DuelStore, limiter = new RateLimiter(30, 60_000), now: () => number = Date.now, perAddressDay = PER_ADDRESS_DAY_CHARS): Hono {
+export function withDuels(
+  app: Hono,
+  store: DuelStore,
+  limiter = new RateLimiter(30, 60_000),
+  now: () => number = Date.now,
+  perAddressDay = PER_ADDRESS_DAY_CHARS,
+): Hono {
   /** the characters each address has stored today (A51) */
   let day = "";
   const spent = new Map<string, number>();
@@ -185,7 +196,11 @@ export function withDuels(app: Hono, store: DuelStore, limiter = new RateLimiter
       const used = spent.get(ip) ?? 0;
       const prefix = prefixOf(ip);
       const network = prefix === null ? 0 : (spent.get(prefix) ?? 0);
-      if (used + code.length > perAddressDay || (prefix !== null && network + code.length > perAddressDay * PREFIX_SHARE)) return c.json({ ok: false, reason: "busy" });
+      if (
+        used + code.length > perAddressDay ||
+        (prefix !== null && network + code.length > perAddressDay * PREFIX_SHARE)
+      )
+        return c.json({ ok: false, reason: "busy" });
       spent.set(ip, used + code.length);
       if (prefix !== null) spent.set(prefix, network + code.length);
     }

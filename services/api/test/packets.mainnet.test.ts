@@ -10,7 +10,12 @@ import deployment from "../../../packages/chain/deployments/xlayer.json";
 describe.skipIf(!process.env.LINGXI_MAINNET_READS)("the claims index on X Layer mainnet (A1)", () => {
   it("reads 3,000 blocks from the contract's deploy block through the official node without a refusal", async () => {
     const from = deployment.redPacketBlock;
-    const index = createPacketIndex({ rpc: "https://xlayerrpc.okx.com", address: deployment.redPacket as `0x${string}`, fromBlock: from, paceMs: 150 });
+    const index = createPacketIndex({
+      rpc: "https://xlayerrpc.okx.com",
+      address: deployment.redPacket as `0x${string}`,
+      fromBlock: from,
+      paceMs: 150,
+    });
     await index.catchUp(30);
     expect(index.head()).toBe(from + 30 * 100 - 1);
   }, 240_000);

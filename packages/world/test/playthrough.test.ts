@@ -71,7 +71,8 @@ import { slow } from "./slow";
 const HOUR = 3_600_000;
 const START = Date.UTC(2026, 10, 16, 8);
 /** Events only another player can cause: the playthrough never relies on them. */
-const NEEDS_SOMEONE = (c: Condition) => (c.type === "EVENT" && ["visited-by-friend", "pet-sat", "child-born"].includes(String(c.index))) || c.type === "BOND";
+const NEEDS_SOMEONE = (c: Condition) =>
+  (c.type === "EVENT" && ["visited-by-friend", "pet-sat", "child-born"].includes(String(c.index))) || c.type === "BOND";
 /** The most minutes the player watches for a choice or a time together before calling it out of reach. */
 const PATIENCE = 12 * 60;
 /** How long a player waits for a choice of the pet's own, watching and leaving it there in turn: a week (G8). */
@@ -81,7 +82,14 @@ const AWAY_PATIENCE = 7 * 1440;
 class OutOfReach extends Error {}
 
 class Player {
-  life = new Life({ name: "Mochi", line: "gentle", bornAt: START, tzOffsetMin: 0, seed: 1, trees: ["explore", "care", "mind", "spar"] });
+  life = new Life({
+    name: "Mochi",
+    line: "gentle",
+    bornAt: START,
+    tzOffsetMin: 0,
+    seed: 1,
+    trees: ["explore", "care", "mind", "spar"],
+  });
   now = START;
   pets = 1;
   wearing: string | null = null;
@@ -113,7 +121,10 @@ class Player {
     // the playthrough's player keeps its pet on chain, as before; saving to the chain is counted below by hand
     return { ...v, pet: { ...v.pet!, onChain: true }, pets: this.pets };
   }
-  must<T extends object>(r: ({ ok: true; world: WorldState } & T) | { ok: false; reason: string }, what: string): { ok: true; world: WorldState } & T {
+  must<T extends object>(
+    r: ({ ok: true; world: WorldState } & T) | { ok: false; reason: string },
+    what: string,
+  ): { ok: true; world: WorldState } & T {
     if (!r.ok) throw new Error(`${what}: ${r.reason}`);
     this.w = r.world;
     return r;
@@ -172,7 +183,8 @@ class Player {
   ready(n: number) {
     if (this.pet.hibernating || this.pet.asleep || this.life.energy() < n) this.rest();
     if (this.pet.asleep) this.life.care({ kind: "wake" }, this.now);
-    if (this.life.energy() < n) throw new Error(`the pet could not get its energy back (${this.life.energy()} of ${n})`);
+    if (this.life.energy() < n)
+      throw new Error(`the pet could not get its energy back (${this.life.energy()} of ${n})`);
   }
   /**
    * Coins enough for `n`: sparring the softest partner for wins until there are (Arena.tsx's pay for a win). Only the
@@ -275,7 +287,9 @@ class Player {
   }
   /** Look around where `item` drops until `n` more have been found. */
   find(item: number, n: number) {
-    const rooms = Object.values(ROOMS).filter((r) => r.drops.some((d) => d.item === item)).map((r) => r.index);
+    const rooms = Object.values(ROOMS)
+      .filter((r) => r.drops.some((d) => d.item === item))
+      .map((r) => r.index);
     if (!rooms.length) throw new Error(`nowhere drops ${ITEM[item]?.name.en ?? item}`);
     const goal = tallyOf(this.w, "FIND", item) + n;
     for (let tries = 0; tallyOf(this.w, "FIND", item) < goal; tries++) {
@@ -326,7 +340,11 @@ class Player {
     if (owned) {
       // already sewn once: make the furniture of the same name instead, which also counts as MAKE
       const f = MAKE_RECIPES.find((x) => x.id === id && x.kind === "furniture");
-      if (f) return (f.ins.forEach((x) => this.have(x.item, x.amount)), this.must(make(this.w, "furniture", id), `build ${id}`));
+      if (f)
+        return (
+          f.ins.forEach((x) => this.have(x.item, x.amount)),
+          this.must(make(this.w, "furniture", id), `build ${id}`)
+        );
     }
     this.must(make(this.w, r.kind, id), `make ${id}`);
   }
@@ -349,7 +367,8 @@ class Player {
     const [time, where] = key.split("-") as [string, string | undefined];
     const goal = tallyOf(this.w, "TOGETHER_WHEN", key) + minutes;
     for (let tried = 0; tallyOf(this.w, "TOGETHER_WHEN", key) < goal; tried++) {
-      if (tried > PATIENCE) throw new OutOfReach(`${minutes} minutes together ${key}: the pet was not awake with you that long`);
+      if (tried > PATIENCE)
+        throw new OutOfReach(`${minutes} minutes together ${key}: the pet was not awake with you that long`);
       this.waitFor(time);
       if (where && where !== "outside" && where !== "inside") this.goTo(Number(where));
       if (where === "outside") this.goTo(neighbours(HOME)[0]!);
@@ -370,7 +389,10 @@ class Player {
     const goal = tallyOf(this.w, "CHOOSE", key) + n;
     const since = this.now;
     for (let watched = 0; tallyOf(this.w, "CHOOSE", key) < goal; watched++) {
-      if (this.now - since > AWAY_PATIENCE * MIN) throw new OutOfReach(`its brain never chose to ${want}${room !== undefined ? ` in room ${room}` : ""} in ${AWAY_PATIENCE / 1440} days, watched and left there`);
+      if (this.now - since > AWAY_PATIENCE * MIN)
+        throw new OutOfReach(
+          `its brain never chose to ${want}${room !== undefined ? ` in room ${room}` : ""} in ${AWAY_PATIENCE / 1440} days, watched and left there`,
+        );
       // every two hours watched without it, the pet is left there for four hours and the game opened again, as a
       // player sets off: rested, fed and clean first, so what it chooses alone is its own and not hunger or sleep
       // (to see it choose to eat, it is left unfed)
@@ -508,7 +530,9 @@ function satisfy(p: Player, c: Condition, q: QuestDef): void {
       }
       if (type === "FORAGE") {
         // places never looked around in, nearest first in the room list
-        const fresh = Object.values(ROOMS).filter((r) => r.drops.length && !tallyOf(p.w, "FORAGE", r.index)).slice(0, n);
+        const fresh = Object.values(ROOMS)
+          .filter((r) => r.drops.length && !tallyOf(p.w, "FORAGE", r.index))
+          .slice(0, n);
         if (fresh.length < n) throw new Error(`${q.id}: only ${fresh.length} new places left`);
         for (const r of fresh) p.lookAround(r.index);
         return;
@@ -516,7 +540,8 @@ function satisfy(p: Player, c: Condition, q: QuestDef): void {
       // five different foods really eaten
       if (type === "FED") return void [11110, 11120, 11140, 11302, 11313].forEach((f) => p.eat(f));
       // Builders' Lane is a screen, not a room: its visits are counted by hand, as the app counts them
-      if (type === "MEET") return void ["behemoth", "mars", "tapboy", "builder", "diver"].forEach((id) => p.app("MEET", id));
+      if (type === "MEET")
+        return void ["behemoth", "mars", "tapboy", "builder", "diver"].forEach((id) => p.app("MEET", id));
       if (type === "MEET_DAY")
         return void [0, 1, 2].forEach((d) => {
           if (d) p.away(24 * 60);
@@ -658,12 +683,17 @@ function satisfy(p: Player, c: Condition, q: QuestDef): void {
 /** Play one quest to its hand-in; an objective out of the real pet's reach leaves it taken but undone. */
 function play(p: Player, q: QuestDef, outOfReach: Map<string, string>): boolean {
   // what opens it, in the world (a resident's arc opens on entering their room)
-  for (const c of q.requires) if (c.type === "VISIT" && tallyOf(p.w, "VISIT", c.index ?? 0) < (c.value ?? 1)) p.arrive(Number(c.index));
-  for (const c of q.requires) if (c.type === "MEET" && tallyOf(p.w, "MEET", c.index ?? 0) < 1) p.app("MEET", c.index ?? "behemoth");
+  for (const c of q.requires)
+    if (c.type === "VISIT" && tallyOf(p.w, "VISIT", c.index ?? 0) < (c.value ?? 1)) p.arrive(Number(c.index));
+  for (const c of q.requires)
+    if (c.type === "MEET" && tallyOf(p.w, "MEET", c.index ?? 0) < 1) p.app("MEET", c.index ?? "behemoth");
   expect(questStatus(q, p.w, p.view()), `${q.id} should be open`).toBe("available");
   p.must(acceptQuest(p.w, q, p.view()), `accept ${q.id}`);
   p.stock();
-  const giverRoom = ROOMS[{ wick: 64, praline: 13, yonder: 3, bolt: 5, flit: 56, why: 59, jab: 89, twain: 19, nimbus: 53 }[q.giver] ?? -1];
+  const giverRoom =
+    ROOMS[
+      { wick: 64, praline: 13, yonder: 3, bolt: 5, flit: 56, why: 59, jab: 89, twain: 19, nimbus: 53 }[q.giver] ?? -1
+    ];
   const started = p.now;
   const rested = p.rested;
   const waited = p.waited;
@@ -677,7 +707,11 @@ function play(p: Player, q: QuestDef, outOfReach: Map<string, string>): boolean 
       const after = questProgress(q, p.w, p.view());
       const slipped = q.objectives.filter((_, i) => !after[i]!.met);
       if (!slipped.length) break;
-      for (const o of [...slipped.filter((o) => o.cond.type !== "ROOM"), ...slipped.filter((o) => o.cond.type === "ROOM")]) satisfy(p, o.cond, q);
+      for (const o of [
+        ...slipped.filter((o) => o.cond.type !== "ROOM"),
+        ...slipped.filter((o) => o.cond.type === "ROOM"),
+      ])
+        satisfy(p, o.cond, q);
     }
   } catch (e) {
     if (!(e instanceof OutOfReach)) throw e;
@@ -688,7 +722,9 @@ function play(p: Player, q: QuestDef, outOfReach: Map<string, string>): boolean 
   p.restedIn[q.id] = p.rested - rested;
   p.waitedIn[q.id] = p.waited - waited;
   const prog = questProgress(q, p.w, p.view());
-  const left = q.objectives.flatMap((o, i) => (prog[i]!.met ? [] : [`${o.text.en} (${prog[i]!.have}/${prog[i]!.need})`]));
+  const left = q.objectives.flatMap((o, i) =>
+    prog[i]!.met ? [] : [`${o.text.en} (${prog[i]!.have}/${prog[i]!.need})`],
+  );
   expect(left, `${q.id} ${q.title.en}: still to do`).toEqual([]);
   p.must(completeQuest(p.w, q, p.view()), `hand in ${q.id}`);
   p.log.push(q.id);
@@ -706,7 +742,12 @@ function readBoth(q: QuestDef): string[] {
   const faults: string[] = [];
   for (const lang of ["en", "zh"] as const) {
     const name = lang === "zh" ? "团团" : "Mochi";
-    const texts = [q.title[lang], ...q.intro.map((l) => l[lang]), ...q.outro.map((l) => l[lang]), ...q.objectives.map((o) => o.text[lang])];
+    const texts = [
+      q.title[lang],
+      ...q.intro.map((l) => l[lang]),
+      ...q.outro.map((l) => l[lang]),
+      ...q.objectives.map((o) => o.text[lang]),
+    ];
     for (const raw of texts) {
       const t = raw.replaceAll("{name}", name);
       read[lang]++;
@@ -729,114 +770,207 @@ const OUT_OF_REACH: Readonly<Record<string, string>> = {};
 const KEPT_BACK = { pieces: [] as string[], decor: [] as string[], trust: [] as string[] };
 
 describe("the automated playthrough", () => {
-  it("plays every story quest through the game's own rules, alone, with real coins, real energy and its pet's own choices", () => {
-    const p = new Player();
-    const faults: string[] = [];
-    const outOfReach = new Map<string, string>();
-    const left = new Set(STORY.map((q) => q.id));
-    for (let round = 0; left.size && round < 100; round++) {
-      let progressed = false;
-      for (const q of STORY) {
-        if (!left.has(q.id) || outOfReach.has(q.id)) continue;
-        const reqsMet = q.requires.every((c) => c.type !== "QUEST" || p.w.quests?.done[String(c.index)] !== undefined);
-        const trustOk = q.objectives.every((o) => o.cond.type !== "TRUST_LEVEL" || questStatus(q, p.w, p.view()) !== "locked");
-        if (!reqsMet || !trustOk) continue;
-        const done = play(p, q, outOfReach);
-        faults.push(...readBoth(q));
-        if (done) left.delete(q.id);
-        progressed = true;
-      }
-      if (!progressed) break;
-    }
-    if (process.env.SHOW_HOURS) {
-      console.log(Object.entries(p.hours).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([id, h]) => `${id} ${h.toFixed(1)}h (${p.restedIn[id]!.toFixed(1)}h asleep, ${p.waitedIn[id]!.toFixed(1)}h waiting for the hour)`).join(", "));
-      console.log(`days played ${((p.now - START) / 86_400_000).toFixed(1)}, slept ${p.rested.toFixed(0)}h, ${p.spars} spars for ${p.sparCoins} coins, ${p.life.mistakes} care mistakes`);
-      console.log([...outOfReach].map(([id, why]) => `${id}: ${why}`).join("\n"));
-    }
-    // what an honest solo player cannot finish, and why; everything else is finished
-    expect(Object.fromEntries(outOfReach), "objectives out of the real pet's reach").toEqual(OUT_OF_REACH);
-    const blocked = (q: QuestDef): boolean => outOfReach.has(q.id) || q.requires.some((c) => c.type === "QUEST" && blocked(STORY.find((x) => x.id === c.index)!));
-    expect([...left].sort(), "quests left undone").toEqual(STORY.filter(blocked).map((q) => q.id).sort());
-    expect(p.log).toHaveLength(STORY.length - STORY.filter(blocked).length);
-    // every quest played was read in both languages as it was handed in
-    expect(faults, "quest text a player could not read").toEqual([]);
-    expect(read.en).toBe(read.zh);
-    expect(read.en).toBeGreaterThan(p.log.length * 4);
-    // nothing asks a player to wait more than a night (36-QUEST-LINE.md §1), except quests that are about days (saving
-    // several days, coming back on different days, growing up). Counted now without the hours the pet slept to get its
-    // energy back, which the old held-up energy hid, and the hours waited for the time of day a quest names; both are
-    // real waits, reported with SHOW_HOURS, and the plan's rows weigh them (G3 the energy, G4 the pacing)
-    const aboutDays = (q: QuestDef) => q.objectives.some((o) => (o.cond.type === "SAVE" && (o.cond.value ?? 1) > 1) || o.cond.type === "STAGE" || /HEALTHY_DAY|MEET_DAY/.test(String(o.cond.index)));
-    const slow = STORY.filter((q) => p.hours[q.id] !== undefined && !aboutDays(q) && p.hours[q.id]! - p.restedIn[q.id]! - p.waitedIn[q.id]! > 16).map((q) => `${q.id} ${p.hours[q.id]!.toFixed(1)}h`);
-    expect(slow, "quests that took more than a night awake").toEqual([]);
-    // every reward landed: each finished quest's keepsakes are owned (the old fixed list less what only the quests out
-    // of reach give), and trust reached its levels
-    const given = (kind: "piece" | "decor") => STORY.filter((q) => p.log.includes(q.id)).flatMap((q) => q.rewards.flatMap((r) => (r.kind === kind ? [r.id] : [])));
-    expect(p.w.wardrobe?.owned).toEqual(expect.arrayContaining(given("piece")));
-    expect(p.w.decor?.owned).toEqual(expect.arrayContaining(given("decor")));
-    const missing = (ids: string[], owned: string[] = []) => ids.filter((id) => !owned.includes(id));
-    expect(missing(["charm", "ribbon", "ranger", "goggles", "net", "nurse", "headband", "whistle", "seal", "dream", "b:lamps13", "b:telescope", "b:handheld", "b:hardhat"], p.w.wardrobe?.owned), "pieces only quests out of reach give").toEqual(KEPT_BACK.pieces);
-    expect(missing(["postcard", "starmap", "photo", "portrait", "firstaid", "pillow", "cloud", "dreamjar", "eggshell", "nameplate", "sign", "mapframe"], p.w.decor?.owned), "decor only quests out of reach give").toEqual(KEPT_BACK.decor);
-    const residents = ["wick", "praline", "yonder", "bolt", "flit", "why", "jab", "twain", "nimbus"];
-    for (const who of residents) {
-      const owed = STORY.filter((q) => p.log.includes(q.id)).reduce((t, q) => t + q.rewards.reduce((n, r) => n + (r.kind === "trust" && r.who === who ? r.n : 0), 0), 0);
-      expect(p.w.trust?.[who] ?? 0, who).toBe(owed);
-    }
-    expect(residents.filter((who) => (p.w.trust?.[who] ?? 0) < 30), "residents whose arc waits on a quest out of reach").toEqual(KEPT_BACK.trust);
-    // the coins were earned, never granted: everything held was paid in by the world or by spar wins
-    expect(tallyOf(p.w, "COINS_EARNED") - tallyOf(p.w, "COINS_SPENT") + 30).toBe(p.w.coins);
-  }, slow(600_000));
-
-  it("finishes every daily, across real days, and earns the weekly gift without a streak", () => {
-    const p = new Player();
-    const seen = new Set<string>();
-    const faults: string[] = [];
-    const outOfReach = new Map<string, string>();
-    // the everyday dailies; the residents' requests (G4) are played in the test below
-    const everyday = DAILIES.filter((q) => q.group !== "request");
-    for (let day = 0; everyday.some((q) => !seen.has(q.id)) && day < 120; day += 2) {
-      // every other day: a missed day never costs a daily (the pet, being real, misses its owner meanwhile)
-      p.away(Math.max(0, START + day * 86_400_000 - p.now) / MIN);
-      p.tend();
-      p.stock();
-      p.w = rollDailies(p.w, DAILIES, p.view(), 0);
-      for (const id of p.w.quests!.today!.offered) {
-        const q = DAILIES.find((x) => x.id === id)!;
-        try {
-          for (const o of q.objectives) satisfy(p, o.cond, q);
-        } catch (e) {
-          if (!(e instanceof OutOfReach)) throw e;
-          outOfReach.set(id, e.message);
-          continue;
+  it(
+    "plays every story quest through the game's own rules, alone, with real coins, real energy and its pet's own choices",
+    () => {
+      const p = new Player();
+      const faults: string[] = [];
+      const outOfReach = new Map<string, string>();
+      const left = new Set(STORY.map((q) => q.id));
+      for (let round = 0; left.size && round < 100; round++) {
+        let progressed = false;
+        for (const q of STORY) {
+          if (!left.has(q.id) || outOfReach.has(q.id)) continue;
+          const reqsMet = q.requires.every(
+            (c) => c.type !== "QUEST" || p.w.quests?.done[String(c.index)] !== undefined,
+          );
+          const trustOk = q.objectives.every(
+            (o) => o.cond.type !== "TRUST_LEVEL" || questStatus(q, p.w, p.view()) !== "locked",
+          );
+          if (!reqsMet || !trustOk) continue;
+          const done = play(p, q, outOfReach);
+          faults.push(...readBoth(q));
+          if (done) left.delete(q.id);
+          progressed = true;
         }
-        // the day can run out while the pet sleeps or the player waits for the evening: the next offer tries again
-        if (localDay(p.now, 0) !== p.w.quests!.today!.day) continue;
-        // earning coins over several days of paid spars (G6) can carry the player into a day it already finished
-        if (questStatus(q, p.w, p.view()) === "done") continue;
-        expect(questStatus(q, p.w, p.view()), `${id} on day ${day}`).toBe("ready");
-        p.must(completeQuest(p.w, q, p.view()), `hand in ${id}`);
-        faults.push(...readBoth(q));
-        seen.add(id);
+        if (!progressed) break;
       }
-    }
-    expect(Object.fromEntries(outOfReach), "dailies out of the real pet's reach").toEqual({});
-    expect(everyday.filter((q) => !seen.has(q.id)).map((q) => q.id)).toEqual([]);
-    expect(faults, "daily text a player could not read").toEqual([]);
-    expect(weeklyGiftsWaiting(p.w)).toBeGreaterThanOrEqual(1);
-    const coins = p.w.coins;
-    p.must(claimWeekly(p.w, WEEKLY_GIFT), "weekly gift");
-    expect(p.w.coins).toBe(coins + 60);
-  }, slow(600_000));
+      if (process.env.SHOW_HOURS) {
+        console.log(
+          Object.entries(p.hours)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 12)
+            .map(
+              ([id, h]) =>
+                `${id} ${h.toFixed(1)}h (${p.restedIn[id]!.toFixed(1)}h asleep, ${p.waitedIn[id]!.toFixed(1)}h waiting for the hour)`,
+            )
+            .join(", "),
+        );
+        console.log(
+          `days played ${((p.now - START) / 86_400_000).toFixed(1)}, slept ${p.rested.toFixed(0)}h, ${p.spars} spars for ${p.sparCoins} coins, ${p.life.mistakes} care mistakes`,
+        );
+        console.log([...outOfReach].map(([id, why]) => `${id}: ${why}`).join("\n"));
+      }
+      // what an honest solo player cannot finish, and why; everything else is finished
+      expect(Object.fromEntries(outOfReach), "objectives out of the real pet's reach").toEqual(OUT_OF_REACH);
+      const blocked = (q: QuestDef): boolean =>
+        outOfReach.has(q.id) ||
+        q.requires.some((c) => c.type === "QUEST" && blocked(STORY.find((x) => x.id === c.index)!));
+      expect([...left].sort(), "quests left undone").toEqual(
+        STORY.filter(blocked)
+          .map((q) => q.id)
+          .sort(),
+      );
+      expect(p.log).toHaveLength(STORY.length - STORY.filter(blocked).length);
+      // every quest played was read in both languages as it was handed in
+      expect(faults, "quest text a player could not read").toEqual([]);
+      expect(read.en).toBe(read.zh);
+      expect(read.en).toBeGreaterThan(p.log.length * 4);
+      // nothing asks a player to wait more than a night (36-QUEST-LINE.md §1), except quests that are about days (saving
+      // several days, coming back on different days, growing up). Counted now without the hours the pet slept to get its
+      // energy back, which the old held-up energy hid, and the hours waited for the time of day a quest names; both are
+      // real waits, reported with SHOW_HOURS, and the plan's rows weigh them (G3 the energy, G4 the pacing)
+      const aboutDays = (q: QuestDef) =>
+        q.objectives.some(
+          (o) =>
+            (o.cond.type === "SAVE" && (o.cond.value ?? 1) > 1) ||
+            o.cond.type === "STAGE" ||
+            /HEALTHY_DAY|MEET_DAY/.test(String(o.cond.index)),
+        );
+      const slow = STORY.filter(
+        (q) =>
+          p.hours[q.id] !== undefined && !aboutDays(q) && p.hours[q.id]! - p.restedIn[q.id]! - p.waitedIn[q.id]! > 16,
+      ).map((q) => `${q.id} ${p.hours[q.id]!.toFixed(1)}h`);
+      expect(slow, "quests that took more than a night awake").toEqual([]);
+      // every reward landed: each finished quest's keepsakes are owned (the old fixed list less what only the quests out
+      // of reach give), and trust reached its levels
+      const given = (kind: "piece" | "decor") =>
+        STORY.filter((q) => p.log.includes(q.id)).flatMap((q) =>
+          q.rewards.flatMap((r) => (r.kind === kind ? [r.id] : [])),
+        );
+      expect(p.w.wardrobe?.owned).toEqual(expect.arrayContaining(given("piece")));
+      expect(p.w.decor?.owned).toEqual(expect.arrayContaining(given("decor")));
+      const missing = (ids: string[], owned: string[] = []) => ids.filter((id) => !owned.includes(id));
+      expect(
+        missing(
+          [
+            "charm",
+            "ribbon",
+            "ranger",
+            "goggles",
+            "net",
+            "nurse",
+            "headband",
+            "whistle",
+            "seal",
+            "dream",
+            "b:lamps13",
+            "b:telescope",
+            "b:handheld",
+            "b:hardhat",
+          ],
+          p.w.wardrobe?.owned,
+        ),
+        "pieces only quests out of reach give",
+      ).toEqual(KEPT_BACK.pieces);
+      expect(
+        missing(
+          [
+            "postcard",
+            "starmap",
+            "photo",
+            "portrait",
+            "firstaid",
+            "pillow",
+            "cloud",
+            "dreamjar",
+            "eggshell",
+            "nameplate",
+            "sign",
+            "mapframe",
+          ],
+          p.w.decor?.owned,
+        ),
+        "decor only quests out of reach give",
+      ).toEqual(KEPT_BACK.decor);
+      const residents = ["wick", "praline", "yonder", "bolt", "flit", "why", "jab", "twain", "nimbus"];
+      for (const who of residents) {
+        const owed = STORY.filter((q) => p.log.includes(q.id)).reduce(
+          (t, q) => t + q.rewards.reduce((n, r) => n + (r.kind === "trust" && r.who === who ? r.n : 0), 0),
+          0,
+        );
+        expect(p.w.trust?.[who] ?? 0, who).toBe(owed);
+      }
+      expect(
+        residents.filter((who) => (p.w.trust?.[who] ?? 0) < 30),
+        "residents whose arc waits on a quest out of reach",
+      ).toEqual(KEPT_BACK.trust);
+      // the coins were earned, never granted: everything held was paid in by the world or by spar wins
+      expect(tallyOf(p.w, "COINS_EARNED") - tallyOf(p.w, "COINS_SPENT") + 30).toBe(p.w.coins);
+    },
+    slow(600_000),
+  );
 
-  it("does every resident's request alone (G4): each errand can be gathered and handed over", () => {
-    const p = new Player();
-    const requests = DAILIES.filter((q) => q.group === "request");
-    expect(requests).toHaveLength(27);
-    for (const q of requests) {
-      p.tend();
-      const before = tallyOf(p.w, "GIVE_TO", q.objectives[0]!.cond.index as string);
-      for (const o of q.objectives) satisfy(p, o.cond, q);
-      expect(tallyOf(p.w, "GIVE_TO", q.objectives[0]!.cond.index as string) - before, q.id).toBeGreaterThanOrEqual(q.objectives[0]!.cond.value ?? 1);
-    }
-  }, slow(600_000));
+  it(
+    "finishes every daily, across real days, and earns the weekly gift without a streak",
+    () => {
+      const p = new Player();
+      const seen = new Set<string>();
+      const faults: string[] = [];
+      const outOfReach = new Map<string, string>();
+      // the everyday dailies; the residents' requests (G4) are played in the test below
+      const everyday = DAILIES.filter((q) => q.group !== "request");
+      for (let day = 0; everyday.some((q) => !seen.has(q.id)) && day < 120; day += 2) {
+        // every other day: a missed day never costs a daily (the pet, being real, misses its owner meanwhile)
+        p.away(Math.max(0, START + day * 86_400_000 - p.now) / MIN);
+        p.tend();
+        p.stock();
+        p.w = rollDailies(p.w, DAILIES, p.view(), 0);
+        for (const id of p.w.quests!.today!.offered) {
+          const q = DAILIES.find((x) => x.id === id)!;
+          try {
+            for (const o of q.objectives) satisfy(p, o.cond, q);
+          } catch (e) {
+            if (!(e instanceof OutOfReach)) throw e;
+            outOfReach.set(id, e.message);
+            continue;
+          }
+          // the day can run out while the pet sleeps or the player waits for the evening: the next offer tries again
+          if (localDay(p.now, 0) !== p.w.quests!.today!.day) continue;
+          // earning coins over several days of paid spars (G6) can carry the player into a day it already finished
+          if (questStatus(q, p.w, p.view()) === "done") continue;
+          expect(questStatus(q, p.w, p.view()), `${id} on day ${day}`).toBe("ready");
+          p.must(completeQuest(p.w, q, p.view()), `hand in ${id}`);
+          faults.push(...readBoth(q));
+          seen.add(id);
+        }
+      }
+      expect(Object.fromEntries(outOfReach), "dailies out of the real pet's reach").toEqual({});
+      expect(everyday.filter((q) => !seen.has(q.id)).map((q) => q.id)).toEqual([]);
+      expect(faults, "daily text a player could not read").toEqual([]);
+      expect(weeklyGiftsWaiting(p.w)).toBeGreaterThanOrEqual(1);
+      const coins = p.w.coins;
+      p.must(claimWeekly(p.w, WEEKLY_GIFT), "weekly gift");
+      expect(p.w.coins).toBe(coins + 60);
+    },
+    slow(600_000),
+  );
+
+  it(
+    "does every resident's request alone (G4): each errand can be gathered and handed over",
+    () => {
+      const p = new Player();
+      const requests = DAILIES.filter((q) => q.group === "request");
+      expect(requests).toHaveLength(27);
+      for (const q of requests) {
+        p.tend();
+        const before = tallyOf(p.w, "GIVE_TO", q.objectives[0]!.cond.index as string);
+        for (const o of q.objectives) satisfy(p, o.cond, q);
+        expect(tallyOf(p.w, "GIVE_TO", q.objectives[0]!.cond.index as string) - before, q.id).toBeGreaterThanOrEqual(
+          q.objectives[0]!.cond.value ?? 1,
+        );
+      }
+    },
+    slow(600_000),
+  );
 });

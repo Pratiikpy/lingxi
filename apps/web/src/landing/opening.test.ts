@@ -14,10 +14,25 @@ const root = join(__dirname, "../../../..");
 /** read with no-break spaces as plain ones, so a no-break space cannot hide the old sentence */
 const plain = (text: string) => text.replace(/\u00a0|&nbsp;/g, " ");
 const read = (path: string) => plain(readFileSync(join(root, path), "utf8"));
-const PUBLIC = ["apps/web/index.html", "apps/web/play.html", "apps/web/verify.html", "apps/web/handheld.html", "apps/web/agents.html", "apps/web/public/manifest.webmanifest", "services/api/src/agentApi.ts", "docs/readme/banner.html"];
+const PUBLIC = [
+  "apps/web/index.html",
+  "apps/web/play.html",
+  "apps/web/verify.html",
+  "apps/web/handheld.html",
+  "apps/web/agents.html",
+  "apps/web/public/manifest.webmanifest",
+  "services/api/src/agentApi.ts",
+  "docs/readme/banner.html",
+];
 
 /** The old sentence, in the shapes it was written in: a pet's (every pet's) brain or mind as a circuit on X Layer. */
-const OLD = [/(brain|mind)s? (is|are) an? (real )?(TapeOut )?circuits? on X Layer/i, /minds are TapeOut circuits on X Layer/i, /its brain the circuit on X Layer/i, /its circuit brain on X Layer/i, /大脑为真实电路的宠物，电路就在 X Layer 上/];
+const OLD = [
+  /(brain|mind)s? (is|are) an? (real )?(TapeOut )?circuits? on X Layer/i,
+  /minds are TapeOut circuits on X Layer/i,
+  /its brain the circuit on X Layer/i,
+  /its circuit brain on X Layer/i,
+  /大脑为真实电路的宠物，电路就在 X Layer 上/,
+];
 
 describe("the opening sentence (A86)", () => {
   for (const path of PUBLIC)

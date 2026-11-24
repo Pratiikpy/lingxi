@@ -76,15 +76,32 @@ const HEX64 = /^[0-9a-f]{64}$/;
 const PLAYER = /^[a-z0-9]{6,32}$/;
 const isKept = (l: unknown): l is KeptLetter => {
   const k = l as KeptLetter;
-  return !!k && typeof k.id === "string" && (k.dir === "in" || k.dir === "out") && typeof k.player === "string" && typeof k.pet === "string" && typeof k.text === "string" && typeof k.at === "number";
+  return (
+    !!k &&
+    typeof k.id === "string" &&
+    (k.dir === "in" || k.dir === "out") &&
+    typeof k.player === "string" &&
+    typeof k.pet === "string" &&
+    typeof k.text === "string" &&
+    typeof k.at === "number"
+  );
 };
 
 /** What is kept, or null for none or a copy this build cannot read. */
 function load(): Saved | null {
   try {
     const v = JSON.parse(localStorage.getItem(LETTERS_KEY) ?? "null") as Partial<Saved> | null;
-    if (!v || v.v !== 1 || !isRelayAddress(v.account) || !HEX64.test(v.privateKey ?? "") || !HEX64.test(v.secretKey ?? "")) return null;
-    const book = Object.fromEntries(Object.entries(v.book ?? {}).filter(([p, a]) => PLAYER.test(p) && isRelayAddress(a)));
+    if (
+      !v ||
+      v.v !== 1 ||
+      !isRelayAddress(v.account) ||
+      !HEX64.test(v.privateKey ?? "") ||
+      !HEX64.test(v.secretKey ?? "")
+    )
+      return null;
+    const book = Object.fromEntries(
+      Object.entries(v.book ?? {}).filter(([p, a]) => PLAYER.test(p) && isRelayAddress(a)),
+    );
     return {
       v: 1,
       account: v.account,
@@ -132,7 +149,12 @@ const troubleOf = (e: unknown): LettersTrouble => {
   const msg = String((e as { message?: unknown })?.message ?? "");
   if (code === "no-encryption-key") return "noKey";
   if (code === "rate-limited" || code === "http-429" || /HTTP 429/.test(msg)) return "tooFast";
-  if (code === "unreachable" || e instanceof TypeError || /failed to fetch|load failed|networkerror|timeout|abort/i.test(msg)) return "down";
+  if (
+    code === "unreachable" ||
+    e instanceof TypeError ||
+    /failed to fetch|load failed|networkerror|timeout|abort/i.test(msg)
+  )
+    return "down";
   return "refused";
 };
 
@@ -145,7 +167,12 @@ interface LettersStore {
   ensure: () => Promise<Session | null>;
   /** a friend's address, from a live room: recorded and approved on the relay */
   learnFriend: (player: string, address: string) => Promise<void>;
-  send: (to: { player: string; pet: string }, myPet: string, fromPlayer: string, text: string) => Promise<{ ok: true } | { ok: false; reason: "empty" | "tooLong" | "noAddress" | LettersTrouble }>;
+  send: (
+    to: { player: string; pet: string },
+    myPet: string,
+    fromPlayer: string,
+    text: string,
+  ) => Promise<{ ok: true } | { ok: false; reason: "empty" | "tooLong" | "noAddress" | LettersTrouble }>;
   retry: (id: string, fromPlayer: string) => Promise<void>;
   /** reads the inbox once (only in the tab that holds the save) */
   pull: () => Promise<void>;
@@ -176,10 +203,25 @@ export const useLetters = create<LettersStore>((set, get) => {
     const friend = s.book[letter.from.player] === m.from;
     const at = (m.createdAt || now()) * 1000;
     if (friend) {
-      const kept: KeptLetter = { id: m.id, dir: "in", player: letter.from.player, pet: letter.from.pet, myPet: myPetOf(letter.toPet), text: letter.text, at };
+      const kept: KeptLetter = {
+        id: m.id,
+        dir: "in",
+        player: letter.from.player,
+        pet: letter.from.pet,
+        myPet: myPetOf(letter.toPet),
+        text: letter.text,
+        at,
+      };
       write({ ...s, kept: [kept, ...s.kept].slice(0, KEPT_MAX) });
     } else if (!s.strangers.some((x) => x.address === m.from)) {
-      const stranger: Stranger = { address: m.from, player: letter.from.player, pet: letter.from.pet, myPet: myPetOf(letter.toPet), text: letter.text, at };
+      const stranger: Stranger = {
+        address: m.from,
+        player: letter.from.player,
+        pet: letter.from.pet,
+        myPet: myPetOf(letter.toPet),
+        text: letter.text,
+        at,
+      };
       write({ ...s, strangers: [stranger, ...s.strangers].slice(0, STRANGERS_MAX) });
     }
   };
@@ -187,7 +229,9 @@ export const useLetters = create<LettersStore>((set, get) => {
   const markRead = async (ids: string[]) => {
     if (!ids.length || !session) return;
     const { createClient } = await lib();
-    await createClient().markRead(session.node, session.auth, ids.slice(0, 100)).catch(() => {});
+    await createClient()
+      .markRead(session.node, session.auth, ids.slice(0, 100))
+      .catch(() => {});
   };
 
   /** Asks the relay where a sent letter stands. */
@@ -198,26 +242,45 @@ export const useLetters = create<LettersStore>((set, get) => {
     try {
       const { createClient, deliveryStatus } = await lib();
       const st = await deliveryStatus(createClient(), l.server, id);
-      const state: LetterState = st.status === "delivered" ? "delivered" : st.status === "failed" ? "failed" : "waiting";
-      if (state !== l.state) write({ ...get().saved!, kept: get().saved!.kept.map((k) => (k.id === id ? { ...k, state } : k)) });
+      const state: LetterState =
+        st.status === "delivered" ? "delivered" : st.status === "failed" ? "failed" : "waiting";
+      if (state !== l.state)
+        write({ ...get().saved!, kept: get().saved!.kept.map((k) => (k.id === id ? { ...k, state } : k)) });
     } catch {
       // a node that deletes a letter once delivered no longer knows it: it was delivered
-      write({ ...get().saved!, kept: get().saved!.kept.map((k) => (k.id === id && k.state === "waiting" ? { ...k, state: "delivered" } : k)) });
+      write({
+        ...get().saved!,
+        kept: get().saved!.kept.map((k) => (k.id === id && k.state === "waiting" ? { ...k, state: "delivered" } : k)),
+      });
     }
   };
 
   /** Seals, signs and hands a letter to the relay; the kept copy says where it stands. */
-  const deliver = async (localId: string, address: string, body: string): Promise<{ ok: true } | { ok: false; reason: LettersTrouble }> => {
+  const deliver = async (
+    localId: string,
+    address: string,
+    body: string,
+  ): Promise<{ ok: true } | { ok: false; reason: LettersTrouble }> => {
     try {
       const me = await get().ensure();
       if (!me) return { ok: false, reason: "down" };
       const t = await lib();
       const { key } = await t.fetchSelfKey(http, address);
       await allow(address);
-      const notice = t.makeSelfNotice({ from: me.account, to: address, message: body, recipientKey: key, ownKey: me.keys, createdAt: now() });
+      const notice = t.makeSelfNotice({
+        from: me.account,
+        to: address,
+        message: body,
+        recipientKey: key,
+        ownKey: me.keys,
+        createdAt: now(),
+      });
       const sent = await t.submitSelfNotice(http, me.auth, await t.signSelfNotice(me.auth, notice), { now: now() });
       const s = get().saved!;
-      write({ ...s, kept: s.kept.map((k) => (k.id === localId ? { ...k, id: sent.id, server: sent.server, state: "waiting" } : k)) });
+      write({
+        ...s,
+        kept: s.kept.map((k) => (k.id === localId ? { ...k, id: sent.id, server: sent.server, state: "waiting" } : k)),
+      });
       ok();
       setTimeout(() => void checkDelivery(sent.id), STATUS_AFTER_MS);
       return { ok: true };
@@ -250,7 +313,16 @@ export const useLetters = create<LettersStore>((set, get) => {
         const id = t.newSelfIdentity({ host });
         const kp = t.generateKeyPair();
         await t.publishSelfKey(http, t.selfAuth(id.privateKey, host), kp.publicKey, { now: now() });
-        s = { v: 1, account: id.account, privateKey: t.hex(id.privateKey), secretKey: t.hex(kp.secretKey), allowed: [], book: {}, kept: [], strangers: [] };
+        s = {
+          v: 1,
+          account: id.account,
+          privateKey: t.hex(id.privateKey),
+          secretKey: t.hex(kp.secretKey),
+          allowed: [],
+          book: {},
+          kept: [],
+          strangers: [],
+        };
         write(s);
         // the pets in the room learn the new address, so a friend there can write back
         useLive.getState().shareRelay(id.account);
@@ -258,7 +330,12 @@ export const useLetters = create<LettersStore>((set, get) => {
       const host = s.account.slice(s.account.indexOf("@") + 1);
       const privateKey = t.fromHex(s.privateKey);
       const secretKey = t.fromHex(s.secretKey);
-      session = { account: s.account, auth: t.selfAuth(privateKey, host), keys: { secretKey, publicKey: t.publicKeyOf(secretKey) }, node: t.nodeOf(s.account) };
+      session = {
+        account: s.account,
+        auth: t.selfAuth(privateKey, host),
+        keys: { secretKey, publicKey: t.publicKeyOf(secretKey) },
+        node: t.nodeOf(s.account),
+      };
       ok();
       return session;
     } catch (e) {
@@ -296,7 +373,16 @@ export const useLetters = create<LettersStore>((set, get) => {
       if (!address) return { ok: false, reason: "noAddress" };
       const localId = `local-${crypto.randomUUID()}`;
       const s = get().saved!;
-      const kept: KeptLetter = { id: localId, dir: "out", player: to.player, pet: to.pet, myPet, text: text.trim(), at: Date.now(), state: "sending" };
+      const kept: KeptLetter = {
+        id: localId,
+        dir: "out",
+        player: to.player,
+        pet: to.pet,
+        myPet,
+        text: text.trim(),
+        at: Date.now(),
+        state: "sending",
+      };
       write({ ...s, kept: [kept, ...s.kept].slice(0, KEPT_MAX) });
       return deliver(localId, address, w.body);
     },
@@ -309,7 +395,10 @@ export const useLetters = create<LettersStore>((set, get) => {
       const w = writeLetter({ from: { pet: l.myPet, player: fromPlayer }, toPet: l.pet, text: l.text });
       if (!w.ok) return;
       const localId = `local-${crypto.randomUUID()}`;
-      write({ ...s, kept: s.kept.map((k) => (k.id === id ? { ...k, id: localId, state: "sending", at: Date.now() } : k)) });
+      write({
+        ...s,
+        kept: s.kept.map((k) => (k.id === id ? { ...k, id: localId, state: "sending", at: Date.now() } : k)),
+      });
       await deliver(localId, address, w.body);
     },
 
@@ -377,8 +466,21 @@ export const useLetters = create<LettersStore>((set, get) => {
       if (!(await get().ensure())) return;
       await allow(address);
       const after = get().saved!;
-      const kept: KeptLetter = { id: `from-${address}-${st.at}`, dir: "in", player: st.player, pet: st.pet, myPet: st.myPet, text: st.text, at: st.at };
-      write({ ...after, book: { ...after.book, [st.player]: address }, kept: [kept, ...after.kept].slice(0, KEPT_MAX), strangers: after.strangers.filter((x) => x.address !== address) });
+      const kept: KeptLetter = {
+        id: `from-${address}-${st.at}`,
+        dir: "in",
+        player: st.player,
+        pet: st.pet,
+        myPet: st.myPet,
+        text: st.text,
+        at: st.at,
+      };
+      write({
+        ...after,
+        book: { ...after.book, [st.player]: address },
+        kept: [kept, ...after.kept].slice(0, KEPT_MAX),
+        strangers: after.strangers.filter((x) => x.address !== address),
+      });
     },
 
     ignore: async (address) => {
@@ -392,7 +494,10 @@ export const useLetters = create<LettersStore>((set, get) => {
 });
 
 /** Friends' pets the active pet can write to: a friendship and a known address. */
-export const writableFriends = (bonds: Record<string, { name: string }>, book: Record<string, string>): Array<{ player: string; pet: string }> =>
+export const writableFriends = (
+  bonds: Record<string, { name: string }>,
+  book: Record<string, string>,
+): Array<{ player: string; pet: string }> =>
   Object.keys(bonds)
     .map((k) => ({ player: k.slice(0, k.indexOf(":")), pet: bonds[k]!.name }))
     .filter((f) => PLAYER.test(f.player) && !!book[f.player]);
@@ -403,9 +508,13 @@ export const writableFriends = (bonds: Record<string, { name: string }>, book: R
  * by the tab that holds the save. Returns a stop.
  */
 export function watchLetters(): () => void {
-  const isFriend = (player: string) => Object.values(useFriends.getState().all).some((bonds) => Object.keys(bonds).some((k) => k.startsWith(`${player}:`)));
+  const isFriend = (player: string) =>
+    Object.values(useFriends.getState().all).some((bonds) =>
+      Object.keys(bonds).some((k) => k.startsWith(`${player}:`)),
+    );
   const learn = () => {
-    for (const m of Object.values(useLive.getState().members)) if (m.relay && isFriend(m.id)) void useLetters.getState().learnFriend(m.id, m.relay);
+    for (const m of Object.values(useLive.getState().members))
+      if (m.relay && isFriend(m.id)) void useLetters.getState().learnFriend(m.id, m.relay);
   };
   const receive = () => {
     const l = useLetters.getState();
@@ -414,7 +523,12 @@ export function watchLetters(): () => void {
   };
   learn();
   receive();
-  const stops = [useLive.subscribe(learn), useFriends.subscribe(learn), useSaveState.subscribe(receive), useLetters.subscribe((s, prev) => s.saved !== null && prev.saved === null && receive())];
+  const stops = [
+    useLive.subscribe(learn),
+    useFriends.subscribe(learn),
+    useSaveState.subscribe(receive),
+    useLetters.subscribe((s, prev) => s.saved !== null && prev.saved === null && receive()),
+  ];
   return () => {
     for (const stop of stops) stop();
     useLetters.getState().stopReceiving();

@@ -10,7 +10,9 @@ for (const look of [
   { lang: "en", scheme: "light", size: "phone", landing: "pet #1 was hatched there on 15 November", zone: /GMT|UTC/ },
   { lang: "zh", scheme: "dark", size: "desktop", landing: "1 号宠物 11 月 15 日在 X Layer 上孵化", zone: /GMT|UTC/ },
 ] as const) {
-  test(`the landing, the numbers page and the proof page say only what holds (${look.lang}, ${look.scheme}, ${look.size})`, async ({ player }) => {
+  test(`the landing, the numbers page and the proof page say only what holds (${look.lang}, ${look.scheme}, ${look.size})`, async ({
+    player,
+  }) => {
     test.setTimeout(240_000);
     const p = await player({ lang: look.lang, scheme: look.scheme, size: look.size });
     const { page } = p;
@@ -19,7 +21,9 @@ for (const look of [
     const line = page.getByText(look.landing);
     await line.scrollIntoViewIfNeeded();
     await expect(line).toBeVisible();
-    await page.screenshot({ path: test.info().outputPath(`landing-pet1-${look.lang}-${look.scheme}-${look.size}.png`) });
+    await page.screenshot({
+      path: test.info().outputPath(`landing-pet1-${look.lang}-${look.scheme}-${look.size}.png`),
+    });
 
     // the numbers page reads them again each minute while it is in view
     const reads: number[] = [];
@@ -32,7 +36,10 @@ for (const look of [
     await expect.poll(() => reads.length, { message: "and again a minute later" }).toBeGreaterThan(first);
   });
 
-  test(`the proof page's times name their zone (${look.lang}, ${look.scheme}, ${look.size})`, async ({ player, run }) => {
+  test(`the proof page's times name their zone (${look.lang}, ${look.scheme}, ${look.size})`, async ({
+    player,
+    run,
+  }) => {
     test.setTimeout(420_000);
     await forkOf(run);
     const p = await player({ lang: look.lang, scheme: look.scheme, size: look.size });

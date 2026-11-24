@@ -15,9 +15,18 @@ const NOW = 1_800_000_000_000;
 /** a starting state whose line bits (152-153) say `line` */
 const stateOf = (line: number) => ((BigInt(line) << 152n) | 0x1234n).toString();
 const file = () => join(mkdtempSync(join(tmpdir(), "lx-sponsor-")), "sponsored.json");
-const gate = (o: Partial<ConstructorParameters<typeof SponsorGate>[0]> = {}) => new SponsorGate({ file: file(), enabled: true, now: () => NOW, ...o });
-const asked = async (line: "gentle" | "bold" | "curious" = "gentle", at = NOW, key = privateKeyToAccount(generatePrivateKey())) => {
-  const { request, signature } = await signSponsorRequest(key, { line, state: stateOf(["gentle", "bold", "curious"].indexOf(line)), at });
+const gate = (o: Partial<ConstructorParameters<typeof SponsorGate>[0]> = {}) =>
+  new SponsorGate({ file: file(), enabled: true, now: () => NOW, ...o });
+const asked = async (
+  line: "gentle" | "bold" | "curious" = "gentle",
+  at = NOW,
+  key = privateKeyToAccount(generatePrivateKey()),
+) => {
+  const { request, signature } = await signSponsorRequest(key, {
+    line,
+    state: stateOf(["gentle", "bold", "curious"].indexOf(line)),
+    at,
+  });
   return { ...request, signature, key };
 };
 
@@ -37,16 +46,28 @@ describe("who may have a pet kept for them (H4)", () => {
   });
 
   it("is switched off until it is switched on", async () => {
-    expect(await gate({ enabled: false }).check(await asked(), "203.0.113.5")).toMatchObject({ ok: false, reason: "off" });
+    expect(await gate({ enabled: false }).check(await asked(), "203.0.113.5")).toMatchObject({
+      ok: false,
+      reason: "off",
+    });
   });
 
   it("refuses a request signed by another key, a stale or future one, a malformed one, and a state of another line", async () => {
     const g = gate();
     const body = await asked();
     const other = privateKeyToAccount(generatePrivateKey());
-    expect(await g.check({ ...body, to: other.address }, "203.0.113.5")).toMatchObject({ ok: false, reason: "badSignature" });
-    expect(await g.check(await asked("gentle", NOW - 11 * 60_000), "203.0.113.5")).toMatchObject({ ok: false, reason: "expired" });
-    expect(await g.check(await asked("gentle", NOW + 11 * 60_000), "203.0.113.5")).toMatchObject({ ok: false, reason: "expired" });
+    expect(await g.check({ ...body, to: other.address }, "203.0.113.5")).toMatchObject({
+      ok: false,
+      reason: "badSignature",
+    });
+    expect(await g.check(await asked("gentle", NOW - 11 * 60_000), "203.0.113.5")).toMatchObject({
+      ok: false,
+      reason: "expired",
+    });
+    expect(await g.check(await asked("gentle", NOW + 11 * 60_000), "203.0.113.5")).toMatchObject({
+      ok: false,
+      reason: "expired",
+    });
     expect(await g.check({ ...body, line: "dragon" }, "203.0.113.5")).toMatchObject({ ok: false, reason: "invalid" });
     expect(await g.check({ ...body, state: "-1" }, "203.0.113.5")).toMatchObject({ ok: false, reason: "invalid" });
     expect(await g.check(null, "203.0.113.5")).toMatchObject({ ok: false, reason: "invalid" });
@@ -93,7 +114,10 @@ describe("who may have a pet kept for them (H4)", () => {
     const h = gate({ okbPerDayWei: SET_ASIDE * 2n - 1n, perDay: 100 });
     const first = await h.check(await asked(), "198.51.100.5");
     expect(first.ok).toBe(true);
-    expect(await h.check(await asked(), "198.51.100.6"), "the first may still cost its set-aside").toMatchObject({ ok: false, reason: "budget" });
+    expect(await h.check(await asked(), "198.51.100.6"), "the first may still cost its set-aside").toMatchObject({
+      ok: false,
+      reason: "budget",
+    });
   });
 
   it("records each pet's cost, adds a later grant's cost to it, and counts a pet from before B9 at the most", async () => {
@@ -109,7 +133,14 @@ describe("who may have a pet kept for them (H4)", () => {
     expect(g.pets()[0]).toMatchObject({ petId: "7", grantTx: "0x3", spentWei: "61000000000000" });
     // a pet kept before costs were recorded counts at the most a pet may cost
     const old = gate({ file: f });
-    (old as unknown as { store: { pets: Array<Record<string, unknown>> } }).store.pets.push({ to: "0xold", petId: "1", network: "x", at: NOW, hatchTx: "0x9", grantTx: "0x9" });
+    (old as unknown as { store: { pets: Array<Record<string, unknown>> } }).store.pets.push({
+      to: "0xold",
+      petId: "1",
+      network: "x",
+      at: NOW,
+      hatchTx: "0x9",
+      grantTx: "0x9",
+    });
     expect(old.spentToday()).toBe(61_000_000_000_000n + 80_000_000_000_000n);
   });
 
@@ -135,7 +166,10 @@ describe("who may have a pet kept for them (H4)", () => {
   it("two requests for the same key at once: one goes, the other is told to wait", async () => {
     const g = gate();
     const key = privateKeyToAccount(generatePrivateKey());
-    const [a, b] = await Promise.all([g.check(await asked("gentle", NOW, key), "198.51.100.1"), g.check(await asked("gentle", NOW, key), "198.51.100.2")]);
+    const [a, b] = await Promise.all([
+      g.check(await asked("gentle", NOW, key), "198.51.100.1"),
+      g.check(await asked("gentle", NOW, key), "198.51.100.2"),
+    ]);
     expect([a.ok, b.ok].filter(Boolean)).toHaveLength(1);
   });
 
@@ -147,7 +181,17 @@ describe("who may have a pet kept for them (H4)", () => {
     if (!r.ok) throw new Error("refused");
     g.finish(r.slot, { petId: "9", hatchTx: "0x1", grantTx: "0x2", spentWei: 61_000_000_000_000n });
     const later = new SponsorGate({ file: f, enabled: true, now: () => NOW });
-    expect(later.pets()).toEqual([{ to: body.to.toLowerCase(), petId: "9", network: addressCode("198.51.100.1"), at: NOW, hatchTx: "0x1", grantTx: "0x2", spentWei: "61000000000000" }]);
+    expect(later.pets()).toEqual([
+      {
+        to: body.to.toLowerCase(),
+        petId: "9",
+        network: addressCode("198.51.100.1"),
+        at: NOW,
+        hatchTx: "0x1",
+        grantTx: "0x2",
+        spentWei: "61000000000000",
+      },
+    ]);
     expect(later.spentToday(), "the day's spend survives a restart").toBe(61_000_000_000_000n);
     expect(await later.check(body, "198.51.100.9")).toMatchObject({ ok: false, reason: "had" });
   });

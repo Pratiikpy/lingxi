@@ -15,7 +15,17 @@
  * replays to identical bits anywhere, including against the circuit on chain.
  */
 
-import { type FastBrain, type Program, encodeSenses, hungerBucket, bucket, inputField, runBeat, stateBits, timeOfDay } from "@lingxi/brain";
+import {
+  type FastBrain,
+  type Program,
+  encodeSenses,
+  hungerBucket,
+  bucket,
+  inputField,
+  runBeat,
+  stateBits,
+  timeOfDay,
+} from "@lingxi/brain";
 import { foodById } from "./items";
 import { chainLog, ZERO_HASH } from "./log";
 import {
@@ -118,7 +128,7 @@ function cloneForEdit(p: Pet): Pet {
 /** The pet's local hour at a beat. */
 export function localHour(p: Pick<Pet, "tzOffsetMin">, beat: number): number {
   const minutes = beat + p.tzOffsetMin;
-  return (((Math.floor(minutes / 60) % 24) + 24) % 24);
+  return ((Math.floor(minutes / 60) % 24) + 24) % 24;
 }
 
 export function inputWord(p: Pet, beat: number, action: number, event: number, owner: boolean): number {
@@ -169,7 +179,12 @@ export const ENJOY_EMPTY_BEATS = 20;
 
 /** Whether a care answers a need the pet has right now (G3): only that care is counted and can teach it something. */
 function answersNeed(p: Pet, c: Care): boolean {
-  const m = { food: toVisible(p.meters.food), joy: toVisible(p.meters.joy), energy: toVisible(p.meters.energy), clean: toVisible(p.meters.clean) };
+  const m = {
+    food: toVisible(p.meters.food),
+    joy: toVisible(p.meters.joy),
+    energy: toVisible(p.meters.energy),
+    clean: toVisible(p.meters.clean),
+  };
   switch (c.kind) {
     case "feed":
       return m.food < 600;
@@ -184,7 +199,12 @@ function answersNeed(p: Pet, c: Care): boolean {
     case "medicine":
       return !!p.sick;
     case "use":
-      return (!!c.item.food && m.food < 600) || (!!c.item.joy && m.joy < 700) || (!!c.item.energy && m.energy < 400) || (!!c.item.clean && m.clean < 600);
+      return (
+        (!!c.item.food && m.food < 600) ||
+        (!!c.item.joy && m.joy < 700) ||
+        (!!c.item.energy && m.energy < 400) ||
+        (!!c.item.clean && m.clean < 600)
+      );
     default:
       return false;
   }
@@ -226,10 +246,13 @@ function decay(p: Pet, beat = p.beat, alone = false): void {
   p.meters.food = fall(p.meters.food, less("food"), 0);
   p.meters.joy = fall(p.meters.joy, less("joy") * ill * (alone && !p.asleep ? 2 : 1), 1);
   p.meters.clean = fall(p.meters.clean, less("clean"), 2);
-  p.meters.energy = p.asleep ? clampMeter(p.meters.energy + boosted(SLEEP_GAIN_PER_HOUR, effectOf(g, "SLEEP_GAIN"))) : fall(p.meters.energy, less("energy") * ill, 3);
+  p.meters.energy = p.asleep
+    ? clampMeter(p.meters.energy + boosted(SLEEP_GAIN_PER_HOUR, effectOf(g, "SLEEP_GAIN")))
+    : fall(p.meters.energy, less("energy") * ill, 3);
   for (const k of ["food", "joy", "clean", "energy"] as const) if (was[k] > 0 && p.meters[k] === 0) miss(p, k, beat);
   // time with a need at zero does not count toward growing up (G5)
-  if (p.meters.food === 0 || p.meters.joy === 0 || p.meters.clean === 0 || p.meters.energy === 0) p.stalledBeats = (p.stalledBeats ?? 0) + 1;
+  if (p.meters.food === 0 || p.meters.joy === 0 || p.meters.clean === 0 || p.meters.energy === 0)
+    p.stalledBeats = (p.stalledBeats ?? 0) + 1;
   // neglect: an empty food bowl or a filthy pet, six hours running, makes it ill
   p.dirtyBeats = p.meters.clean === 0 || p.meters.food === 0 ? (p.dirtyBeats ?? 0) + 1 : 0;
   if (!p.sick && p.dirtyBeats >= boosted(SICK_AFTER, effectOf(g, "SICK_GRACE"))) {
@@ -267,8 +290,20 @@ function decide(p: Pet, brain: Brain, word: number, owner: boolean): { last: Pet
   const mood = (out >> 3) & 3;
   const nudge = (out >> 5) & 7;
   // when the owned instinct answered, no rule of the pet's own decided
-  const instinctSpoke = owner && brain.instinct ? (brain.instinct.fast.step(Uint8Array.from(before.slice(brain.instinct.from)), word) & 7) !== 0 : false;
-  const last = { want, mood, nudge, rule: instinctSpoke ? -1 : rule, word, before, ...(half !== undefined ? { half } : {}), ...(instinctSpoke ? { instinct: true as const } : {}) };
+  const instinctSpoke =
+    owner && brain.instinct
+      ? (brain.instinct.fast.step(Uint8Array.from(before.slice(brain.instinct.from)), word) & 7) !== 0
+      : false;
+  const last = {
+    want,
+    mood,
+    nudge,
+    rule: instinctSpoke ? -1 : rule,
+    word,
+    before,
+    ...(half !== undefined ? { half } : {}),
+    ...(instinctSpoke ? { instinct: true as const } : {}),
+  };
   return { last, after: Array.from(st) };
 }
 
@@ -279,7 +314,8 @@ function think(p: Pet, brain: Brain, beat: number, action: number, event: number
   p.last = last;
   const { want, nudge } = last;
   p.logHash = chainLog(p.logHash, word);
-  if (p.logBeat === undefined || beat !== p.logBeat + 1) p.logMarks = [...(p.logMarks ?? []), [p.pendingLog.length, beat]];
+  if (p.logBeat === undefined || beat !== p.logBeat + 1)
+    p.logMarks = [...(p.logMarks ?? []), [p.pendingLog.length, beat]];
   p.logBeat = beat;
   p.pendingLog.push(word);
 
@@ -336,7 +372,9 @@ function rebased(p0: Pet, beat: number): Pet {
     ...p0,
     beat,
     ...(p0.kinBeat !== undefined && p0.kinBeat > beat ? { kinBeat: beat } : {}),
-    ...(p0.missed?.some((m) => m.beat > beat) ? { missed: p0.missed.map((m) => (m.beat > beat ? { ...m, beat } : m)) } : {}),
+    ...(p0.missed?.some((m) => m.beat > beat)
+      ? { missed: p0.missed.map((m) => (m.beat > beat ? { ...m, beat } : m)) }
+      : {}),
   };
 }
 
@@ -344,7 +382,13 @@ function rebased(p0: Pet, beat: number): Pet {
  * `chose`, when given, hears what the pet's brain chose each beat it was awake (its want), so the game can count the
  * pet's own choices made while the player was away as it counts those made while watched (G8).
  */
-export function catchUp(p0: Pet, now: number, brain: Brain, eventAt: (beat: number) => number = () => EVENT.none, chose?: (want: number, beat: number) => void): Pet {
+export function catchUp(
+  p0: Pet,
+  now: number,
+  brain: Brain,
+  eventAt: (beat: number) => number = () => EVENT.none,
+  chose?: (want: number, beat: number) => void,
+): Pet {
   const target = beatOf(now);
   if (target < p0.beat) return rebased(p0, target);
   if (target === p0.beat) return p0;
@@ -395,7 +439,22 @@ export type Care =
 export interface CareResult {
   pet: Pet;
   /** what the owner sees happen, for the diary and the screen */
-  note: "ate" | "overfed" | "woke" | "played" | "tooTired" | "tooSick" | "cleaned" | "sleeping" | "awake" | "petted" | "healed" | "notSick" | "listened" | "hibernationEnded" | "used";
+  note:
+    | "ate"
+    | "overfed"
+    | "woke"
+    | "played"
+    | "tooTired"
+    | "tooSick"
+    | "cleaned"
+    | "sleeping"
+    | "awake"
+    | "petted"
+    | "healed"
+    | "notSick"
+    | "listened"
+    | "hibernationEnded"
+    | "used";
 }
 
 /**
@@ -492,7 +551,10 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
       p.counts.pet = counted(p.counts.pet);
       // kinship grows at most once every 12 hours (after any fading is settled)
       // Warm Memory (plan 4.4): kinship may grow sooner, never more often than every six hours
-      if (p.kinBeat === undefined || p.beat - p.kinBeat >= Math.max(360, KINSHIP_EVERY - effectOf(p.growth, "KINSHIP_SOONER"))) {
+      if (
+        p.kinBeat === undefined ||
+        p.beat - p.kinBeat >= Math.max(360, KINSHIP_EVERY - effectOf(p.growth, "KINSHIP_SOONER"))
+      ) {
         p.kinship = Math.min(KINSHIP_MAX, kinshipNow(p, p.beat) + 1);
         p.kinBeat = p.beat;
       }
@@ -532,7 +594,13 @@ export function care(p0: Pet, c: Care, now: number, brain: Brain, event = EVENT.
   if (note === "played" || note === "petted") answered(p, [1]);
   if (note === "cleaned") answered(p, [2]);
   if (note === "sleeping") answered(p, [3]);
-  if (c.kind === "use") answered(p, [...(c.item.food ? [0 as const] : []), ...(c.item.joy ? [1 as const] : []), ...(c.item.clean ? [2 as const] : []), ...(c.item.energy ? [3 as const] : [])]);
+  if (c.kind === "use")
+    answered(p, [
+      ...(c.item.food ? [0 as const] : []),
+      ...(c.item.joy ? [1 as const] : []),
+      ...(c.item.clean ? [2 as const] : []),
+      ...(c.item.energy ? [3 as const] : []),
+    ]);
   // taps inside one beat are one thought: the first is thought about and logged, the rest change only the meters (G3)
   if (p.careBeat !== p.beat) {
     if (c.kind === "feed") {

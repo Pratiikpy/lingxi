@@ -34,7 +34,8 @@ export interface Decor {
 export type CommissionStage = "child" | "teen" | "adult" | "elder";
 const STAGES = ["baby", "child", "teen", "adult", "elder"] as const;
 /** Has a pet at `stage` reached `need`? */
-export const stageReached = (stage: string, need: string): boolean => STAGES.indexOf(stage as (typeof STAGES)[number]) >= STAGES.indexOf(need as (typeof STAGES)[number]);
+export const stageReached = (stage: string, need: string): boolean =>
+  STAGES.indexOf(stage as (typeof STAGES)[number]) >= STAGES.indexOf(need as (typeof STAGES)[number]);
 
 const OUT = "#2B2140";
 
@@ -43,7 +44,17 @@ export const DECOR: readonly Decor[] = [
     id: "fern",
     name: { en: "Potted fern", zh: "盆栽蕨" },
     price: 40,
-    rows: ["..g.g.g..", ".gGgGgGg.", "gGg.g.gGg", ".g.gGg.g.", "..ggGgg..", "..ooooo..", ".otttttO.", ".otttttO.", "..ooooo.."],
+    rows: [
+      "..g.g.g..",
+      ".gGgGgGg.",
+      "gGg.g.gGg",
+      ".g.gGg.g.",
+      "..ggGgg..",
+      "..ooooo..",
+      ".otttttO.",
+      ".otttttO.",
+      "..ooooo..",
+    ],
     colors: { g: "#7FCB8E", G: "#4E9E6A", o: OUT, O: OUT, t: "#E07A4F" },
   },
   {
@@ -57,7 +68,16 @@ export const DECOR: readonly Decor[] = [
     id: "mushroom",
     name: { en: "Mushroom lamp", zh: "蘑菇灯" },
     price: 70,
-    rows: ["..oooooo..", ".orrwrrro.", "orwrrrwrro", "orrrrrrrro", ".oooooooo.", "...owwo...", "...owwo...", "..oooooo.."],
+    rows: [
+      "..oooooo..",
+      ".orrwrrro.",
+      "orwrrrwrro",
+      "orrrrrrrro",
+      ".oooooooo.",
+      "...owwo...",
+      "...owwo...",
+      "..oooooo..",
+    ],
     colors: { o: OUT, r: "#E8604A", w: "#FFF7E8" },
   },
   {
@@ -71,7 +91,17 @@ export const DECOR: readonly Decor[] = [
     id: "star",
     name: { en: "Star sticker", zh: "星星贴纸" },
     price: 15,
-    rows: ["....o....", "...oyo...", "oooyyyooo", "oyyyYyyyo", ".oyyyyyo.", "..oyyyo..", ".oyyoyyo.", ".oyo.oyo.", ".oo...oo."],
+    rows: [
+      "....o....",
+      "...oyo...",
+      "oooyyyooo",
+      "oyyyYyyyo",
+      ".oyyyyyo.",
+      "..oyyyo..",
+      ".oyyoyyo.",
+      ".oyo.oyo.",
+      ".oo...oo.",
+    ],
     colors: { o: OUT, y: "#FFC83D", Y: "#FFF1B0" },
   },
   {
@@ -138,7 +168,17 @@ export const DECOR: readonly Decor[] = [
     name: { en: "Moon lantern", zh: "月亮灯笼" },
     price: 0,
     gift: true,
-    rows: ["....o....", "...ooo...", "..oyyyo..", ".oyyYyyo.", ".oyYyyyo.", ".oyyyyyo.", "..oyyyo..", "...ooo...", "....r...."],
+    rows: [
+      "....o....",
+      "...ooo...",
+      "..oyyyo..",
+      ".oyyYyyo.",
+      ".oyYyyyo.",
+      ".oyyyyyo.",
+      "..oyyyo..",
+      "...ooo...",
+      "....r....",
+    ],
     colors: { o: OUT, y: "#FFE08A", Y: "#F2B84B", r: "#E8604A" },
   },
   {
@@ -154,7 +194,17 @@ export const DECOR: readonly Decor[] = [
     name: { en: "Little snow pal", zh: "小雪人" },
     price: 0,
     gift: true,
-    rows: ["...ooo...", "..owwwo..", "..okwko..", "..owcwo..", ".ooooooo.", "owwwrwwwo", "owwwwwwwo", "owwwrwwwo", ".ooooooo."],
+    rows: [
+      "...ooo...",
+      "..owwwo..",
+      "..okwko..",
+      "..owcwo..",
+      ".ooooooo.",
+      "owwwrwwwo",
+      "owwwwwwwo",
+      "owwwrwwwo",
+      ".ooooooo.",
+    ],
     colors: { o: OUT, w: "#FFFFFF", k: "#2B2140", c: "#F29A4A", r: "#E8604A" },
   },
   {
@@ -170,7 +220,17 @@ export const DECOR: readonly Decor[] = [
     name: { en: "Rival's rosette", zh: "劲敌的花结" },
     price: 0,
     gift: true,
-    rows: ["..rrrrr..", ".rRrRrRr.", "rRryyyRrr", "rrryYyrrr", "rRryyyRrr", ".rRrRrRr.", "..rrrrr..", "...b.b...", "..bb.bb.."],
+    rows: [
+      "..rrrrr..",
+      ".rRrRrRr.",
+      "rRryyyRrr",
+      "rrryYyrrr",
+      "rRryyyRrr",
+      ".rRrRrRr.",
+      "..rrrrr..",
+      "...b.b...",
+      "..bb.bb..",
+    ],
     colors: { r: "#E8604A", R: "#C9442F", y: "#FFD45E", Y: "#F2B84B", b: "#5B82B8" },
   },
   // ── keepsakes from the story quests (plan 4.2): never sold, only given ──
@@ -263,7 +323,18 @@ export const DECOR: readonly Decor[] = [
     name: { en: "Little warning sign", zh: "小警示牌" },
     price: 0,
     gift: true,
-    rows: [".....o.....", "....oyo....", "...oyoyo...", "...oyoyo...", "..oyyoyyo..", "..oyyyyyo..", ".oyyyoyyyo.", "ooooooooooo", ".....o.....", ".....o....."],
+    rows: [
+      ".....o.....",
+      "....oyo....",
+      "...oyoyo...",
+      "...oyoyo...",
+      "..oyyoyyo..",
+      "..oyyyyyo..",
+      ".oyyyoyyyo.",
+      "ooooooooooo",
+      ".....o.....",
+      ".....o.....",
+    ],
     colors: { o: OUT, y: "#FFD45E" },
   },
   {
@@ -280,7 +351,18 @@ export const DECOR: readonly Decor[] = [
     name: { en: "Garden bench", zh: "花园长椅" },
     price: 120,
     commission: { stage: "child", ins: [{ item: 1302, amount: 4 }] },
-    rows: ["oooooooooooooo", "obbbbbbbbbbbbo", "oBBBBBBBBBBBBo", "oooooooooooooo", ".o..........o.", "oooooooooooooo", "osssssssssssso", "oooooooooooooo", ".oo........oo.", ".oo........oo."],
+    rows: [
+      "oooooooooooooo",
+      "obbbbbbbbbbbbo",
+      "oBBBBBBBBBBBBo",
+      "oooooooooooooo",
+      ".o..........o.",
+      "oooooooooooooo",
+      "osssssssssssso",
+      "oooooooooooooo",
+      ".oo........oo.",
+      ".oo........oo.",
+    ],
     colors: { o: OUT, b: "#D99A62", B: "#B87A48", s: "#C98A5A" },
   },
   {
@@ -288,47 +370,160 @@ export const DECOR: readonly Decor[] = [
     name: { en: "Bird bath", zh: "小鸟浴盆" },
     price: 220,
     commission: { stage: "teen", ins: [{ item: 1301, amount: 6 }] },
-    rows: ["......oo...", ".....oyo...", ".ooooooRooo", "owwWwwwwwwo", "ogggggggggo", ".ooooooooo.", "....ogo....", "....oGo....", "....ogo....", "..ooooooo..", ".ogggGgggo.", ".ooooooooo."],
+    rows: [
+      "......oo...",
+      ".....oyo...",
+      ".ooooooRooo",
+      "owwWwwwwwwo",
+      "ogggggggggo",
+      ".ooooooooo.",
+      "....ogo....",
+      "....oGo....",
+      "....ogo....",
+      "..ooooooo..",
+      ".ogggGgggo.",
+      ".ooooooooo.",
+    ],
     colors: { o: OUT, w: "#8FC8F0", W: "#FFFFFF", g: "#C9C4D8", G: "#A9A3BC", y: "#F2C14E", R: "#E8604A" },
   },
   {
     id: "weathervane",
     name: { en: "Weathervane", zh: "风向标" },
     price: 260,
-    commission: { stage: "teen", ins: [{ item: 1303, amount: 4 }, { item: 1302, amount: 2 }] },
-    rows: ["....o....", "...oyo...", ".o..o..o.", "oyoooooyo", ".o..o..o.", "....o....", "...oyo...", "....o....", "....o....", "...ooo...", "..obbbo..", "..ooooo.."],
+    commission: {
+      stage: "teen",
+      ins: [
+        { item: 1303, amount: 4 },
+        { item: 1302, amount: 2 },
+      ],
+    },
+    rows: [
+      "....o....",
+      "...oyo...",
+      ".o..o..o.",
+      "oyoooooyo",
+      ".o..o..o.",
+      "....o....",
+      "...oyo...",
+      "....o....",
+      "....o....",
+      "...ooo...",
+      "..obbbo..",
+      "..ooooo..",
+    ],
     colors: { o: OUT, y: "#F2C14E", b: "#B87A48" },
   },
   {
     id: "fountain",
     name: { en: "Stone fountain", zh: "石头喷泉" },
     price: 420,
-    commission: { stage: "adult", ins: [{ item: 1301, amount: 10 }, { item: 1303, amount: 2 }] },
-    rows: ["......ww......", ".....wWWw.....", "....w.oo.w....", "...w.oggo.w...", "..w..oggo..w..", ".....oggo.....", ".oooooooooooo.", "owwwwWwwwWwwwo", "owWwwwwwwwwWwo", "oggggggggggggo", "ogGggGggGggGgo", ".oooooooooooo."],
+    commission: {
+      stage: "adult",
+      ins: [
+        { item: 1301, amount: 10 },
+        { item: 1303, amount: 2 },
+      ],
+    },
+    rows: [
+      "......ww......",
+      ".....wWWw.....",
+      "....w.oo.w....",
+      "...w.oggo.w...",
+      "..w..oggo..w..",
+      ".....oggo.....",
+      ".oooooooooooo.",
+      "owwwwWwwwWwwwo",
+      "owWwwwwwwwwWwo",
+      "oggggggggggggo",
+      "ogGggGggGggGgo",
+      ".oooooooooooo.",
+    ],
     colors: { o: OUT, w: "#8FC8F0", W: "#FFFFFF", g: "#C9C4D8", G: "#A9A3BC" },
   },
   {
     id: "nook",
     name: { en: "Reading nook", zh: "读书角" },
     price: 480,
-    commission: { stage: "adult", ins: [{ item: 1302, amount: 8 }, { item: 1303, amount: 2 }] },
-    rows: ["..........ooo.", ".........oyyyo", "..........ooo.", "...........o..", ".ooooooo...o..", "orrrrrrro..o..", "orRrrrRro..o..", "orrrrrrro..o..", "oooooooooo.o..", "orrrrrrrro.o..", "oooooooooo.o..", ".o......o.ooo."],
+    commission: {
+      stage: "adult",
+      ins: [
+        { item: 1302, amount: 8 },
+        { item: 1303, amount: 2 },
+      ],
+    },
+    rows: [
+      "..........ooo.",
+      ".........oyyyo",
+      "..........ooo.",
+      "...........o..",
+      ".ooooooo...o..",
+      "orrrrrrro..o..",
+      "orRrrrRro..o..",
+      "orrrrrrro..o..",
+      "oooooooooo.o..",
+      "orrrrrrrro.o..",
+      "oooooooooo.o..",
+      ".o......o.ooo.",
+    ],
     colors: { o: OUT, r: "#7FA6D9", R: "#5B82B8", y: "#FFE08A" },
   },
   {
     id: "arch",
     name: { en: "Lantern arch", zh: "灯笼拱门" },
     price: 700,
-    commission: { stage: "elder", ins: [{ item: 1303, amount: 6 }, { item: 1301, amount: 6 }, { item: 1302, amount: 4 }] },
-    rows: ["....oooooo....", "..oogggggggoo.", ".ogoo....oogo.", ".go........og.", "og..........go", "og.o......o.go", "og.y......y.go", "og.o......o.go", "og..........go", "og..........go", "og..........go", "og..........go", "oGo........oGo", "ooo........ooo"],
+    commission: {
+      stage: "elder",
+      ins: [
+        { item: 1303, amount: 6 },
+        { item: 1301, amount: 6 },
+        { item: 1302, amount: 4 },
+      ],
+    },
+    rows: [
+      "....oooooo....",
+      "..oogggggggoo.",
+      ".ogoo....oogo.",
+      ".go........og.",
+      "og..........go",
+      "og.o......o.go",
+      "og.y......y.go",
+      "og.o......o.go",
+      "og..........go",
+      "og..........go",
+      "og..........go",
+      "og..........go",
+      "oGo........oGo",
+      "ooo........ooo",
+    ],
     colors: { o: OUT, g: "#C9C4D8", G: "#A9A3BC", y: "#FFC857" },
   },
   {
     id: "clock",
     name: { en: "Star clock", zh: "星星落地钟" },
     price: 900,
-    commission: { stage: "elder", ins: [{ item: 1303, amount: 8 }, { item: 1302, amount: 4 }] },
-    rows: ["...oooo...", "..obbbbo..", ".obwwwwbo.", ".owwywwwo.", ".owwyywwo.", ".obwwwwbo.", "..obbbbo..", "..obddbo..", "..obdyBo..", "..obdBbo..", "..obddbo..", "..obbbbo..", ".obbbbbbo.", ".oooooooo."],
+    commission: {
+      stage: "elder",
+      ins: [
+        { item: 1303, amount: 8 },
+        { item: 1302, amount: 4 },
+      ],
+    },
+    rows: [
+      "...oooo...",
+      "..obbbbo..",
+      ".obwwwwbo.",
+      ".owwywwwo.",
+      ".owwyywwo.",
+      ".obwwwwbo.",
+      "..obbbbo..",
+      "..obddbo..",
+      "..obdyBo..",
+      "..obdBbo..",
+      "..obddbo..",
+      "..obbbbo..",
+      ".obbbbbbo.",
+      ".oooooooo.",
+    ],
     colors: { o: OUT, b: "#8A5A3C", B: "#F2C14E", w: "#FFF7E8", y: "#3A2E5C", d: "#5C3B28" },
   },
 ];
@@ -343,7 +538,18 @@ export const CHAIN_DECOR: readonly Decor[] = [
     name: { en: "Star lamp", zh: "星星灯" },
     price: 0,
     chain: { kind: "shop", supply: 500 },
-    rows: ["....y....", "...yYy...", "yyyYwYyyy", ".yYwwwYy.", "..yYwYy..", ".yYy.yYy.", ".yy...yy.", "....o....", "...ooo...", "..ooooo.."],
+    rows: [
+      "....y....",
+      "...yYy...",
+      "yyyYwYyyy",
+      ".yYwwwYy.",
+      "..yYwYy..",
+      ".yYy.yYy.",
+      ".yy...yy.",
+      "....o....",
+      "...ooo...",
+      "..ooooo..",
+    ],
     colors: { y: "#FFD45E", Y: "#F2A93B", w: "#FFF6C8", o: OUT },
   },
   {
@@ -352,7 +558,17 @@ export const CHAIN_DECOR: readonly Decor[] = [
     price: 0,
     flat: true,
     chain: { kind: "shop", supply: 500 },
-    rows: ["oooooooooooooo", "onnnnnnnnnnnno", "onggggnnggggno", "ongnngnngnngno", "ongnnggggnngno", "ongnnnnnnnngno", "onggggnnggggno", "onnnnnnnnnnnno", "oooooooooooooo"],
+    rows: [
+      "oooooooooooooo",
+      "onnnnnnnnnnnno",
+      "onggggnnggggno",
+      "ongnngnngnngno",
+      "ongnnggggnngno",
+      "ongnnnnnnnngno",
+      "onggggnnggggno",
+      "onnnnnnnnnnnno",
+      "oooooooooooooo",
+    ],
     colors: { o: OUT, n: "#2E3570", g: "#7FE0C2" },
   },
   {
@@ -360,7 +576,19 @@ export const CHAIN_DECOR: readonly Decor[] = [
     name: { en: "Tape reel shelf", zh: "磁带架" },
     price: 0,
     chain: { kind: "shop", supply: 500 },
-    rows: ["oooooooooooo", "owwwwwwwwwwo", "owkkowkkowko", "owkrowkbowko", "owkkowkkowko", "oooooooooooo", "owwwwwwwwwwo", "owkkowkkowko", "owkyowkgowko", "owkkowkkowko", "oooooooooooo"],
+    rows: [
+      "oooooooooooo",
+      "owwwwwwwwwwo",
+      "owkkowkkowko",
+      "owkrowkbowko",
+      "owkkowkkowko",
+      "oooooooooooo",
+      "owwwwwwwwwwo",
+      "owkkowkkowko",
+      "owkyowkgowko",
+      "owkkowkkowko",
+      "oooooooooooo",
+    ],
     colors: { o: OUT, w: "#C98B5A", k: "#3A3048", r: "#FF6B5A", b: "#7FB7F0", y: "#FFD45E", g: "#7FCB8E" },
   },
   {
@@ -368,7 +596,18 @@ export const CHAIN_DECOR: readonly Decor[] = [
     name: { en: "Moon window", zh: "月窗" },
     price: 0,
     chain: { kind: "shop", supply: 500 },
-    rows: ["...oooooo...", "..onnnnnno..", ".onnnnnwwno.", "onnnnnwwwwno", "onnnnnnwwwno", "onnynnnnwwno", "onnnnnnnnnno", ".onnnnynnno.", "..onnnnnno..", "...oooooo..."],
+    rows: [
+      "...oooooo...",
+      "..onnnnnno..",
+      ".onnnnnwwno.",
+      "onnnnnwwwwno",
+      "onnnnnnwwwno",
+      "onnynnnnwwno",
+      "onnnnnnnnnno",
+      ".onnnnynnno.",
+      "..onnnnnno..",
+      "...oooooo...",
+    ],
     colors: { o: OUT, n: "#2E3570", w: "#FFF6C8", y: "#FFD45E" },
   },
   {
@@ -376,7 +615,18 @@ export const CHAIN_DECOR: readonly Decor[] = [
     name: { en: "Keeper's banner", zh: "守护者之旗" },
     price: 0,
     chain: { kind: "keepsake", goal: "g1" },
-    rows: ["o.......", "orrrrrr.", "orrwwrr.", "orwwwwr.", "orrwwrr.", "orrrrrr.", "o.......", "o.......", "o.......", "oo......"],
+    rows: [
+      "o.......",
+      "orrrrrr.",
+      "orrwwrr.",
+      "orwwwwr.",
+      "orrwwrr.",
+      "orrrrrr.",
+      "o.......",
+      "o.......",
+      "o.......",
+      "oo......",
+    ],
     colors: { o: OUT, r: "#FF6B5A", w: "#FFF6C8" },
   },
   {
@@ -392,7 +642,18 @@ export const CHAIN_DECOR: readonly Decor[] = [
     name: { en: "Family tree sapling", zh: "家族小树苗" },
     price: 0,
     chain: { kind: "keepsake", goal: "g3" },
-    rows: ["..gGg..", ".gGgGg.", "gGgpgGg", ".gGgGg.", "..gGg..", "...t...", "...t...", ".ooooo.", ".otttO.", "..ooo.."],
+    rows: [
+      "..gGg..",
+      ".gGgGg.",
+      "gGgpgGg",
+      ".gGgGg.",
+      "..gGg..",
+      "...t...",
+      "...t...",
+      ".ooooo.",
+      ".otttO.",
+      "..ooo..",
+    ],
     colors: { g: "#7FCB8E", G: "#4E9E6A", p: "#FF9DB6", t: "#8C5A3A", o: OUT, O: OUT },
   },
   {
@@ -405,7 +666,9 @@ export const CHAIN_DECOR: readonly Decor[] = [
   },
 ];
 
-export const DECOR_BY_ID: Readonly<Record<string, Decor>> = Object.fromEntries([...DECOR, ...CHAIN_DECOR].map((d) => [d.id, d]));
+export const DECOR_BY_ID: Readonly<Record<string, Decor>> = Object.fromEntries(
+  [...DECOR, ...CHAIN_DECOR].map((d) => [d.id, d]),
+);
 
 /** Pieces a home holds free. Room packs bought on X Layer (plan 4.9) add more; see `roomCapacity`. */
 export const MAX_PLACED = 12;
@@ -432,7 +695,8 @@ export interface DecorState {
 }
 
 /** Can this piece be placed: bought or given in the game, or held on chain now. */
-export const hasDecor = (s: DecorState, id: string): boolean => s.owned.includes(id) || (s.chainHeld ?? []).includes(id);
+export const hasDecor = (s: DecorState, id: string): boolean =>
+  s.owned.includes(id) || (s.chainHeld ?? []).includes(id);
 
 /**
  * What the wallets hold on chain, read again: pieces sold or sent away leave the home, new ones can be placed.
@@ -455,7 +719,13 @@ export function buyDecor(w: WorldState, id: string): WorldResult {
   const s = decorOf(w);
   if (s.owned.includes(id)) return { ok: false, reason: "owned" };
   if (w.coins < d.price) return { ok: false, reason: "coins" };
-  return { ok: true, world: bumpAll({ ...w, coins: w.coins - d.price, decor: { ...s, owned: [...s.owned, id] } }, [["BUY", 0, 1], ["COINS_SPENT", 0, d.price]]) };
+  return {
+    ok: true,
+    world: bumpAll({ ...w, coins: w.coins - d.price, decor: { ...s, owned: [...s.owned, id] } }, [
+      ["BUY", 0, 1],
+      ["COINS_SPENT", 0, d.price],
+    ]),
+  };
 }
 
 /** Commission a piece from the Builder (G6): its coins and materials, once the pet has reached the piece's stage. */

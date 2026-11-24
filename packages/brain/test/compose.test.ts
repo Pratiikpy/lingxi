@@ -25,7 +25,7 @@ describe("breeding by REF composition", () => {
 
   it("answers like parent A by day and parent B by night, mood from A, habit from B, on 20,000 random beats", () => {
     let seed = 99;
-    const rnd = () => ((seed = (seed * 1103515245 + 12345) >>> 0) / 4294967296);
+    const rnd = () => (seed = (seed * 1103515245 + 12345) >>> 0) / 4294967296;
     for (let i = 0; i < 20_000; i++) {
       const sa = Array.from({ length: A.nState }, () => (rnd() < 0.5 ? 1 : 0));
       const sb = Array.from({ length: B.nState }, () => (rnd() < 0.5 ? 1 : 0));

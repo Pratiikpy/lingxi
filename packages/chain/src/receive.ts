@@ -15,7 +15,8 @@ const SELECTORS = ["0x64a0ae92", "0x57f447ce"] as const;
 export function refusesTokens(e: unknown): boolean {
   if (e instanceof BaseError) {
     const revert = e.walk((x) => x instanceof ContractFunctionRevertedError);
-    if (revert instanceof ContractFunctionRevertedError && revert.data?.errorName) return (REFUSALS as readonly string[]).includes(revert.data.errorName);
+    if (revert instanceof ContractFunctionRevertedError && revert.data?.errorName)
+      return (REFUSALS as readonly string[]).includes(revert.data.errorName);
   }
   const text = e instanceof Error ? e.message : typeof e === "string" ? e : "";
   return [...REFUSALS, ...SELECTORS].some((s) => text.includes(s));

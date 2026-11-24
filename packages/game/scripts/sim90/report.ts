@@ -1,6 +1,13 @@
 /** The simulator's numbers as a report a person can read: a summary per player type, a few days in detail, the field and the targets. */
 
-import { BALANCE_MEASURED, PLAYER_TYPES, type PlayerDay, type SimNumbers, evaluateTargets, BALANCE_TARGETS } from "../../src";
+import {
+  BALANCE_MEASURED,
+  PLAYER_TYPES,
+  type PlayerDay,
+  type SimNumbers,
+  evaluateTargets,
+  BALANCE_TARGETS,
+} from "../../src";
 
 const pad = (s: string | number, n: number) => String(s).padStart(n);
 const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
@@ -31,9 +38,14 @@ function dayLine(d: PlayerDay): string {
 const HEAD = "day  stage lvl  xp+d   in   out  coins miss sick qst  dly  rcp  rms  new  lesson/w   gates   spar w/n";
 
 export function report(n: SimNumbers): string {
-  const out: string[] = [`Lingxi 90-day simulator, seed ${n.seed}, ${n.days} days (every number from the game's own rules)`, ""];
+  const out: string[] = [
+    `Lingxi 90-day simulator, seed ${n.seed}, ${n.days} days (every number from the game's own rules)`,
+    "",
+  ];
   out.push("Summary by player type");
-  out.push("type      level@7 level@30 level@90  L99 day  mistakes  coins in max/day  all affordable  empty days  lesson fires/watched min  first gate refusal");
+  out.push(
+    "type      level@7 level@30 level@90  L99 day  mistakes  coins in max/day  all affordable  empty days  lesson fires/watched min  first gate refusal",
+  );
   for (const t of PLAYER_TYPES) {
     const p = n.players[t];
     const lv = (d: number) => p.days[Math.min(d, p.days.length) - 1]?.level ?? "-";
@@ -55,18 +67,41 @@ export function report(n: SimNumbers): string {
   }
   for (const t of PLAYER_TYPES) {
     const p = n.players[t];
-    out.push("", `${t}: by day (in/out: coins earned and spent; qst/dly: story quests and dailies open; rcp: recipes in reach; rms: rooms never entered; new: things first seen)`);
+    out.push(
+      "",
+      `${t}: by day (in/out: coins earned and spent; qst/dly: story quests and dailies open; rcp: recipes in reach; rms: rooms never entered; new: things first seen)`,
+    );
     out.push(HEAD);
     for (const d of p.days.filter((d) => SHOWN.includes(d.day))) out.push(dayLine(d));
     const lessons = Object.entries(p.byLesson).map(([id, b]) => `${id} ${b.fired}/${b.watched}`);
-    if (lessons.length) out.push(`  each school lesson, minutes it decided of minutes watched since taught: ${lessons.join(", ")}`);
+    if (lessons.length)
+      out.push(`  each school lesson, minutes it decided of minutes watched since taught: ${lessons.join(", ")}`);
   }
   out.push("", `Spar field: ${n.field.brains.length} brains, each pair ${n.field.seeds * 2} spars`);
   const top = [...n.field.brains].sort((a, b) => b.winRate - a.winRate);
-  out.push(`  top: ${top.slice(0, 6).map((b) => `${b.id} ${pct(b.winRate)}`).join(", ")}`);
-  out.push(`  by kind: ${["starter", "guard", "dodge", "pounce", "reader", "partner"].map((k) => n.field.brains.filter((b) => b.kind === k).map((b) => `${b.id} ${pct(b.winRate)}`).join(", ")).join("; ")}`);
-  out.push(`  guard-only vs pounce-only ${pct(n.field.guardVsPounce)}; dodge-only vs pounce-only ${pct(n.field.dodgeVsPounce)}`);
-  out.push("", "Lessons watched for ten minutes after teaching (minute first decided, times decided; hours 8, 13, 19, 21)");
+  out.push(
+    `  top: ${top
+      .slice(0, 6)
+      .map((b) => `${b.id} ${pct(b.winRate)}`)
+      .join(", ")}`,
+  );
+  out.push(
+    `  by kind: ${["starter", "guard", "dodge", "pounce", "reader", "partner"]
+      .map((k) =>
+        n.field.brains
+          .filter((b) => b.kind === k)
+          .map((b) => `${b.id} ${pct(b.winRate)}`)
+          .join(", "),
+      )
+      .join("; ")}`,
+  );
+  out.push(
+    `  guard-only vs pounce-only ${pct(n.field.guardVsPounce)}; dodge-only vs pounce-only ${pct(n.field.dodgeVsPounce)}`,
+  );
+  out.push(
+    "",
+    "Lessons watched for ten minutes after teaching (minute first decided, times decided; hours 8, 13, 19, 21)",
+  );
   for (const id of [...new Set(n.lessons.map((l) => l.id))]) {
     const ls = n.lessons.filter((l) => l.id === id);
     out.push(`  ${id.padEnd(8)} ${ls.map((l) => `${l.line[0]}${l.hour}:${l.firstFire ?? "-"}/${l.fires}`).join(" ")}`);

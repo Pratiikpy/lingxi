@@ -38,9 +38,15 @@ describe("reminders: when the pet will next need you", () => {
 
   it("a long-neglected pet reports its needs right away, sickness included", () => {
     // G5: a pet falls ill only after days of neglect: eight days alone
-    const pet = catchUp(createPet({ name: "M", line: "gentle", now: T0, tzOffsetMin: 0, brain }), T0 + 8 * 24 * H, brain);
+    const pet = catchUp(
+      createPet({ name: "M", line: "gentle", now: T0, tzOffsetMin: 0, brain }),
+      T0 + 8 * 24 * H,
+      brain,
+    );
     const needs = upcomingNeeds(pet, T0 + 8 * 24 * H, brain);
-    expect(needs.filter((n) => n.at === T0 + 8 * 24 * H).map((n) => n.kind)).toEqual(expect.arrayContaining(["hungry", "sick"]));
+    expect(needs.filter((n) => n.at === T0 + 8 * 24 * H).map((n) => n.kind)).toEqual(
+      expect.arrayContaining(["hungry", "sick"]),
+    );
   });
 });
 

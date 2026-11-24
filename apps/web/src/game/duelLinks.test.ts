@@ -7,9 +7,16 @@ import { MAX_DUEL_RESULT_CODE, duelLinkId, encodeChallenge, petCard, type DuelPe
 import { linkToken, tokenCode } from "./duelLinks";
 import { MAX_GO_FRAGMENT, followGoLink } from "./links";
 
-const pet: DuelPet = { name: "Mochi", line: "gentle", stage: "adult", card: petCard({ lessons: [] }), story: { days: 9, lessons: 0, nature: [] } };
+const pet: DuelPet = {
+  name: "Mochi",
+  line: "gentle",
+  stage: "adult",
+  card: petCard({ lessons: [] }),
+  story: { days: 9, lessons: 0, nature: [] },
+};
 const code = encodeChallenge({ id: "abcdef0123456789", from: pet, at: 1 });
-const answering = (body: unknown, ok = true) => (async () => ({ ok, json: async () => body })) as unknown as typeof fetch;
+const answering = (body: unknown, ok = true) =>
+  (async () => ({ ok, json: async () => body })) as unknown as typeof fetch;
 const down = (async () => Promise.reject(new TypeError("Failed to fetch"))) as unknown as typeof fetch;
 
 describe("what a duel link carries (A32)", () => {
@@ -51,4 +58,3 @@ describe("a whole duel result through the on-chain copy's landing page (A32)", (
     }
   });
 });
-

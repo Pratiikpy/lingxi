@@ -60,7 +60,11 @@ export function lessonKey(rule: Pick<Rule, "when" | "then">): string {
   const when = Object.keys(rule.when)
     .sort()
     .map((k) => [k, [...rule.when[k]!].sort((a, b) => a - b)]);
-  const then = { want: rule.then.want, mood: rule.then.mood, ...(rule.then.nudge !== undefined ? { nudge: rule.then.nudge } : {}) };
+  const then = {
+    want: rule.then.want,
+    mood: rule.then.mood,
+    ...(rule.then.nudge !== undefined ? { nudge: rule.then.nudge } : {}),
+  };
   return createHash("sha256").update(JSON.stringify({ when, then })).digest("hex").slice(0, 24);
 }
 
@@ -70,13 +74,26 @@ export function cleanAuthor(name: string): string | null {
   if (!n || new TextEncoder().encode(n).length > 24 || BLOCKED_WORDS.test(n)) return null;
   for (const ch of n) {
     const cp = ch.codePointAt(0)!;
-    if (cp < 0x20 || cp === 0x7f || '"\\<>&'.includes(ch) || (cp >= 0x80 && cp <= 0xa0) || (cp >= 0x2000 && cp <= 0x206f) || cp === 0xfeff || cp === 0xad) return null;
+    if (
+      cp < 0x20 ||
+      cp === 0x7f ||
+      '"\\<>&'.includes(ch) ||
+      (cp >= 0x80 && cp <= 0xa0) ||
+      (cp >= 0x2000 && cp <= 0x206f) ||
+      cp === 0xfeff ||
+      cp === 0xad
+    )
+      return null;
   }
   return n;
 }
 
 /** The id a player had before ids were keyed: a plain hash, which anyone can work out for a guessed address. */
-const plainId = (id: string) => createHash("sha256").update(`lingxi-library:${prefixOf(id) ?? id}`).digest("hex").slice(0, 16);
+const plainId = (id: string) =>
+  createHash("sha256")
+    .update(`lingxi-library:${prefixOf(id) ?? id}`)
+    .digest("hex")
+    .slice(0, 16);
 /** A plain id as the keyed id the same player has now (P6a). */
 const keyedFrom = (plain: string) => pseudonym("library", plain);
 
@@ -115,8 +132,17 @@ export function createLibrary(store?: string, limits: { max?: number; perSharer?
           users = keyedSet(users);
           if (from !== undefined) from = keyedFrom(from);
         }
-        const reportCount = typeof e.reportCount === "number" ? e.reportCount : Array.isArray(e.reports) ? e.reports.length : 0;
-        entries.set(e.key, { ...e, rule: { when: e.rule.when, then: e.rule.then } as Rule, reports, reportCount, users, ...(from !== undefined ? { from } : {}), ids: "keyed" });
+        const reportCount =
+          typeof e.reportCount === "number" ? e.reportCount : Array.isArray(e.reports) ? e.reports.length : 0;
+        entries.set(e.key, {
+          ...e,
+          rule: { when: e.rule.when, then: e.rule.then } as Rule,
+          reports,
+          reportCount,
+          users,
+          ...(from !== undefined ? { from } : {}),
+          ids: "keyed",
+        });
       }
     } catch {
       // a damaged file starts empty
@@ -146,11 +172,18 @@ export function createLibrary(store?: string, limits: { max?: number; perSharer?
   };
   const visible = (e: LibraryEntry) => e.reportCount < Math.max(HIDE_AT, Math.ceil(e.uses * HIDE_SHARE));
   // a name stored before the word check is shown as no name
-  const view = (e: LibraryEntry) => ({ key: e.key, rule: e.rule, by: cleanAuthor(e.by) ?? "", uses: e.uses, firstAt: e.firstAt });
+  const view = (e: LibraryEntry) => ({
+    key: e.key,
+    rule: e.rule,
+    by: cleanAuthor(e.by) ?? "",
+    uses: e.uses,
+    firstAt: e.firstAt,
+  });
 
   /** a lesson nobody but its sharer learned */
   const solo = (e: LibraryEntry) => e.uses <= 1;
-  const oldest = (list: LibraryEntry[]) => list.reduce<LibraryEntry | null>((a, e) => (!a || e.firstAt < a.firstAt ? e : a), null);
+  const oldest = (list: LibraryEntry[]) =>
+    list.reduce<LibraryEntry | null>((a, e) => (!a || e.firstAt < a.firstAt ? e : a), null);
   const quiet = (e: LibraryEntry) => e.lastAt ?? e.firstAt;
   /** What a new share from `from` removes to fit, if anything (A64, A79): there is always room. */
   const roomFor = (from: string): { ok: true; drop: string | null } | { ok: false } => {
@@ -161,7 +194,10 @@ export function createLibrary(store?: string, limits: { max?: number; perSharer?
     const hidden = oldest(all.filter((e) => !visible(e)));
     if (hidden) return { ok: true, drop: hidden.key };
     // the fewest learners, then the quietest: two addresses can no longer hold a lesson against everyone else
-    const least = all.reduce<LibraryEntry | null>((a, e) => (!a || e.uses < a.uses || (e.uses === a.uses && quiet(e) < quiet(a)) ? e : a), null);
+    const least = all.reduce<LibraryEntry | null>(
+      (a, e) => (!a || e.uses < a.uses || (e.uses === a.uses && quiet(e) < quiet(a)) ? e : a),
+      null,
+    );
     return least ? { ok: true, drop: least.key } : { ok: false };
   };
 
@@ -169,7 +205,12 @@ export function createLibrary(store?: string, limits: { max?: number; perSharer?
     size: () => entries.size,
     has: (key: string) => entries.has(key),
     /** Share a lesson (or count as a use if it is already there). */
-    share(rule: Rule, by: string, who: string, now: number): { ok: true; key: string; isNew: boolean } | { ok: false; reason: "invalid" | "name" | "full" } {
+    share(
+      rule: Rule,
+      by: string,
+      who: string,
+      now: number,
+    ): { ok: true; key: string; isNew: boolean } | { ok: false; reason: "invalid" | "name" | "full" } {
       const author = cleanAuthor(by);
       if (!author) return { ok: false, reason: "name" };
       // it must be a lesson some pet can actually hold
@@ -185,7 +226,19 @@ export function createLibrary(store?: string, limits: { max?: number; perSharer?
       const room = roomFor(from);
       if (!room.ok) return { ok: false, reason: "full" };
       if (room.drop) entries.delete(room.drop);
-      entries.set(key, { key, rule: { when: rule.when, then: rule.then } as Rule, by: author, firstAt: now, uses: 1, reports: emptySeen(), reportCount: 0, users: addSeen(emptySeen(), from), from, lastAt: now, ids: "keyed" });
+      entries.set(key, {
+        key,
+        rule: { when: rule.when, then: rule.then } as Rule,
+        by: author,
+        firstAt: now,
+        uses: 1,
+        reports: emptySeen(),
+        reportCount: 0,
+        users: addSeen(emptySeen(), from),
+        from,
+        lastAt: now,
+        ids: "keyed",
+      });
       save();
       return { ok: true, key, isNew: true };
     },

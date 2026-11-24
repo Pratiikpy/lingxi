@@ -71,7 +71,12 @@ export interface FriendSheet {
 
 /** Trust a gift adds, by taste; only the day's first gift to a friend adds it. */
 /** Points a first gift of the day adds, by taste, read from the trust circuit (rules.ts). */
-export const GIFT_TRUST: Readonly<Record<Taste, number>> = { love: giftTrust("love", false).points, like: giftTrust("like", false).points, neutral: giftTrust("neutral", false).points, dislike: 0 };
+export const GIFT_TRUST: Readonly<Record<Taste, number>> = {
+  love: giftTrust("love", false).points,
+  like: giftTrust("like", false).points,
+  neutral: giftTrust("neutral", false).points,
+  dislike: 0,
+};
 
 export interface FriendsState {
   /** steps taken, per friend */
@@ -109,7 +114,8 @@ export function stepState(w: WorldState, sheet: FriendSheet, step: FriendStep): 
   return "open";
 }
 
-export const openSteps = (w: WorldState, sheet: FriendSheet): FriendStep[] => sheet.steps.filter((s) => stepState(w, sheet, s) === "open");
+export const openSteps = (w: WorldState, sheet: FriendSheet): FriendStep[] =>
+  sheet.steps.filter((s) => stepState(w, sheet, s) === "open");
 
 /** Take a step: it is recorded and what it opens is opened (a gift paid, a recipe learned, a visit set off). */
 export function takeStep(w: WorldState, sheet: FriendSheet, stepId: string): WorldResult<{ unlock: Unlock }> {
@@ -118,7 +124,10 @@ export function takeStep(w: WorldState, sheet: FriendSheet, stepId: string): Wor
   const st = stepState(w, sheet, step);
   if (st !== "open") return { ok: false, reason: st };
   const f = friendsOf(w);
-  let next: WorldState = { ...w, friends: { ...f, steps: { ...f.steps, [sheet.id]: [...(f.steps[sheet.id] ?? []), step.id] } } };
+  let next: WorldState = {
+    ...w,
+    friends: { ...f, steps: { ...f.steps, [sheet.id]: [...(f.steps[sheet.id] ?? []), step.id] } },
+  };
   const u = step.unlock;
   if (u.kind === "gift") for (const r of u.rewards) next = payReward(next, r);
   if (u.kind === "recipe") {
@@ -136,13 +145,22 @@ export function takeStep(w: WorldState, sheet: FriendSheet, stepId: string): Wor
  * Give a friend a gift. A disliked thing is refused and stays in the bag. Anything else leaves the bag (and counts
  * for errands, as any gift does); the day's first gift to this friend raises trust by its taste.
  */
-export function giveGift(w: WorldState, sheet: FriendSheet, item: number, day: string): WorldResult<{ taste: Taste; trust: number }> {
+export function giveGift(
+  w: WorldState,
+  sheet: FriendSheet,
+  item: number,
+  day: string,
+): WorldResult<{ taste: Taste; trust: number }> {
   if (!ITEM[item]) return { ok: false, reason: "noItem" };
   if (!((w.bag[item] ?? 0) > 0)) return { ok: false, reason: "missing" };
   const taste = tasteOf(sheet, item);
   const f = friendsOf(w);
   const known = f.known[sheet.id] ?? [];
-  const learnt: FriendsState = { ...f, known: { ...f.known, [sheet.id]: known.includes(item) ? known : [...known, item] }, lastGift: { ...(f.lastGift ?? {}), [sheet.id]: { day, taste } } };
+  const learnt: FriendsState = {
+    ...f,
+    known: { ...f.known, [sheet.id]: known.includes(item) ? known : [...known, item] },
+    lastGift: { ...(f.lastGift ?? {}), [sheet.id]: { day, taste } },
+  };
   if (giftTrust(taste, false).refused) return { ok: true, world: { ...w, friends: learnt }, taste, trust: 0 };
   const given = giveTo(w, sheet.id, item, 1);
   if (!given.ok) return given;
@@ -151,20 +169,30 @@ export function giveGift(w: WorldState, sheet: FriendSheet, item: number, day: s
   const counts = !last || day > last;
   const trust = giftTrust(taste, !counts).points;
   const friends: FriendsState = counts ? { ...learnt, gifted: { ...learnt.gifted, [sheet.id]: day } } : learnt;
-  const world: WorldState = { ...given.world, friends, trust: trust ? { ...(given.world.trust ?? {}), [sheet.id]: trustOf(given.world, sheet.id) + trust } : given.world.trust };
+  const world: WorldState = {
+    ...given.world,
+    friends,
+    trust: trust
+      ? { ...(given.world.trust ?? {}), [sheet.id]: trustOf(given.world, sheet.id) + trust }
+      : given.world.trust,
+  };
   return { ok: true, world, taste, trust };
 }
 
 /** Topics a friend has opened, in the order the steps were taken. */
 export function topicsOf(w: WorldState, sheet: FriendSheet): Topic[] {
   const taken = stepsTaken(w, sheet.id);
-  return sheet.steps.filter((s) => taken.includes(s.id) && s.unlock.kind === "topic").map((s) => (s.unlock as { topic: Topic }).topic);
+  return sheet.steps
+    .filter((s) => taken.includes(s.id) && s.unlock.kind === "topic")
+    .map((s) => (s.unlock as { topic: Topic }).topic);
 }
 
 /** What a friend sells you now. */
 export function shelfOf(w: WorldState, sheet: FriendSheet): Array<{ item: number; price: number }> {
   const taken = stepsTaken(w, sheet.id);
-  return sheet.steps.filter((s) => taken.includes(s.id) && s.unlock.kind === "shelf").map((s) => ({ item: (s.unlock as { item: number }).item, price: (s.unlock as { price: number }).price }));
+  return sheet.steps
+    .filter((s) => taken.includes(s.id) && s.unlock.kind === "shelf")
+    .map((s) => ({ item: (s.unlock as { item: number }).item, price: (s.unlock as { price: number }).price }));
 }
 
 export function buyFromFriend(w: WorldState, sheet: FriendSheet, item: number): WorldResult {
@@ -178,7 +206,10 @@ export function buyFromFriend(w: WorldState, sheet: FriendSheet, item: number): 
 export const visitorOf = (w: WorldState): string | null => friendsOf(w).visits[0] ?? null;
 
 /** Meet the visitor at home: their keepsake is paid and they go home. */
-export function meetVisitor(w: WorldState, sheet: FriendSheet): WorldResult<{ rewards: readonly Reward[]; lines: readonly QuestLine[] }> {
+export function meetVisitor(
+  w: WorldState,
+  sheet: FriendSheet,
+): WorldResult<{ rewards: readonly Reward[]; lines: readonly QuestLine[] }> {
   if (visitorOf(w) !== sheet.id) return { ok: false, reason: "notVisiting" };
   const step = sheet.steps.find((s) => s.unlock.kind === "visit" && stepsTaken(w, sheet.id).includes(s.id));
   if (!step || step.unlock.kind !== "visit") return { ok: false, reason: "noVisit" };
@@ -189,8 +220,15 @@ export function meetVisitor(w: WorldState, sheet: FriendSheet): WorldResult<{ re
 }
 
 /** The next level's points and the steps it opens, for the Friends list. */
-export function nextLevel(w: WorldState, sheet: FriendSheet): { level: number; at: number; opens: FriendStep[] } | null {
+export function nextLevel(
+  w: WorldState,
+  sheet: FriendSheet,
+): { level: number; at: number; opens: FriendStep[] } | null {
   const lvl = friendLevel(trustOf(w, sheet.id));
   if (lvl >= 6) return null;
-  return { level: lvl + 1, at: pointsFor(lvl + 1), opens: sheet.steps.filter((s) => s.level === lvl + 1 && stepState(w, sheet, s) !== "shut") };
+  return {
+    level: lvl + 1,
+    at: pointsFor(lvl + 1),
+    opens: sheet.steps.filter((s) => s.level === lvl + 1 && stepState(w, sheet, s) !== "shut"),
+  };
 }

@@ -95,7 +95,8 @@ function fnv(s: string): number {
 export const SPAR_V3_FROM_WEEK = "2026-W48";
 /** The first week fought in LX-SPAR/5 (rows D8, D20), so a week is fought in one version from its first bout to its last. */
 export const SPAR_V5_FROM_WEEK = "2026-W49";
-export const seasonSparVersion = (week: string): SparVersion => (week >= SPAR_V5_FROM_WEEK ? SPAR_V5 : week >= SPAR_V3_FROM_WEEK ? SPAR_V3 : SPAR_VERSION);
+export const seasonSparVersion = (week: string): SparVersion =>
+  week >= SPAR_V5_FROM_WEEK ? SPAR_V5 : week >= SPAR_V3_FROM_WEEK ? SPAR_V3 : SPAR_VERSION;
 
 export const boutSeed = (week: string, a: string, b: string): number => fnv(`${SEASON_VERSION}|${week}|${a}|${b}`);
 
@@ -103,7 +104,18 @@ export function seasonStandings(week: string, entries: readonly SeasonEntry[]): 
   const version = seasonSparVersion(week);
   const list = entries.slice(0, MAX_ENTRIES);
   const fighters: Fighter[] = list.map((e) => ({ ...duelFighter(e.pet), level: SEASON_LEVEL }));
-  const rows: Standing[] = list.map((e) => ({ key: e.key, name: e.pet.name, ...(e.agent ? { agent: e.agent } : {}), line: e.pet.line, points: 0, wins: 0, draws: 0, losses: 0, gates: entryGates(e.pet), rank: 0 }));
+  const rows: Standing[] = list.map((e) => ({
+    key: e.key,
+    name: e.pet.name,
+    ...(e.agent ? { agent: e.agent } : {}),
+    line: e.pet.line,
+    points: 0,
+    wins: 0,
+    draws: 0,
+    losses: 0,
+    gates: entryGates(e.pet),
+    rank: 0,
+  }));
   const score = (i: number, outcome: 0 | 1 | -1) => {
     const r = rows[i]!;
     if (outcome === 1) {
@@ -124,14 +136,21 @@ export function seasonStandings(week: string, entries: readonly SeasonEntry[]): 
   }
   const sorted = rows
     .slice()
-    .sort((a, b) => (version !== SPAR_VERSION ? b.points - a.points || b.wins - a.wins : b.points - a.points || a.gates - b.gates || b.wins - a.wins) || (a.key < b.key ? -1 : 1));
+    .sort(
+      (a, b) =>
+        (version !== SPAR_VERSION
+          ? b.points - a.points || b.wins - a.wins
+          : b.points - a.points || a.gates - b.gates || b.wins - a.wins) || (a.key < b.key ? -1 : 1),
+    );
   sorted.forEach((r, i) => (r.rank = i + 1));
   return sorted;
 }
 
 /** A short fingerprint of a table, to compare a recomputation with the server's. */
 export function standingsDigest(rows: readonly Standing[]): string {
-  return fnv(rows.map((r) => `${r.key}:${r.points}:${r.gates}`).join(",")).toString(16).padStart(8, "0");
+  return fnv(rows.map((r) => `${r.key}:${r.points}:${r.gates}`).join(","))
+    .toString(16)
+    .padStart(8, "0");
 }
 
 /** The badge tier a final place earns: 3 champion, 2 top three, 1 top ten, 0 none. */
@@ -148,7 +167,11 @@ export function scoreboard(weeks: ReadonlyArray<{ week: string; standings: reado
   return weeks.map(({ week, standings }) => {
     const side = (agent: boolean) => {
       const rows = standings.filter((r) => !!r.agent === agent);
-      return { entries: rows.length, meanPoints: rows.length ? Math.round((rows.reduce((t, r) => t + r.points, 0) / rows.length) * 10) / 10 : 0, best: rows.length ? Math.min(...rows.map((r) => r.rank)) : null };
+      return {
+        entries: rows.length,
+        meanPoints: rows.length ? Math.round((rows.reduce((t, r) => t + r.points, 0) / rows.length) * 10) / 10 : 0,
+        best: rows.length ? Math.min(...rows.map((r) => r.rank)) : null,
+      };
     };
     return { week, humans: side(false), agents: side(true) };
   });

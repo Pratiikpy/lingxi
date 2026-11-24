@@ -11,7 +11,9 @@ import { pageWeights } from "./page-weights.mts";
 const UNWEIGHED_BELOW = 10 * 1024;
 
 const site = process.argv[2] ?? join("apps", "web", "dist");
-const { pages } = JSON.parse(readFileSync(join(import.meta.dirname, "perf-budget.json"), "utf8")) as { pages: Record<string, number> };
+const { pages } = JSON.parse(readFileSync(join(import.meta.dirname, "perf-budget.json"), "utf8")) as {
+  pages: Record<string, number>;
+};
 let failed = 0;
 for (const w of pageWeights(site)) {
   const kb = w.total / 1024;
@@ -24,7 +26,9 @@ for (const w of pageWeights(site)) {
   }
   const over = kb > budget;
   if (over) failed++;
-  console.log(`${over ? "OVER     " : "ok       "} ${w.page.padEnd(16)} ${kb.toFixed(1).padStart(7)} KB of ${budget} KB`);
+  console.log(
+    `${over ? "OVER     " : "ok       "} ${w.page.padEnd(16)} ${kb.toFixed(1).padStart(7)} KB of ${budget} KB`,
+  );
 }
 if (failed) {
   console.error(`${failed} page(s) over budget or unweighed`);

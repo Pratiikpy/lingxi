@@ -9,7 +9,16 @@
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { type Address, type PublicClient, type WalletClient, createPublicClient, createWalletClient, http, numberToHex, parseAbi } from "viem";
+import {
+  type Address,
+  type PublicClient,
+  type WalletClient,
+  createPublicClient,
+  createWalletClient,
+  http,
+  numberToHex,
+  parseAbi,
+} from "viem";
 import { xLayer } from "viem/chains";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import type { Locator, Page } from "@playwright/test";
@@ -93,7 +102,10 @@ export async function forkOf(run: Run): Promise<Fork> {
   const d = JSON.parse(readFileSync(join(run.dir, "deployment.json"), "utf8")) as ForkDeployment;
   const chain = { ...xLayer, rpcUrls: { default: { http: [run.fork.rpc] } } };
   // a call the fork answers from X Layer can take a while; it is waited for, never sent twice
-  const pub = createPublicClient({ chain, transport: http(run.fork.rpc, { timeout: 60_000, retryCount: 0 }) }) as PublicClient;
+  const pub = createPublicClient({
+    chain,
+    transport: http(run.fork.rpc, { timeout: 60_000, retryCount: 0 }),
+  }) as PublicClient;
   const bem = await pub.readContract({ address: d.itemShop, abi: shopAbi, functionName: "bem" });
   const rpc = (method: string, params: unknown[]) => pub.request({ method: method as never, params: params as never });
   const plain = async (who: Address) => {
@@ -108,22 +120,42 @@ export async function forkOf(run: Run): Promise<Fork> {
     pub,
     d,
     bem,
-    wallet: (index) => createWalletClient({ chain, transport: http(run.fork.rpc, { timeout: 60_000, retryCount: 0 }), account: testAccount(index) }),
+    wallet: (index) =>
+      createWalletClient({
+        chain,
+        transport: http(run.fork.rpc, { timeout: 60_000, retryCount: 0 }),
+        account: testAccount(index),
+      }),
     bemOf: (who) => pub.readContract({ address: bem, abi: erc20, functionName: "balanceOf", args: [who] }),
     heldOf: (who, item) => {
       const id = d.items[item];
       if (!id) throw new Error(`no item ${item} in the deployment`);
-      return pub.readContract({ address: d.outfitMarketV2, abi: erc1155, functionName: "balanceOf", args: [who, BigInt(id)] });
+      return pub.readContract({
+        address: d.outfitMarketV2,
+        abi: erc1155,
+        functionName: "balanceOf",
+        args: [who, BigInt(id)],
+      });
     },
     packsOf: async (who) => {
-      const [room, looks] = await pub.readContract({ address: d.extras, abi: extrasAbi, functionName: "extrasOf", args: [who] });
+      const [room, looks] = await pub.readContract({
+        address: d.extras,
+        abi: extrasAbi,
+        functionName: "extrasOf",
+        args: [who],
+      });
       return { room, looks };
     },
-    colourOf: (petId) => pub.readContract({ address: d.extras, abi: extrasAbi, functionName: "nameColour", args: [BigInt(petId)] }),
+    colourOf: (petId) =>
+      pub.readContract({ address: d.extras, abi: extrasAbi, functionName: "nameColour", args: [BigInt(petId)] }),
     extrasBurned: () => pub.readContract({ address: d.extras, abi: extrasAbi, functionName: "totalBurned" }),
-    ownerOf: (petId) => pub.readContract({ address: d.registry, abi: registryAbi, functionName: "ownerOf", args: [BigInt(petId)] }),
-    brainOf: async (petId) => (await pub.readContract({ address: d.registry, abi: registryAbi, functionName: "pet", args: [BigInt(petId)] })).brainId,
-    isKeeper: (petId, who) => pub.readContract({ address: d.registry, abi: registryAbi, functionName: "isKeeper", args: [BigInt(petId), who] }),
+    ownerOf: (petId) =>
+      pub.readContract({ address: d.registry, abi: registryAbi, functionName: "ownerOf", args: [BigInt(petId)] }),
+    brainOf: async (petId) =>
+      (await pub.readContract({ address: d.registry, abi: registryAbi, functionName: "pet", args: [BigInt(petId)] }))
+        .brainId,
+    isKeeper: (petId, who) =>
+      pub.readContract({ address: d.registry, abi: registryAbi, functionName: "isKeeper", args: [BigInt(petId), who] }),
     mine: async (n = 1) => {
       for (let i = 0; i < n; i++) await rpc("evm_mine", []);
     },
@@ -147,7 +179,10 @@ export interface MadePacket {
  * `openers` (claim, two blocks, reveal), through the same helpers the game uses. The sender's USDT is written into
  * the fork, as fork-packet.ts does.
  */
-export async function makePacket(fork: Fork, o: { shares: number; sender: number; openers: number[] }): Promise<MadePacket> {
+export async function makePacket(
+  fork: Fork,
+  o: { shares: number; sender: number; openers: number[] },
+): Promise<MadePacket> {
   const d = fork.d as unknown as Deployment;
   const sender = fork.wallet(o.sender);
   for (const i of [o.sender, ...o.openers]) await fork.plain(testAccount(i).address);
@@ -155,9 +190,18 @@ export async function makePacket(fork: Fork, o: { shares: number; sender: number
   await fork.setOkb(sender.account!.address, 10n ** 18n);
   await giveToken(fork.pub, XLAYER_USDT, sender.account!.address, total);
   const key = generatePrivateKey();
-  const { id } = await createPacket(fork.pub, sender, d, { token: XLAYER_USDT, total, count: o.shares, lifetimeSec: 86_400, key: privateKeyToAccount(key).address, lucky: true, petOwnersOnly: false });
+  const { id } = await createPacket(fork.pub, sender, d, {
+    token: XLAYER_USDT,
+    total,
+    count: o.shares,
+    lifetimeSec: 86_400,
+    key: privateKeyToAccount(key).address,
+    lucky: true,
+    petOwnersOnly: false,
+  });
   const friends = o.openers.map((i) => fork.wallet(i));
-  for (const f of friends) await claimPacket(fork.pub, f, d, id, await signClaim(fork.pub, d, key, id, f.account!.address));
+  for (const f of friends)
+    await claimPacket(fork.pub, f, d, id, await signClaim(fork.pub, d, key, id, f.account!.address));
   await fork.mine(2);
   for (const f of friends) await revealPacket(fork.pub, f, d, id);
   return { id, key: key.slice(2), sender: sender.account!.address, opened: friends.map((f) => f.account!.address) };
@@ -173,7 +217,9 @@ export interface ChainRecord {
 
 export const chainRecord = (page: Page) =>
   page.evaluate(() => {
-    const records = Object.values(JSON.parse(localStorage.getItem("lingxi.chain.v2") ?? "{}") as Record<string, { petId?: string } | null>);
+    const records = Object.values(
+      JSON.parse(localStorage.getItem("lingxi.chain.v2") ?? "{}") as Record<string, { petId?: string } | null>,
+    );
     return (records.find((r) => r && r.petId) ?? null) as ChainRecord | null;
   });
 
@@ -198,7 +244,12 @@ export async function reach(page: Page, selector: string): Promise<Locator> {
     if (await loc.count()) {
       await loc.scrollIntoViewIfNeeded();
       const box = await loc.boundingBox();
-      if (box && ((box.y >= 0 && box.y + Math.min(box.height, 120) <= vh) || (box.height > vh * 0.6 && box.y < vh && box.y + box.height > 0))) return loc;
+      if (
+        box &&
+        ((box.y >= 0 && box.y + Math.min(box.height, 120) <= vh) ||
+          (box.height > vh * 0.6 && box.y < vh && box.y + box.height > 0))
+      )
+        return loc;
     }
     await scroll(300);
     await page.waitForTimeout(120);
@@ -209,14 +260,26 @@ export async function reach(page: Page, selector: string): Promise<Locator> {
 /** Keeps the pet on screen on X Layer with the game's own button (the Pet sheet must be open); returns its record. */
 export async function keepOnChain(page: Page): Promise<ChainRecord> {
   await (await reach(page, "[data-hint=keep]")).click();
-  await page.waitForFunction(() => Object.values(JSON.parse(localStorage.getItem("lingxi.chain.v2") ?? "{}") as Record<string, { petId?: string } | null>).some((r) => r && r.petId), undefined, { timeout: 180_000 });
+  await page.waitForFunction(
+    () =>
+      Object.values(
+        JSON.parse(localStorage.getItem("lingxi.chain.v2") ?? "{}") as Record<string, { petId?: string } | null>,
+      ).some((r) => r && r.petId),
+    undefined,
+    { timeout: 180_000 },
+  );
   const record = await chainRecord(page);
   if (!record) throw new Error("the pet was kept but its record is gone");
   return record;
 }
 
 /** Waits until a status line inside `scope` matches `pattern`, and returns every status line there. */
-export async function statusNote(page: Page, scope: string, pattern: RegExp | string, timeout = 120_000): Promise<string> {
+export async function statusNote(
+  page: Page,
+  scope: string,
+  pattern: RegExp | string,
+  timeout = 120_000,
+): Promise<string> {
   const source = typeof pattern === "string" ? pattern : pattern.source;
   const h = await page.waitForFunction(
     ([scope, pat]) => {
@@ -234,7 +297,10 @@ export async function statusNote(page: Page, scope: string, pattern: RegExp | st
 /** Adds a lesson to the active pet's save, as Pet School writes it, so the mind on chain falls behind. */
 export const teach = (page: Page, lesson: { when: Record<string, number[]>; then: Record<string, number> }) =>
   page.evaluate((l) => {
-    const s = JSON.parse(localStorage.getItem("lingxi.pets.v2") ?? "null") as { pets: Array<{ lessons?: unknown[] }>; active?: number };
+    const s = JSON.parse(localStorage.getItem("lingxi.pets.v2") ?? "null") as {
+      pets: Array<{ lessons?: unknown[] }>;
+      active?: number;
+    };
     const p = s.pets[s.active ?? 0]!;
     (p.lessons ??= []).push(l);
     localStorage.setItem("lingxi.pets.v2", JSON.stringify(s));

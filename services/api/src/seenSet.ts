@@ -60,7 +60,11 @@ export function seenFrom(list: unknown): SeenSet {
   if (list && typeof list === "object" && !Array.isArray(list)) {
     const s = list as Partial<SeenSet>;
     const bloom = typeof s.bloom === "string" ? s.bloom : null;
-    return { ids: Array.isArray(s.ids) ? s.ids.filter((x): x is string => typeof x === "string") : [], bloom, ...(bloom && s.legacy === true ? { legacy: true as const } : {}) };
+    return {
+      ids: Array.isArray(s.ids) ? s.ids.filter((x): x is string => typeof x === "string") : [],
+      bloom,
+      ...(bloom && s.legacy === true ? { legacy: true as const } : {}),
+    };
   }
   let s = emptySeen();
   for (const x of Array.isArray(list) ? list : []) if (typeof x === "string") s = addSeen(s, x);

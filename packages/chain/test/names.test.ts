@@ -11,23 +11,43 @@ import { hiddenCodePoint, invisibleCodePoint, nameProblem, revealHidden, stripHi
  * the code points a renderer is allowed to draw as nothing.
  */
 const DEFAULT_IGNORABLE: Array<[number, number]> = [
-  [0x00ad, 0x00ad], [0x034f, 0x034f], [0x061c, 0x061c], [0x115f, 0x1160], [0x17b4, 0x17b5], [0x180b, 0x180d],
-  [0x180e, 0x180e], [0x180f, 0x180f], [0x200b, 0x200f], [0x202a, 0x202e], [0x2060, 0x2064], [0x2065, 0x2065],
-  [0x2066, 0x206f], [0x3164, 0x3164], [0xfe00, 0xfe0f], [0xfeff, 0xfeff], [0xffa0, 0xffa0], [0xfff0, 0xfff8],
-  [0x1bca0, 0x1bca3], [0x1d173, 0x1d17a], [0xe0000, 0xe0fff],
+  [0x00ad, 0x00ad],
+  [0x034f, 0x034f],
+  [0x061c, 0x061c],
+  [0x115f, 0x1160],
+  [0x17b4, 0x17b5],
+  [0x180b, 0x180d],
+  [0x180e, 0x180e],
+  [0x180f, 0x180f],
+  [0x200b, 0x200f],
+  [0x202a, 0x202e],
+  [0x2060, 0x2064],
+  [0x2065, 0x2065],
+  [0x2066, 0x206f],
+  [0x3164, 0x3164],
+  [0xfe00, 0xfe0f],
+  [0xfeff, 0xfeff],
+  [0xffa0, 0xffa0],
+  [0xfff0, 0xfff8],
+  [0x1bca0, 0x1bca3],
+  [0x1d173, 0x1d17a],
+  [0xe0000, 0xe0fff],
 ];
 
 describe("names with characters that show as nothing (A16)", () => {
   it("counts every code point Unicode marks as default-ignorable as hidden", () => {
-    for (const [from, to] of DEFAULT_IGNORABLE) for (let cp = from; cp <= to; cp++) expect(hiddenCodePoint(cp), cp.toString(16)).toBe(true);
+    for (const [from, to] of DEFAULT_IGNORABLE)
+      for (let cp = from; cp <= to; cp++) expect(hiddenCodePoint(cp), cp.toString(16)).toBe(true);
   });
 
   it("shows every one of them as U+FFFD in a name read from the chain or from another player", () => {
-    for (const [from, to] of DEFAULT_IGNORABLE) for (let cp = from; cp <= to; cp++) expect(invisibleCodePoint(cp), cp.toString(16)).toBe(true);
+    for (const [from, to] of DEFAULT_IGNORABLE)
+      for (let cp = from; cp <= to; cp++) expect(invisibleCodePoint(cp), cp.toString(16)).toBe(true);
   });
 
   it("refuses, before anything is sent, a name that would pass for another", () => {
-    for (const hidden of ["\u061c", "\u17b4", "\u180b", "\u180f", "\u{1bca0}", "\u{1d173}"]) expect(nameProblem(`Mochi${hidden}`), hidden.codePointAt(0)!.toString(16)).toBe("chars");
+    for (const hidden of ["\u061c", "\u17b4", "\u180b", "\u180f", "\u{1bca0}", "\u{1d173}"])
+      expect(nameProblem(`Mochi${hidden}`), hidden.codePointAt(0)!.toString(16)).toBe("chars");
     expect(nameProblem("Mochi")).toBeNull();
     expect(nameProblem("团子")).toBeNull();
     expect(nameProblem("Mochi 🐱")).toBeNull();

@@ -24,7 +24,14 @@ export type Bonds = Readonly<Record<string, Bond>>;
 export type BondEvent = "together" | "wave" | "heart" | "spar" | "stay" | "gift";
 
 /** What each moment is worth. "together" is ten minutes in the same room. */
-export const BOND_POINTS: Readonly<Record<BondEvent, number>> = { together: 1, wave: 1, heart: 2, spar: 3, stay: 6, gift: 3 };
+export const BOND_POINTS: Readonly<Record<BondEvent, number>> = {
+  together: 1,
+  wave: 1,
+  heart: 2,
+  spar: 3,
+  stay: 6,
+  gift: 3,
+};
 /** The most a friendship can grow in one day. */
 export const BOND_DAILY_CAP = 12;
 /** Points at which each level starts: met, friends, good friends, best friends, inseparable. */
@@ -58,21 +65,37 @@ export function bondProgress(points: number): number {
 }
 
 /** The friendships with this moment added; also says whether a new level was reached. */
-export function addBond(bonds: Bonds, id: string, who: { name: string; line: string }, event: BondEvent, now: number): { bonds: Bonds; levelUp: number | null; gained: number } {
+export function addBond(
+  bonds: Bonds,
+  id: string,
+  who: { name: string; line: string },
+  event: BondEvent,
+  now: number,
+): { bonds: Bonds; levelUp: number | null; gained: number } {
   if (!id) return { bonds, levelUp: null, gained: 0 };
   const day = dayOfMs(now);
   const old = bonds[id];
   const base: Bond = old ?? { name: who.name, line: who.line, points: 0, day, today: 0, first: now, last: now };
   const today = base.day === day ? base.today : 0;
   const gained = Math.max(0, Math.min(BOND_POINTS[event], BOND_DAILY_CAP - today));
-  const next: Bond = { ...base, name: who.name || base.name, line: who.line || base.line, points: base.points + gained, day, today: today + gained, last: now };
+  const next: Bond = {
+    ...base,
+    name: who.name || base.name,
+    line: who.line || base.line,
+    points: base.points + gained,
+    day,
+    today: today + gained,
+    last: now,
+  };
   const before = bondLevel(base.points);
   const after = bondLevel(next.points);
   return { bonds: { ...bonds, [id]: next }, levelUp: after > before ? after : null, gained };
 }
 
 /** Whether these two pets are close enough to raise a little one together. */
-export const canStartFamily = (bonds: Bonds, id: string): boolean => bondLevel(bonds[id]?.points ?? 0) >= FAMILY_BOND_LEVEL;
+export const canStartFamily = (bonds: Bonds, id: string): boolean =>
+  bondLevel(bonds[id]?.points ?? 0) >= FAMILY_BOND_LEVEL;
 
 /** Friends, closest first. */
-export const friendsByCloseness = (bonds: Bonds): Array<[string, Bond]> => Object.entries(bonds).sort((a, b) => b[1].points - a[1].points || b[1].last - a[1].last);
+export const friendsByCloseness = (bonds: Bonds): Array<[string, Bond]> =>
+  Object.entries(bonds).sort((a, b) => b[1].points - a[1].points || b[1].last - a[1].last);

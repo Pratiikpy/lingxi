@@ -41,7 +41,8 @@ import { retiredOkbListings } from "../game/marketRetired";
 type Lang = "en" | "zh";
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 /** A price in its market's own currency: OKB on the first market, BEM on the second. */
-const priceText = (v: MarketVersion, units: bigint) => (v === 2 ? `${formatBem(units)} BEM` : `${formatEther(units)} OKB`);
+const priceText = (v: MarketVersion, units: bigint) =>
+  v === 2 ? `${formatBem(units)} BEM` : `${formatEther(units)} OKB`;
 const parsePrice = (v: MarketVersion, text: string): bigint | null => {
   if (v === 2) return parseBem(text);
   try {
@@ -67,7 +68,16 @@ export function OnPet({ pet, id }: { pet: Pet; id: string }) {
     const ys = [b.y, b.y + b.h - 1, ...overlay.map((o) => o[1])];
     const x0 = Math.max(0, Math.min(...xs) - 1);
     const y0 = Math.max(0, Math.min(...ys) - 1);
-    return { canvas, overlay, crop: { x: x0, y: y0, w: Math.min(canvas.w, Math.max(...xs) + 2) - x0, h: Math.min(canvas.h, Math.max(...ys) + 2) - y0 } };
+    return {
+      canvas,
+      overlay,
+      crop: {
+        x: x0,
+        y: y0,
+        w: Math.min(canvas.w, Math.max(...xs) + 2) - x0,
+        h: Math.min(canvas.h, Math.max(...ys) + 2) - y0,
+      },
+    };
   }, [id, slot, pieces, pet.line, st, pet.form]);
   return <Sprite canvas={art.canvas} palette={PALETTE_OF[pet.line]} scale={3} overlay={art.overlay} crop={art.crop} />;
 }
@@ -99,7 +109,10 @@ export function FashionMarketPanel({ pet }: { pet: Pet }) {
       const m = marketOf(v);
       return m ? proceedsOwed(publicClient, m, who) : Promise.resolve(0n);
     };
-    void Promise.all([one(1), one(2)]).then(([v1, v2]) => setOwed({ v1, v2 }), () => setOwed(null));
+    void Promise.all([one(1), one(2)]).then(
+      ([v1, v2]) => setOwed({ v1, v2 }),
+      () => setOwed(null),
+    );
   }, [wallet, market, listings]);
 
   if (!marketAvailable()) return null;
@@ -119,14 +132,20 @@ export function FashionMarketPanel({ pet }: { pet: Pet }) {
       const m = errorText(e);
       setNote(
         m === "noWallet"
-          ? L("No wallet found in this browser. Open Lingxi in the OKX Wallet app, or a browser with a wallet.", "这个浏览器里没有钱包。请在 OKX 钱包应用里打开灵犀，或用装了钱包的浏览器。")
+          ? L(
+              "No wallet found in this browser. Open Lingxi in the OKX Wallet app, or a browser with a wallet.",
+              "这个浏览器里没有钱包。请在 OKX 钱包应用里打开灵犀，或用装了钱包的浏览器。",
+            )
           : m === "listingRetired"
-            ? L("That listing is no longer for sale: the seller sold a copy through another one. Nothing was charged.", "这份挂单已经不卖了：卖家通过另一份挂单卖出了一份。没有扣费。")
-          : m === "not enough BEM"
-            ? L("This wallet doesn't hold enough BEM on X Layer for that.", "这个钱包在 X Layer 上的 BEM 不够。")
-            : refusesTokens(e)
-              ? t("chain.cannotReceive")
-              : L(`That didn't go through: ${m.split("\n")[0]}`, `没有成功：${m.split("\n")[0]}`),
+            ? L(
+                "That listing is no longer for sale: the seller sold a copy through another one. Nothing was charged.",
+                "这份挂单已经不卖了：卖家通过另一份挂单卖出了一份。没有扣费。",
+              )
+            : m === "not enough BEM"
+              ? L("This wallet doesn't hold enough BEM on X Layer for that.", "这个钱包在 X Layer 上的 BEM 不够。")
+              : refusesTokens(e)
+                ? t("chain.cannotReceive")
+                : L(`That didn't go through: ${m.split("\n")[0]}`, `没有成功：${m.split("\n")[0]}`),
       );
     }
     setBusy(null);
@@ -138,14 +157,24 @@ export function FashionMarketPanel({ pet }: { pet: Pet }) {
     if (v !== 2 || !bemMarket) return;
     const r = await bemReadiness(publicClient, bemMarket, who, total);
     if (!r.enough) throw new Error("not enough BEM");
-    setStep(r.needsApproval ? L("Two steps in your wallet: first allow the market to take exactly this much BEM, then buy.", "钱包里会有两步：先允许市场取用正好这么多 BEM，再购买。") : L("Confirm the purchase in your wallet.", "请在钱包里确认购买。"));
+    setStep(
+      r.needsApproval
+        ? L(
+            "Two steps in your wallet: first allow the market to take exactly this much BEM, then buy.",
+            "钱包里会有两步：先允许市场取用正好这么多 BEM，再购买。",
+          )
+        : L("Confirm the purchase in your wallet.", "请在钱包里确认购买。"),
+    );
   };
 
   const buy = (m: OutfitDesign) =>
     run(`buy:${wearKey(m.market, m.id)}`, async (w) => {
       await announce(m.market, w.account!.address, m.price);
       await buyDesign(publicClient, w, marketOf(m.market)!, m.id, 1, m.price);
-      return L(`Bought a copy of “${m.name}” for ${priceText(m.market, m.price)}.`, `用 ${priceText(m.market, m.price)} 买了一份「${m.name}」。`);
+      return L(
+        `Bought a copy of “${m.name}” for ${priceText(m.market, m.price)}.`,
+        `用 ${priceText(m.market, m.price)} 买了一份「${m.name}」。`,
+      );
     });
 
   const buyResale = (l: OutfitListing) =>
@@ -157,11 +186,16 @@ export function FashionMarketPanel({ pet }: { pet: Pet }) {
       }
       await announce(l.market, w.account!.address, l.priceEach);
       await buyListing(publicClient, w, marketOf(l.market)!, l.id, 1, l.priceEach);
-      return L(`Bought one “${nameOf(l)}” from ${short(l.seller)}.`, `从 ${short(l.seller)} 那里买了一份「${nameOf(l)}」。`);
+      return L(
+        `Bought one “${nameOf(l)}” from ${short(l.seller)}.`,
+        `从 ${short(l.seller)} 那里买了一份「${nameOf(l)}」。`,
+      );
     });
 
-  const isPin = (m: OutfitDesign) => m.market === 2 && deployment?.holderOutfit !== undefined && m.id === BigInt(deployment.holderOutfit);
-  const nameOf = (l: OutfitListing) => market.find((m) => m.market === l.market && m.id === l.design)?.name ?? `#${l.design}`;
+  const isPin = (m: OutfitDesign) =>
+    m.market === 2 && deployment?.holderOutfit !== undefined && m.id === BigInt(deployment.holderOutfit);
+  const nameOf = (l: OutfitListing) =>
+    market.find((m) => m.market === l.market && m.id === l.design)?.name ?? `#${l.design}`;
   const pieces = market.filter((m) => !m.item);
   const forSale = (m: OutfitDesign) => !m.closed && m.price > 0n && m.minted < m.maxSupply;
   const daysLeft = (t: number) => Math.max(1, Math.ceil((t - now() / 1000) / 86_400));
@@ -176,16 +210,37 @@ export function FashionMarketPanel({ pet }: { pet: Pet }) {
         )}
       </p>
       {burned !== null && burned > 0n && (
-        <p className="small fashion-burned">{L(`BEM burned by this market so far: ${formatBem(burned)}`, `这个市场至今已销毁 BEM：${formatBem(burned)}`)}</p>
+        <p className="small fashion-burned">
+          {L(`BEM burned by this market so far: ${formatBem(burned)}`, `这个市场至今已销毁 BEM：${formatBem(burned)}`)}
+        </p>
       )}
       <div className="row">
-        <button type="button" className="btn" disabled={loading} onClick={() => (play("tap"), void (wallet ? refresh() : run("connect", async () => L("Wallet connected.", "钱包已连接。"))))}>
-          {loading ? L("Reading the market…", "正在读取市场……") : wallet ? L("Refresh", "刷新") : L("Connect a wallet", "连接钱包")}
+        <button
+          type="button"
+          className="btn"
+          disabled={loading}
+          onClick={() => (
+            play("tap"),
+            void (wallet ? refresh() : run("connect", async () => L("Wallet connected.", "钱包已连接。")))
+          )}
+        >
+          {loading
+            ? L("Reading the market…", "正在读取市场……")
+            : wallet
+              ? L("Refresh", "刷新")
+              : L("Connect a wallet", "连接钱包")}
         </button>
         {wallet && <span className="small">{L(`Wallet ${short(wallet)}`, `钱包 ${short(wallet)}`)}</span>}
       </div>
       {error && <p className="small sp-warn">{L("The market couldn't be read just now.", "暂时读不到市场。")}</p>}
-      {!loading && !pieces.length && !error && <p className="small">{L("Nothing published yet. Draw a piece in the studio and be the first.", "还没有人发布作品。去工作室画一件，做第一个吧。")}</p>}
+      {!loading && !pieces.length && !error && (
+        <p className="small">
+          {L(
+            "Nothing published yet. Draw a piece in the studio and be the first.",
+            "还没有人发布作品。去工作室画一件，做第一个吧。",
+          )}
+        </p>
+      )}
       <ul className="fashion-grid">
         {pieces.map((m) => {
           const key = wearKey(m.market, m.id);
@@ -195,12 +250,20 @@ export function FashionMarketPanel({ pet }: { pet: Pet }) {
             <li key={key} className="fashion-card">
               <OnPet pet={pet} id={key} />
               <b>{m.name}</b>
-              <span className="small">{L(`by ${short(m.creator)} · ${m.minted}/${m.maxSupply}`, `作者 ${short(m.creator)} · ${m.minted}/${m.maxSupply}`)}</span>
+              <span className="small">
+                {L(
+                  `by ${short(m.creator)} · ${m.minted}/${m.maxSupply}`,
+                  `作者 ${short(m.creator)} · ${m.minted}/${m.maxSupply}`,
+                )}
+              </span>
               <span className="small">
                 {open
                   ? priceText(m.market, m.price)
                   : isPin(m)
-                    ? L("a free gift for TapeOut holders: claim it under Holder cosmetics", "送给 TapeOut 持有人的免费礼物：在「持有人外观」里领取")
+                    ? L(
+                        "a free gift for TapeOut holders: claim it under Holder cosmetics",
+                        "送给 TapeOut 持有人的免费礼物：在「持有人外观」里领取",
+                      )
                     : L("not for sale by its creator", "作者暂不出售")}
               </span>
               {mine > 0 && <span className="small fashion-have">{L(`You have ${mine}`, `你有 ${mine} 份`)}</span>}
@@ -225,7 +288,20 @@ export function FashionMarketPanel({ pet }: { pet: Pet }) {
                     >
                       {L("Wear", "穿上")}
                     </button>
-                    <button type="button" className="btn" onClick={() => setResell({ key, qty: "1", price: m.market === 2 ? formatBem(m.price || 10_000_000n) : formatEther(m.price || parseEther("0.001")) })}>
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={() =>
+                        setResell({
+                          key,
+                          qty: "1",
+                          price:
+                            m.market === 2
+                              ? formatBem(m.price || 10_000_000n)
+                              : formatEther(m.price || parseEther("0.001")),
+                        })
+                      }
+                    >
                       {L("Resell", "转卖")}
                     </button>
                   </>
@@ -250,24 +326,42 @@ export function FashionMarketPanel({ pet }: { pet: Pet }) {
                       await listCopies(publicClient, w, marketOf(m.market)!, m.id, qty, each, { days: 30 });
                       setResell(null);
                       return m.market === 2
-                        ? L(`Listed ${qty} for ${priceText(2, each)} each, for 30 days.`, `已挂出 ${qty} 份，每份 ${priceText(2, each)}，挂 30 天。`)
-                        : L(`Listed ${qty} for ${priceText(1, each)} each.`, `已挂出 ${qty} 份，每份 ${priceText(1, each)}。`);
+                        ? L(
+                            `Listed ${qty} for ${priceText(2, each)} each, for 30 days.`,
+                            `已挂出 ${qty} 份，每份 ${priceText(2, each)}，挂 30 天。`,
+                          )
+                        : L(
+                            `Listed ${qty} for ${priceText(1, each)} each.`,
+                            `已挂出 ${qty} 份，每份 ${priceText(1, each)}。`,
+                          );
                     });
                   }}
                 >
-                  <input inputMode="numeric" value={resell.qty} onChange={(e) => setResell({ ...resell, qty: e.target.value.replace(/\D/g, "") })} aria-label={L("How many", "几份")} />
+                  <input
+                    inputMode="numeric"
+                    value={resell.qty}
+                    onChange={(e) => setResell({ ...resell, qty: e.target.value.replace(/\D/g, "") })}
+                    aria-label={L("How many", "几份")}
+                  />
                   <input
                     inputMode="decimal"
                     value={resell.price}
                     onChange={(e) => setResell({ ...resell, price: e.target.value.replace(/[^0-9.]/g, "") })}
-                    aria-label={m.market === 2 ? L("Price each (BEM)", "每份价格（BEM）") : L("Price each (OKB)", "每份价格（OKB）")}
+                    aria-label={
+                      m.market === 2
+                        ? L("Price each (BEM)", "每份价格（BEM）")
+                        : L("Price each (OKB)", "每份价格（OKB）")
+                    }
                   />
                   <button type="submit" className="btn primary" disabled={busy !== null}>
                     {L("List", "挂出")}
                   </button>
                   {m.market === 2 && (
                     <span className="small fashion-resell-note">
-                      {L("Listed for 30 days. When one of your listings of this piece sells, your other listings of it close, so list again after a sale.", "挂 30 天。这件衣服的某个挂单卖出后，你对它的其他挂单会关闭，卖出后请重新挂。")}
+                      {L(
+                        "Listed for 30 days. When one of your listings of this piece sells, your other listings of it close, so list again after a sale.",
+                        "挂 30 天。这件衣服的某个挂单卖出后，你对它的其他挂单会关闭，卖出后请重新挂。",
+                      )}
                     </span>
                   )}
                 </form>
@@ -287,13 +381,22 @@ export function FashionMarketPanel({ pet }: { pet: Pet }) {
                   <span>
                     <b>{nameOf(l)}</b>
                     <span className="small">
-                      {L(` · ${l.quantity} from ${short(l.seller)} · ${priceText(l.market, l.priceEach)} each`, ` · ${short(l.seller)} 的 ${l.quantity} 份 · 每份 ${priceText(l.market, l.priceEach)}`)}
-                      {l.expiresAt !== null && L(` · ${daysLeft(l.expiresAt)} days left`, ` · 还剩 ${daysLeft(l.expiresAt)} 天`)}
+                      {L(
+                        ` · ${l.quantity} from ${short(l.seller)} · ${priceText(l.market, l.priceEach)} each`,
+                        ` · ${short(l.seller)} 的 ${l.quantity} 份 · 每份 ${priceText(l.market, l.priceEach)}`,
+                      )}
+                      {l.expiresAt !== null &&
+                        L(` · ${daysLeft(l.expiresAt)} days left`, ` · 还剩 ${daysLeft(l.expiresAt)} 天`)}
                       {l.buyer !== null && L(` · for ${short(l.buyer)} only`, ` · 只卖给 ${short(l.buyer)}`)}
                     </span>
                   </span>
                   {wallet?.toLowerCase() !== l.seller.toLowerCase() && !reserved && (
-                    <button type="button" className="btn primary" disabled={busy !== null} onClick={() => void buyResale(l)}>
+                    <button
+                      type="button"
+                      className="btn primary"
+                      disabled={busy !== null}
+                      onClick={() => void buyResale(l)}
+                    >
                       {L("Buy one", "买一份")}
                     </button>
                   )}
@@ -307,16 +410,48 @@ export function FashionMarketPanel({ pet }: { pet: Pet }) {
         <div className="row fashion-owed">
           {owed.v2 > 0n && (
             <span>
-              {L(`Waiting for you: ${priceText(2, owed.v2)} from your sales.`, `市场里有你的卖出收入：${priceText(2, owed.v2)}。`)}
-              <button type="button" className="btn primary" disabled={busy !== null} onClick={() => void run("withdraw2", async (w) => (await withdrawProceeds(publicClient, w, marketOf(2)!), L(`Collected ${priceText(2, owed.v2)}.`, `已领取 ${priceText(2, owed.v2)}。`)))}>
+              {L(
+                `Waiting for you: ${priceText(2, owed.v2)} from your sales.`,
+                `市场里有你的卖出收入：${priceText(2, owed.v2)}。`,
+              )}
+              <button
+                type="button"
+                className="btn primary"
+                disabled={busy !== null}
+                onClick={() =>
+                  void run(
+                    "withdraw2",
+                    async (w) => (
+                      await withdrawProceeds(publicClient, w, marketOf(2)!),
+                      L(`Collected ${priceText(2, owed.v2)}.`, `已领取 ${priceText(2, owed.v2)}。`)
+                    ),
+                  )
+                }
+              >
                 {L("Collect", "领取")}
               </button>
             </span>
           )}
           {owed.v1 > 0n && (
             <span>
-              {L(`Waiting for you: ${priceText(1, owed.v1)} from your sales.`, `市场里有你的卖出收入：${priceText(1, owed.v1)}。`)}
-              <button type="button" className="btn primary" disabled={busy !== null} onClick={() => void run("withdraw1", async (w) => (await withdrawProceeds(publicClient, w, marketOf(1)!), L(`Collected ${priceText(1, owed.v1)}.`, `已领取 ${priceText(1, owed.v1)}。`)))}>
+              {L(
+                `Waiting for you: ${priceText(1, owed.v1)} from your sales.`,
+                `市场里有你的卖出收入：${priceText(1, owed.v1)}。`,
+              )}
+              <button
+                type="button"
+                className="btn primary"
+                disabled={busy !== null}
+                onClick={() =>
+                  void run(
+                    "withdraw1",
+                    async (w) => (
+                      await withdrawProceeds(publicClient, w, marketOf(1)!),
+                      L(`Collected ${priceText(1, owed.v1)}.`, `已领取 ${priceText(1, owed.v1)}。`)
+                    ),
+                  )
+                }
+              >
                 {L("Collect", "领取")}
               </button>
             </span>

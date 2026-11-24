@@ -21,7 +21,9 @@ import { noteEvent } from "./tally";
 import { SEND_LIMITS, checkSize } from "./sendSize";
 import { now } from "./gameClock";
 
-const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const BASE =
+  (import.meta.env.VITE_API_URL as string | undefined) ??
+  (location.hostname === "localhost" ? "http://localhost:8787" : "");
 export const sittingAvailable = () => BASE !== "";
 
 const hex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
@@ -45,7 +47,16 @@ export async function sendToSitter(pet: Pet, days: number): Promise<string> {
   const pack: SitPack = {
     v: 1,
     pet,
-    chain: record ? { petId: record.petId, owner: record.owner, bornChain: record.bornChain, brains: record.brains, brainKey: record.brainKey, lastDay: record.lastDay } : null,
+    chain: record
+      ? {
+          petId: record.petId,
+          owner: record.owner,
+          bornChain: record.bornChain,
+          brains: record.brains,
+          brainKey: record.brainKey,
+          lastDay: record.lastDay,
+        }
+      : null,
     sitter: record?.sitter && record.sitter.until * 1000 > now() ? record.sitter.who : null,
     until,
     host: playerId(),
@@ -73,7 +84,9 @@ export async function checkHome(pet: Pet): Promise<"waiting" | "home" | "refused
   if (!pet.away) return "home";
   let j: { ok: boolean; back?: string };
   try {
-    j = (await (await fetch(`${BASE}/api/sit/${pet.away.code}`, { signal: AbortSignal.timeout(10000) })).json()) as typeof j;
+    j = (await (
+      await fetch(`${BASE}/api/sit/${pet.away.code}`, { signal: AbortSignal.timeout(10000) })
+    ).json()) as typeof j;
   } catch {
     return "unreachable";
   }
@@ -103,7 +116,8 @@ export async function checkHome(pet: Pet): Promise<"waiting" | "home" | "refused
   }
   useGame.getState().replace(returned as Pet);
   const s = back.sitter;
-  if (s && typeof s.id === "string" && typeof s.name === "string" && typeof s.line === "string" && s.name.length <= 40) useFriends.getState().meet(s.id.slice(0, 64), { name: s.name, line: s.line }, "stay");
+  if (s && typeof s.id === "string" && typeof s.name === "string" && typeof s.line === "string" && s.name.length <= 40)
+    useFriends.getState().meet(s.id.slice(0, 64), { name: s.name, line: s.line }, "stay");
   return "home";
 }
 
@@ -119,7 +133,10 @@ export async function bringHomeNow(pet: Pet): Promise<"home" | "ownCopy"> {
 /** Friend: read a pack from a link. */
 export async function collect(code: string): Promise<SitPack | null> {
   try {
-    const j = (await (await fetch(`${BASE}/api/sit/${code}`, { signal: AbortSignal.timeout(10000) })).json()) as { ok: boolean; pack?: string };
+    const j = (await (await fetch(`${BASE}/api/sit/${code}`, { signal: AbortSignal.timeout(10000) })).json()) as {
+      ok: boolean;
+      pack?: string;
+    };
     if (!j.ok || !j.pack) return null;
     const p = JSON.parse(j.pack) as SitPack;
     return p.v === 1 && p.pet && typeof p.pet.bornAt === "number" ? p : null;
@@ -131,12 +148,25 @@ export async function collect(code: string): Promise<SitPack | null> {
 /** Friend: take the pet in. */
 export function takeIn(pack: SitPack, code: string, key: string): boolean {
   const { away: _away, ...pet } = pack.pet;
-  const guest: Pet = { ...(pet as Pet), sitting: { code, key, until: pack.until, owner: pack.chain?.owner ?? null, name: pack.pet.name } };
+  const guest: Pet = {
+    ...(pet as Pet),
+    sitting: { code, key, until: pack.until, owner: pack.chain?.owner ?? null, name: pack.pet.name },
+  };
   // the stay counts for this player's own pet and the owner's pet, before the guest is taken in
-  if (typeof pack.host === "string" && pack.host.length <= 64) useFriends.getState().meet(pack.host, { name: pack.pet.name, line: pack.pet.line }, "stay");
+  if (typeof pack.host === "string" && pack.host.length <= 64)
+    useFriends.getState().meet(pack.host, { name: pack.pet.name, line: pack.pet.line }, "stay");
   if (!useGame.getState().guest(guest)) return false;
   noteEvent("pet-sat");
-  if (pack.chain) setRecordOf(guest, { petId: pack.chain.petId, hatchTx: "", lastDay: pack.chain.lastDay, owner: pack.chain.owner, bornChain: pack.chain.bornChain, brains: pack.chain.brains, brainKey: pack.chain.brainKey });
+  if (pack.chain)
+    setRecordOf(guest, {
+      petId: pack.chain.petId,
+      hatchTx: "",
+      lastDay: pack.chain.lastDay,
+      owner: pack.chain.owner,
+      bornChain: pack.chain.bornChain,
+      brains: pack.chain.brains,
+      brainKey: pack.chain.brainKey,
+    });
   return true;
 }
 
@@ -149,7 +179,11 @@ export async function sendHome(given: Pet): Promise<boolean> {
   const record = recordOf(pet);
   const { sitting, ...home } = pet;
   const own = useGame.getState().pets.find((p) => !p.sitting);
-  const body: Homecoming = { pet: home as Pet, chain: record && record.logLen !== undefined ? { lastDay: record.lastDay, logLen: record.logLen } : null, ...(own ? { sitter: { id: playerId(), name: own.name, line: own.line } } : {}) };
+  const body: Homecoming = {
+    pet: home as Pet,
+    chain: record && record.logLen !== undefined ? { lastDay: record.lastDay, logLen: record.logLen } : null,
+    ...(own ? { sitter: { id: playerId(), name: own.name, line: own.line } } : {}),
+  };
   const petText = JSON.stringify(body);
   const sent = JSON.stringify(sitHomeBody(sitting.key, petText));
   checkSize(sent, SEND_LIMITS.sitBodyBytes, { unit: "bytes", have: petText.length, most: SEND_LIMITS.sitPackChars });

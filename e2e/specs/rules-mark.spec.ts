@@ -42,5 +42,7 @@ test("the rules mark pops up once, and the circuit view keeps the proof (B5)", a
     await page.waitForTimeout(500);
   }
   await page.locator(".circuit-btn").click();
-  await expect(page.locator(".bv-rules")).toContainText(p.t("Rules verified on X Layer", "规则已在 X Layer 上核对"), { timeout: 30_000 });
+  await expect(page.locator(".bv-rules")).toContainText(p.t("Rules verified on X Layer", "规则已在 X Layer 上核对"), {
+    timeout: 30_000,
+  });
 });

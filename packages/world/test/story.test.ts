@@ -21,9 +21,18 @@ import {
 
 const T0 = Date.UTC(2026, 10, 16, 9);
 const DAY = 86_400_000;
-const view = (world: WorldState, now = T0): ConditionView => ({ world, pet: { level: 1, stage: "baby", onChain: false, needsMin: 500 }, pets: 1, now, timeOfDay: 2, day: "2026-11-16", bondLevel: 0, goalsDone: [] });
+const view = (world: WorldState, now = T0): ConditionView => ({
+  world,
+  pet: { level: 1, stage: "baby", onChain: false, needsMin: 500 },
+  pets: 1,
+  now,
+  timeOfDay: 2,
+  day: "2026-11-16",
+  bondLevel: 0,
+  goalsDone: [],
+});
 const T = (en: string) => ({ en, zh: en });
-const ok = <X,>(r: ({ ok: true; world: WorldState } & X) | { ok: false; reason: string }) => {
+const ok = <X>(r: ({ ok: true; world: WorldState } & X) | { ok: false; reason: string }) => {
   if (!r.ok) throw new Error(r.reason);
   return r;
 };
@@ -48,8 +57,22 @@ const hello: QuestDef = {
     { kind: "recipe", index: 9001 },
   ],
 };
-const meal: QuestDef = { ...hello, id: "q02", requires: [{ type: "QUEST", logic: "BOOL_IS", index: "q01" }], objectives: [{ text: T("Feed"), cond: { type: "CARE", logic: "INC_MIN", index: "feed", value: 1 } }], rewards: [{ kind: "coins", n: 5 }], opensWhen: T("after Hello") };
-const later: QuestDef = { ...meal, id: "q09", requires: [{ type: "QUEST", logic: "BOOL_IS", index: "q01" }, { type: "COINS", logic: "CURR_MIN", value: 999 }] };
+const meal: QuestDef = {
+  ...hello,
+  id: "q02",
+  requires: [{ type: "QUEST", logic: "BOOL_IS", index: "q01" }],
+  objectives: [{ text: T("Feed"), cond: { type: "CARE", logic: "INC_MIN", index: "feed", value: 1 } }],
+  rewards: [{ kind: "coins", n: 5 }],
+  opensWhen: T("after Hello"),
+};
+const later: QuestDef = {
+  ...meal,
+  id: "q09",
+  requires: [
+    { type: "QUEST", logic: "BOOL_IS", index: "q01" },
+    { type: "COINS", logic: "CURR_MIN", value: 999 },
+  ],
+};
 const daily = (id: string, group: "care" | "social" | "explore", index: string): QuestDef => ({
   ...hello,
   id,
@@ -60,7 +83,14 @@ const daily = (id: string, group: "care" | "social" | "explore", index: string):
   objectives: [{ text: T(id), cond: { type: "CARE", logic: "INC_MIN", index, value: 1 } }],
   rewards: [{ kind: "coins", n: 3 }],
 });
-const POOL = [daily("d-feed", "care", "feed"), daily("d-bath", "care", "clean"), daily("d-hi", "social", "talk"), daily("d-gift", "social", "pet"), daily("d-look", "explore", "play"), daily("d-walk", "explore", "sleep")];
+const POOL = [
+  daily("d-feed", "care", "feed"),
+  daily("d-bath", "care", "clean"),
+  daily("d-hi", "social", "talk"),
+  daily("d-gift", "social", "pet"),
+  daily("d-look", "explore", "play"),
+  daily("d-walk", "explore", "sleep"),
+];
 
 describe("a story quest", () => {
   it("is taken, counts from then, and pays every reward exactly once", () => {
@@ -98,7 +128,10 @@ describe("a story quest", () => {
     const r = ok(completeQuest(w, hello, view(w)));
     expect(r.world.coins, "the pats were paid for by the milestone").toBe(coins);
     expect(r.world.flags, "what the story quest opens still opens").toContain("diary");
-    expect(r.rewards.some((x) => x.kind === "coins"), "and the screen does not claim coins it did not pay").toBe(false);
+    expect(
+      r.rewards.some((x) => x.kind === "coins"),
+      "and the screen does not claim coins it did not pay",
+    ).toBe(false);
   });
 
   it("stays locked until what opens it is done, then the chain offers the next one", () => {

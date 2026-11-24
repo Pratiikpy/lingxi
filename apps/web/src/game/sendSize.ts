@@ -20,7 +20,11 @@ export class TooBig extends Error {
 }
 
 /** Throws TooBig when `body` is over `mostBytes`, or a count the server also checks is over its most. */
-export function checkSize(body: string, mostBytes: number, also?: { unit: "bytes" | "words"; have: number; most: number }): void {
+export function checkSize(
+  body: string,
+  mostBytes: number,
+  also?: { unit: "bytes" | "words"; have: number; most: number },
+): void {
   if (also && also.have > also.most) throw new TooBig(also.unit, also.have, also.most);
   const bytes = utf8Bytes(body);
   if (bytes > mostBytes) throw new TooBig("bytes", bytes, mostBytes);
@@ -28,6 +32,11 @@ export function checkSize(body: string, mostBytes: number, also?: { unit: "bytes
 
 /** "(1.4 MB; the most is 1.0 MB)" in the player's language. */
 export function sizeNote(e: TooBig, lang: "en" | "zh"): string {
-  const show = (n: number) => (e.unit === "bytes" ? readableSize(n) : lang === "zh" ? `${n.toLocaleString("zh-CN")} 个词` : `${n.toLocaleString("en")} words`);
+  const show = (n: number) =>
+    e.unit === "bytes"
+      ? readableSize(n)
+      : lang === "zh"
+        ? `${n.toLocaleString("zh-CN")} 个词`
+        : `${n.toLocaleString("en")} words`;
   return lang === "zh" ? `（${show(e.have)}，最多 ${show(e.most)}）` : `(${show(e.have)}; the most is ${show(e.most)})`;
 }

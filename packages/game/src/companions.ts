@@ -18,7 +18,11 @@ export interface CompanionDef {
   name: { en: string; zh: string };
   role: { en: string; zh: string };
   /** body drawn from a pet line and stage, in its own palette */
-  look: { line: "gentle" | "bold" | "curious"; stage: "baby" | "child" | "teen"; palette: "mint" | "lilac" | "peach" | "night" };
+  look: {
+    line: "gentle" | "bold" | "curious";
+    stage: "baby" | "child" | "teen";
+    palette: "mint" | "lilac" | "peach" | "night";
+  };
   /** balance table */
   hp: number;
   level: number;
@@ -27,7 +31,8 @@ export interface CompanionDef {
   program: Program;
 }
 
-const P = (rules: unknown[], otherwise: { want: number; mood: number }) => validateProgram({ version: "LX-PET/1", memory: [], rules, otherwise });
+const P = (rules: unknown[], otherwise: { want: number; mood: number }) =>
+  validateProgram({ version: "LX-PET/1", memory: [], rules, otherwise });
 
 export const COMPANIONS: readonly CompanionDef[] = [
   {
@@ -38,7 +43,13 @@ export const COMPANIONS: readonly CompanionDef[] = [
     hp: 55,
     level: 0,
     cost: 3,
-    program: P([{ when: { hunger: [2, 3] }, then: { want: 1, mood: 1 } }, { when: { energy: [0] }, then: { want: 3, mood: 1 } }], { want: 7, mood: 2 }),
+    program: P(
+      [
+        { when: { hunger: [2, 3] }, then: { want: 1, mood: 1 } },
+        { when: { energy: [0] }, then: { want: 3, mood: 1 } },
+      ],
+      { want: 7, mood: 2 },
+    ),
   },
   {
     id: "bolt",
@@ -48,7 +59,13 @@ export const COMPANIONS: readonly CompanionDef[] = [
     hp: 70,
     level: 1,
     cost: 3,
-    program: P([{ when: { energy: [0, 1] }, then: { want: 3, mood: 1 } }, { when: { event: [2] }, then: { want: 2, mood: 3 } }], { want: 2, mood: 2 }),
+    program: P(
+      [
+        { when: { energy: [0, 1] }, then: { want: 3, mood: 1 } },
+        { when: { event: [2] }, then: { want: 2, mood: 3 } },
+      ],
+      { want: 2, mood: 2 },
+    ),
   },
   {
     id: "shell",
@@ -58,7 +75,14 @@ export const COMPANIONS: readonly CompanionDef[] = [
     hp: 95,
     level: 0,
     cost: 3,
-    program: P([{ when: { event: [3] }, then: { want: 5, mood: 1 } }, { when: { clean: [0, 1] }, then: { want: 2, mood: 2 } }, { when: { action: [2] }, then: { want: 5, mood: 1 } }], { want: 0, mood: 1 }),
+    program: P(
+      [
+        { when: { event: [3] }, then: { want: 5, mood: 1 } },
+        { when: { clean: [0, 1] }, then: { want: 2, mood: 2 } },
+        { when: { action: [2] }, then: { want: 5, mood: 1 } },
+      ],
+      { want: 0, mood: 1 },
+    ),
   },
   {
     id: "wisp",
@@ -68,7 +92,14 @@ export const COMPANIONS: readonly CompanionDef[] = [
     hp: 60,
     level: 0,
     cost: 3,
-    program: P([{ when: { action: [2] }, then: { want: 4, mood: 2 } }, { when: { time: [1] }, then: { want: 6, mood: 2 } }, { when: { event: [2] }, then: { want: 2, mood: 2 } }], { want: 6, mood: 1 }),
+    program: P(
+      [
+        { when: { action: [2] }, then: { want: 4, mood: 2 } },
+        { when: { time: [1] }, then: { want: 6, mood: 2 } },
+        { when: { event: [2] }, then: { want: 2, mood: 2 } },
+      ],
+      { want: 6, mood: 1 },
+    ),
   },
   {
     id: "ember",
@@ -78,7 +109,14 @@ export const COMPANIONS: readonly CompanionDef[] = [
     hp: 65,
     level: 1,
     cost: 4,
-    program: P([{ when: { time: [3] }, then: { want: 2, mood: 3 } }, { when: { clean: [0] }, then: { want: 2, mood: 3 } }, { when: { energy: [0, 1, 2] }, then: { want: 3, mood: 1 } }], { want: 5, mood: 1 }),
+    program: P(
+      [
+        { when: { time: [3] }, then: { want: 2, mood: 3 } },
+        { when: { clean: [0] }, then: { want: 2, mood: 3 } },
+        { when: { energy: [0, 1, 2] }, then: { want: 3, mood: 1 } },
+      ],
+      { want: 5, mood: 1 },
+    ),
   },
   {
     id: "pebble",
@@ -98,7 +136,14 @@ export const COMPANIONS: readonly CompanionDef[] = [
     hp: 70,
     level: 2,
     cost: 5,
-    program: P([{ when: { event: [2] }, then: { want: 2, mood: 3 } }, { when: { event: [1] }, then: { want: 2, mood: 2 } }, { when: { energy: [3] }, then: { want: 2, mood: 2 } }], { want: 3, mood: 1 }),
+    program: P(
+      [
+        { when: { event: [2] }, then: { want: 2, mood: 3 } },
+        { when: { event: [1] }, then: { want: 2, mood: 2 } },
+        { when: { energy: [3] }, then: { want: 2, mood: 2 } },
+      ],
+      { want: 3, mood: 1 },
+    ),
   },
   {
     id: "bloom",
@@ -108,7 +153,14 @@ export const COMPANIONS: readonly CompanionDef[] = [
     hp: 75,
     level: 1,
     cost: 4,
-    program: P([{ when: { event: [1] }, then: { want: 7, mood: 3 } }, { when: { hunger: [2, 3] }, then: { want: 1, mood: 1 } }, { when: { event: [3] }, then: { want: 5, mood: 1 } }], { want: 7, mood: 2 }),
+    program: P(
+      [
+        { when: { event: [1] }, then: { want: 7, mood: 3 } },
+        { when: { hunger: [2, 3] }, then: { want: 1, mood: 1 } },
+        { when: { event: [3] }, then: { want: 5, mood: 1 } },
+      ],
+      { want: 7, mood: 2 },
+    ),
   },
 ];
 

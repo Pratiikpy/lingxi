@@ -8,7 +8,12 @@ export const HISTORY_RETRY_MS = 15_000;
 export const HISTORY_RETRIES = 8;
 
 /** Asks with `fetchOnce` and hands each answer to `onRead` ("none" while empty); returns a function that stops it. */
-export function askHistory<H>(fetchOnce: () => Promise<H | null | undefined>, onRead: (h: H | "none") => void, retries = HISTORY_RETRIES, every = HISTORY_RETRY_MS): () => void {
+export function askHistory<H>(
+  fetchOnce: () => Promise<H | null | undefined>,
+  onRead: (h: H | "none") => void,
+  retries = HISTORY_RETRIES,
+  every = HISTORY_RETRY_MS,
+): () => void {
   let live = true;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const ask = (left: number) =>

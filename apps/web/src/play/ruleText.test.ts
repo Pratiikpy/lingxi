@@ -7,7 +7,16 @@ import { CURRENT_SPAR, MOVES, rulesOf } from "@lingxi/game";
 import { FIGHT_VALUE_NAMES, MOVE_NAMES, MOVE_ORDER, MOVE_WORDS, chipsFor } from "./ruleText";
 import { STARTERS } from "@lingxi/brain";
 
-const WORD: Record<(typeof MOVES)[number], string> = { tap: "tapped", snack: "snacked", pounce: "pounced", rest: "rested", dodge: "dodged", guard: "guarded", charm: "charmed", gift: "gift" };
+const WORD: Record<(typeof MOVES)[number], string> = {
+  tap: "tapped",
+  snack: "snacked",
+  pounce: "pounced",
+  rest: "rested",
+  dodge: "dodged",
+  guard: "guarded",
+  charm: "charmed",
+  gift: "gift",
+};
 
 describe("the rewind's fight words (B2)", () => {
   it("name each move by the value the current fight sends for it, in English and Chinese", () => {
@@ -22,7 +31,8 @@ describe("the rewind's fight words (B2)", () => {
 
 describe("a memory never shows as a bare number (B7)", () => {
   const p = STARTERS.gentle;
-  const chips = (when: Record<string, number[]>, lang: "en" | "zh") => chipsFor(p, { when, then: { want: 3, mood: 0 } }, lang).when;
+  const chips = (when: Record<string, number[]>, lang: "en" | "zh") =>
+    chipsFor(p, { when, then: { want: 3, mood: 0 } }, lang).when;
   it("the awake timer says minutes, and its top means or more", () => {
     expect(chips({ awake: [7] }, "en")).toEqual(["awake 7+ min"]);
     expect(chips({ awake: [7] }, "zh")).toEqual(["醒了 7 分钟以上"]);

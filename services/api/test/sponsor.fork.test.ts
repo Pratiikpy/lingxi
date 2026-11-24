@@ -30,16 +30,41 @@ const RELAY_KEY_FILE = process.env.RELAY_KEY_FILE;
 
 describe.skipIf(!RPC || !RELAY_KEY_FILE)("a pet kept for a player with no wallet, on an X Layer fork (H4)", () => {
   it("is owned by the device key, saved with the granted gas, and moved to a wallet in one tap", async () => {
-    const file = process.env.DEPLOYMENT_FILE ?? new URL("../../../packages/chain/deployments/local.json", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+    const file =
+      process.env.DEPLOYMENT_FILE ??
+      new URL("../../../packages/chain/deployments/local.json", import.meta.url).pathname.replace(
+        /^\/([A-Za-z]:)/,
+        "$1",
+      );
     const d = JSON.parse(readFileSync(file, "utf8")) as Deployment;
     const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
     const pub = createPublicClient({ chain, transport: http(RPC) });
-    const rpc = (method: string, params: unknown[]) => pub.request({ method: method as never, params: params as never });
-    const env = Object.fromEntries(readFileSync(RELAY_KEY_FILE!, "utf8").split(/\r?\n/).filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).trim()]));
-    const relayer = new BrainRelayer({ rpc: RPC!, processor: d.processor as Address, key: (env.K ?? env.LINGXI_RELAYER_KEY) as Hex, storeFile: join(mkdtempSync(join(tmpdir(), "lx-")), "brains.json"), maxPerDay: 50, reserveWei: 10_000_000_000_000_000n });
+    const rpc = (method: string, params: unknown[]) =>
+      pub.request({ method: method as never, params: params as never });
+    const env = Object.fromEntries(
+      readFileSync(RELAY_KEY_FILE!, "utf8")
+        .split(/\r?\n/)
+        .filter((l) => l.includes("="))
+        .map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).trim()]),
+    );
+    const relayer = new BrainRelayer({
+      rpc: RPC!,
+      processor: d.processor as Address,
+      key: (env.K ?? env.LINGXI_RELAYER_KEY) as Hex,
+      storeFile: join(mkdtempSync(join(tmpdir(), "lx-")), "brains.json"),
+      maxPerDay: 50,
+      reserveWei: 10_000_000_000_000_000n,
+    });
     const gate = new SponsorGate({ file: join(mkdtempSync(join(tmpdir(), "lx-")), "sponsored.json"), enabled: true });
     const app = withSponsor(new Hono(), { gate, relayer, deployment: d, who: () => "198.51.100.1" });
-    const post = async (body: unknown) => (await app.request("/api/sponsor/hatch", { method: "POST", body: JSON.stringify(body), headers: { "content-type": "application/json" } })).json() as Promise<Record<string, unknown>>;
+    const post = async (body: unknown) =>
+      (
+        await app.request("/api/sponsor/hatch", {
+          method: "POST",
+          body: JSON.stringify(body),
+          headers: { "content-type": "application/json" },
+        })
+      ).json() as Promise<Record<string, unknown>>;
 
     // a new player: a device key holding nothing, and a pet that has lived its first minutes in the game
     const device = privateKeyToAccount(generatePrivateKey());
@@ -52,13 +77,27 @@ describe.skipIf(!RPC || !RELAY_KEY_FILE)("a pet kept for a player with no wallet
 
     const before = await relayer.balance();
     // refusals first: a request signed by another key, then one of the wrong line; neither may cost the relayer anything
-    const forged = await signSponsorRequest(privateKeyToAccount(generatePrivateKey()), { line: "gentle", state: born.toString(), at: Date.now() });
-    expect(await post({ ...forged.request, to: device.address, signature: forged.signature })).toMatchObject({ ok: false, reason: "badSignature" });
+    const forged = await signSponsorRequest(privateKeyToAccount(generatePrivateKey()), {
+      line: "gentle",
+      state: born.toString(),
+      at: Date.now(),
+    });
+    expect(await post({ ...forged.request, to: device.address, signature: forged.signature })).toMatchObject({
+      ok: false,
+      reason: "badSignature",
+    });
     const wrongLine = await signSponsorRequest(device, { line: "bold", state: born.toString(), at: Date.now() });
-    expect(await post({ ...wrongLine.request, signature: wrongLine.signature })).toMatchObject({ ok: false, reason: "invalid" });
+    expect(await post({ ...wrongLine.request, signature: wrongLine.signature })).toMatchObject({
+      ok: false,
+      reason: "invalid",
+    });
     expect(await relayer.balance()).toBe(before);
 
-    const { request, signature } = await signSponsorRequest(device, { line: "gentle", state: born.toString(), at: Date.now() });
+    const { request, signature } = await signSponsorRequest(device, {
+      line: "gentle",
+      state: born.toString(),
+      at: Date.now(),
+    });
     const got = await post({ ...request, signature });
     expect(got).toMatchObject({ ok: true });
     const petId = BigInt(got.petId as string);
@@ -68,7 +107,9 @@ describe.skipIf(!RPC || !RELAY_KEY_FILE)("a pet kept for a player with no wallet
     expect(await pub.getBalance({ address: device.address })).toBe(SPONSOR_GRANT_WEI);
     // what it cost the relayer is the grant and the two transactions' gas, nothing else; and that gas at mainnet's price
     // stays inside what each pet is allowed
-    const receipts = await Promise.all([got.hatchTx, got.grantTx].map((hash) => pub.getTransactionReceipt({ hash: hash as Hex })));
+    const receipts = await Promise.all(
+      [got.hatchTx, got.grantTx].map((hash) => pub.getTransactionReceipt({ hash: hash as Hex })),
+    );
     const fees = receipts.reduce((sum, r) => sum + r.gasUsed * r.effectiveGasPrice, 0n);
     expect(before - (await relayer.balance())).toBe(SPONSOR_GRANT_WEI + fees);
     const gas = receipts.reduce((sum, r) => sum + r.gasUsed, 0n);
@@ -83,14 +124,23 @@ describe.skipIf(!RPC || !RELAY_KEY_FILE)("a pet kept for a player with no wallet
     await rpc("anvil_setNextBlockBaseFeePerGas", [`0x${MAINNET_BASE_FEE.toString(16)}`]);
     // the device talks to the fork as it would to X Layer: the node's fee answers are mainnet's, the rest is the fork
     const hex = (n: bigint) => `0x${n.toString(16)}`;
-    const mainnetAnswers: Record<string, bigint> = { eth_maxPriorityFeePerGas: MAINNET_TIP, eth_gasPrice: MAINNET_BASE_FEE + MAINNET_TIP };
+    const mainnetAnswers: Record<string, bigint> = {
+      eth_maxPriorityFeePerGas: MAINNET_TIP,
+      eth_gasPrice: MAINNET_BASE_FEE + MAINNET_TIP,
+    };
     const asOnMainnet = custom({
       request: async ({ method, params }) => {
         if (method in mainnetAnswers) return hex(mainnetAnswers[method]!);
-        const r = (await pub.request({ method: method as never, params: params as never })) as { tx?: Record<string, unknown> };
+        const r = (await pub.request({ method: method as never, params: params as never })) as {
+          tx?: Record<string, unknown>;
+        };
         // viem has the node fill a transaction in; X Layer fills in its own fees, so the fork's are replaced by those
         if (method === "eth_fillTransaction" && r?.tx) {
-          if (r.tx.maxFeePerGas !== undefined) Object.assign(r.tx, { maxFeePerGas: hex(MAINNET_BASE_FEE * 2n + MAINNET_TIP), maxPriorityFeePerGas: hex(MAINNET_TIP) });
+          if (r.tx.maxFeePerGas !== undefined)
+            Object.assign(r.tx, {
+              maxFeePerGas: hex(MAINNET_BASE_FEE * 2n + MAINNET_TIP),
+              maxPriorityFeePerGas: hex(MAINNET_TIP),
+            });
           if (r.tx.gasPrice !== undefined) r.tx.gasPrice = hex(MAINNET_BASE_FEE + MAINNET_TIP);
         }
         return r;
@@ -107,7 +157,14 @@ describe.skipIf(!RPC || !RELAY_KEY_FILE)("a pet kept for a player with no wallet
     // one tap moves it to a real wallet: a plain transfer signed by the device key
     const wallet = privateKeyToAccount(generatePrivateKey()).address;
     await rpc("anvil_setCode", [wallet, "0x"]);
-    const tx = await deviceWallet.writeContract({ address: d.registry, abi: petRegistryAbi, functionName: "transferFrom", args: [device.address, wallet, petId], chain, account: device });
+    const tx = await deviceWallet.writeContract({
+      address: d.registry,
+      abi: petRegistryAbi,
+      functionName: "transferFrom",
+      args: [device.address, wallet, petId],
+      chain,
+      account: device,
+    });
     expect((await pub.waitForTransactionReceipt({ hash: tx })).status).toBe("success");
     expect((await readPet(pub, d, petId)).owner).toBe(wallet);
     // the grant covered a save and the move with room to spare

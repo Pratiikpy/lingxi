@@ -67,7 +67,16 @@ export function conditionViewFrom(i: ConditionInputs): ConditionView {
 /** Everything a condition reads, from the stores as they are right now. */
 export function conditionView(now = gameNow()): ConditionView {
   const { pet, pets } = useGame.getState();
-  return conditionViewFrom({ world: useWorld.getState().world, pet, pets, ledger: useBadges.getState().ledger, friends: useFriends.getState().all, onChain: useChain.getState().record !== null, goalsDone: goalsDone(), now });
+  return conditionViewFrom({
+    world: useWorld.getState().world,
+    pet,
+    pets,
+    ledger: useBadges.getState().ledger,
+    friends: useFriends.getState().all,
+    onChain: useChain.getState().record !== null,
+    goalsDone: goalsDone(),
+    now,
+  });
 }
 
 export const statusOf = (q: QuestDef, v = conditionView()): QuestStatus => questStatus(q, useWorld.getState().world, v);
@@ -125,7 +134,9 @@ export function rollToday(): void {
   const w = useWorld.getState().world;
   // D9: a day offers no daily behind a part that has not opened yet (the map and bag on day 2, spars on day 3)
   const all = useReveal.getState().all;
-  const closed = (Object.keys(OPENS_ON) as Array<keyof typeof OPENS_ON>).filter((part) => !isOpen(part, pet, all, gameNow()));
+  const closed = (Object.keys(OPENS_ON) as Array<keyof typeof OPENS_ON>).filter(
+    (part) => !isOpen(part, pet, all, gameNow()),
+  );
   const next = rollDailies(w, DAILIES, conditionView(), tzOffset(), closed);
   if (next !== w) useWorld.getState().setWorld(next);
 }
@@ -149,12 +160,17 @@ export function useQuestStatuses(): Record<string, QuestStatus> {
   const reports = useGoals((s) => s.reports);
   return useMemo(() => {
     const done = goalsDone(reports);
-    return allStatuses(conditionViewFrom({ world, pet, pets, ledger, friends, onChain, goalsDone: done, now: gameNow() }));
+    return allStatuses(
+      conditionViewFrom({ world, pet, pets, ledger, friends, onChain, goalsDone: done, now: gameNow() }),
+    );
   }, [world, pet, pets, ledger, friends, onChain, reports]);
 }
 
 /** Quests a giver has for you now: ones to offer, and ones to take back. */
-export function questsOf(giver: string, statuses = allStatuses()): { offer: QuestDef[]; ready: QuestDef[]; active: QuestDef[] } {
+export function questsOf(
+  giver: string,
+  statuses = allStatuses(),
+): { offer: QuestDef[]; ready: QuestDef[]; active: QuestDef[] } {
   const mine = STORY.filter((q) => q.giver === giver);
   return {
     offer: mine.filter((q) => statuses[q.id] === "available"),

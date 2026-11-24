@@ -16,13 +16,21 @@ async function cardFitsAndReads(page: Page): Promise<void> {
     const card = document.querySelector(".visitor-card")!;
     const inside = (e: Element) => {
       const b = e.getBoundingClientRect();
-      return b.left >= room.left - 0.5 && b.right <= room.right + 0.5 && b.top >= room.top - 0.5 && b.bottom <= room.bottom + 0.5;
+      return (
+        b.left >= room.left - 0.5 &&
+        b.right <= room.right + 0.5 &&
+        b.top >= room.top - 0.5 &&
+        b.bottom <= room.bottom + 0.5
+      );
     };
     const lum = (rgb: string) => {
-      const [r, g, b] = (rgb.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number).map((v) => {
-        const c = v / 255;
-        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-      });
+      const [r, g, b] = (rgb.match(/[\d.]+/g) ?? [])
+        .slice(0, 3)
+        .map(Number)
+        .map((v) => {
+          const c = v / 255;
+          return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+        });
       return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
     };
     const ratio = (a: string, b: string) => {
@@ -34,7 +42,10 @@ async function cardFitsAndReads(page: Page): Promise<void> {
       const st = getComputedStyle(btn);
       return { text: (btn as HTMLElement).innerText.trim(), contrast: ratio(st.color, st.backgroundColor) };
     });
-    return { outside: controls.filter((e) => !inside(e)).map((e) => (e as HTMLElement).innerText.trim() || e.className), buttons };
+    return {
+      outside: controls.filter((e) => !inside(e)).map((e) => (e as HTMLElement).innerText.trim() || e.className),
+      buttons,
+    };
   });
   expect(r.outside, "the card and its controls lie inside the room").toEqual([]);
   for (const b of r.buttons) expect(b.contrast, `"${b.text}" reads against its button`).toBeGreaterThanOrEqual(4.5);
@@ -44,7 +55,10 @@ for (const look of [
   { lang: "en", scheme: "light", size: "phone" },
   { lang: "zh", scheme: "dark", size: "desktop" },
 ] as const) {
-  test(`a friend beside the pet can be tapped, and the pet still can (${look.lang}, ${look.scheme}, ${look.size})`, async ({ player, run }) => {
+  test(`a friend beside the pet can be tapped, and the pet still can (${look.lang}, ${look.scheme}, ${look.size})`, async ({
+    player,
+    run,
+  }) => {
     test.setTimeout(240_000);
     const p = await player({ ...look, reducedMotion: true });
     const { page } = p;
@@ -69,7 +83,9 @@ for (const look of [
       await expect(card.locator("b")).toHaveText(`Lane${lane}`);
       await cardFitsAndReads(page);
       expect(await careCount(page, "pet"), `tapping the friend at lane ${lane} does not pat the pet`).toBe(pats);
-      await page.screenshot({ path: test.info().outputPath(`tap-lane${lane}-${look.lang}-${look.scheme}-${look.size}.png`) });
+      await page.screenshot({
+        path: test.info().outputPath(`tap-lane${lane}-${look.lang}-${look.scheme}-${look.size}.png`),
+      });
       await card.locator(".icon-x").click();
       friend.close();
       await expect(card).toHaveCount(0);

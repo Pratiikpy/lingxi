@@ -7,14 +7,17 @@
 import { dismiss, expect, hatch, recordShowings, showing, test } from "../fixtures";
 
 /** Holds back every 180 ms timer (a press's light) by 300 ms. */
-const SLOW_PHONE = "{ const t = window.setTimeout.bind(window); window.setTimeout = (fn, ms, ...a) => t(fn, ms === 180 ? 480 : ms, ...a); }";
+const SLOW_PHONE =
+  "{ const t = window.setTimeout.bind(window); window.setTimeout = (fn, ms, ...a) => t(fn, ms === 180 ? 480 : ms, ...a); }";
 
 for (const o of [
   { lang: "en", scheme: "light", size: "phone", reducedMotion: false },
   { lang: "zh", scheme: "dark", size: "desktop", reducedMotion: false },
   { lang: "en", scheme: "dark", size: "phone", reducedMotion: true },
 ] as const) {
-  test(`the pattern game shows every light clearly on a slow phone (${o.lang}, ${o.scheme}, ${o.size}${o.reducedMotion ? ", less motion" : ""})`, async ({ player }) => {
+  test(`the pattern game shows every light clearly on a slow phone (${o.lang}, ${o.scheme}, ${o.size}${o.reducedMotion ? ", less motion" : ""})`, async ({
+    player,
+  }) => {
     const p = await player({ ...o, init: SLOW_PHONE });
     const { page } = p;
     await hatch(p, "Pip");
@@ -26,13 +29,24 @@ for (const o of [
     for (let round = 1; round <= 3; round++) {
       const { lights, closedAt } = await showing(page, round);
       expect(lights.length, `round ${round} shows ${round} lights`).toBe(round);
-      expect(lights[0]!.on - closedAt, `round ${round}: a dark pause before the first light`).toBeGreaterThanOrEqual(half);
-      for (const l of lights) expect(l.off - l.on, `round ${round}: each light stays on its half step`).toBeGreaterThanOrEqual(half - 40);
+      expect(lights[0]!.on - closedAt, `round ${round}: a dark pause before the first light`).toBeGreaterThanOrEqual(
+        half,
+      );
+      for (const l of lights)
+        expect(l.off - l.on, `round ${round}: each light stays on its half step`).toBeGreaterThanOrEqual(half - 40);
       if (round < 3) for (const l of lights) await page.locator(".pads .pad").nth(l.pad).click();
-      else await page.locator(".pads .pad").nth((lights[0]!.pad + 1) % 4).click();
+      else
+        await page
+          .locator(".pads .pad")
+          .nth((lights[0]!.pad + 1) % 4)
+          .click();
     }
     await expect(page.locator(".game-result")).toContainText(p.t("Score 2", "得分 2"));
-    await page.screenshot({ path: test.info().outputPath(`pattern-${o.lang}-${o.scheme}-${o.size}${o.reducedMotion ? "-less-motion" : ""}.png`) });
+    await page.screenshot({
+      path: test
+        .info()
+        .outputPath(`pattern-${o.lang}-${o.scheme}-${o.size}${o.reducedMotion ? "-less-motion" : ""}.png`),
+    });
     await page.locator(".games .btn").last().click();
     await dismiss(page);
   });

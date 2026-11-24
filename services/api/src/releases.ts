@@ -47,7 +47,8 @@ export function readPointer(site: string): Pointer | null {
 
 /** Makes `p.release` live in one step: the pointer is written beside the old one and renamed over it. */
 export function writePointer(site: string, p: Pointer): void {
-  for (const name of [p.release, p.previous]) if (name !== undefined && !RELEASE_NAME.test(name)) throw new Error(`not a release name: ${name}`);
+  for (const name of [p.release, p.previous])
+    if (name !== undefined && !RELEASE_NAME.test(name)) throw new Error(`not a release name: ${name}`);
   const next = `${pointerFile(site)}.next`;
   writeFlushed(next, `${JSON.stringify(p)}\n`);
   // a reader holding the old file open can make a rename fail for a moment on Windows: try again, briefly
@@ -104,7 +105,12 @@ export function releaseSource(site: string): SiteSource {
     seen = stamp;
     if (!p) return;
     const dir = releasesDir(site);
-    live = { root: join(dir, p.release), fallbacks: listReleases(site).filter((name) => name !== p.release).map((name) => join(dir, name)) };
+    live = {
+      root: join(dir, p.release),
+      fallbacks: listReleases(site)
+        .filter((name) => name !== p.release)
+        .map((name) => join(dir, name)),
+    };
   };
   return {
     root: () => {

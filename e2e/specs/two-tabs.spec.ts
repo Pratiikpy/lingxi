@@ -22,12 +22,16 @@ for (const { mode, look } of [
   { mode: "Web Locks", look: { lang: "en", scheme: "light", size: "phone" } },
   { mode: "a lease", look: { lang: "zh", scheme: "dark", size: "phone" } },
 ] as const) {
-  test(`a gift taken in one tab is never lost to a stale second tab, with ${mode} (${look.lang}, ${look.scheme}, ${look.size})`, async ({ player }) => {
+  test(`a gift taken in one tab is never lost to a stale second tab, with ${mode} (${look.lang}, ${look.scheme}, ${look.size})`, async ({
+    player,
+  }) => {
     const p = await player({ ...look, init: mode === "a lease" ? NO_LOCKS : "" });
     const { page: a, t } = p;
     await a.goto(`${p.web}/play.html`);
     await a.locator(".hatch").waitFor({ timeout: 60_000 });
-    expect(await hasLocks(a), `the browser ${mode === "Web Locks" ? "has" : "lacks"} Web Locks`).toBe(mode === "Web Locks");
+    expect(await hasLocks(a), `the browser ${mode === "Web Locks" ? "has" : "lacks"} Web Locks`).toBe(
+      mode === "Web Locks",
+    );
     await a.fill("#pet-name", "Kiri");
     await a.click(".hatch-go");
     await a.locator(".stage").waitFor();
@@ -38,7 +42,9 @@ for (const { mode, look } of [
     const b = await p.ctx.newPage();
     await b.goto(`${p.web}/play.html`);
     await b.locator(".save-screen").waitFor({ timeout: 20_000 });
-    await expect(b.locator(".save-card h1"), "a second tab says the game is open elsewhere").toContainText(t("open in another tab", "另一个标签页"));
+    await expect(b.locator(".save-card h1"), "a second tab says the game is open elsewhere").toContainText(
+      t("open in another tab", "另一个标签页"),
+    );
     await b.screenshot({ path: test.info().outputPath(`elsewhere-${look.lang}.png`) });
 
     // the first tab takes a gift from the mail
@@ -51,7 +57,9 @@ for (const { mode, look } of [
     const take = a.locator(".mail-body .btn.primary").first();
     await expect(take).toBeEnabled();
     await take.click();
-    await expect.poll(async () => JSON.stringify(await bagOf(a)), { message: "the first tab took the gift and saved it" }).not.toBe(before);
+    await expect
+      .poll(async () => JSON.stringify(await bagOf(a)), { message: "the first tab took the gift and saved it" })
+      .not.toBe(before);
     const withGift = JSON.stringify(await bagOf(a));
 
     // the stale tab, sitting open, writes nothing over it
@@ -82,7 +90,9 @@ for (const look of [
   { lang: "en", scheme: "light", size: "phone" },
   { lang: "zh", scheme: "dark", size: "desktop" },
 ] as const) {
-  test(`without Web Locks, reloads keep the game in its tab (${look.lang}, ${look.scheme}, ${look.size})`, async ({ player }) => {
+  test(`without Web Locks, reloads keep the game in its tab (${look.lang}, ${look.scheme}, ${look.size})`, async ({
+    player,
+  }) => {
     const p = await player({ ...look, init: NO_LOCKS });
     const { page } = p;
     await hatchedWithoutLocks(p);
@@ -92,7 +102,10 @@ for (const look of [
     for (const n of [1, 2]) {
       const t0 = Date.now();
       await page.reload();
-      expect(await decided(page), `reload ${n}: the game stays in the tab (${((Date.now() - t0) / 1000).toFixed(1)} s)`).toBe("game");
+      expect(
+        await decided(page),
+        `reload ${n}: the game stays in the tab (${((Date.now() - t0) / 1000).toFixed(1)} s)`,
+      ).toBe("game");
     }
     await page.waitForTimeout(800);
     await dismiss(page);
@@ -122,7 +135,10 @@ test("without Web Locks, a dead page's lease is taken over (zh, light, phone)", 
   // a page that died without a word: its lease is fresh, but nobody renews it
   const page = await p.ctx.newPage();
   await page.goto(`${p.web}/index.html`);
-  await page.evaluate((k) => localStorage.setItem(k, JSON.stringify({ id: "dead-page", until: Date.now() + 6_000 })), LEASE);
+  await page.evaluate(
+    (k) => localStorage.setItem(k, JSON.stringify({ id: "dead-page", until: Date.now() + 6_000 })),
+    LEASE,
+  );
   const t0 = Date.now();
   await page.goto(`${p.web}/play.html`);
   const shown = await decided(page);

@@ -43,6 +43,14 @@ sheet(
   5,
   "mochi-stages.png",
 );
-sheet(EXPRESSIONS.map((e) => ({ c: drawPet("gentle", "adult", { expression: e }), pal: CORAL })), 8, "mochi-faces-adult.png");
-sheet(EXPRESSIONS.map((e) => ({ c: drawPet("gentle", "child", { expression: e }), pal: CORAL })), 8, "mochi-faces-child.png");
+sheet(
+  EXPRESSIONS.map((e) => ({ c: drawPet("gentle", "adult", { expression: e }), pal: CORAL })),
+  8,
+  "mochi-faces-adult.png",
+);
+sheet(
+  EXPRESSIONS.map((e) => ({ c: drawPet("gentle", "child", { expression: e }), pal: CORAL })),
+  8,
+  "mochi-faces-child.png",
+);
 console.log("sheets written");

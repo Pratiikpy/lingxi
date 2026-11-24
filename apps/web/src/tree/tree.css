@@ -74,7 +74,9 @@
   color: var(--ink);
   font: inherit;
   cursor: pointer;
-  transition: transform var(--t-micro) var(--ease), box-shadow var(--t-micro) var(--ease);
+  transition:
+    transform var(--t-micro) var(--ease),
+    box-shadow var(--t-micro) var(--ease);
 }
 .tl-chip:hover {
   transform: translateY(-2px);

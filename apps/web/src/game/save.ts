@@ -45,7 +45,17 @@ const WARN_AT_CHARS = 3_500_000;
 const MEASURE_EVERY = 50;
 
 /** Kept by any tab: they change how the game looks, not what the player has (and the writers' own stamps). */
-const PREFERENCES = new Set(["lingxi.lang", "lingxi.sound", "lingxi.reveal.v1", "lingxi.proof.rpc", "lingxi.proof.taken.v1", "lingxi.proof.checked.v1", "lingxi.example", "lingxi.writer.lease", "lingxi.handheld.lease"]);
+const PREFERENCES = new Set([
+  "lingxi.lang",
+  "lingxi.sound",
+  "lingxi.reveal.v1",
+  "lingxi.proof.rpc",
+  "lingxi.proof.taken.v1",
+  "lingxi.proof.checked.v1",
+  "lingxi.example",
+  "lingxi.writer.lease",
+  "lingxi.handheld.lease",
+]);
 /**
  * Mailboxes between the game and the browser handheld (handheldKeys.ts): one page leaves a packet, the other takes it,
  * by design from two tabs at once. The handheld page keeps itself to one tab with its own lock.
@@ -53,7 +63,12 @@ const PREFERENCES = new Set(["lingxi.lang", "lingxi.sound", "lingxi.reveal.v1", 
 const MAILBOXES = new Set(["lingxi.handheld.inbox.v1", "lingxi.handheld.return.v1", "lingxi.handheld.device.v1"]);
 
 /** The game's own state (keys included): written only by the writer, copied, checked. */
-export const isGameKey = (key: string): boolean => key.startsWith("lingxi.") && !PREFERENCES.has(key) && !MAILBOXES.has(key) && !key.endsWith(COPY) && !key.endsWith(DAMAGED);
+export const isGameKey = (key: string): boolean =>
+  key.startsWith("lingxi.") &&
+  !PREFERENCES.has(key) &&
+  !MAILBOXES.has(key) &&
+  !key.endsWith(COPY) &&
+  !key.endsWith(DAMAGED);
 
 /** Text that is meant to be JSON: an object or a list. Plain values (an id, a key) are not checked as JSON. */
 const looksJson = (raw: string) => /^\s*[[{]/.test(raw);

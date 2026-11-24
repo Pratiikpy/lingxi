@@ -12,7 +12,14 @@ afterEach(() => leave());
 async function openStudio(lang: "en" | "zh" = "en") {
   await visit({ at: Date.UTC(2026, 10, 22, 9) });
   // the pet preview paints a canvas, which this test does not look at: a 2D context that draws nothing
-  const ctx = { createImageData: (w: number, h: number) => ({ width: w, height: h, data: new Uint8ClampedArray(w * h * 4) }), putImageData: () => undefined, clearRect: () => undefined, drawImage: () => undefined, fillRect: () => undefined, imageSmoothingEnabled: false };
+  const ctx = {
+    createImageData: (w: number, h: number) => ({ width: w, height: h, data: new Uint8ClampedArray(w * h * 4) }),
+    putImageData: () => undefined,
+    clearRect: () => undefined,
+    drawImage: () => undefined,
+    fillRect: () => undefined,
+    imageSmoothingEnabled: false,
+  };
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation((() => ctx) as never);
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   const { useLang } = await import("../i18n");

@@ -20,7 +20,10 @@ function app(o: { owner?: Address; seller?: Address | null; fail?: boolean } = {
   return withPapers(new Hono(), createPapersStore(), chain);
 }
 const post = async (a: Hono, id: string, body: unknown) => {
-  const r = await a.request(`/api/papers/${id}`, { method: "POST", body: typeof body === "string" ? body : JSON.stringify(body) });
+  const r = await a.request(`/api/papers/${id}`, {
+    method: "POST",
+    body: typeof body === "string" ? body : JSON.stringify(body),
+  });
   return { status: r.status, body: (await r.json()) as Record<string, unknown> };
 };
 
@@ -101,10 +104,17 @@ describe("the papers store writes safely (A64), one pet at a time, and makes roo
     expect(existsSync(file)).toBe(false);
     store.put("4", { papers, signer: owner.address, at: 200 });
     store.put("5", { papers, signer: owner.address, at: 300 });
-    expect(readdirSync(file.replace(/\.json$/, "")).sort(), "one file per pet, the oldest let go").toEqual(["4.json", "5.json"]);
+    expect(readdirSync(file.replace(/\.json$/, "")).sort(), "one file per pet, the oldest let go").toEqual([
+      "4.json",
+      "5.json",
+    ]);
     // after a restart, the order holds: the next post lets 4 go
     const again = createPapersStore(file, { count: 1_000, chars: size * 2 + 10 });
     again.put("6", { papers, signer: owner.address, at: 400 });
-    expect([await again.get("4"), (await again.get("5"))?.papers, (await again.get("6"))?.papers]).toEqual([null, papers, papers]);
+    expect([await again.get("4"), (await again.get("5"))?.papers, (await again.get("6"))?.papers]).toEqual([
+      null,
+      papers,
+      papers,
+    ]);
   });
 });

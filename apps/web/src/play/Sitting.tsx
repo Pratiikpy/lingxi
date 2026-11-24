@@ -14,7 +14,16 @@ import { drawPet } from "@lingxi/art";
 import { type Pet, type SitPack, stageOf } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { play } from "../game/sound";
-import { bringHomeNow, checkHome, collect, sendHome, sendToSitter, sitLink, sittingAvailable, takeIn } from "../game/sitting";
+import {
+  bringHomeNow,
+  checkHome,
+  collect,
+  sendHome,
+  sendToSitter,
+  sitLink,
+  sittingAvailable,
+  takeIn,
+} from "../game/sitting";
 import { TooBig, sizeNote } from "../game/sendSize";
 import { PALETTE_OF, type PetStage } from "../scene/palette";
 import { Sprite } from "./Sprite";
@@ -23,7 +32,8 @@ import { watchLinks } from "../game/linkWatch";
 
 type Lang = "en" | "zh";
 const drawn = (s: string): PetStage => (s === "elder" ? "adult" : s === "egg" ? "baby" : (s as PetStage));
-const day = (ms: number, lang: Lang) => new Date(ms).toLocaleDateString(lang === "zh" ? "zh-CN" : "en-GB", { month: "long", day: "numeric" });
+const day = (ms: number, lang: Lang) =>
+  new Date(ms).toLocaleDateString(lang === "zh" ? "zh-CN" : "en-GB", { month: "long", day: "numeric" });
 
 async function share(url: string, title: string) {
   try {
@@ -92,7 +102,12 @@ export function SitPanel({ pet }: { pet: Pet }) {
           : `Going away? Send ${pet.name} to stay with a friend. Every thought it has there comes back with it, and your game checks them all before taking it home.`}
       </p>
       <div className="row">
-        <select className="input" value={days} onChange={(e) => setDays(Number(e.target.value))} aria-label={lang === "zh" ? "天数" : "Days"}>
+        <select
+          className="input"
+          value={days}
+          onChange={(e) => setDays(Number(e.target.value))}
+          aria-label={lang === "zh" ? "天数" : "Days"}
+        >
           {[1, 2, 3, 5, 7, 14, 30].map((d) => (
             <option key={d} value={d}>
               {lang === "zh" ? `${d} 天` : `${d} ${d === 1 ? "day" : "days"}`}
@@ -157,7 +172,9 @@ export function AwayCard({ pet }: { pet: Pet }) {
 
 function FriendAwayCard({ pet }: { pet: Pet }) {
   const lang = useLang((s) => s.lang) as Lang;
-  const [state, setState] = useState<"idle" | "checking" | "waiting" | "refused" | "unreachable">(() => (pet.away?.code ? "checking" : "idle"));
+  const [state, setState] = useState<"idle" | "checking" | "waiting" | "refused" | "unreachable">(() =>
+    pet.away?.code ? "checking" : "idle",
+  );
   const away = pet.away;
   const settled = useCallback((r: Awaited<ReturnType<typeof checkHome>>) => {
     if (r === "home") play("success");
@@ -198,12 +215,23 @@ function FriendAwayCard({ pet }: { pet: Pet }) {
       {state === "waiting" && <p className="small">{lang === "zh" ? "还没回来。" : "Not home yet."}</p>}
       {state === "refused" && (
         <p className="small sp-warn">
-          {lang === "zh" ? "送回来的宠物没有通过核对（念头对不上），所以没有接收。" : "What came back didn't pass the check (its thoughts don't follow on from yours), so it wasn't taken in."}
+          {lang === "zh"
+            ? "送回来的宠物没有通过核对（念头对不上），所以没有接收。"
+            : "What came back didn't pass the check (its thoughts don't follow on from yours), so it wasn't taken in."}
         </p>
       )}
-      {state === "unreachable" && <p className="small">{lang === "zh" ? "暂时连不上，稍后再看。" : "Can't reach the server right now; try again soon."}</p>}
+      {state === "unreachable" && (
+        <p className="small">
+          {lang === "zh" ? "暂时连不上，稍后再看。" : "Can't reach the server right now; try again soon."}
+        </p>
+      )}
       <div className="row">
-        <button type="button" className="btn primary" disabled={state === "checking"} onClick={() => (play("tap"), void check())}>
+        <button
+          type="button"
+          className="btn primary"
+          disabled={state === "checking"}
+          onClick={() => (play("tap"), void check())}
+        >
           {lang === "zh" ? "看看回来没有" : "Is it home yet?"}
         </button>
         <button type="button" className="btn" onClick={() => (play("tap"), void share(link, pet.name))}>
@@ -240,18 +268,31 @@ export function SitArrival() {
     };
     void read();
     // Back or Forward onto a sitting link already taken in only clears it: the pet is not collected twice (P6)
-    return watchLinks(() => void read(), () => {
-      if (/^#sit=/.test(location.hash)) history.replaceState(null, "", location.pathname + location.search);
-    });
+    return watchLinks(
+      () => void read(),
+      () => {
+        if (/^#sit=/.test(location.hash)) history.replaceState(null, "", location.pathname + location.search);
+      },
+    );
   }, []);
-  const art = useMemo(() => (arrival && "pack" in arrival ? drawPet(arrival.pack.pet.line, drawn(stageOf(arrival.pack.pet, now())), { expression: "happy" }) : null), [arrival]);
+  const art = useMemo(
+    () =>
+      arrival && "pack" in arrival
+        ? drawPet(arrival.pack.pet.line, drawn(stageOf(arrival.pack.pet, now())), { expression: "happy" })
+        : null,
+    [arrival],
+  );
   if (!arrival) return null;
   const close = () => setArrival(null);
   if ("error" in arrival)
     return (
       <div className="fam-modal" role="dialog" aria-modal="true">
         <div className="fam-card">
-          <p>{lang === "zh" ? "这个照看链接打不开了（可能已经结束）。" : "This sitting link can't be opened (it may have ended)."}</p>
+          <p>
+            {lang === "zh"
+              ? "这个照看链接打不开了（可能已经结束）。"
+              : "This sitting link can't be opened (it may have ended)."}
+          </p>
           <button type="button" className="btn" onClick={close}>
             {lang === "zh" ? "好的" : "OK"}
           </button>
@@ -260,17 +301,34 @@ export function SitArrival() {
     );
   const { pack } = arrival;
   return (
-    <div className="fam-modal" role="dialog" aria-modal="true" aria-label={lang === "zh" ? "来住几天" : "Coming to stay"}>
-      <motion.div className="fam-card duel-card" initial={reduce ? false : { y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
+    <div
+      className="fam-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label={lang === "zh" ? "来住几天" : "Coming to stay"}
+    >
+      <motion.div
+        className="fam-card duel-card"
+        initial={reduce ? false : { y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+      >
         {art && <Sprite canvas={art} palette={PALETTE_OF[pack.pet.line]} scale={4} label={pack.pet.name} />}
-        <h3>{lang === "zh" ? `${pack.pet.name}来你家住到 ${day(pack.until, lang)}` : `${pack.pet.name} is coming to stay until ${day(pack.until, lang)}`}</h3>
+        <h3>
+          {lang === "zh"
+            ? `${pack.pet.name}来你家住到 ${day(pack.until, lang)}`
+            : `${pack.pet.name} is coming to stay until ${day(pack.until, lang)}`}
+        </h3>
         <p className="small">
           {lang === "zh"
             ? "照顾它、陪它玩；它想什么都由它自己的大脑决定。到时候把它送回家，它的主人会核对你们相处的每一刻。"
             : "Feed it, play with it; what it does is up to its own brain. When the time comes, send it home, and its owner's game checks every moment it spent with you."}
         </p>
         {taken === false && (
-          <p className="small sp-warn">{lang === "zh" ? "接不了：它已经在你这里了，或者你已经有 8 只宠物。" : "It can't come: it is already here, or you already have 8 pets."}</p>
+          <p className="small sp-warn">
+            {lang === "zh"
+              ? "接不了：它已经在你这里了，或者你已经有 8 只宠物。"
+              : "It can't come: it is already here, or you already have 8 pets."}
+          </p>
         )}
         {taken ? (
           <button type="button" className="btn primary" onClick={close}>

@@ -39,7 +39,13 @@ describe("the mind check, in a worker (A62)", () => {
 
   it("a proof the checker cannot take now is refused as busy, so the player tries again", async () => {
     const owner = privateKeyToAccount(generatePrivateKey());
-    const pet = { name: "Sora", line: "gentle", stage: "adult", card: petCard({ line: "gentle", lessons: [], instincts: 0 } as never), story: { days: 3, lessons: 0, nature: [] } };
+    const pet = {
+      name: "Sora",
+      line: "gentle",
+      stage: "adult",
+      card: petCard({ line: "gentle", lessons: [], instincts: 0 } as never),
+      story: { days: 3, lessons: 0, nature: [] },
+    };
     const r = await proveSeasonEntry(pet, await signRelay(owner, "season", "7", pet), {
       isKeeper: async () => true,
       brainOf: async () => {

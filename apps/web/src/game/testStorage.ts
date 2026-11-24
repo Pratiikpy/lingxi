@@ -9,7 +9,8 @@ export function memoryStorage(limit = Infinity): KeyValueStore & { map: Map<stri
     getItem: (k) => map.get(k) ?? null,
     setItem: (k, v) => {
       const before = map.get(k);
-      if (used() - (before ? k.length + before.length : 0) + k.length + v.length > limit) throw new DOMException("full", "QuotaExceededError");
+      if (used() - (before ? k.length + before.length : 0) + k.length + v.length > limit)
+        throw new DOMException("full", "QuotaExceededError");
       map.set(k, v);
     },
     removeItem: (k) => void map.delete(k),

@@ -35,9 +35,17 @@ export function HeroScene({ reduceMotion, phase }: { reduceMotion: boolean; phas
     (async () => {
       // P3: the scene starts once the browser is idle after the first paint (at most 1.5 s later), so the headline and
       // its buttons are drawn and answer taps before the animation's setup runs
-      await new Promise<void>((r) => ("requestIdleCallback" in window ? requestIdleCallback(() => r(), { timeout: 1500 }) : setTimeout(r, 200)));
+      await new Promise<void>((r) =>
+        "requestIdleCallback" in window ? requestIdleCallback(() => r(), { timeout: 1500 }) : setTimeout(r, 200),
+      );
       if (disposed) return;
-      await app.init({ backgroundAlpha: 0, antialias: false, resizeTo: el, autoDensity: true, resolution: window.devicePixelRatio || 1 });
+      await app.init({
+        backgroundAlpha: 0,
+        antialias: false,
+        resizeTo: el,
+        autoDensity: true,
+        resolution: window.devicePixelRatio || 1,
+      });
       ready = true;
       if (disposed) {
         app.destroy(true, { children: true });
@@ -151,7 +159,7 @@ export function HeroScene({ reduceMotion, phase }: { reduceMotion: boolean; phas
         const blinking = now > blinkAt - 140;
         const walking = Math.abs(state.target - state.x) > 0.5 && !reduceMotion;
         let squash: -1 | 0 | 1 = 0;
-        let lift = walking ? (Math.floor(now / 160) % 2) : 0;
+        let lift = walking ? Math.floor(now / 160) % 2 : 0;
         if (state.hopAt >= 0) {
           const k = (now - state.hopAt) / 520;
           if (k > 1) state.hopAt = -1;
@@ -185,7 +193,15 @@ export function HeroScene({ reduceMotion, phase }: { reduceMotion: boolean; phas
           }
         }
         const step = Math.floor(now / 170) % 2;
-        cat.texture = catTexture(catState.mode === "walk" ? (step ? "walk1" : "walk0") : catState.mode === "nap" ? "nap" : (["sit0", "sit1", "sit2"] as const)[Math.floor(now / 380) % 3]!);
+        cat.texture = catTexture(
+          catState.mode === "walk"
+            ? step
+              ? "walk1"
+              : "walk0"
+            : catState.mode === "nap"
+              ? "nap"
+              : (["sit0", "sit1", "sit2"] as const)[Math.floor(now / 380) % 3]!,
+        );
         cat.scale.x = catState.dir;
         cat.x = Math.round(catState.x);
         cat.y = ground + 5;

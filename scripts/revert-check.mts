@@ -41,14 +41,24 @@ export interface Regression {
   test: TestRef;
 }
 
-type Outcome = "guarded" | "unguarded" | "test-fails-on-clean-code" | "patch-does-not-apply" | "revert-does-not-build" | "test-not-found";
+type Outcome =
+  | "guarded"
+  | "unguarded"
+  | "test-fails-on-clean-code"
+  | "patch-does-not-apply"
+  | "revert-does-not-build"
+  | "test-not-found";
 
-const sh = (cmd: string, args: string[], cwd: string) => spawnSync(cmd, args, { cwd, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+const sh = (cmd: string, args: string[], cwd: string) =>
+  spawnSync(cmd, args, { cwd, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
 /** pnpm is a script shim on Windows, run through the shell as one command; its arguments here are fixed words */
 const pnpm = (args: string[], cwd: string) =>
-  process.platform === "win32" ? spawnSync(`pnpm ${args.join(" ")}`, { cwd, encoding: "utf8", shell: true, maxBuffer: 64 * 1024 * 1024 }) : sh("pnpm", args, cwd);
+  process.platform === "win32"
+    ? spawnSync(`pnpm ${args.join(" ")}`, { cwd, encoding: "utf8", shell: true, maxBuffer: 64 * 1024 * 1024 })
+    : sh("pnpm", args, cwd);
 /** a package's own command-line tool, run by this Node with no shell between, so a test's name reaches it as written */
-const tool = (wt: string, bin: string, args: string[], cwd: string) => sh(process.execPath, [join(wt, "node_modules", bin), ...args], cwd);
+const tool = (wt: string, bin: string, args: string[], cwd: string) =>
+  sh(process.execPath, [join(wt, "node_modules", bin), ...args], cwd);
 
 /** Runs one test in the worktree: "pass", "fail" (it ran and failed), "missing" (no such test), or "broken" (the file did not load). */
 function runTest(wt: string, t: TestRef): { result: "pass" | "fail" | "missing" | "broken"; detail: string } {
@@ -57,28 +67,79 @@ function runTest(wt: string, t: TestRef): { result: "pass" | "fail" | "missing" 
     rmSync(out, { force: true });
     // -t takes a pattern: the name is matched as written
     const pattern = t.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const r = tool(wt, "vitest/vitest.mjs", ["run", t.file, "-t", pattern, "--reporter=json", `--outputFile=${out}`], join(wt, t.dir));
+    const r = tool(
+      wt,
+      "vitest/vitest.mjs",
+      ["run", t.file, "-t", pattern, "--reporter=json", `--outputFile=${out}`],
+      join(wt, t.dir),
+    );
     if (!existsSync(out)) return { result: "broken", detail: (r.stderr || r.stdout).split("\n").slice(-8).join("\n") };
-    const report = JSON.parse(readFileSync(out, "utf8")) as { testResults: Array<{ status: string; message?: string; assertionResults: Array<{ title: string; fullName: string; status: string }> }> };
+    const report = JSON.parse(readFileSync(out, "utf8")) as {
+      testResults: Array<{
+        status: string;
+        message?: string;
+        assertionResults: Array<{ title: string; fullName: string; status: string }>;
+      }>;
+    };
     const file = report.testResults[0];
     if (!file) return { result: "missing", detail: "no test file ran" };
-    const ran = file.assertionResults.filter((a) => a.status !== "skipped" && a.status !== "pending" && (a.title.startsWith(t.name) || a.fullName.includes(t.name)));
-    if (!ran.length) return { result: file.status === "failed" && !file.assertionResults.length ? "broken" : "missing", detail: file.message?.split("\n").slice(0, 6).join("\n") ?? `no test named "${t.name}"` };
+    const ran = file.assertionResults.filter(
+      (a) =>
+        a.status !== "skipped" && a.status !== "pending" && (a.title.startsWith(t.name) || a.fullName.includes(t.name)),
+    );
+    if (!ran.length)
+      return {
+        result: file.status === "failed" && !file.assertionResults.length ? "broken" : "missing",
+        detail: file.message?.split("\n").slice(0, 6).join("\n") ?? `no test named "${t.name}"`,
+      };
     const failed = ran.filter((a) => a.status === "failed");
-    return failed.length ? { result: "fail", detail: failed.map((a) => a.title).join("; ") } : { result: "pass", detail: ran.map((a) => a.title).join("; ") };
+    return failed.length
+      ? { result: "fail", detail: failed.map((a) => a.title).join("; ") }
+      : { result: "pass", detail: ran.map((a) => a.title).join("; ") };
   }
   if (t.kind === "e2e") {
-    const r = tool(wt, "@playwright/test/cli.js", ["test", "-c", "e2e/playwright.config.ts", t.spec, "-g", t.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "--reporter=list"], wt);
+    const r = tool(
+      wt,
+      "@playwright/test/cli.js",
+      [
+        "test",
+        "-c",
+        "e2e/playwright.config.ts",
+        t.spec,
+        "-g",
+        t.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+        "--reporter=list",
+      ],
+      wt,
+    );
     const text = `${r.stdout}\n${r.stderr}`;
     if (/No tests found/i.test(text)) return { result: "missing", detail: text.split("\n").slice(-6).join("\n") };
-    if (/did not come up|Error: Cannot find module|SyntaxError/.test(text) && !/\d+ (passed|failed)/.test(text)) return { result: "broken", detail: text.split("\n").slice(-12).join("\n") };
-    return r.status === 0 ? { result: "pass", detail: "" } : { result: "fail", detail: text.split("\n").filter((l) => /✘|Error:/.test(l)).slice(0, 4).join("\n") };
+    if (/did not come up|Error: Cannot find module|SyntaxError/.test(text) && !/\d+ (passed|failed)/.test(text))
+      return { result: "broken", detail: text.split("\n").slice(-12).join("\n") };
+    return r.status === 0
+      ? { result: "pass", detail: "" }
+      : {
+          result: "fail",
+          detail: text
+            .split("\n")
+            .filter((l) => /✘|Error:/.test(l))
+            .slice(0, 4)
+            .join("\n"),
+        };
   }
   const r = sh("forge", ["test", "--match-test", t.match], join(wt, "contracts"));
   const text = `${r.stdout}\n${r.stderr}`;
   if (/No tests match/i.test(text)) return { result: "missing", detail: text.slice(-400) };
   if (/Compiler run failed|Error \(\d+\)/.test(text)) return { result: "broken", detail: text.slice(-600) };
-  return r.status === 0 ? { result: "pass", detail: "" } : { result: "fail", detail: text.split("\n").filter((l) => /\[FAIL/.test(l)).join("\n") };
+  return r.status === 0
+    ? { result: "pass", detail: "" }
+    : {
+        result: "fail",
+        detail: text
+          .split("\n")
+          .filter((l) => /\[FAIL/.test(l))
+          .join("\n"),
+      };
 }
 
 function check(wt: string, reg: Regression): { outcome: Outcome; detail: string } {
@@ -100,7 +161,9 @@ function check(wt: string, reg: Regression): { outcome: Outcome; detail: string 
 /** The list as it stood at `commit`, and the files changed since; null when that commit is not known here. */
 function since(commit: string): { before: Regression[]; files: string[] } | null {
   // a push to a new branch names an all-zero "before"; a commit this clone does not have is not known either
-  const found = /^0+$/.test(commit) ? null : sh("git", ["rev-parse", "--verify", "--quiet", `${commit}^{commit}`], root);
+  const found = /^0+$/.test(commit)
+    ? null
+    : sh("git", ["rev-parse", "--verify", "--quiet", `${commit}^{commit}`], root);
   if (!found || found.status !== 0) return null;
   const sha = found.stdout.trim();
   const old = sh("git", ["show", `${sha}:scripts/regressions/list.json`], root);
@@ -109,7 +172,8 @@ function since(commit: string): { before: Regression[]; files: string[] } | null
 }
 
 function main(): void {
-  const valueOf = (flag: string) => (process.argv.includes(flag) ? (process.argv[process.argv.indexOf(flag) + 1] ?? "") : null);
+  const valueOf = (flag: string) =>
+    process.argv.includes(flag) ? (process.argv[process.argv.indexOf(flag) + 1] ?? "") : null;
   const only = valueOf("--only")?.split(",") ?? null;
   const changed = valueOf("--changed");
   const all = JSON.parse(readFileSync(listFile, "utf8")) as Regression[];
@@ -118,12 +182,17 @@ function main(): void {
     const base = since(changed);
     list = changedEntries(base?.before ?? null, list, base?.files ?? []);
     // on stderr, so `--list` prints only the ids
-    console.error(base ? `entries added or changed since ${changed.slice(0, 12)}: ${list.map((r) => r.id).join(", ") || "none"}` : `${changed || "no commit"} is not known here: every entry`);
+    console.error(
+      base
+        ? `entries added or changed since ${changed.slice(0, 12)}: ${list.map((r) => r.id).join(", ") || "none"}`
+        : `${changed || "no commit"} is not known here: every entry`,
+    );
     if (!list.length) return;
   }
   // `--list`: say which entries would run, and stop
   if (process.argv.includes("--list")) return void console.log(list.map((r) => r.id).join(" "));
-  for (const r of list) if (!existsSync(join(root, "scripts/regressions", `${r.id}.patch`))) throw new Error(`${r.id}: no patch file`);
+  for (const r of list)
+    if (!existsSync(join(root, "scripts/regressions", `${r.id}.patch`))) throw new Error(`${r.id}: no patch file`);
   const wt = mkdtempSync(join(tmpdir(), "lingxi-revert-"));
   execFileSync("git", ["worktree", "add", "--detach", wt, "HEAD"], { cwd: root, stdio: "ignore" });
   try {
@@ -135,8 +204,16 @@ function main(): void {
       const t0 = Date.now();
       const { outcome, detail } = check(wt, reg);
       if (outcome !== "guarded") bad++;
-      console.log(`${outcome === "guarded" ? "PASS" : "FAIL"}  ${reg.id.padEnd(28)} ${outcome.padEnd(26)} ${((Date.now() - t0) / 1000).toFixed(0)}s  ${reg.bug}`);
-      if (outcome !== "guarded" && detail) console.log(detail.split("\n").map((l) => `      ${l}`).join("\n"));
+      console.log(
+        `${outcome === "guarded" ? "PASS" : "FAIL"}  ${reg.id.padEnd(28)} ${outcome.padEnd(26)} ${((Date.now() - t0) / 1000).toFixed(0)}s  ${reg.bug}`,
+      );
+      if (outcome !== "guarded" && detail)
+        console.log(
+          detail
+            .split("\n")
+            .map((l) => `      ${l}`)
+            .join("\n"),
+        );
     }
     console.log(`\n${list.length - bad} of ${list.length} fixes guarded by a test that fails without them`);
     process.exitCode = bad ? 1 : 0;

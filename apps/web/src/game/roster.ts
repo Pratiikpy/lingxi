@@ -15,7 +15,8 @@ export interface Roster {
 }
 
 /** A pet this build can look after. */
-export const knownPet = (p: unknown): p is Pet => !!p && typeof p === "object" && (p as Pet).version === 1 && !!STARTERS[(p as Pet).line];
+export const knownPet = (p: unknown): p is Pet =>
+  !!p && typeof p === "object" && (p as Pet).version === 1 && !!STARTERS[(p as Pet).line];
 
 /** A saved pet made current: lessons always a list, and a pet from before levels were spent keeps the level it showed (plan 4.4). */
 const tidy = (p: Pet): Pet => withGrowth({ ...p, lessons: Array.isArray(p.lessons) ? p.lessons : [] });
@@ -51,4 +52,5 @@ export function readRoster(raw: string | null, old: string | null): { roster: Ro
 }
 
 /** The roster's save: the kept pets ride along, untouched, whenever there are any. */
-export const rosterText = (roster: Roster, kept: readonly unknown[]): string => JSON.stringify(kept.length ? { ...roster, kept } : roster);
+export const rosterText = (roster: Roster, kept: readonly unknown[]): string =>
+  JSON.stringify(kept.length ? { ...roster, kept } : roster);

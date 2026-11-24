@@ -23,7 +23,7 @@ import {
 const MIN = 60_000;
 const T0 = Date.UTC(2026, 10, 16, 9);
 const w0 = (): WorldState => ({ ...newWorld("seedseedseedseed"), visited: [65, 1, 2, 3] });
-const ok = <T,>(r: { ok: true; world: WorldState } & T | { ok: false; reason: string }) => {
+const ok = <T>(r: ({ ok: true; world: WorldState } & T) | { ok: false; reason: string }) => {
   if (!r.ok) throw new Error(r.reason);
   return r;
 };
@@ -66,10 +66,13 @@ describe("walks", () => {
 
   it("only the first two walks of a day bring finds", () => {
     let w = w0();
-    for (let i = 0; i < WALKS_WITH_FINDS; i++) w = ok(endWalk(ok(startWalk(w, T0 + i * 30 * MIN, false)).world, T0 + i * 30 * MIN + WALK_MINUTES * MIN)).world;
+    for (let i = 0; i < WALKS_WITH_FINDS; i++)
+      w = ok(endWalk(ok(startWalk(w, T0 + i * 30 * MIN, false)).world, T0 + i * 30 * MIN + WALK_MINUTES * MIN)).world;
     const third = ok(endWalk(ok(startWalk(w, T0 + 3 * 30 * MIN, false)).world, T0 + 3 * 30 * MIN + WALK_MINUTES * MIN));
     expect(third.finds).toHaveLength(0);
-    const tomorrow = ok(endWalk(ok(startWalk(third.world, T0 + 86_400_000, false)).world, T0 + 86_400_000 + WALK_MINUTES * MIN));
+    const tomorrow = ok(
+      endWalk(ok(startWalk(third.world, T0 + 86_400_000, false)).world, T0 + 86_400_000 + WALK_MINUTES * MIN),
+    );
     expect(tomorrow.finds.length).toBeGreaterThan(0);
   });
 
@@ -80,11 +83,15 @@ describe("walks", () => {
     expect(quick.capped).toBe(false);
     w = quick.world;
     for (let i = 0; i < WALKS_WITH_FINDS; i++) {
-      const r = ok(endWalk(ok(startWalk(w, T0 + (i + 1) * 30 * MIN, false)).world, T0 + (i + 1) * 30 * MIN + WALK_MINUTES * MIN));
+      const r = ok(
+        endWalk(ok(startWalk(w, T0 + (i + 1) * 30 * MIN, false)).world, T0 + (i + 1) * 30 * MIN + WALK_MINUTES * MIN),
+      );
       expect(r.finds.length).toBeGreaterThan(0);
       w = r.world;
     }
-    expect(ok(endWalk(ok(startWalk(w, T0 + 5 * 30 * MIN, false)).world, T0 + 5 * 30 * MIN + WALK_MINUTES * MIN)).capped).toBe(true);
+    expect(
+      ok(endWalk(ok(startWalk(w, T0 + 5 * 30 * MIN, false)).world, T0 + 5 * 30 * MIN + WALK_MINUTES * MIN)).capped,
+    ).toBe(true);
     expect(walkSteps({ startedAt: T0, steps: 0, sensor: false, finds: [] }, T0 - 5000)).toBe(0);
   });
 
@@ -109,7 +116,9 @@ describe("trips", () => {
     for (const f of r.found) expect(d.drops.map((x) => x.item)).toContain(f.item);
     expect(r.learned).toBe(d.teaches);
     expect(r.world.trip).toBeUndefined();
-    const again = ok(endTrip(ok(startTrip(r.world, d.id, T0 + 86_400_000)).world, T0 + 86_400_000 + d.hours * 3_600_000));
+    const again = ok(
+      endTrip(ok(startTrip(r.world, d.id, T0 + 86_400_000)).world, T0 + 86_400_000 + d.hours * 3_600_000),
+    );
     expect(again.learned).toBeNull();
   });
 

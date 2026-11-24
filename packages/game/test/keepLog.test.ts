@@ -18,7 +18,14 @@ const brain = (p: Pet) => mindBrain({ line: "gentle", lessons: p.lessons, instin
 
 /** A pet that lives a few hours in the browser and learns a lesson, then is kept at `keptAt`, then lives on. */
 function playedThenKept() {
-  let pet = createPet({ name: "Mochi", line: "gentle", now: T0, tzOffsetMin: 480, brain: mindBrain({ line: "gentle", lessons: [], instincts: 1 }), instincts: 1 });
+  let pet = createPet({
+    name: "Mochi",
+    line: "gentle",
+    now: T0,
+    tzOffsetMin: 480,
+    brain: mindBrain({ line: "gentle", lessons: [], instincts: 1 }),
+    instincts: 1,
+  });
   pet = catchUp(pet, T0 + 2 * H, brain(pet));
   pet = care(pet, { kind: "feed", food: "apple" } as never, T0 + 2 * H, brain(pet)).pet;
   const t = teach(pet, PET_SCHOOL[0]!.rule, T0 + 3 * H);
@@ -57,7 +64,9 @@ describe("a pet's log restarts where its hatch was taken (A66)", () => {
     const { pet, snapshot } = playedThenKept();
     const kept = restartLog(pet, snapshot.n, snapshot.memory);
     expect(kept.segments![0]!.from).toBe(0);
-    expect(kept.segments![0]!.lessons, "the lesson learned before keeping is the brain at the start").toEqual(pet.lessons);
+    expect(kept.segments![0]!.lessons, "the lesson learned before keeping is the brain at the start").toEqual(
+      pet.lessons,
+    );
     expect(beatsOfLog(kept)).toEqual(beatsOfLog(pet).slice(snapshot.n));
   });
 
@@ -69,11 +78,19 @@ describe("a pet's log restarts where its hatch was taken (A66)", () => {
     const after = rewind(kept, mind as never);
     expect(after.at(-1)!.memory).toEqual(pet.last.before);
     const tail = after.length;
-    expect(after.map((f) => [f.want, f.memory.join(""), f.at])).toEqual(before.slice(-tail).map((f) => [f.want, f.memory.join(""), f.at]));
+    expect(after.map((f) => [f.want, f.memory.join(""), f.at])).toEqual(
+      before.slice(-tail).map((f) => [f.want, f.memory.join(""), f.at]),
+    );
   });
 
   it("a pet kept before it lived a moment is left as it is", () => {
-    const pet = createPet({ name: "Tofu", line: "bold", now: T0, tzOffsetMin: 0, brain: mindBrain({ line: "bold", lessons: [] }) });
+    const pet = createPet({
+      name: "Tofu",
+      line: "bold",
+      now: T0,
+      tzOffsetMin: 0,
+      brain: mindBrain({ line: "bold", lessons: [] }),
+    });
     expect(restartLog(pet, 0, pet.brain.slice())).toBe(pet);
   });
 });

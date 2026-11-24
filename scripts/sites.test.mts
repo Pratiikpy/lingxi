@@ -13,7 +13,10 @@ describe("whether a site is current (A85)", () => {
   it("built from an older commit, it is current only when nothing it is made of changed since", () => {
     expect(currentness({ commit: old, dirty: false, builtAt: "then" }, head, () => true).current).toBe(true);
     const stale = currentness({ commit: old, dirty: false, builtAt: "then" }, head, () => false);
-    expect(stale).toEqual({ current: false, why: `serves ${old.slice(0, 12)}, and what it is built from changed since: redeploy` });
+    expect(stale).toEqual({
+      current: false,
+      why: `serves ${old.slice(0, 12)}, and what it is built from changed since: redeploy`,
+    });
   });
 
   it("built from uncommitted changes, it is never current", () => {
@@ -21,7 +24,11 @@ describe("whether a site is current (A85)", () => {
   });
 
   it("reads a build.json, and refuses one with no commit", () => {
-    expect(parseBuild(JSON.stringify({ commit: head, dirty: false, builtAt: "x" }))).toEqual({ commit: head, dirty: false, builtAt: "x" });
+    expect(parseBuild(JSON.stringify({ commit: head, dirty: false, builtAt: "x" }))).toEqual({
+      commit: head,
+      dirty: false,
+      builtAt: "x",
+    });
     expect(parseBuild("{}")).toBe("build.json has no commit");
   });
 });

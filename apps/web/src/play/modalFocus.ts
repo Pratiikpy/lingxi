@@ -14,7 +14,13 @@ const CLOSE = 'button[aria-label="Close"], button[aria-label="关闭"]';
 
 /** The controls the keyboard can reach inside `box`, in order. */
 export function focusables(box: HTMLElement): HTMLElement[] {
-  return Array.from(box.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => !(el as HTMLButtonElement).disabled && el.tabIndex >= 0 && !el.closest("[inert]") && el.getClientRects().length > 0);
+  return Array.from(box.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+    (el) =>
+      !(el as HTMLButtonElement).disabled &&
+      el.tabIndex >= 0 &&
+      !el.closest("[inert]") &&
+      el.getClientRects().length > 0,
+  );
 }
 
 /** The open dialog on top: the highest stacking order, and of equals the one later on the page. */

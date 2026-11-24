@@ -24,12 +24,22 @@ import { xLayer } from "../src/tapeout";
 import { GOALS, type GoalMetric, SETTLED_DAYS, goalCounts } from "@lingxi/world";
 
 type Split = { copies: number; paid: string };
-type PageMarket = { copies: number; paid: string; indexedTo: number; byTeam?: Split; selfBuys?: Split; byPlayers?: Split & { buyers: number } };
+type PageMarket = {
+  copies: number;
+  paid: string;
+  indexedTo: number;
+  byTeam?: Split;
+  selfBuys?: Split;
+  byPlayers?: Split & { buyers: number };
+};
 const arg = (n: string, f?: string) => {
   const i = process.argv.indexOf(`--${n}`);
   return i > 0 ? process.argv[i + 1] : f;
 };
-const d = JSON.parse(readFileSync(arg("deployment")!, "utf8")) as Deployment & { outfitMarketBlock?: number; outfitMarketV2Block?: number };
+const d = JSON.parse(readFileSync(arg("deployment")!, "utf8")) as Deployment & {
+  outfitMarketBlock?: number;
+  outfitMarketV2Block?: number;
+};
 /** The block the registry was deployed in on X Layer mainnet. */
 const registryFrom = Number(arg("registry-from", "75968151"));
 const api = arg("api", "https://lingxi.knole.me")!;
@@ -37,7 +47,10 @@ const api = arg("api", "https://lingxi.knole.me")!;
 const rpcArg = arg("rpc");
 const rpc = rpcArg ?? "https://rpc.xlayer.tech";
 const paced = createPacedLogs(rpcArg ? [{ url: rpcArg, rate: 20, lanes: 4 }] : XLAYER_ENDPOINTS);
-const pub = createPublicClient({ chain: { ...xLayer, rpcUrls: { default: { http: [rpc] } } }, transport: http(rpc, { timeout: 30_000 }) });
+const pub = createPublicClient({
+  chain: { ...xLayer, rpcUrls: { default: { http: [rpc] } } },
+  transport: http(rpc, { timeout: 30_000 }),
+});
 
 const events = parseAbi([
   "event Hatched(uint256 indexed petId, address indexed to, uint8 line, address processor, uint64 brainId, uint256 state)",
@@ -67,7 +80,14 @@ const T = {
 };
 const topicAddr = (t: string | undefined) => `0x${(t ?? "").slice(26)}`.toLowerCase();
 const ZERO_TOPIC = `0x${"0".repeat(64)}`;
-const views = parseAbi(["function totalBurned() view returns (uint256)", "function total() view returns (uint256)", "function nextPetId() view returns (uint256)", "function feeBps() view returns (uint16)", "function treasury() view returns (address)", "function nextId() view returns (uint256)"]);
+const views = parseAbi([
+  "function totalBurned() view returns (uint256)",
+  "function total() view returns (uint256)",
+  "function nextPetId() view returns (uint256)",
+  "function feeBps() view returns (uint16)",
+  "function treasury() view returns (address)",
+  "function nextId() view returns (uint256)",
+]);
 /**
  * Every log of `address` from `from` to `to`, raw (no ABI filter in the query). A span already read for that address is
  * served from what was read: the goals walk the burners again over the same history, which through public nodes (or
@@ -77,7 +97,8 @@ const seen = new Map<string, { from: number; to: number; logs: Awaited<ReturnTyp
 async function logsOf(address: Address, from: number, to: number) {
   const k = address.toLowerCase();
   const have = seen.get(k);
-  if (have && have.from <= from && to <= have.to) return have.logs.filter((l) => Number(BigInt(l.blockNumber)) >= from && Number(BigInt(l.blockNumber)) <= to);
+  if (have && have.from <= from && to <= have.to)
+    return have.logs.filter((l) => Number(BigInt(l.blockNumber)) >= from && Number(BigInt(l.blockNumber)) <= to);
   // a later span that starts where the remembered one does is read only past its end
   if (have && have.from === from && to > have.to) {
     const more = await paced.range(address, have.to + 1, to);
@@ -92,16 +113,47 @@ async function logsOf(address: Address, from: number, to: number) {
 
 async function main() {
   const live = (await (await fetch(`${api}/api/numbers`, { cache: "no-store" })).json()) as {
-    pets: { hatched: number; children: number; daysSaved: number; indexedTo: number; nextPetId: number; savedLast24h?: number; byTeam?: { hatched: number; children: number; saves: number; hatchers: number; savedLast24h: number } };
+    pets: {
+      hatched: number;
+      children: number;
+      daysSaved: number;
+      indexedTo: number;
+      nextPetId: number;
+      savedLast24h?: number;
+      byTeam?: { hatched: number; children: number; saves: number; hatchers: number; savedLast24h: number };
+    };
     outfits: { okb: PageMarket | null; bem: PageMarket | null };
     team?: { wallets: string[]; hidden: number } | null;
     burned: { market: string; breeding: string; shop?: string; adoption?: string; extras?: string; total: string };
     extras?: { room: number; looks: number; colours: number } | null;
     pins: number | null;
-    earned?: { okb: string; feeBps: number; treasury: string; toProject: boolean; indexedTo: number; fromTeam?: string } | null;
-    week?: { since: number; hatched: number; children: number; saves: number; petsSaved: number; hatchers: number; circuits: number | null; byTeam?: { hatched: number; children: number; saves: number; petsSaved: number; hatchers: number } } | null;
+    earned?: {
+      okb: string;
+      feeBps: number;
+      treasury: string;
+      toProject: boolean;
+      indexedTo: number;
+      fromTeam?: string;
+    } | null;
+    week?: {
+      since: number;
+      hatched: number;
+      children: number;
+      saves: number;
+      petsSaved: number;
+      hatchers: number;
+      circuits: number | null;
+      byTeam?: { hatched: number; children: number; saves: number; petsSaved: number; hatchers: number };
+    } | null;
     kept?: { own: number; sponsored: number; other: number; sponsors: string[] } | null;
-    circuits?: { total: number; minted: number; last7d: number | null; indexedTo: number; fromBlock: number | null; processor: string } | null;
+    circuits?: {
+      total: number;
+      minted: number;
+      last7d: number | null;
+      indexedTo: number;
+      fromBlock: number | null;
+      processor: string;
+    } | null;
   };
   const diffs: string[] = [];
   const check = (what: string, mine: string | number, theirs: string | number) => {
@@ -127,12 +179,39 @@ async function main() {
   check("pets hatched", hatched, live.pets.hatched);
   check("little ones born", children, live.pets.children);
   check("days saved", saves, live.pets.daysSaved);
-  const nextPetId = Number(await pub.readContract({ address: d.registry, abi: views, functionName: "nextPetId", blockNumber: BigInt(live.pets.indexedTo) }));
+  const nextPetId = Number(
+    await pub.readContract({
+      address: d.registry,
+      abi: views,
+      functionName: "nextPetId",
+      blockNumber: BigInt(live.pets.indexedTo),
+    }),
+  );
   // every pet made in the walked span was counted: from the registry's first block that is every pet ever made; from a
   // later block (a fork) it is the pets made since, read as nextPetId at the end less nextPetId just before the start
-  const before = registryFrom > (d.registryBlock ?? 0) ? Number(await pub.readContract({ address: d.registry, abi: views, functionName: "nextPetId", blockNumber: BigInt(registryFrom - 1) })) : 1;
-  check(before === 1 ? "every pet ever made was counted (hatched + born = nextPetId - 1)" : `every pet made since block ${registryFrom} was counted (hatched + born = nextPetId now - nextPetId then)`, hatched + children, nextPetId - before);
-  check("nextPetId", Number(await pub.readContract({ address: d.registry, abi: views, functionName: "nextPetId" })), live.pets.nextPetId);
+  const before =
+    registryFrom > (d.registryBlock ?? 0)
+      ? Number(
+          await pub.readContract({
+            address: d.registry,
+            abi: views,
+            functionName: "nextPetId",
+            blockNumber: BigInt(registryFrom - 1),
+          }),
+        )
+      : 1;
+  check(
+    before === 1
+      ? "every pet ever made was counted (hatched + born = nextPetId - 1)"
+      : `every pet made since block ${registryFrom} was counted (hatched + born = nextPetId now - nextPetId then)`,
+    hatched + children,
+    nextPetId - before,
+  );
+  check(
+    "nextPetId",
+    Number(await pub.readContract({ address: d.registry, abi: views, functionName: "nextPetId" })),
+    live.pets.nextPetId,
+  );
 
   // the last 7 days and who kept each pet (H10), from the same logs, each block's own time and each hatch's own sender
   const blockTime = new Map<string, number>();
@@ -147,7 +226,10 @@ async function main() {
     const k = { own: 0, sponsored: 0, other: 0 };
     for (const l of reg) {
       if (l.topics[0] === T.hatched) {
-        const ev = decodeEventLog({ abi: events, data: l.data, topics: l.topics }).args as { petId: bigint; to: Address };
+        const ev = decodeEventLog({ abi: events, data: l.data, topics: l.topics }).args as {
+          petId: bigint;
+          to: Address;
+        };
         const from = String((await pub.getTransaction({ hash: l.transactionHash })).from).toLowerCase();
         if (relay.has(from)) k.sponsored++;
         else if (from === ev.to.toLowerCase()) k.own++;
@@ -201,7 +283,10 @@ async function main() {
         else lo = mid;
       }
     } else hi = lo;
-    const nextAt = (b: number) => pub.readContract({ address: d.processor, abi: views, functionName: "nextId", blockNumber: BigInt(b) }).then(Number, () => 0);
+    const nextAt = (b: number) =>
+      pub
+        .readContract({ address: d.processor, abi: views, functionName: "nextId", blockNumber: BigInt(b) })
+        .then(Number, () => 0);
     const week = (await nextAt(end)) - (await nextAt(hi - 1));
     if (from <= hi) check(`every circuit of the last 7 days was walked (from block ${hi})`, recent, week);
     if (live.circuits.last7d !== null) check("circuits taped out in the last 7 days", week, live.circuits.last7d);
@@ -211,9 +296,22 @@ async function main() {
     // nextId is the id of the processor's latest circuit (ids start at 1), so it is the count itself
     check("circuits taped out (the processor's nextId, its latest circuit id)", next, live.circuits.total);
     // every mint in the walked span was found: nextId at its end less nextId just before its start (none before deployment)
-    const atEnd = Number(await pub.readContract({ address: d.processor, abi: views, functionName: "nextId", blockNumber: BigInt(live.circuits.indexedTo) }));
-    const before = await pub.readContract({ address: d.processor, abi: views, functionName: "nextId", blockNumber: BigInt(from - 1) }).then(Number, () => 0);
-    check(`every circuit minted since block ${from} was walked (mints = nextId then - nextId before)`, minted, atEnd - before);
+    const atEnd = Number(
+      await pub.readContract({
+        address: d.processor,
+        abi: views,
+        functionName: "nextId",
+        blockNumber: BigInt(live.circuits.indexedTo),
+      }),
+    );
+    const before = await pub
+      .readContract({ address: d.processor, abi: views, functionName: "nextId", blockNumber: BigInt(from - 1) })
+      .then(Number, () => 0);
+    check(
+      `every circuit minted since block ${from} was walked (mints = nextId then - nextId before)`,
+      minted,
+      atEnd - before,
+    );
   }
 
   // sales, each market up to the block the page has read it to
@@ -222,13 +320,26 @@ async function main() {
   const privateTeam = (() => {
     try {
       const w = (JSON.parse(readFileSync(teamFile, "utf8")) as { wallets?: unknown }).wallets;
-      return Array.isArray(w) ? [...new Set(w.filter((x): x is string => typeof x === "string" && /^0x[0-9a-fA-F]{40}$/.test(x)).map((x) => x.toLowerCase()))] : [];
+      return Array.isArray(w)
+        ? [
+            ...new Set(
+              w
+                .filter((x): x is string => typeof x === "string" && /^0x[0-9a-fA-F]{40}$/.test(x))
+                .map((x) => x.toLowerCase()),
+            ),
+          ]
+        : [];
     } catch {
       return [];
     }
   })();
   const team = new Set([...(live.team?.wallets ?? []).map((x) => x.toLowerCase()), ...privateTeam]);
-  if (live.team) check("team wallets kept private (the server's file on this machine)", privateTeam.filter((x) => !live.team!.wallets.map((w) => w.toLowerCase()).includes(x)).length, live.team.hidden);
+  if (live.team)
+    check(
+      "team wallets kept private (the server's file on this machine)",
+      privateTeam.filter((x) => !live.team!.wallets.map((w) => w.toLowerCase()).includes(x)).length,
+      live.team.hidden,
+    );
   const markets: Array<[string, Address | undefined, number | undefined, PageMarket | null]> = [
     ["OKB market", d.outfitMarket, d.outfitMarketBlock, live.outfits.okb],
     ["BEM market", d.outfitMarketV2, d.outfitMarketV2Block, live.outfits.bem],
@@ -240,8 +351,26 @@ async function main() {
     // the OKB market pays each sale's fee to its treasury with no fee event: its terms at its first block, read from
     // the chain there, then each FeeChanged in order (H8)
     const earning = address === d.outfitMarket;
-    let fee = earning ? BigInt((await pub.readContract({ address, abi: views, functionName: "feeBps", blockNumber: BigInt(from) })) as number) : 0n;
-    let treasury = earning ? ((await pub.readContract({ address, abi: views, functionName: "treasury", blockNumber: BigInt(from) })) as Address).toLowerCase() : "";
+    let fee = earning
+      ? BigInt(
+          (await pub.readContract({
+            address,
+            abi: views,
+            functionName: "feeBps",
+            blockNumber: BigInt(from),
+          })) as number,
+        )
+      : 0n;
+    let treasury = earning
+      ? (
+          (await pub.readContract({
+            address,
+            abi: views,
+            functionName: "treasury",
+            blockNumber: BigInt(from),
+          })) as Address
+        ).toLowerCase()
+      : "";
     const project = (d.deployer ?? "").toLowerCase();
     let earned = 0n;
     let earnedFromTeam = 0n;
@@ -249,10 +378,18 @@ async function main() {
     const sellers = new Map<string, string>();
     const split = { team: { copies: 0, paid: 0n }, self: { copies: 0, paid: 0n }, players: { copies: 0, paid: 0n } };
     const buyers = new Set<string>();
-    const logs = (await logsOf(address, from, page.indexedTo)).slice().sort((x, y) => Number(BigInt(x.blockNumber) - BigInt(y.blockNumber)) || Number(BigInt(x.logIndex) - BigInt(y.logIndex)));
+    const logs = (await logsOf(address, from, page.indexedTo))
+      .slice()
+      .sort(
+        (x, y) =>
+          Number(BigInt(x.blockNumber) - BigInt(y.blockNumber)) || Number(BigInt(x.logIndex) - BigInt(y.logIndex)),
+      );
     for (const l of logs) {
       if (earning && l.topics[0] === T.feeChanged) {
-        const ev = decodeEventLog({ abi: events, data: l.data, topics: l.topics }).args as { feeBps: number; treasury: Address };
+        const ev = decodeEventLog({ abi: events, data: l.data, topics: l.topics }).args as {
+          feeBps: number;
+          treasury: Address;
+        };
         fee = BigInt(ev.feeBps);
         treasury = ev.treasury.toLowerCase();
         continue;
@@ -272,7 +409,10 @@ async function main() {
       paid += a.paid;
       // the buyer and the design's creator, or the listing's seller, from the topics
       const buyer = topicAddr(l.topics[2]);
-      const maker = l.topics[0] === T.minted ? creators.get(BigInt(l.topics[1]!).toString()) : sellers.get(BigInt(l.topics[1]!).toString());
+      const maker =
+        l.topics[0] === T.minted
+          ? creators.get(BigInt(l.topics[1]!).toString())
+          : sellers.get(BigInt(l.topics[1]!).toString());
       const into = team.has(buyer) ? split.team : buyer === maker ? split.self : split.players;
       into.copies += Number(a.quantity);
       into.paid += a.paid;
@@ -283,16 +423,37 @@ async function main() {
       }
     }
     if (page.byTeam && page.selfBuys && page.byPlayers) {
-      check(`${name} copies bought by the team's own wallets`, `${split.team.copies} / ${split.team.paid}`, `${page.byTeam.copies} / ${page.byTeam.paid}`);
-      check(`${name} copies a creator or seller bought of their own`, `${split.self.copies} / ${split.self.paid}`, `${page.selfBuys.copies} / ${page.selfBuys.paid}`);
-      check(`${name} copies bought by players outside the team`, `${split.players.copies} / ${split.players.paid}`, `${page.byPlayers.copies} / ${page.byPlayers.paid}`);
+      check(
+        `${name} copies bought by the team's own wallets`,
+        `${split.team.copies} / ${split.team.paid}`,
+        `${page.byTeam.copies} / ${page.byTeam.paid}`,
+      );
+      check(
+        `${name} copies a creator or seller bought of their own`,
+        `${split.self.copies} / ${split.self.paid}`,
+        `${page.selfBuys.copies} / ${page.selfBuys.paid}`,
+      );
+      check(
+        `${name} copies bought by players outside the team`,
+        `${split.players.copies} / ${split.players.paid}`,
+        `${page.byPlayers.copies} / ${page.byPlayers.paid}`,
+      );
       check(`${name} distinct player wallets that bought`, buyers.size, page.byPlayers.buyers);
     }
-    if (earning && live.earned?.fromTeam !== undefined) check("OKB earned from the team's own purchases (the team paying itself)", earnedFromTeam.toString(), live.earned.fromTeam);
+    if (earning && live.earned?.fromTeam !== undefined)
+      check(
+        "OKB earned from the team's own purchases (the team paying itself)",
+        earnedFromTeam.toString(),
+        live.earned.fromTeam,
+      );
     check(`${name} copies`, copies, page.copies);
     check(`${name} paid`, paid.toString(), page.paid);
     if (earning) {
-      check("OKB earned by the project (each sale's fee at the rate in force, while the treasury is the project wallet)", earned.toString(), live.earned?.okb ?? "absent");
+      check(
+        "OKB earned by the project (each sale's fee at the rate in force, while the treasury is the project wallet)",
+        earned.toString(),
+        live.earned?.okb ?? "absent",
+      );
       check("the OKB market's fee rate now", Number(fee), live.earned?.feeBps ?? "absent");
       check("the treasury it is paid to now", treasury, (live.earned?.treasury ?? "absent").toLowerCase());
     }
@@ -301,7 +462,8 @@ async function main() {
   // the team's share of the pet figures (C2), from the registry's own logs: each pet's owner from its Hatched event
   if (live.pets.byTeam && live.week?.byTeam) {
     const owner = new Map<string, string>();
-    for (const l of reg) if (l.topics[0] === T.hatched) owner.set(BigInt(l.topics[1]!).toString(), topicAddr(l.topics[2]));
+    for (const l of reg)
+      if (l.topics[0] === T.hatched) owner.set(BigInt(l.topics[1]!).toString(), topicAddr(l.topics[2]));
     const nowSec = Math.floor(Date.now() / 1000);
     const all = { hatched: 0, children: 0, saves: 0, hatchers: new Set<string>() };
     const wk = { hatched: 0, children: 0, saves: 0, petsSaved: new Set<string>(), hatchers: new Set<string>() };
@@ -343,7 +505,8 @@ async function main() {
   }
 
   // contract totals, read fresh; a sale between the page's read and this one shows as a difference, so read twice
-  const read = async (a: Address | undefined, fn: "totalBurned" | "total") => (a ? ((await pub.readContract({ address: a, abi: views, functionName: fn })) as bigint) : 0n);
+  const read = async (a: Address | undefined, fn: "totalBurned" | "total") =>
+    a ? ((await pub.readContract({ address: a, abi: views, functionName: fn })) as bigint) : 0n;
   const market = await read(d.outfitMarketV2, "totalBurned");
   const breeding = d.breederBem ? await read(d.breeder, "totalBurned") : 0n;
   check("BEM burned by the market", market.toString(), live.burned.market);
@@ -363,14 +526,19 @@ async function main() {
       if (l.topics[0] !== T.burned) continue;
       adoption += (decodeEventLog({ abi: events, data: l.data, topics: l.topics }).args as { amount: bigint }).amount;
     }
-    check("BEM burned by the adoption centre (sum of its Burned events)", adoption.toString(), live.burned.adoption ?? "absent");
+    check(
+      "BEM burned by the adoption centre (sum of its Burned events)",
+      adoption.toString(),
+      live.burned.adoption ?? "absent",
+    );
   }
   // the paid extras: burns summed from Burned events, purchases counted from Bought events by feature
   let extras = 0n;
   if (d.extras && d.extrasBlock) {
     const sold = [0, 0, 0];
     for (const l of await logsOf(d.extras, d.extrasBlock, Number(await pub.getBlockNumber()))) {
-      if (l.topics[0] === T.burned) extras += (decodeEventLog({ abi: events, data: l.data, topics: l.topics }).args as { amount: bigint }).amount;
+      if (l.topics[0] === T.burned)
+        extras += (decodeEventLog({ abi: events, data: l.data, topics: l.topics }).args as { amount: bigint }).amount;
       else if (l.topics[0] === T.bought) sold[Number(BigInt(l.topics[2]!))]! += 1;
     }
     check("BEM burned by the extras (sum of its Burned events)", extras.toString(), live.burned.extras ?? "absent");
@@ -382,13 +550,24 @@ async function main() {
   if (d.holderGift) check("holder pins claimed", Number(await read(d.holderGift, "total")), live.pins ?? "absent");
 
   // community goals, each up to the block the goals page has read to
-  const goalsPage = (await (await fetch(`${api}/api/goals`, { cache: "no-store" })).json()) as { indexedTo: number; goals: Array<{ id: string; total: number; contributors: number; top: Array<{ wallet: string; n: number }> }> };
+  const goalsPage = (await (await fetch(`${api}/api/goals`, { cache: "no-store" })).json()) as {
+    indexedTo: number;
+    goals: Array<{ id: string; total: number; contributors: number; top: Array<{ wallet: string; n: number }> }>;
+  };
   const to = goalsPage.indexedTo;
   const raw = [...(await logsOf(d.registry, registryFrom, to))];
-  const burners = [d.breederBem ? [d.breeder, (d as { breederBlock?: number }).breederBlock] : null, [d.outfitMarketV2, d.outfitMarketV2Block], [d.itemShop, d.itemShopBlock], [d.adoptionCentre, d.adoptionCentreBlock], [d.extras, d.extrasBlock]].filter((x): x is [Address, number] => !!x && !!x[0] && !!x[1]);
+  const burners = [
+    d.breederBem ? [d.breeder, (d as { breederBlock?: number }).breederBlock] : null,
+    [d.outfitMarketV2, d.outfitMarketV2Block],
+    [d.itemShop, d.itemShopBlock],
+    [d.adoptionCentre, d.adoptionCentreBlock],
+    [d.extras, d.extrasBlock],
+  ].filter((x): x is [Address, number] => !!x && !!x[0] && !!x[1]);
   // the server's goal ledger reads every source from the same start block as the registry, so the recount does too
   for (const [a, from] of burners) raw.push(...(await logsOf(a, Math.max(from, registryFrom), to)));
-  raw.sort((a, b) => Number(BigInt(a.blockNumber) - BigInt(b.blockNumber)) || Number(BigInt(a.logIndex) - BigInt(b.logIndex)));
+  raw.sort(
+    (a, b) => Number(BigInt(a.blockNumber) - BigInt(b.blockNumber)) || Number(BigInt(a.logIndex) - BigInt(b.logIndex)),
+  );
   const owners = new Map<string, string>();
   // per pet: the wallet it was hatched for, the different days saved, and whether it has counted as a new pet
   const kept = new Map<string, { to: string; days: Set<number>; counted: boolean }>();
@@ -402,9 +581,16 @@ async function main() {
     const b = Number(BigInt(l.blockNumber));
     const fromRegistry = l.address.toLowerCase() === d.registry.toLowerCase();
     const t0 = l.topics[0];
-    if (fromRegistry && t0 === T.transfer) owners.set(BigInt(l.topics[3]!).toString(), `0x${l.topics[2]!.slice(26)}`.toLowerCase());
-    else if (fromRegistry && t0 === T.hatched) kept.set(BigInt(l.topics[1]!).toString(), { to: `0x${l.topics[2]!.slice(26)}`.toLowerCase(), days: new Set(), counted: false });
-    else if (fromRegistry && t0 === T.bred) credits.push({ m: "children", w: owners.get(BigInt(l.topics[1]!).toString())!, n: 1, t: await timeOf(b) });
+    if (fromRegistry && t0 === T.transfer)
+      owners.set(BigInt(l.topics[3]!).toString(), `0x${l.topics[2]!.slice(26)}`.toLowerCase());
+    else if (fromRegistry && t0 === T.hatched)
+      kept.set(BigInt(l.topics[1]!).toString(), {
+        to: `0x${l.topics[2]!.slice(26)}`.toLowerCase(),
+        days: new Set(),
+        counted: false,
+      });
+    else if (fromRegistry && t0 === T.bred)
+      credits.push({ m: "children", w: owners.get(BigInt(l.topics[1]!).toString())!, n: 1, t: await timeOf(b) });
     else if (fromRegistry && t0 === T.checkpoint) {
       const pet = BigInt(l.topics[1]!).toString();
       const day = Number(BigInt(l.topics[2]!));
@@ -416,8 +602,7 @@ async function main() {
         k.counted = true;
         credits.push({ m: "hatched", w: k.to, n: 1, t: await timeOf(b) });
       }
-    }
-    else if (!fromRegistry && t0 === T.burned) {
+    } else if (!fromRegistry && t0 === T.burned) {
       const ev = decodeEventLog({ abi: events, data: l.data, topics: l.topics });
       const a = ev.args as { payer: Address; amount: bigint };
       credits.push({ m: "burned", w: a.payer.toLowerCase(), n: Number(a.amount), t: await timeOf(b) });
@@ -426,7 +611,11 @@ async function main() {
   for (const g of GOALS) {
     const by = goalCounts(g, credits);
     const page = goalsPage.goals.find((x) => x.id === g.id);
-    check(`goal ${g.id} total`, [...by.values()].reduce((s, n) => s + n, 0), page?.total ?? "absent");
+    check(
+      `goal ${g.id} total`,
+      [...by.values()].reduce((s, n) => s + n, 0),
+      page?.total ?? "absent",
+    );
     check(`goal ${g.id} contributors`, by.size, page?.contributors ?? "absent");
     for (const t of page?.top ?? []) check(`goal ${g.id} ${t.wallet}`, by.get(t.wallet) ?? 0, t.n);
   }

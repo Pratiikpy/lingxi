@@ -4,7 +4,16 @@
  * a light placeholder until it is scrolled to.
  */
 
-import { type ComponentType, type ReactElement, Suspense, lazy, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  type ComponentType,
+  type ReactElement,
+  Suspense,
+  lazy,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { warmLater } from "../game/warm";
 
 export function Lazy({ children, height = 240 }: { children: ReactNode; height?: number }) {
@@ -14,7 +23,10 @@ export function Lazy({ children, height = 240 }: { children: ReactNode; height?:
   useEffect(() => {
     const el = ref.current;
     if (!el || shown) return;
-    const io = new IntersectionObserver((entries) => entries.some((e) => e.isIntersecting) && setShown(true), { root: el.closest(".sheet") ?? null, rootMargin: "600px 0px" });
+    const io = new IntersectionObserver((entries) => entries.some((e) => e.isIntersecting) && setShown(true), {
+      root: el.closest(".sheet") ?? null,
+      rootMargin: "600px 0px",
+    });
     io.observe(el);
     return () => io.disconnect();
   }, [shown]);

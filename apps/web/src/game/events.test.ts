@@ -20,7 +20,9 @@ function sourceFiles(dir: string): string[] {
 
 /** Every way the game sends one: noteEvent("x"), noteTally("EVENT", "x", n) and the world store's tally("EVENT", "x", n). */
 const SENDS = /noteEvent\("([^"]+)"\)|(?:noteTally|tally)\("EVENT", "([^"]+)"/g;
-const sent = new Set(sourceFiles(SRC).flatMap((f) => [...readFileSync(f, "utf8").matchAll(SENDS)].map((m) => (m[1] ?? m[2])!)));
+const sent = new Set(
+  sourceFiles(SRC).flatMap((f) => [...readFileSync(f, "utf8").matchAll(SENDS)].map((m) => (m[1] ?? m[2])!)),
+);
 
 describe("the game's one-off events (A22)", () => {
   it("are all on the world's list", () => {

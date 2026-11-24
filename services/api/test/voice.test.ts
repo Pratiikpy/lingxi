@@ -5,7 +5,18 @@ import { withVoice } from "../src/server";
 import { RateLimiter } from "../src/limit";
 
 const req = (over: Partial<VoiceRequest> = {}): VoiceRequest =>
-  VoiceRequest.parse({ name: "Mochi", lang: "en", stage: "baby", line: "gentle", decision: "ask for food", because: ["very hungry"], meters: { food: 100, joy: 500, energy: 800, clean: 800 }, sick: false, asleep: false, ...over });
+  VoiceRequest.parse({
+    name: "Mochi",
+    lang: "en",
+    stage: "baby",
+    line: "gentle",
+    decision: "ask for food",
+    because: ["very hungry"],
+    meters: { food: 100, joy: 500, energy: 800, clean: 800 },
+    sick: false,
+    asleep: false,
+    ...over,
+  });
 
 function fakeClient(lines: string[]) {
   const calls: Array<{ system: string; user: string; model: string }> = [];
@@ -14,7 +25,10 @@ function fakeClient(lines: string[]) {
     messages: {
       create: async (body: { system: string; messages: Array<{ content: string }>; model: string }) => {
         calls.push({ system: body.system, user: body.messages[0]!.content, model: body.model });
-        return { stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ line: lines[i++ % lines.length] }) }] };
+        return {
+          stop_reason: "end_turn",
+          content: [{ type: "text", text: JSON.stringify({ line: lines[i++ % lines.length] }) }],
+        };
       },
     },
   };
@@ -53,7 +67,9 @@ describe("the pet's voice", () => {
   });
 
   it("keys situations by what matters (levels, not exact numbers) and by moment", () => {
-    expect(voiceKey(req({ meters: { food: 100, joy: 500, energy: 800, clean: 800 } }))).toBe(voiceKey(req({ meters: { food: 150, joy: 600, energy: 900, clean: 760 } })));
+    expect(voiceKey(req({ meters: { food: 100, joy: 500, energy: 800, clean: 800 } }))).toBe(
+      voiceKey(req({ meters: { food: 150, joy: 600, energy: 900, clean: 760 } })),
+    );
     expect(voiceKey(req())).not.toBe(voiceKey(req({ moment: "petted" })));
     expect(voiceKey(req())).not.toBe(voiceKey(req({ lang: "zh" })));
   });
@@ -80,12 +96,24 @@ describe("the pet's voice", () => {
 
 describe("voice route failures stay quiet in the browser", () => {
   it("answers 200 with ok:false when busy or when the model fails", async () => {
-    const app = withVoice(new Hono(), (async () => ({ ok: false, reason: "error" })) as never, new RateLimiter(1, 600_000));
+    const app = withVoice(
+      new Hono(),
+      (async () => ({ ok: false, reason: "error" })) as never,
+      new RateLimiter(1, 600_000),
+    );
     const body = JSON.stringify(req());
-    const first = await app.request("/api/voice", { method: "POST", body, headers: { "content-type": "application/json" } });
+    const first = await app.request("/api/voice", {
+      method: "POST",
+      body,
+      headers: { "content-type": "application/json" },
+    });
     expect(first.status).toBe(200);
     expect(await first.json()).toEqual({ ok: false, reason: "error" });
-    const second = await app.request("/api/voice", { method: "POST", body, headers: { "content-type": "application/json" } });
+    const second = await app.request("/api/voice", {
+      method: "POST",
+      body,
+      headers: { "content-type": "application/json" },
+    });
     expect(second.status).toBe(200);
     expect(await second.json()).toEqual({ ok: false, reason: "busy" });
   });

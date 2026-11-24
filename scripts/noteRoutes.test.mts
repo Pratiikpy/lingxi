@@ -58,7 +58,8 @@ function files(dir: string): string[] {
 function routes(): Set<string> {
   const found = new Set<string>();
   // a route, never a path such as services/api/src in a comment
-  for (const f of files(web)) for (const m of readFileSync(f, "utf8").matchAll(/(?<![a-z])\/api\/([a-z][a-z0-9-]*)/g)) found.add(m[1]!);
+  for (const f of files(web))
+    for (const m of readFileSync(f, "utf8").matchAll(/(?<![a-z])\/api\/([a-z][a-z0-9-]*)/g)) found.add(m[1]!);
   return found;
 }
 

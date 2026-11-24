@@ -36,7 +36,16 @@ import type { PetStage } from "../scene/palette";
 export const levelOf = (stage: string) => (stage === "elder" ? 2 : stage === "teen" || stage === "adult" ? 1 : 0);
 export const drawn = (s: string): PetStage => (s === "elder" ? "adult" : (s as PetStage));
 
-const BEHEMOTH_PARTNER: Partner = { id: "builder:behemoth", name: { en: "Behemoth", zh: "巨兽" }, look: "behemoth", line: "gentle", stage: "adult", level: BEHEMOTH_LEVEL, blurb: { en: "", zh: "" }, program: STARTERS.gentle };
+const BEHEMOTH_PARTNER: Partner = {
+  id: "builder:behemoth",
+  name: { en: "Behemoth", zh: "巨兽" },
+  look: "behemoth",
+  line: "gentle",
+  stage: "adult",
+  level: BEHEMOTH_LEVEL,
+  blurb: { en: "", zh: "" },
+  program: STARTERS.gentle,
+};
 
 export type FightState = {
   partner: Partner;
@@ -69,10 +78,26 @@ export const BEHEMOTH = { partner: BEHEMOTH_PARTNER, opponent: () => behemothFig
  * Starts a fight for `pet` against `partner`, with the pet as it is at this moment: spends the bonuses readied from
  * the bag on a practice spar (never on the shared daily challenge), rolls a practice spar's seed, and shows the fight.
  */
-export function startFight(pet: Pet, partner: Partner, o: { daily?: { seed: number; day: number }; opponent?: Fighter; cheer?: boolean } = {}): void {
+export function startFight(
+  pet: Pet,
+  partner: Partner,
+  o: { daily?: { seed: number; day: number }; opponent?: Fighter; cheer?: boolean } = {},
+): void {
   const { daily, opponent } = o;
   const stage = stageOf(pet, now());
-  const own = fighterOfMind(pet.name, { line: pet.line, lessons: pet.lessons, family: pet.family, instincts: pet.instincts, outside: pet.outside, growth: pet.growth }, levelOf(stage), pet.brain);
+  const own = fighterOfMind(
+    pet.name,
+    {
+      line: pet.line,
+      lessons: pet.lessons,
+      family: pet.family,
+      instincts: pet.instincts,
+      outside: pet.outside,
+      growth: pet.growth,
+    },
+    levelOf(stage),
+    pet.brain,
+  );
   // the daily challenge is the same fight for everyone, so it is always fought with the pet's own mind
   const adopted = useAdopted.getState().byPet[String(pet.bornAt)];
   const me = !daily && adopted?.on ? fighterOf(adopted, pet.name, levelOf(stage)) : own;
@@ -91,7 +116,18 @@ export function startFight(pet: Pet, partner: Partner, o: { daily?: { seed: numb
     ? me
     : rulesOf(version)?.boostAtFaceValue
       ? { ...me, boost: { hp: boost.hp, power: boost.power } }
-      : { ...me, mods: { stamina: 0, guard: 0, dodge: 0, heal: 0, ...me.mods, power: (me.mods?.power ?? 0) + boost.power, hp: (me.mods?.hp ?? 0) + boost.hp } };
+      : {
+          ...me,
+          mods: {
+            stamina: 0,
+            guard: 0,
+            dodge: 0,
+            heal: 0,
+            ...me.mods,
+            power: (me.mods?.power ?? 0) + boost.power,
+            hp: (me.mods?.hp ?? 0) + boost.hp,
+          },
+        };
   play("tap");
   useArena.setState({
     fight: {
@@ -113,13 +149,24 @@ export function startDuel(pet: Pet, d: Challenge): void {
   const reply = duelPetOf(pet);
   play("tap");
   const result = runDuel(d, reply);
-  useArena.setState({ fight: { partner: partnerOfDuel(d), result, cheer: false, opponent: duelFighter(d.from), duel: { challenge: d, reply, version: result.version } } });
+  useArena.setState({
+    fight: {
+      partner: partnerOfDuel(d),
+      result,
+      cheer: false,
+      opponent: duelFighter(d.from),
+      duel: { challenge: d, reply, version: result.version },
+    },
+  });
 }
 
 /** The pet as it travels in a challenge link: its whole mind, its body, and a few true facts. */
 export function duelPetOf(pet: Pet): DuelPet {
   const stage = stageOf(pet, now());
-  const nature = [...TRAITS].filter((t) => pet.traits[t] > 0).sort((a, b) => pet.traits[b] - pet.traits[a]).slice(0, 2);
+  const nature = [...TRAITS]
+    .filter((t) => pet.traits[t] > 0)
+    .sort((a, b) => pet.traits[b] - pet.traits[a])
+    .slice(0, 2);
   return {
     name: pet.name,
     line: pet.line,

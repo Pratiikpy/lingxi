@@ -11,4 +11,5 @@ const start = (day: string): number => {
 };
 
 /** The day to count as today: today, unless a later day was already used (the clock went back). */
-export const dayAtLeast = (today: string, used: string | null | undefined): string => (used && start(used) > start(today) ? used : today);
+export const dayAtLeast = (today: string, used: string | null | undefined): string =>
+  used && start(used) > start(today) ? used : today;

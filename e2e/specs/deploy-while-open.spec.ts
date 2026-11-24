@@ -21,7 +21,10 @@ for (const { kept, look } of [
   { kept: false, look: { lang: "zh", scheme: "dark", size: "phone" } },
 ] as const) {
   const tag = `${kept ? "kept" : "gone"}-${look.lang}-${look.scheme}`;
-  test(`a deploy while a page is open, earlier files ${kept ? "kept" : "gone"} (${look.lang}, ${look.scheme}, ${look.size})`, async ({ player, run }) => {
+  test(`a deploy while a page is open, earlier files ${kept ? "kept" : "gone"} (${look.lang}, ${look.scheme}, ${look.size})`, async ({
+    player,
+    run,
+  }) => {
     test.setTimeout(360_000);
     const f = siteFolder(run, `deploy-${tag}`);
     const releaseA = await buildSite(run, f.site, "A");
@@ -58,11 +61,21 @@ for (const { kept, look } of [
       // the player picks an egg, the part is asked for and held while B goes live
       await page.locator(".egg").nth(1).click();
       await expect.poll(() => held, { message: "the page asked for the game's part", timeout: 120_000 }).toBe(true);
-      if (kept) await expect.poll(() => [...answered.entries()].some(([n, status]) => n.startsWith("PlayApp-") && n.endsWith(".js") && status === 200), { message: "A's part arrived", timeout: 120_000 }).toBe(true);
+      if (kept)
+        await expect
+          .poll(
+            () =>
+              [...answered.entries()].some(
+                ([n, status]) => n.startsWith("PlayApp-") && n.endsWith(".js") && status === 200,
+              ),
+            { message: "A's part arrived", timeout: 120_000 },
+          )
+          .toBe(true);
       else await expect.poll(() => loads, { message: "the page reloaded once", timeout: 120_000 }).toBe(2);
       await liveHatch(page, 120_000);
       await page.waitForTimeout(2_000);
-      const nowEntry = (await page.evaluate(() => document.querySelector("script[type=module][src]")?.getAttribute("src"))) ?? "";
+      const nowEntry =
+        (await page.evaluate(() => document.querySelector("script[type=module][src]")?.getAttribute("src"))) ?? "";
       const entryB = entryOf(f.site);
       expect(entryB, "the two releases really differ").not.toBe(entryA);
       // the part's script and its styles
@@ -70,19 +83,29 @@ for (const { kept, look } of [
 
       if (kept) {
         expect(held, "the page's part was held while B was built").toBe(true);
-        expect(part.some(([n]) => n.endsWith(".js")), "the page asked for release A's part").toBe(true);
-        expect(part.filter(([, status]) => status !== 200), "and it still arrived after B went live").toEqual([]);
+        expect(
+          part.some(([n]) => n.endsWith(".js")),
+          "the page asked for release A's part",
+        ).toBe(true);
+        expect(
+          part.filter(([, status]) => status !== 200),
+          "and it still arrived after B went live",
+        ).toEqual([]);
         expect(missing, "and no file of A was missing").toEqual([]);
         expect(loads, "the game started on A without reloading").toBe(1);
         expect(name(nowEntry)).toBe(name(entryA));
         const fresh = await p.ctx.newPage();
         await fresh.goto(`${site.url}/play.html`);
-        const got = (await fresh.evaluate(() => document.querySelector("script[type=module][src]")?.getAttribute("src"))) ?? "";
+        const got =
+          (await fresh.evaluate(() => document.querySelector("script[type=module][src]")?.getAttribute("src"))) ?? "";
         expect(name(got), "a fresh page gets release B").toBe(name(entryB));
       } else {
         expect(loads, "with A's part gone, the page reloaded once").toBe(2);
         expect(name(nowEntry), "into release B").toBe(name(entryB));
-        expect(missing.some((n) => n.startsWith("PlayApp-")), "the part that went missing was A's").toBe(true);
+        expect(
+          missing.some((n) => n.startsWith("PlayApp-")),
+          "the part that went missing was A's",
+        ).toBe(true);
         // the files of A that were gone: the only console errors there may be
         await expectedErrors(p, /the server responded with a status of 404/, missing.length);
       }

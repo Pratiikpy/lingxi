@@ -39,7 +39,11 @@ describe("diary", () => {
   it("a day with nothing is a quiet day, and learning shows up", () => {
     const pet = createPet({ name: "M", line: "gentle", now: T0, tzOffsetMin: 0, brain: brainFor([]) });
     expect(diaryOf(pet, brainFor)).toEqual([{ key: "quiet" }]);
-    const taught = teach(catchUp(pet, T0 + 600_000, brainFor([])), { when: { event: [1] }, then: { want: 7, mood: 2, nudge: 6 } } as Rule, T0 + 600_000);
+    const taught = teach(
+      catchUp(pet, T0 + 600_000, brainFor([])),
+      { when: { event: [1] }, then: { want: 7, mood: 2, nudge: 6 } } as Rule,
+      T0 + 600_000,
+    );
     expect(taught.ok).toBe(true);
     if (!taught.ok) return;
     const later = catchUp(taught.pet, T0 + 1_200_000, brainFor([]));

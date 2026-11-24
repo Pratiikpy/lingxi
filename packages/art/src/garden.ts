@@ -192,4 +192,12 @@ export function plotRows(stage: 0 | 1 | 2 | 3): readonly string[] {
   return [...Array(7).fill("........................"), ...above[stage]!, ...soil];
 }
 
-export const PLOT_COLORS = (crop: string, shade: string): Record<string, string> => ({ O, s: "#7A5236", S: "#5A3A24", g: "#7FCB8E", G: "#4E9E6A", c: crop, C: shade });
+export const PLOT_COLORS = (crop: string, shade: string): Record<string, string> => ({
+  O,
+  s: "#7A5236",
+  S: "#5A3A24",
+  g: "#7FCB8E",
+  G: "#4E9E6A",
+  c: crop,
+  C: shade,
+});

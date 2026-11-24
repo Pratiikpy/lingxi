@@ -53,12 +53,23 @@ export const test = base.extend<{ run: Run; player: (o?: PlayerOptions) => Promi
     const opened: Opened[] = [];
     await use(async (o = {}) => {
       const look: Look = { lang: o.lang ?? "en", scheme: o.scheme ?? "light", size: o.size ?? "phone" };
-      const ctx = await browser.newContext({ viewport: SIZES[look.size], colorScheme: look.scheme, locale: look.lang === "zh" ? "zh-CN" : "en-US", ...(o.timezoneId ? { timezoneId: o.timezoneId } : {}), ...(o.reducedMotion ? { reducedMotion: "reduce" as const } : {}) });
+      const ctx = await browser.newContext({
+        viewport: SIZES[look.size],
+        colorScheme: look.scheme,
+        locale: look.lang === "zh" ? "zh-CN" : "en-US",
+        ...(o.timezoneId ? { timezoneId: o.timezoneId } : {}),
+        ...(o.reducedMotion ? { reducedMotion: "reduce" as const } : {}),
+      });
       // pages the game opens start as about:blank, where storage is off-limits: the setup runs on the game's pages only
-      await ctx.addInitScript(`if (location.protocol.startsWith("http")) { ${o.firstVisit ? "" : RETURNING} localStorage.setItem('lingxi.lang', '${look.lang}'); ${o.init ?? ""} }`);
+      await ctx.addInitScript(
+        `if (location.protocol.startsWith("http")) { ${o.firstVisit ? "" : RETURNING} localStorage.setItem('lingxi.lang', '${look.lang}'); ${o.init ?? ""} }`,
+      );
       const errors: string[] = [];
       const watch = (p: Page) => {
-        p.on("console", (m) => m.type() === "error" && errors.push(`${p.url().split("/").pop()}: ${m.text().slice(0, 200)}`));
+        p.on(
+          "console",
+          (m) => m.type() === "error" && errors.push(`${p.url().split("/").pop()}: ${m.text().slice(0, 200)}`),
+        );
         p.on("pageerror", (e) => errors.push(`${p.url().split("/").pop()}: ${e.message.slice(0, 200)}`));
       };
       ctx.on("page", watch);
@@ -69,7 +80,8 @@ export const test = base.extend<{ run: Run; player: (o?: PlayerOptions) => Promi
       return me;
     });
     for (const o of opened) await o.ctx.close();
-    for (const o of opened) expect(o.errors, `console errors (${o.look.lang}, ${o.look.scheme}, ${o.look.size})`).toEqual([]);
+    for (const o of opened)
+      expect(o.errors, `console errors (${o.look.lang}, ${o.look.scheme}, ${o.look.size})`).toEqual([]);
   },
 });
 
@@ -121,12 +133,15 @@ export async function sheet(page: Page, tab: string): Promise<void> {
 }
 
 /** The world's save: bag, coins, quests, tallies. */
-export const savedWorld = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem("lingxi.world.v1") ?? "{}") as Record<string, unknown>);
+export const savedWorld = (page: Page) =>
+  page.evaluate(() => JSON.parse(localStorage.getItem("lingxi.world.v1") ?? "{}") as Record<string, unknown>);
 
 /** How many times the save has counted a care action ("pet", "feed", …) for the pet on screen. */
 export const careCount = async (page: Page, kind: string): Promise<number> => {
   const tally = ((await savedWorld(page)).tally ?? {}) as Record<string, number>;
-  return Object.entries(tally).filter(([k]) => k.startsWith(`CARE:${kind}:`) || k === `CARE:${kind}`).reduce((n, [, v]) => n + v, 0);
+  return Object.entries(tally)
+    .filter(([k]) => k.startsWith(`CARE:${kind}:`) || k === `CARE:${kind}`)
+    .reduce((n, [, v]) => n + v, 0);
 };
 
 /**
@@ -195,13 +210,22 @@ export async function recordShowings(page: Page): Promise<void> {
         current.ended = true;
         current = null;
       }
-    }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["class", "disabled"], attributeOldValue: true });
+    }).observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ["class", "disabled"],
+      attributeOldValue: true,
+    });
   });
 }
 
 /** The `n`th showing (1 for the first round), once it has ended and the pads are open for the player. */
 export async function showing(page: Page, n: number): Promise<Showing> {
-  await page.waitForFunction((i) => (window as unknown as { __showings?: Showing[] }).__showings?.[i]?.ended === true, n - 1);
+  await page.waitForFunction(
+    (i) => (window as unknown as { __showings?: Showing[] }).__showings?.[i]?.ended === true,
+    n - 1,
+  );
   return page.evaluate((i) => (window as unknown as { __showings: Showing[] }).__showings[i]!, n - 1);
 }
 
@@ -216,7 +240,11 @@ export async function playPattern(page: Page): Promise<void> {
     const shown = (await showing(page, round)).lights.map((l) => l.pad);
     expect(shown.length, `round ${round} shows ${round} lights`).toBe(round);
     if (round < 3) for (const k of shown) await page.locator(".pads .pad").nth(k).click();
-    else await page.locator(".pads .pad").nth((shown[0]! + 1) % 4).click();
+    else
+      await page
+        .locator(".pads .pad")
+        .nth((shown[0]! + 1) % 4)
+        .click();
   }
   await page.locator(".game-result").waitFor();
 }
@@ -244,6 +272,9 @@ export async function tapMoving(locator: Locator): Promise<void> {
 /** The pet on screen, as the save holds it. */
 export const savedPet = (page: Page) =>
   page.evaluate(() => {
-    const r = JSON.parse(localStorage.getItem("lingxi.pets.v2") ?? "null") as { pets: Array<Record<string, unknown>>; active: number } | null;
+    const r = JSON.parse(localStorage.getItem("lingxi.pets.v2") ?? "null") as {
+      pets: Array<Record<string, unknown>>;
+      active: number;
+    } | null;
     return r ? (r.pets[r.active] ?? null) : null;
   });

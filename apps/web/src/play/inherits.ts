@@ -13,13 +13,21 @@ function lessonsOf(name: string, n: number): string {
 
 /** The proposal's line about the player's own pet: which of its lessons go into the little one. */
 export function proposalInherits(name: string, lessons: number, lang: Lang): string {
-  if (lang === "zh") return lessons === 0 ? `${name}还没学过课；它的本能和技能会传给小宝宝。` : `${name}的 ${lessons} 条课都会传给小宝宝，还有它的本能和技能。`;
+  if (lang === "zh")
+    return lessons === 0
+      ? `${name}还没学过课；它的本能和技能会传给小宝宝。`
+      : `${name}的 ${lessons} 条课都会传给小宝宝，还有它的本能和技能。`;
   if (lessons === 0) return `${name} hasn't learned a lesson yet; its instincts and skills go into the little one.`;
   return `${lessons === 1 ? `${name}'s one lesson goes` : `All ${lessons} of ${name}'s lessons go`} into the little one, with its instincts and skills.`;
 }
 
 /** The newborn's line: both parents' lessons, and whether it can learn yet (`room`, in gates; 0 or less is none). */
-export function newbornInherits(a: { name: string; lessons: readonly unknown[] }, b: { name: string; lessons: readonly unknown[] }, room: number, lang: Lang): string {
+export function newbornInherits(
+  a: { name: string; lessons: readonly unknown[] },
+  b: { name: string; lessons: readonly unknown[] },
+  room: number,
+  lang: Lang,
+): string {
   const learn = room > 0;
   if (lang === "zh") {
     const count = (n: number) => (n === 0 ? "还没有" : `${n} 条`);

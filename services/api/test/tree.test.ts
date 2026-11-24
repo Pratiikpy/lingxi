@@ -3,11 +3,26 @@ import { Hono } from "hono";
 import { buildTree, type TreePet } from "../src/tree";
 import { withTree } from "../src/server";
 
-const pet = (id: string, owner: string, parents: [string, string] | null = null, block = Number(id)): TreePet => ({ id, line: 0, owner, parents, children: [], block, tx: "0x", at: 0 });
+const pet = (id: string, owner: string, parents: [string, string] | null = null, block = Number(id)): TreePet => ({
+  id,
+  line: 0,
+  owner,
+  parents,
+  children: [],
+  block,
+  tx: "0x",
+  at: 0,
+});
 
 describe("the tree of life", () => {
   it("counts generations, ancestors and the owners who raised them", () => {
-    const t = buildTree([pet("1", "0xA"), pet("2", "0xB"), pet("3", "0xC", ["1", "2"]), pet("4", "0xD"), pet("5", "0xA", ["3", "4"])]);
+    const t = buildTree([
+      pet("1", "0xA"),
+      pet("2", "0xB"),
+      pet("3", "0xC", ["1", "2"]),
+      pet("4", "0xD"),
+      pet("5", "0xA", ["3", "4"]),
+    ]);
     const n = Object.fromEntries(t.pets.map((p) => [p.id, p]));
     expect([n["1"]!.generation, n["3"]!.generation, n["5"]!.generation]).toEqual([0, 1, 2]);
     expect(n["5"]!.ancestors).toEqual(["3", "4", "1", "2"]);
@@ -33,10 +48,18 @@ describe("the tree route", () => {
       if (id === "2") throw new Error("node down");
       return id === "1" ? "Mochi" : "Bean";
     });
-    const j = (await (await app.request("/api/tree")).json()) as { ok: boolean; indexedTo: number; pets: Array<{ id: string; name?: string; generation: number }> };
+    const j = (await (await app.request("/api/tree")).json()) as {
+      ok: boolean;
+      indexedTo: number;
+      pets: Array<{ id: string; name?: string; generation: number }>;
+    };
     expect(j.ok).toBe(true);
     expect(j.indexedTo).toBe(99);
-    expect(j.pets.map((p) => [p.id, p.name ?? null, p.generation])).toEqual([["1", "Mochi", 0], ["2", null, 0], ["3", "Bean", 1]]);
+    expect(j.pets.map((p) => [p.id, p.name ?? null, p.generation])).toEqual([
+      ["1", "Mochi", 0],
+      ["2", null, 0],
+      ["3", "Bean", 1],
+    ]);
   });
 
   it("adds each pet's name colour from X Layer; a failed read leaves names plain and tries again", async () => {
@@ -48,10 +71,19 @@ describe("the tree route", () => {
       if (down) throw new Error("rpc");
       return { "1": 4, "2": 0 };
     });
-    const read = async () => ((await (await app.request("/api/tree")).json()) as { pets: Array<{ id: string; colour?: number }> }).pets.map((p) => [p.id, p.colour ?? 0]);
-    expect(await read()).toEqual([["1", 0], ["2", 0]]);
+    const read = async () =>
+      ((await (await app.request("/api/tree")).json()) as { pets: Array<{ id: string; colour?: number }> }).pets.map(
+        (p) => [p.id, p.colour ?? 0],
+      );
+    expect(await read()).toEqual([
+      ["1", 0],
+      ["2", 0],
+    ]);
     down = false;
-    expect(await read()).toEqual([["1", 4], ["2", 0]]);
+    expect(await read()).toEqual([
+      ["1", 4],
+      ["2", 0],
+    ]);
     expect(asked).toEqual(["1", "2"]);
   });
 });
@@ -111,9 +143,15 @@ describe("the tree stays cheap as it grows (A147)", () => {
     pets = [...pets, pet("41", "0xNEW", ["40", "39"])];
     head = 101;
     const c = (await (await app.request("/api/tree")).json()) as { pets: Array<{ id: string }> };
-    expect(c.pets.some((p) => p.id === "41"), "a new head builds it again").toBe(true);
+    expect(
+      c.pets.some((p) => p.id === "41"),
+      "a new head builds it again",
+    ).toBe(true);
     expect(calls).toBeGreaterThan(built);
-    const page = (await (await app.request("/api/tree?after=10&limit=5")).json()) as { pets: Array<{ id: string }>; next?: string };
+    const page = (await (await app.request("/api/tree?after=10&limit=5")).json()) as {
+      pets: Array<{ id: string }>;
+      next?: string;
+    };
     expect(page.pets.map((p) => p.id)).toEqual(["11", "12", "13", "14", "15"]);
     expect(page.next).toBe("15");
   });

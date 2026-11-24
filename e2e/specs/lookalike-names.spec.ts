@@ -14,7 +14,10 @@ for (const look of [
   { lang: "en", scheme: "light", size: "phone" },
   { lang: "zh", scheme: "dark", size: "desktop" },
 ] as const) {
-  test(`a visitor's look-alike name is shown with its hidden mark (${look.lang}, ${look.scheme}, ${look.size})`, async ({ player, run }) => {
+  test(`a visitor's look-alike name is shown with its hidden mark (${look.lang}, ${look.scheme}, ${look.size})`, async ({
+    player,
+    run,
+  }) => {
     test.setTimeout(240_000);
     const p = await player({ ...look, reducedMotion: true });
     const { page } = p;

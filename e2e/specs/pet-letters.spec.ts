@@ -19,7 +19,14 @@ async function petLetters(page: Page, zh: boolean): Promise<void> {
 
 /** Waits until this player's letters identity exists (made and published on a relay node). */
 const identity = (page: Page) =>
-  page.waitForFunction(() => /^key:0x[0-9a-f]{40}@relay[1-5]\.taperelay\.com$/.test((JSON.parse(localStorage.getItem("lingxi.letters.v1") ?? "{}") as { account?: string }).account ?? ""), undefined, { timeout: 60_000 });
+  page.waitForFunction(
+    () =>
+      /^key:0x[0-9a-f]{40}@relay[1-5]\.taperelay\.com$/.test(
+        (JSON.parse(localStorage.getItem("lingxi.letters.v1") ?? "{}") as { account?: string }).account ?? "",
+      ),
+    undefined,
+    { timeout: 60_000 },
+  );
 
 test("a letter goes from one pet to a friend's pet over TapeRelay, and one comes back (H13)", async ({ player }) => {
   test.setTimeout(600_000);
@@ -30,7 +37,9 @@ test("a letter goes from one pet to a friend's pet over TapeRelay, and one comes
   // each opens Pet letters once: the identity is made on first need
   await petLetters(a.page, false);
   await identity(a.page);
-  await expect(a.page.locator(".pet-letters"), "no friend to write to yet, and it says how one comes").toContainText("meet their pet in a live room");
+  await expect(a.page.locator(".pet-letters"), "no friend to write to yet, and it says how one comes").toContainText(
+    "meet their pet in a live room",
+  );
   await a.page.screenshot({ path: test.info().outputPath("letters-empty-en-light-phone.png") });
   await a.page.keyboard.press("Escape");
   await petLetters(b.page, true);
@@ -51,8 +60,18 @@ test("a letter goes from one pet to a friend's pet over TapeRelay, and one comes
   await expect(card, "Lulu is picked in Kiri's room").toBeVisible();
   await card.getByRole("button", { name: "Heart" }).click();
   // each side has the other's address in its letters book once the friendship and the address meet
-  await a.page.waitForFunction((id) => !!(JSON.parse(localStorage.getItem("lingxi.letters.v1") ?? "{}") as { book?: Record<string, string> }).book?.[id], idB, { timeout: 60_000 });
-  await b.page.waitForFunction((id) => !!(JSON.parse(localStorage.getItem("lingxi.letters.v1") ?? "{}") as { book?: Record<string, string> }).book?.[id], idA, { timeout: 60_000 });
+  await a.page.waitForFunction(
+    (id) =>
+      !!(JSON.parse(localStorage.getItem("lingxi.letters.v1") ?? "{}") as { book?: Record<string, string> }).book?.[id],
+    idB,
+    { timeout: 60_000 },
+  );
+  await b.page.waitForFunction(
+    (id) =>
+      !!(JSON.parse(localStorage.getItem("lingxi.letters.v1") ?? "{}") as { book?: Record<string, string> }).book?.[id],
+    idA,
+    { timeout: 60_000 },
+  );
 
   // Kiri writes to Lulu
   await petLetters(a.page, false);
@@ -87,7 +106,9 @@ test("a letter goes from one pet to a friend's pet over TapeRelay, and one comes
   await a.page.screenshot({ path: test.info().outputPath("letters-thread-en-light-phone.png"), fullPage: true });
 });
 
-test("when TapeRelay cannot be reached the letters say so, keep what is here, and recover on Try again (H13)", async ({ player }) => {
+test("when TapeRelay cannot be reached the letters say so, keep what is here, and recover on Try again (H13)", async ({
+  player,
+}) => {
   test.setTimeout(300_000);
   const p = await player({ lang: "en", scheme: "dark", size: "phone" });
   await hatch(p, "Kiri");

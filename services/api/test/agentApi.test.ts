@@ -15,7 +15,11 @@ function setup(start = Date.UTC(2026, 10, 18, 9)) {
   const call = (path: string, init: { method?: string; body?: unknown; token?: string; ip?: string } = {}) =>
     app.request(path, {
       method: init.method ?? "GET",
-      headers: { "content-type": "application/json", ...(init.token ? { authorization: `Bearer ${init.token}` } : {}), ...(init.ip ? { "cf-connecting-ip": init.ip } : {}) },
+      headers: {
+        "content-type": "application/json",
+        ...(init.token ? { authorization: `Bearer ${init.token}` } : {}),
+        ...(init.ip ? { "cf-connecting-ip": init.ip } : {}),
+      },
       ...(init.body !== undefined ? { body: JSON.stringify(init.body) } : {}),
     });
   return { call, seasons, agents, tick: (ms: number) => (t += ms) };
@@ -53,49 +57,104 @@ describe("the agent API", () => {
 
   it("an agent adopts, cares, teaches, lets time pass and enters the season as an agent", async () => {
     const { call, seasons, tick } = setup();
-    const adopt = await (await call("/api/v1/agents/adopt", { method: "POST", body: { agent: "Claude test", name: "Bit", line: "curious", instincts: 4 } })).json();
+    const adopt = await (
+      await call("/api/v1/agents/adopt", {
+        method: "POST",
+        body: { agent: "Claude test", name: "Bit", line: "curious", instincts: 4 },
+      })
+    ).json();
     expect(adopt.ok).toBe(true);
     expect(adopt.token).toMatch(/^[0-9a-f]{48}$/);
     const token = adopt.token as string;
     expect((await call("/api/v1/agents/me")).status).toBe(401);
-    const fed = await (await call("/api/v1/agents/me/care", { method: "POST", token, body: { action: "feed", food: "apple" } })).json();
+    const fed = await (
+      await call("/api/v1/agents/me/care", { method: "POST", token, body: { action: "feed", food: "apple" } })
+    ).json();
     expect(fed.ok).toBe(true);
     expect(["ate", "overfed", "woke"]).toContain(fed.note);
-    expect((await call("/api/v1/agents/me/care", { method: "POST", token, body: { action: "dance" } })).status).toBe(400);
+    expect((await call("/api/v1/agents/me/care", { method: "POST", token, body: { action: "dance" } })).status).toBe(
+      400,
+    );
     const before = (await (await call("/api/v1/agents/me", { token })).json()).pet;
     tick(6 * 3_600_000);
     const later = (await (await call("/api/v1/agents/me", { token })).json()).pet;
     expect(later.meters.food).toBeLessThan(before.meters.food);
-    const taught = await (await call("/api/v1/agents/me/teach", { method: "POST", token, body: { rule: PET_SCHOOL[0]!.rule } })).json();
+    const taught = await (
+      await call("/api/v1/agents/me/teach", { method: "POST", token, body: { rule: PET_SCHOOL[0]!.rule } })
+    ).json();
     expect(taught.ok).toBe(true);
     expect(taught.pet.lessons).toHaveLength(1);
-    const junk = await (await call("/api/v1/agents/me/teach", { method: "POST", token, body: { rule: { when: { nonsense: [9] }, then: { want: 99 } } } })).json();
+    const junk = await (
+      await call("/api/v1/agents/me/teach", {
+        method: "POST",
+        token,
+        body: { rule: { when: { nonsense: [9] }, then: { want: 99 } } },
+      })
+    ).json();
     expect(junk).toMatchObject({ ok: false, reason: "invalid" });
     const entered = await (await call("/api/v1/agents/me/season", { method: "POST", token })).json();
     expect(entered.ok).toBe(true);
     const v = seasons.view(entered.week)!;
     expect(v.entries[0]!.agent).toBe("Claude test");
-    seasons.enter({ name: "Human", line: "gentle", stage: "child", card: JSON.stringify({ lessons: [] }), story: { days: 1, lessons: 0, nature: [] } }, "device-human-0001");
+    seasons.enter(
+      {
+        name: "Human",
+        line: "gentle",
+        stage: "child",
+        card: JSON.stringify({ lessons: [] }),
+        story: { days: 1, lessons: 0, nature: [] },
+      },
+      "device-human-0001",
+    );
     const board = await (await call("/api/v1/scoreboard")).json();
     expect(board.weeks[0]).toMatchObject({ week: entered.week, humans: { entries: 1 }, agents: { entries: 1 } });
   });
 
   it("refuse junk adoptions and cap pets per agent", async () => {
     const { call } = setup();
-    expect((await call("/api/v1/agents/adopt", { method: "POST", body: { agent: "x", name: "Bit", line: "curious" } })).status).toBe(400);
-    expect((await call("/api/v1/agents/adopt", { method: "POST", body: { agent: "Okay agent", name: "", line: "curious" } })).status).toBe(400);
-    expect((await call("/api/v1/agents/adopt", { method: "POST", body: { agent: "Okay agent", name: "Bit", line: "dragon" } })).status).toBe(400);
-    for (let i = 0; i < 5; i++) expect((await (await call("/api/v1/agents/adopt", { method: "POST", body: { agent: "Busy agent", name: `P${i}`, line: "bold" } })).json()).ok).toBe(true);
-    expect(await (await call("/api/v1/agents/adopt", { method: "POST", body: { agent: "Busy agent", name: "P6", line: "bold" } })).json()).toMatchObject({ ok: false, reason: "tooMany" });
+    expect(
+      (await call("/api/v1/agents/adopt", { method: "POST", body: { agent: "x", name: "Bit", line: "curious" } }))
+        .status,
+    ).toBe(400);
+    expect(
+      (await call("/api/v1/agents/adopt", { method: "POST", body: { agent: "Okay agent", name: "", line: "curious" } }))
+        .status,
+    ).toBe(400);
+    expect(
+      (
+        await call("/api/v1/agents/adopt", {
+          method: "POST",
+          body: { agent: "Okay agent", name: "Bit", line: "dragon" },
+        })
+      ).status,
+    ).toBe(400);
+    for (let i = 0; i < 5; i++)
+      expect(
+        (
+          await (
+            await call("/api/v1/agents/adopt", {
+              method: "POST",
+              body: { agent: "Busy agent", name: `P${i}`, line: "bold" },
+            })
+          ).json()
+        ).ok,
+      ).toBe(true);
+    expect(
+      await (
+        await call("/api/v1/agents/adopt", { method: "POST", body: { agent: "Busy agent", name: "P6", line: "bold" } })
+      ).json(),
+    ).toMatchObject({ ok: false, reason: "tooMany" });
     expect((await call("/api/v1/agents/me", { token: "f".repeat(48) })).status).toBe(401);
   });
 });
 
 describe("agents in the season: their own share, and one address cannot fill it (A41)", () => {
   const adopt = async (call: ReturnType<typeof setup>["call"], ip: string, agent: string, name = "Bit") =>
-    (await (await call("/api/v1/agents/adopt", { method: "POST", ip, body: { agent, name, line: "bold" } })).json()) as { ok: boolean; token?: string; reason?: string; detail?: string };
+    (await (
+      await call("/api/v1/agents/adopt", { method: "POST", ip, body: { agent, name, line: "bold" } })
+    ).json()) as { ok: boolean; token?: string; reason?: string; detail?: string };
   const enter = async (call: ReturnType<typeof setup>["call"], ip: string, token: string) =>
-    (await call("/api/v1/agents/me/season", { method: "POST", ip, token }));
+    await call("/api/v1/agents/me/season", { method: "POST", ip, token });
 
   it("an address raises at most 5 agent pets at once, whatever names it uses", async () => {
     const { call } = setup();
@@ -143,12 +202,16 @@ describe("agents in the season: their own share, and one address cannot fill it 
     for (let i = 0; i < 5; i++) tokens.push((await adopt(call, "203.0.113.9", `agent ${i}`)).token!);
     tick(29 * 86_400_000);
     // one is cared for: it stays; another is only read, which keeps nothing
-    expect((await call("/api/v1/agents/me/care", { method: "POST", body: { action: "feed" }, token: tokens[0]! })).status).toBe(200);
+    expect(
+      (await call("/api/v1/agents/me/care", { method: "POST", body: { action: "feed" }, token: tokens[0]! })).status,
+    ).toBe(200);
     expect((await call("/api/v1/agents/me", { token: tokens[1]! })).status).toBe(200);
     tick(2 * 86_400_000);
     expect((await adopt(call, "203.0.113.9", "agent new")).ok, "the four not cared for have gone home").toBe(true);
     expect((await call("/api/v1/agents/me", { token: tokens[1]! })).status, "reading it did not keep it").toBe(401);
-    expect((await call("/api/v1/agents/me", { token: tokens[0]! })).status, "the one cared for is still there").toBe(200);
+    expect((await call("/api/v1/agents/me", { token: tokens[0]! })).status, "the one cared for is still there").toBe(
+      200,
+    );
   });
 
   it("one IPv6 /48 raises four addresses' worth of agent pets, not 65,536 addresses' worth (A83)", async () => {
@@ -160,18 +223,42 @@ describe("agents in the season: their own share, and one address cannot fill it 
   });
 });
 
-
 describe("a pet on X Layer, as the agent API gives it (A95)", () => {
   it("gives the picture PetLook draws on chain, as its index promises", async () => {
     const image = "data:image/svg+xml;base64,PHN2Zy8+";
     const uri = `data:application/json;base64,${Buffer.from(JSON.stringify({ name: "Lingxi #1", image })).toString("base64")}`;
-    const pet = { processor: "0xf70d324Da8C1C4Cb0dE3FF147E53E7E9db543c4e", brainId: 1n, line: 0, brainBits: 8, day: 1, born: 1, checkedAt: 5, logHash: `0x${"11".repeat(32)}`, state: 0n, parentA: 0n, parentB: 0n };
+    const pet = {
+      processor: "0xf70d324Da8C1C4Cb0dE3FF147E53E7E9db543c4e",
+      brainId: 1n,
+      line: 0,
+      brainBits: 8,
+      day: 1,
+      born: 1,
+      checkedAt: 5,
+      logHash: `0x${"11".repeat(32)}`,
+      state: 0n,
+      parentA: 0n,
+      parentB: 0n,
+    };
     const pub = {
       readContract: async ({ functionName }: { functionName: string }) =>
-        functionName === "pet" ? pet : functionName === "ownerOf" ? "0xA551feD6f2Ab35d509A71B74D5E9F38742E0aaD8" : functionName === "tokenURI" ? uri : Promise.reject(new Error(functionName)),
+        functionName === "pet"
+          ? pet
+          : functionName === "ownerOf"
+            ? "0xA551feD6f2Ab35d509A71B74D5E9F38742E0aaD8"
+            : functionName === "tokenURI"
+              ? uri
+              : Promise.reject(new Error(functionName)),
     };
-    const app = withAgentApi(new Hono(), { agents: createAgentStore(undefined, () => Date.UTC(2026, 10, 18)), seasons: createSeasonStore(undefined, () => Date.UTC(2026, 10, 18)), limiter: new RateLimiter(10_000, 60_000), chain: { pub: pub as never, deployment: { registry: "0x103d7252eb6b2fec22b3f65a6bb605945f280e99" } as never } });
-    const body = (await (await app.request("/api/v1/pets/1", { headers: { "cf-connecting-ip": "203.0.113.5" } })).json()) as { ok: boolean; image?: string; name?: string };
+    const app = withAgentApi(new Hono(), {
+      agents: createAgentStore(undefined, () => Date.UTC(2026, 10, 18)),
+      seasons: createSeasonStore(undefined, () => Date.UTC(2026, 10, 18)),
+      limiter: new RateLimiter(10_000, 60_000),
+      chain: { pub: pub as never, deployment: { registry: "0x103d7252eb6b2fec22b3f65a6bb605945f280e99" } as never },
+    });
+    const body = (await (
+      await app.request("/api/v1/pets/1", { headers: { "cf-connecting-ip": "203.0.113.5" } })
+    ).json()) as { ok: boolean; image?: string; name?: string };
     expect(body).toMatchObject({ ok: true, name: "Lingxi #1", image });
     const index = (await (await app.request("/api/v1")).json()) as { endpoints: Record<string, string> };
     expect(index.endpoints["GET /api/v1/pets/:id"]).toMatch(/picture as PetLook draws it on chain/);
@@ -184,7 +271,11 @@ describe("a pet on X Layer, as the agent API gives it (A95)", () => {
 
 describe("the agents API index says what holds (A101)", () => {
   it("the season's sixteen places are a cap on agents, not places kept for them", async () => {
-    const app = withAgentApi(new Hono(), { agents: createAgentStore(undefined, () => Date.UTC(2026, 10, 18)), seasons: createSeasonStore(undefined, () => Date.UTC(2026, 10, 18)), limiter: new RateLimiter(10_000, 60_000) });
+    const app = withAgentApi(new Hono(), {
+      agents: createAgentStore(undefined, () => Date.UTC(2026, 10, 18)),
+      seasons: createSeasonStore(undefined, () => Date.UTC(2026, 10, 18)),
+      limiter: new RateLimiter(10_000, 60_000),
+    });
     const index = (await (await app.request("/api/v1")).json()) as { endpoints: Record<string, string> };
     const season = index.endpoints["POST /api/v1/agents/me/season"]!;
     expect(season).not.toMatch(/go to agent-raised pets|kept for/);

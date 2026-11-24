@@ -11,8 +11,18 @@ const ALICE: Address = "0x00000000000000000000000000000000000000a1";
 const BOB: Address = "0x00000000000000000000000000000000000000b0";
 const MARKET: Address = "0x00000000000000000000000000000000000000cc";
 
-const listed = (listingId: number, seller: Address, id: number, block: number, logIndex = 0) => ({ eventName: "Listed" as const, args: { listingId: BigInt(listingId), seller, id: BigInt(id) }, blockNumber: BigInt(block), logIndex });
-const sold = (listingId: number, block: number, logIndex = 0) => ({ eventName: "Sold" as const, args: { listingId: BigInt(listingId) }, blockNumber: BigInt(block), logIndex });
+const listed = (listingId: number, seller: Address, id: number, block: number, logIndex = 0) => ({
+  eventName: "Listed" as const,
+  args: { listingId: BigInt(listingId), seller, id: BigInt(id) },
+  blockNumber: BigInt(block),
+  logIndex,
+});
+const sold = (listingId: number, block: number, logIndex = 0) => ({
+  eventName: "Sold" as const,
+  args: { listingId: BigInt(listingId) },
+  blockNumber: BigInt(block),
+  logIndex,
+});
 
 describe("listings a V1 sale retired (A23)", () => {
   it("a sale retires the seller's earlier listings of that design, and only those", () => {
@@ -28,8 +38,26 @@ describe("listings a V1 sale retired (A23)", () => {
   });
 
   it("a listing made in the sale's own block counts by its place in the block", () => {
-    expect([...retiredBy([listed(1, ALICE, 5, 30, 0), listed(2, ALICE, 5, 31, 0), listed(3, ALICE, 5, 40, 5), sold(2, 40, 3)])].sort()).toEqual(["1"]);
-    expect([...retiredBy([listed(1, ALICE, 5, 30, 0), listed(2, ALICE, 5, 31, 0), listed(3, ALICE, 5, 40, 1), sold(2, 40, 3)])].sort()).toEqual(["1", "3"]);
+    expect(
+      [
+        ...retiredBy([
+          listed(1, ALICE, 5, 30, 0),
+          listed(2, ALICE, 5, 31, 0),
+          listed(3, ALICE, 5, 40, 5),
+          sold(2, 40, 3),
+        ]),
+      ].sort(),
+    ).toEqual(["1"]);
+    expect(
+      [
+        ...retiredBy([
+          listed(1, ALICE, 5, 30, 0),
+          listed(2, ALICE, 5, 31, 0),
+          listed(3, ALICE, 5, 40, 1),
+          sold(2, 40, 3),
+        ]),
+      ].sort(),
+    ).toEqual(["1", "3"]);
   });
 
   it("a part sale leaves the sold listing itself open", () => {
@@ -41,7 +69,8 @@ describe("listings a V1 sale retired (A23)", () => {
     let head = 300n;
     const client = {
       getBlockNumber: async () => head,
-      getLogs: async ({ fromBlock, toBlock }: { fromBlock: bigint; toBlock: bigint }) => all.filter((e) => e.blockNumber >= fromBlock && e.blockNumber <= toBlock),
+      getLogs: async ({ fromBlock, toBlock }: { fromBlock: bigint; toBlock: bigint }) =>
+        all.filter((e) => e.blockNumber >= fromBlock && e.blockNumber <= toBlock),
     } as unknown as PublicClient;
     const watch = createListingWatch({ rpc: "", market: MARKET, fromBlock: 100, client, paceMs: 0 });
     expect(watch.state()).toEqual({ ready: false, retired: [] });

@@ -18,7 +18,11 @@ export interface LessonScore {
 }
 
 /** For each of the pet's lessons, in order, the beats of the local day of `now` that it decided. */
-export function firesToday(pet: Pet, mindFor: (lessons: Rule[], outside?: OutsideInstinct, skills?: number[]) => Mind, now: number): LessonScore[] {
+export function firesToday(
+  pet: Pet,
+  mindFor: (lessons: Rule[], outside?: OutsideInstinct, skills?: number[]) => Mind,
+  now: number,
+): LessonScore[] {
   const today = localDay(now, pet.tzOffsetMin);
   const scores: LessonScore[] = pet.lessons.map(() => ({ count: 0, last: null }));
   for (const f of rewind(pet, mindFor, DAY_BEATS)) {

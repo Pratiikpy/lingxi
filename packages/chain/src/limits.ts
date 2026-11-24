@@ -22,4 +22,5 @@ export const SEND_LIMITS = {
 export const utf8Bytes = (text: string): number => new TextEncoder().encode(text).length;
 
 /** A size as a person reads it: "1.4 MB", "640 KB". */
-export const readableSize = (bytes: number): string => (bytes >= 1024 * KB ? `${(bytes / (1024 * KB)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / KB))} KB`);
+export const readableSize = (bytes: number): string =>
+  bytes >= 1024 * KB ? `${(bytes / (1024 * KB)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / KB))} KB`;

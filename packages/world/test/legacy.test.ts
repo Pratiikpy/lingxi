@@ -40,7 +40,12 @@ describe("saves from before the residents were renamed", () => {
 
   it("every id in the migrated save names a friend the game knows", () => {
     const ids = new Set(FRIENDS.map((f) => f.id));
-    for (const who of [...Object.keys(now.trust ?? {}), ...Object.keys(now.friends?.steps ?? {}), ...(now.friends?.visits ?? [])]) expect(ids.has(who), who).toBe(true);
+    for (const who of [
+      ...Object.keys(now.trust ?? {}),
+      ...Object.keys(now.friends?.steps ?? {}),
+      ...(now.friends?.visits ?? []),
+    ])
+      expect(ids.has(who), who).toBe(true);
   });
 
   it("leave the player's own words alone", () => {

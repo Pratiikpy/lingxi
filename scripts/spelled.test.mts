@@ -4,11 +4,27 @@ import { chineseCount, englishCount } from "./lib/spelled.mts";
 
 describe("counts as the landing spells them (A110)", () => {
   it("spells English counts", () => {
-    expect([1, 12, 19, 20, 25, 70, 99].map(englishCount)).toEqual(["one", "twelve", "nineteen", "twenty", "twenty-five", "seventy", "ninety-nine"]);
+    expect([1, 12, 19, 20, 25, 70, 99].map(englishCount)).toEqual([
+      "one",
+      "twelve",
+      "nineteen",
+      "twenty",
+      "twenty-five",
+      "seventy",
+      "ninety-nine",
+    ]);
   });
 
   it("spells Chinese counts", () => {
-    expect([1, 10, 12, 20, 25, 70, 99].map(chineseCount)).toEqual(["一", "十", "十二", "二十", "二十五", "七十", "九十九"]);
+    expect([1, 10, 12, 20, 25, 70, 99].map(chineseCount)).toEqual([
+      "一",
+      "十",
+      "十二",
+      "二十",
+      "二十五",
+      "七十",
+      "九十九",
+    ]);
   });
 
   it("refuses a count it cannot spell rather than guess", () => {

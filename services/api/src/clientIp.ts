@@ -67,6 +67,10 @@ export function callerOf(address: string): string {
   if (isIP(address) !== 6) return address;
   const g = groupsOf(address);
   // ::ffff:a.b.c.d is an IPv4 caller
-  if (g.slice(0, 5).every((x) => x === 0) && g[5] === 0xffff) return [g[6]! >> 8, g[6]! & 255, g[7]! >> 8, g[7]! & 255].join(".");
-  return `${g.slice(0, 4).map((x) => x.toString(16)).join(":")}::/64`;
+  if (g.slice(0, 5).every((x) => x === 0) && g[5] === 0xffff)
+    return [g[6]! >> 8, g[6]! & 255, g[7]! >> 8, g[7]! & 255].join(".");
+  return `${g
+    .slice(0, 4)
+    .map((x) => x.toString(16))
+    .join(":")}::/64`;
 }

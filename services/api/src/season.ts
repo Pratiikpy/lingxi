@@ -12,7 +12,15 @@
  */
 
 import { createHash } from "node:crypto";
-import { MAX_ENTRIES, type SeasonEntry, type Standing, seasonStandings, standingsDigest, weekBounds, weekOf } from "@lingxi/game";
+import {
+  MAX_ENTRIES,
+  type SeasonEntry,
+  type Standing,
+  seasonStandings,
+  standingsDigest,
+  weekBounds,
+  weekOf,
+} from "@lingxi/game";
 import { validSnapshot } from "./arena";
 import { type StandingsAnswer, entriesKey } from "./standings";
 import { basename, dirname } from "node:path";
@@ -86,7 +94,11 @@ export interface EnterOptions {
 }
 
 export interface SeasonStore {
-  enter: (pet: unknown, device: string, opts?: EnterOptions) => { ok: true; week: string; key: string } | { ok: false; reason: "invalid" | "full" | "tooMany" | "agentsFull" };
+  enter: (
+    pet: unknown,
+    device: string,
+    opts?: EnterOptions,
+  ) => { ok: true; week: string; key: string } | { ok: false; reason: "invalid" | "full" | "tooMany" | "agentsFull" };
   view: (week: string) => SeasonView | null;
   /** finished weeks whose champion has no keepsake yet */
   pending: () => PendingAward[];
@@ -101,7 +113,12 @@ const tag = (s: string) => createHash("sha256").update(s).digest("hex");
  * The entry that makes way for a proven pet in a full week (A141): the newest unproven entry of the network (an IPv6
  * /48, else the address) holding the most entries; null when every entry is proven.
  */
-function makeWay(entries: readonly SeasonEntry[], pets: Record<string, string>, from: Record<string, string>, net: Record<string, string>): string | null {
+function makeWay(
+  entries: readonly SeasonEntry[],
+  pets: Record<string, string>,
+  from: Record<string, string>,
+  net: Record<string, string>,
+): string | null {
   const network = (k: string) => {
     const c = senderOf(k, from, net);
     return c ? networkOf(c) : `entry:${k}`;
@@ -156,7 +173,11 @@ function foughtHere(): StandingsSource {
   };
 }
 
-export function createSeasonStore(file?: string, now: () => number = Date.now, source: StandingsSource = foughtHere()): SeasonStore {
+export function createSeasonStore(
+  file?: string,
+  now: () => number = Date.now,
+  source: StandingsSource = foughtHere(),
+): SeasonStore {
   const weeks = new Map<string, Week>();
   // one file a week (A123): an entry rewrites its own week, never every week kept
   const shards = file ? openShards(file, ".before-weeks", "season week") : null;
@@ -187,7 +208,8 @@ export function createSeasonStore(file?: string, now: () => number = Date.now, s
   };
   return {
     enter: (pet, device, opts = {}) => {
-      if (typeof device !== "string" || device.length < 8 || device.length > 64) return { ok: false, reason: "invalid" };
+      if (typeof device !== "string" || device.length < 8 || device.length > 64)
+        return { ok: false, reason: "invalid" };
       if (opts.petId !== undefined && !PET.test(opts.petId)) return { ok: false, reason: "invalid" };
       const v = validSnapshot(pet, []);
       if (!v) return { ok: false, reason: "invalid" };
@@ -221,10 +243,12 @@ export function createSeasonStore(file?: string, now: () => number = Date.now, s
         delete net[out];
         at = entries.findIndex((e) => e.key === key);
       }
-      if (at < 0 && opts.agent && entries.filter((e) => e.agent).length >= MAX_AGENT_ENTRIES) return { ok: false, reason: "agentsFull" };
+      if (at < 0 && opts.agent && entries.filter((e) => e.agent).length >= MAX_AGENT_ENTRIES)
+        return { ok: false, reason: "agentsFull" };
       // an address holds a few entries, and its IPv6 /48 four addresses' worth, so one network cannot fill the week (A117)
       const senders = Object.keys(from).flatMap((k) => senderOf(k, from, net) ?? []);
-      if (at < 0 && sender && heldOverCoded(senders, sender, MAX_ENTRIES_PER_ADDRESS)) return { ok: false, reason: "tooMany" };
+      if (at < 0 && sender && heldOverCoded(senders, sender, MAX_ENTRIES_PER_ADDRESS))
+        return { ok: false, reason: "tooMany" };
       const entry: SeasonEntry = { key, pet: v.pet, at: t, ...(opts.agent ? { agent: opts.agent } : {}) };
       entries = at < 0 ? [...entries, entry] : entries.map((e, i) => (i === at ? entry : e));
       if (opts.petId) pets[key] = opts.petId;
@@ -247,9 +271,21 @@ export function createSeasonStore(file?: string, now: () => number = Date.now, s
         return null;
       }
       const w = weeks.get(week) ?? { entries: [], by: {} };
-      const award = w.award && (w.award.brainId || w.award.none === "noWallet" || w.award.tries >= MAX_TRIES) ? { award: w.award } : {};
+      const award =
+        w.award && (w.award.brainId || w.award.none === "noWallet" || w.award.tries >= MAX_TRIES)
+          ? { award: w.award }
+          : {};
       const s = source.get(week, w.entries);
-      return { week, closed: now() >= bounds.end, ends: bounds.end, entries: w.entries, standings: s.standings, digest: s.digest, ...(s.pending ? { pending: true as const } : {}), ...award };
+      return {
+        week,
+        closed: now() >= bounds.end,
+        ends: bounds.end,
+        entries: w.entries,
+        standings: s.standings,
+        digest: s.digest,
+        ...(s.pending ? { pending: true as const } : {}),
+        ...award,
+      };
     },
     pending: () => {
       const out: PendingAward[] = [];
@@ -282,7 +318,12 @@ export function createSeasonStore(file?: string, now: () => number = Date.now, s
  */
 export async function settleAwards(
   store: SeasonStore,
-  give: (entry: SeasonEntry, petId: string) => Promise<{ ok: true; brainId: string; to: string; tapeTx: string; sendTx: string } | { ok: false; detail?: string }>,
+  give: (
+    entry: SeasonEntry,
+    petId: string,
+  ) => Promise<
+    { ok: true; brainId: string; to: string; tapeTx: string; sendTx: string } | { ok: false; detail?: string }
+  >,
 ): Promise<void> {
   for (const p of store.pending()) {
     const base = { key: p.entry.key, name: p.entry.pet.name, tries: p.tries + 1 };
@@ -291,6 +332,11 @@ export async function settleAwards(
       continue;
     }
     const r = await give(p.entry, p.petId);
-    store.award(p.week, r.ok ? { ...base, brainId: r.brainId, to: r.to, tapeTx: r.tapeTx, sendTx: r.sendTx } : { ...base, none: "failed" });
+    store.award(
+      p.week,
+      r.ok
+        ? { ...base, brainId: r.brainId, to: r.to, tapeTx: r.tapeTx, sendTx: r.sendTx }
+        : { ...base, none: "failed" },
+    );
   }
 }

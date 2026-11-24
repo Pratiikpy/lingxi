@@ -15,7 +15,13 @@ const mindFor = (pet: Pet) => (lessons: Rule[]) => ({ program: composeProgram(pe
 
 describe("a lesson's score for today (G1)", () => {
   it("counts the beats today that the lesson decided, and none for a lesson that never met its moment", () => {
-    let p = createPet({ name: "Pip", line: "gentle", now: T0, tzOffsetMin: 0, brain: mindBrain({ line: "gentle", lessons: [] }) });
+    let p = createPet({
+      name: "Pip",
+      line: "gentle",
+      now: T0,
+      tzOffsetMin: 0,
+      brain: mindBrain({ line: "gentle", lessons: [] }),
+    });
     const taught = teach(p, toyShare, T0 + MIN, 0);
     if (!taught.ok) throw new Error(taught.detail);
     p = taught.pet;

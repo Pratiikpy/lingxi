@@ -10,10 +10,24 @@ import { describe, expect, it } from "vitest";
 import { createPublicClient, createWalletClient, http, parseEther } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { decodeDesign, encodeDesign } from "@lingxi/art";
-import { buyDesign, buyListing, copiesHeld, listCopies, proceedsOwed, publishDesign, readDesign, readListings, withdrawProceeds, xLayer, type Deployment } from "../src/index";
+import {
+  buyDesign,
+  buyListing,
+  copiesHeld,
+  listCopies,
+  proceedsOwed,
+  publishDesign,
+  readDesign,
+  readListings,
+  withdrawProceeds,
+  xLayer,
+  type Deployment,
+} from "../src/index";
 
 const RPC = process.env.FORK_RPC;
-const file = process.env.DEPLOYMENT_FILE ?? new URL("../deployments/local.json", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+const file =
+  process.env.DEPLOYMENT_FILE ??
+  new URL("../deployments/local.json", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const d = JSON.parse(readFileSync(file, "utf8")) as Deployment;
 const V1 = { v: 1 as const, address: d.outfitMarket! };
 
@@ -24,10 +38,27 @@ describe.skipIf(!RPC || !d.outfitMarket)("the first (OKB) fashion market through
     const rpc = (m: string, p: unknown[]) => pub.request({ method: m as never, params: p as never });
     const [c, a, b] = [0, 1, 2].map(() => privateKeyToAccount(generatePrivateKey()));
     for (const x of [c, a, b]) await rpc("anvil_setBalance", [x!.address, "0x56BC75E2D63100000"]);
-    const [creator, alice, bob] = [c, a, b].map((account) => createWalletClient({ chain, transport: http(RPC), account }));
+    const [creator, alice, bob] = [c, a, b].map((account) =>
+      createWalletClient({ chain, transport: http(RPC), account }),
+    );
 
-    const drawing = { slot: "held" as const, cells: [[0, 1, 0], [1, 2, 1], [0, 3, 0], [0, 3, 0]], colours: ["#2b2140", "#ffc83d", "#7a5236"] };
-    const { id } = await publishDesign(pub, creator!, V1, { pixels: encodeDesign(drawing), name: "Sun staff", price: parseEther("0.001"), maxSupply: 50, royaltyBps: 500 });
+    const drawing = {
+      slot: "held" as const,
+      cells: [
+        [0, 1, 0],
+        [1, 2, 1],
+        [0, 3, 0],
+        [0, 3, 0],
+      ],
+      colours: ["#2b2140", "#ffc83d", "#7a5236"],
+    };
+    const { id } = await publishDesign(pub, creator!, V1, {
+      pixels: encodeDesign(drawing),
+      name: "Sun staff",
+      price: parseEther("0.001"),
+      maxSupply: 50,
+      royaltyBps: 500,
+    });
     const onChain = await readDesign(pub, V1, id);
     expect(onChain.name).toBe("Sun staff");
     expect(decodeDesign(Uint8Array.from(Buffer.from(onChain.pixels.slice(2), "hex"))).cells).toEqual(drawing.cells);

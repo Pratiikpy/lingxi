@@ -29,7 +29,8 @@ export const SPAR_V3_FROM_DAY = dayIndex(Date.UTC(2026, 10, 23));
  * LX-SPAR/3 straight to LX-SPAR/5.
  */
 export const SPAR_V5_FROM_DAY = dayIndex(Date.UTC(2026, 10, 24));
-export const dailySparVersion = (day: number): SparVersion => (day >= SPAR_V5_FROM_DAY ? SPAR_V5 : day >= SPAR_V3_FROM_DAY ? SPAR_V3 : SPAR_VERSION);
+export const dailySparVersion = (day: number): SparVersion =>
+  day >= SPAR_V5_FROM_DAY ? SPAR_V5 : day >= SPAR_V3_FROM_DAY ? SPAR_V3 : SPAR_VERSION;
 
 /** The partner for a day: every partner in turn. */
 export const dailyPartnerIndex = (day: number): number => ((day % PARTNERS.length) + PARTNERS.length) % PARTNERS.length;
@@ -46,7 +47,11 @@ export function dailySeed(day: number, blockHash: string): number {
  * known blocks. `blockAt(n)` returns a block's timestamp in seconds. A handful of
  * reads, whatever the chain's block time.
  */
-export async function firstBlockAtOrAfter(ts: number, latest: { number: number; timestamp: number }, blockAt: (n: number) => Promise<number>): Promise<number> {
+export async function firstBlockAtOrAfter(
+  ts: number,
+  latest: { number: number; timestamp: number },
+  blockAt: (n: number) => Promise<number>,
+): Promise<number> {
   if (latest.timestamp < ts) throw new Error("that time has not come yet");
   let lo = Math.max(0, latest.number - Math.ceil((latest.timestamp - ts) * 2) - 10);
   let loTs = await blockAt(lo);

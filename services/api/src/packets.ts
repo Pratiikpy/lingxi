@@ -13,8 +13,12 @@ import { WINDOW } from "./indexer";
 import { hasStore, readStore, saveJson } from "./durable";
 
 const EVENTS = [
-  parseAbiItem("event Created(uint256 indexed id, address indexed sender, address token, uint256 total, uint16 count, bool lucky, bool petOwnersOnly, uint64 expiry)"),
-  parseAbiItem("event Claimed(uint256 indexed id, address indexed claimer, uint256 amount, uint16 index, uint16 sealInput, uint8 sealOutput)"),
+  parseAbiItem(
+    "event Created(uint256 indexed id, address indexed sender, address token, uint256 total, uint16 count, bool lucky, bool petOwnersOnly, uint64 expiry)",
+  ),
+  parseAbiItem(
+    "event Claimed(uint256 indexed id, address indexed claimer, uint256 amount, uint16 index, uint16 sealInput, uint8 sealOutput)",
+  ),
 ] as const;
 
 /** RedPacket.REVEAL_GRACE: a lucky packet's last shares can still be revealed this long after it expires. */
@@ -37,7 +41,17 @@ export interface PacketClaim {
 }
 
 interface PacketRecord {
-  created?: { block: number; tx: string; sender: string; token: string; total: string; count: number; lucky: boolean; petOwnersOnly: boolean; expiry: number };
+  created?: {
+    block: number;
+    tx: string;
+    sender: string;
+    token: string;
+    total: string;
+    count: number;
+    lucky: boolean;
+    petOwnersOnly: boolean;
+    expiry: number;
+  };
   claims: PacketClaim[];
 }
 
@@ -60,7 +74,11 @@ export interface PacketIndexOptions {
 }
 
 export function createPacketIndex(opts: PacketIndexOptions) {
-  const pub = opts.client ?? (createPublicClient({ transport: http(opts.rpc ?? "https://xlayerrpc.okx.com", { timeout: 20_000, retryCount: 0 }) }) as PublicClient);
+  const pub =
+    opts.client ??
+    (createPublicClient({
+      transport: http(opts.rpc ?? "https://xlayerrpc.okx.com", { timeout: 20_000, retryCount: 0 }),
+    }) as PublicClient);
   const now = opts.now ?? (() => Math.floor(Date.now() / 1000));
   const maxClaims = opts.maxClaims ?? MAX_CLAIMS;
   let data: Stored = { v: STORE_VERSION, next: opts.fromBlock, packets: {} };
@@ -115,7 +133,12 @@ export function createPacketIndex(opts: PacketIndexOptions) {
   async function logsIn(from: number, to: number) {
     for (let attempt = 0; ; attempt++) {
       try {
-        const logs = await pub.getLogs({ address: opts.address, events: EVENTS, fromBlock: BigInt(from), toBlock: BigInt(to) });
+        const logs = await pub.getLogs({
+          address: opts.address,
+          events: EVENTS,
+          fromBlock: BigInt(from),
+          toBlock: BigInt(to),
+        });
         await sleep(opts.paceMs ?? 400);
         return logs;
       } catch (e) {
@@ -143,13 +166,31 @@ export function createPacketIndex(opts: PacketIndexOptions) {
           const block = Number(l.blockNumber);
           const tx = l.transactionHash!;
           if (l.eventName === "Created") {
-            packet(id).created = { block, tx, sender: String(a.sender), token: String(a.token), total: String(a.total), count: Number(a.count), lucky: Boolean(a.lucky), petOwnersOnly: Boolean(a.petOwnersOnly), expiry: Number(a.expiry) };
+            packet(id).created = {
+              block,
+              tx,
+              sender: String(a.sender),
+              token: String(a.token),
+              total: String(a.total),
+              count: Number(a.count),
+              lucky: Boolean(a.lucky),
+              petOwnersOnly: Boolean(a.petOwnersOnly),
+              expiry: Number(a.expiry),
+            };
           } else {
             const index = Number(a.index);
             const seen = listedIn(id);
             if (!seen.has(index)) {
               seen.add(index);
-              packet(id).claims.push({ claimer: String(a.claimer), amount: String(a.amount), index, sealInput: Number(a.sealInput), sealOutput: Number(a.sealOutput), tx, block });
+              packet(id).claims.push({
+                claimer: String(a.claimer),
+                amount: String(a.amount),
+                index,
+                sealInput: Number(a.sealInput),
+                sealOutput: Number(a.sealOutput),
+                tx,
+                block,
+              });
             }
           }
           added++;
@@ -173,9 +214,15 @@ export function createPacketIndex(opts: PacketIndexOptions) {
     claimsOf(id: string): { claims: PacketClaim[]; created: PacketRecord["created"] | null } | null {
       const r = data.packets[id];
       if (!r) return null;
-      return { claims: [...r.claims].sort((x, y) => x.block - y.block || x.index - y.index), created: r.created ?? null };
+      return {
+        claims: [...r.claims].sort((x, y) => x.block - y.block || x.index - y.index),
+        created: r.created ?? null,
+      };
     },
-    size: () => ({ packets: Object.keys(data.packets).length, claims: Object.values(data.packets).reduce((n, r) => n + r.claims.length, 0) }),
+    size: () => ({
+      packets: Object.keys(data.packets).length,
+      claims: Object.values(data.packets).reduce((n, r) => n + r.claims.length, 0),
+    }),
   };
 }
 export type PacketIndex = ReturnType<typeof createPacketIndex>;

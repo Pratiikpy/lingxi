@@ -10,7 +10,8 @@ export const COPY = {
     hint: "Tap the pet. Tap the grass to call it over.",
     growLabel: "Grows with you",
     growH: "From egg to someone.",
-    growP: "Pick one of three eggs. In a week it grows from a wobbly baby into an adult whose form depends on how you raised it: what it ate, how you cared for it, what you taught it.",
+    growP:
+      "Pick one of three eggs. In a week it grows from a wobbly baby into an adult whose form depends on how you raised it: what it ate, how you cared for it, what you taught it.",
     stages: [
       ["egg", "pick one of three"],
       ["baby", "day 1"],
@@ -20,44 +21,64 @@ export const COPY = {
     ],
     mindLabel: "Its mind is a circuit you can read",
     mindH: "Every thought is a rule you can see.",
-    mindP: "Your pet does not run on a hidden script. Its brain is a TapeOut circuit of NAND gates with memory cells. Each minute it reads how it feels, what time it is and what you just did, and the rule that fires is shown to you, lit up gate by gate.",
-    facts: ["gates in Mochi's starter brain", "bits of memory it carries day to day", "input combinations, each one tested against its rules"],
+    mindP:
+      "Your pet does not run on a hidden script. Its brain is a TapeOut circuit of NAND gates with memory cells. Each minute it reads how it feels, what time it is and what you just did, and the rule that fires is shown to you, lit up gate by gate.",
+    facts: [
+      "gates in Mochi's starter brain",
+      "bits of memory it carries day to day",
+      "input combinations, each one tested against its rules",
+    ],
     teachLabel: "Teach it in your own words",
     teachH: "Say it plainly. It learns a rule.",
-    teachP: "Type what you want your pet to learn. Lingxi turns your words into one rule in its brain and shows you the rule before anything changes. Pet School lessons need no server, and you can build rules by hand.",
+    teachP:
+      "Type what you want your pet to learn. Lingxi turns your words into one rule in its brain and shows you the rule before anything changes. Pet School lessons need no server, and you can build rules by hand.",
     worldLabel: "A small world to live in",
     worldH: "Rooms with their own light.",
-    worldP: "Seventy places to wander, from the forest to the lotus pool, each following your own clock from morning to night. Search them for treats and materials, craft, run errands, and meet the people who live here.",
+    worldP:
+      "Seventy places to wander, from the forest to the lotus pool, each following your own clock from morning to night. Search them for treats and materials, craft, run errands, and meet the people who live here.",
     residents: "Residents",
     friendsLabel: "Friends and visits",
     friendsH: "Pets meet, play and look after each other.",
-    friendsP: "Send a friend your link and your pets share a room live: wave, say hi, send hearts. Your pet can carry a gift to anyone, a letter and an egg that hatches into its little sibling, no wallet needed. Two grown pets can raise a little one whose mind is built from both of theirs.",
+    friendsP:
+      "Send a friend your link and your pets share a room live: wave, say hi, send hearts. Your pet can carry a gift to anyone, a letter and an egg that hatches into its little sibling, no wallet needed. Two grown pets can raise a little one whose mind is built from both of theirs.",
     friendsCards: [
       ["Visit live", "pets in the same room see each other in real time"],
       ["Gifts by link", "a letter, an egg, a treat; opens with no sign-up"],
       ["Red packets", "USDT held by a contract; a circuit decides each share"],
-      ["Families", "a child is born with its parents' minds composed together, on chain when both parents are kept there"],
+      [
+        "Families",
+        "a child is born with its parents' minds composed together, on chain when both parents are kept there",
+      ],
     ],
     sparLabel: "Spars",
     sparH: "Nobody presses buttons. Its mind fights.",
-    sparP: "In a spar, every move comes from your pet's own circuit reading the fight. Lose, and the coach replays the fight with every lesson your pet could learn and tells you which one actually wins.",
+    sparP:
+      "In a spar, every move comes from your pet's own circuit reading the fight. Lose, and the coach replays the fight with every lesson your pet could learn and tells you which one actually wins.",
     sparCoach: "Coach: try teaching it to pounce at an opening.",
     proofLabel: "Verify it yourself",
     proofH: "You never have to trust us.",
-    proofP: "Once your pet is kept on X Layer, you save its day there, or let this device do it for you: its memory and a fingerprint of everything it sensed. Once you publish its diary, anyone can replay its thoughts through the same circuit the chain runs.",
+    proofP:
+      "Once your pet is kept on X Layer, you save its day there, or let this device do it for you: its memory and a fingerprint of everything it sensed. Once you publish its diary, anyone can replay its thoughts through the same circuit the chain runs.",
     proofSteps: [
       ["One circuit per mind", "the brain is taped out on TapeOut; its bytes live on chain"],
       ["One save a day", "the whole state fits in 256 bits, written for a fraction of a cent"],
       ["Any thought, on demand", "re-run one beat on chain: about 760,000 gas for Mochi's 296 gates"],
-      ["On X Layer now", "pet #1 was hatched there on 15 November: at its saved memory, all 65,536 possible inputs give the chain's own answer"],
+      [
+        "On X Layer now",
+        "pet #1 was hatched there on 15 November: at its saved memory, all 65,536 possible inputs give the chain's own answer",
+      ],
     ],
     proofCta: "Open the proof page",
     holdLabel: "For TapeOut holders",
     holdH: "Hold TapeOut? It shows.",
-    holdP: "Lingxi reads your wallet on X Layer (balances only: nothing to sign) and gives holders things to see. None of them changes how a pet thinks, fights or earns.",
+    holdP:
+      "Lingxi reads your wallet on X Layer (balances only: nothing to sign) and gives holders things to see. None of them changes how a pet thinks, fights or earns.",
     holdPerks: [
       ["A gilded egg", "Hold a TapeCode-Test1 and your eggs hatch from a gilded shell."],
-      ["A free holder pin", "Hold a TapeCode-Test1 or a TapeOut Rig, or held at least 0.1 BEM or 10 FAB at block 76,052,000: a pin your pet wears, one per wallet, for the gas alone."],
+      [
+        "A free holder pin",
+        "Hold a TapeCode-Test1 or a TapeOut Rig, or held at least 0.1 BEM or 10 FAB at block 76,052,000: a pin your pet wears, one per wallet, for the gas alone.",
+      ],
       ["A rig-bay home", "Hold a TapeOut Rig and your pet's home can wear the rig bay."],
     ],
     holdCta: "Check your wallet in the game",
@@ -79,7 +100,8 @@ export const COPY = {
     hint: "点一点宠物。点草地，它会跑过来。",
     growLabel: "陪你长大",
     growH: "从一颗蛋，到一个“谁”。",
-    growP: "三颗蛋任选一颗。一周里，它从摇摇晃晃的宝宝长大成年，长成什么样，取决于你怎么养：吃了什么、照顾得怎样、教了它什么。",
+    growP:
+      "三颗蛋任选一颗。一周里，它从摇摇晃晃的宝宝长大成年，长成什么样，取决于你怎么养：吃了什么、照顾得怎样、教了它什么。",
     stages: [
       ["蛋", "三选一"],
       ["宝宝", "第 1 天"],
@@ -89,18 +111,22 @@ export const COPY = {
     ],
     mindLabel: "看得懂的心智",
     mindH: "每一个念头，都是一条看得见的规则。",
-    mindP: "你的宠物不是在跑一段藏起来的脚本。它的大脑是一块由与非门和记忆单元组成的 TapeOut 电路。每分钟，它读取自己的感受、现在的时间、你刚做了什么，触发的那条规则会一门一门亮给你看。",
+    mindP:
+      "你的宠物不是在跑一段藏起来的脚本。它的大脑是一块由与非门和记忆单元组成的 TapeOut 电路。每分钟，它读取自己的感受、现在的时间、你刚做了什么，触发的那条规则会一门一门亮给你看。",
     facts: ["个门组成团子的初始大脑", "位记忆，一天天带在身上", "种输入组合，每一种都对照规则测过"],
     teachLabel: "用你自己的话教它",
     teachH: "直接说，它就学会一条规则。",
-    teachP: "写下你想让它学的事。灵犀把你的话变成它大脑里的一条规则，改动之前先给你看。宠物学堂的课不需要服务器，你也可以自己动手拼规则。",
+    teachP:
+      "写下你想让它学的事。灵犀把你的话变成它大脑里的一条规则，改动之前先给你看。宠物学堂的课不需要服务器，你也可以自己动手拼规则。",
     worldLabel: "一个可以生活的小世界",
     worldH: "每个地方都有自己的光。",
-    worldP: "七十个地方可以逛，从森林到莲池，都跟着你的时钟从早到晚变化。到处找找零食和材料，动手制作，跑跑差事，认识住在这里的人。",
+    worldP:
+      "七十个地方可以逛，从森林到莲池，都跟着你的时钟从早到晚变化。到处找找零食和材料，动手制作，跑跑差事，认识住在这里的人。",
     residents: "居民",
     friendsLabel: "朋友与串门",
     friendsH: "宠物们会见面、一起玩、互相照顾。",
-    friendsP: "把链接发给朋友，你们的宠物就能实时待在同一个房间：挥手、打招呼、送小心心。宠物还能替你给任何人送礼：一封信，再加一颗会孵出它弟弟妹妹的蛋，不用钱包也能收。两只长大的宠物还可以一起养一只小宝宝，它的心智由它们俩的心智拼成。",
+    friendsP:
+      "把链接发给朋友，你们的宠物就能实时待在同一个房间：挥手、打招呼、送小心心。宠物还能替你给任何人送礼：一封信，再加一颗会孵出它弟弟妹妹的蛋，不用钱包也能收。两只长大的宠物还可以一起养一只小宝宝，它的心智由它们俩的心智拼成。",
     friendsCards: [
       ["实时串门", "同一个房间里的宠物能实时看到彼此"],
       ["链接送礼", "一封信、一颗蛋、一份零食，不用注册就能拆"],
@@ -109,24 +135,33 @@ export const COPY = {
     ],
     sparLabel: "切磋",
     sparH: "没人按按钮，是它的心智在比赛。",
-    sparP: "切磋时，每一招都来自宠物自己的电路读取场上局势。输了，教练会把它能学的每一课都放进练习里重打一遍，告诉你哪一课真的能赢。",
+    sparP:
+      "切磋时，每一招都来自宠物自己的电路读取场上局势。输了，教练会把它能学的每一课都放进练习里重打一遍，告诉你哪一课真的能赢。",
     sparCoach: "教练：试着教它看到机会就扑上去。",
     proofLabel: "自己来验证",
     proofH: "你不需要相信我们。",
-    proofP: "宠物放到 X Layer 上之后，由你保存它的一天，也可以交给这台设备代劳：它的记忆，连同它感受到的一切的指纹。你公开它的日记之后，任何人都能用链上同一块电路，重放它的念头。",
+    proofP:
+      "宠物放到 X Layer 上之后，由你保存它的一天，也可以交给这台设备代劳：它的记忆，连同它感受到的一切的指纹。你公开它的日记之后，任何人都能用链上同一块电路，重放它的念头。",
     proofSteps: [
       ["一个心智，一块电路", "大脑在 TapeOut 上流片，字节就存在链上"],
       ["一天存一次", "全部状态装进 256 位，花费不到一分钱"],
       ["任何念头，随时重放", "在链上重跑一拍：团子 296 个门约 76 万 gas"],
-      ["已在链上", "1 号宠物 11 月 15 日在 X Layer 上孵化：在它保存的记忆下，全部 65,536 种可能的输入都与链上的答案一致"],
+      [
+        "已在链上",
+        "1 号宠物 11 月 15 日在 X Layer 上孵化：在它保存的记忆下，全部 65,536 种可能的输入都与链上的答案一致",
+      ],
     ],
     proofCta: "打开验证页",
     holdLabel: "给 TapeOut 持有人",
     holdH: "持有 TapeOut？看得见。",
-    holdP: "灵犀会读你在 X Layer 上的钱包（只读余额，不用签任何东西），给持有人看得见的东西。这些都不会改变宠物怎么想、怎么打、怎么赚。",
+    holdP:
+      "灵犀会读你在 X Layer 上的钱包（只读余额，不用签任何东西），给持有人看得见的东西。这些都不会改变宠物怎么想、怎么打、怎么赚。",
     holdPerks: [
       ["镀金的蛋", "持有一枚 TapeCode-Test1，你的蛋就从镀金蛋壳里孵出来。"],
-      ["免费的持有人徽章", "持有一枚 TapeCode-Test1 或一台 TapeOut 矿机，或在第 76,052,000 个区块时持有至少 0.1 BEM 或 10 FAB：一枚给宠物戴的徽章，每个钱包一枚，只需网络手续费。"],
+      [
+        "免费的持有人徽章",
+        "持有一枚 TapeCode-Test1 或一台 TapeOut 矿机，或在第 76,052,000 个区块时持有至少 0.1 BEM 或 10 FAB：一枚给宠物戴的徽章，每个钱包一枚，只需网络手续费。",
+      ],
       ["矿机间的家", "持有一台 TapeOut 矿机，宠物的家就能换上矿机间的样子。"],
     ],
     holdCta: "在游戏里查看你的钱包",

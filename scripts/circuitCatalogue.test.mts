@@ -7,7 +7,17 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { keccak256 } from "viem";
-import { STARTERS, beat, bitsToWord, compileProgram, load, netlistBytes, ruleBytes, stateBits, wordToBits } from "@lingxi/brain";
+import {
+  STARTERS,
+  beat,
+  bitsToWord,
+  compileProgram,
+  load,
+  netlistBytes,
+  ruleBytes,
+  stateBits,
+  wordToBits,
+} from "@lingxi/brain";
 import { RULES } from "@lingxi/chain";
 
 const root = join(import.meta.dirname, "..");
@@ -16,10 +26,29 @@ const cat = JSON.parse(readFileSync(join(root, "apps/web/public/circuits.json"),
   encoding: Record<string, string>;
   encodingZh: Record<string, string>;
   brainPins: unknown;
-  rules: Array<{ name: string; id: string; nIn: number; inBits: number; netlistKeccak: string; fields: unknown; vectors: Array<[number, number]> }>;
-  brains: Array<{ line: "gentle" | "bold" | "curious"; id: string; nState: number; netlistKeccak: string; vectors: Array<{ input: number; output: number; nextState: number }>; walk: Array<{ state: number; input: number; output: number; nextState: number }> }>;
+  rules: Array<{
+    name: string;
+    id: string;
+    nIn: number;
+    inBits: number;
+    netlistKeccak: string;
+    fields: unknown;
+    vectors: Array<[number, number]>;
+  }>;
+  brains: Array<{
+    line: "gentle" | "bold" | "curious";
+    id: string;
+    nState: number;
+    netlistKeccak: string;
+    vectors: Array<{ input: number; output: number; nextState: number }>;
+    walk: Array<{ state: number; input: number; output: number; nextState: number }>;
+  }>;
 };
-const d = JSON.parse(readFileSync(join(root, "packages/chain/deployments/xlayer.json"), "utf8")) as { processor: string; rules: Record<string, { id: string }>; circuits: Record<string, { id: string }> };
+const d = JSON.parse(readFileSync(join(root, "packages/chain/deployments/xlayer.json"), "utf8")) as {
+  processor: string;
+  rules: Record<string, { id: string }>;
+  circuits: Record<string, { id: string }>;
+};
 
 describe("the circuit catalogue (H6)", () => {
   it("says how to call a circuit and what each pin means in Chinese too, beside the English (C5)", () => {
@@ -27,7 +56,10 @@ describe("the circuit catalogue (H6)", () => {
     const encodingZh = cat.encodingZh as Record<string, string>;
     expect(Object.keys(encodingZh).sort()).toEqual(Object.keys(encoding).sort());
     for (const v of Object.values(encodingZh)) expect(v).toMatch(/[一-鿿]/);
-    const pins = cat.brainPins as { inputs: Array<{ name: string; values: string[]; nameZh: string; valuesZh: string[] }>; outputs: Array<{ name: string; values: string[]; nameZh: string; valuesZh: string[] }> };
+    const pins = cat.brainPins as {
+      inputs: Array<{ name: string; values: string[]; nameZh: string; valuesZh: string[] }>;
+      outputs: Array<{ name: string; values: string[]; nameZh: string; valuesZh: string[] }>;
+    };
     for (const p of [...pins.inputs, ...pins.outputs]) {
       expect(p.nameZh, p.name).toMatch(/[一-鿿]/);
       expect(p.valuesZh.length, p.name).toBe(p.values.length);
@@ -55,7 +87,9 @@ describe("the circuit catalogue (H6)", () => {
     for (const rule of RULES) {
       const inp = covers(rule.fields.inputs);
       expect(inp.unique, `${rule.name} inputs overlap`).toBe(true);
-      expect(inp.bits, `${rule.name} inputs cover its ${rule.inBits} bits`).toEqual(Array.from({ length: rule.inBits }, (_, k) => k));
+      expect(inp.bits, `${rule.name} inputs cover its ${rule.inBits} bits`).toEqual(
+        Array.from({ length: rule.inBits }, (_, k) => k),
+      );
       const out = covers(rule.fields.outputs);
       expect(out.unique, `${rule.name} outputs overlap`).toBe(true);
       expect(Math.max(...out.bits), `${rule.name} outputs fit a byte`).toBeLessThan(8);
@@ -75,14 +109,23 @@ describe("the circuit catalogue (H6)", () => {
       const circuit = load(bytes, 16, 8);
       for (const v of b.vectors) {
         const [next, outs] = beat(circuit, new Array<number>(b.nState).fill(0), wordToBits(v.input, 16));
-        expect([Number(bitsToWord(outs)), Number(bitsToWord(next))], `${b.line} ${v.input}`).toEqual([v.output, v.nextState]);
+        expect([Number(bitsToWord(outs)), Number(bitsToWord(next))], `${b.line} ${v.input}`).toEqual([
+          v.output,
+          v.nextState,
+        ]);
       }
       // the walk carries memory: each beat starts where the last one left it, and some leave it not zero
-      expect(b.walk.some((v) => v.state !== 0), `${b.line}'s walk reaches a memory that is not zero`).toBe(true);
+      expect(
+        b.walk.some((v) => v.state !== 0),
+        `${b.line}'s walk reaches a memory that is not zero`,
+      ).toBe(true);
       b.walk.forEach((v, k) => {
         if (k > 0) expect(v.state, `${b.line} beat ${k}`).toBe(b.walk[k - 1]!.nextState);
         const [next, outs] = beat(circuit, wordToBits(v.state, b.nState), wordToBits(v.input, 16));
-        expect([Number(bitsToWord(outs)), Number(bitsToWord(next))], `${b.line} beat ${k}`).toEqual([v.output, v.nextState]);
+        expect([Number(bitsToWord(outs)), Number(bitsToWord(next))], `${b.line} beat ${k}`).toEqual([
+          v.output,
+          v.nextState,
+        ]);
       });
     }
   });

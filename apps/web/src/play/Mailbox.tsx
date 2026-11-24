@@ -16,7 +16,12 @@ export function MailboxPanel() {
   useEffect(() => {
     if (!loaded) void fetchMail();
   }, [loaded, fetchMail]);
-  if (!letters.length) return <p className="small">{mail.loaded ? L("No letters yet.", "还没有信。") : L("Fetching the mail…", "正在取信……")}</p>;
+  if (!letters.length)
+    return (
+      <p className="small">
+        {mail.loaded ? L("No letters yet.", "还没有信。") : L("Fetching the mail…", "正在取信……")}
+      </p>
+    );
   return (
     <ul className="mail-list">
       {letters.map((l) => {
@@ -48,8 +53,18 @@ export function MailboxPanel() {
               <div className="mail-body">
                 <p>{l.body[lang]}</p>
                 {l.gift && (
-                  <button type="button" className="btn primary" disabled={claimed} onClick={() => (play("success"), mail.claim(l.id))}>
-                    {claimed ? L("Taken", "已领取") : L(`Take ${ITEM[l.gift.item]?.name.en ?? "the gift"} ×${l.gift.n}`, `领取 ${ITEM[l.gift.item]?.name.zh ?? "礼物"} ×${l.gift.n}`)}
+                  <button
+                    type="button"
+                    className="btn primary"
+                    disabled={claimed}
+                    onClick={() => (play("success"), mail.claim(l.id))}
+                  >
+                    {claimed
+                      ? L("Taken", "已领取")
+                      : L(
+                          `Take ${ITEM[l.gift.item]?.name.en ?? "the gift"} ×${l.gift.n}`,
+                          `领取 ${ITEM[l.gift.item]?.name.zh ?? "礼物"} ×${l.gift.n}`,
+                        )}
                   </button>
                 )}
               </div>

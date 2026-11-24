@@ -46,7 +46,14 @@ export function OwnedInstinctPanel({ pet }: { pet: Pet }) {
       const w = await connectWallet();
       setAddress(w.account!.address);
     } catch (e) {
-      setNote(errorText(e) === "noWallet" ? L("No wallet found in this browser. Open Lingxi in the OKX Wallet app, or a browser with a wallet.", "这个浏览器里没有钱包。请在 OKX 钱包应用里打开灵犀，或用装了钱包的浏览器。") : L("The wallet didn't connect.", "钱包没有连上。"));
+      setNote(
+        errorText(e) === "noWallet"
+          ? L(
+              "No wallet found in this browser. Open Lingxi in the OKX Wallet app, or a browser with a wallet.",
+              "这个浏览器里没有钱包。请在 OKX 钱包应用里打开灵犀，或用装了钱包的浏览器。",
+            )
+          : L("The wallet didn't connect.", "钱包没有连上。"),
+      );
     }
   };
 
@@ -62,15 +69,39 @@ export function OwnedInstinctPanel({ pet }: { pet: Pet }) {
       const ids = Array.from({ length: Math.max(0, Math.min(next, SCAN_LIMIT)) }, (_, i) => BigInt(i + 1));
       const found: Owned[] = [];
       for (const id of ids) {
-        const who = (await publicClient.readContract({ address: cpu, abi: processorAbi, functionName: "ownerOf", args: [id] }).catch(() => "")) as string;
+        const who = (await publicClient
+          .readContract({ address: cpu, abi: processorAbi, functionName: "ownerOf", args: [id] })
+          .catch(() => "")) as string;
         if (who.toLowerCase() !== address.toLowerCase()) continue;
-        const info = (await publicClient.readContract({ address: cpu, abi: processorAbi, functionName: "circuitInfo", args: [id] })) as readonly [bigint, bigint, bigint, bigint];
-        if (Number(info[0]) === 16 && Number(info[1]) === 8) found.push({ processor: cpu.toLowerCase(), id: id.toString(), gates: Number(info[3]), nState: Number(info[2]) });
+        const info = (await publicClient.readContract({
+          address: cpu,
+          abi: processorAbi,
+          functionName: "circuitInfo",
+          args: [id],
+        })) as readonly [bigint, bigint, bigint, bigint];
+        if (Number(info[0]) === 16 && Number(info[1]) === 8)
+          found.push({
+            processor: cpu.toLowerCase(),
+            id: id.toString(),
+            gates: Number(info[3]),
+            nState: Number(info[2]),
+          });
       }
       setOwned(found);
-      if (next > SCAN_LIMIT) setNote(L(`Only the first ${SCAN_LIMIT} circuits on this processor were checked.`, `只检查了这个处理器上的前 ${SCAN_LIMIT} 个电路。`));
+      if (next > SCAN_LIMIT)
+        setNote(
+          L(
+            `Only the first ${SCAN_LIMIT} circuits on this processor were checked.`,
+            `只检查了这个处理器上的前 ${SCAN_LIMIT} 个电路。`,
+          ),
+        );
     } catch {
-      setNote(L("That processor couldn't be read. Check the address, or try again in a moment.", "读不了这个处理器。请检查地址，或稍后再试。"));
+      setNote(
+        L(
+          "That processor couldn't be read. Check the address, or try again in a moment.",
+          "读不了这个处理器。请检查地址，或稍后再试。",
+        ),
+      );
     }
     setBusy(null);
   };
@@ -95,10 +126,29 @@ export function OwnedInstinctPanel({ pet }: { pet: Pet }) {
         const r = teach({ processor: c.processor, id: c.id, owner: c.owner.toLowerCase(), parts: c.parts });
         if (r.ok) play("success");
         else if (r.reason === "tooManyGates") setNote(tooManyGates(r.gates));
-        else setNote(r.reason === "tooBig" ? L(`Its memory doesn't fit beside ${pet.name}'s: there is room for ${room} more bits.`, `它的记忆放不进${pet.name}的大脑：只剩 ${room} 位的空间。`) : r.reason === "tooLong" ? L(`That circuit is too big to travel with ${pet.name}: friends, seasons and duels could not read ${pet.name}'s card. An instinct can take up to 12,000 bytes of circuit.`, `那个电路太大，没法跟着${pet.name}走：朋友、赛季和切磋都读不了${pet.name}的卡片。本能的电路最多 12,000 字节。`) : r.reason === "notYours" ? L(`${pet.name} is away or is a friend's pet.`, `${pet.name}不在家，或是朋友托你照看的。`) : L("That circuit can't be read as a pet's brain.", "那个电路读不成宠物的大脑。"));
+        else
+          setNote(
+            r.reason === "tooBig"
+              ? L(
+                  `Its memory doesn't fit beside ${pet.name}'s: there is room for ${room} more bits.`,
+                  `它的记忆放不进${pet.name}的大脑：只剩 ${room} 位的空间。`,
+                )
+              : r.reason === "tooLong"
+                ? L(
+                    `That circuit is too big to travel with ${pet.name}: friends, seasons and duels could not read ${pet.name}'s card. An instinct can take up to 12,000 bytes of circuit.`,
+                    `那个电路太大，没法跟着${pet.name}走：朋友、赛季和切磋都读不了${pet.name}的卡片。本能的电路最多 12,000 字节。`,
+                  )
+                : r.reason === "notYours"
+                  ? L(`${pet.name} is away or is a friend's pet.`, `${pet.name}不在家，或是朋友托你照看的。`)
+                  : L("That circuit can't be read as a pet's brain.", "那个电路读不成宠物的大脑。"),
+          );
       }
     } catch (e) {
-      setNote(e instanceof AdoptError && e.reason === "tooBig" ? L("That circuit is too big for a pet to carry on a phone.", "那个电路太大了，宠物在手机上带不动。") : L("That circuit couldn't be read just now.", "暂时读不了那个电路。"));
+      setNote(
+        e instanceof AdoptError && e.reason === "tooBig"
+          ? L("That circuit is too big for a pet to carry on a phone.", "那个电路太大了，宠物在手机上带不动。")
+          : L("That circuit couldn't be read just now.", "暂时读不了那个电路。"),
+      );
     }
     setBusy(null);
   };
@@ -119,8 +169,16 @@ export function OwnedInstinctPanel({ pet }: { pet: Pet }) {
           <p className="small">
             <b>{L(`${pet.name}'s instinct: circuit #${current.id}`, `${pet.name}的本能：#${current.id} 号电路`)}</b>
             <br />
-            {L(`on ${short(current.processor)} · made and owned by ${current.owner ? short(current.owner) : "unknown"}`, `在 ${short(current.processor)} 上 · 作者和拥有者 ${current.owner ? short(current.owner) : "未知"}`)}
-            {currentInfo ? L(` · ${currentInfo.gates} gates · ${currentInfo.nState} memory bits`, ` · ${currentInfo.gates} 个门 · ${currentInfo.nState} 位记忆`) : ""}
+            {L(
+              `on ${short(current.processor)} · made and owned by ${current.owner ? short(current.owner) : "unknown"}`,
+              `在 ${short(current.processor)} 上 · 作者和拥有者 ${current.owner ? short(current.owner) : "未知"}`,
+            )}
+            {currentInfo
+              ? L(
+                  ` · ${currentInfo.gates} gates · ${currentInfo.nState} memory bits`,
+                  ` · ${currentInfo.gates} 个门 · ${currentInfo.nState} 位记忆`,
+                )
+              : ""}
           </p>
           <button type="button" className="btn" onClick={() => (play("tap"), forget())}>
             {L("Forget this instinct", "忘掉这个本能")}
@@ -141,12 +199,25 @@ export function OwnedInstinctPanel({ pet }: { pet: Pet }) {
               void scan();
             }}
           >
-            <input value={processor} onChange={(e) => setProcessor(e.target.value)} placeholder="0x…" aria-label={L("Processor address", "处理器地址")} spellCheck={false} />
+            <input
+              value={processor}
+              onChange={(e) => setProcessor(e.target.value)}
+              placeholder="0x…"
+              aria-label={L("Processor address", "处理器地址")}
+              spellCheck={false}
+            />
             <button type="submit" className="btn" disabled={busy !== null}>
               {busy === "scan" ? L("Looking…", "查找中……") : L("List my circuits", "列出我的电路")}
             </button>
           </form>
-          {owned && !owned.length && <p className="small">{L("This wallet owns no circuit with a pet's pins on that processor.", "这个钱包在那个处理器上没有引脚接得上宠物大脑的电路。")}</p>}
+          {owned && !owned.length && (
+            <p className="small">
+              {L(
+                "This wallet owns no circuit with a pet's pins on that processor.",
+                "这个钱包在那个处理器上没有引脚接得上宠物大脑的电路。",
+              )}
+            </p>
+          )}
           {owned && owned.length > 0 && (
             <ul className="owned-list">
               {owned.map((o) => {
@@ -158,12 +229,30 @@ export function OwnedInstinctPanel({ pet }: { pet: Pet }) {
                   <li key={`${o.processor}:${o.id}`}>
                     <span>
                       <b>{L(`Circuit #${o.id}`, `#${o.id} 号电路`)}</b>
-                      <span className="small">{L(` · ${o.gates.toLocaleString("en")} gates · ${o.nState} memory bits`, ` · ${o.gates.toLocaleString("zh-CN")} 个门 · ${o.nState} 位记忆`)}</span>
+                      <span className="small">
+                        {L(
+                          ` · ${o.gates.toLocaleString("en")} gates · ${o.nState} memory bits`,
+                          ` · ${o.gates.toLocaleString("zh-CN")} 个门 · ${o.nState} 位记忆`,
+                        )}
+                      </span>
                       {/* said on the page, not only in a tooltip a phone never shows (A38) */}
                       {!runs && <span className="small sp-warn owned-why">{tooManyGates(o.gates)}</span>}
                     </span>
-                    <button type="button" className="btn primary" disabled={!fits || !runs || isCurrent || busy !== null} onClick={() => void teachIt(o)}>
-                      {isCurrent ? L("Its instinct", "已是本能") : busy === o.id ? L("Reading…", "读取中……") : !runs ? L("Too many gates", "门太多") : fits ? L("Teach as instinct", "教成本能") : L("Too much memory", "记忆太多")}
+                    <button
+                      type="button"
+                      className="btn primary"
+                      disabled={!fits || !runs || isCurrent || busy !== null}
+                      onClick={() => void teachIt(o)}
+                    >
+                      {isCurrent
+                        ? L("Its instinct", "已是本能")
+                        : busy === o.id
+                          ? L("Reading…", "读取中……")
+                          : !runs
+                            ? L("Too many gates", "门太多")
+                            : fits
+                              ? L("Teach as instinct", "教成本能")
+                              : L("Too much memory", "记忆太多")}
                     </button>
                   </li>
                 );

@@ -22,11 +22,16 @@ export const WARM_AFTER_MS = 6000;
 export function warmDeferred(): () => void {
   let stopped = false;
   let started = false;
-  const idle = (f: () => void) => ("requestIdleCallback" in window ? requestIdleCallback(() => f(), { timeout: 2000 }) : setTimeout(f, 50));
+  const idle = (f: () => void) =>
+    "requestIdleCallback" in window ? requestIdleCallback(() => f(), { timeout: 2000 }) : setTimeout(f, 50);
   const next = () => {
     if (stopped) return;
     const load = waiting.shift();
-    if (load) load().then(() => idle(next), () => idle(next));
+    if (load)
+      load().then(
+        () => idle(next),
+        () => idle(next),
+      );
   };
   const start = () => {
     if (started || stopped) return;

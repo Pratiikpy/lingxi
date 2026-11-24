@@ -16,7 +16,13 @@ export function RemindersPanel({ pet }: { pet: Pet }) {
       <p className="label">{t("remind.title")}</p>
       <p className="small">{t("remind.pitch", { name: pet.name })}</p>
       {can === "ok" ? (
-        <button type="button" className={on ? "btn" : "btn primary"} disabled={busy} aria-pressed={on} onClick={() => (play("tap"), on ? disable() : enable(pet, lang))}>
+        <button
+          type="button"
+          className={on ? "btn" : "btn primary"}
+          disabled={busy}
+          aria-pressed={on}
+          onClick={() => (play("tap"), on ? disable() : enable(pet, lang))}
+        >
           {on ? t("remind.off") : t("remind.on")}
         </button>
       ) : (

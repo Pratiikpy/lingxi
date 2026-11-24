@@ -66,7 +66,9 @@ describe("starter brains", () => {
           const st = new Uint8Array(zero.length);
           const out = fast.step(st, w);
           if (out !== want.out || Array.from(st).join("") !== want.state.join("")) {
-            throw new Error(`word ${w}: got ${out}/${Array.from(st).join("")}, want ${want.out}/${want.state.join("")}`);
+            throw new Error(
+              `word ${w}: got ${out}/${Array.from(st).join("")}, want ${want.out}/${want.state.join("")}`,
+            );
           }
         }
       });
@@ -123,13 +125,26 @@ describe("memory semantics", () => {
     // memory is read as it was at the start of the beat
     expect(runBeat(p, [0], feed).out).toBe(0 | (1 << 3));
     expect(runBeat(p, [1], 0).out).toBe(2 | (3 << 3));
-    checkAgainstInterpreter(p, [[[0], feed], [[1], 0], [[1], play], [[0], 0]]);
+    checkAgainstInterpreter(p, [
+      [[0], feed],
+      [[1], 0],
+      [[1], play],
+      [[0], 0],
+    ]);
   });
 
   it("a counter saturates at both ends, and inc with dec together cancel", () => {
     const p = validateProgram({
       ...base,
-      memory: [{ name: "c", kind: "counter", bits: 2, inc: [{ action: [1] }, { owner: [1] }], dec: [{ action: [2] }, { owner: [1] }] }],
+      memory: [
+        {
+          name: "c",
+          kind: "counter",
+          bits: 2,
+          inc: [{ action: [1] }, { owner: [1] }],
+          dec: [{ action: [2] }, { owner: [1] }],
+        },
+      ],
       rules: [],
     });
     const feed = 1 << 10;
@@ -173,17 +188,30 @@ describe("memory semantics", () => {
 describe("validation", () => {
   const base = { version: "LX-PET/1", memory: [], otherwise: { want: 0, mood: 1 } };
   it("rejects unknown fields, bad values, bad names and too much memory", () => {
-    expect(() => validateProgram({ ...base, rules: [{ when: { nope: [1] }, then: { want: 1, mood: 1 } }] })).toThrow(/unknown field/);
-    expect(() => validateProgram({ ...base, rules: [{ when: { hunger: [4] }, then: { want: 1, mood: 1 } }] })).toThrow(/0\.\.3/);
+    expect(() => validateProgram({ ...base, rules: [{ when: { nope: [1] }, then: { want: 1, mood: 1 } }] })).toThrow(
+      /unknown field/,
+    );
+    expect(() => validateProgram({ ...base, rules: [{ when: { hunger: [4] }, then: { want: 1, mood: 1 } }] })).toThrow(
+      /0\.\.3/,
+    );
     expect(() => validateProgram({ ...base, rules: [{ when: {}, then: { want: 8, mood: 1 } }] })).toThrow(/want/);
-    expect(() => validateProgram({ ...base, memory: [{ name: "hunger", kind: "flag", set: [] }], rules: [] })).toThrow(/taken/);
+    expect(() => validateProgram({ ...base, memory: [{ name: "hunger", kind: "flag", set: [] }], rules: [] })).toThrow(
+      /taken/,
+    );
     expect(() =>
-      validateProgram({ ...base, memory: Array.from({ length: 13 }, (_, i) => ({ name: `m${i}`, kind: "counter", bits: 4 })), rules: [] }),
+      validateProgram({
+        ...base,
+        memory: Array.from({ length: 13 }, (_, i) => ({ name: `m${i}`, kind: "counter", bits: 4 })),
+        rules: [],
+      }),
     ).toThrow(/48 memory bits/);
     expect(() => validateProgram({ ...base, version: "X", rules: [] })).toThrow(/version/);
   });
   it("drops a condition that allows every value", () => {
-    const p = validateProgram({ ...base, rules: [{ when: { hunger: [0, 1, 2, 3], owner: [1] }, then: { want: 1, mood: 1 } }] });
+    const p = validateProgram({
+      ...base,
+      rules: [{ when: { hunger: [0, 1, 2, 3], owner: [1] }, then: { want: 1, mood: 1 } }],
+    });
     expect(p.rules[0]!.when).toEqual({ owner: [1] });
   });
 });
@@ -216,8 +244,10 @@ function randomProgram(r: () => number): Program {
   names.forEach((m, i) => {
     const kind = m.bits === 1 && r() < 0.5 ? "flag" : pick(["counter", "timer"] as const);
     if (kind === "flag") memory.push({ name: m.name, kind, set: clauses(), reset: clauses() });
-    else if (kind === "counter") memory.push({ name: m.name, kind, bits: m.bits, inc: clauses(), dec: clauses(), reset: clauses() });
-    else memory.push({ name: m.name, kind, bits: m.bits, reset: clauses(), ...(r() < 0.5 ? { count: clauses() } : {}) });
+    else if (kind === "counter")
+      memory.push({ name: m.name, kind, bits: m.bits, inc: clauses(), dec: clauses(), reset: clauses() });
+    else
+      memory.push({ name: m.name, kind, bits: m.bits, reset: clauses(), ...(r() < 0.5 ? { count: clauses() } : {}) });
     void i;
   });
   const rules = Array.from({ length: Math.floor(r() * 12) }, () => ({

@@ -9,7 +9,13 @@ import { useBadges } from "./badges";
 import { now as gameNow } from "./gameClock";
 import { saveWrite } from "./saveRuntime";
 
-export const PALETTES: Record<BuilderPet["look"]["palette"], Palette> = { silicon: SILICON, mars: MARS, sky: SKY, sunny: SUNNY, mint: MINT };
+export const PALETTES: Record<BuilderPet["look"]["palette"], Palette> = {
+  silicon: SILICON,
+  mars: MARS,
+  sky: SKY,
+  sunny: SUNNY,
+  mint: MINT,
+};
 const KEY = "lingxi.builders.v1";
 
 /** What a resident wears right now: Behemoth's lamps follow its CPU. */
@@ -28,7 +34,12 @@ export function builderInScene(b: BuilderPet, lang: "en" | "zh", saidAt: number)
     stage: b.look.stage,
     mood: now.mood,
     say: { text: now.line[lang], at: saidAt },
-    look: { palette: { key: b.look.palette, colors: PALETTES[b.look.palette] }, outfitAt: (ms: number) => builderOutfit(b, ms), x: b.spot.x, lit: b.mind.kind === "cpu" },
+    look: {
+      palette: { key: b.look.palette, colors: PALETTES[b.look.palette] },
+      outfitAt: (ms: number) => builderOutfit(b, ms),
+      x: b.spot.x,
+      lit: b.mind.kind === "cpu",
+    },
   };
 }
 

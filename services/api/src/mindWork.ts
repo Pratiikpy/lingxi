@@ -6,8 +6,17 @@ import { sameBrain } from "./seasonProof";
 
 const { circuit, line, card } = workerData as { circuit: Circuit; line: StarterLine; card: PetCard };
 try {
-  const mine = mindBrain({ line, lessons: card.lessons, family: card.family, instincts: card.instincts, outside: card.outside, growth: card.growth });
-  parentPort!.postMessage({ same: sameBrain({ fast: circuitBrain(circuit), nState: circuit.nState }, mine, card.memory) });
+  const mine = mindBrain({
+    line,
+    lessons: card.lessons,
+    family: card.family,
+    instincts: card.instincts,
+    outside: card.outside,
+    growth: card.growth,
+  });
+  parentPort!.postMessage({
+    same: sameBrain({ fast: circuitBrain(circuit), nState: circuit.nState }, mine, card.memory),
+  });
 } catch (e) {
   parentPort!.postMessage({ error: e instanceof Error ? e.message : String(e) });
 }

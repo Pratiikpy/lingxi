@@ -4,12 +4,30 @@
  */
 import { describe, expect, it } from "vitest";
 import { HOME, newWorld } from "@lingxi/world";
-import { awayTally, careTally, fedTally, GIVER_ROOM, meetTally, minuteTally, questView, talkTally } from "../src/tallyRules";
+import {
+  awayTally,
+  careTally,
+  fedTally,
+  GIVER_ROOM,
+  meetTally,
+  minuteTally,
+  questView,
+  talkTally,
+} from "../src/tallyRules";
 import { mindBrain } from "../src/family";
 import { type Pet, createPet } from "../src/sim";
 
 const T = Date.UTC(2026, 10, 23, 10, 0);
-const pet = (o: Partial<Pet> = {}): Pet => ({ ...createPet({ name: "Kiri", line: "gentle", now: T, tzOffsetMin: 0, brain: mindBrain({ line: "gentle", lessons: [] }) }), ...o });
+const pet = (o: Partial<Pet> = {}): Pet => ({
+  ...createPet({
+    name: "Kiri",
+    line: "gentle",
+    now: T,
+    tzOffsetMin: 0,
+    brain: mindBrain({ line: "gentle", lessons: [] }),
+  }),
+  ...o,
+});
 
 describe("what a player's actions count toward (G11)", () => {
   it("a care counts as what it did, by the pet's time of day; waking an awake pet counts nothing", () => {
@@ -38,7 +56,8 @@ describe("what a player's actions count toward (G11)", () => {
     const out = minuteTally(HOME, p, T, 2);
     expect(out[0]).toEqual(["TOGETHER", HOME, 2, true]);
     expect(out.some(([type, index]) => type === "TOGETHER_WHEN" && String(index).endsWith("-inside"))).toBe(true);
-    for (const o of [{ asleep: true }, { away: true }, { hibernating: true }]) expect(minuteTally(HOME, pet(o as Partial<Pet>), T)).toEqual([]);
+    for (const o of [{ asleep: true }, { away: true }, { hibernating: true }])
+      expect(minuteTally(HOME, pet(o as Partial<Pet>), T)).toEqual([]);
   });
 
   it("the pet's choices while away, a talk and a look at a builder's pet", () => {
@@ -56,10 +75,28 @@ describe("what a player's actions count toward (G11)", () => {
 
   it("the quest view reads the pet, or none before the first egg", () => {
     const world = newWorld("tally");
-    const v = questView({ world, pet: pet(), pets: 1, onChain: false, bondLevel: 0, goalsDone: [], now: T, tzOffsetMin: 0 });
+    const v = questView({
+      world,
+      pet: pet(),
+      pets: 1,
+      onChain: false,
+      bondLevel: 0,
+      goalsDone: [],
+      now: T,
+      tzOffsetMin: 0,
+    });
     expect(v.pet).toMatchObject({ level: 1, stage: "baby", onChain: false });
     expect(v.day).toBe("2026-11-23");
-    const none = questView({ world, pet: null, pets: 0, onChain: false, bondLevel: 2, goalsDone: [], now: T, tzOffsetMin: 480 });
+    const none = questView({
+      world,
+      pet: null,
+      pets: 0,
+      onChain: false,
+      bondLevel: 2,
+      goalsDone: [],
+      now: T,
+      tzOffsetMin: 480,
+    });
     expect(none.pet).toBeNull();
     expect(none.timeOfDay).toBe(2);
     expect(none.day).toBe("2026-11-23");

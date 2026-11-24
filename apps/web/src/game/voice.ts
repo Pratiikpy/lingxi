@@ -13,7 +13,9 @@ import { decidingPart } from "./store";
 import { now as gameNow } from "./gameClock";
 import { voiceBody } from "./requests";
 
-const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const BASE =
+  (import.meta.env.VITE_API_URL as string | undefined) ??
+  (location.hostname === "localhost" ? "http://localhost:8787" : "");
 /** At most one new line this often on its own; a tap may ask sooner. */
 const AUTO_EVERY_MS = 45_000;
 const TAP_EVERY_MS = 8_000;
@@ -52,8 +54,19 @@ export const useVoice = create<VoiceState>((set, get) => ({
       const sig = `${lang}|local|${pet.last.want}|${pet.asleep}`;
       const now = gameNow();
       const s = get();
-      if (pet.asleep || now - s.lastAt < (tapped ? TAP_EVERY_MS : AUTO_EVERY_MS) || (!tapped && sig === s.lastSig)) return;
-      const line = tellMoment({ index: pet.beat, at: null, want: pet.last.want, rule: pet.last.rule, program: part.program } as unknown as Frame, lang, strongestHabit(pet.traits));
+      if (pet.asleep || now - s.lastAt < (tapped ? TAP_EVERY_MS : AUTO_EVERY_MS) || (!tapped && sig === s.lastSig))
+        return;
+      const line = tellMoment(
+        {
+          index: pet.beat,
+          at: null,
+          want: pet.last.want,
+          rule: pet.last.rule,
+          program: part.program,
+        } as unknown as Frame,
+        lang,
+        strongestHabit(pet.traits),
+      );
       set((x) => ({ lastAt: now, lastSig: sig, line, id: x.id + 1 }));
       return;
     }

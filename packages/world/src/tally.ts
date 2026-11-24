@@ -13,13 +13,20 @@ export type TallyIndex = number | string;
 export const tallyKey = (type: string, index: TallyIndex = 0): string => `${type}:${index}`;
 
 /** The counter's value; a counter never bumped reads 0. */
-export const tallyOf = (w: Pick<WorldState, "tally">, type: string, index: TallyIndex = 0): number => w.tally?.[tallyKey(type, index)] ?? 0;
+export const tallyOf = (w: Pick<WorldState, "tally">, type: string, index: TallyIndex = 0): number =>
+  w.tally?.[tallyKey(type, index)] ?? 0;
 
 /**
  * Add `n` to TYPE:index and to the TYPE:0 total. A new world is returned; `n` must be a whole number above 0.
  * `total: false` leaves the total alone, for a finer counter of an event already counted (GIVE_TO resident:item).
  */
-export function bump(w: WorldState, type: string, index: TallyIndex = 0, n = 1, opts: { total?: boolean } = {}): WorldState {
+export function bump(
+  w: WorldState,
+  type: string,
+  index: TallyIndex = 0,
+  n = 1,
+  opts: { total?: boolean } = {},
+): WorldState {
   if (!Number.isInteger(n) || n <= 0) return w;
   const t = { ...(w.tally ?? {}) };
   const total = tallyKey(type, 0);
@@ -32,8 +39,10 @@ export function bump(w: WorldState, type: string, index: TallyIndex = 0, n = 1, 
 }
 
 /** Several bumps at once, in order. */
-export const bumpAll = (w: WorldState, entries: ReadonlyArray<readonly [type: string, index: TallyIndex, n: number]>): WorldState =>
-  entries.reduce((acc, [type, index, n]) => bump(acc, type, index, n), w);
+export const bumpAll = (
+  w: WorldState,
+  entries: ReadonlyArray<readonly [type: string, index: TallyIndex, n: number]>,
+): WorldState => entries.reduce((acc, [type, index, n]) => bump(acc, type, index, n), w);
 
 /** Finds from any source (looking around, walks, trips, the river box, the garden) count as FIND per item. */
 export const bumpFinds = (w: WorldState, found: ReadonlyArray<{ item: number; n: number }>): WorldState =>

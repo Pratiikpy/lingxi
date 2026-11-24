@@ -22,7 +22,9 @@ export function normaliseTools(tools: unknown): Array<Record<string, unknown>> |
     seen.add(t.name);
     out.push(Object.fromEntries(COVERED.filter((k) => t[k] !== undefined).map((k) => [k, t[k]])));
   }
-  return out.sort((a, b) => ((a.name as string) < (b.name as string) ? -1 : (a.name as string) > (b.name as string) ? 1 : 0));
+  return out.sort((a, b) =>
+    (a.name as string) < (b.name as string) ? -1 : (a.name as string) > (b.name as string) ? 1 : 0,
+  );
 }
 
 /** TAP-15 §3.3: hex SHA-256 of the canonical JSON of the normalised list, or null when the list has none. */

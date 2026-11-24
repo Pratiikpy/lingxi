@@ -14,7 +14,11 @@ afterEach(() => leave());
 async function open(lang: "en" | "zh") {
   await visit({ at: Date.UTC(2026, 10, 23, 9) });
   // the test page has no canvas to draw on: the icons draw into a stand-in
-  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation((() => ({ clearRect: () => undefined, fillRect: () => undefined, fillStyle: "" })) as never);
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation((() => ({
+    clearRect: () => undefined,
+    fillRect: () => undefined,
+    fillStyle: "",
+  })) as never);
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   const { useLang } = await import("../i18n");
   if (useLang.getState().lang !== lang) useLang.getState().toggle();
@@ -26,7 +30,11 @@ async function open(lang: "en" | "zh") {
   // the bar as the game holds it: the piece in hand lives above it
   function Host() {
     const [held, setHeld] = useState<string | null>(null);
-    return createElement(DecorBar, { selected: held, onSelect: (id: string | null) => (picks.push(id), setHeld(id)), onDone: () => done++ });
+    return createElement(DecorBar, {
+      selected: held,
+      onSelect: (id: string | null) => (picks.push(id), setHeld(id)),
+      onDone: () => done++,
+    });
   }
   const host = document.createElement("div");
   document.body.append(host);
@@ -39,8 +47,28 @@ async function open(lang: "en" | "zh") {
 
 describe("the Decorate bar leaves the room in view (P3a)", () => {
   for (const [lang, w] of [
-    ["en", { pieces: "Pieces", commissions: "Builder's commissions", placing: "Placing: ", change: "Change", count: "0 of 12 placed", tap: "Tap the room where it goes." }],
-    ["zh", { pieces: "摆件", commissions: "建设者的委托", placing: "正在摆放：", change: "换一件", count: "已摆 0/12 件", tap: "点房间里要放的位置。" }],
+    [
+      "en",
+      {
+        pieces: "Pieces",
+        commissions: "Builder's commissions",
+        placing: "Placing: ",
+        change: "Change",
+        count: "0 of 12 placed",
+        tap: "Tap the room where it goes.",
+      },
+    ],
+    [
+      "zh",
+      {
+        pieces: "摆件",
+        commissions: "建设者的委托",
+        placing: "正在摆放：",
+        change: "换一件",
+        count: "已摆 0/12 件",
+        tap: "点房间里要放的位置。",
+      },
+    ],
   ] as const) {
     it(`shows one shelf at a time, and the count beside the coins (${lang})`, async () => {
       const s = await open(lang);
@@ -59,7 +87,9 @@ describe("the Decorate bar leaves the room in view (P3a)", () => {
     it(`folds into one strip with a piece in hand, and Change opens the shelves again (${lang})`, async () => {
       const s = await open(lang);
       // a new player owns no pieces and has 30 coins: tapping one it can afford buys it and puts it in hand
-      const affordable = Array.from(s.host.querySelectorAll(".decor-list .decor-piece.shop")).find((b) => Number(b.querySelector("small")?.textContent?.match(/\d+/)?.[0]) <= 30)!;
+      const affordable = Array.from(s.host.querySelectorAll(".decor-list .decor-piece.shop")).find(
+        (b) => Number(b.querySelector("small")?.textContent?.match(/\d+/)?.[0]) <= 30,
+      )!;
       const name = affordable.querySelector("span")!.textContent!;
       await s.click(affordable);
       expect(s.picks).toEqual([expect.any(String)]);

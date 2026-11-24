@@ -24,7 +24,12 @@ const goal: GoalDef = {
   target: 10,
   start: 1_000,
   end: 2_000,
-  tiers: { 25: [{ kind: "coins", n: 1 }], 50: [{ kind: "coins", n: 2 }], 75: [{ kind: "coins", n: 4 }], 100: [{ kind: "item", item: 1103, n: 1 }] },
+  tiers: {
+    25: [{ kind: "coins", n: 1 }],
+    50: [{ kind: "coins", n: 2 }],
+    75: [{ kind: "coins", n: 4 }],
+    100: [{ kind: "item", item: 1103, n: 1 }],
+  },
   everyone: { text: { en: "for all", zh: "给大家" }, rewards: [{ kind: "item", item: 11004, n: 1 }] },
 };
 const fresh = () => newWorld("goals");
@@ -111,13 +116,30 @@ describe("community goals", () => {
       expect(round[0]!.start).toBe(GOALS[4 * (k - 1)]!.end);
     }
     // rewards are game things, never BEM: no reward kind carries a token
-    for (const g of GOALS) for (const r of [...Object.values(g.tiers).flat(), ...g.everyone.rewards]) expect(["coins", "item", "decor", "piece"]).toContain(r.kind);
+    for (const g of GOALS)
+      for (const r of [...Object.values(g.tiers).flat(), ...g.everyone.rewards])
+        expect(["coins", "item", "decor", "piece"]).toContain(r.kind);
   });
 
   it("refuses a goal with no deadline, a tier with nothing, a stranger for a giver, or a line that does not fit", () => {
-    const bad: GoalDef = { ...goal, giver: "nobody", end: goal.start, target: 2, tiers: { ...goal.tiers, 50: [] }, story: [{ face: "x.png", en: "a".repeat(141), zh: "好" }] };
+    const bad: GoalDef = {
+      ...goal,
+      giver: "nobody",
+      end: goal.start,
+      target: 2,
+      tiers: { ...goal.tiers, 50: [] },
+      story: [{ face: "x.png", en: "a".repeat(141), zh: "好" }],
+    };
     const errs = goalErrors([bad, bad]).join("\n");
-    for (const want of ["used twice", "no resident nobody", "start and a later deadline", "at least 4", "tier 50% gives nothing", "English is 141"]) expect(errs).toContain(want);
+    for (const want of [
+      "used twice",
+      "no resident nobody",
+      "start and a later deadline",
+      "at least 4",
+      "tier 50% gives nothing",
+      "English is 141",
+    ])
+      expect(errs).toContain(want);
   });
 });
 

@@ -36,7 +36,12 @@ export function PetButton({ pet, stage, onPat }: { pet: Pet; stage: DrawnStage; 
     const measure = () => {
       const o = roomOrigin(el.clientWidth, el.clientHeight);
       const half = HALF[stage] * o.scale;
-      setPlace({ left: o.x + PET_HOME * o.scale - half - 6, top: o.y + (PET_FEET - PET_TALL) * o.scale, width: 2 * half + 12, height: PET_TALL * o.scale + 6 });
+      setPlace({
+        left: o.x + PET_HOME * o.scale - half - 6,
+        top: o.y + (PET_FEET - PET_TALL) * o.scale,
+        width: 2 * half + 12,
+        height: PET_TALL * o.scale + 6,
+      });
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -58,7 +63,14 @@ export function PetButton({ pet, stage, onPat }: { pet: Pet; stage: DrawnStage; 
 
   return (
     <div ref={box} className="pet-button-box">
-      <button type="button" className="pet-button" style={place ?? undefined} aria-label={zh ? `摸摸${pet.name}` : `Pat ${pet.name}`} aria-describedby="pet-words" onClick={onPat}>
+      <button
+        type="button"
+        className="pet-button"
+        style={place ?? undefined}
+        aria-label={zh ? `摸摸${pet.name}` : `Pat ${pet.name}`}
+        aria-describedby="pet-words"
+        onClick={onPat}
+      >
         <span id="pet-words" className="sr-only">
           {words}
         </span>

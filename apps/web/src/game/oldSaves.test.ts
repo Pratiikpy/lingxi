@@ -17,7 +17,9 @@ interface Fixture {
   why: string;
   keys: Record<string, unknown>;
 }
-const FIXTURES = Object.entries(import.meta.glob<Fixture>("./fixtures/saves/*.json", { eager: true, import: "default" })).map(([path, f]) => ({
+const FIXTURES = Object.entries(
+  import.meta.glob<Fixture>("./fixtures/saves/*.json", { eager: true, import: "default" }),
+).map(([path, f]) => ({
   name: path.replace(/^.*\//, ""),
   ...f,
   keys: Object.fromEntries(Object.entries(f.keys).map(([k, v]) => [k, typeof v === "string" ? v : JSON.stringify(v)])),
@@ -40,7 +42,18 @@ describe("old saves load in this build with nothing lost (P1 S3)", () => {
   it("covers every build that changed the save's shape and every part of a save", () => {
     expect(FIXTURES.length).toBeGreaterThanOrEqual(20);
     const seen = new Set(FIXTURES.flatMap((f) => Object.keys(f.keys)));
-    for (const key of ["lingxi.pet.v1", "lingxi.pets.v2", "lingxi.world.v1", "lingxi.chain.v2", "lingxi.mail.v1", "lingxi.friends.v1", "lingxi.badges.v1", "lingxi.daily.v1", "lingxi.decorKey", "lingxi.player.v1"]) {
+    for (const key of [
+      "lingxi.pet.v1",
+      "lingxi.pets.v2",
+      "lingxi.world.v1",
+      "lingxi.chain.v2",
+      "lingxi.mail.v1",
+      "lingxi.friends.v1",
+      "lingxi.badges.v1",
+      "lingxi.daily.v1",
+      "lingxi.decorKey",
+      "lingxi.player.v1",
+    ]) {
       expect(seen.has(key), key).toBe(true);
     }
   });
@@ -72,7 +85,8 @@ describe("old saves load in this build with nothing lost (P1 S3)", () => {
         const w = JSON.parse(raw) as WorldState;
         const clean = cleanWorld(JSON.parse(raw) as WorldState);
         expect(clean.coins).toBe(w.coins);
-        for (const [item, n] of Object.entries(w.bag ?? {})) expect(clean.bag[Number(item)] ?? 0, `item ${item}`).toBeGreaterThanOrEqual(n as number);
+        for (const [item, n] of Object.entries(w.bag ?? {}))
+          expect(clean.bag[Number(item)] ?? 0, `item ${item}`).toBeGreaterThanOrEqual(n as number);
         for (const q of w.claimed ?? []) expect(clean.claimed).toContain(q);
         expect(clean.seed).toBe(w.seed);
       });
@@ -82,13 +96,18 @@ describe("old saves load in this build with nothing lost (P1 S3)", () => {
           const raw = f.keys[key];
           if (raw) expect(JSON.parse(raw), key).toEqual(JSON.parse(JSON.stringify(JSON.parse(raw))));
         }
-        const records = f.keys["lingxi.chain.v2"] ? (JSON.parse(f.keys["lingxi.chain.v2"]) as Record<string, { petId?: unknown }>) : {};
+        const records = f.keys["lingxi.chain.v2"]
+          ? (JSON.parse(f.keys["lingxi.chain.v2"]) as Record<string, { petId?: unknown }>)
+          : {};
         for (const r of Object.values(records)) expect(r.petId).toBeDefined();
       });
 
       it("goes into a save file and comes back exactly", async () => {
         const file = await sealSave({ savedAt: 1, keys: f.keys }, "old-saves-test-pass", { rounds: 100_000 });
-        expect(await openSave(file, "old-saves-test-pass")).toEqual({ ok: true, contents: { savedAt: 1, keys: f.keys } });
+        expect(await openSave(file, "old-saves-test-pass")).toEqual({
+          ok: true,
+          contents: { savedAt: 1, keys: f.keys },
+        });
       });
     });
   }

@@ -22,10 +22,20 @@ export function DeviceKept({ pet, lowGas }: { pet: Pet; lowGas: boolean }) {
       <p className="small sp-warn">{t("free.risk", { name: pet.name })}</p>
       {lowGas && <p className="err">{t("free.gasUsed", { name: pet.name })}</p>}
       <div className="row">
-        <button type="button" className="btn primary" disabled={busy !== "idle"} onClick={() => (play("tap"), void moveToWallet(pet).then((ok) => ok && play("success")))}>
+        <button
+          type="button"
+          className="btn primary"
+          disabled={busy !== "idle"}
+          onClick={() => (play("tap"), void moveToWallet(pet).then((ok) => ok && play("success")))}
+        >
           {t("free.move")}
         </button>
-        <button type="button" className="btn" onClick={() => (play("tap"), setKey(key ? null : exportSessionKey()), setCopied(false))} aria-expanded={!!key}>
+        <button
+          type="button"
+          className="btn"
+          onClick={() => (play("tap"), setKey(key ? null : exportSessionKey()), setCopied(false))}
+          aria-expanded={!!key}
+        >
           {t(key ? "free.hideKey" : "free.showKey")}
         </button>
       </div>

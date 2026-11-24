@@ -14,14 +14,24 @@ const tsc = join(root, "node_modules", "typescript", "bin", "tsc");
 /** Every file under `dir` whose name ends with one of `ends`, as repo paths. */
 function filesIn(dir: string, ends: string[]): string[] {
   return readdirSync(join(root, dir), { recursive: true, withFileTypes: true })
-    .filter((e) => e.isFile() && ends.some((x) => e.name.endsWith(x)) && !/node_modules|[\\/]\.run[\\/]/.test(join(e.parentPath, e.name)))
+    .filter(
+      (e) =>
+        e.isFile() &&
+        ends.some((x) => e.name.endsWith(x)) &&
+        !/node_modules|[\\/]\.run[\\/]/.test(join(e.parentPath, e.name)),
+    )
     .map((e) => relative(root, join(e.parentPath, e.name)).replace(/\\/g, "/"));
 }
 
 /** The files a type-check project reads, as repo paths. */
 function project(dir: string): Set<string> {
   const r = spawnSync(process.execPath, [tsc, "-p", dir, "--listFilesOnly"], { cwd: root, encoding: "utf8" });
-  return new Set(r.stdout.split(/\r?\n/).filter(Boolean).map((f) => relative(root, f).replace(/\\/g, "/")));
+  return new Set(
+    r.stdout
+      .split(/\r?\n/)
+      .filter(Boolean)
+      .map((f) => relative(root, f).replace(/\\/g, "/")),
+  );
 }
 
 describe("the type check covers the scripts and the browser suite (A36)", () => {
@@ -33,7 +43,9 @@ describe("the type check covers the scripts and the browser suite (A36)", () => 
   }, 120_000);
 
   it("is run by `pnpm typecheck`, and so by CI and the status check", () => {
-    const typecheck = (JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as { scripts: Record<string, string> }).scripts.typecheck!;
+    const typecheck = (
+      JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as { scripts: Record<string, string> }
+    ).scripts.typecheck!;
     expect(typecheck).toContain("pnpm -r typecheck");
     expect(typecheck).toContain("tsc -p scripts");
     expect(typecheck).toContain("tsc -p e2e");

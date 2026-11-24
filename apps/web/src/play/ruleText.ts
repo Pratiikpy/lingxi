@@ -19,24 +19,48 @@ export const VALUE_NAMES: Record<string, Names> = {
     en: ["nothing", "fed", "played with", "bathed", "lights off", "petted", "medicine", "talked to"],
     zh: ["没动静", "被喂", "被陪玩", "洗澡", "关灯", "被摸摸", "吃药", "被说话"],
   },
-  event: { en: ["all quiet", "friend near", "toy near", "something scary"], zh: ["安安静静", "朋友在旁边", "玩具在旁边", "有可怕的东西"] },
+  event: {
+    en: ["all quiet", "friend near", "toy near", "something scary"],
+    zh: ["安安静静", "朋友在旁边", "玩具在旁边", "有可怕的东西"],
+  },
   owner: { en: ["you're away", "you're here"], zh: ["你不在", "你在身边"] },
 };
 
 /** The same pins as they read during a spar (see @lingxi/game spar.ts). */
 export const FIGHT_VALUE_NAMES: Record<string, Names> = {
-  hunger: { en: ["full health", "hurt", "badly hurt", "nearly out"], zh: ["体力满满", "受了伤", "伤得不轻", "快撑不住"] },
+  hunger: {
+    en: ["full health", "hurt", "badly hurt", "nearly out"],
+    zh: ["体力满满", "受了伤", "伤得不轻", "快撑不住"],
+  },
   joy: { en: ["losing ground", "even", "ahead", "on a roll"], zh: ["处于下风", "势均力敌", "占了上风", "势如破竹"] },
-  energy: { en: ["no stamina", "low stamina", "some stamina", "fresh"], zh: ["没力气了", "力气不多", "还有力气", "精力充沛"] },
-  clean: { en: ["foe nearly out", "foe hurt", "foe steady", "foe healthy"], zh: ["对手快不行了", "对手受了伤", "对手还稳", "对手很健康"] },
+  energy: {
+    en: ["no stamina", "low stamina", "some stamina", "fresh"],
+    zh: ["没力气了", "力气不多", "还有力气", "精力充沛"],
+  },
+  clean: {
+    en: ["foe nearly out", "foe hurt", "foe steady", "foe healthy"],
+    zh: ["对手快不行了", "对手受了伤", "对手还稳", "对手很健康"],
+  },
   time: { en: ["night", "opening", "middle", "late"], zh: ["夜里", "开局", "中盘", "尾声"] },
   // the other pet's last move, as the fight sends it from LX-SPAR/2 on (spar2.ts moveAsAction): a care rule that reads
   // "lights off" reads "foe rested" in a spar (B2)
   action: {
-    en: ["foe tapped", "foe snacked", "foe pounced", "foe guarded", "foe rested", "foe charmed", "foe dodged", "foe gave a gift"],
+    en: [
+      "foe tapped",
+      "foe snacked",
+      "foe pounced",
+      "foe guarded",
+      "foe rested",
+      "foe charmed",
+      "foe dodged",
+      "foe gave a gift",
+    ],
     zh: ["对手轻拍", "对手吃零食", "对手扑击", "对手防守", "对手休息", "对手卖萌", "对手闪避", "对手送礼"],
   },
-  event: { en: ["nothing new", "foe was friendly", "foe left an opening", "just hit hard"], zh: ["没什么变化", "对手很友好", "对手露出破绽", "刚被重击"] },
+  event: {
+    en: ["nothing new", "foe was friendly", "foe left an opening", "just hit hard"],
+    zh: ["没什么变化", "对手很友好", "对手露出破绽", "刚被重击"],
+  },
   owner: { en: ["no cheering", "you're cheering"], zh: ["没人加油", "你在加油"] },
 };
 
@@ -57,7 +81,10 @@ export const MOVE_WORDS = Object.fromEntries(
   MOVE_ORDER.map((m, i) => {
     const en = MOVE_NAMES.en[i]!;
     const shout = m === "pounce";
-    return [m, [`${en[0]!.toUpperCase()}${en.slice(1)}${shout ? "!" : ""}`, `${MOVE_NAMES.zh[i]!}${shout ? "！" : ""}`]];
+    return [
+      m,
+      [`${en[0]!.toUpperCase()}${en.slice(1)}${shout ? "!" : ""}`, `${MOVE_NAMES.zh[i]!}${shout ? "！" : ""}`],
+    ];
   }),
 ) as Record<MoveName, [string, string]>;
 
@@ -69,7 +96,10 @@ const MEMORY_NAMES: Record<string, { en: string; zh: string }> = {
 };
 
 /** Trust in words, by thirds of its scale (B7): a rule that reads trust 0–2 says "low trust". */
-const TRUST_WORDS = { en: ["low trust", "some trust", "high trust"], zh: ["还不太信任你", "有点信任你", "很信任你"] } as const;
+const TRUST_WORDS = {
+  en: ["low trust", "some trust", "high trust"],
+  zh: ["还不太信任你", "有点信任你", "很信任你"],
+} as const;
 
 export const WANT_NAMES: Names = {
   en: ["rest", "eat", "play", "sleep", "explore", "sulk", "cuddle", "share"],
@@ -88,7 +118,16 @@ export interface RuleChips {
  * One colour per behaviour, used wherever a decision appears: the mind, the
  * thinking strip, teaching, the rewind. Soft enough to carry dark ink text.
  */
-export const WANT_COLORS = ["#D9D1E6", "#FFB38A", "#FFD45E", "#A9BEF2", "#9BDDA6", "#C9A6DD", "#FFB3C7", "#8ED8D2"] as const;
+export const WANT_COLORS = [
+  "#D9D1E6",
+  "#FFB38A",
+  "#FFD45E",
+  "#A9BEF2",
+  "#9BDDA6",
+  "#C9A6DD",
+  "#FFB3C7",
+  "#8ED8D2",
+] as const;
 
 function memoryChip(p: Program, name: string, values: number[], lang: Lang): string {
   const m = p.memory.find((x) => x.name === name);
@@ -116,7 +155,12 @@ function memoryChip(p: Program, name: string, values: number[], lang: Lang): str
   return lang === "zh" ? `${label} ${range}（满 ${max}）` : `${label} ${range} of ${max}`;
 }
 
-export function chipsFor(p: Program, r: Rule | { when: Record<string, number[]>; then: Out }, lang: Lang, fight = false): RuleChips {
+export function chipsFor(
+  p: Program,
+  r: Rule | { when: Record<string, number[]>; then: Out },
+  lang: Lang,
+  fight = false,
+): RuleChips {
   const when = Object.entries(r.when).map(([k, values]) => {
     const names = (fight ? FIGHT_VALUE_NAMES : VALUE_NAMES)[k];
     if (names) {
@@ -136,7 +180,11 @@ export function chipsFor(p: Program, r: Rule | { when: Record<string, number[]>;
 export function decidingChips(p: Program, ruleIndex: number, lang: Lang, fight = false): RuleChips {
   const r = ruleIndex >= 0 ? p.rules[ruleIndex] : undefined;
   if (r) return chipsFor(p, r, lang, fight);
-  return { when: [lang === "zh" ? "没有特别的事" : "nothing special"], then: (fight ? MOVE_NAMES : WANT_NAMES)[lang][p.otherwise.want] ?? "", want: p.otherwise.want };
+  return {
+    when: [lang === "zh" ? "没有特别的事" : "nothing special"],
+    then: (fight ? MOVE_NAMES : WANT_NAMES)[lang][p.otherwise.want] ?? "",
+    want: p.otherwise.want,
+  };
 }
 
 export const FIELD_COUNT = INPUT_FIELDS.length;

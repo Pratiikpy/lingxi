@@ -1,7 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { DesignError, decodeDesign, designWearable, drawPet, encodeDesign, registerWearables, wearOverlay } from "../src/index";
+import {
+  DesignError,
+  decodeDesign,
+  designWearable,
+  drawPet,
+  encodeDesign,
+  registerWearables,
+  wearOverlay,
+} from "../src/index";
 
-const cap = { slot: "head" as const, cells: [[0, 0, 0, 0, 0], [0, 1, 1, 1, 0], [1, 2, 2, 2, 1], [0, 0, 0, 0, 0]], colours: ["#2b2140", "#e8604a"] };
+const cap = {
+  slot: "head" as const,
+  cells: [
+    [0, 0, 0, 0, 0],
+    [0, 1, 1, 1, 0],
+    [1, 2, 2, 2, 1],
+    [0, 0, 0, 0, 0],
+  ],
+  colours: ["#2b2140", "#e8604a"],
+};
 
 describe("player-made outfits", () => {
   it("bytes round-trip, trimmed to what is drawn", () => {
@@ -9,7 +26,10 @@ describe("player-made outfits", () => {
     expect(Array.from(b.slice(0, 4))).toEqual([0, 5, 2, 2]);
     expect(b.length).toBe(4 + 6 + Math.ceil((5 * 2 * 2) / 8));
     const back = decodeDesign(b);
-    expect(back.cells).toEqual([[0, 1, 1, 1, 0], [1, 2, 2, 2, 1]]);
+    expect(back.cells).toEqual([
+      [0, 1, 1, 1, 0],
+      [1, 2, 2, 2, 1],
+    ]);
     expect(back.colours).toEqual(["#2b2140", "#e8604a"]);
   });
 
@@ -27,7 +47,10 @@ describe("player-made outfits", () => {
   it("matches the contract's own example bytes", () => {
     const d = decodeDesign(Uint8Array.from([0x00, 0x03, 0x02, 0x02, 0xff, 0x00, 0x00, 0xff, 0xff, 0x00, 0xa5, 0x0a]));
     expect(d.slot).toBe("head");
-    expect(d.cells).toEqual([[1, 1, 2], [2, 2, 2]]);
+    expect(d.cells).toEqual([
+      [1, 1, 2],
+      [2, 2, 2],
+    ]);
   });
 
   it("is worn on a pet like Lingxi's own pieces", () => {

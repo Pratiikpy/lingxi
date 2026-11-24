@@ -6,7 +6,8 @@ function site(...answers: Array<number | "timeout">) {
   let asked = 0;
   const fetchFn = async () => {
     const a = answers[Math.min(asked++, answers.length - 1)]!;
-    if (a === "timeout") throw Object.assign(new Error("The operation was aborted due to timeout"), { name: "TimeoutError" });
+    if (a === "timeout")
+      throw Object.assign(new Error("The operation was aborted due to timeout"), { name: "TimeoutError" });
     return new Response("ok", { status: a });
   };
   return { fetchFn, asked: () => asked, sleep: async () => undefined };
@@ -23,7 +24,9 @@ describe("reading the live site through one hiccup (A5)", () => {
 
   it("fails when every try hiccups, naming each answer", async () => {
     const s = site(520, 522, 520, 520);
-    await expect(steadyFetch("https://x/verify.html", s)).rejects.toThrow("https://x/verify.html: 520, then 522, then 520, then 520");
+    await expect(steadyFetch("https://x/verify.html", s)).rejects.toThrow(
+      "https://x/verify.html: 520, then 522, then 520, then 520",
+    );
     expect(s.asked()).toBe(4);
   });
 

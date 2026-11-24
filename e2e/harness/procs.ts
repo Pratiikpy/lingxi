@@ -30,9 +30,20 @@ export function freePort(): Promise<number> {
 const children = new Map<number, ChildProcess>();
 
 /** Starts `command` with its output in `log`; on Linux in its own process group, so it can be stopped as a whole. */
-export function start(name: string, command: string, args: string[], o: { cwd: string; env: NodeJS.ProcessEnv; log: string }): Started & { child: ChildProcess } {
+export function start(
+  name: string,
+  command: string,
+  args: string[],
+  o: { cwd: string; env: NodeJS.ProcessEnv; log: string },
+): Started & { child: ChildProcess } {
   const out = createWriteStream(o.log, { flags: "a" });
-  const child = spawn(command, args, { cwd: o.cwd, env: o.env, stdio: ["ignore", "pipe", "pipe"], detached: process.platform !== "win32", windowsHide: true });
+  const child = spawn(command, args, {
+    cwd: o.cwd,
+    env: o.env,
+    stdio: ["ignore", "pipe", "pipe"],
+    detached: process.platform !== "win32",
+    windowsHide: true,
+  });
   child.stdout?.pipe(out);
   child.stderr?.pipe(out);
   if (!child.pid) throw new Error(`${name} did not start: ${command}`);
@@ -50,7 +61,8 @@ export function stop(p: Pick<Started, "pid" | "name"> & { child?: ChildProcess }
   const child = p.child ?? children.get(p.pid);
   if (child && (child.exitCode !== null || child.signalCode !== null)) return;
   try {
-    if (process.platform === "win32") execFileSync("taskkill", ["/pid", String(p.pid), "/T", "/F"], { stdio: "ignore" });
+    if (process.platform === "win32")
+      execFileSync("taskkill", ["/pid", String(p.pid), "/T", "/F"], { stdio: "ignore" });
     else process.kill(-p.pid, "SIGTERM");
   } catch {
     // already gone
@@ -63,7 +75,10 @@ export function stop(p: Pick<Started, "pid" | "name"> & { child?: ChildProcess }
  * everything again from endpoints that answer a burst with 403. Waits up to `ms` for it to exit, then stops it hard.
  * Windows has no interrupt to send another process; there it is stopped at once.
  */
-export async function stopSaving(p: Pick<Started, "pid" | "name"> & { child?: ChildProcess }, ms = 20_000): Promise<void> {
+export async function stopSaving(
+  p: Pick<Started, "pid" | "name"> & { child?: ChildProcess },
+  ms = 20_000,
+): Promise<void> {
   if (process.platform === "win32") return stop(p);
   const alive = () => {
     try {
@@ -87,7 +102,12 @@ export async function stopSaving(p: Pick<Started, "pid" | "name"> & { child?: Ch
  * Waits until `ready` resolves true, asking every half second, or fails after `ms` with what was last seen and the
  * end of the process's log, so a harness that cannot start says why.
  */
-export async function waitFor(what: string, ready: () => Promise<boolean>, ms: number, logFile?: string): Promise<void> {
+export async function waitFor(
+  what: string,
+  ready: () => Promise<boolean>,
+  ms: number,
+  logFile?: string,
+): Promise<void> {
   const until = Date.now() + ms;
   let last = "";
   while (Date.now() < until) {
@@ -108,7 +128,9 @@ export async function waitFor(what: string, ready: () => Promise<boolean>, ms: n
       tail = "(no log)";
     }
   }
-  throw new Error(`${what} did not come up in ${Math.round(ms / 1000)} s (${last})${tail ? `\n--- ${logFile}\n${tail}` : ""}`);
+  throw new Error(
+    `${what} did not come up in ${Math.round(ms / 1000)} s (${last})${tail ? `\n--- ${logFile}\n${tail}` : ""}`,
+  );
 }
 
 /** True when `url` answers with a status below 500. */
@@ -131,5 +153,14 @@ export interface PinnedFork {
  * CI runs (stopSaving), so few reads leave the machine. LINGXI_E2E_UPSTREAM overrides the endpoint.
  */
 export function forkArgs(fork: PinnedFork, port: number): string[] {
-  return ["--fork-url", process.env.LINGXI_E2E_UPSTREAM ?? fork.rpc, "--fork-block-number", String(fork.block), "--port", String(port), "--chain-id", "196"];
+  return [
+    "--fork-url",
+    process.env.LINGXI_E2E_UPSTREAM ?? fork.rpc,
+    "--fork-block-number",
+    String(fork.block),
+    "--port",
+    String(port),
+    "--chain-id",
+    "196",
+  ];
 }

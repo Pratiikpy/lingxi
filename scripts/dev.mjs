@@ -21,7 +21,8 @@ const parts = [
 ];
 const children = parts.map(([name, args, cwd]) => {
   const child = spawn(process.execPath, args, { cwd, stdio: ["ignore", "pipe", "pipe"] });
-  for (const stream of [child.stdout, child.stderr]) stream.on("data", (b) => process.stdout.write(String(b).replace(/^(?=.)/gm, `[${name}] `)));
+  for (const stream of [child.stdout, child.stderr])
+    stream.on("data", (b) => process.stdout.write(String(b).replace(/^(?=.)/gm, `[${name}] `)));
   child.on("exit", (code) => {
     process.stdout.write(`[${name}] stopped (${code ?? "signal"})\n`);
     stopAll(code ?? 1);

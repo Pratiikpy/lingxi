@@ -19,7 +19,8 @@ function movingChain(start: number) {
       request: async ({ method }: { method: string }) => {
         if (method === "eth_blockNumber") return hex(head);
         if (method === "eth_getLogs") return [];
-        if (method === "eth_getBlockByNumber") return { number: hex(head), timestamp: hex(1_800_000_000), hash: `0x${"11".repeat(32)}`, transactions: [] };
+        if (method === "eth_getBlockByNumber")
+          return { number: hex(head), timestamp: hex(1_800_000_000), hash: `0x${"11".repeat(32)}`, transactions: [] };
         if (method === "eth_chainId") return hex(196);
         throw new Error(`unexpected ${method}`);
       },
@@ -34,7 +35,12 @@ describe("every catch-up reads to the chain's head as it is now, never to one re
     const goals = createGoalLedger({ rpc: "", registry: ADDR, burners: [], fromBlock: 990, client: c.pub, paceMs: 0 });
     const history = createIndexer({ rpc: "", registry: ADDR, fromBlock: 990, client: c.pub, paceMs: 0 });
     const packets = createPacketIndex({ address: ADDR, fromBlock: 990, client: c.pub, paceMs: 0 });
-    const sales = createSalesCounter({ rpc: "", markets: [{ address: ADDR, fromBlock: 990 }], client: c.pub, paceMs: 0 });
+    const sales = createSalesCounter({
+      rpc: "",
+      markets: [{ address: ADDR, fromBlock: 990 }],
+      client: c.pub,
+      paceMs: 0,
+    });
 
     // the client reads the head, then a write lands in the next block
     expect(Number(await c.pub.getBlockNumber())).toBe(1_000);

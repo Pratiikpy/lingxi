@@ -1,12 +1,33 @@
 import { describe, expect, it } from "vitest";
 import { validateProgram } from "@lingxi/brain";
-import { JOB, JOBS, maxShiftPay, SHIFTS_PER_DAY, canWork, composeProgram, fitBonus, jobFit, lifeOf, logShift, shiftPay, shiftRounds } from "../src/index";
+import {
+  JOB,
+  JOBS,
+  maxShiftPay,
+  SHIFTS_PER_DAY,
+  canWork,
+  composeProgram,
+  fitBonus,
+  jobFit,
+  lifeOf,
+  logShift,
+  shiftPay,
+  shiftRounds,
+} from "../src/index";
 
-const always = (want: number) => validateProgram({ version: "LX-PET/1", memory: [], rules: [], otherwise: { want, mood: 1 } });
+const always = (want: number) =>
+  validateProgram({ version: "LX-PET/1", memory: [], rules: [], otherwise: { want, mood: 1 } });
 
 describe("school and jobs", () => {
   it("children and teens go to school, grown pets work", () => {
-    expect(["egg", "baby", "child", "teen", "adult", "elder"].map((s) => lifeOf(s as never))).toEqual(["egg", "baby", "school", "school", "work", "work"]);
+    expect(["egg", "baby", "child", "teen", "adult", "elder"].map((s) => lifeOf(s as never))).toEqual([
+      "egg",
+      "baby",
+      "school",
+      "school",
+      "work",
+      "work",
+    ]);
   });
 
   it("a mind that wants what the work needs fits it; teaching changes the fit", () => {

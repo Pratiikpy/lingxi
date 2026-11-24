@@ -14,13 +14,32 @@ const ruleSchema = {
     "A rule in the PET-16x8/1 rule language: when every listed sense has one of its listed values, the pet wants `then.want` with mood `then.mood`. Senses (value numbers): hunger 0 full, 1 peckish, 2 hungry, 3 starving; joy 0 sad, 1 low, 2 happy, 3 joyful; energy 0 exhausted, 1 tired, 2 fine, 3 rested; clean 0 filthy, 1 dusty, 2 tidy, 3 spotless; time 0 night, 1 morning, 2 day, 3 evening; action 0 none, 1 feed, 2 play, 3 clean, 4 lightsOff, 5 pet, 6 medicine, 7 talk; event 0 none, 1 friend, 2 toy, 3 scary; owner 0 away, 1 here.",
   properties: {
     label: { type: "string", description: "A few words naming the rule" },
-    when: { type: "object", description: "Sense name to the list of values it may take, for example {\"event\": [3], \"owner\": [1]}" },
+    when: {
+      type: "object",
+      description: 'Sense name to the list of values it may take, for example {"event": [3], "owner": [1]}',
+    },
     then: {
       type: "object",
       properties: {
-        want: { type: "integer", minimum: 0, maximum: 7, description: `0 to 7: ${WANT.map((w, i) => `${i} ${w}`).join(", ")}` },
-        mood: { type: "integer", minimum: 0, maximum: 3, description: `0 to 3: ${MOOD.map((m, i) => `${i} ${m}`).join(", ")}` },
-        nudge: { type: "integer", minimum: 0, maximum: 7, description: "0 none, or one step of trait drift: 1 brave, 2 curious, 3 greedy, 4 calm, 5 playful, 6 gentle, 7 shy" },
+        want: {
+          type: "integer",
+          minimum: 0,
+          maximum: 7,
+          description: `0 to 7: ${WANT.map((w, i) => `${i} ${w}`).join(", ")}`,
+        },
+        mood: {
+          type: "integer",
+          minimum: 0,
+          maximum: 3,
+          description: `0 to 3: ${MOOD.map((m, i) => `${i} ${m}`).join(", ")}`,
+        },
+        nudge: {
+          type: "integer",
+          minimum: 0,
+          maximum: 7,
+          description:
+            "0 none, or one step of trait drift: 1 brave, 2 curious, 3 greedy, 4 calm, 5 playful, 6 gentle, 7 shy",
+        },
       },
       required: ["want", "mood"],
     },
@@ -36,7 +55,9 @@ export const MCP_TOOLS = [
       "Read a pet kept on X Layer: its name, owner, line (gentle, bold or curious), brain circuit, day, birth time, log hash and parents, read from the chain, with a link to its public proof page.",
     inputSchema: {
       type: "object",
-      properties: { id: { type: "string", pattern: "^[1-9][0-9]{0,8}$", description: "The pet's number, for example \"1\"" } },
+      properties: {
+        id: { type: "string", pattern: "^[1-9][0-9]{0,8}$", description: 'The pet\'s number, for example "1"' },
+      },
       required: ["id"],
       additionalProperties: false,
     },
@@ -69,8 +90,17 @@ export const MCP_TOOLS = [
       type: "object",
       properties: {
         rule: ruleSchema,
-        line: { type: "string", enum: ["gentle", "bold", "curious"], description: "The pet's line; gentle when absent" },
-        lessons: { type: "array", items: ruleSchema, maxItems: 8, description: "Lessons the pet already has, highest priority first" },
+        line: {
+          type: "string",
+          enum: ["gentle", "bold", "curious"],
+          description: "The pet's line; gentle when absent",
+        },
+        lessons: {
+          type: "array",
+          items: ruleSchema,
+          maxItems: 8,
+          description: "Lessons the pet already has, highest priority first",
+        },
       },
       required: ["rule"],
       additionalProperties: false,

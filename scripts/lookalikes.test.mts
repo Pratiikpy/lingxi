@@ -13,7 +13,13 @@ describe("look-alike pet names on chain (A16)", () => {
 
   it("lists one that imitates nobody yet, and passes over ordinary names, punctuation and emoji", () => {
     expect(findLookalikes([{ petId: 4n, name: "Tofu\u{1d173}" }]).map((l) => l.imitates)).toEqual([[]]);
-    expect(findLookalikes([{ petId: 5n, name: "Mo\u2026" }, { petId: 6n, name: "团子 \u2764\ufe0f" }, { petId: 7n, name: "" }])).toEqual([]);
+    expect(
+      findLookalikes([
+        { petId: 5n, name: "Mo\u2026" },
+        { petId: 6n, name: "团子 \u2764\ufe0f" },
+        { petId: 7n, name: "" },
+      ]),
+    ).toEqual([]);
   });
 
   it("prints a name with its hidden characters as code points", () => {

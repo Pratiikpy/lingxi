@@ -1,7 +1,38 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { REF, type Rule, STARTERS, compileProgram, composeInstinct, encode, fastBrain, inputField, netlistBytes, stateBits, toElements, validateProgram } from "@lingxi/brain";
-import { CARD_OUTSIDE_MAX, EVENT, INSTINCT_MAX_GATES, LIGHT_BULB_BEATS, PET_SCHOOL, type OutsideInstinct, type Pet, SUB, type TallyEntry, awaySeed, beatOf, careTally, createPet, familyOf, mindBrain, minuteTally, watchEvent } from "@lingxi/game";
+import {
+  REF,
+  type Rule,
+  STARTERS,
+  compileProgram,
+  composeInstinct,
+  encode,
+  fastBrain,
+  inputField,
+  netlistBytes,
+  stateBits,
+  toElements,
+  validateProgram,
+} from "@lingxi/brain";
+import {
+  CARD_OUTSIDE_MAX,
+  EVENT,
+  INSTINCT_MAX_GATES,
+  LIGHT_BULB_BEATS,
+  PET_SCHOOL,
+  type OutsideInstinct,
+  type Pet,
+  SUB,
+  type TallyEntry,
+  awaySeed,
+  beatOf,
+  careTally,
+  createPet,
+  familyOf,
+  mindBrain,
+  minuteTally,
+  watchEvent,
+} from "@lingxi/game";
 import { COMPOST } from "@lingxi/world";
 import { type Key, translate } from "../i18n";
 import { type Net, type Storage, json, leave, reload, visit } from "./testGame";
@@ -16,11 +47,18 @@ const OLD_PET = "lingxi.pet.v1";
 
 /** The device's time zone at a moment, as the game reads it. */
 const deviceTz = (t: number) => -new Date(t).getTimezoneOffset();
-const brainOfLine = (line: "gentle" | "bold" | "curious") => ({ fast: fastBrain(compileProgram(STARTERS[line])), nState: stateBits(STARTERS[line]), program: STARTERS[line] });
+const brainOfLine = (line: "gentle" | "bold" | "curious") => ({
+  fast: fastBrain(compileProgram(STARTERS[line])),
+  nState: stateBits(STARTERS[line]),
+  program: STARTERS[line],
+});
 
 /** A pet as an earlier visit saved it: born at `bornAt`, last seen at `seenAt`. */
 function savedPet(name: string, bornAt: number, seenAt = bornAt, line: "gentle" | "bold" | "curious" = "gentle"): Pet {
-  return { ...createPet({ name, line, now: bornAt, tzOffsetMin: deviceTz(seenAt), brain: brainOfLine(line) }), beat: beatOf(seenAt) };
+  return {
+    ...createPet({ name, line, now: bornAt, tzOffsetMin: deviceTz(seenAt), brain: brainOfLine(line) }),
+    beat: beatOf(seenAt),
+  };
 }
 
 /** Storage holding a roster of pets, as the game writes it. */
@@ -32,11 +70,16 @@ function storageWith(pets: Pet[], active = 0, extra: Record<string, string> = {}
 }
 
 /** The roster as it stands in storage. */
-const savedRoster = (s: Storage) => JSON.parse(s.getItem(PETS) ?? "null") as { active: number; pets: Pet[]; kept?: unknown[] } | null;
+const savedRoster = (s: Storage) =>
+  JSON.parse(s.getItem(PETS) ?? "null") as { active: number; pets: Pet[]; kept?: unknown[] } | null;
 
 /** Opens the play page and loads the game, the world (which takes the tally) and the badges, as the page does. */
 async function open(o: { at?: number; storage?: Storage; net?: Net } = {}) {
-  const v = await visit({ at: o.at ?? T0, ...(o.storage ? { storage: o.storage } : {}), ...(o.net ? { net: o.net } : {}) });
+  const v = await visit({
+    at: o.at ?? T0,
+    ...(o.storage ? { storage: o.storage } : {}),
+    ...(o.net ? { net: o.net } : {}),
+  });
   return loaded(v);
 }
 async function loaded<V extends object>(v: V) {
@@ -67,7 +110,13 @@ describe("the game store: hatching", () => {
     expect(s.pet?.bornAt).toBe(T0);
     expect(s.pet?.tzOffsetMin).toBe(deviceTz(T0));
     expect(s.pets).toHaveLength(1);
-    expect(s.daily).toEqual({ day: new Date(T0).toDateString(), fed: false, played: false, cleaned: false, petted: false });
+    expect(s.daily).toEqual({
+      day: new Date(T0).toDateString(),
+      fed: false,
+      played: false,
+      cleaned: false,
+      petted: false,
+    });
     expect(savedRoster(storage)?.pets.map((p) => p.name)).toEqual(["Mochi the Gr"]);
     expect(useBadges.getState().ledger.pets).toBe(1);
   });
@@ -85,7 +134,9 @@ describe("the game store: care", () => {
     useGame.getState().hatch("gentle", "Kiri");
 
     const toasts: number[] = [];
-    const unsubscribe = useGame.subscribe((st, prev) => st.toast !== prev.toast && st.toast && toasts.push(st.toast.id));
+    const unsubscribe = useGame.subscribe(
+      (st, prev) => st.toast !== prev.toast && st.toast && toasts.push(st.toast.id),
+    );
     useGame.getState().act({ kind: "feed", food: "mochi" });
     let s = useGame.getState();
     expect(s.toast?.note).toBe("ate");
@@ -113,7 +164,13 @@ describe("the game store: care", () => {
     expect(new Set(toasts).size).toBe(4);
     const w = useWorld.getState().world;
     // four cares in all: the finer key by time of day (CARE:feed-morning beside CARE:feed) is not counted twice
-    expect([tallyOf(w, "CARE:0"), tallyOf(w, "CARE:feed"), tallyOf(w, "CARE:play"), tallyOf(w, "CARE:clean"), tallyOf(w, "CARE:pet")]).toEqual([4, 1, 1, 1, 1]);
+    expect([
+      tallyOf(w, "CARE:0"),
+      tallyOf(w, "CARE:feed"),
+      tallyOf(w, "CARE:play"),
+      tallyOf(w, "CARE:clean"),
+      tallyOf(w, "CARE:pet"),
+    ]).toEqual([4, 1, 1, 1, 1]);
     expect(Object.keys(w.tally ?? {}).filter((k) => /^CARE:feed-/.test(k))).toHaveLength(1);
     expect(useBadges.getState().ledger).toMatchObject({ care: 4, feed: 1, play: 1, clean: 1, petting: 1 });
     expect(savedRoster(storage)?.pets[0]?.counts).toMatchObject({ feed: 1, play: 1, clean: 1, pet: 1 });
@@ -206,8 +263,15 @@ describe("the game store: care", () => {
     s.arrange(0, "up");
     s.forgetInstinct();
     s.respec();
-    expect(s.learn({ when: { event: [2] }, then: { want: 2, mood: 2 } })).toEqual({ ok: false, reason: "invalid", detail: "no pet" });
-    expect(s.teachInstinct({ processor: "0x1", id: "1", owner: "0x2", parts: [] })).toEqual({ ok: false, reason: "badCircuit" });
+    expect(s.learn({ when: { event: [2] }, then: { want: 2, mood: 2 } })).toEqual({
+      ok: false,
+      reason: "invalid",
+      detail: "no pet",
+    });
+    expect(s.teachInstinct({ processor: "0x1", id: "1", owner: "0x2", parts: [] })).toEqual({
+      ok: false,
+      reason: "badCircuit",
+    });
     expect(s.levelUp()).toEqual({ ok: false, reason: "xp" });
     expect(s.learnSkill(111)).toEqual({ ok: false, reason: "noSkill" });
     expect(useGame.getState()).toMatchObject({ pet: null, toast: null, lastCare: null });
@@ -401,9 +465,20 @@ describe("the game store: the roster on this device", () => {
   });
 
   it("a newborn of two parents joins the family with a mind of a day half and a night half", async () => {
-    const { useGame, useWorld, useBadges, mindParts, decidingPart, brainOf } = await open({ storage: storageWith([savedPet("Kiri", T0 - 9 * DAY, T0)]) });
+    const { useGame, useWorld, useBadges, mindParts, decidingPart, brainOf } = await open({
+      storage: storageWith([savedPet("Kiri", T0 - 9 * DAY, T0)]),
+    });
     const family = familyOf({ name: "Kiri", line: "gentle", lessons: [] }, { name: "Bo", line: "bold", lessons: [] });
-    const child: Pet = { ...createPet({ name: "Pip", line: "gentle", now: T0, tzOffsetMin: deviceTz(T0), brain: mindBrain({ line: "gentle", lessons: [], family }) }), family };
+    const child: Pet = {
+      ...createPet({
+        name: "Pip",
+        line: "gentle",
+        now: T0,
+        tzOffsetMin: deviceTz(T0),
+        brain: mindBrain({ line: "gentle", lessons: [], family }),
+      }),
+      family,
+    };
     expect(useGame.getState().adopt(child)).toBe(true);
     const s = useGame.getState();
     expect([s.active, s.pet?.name, s.pets.length]).toEqual([1, "Pip", 2]);
@@ -457,13 +532,20 @@ describe("the game store: a pet leaving", () => {
   it("a friend's pet comes to stay without counting as a new pet of yours, and goes home again", async () => {
     const mine = savedPet("Kiri", T0 - DAY, T0);
     const { useGame, useBadges, storage } = await open({ storage: storageWith([mine]) });
-    const friends: Pet = { ...savedPet("Dot", T0 - 3 * DAY, T0, "bold"), sitting: { code: "c0de", key: "k", until: T0 + DAY, owner: null, name: "Dot" } };
+    const friends: Pet = {
+      ...savedPet("Dot", T0 - 3 * DAY, T0, "bold"),
+      sitting: { code: "c0de", key: "k", until: T0 + DAY, owner: null, name: "Dot" },
+    };
     expect(useGame.getState().guest(friends)).toBe(true);
     expect(useGame.getState().guest(friends)).toBe(false);
     expect(useGame.getState().pet?.name).toBe("Dot");
     expect(useBadges.getState().ledger.pets).toBeUndefined();
     // a friend's pet is taught only by its owner
-    expect(useGame.getState().learn({ when: { event: [2] }, then: { want: 2, mood: 2 } })).toEqual({ ok: false, reason: "notYours", detail: "only its owner teaches it" });
+    expect(useGame.getState().learn({ when: { event: [2] }, then: { want: 2, mood: 2 } })).toEqual({
+      ok: false,
+      reason: "notYours",
+      detail: "only its owner teaches it",
+    });
 
     useGame.getState().release(friends.bornAt);
     const s = useGame.getState();
@@ -492,8 +574,14 @@ describe("the game store: a pet leaving", () => {
     useGame.getState().tick();
     expect(useGame.getState().pet).toBe(away);
     expect(useGame.getState().toast).toBeNull();
-    expect(useGame.getState().learn({ when: { event: [2] }, then: { want: 2, mood: 2 } })).toMatchObject({ ok: false, reason: "notYours" });
-    expect(useGame.getState().teachInstinct({ processor: "0x1", id: "1", owner: "0x2", parts: [] })).toEqual({ ok: false, reason: "notYours" });
+    expect(useGame.getState().learn({ when: { event: [2] }, then: { want: 2, mood: 2 } })).toMatchObject({
+      ok: false,
+      reason: "notYours",
+    });
+    expect(useGame.getState().teachInstinct({ processor: "0x1", id: "1", owner: "0x2", parts: [] })).toEqual({
+      ok: false,
+      reason: "notYours",
+    });
 
     const again = await loaded(await reload(storage, { at: T0 + 6 * H }));
     expect(again.useGame.getState().pet).toMatchObject({ beat: away.beat, away: { code: "c0de" } });
@@ -515,8 +603,18 @@ describe("the game store: a pet leaving", () => {
 const CPU = "0x00000000000000000000000000000000000000cc";
 const OWNER = "0x00000000000000000000000000000000000000dd";
 const hex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
-const instinctProgram = validateProgram({ version: "LX-PET/1", memory: [{ kind: "flag", name: "met", set: [{ event: [1] }] }], rules: [{ when: { met: [1], time: [0] }, then: { want: 6, mood: 3 } }], otherwise: { want: 0, mood: 1 } });
-const owned: OutsideInstinct = { processor: CPU, id: "9", owner: OWNER, parts: [{ processor: CPU, id: "9", nIn: 16, nOut: 8, hex: hex(netlistBytes(compileProgram(instinctProgram))) }] };
+const instinctProgram = validateProgram({
+  version: "LX-PET/1",
+  memory: [{ kind: "flag", name: "met", set: [{ event: [1] }] }],
+  rules: [{ when: { met: [1], time: [0] }, then: { want: 6, mood: 3 } }],
+  otherwise: { want: 0, mood: 1 },
+});
+const owned: OutsideInstinct = {
+  processor: CPU,
+  id: "9",
+  owner: OWNER,
+  parts: [{ processor: CPU, id: "9", nIn: 16, nOut: 8, hex: hex(netlistBytes(compileProgram(instinctProgram))) }],
+};
 
 describe("a living room while you watch (G1)", () => {
   it("each watched minute carries the event the pet's schedule brings, and the room is told when one comes", async () => {
@@ -551,7 +649,12 @@ describe("the header's care marks (B6)", () => {
     expect(again.useGame.getState().daily).toMatchObject({ petted: true, cleaned: true, fed: false, played: false });
     // and the next day
     const tomorrow = await loaded(await reload(again.storage, { at: T0 + 26 * 60 * MIN }));
-    expect(tomorrow.useGame.getState().daily).toMatchObject({ petted: false, cleaned: false, fed: false, played: false });
+    expect(tomorrow.useGame.getState().daily).toMatchObject({
+      petted: false,
+      cleaned: false,
+      fed: false,
+      played: false,
+    });
   });
 });
 
@@ -632,7 +735,9 @@ describe("the game store: teaching and growing", () => {
     useGame.getState().learn(lesson);
     const before = useGame.getState().pet;
     // a rule that is not valid (no such event) is refused, and the forgotten lesson comes back
-    expect(useGame.getState().swapLesson(0, { when: { event: [9] }, then: { want: 2, mood: 2 } } as Rule)).toMatchObject({ ok: false });
+    expect(
+      useGame.getState().swapLesson(0, { when: { event: [9] }, then: { want: 2, mood: 2 } } as Rule),
+    ).toMatchObject({ ok: false });
     expect(useGame.getState().pet).toEqual(before);
   });
 
@@ -677,7 +782,10 @@ describe("the game store: teaching and growing", () => {
     const { useGame } = await open();
     useGame.getState().hatch("gentle", "Kiri");
     const before = useGame.getState().pet!;
-    const huge = { ...owned, parts: [...owned.parts, { ...owned.parts[0]!, id: "999", hex: "0".repeat(CARD_OUTSIDE_MAX) }] };
+    const huge = {
+      ...owned,
+      parts: [...owned.parts, { ...owned.parts[0]!, id: "999", hex: "0".repeat(CARD_OUTSIDE_MAX) }],
+    };
     expect(useGame.getState().teachInstinct(huge)).toEqual({ ok: false, reason: "tooLong" });
     expect(useGame.getState().pet).toEqual(before);
   });
@@ -687,10 +795,32 @@ describe("the game store: teaching and growing", () => {
     useGame.getState().hatch("gentle", "Kiri");
     const before = useGame.getState().pet!;
     // eight REFs to a chain of NANDs one more than the budget allows across eight: 8 * 376 = 3,008 gates a beat
-    const top = Array.from({ length: 8 }, (_, i) => ({ op: REF, ins: [2], cpu: CPU, id: 2n, nOut: 1, firstOut: 18 + i }));
-    const chain = Array.from({ length: INSTINCT_MAX_GATES / 8 + 1 }, (_, i) => ({ op: 0, ins: i === 0 ? [2, 2] : [2 + i, 2 + i], nOut: 1, firstOut: 3 + i }));
-    const wide: OutsideInstinct = { ...owned, parts: [{ processor: CPU, id: "1", nIn: 16, nOut: 8, hex: hex(encode(top as never)) }, { processor: CPU, id: "2", nIn: 1, nOut: 1, hex: hex(encode(chain as never)) }] };
-    expect(useGame.getState().teachInstinct(wide)).toEqual({ ok: false, reason: "tooManyGates", gates: INSTINCT_MAX_GATES + 8 });
+    const top = Array.from({ length: 8 }, (_, i) => ({
+      op: REF,
+      ins: [2],
+      cpu: CPU,
+      id: 2n,
+      nOut: 1,
+      firstOut: 18 + i,
+    }));
+    const chain = Array.from({ length: INSTINCT_MAX_GATES / 8 + 1 }, (_, i) => ({
+      op: 0,
+      ins: i === 0 ? [2, 2] : [2 + i, 2 + i],
+      nOut: 1,
+      firstOut: 3 + i,
+    }));
+    const wide: OutsideInstinct = {
+      ...owned,
+      parts: [
+        { processor: CPU, id: "1", nIn: 16, nOut: 8, hex: hex(encode(top as never)) },
+        { processor: CPU, id: "2", nIn: 1, nOut: 1, hex: hex(encode(chain as never)) },
+      ],
+    };
+    expect(useGame.getState().teachInstinct(wide)).toEqual({
+      ok: false,
+      reason: "tooManyGates",
+      gates: INSTINCT_MAX_GATES + 8,
+    });
     expect(useGame.getState().pet).toEqual(before);
   });
 
@@ -718,8 +848,21 @@ describe("the game store: teaching and growing", () => {
   it("a circuit that is not pet-shaped, or one whose memory with the pet's passes 64 bits, is refused", async () => {
     const { useGame } = await open();
     useGame.getState().hatch("gentle", "Kiri");
-    expect(useGame.getState().teachInstinct({ ...owned, parts: [{ ...owned.parts[0]!, hex: "zz" }] })).toEqual({ ok: false, reason: "badCircuit" });
-    const big = validateProgram({ version: "LX-PET/1", memory: Array.from({ length: 12 }, (_, i) => ({ kind: "counter" as const, name: `c${i}`, bits: 4, inc: [{ event: [1] }] })), rules: [], otherwise: { want: 0, mood: 1 } });
+    expect(useGame.getState().teachInstinct({ ...owned, parts: [{ ...owned.parts[0]!, hex: "zz" }] })).toEqual({
+      ok: false,
+      reason: "badCircuit",
+    });
+    const big = validateProgram({
+      version: "LX-PET/1",
+      memory: Array.from({ length: 12 }, (_, i) => ({
+        kind: "counter" as const,
+        name: `c${i}`,
+        bits: 4,
+        inc: [{ event: [1] }],
+      })),
+      rules: [],
+      otherwise: { want: 0, mood: 1 },
+    });
     const bigHex = hex(encode(toElements(compileProgram(big))));
     const wrapper = hex(composeInstinct({ cpu: CPU, id: 10n }, { cpu: CPU, id: 11n }).bytes);
     const heavy: OutsideInstinct = {
@@ -767,7 +910,10 @@ describe("the client counts by the shared tally rules (G11)", () => {
   /** every count the world store is asked to add, as the shared rules write them */
   const capture = (useWorld: Awaited<ReturnType<typeof open>>["useWorld"]) => {
     const calls: TallyEntry[] = [];
-    useWorld.setState({ tally: (type: string, index: number | string, n: number, opts: { total?: boolean } = {}) => void calls.push([type, index, n, opts.total !== false]) });
+    useWorld.setState({
+      tally: (type: string, index: number | string, n: number, opts: { total?: boolean } = {}) =>
+        void calls.push([type, index, n, opts.total !== false]),
+    });
     return calls;
   };
 
@@ -778,7 +924,9 @@ describe("the client counts by the shared tally rules (G11)", () => {
     const calls = capture(useWorld);
     for (const note of ["ate", "played", "petted", "listened"] as const) countCare("feed", false, { pet, note });
     countCare("wake", false, { pet, note: "awake" });
-    const expected = (["ate", "played", "petted", "listened"] as const).flatMap((note) => careTally("feed", false, { pet, note }));
+    const expected = (["ate", "played", "petted", "listened"] as const).flatMap((note) =>
+      careTally("feed", false, { pet, note }),
+    );
     expect(calls).toEqual(expected);
     expect(careTally("wake", false, { pet, note: "awake" })).toEqual([]);
   });

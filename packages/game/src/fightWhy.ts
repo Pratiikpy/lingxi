@@ -21,7 +21,14 @@ export function mindOfSpec(spec: MindSpec): Mind {
 /** A sparring partner's mind, or null for one whose brain is not a pet's (a fruit fly, Behemoth). */
 export function partnerMind(p: Partner, version: SparVersion = CURRENT_SPAR): Mind | null {
   if (p.look) return null;
-  if (p.family || p.outside) return mindOfSpec({ line: p.line, lessons: (p.lessons ?? []) as Rule[], family: p.family, instincts: p.instincts, outside: p.outside });
+  if (p.family || p.outside)
+    return mindOfSpec({
+      line: p.line,
+      lessons: (p.lessons ?? []) as Rule[],
+      family: p.family,
+      instincts: p.instincts,
+      outside: p.outside,
+    });
   return { program: partnerProgram(p, version) };
 }
 
@@ -29,7 +36,14 @@ export function partnerMind(p: Partner, version: SparVersion = CURRENT_SPAR): Mi
 export function duelPetMind(p: DuelPet): { mind: Mind; memory?: number[] } | null {
   const card = parseCard(p.card);
   if (!card) return null;
-  const spec = { line: p.line, lessons: card.lessons, family: card.family, instincts: card.instincts, outside: card.outside, growth: card.growth };
+  const spec = {
+    line: p.line,
+    lessons: card.lessons,
+    family: card.family,
+    instincts: card.instincts,
+    outside: card.outside,
+    growth: card.growth,
+  };
   const nState = mindBrain(spec).nState;
   return { mind: mindOfSpec(spec), ...(card.memory?.length === nState ? { memory: [...card.memory] } : {}) };
 }
@@ -54,9 +68,12 @@ export function exchangesOf(version: SparVersion, rounds: readonly Round[], k: n
   for (const i of [0, 1] as const) {
     const j = (1 - i) as 0 | 1;
     const [mine, theirs] = [r.moves[i], r.moves[j]];
-    if (mine === "pounce" && theirs === "guard") out.push({ kind: "guarded", by: j, back: r.hits[j], timed: k === 0 || rounds[k - 1]!.moves[j] !== "guard" });
-    else if (mine === "pounce" && theirs === "dodge") out.push(r.hits[i] === 0 ? { kind: "dodged", by: j, back: r.hits[j] } : { kind: "caught", by: i });
-    else if (mine === "pounce" && (theirs === "rest" || theirs === "snack" || theirs === "charm")) out.push({ kind: "punished", by: i, open: theirs });
+    if (mine === "pounce" && theirs === "guard")
+      out.push({ kind: "guarded", by: j, back: r.hits[j], timed: k === 0 || rounds[k - 1]!.moves[j] !== "guard" });
+    else if (mine === "pounce" && theirs === "dodge")
+      out.push(r.hits[i] === 0 ? { kind: "dodged", by: j, back: r.hits[j] } : { kind: "caught", by: i });
+    else if (mine === "pounce" && (theirs === "rest" || theirs === "snack" || theirs === "charm"))
+      out.push({ kind: "punished", by: i, open: theirs });
     else if (mine === "charm" && theirs === "guard") out.push({ kind: "feint", by: i, hit: r.hits[i] });
   }
   return out;

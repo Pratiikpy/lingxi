@@ -30,6 +30,9 @@ describe("bringing a sat pet home", () => {
     const memory = { ...away, brain: away.brain.map((b, i) => (i === 0 ? 1 - b : b)) };
     expect(checkReturn(home, memory, brain)).toEqual({ ok: false, reason: "brainMismatch" });
     expect(checkReturn(away, home, brain).ok).toBe(false);
-    expect(checkReturn(home, { ...away, meters: { ...away.meters, food: 10 ** 9 } }, brain)).toEqual({ ok: false, reason: "badState" });
+    expect(checkReturn(home, { ...away, meters: { ...away.meters, food: 10 ** 9 } }, brain)).toEqual({
+      ok: false,
+      reason: "badState",
+    });
   });
 });

@@ -31,7 +31,11 @@ describe("the TapeCode-Test1 owner index (H9)", () => {
     expect(index.tokensOf(A as Address)).toBeNull();
     await index.refresh();
     expect(c.calls()).toBeLessThanOrEqual(12);
-    expect(index.tokensOf(A.toUpperCase().replace("0X", "0x") as Address)).toEqual({ tokens: ["7", "4321"], at: 1_000, block: 123 });
+    expect(index.tokensOf(A.toUpperCase().replace("0X", "0x") as Address)).toEqual({
+      tokens: ["7", "4321"],
+      at: 1_000,
+      block: 123,
+    });
     expect(index.tokensOf("0x00000000000000000000000000000000000000cc")?.tokens).toEqual([]);
   });
 

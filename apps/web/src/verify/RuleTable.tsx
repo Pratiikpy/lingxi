@@ -31,7 +31,9 @@ export function RuleTable({ lang }: { lang: "en" | "zh" }) {
           : "The game does not run these rules as code: it reads the answers of the compiled circuits. Your browser compiles every rule again and compares it byte for byte with the netlist stored on the processor."}
       </p>
       {!records ? (
-        <p className="v-note">{lang === "zh" ? "这个版本还没有记录规则电路。" : "No rule circuits are on record for this build."}</p>
+        <p className="v-note">
+          {lang === "zh" ? "这个版本还没有记录规则电路。" : "No rule circuits are on record for this build."}
+        </p>
       ) : (
         <div className="v-table-wrap" tabIndex={0} role="region" aria-labelledby="rules-h">
           {/* P5: a table wider than the screen scrolls; the keyboard reaches it, named by its heading */}

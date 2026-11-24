@@ -21,7 +21,14 @@ const REACH = 1;
  * Whether a point in a sprite's own space (Pixi's local coordinates, before its scale, so a mirrored sprite is read
  * unmirrored) lands on a drawn pixel or within `reach` of one. With no mask, anywhere in the picture counts.
  */
-export function hitsBody(mask: Mask | null, anchor: { x: number; y: number }, x: number, y: number, reach = REACH, size?: { w: number; h: number }): boolean {
+export function hitsBody(
+  mask: Mask | null,
+  anchor: { x: number; y: number },
+  x: number,
+  y: number,
+  reach = REACH,
+  size?: { w: number; h: number },
+): boolean {
   const w = mask?.w ?? size?.w ?? 0;
   const h = mask?.h ?? size?.h ?? 0;
   const tx = Math.floor(x + anchor.x * w);
@@ -61,6 +68,10 @@ function maskOf(t: Texture): Mask | null {
 /** A hit area for `sprite` that answers only on its body, whichever texture it shows at the moment. */
 export function bodyHitArea(sprite: Sprite): { contains(x: number, y: number): boolean } {
   return {
-    contains: (x, y) => hitsBody(maskOf(sprite.texture), sprite.anchor, x, y, REACH, { w: sprite.texture.width, h: sprite.texture.height }),
+    contains: (x, y) =>
+      hitsBody(maskOf(sprite.texture), sprite.anchor, x, y, REACH, {
+        w: sprite.texture.width,
+        h: sprite.texture.height,
+      }),
   };
 }

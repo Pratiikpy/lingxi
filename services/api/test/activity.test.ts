@@ -16,7 +16,14 @@ const NOW = 1_800_000_000;
 const DAY = 86_400;
 
 /** Each block that carries an event, and its time: two older than a week, the rest within it. */
-const TIME: Record<number, number> = { 1000: NOW - 10 * DAY, 1500: NOW - 8 * DAY, 2000: NOW - 2 * DAY, 2500: NOW - DAY, 2600: NOW - DAY + 60, 2700: NOW - DAY / 2 };
+const TIME: Record<number, number> = {
+  1000: NOW - 10 * DAY,
+  1500: NOW - 8 * DAY,
+  2000: NOW - 2 * DAY,
+  2500: NOW - DAY,
+  2600: NOW - DAY + 60,
+  2700: NOW - DAY / 2,
+};
 
 function registryChain() {
   const logs = [
@@ -34,8 +41,13 @@ function registryChain() {
     asked,
     client: {
       getBlockNumber: async () => 3000n,
-      getLogs: async ({ fromBlock, toBlock }: { fromBlock: bigint; toBlock: bigint }) => logs.filter((l) => l.block >= Number(fromBlock) && l.block <= Number(toBlock)).map((l) => ({ ...l, blockNumber: BigInt(l.block), transactionHash: l.tx })),
-      getBlock: async ({ blockNumber }: { blockNumber: bigint }) => ({ timestamp: BigInt(TIME[Number(blockNumber)] ?? NOW) }),
+      getLogs: async ({ fromBlock, toBlock }: { fromBlock: bigint; toBlock: bigint }) =>
+        logs
+          .filter((l) => l.block >= Number(fromBlock) && l.block <= Number(toBlock))
+          .map((l) => ({ ...l, blockNumber: BigInt(l.block), transactionHash: l.tx })),
+      getBlock: async ({ blockNumber }: { blockNumber: bigint }) => ({
+        timestamp: BigInt(TIME[Number(blockNumber)] ?? NOW),
+      }),
       getTransaction: async ({ hash }: { hash: string }) => (asked.push(hash), { from: senders[hash]! }),
     } as unknown as PublicClient,
   };
@@ -62,7 +74,22 @@ describe("activity and who kept each pet (H10)", () => {
   it("fills in who sent the hatch for pets indexed before it was recorded, without reading the chain again", async () => {
     const store = join(mkdtempSync(join(tmpdir(), "ix-")), "history.json");
     const c = registryChain();
-    writeFileSync(store, JSON.stringify({ v: 2, next: 3001, pets: { "1": { hatched: { block: 1000, tx: "0x01", line: 0, brainId: "1", state: "0", to: A }, children: [], saves: [], brains: [] } }, times: { "1000": NOW - 10 * DAY } }));
+    writeFileSync(
+      store,
+      JSON.stringify({
+        v: 2,
+        next: 3001,
+        pets: {
+          "1": {
+            hatched: { block: 1000, tx: "0x01", line: 0, brainId: "1", state: "0", to: A },
+            children: [],
+            saves: [],
+            brains: [],
+          },
+        },
+        times: { "1000": NOW - 10 * DAY },
+      }),
+    );
     const ix = createIndexer({ rpc: "", registry: REG, fromBlock: 900, store, client: c.client, paceMs: 0 });
     await ix.catchUp();
     expect(c.asked).toEqual(["0x01"]);
@@ -80,7 +107,10 @@ describe("the team's own pets, told apart (C2)", () => {
       all: { hatched: 1, children: 1, saves: 2, hatchers: 1 },
       week: { hatched: 0, children: 1, saves: 1, petsSaved: 1, hatchers: 1 },
     });
-    expect(ix.byTeam([], NOW - 7 * DAY)).toEqual({ all: { hatched: 0, children: 0, saves: 0, hatchers: 0 }, week: { hatched: 0, children: 0, saves: 0, petsSaved: 0, hatchers: 0 } });
+    expect(ix.byTeam([], NOW - 7 * DAY)).toEqual({
+      all: { hatched: 0, children: 0, saves: 0, hatchers: 0 },
+      week: { hatched: 0, children: 0, saves: 0, petsSaved: 0, hatchers: 0 },
+    });
   });
 });
 
@@ -95,8 +125,12 @@ describe("circuits Lingxi has taped out (H10)", () => {
     const client = {
       getBlockNumber: async () => 3000n,
       getLogs: async ({ fromBlock, toBlock }: { fromBlock: bigint; toBlock: bigint }) =>
-        mints.filter((m) => m.block >= Number(fromBlock) && m.block <= Number(toBlock)).map((m) => ({ blockNumber: BigInt(m.block), args: { from: m.from, to: B, tokenId: m.id } })),
-      getBlock: async ({ blockNumber }: { blockNumber: bigint }) => ({ timestamp: BigInt(TIME[Number(blockNumber)] ?? NOW) }),
+        mints
+          .filter((m) => m.block >= Number(fromBlock) && m.block <= Number(toBlock))
+          .map((m) => ({ blockNumber: BigInt(m.block), args: { from: m.from, to: B, tokenId: m.id } })),
+      getBlock: async ({ blockNumber }: { blockNumber: bigint }) => ({
+        timestamp: BigInt(TIME[Number(blockNumber)] ?? NOW),
+      }),
     } as unknown as PublicClient;
     const cc = createCircuitCounter({ rpc: "", processor: PROC, fromBlock: 900, client, paceMs: 0 });
     await cc.catchUp();
@@ -148,12 +182,19 @@ describe("circuits Lingxi has taped out (H10)", () => {
 
   it("reads again from the deploy block when its saved place belongs to another start or processor", async () => {
     const store = join(mkdtempSync(join(tmpdir(), "cc-")), "circuits.json");
-    const mints = [{ block: 1000, id: 1n }, { block: 2000, id: 2n }];
+    const mints = [
+      { block: 1000, id: 1n },
+      { block: 2000, id: 2n },
+    ];
     const client = {
       getBlockNumber: async () => 3000n,
       getLogs: async ({ fromBlock, toBlock }: { fromBlock: bigint; toBlock: bigint }) =>
-        mints.filter((m) => m.block >= Number(fromBlock) && m.block <= Number(toBlock)).map((m) => ({ blockNumber: BigInt(m.block), args: { from: ZERO, to: B, tokenId: m.id } })),
-      getBlock: async ({ blockNumber }: { blockNumber: bigint }) => ({ timestamp: BigInt(TIME[Number(blockNumber)] ?? NOW) }),
+        mints
+          .filter((m) => m.block >= Number(fromBlock) && m.block <= Number(toBlock))
+          .map((m) => ({ blockNumber: BigInt(m.block), args: { from: ZERO, to: B, tokenId: m.id } })),
+      getBlock: async ({ blockNumber }: { blockNumber: bigint }) => ({
+        timestamp: BigInt(TIME[Number(blockNumber)] ?? NOW),
+      }),
     } as unknown as PublicClient;
     // a place saved by a walk that started later (a fork of the chain): its mints before that start were never read
     writeFileSync(store, JSON.stringify({ processor: PROC, from: 2500, next: 2601, mints: [] }));

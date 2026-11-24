@@ -2,7 +2,17 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { WANTS } from "@lingxi/brain";
 import { SUB } from "@lingxi/game";
-import { COMPOST, FIRST_VISIT_COINS, GARDEN_ROOM, HOME, ITEM, QUEST_BY_ID, type WorldState, localDay, newWorld } from "@lingxi/world";
+import {
+  COMPOST,
+  FIRST_VISIT_COINS,
+  GARDEN_ROOM,
+  HOME,
+  ITEM,
+  QUEST_BY_ID,
+  type WorldState,
+  localDay,
+  newWorld,
+} from "@lingxi/world";
 import { type Storage, leave, visit } from "./testGame";
 import { memoryStorage } from "./testStorage";
 import { translate } from "../i18n";
@@ -54,7 +64,10 @@ async function open(o: { at?: number; storage?: Storage; hatch?: boolean } = {})
 /** What the notice on screen says, in English and in Chinese. */
 function said(n: Parameters<typeof noticeText>[0] | null): [string | null, string | null] {
   if (!n) throw new Error("no notice");
-  return [noticeText(n, (k, vars) => translate("en", k, vars), "en"), noticeText(n, (k, vars) => translate("zh", k, vars), "zh")];
+  return [
+    noticeText(n, (k, vars) => translate("en", k, vars), "en"),
+    noticeText(n, (k, vars) => translate("zh", k, vars), "zh"),
+  ];
 }
 
 const tallyOf = (w: WorldState, key: string) => w.tally?.[key] ?? 0;
@@ -65,7 +78,13 @@ afterEach(() => leave());
 describe("the world store: loading the world", () => {
   it("a new player starts at home with 30 coins and a few snacks, and nothing is written until something happens", async () => {
     const { w, storage } = await open({ hatch: false });
-    expect(w().world).toMatchObject({ version: 1, room: HOME, coins: 30, bag: { [MOCHI]: 3, [GOLDEN_APPLE]: 2, [MAPLE_GUM]: 2 }, claimed: [] });
+    expect(w().world).toMatchObject({
+      version: 1,
+      room: HOME,
+      coins: 30,
+      bag: { [MOCHI]: 3, [GOLDEN_APPLE]: 2, [MAPLE_GUM]: 2 },
+      claimed: [],
+    });
     expect(w().world.seed).toMatch(/^[0-9a-f]{16}$/);
     expect(storage.getItem(WORLD)).toBeNull();
   });
@@ -94,10 +113,18 @@ describe("the world store: loading the world", () => {
   });
 
   it("an older save is counted into the lifetime tally once, from what it already records", async () => {
-    const storage = savedWorld({ visited: [HOME, 64, 63, 61], foragedCount: 5, crafted: 2, tally: {}, tallied: undefined });
+    const storage = savedWorld({
+      visited: [HOME, 64, 63, 61],
+      foragedCount: 5,
+      crafted: 2,
+      tally: {},
+      tallied: undefined,
+    });
     const { w } = await open({ storage, hatch: false });
     expect(w().world).toMatchObject({ tallied: 1 });
-    expect([tallyOf(w().world, "MOVE:0"), tallyOf(w().world, "FORAGE:0"), tallyOf(w().world, "CRAFT:0")]).toEqual([3, 5, 2]);
+    expect([tallyOf(w().world, "MOVE:0"), tallyOf(w().world, "FORAGE:0"), tallyOf(w().world, "CRAFT:0")]).toEqual([
+      3, 5, 2,
+    ]);
     expect(saved(storage)?.tallied).toBe(1);
   });
 
@@ -131,7 +158,11 @@ describe("the world store: walking and looking around", () => {
     expect(w().move(LANTERN_ROOM)).toBe(true);
     expect(w().notice).toMatchObject({ kind: "moved", coins: FIRST_VISIT_COINS });
     expect(said(w().notice)).toEqual(["A new place! +5 coins.", "新地方！+5 金币。"]);
-    expect(w().world).toMatchObject({ room: LANTERN_ROOM, coins: 30 + FIRST_VISIT_COINS, visited: [HOME, LANTERN_ROOM] });
+    expect(w().world).toMatchObject({
+      room: LANTERN_ROOM,
+      coins: 30 + FIRST_VISIT_COINS,
+      visited: [HOME, LANTERN_ROOM],
+    });
     expect(useGame.getState().pet!.meters.energy).toBeLessThanOrEqual(energy - 15 * SUB);
     expect(tallyOf(w().world, `VISIT:${LANTERN_ROOM}`)).toBe(1);
     expect(saved(storage)?.room).toBe(LANTERN_ROOM);
@@ -154,7 +185,10 @@ describe("the world store: walking and looking around", () => {
   it("a room that is not next door, and a pet too tired to walk, are refused with the reason", async () => {
     const { w, useGame } = await open();
     expect(w().move(SHOP)).toBe(false);
-    expect(said(w().notice)).toEqual(["That's too far. Walk there one room at a time.", "太远了，要一个房间一个房间地走过去。"]);
+    expect(said(w().notice)).toEqual([
+      "That's too far. Walk there one room at a time.",
+      "太远了，要一个房间一个房间地走过去。",
+    ]);
     const pet = useGame.getState().pet!;
     useGame.getState().replace({ ...pet, meters: { ...pet.meters, energy: 5 * SUB } });
     expect(w().move(LANTERN_ROOM)).toBe(false);
@@ -246,7 +280,10 @@ describe("the world store: the bag, coins and the bench", () => {
     expect(said(w().notice)).toEqual(["Missing some ingredients.", "还缺一些材料。"]);
     arrange((x) => ({ ...x, bag: { [PEBBLE]: 1 } }));
     w().craft(17);
-    expect(said(w().notice)).toEqual(["You need the right tool for that. Praline's Corner Shop sells them.", "需要合适的工具。糖霜的街角小店有卖。"]);
+    expect(said(w().notice)).toEqual([
+      "You need the right tool for that. Praline's Corner Shop sells them.",
+      "需要合适的工具。糖霜的街角小店有卖。",
+    ]);
     useGame.getState().act({ kind: "lightsOff" });
     w().craft(17);
     expect(said(w().notice)).toEqual(["Shh, your pet is asleep.", "嘘，宠物在睡觉。"]);
@@ -388,7 +425,10 @@ describe("the world store: the garden", () => {
     expect(w().world.bag[COMPOST]).toBeUndefined();
     w().compost(100);
     expect(w().world.bag[COMPOST]).toBe(1);
-    expect(said(w().notice)).toEqual(["All clean, and the mess made a bag of compost for the garden.", "洗干净了，脏东西还变成了一袋园子用的堆肥。"]);
+    expect(said(w().notice)).toEqual([
+      "All clean, and the mess made a bag of compost for the garden.",
+      "洗干净了，脏东西还变成了一袋园子用的堆肥。",
+    ]);
   });
 });
 
@@ -400,7 +440,10 @@ describe("the world store: the wardrobe and the home", () => {
     arrange((x) => ({ ...x, bag: { ...x.bag, [DRIED_STEMS]: 9, [STICK]: 5 } }));
     w().make("outfit", "sunhat");
     expect(w().notice).toMatchObject({ kind: "sewn", text: "sunhat" });
-    expect(said(w().notice)).toEqual(["New outfit: Straw sunhat. Put it on from the pet page.", "新衣服：草编遮阳帽。去宠物页穿上吧。"]);
+    expect(said(w().notice)).toEqual([
+      "New outfit: Straw sunhat. Put it on from the pet page.",
+      "新衣服：草编遮阳帽。去宠物页穿上吧。",
+    ]);
     w().make("outfit", "sunhat");
     expect(said(w().notice)).toEqual(["You already have that one.", "这件已经有了。"]);
     w().make("furniture", "books");
@@ -417,7 +460,10 @@ describe("the world store: the wardrobe and the home", () => {
     expect(said(w().notice)).toEqual(["Not enough coins.", "金币不够。"]);
     w().reward(100);
     w().buyPiece("bow");
-    expect(said(w().notice)).toEqual(["New outfit: Big ribbon bow. Put it on from the pet page.", "新衣服：大蝴蝶结。去宠物页穿上吧。"]);
+    expect(said(w().notice)).toEqual([
+      "New outfit: Big ribbon bow. Put it on from the pet page.",
+      "新衣服：大蝴蝶结。去宠物页穿上吧。",
+    ]);
     expect(w().world.coins).toBe(130 - 40);
     w().buyPiece("bow");
     expect(said(w().notice)).toEqual(["You already have that one.", "这件已经有了。"]);
@@ -464,7 +510,10 @@ describe("the world store: the wardrobe and the home", () => {
   it("the champion's laurel is given once", async () => {
     const { w } = await open();
     w().giveLaurel();
-    expect(said(w().notice)).toEqual(["New outfit: Champion's laurel. Put it on from the pet page.", "新衣服：冠军桂冠。去宠物页穿上吧。"]);
+    expect(said(w().notice)).toEqual([
+      "New outfit: Champion's laurel. Put it on from the pet page.",
+      "新衣服：冠军桂冠。去宠物页穿上吧。",
+    ]);
     const after = w().world;
     w().giveLaurel();
     expect(w().world).toBe(after);
@@ -714,7 +763,12 @@ describe("the world store: what the game counts on its own", () => {
     useGame.getState().tick();
     expect(together()).toBe(1);
 
-    const guest = { ...useGame.getState().pet!, bornAt: 1, name: "Dot", sitting: { code: "c0de", key: "k", until: Date.now() + H, owner: null, name: "Dot" } };
+    const guest = {
+      ...useGame.getState().pet!,
+      bornAt: 1,
+      name: "Dot",
+      sitting: { code: "c0de", key: "k", until: Date.now() + H, owner: null, name: "Dot" },
+    };
     useGame.getState().guest(guest);
     vi.advanceTimersByTime(MIN);
     useGame.getState().tick();

@@ -78,11 +78,18 @@ export const BrainRelayPayload = z.object({
 export type BrainRelayPayload = z.input<typeof BrainRelayPayload>;
 
 /** A child's brain: REFs to its parents' circuits, or (once taught) both of its halves as its card. */
-export const ChildRelayPayload = z.union([z.object({ parents: z.tuple([z.string().regex(ID), z.string().regex(ID)]) }), z.object({ card: z.string().max(CARD_BASE_MAX) })]);
+export const ChildRelayPayload = z.union([
+  z.object({ parents: z.tuple([z.string().regex(ID), z.string().regex(ID)]) }),
+  z.object({ card: z.string().max(CARD_BASE_MAX) }),
+]);
 export type ChildRelayPayload = z.input<typeof ChildRelayPayload>;
 
 /** X1: an owned circuit as an everyday instinct, REF'd beside the pet's own brain. */
-export const InstinctRelayPayload = z.object({ own: z.string().regex(ID), processor: z.string().regex(WALLET), id: z.string().regex(ID) });
+export const InstinctRelayPayload = z.object({
+  own: z.string().regex(ID),
+  processor: z.string().regex(WALLET),
+  id: z.string().regex(ID),
+});
 export type InstinctRelayPayload = z.input<typeof InstinctRelayPayload>;
 
 /** What each relay kind signs as its payload. */
@@ -103,13 +110,21 @@ export const VoiceBody = z.object({
   decision: z.string().min(1).max(60),
   /** the conditions of the rule that fired, as the game words them */
   because: z.array(z.string().max(60)).max(6),
-  meters: z.object({ food: z.number().int().min(0).max(1000), joy: z.number().int().min(0).max(1000), energy: z.number().int().min(0).max(1000), clean: z.number().int().min(0).max(1000) }),
+  meters: z.object({
+    food: z.number().int().min(0).max(1000),
+    joy: z.number().int().min(0).max(1000),
+    energy: z.number().int().min(0).max(1000),
+    clean: z.number().int().min(0).max(1000),
+  }),
   sick: z.boolean(),
   asleep: z.boolean(),
   /** "decided": its circuit just chose this; "petted": its owner just petted it */
   moment: z.enum(["decided", "petted"]).default("decided"),
   /** G9: the pet's habits, strongest first (traits at the habit level), and whether a lesson its owner taught decided */
-  habits: z.array(z.enum(["brave", "curious", "greedy", "calm", "playful", "gentle", "shy"])).max(3).default([]),
+  habits: z
+    .array(z.enum(["brave", "curious", "greedy", "calm", "playful", "gentle", "shy"]))
+    .max(3)
+    .default([]),
   taught: z.boolean().default(false),
 });
 export type VoiceBody = z.input<typeof VoiceBody>;
@@ -128,7 +143,12 @@ export type SitHomeBody = z.input<typeof SitHomeBody>;
 /* ── the arena: POST /api/arena/snapshot, GET /api/arena/opponent ───────── */
 
 /** The line a device fielded at a round. The pet and the team are checked in full by the store (arena.ts validSnapshot). */
-export const ArenaSnapshotBody = z.object({ round: z.number().int(), pet: z.unknown(), team: z.unknown(), device: z.string() });
+export const ArenaSnapshotBody = z.object({
+  round: z.number().int(),
+  pet: z.unknown(),
+  team: z.unknown(),
+  device: z.string(),
+});
 export type ArenaSnapshotBody = z.input<typeof ArenaSnapshotBody>;
 
 /** `?round=&device=`: a whole round from 0, and the asking device (whose own line is never served back). */
@@ -157,7 +177,11 @@ export type SeasonEnterBody = z.input<typeof SeasonEnterBody>;
 /** A shared lesson in the pet's own vocabulary; a label is accepted from older clients and dropped, never stored. */
 export const LibraryRule = z.object({
   when: z.record(z.string().max(24), z.array(z.number().int().min(0).max(15)).min(1).max(16)),
-  then: z.object({ want: z.number().int().min(0).max(15), mood: z.number().int().min(0).max(3), nudge: z.number().int().min(0).max(15).optional() }),
+  then: z.object({
+    want: z.number().int().min(0).max(15),
+    mood: z.number().int().min(0).max(3),
+    nudge: z.number().int().min(0).max(15).optional(),
+  }),
   label: z.string().max(60).optional(),
 });
 export type LibraryRule = z.input<typeof LibraryRule>;
@@ -179,7 +203,10 @@ const Word = z.number().int().min(0).max(65535);
 export const PublishedLog = z.object({
   petId: z.string().regex(/^\d{1,12}$/),
   words: z.array(Word).min(1).max(SEND_LIMITS.logWords),
-  segments: z.array(z.object({ brainId: z.string().regex(ID).nullable(), words: z.array(Word).max(SEND_LIMITS.logWords) })).min(1).max(64),
+  segments: z
+    .array(z.object({ brainId: z.string().regex(ID).nullable(), words: z.array(Word).max(SEND_LIMITS.logWords) }))
+    .min(1)
+    .max(64),
 });
 export type PublishedLog = z.input<typeof PublishedLog>;
 
@@ -187,7 +214,9 @@ export type PublishedLog = z.input<typeof PublishedLog>;
 
 const STORE_KEY = /^lingxi\.[a-z0-9_.-]{1,40}$/i;
 /** A device's save: each of its stores (64 at most) as text. The total size is checked by the store (move.ts). */
-export const MoveSave = z.record(z.string().regex(STORE_KEY), z.string().max(SEND_LIMITS.moveChars)).refine((r) => Object.keys(r).length > 0 && Object.keys(r).length <= 64, "entries");
+export const MoveSave = z
+  .record(z.string().regex(STORE_KEY), z.string().max(SEND_LIMITS.moveChars))
+  .refine((r) => Object.keys(r).length > 0 && Object.keys(r).length <= 64, "entries");
 export type MoveSave = z.input<typeof MoveSave>;
 
 export const MoveBody = z.object({ save: MoveSave });
@@ -207,7 +236,9 @@ export const PushPlanBody = z.object({
   name: z.string().min(1).max(24),
   /** minutes east of UTC, as the browser reports it */
   tz: z.number().int().min(-840).max(840),
-  reminders: z.array(z.object({ kind: z.enum(["hungry", "bored", "dirty", "sick"]), at: z.number().int() })).max(MAX_REMINDERS),
+  reminders: z
+    .array(z.object({ kind: z.enum(["hungry", "bored", "dirty", "sick"]), at: z.number().int() }))
+    .max(MAX_REMINDERS),
 });
 export type PushPlanBody = z.input<typeof PushPlanBody>;
 
@@ -247,13 +278,22 @@ const isJson = (text: string): boolean => {
 };
 
 /** The papers as the JSON text the owner signed, and the owner's signature over their hash (papers.ts papersMessage). */
-export const PapersBody = z.object({ papers: z.string().max(PAPERS_MAX).refine(isJson), signature: z.string().regex(SIGNATURE) });
+export const PapersBody = z.object({
+  papers: z.string().max(PAPERS_MAX).refine(isJson),
+  signature: z.string().regex(SIGNATURE),
+});
 export type PapersBody = z.input<typeof PapersBody>;
 
 /* ── the agents' API: GET /api/v1/spar, POST /api/v1/agents/adopt, /me/care, /me/teach ── */
 
 /** A brain (`program=lx1.…`, or a TapeFly brain as `p1=…` or `chips=a,b,c`) against a partner or `fly:<rival>`. */
-export const SparQuery = z.object({ program: z.string().optional(), p1: z.string().optional(), chips: z.string().optional(), vs: z.string().optional(), seed: z.string().optional() });
+export const SparQuery = z.object({
+  program: z.string().optional(),
+  p1: z.string().optional(),
+  chips: z.string().optional(),
+  vs: z.string().optional(),
+  seed: z.string().optional(),
+});
 export type SparQuery = z.input<typeof SparQuery>;
 
 /*
@@ -262,7 +302,9 @@ export type SparQuery = z.input<typeof SparQuery>;
  */
 
 /** `{ agent, name, line, instincts? }`: who is adopting, the pet's name, its line, its instinct switches. */
-export const AgentAdoptBody = z.object({ agent: z.unknown(), name: z.unknown(), line: z.unknown(), instincts: z.unknown() }).partial();
+export const AgentAdoptBody = z
+  .object({ agent: z.unknown(), name: z.unknown(), line: z.unknown(), instincts: z.unknown() })
+  .partial();
 export type AgentAdoptBody = z.input<typeof AgentAdoptBody>;
 
 /** `{ action, food? }`: one of the care actions, and for feeding, the food. */

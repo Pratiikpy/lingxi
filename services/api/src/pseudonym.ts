@@ -48,7 +48,8 @@ export function pseudonymKey(file = keyFile()): Buffer {
     if ((e as NodeJS.ErrnoException).code !== "EEXIST") throw e;
   }
   const text = readFileSync(file, "utf8").trim();
-  if (!KEY_TEXT.test(text)) throw new Error(`${file} does not hold an address key (64 hex characters); it was left as it is`);
+  if (!KEY_TEXT.test(text))
+    throw new Error(`${file} does not hold an address key (64 hex characters); it was left as it is`);
   const key = Buffer.from(text, "hex");
   keys.set(file, key);
   return key;
@@ -108,7 +109,8 @@ export function heldOverCoded(owners: Iterable<Coded>, who: Coded, cap: number):
 }
 
 /** A raw caller written as a JSON string: an IPv4 address, an IPv6 /64 or /48 as callerOf and prefixOf name them. */
-const RAW_IN_JSON = /"((?:\d{1,3}\.){3}\d{1,3}|[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){3}::\/64|[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){2}::\/48)"/g;
+const RAW_IN_JSON =
+  /"((?:\d{1,3}\.){3}\d{1,3}|[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){3}::\/64|[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){2}::\/48)"/g;
 
 /** `text` with every raw caller written in it as a JSON string replaced by its code. */
 export function scrubText(text: string): string {

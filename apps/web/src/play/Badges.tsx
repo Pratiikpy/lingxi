@@ -33,10 +33,18 @@ const ICON: Record<Metric, IconName> = {
 };
 const TIER = { en: ["", "Bronze", "Silver", "Gold"], zh: ["", "铜", "银", "金"] } as const;
 const STAGE = { en: ["", "baby", "a child", "a teen", "an adult"], zh: ["", "宝宝", "幼年", "少年", "成年"] } as const;
-const PLACE = { en: ["", "in the top ten", "in the top three", "first"], zh: ["", "进入前十", "进入前三", "拿第一"] } as const;
+const PLACE = {
+  en: ["", "in the top ten", "in the top three", "first"],
+  zh: ["", "进入前十", "进入前三", "拿第一"],
+} as const;
 
 function howText(b: Badge, n: number, lang: "en" | "zh"): string {
-  const shown = b.metric === "stage" ? (STAGE[lang][n] ?? String(n)) : b.metric === "seasonPlace" ? (PLACE[lang][n] ?? String(n)) : String(n);
+  const shown =
+    b.metric === "stage"
+      ? (STAGE[lang][n] ?? String(n))
+      : b.metric === "seasonPlace"
+        ? (PLACE[lang][n] ?? String(n))
+        : String(n);
   return b.how[lang].replace("{n}", shown);
 }
 
@@ -50,7 +58,11 @@ export function BadgeShelf() {
     <div className="badges">
       <div className="badges-head">
         <p className="label">{l === "zh" ? "照料徽章" : "Care badges"}</p>
-        <span className="small">{l === "zh" ? `已得 ${earned} / ${BADGES.length}，所有宠物一起累计` : `${earned} of ${BADGES.length}, counted across all your pets`}</span>
+        <span className="small">
+          {l === "zh"
+            ? `已得 ${earned} / ${BADGES.length}，所有宠物一起累计`
+            : `${earned} of ${BADGES.length}, counted across all your pets`}
+        </span>
       </div>
       <ul className="badge-grid">
         {BADGES.map((b) => {
@@ -113,29 +125,29 @@ export function BadgeToast() {
         {news}
       </span>
       <AnimatePresence>
-      {top && (
-        <motion.button
-          type="button"
-          key={top.id}
-          className={`badge-toast t${top.tier}`}
-          aria-label={`${news}. ${l === "zh" ? "点按关闭" : "Tap to close"}`}
-          onClick={() => dismiss(top.id)}
-          initial={{ opacity: 0, y: 16, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 8 }}
-          transition={{ type: "spring", stiffness: 420, damping: 26 }}
-        >
-          <span className="medal" aria-hidden="true">
-            <Icon name={ICON[top.badge.metric]} size={22} />
-          </span>
-          <span>
-            <small>{l === "zh" ? "新徽章" : "New badge"}</small>
-            <b>
-              {top.badge.name[l]} · {TIER[l][top.tier]}
-            </b>
-          </span>
-        </motion.button>
-      )}
+        {top && (
+          <motion.button
+            type="button"
+            key={top.id}
+            className={`badge-toast t${top.tier}`}
+            aria-label={`${news}. ${l === "zh" ? "点按关闭" : "Tap to close"}`}
+            onClick={() => dismiss(top.id)}
+            initial={{ opacity: 0, y: 16, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ type: "spring", stiffness: 420, damping: 26 }}
+          >
+            <span className="medal" aria-hidden="true">
+              <Icon name={ICON[top.badge.metric]} size={22} />
+            </span>
+            <span>
+              <small>{l === "zh" ? "新徽章" : "New badge"}</small>
+              <b>
+                {top.badge.name[l]} · {TIER[l][top.tier]}
+              </b>
+            </span>
+          </motion.button>
+        )}
       </AnimatePresence>
     </>
   );

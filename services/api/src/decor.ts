@@ -43,7 +43,11 @@ export function cleanPlaced(v: unknown): Placed | null {
     const { id, x, y } = p as Record<string, unknown>;
     if (typeof id !== "string" || !(id in DECOR_BY_ID) || out.some((o) => o.id === id)) return null;
     if (typeof x !== "number" || typeof y !== "number" || !Number.isFinite(x) || !Number.isFinite(y)) return null;
-    out.push({ id, x: Math.max(PLACE_AREA.x0, Math.min(PLACE_AREA.x1, Math.round(x))), y: Math.max(PLACE_AREA.y0, Math.min(PLACE_AREA.y1, Math.round(y))) });
+    out.push({
+      id,
+      x: Math.max(PLACE_AREA.x0, Math.min(PLACE_AREA.x1, Math.round(x))),
+      y: Math.max(PLACE_AREA.y0, Math.min(PLACE_AREA.y1, Math.round(y))),
+    });
   }
   return out;
 }
@@ -69,7 +73,8 @@ export function createDecorStore(file?: string, maxHomes = MAX_HOMES, now: () =>
       const loaded = Object.entries(raw).sort(([, a], [, b]) => (a.at ?? 0) - (b.at ?? 0));
       for (const [owner, h] of loaded) {
         const placed = cleanPlaced(h.placed);
-        if (OWNER_ID.test(owner) && typeof h.key === "string" && placed) homes.set(owner, { key: h.key, placed, at: typeof h.at === "number" ? h.at : 0 });
+        if (OWNER_ID.test(owner) && typeof h.key === "string" && placed)
+          homes.set(owner, { key: h.key, placed, at: typeof h.at === "number" ? h.at : 0 });
       }
     } catch {
       // a damaged file starts an empty store rather than stopping the server

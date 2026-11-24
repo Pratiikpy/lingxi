@@ -16,7 +16,19 @@ import { join } from "node:path";
 import { type BrowserContext, type Page } from "@playwright/test";
 import { type Look, type Opened, dismiss, expect, hatch, sheet, test } from "../fixtures";
 import { ROOT } from "../harness/run";
-import { NO_LOCKS, bagOf, giveFood, keepOnChain, ownerOnChain, petOf, reach, stored, storedJson, tallyOf, watchRequests } from "../helpers/browser";
+import {
+  NO_LOCKS,
+  bagOf,
+  giveFood,
+  keepOnChain,
+  ownerOnChain,
+  petOf,
+  reach,
+  stored,
+  storedJson,
+  tallyOf,
+  watchRequests,
+} from "../helpers/browser";
 
 const TARO = 11110;
 const HONEY = 11140;
@@ -79,8 +91,14 @@ async function outWithOneSnack(p: Opened): Promise<Page> {
   await hh.waitForTimeout(BOOT_MS);
   // P6: a pet on its way is never shown as no pet aboard while the handheld starts
   const lines = await hh.evaluate(() => (window as unknown as { __lines?: string[] }).__lines ?? []);
-  expect(lines.some((l) => /No pet aboard|还没有宠物/.test(l)), `the handheld said no pet aboard: ${lines.join(" / ")}`).toBe(false);
-  expect(lines.some((l) => /Bringing your pet aboard|正在把宠物带上掌机/.test(l)), "it said the pet was coming aboard").toBe(true);
+  expect(
+    lines.some((l) => /No pet aboard|还没有宠物/.test(l)),
+    `the handheld said no pet aboard: ${lines.join(" / ")}`,
+  ).toBe(false);
+  expect(
+    lines.some((l) => /Bringing your pet aboard|正在把宠物带上掌机/.test(l)),
+    "it said the pet was coming aboard",
+  ).toBe(true);
   return hh;
 }
 
@@ -93,7 +111,10 @@ const SERVER_FOLLOWS_THE_CLOCK = `{ const f = window.fetch.bind(window);
     ? Promise.resolve(new Response(JSON.stringify({ now: Date.now() }), { headers: { 'content-type': 'application/json' } }))
     : f(i, o); }`;
 
-test("a pet kept on X Layer goes out on the handheld, lives three hours there and comes home (en, light, phone)", async ({ player, run }) => {
+test("a pet kept on X Layer goes out on the handheld, lives three hours there and comes home (en, light, phone)", async ({
+  player,
+  run,
+}) => {
   test.setTimeout(600_000);
   const p = await player({ lang: "en", scheme: "light", size: "phone", init: SERVER_FOLLOWS_THE_CLOCK });
   watchRequests(p);
@@ -110,7 +131,10 @@ test("a pet kept on X Layer goes out on the handheld, lives three hours there an
   // kept on X Layer first, so the brain that travels is the circuit read from the chain
   await sheet(pg, "me");
   const petId = await keepOnChain(p, run, true);
-  expect((await ownerOnChain(run, petId)).toLowerCase(), `pet #${petId} is kept on X Layer by this player's wallet`).toBe(run.players[0]!.address.toLowerCase());
+  expect(
+    (await ownerOnChain(run, petId)).toLowerCase(),
+    `pet #${petId} is kept on X Layer by this player's wallet`,
+  ).toBe(run.players[0]!.address.toLowerCase());
 
   // called back without its days (the handheld lost): home as it left, every snack returned, and the handheld lets go
   await (await reach(pg, ".handheld-panel")).scrollIntoViewIfNeeded();
@@ -163,7 +187,10 @@ test("a pet kept on X Layer goes out on the handheld, lives three hours there an
   await hh.locator(".hh-ok").waitFor({ timeout: 30_000 });
   await expect(hh.locator(".hh-ok"), "the handheld's self-test passed").toContainText("Self-test passed");
   // against the netlists it read from X Layer just now, not only the hashes built into it (A59, held since A87)
-  await expect(hh.locator(".hh-ok"), "its starters were compared with X Layer, read just now").toContainText("(read just now)", { timeout: 30_000 });
+  await expect(hh.locator(".hh-ok"), "its starters were compared with X Layer, read just now").toContainText(
+    "(read just now)",
+    { timeout: 30_000 },
+  );
   await bringHome(hh).waitFor({ timeout: 30_000 });
   await hh.waitForTimeout(BOOT_MS);
   await shot(hh, "03-handheld-home-en");
@@ -197,7 +224,9 @@ test("a pet kept on X Layer goes out on the handheld, lives three hours there an
   // a damaged packet is refused and nothing changes: the game is closed while the handheld sends the pet home, so
   // the packet can be read and damaged on the way
   await pg.close();
-  await hh.route("**/play.html*", (r) => r.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html><title>held</title>" }));
+  await hh.route("**/play.html*", (r) =>
+    r.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html><title>held</title>" }),
+  );
   await bringHome(hh).click();
   await hh.waitForURL("**/play.html*", { timeout: 10_000 });
   const packet = (await stored(hh, RET))!;
@@ -246,7 +275,9 @@ test("a pet never kept on X Layer travels on the game's own circuit (zh, dark, d
   await panel.screenshot({ path: test.info().outputPath("11-panel-zh-dark.png") });
   await page.locator(".handheld-snacks li", { hasText: "芋泥麻薯" }).locator("button[aria-label='多一个']").click();
   const hh = await opensHandheld(ctx, () => page.locator(".handheld-panel .btn.primary").click());
-  expect((await storedJson<Trip>(page, TRIP))?.brain.source, "an unkept pet travels on the game's own circuit").toBe("game");
+  expect((await storedJson<Trip>(page, TRIP))?.brain.source, "an unkept pet travels on the game's own circuit").toBe(
+    "game",
+  );
   await bringHome(hh, true).waitFor({ timeout: 30_000 });
   await hh.waitForTimeout(BOOT_MS);
   await key(hh, "f", 300);
@@ -257,7 +288,9 @@ test("a pet never kept on X Layer travels on the game's own circuit (zh, dark, d
   await bringHome(hh, true).click();
   await homeFromHandheld(page).waitFor({ timeout: 30_000 });
   await shot(page, "13-home-zh-dark");
-  await expect(homeFromHandheld(page), "home after an exact replay on the game's circuit").toContainText("得到的正是掌机送回来的宠物");
+  await expect(homeFromHandheld(page), "home after an exact replay on the game's circuit").toContainText(
+    "得到的正是掌机送回来的宠物",
+  );
   await homeFromHandheld(page).locator("button").click();
   expect((await petOf(page))?.away ?? null, "the pet is home in the save").toBeNull();
 });
@@ -302,7 +335,9 @@ const CARDPUTER = `(() => {
   Object.defineProperty(navigator, 'serial', { value: { getPorts: async () => [port], requestPort: async () => port } });
 })();`;
 
-test("a Cardputer over USB takes the pet, gives it back, and is never emptied of another game's pet (en, light, desktop)", async ({ player }) => {
+test("a Cardputer over USB takes the pet, gives it back, and is never emptied of another game's pet (en, light, desktop)", async ({
+  player,
+}) => {
   test.setTimeout(300_000);
   const p = await player({ lang: "en", scheme: "light", size: "desktop", init: CARDPUTER });
   watchRequests(p);
@@ -310,7 +345,8 @@ test("a Cardputer over USB takes the pet, gives it back, and is never emptied of
   await p.ctx.route(`**${DEVICE_WASM}`, (r) => r.fulfill({ status: 200, contentType: "application/wasm", body: wasm }));
   const { page } = p;
   const ready = () => page.evaluate(() => (window as unknown as { __dev: { ready(): number } }).__dev.ready());
-  const deviceKey = (k: string) => page.evaluate((c) => (window as unknown as { __dev: { key(k: string): void } }).__dev.key(c), k);
+  const deviceKey = (k: string) =>
+    page.evaluate((c) => (window as unknown as { __dev: { key(k: string): void } }).__dev.key(c), k);
   const owed = () => storedJson<string[]>(page, OWED);
   const away = page.locator(".away-card", { hasText: "Out on the Cardputer" });
   const homeFromCardputer = page.locator(".away-card button", { hasText: "Bring it home from the Cardputer" });
@@ -320,7 +356,11 @@ test("a Cardputer over USB takes the pet, gives it back, and is never emptied of
   const toCardputer = async (taro: number) => {
     await sheet(page, "me");
     await reach(page, ".handheld-panel");
-    for (let i = 0; i < taro; i++) await page.locator(".handheld-snacks li", { hasText: "Taro Mochi" }).locator("button[aria-label='one more']").click();
+    for (let i = 0; i < taro; i++)
+      await page
+        .locator(".handheld-snacks li", { hasText: "Taro Mochi" })
+        .locator("button[aria-label='one more']")
+        .click();
     await page.locator(".handheld-panel button", { hasText: "On a Cardputer" }).click();
   };
 
@@ -371,7 +411,10 @@ test("a Cardputer over USB takes the pet, gives it back, and is never emptied of
   await away.waitFor({ timeout: 60_000 });
   await page.evaluate((tripKey) => {
     const t = JSON.parse(localStorage.getItem(tripKey)!) as { packet: string };
-    localStorage.setItem("e2e.foreign", [...atob(t.packet)].map((c) => c.charCodeAt(0).toString(16).padStart(2, "0")).join(""));
+    localStorage.setItem(
+      "e2e.foreign",
+      [...atob(t.packet)].map((c) => c.charCodeAt(0).toString(16).padStart(2, "0")).join(""),
+    );
     localStorage.removeItem(tripKey);
     const r = JSON.parse(localStorage.getItem("lingxi.pets.v2")!) as { pets: Array<Record<string, unknown>> };
     r.pets = r.pets.map(({ away: _away, ...rest }) => rest);
@@ -385,7 +428,9 @@ test("a Cardputer over USB takes the pet, gives it back, and is never emptied of
   await toCardputer(1);
   const warn = page.locator(".handheld-panel .sp-warn");
   await warn.waitFor({ timeout: 30_000 });
-  await expect(warn, "the game refuses to empty a device carrying another game's pet").toContainText("carrying another pet");
+  await expect(warn, "the game refuses to empty a device carrying another game's pet").toContainText(
+    "carrying another pet",
+  );
   expect(await bagOf(page), "and changes nothing: the bag").toEqual(bagB);
   expect((await petOf(page))?.away ?? null, "the pet").toBeNull();
   expect(await ready(), "the device still carries the other pet").toBe(1);
@@ -404,7 +449,10 @@ for (const size of ["phone", "desktop"] as const)
         await p.page.locator(".hh-ok").waitFor({ timeout: 30_000 });
         await p.page.waitForTimeout(BOOT_MS);
         await p.page.screenshot({ path: test.info().outputPath(`page-${size}-${scheme}-${lang}.png`), fullPage: true });
-        expect(await p.page.evaluate(() => document.documentElement.scrollWidth > innerWidth), "no sideways scroll").toBe(false);
+        expect(
+          await p.page.evaluate(() => document.documentElement.scrollWidth > innerWidth),
+          "no sideways scroll",
+        ).toBe(false);
       });
 
 /* ── A6: the device's clock ───────────────────────────────────────────── */
@@ -419,12 +467,38 @@ const HANDHELD_AHEAD = `if (location.pathname.endsWith('handheld.html')) {
 }`;
 
 for (const c of [
-  { tag: "A", what: "the device's clock runs three hours fast", look: { lang: "en", scheme: "light", size: "phone" }, skew: 3 * HOUR, ahead: false },
-  { tag: "B", what: "the device's clock runs three hours slow", look: { lang: "zh", scheme: "dark", size: "desktop" }, skew: -3 * HOUR, ahead: false },
-  { tag: "C", what: "the handheld runs a moment ahead of the game, into the next minute", look: { lang: "en", scheme: "light", size: "phone" }, skew: 0, ahead: true },
-  { tag: "D", what: "the handheld runs a moment ahead of the game, into the next minute", look: { lang: "zh", scheme: "dark", size: "desktop" }, skew: 0, ahead: true },
+  {
+    tag: "A",
+    what: "the device's clock runs three hours fast",
+    look: { lang: "en", scheme: "light", size: "phone" },
+    skew: 3 * HOUR,
+    ahead: false,
+  },
+  {
+    tag: "B",
+    what: "the device's clock runs three hours slow",
+    look: { lang: "zh", scheme: "dark", size: "desktop" },
+    skew: -3 * HOUR,
+    ahead: false,
+  },
+  {
+    tag: "C",
+    what: "the handheld runs a moment ahead of the game, into the next minute",
+    look: { lang: "en", scheme: "light", size: "phone" },
+    skew: 0,
+    ahead: true,
+  },
+  {
+    tag: "D",
+    what: "the handheld runs a moment ahead of the game, into the next minute",
+    look: { lang: "zh", scheme: "dark", size: "desktop" },
+    skew: 0,
+    ahead: true,
+  },
 ] as const satisfies ReadonlyArray<{ tag: string; what: string; look: Look; skew: number; ahead: boolean }>) {
-  test(`${c.tag}: the pet comes home when ${c.what} (${c.look.lang}, ${c.look.scheme}, ${c.look.size})`, async ({ player }) => {
+  test(`${c.tag}: the pet comes home when ${c.what} (${c.look.lang}, ${c.look.scheme}, ${c.look.size})`, async ({
+    player,
+  }) => {
     test.setTimeout(300_000);
     const p = await player({ ...c.look, init: c.ahead ? HANDHELD_AHEAD : "" });
     watchRequests(p);
@@ -452,7 +526,9 @@ for (const c of [
       const onItsWay = page.locator(".fam-modal", { hasText: /On its way home|正在回家的路上/ });
       await onItsWay.waitFor({ timeout: 20_000 });
       await shot(page, `${c.tag}-on-its-way`);
-      await expect(onItsWay, "the game says the pet is on its way").toContainText(zh ? "马上就到" : "It will be here in a moment");
+      await expect(onItsWay, "the game says the pet is on its way").toContainText(
+        zh ? "马上就到" : "It will be here in a moment",
+      );
     }
     await homeFromHandheld(page).or(staysOut(page)).waitFor({ timeout: 45_000 });
     await shot(page, `${c.tag}-result`);
@@ -471,19 +547,38 @@ const SEEN = `if (location.pathname.endsWith('handheld.html')) {
   new MutationObserver(() => document.querySelectorAll('.hh-sent, .hh-ok, .hh-bad').forEach((e) => { if (!window.__seen.includes(e.textContent)) window.__seen.push(e.textContent); }))
     .observe(document, { subtree: true, childList: true, characterData: true });
 }`;
-const seenSentHome = (hh: Page) => hh.waitForFunction(() => (window as unknown as { __seen: string[] }).__seen.some((t) => t.includes("Sent home") || t.includes("已送回家")), null, { timeout: 10_000 });
+const seenSentHome = (hh: Page) =>
+  hh.waitForFunction(
+    () =>
+      (window as unknown as { __seen: string[] }).__seen.some((t) => t.includes("Sent home") || t.includes("已送回家")),
+    null,
+    { timeout: 10_000 },
+  );
 
 for (const c of [
-  { tag: "G1", what: "stays, says the pet is on its way, then home, and closes on request", look: { lang: "en", scheme: "light", size: "phone" }, noLocks: false },
-  { tag: "G1-no-locks", what: "does the same in a browser without Web Locks", look: { lang: "en", scheme: "dark", size: "desktop" }, noLocks: true },
+  {
+    tag: "G1",
+    what: "stays, says the pet is on its way, then home, and closes on request",
+    look: { lang: "en", scheme: "light", size: "phone" },
+    noLocks: false,
+  },
+  {
+    tag: "G1-no-locks",
+    what: "does the same in a browser without Web Locks",
+    look: { lang: "en", scheme: "dark", size: "desktop" },
+    noLocks: true,
+  },
 ] as const satisfies ReadonlyArray<{ tag: string; what: string; look: Look; noLocks: boolean }>) {
-  test(`${c.tag}: the handheld's tab ${c.what} (${c.look.lang}, ${c.look.scheme}, ${c.look.size})`, async ({ player }) => {
+  test(`${c.tag}: the handheld's tab ${c.what} (${c.look.lang}, ${c.look.scheme}, ${c.look.size})`, async ({
+    player,
+  }) => {
     test.setTimeout(240_000);
     const p = await player({ ...c.look, init: (c.noLocks ? NO_LOCKS : "") + SEEN });
     const { page } = p;
     const hh = await outWithOneSnack(p);
     await key(hh, "h", 500);
-    if (c.noLocks) expect(await hh.evaluate(() => !("locks" in navigator)), "the browser has no Web Locks here").toBe(true);
+    if (c.noLocks)
+      expect(await hh.evaluate(() => !("locks" in navigator)), "the browser has no Web Locks here").toBe(true);
     await bringHome(hh).click();
     await seenSentHome(hh);
     expect(hh.url(), "the handheld's tab stays the handheld, saying the pet is on its way").toContain("handheld.html");
@@ -491,21 +586,28 @@ for (const c of [
     await ok.waitFor({ timeout: 45_000 });
     await shot(hh, `${c.tag}-home`);
     await expect(ok, "the handheld's tab says the pet is home").toContainText("Home: your pet is back in your game");
-    await expect(page.locator(".fam-modal").first(), "the game's tab brought it home").toContainText("Home from the handheld");
+    await expect(page.locator(".fam-modal").first(), "the game's tab brought it home").toContainText(
+      "Home from the handheld",
+    );
     await shot(page, `${c.tag}-game`);
     const closed = hh.waitForEvent("close", { timeout: 5_000 });
     // the button closes its own tab, so the click can be told the page is gone as it finishes: only a click that left
     // the tab open is a failure (CI, 56f49cc)
-    await hh.locator("button.btn.primary", { hasText: "Close this tab" }).click().catch((e: unknown) => {
-      if (!hh.isClosed()) throw e;
-    });
+    await hh
+      .locator("button.btn.primary", { hasText: "Close this tab" })
+      .click()
+      .catch((e: unknown) => {
+        if (!hh.isClosed()) throw e;
+      });
     await closed;
     expect(hh.isClosed(), "the handheld's tab closes itself on request").toBe(true);
     expect(await elsewhere(page).count(), "no tab says the game is open elsewhere").toBe(0);
   });
 }
 
-test("G1-refused: the handheld's tab says the game kept the pet out, and the pet is still aboard (zh, dark, desktop)", async ({ player }) => {
+test("G1-refused: the handheld's tab says the game kept the pet out, and the pet is still aboard (zh, dark, desktop)", async ({
+  player,
+}) => {
   test.setTimeout(240_000);
   const p = await player({ lang: "zh", scheme: "dark", size: "desktop", init: SEEN });
   const { page } = p;
@@ -536,11 +638,16 @@ test("G1-refused: the handheld's tab says the game kept the pet out, and the pet
   await bringHome(hh, true).waitFor({ timeout: 30_000 });
   await hh.waitForTimeout(BOOT_MS);
   await shot(hh, "G1-refused-back-aboard");
-  await expect(bringHome(hh, true), "back on the handheld, the pet is still aboard and can be sent again").toBeEnabled();
+  await expect(
+    bringHome(hh, true),
+    "back on the handheld, the pet is still aboard and can be sent again",
+  ).toBeEnabled();
   expect(await elsewhere(page).count(), "no tab says the game is open elsewhere").toBe(0);
 });
 
-test("G2: with no game tab open, the handheld's tab becomes the game and brings the pet home (zh, light, phone)", async ({ player }) => {
+test("G2: with no game tab open, the handheld's tab becomes the game and brings the pet home (zh, light, phone)", async ({
+  player,
+}) => {
   test.setTimeout(240_000);
   const p = await player({ lang: "zh", scheme: "light", size: "phone", init: SEEN });
   const hh = await outWithOneSnack(p);

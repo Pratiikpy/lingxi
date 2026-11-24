@@ -10,7 +10,9 @@ for (const look of [
   { lang: "en", scheme: "light", size: "phone" },
   { lang: "zh", scheme: "dark", size: "desktop" },
 ] as const) {
-  test(`the back button closes what is open before it leaves (${look.lang}, ${look.scheme}, ${look.size})`, async ({ player }) => {
+  test(`the back button closes what is open before it leaves (${look.lang}, ${look.scheme}, ${look.size})`, async ({
+    player,
+  }) => {
     test.setTimeout(240_000);
     const p = await player(look);
     const { page } = p;

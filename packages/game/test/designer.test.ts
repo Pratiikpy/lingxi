@@ -1,12 +1,38 @@
 import { describe, expect, it } from "vitest";
 import { compileProgram, gateCount } from "@lingxi/brain";
-import { DESIGNED_PARTNERS, LESSON_CAPACITY, MAX_GATES, PARTNERS, STAGE_GATES, STAGE_LEVEL, STAGE_RULES, composeProgram, design, mutateProgram, seedProgram, strength, stream } from "../src/index";
+import {
+  DESIGNED_PARTNERS,
+  LESSON_CAPACITY,
+  MAX_GATES,
+  PARTNERS,
+  STAGE_GATES,
+  STAGE_LEVEL,
+  STAGE_RULES,
+  composeProgram,
+  design,
+  mutateProgram,
+  seedProgram,
+  strength,
+  stream,
+} from "../src/index";
 
-const pool = [...PARTNERS.map((p) => ({ name: p.id, program: p.program, level: p.level })), ...(["gentle", "bold", "curious"] as const).map((l) => ({ name: l, program: composeProgram(l, []), level: 0 }))];
+const pool = [
+  ...PARTNERS.map((p) => ({ name: p.id, program: p.program, level: p.level })),
+  ...(["gentle", "bold", "curious"] as const).map((l) => ({ name: l, program: composeProgram(l, []), level: 0 })),
+];
 
 describe("partners designed by search", () => {
   it("a design is a pure function of its seed", () => {
-    const o = { stage: "child" as const, seed: 5, generations: 3, population: 6, pool, trainSeeds: [1, 2], testSeeds: [3, 4], hallEvery: 2 };
+    const o = {
+      stage: "child" as const,
+      seed: 5,
+      generations: 3,
+      population: 6,
+      pool,
+      trainSeeds: [1, 2],
+      testSeeds: [3, 4],
+      hallEvery: 2,
+    };
     expect(design(o)).toEqual(design(o));
   });
 
@@ -37,7 +63,12 @@ describe("partners designed by search", () => {
       expect(c.lessons.length).toBeLessThanOrEqual(LESSON_CAPACITY[p.stage as "baby"]);
       const taught = composeProgram(c.line, c.lessons);
       expect(gateCount(compileProgram(taught))).toBeLessThanOrEqual(MAX_GATES);
-      const wins = strength(taught, STAGE_LEVEL[p.stage as "baby"], [{ name: p.id, program: p.program, level: p.level }], TEST);
+      const wins = strength(
+        taught,
+        STAGE_LEVEL[p.stage as "baby"],
+        [{ name: p.id, program: p.program, level: p.level }],
+        TEST,
+      );
       expect(wins).toBeCloseTo(c.wins, 3);
       expect(wins).toBeGreaterThanOrEqual(0.55);
     }

@@ -16,7 +16,8 @@ import { RateLimiter } from "./limit";
 import { writeFlushed } from "./durable";
 
 /** The message the owner signs: names the pet and the exact papers. */
-export const papersMessage = (petId: string, papers: string) => `Lingxi adoption papers for pet #${petId}\n${keccak256(toBytes(papers))}`;
+export const papersMessage = (petId: string, papers: string) =>
+  `Lingxi adoption papers for pet #${petId}\n${keccak256(toBytes(papers))}`;
 
 export interface PapersChain {
   ownerOf: (petId: bigint) => Promise<Address>;
@@ -43,7 +44,10 @@ const PET = /^([1-9]\d{0,18})\.json$/;
  * into the folder once. Each file is written beside its place under a name of its own and renamed over it (A64, A98),
  * and keeps its post's time as the file's time, so a full shelf lets go the papers posted longest ago, across restarts.
  */
-export function createPapersStore(file?: string, limits: { count: number; chars: number } = { count: MAX_PAPERS, chars: MAX_PAPERS_CHARS }) {
+export function createPapersStore(
+  file?: string,
+  limits: { count: number; chars: number } = { count: MAX_PAPERS, chars: MAX_PAPERS_CHARS },
+) {
   const dir = file ? file.replace(/\.json$/, "") : null;
   const memory = new Map<string, Stored>();
   const kept = new Map<string, { at: number; size: number }>();
@@ -122,8 +126,13 @@ export function createPapersStore(file?: string, limits: { count: number; chars:
 }
 export type PapersStore = ReturnType<typeof createPapersStore>;
 
-
-export function withPapers(app: Hono, store: PapersStore, chain: PapersChain, now: () => number = Date.now, limiter = new RateLimiter(30, 3_600_000)): Hono {
+export function withPapers(
+  app: Hono,
+  store: PapersStore,
+  chain: PapersChain,
+  now: () => number = Date.now,
+  limiter = new RateLimiter(30, 3_600_000),
+): Hono {
   app.get("/api/papers/:petId", async (c) => {
     c.header("access-control-allow-origin", "*");
     // papers are public and change only when their owner signs again: a short shared cache spares repeat reads (A119)
@@ -132,7 +141,9 @@ export function withPapers(app: Hono, store: PapersStore, chain: PapersChain, no
     if (!ID.test(id)) return c.json({ ok: false, reason: "petId" }, 400);
     const s = await store.get(id);
     // no papers yet is an ordinary answer, not an error a buyer's browser should log
-    return s ? c.json({ ok: true, papers: s.papers, signer: s.signer, at: s.at }) : c.json({ ok: false, reason: "none" });
+    return s
+      ? c.json({ ok: true, papers: s.papers, signer: s.signer, at: s.at })
+      : c.json({ ok: false, reason: "none" });
   });
 
   app.post("/api/papers/:petId", async (c) => {
@@ -154,7 +165,10 @@ export function withPapers(app: Hono, store: PapersStore, chain: PapersChain, no
     const body = parsed.data;
     let signer: Address;
     try {
-      signer = await recoverMessageAddress({ message: papersMessage(id, body.papers), signature: body.signature as Hex });
+      signer = await recoverMessageAddress({
+        message: papersMessage(id, body.papers),
+        signature: body.signature as Hex,
+      });
     } catch {
       return c.json({ ok: false, reason: "signature" }, 400);
     }
@@ -166,7 +180,8 @@ export function withPapers(app: Hono, store: PapersStore, chain: PapersChain, no
       return c.json({ ok: false, reason: "chain" }, 503);
     }
     if (owner.toLowerCase() !== signer.toLowerCase()) return c.json({ ok: false, reason: "notOwner" }, 403);
-    if (!seller || seller.toLowerCase() !== signer.toLowerCase()) return c.json({ ok: false, reason: "notOffered" }, 409);
+    if (!seller || seller.toLowerCase() !== signer.toLowerCase())
+      return c.json({ ok: false, reason: "notOffered" }, 409);
     store.put(id, { papers: body.papers, signer: signer.toLowerCase(), at: now() });
     return c.json({ ok: true });
   });

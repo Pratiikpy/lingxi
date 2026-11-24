@@ -5,7 +5,14 @@ import { RateLimiter } from "../src/limit";
 
 const good = {
   understood: true,
-  rule: { label: "shares toys", when: [{ field: "event", values: [1] }, { field: "joy", values: [2, 3] }], then: { want: 7, mood: 2, nudge: 6 } },
+  rule: {
+    label: "shares toys",
+    when: [
+      { field: "event", values: [1] },
+      { field: "joy", values: [2, 3] },
+    ],
+    then: { want: 7, mood: 2, nudge: 6 },
+  },
   reply_en: "Mochi will share toys with friends.",
   reply_zh: "团子会和朋友分享玩具了。",
 };
@@ -21,14 +28,34 @@ describe("checking what the model proposes", () => {
     }
   });
   it("refuses invented fields, out-of-range values and malformed answers", () => {
-    expect(finishProposal({ ...good, rule: { ...good.rule, when: [{ field: "weather", values: [1] }] } }, { line: "gentle", lessons: [] }, "adult").ok).toBe(false);
-    expect(finishProposal({ ...good, rule: { ...good.rule, when: [{ field: "hunger", values: [7] }] } }, { line: "gentle", lessons: [] }, "adult").ok).toBe(false);
+    expect(
+      finishProposal(
+        { ...good, rule: { ...good.rule, when: [{ field: "weather", values: [1] }] } },
+        { line: "gentle", lessons: [] },
+        "adult",
+      ).ok,
+    ).toBe(false);
+    expect(
+      finishProposal(
+        { ...good, rule: { ...good.rule, when: [{ field: "hunger", values: [7] }] } },
+        { line: "gentle", lessons: [] },
+        "adult",
+      ).ok,
+    ).toBe(false);
     expect(finishProposal({ nope: 1 }, { line: "gentle", lessons: [] }, "adult").ok).toBe(false);
-    const evil = finishProposal({ ...good, rule: { ...good.rule, when: [{ field: "__proto__", values: [1] }] } }, { line: "gentle", lessons: [] }, "adult");
+    const evil = finishProposal(
+      { ...good, rule: { ...good.rule, when: [{ field: "__proto__", values: [1] }] } },
+      { line: "gentle", lessons: [] },
+      "adult",
+    );
     expect(evil.ok).toBe(false);
   });
   it("passes the not-understood reply through to the player", () => {
-    const r = finishProposal({ understood: false, rule: null, reply_en: "It can't buy things.", reply_zh: "它不会买东西。" }, { line: "gentle", lessons: [] }, "adult");
+    const r = finishProposal(
+      { understood: false, rule: null, reply_en: "It can't buy things.", reply_zh: "它不会买东西。" },
+      { line: "gentle", lessons: [] },
+      "adult",
+    );
     expect(r.ok).toBe(false);
     if (!r.ok) {
       expect(r.reason).toBe("notUnderstood");
@@ -37,13 +64,24 @@ describe("checking what the model proposes", () => {
   });
   it("respects lesson capacity", () => {
     // D7: a baby holds two
-    const r = finishProposal(good, { line: "gentle", lessons: [{ when: { owner: [1] }, then: { want: 2, mood: 3 } }, { when: { owner: [0] }, then: { want: 3, mood: 1 } }] }, "baby");
+    const r = finishProposal(
+      good,
+      {
+        line: "gentle",
+        lessons: [
+          { when: { owner: [1] }, then: { want: 2, mood: 3 } },
+          { when: { owner: [0] }, then: { want: 3, mood: 1 } },
+        ],
+      },
+      "baby",
+    );
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.reason).toBe("full");
   });
   it("the system prompt lists every pin and the pet's memory", () => {
     const s = systemPrompt("gentle");
-    for (const f of ["hunger", "joy", "energy", "clean", "time", "action", "event", "owner", "trust", "likesToys"]) expect(s).toContain(f);
+    for (const f of ["hunger", "joy", "energy", "clean", "time", "action", "event", "owner", "trust", "likesToys"])
+      expect(s).toContain(f);
   });
 });
 
@@ -52,7 +90,11 @@ describe("the endpoint", () => {
     const app = createApp(null);
     const h = await app.request("/api/health");
     expect(await h.json()).toEqual({ ok: true, teach: false, voice: false, relay: false, live: false });
-    const t = await app.request("/api/teach", { method: "POST", body: "{}", headers: { "content-type": "application/json" } });
+    const t = await app.request("/api/teach", {
+      method: "POST",
+      body: "{}",
+      headers: { "content-type": "application/json" },
+    });
     expect(t.status).toBe(503);
   });
   it("rate limits per caller", () => {
@@ -68,8 +110,21 @@ describe("the endpoint", () => {
 describe("what a lesson in words may cost", () => {
   it("asks the model for no more than an answer needs", async () => {
     const asked: Array<{ max_tokens: number }> = [];
-    const client = { beta: { messages: { create: async (params: { max_tokens: number }) => (asked.push(params), { stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify(good) }] }) } } };
-    await teachInWords(client as never, { words: "share your toys", stage: "child", mind: { line: "gentle", lessons: [] } });
+    const client = {
+      beta: {
+        messages: {
+          create: async (params: { max_tokens: number }) => (
+            asked.push(params),
+            { stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify(good) }] }
+          ),
+        },
+      },
+    };
+    await teachInWords(client as never, {
+      words: "share your toys",
+      stage: "child",
+      mind: { line: "gentle", lessons: [] },
+    });
     expect(asked).toHaveLength(1);
     // the longest real answer measured was 348 tokens; room for it, and no more than a cut-off answer would waste
     expect(asked[0]!.max_tokens).toBeGreaterThan(348);
@@ -90,7 +145,9 @@ describe("pet names in the prompt", () => {
 describe("the health detail is for this machine only (A64)", () => {
   it("a request through the tunnel gets the switches; a direct local one also gets the detail", async () => {
     const app = createApp(null, undefined, null, undefined, null, () => ({ relayerOkb: 1.5 }));
-    const outside = await (await app.request("/api/health", { headers: { "cf-connecting-ip": "198.51.100.7" } })).json();
+    const outside = await (
+      await app.request("/api/health", { headers: { "cf-connecting-ip": "198.51.100.7" } })
+    ).json();
     expect(outside).toEqual({ ok: true, teach: false, voice: false, relay: false, live: false });
     const local = await (await app.request("/api/health")).json();
     expect(local).toMatchObject({ ok: true, detail: { relayerOkb: 1.5 } });

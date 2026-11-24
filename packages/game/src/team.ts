@@ -32,7 +32,10 @@ export const TEAM_V2 = "LX-TEAM/2";
 /** The version new team battles are fought in. */
 export const CURRENT_TEAM: TeamVersion = TEAM_V2;
 /** The spar rules each team version's moves follow (for a checker re-applying the stamina rule). */
-export const TEAM_SPAR: Record<TeamVersion, "LX-SPAR/1" | "LX-SPAR/3"> = { "LX-TEAM/1": "LX-SPAR/1", "LX-TEAM/2": "LX-SPAR/3" };
+export const TEAM_SPAR: Record<TeamVersion, "LX-SPAR/1" | "LX-SPAR/3"> = {
+  "LX-TEAM/1": "LX-SPAR/1",
+  "LX-TEAM/2": "LX-SPAR/3",
+};
 export const TEAM_ROUNDS = 24;
 export const MAX_TEAM = 5;
 
@@ -81,7 +84,16 @@ export interface TeamResult {
   digest: string;
 }
 
-const MOVE_AS_ACTION: Record<Move, number> = { tap: 0, snack: 1, pounce: 2, rest: 0, dodge: 0, guard: 0, charm: 5, gift: 7 };
+const MOVE_AS_ACTION: Record<Move, number> = {
+  tap: 0,
+  snack: 1,
+  pounce: 2,
+  rest: 0,
+  dodge: 0,
+  guard: 0,
+  charm: 5,
+  gift: 7,
+};
 const bucket = (v: number, max: number) => Math.min(3, Math.floor((v * 4) / (max + 1)));
 
 function xorshift(seed: number): () => number {
@@ -99,18 +111,38 @@ function xorshift(seed: number): () => number {
 const frontOf = (side: UnitState[]) => side.findIndex((u) => u.hp > 0);
 
 /** A team battle in the version given (the current one by default); each version replays as it was fought. */
-export function teamSpar(a: readonly TeamUnit[], b: readonly TeamUnit[], seed: number, version: TeamVersion = CURRENT_TEAM): TeamResult {
+export function teamSpar(
+  a: readonly TeamUnit[],
+  b: readonly TeamUnit[],
+  seed: number,
+  version: TeamVersion = CURRENT_TEAM,
+): TeamResult {
   return version === TEAM_V2 ? teamSparRules(V3_RULES, a, b, seed) : teamSparV1(a, b, seed);
 }
 
 /** LX-TEAM/1, exactly as it was fought. */
 function teamSparV1(a: readonly TeamUnit[], b: readonly TeamUnit[], seed: number): TeamResult {
-  if (a.length < 1 || b.length < 1 || a.length > MAX_TEAM || b.length > MAX_TEAM) throw new Error("a team has 1 to 5 units");
+  if (a.length < 1 || b.length < 1 || a.length > MAX_TEAM || b.length > MAX_TEAM)
+    throw new Error("a team has 1 to 5 units");
   const rnd = xorshift(seed);
   const units: [readonly TeamUnit[], readonly TeamUnit[]] = [a, b];
   const sides: [UnitState[], UnitState[]] = [
-    a.map((u) => ({ hp: u.hp, max: u.hp, stamina: MAX_STAMINA, weakened: 0, memory: u.memory.slice(), last: "tap" as Move })),
-    b.map((u) => ({ hp: u.hp, max: u.hp, stamina: MAX_STAMINA, weakened: 0, memory: u.memory.slice(), last: "tap" as Move })),
+    a.map((u) => ({
+      hp: u.hp,
+      max: u.hp,
+      stamina: MAX_STAMINA,
+      weakened: 0,
+      memory: u.memory.slice(),
+      last: "tap" as Move,
+    })),
+    b.map((u) => ({
+      hp: u.hp,
+      max: u.hp,
+      stamina: MAX_STAMINA,
+      weakened: 0,
+      memory: u.memory.slice(),
+      last: "tap" as Move,
+    })),
   ];
   const momentum: [number, number] = [0, 0];
   let hitHard: [boolean, boolean] = [false, false];
@@ -164,7 +196,14 @@ function teamSparV1(a: readonly TeamUnit[], b: readonly TeamUnit[], seed: number
         const m = moves[s][i];
         if (!m) return;
         const power = moods[s][i]! - 1 + units[s][i]!.level;
-        const cost = m === "pounce" ? 3 : m === "dodge" || m === "charm" ? 2 : m === "guard" || m === "snack" || m === "gift" ? 1 : 0;
+        const cost =
+          m === "pounce"
+            ? 3
+            : m === "dodge" || m === "charm"
+              ? 2
+              : m === "guard" || m === "snack" || m === "gift"
+                ? 1
+                : 0;
         u.stamina = Math.max(0, u.stamina - cost);
         if (m === "rest") u.stamina = Math.min(MAX_STAMINA, u.stamina + 4);
         if (m === "snack") heal[s][i]! += 12 + power * 2;
@@ -196,7 +235,8 @@ function teamSparV1(a: readonly TeamUnit[], b: readonly TeamUnit[], seed: number
         if (m) u.last = m;
       });
     }
-    for (const s of [0, 1] as const) momentum[s] = Math.max(-1, Math.min(2, momentum[s] + Math.sign(hits[1 - s]! - hits[s]!)));
+    for (const s of [0, 1] as const)
+      momentum[s] = Math.max(-1, Math.min(2, momentum[s] + Math.sign(hits[1 - s]! - hits[s]!)));
     hitHard = [hits[0] >= 18, hits[1] >= 18];
     rounds.push({ n, fronts, words, stamina, moves, hp: [sides[0].map((u) => u.hp), sides[1].map((u) => u.hp)], hits });
   }
@@ -222,12 +262,27 @@ const costOf = (r: SparRules, m: Move, mood: number) => r.moveCost[m] + (r.moveC
 
 /** LX-TEAM/2: the team battle played by a spar version's rules. */
 function teamSparRules(r: SparRules, a: readonly TeamUnit[], b: readonly TeamUnit[], seed: number): TeamResult {
-  if (a.length < 1 || b.length < 1 || a.length > MAX_TEAM || b.length > MAX_TEAM) throw new Error("a team has 1 to 5 units");
+  if (a.length < 1 || b.length < 1 || a.length > MAX_TEAM || b.length > MAX_TEAM)
+    throw new Error("a team has 1 to 5 units");
   const rnd = xorshift(seed);
   const units: [readonly TeamUnit[], readonly TeamUnit[]] = [a, b];
   const sides: [UnitState[], UnitState[]] = [
-    a.map((u) => ({ hp: u.hp, max: u.hp, stamina: MAX_STAMINA, weakened: 0, memory: u.memory.slice(), last: "tap" as Move })),
-    b.map((u) => ({ hp: u.hp, max: u.hp, stamina: MAX_STAMINA, weakened: 0, memory: u.memory.slice(), last: "tap" as Move })),
+    a.map((u) => ({
+      hp: u.hp,
+      max: u.hp,
+      stamina: MAX_STAMINA,
+      weakened: 0,
+      memory: u.memory.slice(),
+      last: "tap" as Move,
+    })),
+    b.map((u) => ({
+      hp: u.hp,
+      max: u.hp,
+      stamina: MAX_STAMINA,
+      weakened: 0,
+      memory: u.memory.slice(),
+      last: "tap" as Move,
+    })),
   ];
   const momentum: [number, number] = [0, 0];
   let hitHard: [boolean, boolean] = [false, false];
@@ -307,11 +362,16 @@ function teamSparRules(r: SparRules, a: readonly TeamUnit[], b: readonly TeamUni
           }
         }
         if (m === "pounce" || m === "tap") {
-          let dmg = m === "tap" ? r.tapHit + power + (rnd() % 3) : r.pounceHit + power * r.pouncePower + (rnd() % 5) + (rnd() % 6 === 0 ? 8 : 0);
+          let dmg =
+            m === "tap"
+              ? r.tapHit + power + (rnd() % 3)
+              : r.pounceHit + power * r.pouncePower + (rnd() % 5) + (rnd() % 6 === 0 ? 8 : 0);
           if (u.weakened > 0) dmg = Math.floor(dmg / 2);
           if (!front) dmg = Math.floor(dmg / 2);
           if (def === "guard") {
-            dmg = Math.floor(dmg / ((m === "pounce" ? r.guardPounce : r.guardTap) + (moods[o][fronts[o]] === 0 ? r.grumpyGuard : 0)));
+            dmg = Math.floor(
+              dmg / ((m === "pounce" ? r.guardPounce : r.guardTap) + (moods[o][fronts[o]] === 0 ? r.grumpyGuard : 0)),
+            );
             // a guarded pounce from the front staggers the attacker and throws it back, harder when the guard was timed
             if (m === "pounce" && front) {
               const timed = sides[o][fronts[o]]!.last !== "guard";
@@ -341,7 +401,8 @@ function teamSparRules(r: SparRules, a: readonly TeamUnit[], b: readonly TeamUni
     // a reckless mood is easier to hurt: each hit on a front is heavier, unless it is braced in a guard or a dodge
     for (const s of [0, 1] as const) {
       const m = moves[s][fronts[s]];
-      if (landed[s] > 0 && m !== "guard" && m !== "dodge") hits[s] = Math.max(0, hits[s] + landed[s] * r.moodTaken[moods[s][fronts[s]]!]!);
+      if (landed[s] > 0 && m !== "guard" && m !== "dodge")
+        hits[s] = Math.max(0, hits[s] + landed[s] * r.moodTaken[moods[s][fronts[s]]!]!);
     }
     for (const s of [0, 1] as const) {
       const f = sides[s][fronts[s]]!;
@@ -354,7 +415,8 @@ function teamSparRules(r: SparRules, a: readonly TeamUnit[], b: readonly TeamUni
         if (m) u.last = m;
       });
     }
-    for (const s of [0, 1] as const) momentum[s] = Math.max(-1, Math.min(2, momentum[s] + Math.sign(hits[1 - s]! - hits[s]!)));
+    for (const s of [0, 1] as const)
+      momentum[s] = Math.max(-1, Math.min(2, momentum[s] + Math.sign(hits[1 - s]! - hits[s]!)));
     hitHard = [hits[0] >= 18, hits[1] >= 18];
     rounds.push({ n, fronts, words, stamina, moves, hp: [sides[0].map((u) => u.hp), sides[1].map((u) => u.hp)], hits });
   }

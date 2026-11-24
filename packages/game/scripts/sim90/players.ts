@@ -11,7 +11,20 @@
 
 import type { StarterLine } from "@lingxi/brain";
 import { HOME, ROOMS } from "@lingxi/world";
-import { DAY_MS, PARTNERS, type Partner, type PlayerDay, type PlayerNumbers, type PlayerType, type Tree, dailyPartnerIndex, dayIndex, growthOf, stageOf, worldSeasonAt } from "../../src";
+import {
+  DAY_MS,
+  PARTNERS,
+  type Partner,
+  type PlayerDay,
+  type PlayerNumbers,
+  type PlayerType,
+  type Tree,
+  dailyPartnerIndex,
+  dayIndex,
+  growthOf,
+  stageOf,
+  worldSeasonAt,
+} from "../../src";
 import { Life, MIN, costOfEverything } from "./life";
 
 /** China's clock (UTC+8): the first audience. Day 1 is a Monday. */
@@ -59,10 +72,34 @@ interface PlayerSpec {
 const CARE_FIRST: Tree[] = ["care", "mind", "explore", "spar"];
 export const PLAYERS: Record<PlayerType, PlayerSpec> = {
   once: { line: "gentle", visits: () => [[19, 15]], trees: CARE_FIRST },
-  three: { line: "gentle", visits: () => [[8, 5], [13, 5], [21, 5]], trees: CARE_FIRST },
+  three: {
+    line: "gentle",
+    visits: () => [
+      [8, 5],
+      [13, 5],
+      [21, 5],
+    ],
+    trees: CARE_FIRST,
+  },
   weekend: { line: "gentle", visits: (wd) => (wd >= 5 ? [] : [[19, 15]]), trees: CARE_FIRST },
-  tapper: { line: "gentle", visits: () => [[12, 60], [20, 60]], trees: CARE_FIRST, minute: "tap" },
-  grinder: { line: "gentle", visits: () => [[12, 60], [20, 60]], trees: ["spar", "care", "mind", "explore"], minute: "spar" },
+  tapper: {
+    line: "gentle",
+    visits: () => [
+      [12, 60],
+      [20, 60],
+    ],
+    trees: CARE_FIRST,
+    minute: "tap",
+  },
+  grinder: {
+    line: "gentle",
+    visits: () => [
+      [12, 60],
+      [20, 60],
+    ],
+    trees: ["spar", "care", "mind", "explore"],
+    minute: "spar",
+  },
 };
 
 /** The care a player gives at the start of a visit and every half hour of a long one. */
@@ -78,7 +115,8 @@ function careFor(life: Life, t: number, hour: number): void {
   if (Math.floor(p().meters.clean / 60) < 500) life.care({ kind: "clean" }, t);
   const night = hour >= 21 || hour < 6;
   if (p().asleep && !night && life.energy() >= 600) life.care({ kind: "wake" }, t);
-  if (!p().asleep && !p().sick && Math.floor(p().meters.joy / 60) < 650 && life.energy() >= 200) life.care({ kind: "play", stars: 2 }, t);
+  if (!p().asleep && !p().sick && Math.floor(p().meters.joy / 60) < 650 && life.energy() >= 200)
+    life.care({ kind: "play", stars: 2 }, t);
   if (!p().asleep) life.care({ kind: "pet" }, t);
   if (night && !p().asleep) life.care({ kind: "lightsOff" }, t);
 }
@@ -98,7 +136,15 @@ function grinderPick(life: Life): Partner {
 const dailyPartner = (t: number): Partner => PARTNERS[dailyPartnerIndex(dayIndex(t))]!;
 
 /** One visit: arrive, care, then each minute filled as the player fills it, the owner watching throughout. */
-function visit(life: Life, spec: PlayerSpec, start: number, minutes: number, hour: number, day: number, state: RunState): void {
+function visit(
+  life: Life,
+  spec: PlayerSpec,
+  start: number,
+  minutes: number,
+  hour: number,
+  day: number,
+  state: RunState,
+): void {
   life.arrive(start);
   const routine = (t: number, h: number) => {
     life.quests(t);
@@ -111,7 +157,11 @@ function visit(life: Life, spec: PlayerSpec, start: number, minutes: number, hou
     life.levelUp();
     if (!life.pet.asleep && life.energy() >= 100 && ROOMS[life.world.room]?.drops.length) life.lookAround(t);
     life.villageErrand(t);
-    for (let i = 0; i < ERRANDS && life.errand(t, () => (spec.minute === "spar" ? grinderPick(life) : dailyPartner(t))); i++);
+    for (
+      let i = 0;
+      i < ERRANDS && life.errand(t, () => (spec.minute === "spar" ? grinderPick(life) : dailyPartner(t)));
+      i++
+    );
     if (life.world.room !== HOME) life.walkTo(HOME, t);
     life.quests(t);
   };
@@ -124,7 +174,9 @@ function visit(life: Life, spec: PlayerSpec, start: number, minutes: number, hou
   for (let m = 0; m < minutes; m++) {
     const t = start + m * MIN;
     if (m > 0 && m % CARE_EVERY === 0) routine(t, hour + Math.floor(m / 60));
-    if (spec.minute === "tap") for (let k = 0; k < TAPS_PER_MINUTE; k++) tapOnce(life, spec.tap ?? "petTalk", k, t + Math.floor((k * MIN) / TAPS_PER_MINUTE));
+    if (spec.minute === "tap")
+      for (let k = 0; k < TAPS_PER_MINUTE; k++)
+        tapOnce(life, spec.tap ?? "petTalk", k, t + Math.floor((k * MIN) / TAPS_PER_MINUTE));
     if (spec.minute === "spar") for (sparMs += MIN; sparMs > 0; ) sparMs -= life.spar(grinderPick(life), t).ms;
     life.watch(t + MIN);
   }
@@ -141,7 +193,14 @@ interface RunState {
 export function playType(type: PlayerType, seed: number, days: number, tap?: TapPath): PlayerNumbers {
   const spec = tap ? { ...PLAYERS[type], tap } : PLAYERS[type];
   const bornAt = DAY1 + HATCH_HOUR * 3_600_000;
-  const life = new Life({ name: type, line: spec.line, bornAt, tzOffsetMin: TZ, seed: seed ^ PLAYER_SALT[type], trees: spec.trees });
+  const life = new Life({
+    name: type,
+    line: spec.line,
+    bornAt,
+    tzOffsetMin: TZ,
+    seed: seed ^ PLAYER_SALT[type],
+    trees: spec.trees,
+  });
   const state: RunState = { firstTooBigDay: null, sparredToday: false };
   const everything = costOfEverything();
   const rows: PlayerDay[] = [];
@@ -151,7 +210,19 @@ export function playType(type: PlayerType, seed: number, days: number, tap?: Tap
   const seenRequests = new Set<string>();
   const seenHappenings = new Set<string>();
   const thingsLeft: number[] = [];
-  let last = { xp: 0, met: 0, keepsakes: 0, season: "", earned: life.coinsEarned(), spent: life.coinsSpent(), visited: life.world.visited.length, stage: "", capacity: 0, tiers: 0, form: false };
+  let last = {
+    xp: 0,
+    met: 0,
+    keepsakes: 0,
+    season: "",
+    earned: life.coinsEarned(),
+    spent: life.coinsSpent(),
+    visited: life.world.visited.length,
+    stage: "",
+    capacity: 0,
+    tiers: 0,
+    form: false,
+  };
   let level99Day: number | null = null;
   let allAffordableDay: number | null = null;
   let sickAfterWeekend = 0;
@@ -199,8 +270,23 @@ export function playType(type: PlayerType, seed: number, days: number, tap?: Tap
     const freshHappening = life.happeningMet(end) && !seenHappenings.has(happening);
     if (freshHappening) seenHappenings.add(happening);
     thingsLeft.push(life.thingsLeft(end));
-    const g4 = met - last.met + (life.keepsakes - last.keepsakes) + (freshRequest ? 1 : 0) + (last.season && season !== last.season ? 1 : 0) + (freshHappening ? 1 : 0);
-    const newThings = g4 + quests.length + recipes.length + finds.length + (visited - last.visited) + (stage !== last.stage ? 1 : 0) + (capacity > last.capacity ? 1 : 0) + Math.max(0, tiers - last.tiers) + (form && !last.form ? 1 : 0);
+    const g4 =
+      met -
+      last.met +
+      (life.keepsakes - last.keepsakes) +
+      (freshRequest ? 1 : 0) +
+      (last.season && season !== last.season ? 1 : 0) +
+      (freshHappening ? 1 : 0);
+    const newThings =
+      g4 +
+      quests.length +
+      recipes.length +
+      finds.length +
+      (visited - last.visited) +
+      (stage !== last.stage ? 1 : 0) +
+      (capacity > last.capacity ? 1 : 0) +
+      Math.max(0, tiers - last.tiers) +
+      (form && !last.form ? 1 : 0);
     const xp = life.xpTotal();
     const earned = life.coinsEarned();
     const spent = life.coinsSpent();
@@ -253,4 +339,10 @@ export function playType(type: PlayerType, seed: number, days: number, tap?: Tap
   };
 }
 
-const PLAYER_SALT: Record<PlayerType, number> = { once: 0x1111, three: 0x2222, weekend: 0x3333, tapper: 0x4444, grinder: 0x5555 };
+const PLAYER_SALT: Record<PlayerType, number> = {
+  once: 0x1111,
+  three: 0x2222,
+  weekend: 0x3333,
+  tapper: 0x4444,
+  grinder: 0x5555,
+};

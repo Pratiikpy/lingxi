@@ -11,7 +11,17 @@ import { drawPet } from "@lingxi/art";
 import type { Pet } from "@lingxi/game";
 import { type PacketView } from "@lingxi/chain";
 import { useLang } from "../i18n";
-import { type ClaimsRead, type PacketLink, claimsOf, decodePacketLink, packetsAvailable, readPacket, usdt, usePackets, withClaim } from "../game/packets";
+import {
+  type ClaimsRead,
+  type PacketLink,
+  claimsOf,
+  decodePacketLink,
+  packetsAvailable,
+  readPacket,
+  usdt,
+  usePackets,
+  withClaim,
+} from "../game/packets";
 import { deployment, explorerTx, publicClient, useChain } from "../game/chain";
 import { useGame } from "../game/store";
 import { play } from "../game/sound";
@@ -29,7 +39,15 @@ const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
  * closed more than 30 days ago, this is the on-chain copy (no server; the counts above come from the contract), or
  * the server could not be reached. A shown list needs no note.
  */
-function ClaimsNote({ read, closedLongAgo, lang }: { read: ClaimsRead | null; closedLongAgo: boolean; lang: "en" | "zh" }) {
+function ClaimsNote({
+  read,
+  closedLongAgo,
+  lang,
+}: {
+  read: ClaimsRead | null;
+  closedLongAgo: boolean;
+  lang: "en" | "zh";
+}) {
   if (!read || read.kind === "list") return null;
   const zh = lang === "zh";
   const text =
@@ -90,13 +108,23 @@ export function RedPacketPanel({ pet }: { pet: Pet }) {
       {link ? (
         <>
           <div className="row">
-            <input className="invite" readOnly value={link} onFocus={(e) => e.currentTarget.select()} aria-label={lang === "zh" ? "红包链接" : "Red packet link"} />
+            <input
+              className="invite"
+              readOnly
+              value={link}
+              onFocus={(e) => e.currentTarget.select()}
+              aria-label={lang === "zh" ? "红包链接" : "Red packet link"}
+            />
             <button
               type="button"
               className="btn primary"
               onClick={async () => {
                 try {
-                  if (navigator.share) await navigator.share({ title: lang === "zh" ? `${pet.name}送来的红包` : `A red packet from ${pet.name}`, url: link });
+                  if (navigator.share)
+                    await navigator.share({
+                      title: lang === "zh" ? `${pet.name}送来的红包` : `A red packet from ${pet.name}`,
+                      url: link,
+                    });
                   else {
                     await navigator.clipboard.writeText(link);
                     setCopied(true);
@@ -109,7 +137,11 @@ export function RedPacketPanel({ pet }: { pet: Pet }) {
               {copied ? (lang === "zh" ? "已复制" : "Copied") : lang === "zh" ? "发送" : "Share"}
             </button>
           </div>
-          <p className="small">{lang === "zh" ? "任何拿到链接的人都能领一份，请只发给你想发的人。" : "Anyone with the link can open a share, so send it only to the people you mean."}</p>
+          <p className="small">
+            {lang === "zh"
+              ? "任何拿到链接的人都能领一份，请只发给你想发的人。"
+              : "Anyone with the link can open a share, so send it only to the people you mean."}
+          </p>
           <button type="button" className="btn" onClick={() => setLink(null)}>
             {lang === "zh" ? "再发一个" : "Send another"}
           </button>
@@ -119,11 +151,21 @@ export function RedPacketPanel({ pet }: { pet: Pet }) {
           <div className="rp-grid">
             <label>
               <span className="small">{lang === "zh" ? "总额（USDT）" : "Total (USDT)"}</span>
-              <input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))} />
+              <input
+                inputMode="decimal"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+              />
             </label>
             <label>
               <span className="small">{lang === "zh" ? "份数" : "Shares"}</span>
-              <input type="number" min={1} max={16} value={count} onChange={(e) => setCount(Math.max(1, Math.min(16, Number(e.target.value) || 1)))} />
+              <input
+                type="number"
+                min={1}
+                max={16}
+                value={count}
+                onChange={(e) => setCount(Math.max(1, Math.min(16, Number(e.target.value) || 1)))}
+              />
             </label>
             <label>
               <span className="small">{lang === "zh" ? "有效期" : "Lasts"}</span>
@@ -135,35 +177,69 @@ export function RedPacketPanel({ pet }: { pet: Pet }) {
             </label>
           </div>
           <div className="rp-toggle" role="radiogroup" aria-label={lang === "zh" ? "怎么分" : "How to split"}>
-            <button type="button" role="radio" aria-checked={lucky} className={lucky ? "on" : ""} onClick={() => setLucky(true)}>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={lucky}
+              className={lucky ? "on" : ""}
+              onClick={() => setLucky(true)}
+            >
               {lang === "zh" ? "拼手气" : "Lucky split"}
             </button>
-            <button type="button" role="radio" aria-checked={!lucky} className={!lucky ? "on" : ""} onClick={() => setLucky(false)}>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={!lucky}
+              className={!lucky ? "on" : ""}
+              onClick={() => setLucky(false)}
+            >
               {lang === "zh" ? "平均分" : "Even split"}
             </button>
           </div>
           <label className="gift-check">
             <input type="checkbox" checked={petsOnly} onChange={(e) => setPetsOnly(e.target.checked)} />
-            <span>{lang === "zh" ? "只有养着链上满 3 天、存过 3 天的灵犀宠物的人才能领（能挡住随手刷号，挡不住有心人）" : "Only owners of a Lingxi pet that has lived on chain 3 days and saved 3 days (stops casual farming, not a determined farmer)"}</span>
+            <span>
+              {lang === "zh"
+                ? "只有养着链上满 3 天、存过 3 天的灵犀宠物的人才能领（能挡住随手刷号，挡不住有心人）"
+                : "Only owners of a Lingxi pet that has lived on chain 3 days and saved 3 days (stops casual farming, not a determined farmer)"}
+            </span>
           </label>
           <label className="gift-letter">
             <span className="small">{lang === "zh" ? "祝福语" : "A message"}</span>
-            <textarea rows={2} maxLength={200} value={letter} onChange={(e) => setLetter(e.target.value)} placeholder={lang === "zh" ? "新年快乐，恭喜发财！" : "Happy New Year!"} />
+            <textarea
+              rows={2}
+              maxLength={200}
+              value={letter}
+              onChange={(e) => setLetter(e.target.value)}
+              placeholder={lang === "zh" ? "新年快乐，恭喜发财！" : "Happy New Year!"}
+            />
           </label>
-          {bal !== null && <p className="small">{lang === "zh" ? `钱包里有 ${usdt(bal)} USDT` : `Your wallet holds ${usdt(bal)} USDT`}</p>}
-          {tooMuch && <p className="small warn">{lang === "zh" ? "钱包里的 USDT 不够。" : "Not enough USDT in your wallet."}</p>}
+          {bal !== null && (
+            <p className="small">
+              {lang === "zh" ? `钱包里有 ${usdt(bal)} USDT` : `Your wallet holds ${usdt(bal)} USDT`}
+            </p>
+          )}
+          {tooMuch && (
+            <p className="small warn">{lang === "zh" ? "钱包里的 USDT 不够。" : "Not enough USDT in your wallet."}</p>
+          )}
           {error === "packetPending" ? (
             <p className="small" role="status">
               {lang === "zh"
                 ? "红包已经发到 X Layer，还在确认。确认后它的链接会出现在下面的“你发出的红包”里，不会重复发送。"
-                : "Your packet was sent to X Layer and is still being confirmed. Its link appears under \"Packets you sent\" as soon as it is; nothing is sent twice."}
+                : 'Your packet was sent to X Layer and is still being confirmed. Its link appears under "Packets you sent" as soon as it is; nothing is sent twice.'}
             </p>
           ) : error === "packetFailed" ? (
             <p className="err" role="alert">
-              {lang === "zh" ? "X Layer 拒绝了这个红包，USDT 还在你的钱包里，只花了网络手续费。" : "X Layer refused the packet, so its USDT stayed in your wallet; only the network fee was spent."}
+              {lang === "zh"
+                ? "X Layer 拒绝了这个红包，USDT 还在你的钱包里，只花了网络手续费。"
+                : "X Layer refused the packet, so its USDT stayed in your wallet; only the network fee was spent."}
             </p>
           ) : (
-            error && <p className="err" role="alert">{lang === "zh" ? `没发出去：${error}` : `Didn't send: ${error}`}</p>
+            error && (
+              <p className="err" role="alert">
+                {lang === "zh" ? `没发出去：${error}` : `Didn't send: ${error}`}
+              </p>
+            )
           )}
           <button
             type="button"
@@ -171,14 +247,29 @@ export function RedPacketPanel({ pet }: { pet: Pet }) {
             disabled={!valid || tooMuch || !!busy}
             onClick={async () => {
               play("tap");
-              const l = await send({ amount, count, lucky, petOwnersOnly: petsOnly, days, from: { name: pet.name, line: pet.line }, letter: letter.trim(), origin: linkPrefix("play.html") });
+              const l = await send({
+                amount,
+                count,
+                lucky,
+                petOwnersOnly: petsOnly,
+                days,
+                from: { name: pet.name, line: pet.line },
+                letter: letter.trim(),
+                origin: linkPrefix("play.html"),
+              });
               if (l) {
                 play("success");
                 setLink(l);
               }
             }}
           >
-            {busy ? (lang === "zh" ? "正在存入托管合约……" : "Putting it in escrow…") : lang === "zh" ? `塞进红包：${amount || 0} USDT` : `Fill the packet: ${amount || 0} USDT`}
+            {busy
+              ? lang === "zh"
+                ? "正在存入托管合约……"
+                : "Putting it in escrow…"
+              : lang === "zh"
+                ? `塞进红包：${amount || 0} USDT`
+                : `Fill the packet: ${amount || 0} USDT`}
           </button>
         </>
       )}
@@ -189,7 +280,11 @@ export function RedPacketPanel({ pet }: { pet: Pet }) {
             {pending.map((p) => (
               <li key={p.key}>
                 <b>{p.total} USDT</b>
-                <span className="small">{lang === "zh" ? ` · ${p.count} 份 · 链接会在确认后出现` : ` · ${p.count} shares · its link appears once confirmed`}</span>
+                <span className="small">
+                  {lang === "zh"
+                    ? ` · ${p.count} 份 · 链接会在确认后出现`
+                    : ` · ${p.count} shares · its link appears once confirmed`}
+                </span>
                 {p.tx && explorerTx(p.tx) && (
                   <a className="small" href={explorerTx(p.tx)!} target="_blank" rel="noopener noreferrer">
                     {lang === "zh" ? "查看交易" : "View transaction"}
@@ -216,7 +311,9 @@ function SentList() {
   useEffect(() => {
     if (!deployment) return;
     let live = true;
-    void Promise.all(sent.slice(0, 5).map(async (s) => [s.id, await readPacket(publicClient, deployment!, BigInt(s.id))] as const)).then((rows) => {
+    void Promise.all(
+      sent.slice(0, 5).map(async (s) => [s.id, await readPacket(publicClient, deployment!, BigInt(s.id))] as const),
+    ).then((rows) => {
       if (live) setViews(Object.fromEntries(rows));
     });
     void publicClient.getBlock().then(
@@ -239,7 +336,9 @@ function SentList() {
               <b>#{s.id}</b> {s.total} USDT
               {v && (
                 <span className="small">
-                  {lang === "zh" ? ` · 已领 ${v.paid}/${v.count} · 剩 ${usdt(v.remaining)}` : ` · ${v.paid}/${v.count} opened · ${usdt(v.remaining)} left`}
+                  {lang === "zh"
+                    ? ` · 已领 ${v.paid}/${v.count} · 剩 ${usdt(v.remaining)}`
+                    : ` · ${v.paid}/${v.count} opened · ${usdt(v.remaining)} left`}
                 </span>
               )}
               {/* the link again, for a packet sent earlier or found after its tab closed (A42) */}
@@ -261,7 +360,11 @@ function SentList() {
                 </button>
               )}
               {v && expired && v.remaining > 0n && (
-                <button type="button" className="btn" onClick={async () => (await refund(s.id)) && (play("success"), setTick((t) => t + 1))}>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={async () => (await refund(s.id)) && (play("success"), setTick((t) => t + 1))}
+                >
                   {lang === "zh" ? "退回剩余" : "Take back the rest"}
                 </button>
               )}
@@ -314,7 +417,10 @@ export function PacketArrival() {
     return watchLinks(read, () => {});
     // the store's action keeps one identity, so this runs once, as a page's link handler should
   }, [owedFn]);
-  const carrier = useMemo(() => drawPet(link?.from.line ?? "gentle", "child", { expression: "proud" }), [link?.from.line]);
+  const carrier = useMemo(
+    () => drawPet(link?.from.line ?? "gentle", "child", { expression: "proud" }),
+    [link?.from.line],
+  );
   if (!link && !reason) return null;
   const close = () => {
     history.replaceState(null, "", location.pathname + location.search);
@@ -327,12 +433,19 @@ export function PacketArrival() {
     allClaimed: ["Every share has been opened.", "红包已经被领完了。"],
     already: ["You've already opened this one.", "你已经领过这个红包了。"],
     expired: ["This red packet has expired.", "这个红包已经过期了。"],
-    petsOnly: ["Only owners of a settled Lingxi pet can open this one: the pet on screen must have lived on chain for 3 days and saved its third day.", "只有养着“安顿好”的灵犀宠物的人才能领：当前宠物要在链上满 3 天，并且存过第 3 天。"],
+    petsOnly: [
+      "Only owners of a settled Lingxi pet can open this one: the pet on screen must have lived on chain for 3 days and saved its third day.",
+      "只有养着“安顿好”的灵犀宠物的人才能领：当前宠物要在链上满 3 天，并且存过第 3 天。",
+    ],
     petUsed: ["This pet has already opened this red packet.", "这只宠物已经领过这个红包了。"],
     badKey: ["This link's key doesn't match the packet.", "这个链接的钥匙和红包对不上。"],
-    noWallet: ["Opening a share needs a wallet (OKX Wallet or any browser wallet).", "领红包需要一个钱包（OKX 钱包或任意浏览器钱包）。"],
+    noWallet: [
+      "Opening a share needs a wallet (OKX Wallet or any browser wallet).",
+      "领红包需要一个钱包（OKX 钱包或任意浏览器钱包）。",
+    ],
   };
-  const text = (k: string) => reasonText[k]?.[lang === "zh" ? 1 : 0] ?? (lang === "zh" ? `没领成：${k}` : `Couldn't open it: ${k}`);
+  const text = (k: string) =>
+    reasonText[k]?.[lang === "zh" ? 1 : 0] ?? (lang === "zh" ? `没领成：${k}` : `Couldn't open it: ${k}`);
   const left = view ? view.count - view.paid : 0;
   // by X Layer's clock, read with the packet (a claim past expiry is refused by the contract itself)
   const expired = view ? (chainNow ?? Math.floor(now() / 1000)) >= view.expiry : false;
@@ -344,9 +457,19 @@ export function PacketArrival() {
           <>
             <h3>{lang === "zh" ? `${link.from.name}送来一个红包` : `${link.from.name} brought you a red packet`}</h3>
             <div className="rp-stage">
-              <motion.div className="gift-carrier" initial={reduce ? false : { x: -140 }} animate={{ x: 0 }} transition={{ duration: 1.1, ease: [0.23, 1, 0.32, 1] }}>
+              <motion.div
+                className="gift-carrier"
+                initial={reduce ? false : { x: -140 }}
+                animate={{ x: 0 }}
+                transition={{ duration: 1.1, ease: [0.23, 1, 0.32, 1] }}
+              >
                 <Sprite canvas={carrier} palette={PALETTE_OF[link.from.line]} scale={2.5} label={link.from.name} />
-                <motion.span className="rp-envelope" aria-hidden="true" animate={reduce || stage !== "idle" ? {} : { rotate: [0, -5, 5, 0] }} transition={{ repeat: Infinity, duration: 1.2 }}>
+                <motion.span
+                  className="rp-envelope"
+                  aria-hidden="true"
+                  animate={reduce || stage !== "idle" ? {} : { rotate: [0, -5, 5, 0] }}
+                  transition={{ repeat: Infinity, duration: 1.2 }}
+                >
                   <span>{lang === "zh" ? "福" : "Fu"}</span>
                 </motion.span>
               </motion.div>
@@ -362,7 +485,15 @@ export function PacketArrival() {
             {result ? (
               <motion.div className="rp-result" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
                 <b>{usdt(result.amount)} USDT</b>
-                <span>{result.best ? (lang === "zh" ? "手气最佳！" : "Best luck!") : lang === "zh" ? "已存入你的钱包" : "In your wallet now"}</span>
+                <span>
+                  {result.best
+                    ? lang === "zh"
+                      ? "手气最佳！"
+                      : "Best luck!"
+                    : lang === "zh"
+                      ? "已存入你的钱包"
+                      : "In your wallet now"}
+                </span>
               </motion.div>
             ) : stage === "error" ? (
               <p className="small warn">{text(reason ?? "")}</p>
@@ -433,21 +564,35 @@ export function PacketArrival() {
                   }
                 }}
               >
-                {lang === "zh" ? `大家都领完了：再收 ${usdt(owed)} USDT` : `Everyone has opened: collect ${usdt(owed)} USDT more`}
+                {lang === "zh"
+                  ? `大家都领完了：再收 ${usdt(owed)} USDT`
+                  : `Everyone has opened: collect ${usdt(owed)} USDT more`}
               </button>
             )}
             {view?.lucky && result && owed === 0n && view.paid < view.count && (
-              <p className="small">{lang === "zh" ? "等所有人都领完，剩下的奖池会按手气再分一次，到时回来收。" : "When everyone has opened, the rest of the pool is shared out by luck; come back to collect it."}</p>
+              <p className="small">
+                {lang === "zh"
+                  ? "等所有人都领完，剩下的奖池会按手气再分一次，到时回来收。"
+                  : "When everyone has opened, the rest of the pool is shared out by luck; come back to collect it."}
+              </p>
             )}
             {claims.length > 0 && (
               <details className="rp-claims">
-                <summary>{lang === "zh" ? `谁领了多少（${claims.length}）` : `Who got what (${claims.length})`}</summary>
+                <summary>
+                  {lang === "zh" ? `谁领了多少（${claims.length}）` : `Who got what (${claims.length})`}
+                </summary>
                 <ul>
                   {claims.map((c) => (
                     <li key={c.tx}>
                       <span>{short(c.claimer)}</span>
                       <b>{usdt(c.amount)}</b>
-                      <em title={lang === "zh" ? "封印电路的输入和输出，可以用 eval 重算" : "The seal circuit's input and output; re-run them with eval"}>
+                      <em
+                        title={
+                          lang === "zh"
+                            ? "封印电路的输入和输出，可以用 eval 重算"
+                            : "The seal circuit's input and output; re-run them with eval"
+                        }
+                      >
                         seal {c.sealInput.toString(16).padStart(4, "0")}→{c.sealOutput.toString(16).padStart(2, "0")}
                       </em>
                     </li>
@@ -462,7 +607,9 @@ export function PacketArrival() {
             )}
           </>
         )}
-        {link && view && <ClaimsNote read={read} closedLongAgo={view.expiry + 3_600 + 30 * 86_400 < now() / 1000} lang={lang} />}
+        {link && view && (
+          <ClaimsNote read={read} closedLongAgo={view.expiry + 3_600 + 30 * 86_400 < now() / 1000} lang={lang} />
+        )}
         {!link && reason && <p>{text(reason)}</p>}
         <button type="button" className="btn" onClick={close}>
           {lang === "zh" ? "关闭" : "Close"}

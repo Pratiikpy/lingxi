@@ -52,12 +52,25 @@ export async function checkRelayAuth(
   deps: { isKeeper: (petId: string, who: Address) => Promise<boolean>; now: () => number; nonces: NonceBook },
 ): Promise<{ ok: true; signer: Address } | { ok: false; reason: RelayRefusal }> {
   const a = req.auth;
-  if (!a || !PET.test(req.petId) || typeof req.payload !== "string" || req.payload.length > MAX_PAYLOAD || !isAddress(a.signer) || !NONCE.test(a.nonce) || !Number.isInteger(a.time) || !isSignature(a.signature)) return { ok: false, reason: "unsigned" };
+  if (
+    !a ||
+    !PET.test(req.petId) ||
+    typeof req.payload !== "string" ||
+    req.payload.length > MAX_PAYLOAD ||
+    !isAddress(a.signer) ||
+    !NONCE.test(a.nonce) ||
+    !Number.isInteger(a.time) ||
+    !isSignature(a.signature)
+  )
+    return { ok: false, reason: "unsigned" };
   const now = deps.now();
   if (Math.abs(now / 1000 - a.time) > WINDOW_S) return { ok: false, reason: "expired" };
   let signer: Address;
   try {
-    signer = await recoverMessageAddress({ message: relayMessage({ kind: req.kind, petId: req.petId, payload: req.payload, nonce: a.nonce, time: a.time }), signature: a.signature });
+    signer = await recoverMessageAddress({
+      message: relayMessage({ kind: req.kind, petId: req.petId, payload: req.payload, nonce: a.nonce, time: a.time }),
+      signature: a.signature,
+    });
   } catch {
     return { ok: false, reason: "badSignature" };
   }
@@ -121,7 +134,8 @@ export class RelayQuota {
   ) {
     if (file && hasStore(file)) {
       try {
-        for (const [pet, n] of Object.entries(readStore(file) as Record<string, number>)) if (PET.test(pet) && Number.isInteger(n) && n > 0) this.lifetime.set(pet, n);
+        for (const [pet, n] of Object.entries(readStore(file) as Record<string, number>))
+          if (PET.test(pet) && Number.isInteger(n) && n > 0) this.lifetime.set(pet, n);
       } catch {
         // an unreadable file starts from nothing; the daily and hourly caps still hold
       }
@@ -150,20 +164,45 @@ export class RelayQuota {
    * Takes `n` slots, one for each tape-out the request may send, all at once against every cap, or says why not:
    * `busy` (a daily or hourly cap), `newcomer` (the newcomers' share), `lifetime` (the pet's own).
    */
-  take(petId: string, signer: string, settled: boolean, now = Date.now(), n = 1): { ok: true; ticket: SponsorTicket } | { ok: false; reason: "busy" | "newcomer" | "lifetime" } {
+  take(
+    petId: string,
+    signer: string,
+    settled: boolean,
+    now = Date.now(),
+    n = 1,
+  ): { ok: true; ticket: SponsorTicket } | { ok: false; reason: "busy" | "newcomer" | "lifetime" } {
     this.roll(now);
     const s = signer.toLowerCase();
     const share = this.caps.newcomerShare ?? 1;
     const life = this.lifetime.get(petId) ?? 0;
-    if (this.caps.lifetime && life + n > (settled ? this.caps.lifetime.settled : this.caps.lifetime.newcomer)) return { ok: false, reason: "lifetime" };
-    if ((this.perPet.get(petId) ?? 0) + n > this.caps.perPetPerDay || (this.perSigner.get(s) ?? 0) + n > this.caps.perSignerPerDay || this.hour.length + n > this.caps.perHour) return { ok: false, reason: "busy" };
+    if (this.caps.lifetime && life + n > (settled ? this.caps.lifetime.settled : this.caps.lifetime.newcomer))
+      return { ok: false, reason: "lifetime" };
+    if (
+      (this.perPet.get(petId) ?? 0) + n > this.caps.perPetPerDay ||
+      (this.perSigner.get(s) ?? 0) + n > this.caps.perSignerPerDay ||
+      this.hour.length + n > this.caps.perHour
+    )
+      return { ok: false, reason: "busy" };
     // the relayer's day holds for settled pets too, and part of each hour stays for pets not yet served today (A142)
     if (this.caps.perDay !== undefined && this.allToday + n > this.caps.perDay) return { ok: false, reason: "busy" };
-    if ((this.perPet.get(petId) ?? 0) > 0 && this.hour.length + n > this.caps.perHour - Math.floor(this.caps.perHour * (this.caps.keptForUnserved ?? 0))) return { ok: false, reason: "busy" };
-    if (settled && this.caps.settledPerSignerPerHour !== undefined && this.hour.filter((h) => h.settled && h.signer === s).length + n > this.caps.settledPerSignerPerHour) return { ok: false, reason: "busy" };
+    if (
+      (this.perPet.get(petId) ?? 0) > 0 &&
+      this.hour.length + n > this.caps.perHour - Math.floor(this.caps.perHour * (this.caps.keptForUnserved ?? 0))
+    )
+      return { ok: false, reason: "busy" };
+    if (
+      settled &&
+      this.caps.settledPerSignerPerHour !== undefined &&
+      this.hour.filter((h) => h.settled && h.signer === s).length + n > this.caps.settledPerSignerPerHour
+    )
+      return { ok: false, reason: "busy" };
     if (!settled) {
       const hourNew = this.hour.filter((h) => !h.settled).length;
-      if (hourNew + n > Math.floor(this.caps.perHour * share) || (this.caps.perDay !== undefined && this.newcomersToday + n > Math.floor(this.caps.perDay * share))) return { ok: false, reason: "newcomer" };
+      if (
+        hourNew + n > Math.floor(this.caps.perHour * share) ||
+        (this.caps.perDay !== undefined && this.newcomersToday + n > Math.floor(this.caps.perDay * share))
+      )
+        return { ok: false, reason: "newcomer" };
       this.newcomersToday += n;
     }
     this.perPet.set(petId, (this.perPet.get(petId) ?? 0) + n);

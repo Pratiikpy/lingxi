@@ -22,8 +22,14 @@ import { READER, READER_BEFORE_D8 } from "../scripts/sim90/field";
 import { slow } from "./slow";
 
 /** a brain that answers `pick(word)` as a move, at a mood (0 grumpy .. 3 excited) */
-const brain = (pick: (word: number) => Move, mood = 1): FastBrain => ({ step: (_st: Uint8Array, word: number) => MOVES.indexOf(pick(word)) | (mood << 3) }) as unknown as FastBrain;
-const fighter = (name: string, pick: (word: number) => Move, mood = 1): Fighter => ({ name, brain: brain(pick, mood), memory: [], level: 0 });
+const brain = (pick: (word: number) => Move, mood = 1): FastBrain =>
+  ({ step: (_st: Uint8Array, word: number) => MOVES.indexOf(pick(word)) | (mood << 3) }) as unknown as FastBrain;
+const fighter = (name: string, pick: (word: number) => Move, mood = 1): Fighter => ({
+  name,
+  brain: brain(pick, mood),
+  memory: [],
+  level: 0,
+});
 const always = (m: Move, mood = 1) => fighter(m, () => m, mood);
 /** the other's last move as the 16-pin word shows it, read from the brain's own pin table */
 const theirAction = (w: number) => (w >> inputField("action").lo) & ((1 << inputField("action").bits) - 1);
@@ -55,7 +61,17 @@ async function winsOver(seeds: readonly number[], me: Fighter, opp: () => Fighte
 describe("the fight new spars are fought in (G2, B1)", () => {
   it("shows every move apart on the action pins, so a guard is not read as a rest", () => {
     const seen: number[] = [];
-    now(fighter("watcher", (w) => (seen.push(theirAction(w)), "tap")), fighter("mover", (() => { let k = 0; return () => MOVES[k++ % MOVES.length]!; })()), 1);
+    now(
+      fighter("watcher", (w) => (seen.push(theirAction(w)), "tap")),
+      fighter(
+        "mover",
+        (() => {
+          let k = 0;
+          return () => MOVES[k++ % MOVES.length]!;
+        })(),
+      ),
+      1,
+    );
     expect(new Set(seen.slice(1)).size).toBe(MOVES.length);
   });
 
@@ -103,7 +119,8 @@ describe("the fight new spars are fought in (G2, B1)", () => {
       }
       return w / (2 * n);
     };
-    const pacer = (mood: number) => fighter(`pacer${mood}`, (w) => (((w >> inputField("energy").lo) & 3) <= 1 ? "rest" : "pounce"), mood);
+    const pacer = (mood: number) =>
+      fighter(`pacer${mood}`, (w) => (((w >> inputField("energy").lo) & 3) <= 1 ? "rest" : "pounce"), mood);
     for (const make of [pacer, (m: number) => always("pounce", m), (m: number) => always("tap", m)])
       for (const mood of [0, 2, 3]) {
         const v = score(make(mood), make(1));
@@ -111,8 +128,12 @@ describe("the fight new spars are fought in (G2, B1)", () => {
         expect(v, `${make(mood).name} at mood ${mood}`).toBeLessThan(0.65);
       }
     // an excited hit is harder, and an excited pet takes harder hits; a calm one recovers while it taps
-    expect(now(always("pounce", 3), always("tap"), 9).rounds[0]!.hits[0]).toBeGreaterThan(now(always("pounce", 1), always("tap"), 9).rounds[0]!.hits[0]);
-    expect(now(always("tap"), always("pounce", 3), 9).rounds[0]!.hits[0]).toBeGreaterThan(now(always("tap"), always("pounce", 1), 9).rounds[0]!.hits[0]);
+    expect(now(always("pounce", 3), always("tap"), 9).rounds[0]!.hits[0]).toBeGreaterThan(
+      now(always("pounce", 1), always("tap"), 9).rounds[0]!.hits[0],
+    );
+    expect(now(always("tap"), always("pounce", 3), 9).rounds[0]!.hits[0]).toBeGreaterThan(
+      now(always("tap"), always("pounce", 1), 9).rounds[0]!.hits[0],
+    );
     expect(now(always("tap", 1), always("tap"), 9).rounds[0]!.stamina[0]).toBe(10);
   });
 
@@ -128,7 +149,8 @@ describe("the fight new spars are fought in (G2, B1)", () => {
       }
       return w / n;
     };
-    for (const m of ["pounce", "guard", "dodge", "rest", "snack", "charm", "tap"] as const) expect(score(reader, always(m)), m).toBeGreaterThan(0.55);
+    for (const m of ["pounce", "guard", "dodge", "rest", "snack", "charm", "tap"] as const)
+      expect(score(reader, always(m)), m).toBeGreaterThan(0.55);
   });
 });
 
@@ -162,14 +184,20 @@ const V1_PINS: [string, "gentle" | "bold" | "curious", number, string][] = [
   ["mallow", "bold", 1009, "05d98796"],
   ["mallow", "curious", 7, "7aa58bb1"],
   ["mallow", "curious", 1009, "643d1c95"],
-  ["skilled", "bold", 77, "dddb58d4"]
+  ["skilled", "bold", 77, "dddb58d4"],
 ];
 
 describe("LX-SPAR/1 is kept for the spars already fought (G2)", () => {
   it("replays every recorded fight to the same fingerprint, directly and through the version switch", () => {
-    const skilled = (): Fighter => ({ ...fighterFrom("s", STARTERS.bold, 1), mods: sparMods({ level: 40, points: 0, skills: { 411: 5, 412: 5, 421: 5, 422: 5, 423: 5, 431: 1 } }) });
+    const skilled = (): Fighter => ({
+      ...fighterFrom("s", STARTERS.bold, 1),
+      mods: sparMods({ level: 40, points: 0, skills: { 411: 5, 412: 5, 421: 5, 422: 5, 423: 5, 431: 1 } }),
+    });
     for (const [who, line, seed, digest] of V1_PINS) {
-      const [a, b] = who === "skilled" ? [skilled(), fighterOfPartner(PARTNERS[1]!, SPAR_VERSION)] : [fighterFrom(line, STARTERS[line], 1), fighterOfPartner(PARTNERS.find((p) => p.id === who)!, SPAR_VERSION)];
+      const [a, b] =
+        who === "skilled"
+          ? [skilled(), fighterOfPartner(PARTNERS[1]!, SPAR_VERSION)]
+          : [fighterFrom(line, STARTERS[line], 1), fighterOfPartner(PARTNERS.find((p) => p.id === who)!, SPAR_VERSION)];
       expect(spar(a, b, seed).digest, `${who} ${line} ${seed}`).toBe(digest);
       expect(fight(SPAR_VERSION, a, b, seed).digest).toBe(digest);
       expect(fight(SPAR_VERSION, a, b, seed).version).toBe(SPAR_VERSION);
@@ -200,23 +228,31 @@ describe("LX-SPAR/1 is kept for the spars already fought (G2)", () => {
 
   it("LX-SPAR/4 changes only what the Spar skills bring: a fight without skills is the same fight (D8)", () => {
     const pets = (["gentle", "bold", "curious"] as const).map((l) => fighterFrom(l, STARTERS[l], 1));
-    for (const a of pets) for (const b of pets) for (const seed of [7, 1009, 4242]) {
-      const v3 = fight(SPAR_V3, a, b, seed);
-      const v4 = fight(SPAR_V4, a, b, seed);
-      expect(v4.winner).toBe(v3.winner);
-      expect(v4.rounds).toEqual(v3.rounds);
-    }
+    for (const a of pets)
+      for (const b of pets)
+        for (const seed of [7, 1009, 4242]) {
+          const v3 = fight(SPAR_V3, a, b, seed);
+          const v4 = fight(SPAR_V4, a, b, seed);
+          expect(v4.winner).toBe(v3.winner);
+          expect(v4.rounds).toEqual(v3.rounds);
+        }
   });
 });
 
 describe("Spar skills tilt a fight and never decide it (G2, G8 item 4)", () => {
-  const only = (want: number): Fighter => ({ ...fighterFrom(`only${want}`, composeProgram("gentle", []), 1), brain: brain(() => MOVES[want]!) });
+  const only = (want: number): Fighter => ({
+    ...fighterFrom(`only${want}`, composeProgram("gentle", []), 1),
+    brain: brain(() => MOVES[want]!),
+  });
   const rate = (a: Fighter, b: Fighter, n = 300) => {
     let w = 0;
     for (let s = 0; s < n; s++) if (fight(CURRENT_SPAR, a, b, s * 7919 + 3).winner === 0) w++;
     return w / n;
   };
-  const skilled = (f: Fighter, skills: Record<number, number>): Fighter => ({ ...f, mods: sparMods({ level: 99, points: 0, skills }) });
+  const skilled = (f: Fighter, skills: Record<number, number>): Fighter => ({
+    ...f,
+    mods: sparMods({ level: 99, points: 0, skills }),
+  });
   const reader = fighterFrom("reader", READER, 1);
   const pouncer = only(MOVES.indexOf("pounce"));
 
@@ -239,7 +275,12 @@ describe("Spar skills tilt a fight and never decide it (G2, G8 item 4)", () => {
 
   it("a whole Spar tree, on a fight-reading brain, beats the same brain unskilled in 60 to 80% of spars", () => {
     const ranks = Object.fromEntries(SKILLS.filter((k) => k.tree === "spar" && k.max === 5).map((k) => [k.id, 5]));
-    for (const caps of [[431, 461], [432, 462], [431, 462], [432, 461]]) {
+    for (const caps of [
+      [431, 461],
+      [432, 462],
+      [431, 462],
+      [432, 461],
+    ]) {
       const r = rate(skilled(reader, { ...ranks, [caps[0]!]: 1, [caps[1]!]: 1 }), reader, 1200);
       expect(r, caps.join("+")).toBeGreaterThan(0.6);
       expect(r, caps.join("+")).toBeLessThan(0.8);
@@ -247,63 +288,98 @@ describe("Spar skills tilt a fight and never decide it (G2, G8 item 4)", () => {
   });
 });
 
-
 describe("the coach's advice wins in practice (G2)", () => {
   it("a lesson the coach suggests wins more spars on seeds it never practised on, against every hand-written partner", () => {
     const fresh = Array.from({ length: 120 }, (_, i) => 900_001 + i * 104_729);
-    const wins = (lessons: Rule[], line: "gentle" | "bold" | "curious", opp: () => Fighter) => fresh.filter((s) => fight(CURRENT_SPAR, fighterOfMind("me", { line, lessons }, 0), opp(), s).winner === 0).length;
+    const wins = (lessons: Rule[], line: "gentle" | "bold" | "curious", opp: () => Fighter) =>
+      fresh.filter((s) => fight(CURRENT_SPAR, fighterOfMind("me", { line, lessons }, 0), opp(), s).winner === 0).length;
     let suggested = 0;
-    for (const p of PARTNERS) for (const line of ["gentle", "bold", "curious"] as const) {
-      const opp = () => fighterOfPartner(p);
-      const result = fight(CURRENT_SPAR, fighterOfMind("me", { line, lessons: [] }, 0), opp(), 4242);
-      if (result.winner === 0) continue;
-      const note = coach({ result, side: 0, line, stage: "child", lessons: [], level: 0, opponent: opp() });
-      if (!note.lesson) continue;
-      suggested++;
-      expect(wins([note.lesson.rule], line, opp), `${line} vs ${p.id}: ${note.lesson.id}`).toBeGreaterThan(wins([], line, opp));
-    }
+    for (const p of PARTNERS)
+      for (const line of ["gentle", "bold", "curious"] as const) {
+        const opp = () => fighterOfPartner(p);
+        const result = fight(CURRENT_SPAR, fighterOfMind("me", { line, lessons: [] }, 0), opp(), 4242);
+        if (result.winner === 0) continue;
+        const note = coach({ result, side: 0, line, stage: "child", lessons: [], level: 0, opponent: opp() });
+        if (!note.lesson) continue;
+        suggested++;
+        expect(wins([note.lesson.rule], line, opp), `${line} vs ${p.id}: ${note.lesson.id}`).toBeGreaterThan(
+          wins([], line, opp),
+        );
+      }
     expect(suggested).toBeGreaterThan(3);
   });
 });
 
 describe("the coach's suggestion never makes a pet worse (G2, B3)", () => {
-  it("holds where a coach of 24 practice spars and no margin made a pet worse (curious against Mallow fell from 142 to 106 of 200)", async () => {
-    const fresh = Array.from({ length: 200 }, (_, i) => 300_007 + i * 7919);
-    const oppOf = (id: string): Fighter => (id === "behemoth" ? behemothFighter("Behemoth") : fighterOfPartner([...PARTNERS, ...DESIGNED].find((p) => p.id === id)!));
-    const cases = [["mallow", "curious", "child", 8], ["mallow", "curious", "adult", 8], ["velvet", "bold", "child", 10], ["behemoth", "gentle", "child", 16], ["behemoth", "bold", "child", 3], ["behemoth", "bold", "adult", 24], ["behemoth", "bold", "child", 27]] as const;
-    for (const [id, line, stage, seed] of cases) {
-      await breathe();
-      const level = stage === "adult" ? 1 : 0;
-      const me = fighterOfMind("me", { line, lessons: [] }, level);
-      const result = fight(CURRENT_SPAR, me, oppOf(id), seed);
-      const note = coach({ result, side: 0, line, stage, lessons: [], level, opponent: oppOf(id) });
-      if (!note.lesson) continue;
-      const wins = (f: Fighter) => winsOver(fresh, f, () => oppOf(id));
-      expect(await wins(fighterOfMind("me", { line, lessons: [note.lesson.rule] }, level)), `${line} ${stage} vs ${id}, seed ${seed}: ${note.lesson.id}`).toBeGreaterThanOrEqual(await wins(me));
-    }
-  }, slow(120_000));
+  it(
+    "holds where a coach of 24 practice spars and no margin made a pet worse (curious against Mallow fell from 142 to 106 of 200)",
+    async () => {
+      const fresh = Array.from({ length: 200 }, (_, i) => 300_007 + i * 7919);
+      const oppOf = (id: string): Fighter =>
+        id === "behemoth"
+          ? behemothFighter("Behemoth")
+          : fighterOfPartner([...PARTNERS, ...DESIGNED].find((p) => p.id === id)!);
+      const cases = [
+        ["mallow", "curious", "child", 8],
+        ["mallow", "curious", "adult", 8],
+        ["velvet", "bold", "child", 10],
+        ["behemoth", "gentle", "child", 16],
+        ["behemoth", "bold", "child", 3],
+        ["behemoth", "bold", "adult", 24],
+        ["behemoth", "bold", "child", 27],
+      ] as const;
+      for (const [id, line, stage, seed] of cases) {
+        await breathe();
+        const level = stage === "adult" ? 1 : 0;
+        const me = fighterOfMind("me", { line, lessons: [] }, level);
+        const result = fight(CURRENT_SPAR, me, oppOf(id), seed);
+        const note = coach({ result, side: 0, line, stage, lessons: [], level, opponent: oppOf(id) });
+        if (!note.lesson) continue;
+        const wins = (f: Fighter) => winsOver(fresh, f, () => oppOf(id));
+        expect(
+          await wins(fighterOfMind("me", { line, lessons: [note.lesson.rule] }, level)),
+          `${line} ${stage} vs ${id}, seed ${seed}: ${note.lesson.id}`,
+        ).toBeGreaterThanOrEqual(await wins(me));
+      }
+    },
+    slow(120_000),
+  );
 
-  it("against every partner and Behemoth, for every line as a child and an adult, a suggested lesson keeps or raises the wins on 200 unseen seeds", async () => {
-    const fresh = Array.from({ length: 200 }, (_, i) => 300_007 + i * 7919);
-    const opps: [string, () => Fighter][] = [...PARTNERS, ...DESIGNED].map((p) => [p.id, () => fighterOfPartner(p)] as [string, () => Fighter]);
-    opps.push(["behemoth", () => behemothFighter("Behemoth")]);
-    const wins = (me: Fighter, opp: () => Fighter) => winsOver(fresh, me, opp);
-    let suggested = 0;
-    for (const [id, opp] of opps)
-      for (const line of ["gentle", "bold", "curious"] as const)
-        for (const [stage, level] of [["child", 0], ["adult", 1]] as const) {
-          await breathe();
-          const me = fighterOfMind("me", { line, lessons: [] }, level);
-          // the coach is asked after a lost spar: the first of these seeds the pet loses
-          const result = [4242, 4243, 4244, 4245, 4246].map((seed) => fight(CURRENT_SPAR, me, opp(), seed)).find((r) => r.winner !== 0);
-          if (!result) continue;
-          const note = coach({ result, side: 0, line, stage, lessons: [], level, opponent: opp() });
-          if (!note.lesson) continue;
-          suggested++;
-          expect(await wins(fighterOfMind("me", { line, lessons: [note.lesson.rule] }, level), opp), `${line} ${stage} vs ${id}: ${note.lesson.id}`).toBeGreaterThanOrEqual(await wins(me, opp));
-        }
-    expect(suggested).toBeGreaterThan(20);
-  }, slow(120_000));
+  it(
+    "against every partner and Behemoth, for every line as a child and an adult, a suggested lesson keeps or raises the wins on 200 unseen seeds",
+    async () => {
+      const fresh = Array.from({ length: 200 }, (_, i) => 300_007 + i * 7919);
+      const opps: [string, () => Fighter][] = [...PARTNERS, ...DESIGNED].map(
+        (p) => [p.id, () => fighterOfPartner(p)] as [string, () => Fighter],
+      );
+      opps.push(["behemoth", () => behemothFighter("Behemoth")]);
+      const wins = (me: Fighter, opp: () => Fighter) => winsOver(fresh, me, opp);
+      let suggested = 0;
+      for (const [id, opp] of opps)
+        for (const line of ["gentle", "bold", "curious"] as const)
+          for (const [stage, level] of [
+            ["child", 0],
+            ["adult", 1],
+          ] as const) {
+            await breathe();
+            const me = fighterOfMind("me", { line, lessons: [] }, level);
+            // the coach is asked after a lost spar: the first of these seeds the pet loses
+            const result = [4242, 4243, 4244, 4245, 4246]
+              .map((seed) => fight(CURRENT_SPAR, me, opp(), seed))
+              .find((r) => r.winner !== 0);
+            if (!result) continue;
+            const note = coach({ result, side: 0, line, stage, lessons: [], level, opponent: opp() });
+            if (!note.lesson) continue;
+            suggested++;
+            expect(
+              await wins(fighterOfMind("me", { line, lessons: [note.lesson.rule] }, level), opp),
+              `${line} ${stage} vs ${id}: ${note.lesson.id}`,
+            ).toBeGreaterThanOrEqual(await wins(me, opp));
+          }
+      expect(suggested).toBeGreaterThan(20);
+    },
+    slow(120_000),
+  );
 });
 
 /** LX-SPAR/2 fingerprints recorded before the rules table (row B1) and found identical after it: duel links answered in v2 replay. */
@@ -312,7 +388,11 @@ const V2_DESIGNED = V2_DESIGNED_JSON as unknown as Parameters<typeof fighterOfPa
 /** Behemoth as it fought while LX-SPAR/2 was current: level 2, happy (B1 made it calm) */
 const behemothAtLevel = (level: number): Fighter => {
   const b = behemothFighter("Behemoth");
-  return { ...b, level, brain: { ...b.brain, step: (st: Uint8Array, w: number) => (b.brain.step(st, w) & 7) | (2 << 3) } };
+  return {
+    ...b,
+    level,
+    brain: { ...b.brain, step: (st: Uint8Array, w: number) => (b.brain.step(st, w) & 7) | (2 << 3) },
+  };
 };
 const V2_PINS: [number, number, number, string][] = [
   [0, 0, 7, "b964733f"],
@@ -404,14 +484,29 @@ const V2_PINS: [number, number, number, string][] = [
   [4, 7, 7, "5a0ba035"],
   [4, 7, 1009, "affbcbaa"],
   [4, 8, 7, "4f9d34ea"],
-  [4, 8, 1009, "ffd91ec5"]
+  [4, 8, 1009, "ffd91ec5"],
 ];
 
 describe("LX-SPAR/2 is kept for the spars fought in it (B1)", () => {
   it("replays every recorded v2 fight to the same fingerprint", () => {
     // recorded with the reader as it was before row D8
-    const pets = [...(["gentle", "bold", "curious"] as const).map((l) => fighterFrom(l, STARTERS[l], 1)), fighterFrom("reader", READER_BEFORE_D8, 1), { ...fighterFrom("sk", STARTERS.bold, 1), mods: sparMods({ level: 60, points: 0, skills: { 411: 5, 412: 5, 413: 5, 421: 5, 422: 5, 423: 5, 431: 1, 462: 1 } }) }];
-    const opps = [...PARTNERS.map((p) => fighterOfPartner(p, SPAR_V2)), ...V2_DESIGNED.map((p) => fighterOfPartner(p, SPAR_V2)), behemothAtLevel(2)];
+    const pets = [
+      ...(["gentle", "bold", "curious"] as const).map((l) => fighterFrom(l, STARTERS[l], 1)),
+      fighterFrom("reader", READER_BEFORE_D8, 1),
+      {
+        ...fighterFrom("sk", STARTERS.bold, 1),
+        mods: sparMods({
+          level: 60,
+          points: 0,
+          skills: { 411: 5, 412: 5, 413: 5, 421: 5, 422: 5, 423: 5, 431: 1, 462: 1 },
+        }),
+      },
+    ];
+    const opps = [
+      ...PARTNERS.map((p) => fighterOfPartner(p, SPAR_V2)),
+      ...V2_DESIGNED.map((p) => fighterOfPartner(p, SPAR_V2)),
+      behemothAtLevel(2),
+    ];
     for (const [i, j, seed, digest] of V2_PINS) {
       expect(spar2(pets[i]!, opps[j]!, seed, () => [seed === 7, false]).digest, `${i} ${j} ${seed}`).toBe(digest);
       expect(fight(SPAR_V2, pets[i]!, opps[j]!, seed, () => [seed === 7, false]).version).toBe(SPAR_V2);
@@ -419,14 +514,17 @@ describe("LX-SPAR/2 is kept for the spars fought in it (B1)", () => {
   });
 });
 
-
 describe("Juniper charms you early (B3b)", () => {
   const juniper = PARTNERS.find((p) => p.id === "juniper")!;
   const foes = (["gentle", "bold", "curious"] as const).map((l) => fighterFrom(l, STARTERS[l], 1));
   const movesOf = (version: SparVersion) => {
     const open: string[] = [];
     const later: string[] = [];
-    for (const foe of foes) for (let s = 0; s < 60; s++) fight(version, fighterOfPartner(juniper, version), foe, 7000 + s).rounds.forEach((r, i) => (i < 3 ? open : later).push(r.moves[0]!));
+    for (const foe of foes)
+      for (let s = 0; s < 60; s++)
+        fight(version, fighterOfPartner(juniper, version), foe, 7000 + s).rounds.forEach((r, i) =>
+          (i < 3 ? open : later).push(r.moves[0]!),
+        );
     return { open, later };
   };
 
@@ -453,40 +551,52 @@ describe("Juniper charms you early (B3b)", () => {
 });
 
 describe("the coach with a full mind (B2)", () => {
-  it("names a lesson to swap out when nothing it has room for helps, and the swap wins more on fresh seeds", async () => {
-    const fresh = Array.from({ length: 120 }, (_, i) => 500_009 + i * 7919);
-    let swaps = 0;
-    for (const p of PARTNERS) for (const line of ["gentle", "bold", "curious"] as const) {
-      // a baby holds two lessons (D7): give it two that are no help in a fight
-      const lessons: Rule[] = [{ when: { time: [0], owner: [1] }, then: { want: 1, mood: 0 } } as Rule, { when: { time: [1], owner: [1] }, then: { want: 3, mood: 0 } } as Rule];
-      const opp = () => fighterOfPartner(p);
-      const result = fight(CURRENT_SPAR, fighterOfMind("me", { line, lessons }, 0), opp(), 4242);
-      if (result.winner === 0) continue;
-      const note = coach({ result, side: 0, line, stage: "baby", lessons, level: 0, opponent: opp() });
-      if (!note.lesson) continue;
-      expect(note.replace, `${line} vs ${p.id}`).toBeDefined();
-      swaps++;
-      const swapped = lessons.map((l, i) => (i === note.replace ? note.lesson!.rule : l));
-      const wins = (ls: Rule[]) => winsOver(fresh, fighterOfMind("me", { line, lessons: ls }, 0), opp);
-      expect(await wins(swapped), `${line} vs ${p.id}`).toBeGreaterThan(await wins(lessons));
-    }
-    expect(swaps).toBeGreaterThan(3);
-  }, slow(120_000));
+  it(
+    "names a lesson to swap out when nothing it has room for helps, and the swap wins more on fresh seeds",
+    async () => {
+      const fresh = Array.from({ length: 120 }, (_, i) => 500_009 + i * 7919);
+      let swaps = 0;
+      for (const p of PARTNERS)
+        for (const line of ["gentle", "bold", "curious"] as const) {
+          // a baby holds two lessons (D7): give it two that are no help in a fight
+          const lessons: Rule[] = [
+            { when: { time: [0], owner: [1] }, then: { want: 1, mood: 0 } } as Rule,
+            { when: { time: [1], owner: [1] }, then: { want: 3, mood: 0 } } as Rule,
+          ];
+          const opp = () => fighterOfPartner(p);
+          const result = fight(CURRENT_SPAR, fighterOfMind("me", { line, lessons }, 0), opp(), 4242);
+          if (result.winner === 0) continue;
+          const note = coach({ result, side: 0, line, stage: "baby", lessons, level: 0, opponent: opp() });
+          if (!note.lesson) continue;
+          expect(note.replace, `${line} vs ${p.id}`).toBeDefined();
+          swaps++;
+          const swapped = lessons.map((l, i) => (i === note.replace ? note.lesson!.rule : l));
+          const wins = (ls: Rule[]) => winsOver(fresh, fighterOfMind("me", { line, lessons: ls }, 0), opp);
+          expect(await wins(swapped), `${line} vs ${p.id}`).toBeGreaterThan(await wins(lessons));
+        }
+      expect(swaps).toBeGreaterThan(3);
+    },
+    slow(120_000),
+  );
 });
 
 describe("reading pays across the field (D8, target spar-reading-pays)", () => {
-  it("the fight-reading brain wins more of its spars against the field than Pip, the plain pouncer that led it", async () => {
-    const { field, bout } = await import("../scripts/sim90/field");
-    const all = field();
-    const seeds = Array.from({ length: 12 }, (_, i) => (20261121 + i * 104_729) >>> 0);
-    const rateOf = (id: string) => {
-      const me = all.find((e) => e.id === id)!;
-      let w = 0;
-      for (const o of all) if (o.id !== id) w += bout(me.fighter, o.fighter, seeds)[0];
-      return w / (2 * seeds.length * (all.length - 1));
-    };
-    expect(rateOf("reader")).toBeGreaterThan(rateOf("partner:pip"));
-  }, slow(600_000));
+  it(
+    "the fight-reading brain wins more of its spars against the field than Pip, the plain pouncer that led it",
+    async () => {
+      const { field, bout } = await import("../scripts/sim90/field");
+      const all = field();
+      const seeds = Array.from({ length: 12 }, (_, i) => (20261121 + i * 104_729) >>> 0);
+      const rateOf = (id: string) => {
+        const me = all.find((e) => e.id === id)!;
+        let w = 0;
+        for (const o of all) if (o.id !== id) w += bout(me.fighter, o.fighter, seeds)[0];
+        return w / (2 * seeds.length * (all.length - 1));
+      };
+      expect(rateOf("reader")).toBeGreaterThan(rateOf("partner:pip"));
+    },
+    slow(600_000),
+  );
 });
 
 describe("a bag item's spar bonus is what its label says (D14)", () => {
@@ -499,35 +609,52 @@ describe("a bag item's spar bonus is what its label says (D14)", () => {
     for (const it of items) {
       const boost = { hp: it.buff!.sparHp ?? 0, power: it.buff!.sparPower ?? 0 };
       let changed = 0;
-      for (let s = 0; s < 60; s++) if (JSON.stringify(fight(CURRENT_SPAR, { ...me, boost }, opp, s).rounds) !== JSON.stringify(fight(CURRENT_SPAR, me, opp, s).rounds)) changed++;
+      for (let s = 0; s < 60; s++)
+        if (
+          JSON.stringify(fight(CURRENT_SPAR, { ...me, boost }, opp, s).rounds) !==
+          JSON.stringify(fight(CURRENT_SPAR, me, opp, s).rounds)
+        )
+          changed++;
       expect(changed, it.name.en).toBeGreaterThan(30);
       // "+15 health" is 15 health
-      if (boost.hp) expect(fight(CURRENT_SPAR, { ...me, boost }, opp, 7).rounds[0]!.hp[0]).toBeGreaterThan(fight(CURRENT_SPAR, me, opp, 7).rounds[0]!.hp[0]);
-      for (const old of [SPAR_V2, SPAR_V3] as const) expect(fight(old, { ...me, boost }, opp, 7)).toEqual(fight(old, me, opp, 7));
+      if (boost.hp)
+        expect(fight(CURRENT_SPAR, { ...me, boost }, opp, 7).rounds[0]!.hp[0]).toBeGreaterThan(
+          fight(CURRENT_SPAR, me, opp, 7).rounds[0]!.hp[0],
+        );
+      for (const old of [SPAR_V2, SPAR_V3] as const)
+        expect(fight(old, { ...me, boost }, opp, 7)).toEqual(fight(old, me, opp, 7));
     }
   });
 });
 
 describe("against the opponents players meet, reading beats tapping (D20, LX-SPAR/5)", () => {
-  it("the reader wins more of its spars against the partners and taught pets than any tap-only brain; in LX-SPAR/4 tapping won", async () => {
-    const { field } = await import("../scripts/sim90/field");
-    const all = field();
-    // every opponent a player can spar: the partners, the designed partners, and taught pets
-    const real = [...all.filter((e) => e.kind === "partner" || e.kind === "taught"), ...DESIGNED.map((p) => ({ fighter: fighterOfPartner(p, SPAR_V5) }))];
-    const seeds = Array.from({ length: 24 }, (_, i) => (20261121 + i * 104_729) >>> 0);
-    const rate = (version: SparVersion, id: string) => {
-      const me = all.find((e) => e.id === id)!.fighter;
-      let w = 0;
-      for (const o of real) for (const s of seeds) {
-        if (fight(version, me, o.fighter, s).winner === 0) w++;
-        if (fight(version, o.fighter, me, s ^ 0x2545f491).winner === 1) w++;
-      }
-      return w / (2 * seeds.length * real.length);
-    };
-    const taps = all.filter((e) => e.id.startsWith("tap-only/")).map((e) => e.id);
-    expect(taps.length).toBe(4);
-    const reader5 = rate(SPAR_V5, "reader");
-    for (const t of taps) expect(rate(SPAR_V5, t), t).toBeLessThan(reader5);
-    expect(Math.max(...taps.map((t) => rate(SPAR_V4, t)))).toBeGreaterThan(rate(SPAR_V4, "reader"));
-  }, slow(300_000));
+  it(
+    "the reader wins more of its spars against the partners and taught pets than any tap-only brain; in LX-SPAR/4 tapping won",
+    async () => {
+      const { field } = await import("../scripts/sim90/field");
+      const all = field();
+      // every opponent a player can spar: the partners, the designed partners, and taught pets
+      const real = [
+        ...all.filter((e) => e.kind === "partner" || e.kind === "taught"),
+        ...DESIGNED.map((p) => ({ fighter: fighterOfPartner(p, SPAR_V5) })),
+      ];
+      const seeds = Array.from({ length: 24 }, (_, i) => (20261121 + i * 104_729) >>> 0);
+      const rate = (version: SparVersion, id: string) => {
+        const me = all.find((e) => e.id === id)!.fighter;
+        let w = 0;
+        for (const o of real)
+          for (const s of seeds) {
+            if (fight(version, me, o.fighter, s).winner === 0) w++;
+            if (fight(version, o.fighter, me, s ^ 0x2545f491).winner === 1) w++;
+          }
+        return w / (2 * seeds.length * real.length);
+      };
+      const taps = all.filter((e) => e.id.startsWith("tap-only/")).map((e) => e.id);
+      expect(taps.length).toBe(4);
+      const reader5 = rate(SPAR_V5, "reader");
+      for (const t of taps) expect(rate(SPAR_V5, t), t).toBeLessThan(reader5);
+      expect(Math.max(...taps.map((t) => rate(SPAR_V4, t)))).toBeGreaterThan(rate(SPAR_V4, "reader"));
+    },
+    slow(300_000),
+  );
 });

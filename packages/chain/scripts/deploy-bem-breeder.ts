@@ -15,7 +15,11 @@ import type { Deployment } from "../src/registry";
 import { xLayer } from "../src/tapeout";
 
 const BEM: Address = "0x60e62Efa9405d6873C5deaBD4E6CC91c25363952";
-const registryAbi = parseAbi(["function setBreeder(address breeder, bool allowed)", "function breeders(address) view returns (bool)", "function owner() view returns (address)"]);
+const registryAbi = parseAbi([
+  "function setBreeder(address breeder, bool allowed)",
+  "function breeders(address) view returns (bool)",
+  "function owner() view returns (address)",
+]);
 
 const here = dirname(fileURLToPath(import.meta.url));
 const arg = (n: string, f?: string) => {
@@ -27,7 +31,8 @@ async function main() {
   const file = arg("deployment")!;
   const d = JSON.parse(readFileSync(file, "utf8")) as Deployment & { breederFree?: Address };
   const rpc = arg("rpc", d.rpc)!;
-  if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(rpc) && !process.argv.includes("--mainnet-yes")) throw new Error("refusing a non-local node without --mainnet-yes");
+  if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(rpc) && !process.argv.includes("--mainnet-yes"))
+    throw new Error("refusing a non-local node without --mainnet-yes");
   if (d.breederBem) throw new Error("this deployment already has the BEM breeder");
   const env = Object.fromEntries(
     readFileSync(arg("key-file", resolve(here, "../../../../.secrets/deployer.env"))!, "utf8")
@@ -39,35 +44,84 @@ async function main() {
   const chain = { ...xLayer, rpcUrls: { default: { http: [rpc] } } };
   const pub = createPublicClient({ chain, transport: http(rpc) });
   const wallet = createWalletClient({ chain, transport: http(rpc), account });
-  const art = JSON.parse(readFileSync(resolve(here, "../../../contracts/out/BreederV2.sol/BreederV2.json"), "utf8")) as { bytecode: { object: Hex } };
+  const art = JSON.parse(
+    readFileSync(resolve(here, "../../../contracts/out/BreederV2.sol/BreederV2.json"), "utf8"),
+  ) as { bytecode: { object: Hex } };
   const wait = async (hash: Hex) => {
     const r = await pub.waitForTransactionReceipt({ hash });
     if (r.status !== "success") throw new Error(`transaction failed: ${hash}`);
     return r;
   };
-  if ((await pub.readContract({ address: d.registry, abi: registryAbi, functionName: "owner" })) !== account.address) throw new Error("the deployer does not own the registry");
+  if ((await pub.readContract({ address: d.registry, abi: registryAbi, functionName: "owner" })) !== account.address)
+    throw new Error("the deployer does not own the registry");
   const before = await pub.getBalance({ address: account.address });
 
-  const r = await wait(await wallet.deployContract({ abi: breederV2Abi, bytecode: art.bytecode.object, args: [d.registry, BEM, account.address] }));
+  const r = await wait(
+    await wallet.deployContract({
+      abi: breederV2Abi,
+      bytecode: art.bytecode.object,
+      args: [d.registry, BEM, account.address],
+    }),
+  );
   const breeder = r.contractAddress!;
-  const read = <T>(fn: string) => pub.readContract({ address: breeder, abi: breederV2Abi, functionName: fn as never }) as Promise<T>;
-  const [reg, bem, owner, fee, max] = await Promise.all([read<Address>("registry"), read<Address>("bem"), read<Address>("owner"), read<bigint>("breedFee"), read<number>("MAX_CHILDREN")]);
+  const read = <T>(fn: string) =>
+    pub.readContract({ address: breeder, abi: breederV2Abi, functionName: fn as never }) as Promise<T>;
+  const [reg, bem, owner, fee, max] = await Promise.all([
+    read<Address>("registry"),
+    read<Address>("bem"),
+    read<Address>("owner"),
+    read<bigint>("breedFee"),
+    read<number>("MAX_CHILDREN"),
+  ]);
   const same = (x: string, y: string) => x.toLowerCase() === y.toLowerCase();
-  if (!same(reg, d.registry) || !same(bem, BEM) || !same(owner, account.address) || fee !== 10_000_000n || Number(max) !== 4) throw new Error("the breeder does not read back as configured");
+  if (
+    !same(reg, d.registry) ||
+    !same(bem, BEM) ||
+    !same(owner, account.address) ||
+    fee !== 10_000_000n ||
+    Number(max) !== 4
+  )
+    throw new Error("the breeder does not read back as configured");
 
   // the free breeder goes off first: no moment exists where both could hatch (the old one has no fee and no cap)
   const old = d.breeder;
-  if (old) await wait(await wallet.writeContract({ address: d.registry, abi: registryAbi, functionName: "setBreeder", args: [old, false] }));
-  await wait(await wallet.writeContract({ address: d.registry, abi: registryAbi, functionName: "setBreeder", args: [breeder, true] }));
+  if (old)
+    await wait(
+      await wallet.writeContract({
+        address: d.registry,
+        abi: registryAbi,
+        functionName: "setBreeder",
+        args: [old, false],
+      }),
+    );
+  await wait(
+    await wallet.writeContract({
+      address: d.registry,
+      abi: registryAbi,
+      functionName: "setBreeder",
+      args: [breeder, true],
+    }),
+  );
   const [newOn, oldOn] = await Promise.all([
     pub.readContract({ address: d.registry, abi: registryAbi, functionName: "breeders", args: [breeder] }),
-    old ? pub.readContract({ address: d.registry, abi: registryAbi, functionName: "breeders", args: [old] }) : Promise.resolve(false),
+    old
+      ? pub.readContract({ address: d.registry, abi: registryAbi, functionName: "breeders", args: [old] })
+      : Promise.resolve(false),
   ]);
   if (!newOn || oldOn) throw new Error("the registry's breeders do not read back as intended");
 
-  writeFileSync(file, JSON.stringify({ ...d, breeder, breederBem: true, breederBlock: Number(r.blockNumber), ...(old ? { breederFree: old } : {}) }, null, 2) + "\n");
+  writeFileSync(
+    file,
+    JSON.stringify(
+      { ...d, breeder, breederBem: true, breederBlock: Number(r.blockNumber), ...(old ? { breederFree: old } : {}) },
+      null,
+      2,
+    ) + "\n",
+  );
   const after = await pub.getBalance({ address: account.address });
-  console.log(`BreederV2 ${breeder} (block ${r.blockNumber}); allowed in the registry; free breeder ${old ?? "none"} switched off; fee 0.1 BEM burned; cost ${formatEther(before - after)} OKB`);
+  console.log(
+    `BreederV2 ${breeder} (block ${r.blockNumber}); allowed in the registry; free breeder ${old ?? "none"} switched off; fee 0.1 BEM burned; cost ${formatEther(before - after)} OKB`,
+  );
 }
 
 main().catch((e) => (console.error(e), process.exit(1)));

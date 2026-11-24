@@ -56,7 +56,8 @@ export const ROOM_SECRETS: Readonly<Record<number, number>> = {
 };
 
 /** Familiarity a look around adds: two where the pet is at home, one elsewhere. */
-export const familiarGain = (room: Room, kin: readonly Affinity[]) => familiarStep(room.affinity.some((a) => kin.includes(a)));
+export const familiarGain = (room: Room, kin: readonly Affinity[]) =>
+  familiarStep(room.affinity.some((a) => kin.includes(a)));
 
 export interface Item extends ItemDef {
   index: number;
@@ -81,7 +82,10 @@ export interface Recipe {
 
 /** Rooms that sell things, and what. Praline's shop has the crafting tools ("hobby tools for anyone who likes to mix and craft"). */
 const SHOPS: Record<number, number[]> = {
-  13: [11130, 11110, 11120, 11140, 11302, 11304, 11313, 21201, 21202, 21203, 11201, 11203, 11204, 11233, 7104, 7103, 7102, 7101, 23100, 23101, 23102],
+  13: [
+    11130, 11110, 11120, 11140, 11302, 11304, 11313, 21201, 21202, 21203, 11201, 11203, 11204, 11233, 7104, 7103, 7102,
+    7101, 23100, 23101, 23102,
+  ],
   4: [11301, 11303, 11409, 21201, 11201, 11202],
 };
 
@@ -97,7 +101,9 @@ const OWN_ART: Record<number, string> = {
 };
 
 export const ITEM: Record<number, Item> = Object.fromEntries([
-  ...(data.items as Array<{ index: number; art: string }>).filter((i) => ITEMS[i.index]).map((i) => [i.index, { ...ITEMS[i.index]!, index: i.index, art: i.art }]),
+  ...(data.items as Array<{ index: number; art: string }>)
+    .filter((i) => ITEMS[i.index])
+    .map((i) => [i.index, { ...ITEMS[i.index]!, index: i.index, art: i.art }]),
   ...Object.entries(OWN_ART).map(([k, art]) => [Number(k), { ...ITEMS[Number(k)]!, index: Number(k), art }]),
 ]);
 
@@ -117,7 +123,18 @@ export function pickDrop(drops: ReadonlyArray<{ item: number; weight: number }>,
 
 export const ROOMS: Record<number, Room> = Object.fromEntries(
   // the sheet's "weight" column holds the rarity tier, not the weight
-  (data.rooms as Array<{ index: number; x: number; y: number; z: number; bgs: Room["bgs"]; drops: Array<{ item: number; weight: number }>; affinity?: string; scavCost?: number }>)
+  (
+    data.rooms as Array<{
+      index: number;
+      x: number;
+      y: number;
+      z: number;
+      bgs: Room["bgs"];
+      drops: Array<{ item: number; weight: number }>;
+      affinity?: string;
+      scavCost?: number;
+    }>
+  )
     .filter((r) => ROOM_TEXT[r.index])
     .map((r) => [
       r.index,
@@ -128,15 +145,22 @@ export const ROOMS: Record<number, Room> = Object.fromEntries(
         y: r.y,
         z: r.z,
         bgs: r.bgs,
-        drops: r.drops.filter((d) => ITEM[d.item]).map((d) => ({ item: d.item, tier: d.weight, weight: tierWeight(d.weight) })),
+        drops: r.drops
+          .filter((d) => ITEM[d.item])
+          .map((d) => ({ item: d.item, tier: d.weight, weight: tierWeight(d.weight) })),
         shop: SHOPS[r.index] ?? [],
-        affinity: (r.affinity ?? "").split(",").map((a) => a.trim()).filter((a): a is Affinity => (AFFINITIES as readonly string[]).includes(a)),
+        affinity: (r.affinity ?? "")
+          .split(",")
+          .map((a) => a.trim())
+          .filter((a): a is Affinity => (AFFINITIES as readonly string[]).includes(a)),
         familiarSize: Math.round((r.scavCost ?? 0) / 50),
       },
     ]),
 );
 
-const EXITS: Array<[number, number]> = (data.rooms as Array<{ index: number; exits: number[] }>).flatMap((r) => r.exits.map((e) => [r.index, e] as [number, number]));
+const EXITS: Array<[number, number]> = (data.rooms as Array<{ index: number; exits: number[] }>).flatMap((r) =>
+  r.exits.map((e) => [r.index, e] as [number, number]),
+);
 
 /**
  * The workbench's recipes with the source's own amounts (plan 4.5): no more squashing hundreds of pollen into a
@@ -152,7 +176,15 @@ export const craftXp = (sourceXp: number) => Math.round(Math.sqrt(Math.max(0, so
  * who needs one now. Quest 37's "three pebbles make a stone block" is the first. Every building material (plank, metal
  * bar, stone block, from either source) has one.
  */
-const small = (index: number, en: string, zh: string, out: number, item: number): Recipe => ({ index, name: { en, zh }, out, outAmount: 1, ins: [{ item, amount: 3 }], energy: craftEnergy(10), xp: craftXp(9) });
+const small = (index: number, en: string, zh: string, out: number, item: number): Recipe => ({
+  index,
+  name: { en, zh },
+  out,
+  outAmount: 1,
+  ins: [{ item, amount: 3 }],
+  energy: craftEnergy(10),
+  xp: craftXp(9),
+});
 export const SMALL_BATCH_RECIPES: readonly Recipe[] = [
   small(30001, "Shape a Stone Block", "拼一个石块", 1301, 1002),
   small(30002, "Chip a Stone Block from Fossil", "用化石凿一个石块", 1301, 1020),
@@ -170,8 +202,22 @@ export const SMALL_BATCH_RECIPES: readonly Recipe[] = [
 export const BULK_YIELD = 50;
 const BULK_RECIPES = new Set([31, 32, 33, 34, 35, 36]);
 
-const SOURCE_RECIPES: Recipe[] = (data.recipes as Array<{ index: number; out: number; outAmount: number; ins: Array<{ item: number; amount: number }>; stamina: number; xp: number; tool: number | null; room: number | null }>)
-  .filter((r) => RECIPE_NAMES[r.index] && ITEM[r.out] && r.ins.every((x) => ITEM[x.item]) && (r.tool === null || ITEM[r.tool]))
+const SOURCE_RECIPES: Recipe[] = (
+  data.recipes as Array<{
+    index: number;
+    out: number;
+    outAmount: number;
+    ins: Array<{ item: number; amount: number }>;
+    stamina: number;
+    xp: number;
+    tool: number | null;
+    room: number | null;
+  }>
+)
+  .filter(
+    (r) =>
+      RECIPE_NAMES[r.index] && ITEM[r.out] && r.ins.every((x) => ITEM[x.item]) && (r.tool === null || ITEM[r.tool]),
+  )
   .map((r) => ({
     index: r.index,
     name: RECIPE_NAMES[r.index]!,
@@ -188,22 +234,151 @@ export const RECIPES: Recipe[] = [...SOURCE_RECIPES, ...SMALL_BATCH_RECIPES];
 
 /** Recipes only a trip teaches: the garden's harvest turned into mochi. */
 export const TRAVEL_RECIPES: readonly Recipe[] = [
-  { index: 20001, name: { en: "Pound Rice Mochi", zh: "捣米麻薯" }, out: 11130, outAmount: 2, ins: [{ item: 7201, amount: 2 }, { item: 11312, amount: 1 }], energy: 30, xp: 5 },
-  { index: 20002, name: { en: "Fold Apple Jam Mochi", zh: "包苹果酱麻薯" }, out: 11120, outAmount: 2, ins: [{ item: 11313, amount: 2 }, { item: 7201, amount: 1 }], energy: 30, xp: 5 },
-  { index: 20003, name: { en: "Roll Honey Mochi", zh: "滚蜂蜜麻薯" }, out: 11140, outAmount: 2, ins: [{ item: 11312, amount: 2 }, { item: 7201, amount: 1 }], energy: 30, xp: 5 },
+  {
+    index: 20001,
+    name: { en: "Pound Rice Mochi", zh: "捣米麻薯" },
+    out: 11130,
+    outAmount: 2,
+    ins: [
+      { item: 7201, amount: 2 },
+      { item: 11312, amount: 1 },
+    ],
+    energy: 30,
+    xp: 5,
+  },
+  {
+    index: 20002,
+    name: { en: "Fold Apple Jam Mochi", zh: "包苹果酱麻薯" },
+    out: 11120,
+    outAmount: 2,
+    ins: [
+      { item: 11313, amount: 2 },
+      { item: 7201, amount: 1 },
+    ],
+    energy: 30,
+    xp: 5,
+  },
+  {
+    index: 20003,
+    name: { en: "Roll Honey Mochi", zh: "滚蜂蜜麻薯" },
+    out: 11140,
+    outAmount: 2,
+    ins: [
+      { item: 11312, amount: 2 },
+      { item: 7201, amount: 1 },
+    ],
+    energy: 30,
+    xp: 5,
+  },
   // taught by friends at trust level 3 (friends/residents.ts), each the thing their shelf would otherwise sell
   // G6: two a stir, and Wick hands over two Glow Roots with the recipe (a root is a 0.19% find; the shelf sells one tonic for 60)
-  { index: 20004, name: { en: "Stir Moon Tonic", zh: "调月光补剂" }, out: 11004, outAmount: 2, ins: [{ item: 1121, amount: 150 }, { item: 1112, amount: 100 }], energy: 30, xp: 5 },
-  { index: 20005, name: { en: "Pound Taro Mochi", zh: "捣芋泥麻薯" }, out: 11110, outAmount: 2, ins: [{ item: 7201, amount: 2 }, { item: 1201, amount: 100 }], energy: 30, xp: 5 },
-  { index: 20006, name: { en: "Yonder's Lucky Tea", zh: "阿远的好运茶" }, out: 11405, outAmount: 1, ins: [{ item: 1111, amount: 100 }, { item: 1104, amount: 100 }], energy: 30, xp: 5 },
+  {
+    index: 20004,
+    name: { en: "Stir Moon Tonic", zh: "调月光补剂" },
+    out: 11004,
+    outAmount: 2,
+    ins: [
+      { item: 1121, amount: 150 },
+      { item: 1112, amount: 100 },
+    ],
+    energy: 30,
+    xp: 5,
+  },
+  {
+    index: 20005,
+    name: { en: "Pound Taro Mochi", zh: "捣芋泥麻薯" },
+    out: 11110,
+    outAmount: 2,
+    ins: [
+      { item: 7201, amount: 2 },
+      { item: 1201, amount: 100 },
+    ],
+    energy: 30,
+    xp: 5,
+  },
+  {
+    index: 20006,
+    name: { en: "Yonder's Lucky Tea", zh: "阿远的好运茶" },
+    out: 11405,
+    outAmount: 1,
+    ins: [
+      { item: 1111, amount: 100 },
+      { item: 1104, amount: 100 },
+    ],
+    energy: 30,
+    xp: 5,
+  },
   // G6: two from two candies (25 each at the shop), so it beats Twain's shelf price of 45
-  { index: 20007, name: { en: "Double Wisdom Candy", zh: "炼大智慧糖" }, out: 11202, outAmount: 2, ins: [{ item: 11201, amount: 2 }, { item: 1103, amount: 100 }], energy: 30, xp: 5 },
+  {
+    index: 20007,
+    name: { en: "Double Wisdom Candy", zh: "炼大智慧糖" },
+    out: 11202,
+    outAmount: 2,
+    ins: [
+      { item: 11201, amount: 2 },
+      { item: 1103, amount: 100 },
+    ],
+    energy: 30,
+    xp: 5,
+  },
   // G6: Bolt's trick beats three scrap by hand and needs no burner (it used to need thirty and an Old Coin for one bar)
-  { index: 20008, name: { en: "Bolt's Quick Melt", zh: "阿栓的快熔法" }, out: 1303, outAmount: 5, ins: [{ item: 1005, amount: 12 }], energy: 30, xp: 5 },
-  { index: 20009, name: { en: "Warm Honeydrops", zh: "捂蜜露" }, out: 11312, outAmount: 2, ins: [{ item: 11311, amount: 1 }, { item: 1011, amount: 1 }], energy: 30, xp: 5 },
-  { index: 20010, name: { en: "Nurse Why's Calm Tea", zh: "小慧的安神茶" }, out: 11404, outAmount: 1, ins: [{ item: 1111, amount: 100 }, { item: 1110, amount: 50 }], energy: 30, xp: 5 },
-  { index: 20011, name: { en: "Grill a Burger", zh: "烤汉堡" }, out: 11302, outAmount: 1, ins: [{ item: 7202, amount: 1 }, { item: 7201, amount: 1 }], energy: 30, xp: 5 },
-  { index: 20012, name: { en: "Spin Rock Candyfloss", zh: "转棉花岩糖" }, out: 21205, outAmount: 1, ins: [{ item: 1201, amount: 150 }, { item: 1103, amount: 50 }], energy: 30, xp: 5 },
+  {
+    index: 20008,
+    name: { en: "Bolt's Quick Melt", zh: "阿栓的快熔法" },
+    out: 1303,
+    outAmount: 5,
+    ins: [{ item: 1005, amount: 12 }],
+    energy: 30,
+    xp: 5,
+  },
+  {
+    index: 20009,
+    name: { en: "Warm Honeydrops", zh: "捂蜜露" },
+    out: 11312,
+    outAmount: 2,
+    ins: [
+      { item: 11311, amount: 1 },
+      { item: 1011, amount: 1 },
+    ],
+    energy: 30,
+    xp: 5,
+  },
+  {
+    index: 20010,
+    name: { en: "Nurse Why's Calm Tea", zh: "小慧的安神茶" },
+    out: 11404,
+    outAmount: 1,
+    ins: [
+      { item: 1111, amount: 100 },
+      { item: 1110, amount: 50 },
+    ],
+    energy: 30,
+    xp: 5,
+  },
+  {
+    index: 20011,
+    name: { en: "Grill a Burger", zh: "烤汉堡" },
+    out: 11302,
+    outAmount: 1,
+    ins: [
+      { item: 7202, amount: 1 },
+      { item: 7201, amount: 1 },
+    ],
+    energy: 30,
+    xp: 5,
+  },
+  {
+    index: 20012,
+    name: { en: "Spin Rock Candyfloss", zh: "转棉花岩糖" },
+    out: 21205,
+    outAmount: 1,
+    ins: [
+      { item: 1201, amount: 150 },
+      { item: 1103, amount: 50 },
+    ],
+    energy: 30,
+    xp: 5,
+  },
 ];
 
 export function neighbours(index: number): number[] {
@@ -254,14 +429,22 @@ export interface WorldState {
   recipes?: number[];
   trips?: number;
   /** outfit pieces owned, what each pet wears, and limited pieces the wallets hold on chain (see wardrobe.ts) */
-  wardrobe?: { owned: string[]; worn: Record<string, Partial<Record<"head" | "face" | "held", string>>>; chainHeld?: string[] };
+  wardrobe?: {
+    owned: string[];
+    worn: Record<string, Partial<Record<"head" | "face" | "held", string>>>;
+    chainHeld?: string[];
+  };
   /** room and look packs the wallets bought on X Layer, as last read (plan 4.9, see extras.ts) */
   extras?: { room: number; looks: number };
   /** whole outfits kept to put on in one tap, and how many were ever saved (ids never repeat) */
   looks?: Array<{ id: string; name: string; outfit: Partial<Record<"head" | "face" | "held", string>> }>;
   looksMade?: number;
   /** the Mushroom Garden's plots (see garden.ts) */
-  garden?: { plots: Array<{ crop: string; at: number; compost: boolean } | null>; harvested: number; /** G6: plots dug beyond the first four */ dug?: number };
+  garden?: {
+    plots: Array<{ crop: string; at: number; compost: boolean } | null>;
+    harvested: number;
+    /** G6: plots dug beyond the first four */ dug?: number;
+  };
   /** decorations bought and where they stand in the home room */
   decor?: { owned: string[]; placed: Array<{ id: string; x: number; y: number }>; chainHeld?: string[] };
   /** lifetime counters keyed TYPE:index (see tally.ts); `tallied` marks an older save already counted in once */
@@ -300,7 +483,9 @@ export function newWorld(seed: string): WorldState {
   };
 }
 
-export type WorldResult<T extends object = object> = ({ ok: true; world: WorldState } & T) | { ok: false; reason: string };
+export type WorldResult<T extends object = object> =
+  | ({ ok: true; world: WorldState } & T)
+  | { ok: false; reason: string };
 
 const add = (bag: Record<number, number>, item: number, n: number): Record<number, number> => {
   const next = { ...bag, [item]: (bag[item] ?? 0) + n };
@@ -330,12 +515,28 @@ export interface ExploreMods {
   /** percent chance of one more find on a trip */
   tripExtra: number;
 }
-export const NO_EXPLORE_MODS: ExploreMods = { moveEnergy: MOVE_ENERGY, forageEnergy: FORAGE_ENERGY, extraFind: 0, rareBoost: 0, forageWaitOff: 0, walksWithFinds: 0, stepsOff: 0, dayFind: 0, tripExtra: 0 };
+export const NO_EXPLORE_MODS: ExploreMods = {
+  moveEnergy: MOVE_ENERGY,
+  forageEnergy: FORAGE_ENERGY,
+  extraFind: 0,
+  rareBoost: 0,
+  forageWaitOff: 0,
+  walksWithFinds: 0,
+  stepsOff: 0,
+  dayFind: 0,
+  tripExtra: 0,
+};
 
 /** Drop weights with rare finds (tiers 1 to 4) made more likely, in hundredths so small weights still move. */
-export function boostRare<T extends { item: number; weight: number; tier?: number }>(drops: readonly T[], pct: number): T[] {
+export function boostRare<T extends { item: number; weight: number; tier?: number }>(
+  drops: readonly T[],
+  pct: number,
+): T[] {
   if (!pct) return drops.slice();
-  return drops.map((d) => ({ ...d, weight: d.weight * (d.tier !== undefined && isRareTier(d.tier) ? 100 + pct : 100) }));
+  return drops.map((d) => ({
+    ...d,
+    weight: d.weight * (d.tier !== undefined && isRareTier(d.tier) ? 100 + pct : 100),
+  }));
 }
 
 /**
@@ -355,7 +556,12 @@ export function move(
   if (petEnergy < mods.moveEnergy) return { ok: false, reason: "tired" };
   const firstVisit = !w.visited.includes(to);
   const coins = firstVisit ? FIRST_VISIT_COINS : 0;
-  let next: WorldState = { ...w, room: to, visited: firstVisit ? [...w.visited, to] : w.visited, coins: w.coins + coins };
+  let next: WorldState = {
+    ...w,
+    room: to,
+    visited: firstVisit ? [...w.visited, to] : w.visited,
+    coins: w.coins + coins,
+  };
   let found: { item: number; n: number } | undefined;
   if (now !== undefined) {
     const day = Math.floor(now / DAY_MS);
@@ -384,7 +590,10 @@ const DAY_MS = 24 * 3_600_000;
 
 const hourKey = (now: number) => Math.floor(now / 3_600_000);
 /** The look-around window: an hour, shortened by Explore skills (never under 15 minutes); keys of a shorter window never equal an hour's. */
-export const forageKey = (now: number, waitOff = 0): number => (waitOff ? -(Math.floor(now / (Math.max(15, 60 - waitOff) * 60_000)) * 100 + Math.max(15, 60 - waitOff)) : hourKey(now));
+export const forageKey = (now: number, waitOff = 0): number =>
+  waitOff
+    ? -(Math.floor(now / (Math.max(15, 60 - waitOff) * 60_000)) * 100 + Math.max(15, 60 - waitOff))
+    : hourKey(now);
 
 function roll(seed: string, room: number, hour: number, salt: number): number {
   const h = sha256(new TextEncoder().encode(`${seed}:${room}:${hour}:${salt}`));
@@ -401,7 +610,10 @@ export interface Familiar {
 }
 
 /** How well the pet knows a room: points toward the next secret, out of the room's bar. */
-export const familiarOf = (w: WorldState, room: number): { points: number; size: number } => ({ points: w.familiar?.[room] ?? 0, size: ROOMS[room]?.familiarSize ?? 0 });
+export const familiarOf = (w: WorldState, room: number): { points: number; size: number } => ({
+  points: w.familiar?.[room] ?? 0,
+  size: ROOMS[room]?.familiarSize ?? 0,
+});
 
 export function forage(
   w: WorldState,
@@ -456,7 +668,14 @@ export function forage(
   for (const f of found) bag = add(bag, f.item, f.n);
   const buffs = extra ? (({ forageExtra: _spent, ...rest }) => rest)(w.buffs ?? {}) : w.buffs;
   const looked = bump(
-    { ...w, bag, foraged: { ...w.foraged, [w.room]: hour }, foragedCount: w.foragedCount + 1, ...(buffs ? { buffs } : {}), ...(familiarMap ? { familiar: familiarMap } : {}) },
+    {
+      ...w,
+      bag,
+      foraged: { ...w.foraged, [w.room]: hour },
+      foragedCount: w.foragedCount + 1,
+      ...(buffs ? { buffs } : {}),
+      ...(familiarMap ? { familiar: familiarMap } : {}),
+    },
     "FORAGE",
     w.room,
   );
@@ -469,11 +688,21 @@ export function buy(w: WorldState, item: number): WorldResult {
   const def = ITEM[item];
   if (!room || !def || !room.shop.includes(item) || def.price === undefined) return { ok: false, reason: "notSold" };
   if (w.coins < def.price) return { ok: false, reason: "coins" };
-  return { ok: true, world: bumpAll({ ...w, coins: w.coins - def.price, bag: add(w.bag, item, 1) }, [["BUY", item, 1], ["COINS_SPENT", 0, def.price]]) };
+  return {
+    ok: true,
+    world: bumpAll({ ...w, coins: w.coins - def.price, bag: add(w.bag, item, 1) }, [
+      ["BUY", item, 1],
+      ["COINS_SPENT", 0, def.price],
+    ]),
+  };
 }
 
 /** What stops a recipe now, the first thing in the source's order: the tool, the room, the inputs, the pet's energy. */
-export function craftBlocker(w: WorldState, r: Recipe, petEnergy = Infinity): "tool" | "room" | "missing" | "tired" | null {
+export function craftBlocker(
+  w: WorldState,
+  r: Recipe,
+  petEnergy = Infinity,
+): "tool" | "room" | "missing" | "tired" | null {
   if (r.tool !== undefined && !has(w, r.tool)) return "tool";
   if (r.room !== undefined && w.room !== r.room) return "room";
   if (!r.ins.every((x) => has(w, x.item, x.amount))) return "missing";
@@ -482,9 +711,15 @@ export function craftBlocker(w: WorldState, r: Recipe, petEnergy = Infinity): "t
 }
 
 /** Make a recipe. The caller spends `energy` from the pet and gives it `xp`. */
-export function craft(w: WorldState, recipeIndex: number, petEnergy = Infinity): WorldResult<{ made: number; energy: number; xp: number }> {
+export function craft(
+  w: WorldState,
+  recipeIndex: number,
+  petEnergy = Infinity,
+): WorldResult<{ made: number; energy: number; xp: number }> {
   // a travel recipe works only once a trip has brought it home
-  const r = RECIPES.find((x) => x.index === recipeIndex) ?? TRAVEL_RECIPES.find((x) => x.index === recipeIndex && (w.recipes ?? []).includes(x.index));
+  const r =
+    RECIPES.find((x) => x.index === recipeIndex) ??
+    TRAVEL_RECIPES.find((x) => x.index === recipeIndex && (w.recipes ?? []).includes(x.index));
   if (!r) return { ok: false, reason: "noRecipe" };
   const no = craftBlocker(w, r, petEnergy);
   if (no) return { ok: false, reason: no };
@@ -492,7 +727,13 @@ export function craft(w: WorldState, recipeIndex: number, petEnergy = Infinity):
   for (const x of r.ins) bag = add(bag, x.item, -x.amount);
   bag = add(bag, r.out, r.outAmount);
   // one count per thing made at the bench, indexed by what came out (the source's CRAFT_ITEM, note A §1.3)
-  return { ok: true, made: r.out, energy: r.energy, xp: r.xp, world: bump({ ...w, bag, crafted: w.crafted + 1 }, "CRAFT", r.out) };
+  return {
+    ok: true,
+    made: r.out,
+    energy: r.energy,
+    xp: r.xp,
+    world: bump({ ...w, bag, crafted: w.crafted + 1 }, "CRAFT", r.out),
+  };
 }
 
 /**
@@ -508,7 +749,12 @@ export function take(w: WorldState, item: number): WorldResult<{ use: NonNullabl
   let bag = add(w.bag, item, -1);
   if (def.returns) bag = add(bag, def.returns, 1);
   const buffs = def.buff ? addBuff(w.buffs, def.buff) : w.buffs;
-  return { ok: true, use: def.use ?? {}, ...(def.buff ? { buff: def.buff } : {}), world: bump({ ...w, bag, ...(buffs ? { buffs } : {}) }, "USE", item) };
+  return {
+    ok: true,
+    use: def.use ?? {},
+    ...(def.buff ? { buff: def.buff } : {}),
+    world: bump({ ...w, bag, ...(buffs ? { buffs } : {}) }, "USE", item),
+  };
 }
 
 /** How many of an item have ever been used (for the limits). */
@@ -533,16 +779,26 @@ export function spendSparBuffs(w: WorldState): { world: WorldState; power: numbe
  * are in them. The River Box draws two or three times (the source draws once; ours is earned with more effort);
  * the Golden Box also holds five Booster Packs, as the source's does.
  */
-export const BOX_TABLES: Readonly<Record<number, ReadonlyArray<{ item: number; tier: number; weight: number }>>> = Object.fromEntries(
-  Object.entries((data as { boxes?: Record<string, Array<{ item: number; tier: number }>> }).boxes ?? {})
-    .map(([box, rows]) => [Number(box), rows.filter((r) => ITEM[r.item]).map((r) => ({ ...r, weight: tierWeight(r.tier) }))] as const)
-    .filter(([box, rows]) => ITEM[box] && rows.length),
-);
+export const BOX_TABLES: Readonly<Record<number, ReadonlyArray<{ item: number; tier: number; weight: number }>>> =
+  Object.fromEntries(
+    Object.entries((data as { boxes?: Record<string, Array<{ item: number; tier: number }>> }).boxes ?? {})
+      .map(
+        ([box, rows]) =>
+          [Number(box), rows.filter((r) => ITEM[r.item]).map((r) => ({ ...r, weight: tierWeight(r.tier) }))] as const,
+      )
+      .filter(([box, rows]) => ITEM[box] && rows.length),
+  );
 const BOX_DRAWS: Readonly<Record<number, readonly [number, number]>> = { 21007: [2, 3] };
-const BOX_EXTRA: Readonly<Record<number, ReadonlyArray<{ item: number; n: number }>>> = { 21008: [{ item: 21004, n: 5 }] };
+const BOX_EXTRA: Readonly<Record<number, ReadonlyArray<{ item: number; n: number }>>> = {
+  21008: [{ item: 21004, n: 5 }],
+};
 
 /** Open a box from the bag: its draws decided by the box's own roll, so a reload cannot change them. */
-export function openBox(w: WorldState, _now: number, box = 21007): WorldResult<{ found: Array<{ item: number; n: number }> }> {
+export function openBox(
+  w: WorldState,
+  _now: number,
+  box = 21007,
+): WorldResult<{ found: Array<{ item: number; n: number }> }> {
   const table = BOX_TABLES[box];
   if (!table) return { ok: false, reason: "notABox" };
   if (!has(w, box)) return { ok: false, reason: "none" };
@@ -565,7 +821,8 @@ export function openBox(w: WorldState, _now: number, box = 21007): WorldResult<{
   return { ok: true, found, world: bumpFinds(bump({ ...w, bag }, "OPEN", box), found) };
 }
 
-export const earn = (w: WorldState, coins: number): WorldState => bump({ ...w, coins: w.coins + coins }, "COINS_EARNED", 0, coins);
+export const earn = (w: WorldState, coins: number): WorldState =>
+  bump({ ...w, coins: w.coins + coins }, "COINS_EARNED", 0, coins);
 
 /**
  * G6: a day's paid spars. The first PAID_SPARS_PER_DAY spars that would pay (a win, or a loss a skill or snack pays
@@ -591,7 +848,11 @@ export const give = (w: WorldState, item: number, n = 1): WorldState => ({ ...w,
 import { QUESTS, type QuestView, questState } from "./quests";
 
 /** Claim a finished quest's reward. */
-export function claim(w: WorldState, id: string, view: Omit<QuestView, "world">): WorldResult<{ coins: number; items: Array<{ item: number; n: number }> }> {
+export function claim(
+  w: WorldState,
+  id: string,
+  view: Omit<QuestView, "world">,
+): WorldResult<{ coins: number; items: Array<{ item: number; n: number }> }> {
   const q = QUESTS.find((x) => x.id === id);
   if (!q) return { ok: false, reason: "noQuest" };
   if (questState(q, { ...view, world: w }, w.claimed) !== "ready") return { ok: false, reason: "notReady" };

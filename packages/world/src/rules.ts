@@ -15,18 +15,55 @@ import { FOLK, type Folk, folkReference } from "./folk";
  */
 export const DROP_RULE: RuleCircuit = {
   name: "drop",
-  about: { en: "How much each rarity tier weighs in a find, which tiers are rare, and how much a look around makes a place familiar.", zh: "每个稀有度在寻找时的权重、哪些算稀有，以及四处找找让一个地方熟悉多少。" },
+  about: {
+    en: "How much each rarity tier weighs in a find, which tiers are rare, and how much a look around makes a place familiar.",
+    zh: "每个稀有度在寻找时的权重、哪些算稀有，以及四处找找让一个地方熟悉多少。",
+  },
   inBits: 5,
   fields: {
     inputs: [
-      { name: "tier", lo: 0, bits: 4, meaning: { en: "rarity tier: 1 rarest … 15 most common; 0 means no tier", zh: "稀有度：1 最稀有 … 15 最常见；0 表示没有稀有度" } },
-      { name: "home", lo: 4, bits: 1, meaning: { en: "1 when the room's kind matches the pet", zh: "房间的类型和宠物相合时为 1" } },
+      {
+        name: "tier",
+        lo: 0,
+        bits: 4,
+        meaning: {
+          en: "rarity tier: 1 rarest … 15 most common; 0 means no tier",
+          zh: "稀有度：1 最稀有 … 15 最常见；0 表示没有稀有度",
+        },
+      },
+      {
+        name: "home",
+        lo: 4,
+        bits: 1,
+        meaning: { en: "1 when the room's kind matches the pet", zh: "房间的类型和宠物相合时为 1" },
+      },
     ],
     outputs: [
-      { name: "exponent", lo: 0, bits: 4, meaning: { en: "weight exponent: a find of tier t weighs 2^(t-1)", zh: "权重指数：稀有度 t 的东西权重为 2^(t-1)" } },
-      { name: "weighted", lo: 4, bits: 1, meaning: { en: "1 when the tier has a weight", zh: "这个稀有度有权重时为 1" } },
+      {
+        name: "exponent",
+        lo: 0,
+        bits: 4,
+        meaning: {
+          en: "weight exponent: a find of tier t weighs 2^(t-1)",
+          zh: "权重指数：稀有度 t 的东西权重为 2^(t-1)",
+        },
+      },
+      {
+        name: "weighted",
+        lo: 4,
+        bits: 1,
+        meaning: { en: "1 when the tier has a weight", zh: "这个稀有度有权重时为 1" },
+      },
       { name: "rare", lo: 5, bits: 1, meaning: { en: "1 for a rare tier (1 to 4)", zh: "稀有（1 到 4）时为 1" } },
-      { name: "familiarity", lo: 6, bits: 2, meaning: { en: "familiarity a look around adds: 2 where the pet is at home, else 1", zh: "四处找找增加的熟悉度：在宠物合适的房间为 2，否则为 1" } },
+      {
+        name: "familiarity",
+        lo: 6,
+        bits: 2,
+        meaning: {
+          en: "familiarity a look around adds: 2 where the pet is at home, else 1",
+          zh: "四处找找增加的熟悉度：在宠物合适的房间为 2，否则为 1",
+        },
+      },
     ],
   },
   reference: (w) => {
@@ -61,17 +98,54 @@ const GIFT_POINTS = [4, 2, 1, 0] as const;
 
 export const TRUST_RULE: RuleCircuit = {
   name: "trust",
-  about: { en: "A resident's trust level from trust points, and how many points a gift adds (only the first gift of a day counts; a disliked one is refused).", zh: "由信任点数得出居民的信任等级，以及一份礼物加多少点（每天只算第一份；不喜欢的会被拒收）。" },
+  about: {
+    en: "A resident's trust level from trust points, and how many points a gift adds (only the first gift of a day counts; a disliked one is refused).",
+    zh: "由信任点数得出居民的信任等级，以及一份礼物加多少点（每天只算第一份；不喜欢的会被拒收）。",
+  },
   inBits: 10,
   fields: {
     inputs: [
-      { name: "points", lo: 0, bits: 7, meaning: { en: "trust points (127 and over read as 127)", zh: "信任点数（127 及以上按 127 算）" } },
-      { name: "taste", lo: 7, bits: 2, meaning: { en: "the gift's taste: 0 loved, 1 liked, 2 neutral, 3 disliked", zh: "礼物合不合口味：0 最爱，1 喜欢，2 一般，3 不喜欢" } },
-      { name: "counted", lo: 9, bits: 1, meaning: { en: "1 when a gift was already counted today", zh: "今天已经算过一份礼物时为 1" } },
+      {
+        name: "points",
+        lo: 0,
+        bits: 7,
+        meaning: { en: "trust points (127 and over read as 127)", zh: "信任点数（127 及以上按 127 算）" },
+      },
+      {
+        name: "taste",
+        lo: 7,
+        bits: 2,
+        meaning: {
+          en: "the gift's taste: 0 loved, 1 liked, 2 neutral, 3 disliked",
+          zh: "礼物合不合口味：0 最爱，1 喜欢，2 一般，3 不喜欢",
+        },
+      },
+      {
+        name: "counted",
+        lo: 9,
+        bits: 1,
+        meaning: { en: "1 when a gift was already counted today", zh: "今天已经算过一份礼物时为 1" },
+      },
     ],
     outputs: [
-      { name: "level", lo: 0, bits: 3, meaning: { en: "trust level 0 to 5 (from 0, 5, 15, 30, 50, 80 points)", zh: "信任等级 0 到 5（从 0、5、15、30、50、80 点起）" } },
-      { name: "gain", lo: 3, bits: 3, meaning: { en: "points the gift adds: 4 loved, 2 liked, 1 neutral; 0 when refused or already counted today", zh: "这份礼物加的点数：最爱 4，喜欢 2，一般 1；被拒收或今天已算过时为 0" } },
+      {
+        name: "level",
+        lo: 0,
+        bits: 3,
+        meaning: {
+          en: "trust level 0 to 5 (from 0, 5, 15, 30, 50, 80 points)",
+          zh: "信任等级 0 到 5（从 0、5、15、30、50、80 点起）",
+        },
+      },
+      {
+        name: "gain",
+        lo: 3,
+        bits: 3,
+        meaning: {
+          en: "points the gift adds: 4 loved, 2 liked, 1 neutral; 0 when refused or already counted today",
+          zh: "这份礼物加的点数：最爱 4，喜欢 2，一般 1；被拒收或今天已算过时为 0",
+        },
+      },
       { name: "refused", lo: 6, bits: 1, meaning: { en: "1 when the gift is refused", zh: "礼物被拒收时为 1" } },
     ],
   },
@@ -103,15 +177,56 @@ export function giftTrust(taste: (typeof TASTES)[number], countedToday: boolean)
 /** Every resident's circuit reads and answers the same fields (folk.ts); each ranks the line slots in its own order. */
 const FOLK_FIELDS: RuleCircuit["fields"] = {
   inputs: [
-    { name: "time", lo: 0, bits: 2, meaning: { en: "time of day: 0 night, 1 morning, 2 day, 3 evening", zh: "一天中的时间：0 夜里，1 早上，2 白天，3 傍晚" } },
-    { name: "trust", lo: 2, bits: 3, meaning: { en: "trust level with this resident (0 to 5)", zh: "和这位居民的信任等级（0 到 5）" } },
-    { name: "gift", lo: 5, bits: 2, meaning: { en: "today's gift to them: 0 none, 1 loved or liked, 2 accepted politely, 3 refused", zh: "今天送他们的礼物：0 没送，1 最爱或喜欢，2 礼貌收下，3 被拒收" } },
-    { name: "petHappy", lo: 7, bits: 1, meaning: { en: "1 when the pet is happy (joy at 600 or more)", zh: "宠物开心（心情 600 及以上）时为 1" } },
-    { name: "petHungry", lo: 8, bits: 1, meaning: { en: "1 when the pet is hungry (food under 300)", zh: "宠物饿了（饱腹 300 以下）时为 1" } },
-    { name: "questReady", lo: 9, bits: 1, meaning: { en: "1 when a quest of theirs is ready to hand in", zh: "他们的任务可以交时为 1" } },
+    {
+      name: "time",
+      lo: 0,
+      bits: 2,
+      meaning: {
+        en: "time of day: 0 night, 1 morning, 2 day, 3 evening",
+        zh: "一天中的时间：0 夜里，1 早上，2 白天，3 傍晚",
+      },
+    },
+    {
+      name: "trust",
+      lo: 2,
+      bits: 3,
+      meaning: { en: "trust level with this resident (0 to 5)", zh: "和这位居民的信任等级（0 到 5）" },
+    },
+    {
+      name: "gift",
+      lo: 5,
+      bits: 2,
+      meaning: {
+        en: "today's gift to them: 0 none, 1 loved or liked, 2 accepted politely, 3 refused",
+        zh: "今天送他们的礼物：0 没送，1 最爱或喜欢，2 礼貌收下，3 被拒收",
+      },
+    },
+    {
+      name: "petHappy",
+      lo: 7,
+      bits: 1,
+      meaning: { en: "1 when the pet is happy (joy at 600 or more)", zh: "宠物开心（心情 600 及以上）时为 1" },
+    },
+    {
+      name: "petHungry",
+      lo: 8,
+      bits: 1,
+      meaning: { en: "1 when the pet is hungry (food under 300)", zh: "宠物饿了（饱腹 300 以下）时为 1" },
+    },
+    {
+      name: "questReady",
+      lo: 9,
+      bits: 1,
+      meaning: { en: "1 when a quest of theirs is ready to hand in", zh: "他们的任务可以交时为 1" },
+    },
   ],
   outputs: [
-    { name: "mood", lo: 0, bits: 2, meaning: { en: "mood: 0 low, 1 calm, 2 glad, 3 delighted", zh: "心情：0 低落，1 平静，2 高兴，3 很开心" } },
+    {
+      name: "mood",
+      lo: 0,
+      bits: 2,
+      meaning: { en: "mood: 0 low, 1 calm, 2 glad, 3 delighted", zh: "心情：0 低落，1 平静，2 高兴，3 很开心" },
+    },
     {
       name: "line",
       lo: 2,
@@ -126,7 +241,10 @@ const FOLK_FIELDS: RuleCircuit["fields"] = {
 
 export const folkRule = (f: Folk): RuleCircuit => ({
   name: `folk:${f.id}`,
-  about: { en: "How this resident greets you: their mood and which line they choose, from the time, trust, today's gift, your pet and their quests.", zh: "这位居民怎样跟你打招呼：心情和说哪句话，取决于时间、信任、今天的礼物、你的宠物和他们的任务。" },
+  about: {
+    en: "How this resident greets you: their mood and which line they choose, from the time, trust, today's gift, your pet and their quests.",
+    zh: "这位居民怎样跟你打招呼：心情和说哪句话，取决于时间、信任、今天的礼物、你的宠物和他们的任务。",
+  },
   inBits: 10,
   fields: FOLK_FIELDS,
   reference: (w) => folkReference(f, w),

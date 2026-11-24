@@ -104,7 +104,12 @@ const ROOM_LIMITS: RoomLimits = { idleMs: 15 * 60_000, pingMs: 30_000, asksPerCo
 export const IDLE_CLOSE = 4001;
 
 const clean = (s: unknown, max: number): string =>
-  typeof s === "string" ? s.replace(/[\u0000-\u001f\u007f<>]/g, "").trim().slice(0, max) : "";
+  typeof s === "string"
+    ? s
+        .replace(/[\u0000-\u001f\u007f<>]/g, "")
+        .trim()
+        .slice(0, max)
+    : "";
 
 /** A pet's on-chain identity, passed along so a family can be made on chain; checked for shape only. */
 function chainInfo(v: unknown): { petId: string; owner: string; brain: string } | undefined {
@@ -176,7 +181,8 @@ export class LiveRooms {
   private async showHome(owner: string): Promise<void> {
     const placed = await this.shown(owner);
     const home = `home:${owner}`;
-    for (const key of this.spaces.keys()) if (key === home || key.startsWith(`${home}#`)) this.broadcast(key, { t: "decor", owner, placed });
+    for (const key of this.spaces.keys())
+      if (key === home || key.startsWith(`${home}#`)) this.broadcast(key, { t: "decor", owner, placed });
   }
 
   /**
@@ -282,7 +288,22 @@ export class LiveRooms {
   }
 
   handle(ws: WebSocket, address = "local"): void {
-    const c: Client = { ws, card: null, proposals: new Map(), member: { id: "", name: "", line: "gentle", stage: "baby", mood: 1, x: 64 }, space: null, petId: null, address, tokens: 8, last: Date.now(), cardVersion: 0, seen: new Map(), asks: [], alive: true, heard: Date.now() };
+    const c: Client = {
+      ws,
+      card: null,
+      proposals: new Map(),
+      member: { id: "", name: "", line: "gentle", stage: "baby", mood: 1, x: 64 },
+      space: null,
+      petId: null,
+      address,
+      tokens: 8,
+      last: Date.now(),
+      cardVersion: 0,
+      seen: new Map(),
+      asks: [],
+      alive: true,
+      heard: Date.now(),
+    };
     this.clients.add(c);
     this.watch();
     ws.on("pong", () => (c.alive = true));
@@ -313,7 +334,8 @@ export class LiveRooms {
       case "hello": {
         const id = clean(m.id, 32).toLowerCase();
         // only the device holding the key behind this id may be it
-        if (!/^[a-z0-9]{6,32}$/.test(id) || !this.decor.authorise(id, m.key)) return this.send(c, { t: "refused", reason: "id" });
+        if (!/^[a-z0-9]{6,32}$/.test(id) || !this.decor.authorise(id, m.key))
+          return this.send(c, { t: "refused", reason: "id" });
         // a hidden character is shown, so no pet in the room can pass for another (A16)
         const name = shownName(m.name, NAME_MAX) || "Pet";
         c.member = {
@@ -383,7 +405,10 @@ export class LiveRooms {
         if (!this.decor.authorise(owner, m.key)) return this.send(c, { t: "linked", ok: false, reason: "key" });
         if (m.t === "link" && this.overHomeShare(c)) return this.send(c, { t: "linked", ok: false, reason: "tooMany" });
         const done = (r: { ok: true; wallets: string[] } | { ok: false; reason: string }) => {
-          this.send(c, r.ok ? { t: "linked", ok: true, wallets: r.wallets } : { t: "linked", ok: false, reason: r.reason });
+          this.send(
+            c,
+            r.ok ? { t: "linked", ok: true, wallets: r.wallets } : { t: "linked", ok: false, reason: r.reason },
+          );
           if (!r.ok) return;
           void this.showHome(owner);
           // the player's pets already out in rooms gain or lose their colour with the wallets that vouch for it
@@ -425,7 +450,14 @@ export class LiveRooms {
         target.proposals.set(c.member.id, now);
         while (target.proposals.size > MAX_PROPOSALS) target.proposals.delete(target.proposals.keys().next().value!);
         const chain = chainInfo(m.chain);
-        this.send(target, { t: "proposal", from: c.member.id, name: c.member.name, stage: c.member.stage, line: c.member.line, ...(chain ? { chain } : {}) });
+        this.send(target, {
+          t: "proposal",
+          from: c.member.id,
+          name: c.member.name,
+          stage: c.member.stage,
+          line: c.member.line,
+          ...(chain ? { chain } : {}),
+        });
         return;
       }
       case "answer": {
@@ -446,7 +478,14 @@ export class LiveRooms {
             card = { card: c.card ?? "[]" };
           }
         }
-        this.send(proposer, { t: "answer", from: c.member.id, name: c.member.name, yes, ...(yes ? { line: c.member.line, stage: c.member.stage, ...card } : {}), ...(chain ? { chain } : {}) });
+        this.send(proposer, {
+          t: "answer",
+          from: c.member.id,
+          name: c.member.name,
+          yes,
+          ...(yes ? { line: c.member.line, stage: c.member.stage, ...card } : {}),
+          ...(chain ? { chain } : {}),
+        });
         return;
       }
       case "ask": {
@@ -459,7 +498,13 @@ export class LiveRooms {
         if (c.asks.length >= this.limits.asksPerConnection || !this.askers.take(c.address)) return;
         c.asks.push(now);
         // the whole card once per change of it; after that a short answer, and the game keeps the card it has (A61)
-        const about = { t: "card", id: target.member.id, name: target.member.name, line: target.member.line, stage: target.member.stage };
+        const about = {
+          t: "card",
+          id: target.member.id,
+          name: target.member.name,
+          line: target.member.line,
+          stage: target.member.stage,
+        };
         if (c.seen.get(target.member.id) === target.cardVersion) this.send(c, { ...about, unchanged: true });
         else if (!c.cardWaiting) {
           // no second card is queued behind one still going out (A143); a later ask brings it
@@ -493,7 +538,16 @@ export function addressOf(req: IncomingMessage): string {
 }
 
 /** Attaches live rooms to an HTTP server at /live, accepting only allowed origins and a few connections per address. */
-export function attachLive(server: { on(event: "upgrade", cb: (req: IncomingMessage, socket: import("node:stream").Duplex, head: Buffer) => void): unknown }, rooms: LiveRooms, origins: string[]): WebSocketServer {
+export function attachLive(
+  server: {
+    on(
+      event: "upgrade",
+      cb: (req: IncomingMessage, socket: import("node:stream").Duplex, head: Buffer) => void,
+    ): unknown;
+  },
+  rooms: LiveRooms,
+  origins: string[],
+): WebSocketServer {
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_CARD_FRAME });
   const held = new Map<string, number>();
   // a /48 holds at most PREFIX_SHARE addresses' worth, so one network cannot take every connection (A112)
@@ -513,7 +567,11 @@ export function attachLive(server: { on(event: "upgrade", cb: (req: IncomingMess
     }
     const address = addressOf(req);
     const prefix = prefixOf(address);
-    if ((held.get(address) ?? 0) >= MAX_PER_ADDRESS || (prefix !== null && (network.get(prefix) ?? 0) >= MAX_PER_ADDRESS * PREFIX_SHARE) || total >= MAX_CONNECTIONS) {
+    if (
+      (held.get(address) ?? 0) >= MAX_PER_ADDRESS ||
+      (prefix !== null && (network.get(prefix) ?? 0) >= MAX_PER_ADDRESS * PREFIX_SHARE) ||
+      total >= MAX_CONNECTIONS
+    ) {
       socket.end("HTTP/1.1 429 Too Many Requests\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
       return;
     }

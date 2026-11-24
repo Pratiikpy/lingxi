@@ -39,7 +39,11 @@ export const isDuelCode = (s: string): boolean => s.startsWith(CHALLENGE) || s.s
 export async function duelLinkId(code: string): Promise<string> {
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(code)));
   // the digest's own bytes in base64url (b64urlEncode would read them as text first)
-  return btoa(String.fromCharCode(...digest)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "").slice(0, 16);
+  return btoa(String.fromCharCode(...digest))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "")
+    .slice(0, 16);
 }
 const LINES = ["gentle", "bold", "curious"] as const;
 const STAGES = ["baby", "child", "teen", "adult", "elder"] as const;
@@ -73,7 +77,13 @@ export interface DuelResult {
 
 export class DuelError extends Error {}
 
-const clean = (s: unknown, max: number) => (typeof s === "string" ? s.replace(/[\u0000-\u001f\u007f<>]/g, " ").trim().slice(0, max) : "");
+const clean = (s: unknown, max: number) =>
+  typeof s === "string"
+    ? s
+        .replace(/[\u0000-\u001f\u007f<>]/g, " ")
+        .trim()
+        .slice(0, max)
+    : "";
 
 function readPet(v: unknown): DuelPet & { parsed: PetCard } {
   const p = (v ?? {}) as Record<string, unknown>;
@@ -84,10 +94,18 @@ function readPet(v: unknown): DuelPet & { parsed: PetCard } {
   const parsed = parseCard(p.card);
   if (!parsed) throw new DuelError("the pet's mind is damaged");
   // both minds must build and fit, exactly as they would at home
-  const minds = parsed.family ? halvesOf(parsed.family, parsed.lessons, skillRules(parsed.growth)) : [composeProgram(line, parsed.lessons, parsed.instincts, mindExtra(parsed.growth))];
-  for (const m of minds) if (gateCount(compileProgram(m)) > gateBudget(parsed.growth)) throw new DuelError("the pet's mind is too big");
+  const minds = parsed.family
+    ? halvesOf(parsed.family, parsed.lessons, skillRules(parsed.growth))
+    : [composeProgram(line, parsed.lessons, parsed.instincts, mindExtra(parsed.growth))];
+  for (const m of minds)
+    if (gateCount(compileProgram(m)) > gateBudget(parsed.growth)) throw new DuelError("the pet's mind is too big");
   const st = (p.story ?? {}) as Record<string, unknown>;
-  const nature = Array.isArray(st.nature) ? st.nature.slice(0, 3).map((x) => clean(x, 16)).filter(Boolean) : [];
+  const nature = Array.isArray(st.nature)
+    ? st.nature
+        .slice(0, 3)
+        .map((x) => clean(x, 16))
+        .filter(Boolean)
+    : [];
   return {
     name: shownName(p.name, 12) || "Friend",
     line,
@@ -129,12 +147,34 @@ function unpack(code: string, prefix: string, max: number): Record<string, unkno
 export const decodeChallenge = (code: string): Challenge => readChallenge(unpack(code, CHALLENGE, MAX_DUEL_CODE));
 
 export function encodeResult(r: DuelResult): string {
-  return RESULT + b64urlEncode(JSON.stringify({ challenge: { ...r.challenge, from: strip(r.challenge.from) }, reply: strip(r.reply), version: r.version ?? SPAR_VERSION }));
+  return (
+    RESULT +
+    b64urlEncode(
+      JSON.stringify({
+        challenge: { ...r.challenge, from: strip(r.challenge.from) },
+        reply: strip(r.reply),
+        version: r.version ?? SPAR_VERSION,
+      }),
+    )
+  );
 }
 
 export function decodeResult(code: string): DuelResult {
   const v = unpack(code, RESULT, MAX_DUEL_RESULT_CODE);
-  return { challenge: readChallenge((v.challenge ?? {}) as Record<string, unknown>), reply: strip(readPet(v.reply)), version: v.version === SPAR_V5 ? SPAR_V5 : v.version === SPAR_V4 ? SPAR_V4 : v.version === SPAR_V3 ? SPAR_V3 : v.version === SPAR_V2 ? SPAR_V2 : SPAR_VERSION };
+  return {
+    challenge: readChallenge((v.challenge ?? {}) as Record<string, unknown>),
+    reply: strip(readPet(v.reply)),
+    version:
+      v.version === SPAR_V5
+        ? SPAR_V5
+        : v.version === SPAR_V4
+          ? SPAR_V4
+          : v.version === SPAR_V3
+            ? SPAR_V3
+            : v.version === SPAR_V2
+              ? SPAR_V2
+              : SPAR_VERSION,
+  };
 }
 
 /** The spar's seed, fixed by the challenge so every replay is the same fight. */
@@ -150,7 +190,14 @@ const levelOfStage = (s: Stage) => (s === "elder" ? 2 : s === "teen" || s === "a
 export function duelFighter(p: DuelPet): Fighter {
   const card = parseCard(p.card);
   if (!card) throw new DuelError("the pet's mind is damaged");
-  const spec = { line: p.line, lessons: card.lessons, family: card.family, instincts: card.instincts, outside: card.outside, growth: card.growth };
+  const spec = {
+    line: p.line,
+    lessons: card.lessons,
+    family: card.family,
+    instincts: card.instincts,
+    outside: card.outside,
+    growth: card.growth,
+  };
   const nState = mindBrain(spec).nState;
   return fighterOfMind(p.name, spec, levelOfStage(p.stage), card.memory?.length === nState ? card.memory : undefined);
 }

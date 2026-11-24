@@ -20,7 +20,10 @@ interface SerialLike {
   getPorts(): Promise<SerialPortLike[]>;
   requestPort(o?: { filters?: Array<{ usbVendorId: number }> }): Promise<SerialPortLike>;
 }
-const serial = (): SerialLike | null => (typeof navigator !== "undefined" && "serial" in navigator ? (navigator as unknown as { serial: SerialLike }).serial : null);
+const serial = (): SerialLike | null =>
+  typeof navigator !== "undefined" && "serial" in navigator
+    ? (navigator as unknown as { serial: SerialLike }).serial
+    : null;
 
 export const cardputerAvailable = (): boolean => !!serial();
 
@@ -30,14 +33,21 @@ const ESPRESSIF = 0x303a;
 export class CardputerProblem extends Error {}
 
 const WORDS: Record<string, [string, string]> = {
-  selfTest: ["Its self-test failed, so it takes no pets. Flash the Lingxi firmware again.", "它的自检没通过，不接收宠物。请重新刷入灵犀固件。"],
-  carrying: ["It is carrying another pet. Bring that one home from the game it left.", "它正带着另一只宠物。请在那只宠物出门的游戏里把它带回家。"],
+  selfTest: [
+    "Its self-test failed, so it takes no pets. Flash the Lingxi firmware again.",
+    "它的自检没通过，不接收宠物。请重新刷入灵犀固件。",
+  ],
+  carrying: [
+    "It is carrying another pet. Bring that one home from the game it left.",
+    "它正带着另一只宠物。请在那只宠物出门的游戏里把它带回家。",
+  ],
   tooBig: ["This pet's mind is too big for the Cardputer.", "这只宠物的心智太大，Cardputer 装不下。"],
   damaged: ["The packet was damaged on the way. Try again.", "数据在路上坏了。请再试一次。"],
   noLink: ["No Lingxi handheld answered on that port.", "那个端口上没有灵犀掌机回应。"],
   cancelled: ["No Cardputer was chosen.", "没有选择 Cardputer。"],
 };
-export const cardputerWords = (key: string, lang: "en" | "zh"): string => (WORDS[key] ?? [key, key])[lang === "zh" ? 1 : 0];
+export const cardputerWords = (key: string, lang: "en" | "zh"): string =>
+  (WORDS[key] ?? [key, key])[lang === "zh" ? 1 : 0];
 
 /** Open the Cardputer (one already allowed, or ask for it), run `session` over the link, and always close the port. */
 async function withCardputer<T>(session: (link: HandheldLink) => Promise<T>): Promise<T> {
@@ -94,7 +104,8 @@ export const toCardputer: Deliver = (packet) =>
     try {
       await link.put(packet);
     } catch (e) {
-      if (e instanceof LinkError) throw new CardputerProblem(e.word === "tooBig" ? "tooBig" : e.word === "damaged" ? "damaged" : e.word);
+      if (e instanceof LinkError)
+        throw new CardputerProblem(e.word === "tooBig" ? "tooBig" : e.word === "damaged" ? "damaged" : e.word);
       throw e;
     }
   });

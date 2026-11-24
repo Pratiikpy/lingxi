@@ -16,7 +16,10 @@ function keyFor(lane: number): string {
   return secret;
 }
 
-test("on a phone, visitors at the room's outermost lanes stand where it shows and open with a tap (en, light, phone)", async ({ player, run }) => {
+test("on a phone, visitors at the room's outermost lanes stand where it shows and open with a tap (en, light, phone)", async ({
+  player,
+  run,
+}) => {
   test.setTimeout(240_000);
   const p = await player({ lang: "en", scheme: "light", size: "phone", reducedMotion: true });
   const { page } = p;
@@ -40,7 +43,10 @@ test("on a phone, visitors at the room's outermost lanes stand where it shows an
     // the room's 128 pixels are cropped on a phone to its middle: the visitor's lane is outside it
     const box = (await page.locator(".room-scene").boundingBox())!;
     const shown = viewOf(box.width, box.height);
-    expect(lane < shown.left || lane > shown.right, `lane ${lane} is outside what a phone shows (${shown.left.toFixed(1)}..${shown.right.toFixed(1)})`).toBe(true);
+    expect(
+      lane < shown.left || lane > shown.right,
+      `lane ${lane} is outside what a phone shows (${shown.left.toFixed(1)}..${shown.right.toFixed(1)})`,
+    ).toBe(true);
     const at = await visitorPoint(page, lane);
     expect(at, "the point tapped is inside what shows").toBeGreaterThan(shown.left);
     expect(at).toBeLessThan(shown.right);
@@ -74,7 +80,10 @@ test("on a phone, visitors at the room's outermost lanes stand where it shows an
   for (const f of friends) f.close();
 });
 
-test("the count opens the list of who is here, in Chinese and the dark look (zh, dark, desktop)", async ({ player, run }) => {
+test("the count opens the list of who is here, in Chinese and the dark look (zh, dark, desktop)", async ({
+  player,
+  run,
+}) => {
   test.setTimeout(240_000);
   const p = await player({ lang: "zh", scheme: "dark", size: "desktop", reducedMotion: true });
   const { page } = p;

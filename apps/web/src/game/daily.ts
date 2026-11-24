@@ -22,8 +22,11 @@ const KEY = "lingxi.daily.v1";
 const RPCS = ["https://xlayerrpc.okx.com", "https://rpc.xlayer.tech"];
 // the live server (an empty VITE_API_URL, as the on-chain copy is built, means none), and whether the game runs on
 // mainnet, where the server's door to X Layer reads the same chain the challenge is seeded by
-const API = (import.meta.env.VITE_API_URL as string | undefined) ?? (typeof location !== "undefined" && location.hostname === "localhost" ? "http://localhost:8787" : "");
-const ON_MAINNET = ((import.meta.env.VITE_CHAIN as string | undefined) || "xlayer") === "xlayer" && !import.meta.env.VITE_RPC;
+const API =
+  (import.meta.env.VITE_API_URL as string | undefined) ??
+  (typeof location !== "undefined" && location.hostname === "localhost" ? "http://localhost:8787" : "");
+const ON_MAINNET =
+  ((import.meta.env.VITE_CHAIN as string | undefined) || "xlayer") === "xlayer" && !import.meta.env.VITE_RPC;
 
 export interface DailyBlock {
   day: number;
@@ -67,7 +70,13 @@ export interface DailySources {
 
 function sources(): DailySources {
   // built the first time a block is checked, with viem's client half (P3)
-  const door = API && ON_MAINNET ? lazyPublicClient(({ createPublicClient, http }) => createPublicClient({ chain: xLayer, transport: http(`${API}/api/rpc`, { timeout: 8000 }) }) as PublicClient) : null;
+  const door =
+    API && ON_MAINNET
+      ? lazyPublicClient(
+          ({ createPublicClient, http }) =>
+            createPublicClient({ chain: xLayer, transport: http(`${API}/api/rpc`, { timeout: 8000 }) }) as PublicClient,
+        )
+      : null;
   return {
     server: API ? async (day) => (await fetch(`${API}/api/daily/${day}`)).json() as Promise<ServerAnswer> : null,
     check: door
@@ -85,12 +94,14 @@ export async function findBlock(day: number, from: DailySources = sources()): Pr
   if (!from.server) return from.search(day);
   const a = await from.server(day);
   if (!a.ok) throw new Error(a.reason);
-  if (a.day !== day || !Number.isInteger(a.block) || a.block < 1 || !/^0x[0-9a-f]{64}$/.test(a.hash)) throw new Error("not today's block");
+  if (a.day !== day || !Number.isInteger(a.block) || a.block < 1 || !/^0x[0-9a-f]{64}$/.test(a.hash))
+    throw new Error("not today's block");
   if (from.check) {
     const midnight = (day * DAY_MS) / 1000;
     const [b, before] = await Promise.all([from.check(a.block), from.check(a.block - 1)]);
     // the block the server named, the first at or after midnight: its own time at or after, the one before it before
-    if (b.hash !== a.hash || b.timestamp < midnight || before.timestamp >= midnight) throw new Error("not today's block");
+    if (b.hash !== a.hash || b.timestamp < midnight || before.timestamp >= midnight)
+      throw new Error("not today's block");
   }
   return { day, block: a.block, hash: a.hash };
 }
@@ -101,10 +112,17 @@ async function searchPublicNodes(day: number): Promise<DailyBlock> {
   const { createPublicClient, http } = await viem();
   for (const url of RPCS) {
     try {
-      const client = createPublicClient({ chain: { ...xLayer, rpcUrls: { default: { http: [url] } } }, transport: http(url, { timeout: 8000 }) });
+      const client = createPublicClient({
+        chain: { ...xLayer, rpcUrls: { default: { http: [url] } } },
+        transport: http(url, { timeout: 8000 }),
+      });
       const head = await client.getBlock();
       const blockAt = async (n: number) => Number((await client.getBlock({ blockNumber: BigInt(n) })).timestamp);
-      const n = await firstBlockAtOrAfter((day * DAY_MS) / 1000, { number: Number(head.number), timestamp: Number(head.timestamp) }, blockAt);
+      const n = await firstBlockAtOrAfter(
+        (day * DAY_MS) / 1000,
+        { number: Number(head.number), timestamp: Number(head.timestamp) },
+        blockAt,
+      );
       const b = await client.getBlock({ blockNumber: BigInt(n) });
       return { day, block: n, hash: b.hash };
     } catch (e) {
@@ -137,7 +155,14 @@ export const useDaily = create<DailyState>((set, get) => ({
     const saved = read();
     const best = saved.best?.day === day ? saved.best : null;
     if (saved.block?.day === day) {
-      set({ status: "ready", day, block: saved.block, seed: dailySeed(day, saved.block.hash), partnerIndex: dailyPartnerIndex(day), best });
+      set({
+        status: "ready",
+        day,
+        block: saved.block,
+        seed: dailySeed(day, saved.block.hash),
+        partnerIndex: dailyPartnerIndex(day),
+        best,
+      });
       return;
     }
     if (get().status === "loading") return;

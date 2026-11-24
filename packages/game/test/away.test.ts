@@ -30,7 +30,10 @@ describe("surprises while away", () => {
   });
 
   it("finds something only after two hours away, from the room's own finds, the same each time", () => {
-    const drops = [{ item: 1, weight: 3 }, { item: 2, weight: 1 }];
+    const drops = [
+      { item: 1, weight: 3 },
+      { item: 2, weight: 1 },
+    ];
     expect(awayFind(5, 1000, 1060, drops)).toBeNull();
     const a = awayFind(5, 1000, 1200, drops);
     expect([1, 2]).toContain(a);

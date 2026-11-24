@@ -45,16 +45,25 @@ export interface SaveState {
   nearlyFull: boolean;
 }
 
-export const useSaveState = create<SaveState>(() => ({ role: "deciding", damaged: [], failed: null, nearlyFull: false }));
+export const useSaveState = create<SaveState>(() => ({
+  role: "deciding",
+  damaged: [],
+  failed: null,
+  nearlyFull: false,
+}));
 
 const storage = browserStorage();
 const onEvent = (e: SaveEvent) => {
   if (e.kind === "failed") useSaveState.setState({ failed: { key: e.key, reason: e.reason, at: Date.now() } });
   else if (e.kind === "nearlyFull") useSaveState.setState({ nearlyFull: true });
-  else if (e.kind === "damaged") useSaveState.setState((s) => ({ damaged: s.damaged.some((d) => d.key === e.key) ? s.damaged : [...s.damaged, { key: e.key, why: e.why }] }));
+  else if (e.kind === "damaged")
+    useSaveState.setState((s) => ({
+      damaged: s.damaged.some((d) => d.key === e.key) ? s.damaged : [...s.damaged, { key: e.key, why: e.why }],
+    }));
 };
 
-const locks = typeof navigator !== "undefined" && "locks" in navigator ? (navigator.locks as unknown as LockApi) : undefined;
+const locks =
+  typeof navigator !== "undefined" && "locks" in navigator ? (navigator.locks as unknown as LockApi) : undefined;
 const writer = createWriter({
   storage,
   now: () => Date.now(),

@@ -34,7 +34,9 @@ const say = (line: string) => console.log(line);
 function finish(): void {
   const removed = prune(site, Date.now());
   const live = readPointer(site);
-  say(`live: ${live?.release}${live?.previous ? ` (the release before it, kept for a rollback: ${live.previous})` : ""}`);
+  say(
+    `live: ${live?.release}${live?.previous ? ` (the release before it, kept for a rollback: ${live.previous})` : ""}`,
+  );
   if (removed.length) say(`let go, 14 days after they stopped being live: ${removed.join(", ")}`);
 }
 
@@ -49,13 +51,18 @@ try {
   } else {
     const commit = git("rev-parse", "HEAD");
     const dirty = git("status", "--porcelain", "--untracked-files=no") !== "";
-    if (dirty && !flag("--allow-dirty")) throw new Error("uncommitted changes: a release is made from a commit (or say --allow-dirty for a rehearsal)");
+    if (dirty && !flag("--allow-dirty"))
+      throw new Error("uncommitted changes: a release is made from a commit (or say --allow-dirty for a rehearsal)");
     const name = releaseName(Date.now(), commit, dirty);
     const into = join(releasesDir(site), name);
     if (existsSync(into)) throw new Error(`release ${name} already exists`);
     say(`building ${name}`);
     const vite = join(root, "apps/web/node_modules/vite/bin/vite.js");
-    const built = spawnSync(process.execPath, [vite, "build", "--outDir", into, "--emptyOutDir"], { cwd: join(root, "apps/web"), stdio: "inherit", env: process.env });
+    const built = spawnSync(process.execPath, [vite, "build", "--outDir", into, "--emptyOutDir"], {
+      cwd: join(root, "apps/web"),
+      stdio: "inherit",
+      env: process.env,
+    });
     if (built.status !== 0) {
       rmSync(into, { recursive: true, force: true, maxRetries: 5 });
       throw new Error(`the build failed (exit ${built.status}); nothing was made live`);

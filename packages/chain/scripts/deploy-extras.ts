@@ -29,7 +29,8 @@ const say = (s: string) => process.stdout.write(`${s}\n`);
 const file = arg("deployment")!;
 const d = JSON.parse(readFileSync(file, "utf8")) as Deployment;
 const rpc = arg("rpc", d.rpc)!;
-if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(rpc) && !process.argv.includes("--mainnet-yes")) throw new Error("refusing a non-local node without --mainnet-yes");
+if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(rpc) && !process.argv.includes("--mainnet-yes"))
+  throw new Error("refusing a non-local node without --mainnet-yes");
 const env = Object.fromEntries(
   readFileSync(arg("key-file", resolve(here, "../../../../.secrets/deployer.env"))!, "utf8")
     .split(/\r?\n/)
@@ -42,26 +43,57 @@ const pub = createPublicClient({ chain, transport: http(rpc) });
 const wallet = createWalletClient({ chain, transport: http(rpc), account });
 const start = await pub.getBalance({ address: account.address });
 // BEM is the token the BEM market is paid in, read from the market rather than typed here
-const bem = (await pub.readContract({ address: d.outfitMarketV2!, abi: outfitMarketV2Abi, functionName: "bem" })) as Address;
+const bem = (await pub.readContract({
+  address: d.outfitMarketV2!,
+  abi: outfitMarketV2Abi,
+  functionName: "bem",
+})) as Address;
 const colours = NAME_COLOURS.length;
 say(`deployer ${account.address}, ${formatEther(start)} OKB; registry ${d.registry}; BEM ${bem}; ${colours} colours`);
 
 let extras = d.extras;
 if (!extras) {
   const art = JSON.parse(readFileSync(resolve(here, "../../../contracts/out/Extras.sol/Extras.json"), "utf8"));
-  const tx = await wallet.deployContract({ abi: art.abi, bytecode: art.bytecode.object as Hex, args: [account.address, bem, d.registry, colours, EXTRA_PRICE, EXTRA_PRICE, EXTRA_PRICE] });
+  const tx = await wallet.deployContract({
+    abi: art.abi,
+    bytecode: art.bytecode.object as Hex,
+    args: [account.address, bem, d.registry, colours, EXTRA_PRICE, EXTRA_PRICE, EXTRA_PRICE],
+  });
   const r = await pub.waitForTransactionReceipt({ hash: tx });
   if (r.status !== "success") throw new Error(`deploy failed ${tx}`);
   extras = r.contractAddress as Address;
   say(`Extras ${extras} tx ${tx}`);
   const cur = JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>;
-  writeFileSync(file, `${JSON.stringify({ ...cur, extras, extrasBlock: Number(r.blockNumber), extrasTx: tx }, null, 2)}\n`);
+  writeFileSync(
+    file,
+    `${JSON.stringify({ ...cur, extras, extrasBlock: Number(r.blockNumber), extrasTx: tx }, null, 2)}\n`,
+  );
 }
-const read = (functionName: string, args: readonly unknown[] = []) => pub.readContract({ address: extras, abi: extrasAbi, functionName, args } as never) as Promise<unknown>;
-const [token, pets, owner, n, pRoom, pLooks, pColour, burned] = await Promise.all([read("bem"), read("pets"), read("owner"), read("colours"), read("price", [0]), read("price", [1]), read("price", [2]), read("totalBurned")]);
+const read = (functionName: string, args: readonly unknown[] = []) =>
+  pub.readContract({ address: extras, abi: extrasAbi, functionName, args } as never) as Promise<unknown>;
+const [token, pets, owner, n, pRoom, pLooks, pColour, burned] = await Promise.all([
+  read("bem"),
+  read("pets"),
+  read("owner"),
+  read("colours"),
+  read("price", [0]),
+  read("price", [1]),
+  read("price", [2]),
+  read("totalBurned"),
+]);
 const same = (a: unknown, b: string) => String(a).toLowerCase() === b.toLowerCase();
-if (!same(token, bem) || !same(pets, d.registry) || !same(owner, account.address) || Number(n) !== colours || [pRoom, pLooks, pColour].some((p) => p !== EXTRA_PRICE)) {
-  throw new Error(`read back: BEM ${token}, pets ${pets}, owner ${owner}, colours ${n}, prices ${pRoom}/${pLooks}/${pColour}`);
+if (
+  !same(token, bem) ||
+  !same(pets, d.registry) ||
+  !same(owner, account.address) ||
+  Number(n) !== colours ||
+  [pRoom, pLooks, pColour].some((p) => p !== EXTRA_PRICE)
+) {
+  throw new Error(
+    `read back: BEM ${token}, pets ${pets}, owner ${owner}, colours ${n}, prices ${pRoom}/${pLooks}/${pColour}`,
+  );
 }
 const end = await pub.getBalance({ address: account.address });
-say(`done: extras ${extras}, ${colours} colours, 0.05 BEM each, owner ${owner}, burned so far ${burned}; spent ${formatEther(start - end)} OKB`);
+say(
+  `done: extras ${extras}, ${colours} colours, 0.05 BEM each, owner ${owner}, burned so far ${burned}; spent ${formatEther(start - end)} OKB`,
+);

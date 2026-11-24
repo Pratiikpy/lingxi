@@ -11,9 +11,35 @@ import { type Wearable, registerWearables } from "./wear";
 const shared = { e: "#2B2140", w: "#FFFFFF", p: "#FF6F8E", t: "#FFC83D", n: "#2F7FD6", s: "#2B214033" };
 
 /** Behemoth: dark silicon with a gold trace. */
-export const SILICON: Palette = { ...shared, O: "#141B2B", o: "#26324A", D: "#33435F", d: "#465A7C", m: "#5D7499", l: "#7F96B8", h: "#C9D6EA", b: "#FF8FAE", x: "#FFC83D", X: "#E0A21F", t: "#FFD86B", n: "#7FE0B0" };
+export const SILICON: Palette = {
+  ...shared,
+  O: "#141B2B",
+  o: "#26324A",
+  D: "#33435F",
+  d: "#465A7C",
+  m: "#5D7499",
+  l: "#7F96B8",
+  h: "#C9D6EA",
+  b: "#FF8FAE",
+  x: "#FFC83D",
+  X: "#E0A21F",
+  t: "#FFD86B",
+  n: "#7FE0B0",
+};
 /** Little Mars: a warm red planet. */
-export const MARS: Palette = { ...shared, O: "#6B1F1A", o: "#9C3324", D: "#B8412B", d: "#D4553A", m: "#EC6E4E", l: "#F7906E", h: "#FFD2BE", b: "#FF5C86", x: "#FFC83D", X: "#E0A21F" };
+export const MARS: Palette = {
+  ...shared,
+  O: "#6B1F1A",
+  o: "#9C3324",
+  D: "#B8412B",
+  d: "#D4553A",
+  m: "#EC6E4E",
+  l: "#F7906E",
+  h: "#FFD2BE",
+  b: "#FF5C86",
+  x: "#FFC83D",
+  X: "#E0A21F",
+};
 
 const O = "#2B2140";
 const ON = "#FFD86B";
@@ -37,7 +63,17 @@ export const BUILDER_WEARABLES: readonly Wearable[] = [
     id: "b:telescope",
     slot: "held",
     name: { en: "Brass telescope", zh: "黄铜望远镜" },
-    rows: ["......OOO", ".....OwwO", "....OggO.", "...OggO..", "..OGGO...", ".OGGO....", "OGGO.k...", ".OO..k...", "....kkk.."],
+    rows: [
+      "......OOO",
+      ".....OwwO",
+      "....OggO.",
+      "...OggO..",
+      "..OGGO...",
+      ".OGGO....",
+      "OGGO.k...",
+      ".OO..k...",
+      "....kkk..",
+    ],
     colors: { O, g: "#E0B45A", G: "#B88A34", w: "#BFE6FF", k: "#5B4E73" },
   },
   {

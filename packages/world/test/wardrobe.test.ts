@@ -1,7 +1,40 @@
 import { describe, expect, it } from "vitest";
-import { CORNER_SHOP, DECOR_BY_ID, ITEM, MAKE_RECIPES, PIECES, buyPiece, giveLaurel, make, newWorld, outfitOf, ownedPieces, setOf, wear, type WorldState } from "../src";
+import {
+  CORNER_SHOP,
+  DECOR_BY_ID,
+  ITEM,
+  MAKE_RECIPES,
+  PIECES,
+  buyPiece,
+  giveLaurel,
+  make,
+  newWorld,
+  outfitOf,
+  ownedPieces,
+  setOf,
+  wear,
+  type WorldState,
+} from "../src";
 
-const rich = (): WorldState => ({ ...newWorld("seedseedseedseed"), coins: 200, bag: { 1016: 9, 1001: 9, 1002: 9, 1003: 9, 1004: 9, 1005: 9, 1006: 9, 1007: 9, 1010: 9, 1011: 9, 1012: 9, 1013: 9, 1014: 9 } });
+const rich = (): WorldState => ({
+  ...newWorld("seedseedseedseed"),
+  coins: 200,
+  bag: {
+    1016: 9,
+    1001: 9,
+    1002: 9,
+    1003: 9,
+    1004: 9,
+    1005: 9,
+    1006: 9,
+    1007: 9,
+    1010: 9,
+    1011: 9,
+    1012: 9,
+    1013: 9,
+    1014: 9,
+  },
+});
 const ok = (r: { ok: true; world: WorldState } | { ok: false; reason: string }) => {
   if (!r.ok) throw new Error(r.reason);
   return r.world;
@@ -14,8 +47,18 @@ describe("the wardrobe", () => {
       expect(r.kind === "outfit" ? PIECES[r.id] : DECOR_BY_ID[r.id]).toBeTruthy();
     }
     // every piece can be sewn, except the champion's laurel, the keepsakes the story quests give, and the limited pieces held on chain
-    for (const [id, p] of Object.entries(PIECES)) if (id !== "laurel" && p.set !== "story" && p.set !== "lane" && p.set !== "drop") expect(MAKE_RECIPES.some((r) => r.id === id && r.kind === "outfit"), id).toBe(true);
-    for (const [id, p] of Object.entries(PIECES)) if (p.set === "story" || p.set === "lane" || p.set === "drop") expect(MAKE_RECIPES.some((r) => r.id === id), id).toBe(false);
+    for (const [id, p] of Object.entries(PIECES))
+      if (id !== "laurel" && p.set !== "story" && p.set !== "lane" && p.set !== "drop")
+        expect(
+          MAKE_RECIPES.some((r) => r.id === id && r.kind === "outfit"),
+          id,
+        ).toBe(true);
+    for (const [id, p] of Object.entries(PIECES))
+      if (p.set === "story" || p.set === "lane" || p.set === "drop")
+        expect(
+          MAKE_RECIPES.some((r) => r.id === id),
+          id,
+        ).toBe(false);
   });
 
   it("sewing spends the materials once and the piece is owned; it cannot be sewn twice", () => {
@@ -59,7 +102,8 @@ describe("the wardrobe", () => {
       expect(outfitOf(r, "pet1").head).toBe(id);
     }
     // anything else must still be a known piece
-    for (const id of ["c3:1", "c2:", "x:1", "c2:../1"]) expect(wear(rich(), "pet1", "head", id)).toEqual({ ok: false, reason: "wrongSlot" });
+    for (const id of ["c3:1", "c2:", "x:1", "c2:../1"])
+      expect(wear(rich(), "pet1", "head", id)).toEqual({ ok: false, reason: "wrongSlot" });
   });
 
   it("the laurel comes only from a season win, once", () => {

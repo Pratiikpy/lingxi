@@ -39,7 +39,10 @@
   background: var(--card);
   cursor: pointer;
   box-shadow: var(--lift);
-  transition: transform var(--t-micro) var(--ease), background var(--t-std) var(--ease), box-shadow var(--t-micro) var(--ease);
+  transition:
+    transform var(--t-micro) var(--ease),
+    background var(--t-std) var(--ease),
+    box-shadow var(--t-micro) var(--ease);
 }
 .egg:active {
   transform: translateY(3px) scale(0.98);
@@ -51,7 +54,9 @@
 }
 .egg[aria-checked="true"] {
   background: color-mix(in srgb, var(--sunny) 24%, var(--card));
-  box-shadow: 0 0 0 3px var(--sunny), var(--lift-hi);
+  box-shadow:
+    0 0 0 3px var(--sunny),
+    var(--lift-hi);
 }
 .egg[aria-checked="true"]::after {
   content: "✓";
@@ -137,7 +142,9 @@
   font-size: 19px;
   cursor: pointer;
   box-shadow: 0 4px 0 #2b2140;
-  transition: transform var(--t-micro) var(--ease), box-shadow var(--t-micro) var(--ease);
+  transition:
+    transform var(--t-micro) var(--ease),
+    box-shadow var(--t-micro) var(--ease);
 }
 .hatch-go:active {
   transform: translateY(3px) scale(0.98);
@@ -289,7 +296,10 @@
   font: inherit;
   cursor: pointer;
   box-shadow: var(--lift);
-  transition: transform var(--t-micro) var(--ease), background var(--t-std) var(--ease), box-shadow var(--t-micro) var(--ease);
+  transition:
+    transform var(--t-micro) var(--ease),
+    background var(--t-std) var(--ease),
+    box-shadow var(--t-micro) var(--ease);
 }
 .instinct:active {
   transform: translateY(3px) scale(0.98);

@@ -10,7 +10,11 @@ import { createPublicClient, http, keccak256, parseAbi } from "viem";
 
 const RPC = "https://bsc-dataseed.bnbchain.org";
 const PROCESSOR = "0x1F5Cb4aeaE1807Bf60c3b9C0D8aDBCC14e91f12C" as const;
-const abi = parseAbi(["function netlist(uint256) view returns (bytes)", "function circuitInfo(uint256) view returns (uint256,uint256,uint256,uint256)", "function name() view returns (string)"]);
+const abi = parseAbi([
+  "function netlist(uint256) view returns (bytes)",
+  "function circuitInfo(uint256) view returns (uint256,uint256,uint256,uint256)",
+  "function name() view returns (string)",
+]);
 const pub = createPublicClient({ transport: http(RPC) });
 const [hex, info, name] = await Promise.all([
   pub.readContract({ address: PROCESSOR, abi, functionName: "netlist", args: [1n] }),

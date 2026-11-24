@@ -35,7 +35,11 @@ async function verdict(r: Response): Promise<SourceState> {
   if (r.status === 404) return "none";
   if (!r.ok) return "unreachable";
   try {
-    const d = (await r.json()) as { match?: string | null; creationMatch?: string | null; runtimeMatch?: string | null };
+    const d = (await r.json()) as {
+      match?: string | null;
+      creationMatch?: string | null;
+      runtimeMatch?: string | null;
+    };
     if (d.creationMatch === "exact_match" && d.runtimeMatch === "exact_match") return "exact";
     return d.match ? "partial" : "none";
   } catch {

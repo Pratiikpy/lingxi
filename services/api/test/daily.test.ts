@@ -42,7 +42,12 @@ describe("today's challenge block, found by the server (A34)", () => {
     const c = chain(MIDNIGHT - 3 * 86_400, NOW / 1000);
     const daily = createDailyBlocks(c.reader, { now: () => NOW });
     const got = await daily.get(TODAY);
-    expect(got).toEqual({ ok: true, day: TODAY, block: 3 * 86_400, hash: `0x${(3 * 86_400).toString(16).padStart(64, "0")}` });
+    expect(got).toEqual({
+      ok: true,
+      day: TODAY,
+      block: 3 * 86_400,
+      hash: `0x${(3 * 86_400).toString(16).padStart(64, "0")}`,
+    });
     const reads = c.reads();
     expect(await daily.get(TODAY)).toEqual(got);
     expect(c.reads(), "a second ask reads nothing").toBe(reads);
@@ -70,7 +75,10 @@ describe("today's challenge block, found by the server (A34)", () => {
     c.fail(false);
     const reads = c.reads();
     clock += 10_000;
-    expect(await daily.get(TODAY), "nodes that just failed are not asked again at once").toEqual({ ok: false, reason: "unavailable" });
+    expect(await daily.get(TODAY), "nodes that just failed are not asked again at once").toEqual({
+      ok: false,
+      reason: "unavailable",
+    });
     expect(c.reads()).toBe(reads);
     clock += 25_000;
     expect((await daily.get(TODAY)).ok, "a failure is not kept: a later ask searches again").toBe(true);
@@ -105,6 +113,7 @@ describe("today's challenge block, found by the server (A34)", () => {
     const later = await app.request(`/api/daily/${TODAY + 1}`);
     expect([later.status, await later.json()]).toEqual([200, { ok: false, reason: "notYet" }]);
     expect(later.headers.get("cache-control")).toBe("no-store");
-    for (const bad of ["x", "-1", "1.5", "99999999999"]) expect((await app.request(`/api/daily/${bad}`)).status, bad).toBe(400);
+    for (const bad of ["x", "-1", "1.5", "99999999999"])
+      expect((await app.request(`/api/daily/${bad}`)).status, bad).toBe(400);
   });
 });

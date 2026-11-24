@@ -28,11 +28,17 @@ export async function steadyFetch(url: string, o: SteadyOptions = {}): Promise<{
     let res: Response | null = null;
     let failed: string;
     try {
-      res = await fetchFn(url, { signal: AbortSignal.timeout(o.timeoutMs ?? 20_000), ...(o.headers ? { headers: o.headers } : {}) });
+      res = await fetchFn(url, {
+        signal: AbortSignal.timeout(o.timeoutMs ?? 20_000),
+        ...(o.headers ? { headers: o.headers } : {}),
+      });
       if (!TRANSIENT.has(res.status)) return { res, retried };
       failed = String(res.status);
     } catch (e) {
-      failed = e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError") ? "timeout" : `no answer (${e instanceof Error ? e.message : String(e)})`;
+      failed =
+        e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError")
+          ? "timeout"
+          : `no answer (${e instanceof Error ? e.message : String(e)})`;
     }
     if (i >= attempts) throw new Error(`${url}: ${[...retried, failed].join(", then ")}`);
     retried.push(failed);
@@ -41,4 +47,7 @@ export async function steadyFetch(url: string, o: SteadyOptions = {}): Promise<{
 }
 
 /** "verify.html needed a retry (520)", for a check's line; empty when nothing needed one. */
-export const retryNote = (what: string, retried: string[]): string => (retried.length ? `${what} needed ${retried.length === 1 ? "a retry" : `${retried.length} retries`} (${retried.join(", ")})` : "");
+export const retryNote = (what: string, retried: string[]): string =>
+  retried.length
+    ? `${what} needed ${retried.length === 1 ? "a retry" : `${retried.length} retries`} (${retried.join(", ")})`
+    : "";

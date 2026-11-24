@@ -88,7 +88,8 @@ function keyCode(e: KeyboardEvent): number | null {
 /** Closes a tab the game opened; a tab the browser will not let a page close says the player may close it. */
 function CloseTab({ lang }: { lang: Lang }) {
   const [refused, setRefused] = useState(false);
-  if (refused) return <p className="hh-sub">{lang === "zh" ? "现在可以关掉这个标签页了。" : "You can close this tab now."}</p>;
+  if (refused)
+    return <p className="hh-sub">{lang === "zh" ? "现在可以关掉这个标签页了。" : "You can close this tab now."}</p>;
   return (
     <button
       type="button"
@@ -121,8 +122,20 @@ export function HandheldApp() {
         if (!deployment) throw new Error("no deployment");
         const pc = proofClient(0);
         const lines = ["gentle", "bold", "curious"] as const;
-        const read = await Promise.all(lines.map(async (l) => keccak256((await pc.readContract({ address: deployment!.processor, abi: processorAbi, functionName: "netlist", args: [BigInt(deployment!.circuits[l]!.id)] })) as Hex)));
-        if (live) setOnChain(read.every((h, i) => h.toLowerCase() === RECORDED_STARTERS[lines[i]!]) ? "match" : "differ");
+        const read = await Promise.all(
+          lines.map(async (l) =>
+            keccak256(
+              (await pc.readContract({
+                address: deployment!.processor,
+                abi: processorAbi,
+                functionName: "netlist",
+                args: [BigInt(deployment!.circuits[l]!.id)],
+              })) as Hex,
+            ),
+          ),
+        );
+        if (live)
+          setOnChain(read.every((h, i) => h.toLowerCase() === RECORDED_STARTERS[lines[i]!]) ? "match" : "differ");
       } catch {
         if (live) setOnChain("unread");
       }
@@ -178,7 +191,11 @@ export function HandheldApp() {
       put(packet);
       put(log, packet.length);
       const e = x.hh_resume(packet.length, log.length);
-      if (e !== 0) setProblem({ en: `The trip kept here could not be read (${e}). Bring the pet back from the game.`, zh: `这里保存的旅程读不出来（${e}）。请在游戏里把宠物叫回来。` });
+      if (e !== 0)
+        setProblem({
+          en: `The trip kept here could not be read (${e}). Bring the pet back from the game.`,
+          zh: `这里保存的旅程读不出来（${e}）。请在游戏里把宠物叫回来。`,
+        });
     }
     const inbox = localStorage.getItem(INBOX_KEY);
     if (inbox && !x.hh_ready()) {
@@ -199,7 +216,12 @@ export function HandheldApp() {
     let frame = 0;
     void (async () => {
       // the pet lives by the game's clock (A6): the handheld's first beat waits for it, as the game's does
-      const [{ instance }] = await Promise.all([WebAssembly.instantiateStreaming(fetch(wasmUrl), {}).catch(async () => WebAssembly.instantiate(await (await fetch(wasmUrl)).arrayBuffer(), {})), startHandheldClock()]);
+      const [{ instance }] = await Promise.all([
+        WebAssembly.instantiateStreaming(fetch(wasmUrl), {}).catch(async () =>
+          WebAssembly.instantiate(await (await fetch(wasmUrl)).arrayBuffer(), {}),
+        ),
+        startHandheldClock(),
+      ]);
       if (!alive) return;
       const x = instance.exports as unknown as HH;
       hh.current = x;
@@ -216,7 +238,9 @@ export function HandheldApp() {
         const d = img.data;
         for (let i = 0; i < W * H; i++) {
           const v = fb[i]!;
-          const r = (v >> 11) & 31, g = (v >> 5) & 63, b = v & 31;
+          const r = (v >> 11) & 31,
+            g = (v >> 5) & 63,
+            b = v & 31;
           d[4 * i] = (r << 3) | (r >> 2);
           d[4 * i + 1] = (g << 2) | (g >> 4);
           d[4 * i + 2] = (b << 3) | (b >> 2);
@@ -244,7 +268,8 @@ export function HandheldApp() {
       }
       if (e.key === INBOX_KEY && e.newValue) takeAboard();
       // the game read the packet this tab sent: the pet is home if the game cleared its place here, else it was refused
-      if (e.key === RETURN_KEY && e.newValue === null) setSent((s) => (s === "toGame" ? (localStorage.getItem(DEVICE_KEY) === null ? "home" : "refused") : s));
+      if (e.key === RETURN_KEY && e.newValue === null)
+        setSent((s) => (s === "toGame" ? (localStorage.getItem(DEVICE_KEY) === null ? "home" : "refused") : s));
     };
     const onHide = () => keep();
     window.addEventListener("storage", onStorage);
@@ -327,14 +352,28 @@ export function HandheldApp() {
 
       <section className="hh-device" aria-label={L("Handheld", "掌机")}>
         <div className="hh-bezel">
-          <canvas ref={canvas} className="hh-screen" width={W} height={H} aria-label={L("The handheld's screen", "掌机屏幕")} />
+          <canvas
+            ref={canvas}
+            className="hh-screen"
+            width={W}
+            height={H}
+            aria-label={L("The handheld's screen", "掌机屏幕")}
+          />
         </div>
         <div className="hh-keys">
           {KEYS.map((row, i) => (
             <div className="hh-row" key={i}>
               {row.map((key) => (
-                <button key={key.k} type="button" className={`hh-key${key.wide ? " wide" : ""}`} onClick={() => press(key.code)} aria-label={`${key.k}${key[lang] ? ` ${key[lang]}` : ""}`}>
-                  <span className="hh-cap">{key.k === "space" ? L("space", "空格") : key.k === "`" ? "esc" : key.k}</span>
+                <button
+                  key={key.k}
+                  type="button"
+                  className={`hh-key${key.wide ? " wide" : ""}`}
+                  onClick={() => press(key.code)}
+                  aria-label={`${key.k}${key[lang] ? ` ${key[lang]}` : ""}`}
+                >
+                  <span className="hh-cap">
+                    {key.k === "space" ? L("space", "空格") : key.k === "`" ? "esc" : key.k}
+                  </span>
                   {key[lang] && <span className="hh-what">{key[lang]}</span>}
                 </button>
               ))}
@@ -348,18 +387,35 @@ export function HandheldApp() {
           <p className={passed ? "hh-ok" : "hh-bad"}>
             {!passed
               ? onChain === "differ"
-                ? L("Self-test failed: X Layer now holds other starter circuits than this handheld was built with, so it takes no pets.", "自检没通过：X Layer 上的初始电路和这台掌机构建时记录的不一样，所以它不接收宠物。")
+                ? L(
+                    "Self-test failed: X Layer now holds other starter circuits than this handheld was built with, so it takes no pets.",
+                    "自检没通过：X Layer 上的初始电路和这台掌机构建时记录的不一样，所以它不接收宠物。",
+                  )
                 : L("Self-test failed: this handheld takes no pets.", "自检没通过：这台掌机不接收宠物。")
               : onChain === "match"
-                ? L("Self-test passed: its three starter brains match the netlists on X Layer (read just now), and pet #1's recorded mainnet log replays exactly.", "自检通过：三个初始大脑与刚从 X Layer 读到的网表一致，1 号宠物记录的主网日志重放一致。")
+                ? L(
+                    "Self-test passed: its three starter brains match the netlists on X Layer (read just now), and pet #1's recorded mainnet log replays exactly.",
+                    "自检通过：三个初始大脑与刚从 X Layer 读到的网表一致，1 号宠物记录的主网日志重放一致。",
+                  )
                 : onChain === "unread"
-                  ? L("Self-test passed: its three starter brains match the hashes recorded from X Layer when it was built (X Layer couldn't be read just now), and pet #1's recorded mainnet log replays exactly.", "自检通过：三个初始大脑与构建时从 X Layer 记录的哈希一致（暂时读不到 X Layer），1 号宠物记录的主网日志重放一致。")
-                  : L("Self-test passed against the record built into it; reading X Layer to confirm…", "按内置记录自检通过，正在读取 X Layer 确认……")}
+                  ? L(
+                      "Self-test passed: its three starter brains match the hashes recorded from X Layer when it was built (X Layer couldn't be read just now), and pet #1's recorded mainnet log replays exactly.",
+                      "自检通过：三个初始大脑与构建时从 X Layer 记录的哈希一致（暂时读不到 X Layer），1 号宠物记录的主网日志重放一致。",
+                    )
+                  : L(
+                      "Self-test passed against the record built into it; reading X Layer to confirm…",
+                      "按内置记录自检通过，正在读取 X Layer 确认……",
+                    )}
           </p>
         )}
         {problem && <p className="hh-bad">{problem[lang]}</p>}
         {sent === "toGame" ? (
-          <p className="hh-sent">{L("Sent home. Your game is open in another tab, and your pet is on its way there.", "已送回家。游戏在另一个标签页里开着，宠物正在回去的路上。")}</p>
+          <p className="hh-sent">
+            {L(
+              "Sent home. Your game is open in another tab, and your pet is on its way there.",
+              "已送回家。游戏在另一个标签页里开着，宠物正在回去的路上。",
+            )}
+          </p>
         ) : sent === "home" ? (
           <>
             <p className="hh-ok">{L("Home: your pet is back in your game.", "到家了：宠物已经回到游戏里。")}</p>
@@ -367,23 +423,40 @@ export function HandheldApp() {
           </>
         ) : sent === "refused" ? (
           <>
-            <p className="hh-bad">{L("The game kept your pet out here; its tab says why. It is still aboard.", "游戏没有接收宠物，原因在游戏的标签页里。它还在掌机上。")}</p>
+            <p className="hh-bad">
+              {L(
+                "The game kept your pet out here; its tab says why. It is still aboard.",
+                "游戏没有接收宠物，原因在游戏的标签页里。它还在掌机上。",
+              )}
+            </p>
             <button type="button" className="btn" onClick={() => location.reload()}>
               {L("Back to the handheld", "回到掌机")}
             </button>
           </>
         ) : ready ? (
           <>
-            <p>{L("Everything that happens here is replayed by the game, step by step, before your pet comes home.", "这里发生的每一步，游戏都会在宠物回家前重放一遍。")}</p>
+            <p>
+              {L(
+                "Everything that happens here is replayed by the game, step by step, before your pet comes home.",
+                "这里发生的每一步，游戏都会在宠物回家前重放一遍。",
+              )}
+            </p>
             <button type="button" className="btn primary" disabled={sending} onClick={bringHome}>
               {sending ? L("Sending…", "发送中……") : L("Bring home", "带回家")}
             </button>
           </>
         ) : !started ? (
-          <p role="status">{coming ? L("Bringing your pet aboard…", "正在把宠物带上掌机……") : L("Waking the handheld…", "掌机正在启动……")}</p>
+          <p role="status">
+            {coming
+              ? L("Bringing your pet aboard…", "正在把宠物带上掌机……")
+              : L("Waking the handheld…", "掌机正在启动……")}
+          </p>
         ) : (
           <p>
-            {L("No pet aboard. In the game, open Pet and choose Take along.", "还没有宠物。在游戏里打开“宠物”，选“带出门”。")}{" "}
+            {L(
+              "No pet aboard. In the game, open Pet and choose Take along.",
+              "还没有宠物。在游戏里打开“宠物”，选“带出门”。",
+            )}{" "}
             <a href="play.html">{L("Open the game", "打开游戏")}</a>
           </p>
         )}

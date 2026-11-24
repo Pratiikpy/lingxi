@@ -31,7 +31,9 @@ async function answers(url) {
 const restart = (name) =>
   new Promise((resolve) => {
     // pm2 is installed for the whole user (the logon task resurrects it the same way)
-    execFile("cmd.exe", ["/c", "pm2", "restart", name], { windowsHide: true }, (err) => resolve(err ? `failed: ${err.message.split("\n")[0]}` : `restarted ${name}`));
+    execFile("cmd.exe", ["/c", "pm2", "restart", name], { windowsHide: true }, (err) =>
+      resolve(err ? `failed: ${err.message.split("\n")[0]}` : `restarted ${name}`),
+    );
   });
 
 let watch = initialWatch();
@@ -44,7 +46,9 @@ async function beat() {
   const r = decide(watch, { local: local || (localWhy === "timed out" ? "slow" : false), public: pub }, now);
   watch = r.watch;
   // P3b: every missed beat is written down with its reason, so an outage can be read afterwards
-  if (!local || !pub) process.stdout.write(`${new Date(now).toISOString()} missed: ${describeBeat({ local: localWhy, public: pubWhy })} (${watch.localFails} here, ${watch.publicFails} outside in a row)
+  if (!local || !pub)
+    process.stdout
+      .write(`${new Date(now).toISOString()} missed: ${describeBeat({ local: localWhy, public: pubWhy })} (${watch.localFails} here, ${watch.publicFails} outside in a row)
 `);
   if (r.action) {
     const result = await restart(r.action === "restart-server" ? "lingxi-server" : "lingxi-tunnel");
@@ -52,7 +56,17 @@ async function beat() {
     process.stdout.write(`${last.at} ${r.action}: ${result}\n`);
   }
   try {
-    writeFileSync(`${STATUS}.tmp`, JSON.stringify({ at: new Date(now).toISOString(), local, public: pub, why: { local: localWhy, public: pubWhy }, ...watch, last }));
+    writeFileSync(
+      `${STATUS}.tmp`,
+      JSON.stringify({
+        at: new Date(now).toISOString(),
+        local,
+        public: pub,
+        why: { local: localWhy, public: pubWhy },
+        ...watch,
+        last,
+      }),
+    );
     renameSync(`${STATUS}.tmp`, STATUS);
   } catch (e) {
     process.stderr.write(`watchdog status not written: ${e.message}\n`);

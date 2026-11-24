@@ -7,10 +7,18 @@ import { expect, hatch, test } from "../fixtures";
 import { RoomSocket, keyedId, stored } from "../helpers/browser";
 
 for (const look of [
-  { lang: "en", scheme: "light", size: "phone", says: "Kiri hasn't learned a lesson yet; its instincts and skills go into the little one." },
+  {
+    lang: "en",
+    scheme: "light",
+    size: "phone",
+    says: "Kiri hasn't learned a lesson yet; its instincts and skills go into the little one.",
+  },
   { lang: "zh", scheme: "dark", size: "desktop", says: "Kiri还没学过课；它的本能和技能会传给小宝宝。" },
 ] as const) {
-  test(`a family proposal says what of the pet goes into the little one (${look.lang}, ${look.scheme}, ${look.size})`, async ({ player, run }) => {
+  test(`a family proposal says what of the pet goes into the little one (${look.lang}, ${look.scheme}, ${look.size})`, async ({
+    player,
+    run,
+  }) => {
     test.setTimeout(180_000);
     const p = await player(look);
     const { page } = p;

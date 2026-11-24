@@ -9,7 +9,18 @@
 
 import { writeFileSync } from "node:fs";
 import { type Program, compileProgram, gateCount } from "@lingxi/brain";
-import { CURRENT_SPAR, LESSON_CAPACITY, MAX_GATES, behemothFighter, composeProgram, fight, fighterFrom, mutateProgram, seedProgram, stream } from "../src";
+import {
+  CURRENT_SPAR,
+  LESSON_CAPACITY,
+  MAX_GATES,
+  behemothFighter,
+  composeProgram,
+  fight,
+  fighterFrom,
+  mutateProgram,
+  seedProgram,
+  stream,
+} from "../src";
 
 const LINES = ["gentle", "bold", "curious"] as const;
 const TRAIN = Array.from({ length: 16 }, (_, i) => 11 + i * 9973);
@@ -27,7 +38,10 @@ for (const line of LINES) {
       return false;
     }
   };
-  const wins = (p: Program, seeds: number[]) => seeds.filter((s) => fight(CURRENT_SPAR, fighterFrom("me", brain(p), LEVEL), behemothFighter("Behemoth"), s).winner === 0).length / seeds.length;
+  const wins = (p: Program, seeds: number[]) =>
+    seeds.filter(
+      (s) => fight(CURRENT_SPAR, fighterFrom("me", brain(p), LEVEL), behemothFighter("Behemoth"), s).winner === 0,
+    ).length / seeds.length;
   let pop: { p: Program; f: number }[] = [];
   while (pop.length < 16) {
     const p = seedProgram(rnd, LESSON_CAPACITY.adult);
@@ -45,7 +59,9 @@ for (const line of LINES) {
   }
   pop.sort((a, b) => b.f - a.f);
   const test = wins(pop[0]!.p, TEST);
-  process.stdout.write(`${line}: ${pop[0]!.p.rules.length} lessons, train ${pop[0]!.f.toFixed(3)}, test ${test.toFixed(3)}\n`);
+  process.stdout.write(
+    `${line}: ${pop[0]!.p.rules.length} lessons, train ${pop[0]!.f.toFixed(3)}, test ${test.toFixed(3)}\n`,
+  );
   if (test > best.test) best = { line, rules: pop[0]!.p.rules, test };
 }
 

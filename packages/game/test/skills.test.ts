@@ -74,7 +74,9 @@ const withSkills = (p: Pet, skills: Record<number, number>): Pet => ({ ...p, gro
 describe("the trees, copied from the source", () => {
   it("has four trees of six tiers by three: 72 skills", () => {
     expect(SKILLS).toHaveLength(72);
-    for (const tree of TREES) for (let tier = 1; tier <= 6; tier++) expect(SKILLS.filter((s) => s.tree === tree && s.tier === tier)).toHaveLength(3);
+    for (const tree of TREES)
+      for (let tier = 1; tier <= 6; tier++)
+        expect(SKILLS.filter((s) => s.tree === tree && s.tier === tier)).toHaveLength(3);
     expect(new Set(SKILLS.map((s) => s.id)).size).toBe(72);
   });
 
@@ -158,7 +160,8 @@ describe("levels", () => {
   it("keeps the level an older pet showed, migrating its XP once", () => {
     // the old curve showed level 6 from 375 XP (25, 75, 150, 250, 375 were its thresholds)
     expect(migrateGrowth(400)).toEqual({ growth: { level: 6, points: 6, skills: {} }, xp: 25 });
-    for (const xp of [0, 24, 25, 74, 75, 400, 5000, 65535]) expect(migrateGrowth(xp).growth.level).toBe(levelOf(xp).level);
+    for (const xp of [0, 24, 25, 74, 75, 400, 5000, 65535])
+      expect(migrateGrowth(xp).growth.level).toBe(levelOf(xp).level);
     const old = { ...newPet(), xp: 400, growth: undefined };
     const p = withGrowth(old);
     expect(p.growth!.level).toBe(6);
@@ -167,54 +170,58 @@ describe("levels", () => {
 
   // it plays every caring day of the climb to level 56 through the game's own care rules: about 4 s on a laptop, and
   // several times that under coverage on CI, where the default 30 s ran out (P3a)
-  it("a caring day earns the same steady experience through the game's own care rules, a first level within two days (G3)", { timeout: slow(120_000) }, async () => {
-    // a caring player's day, through the game's own care rules
-    let p = newPet();
-    let firstLevelDay = 0;
-    let days = 0;
-    let level = 1;
-    let xp = 0;
-    const day = (d: number) => {
-      const at = (h: number, m = 0) => T0 + d * DAY_MS + (h - 9) * 3_600_000 + m * 60_000;
-      const plan: Array<[number, number, Parameters<typeof care>[1]]> = [
-        [9, 0, { kind: "feed", food: "sundae" }],
-        [9, 2, { kind: "medicine" }],
-        [9, 5, { kind: "play", stars: 2 }],
-        [9, 10, { kind: "pet" }],
-        [13, 0, { kind: "feed", food: "sundae" }],
-        [13, 5, { kind: "play", stars: 2 }],
-        [19, 0, { kind: "feed", food: "sundae" }],
-        [19, 5, { kind: "clean" }],
-        [19, 10, { kind: "play", stars: 3 }],
-        [19, 15, { kind: "pet" }],
-        [19, 20, { kind: "talk" }],
-        [21, 50, { kind: "feed", food: "sundae" }],
-        [22, 0, { kind: "lightsOff" }],
-      ];
-      for (const [h, m, c] of plan) p = care(p, c, at(h, m), gentle).pet;
-    };
-    const perDay: number[] = [];
-    while (level < 56 && days < 365) {
-      // a turn of the event loop each simulated day: run whole, the year of days held the worker past the runner's
-      // one-minute wait under coverage ("Timeout calling onTaskUpdate", P7)
-      await new Promise<void>((r) => setTimeout(r, 0));
-      const before = p.xp;
-      day(days);
-      perDay.push(p.xp - before);
-      xp += p.xp - before;
-      while (level < 99 && xp >= levelCost(level)) {
-        xp -= levelCost(level);
-        level++;
-        if (!firstLevelDay) firstLevelDay = days + 1;
+  it(
+    "a caring day earns the same steady experience through the game's own care rules, a first level within two days (G3)",
+    { timeout: slow(120_000) },
+    async () => {
+      // a caring player's day, through the game's own care rules
+      let p = newPet();
+      let firstLevelDay = 0;
+      let days = 0;
+      let level = 1;
+      let xp = 0;
+      const day = (d: number) => {
+        const at = (h: number, m = 0) => T0 + d * DAY_MS + (h - 9) * 3_600_000 + m * 60_000;
+        const plan: Array<[number, number, Parameters<typeof care>[1]]> = [
+          [9, 0, { kind: "feed", food: "sundae" }],
+          [9, 2, { kind: "medicine" }],
+          [9, 5, { kind: "play", stars: 2 }],
+          [9, 10, { kind: "pet" }],
+          [13, 0, { kind: "feed", food: "sundae" }],
+          [13, 5, { kind: "play", stars: 2 }],
+          [19, 0, { kind: "feed", food: "sundae" }],
+          [19, 5, { kind: "clean" }],
+          [19, 10, { kind: "play", stars: 3 }],
+          [19, 15, { kind: "pet" }],
+          [19, 20, { kind: "talk" }],
+          [21, 50, { kind: "feed", food: "sundae" }],
+          [22, 0, { kind: "lightsOff" }],
+        ];
+        for (const [h, m, c] of plan) p = care(p, c, at(h, m), gentle).pet;
+      };
+      const perDay: number[] = [];
+      while (level < 56 && days < 365) {
+        // a turn of the event loop each simulated day: run whole, the year of days held the worker past the runner's
+        // one-minute wait under coverage ("Timeout calling onTaskUpdate", P7)
+        await new Promise<void>((r) => setTimeout(r, 0));
+        const before = p.xp;
+        day(days);
+        perDay.push(p.xp - before);
+        xp += p.xp - before;
+        while (level < 99 && xp >= levelCost(level)) {
+          xp -= levelCost(level);
+          level++;
+          if (!firstLevelDay) firstLevelDay = days + 1;
+        }
+        days++;
       }
-      days++;
-    }
-    expect(firstLevelDay).toBeLessThanOrEqual(2);
-    // once its needs settle into the day's rhythm (from the third day), every caring day teaches the same
-    expect(perDay.slice(2).every((x) => x === perDay[2])).toBe(true);
-    expect(perDay[2]).toBeGreaterThan(0);
-    // how far that goes by day 90 is measured on real player types in the simulator (target "trees-by-90")
-  });
+      expect(firstLevelDay).toBeLessThanOrEqual(2);
+      // once its needs settle into the day's rhythm (from the third day), every caring day teaches the same
+      expect(perDay.slice(2).every((x) => x === perDay[2])).toBe(true);
+      expect(perDay[2]).toBeGreaterThan(0);
+      // how far that goes by day 90 is measured on real player types in the simulator (target "trees-by-90")
+    },
+  );
 
   it("keeps the level in the state word (bits 234-240)", () => {
     const p = { ...newPet(), growth: { level: 37, points: 0, skills: {} } };
@@ -228,7 +235,12 @@ describe("Care skills change the pet's life", () => {
   it("Full Belly, Good Spirits, Tidy Habits, Stamina and Evergreen slow each meter", () => {
     // three hours alone: past that, a gentle pet's joy settles where boredom sends it exploring (G5), skill or not
     const base = visibleMeters(hours(newPet(), 3));
-    for (const [id, meter] of [[111, "food"], [112, "joy"], [113, "clean"], [122, "energy"]] as const) {
+    for (const [id, meter] of [
+      [111, "food"],
+      [112, "joy"],
+      [113, "clean"],
+      [122, "energy"],
+    ] as const) {
       const m = visibleMeters(hours(withSkills(newPet(), { [id]: 5 }), 3));
       expect(m[meter]).toBeGreaterThan(base[meter]);
     }
@@ -238,7 +250,9 @@ describe("Care skills change the pet's life", () => {
 
   it("Deep Sleeper restores more energy while asleep", () => {
     const asleep = (p: Pet) => ({ ...p, asleep: true, meters: { ...p.meters, energy: 100 * 60 } });
-    expect(visibleMeters(hours(asleep(withSkills(newPet(), { 121: 5 })), 3)).energy).toBeGreaterThan(visibleMeters(hours(asleep(newPet()), 3)).energy);
+    expect(visibleMeters(hours(asleep(withSkills(newPet(), { 121: 5 })), 3)).energy).toBeGreaterThan(
+      visibleMeters(hours(asleep(newPet()), 3)).energy,
+    );
   });
 
   it("Hearty Eater fills more from food, Sunny Nature brings more joy from play, Bath Lover a bath's joy", () => {
@@ -311,14 +325,29 @@ describe("Mind skills widen the budget the circuit lives in", () => {
     expect(extraLessons(roomy)).toBe(5);
     expect(gateBudget(gated) - gateBudget(roomy)).toBe(100);
     // G7: grow a brain with distinct, many-condition lessons until the next would pass an elder's taught budget
-    const lessonAt = (i: number) => ({ when: { hunger: [i % 4, (i + 1) % 4], joy: [(i >> 2) % 4], energy: [(i >> 4) % 4, (i + 3) % 4], clean: [(i + 1) % 4], time: [(i + 2) % 4], action: [i % 8], event: [(i >> 1) % 4] }, then: { want: (i % 7) + 1, mood: i % 4 } });
+    const lessonAt = (i: number) => ({
+      when: {
+        hunger: [i % 4, (i + 1) % 4],
+        joy: [(i >> 2) % 4],
+        energy: [(i >> 4) % 4, (i + 3) % 4],
+        clean: [(i + 1) % 4],
+        time: [(i + 2) % 4],
+        action: [i % 8],
+        event: [(i >> 1) % 4],
+      },
+      then: { want: (i % 7) + 1, mood: i % 4 },
+    });
     const lessons: ReturnType<typeof lessonAt>[] = [];
     let i = 0;
-    while (taughtGates({ line: "gentle", lessons: [lessonAt(i), ...lessons] }) <= taughtBudget("elder", roomy)) lessons.unshift(lessonAt(i++));
+    while (taughtGates({ line: "gentle", lessons: [lessonAt(i), ...lessons] }) <= taughtBudget("elder", roomy))
+      lessons.unshift(lessonAt(i++));
     const next = lessonAt(i);
     expect(lessons.length + 1).toBeLessThanOrEqual(LESSON_CAPACITY.elder + extraLessons(roomy));
     expect(gateCount(compileProgram(composeProgram("gentle", [next, ...lessons])))).toBeLessThanOrEqual(BASE_GATES);
-    expect(checkMindLesson({ line: "gentle", lessons, growth: roomy }, "elder", next)).toMatchObject({ ok: false, reason: "tooBig" });
+    expect(checkMindLesson({ line: "gentle", lessons, growth: roomy }, "elder", next)).toMatchObject({
+      ok: false,
+      reason: "tooBig",
+    });
     expect(checkMindLesson({ line: "gentle", lessons, growth: gated }, "elder", next).ok).toBe(true);
   });
 
@@ -348,10 +377,22 @@ describe("Mind skills widen the budget the circuit lives in", () => {
   });
 
   it("Extra Lesson holds one more lesson at every stage", () => {
-    const full = Array.from({ length: LESSON_CAPACITY.baby }, (_, i) => ({ when: { hunger: [i] }, then: { want: 1, mood: 1 } }));
+    const full = Array.from({ length: LESSON_CAPACITY.baby }, (_, i) => ({
+      when: { hunger: [i] },
+      then: { want: 1, mood: 1 },
+    }));
     const next = { when: { joy: [0] }, then: { want: 6, mood: 1 } };
-    expect(checkMindLesson({ line: "gentle", lessons: full }, "baby", next)).toMatchObject({ ok: false, reason: "full" });
-    expect(checkMindLesson({ line: "gentle", lessons: full, growth: holding({ 211: 5, 212: 5, 213: 5, 231: 1 }) }, "baby", next).ok).toBe(true);
+    expect(checkMindLesson({ line: "gentle", lessons: full }, "baby", next)).toMatchObject({
+      ok: false,
+      reason: "full",
+    });
+    expect(
+      checkMindLesson(
+        { line: "gentle", lessons: full, growth: holding({ 211: 5, 212: 5, 213: 5, 231: 1 }) },
+        "baby",
+        next,
+      ).ok,
+    ).toBe(true);
   });
 
   it("Eager Student pays experience for each lesson taught", () => {
@@ -389,7 +430,12 @@ describe("Mind skills widen the budget the circuit lives in", () => {
             }
             for (let k = 0; k < tm.bits; k++) st[at + k] = (trust >> k) & 1;
           }
-          return b.fast.step(st, encodeSenses({ hunger: 0, joy: 2, energy: 2, clean: 2, time: 2, action: 0, event: 3, owner: 1 })) & 7;
+          return (
+            b.fast.step(
+              st,
+              encodeSenses({ hunger: 0, joy: 2, energy: 2, clean: 2, time: 2, action: 0, event: 3, owner: 1 }),
+            ) & 7
+          );
         };
         const before = scared(holding({ 211: 5, 212: 5, 213: 5 }));
         const after = scared(holding({ 211: 5, 212: 5, 213: 5, 232: 1 }));
@@ -401,9 +447,46 @@ describe("Mind skills widen the budget the circuit lives in", () => {
 
 describe("Explore skills give the world its numbers for this pet (the world applies them: world/test/explore.test.ts)", () => {
   it("maps each Explore skill to the world's numbers", () => {
-    expect(exploreMods(undefined)).toEqual({ moveEnergy: 15, forageEnergy: 10, extraFind: 0, rareBoost: 0, forageWaitOff: 0, walksWithFinds: 0, stepsOff: 0, dayFind: 0, tripExtra: 0 });
-    const all = exploreMods(holding({ 311: 5, 312: 5, 313: 5, 321: 5, 322: 5, 323: 5, 331: 1, 341: 5, 342: 5, 343: 5, 351: 5, 352: 5, 353: 5, 361: 1 }));
-    expect(all).toEqual({ moveEnergy: 5, forageEnergy: 2, extraFind: 50, rareBoost: 80, forageWaitOff: 50, walksWithFinds: 0, stepsOff: 100, dayFind: 40, tripExtra: 50 });
+    expect(exploreMods(undefined)).toEqual({
+      moveEnergy: 15,
+      forageEnergy: 10,
+      extraFind: 0,
+      rareBoost: 0,
+      forageWaitOff: 0,
+      walksWithFinds: 0,
+      stepsOff: 0,
+      dayFind: 0,
+      tripExtra: 0,
+    });
+    const all = exploreMods(
+      holding({
+        311: 5,
+        312: 5,
+        313: 5,
+        321: 5,
+        322: 5,
+        323: 5,
+        331: 1,
+        341: 5,
+        342: 5,
+        343: 5,
+        351: 5,
+        352: 5,
+        353: 5,
+        361: 1,
+      }),
+    );
+    expect(all).toEqual({
+      moveEnergy: 5,
+      forageEnergy: 2,
+      extraFind: 50,
+      rareBoost: 80,
+      forageWaitOff: 50,
+      walksWithFinds: 0,
+      stepsOff: 100,
+      dayFind: 40,
+      tripExtra: 50,
+    });
     expect(exploreMods(holding({ 332: 1, 363: 1, 362: 1 }))).toMatchObject({ walksWithFinds: 3, rareBoost: 40 });
   });
 });
@@ -456,7 +539,9 @@ describe("skills on chain and in replay", () => {
     // after the rule skill, the brain the pet runs includes it
     const brainNow = mindBrain({ line: p.line, lessons: p.lessons, growth: growthOf(p) });
     p = care(p, { kind: "pet" }, T0 + 40 * BEAT_MS, brainNow).pet;
-    const frames = rewind(p, (lessons, _o, skills) => ({ program: composeProgram("gentle", lessons, 0, { rules: (skills ?? []).map((id) => SKILL_BY_ID[id]!.rule!) }) }));
+    const frames = rewind(p, (lessons, _o, skills) => ({
+      program: composeProgram("gentle", lessons, 0, { rules: (skills ?? []).map((id) => SKILL_BY_ID[id]!.rule!) }),
+    }));
     expect(frames.at(-1)!.program.rules.some((r) => r.label === "skill: brave heart")).toBe(true);
     expect(frames[0]!.program.rules.some((r) => r.label === "skill: brave heart")).toBe(false);
     // a respec takes the rule out again, in a new segment
@@ -473,9 +558,15 @@ describe("skills on chain and in replay", () => {
   });
 
   it("the most a skilled pet can hold (13 lessons, 4 instincts, 4 capstone rules) still fits the rule limit on every line", () => {
-    const lessons = Array.from({ length: 11 }, (_, i) => ({ when: { hunger: [i % 4], joy: [(i >> 2) % 4] }, then: { want: (i % 7) + 1, mood: 1 } }));
+    const lessons = Array.from({ length: 11 }, (_, i) => ({
+      when: { hunger: [i % 4], joy: [(i >> 2) % 4] },
+      then: { want: (i % 7) + 1, mood: 1 },
+    }));
     const all = holding({ 162: 1, 232: 1, 262: 1, 132: 1 });
-    for (const line of ["gentle", "bold", "curious"] as const) expect(() => composeProgram(line, [...lessons, lessons[0]!, lessons[1]!], 15, { rules: skillRules(all) })).not.toThrow();
+    for (const line of ["gentle", "bold", "curious"] as const)
+      expect(() =>
+        composeProgram(line, [...lessons, lessons[0]!, lessons[1]!], 15, { rules: skillRules(all) }),
+      ).not.toThrow();
     expect(extraLessonsMax).toBe(3);
     expect(LESSON_CAPACITY.elder + 5).toBe(13);
   });

@@ -28,11 +28,21 @@ import { noteTallies } from "../game/tally";
 import { talkTally } from "@lingxi/game";
 import { allStatuses, conditionView, handIn, questsOf, takeQuest, useQuestStatuses } from "../game/quests";
 import { useWorld } from "../game/world";
-import { buyFromNeighbour, giftNeighbour, greetingFor, meetNeighbourAtHome, takeNeighbourStep } from "../game/neighbours";
+import {
+  buyFromNeighbour,
+  giftNeighbour,
+  greetingFor,
+  meetNeighbourAtHome,
+  takeNeighbourStep,
+} from "../game/neighbours";
 import { GiftPicker, NeighbourNoteLine, TrustStrip } from "./Neighbours";
 
 /** What an errand still wants handed to this resident: the item, how many are still owed, and how many are in the bag. */
-function owed(q: QuestDef, who: string, world: ReturnType<typeof useWorld.getState>["world"]): Array<{ item: number; left: number; have: number }> {
+function owed(
+  q: QuestDef,
+  who: string,
+  world: ReturnType<typeof useWorld.getState>["world"],
+): Array<{ item: number; left: number; have: number }> {
   const progress = questProgress(q, world, conditionView());
   return q.objectives.flatMap((o, i) => {
     const idx = String(o.cond.index ?? "");
@@ -52,18 +62,33 @@ const ACTION_LABEL: Record<Action, [string, string]> = {
   proof: ["See the proof", "查看证明"],
 };
 
-export function Talk({ who, visiting = false, onFace, onAction, onClose }: { who: Character; visiting?: boolean; onFace: (face: string) => void; onAction: (a: Action) => void; onClose: () => void }) {
+export function Talk({
+  who,
+  visiting = false,
+  onFace,
+  onAction,
+  onClose,
+}: {
+  who: Character;
+  visiting?: boolean;
+  onFace: (face: string) => void;
+  onAction: (a: Action) => void;
+  onClose: () => void;
+}) {
   const lang = useLang((s) => s.lang);
   const reduce = useReducedMotion() ?? false;
   const sheet = FRIEND_BY_ID[who.id];
-  const asLines = (lines: readonly QuestLine[]): Line[] => lines.map((l) => ({ face: l.face ?? who.greeting[0]!.face, en: l.en, zh: l.zh }));
+  const asLines = (lines: readonly QuestLine[]): Line[] =>
+    lines.map((l) => ({ face: l.face ?? who.greeting[0]!.face, en: l.en, zh: l.zh }));
   // a resident visiting your home greets you there, and leaves their keepsake as you meet
   const visitLines = useMemo(() => {
     const u = sheet?.steps.find((s) => s.unlock.kind === "visit")?.unlock;
     return u?.kind === "visit" ? u.lines : null;
   }, [sheet]);
   // the greeting is chosen by the resident's own circuit (plan 4.11)
-  const [queue, setQueue] = useState<Line[]>(() => (visiting && visitLines ? asLines(visitLines) : greetingFor(who.id, who.greeting)));
+  const [queue, setQueue] = useState<Line[]>(() =>
+    visiting && visitLines ? asLines(visitLines) : greetingFor(who.id, who.greeting),
+  );
   // the keepsake is left once, as you meet them (meeting twice does nothing)
   useEffect(() => {
     if (visiting) meetNeighbourAtHome(who.id);
@@ -80,7 +105,10 @@ export function Talk({ who, visiting = false, onFace, onAction, onClose }: { who
   const quests = useMemo(() => questsOf(who.id, statuses), [who.id, statuses]);
   // a daily that asks for any small gift can be settled with any resident
   const dailyGift = useMemo(
-    () => (world.quests?.today?.offered ?? []).map((id) => QUEST_BY_ID[id]!).find((q) => statuses[q.id] === "active" && q.objectives.some((o) => o.cond.type === "GIVE")),
+    () =>
+      (world.quests?.today?.offered ?? [])
+        .map((id) => QUEST_BY_ID[id]!)
+        .find((q) => statuses[q.id] === "active" && q.objectives.some((o) => o.cond.type === "GIVE")),
     [world, statuses],
   );
   const spare = useMemo(() => {
@@ -88,9 +116,19 @@ export function Talk({ who, visiting = false, onFace, onAction, onClose }: { who
     const wanted = new Set<number>();
     for (const q of Object.values(QUEST_BY_ID)) {
       if (statuses[q.id] !== "active") continue;
-      for (const o of q.objectives) if (o.cond.type === "GIVE_TO" || o.cond.type === "GIVE" || o.cond.type === "ITEM") wanted.add(Number(String(o.cond.index ?? "").split(":").pop()));
+      for (const o of q.objectives)
+        if (o.cond.type === "GIVE_TO" || o.cond.type === "GIVE" || o.cond.type === "ITEM")
+          wanted.add(
+            Number(
+              String(o.cond.index ?? "")
+                .split(":")
+                .pop(),
+            ),
+          );
     }
-    const items = Object.entries(world.bag).filter(([id, n]) => n > 0 && ITEM[Number(id)]?.kind === "material" && !wanted.has(Number(id)));
+    const items = Object.entries(world.bag).filter(
+      ([id, n]) => n > 0 && ITEM[Number(id)]?.kind === "material" && !wanted.has(Number(id)),
+    );
     items.sort((a, b) => b[1] - a[1]);
     return items[0] ? Number(items[0][0]) : null;
   }, [world, statuses]);
@@ -198,7 +236,14 @@ export function Talk({ who, visiting = false, onFace, onAction, onClose }: { who
   const showChoices = done && lastLine && !ending;
 
   return (
-    <motion.div className="talk" role="dialog" aria-label={who.name[lang]} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}>
+    <motion.div
+      className="talk"
+      role="dialog"
+      aria-label={who.name[lang]}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+    >
       <button type="button" className="talk-bubble" onClick={advance} aria-live="polite">
         <span className="talk-name" style={{ background: who.color }}>
           {who.name[lang]}
@@ -210,11 +255,17 @@ export function Talk({ who, visiting = false, onFace, onAction, onClose }: { who
             {text.slice(shown)}
           </span>
         </span>
-        {done && (!lastLine || ending) && <span className="talk-more" aria-hidden="true">▼</span>}
+        {done && (!lastLine || ending) && (
+          <span className="talk-more" aria-hidden="true">
+            ▼
+          </span>
+        )}
       </button>
       {villageGift !== null && (
         <p className="talk-gift" role="status">
-          {lang === "zh" ? `${who.name.zh}送了你今天的小礼物：${ITEM[villageGift]?.name.zh ?? ""}。` : `${who.name.en} gave you today's little gift: ${ITEM[villageGift]?.name.en ?? ""}.`}
+          {lang === "zh"
+            ? `${who.name.zh}送了你今天的小礼物：${ITEM[villageGift]?.name.zh ?? ""}。`
+            : `${who.name.en} gave you today's little gift: ${ITEM[villageGift]?.name.en ?? ""}.`}
         </p>
       )}
       {showChoices && offering && (
@@ -229,18 +280,28 @@ export function Talk({ who, visiting = false, onFace, onAction, onClose }: { who
       )}
       {sheet && <TrustStrip who={who.id} />}
       <NeighbourNoteLine who={who.id} />
-      {showChoices && !offering && picking && sheet && <GiftPicker sheet={sheet} onGive={gift} onBack={() => (play("tap"), setPicking(false))} />}
+      {showChoices && !offering && picking && sheet && (
+        <GiftPicker sheet={sheet} onGive={gift} onBack={() => (play("tap"), setPicking(false))} />
+      )}
       {showChoices && !offering && !picking && (
         <div className="talk-choices">
           {quests.ready.map((q) => (
             <button key={q.id} type="button" className="talk-choice quest ready" onClick={() => finish(q)}>
-              <span className="tq-mark" aria-hidden="true">✓</span>
+              <span className="tq-mark" aria-hidden="true">
+                ✓
+              </span>
               {lang === "zh" ? `交任务：${q.title.zh}` : `Hand in: ${q.title.en}`}
             </button>
           ))}
           {quests.active.flatMap((q) =>
             owed(q, who.id, world).map((o) => (
-              <button key={`${q.id}:${o.item}`} type="button" className="talk-choice quest" disabled={o.have < 1} onClick={() => hand(q, o.item, Math.min(o.left, o.have))}>
+              <button
+                key={`${q.id}:${o.item}`}
+                type="button"
+                className="talk-choice quest"
+                disabled={o.have < 1}
+                onClick={() => hand(q, o.item, Math.min(o.left, o.have))}
+              >
                 {lang === "zh"
                   ? `交给${who.name.zh} ${Math.min(o.left, Math.max(1, o.have))} 个${ITEM[o.item]?.name.zh}（还差 ${o.left}，你有 ${o.have}）`
                   : `Give ${Math.min(o.left, Math.max(1, o.have))} × ${ITEM[o.item]?.name.en} (${o.left} still wanted, you have ${o.have})`}
@@ -248,28 +309,48 @@ export function Talk({ who, visiting = false, onFace, onAction, onClose }: { who
             )),
           )}
           {dailyGift && spare !== null && (
-            <button type="button" className="talk-choice quest" onClick={() => useWorld.getState().giveTo(who.id, spare, 1) && play("success")}>
-              {lang === "zh" ? `送${who.name.zh}一个${ITEM[spare]?.name.zh}` : `Give ${who.name.en} a ${ITEM[spare]?.name.en}`}
+            <button
+              type="button"
+              className="talk-choice quest"
+              onClick={() => useWorld.getState().giveTo(who.id, spare, 1) && play("success")}
+            >
+              {lang === "zh"
+                ? `送${who.name.zh}一个${ITEM[spare]?.name.zh}`
+                : `Give ${who.name.en} a ${ITEM[spare]?.name.en}`}
             </button>
           )}
           {quests.offer.map((q) => (
             <button key={q.id} type="button" className="talk-choice quest offer" onClick={() => hear(q)}>
-              <span className="tq-mark" aria-hidden="true">!</span>
+              <span className="tq-mark" aria-hidden="true">
+                !
+              </span>
               {q.title[lang]}
             </button>
           ))}
           {steps.length === 2 && steps.every((s) => s.choice) && (
-            <span className="talk-branch">{lang === "zh" ? "选一个，另一个就不能再选了：" : "Choose one; the other closes for good:"}</span>
+            <span className="talk-branch">
+              {lang === "zh" ? "选一个，另一个就不能再选了：" : "Choose one; the other closes for good:"}
+            </span>
           )}
           {steps.map((s) => (
             <button key={s.id} type="button" className="talk-choice step" onClick={() => step(s)}>
-              <span className="tq-mark" aria-hidden="true">★</span>
+              <span className="tq-mark" aria-hidden="true">
+                ★
+              </span>
               {(s.choice ?? s.title)[lang]}
             </button>
           ))}
           {shelf.map((o) => (
-            <button key={o.item} type="button" className="talk-choice" disabled={world.coins < o.price} onClick={() => buyFromNeighbour(who.id, o.item)}>
-              {lang === "zh" ? `买${ITEM[o.item]?.name.zh} · ${o.price} 金币` : `Buy ${ITEM[o.item]?.name.en} · ${o.price} coins`}
+            <button
+              key={o.item}
+              type="button"
+              className="talk-choice"
+              disabled={world.coins < o.price}
+              onClick={() => buyFromNeighbour(who.id, o.item)}
+            >
+              {lang === "zh"
+                ? `买${ITEM[o.item]?.name.zh} · ${o.price} 金币`
+                : `Buy ${ITEM[o.item]?.name.en} · ${o.price} coins`}
             </button>
           ))}
           {sheet && (

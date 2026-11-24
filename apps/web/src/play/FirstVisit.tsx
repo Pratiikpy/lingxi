@@ -30,7 +30,8 @@ export function FirstVisit({ handOver, onFail }: { handOver: (game: GameParts) =
       stop();
       handOver(game);
     };
-    const calm = () => !fingerDown && useHatchDraft.getState().cracking < 0 && !(document.activeElement instanceof HTMLInputElement);
+    const calm = () =>
+      !fingerDown && useHatchDraft.getState().cracking < 0 && !(document.activeElement instanceof HTMLInputElement);
     const load = () => {
       void loadGame().then(
         (game) => {

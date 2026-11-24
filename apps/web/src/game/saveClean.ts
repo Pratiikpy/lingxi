@@ -4,37 +4,83 @@
  * X Layer (on-chain pieces, packs) is read again from the chain on start; the save only keeps the last reading.
  */
 
-import { DECOR_BY_ID, LOOKS_MAX, MAX_PACKS, PLACE_AREA, WEAR_SLOTS, type WorldState, cleanLookName, isChainWear, roomCapacity } from "@lingxi/world";
+import {
+  DECOR_BY_ID,
+  LOOKS_MAX,
+  MAX_PACKS,
+  PLACE_AREA,
+  WEAR_SLOTS,
+  type WorldState,
+  cleanLookName,
+  isChainWear,
+  roomCapacity,
+} from "@lingxi/world";
 
 /** Keep only well-formed decorations from storage: known pieces, owned, inside the room, within its capacity. */
 export function cleanDecor(d: unknown, extras?: WorldState["extras"]): WorldState["decor"] {
   if (!d || typeof d !== "object") return undefined;
   const raw = d as { owned?: unknown; placed?: unknown; chainHeld?: unknown };
   // on-chain pieces are never owned by the game, only held on chain (read again from X Layer on start)
-  const owned = Array.isArray(raw.owned) ? [...new Set(raw.owned.filter((x): x is string => typeof x === "string" && x in DECOR_BY_ID && !DECOR_BY_ID[x]!.chain))] : [];
-  const chainHeld = Array.isArray(raw.chainHeld) ? [...new Set(raw.chainHeld.filter((x): x is string => typeof x === "string" && !!DECOR_BY_ID[x]?.chain))] : [];
+  const owned = Array.isArray(raw.owned)
+    ? [
+        ...new Set(
+          raw.owned.filter((x): x is string => typeof x === "string" && x in DECOR_BY_ID && !DECOR_BY_ID[x]!.chain),
+        ),
+      ]
+    : [];
+  const chainHeld = Array.isArray(raw.chainHeld)
+    ? [...new Set(raw.chainHeld.filter((x): x is string => typeof x === "string" && !!DECOR_BY_ID[x]?.chain))]
+    : [];
   const placed = (Array.isArray(raw.placed) ? raw.placed : [])
-    .filter((p): p is { id: string; x: number; y: number } => !!p && typeof p.id === "string" && (owned.includes(p.id) || chainHeld.includes(p.id)) && Number.isFinite(p.x) && Number.isFinite(p.y))
+    .filter(
+      (p): p is { id: string; x: number; y: number } =>
+        !!p &&
+        typeof p.id === "string" &&
+        (owned.includes(p.id) || chainHeld.includes(p.id)) &&
+        Number.isFinite(p.x) &&
+        Number.isFinite(p.y),
+    )
     .filter((p, i, all) => all.findIndex((q) => q.id === p.id) === i)
     .slice(0, roomCapacity({ extras } as WorldState))
-    .map((p) => ({ id: p.id, x: Math.max(PLACE_AREA.x0, Math.min(PLACE_AREA.x1, Math.round(p.x))), y: Math.max(PLACE_AREA.y0, Math.min(PLACE_AREA.y1, Math.round(p.y))) }));
+    .map((p) => ({
+      id: p.id,
+      x: Math.max(PLACE_AREA.x0, Math.min(PLACE_AREA.x1, Math.round(p.x))),
+      y: Math.max(PLACE_AREA.y0, Math.min(PLACE_AREA.y1, Math.round(p.y))),
+    }));
   return chainHeld.length ? { owned, placed, chainHeld } : { owned, placed };
 }
 
 /** Only whole, non-negative counts under well-formed keys survive a reload. */
 export function cleanTally(t: unknown): Record<string, number> {
   if (!t || typeof t !== "object") return {};
-  return Object.fromEntries(Object.entries(t as Record<string, unknown>).filter((e): e is [string, number] => /^[A-Z_]{2,24}:[\w:-]{1,40}$/.test(e[0]) && Number.isSafeInteger(e[1]) && (e[1] as number) >= 0));
+  return Object.fromEntries(
+    Object.entries(t as Record<string, unknown>).filter(
+      (e): e is [string, number] =>
+        /^[A-Z_]{2,24}:[\w:-]{1,40}$/.test(e[0]) && Number.isSafeInteger(e[1]) && (e[1] as number) >= 0,
+    ),
+  );
 }
 
 /** Bonuses and familiarity from storage: small whole numbers only, so an edited save cannot mint a huge bonus. */
-export function cleanCounts<K extends string>(o: unknown, keyOk: (k: string) => boolean, max: number): Partial<Record<K, number>> | undefined {
+export function cleanCounts<K extends string>(
+  o: unknown,
+  keyOk: (k: string) => boolean,
+  max: number,
+): Partial<Record<K, number>> | undefined {
   if (!o || typeof o !== "object") return undefined;
-  return Object.fromEntries(Object.entries(o as Record<string, unknown>).filter((e): e is [K, number] => keyOk(e[0]) && Number.isSafeInteger(e[1]) && (e[1] as number) >= 0 && (e[1] as number) <= max)) as Partial<Record<K, number>>;
+  return Object.fromEntries(
+    Object.entries(o as Record<string, unknown>).filter(
+      (e): e is [K, number] =>
+        keyOk(e[0]) && Number.isSafeInteger(e[1]) && (e[1] as number) >= 0 && (e[1] as number) <= max,
+    ),
+  ) as Partial<Record<K, number>>;
 }
 const BUFF_KEYS = ["forageExtra", "sparPower", "sparHp", "sparLossCoins"];
 
-export const cleanFlags = (f: unknown): string[] => (Array.isArray(f) ? [...new Set(f.filter((x): x is string => typeof x === "string" && /^[a-z0-9-]{1,32}$/.test(x)))] : []);
+export const cleanFlags = (f: unknown): string[] =>
+  Array.isArray(f)
+    ? [...new Set(f.filter((x): x is string => typeof x === "string" && /^[a-z0-9-]{1,32}$/.test(x)))]
+    : [];
 
 /** Packs from storage: whole numbers 0..3 only; they are read again from X Layer on start. */
 export function cleanExtras(e: unknown): WorldState["extras"] {
@@ -51,7 +97,14 @@ export function cleanLooks(l: unknown): WorldState["looks"] {
   for (const x of l) {
     if (!x || typeof x !== "object") continue;
     const { id, name, outfit } = x as Record<string, unknown>;
-    if (typeof id !== "string" || !/^l\d{1,6}$/.test(id) || out.some((o) => o.id === id) || typeof name !== "string" || !cleanLookName(name)) continue;
+    if (
+      typeof id !== "string" ||
+      !/^l\d{1,6}$/.test(id) ||
+      out.some((o) => o.id === id) ||
+      typeof name !== "string" ||
+      !cleanLookName(name)
+    )
+      continue;
     if (!outfit || typeof outfit !== "object") continue;
     const fit: Record<string, string> = {};
     for (const s of WEAR_SLOTS) {
@@ -68,9 +121,14 @@ export function cleanLooks(l: unknown): WorldState["looks"] {
 export function cleanWardrobe(wd: unknown): WorldState["wardrobe"] {
   if (!wd || typeof wd !== "object") return undefined;
   const raw = wd as { owned?: unknown; worn?: unknown; chainHeld?: unknown };
-  const chainHeld = Array.isArray(raw.chainHeld) ? [...new Set(raw.chainHeld.filter((x): x is string => typeof x === "string" && isChainWear(x)))] : [];
-  const owned = Array.isArray(raw.owned) ? raw.owned.filter((x): x is string => typeof x === "string" && !isChainWear(x)) : [];
-  const worn = raw.worn && typeof raw.worn === "object" ? (raw.worn as NonNullable<WorldState["wardrobe"]>["worn"]) : {};
+  const chainHeld = Array.isArray(raw.chainHeld)
+    ? [...new Set(raw.chainHeld.filter((x): x is string => typeof x === "string" && isChainWear(x)))]
+    : [];
+  const owned = Array.isArray(raw.owned)
+    ? raw.owned.filter((x): x is string => typeof x === "string" && !isChainWear(x))
+    : [];
+  const worn =
+    raw.worn && typeof raw.worn === "object" ? (raw.worn as NonNullable<WorldState["wardrobe"]>["worn"]) : {};
   return chainHeld.length ? { owned, worn, chainHeld } : { owned, worn };
 }
 
@@ -78,7 +136,8 @@ export function cleanWardrobe(wd: unknown): WorldState["wardrobe"] {
 export function cleanWorld(w: WorldState): WorldState {
   const extras = cleanExtras(w.extras);
   const looks = cleanLooks(w.looks);
-  const looksMade = Number.isSafeInteger(w.looksMade) && (w.looksMade as number) >= 0 ? (w.looksMade as number) : undefined;
+  const looksMade =
+    Number.isSafeInteger(w.looksMade) && (w.looksMade as number) >= 0 ? (w.looksMade as number) : undefined;
   const clean: WorldState = {
     ...w,
     claimed: Array.isArray(w.claimed) ? w.claimed : [],
@@ -91,7 +150,9 @@ export function cleanWorld(w: WorldState): WorldState {
     ...(extras ? { extras } : {}),
     ...(looks ? { looks } : {}),
     // a new look's id must never repeat one kept in the save
-    ...(looks || looksMade !== undefined ? { looksMade: Math.max(looksMade ?? 0, ...(looks ?? []).map((l) => Number(l.id.slice(1)))) } : {}),
+    ...(looks || looksMade !== undefined
+      ? { looksMade: Math.max(looksMade ?? 0, ...(looks ?? []).map((l) => Number(l.id.slice(1)))) }
+      : {}),
   };
   for (const k of ["decor", "wardrobe", "buffs", "familiar"] as const) if (clean[k] === undefined) delete clean[k];
   if (!extras) delete clean.extras;

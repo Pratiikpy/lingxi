@@ -4,7 +4,10 @@ import { DUEL_MANIFEST, MANIFESTS, PET_MANIFEST, STARTERS, decodeSenses, encodeS
 describe("interface manifests", () => {
   it("cover every input and output bit exactly once, in order", () => {
     for (const m of MANIFESTS) {
-      for (const [list, n] of [[m.inputs, m.nIn], [m.outputs, m.nOut]] as const) {
+      for (const [list, n] of [
+        [m.inputs, m.nIn],
+        [m.outputs, m.nOut],
+      ] as const) {
         const bits = list.flatMap((f) => Array.from({ length: f.bits }, (_, i) => f.lo + i));
         expect(bits).toEqual(Array.from({ length: n }, (_, i) => i));
         for (const f of list) expect(f.values.length).toBe(1 << f.bits);
@@ -17,7 +20,9 @@ describe("interface manifests", () => {
       const s = decodeSenses(w) as unknown as Record<string, number>;
       for (const f of PET_MANIFEST.inputs) expect((w >> f.lo) & ((1 << f.bits) - 1)).toBe(s[f.name]);
     }
-    expect(encodeSenses({ hunger: 3, joy: 0, energy: 0, clean: 0, time: 0, action: 0, event: 0, owner: 1 })).toBe(3 | (1 << 15));
+    expect(encodeSenses({ hunger: 3, joy: 0, energy: 0, clean: 0, time: 0, action: 0, event: 0, owner: 1 })).toBe(
+      3 | (1 << 15),
+    );
   });
 
   it("a pet's brain reads 16 input pins and answers on 8 output pins, and a starter keeps 8 bits of memory (A56)", () => {

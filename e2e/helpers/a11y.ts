@@ -30,7 +30,9 @@ async function findingsAtRest(page: Page): Promise<Finding[]> {
   // writes it into an inline style (a panel fading in measured mid-fade on a slow CI runner read 3.7:1, P6b)
   await page.waitForFunction(
     () =>
-      document.getAnimations().every((a) => a.playState !== "running" || !Number.isFinite(Number(a.effect?.getComputedTiming().endTime))) &&
+      document
+        .getAnimations()
+        .every((a) => a.playState !== "running" || !Number.isFinite(Number(a.effect?.getComputedTiming().endTime))) &&
       [...document.querySelectorAll<HTMLElement>("[style*='opacity']")].every((el) => {
         // decoration hidden from assistive technology may loop its fade for ever (the landing's hearts); it is not read
         if (el.closest("[aria-hidden='true']")) return true;
@@ -42,9 +44,30 @@ async function findingsAtRest(page: Page): Promise<Finding[]> {
   );
   await page.evaluate(AXE);
   const all = await page.evaluate(async () => {
-    const axe = (window as unknown as { axe: { run: (ctx: Document, o: object) => Promise<{ violations: Array<{ id: string; impact: string | null; nodes: Array<{ target: string[]; failureSummary?: string }> }> }> } }).axe;
+    const axe = (
+      window as unknown as {
+        axe: {
+          run: (
+            ctx: Document,
+            o: object,
+          ) => Promise<{
+            violations: Array<{
+              id: string;
+              impact: string | null;
+              nodes: Array<{ target: string[]; failureSummary?: string }>;
+            }>;
+          }>;
+        };
+      }
+    ).axe;
     const r = await axe.run(document, { resultTypes: ["violations"] });
-    return r.violations.map((v) => ({ id: v.id, impact: v.impact, nodes: v.nodes.map((n) => `${n.target.join(" ")} :: ${(n.failureSummary ?? "").split("\n").slice(1, 2).join(" ").trim()}`) }));
+    return r.violations.map((v) => ({
+      id: v.id,
+      impact: v.impact,
+      nodes: v.nodes.map(
+        (n) => `${n.target.join(" ")} :: ${(n.failureSummary ?? "").split("\n").slice(1, 2).join(" ").trim()}`,
+      ),
+    }));
   });
   return all.filter((f) => f.impact === "serious" || f.impact === "critical");
 }
@@ -59,12 +82,36 @@ export async function smallTargets(page: Page, scope: string, min = 44): Promise
     ({ scope, min }) => {
       const out: string[] = [];
       const half = min / 2 - 1;
-      const sel = ["button", "a[href]", "[role=button]", "[role=tab]", "[role=radio]", "[role=switch]", "input", "select"].map((s) => `${scope} ${s}`).join(", ");
+      const sel = [
+        "button",
+        "a[href]",
+        "[role=button]",
+        "[role=tab]",
+        "[role=radio]",
+        "[role=switch]",
+        "input",
+        "select",
+      ]
+        .map((s) => `${scope} ${s}`)
+        .join(", ");
       for (const el of Array.from(document.querySelectorAll<HTMLElement>(sel))) {
         const r = el.getBoundingClientRect();
-        if (!r.width || !r.height || getComputedStyle(el).visibility === "hidden" || (el as HTMLButtonElement).disabled || el.closest("[inert],[aria-hidden=true]")) continue;
+        if (
+          !r.width ||
+          !r.height ||
+          getComputedStyle(el).visibility === "hidden" ||
+          (el as HTMLButtonElement).disabled ||
+          el.closest("[inert],[aria-hidden=true]")
+        )
+          continue;
         // an inline link inside running text is exempt (WCAG 2.5.8): it sits in a line of words, not on its own
-        if (el.tagName === "A" && getComputedStyle(el).display === "inline" && el.parentElement && el.parentElement.textContent!.trim().length > el.textContent!.trim().length + 20) continue;
+        if (
+          el.tagName === "A" &&
+          getComputedStyle(el).display === "inline" &&
+          el.parentElement &&
+          el.parentElement.textContent!.trim().length > el.textContent!.trim().length + 20
+        )
+          continue;
         if (r.width >= min - 0.5 && r.height >= min - 0.5) continue;
         // measured where a player would tap it: scrolled into view first
         el.scrollIntoView({ block: "center", inline: "center" });
@@ -73,11 +120,16 @@ export async function smallTargets(page: Page, scope: string, min = 44): Promise
         const cy = at0.top + at0.height / 2;
         const points = [-half, 0, half].flatMap((dx) => [-half, 0, half].map((dy) => [cx + dx, cy + dy] as const));
         const onScreen = points.every(([x, y]) => x >= 0 && y >= 0 && x < innerWidth && y < innerHeight);
-        const hits = onScreen && points.every(([x, y]) => {
-          const at = document.elementFromPoint(x, y);
-          return !!at && (at === el || el.contains(at));
-        });
-        if (!hits) out.push(`${el.tagName.toLowerCase()}.${(el.className || "").toString().split(" ")[0]} "${(el.getAttribute("aria-label") || el.textContent || "").trim().slice(0, 24)}" ${Math.round(r.width)}x${Math.round(r.height)}`);
+        const hits =
+          onScreen &&
+          points.every(([x, y]) => {
+            const at = document.elementFromPoint(x, y);
+            return !!at && (at === el || el.contains(at));
+          });
+        if (!hits)
+          out.push(
+            `${el.tagName.toLowerCase()}.${(el.className || "").toString().split(" ")[0]} "${(el.getAttribute("aria-label") || el.textContent || "").trim().slice(0, 24)}" ${Math.round(r.width)}x${Math.round(r.height)}`,
+          );
       }
       return out;
     },

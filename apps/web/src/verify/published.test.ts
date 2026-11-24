@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { readPublished } from "./published";
 
-const answer = (status: number, body: unknown) => async () => new Response(typeof body === "string" ? body : JSON.stringify(body), { status });
+const answer = (status: number, body: unknown) => async () =>
+  new Response(typeof body === "string" ? body : JSON.stringify(body), { status });
 
 describe("a pet's published diary is read, and a failed read is told apart from no diary (A109)", () => {
   it("returns the log when the indexer has one", async () => {
@@ -10,15 +11,30 @@ describe("a pet's published diary is read, and a failed read is told apart from 
   });
 
   it("says there is none only when the indexer says so", async () => {
-    expect(await readPublished("https://idx", "1", answer(200, { ok: false, reason: "none" }))).toEqual({ kind: "none" });
+    expect(await readPublished("https://idx", "1", answer(200, { ok: false, reason: "none" }))).toEqual({
+      kind: "none",
+    });
   });
 
   it("says it could not be read on a server error, a body that is not the answer, or no answer at all", async () => {
-    expect(await readPublished("https://idx", "1", answer(502, "Bad Gateway"), { pauseMs: 0 })).toEqual({ kind: "unread" });
+    expect(await readPublished("https://idx", "1", answer(502, "Bad Gateway"), { pauseMs: 0 })).toEqual({
+      kind: "unread",
+    });
     expect(await readPublished("https://idx", "1", answer(200, "<html>"), { pauseMs: 0 })).toEqual({ kind: "unread" });
-    expect(await readPublished("https://idx", "1", answer(200, { ok: true }), { pauseMs: 0 })).toEqual({ kind: "unread" });
-    expect(await readPublished("https://idx", "1", answer(200, { ok: false, reason: "invalid" }), { pauseMs: 0 })).toEqual({ kind: "unread" });
-    expect(await readPublished("https://idx", "1", vi.fn(async () => Promise.reject(new TypeError("Failed to fetch"))), { pauseMs: 0 })).toEqual({ kind: "unread" });
+    expect(await readPublished("https://idx", "1", answer(200, { ok: true }), { pauseMs: 0 })).toEqual({
+      kind: "unread",
+    });
+    expect(
+      await readPublished("https://idx", "1", answer(200, { ok: false, reason: "invalid" }), { pauseMs: 0 }),
+    ).toEqual({ kind: "unread" });
+    expect(
+      await readPublished(
+        "https://idx",
+        "1",
+        vi.fn(async () => Promise.reject(new TypeError("Failed to fetch"))),
+        { pauseMs: 0 },
+      ),
+    ).toEqual({ kind: "unread" });
   });
 
   it("asks once more by itself when a read fails, so one slow answer is not a failure (A133)", async () => {

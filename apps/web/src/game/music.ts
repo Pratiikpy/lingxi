@@ -107,7 +107,25 @@ export const SONGS: Record<SongId, Song> = {
   },
 };
 
-const NOTE: Record<string, number> = { C: 0, "C#": 1, Db: 1, D: 2, "D#": 3, Eb: 3, E: 4, F: 5, "F#": 6, Gb: 6, G: 7, "G#": 8, Ab: 8, A: 9, "A#": 10, Bb: 10, B: 11 };
+const NOTE: Record<string, number> = {
+  C: 0,
+  "C#": 1,
+  Db: 1,
+  D: 2,
+  "D#": 3,
+  Eb: 3,
+  E: 4,
+  F: 5,
+  "F#": 6,
+  Gb: 6,
+  G: 7,
+  "G#": 8,
+  Ab: 8,
+  A: 9,
+  "A#": 10,
+  Bb: 10,
+  B: 11,
+};
 
 /** Frequency of a note name like "Bb4". */
 export function freq(name: string): number {
@@ -122,7 +140,16 @@ export function chordTones(chord: string): { root: string; tones: number[] } {
   const m = chord.match(/^([A-G][#b]?)(maj7|m7|m|7)?$/);
   if (!m) throw new Error(`bad chord ${chord}`);
   const q = m[2] ?? "";
-  const tones = q === "m" ? [0, 3, 7] : q === "m7" ? [0, 3, 7, 10] : q === "7" ? [0, 4, 7, 10] : q === "maj7" ? [0, 4, 7, 11] : [0, 4, 7];
+  const tones =
+    q === "m"
+      ? [0, 3, 7]
+      : q === "m7"
+        ? [0, 3, 7, 10]
+        : q === "7"
+          ? [0, 4, 7, 10]
+          : q === "maj7"
+            ? [0, 4, 7, 11]
+            : [0, 4, 7];
   return { root: m[1]!, tones };
 }
 
@@ -401,7 +428,8 @@ function startAmbience(kind: Ambience): void {
     return;
   }
   ambienceTimer = setInterval(() => {
-    if (Math.random() < (kind === "birds" ? 0.18 : 0.35)) (kind === "birds" ? birdCall : cricket)(c, c.currentTime + Math.random() * 0.4);
+    if (Math.random() < (kind === "birds" ? 0.18 : 0.35))
+      (kind === "birds" ? birdCall : cricket)(c, c.currentTime + Math.random() * 0.4);
   }, 1000);
 }
 
@@ -413,5 +441,6 @@ export function setAmbience(kind: Ambience): void {
 }
 
 useSound.subscribe((s) => (s.on ? startAmbience(ambienceNow) : stopAmbience()));
-document.addEventListener("visibilitychange", () => (document.hidden ? stopAmbience() : useSound.getState().on && startAmbience(ambienceNow)));
-
+document.addEventListener("visibilitychange", () =>
+  document.hidden ? stopAmbience() : useSound.getState().on && startAmbience(ambienceNow),
+);

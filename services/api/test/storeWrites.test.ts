@@ -17,7 +17,13 @@ import { createSeasonStore } from "../src/season";
 const tmp = () => mkdtempSync(join(tmpdir(), "lx-store-"));
 const T = Date.UTC(2026, 10, 18, 12);
 const WEEK_MS = 7 * 86_400_000;
-const seasonPet = (name: string) => ({ name, line: "gentle", stage: "child", card: petCard({ lessons: [] }), story: { days: 1, lessons: 0, nature: [] } });
+const seasonPet = (name: string) => ({
+  name,
+  line: "gentle",
+  stage: "child",
+  card: petCard({ lessons: [] }),
+  story: { days: 1, lessons: 0, nature: [] },
+});
 const OLD = 1_000_000_000;
 
 describe("the season keeps one file a week and writes only the week that changed (A123)", () => {
@@ -36,7 +42,12 @@ describe("the season keeps one file a week and writes only the week that changed
     expect(statSync(join(`${file}.d`, "2026-W46.json")).mtimeMs, "last week's file was not rewritten").toBe(OLD * 1000);
     // and everything reads back after a restart
     const again = createSeasonStore(file, () => now);
-    expect(again.view("2026-W47")!.entries.map((e) => e.pet.name).sort()).toEqual(["More", "This"]);
+    expect(
+      again
+        .view("2026-W47")!
+        .entries.map((e) => e.pet.name)
+        .sort(),
+    ).toEqual(["More", "This"]);
     expect(again.view("2026-W46")!.entries.map((e) => e.pet.name)).toEqual(["Last"]);
   });
 
@@ -45,7 +56,12 @@ describe("the season keeps one file a week and writes only the week that changed
     const file = join(dir, "season.json");
     const before = createSeasonStore(undefined, () => T);
     before.enter(seasonPet("Kept"), "device-kept-0001");
-    writeFileSync(file, JSON.stringify({ "2026-W47": before.view("2026-W47") ? { entries: before.view("2026-W47")!.entries, by: {} } : {} }));
+    writeFileSync(
+      file,
+      JSON.stringify({
+        "2026-W47": before.view("2026-W47") ? { entries: before.view("2026-W47")!.entries, by: {} } : {},
+      }),
+    );
     const store = createSeasonStore(file, () => T);
     expect(store.view("2026-W47")!.entries.map((e) => e.pet.name)).toEqual(["Kept"]);
     expect(existsSync(join(`${file}.d`, "2026-W47.json"))).toBe(true);
@@ -98,13 +114,27 @@ describe("what a crashed write left behind is cleared on open (A123)", () => {
 });
 
 describe("the daily character limits hold for an IPv6 /48 too (A123)", () => {
-  const duelPet = (name: string): DuelPet => ({ name, line: "gentle", stage: "adult", card: petCard({ lessons: [] }), story: { days: 9, lessons: 0, nature: [] } });
-  const code = (n: number) => encodeChallenge({ id: `abcdef01234567${String(n).padStart(2, "0")}`, from: duelPet("Mochi"), at: n });
+  const duelPet = (name: string): DuelPet => ({
+    name,
+    line: "gentle",
+    stage: "adult",
+    card: petCard({ lessons: [] }),
+    story: { days: 9, lessons: 0, nature: [] },
+  });
+  const code = (n: number) =>
+    encodeChallenge({ id: `abcdef01234567${String(n).padStart(2, "0")}`, from: duelPet("Mochi"), at: n });
 
   it("duel links: one /48 stores four addresses' worth a day, and another caller is not held up", async () => {
     const t = Date.UTC(2026, 10, 20, 9);
     const app = withDuels(new Hono(), createDuelStore(), new RateLimiter(1000, 60_000), () => t, code(1).length + 50);
-    const post = async (ip: string, c: string) => ((await (await app.request("/api/duels", { method: "POST", headers: { "content-type": "application/json", "cf-connecting-ip": ip }, body: JSON.stringify({ code: c }) })).json()) as { ok: boolean; reason?: string });
+    const post = async (ip: string, c: string) =>
+      (await (
+        await app.request("/api/duels", {
+          method: "POST",
+          headers: { "content-type": "application/json", "cf-connecting-ip": ip },
+          body: JSON.stringify({ code: c }),
+        })
+      ).json()) as { ok: boolean; reason?: string };
     const got: string[] = [];
     for (let i = 1; i <= 10; i++) {
       const r = await post(`2001:db8:123:${i.toString(16)}::1`, code(i));
@@ -128,7 +158,9 @@ describe("the daily character limits hold for an IPv6 /48 too (A123)", () => {
       got.push(r.ok ? "ok" : r.reason);
     }
     const one = JSON.stringify(log("101").log).length;
-    expect(got.filter((x) => x === "ok").length, `${one} bytes a diary`).toBe(Math.floor((50_000 * PREFIX_SHARE) / one));
+    expect(got.filter((x) => x === "ok").length, `${one} bytes a diary`).toBe(
+      Math.floor((50_000 * PREFIX_SHARE) / one),
+    );
     const d = log("200");
     expect(store.publish(d.log, { logHash: d.hash, born }, "198.51.100.24").ok).toBe(true);
   });

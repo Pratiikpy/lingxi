@@ -8,7 +8,14 @@ import { DIARY_FLOOR_WORDS, DIARY_WORDS_PER_MINUTE, createDiaryStore } from "../
 import { withDiaries } from "../src/server";
 
 const words = [0x1234, 0x0001, 0xffff, 0x2a2a];
-const log = { petId: "7", words, segments: [{ brainId: "1", words: words.slice(0, 2) }, { brainId: "9", words: words.slice(2) }] };
+const log = {
+  petId: "7",
+  words,
+  segments: [
+    { brainId: "1", words: words.slice(0, 2) },
+    { brainId: "9", words: words.slice(2) },
+  ],
+};
 const hash = chainAll(ZERO_HASH, words);
 const NOW = Date.UTC(2026, 10, 20, 12);
 /** A pet hatched on chain `days` ago, with `logHash` saved. */
@@ -24,19 +31,29 @@ describe("public diaries", () => {
     const store = createDiaryStore(tmp(), { now: () => NOW });
     expect(store.publish(log, onChain("0x" + "ab".repeat(32)), "a")).toEqual({ ok: false, reason: "mismatch" });
     expect(store.publish(log, null, "a")).toEqual({ ok: false, reason: "unknown" });
-    expect(store.publish({ ...log, segments: [{ brainId: "1", words: words.slice(0, 3) }] }, onChain(hash), "a")).toEqual({ ok: false, reason: "invalid" });
+    expect(
+      store.publish({ ...log, segments: [{ brainId: "1", words: words.slice(0, 3) }] }, onChain(hash), "a"),
+    ).toEqual({ ok: false, reason: "invalid" });
     expect(store.publish({ ...log, words: [70000] }, onChain(hash), "a")).toEqual({ ok: false, reason: "invalid" });
     expect(store.publish(log, onChain(hash), "a")).toEqual({ ok: true, beats: 4 });
     expect(store.get("7")?.words).toEqual(words);
     // a shorter log never replaces a longer one
     const short = { petId: "7", words: words.slice(0, 2), segments: [{ brainId: "1", words: words.slice(0, 2) }] };
-    expect(store.publish(short, onChain(chainAll(ZERO_HASH, words.slice(0, 2))), "a")).toEqual({ ok: false, reason: "older" });
+    expect(store.publish(short, onChain(chainAll(ZERO_HASH, words.slice(0, 2))), "a")).toEqual({
+      ok: false,
+      reason: "older",
+    });
   });
 
   it("serves it to anyone, streamed from its file, and refuses a log for another pet's page", async () => {
     const store = createDiaryStore(tmp(), { now: () => NOW });
     const app = withDiaries(new Hono(), store, async (id) => (id === "7" ? onChain(hash) : null));
-    const post = (id: string, body: unknown) => app.request(`/api/pets/${id}/log`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    const post = (id: string, body: unknown) =>
+      app.request(`/api/pets/${id}/log`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
     expect((await post("8", log)).status).toBe(400);
     expect((await post("7", log)).status).toBe(200);
     const r = await app.request("/api/pets/7/log");
@@ -63,7 +80,10 @@ describe("diaries bounded (A39)", () => {
     // hatched an hour ago: 600 words a minute's worth, but never fewer than the floor
     const hourOld = { born: Math.floor(NOW / 1000) - 3600 };
     const atFloor = longLog("21", DIARY_FLOOR_WORDS);
-    expect(store.publish(atFloor.log, { ...hourOld, logHash: atFloor.hash }, "a")).toEqual({ ok: true, beats: DIARY_FLOOR_WORDS });
+    expect(store.publish(atFloor.log, { ...hourOld, logHash: atFloor.hash }, "a")).toEqual({
+      ok: true,
+      beats: DIARY_FLOOR_WORDS,
+    });
     const past = longLog("22", DIARY_FLOOR_WORDS + 1);
     expect(store.publish(past.log, { ...hourOld, logHash: past.hash }, "a")).toEqual({ ok: false, reason: "tooLong" });
     // past the floor, a pet may hold ten words for each minute it has lived: nine hours is 5,400, and not one more
@@ -73,7 +93,10 @@ describe("diaries bounded (A39)", () => {
     const fits = longLog("23", most);
     expect(store.publish(fits.log, { ...nineHours, logHash: fits.hash }, "a")).toEqual({ ok: true, beats: most });
     const over = longLog("24", most + 1);
-    expect(store.publish(over.log, { ...nineHours, logHash: over.hash }, "a")).toEqual({ ok: false, reason: "tooLong" });
+    expect(store.publish(over.log, { ...nineHours, logHash: over.hash }, "a")).toEqual({
+      ok: false,
+      reason: "tooLong",
+    });
   });
 
   it("takes the pet's age on the chain's clock, not this server's: a chain running a day behind does not age the pet", () => {
@@ -81,7 +104,10 @@ describe("diaries bounded (A39)", () => {
     const chainNow = Math.floor(NOW / 1000) - 86_400;
     // hatched a minute ago by the chain's clock, a day and a minute ago by the server's
     const past = longLog("25", DIARY_FLOOR_WORDS + 500);
-    expect(store.publish(past.log, { logHash: past.hash, born: chainNow - 60, at: chainNow }, "a")).toEqual({ ok: false, reason: "tooLong" });
+    expect(store.publish(past.log, { logHash: past.hash, born: chainNow - 60, at: chainNow }, "a")).toEqual({
+      ok: false,
+      reason: "tooLong",
+    });
   });
 
   it("an address may publish only so much a day, counting only what a republish adds", () => {
@@ -109,13 +135,20 @@ describe("diaries bounded (A39)", () => {
     t += 120_000;
     const c = longLog("43", 8_000);
     expect(store.publish(c.log, onChain(c.hash), "addr-43")).toEqual({ ok: true, beats: 8_000 });
-    expect([store.get("41") !== null, store.get("42") !== null, store.get("43") !== null], "42 went").toEqual([true, false, true]);
+    expect([store.get("41") !== null, store.get("42") !== null, store.get("43") !== null], "42 went").toEqual([
+      true,
+      false,
+      true,
+    ]);
     // after a restart the order holds: 41 was read before 43 was published, so 41 is now the one quiet longest
     t += 120_000;
     const again = createDiaryStore(dir, { now: () => t, totalBytes: size * 2 + 1_000 });
     const d = longLog("44", 8_000);
     expect(again.publish(d.log, onChain(d.hash), "addr-44").ok).toBe(true);
-    expect([again.get("41") !== null, again.get("43") !== null, again.get("44") !== null], "41, quiet longest, went").toEqual([false, true, true]);
+    expect(
+      [again.get("41") !== null, again.get("43") !== null, again.get("44") !== null],
+      "41, quiet longest, went",
+    ).toEqual([false, true, true]);
   });
 
   it("opens a folder of large diaries without reading them, and still refuses a shorter republish (A80)", () => {
@@ -147,7 +180,11 @@ describe("diaries bounded (A39)", () => {
   it("answers a refusal a player can meet with ok: false, not an error a browser would log", async () => {
     const store = createDiaryStore(tmp(), { now: () => NOW, perAddressBytesPerDay: 10 });
     const app = withDiaries(new Hono(), store, async () => onChain(hash));
-    const r = await app.request("/api/pets/7/log", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(log) });
+    const r = await app.request("/api/pets/7/log", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(log),
+    });
     expect([r.status, await r.json()]).toEqual([200, { ok: false, reason: "busy" }]);
   });
 });

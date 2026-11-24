@@ -1,8 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { COMPOST, CROPS, GARDEN_ROOM, ITEM, PLOTS, buy, compostFromClean, gardenOf, harvest, newWorld, plant, plotStage } from "../src";
+import {
+  COMPOST,
+  CROPS,
+  GARDEN_ROOM,
+  ITEM,
+  PLOTS,
+  buy,
+  compostFromClean,
+  gardenOf,
+  harvest,
+  newWorld,
+  plant,
+  plotStage,
+} from "../src";
 
 const H = 3_600_000;
-const inGarden = (bag: Record<number, number> = {}) => ({ ...newWorld("seed0001seed0001"), room: GARDEN_ROOM, bag, coins: 200 });
+const inGarden = (bag: Record<number, number> = {}) => ({
+  ...newWorld("seed0001seed0001"),
+  room: GARDEN_ROOM,
+  bag,
+  coins: 200,
+});
 
 describe("the garden", () => {
   it("every crop, seed and compost has a name, a picture and a price where it is sold", () => {

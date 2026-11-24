@@ -29,13 +29,22 @@ const WHAT: Record<RelayKind, { en: (pet: string) => string; zh: (pet: string) =
   brain: { en: (p) => `tape out a new brain for pet #${p}`, zh: (p) => `为 ${p} 号宠物流片新大脑` },
   child: { en: (p) => `tape out a little one's brain for pet #${p}`, zh: (p) => `为 ${p} 号宠物流片小宝宝的大脑` },
   instinct: { en: (p) => `tape out an instinct for pet #${p}`, zh: (p) => `为 ${p} 号宠物流片一个本能` },
-  season: { en: (p) => `enter pet #${p} in this week's season, so a keepsake can come to you`, zh: (p) => `让 ${p} 号宠物报名本周赛季，赢了纪念品可以送给你` },
+  season: {
+    en: (p) => `enter pet #${p} in this week's season, so a keepsake can come to you`,
+    zh: (p) => `让 ${p} 号宠物报名本周赛季，赢了纪念品可以送给你`,
+  },
 };
 
 export const relayPayloadHash = (payload: string): Hex => sha256(stringToBytes(payload));
 
 /** The text a keeper signs (EIP-191). Both sides build it the same way from the same fields. */
-export function relayMessage(o: { kind: RelayKind; petId: string; payload: string; nonce: string; time: number }): string {
+export function relayMessage(o: {
+  kind: RelayKind;
+  petId: string;
+  payload: string;
+  nonce: string;
+  time: number;
+}): string {
   const w = WHAT[o.kind];
   return [
     `Lingxi: ${w.en(o.petId)}. No fee, no transaction.`,

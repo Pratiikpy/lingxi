@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { STARTERS, bytesToHex, compileProgram, fastBrain, netlistBytes, stateBits } from "@lingxi/brain";
-import { type Brain, type Pet, SKILLS, care, catchUp, composeProgram, createPet, familyOf, mindBrain, skillRules } from "@lingxi/game";
+import {
+  type Brain,
+  type Pet,
+  SKILLS,
+  care,
+  catchUp,
+  composeProgram,
+  createPet,
+  familyOf,
+  mindBrain,
+  skillRules,
+} from "@lingxi/game";
 import { LOCAL, gameCircuit, sameMind, tripBrainOf } from "../src/brain";
 
 const T0 = Date.UTC(2026, 10, 17, 9);
@@ -13,13 +24,27 @@ const outside = {
   owner: P,
   parts: [{ processor: P, id: "7", nIn: 16, nOut: 8, hex: bytesToHex(netlistBytes(compileProgram(STARTERS.bold))) }],
 };
-const family = familyOf({ name: "Ada", line: "gentle", lessons: [lesson], skills: [ruleSkill.id], petId: 1 }, { name: "Bo", line: "bold", lessons: [], petId: 2 });
+const family = familyOf(
+  { name: "Ada", line: "gentle", lessons: [lesson], skills: [ruleSkill.id], petId: 1 },
+  { name: "Bo", line: "bold", lessons: [], petId: 2 },
+);
 
 /** The game's own brain for a pet, exactly as the web store's brainOf picks it. */
 function gameBrain(p: Pet): Brain {
-  if (p.family || p.outside) return mindBrain({ line: p.line, lessons: p.lessons ?? [], family: p.family, instincts: p.instincts, outside: p.outside, growth: p.growth });
+  if (p.family || p.outside)
+    return mindBrain({
+      line: p.line,
+      lessons: p.lessons ?? [],
+      family: p.family,
+      instincts: p.instincts,
+      outside: p.outside,
+      growth: p.growth,
+    });
   const rules = skillRules(p.growth);
-  const prog = p.lessons?.length || p.instincts || rules.length ? composeProgram(p.line, p.lessons ?? [], p.instincts ?? 0, { rules }) : STARTERS[p.line];
+  const prog =
+    p.lessons?.length || p.instincts || rules.length
+      ? composeProgram(p.line, p.lessons ?? [], p.instincts ?? 0, { rules })
+      : STARTERS[p.line];
   return { fast: fastBrain(compileProgram(prog)), nState: stateBits(prog) };
 }
 
@@ -31,7 +56,25 @@ function lived(p: Pet): Pet {
   return q;
 }
 
-const base = (extra: Partial<Pet> = {}): Pet => ({ ...createPet({ name: "Pip", line: "gentle", now: T0, tzOffsetMin: 0, brain: gameBrain({ ...createPet({ name: "x", line: "gentle", now: T0, tzOffsetMin: 0, brain: { fast: fastBrain(compileProgram(STARTERS.gentle)), nState: stateBits(STARTERS.gentle) } }), ...extra } as Pet) }), ...extra });
+const base = (extra: Partial<Pet> = {}): Pet => ({
+  ...createPet({
+    name: "Pip",
+    line: "gentle",
+    now: T0,
+    tzOffsetMin: 0,
+    brain: gameBrain({
+      ...createPet({
+        name: "x",
+        line: "gentle",
+        now: T0,
+        tzOffsetMin: 0,
+        brain: { fast: fastBrain(compileProgram(STARTERS.gentle)), nState: stateBits(STARTERS.gentle) },
+      }),
+      ...extra,
+    } as Pet),
+  }),
+  ...extra,
+});
 
 const PETS: Array<[string, Pet]> = [
   ["a starter", base()],

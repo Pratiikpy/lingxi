@@ -13,12 +13,39 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { createPublicClient, http, type Address, type Hex } from "viem";
-import { STARTERS, beat, bitsToWord, compileProgram, compileSeal, hexToBytes, load, netlistBytes, sealReference, wordToBits } from "@lingxi/brain";
+import {
+  STARTERS,
+  beat,
+  bitsToWord,
+  compileProgram,
+  compileSeal,
+  hexToBytes,
+  load,
+  netlistBytes,
+  sealReference,
+  wordToBits,
+} from "@lingxi/brain";
 import { EVOLUTION, chainLog, unpackState } from "@lingxi/game";
-import { FACTORY, canvasOfSvg, factoryAbi, gameSprite, lookOf, processorAbi, readMetadata, readPet, replayMany, xLayer, type Deployment } from "@lingxi/chain";
+import {
+  FACTORY,
+  canvasOfSvg,
+  factoryAbi,
+  gameSprite,
+  lookOf,
+  processorAbi,
+  readMetadata,
+  readPet,
+  replayMany,
+  xLayer,
+  type Deployment,
+} from "@lingxi/chain";
 
-const d = JSON.parse(readFileSync(new URL("../packages/chain/deployments/xlayer.json", import.meta.url), "utf8")) as Deployment & { circuits: Record<string, { id: string }> };
-const pubs = ["https://rpc.xlayer.tech", "https://xlayerrpc.okx.com"].map((u) => createPublicClient({ chain: { ...xLayer, rpcUrls: { default: { http: [u] } } }, transport: http(u) }));
+const d = JSON.parse(
+  readFileSync(new URL("../packages/chain/deployments/xlayer.json", import.meta.url), "utf8"),
+) as Deployment & { circuits: Record<string, { id: string }> };
+const pubs = ["https://rpc.xlayer.tech", "https://xlayerrpc.okx.com"].map((u) =>
+  createPublicClient({ chain: { ...xLayer, rpcUrls: { default: { http: [u] } } }, transport: http(u) }),
+);
 const pub = pubs[0]!;
 let failures = 0;
 const ok = (good: boolean, what: string) => {
@@ -29,7 +56,15 @@ const sha = (b: Uint8Array) => createHash("sha256").update(b).digest("hex").slic
 
 console.log(`Lingxi on X Layer (chain ${await pub.getChainId()}), processor ${d.processor}, registry ${d.registry}\n`);
 
-ok((await pub.readContract({ address: FACTORY, abi: factoryAbi, functionName: "isCPU", args: [d.processor as Address] })) as boolean, "processor is registered with TapeOut's factory");
+ok(
+  (await pub.readContract({
+    address: FACTORY,
+    abi: factoryAbi,
+    functionName: "isCPU",
+    args: [d.processor as Address],
+  })) as boolean,
+  "processor is registered with TapeOut's factory",
+);
 
 const expected: Record<string, Uint8Array> = {
   gentle: netlistBytes(compileProgram(STARTERS.gentle)),
@@ -40,28 +75,55 @@ const expected: Record<string, Uint8Array> = {
 };
 for (const [name, bytes] of Object.entries(expected)) {
   const id = BigInt(d.circuits[name]!.id);
-  const onChain = hexToBytes((await pub.readContract({ address: d.processor as Address, abi: processorAbi, functionName: "netlist", args: [id] })) as Hex);
-  ok(sha(onChain) === sha(bytes) && onChain.length === bytes.length, `circuit #${id} ${name}: ${bytes.length} bytes, sha256 ${sha(bytes)}… equals this repo's compiler output`);
+  const onChain = hexToBytes(
+    (await pub.readContract({
+      address: d.processor as Address,
+      abi: processorAbi,
+      functionName: "netlist",
+      args: [id],
+    })) as Hex,
+  );
+  ok(
+    sha(onChain) === sha(bytes) && onChain.length === bytes.length,
+    `circuit #${id} ${name}: ${bytes.length} bytes, sha256 ${sha(bytes)}… equals this repo's compiler output`,
+  );
 }
 
 // pet #1: replay its published log
 const pet = await readPet(pub, d, 1n);
-const log = JSON.parse(readFileSync(new URL("../packages/chain/deployments/pet-1-log.json", import.meta.url), "utf8")) as { words: number[] };
+const log = JSON.parse(
+  readFileSync(new URL("../packages/chain/deployments/pet-1-log.json", import.meta.url), "utf8"),
+) as { words: number[] };
 let h = "0x" + "00".repeat(32);
 for (const w of log.words) h = chainLog(h, w);
-ok(h.toLowerCase() === pet.logHash.toLowerCase(), `pet #1 day ${pet.day}: the log's hash chain equals the hash committed on chain (${log.words.length} beats)`);
+ok(
+  h.toLowerCase() === pet.logHash.toLowerCase(),
+  `pet #1 day ${pet.day}: the log's hash chain equals the hash committed on chain (${log.words.length} beats)`,
+);
 const gentle = load(expected.gentle!, 16, 8);
 let mem = new Array<number>(pet.brainBits).fill(0);
 for (const w of log.words) mem = beat(gentle, mem, wordToBits(w, 16))[0];
-ok(JSON.stringify(mem) === JSON.stringify(unpackState(pet.state, pet.brainBits).brain), "pet #1: replaying the log gives exactly the memory saved on chain");
+ok(
+  JSON.stringify(mem) === JSON.stringify(unpackState(pet.state, pet.brainBits).brain),
+  "pet #1: replaying the log gives exactly the memory saved on chain",
+);
 
 // the picture the registry serves is drawn on chain by PetLook, and it is the game's own art for the saved state
 const meta = await readMetadata(pub, d, 1n);
-const svg = meta.image?.startsWith("data:image/svg+xml;base64,") ? Buffer.from(meta.image.slice(26), "base64").toString("utf8") : "";
-ok(svg.length > 0 && JSON.stringify(canvasOfSvg(svg).px) === JSON.stringify(gameSprite(lookOf(pet.state)).px), `pet #1's picture (tokenURI, drawn by PetLook ${d.look}) equals the game's sprite for its saved state, pixel for pixel`);
+const svg = meta.image?.startsWith("data:image/svg+xml;base64,")
+  ? Buffer.from(meta.image.slice(26), "base64").toString("utf8")
+  : "";
+ok(
+  svg.length > 0 && JSON.stringify(canvasOfSvg(svg).px) === JSON.stringify(gameSprite(lookOf(pet.state)).px),
+  `pet #1's picture (tokenURI, drawn by PetLook ${d.look}) equals the game's sprite for its saved state, pixel for pixel`,
+);
 
 // every input, through the chain, in batches of 64 spread over both official endpoints
-async function everyInput(label: string, ask: (client: (typeof pubs)[number], words: number[]) => Promise<number[]>, expect: (w: number) => number) {
+async function everyInput(
+  label: string,
+  ask: (client: (typeof pubs)[number], words: number[]) => Promise<number[]>,
+  expect: (w: number) => number,
+) {
   let next = 0;
   let bad = 0;
   const t0 = Date.now();
@@ -93,7 +155,10 @@ async function everyInput(label: string, ask: (client: (typeof pubs)[number], wo
 const savedMemory = unpackState(pet.state, pet.brainBits).brain;
 await everyInput(
   `pet #1's brain at its saved memory (${savedMemory.join("")}), via PetRegistry.replayStep → processor.step`,
-  async (client, words) => (await replayMany(client, d, 1n, BigInt(bitsToWord(savedMemory)), words)).map((r) => Number(r.outputs) | (Number(r.next) << 8)),
+  async (client, words) =>
+    (await replayMany(client, d, 1n, BigInt(bitsToWord(savedMemory)), words)).map(
+      (r) => Number(r.outputs) | (Number(r.next) << 8),
+    ),
   (w) => {
     const [ns, outs] = beat(gentle, savedMemory, wordToBits(w, 16));
     return Number(bitsToWord(outs)) | (Number(bitsToWord(ns)) << 8);
@@ -105,7 +170,15 @@ await everyInput(
     const res = (await client.multicall({
       allowFailure: false,
       batchSize: 1 << 22,
-      contracts: words.map((w) => ({ address: d.processor as Address, abi: processorAbi, functionName: "eval", args: [BigInt(d.circuits.seal!.id), `0x${(w & 0xff).toString(16).padStart(2, "0")}${(w >> 8).toString(16).padStart(2, "0")}` as Hex] })),
+      contracts: words.map((w) => ({
+        address: d.processor as Address,
+        abi: processorAbi,
+        functionName: "eval",
+        args: [
+          BigInt(d.circuits.seal!.id),
+          `0x${(w & 0xff).toString(16).padStart(2, "0")}${(w >> 8).toString(16).padStart(2, "0")}` as Hex,
+        ],
+      })),
     })) as Hex[];
     return res.map((hx) => parseInt(hx.slice(2, 4), 16));
   },

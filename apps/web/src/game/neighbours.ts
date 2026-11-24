@@ -5,7 +5,20 @@
  */
 
 import { create } from "zustand";
-import { FRIEND_BY_ID, type Line, type Reward, type Taste, buyFromFriend, folkViewOf, giveGift, greetingNow, localDay, meetVisitor, takeStep, type Unlock } from "@lingxi/world";
+import {
+  FRIEND_BY_ID,
+  type Line,
+  type Reward,
+  type Taste,
+  buyFromFriend,
+  folkViewOf,
+  giveGift,
+  greetingNow,
+  localDay,
+  meetVisitor,
+  takeStep,
+  type Unlock,
+} from "@lingxi/world";
 import { SUB, localHour } from "@lingxi/game";
 import { questsOf } from "./quests";
 import { play } from "./sound";
@@ -41,7 +54,10 @@ export interface NeighbourNote {
 }
 
 let n = 0;
-export const useNeighbourNote = create<{ note: NeighbourNote | null; set: (x: Omit<NeighbourNote, "id"> | null) => void }>((set) => ({
+export const useNeighbourNote = create<{
+  note: NeighbourNote | null;
+  set: (x: Omit<NeighbourNote, "id"> | null) => void;
+}>((set) => ({
   note: null,
   set: (x) => set({ note: x ? { ...x, id: ++n } : null }),
 }));

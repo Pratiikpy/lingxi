@@ -6,7 +6,19 @@
  */
 
 import { useEffect, useEffectEvent, useState } from "react";
-import { type GiftTerms, type GiftWay, type Snapshot, type SnapshotFile, checkTest1, claimGift, formatBem, giftClaimed, giftTerms, giftWaysOf, loadSnapshot } from "@lingxi/chain";
+import {
+  type GiftTerms,
+  type GiftWay,
+  type Snapshot,
+  type SnapshotFile,
+  checkTest1,
+  claimGift,
+  formatBem,
+  giftClaimed,
+  giftTerms,
+  giftWaysOf,
+  loadSnapshot,
+} from "@lingxi/chain";
 import type { Pet } from "@lingxi/game";
 import { useLang } from "../i18n";
 import { connectWallet, deployment, publicClient } from "../game/chain";
@@ -25,7 +37,8 @@ const WAY_NAME: Record<GiftWay["label"], { en: string; zh: string }> = {
 };
 
 /** Chinese text around a phrase that may start or end in Latin letters ("FAB"): a space only where Latin meets Han. */
-const zhAround = (before: string, phrase: string, after: string) => `${before}${/^[A-Za-z0-9]/.test(phrase) ? " " : ""}${phrase}${/[A-Za-z0-9]$/.test(phrase) ? " " : ""}${after}`;
+const zhAround = (before: string, phrase: string, after: string) =>
+  `${before}${/^[A-Za-z0-9]/.test(phrase) ? " " : ""}${phrase}${/[A-Za-z0-9]$/.test(phrase) ? " " : ""}${after}`;
 
 export function HolderGiftPanel({ pet, wallet }: { pet: Pet; wallet: string }) {
   const lang = useLang((s) => s.lang) as Lang;
@@ -41,7 +54,9 @@ export function HolderGiftPanel({ pet, wallet }: { pet: Pet; wallet: string }) {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
 
-  const readFailed = useEffectEvent(() => setNote(L("The holder pin couldn't be read just now.", "暂时读不到持有人徽章。")));
+  const readFailed = useEffectEvent(() =>
+    setNote(L("The holder pin couldn't be read just now.", "暂时读不到持有人徽章。")),
+  );
   useEffect(() => {
     if (!deployment?.holderGift) return;
     let live = true;
@@ -59,7 +74,10 @@ export function HolderGiftPanel({ pet, wallet }: { pet: Pet; wallet: string }) {
           snap = null;
         }
         // the terms show at once; the ways follow, since finding a Test1 reads every token's owner
-        const [c, blk] = await Promise.all([giftClaimed(publicClient, t, who), publicClient.getBlock({ blockNumber: t.snapshotBlock }).catch(() => null)]);
+        const [c, blk] = await Promise.all([
+          giftClaimed(publicClient, t, who),
+          publicClient.getBlock({ blockNumber: t.snapshotBlock }).catch(() => null),
+        ]);
         if (!live) return;
         setSnapDate(blk ? new Date(Number(blk.timestamp) * 1000) : null);
         setTerms(t);
@@ -93,7 +111,12 @@ export function HolderGiftPanel({ pet, wallet }: { pet: Pet; wallet: string }) {
       await claimGift(publicClient, w, terms, way);
       setClaimed(true);
       await refreshDesigns(w.account!.address);
-      setNote(L(`The holder pin is yours, claimed through ${WAY_NAME[way.label].en}. Wear it from the wardrobe.`, `持有人徽章归你了（${zhAround("凭", WAY_NAME[way.label].zh, "领取")}）。去衣橱里穿上它吧。`));
+      setNote(
+        L(
+          `The holder pin is yours, claimed through ${WAY_NAME[way.label].en}. Wear it from the wardrobe.`,
+          `持有人徽章归你了（${zhAround("凭", WAY_NAME[way.label].zh, "领取")}）。去衣橱里穿上它吧。`,
+        ),
+      );
       play("success");
     } catch (e) {
       play("error");
@@ -104,12 +127,19 @@ export function HolderGiftPanel({ pet, wallet }: { pet: Pet; wallet: string }) {
 
   const claimWithNumber = async () => {
     if (!/^\d{1,7}$/.test(number)) {
-      setNote(L("Type the number of your TapeCode-Test1, as shown in your wallet.", "请填你的 TapeCode-Test1 编号（钱包里能看到）。"));
+      setNote(
+        L(
+          "Type the number of your TapeCode-Test1, as shown in your wallet.",
+          "请填你的 TapeCode-Test1 编号（钱包里能看到）。",
+        ),
+      );
       return;
     }
     setBusy(true);
     setNote("");
-    const r = await checkTest1(publicClient, terms, wallet as `0x${string}`, BigInt(number)).catch(() => "missing" as const);
+    const r = await checkTest1(publicClient, terms, wallet as `0x${string}`, BigInt(number)).catch(
+      () => "missing" as const,
+    );
     setBusy(false);
     if (r === "ok") return claim({ kind: "nft", collection: terms.test1, tokenId: BigInt(number), label: "test1" });
     play("error");
@@ -123,7 +153,9 @@ export function HolderGiftPanel({ pet, wallet }: { pet: Pet; wallet: string }) {
   };
 
   const pinKey = `c2:${terms.outfit}`;
-  const when = snapDate ? snapDate.toLocaleDateString(lang === "zh" ? "zh-CN" : "en", { year: "numeric", month: "long", day: "numeric" }) : `#${terms.snapshotBlock}`;
+  const when = snapDate
+    ? snapDate.toLocaleDateString(lang === "zh" ? "zh-CN" : "en", { year: "numeric", month: "long", day: "numeric" })
+    : `#${terms.snapshotBlock}`;
   return (
     <div className="holder-gift">
       <p className="label">{L("Holder pin", "持有人徽章")}</p>
@@ -137,26 +169,65 @@ export function HolderGiftPanel({ pet, wallet }: { pet: Pet; wallet: string }) {
         </p>
       </div>
       {claimed ? (
-        !note && <p className="small fashion-have">{L("You've claimed your holder pin. Wear it from the wardrobe.", "你已经领过持有人徽章了。去衣橱里穿上它吧。")}</p>
+        !note && (
+          <p className="small fashion-have">
+            {L(
+              "You've claimed your holder pin. Wear it from the wardrobe.",
+              "你已经领过持有人徽章了。去衣橱里穿上它吧。",
+            )}
+          </p>
+        )
       ) : (
         <>
           {ways === null && (
             <p className="small" role="status">
-              {L("Reading this wallet's TapeCode-Test1, Rig and snapshot entry…", "正在读取这个钱包的 TapeCode-Test1、矿机和快照记录……")}
+              {L(
+                "Reading this wallet's TapeCode-Test1, Rig and snapshot entry…",
+                "正在读取这个钱包的 TapeCode-Test1、矿机和快照记录……",
+              )}
             </p>
           )}
           {ways?.[0] && (
-            <button type="button" className="btn primary" disabled={busy} onClick={() => (play("tap"), void claim(ways[0]!))}>
-              {busy ? L("Claiming…", "领取中……") : ways[0].kind === "nft" && ways[0].label === "test1" ? L(`Claim it with your TapeCode-Test1 #${ways[0].tokenId}`, `凭你的 TapeCode-Test1 #${ways[0].tokenId} 领取`) : L(`Claim it with ${WAY_NAME[ways[0].label].en}`, zhAround("凭", WAY_NAME[ways[0].label].zh, "领取"))}
+            <button
+              type="button"
+              className="btn primary"
+              disabled={busy}
+              onClick={() => (play("tap"), void claim(ways[0]!))}
+            >
+              {busy
+                ? L("Claiming…", "领取中……")
+                : ways[0].kind === "nft" && ways[0].label === "test1"
+                  ? L(
+                      `Claim it with your TapeCode-Test1 #${ways[0].tokenId}`,
+                      `凭你的 TapeCode-Test1 #${ways[0].tokenId} 领取`,
+                    )
+                  : L(
+                      `Claim it with ${WAY_NAME[ways[0].label].en}`,
+                      zhAround("凭", WAY_NAME[ways[0].label].zh, "领取"),
+                    )}
             </button>
           )}
-          {test1Unread && <p className="small sp-warn">{L("This wallet's TapeCode-Test1 couldn't be looked up just now: type its number below.", "暂时查不到这个钱包的 TapeCode-Test1：请在下面填它的编号。")}</p>}
+          {test1Unread && (
+            <p className="small sp-warn">
+              {L(
+                "This wallet's TapeCode-Test1 couldn't be looked up just now: type its number below.",
+                "暂时查不到这个钱包的 TapeCode-Test1：请在下面填它的编号。",
+              )}
+            </p>
+          )}
           {ways !== null && !ways.length && !test1Unread && (
-            <p className="small">{L("This wallet holds no unused TapeCode-Test1 or Rig and wasn't in the BEM or FAB snapshot, so there is nothing to claim and nothing was spent.", "这个钱包没有还没用过的 TapeCode-Test1 或矿机，也不在 BEM 或 FAB 快照里，所以没有可领的东西，也没花钱。")}</p>
+            <p className="small">
+              {L(
+                "This wallet holds no unused TapeCode-Test1 or Rig and wasn't in the BEM or FAB snapshot, so there is nothing to claim and nothing was spent.",
+                "这个钱包没有还没用过的 TapeCode-Test1 或矿机，也不在 BEM 或 FAB 快照里，所以没有可领的东西，也没花钱。",
+              )}
+            </p>
           )}
           {ways !== null && (
             <details className="holder-gift-test1-box" open={test1Unread || undefined}>
-              <summary className="small">{L("Claim with a TapeCode-Test1 by its number", "用 TapeCode-Test1 的编号领取")}</summary>
+              <summary className="small">
+                {L("Claim with a TapeCode-Test1 by its number", "用 TapeCode-Test1 的编号领取")}
+              </summary>
               <form
                 className="holder-gift-test1"
                 onSubmit={(e) => {
@@ -166,7 +237,12 @@ export function HolderGiftPanel({ pet, wallet }: { pet: Pet; wallet: string }) {
               >
                 <label className="small">
                   {L("Its number, as your wallet shows it", "编号（钱包里能看到）")}
-                  <input inputMode="numeric" value={number} placeholder="#" onChange={(e) => setNumber(e.target.value.replace(/\D/g, "").slice(0, 7))} />
+                  <input
+                    inputMode="numeric"
+                    value={number}
+                    placeholder="#"
+                    onChange={(e) => setNumber(e.target.value.replace(/\D/g, "").slice(0, 7))}
+                  />
                 </label>
                 <button type="submit" className="btn" disabled={busy || !number}>
                   {L("Check and claim", "查看并领取")}

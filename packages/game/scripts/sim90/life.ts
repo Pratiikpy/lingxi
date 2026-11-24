@@ -110,7 +110,22 @@ import {
   schoolIdsOf,
   visitorsDuring,
 } from "../../src";
-import { FIRST_ROUND_MS, FIRST_WIN_COINS, ROUND_MS, WIN_COINS, GIVER_ROOM, type TallyEntry, careTally, meetTally, talkTally, fedTally, minuteTally, sparLevel, viewOf, awayTally } from "./client";
+import {
+  FIRST_ROUND_MS,
+  FIRST_WIN_COINS,
+  ROUND_MS,
+  WIN_COINS,
+  GIVER_ROOM,
+  type TallyEntry,
+  careTally,
+  meetTally,
+  talkTally,
+  fedTally,
+  minuteTally,
+  sparLevel,
+  viewOf,
+  awayTally,
+} from "./client";
 
 export const MIN = 60_000;
 /** Reading a spar's result and tapping for the next one (the simulator's own estimate of a quick player). */
@@ -172,19 +187,41 @@ export class Life {
   readonly byLesson: Record<string, { watched: number; fired: number }> = {};
   tooBig = false;
 
-  constructor(o: { name: string; line: StarterLine; bornAt: number; tzOffsetMin: number; seed: number; trees: readonly Tree[] }) {
-    this.pet = createPet({ name: o.name, line: o.line, now: o.bornAt, tzOffsetMin: o.tzOffsetMin, brain: mindBrain({ line: o.line, lessons: [] }) });
+  constructor(o: {
+    name: string;
+    line: StarterLine;
+    bornAt: number;
+    tzOffsetMin: number;
+    seed: number;
+    trees: readonly Tree[];
+  }) {
+    this.pet = createPet({
+      name: o.name,
+      line: o.line,
+      now: o.bornAt,
+      tzOffsetMin: o.tzOffsetMin,
+      brain: mindBrain({ line: o.line, lessons: [] }),
+    });
     this.world = newWorld(`sim90-${o.seed}-${o.name}`);
     this.seedOfPet = awaySeed(this.pet);
     this.rnd = xorshift(o.seed ^ 0x5bd1e995);
-    this.skillOrder = [...SKILLS].sort((a, b) => o.trees.indexOf(a.tree) - o.trees.indexOf(b.tree) || a.id - b.id).map((s) => s.id);
+    this.skillOrder = [...SKILLS]
+      .sort((a, b) => o.trees.indexOf(a.tree) - o.trees.indexOf(b.tree) || a.id - b.id)
+      .map((s) => s.id);
   }
 
   /* ── the pet ──────────────────────────────────────────────────────────── */
 
   brain(): Brain {
     const p = this.pet;
-    return mindBrain({ line: p.line, lessons: p.lessons, family: p.family, instincts: p.instincts, outside: p.outside, growth: p.growth });
+    return mindBrain({
+      line: p.line,
+      lessons: p.lessons,
+      family: p.family,
+      instincts: p.instincts,
+      outside: p.outside,
+      growth: p.growth,
+    });
   }
   /** lesson slots a quest gave (the client's setQuestSlots in world.ts) */
   slots(): number {
@@ -221,7 +258,8 @@ export class Life {
     }
   }
   flush(): WorldState {
-    for (const [type, index, n, total] of this.pending.values()) this.world = bump(this.world, type, index, n, { total });
+    for (const [type, index, n, total] of this.pending.values())
+      this.world = bump(this.world, type, index, n, { total });
     this.pending.clear();
     return this.world;
   }
@@ -232,7 +270,14 @@ export class Life {
     // the travelling pets who came by while it was away, as the welcome card counts them, and their keepsakes (G4)
     const p0 = this.pet;
     const stage = stageOf(p0, t);
-    const visits = visitorsDuring(awaySeed(p0), p0.beat, beatOf(t), { lessons: schoolIdsOf(p0.lessons), traits: p0.traits, line: p0.line, stage, tzOffsetMin: p0.tzOffsetMin, ...(p0.form ? { form: p0.form } : {}) });
+    const visits = visitorsDuring(awaySeed(p0), p0.beat, beatOf(t), {
+      lessons: schoolIdsOf(p0.lessons),
+      traits: p0.traits,
+      line: p0.line,
+      stage,
+      tzOffsetMin: p0.tzOffsetMin,
+      ...(p0.form ? { form: p0.form } : {}),
+    });
     if (visits.length) {
       const kept = keepsakesFrom(this.album, visits);
       for (const k of kept) this.world = payReward(this.world, k.gift);
@@ -243,10 +288,16 @@ export class Life {
     const wants: Record<string, number> = {};
     this.set(
       settleForm(
-        catchUp(this.pet, t, this.brain(), (b) => awayEvent(seed, b), (want) => {
-          const w = WANTS[want];
-          if (w && w !== "idle") wants[w] = (wants[w] ?? 0) + 1;
-        }),
+        catchUp(
+          this.pet,
+          t,
+          this.brain(),
+          (b) => awayEvent(seed, b),
+          (want) => {
+            const w = WANTS[want];
+            if (w && w !== "idle") wants[w] = (wants[w] ?? 0) + 1;
+          },
+        ),
         t,
       ),
     );
@@ -294,7 +345,9 @@ export class Life {
   /** The food in the bag that best fills what the pet is missing. */
   bestFood(): number | null {
     const room = 1000 - this.food();
-    const foods = Object.keys(this.world.bag).map(Number).filter((i) => ITEM[i]?.kind === "food" && (ITEM[i]!.use?.food ?? 0) > 0);
+    const foods = Object.keys(this.world.bag)
+      .map(Number)
+      .filter((i) => ITEM[i]?.kind === "food" && (ITEM[i]!.use?.food ?? 0) > 0);
     if (!foods.length) return null;
     const fill = (i: number) => ITEM[i]!.use!.food!;
     const fits = foods.filter((i) => fill(i) <= room + 100).sort((a, b) => fill(b) - fill(a));
@@ -444,7 +497,8 @@ export class Life {
       if (happeningUsed(this.world, t)) return;
     }
     if (h.kind === "market") {
-      if (this.world.coins < marketPrice(this.world, t) || !this.walkTo(MARKET_ROOM, t)) return void this.walkTo(home, t);
+      if (this.world.coins < marketPrice(this.world, t) || !this.walkTo(MARKET_ROOM, t))
+        return void this.walkTo(home, t);
       const r = buyMarket(this.world, t);
       if (r.ok) this.world = r.world;
     } else if (h.kind === "lucky") {
@@ -476,8 +530,12 @@ export class Life {
     const there = this.distance(FOOD_SHOP);
     const per = exploreMods(this.pet.growth).moveEnergy;
     if (this.pet.asleep || this.energy() < 2 * there * per + 20) return false;
-    const meals = ROOMS[FOOD_SHOP]!.shop.filter((i) => ITEM[i]?.kind === "food" && ITEM[i]!.price !== undefined && (ITEM[i]!.use?.food ?? 0) > 0);
-    const best = meals.sort((a, b) => ITEM[b]!.use!.food! / ITEM[b]!.price! - ITEM[a]!.use!.food! / ITEM[a]!.price!)[0]!;
+    const meals = ROOMS[FOOD_SHOP]!.shop.filter(
+      (i) => ITEM[i]?.kind === "food" && ITEM[i]!.price !== undefined && (ITEM[i]!.use?.food ?? 0) > 0,
+    );
+    const best = meals.sort(
+      (a, b) => ITEM[b]!.use!.food! / ITEM[b]!.price! - ITEM[a]!.use!.food! / ITEM[a]!.price!,
+    )[0]!;
     if (this.world.coins < ITEM[best]!.price!) return false;
     const home = this.world.room;
     if (!this.walkTo(FOOD_SHOP, t)) {
@@ -501,7 +559,19 @@ export class Life {
   /** One practice spar, paid as Arena.tsx pays it; returns whether it was won and how long it took to watch. */
   spar(partner: Partner, t: number): { won: boolean; ms: number } {
     const p = this.pet;
-    const me = fighterOfMind(p.name, { line: p.line, lessons: p.lessons, family: p.family, instincts: p.instincts, outside: p.outside, growth: p.growth }, sparLevel(stageOf(p, t)), p.brain);
+    const me = fighterOfMind(
+      p.name,
+      {
+        line: p.line,
+        lessons: p.lessons,
+        family: p.family,
+        instincts: p.instincts,
+        outside: p.outside,
+        growth: p.growth,
+      },
+      sparLevel(stageOf(p, t)),
+      p.brain,
+    );
     const r = fight(CURRENT_SPAR, me, partnerFighter(partner), this.rnd(), () => [false, false]);
     const outcome = r.winner === 0 ? "w" : r.winner === 1 ? "l" : "d";
     const rec = (this.record[partner.id] ??= { w: 0, l: 0, d: 0 });
@@ -527,7 +597,15 @@ export class Life {
     const tz = this.pet.tzOffsetMin;
     // D9: as the web does, no daily behind a part not open yet (the map and bag on the pet's day 2, spars on day 3)
     const petDay = dayOf(this.pet, t);
-    const closed = ([["map", 2], ["bag", 2], ["spar", 3]] as const).filter(([, d]) => petDay < d).map(([p]) => p);
+    const closed = (
+      [
+        ["map", 2],
+        ["bag", 2],
+        ["spar", 3],
+      ] as const
+    )
+      .filter(([, d]) => petDay < d)
+      .map(([p]) => p);
     this.world = rollDailies(this.world, DAILIES, viewOf(this.world, this.pet, t), tz, closed);
     if (weeklyGiftsWaiting(this.world) > 0) {
       const r = claimWeekly(this.world, WEEKLY_GIFT);
@@ -538,7 +616,12 @@ export class Life {
       for (const q of [...DAILIES, ...STORY]) {
         const v = viewOf(this.world, this.pet, t);
         const s = questStatus(q, this.world, v);
-        const r = s === "ready" ? completeQuest(this.world, q, v) : s === "available" && q.kind === "story" ? acceptQuest(this.world, q, v) : null;
+        const r =
+          s === "ready"
+            ? completeQuest(this.world, q, v)
+            : s === "available" && q.kind === "story"
+              ? acceptQuest(this.world, q, v)
+              : null;
         if (!r?.ok) continue;
         this.world = r.world;
         changed = true;
@@ -559,7 +642,8 @@ export class Life {
       if (questStatus(q, this.world, viewOf(this.world, this.pet, t)) !== "active") continue;
       const prog = questProgress(q, this.world, viewOf(this.world, this.pet, t));
       for (const [i, o] of q.objectives.entries()) {
-        if (!prog[i]!.met && this.objective(o.cond.type === "ANY" ? (o.cond.of ?? [])[0] : o.cond, t, sparWith)) return true;
+        if (!prog[i]!.met && this.objective(o.cond.type === "ANY" ? (o.cond.of ?? [])[0] : o.cond, t, sparWith))
+          return true;
       }
     }
     return false;
@@ -585,7 +669,10 @@ export class Life {
       case "SPAR":
         return this.spar(sparWith(), t).ms > 0;
       case "CRAFT": {
-        const r = RECIPES.find((x) => (c.index === undefined || x.out === Number(c.index)) && craftBlocker(this.world, x, this.energy()) === null);
+        const r = RECIPES.find(
+          (x) =>
+            (c.index === undefined || x.out === Number(c.index)) && craftBlocker(this.world, x, this.energy()) === null,
+        );
         if (!r || this.pet.asleep) return false;
         const made = craft(this.world, r.index, this.energy());
         if (!made.ok) return false;
@@ -597,8 +684,16 @@ export class Life {
         return this.shopForFood(t, 1);
       case "GIVE":
       case "GIVE_TO": {
-        const [who, item] = c.type === "GIVE_TO" ? String(c.index).split(":") : ["wick", c.index === undefined ? undefined : String(c.index)];
-        const what = item !== undefined ? Number(item) : Object.keys(this.world.bag).map(Number).find((i) => ITEM[i]?.kind === "material");
+        const [who, item] =
+          c.type === "GIVE_TO"
+            ? String(c.index).split(":")
+            : ["wick", c.index === undefined ? undefined : String(c.index)];
+        const what =
+          item !== undefined
+            ? Number(item)
+            : Object.keys(this.world.bag)
+                .map(Number)
+                .find((i) => ITEM[i]?.kind === "material");
         if (what === undefined || !has(this.world, what, c.value ?? 1)) return false;
         const r = giveTo(this.world, who!, what, c.value ?? 1);
         if (!r.ok) return false;
@@ -633,7 +728,8 @@ export class Life {
       if (!this.pet.asleep) this.care({ kind: "lightsOff" }, t);
       return this.care({ kind: "wake" }, t).note === "awake";
     }
-    if (kind === "play" || kind === "clean" || kind === "pet" || kind === "talk") return this.care(kind === "play" ? { kind, stars: 2 } : { kind }, t).note !== "tooTired";
+    if (kind === "play" || kind === "clean" || kind === "pet" || kind === "talk")
+      return this.care(kind === "play" ? { kind, stars: 2 } : { kind }, t).note !== "tooTired";
     return false;
   }
 
@@ -662,7 +758,9 @@ export class Life {
     return today ? today.offered.filter((id) => !today.done.includes(id)).length : 0;
   }
   recipesReachable(): number[] {
-    return [...RECIPES, ...knownTravelRecipes(this.world)].filter((r) => craftBlocker(this.world, r) === null).map((r) => r.index);
+    return [...RECIPES, ...knownTravelRecipes(this.world)]
+      .filter((r) => craftBlocker(this.world, r) === null)
+      .map((r) => r.index);
   }
   finds(): string[] {
     return Object.keys(this.world.tally ?? {}).filter((k) => k.startsWith("FIND:") && k !== "FIND:0");
@@ -682,11 +780,19 @@ export class Life {
     // D2: only what can be done today: a commission or plot the pet is old enough for and the player can pay for, and
     // today's village happening while it is unused
     const coins = this.world.coins;
-    const commissions = COMMISSIONS.filter((d) => !owned.includes(d.id) && stageReached(stage, d.commission!.stage) && coins >= d.price).length;
+    const commissions = COMMISSIONS.filter(
+      (d) => !owned.includes(d.id) && stageReached(stage, d.commission!.stage) && coins >= d.price,
+    ).length;
     const plot = nextPlot(this.world);
     // D16: the happening only while the player can reach it (the map open, the market's price in hand) and has not used it
     const village = !happeningUsed(this.world, t) && this.happeningReachable(t) ? 1 : 0;
-    return story + this.dailiesOpen() + commissions + (plot && stageReached(stage, plot.stage) && coins >= plot.price ? 1 : 0) + village;
+    return (
+      story +
+      this.dailiesOpen() +
+      commissions +
+      (plot && stageReached(stage, plot.stage) && coins >= plot.price ? 1 : 0) +
+      village
+    );
   }
   /** today's resident request, if today offers one (G4) */
   requestToday(): string | null {
@@ -711,5 +817,8 @@ function newMisses(before: Pet, after: Pet): number {
   const b = before.missed ?? [];
   const last = b.length ? b[b.length - 1]!.beat : -Infinity;
   const a = after.missed ?? [];
-  return a.filter((m) => m.beat > last).length + Math.max(0, a.filter((m) => m.beat === last).length - b.filter((m) => m.beat === last).length);
+  return (
+    a.filter((m) => m.beat > last).length +
+    Math.max(0, a.filter((m) => m.beat === last).length - b.filter((m) => m.beat === last).length)
+  );
 }

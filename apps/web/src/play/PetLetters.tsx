@@ -30,19 +30,34 @@ export function PetLetters() {
   useEffect(() => {
     void ensure().then(() => pull());
   }, [ensure, pull]);
-  const friends = useMemo(() => (pet ? writableFriends(bondsOf(all, pet.bornAt), saved?.book ?? {}) : []), [pet, all, saved]);
+  const friends = useMemo(
+    () => (pet ? writableFriends(bondsOf(all, pet.bornAt), saved?.book ?? {}) : []),
+    [pet, all, saved],
+  );
   const chosen = friends.find((f) => `${f.player}:${f.pet}` === to) ?? friends[0];
   if (!pet) return null;
 
   const troubleText = (t: LettersTrouble | "empty" | "tooLong" | "noAddress") =>
     ({
-      down: L("TapeRelay could not be reached. Your letters are safe here; try again in a moment.", "暂时连不上 TapeRelay。你的信都还存在这里，过一会儿再试。"),
-      noKey: L("That friend's letters address is not ready yet: they need to open their letters once.", "这位朋友的收信地址还没准备好：要等对方打开一次宠物的信。"),
+      down: L(
+        "TapeRelay could not be reached. Your letters are safe here; try again in a moment.",
+        "暂时连不上 TapeRelay。你的信都还存在这里，过一会儿再试。",
+      ),
+      noKey: L(
+        "That friend's letters address is not ready yet: they need to open their letters once.",
+        "这位朋友的收信地址还没准备好：要等对方打开一次宠物的信。",
+      ),
       tooFast: L("That was quick: wait a moment before the next letter.", "写得太快了，等一会儿再寄下一封。"),
-      refused: L("TapeRelay did not take the letter. Try again in a moment.", "TapeRelay 没有收下这封信，过一会儿再试。"),
+      refused: L(
+        "TapeRelay did not take the letter. Try again in a moment.",
+        "TapeRelay 没有收下这封信，过一会儿再试。",
+      ),
       empty: L("Write something first.", "先写点什么吧。"),
       tooLong: L(`A letter is at most ${PET_LETTER_MAX} characters.`, `一封信最多 ${PET_LETTER_MAX} 个字。`),
-      noAddress: L("That friend's letters address has not reached you yet: meet in a live room once.", "还没拿到这位朋友的收信地址：在同一个房间里见一面就有了。"),
+      noAddress: L(
+        "That friend's letters address has not reached you yet: meet in a live room once.",
+        "还没拿到这位朋友的收信地址：在同一个房间里见一面就有了。",
+      ),
     })[t];
 
   const submit = async () => {
@@ -109,7 +124,11 @@ export function PetLetters() {
             <span className={`small${chars(text.trim()) > PET_LETTER_MAX ? " warn" : ""}`}>
               {chars(text.trim())}/{PET_LETTER_MAX}
             </span>
-            <button type="submit" className="btn primary" disabled={busy || !text.trim() || chars(text.trim()) > PET_LETTER_MAX}>
+            <button
+              type="submit"
+              className="btn primary"
+              disabled={busy || !text.trim() || chars(text.trim()) > PET_LETTER_MAX}
+            >
               {busy ? L("Sending…", "正在寄……") : L("Send the letter", "寄出")}
             </button>
           </div>
@@ -159,16 +178,35 @@ export function PetLetters() {
 
 function LetterRow({ l, lang, onRetry }: { l: KeptLetter; lang: "en" | "zh"; onRetry: () => void }) {
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
-  const when = new Date(l.at).toLocaleString(lang === "zh" ? "zh-CN" : "en", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
-  const state = l.state === "sending" ? L("sending…", "正在寄……") : l.state === "waiting" ? L("on its way", "在路上") : l.state === "delivered" ? L("delivered", "已送到") : l.state === "failed" ? L("not delivered", "没送到") : "";
+  const when = new Date(l.at).toLocaleString(lang === "zh" ? "zh-CN" : "en", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const state =
+    l.state === "sending"
+      ? L("sending…", "正在寄……")
+      : l.state === "waiting"
+        ? L("on its way", "在路上")
+        : l.state === "delivered"
+          ? L("delivered", "已送到")
+          : l.state === "failed"
+            ? L("not delivered", "没送到")
+            : "";
   return (
     <li className={`pl-letter ${l.dir === "in" ? "is-in" : "is-out"}`}>
       <p className="small">
-        {l.dir === "in" ? L(`From ${l.pet} to ${l.myPet}`, `${l.pet}写给${l.myPet}`) : L(`${l.myPet} to ${l.pet}`, `${l.myPet}写给${l.pet}`)} · {when}
+        {l.dir === "in"
+          ? L(`From ${l.pet} to ${l.myPet}`, `${l.pet}写给${l.myPet}`)
+          : L(`${l.myPet} to ${l.pet}`, `${l.myPet}写给${l.pet}`)}{" "}
+        · {when}
         {l.dir === "out" && state ? ` · ${state}` : ""}
       </p>
       <p className="pl-text">{l.text}</p>
-      {l.dir === "in" && <p className="small pl-checked">{L("Sealed and signed, checked on arrival", "已封好并签名，收到时核对过")}</p>}
+      {l.dir === "in" && (
+        <p className="small pl-checked">{L("Sealed and signed, checked on arrival", "已封好并签名，收到时核对过")}</p>
+      )}
       {l.dir === "out" && l.state === "failed" && (
         <button type="button" className="btn" onClick={onRetry}>
           {L("Try again", "再寄一次")}

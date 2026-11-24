@@ -19,7 +19,10 @@ afterEach(() => {
 describe("following a link versus our own back landing on one (P6)", () => {
   it("a link followed is read", () => {
     let read = 0;
-    stop = watchLinks(() => read++, () => {});
+    stop = watchLinks(
+      () => read++,
+      () => {},
+    );
     location.hash = "#duel=s.AAAAAAAAAAAAAAAA";
     window.dispatchEvent(new Event("hashchange"));
     expect(read).toBe(1);
@@ -28,7 +31,20 @@ describe("following a link versus our own back landing on one (P6)", () => {
   it("every reader puts aside the hash our own back landed on, not only the first to ask", () => {
     let read = 0;
     let aside = 0;
-    const stops = [watchLinks(() => read++, () => aside++), watchLinks(() => read++, () => aside++), watchLinks(() => read++, () => aside++)];
+    const stops = [
+      watchLinks(
+        () => read++,
+        () => aside++,
+      ),
+      watchLinks(
+        () => read++,
+        () => aside++,
+      ),
+      watchLinks(
+        () => read++,
+        () => aside++,
+      ),
+    ];
     stop = () => stops.forEach((s) => s());
     history.replaceState(null, "", "#duel=s.AAAAAAAAAAAAAAAA");
     landed.hash = location.hash;
@@ -41,7 +57,10 @@ describe("following a link versus our own back landing on one (P6)", () => {
 
   it("a different link followed while a landing waits is read", () => {
     let read = 0;
-    stop = watchLinks(() => read++, () => {});
+    stop = watchLinks(
+      () => read++,
+      () => {},
+    );
     landed.hash = "#duel=s.BBBBBBBBBBBBBBBB";
     history.replaceState(null, "", "#gift=lxg1.x");
     window.dispatchEvent(new Event("hashchange"));

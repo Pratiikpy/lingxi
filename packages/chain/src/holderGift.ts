@@ -79,7 +79,8 @@ export function loadSnapshot(file: SnapshotFile, t: GiftTerms): Snapshot {
     file.entries.map((e) => [e[0].toLowerCase(), e[1], e[2]] as [string, string, string]),
     ["address", "uint256", "uint256"],
   );
-  if (tree.root.toLowerCase() !== t.snapshotRoot.toLowerCase()) throw new Error("the snapshot file does not match the gift contract");
+  if (tree.root.toLowerCase() !== t.snapshotRoot.toLowerCase())
+    throw new Error("the snapshot file does not match the gift contract");
   if (BigInt(file.block) !== t.snapshotBlock) throw new Error("the snapshot file is for another block");
   const index = new Map<string, number>();
   file.entries.forEach((e, i) => index.set(e[0].toLowerCase(), i));
@@ -87,12 +88,27 @@ export function loadSnapshot(file: SnapshotFile, t: GiftTerms): Snapshot {
 }
 
 export async function giftClaimed(pub: PublicClient, t: GiftTerms, who: Address): Promise<boolean> {
-  return (await pub.readContract({ address: t.gift, abi: holderGiftAbi, functionName: "claimed", args: [who] })) as boolean;
+  return (await pub.readContract({
+    address: t.gift,
+    abi: holderGiftAbi,
+    functionName: "claimed",
+    args: [who],
+  })) as boolean;
 }
 
 /** Has this NFT already given its gift? */
-export async function giftTokenUsed(pub: PublicClient, t: GiftTerms, collection: Address, tokenId: bigint): Promise<boolean> {
-  return (await pub.readContract({ address: t.gift, abi: holderGiftAbi, functionName: "tokenUsed", args: [collection, tokenId] })) as boolean;
+export async function giftTokenUsed(
+  pub: PublicClient,
+  t: GiftTerms,
+  collection: Address,
+  tokenId: bigint,
+): Promise<boolean> {
+  return (await pub.readContract({
+    address: t.gift,
+    abi: holderGiftAbi,
+    functionName: "tokenUsed",
+    args: [collection, tokenId],
+  })) as boolean;
 }
 
 /** This wallet's snapshot entry and proof, when it held at least one minimum at the snapshot block. */
@@ -119,25 +135,46 @@ export interface Test1Lookup {
   perCall?: number;
 }
 
-export async function test1TokensOf(pub: PublicClient, t: GiftTerms, who: Address, o: Test1Lookup = {}): Promise<{ unused: bigint[]; used: bigint[] }> {
-  const held = Number((await pub.readContract({ address: t.test1, abi: nftAbi, functionName: "balanceOf", args: [who] })) as bigint);
+export async function test1TokensOf(
+  pub: PublicClient,
+  t: GiftTerms,
+  who: Address,
+  o: Test1Lookup = {},
+): Promise<{ unused: bigint[]; used: bigint[] }> {
+  const held = Number(
+    (await pub.readContract({ address: t.test1, abi: nftAbi, functionName: "balanceOf", args: [who] })) as bigint,
+  );
   if (held === 0) return { unused: [], used: [] };
   const me = who.toLowerCase();
   let mine: bigint[] = [];
   // an index's answer is only a hint: each token is checked against the chain, and the full read runs when the hint
   // does not account for every token the wallet holds (a token bought since the index last looked)
   if (o.candidates?.length) {
-    const owners = await pub.multicall({ allowFailure: true, contracts: o.candidates.map((id) => ({ address: t.test1, abi: nftAbi, functionName: "ownerOf" as const, args: [id] as const })) });
-    mine = o.candidates.filter((_, k) => owners[k]!.status === "success" && String(owners[k]!.result).toLowerCase() === me);
+    const owners = await pub.multicall({
+      allowFailure: true,
+      contracts: o.candidates.map((id) => ({
+        address: t.test1,
+        abi: nftAbi,
+        functionName: "ownerOf" as const,
+        args: [id] as const,
+      })),
+    });
+    mine = o.candidates.filter(
+      (_, k) => owners[k]!.status === "success" && String(owners[k]!.result).toLowerCase() === me,
+    );
   }
   if (mine.length < held) {
     mine = [];
     const perCall = o.perCall ?? OWNERS_PER_CALL;
-    const supply = Number((await pub.readContract({ address: t.test1, abi: nftAbi, functionName: "totalSupply" })) as bigint);
+    const supply = Number(
+      (await pub.readContract({ address: t.test1, abi: nftAbi, functionName: "totalSupply" })) as bigint,
+    );
     // tokens are numbered from 1; a missing one (none on mainnet) is simply skipped
     const starts = Array.from({ length: Math.ceil(supply / perCall) }, (_, k) => 1 + k * perCall);
     for (let i = 0; i < starts.length && mine.length < held; i += LANES) {
-      const lanes = await Promise.all(starts.slice(i, i + LANES).map((from) => ownersFrom(pub, t, from, Math.min(perCall, supply - from + 1))));
+      const lanes = await Promise.all(
+        starts.slice(i, i + LANES).map((from) => ownersFrom(pub, t, from, Math.min(perCall, supply - from + 1))),
+      );
       lanes.forEach((results, lane) =>
         results.forEach((r, k) => {
           if (r.status === "success" && String(r.result).toLowerCase() === me) mine.push(BigInt(starts[i + lane]! + k));
@@ -146,7 +183,15 @@ export async function test1TokensOf(pub: PublicClient, t: GiftTerms, who: Addres
     }
   }
   if (!mine.length) return { unused: [], used: [] };
-  const usedFlags = await pub.multicall({ allowFailure: false, contracts: mine.map((id) => ({ address: t.gift, abi: holderGiftAbi, functionName: "tokenUsed" as const, args: [t.test1, id] as const })) });
+  const usedFlags = await pub.multicall({
+    allowFailure: false,
+    contracts: mine.map((id) => ({
+      address: t.gift,
+      abi: holderGiftAbi,
+      functionName: "tokenUsed" as const,
+      args: [t.test1, id] as const,
+    })),
+  });
   return { unused: mine.filter((_, k) => !usedFlags[k]), used: mine.filter((_, k) => usedFlags[k]) };
 }
 
@@ -161,11 +206,17 @@ async function ownersFrom(pub: PublicClient, t: GiftTerms, from: number, count: 
       .multicall({
         allowFailure: true,
         batchSize: 1 << 20,
-        contracts: Array.from({ length: count }, (_, k) => ({ address: t.test1, abi: nftAbi, functionName: "ownerOf" as const, args: [BigInt(from + k)] as const })),
+        contracts: Array.from({ length: count }, (_, k) => ({
+          address: t.test1,
+          abi: nftAbi,
+          functionName: "ownerOf" as const,
+          args: [BigInt(from + k)] as const,
+        })),
       })
       .catch(() => null);
     if (results && results.some((r) => r.status === "success")) return results;
-    if (attempt >= OWNER_TRIES) throw new Test1Unreadable(`the owners of TapeCode-Test1 #${from} to #${from + count - 1} could not be read`);
+    if (attempt >= OWNER_TRIES)
+      throw new Test1Unreadable(`the owners of TapeCode-Test1 #${from} to #${from + count - 1} could not be read`);
   }
 }
 
@@ -180,13 +231,29 @@ export async function giftWays(pub: PublicClient, t: GiftTerms, who: Address, s:
 }
 
 /** The ways, and whether the wallet's Test1 tokens could be looked up (when not, the player can still type a number). */
-export async function giftWaysOf(pub: PublicClient, t: GiftTerms, who: Address, s: Snapshot | null, lookup: Test1Lookup = {}): Promise<{ ways: GiftWay[]; test1: "read" | "unreadable" }> {
+export async function giftWaysOf(
+  pub: PublicClient,
+  t: GiftTerms,
+  who: Address,
+  s: Snapshot | null,
+  lookup: Test1Lookup = {},
+): Promise<{ ways: GiftWay[]; test1: "read" | "unreadable" }> {
   const ways: GiftWay[] = [];
   const snap = s ? snapshotWay(s, t, who) : null;
   if (snap) ways.push(snap);
-  const rigs = (await pub.readContract({ address: t.rig, abi: nftAbi, functionName: "balanceOf", args: [who] })) as bigint;
+  const rigs = (await pub.readContract({
+    address: t.rig,
+    abi: nftAbi,
+    functionName: "balanceOf",
+    args: [who],
+  })) as bigint;
   for (let i = 0n; i < rigs && i < 20n; i++) {
-    const id = (await pub.readContract({ address: t.rig, abi: nftAbi, functionName: "tokenOfOwnerByIndex", args: [who, i] })) as bigint;
+    const id = (await pub.readContract({
+      address: t.rig,
+      abi: nftAbi,
+      functionName: "tokenOfOwnerByIndex",
+      args: [who, i],
+    })) as bigint;
     if (!(await giftTokenUsed(pub, t, t.rig, id))) {
       ways.push({ kind: "nft", collection: t.rig, tokenId: id, label: "rig" });
       break;
@@ -194,7 +261,8 @@ export async function giftWaysOf(pub: PublicClient, t: GiftTerms, who: Address, 
   }
   try {
     const test1 = await test1TokensOf(pub, t, who, lookup);
-    if (test1.unused[0] !== undefined) ways.push({ kind: "nft", collection: t.test1, tokenId: test1.unused[0], label: "test1" });
+    if (test1.unused[0] !== undefined)
+      ways.push({ kind: "nft", collection: t.test1, tokenId: test1.unused[0], label: "test1" });
   } catch (e) {
     if (!(e instanceof Test1Unreadable)) throw e;
     return { ways, test1: "unreadable" };
@@ -203,10 +271,20 @@ export async function giftWaysOf(pub: PublicClient, t: GiftTerms, who: Address, 
 }
 
 /** Confirm a Test1 number the player typed: theirs, and not used for a gift before. */
-export async function checkTest1(pub: PublicClient, t: GiftTerms, who: Address, tokenId: bigint): Promise<"ok" | "notYours" | "used" | "missing"> {
+export async function checkTest1(
+  pub: PublicClient,
+  t: GiftTerms,
+  who: Address,
+  tokenId: bigint,
+): Promise<"ok" | "notYours" | "used" | "missing"> {
   let owner: Address;
   try {
-    owner = (await pub.readContract({ address: t.test1, abi: nftAbi, functionName: "ownerOf", args: [tokenId] })) as Address;
+    owner = (await pub.readContract({
+      address: t.test1,
+      abi: nftAbi,
+      functionName: "ownerOf",
+      args: [tokenId],
+    })) as Address;
   } catch {
     return "missing";
   }
@@ -219,8 +297,19 @@ export async function claimGift(pub: PublicClient, wallet: WalletClient, t: Gift
   const at = { address: t.gift, abi: holderGiftAbi, account: wallet.account } as const;
   const tx =
     way.kind === "nft"
-      ? await wallet.writeContract((await pub.simulateContract({ ...at, functionName: "claimWithNft", args: [way.collection, way.tokenId] })).request)
-      : await wallet.writeContract((await pub.simulateContract({ ...at, functionName: "claimWithSnapshot", args: [way.bem, way.fab, way.proof] })).request);
+      ? await wallet.writeContract(
+          (await pub.simulateContract({ ...at, functionName: "claimWithNft", args: [way.collection, way.tokenId] }))
+            .request,
+        )
+      : await wallet.writeContract(
+          (
+            await pub.simulateContract({
+              ...at,
+              functionName: "claimWithSnapshot",
+              args: [way.bem, way.fab, way.proof],
+            })
+          ).request,
+        );
   const r = await pub.waitForTransactionReceipt({ hash: tx });
   if (r.status !== "success") throw new RevertedOnChain("claim", r.transactionHash);
   return tx;

@@ -15,7 +15,9 @@ import { FACTORY, processorAbi, transistorsAbi } from "./tapeout";
 import { RevertedOnChain } from "./receipts";
 
 const IDS = { nand: 0n, latch: 1n } as const;
-const factoryBemAbi = [{ type: "function", name: "bem", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] }] as const;
+const factoryBemAbi = [
+  { type: "function", name: "bem", stateMutability: "view", inputs: [], outputs: [{ type: "address" }] },
+] as const;
 
 export interface TapeQuote {
   nands: number;
@@ -41,7 +43,13 @@ export interface TapeQuote {
   signatures: number;
 }
 
-async function feeMode(pub: PublicClient, transistors: Address, account: Address, price: bigint, fee: bigint): Promise<"okb" | "bem"> {
+async function feeMode(
+  pub: PublicClient,
+  transistors: Address,
+  account: Address,
+  price: bigint,
+  fee: bigint,
+): Promise<"okb" | "bem"> {
   try {
     await pub.simulateContract({
       address: transistors,
@@ -64,24 +72,60 @@ async function feeMode(pub: PublicClient, transistors: Address, account: Address
  */
 const GAS = { approve: 60_000n, mint: 120_000n, tapeoutBase: 80_000n, tapeoutPerByte: 470n } as const;
 
-export async function quoteTapeout(pub: PublicClient, processor: Address, account: Address, nands: number, latches: number, circuitBytes = 0): Promise<TapeQuote> {
-  const transistors = (await pub.readContract({ address: processor, abi: processorAbi, functionName: "transistors" })) as Address;
+export async function quoteTapeout(
+  pub: PublicClient,
+  processor: Address,
+  account: Address,
+  nands: number,
+  latches: number,
+  circuitBytes = 0,
+): Promise<TapeQuote> {
+  const transistors = (await pub.readContract({
+    address: processor,
+    abi: processorAbi,
+    functionName: "transistors",
+  })) as Address;
   const [price, fee, tapeoutFee, haveNand, haveLatch, okbBalance, bem] = await Promise.all([
     pub.readContract({ address: transistors, abi: transistorsAbi, functionName: "mintPrice" }) as Promise<bigint>,
     pub.readContract({ address: transistors, abi: transistorsAbi, functionName: "protocolFee" }) as Promise<bigint>,
     pub.readContract({ address: processor, abi: processorAbi, functionName: "TAPEOUT_FEE" }) as Promise<bigint>,
-    pub.readContract({ address: transistors, abi: transistorsAbi, functionName: "balanceOf", args: [account, IDS.nand] }) as Promise<bigint>,
-    pub.readContract({ address: transistors, abi: transistorsAbi, functionName: "balanceOf", args: [account, IDS.latch] }) as Promise<bigint>,
+    pub.readContract({
+      address: transistors,
+      abi: transistorsAbi,
+      functionName: "balanceOf",
+      args: [account, IDS.nand],
+    }) as Promise<bigint>,
+    pub.readContract({
+      address: transistors,
+      abi: transistorsAbi,
+      functionName: "balanceOf",
+      args: [account, IDS.latch],
+    }) as Promise<bigint>,
     pub.getBalance({ address: account }),
     pub.readContract({ address: FACTORY, abi: factoryBemAbi, functionName: "bem" }) as Promise<Address>,
   ]);
-  const mint = { nand: BigInt(Math.max(0, nands - Number(haveNand))), latch: BigInt(Math.max(0, latches - Number(haveLatch))) };
+  const mint = {
+    nand: BigInt(Math.max(0, nands - Number(haveNand))),
+    latch: BigInt(Math.max(0, latches - Number(haveLatch))),
+  };
   const mintCalls = BigInt((mint.nand > 0n ? 1 : 0) + (mint.latch > 0n ? 1 : 0));
   const feeIn = mintCalls > 0n ? await feeMode(pub, transistors, account, price, fee) : "okb";
   const okbNeeded = price * (mint.nand + mint.latch) + tapeoutFee + (feeIn === "okb" ? fee * mintCalls : 0n);
   const bemNeeded = feeIn === "bem" ? fee * mintCalls : 0n;
-  const bemBalance = bemNeeded > 0n ? ((await pub.readContract({ address: bem, abi: erc20Abi, functionName: "balanceOf", args: [account] })) as bigint) : 0n;
-  const gas = (bemNeeded > 0n ? GAS.approve : 0n) + GAS.mint * mintCalls + GAS.tapeoutBase + GAS.tapeoutPerByte * BigInt(circuitBytes);
+  const bemBalance =
+    bemNeeded > 0n
+      ? ((await pub.readContract({
+          address: bem,
+          abi: erc20Abi,
+          functionName: "balanceOf",
+          args: [account],
+        })) as bigint)
+      : 0n;
+  const gas =
+    (bemNeeded > 0n ? GAS.approve : 0n) +
+    GAS.mint * mintCalls +
+    GAS.tapeoutBase +
+    GAS.tapeoutPerByte * BigInt(circuitBytes);
   const gasEstimate = (gas * (await pub.getGasPrice()) * 5n) / 4n;
   const okbTotal = okbNeeded + gasEstimate;
   return {
@@ -124,32 +168,93 @@ export async function tapeOutYourself(
     if (r.status !== "success") throw new RevertedOnChain("transaction", hash);
     txs.push(hash);
   };
-  const transistors = (await pub.readContract({ address: processor, abi: processorAbi, functionName: "transistors" })) as Address;
+  const transistors = (await pub.readContract({
+    address: processor,
+    abi: processorAbi,
+    functionName: "transistors",
+  })) as Address;
   if (q.bemNeeded > 0n) {
     onStep("approve");
-    await send(await wallet.writeContract({ address: q.bem, abi: erc20Abi, functionName: "approve", args: [transistors, q.bemNeeded], account, chain }));
+    await send(
+      await wallet.writeContract({
+        address: q.bem,
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [transistors, q.bemNeeded],
+        account,
+        chain,
+      }),
+    );
   }
   const perCallFee = q.feeIn === "okb" ? q.protocolFee : 0n;
   if (q.mint.nand > 0n) {
     onStep("mintNand");
-    await send(await wallet.writeContract({ address: transistors, abi: transistorsAbi, functionName: "mint", args: [IDS.nand, q.mint.nand], value: q.mintPrice * q.mint.nand + perCallFee, account, chain }));
+    await send(
+      await wallet.writeContract({
+        address: transistors,
+        abi: transistorsAbi,
+        functionName: "mint",
+        args: [IDS.nand, q.mint.nand],
+        value: q.mintPrice * q.mint.nand + perCallFee,
+        account,
+        chain,
+      }),
+    );
   }
   if (q.mint.latch > 0n) {
     onStep("mintLatch");
-    await send(await wallet.writeContract({ address: transistors, abi: transistorsAbi, functionName: "mint", args: [IDS.latch, q.mint.latch], value: q.mintPrice * q.mint.latch + perCallFee, account, chain }));
+    await send(
+      await wallet.writeContract({
+        address: transistors,
+        abi: transistorsAbi,
+        functionName: "mint",
+        args: [IDS.latch, q.mint.latch],
+        value: q.mintPrice * q.mint.latch + perCallFee,
+        account,
+        chain,
+      }),
+    );
   }
   onStep("tapeout");
   const hex = bytesToHex(bytes);
-  const { result } = await pub.simulateContract({ address: processor, abi: processorAbi, functionName: "tapeout", args: [hex, 16, 8], value: q.tapeoutFee, account });
-  await send(await wallet.writeContract({ address: processor, abi: processorAbi, functionName: "tapeout", args: [hex, 16, 8], value: q.tapeoutFee, account, chain }));
+  const { result } = await pub.simulateContract({
+    address: processor,
+    abi: processorAbi,
+    functionName: "tapeout",
+    args: [hex, 16, 8],
+    value: q.tapeoutFee,
+    account,
+  });
+  await send(
+    await wallet.writeContract({
+      address: processor,
+      abi: processorAbi,
+      functionName: "tapeout",
+      args: [hex, 16, 8],
+      value: q.tapeoutFee,
+      account,
+      chain,
+    }),
+  );
   const brainId = result as bigint;
   onStep("verify");
-  if (!(await circuitMatches(pub, processor, brainId, bytes))) throw new Error("the circuit on chain does not match the one compiled here");
+  if (!(await circuitMatches(pub, processor, brainId, bytes)))
+    throw new Error("the circuit on chain does not match the one compiled here");
   return { brainId, txs };
 }
 
 /** The circuit stored on chain is exactly these bytes. */
-export async function circuitMatches(pub: PublicClient, processor: Address, id: bigint, bytes: Uint8Array): Promise<boolean> {
-  const onChain = (await pub.readContract({ address: processor, abi: processorAbi, functionName: "netlist", args: [id] })) as Hex;
+export async function circuitMatches(
+  pub: PublicClient,
+  processor: Address,
+  id: bigint,
+  bytes: Uint8Array,
+): Promise<boolean> {
+  const onChain = (await pub.readContract({
+    address: processor,
+    abi: processorAbi,
+    functionName: "netlist",
+    args: [id],
+  })) as Hex;
   return onChain.toLowerCase() === bytesToHex(bytes).toLowerCase();
 }

@@ -41,8 +41,13 @@ export const FLOOR_HOLDS = 4 * 24 * 60;
 /** The order of the four needs in sinceCared (and in the handheld's copy of it). */
 export const NEED_ORDER = ["food", "joy", "clean", "energy"] as const;
 /** Each need's beats since it was answered; a save from before D1 gives every need its one count. */
-export const sinceCaredOf = (p: { sinceCared?: [number, number, number, number]; uncaredBeats?: number }): [number, number, number, number] =>
-  p.sinceCared ? [...p.sinceCared] : [p.uncaredBeats ?? 0, p.uncaredBeats ?? 0, p.uncaredBeats ?? 0, p.uncaredBeats ?? 0];
+export const sinceCaredOf = (p: {
+  sinceCared?: [number, number, number, number];
+  uncaredBeats?: number;
+}): [number, number, number, number] =>
+  p.sinceCared
+    ? [...p.sinceCared]
+    : [p.uncaredBeats ?? 0, p.uncaredBeats ?? 0, p.uncaredBeats ?? 0, p.uncaredBeats ?? 0];
 export const LOW_DECAY_DIVISOR = 8;
 /** The longest absence whose decay is counted beat by beat (the brain thinks only through the last MAX_CATCH_UP of it). */
 export const DECAY_SPAN = 30 * 24 * 60;
@@ -54,7 +59,7 @@ export const KINSHIP_MAX = 255;
 /** Level from XP: level n needs 25·n·(n+1)/2 XP in total, so each level is harder to reach. */
 export function levelOf(xp: number): { level: number; into: number; need: number } {
   let level = 1;
-  while (25 * (level * (level + 1)) / 2 <= xp) level++;
+  while ((25 * (level * (level + 1))) / 2 <= xp) level++;
   const start = (25 * ((level - 1) * level)) / 2;
   const end = (25 * (level * (level + 1))) / 2;
   return { level, into: xp - start, need: end - start };
@@ -174,11 +179,25 @@ export interface PetState {
   /** the beat of the last logged word */
   logBeat?: number;
   /** which lessons the brain had from each point of the log on: segment i covers words from[i]..from[i+1]-1 */
-  segments?: Array<{ from: number; lessons: import("@lingxi/brain").Rule[]; outside?: OutsideInstinct; skills?: number[] }>;
+  segments?: Array<{
+    from: number;
+    lessons: import("@lingxi/brain").Rule[];
+    outside?: OutsideInstinct;
+    skills?: number[];
+  }>;
   /** set for a pet born of two parents: its mind is built from both of theirs */
   family?: Family;
   /** last brain answer, for the screen */
-  last: { want: number; mood: number; nudge: number; rule: number; word: number; before?: number[]; half?: 0 | 1; instinct?: true };
+  last: {
+    want: number;
+    mood: number;
+    nudge: number;
+    rule: number;
+    word: number;
+    before?: number[];
+    half?: 0 | 1;
+    instinct?: true;
+  };
   /** day number (since birth) this pet last had a child */
   lastBredDay?: number;
   /** level, unspent skill points and the skills held (plan 4.4); absent on pets from before levels were spent */

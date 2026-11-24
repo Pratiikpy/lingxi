@@ -52,7 +52,13 @@ function contractsOnXLayer() {
   const netlists = new Map<bigint, Hex>();
   const bemHeld = new Map<string, bigint>([[lower(OWNER), 100n * OKB]]);
   const allowances = new Map<string, bigint>();
-  const rules = { breedFee: OKB, maxChildren: 4, breedRefusal: null as Revert | null, revertMined: null as string | null, refuseReceiver: false };
+  const rules = {
+    breedFee: OKB,
+    maxChildren: 4,
+    breedRefusal: null as Revert | null,
+    revertMined: null as string | null,
+    refuseReceiver: false,
+  };
   let nextPet = 41n;
   let nextCircuit = 500n;
 
@@ -83,7 +89,16 @@ function contractsOnXLayer() {
         if (rules.refuseReceiver) throw new Revert("ERC721InvalidReceiver", [to]);
         const id = nextPet;
         if (!c.dry) {
-          pets.set(id, { owner: to as Address, line: line as number, processor: processor as Address, brainId: brainId as bigint, brainBits: 16, born: c.now, day: 0, state: state as bigint });
+          pets.set(id, {
+            owner: to as Address,
+            line: line as number,
+            processor: processor as Address,
+            brainId: brainId as bigint,
+            brainBits: 16,
+            born: c.now,
+            day: 0,
+            state: state as bigint,
+          });
           nextPet++;
           c.emit("Hatched", { petId: id, to, line, processor, brainId, state });
         }
@@ -91,12 +106,25 @@ function contractsOnXLayer() {
       },
       pet: ([id]) => {
         const p = petOf(id as bigint);
-        return { processor: p.processor, brainId: p.brainId, line: p.line, brainBits: p.brainBits, day: p.day, born: p.born, checkedAt: 0, logHash: ZERO32, state: p.state, parentA: 0n, parentB: 0n };
+        return {
+          processor: p.processor,
+          brainId: p.brainId,
+          line: p.line,
+          brainBits: p.brainBits,
+          day: p.day,
+          born: p.born,
+          checkedAt: 0,
+          logHash: ZERO32,
+          state: p.state,
+          parentA: 0n,
+          parentB: 0n,
+        };
       },
       ownerOf: ([id]) => petOf(id as bigint).owner,
       transferFrom: ([from, to, id], c) => {
         const p = petOf(id as bigint);
-        if (lower(p.owner) !== lower(from as string) || lower(c.from) !== lower(p.owner)) throw new Revert("ERC721InsufficientApproval", [c.from, id]);
+        if (lower(p.owner) !== lower(from as string) || lower(c.from) !== lower(p.owner))
+          throw new Revert("ERC721InsufficientApproval", [c.from, id]);
         if (!c.dry) p.owner = to as Address;
       },
       checkpoint: ([id, day, state], c) => {
@@ -145,7 +173,16 @@ function contractsOnXLayer() {
         if (!c.dry && rules.revertMined === "breed") throw new Revert("NoConsent");
         const id = nextPet;
         if (!c.dry) {
-          pets.set(id, { owner: c.from, line: line as number, processor: processor as Address, brainId: brainId as bigint, brainBits: 12, born: c.now, day: 0, state: 0b101n });
+          pets.set(id, {
+            owner: c.from,
+            line: line as number,
+            processor: processor as Address,
+            brainId: brainId as bigint,
+            brainBits: 12,
+            born: c.now,
+            day: 0,
+            state: 0b101n,
+          });
           nextPet++;
           for (const p of [a, b] as bigint[]) children.set(p, (children.get(p) ?? 0) + 1);
           bemHeld.set(lower(c.from), (bemHeld.get(lower(c.from)) ?? 0n) - (maxFee as bigint));
@@ -186,7 +223,10 @@ function contractsOnXLayer() {
     abi: transistorsAbi as Abi,
     calls: { mintPrice: () => 10n ** 12n, protocolFee: () => 10n ** 12n, balanceOf: () => 0n, mint: () => undefined },
   };
-  const factory: FakeContract = { abi: parseAbi(["function bem() view returns (address)"]) as Abi, calls: { bem: () => BEM } };
+  const factory: FakeContract = {
+    abi: parseAbi(["function bem() view returns (address)"]) as Abi,
+    calls: { bem: () => BEM },
+  };
   return {
     pets,
     sitters,
@@ -195,11 +235,21 @@ function contractsOnXLayer() {
     bemHeld,
     allowances,
     rules,
-    contracts: { [REGISTRY]: registry, [BREEDER]: breeder, [BEM]: bem, [PROCESSOR]: processor, [TRANSISTORS]: transistors, [FACTORY]: factory },
+    contracts: {
+      [REGISTRY]: registry,
+      [BREEDER]: breeder,
+      [BEM]: bem,
+      [PROCESSOR]: processor,
+      [TRANSISTORS]: transistors,
+      [FACTORY]: factory,
+    },
   };
 }
 
-type Relay = (path: string, body: { kind: string; petId: string; payload: string; auth: { signer: string } }) => unknown;
+type Relay = (
+  path: string,
+  body: { kind: string; petId: string; payload: string; auth: { signer: string } },
+) => unknown;
 
 /**
  * The server's sponsor route as it behaves (services/api sponsor.ts and withSponsor): checks the device key's
@@ -217,7 +267,16 @@ const RELAYER = "0x5555555555555555555555555555555555555555" as Address;
 const GRANT = 50_000_000_000_000n;
 
 /** Opens the play page against a fake X Layer and a browser wallet, with the game's server answering relay requests. */
-async function open(o: { storage?: Storage; wallet?: boolean; relay?: Relay; at?: number; hatch?: false | { instincts?: number }; sponsor?: SponsorFake } = {}) {
+async function open(
+  o: {
+    storage?: Storage;
+    wallet?: boolean;
+    relay?: Relay;
+    at?: number;
+    hatch?: false | { instincts?: number };
+    sponsor?: SponsorFake;
+  } = {},
+) {
   const x = contractsOnXLayer();
   const xl = fakeXLayer({ contracts: x.contracts, balances: { [OWNER]: OKB, [RELAYER]: OKB } });
   const relayed: Array<{ path: string; body: Parameters<Relay>[1] }> = [];
@@ -228,15 +287,32 @@ async function open(o: { storage?: Storage; wallet?: boolean; relay?: Relay; at?
     if (path === "/api/sponsor") return json({ ok: true, on: f.on ?? true });
     if (path.startsWith("/api/sponsor/of/")) {
       const k = sponsored.get(lower(path.slice("/api/sponsor/of/".length)));
-      return k ? json({ ok: true, ...k, ...(f.lie ? { petId: f.lie } : {}) }) : json({ ok: false, reason: "none" }, 404);
+      return k
+        ? json({ ok: true, ...k, ...(f.lie ? { petId: f.lie } : {}) })
+        : json({ ok: false, reason: "none" }, 404);
     }
-    const body = JSON.parse(String(init?.body)) as { to: Address; line: "gentle" | "bold" | "curious"; state: string; at: number; signature: Hex };
-    if (lower((await sponsorSigner(body, body.signature)) ?? "") !== lower(body.to)) return json({ ok: false, reason: "badSignature" }, 401);
+    const body = JSON.parse(String(init?.body)) as {
+      to: Address;
+      line: "gentle" | "bold" | "curious";
+      state: string;
+      at: number;
+      signature: Hex;
+    };
+    if (lower((await sponsorSigner(body, body.signature)) ?? "") !== lower(body.to))
+      return json({ ok: false, reason: "badSignature" }, 401);
     if (f.refuse) return json({ ok: false, reason: f.refuse }, 429);
     if (sponsored.has(lower(body.to))) return json({ ok: false, reason: "had" }, 409);
     const line = ["gentle", "bold", "curious"].indexOf(body.line);
     const petId = [...x.pets.keys()].reduce((m, k) => (k > m ? k : m), 40n) + 1n;
-    const hatchTx = xl.mine({ from: RELAYER, to: REGISTRY, data: encodeFunctionData({ abi: petRegistryAbi, functionName: "hatch", args: [body.to, line, PROCESSOR, BigInt(xlayer.circuits[body.line].id), BigInt(body.state)] }) });
+    const hatchTx = xl.mine({
+      from: RELAYER,
+      to: REGISTRY,
+      data: encodeFunctionData({
+        abi: petRegistryAbi,
+        functionName: "hatch",
+        args: [body.to, line, PROCESSOR, BigInt(xlayer.circuits[body.line].id), BigInt(body.state)],
+      }),
+    });
     const grantTx = f.noGas ? null : xl.mine({ from: RELAYER, to: body.to, value: GRANT });
     sponsored.set(lower(body.to), { petId: String(petId), hatchTx, grantTx });
     if (f.loseAnswer) throw new TypeError("Failed to fetch");
@@ -248,7 +324,9 @@ async function open(o: { storage?: Storage; wallet?: boolean; relay?: Relay; at?
     if (!path.startsWith("/api/tapeout")) throw new TypeError("Failed to fetch");
     const body = JSON.parse(String(init?.body)) as Parameters<Relay>[1];
     relayed.push({ path, body });
-    return json(o.relay ? o.relay(path, body) : { ok: true, processor: PROCESSOR, brainId: String(circuit++), reused: false });
+    return json(
+      o.relay ? o.relay(path, body) : { ok: true, processor: PROCESSOR, brainId: String(circuit++), reused: false },
+    );
   };
   const v = await visit({ at: o.at ?? T0, ...(o.storage ? { storage: o.storage } : {}), net: xl.fetchVia(server) });
   const wallet = fakeWallet(xl, { account: OWNER });
@@ -263,7 +341,23 @@ async function open(o: { storage?: Storage; wallet?: boolean; relay?: Relay; at?
   const c = () => chain.useChain.getState();
   // this device's key is fixed for the visit, so its address is read once (the account itself loads on demand, P3)
   const sessionAddress = (await sessionAccount()).address;
-  return { ...v, x, xl, wallet, relayed, sponsored, useGame, useWorld, useBadges, chain, c, pet, session: () => sessionAddress, AUTO_FUND, AUTO_LOW };
+  return {
+    ...v,
+    x,
+    xl,
+    wallet,
+    relayed,
+    sponsored,
+    useGame,
+    useWorld,
+    useBadges,
+    chain,
+    c,
+    pet,
+    session: () => sessionAddress,
+    AUTO_FUND,
+    AUTO_LOW,
+  };
 }
 type Page = Awaited<ReturnType<typeof open>>;
 
@@ -333,7 +427,16 @@ describe("keeping a pet on X Layer with no wallet (H4)", () => {
 
   it("a server naming a pet that is not this device's is not believed", async () => {
     const p = await open({ wallet: false, sponsor: { loseAnswer: true, lie: "7" } });
-    p.x.pets.set(7n, { owner: OWNER, line: 0, processor: PROCESSOR, brainId: 1n, brainBits: 16, born: T0 / 1000, day: 0, state: 0n });
+    p.x.pets.set(7n, {
+      owner: OWNER,
+      line: 0,
+      processor: PROCESSOR,
+      brainId: 1n,
+      brainBits: 16,
+      born: T0 / 1000,
+      day: 0,
+      state: 0n,
+    });
     await settle(p.c().keepFree(p.pet()));
     await settle(p.c().keepFree(p.pet()));
     expect(p.c().record).toBeNull();
@@ -367,13 +470,26 @@ describe("the chain store: keeping a pet on X Layer", () => {
   it("hatches the pet's twin with its starter brain, keeps the record, and reads it back after a reload", async () => {
     const p = await open();
     const record = await kept(p);
-    expect(record).toEqual({ petId: "41", hatchTx: expect.stringMatching(/^0x[0-9a-f]{64}$/), lastDay: 0, owner: OWNER, bornChain: T0 / 1000, brains: { "[]": xlayer.circuits.gentle.id }, brainKey: "[]" });
+    expect(record).toEqual({
+      petId: "41",
+      hatchTx: expect.stringMatching(/^0x[0-9a-f]{64}$/),
+      lastDay: 0,
+      owner: OWNER,
+      bornChain: T0 / 1000,
+      brains: { "[]": xlayer.circuits.gentle.id },
+      brainKey: "[]",
+    });
     expect(p.c()).toMatchObject({ busy: "idle", error: null });
-    expect(mined(p, "hatch")).toEqual([expect.objectContaining({ from: OWNER, status: "success", args: [OWNER, 0, PROCESSOR, 1n, expect.any(BigInt)] })]);
+    expect(mined(p, "hatch")).toEqual([
+      expect.objectContaining({ from: OWNER, status: "success", args: [OWNER, 0, PROCESSOR, 1n, expect.any(BigInt)] }),
+    ]);
     expect(p.chain.recordOf(p.pet())).toEqual(record);
     expect(JSON.parse(p.storage.getItem(CHAIN)!)).toEqual({ [String(p.pet().bornAt)]: record });
 
-    const again = await reload(p.storage, { at: T0 + MIN, net: p.xl.fetchVia(async () => Promise.reject(new TypeError("Failed to fetch"))) });
+    const again = await reload(p.storage, {
+      at: T0 + MIN,
+      net: p.xl.fetchVia(async () => Promise.reject(new TypeError("Failed to fetch"))),
+    });
     const { useChain } = await import("./chain");
     expect(again.claimed?.playing).toBe(true);
     expect(useChain.getState().record).toEqual(record);
@@ -382,7 +498,12 @@ describe("the chain store: keeping a pet on X Layer", () => {
   it("a pet with instincts moves straight onto its own circuit, signed by the owner's wallet with no fee", async () => {
     const p = await open({ hatch: { instincts: 5 } });
     const record = await kept(p);
-    expect(p.relayed).toEqual([{ path: "/api/tapeout", body: expect.objectContaining({ kind: "brain", petId: "41", auth: expect.objectContaining({ signer: OWNER }) }) }]);
+    expect(p.relayed).toEqual([
+      {
+        path: "/api/tapeout",
+        body: expect.objectContaining({ kind: "brain", petId: "41", auth: expect.objectContaining({ signer: OWNER }) }),
+      },
+    ]);
     expect(JSON.parse(p.relayed[0]!.body.payload)).toEqual({ line: "gentle", lessons: [], instincts: 5, skills: [] });
     expect(mined(p, "setBrain")).toEqual([expect.objectContaining({ args: [41n, PROCESSOR, 77n] })]);
     const key = p.chain.mindKey([], 5);
@@ -396,7 +517,10 @@ describe("the chain store: keeping a pet on X Layer", () => {
     const p = await open({ hatch: { instincts: 5 }, relay: () => ({ ok: false, reason: "busy" }) });
     await settle(p.c().keep(p.pet()));
     expect(p.c()).toMatchObject({ busy: "idle", error: "busy" });
-    expect(panelSays("relay.busy")).toEqual(["Lingxi's relayer has had many requests just now. Nothing was charged; try again in a little while.", "灵犀的中继刚才收到的请求太多。没有扣费，过一会儿再试吧。"]);
+    expect(panelSays("relay.busy")).toEqual([
+      "Lingxi's relayer has had many requests just now. Nothing was charged; try again in a little while.",
+      "灵犀的中继刚才收到的请求太多。没有扣费，过一会儿再试吧。",
+    ]);
     // the hatch itself went through and is kept, so the next try only moves the brain
     expect(p.chain.recordOf(p.pet())).toMatchObject({ petId: "41", brainKey: "[]" });
     expect(mined(p, "setBrain")).toEqual([]);
@@ -412,13 +536,21 @@ describe("the chain store: keeping a pet on X Layer", () => {
 
   it("keeping again after the circuit was turned down mints nothing new and finishes the pet's own circuit (A20)", async () => {
     let refuse = true;
-    const p = await open({ hatch: { instincts: 5 }, relay: () => (refuse ? { ok: false, reason: "busy" } : { ok: true, processor: PROCESSOR, brainId: "88", reused: false }) });
+    const p = await open({
+      hatch: { instincts: 5 },
+      relay: () =>
+        refuse ? { ok: false, reason: "busy" } : { ok: true, processor: PROCESSOR, brainId: "88", reused: false },
+    });
     await settle(p.c().keep(p.pet()));
     refuse = false;
     await settle(p.c().keep(p.pet()));
     expect(mined(p, "hatch")).toHaveLength(1);
     expect(mined(p, "setBrain")).toEqual([expect.objectContaining({ status: "success", args: [41n, PROCESSOR, 88n] })]);
-    expect(p.c()).toMatchObject({ busy: "idle", error: null, record: { petId: "41", brainKey: p.chain.mindKey([], 5) } });
+    expect(p.c()).toMatchObject({
+      busy: "idle",
+      error: null,
+      record: { petId: "41", brainKey: p.chain.mindKey([], 5) },
+    });
     expect(p.x.pets.get(41n)?.brainId).toBe(88n);
   });
 
@@ -431,7 +563,11 @@ describe("the chain store: keeping a pet on X Layer", () => {
     p.x.rules.revertMined = null;
     await settle(p.c().keep(p.pet()));
     expect(mined(p, "hatch")).toHaveLength(1);
-    expect(p.c()).toMatchObject({ busy: "idle", error: null, record: { petId: "41", brainKey: p.chain.mindKey([], 5) } });
+    expect(p.c()).toMatchObject({
+      busy: "idle",
+      error: null,
+      record: { petId: "41", brainKey: p.chain.mindKey([], 5) },
+    });
   });
 
   it("keep pressed twice at once hatches the pet once (A20)", async () => {
@@ -445,7 +581,10 @@ describe("the chain store: keeping a pet on X Layer", () => {
     const p = await open({ wallet: false });
     await settle(p.c().keep(p.pet()));
     expect(p.c()).toMatchObject({ busy: "idle", error: "noWallet", record: null });
-    expect(panelSays("chain.noWallet")).toEqual(["No wallet found. Open this page in OKX Wallet, or install a browser wallet.", "没有找到钱包。请在 OKX 钱包里打开本页，或安装浏览器钱包。"]);
+    expect(panelSays("chain.noWallet")).toEqual([
+      "No wallet found. Open this page in OKX Wallet, or install a browser wallet.",
+      "没有找到钱包。请在 OKX 钱包里打开本页，或安装浏览器钱包。",
+    ]);
     expect(p.xl.mined).toEqual([]);
   });
 
@@ -461,7 +600,9 @@ describe("the chain store: keeping a pet on X Layer", () => {
     const p = await open();
     p.wallet.knowsXLayer = false;
     await kept(p);
-    expect(p.wallet.asked).toEqual(expect.arrayContaining(["wallet_switchEthereumChain", "wallet_addEthereumChain", "eth_sendTransaction"]));
+    expect(p.wallet.asked).toEqual(
+      expect.arrayContaining(["wallet_switchEthereumChain", "wallet_addEthereumChain", "eth_sendTransaction"]),
+    );
   });
 
   it("the player refusing the hatch in the wallet keeps nothing and says it did not go through", async () => {
@@ -469,7 +610,10 @@ describe("the chain store: keeping a pet on X Layer", () => {
     p.wallet.approves = false;
     await settle(p.c().keep(p.pet()));
     expect(p.c()).toMatchObject({ busy: "idle", error: "User rejected the request.", record: null });
-    expect(panelSays("chain.failed")).toEqual(["That didn't go through. Nothing was charged; try again.", "没有成功，也没有扣费。再试一次吧。"]);
+    expect(panelSays("chain.failed")).toEqual([
+      "That didn't go through. Nothing was charged; try again.",
+      "没有成功，也没有扣费。再试一次吧。",
+    ]);
     expect(p.storage.getItem(CHAIN)).toBeNull();
   });
 
@@ -527,7 +671,9 @@ describe("the chain store: keeping a pet on X Layer", () => {
     p.xl.node.down = true;
     await settle(p.c().keep(p.pet()), 1_000, 400);
     expect(p.c().record).toBeNull();
-    expect(p.c().error, "the player is told the check could not be made, and that nothing new was sent").toBe("hatchUnchecked");
+    expect(p.c().error, "the player is told the check could not be made, and that nothing new was sent").toBe(
+      "hatchUnchecked",
+    );
     expect(panelSays("chain.hatchUnchecked")[0]).toMatch(/Nothing new was sent/);
     expect(panelSays("chain.hatchUnchecked")[1]).toMatch(/没有再发新的/);
     expect(mined(p, "hatch"), "and no second hatch was sent").toHaveLength(1);
@@ -588,8 +734,14 @@ describe("the chain store: saving the day", () => {
     const saved = vi.fn(() => p.useGame.getState().say("saved"));
     await settle(p.c().saveToday(p.pet(), saved));
     expect(saved).toHaveBeenCalledTimes(1);
-    expect(p.c()).toMatchObject({ busy: "idle", error: null, record: { lastDay: 1, lastTx: expect.stringMatching(/^0x/), logLen: p.pet().pendingLog.length } });
-    expect(mined(p, "checkpoint")).toEqual([expect.objectContaining({ from: OWNER, status: "success", args: [41n, 1, expect.any(BigInt), p.pet().logHash] })]);
+    expect(p.c()).toMatchObject({
+      busy: "idle",
+      error: null,
+      record: { lastDay: 1, lastTx: expect.stringMatching(/^0x/), logLen: p.pet().pendingLog.length },
+    });
+    expect(mined(p, "checkpoint")).toEqual([
+      expect.objectContaining({ from: OWNER, status: "success", args: [41n, 1, expect.any(BigInt), p.pet().logHash] }),
+    ]);
     expect(p.x.pets.get(41n)?.day).toBe(1);
     expect(p.useBadges.getState().ledger.chainDays).toBe(1);
     expect(p.useWorld.getState().world.tally?.["SAVE:0"]).toBe(1);
@@ -604,7 +756,10 @@ describe("the chain store: saving the day", () => {
     const saved = vi.fn();
     await settle(p.c().saveToday(p.pet(), saved));
     expect(p.c()).toMatchObject({ busy: "idle", error: "alreadySaved" });
-    expect(panelSays("chain.alreadySaved")).toEqual(["Today is already saved. Come back tomorrow.", "今天已经存过了，明天再来吧。"]);
+    expect(panelSays("chain.alreadySaved")).toEqual([
+      "Today is already saved. Come back tomorrow.",
+      "今天已经存过了，明天再来吧。",
+    ]);
     expect(saved).not.toHaveBeenCalled();
     expect(mined(p, "checkpoint")).toHaveLength(1);
     // the next day on chain, it saves again
@@ -672,7 +827,9 @@ describe("the chain store: saving the day", () => {
     await settle(p.c().saveToday(p.pet(), () => undefined));
     expect(p.wallet.asked).toEqual([]);
     await kept(p);
-    await settle(p.c().saveToday({ ...p.pet(), away: { code: "c0de", key: "k", until: T0 + DAY, sitter: null } }, () => undefined));
+    await settle(
+      p.c().saveToday({ ...p.pet(), away: { code: "c0de", key: "k", until: T0 + DAY, sitter: null } }, () => undefined),
+    );
     expect(mined(p, "checkpoint")).toEqual([]);
     const first = p.c().saveToday(p.pet(), () => undefined);
     const second = p.c().saveToday(p.pet(), () => undefined);
@@ -698,7 +855,9 @@ describe("the chain store: auto-save", () => {
     const until = T0 / 1000 + 30 * 86_400 - 600;
     expect(p.c()).toMatchObject({ busy: "idle", error: null, record: { autoUntil: until } });
     expect(mined(p, "setSitter")).toEqual([expect.objectContaining({ args: [41n, p.session(), BigInt(until)] })]);
-    expect(p.xl.mined.filter((m) => m.functionName === "" && lower(m.to) === lower(p.session()))).toEqual([expect.objectContaining({ value: p.AUTO_FUND })]);
+    expect(p.xl.mined.filter((m) => m.functionName === "" && lower(m.to) === lower(p.session()))).toEqual([
+      expect.objectContaining({ value: p.AUTO_FUND }),
+    ]);
     expect(p.chain.autoStatus(p.c().record, Date.now())).toBe("on");
     expect(p.chain.autoStatus(p.c().record, (until - 86_400) * 1000)).toBe("ending");
     expect(p.chain.autoStatus(p.c().record, (until + 1) * 1000)).toBe("off");
@@ -783,14 +942,20 @@ describe("the chain store: a friend sits the pet", () => {
     await kept(p);
     expect(await settle(p.c().sitWith(p.pet(), "0x1234", 3))).toBe(false);
     expect(p.c().error).toBe("badAddress");
-    expect(panelSays("sit.badAddress")).toEqual(["That doesn't look like a wallet address (0x followed by 40 characters).", "这不像钱包地址（0x 加 40 个字符）。"]);
+    expect(panelSays("sit.badAddress")).toEqual([
+      "That doesn't look like a wallet address (0x followed by 40 characters).",
+      "这不像钱包地址（0x 加 40 个字符）。",
+    ]);
     expect(await settle(p.c().sitWith(p.pet(), FRIEND, 31))).toBe(false);
     expect(await settle(p.c().sitWith(p.pet(), FRIEND, 0))).toBe(false);
     expect(p.c().error).toBe("badDays");
     expect(panelSays("sit.badDays")).toEqual(["Choose between 1 and 30 days.", "请选 1 到 30 天。"]);
     expect(await settle(p.c().sitWith(p.pet(), OWNER, 3))).toBe(false);
     expect(p.c()).toMatchObject({ busy: "idle", error: "selfSitter" });
-    expect(panelSays("sit.self")).toEqual(["That's your own wallet. Ask a friend instead.", "这是你自己的钱包，请填朋友的。"]);
+    expect(panelSays("sit.self")).toEqual([
+      "That's your own wallet. Ask a friend instead.",
+      "这是你自己的钱包，请填朋友的。",
+    ]);
     expect(mined(p, "setSitter")).toEqual([]);
   });
 
@@ -853,9 +1018,36 @@ describe("the chain store: the pet's mind on chain", () => {
   it("a child's mind is both halves in one relayed circuit", async () => {
     const p = await open();
     const family = familyOf({ name: "Kiri", line: "gentle", lessons: [] }, { name: "Bo", line: "bold", lessons: [] });
-    const child: Pet = { ...createPet({ name: "Pip", line: "gentle", now: T0 + MIN, tzOffsetMin: 0, brain: mindBrain({ line: "gentle", lessons: [], family }) }), family, lessons: [lesson] };
-    p.x.pets.set(50n, { owner: OWNER, line: 0, processor: PROCESSOR, brainId: 60n, brainBits: 12, born: T0 / 1000, day: 0, state: 0n });
-    p.chain.setRecordOf(child, { petId: "50", hatchTx: ZERO32, lastDay: 0, owner: OWNER, bornChain: T0 / 1000, brains: { "[]": "60" }, brainKey: "[]" });
+    const child: Pet = {
+      ...createPet({
+        name: "Pip",
+        line: "gentle",
+        now: T0 + MIN,
+        tzOffsetMin: 0,
+        brain: mindBrain({ line: "gentle", lessons: [], family }),
+      }),
+      family,
+      lessons: [lesson],
+    };
+    p.x.pets.set(50n, {
+      owner: OWNER,
+      line: 0,
+      processor: PROCESSOR,
+      brainId: 60n,
+      brainBits: 12,
+      born: T0 / 1000,
+      day: 0,
+      state: 0n,
+    });
+    p.chain.setRecordOf(child, {
+      petId: "50",
+      hatchTx: ZERO32,
+      lastDay: 0,
+      owner: OWNER,
+      bornChain: T0 / 1000,
+      brains: { "[]": "60" },
+      brainKey: "[]",
+    });
     await settle(p.c().updateMind(child));
     expect(p.relayed.map((r) => r.path)).toEqual(["/api/tapeout-child"]);
     expect(JSON.parse(p.relayed[0]!.body.payload)).toHaveProperty("card");
@@ -889,7 +1081,14 @@ describe("the chain store: the pet's mind on chain", () => {
 
   it("a quote or a tape-out that cannot be done says so; a child is never quoted", async () => {
     const p = await open();
-    expect(await settle(p.c().quoteSelf({ ...p.pet(), family: familyOf({ name: "A", line: "gentle", lessons: [] }, { name: "B", line: "bold", lessons: [] }) }))).toBeNull();
+    expect(
+      await settle(
+        p.c().quoteSelf({
+          ...p.pet(),
+          family: familyOf({ name: "A", line: "gentle", lessons: [] }, { name: "B", line: "bold", lessons: [] }),
+        }),
+      ),
+    ).toBeNull();
     await kept(p);
     const q = await settle(p.c().quoteSelf(p.pet()));
     p.wallet.approves = false;
@@ -909,7 +1108,11 @@ describe("the chain store: records on this device", () => {
     vi.advanceTimersByTime(5 * MIN);
     p.useGame.getState().tick();
     await settle(p.c().saveToday(p.pet(), () => undefined));
-    const log = JSON.parse(p.c().exportLog(p.pet())!) as { petId: string; words: number[]; segments: Array<{ brainId: string | null; words: number[] }> };
+    const log = JSON.parse(p.c().exportLog(p.pet())!) as {
+      petId: string;
+      words: number[];
+      segments: Array<{ brainId: string | null; words: number[] }>;
+    };
     expect(log.petId).toBe("41");
     expect(log.words).toEqual(p.pet().pendingLog);
     expect(log.segments).toEqual([{ brainId: xlayer.circuits.gentle.id, words: p.pet().pendingLog }]);
@@ -927,7 +1130,16 @@ describe("the chain store: records on this device", () => {
     const p = await open();
     const record = await kept(p);
     const first = p.pet();
-    const second = { ...createPet({ name: "Bun", line: "bold", now: T0 + MIN, tzOffsetMin: 0, brain: mindBrain({ line: "bold", lessons: [] }) }), beat: Math.floor(T0 / MIN) };
+    const second = {
+      ...createPet({
+        name: "Bun",
+        line: "bold",
+        now: T0 + MIN,
+        tzOffsetMin: 0,
+        brain: mindBrain({ line: "bold", lessons: [] }),
+      }),
+      beat: Math.floor(T0 / MIN),
+    };
     p.useGame.getState().welcome(second);
     expect(p.c().record).toBeNull();
     // a record set for a pet that is not on screen changes what the screen shows only once that pet is back
@@ -949,7 +1161,10 @@ describe("the chain store: records on this device", () => {
     const storage = memoryStorage();
     const rec = (owner: string) => ({ petId: "1", hatchTx: ZERO32, lastDay: 0, owner, bornChain: 0 });
     const mixedCase = "0x00000000000000000000000000000000000000Ab";
-    storage.setItem(CHAIN, JSON.stringify({ a: rec(mixedCase), b: rec(lower(mixedCase)), c: rec("not-an-address"), d: rec(FRIEND) }));
+    storage.setItem(
+      CHAIN,
+      JSON.stringify({ a: rec(mixedCase), b: rec(lower(mixedCase)), c: rec("not-an-address"), d: rec(FRIEND) }),
+    );
     const p = await open({ storage, hatch: false });
     expect(p.chain.deviceWallets()).toEqual([lower(mixedCase), lower(FRIEND)]);
   });
@@ -958,18 +1173,33 @@ describe("the chain store: records on this device", () => {
     const { chain } = await open({ hatch: false });
     expect(chain.mindKey([])).toBe("[]");
     expect(chain.mindKey([], 5)).toBe('{"lessons":[],"instincts":5}');
-    expect(chain.mindKey([], 0, { processor: "0xcc", id: "9" })).toBe('{"lessons":[],"instincts":0,"outside":"0xcc:9"}');
+    expect(chain.mindKey([], 0, { processor: "0xcc", id: "9" })).toBe(
+      '{"lessons":[],"instincts":0,"outside":"0xcc:9"}',
+    );
     expect(chain.mindKey([], 0, undefined, [131])).toBe("[]|skills:131");
     const r = { petId: "1", hatchTx: ZERO32, lastDay: 0, owner: OWNER, bornChain: T0 / 1000 };
     expect([chain.chainDay(r, T0), chain.chainDay(r, T0 + DAY - 1), chain.chainDay(r, T0 + DAY)]).toEqual([1, 1, 2]);
     expect(chain.petKey({ bornAt: 12 })).toBe("12");
     expect(chain.explorerTx("0xabc")).toBe("https://www.oklink.com/xlayer/tx/0xabc");
-    expect(chain.rpcs).toEqual(["http://localhost:8787/api/rpc", "https://xlayerrpc.okx.com", "https://rpc.xlayer.tech"]);
+    expect(chain.rpcs).toEqual([
+      "http://localhost:8787/api/rpc",
+      "https://xlayerrpc.okx.com",
+      "https://rpc.xlayer.tech",
+    ]);
   });
 
   it("the one record kept before families belongs to the first pet", async () => {
     const storage = memoryStorage();
-    const pet = { ...createPet({ name: "Old Bun", line: "gentle", now: T0 - DAY, tzOffsetMin: 0, brain: mindBrain({ line: "gentle", lessons: [] }) }), beat: Math.floor(T0 / MIN) };
+    const pet = {
+      ...createPet({
+        name: "Old Bun",
+        line: "gentle",
+        now: T0 - DAY,
+        tzOffsetMin: 0,
+        brain: mindBrain({ line: "gentle", lessons: [] }),
+      }),
+      beat: Math.floor(T0 / MIN),
+    };
     storage.setItem("lingxi.pets.v2", JSON.stringify({ active: 0, pets: [pet] }));
     const rec = { petId: "9", hatchTx: ZERO32, lastDay: 4, owner: OWNER, bornChain: 0 };
     storage.setItem(OLD_CHAIN, JSON.stringify(rec));
@@ -1001,14 +1231,35 @@ describe("the chain store: records on this device", () => {
 describe("the chain store: a family on chain", () => {
   /** A partner's pet on chain, owned by another player, with a known brain. */
   function partnerOnChain(p: Page, o: { consent?: boolean } = {}) {
-    p.x.pets.set(90n, { owner: PARTNER_OWNER, line: 1, processor: PROCESSOR, brainId: 2n, brainBits: 16, born: T0 / 1000 - 30 * 86_400, day: 3, state: 0n });
+    p.x.pets.set(90n, {
+      owner: PARTNER_OWNER,
+      line: 1,
+      processor: PROCESSOR,
+      brainId: 2n,
+      brainBits: 16,
+      born: T0 / 1000 - 30 * 86_400,
+      day: 3,
+      state: 0n,
+    });
     if (o.consent !== false) p.x.consent.add(`90:${lower(OWNER)}`);
     return { petId: "90", owner: PARTNER_OWNER, brain: "2" };
   }
   const childOf = (parent: Pet): Pet => {
-    const family = familyOf({ name: parent.name, line: parent.line, lessons: [] }, { name: "Bo", line: "bold", lessons: [] });
+    const family = familyOf(
+      { name: parent.name, line: parent.line, lessons: [] },
+      { name: "Bo", line: "bold", lessons: [] },
+    );
     // born a minute after its parent: each pet on a device is known by its birth time
-    return { ...createPet({ name: "Pip", line: "gentle", now: T0 + MIN, tzOffsetMin: 0, brain: mindBrain({ line: "gentle", lessons: [], family }) }), family };
+    return {
+      ...createPet({
+        name: "Pip",
+        line: "gentle",
+        now: T0 + MIN,
+        tzOffsetMin: 0,
+        brain: mindBrain({ line: "gentle", lessons: [], family }),
+      }),
+      family,
+    };
   };
 
   it("the partner's owner allows the proposer on chain", async () => {
@@ -1033,7 +1284,12 @@ describe("the chain store: a family on chain", () => {
     expect(JSON.parse(p.relayed[0]!.body.payload)).toEqual({ parents: [xlayer.circuits.gentle.id, "2"] });
     expect(mined(p, "approve")).toHaveLength(1);
     expect(mined(p, "breed")).toEqual([expect.objectContaining({ args: [41n, 90n, PROCESSOR, 77n, 0, OKB] })]);
-    expect(p.chain.recordOf(child)).toMatchObject({ petId: "42", owner: OWNER, brainKey: "[]", brains: { "[]": "77" } });
+    expect(p.chain.recordOf(child)).toMatchObject({
+      petId: "42",
+      owner: OWNER,
+      brainKey: "[]",
+      brains: { "[]": "77" },
+    });
     expect(p.x.bemHeld.get(lower(OWNER))).toBe(99n * OKB);
   });
 
@@ -1087,10 +1343,16 @@ describe("the chain store: a family on chain", () => {
     const partner = partnerOnChain(p);
     approvedBefore(p);
     p.xl.node.holdReceipts = true;
-    expect(await settle(p.c().breed(p.pet(), partner, childOf(p.pet())), 1_000, 400)).toEqual({ ok: false, reason: "birthPending" });
+    expect(await settle(p.c().breed(p.pet(), partner, childOf(p.pet())), 1_000, 400)).toEqual({
+      ok: false,
+      reason: "birthPending",
+    });
     expect(mined(p, "breed")).toHaveLength(1);
     // still waiting: Welcome again sends nothing and tapes out nothing
-    expect(await settle(p.c().breed(p.pet(), partner, childOf(p.pet())), 1_000, 400)).toEqual({ ok: false, reason: "birthPending" });
+    expect(await settle(p.c().breed(p.pet(), partner, childOf(p.pet())), 1_000, 400)).toEqual({
+      ok: false,
+      reason: "birthPending",
+    });
     expect(mined(p, "breed")).toHaveLength(1);
     expect(p.relayed).toHaveLength(1);
     // X Layer tells of it now: Welcome again records that child, and saves its first day
@@ -1110,10 +1372,16 @@ describe("the chain store: a family on chain", () => {
     const partner = partnerOnChain(p);
     approvedBefore(p);
     p.xl.node.holdReceipts = true;
-    expect(await settle(p.c().breed(p.pet(), partner, childOf(p.pet())), 1_000, 400)).toEqual({ ok: false, reason: "birthPending" });
+    expect(await settle(p.c().breed(p.pet(), partner, childOf(p.pet())), 1_000, 400)).toEqual({
+      ok: false,
+      reason: "birthPending",
+    });
     vi.advanceTimersByTime(31 * MIN);
     p.xl.node.down = true;
-    expect(await settle(p.c().breed(p.pet(), partner, childOf(p.pet())), 1_000, 400)).toEqual({ ok: false, reason: "birthUnchecked" });
+    expect(await settle(p.c().breed(p.pet(), partner, childOf(p.pet())), 1_000, 400)).toEqual({
+      ok: false,
+      reason: "birthUnchecked",
+    });
     // the welcome on the next visit asks too, and keeps the birth while X Layer cannot answer
     expect(await settle(p.c().finishBirths())).toEqual([]);
     expect(Object.keys(JSON.parse(p.storage.getItem(BIRTHS)!)), "the birth is still kept").toHaveLength(1);
@@ -1132,7 +1400,10 @@ describe("the chain store: a family on chain", () => {
     approvedBefore(p);
     p.x.rules.revertMined = "breed";
     p.xl.node.holdReceipts = true;
-    expect(await settle(p.c().breed(p.pet(), partner, childOf(p.pet())), 1_000, 400)).toEqual({ ok: false, reason: "birthPending" });
+    expect(await settle(p.c().breed(p.pet(), partner, childOf(p.pet())), 1_000, 400)).toEqual({
+      ok: false,
+      reason: "birthPending",
+    });
     p.xl.node.holdReceipts = false;
     p.x.rules.revertMined = null;
     const r = await settle(p.c().breed(p.pet(), partner, childOf(p.pet())));
@@ -1165,7 +1436,9 @@ describe("the chain store: a family on chain", () => {
 
   it("a pet not on chain cannot have a child there", async () => {
     const p = await open();
-    expect(await settle(p.c().breed(p.pet(), { petId: "90", owner: PARTNER_OWNER, brain: "2" }, childOf(p.pet())))).toEqual({ ok: false, reason: "offChain" });
+    expect(
+      await settle(p.c().breed(p.pet(), { petId: "90", owner: PARTNER_OWNER, brain: "2" }, childOf(p.pet()))),
+    ).toEqual({ ok: false, reason: "offChain" });
   });
 
   it("each refusal before anything is spent is named for the player", async () => {
@@ -1182,7 +1455,10 @@ describe("the chain store: a family on chain", () => {
     expect(await settle(p.c().breed(p.pet(), partner, child))).toEqual({ ok: false, reason: "notEnoughBem" });
     p.x.bemHeld.set(lower(OWNER), 100n * OKB);
     // the partner's details do not match X Layer
-    expect(await settle(p.c().breed(p.pet(), { ...partner, owner: FRIEND }, child))).toEqual({ ok: false, reason: "partnerNotOnChain" });
+    expect(await settle(p.c().breed(p.pet(), { ...partner, owner: FRIEND }, child))).toEqual({
+      ok: false,
+      reason: "partnerNotOnChain",
+    });
     // the partner's owner has not consented
     p.x.consent.clear();
     partner = partnerOnChain(p, { consent: false });
@@ -1207,23 +1483,35 @@ describe("the chain store: a family on chain", () => {
     const p = await open();
     await kept(p);
     p.x.rules.breedRefusal = new Revert("NotAdult", [41n]);
-    expect(await settle(p.c().breed(p.pet(), partnerOnChain(p), childOf(p.pet())))).toEqual({ ok: false, reason: "notAdultOnChain" });
+    expect(await settle(p.c().breed(p.pet(), partnerOnChain(p), childOf(p.pet())))).toEqual({
+      ok: false,
+      reason: "notAdultOnChain",
+    });
   });
 
   it("a birth the Breeder refuses because the parents are still resting tells the player so", async () => {
     const p = await open();
     await kept(p);
     p.x.rules.breedRefusal = new Revert("TooSoon", [41n]);
-    expect(await settle(p.c().breed(p.pet(), partnerOnChain(p), childOf(p.pet())))).toEqual({ ok: false, reason: "tooSoon" });
+    expect(await settle(p.c().breed(p.pet(), partnerOnChain(p), childOf(p.pet())))).toEqual({
+      ok: false,
+      reason: "tooSoon",
+    });
   });
 
   it("a birth the Breeder refuses because its fee changed, or because the pet changed hands, tells the player so", async () => {
     const p = await open();
     await kept(p);
     p.x.rules.breedRefusal = new Revert("FeeMoved", [7n]);
-    expect(await settle(p.c().breed(p.pet(), partnerOnChain(p), childOf(p.pet())))).toEqual({ ok: false, reason: "feeMoved" });
+    expect(await settle(p.c().breed(p.pet(), partnerOnChain(p), childOf(p.pet())))).toEqual({
+      ok: false,
+      reason: "feeMoved",
+    });
     p.x.rules.breedRefusal = new Revert("NotYours");
-    expect(await settle(p.c().breed(p.pet(), partnerOnChain(p), childOf(p.pet())))).toEqual({ ok: false, reason: "notYours" });
+    expect(await settle(p.c().breed(p.pet(), partnerOnChain(p), childOf(p.pet())))).toEqual({
+      ok: false,
+      reason: "notYours",
+    });
   });
 
   it("a birth the Breeder refuses on chain sends nothing and keeps no record for the child", async () => {

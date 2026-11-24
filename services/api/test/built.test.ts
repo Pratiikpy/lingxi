@@ -43,10 +43,43 @@ function quietEnv(port: number): NodeJS.ProcessEnv {
     LINGXI_IP_KEY_FILE: join(dir, "ip-key"),
     LINGXI_SITE: siteOfItsOwn(dir),
     ...Object.fromEntries(
-      ["AGENT_STORE", "ARENA_STORE", "BRAIN_STORE", "DECOR_STORE", "DIARY_DIR", "DUELS_DIR", "HOMES_STORE", "LANE_FILE", "LIBRARY_STORE", "PAPERS_STORE", "PUSH_STORE", "SEASON_STORE", "SIT_STORE", "SPONSOR_STORE", "STANDINGS_FILE", "DAILY_FILE", "PACKETS_STORE", "RELAY_QUOTA_FILE", "CONSENTS_STORE", "MARKET_V1_STORE", "REFS_STORE", "CIRCUITS_STORE", "TEAM_FILE"].map((k) => [`LINGXI_${k}`, join(dir, k.toLowerCase())]),
+      [
+        "AGENT_STORE",
+        "ARENA_STORE",
+        "BRAIN_STORE",
+        "DECOR_STORE",
+        "DIARY_DIR",
+        "DUELS_DIR",
+        "HOMES_STORE",
+        "LANE_FILE",
+        "LIBRARY_STORE",
+        "PAPERS_STORE",
+        "PUSH_STORE",
+        "SEASON_STORE",
+        "SIT_STORE",
+        "SPONSOR_STORE",
+        "STANDINGS_FILE",
+        "DAILY_FILE",
+        "PACKETS_STORE",
+        "RELAY_QUOTA_FILE",
+        "CONSENTS_STORE",
+        "MARKET_V1_STORE",
+        "REFS_STORE",
+        "CIRCUITS_STORE",
+        "TEAM_FILE",
+      ].map((k) => [`LINGXI_${k}`, join(dir, k.toLowerCase())]),
     ),
   };
-  for (const k of ["LINGXI_REGISTRY", "LINGXI_PROCESSOR", "LINGXI_RELAYER_KEY_FILE", "LINGXI_VOUCHER_KEY_FILE", "LINGXI_PUSH_KEY_FILE", "ANTHROPIC_API_KEY", "pm_exec_path"]) delete env[k];
+  for (const k of [
+    "LINGXI_REGISTRY",
+    "LINGXI_PROCESSOR",
+    "LINGXI_RELAYER_KEY_FILE",
+    "LINGXI_VOUCHER_KEY_FILE",
+    "LINGXI_PUSH_KEY_FILE",
+    "ANTHROPIC_API_KEY",
+    "pm_exec_path",
+  ])
+    delete env[k];
   return env;
 }
 
@@ -81,7 +114,8 @@ describe("the built server answers as the source does (P3b)", () => {
   }, 120_000);
 
   it("is built with a worker under each boot file name the server starts", () => {
-    for (const f of ["server.mjs", "logHashBoot.mjs", "mindBoot.mjs", "standingsBoot.mjs"]) expect(existsSync(join(OUT, f)), f).toBe(true);
+    for (const f of ["server.mjs", "logHashBoot.mjs", "mindBoot.mjs", "standingsBoot.mjs"])
+      expect(existsSync(join(OUT, f)), f).toBe(true);
   });
 
   it("the built diary hash worker gives the chain's hash", async () => {
@@ -93,13 +127,27 @@ describe("the built server answers as the source does (P3b)", () => {
   it("the built mind worker tells the circuit's own mind from a taught one", async () => {
     const circuit = load(netlistBytes(compileProgram(STARTERS.gentle)), 16, 8);
     const card = (lessons: unknown[]) => parseCard(petCard({ line: "gentle", lessons, instincts: 0 } as never))!;
-    const same = await ask<{ same?: boolean }>("mindBoot.mjs", { workerData: { circuit, line: "gentle", card: card([]) } });
-    const taught = await ask<{ same?: boolean }>("mindBoot.mjs", { workerData: { circuit, line: "gentle", card: card([{ when: { hunger: [3] }, then: { want: 5, mood: 2 } }]) } });
+    const same = await ask<{ same?: boolean }>("mindBoot.mjs", {
+      workerData: { circuit, line: "gentle", card: card([]) },
+    });
+    const taught = await ask<{ same?: boolean }>("mindBoot.mjs", {
+      workerData: { circuit, line: "gentle", card: card([{ when: { hunger: [3] }, then: { want: 5, mood: 2 } }]) },
+    });
     expect([same.same, taught.same]).toEqual([true, false]);
   }, 60_000);
 
   it("the built standings worker fights a season as the source does", async () => {
-    const entries: SeasonEntry[] = [1, 2, 3].map((i) => ({ key: `k${i}`, pet: { name: `Pet${i}`, line: LINES[i % 3]!, stage: "child", card: petCard({ lessons: [] }), story: { days: 1, lessons: 0, nature: [] } }, at: i }));
+    const entries: SeasonEntry[] = [1, 2, 3].map((i) => ({
+      key: `k${i}`,
+      pet: {
+        name: `Pet${i}`,
+        line: LINES[i % 3]!,
+        stage: "child",
+        card: petCard({ lessons: [] }),
+        story: { days: 1, lessons: 0, nature: [] },
+      },
+      at: i,
+    }));
     const m = await ask<{ standings?: unknown }>("standingsBoot.mjs", { workerData: { week: "2026-W47", entries } });
     expect(m.standings).toEqual(seasonStandings("2026-W47", entries));
   }, 60_000);
@@ -107,10 +155,17 @@ describe("the built server answers as the source does (P3b)", () => {
   it("the built server starts when pm2 runs it through a wrapper, naming it only in pm_exec_path", async () => {
     // pm2 starts a script from its own ProcessContainerFork, so the server's file is not the first argument
     const wrapper = join(mkdtempSync(join(tmpdir(), "lx-pm2-")), "container.mjs");
-    writeFileSync(wrapper, `await import(${JSON.stringify(pathToFileURL(join(OUT, "server.mjs")).href)});
-`);
+    writeFileSync(
+      wrapper,
+      `await import(${JSON.stringify(pathToFileURL(join(OUT, "server.mjs")).href)});
+`,
+    );
     const port = 20_000 + Math.floor(Math.random() * 2_000);
-    const p = spawn(process.execPath, [wrapper], { cwd: API, env: { ...quietEnv(port), pm_exec_path: join(OUT, "server.mjs") }, stdio: "ignore" });
+    const p = spawn(process.execPath, [wrapper], {
+      cwd: API,
+      env: { ...quietEnv(port), pm_exec_path: join(OUT, "server.mjs") },
+      stdio: "ignore",
+    });
     try {
       expect(await answersOn(port), "it listens under a wrapper").toBe(200);
     } finally {
@@ -120,9 +175,12 @@ describe("the built server answers as the source does (P3b)", () => {
 
   it("the built server does not start when another program merely imports it", async () => {
     const wrapper = join(mkdtempSync(join(tmpdir(), "lx-import-")), "importer.mjs");
-    writeFileSync(wrapper, `await import(${JSON.stringify(pathToFileURL(join(OUT, "server.mjs")).href)});
+    writeFileSync(
+      wrapper,
+      `await import(${JSON.stringify(pathToFileURL(join(OUT, "server.mjs")).href)});
 setTimeout(() => process.exit(0), 3000);
-`);
+`,
+    );
     const port = 22_000 + Math.floor(Math.random() * 2_000);
     const p = spawn(process.execPath, [wrapper], { cwd: API, env: quietEnv(port), stdio: "ignore" });
     try {

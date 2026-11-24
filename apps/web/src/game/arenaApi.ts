@@ -8,7 +8,9 @@ import { type DuelPet, shownName } from "@lingxi/game";
 import { saveWrite } from "./saveRuntime";
 import { arenaOpponentQuery, arenaSnapshotBody, withQuery } from "./requests";
 
-const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const BASE =
+  (import.meta.env.VITE_API_URL as string | undefined) ??
+  (location.hostname === "localhost" ? "http://localhost:8787" : "");
 const DEVICE_KEY = "lingxi.device.v1";
 const WAIT_MS = 1500;
 
@@ -31,18 +33,26 @@ export function deviceId(): string {
 }
 
 export function saveLine(round: number, pet: DuelPet, team: string[]): void {
-  void fetch(`${BASE}/api/arena/snapshot`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(arenaSnapshotBody(round, pet, team, deviceId())) }).catch(() => undefined);
+  void fetch(`${BASE}/api/arena/snapshot`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(arenaSnapshotBody(round, pet, team, deviceId())),
+  }).catch(() => undefined);
 }
 
 export async function findRival(round: number): Promise<Rival | null> {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), WAIT_MS);
   try {
-    const r = await fetch(`${BASE}${withQuery("/api/arena/opponent", arenaOpponentQuery(round, deviceId()))}`, { signal: ctl.signal });
+    const r = await fetch(`${BASE}${withQuery("/api/arena/opponent", arenaOpponentQuery(round, deviceId()))}`, {
+      signal: ctl.signal,
+    });
     if (!r.ok) return null;
     const body = (await r.json()) as { ok: boolean; pet?: DuelPet; team?: string[] };
     // another player's pet name, shown as every other name from elsewhere is (A144)
-    return body.ok && body.pet && Array.isArray(body.team) ? { pet: { ...body.pet, name: shownName(body.pet.name, 24) || "Friend" }, team: body.team } : null;
+    return body.ok && body.pet && Array.isArray(body.team)
+      ? { pet: { ...body.pet, name: shownName(body.pet.name, 24) || "Friend" }, team: body.team }
+      : null;
   } catch {
     return null;
   } finally {

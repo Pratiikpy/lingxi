@@ -12,7 +12,18 @@ import { type DayChoices, habitLine } from "./personality";
 import type { Trait } from "./pet";
 import type { OutsideInstinct } from "./pet";
 import { instinctBrain } from "./family";
-import { type Program, type Rule, STARTERS, type Senses, decodeSenses, fastBrain, compileProgram, inputField, runBeat, stateBits } from "@lingxi/brain";
+import {
+  type Program,
+  type Rule,
+  STARTERS,
+  type Senses,
+  decodeSenses,
+  fastBrain,
+  compileProgram,
+  inputField,
+  runBeat,
+  stateBits,
+} from "@lingxi/brain";
 import { logSegments } from "./lessons";
 import { BEAT_MS } from "./pet";
 import { ACTION, EVENT, type Pet, WANT } from "./sim";
@@ -60,7 +71,12 @@ export function beatsOfLog(p: Pick<Pet, "pendingLog" | "logMarks">): Array<numbe
  * first (back 0 is the latest day, 1440 the day before). `mindFor` returns the
  * brain the pet had for a stretch of lessons (the same one the game ran).
  */
-export function rewind(pet: Pet, mindFor: (lessons: Rule[], outside?: OutsideInstinct, skills?: number[]) => Mind, count = 24 * 60, back = 0): Frame[] {
+export function rewind(
+  pet: Pet,
+  mindFor: (lessons: Rule[], outside?: OutsideInstinct, skills?: number[]) => Mind,
+  count = 24 * 60,
+  back = 0,
+): Frame[] {
   const segs = logSegments(pet);
   const beats = beatsOfLog(pet);
   const total = Math.max(0, pet.pendingLog.length - back);
@@ -77,7 +93,8 @@ export function rewind(pet: Pet, mindFor: (lessons: Rule[], outside?: OutsideIns
     const inst = mind.outside ? instinctBrain(mind.outside) : null;
     const nState = own + (inst?.nState ?? 0);
     // the log starts where the pet's memory was then: all zeros at birth, or what it was when it was kept (A66)
-    if (!mem || mem.length !== nState) mem = !mem && pet.logStart?.length === nState ? pet.logStart.slice() : new Array(nState).fill(0);
+    if (!mem || mem.length !== nState)
+      mem = !mem && pet.logStart?.length === nState ? pet.logStart.slice() : new Array(nState).fill(0);
     const fast = programs.map((p) => fastBrain(compileProgram(p)));
     const stepInstinct = (word: number): number => {
       if (!inst) return 0;
@@ -182,10 +199,16 @@ export function momentText(f: Frame, lang: "en" | "zh", habit: Trait | null = nu
  * plain line to say it with (a pet with no habit, the plain line only); once those are used, the moment is told without
  * the pet's words (null), so the card never repeats itself however long the absence was.
  */
-export function tellMoments(frames: readonly Frame[], lang: "en" | "zh", habit: Trait | null = null): Array<string | null> {
+export function tellMoments(
+  frames: readonly Frame[],
+  lang: "en" | "zh",
+  habit: Trait | null = null,
+): Array<string | null> {
   const said = new Set<string>();
   return frames.map((f, i) => {
-    const ways = habit ? [momentText(f, lang, habit, i), momentText(f, lang, habit, i + 1), momentText(f, lang, null)] : [momentText(f, lang, null)];
+    const ways = habit
+      ? [momentText(f, lang, habit, i), momentText(f, lang, habit, i + 1), momentText(f, lang, null)]
+      : [momentText(f, lang, null)];
     const taught = ruleSource(f) === "taught";
     for (const w of ways) {
       const line = taught ? (lang === "zh" ? `因为你教过我，${w}` : `Because you taught me, ${w}`) : w;
@@ -229,7 +252,9 @@ export function dayChoices(frames: readonly Frame[], fromMs: number): DayChoices
 const BORN = new Set(Object.values(STARTERS).flatMap((p) => p.rules.map((r) => JSON.stringify([r.when, r.then]))));
 
 /** Where the rule that decided came from: something taught, an instinct, what its egg line is born with, or nothing matched. */
-export function ruleSource(f: Pick<Frame, "rule" | "program"> & { outside?: true }): "taught" | "instinct" | "born" | "default" | "outside" {
+export function ruleSource(
+  f: Pick<Frame, "rule" | "program"> & { outside?: true },
+): "taught" | "instinct" | "born" | "default" | "outside" {
   if (f.outside) return "outside";
   const r = f.rule >= 0 ? f.program.rules[f.rule] : undefined;
   if (!r) return "default";
@@ -243,7 +268,11 @@ export function ruleSource(f: Pick<Frame, "rule" | "program"> & { outside?: true
  * move. A child's day half leads the opening and middle, its night half the late
  * rounds (a spar never reaches night), exactly as the child circuit mixes them.
  */
-export function rewindFight(mind: Mind, memory: readonly number[], words: readonly number[]): Array<{ rule: number; program: Program; want: number; half?: 0 | 1; outside?: true }> {
+export function rewindFight(
+  mind: Mind,
+  memory: readonly number[],
+  words: readonly number[],
+): Array<{ rule: number; program: Program; want: number; half?: 0 | 1; outside?: true }> {
   const programs = "program" in mind ? [mind.program] : mind.halves;
   const sizes = programs.map(stateBits);
   const own = sizes.reduce((a, b) => a + b, 0);
@@ -267,7 +296,14 @@ export function rewindFight(mind: Mind, memory: readonly number[], words: readon
     const time = (word >> TIME.lo) & 3;
     const half: 0 | 1 = programs.length === 1 ? 0 : time === 1 || time === 2 ? 0 : 1;
     const d = parts[half]!;
-    if (io & 7) return { rule: -1, program: programs[half]!, want: io & 7, outside: true as const, ...(programs.length === 2 ? { half } : {}) };
+    if (io & 7)
+      return {
+        rule: -1,
+        program: programs[half]!,
+        want: io & 7,
+        outside: true as const,
+        ...(programs.length === 2 ? { half } : {}),
+      };
     return { rule: d.r.rule, program: programs[half]!, want: d.r.out & 7, ...(programs.length === 2 ? { half } : {}) };
   });
 }

@@ -6,7 +6,19 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { createPublicClient, createWalletClient, encodeAbiParameters, erc20Abi, http, keccak256, numberToHex, pad, parseEther, type Address, type Hex } from "viem";
+import {
+  createPublicClient,
+  createWalletClient,
+  encodeAbiParameters,
+  erc20Abi,
+  http,
+  keccak256,
+  numberToHex,
+  pad,
+  parseEther,
+  type Address,
+  type Hex,
+} from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { compileProgram, netlistBytes } from "@lingxi/brain";
 import { composeProgram, PET_SCHOOL } from "@lingxi/game";
@@ -20,9 +32,16 @@ async function giveToken(pub: ReturnType<typeof createPublicClient>, token: Addr
   for (let slot = 0n; slot < 60n; slot++) {
     const key = keccak256(encodeAbiParameters([{ type: "address" }, { type: "uint256" }], [to, slot]));
     const before = await pub.getStorageAt({ address: token, slot: key });
-    await pub.request({ method: "anvil_setStorageAt" as never, params: [token, key, pad(numberToHex(amount), { size: 32 })] as never });
-    if ((await pub.readContract({ address: token, abi: erc20Abi, functionName: "balanceOf", args: [to] })) === amount) return;
-    await pub.request({ method: "anvil_setStorageAt" as never, params: [token, key, (before ?? pad("0x0", { size: 32 })) as Hex] as never });
+    await pub.request({
+      method: "anvil_setStorageAt" as never,
+      params: [token, key, pad(numberToHex(amount), { size: 32 })] as never,
+    });
+    if ((await pub.readContract({ address: token, abi: erc20Abi, functionName: "balanceOf", args: [to] })) === amount)
+      return;
+    await pub.request({
+      method: "anvil_setStorageAt" as never,
+      params: [token, key, (before ?? pad("0x0", { size: 32 })) as Hex] as never,
+    });
   }
   throw new Error("balance slot not found");
 }
@@ -42,7 +61,10 @@ describe.skipIf(!RPC)("a player's own tape-out, on an X Layer fork", () => {
     const nands = net.gates.length;
     const latches = net.latches.length;
 
-    await pub.request({ method: "anvil_setBalance" as never, params: [account.address, numberToHex(parseEther("5"))] as never });
+    await pub.request({
+      method: "anvil_setBalance" as never,
+      params: [account.address, numberToHex(parseEther("5"))] as never,
+    });
     const short = await quoteTapeout(pub, PROCESSOR, account.address, nands, latches, bytes.length);
     expect(short.feeIn).toBe("bem");
     expect(short.bemNeeded).toBeGreaterThan(0n);
@@ -64,7 +86,9 @@ describe.skipIf(!RPC)("a player's own tape-out, on an X Layer fork", () => {
     // what was spent covers the fees and never exceeds the quoted total with network fees
     expect(spent).toBeGreaterThanOrEqual(q.okbNeeded);
     expect(spent).toBeLessThanOrEqual(q.okbTotal);
-    expect(await pub.readContract({ address: q.bem, abi: erc20Abi, functionName: "balanceOf", args: [account.address] })).toBe(0n);
+    expect(
+      await pub.readContract({ address: q.bem, abi: erc20Abi, functionName: "balanceOf", args: [account.address] }),
+    ).toBe(0n);
 
     // a second tape-out of a brain the wallet already holds gates for mints nothing
     const again = await quoteTapeout(pub, PROCESSOR, account.address, 0, 0);

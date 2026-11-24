@@ -12,10 +12,50 @@ import { useBadges } from "./badges";
 import { create } from "zustand";
 import { erc20Abi, isAddress, type Address, type Hex, type WalletClient } from "viem";
 import { viem } from "./chainClient";
-import { petRegistryAbi, type Deployment, type TapeQuote, type TapeStep, allowPartnerOnChain, consentStands, withdrawConsentOnChain, breedOnChain, breedingTerms, checkPartner, hasConsent, checkpointOnChain, hatchOnChain, quoteTapeout, readKeeping, readPet, setBrainOnChain, setSitterOnChain, signRelay, type SignedRelay, tapeOutYourself, refusesTokens, LineMismatchError, RevertedOnChain, StillPending, hatchOutcome, birthOutcome, revertName, breederV2Abi , signSponsorRequest } from "@lingxi/chain";
+import {
+  petRegistryAbi,
+  type Deployment,
+  type TapeQuote,
+  type TapeStep,
+  allowPartnerOnChain,
+  consentStands,
+  withdrawConsentOnChain,
+  breedOnChain,
+  breedingTerms,
+  checkPartner,
+  hasConsent,
+  checkpointOnChain,
+  hatchOnChain,
+  quoteTapeout,
+  readKeeping,
+  readPet,
+  setBrainOnChain,
+  setSitterOnChain,
+  signRelay,
+  type SignedRelay,
+  tapeOutYourself,
+  refusesTokens,
+  LineMismatchError,
+  RevertedOnChain,
+  StillPending,
+  hatchOutcome,
+  birthOutcome,
+  revertName,
+  breederV2Abi,
+  signSponsorRequest,
+} from "@lingxi/chain";
 import { compileProgram, netlistBytes } from "@lingxi/brain";
 import { AUTO_DAYS, AUTO_FUND, AUTO_LOW, sessionAccount, sessionWallet } from "./session";
-import { type Pet, logSegments, packState, petCard, restartLog, stageOf, unpackState, ruleSkillIds } from "@lingxi/game";
+import {
+  type Pet,
+  logSegments,
+  packState,
+  petCard,
+  restartLog,
+  stageOf,
+  unpackState,
+  ruleSkillIds,
+} from "@lingxi/game";
 import type { BrainRelayPayload } from "@lingxi/api-schema";
 import { relayAvailable, relayBrain, relayChild, relayInstinct, signRelayRequest } from "./api";
 import type { ChainInfo } from "./live";
@@ -52,7 +92,15 @@ export async function connectWallet(): Promise<WalletClient> {
   } catch {
     await provider.request({
       method: "wallet_addEthereumChain",
-      params: [{ chainId: "0xc4", chainName: "X Layer", nativeCurrency: { name: "OKB", symbol: "OKB", decimals: 18 }, rpcUrls: OFFICIAL_RPCS, blockExplorerUrls: ["https://www.oklink.com/xlayer"] }],
+      params: [
+        {
+          chainId: "0xc4",
+          chainName: "X Layer",
+          nativeCurrency: { name: "OKB", symbol: "OKB", decimals: 18 },
+          rpcUrls: OFFICIAL_RPCS,
+          blockExplorerUrls: ["https://www.oklink.com/xlayer"],
+        },
+      ],
     });
   }
   return createWalletClient({ chain, transport: custom(provider), account: address });
@@ -91,7 +139,6 @@ export function autoStatus(r: ChainRecord | null, nowMs: number): "on" | "ending
   return r.autoUntil * 1000 - nowMs < 3 * 86_400_000 ? "ending" : "on";
 }
 
-
 /** The registry's refusals the chain panel explains, by the contract's own error name (A19). */
 const REGISTRY_REFUSALS: Record<string, string> = {
   DayNotAfter: "alreadySaved",
@@ -129,8 +176,17 @@ const BREED_REFUSALS: Record<string, string> = {
  */
 /** The key a mind's circuit is remembered by: its lessons, its instinct switches, and an owned instinct circuit. */
 /** Which brain a record keeps a circuit for. Rule skills (plan 4.4) join the key only when held, so older keys still match. */
-export const mindKey = (lessons: unknown[], instincts = 0, outside?: { processor: string; id: string }, skills: readonly number[] = []) => {
-  const base = outside ? JSON.stringify({ lessons, instincts, outside: `${outside.processor}:${outside.id}` }) : instincts ? JSON.stringify({ lessons, instincts }) : JSON.stringify(lessons);
+export const mindKey = (
+  lessons: unknown[],
+  instincts = 0,
+  outside?: { processor: string; id: string },
+  skills: readonly number[] = [],
+) => {
+  const base = outside
+    ? JSON.stringify({ lessons, instincts, outside: `${outside.processor}:${outside.id}` })
+    : instincts
+      ? JSON.stringify({ lessons, instincts })
+      : JSON.stringify(lessons);
   return skills.length ? `${base}|skills:${skills.join(",")}` : base;
 };
 
@@ -264,25 +320,44 @@ function setGiven(key: string, list: GivenConsent[]): void {
     // in memory for this visit
   }
 }
-const sameConsent = (a: GivenConsent, b: GivenConsent) => a.breeder.toLowerCase() === b.breeder.toLowerCase() && a.partner.toLowerCase() === b.partner.toLowerCase();
+const sameConsent = (a: GivenConsent, b: GivenConsent) =>
+  a.breeder.toLowerCase() === b.breeder.toLowerCase() && a.partner.toLowerCase() === b.partner.toLowerCase();
 /** Only the deployment's own breeders: an address from the server is never called unless it is one of them. */
 const breedersHere = (): Address[] => [deployment?.breeder, deployment?.breederFree].filter((a): a is Address => !!a);
-const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const API_BASE =
+  (import.meta.env.VITE_API_URL as string | undefined) ??
+  (location.hostname === "localhost" ? "http://localhost:8787" : "");
 
-type KeptFree = { ok: true; petId: string | null; hatchTx: string | null; grantTx: string | null } | { ok: false; reason: string };
+type KeptFree =
+  | { ok: true; petId: string | null; hatchTx: string | null; grantTx: string | null }
+  | { ok: false; reason: string };
 
 /** Asks the server to keep this pet on X Layer for this device's key (H4), signed by that key. */
 async function askToKeep(key: Awaited<ReturnType<typeof sessionAccount>>, pet: Pet): Promise<KeptFree> {
-  const { request, signature } = await signSponsorRequest(key, { line: pet.line, state: packState(pet, stageOf(pet, gameNow())).toString(), at: Math.round(gameNow()) });
-  const res = await fetch(`${API_BASE}/api/sponsor/hatch`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...request, signature }) });
+  const { request, signature } = await signSponsorRequest(key, {
+    line: pet.line,
+    state: packState(pet, stageOf(pet, gameNow())).toString(),
+    at: Math.round(gameNow()),
+  });
+  const res = await fetch(`${API_BASE}/api/sponsor/hatch`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ ...request, signature }),
+  });
   const body = (await res.json()) as Partial<KeptFree> & { ok?: boolean; reason?: string };
-  return body.ok ? { ok: true, petId: body.petId ?? null, hatchTx: body.hatchTx ?? null, grantTx: body.grantTx ?? null } : { ok: false, reason: body.reason ?? "error" };
+  return body.ok
+    ? { ok: true, petId: body.petId ?? null, hatchTx: body.hatchTx ?? null, grantTx: body.grantTx ?? null }
+    : { ok: false, reason: body.reason ?? "error" };
 }
 
 /** What the server kept for this key, when its answer to the request was lost. */
 async function keptFor(address: string): Promise<{ petId: string; hatchTx: string } | null> {
   try {
-    const r = (await (await fetch(`${API_BASE}/api/sponsor/of/${address}`)).json()) as { ok?: boolean; petId?: string | null; hatchTx?: string | null };
+    const r = (await (await fetch(`${API_BASE}/api/sponsor/of/${address}`)).json()) as {
+      ok?: boolean;
+      petId?: string | null;
+      hatchTx?: string | null;
+    };
     return r.ok && r.petId && r.hatchTx ? { petId: r.petId, hatchTx: r.hatchTx } : null;
   } catch {
     return null;
@@ -292,9 +367,22 @@ async function keptFor(address: string): Promise<{ petId: string; hatchTx: strin
 const INDEX_BEHIND_OK = 600;
 
 /** A child's record, from the birth that made it. */
-async function birthRecord(childId: bigint, tx: Hex, owner: string, brainId: string): Promise<{ record: ChainRecord; memory: number[] }> {
+async function birthRecord(
+  childId: bigint,
+  tx: Hex,
+  owner: string,
+  brainId: string,
+): Promise<{ record: ChainRecord; memory: number[] }> {
   const onChain = await readPet(publicClient, deployment!, childId);
-  const record: ChainRecord = { petId: childId.toString(), hatchTx: tx, lastDay: 0, owner, bornChain: onChain.born, brains: { [mindKey([])]: brainId }, brainKey: mindKey([]) };
+  const record: ChainRecord = {
+    petId: childId.toString(),
+    hatchTx: tx,
+    lastDay: 0,
+    owner,
+    bornChain: onChain.born,
+    brains: { [mindKey([])]: brainId },
+    brainKey: mindKey([]),
+  };
   return { record, memory: unpackState(onChain.state, onChain.brainBits).brain };
 }
 
@@ -303,7 +391,10 @@ export const recordOf = (pet: Pick<Pet, "bornAt">): ChainRecord | null => record
 // the store cuts only the logs of pets not kept here (A148)
 whenKeptOnChain((p) => recordOf(p) !== null);
 /** Every wallet that owns a pet kept on this device (community goals count what these wallets did on chain). */
-export const deviceWallets = (): string[] => [...new Set(Object.values(records).map((r) => r.owner.toLowerCase()))].filter((w) => /^0x[0-9a-f]{40}$/.test(w)).slice(0, 8);
+export const deviceWallets = (): string[] =>
+  [...new Set(Object.values(records).map((r) => r.owner.toLowerCase()))]
+    .filter((w) => /^0x[0-9a-f]{40}$/.test(w))
+    .slice(0, 8);
 export function setRecordOf(pet: Pet, rec: ChainRecord | null): void {
   store(pet, rec);
   useChain.setState({ record: activeRecord() });
@@ -358,7 +449,11 @@ interface ChainState {
    * hatch the newborn through the Breeder, then save its first day; returns the child's memory as the chain mixed it,
    * and whether its first day was saved (A33)
    */
-  breed: (parent: Pet, partner: ChainInfo, child: Pet) => Promise<{ ok: true; memory: number[]; firstDay: boolean } | { ok: false; reason: string }>;
+  breed: (
+    parent: Pet,
+    partner: ChainInfo,
+    child: Pet,
+  ) => Promise<{ ok: true; memory: number[]; firstDay: boolean } | { ok: false; reason: string }>;
   /** births sent before the page closed and found on X Layer since: recorded, and their children handed back to join the pets (A48) */
   finishBirths: () => Promise<Array<{ child: Pet; memory: number[] }>>;
 }
@@ -372,9 +467,13 @@ interface ChainState {
  * Who signs a request for the relayer to tape out this pet's brain: this device's own key when it keeps the pet on
  * chain (no prompt at all), otherwise the owner's wallet, once, with no fee and no transaction.
  */
-async function relaySigner(petId: string, wallet?: WalletClient): Promise<{ address: Address; signMessage: (m: { message: string }) => Promise<Hex> }> {
+async function relaySigner(
+  petId: string,
+  wallet?: WalletClient,
+): Promise<{ address: Address; signMessage: (m: { message: string }) => Promise<Hex> }> {
   const key = await sessionAccount();
-  if (deployment && (await readKeeping(publicClient, deployment, BigInt(petId), key.address).catch(() => null))?.keeper) return key;
+  if (deployment && (await readKeeping(publicClient, deployment, BigInt(petId), key.address).catch(() => null))?.keeper)
+    return key;
   const w = wallet ?? (await connectWallet());
   const account = w.account;
   if (!account) throw new Error("wallet has no account");
@@ -400,7 +499,10 @@ async function autoWallet(pet: Pet, record: ChainRecord): Promise<WalletClient |
     return (await publicClient.getBalance({ address: key })) < AUTO_LOW ? null : sessionWallet(chain, rpc);
   }
   const key = (await sessionAccount()).address;
-  const [k, balance] = await Promise.all([readKeeping(publicClient, deployment, BigInt(record.petId), key), publicClient.getBalance({ address: key })]);
+  const [k, balance] = await Promise.all([
+    readKeeping(publicClient, deployment, BigInt(record.petId), key),
+    publicClient.getBalance({ address: key }),
+  ]);
   if (!k.keeper) {
     store(pet, { ...record, autoUntil: undefined });
     useChain.setState({ record: activeRecord() });
@@ -426,7 +528,15 @@ async function saveFirstDay(wallet: WalletClient, record: ChainRecord, pet: Pet)
   try {
     // counted the way PetRegistry counts days: from block time
     const day = chainDay(record, Number((await publicClient.getBlock()).timestamp) * 1000);
-    const tx = await checkpointOnChain(publicClient, wallet, deployment, BigInt(record.petId), day, packState(pet, stageOf(pet, gameNow())), pet.logHash as Hex);
+    const tx = await checkpointOnChain(
+      publicClient,
+      wallet,
+      deployment,
+      BigInt(record.petId),
+      day,
+      packState(pet, stageOf(pet, gameNow())),
+      pet.logHash as Hex,
+    );
     store(pet, { ...record, lastDay: day, lastTx: tx, logLen: pet.pendingLog.length });
     return true;
   } catch {
@@ -459,15 +569,26 @@ export const useChain = create<ChainState>((set, get) => ({
       const asked = await askToKeep(key, pet);
       if (!asked.ok) {
         // an answer lost on the way: the server remembers this key's pet, and X Layer says whose it is
-        if (asked.reason !== "had" || record) return set({ busy: "idle", error: `free.${asked.reason}`, record: activeRecord() });
+        if (asked.reason !== "had" || record)
+          return set({ busy: "idle", error: `free.${asked.reason}`, record: activeRecord() });
       }
       const known = asked.ok && asked.petId && asked.hatchTx ? asked : await keptFor(key.address);
       if (!record) {
         if (!known?.petId || !known.hatchTx) return set({ busy: "idle", error: "free.error" });
         // the chain's word, never the server's: the pet must be this device's
         const onChain = await readPet(publicClient, deployment, BigInt(known.petId));
-        if (onChain.owner.toLowerCase() !== key.address.toLowerCase()) return set({ busy: "idle", error: "free.notOurs" });
-        record = { petId: known.petId, hatchTx: known.hatchTx, lastDay: 0, owner: key.address, bornChain: onChain.born, brains: { [mindKey([])]: deployment.circuits[pet.line]!.id }, brainKey: mindKey([]), device: true };
+        if (onChain.owner.toLowerCase() !== key.address.toLowerCase())
+          return set({ busy: "idle", error: "free.notOurs" });
+        record = {
+          petId: known.petId,
+          hatchTx: known.hatchTx,
+          lastDay: 0,
+          owner: key.address,
+          bornChain: onChain.born,
+          brains: { [mindKey([])]: deployment.circuits[pet.line]!.id },
+          brainKey: mindKey([]),
+          device: true,
+        };
         store(pet, record);
         // its log now starts where the hatch took its state, which is where the chain's proof of its memory starts (A66)
         if (asked.ok) useGame.getState().rework(pet.bornAt, (p) => restartLog(p, start.n, start.memory));
@@ -479,11 +600,23 @@ export const useChain = create<ChainState>((set, get) => ({
       const mind = mindKey(pet.lessons, pet.instincts, undefined, ruleSkillIds(pet.growth));
       if (pet.instincts && relayAvailable() && record.brainKey !== mind) {
         set({ busy: "taping" });
-        const body: BrainRelayPayload = { line: pet.line, lessons: pet.lessons, instincts: pet.instincts, skills: ruleSkillIds(pet.growth) };
+        const body: BrainRelayPayload = {
+          line: pet.line,
+          lessons: pet.lessons,
+          instincts: pet.instincts,
+          skills: ruleSkillIds(pet.growth),
+        };
         const r = await relayBrain(await signRelayRequest(key, "brain", record.petId, body));
         if (!r.ok) throw new Error(r.reason);
         set({ busy: "saving" });
-        await setBrainOnChain(publicClient, await sessionWallet(chain, rpc), deployment, BigInt(record.petId), deployment.processor, BigInt(r.brainId));
+        await setBrainOnChain(
+          publicClient,
+          await sessionWallet(chain, rpc),
+          deployment,
+          BigInt(record.petId),
+          deployment.processor,
+          BigInt(r.brainId),
+        );
         store(pet, { ...record, brains: { ...record.brains, [mind]: r.brainId }, brainKey: mind });
       }
       set({ record: activeRecord(), busy: "idle" });
@@ -500,7 +633,13 @@ export const useChain = create<ChainState>((set, get) => ({
       set({ busy: "saving" });
       const key = await sessionAccount();
       // a plain transfer from this device's key: the wallet signs nothing and pays nothing
-      const { request } = await publicClient.simulateContract({ address: deployment.registry, abi: petRegistryAbi, functionName: "transferFrom", args: [key.address, to, BigInt(r.petId)], account: key });
+      const { request } = await publicClient.simulateContract({
+        address: deployment.registry,
+        abi: petRegistryAbi,
+        functionName: "transferFrom",
+        args: [key.address, to, BigInt(r.petId)],
+        account: key,
+      });
       const tx = await (await sessionWallet(chain, rpc)).writeContract(request);
       const mined = await publicClient.waitForTransactionReceipt({ hash: tx });
       if (mined.status !== "success") throw new Error("the move was turned down on chain");
@@ -545,7 +684,11 @@ export const useChain = create<ChainState>((set, get) => ({
     let partial = true;
     try {
       const res = await fetch(`${API_BASE}/api/consents/${r.petId}`);
-      const body = (await res.json()) as { ok: boolean; indexedTo?: number; consents?: Array<{ breeder: string; partner: string }> };
+      const body = (await res.json()) as {
+        ok: boolean;
+        indexedTo?: number;
+        consents?: Array<{ breeder: string; partner: string }>;
+      };
       if (body.ok && Array.isArray(body.consents)) {
         for (const c of body.consents) {
           if (!known.includes(c.breeder.toLowerCase()) || !isAddress(c.partner)) continue;
@@ -559,10 +702,15 @@ export const useChain = create<ChainState>((set, get) => ({
       // the server's list is only a help: the consents this device gave are still checked below
     }
     try {
-      const standing = await Promise.all(candidates.map((c) => consentStands(publicClient, c.breeder, BigInt(r.petId), c.partner)));
+      const standing = await Promise.all(
+        candidates.map((c) => consentStands(publicClient, c.breeder, BigInt(r.petId), c.partner)),
+      );
       const consents = candidates.filter((_, i) => standing[i]);
       // one this device gave that no longer stands (used, withdrawn, the pet sold) is forgotten
-      setGiven(petKey(pet), (given[petKey(pet)] ?? []).filter((x) => consents.some((y) => sameConsent(x, y))));
+      setGiven(
+        petKey(pet),
+        (given[petKey(pet)] ?? []).filter((x) => consents.some((y) => sameConsent(x, y))),
+      );
       return { consents, partial };
     } catch {
       return null;
@@ -576,7 +724,10 @@ export const useChain = create<ChainState>((set, get) => ({
       const wallet = await connectWallet();
       set({ busy: "saving" });
       await withdrawConsentOnChain(publicClient, wallet, c.breeder, BigInt(r.petId), c.partner);
-      setGiven(petKey(pet), (given[petKey(pet)] ?? []).filter((x) => !sameConsent(x, c)));
+      setGiven(
+        petKey(pet),
+        (given[petKey(pet)] ?? []).filter((x) => !sameConsent(x, c)),
+      );
       set({ busy: "idle" });
       return true;
     } catch (e) {
@@ -594,8 +745,12 @@ export const useChain = create<ChainState>((set, get) => ({
           const { record, memory } = await birthRecord(o.childId, b.tx, b.owner, b.brainId);
           store(b.child, record);
           setBirth(parentKey, null);
-          out.push({ child: { ...b.child, brain: memory.length === b.child.brain.length ? memory : b.child.brain }, memory });
-        } else if (o === "failed" || (o === "unknown" && Date.now() - b.at >= PENDING_FORGET_MS)) setBirth(parentKey, null);
+          out.push({
+            child: { ...b.child, brain: memory.length === b.child.brain.length ? memory : b.child.brain },
+            memory,
+          });
+        } else if (o === "failed" || (o === "unknown" && Date.now() - b.at >= PENDING_FORGET_MS))
+          setBirth(parentKey, null);
       } catch {
         // the node did not answer: asked again next time
       }
@@ -623,7 +778,12 @@ export const useChain = create<ChainState>((set, get) => ({
           return { ok: false, reason: "birthPending" };
         }
         if (typeof out === "object") {
-          const { record: born, memory } = await birthRecord(out.childId, sentBefore.tx, sentBefore.owner, sentBefore.brainId);
+          const { record: born, memory } = await birthRecord(
+            out.childId,
+            sentBefore.tx,
+            sentBefore.owner,
+            sentBefore.brainId,
+          );
           store(child, born);
           setBirth(petKey(parent), null);
           set({ busy: "saving" });
@@ -638,20 +798,38 @@ export const useChain = create<ChainState>((set, get) => ({
       const terms = await breedingTerms(publicClient, deployment, [BigInt(r.petId), BigInt(partner.petId)]);
       if (terms) {
         if (terms.childrenLeft.some((n) => n <= 0)) throw new Error("TooManyChildren");
-        const held = (await publicClient.readContract({ address: terms.bem, abi: erc20Abi, functionName: "balanceOf", args: [wallet.account!.address] })) as bigint;
+        const held = (await publicClient.readContract({
+          address: terms.bem,
+          abi: erc20Abi,
+          functionName: "balanceOf",
+          args: [wallet.account!.address],
+        })) as bigint;
         if (held < terms.fee) throw new Error("not enough BEM");
       }
       // the partner's pet, owner and brain as they told us are checked on chain, and its consent must stand, before
       // the child circuit is taped out: nothing is spent on a partner's word alone
       if ((await checkPartner(publicClient, deployment, partner)) !== "ok") throw new Error("PartnerNotOnChain");
-      if (!(await hasConsent(publicClient, deployment, BigInt(partner.petId), wallet.account!.address))) throw new Error("NoConsent");
+      if (!(await hasConsent(publicClient, deployment, BigInt(partner.petId), wallet.account!.address)))
+        throw new Error("NoConsent");
       set({ busy: "taping" });
-      const relayed = await relayChild(await signRelayRequest(await relaySigner(r.petId, wallet), "child", r.petId, { parents: [mine, partner.brain] }));
+      const relayed = await relayChild(
+        await signRelayRequest(await relaySigner(r.petId, wallet), "child", r.petId, {
+          parents: [mine, partner.brain],
+        }),
+      );
       if (!relayed.ok) throw new Error(relayed.reason);
       set({ busy: "hatching" });
       const owner = wallet.account!.address;
-      const { childId, tx } = await breedOnChain(publicClient, wallet, deployment, BigInt(r.petId), BigInt(partner.petId), deployment.processor, BigInt(relayed.brainId), LINES.indexOf(child.line), (sent) =>
-        setBirth(petKey(parent), { tx: sent, owner, at: Date.now(), brainId: relayed.brainId, child }),
+      const { childId, tx } = await breedOnChain(
+        publicClient,
+        wallet,
+        deployment,
+        BigInt(r.petId),
+        BigInt(partner.petId),
+        deployment.processor,
+        BigInt(relayed.brainId),
+        LINES.indexOf(child.line),
+        (sent) => setBirth(petKey(parent), { tx: sent, owner, at: Date.now(), brainId: relayed.brainId, child }),
       );
       const { record: born, memory } = await birthRecord(childId, tx, owner, relayed.brainId);
       store(child, born);
@@ -694,12 +872,26 @@ export const useChain = create<ChainState>((set, get) => ({
     try {
       // a pet this device has kept already is never hatched again; keeping it again finishes what is left (A20)
       let record = records[petKey(pet)] ?? null;
-      const recordFrom = async (petId: bigint, tx: Hex, owner: string, start?: { n?: number; memory?: number[] }): Promise<ChainRecord> => {
+      const recordFrom = async (
+        petId: bigint,
+        tx: Hex,
+        owner: string,
+        start?: { n?: number; memory?: number[] },
+      ): Promise<ChainRecord> => {
         const onChain = await readPet(publicClient, deployment, petId);
-        const rec: ChainRecord = { petId: petId.toString(), hatchTx: tx, lastDay: 0, owner, bornChain: onChain.born, brains: { [mindKey([])]: deployment.circuits[pet.line]!.id }, brainKey: mindKey([]) };
+        const rec: ChainRecord = {
+          petId: petId.toString(),
+          hatchTx: tx,
+          lastDay: 0,
+          owner,
+          bornChain: onChain.born,
+          brains: { [mindKey([])]: deployment.circuits[pet.line]!.id },
+          brainKey: mindKey([]),
+        };
         store(pet, rec);
         // its log now starts where the hatch took its state, which is where the chain's proof of its memory starts (A66)
-        if (start?.n !== undefined && start.memory) useGame.getState().rework(pet.bornAt, (p) => restartLog(p, start.n!, start.memory!));
+        if (start?.n !== undefined && start.memory)
+          useGame.getState().rework(pet.bornAt, (p) => restartLog(p, start.n!, start.memory!));
         setPending(pet, null);
         // from here on the panel shows the pet as kept, whatever fails after
         set({ record: activeRecord() });
@@ -710,9 +902,12 @@ export const useChain = create<ChainState>((set, get) => ({
       if (sent) {
         set({ busy: "hatching" });
         // a check X Layer could not answer is never taken for a hatch that was not sent (A82)
-        const out = await hatchOutcome(publicClient, deployment, sent.tx, sent.owner as Hex).catch(() => "unchecked" as const);
+        const out = await hatchOutcome(publicClient, deployment, sent.tx, sent.owner as Hex).catch(
+          () => "unchecked" as const,
+        );
         if (out === "unchecked") return set({ busy: "idle", error: "hatchUnchecked" });
-        if (out === "pending" || (out === "unknown" && Date.now() - sent.at < PENDING_FORGET_MS)) return set({ busy: "idle", error: "hatchPending" });
+        if (out === "pending" || (out === "unknown" && Date.now() - sent.at < PENDING_FORGET_MS))
+          return set({ busy: "idle", error: "hatchPending" });
         if (typeof out === "object") record = await recordFrom(out.petId, sent.tx, sent.owner, sent);
         else setPending(pet, null);
       }
@@ -722,7 +917,14 @@ export const useChain = create<ChainState>((set, get) => ({
         const owner = wallet.account!.address;
         // the state the hatch records and the log's length at that moment, taken together from the same pet
         const start = { n: pet.pendingLog.length, memory: pet.brain.slice() };
-        const { petId, tx } = await hatchOnChain(publicClient, wallet, deployment, pet.line, packState(pet, stageOf(pet, gameNow())), (tx) => setPending(pet, { tx, owner, at: Date.now(), ...start }));
+        const { petId, tx } = await hatchOnChain(
+          publicClient,
+          wallet,
+          deployment,
+          pet.line,
+          packState(pet, stageOf(pet, gameNow())),
+          (tx) => setPending(pet, { tx, owner, at: Date.now(), ...start }),
+        );
         record = await recordFrom(petId, tx, owner, start);
       }
       // the registry hatches every pet on its line's starter brain; a pet with
@@ -730,11 +932,25 @@ export const useChain = create<ChainState>((set, get) => ({
       const key = mindKey(pet.lessons, pet.instincts, undefined, ruleSkillIds(pet.growth));
       if (pet.instincts && relayAvailable() && record.brainKey !== key) {
         set({ busy: "taping" });
-        const body: BrainRelayPayload = { line: pet.line, lessons: pet.lessons, instincts: pet.instincts, skills: ruleSkillIds(pet.growth) };
-        const r = await relayBrain(await signRelayRequest(await relaySigner(record.petId, wallet), "brain", record.petId, body));
+        const body: BrainRelayPayload = {
+          line: pet.line,
+          lessons: pet.lessons,
+          instincts: pet.instincts,
+          skills: ruleSkillIds(pet.growth),
+        };
+        const r = await relayBrain(
+          await signRelayRequest(await relaySigner(record.petId, wallet), "brain", record.petId, body),
+        );
         if (!r.ok) throw new Error(r.reason);
         set({ busy: "saving" });
-        await setBrainOnChain(publicClient, wallet, deployment, BigInt(record.petId), deployment.processor, BigInt(r.brainId));
+        await setBrainOnChain(
+          publicClient,
+          wallet,
+          deployment,
+          BigInt(record.petId),
+          deployment.processor,
+          BigInt(r.brainId),
+        );
         store(pet, { ...record, brains: { ...record.brains, [key]: r.brainId }, brainKey: key });
       }
       set({ record: activeRecord(), busy: "idle" });
@@ -761,7 +977,15 @@ export const useChain = create<ChainState>((set, get) => ({
         set({ busy: "idle", error: quiet ? null : "alreadySaved" });
         return;
       }
-      const tx = await checkpointOnChain(publicClient, wallet, deployment, BigInt(record.petId), day, packState(pet, stageOf(pet, gameNow())), pet.logHash as Hex);
+      const tx = await checkpointOnChain(
+        publicClient,
+        wallet,
+        deployment,
+        BigInt(record.petId),
+        day,
+        packState(pet, stageOf(pet, gameNow())),
+        pet.logHash as Hex,
+      );
       const next = { ...(records[petKey(pet)] ?? record), lastDay: day, lastTx: tx, logLen: pet.pendingLog.length };
       store(pet, next);
       set({ record: activeRecord(), busy: "idle" });
@@ -787,7 +1011,12 @@ export const useChain = create<ChainState>((set, get) => ({
       await setSitterOnChain(publicClient, wallet, deployment, BigInt(record.petId), key, BigInt(until));
       const balance = await publicClient.getBalance({ address: key });
       if (balance < AUTO_FUND / 2n) {
-        const tx = await wallet.sendTransaction({ to: key, value: AUTO_FUND - balance, account: wallet.account!, chain });
+        const tx = await wallet.sendTransaction({
+          to: key,
+          value: AUTO_FUND - balance,
+          account: wallet.account!,
+          chain,
+        });
         await publicClient.waitForTransactionReceipt({ hash: tx });
       }
       store(pet, { ...record, autoUntil: until, sitter: undefined });
@@ -803,7 +1032,14 @@ export const useChain = create<ChainState>((set, get) => ({
     try {
       const wallet = await connectWallet();
       set({ busy: "saving" });
-      await setSitterOnChain(publicClient, wallet, deployment, BigInt(record.petId), "0x0000000000000000000000000000000000000000", 0n);
+      await setSitterOnChain(
+        publicClient,
+        wallet,
+        deployment,
+        BigInt(record.petId),
+        "0x0000000000000000000000000000000000000000",
+        0n,
+      );
       store(pet, { ...record, autoUntil: undefined, sitter: undefined });
       set({ record: activeRecord(), busy: "idle" });
     } catch (e) {
@@ -843,7 +1079,14 @@ export const useChain = create<ChainState>((set, get) => ({
     try {
       const wallet = await connectWallet();
       const net = compileProgram(programFor(pet.line, pet.lessons, pet.instincts ?? 0, pet.growth));
-      const q = await quoteTapeout(publicClient, deployment.processor, wallet.account!.address, net.gates.length, net.latches.length, netlistBytes(net).length);
+      const q = await quoteTapeout(
+        publicClient,
+        deployment.processor,
+        wallet.account!.address,
+        net.gates.length,
+        net.latches.length,
+        netlistBytes(net).length,
+      );
       set({ busy: "idle" });
       return q;
     } catch (e) {
@@ -888,21 +1131,41 @@ export const useChain = create<ChainState>((set, get) => ({
           const signer = await relaySigner(record.petId);
           const r = pet.family
             ? await relayChild(await signRelayRequest(signer, "child", record.petId, { card: petCard(plain) }))
-            : await relayBrain(await signRelayRequest(signer, "brain", record.petId, { line: pet.line, lessons: pet.lessons, ...(pet.instincts ? { instincts: pet.instincts } : {}), skills: ruleSkillIds(pet.growth) }));
+            : await relayBrain(
+                await signRelayRequest(signer, "brain", record.petId, {
+                  line: pet.line,
+                  lessons: pet.lessons,
+                  ...(pet.instincts ? { instincts: pet.instincts } : {}),
+                  skills: ruleSkillIds(pet.growth),
+                }),
+              );
           if (!r.ok) throw new Error(r.reason);
           ownId = r.brainId;
         }
         brainId = ownId;
         // an owned instinct: a circuit that REFs the pet's own brain and the owned one
         if (pet.outside) {
-          const r = await relayInstinct(await signRelayRequest(await relaySigner(record.petId), "instinct", record.petId, { own: ownId, processor: pet.outside.processor, id: pet.outside.id }));
+          const r = await relayInstinct(
+            await signRelayRequest(await relaySigner(record.petId), "instinct", record.petId, {
+              own: ownId,
+              processor: pet.outside.processor,
+              id: pet.outside.id,
+            }),
+          );
           if (!r.ok) throw new Error(r.reason);
           brainId = r.brainId;
         }
       }
       const wallet = await connectWallet();
       set({ busy: "saving" });
-      await setBrainOnChain(publicClient, wallet, deployment, BigInt(record.petId), deployment.processor, BigInt(brainId));
+      await setBrainOnChain(
+        publicClient,
+        wallet,
+        deployment,
+        BigInt(record.petId),
+        deployment.processor,
+        BigInt(brainId),
+      );
       const next = { ...record, brains: { ...(record.brains ?? {}), [key]: brainId }, brainKey: key };
       store(pet, next);
       set({ record: activeRecord(), busy: "idle" });
@@ -916,7 +1179,10 @@ export const useChain = create<ChainState>((set, get) => ({
     // the log exactly as the last checkpoint committed it
     const n = record.logLen ?? 0;
     const segments = logSegments({ ...pet, pendingLog: pet.pendingLog.slice(0, n) })
-      .map((s) => ({ brainId: record.brains?.[mindKey(s.lessons, pet.instincts, s.outside, s.skills)] ?? null, words: s.words }))
+      .map((s) => ({
+        brainId: record.brains?.[mindKey(s.lessons, pet.instincts, s.outside, s.skills)] ?? null,
+        words: s.words,
+      }))
       .filter((s) => s.words.length > 0);
     return JSON.stringify(diaryBody(record.petId, pet.pendingLog.slice(0, n), segments));
   },

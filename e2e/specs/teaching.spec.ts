@@ -5,7 +5,8 @@
 import { type Opened, dismiss, expect, hatch, savedPet, sheet, test } from "../fixtures";
 
 type Lesson = { when: Record<string, number[]>; then: { want: number; mood: number }; label?: string };
-const lessons = async (p: Opened) => (((await savedPet(p.page)) as { lessons?: Lesson[] } | null)?.lessons ?? []) as Lesson[];
+const lessons = async (p: Opened) =>
+  (((await savedPet(p.page)) as { lessons?: Lesson[] } | null)?.lessons ?? []) as Lesson[];
 
 for (const look of [
   { lang: "en", scheme: "light", size: "phone" },
@@ -21,7 +22,9 @@ for (const look of [
     await page.locator(".levels .level-head[data-hint=teach]").first().click();
     await page.locator(".proposal").waitFor();
     await page.locator(".proposal button[data-hint=teach]").click();
-    await expect.poll(async () => (await lessons(p)).length, { message: "the school lesson is in the pet's save" }).toBe(before + 1);
+    await expect
+      .poll(async () => (await lessons(p)).length, { message: "the school lesson is in the pet's save" })
+      .toBe(before + 1);
     await expect(page.locator(".levels .level.done").first(), "the level shows as learned").toBeVisible();
     await page.screenshot({ path: test.info().outputPath(`school-${look.lang}-${look.scheme}-${look.size}.png`) });
     await page.keyboard.press("Escape");
@@ -37,7 +40,10 @@ for (const look of [
     await page.locator("details.build summary").click();
     const builder = page.locator(".builder");
     await builder.waitFor();
-    expect(await builder.locator(".cond").first().locator(".val.on").count(), "the builder starts with one event chosen").toBe(1);
+    expect(
+      await builder.locator(".cond").first().locator(".val.on").count(),
+      "the builder starts with one event chosen",
+    ).toBe(1);
     const wantRow = builder.locator(".vals").nth(1);
     const moodRow = builder.locator(".vals").nth(2);
     await wantRow.locator(".val").nth(1).click();
@@ -47,7 +53,9 @@ for (const look of [
     await page.locator(".proposal").waitFor();
     const count = (await lessons(p)).length;
     await page.locator(".proposal button[data-hint=teach]").click();
-    await expect.poll(async () => (await lessons(p)).length, { message: "the built rule is in the pet's save" }).toBe(count + 1);
+    await expect
+      .poll(async () => (await lessons(p)).length, { message: "the built rule is in the pet's save" })
+      .toBe(count + 1);
     const built = (await lessons(p)).find((l) => l.label === "my rule");
     expect(built, "the rule taught is the one the chips spelled").toBeTruthy();
     expect(built!.then).toEqual({ want: 1, mood: 0 });

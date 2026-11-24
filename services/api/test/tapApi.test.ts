@@ -22,19 +22,44 @@ function setup(opts: { tapLimit?: number } = {}) {
   const seasons = createSeasonStore(undefined, () => t);
   const app = withBodyLimits(new Hono());
   withAgentApi(app, { agents, seasons, limiter: new RateLimiter(10_000, 60_000) });
-  withTapApi(app, { signer, container, limiter: new RateLimiter(opts.tapLimit ?? 10_000, 60_000), now: () => Math.floor(t / 1000) });
+  withTapApi(app, {
+    signer,
+    container,
+    limiter: new RateLimiter(opts.tapLimit ?? 10_000, 60_000),
+    now: () => Math.floor(t / 1000),
+  });
   let n = 0;
   /** A TAP-13 call as a client makes it: returns the raw answer and the client's own view of what it sent. */
-  const tap = async (method: string, params: Record<string, unknown> = {}, init: { id?: string; raw?: string; token?: string; ip?: string } = {}) => {
+  const tap = async (
+    method: string,
+    params: Record<string, unknown> = {},
+    init: { id?: string; raw?: string; token?: string; ip?: string } = {},
+  ) => {
     const id = init.id ?? `req-${++n}`;
     const res = await app.request(`/api/v1/${method}`, {
       method: "POST",
-      headers: { "content-type": "application/json", ...(init.token ? { authorization: `Bearer ${init.token}` } : {}), ...(init.ip ? { "cf-connecting-ip": init.ip } : {}) },
+      headers: {
+        "content-type": "application/json",
+        ...(init.token ? { authorization: `Bearer ${init.token}` } : {}),
+        ...(init.ip ? { "cf-connecting-ip": init.ip } : {}),
+      },
       body: init.raw ?? JSON.stringify({ id, method, params }),
     });
     const text = await res.text();
-    const check = (over: Partial<{ signer: Address; container: Address; id: string; method: string; params: Record<string, unknown> }> = {}) =>
-      verifyEnvelope({ status: res.status, text }, { container, signer: signer.address, id, method, params, ...over }, { now: Math.floor(t / 1000) });
+    const check = (
+      over: Partial<{
+        signer: Address;
+        container: Address;
+        id: string;
+        method: string;
+        params: Record<string, unknown>;
+      }> = {},
+    ) =>
+      verifyEnvelope(
+        { status: res.status, text },
+        { container, signer: signer.address, id, method, params, ...over },
+        { now: Math.floor(t / 1000) },
+      );
     return { res, text, json: () => JSON.parse(text), check, id };
   };
   const rest = (path: string, init: { method?: string; body?: unknown; token?: string } = {}) =>
@@ -50,12 +75,30 @@ const program = encodeProgram(STARTERS.gentle);
 
 describe("TAP-13 answers from the agent API", () => {
   it("offers every /api/v1 operation as a method", () => {
-    expect(TAP_METHODS.map((m) => m.name)).toEqual(["about", "profiles", "partners", "spar", "pet", "brain", "scoreboard", "adopt", "me", "care", "teach", "season"]);
+    expect(TAP_METHODS.map((m) => m.name)).toEqual([
+      "about",
+      "profiles",
+      "partners",
+      "spar",
+      "pet",
+      "brain",
+      "scoreboard",
+      "adopt",
+      "me",
+      "care",
+      "teach",
+      "season",
+    ]);
   });
 
   it("signs a result that is exactly what the REST route answers", async () => {
     const { tap, rest } = setup();
-    for (const [method, path] of [["about", "/api/v1"], ["profiles", "/api/v1/profiles"], ["partners", "/api/v1/partners"], ["scoreboard", "/api/v1/scoreboard"]] as const) {
+    for (const [method, path] of [
+      ["about", "/api/v1"],
+      ["profiles", "/api/v1/profiles"],
+      ["partners", "/api/v1/partners"],
+      ["scoreboard", "/api/v1/scoreboard"],
+    ] as const) {
       const a = await tap(method);
       expect(a.res.status).toBe(200);
       const out = await a.check();
@@ -105,7 +148,9 @@ describe("TAP-13 answers from the agent API", () => {
     const { tap } = setup();
     const a = await tap("spar", { vs: "pip", seed: 7 });
     expect(a.json().error.code).toBe("BAD_REQUEST");
-    expect(a.json().error.message).toBe("give exactly one brain: program (a Lingxi program code), p1 or chips (a TapeFly brain)");
+    expect(a.json().error.message).toBe(
+      "give exactly one brain: program (a Lingxi program code), p1 or chips (a TapeFly brain)",
+    );
     const two = await tap("spar", { program, chips: "a,b", vs: "pip" });
     expect(two.json().error.code).toBe("BAD_REQUEST");
   });
@@ -133,9 +178,20 @@ describe("TAP-13 answers from the agent API", () => {
     expect(await a.check()).toMatchObject({ kind: "accepted", ok: false });
   });
 
-  it("binding rule 1: a body that is not JSON, not an object, has a bad id or a forbidden name is refused under id \"\"", async () => {
+  it('binding rule 1: a body that is not JSON, not an object, has a bad id or a forbidden name is refused under id ""', async () => {
     const { tap } = setup();
-    for (const raw of ["not json", "[1,2]", "null", '{"params":{}}', `{"id":"${"x".repeat(129)}"}`, '{"id":""}', '{"id":7}', '{"id":"a","__proto__":{}}', '{"id":"a","id":"b"}', '{"id":"\\ud800"}']) {
+    for (const raw of [
+      "not json",
+      "[1,2]",
+      "null",
+      '{"params":{}}',
+      `{"id":"${"x".repeat(129)}"}`,
+      '{"id":""}',
+      '{"id":7}',
+      '{"id":"a","__proto__":{}}',
+      '{"id":"a","id":"b"}',
+      '{"id":"\\ud800"}',
+    ]) {
       const a = await tap("profiles", {}, { raw });
       expect(a.res.status, raw).toBe(400);
       expect(a.json().id, raw).toBe("");
@@ -145,7 +201,12 @@ describe("TAP-13 answers from the agent API", () => {
 
   it("binding rule 2: params that are not an object, or have no canonical form, are refused under the own id and params {}", async () => {
     const { tap } = setup();
-    for (const raw of ['{"id":"r2","params":[1]}', '{"id":"r2","params":"x"}', '{"id":"r2","params":{"a":-0.0}}', '{"id":"r2","params":{"a":9007199254740993}}']) {
+    for (const raw of [
+      '{"id":"r2","params":[1]}',
+      '{"id":"r2","params":"x"}',
+      '{"id":"r2","params":{"a":-0.0}}',
+      '{"id":"r2","params":{"a":9007199254740993}}',
+    ]) {
       const a = await tap("profiles", {}, { raw, id: "r2" });
       expect(a.json().id, raw).toBe("r2");
       expect(await a.check(), raw).toEqual({ kind: "ownMalformed" });
@@ -161,9 +222,13 @@ describe("TAP-13 answers from the agent API", () => {
     expect(await a.check({ id: "m1" })).toEqual({ kind: "ownMalformed" });
   });
 
-  it("a body over the limit is a signed 413 under id \"\", whatever the body limit in front of it", async () => {
+  it('a body over the limit is a signed 413 under id "", whatever the body limit in front of it', async () => {
     const { tap } = setup();
-    const a = await tap("teach", {}, { raw: JSON.stringify({ id: "big", params: { pad: "x".repeat(TAP_BODY_LIMIT) } }) });
+    const a = await tap(
+      "teach",
+      {},
+      { raw: JSON.stringify({ id: "big", params: { pad: "x".repeat(TAP_BODY_LIMIT) } }) },
+    );
     expect(a.res.status).toBe(413);
     expect(a.json().id).toBe("");
     expect(await a.check()).toEqual({ kind: "ownMalformed" });
@@ -178,7 +243,10 @@ describe("TAP-13 answers from the agent API", () => {
     expect(Number(a.res.headers.get("retry-after"))).toBeGreaterThan(0);
     const body = a.json();
     expect(body.sig).toBeUndefined();
-    expect(body).toMatchObject({ ok: false, error: { code: "RATE_LIMITED", data: { retryAfterS: expect.any(Number) } } });
+    expect(body).toMatchObject({
+      ok: false,
+      error: { code: "RATE_LIMITED", data: { retryAfterS: expect.any(Number) } },
+    });
     expect(await a.check()).toEqual({ kind: "rateLimited" });
   });
 
@@ -197,15 +265,28 @@ describe("TAP-13 answers from the agent API", () => {
     const sent = { container, signer: signer.address, id: a.id, method: "profiles", params: {} };
     const opts = { now: now() };
     expect((await verifyEnvelope(as(env), sent, opts)).kind).toBe("accepted");
-    expect(await verifyEnvelope(as({ ...env, result: { ...env.result, profiles: [] } }), sent, opts)).toMatchObject({ kind: "binding" });
+    expect(await verifyEnvelope(as({ ...env, result: { ...env.result, profiles: [] } }), sent, opts)).toMatchObject({
+      kind: "binding",
+    });
     const { result, ...rest } = env;
-    expect(await verifyEnvelope(as({ ...rest, ok: false, error: { code: "INTERNAL", message: "x" } }), sent, opts)).toMatchObject({ kind: "binding" });
+    expect(
+      await verifyEnvelope(as({ ...rest, ok: false, error: { code: "INTERNAL", message: "x" } }), sent, opts),
+    ).toMatchObject({ kind: "binding" });
     expect(await verifyEnvelope(as(env), { ...sent, id: "someone-else" }, opts)).toMatchObject({ kind: "binding" });
     expect(await verifyEnvelope(as({ ...env, ts: env.ts + 1 }), sent, opts)).toMatchObject({ kind: "binding" });
     expect(await verifyEnvelope(as(env), sent, { now: now() + 301 })).toMatchObject({ kind: "binding" });
-    expect(await verifyEnvelope(as({ ...env, container: "0x0000000000000000000000000000000000000001" }), sent, opts)).toMatchObject({ kind: "binding" });
+    expect(
+      await verifyEnvelope(as({ ...env, container: "0x0000000000000000000000000000000000000001" }), sent, opts),
+    ).toMatchObject({ kind: "binding" });
     const other = privateKeyToAccount(`0x${"3".repeat(64)}`);
-    const forged = await signStatement(other, { container, id: a.id, request: { method: "profiles", params: {} }, ok: true, body: result, ts: env.ts });
+    const forged = await signStatement(other, {
+      container,
+      id: a.id,
+      request: { method: "profiles", params: {} },
+      ok: true,
+      body: result,
+      ts: env.ts,
+    });
     expect(await verifyEnvelope(as({ ...env, sig: forged }), sent, opts)).toMatchObject({ kind: "binding" });
     // the same answer cannot be moved to another method's question
     expect(await verifyEnvelope(as(env), { ...sent, method: "partners" }, opts)).toMatchObject({ kind: "binding" });

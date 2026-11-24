@@ -14,5 +14,11 @@ export function readTeamFile(path: string): string[] {
   }
   const wallets = (raw as { wallets?: unknown } | null)?.wallets;
   if (!Array.isArray(wallets)) return [];
-  return [...new Set(wallets.filter((w): w is string => typeof w === "string" && /^0x[0-9a-fA-F]{40}$/.test(w)).map((w) => w.toLowerCase()))];
+  return [
+    ...new Set(
+      wallets
+        .filter((w): w is string => typeof w === "string" && /^0x[0-9a-fA-F]{40}$/.test(w))
+        .map((w) => w.toLowerCase()),
+    ),
+  ];
 }

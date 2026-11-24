@@ -76,13 +76,23 @@ describe("the save module", () => {
     storage.setItem("lingxi.player.v1", "0123456789abcdef");
     storage.setItem("lingxi.lang", "zh");
     storage.setItem("lingxi.friends.v1", "[1,2");
-    expect(save.check().map((h) => h.key).sort()).toEqual(["lingxi.friends.v1", "lingxi.world.v1"]);
+    expect(
+      save
+        .check()
+        .map((h) => h.key)
+        .sort(),
+    ).toEqual(["lingxi.friends.v1", "lingxi.world.v1"]);
   });
 
   it("holds a save that parses but this build cannot read: a newer version, or a shape it does not know", () => {
     const { storage, events, save } = setup();
     const readers = {
-      "lingxi.world.v1": (v: unknown) => ((v as { version?: number }).version === 1 ? "ok" : (v as { version?: number }).version! > 1 ? "newer" : "unreadable"),
+      "lingxi.world.v1": (v: unknown) =>
+        (v as { version?: number }).version === 1
+          ? "ok"
+          : (v as { version?: number }).version! > 1
+            ? "newer"
+            : "unreadable",
       "lingxi.pets.v2": (v: unknown) => (Array.isArray((v as { pets?: unknown }).pets) ? "ok" : "unreadable"),
       "lingxi.daily.v1": () => "ok" as const,
     } as const;
@@ -137,7 +147,13 @@ describe("the save module", () => {
     const { events, save } = setup();
     save.write("lingxi.world.v1", "z".repeat(10));
     expect(events.some((e) => e.kind === "nearlyFull")).toBe(false);
-    const big = createSaveStore({ storage: memoryStorage(), now: () => 0, isWriter: () => true, onEvent: (e) => events.push(e), warnAtChars: 100 });
+    const big = createSaveStore({
+      storage: memoryStorage(),
+      now: () => 0,
+      isWriter: () => true,
+      onEvent: (e) => events.push(e),
+      warnAtChars: 100,
+    });
     big.write("lingxi.world.v1", "z".repeat(120));
     expect(events).toContainEqual(expect.objectContaining({ kind: "nearlyFull" }));
   });

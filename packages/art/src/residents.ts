@@ -50,8 +50,16 @@ export function drawCat(pose: CatPose): PixelCanvas {
     groundShadow(c, 11, 18, 7);
     m.ellipse(10.5, 13.5, 5.5, 5);
     m.ellipse(15.5, 8, 4.5, 4);
-    m.polygon([[12, 6], [12.6, 2], [15.2, 4.4]]);
-    m.polygon([[16.4, 4.4], [19, 2], [19.4, 6.2]]);
+    m.polygon([
+      [12, 6],
+      [12.6, 2],
+      [15.2, 4.4],
+    ]);
+    m.polygon([
+      [16.4, 4.4],
+      [19, 2],
+      [19.4, 6.2],
+    ]);
     m.ellipse(14.5, 18, 2, 1.3);
     m.ellipse(11.5, 18.2, 2, 1.2);
     const tail = TAILS_SIT[pose === "sit1" ? 1 : pose === "sit2" ? 2 : 0];
@@ -61,8 +69,16 @@ export function drawCat(pose: CatPose): PixelCanvas {
     groundShadow(c, 12, 18, 8);
     m.ellipse(11.5, 12.5, 7, 4);
     m.ellipse(18, 8.5, 4.2, 3.8);
-    m.polygon([[14.8, 6.5], [15.3, 2.6], [17.8, 5]]);
-    m.polygon([[18.8, 5], [21.3, 2.6], [21.6, 6.6]]);
+    m.polygon([
+      [14.8, 6.5],
+      [15.3, 2.6],
+      [17.8, 5],
+    ]);
+    m.polygon([
+      [18.8, 5],
+      [21.3, 2.6],
+      [21.6, 6.6],
+    ]);
     const step = pose === "walk0";
     m.rect(step ? 6 : 7, 15, 2, 4);
     m.rect(step ? 9 : 8, 15, 2, 3);
@@ -76,8 +92,16 @@ export function drawCat(pose: CatPose): PixelCanvas {
     groundShadow(c, 12, 18, 9);
     m.ellipse(11.5, 15, 8, 3.6);
     m.ellipse(18, 13.5, 4, 3.2);
-    m.polygon([[15, 12], [15.4, 8.6], [17.6, 10.6]]);
-    m.polygon([[18.6, 10.6], [20.8, 8.6], [21, 12]]);
+    m.polygon([
+      [15, 12],
+      [15.4, 8.6],
+      [17.6, 10.6],
+    ]);
+    m.polygon([
+      [18.6, 10.6],
+      [20.8, 8.6],
+      [21, 12],
+    ]);
     m.stamp(["######...", ".#######."], 6, 17);
     eyesAt = [18, 13];
     asleep = true;

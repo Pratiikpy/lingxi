@@ -39,11 +39,15 @@ async function main() {
   const before = await readHome(pub as never, processor, pet.brainId);
   const fee = await openingFee(pub as never);
   const balance = await pub.getBalance({ address: account.address });
-  console.log(`pet #1 brain: circuit #${pet.brainId} on ${processor}; home ${before.container}; opened ${before.opened}; fee ${formatEther(fee)} OKB; wallet ${formatEther(balance)} OKB`);
+  console.log(
+    `pet #1 brain: circuit #${pet.brainId} on ${processor}; home ${before.container}; opened ${before.opened}; fee ${formatEther(fee)} OKB; wallet ${formatEther(balance)} OKB`,
+  );
   if (before.opened) return console.log("already open");
   if (balance < fee + 10n ** 15n) throw new Error("not enough OKB for the fee and gas");
   const tx = await openHome(pub as never, wallet, processor, pet.brainId);
   const after = await readHome(pub as never, processor, pet.brainId);
-  console.log(`opened: ${after.opened}; container ${after.container}; tx ${tx}; wallet now ${formatEther(await pub.getBalance({ address: account.address }))} OKB`);
+  console.log(
+    `opened: ${after.opened}; container ${after.container}; tx ${tx}; wallet now ${formatEther(await pub.getBalance({ address: account.address }))} OKB`,
+  );
 }
 main().catch((e) => (console.error(e), process.exit(1)));

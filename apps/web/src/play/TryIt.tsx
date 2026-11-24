@@ -33,10 +33,14 @@ export function showMoment(pet: Pet, lesson: Rule, t: ReturnType<typeof useT>, l
     const pick = <T,>(parts: T[]) => ((senses.time === 1 || senses.time === 2 ? parts[0] : parts[1]) ?? parts[0])!;
     const part = pick(withIt);
     const without = pick(withoutIt);
-    return { tried: tryLesson(part.program, pet.brain.slice(part.offset), lesson, senses), before: tryLesson(without.program, pet.brain.slice(without.offset), lesson, senses) };
+    return {
+      tried: tryLesson(part.program, pet.brain.slice(part.offset), lesson, senses),
+      before: tryLesson(without.program, pet.brain.slice(without.offset), lesson, senses),
+    };
   });
   // the moment shown: one where the lesson decides and changes what the pet does, else one where it decides
-  const { tried, before } = asked.find((a) => a.tried.fired && a.before.want !== a.tried.want) ?? asked.find((a) => a.tried.fired) ?? asked[0]!;
+  const { tried, before } =
+    asked.find((a) => a.tried.fired && a.before.want !== a.tried.want) ?? asked.find((a) => a.tried.fired) ?? asked[0]!;
   const then = (want: number) => WANT_NAMES[lang][want] ?? "";
   const line = tried.fired
     ? `${t("try.would", { then: then(tried.want) })}${before.want !== tried.want ? `${lang === "zh" ? "" : " "}${t("try.without", { then: then(before.want) })}` : ""}`
@@ -62,7 +66,10 @@ export function TryIt({ pet, lesson, onDone }: { pet: Pet; lesson: Rule; onDone:
     showMoment(pet, lesson, t, lang);
     onDone();
   };
-  const when = () => chipsFor(programFor(pet.line, pet.lessons, pet.instincts ?? 0, pet.growth), lesson, lang).when.join(lang === "zh" ? "且" : " and ");
+  const when = () =>
+    chipsFor(programFor(pet.line, pet.lessons, pet.instincts ?? 0, pet.growth), lesson, lang).when.join(
+      lang === "zh" ? "且" : " and ",
+    );
   const text =
     trigger.kind === "event"
       ? t("try.event", { name: pet.name, coming: t(COMING[trigger.event]!) })

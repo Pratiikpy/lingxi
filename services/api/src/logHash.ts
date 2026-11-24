@@ -68,7 +68,9 @@ function keptWorker(budgetMs: number): { run: LogHasher; started: () => number }
   return { run, started: () => started };
 }
 
-export function createLogHasher(opts: { budgetMs?: number; atOnce?: number; waiting?: number; run?: LogHasher } = {}): LogHasher & { workersStarted: () => number } {
+export function createLogHasher(
+  opts: { budgetMs?: number; atOnce?: number; waiting?: number; run?: LogHasher } = {},
+): LogHasher & { workersStarted: () => number } {
   const kept = opts.run ? null : keptWorker(opts.budgetMs ?? LOG_HASH_BUDGET_MS);
   const run = opts.run ?? kept!.run;
   const atOnce = opts.atOnce ?? LOG_HASHES_AT_ONCE;

@@ -23,12 +23,19 @@ test("a pet's new mind is taped out by a signed relay request (en, light, phone)
   const sent: SignedRequest[] = [];
   const answered: Array<Promise<{ ok: boolean; brainId?: string }>> = [];
   page.on("request", (r) => {
-    if (r.method() === "POST" && r.url().endsWith("/api/tapeout") && r.postData()) sent.push(JSON.parse(r.postData()!) as SignedRequest);
+    if (r.method() === "POST" && r.url().endsWith("/api/tapeout") && r.postData())
+      sent.push(JSON.parse(r.postData()!) as SignedRequest);
   });
   page.on("response", (r) => {
-    if (r.request().method() === "POST" && r.url().endsWith("/api/tapeout")) answered.push(r.json() as Promise<{ ok: boolean; brainId?: string }>);
+    if (r.request().method() === "POST" && r.url().endsWith("/api/tapeout"))
+      answered.push(r.json() as Promise<{ ok: boolean; brainId?: string }>);
   });
-  const api = (body: unknown) => fetch(`${run.api}/api/tapeout`, { method: "POST", headers: { "content-type": "application/json", origin: p.web }, body: JSON.stringify(body) }).then(async (r) => ({ status: r.status, body: (await r.json()) as { reason?: string } }));
+  const api = (body: unknown) =>
+    fetch(`${run.api}/api/tapeout`, {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: p.web },
+      body: JSON.stringify(body),
+    }).then(async (r) => ({ status: r.status, body: (await r.json()) as { reason?: string } }));
   const reopen = async () => {
     await page.reload();
     await page.locator(".stage").waitFor();
@@ -50,9 +57,14 @@ test("a pet's new mind is taped out by a signed relay request (en, light, phone)
   await expect(page.locator(".mind-behind"), "the mind is no longer behind").toHaveCount(0, { timeout: 120_000 });
   const brain1 = await fork.brainOf(petId);
   expect(brain1, "the pet's brain on chain moved").not.toBe(brain0);
-  expect((await Promise.all(answered)).at(-1), "to the circuit the relayer taped out").toEqual(expect.objectContaining({ ok: true, brainId: brain1.toString() }));
+  expect((await Promise.all(answered)).at(-1), "to the circuit the relayer taped out").toEqual(
+    expect.objectContaining({ ok: true, brainId: brain1.toString() }),
+  );
   expect(sent.length, "the game sent its relay request").toBeGreaterThan(0);
-  expect(sent.every((s) => s.auth && s.payload), "every request the game sent is the signed form").toBe(true);
+  expect(
+    sent.every((s) => s.auth && s.payload),
+    "every request the game sent is the signed form",
+  ).toBe(true);
   const walletSigner = sent[0]!.auth.signer.toLowerCase();
   expect(walletSigner, "the owner's wallet signed it").toBe(run.players[0]!.address.toLowerCase());
 
@@ -61,13 +73,23 @@ test("a pet's new mind is taped out by a signed relay request (en, light, phone)
   expect([replay.status, replay.body.reason], "the same signed request again is refused").toEqual([401, "replayed"]);
   const bare = await api(JSON.parse(sent[0]!.payload));
   expect(bare.status, "the request without its signature is refused").toBe(400);
-  const forged = await api({ ...sent[0], auth: { ...sent[0]!.auth, signer: "0x000000000000000000000000000000000000bEEF" } });
+  const forged = await api({
+    ...sent[0],
+    auth: { ...sent[0]!.auth, signer: "0x000000000000000000000000000000000000bEEF" },
+  });
   expect(forged.status, "a request claiming another signer is refused").toBe(401);
 
   // auto-save makes this device's key the pet's sitter: it signs the next request, with no wallet
   await sheet(page, "me");
   await (await reach(page, ".keeping .btn.primary")).click();
-  await page.waitForFunction(() => Object.values(JSON.parse(localStorage.getItem("lingxi.chain.v2") ?? "{}") as Record<string, { autoUntil?: number } | null>).some((r) => r && r.autoUntil), undefined, { timeout: 180_000 });
+  await page.waitForFunction(
+    () =>
+      Object.values(
+        JSON.parse(localStorage.getItem("lingxi.chain.v2") ?? "{}") as Record<string, { autoUntil?: number } | null>,
+      ).some((r) => r && r.autoUntil),
+    undefined,
+    { timeout: 180_000 },
+  );
   await teach(page, { when: { hunger: [0], joy: [3] }, then: { want: 2, mood: 3 } });
   sent.length = 0;
   answered.length = 0;
@@ -79,8 +101,12 @@ test("a pet's new mind is taped out by a signed relay request (en, light, phone)
   expect(sent.length, "the game sent its second relay request").toBeGreaterThan(0);
   const deviceSigner = sent[0]!.auth.signer.toLowerCase();
   expect(deviceSigner, "with auto-save on, the device key signs, not the wallet").not.toBe(walletSigner);
-  expect(await fork.isKeeper(petId, deviceSigner as `0x${string}`), "the device key is the pet's sitter on chain").toBe(true);
+  expect(await fork.isKeeper(petId, deviceSigner as `0x${string}`), "the device key is the pet's sitter on chain").toBe(
+    true,
+  );
   expect(brain2, "the pet takes the new brain").not.toBe(brain1);
-  expect((await Promise.all(answered)).at(-1), "the one the relayer taped out").toEqual(expect.objectContaining({ ok: true, brainId: brain2.toString() }));
+  expect((await Promise.all(answered)).at(-1), "the one the relayer taped out").toEqual(
+    expect.objectContaining({ ok: true, brainId: brain2.toString() }),
+  );
   await page.screenshot({ path: test.info().outputPath("relay-done-en-light-phone.png") });
 });

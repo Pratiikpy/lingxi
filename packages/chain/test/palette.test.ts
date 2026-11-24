@@ -12,7 +12,8 @@ describe("palettes as PetLook stores them (A17)", () => {
   });
 
   it("refuses a colour that is not #rrggbb or #rrggbbaa", () => {
-    for (const bad of ["#0a0b0", "0a0b0c", "#0a0b0cz1", "#gg0000", "#0a0b0c0d0e"]) expect(() => paletteBytes({ O: bad }), bad).toThrow(/role O/);
+    for (const bad of ["#0a0b0", "0a0b0c", "#0a0b0cz1", "#gg0000", "#0a0b0c0d0e"])
+      expect(() => paletteBytes({ O: bad }), bad).toThrow(/role O/);
   });
 
   it("takes every other alpha, and writes opaque colours as alpha 255", () => {

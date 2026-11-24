@@ -23,7 +23,16 @@ describe("where the deciding rule came from (G1)", () => {
   });
   it("a child's rule from a parent's lessons is the parent's", () => {
     const parentLesson: Rule = { when: { event: [1] }, then: { want: 7, mood: 2 } };
-    const child = { line: "gentle", lessons: [], family: { parents: [{ name: "A", line: "gentle", lessons: [parentLesson] }, { name: "B", line: "bold", lessons: [] }] } } as unknown as Pet;
+    const child = {
+      line: "gentle",
+      lessons: [],
+      family: {
+        parents: [
+          { name: "A", line: "gentle", lessons: [parentLesson] },
+          { name: "B", line: "bold", lessons: [] },
+        ],
+      },
+    } as unknown as Pet;
     const p = composeProgram("gentle", [parentLesson]);
     expect(ruleKindOf(child, p, 0)).toBe("parent");
     expect(ruleKindOf(child, STARTERS.gentle, 0)).toBe("inborn");

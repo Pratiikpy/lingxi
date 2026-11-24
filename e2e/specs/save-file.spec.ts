@@ -16,7 +16,8 @@ const KEY_C = `0x${"c3".repeat(32)}`;
 const SESSION = "lingxi.session.v1";
 const REPLACED = "lingxi.keys.replaced.v1";
 /** A browser whose game already signs with its own key. */
-const withKey = (key: string) => `if (!localStorage.getItem('${SESSION}')) localStorage.setItem('${SESSION}', '${key}');`;
+const withKey = (key: string) =>
+  `if (!localStorage.getItem('${SESSION}')) localStorage.setItem('${SESSION}', '${key}');`;
 
 interface PetsSave {
   pets: Array<{ name: string; bornAt: number; beat: number; lessons: unknown }>;
@@ -29,7 +30,12 @@ interface WorldSave {
 type Replaced = Array<{ keys: Record<string, string> }>;
 
 /** What one player made, for the players after it. */
-const made: { file: string; phrase: string; pets: string; world: string } = { file: "", phrase: "", pets: "", world: "" };
+const made: { file: string; phrase: string; pets: string; world: string } = {
+  file: "",
+  phrase: "",
+  pets: "",
+  world: "",
+};
 
 /** Opens the save file sheet from the Pet sheet's card. */
 async function openSaveFile(page: Page): Promise<void> {
@@ -71,7 +77,10 @@ test("a save file is made, holding nothing readable (en, light, phone)", async (
   const go = page.locator(".sf-part .btn.primary", { hasText: "Download" });
   await expect(go, "the download waits for a passphrase").toBeDisabled();
   await page.locator(".sf-field input").first().fill("short");
-  await expect(page.locator(".sf-part").first(), "a short passphrase is refused, with how many characters are missing").toContainText("more characters");
+  await expect(
+    page.locator(".sf-part").first(),
+    "a short passphrase is refused, with how many characters are missing",
+  ).toContainText("more characters");
   await page.locator(".btn", { hasText: "Make a strong one" }).click();
   const phrase = await page.locator(".sf-field input").first().inputValue();
   expect(phrase, "a strong passphrase is made and shown").toHaveLength(23);
@@ -92,8 +101,14 @@ test("a save file is made, holding nothing readable (en, light, phone)", async (
   expect(j.kind, "the file names its kind").toBe("lingxi-save");
   expect(j.kdf?.rounds, "and its lock").toBe(600_000);
   expect(j.zip).toBe("gzip");
-  for (const secret of ["Kiri", "2a2a2a", "lingxi.pets"]) expect(text, `no pet name, key or save text can be read in the file (${secret})`).not.toContain(secret);
-  Object.assign(made, { file, phrase, pets: (await stored(page, "lingxi.pets.v2"))!, world: (await stored(page, "lingxi.world.v1"))! });
+  for (const secret of ["Kiri", "2a2a2a", "lingxi.pets"])
+    expect(text, `no pet name, key or save text can be read in the file (${secret})`).not.toContain(secret);
+  Object.assign(made, {
+    file,
+    phrase,
+    pets: (await stored(page, "lingxi.pets.v2"))!,
+    world: (await stored(page, "lingxi.world.v1"))!,
+  });
 });
 
 test("a fresh browser refuses what is wrong, then restores everything (zh, dark, phone)", async ({ player, run }) => {
@@ -119,7 +134,9 @@ test("a fresh browser refuses what is wrong, then restores everything (zh, dark,
   const notASave = join(run.dir, "save-file", "not-a-save.json");
   writeFileSync(notASave, '{"hello": "world"}');
   await tryOpen(page, notASave);
-  await expect(page.locator(".sf-bad"), "a file that is not a save is named as such").toContainText("不是灵犀的存档文件");
+  await expect(page.locator(".sf-bad"), "a file that is not a save is named as such").toContainText(
+    "不是灵犀的存档文件",
+  );
 
   await tryOpen(page, made.file);
   const summary = page.locator(".sf-sum");
@@ -136,14 +153,22 @@ test("a fresh browser refuses what is wrong, then restores everything (zh, dark,
   expect(ids(got), "the same pets came back").toEqual(ids(want));
   const world = (await storedJson<WorldSave>(page, "lingxi.world.v1"))!;
   const wantWorld = JSON.parse(made.world) as WorldSave;
-  expect([world.seed, world.bag, world.coins], "the same world came back").toEqual([wantWorld.seed, wantWorld.bag, wantWorld.coins]);
+  expect([world.seed, world.bag, world.coins], "the same world came back").toEqual([
+    wantWorld.seed,
+    wantWorld.bag,
+    wantWorld.coins,
+  ]);
   expect(await stored(page, SESSION), "and the key that saves them").toBe(KEY_A);
   // the pet lived on while the file sat on disk: its own clock moves it on, never back
-  expect(got.pets[0]!.beat, "the restored pet carries on from where the file left it").toBeGreaterThanOrEqual(want.pets[0]!.beat);
+  expect(got.pets[0]!.beat, "the restored pet carries on from where the file left it").toBeGreaterThanOrEqual(
+    want.pets[0]!.beat,
+  );
   await page.screenshot({ path: test.info().outputPath("savefile-restored-zh-dark.png") });
 });
 
-test("a browser with its own pet restores, then undoes, and keeps every key (en, dark, desktop)", async ({ player }) => {
+test("a browser with its own pet restores, then undoes, and keeps every key (en, dark, desktop)", async ({
+  player,
+}) => {
   expect(made.file, "the save file the first player made").not.toBe("");
   const p = await player({ lang: "en", scheme: "dark", size: "desktop", init: withKey(KEY_C) });
   const { page } = p;
@@ -159,12 +184,19 @@ test("a browser with its own pet restores, then undoes, and keeps every key (en,
   await andReload(page, () => page.locator(".sf-part .btn.primary", { hasText: "Restore" }).click());
   expect(await stored(page, SESSION), "the restore brings the file's key").toBe(KEY_A);
   const replaced = (await storedJson<Replaced>(page, REPLACED)) ?? [];
-  expect(replaced.some((e) => e.keys[SESSION] === KEY_C), "and keeps this browser's own").toBe(true);
+  expect(
+    replaced.some((e) => e.keys[SESSION] === KEY_C),
+    "and keeps this browser's own",
+  ).toBe(true);
 
   await andReload(page, () => page.locator(".move-note .btn", { hasText: "Undo" }).click());
-  const ids = (raw: string | null) => ((raw ? JSON.parse(raw) : { pets: [] }) as PetsSave).pets.map((x) => [x.name, x.bornAt]);
+  const ids = (raw: string | null) =>
+    ((raw ? JSON.parse(raw) : { pets: [] }) as PetsSave).pets.map((x) => [x.name, x.bornAt]);
   expect(ids(await stored(page, "lingxi.pets.v2")), "undo brings back this browser's pets").toEqual(ids(petsHere));
   expect(await stored(page, SESSION), "and its key").toBe(KEY_C);
   const after = (await storedJson<Replaced>(page, REPLACED)) ?? [];
-  expect(after.some((e) => e.keys[SESSION] === KEY_A), "and the file's key is kept too: no key was thrown away").toBe(true);
+  expect(
+    after.some((e) => e.keys[SESSION] === KEY_A),
+    "and the file's key is kept too: no key was thrown away",
+  ).toBe(true);
 });

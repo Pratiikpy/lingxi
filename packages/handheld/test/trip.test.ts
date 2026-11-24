@@ -7,13 +7,37 @@ import { describe, expect, it } from "vitest";
 import { keccak_256 } from "@noble/hashes/sha3";
 import { type ItemEffect, type Pet, BEAT_MS, FOODS, SKILLS, createPet, newGrowth } from "@lingxi/game";
 import { type HandheldCore } from "../src/core";
-import { TRIP_VERSION, type Snack, type TripOp, type TripScreen, arrivingIn, bringHome, petDigest, readReturn, replayOps, returnEndBeat, tripPacket } from "../src/trip";
+import {
+  TRIP_VERSION,
+  type Snack,
+  type TripOp,
+  type TripScreen,
+  arrivingIn,
+  bringHome,
+  petDigest,
+  readReturn,
+  replayOps,
+  returnEndBeat,
+  tripPacket,
+} from "../src/trip";
 import { type TestBrain, childBrain, loadCore, rng, starterBrain } from "./helpers";
 
 const START = Date.UTC(2026, 10, 17, 3, 0);
-const SCREEN: TripScreen = { name: "Mochi", line: "gentle", stage: 1, form: 0, colour: 3, lang: "en", bornBeat: Math.floor(START / BEAT_MS) };
+const SCREEN: TripScreen = {
+  name: "Mochi",
+  line: "gentle",
+  stage: 1,
+  form: 0,
+  colour: 3,
+  lang: "en",
+  bornBeat: Math.floor(START / BEAT_MS),
+};
 const snacksOf = (): Snack[] => [
-  ...FOODS.slice(0, 3).map((f, i) => ({ id: f.id, count: 2 + i, effect: { food: f.food, joy: f.joy, diet: f.diet } as ItemEffect })),
+  ...FOODS.slice(0, 3).map((f, i) => ({
+    id: f.id,
+    count: 2 + i,
+    effect: { food: f.food, joy: f.joy, diet: f.diet } as ItemEffect,
+  })),
   { id: "tonic", count: 3, effect: { food: 50, joy: -10, energy: 30, xp: 2 } },
 ];
 
@@ -43,7 +67,15 @@ function randomOps(seed: number, n: number): TripOp[] {
 }
 
 /** play ops on the core, one by one, checking the core against the game after each */
-function playBoth(core: HandheldCore, start: Pet, tb: TestBrain, ops: TripOp[], snacks: Snack[], label: string, seen?: (p: Pet) => void): Pet {
+function playBoth(
+  core: HandheldCore,
+  start: Pet,
+  tb: TestBrain,
+  ops: TripOp[],
+  snacks: Snack[],
+  label: string,
+  seen?: (p: Pet) => void,
+): Pet {
   expect(core.open(tripPacket(start, tb.trip, snacks, SCREEN)), label).toBe("ok");
   expect(core.digest(), `${label}: start`).toBe(petDigest(start, 0));
   let p = start;
@@ -57,7 +89,9 @@ function playBoth(core: HandheldCore, start: Pet, tb: TestBrain, ops: TripOp[], 
     p = done.pet;
     seen?.(p);
     left.splice(0, left.length, ...done.snacks);
-    expect(core.digest(), `${label}: after op ${i} ${JSON.stringify(o)}`).toBe(petDigest(p, p.pendingLog.length - start.pendingLog.length));
+    expect(core.digest(), `${label}: after op ${i} ${JSON.stringify(o)}`).toBe(
+      petDigest(p, p.pendingLog.length - start.pendingLog.length),
+    );
   });
   return p;
 }
@@ -145,9 +179,18 @@ describe("taking a pet along and bringing it home", () => {
     const flip = t.back.slice();
     flip[60] = flip[60]! ^ 1;
     expect(bringHome(t.start, t.tb.brain, t.snacks, flip, now)).toEqual({ ok: false, reason: "damaged" });
-    expect(bringHome({ ...t.start, xp: t.start.xp + 1 }, t.tb.brain, t.snacks, t.back, now)).toEqual({ ok: false, reason: "notThisTrip" });
-    expect(bringHome(t.start, t.tb.brain, t.snacks, t.back, t.start.beat * BEAT_MS)).toEqual({ ok: false, reason: "aheadOfTime" });
-    expect(bringHome(t.start, t.tb.brain, t.snacks, Uint8Array.from([1, 2, 3]), now)).toEqual({ ok: false, reason: "notATrip" });
+    expect(bringHome({ ...t.start, xp: t.start.xp + 1 }, t.tb.brain, t.snacks, t.back, now)).toEqual({
+      ok: false,
+      reason: "notThisTrip",
+    });
+    expect(bringHome(t.start, t.tb.brain, t.snacks, t.back, t.start.beat * BEAT_MS)).toEqual({
+      ok: false,
+      reason: "aheadOfTime",
+    });
+    expect(bringHome(t.start, t.tb.brain, t.snacks, Uint8Array.from([1, 2, 3]), now)).toEqual({
+      ok: false,
+      reason: "notATrip",
+    });
 
     // a log changed and resealed: one more live beat claimed than was lived
     const r = readReturn(t.back);
@@ -188,7 +231,17 @@ describe("taking a pet along and bringing it home", () => {
     const home = bringHome(start, tb.brain, one, back, (start.beat + 10) * BEAT_MS);
     expect(home.ok).toBe(true);
     // the game would refuse a second feed from a ration of one, even if a handheld claimed it
-    expect(replayOps(start, tb.brain, [{ op: "care", kind: 1, arg: 0 }, { op: "care", kind: 1, arg: 0 }], one)).toEqual({ ok: false, reason: "noSnack" });
+    expect(
+      replayOps(
+        start,
+        tb.brain,
+        [
+          { op: "care", kind: 1, arg: 0 },
+          { op: "care", kind: 1, arg: 0 },
+        ],
+        one,
+      ),
+    ).toEqual({ ok: false, reason: "noSnack" });
   });
 
   it("refuses a packet whose brain is not the one it names, or which is cut short or of another version", async () => {
@@ -212,7 +265,9 @@ describe("taking a pet along and bringing it home", () => {
     forged.set(keccak_256(forged.subarray(0, forged.length - 32)), forged.length - 32);
     expect(core.open(forged)).toBe("badHash");
     // a brain with the wrong number of memory bits for this pet
-    expect(core.open(tripPacket(start, starterBrain("bold").trip, snacksOf(), SCREEN))).toBe(starterBrain("bold").netlist!.latches.length === start.brain.length ? "ok" : "badShape");
+    expect(core.open(tripPacket(start, starterBrain("bold").trip, snacksOf(), SCREEN))).toBe(
+      starterBrain("bold").netlist!.latches.length === start.brain.length ? "ok" : "badShape",
+    );
   });
 });
 
@@ -256,7 +311,10 @@ describe("a log a moment ahead of the game's clock is waited for, never accepted
     const t = await trip(64);
     const end = returnEndBeat(t.start, t.back)!;
     expect(arrivingIn(t.start, t.back, (end - 1) * BEAT_MS - 1)).toBe(0);
-    expect(bringHome(t.start, t.tb.brain, t.snacks, t.back, (end - 1) * BEAT_MS - 1)).toEqual({ ok: false, reason: "aheadOfTime" });
+    expect(bringHome(t.start, t.tb.brain, t.snacks, t.back, (end - 1) * BEAT_MS - 1)).toEqual({
+      ok: false,
+      reason: "aheadOfTime",
+    });
   });
 
   it("does not wait for a packet it cannot read: the replay refuses it with its own reason", async () => {

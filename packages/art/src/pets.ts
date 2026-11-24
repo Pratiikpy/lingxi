@@ -43,7 +43,10 @@ export const FORMS = ["puff", "blossom", "dumpling", "scholar", "moonpetal"] as 
 export type Form = (typeof FORMS)[number];
 
 /** Where each line's features sit on its adult body (hand-placed). */
-export const ANCHORS: Record<"gentle" | "bold" | "curious", { ear: [number, number]; hat: [number, number]; moon: [number, number]; pleat: [number, number] }> = {
+export const ANCHORS: Record<
+  "gentle" | "bold" | "curious",
+  { ear: [number, number]; hat: [number, number]; moon: [number, number]; pleat: [number, number] }
+> = {
   gentle: { ear: [15, 23], hat: [20, 12], moon: [38, 9], pleat: [21, 21] },
   bold: { ear: [10, 27], hat: [31, 17], moon: [6, 8], pleat: [20, 24] },
   curious: { ear: [17, 22], hat: [20, 13], moon: [40, 9], pleat: [21, 21] },
@@ -68,7 +71,10 @@ export function drawEgg(spots: "coral" | "sky" | "sunny" = "coral", wobble: -1 |
   // egg: narrower at the top
   for (let y = 24; y <= GROUND; y++) {
     const t = (y - 24) / (GROUND - 24); // 0 top, 1 bottom
-    const w = t < 0.62 ? 9.5 * Math.sqrt(Math.sin((t / 0.62) * (Math.PI / 2))) : 9.5 * Math.sqrt(1 - ((t - 0.62) / 0.38) ** 2 * 0.86);
+    const w =
+      t < 0.62
+        ? 9.5 * Math.sqrt(Math.sin((t / 0.62) * (Math.PI / 2)))
+        : 9.5 * Math.sqrt(1 - ((t - 0.62) / 0.38) ** 2 * 0.86);
     const shift = wobble * Math.round(((GROUND - y) / (GROUND - 24)) * 1.5);
     for (let x = 0; x < SIZE; x++) if (Math.abs(x + 0.5 - (24 + shift)) <= w) m.set(x, y);
   }
@@ -98,8 +104,16 @@ const MOCHI: Record<Exclude<Stage, "egg">, BodySpec> = {
     shadow: 8,
     draw: (m, o) => {
       m.ellipse(24, 39 + o.squash * 0.5, 8 - o.breath * 0.5 + o.squash * 0.6, 6.5 + o.breath * 0.5 - o.squash * 0.6);
-      m.polygon([[17, 36], [18, 31], [21.5, 34]]);
-      m.polygon([[31, 36], [30, 31], [26.5, 34]]);
+      m.polygon([
+        [17, 36],
+        [18, 31],
+        [21.5, 34],
+      ]);
+      m.polygon([
+        [31, 36],
+        [30, 31],
+        [26.5, 34],
+      ]);
     },
     finish: (c) => {
       c.set(18, 33, "b");
@@ -111,9 +125,22 @@ const MOCHI: Record<Exclude<Stage, "egg">, BodySpec> = {
     face: { x: 24, y: 38, size: "S" },
     shadow: 10,
     draw: (m, o) => {
-      m.ellipse(24, 36.5 + o.squash * 0.5, 10.5 - o.breath * 0.5 + o.squash * 0.7, 8.5 + o.breath * 0.5 - o.squash * 0.7);
-      m.polygon([[16, 31], [17, 23.5], [22, 28.5]]);
-      m.polygon([[32, 31], [31, 23.5], [26, 28.5]]);
+      m.ellipse(
+        24,
+        36.5 + o.squash * 0.5,
+        10.5 - o.breath * 0.5 + o.squash * 0.7,
+        8.5 + o.breath * 0.5 - o.squash * 0.7,
+      );
+      m.polygon([
+        [16, 31],
+        [17, 23.5],
+        [22, 28.5],
+      ]);
+      m.polygon([
+        [32, 31],
+        [31, 23.5],
+        [26, 28.5],
+      ]);
       m.ellipse(19.5, 44, 2.6, 1.6);
       m.ellipse(28.5, 44, 2.6, 1.6);
     },
@@ -128,9 +155,22 @@ const MOCHI: Record<Exclude<Stage, "egg">, BodySpec> = {
     trace: { y: 29, half: 4 },
     shadow: 12,
     draw: (m, o) => {
-      m.ellipse(24, 34.5 + o.squash * 0.5, 12.5 - o.breath * 0.5 + o.squash * 0.8, 10 + o.breath * 0.5 - o.squash * 0.8);
-      m.polygon([[14.5, 28], [15.5, 18], [21.5, 24.5]]);
-      m.polygon([[33.5, 28], [32.5, 18], [26.5, 24.5]]);
+      m.ellipse(
+        24,
+        34.5 + o.squash * 0.5,
+        12.5 - o.breath * 0.5 + o.squash * 0.8,
+        10 + o.breath * 0.5 - o.squash * 0.8,
+      );
+      m.polygon([
+        [14.5, 28],
+        [15.5, 18],
+        [21.5, 24.5],
+      ]);
+      m.polygon([
+        [33.5, 28],
+        [32.5, 18],
+        [26.5, 24.5],
+      ]);
       m.ellipse(18.5, 44, 3, 1.8);
       m.ellipse(29.5, 44, 3, 1.8);
       // tail
@@ -149,8 +189,16 @@ const MOCHI: Record<Exclude<Stage, "egg">, BodySpec> = {
     draw: (m, o) => {
       m.ellipse(24, 32.5 + o.squash * 0.5, 14 - o.breath * 0.5 + o.squash, 12.5 + o.breath * 0.5 - o.squash);
       // ears: small, upright, set on the shoulders of the head
-      m.polygon([[13, 25], [14.5, 13.5], [21, 20.5]]);
-      m.polygon([[35, 25], [33.5, 13.5], [27, 20.5]]);
+      m.polygon([
+        [13, 25],
+        [14.5, 13.5],
+        [21, 20.5],
+      ]);
+      m.polygon([
+        [35, 25],
+        [33.5, 13.5],
+        [27, 20.5],
+      ]);
       // feet, half tucked under
       m.ellipse(18.5, 44.2, 3, 1.7);
       m.ellipse(29.5, 44.2, 3, 1.7);
@@ -277,8 +325,18 @@ const SORA: Record<Exclude<Stage, "egg">, BodySpec> = {
     draw: (m, o) => {
       m.ellipse(24, 37 + o.squash * 0.5, 9.5 - o.breath * 0.5 + o.squash * 0.7, 8.5 + o.breath * 0.5 - o.squash * 0.7);
       // ears stand up now, leaning a little apart
-      m.polygon([[17, 31], [15.5, 20], [19, 19.5], [21, 30]]);
-      m.polygon([[31, 31], [32.5, 20], [29, 19.5], [27, 30]]);
+      m.polygon([
+        [17, 31],
+        [15.5, 20],
+        [19, 19.5],
+        [21, 30],
+      ]);
+      m.polygon([
+        [31, 31],
+        [32.5, 20],
+        [29, 19.5],
+        [27, 30],
+      ]);
       m.ellipse(20, 44.2, 2.4, 1.6);
       m.ellipse(28, 44.2, 2.4, 1.6);
     },
@@ -294,8 +352,18 @@ const SORA: Record<Exclude<Stage, "egg">, BodySpec> = {
     shadow: 11,
     draw: (m, o) => {
       m.ellipse(24, 35 + o.squash * 0.5, 11.5 - o.breath * 0.5 + o.squash * 0.8, 10 + o.breath * 0.5 - o.squash * 0.8);
-      m.polygon([[15.5, 28], [13, 13], [17.5, 12.5], [20.5, 27]]);
-      m.polygon([[32.5, 28], [35, 13], [30.5, 12.5], [27.5, 27]]);
+      m.polygon([
+        [15.5, 28],
+        [13, 13],
+        [17.5, 12.5],
+        [20.5, 27],
+      ]);
+      m.polygon([
+        [32.5, 28],
+        [35, 13],
+        [30.5, 12.5],
+        [27.5, 27],
+      ]);
       m.ellipse(19, 44.2, 2.8, 1.7);
       m.ellipse(29, 44.2, 2.8, 1.7);
       // a fluffy tail on the left
@@ -315,8 +383,18 @@ const SORA: Record<Exclude<Stage, "egg">, BodySpec> = {
     draw: (m, o) => {
       m.ellipse(24, 33 + o.squash * 0.5, 13 - o.breath * 0.5 + o.squash, 12.5 + o.breath * 0.5 - o.squash);
       // tall ears, tips turned out
-      m.polygon([[14, 25], [10.5, 7], [15.5, 6], [20, 22]]);
-      m.polygon([[34, 25], [37.5, 7], [32.5, 6], [28, 22]]);
+      m.polygon([
+        [14, 25],
+        [10.5, 7],
+        [15.5, 6],
+        [20, 22],
+      ]);
+      m.polygon([
+        [34, 25],
+        [37.5, 7],
+        [32.5, 6],
+        [28, 22],
+      ]);
       m.ellipse(18.5, 44.3, 3, 1.7);
       m.ellipse(29.5, 44.3, 3, 1.7);
       m.ellipse(11.5, 40.5, 3.2, 2.8);
@@ -362,7 +440,11 @@ export function drawBody(line: Line, stage: Exclude<Stage, "egg">, opt: PoseOpti
   spec.draw(m, pose);
   // a dumpling settles lower and wider
   if (form === "dumpling") m.ellipse(24, 36.5 + pose.squash * 0.5, 16.5 + pose.squash, 8.5 - pose.squash * 0.5);
-  paintBody(c, m, { shade: stage === "baby" ? 1 : stage === "child" ? 2 : 3, light: stage === "baby" ? 1 : 2, deep: stage === "adult" || stage === "teen" });
+  paintBody(c, m, {
+    shade: stage === "baby" ? 1 : stage === "child" ? 2 : 3,
+    light: stage === "baby" ? 1 : 2,
+    deep: stage === "adult" || stage === "teen",
+  });
   cleanOutline(c);
   spec.finish?.(c, pose);
   const lit = (opt.lit ?? false) || form === "moonpetal";
@@ -376,7 +458,11 @@ function formFeatures(c: PixelCanvas, line: Line, form: Form, breath: 0 | 1): vo
   const b = breath ? -1 : 0;
   if (form === "blossom") {
     // a four-petal flower by the ear, and petals fallen at the feet
-    c.stamp([".pp.pp.", "pwp.pwp", ".pptpp.", "..ttt..", ".pptpp.", "pwp.pwp", ".pp.pp."], a.ear[0] - 3, a.ear[1] - 3 + b);
+    c.stamp(
+      [".pp.pp.", "pwp.pwp", ".pptpp.", "..ttt..", ".pptpp.", "pwp.pwp", ".pp.pp."],
+      a.ear[0] - 3,
+      a.ear[1] - 3 + b,
+    );
     c.stamp(["pp.", "pwp", ".p."], 11, 42);
     c.stamp([".pp", "pwp", ".p."], 34, 42);
   } else if (form === "dumpling") {
@@ -398,7 +484,11 @@ function formFeatures(c: PixelCanvas, line: Line, form: Form, breath: 0 | 1): vo
 }
 
 /** Which face set a stage uses and where its centre sits. */
-export function faceAnchor(line: Line, stage: Exclude<Stage, "egg">, squash = 0): { size: "L" | "S"; x: number; y: number } {
+export function faceAnchor(
+  line: Line,
+  stage: Exclude<Stage, "egg">,
+  squash = 0,
+): { size: "L" | "S"; x: number; y: number } {
   const f = LINES[line][stage].face;
   return { size: f.size, x: f.x, y: f.y + half(squash) };
 }

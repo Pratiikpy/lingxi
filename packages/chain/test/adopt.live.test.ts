@@ -15,6 +15,8 @@ describe.skipIf(!process.env.LIVE_XLAYER)("outside brains on X Layer mainnet", (
   }, 120_000);
   it("refuses an address that is not a registered processor, and a circuit that does not exist", async () => {
     await expect(readOutsideCircuit(pub as never, d.registry as `0x${string}`, 1n)).rejects.toThrow(AdoptError);
-    await expect(readOutsideCircuit(pub as never, d.processor as `0x${string}`, 999999n)).rejects.toMatchObject({ reason: "noCircuit" });
+    await expect(readOutsideCircuit(pub as never, d.processor as `0x${string}`, 999999n)).rejects.toMatchObject({
+      reason: "noCircuit",
+    });
   }, 120_000);
 });

@@ -22,15 +22,34 @@ const only = onlyAt > 0 ? new Set(process.argv[onlyAt + 1]!.split(",")) : null;
 const day = new Date().toISOString().slice(0, 10);
 const out = join(root, "..", `audit-${day}`, "inventory");
 
-const SIZES = { "360": { width: 360, height: 740 }, "390": { width: 390, height: 844 }, land: { width: 844, height: 390 }, desk: { width: 1280, height: 800 } } as const;
+const SIZES = {
+  "360": { width: 360, height: 740 },
+  "390": { width: 390, height: 844 },
+  land: { width: 844, height: 390 },
+  desk: { width: 1280, height: 800 },
+} as const;
 type Look = { size: keyof typeof SIZES; scheme: "light" | "dark"; lang: "en" | "zh" };
-const LOOKS: Look[] = (Object.keys(SIZES) as Array<keyof typeof SIZES>).flatMap((size) => (["light", "dark"] as const).flatMap((scheme) => (["en", "zh"] as const).map((lang) => ({ size, scheme, lang }))));
+const LOOKS: Look[] = (Object.keys(SIZES) as Array<keyof typeof SIZES>).flatMap((size) =>
+  (["light", "dark"] as const).flatMap((scheme) => (["en", "zh"] as const).map((lang) => ({ size, scheme, lang }))),
+);
 const tag = (l: Look) => `${l.size}-${l.scheme}-${l.lang}`;
 
 /** The built site, with an API that answers nothing (or late, for a loading state). */
 function fileServer(): Promise<{ url: string; slow: { on: boolean }; close: () => void }> {
   const dist = join(root, "apps", "web", "dist");
-  const types: Record<string, string> = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".woff2": "font/woff2", ".png": "image/png", ".json": "application/json", ".webmanifest": "application/manifest+json", ".svg": "image/svg+xml", ".wasm": "application/wasm", ".mp3": "audio/mpeg", ".ogg": "audio/ogg" };
+  const types: Record<string, string> = {
+    ".html": "text/html",
+    ".js": "text/javascript",
+    ".css": "text/css",
+    ".woff2": "font/woff2",
+    ".png": "image/png",
+    ".json": "application/json",
+    ".webmanifest": "application/manifest+json",
+    ".svg": "image/svg+xml",
+    ".wasm": "application/wasm",
+    ".mp3": "audio/mpeg",
+    ".ogg": "audio/ogg",
+  };
   const slow = { on: false };
   const srv = createServer((q, r) => {
     const path = decodeURIComponent((q.url ?? "/").split("?")[0]!);
@@ -50,15 +69,24 @@ function fileServer(): Promise<{ url: string; slow: { on: boolean }; close: () =
       r.end(readFileSync(join(dist, "404.html")));
     }
   });
-  return new Promise((done) => srv.listen(0, "127.0.0.1", () => {
-    const port = (srv.address() as { port: number }).port;
-    done({ url: `http://127.0.0.1:${port}`, slow, close: () => srv.close() });
-  }));
+  return new Promise((done) =>
+    srv.listen(0, "127.0.0.1", () => {
+      const port = (srv.address() as { port: number }).port;
+      done({ url: `http://127.0.0.1:${port}`, slow, close: () => srv.close() });
+    }),
+  );
 }
 
 async function contextFor(browser: Browser, l: Look): Promise<BrowserContext> {
-  const ctx = await browser.newContext({ viewport: SIZES[l.size], colorScheme: l.scheme, locale: l.lang === "zh" ? "zh-CN" : "en-US", deviceScaleFactor: 1 });
-  await ctx.addInitScript(`localStorage.setItem('lingxi.reveal.v1','1'); localStorage.setItem('lingxi.lang','${l.lang}');`);
+  const ctx = await browser.newContext({
+    viewport: SIZES[l.size],
+    colorScheme: l.scheme,
+    locale: l.lang === "zh" ? "zh-CN" : "en-US",
+    deviceScaleFactor: 1,
+  });
+  await ctx.addInitScript(
+    `localStorage.setItem('lingxi.reveal.v1','1'); localStorage.setItem('lingxi.lang','${l.lang}');`,
+  );
   return ctx;
 }
 
@@ -92,27 +120,51 @@ async function openSheet(page: Page, tab: string): Promise<void> {
   await page.waitForTimeout(700);
 }
 
-const PAGES = ["index.html", "verify.html", "numbers.html", "tree.html", "agents.html", "handheld.html", "circuits.html", "privacy.html", "terms.html", "no-such-page"];
+const PAGES = [
+  "index.html",
+  "verify.html",
+  "numbers.html",
+  "tree.html",
+  "agents.html",
+  "handheld.html",
+  "circuits.html",
+  "privacy.html",
+  "terms.html",
+  "no-such-page",
+];
 
 /** Each screen: its name and how a fresh context reaches it (the room ones share one hatched page per look). */
 type Shot = { name: string; reach: (page: Page, base: string, ctx: BrowserContext) => Promise<void> };
 const GAME: Shot[] = [
   { name: "room", reach: async () => {} },
-  ...["bag", "map", "mind", "spar", "me"].map((tab) => ({ name: `sheet-${tab}`, reach: (page: Page) => openSheet(page, tab) })),
-  { name: "sheet-games", reach: async (page) => {
-    await page.keyboard.press("Escape");
-    await page.locator(".act").nth(1).click();
-    await page.locator(".game-card").first().waitFor();
-    await page.waitForTimeout(600);
-  } },
-  { name: "offline", reach: async (page, _b, ctx) => {
-    await page.keyboard.press("Escape");
-    await ctx.setOffline(true);
-    await page.reload({ waitUntil: "domcontentloaded" }).catch(() => {});
-    // the room, opened from the offline cache; a miss is reported, never shot as though it were the screen
-    await page.waitForFunction(() => !document.querySelector(".boot-splash") && !!document.querySelector(".stage"), undefined, { timeout: 20_000 });
-    await page.waitForTimeout(1200);
-  } },
+  ...["bag", "map", "mind", "spar", "me"].map((tab) => ({
+    name: `sheet-${tab}`,
+    reach: (page: Page) => openSheet(page, tab),
+  })),
+  {
+    name: "sheet-games",
+    reach: async (page) => {
+      await page.keyboard.press("Escape");
+      await page.locator(".act").nth(1).click();
+      await page.locator(".game-card").first().waitFor();
+      await page.waitForTimeout(600);
+    },
+  },
+  {
+    name: "offline",
+    reach: async (page, _b, ctx) => {
+      await page.keyboard.press("Escape");
+      await ctx.setOffline(true);
+      await page.reload({ waitUntil: "domcontentloaded" }).catch(() => {});
+      // the room, opened from the offline cache; a miss is reported, never shot as though it were the screen
+      await page.waitForFunction(
+        () => !document.querySelector(".boot-splash") && !!document.querySelector(".stage"),
+        undefined,
+        { timeout: 20_000 },
+      );
+      await page.waitForTimeout(1200);
+    },
+  },
 ];
 
 async function main(): Promise<void> {
@@ -194,7 +246,9 @@ async function contactSheets(browser: Browser): Promise<void> {
   const { readdirSync } = await import("node:fs");
   const page = await browser.newPage({ viewport: { width: 2400, height: 1200 }, deviceScaleFactor: 1 });
   for (const screen of readdirSync(join(out, "raw"))) {
-    const cells = LOOKS.map((l) => ({ l, f: join(out, "raw", screen, `${tag(l)}.png`) })).filter((c) => existsSync(c.f));
+    const cells = LOOKS.map((l) => ({ l, f: join(out, "raw", screen, `${tag(l)}.png`) })).filter((c) =>
+      existsSync(c.f),
+    );
     if (!cells.length) continue;
     const html = `<!doctype html><html><body style="margin:0;background:#888;font:14px sans-serif">
       <h2 style="margin:8px 12px;color:#fff">${screen}</h2>

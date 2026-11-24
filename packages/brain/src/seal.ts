@@ -30,7 +30,12 @@ export interface SealInput {
 }
 
 export const sealWord = (i: SealInput): number =>
-  (i.index & 15) | ((i.seed & 255) << 4) | (i.open ? 1 << 12 : 0) | (i.member ? 1 << 13 : 0) | (i.lucky ? 1 << 14 : 0) | (i.petOwnersOnly ? 1 << 15 : 0);
+  (i.index & 15) |
+  ((i.seed & 255) << 4) |
+  (i.open ? 1 << 12 : 0) |
+  (i.member ? 1 << 13 : 0) |
+  (i.lucky ? 1 << 14 : 0) |
+  (i.petOwnersOnly ? 1 << 15 : 0);
 
 const luckyWeight = (seed: number) => Math.min(15, (((seed & 15) + (seed >> 4)) >> 1) + 1);
 
@@ -60,7 +65,13 @@ export function compileSeal(): PetNetlist {
     );
     // even split: weight 8 = 0b1000
     const w = weightBits.map((bit, k) => b.mux(lucky, bit, k === 3 ? b.one : b.zero));
-    const best = b.and(lucky, b.fn(seed, Array.from({ length: 256 }, (_, s) => (luckyWeight(s) === 15 ? 1 : 0))));
+    const best = b.and(
+      lucky,
+      b.fn(
+        seed,
+        Array.from({ length: 256 }, (_, s) => (luckyWeight(s) === 15 ? 1 : 0)),
+      ),
+    );
     return [allowed, ...w, best, b.zero, b.zero];
   });
 }

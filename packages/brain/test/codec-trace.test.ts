@@ -21,7 +21,8 @@ describe("brain links", () => {
     expect(() => decodeProgram("lx1.e30")).toThrow(/version/); // "{}"
     expect(() => decodeProgram(`lx1.${"A".repeat(MAX_CODE_LENGTH)}`)).toThrow(/too long/);
     // a raw "__proto__" key survives JSON.parse as an own property and must be refused
-    const raw = '{"version":"LX-PET/1","memory":[],"rules":[{"when":{"__proto__":[1]},"then":{"want":1,"mood":1}}],"otherwise":{"want":0,"mood":0}}';
+    const raw =
+      '{"version":"LX-PET/1","memory":[],"rules":[{"when":{"__proto__":[1]},"then":{"want":1,"mood":1}}],"otherwise":{"want":0,"mood":0}}';
     const evil = btoa(raw).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
     expect(() => decodeProgram(`lx1.${evil}`)).toThrow(/unknown field/);
   });

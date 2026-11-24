@@ -33,7 +33,15 @@ export const WEARABLES: readonly Wearable[] = [
     slot: "head",
     set: "picnic",
     name: { en: "Straw sunhat", zh: "草编遮阳帽" },
-    rows: ["....OOOOO....", "...OyyyyyO...", "...OyyyyyO...", "..OrrrrrrrO..", "OOyyyyyyyyyOO", "OyyyyyyyyyyyO", ".OOOOOOOOOOO."],
+    rows: [
+      "....OOOOO....",
+      "...OyyyyyO...",
+      "...OyyyyyO...",
+      "..OrrrrrrrO..",
+      "OOyyyyyyyyyOO",
+      "OyyyyyyyyyyyO",
+      ".OOOOOOOOOOO.",
+    ],
     colors: { O, y: "#F2CF73", r: "#E8604A" },
   },
   {
@@ -141,7 +149,15 @@ export const WEARABLES: readonly Wearable[] = [
     slot: "head",
     set: "story",
     name: { en: "Wayfinder's hat", zh: "引路人帽" },
-    rows: [".......ff....", "....OOOfOO...", "...OgggggggO.", "..OgggGGGgggO", "OOOOOOOOOOOOO", "OGGGGGGGGGGGO", ".OOOOOOOOOOO."],
+    rows: [
+      ".......ff....",
+      "....OOOfOO...",
+      "...OgggggggO.",
+      "..OgggGGGgggO",
+      "OOOOOOOOOOOOO",
+      "OGGGGGGGGGGGO",
+      ".OOOOOOOOOOO.",
+    ],
     colors: { O, g: "#6FA86A", G: "#4E7E4A", f: "#E8604A" },
   },
   {
@@ -252,7 +268,8 @@ export function registerWearables(list: readonly Wearable[]): void {
 /** The player-made pieces registered so far. */
 export const registeredWearables = (): ReadonlyMap<string, Wearable> => custom;
 /** Any wearable by id: Lingxi's own, or a player design (from `pieces`, the ones registered now unless given). */
-export const wearableOf = (id: string, pieces: ReadonlyMap<string, Wearable> = custom): Wearable | undefined => WEARABLE[id] ?? pieces.get(id);
+export const wearableOf = (id: string, pieces: ReadonlyMap<string, Wearable> = custom): Wearable | undefined =>
+  WEARABLE[id] ?? pieces.get(id);
 
 export type Outfit = Partial<Record<Slot, string>>;
 
@@ -313,15 +330,24 @@ function rightEdge(c: PixelCanvas, y: number): number {
  * Where the outfit's pixels go on a drawn pet. `canvas` is the pet as drawn
  * (body and face), so the pieces follow its pose: breathing, squash and form.
  */
-export function wearOverlay(canvas: PixelCanvas, line: Line, stage: Exclude<Stage, "egg">, outfit: Outfit, squash = 0, form?: Form, pieces: ReadonlyMap<string, Wearable> = custom): OverlayPixel[] {
+export function wearOverlay(
+  canvas: PixelCanvas,
+  line: Line,
+  stage: Exclude<Stage, "egg">,
+  outfit: Outfit,
+  squash = 0,
+  form?: Form,
+  pieces: ReadonlyMap<string, Wearable> = custom,
+): OverlayPixel[] {
   const out: OverlayPixel[] = [];
   // a hat replaces the scholar form's own cap: clear the cap's ink and tassel where it is drawn
   if (outfit.head && stage === "adult" && form === "scholar") {
     const [hx, hy] = ANCHORS[line].hat;
-    for (let y = hy - 1; y < hy + 6; y++) for (let x = hx; x < hx + 9; x++) {
-      const r = x >= 0 && y >= 0 && x < canvas.w && y < canvas.h ? canvas.get(x, y) : ".";
-      if (r === "e" || r === "t") out.push([x, y, "erase"]);
-    }
+    for (let y = hy - 1; y < hy + 6; y++)
+      for (let x = hx; x < hx + 9; x++) {
+        const r = x >= 0 && y >= 0 && x < canvas.w && y < canvas.h ? canvas.get(x, y) : ".";
+        if (r === "e" || r === "t") out.push([x, y, "erase"]);
+      }
   }
   const put = (rows: readonly string[], colors: Record<string, string>, ox: number, oy: number) => {
     rows.forEach((row, j) => {
@@ -361,7 +387,11 @@ export function wearOverlay(canvas: PixelCanvas, line: Line, stage: Exclude<Stag
 }
 
 /** Paints an overlay onto RGBA pixel data (as made by toRgba), blending translucent colours. */
-export function paintOverlay(rgba: Uint8ClampedArray | Uint8Array, width: number, overlay: readonly OverlayPixel[]): void {
+export function paintOverlay(
+  rgba: Uint8ClampedArray | Uint8Array,
+  width: number,
+  overlay: readonly OverlayPixel[],
+): void {
   for (const [x, y, hex] of overlay) {
     const i0 = (y * width + x) * 4;
     if (hex === "erase") {

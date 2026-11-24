@@ -33,7 +33,8 @@ const MEMORY_NAMES: Record<string, { en: string; zh: string }> = {
 };
 
 function clock(f: Frame, lang: Lang): string {
-  if (f.at !== null) return new Date(f.at).toLocaleTimeString(lang === "zh" ? "zh-CN" : "en-GB", { hour: "2-digit", minute: "2-digit" });
+  if (f.at !== null)
+    return new Date(f.at).toLocaleTimeString(lang === "zh" ? "zh-CN" : "en-GB", { hour: "2-digit", minute: "2-digit" });
   return VALUE_NAMES.time![lang][f.senses.time] ?? "";
 }
 
@@ -77,7 +78,9 @@ export function RewindPanel({ pet }: { pet: Pet }) {
     let start = 0;
     for (let i = 1; i <= frames.length; i++) {
       if (i < frames.length && frames[i]!.want === frames[start]!.want) continue;
-      runs.push(`${WANT_COLORS[frames[start]!.want]} ${((start / frames.length) * 100).toFixed(2)}% ${((i / frames.length) * 100).toFixed(2)}%`);
+      runs.push(
+        `${WANT_COLORS[frames[start]!.want]} ${((start / frames.length) * 100).toFixed(2)}% ${((i / frames.length) * 100).toFixed(2)}%`,
+      );
       start = i;
     }
     return `linear-gradient(90deg, ${runs.join(", ")})`;
@@ -85,7 +88,11 @@ export function RewindPanel({ pet }: { pet: Pet }) {
   if (!frames.length) return null;
   const k = Math.min(at ?? frames.length - 1, frames.length - 1);
   const f = frames[k]!;
-  const chips = f.outside ? (lang === "zh" ? { when: ["它学会的本能电路想做点什么"], then: WANT_NAMES.zh[f.want] ?? "", want: f.want } : { when: ["its taught instinct circuit wanted something"], then: WANT_NAMES.en[f.want] ?? "", want: f.want }) : decidingChips(f.program, f.rule, lang);
+  const chips = f.outside
+    ? lang === "zh"
+      ? { when: ["它学会的本能电路想做点什么"], then: WANT_NAMES.zh[f.want] ?? "", want: f.want }
+      : { when: ["its taught instinct circuit wanted something"], then: WANT_NAMES.en[f.want] ?? "", want: f.want }
+    : decidingChips(f.program, f.rule, lang);
   const jump = (dir: -1 | 1) => {
     const next = dir < 0 ? [...moments].reverse().find((m) => m < k) : moments.find((m) => m > k);
     if (next === undefined) return;
@@ -107,10 +114,20 @@ export function RewindPanel({ pet }: { pet: Pet }) {
       </p>
       {days > 1 && (
         <div className="rw-days">
-          <button type="button" className="link" disabled={day >= days - 1} onClick={() => (play("tap"), setDay((d) => d + 1), setAt(null))}>
+          <button
+            type="button"
+            className="link"
+            disabled={day >= days - 1}
+            onClick={() => (play("tap"), setDay((d) => d + 1), setAt(null))}
+          >
             {lang === "zh" ? "‹ 更早一天" : "‹ Earlier day"}
           </button>
-          <button type="button" className="link" disabled={day === 0} onClick={() => (play("tap"), setDay((d) => d - 1), setAt(null))}>
+          <button
+            type="button"
+            className="link"
+            disabled={day === 0}
+            onClick={() => (play("tap"), setDay((d) => d - 1), setAt(null))}
+          >
             {lang === "zh" ? "更晚一天 ›" : "Later day ›"}
           </button>
         </div>
@@ -141,7 +158,8 @@ export function RewindPanel({ pet }: { pet: Pet }) {
           “{tellMoment(f, lang, strongestHabit(pet.traits))}”
           <span>
             {lang === "zh" ? "心情" : "Mood"}: {MOOD_NAMES[lang][f.mood]}
-            {f.half !== undefined && ` · ${f.half === 0 ? (lang === "zh" ? "白天那一半" : "its day half") : lang === "zh" ? "夜里那一半" : "its night half"}`}
+            {f.half !== undefined &&
+              ` · ${f.half === 0 ? (lang === "zh" ? "白天那一半" : "its day half") : lang === "zh" ? "夜里那一半" : "its night half"}`}
           </span>
         </p>
         <dl className="rw-rows">

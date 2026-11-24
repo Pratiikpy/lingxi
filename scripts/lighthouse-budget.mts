@@ -17,10 +17,16 @@ const PORT = 4183;
 const LIGHTHOUSE = "lighthouse@13.6.0";
 
 const site = resolve(process.argv[2] ?? join("apps", "web", "dist"));
-const pages = readdirSync(site).filter((f) => f.endsWith(".html") && readFileSync(join(site, f), "utf8").includes("<script"));
+const pages = readdirSync(site).filter(
+  (f) => f.endsWith(".html") && readFileSync(join(site, f), "utf8").includes("<script"),
+);
 const out = mkdtempSync(join(tmpdir(), "lighthouse-"));
 
-const server = spawn(process.execPath, [join("node_modules", "vite", "bin", "vite.js"), "preview", "--outDir", site, "--port", String(PORT), "--strictPort"], { cwd: resolve("apps", "web"), stdio: "ignore" });
+const server = spawn(
+  process.execPath,
+  [join("node_modules", "vite", "bin", "vite.js"), "preview", "--outDir", site, "--port", String(PORT), "--strictPort"],
+  { cwd: resolve("apps", "web"), stdio: "ignore" },
+);
 const up = async () => {
   for (let i = 0; i < 60; i++) {
     try {
@@ -38,20 +44,38 @@ try {
   await up();
   for (const page of pages) {
     const file = join(out, `${page}.json`);
-    const args = ["-y", LIGHTHOUSE, `http://localhost:${PORT}/${page}`, "--quiet", "--only-categories=performance", "--output=json", `--output-path=${file}`, "--chrome-flags=--headless=new --no-sandbox"];
+    const args = [
+      "-y",
+      LIGHTHOUSE,
+      `http://localhost:${PORT}/${page}`,
+      "--quiet",
+      "--only-categories=performance",
+      "--output=json",
+      `--output-path=${file}`,
+      "--chrome-flags=--headless=new --no-sandbox",
+    ];
     // Windows runs npx through its shell (npx.cmd), which takes one command line (each argument with a space quoted) rather than an argument list
-    const r = spawnSync(process.platform === "win32" ? ["npx", ...args].map((a) => (/[\s"&|<>^]/.test(a) ? `"${a}"` : a)).join(" ") : "npx", process.platform === "win32" ? [] : args, {
-      env: { ...process.env, CHROME_PATH: chromium.executablePath() },
-      shell: process.platform === "win32",
-      encoding: "utf8",
-      timeout: 300_000,
-    });
+    const r = spawnSync(
+      process.platform === "win32"
+        ? ["npx", ...args].map((a) => (/[\s"&|<>^]/.test(a) ? `"${a}"` : a)).join(" ")
+        : "npx",
+      process.platform === "win32" ? [] : args,
+      {
+        env: { ...process.env, CHROME_PATH: chromium.executablePath() },
+        shell: process.platform === "win32",
+        encoding: "utf8",
+        timeout: 300_000,
+      },
+    );
     if (r.status !== 0) {
       console.log(`FAILED    ${page}: Lighthouse did not finish\n${(r.stdout + r.stderr).slice(-800)}`);
       failed++;
       continue;
     }
-    const report = JSON.parse(readFileSync(file, "utf8")) as { categories: { performance: { score: number } }; audits: Record<string, { numericValue: number }> };
+    const report = JSON.parse(readFileSync(file, "utf8")) as {
+      categories: { performance: { score: number } };
+      audits: Record<string, { numericValue: number }>;
+    };
     const score = Math.round(report.categories.performance.score * 100);
     const a = report.audits;
     const shift = a["cumulative-layout-shift"]!.numericValue;

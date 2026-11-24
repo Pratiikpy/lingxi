@@ -1,9 +1,24 @@
 import { describe, expect, it } from "vitest";
 import { scanNames } from "../src/names";
-import { CHARACTERS, FOLK, FOLK_BY_ID, FRIEND_BY_ID, type WorldState, folkViewOf, giveGift, greetingNow, newWorld } from "../src";
+import {
+  CHARACTERS,
+  FOLK,
+  FOLK_BY_ID,
+  FRIEND_BY_ID,
+  type WorldState,
+  folkViewOf,
+  giveGift,
+  greetingNow,
+  newWorld,
+} from "../src";
 
-const withItem = (w: WorldState, item: number, n: number): WorldState => ({ ...w, bag: { ...w.bag, [item]: (w.bag[item] ?? 0) + n } });
-const at = (o: Partial<{ hour: number; day: string; petHappy: boolean; petHungry: boolean; questReady: boolean }> = {}) => ({
+const withItem = (w: WorldState, item: number, n: number): WorldState => ({
+  ...w,
+  bag: { ...w.bag, [item]: (w.bag[item] ?? 0) + n },
+});
+const at = (
+  o: Partial<{ hour: number; day: string; petHappy: boolean; petHungry: boolean; questReady: boolean }> = {},
+) => ({
   hour: 14,
   day: "2026-11-16",
   petHappy: false,

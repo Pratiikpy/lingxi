@@ -24,8 +24,14 @@ import {
 
 const praline = FRIEND_BY_ID.praline!;
 const behemoth = FRIEND_BY_ID.behemoth!;
-const withTrust = (w: WorldState, who: string, n: number): WorldState => ({ ...w, trust: { ...(w.trust ?? {}), [who]: n } });
-const withItem = (w: WorldState, item: number, n: number): WorldState => ({ ...w, bag: { ...w.bag, [item]: (w.bag[item] ?? 0) + n } });
+const withTrust = (w: WorldState, who: string, n: number): WorldState => ({
+  ...w,
+  trust: { ...(w.trust ?? {}), [who]: n },
+});
+const withItem = (w: WorldState, item: number, n: number): WorldState => ({
+  ...w,
+  bag: { ...w.bag, [item]: (w.bag[item] ?? 0) + n },
+});
 const take = (w: WorldState, f = praline, id: string): WorldState => {
   const r = takeStep(w, f, id);
   if (!r.ok) throw new Error(`${id}: ${r.reason}`);
@@ -35,7 +41,9 @@ const take = (w: WorldState, f = praline, id: string): WorldState => {
 describe("trust levels", () => {
   it("has six named levels at 0, 5, 15, 30, 50 and 80 points", () => {
     expect(LEVEL_NAMES).toHaveLength(6);
-    expect([0, 4, 5, 14, 15, 29, 30, 49, 50, 79, 80, 500].map(friendLevel)).toEqual([1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6]);
+    expect([0, 4, 5, 14, 15, 29, 30, 49, 50, 79, 80, 500].map(friendLevel)).toEqual([
+      1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
+    ]);
   });
 });
 
@@ -101,7 +109,11 @@ describe("friendship steps", () => {
   it("make level 3 a branch: either road can be taken, and taking one shuts the other for good", () => {
     let w = withTrust(newWorld("b"), "praline", 15);
     w = take(take(w, praline, "praline-1"), praline, "praline-2");
-    expect(openSteps(w, praline).map((s) => s.id).sort()).toEqual(["praline-3a", "praline-3b"]);
+    expect(
+      openSteps(w, praline)
+        .map((s) => s.id)
+        .sort(),
+    ).toEqual(["praline-3a", "praline-3b"]);
     // road A: the shelf
     const a = take(w, praline, "praline-3a");
     expect(stepState(a, praline, praline.steps.find((s) => s.id === "praline-3b")!)).toBe("shut");
@@ -113,7 +125,10 @@ describe("friendship steps", () => {
     expect(b.recipes).toContain(20005);
     expect(shelfOf(b, praline)).toEqual([]);
     // both roads lead on to level 4
-    for (const x of [a, b]) expect(stepState(withTrust(x, "praline", 30), praline, praline.steps.find((s) => s.id === "praline-4")!)).toBe("open");
+    for (const x of [a, b])
+      expect(stepState(withTrust(x, "praline", 30), praline, praline.steps.find((s) => s.id === "praline-4")!)).toBe(
+        "open",
+      );
   });
 
   it("open what each step promises: topics, the shelf, a working recipe, gifts, a visit, a keepsake", () => {
@@ -188,8 +203,26 @@ describe("the friends' content", () => {
   });
 
   it("is checked: a missing level, a broken branch, a stranger's face and an unreal item are all caught", () => {
-    const bad = { ...praline, likes: { ...praline.likes, love: [99999] }, steps: praline.steps.filter((s) => s.level !== 6).map((s) => (s.id === "praline-3a" ? { ...s, not: [] } : s.id === "praline-1" ? { ...s, lines: [{ face: "x.png", en: "hi", zh: "嗨" }] } : s)) };
+    const bad = {
+      ...praline,
+      likes: { ...praline.likes, love: [99999] },
+      steps: praline.steps
+        .filter((s) => s.level !== 6)
+        .map((s) =>
+          s.id === "praline-3a"
+            ? { ...s, not: [] }
+            : s.id === "praline-1"
+              ? { ...s, lines: [{ face: "x.png", en: "hi", zh: "嗨" }] }
+              : s,
+        ),
+    };
     const errs = friendErrors([bad, ...FRIENDS.filter((f) => f.id !== "praline")]).join("\n");
-    for (const want of ["no item 99999", "level 6 opens nothing", "level 3 must be a branch", "praline has no portrait x.png"]) expect(errs).toContain(want);
+    for (const want of [
+      "no item 99999",
+      "level 6 opens nothing",
+      "level 3 must be a branch",
+      "praline has no portrait x.png",
+    ])
+      expect(errs).toContain(want);
   });
 });

@@ -22,7 +22,10 @@ const token = (arg("token") ?? XLAYER_USDT) as Address;
 const decimals = Number(arg("decimals", "6"));
 const amount = BigInt(Math.round(Number(arg("usdt", "100")) * 10 ** decimals));
 const okb = arg("okb");
-const pub = createPublicClient({ chain: { ...xLayer, rpcUrls: { default: { http: [rpc] } } }, transport: http(rpc) }) as PublicClient;
+const pub = createPublicClient({
+  chain: { ...xLayer, rpcUrls: { default: { http: [rpc] } } },
+  transport: http(rpc),
+}) as PublicClient;
 
 const slot = await giveToken(pub, token, to, amount);
 console.log(`gave ${to} ${Number(amount) / 10 ** decimals} of ${token} (balance slot ${slot})`);

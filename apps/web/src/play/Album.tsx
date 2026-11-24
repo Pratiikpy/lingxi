@@ -5,8 +5,32 @@
 
 import { useMemo } from "react";
 import { create } from "zustand";
-import { CORAL, LILAC, MINT, NIGHT, PEACH, SKY, SUNNY, type Palette, boundingBox, drawPet, wearOverlay } from "@lingxi/art";
-import { type Album, FORM_NAMES, FRIENDSHIP_VISITS, TRAIT_NAMES, VISITORS, type Visitor, type VisitorGift, WORLD_SEASONS, addToAlbum, keepsakesFrom, visitorHint } from "@lingxi/game";
+import {
+  CORAL,
+  LILAC,
+  MINT,
+  NIGHT,
+  PEACH,
+  SKY,
+  SUNNY,
+  type Palette,
+  boundingBox,
+  drawPet,
+  wearOverlay,
+} from "@lingxi/art";
+import {
+  type Album,
+  FORM_NAMES,
+  FRIENDSHIP_VISITS,
+  TRAIT_NAMES,
+  VISITORS,
+  type Visitor,
+  type VisitorGift,
+  WORLD_SEASONS,
+  addToAlbum,
+  keepsakesFrom,
+  visitorHint,
+} from "@lingxi/game";
 import { useT } from "../i18n";
 import { useLang } from "../i18n";
 import { Sprite } from "./Sprite";
@@ -15,8 +39,18 @@ import { useWorld } from "../game/world";
 import { saveWrite } from "../game/saveRuntime";
 
 const KEY = "lingxi.album.v1";
-const PALETTES: Record<Visitor["look"]["palette"], Palette> = { mint: MINT, lilac: LILAC, peach: PEACH, night: NIGHT, coral: CORAL, sunny: SUNNY, sky: SKY };
-const SHADOW: Palette = Object.fromEntries(Object.keys(CORAL).map((k) => [k, k === "s" ? "#2B21401A" : "#2B214059"])) as Palette;
+const PALETTES: Record<Visitor["look"]["palette"], Palette> = {
+  mint: MINT,
+  lilac: LILAC,
+  peach: PEACH,
+  night: NIGHT,
+  coral: CORAL,
+  sunny: SUNNY,
+  sky: SKY,
+};
+const SHADOW: Palette = Object.fromEntries(
+  Object.keys(CORAL).map((k) => [k, k === "s" ? "#2B21401A" : "#2B214059"]),
+) as Palette;
 
 interface AlbumStore {
   album: Album;
@@ -68,16 +102,32 @@ export function useHintNames(lang: "en" | "zh") {
 
 export function VisitorArt({ v, scale, hidden = false }: { v: Visitor; scale: number; hidden?: boolean }) {
   const { canvas, overlay, crop } = useMemo(() => {
-    const c = drawPet(v.look.line, v.look.stage, { expression: "happy", ...(v.look.form ? { form: v.look.form } : {}) });
+    const c = drawPet(v.look.line, v.look.stage, {
+      expression: "happy",
+      ...(v.look.form ? { form: v.look.form } : {}),
+    });
     const o = !hidden && v.look.outfit ? wearOverlay(c, v.look.line, v.look.stage, v.look.outfit, 0, v.look.form) : [];
     const b = boundingBox(c);
     const xs = [b.x, b.x + b.w - 1, ...o.map((p) => p[0])];
     const ys = [b.y, b.y + b.h - 1, ...o.map((p) => p[1])];
     const x0 = Math.max(0, Math.min(...xs) - 1);
     const y0 = Math.max(0, Math.min(...ys) - 1);
-    return { canvas: c, overlay: o, crop: { x: x0, y: y0, w: Math.min(c.w, Math.max(...xs) + 2) - x0, h: Math.min(c.h, Math.max(...ys) + 2) - y0 } };
+    return {
+      canvas: c,
+      overlay: o,
+      crop: { x: x0, y: y0, w: Math.min(c.w, Math.max(...xs) + 2) - x0, h: Math.min(c.h, Math.max(...ys) + 2) - y0 },
+    };
   }, [v, hidden]);
-  return <Sprite canvas={canvas} palette={hidden ? SHADOW : PALETTES[v.look.palette]} scale={scale} overlay={overlay} crop={crop} label={hidden ? undefined : v.name.en} />;
+  return (
+    <Sprite
+      canvas={canvas}
+      palette={hidden ? SHADOW : PALETTES[v.look.palette]}
+      scale={scale}
+      overlay={overlay}
+      crop={crop}
+      label={hidden ? undefined : v.name.en}
+    />
+  );
 }
 
 /** The shy one of the Butterfly Forest (quests 42 and 43): never drawn as a chance visitor, only met through Flit's story. */
@@ -85,7 +135,10 @@ export const SHY_ONE: Visitor = {
   id: "shy-one",
   rarity: "rare",
   name: { en: "The shy one", zh: "害羞的小家伙" },
-  note: { en: "Followed your pet through the forest at night, and stayed.", zh: "夜里跟着你的宠物穿过森林，然后留了下来。" },
+  note: {
+    en: "Followed your pet through the forest at night, and stayed.",
+    zh: "夜里跟着你的宠物穿过森林，然后留了下来。",
+  },
   look: { line: "gentle", stage: "baby", palette: "night" },
 };
 
@@ -99,7 +152,13 @@ function Butterfly({ scale, hidden }: { scale: number; hidden: boolean }) {
       className={`album-butterfly${hidden ? " is-hidden" : ""}`}
       role={hidden ? undefined : "img"}
       aria-label={hidden ? undefined : "butterfly"}
-      style={{ backgroundImage: `url(${BUTTERFLIES})`, width: 9 * scale, height: 9 * scale, backgroundSize: `${113 * scale}px ${53 * scale}px`, backgroundPosition: `${-61 * scale}px ${-3 * scale}px` }}
+      style={{
+        backgroundImage: `url(${BUTTERFLIES})`,
+        width: 9 * scale,
+        height: 9 * scale,
+        backgroundSize: `${113 * scale}px ${53 * scale}px`,
+        backgroundPosition: `${-61 * scale}px ${-3 * scale}px`,
+      }}
     />
   );
 }
@@ -121,15 +180,27 @@ function ForestCards({ lang }: { lang: "en" | "zh" }) {
           <Butterfly scale={4} hidden={!butterfly} />
         </div>
         <b>{butterfly ? L("A forest butterfly", "林中蝴蝶") : "???"}</b>
-        <span className="small">{butterfly ? L("found with Flit", "和蝶叔一起找到") : L("in the Butterfly Forest", "在蝴蝶森林")}</span>
-        {butterfly && <span className="small album-note">{L("Not the one nobody sees twice. A pretty one.", "不是那只谁也见不到第二次的。但很漂亮。")}</span>}
+        <span className="small">
+          {butterfly ? L("found with Flit", "和蝶叔一起找到") : L("in the Butterfly Forest", "在蝴蝶森林")}
+        </span>
+        {butterfly && (
+          <span className="small album-note">
+            {L("Not the one nobody sees twice. A pretty one.", "不是那只谁也见不到第二次的。但很漂亮。")}
+          </span>
+        )}
       </li>
       <li className={`album-card${friend ? "" : " is-unknown"} rarity-rare`}>
         <div className="album-art">
           <VisitorArt v={SHY_ONE} scale={2} hidden={!friend} />
         </div>
         <b>{friend ? SHY_ONE.name[lang] : seen ? L("Something shy", "某个害羞的家伙") : "???"}</b>
-        <span className="small">{friend ? L("a friend now", "现在是朋友了") : seen ? L("seen at night; it never comes close", "夜里见过；它从不靠近") : L("only at night, in the forest", "只在夜里的森林")}</span>
+        <span className="small">
+          {friend
+            ? L("a friend now", "现在是朋友了")
+            : seen
+              ? L("seen at night; it never comes close", "夜里见过；它从不靠近")
+              : L("only at night, in the forest", "只在夜里的森林")}
+        </span>
         {friend && <span className="small album-note">{SHY_ONE.note[lang]}</span>}
       </li>
     </>
@@ -144,8 +215,15 @@ export function AlbumPanel() {
   const met = VISITORS.filter((v) => album[v.id]).length;
   return (
     <div className="chainpanel album">
-      <p className="label">{L(`Visitor album · ${met} of ${VISITORS.length}`, `访客相册 · ${met} / ${VISITORS.length}`)}</p>
-      <p className="small">{L("Travelling pets drop by while you're away. Many come only for what your pet has learned or become, or in one season of the world. Most leave a keepsake on their 3rd and 10th visit, and every one becomes an old friend on its 25th.", "你不在的时候，会有旅行中的宠物来串门。很多只会来看学过某一课、养成某种性子的宠物，或只在某个时节来。多数会在第 3 次和第 10 次来时留下纪念品，来到第 25 次就成了老朋友。")}</p>
+      <p className="label">
+        {L(`Visitor album · ${met} of ${VISITORS.length}`, `访客相册 · ${met} / ${VISITORS.length}`)}
+      </p>
+      <p className="small">
+        {L(
+          "Travelling pets drop by while you're away. Many come only for what your pet has learned or become, or in one season of the world. Most leave a keepsake on their 3rd and 10th visit, and every one becomes an old friend on its 25th.",
+          "你不在的时候，会有旅行中的宠物来串门。很多只会来看学过某一课、养成某种性子的宠物，或只在某个时节来。多数会在第 3 次和第 10 次来时留下纪念品，来到第 25 次就成了老朋友。",
+        )}
+      </p>
       <ul className="album-grid">
         {VISITORS.map((v) => {
           const e = album[v.id];
@@ -157,17 +235,32 @@ export function AlbumPanel() {
               <b>{e ? v.name[lang] : "???"}</b>
               <span className="small">
                 {e
-                  ? L(`${e.count} ${e.count === 1 ? "visit" : "visits"} · first ${new Date(e.first).toLocaleDateString("en", { month: "short", day: "numeric" })}`, `来过 ${e.count} 次 · 第一次 ${new Date(e.first).toLocaleDateString("zh-CN", { month: "short", day: "numeric" })}`)
+                  ? L(
+                      `${e.count} ${e.count === 1 ? "visit" : "visits"} · first ${new Date(e.first).toLocaleDateString("en", { month: "short", day: "numeric" })}`,
+                      `来过 ${e.count} 次 · 第一次 ${new Date(e.first).toLocaleDateString("zh-CN", { month: "short", day: "numeric" })}`,
+                    )
                   : v.rarity === "epic"
                     ? L("once a season", "一季一遇")
                     : v.rarity === "rare"
-                    ? L("rare", "稀有")
-                    : v.rarity === "uncommon"
-                      ? L("uncommon", "少见")
-                      : L("not met yet", "还没见过")}
+                      ? L("rare", "稀有")
+                      : v.rarity === "uncommon"
+                        ? L("uncommon", "少见")
+                        : L("not met yet", "还没见过")}
               </span>
-              {e ? <span className="small album-note">{v.note[lang]}</span> : <span className="small album-hint">{visitorHint(v, lang, names)}</span>}
-              {e && e.count < FRIENDSHIP_VISITS && <span className="small album-keep">{v.keepsakes && e.count < 10 ? (e.count < 3 ? L(`keepsake at visit 3`, `第 3 次来时留纪念品`) : L(`another at visit 10`, `第 10 次来时再留一件`)) : L(`old friends at visit ${FRIENDSHIP_VISITS}`, `第 ${FRIENDSHIP_VISITS} 次来就是老朋友了`)}</span>}
+              {e ? (
+                <span className="small album-note">{v.note[lang]}</span>
+              ) : (
+                <span className="small album-hint">{visitorHint(v, lang, names)}</span>
+              )}
+              {e && e.count < FRIENDSHIP_VISITS && (
+                <span className="small album-keep">
+                  {v.keepsakes && e.count < 10
+                    ? e.count < 3
+                      ? L(`keepsake at visit 3`, `第 3 次来时留纪念品`)
+                      : L(`another at visit 10`, `第 10 次来时再留一件`)
+                    : L(`old friends at visit ${FRIENDSHIP_VISITS}`, `第 ${FRIENDSHIP_VISITS} 次来就是老朋友了`)}
+                </span>
+              )}
             </li>
           );
         })}

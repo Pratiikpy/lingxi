@@ -43,7 +43,8 @@ export function createJobs(log: (line: string) => void = (s) => process.stderr.w
     }
   }
 
-  const add = (name: string) => state.set(name, { name, runs: 0, failures: 0, failuresInARow: 0, healthy: true, running: false });
+  const add = (name: string) =>
+    state.set(name, { name, runs: 0, failures: 0, failuresInARow: 0, healthy: true, running: false });
 
   return {
     /** Runs `fn` every `ms`, skipping a tick while the previous run is still going. */

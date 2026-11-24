@@ -18,8 +18,8 @@ describe("events while the player watches (G1)", () => {
   it("come at a gentle pace: about one every few minutes, each kind present, frights the rarest", () => {
     const n = (e: number) => day.filter((x) => x === e).length;
     const all = n(EVENT.friend) + n(EVENT.toy) + n(EVENT.scary);
-    expect(all).toBeGreaterThan(24 * 60 / 15);
-    expect(all).toBeLessThan(24 * 60 / 4);
+    expect(all).toBeGreaterThan((24 * 60) / 15);
+    expect(all).toBeLessThan((24 * 60) / 4);
     expect(n(EVENT.scary)).toBeGreaterThan(0);
     expect(n(EVENT.scary)).toBeLessThan(Math.min(n(EVENT.friend), n(EVENT.toy)));
   });
