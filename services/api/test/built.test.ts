@@ -40,6 +40,7 @@ function quietEnv(port: number): NodeJS.ProcessEnv {
     ...process.env,
     PORT: String(port),
     LINGXI_SECRETS: join(dir, "none.env"),
+    LINGXI_IP_KEY_FILE: join(dir, "ip-key"),
     LINGXI_SITE: siteOfItsOwn(dir),
     ...Object.fromEntries(
       ["AGENT_STORE", "ARENA_STORE", "BRAIN_STORE", "DECOR_STORE", "DIARY_DIR", "DUELS_DIR", "HOMES_STORE", "LANE_FILE", "LIBRARY_STORE", "PAPERS_STORE", "PUSH_STORE", "SEASON_STORE", "SIT_STORE", "SPONSOR_STORE", "STANDINGS_FILE", "DAILY_FILE", "PACKETS_STORE", "RELAY_QUOTA_FILE", "CONSENTS_STORE", "MARKET_V1_STORE", "REFS_STORE", "CIRCUITS_STORE", "TEAM_FILE"].map((k) => [`LINGXI_${k}`, join(dir, k.toLowerCase())]),

@@ -154,6 +154,8 @@ export async function startRun(): Promise<Run> {
     // no model: the secrets file has a default path on this machine, so it is pointed at one that does not exist,
     // and a spec never spends on a paid model or depends on its answer
     serverEnv.LINGXI_SECRETS = join(dir, "no-secrets.env");
+    // the key that codes players' addresses (P6a) is the suite's own: its default sits beside the live server's stores
+    serverEnv.LINGXI_IP_KEY_FILE = join(dir, "ip-key");
     const server = keep(start("server", node, [tsx, "src/server.ts"], { cwd: join(ROOT, "services/api"), env: serverEnv, log: join(dir, "server.log") }));
     await waitFor("the server", () => answers(`${api}/api/health`), 90_000, server.log);
     const health = (await (await fetch(`${api}/api/health`)).json()) as { teach?: boolean; voice?: boolean; relay?: boolean };
