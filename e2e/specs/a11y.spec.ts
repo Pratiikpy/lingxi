@@ -103,16 +103,26 @@ for (const look of LOOKS) {
 
 /** The elements whose drawn position, size or turn changes over `ms`: what still moves on the page. */
 async function moving(page: import("@playwright/test").Page, ms = 1_200): Promise<string[]> {
+  // each element is compared with itself (marked on the first read), so a notice that appears meanwhile, such as the
+  // rules mark, is a new element and not a shift of every element after it
   const read = () =>
-    page.evaluate(() =>
-      Array.from(document.querySelectorAll<HTMLElement>("body *"))
-        .filter((el) => el.getClientRects().length > 0)
-        .map((el) => `${el.tagName.toLowerCase()}.${(el.className || "").toString().split(" ")[0]}|${getComputedStyle(el).transform}`),
-    );
+    page.evaluate(() => {
+      let next = Number(document.body.dataset.mvNext ?? 0);
+      const seen: Record<string, string> = {};
+      for (const el of Array.from(document.querySelectorAll<HTMLElement>("body *"))) {
+        if (el.getClientRects().length === 0) continue;
+        if (!el.dataset.mv) el.dataset.mv = String(next++);
+        seen[el.dataset.mv] = `${el.tagName.toLowerCase()}.${(el.className || "").toString().split(" ")[0]}|${getComputedStyle(el).transform}`;
+      }
+      document.body.dataset.mvNext = String(next);
+      return seen;
+    });
   const before = await read();
   await page.waitForTimeout(ms);
   const after = await read();
-  return after.filter((x, i) => x !== before[i]);
+  return Object.entries(after)
+    .filter(([id, x]) => before[id] !== undefined && before[id] !== x)
+    .map(([, x]) => x);
 }
 
 for (const look of [{ lang: "en", scheme: "light", size: "phone" }, { lang: "zh", scheme: "dark", size: "desktop" }] as const) {

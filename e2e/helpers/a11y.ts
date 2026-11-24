@@ -16,6 +16,16 @@ export interface Finding {
 
 /** axe's serious and critical findings on what the page shows now, each with the elements it names. */
 export async function seriousFindings(page: Page): Promise<Finding[]> {
+  const first = await findingsAtRest(page);
+  if (!first.some((f) => f.id === "color-contrast")) return first;
+  // a notice may arrive after the page came to rest and be measured mid-fade (the badge toast over the Pet sheet read
+  // 1.06:1 for text that is 13:1 at rest): contrast is judged again once the page is at rest, and only what is still
+  // wrong is kept
+  await page.waitForTimeout(800);
+  return findingsAtRest(page);
+}
+
+async function findingsAtRest(page: Page): Promise<Finding[]> {
   // contrast is judged at rest: wait for every animation that ends to end, whether the browser runs it or a script
   // writes it into an inline style (a panel fading in measured mid-fade on a slow CI runner read 3.7:1, P6b)
   await page.waitForFunction(
