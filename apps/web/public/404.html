@@ -100,11 +100,19 @@
         outline-offset: 2px;
       }
       footer {
-        margin-top: 18px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0 14px;
+        margin-top: 14px;
         font-size: 13px;
         color: var(--ink-soft);
       }
       footer a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        padding: 0 4px;
         color: inherit;
       }
     </style>
@@ -122,7 +130,8 @@
         <a href="/verify.html">Verify a pet · 验证宠物</a>
       </nav>
       <footer>
-        <a href="/privacy.html">Privacy · 隐私</a> · <a href="/terms.html">Terms · 条款</a> ·
+        <a href="/privacy.html">Privacy · 隐私</a>
+        <a href="/terms.html">Terms · 条款</a>
         <a href="https://github.com/Pratiikpy/lingxi/issues">Contact · 联系我们</a>
       </footer>
     </main>

@@ -28,6 +28,7 @@ import { readPublished } from "./published";
 import { otherStarter } from "./starterNote";
 import { HISTORY_RETRIES, HISTORY_RETRY_MS } from "./askHistory";
 import { useLang } from "../i18n";
+import { SiteFoot } from "../SiteFoot";
 import { usePageMeta } from "../i18n/pageMeta";
 import "./verify.css";
 import { markProofChecked } from "../game/proofMark";
@@ -784,6 +785,7 @@ export function VerifyApp() {
       <div className="v-note-wrap">
         <OnChainNote lang={lang} />
       </div>
+      <SiteFoot lang={lang} />
     </main>
   );
 }

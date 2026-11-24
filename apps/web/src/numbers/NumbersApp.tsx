@@ -9,6 +9,7 @@ import { formatBem } from "@lingxi/chain";
 import { formatEther } from "viem";
 import { GOAL_METHOD, goalAmountText, goalRoundAt } from "@lingxi/world";
 import { useLang } from "../i18n";
+import { SiteFoot } from "../SiteFoot";
 import { usePageMeta } from "../i18n/pageMeta";
 import "../agents/agents.css";
 import "../tree/tree.css";
@@ -384,6 +385,7 @@ export function NumbersApp() {
           <a href="verify.html">{L("Check a pet's days on the proof page", "在证明页核对宠物的每一天")}</a>
         </p>
       )}
+      <SiteFoot lang={lang} />
     </main>
   );
 }

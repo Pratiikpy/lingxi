@@ -9,6 +9,7 @@ import { startTransition, useEffect, useMemo, useState } from "react";
 import { boundingBox, drawPet } from "@lingxi/art";
 import { revealHidden } from "@lingxi/game";
 import { useLang } from "../i18n";
+import { SiteFoot } from "../SiteFoot";
 import { usePageMeta } from "../i18n/pageMeta";
 import { PALETTE_OF } from "../scene/palette";
 import { Sprite } from "../play/Sprite";
@@ -257,6 +258,7 @@ export function TreeApp() {
           </p>
         </>
       )}
+      <SiteFoot lang={lang} />
     </main>
   );
 }

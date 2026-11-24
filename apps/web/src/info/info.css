@@ -1,0 +1,39 @@
+/* P6: the privacy and terms pages, in the proof page's look */
+.info {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 16px 16px 24px;
+}
+.info h1 {
+  margin: 18px 0 0;
+  font-family: var(--display);
+  font-size: clamp(30px, 6vw, 44px);
+}
+.info-date {
+  margin: 6px 0 18px;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+.info-card {
+  margin-top: 14px;
+}
+.info-card h2 {
+  margin: 0 0 6px;
+  font-family: var(--round);
+  font-size: 20px;
+}
+.info-card p {
+  margin: 8px 0 0;
+  line-height: 1.6;
+}
+.info-foot {
+  margin-top: 22px;
+  text-align: center;
+}
+.info-foot a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 6px;
+  color: var(--ink);
+}

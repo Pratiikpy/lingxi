@@ -6,7 +6,7 @@
 import { useEffect } from "react";
 import { type Lang, useLang } from "./index";
 
-export type Page = "index" | "play" | "verify" | "handheld" | "numbers" | "tree" | "agents";
+export type Page = "index" | "play" | "verify" | "handheld" | "numbers" | "tree" | "agents" | "privacy" | "terms";
 
 type Both = Record<Lang, string>;
 
@@ -16,6 +16,20 @@ const OPENING: Both = {
 };
 
 export const PAGE_META: Record<Page, { title: Both; description: Both }> = {
+  privacy: {
+    title: { en: "Privacy · Lingxi", zh: "隐私 · 灵犀" },
+    description: {
+      en: "What Lingxi keeps and why: your pet lives in your browser; no accounts, no cookies; what the server keeps and what goes to others.",
+      zh: "灵犀保存什么、为什么：你的宠物住在你的浏览器里；没有账号，不设 cookie；服务器保存什么，什么会交给别人。",
+    },
+  },
+  terms: {
+    title: { en: "Terms · Lingxi", zh: "条款 · 灵犀" },
+    description: {
+      en: "Lingxi's terms in plain words: free to play, what happens on X Layer, what you write, and the service.",
+      zh: "用平实的话写的灵犀条款：免费游玩、X Layer 上会发生什么、你写的内容，以及服务。",
+    },
+  },
   index: { title: { en: "Lingxi · Raise a little mind", zh: "灵犀 · 养一个小小的心智" }, description: OPENING },
   play: { title: { en: "Lingxi · 灵犀", zh: "灵犀 · Lingxi" }, description: OPENING },
   verify: {

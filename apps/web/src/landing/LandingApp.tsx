@@ -6,6 +6,7 @@
  */
 
 import { OnChainNote } from "../OnChainNote";
+import { SiteFoot } from "../SiteFoot";
 import { type ReactNode, Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { STARTERS, compileProgram, gateCount } from "@lingxi/brain";
@@ -318,6 +319,7 @@ export function LandingApp() {
         <a className="l-foot-link" href="https://github.com/Pratiikpy/lingxi" target="_blank" rel="noopener noreferrer">
           {c.source}
         </a>
+        <SiteFoot lang={lang} />
       </footer>
     </>
   );

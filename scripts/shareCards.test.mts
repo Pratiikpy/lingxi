@@ -13,7 +13,7 @@ const pageFile = (page: string) => (page === "circuits.html" ? join(web, "public
 
 describe("every page's share card (P6)", () => {
   it("covers every page the site serves", () => {
-    const pages = ["index.html", "play.html", "verify.html", "numbers.html", "tree.html", "agents.html", "handheld.html", "circuits.html"];
+    const pages = ["index.html", "play.html", "verify.html", "numbers.html", "tree.html", "agents.html", "handheld.html", "circuits.html", "privacy.html", "terms.html"];
     expect(CARDS.map((c) => c.page).sort()).toEqual(pages.sort());
   });
 

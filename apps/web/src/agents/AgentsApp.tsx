@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { MANIFESTS } from "@lingxi/brain";
 import type { SparQuery } from "@lingxi/api-schema";
 import { useLang } from "../i18n";
+import { SiteFoot } from "../SiteFoot";
 import { usePageMeta } from "../i18n/pageMeta";
 import { withQuery } from "../game/requests";
 import "./agents.css";
@@ -277,6 +278,7 @@ else console.log(result.name, result.owner, verified)`}</pre>
           </details>
         ))}
       </section>
+      <SiteFoot lang={lang} />
     </main>
   );
 }

@@ -121,6 +121,8 @@ const PRELOADED: ReadonlyArray<{ page: string; entries: readonly string[]; saved
   { page: "tree.html", entries: [] },
   { page: "agents.html", entries: [] },
   { page: "handheld.html", entries: [] },
+  { page: "privacy.html", entries: [] },
+  { page: "terms.html", entries: [] },
 ];
 
 function preloadPages(): Plugin {
@@ -301,7 +303,7 @@ export default defineConfig({
   build: {
     target: "es2022",
     rollupOptions: {
-      input: { index: resolve(__dirname, "index.html"), play: resolve(__dirname, "play.html"), verify: resolve(__dirname, "verify.html"), agents: resolve(__dirname, "agents.html"), tree: resolve(__dirname, "tree.html"), numbers: resolve(__dirname, "numbers.html"), handheld: resolve(__dirname, "handheld.html") },
+      input: { index: resolve(__dirname, "index.html"), play: resolve(__dirname, "play.html"), verify: resolve(__dirname, "verify.html"), agents: resolve(__dirname, "agents.html"), tree: resolve(__dirname, "tree.html"), numbers: resolve(__dirname, "numbers.html"), handheld: resolve(__dirname, "handheld.html"), privacy: resolve(__dirname, "privacy.html"), terms: resolve(__dirname, "terms.html") },
     },
   },
   // the end-to-end suite (e2e/) plays a dev server that must not reload a page under a running test when a file is

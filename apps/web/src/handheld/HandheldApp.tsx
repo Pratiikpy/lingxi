@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import wasmUrl from "@lingxi/handheld/wasm/lingxi-handheld.wasm?url";
 import { useLang } from "../i18n";
+import { SiteFoot } from "../SiteFoot";
 import { usePageMeta } from "../i18n/pageMeta";
 import { DEVICE_KEY, INBOX_KEY, RETURN_KEY, fromB64 } from "../game/handheldKeys";
 import { gameIsOpen, handheldIsMine } from "../game/handheldLock";
@@ -374,6 +375,7 @@ export function HandheldApp() {
           </p>
         )}
       </section>
+      <SiteFoot lang={lang} />
     </main>
   );
 }

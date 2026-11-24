@@ -29,6 +29,7 @@ import { Hatch } from "./Hatch";
 import { installModalFocus } from "./modalFocus";
 import { PetButton } from "./PetButton";
 import { OfflineNote } from "./OfflineNote";
+import { SiteFoot } from "../SiteFoot";
 import { useHatchDraft } from "./hatchDraft";
 import { Actions, Meters, TabBar, ThinkStrip, ToastView, TopBar, VoiceBubble, type Tab } from "./parts";
 import { useVoice } from "../game/voice";
@@ -980,6 +981,8 @@ export function PlayApp() {
           <hr className="divider" />
           <HomePanel pet={pet} />
         </MoreBehind>
+        {/* P6: privacy, terms and a contact, at the foot of the Pet sheet as at the foot of every page */}
+        <SiteFoot lang={lang} />
       </Sheet>
       <Sheet open={!!pickedBuilder} title={pickedBuilder ? pickedBuilder.name[lang] : ""} onClose={() => setPicked(null)}>
         {pickedBuilder && (
