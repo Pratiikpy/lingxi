@@ -13,6 +13,7 @@ import { Icon } from "./icons";
 import { Chips } from "./parts";
 import { chipsFor, MOOD_NAMES } from "./ruleText";
 import { now as gameNow } from "../game/gameClock";
+import { onBack } from "../game/backStack";
 
 /** Open sheets, newest last: Escape closes only the one on top when two are stacked. */
 const openSheets: object[] = [];
@@ -21,6 +22,15 @@ export function Sheet({ open, title, onClose, children }: { open: boolean; title
   const t = useT();
   const reduce = useReducedMotion();
   const closeRef = useRef<HTMLButtonElement>(null);
+  // the latest close, for the back button: the sheet registers once per opening, not on every render (P6)
+  const closeLatest = useRef(onClose);
+  useEffect(() => {
+    closeLatest.current = onClose;
+  });
+  useEffect(() => {
+    if (!open) return;
+    return onBack(() => closeLatest.current());
+  }, [open]);
   // how many sheets were already open when this one opened: it is drawn above them, whatever their order on the page
   // (a sheet earlier on the page, such as the skills, opened from a later one, such as the pet's, sat beneath it, A124)
   const depth = useMemo(() => (open ? openSheets.length : 0), [open]);

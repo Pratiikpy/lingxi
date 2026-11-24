@@ -2,11 +2,15 @@
  * P5: the keyboard's focus and the game's dialogs, for every dialog at once. While a dialog marked `aria-modal="true"`
  * is open, Tab and Shift+Tab move only among its own controls (the one on top, when several are open); a dialog that
  * appears takes the focus, and gives it back to where it was when it goes. Sheets (Sheets.tsx) move the focus in and
- * back out themselves; for them this only keeps Tab inside.
+ * back out themselves; for them this only keeps Tab inside. The back button closes a dialog through its close button
+ * (P6, backStack.ts); sheets register with the back button themselves.
  */
+import { onBack } from "../game/backStack";
 
 const MODAL = '[aria-modal="true"]';
 const FOCUSABLE = 'a[href], button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])';
+/** A dialog's own close button, in either language (the game's "close" string). */
+const CLOSE = 'button[aria-label="Close"], button[aria-label="关闭"]';
 
 /** The controls the keyboard can reach inside `box`, in order. */
 export function focusables(box: HTMLElement): HTMLElement[] {
@@ -60,8 +64,23 @@ export function installModalFocus(doc: Document = document): () => void {
   };
   // a dialog that is not a sheet takes the focus when it appears, and gives it back when it goes
   const returnTo = new Map<HTMLElement, HTMLElement | null>();
+  // P6: and the back button: a dialog with a close button is closed by it; one that asks for an answer keeps Back
+  // (the dialog stays, and the game is not left behind a question nobody answered)
+  const backOff = new Map<HTMLElement, () => void>();
+  const holdBack = (el: HTMLElement) => {
+    backOff.set(
+      el,
+      onBack(() => {
+        if (!el.isConnected) return;
+        const close = el.querySelector<HTMLButtonElement>(CLOSE);
+        if (close) close.click();
+        else holdBack(el);
+      }),
+    );
+  };
   const arrived = (el: HTMLElement) => {
     if (el.classList.contains("sheet") || returnTo.has(el)) return;
+    holdBack(el);
     const was = doc.activeElement as HTMLElement | null;
     returnTo.set(el, was && !el.contains(was) ? was : null);
     if (!el.contains(doc.activeElement)) {
@@ -78,6 +97,8 @@ export function installModalFocus(doc: Document = document): () => void {
     for (const [el, was] of [...returnTo]) {
       if (el.isConnected) continue;
       returnTo.delete(el);
+      backOff.get(el)?.();
+      backOff.delete(el);
       // only when the focus went down with the dialog: a player who has moved on is not pulled back
       const at = doc.activeElement;
       if (was?.isConnected && (!at || at === doc.body)) was.focus();
