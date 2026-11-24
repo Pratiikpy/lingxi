@@ -1,5 +1,9 @@
 node_modules/
 dist/
+# the built server the server tests build and check (services/api/test/built.test.ts)
+dist-test/
+# a server build on its way into place (services/api/scripts/build-server.ts)
+dist-next/
 .env
 .env.*
 *.log

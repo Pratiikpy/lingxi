@@ -20,7 +20,8 @@
     "readme:phones": "tsx scripts/readme-phones.mts",
     "perf:budget": "tsx scripts/perf-budget.mts",
     "perf:lighthouse": "tsx scripts/lighthouse-budget.mts",
-    "numbers:snapshot": "tsx services/api/scripts/numbers-snapshot.mts"
+    "numbers:snapshot": "tsx services/api/scripts/numbers-snapshot.mts",
+    "server:release": "pnpm --filter @lingxi/api build && npx pm2 startOrReload deploy/pm2.config.cjs --only lingxi-server --update-env"
   },
   "devDependencies": {
     "@eslint/js": "9.17.0",

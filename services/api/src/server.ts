@@ -98,6 +98,16 @@ import { proveSeasonEntry } from "./seasonProof";
 import { budgetedClient, createTokenBudget, modelCaller } from "./tokenBudget";
 import { createJobs } from "./jobs";
 
+/** The build this server runs, read from build.json beside the built server (P3b); "source" when run through tsx. */
+function serverBuild(): { commit: string; dirty: boolean; builtAt: string } | "source" {
+  try {
+    const j = JSON.parse(readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), "build.json"), "utf8")) as { commit?: unknown; dirty?: unknown; builtAt?: unknown };
+    return typeof j.commit === "string" ? { commit: j.commit, dirty: j.dirty === true, builtAt: String(j.builtAt) } : "source";
+  } catch {
+    return "source";
+  }
+}
+
 /** The numbers snapshot shipped in the repo (snapshot.ts, `pnpm numbers:snapshot`). */
 const SNAPSHOT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "../snapshots/xlayer");
 
@@ -1013,6 +1023,9 @@ if (isMain) {
       modelTokensToday: client ? { used: modelBudget.used(), perDay: modelBudget.perDay, perAddress: modelBudget.perAddress, ...modelBudget.measured() } : null,
       backup: backupStatus(),
       watchdog: watchdogStatus(),
+      // P3b: the build this server runs (dist/build.json beside it), or "source" when it runs through tsx; the status
+      // check holds it to the checkout
+      server: serverBuild(),
       // the process's own memory, in MB: a store or cache growing without end shows here first
       memoryMb: Object.fromEntries(Object.entries(process.memoryUsage()).map(([k, v]) => [k, Math.round(v / 1e5) / 10])),
       storesKb: await storeSizes(dataDir),

@@ -258,6 +258,17 @@ async function siteChecks(): Promise<void> {
     const wd = j.detail?.watchdog;
     if (j.detail && (!wd || wd.ageSeconds > 180)) failing.push(`watchdog ${wd ? `silent for ${wd.ageSeconds}s` : "not running"}`);
     const facts = `${j.detail ? `; relayer ${j.detail.relayerOkb ?? "?"} OKB and ${j.detail.relayerBem ?? "?"} BEM (${j.detail.relayerBemTapeouts ?? "?"} tape-outs' fees), indexer ${j.detail.indexerLagBlocks ?? "?"} blocks behind` : ""}${retried.length ? `; ${retryNote("health", retried)}` : ""}`;
+    // P3b: the server runs from a build; that build must come from this checkout, or from a commit whose server code
+    // (the server, its packages, its settings) has not changed since
+    const sb = (local.detail as { server?: { commit: string; dirty: boolean; builtAt: string } | "source" } | undefined)?.server;
+    const serverInputs = [...SERVER_INPUTS, ...["brain", "game", "world", "art", "send", "chain"].map((p) => `packages/${p}/src`), "pnpm-lock.yaml", ":(exclude)**/*.test.ts"];
+    if (!sb) record("sites", "live server runs this checkout's server code", "FAIL", "the server does not say which build it runs", t);
+    else if (sb === "source") record("sites", "live server runs this checkout's server code", "FAIL", "it runs from source through tsx, not from its build (pnpm server:release)", t);
+    else {
+      const head = git("rev-parse", "HEAD").trim();
+      const { current, why } = currentness(sb, head, (commit) => spawnSync("git", ["diff", "--quiet", commit, head, "--", ...serverInputs], { cwd: root }).status === 0);
+      record("sites", "live server runs this checkout's server code", current ? "PASS" : "FAIL", current ? why : `${why} (pnpm server:release)`, t);
+    }
     record("sites", "live server's parts and jobs are all up", r.ok && !down.length && !failing.length ? "PASS" : "FAIL", [down.length ? `down: ${down.join(", ")}` : "", failing.length ? `failing: ${failing.join("; ")}` : ""].filter(Boolean).join(" ") || `${Object.keys(j.detail?.jobs ?? {}).length} jobs ok${facts}`, t);
   } catch (e) {
     record("sites", "live server's parts are all up", "FAIL", e instanceof Error ? e.message : String(e), t);
@@ -279,7 +290,7 @@ function planChecks(): void {
   const t = Date.now();
   const rows: Row[] = readFileSync(PLAN, "utf8")
     .split(/\r?\n/)
-    .map((l) => /^\|\s*([A-Z]\d+)\s*\|[^|]*\|\s*(.*?)\s*\|\s*$/.exec(l))
+    .map((l) => /^\|\s*([A-Z]\d+[a-z]?)\s*\|[^|]*\|\s*(.*?)\s*\|\s*$/.exec(l))
     .filter((m): m is RegExpExecArray => m !== null)
     .map((m) => ({ id: m[1]!, status: m[2]! }));
   const inProgress = rows.filter((r) => /in progress/i.test(r.status));

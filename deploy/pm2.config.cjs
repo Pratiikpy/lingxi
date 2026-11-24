@@ -20,8 +20,9 @@ module.exports = {
     {
       name: "lingxi-server",
       cwd: path.join(root, "services", "api"),
-      script: path.join(root, "node_modules", "tsx", "dist", "cli.mjs"),
-      args: "src/server.ts",
+      // P3b: the built server (pnpm server:release builds it and reloads this): it starts in about half a second on
+      // 165 MB, where transpiling it through tsx took about 3 s and 390 MB, and minutes on a machine short of memory
+      script: path.join(root, "services", "api", "dist", "server.mjs"),
       interpreter: "node",
       env: {
         PORT: "8790",
