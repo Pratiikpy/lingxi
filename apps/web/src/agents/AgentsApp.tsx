@@ -169,7 +169,7 @@ export function AgentsApp() {
         <pre>{`curl -X POST ${PUBLIC}/api/v1/pet \\
   -H 'content-type: application/json' \\
   -d '{"id":"my-1","params":{"id":"1"}}'`}</pre>
-        <p className="small">{L("To check it, TapeAPI's own client resolves the service from X Layer and verifies each answer:", "要核对，可以用 TapeAPI 自己的客户端：它从 X Layer 解析服务，再逐个核验回答：")}</p>
+        <p className="small">{L("To check it, TapeAPI's own client resolves the service from X Layer and verifies each answer:", "要核对，可以用 TapeAPI 自己的客户端：它从 X Layer 解析服务，再逐个验证回答：")}</p>
         <pre>{`npm install ${TAPEAPI_SDK}
 
 // save as try.mjs, then run: node try.mjs
@@ -197,7 +197,7 @@ else console.log(result.name, result.owner, verified)`}</pre>
         <p className="small">
           {L(
             "For a model: reading a pet, running a spar and proposing a lesson (which checks a rule and shows which situations it changes, teaching nothing) are tools of an MCP server at /mcp. The manifest pins the tools' definitions by their SHA-256 (TAP-15), and each tool is also a signed method. In an MCP host, TapeAPI's tapeapi-mcp checks the tools against that pin and every answer against the chain:",
-            "给模型用：读取宠物、切磋、提议一课（检查一条规则、说明它会改变哪些情况，不会真的教）是 /mcp 上 MCP 服务器的工具。服务清单用 SHA-256 钉住这些工具的定义（TAP-15），每个工具同时也是一个签名方法。在 MCP 客户端里，TapeAPI 的 tapeapi-mcp 会对照这个摘要检查工具，并对照链上核验每个回答：",
+            "给模型用：读取宠物、切磋、提议一课（检查一条规则、说明它会改变哪些情况，不会真的教）是 /mcp 上 MCP 服务器的工具。服务清单用 SHA-256 钉住这些工具的定义（TAP-15），每个工具同时也是一个签名方法。在 MCP 客户端里，TapeAPI 的 tapeapi-mcp 会对照这个摘要检查工具，并对照链上验证每个回答：",
           )}
         </p>
         <pre>{`{

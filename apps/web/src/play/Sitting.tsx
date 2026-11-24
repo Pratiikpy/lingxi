@@ -122,7 +122,7 @@ export function SitPanel({ pet }: { pet: Pet }) {
                       : "This address already has 8 pets' saves waiting with friends (each is kept for a week after its sitting ends). Send this one once the oldest has been let go. Nothing was sent."
                     : firstLine(e) === "full"
                       ? lang === "zh"
-                        ? "灵犀存放托管宠物的空间暂时满了。什么都没有发出去，它还在你身边；过几天再试。"
+                        ? "灵犀存放托人照看的宠物的空间暂时满了。什么都没有发出去，它还在你身边；过几天再试。"
                         : "Lingxi's shelf for pets with friends is full for now. Nothing was sent; it is still with you. Try again in a few days."
                       : firstLine(e) === "busy"
                         ? lang === "zh"

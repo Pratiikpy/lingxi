@@ -27,8 +27,8 @@ const T = {
   },
   zh: {
     title: "这些证明从哪里来",
-    lede: "本页对 X Layer 的每一次读取都来自你的浏览器：如果你填了自己的 RPC，会先问它，再问 X Layer 的公共 RPC，只有它们全部失败时才会问灵犀的服务器。有三样东西来自灵犀的服务器：Sourcify 对合约的核验结果（每一行都链接到 Sourcify 本身）、宠物的经历（每一行都链接到它在 X Layer 上的交易），以及发布的日记（显示之前先对照 X Layer 核对）。",
-    ledeOnChain: "本页对 X Layer 的每一次读取都来自你的浏览器：如果你填了自己的 RPC，会先问它，再问 X Layer 的公共 RPC。这一份页面本身就存放在 X Layer 上，没有可以退回去问的服务器。合约的 Sourcify 核验结果直接询问 Sourcify；宠物的经历和发布的日记来自灵犀的索引服务（每一行经历都链接到它在 X Layer 上的交易，日记在显示之前先对照 X Layer 核对）。",
+    lede: "本页对 X Layer 的每一次读取都来自你的浏览器：如果你填了自己的 RPC，会先问它，再问 X Layer 的公共 RPC，只有它们全部失败时才会问灵犀的服务器。有三样东西来自灵犀的服务器：Sourcify 对合约的验证结果（每一行都链接到 Sourcify 本身）、宠物的经历（每一行都链接到它在 X Layer 上的交易），以及发布的日记（显示之前先对照 X Layer 核对）。",
+    ledeOnChain: "本页对 X Layer 的每一次读取都来自你的浏览器：如果你填了自己的 RPC，会先问它，再问 X Layer 的公共 RPC。这一份页面本身就存放在 X Layer 上，没有可以退回去问的服务器。合约的 Sourcify 验证结果直接询问 Sourcify；宠物的经历和发布的日记来自灵犀的索引服务（每一行经历都链接到它在 X Layer 上的交易，日记在显示之前先对照 X Layer 核对）。",
     asked: "询问顺序",
     answered: "目前的回答",
     none: "还没有",

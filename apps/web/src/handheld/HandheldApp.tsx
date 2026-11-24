@@ -305,7 +305,7 @@ export function HandheldApp() {
         <a className="hh-back" href="play.html">
           {L("← Lingxi", "← 灵犀")}
         </a>
-        <h1>{L("The handheld", "掌上灵犀")}</h1>
+        <h1>{L("The handheld", "灵犀掌机")}</h1>
         <p className="hh-sub">
           {L(
             "The Cardputer's own firmware, running in your browser: the same C code, the same screen, and the same circuit the pet thinks with at home (read from X Layer when its mind is on chain).",

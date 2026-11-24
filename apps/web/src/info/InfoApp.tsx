@@ -47,12 +47,12 @@ const PRIVACY: Section[] = [
     p: [
       ["Your pet's home, as you decorate it, so friends who drop by see it.", "你布置的宠物的家，好让来串门的朋友看到。"],
       ["A pet you leave with a sitter, and what you pack for it, until you take it back.", "你托付给别人照看的宠物和你为它准备的行李，直到你接回它。"],
-      ["Pets you enter in the arena or the weekly season, with their names and the cards that describe them, for the standings.", "你送去切磋场或每周赛季的宠物，连同名字和描述它的卡片，用来排名。"],
+      ["Pets you enter in the arena or the weekly season, with their names and the cards that describe them, for the standings.", "你送去竞技场或每周赛季的宠物，连同名字和描述它的卡片，用来排名。"],
       ["Lessons you choose to share in the library, and diaries you choose to publish.", "你选择分享到课程库的课，以及你选择发布的日记。"],
       ["If you turn reminders on: the address your browser gives for notifications and the times you chose, until you turn them off.", "如果你打开提醒：浏览器提供的通知地址和你选的时间，直到你关闭提醒。"],
       [
         "To keep the service fair (how often a network may ask for things, how much of the day's language model it may use), a code made from your network address with a key only our server holds. The code cannot be turned back into the address. It is kept only beside what it limits (an arena or season entry, a pet left with a sitter, a reminder, the day's model use) and goes when that does.",
-        "为了让服务公平（一个网络多久能请求一次、能用掉当天多少语言模型额度），我们保存一个由你的网络地址加上只有我们服务器才有的密钥算出的代码。这个代码无法还原成地址。它只和它所限制的东西放在一起（切磋场或赛季的报名、托付照看的宠物、提醒、当天的模型额度），那些东西没了，它也就没了。",
+        "为了让服务公平（一个网络多久能请求一次、能用掉当天多少语言模型额度），我们保存一个由你的网络地址加上只有我们服务器才有的密钥算出的代码。这个代码无法还原成地址。它只和它所限制的东西放在一起（竞技场或赛季的报名、托付照看的宠物、提醒、当天的模型额度），那些东西没了，它也就没了。",
       ],
     ],
   },
@@ -112,7 +112,7 @@ const TERMS: Section[] = [
     p: [
       [
         "Names, lessons, letters and diaries are yours. Do not use them to harass anyone, to share someone else's private information, or to break the law. What you publish (a diary, a shared lesson, a pet in the arena) can be seen by other players; offensive names are shown as \"Pet\".",
-        "名字、课、信和日记都属于你。不要用它们骚扰他人、泄露他人隐私或违法。你发布的内容（日记、分享的课、切磋场里的宠物）其他玩家都能看到；冒犯性的名字会显示为“Pet”。",
+        "名字、课、信和日记都属于你。不要用它们骚扰他人、泄露他人隐私或违法。你发布的内容（日记、分享的课、竞技场里的宠物）其他玩家都能看到；冒犯性的名字会显示为“Pet”。",
       ],
     ],
   },

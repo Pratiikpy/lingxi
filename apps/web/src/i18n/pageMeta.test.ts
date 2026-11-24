@@ -29,7 +29,7 @@ describe("each page's language, title and description (A111)", () => {
     document.head.innerHTML = '<title>x</title><meta name="description" content="x">';
     applyPageMeta("verify", "zh");
     expect(document.documentElement.lang).toBe("zh-CN");
-    expect(document.title).toBe("核对一只灵犀宠物");
+    expect(document.title).toBe("验证一只灵犀宠物");
     expect(document.querySelector('meta[name="description"]')!.getAttribute("content")).toBe(PAGE_META.verify.description.zh);
     applyPageMeta("verify", "en");
     expect(document.documentElement.lang).toBe("en");

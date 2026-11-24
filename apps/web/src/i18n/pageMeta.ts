@@ -33,7 +33,7 @@ export const PAGE_META: Record<Page, { title: Both; description: Both }> = {
   index: { title: { en: "Lingxi · Raise a little mind", zh: "灵犀 · 养一个小小的心智" }, description: OPENING },
   play: { title: { en: "Lingxi · 灵犀", zh: "灵犀 · Lingxi" }, description: OPENING },
   verify: {
-    title: { en: "Verify a Lingxi pet", zh: "核对一只灵犀宠物" },
+    title: { en: "Verify a Lingxi pet", zh: "验证一只灵犀宠物" },
     description: {
       en: "Check a Lingxi pet against X Layer from your own browser: its brain, its saved memory and its published diary.",
       zh: "在你自己的浏览器里对照 X Layer 核对一只灵犀宠物：它的大脑、保存的记忆和发布的日记。",
