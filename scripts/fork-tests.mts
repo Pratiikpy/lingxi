@@ -9,7 +9,7 @@
  * Nothing leaves this machine but reads of X Layer: the forks and every balance on them are local.
  */
 
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -63,12 +63,20 @@ async function forkTestsIn(pkg: string): Promise<boolean> {
 
     console.log(`\nfork tests in ${pkg}`);
     // one file at a time: the fork tests share one relayer, and two of them sending at once would race for its nonce
-    const run = spawnSync(process.execPath, [vitest, "run", "--no-file-parallelism", ...vitestArgs], {
-      cwd: join(root, pkg),
-      stdio: "inherit",
-      env: { ...process.env, FORK_RPC: rpc, RELAY_KEY_FILE: keyFile, FORK_KEY_FILE: keyFile, DEPLOYMENT_FILE: deploymentFile },
+    // P6b: awaited, never spawnSync. The fork's log is piped through this process (harness start()), and spawnSync
+    // stops this process's event loop for the whole run: once anvil had written a pipe's worth of log, its write
+    // blocked and the fork stopped answering anything, its CPU idle, about 80 s in; every fork test after that timed
+    // out, while each alone passed (BUILD-STATUS section 328)
+    const status = await new Promise<number | null>((done, fail) => {
+      const run = spawn(process.execPath, [vitest, "run", "--no-file-parallelism", ...vitestArgs], {
+        cwd: join(root, pkg),
+        stdio: "inherit",
+        env: { ...process.env, FORK_RPC: rpc, RELAY_KEY_FILE: keyFile, FORK_KEY_FILE: keyFile, DEPLOYMENT_FILE: deploymentFile },
+      });
+      run.on("error", fail);
+      run.on("exit", (code) => done(code));
     });
-    ok = run.status === 0;
+    ok = status === 0;
   } finally {
     await stopSaving(anvil);
     if (ok) rmSync(dir, { recursive: true, force: true, maxRetries: 3 });
