@@ -21,7 +21,8 @@
     "perf:budget": "tsx scripts/perf-budget.mts",
     "perf:lighthouse": "tsx scripts/lighthouse-budget.mts",
     "numbers:snapshot": "tsx services/api/scripts/numbers-snapshot.mts",
-    "server:release": "pnpm --filter @lingxi/api build && npx pm2 startOrReload deploy/pm2.config.cjs --only lingxi-server --update-env"
+    "server:release": "pnpm --filter @lingxi/api build && npx pm2 startOrReload deploy/pm2.config.cjs --only lingxi-server --update-env",
+    "share:cards": "tsx scripts/share-cards.mts"
   },
   "devDependencies": {
     "@eslint/js": "9.17.0",
@@ -31,11 +32,13 @@
     "@lingxi/game": "workspace:*",
     "@playwright/test": "1.64.1",
     "@types/node": "22.15.30",
+    "@types/pngjs": "6.0.5",
     "@vitest/coverage-v8": "3.2.4",
     "axe-core": "4.10.2",
     "eslint": "9.17.0",
     "eslint-plugin-react-hooks": "7.1.1",
     "globals": "14.0.0",
+    "pngjs": "7.0.0",
     "tsx": "4.20.3",
     "typescript": "5.9.3",
     "typescript-eslint": "8.18.1",
