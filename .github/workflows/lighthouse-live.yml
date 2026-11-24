@@ -1,0 +1,39 @@
+name: Lighthouse on the live site
+
+# P3: the live site's pages measured from a clean Linux machine, the way a judge or a visitor's tool would see them:
+# Lighthouse 13.6 (mobile, simulated slow 4G and a 4x slower CPU), three runs a page, the worst of each reported. Run by
+# hand after a release; it reads the public site only.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: Every page, three runs, the worst kept
+        env:
+          SITE: https://lingxi.knole.me
+        run: |
+          set -u
+          for p in index.html play.html verify.html numbers.html tree.html agents.html handheld.html circuits.html; do
+            for r in 1 2 3; do
+              npx -y lighthouse@13.6.0 "$SITE/$p" --quiet --only-categories=performance --output=json --output-path="lh-$p-$r.json" \
+                --chrome-flags="--headless=new --no-sandbox" > /dev/null 2>&1 || echo "$p run $r: Lighthouse did not finish"
+            done
+            node -e '
+              const fs = require("fs"); const p = process.argv[1];
+              const rows = [1, 2, 3].map((r) => `lh-${p}-${r}.json`).filter((f) => fs.existsSync(f)).map((f) => JSON.parse(fs.readFileSync(f, "utf8")))
+                .filter((d) => d.categories.performance.score !== null).map((d) => ({ s: Math.round(d.categories.performance.score * 100), a: d.audits }));
+              if (!rows.length) { console.log(`${p.padEnd(14)} no run finished`); process.exit(0); }
+              const worst = (k) => Math.max(...rows.map((r) => r.a[k].numericValue));
+              console.log(`${p.padEnd(14)} ${rows.length} runs  scores ${rows.map((r) => r.s).join("/")}  worst: FCP ${Math.round(worst("first-contentful-paint"))} ms  TBT ${Math.round(worst("total-blocking-time"))} ms  CLS ${worst("cumulative-layout-shift").toFixed(3)}  TTI ${Math.round(worst("interactive"))} ms`);
+            ' "$p" | tee -a summary.txt
+          done
+          cat summary.txt >> "$GITHUB_STEP_SUMMARY"
