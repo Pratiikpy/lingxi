@@ -20,8 +20,7 @@ import { usePageMeta } from "../i18n/pageMeta";
 import { decidingPart, useGame } from "../game/store";
 import { ruleKindOf } from "../game/ruleKind";
 import { chirp, play } from "../game/sound";
-import { followClock, setAmbience } from "../game/music";
-import { useReminders } from "../game/reminders";
+import { setAmbience } from "../game/music";
 import { DecorBar } from "./DecorBar";
 import { NoticeLane } from "./NoticeLane";
 import { Familiar } from "./Familiar";
@@ -35,7 +34,7 @@ import { type DayPhase, phaseNow } from "../scene/dayPhase";
 import { weatherFor } from "../scene/weather";
 import { PALETTE_OF, type PetStage } from "../scene/palette";
 import { Hatch } from "./Hatch";
-import { installModalFocus } from "./modalFocus";
+import { useGameServices } from "./app/useGameServices";
 import { PetButton } from "./PetButton";
 import { OfflineNote } from "./OfflineNote";
 import { SiteFoot } from "../SiteFoot";
@@ -53,7 +52,7 @@ import { noticeText } from "../game/noticeText";
 import { RulesMark } from "./RulesMark";
 import { questsOf, useQuestStatuses, useQuestUi } from "../game/quests";
 import { useWorld } from "../game/world";
-import { recordOf, useChain } from "../game/chain";
+import { useChain } from "../game/chain";
 import { liveAvailable, playerId, useLive, visitingFrom } from "../game/live";
 import {
   type Action,
@@ -95,7 +94,6 @@ import { AnimatePresence, motion } from "motion/react";
 import "./teach.css";
 import { BEHEMOTH, startDuel, startFight, useArena } from "../game/arenaFight";
 import { LevelUpMoment, SkillsPanel, useSkillsUi } from "./Skills";
-import { watchLetters } from "../game/letters";
 import { AlbumPanel, SHY_ONE } from "./Album";
 import { needsOf, showNeeds } from "../game/badge";
 import { BUILDER_PETS, builderIn } from "@lingxi/game";
@@ -103,9 +101,7 @@ import { builderInScene } from "../game/builderScene";
 import { telegramBack } from "../game/telegram";
 import { useMove } from "../game/move";
 import { MoveNotes, MoveSheet, TelegramCard } from "./Move";
-import { Lazy, deferred, warmDeferred } from "./Lazy";
-import { syncChainPieces } from "../game/chainDecor";
-import { loadColours, syncPacks } from "../game/extras";
+import { Lazy, deferred } from "./Lazy";
 import { RIG_HOME_BGS, useHoldings } from "../game/holders";
 import { bondName, bondsOf, friendKey, useFriends } from "../game/friends";
 import { unreadCount, useMail } from "../game/mail";
@@ -202,6 +198,8 @@ export function PlayApp() {
   const lang = useLang((s) => s.lang);
   const reduce = useReducedMotion() ?? false;
   const [tab, setTab] = useState<Tab>("home");
+  // the work the game keeps running while it is open: letters, the clock, chain reads, voice, reminders, auto-save
+  useGameServices();
   // H5: a lesson tried out right after it was taught: the room shows it for a few seconds
   const trial = useTrial((s) => s.trial);
   // G1: what the room shows: a lesson being tried brings its own moment; otherwise the living room's last event
@@ -219,12 +217,6 @@ export function PlayApp() {
       ),
     [],
   );
-  // pet letters (H13): friends' addresses from the room, and the inbox read while the game is open
-  useEffect(() => watchLetters(), []);
-  // P3: the panels' code arrives in idle moments once the game is up, so a tap opens them at once
-  useEffect(() => warmDeferred(), []);
-  // P5: every dialog keeps the keyboard's focus while it is open, and gives it back when it closes
-  useEffect(() => installModalFocus(), []);
   const [phase, setPhase] = useState<DayPhase>(phaseNow);
   const [circuit, setCircuit] = useState(false);
   const worldRoom = useWorld((s) => s.world.room);
@@ -255,16 +247,7 @@ export function PlayApp() {
   const travelling = !!worldFull.trip;
   const mailState = useMail();
   const unread = unreadCount(mailState);
-  const { loaded: mailLoaded, fetch: fetchMail } = mailState;
-  useEffect(() => {
-    if (!mailLoaded) void fetchMail();
-  }, [mailLoaded, fetchMail]);
   const homeDecor = useLive((s) => s.homeDecor);
-  const placedDecor = decorOf(worldFull).placed;
-  // our home's decorations live on the server too, so friends who drop by see them
-  useEffect(() => {
-    if (liveAvailable()) useLive.getState().shareDecor(placedDecor);
-  }, [placedDecor]);
   // the server didn't keep our decorations: say so, since visitors will not see them
   // shown once per refusal, in the language of that moment
   const sayDecorRefused = useEffectEvent(
@@ -290,57 +273,6 @@ export function PlayApp() {
   const worldMove = useWorld((s) => s.move);
   const worldForage = useWorld((s) => s.forage);
   const familiar = useWorld((s) => s.world.familiar);
-  useEffect(followClock, []);
-  // on-chain decorations and limited outfits the wallets hold (plans 4.6, 4.9): read on start, so a piece sold
-  // elsewhere leaves the home; then the extras packs and the name colours of the pets on this device
-  useEffect(() => {
-    void syncChainPieces();
-    void syncPacks();
-    void loadColours(
-      useGame
-        .getState()
-        .pets.map((p) => recordOf(p)?.petId ?? "")
-        .filter(Boolean),
-    );
-  }, []);
-  // the pet says something when its circuit makes a new decision
-  const decision = pet ? `${pet.last.rule}|${pet.asleep}|${Boolean(pet.sick)}` : "";
-  useEffect(() => {
-    const p = useGame.getState().pet;
-    if (p && decision) void useVoice.getState().speak(p, useLang.getState().lang as "en" | "zh");
-  }, [decision]);
-  // reminders follow the pet: a fresh plan shortly after each change, and at once when the player leaves
-  useEffect(() => {
-    const send = () => {
-      const p = useGame.getState().pet;
-      if (p) void useReminders.getState().replan(p, useLang.getState().lang as "en" | "zh");
-    };
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    const unsub = useGame.subscribe((s, prev) => {
-      if (s.pet === prev.pet) return;
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(send, 20_000);
-    });
-    const onHide = () => document.hidden && send();
-    document.addEventListener("visibilitychange", onHide);
-    return () => {
-      unsub();
-      if (timer) clearTimeout(timer);
-      document.removeEventListener("visibilitychange", onHide);
-    };
-  }, []);
-  // auto-save: when a new chain day starts, save it through the device key, never through a wallet pop-up
-  const autoOn = useChain((s) => Boolean(s.record?.autoUntil));
-  useEffect(() => {
-    if (!autoOn) return;
-    const run = () => {
-      const p = useGame.getState().pet;
-      if (p) void useChain.getState().saveToday(p, () => useGame.getState().say("saved"), true);
-    };
-    run();
-    const id = setInterval(run, 10 * 60_000);
-    return () => clearInterval(id);
-  }, [autoOn]);
   // a new notice on every event, in the words and language of that moment
   const sayNotice = useEffectEvent((notice: NonNullable<ReturnType<typeof useWorld.getState>["notice"]>) => {
     const text = noticeText(notice, t, lang);
