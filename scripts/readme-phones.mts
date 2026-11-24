@@ -7,8 +7,9 @@
 import { join } from "node:path";
 import { recordShots } from "./lib/sites.mts";
 import { type Browser, type Page, chromium } from "@playwright/test";
+import { LINGXI_SITE } from "../packages/chain/src/site.ts";
 
-const SITE = process.env.LINGXI_SITE ?? "https://lingxi.knole.me";
+const SITE = process.env.LINGXI_SITE ?? LINGXI_SITE;
 const out = join(import.meta.dirname, "..", "docs", "readme");
 
 type Scene = { lang: "en" | "zh"; scheme: "light" | "dark"; go: (page: Page) => Promise<void> };

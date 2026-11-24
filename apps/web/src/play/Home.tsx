@@ -17,6 +17,7 @@ import { play } from "../game/sound";
 import { marketAvailable, marketOf, useDesigns } from "../game/designs";
 import { now } from "../game/gameClock";
 import { errorText } from "../game/errorText";
+import { sitePage } from "@lingxi/chain/site";
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
@@ -212,7 +213,7 @@ function HomePage({ pet, home, petId }: { pet: Pet; home: Home; petId: string })
         ...(meta?.image ? { image: meta.image } : {}),
         registry: deployment!.registry,
         rpc: deployment!.rpc,
-        proofUrl: `https://lingxi.knole.me/verify.html#${petId}`,
+        proofUrl: sitePage(`verify.html#${petId}`),
         siteName: name,
       });
       await publishHomePage(publicClient, wallet, home.container, name, html);

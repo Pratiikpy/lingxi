@@ -35,8 +35,9 @@ import type { AgentStore } from "./agents";
 import { MAX_AGENT_ENTRIES, type SeasonStore } from "./season";
 import { RateLimiter } from "./limit";
 import { clientIp } from "./clientIp";
+import { LINGXI_SITE } from "@lingxi/chain/site";
 
-const SITE = "https://lingxi.knole.me";
+const SITE = LINGXI_SITE;
 const SPAR_LEVEL = 1;
 
 export interface AgentApiDeps {

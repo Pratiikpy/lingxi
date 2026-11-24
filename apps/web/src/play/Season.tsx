@@ -18,6 +18,7 @@ import { refight } from "../game/seasonCheck";
 
 const ordinal = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
 import "./season.css";
+import { sitePage } from "@lingxi/chain/site";
 
 const SHOWN = 10;
 
@@ -200,7 +201,7 @@ export function SeasonCard({ pet }: { pet: Pet }) {
           </p>
         </div>
         {serverless ? (
-          <a className="btn" href="https://lingxi.knole.me/play.html" target="_blank" rel="noopener noreferrer">
+          <a className="btn" href={sitePage("play.html")} target="_blank" rel="noopener noreferrer">
             {L("Open the full site", "打开完整版")}
           </a>
         ) : state === "error" ? (

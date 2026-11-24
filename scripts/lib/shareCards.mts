@@ -3,8 +3,10 @@
  * (scripts/share-cards.mts) and the tags in the page's head that point at it.
  */
 
+import { LINGXI_SITE } from "../../packages/chain/src/site.ts";
+
 /** Where the cards are served from: a chat reads a card's image by its full address. */
-export const SITE = "https://lingxi.knole.me";
+export const SITE = LINGXI_SITE;
 
 export interface Card {
   page: string;

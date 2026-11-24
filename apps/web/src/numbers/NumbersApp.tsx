@@ -14,6 +14,7 @@ import { usePageMeta } from "../i18n/pageMeta";
 import "../agents/agents.css";
 import "../tree/tree.css";
 import "./numbers.css";
+import { LINGXI_SITE } from "@lingxi/chain/site";
 
 /** An address short enough to wrap on a phone; the market's own link beside it leads to the full record. */
 const shortAddr = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -294,7 +295,7 @@ export function NumbersApp() {
   usePageMeta("numbers");
   useEffect(() => {
     // the on-chain copy reads the same public endpoint; it is open to any origin
-    const base = API || "https://lingxi.knole.me";
+    const base = API || LINGXI_SITE;
     const read = () => {
       fetch(`${base}/api/numbers`, { cache: "no-store" })
         .then((r) => r.json())

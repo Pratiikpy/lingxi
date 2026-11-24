@@ -97,6 +97,7 @@ import { withBodyLimits } from "./bodyLimits";
 import { proveSeasonEntry } from "./seasonProof";
 import { budgetedClient, createTokenBudget, modelCaller } from "./tokenBudget";
 import { createJobs } from "./jobs";
+import { LINGXI_SITE } from "@lingxi/chain/site";
 
 /** The build this server runs, read from build.json beside the built server (P3b); "source" when run through tsx. */
 function serverBuild(): { commit: string; dirty: boolean; builtAt: string } | "source" {
@@ -874,7 +875,7 @@ function makePusher(): Pusher | null {
       .map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).trim()]),
   );
   if (!env.VAPID_PUBLIC || !env.VAPID_PRIVATE) return null;
-  return createPusher({ publicKey: env.VAPID_PUBLIC, privateKey: env.VAPID_PRIVATE, subject: env.VAPID_SUBJECT ?? "https://lingxi.knole.me", store: process.env.LINGXI_PUSH_STORE });
+  return createPusher({ publicKey: env.VAPID_PUBLIC, privateKey: env.VAPID_PRIVATE, subject: env.VAPID_SUBJECT ?? LINGXI_SITE, store: process.env.LINGXI_PUSH_STORE });
 }
 
 /** The last daily backup (deploy/backup.mjs): how old it is and whether both copies were made. */

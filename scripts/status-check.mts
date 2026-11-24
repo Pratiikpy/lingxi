@@ -23,6 +23,7 @@ import { fileURLToPath } from "node:url";
 import { hasBannedName, scanNames } from "../packages/world/src/names.ts";
 import { retryNote, steadyFetch } from "./lib/steadyFetch.mts";
 import { SERVER_INPUTS, SHOTS_FILE, SITE_INPUTS, currentness, onChainFile, parseBuild } from "./lib/sites.mts";
+import { LINGXI_SITE } from "../packages/chain/src/site.ts";
 
 type Verdict = "PASS" | "FAIL" | "PENDING";
 interface Result {
@@ -42,7 +43,7 @@ const milestone = args.includes("--milestone") || release;
 const onlyArg = args.find((a) => a.startsWith("--only"));
 const only = onlyArg ? (onlyArg.includes("=") ? onlyArg.split("=")[1]! : args[args.indexOf(onlyArg) + 1]!).split(",") : null;
 
-const LIVE = process.env.LINGXI_LIVE_URL ?? "https://lingxi.knole.me";
+const LIVE = process.env.LINGXI_LIVE_URL ?? LINGXI_SITE;
 /** The live server on this machine, answered directly: only it gives the health detail (A64). */
 const LOCAL_API = process.env.LINGXI_LOCAL_API ?? "http://127.0.0.1:8790";
 const DEWEB_URL = process.env.LINGXI_DEWEB_URL ?? "https://1-2-419.tapekit.org";

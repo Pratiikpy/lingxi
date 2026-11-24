@@ -16,6 +16,7 @@ import { Sprite } from "../play/Sprite";
 import { Named } from "../play/Named";
 import "../agents/agents.css";
 import "./tree.css";
+import { sitePage } from "@lingxi/chain/site";
 
 const API = (import.meta.env.VITE_API_URL as string | undefined) ?? (location.hostname === "localhost" ? "http://localhost:8787" : "");
 const TX = (tx: string) => `https://www.oklink.com/xlayer/tx/${tx}`;
@@ -126,7 +127,7 @@ export function TreeApp() {
             ? L("The tree couldn't be read just now. The chain's events are still there: try again in a moment.", "暂时读不到这棵树。链上事件还在，请稍后再试。")
             : L("The tree is read from PetRegistry's events by Lingxi's indexer, which this on-chain copy doesn't use. ", "这棵树由灵犀的索引器从 PetRegistry 的事件读出，这份链上版本不使用它。")}
           {!API && (
-            <a href="https://lingxi.knole.me/tree.html" target="_blank" rel="noopener noreferrer">
+            <a href={sitePage("tree.html")} target="_blank" rel="noopener noreferrer">
               {L("See it on lingxi.knole.me", "到 lingxi.knole.me 查看")}
             </a>
           )}

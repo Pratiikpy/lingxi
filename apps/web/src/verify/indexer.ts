@@ -4,7 +4,9 @@
  * The on-chain copy has no server of its own, so it asks the live site's indexer, which answers any origin.
  */
 
-export const INDEXER = (import.meta.env.VITE_API_URL as string | undefined) || (location.hostname === "localhost" ? "http://localhost:8787" : "https://lingxi.knole.me");
+import { LINGXI_SITE } from "@lingxi/chain/site";
+
+export const INDEXER = (import.meta.env.VITE_API_URL as string | undefined) || (location.hostname === "localhost" ? "http://localhost:8787" : LINGXI_SITE);
 
 export interface PetHistoryRecord {
   hatched?: { block: number; tx: string; line: number; brainId: string; state: string };

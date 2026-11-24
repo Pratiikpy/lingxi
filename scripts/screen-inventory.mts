@@ -13,6 +13,7 @@ import { createServer } from "node:http";
 import { extname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { type Browser, type BrowserContext, type Page, chromium } from "@playwright/test";
+import { LINGXI_SITE } from "../packages/chain/src/site.ts";
 
 const root = join(import.meta.dirname, "..");
 const live = process.argv.includes("--live");
@@ -117,7 +118,7 @@ const GAME: Shot[] = [
 async function main(): Promise<void> {
   mkdirSync(join(out, "raw"), { recursive: true });
   const files = live ? null : await fileServer();
-  const base = live ? "https://lingxi.knole.me" : files!.url;
+  const base = live ? LINGXI_SITE : files!.url;
   const browser = await chromium.launch();
   const errors: string[] = [];
   const want = (n: string) => !only || only.has(n);

@@ -14,9 +14,10 @@ import { type GoalReport, takeGoalEveryone, takeGoalTiers, useGoals, waitingIn }
 import { rewardText } from "./rewardText";
 import "./goals.css";
 import { now as gameNow } from "../game/gameClock";
+import { sitePage } from "@lingxi/chain/site";
 
 type Lang = "en" | "zh";
-const LIVE_SITE = "https://lingxi.knole.me/play.html";
+const LIVE_SITE = sitePage("play.html");
 
 export const amountText = goalAmountText;
 

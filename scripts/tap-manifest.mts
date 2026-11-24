@@ -25,14 +25,15 @@ import { MAX_DELEGATION_S, delegationDigest, recoverDigest } from "../services/a
 import { manifestMethods, toolMethods } from "../services/api/src/tapMethods";
 import { MCP_TOOLS } from "../services/api/src/mcpToolDefs";
 import { hiddenText, toolsDigest } from "../services/api/src/tapTools";
+import { LINGXI_SITE } from "../packages/chain/src/site.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "..");
 const secrets = resolve(root, "../.secrets");
 const OUT = resolve(root, "apps/web/public/.well-known/tapeapi.json");
 export const MANIFEST_KEY = ".well-known/tapeapi.json";
-const LIVE = "https://lingxi.knole.me/api/v1";
-const MCP_ENDPOINT = "https://lingxi.knole.me/mcp";
+const LIVE = `${LINGXI_SITE}/api/v1`;
+const MCP_ENDPOINT = `${LINGXI_SITE}/mcp`;
 /** A delegation with at least this long left is kept when the manifest is rewritten, so the holder signs rarely. */
 const KEEP_DELEGATION_DAYS = 90;
 const allMethods = () => [...manifestMethods(), ...toolMethods(MCP_TOOLS as never)];

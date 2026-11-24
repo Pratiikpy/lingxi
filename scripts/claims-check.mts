@@ -39,9 +39,10 @@ import {
 import { retryNote, steadyFetch } from "./lib/steadyFetch.mts";
 import { chineseCount, englishCount } from "./lib/spelled.mts";
 import { ROOMS } from "../packages/world/src/index.ts";
+import { LINGXI_SITE } from "../packages/chain/src/site.ts";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const LIVE = process.env.LINGXI_LIVE_URL ?? "https://lingxi.knole.me";
+const LIVE = process.env.LINGXI_LIVE_URL ?? LINGXI_SITE;
 const d = JSON.parse(readFileSync(join(root, "packages/chain/deployments/xlayer.json"), "utf8")) as Deployment & Record<string, unknown>;
 const pub = createPublicClient({ chain: xLayer, transport: http("https://xlayerrpc.okx.com", { timeout: 20_000, retryCount: 3 }) }) as PublicClient;
 

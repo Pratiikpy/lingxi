@@ -6,8 +6,9 @@
 import { join } from "node:path";
 import { recordShots } from "./lib/sites.mts";
 import { chromium, type Page } from "@playwright/test";
+import { LINGXI_SITE } from "../packages/chain/src/site.ts";
 
-const SITE = process.env.LINGXI_SITE ?? "https://lingxi.knole.me";
+const SITE = process.env.LINGXI_SITE ?? LINGXI_SITE;
 const out = join(import.meta.dirname, "..", "docs", "readme");
 
 /** Each shot: its file, its page, and what must be on screen before it is taken. */

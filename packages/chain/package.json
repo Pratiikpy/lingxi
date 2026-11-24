@@ -7,7 +7,8 @@
     ".": "./src/index.ts",
     "./player": "./src/player.ts",
     "./limits": "./src/limits.ts",
-    "./holderGift": "./src/holderGift.ts"
+    "./holderGift": "./src/holderGift.ts",
+    "./site": "./src/site.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
