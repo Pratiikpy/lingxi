@@ -13,7 +13,7 @@ export const KEEP_DAYS = 14;
 const DAY_MS = 86_400_000;
 
 /** Every page the site has (apps/web/vite.config.ts builds exactly these; scripts/release.test.mts checks the two agree). */
-export const PAGES = ["index.html", "play.html", "verify.html", "agents.html", "tree.html", "numbers.html", "handheld.html"] as const;
+export const PAGES = ["index.html", "play.html", "verify.html", "agents.html", "tree.html", "numbers.html", "handheld.html", "privacy.html", "terms.html"] as const;
 
 /** A release's name: when it was built (UTC, to the second) and the commit, `-dirty` when built from uncommitted work. */
 export function releaseName(builtAt: number, commit: string, dirty: boolean): string {

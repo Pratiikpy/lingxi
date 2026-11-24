@@ -27,7 +27,7 @@ const NAMED: Record<string, [string, string]> = {
   packets: ["red-packet claims", "红包领取记录"],
   voucher: ["item vouchers", "道具兑换券"],
   market: ["retired market listings", "下架的市场挂单"],
-  sourcify: ["Sourcify's verdicts", "Sourcify 对合约的核验结果"],
+  sourcify: ["Sourcify's verdicts", "Sourcify 对合约的验证结果"],
   daily: ["the daily challenge's block", "每日挑战区块"],
   tree: ["the family tree", "家族树"],
   lane: ["Builders' Lane's tape-out count", "建设者小巷的流片计数"],
