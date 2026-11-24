@@ -33,7 +33,7 @@ rmSync(out, { recursive: true, force: true });
 execFileSync(process.execPath, [join(root, "node_modules", "vite", "bin", "vite.js"), "build", "--outDir", "dist-deweb", "--emptyOutDir"], {
   cwd: root,
   stdio: "inherit",
-  env: { ...process.env, VITE_CHAIN: "xlayer", VITE_API_URL: "", VITE_LIVE_URL: "", VITE_RPC: "" },
+  env: { ...process.env, VITE_CHAIN: "xlayer", VITE_API_URL: "", VITE_LIVE_URL: "", VITE_RPC: "", VITE_OFFLINE: "off" },
 });
 
 // 1. keep only art the bundle names (by file name, since some paths are built from data)

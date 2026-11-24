@@ -3280,3 +3280,25 @@
   font-size: 10.5px;
   line-height: 1.25;
 }
+
+/* P6: the note while the connection is down, above the tab bar and clear of the room's controls */
+.offline-note {
+  position: fixed;
+  left: 50%;
+  bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  z-index: 40;
+  max-width: min(92vw, 460px);
+  margin: 0;
+  padding: 8px 14px;
+  transform: translateX(-50%);
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: var(--lift-lo);
+  font-size: 13px;
+  text-align: center;
+}
+.offline-note[hidden] {
+  display: none;
+}

@@ -51,6 +51,52 @@ function namesGuard(): Plugin {
 }
 
 /**
+ * P6: the service worker's list of what the game needs to open offline (public/sw.js): the game page and every script,
+ * style and font of its first screen and of the full game behind it, under this build's version, so each release
+ * installs a fresh copy and clears the last. Written into the built sw.js once the bundle is on disk.
+ */
+function offlineWorker(): Plugin {
+  let files: string[] = [];
+  let outDir = "";
+  return {
+    name: "lingxi-offline-worker",
+    apply: "build",
+    writeBundle(options, bundle) {
+      outDir = options.dir ?? "";
+      const chunks = Object.values(bundle).filter((c): c is Extract<typeof c, { type: "chunk" }> => c.type === "chunk");
+      const roots = ["/src/play/main.tsx", "/src/play/FirstVisit.tsx", "/src/play/Crash.tsx", "/src/play/PlayApp.tsx"].map((e) => chunks.find((c) => c.moduleIds.some((id) => id.split("\\").join("/").endsWith(e))));
+      if (roots.some((c) => !c)) {
+        this.warn("the game's entry chunks were not found: the offline list is empty");
+        return;
+      }
+      const seen = new Set<string>();
+      const walk = (name: string) => {
+        if (seen.has(name)) return;
+        seen.add(name);
+        for (const dep of chunks.find((c) => c.fileName === name)?.imports ?? []) walk(dep);
+      };
+      for (const c of roots) walk(c!.fileName);
+      const css = [...seen].flatMap((f) => [...(chunks.find((c) => c.fileName === f)?.viteMetadata?.importedCss ?? [])]);
+      const fonts = Object.keys(bundle).filter((f) => /\.woff2$/.test(f) && /(pixelify-sans|baloo-2)-latin-wght-normal/.test(f));
+      files = ["play.html", "manifest.webmanifest", "favicon.png", ...seen, ...new Set(css), ...fonts];
+    },
+    closeBundle() {
+      const sw = join(outDir, "sw.js");
+      if (!outDir || !existsSync(sw)) return;
+      let version = "unknown";
+      try {
+        version = `${execFileSync("git", ["rev-parse", "--short=12", "HEAD"], { cwd: __dirname, encoding: "utf8" }).trim()}-${Date.now().toString(36)}`;
+      } catch {
+        version = Date.now().toString(36);
+      }
+      const text = readFileSync(sw, "utf8");
+      if (!text.includes("/*__PRECACHE__*/")) throw new Error("sw.js has no /*__PRECACHE__*/ mark for the offline list");
+      writeFileSync(sw, text.replace("/*__PRECACHE__*/", `const PRECACHE = ${JSON.stringify({ version, files })};`));
+    },
+  };
+}
+
+/**
  * P3: a page's entry starts once its first frame has painted (play.html and index.html import it from a small inline
  * module), and the game page fetches its app (PlayApp and everything it imports) only after the save is claimed and the
  * clock is asked. Neither is a script tag Vite would preload, so this writes `modulepreload` hints for each page's entries
@@ -250,7 +296,7 @@ function prerenderPlay(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), buildStamp(), namesGuard(), preloadPages(), prerenderLanding(), prerenderPlay(), shipLetters()],
+  plugins: [react(), buildStamp(), namesGuard(), preloadPages(), offlineWorker(), prerenderLanding(), prerenderPlay(), shipLetters()],
   base: "./",
   build: {
     target: "es2022",

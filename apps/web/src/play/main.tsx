@@ -15,6 +15,14 @@ import { type GameParts, isFirstVisit, loadGame } from "./gameParts";
 startTelegram();
 const root = createRoot(document.getElementById("root")!);
 
+// P6: the game opens offline once it has been visited (public/sw.js). The on-chain copy is built with VITE_OFFLINE=off
+// and registers no worker: its gateway's own verifier stays in charge of its pages
+if (import.meta.env.PROD && import.meta.env.VITE_OFFLINE !== "off" && "serviceWorker" in navigator) {
+  const register = () => void navigator.serviceWorker.register("sw.js").catch(() => undefined);
+  if ("requestIdleCallback" in window) requestIdleCallback(register, { timeout: 5_000 });
+  else setTimeout(register, 2_000);
+}
+
 /** The game itself: old names brought up to date, arriving pets landed and the clock set, then the game reads its save. */
 async function play(): Promise<void> {
   migrateLegacyNames();

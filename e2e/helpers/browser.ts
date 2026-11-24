@@ -187,8 +187,9 @@ export function siteFolder(run: Run, name: string): { site: string } {
  * origin. `release` changes how the fork's address is written, which is enough to give every part that names it a new
  * file name, as two releases differ. Returns the release's name.
  */
-export async function buildSite(run: Run, site: string, release: "A" | "B"): Promise<string> {
-  const env: NodeJS.ProcessEnv = { ...process.env, VITE_CHAIN: "rehearsal", VITE_RPC: release === "A" ? run.fork.rpc : `${run.fork.rpc}/`, VITE_API_URL: "", VITE_LIVE_URL: "" };
+export async function buildSite(run: Run, site: string, release: "A" | "B", opts: { offline?: boolean } = {}): Promise<string> {
+  // the offline worker (P6) only where a spec asks for it: the others hold and drop the game's own requests
+  const env: NodeJS.ProcessEnv = { ...process.env, VITE_CHAIN: "rehearsal", VITE_RPC: release === "A" ? run.fork.rpc : `${run.fork.rpc}/`, VITE_API_URL: "", VITE_LIVE_URL: "", VITE_OFFLINE: opts.offline ? "on" : "off" };
   delete env.VITE_DEV_KEY;
   const log = join(site, "..", `release-${release}.log`);
   const p = start(`release ${release}`, node, [tsx, "scripts/site-release.mts", "--site", site, "--allow-dirty"], { cwd: ROOT, env, log });

@@ -28,6 +28,7 @@ import { PALETTE_OF, type PetStage } from "../scene/palette";
 import { Hatch } from "./Hatch";
 import { installModalFocus } from "./modalFocus";
 import { PetButton } from "./PetButton";
+import { OfflineNote } from "./OfflineNote";
 import { useHatchDraft } from "./hatchDraft";
 import { Actions, Meters, TabBar, ThinkStrip, ToastView, TopBar, VoiceBubble, type Tab } from "./parts";
 import { useVoice } from "../game/voice";
@@ -525,6 +526,7 @@ export function PlayApp() {
         <FarewellNote />
         <HandheldReturn />
         <SaveBanner onSaveFile={() => useSaveFileUi.getState().show()} />
+      <OfflineNote />
         <SaveFileSheet here={[]} />
         <MoveNotes />
         <ElsewhereOverlay />
@@ -995,6 +997,7 @@ export function PlayApp() {
       <MoveSheet />
       <MoveNotes />
       <SaveBanner onSaveFile={() => useSaveFileUi.getState().show()} />
+      <OfflineNote />
       <SaveFileSheet here={roster.map((p) => p.name)} />
       <ElsewhereOverlay />
     </div>
