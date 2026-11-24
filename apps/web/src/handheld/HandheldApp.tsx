@@ -132,6 +132,16 @@ export function HandheldApp() {
     };
   }, []);
   const [ready, setReady] = useState(false);
+  // P6: until the firmware has started and looked for a pet, the page cannot say none is aboard; it said so for half
+  // a second on every open, a pet waiting to come aboard included
+  const [started, setStarted] = useState(false);
+  const [coming] = useState(() => {
+    try {
+      return localStorage.getItem(INBOX_KEY) !== null || localStorage.getItem(DEVICE_KEY) !== null;
+    } catch {
+      return false;
+    }
+  });
   // kept in both languages, so a message shown before the language changes follows it
   const [problem, setProblem] = useState<Words | null>(null);
   const [sending, setSending] = useState(false);
@@ -197,6 +207,7 @@ export function HandheldApp() {
       if (useLang.getState().lang === "zh") x.hh_key(122);
       setSelfTest(x.hh_selftest());
       takeAboard();
+      setStarted(true);
       const ctx = canvas.current!.getContext("2d")!;
       const img = ctx.createImageData(W, H);
       const draw = () => {
@@ -368,6 +379,8 @@ export function HandheldApp() {
               {sending ? L("Sending…", "发送中……") : L("Bring home", "带回家")}
             </button>
           </>
+        ) : !started ? (
+          <p role="status">{coming ? L("Bringing your pet aboard…", "正在把宠物带上掌机……") : L("Waking the handheld…", "掌机正在启动……")}</p>
         ) : (
           <p>
             {L("No pet aboard. In the game, open Pet and choose Take along.", "还没有宠物。在游戏里打开“宠物”，选“带出门”。")}{" "}

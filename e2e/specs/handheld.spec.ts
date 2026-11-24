@@ -47,8 +47,20 @@ async function key(hh: Page, k: string, wait = 250): Promise<void> {
   await hh.waitForTimeout(wait);
 }
 
+/** In the handheld's tab: every status line it shows, from its first paint, to read back later. */
+const STATUS_LINES = `if (location.pathname.endsWith('handheld.html')) {
+  window.__lines = [];
+  new MutationObserver(() => {
+    for (const p of document.querySelectorAll('section p')) {
+      const t = p.textContent || '';
+      if (t && !window.__lines.includes(t)) window.__lines.push(t);
+    }
+  }).observe(document, { childList: true, subtree: true, characterData: true });
+}`;
+
 /** Clicks "Take it along" (or another button that opens the handheld) and returns the handheld's tab. */
 async function opensHandheld(ctx: BrowserContext, click: () => Promise<void>): Promise<Page> {
+  await ctx.addInitScript(STATUS_LINES);
   const [hh] = await Promise.all([ctx.waitForEvent("page", { timeout: 60_000 }), click()]);
   await hh.waitForURL("**/handheld.html", { timeout: 60_000 });
   return hh;
@@ -65,6 +77,10 @@ async function outWithOneSnack(p: Opened): Promise<Page> {
   const hh = await opensHandheld(ctx, () => page.locator(".handheld-panel .btn.primary").click());
   await bringHome(hh, p.look.lang === "zh").waitFor({ timeout: 30_000 });
   await hh.waitForTimeout(BOOT_MS);
+  // P6: a pet on its way is never shown as no pet aboard while the handheld starts
+  const lines = await hh.evaluate(() => (window as unknown as { __lines?: string[] }).__lines ?? []);
+  expect(lines.some((l) => /No pet aboard|还没有宠物/.test(l)), `the handheld said no pet aboard: ${lines.join(" / ")}`).toBe(false);
+  expect(lines.some((l) => /Bringing your pet aboard|正在把宠物带上掌机/.test(l)), "it said the pet was coming aboard").toBe(true);
   return hh;
 }
 
