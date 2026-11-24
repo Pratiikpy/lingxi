@@ -19,14 +19,36 @@ let listening = false;
 /** the address's hash when our back left, and the one it landed on when that differs (it fires a hashchange) */
 let hashBefore = "";
 let landed: string | null = null;
+/**
+ * The address under each entry we made, newest last: a back of ours lands exactly there, and so does the player's Back.
+ * A popstate anywhere else is a navigation of its own (Chrome fires one for a link followed in the page): taking it for
+ * our back set the duel link aside as "ours", and the duel never showed (CI, 2026-11-25).
+ */
+const under: string[] = [];
+/** where our back on its way must land */
+let expected = "";
+/** our back has not landed where it must within this long: the queue goes on rather than wait for ever */
+const BACK_WAIT_MS = 1000;
+let backTimer: ReturnType<typeof setTimeout> | null = null;
+
+function backArrived(): void {
+  backing = false;
+  if (backTimer) clearTimeout(backTimer);
+  backTimer = null;
+  pump();
+}
 
 function pump(): void {
   while (!backing && ops.length > 0) {
     const op = ops.shift()!;
-    if (op.kind === "push") history.pushState({ lingxiBack: stack.length }, "");
-    else {
+    if (op.kind === "push") {
+      under.push(location.href);
+      history.pushState({ lingxiBack: stack.length }, "");
+    } else {
       backing = true;
       hashBefore = location.hash;
+      expected = under.pop() ?? location.href;
+      backTimer = setTimeout(backArrived, BACK_WAIT_MS);
       history.back();
     }
   }
@@ -41,13 +63,17 @@ function listen(): void {
     if (landed !== null) setTimeout(() => (landed = null), 0);
   });
   window.addEventListener("popstate", () => {
-    // our own back, for something already closed, has arrived: what waited for it goes now
     if (backing) {
-      backing = false;
+      // a navigation of its own while our back is on its way (a link followed): not ours, and not a Back
+      if (location.href !== expected) return;
+      // our own back, for something already closed, has arrived: what waited for it goes now
       if (location.hash !== hashBefore) landed = location.hash;
-      pump();
+      backArrived();
       return;
     }
+    // the player's Back lands on the address under the newest entry we made; anywhere else is not a Back
+    if (under.length === 0 || location.href !== under[under.length - 1]) return;
+    under.pop();
     stack.pop()?.();
   });
 }

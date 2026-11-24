@@ -33,6 +33,17 @@ function fakeHistory() {
     },
     /** whether back() was ever taken past the game's own first entry: the page was left */
     left: false,
+    /**
+     * A link followed in the page (a hash navigation): a new entry at once, and, as Chrome does it, a popstate and
+     * then a hashchange for it, though nothing went back.
+     */
+    follow(hash: string) {
+      h.entries = [...h.entries.slice(0, h.at + 1), `link${h.entries.length}`];
+      h.hashes = [...h.hashes.slice(0, h.at + 1), hash];
+      h.at = h.entries.length - 1;
+      target.dispatchEvent(new Event("popstate"));
+      target.dispatchEvent(new Event("hashchange"));
+    },
   };
   return { h, target };
 }
@@ -48,6 +59,9 @@ beforeEach(async () => {
   vi.stubGlobal("location", {
     get hash() {
       return env.h.hashes[env.h.at] ?? "";
+    },
+    get href() {
+      return `https://lingxi.test/play.html${env.h.hashes[env.h.at] ?? ""}`;
     },
   });
   vi.stubGlobal("window", env.target);
@@ -150,5 +164,38 @@ describe("the back stack (P6)", () => {
     again();
     await settle();
     expect(backStack.isOwnLanding("#gift=lxg1.x")).toBe(false);
+  });
+
+  it("a link followed while a back of ours is on its way is the link, not our back (CI, the duel that never showed)", async () => {
+    const closed: string[] = [];
+    // a first-run card closes: its entry is taken back, and the back is on its way
+    const card = backStack.onBack(() => closed.push("card"));
+    card();
+    // the player follows a duel link before that back has moved: Chrome fires a popstate for the link
+    let namedOurs: boolean | null = null;
+    env.target.addEventListener(
+      "hashchange",
+      () => (namedOurs ??= backStack.isOwnLanding("#duel=s.AAAAAAAAAAAAAAAA")),
+      {
+        once: true,
+      },
+    );
+    env.h.follow("#duel=s.AAAAAAAAAAAAAAAA");
+    expect(namedOurs, "the link is read, not set aside as our own landing").toBe(false);
+    await settle();
+    // our own back still lands, on the entry below the card's, and nothing was closed by the link
+    expect(closed).toEqual([]);
+    expect(backStack.openForBack()).toBe(0);
+    expect(env.h.left).toBe(false);
+  });
+
+  it("a link followed while a sheet is open does not close it, as Back would", async () => {
+    const closed: string[] = [];
+    backStack.onBack(() => closed.push("sheet"));
+    await settle();
+    env.h.follow("#gift=lxg1.x");
+    await settle();
+    expect(closed).toEqual([]);
+    expect(backStack.openForBack()).toBe(1);
   });
 });
