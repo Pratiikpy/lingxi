@@ -23,6 +23,8 @@
   --line: var(--plum);
   --track: #f1e4d2;
   --on-accent: var(--plum);
+  /* P5: coral for text, at 4.5:1 or better on the card and the band in each theme (the brand coral is for fills) */
+  --coral-ink: #b34624;
 
   --display: "Pixelify Sans Variable", "Baloo 2 Variable", ui-rounded, system-ui, sans-serif;
   --round: "Baloo 2 Variable", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", ui-rounded, system-ui, sans-serif;
@@ -63,6 +65,7 @@
     --line: #fff3e2;
     --track: #3a2f5e;
     --note-paper: color-mix(in srgb, #fff3c4 12%, var(--card));
+    --coral-ink: #ff8a66;
     color-scheme: dark;
   }
 }
@@ -76,6 +79,7 @@
   --line: #fff3e2;
   --track: #3a2f5e;
   --note-paper: color-mix(in srgb, #fff3c4 12%, var(--card));
+  --coral-ink: #ff8a66;
   color-scheme: dark;
 }
 
@@ -109,6 +113,18 @@ button {
   font: inherit;
   color: inherit;
 }
+/* P5: read by screen readers, not drawn: live announcements and names a picture gives everyone else */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 :focus-visible {
   outline: 3px solid var(--sky);
   outline-offset: 2px;
@@ -123,6 +139,9 @@ button {
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    /* P5: once, not forever: a looping animation cut to 0.01 ms still ran, as a flicker */
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

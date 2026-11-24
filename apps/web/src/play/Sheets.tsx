@@ -30,6 +30,7 @@ export function Sheet({ open, title, onClose, children }: { open: boolean; title
     closeRef.current?.focus();
     const me = {};
     openSheets.push(me);
+    // Tab stays inside the sheet on top through the game's dialog focus (modalFocus.ts, P5)
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && openSheets[openSheets.length - 1] === me && onClose();
     window.addEventListener("keydown", onKey);
     return () => {
@@ -194,7 +195,7 @@ export function MeSheetBody({ pet }: { pet: Pet }) {
       <dd>
         <span className="lv">
           {lang === "zh" ? `${lv.level} 级` : `Lv ${lv.level}`}
-          <i className="lv-bar" role="meter" aria-valuemin={0} aria-valuemax={lv.need} aria-valuenow={lv.into}>
+          <i className="lv-bar" role="meter" aria-label={lang === "zh" ? "到下一级" : "To the next level"} aria-valuemin={0} aria-valuemax={lv.need} aria-valuenow={lv.into} aria-valuetext={lang === "zh" ? `${lv.into}/${lv.need}` : `${lv.into} of ${lv.need}`}>
             <i style={{ transform: `scaleX(${lv.into / lv.need})` }} />
           </i>
           <button type="button" className="btn small-btn lv-skills" onClick={() => useSkillsUi.getState().show()}>

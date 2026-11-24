@@ -50,7 +50,7 @@ export function countCare(kind: Care["kind"], wasAsleep: boolean, r: CareResult)
 }
 import { create } from "zustand";
 import { type Program, type Rule, STARTERS, WANTS, compileProgram, fastBrain, inputField, stateBits } from "@lingxi/brain";
-import { FOODS, careTally, firstThought, lessonTrigger, stagedEvent, type Brain, type Care, type CareResult, type Growth, type Pet, type UpgradeRefusal, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, learnSkill, levelUpPet, liveBeat, mindBrain, respecPet, ruleSkillIds, settleForm, skillRules, stageOf, teach as teachRule, mentorLesson, awayEvent, awaySeed, beatOf, watchEvent, instinctBrain, instinctGates, INSTINCT_MAX_GATES, MAX_MIND_STATE, type OutsideInstinct, instinctFits, stripHidden, withSegment, boundLog, ruleGrowth, type Mind } from "@lingxi/game";
+import { FOODS, careTally, firstThought, lessonTrigger, stagedEvent, type Brain, type Care, type CareResult, type Growth, type Pet, type UpgradeRefusal, arrangeLessons, care, catchUp, composeProgram, createPet, halvesOf, kinshipNow, learnSkill, levelUpPet, liveBeat, mindBrain, respecPet, ruleSkillIds, settleForm, skillRules, stageOf, teach as teachRule, mentorLesson, awayEvent, awaySeed, beatOf, watchEvent, instinctBrain, instinctGates, INSTINCT_MAX_GATES, MAX_MIND_STATE, type OutsideInstinct, instinctFits, stripHidden, withSegment, boundLog, ruleGrowth, type Mind, NAME_MAX, takeVisible } from "@lingxi/game";
 import type { StarterLine } from "@lingxi/brain";
 import { takeComfort } from "./comfort";
 
@@ -375,7 +375,7 @@ export const useGame = create<GameState>((set, get) => ({
   hatch: (line, name, instincts = 0) => {
     const pet = createPet({
       // a character that shows as nothing is taken out: the name stays what the player can see (A16)
-      name: stripHidden(name).trim().slice(0, 12) || "Mochi",
+      name: takeVisible(stripHidden(name).trim(), NAME_MAX) || "Mochi",
       line,
       now: gameNow(),
       tzOffsetMin: -new Date(gameNow()).getTimezoneOffset(),

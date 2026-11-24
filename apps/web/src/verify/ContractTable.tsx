@@ -84,7 +84,8 @@ export function ContractTable({ lang }: { lang: "en" | "zh" }) {
                   ? `${rows.length} 个合约中 ${verified} 个源码完全匹配（创建码和运行码都一致）${unreached ? `；${unreached} 个暂时连不上 Sourcify，没能核对` : ""}。`
                   : `${verified} of ${rows.length} contracts are an exact match (both creation and runtime bytecode)${unreached ? `; ${unreached} could not be checked, as Sourcify could not be reached` : ""}.`}
           </p>
-          <div className="v-table-wrap">
+          {/* P5: a table wider than the screen scrolls; the keyboard reaches it, named by its heading */}
+          <div className="v-table-wrap" tabIndex={0} role="region" aria-labelledby="contracts-h">
             <table>
               <thead>
                 <tr>

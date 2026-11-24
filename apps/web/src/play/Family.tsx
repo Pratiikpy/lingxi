@@ -7,7 +7,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { drawPet } from "@lingxi/art";
-import { type Family, type ParentInfo, type Pet, BREED_COOLDOWN_DAYS, childMemory, childRoom, createPet, dayOf, familyOf, mindBrain, parseCard, ruleSkillIds, stageOf } from "@lingxi/game";
+import { type Family, type ParentInfo, type Pet, BREED_COOLDOWN_DAYS, childMemory, childRoom, createPet, dayOf, familyOf, mindBrain, NAME_MAX, parseCard, ruleSkillIds, stageOf, takeVisible } from "@lingxi/game";
+import { nameAfterChange, nameAfterComposition } from "./nameInput";
 import { useLang, useT } from "../i18n";
 import { keptPetNames, useGame } from "../game/store";
 import { type GivenConsent, deployment, petKey, publicClient, useChain } from "../game/chain";
@@ -231,7 +232,7 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
   const canChain = !!(partnerChain && useChain.getState().infoOf(pet));
   const welcome = async (offChain = false) => {
     const brain = mindBrain({ line: a.line, lessons: [], family });
-    const born = createPet({ name: name.trim().slice(0, 12) || (lang === "zh" ? "小宝" : "Bean"), line: a.line, now: now(), tzOffsetMin: -new Date(now()).getTimezoneOffset(), brain });
+    const born = createPet({ name: takeVisible(name.trim(), NAME_MAX) || (lang === "zh" ? "小宝" : "Bean"), line: a.line, now: now(), tzOffsetMin: -new Date(now()).getTimezoneOffset(), brain });
     let child: Pet = { ...born, family, brain: childMemory(brain.nState, pet.brain, parseCard(answer.card ?? "")?.memory) };
     let firstDay = true;
     if (canChain && !offChain) {
@@ -269,7 +270,7 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
         <p className="small fam-inherits">{newbornInherits(a, b, room, lang)}</p>
         <label className="fam-name">
           <span>{lang === "zh" ? "给它起个名字" : "Give it a name"}</span>
-          <input value={name} maxLength={12} onChange={(e) => setName(e.target.value)} placeholder={lang === "zh" ? "小宝" : "Bean"} autoFocus />
+          <input value={name} onChange={(e) => setName(nameAfterChange(e))} onCompositionEnd={(e) => setName(nameAfterComposition(e))} placeholder={lang === "zh" ? "小宝" : "Bean"} autoFocus />
         </label>
         {canChain && !chainError && (
           <p className="small">

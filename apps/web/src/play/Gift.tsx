@@ -9,7 +9,8 @@ import { useBadges } from "../game/badges";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { drawEgg, drawPet } from "@lingxi/art";
-import { type Gift, type Pet, LETTER_MAX, createPet, decodeGift, eggOf, encodeGift, mindBrain, newGiftId, stageOf } from "@lingxi/game";
+import { type Gift, type Pet, LETTER_MAX, createPet, decodeGift, eggOf, encodeGift, mindBrain, NAME_MAX, newGiftId, stageOf, takeVisible } from "@lingxi/game";
+import { nameAfterChange, nameAfterComposition } from "./nameInput";
 import { ITEM } from "@lingxi/world";
 import { useLang } from "../i18n";
 import { useGame } from "../game/store";
@@ -237,7 +238,7 @@ export function GiftArrival() {
   const hatch = () => {
     const egg = gift.egg!;
     const brain = mindBrain({ line: egg.line, lessons: egg.lessons });
-    const born = createPet({ name: name.trim().slice(0, 12) || (lang === "zh" ? "小礼" : "Present"), line: egg.line, now: now(), tzOffsetMin: -new Date(now()).getTimezoneOffset(), brain });
+    const born = createPet({ name: takeVisible(name.trim(), NAME_MAX) || (lang === "zh" ? "小礼" : "Present"), line: egg.line, now: now(), tzOffsetMin: -new Date(now()).getTimezoneOffset(), brain });
     // the sibling starts with the lessons the sender taught; its log replays on that brain from the first beat
     const sibling: Pet = { ...born, lessons: egg.lessons.slice(), segments: [{ from: 0, lessons: egg.lessons.slice() }] };
     markOpened(gift.id);
@@ -294,7 +295,7 @@ export function GiftArrival() {
               </p>
               <label className="fam-name">
                 <span>{lang === "zh" ? "给它起个名字" : "Give it a name"}</span>
-                <input value={name} maxLength={12} onChange={(e) => setName(e.target.value)} placeholder={lang === "zh" ? "小礼" : "Present"} autoFocus />
+                <input value={name} onChange={(e) => setName(nameAfterChange(e))} onCompositionEnd={(e) => setName(nameAfterComposition(e))} placeholder={lang === "zh" ? "小礼" : "Present"} autoFocus />
               </label>
               <button type="button" className="btn primary" onClick={hatch}>
                 {lang === "zh" ? "欢迎回家" : "Welcome home"}

@@ -26,6 +26,8 @@ import type { DayPhase } from "../scene/RoomScene";
 import { weatherFor } from "../scene/weather";
 import { PALETTE_OF, type PetStage } from "../scene/palette";
 import { Hatch } from "./Hatch";
+import { installModalFocus } from "./modalFocus";
+import { PetButton } from "./PetButton";
 import { useHatchDraft } from "./hatchDraft";
 import { Actions, Meters, TabBar, ThinkStrip, ToastView, TopBar, VoiceBubble, type Tab } from "./parts";
 import { useVoice } from "../game/voice";
@@ -184,6 +186,8 @@ export function PlayApp() {
   useEffect(() => watchLetters(), []);
   // P3: the panels' code arrives in idle moments once the game is up, so a tap opens them at once
   useEffect(() => warmDeferred(), []);
+  // P5: every dialog keeps the keyboard's focus while it is open, and gives it back when it closes
+  useEffect(() => installModalFocus(), []);
   const [phase, setPhase] = useState<DayPhase>(phaseNow);
   const [circuit, setCircuit] = useState(false);
   const worldRoom = useWorld((s) => s.world.room);
@@ -585,7 +589,8 @@ export function PlayApp() {
   return (
     <div className="app">
       <TopBar pet={pet} daily={daily} face={face && <FaceSprite canvas={face} line={pet.line} />} onQuests={() => pick("quests")} onPets={() => pick("pets")} petCount={petCount} onMail={() => pick("mail")} unread={unread} />
-      <div className="main">
+      {/* P5: the room's main landmark (the top bar is its header, the tab bar its navigation) */}
+      <main className="main">
         <section className="stage" aria-label={pet.name} data-hint="pet">
           <Suspense fallback={null}>
             <RoomScene
@@ -627,6 +632,8 @@ export function PlayApp() {
               onNpcTap={() => (setPicked(null), startTalk())}
             />
           </Suspense>
+          {/* P5: the pet for the keyboard and for a screen reader (the canvas above is reachable by neither) */}
+          <PetButton pet={pet} stage={stage} onPat={onPetTap} />
           <div className="room-pill">
             <b>{visiting && worldRoom === HOME ? (lang === "zh" ? "朋友家" : "A friend's home") : room.name[lang]}</b>
             {who && !talking && (
@@ -807,13 +814,16 @@ export function PlayApp() {
               <i />
               {lang === "zh" ? `${pet.name}的心智` : `${pet.name.toLowerCase()}.mind`}
             </div>
-            <div className="pad">
-              <h2 className="h2">{t("mind.title", { name: pet.name })}</h2>
+            {/* P5: on a desktop this card scrolls on its own; the keyboard reaches it, named by its heading */}
+            <div className="pad" tabIndex={0} role="region" aria-labelledby="mindcard-h">
+              <h2 className="h2" id="mindcard-h">
+                {t("mind.title", { name: pet.name })}
+              </h2>
               <MindPanel pet={pet} />
             </div>
           </section>
         </div>
-      </div>
+      </main>
       <TabBar current={tab} onPick={pick} locked={lockedTabs} />
       {lockedAsk && (
         <div className="fam-modal" role="dialog" aria-modal="true" aria-label={t("reveal.title")}>

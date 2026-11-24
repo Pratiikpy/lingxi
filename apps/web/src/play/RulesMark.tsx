@@ -87,8 +87,15 @@ export function RulesMark() {
   const bad = checks.filter((c) => c.status === "differs" || c.status === "missing");
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
   const proof = "verify.html#rules";
+  const verified = L(`Rules verified on X Layer · ${checks.length} circuits`, `规则已在 X Layer 上核对 · ${checks.length} 个电路`);
   return (
-    <AnimatePresence>
+    <>
+      {/* P5: the news is read out from a live region that is always on the page; the mark itself stays a plain link
+          (a link given the status role lost its name and its role to screen readers) */}
+      <span className="sr-only" role="status">
+        {state === "verified" && shown ? verified : ""}
+      </span>
+      <AnimatePresence>
       {state === "verified" && shown && (
         <motion.a
           key="ok"
@@ -96,7 +103,6 @@ export function RulesMark() {
           href={proof}
           target="_blank"
           rel="noopener"
-          role="status"
           initial={reduce ? false : { opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           exit={reduce ? { opacity: 0 } : { opacity: 0, y: 12 }}
@@ -105,7 +111,7 @@ export function RulesMark() {
           <span className="rules-tick" aria-hidden="true">
             ✓
           </span>
-          {L(`Rules verified on X Layer · ${checks.length} circuits`, `规则已在 X Layer 上核对 · ${checks.length} 个电路`)}
+          {verified}
         </motion.a>
       )}
       {state === "broken" && !closed && !covered && (
@@ -127,6 +133,7 @@ export function RulesMark() {
           </button>
         </motion.div>
       )}
-    </AnimatePresence>
+      </AnimatePresence>
+    </>
   );
 }

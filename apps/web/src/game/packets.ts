@@ -6,6 +6,7 @@
  */
 
 import { create } from "zustand";
+import { NAME_MAX, takeVisible } from "@lingxi/game";
 import { type Address, type Hex, formatUnits, parseUnits, TransactionReceiptNotFoundError } from "viem";
 import { viem } from "./chainClient";
 import { type ClaimView, XLAYER_USDT, claimPacket, collectPacket, createPacket, createdIn, nextPacketId, owedOf, pendingOf, readPacket, refundPacket, revealPacket, signClaim, tokenBalance } from "@lingxi/chain";
@@ -55,7 +56,7 @@ export function decodePacketLink(code: string): PacketLink | null {
     if (typeof v.id !== "string" || !/^\d{1,20}$/.test(v.id)) return null;
     if (typeof v.key !== "string" || !/^[0-9a-f]{64}$/.test(v.key)) return null;
     if (!line) return null;
-    return { id: v.id, key: v.key, from: { name: String(from.name ?? "").slice(0, 12) || "A friend", line }, letter: typeof v.letter === "string" ? v.letter.slice(0, 200) : "" };
+    return { id: v.id, key: v.key, from: { name: takeVisible(String(from.name ?? ""), NAME_MAX) || "A friend", line }, letter: typeof v.letter === "string" ? v.letter.slice(0, 200) : "" };
   } catch {
     return null;
   }

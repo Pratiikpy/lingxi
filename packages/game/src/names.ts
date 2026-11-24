@@ -119,6 +119,27 @@ export function revealHidden(name: string): { text: string; hidden: number } {
 /** The most of a name ever looked at: a name is cut far shorter, and a hostile one cannot make the work grow. */
 const NAME_READ_MAX = 256;
 
+/** The longest a pet's name may be, in visible characters (P5). */
+export const NAME_MAX = 12;
+
+// one visible character is one grapheme cluster: an emoji with its skin tone, a family joined by ZWJ, a flag, a letter
+// with its accents. Every browser the game supports and Node have Intl.Segmenter; code points are the fallback
+const segmenter = typeof Intl !== "undefined" && "Segmenter" in Intl ? new Intl.Segmenter(undefined, { granularity: "grapheme" }) : null;
+
+/** The visible characters of `text`, in order (P5). */
+export function graphemes(text: string): string[] {
+  return segmenter ? Array.from(segmenter.segment(text), (g) => g.segment) : Array.from(text);
+}
+
+/** How many characters `text` shows (P5). */
+export const visibleLength = (text: string): number => graphemes(text).length;
+
+/** `text` cut to its first `max` visible characters, never inside one (P5). */
+export function takeVisible(text: string, max: number): string {
+  const g = graphemes(text);
+  return g.length <= max ? text : g.slice(0, max).join("");
+}
+
 /**
  * Another player's pet name as this game shows it, wherever it arrives from (the live room, a card, a family's papers,
  * a duel): control characters and angle brackets dropped, every hidden code point shown as U+FFFD, trimmed, and cut to
@@ -127,7 +148,25 @@ const NAME_READ_MAX = 256;
 export function shownName(raw: unknown, max: number): string {
   if (typeof raw !== "string") return "";
   const text = revealHidden(raw.slice(0, NAME_READ_MAX).replace(/[\u0000-\u001f\u007f<>]/g, "")).text.trim();
-  if (text.length <= max) return text;
-  const cut = /[\ud800-\udbff]/.test(text[max - 1] ?? "") ? max - 1 : max;
-  return text.slice(0, cut).trimEnd();
+  // P5: measured and cut in visible characters, never inside an emoji, a flag or an accented letter; and held to
+  // UNITS_PER_CHAR code units a character, so one "character" built of a thousand invisible tags stays short
+  return capUnits(takeVisible(text, max), max * UNITS_PER_CHAR).trimEnd();
+}
+
+/** Code units a visible character may take in a name: a family of four with skin tones fits, a hostile run does not. */
+const UNITS_PER_CHAR = 8;
+
+/** `text` cut to at most `units` code units, on a character's edge; a single character longer than that, on a code point's. */
+function capUnits(text: string, units: number): string {
+  if (text.length <= units) return text;
+  let out = "";
+  for (const g of graphemes(text)) {
+    if (out.length + g.length <= units) {
+      out += g;
+      continue;
+    }
+    if (!out) for (const cp of Array.from(g)) if (out.length + cp.length <= units) out += cp;
+    break;
+  }
+  return out;
 }

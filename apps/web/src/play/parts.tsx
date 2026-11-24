@@ -64,7 +64,10 @@ export function TopBar({ pet, daily, face, onQuests, onPets, petCount, onMail, u
           <LevelBadge pet={pet} />
         </div>
         <div style={{ minWidth: 0 }}>
-          <PetName name={pet.name} petId={recordOf(pet)?.petId} />
+          {/* P5: the room's one level-one heading is the pet's name, its title on screen too */}
+          <h1 className="who-title">
+            <PetName name={pet.name} petId={recordOf(pet)?.petId} />
+          </h1>
           {/* on a narrow phone only the day shows (B9: the line was cut off); the stage is still read out and on the Pet tab */}
           <span aria-label={`${t(`stage.${stageOf(pet, now)}` as Key)} · ${t("who.day", { n: dayOf(pet, now) })}`}>
             <i className="who-stage">{t(`stage.${stageOf(pet, now)}` as Key)} · </i>

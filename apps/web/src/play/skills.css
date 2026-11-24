@@ -288,7 +288,8 @@
 .lv-chip::before {
   content: "";
   position: absolute;
-  inset: -4px -2px -14px -12px;
+  /* P5: 44 by 44 px of touch around a chip drawn 22 by 20, reaching out and down, away from the face it sits on */
+  inset: -4px -2px -20px -20px;
 }
 /* a dot when skill points are waiting */
 .who .lv-chip b,

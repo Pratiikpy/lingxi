@@ -1,0 +1,71 @@
+/**
+ * P5: the pet for the keyboard and for a screen reader. The pet is drawn on the room's canvas, which neither can reach,
+ * so a real button stands where the pet is drawn (placed by the room's own rule, floor.ts roomOrigin): Tab reaches it,
+ * Enter or Space pats the pet as a tap does, and its description is the pet in words (petSpoken.ts). It takes no
+ * pointer events, so a tap still lands on the canvas, on the pet, its visitors and the floor, as before; its ring shows
+ * only when the keyboard is on it. A polite live region beside it reads out a change in what the pet is doing or needs,
+ * at most once every few seconds, so a screen reader is told without being talked over.
+ */
+import { useEffect, useRef, useState } from "react";
+import { type Pet, stageOf } from "@lingxi/game";
+import { HALF, PET_FEET, PET_HOME, roomOrigin } from "../scene/floor";
+import { useLang, useT, type Key } from "../i18n";
+import { now } from "../game/gameClock";
+import { petSpoken } from "./petSpoken";
+
+/** The quietest a change is read out: one announcement in this many milliseconds at most. */
+export const SPEAK_EVERY_MS = 8_000;
+/** How tall the button stands above the pet's feet, in room pixels: a grown pet's height. */
+const PET_TALL = 40;
+
+type DrawnStage = keyof typeof HALF;
+
+export function PetButton({ pet, stage, onPat }: { pet: Pet; stage: DrawnStage; onPat: () => void }) {
+  const t = useT();
+  const { lang } = useLang();
+  const box = useRef<HTMLDivElement>(null);
+  const [place, setPlace] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
+  const zh = lang === "zh";
+  const stageWord = t(`stage.${stageOf(pet, now())}` as Key);
+  const words = petSpoken(pet, stageWord, zh ? "zh" : "en");
+
+  // where the pet stands in the room as drawn, kept as the room's box changes size
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const measure = () => {
+      const o = roomOrigin(el.clientWidth, el.clientHeight);
+      const half = HALF[stage] * o.scale;
+      setPlace({ left: o.x + PET_HOME * o.scale - half - 6, top: o.y + (PET_FEET - PET_TALL) * o.scale, width: 2 * half + 12, height: PET_TALL * o.scale + 6 });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [stage]);
+
+  // a change read out politely, and never more often than SPEAK_EVERY_MS
+  const [spoken, setSpoken] = useState("");
+  const lastAt = useRef(0);
+  useEffect(() => {
+    const wait = Math.max(0, lastAt.current + SPEAK_EVERY_MS - Date.now());
+    const id = setTimeout(() => {
+      lastAt.current = Date.now();
+      setSpoken(words);
+    }, wait);
+    return () => clearTimeout(id);
+  }, [words]);
+
+  return (
+    <div ref={box} className="pet-button-box">
+      <button type="button" className="pet-button" style={place ?? undefined} aria-label={zh ? `摸摸${pet.name}` : `Pat ${pet.name}`} aria-describedby="pet-words" onClick={onPat}>
+        <span id="pet-words" className="sr-only">
+          {words}
+        </span>
+      </button>
+      <span className="sr-only" role="status">
+        {spoken}
+      </span>
+    </div>
+  );
+}

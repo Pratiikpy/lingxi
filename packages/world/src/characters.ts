@@ -190,7 +190,7 @@ export const CHARACTERS: readonly Character[] = [
     name: { en: "Bolt", zh: "螺丝" },
     role: { en: "Tinker", zh: "修补匠" },
     room: 5,
-    color: "#8e74e4",
+    color: "#9a85e8",
     stand: "bolt_clear1.png",
     greeting: [L("bolt_clear1.png", "Beep. Sorry. Habit. I fix things, I make things, and I sit under these trees.", "哔。抱歉，习惯了。我修东西、做东西，然后坐在这些树下。")],
     topics: [
@@ -264,7 +264,7 @@ export const CHARACTERS: readonly Character[] = [
     name: { en: "Jab", zh: "阿拳" },
     role: { en: "Spar coach", zh: "切磋教练" },
     room: 89,
-    color: "#e25c81",
+    color: "#e86a8c",
     stand: "jab_default_1.png",
     greeting: [L("jab_default_1.png", "Ah, a challenger! Every trophy in this room was won by a pet somebody taught well.", "哈，挑战者！这屋里的每一座奖杯，都是被好好教过的宠物赢来的。")],
     topics: [

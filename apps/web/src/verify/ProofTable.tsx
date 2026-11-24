@@ -55,7 +55,8 @@ export function ProofTable({ lang }: { lang: "en" | "zh" }) {
           ? `处理器 ${deployment?.processor ?? ""}（TapeOut 第 419 号）。每个电路的网表哈希都在你的浏览器里从链上重新读取核对。`
           : `Processor ${deployment?.processor ?? ""} (TapeOut #419). Each circuit's netlist hash is read again from the chain in your browser.`}
       </p>
-      <div className="v-table-wrap">
+      {/* P5: a table wider than the screen scrolls; the keyboard reaches it, named by its heading */}
+      <div className="v-table-wrap" tabIndex={0} role="region" aria-labelledby="proof-table-h">
         <table>
           <thead>
             <tr>

@@ -104,19 +104,26 @@ export function BadgeToast() {
     const t = setTimeout(() => dismiss(top.id), 3600);
     return () => clearTimeout(t);
   }, [top, dismiss]);
+  // P5: the news is read out from a live region always on the page; the toast is a plain button with its full name
+  // (a button given the status role lost its role and its name to screen readers)
+  const news = top ? `${l === "zh" ? "新徽章" : "New badge"}: ${top.badge.name[l]} · ${TIER[l][top.tier]}` : "";
   return (
-    <AnimatePresence>
+    <>
+      <span className="sr-only" role="status">
+        {news}
+      </span>
+      <AnimatePresence>
       {top && (
         <motion.button
           type="button"
           key={top.id}
           className={`badge-toast t${top.tier}`}
+          aria-label={`${news}. ${l === "zh" ? "点按关闭" : "Tap to close"}`}
           onClick={() => dismiss(top.id)}
           initial={{ opacity: 0, y: 16, scale: 0.9 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 8 }}
           transition={{ type: "spring", stiffness: 420, damping: 26 }}
-          role="status"
         >
           <span className="medal" aria-hidden="true">
             <Icon name={ICON[top.badge.metric]} size={22} />
@@ -129,6 +136,7 @@ export function BadgeToast() {
           </span>
         </motion.button>
       )}
-    </AnimatePresence>
+      </AnimatePresence>
+    </>
   );
 }

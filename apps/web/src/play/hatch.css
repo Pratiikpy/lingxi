@@ -370,3 +370,19 @@
   content-visibility: auto;
   contain-intrinsic-size: auto 150px;
 }
+
+/* the hatch screen's own restore button (P5: its rule lived with the save sheet, which a first visit does not load) */
+.hatch-restore {
+  justify-self: center;
+  margin-top: 4px;
+  /* P5: a 44 px tall target, the text drawn as before */
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: 700 14px var(--round);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}

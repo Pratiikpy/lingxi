@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { compileProgram, netlistBytes } from "@lingxi/brain";
 import { composeProgram } from "../src/lessons";
-import { nameFromBrain, shownName } from "../src/names";
+import { NAME_MAX, nameFromBrain, shownName, takeVisible, visibleLength } from "../src/names";
 import { friendPartner } from "../src/partners";
 import { parseCard } from "../src/family";
 
@@ -56,13 +56,18 @@ describe("another player's pet name, as the game shows it (A16)", () => {
 
   it("stays quick on a hostile name: a long run of flag tags or joiners is read only so far", () => {
     const started = performance.now();
-    expect(shownName("\u{1f3f4}" + "\u{e0067}".repeat(200_000), 12)).toBe("\u{1f3f4}" + "\u{e0067}".repeat(5));
+    // P5: a flag followed by 200,000 tags is one visible character; it is held to 8 code units a character (96 here)
+    const flag = shownName("\u{1f3f4}" + "\u{e0067}".repeat(200_000), 12);
+    expect(flag.length).toBeLessThanOrEqual(96);
+    expect(flag.startsWith("\u{1f3f4}")).toBe(true);
     expect(shownName("\u200d".repeat(200_000), 12)).toBe("\ufffd".repeat(12));
     expect(performance.now() - started).toBeLessThan(500);
   });
 
   it("cuts a long name without splitting a character in two", () => {
-    expect(shownName("abcdefghijk🐱", 12)).toBe("abcdefghijk");
+    // P5: twelve visible characters are kept whole, the cat among them (counted in UTF-16 units it was dropped)
+    expect(shownName("abcdefghijk🐱", 12)).toBe("abcdefghijk🐱");
+    expect(shownName("abcdefghijkl🐱", 12)).toBe("abcdefghijkl");
     expect(shownName("abcdefghijklmnop", 12)).toBe("abcdefghijkl");
   });
 
@@ -76,3 +81,26 @@ describe("another player's pet name, as the game shows it (A16)", () => {
   });
 });
 
+
+// P5: a name is limited and cut by the characters a reader sees, never inside one
+describe("names measured in visible characters (P5)", () => {
+  it("counts an emoji with a skin tone, a family joined by ZWJ, a flag and an accent built from two code points as one each", () => {
+    expect(visibleLength("👍🏽")).toBe(1);
+    expect(visibleLength("👨‍👩‍👧")).toBe(1);
+    expect(visibleLength("🇨🇳")).toBe(1);
+    expect(visibleLength("é")).toBe(1);
+    expect(visibleLength("小宝贝")).toBe(3);
+  });
+
+  it("cuts after the last whole character, never in the middle of one", () => {
+    const name = "Pip👨‍👩‍👧🇨🇳Bean😀Momo";
+    expect(takeVisible(name, 5)).toBe("Pip👨‍👩‍👧🇨🇳");
+    expect(takeVisible("😀".repeat(13), NAME_MAX)).toBe("😀".repeat(12));
+    expect(takeVisible("short", NAME_MAX)).toBe("short");
+  });
+
+  it("shows a name to its limit in visible characters", () => {
+    expect(shownName("👨‍👩‍👧".repeat(13), 12)).toBe("👨‍👩‍👧".repeat(12));
+    expect(shownName("Pip👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽", 12)).toBe("Pip👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽");
+  });
+});

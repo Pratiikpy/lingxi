@@ -617,7 +617,8 @@
 /* G7: the taught budget, the whole circuit beside it, and the lessons that make room */
 .gates small {
   font-weight: 600;
-  opacity: 0.8;
+  /* P5: muted by the soft ink rather than by fading, which took the text under 4.5:1 */
+  color: var(--ink-soft);
 }
 .gates.full > i > i {
   background: #f2a65a;

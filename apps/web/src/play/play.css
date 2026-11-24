@@ -37,6 +37,12 @@
   overflow: hidden;
   flex: none;
 }
+/* P5: the heading around the pet's name takes nothing of its own: the name keeps its look */
+.who-title {
+  margin: 0;
+  font: inherit;
+  min-width: 0;
+}
 .who b {
   display: block;
   font-family: var(--round);
@@ -107,6 +113,29 @@
   color: var(--ink-soft);
   margin-left: 2px;
 }
+/*
+ * P5: every control a player taps answers on at least 44 by 44 px. Where the design draws one smaller (the header's
+ * round buttons and the face on a narrow phone, the quest mark, the room's pills, the day's card), an invisible area
+ * grows it to exactly 44 px around its centre and never shrinks a larger one: inset min(0, 50% - 22px) on each side.
+ */
+.round-btn,
+.pill,
+.who-face-btn,
+.room-pill button,
+.today-card button,
+.btn.small-btn {
+  position: relative;
+}
+.round-btn::after,
+.pill::after,
+.who-face-btn::after,
+.room-pill button::after,
+.today-card button::after,
+.btn.small-btn::after {
+  content: "";
+  position: absolute;
+  inset: min(0px, calc(50% - 22px));
+}
 .round-btn {
   width: 44px;
   height: 44px;
@@ -150,6 +179,26 @@
   position: absolute;
   inset: 0;
   touch-action: manipulation;
+}
+/* P5: the pet's own button, over where the pet is drawn: no pointer events (a tap reaches the canvas as before), and
+   seen only as a ring when the keyboard is on it */
+.pet-button-box {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.pet-button {
+  position: absolute;
+  padding: 0;
+  border: 0;
+  border-radius: 18px;
+  background: transparent;
+  pointer-events: none;
+}
+.pet-button:focus-visible {
+  outline: 3px solid var(--sky);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--sky) 25%, transparent);
 }
 .think {
   position: absolute;
@@ -1709,8 +1758,9 @@
     gap: 8px;
   }
   .who-face {
-    width: 40px;
-    height: 40px;
+    /* P5: 44 px, as on a desktop: the face is a button, and the level chip on its corner now reaches away from it */
+    width: 44px;
+    height: 44px;
   }
   .who b {
     font-size: 18px;
@@ -1747,7 +1797,8 @@
     height: 38px;
   }
   .top-right {
-    gap: 5px;
+    /* P5: 6 px apart, so each round button's 44 px touch area stays clear of its neighbour's */
+    gap: 6px;
   }
 }
 @media (max-width: 360px) {
@@ -2886,8 +2937,8 @@
   gap: 2px;
 }
 .me-more-open small {
+  /* P5: the soft ink on its own is muted enough (7.4:1); faded further it fell under 4.5:1 */
   color: var(--ink-soft, var(--ink));
-  opacity: 0.8;
 }
 .me-more-open:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--accent, #ff7a6b) 60%, transparent);
@@ -3156,7 +3207,7 @@
 .today-card .tcard-collect span {
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  color: #c9542f;
+  color: var(--coral-ink);
 }
 /* D2: the village's gift in a resident's talk */
 .talk-gift {

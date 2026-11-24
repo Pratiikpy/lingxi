@@ -156,7 +156,8 @@
   background: var(--tint);
 }
 .v-ok {
-  color: #2f8a55;
+  /* P5: 4.99:1 on the card (the earlier #2f8a55 was 4.22) */
+  color: #2a7d4d;
   font-weight: 800;
   margin: 0;
 }

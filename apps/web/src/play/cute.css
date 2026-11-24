@@ -7,6 +7,15 @@
   border-radius: 16px;
   background: color-mix(in srgb, #ffe3ea 35%, var(--card));
 }
+/* P5: on the dark card a lighter wash keeps the soft ink readable (35% of pink made a mauve it read at 3.2:1 on) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .cute-state {
+    background: color-mix(in srgb, #ffe3ea 12%, var(--card));
+  }
+}
+:root[data-theme="dark"] .cute-state {
+  background: color-mix(in srgb, #ffe3ea 12%, var(--card));
+}
 .cute-state .small {
   margin: 0;
 }

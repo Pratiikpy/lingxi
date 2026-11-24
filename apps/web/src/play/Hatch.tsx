@@ -18,6 +18,7 @@ import { PALETTE_OF } from "../scene/palette";
 import { Sprite } from "./Sprite";
 import { useSaveFileUi } from "./saveFileUi";
 import { useHatchDraft } from "./hatchDraft";
+import { nameAfterChange, nameAfterComposition } from "./nameInput";
 import "./hatch.css";
 
 const LINES: readonly StarterLine[] = ["gentle", "bold", "curious"];
@@ -126,7 +127,7 @@ export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string, 
             <label htmlFor="pet-name">{t("hatch.name")}</label>
             <p className="name-from">{typed === null ? (lang === "zh" ? `从它的电路读出来的名字 · ${suggested.from}` : `Read from its circuit · ${suggested.from}`) : lang === "zh" ? "你起的名字" : "Your own name"}</p>
             <div className="name-field">
-              <input id="pet-name" value={name} maxLength={12} onChange={(e) => setName(e.target.value)} autoComplete="off" spellCheck={false} />
+              <input id="pet-name" value={name} onChange={(e) => setName(nameAfterChange(e))} onCompositionEnd={(e) => setName(nameAfterComposition(e))} autoComplete="off" spellCheck={false} />
               <button type="button" className="shuffle" onClick={shuffle}>
                 {t("hatch.shuffle")}
               </button>

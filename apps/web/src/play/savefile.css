@@ -141,15 +141,4 @@
 .sf-card .btn {
   flex: none;
 }
-.hatch-restore {
-  justify-self: center;
-  margin-top: 4px;
-  padding: 8px 12px;
-  border: 0;
-  background: none;
-  color: inherit;
-  font: 700 14px var(--round);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
-}
+

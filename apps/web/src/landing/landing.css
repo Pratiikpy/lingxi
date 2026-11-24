@@ -770,7 +770,8 @@
 }
 .l-note {
   padding: 0 16px 40px;
-  color: #2b2140;
+  /* P5: the theme's ink, so the note reads on the dark page too (a fixed plum was 1.47:1 there) */
+  color: var(--ink);
 }
 /* long resident names wrap inside their card rather than pushing the page sideways on phones */
 .residents b,

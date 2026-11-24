@@ -81,7 +81,8 @@
   min-height: 14px;
   font-size: 10.5px;
   font-weight: 800;
-  color: #c9542f;
+  /* the decorate bar is light in both themes, so the light coral for text (P5: 5.4:1; #c9542f was 4.3) */
+  color: #b34624;
 }
 .decor-icon {
   width: 36px;

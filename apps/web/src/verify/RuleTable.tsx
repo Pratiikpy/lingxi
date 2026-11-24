@@ -33,7 +33,8 @@ export function RuleTable({ lang }: { lang: "en" | "zh" }) {
       {!records ? (
         <p className="v-note">{lang === "zh" ? "这个版本还没有记录规则电路。" : "No rule circuits are on record for this build."}</p>
       ) : (
-        <div className="v-table-wrap">
+        <div className="v-table-wrap" tabIndex={0} role="region" aria-labelledby="rules-h">
+          {/* P5: a table wider than the screen scrolls; the keyboard reaches it, named by its heading */}
           <table>
             <thead>
               <tr>
