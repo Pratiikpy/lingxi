@@ -107,8 +107,10 @@ const GAME: Shot[] = [
   { name: "offline", reach: async (page, _b, ctx) => {
     await page.keyboard.press("Escape");
     await ctx.setOffline(true);
-    await page.reload().catch(() => {});
-    await page.waitForTimeout(2500);
+    await page.reload({ waitUntil: "domcontentloaded" }).catch(() => {});
+    // the room, opened from the offline cache; a miss is reported, never shot as though it were the screen
+    await page.waitForFunction(() => !document.querySelector(".boot-splash") && !!document.querySelector(".stage"), undefined, { timeout: 20_000 });
+    await page.waitForTimeout(1200);
   } },
 ];
 

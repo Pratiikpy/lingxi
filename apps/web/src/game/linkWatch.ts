@@ -4,11 +4,11 @@
  * reopened a duel link already answered (arena-starts spec on CI). The back stack says which hash its own back landed
  * on; that hash, once, is put aside. A link the player follows, or reaches with the phone's Back, is read as before.
  */
-import { takeOwnLanding } from "./backStack";
+import { isOwnLanding } from "./backStack";
 
 /** Calls `follow` for a link to read and `aside` for one the page's own back landed on, until the returned call. */
 export function watchLinks(follow: () => void, aside: () => void): () => void {
-  const onHash = () => (takeOwnLanding(location.hash) ? aside() : follow());
+  const onHash = () => (isOwnLanding(location.hash) ? aside() : follow());
   window.addEventListener("hashchange", onHash);
   return () => window.removeEventListener("hashchange", onHash);
 }

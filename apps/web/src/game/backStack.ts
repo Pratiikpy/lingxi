@@ -35,6 +35,11 @@ function pump(): void {
 function listen(): void {
   if (listening || typeof window === "undefined") return;
   listening = true;
+  // the landing is for the hashchange its own back fires: every link reader reads it during that event, and it is
+  // gone by the next task (four readers listen to one hashchange; one taking it left the others reading, P6)
+  window.addEventListener("hashchange", () => {
+    if (landed !== null) setTimeout(() => (landed = null), 0);
+  });
   window.addEventListener("popstate", () => {
     // our own back, for something already closed, has arrived: what waited for it goes now
     if (backing) {
@@ -77,13 +82,11 @@ export function onBack(close: () => void): () => void {
 }
 
 /**
- * Whether the address's `hash` is one our own back landed on (taken once): a link reader reads a link the player
- * followed, not one that history handed back because something closed (P6: a duel link already answered reopened).
+ * Whether the address's `hash` is one our own back landed on: asked by every link reader during the hashchange that
+ * back fires, so a link already handled is not read again because something closed (P6).
  */
-export function takeOwnLanding(hash: string): boolean {
-  if (landed === null || landed !== hash) return false;
-  landed = null;
-  return true;
+export function isOwnLanding(hash: string): boolean {
+  return landed !== null && landed === hash;
 }
 
 /** How many open things Back would close, for tests. */

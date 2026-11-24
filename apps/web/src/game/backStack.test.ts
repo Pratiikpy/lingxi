@@ -128,7 +128,7 @@ describe("the back stack (P6)", () => {
     expect(env.h.left).toBe(false);
   });
 
-  it("names the hash its own back landed on, once, and only when the hash changed (P6)", async () => {
+  it("names the hash its own back landed on until the next task after that hashchange (P6)", async () => {
     // the game's entry holds a link the player followed (its reader cleared nothing, as a gift's does)
     env.h.hashes = ["#gift=lxg1.x"];
     const end = backStack.onBack(() => {});
@@ -136,13 +136,16 @@ describe("the back stack (P6)", () => {
     end();
     await settle();
     expect(env.h.at).toBe(0);
-    expect(backStack.takeOwnLanding("#gift=lxg1.x")).toBe(true);
-    expect(backStack.takeOwnLanding("#gift=lxg1.x"), "taken once").toBe(false);
-    // a back that lands on the same hash fires no hashchange, so nothing waits to be taken
+    expect(backStack.isOwnLanding("#gift=lxg1.x")).toBe(true);
+    expect(backStack.isOwnLanding("#gift=lxg1.x"), "every reader may ask").toBe(true);
+    env.target.dispatchEvent(new Event("hashchange"));
+    await settle();
+    expect(backStack.isOwnLanding("#gift=lxg1.x"), "gone after the hashchange's task").toBe(false);
+    // a back that lands on the same hash fires no hashchange, so nothing is named
     const again = backStack.onBack(() => {});
     again();
     await settle();
-    expect(backStack.takeOwnLanding("#gift=lxg1.x")).toBe(false);
+    expect(backStack.isOwnLanding("#gift=lxg1.x")).toBe(false);
   });
 });
 
