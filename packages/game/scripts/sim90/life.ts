@@ -8,31 +8,22 @@
  * a lesson is `teach` and then one "talk" beat, a return is `catchUp` with the away surprises and `settleForm`.
  */
 
-import { WANTS, compileProgram, gateCount, timeOfDay } from "@lingxi/brain";
+import { WANTS, compileProgram, gateCount } from "@lingxi/brain";
 import {
-  DAILIES,
   ITEM,
   PIECE_PRICES,
   RECIPES,
   ROOMS,
   STORY,
-  WEEKLY_GIFT,
   DECOR,
   HOME,
-  type Condition,
   BOX_TABLES,
-  TIMES_OF_DAY,
   openBox,
   type WorldState,
-  acceptQuest,
-  craft,
-  giveTo,
   has,
   affinitiesOf,
   buy,
   bump,
-  claimWeekly,
-  completeQuest,
   craftBlocker,
   earn,
   paySpar,
@@ -55,12 +46,9 @@ import {
   move,
   neighbours,
   newWorld,
-  questProgress,
   questStatus,
-  rollDailies,
   take,
   tallyOf,
-  weeklyGiftsWaiting,
 } from "@lingxi/world";
 import type { StarterLine } from "@lingxi/brain";
 import {
@@ -100,9 +88,7 @@ import {
   teach,
   tierOpen,
   exploreMods,
-  work,
   beatOf,
-  localHour,
   watchEvent,
   type Album,
   addToAlbum,
@@ -115,17 +101,15 @@ import {
   FIRST_WIN_COINS,
   ROUND_MS,
   WIN_COINS,
-  GIVER_ROOM,
   type TallyEntry,
   careTally,
-  meetTally,
-  talkTally,
   fedTally,
   minuteTally,
   sparLevel,
   viewOf,
   awayTally,
 } from "./client";
+import { followQuests, runErrand } from "./lifeQuests";
 
 export const MIN = 60_000;
 /** Reading a spar's result and tapping for the next one (the simulator's own estimate of a quick player). */
@@ -588,149 +572,12 @@ export class Life {
     return { won: outcome === "w", ms: FIRST_ROUND_MS + (r.rounds.length - 1) * ROUND_MS + BETWEEN_SPARS_MS };
   }
 
-  /**
-   * Quests as a player who opens the book each visit: today's dailies rolled, the weekly gift taken, every ready
-   * quest handed in and every open story quest taken. (Handing in is done from the book, not at the giver's door.)
-   */
   quests(t: number): void {
-    this.flush();
-    const tz = this.pet.tzOffsetMin;
-    // D9: as the web does, no daily behind a part not open yet (the map and bag on the pet's day 2, spars on day 3)
-    const petDay = dayOf(this.pet, t);
-    const closed = (
-      [
-        ["map", 2],
-        ["bag", 2],
-        ["spar", 3],
-      ] as const
-    )
-      .filter(([, d]) => petDay < d)
-      .map(([p]) => p);
-    this.world = rollDailies(this.world, DAILIES, viewOf(this.world, this.pet, t), tz, closed);
-    if (weeklyGiftsWaiting(this.world) > 0) {
-      const r = claimWeekly(this.world, WEEKLY_GIFT);
-      if (r.ok) this.world = r.world;
-    }
-    for (let changed = true, guard = 0; changed && guard < 20; guard++) {
-      changed = false;
-      for (const q of [...DAILIES, ...STORY]) {
-        const v = viewOf(this.world, this.pet, t);
-        const s = questStatus(q, this.world, v);
-        const r =
-          s === "ready"
-            ? completeQuest(this.world, q, v)
-            : s === "available" && q.kind === "story"
-              ? acceptQuest(this.world, q, v)
-              : null;
-        if (!r?.ok) continue;
-        this.world = r.world;
-        changed = true;
-      }
-    }
+    followQuests(this, t);
   }
 
-  /**
-   * One small errand for a taken quest or today's dailies, of the kinds a player does in a visit without planning a
-   * trip: a room within four steps, a step out and back, a look around, a spar, a recipe the bag already allows, a
-   * gift of something already held, a word with a resident nearby, a look at Builders' Lane, a meal bought on a shop
-   * run. Errands that need a plan (gathering a recipe's inputs, a walk or a trip, a friend) are left undone: the
-   * playthrough test is the player who does everything.
-   */
   errand(t: number, sparWith: () => Partner): boolean {
-    this.flush();
-    for (const q of [...DAILIES, ...STORY]) {
-      if (questStatus(q, this.world, viewOf(this.world, this.pet, t)) !== "active") continue;
-      const prog = questProgress(q, this.world, viewOf(this.world, this.pet, t));
-      for (const [i, o] of q.objectives.entries()) {
-        if (!prog[i]!.met && this.objective(o.cond.type === "ANY" ? (o.cond.of ?? [])[0] : o.cond, t, sparWith))
-          return true;
-      }
-    }
-    return false;
-  }
-
-  private objective(c: Condition | undefined, t: number, sparWith: () => Partner): boolean {
-    if (!c) return false;
-    const room = Number(c.index);
-    switch (c.type) {
-      case "VISIT":
-      case "ROOM": {
-        if (!ROOMS[room] || this.distance(room) > 4) return false;
-        if (c.type === "VISIT" && this.world.room === room) this.step(neighbours(room)[0]!, t);
-        const there = this.walkTo(room, t);
-        this.walkTo(HOME, t);
-        return there;
-      }
-      case "MOVE":
-        return this.step(neighbours(this.world.room)[0]!, t) && this.walkTo(HOME, t);
-      case "FORAGE":
-      case "FIND":
-        return c.index === undefined && this.lookAround(t) !== null;
-      case "SPAR":
-        return this.spar(sparWith(), t).ms > 0;
-      case "CRAFT": {
-        const r = RECIPES.find(
-          (x) =>
-            (c.index === undefined || x.out === Number(c.index)) && craftBlocker(this.world, x, this.energy()) === null,
-        );
-        if (!r || this.pet.asleep) return false;
-        const made = craft(this.world, r.index, this.energy());
-        if (!made.ok) return false;
-        this.world = made.world;
-        this.set(work(this.pet, made.energy, made.xp, t, this.brain()));
-        return true;
-      }
-      case "BUY":
-        return this.shopForFood(t, 1);
-      case "GIVE":
-      case "GIVE_TO": {
-        const [who, item] =
-          c.type === "GIVE_TO"
-            ? String(c.index).split(":")
-            : ["wick", c.index === undefined ? undefined : String(c.index)];
-        const what =
-          item !== undefined
-            ? Number(item)
-            : Object.keys(this.world.bag)
-                .map(Number)
-                .find((i) => ITEM[i]?.kind === "material");
-        if (what === undefined || !has(this.world, what, c.value ?? 1)) return false;
-        const r = giveTo(this.world, who!, what, c.value ?? 1);
-        if (!r.ok) return false;
-        this.world = r.world;
-        return true;
-      }
-      case "TALK": {
-        const who = c.index === undefined ? "wick" : String(c.index);
-        const at = GIVER_ROOM[who];
-        if (at === undefined || this.distance(at) > 4 || !this.walkTo(at, t)) return false;
-        this.note(talkTally(who));
-        this.walkTo(HOME, t);
-        return true;
-      }
-      case "CARE":
-        return this.careFor(String(c.index), t);
-      case "MEET":
-        this.note(meetTally(c.index === undefined ? "behemoth" : String(c.index), t, this.pet.tzOffsetMin));
-        return true;
-      default:
-        return false;
-    }
-  }
-
-  /** A care a quest asks for by name ("feed", "sleep", "wake-morning"…), when the time of day it names is now. */
-  private careFor(index: string, t: number): boolean {
-    const [kind, time] = index.split("-") as [string, string | undefined];
-    if (time && TIMES_OF_DAY[timeOfDay(localHour(this.pet, beatOf(t)))] !== time) return false;
-    if (kind === "feed") return this.feed(t);
-    if (kind === "sleep") return !this.pet.asleep && this.care({ kind: "lightsOff" }, t).note === "sleeping";
-    if (kind === "wake") {
-      if (!this.pet.asleep) this.care({ kind: "lightsOff" }, t);
-      return this.care({ kind: "wake" }, t).note === "awake";
-    }
-    if (kind === "play" || kind === "clean" || kind === "pet" || kind === "talk")
-      return this.care(kind === "play" ? { kind, stars: 2 } : { kind }, t).note !== "tooTired";
-    return false;
+    return runErrand(this, t, sparWith);
   }
 
   /** Every box in the bag opened (the bag screen's open). */
