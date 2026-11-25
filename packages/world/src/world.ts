@@ -147,8 +147,9 @@ export type WorldResult<T extends object = object> =
   | { ok: false; reason: string };
 
 const add = (bag: Record<number, number>, item: number, n: number): Record<number, number> => {
-  const next = { ...bag, [item]: (bag[item] ?? 0) + n };
-  if (next[item]! <= 0) delete next[item];
+  const left = (bag[item] ?? 0) + n;
+  const next = { ...bag, [item]: left };
+  if (left <= 0) delete next[item];
   return next;
 };
 
@@ -256,7 +257,9 @@ export const forageKey = (now: number, waitOff = 0): number =>
 
 function roll(seed: string, room: number, hour: number, salt: number): number {
   const h = sha256(new TextEncoder().encode(`${seed}:${room}:${hour}:${salt}`));
-  return ((h[0]! << 24) | (h[1]! << 16) | (h[2]! << 8) | h[3]!) >>> 0;
+  // a sha-256 digest is always 32 bytes, so the first four are there
+  const [a = 0, b = 0, c = 0, d = 0] = h;
+  return ((a << 24) | (b << 16) | (c << 8) | d) >>> 0;
 }
 
 /** Look around the current room. Once per room per window (an hour, less with skills); the caller spends mods.forageEnergy. */

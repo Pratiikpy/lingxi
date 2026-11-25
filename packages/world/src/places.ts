@@ -76,27 +76,33 @@ export const ROOMS: Record<number, Room> = Object.fromEntries(
       scavCost?: number;
     }>
   )
-    .filter((r) => ROOM_TEXT[r.index])
-    .map((r) => [
-      r.index,
-      {
-        ...ROOM_TEXT[r.index]!,
-        index: r.index,
-        x: r.x,
-        y: r.y,
-        z: r.z,
-        bgs: r.bgs,
-        drops: r.drops
-          .filter((d) => ITEM[d.item])
-          .map((d) => ({ item: d.item, tier: d.weight, weight: tierWeight(d.weight) })),
-        shop: SHOPS[r.index] ?? [],
-        affinity: (r.affinity ?? "")
-          .split(",")
-          .map((a) => a.trim())
-          .filter((a): a is Affinity => (AFFINITIES as readonly string[]).includes(a)),
-        familiarSize: Math.round((r.scavCost ?? 0) / 50),
-      },
-    ]),
+    // only rooms the world has words for
+    .flatMap((r) => {
+      const text = ROOM_TEXT[r.index];
+      if (!text) return [];
+      return [
+        [
+          r.index,
+          {
+            ...text,
+            index: r.index,
+            x: r.x,
+            y: r.y,
+            z: r.z,
+            bgs: r.bgs,
+            drops: r.drops
+              .filter((d) => ITEM[d.item])
+              .map((d) => ({ item: d.item, tier: d.weight, weight: tierWeight(d.weight) })),
+            shop: SHOPS[r.index] ?? [],
+            affinity: (r.affinity ?? "")
+              .split(",")
+              .map((a) => a.trim())
+              .filter((a): a is Affinity => (AFFINITIES as readonly string[]).includes(a)),
+            familiarSize: Math.round((r.scavCost ?? 0) / 50),
+          },
+        ],
+      ];
+    }),
 );
 
 /** The home room, read once from the world's sheet: every other room falls back to it, so a sheet without it stops the

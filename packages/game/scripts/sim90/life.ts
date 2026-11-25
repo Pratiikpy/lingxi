@@ -329,13 +329,13 @@ export class Life {
   /** The food in the bag that best fills what the pet is missing. */
   bestFood(): number | null {
     const room = 1000 - this.food();
+    // how much an item fills the pet: none for anything that is not food
+    const fill = (i: number) => (ITEM[i]?.kind === "food" ? (ITEM[i]?.use?.food ?? 0) : 0);
     const foods = Object.keys(this.world.bag)
       .map(Number)
-      .filter((i) => ITEM[i]?.kind === "food" && (ITEM[i]!.use?.food ?? 0) > 0);
-    if (!foods.length) return null;
-    const fill = (i: number) => ITEM[i]!.use!.food!;
+      .filter((i) => fill(i) > 0);
     const fits = foods.filter((i) => fill(i) <= room + 100).sort((a, b) => fill(b) - fill(a));
-    return fits[0] ?? foods.sort((a, b) => fill(a) - fill(b))[0]!;
+    return fits[0] ?? foods.sort((a, b) => fill(a) - fill(b))[0] ?? null;
   }
 
   /** A food from the bag (the one named, or the one that fits best), eaten (world.ts `use` for a food). */
@@ -411,8 +411,9 @@ export class Life {
     if (this.world.room === to) return true;
     const prev = new Map<number, number>([[this.world.room, -1]]);
     const queue = [this.world.room];
-    while (queue.length && !prev.has(to)) {
-      const r = queue.shift()!;
+    while (!prev.has(to)) {
+      const r = queue.shift();
+      if (r === undefined) break;
       for (const n of neighbours(r)) {
         if (prev.has(n)) continue;
         prev.set(n, r);
@@ -421,19 +422,28 @@ export class Life {
     }
     if (!prev.has(to)) return false;
     const path: number[] = [];
-    for (let r = to; r !== this.world.room; r = prev.get(r)!) path.unshift(r);
+    // every room on the way was reached from the one before it, back to where the pet stands
+    for (let r = to; r !== this.world.room; ) {
+      path.unshift(r);
+      const back = prev.get(r);
+      if (back === undefined) return false;
+      r = back;
+    }
     for (const step of path) if (!this.step(step, t)) return false;
     return true;
   }
   distance(to: number): number {
     const seen = new Map<number, number>([[this.world.room, 0]]);
     const queue = [this.world.room];
-    while (queue.length) {
-      const r = queue.shift()!;
-      if (r === to) return seen.get(r)!;
+    for (;;) {
+      const r = queue.shift();
+      if (r === undefined) break;
+      // every room queued has its distance set when it is queued
+      const d = seen.get(r) ?? 0;
+      if (r === to) return d;
       for (const n of neighbours(r)) {
         if (seen.has(n)) continue;
-        seen.set(n, seen.get(r)! + 1);
+        seen.set(n, d + 1);
         queue.push(n);
       }
     }
@@ -514,13 +524,16 @@ export class Life {
     const there = this.distance(FOOD_SHOP);
     const per = exploreMods(this.pet.growth).moveEnergy;
     if (this.pet.asleep || this.energy() < 2 * there * per + 20) return false;
-    const meals = ROOMS[FOOD_SHOP]!.shop.filter(
-      (i) => ITEM[i]?.kind === "food" && ITEM[i]!.price !== undefined && (ITEM[i]!.use?.food ?? 0) > 0,
-    );
-    const best = meals.sort(
-      (a, b) => ITEM[b]!.use!.food! / ITEM[b]!.price! - ITEM[a]!.use!.food! / ITEM[a]!.price!,
-    )[0]!;
-    if (this.world.coins < ITEM[best]!.price!) return false;
+    const shop = ROOMS[FOOD_SHOP];
+    if (!shop) return false;
+    const priceOf = (i: number) => ITEM[i]?.price;
+    const fillOf = (i: number) => ITEM[i]?.use?.food ?? 0;
+    const meals = shop.shop.filter((i) => ITEM[i]?.kind === "food" && priceOf(i) !== undefined && fillOf(i) > 0);
+    // the meals kept above all have a price
+    const perCoin = (i: number) => fillOf(i) / (priceOf(i) ?? Infinity);
+    const best = meals.sort((a, b) => perCoin(b) - perCoin(a))[0];
+    const price = best === undefined ? undefined : priceOf(best);
+    if (best === undefined || price === undefined || this.world.coins < price) return false;
     const home = this.world.room;
     if (!this.walkTo(FOOD_SHOP, t)) {
       this.walkTo(home, t);
@@ -628,7 +641,11 @@ export class Life {
     // today's village happening while it is unused
     const coins = this.world.coins;
     const commissions = COMMISSIONS.filter(
-      (d) => !owned.includes(d.id) && stageReached(stage, d.commission!.stage) && coins >= d.price,
+      (d) =>
+        !owned.includes(d.id) &&
+        d.commission !== undefined &&
+        stageReached(stage, d.commission.stage) &&
+        coins >= d.price,
     ).length;
     const plot = nextPlot(this.world);
     // D16: the happening only while the player can reach it (the map open, the market's price in hand) and has not used it
@@ -662,7 +679,7 @@ export class Life {
 /** Misses the game recorded between two states, read from the kept list once the count has reached its cap. */
 function newMisses(before: Pet, after: Pet): number {
   const b = before.missed ?? [];
-  const last = b.length ? b[b.length - 1]!.beat : -Infinity;
+  const last = b.at(-1)?.beat ?? -Infinity;
   const a = after.missed ?? [];
   return (
     a.filter((m) => m.beat > last).length +

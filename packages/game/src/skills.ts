@@ -73,7 +73,7 @@ export const SKILL_RULE: RuleCircuit = {
   reference: (w) => {
     const held = w & 63;
     const tier = (w >> 6) & 7;
-    const need = tier >= 1 && tier <= 6 ? TIER_GATE[tier - 1]! : 63;
+    const need = (tier >= 1 && tier <= 6 ? TIER_GATE[tier - 1] : undefined) ?? 63;
     return (tier >= 1 && tier <= 6 && held >= need ? 1 : 0) | (need << 1);
   },
 };
@@ -158,7 +158,9 @@ const capstoneTier = (tier: number) => tier === 3 || tier === 6;
 
 /** Every skill, with the exclusions written for every pair of capstones in a tier (both directions). */
 export const SKILLS: readonly SkillDef[] = ROWS.map(([id, name, desc, effect, value, rule]) => {
-  const tree = TREE_OF[String(id)[0]!]!;
+  // a skill's id starts with its tree's digit; an id that does not is a mistake in the table
+  const tree = TREE_OF[String(id).charAt(0)];
+  if (!tree) throw new Error(`skill ${id} names no tree`);
   const tier = Number(String(id)[1]);
   const peers = capstoneTier(tier)
     ? ROWS.map((r) => r[0]).filter((o) => o !== id && Math.floor(o / 10) === Math.floor(id / 10))
@@ -299,7 +301,7 @@ export function effectOf(g: Growth | undefined, effect: Effect): number {
 /** The rules the held capstones add to the circuit, in id order. */
 export function skillRules(g: Growth | undefined): Rule[] {
   if (!g) return [];
-  return SKILLS.filter((s) => s.rule && (g.skills[s.id] ?? 0) > 0).map((s) => s.rule!);
+  return SKILLS.flatMap((s) => (s.rule && (g.skills[s.id] ?? 0) > 0 ? [s.rule] : []));
 }
 export const ruleSkillIds = (g: Growth | undefined): number[] =>
   g ? SKILLS.filter((s) => s.rule && (g.skills[s.id] ?? 0) > 0).map((s) => s.id) : [];

@@ -94,7 +94,7 @@ export function runErrand(life: Life, t: number, sparWith: () => Partner): boole
     if (questStatus(q, life.world, viewOf(life.world, life.pet, t)) !== "active") continue;
     const prog = questProgress(q, life.world, viewOf(life.world, life.pet, t));
     for (const [i, o] of q.objectives.entries()) {
-      if (!prog[i]!.met && objective(life, o.cond.type === "ANY" ? (o.cond.of ?? [])[0] : o.cond, t, sparWith))
+      if (!prog[i]?.met && objective(life, o.cond.type === "ANY" ? (o.cond.of ?? [])[0] : o.cond, t, sparWith))
         return true;
     }
   }
@@ -108,13 +108,16 @@ function objective(life: Life, c: Condition | undefined, t: number, sparWith: ()
     case "VISIT":
     case "ROOM": {
       if (!ROOMS[room] || life.distance(room) > 4) return false;
-      if (c.type === "VISIT" && life.world.room === room) life.step(neighbours(room)[0]!, t);
+      const out = neighbours(room)[0];
+      if (c.type === "VISIT" && life.world.room === room && out !== undefined) life.step(out, t);
       const there = life.walkTo(room, t);
       life.walkTo(HOME, t);
       return there;
     }
-    case "MOVE":
-      return life.step(neighbours(life.world.room)[0]!, t) && life.walkTo(HOME, t);
+    case "MOVE": {
+      const next = neighbours(life.world.room)[0];
+      return next !== undefined && life.step(next, t) && life.walkTo(HOME, t);
+    }
     case "FORAGE":
     case "FIND":
       return c.index === undefined && life.lookAround(t) !== null;
@@ -147,7 +150,8 @@ function objective(life: Life, c: Condition | undefined, t: number, sparWith: ()
               .map(Number)
               .find((i) => ITEM[i]?.kind === "material");
       if (what === undefined || !has(life.world, what, c.value ?? 1)) return false;
-      const r = giveTo(life.world, who!, what, c.value ?? 1);
+      if (who === undefined) return false;
+      const r = giveTo(life.world, who, what, c.value ?? 1);
       if (!r.ok) return false;
       life.world = r.world;
       return true;

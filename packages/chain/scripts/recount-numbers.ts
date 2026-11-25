@@ -17,7 +17,7 @@
  */
 
 import { readFileSync } from "node:fs";
-import { type Address, createPublicClient, decodeEventLog, http, keccak256, parseAbi, toHex } from "viem";
+import { type Address, type Hex, createPublicClient, decodeEventLog, http, keccak256, parseAbi, toHex } from "viem";
 import type { Deployment } from "../src/registry";
 import { XLAYER_ENDPOINTS, createPacedLogs } from "./lib/paced-logs";
 import { xLayer } from "../src/tapeout";
@@ -36,13 +36,27 @@ const arg = (n: string, f?: string) => {
   const i = process.argv.indexOf(`--${n}`);
   return i > 0 ? process.argv[i + 1] : f;
 };
-const d = JSON.parse(readFileSync(arg("deployment")!, "utf8")) as Deployment & {
+/** An argument the recount cannot run without, named when it is missing. */
+const need = (n: string): string => {
+  const v = arg(n);
+  if (!v) throw new Error(`--${n} is required`);
+  return v;
+};
+/** A log's indexed topic; every event read here carries the topics its signature declares, so a missing one is a bad log. */
+const topicOf = (l: { topics: readonly (Hex | undefined)[] }, i: number): Hex => {
+  const t = l.topics[i];
+  if (!t) throw new Error(`a log is missing its topic ${i}`);
+  return t;
+};
+/** A token or pet id from a log's topic, as a decimal string. */
+const idOf = (l: { topics: readonly (Hex | undefined)[] }, i: number): string => BigInt(topicOf(l, i)).toString();
+const d = JSON.parse(readFileSync(need("deployment"), "utf8")) as Deployment & {
   outfitMarketBlock?: number;
   outfitMarketV2Block?: number;
 };
 /** The block the registry was deployed in on X Layer mainnet. */
 const registryFrom = Number(arg("registry-from", "75968151"));
-const api = arg("api", "https://lingxi.knole.me")!;
+const api = arg("api", "https://lingxi.knole.me") ?? "https://lingxi.knole.me";
 // --rpc names one endpoint (a local fork, say); without it the walk is spread over X Layer's public endpoints
 const rpcArg = arg("rpc");
 const rpc = rpcArg ?? "https://rpc.xlayer.tech";
@@ -167,7 +181,7 @@ async function countPets(
   let children = 0;
   let saves = 0;
   const bredIds = new Set<string>();
-  for (const l of reg) if (l.topics[0] === T.bred) bredIds.add(BigInt(l.topics[1]!).toString());
+  for (const l of reg) if (l.topics[0] === T.bred) bredIds.add(idOf(l, 1));
   for (const l of reg) {
     if (l.topics[0] === T.hatched) {
       const ev = decodeEventLog({ abi: events, data: l.data, topics: l.topics });
@@ -224,8 +238,11 @@ async function countWeek(
   // the last 7 days and who kept each pet (H10), from the same logs, each block's own time and each hatch's own sender
   const blockTime = new Map<string, number>();
   const timeOfBlock = async (hex: string) => {
-    if (!blockTime.has(hex)) blockTime.set(hex, Number((await pub.getBlock({ blockNumber: BigInt(hex) })).timestamp));
-    return blockTime.get(hex)!;
+    const known = blockTime.get(hex);
+    if (known !== undefined) return known;
+    const t = Number((await pub.getBlock({ blockNumber: BigInt(hex) })).timestamp);
+    blockTime.set(hex, t);
+    return t;
   };
   if (live.week || live.kept) {
     const since = live.week?.since ?? 0;
@@ -249,7 +266,7 @@ async function countWeek(
         }
       } else if (l.topics[0] === T.checkpoint && (await timeOfBlock(l.blockNumber)) >= since) {
         w.saves++;
-        w.petsSaved.add(BigInt(l.topics[1]!).toString());
+        w.petsSaved.add(idOf(l, 1));
       }
     }
     if (live.week) {
@@ -276,8 +293,8 @@ async function countCircuits(
   timeOfBlock: (hex: string) => Promise<number>,
 ): Promise<void> {
   // circuits Lingxi has taped out (H10): the processor's mints, walked by this script, and its own count
-  if (live.circuits && (live.circuits.fromBlock ?? d.processorBlock)) {
-    const from = live.circuits.fromBlock ?? d.processorBlock!;
+  const from = live.circuits?.fromBlock ?? d.processorBlock;
+  if (live.circuits && from) {
     let minted = 0;
     let recent = 0;
     for (const l of await logsOf(d.processor, from, live.circuits.indexedTo)) {
@@ -339,7 +356,7 @@ async function countSales(
 ): Promise<{ team: Set<string> }> {
   // sales, each market up to the block the page has read it to
   // the team's wallets (C2): those the page names, and those in the server's private file on this machine
-  const teamFile = arg("team-file", "../../services/api/data/team.json")!;
+  const teamFile = arg("team-file", "../../services/api/data/team.json") ?? "../../services/api/data/team.json";
   const privateTeam = (() => {
     try {
       const w = (JSON.parse(readFileSync(teamFile, "utf8")) as { wallets?: unknown }).wallets;
@@ -357,11 +374,12 @@ async function countSales(
     }
   })();
   const team = new Set([...(live.team?.wallets ?? []).map((x) => x.toLowerCase()), ...privateTeam]);
-  if (live.team)
+  const liveTeam = live.team;
+  if (liveTeam)
     check(
       "team wallets kept private (the server's file on this machine)",
-      privateTeam.filter((x) => !live.team!.wallets.map((w) => w.toLowerCase()).includes(x)).length,
-      live.team.hidden,
+      privateTeam.filter((x) => !liveTeam.wallets.map((w) => w.toLowerCase()).includes(x)).length,
+      liveTeam.hidden,
     );
   const markets: Array<[string, Address | undefined, number | undefined, PageMarket | null]> = [
     ["OKB market", d.outfitMarket, d.outfitMarketBlock, live.outfits.okb],
@@ -418,11 +436,11 @@ async function countSales(
         continue;
       }
       if (l.topics[0] === T.created) {
-        creators.set(BigInt(l.topics[1]!).toString(), topicAddr(l.topics[2]));
+        creators.set(idOf(l, 1), topicAddr(l.topics[2]));
         continue;
       }
       if (l.topics[0] === T.listedV1 || l.topics[0] === T.listedV2) {
-        sellers.set(BigInt(l.topics[1]!).toString(), topicAddr(l.topics[2]));
+        sellers.set(idOf(l, 1), topicAddr(l.topics[2]));
         continue;
       }
       if (l.topics[0] !== T.minted && l.topics[0] !== T.sold) continue;
@@ -432,10 +450,7 @@ async function countSales(
       paid += a.paid;
       // the buyer and the design's creator, or the listing's seller, from the topics
       const buyer = topicAddr(l.topics[2]);
-      const maker =
-        l.topics[0] === T.minted
-          ? creators.get(BigInt(l.topics[1]!).toString())
-          : sellers.get(BigInt(l.topics[1]!).toString());
+      const maker = l.topics[0] === T.minted ? creators.get(idOf(l, 1)) : sellers.get(idOf(l, 1));
       const into = team.has(buyer) ? split.team : buyer === maker ? split.self : split.players;
       into.copies += Number(a.quantity);
       into.paid += a.paid;
@@ -496,8 +511,7 @@ async function countTeamShare(
   // the team's share of the pet figures (C2), from the registry's own logs: each pet's owner from its Hatched event
   if (live.pets.byTeam && live.week?.byTeam) {
     const owner = new Map<string, string>();
-    for (const l of reg)
-      if (l.topics[0] === T.hatched) owner.set(BigInt(l.topics[1]!).toString(), topicAddr(l.topics[2]));
+    for (const l of reg) if (l.topics[0] === T.hatched) owner.set(idOf(l, 1), topicAddr(l.topics[2]));
     const nowSec = Math.floor(Date.now() / 1000);
     const all = { hatched: 0, children: 0, saves: 0, hatchers: new Set<string>() };
     const wk = { hatched: 0, children: 0, saves: 0, petsSaved: new Set<string>(), hatchers: new Set<string>() };
@@ -575,16 +589,22 @@ async function countTotals(
   // the paid extras: burns summed from Burned events, purchases counted from Bought events by feature
   let extras = 0n;
   if (d.extras && d.extrasBlock) {
-    const sold = [0, 0, 0];
+    const sold: [number, number, number] = [0, 0, 0];
     for (const l of await logsOf(d.extras, d.extrasBlock, Number(await pub.getBlockNumber()))) {
       if (l.topics[0] === T.burned)
         extras += (decodeEventLog({ abi: events, data: l.data, topics: l.topics }).args as { amount: bigint }).amount;
-      else if (l.topics[0] === T.bought) sold[Number(BigInt(l.topics[2]!))]! += 1;
+      else if (l.topics[0] === T.bought) {
+        // the extras sell three features, 0 to 2; any other is a contract this recount does not know
+        const f = Number(BigInt(topicOf(l, 2)));
+        if (f !== 0 && f !== 1 && f !== 2)
+          throw new Error(`the extras sold feature ${f}, which this recount does not know`);
+        sold[f] += 1;
+      }
     }
     check("BEM burned by the extras (sum of its Burned events)", extras.toString(), live.burned.extras ?? "absent");
-    check("room packs bought (Bought events)", sold[0]!, live.extras?.room ?? "absent");
-    check("look packs bought (Bought events)", sold[1]!, live.extras?.looks ?? "absent");
-    check("name colours bought (Bought events)", sold[2]!, live.extras?.colours ?? "absent");
+    check("room packs bought (Bought events)", sold[0], live.extras?.room ?? "absent");
+    check("look packs bought (Bought events)", sold[1], live.extras?.looks ?? "absent");
+    check("name colours bought (Bought events)", sold[2], live.extras?.colours ?? "absent");
   }
   check("BEM burned in total", (market + breeding + shop + adoption + extras).toString(), live.burned.total);
   if (d.holderGift) check("holder pins claimed", Number(await read(d.holderGift, "total")), live.pins ?? "absent");
@@ -619,30 +639,35 @@ async function countGoals(
   const times = new Map<number, number>();
   const credits: Array<{ m: GoalMetric; w: string; n: number; t: number }> = [];
   const timeOf = async (b: number) => {
-    if (!times.has(b)) times.set(b, Number((await pub.getBlock({ blockNumber: BigInt(b) })).timestamp));
-    return times.get(b)!;
+    const known = times.get(b);
+    if (known !== undefined) return known;
+    const t = Number((await pub.getBlock({ blockNumber: BigInt(b) })).timestamp);
+    times.set(b, t);
+    return t;
   };
   for (const l of raw) {
     const b = Number(BigInt(l.blockNumber));
     const fromRegistry = l.address.toLowerCase() === d.registry.toLowerCase();
     const t0 = l.topics[0];
-    if (fromRegistry && t0 === T.transfer)
-      owners.set(BigInt(l.topics[3]!).toString(), `0x${l.topics[2]!.slice(26)}`.toLowerCase());
+    if (fromRegistry && t0 === T.transfer) owners.set(idOf(l, 3), `0x${topicOf(l, 2).slice(26)}`.toLowerCase());
     else if (fromRegistry && t0 === T.hatched)
-      kept.set(BigInt(l.topics[1]!).toString(), {
-        to: `0x${l.topics[2]!.slice(26)}`.toLowerCase(),
+      kept.set(idOf(l, 1), {
+        to: `0x${topicOf(l, 2).slice(26)}`.toLowerCase(),
         days: new Set(),
         counted: false,
       });
-    else if (fromRegistry && t0 === T.bred)
-      credits.push({ m: "children", w: owners.get(BigInt(l.topics[1]!).toString())!, n: 1, t: await timeOf(b) });
-    else if (fromRegistry && t0 === T.checkpoint) {
-      const pet = BigInt(l.topics[1]!).toString();
-      const day = Number(BigInt(l.topics[2]!));
+    else if (fromRegistry && t0 === T.bred) {
+      // a child whose owner is not known yet earns no credit, exactly as the server's ledger skips it (goals.ts, add)
+      const w = owners.get(idOf(l, 1));
+      if (w) credits.push({ m: "children", w, n: 1, t: await timeOf(b) });
+    } else if (fromRegistry && t0 === T.checkpoint) {
+      const pet = idOf(l, 1);
+      const day = Number(BigInt(topicOf(l, 2)));
       const k = kept.get(pet);
       if (!k || k.days.has(day)) continue;
       k.days.add(day);
-      credits.push({ m: "saves", w: owners.get(pet)!, n: 1, t: await timeOf(b) });
+      const w = owners.get(pet);
+      if (w) credits.push({ m: "saves", w, n: 1, t: await timeOf(b) });
       if (!k.counted && k.days.size >= SETTLED_DAYS) {
         k.counted = true;
         credits.push({ m: "hatched", w: k.to, n: 1, t: await timeOf(b) });

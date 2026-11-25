@@ -55,9 +55,15 @@ const OWN_ART: Record<number, string> = {
 
 export const ITEM: Record<number, Item> = Object.fromEntries([
   ...(data.items as Array<{ index: number; art: string }>)
-    .filter((i) => ITEMS[i.index])
-    .map((i) => [i.index, { ...ITEMS[i.index]!, index: i.index, art: i.art }]),
-  ...Object.entries(OWN_ART).map(([k, art]) => [Number(k), { ...ITEMS[Number(k)]!, index: Number(k), art }]),
+    // only items the table defines; the sheet's art for others is not used
+    .flatMap((i) => {
+      const def = ITEMS[i.index];
+      return def ? [[i.index, { ...def, index: i.index, art: i.art }]] : [];
+    }),
+  ...Object.entries(OWN_ART).flatMap(([k, art]) => {
+    const def = ITEMS[Number(k)];
+    return def ? [[Number(k), { ...def, index: Number(k), art }]] : [];
+  }),
 ]);
 
 /** A rarity tier from the world sheet becomes a weight: tier 9 is 256 times as common as tier 1, tier 0 never drops. */
@@ -70,7 +76,10 @@ export function pickDrop(drops: ReadonlyArray<{ item: number; weight: number }>,
     if (x < d.weight) return d.item;
     x -= d.weight;
   }
-  return drops[0]!.item;
+  // unreachable while every weight is counted in the total; the first drop stands in, as it always did
+  const first = drops[0];
+  if (!first) throw new Error("no drops to pick from");
+  return first.item;
 }
 
 /**
@@ -128,21 +137,24 @@ const SOURCE_RECIPES: Recipe[] = (
     room: number | null;
   }>
 )
-  .filter(
-    (r) =>
-      RECIPE_NAMES[r.index] && ITEM[r.out] && r.ins.every((x) => ITEM[x.item]) && (r.tool === null || ITEM[r.tool]),
-  )
-  .map((r) => ({
-    index: r.index,
-    name: RECIPE_NAMES[r.index]!,
-    out: r.out,
-    outAmount: BULK_RECIPES.has(r.index) ? BULK_YIELD : Math.max(1, r.outAmount),
-    ins: r.ins.map((x) => ({ item: x.item, amount: x.amount })),
-    ...(r.tool !== null ? { tool: r.tool } : {}),
-    energy: craftEnergy(r.stamina),
-    xp: craftXp(r.xp),
-    ...(r.room !== null ? { room: r.room } : {}),
-  }));
+  // only recipes with a name whose every item exists
+  .flatMap((r) => {
+    const name = RECIPE_NAMES[r.index];
+    if (!name || !ITEM[r.out] || !r.ins.every((x) => ITEM[x.item]) || (r.tool !== null && !ITEM[r.tool])) return [];
+    return [
+      {
+        index: r.index,
+        name,
+        out: r.out,
+        outAmount: BULK_RECIPES.has(r.index) ? BULK_YIELD : Math.max(1, r.outAmount),
+        ins: r.ins.map((x) => ({ item: x.item, amount: x.amount })),
+        ...(r.tool !== null ? { tool: r.tool } : {}),
+        energy: craftEnergy(r.stamina),
+        xp: craftXp(r.xp),
+        ...(r.room !== null ? { room: r.room } : {}),
+      },
+    ];
+  });
 
 export const RECIPES: Recipe[] = [...SOURCE_RECIPES, ...SMALL_BATCH_RECIPES];
 
