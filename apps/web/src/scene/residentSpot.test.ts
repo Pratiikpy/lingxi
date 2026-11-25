@@ -46,6 +46,53 @@ describe("placeResident (P7)", () => {
     }
   });
 
+  it("an adult pet and an adult resident on a phone both stand whole, overlapping only as much as they must (P7b)", () => {
+    // two adults side by side need 2 * 18 + 2 * 18 + 6 = 78 pixels; a phone shows 71
+    for (const x of [104, 20]) {
+      const at = placeResident({ id: "r", stage: "adult", x }, "adult", phone);
+      const r = at.spot!.x;
+      // both whole, two pixels clear of each edge
+      for (const c of [at.petX, r]) {
+        expect(c - HALF.adult, "inside the left edge").toBeGreaterThanOrEqual(phone.left + 2);
+        expect(c + HALF.adult, "inside the right edge").toBeLessThanOrEqual(phone.right - 2);
+      }
+      // the resident on the side it lives on
+      expect(x > PET_HOME ? r > at.petX : r < at.petX).toBe(true);
+      // overlapping by no more than they must, and never by more than half the resident
+      const overlap = 2 * HALF.adult - Math.abs(r - at.petX);
+      expect(overlap, "no more than the room they lack").toBeLessThanOrEqual(
+        2 * HALF.adult + 2 * HALF.adult - (71 - 4) + 1,
+      );
+      expect(overlap, "never more than half the resident").toBeLessThanOrEqual(HALF.adult);
+      expect(Number.isInteger(at.petX) && Number.isInteger(r)).toBe(true);
+    }
+  });
+
+  it("every pair that fitted side by side on a phone stands exactly where it did (P7b)", () => {
+    const stages = ["baby", "child", "teen"] as const;
+    const was = {
+      // the rule before P7b, for pairs whose two widths and gap fit in what shows
+      place: (hp: number, hr: number, onRight: boolean) => {
+        const total = 2 * hp + 2 * hr + 6;
+        const start = phone.left + Math.max(2, (phone.right - phone.left - total) / 2);
+        return {
+          petX: Math.round(onRight ? start + hp : start + 2 * hr + 6 + hp),
+          spot: Math.round(onRight ? start + 2 * hp + 6 + hr : start + hr),
+        };
+      },
+    };
+    for (const pet of [...stages, "adult"] as const)
+      for (const res of [...stages, "adult"] as const) {
+        if (2 * HALF[pet] + 2 * HALF[res] + 6 > phone.right - phone.left - 4) continue;
+        for (const x of [104, 20]) {
+          const at = placeResident({ id: "r", stage: res, x }, pet, phone);
+          if (at.petX === PET_HOME) continue;
+          const old = was.place(HALF[pet], HALF[res], x >= PET_HOME);
+          expect({ petX: at.petX, spot: at.spot!.x }, `${pet} with ${res}`).toEqual({ petX: old.petX, spot: old.spot });
+        }
+      }
+  });
+
   it("a stage the room does not draw stands as an adult", () => {
     const elder = placeResident({ id: "r", stage: "elder", x: 104 }, "adult", phone);
     const adult = placeResident({ id: "r", stage: "adult", x: 104 }, "adult", phone);
