@@ -16,7 +16,8 @@ const NONCE = /^[0-9a-f]{16,64}$/;
 const PET = /^\d{1,20}$/;
 const MAX_PAYLOAD = 20_000;
 
-export type RelayRefusal = "unsigned" | "expired" | "replayed" | "badSignature" | "notKeeper" | "busy";
+/** `chainUnread`: X Layer could not be read to say who keeps the pet, so the player is asked to try again */
+export type RelayRefusal = "unsigned" | "expired" | "replayed" | "badSignature" | "notKeeper" | "chainUnread" | "busy";
 
 /**
  * A relay request as it arrives (a relay route's envelope, or a season entry's proof). Nothing in it is trusted yet:
@@ -75,7 +76,14 @@ export async function checkRelayAuth(
     return { ok: false, reason: "badSignature" };
   }
   if (signer.toLowerCase() !== a.signer.toLowerCase()) return { ok: false, reason: "badSignature" };
-  if (!(await deps.isKeeper(req.petId, signer).catch(() => false))) return { ok: false, reason: "notKeeper" };
+  // a chain that cannot be read is not an answer: the player is told to try again, never that the pet is not theirs
+  let keeps: boolean;
+  try {
+    keeps = await deps.isKeeper(req.petId, signer);
+  } catch {
+    return { ok: false, reason: "chainUnread" };
+  }
+  if (!keeps) return { ok: false, reason: "notKeeper" };
   // the nonce is spent only by a request that would otherwise go through
   const fresh = deps.nonces.use(`${signer.toLowerCase()}:${a.nonce}`, (a.time + WINDOW_S) * 1000, now);
   if (fresh === "full") return { ok: false, reason: "busy" };

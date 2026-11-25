@@ -163,12 +163,13 @@ export function createApp(
   // every relay request is the signed form (see relayGate.ts and @lingxi/chain's relayAuth.ts); its payload is the
   // route's own schema
   const nonces = createNonceBook();
-  const refusalStatus: Record<string, 401 | 403 | 429> = {
+  const refusalStatus: Record<string, 401 | 403 | 429 | 503> = {
     unsigned: 401,
     expired: 401,
     badSignature: 401,
     replayed: 401,
     notKeeper: 403,
+    chainUnread: 503,
     busy: 429,
   };
 

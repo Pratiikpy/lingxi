@@ -233,6 +233,8 @@ export const en = {
     "Not saved: this day belongs to a pet of another line than the one on X Layer, and a saved day can never be undone. Nothing was sent. Open the pet this record belongs to and save from there.",
   "chain.notKeeping":
     "This wallet no longer keeps this pet on chain (it was sold or given away, or the sitting ended). Nothing was sent. Connect the wallet that owns it.",
+  "relay.chainUnread":
+    "Lingxi couldn't read X Layer just now to check who keeps this pet. Nothing was charged; try again in a little while.",
   "relay.busy": "Lingxi's relayer has had many requests just now. Nothing was charged; try again in a little while.",
   "relay.budget":
     "Lingxi's free tape-outs for today are used up; they come back tomorrow. Nothing was charged. You can tape it out with your own wallet instead.",

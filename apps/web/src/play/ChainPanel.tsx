@@ -38,6 +38,7 @@ const ERR: Record<string, Key> = {
   newcomer: "relay.newcomer",
   lifetime: "relay.lifetime",
   notKeeper: "relay.notKeeper",
+  chainUnread: "relay.chainUnread",
   unsigned: "relay.signature",
   expired: "relay.signature",
   replayed: "relay.signature",

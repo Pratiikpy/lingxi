@@ -32,6 +32,19 @@ describe("who may ask the relayer to tape out a brain", () => {
     });
   });
 
+  it("a keeper the chain cannot be read for is told to try again, never that the pet is not theirs (P7)", async () => {
+    const req = await signRelay(owner, "brain", "7", body, NOW);
+    const nonces = createNonceBook();
+    const down = {
+      ...deps(),
+      nonces,
+      isKeeper: () => Promise.reject(new Error("fetch failed")),
+    };
+    expect(await checkRelayAuth(req, down)).toEqual({ ok: false, reason: "chainUnread" });
+    // nothing was spent: the same request goes through once the chain answers
+    expect(await checkRelayAuth(req, { ...deps(), nonces })).toEqual({ ok: true, signer: owner.address });
+  });
+
   it("not a signature moved onto another request, another kind, or another pet number", async () => {
     const req = await signRelay(owner, "brain", "7", body, NOW);
     expect(await checkRelayAuth({ ...req, payload: JSON.stringify({ ...body, lessons: [1] }) }, deps())).toMatchObject({
