@@ -39,8 +39,8 @@ export function relayChecks({
   // who may keep a pet, read from PetRegistry on X Layer at the moment of the request
   const isKeeper: KeeperCheck | undefined = chainCtx
     ? async (petId, who) =>
-        (await chainCtx!.pub.readContract({
-          address: chainCtx!.deployment.registry,
+        (await chainCtx.pub.readContract({
+          address: chainCtx.deployment.registry,
           abi: petRegistryAbi,
           functionName: "isKeeper",
           args: [BigInt(petId), who],
@@ -55,8 +55,8 @@ export function relayChecks({
         if (settledPets.has(petId)) return true;
         const asked = unsettledAt.get(petId);
         if (asked !== undefined && Date.now() - asked < 10 * 60_000) return false;
-        const yes = (await chainCtx!.pub.readContract({
-          address: chainCtx!.deployment.registry,
+        const yes = (await chainCtx.pub.readContract({
+          address: chainCtx.deployment.registry,
           abi: petRegistryAbi,
           functionName: "isSettled",
           args: [BigInt(petId)],
@@ -87,7 +87,7 @@ export function relayChecks({
   const petOnChain: PetOnChainReader | undefined = chainCtx
     ? async (petId) => {
         try {
-          const p = await readPet(chainCtx!.pub, chainCtx!.deployment, BigInt(petId));
+          const p = await readPet(chainCtx.pub, chainCtx.deployment, BigInt(petId));
           if (!p.born) return null;
           return {
             brainId: p.brainId.toString(),

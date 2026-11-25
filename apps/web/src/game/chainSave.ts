@@ -11,7 +11,7 @@ import { noteTally } from "./tally";
 import { now as gameNow } from "./gameClock";
 import { chainDay, petKey, records, store, activeRecord } from "./chainRecords";
 import { chainReason } from "./chainRefusals";
-import { connectWallet, autoWallet } from "./chainHelpers";
+import { connectWallet, autoWallet, accountOf } from "./chainHelpers";
 import type { StoreApi } from "zustand";
 import type { ChainState } from "./chain";
 
@@ -78,7 +78,7 @@ export function saveActions(
           const tx = await wallet.sendTransaction({
             to: key,
             value: AUTO_FUND - balance,
-            account: wallet.account!,
+            account: accountOf(wallet),
             chain,
           });
           await publicClient.waitForTransactionReceipt({ hash: tx });
@@ -124,7 +124,7 @@ export function saveActions(
       set({ busy: "connecting", error: null });
       try {
         const wallet = await connectWallet();
-        if (who.toLowerCase() === wallet.account!.address.toLowerCase()) throw new Error("selfSitter");
+        if (who.toLowerCase() === accountOf(wallet).address.toLowerCase()) throw new Error("selfSitter");
         set({ busy: "saving" });
         const now = Number((await publicClient.getBlock()).timestamp);
         const until = now + Math.round(days) * 86_400 - 600;

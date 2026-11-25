@@ -44,6 +44,7 @@ import {
   birthRecord,
   relaySigner,
   saveFirstDay,
+  accountOf,
 } from "./chainHelpers";
 import type { StoreApi } from "zustand";
 import type { ChainState } from "./chain";
@@ -205,14 +206,14 @@ export function familyActions(
             address: terms.bem,
             abi: erc20Abi,
             functionName: "balanceOf",
-            args: [wallet.account!.address],
+            args: [accountOf(wallet).address],
           })) as bigint;
           if (held < terms.fee) throw new Error("not enough BEM");
         }
         // the partner's pet, owner and brain as they told us are checked on chain, and its consent must stand, before
         // the child circuit is taped out: nothing is spent on a partner's word alone
         if ((await checkPartner(publicClient, deployment, partner)) !== "ok") throw new Error("PartnerNotOnChain");
-        if (!(await hasConsent(publicClient, deployment, BigInt(partner.petId), wallet.account!.address)))
+        if (!(await hasConsent(publicClient, deployment, BigInt(partner.petId), accountOf(wallet).address)))
           throw new Error("NoConsent");
         set({ busy: "taping" });
         const relayed = await relayChild(
@@ -222,7 +223,7 @@ export function familyActions(
         );
         if (!relayed.ok) throw new Error(relayed.reason);
         set({ busy: "hatching" });
-        const owner = wallet.account!.address;
+        const owner = accountOf(wallet).address;
         const { childId, tx } = await breedOnChain(
           publicClient,
           wallet,
@@ -251,12 +252,13 @@ export function familyActions(
         set({ busy: "idle", error: msg });
         // the Breeder's own reason, read from the decoded error, not the message's first line (A19)
         const refused = revertName(e, breederV2Abi);
+        const known = refused ? BREED_REFUSALS[refused] : undefined;
         return {
           ok: false,
           reason: refusesTokens(e)
             ? "cannotReceive"
-            : refused && refused in BREED_REFUSALS
-              ? BREED_REFUSALS[refused]!
+            : known !== undefined
+              ? known
               : /PartnerNotOnChain/.test(msg)
                 ? "partnerNotOnChain"
                 : /not enough BEM/.test(msg)

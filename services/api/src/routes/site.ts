@@ -134,9 +134,10 @@ export function withSite(app: Hono, site: string | SiteSource): Hono {
       // the live release first; then each earlier release still kept, newest first
       const earlier = source.fallbacks();
       const from = (i: number) => async () => {
-        if (i >= earlier.length) return next();
+        const folder = earlier[i];
+        if (folder === undefined) return next();
         // a file found answers with its Response; otherwise the request goes on to the next folder, then to a 404
-        const res: unknown = await serverFor(earlier[i]!)(c, from(i + 1));
+        const res: unknown = await serverFor(folder)(c, from(i + 1));
         if (res instanceof Response) c.res = res;
       };
       return await serverFor(root)(c, from(0));

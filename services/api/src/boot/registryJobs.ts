@@ -107,7 +107,7 @@ export function startRegistryJobs({
         ? (ids) =>
             nameColours(
               visitorPub,
-              chainCtx!.deployment,
+              chainCtx.deployment,
               ids.map((x) => BigInt(x)),
             )
         : undefined,

@@ -92,7 +92,9 @@ export function withSeason(
         pending: v.pending,
         text,
       });
-      if (written.size > 8) written.delete(written.keys().next().value!);
+      // the oldest written week leaves once more than eight are kept
+      const oldest = written.size > 8 ? written.keys().next() : null;
+      if (oldest && !oldest.done) written.delete(oldest.value);
     }
     c.header("content-type", "application/json; charset=utf-8");
     return c.body(text);

@@ -110,7 +110,8 @@ export function mountOpenApis({
       : { upstreams: [rpc] },
   );
   // adoption papers (plan 4.8): posted by the owner of a pet on offer, fetched by the buyer's game
-  if (chain?.deployment.adoptionCentre) {
+  const centre = chain?.deployment.adoptionCentre;
+  if (chain && centre) {
     const { deployment } = chain;
     const pub = visitorPub;
     withPapers(app, createPapersStore(process.env.LINGXI_PAPERS_STORE), {
@@ -123,7 +124,7 @@ export function mountOpenApis({
         })) as `0x${string}`,
       sellerOf: async (id) => {
         const row = (await pub.readContract({
-          address: deployment.adoptionCentre!,
+          address: centre,
           abi: adoptionCentreAbi,
           functionName: "listings",
           args: [id],
@@ -173,7 +174,7 @@ export function mountOpenApis({
     withDiaries(app, createDiaryStore(process.env.LINGXI_DIARY_DIR), async (id) => {
       // the pet's age on the chain's own clock: its hatch block's time against the latest block's (A39), read through
       // the visitors' client, so a flood of posts never lands on the jobs' node whole (A114)
-      const [p, head] = await Promise.all([readPet(visitorPub, chain!.deployment, BigInt(id)), visitorPub.getBlock()]);
+      const [p, head] = await Promise.all([readPet(visitorPub, chain.deployment, BigInt(id)), visitorPub.getBlock()]);
       return { logHash: p.logHash, born: p.born, at: Number(head.timestamp) };
     });
 }

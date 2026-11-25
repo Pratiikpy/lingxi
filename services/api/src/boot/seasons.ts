@@ -65,7 +65,7 @@ export function createSeasons({
             // a proven entry's brain is read through the visitors' client, at most MAX_CIRCUIT_READS circuits, each
             // netlist read once for the whole server (A115)
             brainOf: async (id) => {
-              const onChain = await readPet(visitorPub, chainCtx!.deployment, BigInt(id));
+              const onChain = await readPet(visitorPub, chainCtx.deployment, BigInt(id));
               const circuit = await loadCircuitFromChain(visitorPub, onChain.processor, onChain.brainId, undefined, {
                 cache: seasonNetlists,
               });
@@ -73,7 +73,7 @@ export function createSeasons({
             },
             // the comparison itself runs off the request thread, with a budget (A62)
             circuitOf: async (id) => {
-              const onChain = await readPet(visitorPub, chainCtx!.deployment, BigInt(id));
+              const onChain = await readPet(visitorPub, chainCtx.deployment, BigInt(id));
               return loadCircuitFromChain(visitorPub, onChain.processor, onChain.brainId, undefined, {
                 cache: seasonNetlists,
               });

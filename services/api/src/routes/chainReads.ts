@@ -122,12 +122,14 @@ export function withTree(
       const page = built.tree.pets.slice(Math.max(0, from), Math.max(0, from) + n);
       const more = Math.max(0, from) + n < built.tree.pets.length;
       const { pets: _all, ...counts } = built.tree;
+      // the page's last pet is where the next page starts
+      const last = page.at(-1);
       return c.json({
         ok: true,
         indexedTo: indexer.head(),
         ...counts,
         pets: page,
-        ...(more && page.length ? { next: page[page.length - 1]!.id } : {}),
+        ...(more && last ? { next: last.id } : {}),
       });
     }
     c.header("content-type", "application/json; charset=utf-8");

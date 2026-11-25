@@ -10,7 +10,7 @@ import { diaryBody } from "./requests";
 import { programFor } from "./store";
 import { mindKey, petKey, records, store, activeRecord } from "./chainRecords";
 import { chainReason } from "./chainRefusals";
-import { connectWallet, relaySigner } from "./chainHelpers";
+import { connectWallet, relaySigner, accountOf } from "./chainHelpers";
 import type { StoreApi } from "zustand";
 import type { ChainState } from "./chain";
 
@@ -31,7 +31,7 @@ export function mindActions(
         const q = await quoteTapeout(
           publicClient,
           deployment.processor,
-          wallet.account!.address,
+          accountOf(wallet).address,
           net.gates.length,
           net.latches.length,
           netlistBytes(net).length,

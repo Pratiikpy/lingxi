@@ -30,7 +30,7 @@ import {
   activeRecord,
 } from "./chainRecords";
 import { chainReason } from "./chainRefusals";
-import { connectWallet, API_BASE, askToKeep, keptFor, relaySigner } from "./chainHelpers";
+import { connectWallet, API_BASE, askToKeep, keptFor, relaySigner, accountOf, starterId } from "./chainHelpers";
 import type { StoreApi } from "zustand";
 import type { ChainState } from "./chain";
 
@@ -81,7 +81,7 @@ export function keepActions(
             lastDay: 0,
             owner: key.address,
             bornChain: onChain.born,
-            brains: { [mindKey([])]: deployment.circuits[pet.line]!.id },
+            brains: { [mindKey([])]: starterId(deployment, pet.line) },
             brainKey: mindKey([]),
             device: true,
           };
@@ -125,7 +125,7 @@ export function keepActions(
       if (!deployment || !r?.device || get().busy !== "idle") return false;
       set({ busy: "connecting", error: null });
       try {
-        const to = (await connectWallet()).account!.address;
+        const to = accountOf(await connectWallet()).address;
         set({ busy: "saving" });
         const key = await sessionAccount();
         // a plain transfer from this device's key: the wallet signs nothing and pays nothing
@@ -169,13 +169,14 @@ export function keepActions(
             lastDay: 0,
             owner,
             bornChain: onChain.born,
-            brains: { [mindKey([])]: deployment.circuits[pet.line]!.id },
+            brains: { [mindKey([])]: starterId(deployment, pet.line) },
             brainKey: mindKey([]),
           };
           store(pet, rec);
           // its log now starts where the hatch took its state, which is where the chain's proof of its memory starts (A66)
-          if (start?.n !== undefined && start.memory)
-            useGame.getState().rework(pet.bornAt, (p) => restartLog(p, start.n!, start.memory!));
+          const n = start?.n;
+          const memory = start?.memory;
+          if (n !== undefined && memory) useGame.getState().rework(pet.bornAt, (p) => restartLog(p, n, memory));
           setPending(pet, null);
           // from here on the panel shows the pet as kept, whatever fails after
           set({ record: activeRecord() });
@@ -198,7 +199,7 @@ export function keepActions(
         const wallet = await connectWallet();
         if (!record) {
           set({ busy: "hatching" });
-          const owner = wallet.account!.address;
+          const owner = accountOf(wallet).address;
           // the state the hatch records and the log's length at that moment, taken together from the same pet
           const start = { n: pet.pendingLog.length, memory: pet.brain.slice() };
           const { petId, tx } = await hatchOnChain(

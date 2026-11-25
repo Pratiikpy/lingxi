@@ -34,6 +34,9 @@ export function VisitorCards({ pet, lang, picked, setPicked, shyOne, forestFlags
   const friendsAll = useFriends((s) => s.all);
   const roster = useGame((s) => s.pets);
   const setWorldMsg = useWorldMessage((s) => s.show);
+  // who was tapped, looked up once: a relative of this device's, or another player's pet in the room
+  const kin = picked?.startsWith("kin:") ? kinVisitors.find((k) => k.id === picked) : undefined;
+  const other = picked ? others[picked] : undefined;
   return (
     <>
       {picked === "shy:one" && shyOne && (
@@ -58,15 +61,15 @@ export function VisitorCards({ pet, lang, picked, setPicked, shyOne, forestFlags
           </button>
         </div>
       )}
-      {picked?.startsWith("kin:") && kinVisitors.find((k) => k.id === picked) && (
-        <div className="visitor-card" role="dialog" aria-label={kinVisitors.find((k) => k.id === picked)!.name}>
-          <b>{kinVisitors.find((k) => k.id === picked)!.name}</b>
-          <span className="small">{kinVisitors.find((k) => k.id === picked)!.who}</span>
+      {kin && (
+        <div className="visitor-card" role="dialog" aria-label={kin.name}>
+          <b>{kin.name}</b>
+          <span className="small">{kin.who}</span>
           <button
             type="button"
             className="btn primary"
             onClick={() => {
-              const id = Number(picked.slice(4));
+              const id = Number(kin.id.slice(4));
               const index = roster.findIndex((x) => x.bornAt === id);
               setPicked(null);
               if (index >= 0) {
@@ -87,14 +90,11 @@ export function VisitorCards({ pet, lang, picked, setPicked, shyOne, forestFlags
           </button>
         </div>
       )}
-      {picked && others[picked] && (
-        <div className="visitor-card" role="dialog" aria-label={others[picked]!.name}>
-          <b>{others[picked]!.name}</b>
+      {picked && other && (
+        <div className="visitor-card" role="dialog" aria-label={other.name}>
+          <b>{other.name}</b>
           <span className="small visitor-bond">
-            {bondName(
-              bondLevel(bondsOf(friendsAll, pet.bornAt)[friendKey(picked, others[picked]!.name)]?.points ?? 0),
-              lang,
-            )}
+            {bondName(bondLevel(bondsOf(friendsAll, pet.bornAt)[friendKey(picked, other.name)]?.points ?? 0), lang)}
           </span>
           <button
             type="button"
@@ -102,7 +102,7 @@ export function VisitorCards({ pet, lang, picked, setPicked, shyOne, forestFlags
             onClick={() => (
               play("pop"),
               liveEmote("heart", picked),
-              meet(picked, { name: others[picked]!.name, line: others[picked]!.line }, "heart"),
+              meet(picked, { name: other.name, line: other.line }, "heart"),
               setPicked(null)
             )}
           >
@@ -114,7 +114,7 @@ export function VisitorCards({ pet, lang, picked, setPicked, shyOne, forestFlags
             onClick={() => (
               play("tap"),
               liveAsk(picked),
-              meet(picked, { name: others[picked]!.name, line: others[picked]!.line }, "spar"),
+              meet(picked, { name: other.name, line: other.line }, "spar"),
               setPicked(null)
             )}
           >
@@ -124,7 +124,6 @@ export function VisitorCards({ pet, lang, picked, setPicked, shyOne, forestFlags
             type="button"
             className="btn"
             onClick={() => {
-              const other = others[picked]!;
               const block =
                 familyBlock(pet, other.stage, lang) ??
                 bondBlock(

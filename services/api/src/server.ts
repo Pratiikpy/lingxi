@@ -178,7 +178,8 @@ export function createApp(
     path: string,
     kind: "brain" | "child" | "instinct",
     schema: z.ZodType<T>,
-    act: (body: T, petId: string) => Promise<RelayResult>,
+    /** `relayer` is the one this route checked is there before calling it */
+    act: (body: T, petId: string, relayer: BrainRelayer) => Promise<RelayResult>,
     most: (body: T) => number = () => 1,
   ) =>
     app.post(path, async (c) => {
@@ -209,7 +210,7 @@ export function createApp(
       if (!slot.ok) return slot.reason === "busy" ? busy(c) : c.json({ ok: false, reason: slot.reason });
       let result: RelayResult;
       try {
-        result = await act(body, req.petId);
+        result = await act(body, req.petId, relayer);
       } catch (e) {
         quota.refund(slot.ticket);
         throw e;
@@ -221,14 +222,14 @@ export function createApp(
       return c.json(shown);
     });
 
-  relayRoute("/api/tapeout", "brain", BrainRelayPayload, (b) =>
-    relayer!.relay(b.line, b.lessons, b.instincts ?? 0, b.skills ?? []),
+  relayRoute("/api/tapeout", "brain", BrainRelayPayload, (b, _petId, r) =>
+    r.relay(b.line, b.lessons, b.instincts ?? 0, b.skills ?? []),
   );
   relayRoute(
     "/api/tapeout-child",
     "child",
     ChildRelayPayload,
-    async (b, petId) => {
+    async (b, petId, r) => {
       // only for this pet as the chain has it: a birth's first parent is its own brain, a taught child's card a child's (A75)
       const pet = petOnChain ? await petOnChain(petId).catch(() => undefined) : null;
       if (pet === undefined) return { ok: false, reason: "error", detail: "X Layer could not be read" };
@@ -236,12 +237,12 @@ export function createApp(
       if ("parents" in b) {
         if (pet && pet.brainId !== b.parents[0])
           return { ok: false, reason: "invalid", detail: "the first parent is not this pet's brain" };
-        return relayer!.relayChild({ parents: b.parents });
+        return r.relayChild({ parents: b.parents });
       }
       if (pet && !pet.parents) return { ok: false, reason: "invalid", detail: "this pet is not a child" };
       const card = parseCard(b.card);
       if (!card?.family) return { ok: false, reason: "invalid", detail: "not a child's card" };
-      return relayer!.relayChild({
+      return r.relayChild({
         family: card.family,
         lessons: card.lessons,
         ...(card.growth ? { growth: card.growth } : {}),
@@ -250,8 +251,8 @@ export function createApp(
     // a taught child's two halves and its glue; a birth's glue alone
     (b) => ("parents" in b ? 1 : 3),
   );
-  relayRoute("/api/tapeout-instinct", "instinct", InstinctRelayPayload, (b) =>
-    relayer!.relayInstinct({ own: b.own, processor: b.processor as `0x${string}`, id: b.id }),
+  relayRoute("/api/tapeout-instinct", "instinct", InstinctRelayPayload, (b, _petId, r) =>
+    r.relayInstinct({ own: b.own, processor: b.processor as `0x${string}`, id: b.id }),
   );
 
   return app;

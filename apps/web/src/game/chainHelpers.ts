@@ -4,7 +4,7 @@
  * record of a birth, and a newborn's first day saved at once (A33).
  */
 import { walletNeeded } from "./move";
-import { type Address, type Hex, type WalletClient } from "viem";
+import { type Account, type Address, type Hex, type WalletClient } from "viem";
 import { viem } from "./chainClient";
 import {
   type Deployment,
@@ -107,7 +107,8 @@ export async function birthRecord(
   owner: string,
   brainId: string,
 ): Promise<{ record: ChainRecord; memory: number[] }> {
-  const onChain = await readPet(publicClient, deployment!, childId);
+  if (!deployment) throw new Error("no deployment to read the child from");
+  const onChain = await readPet(publicClient, deployment, childId);
   const record: ChainRecord = {
     petId: childId.toString(),
     hatchTx: tx,
@@ -125,6 +126,19 @@ export async function birthRecord(
  * chain, not expired, enough gas), else null. A sitting replaced on chain (a
  * friend now sits the pet) turns auto-save off on this device.
  */
+/** The account a wallet signs with; a wallet that gives none cannot sign, and is said to be the problem. */
+export function accountOf(w: WalletClient): Account {
+  if (!w.account) throw new Error("the wallet gave no account to sign with");
+  return w.account;
+}
+
+/** The starter circuit for a line, from the deployment record; a record without one is said to be the problem. */
+export function starterId(d: Deployment, line: string): string {
+  const c = d.circuits[line];
+  if (!c) throw new Error(`the deployment record has no starter circuit for the ${line} line`);
+  return c.id;
+}
+
 /**
  * Who signs a request for the relayer to tape out this pet's brain: this device's own key when it keeps the pet on
  * chain (no prompt at all), otherwise the owner's wallet, once, with no fee and no transaction.
@@ -138,8 +152,7 @@ export async function relaySigner(
   if (deployment && (await readKeeping(publicClient, deployment, BigInt(petId), key.address).catch(() => null))?.keeper)
     return key;
   const w = wallet ?? (await connectWallet());
-  const account = w.account;
-  if (!account) throw new Error("wallet has no account");
+  const account = accountOf(w);
   return { address: account.address, signMessage: ({ message }) => w.signMessage({ account, message }) };
 }
 

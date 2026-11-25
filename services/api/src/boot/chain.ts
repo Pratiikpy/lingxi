@@ -96,16 +96,16 @@ export function homeChainOf({
 }) {
   // homes (plan 4.9): what visitors see is what the home's linked wallets hold on X Layer
   const homeChain: HomeChain | undefined = chainCtx && {
-    roomPacks: async (wallets) => (await packsHeld(visitorPub, chainCtx!.deployment, wallets)).room,
-    piecesHeld: (wallets) => piecesHeld(visitorPub, chainCtx!.deployment, wallets),
+    roomPacks: async (wallets) => (await packsHeld(visitorPub, chainCtx.deployment, wallets)).room,
+    piecesHeld: (wallets) => piecesHeld(visitorPub, chainCtx.deployment, wallets),
     ownerOf: async (id) =>
       (await visitorPub.readContract({
-        address: chainCtx!.deployment.registry,
+        address: chainCtx.deployment.registry,
         abi: petRegistryAbi,
         functionName: "ownerOf",
         args: [id],
       })) as `0x${string}`,
-    nameColour: async (id) => (await nameColours(visitorPub, chainCtx!.deployment, [id]))[id.toString()] ?? 0,
+    nameColour: async (id) => (await nameColours(visitorPub, chainCtx.deployment, [id]))[id.toString()] ?? 0,
   };
   return { homeChain };
 }

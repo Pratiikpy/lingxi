@@ -91,12 +91,16 @@ const isKept = (l: unknown): l is KeptLetter => {
 function load(): Saved | null {
   try {
     const v = JSON.parse(localStorage.getItem(LETTERS_KEY) ?? "null") as Partial<Saved> | null;
+    const privateKey = v?.privateKey;
+    const secretKey = v?.secretKey;
     if (
       !v ||
       v.v !== 1 ||
       !isRelayAddress(v.account) ||
-      !HEX64.test(v.privateKey ?? "") ||
-      !HEX64.test(v.secretKey ?? "")
+      privateKey === undefined ||
+      !HEX64.test(privateKey) ||
+      secretKey === undefined ||
+      !HEX64.test(secretKey)
     )
       return null;
     const book = Object.fromEntries(
@@ -105,8 +109,8 @@ function load(): Saved | null {
     return {
       v: 1,
       account: v.account,
-      privateKey: v.privateKey!,
-      secretKey: v.secretKey!,
+      privateKey,
+      secretKey,
       allowed: (v.allowed ?? []).filter(isRelayAddress),
       book,
       kept: (v.kept ?? []).filter(isKept).slice(0, KEPT_MAX),
@@ -116,6 +120,12 @@ function load(): Saved | null {
     return null;
   }
 }
+
+/** The letters this device keeps, where they must already exist: every write follows ensure(), which makes them. */
+const savedOf = (s: Saved | null): Saved => {
+  if (!s) throw new Error("the letters were used before this device's mail account was made");
+  return s;
+};
 
 const persist = (s: Saved) => {
   try {
@@ -251,12 +261,17 @@ function lettersInternals(set: StoreApi<LettersStore>["setState"], get: () => Le
       const state: LetterState =
         st.status === "delivered" ? "delivered" : st.status === "failed" ? "failed" : "waiting";
       if (state !== l.state)
-        write({ ...get().saved!, kept: get().saved!.kept.map((k) => (k.id === id ? { ...k, state } : k)) });
+        write({
+          ...savedOf(get().saved),
+          kept: savedOf(get().saved).kept.map((k) => (k.id === id ? { ...k, state } : k)),
+        });
     } catch {
       // a node that deletes a letter once delivered no longer knows it: it was delivered
       write({
-        ...get().saved!,
-        kept: get().saved!.kept.map((k) => (k.id === id && k.state === "waiting" ? { ...k, state: "delivered" } : k)),
+        ...savedOf(get().saved),
+        kept: savedOf(get().saved).kept.map((k) =>
+          k.id === id && k.state === "waiting" ? { ...k, state: "delivered" } : k,
+        ),
       });
     }
   };
@@ -282,7 +297,7 @@ function lettersInternals(set: StoreApi<LettersStore>["setState"], get: () => Le
         createdAt: now(),
       });
       const sent = await t.submitSelfNotice(http, me.auth, await t.signSelfNotice(me.auth, notice), { now: now() });
-      const s = get().saved!;
+      const s = savedOf(get().saved);
       write({
         ...s,
         kept: s.kept.map((k) => (k.id === localId ? { ...k, id: sent.id, server: sent.server, state: "waiting" } : k)),
@@ -305,7 +320,7 @@ function lettersInternals(set: StoreApi<LettersStore>["setState"], get: () => Le
     if (!s || s.allowed.includes(address) || !session) return;
     const t = await lib();
     await t.updateSenders(http, session.auth, { allow: [address], now: now() });
-    write({ ...get().saved!, allowed: [...get().saved!.allowed, address] });
+    write({ ...savedOf(get().saved), allowed: [...savedOf(get().saved).allowed, address] });
   };
 
   /** Opens this player's identity, making and publishing it the first time (only ever called through ensure). */
@@ -315,7 +330,8 @@ function lettersInternals(set: StoreApi<LettersStore>["setState"], get: () => Le
       let s = get().saved;
       if (!s) {
         // a new identity on one of the official nodes, with its encryption key published so friends can write
-        const host = RELAY_NODES[Math.floor(Math.random() * RELAY_NODES.length)]!;
+        const host = RELAY_NODES[Math.floor(Math.random() * RELAY_NODES.length)];
+        if (!host) throw new Error("no TapeRelay node is listed to make a mail account on");
         const id = t.newSelfIdentity({ host });
         const kp = t.generateKeyPair();
         await t.publishSelfKey(http, t.selfAuth(id.privateKey, host), kp.publicKey, { now: now() });
@@ -372,7 +388,7 @@ export const useLetters = create<LettersStore>((set, get) => {
       const s = get().saved;
       if (s?.book[player] === address && s.allowed.includes(address)) return;
       if (!(await get().ensure())) return;
-      write({ ...get().saved!, book: { ...get().saved!.book, [player]: address } });
+      write({ ...savedOf(get().saved), book: { ...savedOf(get().saved).book, [player]: address } });
       await allow(address).catch((e) => troubleOf(e) === "down" && set({ trouble: "down" }));
     },
 
@@ -382,7 +398,7 @@ export const useLetters = create<LettersStore>((set, get) => {
       const address = get().saved?.book[to.player];
       if (!address) return { ok: false, reason: "noAddress" };
       const localId = `local-${crypto.randomUUID()}`;
-      const s = get().saved!;
+      const s = savedOf(get().saved);
       const kept: KeptLetter = {
         id: localId,
         dir: "out",
@@ -475,7 +491,7 @@ export const useLetters = create<LettersStore>((set, get) => {
       if (!s || !st) return;
       if (!(await get().ensure())) return;
       await allow(address);
-      const after = get().saved!;
+      const after = savedOf(get().saved);
       const kept: KeptLetter = {
         id: `from-${address}-${st.at}`,
         dir: "in",
@@ -512,8 +528,8 @@ export const writableFriends = (
   bonds: Record<string, { name: string }>,
   book: Record<string, string>,
 ): Array<{ player: string; pet: string }> =>
-  Object.keys(bonds)
-    .map((k) => ({ player: k.slice(0, k.indexOf(":")), pet: bonds[k]!.name }))
+  Object.entries(bonds)
+    .map(([k, b]) => ({ player: k.slice(0, k.indexOf(":")), pet: b.name }))
     .filter((f) => PLAYER.test(f.player) && !!book[f.player]);
 
 /**
