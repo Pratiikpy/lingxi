@@ -149,6 +149,7 @@ export const useReminders = create<RemindState>((set, get) => ({
           headers: { "content-type": "application/json" },
           body: JSON.stringify(pushStopBody(sub.endpoint)),
           signal: AbortSignal.timeout(8000),
+          // the browser's own unsubscribe below ends the pushes either way; the server forgets a dead subscription
         }).catch(() => {});
         await sub.unsubscribe();
       }

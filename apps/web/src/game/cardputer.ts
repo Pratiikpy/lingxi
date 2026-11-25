@@ -72,9 +72,11 @@ async function withCardputer<T>(session: (link: HandheldLink) => Promise<T>): Pr
     });
     return await session(link);
   } finally {
+    // closing a reader the device already closed: there is nothing left to tell
     await reader.cancel().catch(() => {});
     reader.releaseLock();
     writer.releaseLock();
+    // closing a port the device already closed: there is nothing left to tell
     await port.close().catch(() => {});
   }
 }

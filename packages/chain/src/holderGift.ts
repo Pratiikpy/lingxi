@@ -213,6 +213,7 @@ async function ownersFrom(pub: PublicClient, t: GiftTerms, from: number, count: 
           args: [BigInt(from + k)] as const,
         })),
       })
+      // a batch that fails whole is asked again; one call answering is the node working
       .catch(() => null);
     if (results && results.some((r) => r.status === "success")) return results;
     if (attempt >= OWNER_TRIES)

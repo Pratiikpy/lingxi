@@ -277,6 +277,7 @@ export class BrainRelayer {
       const r = await job();
       return r && typeof r === "object" && "ok" in r ? ({ ...r, sent: this.sentNow } as T) : r;
     });
+    // the queue only waits for a job to settle; its failure is the caller's, through `run`
     this.queue = run.catch(() => undefined);
     return run;
   }
@@ -424,6 +425,7 @@ export class BrainRelayer {
       }
       return null;
     });
+    // the checks only wait for one to settle; its failure is the caller's, through `run`
     this.checks = run.catch(() => null);
     return run;
   }
@@ -712,6 +714,7 @@ export class BrainRelayer {
     // rather than failing at the mint after its approval cost gas (A40)
     const calls = await this.mintCalls(nands, latches).catch(() => 0);
     if (calls > 0) {
+      // an early refusal only: fees that cannot be read leave the mint itself to refuse a tape-out BEM cannot pay
       const f = await this.fees().catch(() => null);
       if (f && f.feeIn === "bem" && f.bem < f.protocolFee * BigInt(calls))
         return { ok: false, reason: "relayLow", detail: "the relayer's BEM is too low for the transistor fee" };

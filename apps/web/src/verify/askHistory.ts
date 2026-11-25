@@ -19,6 +19,7 @@ export function askHistory<H>(
   const ask = (left: number) =>
     fetchOnce()
       .then((h) => h ?? null)
+      // an indexer that does not answer is asked again below, as one that has not read the pet yet
       .catch(() => null)
       .then((h) => {
         if (!live) return;

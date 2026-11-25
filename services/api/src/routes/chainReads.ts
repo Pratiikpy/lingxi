@@ -87,6 +87,7 @@ export function withTree(
         .slice(0, 200)
         .map((p) => p.id);
       if (stale.length) {
+        // names keep the colours last read until a later read succeeds
         const got = await coloursOf(stale).catch(() => null);
         if (got) for (const id of stale) colours.set(id, { colour: got[id] ?? 0, at: Date.now() });
       }
@@ -195,6 +196,7 @@ export function withDiaries(
     // parsed once here; the store checks every cheap bound before the hash, which runs in a worker (A114)
     const published = PublishedLog.safeParse(body);
     if (!published.success || published.data.petId !== id) return c.json({ ok: false, reason: "invalid" }, 400);
+    // with no chain answer the store refuses (unknown) and keeps nothing; the player is asked to try again
     const r = await store.publishLog(published.data, await chainOf(id).catch(() => null), ip, hash);
     return c.json(r, !r.ok && r.reason === "invalid" ? 400 : 200);
   });

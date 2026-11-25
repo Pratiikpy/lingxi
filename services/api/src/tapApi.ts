@@ -69,6 +69,7 @@ export async function readCapped(c: Context, max: number): Promise<string | null
     if (done) break;
     size += value.byteLength;
     if (size > max) {
+      // the body is already too long and refused; a reader that will not cancel changes nothing
       await reader.cancel().catch(() => undefined);
       return null;
     }

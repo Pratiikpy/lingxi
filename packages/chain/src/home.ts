@@ -12,6 +12,8 @@ import {
   type Hex,
   type PublicClient,
   type WalletClient,
+  BaseError,
+  ContractFunctionRevertedError,
   encodeFunctionData,
   getAddress,
   keccak256,
@@ -60,7 +62,8 @@ const ownerAbi = parseAbi(["function ownerOf(uint256 id) view returns (address)"
 export class HomeError extends Error {
   override name = "HomeError";
   constructor(
-    readonly code: "hubUnknown" | "notHolder" | "notOpened" | "noKey" | "theirNoKey" | "tooLong" | "damaged",
+    /** `unread`: X Layer could not be read just now, so the step was not tried; nothing else is meant by it */
+    readonly code: "hubUnknown" | "notHolder" | "notOpened" | "noKey" | "theirNoKey" | "tooLong" | "damaged" | "unread",
     message: string,
   ) {
     super(message);
@@ -363,10 +366,14 @@ export async function moveIntoHome(
   if (!home.opened) throw new HomeError("notOpened", "open the home first");
   if (circuit === home.circuit) throw new HomeError("damaged", "a home cannot hold its own deed");
   const me = wallet.account!.address;
-  // a circuit that does not exist has no holder, which is the same answer: not yours to move
+  // a circuit that does not exist has no holder (ownerOf reverts), which is the same answer: not yours to move. X Layer
+  // not answering is not that answer: it is said as what it is, and nothing is tried
   const holder = (await pub
     .readContract({ address: processor, abi: transferAbi, functionName: "ownerOf", args: [circuit] })
-    .catch(() => null)) as Address | null;
+    .catch((e: unknown) => {
+      if (e instanceof BaseError && e.walk((x) => x instanceof ContractFunctionRevertedError)) return null;
+      throw new HomeError("unread", "X Layer could not be read just now");
+    })) as Address | null;
   if (!holder || holder.toLowerCase() !== me.toLowerCase())
     throw new HomeError("notHolder", "you do not hold that circuit");
   const sim = await pub.simulateContract({

@@ -124,6 +124,7 @@ export function runSpar(q: { program?: string; p1?: string; chips?: string; vs?:
 export async function petView(chain: { pub: PublicClient; deployment: Deployment }, id: string): Promise<Answer> {
   try {
     const p = await readPet(chain.pub, chain.deployment, BigInt(id));
+    // the pet is answered without its name and picture when the registry's metadata cannot be read
     const meta = await readMetadata(chain.pub, chain.deployment, BigInt(id)).catch(() => null);
     return {
       status: 200,

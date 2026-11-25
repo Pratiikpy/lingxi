@@ -236,6 +236,7 @@ function lettersInternals(set: StoreApi<LettersStore>["setState"], get: () => Le
     const { createClient } = await lib();
     await createClient()
       .markRead(session.node, session.auth, ids.slice(0, 100))
+      // a letter left unread on the hub is fetched again and set aside by its id, so a failed mark costs one repeat read
       .catch(() => {});
   };
 
@@ -497,7 +498,11 @@ export const useLetters = create<LettersStore>((set, get) => {
       if (!s) return;
       write({ ...s, strangers: s.strangers.filter((x) => x.address !== address) });
       const me = await get().ensure();
-      if (me) await (await lib()).updateSenders(http, me.auth, { deny: [address], now: now() }).catch(() => {});
+      // a deny the hub did not take leaves the sender able to write again: said, as the hub being down is said
+      if (me)
+        await (await lib())
+          .updateSenders(http, me.auth, { deny: [address], now: now() })
+          .catch((e: unknown) => troubleOf(e) === "down" && set({ trouble: "down" }));
     },
   };
 });

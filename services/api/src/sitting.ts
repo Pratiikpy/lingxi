@@ -100,8 +100,10 @@ function folderBlobs(dir: string): Blobs {
           throw e;
         }
       };
+      // each write waits for the last to settle; the last one's failure was its own caller's
       const next = (writing.get(name) ?? Promise.resolve()).catch(() => undefined).then(run);
       writing.set(name, next);
+      // this only tidies the queue; the write's failure is its caller's
       void next.finally(() => writing.get(name) === next && writing.delete(name)).catch(() => undefined);
       return next;
     },

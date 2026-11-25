@@ -42,6 +42,7 @@ export function healthDetail({
   const detail: HealthDetail = async () => {
     if (cached && Date.now() - cached.at < 30_000) return cached.value;
     const [head, relayerWei, fees] = await Promise.all([
+      // the health report says null for what it could not read, and reports the rest
       watch.head?.().catch(() => null) ?? null,
       relayer?.balance().catch(() => null) ?? null,
       relayer?.fees().catch(() => null) ?? null,

@@ -37,6 +37,7 @@ export function saveLine(round: number, pet: DuelPet, team: string[]): void {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(arenaSnapshotBody(round, pet, team, deviceId())),
+    // the arena keeps the last line it received; one that does not arrive leaves that one standing
   }).catch(() => undefined);
 }
 

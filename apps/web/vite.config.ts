@@ -280,6 +280,7 @@ function prerenderLanding(): Plugin {
           render: (lang: "en" | "zh") => string;
         };
         const [en, zh] = [mod.render("en"), mod.render("zh")];
+        // a storage that cannot be read falls back to the browser's own language, as a first visit does
         const pick = `<script>(function(){var l;try{l=localStorage.getItem("lingxi.lang")}catch(e){}if(l!=="en"&&l!=="zh")l=(navigator.language||"").toLowerCase().indexOf("zh")===0?"zh":"en";if(l==="zh"){var r=document.getElementById("root").children;r[0].hidden=true;r[1].hidden=false;document.documentElement.lang="zh-CN"}})()</script>`;
         const html = readFileSync(page, "utf8");
         if (!html.includes('<div id="root"></div>')) throw new Error("index.html has no empty #root to fill");
@@ -350,6 +351,8 @@ function prerenderPlay(): Plugin {
         // (two would repeat its ids and its landmark)
         const shown = (lang: "en" | "zh") =>
           `<template data-prerender="${lang}">${screens[lang]}<p class="pre-ready" role="status">${ready[lang]}</p></template>`;
+        // a pet store that cannot be read counts as a save, so the full game is never starved; a language that cannot be
+        // read falls back to the browser's own
         const pick = `<script>(function(){var s=null;try{s=localStorage.getItem("lingxi.pets.v2")||localStorage.getItem("lingxi.pet.v1")}catch(e){s="?"}if(s!==null)return;var l=null;try{l=localStorage.getItem("lingxi.lang")}catch(e){}if(l!=="en"&&l!=="zh")l=(navigator.language||"").toLowerCase().indexOf("zh")===0?"zh":"en";var r=document.getElementById("root");var t=r.querySelector('template[data-prerender="'+l+'"]');var d=document.createElement("div");d.setAttribute("data-prerender",l);d.setAttribute("aria-busy","true");d.inert=true;d.appendChild(t.content.cloneNode(true));r.querySelector(".boot-splash").hidden=true;r.appendChild(d);if(l==="zh")document.documentElement.lang="zh-CN"})()</script>`;
         const style = `<style>.pre-ready{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);margin:0;padding:6px 14px;border:2px solid #2b2140;border-radius:999px;background:#fffdf8;color:#2b2140;font:600 13px/1.3 system-ui,sans-serif;z-index:10}</style>`;
         const html = readFileSync(page, "utf8");

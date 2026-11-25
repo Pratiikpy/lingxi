@@ -26,6 +26,7 @@ function voiceAvailable(): Promise<boolean> {
   available ??= fetch(`${BASE}/api/health`, { signal: AbortSignal.timeout(4000) })
     .then((r) => r.json() as Promise<{ voice?: boolean }>)
     .then((j) => j.voice === true)
+    // a server that does not answer has no voice to offer: the pet stays quiet, as without one
     .catch(() => false);
   return available;
 }

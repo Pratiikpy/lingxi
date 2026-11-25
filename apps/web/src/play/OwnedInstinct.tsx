@@ -71,6 +71,7 @@ export function OwnedInstinctPanel({ pet }: { pet: Pet }) {
       for (const id of ids) {
         const who = (await publicClient
           .readContract({ address: cpu, abi: processorAbi, functionName: "ownerOf", args: [id] })
+          // a circuit whose owner cannot be read is left out of this list, never shown as the wallet's
           .catch(() => "")) as string;
         if (who.toLowerCase() !== address.toLowerCase()) continue;
         const info = (await publicClient.readContract({
@@ -119,8 +120,15 @@ export function OwnedInstinctPanel({ pet }: { pet: Pet }) {
     setNote("");
     try {
       const c = await readOutsideCircuit(publicClient, o.processor as Address, BigInt(o.id));
-      // ownership is checked on the chain now, not taken from the list
-      if (c.owner.toLowerCase() !== address.toLowerCase()) {
+      // ownership is checked on the chain now, not taken from the list; an owner X Layer did not give is not someone else's
+      if (!c.owner) {
+        setNote(
+          L(
+            "Who owns that circuit couldn't be read just now. Try again in a moment.",
+            "刚才没能读到这个电路的拥有者，请稍后再试。",
+          ),
+        );
+      } else if (c.owner.toLowerCase() !== address.toLowerCase()) {
         setNote(L("This wallet doesn't own that circuit any more.", "这个钱包已经不再拥有那个电路了。"));
       } else {
         const r = teach({ processor: c.processor, id: c.id, owner: c.owner.toLowerCase(), parts: c.parts });

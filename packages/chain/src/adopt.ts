@@ -114,6 +114,7 @@ export async function readOutsideCircuit(pub: PublicClient, processor: Address, 
     throw new AdoptError("illFormed");
   }
   if (circuit.nGates > ADOPT_MAX_GATES) throw new AdoptError("tooBig");
+  // "" when the owner could not be read: shown as unknown, and never taken as someone else owning it
   const owner = (await pub
     .readContract({ address: processor, abi: processorAbi, functionName: "ownerOf", args: [id] })
     .catch(() => "")) as string;

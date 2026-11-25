@@ -20,6 +20,7 @@ type DiaryState = "checking" | "waiting" | "unindexed" | "ok" | "bad" | "birth" 
  */
 async function hatchIndexed(id: string, alive: () => boolean, waiting: () => void): Promise<boolean> {
   for (let left = HISTORY_RETRIES; ; left--) {
+    // an indexer that does not answer is asked again below, as one that has not read the hatching yet (A39)
     const h = await fetchPetHistory(id).catch(() => null);
     if (h?.hatched) return true;
     if (left <= 0 || !alive()) return false;

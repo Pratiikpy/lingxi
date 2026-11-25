@@ -289,7 +289,9 @@ async function main() {
         functionName: "starterBrain",
         args: [processor, BigInt(circuits[line]!.id)],
       })
+      // the read-back is the deploy's proof: a starter it could not read is not taken as approved (below)
       .catch(() => null);
+    if (ok === null) throw new Error(`starter ${line}: the read-back of its approval failed; run the read-back again`);
     if (ok === false) throw new Error(`starter ${line} not approved`);
   }
   if (!(await pub.readContract({ address: registry, abi: regAbi, functionName: "breeders", args: [breeder] })))

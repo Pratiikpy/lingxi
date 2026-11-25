@@ -70,6 +70,7 @@ export async function readPinStatus(wallet: Address): Promise<{ snapshot?: boole
     const { giftClaimed, giftTerms, loadSnapshot, snapshotWay } = await import("@lingxi/chain/holderGift");
     const t = await giftTerms(publicClient, deployment);
     if (!t) return {};
+    // an unread claim is left out (pinClaimed absent), never said as claimed or unclaimed
     const claimed = await giftClaimed(publicClient, t, wallet).catch(() => undefined);
     let snapshot: boolean | undefined;
     try {

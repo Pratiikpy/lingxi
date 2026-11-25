@@ -293,6 +293,7 @@ function HomePage({ pet, home, petId }: { pet: Pet; home: Home; petId: string })
     setNote("");
     try {
       const wallet = await connectWallet();
+      // the page uses the pet's own name and look when the registry's cannot be read
       const meta = await readMetadata(publicClient, deployment!, BigInt(petId)).catch(() => null);
       const html = homePageHtml({
         petId: BigInt(petId),

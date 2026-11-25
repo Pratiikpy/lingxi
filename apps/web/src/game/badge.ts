@@ -24,5 +24,6 @@ type BadgeNav = Navigator & { setAppBadge?: (n?: number) => Promise<void>; clear
 export function showNeeds(n: number): void {
   const nav = navigator as BadgeNav;
   if (!nav.setAppBadge || !nav.clearAppBadge) return;
+  // the icon's count is a convenience: a browser that refuses it changes nothing in the game
   (n ? nav.setAppBadge(n) : nav.clearAppBadge()).catch(() => undefined);
 }

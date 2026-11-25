@@ -201,6 +201,7 @@ export function createApp(
       const slot = quota.take(
         req.petId,
         gate.signer,
+        // an unread standing counts the pet as a newcomer, the smaller share: never more than it is owed
         await isSettled(req.petId).catch(() => false),
         Date.now(),
         most(body),

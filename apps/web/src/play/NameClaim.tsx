@@ -53,6 +53,7 @@ export function NameClaim({ pet, record }: { pet: Pet; record: ChainRecord }) {
     const h = setTimeout(() => {
       void nameHolderOf(publicClient, deployment!, name)
         .then((holder) => setHolderOf({ name, holder: holder !== null && holder !== id ? holder.toString() : null }))
+        // the early warning is a courtesy: the contract itself refuses a name another pet holds
         .catch(() => {});
     }, 400);
     return () => clearTimeout(h);

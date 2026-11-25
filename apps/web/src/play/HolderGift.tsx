@@ -76,6 +76,7 @@ export function HolderGiftPanel({ pet, wallet }: { pet: Pet; wallet: string }) {
         // the terms show at once; the ways follow, since finding a Test1 reads every token's owner
         const [c, blk] = await Promise.all([
           giftClaimed(publicClient, t, who),
+          // the snapshot's date is shown when read; the terms and the claim do not depend on it
           publicClient.getBlock({ blockNumber: t.snapshotBlock }).catch(() => null),
         ]);
         if (!live) return;

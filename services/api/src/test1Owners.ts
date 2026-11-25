@@ -57,6 +57,7 @@ export function createTest1Index(opts: {
             args: [BigInt(from + k)] as const,
           })),
         })
+        // a batch that fails whole is the node failing: handled just below, not as missing tokens
         .catch(() => null);
       // a batch whose every call failed is the node failing, not 1,000 missing tokens
       if (r && r.some((x) => x.status === "success")) return r;

@@ -648,6 +648,7 @@ export function NumbersApp() {
       fetch(`${base}/api/goals`, { cache: "no-store" })
         .then((r) => r.json())
         .then((j: GoalsBody & { ok: boolean }) => j.ok && setGoals(j))
+        // the goals have their own page; here they show only once read, and the figures above do not wait on them
         .catch(() => undefined);
     };
     read();

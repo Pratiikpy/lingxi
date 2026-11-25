@@ -134,6 +134,7 @@ export async function relaySigner(
   wallet?: WalletClient,
 ): Promise<{ address: Address; signMessage: (m: { message: string }) => Promise<Hex> }> {
   const key = await sessionAccount();
+  // a keeping that cannot be read falls back to the owner's wallet signing, which always works
   if (deployment && (await readKeeping(publicClient, deployment, BigInt(petId), key.address).catch(() => null))?.keeper)
     return key;
   const w = wallet ?? (await connectWallet());

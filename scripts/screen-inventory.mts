@@ -155,6 +155,7 @@ const GAME: Shot[] = [
     reach: async (page, _b, ctx) => {
       await page.keyboard.press("Escape");
       await ctx.setOffline(true);
+      // offline, the reload may not finish as a navigation; what it opened is checked just below
       await page.reload({ waitUntil: "domcontentloaded" }).catch(() => {});
       // the room, opened from the offline cache; a miss is reported, never shot as though it were the screen
       await page.waitForFunction(
@@ -183,6 +184,7 @@ async function main(): Promise<void> {
         const ctx = await contextFor(browser, l);
         const page = await ctx.newPage();
         page.on("pageerror", (e) => errors.push(`${tag(l)} ${name}: ${e.message}`));
+        // a page that does not finish loading is still shot and its errors kept: the sheet shows what happened
         await page.goto(`${base}/${p === "index.html" ? "" : p}`).catch(() => {});
         await settle(page, 1500);
         mkdirSync(join(out, "raw", name), { recursive: true });
