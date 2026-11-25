@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -153,17 +153,11 @@ describe("diaries bounded (A39)", () => {
 
   it("opens a folder of large diaries without reading them, and still refuses a shorter republish (A80)", () => {
     const dir = tmp();
-    // one large diary, kept under six names (building six is slow under coverage, and only the first is read again)
-    const big = JSON.stringify(longLog("50", 100_000).log);
-    for (let i = 0; i < 6; i++) writeFileSync(join(dir, `${50 + i}.json`), big);
-    // against reading and parsing those files, which the old start did and more: a relative bound holds on a slow or
-    // instrumented machine where a fixed one does not
-    const readStarted = performance.now();
-    for (const name of readdirSync(dir)) JSON.parse(readFileSync(join(dir, name), "utf8"));
-    const reading = performance.now() - readStarted;
-    const started = performance.now();
+    // one real diary and five files that are not diaries at all: a shelf that read or parsed its files to open would
+    // throw on them or leave them out, so six counted proves none was read (a timing bound lost under a loaded suite)
+    writeFileSync(join(dir, "50.json"), JSON.stringify(longLog("50", 100_000).log));
+    for (let i = 1; i < 6; i++) writeFileSync(join(dir, `${50 + i}.json`), "not a diary {");
     const store = createDiaryStore(dir, { now: () => NOW });
-    expect(performance.now() - started, "no diary is read to open the shelf").toBeLessThan(reading / 2);
     expect(store.stats().diaries).toBe(6);
     const shorter = longLog("50", 10);
     expect(store.publish(shorter.log, onChain(shorter.hash), "x")).toEqual({ ok: false, reason: "older" });
