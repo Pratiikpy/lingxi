@@ -661,6 +661,41 @@ describe("the chain store: keeping a pet on X Layer", () => {
     expect(mined(p, "hatch")).toHaveLength(1);
   });
 
+  it("a hatch confirmed after the wait is taken up by itself, with no second press and no wallet asked (P7a)", async () => {
+    const p = await open();
+    p.xl.node.holdReceipts = true;
+    await settle(p.c().keep(p.pet()), 1_000, 400);
+    expect(p.c()).toMatchObject({ busy: "idle", error: "hatchPending", record: null });
+    const asked = p.wallet.asked.length;
+    // the hatch lands while the player does nothing
+    p.xl.node.holdReceipts = false;
+    for (let i = 0; i < 40 && !p.c().record; i++) await vi.advanceTimersByTimeAsync(1_000);
+    expect(p.c(), "kept, and the pending line gone").toMatchObject({
+      busy: "idle",
+      error: null,
+      record: { petId: "41" },
+    });
+    expect(mined(p, "hatch"), "one hatch").toHaveLength(1);
+    expect(p.wallet.asked.slice(asked), "the wallet is not asked for anything").toEqual([]);
+    expect(p.storage.getItem(CHAIN), "the record is kept across a reload").toMatch(/"petId":"41"/);
+  });
+
+  it("a pending hatch is watched only as long as one is waited for, then left for the player (P7a)", async () => {
+    const p = await open();
+    p.xl.node.holdReceipts = true;
+    await settle(p.c().keep(p.pet()), 1_000, 400);
+    expect(p.c().error).toBe("hatchPending");
+    // past the half hour after which a hatch the chain knows nothing of is let go, the watch has stopped
+    await vi.advanceTimersByTimeAsync(31 * MIN);
+    p.xl.node.holdReceipts = false;
+    await vi.advanceTimersByTimeAsync(2 * MIN);
+    expect(p.c().record, "nothing taken up after the watch ended").toBeNull();
+    // the player's own press still finds it, as before
+    await settle(p.c().keep(p.pet()));
+    expect(p.c()).toMatchObject({ error: null, record: { petId: "41" } });
+    expect(mined(p, "hatch")).toHaveLength(1);
+  });
+
   it("a hatch whose check fails while X Layer is down is never taken for one that was not sent, however long ago (A82)", async () => {
     const p = await open();
     p.xl.node.holdReceipts = true;

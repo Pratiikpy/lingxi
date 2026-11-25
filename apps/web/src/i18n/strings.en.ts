@@ -224,7 +224,7 @@ export const en = {
   "chain.revertedOnChain":
     "It was sent, but X Layer turned it down: only its network fee was spent (well under a cent), and nothing else changed. Try again.",
   "chain.hatchPending":
-    "The hatch was sent, but X Layer hasn't confirmed it yet. Nothing will be sent twice: try again in a minute and Lingxi will pick it up.",
+    "The hatch was sent, but X Layer hasn't confirmed it yet. Lingxi keeps watching and takes it up the moment it lands; nothing will be sent twice.",
   "chain.hatchUnchecked":
     "The hatch was sent earlier, and X Layer can't be reached to check on it right now. Nothing new was sent: try again in a minute and Lingxi will pick it up.",
   "chain.cannotReceive":

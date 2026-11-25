@@ -223,7 +223,7 @@ export const zh: Record<Key, string> = {
   "chain.revertedOnChain":
     "交易发出去了，但 X Layer 没有通过它：只花了网络手续费（不到一分钱），别的什么都没变。再试一次吧。",
   "chain.hatchPending":
-    "孵化已经发出去了，但 X Layer 还没有确认。它不会再发第二次：过一分钟再点一次，灵犀会接着把它认领回来。",
+    "孵化已经发出去了，但 X Layer 还没有确认。灵犀会一直留意，一确认就自动认领回来；它不会再发第二次。",
   "chain.hatchUnchecked":
     "孵化之前已经发出去了，现在暂时连不上 X Layer 查看它。没有再发新的：过一分钟再点一次，灵犀会接着把它认领回来。",
   "chain.cannotReceive":

@@ -257,17 +257,43 @@ export async function reach(page: Page, selector: string): Promise<Locator> {
   throw new Error(`never reached ${selector} in the sheet`);
 }
 
+/** What the page shows about keeping, for a keep that never landed: the keep button, the sheet's status lines and
+ * notes, the chain store's pending entry, and whether the page can still reach the fork. */
+async function keepState(page: Page): Promise<string> {
+  return page
+    .evaluate(async () => {
+      const keep = document.querySelector<HTMLButtonElement>("[data-hint=keep]");
+      const sheet = document.querySelector<HTMLElement>(".sheet");
+      const lines = [...(sheet?.querySelectorAll<HTMLElement>("[role=status], [role=alert], .note, .err") ?? [])]
+        .map((x) => x.innerText.trim())
+        .filter(Boolean);
+      const pending = Object.keys(localStorage).filter((k) => /pending|chain/i.test(k));
+      return JSON.stringify({
+        keep: keep ? { text: keep.innerText.trim(), disabled: keep.disabled } : "gone",
+        sheetOpen: !!sheet,
+        lines: lines.slice(0, 8),
+        stored: Object.fromEntries(pending.map((k) => [k, (localStorage.getItem(k) ?? "").slice(0, 300)])),
+      });
+    })
+    .catch((x: unknown) => `(the page could not be read: ${String(x)})`);
+}
+
 /** Keeps the pet on screen on X Layer with the game's own button (the Pet sheet must be open); returns its record. */
 export async function keepOnChain(page: Page): Promise<ChainRecord> {
   await (await reach(page, "[data-hint=keep]")).click();
-  await page.waitForFunction(
-    () =>
-      Object.values(
-        JSON.parse(localStorage.getItem("lingxi.chain.v2") ?? "{}") as Record<string, { petId?: string } | null>,
-      ).some((r) => r && r.petId),
-    undefined,
-    { timeout: 180_000 },
-  );
+  try {
+    await page.waitForFunction(
+      () =>
+        Object.values(
+          JSON.parse(localStorage.getItem("lingxi.chain.v2") ?? "{}") as Record<string, { petId?: string } | null>,
+        ).some((r) => r && r.petId),
+      undefined,
+      { timeout: 180_000 },
+    );
+  } catch (e) {
+    // P7a: a keep that never lands says what the page showed when the wait ran out, not only that it ran out
+    throw new Error(`the pet was never kept: ${await keepState(page)}`, { cause: e });
+  }
   const record = await chainRecord(page);
   if (!record) throw new Error("the pet was kept but its record is gone");
   return record;
