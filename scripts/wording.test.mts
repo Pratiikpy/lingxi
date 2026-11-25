@@ -8,6 +8,8 @@ import { describe, expect, it } from "vitest";
 
 const root = join(import.meta.dirname, "..");
 const read = (path: string) => readFileSync(join(root, path), "utf8").replace(/\u00a0/g, " ");
+/** every string the game shows, in both languages (P7 split strings.ts by language) */
+const gameStrings = () => read("apps/web/src/i18n/strings.en.ts") + read("apps/web/src/i18n/strings.zh.ts");
 
 describe("the wording the audits corrected stays corrected (A87)", () => {
   it("A43: a pet's mind is taped out on X Layer once it is kept there, not before", () => {
@@ -79,7 +81,7 @@ describe("the wording the audits corrected stays corrected (A87)", () => {
     expect(readme).not.toMatch(/Every pet ever hatched or bred appears on the tree of life/);
     expect(readme).not.toMatch(/\| every pet brain, the evolution circuit/);
     expect(readme).toMatch(/Every pet hatched or bred on X Layer appears on the tree of life/);
-    const strings = read("apps/web/src/i18n/strings.ts");
+    const strings = gameStrings();
     expect(strings).not.toMatch(/so anyone can check every thought it had/);
     expect(strings).toMatch(/every thought between them once you publish its diary/);
   });
@@ -97,7 +99,7 @@ describe("the wording the audits corrected stays corrected (A87)", () => {
     ).toBe(2);
     expect(read("scripts/claims-check.mts")).not.toMatch(/here they are only confirmed to exist/);
     expect(read("scripts/judge-check.mts")).not.toMatch(/at empty memory/);
-    expect(read("apps/web/src/i18n/strings.ts")).toMatch(/"relay.budgetHour"/);
+    expect(gameStrings()).toMatch(/"relay.budgetHour"/);
   });
 
   it("A102: replaying a pet's thoughts is said to need its log or published diary", () => {
