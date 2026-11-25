@@ -224,7 +224,7 @@ Every number below is counted by `scripts/readme-facts.mts` from the suites them
 
 | Suite | Command | Passing |
 |---|---|---|
-| TypeScript, every package | `pnpm test` | <!--f:tests-->2084<!--/f--> (game <!--f:tests-game-->371<!--/f--> · world <!--f:tests-world-->195<!--/f--> · api <!--f:tests-api-->584<!--/f--> · api-schema <!--f:tests-api-schema-->46<!--/f--> · brain <!--f:tests-brain-->59<!--/f--> · handheld <!--f:tests-handheld-->41<!--/f--> · chain <!--f:tests-chain-->97<!--/f--> · send <!--f:tests-send-->30<!--/f--> · web <!--f:tests-web-->651<!--/f--> · art <!--f:tests-art-->10<!--/f-->) |
+| TypeScript, every package | `pnpm test` | <!--f:tests-->2086<!--/f--> (game <!--f:tests-game-->371<!--/f--> · world <!--f:tests-world-->195<!--/f--> · api <!--f:tests-api-->584<!--/f--> · api-schema <!--f:tests-api-schema-->46<!--/f--> · brain <!--f:tests-brain-->59<!--/f--> · handheld <!--f:tests-handheld-->41<!--/f--> · chain <!--f:tests-chain-->97<!--/f--> · send <!--f:tests-send-->30<!--/f--> · web <!--f:tests-web-->653<!--/f--> · art <!--f:tests-art-->10<!--/f-->) |
 | Contracts, unit, fuzz and invariant | `cd contracts && forge test` | <!--f:forge-unit-->254<!--/f--> |
 | Contracts on a fork of X Layer mainnet (reads only) | `cd contracts && forge test --fork-url xlayer --match-path 'test/*.fork.t.sol'` | <!--f:forge-fork-->76<!--/f--> |
 | The server and the chain package, with their fork tests, each on a pinned fork of X Layer (reads only) | `pnpm test:fork` | <!--f:tests-api-fork-->705<!--/f--> |
@@ -232,7 +232,7 @@ Every number below is counted by `scripts/readme-facts.mts` from the suites them
 
 `pnpm status:check` runs all of it, plus lint, the type check, the repo's hygiene checks and whether the live site serves the current commit.
 
-Every fix the audits asked for that changed the game, the server, the contracts or the tools has a patch that undoes it and the test that must then fail (the rows without one, and why, are listed in `scripts/regressions/without.json`: <!--f:revert-without-->A73, A87, A93<!--/f-->): <!--f:regressions-->498<!--/f--> pairs, and `pnpm revert:check` applies each patch to a clean copy and proves its test fails. CI runs it on every push for the pairs the push adds or changes, and on all of them every night. `pnpm coverage` holds the rules packages, the game's four stores, the server (with its fork tests) and every contract to at least 80% of lines and of branches, and CI fails below that.
+Every fix the audits asked for that changed the game, the server, the contracts or the tools has a patch that undoes it and the test that must then fail (the rows without one, and why, are listed in `scripts/regressions/without.json`: <!--f:revert-without-->A73, A87, A93<!--/f-->): <!--f:regressions-->499<!--/f--> pairs, and `pnpm revert:check` applies each patch to a clean copy and proves its test fails. CI runs it on every push for the pairs the push adds or changes, and on all of them every night. `pnpm coverage` holds the rules packages, the game's four stores, the server (with its fork tests) and every contract to at least 80% of lines and of branches, and CI fails below that.
 
 The handheld's C core is checked against the game bit for bit: every input and memory state of the starter brains (16.7 million for the gentle one), the evolution, seal and rule circuits, composed children and instincts, pet #1's 33-word mainnet log, and hundreds of random trips through sickness, hibernation and the catch-up limit; its USB link is tested against the game's own client.
 
