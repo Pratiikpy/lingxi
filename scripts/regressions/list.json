@@ -1218,6 +1218,12 @@
     "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/chain.test.ts", "name": "a hatch confirmed after the wait is taken up by itself, with no second press and no wallet asked (P7a)" }
   },
   {
+    "id": "P7e-fork-real-time",
+    "row": "P7e",
+    "bug": "the browser suite's fork stamped new blocks with the pinned block's old time, so a week counted from the real clock held none of them",
+    "test": { "kind": "e2e", "spec": "e2e/specs/numbers-week.spec.ts", "title": "the numbers page counts the week, tells a free keep from an own-wallet keep, and the recount agrees (H10)" }
+  },
+  {
     "id": "P7d-notices-above-sheet",
     "row": "P7d",
     "bug": "a notice over an open sheet sat under its header, over the sheet's first controls (the Pet sheet's Skills button)",
