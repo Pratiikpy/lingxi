@@ -76,8 +76,29 @@ for (const look of [
     const fed = await careCount(page, "feed");
     // the bag's first row is a food, and its button feeds it
     await tabTo(page, ".sheet .bag-item .btn");
+    // P7g: what the focus was on when Enter went, so a feed that does not land says where the key went
+    const pressed = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement | null;
+      const row = el?.closest(".bag-item")?.querySelector("b")?.textContent ?? "";
+      return `${el?.tagName ?? "nothing"} "${el?.textContent?.trim() ?? ""}" in the row "${row.trim()}"`;
+    });
     await page.keyboard.press("Enter");
-    await expect.poll(() => careCount(page, "feed"), { message: "fed by the keyboard" }).toBe(fed + 1);
+    await expect
+      .poll(() => careCount(page, "feed"), {
+        message: `fed by the keyboard (Enter went to ${pressed})`,
+      })
+      .toBe(fed + 1)
+      .catch(async (e: unknown) => {
+        const after = await page.evaluate(() => ({
+          focus: `${document.activeElement?.tagName ?? ""} "${document.activeElement?.textContent?.trim().slice(0, 40) ?? ""}"`,
+          sheet: document.querySelector(".sheet .shead h2")?.textContent ?? "no sheet",
+          notes: [...document.querySelectorAll("[role=status], .toast")]
+            .map((x) => x.textContent?.trim())
+            .filter(Boolean),
+          full: document.querySelector('[role=meter][aria-label="Full"]')?.getAttribute("aria-valuenow"),
+        }));
+        throw new Error(`the feed did not land: ${JSON.stringify(after)}`, { cause: e });
+      });
     await page.keyboard.press("Escape");
     await expect(page.locator(".sheet")).toHaveCount(0);
     await clearDialogs(page);
