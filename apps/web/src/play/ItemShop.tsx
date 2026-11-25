@@ -218,69 +218,26 @@ export function ItemShopPanel() {
         </p>
       )}
       <ul className="itemshop-grid">
-        {shopPieces.map((p) => {
-          const it = itemOf(p.id);
-          const have = held.includes(p.id);
-          const supply = p.chain?.kind === "shop" ? p.chain.supply : 0;
-          return (
-            <li key={p.id} className="itemshop-card">
-              <DecorIcon rows={p.rows} colors={p.colors} />
-              <b>{p.name[lang]}</b>
-              <span className="small">
-                {it
-                  ? it.price > 0n
-                    ? L(`${formatBem(it.price)} BEM, burned`, `${formatBem(it.price)} BEM，全部销毁`)
-                    : L("not on sale", "暂不出售")
-                  : L("reading…", "读取中……")}
-              </span>
-              {it && (
-                <span className="small">
-                  {L(`${it.available.toString()} of ${supply} left`, `还剩 ${it.available.toString()}/${supply}`)}
-                </span>
-              )}
-              {have && <span className="small fashion-have">{L("In your wallet", "在你的钱包里")}</span>}
-              <div className="fashion-actions">
-                {it && it.price > 0n && it.available > 0n && (
-                  <button type="button" className="btn primary" disabled={busy !== null} onClick={() => void buy(it)}>
-                    {busy === `buy:${p.id}` ? L("Buying…", "购买中……") : L("Buy", "购买")}
-                  </button>
-                )}
-                {have && (
-                  <button
-                    type="button"
-                    className="btn"
-                    onClick={() =>
-                      setResell(
-                        resell?.piece === p.id ? null : { piece: p.id, price: formatBem(it?.price ?? 5_000_000n) },
-                      )
-                    }
-                  >
-                    {L("Resell", "转卖")}
-                  </button>
-                )}
-              </div>
-              {resell?.piece === p.id && (
-                <form
-                  className="fashion-resell"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    list(p.id, resell.price);
-                  }}
-                >
-                  <input
-                    inputMode="decimal"
-                    value={resell.price}
-                    onChange={(e) => setResell({ ...resell, price: e.target.value.replace(/[^0-9.]/g, "") })}
-                    aria-label={L("Price (BEM)", "价格（BEM）")}
-                  />
-                  <button type="submit" className="btn primary" disabled={busy !== null}>
-                    {L("List one", "挂出一份")}
-                  </button>
-                </form>
-              )}
-            </li>
-          );
-        })}
+        {shopPieces.map((p) => (
+          <ShopCard
+            key={p.id}
+            piece={p.id}
+            icon={{ rows: p.rows, colors: p.colors }}
+            name={p.name[lang]}
+            supply={p.chain?.kind === "shop" ? p.chain.supply : 0}
+            item={itemOf(p.id)}
+            have={held.includes(p.id)}
+            buyWhenHeld
+            heldNote={L("In your wallet", "在你的钱包里")}
+            resellDefault={5_000_000n}
+            busy={busy}
+            lang={lang}
+            onBuy={(it) => void buy(it)}
+            resell={resell}
+            setResell={setResell}
+            onList={list}
+          />
+        ))}
       </ul>
       <p className="label">{L("Limited outfits", "限量服饰")}</p>
       <p className="small">
@@ -290,73 +247,26 @@ export function ItemShopPanel() {
         )}
       </p>
       <ul className="itemshop-grid">
-        {CHAIN_WEAR.map((p) => {
-          const wearable = WEARABLE[p.id]!;
-          const it = itemOf(p.id);
-          const have = wornHeld.includes(p.id);
-          return (
-            <li key={p.id} className="itemshop-card">
-              <DecorIcon rows={wearable.rows} colors={wearable.colors} />
-              <b>{wearable.name[lang]}</b>
-              <span className="small">
-                {it
-                  ? it.price > 0n
-                    ? L(`${formatBem(it.price)} BEM, burned`, `${formatBem(it.price)} BEM，全部销毁`)
-                    : L("not on sale", "暂不出售")
-                  : L("reading…", "读取中……")}
-              </span>
-              {it && (
-                <span className="small">
-                  {L(`${it.available.toString()} of ${p.supply} left`, `还剩 ${it.available.toString()}/${p.supply}`)}
-                </span>
-              )}
-              {have && (
-                <span className="small fashion-have">
-                  {L("In your wallet · wear it from the wardrobe", "在你的钱包里 · 去衣橱穿上")}
-                </span>
-              )}
-              <div className="fashion-actions">
-                {it && it.price > 0n && it.available > 0n && !have && (
-                  <button type="button" className="btn primary" disabled={busy !== null} onClick={() => void buy(it)}>
-                    {busy === `buy:${p.id}` ? L("Buying…", "购买中……") : L("Buy", "购买")}
-                  </button>
-                )}
-                {have && (
-                  <button
-                    type="button"
-                    className="btn"
-                    onClick={() =>
-                      setResell(
-                        resell?.piece === p.id ? null : { piece: p.id, price: formatBem(it?.price ?? 10_000_000n) },
-                      )
-                    }
-                  >
-                    {L("Resell", "转卖")}
-                  </button>
-                )}
-              </div>
-              {resell?.piece === p.id && (
-                <form
-                  className="fashion-resell"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    list(p.id, resell.price);
-                  }}
-                >
-                  <input
-                    inputMode="decimal"
-                    value={resell.price}
-                    onChange={(e) => setResell({ ...resell, price: e.target.value.replace(/[^0-9.]/g, "") })}
-                    aria-label={L("Price (BEM)", "价格（BEM）")}
-                  />
-                  <button type="submit" className="btn primary" disabled={busy !== null}>
-                    {L("List one", "挂出一份")}
-                  </button>
-                </form>
-              )}
-            </li>
-          );
-        })}
+        {CHAIN_WEAR.map((p) => (
+          <ShopCard
+            key={p.id}
+            piece={p.id}
+            icon={{ rows: WEARABLE[p.id]!.rows, colors: WEARABLE[p.id]!.colors }}
+            name={WEARABLE[p.id]!.name[lang]}
+            supply={p.supply}
+            item={itemOf(p.id)}
+            have={wornHeld.includes(p.id)}
+            buyWhenHeld={false}
+            heldNote={L("In your wallet · wear it from the wardrobe", "在你的钱包里 · 去衣橱穿上")}
+            resellDefault={10_000_000n}
+            busy={busy}
+            lang={lang}
+            onBuy={(it) => void buy(it)}
+            resell={resell}
+            setResell={setResell}
+            onList={list}
+          />
+        ))}
       </ul>
       <p className="label">{L("Keepsakes of the community goals", "社区目标纪念品")}</p>
       <p className="small">
@@ -415,5 +325,106 @@ export function ItemShopPanel() {
         </p>
       )}
     </div>
+  );
+}
+
+/**
+ * One piece on the shop's shelf: its price in BEM (burned when bought) and how many are left, a Buy while any are left
+ * (a limited outfit only while the wallet holds none), and, once held, listing one for resale.
+ */
+function ShopCard({
+  piece,
+  icon,
+  name,
+  supply,
+  item,
+  have,
+  buyWhenHeld,
+  heldNote,
+  resellDefault,
+  busy,
+  lang,
+  onBuy,
+  resell,
+  setResell,
+  onList,
+}: {
+  piece: string;
+  icon: { rows: readonly string[]; colors: Record<string, string> };
+  name: string;
+  supply: number;
+  /** the shop's item for this piece, once read */
+  item: ShopItem | undefined;
+  /** the wallet holds one */
+  have: boolean;
+  /** whether another may be bought while one is held */
+  buyWhenHeld: boolean;
+  heldNote: string;
+  /** the price a resale starts at when the shop's own price is not known, in BEM's smallest unit */
+  resellDefault: bigint;
+  busy: string | null;
+  lang: Lang;
+  onBuy: (it: ShopItem) => void;
+  resell: { piece: string; price: string } | null;
+  setResell: (r: { piece: string; price: string } | null) => void;
+  onList: (piece: string, price: string) => void;
+}) {
+  const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
+  const it = item;
+  return (
+    <li className="itemshop-card">
+      <DecorIcon rows={icon.rows} colors={icon.colors} />
+      <b>{name}</b>
+      <span className="small">
+        {it
+          ? it.price > 0n
+            ? L(`${formatBem(it.price)} BEM, burned`, `${formatBem(it.price)} BEM，全部销毁`)
+            : L("not on sale", "暂不出售")
+          : L("reading…", "读取中……")}
+      </span>
+      {it && (
+        <span className="small">
+          {L(`${it.available.toString()} of ${supply} left`, `还剩 ${it.available.toString()}/${supply}`)}
+        </span>
+      )}
+      {have && <span className="small fashion-have">{heldNote}</span>}
+      <div className="fashion-actions">
+        {it && it.price > 0n && it.available > 0n && (buyWhenHeld || !have) && (
+          <button type="button" className="btn primary" disabled={busy !== null} onClick={() => onBuy(it)}>
+            {busy === `buy:${piece}` ? L("Buying…", "购买中……") : L("Buy", "购买")}
+          </button>
+        )}
+        {have && (
+          <button
+            type="button"
+            className="btn"
+            onClick={() =>
+              setResell(resell?.piece === piece ? null : { piece, price: formatBem(it?.price ?? resellDefault) })
+            }
+          >
+            {L("Resell", "转卖")}
+          </button>
+        )}
+      </div>
+      {resell?.piece === piece && (
+        <form
+          className="fashion-resell"
+          onSubmit={(e) => {
+            e.preventDefault();
+            onList(piece, resell.price);
+          }}
+        >
+          <input
+            inputMode="decimal"
+            value={resell.price}
+            onChange={(e) => setResell({ ...resell, price: e.target.value.replace(/[^0-9.]/g, "") })}
+            aria-label={L("Price (BEM)", "价格（BEM）")}
+          />
+          <button type="submit" className="btn primary" disabled={busy !== null}>
+            {L("List one", "挂出一份")}
+          </button>
+        </form>
+      )}
+    </li>
   );
 }

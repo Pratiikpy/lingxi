@@ -87,7 +87,6 @@ export function FashionMarketPanel({ pet }: { pet: Pet }) {
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
   const t = useT();
   const { market, listings, held, wallet, loading, error, refresh } = useDesigns();
-  const wear = useWorld((s) => s.wear);
   const [busy, setBusy] = useState<string | null>(null);
   const [step, setStep] = useState("");
   const [note, setNote] = useState("");
@@ -242,133 +241,23 @@ export function FashionMarketPanel({ pet }: { pet: Pet }) {
         </p>
       )}
       <ul className="fashion-grid">
-        {pieces.map((m) => {
-          const key = wearKey(m.market, m.id);
-          const mine = held[key] ?? 0;
-          const open = forSale(m);
-          return (
-            <li key={key} className="fashion-card">
-              <OnPet pet={pet} id={key} />
-              <b>{m.name}</b>
-              <span className="small">
-                {L(
-                  `by ${short(m.creator)} · ${m.minted}/${m.maxSupply}`,
-                  `作者 ${short(m.creator)} · ${m.minted}/${m.maxSupply}`,
-                )}
-              </span>
-              <span className="small">
-                {open
-                  ? priceText(m.market, m.price)
-                  : isPin(m)
-                    ? L(
-                        "a free gift for TapeOut holders: claim it under Holder cosmetics",
-                        "送给 TapeOut 持有人的免费礼物：在「持有人外观」里领取",
-                      )
-                    : L("not for sale by its creator", "作者暂不出售")}
-              </span>
-              {mine > 0 && <span className="small fashion-have">{L(`You have ${mine}`, `你有 ${mine} 份`)}</span>}
-              <div className="fashion-actions">
-                {open && (
-                  <button type="button" className="btn primary" disabled={busy !== null} onClick={() => void buy(m)}>
-                    {busy === `buy:${key}` ? L("Buying…", "购买中……") : L("Buy a copy", "买一份")}
-                  </button>
-                )}
-                {mine > 0 && (
-                  <>
-                    <button
-                      type="button"
-                      className="btn"
-                      onClick={() => {
-                        const d = safeDecode(m.pixels);
-                        if (d) {
-                          wear(String(pet.bornAt), d.slot, key);
-                          play("success");
-                        }
-                      }}
-                    >
-                      {L("Wear", "穿上")}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn"
-                      onClick={() =>
-                        setResell({
-                          key,
-                          qty: "1",
-                          price:
-                            m.market === 2
-                              ? formatBem(m.price || 10_000_000n)
-                              : formatEther(m.price || parseEther("0.001")),
-                        })
-                      }
-                    >
-                      {L("Resell", "转卖")}
-                    </button>
-                  </>
-                )}
-              </div>
-              {resell?.key === key && (
-                <form
-                  className="fashion-resell"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    const qty = Math.max(1, Math.min(mine, Math.floor(Number(resell.qty) || 1)));
-                    const each = parsePrice(m.market, resell.price);
-                    if (!each || each <= 0n) {
-                      setNote(L("Enter a price above zero.", "请填一个大于零的价格。"));
-                      return;
-                    }
-                    if (m.market === 2 && each < 10_000n) {
-                      setNote(L("The lowest price on the market is 0.0001 BEM.", "市场上的最低价格是 0.0001 BEM。"));
-                      return;
-                    }
-                    void run(`list:${key}`, async (w) => {
-                      await listCopies(publicClient, w, marketOf(m.market)!, m.id, qty, each, { days: 30 });
-                      setResell(null);
-                      return m.market === 2
-                        ? L(
-                            `Listed ${qty} for ${priceText(2, each)} each, for 30 days.`,
-                            `已挂出 ${qty} 份，每份 ${priceText(2, each)}，挂 30 天。`,
-                          )
-                        : L(
-                            `Listed ${qty} for ${priceText(1, each)} each.`,
-                            `已挂出 ${qty} 份，每份 ${priceText(1, each)}。`,
-                          );
-                    });
-                  }}
-                >
-                  <input
-                    inputMode="numeric"
-                    value={resell.qty}
-                    onChange={(e) => setResell({ ...resell, qty: e.target.value.replace(/\D/g, "") })}
-                    aria-label={L("How many", "几份")}
-                  />
-                  <input
-                    inputMode="decimal"
-                    value={resell.price}
-                    onChange={(e) => setResell({ ...resell, price: e.target.value.replace(/[^0-9.]/g, "") })}
-                    aria-label={
-                      m.market === 2
-                        ? L("Price each (BEM)", "每份价格（BEM）")
-                        : L("Price each (OKB)", "每份价格（OKB）")
-                    }
-                  />
-                  <button type="submit" className="btn primary" disabled={busy !== null}>
-                    {L("List", "挂出")}
-                  </button>
-                  {m.market === 2 && (
-                    <span className="small fashion-resell-note">
-                      {L(
-                        "Listed for 30 days. When one of your listings of this piece sells, your other listings of it close, so list again after a sale.",
-                        "挂 30 天。这件衣服的某个挂单卖出后，你对它的其他挂单会关闭，卖出后请重新挂。",
-                      )}
-                    </span>
-                  )}
-                </form>
-              )}
-            </li>
-          );
-        })}
+        {pieces.map((m) => (
+          <DesignCard
+            key={wearKey(m.market, m.id)}
+            m={m}
+            pet={pet}
+            mine={held[wearKey(m.market, m.id)] ?? 0}
+            open={forSale(m)}
+            pin={isPin(m)}
+            busy={busy}
+            lang={lang}
+            buy={buy}
+            run={run}
+            resell={resell}
+            setResell={setResell}
+            setNote={setNote}
+          />
+        ))}
       </ul>
       {listings.length > 0 && (
         <>
@@ -469,5 +358,157 @@ export function FashionMarketPanel({ pet }: { pet: Pet }) {
         </p>
       )}
     </div>
+  );
+}
+
+/** One design on the market: its picture on the pet, who made it, its price, a copy to buy, and, for copies held, wearing
+ * one and listing copies for resale. */
+function DesignCard({
+  m,
+  pet,
+  mine,
+  open,
+  pin,
+  busy,
+  lang,
+  buy,
+  run,
+  resell,
+  setResell,
+  setNote,
+}: {
+  m: OutfitDesign;
+  pet: Pet;
+  /** copies the wallet holds */
+  mine: number;
+  /** on sale from its creator */
+  open: boolean;
+  /** a holder pin: a free gift, claimed elsewhere */
+  pin: boolean;
+  busy: string | null;
+  lang: Lang;
+  buy: (m: OutfitDesign) => unknown;
+  run: (key: string, fn: (w: Awaited<ReturnType<typeof connectWallet>>) => Promise<string>) => Promise<void>;
+  resell: { key: string; qty: string; price: string } | null;
+  setResell: (r: { key: string; qty: string; price: string } | null) => void;
+  setNote: (n: string) => void;
+}) {
+  const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
+  const wear = useWorld((s) => s.wear);
+  const key = wearKey(m.market, m.id);
+  return (
+    <li className="fashion-card">
+      <OnPet pet={pet} id={key} />
+      <b>{m.name}</b>
+      <span className="small">
+        {L(
+          `by ${short(m.creator)} · ${m.minted}/${m.maxSupply}`,
+          `作者 ${short(m.creator)} · ${m.minted}/${m.maxSupply}`,
+        )}
+      </span>
+      <span className="small">
+        {open
+          ? priceText(m.market, m.price)
+          : pin
+            ? L(
+                "a free gift for TapeOut holders: claim it under Holder cosmetics",
+                "送给 TapeOut 持有人的免费礼物：在「持有人外观」里领取",
+              )
+            : L("not for sale by its creator", "作者暂不出售")}
+      </span>
+      {mine > 0 && <span className="small fashion-have">{L(`You have ${mine}`, `你有 ${mine} 份`)}</span>}
+      <div className="fashion-actions">
+        {open && (
+          <button type="button" className="btn primary" disabled={busy !== null} onClick={() => void buy(m)}>
+            {busy === `buy:${key}` ? L("Buying…", "购买中……") : L("Buy a copy", "买一份")}
+          </button>
+        )}
+        {mine > 0 && (
+          <>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                const d = safeDecode(m.pixels);
+                if (d) {
+                  wear(String(pet.bornAt), d.slot, key);
+                  play("success");
+                }
+              }}
+            >
+              {L("Wear", "穿上")}
+            </button>
+            <button
+              type="button"
+              className="btn"
+              onClick={() =>
+                setResell({
+                  key,
+                  qty: "1",
+                  price:
+                    m.market === 2 ? formatBem(m.price || 10_000_000n) : formatEther(m.price || parseEther("0.001")),
+                })
+              }
+            >
+              {L("Resell", "转卖")}
+            </button>
+          </>
+        )}
+      </div>
+      {resell?.key === key && (
+        <form
+          className="fashion-resell"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const qty = Math.max(1, Math.min(mine, Math.floor(Number(resell.qty) || 1)));
+            const each = parsePrice(m.market, resell.price);
+            if (!each || each <= 0n) {
+              setNote(L("Enter a price above zero.", "请填一个大于零的价格。"));
+              return;
+            }
+            if (m.market === 2 && each < 10_000n) {
+              setNote(L("The lowest price on the market is 0.0001 BEM.", "市场上的最低价格是 0.0001 BEM。"));
+              return;
+            }
+            void run(`list:${key}`, async (w) => {
+              await listCopies(publicClient, w, marketOf(m.market)!, m.id, qty, each, { days: 30 });
+              setResell(null);
+              return m.market === 2
+                ? L(
+                    `Listed ${qty} for ${priceText(2, each)} each, for 30 days.`,
+                    `已挂出 ${qty} 份，每份 ${priceText(2, each)}，挂 30 天。`,
+                  )
+                : L(`Listed ${qty} for ${priceText(1, each)} each.`, `已挂出 ${qty} 份，每份 ${priceText(1, each)}。`);
+            });
+          }}
+        >
+          <input
+            inputMode="numeric"
+            value={resell.qty}
+            onChange={(e) => setResell({ ...resell, qty: e.target.value.replace(/\D/g, "") })}
+            aria-label={L("How many", "几份")}
+          />
+          <input
+            inputMode="decimal"
+            value={resell.price}
+            onChange={(e) => setResell({ ...resell, price: e.target.value.replace(/[^0-9.]/g, "") })}
+            aria-label={
+              m.market === 2 ? L("Price each (BEM)", "每份价格（BEM）") : L("Price each (OKB)", "每份价格（OKB）")
+            }
+          />
+          <button type="submit" className="btn primary" disabled={busy !== null}>
+            {L("List", "挂出")}
+          </button>
+          {m.market === 2 && (
+            <span className="small fashion-resell-note">
+              {L(
+                "Listed for 30 days. When one of your listings of this piece sells, your other listings of it close, so list again after a sale.",
+                "挂 30 天。这件衣服的某个挂单卖出后，你对它的其他挂单会关闭，卖出后请重新挂。",
+              )}
+            </span>
+          )}
+        </form>
+      )}
+    </li>
   );
 }
