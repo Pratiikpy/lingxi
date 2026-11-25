@@ -1,11 +1,13 @@
+diff --git a/apps/web/src/play/NoticeLane.tsx b/apps/web/src/play/NoticeLane.tsx
+index dc951ab..0336dba 100644
 --- a/apps/web/src/play/NoticeLane.tsx
 +++ b/apps/web/src/play/NoticeLane.tsx
-@@ -28,7 +28,7 @@ export function NoticeLane({ children }: { children: ReactNode }) {
+@@ -33,7 +33,7 @@ export function NoticeLane({ children }: { children: ReactNode }) {
        const sheets = document.querySelectorAll<HTMLElement>(".sheet");
        const sheet = sheets[sheets.length - 1];
        const head = sheet?.querySelector<HTMLElement>(".shead");
 -      if (sheet && head) {
 +      if (sheet && head && sheets.length < 0) {
-         const top = sheet.offsetTop + sheet.clientTop + head.offsetTop + head.offsetHeight + GAP;
-         el.style.setProperty("--lane-top", `${Math.round(top)}px`);
+         sized.observe(sheet);
          el.style.setProperty("--lane-left", `${Math.round(sheet.offsetLeft + GAP)}px`);
+         el.style.setProperty("--lane-width", `${Math.max(0, Math.round(sheet.offsetWidth - 2 * GAP))}px`);

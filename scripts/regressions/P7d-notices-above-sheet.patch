@@ -1,0 +1,13 @@
+diff --git a/apps/web/src/play/NoticeLane.tsx b/apps/web/src/play/NoticeLane.tsx
+index dc951ab..8e829a4 100644
+--- a/apps/web/src/play/NoticeLane.tsx
++++ b/apps/web/src/play/NoticeLane.tsx
+@@ -38,7 +38,7 @@ export function NoticeLane({ children }: { children: ReactNode }) {
+         el.style.setProperty("--lane-left", `${Math.round(sheet.offsetLeft + GAP)}px`);
+         el.style.setProperty("--lane-width", `${Math.max(0, Math.round(sheet.offsetWidth - 2 * GAP))}px`);
+         // everything above the sheet is under its scrim, so the room there runs from the screen's top, below a notch
+-        if (sheet.offsetTop - notch.offsetHeight >= ABOVE_SHEET) {
++        if (sheet.offsetTop - notch.offsetHeight >= ABOVE_SHEET * 100) {
+           // above the sheet, ending just over its top edge: notices stack upward from there
+           el.style.setProperty("--lane-top", "auto");
+           el.style.setProperty("--lane-bottom", `${Math.round(innerHeight - sheet.offsetTop + GAP)}px`);

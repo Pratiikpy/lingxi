@@ -1209,7 +1209,13 @@
     "id": "A67-notices-clear-sheet",
     "row": "A67",
     "bug": "a notice raised while a sheet was open covered the sheet's title",
-    "test": { "kind": "e2e", "spec": "e2e/specs/notices.spec.ts", "title": "notices raised while a sheet is open never cover its header (zh, dark, desktop) (A67)" }
+    "test": { "kind": "e2e", "spec": "e2e/specs/notices.spec.ts", "title": "notices raised while a sheet is open never cover its header or its controls (zh, dark, desktop) (A67, P7d)" }
+  },
+  {
+    "id": "P7d-notices-above-sheet",
+    "row": "P7d",
+    "bug": "a notice over an open sheet sat under its header, over the sheet's first controls (the Pet sheet's Skills button)",
+    "test": { "kind": "e2e", "spec": "e2e/specs/notices.spec.ts", "title": "notices raised while a sheet is open never cover its header or its controls (en, light, phone) (A67, P7d)" }
   },
   {
     "id": "A68-proof-table-phone",
