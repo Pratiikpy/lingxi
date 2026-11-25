@@ -152,86 +152,101 @@ function goalRows(g: GoalsBody, lang: Lang): { title: [string, string]; readTo: 
   };
 }
 
-function rows(n: Numbers, lang: Lang): Array<{ title: [string, string]; readTo?: number; items: Row[] }> {
-  const okb = n.outfits.okb;
-  const bem = n.outfits.bem;
-  const w = n.week;
-  const k = n.kept;
-  const c = n.circuits;
+type Section = { title: [string, string]; readTo?: number; items: Row[] };
+
+/** The page's sections, in order; one that has nothing to show yet gives none. */
+function rows(n: Numbers, lang: Lang): Section[] {
   return [
-    ...(w
-      ? [
-          {
-            title: ["The last 7 days", "过去 7 天"] as [string, string],
-            readTo: n.pets.indexedTo,
-            items: [
-              {
-                label: ["Pets hatched", "孵化的宠物"] as [string, string],
-                value: fmt(w.hatched),
-                counts: [
-                  "Pets hatched from an egg in the last 7 days, by the time of their block.",
-                  "过去 7 天里从蛋里孵化的宠物，按所在区块的时间。",
-                ] as [string, string],
-                source: "registry",
-                team: teamLine(w.byTeam?.hatched, w.hatched),
-              },
-              {
-                label: ["Little ones born", "出生的小宝宝"] as [string, string],
-                value: fmt(w.children),
-                counts: ["Pets born of two parents in the last 7 days.", "过去 7 天里由两位父母生下的宠物。"] as [
-                  string,
-                  string,
-                ],
-                source: "registry",
-                team: teamLine(w.byTeam?.children, w.children),
-              },
-              {
-                label: ["Days saved", "保存的天数"] as [string, string],
-                value: fmt(w.saves),
-                counts: [
-                  "Saves on chain in the last 7 days (Checkpoint events).",
-                  "过去 7 天里在链上的保存（Checkpoint 事件）。",
-                ] as [string, string],
-                source: "registry",
-                team: teamLine(w.byTeam?.saves, w.saves),
-              },
-              {
-                label: ["Pets saved", "存档过的宠物"] as [string, string],
-                value: fmt(w.petsSaved),
-                counts: [
-                  "Distinct pets saved at least once in the last 7 days. Not a count of people.",
-                  "过去 7 天里至少存档一次的不同宠物。不是人数。",
-                ] as [string, string],
-                source: "registry",
-                team: teamLine(w.byTeam?.petsSaved, w.petsSaved),
-              },
-              {
-                label: ["Wallets that hatched", "孵化过宠物的钱包"] as [string, string],
-                value: fmt(w.hatchers),
-                counts: [
-                  "Distinct wallets a pet was hatched or born to in the last 7 days.",
-                  "过去 7 天里宠物孵化或出生时归属的不同钱包。",
-                ] as [string, string],
-                source: "registry",
-                team: teamLine(w.byTeam?.hatchers, w.hatchers),
-              },
-              ...(w.circuits !== null && w.circuits !== undefined
-                ? [
-                    {
-                      label: ["Circuits taped out", "流片的电路"] as [string, string],
-                      value: fmt(w.circuits),
-                      counts: [
-                        "New circuits taped out on Lingxi's processor in the last 7 days (a pet whose mind is already there reuses it).",
-                        "过去 7 天在灵犀的处理器上新流片的电路（心智已经在链上的宠物会直接复用）。",
-                      ] as [string, string],
-                      source: "processor",
-                    },
-                  ]
-                : []),
-            ],
-          },
-        ]
-      : []),
+    ...lastWeek(n),
+    ...petsSection(n),
+    ...circuitsSection(n, lang),
+    ...fashionSection(n),
+    ...circuitsOthersSection(n),
+    ...bemSection(n),
+    ...earnedSection(n),
+  ];
+}
+
+function lastWeek(n: Numbers): Section[] {
+  const w = n.week;
+  return w
+    ? [
+        {
+          title: ["The last 7 days", "过去 7 天"] as [string, string],
+          readTo: n.pets.indexedTo,
+          items: [
+            {
+              label: ["Pets hatched", "孵化的宠物"] as [string, string],
+              value: fmt(w.hatched),
+              counts: [
+                "Pets hatched from an egg in the last 7 days, by the time of their block.",
+                "过去 7 天里从蛋里孵化的宠物，按所在区块的时间。",
+              ] as [string, string],
+              source: "registry",
+              team: teamLine(w.byTeam?.hatched, w.hatched),
+            },
+            {
+              label: ["Little ones born", "出生的小宝宝"] as [string, string],
+              value: fmt(w.children),
+              counts: ["Pets born of two parents in the last 7 days.", "过去 7 天里由两位父母生下的宠物。"] as [
+                string,
+                string,
+              ],
+              source: "registry",
+              team: teamLine(w.byTeam?.children, w.children),
+            },
+            {
+              label: ["Days saved", "保存的天数"] as [string, string],
+              value: fmt(w.saves),
+              counts: [
+                "Saves on chain in the last 7 days (Checkpoint events).",
+                "过去 7 天里在链上的保存（Checkpoint 事件）。",
+              ] as [string, string],
+              source: "registry",
+              team: teamLine(w.byTeam?.saves, w.saves),
+            },
+            {
+              label: ["Pets saved", "存档过的宠物"] as [string, string],
+              value: fmt(w.petsSaved),
+              counts: [
+                "Distinct pets saved at least once in the last 7 days. Not a count of people.",
+                "过去 7 天里至少存档一次的不同宠物。不是人数。",
+              ] as [string, string],
+              source: "registry",
+              team: teamLine(w.byTeam?.petsSaved, w.petsSaved),
+            },
+            {
+              label: ["Wallets that hatched", "孵化过宠物的钱包"] as [string, string],
+              value: fmt(w.hatchers),
+              counts: [
+                "Distinct wallets a pet was hatched or born to in the last 7 days.",
+                "过去 7 天里宠物孵化或出生时归属的不同钱包。",
+              ] as [string, string],
+              source: "registry",
+              team: teamLine(w.byTeam?.hatchers, w.hatchers),
+            },
+            ...(w.circuits !== null && w.circuits !== undefined
+              ? [
+                  {
+                    label: ["Circuits taped out", "流片的电路"] as [string, string],
+                    value: fmt(w.circuits),
+                    counts: [
+                      "New circuits taped out on Lingxi's processor in the last 7 days (a pet whose mind is already there reuses it).",
+                      "过去 7 天在灵犀的处理器上新流片的电路（心智已经在链上的宠物会直接复用）。",
+                    ] as [string, string],
+                    source: "processor",
+                  },
+                ]
+              : []),
+          ],
+        },
+      ]
+    : [];
+}
+
+function petsSection(n: Numbers): Section[] {
+  const k = n.kept;
+  return [
     {
       title: ["Pets", "宠物"],
       readTo: n.pets.indexedTo,
@@ -321,38 +336,49 @@ function rows(n: Numbers, lang: Lang): Array<{ title: [string, string]; readTo?:
           : []),
       ],
     },
-    ...(c
-      ? [
-          {
-            title: ["Circuits on Lingxi's processor", "灵犀处理器上的电路"] as [string, string],
-            readTo: c.indexedTo,
-            items: [
-              {
-                label: ["Circuits taped out", "流片的电路"] as [string, string],
-                value: fmt(c.total),
-                counts: [
-                  "The processor's own count (nextId, the number of its latest circuit): every circuit taped out on it, the pet minds, children, instincts and rules Lingxi's relayer puts there and any a player tapes out with their own wallet. A pet whose mind is already there reuses it, so this grows with new minds, not with pets. The mints walked so far: " +
-                    fmt(c.minted) +
-                    ".",
-                  "处理器自己的计数（nextId，即最新一个电路的编号）：在它上面流片的每个电路，包括灵犀中继放上去的宠物心智、孩子、本能和规则，以及玩家用自己钱包流片的电路。心智已经在链上的宠物会直接复用，所以这个数随新心智增长，而不是随宠物增长。目前读到的铸造：" +
-                    fmt(c.minted) +
-                    "。",
-                ] as [string, string],
-                source: "processor",
-              },
-              {
-                label: ["In the last 7 days", "过去 7 天"] as [string, string],
-                value: c.last7d === null ? (lang === "zh" ? "读取中" : "still reading") : fmt(c.last7d),
-                counts: [
-                  "Circuits taped out in the last 7 days: the processor's count now less its count at the first block of the 7 days, read from X Layer (the walk of every mint is the recount's check on it).",
-                  "过去 7 天流片的电路：处理器现在的计数减去 7 天前第一个区块时的计数，从 X Layer 读出（逐一读取每次铸造是重算时对它的核对）。",
-                ] as [string, string],
-                source: "processor",
-              },
-            ],
-          },
-        ]
-      : []),
+  ];
+}
+
+function circuitsSection(n: Numbers, lang: Lang): Section[] {
+  const c = n.circuits;
+  return c
+    ? [
+        {
+          title: ["Circuits on Lingxi's processor", "灵犀处理器上的电路"] as [string, string],
+          readTo: c.indexedTo,
+          items: [
+            {
+              label: ["Circuits taped out", "流片的电路"] as [string, string],
+              value: fmt(c.total),
+              counts: [
+                "The processor's own count (nextId, the number of its latest circuit): every circuit taped out on it, the pet minds, children, instincts and rules Lingxi's relayer puts there and any a player tapes out with their own wallet. A pet whose mind is already there reuses it, so this grows with new minds, not with pets. The mints walked so far: " +
+                  fmt(c.minted) +
+                  ".",
+                "处理器自己的计数（nextId，即最新一个电路的编号）：在它上面流片的每个电路，包括灵犀中继放上去的宠物心智、孩子、本能和规则，以及玩家用自己钱包流片的电路。心智已经在链上的宠物会直接复用，所以这个数随新心智增长，而不是随宠物增长。目前读到的铸造：" +
+                  fmt(c.minted) +
+                  "。",
+              ] as [string, string],
+              source: "processor",
+            },
+            {
+              label: ["In the last 7 days", "过去 7 天"] as [string, string],
+              value: c.last7d === null ? (lang === "zh" ? "读取中" : "still reading") : fmt(c.last7d),
+              counts: [
+                "Circuits taped out in the last 7 days: the processor's count now less its count at the first block of the 7 days, read from X Layer (the walk of every mint is the recount's check on it).",
+                "过去 7 天流片的电路：处理器现在的计数减去 7 天前第一个区块时的计数，从 X Layer 读出（逐一读取每次铸造是重算时对它的核对）。",
+              ] as [string, string],
+              source: "processor",
+            },
+          ],
+        },
+      ]
+    : [];
+}
+
+function fashionSection(n: Numbers): Section[] {
+  const okb = n.outfits.okb;
+  const bem = n.outfits.bem;
+  return [
     {
       title: ["Fashion", "时装"],
       readTo: Math.min(
@@ -403,26 +429,34 @@ function rows(n: Numbers, lang: Lang): Array<{ title: [string, string]; readTo?:
           : []),
       ],
     },
-    ...(n.usedByOthers
-      ? [
-          {
-            title: ["Circuits others use", "别人用的电路"] as [string, string],
-            items: [
-              {
-                label: ["Circuits on other processors that use Lingxi's", "别的处理器上用到灵犀电路的电路"] as [
-                  string,
-                  string,
-                ],
-                value: `${fmt(n.usedByOthers.circuits)} · ${fmt(n.usedByOthers.processors)} ${n.usedByOthers.processors === 1 ? "processor" : "processors"}`,
-                counts: [
-                  `Circuits on other TapeOut processors whose netlists REF a Lingxi circuit, read from chain (every processor TapeOut's factory made; ${n.usedByOthers.complete ? "all read" : `still reading: ${fmt(n.usedByOthers.scannedProcessors)} of ${fmt(Math.max(0, n.usedByOthers.cpuCount - 1))} so far`}). The catalogue of circuits anyone can call is at circuits.html.`,
-                  `别的 TapeOut 处理器上，网表里 REF 了灵犀电路的电路，从链上读出（TapeOut 工厂造出的每一个处理器；${n.usedByOthers.complete ? "已全部读完" : `还在读：已读 ${fmt(n.usedByOthers.scannedProcessors)} / ${fmt(Math.max(0, n.usedByOthers.cpuCount - 1))}`}）。任何人都能调用的电路目录在 circuits.html。`,
-                ] as [string, string],
-              },
-            ],
-          },
-        ]
-      : []),
+  ];
+}
+
+function circuitsOthersSection(n: Numbers): Section[] {
+  return n.usedByOthers
+    ? [
+        {
+          title: ["Circuits others use", "别人用的电路"] as [string, string],
+          items: [
+            {
+              label: ["Circuits on other processors that use Lingxi's", "别的处理器上用到灵犀电路的电路"] as [
+                string,
+                string,
+              ],
+              value: `${fmt(n.usedByOthers.circuits)} · ${fmt(n.usedByOthers.processors)} ${n.usedByOthers.processors === 1 ? "processor" : "processors"}`,
+              counts: [
+                `Circuits on other TapeOut processors whose netlists REF a Lingxi circuit, read from chain (every processor TapeOut's factory made; ${n.usedByOthers.complete ? "all read" : `still reading: ${fmt(n.usedByOthers.scannedProcessors)} of ${fmt(Math.max(0, n.usedByOthers.cpuCount - 1))} so far`}). The catalogue of circuits anyone can call is at circuits.html.`,
+                `别的 TapeOut 处理器上，网表里 REF 了灵犀电路的电路，从链上读出（TapeOut 工厂造出的每一个处理器；${n.usedByOthers.complete ? "已全部读完" : `还在读：已读 ${fmt(n.usedByOthers.scannedProcessors)} / ${fmt(Math.max(0, n.usedByOthers.cpuCount - 1))}`}）。任何人都能调用的电路目录在 circuits.html。`,
+              ] as [string, string],
+            },
+          ],
+        },
+      ]
+    : [];
+}
+
+function bemSection(n: Numbers): Section[] {
+  return [
     {
       title: ["BEM burned", "销毁的 BEM"],
       items: [
@@ -493,39 +527,43 @@ function rows(n: Numbers, lang: Lang): Array<{ title: [string, string]; readTo?:
         },
       ],
     },
-    ...(n.earned && okb
-      ? [
-          {
-            title: ["Earned by the project", "项目的收入"] as [string, string],
-            items: [
-              {
-                label: ["From the OKB outfit market", "来自 OKB 衣服市场"] as [string, string],
-                value: `${formatEther(BigInt(n.earned.okb))} OKB`,
-                counts: [
-                  `The OKB market's fee, ${n.earned.feeBps / 100}% of every sale, paid to the project wallet ${shortAddr(n.earned.treasury)} to fund the game; counted sale by sale at the rate in force (the market keeps no fee total), out of ${formatEther(BigInt(okb.paid))} OKB in sales.${n.earned.toProject ? "" : " The fee now goes to another wallet, so sales from now on add nothing here."} BEM fees are never earned: they are burned.`,
-                  `OKB 市场的手续费：每笔交易的 ${n.earned.feeBps / 100}%，付给项目钱包 ${shortAddr(n.earned.treasury)}，用来维持游戏；按每笔交易当时的费率逐笔计算（市场合约不记手续费总额），来自共 ${formatEther(BigInt(okb.paid))} OKB 的交易。${n.earned.toProject ? "" : "手续费现在付给另一个钱包，之后的交易不再计入这里。"}BEM 的费用从不是收入：全部销毁。`,
-                ] as [string, string],
-                source: "marketOkb",
-                ...(n.earned.fromTeam !== undefined
-                  ? {
-                      team:
-                        BigInt(n.earned.fromTeam) === BigInt(n.earned.okb) && BigInt(n.earned.okb) > 0n
-                          ? ([
-                              "All of it from the team's own test purchases: the team paying itself, not income.",
-                              "全部来自团队自己的测试购买：团队付给自己，不是收入。",
-                            ] as [string, string])
-                          : ([
-                              `From players: ${formatEther(BigInt(n.earned.okb) - BigInt(n.earned.fromTeam))} OKB · from the team's own test purchases: ${formatEther(BigInt(n.earned.fromTeam))} OKB`,
-                              `来自玩家：${formatEther(BigInt(n.earned.okb) - BigInt(n.earned.fromTeam))} OKB · 来自团队自己的测试购买：${formatEther(BigInt(n.earned.fromTeam))} OKB`,
-                            ] as [string, string]),
-                    }
-                  : {}),
-              },
-            ],
-          },
-        ]
-      : []),
   ];
+}
+
+function earnedSection(n: Numbers): Section[] {
+  const okb = n.outfits.okb;
+  return n.earned && okb
+    ? [
+        {
+          title: ["Earned by the project", "项目的收入"] as [string, string],
+          items: [
+            {
+              label: ["From the OKB outfit market", "来自 OKB 衣服市场"] as [string, string],
+              value: `${formatEther(BigInt(n.earned.okb))} OKB`,
+              counts: [
+                `The OKB market's fee, ${n.earned.feeBps / 100}% of every sale, paid to the project wallet ${shortAddr(n.earned.treasury)} to fund the game; counted sale by sale at the rate in force (the market keeps no fee total), out of ${formatEther(BigInt(okb.paid))} OKB in sales.${n.earned.toProject ? "" : " The fee now goes to another wallet, so sales from now on add nothing here."} BEM fees are never earned: they are burned.`,
+                `OKB 市场的手续费：每笔交易的 ${n.earned.feeBps / 100}%，付给项目钱包 ${shortAddr(n.earned.treasury)}，用来维持游戏；按每笔交易当时的费率逐笔计算（市场合约不记手续费总额），来自共 ${formatEther(BigInt(okb.paid))} OKB 的交易。${n.earned.toProject ? "" : "手续费现在付给另一个钱包，之后的交易不再计入这里。"}BEM 的费用从不是收入：全部销毁。`,
+              ] as [string, string],
+              source: "marketOkb",
+              ...(n.earned.fromTeam !== undefined
+                ? {
+                    team:
+                      BigInt(n.earned.fromTeam) === BigInt(n.earned.okb) && BigInt(n.earned.okb) > 0n
+                        ? ([
+                            "All of it from the team's own test purchases: the team paying itself, not income.",
+                            "全部来自团队自己的测试购买：团队付给自己，不是收入。",
+                          ] as [string, string])
+                        : ([
+                            `From players: ${formatEther(BigInt(n.earned.okb) - BigInt(n.earned.fromTeam))} OKB · from the team's own test purchases: ${formatEther(BigInt(n.earned.fromTeam))} OKB`,
+                            `来自玩家：${formatEther(BigInt(n.earned.okb) - BigInt(n.earned.fromTeam))} OKB · 来自团队自己的测试购买：${formatEther(BigInt(n.earned.fromTeam))} OKB`,
+                          ] as [string, string]),
+                  }
+                : {}),
+            },
+          ],
+        },
+      ]
+    : [];
 }
 
 /** Who bought a market's copies (C2): the team's own wallets, creators or sellers buying their own, and other players. */
