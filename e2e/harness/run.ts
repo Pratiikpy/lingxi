@@ -80,6 +80,10 @@ export async function startRun(): Promise<Run> {
       anvil.log,
     );
     const pub = createPublicClient({ transport: http(rpc) }) as PublicClient;
+    // the fork's new blocks start at the real time, as mainnet's do: by default anvil carries on from the pinned
+    // block's own time (18 Nov 2026), and the server counts "the last 7 days" from the real clock, so from 25 Nov
+    // every hatch on the fork fell outside the week (P7a's CI run, numbers-week)
+    await pub.request({ method: "evm_setTime" as never, params: [Math.floor(Date.now() / 1000)] as never });
 
     // the deployment record, pointed at the fork
     const deployment = JSON.parse(readFileSync(join(ROOT, "packages/chain/deployments/xlayer.json"), "utf8")) as Record<
