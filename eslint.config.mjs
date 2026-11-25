@@ -4,6 +4,12 @@ import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 import reactHooks from "eslint-plugin-react-hooks";
 import globals from "globals";
+import { readFileSync } from "node:fs";
+
+// P7: a non-null assertion (`x!`) tells the compiler a value is there without checking it. New code says why instead:
+// a checked value, or an invariant checked at run time. Files that still hold assertions are listed; the list only
+// shrinks (scripts/nonNull.test.mts fails on a listed file that no longer has any), and every other file is held to it.
+const nonNullAllowed = JSON.parse(readFileSync(new URL("./lint/non-null-allowed.json", import.meta.url), "utf8"));
 
 export default tseslint.config(
   {
@@ -28,6 +34,19 @@ export default tseslint.config(
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
+  {
+    files: ["**/*.{ts,tsx,mts}"],
+    ignores: [
+      "**/*.test.ts",
+      "**/*.test.tsx",
+      "**/*.test.mts",
+      "**/*.spec.ts",
+      "**/test/**",
+      "e2e/**",
+      ...nonNullAllowed,
+    ],
+    rules: { "@typescript-eslint/no-non-null-assertion": "error" },
+  },
   {
     files: ["**/*.{ts,tsx,mts,js,mjs,cjs}"],
     languageOptions: {
