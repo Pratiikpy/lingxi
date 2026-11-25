@@ -12,7 +12,7 @@
  * The relay client (about 0.7 MB) is loaded only when letters are first needed.
  */
 
-import { create } from "zustand";
+import { type StoreApi, create } from "zustand";
 import { RELAY_NODES, isRelayAddress, readLetter, writeLetter } from "@lingxi/game";
 import type { KeyPair, OpenResult, SelfAuth } from "@taperelay/client";
 import { saveWrite, useSaveState } from "./saveRuntime";
@@ -186,7 +186,12 @@ interface LettersStore {
 let poll: ReturnType<typeof setInterval> | null = null;
 let stopPush: (() => void) | null = null;
 
-export const useLetters = create<LettersStore>((set, get) => {
+/**
+ * What the letters store does for itself, beneath its actions (P7: out of the store's body): saving what it keeps,
+ * clearing a passed trouble, taking in an arrived letter, marking letters read, checking and making a delivery,
+ * allowing a sender, and opening this device's mail session.
+ */
+function lettersInternals(set: StoreApi<LettersStore>["setState"], get: () => LettersStore) {
   const write = (next: Saved) => {
     persist(next);
     set({ saved: next });
@@ -343,7 +348,11 @@ export const useLetters = create<LettersStore>((set, get) => {
       return null;
     }
   };
+  return { write, ok, arrived, markRead, checkDelivery, deliver, allow, open };
+}
 
+export const useLetters = create<LettersStore>((set, get) => {
+  const { write, ok, arrived, markRead, checkDelivery, deliver, allow, open } = lettersInternals(set, get);
   return {
     saved: load(),
     trouble: null,
