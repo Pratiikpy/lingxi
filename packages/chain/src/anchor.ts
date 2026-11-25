@@ -23,7 +23,8 @@ export interface BrainAnchor {
 export type AnchorFailure = "noHatch" | "hatchBrain" | "unanchored" | "skipsChange" | "notCurrent";
 
 export type AnchorResult =
-  | { ok: true; anchors: BrainAnchor[]; startState: bigint }
+  // the hatching is always the first anchor, so there is at least one
+  | { ok: true; anchors: [BrainAnchor, ...BrainAnchor[]]; startState: bigint }
   | { ok: false; reason: AnchorFailure; detail: string };
 
 export interface AnchorHints {
@@ -105,7 +106,9 @@ export async function anchorBrains(
     .filter((e) => e.kind === "changed" && e.petId === petId && e.block >= hatch.block)
     .sort((a, b) => (a.block < b.block ? -1 : a.block > b.block ? 1 : 0));
 
-  const anchors: BrainAnchor[] = [{ brainId: hatch.brainId, tx: hatch.tx, block: hatch.block, kind: "hatched" }];
+  const anchors: [BrainAnchor, ...BrainAnchor[]] = [
+    { brainId: hatch.brainId, tx: hatch.tx, block: hatch.block, kind: "hatched" },
+  ];
   let used = 0;
   for (const brain of sequence.slice(1)) {
     const at = changes.findIndex(

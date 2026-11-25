@@ -73,7 +73,7 @@ export function LifePanel({ pet, onSchool, blocked }: { pet: Pet; onSchool: () =
   const [log, setLog] = useState<WorkLog | undefined>(() => loadLogs()[String(pet.bornAt)]);
   const [shift, setShift] = useState<Job | null>(null);
   const [done, setDone] = useState<{ job: Job; right: number; wrong: number; pay: number } | null>(null);
-  const program = useMemo(() => mindParts(pet)[0]!.program, [pet]);
+  const program = useMemo(() => mindParts(pet)[0].program, [pet]);
 
   if (life === "egg" || life === "baby")
     return (

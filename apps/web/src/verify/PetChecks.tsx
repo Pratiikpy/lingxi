@@ -181,7 +181,8 @@ export function DiaryPanel({
   const diary = check?.diary ?? null;
   const diaryState = check?.state ?? "none";
   // the log holds more beats than the minutes X Layer shows between the hatching and the latest save: told in beats
-  const untimed = !!pet && check?.beats !== undefined && beatsOutrunChain(check.beats, pet.born, pet.checkedAt);
+  const beats = check?.beats;
+  const untimed = !!pet && beats !== undefined && beatsOutrunChain(beats, pet.born, pet.checkedAt);
   const chainSpan = pet ? Math.max(0, pet.checkedAt - pet.born) : 0;
   const spanText = (en: boolean) =>
     chainSpan < 120
@@ -251,8 +252,8 @@ export function DiaryPanel({
               {untimed && (
                 <p className="v-note" data-diary="untimed">
                   {lang === "zh"
-                    ? `它的日志有 ${check!.beats} 拍，但 X Layer 上从它孵化到最近一次存档只隔了 ${spanText(false)}，所以这些拍不是一分钟一拍过完的；日记按日志里的拍来说，不说多少分钟。`
-                    : `Its log holds ${check!.beats} beats, but X Layer shows only ${spanText(true)} between its hatching and its latest save, so those beats were not lived a minute each; the diary counts beats of the log, not minutes.`}
+                    ? `它的日志有 ${beats} 拍，但 X Layer 上从它孵化到最近一次存档只隔了 ${spanText(false)}，所以这些拍不是一分钟一拍过完的；日记按日志里的拍来说，不说多少分钟。`
+                    : `Its log holds ${beats} beats, but X Layer shows only ${spanText(true)} between its hatching and its latest save, so those beats were not lived a minute each; the diary counts beats of the log, not minutes.`}
                 </p>
               )}
               <ul>

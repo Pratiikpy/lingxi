@@ -74,7 +74,8 @@ export function createDrifts(sky: Container, weather: Weather): Drifts {
         }
       }
       for (let i = drifts.length - 1; i >= 0; i--) {
-        const d = drifts[i]!;
+        const d = drifts[i];
+        if (!d) continue;
         d.ph += 0.03;
         d.s.x +=
           d.vx +

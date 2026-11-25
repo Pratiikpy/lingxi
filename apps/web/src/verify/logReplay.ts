@@ -82,12 +82,18 @@ export async function replayLogOnChain(
     if (!anchored.ok) return { kind: "notAnchored", reason: anchored.reason, detail: anchored.detail };
 
     const circuits: Circuit[] = [];
+    // one circuit is read for each stretch, in order, so every stretch has its own
+    const circuitAt = (i: number): Circuit => {
+      const c = circuits[i];
+      if (!c) throw new Error(`no circuit was read for stretch ${i}`);
+      return c;
+    };
     for (const sg of segments) circuits.push(await chain.circuitOf(BigInt(sg.brainId ?? pet.brainId.toString())));
     /** the log replayed stretch by stretch from the memory `first` gives the first circuit */
     const replayed = (first: (nState: number) => number[]): number[] | null => {
       let st: number[] | null = null;
       segments.forEach((sg, i) => {
-        const c = circuits[i]!;
+        const c = circuitAt(i);
         st =
           st === null
             ? first(c.nState)
@@ -99,7 +105,7 @@ export async function replayLogOnChain(
       return st;
     };
     const stretches = segments.map((sg, i) => ({
-      brain: { fast: circuitBrain(circuits[i]!), nState: circuits[i]!.nState },
+      brain: { fast: circuitBrain(circuitAt(i)), nState: circuitAt(i).nState },
       words: sg.words,
     }));
     // the starting memory is the one the pet hatched with, from its Hatched event
@@ -117,7 +123,7 @@ export async function replayLogOnChain(
       kind: "ok",
       stretches,
       beats: words.length,
-      hatchTx: anchored.anchors[0]!.tx,
+      hatchTx: anchored.anchors[0].tx,
       changes: anchored.anchors.length - 1,
     };
   } catch (e) {

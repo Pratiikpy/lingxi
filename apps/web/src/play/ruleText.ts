@@ -26,6 +26,13 @@ export const VALUE_NAMES: Record<string, Names> = {
   owner: { en: ["you're away", "you're here"], zh: ["你不在", "你在身边"] },
 };
 
+/** The names of a field's values; the builder offers only fields named above, so an unnamed one is a bug. */
+export const namesOf = (field: string): Names => {
+  const n = VALUE_NAMES[field];
+  if (!n) throw new Error(`no names for the field ${field}`);
+  return n;
+};
+
 /** The same pins as they read during a spar (see @lingxi/game spar.ts). */
 export const FIGHT_VALUE_NAMES: Record<string, Names> = {
   hunger: {

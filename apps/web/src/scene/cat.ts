@@ -74,7 +74,7 @@ export function createCat(world: Container): Cat {
           ? "nap"
           : catState.mode === "groom"
             ? "groom"
-            : (["sit0", "sit1", "sit2"] as const)[tail]!,
+            : ((["sit0", "sit1", "sit2"] as const)[tail] ?? "sit0"),
     );
     cat.scale.x = catState.dir;
     cat.x = Math.round(catState.x);

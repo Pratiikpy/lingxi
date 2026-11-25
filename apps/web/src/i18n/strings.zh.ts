@@ -349,6 +349,7 @@ export const zh: Record<Key, string> = {
   "teach.fired": "今天做主 {n} 次",
   "teach.firedNone": "今天还没用上",
   "teach.lastAt": "最近一次在 {time}：再看一遍",
+  "teach.lastUntimed": "最近一次：再看一遍",
   "teach.firedWaits": "等它的时刻到来",
   "teach.seeMoment": "看看到时它会怎么做",
   "teach.lastSensed": "它当时感到：{sensed}。",

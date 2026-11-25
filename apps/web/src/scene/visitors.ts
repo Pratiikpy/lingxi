@@ -144,8 +144,9 @@ export function createVisitors(ctx: {
       if (v.tag.style.fill !== fill) v.tag.style.fill = fill;
       const tagW = v.tag.width;
       v.tag.position.set(Math.max(tagW / 2 + 4, Math.min(viewW - tagW / 2 - 4, cx)), top + scale * 10);
-      const talking = o.say && now - o.say.at < 5000;
-      v.bubble.text = talking ? o.say!.text : "";
+      const said = o.say && now - o.say.at < 5000 ? o.say.text : null;
+      const talking = said !== null;
+      v.bubble.text = said ?? "";
       v.bubbleBg.clear();
       if (talking) {
         const b = v.bubble.getLocalBounds();

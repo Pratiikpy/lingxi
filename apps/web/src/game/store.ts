@@ -168,7 +168,8 @@ export interface MindPart {
 }
 
 /** A pet's mind as the screens show it: one program, or a child's day half and night half. */
-export function mindParts(pet: Pet): MindPart[] {
+// never empty: a pet always has its own mind, and a child two halves
+export function mindParts(pet: Pet): [MindPart, ...MindPart[]] {
   if (!pet.family) return [{ program: programFor(pet.line, pet.lessons, pet.instincts, pet.growth), offset: 0 }];
   const [a, b] = halvesOf(pet.family, pet.lessons, skillRules(pet.growth));
   return [
@@ -180,7 +181,7 @@ export function mindParts(pet: Pet): MindPart[] {
 /** The part of the mind that made the last decision. */
 export function decidingPart(pet: Pet): MindPart {
   const parts = mindParts(pet);
-  return parts[pet.last.half ?? 0] ?? parts[0]!;
+  return parts[pet.last.half ?? 0] ?? parts[0];
 }
 
 /** Any pet's brain, including a child built from two parents. */

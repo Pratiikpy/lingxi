@@ -16,7 +16,6 @@ import {
   DESIGNED_PARTNERS,
   composeProgram,
   type Fighter,
-  PARTNERS,
   type Partner,
   type Pet,
   FLY_RIVALS,
@@ -24,6 +23,7 @@ import {
   FlyLinkError,
   flyFighter,
   parseFlyBrain,
+  partnerAt,
 } from "@lingxi/game";
 
 import { useDaily } from "../../game/daily";
@@ -168,8 +168,8 @@ export function FlyBrains({ pet, onFight }: { pet: Pet; onFight: (partner: Partn
             <button type="button" className="sp-fly-rival" onClick={() => fightRival(r)}>
               <b>{r.name}</b>
               <span className="small">
-                {r.chips.length === 1
-                  ? chipName(r.chips[0]!, lang === "zh" ? "zh" : "en")
+                {r.chips.length === 1 && r.chips[0]
+                  ? chipName(r.chips[0], lang === "zh" ? "zh" : "en")
                   : `${r.chips.length} ${L("chips", "张芯片")}`}
               </span>
               <span className="small sp-fly-gates">
@@ -292,7 +292,7 @@ export function ChainBrain({ pet, onFight }: { pet: Pet; onFight: (partner: Part
           if (r.ok) setGot({ circuit: r.circuit, profile: r.profile });
           else {
             play("error");
-            setErr(READ_ERR[r.reason]![lang]);
+            setErr(READ_ERR[r.reason][lang]);
           }
         }}
       >
@@ -483,7 +483,7 @@ export function DailyCard({
   useEffect(() => {
     void load();
   }, [load]);
-  const partner = PARTNERS[partnerIndex]!;
+  const partner = partnerAt(partnerIndex);
   const art = useMemo(
     () => drawPet(partner.line, partner.stage, { expression: "proud" }),
     [partner.line, partner.stage],

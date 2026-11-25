@@ -22,7 +22,7 @@ function expressionFor(p: SceneProps, now: number, blinking: boolean): { e: Expr
   if (p.sick && !care) return { e: "dizzy", lit: false };
   if (care === "feed") return { e: Math.floor(now / 220) % 2 ? "munch" : "munchShut", lit: true };
   if (care === "pet") return { e: "love", lit: true };
-  if (care === "clean") return { e: now - p.lastCare!.at < 900 ? "sneeze" : "happy", lit: true };
+  if (care === "clean") return { e: p.lastCare && now - p.lastCare.at < 900 ? "sneeze" : "happy", lit: true };
   if (care === "play") return { e: "happy", lit: true };
   if (blinking) return { e: "asleep", lit: false };
   if (p.want === 5) return { e: "sulk", lit: false };
@@ -296,8 +296,9 @@ export function createPetLife(ctx: {
       particles.burst("note", 1, ["#2F7FD6"], PET_X);
 
     // dust bunnies gather when it hasn't been cleaned in a while
-    bunnies[0]!.visible = p.clean < 300;
-    bunnies[1]!.visible = p.clean < 150;
+    const [few, many] = bunnies;
+    if (few) few.visible = p.clean < 300;
+    if (many) many.visible = p.clean < 150;
     bunnies.forEach((b, i) => {
       b.texture = BITS.bunny(!p.reduceMotion && Math.floor(now / 2300 + i * 3) % 6 === 0);
       b.y = PET_FEET + 3 + (!p.reduceMotion && Math.sin(now / 480 + i * 2) > 0.4 ? -1 : 0);

@@ -14,6 +14,7 @@ import { type CoachNote, type Move, type Partner, ruleSource } from "@lingxi/gam
 import { LILAC, MINT, PEACH } from "@lingxi/art";
 
 import { deployment } from "../../game/chain";
+import type { ReadResult } from "../../game/adopt";
 import { MOVE_WORDS } from "../ruleText";
 import { PALETTE_OF } from "../../scene/palette";
 import { Sprite } from "../Sprite";
@@ -93,7 +94,7 @@ export const LINE_ZH: Record<string, string> = { gentle: "温柔", bold: "勇敢
 
 export const DEFAULT_PROCESSOR = (deployment?.processor as string | undefined) ?? "";
 
-export const READ_ERR: Record<string, { en: string; zh: string }> = {
+export const READ_ERR: Record<Extract<ReadResult, { ok: false }>["reason"], { en: string; zh: string }> = {
   notProcessor: {
     en: "That address isn't a TapeOut processor registered on X Layer.",
     zh: "这个地址不是 X Layer 上注册的 TapeOut 处理器。",

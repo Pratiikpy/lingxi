@@ -67,7 +67,7 @@ export function FightView({
   const reduce = useReducedMotion() ?? false;
   const [shown, setShown] = useState(0);
   const finished = shown >= result.rounds.length;
-  const round = shown > 0 ? result.rounds[shown - 1]! : null;
+  const round = shown > 0 ? (result.rounds[shown - 1] ?? null) : null;
   // each side's own full health (a skill or a bag item can make it more than MAX_HP), so the bar never runs past its end
   const full: [number, number] = result.maxHp ?? [MAX_HP, MAX_HP];
   const hp: [number, number] = round ? round.hp : full;
@@ -97,7 +97,8 @@ export function FightView({
     const outcome = result.winner === 0 ? "w" : result.winner === 1 ? "l" : "d";
     const first = useSpar.getState().note(partner.id, outcome);
     if (daily) {
-      const margin = result.rounds.at(-1) ? result.rounds.at(-1)!.hp[0] - result.rounds.at(-1)!.hp[1] : 0;
+      const last = result.rounds.at(-1);
+      const margin = last ? last.hp[0] - last.hp[1] : 0;
       const newBest = useDaily.getState().record(margin, outcome === "w");
       setDailyNote(newBest ? "best" : "same");
     }
@@ -131,8 +132,8 @@ export function FightView({
     if (finished) return;
     const id = setTimeout(
       () => {
-        const r = result.rounds[shown]!;
-        play(r.hits[0] || r.hits[1] ? "pop" : "tap");
+        const r = result.rounds[shown];
+        play(r && (r.hits[0] || r.hits[1]) ? "pop" : "tap");
         setShown(shown + 1);
         if (shown + 1 >= result.rounds.length) settleOnce();
       },
@@ -143,11 +144,11 @@ export function FightView({
   const face = (side: 0 | 1): Expression => {
     if (finished) return result.winner === side ? "proud" : result.winner === -1 ? "happy" : "sad";
     if (!round) return "neutral";
-    if (round.hits[1 - side]! >= 14) return "startled";
+    if (round.hits[side === 0 ? 1 : 0] >= 14) return "startled";
     if (round.moves[side] === "rest") return "sleepy";
     if (round.moves[side] === "snack") return "munch";
     if (round.moves[side] === "charm" || round.moves[side] === "gift") return "love";
-    return round.moods[side]! >= 2 ? "sparkly" : round.moods[side] === 0 ? "sulk" : "neutral";
+    return round.moods[side] >= 2 ? "sparkly" : round.moods[side] === 0 ? "sulk" : "neutral";
   };
   const myFace = face(0);
   const theirFace = face(1);
@@ -229,7 +230,7 @@ export function FightView({
               key={`${side}-${shown}`}
               className="sp-body"
               animate={
-                round && round.hits[1 - side]! > 0 && !reduce
+                round && round.hits[side === 0 ? 1 : 0] > 0 && !reduce
                   ? { x: [0, side === 0 ? -6 : 6, 0, side === 0 ? -3 : 3, 0] }
                   : round && round.moves[side] === "pounce" && !reduce
                     ? { x: [0, side === 0 ? 14 : -14, 0] }
@@ -254,7 +255,7 @@ export function FightView({
               />
             </motion.div>
             <AnimatePresence>
-              {round && round.hits[1 - side]! > 0 && (
+              {round && round.hits[side === 0 ? 1 : 0] > 0 && (
                 <motion.span
                   key={`hit-${shown}`}
                   className="sp-pop"
@@ -267,7 +268,7 @@ export function FightView({
                 </motion.span>
               )}
             </AnimatePresence>
-            <span className="sp-move">{round ? MOVE_NAMES[round.moves[side]!][lang === "zh" ? 1 : 0] : "…"}</span>
+            <span className="sp-move">{round ? MOVE_NAMES[round.moves[side]][lang === "zh" ? 1 : 0] : "…"}</span>
           </div>
         ))}
       </div>

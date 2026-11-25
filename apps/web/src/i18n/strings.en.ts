@@ -364,6 +364,7 @@ export const en = {
   "teach.fired": "decided {n} times today",
   "teach.firedNone": "not used yet today",
   "teach.lastAt": "Last at {time}: show it again",
+  "teach.lastUntimed": "The last time: show it again",
   "teach.firedWaits": "waiting for its moment",
   "teach.seeMoment": "See what it will do then",
   "teach.lastSensed": "It sensed: {sensed}.",

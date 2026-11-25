@@ -118,6 +118,8 @@ export function Result({
         : lang === "zh"
           ? "平手"
           : "A draw";
+  // the lesson the coach would swap out, when the mind is full and that lesson is still there
+  const swapOut = note?.replace !== undefined ? asFought.lessons[note.replace] : undefined;
   return (
     <motion.div
       className="sp-result"
@@ -153,14 +155,14 @@ export function Result({
           {note && <p>{why(note.key, pet.name, partner.name[lang], lang)}</p>}
           {note?.lesson && (
             <>
-              {note.replace !== undefined && asFought.lessons[note.replace] ? (
+              {swapOut ? (
                 <>
                   <p>{lang === "zh" ? "它的心智满了。把这一课换掉：" : "Its mind is full. Swap this lesson out:"}</p>
                   <div className="sp-swap-out">
                     {(() => {
                       const c = chipsFor(
                         programFor(asFought.line, asFought.lessons, asFought.instincts ?? 0, asFought.growth),
-                        asFought.lessons[note.replace]!,
+                        swapOut,
                         lang,
                       );
                       return <Chips when={c.when} then={c.then} want={c.want} />;
@@ -189,10 +191,9 @@ export function Result({
                   type="button"
                   className="btn primary"
                   onClick={() => {
-                    const r =
-                      note.replace !== undefined
-                        ? swapLesson(note.replace, note.lesson!.rule)
-                        : learn(note.lesson!.rule);
+                    const lesson = note.lesson;
+                    if (!lesson) return;
+                    const r = note.replace !== undefined ? swapLesson(note.replace, lesson.rule) : learn(lesson.rule);
                     setTaught(r.ok ? "done" : r.reason);
                   }}
                 >

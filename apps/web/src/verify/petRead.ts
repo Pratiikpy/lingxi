@@ -56,11 +56,12 @@ export function usePetRead(t: ReadWords, onFresh: () => void) {
       setColour(0);
     });
     // its name colour (plan 4.9), from the extras contract
-    if (deployment!.extras)
-      void nameColours(pc, deployment!, [BigInt(forId)])
+    if (!deployment) return;
+    if (deployment.extras)
+      void nameColours(pc, deployment, [BigInt(forId)])
         .then((c) => setColour(c[forId] ?? 0))
         .catch(() => setColour(0));
-    void readMetadata(pc, deployment!, BigInt(forId))
+    void readMetadata(pc, deployment, BigInt(forId))
       .then((m) => {
         const svg = m.image?.startsWith("data:image/svg+xml;base64,") ? atob(m.image.slice(26)) : null;
         const same = svg
@@ -90,8 +91,8 @@ export function usePetRead(t: ReadWords, onFresh: () => void) {
   }, [t]);
   // a pet number is digits; anything else (a typed word) is no pet, never a crash (A72)
   const fetchPet = (forId: string) =>
-    /^\d{1,20}$/.test(forId.trim())
-      ? readPet(pc, deployment!, BigInt(forId.trim()))
+    deployment && /^\d{1,20}$/.test(forId.trim())
+      ? readPet(pc, deployment, BigInt(forId.trim()))
       : Promise.reject(new Error("notFound"));
   // a read asked for (the form, a family link followed) starts from a clean page
   const read = (forId = id) => {

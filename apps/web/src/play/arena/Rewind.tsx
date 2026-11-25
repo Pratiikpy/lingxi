@@ -66,7 +66,7 @@ export function otherSide(
 /** One exchange in words: what LX-SPAR/2's rules did with the round's two moves. */
 export function exchangeLine(e: Exchange, names: [string, string], lang: Lang): string {
   const fav = names[e.by];
-  const oth = names[1 - e.by]!;
+  const oth = names[e.by === 0 ? 1 : 0];
   const zh = lang === "zh";
   switch (e.kind) {
     case "guarded":
@@ -127,17 +127,20 @@ export function FightRewind({
     [other, result],
   );
   const [k, setK] = useState(0);
-  if (!why.length) return null;
-  const w = why[Math.min(k, why.length - 1)]!;
-  const round = result.rounds[Math.min(k, why.length - 1)]!;
+  // the round shown: the one picked, or the last there is
+  const at = Math.min(k, why.length - 1);
+  const w = why[at];
+  const round = result.rounds[at];
+  if (!w || !round) return null;
   const chips = w.outside
     ? lang === "zh"
       ? { when: ["它学会的本能电路想出招"], then: MOVE_LABEL.zh[w.want] ?? "", want: w.want }
       : { when: ["its taught instinct circuit wanted a move"], then: MOVE_LABEL.en[w.want] ?? "", want: w.want }
     : decidingChips(w.program, w.rule, lang, true);
-  const chosen = MOVES[w.want]!;
+  const chosen = MOVES[w.want];
+  if (!chosen) return null;
   const changed = round.moves[0] !== chosen;
-  const ow = otherWhy?.[Math.min(k, why.length - 1)];
+  const ow = otherWhy?.[at];
   const otherChips = ow
     ? ow.outside
       ? {
@@ -147,7 +150,7 @@ export function FightRewind({
         }
       : decidingChips(ow.program, ow.rule, lang, true)
     : null;
-  const exchanges = exchangesOf(result.version, result.rounds, Math.min(k, why.length - 1));
+  const exchanges = exchangesOf(result.version, result.rounds, at);
   const names: [string, string] = [pet.name, other.name[lang]];
   return (
     <div className="sp-why">
@@ -155,14 +158,14 @@ export function FightRewind({
         {lang === "zh" ? `回看：${pet.name}每一招为什么这么出` : `Rewind: why ${pet.name} made each move`}
       </p>
       <div className="sp-why-rounds" role="radiogroup" aria-label={lang === "zh" ? "回合" : "Rounds"}>
-        {result.rounds.map((r, i) => (
+        {why.map((wi, i) => (
           <button
             key={i}
             type="button"
             role="radio"
             aria-checked={i === k}
             aria-label={`${lang === "zh" ? "第" : "Round "}${i + 1}${lang === "zh" ? "回合" : ""}`}
-            style={{ background: WANT_COLORS[why[i]!.want] }}
+            style={{ background: WANT_COLORS[wi.want] }}
             onClick={() => (play("tap"), setK(i))}
           >
             {i + 1}

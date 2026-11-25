@@ -103,7 +103,12 @@ export function VerifyApp() {
     const hosts = new Set<string>();
     // four workers, each starting at a different public endpoint and paced per host, so none rate-limits the page
     const clients = [0, 1, 2, 3].map((i) => proofClient(i, note(hosts)));
-    const res = await fullCheck({ circuit, saved }, (w, words) => replayMany(clients[w]!, d, pet.id, state, words), {
+    const clientOf = (w: number) => {
+      const c = clients[w];
+      if (!c) throw new Error(`no proof worker ${w}`);
+      return c;
+    };
+    const res = await fullCheck({ circuit, saved }, (w, words) => replayMany(clientOf(w), d, pet.id, state, words), {
       stop: () => stopAll.current,
       onProgress: setAll,
     });

@@ -136,6 +136,13 @@ export const PARTNERS: readonly Partner[] = [
   },
 ];
 
+/** A sparring partner by index; indexes come from dailyPartnerIndex, always in range, so one out of range is a bug. */
+export const partnerAt = (i: number): Partner => {
+  const p = PARTNERS[i];
+  if (!p) throw new Error(`no sparring partner ${i} (there are ${PARTNERS.length})`);
+  return p;
+};
+
 const STAGES = ["baby", "child", "teen", "adult"] as const;
 
 /**

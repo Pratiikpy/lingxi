@@ -41,7 +41,7 @@ export const NOT_ON_OFFER: Record<Exclude<TeachingState, "ready">, Key> = {
 
 export function RulePreview({ pet, rule }: { pet: Pet; rule: Rule }) {
   const { lang } = useLang();
-  const c = chipsFor(mindParts(pet)[0]!.program, rule, lang);
+  const c = chipsFor(mindParts(pet)[0].program, rule, lang);
   return (
     <div className="rule-preview">
       <Chips when={c.when} then={c.then} want={c.want} />
@@ -125,14 +125,16 @@ export function TrapNote({ pet, traps }: { pet: Pet; traps: Trap[] }) {
   const t = useT();
   const { lang } = useLang();
   if (!traps.length) return null;
-  const p = mindParts(pet)[0]!.program;
+  const p = mindParts(pet)[0].program;
   return (
     <div className="trap" role="alert">
       <p>{t("teach.trap", { n: traps.length })}</p>
       <ul>
         {traps.slice(0, 3).map((tr, i) => {
           const c = chipsFor(p, tr.blocker, lang);
-          const school = PET_SCHOOL.find((l) => l.id === tr.victim)!;
+          const school = PET_SCHOOL.find((l) => l.id === tr.victim);
+          // a trap names a level of the school; one it does not know is left out
+          if (!school) return null;
           return (
             <li key={i}>
               <span className="rule-preview">

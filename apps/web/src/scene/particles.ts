@@ -19,7 +19,7 @@ export interface Particle {
 
 export interface Particles {
   /** a few glyphs rising from over the pet standing at `x` */
-  burst: (kind: "heart" | "spark" | "note", n: number, colors: string[], x: number) => void;
+  burst: (kind: "heart" | "spark" | "note", n: number, colors: readonly [string, ...string[]], x: number) => void;
   /** one particle, its sprite already placed */
   add: (p: Particle) => void;
   /** one frame: each moves, fades and, when spent, is gone */
@@ -32,9 +32,9 @@ export function createParticles(fx: Container): Particles {
     fx.addChild(p.s);
     particles.push(p);
   };
-  const burst = (kind: "heart" | "spark" | "note", n: number, colors: string[], x: number) => {
+  const burst = (kind: "heart" | "spark" | "note", n: number, colors: readonly [string, ...string[]], x: number) => {
     for (let i = 0; i < n; i++) {
-      const s = new Sprite(glyphTexture(kind, colors[i % colors.length]!));
+      const s = new Sprite(glyphTexture(kind, colors[i % colors.length] ?? colors[0]));
       s.anchor.set(0.5);
       s.x = x + (Math.random() * 18 - 9);
       s.y = PET_FEET - 30 - Math.random() * 6;
@@ -43,7 +43,8 @@ export function createParticles(fx: Container): Particles {
   };
   const update = () => {
     for (let i = particles.length - 1; i >= 0; i--) {
-      const q = particles[i]!;
+      const q = particles[i];
+      if (!q) continue;
       q.vy += q.g ?? 0;
       q.s.x += q.vx;
       q.s.y += q.vy;

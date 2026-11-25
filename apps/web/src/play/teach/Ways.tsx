@@ -21,7 +21,7 @@ import { play } from "../../game/sound";
 import { mindParts, programFor, useGame } from "../../game/store";
 import { Icon } from "../icons";
 import { Chips } from "../parts";
-import { MOOD_NAMES, VALUE_NAMES, WANT_NAMES, chipsFor } from "../ruleText";
+import { MOOD_NAMES, WANT_NAMES, chipsFor, namesOf } from "../ruleText";
 import "../teach.css";
 import { now } from "../../game/gameClock";
 import { NOT_ON_OFFER, REASON_KEY, useSpec } from "./shared";
@@ -50,7 +50,9 @@ export function SchoolLevels({
       {!pet.lessons.length && <p className="coach-tip">{t("teach.coach1", { name: pet.name })}</p>}
       <ol>
         {report.map((lv, i) => {
-          const lesson = PET_SCHOOL[i]!;
+          const lesson = PET_SCHOOL[i];
+          // the report is made from PET_SCHOOL, one level each
+          if (!lesson) return null;
           const open = levelOpen(report, i);
           return (
             <li key={lv.id} className={`level${lv.learned ? " done" : ""}${open ? "" : " level-shut"}`}>
@@ -169,15 +171,15 @@ export function Builder({ pet, onPropose }: { pet: Pet; onPropose: (rule: Rule) 
   return (
     <div className="builder">
       <p className="label">{t("teach.when")}</p>
-      {Object.keys(conds).map((f) => (
+      {Object.entries(conds).map(([f, on]) => (
         <div key={f} className="cond">
           <div className="vals" role="group" aria-label={f}>
-            {VALUE_NAMES[f]![lang].map((name, v) => (
+            {namesOf(f)[lang].map((name, v) => (
               <button
                 key={v}
                 type="button"
-                className={`val${conds[f]!.includes(v) ? " on" : ""}`}
-                aria-pressed={conds[f]!.includes(v)}
+                className={`val${on.includes(v) ? " on" : ""}`}
+                aria-pressed={on.includes(v)}
                 onClick={() => toggle(f, v)}
               >
                 {name}
@@ -192,13 +194,13 @@ export function Builder({ pet, onPropose }: { pet: Pet; onPropose: (rule: Rule) 
         onChange={(e) => {
           const f = e.target.value;
           setAdding("");
-          if (f && !conds[f]) setConds((c) => ({ ...c, [f]: [VALUE_NAMES[f]![lang].length - 1] }));
+          if (f && !conds[f]) setConds((c) => ({ ...c, [f]: [namesOf(f)[lang].length - 1] }));
         }}
       >
         <option value="">+ {t("teach.addCond")}</option>
         {BUILD_FIELDS.filter((f) => !conds[f]).map((f) => (
           <option key={f} value={f}>
-            {VALUE_NAMES[f]![lang].join(" / ")}
+            {namesOf(f)[lang].join(" / ")}
           </option>
         ))}
       </select>
@@ -251,7 +253,7 @@ export function Library({ pet, onPropose }: { pet: Pet; onPropose: (l: LibraryLe
     };
   }, []);
   if (!libraryAvailable()) return null;
-  const program = mindParts(pet)[0]!.program;
+  const program = mindParts(pet)[0].program;
   const known = (r: Rule) =>
     pet.lessons.some(
       (x) => JSON.stringify(x.when) === JSON.stringify(r.when) && JSON.stringify(x.then) === JSON.stringify(r.then),
@@ -310,7 +312,8 @@ export function Mentor({ pet }: { pet: Pet }) {
   const [said, setSaid] = useState<string | null>(null);
   const children = pets.map((p, i) => ({ p, i })).filter(({ p }) => childOf(pet, p));
   if (stageOf(pet, now()) !== "elder" || !children.length || !pet.lessons.length) return null;
-  const picked = children[Math.min(child, children.length - 1)]!;
+  const picked = children[Math.min(child, children.length - 1)];
+  if (!picked) return null;
   const program = programFor(pet.line, pet.lessons, pet.instincts ?? 0, pet.growth);
   return (
     <section className="mentor" aria-label={L("Pass a lesson on", "把一课传下去")}>

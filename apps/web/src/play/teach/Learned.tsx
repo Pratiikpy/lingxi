@@ -32,7 +32,12 @@ export function Learned({ pet }: { pet: Pet }) {
     if (move === "forget") return doArrange(index, move);
     const next = pet.lessons.slice();
     const j = move === "up" ? index - 1 : index + 1;
-    [next[index], next[j]] = [next[j]!, next[index]!];
+    const a = next[index];
+    const b = next[j];
+    // up from the first or down from the last: there is nothing to swap with
+    if (a === undefined || b === undefined) return;
+    next[index] = b;
+    next[j] = a;
     const traps = trapsAfter(specOf(pet), next);
     if (traps.length) {
       play("error");
@@ -42,7 +47,7 @@ export function Learned({ pet }: { pet: Pet }) {
     setPending(null);
     doArrange(index, move);
   };
-  const p = mindParts(pet)[0]!.program;
+  const p = mindParts(pet)[0].program;
   // each lesson's score for today, from the day replayed (G1)
   const fires = useMemo(() => firesToday(pet, mindForPet(pet), now()), [pet]);
   if (!pet.lessons.length) return <CuteState who={{ pet, expression: "shy" }} text={t("teach.none")} />;
@@ -71,20 +76,21 @@ export function Learned({ pet }: { pet: Pet }) {
       <ol className="learned">
         {pet.lessons.map((r, i) => {
           const c = chipsFor(p, r, lang);
+          const fire = fires[i];
           return (
             <li key={`${r.label}-${i}`}>
               <div className="rule-preview">
                 <Chips when={c.when} then={c.then} want={c.want} />
                 <span className="fires small">
-                  {fires[i]?.count
-                    ? t("teach.fired", { n: fires[i]!.count })
+                  {fire?.count
+                    ? t("teach.fired", { n: fire.count })
                     : lessonTrigger(r).kind === "moment"
                       ? t("teach.firedWaits")
                       : t("teach.firedNone")}
                 </span>
               </div>
-              {fires[i]?.last && <LastTime pet={pet} frame={fires[i]!.last!} />}
-              {!fires[i]?.last && lessonTrigger(r).kind === "moment" && (
+              {fire?.last && <LastTime pet={pet} frame={fire.last} />}
+              {!fire?.last && lessonTrigger(r).kind === "moment" && (
                 <button
                   type="button"
                   className="text-link small see-moment"
@@ -125,12 +131,15 @@ export function LastTime({ pet, frame }: { pet: Pet; frame: Frame }) {
   const t = useT();
   const { lang } = useLang();
   const [open, setOpen] = useState(false);
-  // the time on the pet's own clock
-  const at = new Date(frame.at! + pet.tzOffsetMin * 60_000).toLocaleTimeString(lang === "zh" ? "zh-CN" : "en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "UTC",
-  });
+  // the time on the pet's own clock; a word logged before times were kept has none, and none is shown
+  const at =
+    frame.at === null
+      ? null
+      : new Date(frame.at + pet.tzOffsetMin * 60_000).toLocaleTimeString(lang === "zh" ? "zh-CN" : "en-GB", {
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZone: "UTC",
+        });
   // everything it sensed, leaving out "nothing happening" (no care, no event), which only says what was absent
   const sensed = INPUT_FIELDS.filter(
     (f) => !((f.name === "action" || f.name === "event") && frame.senses[f.name] === 0),
@@ -145,7 +154,7 @@ export function LastTime({ pet, frame }: { pet: Pet; frame: Frame }) {
         aria-expanded={open}
         onClick={() => (play("tap"), setOpen((o) => !o))}
       >
-        {t("teach.lastAt", { time: at })}
+        {at === null ? t("teach.lastUntimed") : t("teach.lastAt", { time: at })}
       </button>
       {open && (
         <p className="small">
