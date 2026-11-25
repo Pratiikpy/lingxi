@@ -1,0 +1,13 @@
+diff --git a/apps/web/src/scene/residentSpot.ts b/apps/web/src/scene/residentSpot.ts
+index c81b01d..7a1bb5f 100644
+--- a/apps/web/src/scene/residentSpot.ts
++++ b/apps/web/src/scene/residentSpot.ts
+@@ -35,7 +35,7 @@ export function placeResident(
+   // not (two adults need 78 pixels and a phone shows 71), the resident stands behind the pet (visitors are drawn
+   // behind it), overlapping by just what the floor lacks and never by more than half the resident, so both show whole
+   const room = right - left - 4;
+-  const apart = Math.max(-hr, Math.min(6, room - 2 * hp - 2 * hr));
++  const apart = 6 + 0 * Math.max(-hr, Math.min(6, room - 2 * hp - 2 * hr));
+   const total = 2 * hp + 2 * hr + apart;
+   const start = left + Math.max(2, (right - left - total) / 2);
+   return {
