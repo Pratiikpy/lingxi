@@ -6,37 +6,22 @@
  * ANTHROPIC_API_KEY environment variable) and never leaves this process.
  */
 
-import { createHash } from "node:crypto";
-import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
-import { homedir } from "node:os";
-import { dirname, join, relative, resolve } from "node:path";
-import { type SiteSource, folderSource, releaseSource } from "./releases";
+import { readFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { releaseSource } from "./releases";
 import { fileURLToPath } from "node:url";
 import Anthropic from "@anthropic-ai/sdk";
 import { serve } from "@hono/node-server";
-import { serveStatic } from "@hono/node-server/serve-static";
-import { type Context, Hono } from "hono";
+import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { z } from "zod";
 import { circuitBrain } from "@lingxi/brain";
 import {
-  ArenaOpponentQuery,
-  ArenaSnapshotBody,
   BrainRelayPayload,
   ChildRelayPayload,
   InstinctRelayPayload,
-  LessonKeyBody,
-  LessonShareBody,
-  MoveBody,
-  PublishedLog,
-  PushPlanBody,
-  PushStopBody,
   RelayEnvelope,
-  SeasonEnterBody,
-  SitHomeBody,
-  SitLeaveBody,
   TeachBody,
-  VoiceBody,
 } from "@lingxi/api-schema";
 import { mindOf, teachInWords } from "./teach";
 import { RateLimiter } from "./limit";
@@ -45,25 +30,15 @@ import { SponsorGate } from "./sponsor";
 import { RelayQuota, checkRelayAuth, createNonceBook } from "./relayGate";
 import { LiveRooms, attachLive } from "./live";
 import { createDecorStore } from "./decor";
-import { type SittingStore, createSittingStore } from "./sitting";
-import { type ArenaStore, createArenaStore } from "./arena";
-import { type SeasonStore, createSeasonStore, settleAwards } from "./season";
-import { dayIndex, weekOf } from "@lingxi/game";
+import { createSittingStore } from "./sitting";
+import { createArenaStore } from "./arena";
+import { createSeasonStore, settleAwards } from "./season";
+import { dayIndex } from "@lingxi/game";
 import { parseCard } from "@lingxi/game";
-import {
-  createPublicClient,
-  custom,
-  fallback,
-  getAddress,
-  http,
-  parseEther,
-  type Address,
-  type PublicClient,
-} from "viem";
+import { createPublicClient, custom, fallback, getAddress, http, parseEther, type PublicClient } from "viem";
 import {
   FACTORY,
   type Deployment,
-  type SignedRelay,
   adoptionCentreAbi,
   createNetlistCache,
   holderGiftAbi,
@@ -82,16 +57,14 @@ import { withTapApi } from "./tapApi";
 import { TEST1_REFRESH_MS, createTest1Index, withTest1Owners } from "./test1Owners";
 import { handleMcp, withMcp } from "./mcp";
 import { MCP_TOOLS } from "./mcpToolDefs";
-import { type Letter, currentLetters, loadLetters } from "./mail";
-import { createPusher, type Pusher } from "./push";
+import { loadLetters } from "./mail";
 import { createVoice } from "./voice";
-import { createLibrary, type Library } from "./library";
-import { createIndexer, type Indexer } from "./indexer";
-import { createPacketIndex, type PacketIndex } from "./packets";
+import { createLibrary } from "./library";
+import { createIndexer } from "./indexer";
+import { createPacketIndex } from "./packets";
 import { createGoalLedger, withGoals } from "./goals";
 import { withVouchers } from "./voucher";
 import { createPapersStore, withPapers } from "./papers";
-import { readdir, stat } from "node:fs/promises";
 import { createMindChecker } from "./mindCheck";
 import { createConsentIndex, withConsents } from "./consents";
 import { withReadLimits } from "./readLimits";
@@ -108,10 +81,8 @@ import { createListingWatch, withRetiredListings } from "./marketV1";
 import { createDuelStore, withDuels } from "./duels";
 import { createDailyBlocks, withDaily } from "./daily";
 import { createStandingsRunner } from "./standings";
-import { buildTree } from "./tree";
-import { type DiaryStore, type PetOnChain, createDiaryStore } from "./diaries";
-import { type LogHasher, createLogHasher } from "./logHash";
-import { type MoveStore, createMoveStore } from "./move";
+import { createDiaryStore } from "./diaries";
+import { createMoveStore } from "./move";
 import { createTapeoutCounter, withLane } from "./lane";
 import { factoryReader } from "./laneReader";
 import { petLookAbi as lookAbi } from "@lingxi/chain";
@@ -120,26 +91,25 @@ import { withBodyLimits } from "./bodyLimits";
 import { proveSeasonEntry } from "./seasonProof";
 import { budgetedClient, createTokenBudget, modelCaller } from "./tokenBudget";
 import { createJobs } from "./jobs";
-import { LINGXI_SITE } from "@lingxi/chain/site";
-
-/** The build this server runs, read from build.json beside the built server (P3b); "source" when run through tsx. */
-function serverBuild(): { commit: string; dirty: boolean; builtAt: string } | "source" {
-  try {
-    const j = JSON.parse(readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), "build.json"), "utf8")) as {
-      commit?: unknown;
-      dirty?: unknown;
-      builtAt?: unknown;
-    };
-    return typeof j.commit === "string"
-      ? { commit: j.commit, dirty: j.dirty === true, builtAt: String(j.builtAt) }
-      : "source";
-  } catch {
-    return "source";
-  }
-}
-
-/** The numbers snapshot shipped in the repo (snapshot.ts, `pnpm numbers:snapshot`). */
-const SNAPSHOT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "../snapshots/xlayer");
+import { withSite } from "./routes/site";
+import {
+  busy,
+  withVoice,
+  withSitting,
+  withArena,
+  withMove,
+  withPush,
+  makePusher,
+  withMail,
+  withLibrary,
+} from "./routes/play";
+import { type SeasonProver, withSeason, type Sponsoring, withSponsor } from "./routes/season";
+import { withHistory, withPackets, withTree, withDiaries } from "./routes/chainReads";
+import { serverBuild, SNAPSHOT_DIR, backupStatus, watchdogStatus, storeSizes } from "./routes/health";
+export { SITE_CACHE_MAX, scriptPolicy, withSite } from "./routes/site";
+export { withVoice, withSitting, withArena, withMove, withPush, withMail, withLibrary } from "./routes/play";
+export { type SeasonProver, withSeason, type Sponsoring, withSponsor } from "./routes/season";
+export { withHistory, withPackets, withTree, withDiaries } from "./routes/chainReads";
 
 function loadKey(): string | undefined {
   if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
@@ -160,8 +130,10 @@ export type HealthDetail = () => Promise<Record<string, unknown>> | Record<strin
 
 /** Who may keep a pet on chain right now (PetRegistry.isKeeper): the relayer only tapes out for them. */
 export type KeeperCheck = (petId: string, who: `0x${string}`) => Promise<boolean>;
+
 /** A pet's brain on chain and its parents (null when it was hatched, not born), or null when there is no such pet (A75). */
 export type PetOnChainReader = (petId: string) => Promise<{ brainId: string; parents: [string, string] | null } | null>;
+
 /** Whether a pet has standing on chain (PetRegistry.isSettled): sponsored tape-outs go first to such pets (A40). */
 export type SettledCheck = (petId: string) => Promise<boolean>;
 
@@ -369,779 +341,6 @@ function makeRelayer(): BrainRelayer | null {
     // OKB kept for season keepsakes (players' tape-outs stop above it); 0.01 OKB unless set
     reserveWei: BigInt(Math.round(Number(process.env.LINGXI_RELAY_RESERVE_OKB ?? 0.01) * 1e18)),
   });
-}
-
-/**
- * Serves the built site from the same origin as the API, with safe headers: the
- * landing page at /, the game at /play.html, the proof page at /verify.html.
- */
-/** A Range in the only unit and syntax a file can answer: bytes, one or more N-M, N- or -N. */
-const BYTE_RANGES = /^bytes=(\d+-\d*|-\d+)(\s*,\s*(\d+-\d*|-\d+))*$/;
-
-/** How many folders' file servers, and pages' policies, the site keeps at once: releases come and go, memory stays bounded. */
-export const SITE_CACHE_MAX = 64;
-
-/** Where pages may load scripts from besides our own origin: Telegram's Mini App script and Cloudflare's analytics beacon. */
-const SCRIPT_HOSTS = ["https://telegram.org", "https://static.cloudflareinsights.com"];
-
-/** The inline scripts of a page, as the CSP hashes that allow exactly them and nothing else. */
-export function scriptPolicy(html: string): { hashes: string[] } {
-  const hashes: string[] = [];
-  for (const m of html.matchAll(/<script(\s[^>]*)?>([\s\S]*?)<\/script>/gi)) {
-    if (/\ssrc\s*=/i.test(m[1] ?? "")) continue;
-    // the browser hashes the script as HTML parsing leaves it: every CRLF or lone CR read as LF
-    const text = (m[2] ?? "").replace(/\r\n?/g, "\n");
-    hashes.push(`'sha256-${createHash("sha256").update(text).digest("base64")}'`);
-  }
-  return { hashes };
-}
-
-/**
- * The built site: a folder (tests, a rehearsal) or the live release of a releases folder (A10). Pages come only from
- * the live folder; an asset it does not have may be one an earlier release still serves, for a page that was open
- * when the next went live (A4).
- */
-export function withSite(app: Hono, site: string | SiteSource): Hono {
-  const source = typeof site === "string" ? folderSource(site) : site;
-  // each page's policy, from its own file: re-read when the release or the build changes it
-  const policies = new Map<string, { mtimeMs: number; csp: string }>();
-  const policyFor = (root: string | null, path: string): string | null => {
-    if (!root) return null;
-    const file = join(root, path === "/" ? "index.html" : path.replace(/^\/+/, ""));
-    if (!/\.html$/.test(file)) return null;
-    try {
-      const { mtimeMs } = statSync(file);
-      const held = policies.get(file);
-      if (held && held.mtimeMs === mtimeMs) return held.csp;
-      const { hashes } = scriptPolicy(readFileSync(file, "utf8"));
-      // the game runs inside Telegram Web's frame as a Mini App; every other page stays unframeable by others. Workers may
-      // also come from blob: URLs, which only a script already running on the page can make (Pixi decodes images in one)
-      const frames = path === "/play.html" ? "'self' https://web.telegram.org https://*.web.telegram.org" : "'self'";
-      const csp = [
-        `script-src 'self' 'wasm-unsafe-eval' ${[...SCRIPT_HOSTS, ...hashes].join(" ")}`,
-        "worker-src 'self' blob:",
-        "object-src 'none'",
-        "base-uri 'self'",
-        `frame-ancestors ${frames}`,
-      ].join("; ");
-      // releases come and go: the memory of their pages' policies is bounded, and simply rebuilt when cleared
-      if (policies.size >= SITE_CACHE_MAX) policies.clear();
-      policies.set(file, { mtimeMs, csp });
-      return csp;
-    } catch {
-      return null;
-    }
-  };
-  // the release a request is answered from is fixed when it arrives, so its page and its policy always match
-  const rootOf = new WeakMap<Request, string | null>();
-  app.use("*", async (c, next) => {
-    rootOf.set(c.req.raw, source.root());
-    await next();
-    c.header("X-Content-Type-Options", "nosniff");
-    c.header("Referrer-Policy", "strict-origin-when-cross-origin");
-    c.header("Strict-Transport-Security", "max-age=63072000; includeSubDomains");
-    const csp = policyFor(rootOf.get(c.req.raw) ?? null, c.req.path);
-    if (csp) c.header("Content-Security-Policy", csp);
-    // a page is always asked for again (a cheap 304 while unchanged), so no browser keeps one past a deploy (A4)
-    if (c.req.path === "/" || c.req.path.endsWith(".html")) c.header("Cache-Control", "no-cache");
-    if (c.req.path !== "/play.html") c.header("X-Frame-Options", "SAMEORIGIN");
-    c.header("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
-  });
-  app.use("/assets/*", async (c, next) => {
-    await next();
-    // hashed file names: a file that exists is safe to cache for a year; a missing one must never be
-    c.header(
-      "Cache-Control",
-      c.res.status === 200 || c.res.status === 206 ? "public, max-age=31536000, immutable" : "no-store",
-    );
-  });
-  // one file server per folder, made the first time the folder is served from
-  const servers = new Map<string, ReturnType<typeof serveStatic>>();
-  const serverFor = (dir: string) => {
-    let s = servers.get(dir);
-    if (!s) {
-      s = serveStatic({
-        root: relative(process.cwd(), dir) || ".",
-        rewriteRequestPath: (p) => (p === "/" ? "/index.html" : p),
-      });
-      if (servers.size >= SITE_CACHE_MAX) servers.clear();
-      servers.set(dir, s);
-    }
-    return s;
-  };
-  // A Range the static server cannot read (words, an unknown unit) made it throw, a 500. HTTP says to ignore such a
-  // Range and send the whole file; a range that starts past the end is refused with 416.
-  app.use("/*", async (c, next) => {
-    const range = c.req.header("range");
-    if (range !== undefined && !BYTE_RANGES.test(range.trim())) {
-      const headers = new Headers(c.req.raw.headers);
-      headers.delete("range");
-      return app.fetch(new Request(c.req.raw, { headers }));
-    }
-    const root = rootOf.get(c.req.raw) ?? null;
-    if (!root) {
-      c.header("Retry-After", "30");
-      return c.text("Lingxi is being released; try again in a moment.", 503);
-    }
-    try {
-      if (!c.req.path.startsWith("/assets/")) return await serverFor(root)(c, next);
-      // the live release first; then each earlier release still kept, newest first
-      const earlier = source.fallbacks();
-      const from = (i: number) => async () => {
-        if (i >= earlier.length) return next();
-        // a file found answers with its Response; otherwise the request goes on to the next folder, then to a 404
-        const res: unknown = await serverFor(earlier[i]!)(c, from(i + 1));
-        if (res instanceof Response) c.res = res;
-      };
-      return await serverFor(root)(c, from(0));
-    } catch (e) {
-      if ((e as { code?: string }).code === "ERR_OUT_OF_RANGE") return c.body(null, 416);
-      throw e;
-    }
-  });
-  // P6: a page the site does not have is answered with the release's own not-found page, status 404; the API and a
-  // release without the page keep the plain answer
-  app.notFound((c) => {
-    const root = rootOf.get(c.req.raw) ?? null;
-    const page = root && c.req.method === "GET" && !c.req.path.startsWith("/api/") ? join(root, "404.html") : null;
-    if (page && existsSync(page)) return c.html(readFileSync(page, "utf8"), 404);
-    return c.text("404 Not Found", 404);
-  });
-  return app;
-}
-
-/**
- * A refusal the app expects in normal play (rate limits, the daily tape-out
- * budget, a pet the history has not reached yet) answers 200 with ok:false, so
- * the player's browser shows our own message instead of logging a page error.
- * Malformed requests, which our client never sends, keep their 4xx codes.
- */
-function busy(c: Context): Response {
-  c.header("Retry-After", "60");
-  return c.json({ ok: false, reason: "busy" });
-}
-
-/** The pet's voice: one line for what its circuit decided (cached per situation). */
-export function withVoice(
-  app: Hono,
-  voice: ReturnType<typeof createVoice>,
-  limiter = new RateLimiter(40, 600_000),
-): Hono {
-  app.post("/api/voice", async (c) => {
-    const ip = clientIp(c);
-    // a missing line is normal (the pet falls back to its own words), so busy and
-    // model hiccups answer 200 with ok:false rather than showing up as page errors
-    if (!limiter.take(ip)) {
-      c.header("Retry-After", "60");
-      return c.json({ ok: false, reason: "busy" });
-    }
-    let body;
-    try {
-      body = VoiceBody.parse(await c.req.json());
-    } catch {
-      return c.json({ ok: false, reason: "invalid" }, 400);
-    }
-    return c.json(await modelCaller.run(ip, () => voice(body)));
-  });
-  return app;
-}
-
-/** The lesson library: shared lessons, most learned first, with the pet that taught each first. */
-/** Pet-sitting packs: leave a pet for a friend, collect it, send it home (the owner's game checks the return). */
-export function withSitting(app: Hono, store: SittingStore, writes = new RateLimiter(30, 3_600_000)): Hono {
-  const who = (c: Context) => clientIp(c);
-  app.post("/api/sit", async (c) => {
-    if (!writes.take(who(c))) return busy(c);
-    let body;
-    try {
-      body = SitLeaveBody.parse(await c.req.json());
-    } catch {
-      return c.json({ ok: false, reason: "invalid" }, 400);
-    }
-    return c.json(await store.leave(body.pack, body.keyHash, body.until, who(c)));
-  });
-  app.get("/api/sit/:code", async (c) => {
-    // the code is the pack's key: never kept by a shared cache; heavy, so limited per caller (A119)
-    c.header("Cache-Control", "no-store");
-    const r = await store.collect(c.req.param("code"));
-    return c.json(r ? { ok: true, ...r } : { ok: false, reason: "unknown" });
-  });
-  app.post("/api/sit/:code/home", async (c) => {
-    if (!writes.take(who(c))) return busy(c);
-    let body;
-    try {
-      body = SitHomeBody.parse(await c.req.json());
-    } catch {
-      return c.json({ ok: false, reason: "invalid" }, 400);
-    }
-    return c.json(
-      (await store.sendHome(c.req.param("code"), body.key, body.pet)) ? { ok: true } : { ok: false, reason: "refused" },
-    );
-  });
-  return app;
-}
-
-/** Arena snapshots: save the line fielded at a round; meet another player's line at the same round. */
-export function withArena(app: Hono, store: ArenaStore, writes = new RateLimiter(120, 3_600_000)): Hono {
-  const who = (c: Context) => clientIp(c);
-  app.post("/api/arena/snapshot", async (c) => {
-    if (!writes.take(who(c))) return busy(c);
-    let body;
-    try {
-      body = ArenaSnapshotBody.parse(await c.req.json());
-    } catch {
-      return c.json({ ok: false, reason: "invalid" }, 400);
-    }
-    const r = store.save(body.round, body.pet, body.team, body.device, clientIp(c));
-    // a sender past its share of the round is an answer, not an error (A144)
-    return c.json(r, r.ok || r.reason === "busy" ? 200 : 400);
-  });
-  app.get("/api/arena/opponent", (c) => {
-    const q = ArenaOpponentQuery.safeParse(c.req.query());
-    if (!q.success) return c.json({ ok: false, reason: "invalid" }, 400);
-    const s = store.pick(q.data.round, q.data.device);
-    return c.json(s ? { ok: true, ...s } : { ok: false, reason: "none" });
-  });
-  return app;
-}
-
-/** Weekly seasons: enter this week with one tap; read any week's entries and standings. */
-/** Proves an entry is a pet on X Layer (seasonProof.ts); without it, entries are open but cannot win the keepsake. */
-export type SeasonProver = (
-  pet: unknown,
-  proof: SignedRelay,
-) => Promise<{ ok: true; petId: string } | { ok: false; reason: string }>;
-
-export function withSeason(
-  app: Hono,
-  store: SeasonStore,
-  writes = new RateLimiter(30, 3_600_000),
-  now: () => number = Date.now,
-  prove?: SeasonProver,
-): Hono {
-  const who = (c: Context) => clientIp(c);
-  app.post("/api/season/enter", async (c) => {
-    if (!writes.take(who(c))) return busy(c);
-    let body;
-    try {
-      body = SeasonEnterBody.parse(await c.req.json());
-    } catch {
-      return c.json({ ok: false, reason: "invalid" }, 400);
-    }
-    // an entry that says it is a pet on X Layer must prove it; one that fails is refused, never entered unproven
-    let petId: string | undefined;
-    if (body.proof !== undefined) {
-      if (!prove)
-        return c.json({ ok: false, reason: "noProof", detail: "this server cannot check pets on chain" }, 503);
-      const p = await prove(body.pet, body.proof as SignedRelay);
-      // an expected answer in play (its mind on chain is behind, say), so 200 with the reason, like "full" and "busy"
-      if (!p.ok) return c.json({ ok: false, reason: "notProven", detail: p.reason });
-      petId = p.petId;
-    }
-    const r = store.enter(body.pet, body.device, { from: who(c), ...(petId ? { petId } : {}) });
-    // a full week, or this address's share of it, is normal play: answer 200 so the page shows our own message.
-    // `proven` is what the page may tell the player: never assumed from having sent a proof
-    return c.json(
-      r.ok ? { ...r, proven: !!petId } : r,
-      r.ok || r.reason === "full" || r.reason === "tooMany" ? 200 : 400,
-    );
-  });
-  // each week's answer is written once per change of it and served from that text (A78): a week's season carries
-  // every entry's card, and writing it out again for every read took the request thread
-  const written = new Map<
-    string,
-    { of: unknown; standings: unknown; closed: boolean; award: unknown; pending: unknown; text: string }
-  >();
-  app.get("/api/season/:week", (c) => {
-    const week = c.req.param("week") === "current" ? weekOf(now()) : c.req.param("week");
-    const v = store.view(week);
-    if (!v) return c.json({ ok: false, reason: "invalid" }, 400);
-    // an open week changes with every entry, so it is never served from a cache
-    c.header("Cache-Control", v.closed ? "public, max-age=3600" : "no-store");
-    const held = written.get(week);
-    const same =
-      held &&
-      held.of === v.entries &&
-      held.standings === v.standings &&
-      held.closed === v.closed &&
-      held.award === v.award &&
-      held.pending === v.pending;
-    const text = same ? held.text : JSON.stringify({ ok: true, ...v });
-    if (!same) {
-      written.set(week, {
-        of: v.entries,
-        standings: v.standings,
-        closed: v.closed,
-        award: v.award,
-        pending: v.pending,
-        text,
-      });
-      if (written.size > 8) written.delete(written.keys().next().value!);
-    }
-    c.header("content-type", "application/json; charset=utf-8");
-    return c.body(text);
-  });
-  return app;
-}
-
-/** What the sponsor route needs: who may ask (sponsor.ts), the relayer that sends, and the deployment it sends to. */
-export interface Sponsoring {
-  gate: SponsorGate;
-  relayer: Pick<BrainRelayer, "sponsorHatch" | "sponsorGrant">;
-  deployment: Deployment;
-  who: (c: Context) => string;
-}
-
-/**
- * Each refusal's status. One that is normal play (switched off, already had, the network's pet today, the day's budget
- * spent, a request already on its way, the OKB held for keepsakes) answers 200 with its reason, like the tape-out's
- * "newcomer", so the page shows its own message and the browser logs no error (B9); a malformed, forged or stale
- * request, or a failed send, keeps its error status.
- */
-const SPONSOR_STATUS: Record<string, 200 | 400 | 401 | 502> = {
-  off: 200,
-  invalid: 400,
-  expired: 401,
-  badSignature: 401,
-  had: 200,
-  busy: 200,
-  network: 200,
-  budget: 200,
-  relayLow: 200,
-  error: 502,
-};
-
-/**
- * A pet kept on X Layer for a player with no wallet (H4): the relayer hatches it to their device key and sends that
- * key its gas. Off unless the server is switched on for it; every refusal is named and sends nothing.
- */
-export function withSponsor(app: Hono, s: Sponsoring | null, limiter = new RateLimiter(20, 3_600_000)): Hono {
-  app.get("/api/sponsor", (c) => c.json({ ok: true, on: !!s?.gate.enabled }, 200, { "cache-control": "no-store" }));
-  // what was kept for a device key, so a game whose answer was lost on the way can find its pet (X Layer confirms it)
-  app.get("/api/sponsor/of/:address", (c) => {
-    const to = c.req.param("address").toLowerCase();
-    if (!/^0x[0-9a-f]{40}$/.test(to)) return c.json({ ok: false, reason: "invalid", detail: "bad address" }, 400);
-    const p = s?.gate.pets().find((x) => x.to === to && x.petId !== null);
-    return p
-      ? c.json({ ok: true, petId: p.petId, hatchTx: p.hatchTx, grantTx: p.grantTx })
-      : c.json({ ok: false, reason: "none", detail: "nothing kept for this address" }, 404);
-  });
-  app.post("/api/sponsor/hatch", async (c) => {
-    if (!s || !s.gate.enabled)
-      return c.json({ ok: false, reason: "off", detail: "keeping a pet without a wallet is not switched on" }, 200);
-    const ip = s.who(c);
-    if (!limiter.take(ip))
-      return c.json({ ok: false, reason: "busy", detail: "too many requests; try again later" }, 429);
-    let body: unknown;
-    try {
-      body = await c.req.json();
-    } catch {
-      return c.json({ ok: false, reason: "invalid", detail: "bad request" }, 400);
-    }
-    const r = await s.gate.check(body, ip);
-    if (!r.ok) return c.json({ ok: false, reason: r.reason, detail: r.detail }, SPONSOR_STATUS[r.reason] ?? 400);
-    const slot = r.slot;
-    try {
-      if (r.retryGrant) {
-        const g = await s.relayer.sponsorGrant(slot.to as Address);
-        if (!g.ok) {
-          s.gate.release(slot);
-          return c.json({ ok: false, reason: g.reason, detail: g.detail }, SPONSOR_STATUS[g.reason] ?? 502);
-        }
-        s.gate.finish(slot, { petId: slot.petId, hatchTx: null, grantTx: g.grantTx, spentWei: g.spentWei });
-        return c.json({ ok: true, petId: slot.petId, hatchTx: null, grantTx: g.grantTx });
-      }
-      const h = await s.relayer.sponsorHatch(s.deployment, slot.to as Address, slot.line, slot.state);
-      if (!h.ok) {
-        // a hatch that cost gas is kept, so the day's count holds it; one that sent nothing gives its slot back
-        if (h.spent)
-          s.gate.finish(slot, {
-            petId: null,
-            hatchTx: null,
-            grantTx: null,
-            ...(h.spentWei !== undefined ? { spentWei: h.spentWei } : {}),
-          });
-        else s.gate.release(slot);
-        return c.json({ ok: false, reason: h.reason, detail: h.detail }, SPONSOR_STATUS[h.reason] ?? 502);
-      }
-      s.gate.finish(slot, { petId: h.petId, hatchTx: h.hatchTx, grantTx: h.grantTx, spentWei: h.spentWei });
-      return c.json({ ok: true, petId: h.petId, hatchTx: h.hatchTx, grantTx: h.grantTx });
-    } catch (e) {
-      s.gate.release(slot);
-      throw e;
-    }
-  });
-  return app;
-}
-
-/** In-game mail: the letters current now, newest first. */
-export function withMail(app: Hono, letters: () => readonly Letter[], now: () => number = Date.now): Hono {
-  app.get("/api/mail", (c) => {
-    c.header("Cache-Control", "public, max-age=300");
-    return c.json({ ok: true, letters: currentLetters(letters(), now()) });
-  });
-  return app;
-}
-
-export function withLibrary(app: Hono, library: Library, writes = new RateLimiter(60, 3_600_000)): Hono {
-  const who = (c: Context) => clientIp(c);
-  app.get("/api/lessons", (c) => {
-    c.header("Cache-Control", "public, max-age=30");
-    return c.json({ ok: true, lessons: library.list(40) });
-  });
-  app.post("/api/lessons/share", async (c) => {
-    if (!writes.take(who(c))) return busy(c);
-    let body;
-    try {
-      body = LessonShareBody.parse(await c.req.json());
-    } catch {
-      return c.json({ ok: false, reason: "invalid" }, 400);
-    }
-    const r = library.share(body.rule, body.by, who(c), Date.now());
-    return c.json(r, r.ok ? 200 : 400);
-  });
-  for (const action of ["use", "report"] as const) {
-    app.post(`/api/lessons/${action}`, async (c) => {
-      if (!writes.take(who(c))) return busy(c);
-      let body;
-      try {
-        body = LessonKeyBody.parse(await c.req.json());
-      } catch {
-        return c.json({ ok: false, reason: "invalid" }, 400);
-      }
-      return c.json({ ok: library[action](body.key, who(c)) });
-    });
-  }
-  return app;
-}
-
-/** A pet's history from the chain's events: hatching, daily saves, brain changes, family. */
-export function withHistory(app: Hono, indexer: Indexer): Hono {
-  app.get("/api/pets/:id/history", (c) => {
-    const id = c.req.param("id");
-    if (!/^\d{1,12}$/.test(id)) return c.json({ ok: false, reason: "invalid" }, 400);
-    c.header("Cache-Control", "public, max-age=20");
-    const h = indexer.history(id);
-    return h
-      ? c.json({ ok: true, indexedTo: indexer.head(), ...h })
-      : c.json({ ok: false, reason: "unknown", indexedTo: indexer.head() });
-  });
-  return app;
-}
-
-/** Who opened a red packet (A1): read from the claims index, never from a log query a public node would refuse. */
-export function withPackets(app: Hono, index: Pick<PacketIndex, "claimsOf" | "head">): Hono {
-  app.get("/api/packets/:id/claims", (c) => {
-    const id = c.req.param("id");
-    if (!/^\d{1,20}$/.test(id)) return c.json({ ok: false, reason: "invalid" }, 400);
-    c.header("Cache-Control", "public, max-age=10");
-    const p = index.claimsOf(id);
-    return p
-      ? c.json({ ok: true, indexedTo: index.head(), ...p })
-      : c.json({ ok: false, reason: "unknown", indexedTo: index.head() });
-  });
-  return app;
-}
-
-/** The most pets one page of the tree holds (A147). */
-const TREE_PAGE_MAX = 1_000;
-
-/**
- * The tree of life: every pet on chain with its generation, ancestors and the
- * owners who raised them. Names come from PetLook and name colours from the
- * extras contract (plan 4.9); both are remembered for ten minutes.
- */
-export function withTree(
-  app: Hono,
-  indexer: Pick<Indexer, "pets" | "head">,
-  nameOf?: (id: string) => Promise<string>,
-  coloursOf?: (ids: string[]) => Promise<Record<string, number>>,
-): Hono {
-  const names = new Map<string, { name: string; at: number }>();
-  const colours = new Map<string, { colour: number; at: number }>();
-  const NAME_TTL = 10 * 60_000;
-  // one refresh at a time, whoever asks: requests arriving during it wait for the same one (A52)
-  let refreshing: Promise<void> | null = null;
-  const refresh = async (pets: ReturnType<typeof indexer.pets>) => {
-    if (nameOf) {
-      const stale = pets.filter((p) => (names.get(p.id)?.at ?? 0) < Date.now() - NAME_TTL).slice(0, 50);
-      // eight reads at a time
-      for (let i = 0; i < stale.length; i += 8)
-        await Promise.all(
-          stale
-            .slice(i, i + 8)
-            .map(async (p) =>
-              names.set(p.id, { name: await nameOf(p.id).catch(() => names.get(p.id)?.name ?? ""), at: Date.now() }),
-            ),
-        );
-    }
-    if (coloursOf) {
-      const stale = pets
-        .filter((p) => (colours.get(p.id)?.at ?? 0) < Date.now() - NAME_TTL)
-        .slice(0, 200)
-        .map((p) => p.id);
-      if (stale.length) {
-        const got = await coloursOf(stale).catch(() => null);
-        if (got) for (const id of stale) colours.set(id, { colour: got[id] ?? 0, at: Date.now() });
-      }
-    }
-  };
-  // the built tree, kept until the indexer moves on or a name or colour changes (A147)
-  let built: { key: string; tree: ReturnType<typeof buildTree>; text: string } | null = null;
-  const look = (pets: ReturnType<typeof indexer.pets>) =>
-    pets.map((p) => `${names.get(p.id)?.name ?? ""}:${colours.get(p.id)?.colour ?? 0}`).join("|");
-  app.get("/api/tree", async (c) => {
-    const pets = indexer.pets();
-    refreshing ??= refresh(pets).finally(() => (refreshing = null));
-    await refreshing;
-    const key = `${indexer.head()}:${pets.length}:${look(pets)}`;
-    if (built?.key !== key) {
-      const tree = buildTree(
-        pets.map((p) => {
-          const name = names.get(p.id)?.name;
-          const colour = colours.get(p.id)?.colour;
-          return { ...p, ...(name ? { name } : {}), ...(colour ? { colour } : {}) };
-        }),
-      );
-      built = { key, tree, text: JSON.stringify({ ok: true, indexedTo: indexer.head(), ...tree }) };
-    }
-    c.header("Cache-Control", "public, max-age=30");
-    // a page of pets after a given one, for whoever wants the tree in parts (A147); the whole tree otherwise
-    const after = c.req.query("after");
-    const limit = Number(c.req.query("limit") ?? "");
-    if (after !== undefined || c.req.query("limit") !== undefined) {
-      const n = Number.isInteger(limit) && limit > 0 ? Math.min(limit, TREE_PAGE_MAX) : TREE_PAGE_MAX;
-      const from = after === undefined ? 0 : built.tree.pets.findIndex((p) => p.id === after) + 1;
-      const page = built.tree.pets.slice(Math.max(0, from), Math.max(0, from) + n);
-      const more = Math.max(0, from) + n < built.tree.pets.length;
-      const { pets: _all, ...counts } = built.tree;
-      return c.json({
-        ok: true,
-        indexedTo: indexer.head(),
-        ...counts,
-        pets: page,
-        ...(more && page.length ? { next: page[page.length - 1]!.id } : {}),
-      });
-    }
-    c.header("content-type", "application/json; charset=utf-8");
-    return c.body(built.text);
-  });
-  return app;
-}
-
-/**
- * Public diaries: owners publish the log their pet's checkpoint committed to; it is kept only if it
- * hashes to the log hash on chain, and anyone may read it (read-only, any origin).
- */
-export function withDiaries(
-  app: Hono,
-  store: DiaryStore,
-  chainOf: (id: string) => Promise<PetOnChain | null>,
-  hash: LogHasher = createLogHasher(),
-): Hono {
-  const limiter = new RateLimiter(20, 60 * 60_000);
-  app.get("/api/pets/:id/log", (c) => {
-    const id = c.req.param("id");
-    if (!/^\d{1,12}$/.test(id)) return c.json({ ok: false, reason: "invalid" }, 400);
-    const at = store.where(id);
-    c.header("Cache-Control", "public, max-age=30");
-    if (!at) return c.json({ ok: false, reason: "none" });
-    c.header("content-type", "application/json; charset=utf-8");
-    const head = '{"ok":true,"log":';
-    if ("text" in at) return c.body(`${head}${at.text}}`);
-    // streamed from its file a piece at a time, as fast as the reader takes it: no diary is ever held whole (A39)
-    const pieces = createReadStream(at.file)[Symbol.asyncIterator]();
-    const bytes = new TextEncoder();
-    let stage: "head" | "file" | "tail" = "head";
-    return c.body(
-      new ReadableStream<Uint8Array>({
-        async pull(out) {
-          if (stage === "head") {
-            out.enqueue(bytes.encode(head));
-            stage = "file";
-            return;
-          }
-          if (stage === "file") {
-            const next = await pieces.next();
-            if (!next.done) return out.enqueue(next.value as Uint8Array);
-            stage = "tail";
-          }
-          out.enqueue(bytes.encode("}"));
-          out.close();
-        },
-        async cancel() {
-          await pieces.return?.();
-        },
-      }),
-    );
-  });
-  app.post("/api/pets/:id/log", async (c) => {
-    const ip = clientIp(c);
-    // a refusal a player can meet is an answer, not an error a browser would log (A39); only a malformed request is a 400
-    if (!limiter.take(ip)) return c.json({ ok: false, reason: "busy" });
-    const id = c.req.param("id");
-    let body: unknown;
-    try {
-      body = await c.req.json();
-    } catch {
-      return c.json({ ok: false, reason: "invalid" }, 400);
-    }
-    // parsed once here; the store checks every cheap bound before the hash, which runs in a worker (A114)
-    const published = PublishedLog.safeParse(body);
-    if (!published.success || published.data.petId !== id) return c.json({ ok: false, reason: "invalid" }, 400);
-    const r = await store.publishLog(published.data, await chainOf(id).catch(() => null), ip, hash);
-    return c.json(r, !r.ok && r.reason === "invalid" ? 400 : 200);
-  });
-  return app;
-}
-
-/** Moving pets between Telegram and a browser: a one-time code, claimed once within minutes. */
-export function withMove(app: Hono, store: MoveStore, limiter = new RateLimiter(20, 60 * 60_000)): Hono {
-  const ipOf = (c: Context) => clientIp(c);
-  app.post("/api/move", async (c) => {
-    if (!limiter.take(ipOf(c))) return c.json({ ok: false, reason: "busy" }, 429);
-    let body: unknown;
-    try {
-      body = await c.req.json();
-    } catch {
-      return c.json({ ok: false, reason: "invalid" }, 400);
-    }
-    const move = MoveBody.safeParse(body);
-    if (!move.success) return c.json({ ok: false, reason: "invalid" }, 400);
-    const r = store.put(move.data.save, ipOf(c));
-    return c.json(r, r.ok ? 200 : r.reason === "invalid" ? 400 : r.reason === "tooBig" ? 413 : 503);
-  });
-  app.post("/api/move/:code/claim", (c) => {
-    if (!limiter.take(ipOf(c))) return c.json({ ok: false, reason: "busy" }, 429);
-    const code = c.req.param("code");
-    if (!/^[A-Za-z0-9_-]{22}$/.test(code)) return c.json({ ok: false, reason: "invalid" }, 400);
-    const save = store.take(code);
-    c.header("Cache-Control", "no-store");
-    // a used or expired code is an answer, not an error: the page explains it
-    return c.json(save ? { ok: true, save } : { ok: false, reason: "gone" });
-  });
-  return app;
-}
-
-/** Reminder routes: the public key to subscribe with, a plan of upcoming reminders, and stop. */
-export function withPush(app: Hono, pusher: Pusher, limiter = new RateLimiter(30, 3_600_000)): Hono {
-  app.get("/api/push/key", (c) => c.json({ key: pusher.publicKey }));
-  app.post("/api/push/plan", async (c) => {
-    const ip = clientIp(c);
-    if (!limiter.take(ip)) return busy(c);
-    let body;
-    try {
-      body = PushPlanBody.parse(await c.req.json());
-    } catch {
-      return c.json({ ok: false, reason: "invalid" }, 400);
-    }
-    const r = pusher.plan(body, Date.now(), ip);
-    return c.json(r, r.ok ? 200 : 400);
-  });
-  app.post("/api/push/stop", async (c) => {
-    let endpoint: string;
-    try {
-      endpoint = PushStopBody.parse(await c.req.json()).endpoint;
-    } catch {
-      return c.json({ ok: false, reason: "invalid" }, 400);
-    }
-    return c.json({ ok: true, stopped: pusher.stop(endpoint) });
-  });
-  return app;
-}
-
-/** Reminders, when a key file (VAPID_PUBLIC / VAPID_PRIVATE / VAPID_SUBJECT) is configured. */
-function makePusher(): Pusher | null {
-  const file = process.env.LINGXI_PUSH_KEY_FILE;
-  if (!file) return null;
-  const env = Object.fromEntries(
-    readFileSync(file, "utf8")
-      .split(/\r?\n/)
-      .filter((l) => l.includes("="))
-      .map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).trim()]),
-  );
-  if (!env.VAPID_PUBLIC || !env.VAPID_PRIVATE) return null;
-  return createPusher({
-    publicKey: env.VAPID_PUBLIC,
-    privateKey: env.VAPID_PRIVATE,
-    subject: env.VAPID_SUBJECT ?? LINGXI_SITE,
-    store: process.env.LINGXI_PUSH_STORE,
-  });
-}
-
-/** The last daily backup (deploy/backup.mjs): how old it is and whether both copies were made. */
-function backupStatus(): { ageHours: number; local: boolean; drive: boolean; error: string | null } | null {
-  try {
-    const file = process.env.LINGXI_BACKUP_STATUS ?? join(homedir(), "lingxi-backups", "last.json");
-    const s = JSON.parse(readFileSync(file, "utf8")) as {
-      at: string;
-      local: boolean;
-      drive: boolean;
-      error: string | null;
-    };
-    return {
-      ageHours: Math.round(((Date.now() - Date.parse(s.at)) / 3_600_000) * 10) / 10,
-      local: s.local,
-      drive: s.drive,
-      error: s.error,
-    };
-  } catch {
-    return null;
-  }
-}
-
-/** The watchdog's last beat (deploy/watchdog.mjs): how old it is, what it saw, and the last thing it restarted. */
-function watchdogStatus(): {
-  ageSeconds: number;
-  local: boolean;
-  public: boolean;
-  last: { action: string | null; at: string | null; result: string | null };
-} | null {
-  try {
-    const file = process.env.LINGXI_WATCHDOG_STATUS ?? join(homedir(), "lingxi-watchdog.json");
-    const s = JSON.parse(readFileSync(file, "utf8")) as {
-      at: string;
-      local: boolean;
-      public: boolean;
-      last: { action: string | null; at: string | null; result: string | null };
-    };
-    return {
-      ageSeconds: Math.round((Date.now() - Date.parse(s.at)) / 1000),
-      local: s.local,
-      public: s.public,
-      last: s.last,
-    };
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Sizes of the server's data files and folders, in KB, so a store growing without bound shows before it hurts. Walked
- * without blocking the request thread (a folder can hold tens of thousands of files), and kept five minutes (A64).
- */
-const STORE_SIZES_MS = 5 * 60_000;
-let sizesKept: { at: number; value: Promise<Record<string, number>> } | null = null;
-function storeSizes(dir: string): Promise<Record<string, number>> {
-  if (sizesKept && Date.now() - sizesKept.at < STORE_SIZES_MS) return sizesKept.value;
-  const sizeOf = async (p: string): Promise<number> => {
-    const st = await stat(p);
-    if (!st.isDirectory()) return st.size;
-    let n = 0;
-    for (const f of await readdir(p)) n += await sizeOf(join(p, f));
-    return n;
-  };
-  const value = (async () => {
-    const out: Record<string, number> = {};
-    try {
-      for (const f of await readdir(dir)) out[f] = Math.round((await sizeOf(join(dir, f))) / 1024);
-    } catch {
-      // no data folder yet, or a file gone while it was read
-    }
-    return out;
-  })();
-  sizesKept = { at: Date.now(), value };
-  return value;
 }
 
 // the server starts when it is the program being run: directly (node or tsx name it as the first argument), or by pm2,
