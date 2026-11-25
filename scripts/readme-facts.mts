@@ -9,6 +9,7 @@
  *   pnpm exec tsx scripts/readme-facts.mts --check | --write [--no-tests]
  */
 
+import { type TestReport, failuresOf } from "./lib/testReport.mts";
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -31,9 +32,9 @@ function resultOf(
   out: string,
   suite: string,
   p: { status: number | null; stdout: string; stderr: string },
-): { numPassedTests: number; numFailedTests: number } {
+): TestReport & { numPassedTests: number; numFailedTests: number } {
   try {
-    return JSON.parse(readFileSync(out, "utf8")) as { numPassedTests: number; numFailedTests: number };
+    return JSON.parse(readFileSync(out, "utf8")) as TestReport & { numPassedTests: number; numFailedTests: number };
   } catch {
     throw new Error(
       `${suite} gave no result (exit ${p.status}); it did not run to its end, so nothing is counted:\n${(p.stdout + p.stderr).slice(-2000)}`,
@@ -53,7 +54,9 @@ function vitestPassed(pkg: string): number {
     });
     const r = resultOf(out, `@lingxi/${pkg}`, p);
     if (p.status !== 0 || r.numFailedTests > 0)
-      throw new Error(`@lingxi/${pkg}: ${r.numFailedTests} tests fail; no count is written for a failing suite`);
+      throw new Error(
+        `@lingxi/${pkg}: ${r.numFailedTests} tests fail; no count is written for a failing suite:\n${failuresOf(r).join("\n")}`,
+      );
     return r.numPassedTests;
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -102,7 +105,9 @@ function forkTestsPassed(): number {
       );
       const r = resultOf(out, `the fork tests in ${pkg}`, p);
       if (p.status !== 0 || r.numFailedTests > 0)
-        throw new Error(`the fork tests in ${pkg}: ${r.numFailedTests} fail; no count is written for a failing suite`);
+        throw new Error(
+          `the fork tests in ${pkg}: ${r.numFailedTests} fail; no count is written for a failing suite:\n${failuresOf(r).join("\n")}`,
+        );
       passed += r.numPassedTests;
     } finally {
       rmSync(dir, { recursive: true, force: true });
