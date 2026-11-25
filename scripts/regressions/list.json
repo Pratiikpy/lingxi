@@ -1212,6 +1212,12 @@
     "test": { "kind": "e2e", "spec": "e2e/specs/notices.spec.ts", "title": "notices raised while a sheet is open never cover its header or its controls (zh, dark, desktop) (A67, P7d)" }
   },
   {
+    "id": "P7a-hatch-taken-up",
+    "row": "P7a",
+    "bug": "a hatch that X Layer confirmed after the game stopped waiting sat unrecorded until the player pressed Keep again",
+    "test": { "kind": "vitest", "dir": "apps/web", "file": "src/game/chain.test.ts", "name": "a hatch confirmed after the wait is taken up by itself, with no second press and no wallet asked (P7a)" }
+  },
+  {
     "id": "P7d-notices-above-sheet",
     "row": "P7d",
     "bug": "a notice over an open sheet sat under its header, over the sheet's first controls (the Pet sheet's Skills button)",

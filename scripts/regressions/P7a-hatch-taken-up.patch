@@ -1,0 +1,13 @@
+diff --git a/apps/web/src/game/chainKeep.ts b/apps/web/src/game/chainKeep.ts
+index b536852..c0ddfbe 100644
+--- a/apps/web/src/game/chainKeep.ts
++++ b/apps/web/src/game/chainKeep.ts
+@@ -84,7 +84,7 @@ export function keepActions(
+    */
+   const follow = (pet: Pet) => {
+     const k = petKey(pet);
+-    if (following.has(k)) return;
++    if (following.has(k) || k) return;
+     const stop = () => {
+       clearInterval(following.get(k));
+       following.delete(k);
