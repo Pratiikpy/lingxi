@@ -12,7 +12,8 @@ const read = (path: string) => readFileSync(join(root, path), "utf8").replace(/\
 describe("the wording the audits corrected stays corrected (A87)", () => {
   it("A43: a pet's mind is taped out on X Layer once it is kept there, not before", () => {
     expect(read("README.md")).not.toMatch(/Every pet's mind is a TapeOut circuit/);
-    for (const page of ["apps/web/src/verify/VerifyApp.tsx", "apps/web/src/agents/AgentsApp.tsx"]) {
+    // the proof page's words live in verifyText.ts since P7 split the page
+    for (const page of ["apps/web/src/verify/verifyText.ts", "apps/web/src/agents/AgentsApp.tsx"]) {
       expect(read(page), page).not.toMatch(/mind is a TapeOut circuit on X Layer/);
       expect(read(page), page).toMatch(/keeps it (on X Layer|there)/);
     }
