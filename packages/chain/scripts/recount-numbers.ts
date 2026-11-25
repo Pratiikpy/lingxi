@@ -111,57 +111,56 @@ async function logsOf(address: Address, from: number, to: number) {
   return logs;
 }
 
-async function main() {
-  const live = (await (await fetch(`${api}/api/numbers`, { cache: "no-store" })).json()) as {
-    pets: {
-      hatched: number;
-      children: number;
-      daysSaved: number;
-      indexedTo: number;
-      nextPetId: number;
-      savedLast24h?: number;
-      byTeam?: { hatched: number; children: number; saves: number; hatchers: number; savedLast24h: number };
-    };
-    outfits: { okb: PageMarket | null; bem: PageMarket | null };
-    team?: { wallets: string[]; hidden: number } | null;
-    burned: { market: string; breeding: string; shop?: string; adoption?: string; extras?: string; total: string };
-    extras?: { room: number; looks: number; colours: number } | null;
-    pins: number | null;
-    earned?: {
-      okb: string;
-      feeBps: number;
-      treasury: string;
-      toProject: boolean;
-      indexedTo: number;
-      fromTeam?: string;
-    } | null;
-    week?: {
-      since: number;
-      hatched: number;
-      children: number;
-      saves: number;
-      petsSaved: number;
-      hatchers: number;
-      circuits: number | null;
-      byTeam?: { hatched: number; children: number; saves: number; petsSaved: number; hatchers: number };
-    } | null;
-    kept?: { own: number; sponsored: number; other: number; sponsors: string[] } | null;
-    circuits?: {
-      total: number;
-      minted: number;
-      last7d: number | null;
-      indexedTo: number;
-      fromBlock: number | null;
-      processor: string;
-    } | null;
+/** The numbers page's figures, as /api/numbers serves them. */
+type LiveNumbers = {
+  pets: {
+    hatched: number;
+    children: number;
+    daysSaved: number;
+    indexedTo: number;
+    nextPetId: number;
+    savedLast24h?: number;
+    byTeam?: { hatched: number; children: number; saves: number; hatchers: number; savedLast24h: number };
   };
-  const diffs: string[] = [];
-  const check = (what: string, mine: string | number, theirs: string | number) => {
-    const ok = String(mine) === String(theirs);
-    console.log(`${ok ? "same" : "DIFFERENT"}  ${what}: recount ${mine}, page ${theirs}`);
-    if (!ok) diffs.push(what);
-  };
+  outfits: { okb: PageMarket | null; bem: PageMarket | null };
+  team?: { wallets: string[]; hidden: number } | null;
+  burned: { market: string; breeding: string; shop?: string; adoption?: string; extras?: string; total: string };
+  extras?: { room: number; looks: number; colours: number } | null;
+  pins: number | null;
+  earned?: {
+    okb: string;
+    feeBps: number;
+    treasury: string;
+    toProject: boolean;
+    indexedTo: number;
+    fromTeam?: string;
+  } | null;
+  week?: {
+    since: number;
+    hatched: number;
+    children: number;
+    saves: number;
+    petsSaved: number;
+    hatchers: number;
+    circuits: number | null;
+    byTeam?: { hatched: number; children: number; saves: number; petsSaved: number; hatchers: number };
+  } | null;
+  kept?: { own: number; sponsored: number; other: number; sponsors: string[] } | null;
+  circuits?: {
+    total: number;
+    minted: number;
+    last7d: number | null;
+    indexedTo: number;
+    fromBlock: number | null;
+    processor: string;
+  } | null;
+};
 
+/** Pets: hatched, little ones, days saved and the next pet id, up to the block the page has read. */
+async function countPets(
+  live: LiveNumbers,
+  check: (what: string, mine: string | number, theirs: string | number) => void,
+): Promise<{ reg: Awaited<ReturnType<typeof logsOf>>; bredIds: Set<string>; before: number }> {
   // pets: up to the block the page says it has read, so both count the same span
   const reg = await logsOf(d.registry, registryFrom, live.pets.indexedTo);
   let hatched = 0;
@@ -212,7 +211,16 @@ async function main() {
     Number(await pub.readContract({ address: d.registry, abi: views, functionName: "nextPetId" })),
     live.pets.nextPetId,
   );
+  return { reg, bredIds, before };
+}
 
+/** The last 7 days and who kept each pet (H10). */
+async function countWeek(
+  live: LiveNumbers,
+  check: (what: string, mine: string | number, theirs: string | number) => void,
+  reg: Awaited<ReturnType<typeof logsOf>>,
+  bredIds: Set<string>,
+): Promise<{ timeOfBlock: (hex: string) => Promise<number> }> {
   // the last 7 days and who kept each pet (H10), from the same logs, each block's own time and each hatch's own sender
   const blockTime = new Map<string, number>();
   const timeOfBlock = async (hex: string) => {
@@ -257,7 +265,16 @@ async function main() {
       check("pets kept by another wallet", k.other, live.kept.other);
     }
   }
+  return { timeOfBlock };
+}
 
+/** Circuits Lingxi has taped out (H10), walked mint by mint and held to the processor's own count. */
+async function countCircuits(
+  live: LiveNumbers,
+  check: (what: string, mine: string | number, theirs: string | number) => void,
+  before: number,
+  timeOfBlock: (hex: string) => Promise<number>,
+): Promise<void> {
   // circuits Lingxi has taped out (H10): the processor's mints, walked by this script, and its own count
   if (live.circuits && (live.circuits.fromBlock ?? d.processorBlock)) {
     const from = live.circuits.fromBlock ?? d.processorBlock!;
@@ -313,7 +330,13 @@ async function main() {
       atEnd - before,
     );
   }
+}
 
+/** Sales in each market, and the team's wallets (C2). */
+async function countSales(
+  live: LiveNumbers,
+  check: (what: string, mine: string | number, theirs: string | number) => void,
+): Promise<{ team: Set<string> }> {
   // sales, each market up to the block the page has read it to
   // the team's wallets (C2): those the page names, and those in the server's private file on this machine
   const teamFile = arg("team-file", "../../services/api/data/team.json")!;
@@ -458,7 +481,18 @@ async function main() {
       check("the treasury it is paid to now", treasury, (live.earned?.treasury ?? "absent").toLowerCase());
     }
   }
+  return { team };
+}
 
+/** The team's share of the pet figures (C2). */
+async function countTeamShare(
+  live: LiveNumbers,
+  check: (what: string, mine: string | number, theirs: string | number) => void,
+  reg: Awaited<ReturnType<typeof logsOf>>,
+  bredIds: Set<string>,
+  timeOfBlock: (hex: string) => Promise<number>,
+  team: Set<string>,
+): Promise<void> {
   // the team's share of the pet figures (C2), from the registry's own logs: each pet's owner from its Hatched event
   if (live.pets.byTeam && live.week?.byTeam) {
     const owner = new Map<string, string>();
@@ -503,7 +537,13 @@ async function main() {
     check("the team's pets saved in the last 7 days", wk.petsSaved.size, live.week.byTeam.petsSaved);
     check("the team's wallets that hatched in the last 7 days", wk.hatchers.size, live.week.byTeam.hatchers);
   }
+}
 
+/** The contracts' own totals: burns, pins and the paid extras. */
+async function countTotals(
+  live: LiveNumbers,
+  check: (what: string, mine: string | number, theirs: string | number) => void,
+): Promise<void> {
   // contract totals, read fresh; a sale between the page's read and this one shows as a difference, so read twice
   const read = async (a: Address | undefined, fn: "totalBurned" | "total") =>
     a ? ((await pub.readContract({ address: a, abi: views, functionName: fn })) as bigint) : 0n;
@@ -548,7 +588,12 @@ async function main() {
   }
   check("BEM burned in total", (market + breeding + shop + adoption + extras).toString(), live.burned.total);
   if (d.holderGift) check("holder pins claimed", Number(await read(d.holderGift, "total")), live.pins ?? "absent");
+}
 
+/** Community goals, each up to the block the goals page has read to. */
+async function countGoals(
+  check: (what: string, mine: string | number, theirs: string | number) => void,
+): Promise<void> {
   // community goals, each up to the block the goals page has read to
   const goalsPage = (await (await fetch(`${api}/api/goals`, { cache: "no-store" })).json()) as {
     indexedTo: number;
@@ -619,6 +664,23 @@ async function main() {
     check(`goal ${g.id} contributors`, by.size, page?.contributors ?? "absent");
     for (const t of page?.top ?? []) check(`goal ${g.id} ${t.wallet}`, by.get(t.wallet) ?? 0, t.n);
   }
+}
+
+async function main() {
+  const live = (await (await fetch(`${api}/api/numbers`, { cache: "no-store" })).json()) as LiveNumbers;
+  const diffs: string[] = [];
+  const check = (what: string, mine: string | number, theirs: string | number) => {
+    const ok = String(mine) === String(theirs);
+    console.log(`${ok ? "same" : "DIFFERENT"}  ${what}: recount ${mine}, page ${theirs}`);
+    if (!ok) diffs.push(what);
+  };
+  const { reg, bredIds, before } = await countPets(live, check);
+  const { timeOfBlock } = await countWeek(live, check, reg, bredIds);
+  await countCircuits(live, check, before, timeOfBlock);
+  const { team } = await countSales(live, check);
+  await countTeamShare(live, check, reg, bredIds, timeOfBlock, team);
+  await countTotals(live, check);
+  await countGoals(check);
 
   if (diffs.length) {
     console.error(`${diffs.length} difference(s): ${diffs.join(", ")}`);
