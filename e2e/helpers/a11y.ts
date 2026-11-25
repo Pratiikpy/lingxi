@@ -120,15 +120,22 @@ export async function smallTargets(page: Page, scope: string, min = 44): Promise
         const cy = at0.top + at0.height / 2;
         const points = [-half, 0, half].flatMap((dx) => [-half, 0, half].map((dy) => [cx + dx, cy + dy] as const));
         const onScreen = points.every(([x, y]) => x >= 0 && y >= 0 && x < innerWidth && y < innerHeight);
+        // a probe that lands on something else names it, so a failure says what was on top (CI, 2026-11-25)
+        let cover = "";
         const hits =
           onScreen &&
           points.every(([x, y]) => {
             const at = document.elementFromPoint(x, y);
-            return !!at && (at === el || el.contains(at));
+            const ok = !!at && (at === el || el.contains(at));
+            if (!ok && !cover)
+              cover = at
+                ? ` covered at ${Math.round(x)},${Math.round(y)} by ${at.tagName.toLowerCase()}.${(at.className || "").toString().split(" ")[0]} "${(at.textContent || "").trim().slice(0, 24)}"`
+                : ` nothing at ${Math.round(x)},${Math.round(y)}`;
+            return ok;
           });
         if (!hits)
           out.push(
-            `${el.tagName.toLowerCase()}.${(el.className || "").toString().split(" ")[0]} "${(el.getAttribute("aria-label") || el.textContent || "").trim().slice(0, 24)}" ${Math.round(r.width)}x${Math.round(r.height)}`,
+            `${el.tagName.toLowerCase()}.${(el.className || "").toString().split(" ")[0]} "${(el.getAttribute("aria-label") || el.textContent || "").trim().slice(0, 24)}" ${Math.round(r.width)}x${Math.round(r.height)}${onScreen ? cover : " off screen"}`,
           );
       }
       return out;
