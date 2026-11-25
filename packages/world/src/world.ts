@@ -11,389 +11,46 @@ import { sha256 } from "@noble/hashes/sha2";
 import { bump, bumpAll, bumpFinds, tallyOf } from "./tally";
 import type { QuestBook } from "./story";
 import data from "./data/world.json";
-import { familiarStep, isRareTier, tierWeight } from "./rules";
-import { type Buff, ITEMS, type ItemDef, RECIPE_NAMES } from "./items";
-import { ROOM_TEXT, type RoomText } from "./rooms";
-
-export const HOME = 65;
-export const MOVE_ENERGY = 15;
-export const FORAGE_ENERGY = 10;
-export const FIRST_VISIT_COINS = 5;
-
-export interface Room extends RoomText {
-  index: number;
-  x: number;
-  y: number;
-  z: number;
-  bgs: { day: string; evening: string; night: string };
-  /** rarity tier from the sheet (1 rare … 9 common) and the weight made from it */
-  drops: Array<{ item: number; tier: number; weight: number }>;
-  shop: number[];
-  /** the kinds of pet at home here (the source's room affinity): Normal, Insect, Scrap, Eerie */
-  affinity: Affinity[];
-  /** looks around that fill this room's familiarity bar; 0 = no bar (plan 4.5, the source's scavenge cost / 50) */
-  familiarSize: number;
-}
-
-export type Affinity = "Normal" | "Insect" | "Scrap" | "Eerie";
-const AFFINITIES: readonly Affinity[] = ["Normal", "Insect", "Scrap", "Eerie"];
-
-/** Which rooms a pet is at home in: its line's kind, and the eerie places if it is brave. */
-export function affinitiesOf(line: "gentle" | "bold" | "curious", brave = false): Affinity[] {
-  const own: Affinity = line === "gentle" ? "Normal" : line === "curious" ? "Insect" : "Scrap";
-  return brave ? [own, "Eerie"] : [own];
-}
-
-/**
- * What some rooms keep for those who know them: the first time the bar fills there, this is the hidden find (after
- * that, a rare find of the room's own). The three parts of the Sky Sextant live here, so its recipe can be finished.
- */
-export const ROOM_SECRETS: Readonly<Record<number, number>> = {
-  88: 100001, // Treasure Hall: the Star Disk
-  84: 100002, // Mine Tunnel: the Old Gear
-  87: 100003, // Sunken Temple: the Temple Map
-  53: 11413, // Blooming Tree: Mistletoe
-};
-
-/** Familiarity a look around adds: two where the pet is at home, one elsewhere. */
-export const familiarGain = (room: Room, kin: readonly Affinity[]) =>
-  familiarStep(room.affinity.some((a) => kin.includes(a)));
-
-export interface Item extends ItemDef {
-  index: number;
-  art: string;
-}
-
-export interface Recipe {
-  index: number;
-  name: { en: string; zh: string };
-  out: number;
-  outAmount: number;
-  ins: Array<{ item: number; amount: number }>;
-  /** a tool that must be in the bag; it is not used up (plan 4.5) */
-  tool?: number;
-  /** pet energy the work costs */
-  energy: number;
-  /** experience it gives the pet */
-  xp: number;
-  /** the only room it can be made in */
-  room?: number;
-}
-
-/** Rooms that sell things, and what. Praline's shop has the crafting tools ("hobby tools for anyone who likes to mix and craft"). */
-const SHOPS: Record<number, number[]> = {
-  13: [
-    11130, 11110, 11120, 11140, 11302, 11304, 11313, 21201, 21202, 21203, 11201, 11203, 11204, 11233, 7104, 7103, 7102,
-    7101, 23100, 23101, 23102,
-  ],
-  4: [11301, 11303, 11409, 21201, 11201, 11202],
-};
-
-/** Lingxi's own items, drawn for the garden rather than taken from the world data */
-const OWN_ART: Record<number, string> = {
-  7001: "art/items/garden/compost.png",
-  7101: "art/items/garden/seed_apple.png",
-  7102: "art/items/garden/seed_rice.png",
-  7103: "art/items/garden/seed_pepper.png",
-  7104: "art/items/garden/seed_clover.png",
-  7201: "art/items/garden/rice_sheaf.png",
-  7202: "art/items/garden/garden_pepper.png",
-};
-
-export const ITEM: Record<number, Item> = Object.fromEntries([
-  ...(data.items as Array<{ index: number; art: string }>)
-    .filter((i) => ITEMS[i.index])
-    .map((i) => [i.index, { ...ITEMS[i.index]!, index: i.index, art: i.art }]),
-  ...Object.entries(OWN_ART).map(([k, art]) => [Number(k), { ...ITEMS[Number(k)]!, index: Number(k), art }]),
-]);
-
-/** A rarity tier from the world sheet becomes a weight: tier 9 is 256 times as common as tier 1, tier 0 never drops. */
+import { isRareTier, tierWeight } from "./rules";
+import { type Buff, type ItemDef } from "./items";
+import { ITEM, RECIPES, type Recipe, TRAVEL_RECIPES, pickDrop } from "./catalogue";
+import {
+  type Affinity,
+  FIRST_VISIT_COINS,
+  FORAGE_ENERGY,
+  HOME,
+  MOVE_ENERGY,
+  ROOMS,
+  ROOM_SECRETS,
+  familiarGain,
+  neighbours,
+} from "./places";
 export { tierWeight } from "./rules";
-
-/** Walk the cumulative weights with a random number; one rule for looking around, walks and away finds. */
-export function pickDrop(drops: ReadonlyArray<{ item: number; weight: number }>, r: number): number {
-  const total = drops.reduce((s, d) => s + d.weight, 0);
-  let x = r % total;
-  for (const d of drops) {
-    if (x < d.weight) return d.item;
-    x -= d.weight;
-  }
-  return drops[0]!.item;
-}
-
-export const ROOMS: Record<number, Room> = Object.fromEntries(
-  // the sheet's "weight" column holds the rarity tier, not the weight
-  (
-    data.rooms as Array<{
-      index: number;
-      x: number;
-      y: number;
-      z: number;
-      bgs: Room["bgs"];
-      drops: Array<{ item: number; weight: number }>;
-      affinity?: string;
-      scavCost?: number;
-    }>
-  )
-    .filter((r) => ROOM_TEXT[r.index])
-    .map((r) => [
-      r.index,
-      {
-        ...ROOM_TEXT[r.index]!,
-        index: r.index,
-        x: r.x,
-        y: r.y,
-        z: r.z,
-        bgs: r.bgs,
-        drops: r.drops
-          .filter((d) => ITEM[d.item])
-          .map((d) => ({ item: d.item, tier: d.weight, weight: tierWeight(d.weight) })),
-        shop: SHOPS[r.index] ?? [],
-        affinity: (r.affinity ?? "")
-          .split(",")
-          .map((a) => a.trim())
-          .filter((a): a is Affinity => (AFFINITIES as readonly string[]).includes(a)),
-        familiarSize: Math.round((r.scavCost ?? 0) / 50),
-      },
-    ]),
-);
-
-const EXITS: Array<[number, number]> = (data.rooms as Array<{ index: number; exits: number[] }>).flatMap((r) =>
-  r.exits.map((e) => [r.index, e] as [number, number]),
-);
-
-/**
- * The workbench's recipes with the source's own amounts (plan 4.5): no more squashing hundreds of pollen into a
- * handful, which made one extraction last a hundred brews. Its stamina becomes pet energy at the same ratio as a
- * move (5 stamina to 15 energy); its account XP becomes pet experience by square root, so a 10,000-XP recipe gives
- * 100 against a caring day's 27.
- */
-export const craftEnergy = (stamina: number) => stamina * 3;
-export const craftXp = (sourceXp: number) => Math.round(Math.sqrt(Math.max(0, sourceXp)));
-
-/**
- * Small batches beside the source's bulk recipes (G6, G8): a handful made by hand at the bench, no tool, for a player
- * who needs one now. Quest 37's "three pebbles make a stone block" is the first. Every building material (plank, metal
- * bar, stone block, from either source) has one.
- */
-const small = (index: number, en: string, zh: string, out: number, item: number): Recipe => ({
-  index,
-  name: { en, zh },
-  out,
-  outAmount: 1,
-  ins: [{ item, amount: 3 }],
-  energy: craftEnergy(10),
-  xp: craftXp(9),
-});
-export const SMALL_BATCH_RECIPES: readonly Recipe[] = [
-  small(30001, "Shape a Stone Block", "拼一个石块", 1301, 1002),
-  small(30002, "Chip a Stone Block from Fossil", "用化石凿一个石块", 1301, 1020),
-  small(30003, "Lash a Plank", "绑一块木板", 1302, 1001),
-  small(30004, "Weave a Plank from Stems", "用干茎编一块木板", 1302, 1016),
-  small(30005, "Hammer a Metal Bar", "敲一根金属条", 1303, 1005),
-  small(30006, "Bend a Bar from Pipe", "用旧管子弯一根金属条", 1303, 1017),
-];
-
-/**
- * The source's bulk recipes turn 100 of a material into one plank, bar or block with a tool and 150 energy: worse in
- * every way than three of it by hand (G6). A bulk batch now yields BULK_YIELD, so a player who gathered a hundred and
- * owns the tool makes more per piece and per energy than by hand.
- */
-export const BULK_YIELD = 50;
-const BULK_RECIPES = new Set([31, 32, 33, 34, 35, 36]);
-
-const SOURCE_RECIPES: Recipe[] = (
-  data.recipes as Array<{
-    index: number;
-    out: number;
-    outAmount: number;
-    ins: Array<{ item: number; amount: number }>;
-    stamina: number;
-    xp: number;
-    tool: number | null;
-    room: number | null;
-  }>
-)
-  .filter(
-    (r) =>
-      RECIPE_NAMES[r.index] && ITEM[r.out] && r.ins.every((x) => ITEM[x.item]) && (r.tool === null || ITEM[r.tool]),
-  )
-  .map((r) => ({
-    index: r.index,
-    name: RECIPE_NAMES[r.index]!,
-    out: r.out,
-    outAmount: BULK_RECIPES.has(r.index) ? BULK_YIELD : Math.max(1, r.outAmount),
-    ins: r.ins.map((x) => ({ item: x.item, amount: x.amount })),
-    ...(r.tool !== null ? { tool: r.tool } : {}),
-    energy: craftEnergy(r.stamina),
-    xp: craftXp(r.xp),
-    ...(r.room !== null ? { room: r.room } : {}),
-  }));
-
-export const RECIPES: Recipe[] = [...SOURCE_RECIPES, ...SMALL_BATCH_RECIPES];
-
-/** Recipes only a trip teaches: the garden's harvest turned into mochi. */
-export const TRAVEL_RECIPES: readonly Recipe[] = [
-  {
-    index: 20001,
-    name: { en: "Pound Rice Mochi", zh: "捣米麻薯" },
-    out: 11130,
-    outAmount: 2,
-    ins: [
-      { item: 7201, amount: 2 },
-      { item: 11312, amount: 1 },
-    ],
-    energy: 30,
-    xp: 5,
-  },
-  {
-    index: 20002,
-    name: { en: "Fold Apple Jam Mochi", zh: "包苹果酱麻薯" },
-    out: 11120,
-    outAmount: 2,
-    ins: [
-      { item: 11313, amount: 2 },
-      { item: 7201, amount: 1 },
-    ],
-    energy: 30,
-    xp: 5,
-  },
-  {
-    index: 20003,
-    name: { en: "Roll Honey Mochi", zh: "滚蜂蜜麻薯" },
-    out: 11140,
-    outAmount: 2,
-    ins: [
-      { item: 11312, amount: 2 },
-      { item: 7201, amount: 1 },
-    ],
-    energy: 30,
-    xp: 5,
-  },
-  // taught by friends at trust level 3 (friends/residents.ts), each the thing their shelf would otherwise sell
-  // G6: two a stir, and Wick hands over two Glow Roots with the recipe (a root is a 0.19% find; the shelf sells one tonic for 60)
-  {
-    index: 20004,
-    name: { en: "Stir Moon Tonic", zh: "调月光补剂" },
-    out: 11004,
-    outAmount: 2,
-    ins: [
-      { item: 1121, amount: 150 },
-      { item: 1112, amount: 100 },
-    ],
-    energy: 30,
-    xp: 5,
-  },
-  {
-    index: 20005,
-    name: { en: "Pound Taro Mochi", zh: "捣芋泥麻薯" },
-    out: 11110,
-    outAmount: 2,
-    ins: [
-      { item: 7201, amount: 2 },
-      { item: 1201, amount: 100 },
-    ],
-    energy: 30,
-    xp: 5,
-  },
-  {
-    index: 20006,
-    name: { en: "Yonder's Lucky Tea", zh: "阿远的好运茶" },
-    out: 11405,
-    outAmount: 1,
-    ins: [
-      { item: 1111, amount: 100 },
-      { item: 1104, amount: 100 },
-    ],
-    energy: 30,
-    xp: 5,
-  },
-  // G6: two from two candies (25 each at the shop), so it beats Twain's shelf price of 45
-  {
-    index: 20007,
-    name: { en: "Double Wisdom Candy", zh: "炼大智慧糖" },
-    out: 11202,
-    outAmount: 2,
-    ins: [
-      { item: 11201, amount: 2 },
-      { item: 1103, amount: 100 },
-    ],
-    energy: 30,
-    xp: 5,
-  },
-  // G6: Bolt's trick beats three scrap by hand and needs no burner (it used to need thirty and an Old Coin for one bar)
-  {
-    index: 20008,
-    name: { en: "Bolt's Quick Melt", zh: "阿栓的快熔法" },
-    out: 1303,
-    outAmount: 5,
-    ins: [{ item: 1005, amount: 12 }],
-    energy: 30,
-    xp: 5,
-  },
-  {
-    index: 20009,
-    name: { en: "Warm Honeydrops", zh: "捂蜜露" },
-    out: 11312,
-    outAmount: 2,
-    ins: [
-      { item: 11311, amount: 1 },
-      { item: 1011, amount: 1 },
-    ],
-    energy: 30,
-    xp: 5,
-  },
-  {
-    index: 20010,
-    name: { en: "Nurse Why's Calm Tea", zh: "小慧的安神茶" },
-    out: 11404,
-    outAmount: 1,
-    ins: [
-      { item: 1111, amount: 100 },
-      { item: 1110, amount: 50 },
-    ],
-    energy: 30,
-    xp: 5,
-  },
-  {
-    index: 20011,
-    name: { en: "Grill a Burger", zh: "烤汉堡" },
-    out: 11302,
-    outAmount: 1,
-    ins: [
-      { item: 7202, amount: 1 },
-      { item: 7201, amount: 1 },
-    ],
-    energy: 30,
-    xp: 5,
-  },
-  {
-    index: 20012,
-    name: { en: "Spin Rock Candyfloss", zh: "转棉花岩糖" },
-    out: 21205,
-    outAmount: 1,
-    ins: [
-      { item: 1201, amount: 150 },
-      { item: 1103, amount: 50 },
-    ],
-    energy: 30,
-    xp: 5,
-  },
-];
-
-export function neighbours(index: number): number[] {
-  const r = ROOMS[index];
-  if (!r) return [];
-  const out = new Set<number>();
-  for (const o of Object.values(ROOMS)) {
-    if (o.index !== index && o.z === r.z && Math.abs(o.x - r.x) + Math.abs(o.y - r.y) === 1) out.add(o.index);
-  }
-  for (const [a, b] of EXITS) {
-    if (a === index && ROOMS[b]) out.add(b);
-    if (b === index && ROOMS[a]) out.add(a);
-  }
-  return [...out].sort((a, b) => a - b);
-}
+export {
+  HOME,
+  MOVE_ENERGY,
+  FORAGE_ENERGY,
+  FIRST_VISIT_COINS,
+  type Room,
+  type Affinity,
+  affinitiesOf,
+  ROOM_SECRETS,
+  familiarGain,
+  ROOMS,
+  neighbours,
+} from "./places";
+export {
+  type Item,
+  type Recipe,
+  ITEM,
+  pickDrop,
+  craftEnergy,
+  craftXp,
+  SMALL_BATCH_RECIPES,
+  BULK_YIELD,
+  RECIPES,
+  TRAVEL_RECIPES,
+} from "./catalogue";
 
 /* ── the player's world state ────────────────────────────────────────────── */
 
