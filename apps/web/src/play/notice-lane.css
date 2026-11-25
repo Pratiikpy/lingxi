@@ -5,6 +5,8 @@
   position: fixed;
   z-index: 61;
   top: var(--lane-top, calc(112px + env(safe-area-inset-top, 0px)));
+  /* P7d: over an open sheet the lane is anchored by its bottom, just above the sheet's top edge */
+  bottom: var(--lane-bottom, auto);
   left: var(--lane-left, 16px);
   width: var(--lane-width, calc(100vw - 96px));
   display: flex;
@@ -57,4 +59,14 @@
    nor is hidden, or the notice after it never showed and its words were never read. */
 .notice-lane > :not(.sr-only) ~ :not(.sr-only) {
   display: none !important;
+}
+/* P7d: how tall a phone's notch is, read by NoticeLane to keep notices above a sheet clear of it */
+.notice-lane-notch {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: env(safe-area-inset-top, 0px);
+  visibility: hidden;
+  pointer-events: none;
 }

@@ -90,11 +90,34 @@ const headNow = (page: Page): Promise<Box | null> =>
     return r && r.width > 0 ? { x: r.x, y: r.y, width: r.width, height: r.height } : null;
   });
 
+/** The open sheet's box and the boxes of every control in it (P7d: a notice over a sheet covers none of them). */
+const sheetNow = (page: Page): Promise<{ sheet: Box; controls: Box[] } | null> =>
+  page.evaluate(() => {
+    const sheets = Array.from(document.querySelectorAll<HTMLElement>(".sheet"));
+    const el = sheets.at(-1);
+    if (!el) return null;
+    const box = (r: DOMRect) => ({ x: r.x, y: r.y, width: r.width, height: r.height });
+    // what a player can see of each control: its box cut to the part of the sheet that shows it (the header, or the
+    // body's scrolled window), so a control scrolled out of sight is not counted where it would be
+    const sheetBox = el.getBoundingClientRect();
+    const windowOf = (c: Element) => (c.closest(".sbody") ?? el).getBoundingClientRect();
+    const controls = Array.from(el.querySelectorAll("button, a[href], input, select, textarea, [role=button]"))
+      .map((c) => {
+        const r = c.getBoundingClientRect();
+        const w = windowOf(c);
+        const top = Math.max(r.top, w.top, sheetBox.top, 0);
+        const bottom = Math.min(r.bottom, w.bottom, sheetBox.bottom, innerHeight);
+        return { x: r.x, y: top, width: r.width, height: bottom - top };
+      })
+      .filter((r) => r.width > 0 && r.height > 0);
+    return { sheet: box(sheetBox), controls };
+  });
+
 for (const look of [
   { lang: "zh", scheme: "dark", size: "desktop", save: "把今天存上链" },
   { lang: "en", scheme: "light", size: "phone", save: "Save today on chain" },
 ] as const) {
-  test(`notices raised while a sheet is open never cover its header (${look.lang}, ${look.scheme}, ${look.size}) (A67)`, async ({
+  test(`notices raised while a sheet is open never cover its header or its controls (${look.lang}, ${look.scheme}, ${look.size}) (A67, P7d)`, async ({
     player,
     run,
   }) => {
@@ -116,6 +139,13 @@ for (const look of [
     expect(notices.length, "one notice is on screen at a time (H5)").toBe(1);
     for (const n of notices)
       expect(overlap(n, head!), "a notice covers the open sheet's title or close button").toBe(false);
+    // P7d: and none covers any control of the sheet; there is room above it, so the notice sits there
+    const open = await sheetNow(page);
+    expect(open, "the sheet is still open").not.toBeNull();
+    for (const n of notices) {
+      for (const c of open!.controls) expect(overlap(n, c), "a notice covers one of the sheet's controls").toBe(false);
+      expect(n.y + n.height, "the notice sits above the sheet").toBeLessThanOrEqual(open!.sheet.y);
+    }
     await page.screenshot({
       path: test.info().outputPath(`notices-over-sheet-${look.lang}-${look.scheme}-${look.size}.png`),
     });
