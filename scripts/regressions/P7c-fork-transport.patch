@@ -1,0 +1,21 @@
+diff --git a/packages/chain/test/fork.test.ts b/packages/chain/test/fork.test.ts
+index 94590be..d866a0e 100644
+--- a/packages/chain/test/fork.test.ts
++++ b/packages/chain/test/fork.test.ts
+@@ -6,6 +6,7 @@
+  */
+ 
+ import { forkHttp } from "./forkRpc";
++import { http } from "viem";
+ import { readFileSync } from "node:fs";
+ import { describe, expect, it } from "vitest";
+ import { createPublicClient, createWalletClient, type Hex } from "viem";
+@@ -36,7 +37,7 @@ describe.skipIf(!RPC || !KEY_FILE)("a pet's day, proven on an X Layer fork", ()
+     const key = readFileSync(KEY_FILE!, "utf8").match(/^K=(0x[0-9a-fA-F]{64})/m)![1] as Hex;
+     const account = privateKeyToAccount(key);
+     const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
+-    const pub = createPublicClient({ chain, transport: forkHttp(RPC) });
++    const pub = createPublicClient({ chain, transport: http(RPC) });
+     const wallet = createWalletClient({ chain, transport: forkHttp(RPC), account });
+ 
+     // the pet lives its first hours in the game rules
