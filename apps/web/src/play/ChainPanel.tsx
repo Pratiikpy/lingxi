@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import type { Pet } from "@lingxi/game";
 import { FIRST_LESSON_QUEST } from "@lingxi/world";
 import { useLang, useT, type Key } from "../i18n";
-import { autoGasLow, autoStatus, deployment, explorerTx, mindKey, useChain } from "../game/chain";
+import { autoGasLow, autoStatus, deployment, explorerTx, mindKey, useChain, type ChainRecord } from "../game/chain";
 import { relayAvailable } from "../game/api";
 import { SelfTape } from "./SelfTape";
 import { play } from "../game/sound";
@@ -127,42 +127,15 @@ export function ChainPanel({ pet }: { pet: Pet }) {
   // a friend's pet: the sitter may save its day (PetRegistry lets the named sitter), and nothing else here
   if (pet.sitting || pet.away)
     return (
-      <div className="chainpanel onchain">
-        <p className="label">{t("chain.title")}</p>
-        {record && pet.sitting ? (
-          <>
-            <div className="chain-row">
-              <b>{t("chain.id", { id: record.petId })}</b>
-              <span>{record.lastDay ? t("chain.saved", { n: record.lastDay }) : t("chain.never")}</span>
-            </div>
-            <p className="small">
-              {lang === "zh"
-                ? "如果主人把你的钱包设为了照看人，你可以帮它存今天的档。"
-                : "If its owner named your wallet as its sitter on chain, you can save its day."}
-            </p>
-            <button
-              type="button"
-              className="btn primary"
-              disabled={busy !== "idle"}
-              onClick={() => (play("tap"), saveToday(pet, () => (play("success"), say("saved"))))}
-            >
-              {t("chain.save")}
-            </button>
-            {busyText && <p className="small">{busyText}</p>}
-            {err && <p className="small sp-warn">{err}</p>}
-          </>
-        ) : (
-          <p className="small">
-            {pet.away
-              ? lang === "zh"
-                ? "它不在家，回来后再存档。"
-                : "It is away; saving waits until it is home."
-              : lang === "zh"
-                ? "它还不在链上，这要由它的主人来做。"
-                : "It isn't on chain yet; that is for its owner to do."}
-          </p>
-        )}
-      </div>
+      <SitterPanel
+        pet={pet}
+        record={record}
+        lang={lang}
+        busy={busy}
+        busyText={busyText}
+        err={err}
+        onSave={() => saveToday(pet, () => (play("success"), say("saved")))}
+      />
     );
   return (
     <div className="chainpanel onchain">
@@ -472,6 +445,68 @@ function PublishDiary({ pet, petId, log }: { pet: Pet; petId: string; log: strin
       {note && (
         <p className="small" role="status">
           {note}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * A friend's pet, or one away: the sitter may save its day (PetRegistry lets the named sitter), and nothing else here;
+ * a pet away saves when it is home.
+ */
+function SitterPanel({
+  pet,
+  record,
+  lang,
+  busy,
+  busyText,
+  err,
+  onSave,
+}: {
+  pet: Pet;
+  record: ChainRecord | null;
+  lang: string;
+  busy: string;
+  busyText: string | null | undefined;
+  err: string | null;
+  onSave: () => unknown;
+}) {
+  const t = useT();
+  return (
+    <div className="chainpanel onchain">
+      <p className="label">{t("chain.title")}</p>
+      {record && pet.sitting ? (
+        <>
+          <div className="chain-row">
+            <b>{t("chain.id", { id: record.petId })}</b>
+            <span>{record.lastDay ? t("chain.saved", { n: record.lastDay }) : t("chain.never")}</span>
+          </div>
+          <p className="small">
+            {lang === "zh"
+              ? "如果主人把你的钱包设为了照看人，你可以帮它存今天的档。"
+              : "If its owner named your wallet as its sitter on chain, you can save its day."}
+          </p>
+          <button
+            type="button"
+            className="btn primary"
+            disabled={busy !== "idle"}
+            onClick={() => (play("tap"), onSave())}
+          >
+            {t("chain.save")}
+          </button>
+          {busyText && <p className="small">{busyText}</p>}
+          {err && <p className="small sp-warn">{err}</p>}
+        </>
+      ) : (
+        <p className="small">
+          {pet.away
+            ? lang === "zh"
+              ? "它不在家，回来后再存档。"
+              : "It is away; saving waits until it is home."
+            : lang === "zh"
+              ? "它还不在链上，这要由它的主人来做。"
+              : "It isn't on chain yet; that is for its owner to do."}
         </p>
       )}
     </div>

@@ -214,8 +214,6 @@ export function SeasonCard({ pet }: { pet: Pet }) {
   const champ = last?.closed && !last.pending ? last.standings[0] : undefined;
   const lastMine = last && !last.pending ? last.standings.find((r) => r.key === mine().keys[last.week]) : undefined;
   const onChain = !!recordOf(pet);
-  const award = last?.award;
-  const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
   return (
     <section className="ss-card" aria-label={L("Weekly season", "每周赛季")}>
@@ -282,43 +280,7 @@ export function SeasonCard({ pet }: { pet: Pet }) {
           {note}
         </p>
       )}
-      {champ && (
-        <p className="small ss-last">
-          {L(
-            `Last week (${last!.week}): ${shownName(champ.name, 24)} won with ${champ.points} points.`,
-            `上周（${last!.week}）：${shownName(champ.name, 24)}以 ${champ.points} 分夺冠。`,
-          )}
-          {lastMine
-            ? L(
-                ` Your pet finished ${lastMine.rank} of ${last!.standings.length}.`,
-                ` 你的宠物排第 ${lastMine.rank} / ${last!.standings.length}。`,
-              )
-            : ""}
-          {award?.brainId && award.to ? (
-            <>
-              {" "}
-              {L(
-                `Its brain was taped out on X Layer as circuit #${award.brainId} and sent to ${short(award.to)}.`,
-                `它的大脑已在 X Layer 上流片为 #${award.brainId} 号电路，送到了 ${short(award.to)}。`,
-              )}{" "}
-              {award.sendTx && (
-                <a href={`https://www.oklink.com/xlayer/tx/${award.sendTx}`} target="_blank" rel="noopener noreferrer">
-                  {L("See it", "查看")}
-                </a>
-              )}
-            </>
-          ) : award?.none === "noWallet" ? (
-            L(
-              " It wasn't on X Layer, so there was no wallet to send its circuit to.",
-              " 它不在 X Layer 上，所以没有钱包可以接收它的电路。",
-            )
-          ) : award?.none === "failed" ? (
-            L(" Its circuit couldn't be sent this time.", " 这次没能把它的电路送出。")
-          ) : (
-            ""
-          )}
-        </p>
-      )}
+      {champ && last && <LastWeek last={last} champ={champ} lastMine={lastMine} lang={lang} />}
       {view?.pending && (
         <p className="small ss-pending" aria-live="polite">
           {rows.length
@@ -332,39 +294,7 @@ export function SeasonCard({ pet }: { pet: Pet }) {
               )}
         </p>
       )}
-      {rows.length > 0 && (
-        <table className="ss-table">
-          <thead>
-            <tr>
-              <th scope="col">#</th>
-              <th scope="col">{L("Pet", "宠物")}</th>
-              <th scope="col">{L("Pts", "分")}</th>
-              <th scope="col">{L("W-D-L", "胜-平-负")}</th>
-              <th scope="col">{L("Gates", "门")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {shown.map((r) => (
-              <tr key={r.key} className={r.key === myKey ? "is-mine" : undefined}>
-                <td>{r.rank}</td>
-                <td>{shownName(r.name, 24)}</td>
-                <td>{r.points}</td>
-                <td>{`${r.wins}-${r.draws}-${r.losses}`}</td>
-                <td>{r.gates}</td>
-              </tr>
-            ))}
-            {mineRow && mineRow.rank > SHOWN && (
-              <tr className="is-mine">
-                <td>{mineRow.rank}</td>
-                <td>{shownName(mineRow.name, 24)}</td>
-                <td>{mineRow.points}</td>
-                <td>{`${mineRow.wins}-${mineRow.draws}-${mineRow.losses}`}</td>
-                <td>{mineRow.gates}</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      )}
+      {rows.length > 0 && <StandingsTable shown={shown} mineRow={mineRow} myKey={myKey} lang={lang} />}
       {view && view.entries.length > 0 && !view.pending && (
         <div className="ss-check">
           <button
@@ -394,5 +324,109 @@ export function SeasonCard({ pet }: { pet: Pet }) {
         </div>
       )}
     </section>
+  );
+}
+
+type Standing = SeasonView["standings"][number];
+
+/** Last week's winner, where the asking pet finished, and the keepsake its brain became (PRD F26). */
+function LastWeek({
+  last,
+  champ,
+  lastMine,
+  lang,
+}: {
+  last: SeasonView;
+  champ: Standing;
+  lastMine: Standing | undefined;
+  lang: string;
+}) {
+  const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
+  const award = last.award;
+  const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+  return (
+    <p className="small ss-last">
+      {L(
+        `Last week (${last.week}): ${shownName(champ.name, 24)} won with ${champ.points} points.`,
+        `上周（${last.week}）：${shownName(champ.name, 24)}以 ${champ.points} 分夺冠。`,
+      )}
+      {lastMine
+        ? L(
+            ` Your pet finished ${lastMine.rank} of ${last.standings.length}.`,
+            ` 你的宠物排第 ${lastMine.rank} / ${last.standings.length}。`,
+          )
+        : ""}
+      {award?.brainId && award.to ? (
+        <>
+          {" "}
+          {L(
+            `Its brain was taped out on X Layer as circuit #${award.brainId} and sent to ${short(award.to)}.`,
+            `它的大脑已在 X Layer 上流片为 #${award.brainId} 号电路，送到了 ${short(award.to)}。`,
+          )}{" "}
+          {award.sendTx && (
+            <a href={`https://www.oklink.com/xlayer/tx/${award.sendTx}`} target="_blank" rel="noopener noreferrer">
+              {L("See it", "查看")}
+            </a>
+          )}
+        </>
+      ) : award?.none === "noWallet" ? (
+        L(
+          " It wasn't on X Layer, so there was no wallet to send its circuit to.",
+          " 它不在 X Layer 上，所以没有钱包可以接收它的电路。",
+        )
+      ) : award?.none === "failed" ? (
+        L(" Its circuit couldn't be sent this time.", " 这次没能把它的电路送出。")
+      ) : (
+        ""
+      )}
+    </p>
+  );
+}
+
+/** This week's table: the first SHOWN places, and the asking pet's own row when it is further down. */
+function StandingsTable({
+  shown,
+  mineRow,
+  myKey,
+  lang,
+}: {
+  shown: Standing[];
+  mineRow: Standing | undefined;
+  myKey: string | undefined;
+  lang: string;
+}) {
+  const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
+  return (
+    <table className="ss-table">
+      <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">{L("Pet", "宠物")}</th>
+          <th scope="col">{L("Pts", "分")}</th>
+          <th scope="col">{L("W-D-L", "胜-平-负")}</th>
+          <th scope="col">{L("Gates", "门")}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {shown.map((r) => (
+          <tr key={r.key} className={r.key === myKey ? "is-mine" : undefined}>
+            <td>{r.rank}</td>
+            <td>{shownName(r.name, 24)}</td>
+            <td>{r.points}</td>
+            <td>{`${r.wins}-${r.draws}-${r.losses}`}</td>
+            <td>{r.gates}</td>
+          </tr>
+        ))}
+        {mineRow && mineRow.rank > SHOWN && (
+          <tr className="is-mine">
+            <td>{mineRow.rank}</td>
+            <td>{shownName(mineRow.name, 24)}</td>
+            <td>{mineRow.points}</td>
+            <td>{`${mineRow.wins}-${mineRow.draws}-${mineRow.losses}`}</td>
+            <td>{mineRow.gates}</td>
+          </tr>
+        )}
+      </tbody>
+    </table>
   );
 }

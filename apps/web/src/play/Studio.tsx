@@ -321,66 +321,22 @@ export function StudioPanel({ pet }: { pet: Pet }) {
         </button>
       </div>
       {marketAvailable() && (
-        <details className="studio-publish">
-          <summary>{L("Publish to the market", "发布到市场")}</summary>
-          {markets.length > 1 && (
-            <div className="studio-coin" role="radiogroup" aria-label={L("Price it in", "用什么定价")}>
-              <span className="small">{L("Price it in", "用什么定价")}</span>
-              {(["bem", "okb"] as const).map((k) => (
-                <button
-                  key={k}
-                  type="button"
-                  role="radio"
-                  aria-checked={coin === k}
-                  className={`wd-chip${coin === k ? " is-on" : ""}`}
-                  onClick={() => (play("tap"), chooseCoin(k))}
-                >
-                  {k === "bem" ? "BEM" : "OKB"}
-                </button>
-              ))}
-            </div>
-          )}
-          <div className="studio-terms">
-            <label>
-              {bemMarket ? L("Price per copy (BEM)", "每份价格（BEM）") : L("Price per copy (OKB)", "每份价格（OKB）")}
-              <input
-                inputMode="decimal"
-                value={price}
-                onChange={(e) => setPrice(e.target.value.replace(/[^0-9.]/g, ""))}
-              />
-            </label>
-            <label>
-              {L("Copies at most", "最多几份")}
-              <input
-                inputMode="numeric"
-                value={supply}
-                onChange={(e) => setSupply(e.target.value.replace(/\D/g, ""))}
-              />
-            </label>
-            <label>
-              {L("Your cut of resales (%)", "转卖时你的分成（%）")}
-              <input
-                inputMode="decimal"
-                value={royalty}
-                onChange={(e) => setRoyalty(e.target.value.replace(/[^0-9.]/g, ""))}
-              />
-            </label>
-          </div>
-          <p className="small">
-            {bemMarket
-              ? L(
-                  "3% of every sale is burned: it goes to BEM's dead address, and nobody keeps it. Up to 10% of each resale goes to you. Your proceeds wait in the market until you collect them.",
-                  "每笔交易的 3% 会被销毁：送进 BEM 的销毁地址，谁也拿不到。每次转卖最多 10% 归你。你的收入会留在市场里，等你来领取。",
-                )
-              : L(
-                  "3% of every sale goes to the project, which keeps the game running. Up to 10% of each resale goes to you. Your proceeds wait in the market until you collect them. Resales of OKB pieces are listed only on the live site, which checks each listing for the first market.",
-                  "每笔交易的 3% 归项目所有，用来维持游戏运行。每次转卖最多 10% 归你。你的收入会留在市场里，等你来领取。OKB 作品的转卖只在线上网站列出，那里会替第一个市场核对每条挂单。",
-                )}
-          </p>
-          <button type="button" className="btn primary" disabled={!drawn || busy} onClick={() => void publish()}>
-            {busy ? L("Publishing…", "发布中……") : L("Publish with my wallet", "用我的钱包发布")}
-          </button>
-        </details>
+        <PublishForm
+          lang={lang}
+          coins={markets.length > 1}
+          coin={coin}
+          chooseCoin={chooseCoin}
+          bem={!!bemMarket}
+          price={price}
+          setPrice={setPrice}
+          supply={supply}
+          setSupply={setSupply}
+          royalty={royalty}
+          setRoyalty={setRoyalty}
+          ready={drawn}
+          busy={busy}
+          onPublish={() => void publish()}
+        />
       )}
       {note && (
         <p className="small" role="status">
@@ -388,5 +344,100 @@ export function StudioPanel({ pet }: { pet: Pet }) {
         </p>
       )}
     </div>
+  );
+}
+
+/**
+ * Publishing a design to the fashion market: the coin it is priced in (BEM or OKB, where both markets are open), its
+ * price, how many copies at most and the maker's cut of resales, with what each market does with its 3%.
+ */
+function PublishForm({
+  lang,
+  coins,
+  coin,
+  chooseCoin,
+  bem,
+  price,
+  setPrice,
+  supply,
+  setSupply,
+  royalty,
+  setRoyalty,
+  ready,
+  busy,
+  onPublish,
+}: {
+  lang: Lang;
+  /** both markets are open, so the maker chooses */
+  coins: boolean;
+  coin: "bem" | "okb";
+  chooseCoin: (c: "bem" | "okb") => void;
+  /** priced in BEM */
+  bem: boolean;
+  price: string;
+  setPrice: (v: string) => void;
+  supply: string;
+  setSupply: (v: string) => void;
+  royalty: string;
+  setRoyalty: (v: string) => void;
+  /** something has been drawn */
+  ready: boolean;
+  busy: boolean;
+  onPublish: () => void;
+}) {
+  const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
+  return (
+    <details className="studio-publish">
+      <summary>{L("Publish to the market", "发布到市场")}</summary>
+      {coins && (
+        <div className="studio-coin" role="radiogroup" aria-label={L("Price it in", "用什么定价")}>
+          <span className="small">{L("Price it in", "用什么定价")}</span>
+          {(["bem", "okb"] as const).map((k) => (
+            <button
+              key={k}
+              type="button"
+              role="radio"
+              aria-checked={coin === k}
+              className={`wd-chip${coin === k ? " is-on" : ""}`}
+              onClick={() => (play("tap"), chooseCoin(k))}
+            >
+              {k === "bem" ? "BEM" : "OKB"}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="studio-terms">
+        <label>
+          {bem ? L("Price per copy (BEM)", "每份价格（BEM）") : L("Price per copy (OKB)", "每份价格（OKB）")}
+          <input inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value.replace(/[^0-9.]/g, ""))} />
+        </label>
+        <label>
+          {L("Copies at most", "最多几份")}
+          <input inputMode="numeric" value={supply} onChange={(e) => setSupply(e.target.value.replace(/\D/g, ""))} />
+        </label>
+        <label>
+          {L("Your cut of resales (%)", "转卖时你的分成（%）")}
+          <input
+            inputMode="decimal"
+            value={royalty}
+            onChange={(e) => setRoyalty(e.target.value.replace(/[^0-9.]/g, ""))}
+          />
+        </label>
+      </div>
+      <p className="small">
+        {bem
+          ? L(
+              "3% of every sale is burned: it goes to BEM's dead address, and nobody keeps it. Up to 10% of each resale goes to you. Your proceeds wait in the market until you collect them.",
+              "每笔交易的 3% 会被销毁：送进 BEM 的销毁地址，谁也拿不到。每次转卖最多 10% 归你。你的收入会留在市场里，等你来领取。",
+            )
+          : L(
+              "3% of every sale goes to the project, which keeps the game running. Up to 10% of each resale goes to you. Your proceeds wait in the market until you collect them. Resales of OKB pieces are listed only on the live site, which checks each listing for the first market.",
+              "每笔交易的 3% 归项目所有，用来维持游戏运行。每次转卖最多 10% 归你。你的收入会留在市场里，等你来领取。OKB 作品的转卖只在线上网站列出，那里会替第一个市场核对每条挂单。",
+            )}
+      </p>
+      <button type="button" className="btn primary" disabled={!ready || busy} onClick={onPublish}>
+        {busy ? L("Publishing…", "发布中……") : L("Publish with my wallet", "用我的钱包发布")}
+      </button>
+    </details>
   );
 }

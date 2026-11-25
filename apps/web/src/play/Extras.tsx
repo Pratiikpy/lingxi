@@ -293,76 +293,18 @@ export function ExtrasPanel({ pet }: { pet: Pet }) {
         )}
       </div>
 
-      <div className="extras-row" style={{ gridTemplateColumns: "1fr" }}>
-        <div>
-          <b>{L("Name colour", "名字颜色")}</b>
-          {!petId ? (
-            <p className="small">
-              {L(
-                `Save ${pet.name} on X Layer first: the colour is kept with the pet on chain, and stays if it ever changes hands.`,
-                `请先把${pet.name}存上 X Layer：颜色跟着链上的宠物，换主人也会留着。`,
-              )}
-            </p>
-          ) : (
-            <>
-              <p className="small">
-                {L(
-                  "Kept with the pet on X Layer, shown wherever its name is. Going back to plain is free.",
-                  "颜色记在 X Layer 上的宠物身上，名字出现的地方都会显示。改回普通颜色免费。",
-                )}
-              </p>
-              <p className="small">{price("colour")}</p>
-              <p className="extras-preview" aria-live="polite">
-                <PetName name={pet.name} colour={pick} />
-              </p>
-              <ul className="extras-swatches" role="group" aria-label={L("Colours", "颜色")}>
-                <li>
-                  <button
-                    type="button"
-                    className="extras-swatch"
-                    aria-pressed={pick === 0}
-                    onClick={() => (play("tap"), setPick(0))}
-                  >
-                    <i className="dot" style={{ background: "var(--ink)" } as React.CSSProperties} />
-                    {L("Plain", "普通")}
-                  </button>
-                </li>
-                {NAME_COLOURS.map((c) => (
-                  <li key={c.id}>
-                    <button
-                      type="button"
-                      className="extras-swatch"
-                      aria-pressed={pick === c.id}
-                      style={{ "--nc-l": c.light, "--nc-d": c.dark } as React.CSSProperties}
-                      onClick={() => (play("tap"), setPick(c.id))}
-                    >
-                      <i className="dot" />
-                      <span className="pet-named">{c.name[lang]}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              {pick !== current && (pick === 0 || (terms && terms.price.colour > 0n)) && (
-                <button
-                  type="button"
-                  className="btn primary"
-                  disabled={busy !== null}
-                  onClick={() => void colour(pick)}
-                >
-                  {busy?.startsWith("colour")
-                    ? L("Saving…", "保存中……")
-                    : pick === 0
-                      ? L("Back to plain, free", "改回普通，免费")
-                      : L(
-                          `Colour it · ${terms ? formatBem(terms.price.colour) : ""} BEM`,
-                          `上色 · ${terms ? formatBem(terms.price.colour) : ""} BEM`,
-                        )}
-                </button>
-              )}
-            </>
-          )}
-        </div>
-      </div>
+      <NameColourRow
+        pet={pet}
+        petId={petId}
+        lang={lang}
+        pick={pick}
+        setPick={setPick}
+        current={current}
+        colourPrice={terms?.price.colour}
+        priceText={price("colour")}
+        busy={busy}
+        onColour={(c) => void colour(c)}
+      />
 
       {liveAvailable() && (
         <div className="extras-row" style={{ gridTemplateColumns: "1fr" }}>
@@ -409,6 +351,105 @@ export function ExtrasPanel({ pet }: { pet: Pet }) {
         </p>
       )}
       {deployment?.extras && <ContractSource address={deployment.extras} lang={lang} />}
+    </div>
+  );
+}
+
+/**
+ * The pet's name colour (plan 4.9): kept with the pet on X Layer and shown wherever its name is; choosing one costs BEM,
+ * going back to plain is free. A pet not yet on X Layer is asked to be saved there first.
+ */
+function NameColourRow({
+  pet,
+  petId,
+  lang,
+  pick,
+  setPick,
+  current,
+  colourPrice,
+  priceText,
+  busy,
+  onColour,
+}: {
+  pet: Pet;
+  petId: string | null;
+  lang: Lang;
+  pick: number;
+  setPick: (c: number) => void;
+  /** the colour the pet has on chain */
+  current: number;
+  /** a colour's price in BEM's smallest unit, once read */
+  colourPrice: bigint | undefined;
+  priceText: string;
+  busy: string | null;
+  onColour: (c: number) => void;
+}) {
+  const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
+  return (
+    <div className="extras-row" style={{ gridTemplateColumns: "1fr" }}>
+      <div>
+        <b>{L("Name colour", "名字颜色")}</b>
+        {!petId ? (
+          <p className="small">
+            {L(
+              `Save ${pet.name} on X Layer first: the colour is kept with the pet on chain, and stays if it ever changes hands.`,
+              `请先把${pet.name}存上 X Layer：颜色跟着链上的宠物，换主人也会留着。`,
+            )}
+          </p>
+        ) : (
+          <>
+            <p className="small">
+              {L(
+                "Kept with the pet on X Layer, shown wherever its name is. Going back to plain is free.",
+                "颜色记在 X Layer 上的宠物身上，名字出现的地方都会显示。改回普通颜色免费。",
+              )}
+            </p>
+            <p className="small">{priceText}</p>
+            <p className="extras-preview" aria-live="polite">
+              <PetName name={pet.name} colour={pick} />
+            </p>
+            <ul className="extras-swatches" role="group" aria-label={L("Colours", "颜色")}>
+              <li>
+                <button
+                  type="button"
+                  className="extras-swatch"
+                  aria-pressed={pick === 0}
+                  onClick={() => (play("tap"), setPick(0))}
+                >
+                  <i className="dot" style={{ background: "var(--ink)" } as React.CSSProperties} />
+                  {L("Plain", "普通")}
+                </button>
+              </li>
+              {NAME_COLOURS.map((c) => (
+                <li key={c.id}>
+                  <button
+                    type="button"
+                    className="extras-swatch"
+                    aria-pressed={pick === c.id}
+                    style={{ "--nc-l": c.light, "--nc-d": c.dark } as React.CSSProperties}
+                    onClick={() => (play("tap"), setPick(c.id))}
+                  >
+                    <i className="dot" />
+                    <span className="pet-named">{c.name[lang]}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {pick !== current && (pick === 0 || (colourPrice !== undefined && colourPrice > 0n)) && (
+              <button type="button" className="btn primary" disabled={busy !== null} onClick={() => onColour(pick)}>
+                {busy?.startsWith("colour")
+                  ? L("Saving…", "保存中……")
+                  : pick === 0
+                    ? L("Back to plain, free", "改回普通，免费")
+                    : L(
+                        `Colour it · ${colourPrice !== undefined ? formatBem(colourPrice) : ""} BEM`,
+                        `上色 · ${colourPrice !== undefined ? formatBem(colourPrice) : ""} BEM`,
+                      )}
+              </button>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

@@ -23,6 +23,7 @@ import {
 } from "@lingxi/world";
 import { useLang } from "../i18n";
 import { play } from "../game/sound";
+import { useTypedLine, useVillageGift } from "./talkHooks";
 import "./talk.css";
 import { noteTallies } from "../game/tally";
 import { talkTally } from "@lingxi/game";
@@ -96,7 +97,6 @@ export function Talk({
   const [picking, setPicking] = useState(false);
   const [at, setAt] = useState(0);
   const [action, setAction] = useState<Action | null>(null);
-  const [typed, setTyped] = useState(0);
   const [ending, setEnding] = useState(false);
   // an errand being offered: its lines play, then Okay / Not now
   const [offering, setOffering] = useState<string | null>(null);
@@ -137,39 +137,19 @@ export function Talk({
   useEffect(() => {
     noteTallies(talkTally(who.id));
   }, [who.id]);
-  // D2: on a gift day, the resident whose day it is hands over a little something
-  const [villageGift, setVillageGift] = useState<number | null>(null);
-  useEffect(() => {
-    // taking the gift is a change to the world (once a day); what was taken is shown once that has settled
-    const item = useWorld.getState().villageGift(who.id);
-    let live = true;
-    void Promise.resolve().then(() => live && setVillageGift(item));
-    return () => {
-      live = false;
-    };
-  }, [who.id]);
+  // D2: on a gift day, the resident whose day it is hands over a little something (talkHooks.ts)
+  const villageGift = useVillageGift(who.id);
   const text = line ? line[lang] : "";
 
   useEffect(() => {
     if (line) onFace(line.face);
   }, [line, onFace]);
-  // each new line is typed out from its start; with reduced motion it stands written in full
-  const [typedFor, setTypedFor] = useState(text);
-  if (text !== typedFor) {
-    setTypedFor(text);
-    setTyped(0);
-  }
-  const shown = reduce ? text.length : typed;
-  useEffect(() => {
-    if (reduce || typed >= text.length) return;
-    const id = setTimeout(() => setTyped((n) => Math.min(text.length, n + (lang === "zh" ? 1 : 2))), 24);
-    return () => clearTimeout(id);
-  }, [typed, text, lang, reduce]);
-
+  // each new line is typed out from its start; with reduced motion it stands written in full (talkHooks.ts)
+  const { shown, skip } = useTypedLine(text, lang, reduce);
   const done = shown >= text.length;
   const lastLine = at >= queue.length - 1;
   const advance = () => {
-    if (!done) return setTyped(text.length);
+    if (!done) return skip();
     play("tap");
     if (!lastLine) return setAt((n) => n + 1);
     if (ending) return onClose();

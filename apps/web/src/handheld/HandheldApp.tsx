@@ -9,15 +9,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import wasmUrl from "@lingxi/handheld/wasm/lingxi-handheld.wasm?url";
 import { useLang } from "../i18n";
 import { SiteFoot } from "../SiteFoot";
+import { type StartersOnChain, useStartersOnChain } from "./startersOnChain";
 import { usePageMeta } from "../i18n/pageMeta";
 import { DEVICE_KEY, INBOX_KEY, RETURN_KEY, fromB64 } from "../game/handheldKeys";
 import { gameIsOpen, handheldIsMine } from "../game/handheldLock";
 import { startHandheldClock, wallBeat } from "./clock";
-import { keccak256, type Hex } from "viem";
-import { processorAbi } from "@lingxi/chain";
-import { RECORDED_STARTERS } from "@lingxi/handheld";
-import { deployment } from "../game/chain";
-import { proofClient } from "../game/proofRpc";
 import "./handheld.css";
 
 interface HH {
@@ -112,38 +108,8 @@ export function HandheldApp() {
   const canvas = useRef<HTMLCanvasElement>(null);
   const hh = useRef<HH | null>(null);
   const [selfTest, setSelfTest] = useState<number | null>(null);
-  // the firmware compares with the record it was built with; here, where X Layer can be read, the record is compared
-  // with the chain itself (A59)
-  const [onChain, setOnChain] = useState<"reading" | "match" | "unread" | "differ">("reading");
-  useEffect(() => {
-    let live = true;
-    void (async () => {
-      try {
-        if (!deployment) throw new Error("no deployment");
-        const pc = proofClient(0);
-        const lines = ["gentle", "bold", "curious"] as const;
-        const read = await Promise.all(
-          lines.map(async (l) =>
-            keccak256(
-              (await pc.readContract({
-                address: deployment!.processor,
-                abi: processorAbi,
-                functionName: "netlist",
-                args: [BigInt(deployment!.circuits[l]!.id)],
-              })) as Hex,
-            ),
-          ),
-        );
-        if (live)
-          setOnChain(read.every((h, i) => h.toLowerCase() === RECORDED_STARTERS[lines[i]!]) ? "match" : "differ");
-      } catch {
-        if (live) setOnChain("unread");
-      }
-    })();
-    return () => {
-      live = false;
-    };
-  }, []);
+  // the starters recorded in the firmware, compared with X Layer's own (startersOnChain.ts, A59)
+  const onChain = useStartersOnChain();
   const [ready, setReady] = useState(false);
   // P6: until the firmware has started and looked for a pet, the page cannot say none is aboard; it said so for half
   // a second on every open, a pet waiting to come aboard included
@@ -382,86 +348,133 @@ export function HandheldApp() {
         </div>
       </section>
 
-      <section className="hh-panel" aria-live="polite">
-        {selfTest !== null && (
-          <p className={passed ? "hh-ok" : "hh-bad"}>
-            {!passed
-              ? onChain === "differ"
-                ? L(
-                    "Self-test failed: X Layer now holds other starter circuits than this handheld was built with, so it takes no pets.",
-                    "自检没通过：X Layer 上的初始电路和这台掌机构建时记录的不一样，所以它不接收宠物。",
-                  )
-                : L("Self-test failed: this handheld takes no pets.", "自检没通过：这台掌机不接收宠物。")
-              : onChain === "match"
-                ? L(
-                    "Self-test passed: its three starter brains match the netlists on X Layer (read just now), and pet #1's recorded mainnet log replays exactly.",
-                    "自检通过：三个初始大脑与刚从 X Layer 读到的网表一致，1 号宠物记录的主网日志重放一致。",
-                  )
-                : onChain === "unread"
-                  ? L(
-                      "Self-test passed: its three starter brains match the hashes recorded from X Layer when it was built (X Layer couldn't be read just now), and pet #1's recorded mainnet log replays exactly.",
-                      "自检通过：三个初始大脑与构建时从 X Layer 记录的哈希一致（暂时读不到 X Layer），1 号宠物记录的主网日志重放一致。",
-                    )
-                  : L(
-                      "Self-test passed against the record built into it; reading X Layer to confirm…",
-                      "按内置记录自检通过，正在读取 X Layer 确认……",
-                    )}
-          </p>
-        )}
-        {problem && <p className="hh-bad">{problem[lang]}</p>}
-        {sent === "toGame" ? (
-          <p className="hh-sent">
-            {L(
-              "Sent home. Your game is open in another tab, and your pet is on its way there.",
-              "已送回家。游戏在另一个标签页里开着，宠物正在回去的路上。",
-            )}
-          </p>
-        ) : sent === "home" ? (
-          <>
-            <p className="hh-ok">{L("Home: your pet is back in your game.", "到家了：宠物已经回到游戏里。")}</p>
-            <CloseTab lang={lang} />
-          </>
-        ) : sent === "refused" ? (
-          <>
-            <p className="hh-bad">
-              {L(
-                "The game kept your pet out here; its tab says why. It is still aboard.",
-                "游戏没有接收宠物，原因在游戏的标签页里。它还在掌机上。",
-              )}
-            </p>
-            <button type="button" className="btn" onClick={() => location.reload()}>
-              {L("Back to the handheld", "回到掌机")}
-            </button>
-          </>
-        ) : ready ? (
-          <>
-            <p>
-              {L(
-                "Everything that happens here is replayed by the game, step by step, before your pet comes home.",
-                "这里发生的每一步，游戏都会在宠物回家前重放一遍。",
-              )}
-            </p>
-            <button type="button" className="btn primary" disabled={sending} onClick={bringHome}>
-              {sending ? L("Sending…", "发送中……") : L("Bring home", "带回家")}
-            </button>
-          </>
-        ) : !started ? (
-          <p role="status">
-            {coming
-              ? L("Bringing your pet aboard…", "正在把宠物带上掌机……")
-              : L("Waking the handheld…", "掌机正在启动……")}
-          </p>
-        ) : (
-          <p>
-            {L(
-              "No pet aboard. In the game, open Pet and choose Take along.",
-              "还没有宠物。在游戏里打开“宠物”，选“带出门”。",
-            )}{" "}
-            <a href="play.html">{L("Open the game", "打开游戏")}</a>
-          </p>
-        )}
-      </section>
+      <StatusPanel
+        lang={lang}
+        selfTest={selfTest}
+        onChain={onChain}
+        passed={passed}
+        problem={problem}
+        sent={sent}
+        sending={sending}
+        onBringHome={bringHome}
+        ready={ready}
+        started={started}
+        coming={coming}
+      />
       <SiteFoot lang={lang} />
     </main>
+  );
+}
+
+/**
+ * What the handheld says under its screen: its self-test against the recorded starters and X Layer's, a problem, and
+ * bringing the pet home to the game (A7), with what became of it there.
+ */
+function StatusPanel({
+  lang,
+  selfTest,
+  onChain,
+  passed,
+  problem,
+  sent,
+  sending,
+  onBringHome,
+  ready,
+  started,
+  coming,
+}: {
+  lang: Lang;
+  selfTest: number | null;
+  onChain: StartersOnChain;
+  passed: boolean;
+  problem: Words | null;
+  sent: "no" | "toGame" | "home" | "refused";
+  sending: boolean;
+  onBringHome: () => unknown;
+  ready: boolean;
+  started: boolean;
+  coming: boolean;
+}) {
+  const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
+  return (
+    <section className="hh-panel" aria-live="polite">
+      {selfTest !== null && (
+        <p className={passed ? "hh-ok" : "hh-bad"}>
+          {!passed
+            ? onChain === "differ"
+              ? L(
+                  "Self-test failed: X Layer now holds other starter circuits than this handheld was built with, so it takes no pets.",
+                  "自检没通过：X Layer 上的初始电路和这台掌机构建时记录的不一样，所以它不接收宠物。",
+                )
+              : L("Self-test failed: this handheld takes no pets.", "自检没通过：这台掌机不接收宠物。")
+            : onChain === "match"
+              ? L(
+                  "Self-test passed: its three starter brains match the netlists on X Layer (read just now), and pet #1's recorded mainnet log replays exactly.",
+                  "自检通过：三个初始大脑与刚从 X Layer 读到的网表一致，1 号宠物记录的主网日志重放一致。",
+                )
+              : onChain === "unread"
+                ? L(
+                    "Self-test passed: its three starter brains match the hashes recorded from X Layer when it was built (X Layer couldn't be read just now), and pet #1's recorded mainnet log replays exactly.",
+                    "自检通过：三个初始大脑与构建时从 X Layer 记录的哈希一致（暂时读不到 X Layer），1 号宠物记录的主网日志重放一致。",
+                  )
+                : L(
+                    "Self-test passed against the record built into it; reading X Layer to confirm…",
+                    "按内置记录自检通过，正在读取 X Layer 确认……",
+                  )}
+        </p>
+      )}
+      {problem && <p className="hh-bad">{problem[lang]}</p>}
+      {sent === "toGame" ? (
+        <p className="hh-sent">
+          {L(
+            "Sent home. Your game is open in another tab, and your pet is on its way there.",
+            "已送回家。游戏在另一个标签页里开着，宠物正在回去的路上。",
+          )}
+        </p>
+      ) : sent === "home" ? (
+        <>
+          <p className="hh-ok">{L("Home: your pet is back in your game.", "到家了：宠物已经回到游戏里。")}</p>
+          <CloseTab lang={lang} />
+        </>
+      ) : sent === "refused" ? (
+        <>
+          <p className="hh-bad">
+            {L(
+              "The game kept your pet out here; its tab says why. It is still aboard.",
+              "游戏没有接收宠物，原因在游戏的标签页里。它还在掌机上。",
+            )}
+          </p>
+          <button type="button" className="btn" onClick={() => location.reload()}>
+            {L("Back to the handheld", "回到掌机")}
+          </button>
+        </>
+      ) : ready ? (
+        <>
+          <p>
+            {L(
+              "Everything that happens here is replayed by the game, step by step, before your pet comes home.",
+              "这里发生的每一步，游戏都会在宠物回家前重放一遍。",
+            )}
+          </p>
+          <button type="button" className="btn primary" disabled={sending} onClick={onBringHome}>
+            {sending ? L("Sending…", "发送中……") : L("Bring home", "带回家")}
+          </button>
+        </>
+      ) : !started ? (
+        <p role="status">
+          {coming
+            ? L("Bringing your pet aboard…", "正在把宠物带上掌机……")
+            : L("Waking the handheld…", "掌机正在启动……")}
+        </p>
+      ) : (
+        <p>
+          {L(
+            "No pet aboard. In the game, open Pet and choose Take along.",
+            "还没有宠物。在游戏里打开“宠物”，选“带出门”。",
+          )}{" "}
+          <a href="play.html">{L("Open the game", "打开游戏")}</a>
+        </p>
+      )}
+    </section>
   );
 }
