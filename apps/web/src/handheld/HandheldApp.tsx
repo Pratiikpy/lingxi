@@ -196,14 +196,16 @@ export function HandheldApp() {
       setSelfTest(x.hh_selftest());
       takeAboard();
       setStarted(true);
-      const ctx = canvas.current!.getContext("2d")!;
+      const ctx = canvas.current?.getContext("2d");
+      // the canvas is mounted with the page, so a missing one means this browser cannot draw it: said below as unreadable
+      if (!ctx) throw new Error("the handheld's screen could not be drawn on");
       const img = ctx.createImageData(W, H);
       const draw = () => {
         x.hh_draw();
         const fb = new Uint16Array(x.memory.buffer, x.hh_fb(), W * H);
         const d = img.data;
         for (let i = 0; i < W * H; i++) {
-          const v = fb[i]!;
+          const v = fb[i] ?? 0;
           const r = (v >> 11) & 31,
             g = (v >> 5) & 63,
             b = v & 31;

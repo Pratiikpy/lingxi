@@ -18,11 +18,12 @@ import {
   shopBurned,
   shopReadiness,
   refusesTokens,
+  type Deployment,
 } from "@lingxi/chain";
 import { WEARABLE } from "@lingxi/art";
 import { CHAIN_DECOR, CHAIN_WEAR, DECOR_BY_ID, GOAL_BY_ID, isChainWear } from "@lingxi/world";
 import { useLang, useT } from "../i18n";
-import { connectWallet, deployment, publicClient } from "../game/chain";
+import { accountOf, connectWallet, deployment, publicClient } from "../game/chain";
 import { syncChainPieces } from "../game/chainDecor";
 import { voucherQuery, withQuery } from "../game/requests";
 import { useDesigns } from "../game/designs";
@@ -41,7 +42,25 @@ const NONE: readonly string[] = [];
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
 /** The shop's shelf as X Layer holds it now, and the BEM it has burned. */
-const readShelf = () => Promise.all([readShopItems(publicClient, deployment!), shopBurned(publicClient, deployment!)]);
+/** The deployment the shop sells from; the shop only shows its shelf when the deployment has one. */
+const shopDeployment = (): Deployment => {
+  if (!deployment?.itemShop) throw new Error("this deployment has no item shop");
+  return deployment;
+};
+
+/** A shop piece's name after a sale: the world's name for it, or its id if the world does not know it, never no answer
+ * to a purchase that went through. */
+const pieceName = (piece: string): { en: string; zh: string } => DECOR_BY_ID[piece]?.name ?? { en: piece, zh: piece };
+
+/** The fixed look of a wearable sold here: CHAIN_WEAR lists only pieces the art has. */
+const wearOf = (id: string) => {
+  const w = WEARABLE[id];
+  if (!w) throw new Error(`no art for the wearable ${id}`);
+  return w;
+};
+
+const readShelf = () =>
+  Promise.all([readShopItems(publicClient, shopDeployment()), shopBurned(publicClient, shopDeployment())]);
 
 export function ItemShopPanel() {
   const lang = useLang((s) => s.lang) as Lang;
@@ -93,9 +112,9 @@ export function ItemShopPanel() {
     setStep("");
     try {
       const w = await connectWallet();
-      setWallet(w.account!.address);
+      setWallet(accountOf(w).address);
       const msg = await fn(w);
-      await Promise.all([read(), syncChainPieces(w.account!.address)]);
+      await Promise.all([read(), syncChainPieces(accountOf(w).address)]);
       setNote(msg);
       play("success");
     } catch (e) {
@@ -130,7 +149,7 @@ export function ItemShopPanel() {
 
   const buy = (it: ShopItem) =>
     run(`buy:${it.piece}`, async (w) => {
-      const r = await shopReadiness(publicClient, deployment!, w.account!.address, it.price);
+      const r = await shopReadiness(publicClient, shopDeployment(), accountOf(w).address, it.price);
       if (!r.enough) throw new Error("notEnoughBem");
       setStep(
         r.needsApproval
@@ -140,14 +159,14 @@ export function ItemShopPanel() {
             )
           : L("Confirm the purchase in your wallet.", "请在钱包里确认购买。"),
       );
-      await buyShopItem(publicClient, w, deployment!, it.id, 1, it.price);
+      await buyShopItem(publicClient, w, shopDeployment(), it.id, 1, it.price);
       const wearable = WEARABLE[it.piece];
       if (wearable && isChainWear(it.piece))
         return L(
           `${wearable.name.en} is yours, and ${formatBem(it.price)} BEM was burned. Put it on from the wardrobe.`,
           `${wearable.name.zh}归你了，${formatBem(it.price)} BEM 已销毁。去衣橱穿上吧。`,
         );
-      const name = DECOR_BY_ID[it.piece]!.name;
+      const name = pieceName(it.piece);
       return L(
         `${name.en} is yours, and ${formatBem(it.price)} BEM was burned. Place it from Decorate at home.`,
         `${name.zh}归你了，${formatBem(it.price)} BEM 已销毁。回家点「布置」就能摆上。`,
@@ -156,7 +175,7 @@ export function ItemShopPanel() {
 
   const claim = (piece: string, goal: string) =>
     run(`claim:${piece}`, async (w) => {
-      const who = w.account!.address;
+      const who = accountOf(w).address;
       const res = await fetch(`${BASE}${withQuery("/api/voucher", voucherQuery(who, goal))}`);
       const body = (await res.json()) as {
         ok: boolean;
@@ -170,11 +189,11 @@ export function ItemShopPanel() {
       await claimVoucher(
         publicClient,
         w,
-        deployment!,
+        shopDeployment(),
         { to: v.to, id: BigInt(v.id), quantity: v.quantity, nonce: BigInt(v.nonce), expiresAt: BigInt(v.expiresAt) },
         body.signature,
       );
-      const name = DECOR_BY_ID[piece]!.name;
+      const name = pieceName(piece);
       return L(
         `${name.en} is in your wallet. Place it from Decorate at home.`,
         `${name.zh}已经在你的钱包里了。回家点「布置」就能摆上。`,
@@ -187,10 +206,16 @@ export function ItemShopPanel() {
       setNote(L("The lowest price on the market is 0.0001 BEM.", "市场上的最低价格是 0.0001 BEM。"));
       return;
     }
-    const m = marketsOf(deployment!).find((x) => x.v === 2);
-    const id = BigInt(deployment!.items![piece]!);
+    const d = shopDeployment();
+    const m = marketsOf(d).find((x) => x.v === 2);
+    const item = d.items?.[piece];
+    if (!m || item === undefined) {
+      setNote(L("This piece can't be resold here yet.", "这件现在还不能在这里转卖。"));
+      return;
+    }
+    const id = BigInt(item);
     void run(`list:${piece}`, async (w) => {
-      await listCopies(publicClient, w, m!, id, 1, each, { days: 30 });
+      await listCopies(publicClient, w, m, id, 1, each, { days: 30 });
       setResell(null);
       return L(
         `Listed one for ${formatBem(each)} BEM, for 30 days, in the fashion market's resales.`,
@@ -251,8 +276,8 @@ export function ItemShopPanel() {
           <ShopCard
             key={p.id}
             piece={p.id}
-            icon={{ rows: WEARABLE[p.id]!.rows, colors: WEARABLE[p.id]!.colors }}
-            name={WEARABLE[p.id]!.name[lang]}
+            icon={{ rows: wearOf(p.id).rows, colors: wearOf(p.id).colors }}
+            name={wearOf(p.id).name[lang]}
             supply={p.supply}
             item={itemOf(p.id)}
             have={wornHeld.includes(p.id)}

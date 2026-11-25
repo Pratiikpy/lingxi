@@ -20,7 +20,7 @@ import {
   savedLooks,
 } from "@lingxi/world";
 import { useLang } from "../i18n";
-import { connectWallet, deployment, useChain } from "../game/chain";
+import { accountOf, connectWallet, deployment, useChain } from "../game/chain";
 import {
   buyRoomOrLooks,
   extrasLive,
@@ -119,7 +119,7 @@ export function ExtrasPanel({ pet }: { pet: Pet }) {
     try {
       const w = await connectWallet();
       // the wardrobe and the shop read this wallet too: its outfit copies, its pieces, its packs
-      void useDesigns.getState().refresh(w.account!.address);
+      void useDesigns.getState().refresh(accountOf(w).address);
       setNote(await fn(w));
       play("success");
     } catch (e) {
@@ -154,13 +154,19 @@ export function ExtrasPanel({ pet }: { pet: Pet }) {
     setStep("");
   };
 
+  // the buttons show only once the prices are read; one pressed before they are says so
+  const pricesUnread = L(
+    "The prices couldn't be read just now. Try again in a moment.",
+    "现在读不到价格，请稍后再试。",
+  );
   const twoSteps = L(
     "Two steps in your wallet: first allow exactly this much BEM, then confirm.",
     "钱包里会有两步：先允许正好这么多 BEM，再确认。",
   );
   const buy = (kind: "room" | "looks") =>
     run(kind, async (w) => {
-      const price = terms!.price[kind];
+      if (!terms) throw new Error(pricesUnread);
+      const price = terms.price[kind];
       setStep(twoSteps);
       await buyRoomOrLooks(w, kind, price);
       return kind === "room"
@@ -177,16 +183,17 @@ export function ExtrasPanel({ pet }: { pet: Pet }) {
   const colour = (c: number) =>
     run(`colour:${c}`, async (w) => {
       if (!petId || !record) throw new Error("noRecord");
-      if (w.account!.address.toLowerCase() !== record.owner.toLowerCase()) throw new Error("notOwner");
-      const price = terms!.price.colour;
+      if (accountOf(w).address.toLowerCase() !== record.owner.toLowerCase()) throw new Error("notOwner");
+      if (!terms) throw new Error(pricesUnread);
+      const price = terms.price.colour;
       setStep(c === 0 ? L("Confirm in your wallet (network fee only).", "请在钱包里确认（只需网络费）。") : twoSteps);
       await setNameColour(w, petId, c, price);
-      const name = NAME_COLOURS.find((x) => x.id === c)?.name;
+      const name = NAME_COLOURS.find((x) => x.id === c)?.name ?? { en: "its new colour", zh: "新的颜色" };
       return c === 0
         ? L(`${pet.name}'s name is plain again.`, `${pet.name}的名字恢复成普通颜色了。`)
         : L(
-            `${pet.name}'s name is ${name!.en} now, and ${formatBem(price)} BEM was burned.`,
-            `${pet.name}的名字现在是${name!.zh}，${formatBem(price)} BEM 已销毁。`,
+            `${pet.name}'s name is ${name.en} now, and ${formatBem(price)} BEM was burned.`,
+            `${pet.name}的名字现在是${name.zh}，${formatBem(price)} BEM 已销毁。`,
           );
     });
 
@@ -220,8 +227,8 @@ export function ExtrasPanel({ pet }: { pet: Pet }) {
         throw new Error(L(en, zh));
       }
       return L(
-        `Linked ${short(w.account!.address)}. Visitors now see what it holds.`,
-        `已连接 ${short(w.account!.address)}。访客现在能看到它持有的东西了。`,
+        `Linked ${short(accountOf(w).address)}. Visitors now see what it holds.`,
+        `已连接 ${short(accountOf(w).address)}。访客现在能看到它持有的东西了。`,
       );
     });
 

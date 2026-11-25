@@ -33,7 +33,7 @@ import {
 } from "@lingxi/chain";
 import { type Pet, stageOf } from "@lingxi/game";
 import { useLang } from "../i18n";
-import { connectWallet, deployment, publicClient, recordOf, useChain } from "../game/chain";
+import { accountOf, connectWallet, deployment, publicClient, recordOf, useChain } from "../game/chain";
 import { play } from "../game/sound";
 import { marketAvailable, marketOf, useDesigns } from "../game/designs";
 import { now } from "../game/gameClock";
@@ -381,7 +381,7 @@ function HomeOutfits({ pet, home }: { pet: Pet; home: Home }) {
       if (out) await takeOutfitFromHome(publicClient, w, mk.address, id, home);
       else await keepOutfitAtHome(publicClient, w, mk.address, id, home);
       play("success");
-      await refresh(w.account!.address);
+      await refresh(accountOf(w).address);
     } catch (e) {
       play("error");
       setNote(
@@ -406,7 +406,7 @@ function HomeOutfits({ pet, home }: { pet: Pet; home: Home }) {
           className="btn"
           onClick={() =>
             void connectWallet().then(
-              (w) => refresh(w.account!.address),
+              (w) => refresh(accountOf(w).address),
               () => setNote(L("No wallet found in this browser.", "这个浏览器里没有钱包。")),
             )
           }

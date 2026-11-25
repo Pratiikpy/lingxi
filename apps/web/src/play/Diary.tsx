@@ -10,7 +10,7 @@ import { useLang } from "../i18n";
 import { play } from "../game/sound";
 import { useWorld } from "../game/world";
 import { noteEvent } from "../game/tally";
-import { HOME, ROOMS } from "@lingxi/world";
+import { roomOrHome, HOME_ROOM } from "@lingxi/world";
 import { PALETTE_OF, type PetStage } from "../scene/palette";
 import { now } from "../game/gameClock";
 import { recordOf } from "../game/chain";
@@ -23,7 +23,7 @@ export function DiaryPanel({ pet }: { pet: Pet }) {
   const lang = useLang((s) => s.lang) as Lang;
   const [busy, setBusy] = useState(false);
   const room = useWorld((s) => s.world.room);
-  const backdrop = (ROOMS[room] ?? ROOMS[HOME]!).bgs.day;
+  const backdrop = roomOrHome(room).bgs.day;
   // the log grows by a word every beat, so the pet changing and the log changing come at the same pace
   const lines = useMemo(
     () =>
@@ -53,7 +53,7 @@ export function DiaryPanel({ pet }: { pet: Pet }) {
         lines.map((l) => diaryText(l, lang)),
         date,
         lang,
-        backdrop.endsWith(".gif") ? ROOMS[HOME]!.bgs.day : backdrop,
+        backdrop.endsWith(".gif") ? HOME_ROOM.bgs.day : backdrop,
       );
       const file = new File([blob], `${pet.name}-diary.png`, { type: "image/png" });
       const nav = navigator as Navigator & { canShare?: (d: { files: File[] }) => boolean };

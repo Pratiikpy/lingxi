@@ -12,7 +12,7 @@ import { useBadges } from "../../game/badges";
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { FLY, drawFly, drawPet, type Expression, type Outfit, wearOverlay } from "@lingxi/art";
-import { outfitOf } from "@lingxi/world";
+import { outfitOf, roomOrHome } from "@lingxi/world";
 import { MAX_HP, type Pet, sparMods } from "@lingxi/game";
 import { SILICON } from "@lingxi/art";
 import {
@@ -29,7 +29,6 @@ import { useDaily } from "../../game/daily";
 import { useLang } from "../../i18n";
 import { useSpar } from "../../game/spar";
 import { useWorld } from "../../game/world";
-import { HOME, ROOMS } from "@lingxi/world";
 import { play } from "../../game/sound";
 import { type PetStage } from "../../scene/palette";
 import "../arena.css";
@@ -75,7 +74,7 @@ export function FightView({
   const stage = self.stage;
   const otherName = partner.name[lang];
   const roomIndex = useWorld((s) => s.world.room);
-  const backdrop = (ROOMS[roomIndex] ?? ROOMS[HOME]!).bgs.day;
+  const backdrop = roomOrHome(roomIndex).bgs.day;
 
   const settled = useRef(false);
   const growth = pet?.growth;

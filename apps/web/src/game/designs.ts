@@ -41,6 +41,13 @@ export const marketAvailable = () => !!deployment && marketsOf(deployment).lengt
 export const marketOf = (v: 1 | 2): Market | null =>
   deployment ? (marketsOf(deployment).find((m) => m.v === v) ?? null) : null;
 
+/** A market the deployment must have: one a page offers to buy from or sell on, said as missing when it is not. */
+export const marketAt = (v: 1 | 2): Market => {
+  const m = marketOf(v);
+  if (!m) throw new Error(`this deployment has no fashion market v${v}`);
+  return m;
+};
+
 export interface LocalDesign {
   id: string;
   name: string;

@@ -21,7 +21,7 @@ import {
 } from "@lingxi/chain";
 import type { Pet } from "@lingxi/game";
 import { useLang } from "../i18n";
-import { connectWallet, deployment, publicClient } from "../game/chain";
+import { accountOf, connectWallet, deployment, publicClient } from "../game/chain";
 import { useDesigns } from "../game/designs";
 import { play } from "../game/sound";
 import { OnPet } from "./FashionMarket";
@@ -108,10 +108,10 @@ export function HolderGiftPanel({ pet, wallet }: { pet: Pet; wallet: string }) {
     setNote("");
     try {
       const w = await connectWallet();
-      if (w.account!.address.toLowerCase() !== wallet.toLowerCase()) throw new Error("wallet changed");
+      if (accountOf(w).address.toLowerCase() !== wallet.toLowerCase()) throw new Error("wallet changed");
       await claimGift(publicClient, w, terms, way);
       setClaimed(true);
-      await refreshDesigns(w.account!.address);
+      await refreshDesigns(accountOf(w).address);
       setNote(
         L(
           `The holder pin is yours, claimed through ${WAY_NAME[way.label].en}. Wear it from the wardrobe.`,

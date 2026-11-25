@@ -31,7 +31,7 @@ const MIN_BEM_PRICE = 10_000n;
 import { type Pet, stageOf } from "@lingxi/game";
 import { parseEther } from "viem";
 import { useLang } from "../i18n";
-import { connectWallet, deployment, publicClient } from "../game/chain";
+import { accountOf, connectWallet, deployment, publicClient } from "../game/chain";
 import { marketAvailable, useDesigns } from "../game/designs";
 import { useWorld } from "../game/world";
 import { play } from "../game/sound";
@@ -132,10 +132,8 @@ export function StudioPanel({ pet }: { pet: Pet }) {
 
   const paint = (x: number, y: number) =>
     setCells((c) => {
-      if (c[y]![x] === ink) return c;
-      const next = c.map((r) => r.slice());
-      next[y]![x] = ink;
-      return next;
+      if (c[y]?.[x] === undefined || c[y]?.[x] === ink) return c;
+      return c.map((r, i) => (i === y ? r.map((v, j) => (j === x ? ink : v)) : r));
     });
 
   const keep = (): string | null => {
@@ -153,12 +151,12 @@ export function StudioPanel({ pet }: { pet: Pet }) {
       return null;
     }
     // only the colours actually used are kept
-    const used = [1, 2, 3].filter((k) => grid.some((r) => r.includes(k)));
-    const remap = (v: number) => (v === 0 ? 0 : used.indexOf(v) + 1);
+    const used = colours.flatMap((c, i) => (grid.some((r) => r.includes(i + 1)) ? [{ k: i + 1, c }] : []));
+    const remap = (v: number) => (v === 0 ? 0 : used.findIndex((u) => u.k === v) + 1);
     const id = save(name.trim(), {
       slot,
       cells: grid.map((r) => r.map(remap)),
-      colours: used.map((k) => colours[k - 1]!),
+      colours: used.map((u) => u.c),
     });
     wear(String(pet.bornAt), slot, id);
     play("success");
@@ -184,7 +182,9 @@ export function StudioPanel({ pet }: { pet: Pet }) {
       const max = Math.max(1, Math.min(100_000, Math.floor(Number(supply) || 1)));
       const bps = Math.max(0, Math.min(1000, Math.round((Number(royalty) || 0) * 100)));
       const w = await connectWallet();
-      const local = useDesigns.getState().local.find((l) => l.id === id)!;
+      const local = useDesigns.getState().local.find((l) => l.id === id);
+      if (!local)
+        throw new Error(L("That design isn't kept on this device any more.", "这个设计已经不在这台设备上了。"));
       const pixels = Uint8Array.from((local.hex.match(/../g) ?? []).map((x) => parseInt(x, 16)));
       const r = await publishDesign(publicClient, w, market, {
         pixels,
@@ -194,7 +194,7 @@ export function StudioPanel({ pet }: { pet: Pet }) {
         royaltyBps: bps,
       });
       markPublished(id, r.id.toString());
-      await refresh(w.account!.address);
+      await refresh(accountOf(w).address);
       setNote(
         L(
           `Published as market piece #${r.id}. Anyone can now buy a copy.`,

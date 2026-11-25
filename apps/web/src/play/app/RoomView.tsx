@@ -8,7 +8,7 @@ import { lazy, Suspense } from "react";
 import type { Rule } from "@lingxi/brain";
 import { type Pet, strongestHabit, visibleMeters } from "@lingxi/game";
 import { type BuilderPet } from "@lingxi/game";
-import { HOME, INDOOR_ROOMS, ROOMS, decorOf, neighbours, outfitOf } from "@lingxi/world";
+import { HOME, INDOOR_ROOMS, decorOf, neighbours, outfitOf, roomOrHome } from "@lingxi/world";
 import { builderInScene } from "../../game/builderScene";
 import { RIG_HOME_BGS, useHoldings } from "../../game/holders";
 import { useLive } from "../../game/live";
@@ -89,7 +89,7 @@ export function RoomView({
   const lastCare = useGame((s) => s.lastCare);
   // X2: a rig holder's own home wears the rig-bay skin (a friend's home keeps its own look)
   const rigSkin = useHoldings((s) => !!s.held?.rig && s.skinOn);
-  const room = ROOMS[worldRoom] ?? ROOMS[HOME]!;
+  const room = roomOrHome(worldRoom);
   return (
     <Suspense fallback={null}>
       <RoomScene
@@ -178,7 +178,7 @@ export function RoomPill({
   const familiar = useWorld((s) => s.world.familiar);
   const worldMove = useWorld((s) => s.move);
   const worldForage = useWorld((s) => s.forage);
-  const room = ROOMS[worldRoom] ?? ROOMS[HOME]!;
+  const room = roomOrHome(worldRoom);
   return (
     <div className="room-pill">
       <b>{visiting && worldRoom === HOME ? (lang === "zh" ? "朋友家" : "A friend's home") : room.name[lang]}</b>

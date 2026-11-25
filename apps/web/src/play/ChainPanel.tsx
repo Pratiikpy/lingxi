@@ -94,6 +94,7 @@ export function ChainPanel({ pet }: { pet: Pet }) {
   const [days, setDays] = useState(3);
   const [lowGas, setLowGas] = useState(false);
   const auto = autoStatus(record, now());
+  const lastTxLink = record?.lastTx ? explorerTx(record.lastTx) : null;
   useEffect(() => {
     if (auto === "off") return;
     let live = true;
@@ -190,9 +191,12 @@ export function ChainPanel({ pet }: { pet: Pet }) {
                   </>
                 ) : (
                   <>
-                    <p className="small">
-                      {t(auto === "ending" ? "auto.ending" : "auto.until", { date: dateOf(record.autoUntil!, lang) })}
-                    </p>
+                    {/* auto is on only while autoUntil is set (autoStatus), so the date is always there to show */}
+                    {record.autoUntil !== undefined && (
+                      <p className="small">
+                        {t(auto === "ending" ? "auto.ending" : "auto.until", { date: dateOf(record.autoUntil, lang) })}
+                      </p>
+                    )}
                     {lowGas && <p className="err">{t("auto.lowGas")}</p>}
                     <div className="row">
                       {(auto === "ending" || lowGas) && (
@@ -300,8 +304,8 @@ export function ChainPanel({ pet }: { pet: Pet }) {
           )}
           {/* stays mounted after it succeeds (when the mind is no longer behind) so its result can be read */}
           {!pet.family && <SelfTape pet={pet} behind={!!mindBehind} />}
-          {record.lastTx && explorerTx(record.lastTx) && (
-            <a className="small" href={explorerTx(record.lastTx)!} target="_blank" rel="noopener noreferrer">
+          {lastTxLink && (
+            <a className="small" href={lastTxLink} target="_blank" rel="noopener noreferrer">
               {t("chain.tx")}
             </a>
           )}

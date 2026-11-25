@@ -28,8 +28,8 @@ import {
 import { type Pet, stageOf } from "@lingxi/game";
 import { formatEther, parseEther } from "viem";
 import { useLang, useT } from "../i18n";
-import { connectWallet, deployment, publicClient } from "../game/chain";
-import { marketAvailable, marketOf, safeDecode, useDesigns } from "../game/designs";
+import { accountOf, connectWallet, deployment, publicClient } from "../game/chain";
+import { marketAt, marketAvailable, marketOf, safeDecode, useDesigns } from "../game/designs";
 import { useWorld } from "../game/world";
 import { play } from "../game/sound";
 import { PALETTE_OF } from "../scene/palette";
@@ -123,7 +123,7 @@ export function FashionMarketPanel({ pet }: { pet: Pet }) {
     try {
       const w = await connectWallet();
       const msg = await fn(w);
-      await refresh(w.account!.address);
+      await refresh(accountOf(w).address);
       setNote(msg);
       play("success");
     } catch (e) {
@@ -168,8 +168,8 @@ export function FashionMarketPanel({ pet }: { pet: Pet }) {
 
   const buy = (m: OutfitDesign) =>
     run(`buy:${wearKey(m.market, m.id)}`, async (w) => {
-      await announce(m.market, w.account!.address, m.price);
-      await buyDesign(publicClient, w, marketOf(m.market)!, m.id, 1, m.price);
+      await announce(m.market, accountOf(w).address, m.price);
+      await buyDesign(publicClient, w, marketAt(m.market), m.id, 1, m.price);
       return L(
         `Bought a copy of “${m.name}” for ${priceText(m.market, m.price)}.`,
         `用 ${priceText(m.market, m.price)} 买了一份「${m.name}」。`,
@@ -183,8 +183,8 @@ export function FashionMarketPanel({ pet }: { pet: Pet }) {
         const retired = await retiredOkbListings();
         if (!retired || retired.has(l.id.toString())) throw new Error("listingRetired");
       }
-      await announce(l.market, w.account!.address, l.priceEach);
-      await buyListing(publicClient, w, marketOf(l.market)!, l.id, 1, l.priceEach);
+      await announce(l.market, accountOf(w).address, l.priceEach);
+      await buyListing(publicClient, w, marketAt(l.market), l.id, 1, l.priceEach);
       return L(
         `Bought one “${nameOf(l)}” from ${short(l.seller)}.`,
         `从 ${short(l.seller)} 那里买了一份「${nameOf(l)}」。`,
@@ -311,7 +311,7 @@ export function FashionMarketPanel({ pet }: { pet: Pet }) {
                   void run(
                     "withdraw2",
                     async (w) => (
-                      await withdrawProceeds(publicClient, w, marketOf(2)!),
+                      await withdrawProceeds(publicClient, w, marketAt(2)),
                       L(`Collected ${priceText(2, owed.v2)}.`, `已领取 ${priceText(2, owed.v2)}。`)
                     ),
                   )
@@ -335,7 +335,7 @@ export function FashionMarketPanel({ pet }: { pet: Pet }) {
                   void run(
                     "withdraw1",
                     async (w) => (
-                      await withdrawProceeds(publicClient, w, marketOf(1)!),
+                      await withdrawProceeds(publicClient, w, marketAt(1)),
                       L(`Collected ${priceText(1, owed.v1)}.`, `已领取 ${priceText(1, owed.v1)}。`)
                     ),
                   )
@@ -471,7 +471,7 @@ function DesignCard({
               return;
             }
             void run(`list:${key}`, async (w) => {
-              await listCopies(publicClient, w, marketOf(m.market)!, m.id, qty, each, { days: 30 });
+              await listCopies(publicClient, w, marketAt(m.market), m.id, qty, each, { days: 30 });
               setResell(null);
               return m.market === 2
                 ? L(

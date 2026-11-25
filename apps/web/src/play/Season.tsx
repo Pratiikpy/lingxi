@@ -76,7 +76,8 @@ export function SeasonCard({ pet }: { pet: Pet }) {
       if (tier) useBadges.getState().note("seasonPlace", tier);
       if (row) {
         const award = l.award;
-        const sent = tier === 3 && award?.brainId && award.to;
+        // the champion's circuit, said only when the award names both its id and where it went
+        const sent = tier === 3 && award?.brainId && award.to ? { brainId: award.brainId, to: award.to } : null;
         useMail.getState().write({
           id: `season-${l.week}`,
           at: l.ends,
@@ -85,8 +86,8 @@ export function SeasonCard({ pet }: { pet: Pet }) {
             zh: `${l.week} 赛季：${row.rank === 1 ? "冠军！" : `第 ${row.rank} 名，共 ${l.standings.length} 只`}`,
           },
           body: {
-            en: `${row.name} finished ${ordinal(row.rank)} with ${row.points} points (${row.wins} wins, ${row.draws} draws, ${row.losses} losses).${tier ? " A Season star badge is yours." : ""}${tier === 3 ? " The champion's laurel is in your wardrobe." : ""}${sent ? ` Its brain was taped out as circuit #${award!.brainId} and sent to ${award!.to!.slice(0, 6)}…${award!.to!.slice(-4)}.` : ""}`,
-            zh: `${row.name}以 ${row.points} 分排第 ${row.rank}（${row.wins} 胜 ${row.draws} 平 ${row.losses} 负）。${tier ? "你获得了赛季之星徽章。" : ""}${tier === 3 ? "冠军桂冠已放进你的衣橱。" : ""}${sent ? `它的大脑已流片为 #${award!.brainId} 号电路，送到了 ${award!.to!.slice(0, 6)}…${award!.to!.slice(-4)}。` : ""}`,
+            en: `${row.name} finished ${ordinal(row.rank)} with ${row.points} points (${row.wins} wins, ${row.draws} draws, ${row.losses} losses).${tier ? " A Season star badge is yours." : ""}${tier === 3 ? " The champion's laurel is in your wardrobe." : ""}${sent ? ` Its brain was taped out as circuit #${sent.brainId} and sent to ${sent.to.slice(0, 6)}…${sent.to.slice(-4)}.` : ""}`,
+            zh: `${row.name}以 ${row.points} 分排第 ${row.rank}（${row.wins} 胜 ${row.draws} 平 ${row.losses} 负）。${tier ? "你获得了赛季之星徽章。" : ""}${tier === 3 ? "冠军桂冠已放进你的衣橱。" : ""}${sent ? `它的大脑已流片为 #${sent.brainId} 号电路，送到了 ${sent.to.slice(0, 6)}…${sent.to.slice(-4)}。` : ""}`,
           },
         });
       }

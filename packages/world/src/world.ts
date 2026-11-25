@@ -37,6 +37,8 @@ export {
   ROOM_SECRETS,
   familiarGain,
   ROOMS,
+  HOME_ROOM,
+  roomOrHome,
   neighbours,
 } from "./places";
 export {

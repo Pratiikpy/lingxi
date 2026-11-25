@@ -11,7 +11,7 @@ import type { Address } from "viem";
 import { AdoptError, processorAbi, readOutsideCircuit } from "@lingxi/chain";
 import { INSTINCT_MAX_GATES, MAX_MIND_STATE, type Pet, instinctBrain } from "@lingxi/game";
 import { useLang } from "../i18n";
-import { connectWallet, deployment, publicClient } from "../game/chain";
+import { accountOf, connectWallet, deployment, publicClient } from "../game/chain";
 import { brainOf, useGame } from "../game/store";
 import { play } from "../game/sound";
 import { errorText } from "../game/errorText";
@@ -44,7 +44,7 @@ export function OwnedInstinctPanel({ pet }: { pet: Pet }) {
     setNote("");
     try {
       const w = await connectWallet();
-      setAddress(w.account!.address);
+      setAddress(accountOf(w).address);
     } catch (e) {
       setNote(
         errorText(e) === "noWallet"

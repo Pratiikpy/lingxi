@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Pet } from "@lingxi/game";
 import { useLang } from "../i18n";
-import { connectWallet } from "../game/chain";
+import { accountOf, connectWallet } from "../game/chain";
 import { HOLDINGS, readHoldings, useHoldings } from "../game/holders";
 import { play } from "../game/sound";
 import { Icon, type IconName } from "./icons";
@@ -61,7 +61,7 @@ export function HoldersPanel({ pet }: { pet: Pet }) {
     setNote("");
     try {
       const w = await connectWallet();
-      set(await readHoldings(w.account!.address));
+      set(await readHoldings(accountOf(w).address));
       play("success");
     } catch (e) {
       setNote(

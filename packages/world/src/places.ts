@@ -99,6 +99,17 @@ export const ROOMS: Record<number, Room> = Object.fromEntries(
     ]),
 );
 
+/** The home room, read once from the world's sheet: every other room falls back to it, so a sheet without it stops the
+ * world loading rather than leaving each screen to find out. */
+export const HOME_ROOM: Room = (() => {
+  const home = ROOMS[HOME];
+  if (!home) throw new Error(`the world's rooms have no home (room ${HOME})`);
+  return home;
+})();
+
+/** A room by its index, or home for one the world does not have. */
+export const roomOrHome = (index: number): Room => ROOMS[index] ?? HOME_ROOM;
+
 const EXITS: Array<[number, number]> = (data.rooms as Array<{ index: number; exits: number[] }>).flatMap((r) =>
   r.exits.map((e) => [r.index, e] as [number, number]),
 );

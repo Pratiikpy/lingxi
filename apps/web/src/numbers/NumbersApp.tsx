@@ -581,8 +581,7 @@ function buyersLine(m: Market, coin: "OKB" | "BEM"): [string, string] | undefine
  * Whose activity the figures are (C2): the team's own wallets, named (and how many more are kept private), and the plain
  * truth when nobody outside the team has hatched a pet or bought an outfit yet.
  */
-function TeamCard({ data, lang }: { data: Numbers; lang: Lang }) {
-  const t = data.team!;
+function TeamCard({ data, team: t, lang }: { data: Numbers; team: NonNullable<Numbers["team"]>; lang: Lang }) {
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
   const teamPets = (data.pets.byTeam?.hatched ?? 0) + (data.pets.byTeam?.children ?? 0);
   const playerPets = data.pets.hatched + data.pets.children - teamPets;
@@ -679,7 +678,7 @@ export function NumbersApp() {
           "灵犀在 X Layer 上做了什么，由灵犀的服务器从链上读出，最多晚一分钟：宠物自己的记录、每一笔衣服交易、每一枚销毁的 BEM。每个数字都写明它数的是什么，并链接到它来自的合约。",
         )}
       </p>
-      {data?.team && <TeamCard data={data} lang={lang as Lang} />}
+      {data?.team && <TeamCard data={data} team={data.team} lang={lang as Lang} />}
       {err && !data && (
         <p className="ag-card">
           {L(

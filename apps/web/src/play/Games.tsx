@@ -20,7 +20,7 @@ import {
   starsFor,
   toVisible,
 } from "@lingxi/game";
-import { HOME, ITEM, ROOMS } from "@lingxi/world";
+import { ITEM, roomOrHome } from "@lingxi/world";
 import { useWorld } from "../game/world";
 import { PRESS_MS, showSteps } from "../game/patternShow";
 import { LifePanel } from "./Jobs";
@@ -164,7 +164,7 @@ function CatchGame({ pet, onEnd }: { pet: Pet; onEnd: (score: number) => void })
   );
   const room = useWorld((s) => s.world.room);
   // the room as it looks now: its evening or night picture after dark, as the room itself shows (P6)
-  const backdrop = (ROOMS[room] ?? ROOMS[HOME]!).bgs[phaseNow()];
+  const backdrop = roomOrHome(room).bgs[phaseNow()];
 
   useEffect(() => {
     let raf = 0;

@@ -214,9 +214,11 @@ export function exploreActions(
     },
     consume: (item, count = 1) => {
       const w = get().world;
-      if ((w.bag[item] ?? 0) < count) return false;
-      const bag = { ...w.bag, [item]: w.bag[item]! - count };
-      if (bag[item]! <= 0) delete bag[item];
+      const had = w.bag[item] ?? 0;
+      if (had < count) return false;
+      const left = had - count;
+      const bag = { ...w.bag, [item]: left };
+      if (left <= 0) delete bag[item];
       const next = { ...w, bag };
       save(next);
       set({ world: next });

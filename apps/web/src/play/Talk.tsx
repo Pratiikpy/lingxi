@@ -80,7 +80,7 @@ export function Talk({
   const reduce = useReducedMotion() ?? false;
   const sheet = FRIEND_BY_ID[who.id];
   const asLines = (lines: readonly QuestLine[]): Line[] =>
-    lines.map((l) => ({ face: l.face ?? who.greeting[0]!.face, en: l.en, zh: l.zh }));
+    lines.map((l) => ({ face: l.face ?? who.greeting[0]?.face ?? who.bye.face, en: l.en, zh: l.zh }));
   // a resident visiting your home greets you there, and leaves their keepsake as you meet
   const visitLines = useMemo(() => {
     const u = sheet?.steps.find((s) => s.unlock.kind === "visit")?.unlock;
@@ -107,7 +107,8 @@ export function Talk({
   const dailyGift = useMemo(
     () =>
       (world.quests?.today?.offered ?? [])
-        .map((id) => QUEST_BY_ID[id]!)
+        // a quest the world no longer has is left out
+        .flatMap((id) => QUEST_BY_ID[id] ?? [])
         .find((q) => statuses[q.id] === "active" && q.objectives.some((o) => o.cond.type === "GIVE")),
     [world, statuses],
   );
@@ -201,7 +202,8 @@ export function Talk({
   };
   const pickTopic = (i: number) => {
     play("tap");
-    const t = topics[i]!;
+    const t = topics[i];
+    if (!t) return;
     setQueue(t.lines);
     setAt(0);
     setAction(t.action ?? null);

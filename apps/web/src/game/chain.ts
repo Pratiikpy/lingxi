@@ -27,7 +27,7 @@ export {
   recordOf,
   deviceWallets,
 } from "./chainRecords";
-export { connectWallet, signSeasonEntry, autoGasLow } from "./chainHelpers";
+export { accountOf, connectWallet, signSeasonEntry, autoGasLow } from "./chainHelpers";
 export { API_RPC, NETWORK, OFFICIAL_RPCS, deployment, explorerTx, publicClient, rpcs, walletAddress } from "./network";
 
 export function setRecordOf(pet: Pet, rec: ChainRecord | null): void {

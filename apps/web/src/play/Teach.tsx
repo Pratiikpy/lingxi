@@ -36,7 +36,7 @@ export function TeachPanel({ pet }: { pet: Pet }) {
   const full = pet.lessons.length >= max;
   const propose = (rule: Rule, reply?: string, source: Source = { kind: "own" }) => {
     const check = checkLesson(pet.line, stage, pet.lessons, rule, pet.instincts);
-    setProposal({ rule: check.ok ? check.program.rules[0]! : rule, source, ...(reply ? { reply } : {}) });
+    setProposal({ rule: check.ok ? (check.program.rules[0] ?? rule) : rule, source, ...(reply ? { reply } : {}) });
   };
   if (pet.sitting || pet.away)
     return (
