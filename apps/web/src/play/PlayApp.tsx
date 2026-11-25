@@ -1,18 +1,16 @@
 /** The game: hatch on first visit, then the pet's room with care, mind, spar and profile. */
 
-import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { boundingBox, drawPet } from "@lingxi/art";
 import { STARTERS } from "@lingxi/brain";
-import { type Pet, stageOf, strongestHabit, visibleMeters } from "@lingxi/game";
-import { type Key, useT, useLang } from "../i18n";
+import { type Pet, stageOf } from "@lingxi/game";
+import { useLang } from "../i18n";
 import { usePageMeta } from "../i18n/pageMeta";
-import { decidingPart, useGame } from "../game/store";
-import { ruleKindOf } from "../game/ruleKind";
+import { useGame } from "../game/store";
 import { chirp, play } from "../game/sound";
 import { DecorBar } from "./DecorBar";
 import { NoticeLane } from "./NoticeLane";
-import { Familiar } from "./Familiar";
 // Collection is loaded on first use (P3); its styles still load with the game, in their place (P3a)
 import "./badges.css";
 import { useTrial, type Trial } from "../game/tryIt";
@@ -21,11 +19,12 @@ import { BadgeToast } from "./Badges";
 import { PALETTE_OF, type PetStage } from "../scene/palette";
 import { Hatch } from "./Hatch";
 import { useGameServices } from "./app/useGameServices";
-import { useWorldMessage } from "./app/worldMessage";
 import { useWorldNotices } from "./app/useWorldNotices";
 import { useLiveRoom } from "./app/useLiveRoom";
 import { useResidentTalk } from "./app/useResidentTalk";
 import { useAppChrome } from "./app/useAppChrome";
+import { RoomPill, RoomView } from "./app/RoomView";
+import { CareColumn, LockedTab, RoomNotes } from "./app/RoomPanels";
 import { useGameClock } from "./app/useGameClock";
 import { useRoomVisitors } from "./app/useRoomVisitors";
 import { TabSheets } from "./app/TabSheets";
@@ -33,9 +32,9 @@ import { VisitorCards } from "./app/VisitorCards";
 import { PetButton } from "./PetButton";
 import { OfflineNote } from "./OfflineNote";
 import { useHatchDraft } from "./hatchDraft";
-import { Actions, Meters, TabBar, ThinkStrip, ToastView, TopBar, VoiceBubble, type Tab } from "./parts";
+import { TabBar, ThinkStrip, ToastView, TopBar, VoiceBubble, type Tab } from "./parts";
 import { useVoice } from "../game/voice";
-import { MindPanel, Sheet } from "./Sheets";
+import { Sheet } from "./Sheets";
 // WorldPanels is loaded on first use (P3); its styles still load with the game, in their place (P3a)
 import "./cute.css";
 import "./world.css";
@@ -43,10 +42,9 @@ import "./world.css";
 import "./goals.css";
 import "./quests.css";
 import { RulesMark } from "./RulesMark";
-import { useQuestUi } from "../game/quests";
 import { useWorld } from "../game/world";
 import { playerId, useLive, visitingFrom } from "../game/live";
-import { type Action, CHARACTER_IN_ROOM, HOME, INDOOR_ROOMS, ROOMS, decorOf, neighbours } from "@lingxi/world";
+import { type Action, CHARACTER_IN_ROOM, HOME } from "@lingxi/world";
 // Talk is loaded on first use (P3); its styles still load with the game, in their place (P3a)
 import "./talk.css";
 import "./neighbours.css";
@@ -61,25 +59,21 @@ import { WelcomeBack } from "./Welcome";
 // Sitting is loaded on first use (P3); its styles still load with the game, in their place (P3a)
 import "./handheld.css";
 import "./adoption.css";
-import { type Gated, OPENS_ON, isOpen, openedByQuests, useReveal } from "../game/reveal";
+import { type Gated, isOpen, openedByQuests, useReveal } from "../game/reveal";
 // Gift is loaded on first use (P3); its styles still load with the game, in their place (P3a)
 import "./gift.css";
 // RedPacket is loaded on first use (P3); its styles still load with the game, in their place (P3a)
 import "./redpacket.css";
 // Family is loaded on first use (P3); its styles still load with the game, in their place (P3a)
 import "./family.css";
-import { AnimatePresence, motion } from "motion/react";
 // Teach is loaded on first use (P3); its styles still load with the game, in their place (P3a)
 import "./teach.css";
 import { BEHEMOTH, startDuel, startFight, useArena } from "../game/arenaFight";
 import { LevelUpMoment, SkillsPanel, useSkillsUi } from "./Skills";
 import { BUILDER_PETS, builderIn } from "@lingxi/game";
-import { builderInScene } from "../game/builderScene";
 import { MoveNotes, MoveSheet } from "./Move";
 import { deferred } from "./Lazy";
-import { RIG_HOME_BGS, useHoldings } from "../game/holders";
 import { unreadCount, useMail } from "../game/mail";
-import { DESTINATION, outfitOf } from "@lingxi/world";
 import { Icon } from "./icons";
 import { Sprite } from "./Sprite";
 import "./play.css";
@@ -88,7 +82,6 @@ import { SaveFileSheet, useSaveFileUi } from "./SaveFile";
 import { now } from "../game/gameClock";
 
 // P3: the room scene and its engine (PIXI) load beside the game, not before it: the screens paint first
-const RoomScene = lazy(() => import("../scene/RoomScene").then((m) => ({ default: m.RoomScene })));
 
 /** P3: panels behind `Lazy` whose code loads only when their place comes near (each module holds only that panel). */
 const HintRing = deferred(() => import("./Quests").then((x) => x.HintRing));
@@ -98,7 +91,6 @@ const QuestToast = deferred(() => import("./Quests").then((x) => x.QuestToast));
 const SocialBar = deferred(() => import("./Social").then((x) => x.SocialBar));
 const Talk = deferred(() => import("./Talk").then((x) => x.Talk));
 const DuelArrival = deferred(() => import("./Duel").then((x) => x.DuelArrival));
-const AwayCard = deferred(() => import("./Sitting").then((x) => x.AwayCard));
 const SitArrival = deferred(() => import("./Sitting").then((x) => x.SitArrival));
 const GiftArrival = deferred(() => import("./Gift").then((x) => x.GiftArrival));
 const PacketArrival = deferred(() => import("./RedPacket").then((x) => x.PacketArrival));
@@ -130,8 +122,7 @@ function trialPet(pet: Pet, trial: Trial & { lesson: Rule }): Pet {
 }
 
 export function PlayApp() {
-  const { pet, toast, daily, lastCare, hatch, act, say } = useGame();
-  const t = useT();
+  const { pet, daily, act, say } = useGame();
   const lang = useLang((s) => s.lang);
   const reduce = useReducedMotion() ?? false;
   const [tab, setTab] = useState<Tab>("home");
@@ -156,26 +147,16 @@ export function PlayApp() {
   );
   const [circuit, setCircuit] = useState(false);
   const worldRoom = useWorld((s) => s.world.room);
-  // one message over the world at a time (play/app/worldMessage.ts); what raises one on its own is in useWorldNotices
-  const worldMsg = useWorldMessage((s) => s.msg);
+  // what raises a message over the world on its own (play/app/useWorldNotices.ts)
   useWorldNotices();
   const worldFull = useWorld((s) => s.world);
-  const travelling = !!worldFull.trip;
   const mailState = useMail();
   const unread = unreadCount(mailState);
-  const homeDecor = useLive((s) => s.homeDecor);
-  const worldMove = useWorld((s) => s.move);
-  const worldForage = useWorld((s) => s.forage);
-  const familiar = useWorld((s) => s.world.familiar);
-  const room = ROOMS[worldRoom] ?? ROOMS[HOME]!;
-  // X2: a rig holder's own home wears the rig-bay skin (a friend's home keeps its own look)
-  const rigSkin = useHoldings((s) => !!s.held?.rig && s.skinOn);
   // the clock: the beat, the time of day and the hour, the room's sound, the care toast (play/app/useGameClock.ts)
   const { phase, hourNow } = useGameClock(worldRoom);
   // who the pet can talk to here, the mark over their head, and the talk ending when the room changes
   const { who, visitor, guest, talking, setTalking, startTalk, npcMark, npcFace, setNpcFace, questStatuses } =
     useResidentTalk(worldRoom);
-  const skillsOpen = useSkillsUi((s) => s.open);
   const [visiting, setVisiting] = useState<string | null>(() => visitingFrom());
   const revealAll = useReveal((s) => s.all);
   const [lockedAsk, setLockedAsk] = useState<Gated | null>(null);
@@ -247,41 +228,8 @@ export function PlayApp() {
   });
   // Telegram's back button, the app icon's count, a home-screen shortcut (play/app/useAppChrome.ts)
   useAppChrome(pet, tab, setTab);
-  if (!pet) {
-    return (
-      <>
-        <Hatch
-          onHatch={(line, name, instincts) => {
-            hatch(line, name, instincts);
-            useHatchDraft.getState().reset();
-            play("success");
-          }}
-        />
-        <GiftArrival />
-        <PacketArrival />
-        <DuelArrival hasPet={false} />
-        <SitArrival />
-        <FarewellNote />
-        <HandheldReturn />
-        <SaveBanner onSaveFile={() => useSaveFileUi.getState().show()} />
-        <OfflineNote />
-        <SaveFileSheet here={[]} />
-        <MoveNotes />
-        <ElsewhereOverlay />
-      </>
-    );
-  }
+  if (!pet) return <HatchScreen />;
 
-  // Play opens the three mini-games
-  const playBall = () => pick("games");
-  const clean = () => {
-    play("sparkle");
-    act({ kind: "clean" });
-  };
-  const sleep = () => {
-    play("tap");
-    act(pet.asleep ? { kind: "wake" } : { kind: "lightsOff" });
-  };
   // a quest taken that points at a part opens it, so no quest sends the player to a lock (H5)
   const questOpened = openedByQuests(questStatuses);
   const lockedTabs = (["map", "bag", "spar"] as const).filter(
@@ -315,101 +263,43 @@ export function PlayApp() {
       {/* P5: the room's main landmark (the top bar is its header, the tab bar its navigation) */}
       <main className="main">
         <section className="stage" aria-label={pet.name} data-hint="pet">
-          <Suspense fallback={null}>
-            <RoomScene
-              line={pet.line}
-              stage={stage}
-              {...(pet.form ? { form: pet.form } : {})}
-              asleep={pet.asleep}
-              absent={travelling}
-              outfit={outfitOf(worldFull, String(pet.bornAt))}
-              sick={!!pet.sick}
-              want={trial ? trial.want : pet.last.want}
-              habit={strongestHabit(pet.traits)}
-              mood={trial ? trial.mood : pet.last.mood}
-              {...roomEventProps}
-              taught={
-                trial
-                  ? trial.fired
-                  : !pet.last.instinct && ruleKindOf(pet, decidingPart(pet).program, pet.last.rule) === "taught"
-              }
-              phase={phase}
-              lastCare={lastCare}
-              clean={visibleMeters(pet).clean}
-              food={visibleMeters(pet).food}
-              outdoors={!INDOOR_ROOMS.has(worldRoom)}
-              covered={tab !== "home"}
-              decor={
-                worldRoom !== HOME
-                  ? []
-                  : !visiting
-                    ? decorOf(worldFull).placed
-                    : homeDecor?.owner === visiting
-                      ? homeDecor.placed
-                      : []
-              }
-              decorating={decorating !== null && worldRoom === HOME && !visiting}
-              onPlace={(x, y) => {
-                // a piece put down leaves the player's hand, and the bar opens again for the next (P3a)
-                if (decorating && useWorld.getState().placeDecor(decorating, x, y)) setDecorating("");
-              }}
-              onDecorTap={(id) => {
-                useWorld.getState().removeDecor(id);
-                setDecorating(id);
-              }}
-              onPetTap={onPetTap}
-              reduceMotion={reduce}
-              bgs={worldRoom === HOME && rigSkin && !visiting ? RIG_HOME_BGS : room.bgs}
-              others={[
-                ...Object.values(others),
-                ...kinVisitors,
-                ...(shyOne ? [shyOne] : []),
-                ...(resident ? [builderInScene(resident, lang, residentSaid)] : []),
-              ]}
-              onOtherTap={(id) => (play("tap"), setPicked(id))}
-              npc={who ? (talking && npcFace ? npcFace : who.stand) : null}
-              npcMark={npcMark}
-              onNpcTap={() => (setPicked(null), startTalk())}
-            />
-          </Suspense>
+          <RoomView
+            pet={pet}
+            stage={stage}
+            phase={phase}
+            tab={tab}
+            lang={lang === "zh" ? "zh" : "en"}
+            trial={trial}
+            roomEventProps={roomEventProps}
+            visiting={visiting}
+            decorating={decorating}
+            setDecorating={setDecorating}
+            onPetTap={onPetTap}
+            reduce={reduce}
+            visitors={[...kinVisitors, ...(shyOne ? [shyOne] : [])]}
+            resident={resident}
+            residentSaid={residentSaid}
+            setPicked={setPicked}
+            who={who}
+            talking={talking}
+            npcFace={npcFace}
+            npcMark={npcMark}
+            startTalk={startTalk}
+          />
           {/* P5: the pet for the keyboard and for a screen reader (the canvas above is reachable by neither) */}
           <PetButton pet={pet} stage={stage} onPat={onPetTap} />
-          <div className="room-pill">
-            <b>{visiting && worldRoom === HOME ? (lang === "zh" ? "朋友家" : "A friend's home") : room.name[lang]}</b>
-            {who && !talking && (
-              <button type="button" onClick={startTalk}>
-                {lang === "zh" ? `和${who.name.zh}说话` : `Talk to ${who.name.en}`}
-              </button>
-            )}
-            {resident && (
-              <button type="button" onClick={() => (play("tap"), setPicked(`builder:${resident.id}`))}>
-                {lang === "zh" ? `见见${resident.name.zh}` : `Meet ${resident.name.en}`}
-              </button>
-            )}
-            {room.drops.length > 0 && (
-              <button type="button" onClick={() => (play("tap"), worldForage())} data-hint="look">
-                {t("room.look")}
-              </button>
-            )}
-            {room.drops.length > 0 && room.familiarSize > 0 && !visiting && (
-              <Familiar known={familiar?.[room.index] ?? 0} size={room.familiarSize} />
-            )}
-            {room.shop.length > 0 && (
-              <button type="button" onClick={() => pick("bag")}>
-                {t("room.shop")}
-              </button>
-            )}
-            {room.index === HOME && !visiting && decorating === null && (
-              <button type="button" onClick={() => (play("tap"), setDecorating(""))}>
-                {t("decor.title")}
-              </button>
-            )}
-            {room.index !== HOME && neighbours(room.index).includes(HOME) && (
-              <button type="button" onClick={() => worldMove(HOME)}>
-                {t("room.home")}
-              </button>
-            )}
-          </div>
+          <RoomPill
+            lang={lang === "zh" ? "zh" : "en"}
+            visiting={visiting}
+            who={who}
+            talking={talking}
+            startTalk={startTalk}
+            resident={resident}
+            setPicked={setPicked}
+            decorating={decorating}
+            setDecorating={setDecorating}
+            pick={pick}
+          />
           {decorating !== null && worldRoom === HOME && (
             <DecorBar
               selected={decorating || null}
@@ -427,34 +317,7 @@ export function PlayApp() {
           >
             <Icon name="mind" size={22} />
           </button>
-          {pet.away && <AwayCard pet={pet} />}
-          {travelling && worldFull.trip && (
-            <div className="trip-note" role="status">
-              <p>
-                {lang === "zh"
-                  ? `${pet.name}出门旅行了，在${DESTINATION[worldFull.trip.to]?.name.zh ?? ""}。`
-                  : `${pet.name} is away at ${DESTINATION[worldFull.trip.to]?.name.en.toLowerCase() ?? ""}.`}
-              </p>
-              <button type="button" className="btn" onClick={() => pick("map")}>
-                {lang === "zh" ? "看看它什么时候回来" : "See when it's back"}
-              </button>
-            </div>
-          )}
-          <AnimatePresence>
-            {worldMsg && (
-              <motion.div
-                key={worldMsg.id}
-                className="toast world-toast"
-                role="status"
-                initial={{ opacity: 0, y: -12, x: "-50%" }}
-                animate={{ opacity: 1, y: 0, x: "-50%" }}
-                exit={{ opacity: 0, y: -8, x: "-50%" }}
-                transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
-              >
-                {worldMsg.text}
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <RoomNotes pet={pet} lang={lang === "zh" ? "zh" : "en"} pick={pick} />
           {who && talking && (
             <Talk
               who={who}
@@ -492,132 +355,54 @@ export function PlayApp() {
             <ThinkStrip pet={trial ? trialPet(pet, trial) : pet} taught={!!trial?.fired} />
           )}
         </section>
-        <div className="side">
-          {/* a landscape phone shows the thinking strip here, beside the room, where it cannot hide the pet (H5) */}
-          {!talking && (
-            <div className="think-side">
-              <ThinkStrip pet={trial ? trialPet(pet, trial) : pet} taught={!!trial?.fired} />
-            </div>
-          )}
-          <Meters pet={pet} />
-          {/* feeding is care: Feed opens the bag on day 1 too, though the Bag tab waits for day 2 (H5b) */}
-          <Actions
-            pet={pet}
-            absent={travelling}
-            onFeed={() => pick("bag", true)}
-            onPlay={playBall}
-            onClean={clean}
-            onSleep={sleep}
-            onMedicine={() => (play("sparkle"), act({ kind: "medicine" }))}
-            onToday={() => (useQuestUi.getState().setBookTab("today"), pick("quests"))}
-            onCollection={() => pick("collection")}
-          />
-          <section className="card mindcard" aria-label={t("mind.title", { name: pet.name })}>
-            <div className="cardbar" aria-hidden="true">
-              <i />
-              <i />
-              <i />
-              {lang === "zh" ? `${pet.name}的心智` : `${pet.name.toLowerCase()}.mind`}
-            </div>
-            {/* P5: on a desktop this card scrolls on its own; the keyboard reaches it, named by its heading */}
-            <div className="pad" tabIndex={0} role="region" aria-labelledby="mindcard-h">
-              <h2 className="h2" id="mindcard-h">
-                {t("mind.title", { name: pet.name })}
-              </h2>
-              <MindPanel pet={pet} />
-            </div>
-          </section>
-        </div>
+        <CareColumn
+          pet={pet}
+          lang={lang === "zh" ? "zh" : "en"}
+          talking={talking}
+          thinking={trial ? trialPet(pet, trial) : pet}
+          taught={!!trial?.fired}
+          pick={pick}
+        />
       </main>
       <TabBar current={tab} onPick={pick} locked={lockedTabs} />
       {lockedAsk && (
-        <div className="fam-modal" role="dialog" aria-modal="true" aria-label={t("reveal.title")}>
-          <div className="fam-card reveal-card">
-            <p>{t(`reveal.${lockedAsk}` as Key, { name: pet.name, day: OPENS_ON[lockedAsk] })}</p>
-            <p className="small">{t("reveal.why")}</p>
-            <div className="row">
-              <button type="button" className="btn" onClick={() => setLockedAsk(null)}>
-                {t("reveal.wait")}
-              </button>
-              <button
-                type="button"
-                className="btn primary"
-                onClick={() => {
-                  useReveal.getState().openAll();
-                  const want = lockedAsk;
-                  setLockedAsk(null);
-                  setTab(want);
-                }}
-              >
-                {t("reveal.openAll")}
-              </button>
-            </div>
-          </div>
-        </div>
+        <LockedTab
+          gate={lockedAsk}
+          petName={pet.name}
+          onWait={() => setLockedAsk(null)}
+          onOpenAll={() => {
+            useReveal.getState().openAll();
+            const want = lockedAsk;
+            setLockedAsk(null);
+            setTab(want);
+          }}
+        />
       )}
-      <ProposalDialog pet={pet} />
-      <GiftArrival />
-      <PacketArrival />
-      <DuelArrival
-        hasPet
-        petName={pet.name}
-        onAccept={(c) => {
-          // the spar screen opens onto the fight (never toggled shut, whatever was open)
-          startDuel(pet, c);
-          setTab("spar");
-        }}
-      />
-      <NewbornDialog pet={pet} />
-      <WelcomeBack pet={pet} />
-      <SitArrival />
+      <RoomDialogs pet={pet} onDuel={() => setTab("spar")} />
 
       <TabSheets tab={tab} close={close} pick={pick} pet={pet} />
 
-      {/* the room's notices, stacked in one lane under its top row (A15) */}
-      <NoticeLane>
-        {/* a lesson being tried out: the pet's words about it are the one thing shown (H5) */}
-        {trial && !talking && tab === "home" && (
-          <VoiceBubble face={face && <FaceSprite canvas={face} line={pet.line} />} />
-        )}
-        <QuestToast onOpenBook={() => pick("quests")} />
-        <BadgeToast />
-        <ToastView toast={toast} name={pet.name} />
-        <RulesMark />
-        {/* the pet's own words, last: a quest, a badge, a care note or the rules mark is shown first (H5) */}
-        {/* the pet speaks in the room: with a sheet open over it, its passing words wait */}
-        {!trial && !talking && !circuit && tab === "home" && (
-          <VoiceBubble face={face && <FaceSprite canvas={face} line={pet.line} />} />
-        )}
-      </NoticeLane>
+      <PetNotices
+        pet={pet}
+        face={face}
+        trial={!!trial}
+        quiet={talking || tab !== "home"}
+        circuit={circuit}
+        pick={pick}
+      />
       <FarewellNote />
       <HandheldReturn />
       <QuestDialog />
       <HintRing />
-      <Sheet
-        open={skillsOpen}
-        title={lang === "zh" ? `${pet.name}的技能` : `${pet.name}'s skills`}
-        onClose={() => useSkillsUi.getState().hide()}
-      >
-        {skillsOpen && <SkillsPanel />}
-      </Sheet>
+      <SkillsSheet pet={pet} lang={lang === "zh" ? "zh" : "en"} />
       <LevelUpMoment />
-      <Sheet
-        open={!!pickedBuilder}
-        title={pickedBuilder ? pickedBuilder.name[lang] : ""}
+      <BuilderSheet
+        builder={pickedBuilder}
+        pet={pet}
+        lang={lang === "zh" ? "zh" : "en"}
         onClose={() => setPicked(null)}
-      >
-        {pickedBuilder && (
-          <BuilderCard
-            b={pickedBuilder}
-            pet={pet}
-            onSpar={() => {
-              setPicked(null);
-              startFight(pet, BEHEMOTH.partner, { opponent: BEHEMOTH.opponent() });
-              setTab("spar");
-            }}
-          />
-        )}
-      </Sheet>
+        onSpar={() => setTab("spar")}
+      />
       <MoveSheet />
       <MoveNotes />
       <SaveBanner onSaveFile={() => useSaveFileUi.getState().show()} />
@@ -643,3 +428,133 @@ function FaceSprite({ canvas, line }: { canvas: ReturnType<typeof drawPet>; line
 export const STARTER_COUNT = Object.keys(STARTERS).length;
 
 /** The mailbox: letters from Lingxi, and pet letters between friends over TapeRelay (H13). */
+
+/** What can arrive over the room: a proposal, a gift, a red packet, a duel, a newborn, a welcome back, a sitting. */
+function RoomDialogs({ pet, onDuel }: { pet: Pet; onDuel: () => void }) {
+  return (
+    <>
+      <ProposalDialog pet={pet} />
+      <GiftArrival />
+      <PacketArrival />
+      <DuelArrival
+        hasPet
+        petName={pet.name}
+        onAccept={(c) => {
+          // the spar screen opens onto the fight (never toggled shut, whatever was open)
+          startDuel(pet, c);
+          onDuel();
+        }}
+      />
+      <NewbornDialog pet={pet} />
+      <WelcomeBack pet={pet} />
+      <SitArrival />
+    </>
+  );
+}
+
+/**
+ * The room's notices, stacked in one lane under its top row (A15). `quiet`: the pet is talking or a sheet is open, so
+ * its passing words wait; `trial`: a lesson is being tried, and the pet's words about it are the one thing shown (H5).
+ */
+function PetNotices({
+  pet,
+  face,
+  trial,
+  quiet,
+  circuit,
+  pick,
+}: {
+  pet: Pet;
+  face: ReturnType<typeof drawPet> | null;
+  trial: boolean;
+  quiet: boolean;
+  circuit: boolean;
+  pick: (t: Tab) => void;
+}) {
+  const toast = useGame((s) => s.toast);
+  return (
+    <NoticeLane>
+      {/* a lesson being tried out: the pet's words about it are the one thing shown (H5) */}
+      {trial && !quiet && <VoiceBubble face={face && <FaceSprite canvas={face} line={pet.line} />} />}
+      <QuestToast onOpenBook={() => pick("quests")} />
+      <BadgeToast />
+      <ToastView toast={toast} name={pet.name} />
+      <RulesMark />
+      {/* the pet's own words, last: a quest, a badge, a care note or the rules mark is shown first (H5) */}
+      {/* the pet speaks in the room: with a sheet open over it, its passing words wait */}
+      {!trial && !quiet && !circuit && <VoiceBubble face={face && <FaceSprite canvas={face} line={pet.line} />} />}
+    </NoticeLane>
+  );
+}
+
+/** The pet's skills, opened from the level chip or the Pet sheet. */
+function SkillsSheet({ pet, lang }: { pet: Pet; lang: "en" | "zh" }) {
+  const skillsOpen = useSkillsUi((s) => s.open);
+  return (
+    <Sheet
+      open={skillsOpen}
+      title={lang === "zh" ? `${pet.name}的技能` : `${pet.name}'s skills`}
+      onClose={() => useSkillsUi.getState().hide()}
+    >
+      {skillsOpen && <SkillsPanel />}
+    </Sheet>
+  );
+}
+
+/** A builder's pet met in its room (R2), with a spar against the Behemoth it guards. */
+function BuilderSheet({
+  builder,
+  pet,
+  lang,
+  onClose,
+  onSpar,
+}: {
+  builder: (typeof BUILDER_PETS)[number] | null;
+  pet: Pet;
+  lang: "en" | "zh";
+  onClose: () => void;
+  onSpar: () => void;
+}) {
+  return (
+    <Sheet open={!!builder} title={builder ? builder.name[lang] : ""} onClose={onClose}>
+      {builder && (
+        <BuilderCard
+          b={builder}
+          pet={pet}
+          onSpar={() => {
+            onClose();
+            startFight(pet, BEHEMOTH.partner, { opponent: BEHEMOTH.opponent() });
+            onSpar();
+          }}
+        />
+      )}
+    </Sheet>
+  );
+}
+
+/** Before there is a pet: the hatching, and what can still arrive or be restored without one. */
+function HatchScreen() {
+  const hatch = useGame((s) => s.hatch);
+  return (
+    <>
+      <Hatch
+        onHatch={(line, name, instincts) => {
+          hatch(line, name, instincts);
+          useHatchDraft.getState().reset();
+          play("success");
+        }}
+      />
+      <GiftArrival />
+      <PacketArrival />
+      <DuelArrival hasPet={false} />
+      <SitArrival />
+      <FarewellNote />
+      <HandheldReturn />
+      <SaveBanner onSaveFile={() => useSaveFileUi.getState().show()} />
+      <OfflineNote />
+      <SaveFileSheet here={[]} />
+      <MoveNotes />
+      <ElsewhereOverlay />
+    </>
+  );
+}
