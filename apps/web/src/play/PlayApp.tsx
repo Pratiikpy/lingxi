@@ -1,16 +1,15 @@
 /** The game: hatch on first visit, then the pet's room with care, mind, spar and profile. */
 
-import { Suspense, lazy, useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
 import { useReducedMotion } from "motion/react";
-import { NIGHT, boundingBox, drawPet } from "@lingxi/art";
+import { boundingBox, drawPet } from "@lingxi/art";
 import { STARTERS } from "@lingxi/brain";
-import { type Pet, visitorsNow, stageOf, strongestHabit, visibleMeters } from "@lingxi/game";
+import { type Pet, stageOf, strongestHabit, visibleMeters } from "@lingxi/game";
 import { type Key, useT, useLang } from "../i18n";
 import { usePageMeta } from "../i18n/pageMeta";
 import { decidingPart, useGame } from "../game/store";
 import { ruleKindOf } from "../game/ruleKind";
 import { chirp, play } from "../game/sound";
-import { setAmbience } from "../game/music";
 import { DecorBar } from "./DecorBar";
 import { NoticeLane } from "./NoticeLane";
 import { Familiar } from "./Familiar";
@@ -19,8 +18,6 @@ import "./badges.css";
 import { useTrial, type Trial } from "../game/tryIt";
 import type { Rule } from "@lingxi/brain";
 import { BadgeToast } from "./Badges";
-import { type DayPhase, phaseNow } from "../scene/dayPhase";
-import { weatherFor } from "../scene/weather";
 import { PALETTE_OF, type PetStage } from "../scene/palette";
 import { Hatch } from "./Hatch";
 import { useGameServices } from "./app/useGameServices";
@@ -28,6 +25,9 @@ import { useWorldMessage } from "./app/worldMessage";
 import { useWorldNotices } from "./app/useWorldNotices";
 import { useLiveRoom } from "./app/useLiveRoom";
 import { useResidentTalk } from "./app/useResidentTalk";
+import { useAppChrome } from "./app/useAppChrome";
+import { useGameClock } from "./app/useGameClock";
+import { useRoomVisitors } from "./app/useRoomVisitors";
 import { TabSheets } from "./app/TabSheets";
 import { VisitorCards } from "./app/VisitorCards";
 import { PetButton } from "./PetButton";
@@ -73,12 +73,8 @@ import { AnimatePresence, motion } from "motion/react";
 import "./teach.css";
 import { BEHEMOTH, startDuel, startFight, useArena } from "../game/arenaFight";
 import { LevelUpMoment, SkillsPanel, useSkillsUi } from "./Skills";
-import { SHY_ONE } from "./Album";
-import { needsOf, showNeeds } from "../game/badge";
 import { BUILDER_PETS, builderIn } from "@lingxi/game";
 import { builderInScene } from "../game/builderScene";
-import { telegramBack } from "../game/telegram";
-import { useMove } from "../game/move";
 import { MoveNotes, MoveSheet } from "./Move";
 import { deferred } from "./Lazy";
 import { RIG_HOME_BGS, useHoldings } from "../game/holders";
@@ -113,15 +109,9 @@ const BuilderCard = deferred(() => import("./Builders").then((x) => x.BuilderCar
 const FarewellNote = deferred(() => import("./Adoption").then((x) => x.FarewellNote));
 const HandheldReturn = deferred(() => import("./Handheld").then((x) => x.HandheldReturn));
 
-/** where Flit's shy visitor lives (room 56) */
-const BUTTERFLY_FOREST = 56;
-
 function drawnStage(s: string): PetStage {
   return s === "elder" ? "adult" : (s as PetStage);
 }
-
-/** When each visiting relative said hello this hour, so the greeting shows once on arrival. */
-const KIN_HELLO: Record<string, number> = {};
 
 /** The pet as the staged moment shows it: the decision the trial made, by the half of its mind that made it. */
 function trialPet(pet: Pet, trial: Trial & { lesson: Rule }): Pet {
@@ -140,7 +130,7 @@ function trialPet(pet: Pet, trial: Trial & { lesson: Rule }): Pet {
 }
 
 export function PlayApp() {
-  const { pet, toast, daily, lastCare, hatch, act, tick, wakeUp, say } = useGame();
+  const { pet, toast, daily, lastCare, hatch, act, say } = useGame();
   const t = useT();
   const lang = useLang((s) => s.lang);
   const reduce = useReducedMotion() ?? false;
@@ -164,12 +154,10 @@ export function PlayApp() {
       ),
     [],
   );
-  const [phase, setPhase] = useState<DayPhase>(phaseNow);
   const [circuit, setCircuit] = useState(false);
   const worldRoom = useWorld((s) => s.world.room);
   // one message over the world at a time (play/app/worldMessage.ts); what raises one on its own is in useWorldNotices
   const worldMsg = useWorldMessage((s) => s.msg);
-  const setWorldMsg = useWorldMessage((s) => s.show);
   useWorldNotices();
   const worldFull = useWorld((s) => s.world);
   const travelling = !!worldFull.trip;
@@ -182,22 +170,8 @@ export function PlayApp() {
   const room = ROOMS[worldRoom] ?? ROOMS[HOME]!;
   // X2: a rig holder's own home wears the rig-bay skin (a friend's home keeps its own look)
   const rigSkin = useHoldings((s) => !!s.held?.rig && s.skinOn);
-  // what the room sounds like: rain outdoors on a rainy day, else birds by day and crickets at night
-  const outdoors = !INDOOR_ROOMS.has(worldRoom);
-  useEffect(() => {
-    setAmbience(
-      outdoors && weatherFor(new Date(now())) === "rain"
-        ? "rain"
-        : !outdoors
-          ? "quiet"
-          : phase === "night"
-            ? "crickets"
-            : phase === "day"
-              ? "birds"
-              : "quiet",
-    );
-    return () => setAmbience("quiet");
-  }, [outdoors, phase]);
+  // the clock: the beat, the time of day and the hour, the room's sound, the care toast (play/app/useGameClock.ts)
+  const { phase, hourNow } = useGameClock(worldRoom);
   // who the pet can talk to here, the mark over their head, and the talk ending when the room changes
   const { who, visitor, guest, talking, setTalking, startTalk, npcMark, npcFace, setNpcFace, questStatuses } =
     useResidentTalk(worldRoom);
@@ -209,7 +183,6 @@ export function PlayApp() {
   const [decorating, setDecorating] = useState<string | null>(null);
   const others = useLive((s) => s.members);
   const roster = useGame((s) => s.pets);
-  const [hourNow, setHourNow] = useState(() => Math.floor(now() / 3_600_000));
   const petCount = useGame((s) => s.pets.length);
   const [picked, setPicked] = useState<string | null>(null);
   const pickedBuilder = picked?.startsWith("builder:")
@@ -236,32 +209,6 @@ export function PlayApp() {
   // the page's language, title and description, in the reader's language (A111)
   usePageMeta("play");
 
-  // one live beat a minute while the app is open; catch up on return
-  useEffect(() => {
-    const id = setInterval(() => {
-      tick();
-      setPhase(phaseNow());
-      setHourNow(Math.floor(now() / 3_600_000));
-    }, 5_000);
-    const onVis = () => {
-      if (!document.hidden) {
-        wakeUp();
-        setPhase(phaseNow());
-      }
-    };
-    document.addEventListener("visibilitychange", onVis);
-    return () => {
-      clearInterval(id);
-      document.removeEventListener("visibilitychange", onVis);
-    };
-  }, [tick, wakeUp]);
-
-  useEffect(() => {
-    if (!toast) return;
-    const id = setTimeout(() => useGame.setState({ toast: null }), 2600);
-    return () => clearTimeout(id);
-  }, [toast]);
-
   const close = useCallback(() => setTab("home"), []);
   // the spar screen closing, by any route, ends the fight on it, as the screen's own state would
   useEffect(() => {
@@ -287,50 +234,19 @@ export function PlayApp() {
     [petLine, stage, petForm],
   );
 
-  // say so when a relative arrives (once per visit); the visitors themselves are drawn in the room
-  const kinArrivals =
-    pet && worldRoom === HOME && !visiting
-      ? visitorsNow(pet, roster, hourNow)
-          .map((k) => k.pet.name)
-          .join(", ")
-      : "";
-  // once per hour and set of visitors, whatever else changes
-  const kinVisit = kinArrivals && pet ? `${hourNow}:${pet.bornAt}:${kinArrivals}` : "";
-  // said after the render, never during it: the message lives in a store other components read (React refuses one
-  // component's render updating another's, CI 2026-11-25)
-  const kinSeen = useRef<Set<string>>(new Set());
-  const sayKin = useEffectEvent((visit: string, who: string) => {
-    const name = useGame.getState().pet?.name ?? "";
-    setWorldMsg({
-      id: visit,
-      text: lang === "zh" ? `${who}来看${name}了。` : `${who} dropped by to see ${name}.`,
-      ms: 4500,
-    });
+  // relatives dropping by and the shy one in the night forest (play/app/useRoomVisitors.ts)
+  const { kinVisitors, shyOne } = useRoomVisitors({
+    pet,
+    roster,
+    worldRoom,
+    visiting,
+    hourNow,
+    phase,
+    flags: worldFull.flags ?? [],
+    lang: lang === "zh" ? "zh" : "en",
   });
-  useEffect(() => {
-    if (!kinVisit || kinSeen.current.has(kinVisit)) return;
-    kinSeen.current.add(kinVisit);
-    sayKin(kinVisit, kinArrivals);
-  }, [kinVisit, kinArrivals]);
-
-  // S11: inside Telegram, its back button closes whichever sheet is open
-  const moveAsk = useMove((s) => s.ask);
-  useEffect(() => {
-    telegramBack(moveAsk ? () => useMove.getState().closeOffer() : tab === "home" ? null : () => setTab("home"));
-  }, [tab, moveAsk]);
-  // Y1: the app icon shows how many things the pet needs (hooks stay above the hatch screen's early return)
-  const needCount = pet ? needsOf(pet).length : 0;
-  useEffect(() => {
-    showNeeds(needCount);
-  }, [needCount]);
-  // a home-screen shortcut (Feed, Play, Teach) opens straight onto that screen once there is a pet
-  const [shortcutTaken, setShortcutTaken] = useState(false);
-  if (pet && !shortcutTaken) {
-    setShortcutTaken(true);
-    const go = new URLSearchParams(location.search).get("do");
-    const to: Tab | null = go === "feed" ? "bag" : go === "play" ? "games" : go === "teach" ? "mind" : null;
-    if (to) setTab(to);
-  }
+  // Telegram's back button, the app icon's count, a home-screen shortcut (play/app/useAppChrome.ts)
+  useAppChrome(pet, tab, setTab);
   if (!pet) {
     return (
       <>
@@ -371,56 +287,10 @@ export function PlayApp() {
   const lockedTabs = (["map", "bag", "spar"] as const).filter(
     (x) => !isOpen(x, pet, revealAll, undefined, questOpened),
   );
-  /** `force` opens a tab even before its day, for flows the player chose (accepting a friend's challenge) */
-  // relatives on this device drop by the home now and then (PRD G3)
-  const KIN_WORD = {
-    parent: { en: "parent", zh: "爸爸妈妈" },
-    child: { en: "little one", zh: "孩子" },
-    sibling: { en: "sibling", zh: "兄弟姐妹" },
-  } as const;
-  const kinVisitors =
-    worldRoom === HOME && !visiting
-      ? visitorsNow(pet, roster, hourNow).map((k, i) => ({
-          id: `kin:${k.pet.bornAt}`,
-          name: k.pet.name,
-          line: k.pet.line,
-          stage: stageOf(k.pet, now()),
-          mood: 2,
-          who:
-            lang === "zh"
-              ? `${pet.name}的${KIN_WORD[k.kin].zh}，从你的宠物里过来串门。`
-              : `${pet.name}'s ${KIN_WORD[k.kin].en}, dropping by from your other pets.`,
-          // a hello when they arrive this hour
-          say: {
-            text: lang === "zh" ? `来看看${pet.name}！` : `Came to see ${pet.name}!`,
-            at: (KIN_HELLO[`${hourNow}:${k.pet.bornAt}`] ??= performance.now() + i * 400),
-          },
-        }))
-      : [];
-  // Flit's story (quests 42 and 43): at night something shy watches from the Butterfly Forest's trees; once it is a
-  // friend it comes closer. Only at night, only in the forest, only after it has been seen.
   const forestFlags = worldFull.flags ?? [];
-  const shyOne =
-    worldRoom === BUTTERFLY_FOREST && phase === "night" && !visiting && forestFlags.includes("shy-visitor")
-      ? {
-          id: "shy:one",
-          name: forestFlags.includes("shy-friend")
-            ? SHY_ONE.name[lang]
-            : lang === "zh"
-              ? "某个害羞的家伙"
-              : "Something shy",
-          line: SHY_ONE.look.line,
-          stage: SHY_ONE.look.stage,
-          mood: forestFlags.includes("shy-friend") ? 2 : 0,
-          look: {
-            palette: { key: "night", colors: NIGHT },
-            outfitAt: () => ({}),
-            x: forestFlags.includes("shy-friend") ? 42 : 18,
-          },
-        }
-      : null;
   // R2: a builder's pet lives in this room
   const resident = !visiting ? builderIn(worldRoom) : null;
+  /** `force` opens a tab even before its day, for flows the player chose (accepting a friend's challenge) */
   const pick = (next: Tab, force = false) => {
     play("tap");
     if (!force && (lockedTabs as readonly string[]).includes(next)) {
