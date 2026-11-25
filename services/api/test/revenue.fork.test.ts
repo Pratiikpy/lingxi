@@ -4,6 +4,7 @@
  * piece's 3% (on a creator's sale and on a resale) is owed to the treasury, which is the project wallet; and the live
  * numbers' counter reports exactly what the chain owes the project.
  */
+import { forkHttp } from "./forkRpc";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
@@ -11,7 +12,6 @@ import {
   createPublicClient,
   createWalletClient,
   erc20Abi,
-  http,
   parseAbi,
   parseEther,
   type PublicClient,
@@ -63,12 +63,12 @@ describe.skipIf(!RPC || !d?.outfitMarket || !d?.outfitMarketV2 || !d?.deployer)(
         const V1 = { v: 1 as const, address: d!.outfitMarket! };
         const V2 = { v: 2 as const, address: d!.outfitMarketV2! };
         const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
-        const pub = createPublicClient({ chain, transport: http(RPC) }) as PublicClient;
+        const pub = createPublicClient({ chain, transport: forkHttp(RPC) }) as PublicClient;
         const rpc = (m: string, p: unknown[]) => pub.request({ method: m as never, params: p as never });
         const [c, a, b] = [0, 1, 2].map(() => privateKeyToAccount(generatePrivateKey()));
         for (const x of [c, a, b]) await rpc("anvil_setBalance", [x!.address, "0x56BC75E2D63100000"]);
         const [creator, alice, bob] = [c, a, b].map((account) =>
-          createWalletClient({ chain, transport: http(RPC), account }),
+          createWalletClient({ chain, transport: forkHttp(RPC), account }),
         );
         const read = <T>(
           address: Address,

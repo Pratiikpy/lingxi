@@ -6,6 +6,7 @@
  * outfits, one is also bought through the item shop and read back as a held piece.
  */
 
+import { forkHttp } from "./forkRpc";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
@@ -15,7 +16,6 @@ import {
   createWalletClient,
   encodeAbiParameters,
   erc20Abi,
-  http,
   keccak256,
   pad,
   toHex,
@@ -56,7 +56,7 @@ describe.skipIf(!RPC)("the paid extras on a mainnet fork, through the game's hel
     { timeout: 600_000 },
     async () => {
       const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
-      const pub = createPublicClient({ chain, transport: http(RPC) });
+      const pub = createPublicClient({ chain, transport: forkHttp(RPC) });
       const rpc = (m: string, p: unknown[]) => pub.request({ method: m as never, params: p as never });
       const bemOf = (who: Address) =>
         pub.readContract({ address: BEM, abi: erc20Abi, functionName: "balanceOf", args: [who] }) as Promise<bigint>;
@@ -68,7 +68,9 @@ describe.skipIf(!RPC)("the paid extras on a mainnet fork, through the game's hel
       };
       const keys = [0, 1, 2].map(() => privateKeyToAccount(generatePrivateKey()));
       for (const k of keys) await rpc("anvil_setBalance", [k.address, "0x56BC75E2D63100000"]);
-      const [owner, alice, bob] = keys.map((account) => createWalletClient({ chain, transport: http(RPC), account }));
+      const [owner, alice, bob] = keys.map((account) =>
+        createWalletClient({ chain, transport: forkHttp(RPC), account }),
+      );
       const [o, a, b] = keys;
 
       // deployed exactly as the deploy script does: eight colours, 0.05 BEM for each extra
@@ -123,7 +125,7 @@ describe.skipIf(!RPC)("the paid extras on a mainnet fork, through the game's hel
       })) as Address;
       await rpc("anvil_impersonateAccount", [holder]);
       await rpc("anvil_setBalance", [holder, "0x56BC75E2D63100000"]);
-      const give = await createWalletClient({ chain, transport: http(RPC), account: holder }).writeContract({
+      const give = await createWalletClient({ chain, transport: forkHttp(RPC), account: holder }).writeContract({
         address: REGISTRY,
         abi: petRegistryAbi,
         functionName: "transferFrom",

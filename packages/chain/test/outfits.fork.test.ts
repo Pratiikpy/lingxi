@@ -5,9 +5,10 @@
  * lists it, a third player buys it, and everyone withdraws exactly what is owed.
  */
 
+import { forkHttp } from "./forkRpc";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { createPublicClient, createWalletClient, http, parseEther } from "viem";
+import { createPublicClient, createWalletClient, parseEther } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { decodeDesign, encodeDesign } from "@lingxi/art";
 import {
@@ -34,12 +35,12 @@ const V1 = { v: 1 as const, address: d.outfitMarket! };
 describe.skipIf(!RPC || !d.outfitMarket)("the first (OKB) fashion market through the game's helpers", () => {
   it("publish, buy, resell with royalty, withdraw", async () => {
     const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
-    const pub = createPublicClient({ chain, transport: http(RPC) });
+    const pub = createPublicClient({ chain, transport: forkHttp(RPC) });
     const rpc = (m: string, p: unknown[]) => pub.request({ method: m as never, params: p as never });
     const [c, a, b] = [0, 1, 2].map(() => privateKeyToAccount(generatePrivateKey()));
     for (const x of [c, a, b]) await rpc("anvil_setBalance", [x!.address, "0x56BC75E2D63100000"]);
     const [creator, alice, bob] = [c, a, b].map((account) =>
-      createWalletClient({ chain, transport: http(RPC), account }),
+      createWalletClient({ chain, transport: forkHttp(RPC), account }),
     );
 
     const drawing = {

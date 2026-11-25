@@ -6,13 +6,13 @@
  * neither open someone else's home nor read the letter.
  */
 
+import { forkHttp } from "./forkRpc";
 import { describe, expect, it } from "vitest";
 import {
   createPublicClient,
   createWalletClient,
   encodeAbiParameters,
   erc20Abi,
-  http,
   keccak256,
   numberToHex,
   pad,
@@ -122,7 +122,7 @@ describe.skipIf(!RPC)("pet homes and letters, on an X Layer fork", () => {
     async () => {
       if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(RPC!)) throw new Error("fork tests run only against a local node");
       const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
-      const pub = createPublicClient({ chain, transport: http(RPC) });
+      const pub = createPublicClient({ chain, transport: forkHttp(RPC) });
       const impl = `0x${(await pub.getStorageAt({ address: HUB, slot: IMPL_SLOT }))!.slice(-40)}`;
       if (HUB_IMPLEMENTATIONS_XLAYER.includes(impl)) return; // a fork from before the change, or after TapeKit approves it
       await expect(checkHub(pub as never)).rejects.toMatchObject({ code: "hubUnknown" });
@@ -136,11 +136,11 @@ describe.skipIf(!RPC)("pet homes and letters, on an X Layer fork", () => {
     async () => {
       if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(RPC!)) throw new Error("fork tests run only against a local node");
       const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
-      const pub = createPublicClient({ chain, transport: http(RPC) });
+      const pub = createPublicClient({ chain, transport: forkHttp(RPC) });
       await approveHubOnFork(pub);
       await checkHub(pub as never);
       const [owner, stranger] = [0, 1].map(() =>
-        createWalletClient({ chain, transport: http(RPC), account: privateKeyToAccount(generatePrivateKey()) }),
+        createWalletClient({ chain, transport: forkHttp(RPC), account: privateKeyToAccount(generatePrivateKey()) }),
       );
       const home = await homeFor(pub, owner!, stranger!, LINGXI, "gentle");
       const key = await mailKey(owner!, home, 419);
@@ -200,7 +200,7 @@ describe.skipIf(!RPC)("pet homes and letters, on an X Layer fork", () => {
     async () => {
       if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(RPC!)) throw new Error("fork tests run only against a local node");
       const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
-      const pub = createPublicClient({ chain, transport: http(RPC) });
+      const pub = createPublicClient({ chain, transport: forkHttp(RPC) });
       await approveHubOnFork(pub);
       const OLD = (await pub.readContract({
         address: FACTORY,
@@ -210,7 +210,7 @@ describe.skipIf(!RPC)("pet homes and letters, on an X Layer fork", () => {
       })) as Address;
       expect(await lettersStatus(pub as never, OLD)).toBe("open");
       const wallets = [0, 1, 2].map(() =>
-        createWalletClient({ chain, transport: http(RPC), account: privateKeyToAccount(generatePrivateKey()) }),
+        createWalletClient({ chain, transport: forkHttp(RPC), account: privateKeyToAccount(generatePrivateKey()) }),
       );
       const homes = [];
       for (const [i, line] of (["gentle", "bold"] as const).entries()) {
@@ -264,9 +264,9 @@ describe.skipIf(!RPC)("pet homes and letters, on an X Layer fork", () => {
     async () => {
       if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(RPC!)) throw new Error("fork tests run only against a local node");
       const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
-      const pub = createPublicClient({ chain, transport: http(RPC) });
+      const pub = createPublicClient({ chain, transport: forkHttp(RPC) });
       const [owner, stranger] = [0, 1].map(() =>
-        createWalletClient({ chain, transport: http(RPC), account: privateKeyToAccount(generatePrivateKey()) }),
+        createWalletClient({ chain, transport: forkHttp(RPC), account: privateKeyToAccount(generatePrivateKey()) }),
       );
       const home = await homeFor(pub, owner!, stranger!, LINGXI, "bold");
       const index = await processorIndex(pub as never, LINGXI, 419);
@@ -314,9 +314,9 @@ describe.skipIf(!RPC)("pet homes and letters, on an X Layer fork", () => {
     async () => {
       if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(RPC!)) throw new Error("fork tests run only against a local node");
       const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
-      const pub = createPublicClient({ chain, transport: http(RPC) });
+      const pub = createPublicClient({ chain, transport: forkHttp(RPC) });
       const [owner, stranger] = [0, 1].map(() =>
-        createWalletClient({ chain, transport: http(RPC), account: privateKeyToAccount(generatePrivateKey()) }),
+        createWalletClient({ chain, transport: forkHttp(RPC), account: privateKeyToAccount(generatePrivateKey()) }),
       );
       const home = await homeFor(pub, owner!, stranger!, LINGXI, "gentle");
       const market: Address = "0xb9f6b18edd21933582ec69fb1e718d9629e684cd";

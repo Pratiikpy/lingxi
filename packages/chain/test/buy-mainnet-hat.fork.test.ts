@@ -9,9 +9,10 @@
  * Run: anvil --fork-url https://rpc.xlayer.tech --port 8555, then
  *   FORK_RPC=http://127.0.0.1:8555 DEPLOYMENT_FILE=.../deployments/xlayer.json vitest run test/buy-mainnet-hat.fork.test.ts
  */
+import { forkHttp } from "./forkRpc";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { createPublicClient, createWalletClient, formatEther, http, parseEther } from "viem";
+import { createPublicClient, createWalletClient, formatEther, parseEther } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import {
   buyDesign,
@@ -40,7 +41,7 @@ describe.skipIf(!RPC)("buying the real party hat on a mainnet fork", () => {
     { timeout: 300_000 },
     async () => {
       const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
-      const pub = createPublicClient({ chain, transport: http(RPC) });
+      const pub = createPublicClient({ chain, transport: forkHttp(RPC) });
       const rpc = (m: string, p: unknown[]) => pub.request({ method: m as never, params: p as never });
 
       // the hat is real on mainnet, read through the same helper the game uses
@@ -53,8 +54,8 @@ describe.skipIf(!RPC)("buying the real party hat on a mainnet fork", () => {
       // three throwaway buyers, funded only on the fork
       const [a, b] = [privateKeyToAccount(generatePrivateKey()), privateKeyToAccount(generatePrivateKey())];
       for (const x of [a, b]) await rpc("anvil_setBalance", [x.address, "0x3635C9ADC5DEA00000"]);
-      const alice = createWalletClient({ chain, transport: http(RPC), account: a });
-      const bob = createWalletClient({ chain, transport: http(RPC), account: b });
+      const alice = createWalletClient({ chain, transport: forkHttp(RPC), account: a });
+      const bob = createWalletClient({ chain, transport: forkHttp(RPC), account: b });
 
       // Alice buys two copies at the real price; they are hers
       expect((await copiesHeld(pub, V1, a.address, [HAT]))[0]).toBe(0n);

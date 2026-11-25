@@ -5,13 +5,13 @@
  * blocks, reveal), collect the top-ups, and check every unit is paid out exactly.
  */
 
+import { forkHttp } from "./forkRpc";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   createPublicClient,
   createWalletClient,
   encodeAbiParameters,
-  http,
   keccak256,
   numberToHex,
   pad,
@@ -39,11 +39,13 @@ describe.skipIf(!RPC || !FILE)("a lucky red packet on the deployment under test"
   it("every share opens, the pool is shared by weight, and nothing is left behind", async () => {
     const d = JSON.parse(readFileSync(FILE!, "utf8")) as Deployment;
     const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
-    const pub = createPublicClient({ chain, transport: http(RPC) });
+    const pub = createPublicClient({ chain, transport: forkHttp(RPC) });
     const rpc = (m: string, p: unknown[]) => pub.request({ method: m as never, params: p as never });
     const people = [0, 1, 2, 3].map(() => privateKeyToAccount(generatePrivateKey()));
     for (const a of people) await rpc("anvil_setBalance", [a.address, "0x56BC75E2D63100000"]);
-    const [sender, ...friends] = people.map((account) => createWalletClient({ chain, transport: http(RPC), account }));
+    const [sender, ...friends] = people.map((account) =>
+      createWalletClient({ chain, transport: forkHttp(RPC), account }),
+    );
     // fork-only: give the sender 9 USDT by writing its balance slot (slot 0 for this token)
     const slot = keccak256(
       encodeAbiParameters([{ type: "address" }, { type: "uint256" }], [sender!.account!.address, 0n]),

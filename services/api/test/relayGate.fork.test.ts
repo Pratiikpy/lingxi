@@ -5,11 +5,12 @@
  * requests and replays are refused, and none of them costs the relayer anything.
  */
 
+import { forkHttp } from "./forkRpc";
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { createPublicClient, createWalletClient, http, type Address, type Hex } from "viem";
+import { createPublicClient, createWalletClient, type Address, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { STARTERS, bytesToHex, compileProgram, netlistBytes } from "@lingxi/brain";
 import {
@@ -41,13 +42,13 @@ describe.skipIf(!RPC || !RELAY_KEY_FILE)("the relay gate, on an X Layer fork", (
       );
     const d = JSON.parse(readFileSync(file, "utf8")) as Deployment;
     const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
-    const pub = createPublicClient({ chain, transport: http(RPC) });
+    const pub = createPublicClient({ chain, transport: forkHttp(RPC) });
     const rpc = (method: string, params: unknown[]) =>
       pub.request({ method: method as never, params: params as never });
     const owner = privateKeyToAccount(generatePrivateKey());
     const stranger = privateKeyToAccount(generatePrivateKey());
     await rpc("anvil_setBalance", [owner.address, "0x56BC75E2D63100000"]);
-    const wallet = createWalletClient({ chain, transport: http(RPC), account: owner });
+    const wallet = createWalletClient({ chain, transport: forkHttp(RPC), account: owner });
 
     const t0 = Number((await pub.getBlock()).timestamp) * 1000;
     const brain = mindBrain({ line: "gentle", lessons: [] });

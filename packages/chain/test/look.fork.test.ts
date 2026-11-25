@@ -5,11 +5,12 @@
  * does. Then plug it into the registry as its renderer and check names and metadata.
  */
 
+import { forkHttp } from "./forkRpc";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { createPublicClient, createWalletClient, http, type Address, type Hex } from "viem";
+import { createPublicClient, createWalletClient, type Address, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { EXPRESSIONS } from "@lingxi/art";
 import { buildLayers, canvasOfSvg, gameSprite, installCalls, lookOf, lookPalettes } from "../src/look";
@@ -50,11 +51,11 @@ function stateFor(stage: number, expression: (typeof EXPRESSIONS)[number], line 
 describe.skipIf(!RPC)("PetLook on X Layer's registry", () => {
   it("draws every reachable picture exactly like the game, names pets, and serves the registry's metadata", async () => {
     const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
-    const pub = createPublicClient({ chain, transport: http(RPC) });
+    const pub = createPublicClient({ chain, transport: forkHttp(RPC) });
     const rpc = (m: string, p: unknown[]) => pub.request({ method: m as never, params: p as never });
     const owner = privateKeyToAccount(generatePrivateKey());
     await rpc("anvil_setBalance", [owner.address, "0x56BC75E2D63100000"]);
-    const wallet = createWalletClient({ chain, transport: http(RPC), account: owner });
+    const wallet = createWalletClient({ chain, transport: forkHttp(RPC), account: owner });
     const tx = await wallet.deployContract({
       abi: art().abi,
       bytecode: art().bytecode.object,
@@ -62,7 +63,7 @@ describe.skipIf(!RPC)("PetLook on X Layer's registry", () => {
     });
     const look = (await pub.waitForTransactionReceipt({ hash: tx })).contractAddress!;
     const write = async (functionName: string, args: unknown[], account = owner) => {
-      const w = createWalletClient({ chain, transport: http(RPC), account });
+      const w = createWalletClient({ chain, transport: forkHttp(RPC), account });
       const h = await w.writeContract({
         address: look,
         abi: art().abi,
@@ -131,7 +132,7 @@ describe.skipIf(!RPC)("PetLook on X Layer's registry", () => {
     await rpc("anvil_setBalance", [petOwner, "0x56BC75E2D63100000"]);
     const asOwner = { address: petOwner, type: "json-rpc" } as never;
     // names open once a pet is settled: three days on chain and its third day saved
-    const ownerWallet = createWalletClient({ chain, transport: http(RPC), account: asOwner });
+    const ownerWallet = createWalletClient({ chain, transport: forkHttp(RPC), account: asOwner });
     const settled = (await pub.readContract({
       address: REGISTRY,
       abi: petRegistryAbi,
@@ -172,7 +173,7 @@ describe.skipIf(!RPC)("PetLook on X Layer's registry", () => {
     const stranger = privateKeyToAccount(generatePrivateKey());
     await rpc("anvil_setBalance", [stranger.address, "0x56BC75E2D63100000"]);
     await expect(
-      createWalletClient({ chain, transport: http(RPC), account: stranger }).writeContract({
+      createWalletClient({ chain, transport: forkHttp(RPC), account: stranger }).writeContract({
         address: look,
         abi: art().abi,
         functionName: "setName" as never,
@@ -189,7 +190,7 @@ describe.skipIf(!RPC)("PetLook on X Layer's registry", () => {
       expect(await read("validName", [`0x${Buffer.from(bad).toString("hex")}`]), JSON.stringify(bad)).toBe(false);
     // moderation: only the owner can release a name, and it frees it for others
     await expect(
-      createWalletClient({ chain, transport: http(RPC), account: stranger }).writeContract({
+      createWalletClient({ chain, transport: forkHttp(RPC), account: stranger }).writeContract({
         address: look,
         abi: art().abi,
         functionName: "releaseName" as never,
@@ -220,7 +221,7 @@ describe.skipIf(!RPC)("PetLook on X Layer's registry", () => {
     await rpc("anvil_setBalance", [regOwner, "0x56BC75E2D63100000"]);
     const rw = createWalletClient({
       chain,
-      transport: http(RPC),
+      transport: forkHttp(RPC),
       account: { address: regOwner, type: "json-rpc" } as never,
     });
     await pub.waitForTransactionReceipt({

@@ -7,6 +7,7 @@
  * keepsake REFs its two halves.
  */
 
+import { forkHttp } from "./forkRpc";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -15,7 +16,6 @@ import {
   createPublicClient,
   encodeAbiParameters,
   erc20Abi,
-  http,
   keccak256,
   numberToHex,
   pad,
@@ -66,7 +66,7 @@ describe.skipIf(!RPC)("season keepsakes, on an X Layer fork", () => {
     async () => {
       if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(RPC!)) throw new Error("fork tests run only against a local node");
       const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
-      const pub = createPublicClient({ chain, transport: http(RPC) });
+      const pub = createPublicClient({ chain, transport: forkHttp(RPC) });
       const key = generatePrivateKey();
       const me = privateKeyToAccount(key).address;
       await pub.request({ method: "anvil_setBalance" as never, params: [me, numberToHex(parseEther("10"))] as never });

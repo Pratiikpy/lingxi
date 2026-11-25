@@ -5,6 +5,7 @@
  * storage, so every payment runs through the real BEM contract.
  */
 
+import { forkHttp } from "./forkRpc";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
@@ -14,7 +15,6 @@ import {
   createWalletClient,
   encodeAbiParameters,
   erc20Abi,
-  http,
   keccak256,
   pad,
   toHex,
@@ -93,7 +93,7 @@ describe.skipIf(!RPC)("the BEM market and the holder gift on a mainnet fork, thr
     { timeout: 600_000 },
     async () => {
       const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
-      const pub = createPublicClient({ chain, transport: http(RPC) });
+      const pub = createPublicClient({ chain, transport: forkHttp(RPC) });
       const rpc = (m: string, p: unknown[]) => pub.request({ method: m as never, params: p as never });
       // BEM keeps balances in the mapping at storage slot 5 (found by reading a known balance on X Layer)
       const fundBem = async (who: Address, units: bigint) => {
@@ -106,7 +106,7 @@ describe.skipIf(!RPC)("the BEM market and the holder gift on a mainnet fork, thr
       const keys = [0, 1, 2, 3].map(() => privateKeyToAccount(generatePrivateKey()));
       for (const k of keys) await rpc("anvil_setBalance", [k.address, "0x56BC75E2D63100000"]);
       const [owner, creator, alice, bob] = keys.map((account) =>
-        createWalletClient({ chain, transport: http(RPC), account }),
+        createWalletClient({ chain, transport: forkHttp(RPC), account }),
       );
       const [o, c, a, b] = keys;
 
@@ -270,7 +270,7 @@ describe.skipIf(!RPC)("the BEM market and the holder gift on a mainnet fork, thr
       expect(await checkTest1(pub, terms, holder, 1n)).toBe("ok");
       await rpc("anvil_impersonateAccount", [holder]);
       await rpc("anvil_setBalance", [holder, "0x56BC75E2D63100000"]);
-      const holderWallet = createWalletClient({ chain, transport: http(RPC), account: holder });
+      const holderWallet = createWalletClient({ chain, transport: forkHttp(RPC), account: holder });
       await claimGift(pub, holderWallet, terms, { kind: "nft", collection: TEST1, tokenId: 1n, label: "test1" });
       expect((await copiesHeld(pub, m, holder, [pin]))[0]).toBe(1n);
       expect(await checkTest1(pub, terms, holder, 1n)).toBe("used");

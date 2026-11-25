@@ -5,13 +5,13 @@
  * only on the local fork.
  */
 
+import { forkHttp } from "./forkRpc";
 import { describe, expect, it } from "vitest";
 import {
   createPublicClient,
   createWalletClient,
   encodeAbiParameters,
   erc20Abi,
-  http,
   keccak256,
   numberToHex,
   pad,
@@ -50,10 +50,10 @@ describe.skipIf(!RPC)("a player's own tape-out, on an X Layer fork", () => {
   it("quotes both currencies, refuses while short, then tapes out and reads back the same bytes", async () => {
     if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(RPC!)) throw new Error("fork tests run only against a local node");
     const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
-    const pub = createPublicClient({ chain, transport: http(RPC) });
+    const pub = createPublicClient({ chain, transport: forkHttp(RPC) });
     // a brand-new key: anvil's well-known test address carries code on the real X Layer and cannot receive gate tokens
     const account = privateKeyToAccount(generatePrivateKey());
-    const wallet = createWalletClient({ chain, transport: http(RPC), account });
+    const wallet = createWalletClient({ chain, transport: forkHttp(RPC), account });
 
     const program = composeProgram("curious", [PET_SCHOOL[2]!.rule], 5);
     const net = compileProgram(program);

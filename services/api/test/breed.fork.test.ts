@@ -5,6 +5,7 @@
  * hatches the child, and the child's on-chain thoughts match the game's child brain.
  */
 
+import { forkHttp } from "./forkRpc";
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -14,7 +15,6 @@ import {
   createWalletClient,
   encodeAbiParameters,
   erc20Abi,
-  http,
   keccak256,
   pad,
   toHex,
@@ -60,14 +60,16 @@ describe.skipIf(!RPC || !RELAY_KEY_FILE)("a family, proven on an X Layer fork", 
     const d = JSON.parse(readFileSync(file, "utf8")) as Deployment;
     expect(d.breeder).toBeTruthy();
     const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
-    const pub = createPublicClient({ chain, transport: http(RPC) });
+    const pub = createPublicClient({ chain, transport: forkHttp(RPC) });
     const rpc = (method: string, params: unknown[]) =>
       pub.request({ method: method as never, params: params as never });
 
     // two fresh owners and a stranger, funded on the fork
     const owners = [0, 1, 2].map(() => privateKeyToAccount(generatePrivateKey()));
     for (const o of owners) await rpc("anvil_setBalance", [o.address, "0x56BC75E2D63100000"]);
-    const [alice, bob, mallory] = owners.map((account) => createWalletClient({ chain, transport: http(RPC), account }));
+    const [alice, bob, mallory] = owners.map((account) =>
+      createWalletClient({ chain, transport: forkHttp(RPC), account }),
+    );
 
     const brainOf = (line: "gentle" | "bold") => {
       const p = STARTERS[line];

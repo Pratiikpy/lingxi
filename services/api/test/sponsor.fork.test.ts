@@ -4,12 +4,13 @@
  * it gas, the device key saves a day with that gas alone, and moves the pet to a real wallet in one transfer. Every
  * refusal leaves the relayer's balance as it was.
  */
+import { forkHttp } from "./forkRpc";
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
-import { createPublicClient, createWalletClient, custom, http, type Address, type Hex } from "viem";
+import { createPublicClient, createWalletClient, custom, type Address, type Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { STARTERS, compileProgram, fastBrain, stateBits } from "@lingxi/brain";
 import { checkpointOnChain, petRegistryAbi, readPet, signSponsorRequest, type Deployment, xLayer } from "@lingxi/chain";
@@ -38,7 +39,7 @@ describe.skipIf(!RPC || !RELAY_KEY_FILE)("a pet kept for a player with no wallet
       );
     const d = JSON.parse(readFileSync(file, "utf8")) as Deployment;
     const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
-    const pub = createPublicClient({ chain, transport: http(RPC) });
+    const pub = createPublicClient({ chain, transport: forkHttp(RPC) });
     const rpc = (method: string, params: unknown[]) =>
       pub.request({ method: method as never, params: params as never });
     const env = Object.fromEntries(

@@ -5,11 +5,12 @@
  * input exactly as the game's brain with the same skills does, including the inputs where a skill rule decides.
  */
 
+import { forkHttp } from "./forkRpc";
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { type Address, type Hex, createPublicClient, createWalletClient, http } from "viem";
+import { type Address, type Hex, createPublicClient, createWalletClient } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { STARTERS, compileProgram, encodeSenses, fastBrain, stateBits } from "@lingxi/brain";
 import { type Deployment, hatchOnChain, readPet, replayStep, setBrainOnChain, xLayer } from "@lingxi/chain";
@@ -27,13 +28,13 @@ describe.skipIf(!RPC || !RELAY_KEY_FILE || !FILE)("a skilled brain, taped out an
     async () => {
       const d = JSON.parse(readFileSync(FILE!, "utf8")) as Deployment;
       const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
-      const pub = createPublicClient({ chain, transport: http(RPC) });
+      const pub = createPublicClient({ chain, transport: forkHttp(RPC) });
       const owner = privateKeyToAccount(generatePrivateKey());
       await pub.request({
         method: "anvil_setBalance" as never,
         params: [owner.address, "0x56BC75E2D63100000"] as never,
       });
-      const wallet = createWalletClient({ chain, transport: http(RPC), account: owner });
+      const wallet = createWalletClient({ chain, transport: forkHttp(RPC), account: owner });
 
       // a pet holding all four rule capstones: Early to Bed, Cuddle Bug, Brave Heart, Thinks Ahead
       const growth: Growth = { level: 60, points: 0, skills: { 132: 1, 162: 1, 232: 1, 262: 1 } };

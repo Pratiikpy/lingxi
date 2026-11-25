@@ -3,7 +3,8 @@
  * with no ERC-721 receiver; keeping a pet for it is refused in the simulation, before any wallet prompt, and the game's
  * check recognises the refusal as viem reports it from the real registry.
  */
-import { createPublicClient, http } from "viem";
+import { forkHttp } from "./forkRpc";
+import { createPublicClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { describe, expect, it } from "vitest";
 import { petRegistryAbi } from "../src/registryAbi";
@@ -17,7 +18,7 @@ const DELEGATED = privateKeyToAccount("0xac0974bec39a17e36ba4a6b4d238ff944bacb47
 describe.skipIf(!RPC)("a delegated wallet keeping a pet, on an X Layer fork (A13)", () => {
   it("is refused before any wallet prompt, and the refusal is recognised", { timeout: 60_000 }, async () => {
     if (!/^http:\/\/(127\.0\.0\.1|localhost)/.test(RPC!)) throw new Error("fork tests run only against a local node");
-    const pub = createPublicClient({ transport: http(RPC) });
+    const pub = createPublicClient({ transport: forkHttp(RPC) });
     const code = await pub.getCode({ address: DELEGATED.address });
     if (!code?.startsWith("0xef0100")) return; // the delegation was lifted on mainnet: nothing to show here
     const failure = await pub

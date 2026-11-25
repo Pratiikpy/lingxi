@@ -5,9 +5,10 @@
  * our reference evaluator reading the netlist straight from the chain.
  */
 
+import { forkHttp } from "./forkRpc";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { createPublicClient, createWalletClient, http, type Hex } from "viem";
+import { createPublicClient, createWalletClient, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import {
   STARTERS,
@@ -35,8 +36,8 @@ describe.skipIf(!RPC || !KEY_FILE)("a pet's day, proven on an X Layer fork", () 
     const key = readFileSync(KEY_FILE!, "utf8").match(/^K=(0x[0-9a-fA-F]{64})/m)![1] as Hex;
     const account = privateKeyToAccount(key);
     const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
-    const pub = createPublicClient({ chain, transport: http(RPC) });
-    const wallet = createWalletClient({ chain, transport: http(RPC), account });
+    const pub = createPublicClient({ chain, transport: forkHttp(RPC) });
+    const wallet = createWalletClient({ chain, transport: forkHttp(RPC), account });
 
     // the pet lives its first hours in the game rules
     const program = STARTERS.gentle;

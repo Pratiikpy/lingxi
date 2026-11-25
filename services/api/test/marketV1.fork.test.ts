@@ -3,9 +3,10 @@
  * server's watch names it. Alice holds one copy and lists it twice; Bob buys the dear listing; Alice buys another copy
  * for herself; the forgotten cheap listing is live on chain again, and the watch says a sale retired it.
  */
+import { forkHttp } from "./forkRpc";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { createPublicClient, createWalletClient, http, parseEther, type PublicClient } from "viem";
+import { createPublicClient, createWalletClient, parseEther, type PublicClient } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { encodeDesign } from "@lingxi/art";
 import { buyDesign, buyListing, listCopies, publishDesign, readListings, xLayer, type Deployment } from "@lingxi/chain";
@@ -19,12 +20,12 @@ describe.skipIf(!RPC || !d?.outfitMarket)("a listing that came back on the OKB m
   it("is still sold by V1, and the watch names it as retired", async () => {
     const V1 = { v: 1 as const, address: d!.outfitMarket! };
     const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
-    const pub = createPublicClient({ chain, transport: http(RPC) }) as PublicClient;
+    const pub = createPublicClient({ chain, transport: forkHttp(RPC) }) as PublicClient;
     const rpc = (m: string, p: unknown[]) => pub.request({ method: m as never, params: p as never });
     const [c, a, b] = [0, 1, 2].map(() => privateKeyToAccount(generatePrivateKey()));
     for (const x of [c, a, b]) await rpc("anvil_setBalance", [x!.address, "0x56BC75E2D63100000"]);
     const [creator, alice, bob] = [c, a, b].map((account) =>
-      createWalletClient({ chain, transport: http(RPC), account }),
+      createWalletClient({ chain, transport: forkHttp(RPC), account }),
     );
     const from = Number(await pub.getBlockNumber());
 

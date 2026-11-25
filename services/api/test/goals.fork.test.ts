@@ -5,6 +5,7 @@
  * credit every event to the right wallet and count only what falls inside the window.
  */
 
+import { forkHttp } from "./forkRpc";
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -15,7 +16,6 @@ import {
   createPublicClient,
   createWalletClient,
   encodeAbiParameters,
-  http,
   keccak256,
   pad,
   parseAbi,
@@ -58,12 +58,14 @@ describe.skipIf(!RPC || !RELAY_KEY_FILE || !FILE)("community goals, counted from
       };
       expect(d.breederBem).toBe(true);
       const chain = { ...xLayer, rpcUrls: { default: { http: [RPC!] } } };
-      const pub = createPublicClient({ chain, transport: http(RPC) });
+      const pub = createPublicClient({ chain, transport: forkHttp(RPC) });
       const rpc = (method: string, params: unknown[]) =>
         pub.request({ method: method as never, params: params as never });
       const keys = [0, 1, 2].map(() => privateKeyToAccount(generatePrivateKey()));
       for (const k of keys) await rpc("anvil_setBalance", [k.address, "0x56BC75E2D63100000"]);
-      const [alice, bob, carol] = keys.map((account) => createWalletClient({ chain, transport: http(RPC), account }));
+      const [alice, bob, carol] = keys.map((account) =>
+        createWalletClient({ chain, transport: forkHttp(RPC), account }),
+      );
       const [A, B, C] = keys.map((k) => k.address.toLowerCase()) as [string, string, string];
       const BEM = "0x60e62Efa9405d6873C5deaBD4E6CC91c25363952" as Address;
       const fundBem = (who: Address, n: bigint) =>
