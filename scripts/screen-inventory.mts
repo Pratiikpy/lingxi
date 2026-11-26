@@ -5,11 +5,12 @@
  *
  * By default it runs the built site (apps/web/dist) from a plain file server whose API answers nothing, which shows
  * the states a player sees with the server unreachable; `--live` runs the live site, with its server. Loading states
- * are held open by answering the API late; offline is the browser set offline after the game has loaded once.
+ * are held open by answering the API late, and the Mind sheet's (whose one wait is its lessons' code, R33) by sending
+ * that code late; offline is the browser set offline after the game has loaded once.
  * Writes ../audit-<date>/inventory/<screen>.png and raw/<screen>/<look>.png, and lists any page error per look.
  */
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { createServer } from "node:http";
+import { type ServerResponse, createServer } from "node:http";
 import { extname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { type Browser, type BrowserContext, type Page, chromium } from "@playwright/test";
@@ -53,6 +54,9 @@ function fileServer(): Promise<{ url: string; slow: { on: boolean }; close: () =
   const slow = { on: false };
   const srv = createServer((q, r) => {
     const path = decodeURIComponent((q.url ?? "/").split("?")[0]!);
+    // R33: the Mind sheet asks the server nothing; what it waits on is its lessons' code, held back the same way
+    const heldCode = slow.on && /^\/assets\/Teach-[^/]+\.js$/.test(path);
+    if (heldCode) return void setTimeout(() => serveFile(path, r), 60_000);
     if (path.startsWith("/api/")) {
       const answer = () => {
         r.writeHead(503, { "content-type": "application/json" });
@@ -60,6 +64,9 @@ function fileServer(): Promise<{ url: string; slow: { on: boolean }; close: () =
       };
       return void (slow.on ? setTimeout(answer, 60_000) : answer());
     }
+    serveFile(path, r);
+  });
+  function serveFile(path: string, r: ServerResponse): void {
     const f = join(dist, path === "/" ? "index.html" : path);
     if (existsSync(f) && statSync(f).isFile()) {
       r.writeHead(200, { "content-type": types[extname(f)] ?? "application/octet-stream" });
@@ -68,7 +75,7 @@ function fileServer(): Promise<{ url: string; slow: { on: boolean }; close: () =
       r.writeHead(404, { "content-type": "text/html" });
       r.end(readFileSync(join(dist, "404.html")));
     }
-  });
+  }
   return new Promise((done) =>
     srv.listen(0, "127.0.0.1", () => {
       const port = (srv.address() as { port: number }).port;
@@ -77,8 +84,10 @@ function fileServer(): Promise<{ url: string; slow: { on: boolean }; close: () =
   );
 }
 
-async function contextFor(browser: Browser, l: Look): Promise<BrowserContext> {
+async function contextFor(browser: Browser, l: Look, noWorker = false): Promise<BrowserContext> {
   const ctx = await browser.newContext({
+    // a loading state is shot with the offline worker kept out, or it would hand over the held code from its cache
+    serviceWorkers: noWorker ? "block" : "allow",
     viewport: SIZES[l.size],
     colorScheme: l.scheme,
     locale: l.lang === "zh" ? "zh-CN" : "en-US",
@@ -223,7 +232,7 @@ async function main(): Promise<void> {
       // loading: the API answers late, so a panel that waits for it shows its loading state
       if (!live && want("loading-mind")) {
         files!.slow.on = true;
-        const ctx = await contextFor(browser, l);
+        const ctx = await contextFor(browser, l, true);
         const page = await ctx.newPage();
         await hatched(page, base);
         await openSheet(page, "mind");

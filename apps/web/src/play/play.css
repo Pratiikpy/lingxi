@@ -55,11 +55,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.who span {
+.who-line {
   display: block;
   font-size: 12.5px;
   color: var(--ink-soft);
   white-space: nowrap;
+  /* a long count gives way at its end rather than running under the buttons beside it */
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .top-right {
   display: flex;
@@ -618,6 +621,30 @@
   flex-direction: column;
   gap: 12px;
   min-height: 0;
+  /* R33: what a sheet holds lays itself out by the sheet's own width (one column in a phone's sheet, two in a wider one) */
+  container: sheet / inline-size;
+}
+/* R33: a phone held sideways. The sheet was a 540-pixel column showing two to four rows, cut at its foot, with the
+   dimmed page wasted on both sides: here it takes the width there is (up to a comfortable reading width) and the full
+   height, its handle and head are slimmer, and its foot fades rather than slicing a row in two; its last row comes to
+   rest whole above the fade. It still scrolls, and its head with the close button stays put above what scrolls. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .sheet {
+    width: min(800px, calc(100% - 32px));
+    max-height: calc(100% - 8px);
+    padding-top: 6px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .grab {
+    margin-bottom: 4px;
+  }
+  .shead {
+    margin-bottom: 4px;
+  }
+  .sbody {
+    padding-bottom: 20px;
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent);
+  }
 }
 .foods {
   display: grid;
@@ -1954,9 +1981,6 @@
     width: 36px;
     height: 36px;
   }
-  .who span {
-    display: none;
-  }
   .kin svg {
     display: none;
   }
@@ -3162,11 +3186,12 @@
   margin-top: 2px;
 }
 
-/* B9: the stage word in the header gives way to the day on a narrow phone, so "day 1" is never cut off */
+/* B9, R33: the stage word in the header gives way to the day on a phone held upright, 360 and 390 alike (with both,
+   "baby · day 1" needs 72 pixels where those widths leave under 60), so "day 1" is never cut off */
 .who-stage {
   font-style: normal;
 }
-@media (max-width: 400px) {
+@media (max-width: 480px) {
   .who-stage {
     display: none;
   }
@@ -3472,4 +3497,45 @@
 }
 .offline-note[hidden] {
   display: none;
+}
+
+/* three dots that come and go after words that are waiting on something (a lesson being read, X Layer being asked, a
+   panel's code on the way); here with the game's own rules rather than the lessons' (R33: a panel waiting outside the
+   Mind sheet had none, as the lessons' rules arrive with the lessons) */
+.thinking-dots::after {
+  content: "";
+  animation: dots 1.2s steps(4) infinite;
+}
+@keyframes dots {
+  0% {
+    content: "";
+  }
+  25% {
+    content: ".";
+  }
+  50% {
+    content: "..";
+  }
+  75% {
+    content: "...";
+  }
+}
+/* R33: a sheet's panel whose code is still on the way (play/Lazy.tsx deferredPanel). It appears only after a moment, so
+   code that arrives at once never flashes it */
+.panel-wait {
+  animation: panel-wait-in var(--t-std) var(--ease) 300ms both;
+}
+@keyframes panel-wait-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+/* and one whose code could not be fetched: what happened, then the way to try again */
+.panel-failed {
+  display: grid;
+  gap: var(--s2);
+  justify-items: start;
 }

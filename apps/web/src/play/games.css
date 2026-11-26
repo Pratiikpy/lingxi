@@ -196,3 +196,9 @@
     height: min(44vh, 320px);
   }
 }
+/* R33: in a sheet wide enough for two columns (a phone held sideways), the games sit two to a row */
+@container sheet (min-width: 640px) {
+  .game-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

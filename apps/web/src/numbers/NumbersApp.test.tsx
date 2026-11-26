@@ -131,3 +131,68 @@ describe("whose activity the numbers are (C2)", () => {
     p.close();
   });
 });
+
+describe("when the numbers cannot be read (R33)", () => {
+  /** A server that answers 503, never answers (until aborted), or answers with the numbers, as `mode` says now. */
+  type Server = { mode: "down" | "silent" | "up"; answer?: () => void };
+  async function openWith(server: Server, lang: "en" | "zh" = "en") {
+    vi.stubGlobal("fetch", (url: string, init?: { signal?: AbortSignal }) => {
+      if (!String(url).includes("/api/numbers"))
+        return Promise.resolve({ ok: true, json: async () => ({ ok: false }) });
+      // up: it answers when told to, so the page can be seen reading meanwhile
+      if (server.mode === "up")
+        return new Promise((resolve) => (server.answer = () => resolve({ ok: true, json: async () => numbers() })));
+      if (server.mode === "down") return Promise.resolve({ ok: false, status: 503, json: async () => ({ ok: false }) });
+      return new Promise((_, reject) =>
+        init?.signal?.addEventListener("abort", () => reject(new DOMException("timed out", "TimeoutError"))),
+      );
+    });
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    const { useLang } = await import("../i18n");
+    if (useLang.getState().lang !== lang) useLang.getState().toggle();
+    const { NumbersApp } = await import("./NumbersApp");
+    const { READ_TIMEOUT_MS } = await import("../game/readJson");
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    await act(async () => root.render(createElement(NumbersApp)));
+    return { host, READ_TIMEOUT_MS, close: () => act(() => root.unmount()) };
+  }
+  const settle = () => act(async () => vi.advanceTimersByTimeAsync(20));
+
+  it("says so plainly when the server answers 503, and Try again reads them at once", async () => {
+    vi.useFakeTimers();
+    const server: Server = { mode: "down" };
+    const p = await openWith(server);
+    await settle();
+    const alert = p.host.querySelector('[role="alert"]');
+    expect(alert?.textContent).toMatch(/couldn't be read just now/);
+    const retry = alert?.querySelector("button");
+    expect(retry?.textContent).toBe("Try again now");
+    server.mode = "up";
+    await act(async () => retry?.click());
+    // while it asks again, it says it is reading
+    expect(p.host.querySelector('[role="status"]')?.textContent).toMatch(/Reading the chain/);
+    expect(p.host.querySelector('[role="alert"]')).toBeNull();
+    await act(async () => server.answer?.());
+    await settle();
+    expect(p.host.querySelector('[role="alert"]')).toBeNull();
+    expect(p.host.textContent).toMatch(/All of it the team's own testing/);
+    p.close();
+    vi.useRealTimers();
+  });
+
+  it("stops waiting on a server that never answers and says so, in Chinese too", async () => {
+    vi.useFakeTimers();
+    const p = await openWith({ mode: "silent" }, "zh");
+    await settle();
+    expect(p.host.querySelector('[role="status"]')?.textContent).toMatch(/正在读取链上记录/);
+    await act(async () => vi.advanceTimersByTimeAsync(p.READ_TIMEOUT_MS));
+    const alert = p.host.querySelector('[role="alert"]');
+    expect(alert?.textContent).toMatch(/暂时读不到这些数字/);
+    expect(alert?.querySelector("button")?.textContent).toBe("现在再试");
+    expect(p.host.querySelector('[role="status"]')).toBeNull();
+    p.close();
+    vi.useRealTimers();
+  });
+});

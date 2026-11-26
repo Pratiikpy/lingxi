@@ -634,3 +634,38 @@
   margin: 0;
   flex: 1 1 12rem;
 }
+
+/* R33: in a sheet wide enough for two columns (a phone held sideways), the lists and pairs of cards take two, so the
+   sheet shows twice the rows rather than one long column; a phone's sheet and the desktop's keep one */
+@container sheet (min-width: 640px) {
+  .bag-list,
+  .quests {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .outings:has(> .outing-card + .outing-card) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+  /* the map beside where you are, the floors' switch above both */
+  .map {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    align-items: start;
+    column-gap: var(--s4);
+  }
+  .map > .map-levels {
+    grid-column: 1 / -1;
+  }
+  .map > .map-grid {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+  .map:has(> .map-levels) > .map-grid {
+    grid-row: 2 / span 2;
+  }
+  .map > .map-here,
+  .map > .small {
+    grid-column: 2;
+  }
+}

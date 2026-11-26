@@ -16,6 +16,7 @@ import "../tree/tree.css";
 import "./numbers.css";
 import { LINGXI_SITE } from "@lingxi/chain/site";
 import { API_BASE } from "../game/apiBase";
+import { readJson } from "../game/readJson";
 
 /** An address short enough to wrap on a phone; the market's own link beside it leads to the full record. */
 const shortAddr = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -626,6 +627,12 @@ export function NumbersApp() {
   const [data, setData] = useState<Numbers | null>(null);
   const [err, setErr] = useState(false);
   const [goals, setGoals] = useState<GoalsBody | null>(null);
+  // each Try again is a read now: the page's reading starts over, and says it is reading meanwhile
+  const [tries, setTries] = useState(0);
+  const tryAgain = () => {
+    setErr(false);
+    setTries((n) => n + 1);
+  };
 
   // the page's language, title and description, in the reader's language (A111)
   usePageMeta("numbers");
@@ -633,19 +640,17 @@ export function NumbersApp() {
     // the on-chain copy reads the same public endpoint; it is open to any origin
     const base = API || LINGXI_SITE;
     const read = () => {
-      fetch(`${base}/api/numbers`, { cache: "no-store" })
-        .then((r) => r.json())
-        .then((j: Numbers & { ok: boolean }) => {
+      readJson<Numbers & { ok: boolean }>(`${base}/api/numbers`)
+        .then((j) => {
           if (j.ok) {
             setData(j);
             setErr(false);
           } else setErr(true);
         })
-        // numbers already shown stay; the message shows only when there are none
+        // numbers already shown stay; the message shows only when there are none (a read that took too long lands here)
         .catch(() => setErr(true));
-      fetch(`${base}/api/goals`, { cache: "no-store" })
-        .then((r) => r.json())
-        .then((j: GoalsBody & { ok: boolean }) => j.ok && setGoals(j))
+      readJson<GoalsBody & { ok: boolean }>(`${base}/api/goals`)
+        .then((j) => j.ok && setGoals(j))
         // the goals have their own page; here they show only once read, and the figures above do not wait on them
         .catch(() => undefined);
     };
@@ -658,7 +663,7 @@ export function NumbersApp() {
       clearInterval(every);
       document.removeEventListener("visibilitychange", shown);
     };
-  }, []);
+  }, [tries]);
 
   return (
     <main className="agents numbers">
@@ -679,14 +684,23 @@ export function NumbersApp() {
       </p>
       {data?.team && <TeamCard data={data} team={data.team} lang={lang as Lang} />}
       {err && !data && (
-        <p className="ag-card">
-          {L(
-            "The numbers couldn't be read just now. The chain still has them: try again in a moment.",
-            "暂时读不到这些数字。链上记录还在，请稍后再试。",
-          )}
+        <div className="ag-card nb-failed" role="alert">
+          <p>
+            {L(
+              "The numbers couldn't be read just now. The chain still has them, and this page asks again every minute.",
+              "暂时读不到这些数字。链上记录还在，这个页面每分钟会再读一次。",
+            )}
+          </p>
+          <button type="button" className="v-run nb-retry" onClick={tryAgain}>
+            {L("Try again now", "现在再试")}
+          </button>
+        </div>
+      )}
+      {!data && !err && (
+        <p className="ag-card tl-loading" role="status">
+          {L("Reading the chain…", "正在读取链上记录……")}
         </p>
       )}
-      {!data && !err && <p className="ag-card tl-loading">{L("Reading the chain…", "正在读取链上记录……")}</p>}
       {data &&
         [...rows(data, lang as Lang), ...(goals ? [goalRows(goals, lang as Lang)] : [])].map((group) => (
           <section key={group.title[0]} className="nb-group">

@@ -18,6 +18,7 @@ import "../agents/agents.css";
 import "./tree.css";
 import { sitePage } from "@lingxi/chain/site";
 import { API_BASE } from "../game/apiBase";
+import { readJson } from "../game/readJson";
 
 const API = API_BASE;
 const TX = (tx: string) => `https://www.oklink.com/xlayer/tx/${tx}`;
@@ -86,17 +87,23 @@ export function TreeApp() {
   const [err, setErr] = useState(!API);
   const [query, setQuery] = useState(() => location.hash.replace("#", ""));
   const [picked, setPicked] = useState<string | null>(() => location.hash.replace("#", "") || null);
+  // R33: each Try again reads the tree now, and the page says it is reading meanwhile
+  const [tries, setTries] = useState(0);
+  const tryAgain = () => {
+    setErr(false);
+    setTries((n) => n + 1);
+  };
 
   // the page's language, title and description, in the reader's language (A111)
   usePageMeta("tree");
   useEffect(() => {
     if (!API) return;
-    fetch(`${API}/api/tree`, { cache: "no-store" })
-      .then((r) => r.json())
+    readJson<TreeData & { ok: boolean }>(`${API}/api/tree`)
       // P3: the family's cards render in a transition, in short slices, so the page answers while they draw
-      .then((j: TreeData & { ok: boolean }) => startTransition(() => (j.ok ? setData(j) : setErr(true))))
+      .then((j) => startTransition(() => (j.ok ? setData(j) : setErr(true))))
+      // a failed read, or one with no answer in time (readJson gives up), is said as such below
       .catch(() => setErr(true));
-  }, []);
+  }, [tries]);
 
   const byId = useMemo(() => new Map((data?.pets ?? []).map((p) => [p.id, p])), [data]);
   const families = useMemo(() => {
@@ -136,24 +143,32 @@ export function TreeApp() {
       </p>
 
       {err && (
-        <p className="ag-card">
+        <p className="ag-card" role={API ? "alert" : undefined}>
           {API
             ? L(
-                "The tree couldn't be read just now. The chain's events are still there: try again in a moment.",
-                "暂时读不到这棵树。链上事件还在，请稍后再试。",
+                "The tree couldn't be read just now. The chain's events are still there. ",
+                "暂时读不到这棵树。链上事件还在。",
               )
             : L(
                 "The tree is read from PetRegistry's events by Lingxi's indexer, which this on-chain copy doesn't use. ",
                 "这棵树由灵犀的索引器从 PetRegistry 的事件读出，这份链上版本不使用它。",
               )}
-          {!API && (
+          {API ? (
+            <button type="button" className="v-run tl-retry" onClick={tryAgain}>
+              {L("Try again now", "现在再试")}
+            </button>
+          ) : (
             <a href={sitePage("tree.html")} target="_blank" rel="noopener noreferrer" className="tap">
               {L("See it on lingxi.knole.me", "到 lingxi.knole.me 查看")}
             </a>
           )}
         </p>
       )}
-      {!data && !err && <p className="ag-card tl-loading">{L("Reading the chain…", "正在读取链上记录……")}</p>}
+      {!data && !err && (
+        <p className="ag-card tl-loading" role="status">
+          {L("Reading the chain…", "正在读取链上记录……")}
+        </p>
+      )}
 
       {data && (
         <>

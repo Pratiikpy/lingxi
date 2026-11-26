@@ -132,10 +132,17 @@ export function TopBar({
           <h1 className="who-title">
             <PetName name={pet.name} petId={recordOf(pet)?.petId} />
           </h1>
-          {/* on a narrow phone only the day shows (B9: the line was cut off); the stage is still read out and on the Pet tab */}
-          <span aria-label={`${t(`stage.${stageOf(pet, now)}` as Key)} · ${t("who.day", { n: dayOf(pet, now) })}`}>
-            <i className="who-stage">{t(`stage.${stageOf(pet, now)}` as Key)} · </i>
-            {t("who.day", { n: dayOf(pet, now) })}
+          {/* R33: one rule for the line under the name: its stage and its day where both fit (landscape and wider), its
+              day alone on a phone held upright (360 and 390 alike; B9 found the full line cut off there). A screen
+              reader always hears both, the words being its own rather than a label on a plain span */}
+          <span className="who-line">
+            <span className="sr-only">
+              {t(`stage.${stageOf(pet, now)}` as Key)} · {t("who.day", { n: dayOf(pet, now) })}
+            </span>
+            <span aria-hidden="true">
+              <i className="who-stage">{t(`stage.${stageOf(pet, now)}` as Key)} · </i>
+              {t("who.day", { n: dayOf(pet, now) })}
+            </span>
           </span>
         </div>
       </div>

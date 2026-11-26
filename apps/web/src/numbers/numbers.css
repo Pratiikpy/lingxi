@@ -79,3 +79,10 @@
 .nb-team-card p + p {
   margin-top: var(--s1);
 }
+/* R33: the numbers could not be read: what happened, then the way to read them now */
+.nb-failed p {
+  margin: 0;
+}
+.nb-failed .nb-retry {
+  justify-self: start;
+}

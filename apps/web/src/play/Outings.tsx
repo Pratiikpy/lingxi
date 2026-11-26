@@ -1,10 +1,12 @@
 /**
  * Going out (PRD W4, W5): a 20-minute walk that counts real steps where the
  * phone can, and trips that take the pet away for a few hours and bring back
- * things and recipes. Shown at the top of the map.
+ * things and recipes. In the map sheet, around the map (R33): a walk or trip under way, or one just over, above it, since
+ * that is what the player came back to; the walk and trips to start below it, so the map's own Outside and Indoors
+ * switch is the first thing in the sheet and sits right above the map it switches.
  */
 
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import {
   DESTINATIONS,
   DESTINATION,
@@ -30,7 +32,7 @@ function clock(ms: number, lang: string): string {
   return lang === "zh" ? (h ? `${h} 小时 ${m % 60} 分` : `${m} 分钟`) : h ? `${h}h ${m % 60}m` : `${m}m`;
 }
 
-export function Outings({ pet }: { pet: Pet }) {
+export function Outings({ pet, children }: { pet: Pet; children?: ReactNode }) {
   const lang = useLang((s) => s.lang) as "en" | "zh";
   const L = (en: string, zh: string) => (lang === "zh" ? zh : en);
   const { world, startWalk, addSteps, endWalk, startTrip, endTrip, lastOuting } = useWorld();
@@ -66,8 +68,8 @@ export function Outings({ pet }: { pet: Pet }) {
   const found = walk ? walk.finds.reduce((t, f) => t + f.n, 0) : 0;
   const tooTired = pet.asleep || pet.meters.energy / 60 < 150;
 
-  return (
-    <section className="outings" aria-label={L("Going out", "出门")}>
+  const underWay = (
+    <>
       {lastOuting && (
         <div className="outing-done" role="status">
           {lastOuting.kind === "walk" ? (
@@ -154,57 +156,70 @@ export function Outings({ pet }: { pet: Pet }) {
             </p>
           )}
         </div>
-      ) : (
-        <>
-          <div className="outing-card">
-            <p className="label">{L("Go for a walk", "去散步")}</p>
-            <p className="small">
-              {L(
-                `${WALK_MINUTES} minutes together. On a phone, your real steps count; ${pet.name} finds something every ${STEPS_PER_FIND} steps (the first two walks a day).`,
-                `一起走 ${WALK_MINUTES} 分钟。用手机时按你真实的步数算；每 ${STEPS_PER_FIND} 步${pet.name}会找到一样东西（每天前两次散步）。`,
-              )}
-            </p>
-            <button type="button" className="btn primary" disabled={starting || tooTired} onClick={() => void begin()}>
-              {starting
-                ? L("Getting ready…", "准备中……")
-                : tooTired
-                  ? L("Too tired to walk", "太累了，走不动")
-                  : L("Start walking", "出发散步")}
-            </button>
-          </div>
-          <div className="outing-card">
-            <p className="label">{L("Send it on a trip", "送它去旅行")}</p>
-            <p className="small">
-              {L(
-                `${pet.name} goes for a few hours and comes back with things you can't find here, and a recipe the first time.`,
-                `${pet.name}出门几个小时，带回这里找不到的东西，第一次去还会学会一道菜谱。`,
-              )}
-            </p>
-            <ul className="outing-places">
-              {DESTINATIONS.map((d) => (
-                <li key={d.id}>
-                  <button
-                    type="button"
-                    className="outing-place"
-                    disabled={tooTired}
-                    onClick={() => (play("tap"), startTrip(d.id))}
-                  >
-                    <b>{d.name[lang]}</b>
-                    <span className="small">
-                      {L(`${d.hours} hours`, `${d.hours} 小时`)} ·{" "}
-                      {d.drops
-                        .map((x) => ITEM[x.item]!.name[lang])
-                        .slice(0, 3)
-                        .join(lang === "zh" ? "、" : ", ")}
-                      {(world.recipes ?? []).includes(d.teaches) ? "" : L(" · a new recipe", " · 新菜谱")}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </>
+      ) : null}
+    </>
+  );
+  const choices = !walk && !trip && (
+    <>
+      <div className="outing-card">
+        <p className="label">{L("Go for a walk", "去散步")}</p>
+        <p className="small">
+          {L(
+            `${WALK_MINUTES} minutes together. On a phone, your real steps count; ${pet.name} finds something every ${STEPS_PER_FIND} steps (the first two walks a day).`,
+            `一起走 ${WALK_MINUTES} 分钟。用手机时按你真实的步数算；每 ${STEPS_PER_FIND} 步${pet.name}会找到一样东西（每天前两次散步）。`,
+          )}
+        </p>
+        <button type="button" className="btn primary" disabled={starting || tooTired} onClick={() => void begin()}>
+          {starting
+            ? L("Getting ready…", "准备中……")
+            : tooTired
+              ? L("Too tired to walk", "太累了，走不动")
+              : L("Start walking", "出发散步")}
+        </button>
+      </div>
+      <div className="outing-card">
+        <p className="label">{L("Send it on a trip", "送它去旅行")}</p>
+        <p className="small">
+          {L(
+            `${pet.name} goes for a few hours and comes back with things you can't find here, and a recipe the first time.`,
+            `${pet.name}出门几个小时，带回这里找不到的东西，第一次去还会学会一道菜谱。`,
+          )}
+        </p>
+        <ul className="outing-places">
+          {DESTINATIONS.map((d) => (
+            <li key={d.id}>
+              <button
+                type="button"
+                className="outing-place"
+                disabled={tooTired}
+                onClick={() => (play("tap"), startTrip(d.id))}
+              >
+                <b>{d.name[lang]}</b>
+                <span className="small">
+                  {L(`${d.hours} hours`, `${d.hours} 小时`)} ·{" "}
+                  {d.drops
+                    .map((x) => ITEM[x.item]!.name[lang])
+                    .slice(0, 3)
+                    .join(lang === "zh" ? "、" : ", ")}
+                  {(world.recipes ?? []).includes(d.teaches) ? "" : L(" · a new recipe", " · 新菜谱")}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </>
+  );
+
+  return (
+    <>
+      {(lastOuting || walk || trip) && <div className="outings">{underWay}</div>}
+      {children}
+      {choices && (
+        <section className="outings" aria-label={L("Going out", "出门")}>
+          {choices}
+        </section>
       )}
-    </section>
+    </>
   );
 }

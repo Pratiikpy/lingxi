@@ -10,7 +10,7 @@ import { OnChainNote } from "../../OnChainNote";
 import { SiteFoot } from "../../SiteFoot";
 import { AlbumPanel } from "../Album";
 import { BadgeShelf } from "../Badges";
-import { Lazy, deferred } from "../Lazy";
+import { Lazy, deferredPanel } from "../Lazy";
 import { MoreBehind } from "../MoreBehind";
 import { TelegramCard } from "../Move";
 import type { Tab } from "../parts";
@@ -18,36 +18,36 @@ import { SaveFileCard } from "../SaveFile";
 import { EvolutionChart, MeSheetBody, MindPanel, Sheet } from "../Sheets";
 
 const AdoptionPanel = lazy(() => import("../Adoption").then((x) => ({ default: x.AdoptionPanel })));
-const ArenaPanel = deferred(() => import("../Arena").then((x) => x.ArenaPanel));
-const BagPanel = deferred(() => import("../WorldPanels").then((x) => x.BagPanel));
-const ChainPanel = deferred(() => import("../ChainPanel").then((x) => x.ChainPanel));
+const ArenaPanel = deferredPanel(() => import("../Arena").then((x) => x.ArenaPanel));
+const BagPanel = deferredPanel(() => import("../WorldPanels").then((x) => x.BagPanel));
+const ChainPanel = deferredPanel(() => import("../ChainPanel").then((x) => x.ChainPanel));
 const CollectionPanel = lazy(() => import("../Collection").then((x) => ({ default: x.CollectionPanel })));
 const DiaryPanel = lazy(() => import("../Diary").then((x) => ({ default: x.DiaryPanel })));
 const ExtrasPanel = lazy(() => import("../Extras").then((x) => ({ default: x.ExtrasPanel })));
 const FamilyTree = lazy(() => import("../Family").then((x) => ({ default: x.FamilyTree })));
 const FashionMarketPanel = lazy(() => import("../FashionMarket").then((x) => ({ default: x.FashionMarketPanel })));
 const FriendsPanel = lazy(() => import("../Friends").then((x) => ({ default: x.FriendsPanel })));
-const GamesPanel = deferred(() => import("../Games").then((x) => x.GamesPanel));
+const GamesPanel = deferredPanel(() => import("../Games").then((x) => x.GamesPanel));
 const HandheldPanel = lazy(() => import("../Handheld").then((x) => ({ default: x.HandheldPanel })));
 const HoldersPanel = lazy(() => import("../Holders").then((x) => ({ default: x.HoldersPanel })));
-const HomePanel = deferred(() => import("../Home").then((x) => x.HomePanel));
+const HomePanel = deferredPanel(() => import("../Home").then((x) => x.HomePanel));
 const InvitePanel = lazy(() => import("../Social").then((x) => ({ default: x.InvitePanel })));
 const ItemShopPanel = lazy(() => import("../ItemShop").then((x) => ({ default: x.ItemShopPanel })));
-const MailboxPanel = deferred(() => import("../Mailbox").then((x) => x.MailboxPanel));
-const MapPanel = deferred(() => import("../WorldPanels").then((x) => x.MapPanel));
-const NeighboursPanel = deferred(() => import("../Neighbours").then((x) => x.NeighboursPanel));
-const Outings = deferred(() => import("../Outings").then((x) => x.Outings));
-const PetLetters = deferred(() => import("../PetLetters").then((x) => x.PetLetters));
-const PetsPanel = deferred(() => import("../Family").then((x) => x.PetsPanel));
-const QuestBook = deferred(() => import("../Quests").then((x) => x.QuestBook));
+const MailboxPanel = deferredPanel(() => import("../Mailbox").then((x) => x.MailboxPanel));
+const MapPanel = deferredPanel(() => import("../WorldPanels").then((x) => x.MapPanel));
+const NeighboursPanel = deferredPanel(() => import("../Neighbours").then((x) => x.NeighboursPanel));
+const Outings = deferredPanel(() => import("../Outings").then((x) => x.Outings));
+const PetLetters = deferredPanel(() => import("../PetLetters").then((x) => x.PetLetters));
+const PetsPanel = deferredPanel(() => import("../Family").then((x) => x.PetsPanel));
+const QuestBook = deferredPanel(() => import("../Quests").then((x) => x.QuestBook));
 const RedPacketPanel = lazy(() => import("../RedPacket").then((x) => ({ default: x.RedPacketPanel })));
-const RemindersPanel = deferred(() => import("../Reminders").then((x) => x.RemindersPanel));
+const RemindersPanel = deferredPanel(() => import("../Reminders").then((x) => x.RemindersPanel));
 const RewindPanel = lazy(() => import("../Rewind").then((x) => ({ default: x.RewindPanel })));
 const SendGiftPanel = lazy(() => import("../Gift").then((x) => ({ default: x.SendGiftPanel })));
 const SitPanel = lazy(() => import("../Sitting").then((x) => ({ default: x.SitPanel })));
 const StudioPanel = lazy(() => import("../Studio").then((x) => ({ default: x.StudioPanel })));
-const TeachPanel = deferred(() => import("../Teach").then((x) => x.TeachPanel));
-const WardrobePanel = deferred(() => import("../Wardrobe").then((x) => x.WardrobePanel));
+const TeachPanel = deferredPanel(() => import("../Teach").then((x) => x.TeachPanel));
+const WardrobePanel = deferredPanel(() => import("../Wardrobe").then((x) => x.WardrobePanel));
 
 export function TabSheets({
   tab,
@@ -71,8 +71,10 @@ export function TabSheets({
         <MailTabs />
       </Sheet>
       <Sheet open={tab === "map"} title={t("map.title")} onClose={close}>
-        <Outings pet={pet} />
-        <MapPanel onGone={close} />
+        {/* R33: the map and its Outside and Indoors switch first; a walk or trip under way above it, new ones below */}
+        <Outings pet={pet}>
+          <MapPanel onGone={close} />
+        </Outings>
       </Sheet>
       <Sheet open={tab === "collection"} title={lang === "zh" ? "收藏" : "Collection"} onClose={close}>
         <Lazy>
