@@ -14,6 +14,7 @@ import { withQuery } from "../game/requests";
 import "./agents.css";
 import { LINGXI_SITE } from "@lingxi/chain/site";
 import { API_BASE } from "../game/apiBase";
+import { CodeBlock } from "./CodeBlock";
 
 const API = API_BASE;
 const PUBLIC = LINGXI_SITE;
@@ -133,7 +134,7 @@ export function AgentsApp() {
 
       <section className="ag-card">
         <h2>{L("Try a call", "试一次调用")}</h2>
-        <pre>{`GET ${PUBLIC}/api/v1/spar?chips=punish,block,bite&vs=pip&seed=7`}</pre>
+        <CodeBlock code={`GET ${PUBLIC}/api/v1/spar?chips=punish,block,bite&vs=pip&seed=7`} />
         <div className="ag-row">
           <button type="button" className="ag-run" disabled={trying} onClick={() => void tryIt()}>
             {trying ? L("Sparring…", "切磋中……") : L("Run it", "运行")}
@@ -160,7 +161,7 @@ export function AgentsApp() {
           {STEPS.map((s) => (
             <li key={s.code}>
               <p>{s[lang === "zh" ? "zh" : "en"]}</p>
-              <pre>{s.code}</pre>
+              <CodeBlock code={s.code} />
             </li>
           ))}
         </ol>
@@ -178,16 +179,19 @@ export function AgentsApp() {
             "上面每个调用也可以用 POST /api/v1/<方法> 来调，回答按 TAP-13 签名：回答写明它答的是哪个请求、什么时间、哪个服务容器，并由 1 号电路的持有人在服务清单里授权的密钥签名。清单从这个电路在 X Layer 上的容器里读出，所以核对时除了回答本身，不需要这个网站的任何东西。",
           )}
         </p>
-        <pre>{`curl -X POST ${PUBLIC}/api/v1/pet \\
+        <CodeBlock
+          code={`curl -X POST ${PUBLIC}/api/v1/pet \\
   -H 'content-type: application/json' \\
-  -d '{"id":"my-1","params":{"id":"1"}}'`}</pre>
+  -d '{"id":"my-1","params":{"id":"1"}}'`}
+        />
         <p className="small">
           {L(
             "To check it, TapeAPI's own client resolves the service from X Layer and verifies each answer:",
             "要核对，可以用 TapeAPI 自己的客户端：它从 X Layer 解析服务，再逐个验证回答：",
           )}
         </p>
-        <pre>{`npm install ${TAPEAPI_SDK}
+        <CodeBlock
+          code={`npm install ${TAPEAPI_SDK}
 
 // save as try.mjs, then run: node try.mjs
 import { createTapeAPI, rpcUrlsFor } from '@tapeapi/sdk'
@@ -197,7 +201,8 @@ const lingxi = await api.resolve('1.2.419.tape')
 const { result, verified } = await api.call(lingxi, 'pet', { id: '1' })
 // a pet that does not exist is a signed answer too: { ok: false, reason: 'unknown' }
 if (result.ok === false) console.log('no such pet:', result.reason, verified)
-else console.log(result.name, result.owner, verified)`}</pre>
+else console.log(result.name, result.owner, verified)`}
+        />
         <p className="small">
           {L(
             "verified is true only when the signature checks out against the signer the chain names; a changed answer is refused. A signature proves who answered and to which question, not that the answer is right: pets and brains can still be checked against X Layer itself. The manifest, with every method:",
@@ -220,7 +225,8 @@ else console.log(result.name, result.owner, verified)`}</pre>
             "给模型用：读取宠物、切磋、提议一课（检查一条规则、说明它会改变哪些情况，不会真的教）是 /mcp 上 MCP 服务器的工具。服务清单用 SHA-256 钉住这些工具的定义（TAP-15），每个工具同时也是一个签名方法。在 MCP 客户端里，TapeAPI 的 tapeapi-mcp 会对照这个摘要检查工具，并对照链上验证每个回答：",
           )}
         </p>
-        <pre>{`{
+        <CodeBlock
+          code={`{
   "command": "npx",
   "args": [
     "-y",
@@ -228,7 +234,8 @@ else console.log(result.name, result.owner, verified)`}</pre>
     "tapeapi-mcp",
     "1.2.419.tape"
   ]
-}`}</pre>
+}`}
+        />
       </section>
 
       <section>

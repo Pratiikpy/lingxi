@@ -38,7 +38,19 @@
   font-size: 0.82rem;
   line-height: 1.5;
   white-space: pre-wrap;
+  /* R25: an address breaks only at the places CodeBlock marks (after a slash, before "?" and "&"); a run with no such
+     place that is wider than the box still breaks rather than push the page sideways */
   overflow-wrap: anywhere;
+}
+/* each line of a sample is drawn as one; when it wraps, its later rows are set in, so they never read as lines of their own */
+.ag-line {
+  display: block;
+  padding-left: 2ch;
+  text-indent: -2ch;
+}
+/* a piece of an address between two places it may break: the browser's own rules would also break it after "?", "=" or "-" */
+.ag-url-part {
+  white-space: nowrap;
 }
 .agents a {
   color: var(--ink);
