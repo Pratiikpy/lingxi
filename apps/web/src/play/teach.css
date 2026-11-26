@@ -242,7 +242,8 @@ button.btn:disabled {
 .vals {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  /* R35: rows 10 px apart, so each 34 px value's 44 px touch area (play.css) stays clear of the row below */
+  gap: 10px 6px;
 }
 .val {
   min-height: 34px;
@@ -478,20 +479,22 @@ button.btn:disabled {
 .goals .missed {
   color: #b33a2a;
 }
+/* R35: the tip and the trap warning read the theme (R31's way): the same warm wash in the light theme, and in the dark one
+   the sunny hue mixed into the dark card under the theme's ink, where they were light boxes on a dark sheet */
 .coach-tip {
-  color: #2b2140;
+  color: var(--ink);
   margin: 0;
   padding: 8px 12px;
   border-radius: var(--r-sm);
-  background: #fff3c9;
+  background: var(--hover-warm);
   font-size: 13px;
 }
 .trap {
-  color: #2b2140;
+  color: var(--ink);
   padding: 8px 12px;
   border: 2px solid #e8a33a;
   border-radius: var(--r-sm);
-  background: #fff6e2;
+  background: color-mix(in srgb, var(--hover-warm) 60%, var(--card));
   font-size: 13px;
 }
 .trap p {

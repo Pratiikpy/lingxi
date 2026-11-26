@@ -30,7 +30,16 @@
   text-align: center;
   min-width: 0;
 }
+/* R35: a badge not earned yet is drawn as one, not faded (0.72 opacity left "not yet" and what earns it at 3.7:1): a
+   dashed, fainter edge, its words in the soft ink, and only its medal faded */
 .badge.t0 {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--ink-soft) 45%, transparent);
+}
+.badge.t0 :is(.tier, .next) {
+  color: var(--ink-soft);
+}
+.badge.t0 .medal {
   opacity: 0.72;
 }
 .badge.t1,

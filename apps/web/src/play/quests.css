@@ -334,8 +334,13 @@
 .talk-choice.quest.ready {
   background: #d9f5dc;
 }
+/* R35: drawn as a choice that cannot be taken now (R30's look), not faded under 3:1. The talk box is light in both
+   themes, so its light values: the track, the soft ink */
 .talk-choice.quest:disabled {
-  opacity: 0.55;
+  background: #f1e4d2;
+  color: #5b4e73;
+  border-style: dashed;
+  box-shadow: none;
   cursor: default;
 }
 .tq-mark {

@@ -8,9 +8,11 @@
   border: 2px solid var(--line);
   border-radius: 999px;
 }
+/* R35: the slider answers on 44 px of height (it was 34) while it is drawn as before: the input reaches 5 px above and
+   below the strip, and the handle is drawn 34 px tall in the middle of it */
 .rw-track input[type="range"] {
   position: absolute;
-  inset: 0;
+  inset: -5px 0;
   width: 100%;
   margin: 0;
   background: transparent;
@@ -18,17 +20,18 @@
   cursor: grab;
 }
 .rw-track input[type="range"]::-webkit-slider-runnable-track {
-  height: 34px;
+  height: 44px;
   background: transparent;
 }
 .rw-track input[type="range"]::-moz-range-track {
-  height: 34px;
+  height: 44px;
   background: transparent;
 }
 .rw-track input[type="range"]::-webkit-slider-thumb {
   appearance: none;
   width: 14px;
   height: 34px;
+  margin-top: 5px;
   border: 2px solid #2b2140;
   border-radius: 6px;
   background: #fffdf8;
@@ -115,6 +118,13 @@
 .rw-rows .chip {
   min-height: 24px;
   font-size: 12.5px;
+}
+/* R35: and so do their chips, as the thinking strip's do (in the dark theme they were white islands on the dark card);
+   the decision keeps its want's own colour and plum ink */
+.rw-rows .chip:not(.out) {
+  background: var(--card);
+  border-color: var(--line);
+  color: var(--ink);
 }
 .rw-rule small {
   flex-basis: 100%;

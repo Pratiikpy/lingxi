@@ -127,8 +127,15 @@
 .sk-row.caps {
   background: color-mix(in srgb, var(--tree) 22%, var(--tint));
 }
+/* R35: a tier not open yet is drawn as one rather than faded (half opacity left its words at 2.3 to 3.6:1): no ground of
+   its own and a fainter dashed edge, its words in the soft ink (6:1 and more in each theme), as R30's locked lessons */
 .sk-row.closed {
-  opacity: 0.55;
+  padding: 4px;
+  border: 2px dashed color-mix(in srgb, var(--ink-soft) 45%, transparent);
+  background: none;
+}
+.sk-row.closed :is(.sk-tier, .sk-node, .sk-ring b) {
+  color: var(--ink-soft);
 }
 .sk-tier {
   display: grid;
@@ -195,12 +202,23 @@
   text-align: center;
   overflow-wrap: anywhere;
 }
+/* the points inside a ring that has some: on the card's own ground, so in the theme's ink (plum on the dark card was
+   about 1.1:1) */
 .sk-full .sk-ring b,
 .sk-some .sk-ring b {
-  color: #2b2140;
+  color: var(--ink);
 }
+/* R35: a skill ruled out by a choice made is drawn so, not faded: no ground, a dashed edge, the soft ink */
 .sk-excluded {
-  opacity: 0.45;
+  border: 2px dashed color-mix(in srgb, var(--ink-soft) 45%, transparent);
+  background: none;
+  color: var(--ink-soft);
+}
+.sk-excluded .sk-ring {
+  border-style: dashed;
+}
+.sk-excluded .sk-ring b {
+  color: var(--ink-soft);
 }
 .sk-locked .sk-ring {
   border-style: dashed;
@@ -288,8 +306,10 @@
 .lv-chip::before {
   content: "";
   position: absolute;
-  /* P5: 44 by 44 px of touch around a chip drawn 22 by 20, reaching out and down, away from the face it sits on */
-  inset: -4px -2px -20px -20px;
+  /* P5: 44 px tall around a chip drawn 22 by 20, reaching out and down, away from the face it sits on. R35: no higher
+     than the chip itself, which on a 360 px phone put its top edge across the face's middle and cut the face's own
+     44 px touch area to 36. Its width is bounded by the screen's edge on one side and the face on the other */
+  inset: 0 -2px -24px -20px;
 }
 /* a dot when skill points are waiting */
 .who .lv-chip b,
