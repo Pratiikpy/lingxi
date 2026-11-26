@@ -97,15 +97,6 @@ export function LandingApp() {
         <Suspense fallback={null}>
           {living ? <HeroScene reduceMotion={reduce} phase={phase} /> : <HeroStill phase={phase} />}
         </Suspense>
-        <div className="l-phase" role="radiogroup" aria-label={lang === "zh" ? "时间" : "Time of day"}>
-          {(["day", "evening", "night"] as const).map((p) => (
-            <button key={p} type="button" role="radio" aria-checked={phase === p} onClick={() => setPhase(p)}>
-              {lang === "zh"
-                ? { day: "白天", evening: "黄昏", night: "夜晚" }[p]
-                : { day: "Day", evening: "Dusk", night: "Night" }[p]}
-            </button>
-          ))}
-        </div>
         <nav className="l-nav">
           <a className="l-brand" href="#top" id="top">
             <span>Lingxi</span>
@@ -139,6 +130,17 @@ export function LandingApp() {
               {c.quiet}
             </a>
           </div>
+        </div>
+        {/* R28: after the headline in the page, so it is reached after it; on a phone it sits in its own row under the
+            buttons, clear of the pet (landing.css) */}
+        <div className="l-phase" role="radiogroup" aria-label={lang === "zh" ? "时间" : "Time of day"}>
+          {(["day", "evening", "night"] as const).map((p) => (
+            <button key={p} type="button" role="radio" aria-checked={phase === p} onClick={() => setPhase(p)}>
+              {lang === "zh"
+                ? { day: "白天", evening: "黄昏", night: "夜晚" }[p]
+                : { day: "Day", evening: "Dusk", night: "Night" }[p]}
+            </button>
+          ))}
         </div>
         {/* the hint invites taps on the living scene; the still has nothing to tap */}
         {living && <p className="l-hint">{c.hint}</p>}

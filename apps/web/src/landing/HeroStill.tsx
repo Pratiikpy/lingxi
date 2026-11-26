@@ -6,7 +6,7 @@
 import { useEffect, useRef } from "react";
 import type { HeroPhase } from "./heroPhase";
 import { drawPet, toRgba } from "@lingxi/art";
-import { BG, GROUND, PET_AT, ROOM, heroScale } from "./heroArt";
+import { BG, GROUND, PET_AT, ROOM, heroScale, isNarrowBand } from "./heroArt";
 import { PALETTE_OF } from "../scene/palette";
 
 /** The pet's resting frame as a small canvas, in the scene's size for this width (heroArt.ts). */
@@ -57,7 +57,7 @@ export function HeroStill({ phase }: { phase: HeroPhase }) {
         ctx.restore();
       }
       // the pet stands on the ground line, centred where the living scene starts it
-      const pet = petCanvas(w < 640);
+      const pet = petCanvas(isNarrowBand(w));
       const px = heroScale(h) * dpr;
       const x = Math.round(Math.round((w / heroScale(h)) * PET_AT) * px - (pet.width * px) / 2);
       ctx.drawImage(pet, x, top + GROUND * px - pet.height * px, pet.width * px, pet.height * px);

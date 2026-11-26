@@ -7,6 +7,13 @@ import type { HeroPhase } from "./heroPhase";
 export const ROOM = 128;
 /** The ground line in the room's own pixels, where the pet and the cat stand. */
 export const GROUND = 121;
+/**
+ * R28: the widest band drawn as a phone's (landing.css's 860 px layout): it ends in a stage of its own where the pet
+ * stands clear of every word and button, and the pet there is the smaller child, whose hop the stage is measured for.
+ */
+export const NARROW_BAND = 860;
+export const isNarrowBand = (width: number): boolean => width <= NARROW_BAND;
+
 /** Where across the band the pet starts, as a share of its width. */
 export const PET_AT = 0.68;
 

@@ -781,10 +781,40 @@
   background: #2b2140;
   color: #fff7e8;
 }
+/* R28: on a phone, and a phone held sideways, the band is too small to hold the headline, its buttons, the switch and the
+   pet in one picture, and the switch and the link sat on the pet. There the band grows to fit its words, the switch
+   takes its own row under the buttons, and the band ends in a stage where the pet stands, walks and hops with nothing
+   drawn over it. The stage is the band's bottom padding: the scene stands the pet on the band's bottom edge and scales
+   the room by the band's height (heroArt.heroScale: a whole number, ceil(height / 128)); from that edge to the top of a
+   hop of the child pet drawn here (heroArt.isNarrowBand) is 38 room pixels (the soil 7, the pet 24, a hop 7). 272 px holds
+   it up to scale 7, a band up to 896 px tall, which every phone layout from 320 px wide is (the tallest, 320 px in
+   English, is about 860); a narrower screen, whose words run longer, gets the room scale 8 needs. Desktop keeps the
+   approved picture. */
 @media (max-width: 860px) {
+  .l-hero {
+    --hero-stage: 272px;
+    height: auto;
+    min-height: clamp(540px, 76vh, 740px);
+    display: flex;
+    flex-direction: column;
+    padding-bottom: var(--hero-stage);
+  }
+  /* the nav and the copy still span the band, as they do in the block layout (their auto margins would shrink them) */
+  .l-nav,
+  .l-copy {
+    width: 100%;
+  }
   .l-phase {
-    right: 16px;
-    bottom: 16px;
+    position: relative;
+    right: auto;
+    bottom: auto;
+    align-self: center;
+    margin-top: var(--s5);
+  }
+}
+@media (max-width: 319px) {
+  .l-hero {
+    --hero-stage: 310px;
   }
 }
 .l-note {

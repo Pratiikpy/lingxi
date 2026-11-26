@@ -11,7 +11,7 @@ import { useEffect, useRef } from "react";
 import { Application, Assets, Container, Sprite, type Texture } from "pixi.js";
 // the site sends a script policy without eval; this module gives Pixi the code paths that never need it
 import "pixi.js/unsafe-eval";
-import { BG, GROUND, PET_AT, ROOM, heroScale } from "./heroArt";
+import { BG, GROUND, PET_AT, ROOM, heroScale, isNarrowBand } from "./heroArt";
 import { catTexture, glyphTexture, petTexture } from "../scene/textures";
 
 export { type HeroPhase, phaseNow } from "./heroPhase";
@@ -171,8 +171,8 @@ export function HeroScene({ reduceMotion, phase }: { reduceMotion: boolean; phas
         }
         const breath: 0 | 1 = reduceMotion ? 0 : Math.sin(now / 620) > 0.35 ? 1 : 0;
         pet.texture = petTexture("gentle", {
-          // on narrow screens the band is scaled up, so a smaller pet keeps clear of the headline
-          stage: el.clientWidth < 640 ? "child" : "adult",
+          // on a phone's band the pet is the child its stage is measured for (heroArt.isNarrowBand, R28)
+          stage: isNarrowBand(el.clientWidth) ? "child" : "adult",
           expression: state.hopAt >= 0 ? "love" : blinking ? "asleep" : walking ? "happy" : "neutral",
           breath,
           squash,
