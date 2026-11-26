@@ -114,7 +114,9 @@ export async function startRun(): Promise<Run> {
     // the server, with every store in the scratch folder and its indexes starting at the fork
     const apiPort = await freePort();
     const api = `http://127.0.0.1:${apiPort}`;
-    const webPorts = await Promise.all(addresses.slice(0, 2).map(() => freePort()));
+    // a game for each of the first three wallets (P9: adoption needs a third player, with a wallet of its own); the
+    // fourth is the relayer's
+    const webPorts = await Promise.all(addresses.slice(0, 3).map(() => freePort()));
     const origins = webPorts.map((p) => `http://localhost:${p}`);
     const s = (f: string) => join(dir, "stores", f);
     mkdirSync(s("diaries"), { recursive: true });
@@ -264,7 +266,7 @@ export async function startRun(): Promise<Run> {
       await warmUp(web, p.log);
       players.push({ index: i, address: addresses[i]!, web });
     }
-    for (const a of addresses.slice(2)) players.push({ index: players.length, address: a, web: "" });
+    for (const a of addresses.slice(3)) players.push({ index: players.length, address: a, web: "" });
 
     const run: Run = { dir, fork: { rpc, block: FORK.block }, api, players, procs };
     // each run keeps its own record, so two runs on one machine never read each other's; the specs find it by the
