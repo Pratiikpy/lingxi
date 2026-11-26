@@ -35,6 +35,16 @@ import { petLookAbi as lookAbi } from "@lingxi/chain";
 import { createJobs } from "../jobs";
 import { withHistory, withPackets, withTree } from "../routes/chainReads";
 import { SNAPSHOT_DIR } from "../routes/health";
+/**
+ * The chain's head as the health report reads it (P8): one request to the node, ten seconds at most, never from a
+ * cache, so a node that has died is seen on the next reading. Its own function so the fork test that kills a node
+ * (healthChain.fork.test.ts, R12) reads through exactly what the server does.
+ */
+export function chainHead(rpc: string): () => Promise<bigint> {
+  const client = createPublicClient({ transport: http(rpc, { timeout: 10_000 }) });
+  return () => client.getBlockNumber({ cacheTime: 0 });
+}
+
 export { SITE_CACHE_MAX, scriptPolicy, withSite } from "../routes/site";
 export { withVoice, withSitting, withArena, withMove, withPush, withMail, withLibrary } from "../routes/play";
 export { type SeasonProver, withSeason, type Sponsoring, withSponsor } from "../routes/season";
@@ -84,10 +94,7 @@ export function startRegistryJobs({
     });
     withHistory(app, indexer);
     watch.indexed = () => indexer.head();
-    const headClient = createPublicClient({
-      transport: http(process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech", { timeout: 10_000 }),
-    });
-    watch.head = () => headClient.getBlockNumber({ cacheTime: 0 });
+    watch.head = chainHead(process.env.LINGXI_RPC ?? "https://rpc.xlayer.tech");
     const look = process.env.LINGXI_LOOK as `0x${string}` | undefined;
     withTree(
       app,
