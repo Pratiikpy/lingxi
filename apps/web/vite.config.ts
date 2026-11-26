@@ -413,6 +413,9 @@ export default defineConfig({
   base: "./",
   build: {
     target: "es2022",
+    // R29: the Chinese titles' pixel face is its own file, fetched only by a page that draws one of them; inlined (it
+    // is under Vite's 4 KB limit) it would ride in every page's stylesheet for every reader
+    assetsInlineLimit: (file) => (file.endsWith("lingxi-pixel-cjk.woff2") ? false : undefined),
     rollupOptions: {
       input: {
         index: resolve(__dirname, "index.html"),

@@ -142,7 +142,8 @@
 }
 .l-copy h1 {
   margin: 14px 0 0;
-  font-family: var(--display);
+  /* R29: the Chinese title in the pixel face too */
+  font-family: var(--display-cjk);
   font-weight: 700;
   font-size: clamp(42px, 8vw, 92px);
   line-height: 0.96;

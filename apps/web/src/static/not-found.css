@@ -31,7 +31,8 @@
 }
 .nf-card h1 {
   margin: var(--s3) 0 0;
-  font-family: var(--display);
+  /* R29: the Chinese title in the pixel face too */
+  font-family: var(--display-cjk);
   font-size: clamp(28px, 7vw, 40px);
   line-height: 1.1;
   text-wrap: balance;

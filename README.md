@@ -278,6 +278,9 @@ The code is MIT-licensed ([LICENSE](LICENSE)). The art, sound and written conten
   ([BruceLanLan/tapeapi](https://github.com/BruceLanLan/tapeapi)), MIT, Copyright (c) 2026 TapeAPI contributors, under
   the same permission notice as our [LICENSE](LICENSE). The TAP-11 and TAP-13 test vectors in
   `services/api/test/vectors/tap` are CC0, from [TapeOutProtocol/TAPs](https://github.com/TapeOutProtocol/TAPs).
+- `apps/web/src/styles/fonts/lingxi-pixel-cjk.woff2`, the face of the Chinese page titles, is Ark Pixel Font 12px
+  (v2026.11.10) by TakWolf ([TakWolf/ark-pixel-font](https://github.com/TakWolf/ark-pixel-font)), cut to the titles'
+  characters, SIL Open Font License 1.1 ([its licence](apps/web/src/styles/fonts/OFL.txt)).
 
 ## Team
 

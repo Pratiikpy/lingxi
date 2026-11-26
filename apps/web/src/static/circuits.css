@@ -26,7 +26,8 @@
 }
 .cx h1 {
   margin: var(--s4) 0 var(--s2);
-  font-family: var(--display);
+  /* R29: the Chinese title in the pixel face too */
+  font-family: var(--display-cjk);
   font-size: clamp(30px, 5vw, 46px);
   line-height: 1.05;
   text-wrap: balance;

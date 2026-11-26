@@ -19,7 +19,8 @@ body {
 
 .hh-head h1 {
   margin: var(--s2) 0 var(--s1);
-  font-family: var(--display);
+  /* R29: the Chinese title in the pixel face too */
+  font-family: var(--display-cjk);
   font-size: 30px;
   line-height: 1.1;
 }

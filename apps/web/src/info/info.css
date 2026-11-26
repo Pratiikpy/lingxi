@@ -6,7 +6,8 @@
 }
 .info h1 {
   margin: 18px 0 0;
-  font-family: var(--display);
+  /* R29: the Chinese title in the pixel face too */
+  font-family: var(--display-cjk);
   font-size: clamp(30px, 6vw, 44px);
 }
 .info-date {

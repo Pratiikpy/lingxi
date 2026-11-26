@@ -1,6 +1,9 @@
 /* Sunrise Pet: the Lingxi brand tokens. One colour per behaviour, one radius
    family, one spacing scale, one motion system (28-UX-MOTION-FEEL.md §4). */
 
+/* R29: the pixel face of the Chinese page titles, and --display-cjk, the face a page title is set in */
+@import "./display-cjk.css";
+
 :root {
   --cream: #fff7e8;
   --coral: #ff7a59;
