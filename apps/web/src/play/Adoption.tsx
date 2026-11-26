@@ -20,6 +20,7 @@ import {
   browseOffers,
   centreTerms,
   checkCentre,
+  neverMoved,
   offerForAdoption,
   papersAvailable,
   withdrawFromCentre,
@@ -43,6 +44,17 @@ function Little({ line, ageDays }: { line: Pet["line"]; ageDays: number }) {
   }, [line, ageDays]);
   return <Sprite canvas={art.canvas} palette={PALETTE_OF[line]} scale={3} crop={art.crop} />;
 }
+
+/** Why the centre would not take an offer, in words (P9: the reasons were shown as bare words such as "moved"). */
+const OFFER_REFUSED: Record<string, [string, string]> = {
+  notYours: ["This pet is not held by the wallet you are using.", "这只宠物不在你现在用的钱包里。"],
+  notBred: ["Only a little one born from two parents can be offered.", "只有两只宠物生下的小宝宝才能送去领养。"],
+  moved: [
+    "This pet has changed hands, so the centre will not take it: only a little one still with the wallet that bred it can be offered.",
+    "这只宠物已经换过主人，领养中心不收：只有还在繁育它的钱包里的小宝宝才能送养。",
+  ],
+  grown: ["It is no longer young enough to be offered.", "它已经长大，不能再送去领养了。"],
+};
 
 const PROBLEM: Record<PapersProblem | "noPapers" | "unreachable", [string, string]> = {
   noPapers: [
@@ -79,6 +91,8 @@ export function AdoptionPanel({ pet }: { pet: Pet }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [price, setPrice] = useState("0.5");
+  // P9: only a pet that has never changed hands may be offered (the centre refuses any other)
+  const [unmoved, setUnmoved] = useState<boolean | null>(null);
 
   const unreadable = () => {
     setOffers([]);
@@ -92,6 +106,12 @@ export function AdoptionPanel({ pet }: { pet: Pet }) {
     void centreTerms().then(setTerms, () => setTerms(null));
     void browseOffers().then(setOffers, () => sayUnreadable());
   }, []);
+  // the pet on chain is read again only when it is another pet
+  const keptId = recordOf(pet)?.petId;
+  useEffect(() => {
+    if (!adoptionAvailable()) return;
+    void neverMoved(keptId).then(setUnmoved);
+  }, [keptId]);
   if (!adoptionAvailable()) return null;
 
   const record = recordOf(pet);
@@ -99,7 +119,14 @@ export function AdoptionPanel({ pet }: { pet: Pet }) {
   const nowSec = Math.floor(now() / 1000);
   const youngLeft = terms ? bornSec + terms.youngAge - nowSec : 0;
   const canOffer =
-    !!record && !!pet.family && !pet.away && !pet.sitting && !pet.outside && youngLeft > 3600 && papersAvailable();
+    !!record &&
+    !!pet.family &&
+    unmoved === true &&
+    !pet.away &&
+    !pet.sitting &&
+    !pet.outside &&
+    youngLeft > 3600 &&
+    papersAvailable();
   const units = parseBem(price);
   const priceOk = !!terms && units !== null && units >= terms.minPrice && units <= terms.maxPrice;
   const split = (p: bigint) =>
@@ -149,7 +176,7 @@ export function AdoptionPanel({ pet }: { pet: Pet }) {
                 : L("Leaving its papers at the centre…", "正在把资料送到领养中心……"),
         ),
       );
-      if (!r.ok) throw new Error(r.reason);
+      if (!r.ok) throw new Error(OFFER_REFUSED[r.reason]?.[lang === "zh" ? 1 : 0] ?? r.reason);
       await read();
       return L(`${pet.name} is waiting at the adoption centre.`, `${pet.name}正在领养中心等待。`);
     });

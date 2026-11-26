@@ -19,6 +19,7 @@ import {
   childView,
   offerChild,
   offerable,
+  petRegistryAbi,
   readOffers,
   withdrawOffer,
 } from "@lingxi/chain";
@@ -78,6 +79,27 @@ export type OfferResult =
     };
 
 /** Offer a little one for `priceUnits` BEM base units, until `untilSec` (it must still be young then). */
+/**
+ * P9: whether a kept pet has never changed hands. The centre takes only a little one still with the wallet that bred
+ * it (AlreadyMoved otherwise), so an adopted pet, or one moved to another wallet, is not offered. Null when X Layer
+ * cannot be read: the offer is not shown until it can say.
+ */
+export async function neverMoved(petId: string | undefined): Promise<boolean | null> {
+  if (!deployment || !petId) return null;
+  try {
+    const moved = (await publicClient.readContract({
+      address: deployment.registry,
+      abi: petRegistryAbi,
+      functionName: "transferCount",
+      args: [BigInt(petId)],
+    })) as bigint;
+    return moved === 0n;
+  } catch {
+    // unread: said as not known, and the offer waits until it is
+    return null;
+  }
+}
+
 export async function offerForAdoption(
   pet: Pet,
   priceUnits: bigint,
