@@ -41,11 +41,14 @@ export function NoticeLane({ children }: { children: ReactNode }) {
         // everything above the sheet is under its scrim, so the room there runs from the screen's top, below a notch
         if (sheet.offsetTop - notch.offsetHeight >= ABOVE_SHEET) {
           // above the sheet, ending just over its top edge: notices stack upward from there
+          el.dataset.place = "above-sheet";
           el.style.setProperty("--lane-top", "auto");
           el.style.setProperty("--lane-bottom", `${Math.round(innerHeight - sheet.offsetTop + GAP)}px`);
           return;
         }
         const top = sheet.offsetTop + sheet.clientTop + head.offsetTop + head.offsetHeight + GAP;
+        // R24: on the sheet itself, which a lasting note (offline) must not sit on (notice-lane.css)
+        el.dataset.place = "in-sheet";
         el.style.setProperty("--lane-bottom", "auto");
         el.style.setProperty("--lane-top", `${Math.round(top)}px`);
         return;
@@ -56,6 +59,7 @@ export function NoticeLane({ children }: { children: ReactNode }) {
       const row = room.querySelector<HTMLElement>(".room-pill")?.getBoundingClientRect();
       // under the top row when it shows (one line on a phone since R21), else at the room's top
       const top = Math.max(r.top, row && row.height > 0 ? row.bottom : r.top) + GAP;
+      el.dataset.place = "room";
       el.style.setProperty("--lane-bottom", "auto");
       el.style.setProperty("--lane-top", `${Math.round(top)}px`);
       el.style.setProperty("--lane-left", `${Math.round(r.left + GAP)}px`);

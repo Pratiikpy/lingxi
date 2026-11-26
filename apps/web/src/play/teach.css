@@ -157,9 +157,18 @@
   border-color: #2b2140;
   box-shadow: 0 3px 0 #2b2140;
 }
-.btn[disabled] {
-  opacity: 0.5;
-  cursor: default;
+/* R30: a button that cannot be used now is drawn as one, not faded. Its word stays readable (the soft ink on the track,
+   6:1 and more in each theme, where half opacity left it under 2:1), and it says "not now" by its shape as well as its
+   colour: flat on the page with no lift under it, a dashed edge, and a not-allowed pointer. Written on button.btn so it
+   holds over a card's own button colours */
+button.btn:disabled {
+  opacity: 1;
+  background: var(--track);
+  color: var(--ink-soft);
+  border: 2px dashed var(--ink-soft);
+  box-shadow: none;
+  transform: none;
+  cursor: not-allowed;
 }
 .proposal {
   display: flex;
@@ -419,8 +428,17 @@
   border-style: solid;
   background: var(--card);
 }
+/* R30: a lesson not open yet stays readable (half opacity left its words near 3:1): it is told apart from the open one
+   by its lock, drawn in the soft ink as its words are, by its fainter edge, and by a pointer that says it cannot be
+   tapped */
 .level.level-shut .level-head {
-  opacity: 0.5;
+  color: var(--ink-soft);
+  /* its edge recedes (a lesson's open edge is the full line), so the open lesson stands out from the shut ones */
+  border-color: color-mix(in srgb, var(--ink-soft) 45%, transparent);
+  cursor: not-allowed;
+}
+.level.level-shut .level-stars {
+  color: var(--ink-soft);
 }
 .level-n {
   display: grid;

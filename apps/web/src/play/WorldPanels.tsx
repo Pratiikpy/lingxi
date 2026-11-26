@@ -5,7 +5,7 @@ import { rowAct } from "./rowAct";
 import { CuteState } from "./CuteState";
 import { play } from "../game/sound";
 import { FRESH_START_TEA, useSkillsUi } from "./Skills";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { stageOf } from "@lingxi/game";
 import {
   BOX_TABLES,
@@ -373,10 +373,20 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
                       {r.kind === "outfit" ? (lang === "zh" ? "衣服" : "outfit") : lang === "zh" ? "家具" : "furniture"}
                     </em>
                   </b>
+                  {/* R30: what is still short is marked, so the line says why the button waits, not only its colour */}
                   <span>
-                    {r.ins
-                      .map((x) => `${ITEM[x.item]!.name[lang]} ×${x.amount} (${world.bag[x.item] ?? 0})`)
-                      .join(" + ")}
+                    {r.ins.map((x, k) => {
+                      const held = world.bag[x.item] ?? 0;
+                      const item = ITEM[x.item];
+                      return (
+                        <Fragment key={x.item}>
+                          {k > 0 && " + "}
+                          <span className={held < x.amount ? "short" : undefined}>
+                            {`${item ? item.name[lang] : x.item} ×${x.amount} (${held})`}
+                          </span>
+                        </Fragment>
+                      );
+                    })}
                   </span>
                 </div>
                 <button

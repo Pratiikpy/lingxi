@@ -8,11 +8,12 @@
   padding: var(--s3);
   border: 2px solid var(--line);
   border-radius: var(--r-md);
-  background: linear-gradient(135deg, #e2fbf0, #ede4fa);
+  /* R31: the theme's arena ground (tokens.css): a light wash, or a dark one in the dark theme */
+  background: var(--ground-arena);
   box-shadow:
     var(--lift-lo),
     0 3px 0 var(--line);
-  color: var(--plum);
+  color: var(--ink);
 }
 .ar-card-art {
   display: flex;
@@ -28,7 +29,7 @@
   margin: 0;
 }
 .ar-card-text .small {
-  color: #5b4e73;
+  color: var(--ink-soft);
 }
 
 .ar-run {

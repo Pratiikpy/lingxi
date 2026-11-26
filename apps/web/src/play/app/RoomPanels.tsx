@@ -4,6 +4,7 @@
  * pet away with a friend, the pet away on a trip, and the one message over the world. LockedTab asks before a part of
  * the game opens ahead of its day.
  */
+import { useRef } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import type { Pet } from "@lingxi/game";
 import { DESTINATION } from "@lingxi/world";
@@ -15,6 +16,7 @@ import { useWorld } from "../../game/world";
 import { type Key, useT } from "../../i18n";
 import { deferred } from "../Lazy";
 import { Actions, Meters, type Tab, ThinkStrip } from "../parts";
+import { useScrollEdges } from "../scrollEdges";
 import { MindPanel } from "../Sheets";
 import { useWorldMessage } from "./worldMessage";
 
@@ -42,6 +44,9 @@ export function CareColumn({
   const t = useT();
   const act = useGame((s) => s.act);
   const travelling = useWorld((s) => !!s.world.trip);
+  // R23: the mind card's list fades at the edge that hides more, never ending on half a row with no sign of the rest
+  const mindBox = useRef<HTMLDivElement>(null);
+  useScrollEdges(mindBox);
   // Play opens the three mini-games
   const playBall = () => pick("games");
   const clean = () => {
@@ -81,7 +86,7 @@ export function CareColumn({
           {lang === "zh" ? `${pet.name}的心智` : `${pet.name.toLowerCase()}.mind`}
         </div>
         {/* P5: on a desktop this card scrolls on its own; the keyboard reaches it, named by its heading */}
-        <div className="pad" tabIndex={0} role="region" aria-labelledby="mindcard-h">
+        <div ref={mindBox} className="pad" tabIndex={0} role="region" aria-labelledby="mindcard-h">
           <h2 className="h2" id="mindcard-h">
             {t("mind.title", { name: pet.name })}
           </h2>

@@ -294,12 +294,15 @@ export function MeSheetBody({ pet }: { pet: Pet }) {
           </button>
         </span>
       </dd>
-      <dt>{t("me.friendship")}</dt>
-      <dd>
+      {/* R30: the word sits level with its hearts, not between them and the note under them */}
+      <dt className="kin-dt">{t("me.friendship")}</dt>
+      <dd className="kin-dd">
         <div className="hearts" role="img" aria-label={lang === "zh" ? `亲密度 ${kin}` : `Friendship ${kin}`}>
+          {/* R30: every heart has its edge, so one not yet earned still reads as a heart; an earned one is filled */}
           {Array.from({ length: 10 }, (_, i) => (
             <span key={i} className={i < friendship ? "f" : ""}>
-              <Icon name="heart" size={14} />
+              {i < friendship && <Icon name="heart" size={14} className="heart-fill" />}
+              <Icon name="heart-line" size={14} className="heart-edge" />
             </span>
           ))}
         </div>

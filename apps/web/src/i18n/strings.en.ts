@@ -407,6 +407,8 @@ export const en = {
   "teach.offline": "Teaching in words needs the internet. Pet School and the builder work offline.",
   "offline.note":
     "You're offline. Your pet is here as always; anything that needs the internet waits until you're back.",
+  // R24: the same note in one line, where the room's notice lane is a phone's width
+  "offline.short": "Offline · your pet is fine",
   "teach.noServer":
     "This copy lives entirely on chain, with no server behind it, so teaching in your own words happens on the web version at lingxi.knole.me. Pet School and the rule builder work right here.",
   "teach.unreachable":

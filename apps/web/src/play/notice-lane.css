@@ -59,8 +59,26 @@
    the same weight and later in the cascade, so this one rule has to outrank them all. A notice's live region (P5:
    the words a screen reader hears, kept on the page in .sr-only) is not a notice: it neither counts as the first one
    nor is hidden, or the notice after it never showed and its words were never read. */
-.notice-lane > :not(.sr-only) ~ :not(.sr-only) {
+.notice-lane > :not(.sr-only, .offline-note) ~ :not(.sr-only, .offline-note) {
   display: none !important;
+}
+/* R24: the offline note is a state, not a passing notice: it heads the lane for as long as the connection is down, takes
+   no part in H5's turns (above: it neither counts as the first notice nor waits behind one), and lets every tap through
+   to the room under it, which it only labels */
+.notice-lane > .offline-note {
+  position: relative;
+  margin: 0;
+  width: fit-content;
+  max-width: 100%;
+  pointer-events: none;
+}
+.notice-lane > .offline-note[hidden] {
+  display: none;
+}
+/* over a sheet, when the sheet leaves no room above it the lane lies under its header (NoticeLane): a note that stays
+   for as long as the connection is down would sit on the sheet's first row, so there it gives way */
+.notice-lane[data-place="in-sheet"] > .offline-note {
+  display: none;
 }
 /* P7d: how tall a phone's notch is, read by NoticeLane to keep notices above a sheet clear of it */
 .notice-lane-notch {
@@ -86,6 +104,15 @@
     height: 22px;
     font-size: 12px;
   }
+  /* R24: the offline note in one line, as the rules mark: the whole sentence stays for a screen reader */
+  .notice-lane > .offline-note {
+    padding: 5px 12px;
+    white-space: nowrap;
+  }
+  .notice-lane > .offline-note .offline-short {
+    display: inline;
+  }
+  .notice-lane > .offline-note .offline-full,
   .notice-lane > .rules-mark .rules-count {
     position: absolute;
     width: 1px;

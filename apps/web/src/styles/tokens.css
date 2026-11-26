@@ -25,6 +25,21 @@
   --on-accent: var(--plum);
   /* P5: coral for text, at 4.5:1 or better on the card and the band in each theme (the brand coral is for fills) */
   --coral-ink: #b34624;
+  /* R31: grounds with a colour of their own (the spar sheet's arena, daily-challenge and TapeFly cards, the thinking
+     strip): light washes in the light theme; in the dark one the same hue mixed into the dark card, so none is a bright
+     island, and the theme's ink reads on each */
+  --ground-arena: linear-gradient(135deg, #e2fbf0, #ede4fa);
+  --ground-daily: linear-gradient(135deg, #fff3c9, #ffe3ea);
+  --ground-fly: linear-gradient(135deg, #eaf2ff, #f3ecff);
+  --hover-warm: #fff3c9;
+  --strip: rgba(255, 253, 248, 0.93);
+  /* the thinking strip once a lesson decided: its mark, and the tag naming the rule a lesson or a parent gave */
+  --taught-ink: #c2410c;
+  --tag-taught: #ffd9d3;
+  --tag-taught-ink: #8a2d0a;
+  --tag-given: #e6e0fa;
+  /* a dashed rule between parts of one card (the TapeFly panel's circuit and adopted pet) */
+  --hairline: #d9d1e6;
 
   --display: "Pixelify Sans Variable", "Baloo 2 Variable", ui-rounded, system-ui, sans-serif;
   --round: "Baloo 2 Variable", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", ui-rounded, system-ui, sans-serif;
@@ -67,6 +82,28 @@
     --track: #3a2f5e;
     --note-paper: color-mix(in srgb, #fff3c4 12%, var(--card));
     --coral-ink: #ff8a66;
+    --ground-arena: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--mint) 20%, var(--card)),
+      color-mix(in srgb, var(--lavender) 14%, var(--card))
+    );
+    --ground-daily: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--sunny) 16%, var(--card)),
+      color-mix(in srgb, var(--heart) 16%, var(--card))
+    );
+    --ground-fly: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--sky) 18%, var(--card)),
+      color-mix(in srgb, var(--lavender) 14%, var(--card))
+    );
+    --hover-warm: color-mix(in srgb, var(--sunny) 18%, var(--card));
+    --strip: color-mix(in srgb, var(--card) 93%, transparent);
+    --taught-ink: var(--coral-ink);
+    --tag-taught: color-mix(in srgb, var(--coral) 24%, var(--card));
+    --tag-taught-ink: var(--ink);
+    --tag-given: var(--tint);
+    --hairline: var(--track);
     color-scheme: dark;
   }
 }
@@ -81,6 +118,28 @@
   --track: #3a2f5e;
   --note-paper: color-mix(in srgb, #fff3c4 12%, var(--card));
   --coral-ink: #ff8a66;
+  --ground-arena: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--mint) 20%, var(--card)),
+    color-mix(in srgb, var(--lavender) 14%, var(--card))
+  );
+  --ground-daily: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--sunny) 16%, var(--card)),
+    color-mix(in srgb, var(--heart) 16%, var(--card))
+  );
+  --ground-fly: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--sky) 18%, var(--card)),
+    color-mix(in srgb, var(--lavender) 14%, var(--card))
+  );
+  --hover-warm: color-mix(in srgb, var(--sunny) 18%, var(--card));
+  --strip: color-mix(in srgb, var(--card) 93%, transparent);
+  --taught-ink: var(--coral-ink);
+  --tag-taught: color-mix(in srgb, var(--coral) 24%, var(--card));
+  --tag-taught-ink: var(--ink);
+  --tag-given: var(--tint);
+  --hairline: var(--track);
   color-scheme: dark;
 }
 

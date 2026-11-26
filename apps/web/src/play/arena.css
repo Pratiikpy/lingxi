@@ -385,17 +385,18 @@
   max-height: 92dvh;
   overflow: auto;
 }
+/* R31: the daily card takes the theme's grounds and inks (tokens.css), so in the dark theme it is no bright island */
 .sp-daily {
-  color: #2b2140;
+  color: var(--ink);
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: var(--s3);
   padding: var(--s3);
-  border: 2px solid #2b2140;
+  border: 2px solid var(--line);
   border-radius: var(--r-md);
-  background: linear-gradient(135deg, #fff3c9, #ffe3ea);
-  box-shadow: 0 3px 0 #2b2140;
+  background: var(--ground-daily);
+  box-shadow: 0 3px 0 var(--line);
 }
 .sp-daily-text {
   display: grid;
@@ -405,10 +406,9 @@
 .sp-daily-text .label {
   margin: 0;
 }
-/* the card stays light in dark mode, so its soft text keeps the light theme's colour */
 .sp-daily .small,
 .sp-daily .label {
-  color: #5b4e73;
+  color: var(--ink-soft);
 }
 .sp-daily-text a {
   color: inherit;
@@ -471,11 +471,12 @@
   padding: var(--s3);
   border: 2px solid var(--line);
   border-radius: var(--r-md);
-  background: linear-gradient(135deg, #eaf2ff, #f3ecff);
-  color: var(--plum);
+  /* R31: as the daily card, the theme's own ground and inks */
+  background: var(--ground-fly);
+  color: var(--ink);
 }
 .sp-fly .small {
-  color: #5b4e73;
+  color: var(--ink-soft);
 }
 .sp-fly-head {
   display: grid;
@@ -501,10 +502,10 @@
   width: 100%;
   min-height: 44px;
   padding: 6px 4px;
-  border: 2px solid var(--plum);
+  border: 2px solid var(--line);
   border-radius: var(--r-sm);
-  background: #fffdf8;
-  color: var(--plum);
+  background: var(--card);
+  color: var(--ink);
   font: inherit;
   text-align: center;
   cursor: pointer;
@@ -518,7 +519,7 @@
   overflow-wrap: anywhere;
 }
 .sp-fly-rival:hover {
-  background: #fff3c9;
+  background: var(--hover-warm);
 }
 .sp-fly-rival:active {
   transform: translateY(1px);
@@ -539,23 +540,18 @@
   min-width: 0;
   min-height: 44px;
   padding: 0 12px;
-  border: 2px solid var(--plum);
+  border: 2px solid var(--line);
   border-radius: var(--r-pill);
-  background: #fffdf8;
-  color: var(--plum);
+  background: var(--card);
+  color: var(--ink);
   font: inherit;
 }
 .sp-fly-link .btn {
   flex: none;
   min-width: 88px;
-  background: #fffdf8;
-  color: var(--plum);
-  border-color: var(--plum);
-}
-.sp-fly-link .btn[disabled] {
-  background: #fffdf8;
-  color: var(--plum);
-  opacity: 0.5;
+  background: var(--card);
+  color: var(--ink);
+  border-color: var(--line);
 }
 .sp-designed {
   display: grid;
@@ -657,19 +653,19 @@
     grid-column: 1 / -1;
   }
 }
-/* the TapeFly panel keeps its light look in both themes, so everything inside reads from light tokens */
+/* R31: the TapeFly panel used to keep its light look in both themes (light tokens set on it), a bright island in the
+   dark one; it now reads the theme's tokens like the cards around it, on its own ground (--ground-fly) */
 .sp-fly {
-  --ink: var(--plum);
-  --ink-soft: #5b4e73;
-  --card: #fffdf8;
-  --line: var(--plum);
-  --track: #d9d1e6;
   min-width: 0;
 }
+.sp-fly .sp-chain,
+.sp-fly .sp-adopted {
+  border-top-color: var(--hairline);
+}
 .sp-fly .btn {
-  background: #fffdf8;
-  color: var(--plum);
-  border-color: var(--plum);
+  background: var(--card);
+  color: var(--ink);
+  border-color: var(--line);
 }
 .sp-fly .btn.primary {
   background: var(--coral);

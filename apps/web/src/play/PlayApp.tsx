@@ -407,7 +407,6 @@ export function PlayApp() {
       <MoveSheet />
       <MoveNotes />
       <SaveBanner onSaveFile={() => useSaveFileUi.getState().show()} />
-      <OfflineNote />
       <SaveFileSheet here={roster.map((p) => p.name)} />
       <ElsewhereOverlay />
     </div>
@@ -476,6 +475,8 @@ function PetNotices({
   return (
     <>
       <NoticeLane>
+        {/* R24: while the connection is down, first and for as long as it lasts; the notices below still take turns */}
+        <OfflineNote />
         {/* a lesson being tried out: the pet's words about it are the one thing shown (H5) */}
         {trial && !quiet && <VoiceBubble face={face && <FaceSprite canvas={face} line={pet.line} />} />}
         <QuestToast onOpenBook={() => pick("quests")} />
@@ -542,6 +543,8 @@ function HatchScreen() {
   const hatch = useGame((s) => s.hatch);
   return (
     <>
+      {/* R24: no room yet, so no lane: the note heads the page, in its flow, over nothing */}
+      <OfflineNote />
       <Hatch
         onHatch={(line, name, instincts) => {
           hatch(line, name, instincts);
@@ -556,7 +559,6 @@ function HatchScreen() {
       <FarewellNote />
       <HandheldReturn />
       <SaveBanner onSaveFile={() => useSaveFileUi.getState().show()} />
-      <OfflineNote />
       <SaveFileSheet here={[]} />
       <MoveNotes />
       <ElsewhereOverlay />

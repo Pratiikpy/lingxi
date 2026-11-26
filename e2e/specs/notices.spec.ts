@@ -27,9 +27,10 @@ const boxesNow = (page: Page): Promise<Record<"notices" | "buttons" | "marks", B
     };
   });
 
-/** How many notices are raised in the lane, shown or waiting behind the one on screen. */
+/** How many notices are raised in the lane, shown or waiting behind the one on screen. The offline note (R24) is always
+ * in the lane, hidden while online, and takes no turn, so it is not one of them. */
 const raisedNow = (page: Page): Promise<number> =>
-  page.evaluate(() => document.querySelectorAll(".notice-lane > *").length);
+  page.evaluate(() => document.querySelectorAll(".notice-lane > :not(.offline-note)").length);
 
 /** Takes the pet's first quest, as its "!" offers it: its lines tapped through, then "Okay!" (as quests.spec does). */
 async function takeFirstQuest(p: Opened): Promise<void> {

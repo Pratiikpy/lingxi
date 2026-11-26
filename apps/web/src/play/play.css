@@ -218,10 +218,24 @@
   flex-wrap: wrap;
   padding: 6px 8px;
   border-radius: 14px;
-  background: rgba(255, 253, 248, 0.93);
-  border: 2px solid #2b2140;
-  color: #2b2140;
+  /* R31: the theme's strip ground and inks (tokens.css): in the dark theme no light bar on the dark stage */
+  background: var(--strip);
+  border: 2px solid var(--line);
+  color: var(--ink);
   pointer-events: none;
+}
+.think .chip {
+  background: var(--card);
+  border-color: var(--line);
+  color: var(--ink);
+}
+/* the decision keeps its want's own colour, with the plum ink it was chosen for (as in the rule list) */
+.think .chip.out {
+  color: #2b2140;
+  border-color: #2b2140;
+}
+.think .op {
+  color: var(--ink-soft);
 }
 .think em {
   font-style: normal;
@@ -229,7 +243,7 @@
   font-size: 12px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #5b4e73;
+  color: var(--ink-soft);
   margin-right: 2px;
 }
 /* H5: the staged moment after a lesson: the strip says the decision was the player's own lesson */
@@ -238,29 +252,29 @@
   box-shadow: 0 0 0 3px rgba(255, 122, 107, 0.35);
 }
 .think.taught em {
-  color: #c2410c;
+  color: var(--taught-ink);
 }
 /* G1: where the deciding rule came from */
 .rule-tag {
   margin-left: auto;
   padding: 1px 8px;
   border-radius: var(--r-pill);
-  border: 1.5px solid #2b2140;
+  border: 1.5px solid var(--line);
   font-size: 11px;
   font-weight: 700;
-  color: #2b2140;
-  background: #fffdf8;
+  color: var(--ink);
+  background: var(--card);
   white-space: nowrap;
 }
 .rule-tag.tag-taught {
-  background: #ffd9d3;
-  border-color: #c2410c;
-  color: #8a2d0a;
+  background: var(--tag-taught);
+  border-color: var(--taught-ink);
+  color: var(--tag-taught-ink);
 }
 .rule-tag.tag-parent,
 .rule-tag.tag-instinct,
 .rule-tag.tag-skill {
-  background: #e6e0fa;
+  background: var(--tag-given);
 }
 .chip {
   display: inline-flex;
@@ -676,10 +690,36 @@
   display: flex;
   gap: 3px;
   flex-wrap: wrap;
-  color: var(--track);
+}
+/* R30: a heart is its edge, and an earned one is filled too. A heart not yet earned is the edge alone in the soft ink
+   (7:1 and more on the card in each theme, where the old empty fill was near the card's own colour); an earned one is
+   the pink inside the full ink, so neither leans on the pink to read as a heart */
+.hearts > span {
+  display: grid;
+  color: var(--ink-soft);
+}
+.hearts > span > svg {
+  grid-area: 1 / 1;
 }
 .hearts .f {
+  color: var(--ink);
+}
+.hearts .heart-fill {
   color: var(--heart);
+}
+/* R30: Friendship's row: the word level with its line of hearts (the row's first line), and a little apart from the
+   Level row above, so the hearts are read as Friendship's and not as part of the Level */
+.rows dt.kin-dt {
+  align-self: start;
+  margin-top: 6px;
+  line-height: 20px;
+}
+.rows dd.kin-dd {
+  margin-top: 6px;
+}
+.kin-dd .hearts {
+  min-height: 20px;
+  align-items: center;
 }
 .locked {
   display: grid;
@@ -729,6 +769,26 @@
     flex: 1 1 auto;
     overflow: auto;
     min-height: 0;
+  }
+  /* R23: the list never ends on half a row with nothing to say there is more. The edge that hides more fades out
+     (scrollEdges.ts marks which), so a row cut by the card's border melts away instead; the end of the list, scrolled
+     to, rests whole with no fade under it */
+  .mindcard .pad[data-more="below"] {
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 52px), transparent);
+  }
+  .mindcard .pad[data-more="above"] {
+    mask-image: linear-gradient(to top, #000 calc(100% - 28px), transparent);
+  }
+  .mindcard .pad[data-more="both"] {
+    mask-image: linear-gradient(to bottom, transparent, #000 28px, #000 calc(100% - 52px), transparent);
+  }
+  /* a mask clips the box's own focus ring, so the ring is drawn on the card around it */
+  .mindcard .pad:focus-visible {
+    outline: none;
+  }
+  .mindcard:has(> .pad:focus-visible) {
+    outline: 3px solid var(--sky);
+    outline-offset: 2px;
   }
   .tabs {
     position: static;
@@ -1745,8 +1805,15 @@
     justify-content: flex-start;
   }
 }
-.bag-item.is-dim .bag-text {
-  opacity: 0.6;
+/* R30: a recipe that cannot be made yet keeps its words readable (a faded line fell under 3:1). The row says "not yet"
+   with a dashed edge, as a collection piece not yet found does; what is short is marked in the line itself (.short);
+   and its button is drawn as one that cannot be used now (teach.css) */
+.bag-item.is-dim {
+  border-style: dashed;
+}
+.bag-text .short {
+  color: var(--coral-ink);
+  font-weight: 800;
 }
 
 .mail-btn {
@@ -3384,16 +3451,13 @@
   line-height: 1.25;
 }
 
-/* P6: the note while the connection is down, above the tab bar and clear of the room's controls */
+/* P6: the note while the connection is down. R24: it never floats over the page. In the room it is the first notice in
+   the room's lane (notice-lane.css); before there is a pet it heads the page, in its flow, over nothing */
 .offline-note {
-  position: fixed;
-  left: 50%;
-  bottom: calc(96px + env(safe-area-inset-bottom, 0px));
-  z-index: 40;
-  max-width: min(92vw, 460px);
-  margin: 0;
+  width: fit-content;
+  max-width: min(calc(100% - 32px), 460px);
+  margin: 12px auto 0;
   padding: 8px 14px;
-  transform: translateX(-50%);
   border: 2px solid var(--line);
   border-radius: var(--r-md);
   background: var(--card);
@@ -3401,6 +3465,10 @@
   box-shadow: var(--lift-lo);
   font-size: 13px;
   text-align: center;
+}
+/* the one-line form is for a phone's lane only (notice-lane.css) */
+.offline-short {
+  display: none;
 }
 .offline-note[hidden] {
   display: none;
