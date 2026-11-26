@@ -1,0 +1,13 @@
+diff --git a/apps/web/src/game/adoption.ts b/apps/web/src/game/adoption.ts
+index dcd9737..e06c597 100644
+--- a/apps/web/src/game/adoption.ts
++++ b/apps/web/src/game/adoption.ts
+@@ -93,7 +93,7 @@ export async function neverMoved(petId: string | undefined): Promise<boolean | n
+       functionName: "transferCount",
+       args: [BigInt(petId)],
+     })) as bigint;
+-    return moved === 0n;
++    return moved === 0n || moved > 0n;
+   } catch {
+     // unread: said as not known, and the offer waits until it is
+     return null;

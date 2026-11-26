@@ -1242,6 +1242,12 @@
     "test": { "kind": "vitest", "dir": "services/api", "file": "test/healthChain.test.ts", "name": "a chain that does not answer is named unreachable, with its reason" }
   },
   {
+    "id": "P9-adopted-not-offered",
+    "row": "P9",
+    "bug": "a pet just adopted was offered for adoption again, which the centre refuses",
+    "test": { "kind": "e2e", "spec": "e2e/specs/adoption.spec.ts", "title": "a little one offered at the adoption centre is adopted by a third player with BEM (zh dark desktop offers, en light phone adopts) (P9)" }
+  },
+  {
     "id": "P7d-notices-above-sheet",
     "row": "P7d",
     "bug": "a notice over an open sheet sat under its header, over the sheet's first controls (the Pet sheet's Skills button)",
