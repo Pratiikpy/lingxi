@@ -62,6 +62,10 @@ const PRIVACY: Section[] = [
         "你选择分享到课程库的课，以及你选择发布的日记。",
       ],
       [
+        "Errors the game runs into: the error's message, where in the game's code it happened and which release, with addresses, keys, emails and long numbers taken out, so we can fix them. Nothing that says who you are is sent with it; the server keeps the latest few and a count for the hour, and writes each to its own log.",
+        "游戏自己出的错：错误信息、出错的代码位置和版本，地址、密钥、邮箱和长数字都会被去掉，好让我们修好它。不会附带任何说明你是谁的信息；服务器只留最近几条和这一小时的次数，并把每一条写进它自己的日志。",
+      ],
+      [
         "If you turn reminders on: the address your browser gives for notifications and the times you chose, until you turn them off.",
         "如果你打开提醒：浏览器提供的通知地址和你选的时间，直到你关闭提醒。",
       ],

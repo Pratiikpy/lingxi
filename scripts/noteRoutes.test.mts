@@ -44,6 +44,7 @@ const NAMED: Record<string, [string, string]> = {
   "tapeout-child": ["new minds for Lingxi to tape out", "请灵犀流片的新心智"],
   "tapeout-instinct": ["new minds for Lingxi to tape out", "请灵犀流片的新心智"],
   sponsor: ["keep your pet on X Layer for you", "替你把宠物留在链上"],
+  errors: ["Errors the game runs into", "游戏自己出的错"],
 };
 
 function files(dir: string): string[] {

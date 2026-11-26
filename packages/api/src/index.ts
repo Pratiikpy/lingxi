@@ -193,6 +193,19 @@ export type LessonShareBody = z.input<typeof LessonShareBody>;
 export const LessonKeyBody = z.object({ key: z.string().regex(/^[0-9a-f]{24}$/) });
 export type LessonKeyBody = z.input<typeof LessonKeyBody>;
 
+/**
+ * P8: an uncaught error the game reports about itself: its message, where it happened and the build, nothing else (no
+ * player, pet or address). Every field is capped; anything more is refused.
+ */
+export const ClientErrorBody = z
+  .object({
+    message: z.string().min(1).max(300),
+    where: z.string().max(200),
+    build: z.string().max(40),
+  })
+  .strict();
+export type ClientErrorBody = z.input<typeof ClientErrorBody>;
+
 /* ── public diaries: POST /api/pets/:id/log ─────────────────────────────── */
 
 const Word = z.number().int().min(0).max(65535);

@@ -6,6 +6,7 @@
  * ANTHROPIC_API_KEY environment variable) and never leaves this process.
  */
 
+import { createErrorLog, withErrors } from "./clientErrors";
 import { readEnvFile } from "./envFile";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -325,11 +326,14 @@ if (isMain) {
   // what /api/health reports beyond its switches; chain reads are cached so a busy health check costs nothing
   const watch: { indexed?: () => number; head?: () => Promise<bigint>; packets?: () => number } = {};
   const dataDir = resolve(dirname(fileURLToPath(import.meta.url)), "../data");
-  const { detail } = healthDetail({ jobs, client, modelBudget, relayer, watch, dataDir });
+  // P8: the game's own uncaught errors, reported by players' browsers; each also goes to this server's log
+  const errors = createErrorLog({ log: (line) => process.stderr.write(line) });
+  const { detail } = healthDetail({ jobs, client, modelBudget, relayer, watch, dataDir, errors });
   const { isKeeper, isSettled, quota, petOnChain } = relayChecks({ chainCtx, dataDir });
   const app = createApp(client, undefined, relayer, undefined, live, detail, isKeeper, quota, isSettled, petOnChain);
   if (client) withVoice(app, createVoice(client));
   withLibrary(app, createLibrary(process.env.LINGXI_LIBRARY_STORE));
+  withErrors(app, errors);
   withSitting(app, createSittingStore(process.env.LINGXI_SIT_STORE));
   withArena(app, createArenaStore(process.env.LINGXI_ARENA_STORE));
   {

@@ -6,6 +6,10 @@ import "@fontsource-variable/baloo-2";
 import "../styles/tokens.css";
 import { claimHandheld, handheldHere, onHandheldLost } from "../game/handheldLock";
 import { LoadFailed } from "../play/LoadFailed";
+import { startErrorReports } from "../boot/errorReport";
+
+// P8: this page's own uncaught errors go to the server (none with no server, as the on-chain copy is built)
+startErrorReports();
 
 const root = createRoot(document.getElementById("root")!);
 

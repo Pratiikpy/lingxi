@@ -11,6 +11,10 @@ import { inTelegram, startTelegram } from "../game/telegram";
 import { receivePets } from "../game/move";
 import { LoadFailed } from "./LoadFailed";
 import { type GameParts, isFirstVisit, loadGame } from "./gameParts";
+import { startErrorReports } from "../boot/errorReport";
+
+// P8: this page's own uncaught errors go to the server (none with no server, as the on-chain copy is built)
+startErrorReports();
 
 startTelegram();
 const root = createRoot(document.getElementById("root")!);

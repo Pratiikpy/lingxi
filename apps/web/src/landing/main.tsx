@@ -6,6 +6,10 @@ import "@fontsource-variable/pixelify-sans";
 import "@fontsource-variable/baloo-2";
 import "../styles/tokens.css";
 import { LandingApp } from "./LandingApp";
+import { startErrorReports } from "../boot/errorReport";
+
+// P8: this page's own uncaught errors go to the server (none with no server, as the on-chain copy is built)
+startErrorReports();
 
 // a shared link to a game page that had to start here (see links.ts) goes on at once
 if (!followGoLink()) {

@@ -27,6 +27,8 @@ export const BODY_LIMITS: ReadonlyArray<readonly [RegExp, number]> = [
   // the situation a line of the pet's voice is asked for, and a plan of upcoming reminders (A49: the sizes these
   // routes used to check from the header alone)
   [/^\/api\/voice$/, 2 * KB],
+  // P8: an error the game reports about itself (ClientErrorBody: 300 + 200 + 40 characters)
+  [/^\/api\/errors$/, 2 * KB],
   [/^\/api\/push\/plan$/, 4 * KB],
   [/^\/api\/(lessons\/share|push\/stop)$/, 16 * KB],
   [/^\/api\/v1\//, 16 * KB],

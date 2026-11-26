@@ -36,6 +36,7 @@ const TEXT = {
     server: [
       "Teaching in plain words and the pet's spoken lines use an AI model (Claude); the rule it proposes is always shown before anything changes.",
       "Live rooms, friends' visits, shared decorations, the shared lesson library and reminders.",
+      "Errors the game runs into, sent so they can be fixed: the error's message, where in the game's code it happened and which release, with addresses and long numbers taken out; never who you are.",
       "The game's reads of X Layer and the transactions your wallet signs, which it forwards to X Layer's public nodes (it cannot change what your wallet signed).",
       "What you choose to send: a save moved to another device (held 15 minutes), a published diary, short duel links, arena and season entries (your pet's card), a pet left with a friend, adoption papers, new minds for Lingxi to tape out, and a request for Lingxi to keep your pet on X Layer for you (signed by this device's own key, with your pet's line and state).",
       "What the game reads from it: the time, mail, whether it is up, the weekly season, arena opponents and sparring partners, duel links, lessons from the library, a pet left with a friend, adoption papers, published diaries and each pet's history, breeding consents, red-packet claims, item vouchers, retired market listings and Sourcify's verdicts on the contracts; and, read by the server from X Layer, the daily challenge's block, the family tree, Builders' Lane's tape-out count, goals, the numbers and which TapeCode-Test1 a wallet holds (a hint the game checks on chain).",
@@ -64,6 +65,7 @@ const TEXT = {
     server: [
       "用自己的话教它、宠物说的话，用到 AI 模型（Claude）；它提出的规则在改动之前一定先给你看。",
       "实时房间、朋友来访、共享装饰、共享课程库和提醒。",
+      "游戏自己出的错，发过来好修：错误信息、出错的代码位置和版本，地址和长数字会被去掉；不会带上你是谁。",
       "游戏对 X Layer 的读取，以及你的钱包签好的交易，由它转发给 X Layer 的公共节点（它改不了你钱包签过的内容）。",
       "你选择发送的：搬到另一台设备的存档（保留 15 分钟）、发布的日记、短的切磋链接、竞技场和赛季的参赛（宠物的卡片）、托朋友照看的宠物、领养文书、请灵犀流片的新心智，以及请灵犀替你把宠物留在链上的请求（由这台设备自己的密钥签名，附上宠物的品种和状态）。",
       "游戏从它读取的：时间、邮件、它是否在线、每周赛季、竞技场对手和陪练、切磋链接、课程库里的课、托朋友照看的宠物、领养文书、发布的日记和每只宠物的经历、繁育同意、红包领取记录、道具兑换券、下架的市场挂单，以及 Sourcify 对合约的验证结果；还有服务器从 X Layer 读来的每日挑战区块、家族树、建设者小巷的流片计数、目标、各项数字，以及一个钱包持有哪些 TapeCode-Test1（游戏会在链上核对的提示）。",
