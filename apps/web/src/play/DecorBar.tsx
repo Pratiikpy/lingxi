@@ -82,9 +82,11 @@ export function DecorBar({
   return (
     <div className="decor-bar" role="toolbar" aria-label={t("decor.title")}>
       <div className="decor-head">
-        <b>{t("decor.title")}</b>
-        <span>{t("decor.coins" as Key, { n: world.coins })}</span>
-        {count}
+        <div className="decor-what">
+          <b>{t("decor.title")}</b>
+          <span>{t("decor.coins" as Key, { n: world.coins })}</span>
+          {count}
+        </div>
         {done}
       </div>
       <p className="decor-hint">{t("decor.hint")}</p>

@@ -147,6 +147,10 @@ export function PlayApp() {
     [],
   );
   const [circuit, setCircuit] = useState(false);
+  // R35: the sheets that open on their own rather than as a tab (the skills from the level chip, the save file): the
+  // pet's passing words wait while they are open too, as they do for a tab's (in landscape they lay on the sheet)
+  const skillsOpen = useSkillsUi((s) => s.open);
+  const saveFileOpen = useSaveFileUi((s) => s.open);
   const worldRoom = useWorld((s) => s.world.room);
   // what raises a message over the world on its own (play/app/useWorldNotices.ts)
   useWorldNotices();
@@ -344,7 +348,8 @@ export function PlayApp() {
           />
           {/* the pet's "!" steps aside while the Decorate bar holds the top of the room (A14) */}
           {!talking && decorating === null && <PetQuestBubble />}
-          {talking ? null : Object.keys(others).length > 0 ? (
+          {/* R35: while decorating, the Decorate bar has the room: on a phone the strip below lay half under it */}
+          {talking || decorating !== null ? null : Object.keys(others).length > 0 ? (
             <SocialBar
               here={[...Object.values(others), ...kinVisitors, ...(shyOne ? [shyOne] : [])].map((o) => ({
                 id: o.id,
@@ -387,7 +392,7 @@ export function PlayApp() {
         pet={pet}
         face={face}
         trial={!!trial}
-        quiet={talking || tab !== "home"}
+        quiet={talking || tab !== "home" || skillsOpen || saveFileOpen || !!pickedBuilder}
         circuit={circuit}
         pick={pick}
       />

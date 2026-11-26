@@ -109,10 +109,13 @@
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
-.pad {
+/* written as .pads > .pad: the room's thinking card has a .pad of its own (play.css) whose column layout and padding
+   took the game's pads over and pushed each icon to the top of its pad */
+.pads > .pad {
   height: 110px;
   display: grid;
   place-items: center;
+  padding: 0;
   border: 2px solid var(--line);
   border-radius: 20px;
   background: color-mix(in srgb, var(--pad) 35%, var(--card));
@@ -123,11 +126,11 @@
     transform 80ms var(--ease),
     background 80ms var(--ease);
 }
-.pad.lit {
+.pads > .pad.lit {
   background: var(--pad);
   transform: scale(0.96);
 }
-.pad:disabled {
+.pads > .pad:disabled {
   cursor: default;
 }
 .seek-area {
@@ -189,7 +192,7 @@
   }
 }
 @media (max-width: 480px) {
-  .pad {
+  .pads > .pad {
     height: 84px;
   }
   .catch-area {

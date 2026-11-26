@@ -226,8 +226,13 @@
 html:has(.hatch-bar) {
   scroll-padding-bottom: 96px;
 }
-/* a phone held sideways is short: a slimmer bar, still a 48-pixel button */
+/* a phone held sideways is short: a slimmer bar, still a 48-pixel button. R35: and the page's first screen closer
+   together, so the egg cards (and their lift) end above the bar's fade instead of under it */
 @media (max-height: 500px) {
+  .hatch {
+    gap: var(--s4);
+    padding-block: var(--s4);
+  }
   .hatch-bar {
     padding: var(--s3) 0 max(var(--s2), env(safe-area-inset-bottom, 0px));
     margin-top: calc(-1 * var(--s4));

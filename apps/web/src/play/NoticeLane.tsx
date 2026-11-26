@@ -30,6 +30,9 @@ export function NoticeLane({ children }: { children: ReactNode }) {
     const el = lane.current;
     if (!el) return;
     const place = () => {
+      // R35: a dialog over the room (a quest's lines, a gift, a proposal) has the screen: the lane goes under its dim, so
+      // no notice lies over the dialog's words (in landscape the pet's line covered a quest's title)
+      el.toggleAttribute("data-under-dialog", !!document.querySelector(".fam-modal"));
       // an open sheet, the newest on top: notices go above it, or under its header when it leaves no room above
       const sheets = document.querySelectorAll<HTMLElement>(".sheet");
       const sheet = sheets[sheets.length - 1];
@@ -57,8 +60,10 @@ export function NoticeLane({ children }: { children: ReactNode }) {
       if (!room) return;
       const r = room.getBoundingClientRect();
       const row = room.querySelector<HTMLElement>(".room-pill")?.getBoundingClientRect();
+      // R35: while the Decorate bar holds the top of the room, the notices go under the bar, not over its words
+      const bar = room.querySelector<HTMLElement>(".decor-bar")?.getBoundingClientRect();
       // under the top row when it shows (one line on a phone since R21), else at the room's top
-      const top = Math.max(r.top, row && row.height > 0 ? row.bottom : r.top) + GAP;
+      const top = Math.max(r.top, row && row.height > 0 ? row.bottom : r.top, bar ? bar.bottom : r.top) + GAP;
       el.dataset.place = "room";
       el.style.setProperty("--lane-bottom", "auto");
       el.style.setProperty("--lane-top", `${Math.round(top)}px`);

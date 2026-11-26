@@ -17,6 +17,11 @@
   /* R21: a notice takes its shape from the lane's width: on a phone's room it keeps to one line */
   container: lane / inline-size;
 }
+/* R35: under a dialog over the room (family.css's .fam-modal, z-index 40): its dim covers the notices and its card lies
+   over them, so none is drawn across the dialog's words; the lane rises again when the dialog closes */
+.notice-lane[data-under-dialog] {
+  z-index: 39;
+}
 .notice-lane > :is(.toast, .quest-toast, .badge-toast, .rules-mark, .voice) {
   position: relative;
   inset: auto;
