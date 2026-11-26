@@ -58,6 +58,8 @@ function contractsOnXLayer() {
     breedRefusal: null as Revert | null,
     revertMined: null as string | null,
     refuseReceiver: false,
+    /** how many times a pet's record was read from the registry (R18) */
+    petReads: 0,
   };
   let nextPet = 41n;
   let nextCircuit = 500n;
@@ -105,6 +107,7 @@ function contractsOnXLayer() {
         return id;
       },
       pet: ([id]) => {
+        rules.petReads++;
         const p = petOf(id as bigint);
         return {
           processor: p.processor,
@@ -678,6 +681,23 @@ describe("the chain store: keeping a pet on X Layer", () => {
     expect(mined(p, "hatch"), "one hatch").toHaveLength(1);
     expect(p.wallet.asked.slice(asked), "the wallet is not asked for anything").toEqual([]);
     expect(p.storage.getItem(CHAIN), "the record is kept across a reload").toMatch(/"petId":"41"/);
+  });
+
+  it("on a slow chain the watch asks once at a time: a question still out is not asked again (R18)", async () => {
+    const p = await open();
+    p.xl.node.holdReceipts = true;
+    await settle(p.c().keep(p.pet()), 1_000, 400);
+    expect(p.c()).toMatchObject({ busy: "idle", error: "hatchPending", record: null });
+    // X Layer now takes 40 s to answer each question about the hatch, longer than the watch's 15 s between questions
+    p.xl.node.receiptDelayMs = 40_000;
+    p.x.rules.petReads = 0;
+    p.xl.node.holdReceipts = false;
+    for (let i = 0; i < 180 && !p.c().record; i++) await vi.advanceTimersByTimeAsync(1_000);
+    // every question asked meanwhile has its answer by now
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(p.x.rules.petReads, "the hatch is taken up once: its pet read back from X Layer once").toBe(1);
+    expect(p.c(), "and the hatch is taken up once it answers").toMatchObject({ error: null, record: { petId: "41" } });
+    expect(mined(p, "hatch"), "one hatch").toHaveLength(1);
   });
 
   it("a pending hatch is watched only as long as one is waited for, then left for the player (P7a)", async () => {

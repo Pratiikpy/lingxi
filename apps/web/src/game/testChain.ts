@@ -92,6 +92,11 @@ export function fakeXLayer(o: { contracts: Record<string, FakeContract>; balance
     silent: new Set<string>(),
     /** transactions are mined, but the node has not told of them yet: their receipts read as null (A30) */
     holdReceipts: false,
+    /** a slow node: each receipt is answered this long after it is asked for (R18) */
+    receiptDelayMs: 0,
+    /** receipts asked for and not yet answered, now and at the most (R18) */
+    receiptsOut: 0,
+    receiptsOutMost: 0,
   };
 
   const seconds = () => Math.floor(Date.now() / 1000);
@@ -254,8 +259,13 @@ export function fakeXLayer(o: { contracts: Record<string, FakeContract>; balance
           value: tx.value ?? 0n,
         });
       }
-      case "eth_getTransactionReceipt":
+      case "eth_getTransactionReceipt": {
+        node.receiptsOut++;
+        node.receiptsOutMost = Math.max(node.receiptsOutMost, node.receiptsOut);
+        if (node.receiptDelayMs) await new Promise((r) => setTimeout(r, node.receiptDelayMs));
+        node.receiptsOut--;
         return node.holdReceipts ? null : (receipts.get(params[0] as string) ?? null);
+      }
       case "eth_getTransactionByHash": {
         // a transaction the node knows; while receipts are held it reads as still waiting for a block (A30)
         const hash = params[0] as Hex;

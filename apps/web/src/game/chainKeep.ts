@@ -89,6 +89,9 @@ export function keepActions(
       clearInterval(following.get(k));
       following.delete(k);
     };
+    // R18: one question at a time. On a slow chain an answer can take longer than the wait between questions; a
+    // second one asked meanwhile could come back as well, and both would record the same hatch.
+    let asking = false;
     following.set(
       k,
       setInterval(() => {
@@ -97,6 +100,8 @@ export function keepActions(
         if (Date.now() - sent.at > PENDING_FORGET_MS) return stop();
         // the player's own keep under way takes it up itself
         if (get().busy !== "idle") return;
+        if (asking) return;
+        asking = true;
         void hatchOutcome(publicClient, deployment, sent.tx, sent.owner as Hex)
           // a check X Layer could not answer is asked again at the next tick
           .catch(() => "unchecked" as const)
@@ -115,6 +120,9 @@ export function keepActions(
           })
           .catch(() => {
             // the pet could not be read back yet: the next press reads it again, the hatch is not sent twice
+          })
+          .finally(() => {
+            asking = false;
           });
       }, FOLLOW_MS),
     );

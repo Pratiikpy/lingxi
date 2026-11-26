@@ -46,7 +46,6 @@ interface Papers {
   record: ChainRecord;
 }
 
-/** The message the owner signs; the server checks the same text. */
 /** Another player's papers as this game shows them: the pet's name and its parents' as shownName shows them (A16). */
 function shownPapers(p: Papers): Papers {
   const family = p.pet.family && {
@@ -56,6 +55,7 @@ function shownPapers(p: Papers): Papers {
   return { ...p, pet: { ...p.pet, name: shownName(p.pet.name, 12) || "Mochi", ...(family ? { family } : {}) } };
 }
 
+/** The message the owner signs; the server checks the same text. */
 export const papersMessage = (petId: string, papers: string) => `Lingxi adoption papers for pet #${petId}
 ${keccak256(toBytes(papers))}`;
 
@@ -77,7 +77,6 @@ export type OfferResult =
         | string;
     };
 
-/** Offer a little one for `priceUnits` BEM base units, until `untilSec` (it must still be young then). */
 /**
  * P9: whether a kept pet has never changed hands. The centre takes only a little one still with the wallet that bred
  * it (AlreadyMoved otherwise), so an adopted pet, or one moved to another wallet, is not offered. Null when X Layer
@@ -99,6 +98,7 @@ export async function neverMoved(petId: string | undefined): Promise<boolean | n
   }
 }
 
+/** Offer a little one for `priceUnits` BEM base units, until `untilSec` (it must still be young then). */
 export async function offerForAdoption(
   pet: Pet,
   priceUnits: bigint,
