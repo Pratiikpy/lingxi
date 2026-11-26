@@ -11,14 +11,34 @@ import { RateLimiter } from "./limit";
 import { clientIp } from "./clientIp";
 import { busy } from "./routes/play";
 
-/** Removes from a message what could name a player: addresses, keys and hashes, emails, long numbers. */
+/** An IPv6 address written out or shortened with "::" (four groups at least, so a time of day is not one). */
+const IPV6 =
+  /(?<![0-9a-fA-F:])(?:(?:[0-9a-fA-F]{1,4}:){3,7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,6}:(?:[0-9a-fA-F]{1,4}:){0,5}[0-9a-fA-F]{1,4})(?![0-9a-fA-F:])/g;
+
+/**
+ * Removes from a message what could name a player: addresses, keys and hashes, emails, long numbers, and (R13) network
+ * addresses, which a failed request's message can carry and which name a player's network as a wallet names a player.
+ */
 export function scrub(text: string): string {
   return text
     .replace(/0x[0-9a-fA-F]{8,}/g, "0x…")
     .replace(/\b[0-9a-fA-F]{32,}\b/g, "…")
     .replace(/[^\s@]+@[^\s@]+\.[^\s@]+/g, "…")
-    .replace(/\d{10,}/g, "#…");
+    .replace(/\d{10,}/g, "#…")
+    .replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, "ip…")
+    .replace(IPV6, "ip…");
 }
+
+/** Unicode's line and paragraph separators, which end a line as a line feed does. */
+const SEPARATORS = String.fromCharCode(0x2028, 0x2029);
+const BREAKS = new RegExp(`[\\x00-\\x1f\\x7f-\\x9f${SEPARATORS}]+`, "g");
+
+/**
+ * One line of text (R13): every run of line breaks and control characters becomes one space. A report is written to
+ * the server's log as a line, and each of its fields came from a browser: with a line break in one, a report could
+ * write lines of its own into the log, under any date and name it chose.
+ */
+export const oneLine = (text: string): string => text.replace(BREAKS, " ").trim();
 
 export interface ClientError {
   message: string;
@@ -43,22 +63,21 @@ export function createErrorLog(o: { keep?: number; now?: () => number; log?: (li
   return {
     add(r: { message: string; where: string; build: string }): void {
       const at = now();
-      const message = scrub(r.message);
-      const where = scrub(r.where);
-      const key = `${message}\n${where}\n${r.build}`;
+      const message = oneLine(scrub(r.message));
+      const where = oneLine(scrub(r.where));
+      const build = oneLine(r.build);
+      const key = `${message}\n${where}\n${build}`;
       const held = errors.get(key);
       errors.delete(key);
       errors.set(
         key,
-        held
-          ? { ...held, count: held.count + 1, last: at }
-          : { message, where, build: r.build, count: 1, first: at, last: at },
+        held ? { ...held, count: held.count + 1, last: at } : { message, where, build, count: 1, first: at, last: at },
       );
       while (errors.size > keep) errors.delete(errors.keys().next().value as string);
       times.push(at);
       // the hour's count is bounded too: past this many, the oldest go first
       while (times.length > MAX_TIMES || (times.length && (times[0] ?? at) < at - HOUR)) times.shift();
-      log(`client error (${r.build}) at ${where}: ${message}\n`);
+      log(`client error (${build}) at ${where}: ${message}\n`);
     },
     /** The most recently seen distinct errors, newest first. */
     latest(n: number): ClientError[] {

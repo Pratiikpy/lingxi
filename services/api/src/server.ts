@@ -6,6 +6,7 @@
  * ANTHROPIC_API_KEY environment variable) and never leaves this process.
  */
 
+import { withOriginCheck } from "./originCheck";
 import { createErrorLog, withErrors } from "./clientErrors";
 import { readEnvFile } from "./envFile";
 import { readFileSync } from "node:fs";
@@ -104,6 +105,8 @@ export function createApp(
   withBodyLimits(app);
   // and every heavy read is limited per caller (readLimits.ts, A78)
   withReadLimits(app);
+  // and a write is taken only from the game's own pages (originCheck.ts, R13)
+  withOriginCheck(app, origins);
   app.use(
     "/api/*",
     cors({
