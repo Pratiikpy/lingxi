@@ -234,10 +234,12 @@
 .room-act-icon {
   display: none;
 }
-/* R21: a narrow room (a phone, or a phone turned sideways) keeps its controls to one row, so the pet below has the
-   scene: the name and how well the pet knows the place share one chip, each action is its icon (its words stay its
-   name, for a screen reader), and a long room name gives way before anything wraps */
-@container room (max-width: 459px) {
+/* R21: a narrow room keeps its controls to one row, so the pet below has the scene: the name and how well the pet knows
+   the place share one chip, each action is its icon (its words stay its name, for a screen reader), and a long room
+   name gives way before anything wraps. Narrow is under 350 px of room: a phone 375 px wide or less, and any phone
+   turned sideways. A 390 px phone's room (358 px) keeps the words, which a new player reads sooner than an icon and
+   which fit there in two rows without crowding the pet. */
+@container room (max-width: 349px) {
   .room-pill {
     /* clear of the circuit button's column (10 px in, 44 wide) by 8 px */
     max-width: calc(100% - 72px);
