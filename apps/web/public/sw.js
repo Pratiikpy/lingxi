@@ -3,7 +3,8 @@
  *
  * The build writes PRECACHE below (vite.config.ts offlineWorker): the game page and every script, style and font its
  * first screen needs, under the build's own version, so each release installs a fresh copy and clears the last.
- * - pages: from the network first (a short wait), else the copy kept here, so a new release is always seen online
+ * - pages: from the network first (a short wait), else the copy kept here, so a new release is always seen online;
+ *   with no copy kept, the network however slow it is (R10)
  * - scripts and styles (their names change with every build): from here first, else the network, kept once fetched
  * - art: from here at once, refreshed from the network behind it
  * - the API and live rooms: never kept; the game says what needs the internet
@@ -36,17 +37,27 @@ self.addEventListener("activate", (e) => {
   );
 });
 
-const fromNetworkFirst = async (request) => {
+const fromNetworkFirst = async (request, event) => {
   const cache = await caches.open(CACHE);
-  try {
-    const answer = await Promise.race([fetch(request), new Promise((_, no) => setTimeout(() => no(new Error("slow")), PAGE_WAIT_MS))]);
+  // the one request to the network: its answer is kept whenever it comes, however late (R10)
+  const fresh = fetch(request).then(async (answer) => {
     if (answer.ok) await cache.put(request, answer.clone());
     return answer;
-  } catch {
-    const kept = (await cache.match(request, { ignoreSearch: true })) ?? (await caches.match(request, { ignoreSearch: true }));
-    if (kept) return kept;
-    throw new Error("offline, and this page is not kept");
+  });
+  const slow = new Promise((yes) => setTimeout(() => yes("slow"), PAGE_WAIT_MS));
+  // the network's answer if it comes within the short wait; "slow" if it has not come yet; "down" if it failed
+  const first = await Promise.race([fresh, slow]).catch(() => "down");
+  if (first !== "slow" && first !== "down") return first;
+  const kept = (await cache.match(request, { ignoreSearch: true })) ?? (await caches.match(request, { ignoreSearch: true }));
+  if (kept) {
+    // the copy kept here opens now; an answer still on its way refreshes it for next time
+    event.waitUntil(fresh.catch(() => undefined));
+    return kept;
   }
+  // nothing kept, and the network is only slow: its answer is the page, however long it takes. It used to fail here
+  // after the short wait ("offline, and this page is not kept") though the server was about to answer.
+  if (first === "slow") return fresh;
+  throw new Error("offline, and this page is not kept");
 };
 
 const fromCacheFirst = async (request) => {
@@ -82,7 +93,7 @@ self.addEventListener("fetch", (e) => {
   if (url.origin !== self.location.origin) return;
   const path = url.pathname;
   if (path.startsWith("/api/") || path.startsWith("/live")) return;
-  if (request.mode === "navigate" || path.endsWith(".html") || path === "/") e.respondWith(fromNetworkFirst(request));
+  if (request.mode === "navigate" || path.endsWith(".html") || path === "/") e.respondWith(fromNetworkFirst(request, e));
   else if (path.includes("/assets/")) e.respondWith(fromCacheFirst(request));
   else if (path.includes("/art/") || path.includes("/icons/") || path.endsWith(".webmanifest") || path.endsWith(".png")) e.respondWith(fromCacheThenRefresh(request, e));
 });
