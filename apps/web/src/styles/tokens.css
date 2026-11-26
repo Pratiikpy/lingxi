@@ -173,6 +173,12 @@ button {
   font: inherit;
   color: inherit;
 }
+/* R26: a link is drawn in the theme's ink and underlined, visited or not, in both themes: never the browser's own blue or
+   purple. A link with a look of its own (a button, a nav item) sets it on its class, which outranks this */
+a {
+  color: var(--ink);
+  text-underline-offset: 3px;
+}
 /* P5: read by screen readers, not drawn: live announcements and names a picture gives everyone else */
 .sr-only {
   position: absolute;

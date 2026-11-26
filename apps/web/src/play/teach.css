@@ -147,6 +147,15 @@
     box-shadow var(--t-micro) var(--ease);
   white-space: nowrap;
 }
+/* R26: a link drawn as a button (open the full site, verify a pet, save a card) is drawn as the button it looks like: its
+   word in the button's ink, not the browser's link blue, centred, and not underlined */
+a.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink);
+  text-decoration: none;
+}
 .btn:active {
   transform: translateY(2px) scale(0.97);
   box-shadow: 0 1px 0 var(--line);
