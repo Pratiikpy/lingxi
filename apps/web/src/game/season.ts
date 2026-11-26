@@ -8,10 +8,9 @@ import { deviceId } from "./arenaApi";
 import type { SignedRelay } from "@lingxi/chain";
 import { seasonEnterBody } from "./requests";
 import { saveWrite } from "./saveRuntime";
+import { API_BASE } from "./apiBase";
 
-const BASE =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const BASE = API_BASE;
 const KEY = "lingxi.season.v1";
 
 export interface SeasonView {

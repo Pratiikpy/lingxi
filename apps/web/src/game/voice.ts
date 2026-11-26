@@ -12,10 +12,9 @@ import { decidingChips } from "../play/ruleText";
 import { decidingPart } from "./store";
 import { now as gameNow } from "./gameClock";
 import { voiceBody } from "./requests";
+import { API_BASE } from "./apiBase";
 
-const BASE =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const BASE = API_BASE;
 /** At most one new line this often on its own; a tap may ask sooner. */
 const AUTO_EVERY_MS = 45_000;
 const TAP_EVERY_MS = 8_000;

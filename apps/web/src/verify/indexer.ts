@@ -5,10 +5,9 @@
  */
 
 import { LINGXI_SITE } from "@lingxi/chain/site";
+import { ENV_API, LOCAL_API, ON_LOCALHOST } from "../game/apiBase";
 
-export const INDEXER =
-  (import.meta.env.VITE_API_URL as string | undefined) ||
-  (location.hostname === "localhost" ? "http://localhost:8787" : LINGXI_SITE);
+export const INDEXER = ENV_API || (ON_LOCALHOST ? LOCAL_API : LINGXI_SITE);
 
 export interface PetHistoryRecord {
   hatched?: { block: number; tx: string; line: number; brainId: string; state: string };

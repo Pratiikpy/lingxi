@@ -22,10 +22,9 @@ import { play } from "./sound";
 import { useQuestUi } from "./questUi";
 import { useWorld } from "./world";
 import { goalsQuery, withQuery } from "./requests";
+import { API_BASE } from "./apiBase";
 
-const BASE =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const BASE = API_BASE;
 
 export interface GoalReport {
   id: string;

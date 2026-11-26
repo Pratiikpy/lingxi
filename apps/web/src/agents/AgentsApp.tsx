@@ -13,10 +13,9 @@ import { usePageMeta } from "../i18n/pageMeta";
 import { withQuery } from "../game/requests";
 import "./agents.css";
 import { LINGXI_SITE } from "@lingxi/chain/site";
+import { API_BASE } from "../game/apiBase";
 
-const API =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const API = API_BASE;
 const PUBLIC = LINGXI_SITE;
 /** The open API is public (any origin may call it), so the on-chain copy of this page calls it on the full site. */
 const V1 = API || PUBLIC;

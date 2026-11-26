@@ -20,10 +20,9 @@ import { type ChainRecord, deployment, publicClient, recordOf, setRecordOf } fro
 import { noteEvent } from "./tally";
 import { SEND_LIMITS, checkSize } from "./sendSize";
 import { now } from "./gameClock";
+import { API_BASE } from "./apiBase";
 
-const BASE =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const BASE = API_BASE;
 export const sittingAvailable = () => BASE !== "";
 
 const hex = (b: Uint8Array) => Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");

@@ -15,12 +15,11 @@ import "../agents/agents.css";
 import "../tree/tree.css";
 import "./numbers.css";
 import { LINGXI_SITE } from "@lingxi/chain/site";
+import { API_BASE } from "../game/apiBase";
 
 /** An address short enough to wrap on a phone; the market's own link beside it leads to the full record. */
 const shortAddr = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
-const API =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const API = API_BASE;
 
 interface Market {
   copies: number;

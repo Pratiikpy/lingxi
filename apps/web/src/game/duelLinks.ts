@@ -6,10 +6,9 @@
  * code itself, as before.
  */
 import { duelLinkId, isDuelCode } from "@lingxi/game";
+import { API_BASE } from "./apiBase";
 
-const BASE =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  (typeof location !== "undefined" && location.hostname === "localhost" ? "http://localhost:8787" : "");
+const BASE = API_BASE;
 const TOKEN = /^s\.([A-Za-z0-9_-]{16})$/;
 
 /** The short token for a code when the server keeps it, else the code itself. */

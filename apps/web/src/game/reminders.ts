@@ -14,10 +14,9 @@ import { brainOf } from "./store";
 import { saveWrite } from "./saveRuntime";
 import { now as gameNow } from "./gameClock";
 import { pushPlanBody, pushStopBody } from "./requests";
+import { API_BASE } from "./apiBase";
 
-const BASE =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const BASE = API_BASE;
 const KEY = "lingxi.reminders.v1";
 
 export type Support = "ok" | "needsHomeScreen" | "unsupported" | "noServer";

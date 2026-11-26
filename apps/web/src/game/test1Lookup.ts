@@ -5,10 +5,9 @@
  */
 import type { Test1Lookup } from "@lingxi/chain";
 import { API_RPC } from "./chain";
+import { API_BASE } from "./apiBase";
 
-const BASE =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  (typeof location !== "undefined" && location.hostname === "localhost" ? "http://localhost:8787" : "");
+const BASE = API_BASE;
 
 /**
  * Owners per multicall when the game reads them itself: through the server's door (`/api/rpc`, which takes requests up

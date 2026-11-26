@@ -46,10 +46,9 @@ import { LaneFriendship } from "./Neighbours";
 import { saveWrite } from "../game/saveRuntime";
 import { now as gameNow } from "../game/gameClock";
 import { PALETTES, builderOutfit, useBuilders } from "../game/builderScene";
+import { API_BASE } from "../game/apiBase";
 
-const API =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const API = API_BASE;
 const BSC_RPC = "https://bsc-dataseed.bnbchain.org";
 
 function BuilderArt({ b, scale, ms }: { b: BuilderPet; scale: number; ms: number }) {

@@ -17,14 +17,13 @@ import { xLayer } from "@lingxi/chain";
 import { DAY_MS, dailyPartnerIndex, dailySeed, dayIndex, firstBlockAtOrAfter } from "@lingxi/game";
 import { saveWrite } from "./saveRuntime";
 import { now } from "./gameClock";
+import { API_BASE } from "./apiBase";
 
 const KEY = "lingxi.daily.v1";
 const RPCS = ["https://xlayerrpc.okx.com", "https://rpc.xlayer.tech"];
 // the live server (an empty VITE_API_URL, as the on-chain copy is built, means none), and whether the game runs on
 // mainnet, where the server's door to X Layer reads the same chain the challenge is seeded by
-const API =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  (typeof location !== "undefined" && location.hostname === "localhost" ? "http://localhost:8787" : "");
+const API = API_BASE;
 const ON_MAINNET =
   ((import.meta.env.VITE_CHAIN as string | undefined) || "xlayer") === "xlayer" && !import.meta.env.VITE_RPC;
 

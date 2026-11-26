@@ -10,6 +10,7 @@ import type { Address } from "viem";
 import type { Deployment } from "@lingxi/chain";
 import { deployment } from "../game/chain";
 import { type SourceState, sourcifyPage, sourcifyState } from "../game/sourcify";
+import { API_BASE } from "../game/apiBase";
 
 type Key =
   | "registry"
@@ -98,10 +99,7 @@ const WORD: Record<SourceState, { en: string; zh: string }> = {
 };
 
 /** The live site asks Sourcify through its own server (A71); the on-chain copy, which has none, asks it directly. */
-const VIA_SERVER = Boolean(
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-    (location.hostname === "localhost" ? "http://localhost:8787" : ""),
-);
+const VIA_SERVER = Boolean(API_BASE);
 
 export function ContractTable({ lang }: { lang: "en" | "zh" }) {
   const d = deployment as Deployment | undefined;

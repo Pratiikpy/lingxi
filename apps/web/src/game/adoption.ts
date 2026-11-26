@@ -28,10 +28,9 @@ import { useGame } from "./store";
 import { saveRemove, saveWrite } from "./saveRuntime";
 import { now as gameNow } from "./gameClock";
 import { papersBody } from "./requests";
+import { API_BASE } from "./apiBase";
 
-const BASE =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const BASE = API_BASE;
 export const adoptionAvailable = () => !!deployment?.adoptionCentre;
 /** Papers live on our server, so offering and adopting need the web version. */
 export const papersAvailable = () => BASE !== "";

@@ -17,10 +17,9 @@ import { Named } from "../play/Named";
 import "../agents/agents.css";
 import "./tree.css";
 import { sitePage } from "@lingxi/chain/site";
+import { API_BASE } from "../game/apiBase";
 
-const API =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const API = API_BASE;
 const TX = (tx: string) => `https://www.oklink.com/xlayer/tx/${tx}`;
 const LINES = ["gentle", "bold", "curious"] as const;
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;

@@ -17,10 +17,9 @@ import { saveRemove, saveWrite } from "./saveRuntime";
 import { SEND_LIMITS, checkSize } from "./sendSize";
 import { now as gameNow } from "./gameClock";
 import { moveBody } from "./requests";
+import { API_BASE } from "./apiBase";
 
-const BASE =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const BASE = API_BASE;
 /** The Telegram bot that hosts the Mini App, once it exists (for moving pets into Telegram). */
 export const TG_BOT = ((import.meta.env.VITE_TG_BOT as string | undefined) ?? "LingxiPetBot").replace(/^@/, "");
 /** Keys that stay with this device on a move (which passes through our server); a save file carries them, sealed by its

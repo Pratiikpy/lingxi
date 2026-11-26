@@ -16,6 +16,7 @@ import { now } from "../game/gameClock";
 import { allStatuses } from "../game/quests";
 import { useWorld } from "../game/world";
 import { DeviceKept } from "./DeviceKept";
+import { API_BASE } from "../game/apiBase";
 
 const ERR: Record<string, Key> = {
   noWallet: "chain.noWallet",
@@ -363,9 +364,7 @@ export function ChainPanel({ pet }: { pet: Pet }) {
   );
 }
 
-const DIARY_BASE =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const DIARY_BASE = API_BASE;
 
 /** Z1: put the diary on the pet's public page. The server keeps it only if it matches the log hash saved on chain. */
 function PublishDiary({ pet, petId, log }: { pet: Pet; petId: string; log: string | null }) {

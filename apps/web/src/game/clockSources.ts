@@ -6,10 +6,9 @@
 
 import type { Clock } from "./clock";
 import { OFFICIAL_RPCS } from "./nodes";
+import { API_BASE } from "./apiBase";
 
-const BASE =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  (typeof location !== "undefined" && location.hostname === "localhost" ? "http://localhost:8787" : "");
+const BASE = API_BASE;
 const RPC = (import.meta.env.VITE_RPC as string | undefined) || null;
 
 /** The game server's time. */

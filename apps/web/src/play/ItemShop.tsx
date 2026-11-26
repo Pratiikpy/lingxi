@@ -32,11 +32,10 @@ import { play } from "../game/sound";
 import { DecorIcon } from "./DecorBar";
 import "./itemshop.css";
 import { errorText } from "../game/errorText";
+import { API_BASE } from "../game/apiBase";
 
 type Lang = "en" | "zh";
-const BASE =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const BASE = API_BASE;
 /** one shared empty list, so the store selector returns the same value until something is held */
 const NONE: readonly string[] = [];
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;

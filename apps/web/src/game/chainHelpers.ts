@@ -21,6 +21,7 @@ import { now as gameNow } from "./gameClock";
 import { type ChainRecord, autoStatus, mindKey, chainDay, petKey, records, store } from "./chainRecords";
 
 import { OFFICIAL_RPCS, chain, deployment as networkDeployment, injected, publicClient, rpc } from "./network";
+import { API_BASE } from "./apiBase";
 // a module constant of its own, so a check for it narrows it inside the closures below
 const deployment: Deployment | undefined = networkDeployment;
 
@@ -58,9 +59,7 @@ export async function connectWallet(): Promise<WalletClient> {
 /** Only the deployment's own breeders: an address from the server is never called unless it is one of them. */
 export const breedersHere = (): Address[] =>
   [deployment?.breeder, deployment?.breederFree].filter((a): a is Address => !!a);
-export const API_BASE =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  (location.hostname === "localhost" ? "http://localhost:8787" : "");
+export { API_BASE };
 
 export type KeptFree =
   | { ok: true; petId: string | null; hatchTx: string | null; grantTx: string | null }

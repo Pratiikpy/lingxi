@@ -8,13 +8,12 @@
  */
 
 import type { Address } from "viem";
+import { API_BASE } from "./apiBase";
 
 export type SourceState = "exact" | "partial" | "none" | "unreachable";
 const STATES: readonly SourceState[] = ["exact", "partial", "none", "unreachable"];
 /** The game's own server, when the page has one (the on-chain copy has none). */
-const SERVER =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const SERVER = API_BASE;
 
 /** Sourcify's verdict on one address: an exact match needs both the creation and the runtime bytecode to match. */
 export async function sourcifyState(address: Address, signal?: AbortSignal): Promise<SourceState> {

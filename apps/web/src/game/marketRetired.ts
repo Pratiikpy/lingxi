@@ -5,10 +5,9 @@
  * retired (`/api/market/retired`); without that answer the game shows no V1 listing to buy.
  */
 import type { OutfitListing } from "@lingxi/chain";
+import { API_BASE } from "./apiBase";
 
-const BASE =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  (typeof location !== "undefined" && location.hostname === "localhost" ? "http://localhost:8787" : "");
+const BASE = API_BASE;
 
 /**
  * The OKB-market listings the server says a sale retired, or null when it cannot say: no server (the on-chain copy),

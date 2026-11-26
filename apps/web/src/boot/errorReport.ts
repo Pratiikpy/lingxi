@@ -6,15 +6,13 @@
  * copy is built, nothing listens and nothing is sent.
  */
 
+import { API_BASE } from "../game/apiBase";
+
 const MAX_PER_VISIT = 5;
 /** The server's caps (ClientErrorBody): longer fields are cut, never refused. */
 const CAP = { message: 300, where: 200, build: 40 } as const;
 
 type Report = { message: string; where: string; build: string };
-
-const API_BASE =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  (location.hostname === "localhost" ? "http://localhost:8787" : "");
 
 /** The build a page runs: the file this module was bundled into, which changes with every release. */
 const BUILD = new URL(import.meta.url).pathname.split("/").pop() ?? "";

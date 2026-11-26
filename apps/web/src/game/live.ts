@@ -17,10 +17,8 @@ const relayField = (): { relay?: string } => {
 };
 import { noteEvent } from "./tally";
 import { saveWrite } from "./saveRuntime";
+import { LIVE_URL } from "./apiBase";
 
-const LIVE_URL =
-  (import.meta.env.VITE_LIVE_URL as string | undefined) ??
-  (location.hostname === "localhost" ? "ws://localhost:8787/live" : "");
 /** The server's longest pet name; every name that arrives is shown as shownName shows it (A16), whatever a server sent. */
 const NAME_MAX = 12;
 const nameIn = (m: Record<string, unknown>): string => shownName(m.name, NAME_MAX) || "Pet";

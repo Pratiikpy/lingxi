@@ -2,10 +2,9 @@
 import type { RelayEnvelopeOf, RelayPayloads, TeachBody } from "@lingxi/api-schema";
 import type { Rule } from "@lingxi/brain";
 import { type SignedRelay, signRelay } from "@lingxi/chain";
+import { API_BASE } from "./apiBase";
 
-const BASE =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const BASE = API_BASE;
 
 export type TeachResponse =
   | { ok: true; rule: Rule; gates: number; reply: { en: string; zh: string } }

@@ -5,13 +5,12 @@
  */
 
 import "./onchain-note.css";
+import { API_BASE } from "./game/apiBase";
 
 type Lang = "en" | "zh";
 
 // the on-chain (DeWEB) build ships with no server address; the web build has one
-const SERVER =
-  ((import.meta.env.VITE_API_URL as string | undefined) ??
-    (location.hostname === "localhost" ? "http://localhost:8787" : "")) !== "";
+const SERVER = API_BASE !== "";
 
 const TEXT = {
   en: {

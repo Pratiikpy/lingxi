@@ -11,6 +11,7 @@ import localDeployment from "../../../../packages/chain/deployments/local.json";
 import xlayerDeployment from "../../../../packages/chain/deployments/xlayer.json";
 // a rehearsal of a mainnet deploy on a local fork of X Layer (VITE_CHAIN=rehearsal, test builds only)
 import rehearsalDeployment from "../../../../packages/chain/deployments/rehearsal.json";
+import { ENV_API, LOCAL_API, ON_LOCALHOST } from "./apiBase";
 
 // X Layer mainnet unless a build asks for a local chain (VITE_CHAIN=local) or a fork rehearsal, so a fresh clone plays
 // against the real contracts with no setup
@@ -32,11 +33,7 @@ export { OFFICIAL_RPCS };
 // With a server of our own (VITE_API_URL), the browser reads X Layer through it, same origin, so a public RPC's
 // rate-limit reply can never surface as a blocked request; the public RPCs stay behind it as fallbacks. The
 // on-chain copy on DeWEB has no server and talks to the public RPCs directly.
-export const API_RPC = (import.meta.env.VITE_API_URL as string | undefined)
-  ? `${import.meta.env.VITE_API_URL as string}/api/rpc`
-  : location.hostname === "localhost"
-    ? "http://localhost:8787/api/rpc"
-    : null;
+export const API_RPC = ENV_API ? `${ENV_API}/api/rpc` : ON_LOCALHOST ? `${LOCAL_API}/api/rpc` : null;
 export const rpcs: string[] = (import.meta.env.VITE_RPC as string | undefined)
   ? [import.meta.env.VITE_RPC as string]
   : NETWORK === "xlayer"

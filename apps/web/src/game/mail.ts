@@ -7,10 +7,9 @@
 import { create } from "zustand";
 import { useWorld } from "./world";
 import { saveWrite } from "./saveRuntime";
+import { API_BASE } from "./apiBase";
 
-const BASE =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const BASE = API_BASE;
 const KEY = "lingxi.mail.v1";
 
 export interface Letter {

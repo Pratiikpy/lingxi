@@ -30,6 +30,7 @@ import { connectWallet, deployment, publicClient } from "./chain";
 import { saveWrite } from "./saveRuntime";
 import { now } from "./gameClock";
 import { errorText, firstLine } from "./errorText";
+import { API_BASE } from "./apiBase";
 
 const SENT_KEY = "lingxi.packets.sent.v1";
 /**
@@ -43,9 +44,7 @@ const PENDING_KEY = "lingxi.packets.pending.v1";
 const PENDING_FORGET_MS = 24 * 3_600_000;
 /** How many packets made since a key was kept are looked through for it. */
 const SCAN_LIMIT = 256;
-const BASE =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  (location.hostname === "localhost" ? "http://localhost:8787" : "");
+const BASE = API_BASE;
 const PREFIX = "lxp1.";
 export const USDT_DECIMALS = 6;
 export const packetsAvailable = () => !!deployment?.redPacket;
