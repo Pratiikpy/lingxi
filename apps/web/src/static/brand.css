@@ -1,0 +1,6 @@
+/* R27: the brand for the two pages built without React (the circuit catalogue and the 404): the same two web fonts,
+   tokens and shared header as every other page, bundled into the build beside them (same origin, no request elsewhere) */
+@import "@fontsource-variable/pixelify-sans";
+@import "@fontsource-variable/baloo-2";
+@import "../styles/tokens.css";
+@import "../styles/page-head.css";

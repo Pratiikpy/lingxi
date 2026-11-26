@@ -33,6 +33,8 @@ export const PAGES = [
   "handheld.html",
   "privacy.html",
   "terms.html",
+  "circuits.html",
+  "404.html",
 ] as const;
 
 /** A release's name: when it was built (UTC, to the second) and the commit, `-dirty` when built from uncommitted work. */
@@ -54,7 +56,8 @@ export function checkRelease(dir: string): string[] {
       continue;
     }
     const html = readFileSync(file, "utf8");
-    for (const m of html.matchAll(/(?:src|href)="\.\/(assets\/[^"?#]+)"/g)) {
+    // a page names its files beside it (./assets/...), or from the site's root as the not-found page does (/assets/...)
+    for (const m of html.matchAll(/(?:src|href)="\.?\/(assets\/[^"?#]+)"/g)) {
       if (!existsSync(join(dir, m[1]!))) problems.push(`${page} names ${m[1]}, which the release does not have`);
     }
   }

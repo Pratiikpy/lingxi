@@ -1,0 +1,76 @@
+<!doctype html>
+<!-- P6: the page the site answers with, status 404, for an address it does not have (services/api server notFound). It
+     is sent for any address, at any depth, so every file it names is named from the site's root. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#FFF7E8" />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <title>Not here · Lingxi 灵犀</title>
+    <meta name="description" content="This page is not here. The game, the proof page and the landing are one tap away." />
+    <!-- R27: the brand's fonts, tokens and header, built into this page's own stylesheet (same origin) -->
+    <link rel="stylesheet" href="/src/static/not-found.css" />
+  </head>
+  <body>
+    <main class="nf">
+      <header class="v-head">
+        <a href="/" class="v-brand">Lingxi · 灵犀</a>
+        <!-- shown by the script below, which is what switches the language -->
+        <button type="button" id="lang" class="v-lang" hidden>中文</button>
+      </header>
+      <section class="nf-card" aria-labelledby="nf-title">
+        <img src="/art/npcs/wick.png" alt="" width="59" height="109" class="pixel" />
+        <h1 id="nf-title" data-zh="这个页面不在这里">This page isn't here</h1>
+        <p data-zh="地址可能打错了，或者页面已经搬走。你的宠物没事：它住在你的浏览器里。">
+          The address may be mistyped, or the page has moved. Your pet is safe: it lives in your browser.
+        </p>
+        <nav class="nf-go" aria-label="Where to go" data-zh-label="去哪儿">
+          <a class="go" href="/play.html" data-zh="打开游戏">Open the game</a>
+          <a href="/" data-zh="首页">Home</a>
+          <a href="/verify.html" data-zh="验证宠物">Verify a pet</a>
+        </nav>
+      </section>
+      <nav class="nf-foot" aria-label="About Lingxi" data-zh-label="关于灵犀">
+        <a href="/privacy.html" data-zh="隐私">Privacy</a>
+        <a href="/terms.html" data-zh="条款">Terms</a>
+        <a href="https://github.com/Pratiikpy/lingxi/issues" rel="noopener noreferrer" data-zh="联系我们">Contact</a>
+      </nav>
+    </main>
+    <script>
+      // R27: one language at a time, as every other page: the reader's saved choice on this site, else the browser's.
+      // The page is written in English; each part names its Chinese, and the round button switches and remembers.
+      (function () {
+        var words = document.querySelectorAll("[data-zh]");
+        var labels = document.querySelectorAll("[data-zh-label]");
+        var i;
+        for (i = 0; i < words.length; i++) words[i].setAttribute("data-en", words[i].textContent.trim());
+        for (i = 0; i < labels.length; i++) labels[i].setAttribute("data-en-label", labels[i].getAttribute("aria-label"));
+        var button = document.getElementById("lang");
+        var lang = null;
+        try {
+          lang = localStorage.getItem("lingxi.lang");
+        } catch (e) {}
+        if (lang !== "en" && lang !== "zh") lang = (navigator.language || "").toLowerCase().indexOf("zh") === 0 ? "zh" : "en";
+        function show(l) {
+          lang = l;
+          document.documentElement.lang = l === "zh" ? "zh-CN" : "en";
+          document.title = l === "zh" ? "不在这里 · 灵犀" : "Not here · Lingxi 灵犀";
+          for (var j = 0; j < words.length; j++) words[j].textContent = words[j].getAttribute("data-" + l);
+          for (var k = 0; k < labels.length; k++)
+            labels[k].setAttribute("aria-label", labels[k].getAttribute(l === "zh" ? "data-zh-label" : "data-en-label"));
+          button.textContent = l === "zh" ? "EN" : "中文";
+        }
+        button.addEventListener("click", function () {
+          show(lang === "zh" ? "en" : "zh");
+          try {
+            localStorage.setItem("lingxi.lang", lang);
+          } catch (e) {}
+        });
+        show(lang);
+        button.hidden = false;
+      })();
+    </script>
+  </body>
+</html>

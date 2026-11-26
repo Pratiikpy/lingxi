@@ -1,0 +1,230 @@
+/* R27: the circuit catalogue (circuits.html) in the proof page's look: its header, the display face for its title, the
+   theme's grounds and cards, pill controls 44 px or more to a finger. Its script is its own (it uses none of the game's
+   code); only its look comes from the brand. */
+@import "./brand.css";
+
+:root {
+  /* a vector that agrees, and one that does not, as text: 4.5:1 or better on the card in each theme */
+  --cx-ok: #2a7d4d;
+  --cx-bad: var(--coral-ink);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --cx-ok: #7fdca6;
+  }
+}
+:root[data-theme="dark"] {
+  --cx-ok: #7fdca6;
+}
+
+.cx {
+  max-width: 880px;
+  margin: 0 auto;
+  padding-block: var(--s5) var(--s6);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.cx h1 {
+  margin: var(--s4) 0 var(--s2);
+  font-family: var(--display);
+  font-size: clamp(30px, 5vw, 46px);
+  line-height: 1.05;
+  text-wrap: balance;
+}
+.cx h2 {
+  margin: var(--s6) 0 var(--s3);
+  font-family: var(--round);
+  font-size: 1.25rem;
+  line-height: 1.25;
+}
+.cx p {
+  margin: 6px 0;
+}
+.cx .soft {
+  color: var(--ink-soft);
+}
+.cx-lede {
+  max-width: 64ch;
+}
+.cx .mono,
+.cx code {
+  font-family: var(--mono);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.cx-source {
+  overflow-wrap: anywhere;
+}
+/* the catalogue's own file: a link a finger can find, 44 px tall as every control is */
+.cx-source a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-family: var(--round);
+  font-weight: 800;
+}
+.cx .card {
+  margin: var(--s3) 0;
+  padding: var(--s4);
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--card);
+  box-shadow: var(--lift-hi);
+}
+.cx .card h3 {
+  margin: 0 0 6px;
+  font-family: var(--round);
+  font-size: 17px;
+  line-height: 1.3;
+}
+.cx #enc {
+  font-size: 13px;
+}
+.cx #enc p {
+  margin: 0 0 8px;
+}
+.cx #enc p:last-child {
+  margin-bottom: 0;
+}
+.cx #enc b {
+  font-family: var(--round);
+}
+.cx details {
+  margin-top: var(--s2);
+}
+.cx summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+  font-family: var(--round);
+  font-weight: 800;
+}
+.cx .wrap {
+  overflow-x: auto;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--card);
+}
+.cx table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.cx th,
+.cx td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--track);
+  text-align: left;
+  vertical-align: top;
+}
+/* a pin range (10-12) is one value: never split across two lines */
+.cx td.mono {
+  white-space: nowrap;
+}
+.cx th {
+  font-family: var(--round);
+  background: var(--tint);
+}
+.cx tr:last-child td {
+  border-bottom: 0;
+}
+.cx .row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2);
+  margin-top: var(--s3);
+}
+/* the catalogue's own controls (the header's language button keeps the shared look) */
+.cx .card button,
+.cx select,
+.cx input {
+  min-height: 44px;
+  border: 2px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+}
+.cx input,
+.cx select {
+  font: inherit;
+  padding: 0 var(--s3);
+  border-radius: var(--r-sm);
+}
+.cx input {
+  width: 110px;
+  font-family: var(--round);
+  font-weight: 800;
+}
+.cx-run,
+.cx-all {
+  padding: 0 var(--s4);
+  border-radius: var(--r-pill);
+  font-family: var(--round);
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: var(--lift);
+  transition:
+    transform var(--t-micro) var(--ease),
+    box-shadow var(--t-micro) var(--ease);
+}
+.cx button.cx-run {
+  background: var(--coral);
+  color: #2b2140;
+  border-color: #2b2140;
+  box-shadow: 0 4px 0 #2b2140;
+}
+.cx-run:active,
+.cx-all:active {
+  transform: translateY(3px);
+  box-shadow: var(--lift-lo);
+}
+.cx .pins {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--s2);
+  margin-top: var(--s2);
+}
+.cx .pins label {
+  display: grid;
+  gap: 2px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.cx .pins select {
+  width: 100%;
+  color: var(--ink);
+}
+.cx .ok {
+  color: var(--cx-ok);
+  font-weight: 800;
+}
+.cx .bad {
+  color: var(--cx-bad);
+  font-weight: 800;
+}
+.cx [aria-live] {
+  margin-top: var(--s2);
+  overflow-wrap: anywhere;
+}
+.cx .pending {
+  visibility: hidden;
+}
+/* the links every page ends with (privacy, terms, contact), as the React pages draw them */
+.cx-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 18px;
+  margin: 28px auto 12px;
+  font-size: 14px;
+}
+.cx-foot a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 6px;
+  color: var(--ink-soft);
+}

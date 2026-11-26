@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 import { CARDS, SITE, cardTags } from "./lib/shareCards.mts";
 
 const web = join(import.meta.dirname, "..", "apps", "web");
-const pageFile = (page: string) => (page === "circuits.html" ? join(web, "public", "circuits.html") : join(web, page));
+const pageFile = (page: string) => join(web, page);
 
 describe("every page's share card (P6)", () => {
   it("covers every page the site serves", () => {

@@ -12,8 +12,8 @@ const SOURCES = [
   "apps/web/src",
   "packages/world/src",
   "packages/game/src",
-  "apps/web/public/404.html",
-  "apps/web/public/circuits.html",
+  "apps/web/404.html",
+  "apps/web/circuits.html",
   "scripts/lib/shareCards.mts",
 ];
 

@@ -1,38 +1,16 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lingxi circuits</title>
-<meta name="description" content="Every Lingxi circuit on X Layer, its pins, what each bit means, and test vectors. Run any of them on X Layer from this page.">
-<style>
-  :root { --bg: #fffdf8; --card: #ffffff; --ink: #2b2140; --soft: #5d5470; --line: #2b2140; --ok: #1f7a4a; --bad: #b42318; --accent: #ffd45e; color-scheme: light; }
-  @media (prefers-color-scheme: dark) { :root { --bg: #1b1630; --card: #241d3d; --ink: #fff3e2; --soft: #c9beea; --line: #c9beea; --ok: #7fe0a8; --bad: #ffb4a8; --accent: #ffd45e; color-scheme: dark; } }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
-  main { max-width: 920px; margin: 0 auto; padding: 24px 16px 64px; }
-  h1 { font-size: 28px; margin: 0 0 4px; }
-  h2 { font-size: 20px; margin: 32px 0 8px; }
-  p { margin: 6px 0; }
-  .soft { color: var(--soft); }
-  .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-  button, select, input { font: inherit; color: var(--ink); background: var(--card); border: 2px solid var(--line); border-radius: 10px; padding: 6px 10px; min-height: 44px; }
-  button { cursor: pointer; font-weight: 700; }
-  button.primary { background: var(--accent); color: #2b2140; border-color: #2b2140; }
-  button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid #5aa9e6; outline-offset: 2px; }
-  code, .mono { font-family: ui-monospace, "SFMono-Regular", Consolas, monospace; font-size: 14px; overflow-wrap: anywhere; }
-  .card { background: var(--card); border: 2px solid var(--line); border-radius: 14px; padding: 12px 14px; margin: 10px 0; }
-  .card h3 { margin: 0 0 4px; font-size: 17px; }
-  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
-  table { border-collapse: collapse; width: 100%; font-size: 14px; }
-  th, td { text-align: left; border-bottom: 1px solid var(--soft); padding: 4px 6px; vertical-align: top; }
-  .wrap { overflow-x: auto; }
-  .ok { color: var(--ok); font-weight: 700; }
-  .bad { color: var(--bad); font-weight: 700; }
-  .pins { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; margin-top: 8px; }
-  .pins label { display: grid; gap: 2px; font-size: 13px; }
-  .pending { visibility: hidden; }
-</style>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#FFF7E8" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <title>Lingxi circuits</title>
+    <meta name="description" content="Every Lingxi circuit on X Layer, its pins, what each bit means, and test vectors. Run any of them on X Layer from this page.">
+    <!-- R27: the brand's fonts, tokens and header, built into this page's own stylesheet; its script below is its own -->
+    <link rel="stylesheet" href="/src/static/circuits.css" />
     <!-- share card -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Lingxi · 灵犀" />
@@ -52,16 +30,17 @@
     <!-- /share card -->
   </head>
 <body>
-<main>
-  <div class="top">
-    <h1 id="title">Lingxi circuits</h1>
-    <button type="button" id="lang">中文</button>
-  </div>
+<main class="cx">
+  <header class="v-head">
+    <a href="index.html" class="v-brand">Lingxi · 灵犀</a>
+    <button type="button" id="lang" class="v-lang">中文</button>
+  </header>
+  <h1 id="title">Lingxi circuits</h1>
   <!-- P3: filled in from circuits.json; kept invisible (in place) until then, so nothing on screen moves as it fills -->
   <div id="filled" class="pending">
-  <p id="about" class="soft"></p>
-  <p class="soft" id="note"></p>
-  <p><a id="json" href="circuits.json">circuits.json</a> · <span id="proc" class="mono"></span></p>
+  <p id="about" class="soft cx-lede"></p>
+  <p class="soft cx-lede" id="note"></p>
+  <p class="cx-source"><a id="json" href="circuits.json">circuits.json</a> <span aria-hidden="true">·</span> <span id="proc" class="mono"></span></p>
 
   <h2 id="h-enc">How to call one</h2>
   <div class="card mono" id="enc"></div>
@@ -75,6 +54,12 @@
   <h2 id="h-brains">Starter pet brains</h2>
   <div id="brains"></div>
   </div>
+  <!-- held invisible with the catalogue, so it does not jump down the page as the catalogue fills in above it -->
+  <nav class="cx-foot pending" id="foot" aria-label="About Lingxi">
+    <a href="privacy.html" id="f-privacy">Privacy</a>
+    <a href="terms.html" id="f-terms">Terms</a>
+    <a href="https://github.com/Pratiikpy/lingxi/issues" rel="noopener noreferrer" id="f-contact">Contact</a>
+  </nav>
 </main>
 <script>
 // A second, independent client (H6): no Lingxi game code and no library. It reads the catalogue, calls X Layer's
@@ -82,12 +67,15 @@
 "use strict";
 const SEL = { eval: "934d06ea", step: "e8281a1a" }; // first 4 bytes of keccak256("eval(uint256,bytes)") and ("step(uint256,bytes,bytes)")
 const T = {
-  en: { title: "Lingxi circuits", note: "This page uses none of the game's code: it reads circuits.json and asks X Layer directly.", enc: "How to call one", pins: "The pet-brain pins (LX-PET/1)", rules: "Rule circuits", brains: "Starter pet brains", run: "Run on X Layer", all: "Check every vector on X Layer", input: "input", answer: "X Layer says", documented: "the catalogue says", agree: "agree", differ: "DIFFER", of: "of", vectorsAgree: "vectors agree with X Layer", unreach: "X Layer could not be reached; try again", circuit: "circuit", bits: "input bits", hash: "netlist keccak256", pin: "pins", field: "field", values: "values", outputs: "outputs", inputs: "inputs", next: "next memory", state: "from a fresh (all-zero) memory", want: "want", mood: "mood", nudge: "nudge", processor: "processor", memory: "memory", bitsWord: "bits", fieldsOf: "What each bit means" },
-  zh: { title: "灵犀电路", note: "这个页面没有用游戏的任何代码：它读 circuits.json，直接问 X Layer。", enc: "怎么调用", pins: "宠物大脑的引脚（LX-PET/1）", rules: "规则电路", brains: "初始宠物大脑", run: "在 X Layer 上运行", all: "在 X Layer 上核对全部向量", input: "输入", answer: "X Layer 的答案", documented: "目录里写的", agree: "一致", differ: "不一致", of: "/", vectorsAgree: "条向量与 X Layer 一致", unreach: "暂时连不上 X Layer，请再试", circuit: "电路", bits: "输入位数", hash: "网表 keccak256", pin: "引脚", field: "字段", values: "取值", outputs: "输出", inputs: "输入", next: "下一刻的记忆", state: "从全新（全为 0）的记忆开始", want: "想做", mood: "心情", nudge: "性格推动", processor: "处理器", memory: "记忆", bitsWord: "位", fieldsOf: "每一位的含义" },
+  en: { title: "Lingxi circuits", note: "This page uses none of the game's code: it reads circuits.json and asks X Layer directly.", enc: "How to call one", pins: "The pet-brain pins (LX-PET/1)", rules: "Rule circuits", brains: "Starter pet brains", run: "Run on X Layer", all: "Check every vector on X Layer", input: "input", answer: "X Layer says", documented: "the catalogue says", agree: "agree", differ: "DIFFER", of: "of", vectorsAgree: "vectors agree with X Layer", unreach: "X Layer could not be reached; try again", circuit: "circuit", bits: "input bits", hash: "netlist keccak256", pin: "pins", field: "field", values: "values", outputs: "outputs", inputs: "inputs", next: "next memory", state: "from a fresh (all-zero) memory", want: "want", mood: "mood", nudge: "nudge", processor: "processor", memory: "memory", bitsWord: "bits", fieldsOf: "What each bit means", unread: "circuits.json could not be read. Reload the page to try again.", privacy: "Privacy", terms: "Terms", contact: "Contact", about: "About Lingxi" },
+  zh: { title: "灵犀电路", note: "这个页面没有用游戏的任何代码：它读 circuits.json，直接问 X Layer。", enc: "怎么调用", pins: "宠物大脑的引脚（LX-PET/1）", rules: "规则电路", brains: "初始宠物大脑", run: "在 X Layer 上运行", all: "在 X Layer 上核对全部向量", input: "输入", answer: "X Layer 的答案", documented: "目录里写的", agree: "一致", differ: "不一致", of: "/", vectorsAgree: "条向量与 X Layer 一致", unreach: "暂时连不上 X Layer，请再试", circuit: "电路", bits: "输入位数", hash: "网表 keccak256", pin: "引脚", field: "字段", values: "取值", outputs: "输出", inputs: "输入", next: "下一刻的记忆", state: "从全新（全为 0）的记忆开始", want: "想做", mood: "心情", nudge: "性格推动", processor: "处理器", memory: "记忆", bitsWord: "位", fieldsOf: "每一位的含义", unread: "读不到 circuits.json。请刷新页面再试。", privacy: "隐私", terms: "条款", contact: "联系我们", about: "关于灵犀" },
 };
 const LINE_ZH = { gentle: "温柔", bold: "勇敢", curious: "好奇" };
+// the reader's language: their saved choice on this site, else the browser's (as every other page reads it)
 let lang = (navigator.language || "en").toLowerCase().startsWith("zh") ? "zh" : "en";
+try { const saved = localStorage.getItem("lingxi.lang"); if (saved === "en" || saved === "zh") lang = saved; } catch {}
 let cat = null;
+let failed = false;
 const $ = (id) => document.getElementById(id);
 const el = (tag, attrs = {}, ...kids) => { const e = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) if (k === "class") e.className = v; else e.setAttribute(k, v); for (const k of kids) e.append(k); return e; };
 
@@ -139,15 +127,24 @@ async function askRound(calls) {
 // X Layer's public RPCs refuse a batch of 20 calls or more ("too many RPC calls in batch request"); 10 is accepted
 async function inChunks(calls, size = 10) { const all = []; for (let i = 0; i < calls.length; i += size) all.push(...(await ethCall(calls.slice(i, i + size)))); return all; }
 
-function render() {
+/** the page's own words (its header, title, headings and footer), drawn before the catalogue is read */
+function renderChrome() {
   const t = T[lang];
   document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
   $("lang").textContent = lang === "zh" ? "EN" : "中文";
+  $("f-privacy").textContent = t.privacy; $("f-terms").textContent = t.terms; $("f-contact").textContent = t.contact; $("foot").setAttribute("aria-label", t.about);
   $("title").textContent = t.title; document.title = t.title;
-  $("about").textContent = cat.about[lang];
   $("note").textContent = t.note;
-  $("proc").textContent = `${t.processor} ${cat.processor} · chain ${cat.chainId}`;
   $("h-enc").textContent = t.enc; $("h-pins").textContent = t.pins; $("h-rules").textContent = t.rules; $("h-brains").textContent = t.brains;
+  if (!cat) $("about").textContent = failed ? t.unread : "";
+}
+
+function render() {
+  const t = T[lang];
+  renderChrome();
+  if (!cat) return;
+  $("about").textContent = cat.about[lang];
+  $("proc").textContent = `${t.processor} ${cat.processor} · chain ${cat.chainId}`;
   $("enc").replaceChildren(...Object.entries(cat.encoding).map(([k, v]) => el("p", {}, el("b", {}, `${k}: `), lang === "zh" && cat.encodingZh?.[k] ? cat.encodingZh[k] : v)));
   const pins = $("pins");
   pins.replaceChildren(el("tr", {}, el("th", {}, t.field), el("th", {}, t.pin), el("th", {}, t.values)));
@@ -163,8 +160,8 @@ function ruleCard(r) {
   const t = T[lang];
   const input = el("input", { type: "number", min: "0", max: String(2 ** r.inBits - 1), value: String(r.vectors[Math.min(1, r.vectors.length - 1)][0]), "aria-label": `${r.name} ${t.input}` });
   const out = el("p", { "aria-live": "polite" });
-  const run = el("button", { type: "button", class: "primary" }, t.run);
-  const all = el("button", { type: "button" }, t.all);
+  const run = el("button", { type: "button", class: "cx-run" }, t.run);
+  const all = el("button", { type: "button", class: "cx-all" }, t.all);
   run.onclick = async () => {
     const v = Math.max(0, Math.min(2 ** r.inBits - 1, Number(input.value) | 0));
     out.textContent = "…";
@@ -199,8 +196,8 @@ function brainCard(b) {
   const t = T[lang];
   const selects = cat.brainPins.inputs.map((f) => { const s = el("select", { "aria-label": pinName(f) }); pinValues(f).forEach((v, i) => s.append(el("option", { value: String(i) }, `${i} ${v}`))); return [f, s]; });
   const out = el("p", { "aria-live": "polite" });
-  const run = el("button", { type: "button", class: "primary" }, t.run);
-  const all = el("button", { type: "button" }, t.all);
+  const run = el("button", { type: "button", class: "cx-run" }, t.run);
+  const all = el("button", { type: "button", class: "cx-all" }, t.all);
   const field = (w, f) => (w >> f.lo) & ((1 << f.bits) - 1);
   run.onclick = async () => {
     const w = selects.reduce((acc, [f, s]) => acc | (Number(s.value) << f.lo), 0);
@@ -231,9 +228,10 @@ function brainCard(b) {
     el("div", { class: "row" }, run, all), out);
 }
 
-$("lang").onclick = () => { lang = lang === "zh" ? "en" : "zh"; render(); };
-const shown = () => $("filled").classList.remove("pending");
-fetch("circuits.json").then((r) => r.json()).then((c) => { cat = c; render(); shown(); }).catch(() => { $("about").textContent = "circuits.json could not be read."; shown(); });
+$("lang").onclick = () => { lang = lang === "zh" ? "en" : "zh"; try { localStorage.setItem("lingxi.lang", lang); } catch {} render(); };
+const shown = () => { $("filled").classList.remove("pending"); $("foot").classList.remove("pending"); };
+fetch("circuits.json").then((r) => r.json()).then((c) => { cat = c; render(); shown(); }).catch(() => { failed = true; renderChrome(); shown(); });
+renderChrome();
 </script>
 </body>
 </html>

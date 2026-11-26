@@ -1,0 +1,30 @@
+/* The header the site's pages share: "Lingxi · 灵犀" home on the left, the round language button on the right. Used by
+   the React pages (through verify.css) and by the two pages built without them: the circuit catalogue and the 404. */
+.v-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.v-brand {
+  /* R9: a link a finger can find: 44 px tall, as every control is (it was 27) */
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-family: var(--round);
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--ink);
+  text-decoration: none;
+}
+.v-lang {
+  min-width: 44px;
+  min-height: 44px;
+  /* no padding of the browser's own, so "中文" sits in a circle 44 px across rather than an oval 46 wide */
+  padding: 0;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  background: var(--card);
+  font-family: var(--round);
+  font-weight: 800;
+  cursor: pointer;
+}

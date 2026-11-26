@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 /**
- * C5: the circuit catalogue page (public/circuits.html, which uses none of the game's code) asks X Layer one request at
+ * C5: the circuit catalogue page (circuits.html, which uses none of the game's code) asks X Layer one request at
  * a time. A public node turns away requests that pile up; pressing every circuit's check at once used to send them all
  * together, and every check said X Layer could not be reached. Here the page's own script runs against a node that
  * refuses any request arriving while another is in flight.
@@ -9,8 +9,9 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const pub = join(import.meta.dirname, "..", "public");
-const html = readFileSync(join(pub, "circuits.html"), "utf8");
+const web = join(import.meta.dirname, "..");
+const pub = join(web, "public");
+const html = readFileSync(join(web, "circuits.html"), "utf8");
 const catalogue = readFileSync(join(pub, "circuits.json"), "utf8");
 const word = (n: number) => n.toString(16).padStart(64, "0");
 /** an ABI answer holding one or two `bytes` of one zero byte each */

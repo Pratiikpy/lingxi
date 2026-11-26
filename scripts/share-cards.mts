@@ -64,7 +64,7 @@ try {
       throw new Error(`the card for ${c.page} was drawn without its font`);
     await page.screenshot({ path: join(out, `${c.page.replace(/\.html$/, "")}.png`) });
     // the page's card tags, between two marks in its head, written fresh each time
-    const pageFile = c.page === "circuits.html" ? join(web, "public", "circuits.html") : join(web, c.page);
+    const pageFile = join(web, c.page);
     const text = readFileSync(pageFile, "utf8");
     const tags = cardTags(c);
     const marked = /\n?\s*<!-- share card -->[\s\S]*?<!-- \/share card -->/;

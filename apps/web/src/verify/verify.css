@@ -1,3 +1,6 @@
+/* the header every page shares (the name, home, and the language button) */
+@import "../styles/page-head.css";
+
 .verify {
   max-width: 880px;
   margin: 0 auto;
@@ -7,32 +10,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--s4);
-}
-.v-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.v-brand {
-  /* R9: a link a finger can find: 44 px tall, as every control is (it was 27) */
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  font-family: var(--round);
-  font-weight: 800;
-  font-size: 18px;
-  color: var(--ink);
-  text-decoration: none;
-}
-.v-lang {
-  min-width: 44px;
-  min-height: 44px;
-  border: 2px solid var(--line);
-  border-radius: 50%;
-  background: var(--card);
-  font-family: var(--round);
-  font-weight: 800;
-  cursor: pointer;
 }
 .verify h1 {
   margin: 0;

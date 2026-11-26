@@ -151,6 +151,9 @@ const PRELOADED: ReadonlyArray<{ page: string; entries: readonly string[]; saved
   { page: "handheld.html", entries: [] },
   { page: "privacy.html", entries: [] },
   { page: "terms.html", entries: [] },
+  // the circuit catalogue and the not-found page carry no React, only the brand's stylesheet and its two fonts (R27)
+  { page: "circuits.html", entries: [] },
+  { page: "404.html", entries: [] },
 ];
 
 function preloadPages(): Plugin {
@@ -212,6 +215,30 @@ function preloadPages(): Plugin {
         ];
         writeFileSync(file, html.replace("</head>", `  ${links.join("\n    ")}\n  </head>`));
       }
+    },
+  };
+}
+
+/**
+ * R27: the not-found page is sent for any address the site does not have, at any depth (/a/b/c), so every file it names
+ * is named from the site's root: the build writes them beside the page (./assets/...), which at /a/b/c would be asked
+ * for at /a/b/assets/... and not found.
+ */
+function rootedNotFound(): Plugin {
+  let outDir = "";
+  return {
+    name: "lingxi-rooted-not-found",
+    apply: "build",
+    configResolved(c) {
+      outDir = resolve(c.root, c.build.outDir);
+    },
+    closeBundle() {
+      const page = join(outDir, "404.html");
+      if (!existsSync(page)) return;
+      const html = readFileSync(page, "utf8").replace(/\b(href|src)="\.\//g, '$1="/');
+      if (/\b(?:href|src)="(?!\/|https:|#)/.test(html))
+        throw new Error("404.html names a file not from the site's root");
+      writeFileSync(page, html);
     },
   };
 }
@@ -381,6 +408,7 @@ export default defineConfig({
     prerenderLanding(),
     prerenderPlay(),
     shipLetters(),
+    rootedNotFound(),
   ],
   base: "./",
   build: {
@@ -396,6 +424,9 @@ export default defineConfig({
         handheld: resolve(__dirname, "handheld.html"),
         privacy: resolve(__dirname, "privacy.html"),
         terms: resolve(__dirname, "terms.html"),
+        // R27: the two pages without React, built here so they carry the brand's fonts and tokens like every other
+        circuits: resolve(__dirname, "circuits.html"),
+        notFound: resolve(__dirname, "404.html"),
       },
     },
   },

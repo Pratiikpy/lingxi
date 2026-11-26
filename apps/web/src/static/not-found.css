@@ -1,0 +1,100 @@
+/* R27: the page the site answers an address it does not have with (404.html), in the brand's look: the shared header,
+   the display face for its title, the theme's grounds, both themes, one language at a time with the round switch. */
+@import "./brand.css";
+
+.nf {
+  max-width: 880px;
+  min-height: 100vh;
+  min-height: 100svh;
+  margin: 0 auto;
+  padding-block: var(--s5) var(--s4);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+}
+.nf-card {
+  width: min(100%, 520px);
+  margin: auto;
+  padding: var(--s6) var(--s5) var(--s5);
+  border: 2px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--card);
+  box-shadow: var(--lift-hi);
+  text-align: center;
+}
+.nf-card img {
+  display: block;
+  width: 59px;
+  height: 109px;
+  margin: 0 auto;
+}
+.nf-card h1 {
+  margin: var(--s3) 0 0;
+  font-family: var(--display);
+  font-size: clamp(28px, 7vw, 40px);
+  line-height: 1.1;
+  text-wrap: balance;
+}
+.nf-card p {
+  margin: var(--s3) auto 0;
+  max-width: 34em;
+  color: var(--ink-soft);
+  font-size: 16px;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+.nf-go {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--s3);
+  margin-top: var(--s5);
+}
+.nf-go a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 var(--s4);
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--card);
+  color: var(--ink);
+  font-family: var(--round);
+  font-weight: 800;
+  font-size: 15px;
+  text-decoration: none;
+  box-shadow: var(--lift);
+  transition:
+    transform var(--t-micro) var(--ease),
+    box-shadow var(--t-micro) var(--ease);
+}
+.nf-go a.go {
+  background: var(--coral);
+  color: #2b2140;
+  border-color: #2b2140;
+  box-shadow: 0 4px 0 #2b2140;
+}
+.nf-go a:active {
+  transform: translateY(3px);
+  box-shadow: var(--lift-lo);
+}
+/* the links every page ends with (privacy, terms, contact), as the React pages draw them */
+.nf-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 18px;
+  margin: var(--s5) auto 0;
+  font-size: 14px;
+}
+.nf-foot a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 6px;
+  color: var(--ink-soft);
+}
