@@ -138,8 +138,10 @@
 .quest.ready {
   background: var(--band);
 }
+/* R35: a quest handed in reads as finished by its "Done" and a fainter edge, its words in the soft ink, not faded */
 .quest.claimed {
-  opacity: 0.6;
+  border-color: color-mix(in srgb, var(--ink-soft) 45%, transparent);
+  color: var(--ink-soft);
 }
 .quest .bar {
   margin-top: 6px;
@@ -243,7 +245,10 @@
   .room-pill {
     /* clear of the circuit button's column (10 px in, 44 wide) by 8 px */
     max-width: calc(100% - 72px);
-    flex-wrap: nowrap;
+    /* R35: one row, unless a room's name would be cut to nothing: at 320 px a room with three actions left its name
+       17 px ("野…"). There the name keeps three characters' room at least (below), and an action that no longer fits
+       takes a second row */
+    flex-wrap: wrap;
     gap: 8px;
   }
   .room-name {
@@ -264,6 +269,9 @@
     padding: 0 6px 0 11px;
     border: 0;
     background: none;
+  }
+  .room-pill:has(.room-act ~ .room-act ~ .room-act) .room-name b {
+    min-width: 3.2em;
   }
   .room-name .familiar-wrap {
     flex: none;
@@ -493,8 +501,12 @@
   text-align: left;
   cursor: pointer;
 }
+/* R35: drawn as a button that cannot be used now (R30), not faded */
 .outing-place:disabled {
-  opacity: 0.5;
+  background: var(--track);
+  color: var(--ink-soft);
+  border-style: dashed;
+  border-color: var(--ink-soft);
   cursor: default;
 }
 .outing-place:focus-visible {

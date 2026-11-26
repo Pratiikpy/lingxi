@@ -130,19 +130,35 @@
 .who-face-btn,
 .room-pill button,
 .today-card button,
-.btn.small-btn {
+.btn.small-btn,
+.sheet :is(.qb-tab, .mail-tabs button, .sp-hint-btn, .wd-chip, .val, .rp-toggle button, summary),
+.handheld-stepper .btn,
+.decor-shelf {
   position: relative;
 }
+/* R35: and the controls the screen inventory measured short of 44 px past each sheet's first screen: the quest book's
+   and the mail's tabs (40), the Decorate bar's shelves (30), a spar's hint (32), the wardrobe's slots (36), the
+   lessons' and the sandbox's values (34), the red packet's split (38), the handheld's steppers (40) and the sheets'
+   fold-outs (20 to 42). Where they wrap in rows the rows were spaced so the areas do not overlap */
 .round-btn::after,
 .pill::after,
 .who-face-btn::after,
 .room-pill button::after,
 .today-card button::after,
 .btn.small-btn::after,
-.village-door::after {
+.village-door::after,
+.sheet :is(.qb-tab, .mail-tabs button, .sp-hint-btn, .wd-chip, .val, .rp-toggle button, summary)::after,
+.handheld-stepper .btn::after,
+.decor-shelf::after {
   content: "";
   position: absolute;
   inset: min(0px, calc(50% - 22px));
+}
+/* R35: the face is a button, and play.css's .who-face clipped what overflows it, so on a 360 px phone (where it is drawn
+   36 px) its 44 px touch area above was cut back to 36, and a pet count's badge on its corner was cut too. The face's
+   drawing is never larger than the face, so nothing needs clipping */
+.who-face.who-face-btn {
+  overflow: visible;
 }
 .round-btn {
   width: 44px;
@@ -362,6 +378,25 @@
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
 }
+/* R35: a meter's name is never broken inside itself (at 320 px "饱腹" stood as 饱 over 腹, and "Rested 80" ran its number
+   out past the card's edge): where the name and its number do not fit on one line, the number takes the next */
+@media (max-width: 340px) {
+  .meters > .meter {
+    padding-inline: 6px;
+    /* a meter whose number took the next line is taller: every bar sits on its card's floor, so the four line up */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .meter-head {
+    flex-wrap: wrap;
+    gap: 0 4px;
+    white-space: nowrap;
+  }
+  .meter-head span {
+    margin-left: auto;
+  }
+}
 .meter.low .meter-head span {
   color: var(--coral);
   font-weight: 800;
@@ -426,8 +461,14 @@
   transform: translateY(3px) scale(0.97);
   box-shadow: var(--lift-lo);
 }
+/* R35: a care button that cannot be used now is drawn as one, as R30's disabled buttons: flat on the track with a
+   dashed edge and its word in the soft ink, where half opacity left the word under 3:1 */
 .act[disabled] {
-  opacity: 0.55;
+  background: var(--track);
+  color: var(--ink-soft);
+  border-style: dashed;
+  border-color: var(--ink-soft);
+  box-shadow: none;
   cursor: default;
   transform: none;
 }
@@ -1592,8 +1633,9 @@
 .tab {
   position: relative;
 }
+/* R35: a tab not open yet says so by its lock and the soft ink, not by fading its name under 4.5:1 */
 .tab-locked {
-  opacity: 0.6;
+  color: var(--ink-soft);
 }
 .tab-lock {
   position: absolute;
@@ -1738,7 +1780,8 @@
 .wd-slot {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  /* R35: rows 8 px apart, so each 36 px chip's 44 px touch area stays clear of the row below */
+  gap: 8px 6px;
   align-items: center;
 }
 .wd-slot-name {
@@ -1789,8 +1832,12 @@
   border-radius: var(--r-sm);
   background: var(--card);
 }
+/* R35: a saved look past what can be worn now is drawn as one, not faded (0.6 opacity left its name near 4:1): a fainter
+   dashed edge, its words in the soft ink, as R30's locked lessons */
 .wd-look.is-locked {
-  opacity: 0.6;
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--ink-soft) 45%, transparent);
+  color: var(--ink-soft);
 }
 .wd-look-text {
   display: grid;
@@ -2046,6 +2093,22 @@
   background: transparent;
   border-style: dashed;
 }
+/* R35: a visitor not met yet is a shadow in the plum ink, which on the dark theme's card all but vanished: there the
+   shadow is drawn light instead (the same see-through amount), so it reads as it does on the light card */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .album-card.is-unknown .album-art .pixel {
+    filter: invert(1);
+  }
+  :root:not([data-theme="light"]) .album-butterfly.is-hidden {
+    filter: brightness(0) invert(1) opacity(0.35);
+  }
+}
+:root[data-theme="dark"] .album-card.is-unknown .album-art .pixel {
+  filter: invert(1);
+}
+:root[data-theme="dark"] .album-butterfly.is-hidden {
+  filter: brightness(0) invert(1) opacity(0.35);
+}
 .album-art {
   display: grid;
   place-items: end center;
@@ -2176,8 +2239,13 @@
 .job-card:active:not(:disabled) {
   transform: scale(0.98);
 }
+/* R35: drawn as a button that cannot be used now (R30), not faded */
 .job-card:disabled {
-  opacity: 0.55;
+  background: var(--track);
+  color: var(--ink-soft);
+  border-style: dashed;
+  border-color: var(--ink-soft);
+  box-shadow: none;
   cursor: not-allowed;
 }
 .job-card:focus-visible {
@@ -3413,8 +3481,9 @@
 .village-line b {
   color: var(--ink);
 }
-.village-line.done {
-  opacity: 0.7;
+/* R35: a day's village errand done says so in words ("(done)"); it is not faded under 4.5:1 as well */
+.village-line.done b {
+  color: var(--ink-soft);
 }
 /* P6: the gift waiting at the door, taken in with one tap: a small pill in the game's own look (it was the browser's
    grey default button, 3:1 in the dark theme), answering on 44 px through the shared hit area above */

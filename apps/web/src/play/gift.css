@@ -25,18 +25,25 @@
   font-size: 11px;
   color: var(--ink-soft);
 }
+/* R35: the whole line is the box's target, 44 px tall at least (a one-line label was 25), as the spar's cheer line is */
 .gift-check {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  min-height: 44px;
   gap: 10px;
   font-weight: 600;
   line-height: 1.4;
   cursor: pointer;
 }
+/* hidden means hidden: the line's own display above would otherwise draw it (the egg's line while the pet is away
+   being looked after) */
+.gift-check[hidden] {
+  display: none;
+}
 .gift-check input {
   width: 20px;
   height: 20px;
-  margin-top: 2px;
+  margin: 0;
   flex: none;
 }
 .gift-items {
