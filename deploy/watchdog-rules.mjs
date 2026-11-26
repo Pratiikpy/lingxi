@@ -49,4 +49,22 @@ export function decide(w, beat, now) {
  * "timed out", or the HTTP status).
  * @param {{ local: string; public: string }} why
  */
+/**
+ * R17: the watchdog's last action, read back from the status it last wrote. The watchdog is itself restarted with every
+ * release of its code and every reboot, and it began each time with "no action yet", so the health report lost the
+ * one line that says the server was restarted and why. A status that is missing or not ours gives the empty answer.
+ */
+export function lastFrom(statusText) {
+  const none = { action: null, at: null, result: null };
+  try {
+    const last = JSON.parse(statusText)?.last;
+    if (!last || typeof last !== "object") return none;
+    const text = (v) => (typeof v === "string" ? v.slice(0, 200) : null);
+    const action = last.action === "restart-server" || last.action === "restart-tunnel" ? last.action : null;
+    return action ? { action, at: text(last.at), result: text(last.result) } : none;
+  } catch {
+    return none;
+  }
+}
+
 export const describeBeat = (why) => `here ${why.local}, outside ${why.public}`;

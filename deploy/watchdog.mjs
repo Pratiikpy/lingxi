@@ -5,10 +5,11 @@
  */
 
 import { execFile } from "node:child_process";
-import { renameSync, writeFileSync } from "node:fs";
+import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { decide, describeBeat, initialWatch } from "./watchdog-rules.mjs";
+import { decide, describeBeat, initialWatch, lastFrom } from "./watchdog-rules.mjs";
+import { note } from "./noteRestart.mjs";
 import { rotateLogs } from "./logRotate.mjs";
 
 const LOCAL = process.env.LINGXI_WATCH_LOCAL ?? "http://127.0.0.1:8790/api/health";
@@ -43,7 +44,13 @@ const restart = (name) =>
   });
 
 let watch = initialWatch();
+// R17: the last action is read back from the status this watchdog last wrote, so its own restart does not forget it
 let last = { action: null, at: null, result: null };
+try {
+  last = lastFrom(readFileSync(STATUS, "utf8"));
+} catch {
+  // no status yet: the first run on this PC
+}
 async function beat() {
   const now = Date.now();
   const [localWhy, pubWhy] = await Promise.all([answers(LOCAL), answers(PUBLIC)]);
@@ -57,6 +64,9 @@ async function beat() {
       .write(`${new Date(now).toISOString()} missed: ${describeBeat({ local: localWhy, public: pubWhy })} (${watch.localFails} here, ${watch.publicFails} outside in a row)
 `);
   if (r.action) {
+    // R17: a restart of the server is written in the ledger before it is done, so the start that follows has its cause
+    if (r.action === "restart-server")
+      note("watchdog", `restart-server: ${describeBeat({ local: localWhy, public: pubWhy })}`);
     const result = await restart(r.action === "restart-server" ? "lingxi-server" : "lingxi-tunnel");
     last = { action: r.action, at: new Date(now).toISOString(), result };
     process.stdout.write(`${last.at} ${r.action}: ${result}\n`);

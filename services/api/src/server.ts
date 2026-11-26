@@ -7,6 +7,7 @@
  */
 
 import { withOriginCheck } from "./originCheck";
+import { LEDGER_FILE, noteRestart } from "./restartLedger";
 import { createErrorLog, withErrors } from "./clientErrors";
 import { readEnvFile } from "./envFile";
 import { readFileSync } from "node:fs";
@@ -364,6 +365,8 @@ if (isMain) {
   // forged cf-connecting-ip (see clientIp.ts)
   const hostname = process.env.LINGXI_HOST ?? "127.0.0.1";
   const server = serve({ fetch: app.fetch, port, hostname });
+  // R17: each start is written down, so the report can say which had no release or watchdog action before it
+  if (LEDGER_FILE) noteRestart(LEDGER_FILE, "server", "start");
   attachLive(server, live, origins);
   process.stdout.write(
     `lingxi api on ${hostname}:${port} (teaching ${client ? "on" : "off: no key"}, relaying ${relayer ? "on" : "off"}, reminders ${pusher ? "on" : "off"})\n`,

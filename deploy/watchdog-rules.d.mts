@@ -15,3 +15,8 @@ export declare function decide(
   now: number,
 ): { watch: Watch; action: "restart-server" | "restart-tunnel" | null };
 export declare function describeBeat(why: { local: string; public: string }): string;
+export declare function lastFrom(statusText: string): {
+  action: "restart-server" | "restart-tunnel" | null;
+  at: string | null;
+  result: string | null;
+};

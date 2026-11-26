@@ -14,6 +14,7 @@ import { budgetedClient, createTokenBudget } from "../tokenBudget";
 import { createJobs } from "../jobs";
 import type { ErrorLog } from "../clientErrors";
 import { serverBuild, backupStatus, watchdogStatus, storeSizes } from "../routes/health";
+import { LEDGER_FILE, readLedger, startsSummary } from "../restartLedger";
 export { SITE_CACHE_MAX, scriptPolicy, withSite } from "../routes/site";
 export { withVoice, withSitting, withArena, withMove, withPush, withMail, withLibrary } from "../routes/play";
 export { type SeasonProver, withSeason, type Sponsoring, withSponsor } from "../routes/season";
@@ -92,6 +93,8 @@ export function healthDetail({
       clientErrors: errors ? { lastHour: errors.lastHour(), latest: errors.latest(5) } : null,
       backup: backupStatus(),
       watchdog: watchdogStatus(),
+      // R17: the last day's starts, and how many followed no release and no watchdog action (restartLedger.ts)
+      starts: LEDGER_FILE ? startsSummary(readLedger(LEDGER_FILE)) : null,
       // P3b: the build this server runs (dist/build.json beside it), or "source" when it runs through tsx; the status
       // check holds it to the checkout
       server: serverBuild(),

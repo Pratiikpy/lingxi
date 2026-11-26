@@ -29,6 +29,9 @@ module.exports = {
         // the site's releases (A10): `pnpm site:release` makes each live by replacing apps/web/site/current.json
         LINGXI_SITE: "../../apps/web/site",
         LINGXI_ORIGINS: "https://lingxi.knole.me",
+        // R17: this server writes each start in the restart ledger, where the release command and the watchdog write
+        // their restarts (deploy/noteRestart.mjs keeps the same file by default)
+        LINGXI_RESTART_LEDGER: path.join(os.homedir(), "lingxi-restarts.log"),
         LINGXI_RELAYER_KEY_FILE: path.join(secrets, "relayer.env"),
         LINGXI_PROCESSOR: "0xf70d324Da8C1C4Cb0dE3FF147E53E7E9db543c4e",
         LINGXI_RPC: "https://xlayerrpc.okx.com",
