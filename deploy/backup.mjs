@@ -1,7 +1,11 @@
 /**
  * The server's data, backed up once a day (run by pm2 at 03:30; see pm2.config.cjs):
  *   1. copied to a dated folder outside the repo (kept 14 days), which survives a bad write or a deleted file;
- *   2. copied to Google Drive with rclone and checked file by file, which survives the disk.
+ *   2. copied to Google Drive with rclone and checked file by file, which survives the disk; Drive keeps 30 days, so
+ *      what is removed from the server is gone from every copy within a month (R5).
+ * The server's address key (data/ip-key) never goes to Drive: with it, a coded IPv4 address can be reversed by trying
+ * every address. It is in the local copies, on the same disk as the key itself; if the disk is lost, the restored
+ * server makes a new key and its abuse limits start afresh.
  * Each run writes what happened to `last.json` beside the copies; the server's /api/health reads it, so a backup
  * that stopped working shows up in the status check rather than on the day it is needed.
  *
@@ -20,6 +24,10 @@ const DATA = process.env.LINGXI_DATA_DIR ?? join(root, "services", "api", "data"
 const DIR = process.env.LINGXI_BACKUP_DIR ?? join(homedir(), "lingxi-backups");
 const REMOTE = process.env.LINGXI_BACKUP_REMOTE ?? "gdrive:lingxi-backups";
 const KEEP_DAYS = 14;
+const DRIVE_KEEP_DAYS = 30;
+/** files that never leave this PC (R5) */
+const STAYS_HERE = ["ip-key"];
+const stayHere = STAYS_HERE.flatMap((f) => ["--exclude", `/${f}`]);
 
 const walk = (d) =>
   readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(d, e.name)) : [join(d, e.name)]));
@@ -98,9 +106,18 @@ try {
   const cutoff = Date.now() - KEEP_DAYS * 86_400_000;
   for (const d of readdirSync(DIR))
     if (/^\d{4}-\d{2}-\d{2}$/.test(d) && Date.parse(d) < cutoff) rmSync(join(DIR, d), { recursive: true, force: true });
-  execFileSync("rclone", ["copy", dest, `${REMOTE}/${date}`], { stdio: "pipe" });
-  // the same files, the same sizes, or it does not count
-  execFileSync("rclone", ["check", dest, `${REMOTE}/${date}`, "--size-only", "--one-way"], { stdio: "pipe" });
+  execFileSync("rclone", ["copy", dest, `${REMOTE}/${date}`, ...stayHere], { stdio: "pipe" });
+  // the same files, the same sizes, or it does not count (the files kept here are left out of both sides)
+  execFileSync("rclone", ["check", dest, `${REMOTE}/${date}`, "--size-only", "--one-way", ...stayHere], {
+    stdio: "pipe",
+  });
+  // older Drive copies than 30 days go
+  const driveCutoff = Date.now() - DRIVE_KEEP_DAYS * 86_400_000;
+  const days = execFileSync("rclone", ["lsf", "--dirs-only", REMOTE], { encoding: "utf8" })
+    .split("\n")
+    .map((l) => l.replace(/\/$/, "").trim())
+    .filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d) && Date.parse(d) < driveCutoff);
+  for (const d of days) execFileSync("rclone", ["purge", `${REMOTE}/${d}`], { stdio: "pipe" });
   status.drive = true;
 } catch (e) {
   status.error = String(e.stderr ?? e.message ?? e)

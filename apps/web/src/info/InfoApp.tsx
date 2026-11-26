@@ -70,8 +70,12 @@ const PRIVACY: Section[] = [
         "如果你打开提醒：浏览器提供的通知地址和你选的时间，直到你关闭提醒。",
       ],
       [
-        "To keep the service fair (how often a network may ask for things, how much of the day's language model it may use), a code made from your network address with a key only our server holds. The code cannot be turned back into the address. It is kept only beside what it limits (an arena or season entry, a pet left with a sitter, a reminder, the day's model use) and goes when that does.",
-        "为了让服务公平（一个网络多久能请求一次、能用掉当天多少语言模型额度），我们保存一个由你的网络地址加上只有我们服务器才有的密钥算出的代码。这个代码无法还原成地址。它只和它所限制的东西放在一起（竞技场或赛季的报名、托付照看的宠物、提醒、当天的模型额度），那些东西没了，它也就没了。",
+        "To keep the service fair (how often a network may ask for things, how much of the day's language model it may use), a code made from your network address with a key only our server holds and never copies off it. Without that key the code cannot be turned back into the address. It is kept only beside what it limits (an arena or season entry, a pet left with a sitter, a reminder, the day's model use) and goes when that does.",
+        "为了让服务公平（一个网络多久能请求一次、能用掉当天多少语言模型额度），我们保存一个由你的网络地址加上只有我们服务器才有、也从不拷贝出去的密钥算出的代码。没有那把密钥，这个代码就无法还原成地址。它只和它所限制的东西放在一起（竞技场或赛季的报名、托付照看的宠物、提醒、当天的模型额度），那些东西没了，它也就没了。",
+      ],
+      [
+        "Everything above is backed up once a day: on the server's own disk for 14 days, and in a cloud drive for 30 days, so anything removed from the server is gone from every copy within a month. The key that makes the code above is never part of the cloud copy.",
+        "以上所有内容每天备份一次：在服务器自己的硬盘上保留 14 天，在云端硬盘上保留 30 天，所以从服务器上删掉的东西，一个月内会从所有备份里消失。上面那个代码所用的密钥从不放进云端备份。",
       ],
     ],
   },
@@ -167,7 +171,7 @@ export function InfoApp({ kind }: { kind: Kind }) {
         </button>
       </header>
       <h1>{kind === "privacy" ? L(["Privacy", "隐私"]) : L(["Terms", "条款"])}</h1>
-      <p className="info-date">{L(["Last changed 24 November 2026", "最后更新：2026 年 11 月 24 日"])}</p>
+      <p className="info-date">{L(["Last changed 26 November 2026", "最后更新：2026 年 11 月 26 日"])}</p>
       {sections.map((s) => (
         <section key={s.h[0]} className="v-card info-card">
           <h2>{L(s.h)}</h2>
