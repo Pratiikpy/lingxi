@@ -12,6 +12,7 @@
 import { BrainRelayer } from "../relayer";
 import { budgetedClient, createTokenBudget } from "../tokenBudget";
 import { createJobs } from "../jobs";
+import type { ErrorLog } from "../clientErrors";
 import { serverBuild, backupStatus, watchdogStatus, storeSizes } from "../routes/health";
 export { SITE_CACHE_MAX, scriptPolicy, withSite } from "../routes/site";
 export { withVoice, withSitting, withArena, withMove, withPush, withMail, withLibrary } from "../routes/play";
@@ -30,6 +31,7 @@ export function healthDetail({
   relayer,
   watch,
   dataDir,
+  errors,
 }: {
   jobs: ReturnType<typeof createJobs>;
   client: ReturnType<typeof budgetedClient> | null;
@@ -37,13 +39,23 @@ export function healthDetail({
   relayer: BrainRelayer | null;
   watch: { indexed?: () => number; head?: () => Promise<bigint>; packets?: () => number };
   dataDir: string;
+  /** P8: the game's own errors, reported by players' browsers */
+  errors?: ErrorLog;
 }) {
   let cached: { at: number; value: Record<string, unknown> } | null = null;
   const detail: HealthDetail = async () => {
     if (cached && Date.now() - cached.at < 30_000) return cached.value;
+    // P8: whether the chain answers, said on every refresh with the reason when it does not, so a dead RPC is named
+    // within a minute (this report is cached 30 s) rather than shown as a blank
+    let chain = watch.head ? "ok" : "not watched";
     const [head, relayerWei, fees] = await Promise.all([
       // the health report says null for what it could not read, and reports the rest
-      watch.head?.().catch(() => null) ?? null,
+      watch.head?.().catch((e: unknown) => {
+        const why = (e instanceof Error ? e.message : String(e)).split("\n")[0] ?? "";
+        chain = `unreachable: ${why.slice(0, 160)}`;
+        return null;
+      }) ?? null,
+      // the relayer's balance and fees: null when they cannot be read, the rest of the report still given
       relayer?.balance().catch(() => null) ?? null,
       relayer?.fees().catch(() => null) ?? null,
     ]);
@@ -51,6 +63,7 @@ export function healthDetail({
     const bemTapeouts =
       fees && fees.feeIn === "bem" && fees.protocolFee > 0n ? Number(fees.bem / (fees.protocolFee * 2n)) : null;
     const value = {
+      chain,
       jobs: Object.fromEntries(
         jobs.status().map((j) => [j.name, j.healthy ? "ok" : `failing: ${j.lastError?.message ?? "?"}`]),
       ),
@@ -75,6 +88,8 @@ export function healthDetail({
             ...modelBudget.measured(),
           }
         : null,
+      // P8: the game's own uncaught errors, as players' browsers report them (scrubbed; no client is named)
+      clientErrors: errors ? { lastHour: errors.lastHour(), latest: errors.latest(5) } : null,
       backup: backupStatus(),
       watchdog: watchdogStatus(),
       // P3b: the build this server runs (dist/build.json beside it), or "source" when it runs through tsx; the status
