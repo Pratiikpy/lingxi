@@ -21,6 +21,7 @@ import { useT } from "../../i18n";
 import type { DayPhase } from "../../scene/dayPhase";
 import type { PetStage } from "../../scene/palette";
 import { Familiar } from "../Familiar";
+import { Icon, type IconName } from "../icons";
 import type { Tab } from "../parts";
 
 const RoomScene = lazy(() => import("../../scene/RoomScene").then((m) => ({ default: m.RoomScene })));
@@ -181,40 +182,67 @@ export function RoomPill({
   const room = roomOrHome(worldRoom);
   return (
     <div className="room-pill">
-      <b>{visiting && worldRoom === HOME ? (lang === "zh" ? "朋友家" : "A friend's home") : room.name[lang]}</b>
+      {/* R21: the room's name carries how well the pet knows it; where the room is narrow the two read as one chip */}
+      <span className="room-name">
+        <b>{visiting && worldRoom === HOME ? (lang === "zh" ? "朋友家" : "A friend's home") : room.name[lang]}</b>
+        {room.drops.length > 0 && room.familiarSize > 0 && !visiting && (
+          <Familiar known={familiar?.[room.index] ?? 0} size={room.familiarSize} />
+        )}
+      </span>
       {who && !talking && (
-        <button type="button" onClick={startTalk}>
+        <RoomAct icon="talk" onClick={startTalk}>
           {lang === "zh" ? `和${who.name.zh}说话` : `Talk to ${who.name.en}`}
-        </button>
+        </RoomAct>
       )}
       {resident && (
-        <button type="button" onClick={() => (play("tap"), setPicked(`builder:${resident.id}`))}>
+        <RoomAct icon="hand" onClick={() => (play("tap"), setPicked(`builder:${resident.id}`))}>
           {lang === "zh" ? `见见${resident.name.zh}` : `Meet ${resident.name.en}`}
-        </button>
+        </RoomAct>
       )}
       {room.drops.length > 0 && (
-        <button type="button" onClick={() => (play("tap"), worldForage())} data-hint="look">
+        <RoomAct icon="look" onClick={() => (play("tap"), worldForage())} hint="look">
           {t("room.look")}
-        </button>
-      )}
-      {room.drops.length > 0 && room.familiarSize > 0 && !visiting && (
-        <Familiar known={familiar?.[room.index] ?? 0} size={room.familiarSize} />
+        </RoomAct>
       )}
       {room.shop.length > 0 && (
-        <button type="button" onClick={() => pick("bag")}>
+        <RoomAct icon="bag" onClick={() => pick("bag")}>
           {t("room.shop")}
-        </button>
+        </RoomAct>
       )}
       {room.index === HOME && !visiting && decorating === null && (
-        <button type="button" onClick={() => (play("tap"), setDecorating(""))}>
+        <RoomAct icon="sofa" onClick={() => (play("tap"), setDecorating(""))}>
           {t("decor.title")}
-        </button>
+        </RoomAct>
       )}
       {room.index !== HOME && neighbours(room.index).includes(HOME) && (
-        <button type="button" onClick={() => worldMove(HOME)}>
+        <RoomAct icon="home" onClick={() => worldMove(HOME)}>
           {t("room.home")}
-        </button>
+        </RoomAct>
       )}
     </div>
+  );
+}
+
+/**
+ * One of the room's actions. Where the room is wide it reads as its words; where it is narrow (a phone, a phone turned
+ * sideways) it is its icon alone, its words kept for a screen reader and for every test that finds it by them, so
+ * the room's controls take one row above the pet (R21).
+ */
+function RoomAct({
+  icon,
+  onClick,
+  hint,
+  children,
+}: {
+  icon: IconName;
+  onClick: () => void;
+  hint?: string;
+  children: string;
+}) {
+  return (
+    <button type="button" className="room-act" onClick={onClick} data-hint={hint}>
+      <Icon name={icon} size={20} className="room-act-icon" />
+      <span className="room-act-words">{children}</span>
+    </button>
   );
 }

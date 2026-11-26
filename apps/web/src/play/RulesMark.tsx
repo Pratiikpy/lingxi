@@ -115,7 +115,11 @@ export function RulesMark() {
             <span className="rules-tick" aria-hidden="true">
               ✓
             </span>
-            {verified}
+            {/* R21: where the lane is narrow the mark keeps to one line: the count steps out of sight, not out of its name */}
+            <span>
+              {L("Rules verified on X Layer", "规则已在 X Layer 上核对")}
+              <span className="rules-count">{L(` · ${checks.length} circuits`, ` · ${checks.length} 个电路`)}</span>
+            </span>
           </motion.a>
         )}
         {state === "broken" && !closed && !covered && (

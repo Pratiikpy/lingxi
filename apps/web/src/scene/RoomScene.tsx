@@ -13,7 +13,7 @@ import { Application, Container, Sprite } from "pixi.js";
 import "pixi.js/unsafe-eval";
 import type { StarterLine } from "@lingxi/brain";
 import { type PetStage } from "./textures";
-import { PET_HOME, ROOM, roomOrigin, type FloorView } from "./floor";
+import { PET_HOME, ROOM, roomOrigin, stripRoomOf, type FloorView } from "./floor";
 import { bodyHitArea } from "./hitArea";
 import { createBackground } from "./background";
 import { createCat } from "./cat";
@@ -219,8 +219,9 @@ export function RoomScene(props: SceneProps) {
         const w = el.clientWidth;
         const h = el.clientHeight;
         // the largest whole-number scale that covers the box, cropped evenly with the pet kept above the thinking
-        // strip (floor.ts roomOrigin, which the browser tests tap from too)
-        const origin = roomOrigin(w, h);
+        // strip, or on the floor where the strip sits beside the room (floor.ts roomOrigin, which the browser tests
+        // tap from too)
+        const origin = roomOrigin(w, h, stripRoomOf(el));
         scale = origin.scale;
         world.scale.set(scale);
         world.x = origin.x;
@@ -229,6 +230,9 @@ export function RoomScene(props: SceneProps) {
       layout();
       const ro = new ResizeObserver(layout);
       ro.observe(el);
+      // the strip over the room's foot comes and goes with what the room holds (a bar of who is here), not its size
+      const strips = new MutationObserver(layout);
+      if (el.parentElement) strips.observe(el.parentElement, { childList: true });
 
       const particles = createParticles(fx);
       const visitors = createVisitors({
@@ -286,6 +290,7 @@ export function RoomScene(props: SceneProps) {
       document.addEventListener("visibilitychange", onVis);
       cleanup = () => {
         ro.disconnect();
+        strips.disconnect();
         document.removeEventListener("visibilitychange", onVis);
       };
     })();

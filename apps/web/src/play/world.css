@@ -227,6 +227,85 @@
   font-size: 13px;
   cursor: pointer;
 }
+/* R21: where the room is wide its name and how well the pet knows it are two chips and each action reads as its words */
+.room-name {
+  display: contents;
+}
+.room-act-icon {
+  display: none;
+}
+/* R21: a narrow room (a phone, or a phone turned sideways) keeps its controls to one row, so the pet below has the
+   scene: the name and how well the pet knows the place share one chip, each action is its icon (its words stay its
+   name, for a screen reader), and a long room name gives way before anything wraps */
+@container room (max-width: 459px) {
+  .room-pill {
+    /* clear of the circuit button's column (10 px in, 44 wide) by 8 px */
+    max-width: calc(100% - 72px);
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+  .room-name {
+    display: inline-flex;
+    flex: 0 1 auto;
+    align-items: center;
+    min-width: 0;
+    min-height: 36px;
+    border: 2px solid #2b2140;
+    border-radius: var(--r-pill);
+    background: rgba(255, 253, 248, 0.93);
+  }
+  .room-name b {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0 6px 0 11px;
+    border: 0;
+    background: none;
+  }
+  .room-name .familiar-wrap {
+    flex: none;
+    align-self: stretch;
+  }
+  .room-pill .room-name .familiar {
+    min-height: 0;
+    gap: 4px;
+    padding: 0 10px 0 6px;
+    border: 0;
+    border-left: 2px solid rgba(43, 33, 64, 0.2);
+    border-radius: 0 var(--r-pill) var(--r-pill) 0;
+    background: transparent;
+  }
+  .room-pill .room-name .familiar.is-full {
+    background: var(--sunny);
+  }
+  .room-name .familiar-word {
+    display: none;
+  }
+  .room-name .familiar-bar {
+    width: 20px;
+  }
+  .room-pill .room-act {
+    /* drawn 36 px, answering on 44 (play.css P5); 8 px apart, their touch areas meet and never overlap */
+    flex: none;
+    width: 36px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+  }
+  .room-act-icon {
+    display: block;
+  }
+  .room-act-words {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+}
 
 .garden {
   display: grid;

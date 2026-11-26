@@ -1,5 +1,5 @@
-/* A15: the room's notices in one lane. NoticeLane.tsx measures where it goes: under the room's top row (one line on a
-   desktop, two on a phone) and clear of the pet's "!" corner. The notices stack in order with a gap, above sheets as
+/* A15: the room's notices in one lane. NoticeLane.tsx measures where it goes: under the room's top row (one line, on a phone
+   too since R21) and clear of the pet's "!" corner. The notices stack in order with a gap, above sheets as
    the quest and badge toasts always were; each keeps its own look, and loses only its own placement. */
 .notice-lane {
   position: fixed;
@@ -14,6 +14,8 @@
   align-items: center;
   gap: 8px;
   pointer-events: none;
+  /* R21: a notice takes its shape from the lane's width: on a phone's room it keeps to one line */
+  container: lane / inline-size;
 }
 .notice-lane > :is(.toast, .quest-toast, .badge-toast, .rules-mark, .voice) {
   position: relative;
@@ -69,4 +71,34 @@
   height: env(safe-area-inset-top, 0px);
   visibility: hidden;
   pointer-events: none;
+}
+/* R21: a narrow lane (a phone's room) keeps the rules mark to one line, so it lies as a strip over the room's sky and
+   never over the pet; the count of circuits leaves the line, not the link's name, and the circuit view still says it */
+@container lane (max-width: 300px) {
+  .notice-lane > .rules-mark:not(.is-bad) {
+    gap: 6px;
+    padding: 5px 12px 5px 5px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .notice-lane > .rules-mark:not(.is-bad) .rules-tick {
+    width: 22px;
+    height: 22px;
+    font-size: 12px;
+  }
+  .notice-lane > .rules-mark .rules-count {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+}
+/* P5: the rules mark is a link a finger finds: drawn slim, it answers on 44 px around its centre */
+.notice-lane > a.rules-mark::after {
+  content: "";
+  position: absolute;
+  inset: min(0px, calc(50% - 22px));
 }

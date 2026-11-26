@@ -1,5 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { HALF, LANES, PET_FEET, ROOM, STRIP_ROOM, WANDER, floorSpot, laneOf, roomOrigin, viewOf } from "./floor";
+import {
+  FLOOR_ROOM,
+  HALF,
+  LANES,
+  PET_FEET,
+  ROOM,
+  STRIP_ROOM,
+  WANDER,
+  floorSpot,
+  laneOf,
+  roomOrigin,
+  stripRoomFrom,
+  viewOf,
+} from "./floor";
 
 // the room's box on the phone the e2e tests use (390 wide) and on a desktop; a phone crops the sides (A69)
 const PHONE = viewOf(355, 560);
@@ -66,5 +79,39 @@ describe("where the room draws itself in its box (roomOrigin)", () => {
     expect(o.y).toBe(354 - STRIP_ROOM - PET_FEET * 3);
     expect(o.y).toBeLessThan(Math.round((354 - ROOM * 3) / 2));
     expect(o.y + PET_FEET * o.scale, "the feet end above the strip").toBeLessThanOrEqual(354 - STRIP_ROOM);
+  });
+
+  // R21: on a short phone held upright and on a phone turned sideways the strip lies beside the room, not over it, so
+  // the room keeps only a little floor under the pet's feet, and the pet stands lower, clear of the room's top row
+  it("keeps only a floor's margin under the pet when no strip lies over the room's foot", () => {
+    // a 320 x 568 phone's room: 288 wide, 180 tall, the strip beside it
+    const o = roomOrigin(288, 180, FLOOR_ROOM);
+    expect(o.scale).toBe(3);
+    expect(o.y + PET_FEET * o.scale, "the feet a floor's margin above the foot").toBe(180 - FLOOR_ROOM);
+    expect(o.y + PET_FEET * o.scale, "lower than with a strip to clear").toBeGreaterThan(
+      roomOrigin(288, 180).y + PET_FEET * 3,
+    );
+  });
+
+  it("still crops evenly, with no strip, where the pet already stands clear of the foot", () => {
+    // a landscape phone's room, 310 square: cropped evenly leaves the feet well above the foot
+    const o = roomOrigin(310, 310, FLOOR_ROOM);
+    expect(o.y).toBe(Math.round((310 - ROOM * 3) / 2));
+    expect(o.y + PET_FEET * o.scale).toBeLessThanOrEqual(310 - FLOOR_ROOM);
+  });
+
+  it("leaves the room as it was when the strip is over its foot (the default)", () => {
+    expect(roomOrigin(354, 354, STRIP_ROOM)).toEqual(roomOrigin(354, 354));
+  });
+});
+
+describe("how much of the room's foot a strip takes, as the page says (stripRoomFrom)", () => {
+  it("reads the room's --strip-room in pixels", () => {
+    expect(stripRoomFrom("12px")).toBe(12);
+    expect(stripRoomFrom(" 76px ")).toBe(76);
+  });
+
+  it("falls back to a strip's room when the page says nothing it can read", () => {
+    for (const v of ["", "auto", "-4px", "NaNpx"]) expect(stripRoomFrom(v)).toBe(STRIP_ROOM);
   });
 });

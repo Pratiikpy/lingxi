@@ -267,7 +267,8 @@
 .pet-quest {
   /* its own corner, under the circuit button: clear of the pet's speech bubble and the room's buttons */
   position: absolute;
-  right: 14px;
+  /* in one column with the circuit button above it */
+  right: 10px;
   top: 64px;
   z-index: 6;
   display: grid;

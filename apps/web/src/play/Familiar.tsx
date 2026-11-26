@@ -40,7 +40,11 @@ export function Familiar({ known, size }: { known: number; size: number }) {
         >
           <i style={{ width: `${Math.round((100 * n) / size)}%` }} />
         </span>
-        <span>{zh ? `熟悉 ${n}/${size}` : `Known ${n}/${size}`}</span>
+        {/* R21: beside the room's name on a narrow room the count speaks for itself; the word shows where there is room */}
+        <span>
+          <span className="familiar-word">{zh ? "熟悉 " : "Known "}</span>
+          {n}/{size}
+        </span>
       </button>
       {open && (
         <span className="familiar-why" role="status">

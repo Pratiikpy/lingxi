@@ -8,7 +8,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { type Pet, stageOf } from "@lingxi/game";
-import { HALF, PET_FEET, PET_HOME, roomOrigin } from "../scene/floor";
+import { HALF, PET_FEET, PET_HOME, roomOrigin, stripRoomOf } from "../scene/floor";
 import { useLang, useT, type Key } from "../i18n";
 import { now } from "../game/gameClock";
 import { takeHatched } from "./afterHatch";
@@ -50,19 +50,31 @@ export function PetButton({ pet, stage, onPat }: { pet: Pet; stage: DrawnStage; 
     const el = box.current;
     if (!el) return;
     const measure = () => {
-      const o = roomOrigin(el.clientWidth, el.clientHeight);
+      const o = roomOrigin(el.clientWidth, el.clientHeight, stripRoomOf(el));
       const half = HALF[stage] * o.scale;
-      setPlace({
+      const next = {
         left: o.x + PET_HOME * o.scale - half - 6,
         top: o.y + (PET_FEET - PET_TALL) * o.scale,
         width: 2 * half + 12,
         height: PET_TALL * o.scale + 6,
-      });
+      };
+      // the room's children change often (a notice, a card); the pet's place only now and then
+      setPlace((was) =>
+        was && was.left === next.left && was.top === next.top && was.width === next.width && was.height === next.height
+          ? was
+          : next,
+      );
     };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
-    return () => ro.disconnect();
+    // the strip over the room's foot comes and goes with what the room holds, as the room's own drawing follows it
+    const strips = new MutationObserver(measure);
+    if (el.parentElement) strips.observe(el.parentElement, { childList: true });
+    return () => {
+      ro.disconnect();
+      strips.disconnect();
+    };
   }, [stage]);
 
   // a change read out politely, and never more often than SPEAK_EVERY_MS

@@ -31,19 +31,34 @@ export function sceneScale(w: number, h: number): number {
 export const PET_FEET = 104;
 /** CSS pixels at the room's foot the thinking strip lies over; the pet's feet stay above them. */
 export const STRIP_ROOM = 76;
+/** CSS pixels of floor kept under the pet's feet when no strip lies over the room's foot (a short phone held upright, a
+ * phone turned sideways: the strip sits beside the room there). R21. */
+export const FLOOR_ROOM = 12;
+
+/** How much of the room's foot a strip takes, from the room's `--strip-room` as the page sets it (play.css); anything
+ * unreadable is taken as a strip's full room, the room's long-standing rule. */
+export function stripRoomFrom(value: string): number {
+  const px = /^\s*(\d+(?:\.\d+)?)px\s*$/.exec(value);
+  return px ? Number(px[1]) : STRIP_ROOM;
+}
+
+/** The strip's room for a box inside the room (the scene, the pet's button), as the page sets it now. */
+export const stripRoomOf = (el: Element): number =>
+  stripRoomFrom(getComputedStyle(el).getPropertyValue("--strip-room"));
 
 /**
  * Where the scaled room's top-left corner sits in a box of `w` by `h`, in CSS pixels from the box's own corner: cropped
  * evenly, but never so the pet's feet sink under the thinking strip along the room's foot (a shorter room on a phone,
- * with more lines in the care panel below it, otherwise lost the pet's lower half). The room draws itself here, and the
- * browser tests tap its pets from here, so the two can never drift apart.
+ * with more lines in the care panel below it, otherwise lost the pet's lower half). Where no strip lies over the foot
+ * (`strip` is then FLOOR_ROOM, R21) the pet stands on the room's floor instead of a strip's height above it. The room
+ * draws itself here, and the browser tests tap its pets from here, so the two can never drift apart.
  */
-export function roomOrigin(w: number, h: number): { x: number; y: number; scale: number } {
+export function roomOrigin(w: number, h: number, strip: number = STRIP_ROOM): { x: number; y: number; scale: number } {
   const scale = sceneScale(w, h);
   return {
     scale,
     x: Math.round((w - ROOM * scale) / 2),
-    y: Math.round(Math.min((h - ROOM * scale) / 2, h - STRIP_ROOM - PET_FEET * scale)),
+    y: Math.round(Math.min((h - ROOM * scale) / 2, h - strip - PET_FEET * scale)),
   };
 }
 

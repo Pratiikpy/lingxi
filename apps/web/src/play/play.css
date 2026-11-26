@@ -3,6 +3,8 @@
    bottoms of both columns line up and the tab bar spans their full width. */
 
 .app {
+  /* how far the floating tab bar rides above the screen's bottom edge */
+  --tabs-bottom: max(8px, env(safe-area-inset-bottom, 0px));
   min-height: 100%;
   max-width: 1120px;
   margin: 0 auto;
@@ -170,6 +172,8 @@
 }
 .stage {
   position: relative;
+  /* R21: the room's own controls take their shape from the room's width (world.css), not the window's */
+  container: room / inline-size;
   aspect-ratio: 1;
   max-width: 100%;
   border: 2px solid var(--line);
@@ -525,7 +529,7 @@
   border-radius: var(--r-lg);
   background: var(--card);
   position: sticky;
-  bottom: max(8px, env(safe-area-inset-bottom, 0px));
+  bottom: var(--tabs-bottom);
 }
 .tab {
   min-height: 52px;
@@ -1294,6 +1298,42 @@
        care buttons and the tab bar still fit without scrolling */
     min-height: max(180px, min(calc(100vw - 32px), 380px, calc(100dvh - 312px)));
   }
+  /* R22: the tab bar floats over the page as it scrolls, so it stands on a dock of the page's own colour, from just
+     above it to the screen's edges: what scrolls beneath it fades out over the gap above the bar and is never seen
+     sliced through the gap below it or round its corners. The bar's card is drawn on a layer of its own over the dock,
+     both under the tabs themselves, in the bar's own stacking context. The page ends at least as far below the bar as
+     the dock reaches, so the dock never reaches past the page's end. */
+  .app {
+    padding-bottom: max(var(--s3), calc(var(--tabs-bottom) + 2px));
+  }
+  .tabs {
+    /* its own layer, over whatever the page scrolls beneath it (sheets and their scrim, at 20 and up, stay over it) */
+    z-index: 10;
+    background: none;
+    border-color: transparent;
+  }
+  .tabs::before,
+  .tabs::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+  }
+  /* measured from inside the bar's 2 px border, so each side reaches 2 px further to meet the screen's edges */
+  .tabs::before {
+    z-index: -2;
+    top: calc(-1 * var(--s3) - 2px);
+    bottom: calc(-1 * var(--tabs-bottom) - 2px);
+    left: calc(-1 * max(16px, env(safe-area-inset-left, 0px)) - 2px);
+    right: calc(-1 * max(16px, env(safe-area-inset-right, 0px)) - 2px);
+    background: linear-gradient(to bottom, transparent, var(--page) var(--s3));
+  }
+  .tabs::after {
+    z-index: -1;
+    inset: -2px;
+    border: 2px solid var(--line);
+    border-radius: inherit;
+    background: var(--card);
+  }
 }
 /* the side column's copy of the thinking strip, shown only on a landscape phone or a short one (below) */
 .think-side {
@@ -1314,6 +1354,14 @@
   }
   .think-side .think {
     position: static;
+  }
+  /* R21: with the strip beside the room the pet stands on its floor (floor.ts FLOOR_ROOM), not a strip's height above
+     it, clear of the room's top row; the bar of who is here still lies over the foot when there is one */
+  .stage {
+    --strip-room: 12px;
+  }
+  .stage:has(> .social) {
+    --strip-room: 76px;
   }
 }
 /* H5: a phone turned sideways. Above, the room would be a wide strip with the pet below its edge; here it is a square
@@ -1352,10 +1400,29 @@
   .side {
     max-height: var(--room);
     overflow-y: auto;
+    /* R22: the column scrolls on its own beside the room. Its foot fades rather than slicing a line in two, and its
+       last line comes to rest whole above the fade */
+    padding-bottom: 20px;
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent);
   }
-  /* the strip leaves the room for the side column: the pet stands where it used to lie */
+  /* the tab bar is a column at the right edge here, with nothing scrolling under it: no dock */
+  .tabs {
+    background: var(--card);
+    border-color: var(--line);
+  }
+  .tabs::before,
+  .tabs::after {
+    content: none;
+  }
+  /* the strip leaves the room for the side column: the pet stands on the floor where it used to lie (R21: as above) */
   .stage .think {
     display: none;
+  }
+  .stage {
+    --strip-room: 12px;
+  }
+  .stage:has(> .social) {
+    --strip-room: 76px;
   }
   .think-side {
     display: block;
@@ -2595,8 +2662,8 @@
   line-height: 1.5;
 }
 /* Telegram reports its own safe areas; a webview's env() can read zero */
-.in-telegram .tabs {
-  bottom: max(8px, env(safe-area-inset-bottom, 0px), var(--tg-safe-area-inset-bottom, 0px));
+.in-telegram .app {
+  --tabs-bottom: max(8px, env(safe-area-inset-bottom, 0px), var(--tg-safe-area-inset-bottom, 0px));
 }
 
 .home-page {

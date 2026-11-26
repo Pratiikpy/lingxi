@@ -16,8 +16,9 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 import "./notice-lane.css";
 
-/** Room for the pet's "!" (and the circuit button above it) at the room's right edge. */
-const CORNER = 64;
+/** Room for the pet's "!" (and the circuit button above it) at the room's right edge: the 44 px column 10 px in, and a
+ * gap. */
+const CORNER = 60;
 /** Space between the room's top row and the first notice, and at the room's left edge. */
 const GAP = 8;
 /** The room a notice needs above a sheet: the tallest notice (a two-line badge or quest toast) and a gap each side. */
@@ -53,7 +54,7 @@ export function NoticeLane({ children }: { children: ReactNode }) {
       if (!room) return;
       const r = room.getBoundingClientRect();
       const row = room.querySelector<HTMLElement>(".room-pill")?.getBoundingClientRect();
-      // under the top row when it shows (it wraps to two lines on a phone), else at the room's top
+      // under the top row when it shows (one line on a phone since R21), else at the room's top
       const top = Math.max(r.top, row && row.height > 0 ? row.bottom : r.top) + GAP;
       el.style.setProperty("--lane-bottom", "auto");
       el.style.setProperty("--lane-top", `${Math.round(top)}px`);
