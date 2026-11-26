@@ -116,4 +116,28 @@ describe("a sheet's panel loaded on first use (R33)", () => {
     expect(m.host.querySelector(".crash")?.textContent).toBe("a drawing bug");
     act(() => m.root.unmount());
   });
+
+  // R35: the Pet sheet's panels (its diary, family, studio, shops ...) and the collection have the same loading state and
+  // Try again, but most visits never open them, so their code is not fetched in the start-up warm-up as the tabs' is
+  it("fetches a panel made with warm: false only when it is drawn, not in the start-up warm-up", async () => {
+    const { deferredPanel } = await fresh();
+    const { warmDeferred } = await import("../game/warm");
+    const cold = vi.fn(async () => () => createElement("p", { className: "cold" }, "cold"));
+    const warmed = vi.fn(async () => () => createElement("p", { className: "warm" }, "warm"));
+    const Cold = deferredPanel(cold, { warm: false });
+    deferredPanel(warmed);
+    const stop = warmDeferred();
+    // a first touch starts the warm-up at once; it fetches one module per idle moment
+    window.dispatchEvent(new Event("pointerdown"));
+    await act(async () => new Promise((r) => setTimeout(r, 300)));
+    expect(warmed).toHaveBeenCalled();
+    expect(cold).not.toHaveBeenCalled();
+    const m = mount(createElement(Cold));
+    await m.render();
+    await flush();
+    expect(cold).toHaveBeenCalledTimes(1);
+    expect(m.host.querySelector(".cold")?.textContent).toBe("cold");
+    stop();
+    act(() => m.root.unmount());
+  });
 });

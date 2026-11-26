@@ -130,8 +130,13 @@ class PanelGuard extends Component<{ children: ReactNode; onRetry: () => void },
  * it afresh, in place of the panel alone rather than the whole game. (A build left behind by a deploy is still reloaded
  * once, by boot/staleBuild.ts.)
  */
-export function deferredPanel<P extends object>(load: () => Promise<ComponentType<P>>): (props: P) => ReactElement {
-  warmLater(load);
+export function deferredPanel<P extends object>(
+  load: () => Promise<ComponentType<P>>,
+  { warm = true }: { warm?: boolean } = {},
+): (props: P) => ReactElement {
+  // R35: `warm: false` for a panel deep in a sheet that most visits never open (the Pet sheet's): its code still arrives
+  // only when it is drawn, as it did before it had a loading state and a Try again
+  if (warm) warmLater(load);
   const first = lazyPanel(load);
   return function DeferredPanel(props: P) {
     // each try is a fresh fetch: React keeps a lazy component's failure, so a retry needs a new one

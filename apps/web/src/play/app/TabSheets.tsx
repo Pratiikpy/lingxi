@@ -1,8 +1,11 @@
 /**
  * P7: the game's tab sheets, out of PlayApp: the bag, the mail, the map, the collection, the quests, the mind, the spar,
- * the games, the pets and the Pet sheet with all it holds. Each panel's code still arrives only when it is wanted.
+ * the games, the pets and the Pet sheet with all it holds. Each panel's code still arrives only when it is wanted, and
+ * every one says so while it is on the way and offers a Try again if it cannot be fetched (R33 for the tabs' panels; R35
+ * for the Pet sheet's and the collection's, which showed a blank and then the whole game's crash screen). Those are not
+ * warmed up at start: most visits never open them.
  */
-import { lazy, useState } from "react";
+import { useState } from "react";
 import type { Pet } from "@lingxi/game";
 import { useLang, useT } from "../../i18n";
 import { play } from "../../game/sound";
@@ -17,22 +20,24 @@ import type { Tab } from "../parts";
 import { SaveFileCard } from "../SaveFile";
 import { EvolutionChart, MeSheetBody, MindPanel, Sheet } from "../Sheets";
 
-const AdoptionPanel = lazy(() => import("../Adoption").then((x) => ({ default: x.AdoptionPanel })));
+const AdoptionPanel = deferredPanel(() => import("../Adoption").then((x) => x.AdoptionPanel), { warm: false });
 const ArenaPanel = deferredPanel(() => import("../Arena").then((x) => x.ArenaPanel));
 const BagPanel = deferredPanel(() => import("../WorldPanels").then((x) => x.BagPanel));
 const ChainPanel = deferredPanel(() => import("../ChainPanel").then((x) => x.ChainPanel));
-const CollectionPanel = lazy(() => import("../Collection").then((x) => ({ default: x.CollectionPanel })));
-const DiaryPanel = lazy(() => import("../Diary").then((x) => ({ default: x.DiaryPanel })));
-const ExtrasPanel = lazy(() => import("../Extras").then((x) => ({ default: x.ExtrasPanel })));
-const FamilyTree = lazy(() => import("../Family").then((x) => ({ default: x.FamilyTree })));
-const FashionMarketPanel = lazy(() => import("../FashionMarket").then((x) => ({ default: x.FashionMarketPanel })));
-const FriendsPanel = lazy(() => import("../Friends").then((x) => ({ default: x.FriendsPanel })));
+const CollectionPanel = deferredPanel(() => import("../Collection").then((x) => x.CollectionPanel), { warm: false });
+const DiaryPanel = deferredPanel(() => import("../Diary").then((x) => x.DiaryPanel), { warm: false });
+const ExtrasPanel = deferredPanel(() => import("../Extras").then((x) => x.ExtrasPanel), { warm: false });
+const FamilyTree = deferredPanel(() => import("../Family").then((x) => x.FamilyTree), { warm: false });
+const FashionMarketPanel = deferredPanel(() => import("../FashionMarket").then((x) => x.FashionMarketPanel), {
+  warm: false,
+});
+const FriendsPanel = deferredPanel(() => import("../Friends").then((x) => x.FriendsPanel), { warm: false });
 const GamesPanel = deferredPanel(() => import("../Games").then((x) => x.GamesPanel));
-const HandheldPanel = lazy(() => import("../Handheld").then((x) => ({ default: x.HandheldPanel })));
-const HoldersPanel = lazy(() => import("../Holders").then((x) => ({ default: x.HoldersPanel })));
+const HandheldPanel = deferredPanel(() => import("../Handheld").then((x) => x.HandheldPanel), { warm: false });
+const HoldersPanel = deferredPanel(() => import("../Holders").then((x) => x.HoldersPanel), { warm: false });
 const HomePanel = deferredPanel(() => import("../Home").then((x) => x.HomePanel));
-const InvitePanel = lazy(() => import("../Social").then((x) => ({ default: x.InvitePanel })));
-const ItemShopPanel = lazy(() => import("../ItemShop").then((x) => ({ default: x.ItemShopPanel })));
+const InvitePanel = deferredPanel(() => import("../Social").then((x) => x.InvitePanel), { warm: false });
+const ItemShopPanel = deferredPanel(() => import("../ItemShop").then((x) => x.ItemShopPanel), { warm: false });
 const MailboxPanel = deferredPanel(() => import("../Mailbox").then((x) => x.MailboxPanel));
 const MapPanel = deferredPanel(() => import("../WorldPanels").then((x) => x.MapPanel));
 const NeighboursPanel = deferredPanel(() => import("../Neighbours").then((x) => x.NeighboursPanel));
@@ -40,12 +45,12 @@ const Outings = deferredPanel(() => import("../Outings").then((x) => x.Outings))
 const PetLetters = deferredPanel(() => import("../PetLetters").then((x) => x.PetLetters));
 const PetsPanel = deferredPanel(() => import("../Family").then((x) => x.PetsPanel));
 const QuestBook = deferredPanel(() => import("../Quests").then((x) => x.QuestBook));
-const RedPacketPanel = lazy(() => import("../RedPacket").then((x) => ({ default: x.RedPacketPanel })));
+const RedPacketPanel = deferredPanel(() => import("../RedPacket").then((x) => x.RedPacketPanel), { warm: false });
 const RemindersPanel = deferredPanel(() => import("../Reminders").then((x) => x.RemindersPanel));
-const RewindPanel = lazy(() => import("../Rewind").then((x) => ({ default: x.RewindPanel })));
-const SendGiftPanel = lazy(() => import("../Gift").then((x) => ({ default: x.SendGiftPanel })));
-const SitPanel = lazy(() => import("../Sitting").then((x) => ({ default: x.SitPanel })));
-const StudioPanel = lazy(() => import("../Studio").then((x) => ({ default: x.StudioPanel })));
+const RewindPanel = deferredPanel(() => import("../Rewind").then((x) => x.RewindPanel), { warm: false });
+const SendGiftPanel = deferredPanel(() => import("../Gift").then((x) => x.SendGiftPanel), { warm: false });
+const SitPanel = deferredPanel(() => import("../Sitting").then((x) => x.SitPanel), { warm: false });
+const StudioPanel = deferredPanel(() => import("../Studio").then((x) => x.StudioPanel), { warm: false });
 const TeachPanel = deferredPanel(() => import("../Teach").then((x) => x.TeachPanel));
 const WardrobePanel = deferredPanel(() => import("../Wardrobe").then((x) => x.WardrobePanel));
 
