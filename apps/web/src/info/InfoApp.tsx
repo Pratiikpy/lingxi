@@ -66,12 +66,40 @@ const PRIVACY: Section[] = [
         "游戏自己出的错：错误信息、出错的代码位置和版本，地址、密钥、邮箱和长数字都会被去掉，好让我们修好它。不会附带任何说明你是谁的信息；服务器只留最近几条和这一小时的次数，并把每一条写进它自己的日志。",
       ],
       [
+        "Wallets you link to your home, by signing a message with each (no transaction, no cost), so visitors see the on-chain pieces those wallets hold. When the list is full, the home seen longest ago is let go.",
+        "你用签名（不发交易、不花钱）关联到家里的钱包，好让来访的人看到这些钱包里的链上物件。名单满了时，最久没出现的那个家会被放下。",
+      ],
+      [
+        "Adoption papers: when you offer a little one at the adoption centre, its full record as you post it, signed by your wallet, so the adopter's game can check it against X Layer before paying. When the store is full, the papers posted longest ago go first.",
+        "领养资料：你在领养中心送养小宝宝时，由你的钱包签名发出的它的完整记录，好让领养人的游戏在付款前对照 X Layer 核对。存满时，最早发出的资料先被删掉。",
+      ],
+      [
+        "Short duel links you make: the challenge or result each one carries (both pets' cards), under a short code so the link fits in a chat. Who made a link is kept only as the code described below, to limit how many one network makes. The links nobody has opened for longest go first.",
+        "你生成的短切磋链接：每个链接带的挑战或结果（两只宠物的卡片），存在一个短代码下，好让链接放得进聊天消息。谁生成的链接，只以下面说的那种代码保存，用来限制一个网络能生成多少。最久没人打开的链接先被删掉。",
+      ],
+      [
+        "Pets raised by AI agents through our agent API: the pet and how it is cared for and taught, a hash of the agent's secret token (never the token itself), and the code described below of the network that adopted it, so one network cannot take more than five.",
+        "AI 智能体通过我们的智能体接口养的宠物：宠物本身和它被照顾、被教的经过，智能体密钥的哈希（从不保存密钥本身），以及领养它的网络的那种代码（见下文），好让一个网络最多只领五只。",
+      ],
+      [
+        "If Lingxi keeps your pet on X Layer for you: the device address the pet was sent to, the pet, what sending it cost us, and the code described below of the network that asked, so each address gets one and the free keeps are shared fairly.",
+        "如果灵犀替你把宠物留在 X Layer 上：宠物被发到的设备地址、这只宠物、发送花了我们多少，以及发出请求的网络的那种代码（见下文），好让每个地址只得一只，免费名额公平分配。",
+      ],
+      [
+        "How many new minds each pet and wallet has asked Lingxi to tape out (pet numbers and wallet addresses, both already public on X Layer), so the free tape-outs are shared fairly.",
+        "每只宠物、每个钱包请灵犀流片新心智的次数（宠物编号和钱包地址，在 X Layer 上本来就是公开的），好让免费流片公平分配。",
+      ],
+      [
+        "Copies of what anyone can read on X Layer, so pages load quickly: pets, their saves and families, sales, circuits, breeding consents, red-packet claims, goals and the daily challenge's block; and the team's own wallets, so the numbers page can tell the team's activity from players'.",
+        "任何人都能在 X Layer 上读到的内容的副本，好让页面打开得快：宠物、它们的存档和家族、交易、电路、繁育同意、红包领取记录、目标和每日挑战的区块；还有团队自己的钱包，好让数字页把团队的活动和玩家的分开。",
+      ],
+      [
         "If you turn reminders on: the address your browser gives for notifications and the times you chose, until you turn them off.",
         "如果你打开提醒：浏览器提供的通知地址和你选的时间，直到你关闭提醒。",
       ],
       [
-        "To keep the service fair (how often a network may ask for things, how much of the day's language model it may use), a code made from your network address with a key only our server holds and never copies off it. Without that key the code cannot be turned back into the address. It is kept only beside what it limits (an arena or season entry, a pet left with a sitter, a reminder, the day's model use) and goes when that does.",
-        "为了让服务公平（一个网络多久能请求一次、能用掉当天多少语言模型额度），我们保存一个由你的网络地址加上只有我们服务器才有、也从不拷贝出去的密钥算出的代码。没有那把密钥，这个代码就无法还原成地址。它只和它所限制的东西放在一起（竞技场或赛季的报名、托付照看的宠物、提醒、当天的模型额度），那些东西没了，它也就没了。",
+        "To keep the service fair (how often a network may ask for things, how much of the day's language model it may use), a code made from your network address with a key only our server holds and never copies off it. Without that key the code cannot be turned back into the address. It is kept only beside what it limits (an arena or season entry, a pet left with a sitter, a reminder, the day's model use, a pet raised by an agent, a duel link, a lesson used or reported in the library, a pet kept for you) and goes when that does.",
+        "为了让服务公平（一个网络多久能请求一次、能用掉当天多少语言模型额度），我们保存一个由你的网络地址加上只有我们服务器才有、也从不拷贝出去的密钥算出的代码。没有那把密钥，这个代码就无法还原成地址。它只和它所限制的东西放在一起（竞技场或赛季的报名、托付照看的宠物、提醒、当天的模型额度、智能体养的宠物、切磋链接、课程库里被使用或被举报的课程、替你留在链上的宠物），那些东西没了，它也就没了。",
       ],
       [
         "Everything above is backed up once a day: on the server's own disk for 14 days, and in a cloud drive for 30 days, so anything removed from the server is gone from every copy within a month. The key that makes the code above is never part of the cloud copy.",
