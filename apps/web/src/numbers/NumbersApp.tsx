@@ -710,7 +710,7 @@ export function NumbersApp() {
                     <dd className="nb-how small">
                       {lang === "zh" ? r.counts[1] : r.counts[0]}{" "}
                       {src && (
-                        <a href={src.url} target="_blank" rel="noopener noreferrer">
+                        <a href={src.url} target="_blank" rel="noopener noreferrer" className="tap">
                           {L("Contract", "合约")} {src.address.slice(0, 6)}…{src.address.slice(-4)}
                         </a>
                       )}
@@ -727,7 +727,9 @@ export function NumbersApp() {
             `Pets read up to X Layer block ${fmt(data.pets.indexedTo)}; contract totals read ${new Date(data.at).toLocaleString("en", { timeZoneName: "short" })}. Refreshed every minute.`,
             `宠物记录读到 X Layer 第 ${fmt(data.pets.indexedTo)} 个区块；合约累计读取于 ${new Date(data.at).toLocaleString("zh-CN", { timeZoneName: "short" })}。每分钟刷新。`,
           )}{" "}
-          <a href="verify.html">{L("Check a pet's days on the proof page", "在证明页核对宠物的每一天")}</a>
+          <a href="verify.html" className="tap">
+            {L("Check a pet's days on the proof page", "在证明页核对宠物的每一天")}
+          </a>
         </p>
       )}
       <SiteFoot lang={lang} />

@@ -35,6 +35,8 @@
 .l-brand {
   display: flex;
   align-items: baseline;
+  /* R9: 44 px tall to a finger (it was 39), its two names still on one baseline */
+  padding-block: 3px;
   gap: 8px;
   color: #fff7e8;
   text-decoration: none;
@@ -59,7 +61,13 @@
   font-weight: 800;
   text-decoration: none;
   text-shadow: 0 2px 0 rgba(43, 33, 64, 0.55);
-  padding: 6px 2px;
+  /* R9: each link 44 px tall and at least 44 wide (a two-character Chinese link was 34 by 35) */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 2px;
 }
 .l-links a:hover {
   text-decoration: underline;
@@ -751,6 +759,8 @@
   box-shadow: 0 3px 0 #2b2140;
 }
 .l-phase button {
+  /* R9: drawn 34 px tall as designed; the area that takes a tap is 44 */
+  position: relative;
   min-height: 34px;
   padding: 0 12px;
   border: 0;
@@ -761,6 +771,11 @@
   font-weight: 800;
   font-size: 13px;
   cursor: pointer;
+}
+.l-phase button::after {
+  content: "";
+  position: absolute;
+  inset: -5px 0;
 }
 .l-phase button[aria-checked="true"] {
   background: #2b2140;
@@ -800,6 +815,10 @@
   object-fit: contain;
 }
 .l-foot-link {
+  /* R9: each link its own 44 px row (they were 20 px tall, 27 apart) */
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   color: var(--ink);
   font-weight: 800;
 }

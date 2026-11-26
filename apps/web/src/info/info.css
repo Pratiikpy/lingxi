@@ -33,7 +33,10 @@
 .info-foot a {
   display: inline-flex;
   align-items: center;
+  /* R9: 44 px wide as well as tall (a two-character Chinese link was 42) */
+  justify-content: center;
   min-height: 44px;
+  min-width: 44px;
   padding: 0 6px;
   color: var(--ink);
 }

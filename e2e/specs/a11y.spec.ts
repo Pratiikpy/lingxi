@@ -18,6 +18,10 @@ const PAGES = [
   "agents.html",
   "handheld.html",
   "circuits.html",
+  // R9: the pages the review found outside this spec
+  "privacy.html",
+  "terms.html",
+  "404.html",
 ];
 
 for (const look of LOOKS) {
@@ -33,6 +37,22 @@ for (const look of LOOKS) {
       if (f.length) found[page] = f;
     }
     expect(found).toEqual({});
+  });
+
+  test(`every control on every page is at least 44 px (${look.lang}, ${look.scheme}, ${look.size}) (R9)`, async ({
+    player,
+  }) => {
+    test.setTimeout(240_000);
+    const p = await player(look);
+    const small: Record<string, string[]> = {};
+    for (const page of PAGES) {
+      await p.page.goto(`${p.web}/${page}`);
+      await p.page.waitForLoadState("networkidle").catch(() => undefined);
+      await p.page.waitForTimeout(1_500);
+      const s = await smallTargets(p.page, "body");
+      if (s.length) small[page] = s;
+    }
+    expect(small).toEqual({});
   });
 
   test(`axe finds nothing serious in the game, the room has its landmark and heading (${look.lang}, ${look.scheme}, ${look.size})`, async ({

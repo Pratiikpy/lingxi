@@ -14,6 +14,10 @@
   align-items: center;
 }
 .v-brand {
+  /* R9: a link a finger can find: 44 px tall, as every control is (it was 27) */
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   font-family: var(--round);
   font-weight: 800;
   font-size: 18px;
@@ -287,7 +291,8 @@
 }
 .v-file-input {
   position: absolute;
-  inset: 0;
+  /* R9: over the button's border too, so the whole 46 px button takes the tap (inside the border it was 42) */
+  inset: -2px;
   opacity: 0;
   cursor: pointer;
 }
@@ -345,6 +350,18 @@
 .v-timeline a {
   font-size: 12px;
   width: fit-content;
+  /* R9: a transaction's link, 44 px tall to a finger */
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+/* R9: a link in a table's cell (an address, a verdict) is the cell's control: 44 px tall and wide */
+.v-table td > a,
+.v-proof-table td > a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  min-width: 44px;
 }
 .v-note-wrap {
   margin-top: 24px;

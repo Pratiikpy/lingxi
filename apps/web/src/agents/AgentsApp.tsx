@@ -166,7 +166,7 @@ export function AgentsApp() {
         </ol>
         <p className="small">
           {L("Everything else, with every parameter, is listed at", "其余全部接口和参数见")}{" "}
-          <a href={`${PUBLIC}/api/v1`}>{`${PUBLIC}/api/v1`}</a>.
+          <a href={`${PUBLIC}/api/v1`} className="tap">{`${PUBLIC}/api/v1`}</a>.
         </p>
       </section>
 
@@ -203,7 +203,10 @@ else console.log(result.name, result.owner, verified)`}</pre>
             "verified is true only when the signature checks out against the signer the chain names; a changed answer is refused. A signature proves who answered and to which question, not that the answer is right: pets and brains can still be checked against X Layer itself. The manifest, with every method:",
             "只有签名和链上指定的签名者对得上时，verified 才是 true；回答被改过就会被拒绝。签名证明的是谁回答、回答的是哪个问题，而不是回答一定对：宠物和大脑仍然可以直接对照 X Layer 核对。服务清单和全部方法：",
           )}{" "}
-          <a href={`${PUBLIC}/.well-known/tapeapi.json`}>/.well-known/tapeapi.json</a>.
+          <a href={`${PUBLIC}/.well-known/tapeapi.json`} className="tap">
+            /.well-known/tapeapi.json
+          </a>
+          .
         </p>
         <p className="small">
           {L(
@@ -272,14 +275,19 @@ else console.log(result.name, result.owner, verified)`}</pre>
             "What every input and output bit means, so a brain read from the chain can be driven by any app. Served as JSON at",
             "每个输入、输出位的含义，任何应用都能驱动从链上读出的大脑。JSON 版本见",
           )}{" "}
-          <a href={`${PUBLIC}/api/v1/profiles`}>/api/v1/profiles</a>.
+          <a href={`${PUBLIC}/api/v1/profiles`} className="tap">
+            /api/v1/profiles
+          </a>
+          .
         </p>
         <p className="small">
           {L(
             "Every Lingxi circuit you can call on X Layer, with test vectors checked on chain, is in the",
             "所有能在 X Layer 上调用的灵犀电路，以及在链上核对过的测试向量，都在",
           )}{" "}
-          <a href={`${PUBLIC}/circuits.html`}>{L("circuit catalogue", "电路目录")}</a>
+          <a href={`${PUBLIC}/circuits.html`} className="tap">
+            {L("circuit catalogue", "电路目录")}
+          </a>
           {L(", which runs them with none of Lingxi's code.", "里，那个页面不用灵犀的任何代码就能运行它们。")}
         </p>
         {MANIFESTS.map((m) => (

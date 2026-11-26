@@ -291,7 +291,7 @@ export function VerifyApp() {
       <RuleTable lang={lang} />
       <ContractTable lang={lang} />
       <p className="v-note">
-        <a href="numbers.html">
+        <a href="numbers.html" className="tap">
           {lang === "zh"
             ? "链上数字：宠物、交易和销毁的 BEM，全部读自合约"
             : "Live numbers: pets, sales and BEM burned, all read from the contracts"}

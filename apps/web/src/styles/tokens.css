@@ -126,6 +126,22 @@ button {
   white-space: nowrap;
   border: 0;
 }
+/* R9: a text link a finger can find. It is drawn as the line of text it is; the area that takes a tap is 44 px tall
+   and at least 44 wide, centred on it. For a link in or after a sentence, where a 44 px box would tear the lines apart. */
+.tap {
+  position: relative;
+  /* one box even when its words run onto a second line, so the touch area is centred on all of it */
+  display: inline-block;
+}
+.tap::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(100%, 44px);
+  height: 44px;
+  transform: translate(-50%, -50%);
+}
 :focus-visible {
   outline: 3px solid var(--sky);
   outline-offset: 2px;

@@ -147,7 +147,7 @@ export function TreeApp() {
                 "这棵树由灵犀的索引器从 PetRegistry 的事件读出，这份链上版本不使用它。",
               )}
           {!API && (
-            <a href={sitePage("tree.html")} target="_blank" rel="noopener noreferrer">
+            <a href={sitePage("tree.html")} target="_blank" rel="noopener noreferrer" className="tap">
               {L("See it on lingxi.knole.me", "到 lingxi.knole.me 查看")}
             </a>
           )}
