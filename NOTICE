@@ -11,6 +11,6 @@ quests, item names and descriptions, and the copy of the site). All rights
 to this content are reserved; it may not be reused without written
 permission.
 
-Third-party code vendored under contracts/lib (OpenZeppelin Contracts,
-forge-std) and packages/send (TapeKit's TapeSend module) keeps its own licence,
-found beside it.
+Third-party code keeps its own licence, found beside it: OpenZeppelin Contracts
+(v5.4.0, commit c64a1ed) and forge-std (commit 15b2df9), pinned as git submodules
+under contracts/lib, and packages/send (TapeKit's TapeSend module).

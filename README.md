@@ -252,6 +252,7 @@ Needs Node 22 or later and pnpm 10.
 pnpm install
 pnpm --filter @lingxi/web dev          # the game on http://localhost:5199, against X Layer mainnet
 pnpm --filter @lingxi/api start        # optional: API, live rooms and the X Layer door on :8787
+pnpm contracts:libs                    # optional: the contracts' pinned libraries, for `cd contracts && forge build`
 ```
 
 Teach-by-words needs an Anthropic API key in the server's environment. The brain relayer needs a funded relayer key file. Without them the game still runs fully: Pet School lessons and hand-built rules need no server, and every on-chain read goes through the public RPCs.
@@ -270,7 +271,8 @@ The on-chain copy is built with `node apps/web/scripts/deweb-build.mjs` and publ
 The code is MIT-licensed ([LICENSE](LICENSE)). The art, sound and written content are not covered by it: all rights reserved ([NOTICE](NOTICE)).
 
 - `packages/send` is TapeKit's TapeSend module by TapeOutProtocol, MIT ([its licence](packages/send/LICENSE)).
-- `contracts/lib` vendors OpenZeppelin Contracts and forge-std, each under its own licence.
+- `contracts/lib` holds OpenZeppelin Contracts (v5.4.0, commit c64a1ed) and forge-std (commit 15b2df9) as pinned git
+  submodules, each under its own licence.
 - The canonical JSON and strict JSON parser in `services/api/src/tap.ts` follow `sdk/src/canon.js` of TapeAPI 1.8.1
   ([BruceLanLan/tapeapi](https://github.com/BruceLanLan/tapeapi)), MIT, Copyright (c) 2026 TapeAPI contributors, under
   the same permission notice as our [LICENSE](LICENSE). The TAP-11 and TAP-13 test vectors in

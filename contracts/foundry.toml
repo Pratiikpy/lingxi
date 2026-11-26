@@ -10,7 +10,16 @@ evm_version = "shanghai"
 optimizer = true
 optimizer_runs = 2000
 fs_permissions = [{ access = "read", path = "./test/fixtures" }]
-remappings = ["@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/", "forge-std/=lib/forge-std/src/"]
+# every remapping written out (R4): the deployed contracts were built when OpenZeppelin's own test libraries sat in
+# lib/ and Foundry added remappings for them, and the compiler records the list in each contract's metadata; with the
+# list fixed here, a checkout with or without those folders builds the same bytes, metadata included
+remappings = [
+  "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+  "erc4626-tests/=lib/openzeppelin-contracts/lib/erc4626-tests/",
+  "forge-std/=lib/forge-std/src/",
+  "halmos-cheatcodes/=lib/openzeppelin-contracts/lib/halmos-cheatcodes/src/",
+  "openzeppelin-contracts/=lib/openzeppelin-contracts/",
+]
 
 [rpc_endpoints]
 xlayer = "https://rpc.xlayer.tech"
