@@ -508,7 +508,11 @@ function planChecks(): void {
     );
   }
 
-  const open = rows.filter((r) => !/^(done|waiting|later)\b/i.test(r.status));
+  // a row is closed when done, waiting on Prateek, set for later, or dropped by Prateek's own decision (which the row
+  // must say, so nothing is dropped quietly)
+  const open = rows.filter(
+    (r) => !/^(done|waiting|later)\b/i.test(r.status) && !/^dropped\b.*\bby Prateek\b/i.test(r.status),
+  );
   record("plan", "rows still open", open.length ? "PENDING" : "PASS", open.map((r) => r.id).join(" "), Date.now());
 }
 
