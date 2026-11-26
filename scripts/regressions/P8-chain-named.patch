@@ -1,0 +1,13 @@
+diff --git a/services/api/src/boot/health.ts b/services/api/src/boot/health.ts
+index 16ba865..c848ed7 100644
+--- a/services/api/src/boot/health.ts
++++ b/services/api/src/boot/health.ts
+@@ -52,7 +52,7 @@ export function healthDetail({
+       // the health report says null for what it could not read, and reports the rest
+       watch.head?.().catch((e: unknown) => {
+         const why = (e instanceof Error ? e.message : String(e)).split("\n")[0] ?? "";
+-        chain = `unreachable: ${why.slice(0, 160)}`;
++        void why;
+         return null;
+       }) ?? null,
+       // the relayer's balance and fees: null when they cannot be read, the rest of the report still given

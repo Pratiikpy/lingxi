@@ -1236,6 +1236,12 @@
     "test": { "kind": "vitest", "dir": ".", "file": "scripts/forkTransport.test.mts", "name": "none reaches its fork through viem's http() with its defaults" }
   },
   {
+    "id": "P8-chain-named",
+    "row": "P8",
+    "bug": "a dead RPC showed on the health report as a blank, never named",
+    "test": { "kind": "vitest", "dir": "services/api", "file": "test/healthChain.test.ts", "name": "a chain that does not answer is named unreachable, with its reason" }
+  },
+  {
     "id": "P7d-notices-above-sheet",
     "row": "P7d",
     "bug": "a notice over an open sheet sat under its header, over the sheet's first controls (the Pet sheet's Skills button)",
