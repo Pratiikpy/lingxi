@@ -351,6 +351,11 @@
 .rule-out .op {
   color: var(--ink-soft);
 }
+/* R34: a Chinese connector (且, 就) is one character: room of its own either side, as in the game */
+:lang(zh) .think-line .op,
+:lang(zh) .rule-out .op {
+  margin-inline: 3px;
+}
 .say-box {
   min-height: 56px;
   display: flex;

@@ -146,6 +146,14 @@
   color-scheme: dark;
 }
 
+/* R34: in Chinese the display face is the round one. Pixelify Sans has no Chinese, so a display-face heading with a
+   name or a number in it ("MOMO已经学会的", "11月26日", "持有 TapeOut？") came out half pixel, half the system's
+   Chinese; the pixel Chinese face (display-cjk.css) is cut to the fixed page titles and cannot hold a pet's name or a
+   date. So every display-face line in Chinese is set whole in the round face, the one the game's Chinese words already
+   use, and only those page titles (--display-cjk) stay pixel. */
+:root:lang(zh) {
+  --display: var(--round);
+}
 *,
 *::before,
 *::after {

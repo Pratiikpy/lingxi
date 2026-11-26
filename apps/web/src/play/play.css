@@ -301,6 +301,11 @@
   font-size: 12.5px;
   color: #5b4e73;
 }
+/* R34: in Chinese a connector is a single character (且, 就), which sat 6 pixels from the chips either side and read as
+   part of them; it gets 3 more each side, the room a word like "and" or "then" has of its own */
+:lang(zh) .op {
+  margin-inline: 3px;
+}
 .toast {
   position: absolute;
   left: 50%;

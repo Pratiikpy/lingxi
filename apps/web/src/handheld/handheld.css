@@ -1,6 +1,9 @@
 /* The browser handheld (plan 4.14): the page in the game's own tokens, the device drawn after an M5Stack Cardputer
    ADV: a pale body, the 240x135 screen in a dark bezel, and a keyboard of the keys a pet needs. */
 
+/* R34: the header the site's pages share: home (here, back to the game) and the language button */
+@import "../styles/page-head.css";
+
 body {
   margin: 0;
   background: var(--page);
@@ -31,14 +34,8 @@ body {
   line-height: 1.6;
   max-width: 52ch;
 }
-.hh-back {
-  font-family: var(--round);
-  font-weight: 700;
-  color: var(--ink);
-  text-decoration: none;
-}
-.hh-back:hover,
-.hh-back:focus-visible {
+.hh-head .v-brand:hover,
+.hh-head .v-brand:focus-visible {
   text-decoration: underline;
 }
 

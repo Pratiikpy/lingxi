@@ -5,7 +5,7 @@
  * hands the game the packet back. The game decides whether the pet comes home, by replaying the whole trip.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type MouseEvent, useCallback, useEffect, useRef, useState } from "react";
 import wasmUrl from "@lingxi/handheld/wasm/lingxi-handheld.wasm?url";
 import { useLang } from "../i18n";
 import { SiteFoot } from "../SiteFoot";
@@ -270,6 +270,14 @@ export function HandheldApp() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
+      // R34: Enter and Space on one of the page's own buttons or links reached by the keyboard (the language button,
+      // Bring home) work that control, as on any page. On the drawn keys, on a control last clicked with the mouse (so a
+      // tap on the language button does not turn the next Space into another switch), and anywhere else, they are the
+      // handheld's
+      const on = e.target instanceof Element ? e.target : null;
+      const control = on?.closest("button, a[href]");
+      if ((e.key === "Enter" || e.key === " ") && control?.matches(":focus-visible") && !control.closest(".hh-key"))
+        return;
       const c = keyCode(e);
       if (c === null) return;
       e.preventDefault();
@@ -302,13 +310,29 @@ export function HandheldApp() {
     location.href = "play.html#handheld-home";
   };
 
+  // R34: the page's language button, as every page has. Z is the handheld's own language key and the page follows it,
+  // so the button presses Z while the handheld runs, keeping its screen and the page in one language; before it has
+  // started, or once the trip is sent, it switches the page alone (the handheld takes the page's language as it starts)
+  const switchLanguage = (e: MouseEvent<HTMLButtonElement>) => {
+    if (hh.current && !stopped.current) press(122);
+    else useLang.getState().toggle();
+    // a tap or click leaves the focus here, and a button's Space works it on release whatever the page does with the
+    // press, so the player's next Space for the handheld would switch the language back: a pointer leaves it at once
+    if (e.detail > 0) e.currentTarget.blur();
+  };
+
   const passed = selfTest !== null && (selfTest & 0x100) !== 0 && onChain !== "differ";
   return (
     <main className="hh-page">
       <header className="hh-head">
-        <a className="hh-back" href="play.html">
-          {L("← Lingxi", "← 灵犀")}
-        </a>
+        <div className="v-head">
+          <a className="v-brand" href="play.html">
+            {L("← Lingxi", "← 灵犀")}
+          </a>
+          <button type="button" className="v-lang" onClick={switchLanguage}>
+            {lang === "en" ? "中文" : "EN"}
+          </button>
+        </div>
         <h1>{L("The handheld", "灵犀掌机")}</h1>
         <p className="hh-sub">
           {L(
