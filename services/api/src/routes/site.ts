@@ -80,16 +80,20 @@ export function withSite(app: Hono, site: string | SiteSource): Hono {
   };
   // the release a request is answered from is fixed when it arrives, so its page and its policy always match
   const rootOf = new WeakMap<Request, string | null>();
+  // R16: a request answered with the release's not-found page: that page's own policy applies, not the address's
+  const missed = new WeakSet<Request>();
   app.use("*", async (c, next) => {
     rootOf.set(c.req.raw, source.root());
     await next();
+    // the page that was sent: the not-found page for an address the site does not have, else the address itself
+    const sent = missed.has(c.req.raw) ? "/404.html" : c.req.path;
     c.header("X-Content-Type-Options", "nosniff");
     c.header("Referrer-Policy", "strict-origin-when-cross-origin");
     c.header("Strict-Transport-Security", "max-age=63072000; includeSubDomains");
-    const csp = policyFor(rootOf.get(c.req.raw) ?? null, c.req.path);
+    const csp = policyFor(rootOf.get(c.req.raw) ?? null, sent);
     if (csp) c.header("Content-Security-Policy", csp);
     // a page is always asked for again (a cheap 304 while unchanged), so no browser keeps one past a deploy (A4)
-    if (c.req.path === "/" || c.req.path.endsWith(".html")) c.header("Cache-Control", "no-cache");
+    if (sent === "/" || sent.endsWith(".html")) c.header("Cache-Control", "no-cache");
     if (c.req.path !== "/play.html") c.header("X-Frame-Options", "SAMEORIGIN");
     c.header("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
   });
@@ -150,8 +154,15 @@ export function withSite(app: Hono, site: string | SiteSource): Hono {
   // release without the page keep the plain answer
   app.notFound((c) => {
     const root = rootOf.get(c.req.raw) ?? null;
-    const page = root && c.req.method === "GET" && !c.req.path.startsWith("/api/") ? join(root, "404.html") : null;
-    if (page && existsSync(page)) return c.html(readFileSync(page, "utf8"), 404);
+    // R16: a HEAD is answered as its GET would be, without the body (it was plain text, so a link checker and a
+    // visitor saw different answers)
+    const asks = c.req.method === "GET" || c.req.method === "HEAD";
+    const page = root && asks && !c.req.path.startsWith("/api/") ? join(root, "404.html") : null;
+    if (page && existsSync(page)) {
+      missed.add(c.req.raw);
+      if (c.req.method === "HEAD") return c.body(null, 404, { "Content-Type": "text/html; charset=UTF-8" });
+      return c.html(readFileSync(page, "utf8"), 404);
+    }
     return c.text("404 Not Found", 404);
   });
   return app;
