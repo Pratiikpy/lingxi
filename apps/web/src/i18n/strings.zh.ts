@@ -83,6 +83,7 @@ export const zh: Record<Key, string> = {
   "hatch.name": "取个名字",
   "hatch.shuffle": "换一个",
   "hatch.go": "孵化",
+  "hatch.cracking": "蛋正在孵化：{name}就要出来了。",
   "mind.instinct": "本能",
   "me.noInstincts": "一个也没开",
   "hatch.instincts": "它的本能",
@@ -401,6 +402,5 @@ export const zh: Record<Key, string> = {
   "teach.forget": "忘掉",
   "teach.preview": "预览",
 
-  "sound.on": "声音开",
-  "sound.off": "声音关",
+  "sound.name": "声音",
 };

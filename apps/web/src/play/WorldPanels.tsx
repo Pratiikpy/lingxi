@@ -1,6 +1,7 @@
 /** The map, the bag (food, drinks, materials, workbench, shop) and the quest list. */
 
 import { BUILDER_PET, type BuilderId, builderIn } from "@lingxi/game";
+import { rowAct } from "./rowAct";
 import { CuteState } from "./CuteState";
 import { play } from "../game/sound";
 import { FRESH_START_TEA, useSkillsUi } from "./Skills";
@@ -213,7 +214,7 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
         )}
       </div>
       {action && (
-        <button type="button" className="btn" onClick={onAct}>
+        <button type="button" className="btn" onClick={onAct} aria-label={rowAct(action, e.item.name[lang], lang)}>
           {action}
         </button>
       )}
@@ -242,6 +243,7 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
                     className="btn primary"
                     disabled={world.coins < (it.price ?? 0)}
                     onClick={() => buy(i)}
+                    aria-label={rowAct(`${t("bag.buy")} · ${it.price}`, it.name[lang], lang)}
                   >
                     {t("bag.buy")} · {it.price}
                   </button>
@@ -342,6 +344,11 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
                   className="btn primary"
                   disabled={owned.includes(id) || world.coins < price}
                   onClick={() => buyPiece(id)}
+                  aria-label={rowAct(
+                    owned.includes(id) ? (lang === "zh" ? "已拥有" : "Owned") : `${t("bag.buy")} · ${price}`,
+                    WEARABLE[id]!.name[lang],
+                    lang,
+                  )}
                 >
                   {owned.includes(id) ? (lang === "zh" ? "已拥有" : "Owned") : `${t("bag.buy")} · ${price}`}
                 </button>
@@ -377,6 +384,21 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
                   className="btn primary"
                   disabled={done || !can}
                   onClick={() => make(r.kind, r.id)}
+                  aria-label={rowAct(
+                    done
+                      ? lang === "zh"
+                        ? "已有"
+                        : "Have it"
+                      : r.kind === "outfit"
+                        ? lang === "zh"
+                          ? "缝"
+                          : "Sew"
+                        : lang === "zh"
+                          ? "做"
+                          : "Build",
+                    name,
+                    lang,
+                  )}
                 >
                   {done
                     ? lang === "zh"
@@ -425,7 +447,13 @@ export function BagPanel({ onFed }: { onFed: () => void }) {
                     </span>
                     {blocked && <span className="small craft-block">{blocked}</span>}
                   </div>
-                  <button type="button" className="btn primary" disabled={!!blocked} onClick={() => craft(r.index)}>
+                  <button
+                    type="button"
+                    className="btn primary"
+                    disabled={!!blocked}
+                    onClick={() => craft(r.index)}
+                    aria-label={rowAct(t("bag.make"), r.name[lang], lang)}
+                  >
                     {t("bag.make")}
                   </button>
                 </li>
@@ -548,6 +576,11 @@ function MarketStall() {
             className="btn primary"
             disabled={sold || world.coins < price}
             onClick={() => buyMarket()}
+            aria-label={rowAct(
+              sold ? (zh ? "已买" : "Bought") : `${zh ? "买" : "Buy"} · ${price}`,
+              it.name[zh ? "zh" : "en"],
+              zh ? "zh" : "en",
+            )}
           >
             {sold ? (zh ? "已买" : "Bought") : `${zh ? "买" : "Buy"} · ${price}`}
           </button>

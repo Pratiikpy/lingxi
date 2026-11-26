@@ -8,6 +8,7 @@ import { decidingPart, mindForPet } from "../game/store";
 import { useQuestStatuses } from "../game/quests";
 import { useWorld } from "../game/world";
 import { useBadges } from "../game/badges";
+import { ruleSpoken } from "./rowAct";
 import { useAlbum } from "./Album";
 import {
   CHARACTERS,
@@ -53,21 +54,30 @@ import { PetName } from "./PetName";
 import { recordOf } from "../game/chain";
 import { now as gameNow } from "../game/gameClock";
 
-export function Chips({ when, then, want }: { when: string[]; then: string; want?: number }) {
+/**
+ * A rule as chips for the eye, and as one sentence for a screen reader (R8). The chips are apart on screen by their
+ * spacing alone, with no space between them in the page's text, so NVDA read a rule as "something scarythenexplore".
+ * The sentence is what is read ("Instinct: something scary, then explore."); the chips are drawn and not read.
+ * `lead`: what kind of rule it is, said first ("Instinct").
+ */
+export function Chips({ when, then, want, lead }: { when: string[]; then: string; want?: number; lead?: string }) {
   const { lang } = useLang();
   const and = lang === "zh" ? "且" : "and";
   const so = lang === "zh" ? "就" : "then";
   return (
     <>
-      {when.map((w, i) => (
-        <span key={`${w}-${i}`} style={{ display: "contents" }}>
-          {i > 0 && <span className="op">{and}</span>}
-          <span className="chip">{w}</span>
+      <span className="sr-only">{ruleSpoken(when, then, lang, lead)}</span>
+      <span aria-hidden="true" style={{ display: "contents" }}>
+        {when.map((w, i) => (
+          <span key={`${w}-${i}`} style={{ display: "contents" }}>
+            {i > 0 && <span className="op">{and}</span>}
+            <span className="chip">{w}</span>
+          </span>
+        ))}
+        <span className="op">{so}</span>
+        <span className="chip out" style={want !== undefined ? { background: WANT_COLORS[want] } : undefined}>
+          {then}
         </span>
-      ))}
-      <span className="op">{so}</span>
-      <span className="chip out" style={want !== undefined ? { background: WANT_COLORS[want] } : undefined}>
-        {then}
       </span>
     </>
   );
@@ -166,7 +176,7 @@ export function TopBar({
           type="button"
           className="round-btn"
           onClick={sound.toggle}
-          aria-label={sound.on ? t("sound.on") : t("sound.off")}
+          aria-label={t("sound.name")}
           aria-pressed={sound.on}
         >
           <Icon name={sound.on ? "sound" : "mute"} size={20} />
@@ -328,7 +338,7 @@ function TodayCard({ onToday, onCollection }: { onToday: () => void; onCollectio
         type="button"
         className="tcard-collect"
         onClick={() => (play("tap"), onCollection())}
-        aria-label={zh ? `收藏 ${have}/${all}：${parts}` : `Collection ${have} of ${all}: ${parts}`}
+        aria-label={zh ? `收藏 ${have}/${all}` : `Collection ${have} of ${all}`}
         title={parts}
       >
         <b>{zh ? "收藏" : "Collection"}</b>
@@ -534,7 +544,6 @@ export function VoiceBubble({ face }: { face?: ReactNode }) {
         <motion.p
           key={id}
           className="voice"
-          role="status"
           initial={{ opacity: 0, y: 6, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -4 }}
@@ -560,7 +569,6 @@ export function ToastView({ toast, name }: { toast: Toast | null; name: string }
         <motion.div
           key={toast.id}
           className="toast"
-          role="status"
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}

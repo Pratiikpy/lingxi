@@ -143,3 +143,33 @@ export async function smallTargets(page: Page, scope: string, min = 44): Promise
     { scope, min },
   );
 }
+
+/**
+ * R8: buttons in one list that a screen reader would read alike. Each row's button must say what it acts on
+ * ("Feed: Rice ball"); rows whose buttons are all called "Feed" are told apart by sight alone, and NVDA read a bag of
+ * three foods as "Feed, button" three times. Returns each name that more than one row of a list gives a button,
+ * under `scope`, with how many rows and which list.
+ */
+export async function sameNamedRowButtons(page: Page, scope: string): Promise<string[]> {
+  return page.evaluate((scope) => {
+    const out: string[] = [];
+    for (const list of Array.from(document.querySelectorAll<HTMLElement>(`${scope} ul, ${scope} ol`))) {
+      if (!list.getClientRects().length || list.closest("[aria-hidden=true],[inert]")) continue;
+      const rows = new Map<string, number>();
+      for (const row of Array.from(list.children)) {
+        const inRow = new Set<string>();
+        for (const b of Array.from(row.querySelectorAll<HTMLElement>("button, a[href], [role=button]"))) {
+          // a list inside a row is counted on its own
+          if (b.closest("ul, ol") !== list || !b.getClientRects().length) continue;
+          const name = (b.getAttribute("aria-label") ?? b.textContent ?? "").replace(/\s+/g, " ").trim();
+          if (name) inRow.add(name);
+        }
+        for (const n of inRow) rows.set(n, (rows.get(n) ?? 0) + 1);
+      }
+      for (const [n, c] of rows)
+        if (c > 1)
+          out.push(`"${n}" on ${c} rows of ${list.tagName.toLowerCase()}.${list.className.split(" ")[0] ?? ""}`);
+    }
+    return out;
+  }, scope);
+}

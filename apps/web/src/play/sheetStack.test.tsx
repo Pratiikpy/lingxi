@@ -39,4 +39,42 @@ describe("stacked sheets (A124)", () => {
     host.remove();
     MotionGlobalConfig.skipAnimations = false;
   });
+
+  it("takes the focus once, when it opens: a new onClose from its parent does not throw the player back to Close (R8)", async () => {
+    await visit({ at: Date.UTC(2026, 10, 26, 9) });
+    (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    MotionGlobalConfig.skipAnimations = true;
+    const { Sheet } = await import("./Sheets");
+    let closed = 0;
+    // each render hands the sheet a new onClose, as a parent's inline arrow does
+    const page = () =>
+      createElement(Sheet, {
+        open: true,
+        title: "Bag",
+        onClose: () => void closed++,
+        children: createElement("button", { type: "button", className: "inner" }, "Feed"),
+      });
+    const host = document.createElement("div");
+    document.body.append(host);
+    const opener = document.createElement("button");
+    document.body.append(opener);
+    opener.focus();
+    const root = createRoot(host);
+    await act(async () => root.render(page()));
+    expect((document.activeElement as HTMLElement).getAttribute("aria-label"), "the sheet takes the focus").toBe(
+      "Close",
+    );
+    const inner = host.querySelector<HTMLButtonElement>(".inner")!;
+    inner.focus();
+    await act(async () => root.render(page()));
+    expect(document.activeElement, "a re-render leaves the focus where the player put it").toBe(inner);
+    // Escape still closes with the latest onClose
+    await act(async () => void window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
+    expect(closed).toBe(1);
+    act(() => root.unmount());
+    expect(document.activeElement, "and the focus goes back to what opened it").toBe(opener);
+    host.remove();
+    opener.remove();
+    MotionGlobalConfig.skipAnimations = false;
+  });
 });

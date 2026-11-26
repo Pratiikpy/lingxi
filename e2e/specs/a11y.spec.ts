@@ -3,8 +3,8 @@
  * has one main landmark and one level-one heading; every control a player taps is at least 44 by 44 px; an open sheet
  * keeps the focus inside it and gives it back to the control that opened it.
  */
-import { expect, hatch, test } from "../fixtures";
-import { seriousFindings, smallTargets } from "../helpers/a11y";
+import { expect, hatch, sheet, test } from "../fixtures";
+import { sameNamedRowButtons, seriousFindings, smallTargets } from "../helpers/a11y";
 
 const LOOKS = [
   { lang: "en", scheme: "light", size: "phone" },
@@ -91,6 +91,38 @@ for (const look of LOOKS) {
       "the level chip's full-size twin is on the Pet sheet",
     ).toBeVisible();
     expect(small).toEqual({});
+  });
+
+  test(`in a list, each row's button says what it acts on (${look.lang}, ${look.scheme}, ${look.size}) (R8)`, async ({
+    player,
+  }) => {
+    test.setTimeout(240_000);
+    const p = await player(look);
+    const { page } = p;
+    await hatch(p);
+    const alike: Record<string, string[]> = {};
+    const check = async (where: string, scope: string) => {
+      const f = await sameNamedRowButtons(page, scope);
+      if (f.length) alike[where] = f;
+    };
+    await check("room", "body");
+    for (const tab of ["bag", "me", "mind", "map", "spar"]) {
+      await sheet(page, tab);
+      await check(`sheet ${tab}`, ".sheet");
+    }
+    await page.keyboard.press("Escape");
+    for (const [where, open] of [
+      ["quests", ".tcard-errands"],
+      ["collection", ".tcard-collect"],
+    ] as const) {
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(300);
+      await page.locator(open).first().click();
+      await page.locator(".sheet").waitFor();
+      await page.waitForTimeout(600);
+      await check(where, ".sheet");
+    }
+    expect(alike).toEqual({});
   });
 
   test(`an open sheet keeps the focus and gives it back (${look.lang}, ${look.scheme}, ${look.size})`, async ({

@@ -61,7 +61,11 @@ describe("today's errands and the collection on the first screen (G10)", () => {
     expect(errands.textContent).toContain(QUESTLINE.find((q) => q.id === ids[1])!.title.en);
     const collect = host.querySelector(".tcard-collect")!;
     expect(collect.textContent).toContain(`${2 + 0 + 2}/${VISITORS.length + BADGES.length + DECOR.length}`);
-    expect(collect.getAttribute("aria-label")).toContain("visitors 2/");
+    // R8: the count is the button's name and the breakdown its description, each said once (NVDA read both twice)
+    expect(collect.getAttribute("aria-label")).toBe(
+      `Collection ${2 + 0 + 2} of ${VISITORS.length + BADGES.length + DECOR.length}`,
+    );
+    expect(collect.getAttribute("title")).toContain("visitors 2/");
     // D2: today's village happening, in words, under the card
     const { happeningAt } = await import("@lingxi/world");
     const h = happeningAt(useWorld.getState().world, Date.UTC(2026, 10, 23, 9));

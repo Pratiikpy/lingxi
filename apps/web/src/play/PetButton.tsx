@@ -11,10 +11,13 @@ import { type Pet, stageOf } from "@lingxi/game";
 import { HALF, PET_FEET, PET_HOME, roomOrigin } from "../scene/floor";
 import { useLang, useT, type Key } from "../i18n";
 import { now } from "../game/gameClock";
+import { takeHatched } from "./afterHatch";
 import { petSpoken } from "./petSpoken";
 
 /** The quietest a change is read out: one announcement in this many milliseconds at most. */
 export const SPEAK_EVERY_MS = 8_000;
+/** How long after the room is drawn the pet takes the focus following a hatching. */
+export const FOCUS_AFTER_HATCH_MS = 400;
 /** How tall the button stands above the pet's feet, in room pixels: a grown pet's height. */
 const PET_TALL = 40;
 
@@ -24,10 +27,23 @@ export function PetButton({ pet, stage, onPat }: { pet: Pet; stage: DrawnStage; 
   const t = useT();
   const { lang } = useLang();
   const box = useRef<HTMLDivElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
   const [place, setPlace] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
   const zh = lang === "zh";
   const stageWord = t(`stage.${stageOf(pet, now())}` as Key);
   const words = petSpoken(pet, stageWord, zh ? "zh" : "en");
+
+  // just hatched: the focus comes to the pet, so a screen reader's next words are the pet itself (R8, afterHatch.ts)
+  // a moment after the pet's place in the room is known: a focus moved in the same breath as the button was made went
+  // unannounced (NVDA said nothing after Hatch, though the focus was on the pet)
+  const placed = place !== null;
+  useEffect(() => {
+    if (!placed) return;
+    const id = setTimeout(() => {
+      if (takeHatched()) button.current?.focus({ preventScroll: true });
+    }, FOCUS_AFTER_HATCH_MS);
+    return () => clearTimeout(id);
+  }, [placed]);
 
   // where the pet stands in the room as drawn, kept as the room's box changes size
   useEffect(() => {
@@ -64,6 +80,7 @@ export function PetButton({ pet, stage, onPat }: { pet: Pet; stage: DrawnStage; 
   return (
     <div ref={box} className="pet-button-box">
       <button
+        ref={button}
         type="button"
         className="pet-button"
         style={place ?? undefined}

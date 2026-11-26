@@ -61,6 +61,9 @@ for (const look of [
     await page.keyboard.press("Enter");
     await page.locator(".stage").waitFor({ timeout: 60_000 });
     await page.waitForTimeout(1_500);
+    // R8: with no key pressed since Hatch, the focus is on the pet: a screen reader's next words are the pet itself
+    if (!(await page.locator('[aria-modal="true"]:not(.sheet)').count()))
+      await expect(page.locator(".pet-button"), "after hatching the focus is on the pet").toBeFocused();
     await clearDialogs(page);
 
     // the pet, reached and patted

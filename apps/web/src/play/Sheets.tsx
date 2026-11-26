@@ -68,14 +68,16 @@ export function Sheet({
     const me = {};
     openSheets.push(me);
     // Tab stays inside the sheet on top through the game's dialog focus (modalFocus.ts, P5)
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && openSheets[openSheets.length - 1] === me && onClose();
+    const onKey = (e: KeyboardEvent) =>
+      e.key === "Escape" && openSheets[openSheets.length - 1] === me && closeLatest.current();
     window.addEventListener("keydown", onKey);
     return () => {
       openSheets.splice(openSheets.indexOf(me), 1);
       window.removeEventListener("keydown", onKey);
       prev?.focus?.();
     };
-  }, [open, onClose]);
+    // once per opening: the focus is taken when the sheet opens and given back when it closes, never in between (R8)
+  }, [open]);
   return (
     <AnimatePresence>
       {open && (
@@ -190,8 +192,17 @@ function MindPartView({ pet, part, firing }: { pet: Pet; part: MindPart; firing:
           const c = chipsFor(p, r, lang);
           return (
             <li key={i} className={firing && pet.last.rule === i ? "fire" : ""}>
-              {r.label?.startsWith("instinct: ") && <span className="instinct-tag">{t("mind.instinct")}</span>}
-              <Chips when={c.when} then={c.then} want={c.want} />
+              {r.label?.startsWith("instinct: ") && (
+                <span className="instinct-tag" aria-hidden="true">
+                  {t("mind.instinct")}
+                </span>
+              )}
+              <Chips
+                when={c.when}
+                then={c.then}
+                want={c.want}
+                {...(r.label?.startsWith("instinct: ") ? { lead: t("mind.instinct") } : {})}
+              />
             </li>
           );
         })}

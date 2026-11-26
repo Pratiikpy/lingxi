@@ -29,6 +29,7 @@ import { useGameClock } from "./app/useGameClock";
 import { useRoomVisitors } from "./app/useRoomVisitors";
 import { TabSheets } from "./app/TabSheets";
 import { VisitorCards } from "./app/VisitorCards";
+import { Announcer } from "./Announcer";
 import { PetButton } from "./PetButton";
 import { OfflineNote } from "./OfflineNote";
 import { useHatchDraft } from "./hatchDraft";
@@ -473,17 +474,21 @@ function PetNotices({
 }) {
   const toast = useGame((s) => s.toast);
   return (
-    <NoticeLane>
-      {/* a lesson being tried out: the pet's words about it are the one thing shown (H5) */}
-      {trial && !quiet && <VoiceBubble face={face && <FaceSprite canvas={face} line={pet.line} />} />}
-      <QuestToast onOpenBook={() => pick("quests")} />
-      <BadgeToast />
-      <ToastView toast={toast} name={pet.name} />
-      <RulesMark />
-      {/* the pet's own words, last: a quest, a badge, a care note or the rules mark is shown first (H5) */}
-      {/* the pet speaks in the room: with a sheet open over it, its passing words wait */}
-      {!trial && !quiet && !circuit && <VoiceBubble face={face && <FaceSprite canvas={face} line={pet.line} />} />}
-    </NoticeLane>
+    <>
+      <NoticeLane>
+        {/* a lesson being tried out: the pet's words about it are the one thing shown (H5) */}
+        {trial && !quiet && <VoiceBubble face={face && <FaceSprite canvas={face} line={pet.line} />} />}
+        <QuestToast onOpenBook={() => pick("quests")} />
+        <BadgeToast />
+        <ToastView toast={toast} name={pet.name} />
+        <RulesMark />
+        {/* the pet's own words, last: a quest, a badge, a care note or the rules mark is shown first (H5) */}
+        {/* the pet speaks in the room: with a sheet open over it, its passing words wait */}
+        {!trial && !quiet && !circuit && <VoiceBubble face={face && <FaceSprite canvas={face} line={pet.line} />} />}
+      </NoticeLane>
+      {/* R8: the care note and the pet's words, said aloud for a screen reader, whenever they are on screen */}
+      <Announcer name={pet.name} voice={!quiet && (trial || !circuit)} />
+    </>
   );
 }
 

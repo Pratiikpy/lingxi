@@ -79,6 +79,7 @@ export const en = {
   "hatch.name": "Name it",
   "hatch.shuffle": "Shuffle",
   "hatch.go": "Hatch",
+  "hatch.cracking": "The egg is hatching: {name} is on the way.",
   "mind.instinct": "instinct",
   "me.noInstincts": "none switched on",
   "hatch.instincts": "Its instincts",
@@ -421,6 +422,5 @@ export const en = {
   "teach.forget": "Forget",
   "teach.preview": "Preview",
 
-  "sound.on": "Sound on",
-  "sound.off": "Sound off",
+  "sound.name": "Sound",
 } as const;

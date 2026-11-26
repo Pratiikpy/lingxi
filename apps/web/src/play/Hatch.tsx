@@ -1,10 +1,11 @@
 /** First run: pick one of three eggs, name it, watch it hatch. */
 
 import { OnChainNote } from "../OnChainNote";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { SHELL, drawEgg, drawPet } from "@lingxi/art";
 import { useHoldings } from "../game/holders";
+import { markHatched } from "./afterHatch";
 import { HolderPerkNote } from "./HolderPerk";
 
 /** The gilded shell a TapeCode Test1 holder's eggs wear. */
@@ -70,7 +71,7 @@ export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string, 
     play("hatch");
     const bits = instinctBits(instincts);
     // whoever receives the pet clears the draft once the pet exists, so the last crack frame stays until then
-    const done = () => onHatch(line, name, bits);
+    const done = () => (markHatched(), onHatch(line, name, bits));
     if (reduce) {
       done();
       return;
@@ -86,6 +87,12 @@ export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string, 
     }, 420);
   };
   const chosen = eggs.find((e) => e.l === line)!;
+  // R8: the Hatch button goes with the form; the focus goes to the egg as it cracks, not back to the page
+  const stage = useRef<HTMLDivElement>(null);
+  const isCracking = cracking >= 0;
+  useEffect(() => {
+    if (isCracking) stage.current?.focus({ preventScroll: true });
+  }, [isCracking]);
   return (
     <main className="hatch" aria-labelledby="hatch-h">
       <div className="hatch-head">
@@ -93,7 +100,9 @@ export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string, 
         <p>{t("hatch.sub")}</p>
       </div>
       {cracking >= 0 ? (
-        <div className="hatch-stage" aria-live="polite">
+        <div className="hatch-stage" aria-live="polite" tabIndex={-1} ref={stage}>
+          {/* R8: said when the focus arrives here, so the crack is not silence followed by "document" */}
+          <span className="sr-only">{t("hatch.cracking", { name })}</span>
           {cracking < 4 ? (
             <motion.div animate={{ rotate: [0, -6, 6, -3, 0] }} transition={{ duration: 0.4 }}>
               <Sprite canvas={chosen.cracks[cracking]!} palette={chosen.pal} scale={5} />

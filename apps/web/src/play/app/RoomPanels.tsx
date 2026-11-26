@@ -73,7 +73,7 @@ export function CareColumn({
         onToday={() => (useQuestUi.getState().setBookTab("today"), pick("quests"))}
         onCollection={() => pick("collection")}
       />
-      <section className="card mindcard" aria-label={t("mind.title", { name: pet.name })}>
+      <section className="card mindcard">
         <div className="cardbar" aria-hidden="true">
           <i />
           <i />

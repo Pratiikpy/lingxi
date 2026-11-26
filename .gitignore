@@ -17,6 +17,7 @@ apps/web/site/
 # the end-to-end suite's runs: logs, scratch stores, traces and its report
 e2e/.run/
 test-results/
+test-results-sr/
 playwright-report/
 # agents' working copies of the repo, made beside it
 .claude/worktrees/

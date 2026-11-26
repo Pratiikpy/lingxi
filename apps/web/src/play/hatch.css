@@ -59,7 +59,7 @@
     var(--lift-hi);
 }
 .egg[aria-checked="true"]::after {
-  content: "✓";
+  content: "✓" / "";
   position: absolute;
   top: 8px;
   right: 8px;
@@ -157,6 +157,8 @@
   min-height: 260px;
   display: grid;
   place-items: center;
+  /* R8: it holds the focus while the egg cracks, so a screen reader is told; it is not a control and shows no ring */
+  outline: none;
 }
 /* H5: on a phone the three eggs are rows, so each is described, not just named: its picture beside its name and
    what kind of mind it hatches */

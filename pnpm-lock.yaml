@@ -14,6 +14,12 @@ importers:
       '@eslint/js':
         specifier: 9.17.0
         version: 9.17.0
+      '@guidepup/guidepup':
+        specifier: 0.40.0
+        version: 0.40.0
+      '@guidepup/playwright':
+        specifier: 0.21.0
+        version: 0.21.0(@guidepup/guidepup@0.40.0)(@playwright/test@1.64.1)
       '@lingxi/art':
         specifier: workspace:*
         version: link:packages/art
@@ -749,6 +755,15 @@ packages:
   '@fontsource-variable/pixelify-sans@5.2.5':
     resolution: {integrity: sha512-g5i5pRGTajUn19hFu6jOKm+sQgHIvhhqBslwXnxtoJm9vCaKtc7uRQIlZlX65fJ+v2zzq4hH5Z2SIiz0XPdqrw==}
 
+  '@guidepup/guidepup@0.40.0':
+    resolution: {integrity: sha512-Rnrs6FCOa+v9q2jMyXeBTOHNIaMv3lCcE8Uq1HN8JIymbqpx59wct3VRyvhQYIStqW7uhmSjHiFE8ERCV3cc0w==}
+
+  '@guidepup/playwright@0.21.0':
+    resolution: {integrity: sha512-1sXOcSgfTz8pNEfGWcpeihmc6I+jr9CTbBnwypLlFHlHxDA5im3dJk6QJp8GBhh31K/VOtiwZ3/ZZy6hDYxi5w==}
+    peerDependencies:
+      '@guidepup/guidepup': '>=0.38.0'
+      '@playwright/test': '>=1.62.1'
+
   '@hono/node-server@2.1.9':
     resolution: {integrity: sha512-Sk4NQd3GFY0WZWCzndwFMPwJhtD0y9qjsQ+pjID0/03nK9pxyBCUoUHCho8QYBLBVhi0ssL8UkNPHqbgSOFPIQ==}
     engines: {node: '>=20'}
@@ -1281,6 +1296,10 @@ packages:
     resolution: {integrity: sha512-/5NV/vDALVFDXgLmfsy9TRCBlKwO2LNBFzpzvb9iIj+jR+eSc6DLYYvVOdivT/jm7MtU6TebYuRmzEOI7w40UA==}
     engines: {node: '>=10.0.0'}
 
+  '@xmldom/xmldom@0.9.12':
+    resolution: {integrity: sha512-5AXjrcMClTryPe9LgZrygpB1lj7s0S9E0+W+AHaVKAVyHanafK86iPSvG5xHVSp/jC+VH1UXu0TAEmY279xH7A==}
+    engines: {node: '>=14.6'}
+
   abitype@1.2.3:
     resolution: {integrity: sha512-Ofer5QUnuUdTFsBRwARMoWKOH1ND5ehwYhJ3OJ/BQO+StkwQjHw0XyVh4vDttzHB7QOFhPHa/o413PJ82gU/Tg==}
     peerDependencies:
@@ -1472,6 +1491,11 @@ packages:
 
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
+
+  dbus-native@0.15.2:
+    resolution: {integrity: sha512-J1IBi4LmbqrFhroN66Dj1tCCTP6TVbZgUKhWQZf3uS6t93yRWEcRRDjOZV9N6boGRhOp/BOjLliFm9vWu1QZOA==}
+    engines: {node: '>=22.12.0'}
+    hasBin: true
 
   debug@4.4.3:
     resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
@@ -2189,6 +2213,10 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
+  plist@4.0.0:
+    resolution: {integrity: sha512-4dOqNo0Y2NpfSf9q4+zr4bh7pzNWeckIam34Z0KYJhg8qtNNfh59VbD+Yna5SjwcxawVvLKx5w5FtuCijpEF4Q==}
+    engines: {node: '>=18'}
+
   pluralize@8.0.0:
     resolution: {integrity: sha512-Nc3IT5yHzflTfbjgqWcCPpo7DaKy4FnpB0l/zCAW0Tc7jxAiuqSxHasntB3D7887LSrA93kDJ9IXovxJYxyLCA==}
     engines: {node: '>=4'}
@@ -2311,6 +2339,10 @@ packages:
     resolution: {integrity: sha512-GjmndmKQBtlPil79RK72L7yc5kDXZPCQeH97bP8R8DcxtXQJO6vECExb3WP/m6+cxaV9h4ZxrSRvCkPG2v/VSw==}
     engines: {node: '>=18'}
     hasBin: true
+
+  sax@1.6.1:
+    resolution: {integrity: sha512-42tBVwLWnaQvW5zc4HbZrTuWccECCZfBi92FDuwtqxasH+JbPB3/FOKb1m222K42R4WxuxzzMsTswfzgtSu64Q==}
+    engines: {node: '>=11.0.0'}
 
   scheduler@0.27.0:
     resolution: {integrity: sha512-eNv+WrVbKu1f3vbYJT/xtiF5syA5HPIMtf9IgY/nKg0sWqzAUEvqY/xm7OcZc/qafLx/iO9FgOmeSAp4v5ti/Q==}
@@ -2660,6 +2692,18 @@ packages:
       utf-8-validate:
         optional: true
 
+  xml2js@0.6.2:
+    resolution: {integrity: sha512-T4rieHaC1EXcES0Kxxj4JWgaUQHDk+qwHcYOCFHfiwKz7tOVPLq7Hjq9dM1WCMhylqMEfP7hMcOIChvotiZegA==}
+    engines: {node: '>=4.0.0'}
+
+  xmlbuilder@11.0.1:
+    resolution: {integrity: sha512-fDlsI/kFEx7gLvbecc0/ohLG50fugQp8ryHzMTuW9vSa1GJ0XYWKnhsUx7oie3G98+r56aTQIUB4kht42R3JvA==}
+    engines: {node: '>=4.0'}
+
+  xmlbuilder@15.1.1:
+    resolution: {integrity: sha512-yMqGBqtXyeN1e3TGYvgNgDVZ3j84W4cwkOXQswghol6APgZWaff9lnbvN7MHYJOiXsvGPXtjTYJEiC9J2wv9Eg==}
+    engines: {node: '>=8.0'}
+
   yallist@3.1.1:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
 
@@ -2981,6 +3025,19 @@ snapshots:
   '@fontsource-variable/baloo-2@5.2.5': {}
 
   '@fontsource-variable/pixelify-sans@5.2.5': {}
+
+  '@guidepup/guidepup@0.40.0':
+    dependencies:
+      dbus-native: 0.15.2
+      debug: 4.4.3
+      plist: 4.0.0
+    transitivePeerDependencies:
+      - supports-color
+
+  '@guidepup/playwright@0.21.0(@guidepup/guidepup@0.40.0)(@playwright/test@1.64.1)':
+    dependencies:
+      '@guidepup/guidepup': 0.40.0
+      '@playwright/test': 1.64.1
 
   '@hono/node-server@2.1.9(hono@4.13.19)':
     dependencies:
@@ -3545,6 +3602,8 @@ snapshots:
 
   '@xmldom/xmldom@0.8.15': {}
 
+  '@xmldom/xmldom@0.9.12': {}
+
   abitype@1.2.3(typescript@5.9.3)(zod@4.6.7):
     optionalDependencies:
       typescript: 5.9.3
@@ -3706,6 +3765,10 @@ snapshots:
       which: 2.0.2
 
   csstype@3.2.3: {}
+
+  dbus-native@0.15.2:
+    dependencies:
+      xml2js: 0.6.2
 
   debug@4.4.3:
     dependencies:
@@ -4464,6 +4527,11 @@ snapshots:
     dependencies:
       playwright-core: 1.64.1
 
+  plist@4.0.0:
+    dependencies:
+      '@xmldom/xmldom': 0.9.12
+      xmlbuilder: 15.1.1
+
   pluralize@8.0.0: {}
 
   pngjs@7.0.0: {}
@@ -4611,6 +4679,8 @@ snapshots:
     dependencies:
       commander: 12.1.0
       enhanced-resolve: 5.27.0
+
+  sax@1.6.1: {}
 
   scheduler@0.27.0: {}
 
@@ -4929,6 +4999,15 @@ snapshots:
   ws@8.21.0: {}
 
   ws@8.23.0: {}
+
+  xml2js@0.6.2:
+    dependencies:
+      sax: 1.6.1
+      xmlbuilder: 11.0.1
+
+  xmlbuilder@11.0.1: {}
+
+  xmlbuilder@15.1.1: {}
 
   yallist@3.1.1: {}
 

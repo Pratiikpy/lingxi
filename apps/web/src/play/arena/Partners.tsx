@@ -34,6 +34,7 @@ import { chipsFor } from "../ruleText";
 import { useLang } from "../../i18n";
 import { useSpar } from "../../game/spar";
 import { play } from "../../game/sound";
+import { rowAct } from "../rowAct";
 import "../arena.css";
 import "../rewind.css";
 import { DEFAULT_PROCESSOR, LINE_ZH, type Lang, PetArt, READ_ERR, STAGE_INDEX, coloursOf, short } from "./shared";
@@ -68,6 +69,11 @@ export function DesignedPartners({ onPick }: { onPick: (p: Partner) => void }) {
                   type="button"
                   className="sp-hint-btn"
                   aria-expanded={open}
+                  aria-label={rowAct(
+                    open ? L("Hide the way to beat it", "收起打败它的方法") : L("A way to beat it", "打败它的方法"),
+                    p.name[lang === "zh" ? "zh" : "en"],
+                    lang,
+                  )}
                   onClick={() => (play("tap"), setHint(open ? null : p.id))}
                 >
                   {open ? L("Hide the way to beat it", "收起打败它的方法") : L("A way to beat it", "打败它的方法")}

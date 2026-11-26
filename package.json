@@ -12,6 +12,7 @@
     "status:check": "tsx scripts/status-check.mts",
     "claims:check": "tsx scripts/claims-check.mts",
     "e2e": "playwright test -c e2e/playwright.config.ts",
+    "e2e:sr": "playwright test -c e2e/sr/playwright.config.ts",
     "test:fork": "tsx scripts/fork-tests.mts",
     "coverage": "tsx scripts/coverage.mts",
     "revert:check": "tsx scripts/revert-check.mts",
@@ -29,6 +30,8 @@
   },
   "devDependencies": {
     "@eslint/js": "9.17.0",
+    "@guidepup/guidepup": "0.40.0",
+    "@guidepup/playwright": "0.21.0",
     "@lingxi/art": "workspace:*",
     "@lingxi/brain": "workspace:*",
     "@lingxi/chain": "workspace:*",

@@ -229,6 +229,7 @@ Every number below is counted by `scripts/readme-facts.mts` from the suites them
 | Contracts on a fork of X Layer mainnet (reads only) | `cd contracts && forge test --fork-url xlayer --match-path 'test/*.fork.t.sol'` | <!--f:forge-fork-->76<!--/f--> |
 | The server and the chain package, with their fork tests, each on a pinned fork of X Layer (reads only) | `pnpm test:fork` | <!--f:tests-api-fork-->719<!--/f--> |
 | End to end: the game in real browsers, against a fork of X Layer | `pnpm e2e` | <!--f:e2e-->166<!--/f--> tests in <!--f:e2e-specs-->62<!--/f--> specs (each a file in `e2e/specs/`; CI runs every one on each push) |
+| With a screen reader: NVDA reads the game's first minutes aloud, in English and Chinese, while the keyboard plays; every phrase it speaks is kept and checked | `pnpm e2e:sr` | run on demand on Windows (it needs NVDA, installed with `npx @guidepup/setup install`, and the screen's focus, so CI does not run it) |
 
 `pnpm status:check` runs all of it, plus lint, the type check, the repo's hygiene checks and whether the live site serves the current commit.
 
