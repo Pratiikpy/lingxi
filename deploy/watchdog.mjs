@@ -9,11 +9,17 @@ import { renameSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { decide, describeBeat, initialWatch } from "./watchdog-rules.mjs";
+import { rotateLogs } from "./logRotate.mjs";
 
 const LOCAL = process.env.LINGXI_WATCH_LOCAL ?? "http://127.0.0.1:8790/api/health";
 const PUBLIC = process.env.LINGXI_WATCH_PUBLIC ?? "https://lingxi.knole.me/api/health";
 const BEAT_MS = 60_000;
 const STATUS = join(homedir(), "lingxi-watchdog.json");
+// P8: pm2's logs are rotated once an hour: past 5 MB a log is kept compressed and dated, five of each at most
+const LOGS = process.env.LINGXI_PM2_LOGS ?? join(homedir(), ".pm2", "logs");
+const LOG_MAX_BYTES = 5 * 1024 * 1024;
+const LOGS_KEPT = 5;
+const ROTATE_EVERY_BEATS = 60;
 
 /** What a health check answered: "ok", "refused" (nothing listening), "timed out", or the HTTP status or failure. */
 async function answers(url) {
@@ -73,5 +79,20 @@ async function beat() {
   }
 }
 
+/** Rotates pm2's logs; a failure is written down and tried again at the next hour, never stopping the watch. */
+function rotate() {
+  try {
+    const done = rotateLogs(LOGS, { maxBytes: LOG_MAX_BYTES, keep: LOGS_KEPT });
+    if (done.length) process.stdout.write(`${new Date().toISOString()} rotated: ${done.join(", ")}\n`);
+  } catch (e) {
+    process.stderr.write(`log rotation failed: ${e.message}\n`);
+  }
+}
+
+let beats = 0;
 await beat();
-setInterval(() => void beat().catch((e) => process.stderr.write(`watchdog beat failed: ${e.message}\n`)), BEAT_MS);
+rotate();
+setInterval(() => {
+  void beat().catch((e) => process.stderr.write(`watchdog beat failed: ${e.message}\n`));
+  if (++beats % ROTATE_EVERY_BEATS === 0) rotate();
+}, BEAT_MS);
