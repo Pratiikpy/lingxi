@@ -48,15 +48,45 @@
   transform: translateY(3px) scale(0.98);
   box-shadow: var(--lift-lo);
 }
-/* B5: the chosen egg shows at a glance in either theme: a warm fill, a sunny ring and a check badge */
+/* B5: the chosen egg shows at a glance in either theme: a warm fill, a ring and a check badge. R32: in the dark theme a
+   sunny tint mixed into the dark card turned a muddy olive at 1.8:1 against the others, so there the chosen card is lit
+   in the brand's sunny yellow with plum words (about 10:1 against an unchosen card), ringed in the theme's ink */
 .egg {
   position: relative;
+  --egg-on: color-mix(in srgb, var(--sunny) 24%, var(--card));
+  --egg-on-ink: var(--ink);
+  --egg-on-soft: var(--ink-soft);
+  --egg-on-ring: var(--sunny);
+  --egg-on-badge: var(--sunny);
+  --egg-on-tick: #2b2140;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .egg {
+    --egg-on: var(--sunny);
+    --egg-on-ink: #2b2140;
+    --egg-on-soft: #4a3d63;
+    --egg-on-ring: var(--line);
+    --egg-on-badge: #2b2140;
+    --egg-on-tick: var(--sunny);
+  }
+}
+:root[data-theme="dark"] .egg {
+  --egg-on: var(--sunny);
+  --egg-on-ink: #2b2140;
+  --egg-on-soft: #4a3d63;
+  --egg-on-ring: var(--line);
+  --egg-on-badge: #2b2140;
+  --egg-on-tick: var(--sunny);
 }
 .egg[aria-checked="true"] {
-  background: color-mix(in srgb, var(--sunny) 24%, var(--card));
+  background: var(--egg-on);
+  color: var(--egg-on-ink);
   box-shadow:
-    0 0 0 3px var(--sunny),
+    0 0 0 3px var(--egg-on-ring),
     var(--lift-hi);
+}
+.egg[aria-checked="true"] span {
+  color: var(--egg-on-soft);
 }
 .egg[aria-checked="true"]::after {
   content: "✓" / "";
@@ -69,11 +99,27 @@
   height: 24px;
   border: 2px solid #2b2140;
   border-radius: 50%;
-  background: var(--sunny);
-  color: #2b2140;
+  background: var(--egg-on-badge);
+  color: var(--egg-on-tick);
   font-weight: 900;
   font-size: 14px;
   line-height: 1;
+}
+/* R32: the egg's drawing has empty rows above the egg (its 48-pixel frame leaves room for the hatchling), so each card
+   shows it through a window cut to the egg itself: rows 25 to 46 of the frame, with as much room below as above, so the
+   egg sits in the middle of its card. At three times here (two on a phone, below): 66 pixels of egg in an 84-pixel
+   window, its frame's foot 6 pixels above the window's (the frame's last row is blank) */
+.egg > :first-child {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 84px;
+  padding-bottom: 6px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.egg > :first-child canvas {
+  flex: none;
 }
 .egg b {
   font-family: var(--round);
@@ -153,6 +199,46 @@
 .hatch-go[disabled] {
   opacity: 0.5;
 }
+/* R32: the Hatch button was below the first screen at every size, so a first visit saw no next step. It now rides in a
+   bar at the foot of the screen while the choices scroll above it, over a fade of the page's own ground, and settles in
+   its own place after the name (the page's order, and so the keyboard's, is unchanged) */
+.hatch-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  align-self: stretch;
+  display: flex;
+  justify-content: center;
+  margin-top: calc(-1 * var(--s5));
+  padding: var(--s5) 0 max(var(--s3), env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to bottom, transparent, var(--page) var(--s5));
+  /* the fade is not a wall: a tap on it reaches what lies under it */
+  pointer-events: none;
+}
+.hatch-bar .hatch-go {
+  pointer-events: auto;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+/* whatever the keyboard or find-in-page brings into view stops above the bar, not under it */
+html:has(.hatch-bar) {
+  scroll-padding-bottom: 96px;
+}
+/* a phone held sideways is short: a slimmer bar, still a 48-pixel button */
+@media (max-height: 500px) {
+  .hatch-bar {
+    padding: var(--s3) 0 max(var(--s2), env(safe-area-inset-bottom, 0px));
+    margin-top: calc(-1 * var(--s4));
+  }
+  .hatch-go {
+    min-height: 48px;
+  }
+  html:has(.hatch-bar) {
+    scroll-padding-bottom: 76px;
+  }
+}
 .hatch-stage {
   min-height: 260px;
   display: grid;
@@ -177,16 +263,13 @@
     padding: var(--s2) var(--s3);
     text-align: left;
   }
-  /* the egg's 48-pixel drawing is shown at an exact two times here (three on wider screens), in a window that holds
-     its lower part, where the egg sits, so each row stays short and the pixels stay crisp */
+  /* the egg's 48-pixel drawing is shown at an exact two times here (three on wider screens), in the window above, so
+     each row stays short and the pixels stay crisp: 44 pixels of egg in a 56-pixel window, centred beside the words */
   .egg > :first-child {
     grid-row: 1 / span 2;
     width: 72px;
-    height: 80px;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    overflow: hidden;
+    height: 56px;
+    padding-bottom: 4px;
   }
   .egg > :first-child canvas {
     flex: none;

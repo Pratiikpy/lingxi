@@ -83,6 +83,7 @@ export const zh: Record<Key, string> = {
   "hatch.name": "取个名字",
   "hatch.shuffle": "换一个",
   "hatch.go": "孵化",
+  "hatch.goNamed": "孵化{name}",
   "hatch.cracking": "蛋正在孵化：{name}就要出来了。",
   "mind.instinct": "本能",
   "me.noInstincts": "一个也没开",

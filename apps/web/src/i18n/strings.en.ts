@@ -79,6 +79,7 @@ export const en = {
   "hatch.name": "Name it",
   "hatch.shuffle": "Shuffle",
   "hatch.go": "Hatch",
+  "hatch.goNamed": "Hatch {name}",
   "hatch.cracking": "The egg is hatching: {name} is on the way.",
   "mind.instinct": "instinct",
   "me.noInstincts": "none switched on",

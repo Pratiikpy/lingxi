@@ -191,9 +191,13 @@ export function Hatch({ onHatch }: { onHatch: (line: StarterLine, name: string, 
               </button>
             </div>
           </div>
-          <button type="button" className="hatch-go" onClick={hatch} disabled={!name.trim()}>
-            {t("hatch.go")}
-          </button>
+          {/* R32: the next step is always in view: the bar stays at the foot of the screen while the choices above it
+              scroll, and comes to rest in its own place after the name; it names the pet it will hatch */}
+          <div className="hatch-bar">
+            <button type="button" className="hatch-go" onClick={hatch} disabled={!name.trim()}>
+              {name.trim() ? t("hatch.goNamed", { name: name.trim() }) : t("hatch.go")}
+            </button>
+          </div>
           <button type="button" className="hatch-restore" onClick={() => useSaveFileUi.getState().show()}>
             {lang === "zh" ? "有存档文件？从文件恢复" : "Have a save file? Restore it"}
           </button>
