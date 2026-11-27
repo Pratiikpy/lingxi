@@ -4,7 +4,7 @@
  * but only the welcome letter counts as unread; a player who had the mailbox before keeps their count.
  */
 import { afterEach, describe, expect, it } from "vitest";
-import { type Letter, isMailAnswer, lettersFrom, mailUrl, unreadCount } from "./mail";
+import { type Letter, allLetters, datedAt, isMailAnswer, lettersFrom, mailUrl, unreadCount } from "./mail";
 import { json, leave, offline, reload, visit } from "./testGame";
 
 const letter = (id: string, at: number, greets = false): Letter => ({
@@ -39,6 +39,27 @@ describe("unread letters", () => {
     expect(
       unreadCount({ letters: sent, local: [{ ...letter("season-1", 1_500), local: true }], read: [], since: 1_000 }),
     ).toBe(2);
+  });
+});
+
+describe("the welcome is dated the day the player arrived (R54)", () => {
+  it("a letter that greets a newcomer, sent before they came, is dated their arrival; the rest keep their own date", () => {
+    const s = { letters: sent, local: [], since: 5_000 };
+    expect(datedAt(s, sent[0]!)).toBe(5_000);
+    expect(datedAt(s, sent[1]!)).toBe(200);
+    // and it sits where its date puts it: first, as the newest
+    expect(allLetters(s).map((l) => l.id)[0]).toBe("welcome");
+  });
+
+  it("a greeting sent after the player came keeps its own date, and with no arrival kept every letter does", () => {
+    const later = letter("welcome-2", 9_000, true);
+    expect(datedAt({ since: 5_000 }, later)).toBe(9_000);
+    expect(datedAt({}, sent[0]!)).toBe(100);
+    expect(
+      allLetters({ letters: sent, local: [] })
+        .map((l) => l.id)
+        .at(-1),
+    ).toBe("welcome");
   });
 });
 

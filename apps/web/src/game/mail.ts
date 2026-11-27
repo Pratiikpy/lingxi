@@ -195,8 +195,14 @@ export function lettersFrom(body: unknown, now: number, fromServer: boolean): Le
 }
 
 /** Everything in the mailbox, newest first. */
-export const allLetters = (s: Pick<MailStore, "letters" | "local">): Letter[] =>
-  [...s.local, ...s.letters].sort((a, b) => b.at - a.at);
+/**
+ * The moment a letter is dated for this player (R54): a letter that greets a newcomer and was sent before they came is
+ * dated the day they arrived, as a welcome is written to whoever arrives; every other letter keeps the day it was sent.
+ */
+export const datedAt = (s: Partial<Pick<MailStore, "since">>, l: Letter): number =>
+  l.greets && s.since !== undefined && s.since > l.at ? s.since : l.at;
+export const allLetters = (s: Pick<MailStore, "letters" | "local"> & Partial<Pick<MailStore, "since">>): Letter[] =>
+  [...s.local, ...s.letters].sort((a, b) => datedAt(s, b) - datedAt(s, a));
 /** Letters waiting to be read: not opened yet, and sent since the mailbox was first opened or greeting a newcomer (G8). */
 export const isUnread = (s: Pick<MailStore, "read" | "since">, l: Letter): boolean =>
   !s.read.includes(l.id) && (s.since === undefined || l.at >= s.since || l.greets === true);

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { ITEM } from "@lingxi/world";
 import { useLang } from "../i18n";
-import { allLetters, isUnread, useMail } from "../game/mail";
+import { allLetters, datedAt, isUnread, useMail } from "../game/mail";
 import { play } from "../game/sound";
 import { CuteState } from "./CuteState";
 
@@ -90,7 +90,10 @@ function MailList() {
               {unread && <i className="mail-dot" aria-label={L("unread", "未读")} />}
               <b>{l.subject[lang]}</b>
               <span className="small">
-                {new Date(l.at).toLocaleDateString(lang === "zh" ? "zh-CN" : "en", { month: "short", day: "numeric" })}
+                {new Date(datedAt(mail, l)).toLocaleDateString(lang === "zh" ? "zh-CN" : "en", {
+                  month: "short",
+                  day: "numeric",
+                })}
                 {l.local ? L(" · for you", " · 给你的") : ""}
                 {l.gift && !claimed ? L(" · a gift inside", " · 附有礼物") : ""}
               </span>
