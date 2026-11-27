@@ -1,16 +1,16 @@
 {
-  "why": "P3: what each page loads before it runs, gzip-compressed, in KB (scripts/page-weights.mts): the weights measured 2026-11-24 after 64bbdc3b, plus 10 percent, rounded up. A page past its budget fails the build; raise a budget only with its reason written in BUILD-STATUS. index.html raised 142 to 190 on 2026-11-24: its two web fonts (45 KB) are now preloaded in its HTML, so the measure counts them (the page always loaded them); the game page's budget already counted them. play.html lowered 572 to 297 on 2026-11-24: a first visit preloads only the entry and the standalone hatch screen (FirstVisit.tsx), 270 KB; the rest of the game is preloaded only where a pet is saved, which this measure does not count. agents, handheld, numbers, tree and verify raised on 2026-11-24 to their new weight plus 10 percent: their two web fonts (about 44 KB) are now preloaded in their HTML, so the measure counts them (the pages always loaded them). privacy and terms added on 2026-11-24 (P6) at their first weight, 132.3 KB, plus 10 percent. 404 and circuits added on 2026-11-27 (R27): both moved from public/ into the build to carry the brand, so they now load the shared header, tokens and the two web fonts; their first weights in CI, 48.6 KB and 53.4 KB, plus 10 percent.",
+  "why": "P3: what each page loads before it runs, gzip-compressed, in KB (scripts/page-weights.mts): the weights measured 2026-11-24 after 64bbdc3b, plus 10 percent, rounded up. A page past its budget fails the build; raise a budget only with its reason written in BUILD-STATUS. index.html raised 142 to 190 on 2026-11-24: its two web fonts (45 KB) are now preloaded in its HTML, so the measure counts them (the page always loaded them); the game page's budget already counted them. play.html lowered 572 to 297 on 2026-11-24: a first visit preloads only the entry and the standalone hatch screen (FirstVisit.tsx), 270 KB; the rest of the game is preloaded only where a pet is saved, which this measure does not count. agents, handheld, numbers, tree and verify raised on 2026-11-24 to their new weight plus 10 percent: their two web fonts (about 44 KB) are now preloaded in their HTML, so the measure counts them (the pages always loaded them). privacy and terms added on 2026-11-24 (P6) at their first weight, 132.3 KB, plus 10 percent. 404 and circuits added on 2026-11-27 (R27): both moved from public/ into the build to carry the brand, so they now load the shared header, tokens and the two web fonts; their first weights in CI, 48.6 KB and 53.4 KB, plus 10 percent. R39 on 2026-11-27: verify.html lowered 354 to 279, its new weight (253.6 KB) plus 10 percent: it no longer loads the game's store, save runtime and world through game/chain.ts and the game clock. handheld.html raised 141 to 170, its new weight (154.5 KB) plus 10 percent: the handheld's app (HandheldApp and what it imports) is now preloaded with the page, so its stylesheet styles the device the build prerenders and its code is no second wait; the page always loaded it before it ran, after its claim on the handheld, where this measure did not count it (with it, the page loaded about 300 KB before it ran, 307 KB by Lighthouse's count; it now loads 154.5 KB).",
   "pages": {
     "404.html": 54,
     "agents.html": 195,
     "circuits.html": 59,
-    "handheld.html": 141,
+    "handheld.html": 170,
     "privacy.html": 146,
     "terms.html": 146,
     "index.html": 190,
     "numbers.html": 240,
     "play.html": 297,
     "tree.html": 169,
-    "verify.html": 354
+    "verify.html": 279
   }
 }

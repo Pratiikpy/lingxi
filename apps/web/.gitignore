@@ -2,3 +2,5 @@ dist-deweb/
 dist-deweb.manifest.json
 .prerender/
 .prerender-play/
+.prerender-verify/
+.prerender-handheld/

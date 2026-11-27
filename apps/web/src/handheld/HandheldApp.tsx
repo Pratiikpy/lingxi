@@ -5,7 +5,7 @@
  * hands the game the packet back. The game decides whether the pet comes home, by replaying the whole trip.
  */
 
-import { type MouseEvent, useCallback, useEffect, useRef, useState } from "react";
+import { type MouseEvent, useCallback, useContext, useEffect, useRef, useState } from "react";
 import wasmUrl from "@lingxi/handheld/wasm/lingxi-handheld.wasm?url";
 import { useLang } from "../i18n";
 import { SiteFoot } from "../SiteFoot";
@@ -14,6 +14,7 @@ import { usePageMeta } from "../i18n/pageMeta";
 import { DEVICE_KEY, INBOX_KEY, RETURN_KEY, fromB64 } from "../game/handheldKeys";
 import { gameIsOpen, handheldIsMine } from "../game/handheldLock";
 import { startHandheldClock, wallBeat } from "./clock";
+import { PrerenderAboard, petComingAboard } from "./aboard";
 import "./handheld.css";
 
 interface HH {
@@ -114,13 +115,8 @@ export function HandheldApp() {
   // P6: until the firmware has started and looked for a pet, the page cannot say none is aboard; it said so for half
   // a second on every open, a pet waiting to come aboard included
   const [started, setStarted] = useState(false);
-  const [coming] = useState(() => {
-    try {
-      return localStorage.getItem(INBOX_KEY) !== null || localStorage.getItem(DEVICE_KEY) !== null;
-    } catch {
-      return false;
-    }
-  });
+  const prerenderedAboard = useContext(PrerenderAboard);
+  const [coming] = useState(() => prerenderedAboard ?? petComingAboard());
   // kept in both languages, so a message shown before the language changes follows it
   const [problem, setProblem] = useState<Words | null>(null);
   const [sending, setSending] = useState(false);
