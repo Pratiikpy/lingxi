@@ -8,9 +8,18 @@
   line-height: 1.5;
   opacity: 0.92;
 }
+/* R40: the fold-out answers on 44 px of its own. Its line was drawn 20 px tall and reached 44 only through a touch area
+   past its edges, which the Pet sheet's scrolling edge cut to 32 when it lay near the top or the bottom; the line now
+   spans the card's padding, so the whole of the closed card's band is the line, 44 px tall wherever it is scrolled */
 .onchain-note summary {
+  margin: -10px -14px;
+  padding: 12px 14px;
+  border-radius: 12px;
   cursor: pointer;
   font-weight: 800;
+}
+.onchain-note[open] summary {
+  margin-bottom: 0;
 }
 .onchain-note h4 {
   margin: 10px 0 2px;
@@ -24,4 +33,7 @@
 }
 .onchain-note p {
   margin: 8px 0 0;
+}
+.onchain-note summary + p {
+  margin-top: 0;
 }
