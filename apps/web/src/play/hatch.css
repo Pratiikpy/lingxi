@@ -118,7 +118,8 @@
   box-sizing: border-box;
   overflow: hidden;
 }
-.egg > :first-child canvas {
+/* the egg is a canvas in the game and an svg in the first screen drawn at build time (Sprite.tsx): both are .pixel (R50) */
+.egg > :first-child .pixel {
   flex: none;
 }
 .egg b {
@@ -276,7 +277,7 @@ html:has(.hatch-bar) {
     height: 56px;
     padding-bottom: 4px;
   }
-  .egg > :first-child canvas {
+  .egg > :first-child .pixel {
     flex: none;
     width: 96px !important;
     height: 96px !important;
