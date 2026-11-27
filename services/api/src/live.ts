@@ -43,6 +43,12 @@ const PROPOSAL_MS = 120_000;
 export const DAMAGED_CARD = '{"damaged":true}';
 /** The most proposals one pet holds waiting for an answer (A64). */
 const MAX_PROPOSALS = 16;
+/**
+ * The pets one connection remembers being sent the card of (P10): past it, the one sent longest ago is let go, and asked
+ * about again it is sent its card whole, as to a connection that never asked. Two full rooms' worth: a player in one
+ * room, or moving between two, is never sent a card twice.
+ */
+export const CARDS_KEPT = 2 * CAPACITY + 16;
 const SAY_MAX = 60;
 const NAME_MAX = 12;
 const LINES = new Set(["gentle", "bold", "curious"]);
@@ -78,7 +84,7 @@ interface Client {
   last: number;
   /** bumped each time the card changes: an asker is sent a card once per change (A61) */
   cardVersion: number;
-  /** the card version of each pet this client has been sent */
+  /** the card version of each pet this client has been sent, the most recent `cardsKept` (P10) */
   seen: Map<string, number>;
   /** when this client last asked for cards, for the per-connection limit */
   asks: number[];
@@ -98,8 +104,16 @@ export interface RoomLimits {
   /** asks for a card one connection may make in a minute, and one address */
   asksPerConnection: number;
   asksPerAddress: number;
+  /** the pets one connection remembers being sent the card of (P10) */
+  cardsKept: number;
 }
-const ROOM_LIMITS: RoomLimits = { idleMs: 15 * 60_000, pingMs: 30_000, asksPerConnection: 6, asksPerAddress: 30 };
+const ROOM_LIMITS: RoomLimits = {
+  idleMs: 15 * 60_000,
+  pingMs: 30_000,
+  asksPerConnection: 6,
+  asksPerAddress: 30,
+  cardsKept: CARDS_KEPT,
+};
 /** The close code for a connection let go for being idle: the game reconnects on the player's next action. */
 export const IDLE_CLOSE = 4001;
 
@@ -269,6 +283,16 @@ export class LiveRooms {
     if (c.tokens < 1) return false;
     c.tokens -= 1;
     return true;
+  }
+
+  /** `c` was sent `id`'s card at `version`: remembered as the most recent, the oldest let go past the bound (P10). */
+  private sentCard(c: Client, id: string, version: number): void {
+    c.seen.delete(id);
+    c.seen.set(id, version);
+    for (const oldest of c.seen.keys()) {
+      if (c.seen.size <= this.limits.cardsKept) break;
+      c.seen.delete(oldest);
+    }
   }
 
   /** Another client in the same space, by member id. */
@@ -474,7 +498,7 @@ export class LiveRooms {
         if (yes) {
           if (proposer.seen.get(c.member.id) === c.cardVersion) card = { cardUnchanged: true };
           else {
-            proposer.seen.set(c.member.id, c.cardVersion);
+            this.sentCard(proposer, c.member.id, c.cardVersion);
             card = { card: c.card ?? "[]" };
           }
         }
@@ -508,7 +532,7 @@ export class LiveRooms {
         if (c.seen.get(target.member.id) === target.cardVersion) this.send(c, { ...about, unchanged: true });
         else if (!c.cardWaiting) {
           // no second card is queued behind one still going out (A143); a later ask brings it
-          c.seen.set(target.member.id, target.cardVersion);
+          this.sentCard(c, target.member.id, target.cardVersion);
           c.cardWaiting = true;
           this.send(c, { ...about, lessons: target.card ?? "[]" }, () => (c.cardWaiting = false));
         }
