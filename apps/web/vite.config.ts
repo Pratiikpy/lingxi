@@ -300,6 +300,8 @@ function shipLetters(): Plugin {
 let prerenderQueue: Promise<unknown> = Promise.resolve();
 function withPrerender<T>(entry: string, tmpName: string, run: (href: string) => Promise<T>): Promise<T> {
   const turn = prerenderQueue.then(() => prerenderOne(entry, tmpName, run));
+  // the queue only orders the pages: a page whose drawing fails rejects its own `turn` (returned below, so the build
+  // fails on it); the next page still waits for this one to finish, whether it drew or not
   prerenderQueue = turn.catch(() => undefined);
   return turn;
 }
@@ -480,9 +482,12 @@ function prerenderPages(): Plugin {
               (v) => `<template data-prerender="${lang}${v ? "+aboard" : ""}">${mods[lang].render(v)}</template>`,
             ),
           );
+          // in the page's own first script: storage that cannot be read (a private window, a blocked site) leaves the
+          // plain copy chosen, which is right for a visitor the page knows nothing of
           const variant = keys.length
             ? `try{if(${JSON.stringify(keys)}.some(function(k){return localStorage.getItem(k)!==null}))v="+aboard"}catch(e){}`
             : "";
+          // the language read from storage; when it cannot be read, the browser's own language decides, as below
           const pick = `<script>(function(){var l=null,v="";try{l=localStorage.getItem("lingxi.lang")}catch(e){}if(l!=="en"&&l!=="zh")l=(navigator.language||"").toLowerCase().indexOf("zh")===0?"zh":"en";${variant}var r=document.getElementById("root"),t=r.querySelector('template[data-prerender="'+l+v+'"]'),d=document.createElement("div");d.setAttribute("data-prerender",l);d.setAttribute("aria-busy","true");d.style.display="contents";d.appendChild(t.content.cloneNode(true));d.querySelectorAll("button,input,select,textarea").forEach(function(e){e.inert=true});${fill}r.appendChild(d);if(l==="zh")document.documentElement.lang="zh-CN"})()</script>`;
           const html = readFileSync(file, "utf8");
           if (!html.includes('<div id="root"></div>')) throw new Error(`${page} has no empty #root to fill`);
