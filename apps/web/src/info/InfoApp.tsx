@@ -149,8 +149,8 @@ const TERMS: Section[] = [
     h: ["On X Layer", "在 X Layer 上"],
     p: [
       [
-        "Keeping a pet on X Layer, saving its days and buying an outfit are transactions on a public blockchain: they cannot be undone, and network fees are paid to the network, not to us. BEM spent on outfits is burned. Nothing in the game is an investment, and nothing here is financial advice.",
-        "把宠物留在 X Layer 上、保存它的每一天和购买服装，都是公共区块链上的交易：无法撤销，网络手续费付给网络，而不是我们。用来买服装的 BEM 会被销毁。游戏里没有任何东西是投资，这里的一切也不是理财建议。",
+        "Keeping a pet on X Layer, saving its days and buying from a shop or a market are transactions on a public blockchain: they cannot be undone, and network fees go to the network. Where a payment in BEM goes is set by the contracts: the item shop, the limited outfits, room space, saved looks, a name's colour and breeding burn the whole price; a sale between players (an outfit, or a little one to adopt) burns 3% and pays the rest to the seller, of which up to 10% goes to an outfit's creator, or 10% to the other parent's owner. Lingxi takes no share of any BEM payment. An outfit priced in OKB pays a 3% fee to the project's wallet on each sale. Nothing in the game is an investment, and nothing here is financial advice.",
+        "把宠物留在 X Layer 上、保存它的每一天，以及在商店或市场里购买，都是公共区块链上的交易：无法撤销，网络手续费付给网络。用 BEM 付的钱去哪里由合约决定：道具店、限定服装、房间空间、保存的造型、名字颜色和繁育，全价销毁；玩家之间的买卖（一件服装，或一只可领养的小宝宝）销毁 3%，其余付给卖家，其中服装最多 10% 付给设计者，领养 10% 付给另一位家长的主人。灵犀不从任何 BEM 付款中抽成。以 OKB 定价的服装，每笔交易付 3% 手续费到项目钱包。游戏里没有任何东西是投资，这里的一切也不是理财建议。",
       ],
       [
         "The contracts are open and verified; the proof page checks your pet against them from your own browser.",

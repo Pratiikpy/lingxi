@@ -22,6 +22,18 @@ describe("the wording the audits corrected stays corrected (A87)", () => {
     expect(read("README.md")).toMatch(/once its owner keeps it on X Layer, that circuit is taped/);
   });
 
+  it("R51: the terms say where a BEM payment goes as the fee table does, not that all of it is burned", () => {
+    const terms = read("apps/web/src/info/InfoApp.tsx");
+    expect(terms).not.toMatch(/BEM spent on outfits is burned/);
+    expect(terms).not.toMatch(/用来买服装的 BEM 会被销毁/);
+    expect(terms).toMatch(/a sale between players \(an outfit, or a little one to adopt\) burns 3%/);
+    expect(terms).toMatch(/玩家之间的买卖（一件服装，或一只可领养的小宝宝）销毁 3%/);
+    expect(terms).toMatch(/An outfit priced in OKB pays a 3% fee to the project's wallet/);
+    // the same split as the README's table, which the claims sheet checks against the contracts
+    expect(read("README.md")).toMatch(/3% fee burned · up to 10% royalty to the creator · the rest to the seller/);
+    expect(read("README.md")).toMatch(/3% burned · 10% to the other parent's owner · the rest to the breeder/);
+  });
+
   it("A44: letters between homes are said to be closed, as they are", () => {
     expect(read("README.md")).not.toMatch(/TapeSend letters between homes and the Telegram Mini App/);
     expect(read("README.md")).toMatch(/letters between homes stay closed/);
