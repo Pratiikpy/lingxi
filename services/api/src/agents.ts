@@ -5,6 +5,12 @@
  * the server's clock. Only a hash of each token is kept. An agent-raised pet can
  * enter the weekly season, where it is marked as raised by an agent, which is
  * what the public scoreboard compares.
+ *
+ * An agent's pet keeps no input log (P10). A pet's log takes a word a minute it thinks, and serves its proofs on X Layer,
+ * its diary and Rewind; an agent's pet is never kept on chain, and no route serves its log (the agent API shows its
+ * state, and its season entry carries its card). Kept, it grew 14.3 KB a pet each day an agent cared for it, without
+ * end: 70 MB a day at the cap of 5,000 pets. It is started afresh at the pet's present memory each time the pet is
+ * caught up, cared for or taught, as a guest pet's log is cut past its bound (A148).
  */
 
 import { CODE, codeOf, heldOverCoded, recoded, scrubAsides } from "./pseudonym";
@@ -25,6 +31,7 @@ import {
   withGrowth,
   mindBrain,
   petCard,
+  restartLog,
   stageOf,
   teach,
   toVisible,
@@ -86,11 +93,14 @@ const brainOf = (p: Pet) =>
     growth: p.growth,
   });
 
-/** An agent's pet has no skills screen: it levels up by itself as its XP allows (plan 4.4), and its points wait. */
+/**
+ * An agent's pet has no skills screen: it levels up by itself as its XP allows (plan 4.4), and its points wait. Its input
+ * log is started afresh at its present memory: nothing reads an agent's pet's log (see above).
+ */
 function grown(p0: Pet): Pet {
   let p = withGrowth(p0);
   for (let r = levelUpPet(p); r.ok; r = levelUpPet(p)) p = r.pet;
-  return p;
+  return p.pendingLog.length ? restartLog(p, p.pendingLog.length, p.brain) : p;
 }
 
 export function viewOf(k: Kept, now: number): AgentPetView {
