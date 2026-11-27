@@ -52,6 +52,31 @@ export function cleanPlaced(v: unknown): Placed | null {
   return out;
 }
 
+/**
+ * A home's pieces as one string, in memory (P10): three character codes a piece, its place among the game's pieces (the
+ * free ones and those on X Layer, DECOR_BY_ID) and its x and y. An array of objects took 1,863 bytes for a full room, 93 MB
+ * at the cap of 50,000 homes; the string takes 72 characters. The file keeps each home's pieces as the array it always
+ * was.
+ */
+const PIECES = Object.keys(DECOR_BY_ID);
+const PIECE = new Map(PIECES.map((id, i) => [id, i]));
+/** a piece the game does not have cannot be packed, and cleanPlaced lets none through: it is left out, never guessed */
+const pack = (placed: Placed): string =>
+  placed
+    .flatMap((p) => {
+      const i = PIECE.get(p.id);
+      return i === undefined ? [] : [String.fromCharCode(i, p.x, p.y)];
+    })
+    .join("");
+function unpack(packed: string): Placed {
+  const out: Placed = [];
+  for (let i = 0; i + 2 < packed.length; i += 3) {
+    const id = PIECES[packed.charCodeAt(i)];
+    if (id) out.push({ id, x: packed.charCodeAt(i + 1), y: packed.charCodeAt(i + 2) });
+  }
+  return out;
+}
+
 export interface DecorStore {
   get: (owner: string) => Placed | null;
   /** Saves an owner's decorations; false when the key does not match or the input is bad. */
@@ -65,8 +90,8 @@ export interface DecorStore {
 }
 
 export function createDecorStore(file?: string, maxHomes = MAX_HOMES, now: () => number = Date.now): DecorStore {
-  /** owner → home, ordered from the home active least recently to the one active most recently */
-  const homes = new Map<string, { key: string; placed: Placed; at: number }>();
+  /** owner → home, ordered from the home active least recently to the one active most recently; its pieces packed */
+  const homes = new Map<string, { key: string; packed: string; at: number }>();
   if (file && hasStore(file)) {
     try {
       const raw = readStore(file) as Record<string, { key: string; placed: unknown; at?: number }>;
@@ -74,7 +99,7 @@ export function createDecorStore(file?: string, maxHomes = MAX_HOMES, now: () =>
       for (const [owner, h] of loaded) {
         const placed = cleanPlaced(h.placed);
         if (OWNER_ID.test(owner) && typeof h.key === "string" && placed)
-          homes.set(owner, { key: h.key, placed, at: typeof h.at === "number" ? h.at : 0 });
+          homes.set(owner, { key: h.key, packed: pack(placed), at: typeof h.at === "number" ? h.at : 0 });
       }
     } catch {
       // a damaged file starts an empty store rather than stopping the server
@@ -86,7 +111,8 @@ export function createDecorStore(file?: string, maxHomes = MAX_HOMES, now: () =>
     timer = setTimeout(() => {
       timer = null;
       try {
-        saveJson(file, undefined, JSON.stringify(Object.fromEntries(homes)));
+        const kept = [...homes].map(([o, h]) => [o, { key: h.key, placed: unpack(h.packed), at: h.at }]);
+        saveJson(file, undefined, JSON.stringify(Object.fromEntries(kept)));
       } catch (e) {
         process.stderr.write(`decor store not saved: ${(e as Error).message}\n`);
       }
@@ -94,7 +120,10 @@ export function createDecorStore(file?: string, maxHomes = MAX_HOMES, now: () =>
     timer.unref?.();
   };
   return {
-    get: (owner) => homes.get(owner)?.placed ?? null,
+    get: (owner) => {
+      const held = homes.get(owner);
+      return held ? unpack(held.packed) : null;
+    },
     authorise: (owner, secret) => {
       if (!OWNER_ID.test(owner) || typeof secret !== "string" || !PLAYER_SECRET.test(secret)) return false;
       const key = hash(secret);
@@ -130,7 +159,7 @@ export function createDecorStore(file?: string, maxHomes = MAX_HOMES, now: () =>
         homes.delete(idle);
       }
       homes.delete(owner);
-      homes.set(owner, { key, placed, at: now() });
+      homes.set(owner, { key, packed: pack(placed), at: now() });
       save();
       return placed;
     },

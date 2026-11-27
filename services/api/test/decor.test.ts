@@ -1,10 +1,12 @@
 import { createHash } from "node:crypto";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { playerIdFor } from "@lingxi/chain";
+import { DECOR, ROOM_MAX } from "@lingxi/world";
 import { cleanPlaced, createDecorStore } from "../src/decor";
+import { bytesEach } from "./heap";
 
 const KEY = "a".repeat(32);
 const OTHER = "b".repeat(32);
@@ -106,5 +108,39 @@ describe("shared home decorations", () => {
     const late = "f".repeat(32);
     expect(s.set(playerIdFor(late), late, [{ id: "fern", x: 20, y: 90 }])).toBe(false);
     expect(s.holds("owner123") && s.holds("owner456")).toBe(true);
+  });
+});
+
+describe("a home's pieces, packed in memory (P10)", () => {
+  const room = () => DECOR.slice(0, ROOM_MAX).map((d, i) => ({ id: d.id, x: 6 + i * 4, y: 34 + i * 3 }));
+  const secret = (i: number) => (i + 1).toString(16).padStart(32, "0");
+
+  it("keeps a full room in under 600 bytes a home (1,863 as an array of objects)", async () => {
+    const n = 5_000;
+    const [each, store] = await bytesEach(
+      n,
+      () => createDecorStore(undefined, n),
+      (s) => {
+        // each room parsed from a message, as the live rooms hand it over
+        for (let i = 0; i < n; i++) s.set(playerIdFor(secret(i)), secret(i), JSON.parse(JSON.stringify(room())));
+      },
+    );
+    expect(store.size()).toBe(n);
+    expect(each).toBeLessThan(600);
+    expect(store.get(playerIdFor(secret(0)))).toEqual(room());
+  });
+
+  it("writes the same file: each home's pieces as the array it always was, read back the same", async () => {
+    const file = join(mkdtempSync(join(tmpdir(), "decor-p10-")), "home-decor.json");
+    const s = createDecorStore(file);
+    const owner = playerIdFor(secret(7));
+    expect(s.set(owner, secret(7), room())).toEqual(room());
+    await new Promise((done) => setTimeout(done, 2_500));
+    const saved = JSON.parse(readFileSync(file, "utf8")) as Record<
+      string,
+      { key: string; placed: unknown; at: number }
+    >;
+    expect(saved[owner]?.placed).toEqual(room());
+    expect(createDecorStore(file).get(owner)).toEqual(room());
   });
 });
