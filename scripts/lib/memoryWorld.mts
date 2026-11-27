@@ -25,11 +25,11 @@ import {
 import { withDiaries } from "../../services/api/src/routes/chainReads.ts";
 import { RateLimiter, FairCeiling } from "../../services/api/src/limit.ts";
 import { RelayQuota } from "../../services/api/src/relayGate.ts";
-import { LiveRooms } from "../../services/api/src/live.ts";
+import { LiveRooms, MAX_CONNECTIONS } from "../../services/api/src/live.ts";
 import { createDecorStore } from "../../services/api/src/decor.ts";
 import { createHomes, type HomeChain } from "../../services/api/src/homes.ts";
 import { createErrorLog, withErrors } from "../../services/api/src/clientErrors.ts";
-import { createSittingStore } from "../../services/api/src/sitting.ts";
+import { MAX_PACKS, createSittingStore } from "../../services/api/src/sitting.ts";
 import { createArenaStore } from "../../services/api/src/arena.ts";
 import { createSeasonStore } from "../../services/api/src/season.ts";
 import { createStandingsRunner } from "../../services/api/src/standings.ts";
@@ -58,7 +58,7 @@ export interface Caps {
   duels: { count: number; chars: number };
   papers: { count: number; chars: number };
   library: { max: number; perSharer: number; seen: number };
-  sitting: { maxBytes: number; perOwner: number };
+  sitting: { maxBytes: number; perOwner: number; maxPacks: number };
   diaries: { totalBytes: number; small: number };
   errorsKept: number;
   limiterKeys: number;
@@ -84,7 +84,7 @@ export const FULL: Caps = {
   duels: { count: 50_000, chars: 200_000_000 },
   papers: { count: 50_000, chars: 200_000_000 },
   library: { max: 5_000, perSharer: 50, seen: 256 },
-  sitting: { maxBytes: 256 * 1024 * 1024, perOwner: 8 },
+  sitting: { maxBytes: 256 * 1024 * 1024, perOwner: 8, maxPacks: MAX_PACKS },
   diaries: { totalBytes: 256 * 1024 * 1024, small: 20_000 },
   errorsKept: 50,
   limiterKeys: 50_000,
@@ -94,7 +94,7 @@ export const FULL: Caps = {
   moveChars: 64_000_000,
   tokenAddresses: 20_000,
   nonces: 100_000,
-  live: 4_000,
+  live: MAX_CONNECTIONS,
   seasonWeeks: 12,
   seasonEntries: 64,
   arenaRounds: 31,
@@ -109,7 +109,7 @@ export const QUICK: Caps = {
   duels: { count: 200, chars: 400_000 },
   papers: { count: 60, chars: 200_000 },
   library: { max: 60, perSharer: 10, seen: 12 },
-  sitting: { maxBytes: 4 * 1024 * 1024, perOwner: 8 },
+  sitting: { maxBytes: 4 * 1024 * 1024, perOwner: 8, maxPacks: 200 },
   diaries: { totalBytes: 600_000, small: 60 },
   errorsKept: 20,
   limiterKeys: 400,
@@ -284,6 +284,7 @@ function buildStores(dir: string, caps: Caps, clock: { now: () => number }) {
     sitting: createSittingStore(f("sitting"), Date.now, {
       maxBytes: caps.sitting.maxBytes,
       perOwner: caps.sitting.perOwner,
+      maxPacks: caps.sitting.maxPacks,
     }),
     arena: createArenaStore(f("arena.json")),
     season: createSeasonStore(
@@ -297,15 +298,16 @@ function buildStores(dir: string, caps: Caps, clock: { now: () => number }) {
     library: createLibrary(f("library.json"), { max: caps.library.max, perSharer: caps.library.perSharer }),
     agents: createAgentStore(f("agents.json"), () => clock.now()),
     papers: createPapersStore(f("adoption-papers.json"), caps.papers),
-    move: createMoveStore(),
+    // a waiting move's save in a file of its own (P10), here in the run's own folder
+    move: createMoveStore(Date.now, f("moves")),
     duels: createDuelStore(f("duels"), caps.duels),
     diaries: createDiaryStore(f("diaries"), { totalBytes: caps.diaries.totalBytes }),
-    // reminders: kept in memory alone, because every plan rewrites the whole file (push.ts save on each plan), which
-    // at 20,000 subscriptions is a 10 MB write per request and would take the fill hours; what memory holds is the same
+    // reminders: each subscription a file of its own, as the server keeps them (P10); what is sent goes nowhere
     push: createPusher({
       publicKey: "B".repeat(87),
       privateKey: "p".repeat(43),
       subject: "mailto:tool@lingxi.invalid",
+      store: f("push-subscriptions.json"),
       send: async () => ({ gone: false }),
     }),
     // the model's day: in memory alone for the same reason (tokenBudget.ts saves on every call)

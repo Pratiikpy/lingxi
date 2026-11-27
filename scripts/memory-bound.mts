@@ -272,7 +272,7 @@ try {
     probes.push(...(await churn.probeAgentLogs(ctx, quick ? 1 : 2)));
     probes.push(await churn.probeDiarySpenders(ctx, quick ? 2_000 : 100_000));
     probes.push(await churn.probeSittingCount(ctx, quick ? 400 : 20_000));
-    probes.push(await churn.probeLiveSeen(ctx, quick ? 48 : 4_000, quick ? 1 : 2));
+    probes.push(await churn.probeLiveSeen(ctx, quick ? 48 : 1_500, quick ? 1 : 2));
     const ceiling = await churn.probeLimiterCeiling(ctx, quick ? 100 : 5_000);
     probes.push({ name: "rate limiters at their ceiling", perMax: ceiling, keysEach: caps.limiterKeys });
   }

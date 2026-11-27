@@ -142,7 +142,7 @@ export function render(s: Summary): string {
   );
   if (errs.length) for (const [k, e] of errs) add(`  errors in ${k}: ${e.count}, first: ${e.first.split("\n")[0]}`);
   add();
-  add("The probes: stores with no cap to fill to, measured in bytes for each thing they keep");
+  add("The probes: what each store keeps for one more caller, pet or pack, at its bound, in bytes");
   for (const p of s.probes) {
     if (Array.isArray(p.perMax)) {
       const measured = p.perMax as Array<{ max: number; bytesPerKey: number }>;

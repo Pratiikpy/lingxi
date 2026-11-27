@@ -6,7 +6,7 @@ import { encodeChallenge, petCard, weekOf } from "@lingxi/game";
 import { playerIdFor, signSponsorRequest } from "@lingxi/chain";
 import { privateKeyToAccount } from "viem/accounts";
 import { RateLimiter } from "../../services/api/src/limit.ts";
-import { createSittingStore } from "../../services/api/src/sitting.ts";
+import { MAX_PACKS, createSittingStore } from "../../services/api/src/sitting.ts";
 import { LiveRooms } from "../../services/api/src/live.ts";
 import { createDecorStore } from "../../services/api/src/decor.ts";
 import { createDiaryStore } from "../../services/api/src/diaries.ts";
@@ -356,7 +356,7 @@ export async function probeAgentLogs(ctx: Ctx, days: number): Promise<ProbeResul
     const after = await heap();
     out.push({
       name: `agents, day ${d}`,
-      what: "every agent pet fed once a day: its log gains a word a minute (pendingLog), and agents.ts never cuts it",
+      what: "every agent pet fed once a day: a day thinks a word a minute, and agents.ts starts the log afresh at each catch-up",
       bytesEach: (after - before) / Math.max(1, ctx.state.agents.length),
       added: ctx.state.agents.length,
       beforeMB: before / MB,
@@ -391,7 +391,7 @@ export async function probeDiarySpenders(ctx: Ctx, count: number): Promise<Probe
     added: count,
     beforeMB: before / MB,
     afterMB: after / MB,
-    note: "the per-address day map keeps every address it has seen, past days included",
+    note: "the day map holds 20,000 callers a day (MAX_SPENDERS); past them, newcomers share one allowance",
   };
 }
 
@@ -418,7 +418,7 @@ export async function probeSittingCount(ctx: Ctx, count: number): Promise<ProbeR
     added: count,
     beforeMB: before / MB,
     afterMB: after / MB,
-    note: `${store.stats().packs} packs held; the shelf's 268,435,456 bytes hold ${Math.floor((256 * 1024 * 1024) / tiny.length).toLocaleString("en")} such packs`,
+    note: `${store.stats().packs} packs held, MAX_PACKS ${MAX_PACKS.toLocaleString("en")}; the shelf's 268,435,456 bytes alone would hold ${Math.floor((256 * 1024 * 1024) / tiny.length).toLocaleString("en")} such packs`,
     msPerLeaveAtEnd: last / 100,
   };
 }
@@ -470,7 +470,7 @@ export async function probeLiveSeen(ctx: Ctx, askers: number, rounds: number): P
     added: asked,
     beforeMB: before / MB,
     afterMB: after / MB,
-    note: "a connection keeps one entry for every pet it ever asked about (or answered), for as long as it stays",
+    note: "a connection keeps an entry for each of the last CARDS_KEPT pets it asked about or was answered by",
   };
 }
 

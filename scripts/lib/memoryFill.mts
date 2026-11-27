@@ -208,7 +208,7 @@ export const STEPS: Step[] = [
   },
   {
     name: "move",
-    cap: "move.ts: MAX_HELD 500 moves, MAX_HELD_CHARS 64,000,000 characters in all; 3 and 4,000,000 per address",
+    cap: "move.ts: MAX_HELD 500 moves, MAX_HELD_CHARS 64,000,000 characters in all, each save in a file of its own; 3 and 4,000,000 per address",
     door: "POST /api/move (each a new address; a sender's share shrinks as the shelf fills)",
     async run(ctx) {
       await fillMoves(ctx);
@@ -245,7 +245,7 @@ export const STEPS: Step[] = [
   },
   {
     name: "diaries",
-    cap: "diaries.ts: TOTAL_BYTES 268,435,456 on the shelf; no cap on the count (one per pet on chain) nor on the per-address day map",
+    cap: "diaries.ts: TOTAL_BYTES 268,435,456 on the shelf; one per pet on chain; the day map 20,000 callers a day (MAX_SPENDERS)",
     door: "POST /api/pets/:id/log, the log hash read from the stand-in chain, hashed on this thread (hashHere)",
     async run(ctx) {
       // the shelf's bytes: logs of the most words a pet may publish (SEND_LIMITS.logWords), each about 1.2 MB
@@ -267,8 +267,8 @@ export const STEPS: Step[] = [
   },
   {
     name: "sitting",
-    cap: "sitting.ts: MAX_SITTING_BYTES 268,435,456 (packs on disk, index in memory); 8 packs per address; no cap on the count",
-    door: "POST /api/sit: packs of the largest size (600,000 characters), then each new sender's shrinking share (A141)",
+    cap: "sitting.ts: MAX_SITTING_BYTES 268,435,456 and MAX_PACKS 20,000 (packs and their facts on disk, index in memory); 8 packs per address",
+    door: "POST /api/sit: packs of the largest size (600,000 characters), then each new sender's shrinking share (A141), then the smallest packs until the count is full",
     async run(ctx) {
       // a pack of `size` characters, as the game makes one: a save of version 1 whose pet has a birth time
       const pack = (i: number, size: number) =>
@@ -292,11 +292,26 @@ export const STEPS: Step[] = [
           if (r.ok !== true || size < 600_000) break;
         }
       }
+      // then the count (P10): the smallest packs, 8 an address, until the shelf holds MAX_PACKS
+      const tiny = (i: number) => JSON.stringify({ v: 1, pet: { bornAt: i } });
+      for (let a = 0; ctx.world.stores.sitting.stats().packs < ctx.caps.sitting.maxPacks && a < 40_000; a++) {
+        if (a % 64 === 0) ctx.check();
+        const ip = ctx.world.next();
+        for (let k = 0; k < ctx.caps.sitting.perOwner; k++) {
+          const r = ok(
+            await ctx.world.request("/api/sit", {
+              body: { pack: tiny(a * 10 + k), keyHash: "a".repeat(64), until },
+              ip,
+            }),
+          );
+          if (r.ok !== true) break;
+        }
+      }
     },
   },
   {
     name: "arena",
-    cap: "arena.ts: MAX_ROUND 30 (31 rounds) x PER_ROUND 60 lines, each with its pet's whole card",
+    cap: "arena.ts: MAX_ROUND 30 (31 rounds) x PER_ROUND 60 lines; each card on disk, 16 held",
     door: "POST /api/arena/snapshot with the largest card, two lines per sender a round",
     async run(ctx) {
       const team = Object.keys(COMPANION).slice(0, 4);
@@ -314,7 +329,7 @@ export const STEPS: Step[] = [
   },
   {
     name: "season",
-    cap: "season.ts: KEEP_WEEKS 12 x MAX_ENTRIES 64 entries (each a whole card); the route's written answers, 8 weeks",
+    cap: "season.ts: KEEP_WEEKS 12 x MAX_ENTRIES 64 entries, the open week alone held whole; the route's written answers, 2 weeks",
     door: "POST /api/season/enter with the largest card, 3 per address a week; past weeks through the store's clock",
     async run(ctx) {
       const base = Date.now();
@@ -343,7 +358,7 @@ export const STEPS: Step[] = [
   },
   {
     name: "library",
-    cap: "library.ts: MAX_ENTRIES 5,000 lessons, each with two seen-sets of at most 256 ids or a 4 KB filter",
+    cap: "library.ts: MAX_ENTRIES 5,000 lessons, each with two seen-sets of at most 256 ids or a 4 KB filter, in bytes",
     door: "POST /api/lessons/share, /use and /report, 60 an hour per address; every lesson learned and reported by 256",
     async run(ctx) {
       await fillLibrary(ctx);
@@ -351,7 +366,7 @@ export const STEPS: Step[] = [
   },
   {
     name: "agents",
-    cap: "agents.ts: MAX_PETS 5,000; 5 per address and per agent name; a pet's log has no cap (see the probe)",
+    cap: "agents.ts: MAX_PETS 5,000; 5 per address and per agent name; a pet keeps no input log (see the probe)",
     door: "POST /api/v1/agents/adopt, then /me/teach until each pet's mind is full",
     async run(ctx) {
       let ip = ctx.world.next();
@@ -382,8 +397,8 @@ export const STEPS: Step[] = [
   },
   {
     name: "push",
-    cap: "push.ts: MAX_SUBS 20,000 subscriptions, 8 per address",
-    door: "POST /api/push/plan with every field at its largest (store file off: see memoryWorld.mts)",
+    cap: "push.ts: MAX_SUBS 20,000 subscriptions, 8 per address; each on disk, its schedule in memory",
+    door: "POST /api/push/plan with every field at its largest",
     async run(ctx) {
       let ip = ctx.world.next();
       await each(ctx, ctx.caps.push, 1, async (i) => {
@@ -423,7 +438,7 @@ export const STEPS: Step[] = [
   },
   {
     name: "home views",
-    cap: "homes.ts: CACHE_ENTRIES 20,000 views and 20,000 name colours; colour askers 20,000",
+    cap: "homes.ts: CACHE_ENTRIES 5,000 views and 5,000 name colours; colour askers 20,000",
     door: "in process: Homes.view and Homes.colourOf, as the rooms call them, against the stand-in chain",
     async run(ctx) {
       const { homes } = ctx.world.stores;
@@ -440,8 +455,8 @@ export const STEPS: Step[] = [
   },
   {
     name: "live",
-    cap: "live.ts: MAX_CONNECTIONS 4,000 (each with its card and at most 16 proposals waiting)",
-    door: "the live rooms' socket handler: 4,000 sockets, 12 an address, each with the largest card",
+    cap: "live.ts: MAX_CONNECTIONS 1,500, CARD_BUDGET 24 MB of cards shared by network; at most 16 proposals a pet",
+    door: "the live rooms' socket handler: 1,500 sockets, 12 an address, each with the largest card",
     async run(ctx) {
       await openSockets(ctx, ctx.caps.live);
     },
@@ -456,7 +471,7 @@ export const STEPS: Step[] = [
   },
   {
     name: "limiter keys",
-    cap: "limit.ts: every RateLimiter keeps at most 50,000 keys; FairCeiling 50,000 askers",
+    cap: "limit.ts: every RateLimiter keeps at most 50,000 keys, a row of 16 counts each; FairCeiling 50,000 askers",
     door: "each limited route from 50,000 addresses (a body each route refuses after counting it), and each heavy read",
     async run(ctx) {
       await fillLimiterKeys(ctx);
