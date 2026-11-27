@@ -78,7 +78,8 @@ describe("the arena writes only the rounds that changed (A123)", () => {
     store.save(1, seasonPet("One"), [], "device-one-00001");
     store.save(2, seasonPet("Two"), [], "device-two-00001");
     await store.flush();
-    expect(readdirSync(`${file}.d`).sort()).toEqual(["1.json", "2.json"]);
+    // the rounds' files, beside the folder of the cards their lines carry (P10)
+    expect(readdirSync(`${file}.d`).sort()).toEqual(["1.json", "2.json", "cards"]);
     utimesSync(join(`${file}.d`, "1.json"), OLD, OLD);
     store.save(2, seasonPet("Two again"), [], "device-two-00002");
     await store.flush();
