@@ -70,6 +70,13 @@ export function withSeason(
   >();
   app.get("/api/season/:week", (c) => {
     const week = c.req.param("week") === "current" ? weekOf(now()) : c.req.param("week");
+    // a finished week's answer never changes: written once beside its week's file, and served as written (P10)
+    const finished = store.finishedAnswer(week);
+    if (finished !== null) {
+      c.header("Cache-Control", "public, max-age=3600");
+      c.header("content-type", "application/json; charset=utf-8");
+      return c.body(finished);
+    }
     const v = store.view(week);
     if (!v) return c.json({ ok: false, reason: "invalid" }, 400);
     // an open week changes with every entry, so it is never served from a cache
@@ -92,10 +99,12 @@ export function withSeason(
         pending: v.pending,
         text,
       });
-      // the oldest written week leaves once more than eight are kept
-      const oldest = written.size > 8 ? written.keys().next() : null;
+      // the oldest written week leaves once more than two are kept: the open week, and one more while it settles; a
+      // finished week is served from its file instead (P10)
+      const oldest = written.size > 2 ? written.keys().next() : null;
       if (oldest && !oldest.done) written.delete(oldest.value);
     }
+    if (v.closed) store.keepAnswer(week, text);
     c.header("content-type", "application/json; charset=utf-8");
     return c.body(text);
   });

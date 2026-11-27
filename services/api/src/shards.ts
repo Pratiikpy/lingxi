@@ -15,6 +15,8 @@ export interface Shards {
   all(): Map<string, unknown>;
   write(key: string, value: unknown): void;
   remove(key: string): void;
+  /** one key's value, from its file or its .bak; null when it has neither, or neither can be read */
+  read(key: string): unknown;
 }
 
 export function openShards(file: string, aside: string, what: string): Shards {
@@ -60,6 +62,10 @@ export function openShards(file: string, aside: string, what: string): Shards {
       return out;
     },
     write,
+    read(key) {
+      const r = loadJson(path(key));
+      return r.state === "ok" ? r.value : null;
+    },
     remove(key) {
       rmSync(path(key), { force: true });
       rmSync(`${path(key)}.bak`, { force: true });

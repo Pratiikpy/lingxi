@@ -23,7 +23,9 @@ import {
 } from "@lingxi/game";
 import { validSnapshot } from "./arena";
 import { type StandingsAnswer, entriesKey } from "./standings";
-import { basename, dirname } from "node:path";
+import { readFileSync, rmSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
+import { saveJson } from "./durable";
 import { CODE, type Coded, codeOf, heldOverCoded, networkOf, recoded, scrubAsides } from "./pseudonym";
 import { openShards } from "./shards";
 
@@ -105,6 +107,10 @@ export interface SeasonStore {
   award: (week: string, award: Award) => void;
   /** every week kept, oldest first */
   weeks: () => string[];
+  /** a finished week's whole answer as the route wrote it once (P10), or null: an open week, or one not written yet */
+  finishedAnswer: (week: string) => string | null;
+  /** keeps `text`, the route's answer for `week`, when the week is finished; otherwise nothing */
+  keepAnswer: (week: string, text: string) => void;
 }
 
 const tag = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -173,11 +179,28 @@ function foughtHere(): StandingsSource {
   };
 }
 
+/** A week's keepsake that will not change again: sent, or none to send, or given up after its tries. */
+const awardFinal = (a: Award | undefined): boolean =>
+  !!a && (!!a.brainId || a.none === "noWallet" || a.tries >= MAX_TRIES);
+
+/**
+ * What memory keeps of a week that has closed, where the store has a file (P10): what is asked of it often, while its
+ * entries (each with its pet's whole card: 34 MB at the cap of twelve weeks of 64) stay in its file, read when the week
+ * itself is asked for.
+ */
+interface ClosedWeek {
+  count: number;
+  /** its standings once fought, and their digest */
+  fought?: { standings: Standing[]; digest: string };
+  award?: Award;
+}
+
 export function createSeasonStore(
   file?: string,
   now: () => number = Date.now,
   source: StandingsSource = foughtHere(),
 ): SeasonStore {
+  /** the weeks held whole: the open week, and with no file (tests) every week */
   const weeks = new Map<string, Week>();
   // one file a week (A123): an entry rewrites its own week, never every week kept
   const shards = file ? openShards(file, ".before-weeks", "season week") : null;
@@ -194,17 +217,58 @@ export function createSeasonStore(
     scrubAsides(dirname(file), basename(file));
     scrubAsides(`${file}.d`, "");
   }
+  /** the weeks that have closed, held as their summary alone (only with a file to read them back from) */
+  const closed = new Map<string, ClosedWeek>();
+  const answerFile = (week: string) => join(`${file}.d`, `${week}.answer`);
+  /** a closed week whole: from memory, or read from its file (an empty week when it has none) */
+  const whole = (week: string): Week => {
+    const held = weeks.get(week);
+    if (held) return held;
+    const v = closed.has(week) ? (shards?.read(week) as Week | null) : null;
+    return v && Array.isArray(v.entries)
+      ? { ...v, entries: v.entries.slice(0, MAX_ENTRIES), by: v.by ?? {} }
+      : { entries: [], by: {} };
+  };
+  /** the standings of a week's entries, noted in its summary once fought */
+  const standingsOf = (week: string, w: Week): StandingsAnswer => {
+    const c = closed.get(week);
+    if (c?.fought) return { ...c.fought, pending: false };
+    const s = source.get(week, w.entries);
+    if (c && !s.pending) c.fought = { standings: s.standings, digest: s.digest };
+    return s;
+  };
+  /** every week that has ended leaves memory for its summary, its entries kept in its file (P10) */
+  const settle = () => {
+    if (!shards) return;
+    const t = now();
+    for (const [week, w] of weeks) {
+      if (t < weekBounds(week).end) continue;
+      const c: ClosedWeek = { count: w.entries.length, ...(w.award ? { award: w.award } : {}) };
+      closed.set(week, c);
+      standingsOf(week, w);
+      weeks.delete(week);
+    }
+  };
+  settle();
   const save = (week: string) => {
     const w = weeks.get(week);
     if (shards && w) shards.write(week, w);
   };
+  const all = () => [...new Set([...weeks.keys(), ...closed.keys()])].sort();
   const prune = () => {
-    const keep = [...weeks.keys()].sort().slice(-KEEP_WEEKS);
-    for (const w of [...weeks.keys()])
+    const keep = all().slice(-KEEP_WEEKS);
+    for (const w of all())
       if (!keep.includes(w)) {
         weeks.delete(w);
+        closed.delete(w);
         shards?.remove(w);
+        if (file) rmSync(answerFile(w), { force: true });
       }
+  };
+  /** a closed week whose answer will not change again: nothing entered, or fought and its keepsake settled */
+  const finished = (week: string): boolean => {
+    const c = closed.get(week);
+    return !!c && (c.count === 0 || (!!c.fought && awardFinal(c.award)));
   };
   return {
     enter: (pet, device, opts = {}) => {
@@ -213,6 +277,7 @@ export function createSeasonStore(
       if (opts.petId !== undefined && !PET.test(opts.petId)) return { ok: false, reason: "invalid" };
       const v = validSnapshot(pet, []);
       if (!v) return { ok: false, reason: "invalid" };
+      settle();
       const t = now();
       const week = weekOf(t);
       const w = weeks.get(week) ?? { entries: [], by: {} };
@@ -270,12 +335,11 @@ export function createSeasonStore(
       } catch {
         return null;
       }
-      const w = weeks.get(week) ?? { entries: [], by: {} };
-      const award =
-        w.award && (w.award.brainId || w.award.none === "noWallet" || w.award.tries >= MAX_TRIES)
-          ? { award: w.award }
-          : {};
-      const s = source.get(week, w.entries);
+      settle();
+      const w = whole(week);
+      const kept = closed.get(week)?.award ?? w.award;
+      const award = awardFinal(kept) ? { award: kept } : {};
+      const s = standingsOf(week, w);
       return {
         week,
         closed: now() >= bounds.end,
@@ -288,12 +352,17 @@ export function createSeasonStore(
       };
     },
     pending: () => {
+      settle();
       const out: PendingAward[] = [];
-      for (const [week, w] of weeks) {
+      for (const week of all()) {
+        const c = closed.get(week);
+        // a closed week whose keepsake is settled, or that had no entries, is not read from its file at all
+        if (c && (c.count === 0 || awardFinal(c.award))) continue;
+        const w = whole(week);
         if (!w.entries.length || now() < weekBounds(week).end) continue;
-        if (w.award && (w.award.brainId || w.award.none === "noWallet" || w.award.tries >= MAX_TRIES)) continue;
+        if (awardFinal(w.award)) continue;
         // the keepsake goes to the best-placed pet proven to be on X Layer, from standings fought for these entries
-        const s = source.get(week, w.entries);
+        const s = standingsOf(week, w);
         if (s.pending) continue;
         const standings = s.standings;
         const best = standings.find((row) => w.pets?.[row.key]) ?? standings[0]!;
@@ -302,12 +371,36 @@ export function createSeasonStore(
       }
       return out;
     },
-    weeks: () => [...weeks.keys()].sort(),
+    weeks: () => all(),
     award: (week, award) => {
+      const c = closed.get(week);
+      if (c && shards) {
+        // a closed week's keepsake is written into its file, and noted in its summary
+        shards.write(week, { ...whole(week), award });
+        c.award = award;
+        return;
+      }
       const w = weeks.get(week);
       if (!w) return;
       weeks.set(week, { ...w, award });
       save(week);
+    },
+    finishedAnswer: (week) => {
+      if (!file || !WEEK.test(week) || !finished(week)) return null;
+      try {
+        return readFileSync(answerFile(week), "utf8");
+      } catch {
+        // not written yet: the route answers from the week's file and writes it
+        return null;
+      }
+    },
+    keepAnswer: (week, text) => {
+      if (!file || !WEEK.test(week) || !finished(week)) return;
+      try {
+        saveJson(answerFile(week), undefined, text);
+      } catch (e) {
+        process.stderr.write(`season answer ${week} not kept: ${(e as Error).message}\n`);
+      }
     },
   };
 }
