@@ -25,7 +25,7 @@ import { validSnapshot } from "./arena";
 import { type StandingsAnswer, entriesKey } from "./standings";
 import { readFileSync, rmSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
-import { saveJson } from "./durable";
+import { loadJson, saveJson } from "./durable";
 import { CODE, type Coded, codeOf, heldOverCoded, networkOf, recoded, scrubAsides } from "./pseudonym";
 import { openShards } from "./shards";
 
@@ -209,6 +209,9 @@ export function createSeasonStore(
     if (!WEEK.test(w) || !v || !Array.isArray(v.entries)) continue;
     const coded = recodedWeek(v);
     const week = { ...(coded ?? v), entries: v.entries.slice(0, MAX_ENTRIES), by: v.by ?? {} };
+    // a keepsake given while the week's file could not be read was kept beside it, and is the week's (P10)
+    const beside = file ? loadJson(join(`${file}.d`, `${w}.award`)) : null;
+    if (beside?.state === "ok" && !awardFinal(week.award)) week.award = beside.value as Award;
     weeks.set(w, week);
     // written twice, so the .bak each write keeps holds no address either
     if (coded && shards) for (let i = 0; i < 2; i++) shards.write(w, week);
@@ -220,14 +223,20 @@ export function createSeasonStore(
   /** the weeks that have closed, held as their summary alone (only with a file to read them back from) */
   const closed = new Map<string, ClosedWeek>();
   const answerFile = (week: string) => join(`${file}.d`, `${week}.answer`);
-  /** a closed week whole: from memory, or read from its file (an empty week when it has none) */
-  const whole = (week: string): Week => {
+  const awardFile = (week: string) => join(`${file}.d`, `${week}.award`);
+  /**
+   * a week whole: from memory, or for a closed week read from its file; an empty week for one never entered; null for
+   * a closed week whose file cannot be read, which is never answered or written over as though it were empty
+   */
+  const whole = (week: string): Week | null => {
     const held = weeks.get(week);
     if (held) return held;
-    const v = closed.has(week) ? (shards?.read(week) as Week | null) : null;
-    return v && Array.isArray(v.entries)
-      ? { ...v, entries: v.entries.slice(0, MAX_ENTRIES), by: v.by ?? {} }
-      : { entries: [], by: {} };
+    if (!closed.has(week)) return { entries: [], by: {} };
+    const v = shards?.read(week) as Week | null;
+    if (v && Array.isArray(v.entries)) return { ...v, entries: v.entries.slice(0, MAX_ENTRIES), by: v.by ?? {} };
+    process.stderr.write(`season week ${week}: its file cannot be read, so it is not answered
+`);
+    return null;
   };
   /** the standings of a week's entries, noted in its summary once fought */
   const standingsOf = (week: string, w: Week): StandingsAnswer => {
@@ -262,7 +271,7 @@ export function createSeasonStore(
         weeks.delete(w);
         closed.delete(w);
         shards?.remove(w);
-        if (file) rmSync(answerFile(w), { force: true });
+        if (file) for (const f of [answerFile(w), awardFile(w), `${awardFile(w)}.bak`]) rmSync(f, { force: true });
       }
   };
   /** a closed week whose answer will not change again: nothing entered, or fought and its keepsake settled */
@@ -337,6 +346,7 @@ export function createSeasonStore(
       }
       settle();
       const w = whole(week);
+      if (!w) return null;
       const kept = closed.get(week)?.award ?? w.award;
       const award = awardFinal(kept) ? { award: kept } : {};
       const s = standingsOf(week, w);
@@ -359,7 +369,7 @@ export function createSeasonStore(
         // a closed week whose keepsake is settled, or that had no entries, is not read from its file at all
         if (c && (c.count === 0 || awardFinal(c.award))) continue;
         const w = whole(week);
-        if (!w.entries.length || now() < weekBounds(week).end) continue;
+        if (!w || !w.entries.length || now() < weekBounds(week).end) continue;
         if (awardFinal(w.award)) continue;
         // the keepsake goes to the best-placed pet proven to be on X Layer, from standings fought for these entries
         const s = standingsOf(week, w);
@@ -376,8 +386,18 @@ export function createSeasonStore(
       const c = closed.get(week);
       if (c && shards) {
         // a closed week's keepsake is written into its file, and noted in its summary
-        shards.write(week, { ...whole(week), award });
         c.award = award;
+        const w = whole(week);
+        if (w) shards.write(week, { ...w, award });
+        else {
+          // never written over a file it cannot read: kept beside it, so it is never given twice once the week is back
+          try {
+            saveJson(awardFile(week), award);
+          } catch (e) {
+            process.stderr.write(`season keepsake ${week} not kept: ${(e as Error).message}
+`);
+          }
+        }
         return;
       }
       const w = weeks.get(week);

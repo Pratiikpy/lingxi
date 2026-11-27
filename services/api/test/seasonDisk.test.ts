@@ -4,11 +4,11 @@
  * asked of it often (its standings, its keepsake, how many entered); its entries stay in its file, read when the week
  * is asked for, and a finished week's answer is written once beside it and served as written.
  */
-import { existsSync, mkdtempSync, readdirSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Hono } from "hono";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { compileProgram, netlistBytes, validateProgram } from "@lingxi/brain";
 import { petCard } from "@lingxi/game";
 import { withSeason } from "../src/server";
@@ -126,5 +126,43 @@ describe("only the open week of the season in memory (P10)", () => {
     const again = await app.request("/api/season/2026-W47");
     expect(await again.text()).toBe(settled);
     expect(again.headers.get("cache-control")).toBe("public, max-age=3600");
+  });
+  it("never writes over a closed week it cannot read, and remembers a keepsake given meanwhile beside it", async () => {
+    let t = T;
+    const file = fileIn();
+    const store = createSeasonStore(file, () => t);
+    for (let k = 0; k < 3; k++) store.enter(bigPet(`Pet${k}`, k), `device-pet0000${k}`);
+    t += WEEK;
+    expect(store.view("2026-W47")?.entries).toHaveLength(3);
+    const shard = join(`${file}.d`, "2026-W47.json");
+    const original = readFileSync(shard, "utf8");
+    writeFileSync(shard, "{cut");
+    writeFileSync(`${shard}.bak`, "{cut");
+    const spy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    try {
+      store.award("2026-W47", {
+        key: "k",
+        name: "Pet0",
+        tries: 1,
+        brainId: "7",
+        to: "0x7",
+        tapeTx: "0xa",
+        sendTx: "0xb",
+      });
+      expect(store.view("2026-W47"), "a week it cannot read is not answered as an empty one").toBeNull();
+      const app = withSeason(new Hono(), store, undefined, () => t);
+      expect((await app.request("/api/season/2026-W47")).status).toBe(503);
+    } finally {
+      spy.mockRestore();
+    }
+    // nothing was written where the week was; both copies were kept aside as they were
+    expect(existsSync(shard)).toBe(false);
+    expect(readdirSync(`${file}.d`).filter((n) => n.startsWith("2026-W47.json.damaged-"))).toHaveLength(2);
+    // put back, the week comes back whole, with its keepsake: never given twice
+    writeFileSync(shard, original);
+    const again = createSeasonStore(file, () => t);
+    expect(again.view("2026-W47")?.entries).toHaveLength(3);
+    expect(again.view("2026-W47")?.award).toMatchObject({ brainId: "7" });
+    expect(again.pending()).toEqual([]);
   });
 });

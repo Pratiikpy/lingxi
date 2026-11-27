@@ -78,6 +78,8 @@ export function withSeason(
       return c.body(finished);
     }
     const v = store.view(week);
+    // a week kept whose file cannot be read is not answered as empty, nor as a week that does not exist (P10)
+    if (!v && store.weeks().includes(week)) return c.json({ ok: false, reason: "unavailable" }, 503);
     if (!v) return c.json({ ok: false, reason: "invalid" }, 400);
     // an open week changes with every entry, so it is never served from a cache
     c.header("Cache-Control", v.closed ? "public, max-age=3600" : "no-store");
