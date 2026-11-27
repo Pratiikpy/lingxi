@@ -18,15 +18,23 @@ import { type DecorStore, type Placed, createDecorStore } from "./decor";
 import { type Homes, visible } from "./homes";
 import { CARD_MAX, canonicalCard, isRelayAddress, shownName } from "@lingxi/game";
 import { MAX_PLACED } from "@lingxi/world";
-import { PREFIX_SHARE, RateLimiter, prefixOf } from "./limit";
+import { FREE_SHARE, PREFIX_SHARE, RateLimiter, prefixOf, shareOf } from "./limit";
 import { callerFrom } from "./clientIp";
 import { BLOCKED_WORDS as BLOCKED } from "./words";
 
 export const CAPACITY = 24;
 /** Connections one address may hold: enough for a family's or a classroom's devices behind one router, not a flood. */
 export const MAX_PER_ADDRESS = 12;
-/** Connections the server holds in all. */
-export const MAX_CONNECTIONS = 4_000;
+/**
+ * Connections the server holds in all (P10): each costs about 22 KB of the server's memory before its card, and 4,000
+ * with their cards could take 136 MB.
+ */
+export const MAX_CONNECTIONS = 1_500;
+/**
+ * All the pets' cards the rooms hold together (P10), each network its share of what is free, as the other shelves share
+ * theirs: past it a card is not kept, and whoever asks for it is told it is unavailable.
+ */
+export const CARD_BUDGET = 24 * 1024 * 1024;
 /** New homes (the first decorations or the first wallet for an id) one address may make in a day. */
 export const MAX_NEW_HOMES_PER_DAY = 5;
 const MAX_FRAME = 12_288;
@@ -93,6 +101,8 @@ interface Client {
   heard: number;
   /** a full card is still going out to this socket: no second one is queued behind it (A143) */
   cardWaiting?: boolean;
+  /** its pet's card was sent and could not be kept, the budget or its network's share being spent (P10) */
+  cardUnkept?: boolean;
 }
 
 /** How a room watches its connections and limits asks (A61). */
@@ -106,6 +116,10 @@ export interface RoomLimits {
   asksPerAddress: number;
   /** the pets one connection remembers being sent the card of (P10) */
   cardsKept: number;
+  /** the characters of cards all the rooms keep together (P10) */
+  cardBudget: number;
+  /** a network may hold at most this part of what is free of the budget (P10, A141) */
+  cardShare: number;
 }
 const ROOM_LIMITS: RoomLimits = {
   idleMs: 15 * 60_000,
@@ -113,6 +127,8 @@ const ROOM_LIMITS: RoomLimits = {
   asksPerConnection: 6,
   asksPerAddress: 30,
   cardsKept: CARDS_KEPT,
+  cardBudget: CARD_BUDGET,
+  cardShare: FREE_SHARE,
 };
 /** The close code for a connection let go for being idle: the game reconnects on the player's next action. */
 export const IDLE_CLOSE = 4001;
@@ -301,6 +317,52 @@ export class LiveRooms {
     return [...(this.spaces.get(c.space) ?? [])].find((o) => o.member.id === id && o !== c) ?? null;
   }
 
+  /** the characters of cards kept, in all and by network (P10) */
+  private cardChars = 0;
+  private readonly netCards = new Map<string, number>();
+
+  /** a connection's network: its IPv6 /48, else its address */
+  private networkOf(c: Client): string {
+    return prefixOf(c.address) ?? c.address;
+  }
+
+  private countCard(c: Client, by: number): void {
+    if (!by) return;
+    const net = this.networkOf(c);
+    const n = (this.netCards.get(net) ?? 0) + by;
+    if (n > 0) this.netCards.set(net, n);
+    else this.netCards.delete(net);
+    this.cardChars += by;
+  }
+
+  /**
+   * Keeps `card` as `c`'s pet's card when it fits: within the budget, and within its network's share of what is free (a
+   * sixteenth of it, at most twelve connections' full cards, an IPv6 /48 four addresses' worth). One that does not fit
+   * is not kept, and whoever asks for it is told it is unavailable; the game sends it again every beat, so it is kept
+   * once there is room (P10).
+   */
+  private keepCard(c: Client, card: string): void {
+    const had = c.card?.length ?? 0;
+    const theirs = (this.netCards.get(this.networkOf(c)) ?? 0) - had;
+    const kept = this.cardChars - had;
+    const cap = MAX_PER_ADDRESS * CARD_MAX * (prefixOf(c.address) !== null ? PREFIX_SHARE : 1);
+    const fits =
+      kept + card.length <= this.limits.cardBudget &&
+      theirs + card.length <= shareOf(cap, this.limits.cardBudget - kept, theirs, this.limits.cardShare);
+    // a card still not kept is no change: those who ask are told so as before
+    if (!fits && c.cardUnkept && c.card === null) return;
+    this.countCard(c, -had);
+    if (fits) {
+      c.card = card;
+      c.cardUnkept = false;
+      this.countCard(c, card.length);
+    } else {
+      c.card = null;
+      c.cardUnkept = true;
+    }
+    c.cardVersion++;
+  }
+
   /** new homes per address per day: a home kept on the server costs a little of its room, so no one fills it */
   private readonly newHomes = new RateLimiter(MAX_NEW_HOMES_PER_DAY, 86_400_000);
 
@@ -349,6 +411,9 @@ export class LiveRooms {
     ws.on("close", () => {
       this.leave(c);
       this.clients.delete(c);
+      // its card's room goes back to the budget
+      this.countCard(c, -(c.card?.length ?? 0));
+      c.card = null;
     });
     ws.on("error", () => ws.close());
   }
@@ -460,8 +525,7 @@ export class LiveRooms {
         // card is damaged, as before, and none of it travels
         const card = canonicalCard(m.lessons) ?? DAMAGED_CARD;
         if (card === c.card) return;
-        c.card = card;
-        c.cardVersion++;
+        this.keepCard(c, card);
         return;
       }
       case "propose": {
@@ -494,9 +558,11 @@ export class LiveRooms {
         const yes = m.yes === true;
         const chain = yes ? chainInfo(m.chain) : undefined;
         // the card once per change, as an ask sends it; after that the proposer's game uses the one it kept (A77)
-        let card: { card: string } | { cardUnchanged: true } | Record<string, never> = {};
+        let card: { card: string } | { cardUnchanged: true } | { cardUnavailable: true } | Record<string, never> = {};
         if (yes) {
-          if (proposer.seen.get(c.member.id) === c.cardVersion) card = { cardUnchanged: true };
+          // a card the rooms could not keep is said to be unavailable, never sent as some other card (P10)
+          if (c.cardUnkept) card = { cardUnavailable: true };
+          else if (proposer.seen.get(c.member.id) === c.cardVersion) card = { cardUnchanged: true };
           else {
             this.sentCard(proposer, c.member.id, c.cardVersion);
             card = { card: c.card ?? "[]" };
@@ -529,7 +595,9 @@ export class LiveRooms {
           line: target.member.line,
           stage: target.member.stage,
         };
-        if (c.seen.get(target.member.id) === target.cardVersion) this.send(c, { ...about, unchanged: true });
+        // a card the rooms could not keep is said to be unavailable, each time it is asked for (P10)
+        if (target.cardUnkept) this.send(c, { ...about, unavailable: true });
+        else if (c.seen.get(target.member.id) === target.cardVersion) this.send(c, { ...about, unchanged: true });
         else if (!c.cardWaiting) {
           // no second card is queued behind one still going out (A143); a later ask brings it
           this.sentCard(c, target.member.id, target.cardVersion);

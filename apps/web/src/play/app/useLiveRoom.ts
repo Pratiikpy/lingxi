@@ -11,6 +11,7 @@ import { useChain } from "../../game/chain";
 import { bondName, useFriends } from "../../game/friends";
 import { now } from "../../game/gameClock";
 import { liveAvailable, useLive } from "../../game/live";
+import { cannotSparText } from "../../game/liveCardWords";
 import { play } from "../../game/sound";
 import { useGame } from "../../game/store";
 import { useWorldMessage } from "./worldMessage";
@@ -58,14 +59,10 @@ export function useLiveRoom(space: string, openSpar: () => void): void {
   // a friend's card arriving opens a spar against it, with the pet as it is then; one that cannot spar says so, in the
   // language of that moment
   const takeCard = useEffectEvent((card: NonNullable<ReturnType<typeof useLive.getState>["card"]>) => {
-    const partner = friendPartner(card);
+    const partner = card.unavailable ? null : friendPartner(card);
     const p = useGame.getState().pet;
-    if (!partner || !p)
-      return show({
-        id: Math.round(card.at),
-        text: lang === "zh" ? "没法和这只宠物切磋" : "Can't spar with that pet",
-        ms: 3500,
-      });
+    // a card the room could not keep is said to be unavailable for now, not a pet that cannot spar (P10)
+    if (!partner || !p) return show({ id: Math.round(card.at), text: cannotSparText(card, lang), ms: 3500 });
     startFight(p, partner);
     openSpar();
   });

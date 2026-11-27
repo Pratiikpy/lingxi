@@ -122,8 +122,8 @@ interface LiveState {
   recolour: () => void;
   /** last emote others sent to us, for the scene */
   incoming: { from: string; kind: string; at: number } | null;
-  /** a friend's pet card we asked for, to spar against */
-  card: { id: string; name: string; line: string; stage: string; lessons: string; at: number } | null;
+  /** a friend's pet card we asked for, to spar against; one the room could not keep is unavailable (P10) */
+  card: FriendCard | null;
   /** someone just sparred against our pet */
   asked: { name: string; at: number } | null;
   /** share this pet's card (its lessons, and family for a child) with the room */
@@ -142,6 +142,8 @@ interface LiveState {
     line?: string;
     stage?: string;
     card?: string;
+    /** the other pet's card is one the room could not keep (P10) */
+    cardUnavailable?: true;
     chain?: ChainInfo;
     at: number;
   } | null;
@@ -157,6 +159,45 @@ interface LiveState {
   mood: (m: number) => void;
   emote: (kind: string, to?: string) => void;
   say: (text: string) => void;
+}
+
+/** A friend's pet card as the room answered an ask for it. */
+export interface FriendCard {
+  id: string;
+  name: string;
+  line: string;
+  stage: string;
+  lessons: string;
+  /** a card the room could not keep: there are no lessons to read, and the game says it is unavailable (P10) */
+  unavailable?: true;
+  at: number;
+}
+
+/**
+ * Reads the room's answer to an ask for a card: sent whole, "unchanged" since this game was sent it (the one it kept,
+ * A61), or unavailable (P10); null when it names a card this game no longer keeps.
+ */
+export function friendCardOf(
+  m: Record<string, unknown>,
+  kept: ReadonlyMap<string, string>,
+  at: number,
+): FriendCard | null {
+  const id = m.id as string;
+  const about = { id, name: nameIn(m), line: m.line as string, stage: m.stage as string, at };
+  if (m.unavailable === true) return { ...about, lessons: "", unavailable: true };
+  const lessons = m.unchanged === true ? kept.get(id) : typeof m.lessons === "string" ? m.lessons : undefined;
+  return lessons === undefined ? null : { ...about, lessons };
+}
+
+/** Reads the card in an answer to a family proposal, as an ask's (A77, P10). */
+export function answerCardOf(
+  m: Record<string, unknown>,
+  kept: ReadonlyMap<string, string>,
+): { card: string } | { cardUnavailable: true } | Record<string, never> {
+  if (m.cardUnavailable === true) return { cardUnavailable: true };
+  if (typeof m.card === "string") return { card: m.card };
+  const held = m.cardUnchanged === true ? kept.get(m.from as string) : undefined;
+  return held !== undefined ? { card: held } : {};
 }
 
 let ws: WebSocket | null = null;
@@ -309,21 +350,10 @@ export const useLive = create<LiveState>((set, get) => {
           return;
         case "card": {
           // an "unchanged" answer means the card this game was sent before still stands (A61)
-          const id = m.id as string;
-          const lessons =
-            m.unchanged === true ? keptCards.get(id) : typeof m.lessons === "string" ? m.lessons : undefined;
-          if (lessons === undefined) return;
-          if (m.unchanged !== true) keep(id, lessons);
-          set({
-            card: {
-              id,
-              name: nameIn(m),
-              line: m.line as string,
-              stage: m.stage as string,
-              lessons,
-              at: performance.now(),
-            },
-          });
+          const card = friendCardOf(m, keptCards, performance.now());
+          if (!card) return;
+          if (!card.unavailable && m.unchanged !== true) keep(card.id, card.lessons);
+          set({ card });
           return;
         }
         case "proposal":
@@ -346,12 +376,9 @@ export const useLive = create<LiveState>((set, get) => {
               yes: m.yes === true,
               ...(typeof m.line === "string" ? { line: m.line } : {}),
               ...(typeof m.stage === "string" ? { stage: m.stage } : {}),
-              // a card sent whole is kept; "unchanged" means the one kept from this pet before (A77)
-              ...(typeof m.card === "string"
-                ? { card: keep(m.from as string, m.card) }
-                : m.cardUnchanged === true && keptCards.has(m.from as string)
-                  ? { card: keptCards.get(m.from as string)! }
-                  : {}),
+              // a card sent whole is kept; "unchanged" means the one kept from this pet before (A77); one the room
+              // could not keep is unavailable (P10)
+              ...(typeof m.card === "string" ? { card: keep(m.from as string, m.card) } : answerCardOf(m, keptCards)),
               ...(asChain(m.chain) ? { chain: asChain(m.chain)! } : {}),
               at: performance.now(),
             },

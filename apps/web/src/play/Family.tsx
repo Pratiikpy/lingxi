@@ -30,6 +30,7 @@ import { keptPetNames, useGame } from "../game/store";
 import { type GivenConsent, deployment, petKey, publicClient, useChain } from "../game/chain";
 import { type PartnerCheck, breedingTerms, checkPartner, formatBem } from "@lingxi/chain";
 import { useLive } from "../game/live";
+import { noFamilyText } from "../game/liveCardWords";
 import { bondsOf, friendKey, useFriends } from "../game/friends";
 import { play } from "../game/sound";
 import { PALETTE_OF, type PetStage } from "../scene/palette";
@@ -248,19 +249,7 @@ export function NewbornDialog({ pet }: { pet: Pet }) {
     return (
       <div className="fam-modal" role="dialog">
         <div className="fam-card">
-          <p>
-            {!answer.yes
-              ? lang === "zh"
-                ? `${answer.name}的主人说现在还不行。`
-                : `${answer.name}'s owner said not now.`
-              : partnerIsChild
-                ? lang === "zh"
-                  ? `${answer.name}是两只宠物的孩子，不能再养小宝宝。`
-                  : `${answer.name} was born of two parents, so it can't have little ones of its own.`
-                : lang === "zh"
-                  ? "它们的心智没法拼在一起。"
-                  : "Their minds could not be put together."}
-          </p>
+          <p>{noFamilyText(answer, partnerIsChild, lang)}</p>
           <button type="button" className="btn" onClick={clear}>
             {lang === "zh" ? "好的" : "OK"}
           </button>
