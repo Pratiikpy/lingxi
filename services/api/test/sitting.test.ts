@@ -1,10 +1,10 @@
-import { existsSync, mkdtempSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { Hono } from "hono";
 import { withSitting } from "../src/server";
-import { createSittingStore, keyHashOf } from "../src/sitting";
+import { MAX_PACKS, MAX_PACKS_PER_OWNER, createSittingStore, keyHashOf } from "../src/sitting";
 import { PREFIX_SHARE } from "../src/limit";
 
 const KEY = "c".repeat(32);
@@ -165,7 +165,7 @@ describe("pet-sitting packs", () => {
     const dir = join(mkdtempSync(join(tmpdir(), "lx-sit-")), "sitting");
     const a = createSittingStore(dir, () => t);
     const r = (await a.leave(pack, keyHashOf(KEY), t + 86_400_000, "203.0.113.9")) as { code: string };
-    expect(readdirSync(dir).sort()).toEqual([`${r.code}.pack`, "index.json"]);
+    expect(readdirSync(dir).sort()).toEqual([`${r.code}.meta`, `${r.code}.pack`]);
     const b = createSittingStore(dir, () => t);
     expect(await b.collect(r.code)).toEqual({ pack });
   });
@@ -261,5 +261,79 @@ describe("a burst cannot pass the sitting caps (A76)", () => {
       readdirSync(dir).filter((f) => f.endsWith(".tmp")),
       "a crash's leftovers are cleared on open",
     ).toEqual([]);
+  });
+});
+
+describe("the shelf holds a bounded number of packs, and each pack's facts in a file of its own (P10)", () => {
+  const t = 1_800_000_000_000;
+  const v4 = (i: number) => `10.${(i >> 16) & 255}.${(i >> 8) & 255}.${i & 255}`;
+
+  it("holds at most MAX_PACKS packs, its last places going to whoever comes new", { timeout: 60_000 }, async () => {
+    const store = createSittingStore(undefined, () => t);
+    let refused = 0;
+    for (let a = 0; store.stats().packs < MAX_PACKS && a < 4_000; a++)
+      for (let k = 0; k < MAX_PACKS_PER_OWNER; k++)
+        if (!(await store.leave(pack, keyHashOf(KEY), t + 86_400_000, v4(a))).ok) refused++;
+    expect(store.stats().packs).toBe(MAX_PACKS);
+    // near the end an address may take fewer than its eight: the places it may take shrink as the shelf fills
+    expect(refused).toBeGreaterThan(0);
+    expect(await store.leave(pack, keyHashOf(KEY), t + 86_400_000, "198.51.100.200")).toEqual({
+      ok: false,
+      reason: "full",
+    });
+  });
+
+  it("the places a network may take shrink as the shelf fills, so sixty networks leave room for an honest pack", async () => {
+    const limits = { maxBytes: 10_000_000, perOwner: 8, maxPacks: 400 };
+    const store = createSittingStore(undefined, () => t, limits);
+    const took: number[] = [];
+    for (let n = 0; n < 60; n++) {
+      let ok = 0;
+      for (let s = 0; s < 8; s++)
+        for (let k = 0; k < 8; k++)
+          if ((await store.leave(pack, keyHashOf(KEY), t + 86_400_000, `2001:db8:${n.toString(16)}:${s}::/64`)).ok)
+            ok++;
+      took.push(ok);
+    }
+    // the first network: a sixteenth of the 400 places, under its cap of 8 x PREFIX_SHARE
+    expect(took[0]).toBe(25);
+    expect(store.stats().packs).toBeLessThan(400);
+    expect((await store.leave(pack, keyHashOf(KEY), t + 86_400_000, "198.51.100.7")).ok).toBe(true);
+  });
+
+  it("keeps each pack's facts in a small file of its own, never one index of every pack, across a restart", async () => {
+    const dir = join(mkdtempSync(join(tmpdir(), "lx-sit-")), "sitting");
+    const a = createSittingStore(dir, () => t);
+    const one = (await a.leave(pack, keyHashOf(KEY), t + 86_400_000, "203.0.113.9")) as { code: string };
+    const two = (await a.leave(big(50), keyHashOf(KEY), t + 86_400_000, "203.0.113.10")) as { code: string };
+    expect(await a.sendHome(two.code, KEY, '{"home":2}')).toBe(true);
+    expect(readdirSync(dir).sort()).toEqual(
+      [`${one.code}.meta`, `${one.code}.pack`, `${two.code}.back`, `${two.code}.meta`, `${two.code}.pack`].sort(),
+    );
+    const b = createSittingStore(dir, () => t);
+    expect(b.stats()).toEqual(a.stats());
+    expect(await b.collect(one.code)).toEqual({ pack });
+    expect(await b.collect(two.code)).toEqual({ pack: big(50), back: '{"home":2}', backAt: t });
+    // a pack a crash left without its facts was never handed out: it goes at a start
+    writeFileSync(join(dir, `${"e".repeat(24)}.pack`), pack);
+    createSittingStore(dir, () => t);
+    expect(existsSync(join(dir, `${"e".repeat(24)}.pack`))).toBe(false);
+  });
+
+  it("moves a store kept with one index into a file of facts a pack, and lets the index go", async () => {
+    const dir = join(mkdtempSync(join(tmpdir(), "lx-sit-")), "sitting");
+    const a = createSittingStore(dir, () => t);
+    const one = (await a.leave(pack, keyHashOf(KEY), t + 86_400_000, "203.0.113.9")) as { code: string };
+    const metas = readdirSync(dir).filter((n) => n.endsWith(".meta"));
+    const index = Object.fromEntries(
+      metas.map((n) => [n.slice(0, -".meta".length), JSON.parse(readFileSync(join(dir, n), "utf8")) as unknown]),
+    );
+    for (const n of metas) rmSync(join(dir, n));
+    writeFileSync(join(dir, "index.json"), JSON.stringify(index));
+    writeFileSync(join(dir, "index.json.bak"), JSON.stringify(index));
+    const b = createSittingStore(dir, () => t);
+    expect(await b.collect(one.code)).toEqual({ pack });
+    expect(readdirSync(dir).sort()).toEqual([`${one.code}.meta`, `${one.code}.pack`]);
+    expect(createSittingStore(dir, () => t).stats()).toEqual(a.stats());
   });
 });

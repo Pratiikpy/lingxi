@@ -331,9 +331,16 @@ describe("sitting packs keep a code of the owner's address (P6a)", () => {
     const dir = join(tmp("sitting-old"), "sitting");
     const s = createSittingStore(dir, () => t, limits);
     for (let i = 0; i < 3; i++) await s.leave(pack, keyHashOf(KEY), t + 86_400_000, "203.0.113.5");
+    // the packs' facts as an index from before P6a and P10 kept them: one file, the owners' addresses in it
+    const metas = readdirSync(dir).filter((n) => n.endsWith(".meta"));
+    const old = Object.fromEntries(
+      metas.map((n) => [
+        n.slice(0, -".meta".length),
+        { ...(JSON.parse(readFileSync(join(dir, n), "utf8")) as object), owner: "203.0.113.5" },
+      ]),
+    );
+    for (const n of metas) rmSync(join(dir, n));
     const index = join(dir, "index.json");
-    const old = JSON.parse(readFileSync(index, "utf8")) as Record<string, { owner: string; net?: string }>;
-    for (const e of Object.values(old)) e.owner = "203.0.113.5";
     writeFileSync(index, JSON.stringify(old));
     writeFileSync(`${index}.bak`, JSON.stringify(old));
     const again = createSittingStore(dir, () => t, limits);

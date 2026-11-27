@@ -9,6 +9,11 @@
  * Kept so that no visitor can exhaust it: only a small index lives in memory, each pack is its own file written
  * atomically off the event loop, all packs together stay within a byte budget, and one address may have only a
  * few waiting at once. A store from before this layout (one JSON file) is moved into it on first start.
+ *
+ * P10: the shelf holds at most MAX_PACKS packs, and the places one network may take shrink as it fills, as a move's do.
+ * Each pack's facts (its key's hash, its dates, its owner's codes, its sizes) are a small file of their own beside it,
+ * written when it is left or sent home, so no leave rewrites an index of every pack; and what the caps read is kept
+ * as counts, so no leave walks the shelf.
  */
 
 import { createHash, randomBytes } from "node:crypto";
@@ -16,9 +21,9 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync } 
 import { open, readFile, rename, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { SEND_LIMITS } from "@lingxi/chain/limits";
-import { shareOf } from "./limit";
-import { CODE, type Coded, codeOf, heldOverCoded, networkOf, recoded, scrubAsides } from "./pseudonym";
-import { hasStore, loadJson, saveJson } from "./durable";
+import { PREFIX_SHARE, shareOf } from "./limit";
+import { CODE, type Coded, codeOf, networkOf, recoded, scrubAsides } from "./pseudonym";
+import { hasStore, loadJson } from "./durable";
 
 const MAX_PACK = SEND_LIMITS.sitPackChars;
 const KEEP_AFTER_MS = 7 * 86_400_000;
@@ -31,6 +36,10 @@ export const MAX_SITTING_BYTES = 256 * 1024 * 1024;
 export const MAX_PACKS_PER_OWNER = 8;
 /** the shelf's bytes one address, or one IPv6 /48 however many /64s it uses, may hold (A118) */
 export const MAX_SITTING_BYTES_PER_NETWORK = MAX_SITTING_BYTES / 16;
+/** packs the shelf holds at once, from everyone (P10): the bytes alone would let tiny packs number in the millions */
+export const MAX_PACKS = 20_000;
+/** how often packs a week past their end are let go */
+const SWEEP_EVERY_MS = 60_000;
 
 interface Entry {
   keyHash: string;
@@ -47,13 +56,6 @@ interface Entry {
 
 /** Who left a pack, as the index keeps it. */
 const ownerOf = (e: Entry): Coded => (e.net !== undefined ? { by: e.owner, net: e.net } : { by: e.owner });
-/** The bytes the network of `who` holds on the shelf, packs and homecomings. */
-const heldBy = (index: Map<string, Entry>, who: Coded) => {
-  const network = networkOf(who);
-  return [...index.values()]
-    .filter((e) => networkOf(ownerOf(e)) === network)
-    .reduce((n, e) => n + e.size + (e.backSize ?? 0), 0);
-};
 
 const hash = (k: string) => createHash("sha256").update(`lingxi-sit:${k}`).digest("hex");
 
@@ -136,7 +138,7 @@ function memoryBlobs(): Blobs {
 export function createSittingStore(
   dir?: string,
   now: () => number = Date.now,
-  limits: { maxBytes: number; perOwner: number; perNetworkBytes?: number; freeShare?: number } = {
+  limits: { maxBytes: number; perOwner: number; perNetworkBytes?: number; freeShare?: number; maxPacks?: number } = {
     maxBytes: MAX_SITTING_BYTES,
     perOwner: MAX_PACKS_PER_OWNER,
   },
@@ -144,52 +146,99 @@ export function createSittingStore(
   const legacy = dir?.endsWith(".json") ? dir : undefined;
   const folder = legacy ? legacy.slice(0, -".json".length) : dir;
   const blobs = folder ? folderBlobs(folder) : memoryBlobs();
+  const maxPacks = limits.maxPacks ?? MAX_PACKS;
   const index = new Map<string, Entry>();
   let bytes = 0;
-  /** an index kept before addresses were coded held its owners' addresses: they are coded on load (P6a) */
-  let raw = false;
-
-  // the index, or its .bak when a crash cut it short; one that cannot be read is kept aside, never written over (A139)
-  if (folder && hasStore(join(folder, "index.json"))) {
-    const got = loadJson(join(folder, "index.json"));
-    if (got.state === "ok") {
-      if (got.from === "bak")
-        process.stderr.write(`sitting index could not be read: kept aside, read its .bak instead\n`);
-      for (const [code, e] of Object.entries(got.value as Record<string, Entry>)) {
-        if (!SIT_CODE.test(code)) continue;
-        if (CODE.test(e.owner)) index.set(code, e);
-        else {
-          const c = recoded(e.owner);
-          index.set(code, { ...e, owner: c.by, ...(c.net !== undefined ? { net: c.net } : {}) });
-          raw = true;
-        }
-        bytes += e.size + (e.backSize ?? 0);
-      }
-    } else if (got.state === "damaged")
-      process.stderr.write(`sitting index and its .bak could not be read: both kept aside\n`);
-  }
-
-  // writes of the index go one after another, so a slow disk never interleaves two renames
-  let queue: Promise<void> = Promise.resolve();
-  const saveIndex = () => {
-    if (!folder) return Promise.resolve();
-    const text = JSON.stringify(Object.fromEntries(index));
-    queue = queue
-      .then(() => (folder ? saveJson(join(folder, "index.json"), undefined, text) : blobs.write("index.json", text)))
-      .catch((e: Error) => {
-        process.stderr.write(`sitting index not saved: ${e.message}\n`);
-      });
-    return queue;
+  /** what the caps read, kept as packs come and go so a leave never walks the shelf (P10) */
+  const owned = new Map<string, number>();
+  const places = new Map<string, number>();
+  const netBytes = new Map<string, number>();
+  const bump = (m: Map<string, number>, k: string, by: number) => {
+    const n = (m.get(k) ?? 0) + by;
+    if (n === 0) m.delete(k);
+    else m.set(k, n);
   };
-
-  // A37: a store moved in from the old layout lists its packs at once, while their files are still being written; it is
-  // ready once every file is written, the index saved and the old file set aside, and every call waits for that, so a
-  // pack asked for in the first moments after a start is never missed
+  const count = (e: Entry, sign: 1 | -1) => {
+    const size = e.size + (e.backSize ?? 0);
+    const network = networkOf(ownerOf(e));
+    bytes += sign * size;
+    bump(owned, e.owner, sign);
+    bump(places, network, sign);
+    bump(netBytes, network, sign * size);
+  };
+  /** sets a pack's facts, counting them in place of what it had */
+  const put = (code: string, e: Entry) => {
+    const had = index.get(code);
+    if (had) count(had, -1);
+    index.set(code, e);
+    count(e, 1);
+  };
+  const unput = (code: string) => {
+    const had = index.get(code);
+    if (!had) return;
+    index.delete(code);
+    count(had, -1);
+  };
+  /** a pack's facts in a small file of its own beside it (P10); with no folder (tests), the index alone holds them */
+  const keepFacts = (code: string, e: Entry) =>
+    folder ? blobs.write(`${code}.meta`, JSON.stringify(e)) : Promise.resolve();
+  /** an owner kept as an address, before addresses were coded, is coded now (P6a) */
+  const coded = (e: Entry): Entry => {
+    if (CODE.test(e.owner)) return e;
+    const c = recoded(e.owner);
+    return { ...e, owner: c.by, ...(c.net !== undefined ? { net: c.net } : {}) };
+  };
+  // A37: a store moved in from an older layout is ready once every file it needs is written; every call waits for that,
+  // so a pack asked for in the first moments after a start is never missed
+  const moves: Promise<void>[] = [];
   let ready: Promise<void> = Promise.resolve();
+
   if (folder) {
-    // written twice, so the .bak each write keeps holds no address either
-    if (raw) ready = saveIndex().then(saveIndex);
+    const names = readdirSync(folder);
+    for (const name of names) {
+      const code = /^([a-f0-9]{24})\.meta$/.exec(name)?.[1];
+      if (!code) continue;
+      try {
+        const e = JSON.parse(readFileSync(join(folder, name), "utf8")) as Entry;
+        const c = coded(e);
+        put(code, c);
+        if (c !== e) moves.push(keepFacts(code, c));
+      } catch (err) {
+        // facts that cannot be read are kept as they are, never written over, and their pack is not served
+        process.stderr.write(`sitting pack ${code} not read: ${(err as Error).message}\n`);
+      }
+    }
+    // the layout before P10: one index of every pack, rewritten on every leave; each pack gets its own facts from it,
+    // then the index goes. One that cannot be read is kept aside, never written over (A139)
+    const indexFile = join(folder, "index.json");
+    if (hasStore(indexFile)) {
+      const got = loadJson(indexFile);
+      if (got.state === "ok") {
+        if (got.from === "bak")
+          process.stderr.write(`sitting index could not be read: kept aside, read its .bak instead\n`);
+        for (const [code, e] of Object.entries(got.value as Record<string, Entry>)) {
+          // facts written since the index are newer, and kept
+          if (!SIT_CODE.test(code) || index.has(code)) continue;
+          const c = coded(e);
+          put(code, c);
+          moves.push(keepFacts(code, c));
+        }
+        const facts = [...moves];
+        moves.push(
+          Promise.all(facts).then(() => {
+            for (const f of [indexFile, `${indexFile}.bak`]) rmSync(f, { force: true });
+          }),
+        );
+      } else if (got.state === "damaged")
+        process.stderr.write(`sitting index and its .bak could not be read: both kept aside\n`);
+    }
     scrubAsides(folder, "index.json");
+    // a pack or homecoming with no facts at all was never handed out (a crash came between its two writes): it goes
+    const known = new Set(names.flatMap((n) => /^([a-f0-9]{24})\.meta$/.exec(n)?.[1] ?? []));
+    for (const name of names) {
+      const code = /^([a-f0-9]{24})\.(pack|back)$/.exec(name)?.[1];
+      if (code && !index.has(code) && !known.has(code)) rmSync(join(folder, name), { force: true });
+    }
   }
   if (legacy && existsSync(legacy)) {
     // the old layout: one JSON file holding every pack; moved in once, then kept as .migrated
@@ -198,44 +247,45 @@ export function createSittingStore(
         string,
         { pack: string; keyHash: string; until: number; created: number; back?: string; backAt?: number }
       >;
-      const moves: Promise<void>[] = [];
+      const moved: Promise<void>[] = [];
       for (const [code, e] of Object.entries(old)) {
         if (!SIT_CODE.test(code) || index.has(code)) continue;
-        index.set(code, {
+        const entry: Entry = {
           keyHash: e.keyHash,
           until: e.until,
           created: e.created,
           owner: codeOf("before-migration").by,
           size: e.pack.length,
           ...(e.back ? { backSize: e.back.length, backAt: e.backAt } : {}),
-        });
-        bytes += e.pack.length + (e.back?.length ?? 0);
-        moves.push(blobs.write(`${code}.pack`, e.pack));
-        if (e.back) moves.push(blobs.write(`${code}.back`, e.back));
+        };
+        put(code, entry);
+        moved.push(blobs.write(`${code}.pack`, e.pack));
+        if (e.back) moved.push(blobs.write(`${code}.back`, e.back));
+        moved.push(keepFacts(code, entry));
       }
-      const coded = ready;
-      ready = Promise.all([coded, ...moves])
-        .then(saveIndex)
-        .then(() => renameSync(legacy, `${legacy}.migrated`))
-        .catch((e: Error) => void process.stderr.write(`sitting migration: ${e.message}\n`));
+      moves.push(Promise.all(moved).then(() => renameSync(legacy, `${legacy}.migrated`)));
     } catch (e) {
       process.stderr.write(`sitting store from before could not be read: ${(e as Error).message}\n`);
     }
   }
+  if (moves.length)
+    ready = Promise.all(moves)
+      .then(() => undefined)
+      .catch((e: Error) => void process.stderr.write(`sitting migration: ${e.message}\n`));
 
   const drop = async (code: string) => {
-    const e = index.get(code);
-    if (!e) return;
-    index.delete(code);
-    bytes -= e.size + (e.backSize ?? 0);
-    await Promise.all([blobs.remove(`${code}.pack`), blobs.remove(`${code}.back`)]);
+    if (!index.has(code)) return;
+    unput(code);
+    await Promise.all([blobs.remove(`${code}.pack`), blobs.remove(`${code}.back`), blobs.remove(`${code}.meta`)]);
   };
+  // packs a week past their end are let go at most once a minute, so a leave does not walk the shelf each time (P10)
+  let swept = Number.NEGATIVE_INFINITY;
   const sweep = async () => {
     const t = now();
+    if (t - swept < SWEEP_EVERY_MS) return;
+    swept = t;
     const old = [...index].filter(([, e]) => t > e.until + KEEP_AFTER_MS).map(([code]) => code);
-    if (!old.length) return;
     for (const code of old) await drop(code);
-    await saveIndex();
   };
 
   return {
@@ -257,9 +307,21 @@ export function createSittingStore(
       // ends, and a short end date must not slip past the cap (A50)
       // an IPv6 /48 holds four addresses' worth of packs, and no sender more than its share of the bytes (A118)
       const owner = codeOf(address);
-      if (heldOverCoded([...index.values()].map(ownerOf), owner, limits.perOwner))
+      const network = networkOf(owner);
+      const theirPlaces = places.get(network) ?? 0;
+      if (
+        (owned.get(owner.by) ?? 0) >= limits.perOwner ||
+        (owner.net !== undefined && theirPlaces >= limits.perOwner * PREFIX_SHARE)
+      )
         return { ok: false, reason: "tooMany" };
-      const theirs = heldBy(index, owner);
+      if (index.size >= maxPacks) return { ok: false, reason: "full" };
+      // the places one network may take shrink as the shelf fills, as a move's do, so a few networks cannot fill it
+      if (
+        theirPlaces + 1 >
+        Math.max(1, shareOf(limits.perOwner * PREFIX_SHARE, maxPacks - index.size, theirPlaces, limits.freeShare))
+      )
+        return { ok: false, reason: "tooMany" };
+      const theirs = netBytes.get(network) ?? 0;
       if (bytes + pack.length > limits.maxBytes) return { ok: false, reason: "full" };
       // and that share shrinks as the shelf fills, so a few networks cannot fill it (A141)
       if (
@@ -275,23 +337,23 @@ export function createSittingStore(
       // the place and the bytes are taken before the write, so requests in flight together cannot all pass the caps
       // above (A76); a write that fails gives them back
       const code = randomBytes(12).toString("hex");
-      index.set(code, {
+      const entry: Entry = {
         keyHash,
         until,
         created: t,
         owner: owner.by,
         ...(owner.net !== undefined ? { net: owner.net } : {}),
         size: pack.length,
-      });
-      bytes += pack.length;
+      };
+      put(code, entry);
       try {
         await blobs.write(`${code}.pack`, pack);
+        await keepFacts(code, entry);
       } catch (e) {
-        index.delete(code);
-        bytes -= pack.length;
+        unput(code);
+        await Promise.all([blobs.remove(`${code}.pack`), blobs.remove(`${code}.meta`)]);
         throw e;
       }
-      await saveIndex();
       return { ok: true, code };
     },
     async collect(code) {
@@ -323,7 +385,7 @@ export function createSittingStore(
       }
       if (bytes - (e.backSize ?? 0) + pet.length > limits.maxBytes) return false;
       // a homecoming counts against the pack owner's network share, as its pack did (A146)
-      const theirs = heldBy(index, ownerOf(e));
+      const theirs = netBytes.get(networkOf(ownerOf(e))) ?? 0;
       const grows = pet.length - (e.backSize ?? 0);
       if (
         grows > 0 &&
@@ -338,17 +400,15 @@ export function createSittingStore(
         return false;
       // taken before the write, as for a pack left, and the entry's size with it, so a second sending home at once
       // counts from this one (A76)
-      const grow = pet.length - (e.backSize ?? 0);
-      bytes += grow;
-      index.set(code, { ...e, backSize: pet.length, backAt: now() });
+      const next: Entry = { ...e, backSize: pet.length, backAt: now() };
+      put(code, next);
       try {
         await blobs.write(`${code}.back`, pet);
+        await keepFacts(code, next);
       } catch (err) {
-        bytes -= grow;
-        if (index.get(code)?.backSize === pet.length) index.set(code, e);
+        if (index.get(code) === next) put(code, e);
         throw err;
       }
-      await saveIndex();
       return true;
     },
     stats: () => ({ packs: index.size, bytes }),
