@@ -315,9 +315,11 @@ export function NeighboursPanel() {
               <div className="nb-who">
                 <b>
                   {neighbourName(f.id, lang)}
+                  {/* R41: the star's meaning in words a screen reader reads, not only in a hover title */}
                   {waiting && (
                     <span className="nb-star" title={zh ? "有新的一步" : "A step is waiting"}>
-                      ★
+                      <span aria-hidden="true">★</span>
+                      <span className="sr-only">{zh ? "（有新的一步）" : " (a step is waiting)"}</span>
                     </span>
                   )}
                 </b>
