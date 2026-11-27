@@ -55,9 +55,13 @@ export function pseudonymKey(file = keyFile()): Buffer {
   return key;
 }
 
-/** The code of `value` in `domain`: the same value always has the same code under one key, and another under another. */
+/**
+ * The code of `value` in `domain`: the same value always has the same code under one key, and another under another.
+ * Its 16 characters are made on their own from the digest's first 8 bytes (P10): taken as a slice of the hex digest,
+ * each code kept its whole 64-character parent alive, 122.5 bytes a code kept against 42.5, and stores keep many.
+ */
 export function pseudonym(domain: string, value: string, key: Buffer = pseudonymKey()): string {
-  return createHmac("sha256", key).update(`${domain}\0${value}`).digest("hex").slice(0, 16);
+  return createHmac("sha256", key).update(`${domain}\0${value}`).digest().subarray(0, 8).toString("hex");
 }
 
 /** The code of a caller (as clientIp names it: an IPv4 address, or an IPv6 /64). */
