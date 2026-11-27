@@ -9,6 +9,7 @@ import { useBadges } from "../game/badges";
 import { Icon, type IconName } from "./icons";
 import "./badges.css";
 import { useTrial } from "../game/tryIt";
+import { useDialogOpen } from "./app/useDialogOpen";
 
 const ICON: Record<Metric, IconName> = {
   care: "heart",
@@ -110,7 +111,10 @@ export function BadgeToast() {
   const dismiss = useBadges((s) => s.dismiss);
   // a badge earned by teaching a lesson waits while Try it asks about that lesson, then has its full time (B5)
   const offering = useTrial((s) => s.offering);
-  const top = offering ? undefined : fresh[0];
+  // R40: and while a dialog lies over the room, whose dim it was the lightest thing under: it is shown, and said, once
+  // the dialog has closed, with its full time from then
+  const dialogOpen = useDialogOpen();
+  const top = offering || dialogOpen ? undefined : fresh[0];
   useEffect(() => {
     if (!top) return;
     const t = setTimeout(() => dismiss(top.id), 3600);

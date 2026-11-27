@@ -22,6 +22,14 @@
 .notice-lane[data-under-dialog] {
   z-index: 39;
 }
+/* R40: and nothing in it is drawn there: a notice under the dim (a badge, a quest's toast, drawn near white) was still
+   the lightest thing behind the dialog. The news waits for the dialog to close and then has its full time (the badge,
+   the quest's toast, the rules mark and the pet's words each wait in their own code); a passing care note may lapse
+   unseen, as it may behind a weightier notice (H5); the offline note, a state, shows again once the dialog closes.
+   Hidden from the eye only: a screen reader's live regions stay */
+.notice-lane[data-under-dialog] > :not(.sr-only) {
+  visibility: hidden;
+}
 .notice-lane > :is(.toast, .quest-toast, .badge-toast, .rules-mark, .voice) {
   position: relative;
   inset: auto;

@@ -41,6 +41,7 @@ import {
 import { QuestPanel } from "./WorldPanels";
 import { TogetherPanel, togetherWaiting } from "./Goals";
 import { rewardText } from "./rewardText";
+import { useDialogOpen } from "./app/useDialogOpen";
 import "./quests.css";
 
 type Lang = "en" | "zh";
@@ -459,7 +460,11 @@ export function QuestDialog() {
 /** A quest opened, became ready, or was handed in: one short note, tap to open the book. */
 export function QuestToast({ onOpenBook }: { onOpenBook: () => void }) {
   const lang = useLang((s) => s.lang) as Lang;
-  const note = useQuestUi((s) => s.note);
+  // R40: a quest's news waits while a dialog lies over the room (drawn near white, it was the lightest thing under the
+  // dialog's dim), and has its full time once the dialog has closed
+  const dialogOpen = useDialogOpen();
+  const kept = useQuestUi((s) => s.note);
+  const note = dialogOpen ? null : kept;
   const dismiss = useQuestUi((s) => s.dismiss);
   const pet = useGame((s) => s.pet);
   useEffect(() => {
