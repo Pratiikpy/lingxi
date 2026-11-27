@@ -360,10 +360,10 @@ function prerenderLanding(): Plugin {
       const page = join(outDir, "index.html");
       if (!existsSync(page)) return;
       await withPrerender("src/landing/prerender.tsx", ".prerender", async (href) => {
-        const mod = (await import(href)) as { render: (lang: "en" | "zh") => string };
+        const mod = (await import(href)) as { render: (lang: "en" | "zh") => string; phaseScript: () => string };
         const [en, zh] = [mod.render("en"), mod.render("zh")];
         // a storage that cannot be read falls back to the browser's own language, as a first visit does
-        const pick = `<script>(function(){var l;try{l=localStorage.getItem("lingxi.lang")}catch(e){}if(l!=="en"&&l!=="zh")l=(navigator.language||"").toLowerCase().indexOf("zh")===0?"zh":"en";if(l==="zh"){var r=document.getElementById("root").children;r[0].hidden=true;r[1].hidden=false;document.documentElement.lang="zh-CN"}})()</script>`;
+        const pick = `<script>(function(){var l;try{l=localStorage.getItem("lingxi.lang")}catch(e){}if(l!=="en"&&l!=="zh")l=(navigator.language||"").toLowerCase().indexOf("zh")===0?"zh":"en";if(l==="zh"){var r=document.getElementById("root").children;r[0].hidden=true;r[1].hidden=false;document.documentElement.lang="zh-CN"}})();${mod.phaseScript()}</script>`;
         const html = readFileSync(page, "utf8");
         if (!html.includes('<div id="root"></div>')) throw new Error("index.html has no empty #root to fill");
         writeFileSync(

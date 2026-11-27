@@ -8,6 +8,9 @@ import type { Lang } from "../i18n";
 import { LandingApp } from "./LandingApp";
 import { PrerenderLang } from "./landingLang";
 
+/** R53: the visitor's time of day is marked by the page's first script, which the build writes in after the page. */
+export { phaseScript } from "./heroPhase";
+
 export function render(lang: Lang): string {
   return renderToString(
     <PrerenderLang.Provider value={lang}>

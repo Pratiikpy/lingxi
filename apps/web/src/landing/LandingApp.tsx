@@ -13,7 +13,7 @@ import { STARTERS, compileProgram, gateCount } from "@lingxi/brain";
 import { CHARACTERS } from "@lingxi/world";
 import { useLandingLang } from "./landingLang";
 import { usePageMeta } from "../i18n/pageMeta";
-import { type HeroPhase, phaseNow } from "./heroPhase";
+import { type HeroPhase, PHASES, phaseNow } from "./heroPhase";
 import { hardwareWebGl } from "./heroArt";
 import { COPY } from "./copy";
 import "../play/play.css";
@@ -134,7 +134,7 @@ export function LandingApp() {
         {/* R28: after the headline in the page, so it is reached after it; on a phone it sits in its own row under the
             buttons, clear of the pet (landing.css) */}
         <div className="l-phase" role="radiogroup" aria-label={lang === "zh" ? "时间" : "Time of day"}>
-          {(["day", "evening", "night"] as const).map((p) => (
+          {PHASES.map((p) => (
             <button key={p} type="button" role="radio" aria-checked={phase === p} onClick={() => setPhase(p)}>
               {lang === "zh"
                 ? { day: "白天", evening: "黄昏", night: "夜晚" }[p]
