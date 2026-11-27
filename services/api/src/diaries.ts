@@ -94,7 +94,9 @@ export function createDiaryStore(
       }
     }
   }
+  /** what each sender (and each IPv6 /48) spent on `spentDay`, the latest day anything was spent */
   const spent = new Map<string, { day: number; bytes: number }>();
+  let spentDay = -Infinity;
 
   const text = (id: string): string | null => {
     if (!index.has(id)) return null;
@@ -126,8 +128,16 @@ export function createDiaryStore(
     const mine = spent.get(from);
     return mine?.day === day ? mine.bytes : 0;
   };
-  /** spends `bytes` of `from`'s day, and of its IPv6 /48's (A123) */
+  /**
+   * spends `bytes` of `from`'s day, and of its IPv6 /48's (A123). An earlier day's spending is never read again
+   * (spentToday counts only the day asked for), so a new day lets it go, as duels.ts does: kept, it held one entry for
+   * every address that ever published, for good (P10)
+   */
   const addSpent = (from: string, day: number, bytes: number) => {
+    if (day > spentDay) {
+      spentDay = day;
+      spent.clear();
+    }
     for (const k of [from, ...(prefixOf(from) !== null ? [prefixOf(from)!] : [])])
       spent.set(k, { day, bytes: spentToday(k, day) + bytes });
   };
@@ -254,7 +264,8 @@ export function createDiaryStore(
     },
     /** How many logs are held in memory: none with a folder (A39). */
     heldInMemory: () => texts.size,
-    stats: () => ({ diaries: index.size, bytes: total }),
+    /** what is shelved, and how many senders (and IPv6 /48s) today's spending holds */
+    stats: () => ({ diaries: index.size, bytes: total, spenders: spent.size }),
   };
 }
 export type DiaryStore = ReturnType<typeof createDiaryStore>;

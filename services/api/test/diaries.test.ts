@@ -182,3 +182,28 @@ describe("diaries bounded (A39)", () => {
     expect([r.status, await r.json()]).toEqual([200, { ok: false, reason: "busy" }]);
   });
 });
+
+describe("what a diary's sender spent, kept for its day only (P10)", () => {
+  it("lets go of an earlier day's senders: the map holds today's alone", () => {
+    let now = NOW;
+    const store = createDiaryStore(undefined, { now: () => now });
+    // a day of senders, each publishing the same diary from an address of its own
+    for (let i = 0; i < 50; i++) expect(store.publish(log, onChain(hash), `203.0.113.${i}`).ok).toBe(true);
+    expect(store.stats().spenders).toBe(50);
+    // the next day one more: the fifty of yesterday are never read again, and are gone
+    now += 86_400_000;
+    expect(store.publish(log, onChain(hash), "198.51.100.1").ok).toBe(true);
+    expect(store.stats().spenders).toBe(1);
+  });
+
+  it("still holds an address to its day's bytes, and an IPv6 network to its share", () => {
+    const store = createDiaryStore(undefined, { now: () => NOW, perAddressBytesPerDay: JSON.stringify(log).length });
+    expect(store.publish(log, onChain(hash), "a").ok).toBe(true);
+    const other = { ...log, petId: "8" };
+    expect(store.publish(other, onChain(hash), "a")).toEqual({ ok: false, reason: "busy" });
+    expect(store.publish(other, onChain(hash), "b").ok).toBe(true);
+    // an IPv6 caller's spend counts for its /64 and its /48
+    expect(store.publish({ ...log, petId: "9" }, onChain(hash), "2001:db8:1:1::/64").ok).toBe(true);
+    expect(store.stats().spenders).toBe(4);
+  });
+});
