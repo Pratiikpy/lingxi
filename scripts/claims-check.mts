@@ -524,7 +524,7 @@ const AUTO: Record<string, Check> = {
     expect(!server.length, `the on-chain copy reaches Lingxi's server: ${server.join(", ")}`);
     const says = texts.some((t) => t.includes("has no server to fall back on"));
     if (!says && !atMilestone)
-      throw new Pending("the on-chain copy predates its own sources wording (published at the milestone's close)");
+      throw new Pending("the on-chain copy predates its own sources wording (published once, with the hand-in build)");
     expect(says, "the on-chain proof page does not say it has no server");
     return `${assets.length} scripts read from X Layer: no server address, and the page says it has none`;
   },
@@ -572,8 +572,9 @@ const AUTO: Record<string, Check> = {
       head,
       (commit) => spawnSync("git", ["diff", "--quiet", commit, head, "--", ...SITE_INPUTS], { cwd: root }).status === 0,
     );
-    // published at each milestone's close: between closes a copy behind is pending, at a close (--milestone) it fails
-    if (!current && !atMilestone) throw new Pending(`the on-chain copy ${why} (published at the milestone's close)`);
+    // published once, with the hand-in build: before it a copy behind is pending, at the hand-in (--milestone) it fails
+    if (!current && !atMilestone)
+      throw new Pending(`the on-chain copy ${why} (published once, with the hand-in build)`);
     expect(current, `the on-chain copy ${why}`);
     return `1.2.419.tape is live, container ${container}, and ${why}`;
   },

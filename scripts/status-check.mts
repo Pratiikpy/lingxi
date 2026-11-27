@@ -38,7 +38,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
 const quick = args.includes("--quick");
 const release = args.includes("--release");
-/** at a milestone's close the on-chain copy must be current too (between closes it is published once per milestone) */
+/** at the hand-in the on-chain copy must be current too (it is published once, with the hand-in build) */
 const milestone = args.includes("--milestone") || release;
 const onlyArg = args.find((a) => a.startsWith("--only"));
 const only = onlyArg
@@ -295,14 +295,14 @@ async function siteChecks(): Promise<void> {
       head,
       (commit) => spawnSync("git", ["diff", "--quiet", commit, head, "--", ...inputs], { cwd: root }).status === 0,
     );
-    // the on-chain copy is published at the end of each milestone (about 0.01 OKB a time, see the plan), so between
-    // those it may lag; it is pending then, and a failure at a milestone's close or a release
+    // the on-chain copy is published once, with the hand-in build (about 0.01-0.016 OKB a time, see the plan), so
+    // before it may lag; it is pending then, and a failure at the hand-in (--milestone) or a release
     const lagsByDesign = !same && base === DEWEB_URL && !s.dirty && !milestone;
     record(
       "sites",
       `${name} is current`,
       same ? "PASS" : lagsByDesign ? "PENDING" : "FAIL",
-      lagsByDesign ? `${why} (published at the milestone's close)` : why,
+      lagsByDesign ? `${why} (published once, with the hand-in build)` : why,
       t,
     );
   }
